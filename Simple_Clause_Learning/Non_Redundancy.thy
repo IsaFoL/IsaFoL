@@ -334,13 +334,13 @@ section \<open>Trail-Induced Ordering\<close>
 
 subsection \<open>Miscellaneous Lemmas\<close>
 
-lemma pairwise_distinct_if_sound_trail:
+lemma pairwise_distinct_if_trail_consistent:
   fixes \<Gamma>
   defines "Ls \<equiv> (map fst \<Gamma>)"
-  shows "sound_trail N \<Gamma> \<Longrightarrow>
+  shows "trail_consistent \<Gamma> \<Longrightarrow>
     \<forall>i < length Ls. \<forall>j < length Ls. i \<noteq> j \<longrightarrow> Ls ! i \<noteq> Ls ! j \<and> Ls ! i \<noteq> - (Ls ! j)"
   unfolding Ls_def
-proof (induction \<Gamma> rule: sound_trail.induct)
+proof (induction \<Gamma> rule: trail_consistent.induct)
   case Nil
   show ?case by simp
 next
@@ -377,43 +377,47 @@ qed
 
 subsection \<open>Strict Partial Order\<close>
 
-lemma irreflp_trail_less_if_sound: "sound_trail N \<Gamma> \<Longrightarrow> irreflp (trail_less (map fst \<Gamma>))"
+lemma irreflp_trail_less_if_trail_consistant:
+  "trail_consistent \<Gamma> \<Longrightarrow> irreflp (trail_less (map fst \<Gamma>))"
   using irreflp_trail_less[OF
       Clausal_Logic.uminus_not_id'
       Clausal_Logic.uminus_of_uminus_id
-      pairwise_distinct_if_sound_trail]
+      pairwise_distinct_if_trail_consistent]
   by assumption
 
-lemma transp_trail_less_if_sound: "sound_trail N \<Gamma> \<Longrightarrow> transp (trail_less (map fst \<Gamma>))"
+lemma transp_trail_less_if_trail_consistant:
+  "trail_consistent \<Gamma> \<Longrightarrow> transp (trail_less (map fst \<Gamma>))"
   using transp_trail_less[OF
       Clausal_Logic.uminus_not_id'
       Clausal_Logic.uminus_of_uminus_id
-      pairwise_distinct_if_sound_trail]
+      pairwise_distinct_if_trail_consistent]
   by assumption
 
-lemma asymp_trail_less_if_sound: "sound_trail N \<Gamma> \<Longrightarrow> asymp (trail_less (map fst \<Gamma>))"
+lemma asymp_trail_less_if_trail_consistant:
+  "trail_consistent \<Gamma> \<Longrightarrow> asymp (trail_less (map fst \<Gamma>))"
   using asymp_trail_less[OF
       Clausal_Logic.uminus_not_id'
       Clausal_Logic.uminus_of_uminus_id
-      pairwise_distinct_if_sound_trail]
+      pairwise_distinct_if_trail_consistent]
   by assumption
 
 
 subsection \<open>Extension on All Literals\<close>
 
-lemma transp_trail_less_ex_if_sound: "sound_trail N \<Gamma> \<Longrightarrow> transp lt \<Longrightarrow> transp (trail_less_ex lt (map fst \<Gamma>))"
+lemma transp_trail_less_ex_if_trail_consistant:
+  "trail_consistent \<Gamma> \<Longrightarrow> transp lt \<Longrightarrow> transp (trail_less_ex lt (map fst \<Gamma>))"
   using transp_trail_less_ex[OF
       Clausal_Logic.uminus_not_id'
       Clausal_Logic.uminus_of_uminus_id
-      pairwise_distinct_if_sound_trail]
+      pairwise_distinct_if_trail_consistent]
   by assumption
 
-lemma asymp_trail_less_ex_if_sound:
-  "sound_trail N \<Gamma> \<Longrightarrow> asymp lt \<Longrightarrow> asymp (trail_less_ex lt (map fst \<Gamma>))"
+lemma asymp_trail_less_ex_if_trail_consistant:
+  "trail_consistent \<Gamma> \<Longrightarrow> asymp lt \<Longrightarrow> asymp (trail_less_ex lt (map fst \<Gamma>))"
   using asymp_trail_less_ex[OF
       Clausal_Logic.uminus_not_id'
       Clausal_Logic.uminus_of_uminus_id
-      pairwise_distinct_if_sound_trail]
+      pairwise_distinct_if_trail_consistent]
   by assumption
 
 
@@ -424,14 +428,14 @@ lemma trail_defined_if_trail_less_ex:
   by (metis (no_types, opaque_lifting) list.set_map trail_defined_lit_def trail_less_ex_def)
 
 lemma trail_defined_cls_if_lt_defined:
-  assumes sound_\<Gamma>: "sound_trail N \<Gamma>" and
+  assumes consistent_\<Gamma>: "trail_consistent \<Gamma>" and
     transp_lt: "transp lt" and
     C_lt_D: "multp (trail_less_ex lt (map fst \<Gamma>)) C D" and
     tr_def_D: "trail_defined_cls \<Gamma> D"
   shows "trail_defined_cls \<Gamma> C"
 proof -
   have transp_tr_lt_ex: "transp (trail_less_ex lt (map fst \<Gamma>))"
-    by (rule transp_trail_less_ex_if_sound[OF sound_\<Gamma> transp_lt])
+    by (rule transp_trail_less_ex_if_trail_consistant[OF consistent_\<Gamma> transp_lt])
 
   from multp_implies_one_step[OF transp_tr_lt_ex C_lt_D]
   obtain I J K where D_def: "D = I + J" and C_def: "C = I + K" and "J \<noteq> {#}" and
@@ -490,12 +494,13 @@ next
 qed
 
 lemma not_trail_true_and_false_lit:
-  "sound_trail N \<Gamma> \<Longrightarrow> \<not> (trail_true_lit \<Gamma> L \<and> trail_false_lit \<Gamma> L)"
+  "trail_consistent \<Gamma> \<Longrightarrow> \<not> (trail_true_lit \<Gamma> L \<and> trail_false_lit \<Gamma> L)"
   apply (simp add: trail_true_lit_def trail_false_lit_def)
-  by (metis (no_types, lifting) in_set_conv_nth list.set_map pairwise_distinct_if_sound_trail
+  by (metis (no_types, lifting) in_set_conv_nth list.set_map pairwise_distinct_if_trail_consistent
       uminus_not_id')
 
-lemma not_trail_true_and_false_cls: "sound_trail N \<Gamma> \<Longrightarrow> \<not> (trail_true_cls \<Gamma> C \<and> trail_false_cls \<Gamma> C)"
+lemma not_trail_true_and_false_cls:
+  "trail_consistent \<Gamma> \<Longrightarrow> \<not> (trail_true_cls \<Gamma> C \<and> trail_false_cls \<Gamma> C)"
   using not_trail_true_and_false_lit
   by (metis trail_false_cls_def trail_true_cls_def)
 
@@ -504,7 +509,7 @@ theorem learned_clauses_in_regular_runs_invars:
     sound_S0: "sound_state N \<beta> S0" and
     invars: "learned_nonempty S0" "conflict_disjoint_vars N S0"
       "trail_propagated_or_decided' N \<beta> S0" "no_conflict_after_decide' N \<beta> S0"
-      "almost_no_conflict_with_trail N \<beta> S0" and
+      "almost_no_conflict_with_trail N \<beta> S0" "trail_lits_consistent S0" and
     conflict: "conflict N \<beta> S0 S1" and
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
     backtrack: "backtrack N \<beta> Sn Sn'" and
@@ -726,15 +731,17 @@ proof -
 
   from sound_S1 have sound_trail_S1: "sound_trail N (state_trail S1)"
     by (auto simp add: sound_state_def)
-  hence tr_consistent_S1: "trail_consistent (state_trail S1)"
-    by (rule trail_consistent_if_sound)
+  
+  have tr_consistent_S1: "trail_consistent (state_trail S1)"
+    using conflict_preserves_trail_lits_consistent[OF conflict \<open>trail_lits_consistent S0\<close>]
+    by (simp add: trail_lits_consistent_def)
 
   have "\<forall>L\<in>#Cn \<cdot> \<gamma>n. trail_defined_lit (state_trail S1) L"
     using tr_false_S1_Cn_\<gamma>n trail_defined_lit_iff_true_or_false trail_false_cls_def by blast
   hence "trail_interp (state_trail S1) \<TTurnstile> Cn \<cdot> \<gamma>n \<longleftrightarrow> trail_true_cls (state_trail S1) (Cn \<cdot> \<gamma>n)"
     using tr_consistent_S1 trail_true_cls_iff_trail_interp_entails by auto
   hence not_trail_S1_entails_Cn_\<gamma>n: "\<not> trail_interp (state_trail S1) \<TTurnstile>s {Cn \<cdot> \<gamma>n}"
-    using tr_false_S1_Cn_\<gamma>n not_trail_true_and_false_cls[OF sound_trail_S1] by auto
+    using tr_false_S1_Cn_\<gamma>n not_trail_true_and_false_cls[OF tr_consistent_S1] by auto
 
   have "trail_defined_cls (state_trail S1) (Cn \<cdot> \<gamma>n)"
     using \<open>\<forall>L\<in>#Cn \<cdot> \<gamma>n. trail_defined_lit (state_trail S1) L\<close> trail_defined_cls_def by blast
@@ -844,7 +851,7 @@ proof -
     proof (elim disjE)
       assume multp_D_Cn_\<gamma>n: "trail_ord D (Cn \<cdot> \<gamma>n)"
       show "trail_defined_cls (state_trail S1) D"
-        using \<open>sound_trail N (state_trail S1)\<close> multp_D_Cn_\<gamma>n
+        using tr_consistent_S1 multp_D_Cn_\<gamma>n
           \<open>trail_defined_cls (state_trail S1) (Cn \<cdot> \<gamma>n)\<close> \<open>transp lt\<close>
         by (auto simp add: trail_ord_def intro: trail_defined_cls_if_lt_defined)
     next
@@ -867,7 +874,7 @@ proof -
         unfolding trail_ord_def
       proof (rule multp_mono_strong)
         from \<open>transp lt\<close> show "transp (trail_less_ex lt (map fst (state_trail S1)))"
-          by (rule transp_trail_less_ex_if_sound[OF \<open>sound_trail N (state_trail S1)\<close>])
+          by (rule transp_trail_less_ex_if_trail_consistant[OF tr_consistent_S1])
       next
         show "\<And>x y. x \<in># D \<Longrightarrow> y \<in># Cn \<cdot> \<gamma>n \<Longrightarrow> trail_less_ex lt (map fst (state_trail S1)) x y \<Longrightarrow>
            trail_less (map fst (state_trail S1)) x y"
@@ -907,14 +914,15 @@ proof -
         by (rule trail_less_comp_rightI) simp
 
       ultimately have ***: "\<forall>K \<in># Cn \<cdot> \<gamma>n. trail_less (map fst (state_trail S1)) K (- (L \<cdot>l \<gamma>))"
-        using transp_trail_less_if_sound[OF sound_trail_S1, THEN transpD] by blast
+        using transp_trail_less_if_trail_consistant[OF tr_consistent_S1, THEN transpD] by blast
 
       have "\<not> (L \<cdot>l \<gamma> \<in># D \<or> - (L \<cdot>l \<gamma>) \<in># D)"
       proof (rule notI)
         obtain I J K where
           "Cn \<cdot> \<gamma>n = I + J" and D_def: "D = I + K" and "J \<noteq> {#}" and
           "\<forall>k\<in>#K. \<exists>x\<in>#J. trail_less (map fst (state_trail S1)) k x"
-          using multp_implies_one_step[OF transp_trail_less_if_sound[OF sound_trail_S1] D_lt_Cn_\<gamma>n']
+          using multp_implies_one_step[OF transp_trail_less_if_trail_consistant[OF tr_consistent_S1]
+              D_lt_Cn_\<gamma>n']
           by auto
         assume "L \<cdot>l \<gamma> \<in># D \<or> - (L \<cdot>l \<gamma>) \<in># D"
         then show False
@@ -947,7 +955,7 @@ proof -
             "trail_less (map fst (state_trail S1)) j (- (L \<cdot>l \<gamma>))"
             using *** by (auto simp: \<open>Cn \<cdot> \<gamma>n = I + J\<close>)
           with uminus_L_\<gamma>_lt_j show "False"
-            using asymp_trail_less_if_sound[OF sound_trail_S1, THEN asympD]
+            using asymp_trail_less_if_trail_consistant[OF tr_consistent_S1, THEN asympD]
             by blast
         qed
       qed
@@ -1058,6 +1066,10 @@ proof -
     by (induction S0 rule: rtranclp_induct)
      (simp_all add: regular_scl_preserves_almost_no_conflict_with_trail)
 
+  from regular_run have "trail_lits_consistent S0"
+    by (induction S0 rule: rtranclp_induct)
+      (auto intro: scl_preserves_trail_lits_consistent reasonable_if_regular scl_if_reasonable)
+
   from regular_run conflict have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
     by (meson regular_scl_def rtranclp.simps)
   also from resolution have reg_run_S1_Sn: "(regular_scl N \<beta>)\<^sup>*\<^sup>* ... Sn"
@@ -1077,6 +1089,7 @@ proof -
     using learned_clauses_in_regular_runs_invars[OF sound_S0 \<open>learned_nonempty S0\<close>
         \<open>conflict_disjoint_vars N S0\<close> \<open>trail_propagated_or_decided' N \<beta> S0\<close>
         \<open>no_conflict_after_decide' N \<beta> S0\<close> \<open>almost_no_conflict_with_trail N \<beta> S0\<close>
+        \<open>trail_lits_consistent S0\<close>
         conflict resolution backtrack \<open>transp lt\<close>, folded trail_ord_def U_def]
     by argo
 qed

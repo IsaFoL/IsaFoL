@@ -3769,15 +3769,12 @@ abbreviation entails_\<G> (infix "\<TTurnstile>\<G>e" 50) where
 
 inductive sound_trail for N where
   Nil[simp]: "sound_trail N []" |
-  Cons: "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow>
+  Cons: "
     (case u of
       None \<Rightarrow> True |
       Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and>
         fset N \<TTurnstile>\<G>e {add_mset L' C}) \<Longrightarrow>
     sound_trail N \<Gamma> \<Longrightarrow> sound_trail N ((L, u) # \<Gamma>)"
-
-lemma trail_consistent_if_sound: "sound_trail N \<Gamma> \<Longrightarrow> trail_consistent \<Gamma>"
-  by (induction \<Gamma> rule: sound_trail.induct) (simp_all add: trail_consistent.Cons)
 
 lemma entails_\<G>_mono: "N \<TTurnstile>\<G>e U \<Longrightarrow> N \<subseteq> NN \<Longrightarrow> NN \<TTurnstile>\<G>e U"
   by (meson grounding_of_clss_mono true_clss_mono)
@@ -3787,7 +3784,7 @@ proof (induction \<Gamma> rule: sound_trail.induct)
   case Nil
   thus ?case by simp
 next
-  case (Cons \<Gamma> L u)
+  case (Cons u L \<Gamma>)
   show ?case
   proof (intro sound_trail.Cons)
     show
@@ -3828,15 +3825,11 @@ lemma sound_trail_backtrackI: "sound_trail N \<Gamma> \<Longrightarrow> sound_tr
 lemma sound_trail_propagate:
   assumes
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
-    not_tr_def_\<Gamma>_L_\<sigma>: "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<sigma>)" and
     tr_false_\<Gamma>_C_\<sigma>: "trail_false_cls \<Gamma> (C \<cdot> \<sigma>)" and
     N_entails_C_L: "fset N \<TTurnstile>\<G>e {C + {#L#}}"
   shows "sound_trail N (trail_propagate \<Gamma> L C \<sigma>)"
   unfolding trail_propagate_def
 proof (rule sound_trail.Cons; (unfold option.case prod.case)?)
-  show "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<sigma>)"
-    by (rule not_tr_def_\<Gamma>_L_\<sigma>)
-next
   show "sound_trail N \<Gamma>"
     by (rule sound_\<Gamma>)
 next
@@ -3877,43 +3870,6 @@ lemma minimal_ground_closures_if_sound_state:
 lemma conflict_disjoint_vars_if_sound_state:
   "sound_state N \<beta> S \<Longrightarrow> conflict_disjoint_vars N S"
   unfolding sound_state_def by auto
-
-lemma not_trail_defined_lit_backtrack_if_level_lit_gt_level_backtrack:
-  assumes sound_\<Gamma>: "sound_trail N \<Gamma>"
-  shows "level < trail_level \<Gamma> \<Longrightarrow> level < trail_level_lit \<Gamma> L \<Longrightarrow>
-  \<not> trail_defined_lit (trail_backtrack \<Gamma> level) L"
-  using sound_\<Gamma>
-proof (induction \<Gamma> rule: sound_trail.induct)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons \<Gamma> K u)
-  from Cons.hyps have not_\<Gamma>_defined_K: "\<not> trail_defined_lit \<Gamma> K" by simp
-  
-  show ?case
-  proof (cases "trail_level ((K, u) # \<Gamma>) \<le> level")
-    case True
-    thus ?thesis
-      using Cons.prems(1) by (simp del: trail_level.simps add: trail_defined_lit_def)
-  next
-    case not_trail_level_K_\<Gamma>_le: False
-    show ?thesis
-    proof (cases "K = L \<or> K = - L")
-      case K_eq_L: True
-      then show ?thesis
-        using not_trail_level_K_\<Gamma>_le not_\<Gamma>_defined_K
-        apply (simp del: trail_level.simps add: trail_defined_lit_def)
-        by (metis not_trail_backtrack_defined_if_not_defined trail_defined_lit_def uminus_of_uminus_id)
-    next
-      case K_neq_L: False
-      then show ?thesis
-        using not_trail_level_K_\<Gamma>_le
-        apply (simp del: trail_level.simps add: trail_defined_lit_def)
-        by (metis (no_types, lifting) Cons.IH Cons.prems(2) fst_conv leD nless_le order.trans
-            trail_defined_lit_def trail_level_lit.simps(2) trail_level_lit_le)
-    qed
-  qed
-qed
 
 
 subsection \<open>Initial State Is Sound\<close>
@@ -4034,11 +3990,6 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   proof (rule sound_trail_propagate)
     show "sound_trail N \<Gamma>"
       by (rule sound_\<Gamma>)
-  next
-    have "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<gamma>)"
-      using undef_\<Gamma>_L_\<gamma> by (simp add: \<open>L \<cdot>l \<mu> \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<close>)
-    thus "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>')"
-      by (simp add: \<open>L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<mu> \<cdot>l \<gamma>'\<close> \<open>L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<mu> \<cdot>l \<gamma>\<close>)
   next
     have "trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma>)"
       using \<Gamma>_false_C\<^sub>0_\<gamma> \<mu>_\<gamma>_simp by (metis subst_cls_comp_subst)
@@ -4394,14 +4345,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   from resolveI have is_mimgu_\<mu>: "is_mimgu \<mu> {{atm_of L, atm_of L'}}" by simp
   hence is_imgu_\<mu>: "is_imgu \<mu> {{atm_of L, atm_of L'}}" by (simp add: is_mimgu_def)
   from resolveI have \<Gamma>_def: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta>" by simp
-  from resolveI have ren_\<rho>: "is_renaming \<rho>"
-    using is_renaming_renaming_wrt by (metis finite_fset)
-
-  have "C + {#L#} |\<in>| clss_of_trail \<Gamma>"
-    unfolding \<Gamma>_def by simp
-
-  from sound_\<Gamma> \<Gamma>_def have tr_undef_\<Gamma>'_L_\<delta>: "\<not> trail_defined_lit \<Gamma>' (L \<cdot>l \<delta>)"
-    by (auto simp: trail_propagate_def elim: sound_trail.cases)
+  from resolveI have ren_\<rho>: "is_renaming \<rho>" by simp
 
   have vars_D_L'_vars_C_L_disj: "vars_cls (D + {#L'#}) \<inter> vars_cls (C + {#L#}) = {}"
     using vars_conf_disjoint

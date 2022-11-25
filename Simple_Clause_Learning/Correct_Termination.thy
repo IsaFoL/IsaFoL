@@ -192,7 +192,7 @@ proof (induction \<Gamma> rule: sound_trail.induct)
   then show ?case
     by (simp add: trail_propagated_wf_def)
 next
-  case (Cons \<Gamma> L u)
+  case (Cons u L \<Gamma>)
   then show ?case
     by (cases u) (auto simp add: trail_propagated_wf_def)
 qed
@@ -239,8 +239,12 @@ proof -
 
   from sound_\<Gamma> have trail_propagate_wf: "trail_propagated_wf (state_trail S)"
     by (simp add: S_def trail_propagated_wf_if_sound)
-  from sound_\<Gamma> have trail_consistent: "trail_consistent (state_trail S)"
-    by (simp add: S_def trail_consistent_if_sound)
+  from regular_run have trail_consistent: "trail_lits_consistent S"
+    by (induction S rule: rtranclp_induct)
+      (simp_all add: scl_preserves_trail_lits_consistent[OF
+          scl_if_reasonable[OF reasonable_if_regular]])
+  hence trail_consistent: "trail_consistent (state_trail S)"
+    by (simp add: trail_lits_consistent_def)
 
   show ?thesis
   proof (cases u)
