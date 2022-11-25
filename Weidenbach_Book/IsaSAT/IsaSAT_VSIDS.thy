@@ -19,50 +19,7 @@ order to avoid allocation yet another array. As a side effect, it also avoids in
 inside the node (because per definition, the label is exactly the index).
 But maybe pointers are actually better, because by definition in Isabelle no graph is shared.
 \<close>
-(*
-global_interpretation VSIDS: heap_impl where
-  prio = id and
-  prio_assn = \<open>snat_assn\<close> and
-  elem_assn = atom_assn and
-  prio_impl = Mreturn and
-  le_prio_impl = ll_icmp_sle and
-  lt_prio_impl = ll_icmp_slt and
-  ltype = "TYPE(64)" and
-  N = "LENGTH(64)"
-    defines h_update_impl = update_impl
-        and h_val_of_impl = val_of_impl
-        and h_exch_impl = exch_impl
-        and h_valid_impl = valid_impl
-        and h_prio_of_impl = prio_of_impl
-        and h_append_impl = append_impl
-        and h_swim_impl = swim_impl
-  and h_sink_impl = sink_impl
-        and h_empty_impl = empty_impl
-        and h_is_empty_impl = is_empty_impl
-        and h_insert_impl = insert_impl
-        and h_pop_min_impl = pop_min_impl
-        and h_peek_min_impl = peek_min_impl
-  apply unfold_locales
-  sorry
 
-interpretation hm_impl
-  oops
-find_theorems update_impl
-find_theorems HM.h.update_op
-  thm HM.h.update_op_def
-thm h_val_of_impl_def
-thm IICF_Impl_Heap.h_val_of_impl_def heap_impl.val_of_impl_def
-thm val_of_def
-definition vsids where
-  \<open>vsids M h \<longleftrightarrow> HM.h.heap_invar h\<close>
-find_theorems update_impl
-  thm IICF_Impl_Heap.h_update_impl_def heap_impl.update_impl_def
-  thm sink_impl.refine HM.h.valid_def
-  term HM.h.sink_op
-find_theorems append_impl
-find_theorems HM.h.swim_invar
-  thm HM.h.heap_invar_def
-    *)
 fun mset_nodes :: "('b, 'a) hp \<Rightarrow>'b multiset" where
 "mset_nodes (Hp x _ hs) = {#x#} + sum_mset(mset(map mset_nodes hs))"
 
@@ -1813,6 +1770,122 @@ proof -
       (auto simp: get_min2_alt_def VSIDS.pass12_merge_pairs encoded_hp_prop_list_conc_def split: option.splits)
     done
 qed
+
+definition f where \<open>f = map_option the\<close>
+
+fun hp_parent :: \<open>'a \<Rightarrow> ('a, 'b) hp \<Rightarrow> ('a, 'b)hp option\<close> where
+  \<open>hp_parent n (Hp a sc (x # children)) = (if n = node x then Some (Hp a sc (x # children)) else map_option the (option_hd (filter ((\<noteq>) None) (map (hp_parent n) (x#children)))))\<close> |
+  \<open>hp_parent n _ = None\<close>
+
+definition hp_parent_children :: \<open>'a \<Rightarrow> ('a, 'b) hp list \<Rightarrow> ('a, 'b)hp option\<close> where
+  \<open>hp_parent_children n xs =  map_option the (option_hd (filter ((\<noteq>) None) (map (hp_parent n) xs)))\<close>
+
+
+lemma hp_parent_None_notin[simp]: \<open>m \<notin># mset_nodes a \<Longrightarrow> hp_parent m a = None\<close>
+  apply (induction m a rule: hp_parent.induct)
+  apply (auto simp: filter_empty_conv)
+  by (metis node_in_mset_nodes sum_list_map_remove1 union_iff)
+
+lemma hp_parent_children_None_notin[simp]: \<open>(m::nat) \<notin># sum_list (map mset_nodes a) \<Longrightarrow> hp_parent_children m a = None\<close>
+  by (induction a)
+   (auto simp: filter_empty_conv hp_parent_children_def)
+
+lemma hp_parent_children_cons: \<open>hp_parent_children a (x # children) = (case hp_parent a x of None \<Rightarrow> hp_parent_children a children | Some a \<Rightarrow> Some a)\<close>
+  by (auto simp: hp_parent_children_def)
+
+lemma hp_parent_simps_if:
+  \<open>hp_parent n (Hp a sc (x # children)) = (if n = node x then Some (Hp a sc (x # children)) else hp_parent_children n (x#children))\<close>
+  by (auto simp: hp_parent_children_def)
+
+lemmas [simp del] = hp_parent.simps(1)
+
+lemma hp_parent_simps:
+  \<open>n = node x \<Longrightarrow> hp_parent n (Hp a sc (x # children)) = Some (Hp a sc (x # children))\<close>
+  \<open>n \<noteq> node x \<Longrightarrow> hp_parent n (Hp a sc (x # children)) = hp_parent_children n (x # children)\<close>
+  by (auto simp: hp_parent_simps_if)
+
+lemma hp_parent_itself[simp]: \<open>distinct_mset (mset_nodes x) \<Longrightarrow> hp_parent (node x) x = None\<close>
+  by (cases \<open>(node x, x)\<close> rule: hp_parent.cases)
+   (auto simp: hp_parent.simps hp_parent_children_def filter_empty_conv sum_list_map_remove1)
+
+lemma hp_parent_children_itself[simp]:
+  \<open>distinct_mset (mset_nodes x + sum_list (map mset_nodes children)) \<Longrightarrow> hp_parent_children (node x) (x # children) = None\<close>
+  by (auto simp: hp_parent_children_def filter_empty_conv disjunct_not_in distinct_mset_add sum_list_map_remove1 dest: distinct_mset_union)
+
+lemma hp_parent_in_nodes: \<open>hp_parent n x \<noteq> None \<Longrightarrow> node (the (hp_parent n x)) \<in># mset_nodes x\<close>
+  apply (induction n x rule: hp_parent.induct)
+  subgoal premises p for n a sc x children
+    using p p(1)[of xa]
+    apply (auto simp: hp_parent.simps)
+    apply (cases \<open>filter (\<lambda>y. \<exists>ya. y = Some ya) (map (hp_parent n) children)\<close>)
+    apply (fastforce simp: filter_empty_conv filter_eq_Cons_iff map_eq_append_conv)+
+    done
+  subgoal for n v va
+    by (auto simp: hp_parent.simps filter_empty_conv)
+  done
+
+lemma hp_parent_children_Some_iff:
+  \<open>hp_parent_children a xs = Some y \<longleftrightarrow> (\<exists>u b as. xs = u @ b # as \<and> (\<forall>x\<in>set u. hp_parent a x = None) \<and> hp_parent a b = Some y)\<close>
+  by (cases \<open>(filter (\<lambda>y. \<exists>ya. y = Some ya) (map (hp_parent a) xs))\<close>)
+   (fastforce simp: hp_parent_children_def filter_empty_conv filter_eq_Cons_iff map_eq_append_conv)+
+
+lemma hp_parent_hp_child:
+  \<open>distinct_mset ((mset_nodes (a::(nat,nat)hp))) \<Longrightarrow> hp_child n a \<noteq> None \<Longrightarrow> map_option node (hp_parent (node (the (hp_child n a))) a) = Some n\<close>
+  apply (induction n a rule: hp_child.induct)
+  subgoal for  n a sc x children
+    apply (simp add: hp_parent_simps_if)
+    apply auto
+    subgoal for y
+      apply (auto simp add: hp_parent_simps_if hp_parent_children_Some_iff 
+        split: option.splits dest: distinct_mset_union)
+      apply (metis (no_types, lifting) diff_single_trivial disjunct_not_in distinct_mem_diff_mset
+        distinct_mset_add hp_parent_None_notin mset_cancel_union(2) mset_nodes.simps node_in_mset_nodes
+        option_last_Nil option_last_Some_iff(2) sum_mset_sum_list)
+      done
+    subgoal for y
+      using distinct_mset_union[of \<open>mset_nodes x\<close> \<open>sum_list (map mset_nodes children)\<close>]
+        distinct_mset_union[of \<open>sum_list (map mset_nodes children)\<close> \<open>mset_nodes x\<close> ]
+      apply (auto simp add: hp_parent_simps_if ac_simps hp_parent_children_cons
+        split: option.splits dest: distinct_mset_union)
+      apply (metis Groups.add_ac(2) add_mset_add_single disjunct_not_in distinct_mset_add hp_parent_None_notin member_add_mset mset_nodes.simps option_last_Nil option_last_Some_iff(2) sum_mset_sum_list)
+      by (smt (verit, best) get_min2.simps get_min2_alt_def hp.inject hp_parent.elims hp_parent_simps(2) option_last_Nil option_last_Some_iff(2))
+    done
+  subgoal by auto
+  done
+
+
+lemma hp_child_hp_parent:
+  \<open>distinct_mset ((mset_nodes (a::(nat,nat)hp))) \<Longrightarrow> hp_parent n a \<noteq> None \<Longrightarrow> map_option node (hp_child (node (the (hp_parent n a))) a) = Some n\<close>
+  apply (induction n a rule: hp_parent.induct)
+  subgoal for  n a sc x children
+    apply (simp add: hp_parent_simps_if)
+    apply auto
+    subgoal for y
+      using distinct_mset_union[of \<open>mset_nodes x\<close> \<open>sum_list (map mset_nodes children)\<close>]
+        distinct_mset_union[of \<open>sum_list (map mset_nodes children)\<close> \<open>mset_nodes x\<close> ]
+      apply (auto simp add: hp_parent_simps_if hp_parent_children_cons ac_simps
+        split: option.splits)
+      apply (smt (verit, del_insts) hp_parent_children_Some_iff hp_parent_in_nodes list.map(2) map_append option.sel option_last_Nil option_last_Some_iff(2) sum_list.append sum_list_simps(2) union_iff)
+      by fastforce
+    subgoal premises p for yy
+      using p(2-) p(1)[of x]
+      using distinct_mset_union[of \<open>mset_nodes x\<close> \<open>sum_list (map mset_nodes children)\<close>]
+        distinct_mset_union[of \<open>sum_list (map mset_nodes children)\<close> \<open>mset_nodes x\<close> ]
+      apply (auto simp add: hp_parent_simps_if hp_parent_children_cons ac_simps
+        split: option.splits)
+      apply (smt (verit, del_insts) disjunct_not_in distinct_mset_add hp_child_None_notin
+        hp_parent_children_Some_iff hp_parent_in_nodes list.map(2) map_append option.sel
+        option_last_Nil option_last_Some_iff(2) sum_list.Cons sum_list.append union_iff)
+
+      using p(1)
+      apply (auto simp: hp_parent_children_Some_iff)
+      by (metis WB_List_More.distinct_mset_union2 distinct_mset_union hp_child_children_simps(3)
+        hp_child_children_skip_first hp_child_hp_children_simps2 hp_parent_in_nodes list.map(2)
+        option.sel option_last_Nil option_last_Some_iff(2) sum_list.Cons union_iff)
+    done
+  subgoal by auto
+  done
+
 
 end
 
