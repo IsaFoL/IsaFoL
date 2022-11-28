@@ -26,6 +26,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     IsaSAT_Reluctant_LLVM
     Watched_Literals_VMTF
     LBD
+    Pairing_Heaps
     LBD_LLVM
     Version
     IsaSAT_Watch_List
