@@ -257,7 +257,7 @@ lemma scl_without_backtrack_terminates:
       factorize N \<beta> \<squnion> resolve N \<beta>" and
     "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
       trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
-      conflict_disjoint_vars N \<sqinter> minimal_ground_closures"
+      minimal_ground_closures"
   shows
     "wfP (\<lambda>S' S. scl_without_backtrack S S' \<and> invars S)" and
     "invars initial_state" and
@@ -278,7 +278,6 @@ next
         scl_preserves_trail_lits_ground
         scl_preserves_trail_lits_from_clauses
         scl_preserves_initial_lits_generalize_learned_trail_conflict
-        scl_preserves_conflict_disjoint_vars
         scl_preserves_minimal_ground_closures)
 next
   show "wfP (\<lambda>S' S. scl_without_backtrack S S' \<and> invars S)"
@@ -294,7 +293,6 @@ next
       "trail_lits_ground S" and
       "trail_lits_from_clauses N S" and
       "initial_lits_generalize_learned_trail_conflict N S" and
-      "conflict_disjoint_vars N S" and
       "minimal_ground_closures S"
       by (simp_all add: invars_def)
     with step have
@@ -355,7 +353,7 @@ next
         case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>')
 
         have "L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<mu> \<cdot>l \<gamma>"
-          using propagateI(3-) by (simp add: subst_lit_restrict_subst_domain_idem)
+          using propagateI(3-) by (simp add: subst_lit_restrict_subst_domain)
         also have "\<dots> = L \<cdot>l \<gamma>"
         proof -
           have "is_unifiers \<gamma> {atm_of ` set_mset (add_mset L C\<^sub>1)}"
@@ -403,7 +401,7 @@ next
       assume "conflict N \<beta> S S'"
       thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
       proof (cases N \<beta> S S' rule: conflict.cases)
-        case (conflictI D U \<gamma> \<Gamma> \<rho> \<gamma>\<^sub>\<rho>)
+        case (conflictI D U \<gamma> \<Gamma>)
         have "\<And>L. L |\<in>| fst |`| fset_of_list \<Gamma> \<Longrightarrow> atm_of L \<prec>\<^sub>B \<beta>"
           using \<open>trail_atoms_lt \<beta> S\<close>[unfolded conflictI(1,2) trail_atoms_lt_def, simplified]
           by (metis (no_types, opaque_lifting) fimageE fset_of_list_elem)
@@ -453,7 +451,7 @@ next
 
         have "add_mset L D \<cdot> \<mu> \<cdot> \<gamma>' = add_mset L D \<cdot> \<mu> \<cdot> \<gamma>"
           unfolding factorizeI
-          by (rule subst_cls_restrict_subst_domain_idem) simp
+          by (rule subst_cls_restrict_subst_domain) simp
         also have "\<dots> = add_mset L D \<cdot> \<gamma>"
           using \<open>\<mu> \<odot> \<gamma> = \<gamma>\<close>
           by (metis subst_cls_comp_subst)
@@ -471,55 +469,84 @@ next
       assume "resolve N \<beta> S S'"
       thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
       proof (cases N \<beta> S S' rule: resolve.cases)
-        case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<mu> \<rho> D U)
-        hence ren_\<rho>: "is_renaming \<rho>"
-          using finite_fset is_renaming_renaming_wrt by blast
+        case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<rho> D \<mu> U)
+        hence
+          ren_\<rho>: "is_renaming \<rho>" and
+          vars_subst_\<rho>_distinct: "vars_cls (add_mset L' D \<cdot> \<rho>) \<inter> vars_cls (add_mset L C) = {}"
+          by simp_all
+
+        from ren_\<rho> have "\<forall>x. is_Var (\<rho> x)" and "inj \<rho>"
+          by (simp_all add: is_renaming_iff)
 
         from \<open>minimal_ground_closures S\<close> have
-          ground_conflict: "is_ground_cls (add_mset L' D \<cdot> \<sigma>)" and
-          ground_resolvant: "is_ground_cls (add_mset L C \<cdot> \<delta>)" and
+          ground_conf: "is_ground_cls (add_mset L' D \<cdot> \<sigma>)" and
+          ground_reso: "is_ground_cls (add_mset L C \<cdot> \<delta>)" and
           dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (add_mset L' D)" and
           dom_\<delta>: "subst_domain \<delta> \<subseteq> vars_cls (add_mset L C)"
           unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>
           by (simp_all add: minimal_ground_closures_def trail_propagate_def)
 
-        have vars_conflict_disj_vars_resolvant:
-          "vars_cls (add_mset L' D) \<inter> vars_cls (add_mset L C) = {}"
-          using \<open>conflict_disjoint_vars N S\<close>
-          unfolding resolveI(1,2)
-          by (auto simp add: \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close> trail_propagate_def conflict_disjoint_vars_def)
+        have "atm_of L \<cdot>a rename_subst_domain \<rho> \<sigma> \<cdot>a \<delta> =
+          atm_of L' \<cdot>a \<rho> \<cdot>a rename_subst_domain \<rho> \<sigma> \<cdot>a \<delta>"
+        proof -
+          from ren_\<rho> have "\<forall>x. is_Var (\<rho> x)" and "inj \<rho>"
+            by (simp_all add: is_renaming_iff)
 
-        from \<open>L \<cdot>l \<delta> = - (L' \<cdot>l \<sigma>)\<close> have "atm_of L \<cdot>a \<delta> = atm_of L' \<cdot>a \<sigma>"
-          by (metis atm_of_eq_uminus_if_lit_eq atm_of_subst_lit)
-        hence "atm_of L \<cdot>a \<sigma> \<cdot>a \<delta> = atm_of L' \<cdot>a \<sigma> \<cdot>a \<delta>"
-        proof (rule subst_subst_eq_subst_subst_if_subst_eq_substI)
-          show "vars_lit L \<inter> subst_domain \<sigma> = {}"
-            using dom_\<sigma> vars_conflict_disj_vars_resolvant by auto
-        next
-          show "vars_lit L' \<inter> subst_domain \<delta> = {}"
-            using dom_\<delta> vars_conflict_disj_vars_resolvant by auto
-        next
-          have "range_vars \<sigma> = {}"
-            unfolding range_vars_def UNION_empty_conv subst_range.simps
-            using dom_\<sigma> ground_conflict is_ground_cls_is_ground_on_var is_ground_atm_iff_vars_empty
-            by fast
-          thus "range_vars \<sigma> \<inter> subst_domain \<delta> = {}"
-            by simp
+          have "atm_of L \<cdot>a rename_subst_domain \<rho> \<sigma> = atm_of L"
+          proof (rule subst_apply_term_ident)
+            have "subst_domain (rename_subst_domain \<rho> \<sigma>) \<subseteq> the_Var ` \<rho> ` subst_domain \<sigma>"
+              using subst_domain_rename_subst_domain_subset[OF \<open>\<forall>x. is_Var (\<rho> x)\<close>] by simp
+            also have "\<dots> \<subseteq> the_Var ` \<rho> ` vars_cls (add_mset L' D)"
+              using dom_\<sigma> by auto
+            also have "\<dots> = (\<Union>x \<in> vars_cls (add_mset L' D). vars_term (\<rho> x))"
+              using image_the_Var_image_subst_renaming_eq[OF \<open>\<forall>x. is_Var (\<rho> x)\<close>] by simp
+            also have "\<dots> = vars_cls (add_mset L' D \<cdot> \<rho>)"
+              using vars_subst_cls_eq by metis
+            finally show "vars_lit L \<inter> subst_domain (rename_subst_domain \<rho> \<sigma>) = {}"
+              using \<open>vars_cls (add_mset L' D \<cdot> \<rho>) \<inter> vars_cls (add_mset L C) = {}\<close>
+              by auto
+          qed
+          moreover have "atm_of L' \<cdot>a \<rho> \<cdot>a rename_subst_domain \<rho> \<sigma> = atm_of L' \<cdot>a \<sigma>"
+            using vars_cls_subset_subst_domain_if_grounding[OF ground_conf]
+            by (simp add: renaming_cancels_rename_subst_domain[OF \<open>\<forall>x. is_Var (\<rho> x)\<close> \<open>inj \<rho>\<close>])
+          moreover have "atm_of L' \<cdot>a \<sigma> \<cdot>a \<delta> = atm_of L' \<cdot>a \<sigma>"
+          proof (rule subst_apply_term_ident)
+            show "vars_term (atm_of L' \<cdot>a \<sigma>) \<inter> subst_domain \<delta> = {}"
+              using ground_conf[unfolded is_ground_cls_iff_vars_empty]
+              by simp
+          qed
+          ultimately show ?thesis
+            using \<open>L \<cdot>l \<delta> = - (L' \<cdot>l \<sigma>)\<close>
+            by (metis atm_of_subst_lit atm_of_uminus)
         qed
-        hence is_unifs_\<sigma>_\<delta>: "is_unifiers (\<sigma> \<odot> \<delta>) {{atm_of L, atm_of L'}}"
-          by (simp add: is_unifiers_def is_unifier_def subst_atms_def)
-        hence "\<mu> \<odot> \<sigma> \<odot> \<delta> = \<sigma> \<odot> \<delta>"
-          using \<open>is_mimgu \<mu> {{atm_of L, atm_of L'}}\<close>
-          by (auto simp: is_mimgu_def is_imgu_def)
-        hence "(D + C) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta> = (D + C) \<cdot> \<sigma> \<cdot> \<delta>"
+        hence "is_unifier (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>) {atm_of L, atm_of L' \<cdot>a \<rho>}"
+          by (simp add: is_unifier_alt)
+        hence "\<mu> \<odot> (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>) = rename_subst_domain \<rho> \<sigma> \<odot> \<delta>"
+          using \<open>is_mimgu \<mu> {{atm_of L, atm_of L' \<cdot>a \<rho>}}\<close>
+          by (auto simp add: is_mimgu_def is_imgu_def is_unifiers_def)
+        hence subst_\<mu>_\<sigma>_\<delta>: "\<And>C. C \<cdot> \<mu> \<cdot> rename_subst_domain \<rho> \<sigma> \<cdot> \<delta> = C \<cdot> rename_subst_domain \<rho> \<sigma> \<cdot> \<delta>"
           by (metis subst_cls_comp_subst)
 
-        have "D \<cdot> \<sigma> \<cdot> \<delta> = D \<cdot> \<sigma>"
-          using ground_conflict by (simp add: is_ground_cls_add_mset)
+        have "D \<cdot> \<rho> \<cdot> rename_subst_domain \<rho> \<sigma> \<cdot> \<delta> = D \<cdot> \<sigma> \<cdot> \<delta>"
+          by (metis ground_conf is_ground_cls_add_mset ren_\<rho> subst_cls_add_mset
+              subst_renaming_subst_adapted vars_cls_subset_subst_domain_if_grounding)
+        also have "\<dots> = D \<cdot> \<sigma>"
+          using ground_conf by simp
+        finally have "D \<cdot> \<rho> \<cdot> rename_subst_domain \<rho> \<sigma> \<cdot> \<delta> = D \<cdot> \<sigma>"
+          by assumption
 
-        hence "subst_domain \<sigma> \<inter> vars_cls C = {}"
-          using dom_\<sigma> vars_conflict_disj_vars_resolvant by auto
-        hence "C \<cdot> \<sigma> \<cdot> \<delta> = C \<cdot> \<delta>"
+        
+        have "subst_domain (rename_subst_domain \<rho> \<sigma>) \<subseteq> the_Var ` \<rho> ` subst_domain \<sigma>"
+          using subst_domain_rename_subst_domain_subset[OF \<open>\<forall>x. is_Var (\<rho> x)\<close>] by simp
+        also have "\<dots> \<subseteq> the_Var ` \<rho> ` vars_cls (add_mset L' D)"
+          using dom_\<sigma> by auto
+        also have "\<dots> = (\<Union>x \<in> vars_cls (add_mset L' D). vars_term (\<rho> x))"
+          using image_the_Var_image_subst_renaming_eq[OF \<open>\<forall>x. is_Var (\<rho> x)\<close>] by simp
+        also have "\<dots> = vars_cls (add_mset L' D \<cdot> \<rho>)"
+          using vars_subst_cls_eq by metis
+        finally have "subst_domain (rename_subst_domain \<rho> \<sigma>) \<inter> vars_cls C = {}"
+          using vars_subst_\<rho>_distinct by auto
+        hence "C \<cdot> rename_subst_domain \<rho> \<sigma> \<cdot> \<delta> = C \<cdot> \<delta>"
           by (simp add: subst_cls_idem_if_disj_vars)
 
         have "- (L \<cdot>l \<delta>) \<notin># C \<cdot> \<delta>"
@@ -546,10 +573,11 @@ next
         thus ?thesis
           unfolding lex_prodp_def resolveI(1,2)
           unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
-          unfolding subst_cls_restrict_subst_domain_idem[OF subset_refl] subst_cls_comp_subst
+          unfolding subst_cls_restrict_subst_domain[OF subset_refl] subst_cls_comp_subst
             is_renaming_inv_renaming_cancel_cls[OF ren_\<rho>]
-          unfolding \<open>(D + C) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta> = (D + C) \<cdot> \<sigma> \<cdot> \<delta>\<close>
-          unfolding subst_cls_union \<open>D \<cdot> \<sigma> \<cdot> \<delta> = D \<cdot> \<sigma>\<close> \<open>C \<cdot> \<sigma> \<cdot> \<delta> = C \<cdot> \<delta>\<close>
+          unfolding subst_\<mu>_\<sigma>_\<delta>
+          unfolding subst_cls_union \<open>D \<cdot> \<rho> \<cdot> rename_subst_domain \<rho> \<sigma> \<cdot> \<delta> = D \<cdot> \<sigma>\<close>
+            \<open>C \<cdot> rename_subst_domain \<rho> \<sigma> \<cdot> \<delta> = C \<cdot> \<delta>\<close>
           by simp
       qed
     qed
@@ -812,8 +840,8 @@ theorem regular_scl_terminates:
   defines
     "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
       trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
-      conflict_disjoint_vars N \<sqinter> minimal_ground_closures \<sqinter> sound_state N \<beta> \<sqinter>
-      almost_no_conflict_with_trail N \<beta> \<sqinter> regular_conflict_resolution N \<beta>"
+      minimal_ground_closures \<sqinter> sound_state N \<beta> \<sqinter> almost_no_conflict_with_trail N \<beta> \<sqinter>
+      regular_conflict_resolution N \<beta>"
   assumes "transp lt"
   shows
     "wfP (\<lambda>S' S. regular_scl N \<beta> S S' \<and> invars S)" and
@@ -836,7 +864,6 @@ next
       reg_to_scl[THEN scl_preserves_trail_lits_ground]
       reg_to_scl[THEN scl_preserves_trail_lits_from_clauses]
       reg_to_scl[THEN scl_preserves_initial_lits_generalize_learned_trail_conflict]
-      reg_to_scl[THEN scl_preserves_conflict_disjoint_vars]
       reg_to_scl[THEN scl_preserves_minimal_ground_closures]
       reg_to_scl[THEN scl_preserves_sound_state]
       regular_scl_preserves_almost_no_conflict_with_trail
@@ -871,7 +898,7 @@ next
       fix S' S assume "invars S"
       then show "trail_atoms_lt \<beta> S \<sqinter> trail_resolved_lits_pol S \<sqinter> trail_lits_ground S \<sqinter>
        trail_lits_from_clauses N S \<sqinter> initial_lits_generalize_learned_trail_conflict N S \<sqinter>
-       conflict_disjoint_vars N S \<sqinter> minimal_ground_closures S"
+       minimal_ground_closures S"
         by (simp add: invars_def)
     qed
   next
