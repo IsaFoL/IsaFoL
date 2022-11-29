@@ -188,48 +188,41 @@ qed
 theorem correct_termination:
   fixes gnd_N and gnd_N_lt_\<beta>
   assumes
-    regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
-    no_more_regular_step: "\<nexists>S'. regular_scl N \<beta> S S'"
+    run: "(scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
+    no_more_step: "\<nexists>S'. scl N \<beta> S S'"
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
     "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
 proof -
-  from regular_run have "(scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
-  proof (rule mono_rtranclp[rule_format, rotated])
-    show "\<And>a b. regular_scl N \<beta> a b \<Longrightarrow> scl N \<beta> a b"
-      by (rule scl_if_reasonable[OF reasonable_if_regular])
-  qed
-  hence mempty_not_in_learned_S: "{#} |\<notin>| state_learned S"
+  from run have mempty_not_in_learned_S: "{#} |\<notin>| state_learned S"
     by (induction S rule: rtranclp_induct) (simp_all add: scl_mempty_not_in_sate_learned)
 
   obtain \<Gamma> U u where S_def: "S = (\<Gamma>, U, u)"
     using prod_cases3 by blast
 
-  have sound_S: "sound_state N \<beta> S"
-    using regular_run_sound_state[OF regular_run] sound_initial_state by blast
+  from run have sound_S: "sound_state N \<beta> S"
+    by (induction S rule: rtranclp_induct) (simp_all add: scl_preserves_sound_state)
   hence
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     "minimal_ground_closures S"
     by (simp_all add: S_def sound_state_def)
 
-  from no_more_regular_step have no_new_conflict: "\<nexists>S'. conflict N \<beta> S S'"
-    using regular_scl_def by blast
+  from no_more_step have no_new_conflict: "\<nexists>S'. conflict N \<beta> S S'"
+    unfolding scl_def by blast
 
-  from no_more_regular_step have no_new_propagate: "\<nexists>S'. propagate N \<beta> S S'"
-    by (meson decide_well_defined(1) local.scl_def reasonable_scl_def regular_scl_def)
+  from no_more_step have no_new_propagate: "\<nexists>S'. propagate N \<beta> S S'"
+    by (meson decide_well_defined(1) local.scl_def)
 
-  from no_more_regular_step have
-    no_reasonable_decide: "(\<nexists>S'. decide N \<beta> S S') \<or> (\<exists>S' S''. decide N \<beta> S S' \<and> conflict N \<beta> S' S'')"
-    using local.scl_def reasonable_scl_def regular_scl_def by meson
+  from no_more_step have
+    no_new_decide: "(\<nexists>S'. decide N \<beta> S S') \<or> (\<exists>S' S''. decide N \<beta> S S' \<and> conflict N \<beta> S' S'')"
+    using local.scl_def by meson
 
   from sound_\<Gamma> have trail_propagate_wf: "trail_propagated_wf (state_trail S)"
     by (simp add: S_def trail_propagated_wf_if_sound)
-  from regular_run have trail_consistent: "trail_lits_consistent S"
-    by (induction S rule: rtranclp_induct)
-      (simp_all add: scl_preserves_trail_lits_consistent[OF
-          scl_if_reasonable[OF reasonable_if_regular]])
+  from run have trail_consistent: "trail_lits_consistent S"
+    by (induction S rule: rtranclp_induct) (simp_all add: scl_preserves_trail_lits_consistent)
   hence trail_consistent: "trail_consistent (state_trail S)"
     by (simp add: trail_lits_consistent_def)
 
@@ -240,7 +233,7 @@ proof -
       by (simp add: S_def)
 
     show ?thesis
-      using no_reasonable_decide
+      using no_new_decide
     proof (elim disjE exE conjE)
       assume no_new_decide: "\<nexists>S'. decide N \<beta> S S'"
 
@@ -373,11 +366,6 @@ proof -
         then obtain L n where \<Gamma>_def: "\<Gamma> = (L, n) # \<Gamma>'"
           by fastforce
 
-        from regular_run have mempty_not_in_N: "{#} |\<notin>| N"
-          using C_not_empty mempty_not_in_initial_clauses_if_regular_run_reaches_non_empty_conflict
-          unfolding S_def state_conflict_simp u_def option.inject
-          by simp
-
         show ?thesis
         proof (cases "- L \<in># C \<cdot> \<gamma>")
           case True \<comment> \<open>Literal cannot be skipped\<close>
@@ -396,19 +384,14 @@ proof -
             from \<Gamma>_def have \<Gamma>_def': "\<Gamma> = trail_decide (\<Gamma>' @ []) (- (K \<cdot>l \<gamma>))"
               by auto
 
-            have no_new_new_conflict: "\<nexists>S'. conflict N \<beta> ([], finsert (add_mset K C') U, None) S'"
-              apply simp
-              apply (intro allI notI)
-              apply (erule conflict.cases)
-              apply simp
-              using mempty_not_in_N mempty_not_in_learned_S[unfolded S_def, simplified]
-              by (metis empty_not_add_mset finsertE not_trail_false_Nil(2) subst_cls_empty_iff)
+            have no_new_new_conflict: "\<nexists>\<gamma>. is_ground_cls (add_mset K C' \<cdot> \<gamma>) \<and>
+              trail_false_cls [] (add_mset K C' \<cdot> \<gamma>)"
+              by auto
 
             have "backtrack N \<beta> (\<Gamma>, U, Some (add_mset K C', \<gamma>)) ([], finsert (add_mset K C') U, None)"
               using backtrackI[OF \<Gamma>_def' no_new_new_conflict] by simp
-
-            with no_more_regular_step have False
-              unfolding regular_scl_def reasonable_scl_def scl_def
+            with no_more_step have False
+              unfolding scl_def
               using S_def[unfolded u_def C_def, symmetric]
               using backtrack_well_defined(2) by blast
             thus ?thesis ..
@@ -482,8 +465,8 @@ proof -
 
             have "\<exists>S. resolve N \<beta> (\<Gamma>, U, Some (add_mset K C', \<gamma>)) S"
               using resolveI[OF 1 2 ren_\<rho> vars_subst_\<rho>_disj mimgu_\<mu>, of N \<beta> U C'] ..
-            with no_more_regular_step have False
-              unfolding regular_scl_def reasonable_scl_def scl_def
+            with no_more_step have False
+              unfolding scl_def
               using S_def \<Gamma>_def C_def decide_well_defined(5) u_def
               by blast
             thus ?thesis ..
@@ -492,9 +475,8 @@ proof -
           case False \<comment> \<open>Literal can be skipped\<close>
           hence "skip N \<beta> ((L, n) # \<Gamma>', U, Some (C, \<gamma>)) (\<Gamma>', U, Some (C, \<gamma>))"
             by (rule skipI[of L C \<gamma> N \<beta> n \<Gamma>' U])
-          with no_more_regular_step have False
-            by (metis S_def \<Gamma>_def local.scl_def reasonable_scl_def regular_scl_def
-                skip_well_defined(2) u_def)
+          with no_more_step have False
+            by (metis S_def \<Gamma>_def scl_def u_def)
           thus ?thesis ..
         qed
       qed
