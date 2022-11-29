@@ -203,7 +203,7 @@ context scl begin
 subsection \<open>SCL without backtracking terminates\<close>
 
 definition \<M>_prop_deci :: "_ \<Rightarrow> _ \<Rightarrow> (_, _) Term.term literal fset" where
-  "\<M>_prop_deci \<beta> \<Gamma> = Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>} |-| (fst |`| fset_of_list \<Gamma>)"
+  "\<M>_prop_deci \<beta> \<Gamma> = Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>} |-| (fst |`| fset_of_list \<Gamma>)"
 
 primrec \<M>_skip_fact_reso where
   "\<M>_skip_fact_reso [] C = []" |
@@ -244,11 +244,12 @@ next
   qed
 qed
 
-definition \<M> :: "_ \<Rightarrow> _ \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) Term.term literal fset \<times> nat list \<times> nat" where
+definition \<M>
+  :: "_ \<Rightarrow> _ \<Rightarrow> ('f, 'v) state \<Rightarrow> bool \<times> ('f, 'v) Term.term literal fset \<times> nat list \<times> nat" where
   "\<M> N \<beta> S =
     (case state_conflict S of
-      None \<Rightarrow> (\<M>_prop_deci \<beta> (state_trail S), [], 0)
-    | Some (C, \<gamma>) \<Rightarrow> ({||}, \<M>_skip_fact_reso (state_trail S) (C \<cdot> \<gamma>), size C))"
+      None \<Rightarrow> (True, \<M>_prop_deci \<beta> (state_trail S), [], 0)
+    | Some (C, \<gamma>) \<Rightarrow> (False, {||}, \<M>_skip_fact_reso (state_trail S) (C \<cdot> \<gamma>), size C))"
 
 lemma scl_without_backtrack_terminates:
   fixes N \<beta>
@@ -280,6 +281,12 @@ next
         scl_preserves_initial_lits_generalize_learned_trail_conflict
         scl_preserves_minimal_ground_closures)
 next
+  let ?less =
+    "lex_prodp ((<) :: bool \<Rightarrow> bool \<Rightarrow> bool)
+      (lex_prodp (|\<subset>|)
+        (lex_prodp (\<lambda>x y. (x, y) \<in> List.lenlex {(x :: _ :: wellorder, y). x < y})
+          ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool)))"
+
   show "wfP (\<lambda>S' S. scl_without_backtrack S S' \<and> invars S)"
   proof (rule wfP_if_convertible_to_wfP)
     fix S' S :: "('f, 'v) state"
@@ -310,8 +317,6 @@ next
       using \<open>trail_lits_from_clauses N S'\<close> \<open>initial_lits_generalize_learned_trail_conflict N S'\<close>
       by (simp add: trail_lits_from_init_clausesI)
 
-    let ?less = "lex_prodp (|\<subset>|) (lex_prodp (\<lambda>x y. (x, y) \<in> List.lenlex {(x, y). x < y}) (<))"
-
     from step show "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
       unfolding scl_without_backtrack_def sup_apply sup_bool_def
     proof (elim disjE)
@@ -335,12 +340,9 @@ next
             by (auto simp: trail_atoms_lt_def decideI(1))
           ultimately have "insert (L \<cdot>l \<gamma>) (fst ` set \<Gamma>) \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta>}"
             by simp
-          also have "\<dots> \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>}"
-            by blast
-          finally show "finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>) |\<subseteq>|
-          Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>}"
-            using finite_lits_less_eq_B
-            by (simp add: less_eq_fset.rep_eq fimage.rep_eq fset_of_list.rep_eq Abs_fset_inverse)
+          then show "finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>) |\<subseteq>| Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>}"
+            using finite_lits_less_B
+            by (simp add: less_eq_fset.rep_eq Abs_fset_inverse fset_of_list.rep_eq)
         qed
         then show ?thesis
           unfolding decideI(1,2) trail_decide_def \<M>_def state_proj_simp option.case
@@ -385,12 +387,9 @@ next
               by (metis image_eqI insert_iff propagateI(1,4,6) state_trail_simp subst_cls_add_mset
                   trail_atoms_lt_def union_single_eq_member)
           qed
-          also have "\<dots> \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>}"
-            by blast
-          finally show "finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>) |\<subseteq>|
-          Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>}"
-            using finite_lits_less_eq_B
-            by (simp add: less_eq_fset.rep_eq fimage.rep_eq fset_of_list.rep_eq Abs_fset_inverse)
+          then show "finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>) |\<subseteq>| Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>}"
+            using finite_lits_less_B
+            by (simp add: less_eq_fset.rep_eq fset_of_list.rep_eq Abs_fset_inverse)
         qed
         thus ?thesis
           unfolding propagateI(1,2) trail_propagate_def \<M>_def state_proj_simp option.case
@@ -402,23 +401,7 @@ next
       thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
       proof (cases N \<beta> S S' rule: conflict.cases)
         case (conflictI D U \<gamma> \<Gamma>)
-        have "\<And>L. L |\<in>| fst |`| fset_of_list \<Gamma> \<Longrightarrow> atm_of L \<prec>\<^sub>B \<beta>"
-          using \<open>trail_atoms_lt \<beta> S\<close>[unfolded conflictI(1,2) trail_atoms_lt_def, simplified]
-          by (metis (no_types, opaque_lifting) fimageE fset_of_list_elem)
-        hence "Pos \<beta> |\<notin>| fst |`| fset_of_list \<Gamma> \<and> Neg \<beta> |\<notin>| fst |`| fset_of_list \<Gamma>"
-          by (metis irreflpD irreflp_less_B literal.sel(1) literal.sel(2))
-        hence "finsert (Pos \<beta>) (finsert (Neg \<beta>) (Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>})) |-|
-        fst |`| fset_of_list \<Gamma> =
-        finsert (Pos \<beta>) (finsert (Neg \<beta>) (Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>} - fst |`| fset_of_list \<Gamma>))"
-          by (simp add: finsert_fminus_if)
-        hence "{||} |\<subset>| finsert (Pos \<beta>) (finsert (Neg \<beta>) (Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>})) |-| fst |`| fset_of_list \<Gamma>"
-          by auto
-        also have "\<dots> = \<M>_prop_deci \<beta> \<Gamma>"
-          unfolding \<M>_prop_deci_def
-          unfolding lits_less_eq_B_conv
-          using finite_lits_less_B
-          by (simp add: finsert_Abs_fset)
-        finally show ?thesis
+        show ?thesis
           unfolding lex_prodp_def conflictI(1,2)
           unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
           by simp
@@ -582,10 +565,11 @@ next
       qed
     qed
   next
-    show "wfP (lex_prodp (|\<subset>|)
-      (lex_prodp (\<lambda>x y. (x, y) \<in> List.lenlex {(x :: nat, y :: nat). x < y})
-        ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool)))"
+    show "wfP ?less"
     proof (intro wfP_lex_prodp)
+      show "wfP ((<) :: bool \<Rightarrow> bool \<Rightarrow> bool)"
+        by (simp add: wfPUNIVI)
+    next
       show "wfP (|\<subset>|)"
         by (rule wfP_pfsubset)
     next
