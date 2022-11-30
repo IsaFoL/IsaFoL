@@ -192,6 +192,9 @@ proof -
   from run have mempty_not_in_learned_S: "{#} |\<notin>| state_learned S"
     by (induction S rule: rtranclp_induct) (simp_all add: scl_mempty_not_in_sate_learned)
 
+  from run have "trail_atoms_lt \<beta> S"
+    by (induction S rule: rtranclp_induct) (simp_all add: scl_preserves_trail_atoms_lt)
+
   obtain \<Gamma> U u where S_def: "S = (\<Gamma>, U, u)"
     using prod_cases3 by blast
 
@@ -321,7 +324,7 @@ proof -
       fix S' S''
       assume deci: "decide N \<beta> S S'" and conf: "conflict N \<beta> S' S''"
       moreover have "trail_atoms_lt \<beta> S'"
-        by (rule decide_sound_state[OF deci sound_S, THEN trail_atoms_lt_if_sound_state])
+        using decide_preserves_trail_atoms_lt[OF deci \<open>trail_atoms_lt \<beta> S\<close>] .
       ultimately have "\<exists>S\<^sub>4. propagate N \<beta> S S\<^sub>4"
         using propagate_if_conflict_follows_decide[OF _ no_new_conflict]
         by simp

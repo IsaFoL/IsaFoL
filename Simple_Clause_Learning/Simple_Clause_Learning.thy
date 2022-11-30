@@ -3446,17 +3446,13 @@ subsection \<open>Sound State\<close>
 
 definition sound_state :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow> bool" where
   "sound_state N \<beta> S \<longleftrightarrow>
-    trail_atoms_lt \<beta> S \<and> minimal_ground_closures S \<and>
+    minimal_ground_closures S \<and>
     (\<exists>\<Gamma> U u. S = (\<Gamma>, U, u) \<and> sound_trail N \<Gamma> \<and> fset N \<TTurnstile>\<G>e fset U \<and>
     (case u of None \<Rightarrow> True
     | Some (C, \<gamma>) \<Rightarrow> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset N \<TTurnstile>\<G>e {C}))"
 
 
 subsection \<open>Miscellaneous Lemmas\<close>
-
-lemma trail_atoms_lt_if_sound_state:
-  "sound_state N \<beta> S \<Longrightarrow> trail_atoms_lt \<beta> S"
-  unfolding sound_state_def by auto
 
 lemma minimal_ground_closures_if_sound_state:
   "sound_state N \<beta> S \<Longrightarrow> minimal_ground_closures S"
@@ -3591,11 +3587,6 @@ proof (cases N \<beta> S S' rule: propagate.cases)
           subst_cls_add_mset)
   qed
 
-  moreover have "trail_atoms_lt \<beta> S'"
-    using sound[THEN trail_atoms_lt_if_sound_state]
-      step[THEN propagate_preserves_trail_atoms_lt]
-    by argo
-
   moreover have "minimal_ground_closures S'"
     using sound[THEN minimal_ground_closures_if_sound_state]
       step[THEN propagate_preserves_minimal_ground_closures]
@@ -3619,11 +3610,6 @@ proof (cases N \<beta> S S' rule: decide.cases)
 
   moreover have "sound_trail N (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
     by (simp add: local.decideI(4) local.decideI(5) sound_\<Gamma> sound_trail_decide)
-
-  moreover have "trail_atoms_lt \<beta> S'"
-    using sound[THEN trail_atoms_lt_if_sound_state]
-      step[THEN decide_preserves_trail_atoms_lt]
-    by argo
 
   moreover have "minimal_ground_closures S'"
     using sound[THEN minimal_ground_closures_if_sound_state]
@@ -3661,11 +3647,6 @@ proof (cases N \<beta> S S' rule: conflict.cases)
   moreover have "trail_false_cls \<Gamma> (D \<cdot> \<gamma>)"
     using conflictI by simp
 
-  moreover have "trail_atoms_lt \<beta> S'"
-    using sound[THEN trail_atoms_lt_if_sound_state]
-      step[THEN conflict_preserves_trail_atoms_lt]
-    by argo
-
   moreover have "minimal_ground_closures S'"
     using sound[THEN minimal_ground_closures_if_sound_state]
       step[THEN conflict_preserves_minimal_ground_closures]
@@ -3682,11 +3663,6 @@ lemma skip_sound_state:
   using step
 proof (cases N \<beta> S S' rule: skip.cases)
   case (skipI L D \<sigma> Cl \<Gamma> U)
-
-  moreover have "trail_atoms_lt \<beta> S'"
-    using sound[THEN trail_atoms_lt_if_sound_state]
-      step[THEN skip_preserves_trail_atoms_lt]
-    by argo
 
   moreover have "minimal_ground_closures S'"
     using sound[THEN minimal_ground_closures_if_sound_state]
@@ -3758,11 +3734,6 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     ultimately show "{D + {#L, L'#}} \<TTurnstile>\<G>e {(D + {#L#}) \<cdot> \<mu>}"
       by simp
   qed
-
-  moreover have "trail_atoms_lt \<beta> S'"
-    using sound[THEN trail_atoms_lt_if_sound_state]
-      step[THEN factorize_preserves_trail_atoms_lt]
-    by argo
 
   moreover have "minimal_ground_closures S'"
     using sound[THEN minimal_ground_closures_if_sound_state]
@@ -3988,11 +3959,6 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   moreover have "sound_trail N (trail_propagate \<Gamma>' L C \<delta>)"
     using \<Gamma>_def sound_\<Gamma> by blast
 
-  moreover have "trail_atoms_lt \<beta> S'"
-    using sound[THEN trail_atoms_lt_if_sound_state]
-      step[THEN resolve_preserves_trail_atoms_lt]
-    by argo
-
   moreover have "minimal_ground_closures S'"
     using sound[THEN minimal_ground_closures_if_sound_state]
       step[THEN resolve_preserves_minimal_ground_closures]
@@ -4030,11 +3996,6 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
 
   moreover have "fset N \<TTurnstile>\<G>e (fset U \<union> {D + {#L#}})"
     using N_entails_U N_entails_D_L_L' by (metis UN_Un grounding_of_clss_def true_clss_union)
-
-  moreover have "trail_atoms_lt \<beta> S'"
-    using sound[THEN trail_atoms_lt_if_sound_state]
-      step[THEN backtrack_preserves_trail_atoms_lt]
-    by argo
 
   moreover have "minimal_ground_closures S'"
     using sound[THEN minimal_ground_closures_if_sound_state]
