@@ -1074,31 +1074,6 @@ lemma trail_level_cls_le: "trail_level_cls \<Gamma> C \<le> trail_level \<Gamma>
   using trail_level_lit_le
   by auto
 
-primrec trail_backtrack :: "('f, 'v) trail \<Rightarrow> nat \<Rightarrow> ('f, 'v) trail" where
-  "trail_backtrack [] _ = []" |
-  "trail_backtrack (Lc # \<Gamma>) level =
-    (if trail_level (Lc # \<Gamma>) \<le> level then
-      Lc # \<Gamma>
-    else
-      trail_backtrack \<Gamma> level)"
-
-lemma trail_backtrack_inv: "trail_level \<Gamma> < level \<Longrightarrow> trail_backtrack \<Gamma> level = \<Gamma>"
-  by (cases \<Gamma>) simp_all
-
-lemma trail_backtrack_suffix: "suffix (trail_backtrack \<Gamma> level) \<Gamma>"
-  by (induction \<Gamma>) (simp_all add: suffix_ConsI)
-
-lemma clss_of_trail_trail_decide_subset:
-  "clss_of_trail (trail_backtrack \<Gamma> n) |\<subseteq>| clss_of_trail \<Gamma>"
-  using trail_backtrack_suffix
-  by (metis (no_types, opaque_lifting) clss_of_trail_append le_sup_iff order_refl suffix_def)
-
-lemma ball_set_trail_backtrackI: "\<forall>x \<in> set \<Gamma>. P x \<Longrightarrow> \<forall>x \<in> set (trail_backtrack \<Gamma> level). P x"
-  by (meson set_mono_suffix subset_eq trail_backtrack_suffix)
-
-lemma trail_backtrack_level: "trail_level (trail_backtrack \<Gamma> level) =
-  (if level \<le> trail_level \<Gamma> then level else trail_level \<Gamma>)"
-  by (induction \<Gamma>) auto
 
 definition trail_interp :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term interp" where
   "trail_interp \<Gamma> = \<Union>((\<lambda>L. case L of Pos A \<Rightarrow> {A} | Neg A \<Rightarrow> {}) ` fst ` set \<Gamma>)"
@@ -1157,12 +1132,6 @@ lemma not_trail_false_Nil[simp]:
 
 lemma not_trail_defined_lit_Nil[simp]: "\<not> trail_defined_lit [] L"
   by (simp add: trail_defined_lit_iff_true_or_false)
-
-lemma ball_trail_backtrackI:
-  assumes "\<forall>x \<in> set \<Gamma>. P (fst x)"
-  shows "\<forall>x \<in> set (trail_backtrack \<Gamma> i). P (fst x)"
-  using assms trail_backtrack_suffix[THEN set_mono_suffix]
-  by blast
 
 lemma trail_false_lit_if_trail_false_suffix:
   "suffix \<Gamma>' \<Gamma> \<Longrightarrow> trail_false_lit \<Gamma>' K \<Longrightarrow> trail_false_lit \<Gamma> K"
@@ -1238,18 +1207,6 @@ qed
 
 lemma trail_defined_lit_iff_defined_uminus: "trail_defined_lit \<Gamma> L \<longleftrightarrow> trail_defined_lit \<Gamma> (-L)"
   by (auto simp add: trail_defined_lit_def)
-
-lemma not_trail_backtrack_defined_if_not_defined:
-  assumes not_\<Gamma>_defined_L:  "\<not> trail_defined_lit \<Gamma> L"
-  shows "\<not> trail_defined_lit (trail_backtrack \<Gamma> level) L"
-proof -
-  have "suffix (trail_backtrack \<Gamma> level) \<Gamma>"
-    by (rule trail_backtrack_suffix)
-  hence "set (trail_backtrack \<Gamma> level) \<subseteq> set \<Gamma>"
-    by (rule set_mono_suffix)
-  with not_\<Gamma>_defined_L show ?thesis
-    unfolding trail_defined_lit_def by fast
-qed
 
 lemma trail_level_propagate[simp]:
   "trail_level (trail_propagate \<Gamma> L C \<gamma>) = trail_level \<Gamma>"
@@ -3509,9 +3466,6 @@ lemma sound_subtrailI[intro]: "sound_trail N (Ln # \<Gamma>) \<Longrightarrow> s
 
 lemma sound_trail_appendD: "sound_trail N (\<Gamma> @ \<Gamma>') \<Longrightarrow> sound_trail N \<Gamma>'"
   by (induction \<Gamma>) auto
-
-lemma sound_trail_backtrackI: "sound_trail N \<Gamma> \<Longrightarrow> sound_trail N (trail_backtrack \<Gamma> level)"
-  by (induction \<Gamma> rule: sound_trail.induct) (auto intro: sound_trail.intros)
 
 lemma sound_trail_propagate:
   assumes
