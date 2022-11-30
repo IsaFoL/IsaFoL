@@ -1042,12 +1042,15 @@ lemma clss_of_trail_trail_propagate[simp]:
   "clss_of_trail (trail_propagate \<Gamma> L C \<gamma>) = finsert (add_mset L C) (clss_of_trail \<Gamma>)"
   unfolding trail_propagate_def by simp
 
-definition trail_decide :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) trail" where
-  "trail_decide \<Gamma> L = (L, None) # \<Gamma>"
+definition decide_lit where
+  "decide_lit L = (L, None)"
+
+abbreviation trail_decide :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) trail" where
+  "trail_decide \<Gamma> L \<equiv> decide_lit L # \<Gamma>"
 
 lemma clss_of_trail_trail_decide[simp]:
   "clss_of_trail (trail_decide \<Gamma> L) = clss_of_trail \<Gamma>"
-  unfolding trail_decide_def by simp
+  by (simp add: decide_lit_def)
 
 definition is_decision_lit
   :: "('f, 'v) term literal \<times> ('f, 'v) closure_with_lit option \<Rightarrow> bool" where
@@ -1151,9 +1154,8 @@ lemma ball_trail_propagate_is_ground_lit:
 lemma ball_trail_decide_is_ground_lit:
   assumes "\<forall>x\<in>set \<Gamma>. is_ground_lit (fst x)" and "is_ground_lit L"
   shows "\<forall>x\<in>set (trail_decide \<Gamma> L). is_ground_lit (fst x)"
-  unfolding trail_decide_def
   using assms
-  by simp
+  by (simp add: decide_lit_def)
 
 lemma trail_false_cls_subst_mgu_before_grounding:
   assumes tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L, L'#}) \<cdot> \<sigma>)" and
@@ -1459,6 +1461,8 @@ inductive backtrack :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<
     \<nexists>\<gamma>. is_ground_cls (add_mset L D \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma>'' (add_mset L D \<cdot> \<gamma>) \<Longrightarrow>
     backtrack N \<beta> (\<Gamma>, U, Some (add_mset L D, \<sigma>)) (\<Gamma>'', finsert (add_mset L D) U, None)"
 
+thm backtrackI[of \<Gamma> \<Gamma>' \<Gamma>'' L \<gamma> C N \<beta> U]
+
 definition scl :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" where
   "scl N \<beta> S S' \<longleftrightarrow> propagate N \<beta> S S' \<or> decide N \<beta> S S' \<or> conflict N \<beta> S S' \<or> skip N \<beta> S S' \<or>
@@ -1483,7 +1487,7 @@ lemma propagate_well_defined:
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
-        simp: trail_decide_def trail_propagate_def)
+        simp: decide_lit_def trail_propagate_def)
 
 lemma decide_well_defined:
   assumes "decide N \<beta> S S'"
@@ -1497,7 +1501,7 @@ lemma decide_well_defined:
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
-        simp: trail_decide_def trail_propagate_def)
+        simp: decide_lit_def trail_propagate_def)
 
 lemma conflict_well_defined:
   assumes "conflict N \<beta> S S'"
@@ -1511,7 +1515,7 @@ lemma conflict_well_defined:
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
-        simp: trail_decide_def trail_propagate_def)
+        simp: decide_lit_def trail_propagate_def)
 
 lemma skip_well_defined:
   assumes "skip N \<beta> S S'"
@@ -1525,7 +1529,7 @@ lemma skip_well_defined:
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
-        simp: trail_decide_def trail_propagate_def)
+        simp: decide_lit_def trail_propagate_def)
 
 lemma factorize_well_defined:
   assumes "factorize N \<beta> S S'"
@@ -1539,7 +1543,7 @@ lemma factorize_well_defined:
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
-        simp: trail_decide_def trail_propagate_def)
+        simp: decide_lit_def trail_propagate_def)
 
 lemma resolve_well_defined:
   assumes "resolve N \<beta> S S'"
@@ -1553,7 +1557,7 @@ lemma resolve_well_defined:
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
-        simp: trail_decide_def trail_propagate_def)
+        simp: decide_lit_def trail_propagate_def)
 
 lemma backtrack_well_defined:
   assumes "backtrack N \<beta> S S'"
@@ -1567,7 +1571,7 @@ lemma backtrack_well_defined:
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
-        simp: trail_decide_def trail_propagate_def)
+        simp: decide_lit_def trail_propagate_def)
 
 
 subsection \<open>Miscellaneous Lemmas\<close>
@@ -1941,7 +1945,7 @@ lemma decide_preserves_initial_lits_generalize_learned_trail_conflict:
 proof (induction S S' rule: decide.induct)
   case (decideI L \<Gamma> U)
   thus ?case
-    by (simp add: initial_lits_generalize_learned_trail_conflict_def)
+    by (simp add: decide_lit_def initial_lits_generalize_learned_trail_conflict_def)
 qed
 
 lemma conflict_preserves_initial_lits_generalize_learned_trail_conflict:
@@ -2135,7 +2139,7 @@ proof (cases N \<beta> S S' rule: decide.cases)
     using assms(2) unfolding decideI by (simp add: trail_lits_from_clauses_def)
 
   ultimately show ?thesis
-    unfolding decideI by (simp add: trail_lits_from_clauses_def trail_decide_def)
+    unfolding decideI by (simp add: trail_lits_from_clauses_def decide_lit_def)
 qed
 
 lemma conflict_preserves_trail_lits_from_clauses:
@@ -2185,7 +2189,7 @@ lemma backtrack_preserves_trail_lits_from_clauses:
 proof (cases N \<beta> S S' rule: backtrack.cases)
   case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
   hence "suffix \<Gamma>'' \<Gamma>"
-    by (simp add: suffixI trail_decide_def)
+    by (simp add: suffixI decide_lit_def)
   hence "set \<Gamma>'' \<subseteq> set \<Gamma>"
     by (simp add: set_mono_suffix)
 
@@ -2296,7 +2300,7 @@ proof (cases N \<beta> S S' rule: decide.cases)
     using assms(2) by (simp add: decideI(1) trail_lits_ground_def)
 
   ultimately show ?thesis
-    by (simp add: decideI(2) trail_lits_ground_def trail_decide_def)
+    by (simp add: decideI(2) trail_lits_ground_def decide_lit_def)
 qed
 
 lemma conflict_preserves_trail_lits_ground:
@@ -2322,7 +2326,7 @@ lemma resolve_preserves_trail_lits_ground:
 lemma backtrack_preserves_trail_lits_ground:
   assumes "backtrack N \<beta> S S'" and "trail_lits_ground S"
   shows "trail_lits_ground S'"
-  using assms by (auto simp: trail_lits_ground_def trail_decide_def elim!: backtrack.cases)
+  using assms by (auto simp: trail_lits_ground_def decide_lit_def elim!: backtrack.cases)
 
 lemma scl_preserves_trail_lits_ground:
   assumes "scl N \<beta> S S'" and "trail_lits_ground S"
@@ -2380,7 +2384,7 @@ lemma decide_preserves_trail_lits_consistent:
   assumes "decide N \<beta> S S'" and invar: "trail_lits_consistent S"
   shows "trail_lits_consistent S'"
   using assms
-  by (auto simp: trail_lits_consistent_def trail_decide_def elim!: decide.cases
+  by (auto simp: trail_lits_consistent_def decide_lit_def elim!: decide.cases
       intro: trail_consistent.Cons)
 
 lemma conflict_preserves_trail_lits_consistent:
@@ -2411,7 +2415,7 @@ lemma backtrack_preserves_trail_lits_consistent:
   assumes "backtrack N \<beta> S S'" and invar: "trail_lits_consistent S"
   shows "trail_lits_consistent S'"
   using assms
-  by (auto simp: trail_lits_consistent_def trail_decide_def elim!: backtrack.cases
+  by (auto simp: trail_lits_consistent_def decide_lit_def elim!: backtrack.cases
       elim!: trail_consistent_if_suffix intro: suffixI)
 
 lemma scl_preserves_trail_lits_consistent:
@@ -2493,7 +2497,7 @@ next
   next
     case (Cons Ln \<Gamma>')
     with tr_deci_eq have "suffix xs \<Gamma>"
-      by (simp add: suffix_def trail_decide_def)
+      by (simp add: suffix_def decide_lit_def)
     thus ?thesis
       by (rule Decide.IH)
   qed
@@ -2559,12 +2563,12 @@ next
   hence "\<Gamma>\<^sub>1 @ \<Gamma>\<^sub>2 = trail_decide \<Gamma> (L \<cdot>l \<gamma>)"
     by simp
   thus ?case
-    unfolding trail_decide_def append_eq_Cons_conv
+    unfolding decide_lit_def append_eq_Cons_conv
   proof (elim disjE conjE exE)
     assume "\<Gamma>\<^sub>1 = []" and \<Gamma>\<^sub>2_def: "\<Gamma>\<^sub>2 = (L \<cdot>l \<gamma>, None) # \<Gamma>"
     show ?thesis
       unfolding \<Gamma>\<^sub>2_def
-      by (rule trail_propagated_or_decided.Decide[unfolded trail_decide_def]; rule Decide.hyps)
+      by (rule trail_propagated_or_decided.Decide[unfolded decide_lit_def]; rule Decide.hyps)
   next
     fix \<Gamma>\<^sub>1' assume "\<Gamma>\<^sub>1 = (L \<cdot>l \<gamma>, None) # \<Gamma>\<^sub>1'" and "\<Gamma>\<^sub>1' @ \<Gamma>\<^sub>2 = \<Gamma>"
     then show ?thesis
@@ -2625,7 +2629,7 @@ proof (cases N \<beta> S S' rule: skip.cases)
     unfolding skipI(1) by (simp add: trail_propagated_or_decided'_def)
   hence "trail_propagated_or_decided N \<beta> U \<Gamma>"
     by (cases N \<beta> U "(L, n) # \<Gamma>" rule: trail_propagated_or_decided.cases)
-      (simp_all add: trail_propagate_def trail_decide_def)
+      (simp_all add: trail_propagate_def decide_lit_def)
   thus ?thesis
     unfolding skipI(2) by (simp add: trail_propagated_or_decided'_def)
 qed
@@ -2654,7 +2658,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
     then show "trail_propagated_or_decided N \<beta> U \<Gamma>''"
       by (induction "(trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>)))"
           rule: trail_propagated_or_decided.induct)
-        (simp_all add: trail_decide_def trail_propagate_def
+        (simp_all add: decide_lit_def trail_propagate_def
           trail_propagated_or_decided_trail_append)
   qed
   thus ?thesis
@@ -2730,7 +2734,7 @@ qed
 lemma decide_preserves_trail_atoms_lt:
   assumes "decide N \<beta> S S'" and "trail_atoms_lt \<beta> S"
   shows "trail_atoms_lt \<beta> S'"
-  using assms by (auto simp: trail_atoms_lt_def trail_decide_def elim!: decide.cases)
+  using assms by (auto simp: trail_atoms_lt_def decide_lit_def elim!: decide.cases)
 
 lemma conflict_preserves_trail_atoms_lt:
   assumes "conflict N \<beta> S S'" and "trail_atoms_lt \<beta> S"
@@ -2755,7 +2759,7 @@ lemma resolve_preserves_trail_atoms_lt:
 lemma backtrack_preserves_trail_atoms_lt:
   assumes "backtrack N \<beta> S S'" and "trail_atoms_lt \<beta> S"
   shows "trail_atoms_lt \<beta> S'"
-  using assms by (auto simp: trail_atoms_lt_def trail_decide_def elim!: backtrack.cases)
+  using assms by (auto simp: trail_atoms_lt_def decide_lit_def elim!: backtrack.cases)
 
 lemma scl_preserves_trail_atoms_lt:
   assumes "scl N \<beta> S S'" and "trail_atoms_lt \<beta> S"
@@ -2881,7 +2885,7 @@ lemma decide_preserves_trail_resolved_lits_pol:
   assumes step: "decide N \<beta> S S'" and invar: "trail_resolved_lits_pol S"
   shows "trail_resolved_lits_pol S'"
   using assms
-  by (auto simp: trail_resolved_lits_pol_def trail_decide_def elim: decide.cases)
+  by (auto simp: trail_resolved_lits_pol_def decide_lit_def elim: decide.cases)
 
 lemma conflict_preserves_trail_resolved_lits_pol:
   assumes step: "conflict N \<beta> S S'" and invar: "trail_resolved_lits_pol S"
@@ -2911,7 +2915,7 @@ lemma backtrack_preserves_trail_resolved_lits_pol:
   assumes step: "backtrack N \<beta> S S'" and invar: "trail_resolved_lits_pol S"
   shows "trail_resolved_lits_pol S'"
   using assms
-  by (auto simp: trail_resolved_lits_pol_def trail_decide_def ball_Un elim: backtrack.cases)
+  by (auto simp: trail_resolved_lits_pol_def decide_lit_def ball_Un elim: backtrack.cases)
 
 lemma scl_preserves_trail_resolved_lits_pol:
   assumes "scl N \<beta> S S'" and "trail_resolved_lits_pol S"
@@ -2977,7 +2981,7 @@ lemma decide_preserves_minimal_ground_closures:
   assumes step: "decide N \<beta> S S'" and invar: "minimal_ground_closures S"
   shows "minimal_ground_closures S'"
   using assms
-  by (cases N \<beta> S S' rule: decide.cases) (simp add: minimal_ground_closures_def trail_decide_def)
+  by (cases N \<beta> S S' rule: decide.cases) (simp add: minimal_ground_closures_def decide_lit_def)
 
 lemma conflict_preserves_minimal_ground_closures:
   assumes step: "conflict N \<beta> S S'" and invar: "minimal_ground_closures S"
@@ -3125,7 +3129,7 @@ lemma backtrack_preserves_minimal_ground_closures:
   shows "minimal_ground_closures S'"
   using assms
   by (cases N \<beta> S S' rule: backtrack.cases)
-    (simp add: minimal_ground_closures_def trail_decide_def ball_Un)
+    (simp add: minimal_ground_closures_def decide_lit_def ball_Un)
 
 lemma scl_preserves_minimal_ground_closures:
   assumes "scl N \<beta> S S'" and "minimal_ground_closures S" and "conflict_disjoint_vars N S"
@@ -3432,7 +3436,7 @@ qed
 lemma sound_trail_decide:
   "sound_trail N \<Gamma> \<Longrightarrow> \<not> trail_defined_lit \<Gamma> L \<Longrightarrow> is_ground_lit L \<Longrightarrow>
   sound_trail N (trail_decide \<Gamma> L)"
-  unfolding trail_decide_def
+  unfolding decide_lit_def
   by (auto intro: sound_trail.Cons)
 
 
@@ -4019,7 +4023,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
     from sound_\<Gamma> have "sound_trail N \<Gamma>"
       by (rule sound_trail_supersetI) auto
     then show ?thesis
-      by (auto simp: \<Gamma>_def trail_decide_def intro: sound_trail_appendD)
+      by (auto simp: \<Gamma>_def decide_lit_def intro: sound_trail_appendD)
   qed
 
   moreover have "fset N \<TTurnstile>\<G>e (fset U \<union> {D + {#L#}})"
