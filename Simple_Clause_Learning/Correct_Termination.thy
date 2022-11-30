@@ -167,16 +167,26 @@ definition trail_propagated_wf where
       None \<Rightarrow> True
     | Some (_, L, \<gamma>) \<Rightarrow> L\<^sub>\<gamma> = L \<cdot>l \<gamma>)"
 
-lemma trail_propagated_wf_if_sound: "sound_trail N \<Gamma> \<Longrightarrow> trail_propagated_wf \<Gamma>"
-proof (induction \<Gamma> rule: sound_trail.induct)
+lemma trail_propagated_wf_if_trail_propagated_or_decided:
+  "trail_propagated_or_decided N U \<beta> \<Gamma> \<Longrightarrow> trail_propagated_wf \<Gamma>"
+proof (induction \<Gamma> rule: trail_propagated_or_decided.induct)
   case Nil
   then show ?case
     by (simp add: trail_propagated_wf_def)
 next
-  case (Cons u L \<Gamma>)
+  case (Propagate C L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>')
   then show ?case
-    by (cases u) (auto simp add: trail_propagated_wf_def)
+    by (simp add: trail_propagated_wf_def propagate_lit_def)
+next
+  case (Decide L \<gamma> \<Gamma>)
+  then show ?case
+    by (simp add: trail_propagated_wf_def decide_lit_def)
 qed
+
+lemma trail_propagated_wf_if_trail_propagated_or_decided':
+  "trail_propagated_or_decided' N \<beta> S \<Longrightarrow> trail_propagated_wf (state_trail S)"
+  unfolding trail_propagated_or_decided'_def
+  using trail_propagated_wf_if_trail_propagated_or_decided .
 
 theorem correct_termination:
   fixes gnd_N and gnd_N_lt_\<beta>
@@ -215,8 +225,11 @@ proof -
     no_new_decide: "(\<nexists>S'. decide N \<beta> S S') \<or> (\<exists>S' S''. decide N \<beta> S S' \<and> conflict N \<beta> S' S'')"
     using local.scl_def by meson
 
-  from sound_\<Gamma> have trail_propagate_wf: "trail_propagated_wf (state_trail S)"
-    by (simp add: S_def trail_propagated_wf_if_sound)
+
+  from run have "trail_propagated_or_decided' N \<beta> S"
+    by (induction S rule: rtranclp_induct) (simp_all add: scl_preserves_trail_propagated_or_decided)
+  hence trail_propagate_wf: "trail_propagated_wf (state_trail S)"
+    using trail_propagated_wf_if_trail_propagated_or_decided' by simp
   from run have trail_consistent: "trail_lits_consistent S"
     by (induction S rule: rtranclp_induct) (simp_all add: scl_preserves_trail_lits_consistent)
   hence trail_consistent: "trail_consistent (state_trail S)"

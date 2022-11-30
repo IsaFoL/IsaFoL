@@ -3373,8 +3373,7 @@ inductive sound_trail for N where
   Cons: "
     (case u of
       None \<Rightarrow> True |
-      Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and>
-        fset N \<TTurnstile>\<G>e {add_mset L' C}) \<Longrightarrow>
+      Some (C, L', \<gamma>) \<Rightarrow> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset N \<TTurnstile>\<G>e {add_mset L' C}) \<Longrightarrow>
     sound_trail N \<Gamma> \<Longrightarrow> sound_trail N ((L, u) # \<Gamma>)"
 
 lemma entails_\<G>_mono: "N \<TTurnstile>\<G>e U \<Longrightarrow> N \<subseteq> NN \<Longrightarrow> NN \<TTurnstile>\<G>e U"
@@ -3391,7 +3390,7 @@ next
     show
       "case u of
         None \<Rightarrow> True
-      | Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset NN \<TTurnstile>\<G>e {add_mset L' C}"
+      | Some (C, L', \<gamma>) \<Rightarrow> trail_false_cls L (C \<cdot> \<gamma>) \<and> fset NN \<TTurnstile>\<G>e {add_mset L' C}"
     proof (cases u)
       case None
       then show ?thesis by simp
@@ -3431,7 +3430,7 @@ proof (rule sound_trail.Cons; (unfold option.case prod.case)?)
   show "sound_trail N \<Gamma>"
     by (rule sound_\<Gamma>)
 next
-  show "L \<cdot>l \<sigma> = L \<cdot>l \<sigma> \<and> trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<and> fset N \<TTurnstile>\<G>e {add_mset L C}"
+  show "trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<and> fset N \<TTurnstile>\<G>e {add_mset L C}"
     using tr_false_\<Gamma>_C_\<sigma> N_entails_C_L by auto
 qed
 
