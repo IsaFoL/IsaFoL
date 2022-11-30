@@ -1056,10 +1056,6 @@ definition is_decision_lit
 definition trail_interp :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term interp" where
   "trail_interp \<Gamma> = \<Union>((\<lambda>L. case L of Pos A \<Rightarrow> {A} | Neg A \<Rightarrow> {}) ` fst ` set \<Gamma>)"
 
-primrec trail_grounding :: "('f, 'v) trail \<Rightarrow> ('f, 'v) subst" where
-  "trail_grounding [] = (Var :: ('f, 'v) subst)" |
-  "trail_grounding (Ln # \<Gamma>) = (case snd Ln of None \<Rightarrow> Var | Some _ \<Rightarrow> Var) \<odot> trail_grounding \<Gamma>"
-
 definition trail_true_lit :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> bool" where
   "trail_true_lit \<Gamma> L \<longleftrightarrow> L \<in> fst ` set \<Gamma>"
 
