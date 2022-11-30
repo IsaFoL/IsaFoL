@@ -919,12 +919,12 @@ subsubsection \<open>Renaming Extra\<close>
 
 context renaming_apart begin
 
-lemma inj_Var_renaming: "finite V \<Longrightarrow> inj (Var \<circ> renaming V)"
+lemma inj_Var_comp_renaming: "finite V \<Longrightarrow> inj (Var \<circ> renaming V)"
   using inj_compose inj_renaming by (metis inj_def term.inject(1))
 
 lemma is_renaming_Var_comp_renaming: "finite V \<Longrightarrow> Term.is_renaming (Var \<circ> renaming V)"
   unfolding Term.is_renaming_def
-  using inj_Var_renaming by (metis comp_apply inj_on_subset term.disc(1) top_greatest)
+  using inj_Var_comp_renaming by (metis comp_apply inj_on_subset term.disc(1) top_greatest)
 
 lemma vars_term_subst_term_Var_comp_renaming_disj:
   assumes fin_V: "finite V"
@@ -954,11 +954,7 @@ abbreviation renaming_wrt :: "('f, _) Term.term clause set \<Rightarrow> _ \<Rig
   "renaming_wrt N \<equiv> Var \<circ> renaming (\<Union> (vars_cls ` N))"
 
 lemma is_renaming_renaming_wrt: "finite N \<Longrightarrow> is_renaming (renaming_wrt N)"
-  by (simp add: inj_Var_renaming is_renaming_iff)
-
-lemma subst_domain_renaming_wrt: "finite N \<Longrightarrow> subst_domain (renaming_wrt N) = UNIV"
-  unfolding subst_domain_def
-  using renaming_all by force
+  by (simp add: inj_Var_comp_renaming is_renaming_iff)
 
 lemma ex_renaming_to_disjoint_vars:
   fixes C :: "('f, 'a) Term.term clause" and N :: "('f, 'a) Term.term clause set"
@@ -1429,8 +1425,8 @@ lemma is_ground_cls_if_false_in_ground_trail:
 
 section \<open>SCL Calculus\<close>
 
-locale scl = renaming_apart renaming_vars inv_renaming_vars
-  for renaming_vars inv_renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v" +
+locale scl = renaming_apart renaming_vars
+  for renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v" +
   fixes less_B :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>B" 50)
   assumes
     finite_less_B: "\<And>\<beta>. finite {x. x \<prec>\<^sub>B \<beta>}"
