@@ -191,26 +191,19 @@ lemma trail_propagated_wf_if_trail_propagated_or_decided':
 theorem correct_termination:
   fixes gnd_N and gnd_N_lt_\<beta>
   assumes
-    run: "(scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
-    no_more_step: "\<nexists>S'. scl N \<beta> S S'"
+    no_more_step: "\<nexists>S'. scl N \<beta> S S'" and
+    sound_S: "sound_state N \<beta> S" and
+    invars: "trail_atoms_lt \<beta> S" "trail_propagated_or_decided' N \<beta> S" "trail_lits_consistent S"
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
     "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
 proof -
-  from run have mempty_not_in_learned_S: "{#} |\<notin>| state_learned S"
-    by (induction S rule: rtranclp_induct) (simp_all add: scl_mempty_not_in_sate_learned)
-
-  from run have "trail_atoms_lt \<beta> S"
-    by (induction S rule: rtranclp_induct) (simp_all add: scl_preserves_trail_atoms_lt)
-
   obtain \<Gamma> U u where S_def: "S = (\<Gamma>, U, u)"
     using prod_cases3 by blast
 
-  from run have sound_S: "sound_state N \<beta> S"
-    by (induction S rule: rtranclp_induct) (simp_all add: scl_preserves_sound_state)
-  hence
+  from sound_S have
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     "minimal_ground_closures S"
     by (simp_all add: S_def sound_state_def)
@@ -225,15 +218,12 @@ proof -
     no_new_decide: "(\<nexists>S'. decide N \<beta> S S') \<or> (\<exists>S' S''. decide N \<beta> S S' \<and> conflict N \<beta> S' S'')"
     using local.scl_def by meson
 
+  have trail_propagate_wf: "trail_propagated_wf (state_trail S)"
+    using \<open>trail_propagated_or_decided' N \<beta> S\<close> trail_propagated_wf_if_trail_propagated_or_decided'
+    by simp
 
-  from run have "trail_propagated_or_decided' N \<beta> S"
-    by (induction S rule: rtranclp_induct) (simp_all add: scl_preserves_trail_propagated_or_decided)
-  hence trail_propagate_wf: "trail_propagated_wf (state_trail S)"
-    using trail_propagated_wf_if_trail_propagated_or_decided' by simp
-  from run have trail_consistent: "trail_lits_consistent S"
-    by (induction S rule: rtranclp_induct) (simp_all add: scl_preserves_trail_lits_consistent)
-  hence trail_consistent: "trail_consistent (state_trail S)"
-    by (simp add: trail_lits_consistent_def)
+  have trail_consistent: "trail_consistent (state_trail S)"
+    using \<open>trail_lits_consistent S\<close> by (simp add: trail_lits_consistent_def)
 
   show ?thesis
   proof (cases u)
