@@ -1250,8 +1250,7 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     by (simp_all add: is_renaming_iff)
 
   have vars_subst_cls_\<rho>_disjoint: "\<And>C. vars_cls (C \<cdot> \<rho>) \<inter> vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) = {}"
-    by (smt (verit, best) Int_Un_distrib UN_Un Union_image_insert \<rho>_def finite.emptyI finite_UN
-        finite_insert finite_vars_cls sup_bot.right_neutral vars_cls_subst_renaming_disj)
+    by (simp add: \<rho>_def vars_cls_subst_renaming_disj)
 
   have "\<exists>\<mu>'. Unification.mgu (atm_of L \<cdot>a \<mu>) (atm_of L' \<cdot>a \<rho>) = Some \<mu>'"
   proof (rule ex_mgu_if_subst_eq_subst_and_disj_vars)

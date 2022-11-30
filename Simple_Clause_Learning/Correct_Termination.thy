@@ -421,8 +421,7 @@ proof -
               by (rule is_renaming_renaming_wrt) simp
 
             have vars_subst_\<rho>_disj: "\<And>C. vars_cls (C \<cdot> \<rho>) \<inter> vars_cls (add_mset L' D) = {}"
-              by (metis Sup_empty Union_image_insert \<rho>_def finite_vars_cls image_empty
-                  vars_cls_subst_renaming_disj sup_bot.right_neutral)
+              by (simp add: \<rho>_def vars_cls_subst_renaming_disj)
 
             from ren_\<rho> have "\<forall>x. is_Var (\<rho> x)" "inj \<rho>"
               by (simp_all add: is_renaming_iff)

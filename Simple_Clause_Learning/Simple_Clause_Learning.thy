@@ -351,6 +351,9 @@ definition vars_cls :: "('f, 'v) term clause \<Rightarrow> 'v set" where
 definition vars_clss :: "('f, 'v) term clause set \<Rightarrow> 'v set" where
   "vars_clss N = (\<Union>C \<in> N. vars_cls C)"
 
+lemma vars_clss_empty[simp]: "vars_clss {} = {}"
+  by (simp add: vars_clss_def)
+
 lemma vars_clss_insert[simp]: "vars_clss (insert C N) = vars_cls C \<union> vars_clss N"
   by (simp add: vars_clss_def)
 
@@ -951,10 +954,10 @@ lemma vars_cls_subst_renaming_disj:
   by (smt (verit, best) UN_iff UN_simps(10) disjoint_iff multiset.set_map subst_cls_def)
 
 abbreviation renaming_wrt :: "('f, _) Term.term clause set \<Rightarrow> _ \<Rightarrow> ('f, _) Term.term" where
-  "renaming_wrt N \<equiv> Var \<circ> renaming (\<Union> (vars_cls ` N))"
+  "renaming_wrt N \<equiv> Var \<circ> renaming (vars_clss N)"
 
 lemma is_renaming_renaming_wrt: "finite N \<Longrightarrow> is_renaming (renaming_wrt N)"
-  by (simp add: inj_Var_comp_renaming is_renaming_iff)
+  by (simp add: inj_Var_comp_renaming is_renaming_iff vars_clss_def)
 
 lemma ex_renaming_to_disjoint_vars:
   fixes C :: "('f, 'a) Term.term clause" and N :: "('f, 'a) Term.term clause set"
