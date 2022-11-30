@@ -1029,18 +1029,22 @@ fun clss_of_closure where
   "clss_of_closure None = {||}" |
   "clss_of_closure (Some (C, _)) = {|C|}"
 
-definition trail_propagate ::
+
+definition propagate_lit where
+  "propagate_lit L C \<gamma> = (L \<cdot>l \<gamma>, Some (C, L, \<gamma>))"
+
+abbreviation trail_propagate ::
   "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) term clause \<Rightarrow> ('f, 'v) subst \<Rightarrow>
     ('f, 'v) trail" where
-  "trail_propagate \<Gamma> L C \<gamma> = (L \<cdot>l \<gamma>, Some (C, L, \<gamma>)) # \<Gamma>"
+  "trail_propagate \<Gamma> L C \<gamma> \<equiv> propagate_lit L C \<gamma> # \<Gamma>"
 
 lemma suffix_trail_propagate[simp]: "suffix \<Gamma> (trail_propagate \<Gamma> L C \<delta>)"
-  unfolding suffix_def trail_propagate_def
+  unfolding suffix_def propagate_lit_def
   by simp
 
 lemma clss_of_trail_trail_propagate[simp]:
   "clss_of_trail (trail_propagate \<Gamma> L C \<gamma>) = finsert (add_mset L C) (clss_of_trail \<Gamma>)"
-  unfolding trail_propagate_def by simp
+  unfolding propagate_lit_def by simp
 
 definition decide_lit where
   "decide_lit L = (L, None)"
@@ -1148,7 +1152,7 @@ qed
 lemma ball_trail_propagate_is_ground_lit:
   assumes "\<forall>x\<in>set \<Gamma>. is_ground_lit (fst x)" and "is_ground_lit (L \<cdot>l \<sigma>)"
   shows "\<forall>x\<in>set (trail_propagate \<Gamma> L C \<sigma>). is_ground_lit (fst x)"
-  unfolding trail_propagate_def
+  unfolding propagate_lit_def
   using assms by simp
 
 lemma ball_trail_decide_is_ground_lit:
@@ -1487,7 +1491,7 @@ lemma propagate_well_defined:
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
-        simp: decide_lit_def trail_propagate_def)
+        simp: decide_lit_def propagate_lit_def)
 
 lemma decide_well_defined:
   assumes "decide N \<beta> S S'"
@@ -1501,7 +1505,7 @@ lemma decide_well_defined:
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
-        simp: decide_lit_def trail_propagate_def)
+        simp: decide_lit_def propagate_lit_def)
 
 lemma conflict_well_defined:
   assumes "conflict N \<beta> S S'"
@@ -1515,7 +1519,7 @@ lemma conflict_well_defined:
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
-        simp: decide_lit_def trail_propagate_def)
+        simp: decide_lit_def propagate_lit_def)
 
 lemma skip_well_defined:
   assumes "skip N \<beta> S S'"
@@ -1529,7 +1533,7 @@ lemma skip_well_defined:
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
-        simp: decide_lit_def trail_propagate_def)
+        simp: decide_lit_def propagate_lit_def)
 
 lemma factorize_well_defined:
   assumes "factorize N \<beta> S S'"
@@ -1543,7 +1547,7 @@ lemma factorize_well_defined:
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
-        simp: decide_lit_def trail_propagate_def)
+        simp: decide_lit_def propagate_lit_def)
 
 lemma resolve_well_defined:
   assumes "resolve N \<beta> S S'"
@@ -1557,7 +1561,7 @@ lemma resolve_well_defined:
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
-        simp: decide_lit_def trail_propagate_def)
+        simp: decide_lit_def propagate_lit_def)
 
 lemma backtrack_well_defined:
   assumes "backtrack N \<beta> S S'"
@@ -1571,7 +1575,7 @@ lemma backtrack_well_defined:
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
-        simp: decide_lit_def trail_propagate_def)
+        simp: decide_lit_def propagate_lit_def)
 
 
 subsection \<open>Miscellaneous Lemmas\<close>
@@ -1936,7 +1940,7 @@ proof (induction S S' rule: propagate.induct)
       by (rule N_generalize)
   qed
   thus ?case
-    by (simp add: initial_lits_generalize_learned_trail_conflict_def)
+    by (simp add: initial_lits_generalize_learned_trail_conflict_def propagate_lit_def)
 qed
 
 lemma decide_preserves_initial_lits_generalize_learned_trail_conflict:
@@ -2049,7 +2053,7 @@ proof (induction S S' rule: resolve.induct)
         by (rule clss_lits_generalize_clss_lits_subset) auto
       hence "clss_lits_generalize_clss_lits (fset N) {add_mset L C}"
         unfolding resolveI.hyps
-        by (simp add: clss_lits_generalize_clss_lits_insert)
+        by (simp add: clss_lits_generalize_clss_lits_insert propagate_lit_def)
       hence "clss_lits_generalize_clss_lits (fset N) {C}"
         by (simp add: clss_lits_generalize_clss_lits_def)
       thus ?thesis
@@ -2122,7 +2126,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     using assms(2) unfolding propagateI by (simp add: trail_lits_from_clauses_def)
 
   ultimately show ?thesis
-    unfolding propagateI(2) by (simp add: trail_lits_from_clauses_def trail_propagate_def)
+    unfolding propagateI(2) by (simp add: trail_lits_from_clauses_def propagate_lit_def)
 qed
 
 lemma decide_preserves_trail_lits_from_clauses:
@@ -2284,7 +2288,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     using \<open>trail_lits_ground S\<close> by (simp add: propagateI(1) trail_lits_ground_def)
 
   ultimately show ?thesis
-    by (simp add: propagateI(2) trail_lits_ground_def trail_propagate_def)
+    by (simp add: propagateI(2) trail_lits_ground_def propagate_lit_def)
 qed
 
 lemma decide_preserves_trail_lits_ground:
@@ -2376,7 +2380,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     by (simp add: propagateI(1) trail_lits_consistent_def)
 
   ultimately show ?thesis
-    by (auto simp: propagateI(2) trail_propagate_def trail_lits_consistent_def
+    by (auto simp: propagateI(2) propagate_lit_def trail_lits_consistent_def
         intro: trail_consistent.Cons)
 qed
 
@@ -2478,7 +2482,7 @@ next
   next
     case (Cons Ln \<Gamma>')
     with tr_prop_eq have "suffix xs \<Gamma>"
-      by (simp add: suffix_def trail_propagate_def)
+      by (simp add: suffix_def propagate_lit_def)
     thus ?thesis
       by (rule Propagate.IH)
   qed
@@ -2545,12 +2549,12 @@ next
     "\<Gamma>\<^sub>1 @ \<Gamma>\<^sub>2 = trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>'"
     by simp
   thus ?case
-    unfolding trail_propagate_def append_eq_Cons_conv
+    unfolding propagate_lit_def append_eq_Cons_conv
   proof (elim disjE conjE exE)
     assume "\<Gamma>\<^sub>1 = []" and \<Gamma>\<^sub>2_def: "\<Gamma>\<^sub>2 = (L \<cdot>l \<mu> \<cdot>l \<gamma>', Some (C\<^sub>0 \<cdot> \<mu>, L \<cdot>l \<mu>, \<gamma>')) # \<Gamma>"
     show ?thesis
       unfolding \<Gamma>\<^sub>2_def
-      by (rule trail_propagated_or_decided.Propagate[unfolded trail_propagate_def];
+      by (rule trail_propagated_or_decided.Propagate[unfolded propagate_lit_def];
           rule Propagate.hyps)
   next
     fix \<Gamma>\<^sub>1'
@@ -2629,7 +2633,7 @@ proof (cases N \<beta> S S' rule: skip.cases)
     unfolding skipI(1) by (simp add: trail_propagated_or_decided'_def)
   hence "trail_propagated_or_decided N \<beta> U \<Gamma>"
     by (cases N \<beta> U "(L, n) # \<Gamma>" rule: trail_propagated_or_decided.cases)
-      (simp_all add: trail_propagate_def decide_lit_def)
+      (simp_all add: propagate_lit_def decide_lit_def)
   thus ?thesis
     unfolding skipI(2) by (simp add: trail_propagated_or_decided'_def)
 qed
@@ -2658,7 +2662,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
     then show "trail_propagated_or_decided N \<beta> U \<Gamma>''"
       by (induction "(trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>)))"
           rule: trail_propagated_or_decided.induct)
-        (simp_all add: decide_lit_def trail_propagate_def
+        (simp_all add: decide_lit_def propagate_lit_def
           trail_propagated_or_decided_trail_append)
   qed
   thus ?thesis
@@ -2728,7 +2732,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   ultimately have "atm_of L \<cdot>a \<mu> \<cdot>a \<gamma>' \<prec>\<^sub>B \<beta>"
     by simp
   with \<open>trail_atoms_lt \<beta> S\<close> show ?thesis
-    by (simp add: trail_atoms_lt_def propagateI(1,2) trail_propagate_def)
+    by (simp add: trail_atoms_lt_def propagateI(1,2) propagate_lit_def)
 qed
 
 lemma decide_preserves_trail_atoms_lt:
@@ -2877,7 +2881,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   
   ultimately show ?thesis
     unfolding propagateI(1,2)
-    unfolding trail_resolved_lits_pol_def trail_propagate_def state_proj_simp list.set
+    unfolding trail_resolved_lits_pol_def propagate_lit_def state_proj_simp list.set
     by fastforce
 qed
 
@@ -2909,7 +2913,7 @@ lemma resolve_preserves_trail_resolved_lits_pol:
   assumes step: "resolve N \<beta> S S'" and invar: "trail_resolved_lits_pol S"
   shows "trail_resolved_lits_pol S'"
   using assms
-  by (auto simp: trail_resolved_lits_pol_def elim: resolve.cases)
+  by (auto simp: trail_resolved_lits_pol_def propagate_lit_def elim!: resolve.cases)
 
 lemma backtrack_preserves_trail_resolved_lits_pol:
   assumes step: "backtrack N \<beta> S S'" and invar: "trail_resolved_lits_pol S"
@@ -2974,7 +2978,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   ultimately show ?thesis
     using invar
     unfolding propagateI(1,2)
-    by (simp add: minimal_ground_closures_def trail_propagate_def)
+    by (simp add: minimal_ground_closures_def propagate_lit_def)
 qed
 
 lemma decide_preserves_minimal_ground_closures:
@@ -3051,7 +3055,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     min_ground_clo_\<Gamma>: "\<forall>Ln \<in> set  \<Gamma>. \<forall>C L \<gamma>. snd Ln = Some (C, L, \<gamma>) \<longrightarrow>
       subst_domain \<gamma> \<subseteq> vars_cls (add_mset L C) \<and> is_ground_cls (add_mset L C \<cdot> \<gamma>)"
     unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>
-    by (simp_all add: trail_propagate_def minimal_ground_closures_def)
+    by (simp_all add: propagate_lit_def minimal_ground_closures_def)
 
   from \<open>L \<cdot>l \<delta> = - (K \<cdot>l \<sigma>)\<close> have "atm_of L \<cdot>a \<delta> = atm_of K \<cdot>a \<sigma>"
     by (metis atm_of_eq_uminus_if_lit_eq atm_of_subst_lit)
@@ -3424,7 +3428,7 @@ lemma sound_trail_propagate:
     tr_false_\<Gamma>_C_\<sigma>: "trail_false_cls \<Gamma> (C \<cdot> \<sigma>)" and
     N_entails_C_L: "fset N \<TTurnstile>\<G>e {C + {#L#}}"
   shows "sound_trail N (trail_propagate \<Gamma> L C \<sigma>)"
-  unfolding trail_propagate_def
+  unfolding propagate_lit_def
 proof (rule sound_trail.Cons; (unfold option.case prod.case)?)
   show "sound_trail N \<Gamma>"
     by (rule sound_\<Gamma>)
@@ -3810,7 +3814,7 @@ next
   qed
   hence "trail_false_cls \<Gamma>' (C \<cdot> rename_subst_domain \<rho> \<sigma> \<cdot> \<delta>)"
     using tr_false_cls_C
-    by (simp add: trail_propagate_def trail_false_cls_def trail_false_lit_def)
+    by (simp add: propagate_lit_def trail_false_cls_def trail_false_lit_def)
   thus "trail_false_cls \<Gamma> (C \<cdot> rename_subst_domain \<rho> \<sigma> \<cdot> \<delta>)"
     by (rule trail_false_cls_if_trail_false_suffix[OF \<open>suffix \<Gamma>' \<Gamma>\<close>])
 qed
@@ -3835,7 +3839,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     dom_\<delta>: "subst_domain \<delta> \<subseteq> vars_cls (add_mset L C)" and
     gr_prop_\<delta>: "is_ground_cls (add_mset L C \<cdot> \<delta>)"
     unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>
-    by (simp_all add: trail_propagate_def minimal_ground_closures_def)
+    by (simp_all add: propagate_lit_def minimal_ground_closures_def)
 
   have "vars_lit K \<subseteq> subst_domain \<sigma>" and "vars_cls D \<subseteq> subst_domain \<sigma>"
     using vars_cls_subset_subst_domain_if_grounding[OF gr_conf_\<sigma>] by simp_all
@@ -3854,7 +3858,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     tr_false_cls_C: "trail_false_cls \<Gamma>' (C \<cdot> \<delta>)" and
     N_entails_C_L: "fset N \<TTurnstile>\<G>e {add_mset L C}"
     unfolding sound_trail.simps[of _ \<Gamma>]
-    unfolding \<Gamma>_def trail_propagate_def
+    unfolding \<Gamma>_def propagate_lit_def
     by auto
 
   from L_eq_comp_L' have "atm_of L \<cdot>a \<delta> = atm_of K \<cdot>a \<sigma>"
