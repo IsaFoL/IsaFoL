@@ -3977,11 +3977,8 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
   from backtrackI(1) sound have
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
-    dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L#})" and
-    gr_D_L_\<sigma>: "is_ground_cls ((D + {#L#}) \<cdot> \<sigma>)" and
-    tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L#}) \<cdot> \<sigma>)" and
     N_entails_D_L_L': "fset N \<TTurnstile>\<G>e {D + {#L#}}"
-    unfolding sound_state_def by (simp_all add: minimal_ground_closures_def)
+    unfolding sound_state_def by simp_all
 
   from backtrackI have \<Gamma>_def: "\<Gamma> = trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>))" by simp
 
