@@ -1762,10 +1762,11 @@ proof -
   qed
 
   from conflict sound_S0 have sound_S1: "sound_state N \<beta> S1"
-    by (simp add: conflict_sound_state)
+    by (simp add: conflict_preserves_sound_state)
   with resolution have sound_Sn: "sound_state N \<beta> Sn"
     by (induction rule: tranclp_induct)
-      (auto intro: skip_sound_state factorize_sound_state resolve_sound_state)
+      (auto intro: skip_preserves_sound_state factorize_preserves_sound_state
+        resolve_preserves_sound_state)
 
   from conflict_Sn sound_Sn have "fset N \<TTurnstile>\<G>e {Cn}" and
     trail_Sn_false_Cn_\<gamma>n: "trail_false_cls (state_trail Sn) (Cn \<cdot> \<gamma>n)"
@@ -1786,13 +1787,13 @@ proof -
     next
       assume "factorize N \<beta> S1 S2"
       moreover with sound_S1 have "sound_state N \<beta> S2"
-        by (auto intro: factorize_sound_state)
+        by (auto intro: factorize_preserves_sound_state)
       ultimately show ?thesis
         by (cases N \<beta> S1 S2 rule: factorize.cases) (simp add: sound_state_def)
     next
       assume "resolve N \<beta> S1 S2"
       moreover with sound_S1 have "sound_state N \<beta> S2"
-        by (auto intro: resolve_sound_state)
+        by (auto intro: resolve_preserves_sound_state)
       ultimately show ?thesis
         by (cases N \<beta> S1 S2 rule: resolve.cases) (simp add: sound_state_def)
     qed
@@ -1805,7 +1806,8 @@ proof -
 
     from step.hyps(1) sound_S1 have sound_Sm: "sound_state N \<beta> Sm"
       by (induction rule: tranclp_induct)
-        (auto intro: skip_sound_state factorize_sound_state resolve_sound_state)
+        (auto intro: skip_preserves_sound_state factorize_preserves_sound_state
+          resolve_preserves_sound_state)
 
     from step.IH obtain Cm \<gamma>m where
       conflict_Sm: "state_conflict Sm = Some (Cm, \<gamma>m)" and

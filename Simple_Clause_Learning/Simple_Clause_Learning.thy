@@ -3470,7 +3470,7 @@ lemma mem_vars_cls_subst_clsD: "x' \<in> vars_cls (C \<cdot> \<rho>) \<Longright
   unfolding vars_subst_cls_eq
   using subst_domain_def by force
 
-lemma propagate_sound_state:
+lemma propagate_preserves_sound_state:
   assumes step: "propagate N \<beta> S S'" and sound: "sound_state N \<beta> S"
   shows "sound_state N \<beta> S'"
   using assms(1)
@@ -3596,7 +3596,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     using N_entails_U by simp
 qed
 
-lemma decide_sound_state:
+lemma decide_preserves_sound_state:
   assumes step: "decide N \<beta> S S'" and sound: "sound_state N \<beta> S"
   shows "sound_state N \<beta> S'"
   using assms(1)
@@ -3619,7 +3619,7 @@ proof (cases N \<beta> S S' rule: decide.cases)
     unfolding decideI sound_state_def by simp
 qed
 
-lemma conflict_sound_state:
+lemma conflict_preserves_sound_state:
   assumes step: "conflict N \<beta> S S'" and sound: "sound_state N \<beta> S"
   shows "sound_state N \<beta> S'"
   using assms(1)
@@ -3656,7 +3656,7 @@ proof (cases N \<beta> S S' rule: conflict.cases)
     using sound_\<Gamma> N_entails_U by simp
 qed
 
-lemma skip_sound_state:
+lemma skip_preserves_sound_state:
   assumes step: "skip N \<beta> S S'" and sound: "sound_state N \<beta> S"
   shows "sound_state N \<beta> S'"
   using step
@@ -3673,7 +3673,7 @@ proof (cases N \<beta> S S' rule: skip.cases)
     by (auto simp: sound_state_def trail_atoms_lt_def elim!: subtrail_falseI)
 qed
 
-lemma factorize_sound_state:
+lemma factorize_preserves_sound_state:
   assumes step: "factorize N \<beta> S S'" and sound: "sound_state N \<beta> S"
   shows "sound_state N \<beta> S'"
   using assms(1)
@@ -3787,7 +3787,7 @@ next
     by (rule trail_false_cls_if_trail_false_suffix[OF \<open>suffix \<Gamma>' \<Gamma>\<close>])
 qed
 
-lemma resolve_sound_state:
+lemma resolve_preserves_sound_state:
   assumes step: "resolve N \<beta> S S'" and sound: "sound_state N \<beta> S"
   shows "sound_state N \<beta> S'"
   using assms(1)
@@ -3968,7 +3968,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     using N_entails_U by simp
 qed
 
-lemma backtrack_sound_state:
+lemma backtrack_preserves_sound_state:
   assumes step: "backtrack N \<beta> S S'" and sound: "sound_state N \<beta> S"
   shows "sound_state N \<beta> S'"
   using assms(1)
@@ -4006,8 +4006,8 @@ theorem scl_preserves_sound_state:
   fixes N :: "('f, 'v) Term.term clause fset"
   shows "scl N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
   unfolding scl_def
-  using propagate_sound_state decide_sound_state conflict_sound_state skip_sound_state
-    factorize_sound_state resolve_sound_state backtrack_sound_state
+  using propagate_preserves_sound_state decide_preserves_sound_state conflict_preserves_sound_state skip_preserves_sound_state
+    factorize_preserves_sound_state resolve_preserves_sound_state backtrack_preserves_sound_state
   by metis
 lemma not_satisfiable_if_sound_state_conflict_bottom:
   assumes sound_S: "sound_state N \<beta> S" and conflict_S: "state_conflict S = Some ({#}, \<gamma>)"
