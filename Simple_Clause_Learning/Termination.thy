@@ -345,7 +345,7 @@ next
             by (simp add: less_eq_fset.rep_eq Abs_fset_inverse fset_of_list.rep_eq)
         qed
         then show ?thesis
-          unfolding decideI(1,2) trail_decide_def \<M>_def state_proj_simp option.case
+          unfolding decideI(1,2) decide_lit_def \<M>_def state_proj_simp option.case
           unfolding lex_prodp_def prod.sel by simp
       qed
     next
@@ -392,7 +392,7 @@ next
             by (simp add: less_eq_fset.rep_eq fset_of_list.rep_eq Abs_fset_inverse)
         qed
         thus ?thesis
-          unfolding propagateI(1,2) trail_propagate_def \<M>_def state_proj_simp option.case
+          unfolding propagateI(1,2) propagate_lit_def \<M>_def state_proj_simp option.case
           unfolding \<open>L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<gamma>\<close>
           unfolding lex_prodp_def prod.sel by simp
       qed
@@ -467,7 +467,7 @@ next
           dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (add_mset L' D)" and
           dom_\<delta>: "subst_domain \<delta> \<subseteq> vars_cls (add_mset L C)"
           unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>
-          by (simp_all add: minimal_ground_closures_def trail_propagate_def)
+          by (simp_all add: minimal_ground_closures_def propagate_lit_def)
 
         have "atm_of L \<cdot>a rename_subst_domain \<rho> \<sigma> \<cdot>a \<delta> =
           atm_of L' \<cdot>a \<rho> \<cdot>a rename_subst_domain \<rho> \<sigma> \<cdot>a \<delta>"
@@ -535,11 +535,11 @@ next
         have "- (L \<cdot>l \<delta>) \<notin># C \<cdot> \<delta>"
           using \<open>trail_resolved_lits_pol S\<close>
           unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>
-          by (simp add: trail_resolved_lits_pol_def trail_propagate_def)
+          by (simp add: trail_resolved_lits_pol_def propagate_lit_def)
 
         have "(\<M>_skip_fact_reso \<Gamma> (D \<cdot> \<sigma> + C \<cdot> \<delta>), \<M>_skip_fact_reso \<Gamma> (D \<cdot> \<sigma> + {#L'#} \<cdot> \<sigma>)) \<in>
           lex {(x, y). x < y}"
-          unfolding \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close> trail_propagate_def
+          unfolding \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close> propagate_lit_def
           unfolding \<M>_skip_fact_reso.simps Let_def prod.sel option.case prod.case
           unfolding lex_conv mem_Collect_eq prod.case
           apply (rule conjI)

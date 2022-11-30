@@ -45,7 +45,7 @@ proof -
 
   ultimately have "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
     using tr_\<Gamma>_L_false_D
-    by (metis subtrail_falseI trail_decide_def)
+    by (metis subtrail_falseI decide_lit_def)
 
   then obtain D' L' where D_def: "D = add_mset L' D'" and "- (L \<cdot>l \<gamma>) = L' \<cdot>l \<gamma>\<^sub>D"
     by (metis Melem_subst_cls multi_member_split)
@@ -89,7 +89,7 @@ proof -
     show "trail_false_cls ((L \<cdot>l \<gamma>, None) # \<Gamma>) (C\<^sub>0 \<cdot> \<gamma>\<^sub>D)"
       unfolding C\<^sub>0_def trail_false_cls_def
       apply (rule ballI)
-      apply (rule tr_\<Gamma>_L_false_D[unfolded D_def trail_false_cls_def trail_decide_def, rule_format])
+      apply (rule tr_\<Gamma>_L_false_D[unfolded D_def trail_false_cls_def decide_lit_def, rule_format])
       by auto
   next
     show "- (L \<cdot>l \<gamma>) \<notin># C\<^sub>0 \<cdot> \<gamma>\<^sub>D"
@@ -372,7 +372,7 @@ proof -
           proof (cases n)
             case None \<comment> \<open>Conflict clause can be backtracked\<close>
             hence \<Gamma>_def: "\<Gamma> = trail_decide \<Gamma>' (- (K \<cdot>l \<gamma>))"
-              by (simp add: \<Gamma>_def L_eq_uminus_K_\<gamma> trail_decide_def)
+              by (simp add: \<Gamma>_def L_eq_uminus_K_\<gamma> decide_lit_def)
 
             from \<Gamma>_def have \<Gamma>_def': "\<Gamma> = trail_decide (\<Gamma>' @ []) (- (K \<cdot>l \<gamma>))"
               by auto
@@ -396,7 +396,7 @@ proof -
               by (simp add: \<Gamma>_def S_def trail_propagated_wf_def)
             hence 1: "\<Gamma> = trail_propagate \<Gamma>' L' D \<sigma> "
               using \<Gamma>_def n_def
-              by (simp add: trail_propagate_def)
+              by (simp add: propagate_lit_def)
 
             from \<open>minimal_ground_closures S\<close> have
               dom_\<gamma>: "subst_domain \<gamma> \<subseteq> vars_cls (add_mset K C)" and
@@ -404,7 +404,7 @@ proof -
               dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (add_mset L' D)" and
               gr_prop_\<sigma>: "is_ground_cls (add_mset L' D \<cdot> \<sigma>)"
               unfolding S_def minimal_ground_closures_def
-              by (simp_all add: 1 C_def u_def trail_propagate_def minimal_ground_closures_def)
+              by (simp_all add: 1 C_def u_def propagate_lit_def minimal_ground_closures_def)
 
             define \<rho> :: "'v \<Rightarrow> ('f, 'v) Term.term" where
               "\<rho> = renaming_wrt {add_mset L' D}"

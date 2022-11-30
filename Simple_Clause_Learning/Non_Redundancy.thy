@@ -45,14 +45,14 @@ lemma propagate_preserves_no_conflict_after_decide':
   assumes "propagate N \<beta> S S'" and "no_conflict_after_decide' N \<beta> S"
   shows "no_conflict_after_decide' N \<beta> S'"
   using assms
-  by (auto simp: no_conflict_after_decide'_def trail_propagate_def is_decision_lit_def
+  by (auto simp: no_conflict_after_decide'_def propagate_lit_def is_decision_lit_def
       elim!: propagate.cases intro!: no_conflict_after_decide.Cons)
 
 lemma decide_preserves_no_conflict_after_decide':
   assumes "decide N \<beta> S S'" and "\<nexists>S''. conflict N \<beta> S' S''" and "no_conflict_after_decide' N \<beta> S"
   shows "no_conflict_after_decide' N \<beta> S'"
   using assms
-  by (auto simp: no_conflict_after_decide'_def trail_decide_def is_decision_lit_def
+  by (auto simp: no_conflict_after_decide'_def decide_lit_def is_decision_lit_def
       elim!: decide.cases intro!: no_conflict_after_decide.Cons)
 
 lemma conflict_preserves_no_conflict_after_decide':
@@ -104,7 +104,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
   have "no_conflict_after_decide N \<beta> U (\<Gamma>' @ \<Gamma>'')"
     using invar
     unfolding backtrackI(1,2,3) no_conflict_after_decide'_def
-    by (auto simp: trail_decide_def elim: no_conflict_after_decide.cases)
+    by (auto simp: decide_lit_def elim: no_conflict_after_decide.cases)
   hence "no_conflict_after_decide N \<beta> U \<Gamma>''"
     by (induction \<Gamma>') (auto elim: no_conflict_after_decide.cases)
   hence "no_conflict_after_decide N \<beta> (finsert (add_mset L D) U) \<Gamma>''"
@@ -168,7 +168,7 @@ proof (elim disjE exE)
     with invars(3) have "no_conflict_after_decide N \<beta> U (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
       by (simp add: no_conflict_after_decide'_def)
     hence "\<nexists>S'. conflict N \<beta> (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None) S'"
-      by (rule no_conflict_after_decide.cases) (simp_all add: trail_decide_def is_decision_lit_def)
+      by (rule no_conflict_after_decide.cases) (simp_all add: decide_lit_def is_decision_lit_def)
     then show ?thesis
       using conf unfolding decideI(1,2) by metis
   qed
@@ -348,7 +348,7 @@ next
             unfolded step_hyps state_proj_simp, OF refl])
     thus ?thesis
       unfolding step_hyps(1,2)
-      by (simp add: almost_no_conflict_with_trail_def trail_propagate_def is_decision_lit_def)
+      by (simp add: almost_no_conflict_with_trail_def propagate_lit_def is_decision_lit_def)
   qed
 qed
 
@@ -432,7 +432,7 @@ lemma backtrack_preserves_almost_no_conflict_with_trail:
 proof (cases N \<beta> S S' rule: backtrack.cases)
   case step_hyps: (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
   from invar have "no_conflict_with_trail N \<beta> U ((- (L \<cdot>l \<sigma>), None) # \<Gamma>' @ \<Gamma>'')"
-    by (simp add: step_hyps almost_no_conflict_with_trail_def trail_decide_def is_decision_lit_def)
+    by (simp add: step_hyps almost_no_conflict_with_trail_def decide_lit_def is_decision_lit_def)
   hence "no_conflict_with_trail N \<beta> U (\<Gamma>' @ \<Gamma>'')"
     by (auto elim: no_conflict_with_trail.cases)
   hence "no_conflict_with_trail N \<beta> U \<Gamma>''"
@@ -543,7 +543,7 @@ proof -
               almost_no_conflict_with_trail_def backtrack.simps conflict.cases finsert_iff funionE
               funion_finsert_right learned_nonempty_def list.case(2) list.sel(3) list.simps(3)
               no_conflict_with_trail.simps not_trail_false_cls_if_no_conflict_with_trail
-              state_learned_simp state_trail_simp step.prems suffixI trail_decide_def
+              state_learned_simp state_trail_simp step.prems suffixI decide_lit_def
               trail_false_cls_if_trail_false_suffix)
       qed
       ultimately show "propagate N \<beta> S0 S1"
@@ -760,7 +760,7 @@ proof -
           using \<open>S3 = S\<close> \<open>state_trail S3 = state_trail S1\<close>
             \<open>state_learned S3 = state_learned S1\<close>
             \<open>state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>\<close>
-          by (simp add: trail_propagate_def is_decision_lit_def)
+          by (simp add: propagate_lit_def is_decision_lit_def)
 
         have "\<exists>D \<gamma>\<^sub>D. state_conflict S2 = Some (D, \<gamma>\<^sub>D) \<and> - (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
           using \<open>conflict N \<beta> S1 S2\<close>
@@ -793,7 +793,7 @@ proof -
           qed
 
           ultimately have "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
-            by (metis subtrail_falseI trail_propagate_def)
+            by (metis subtrail_falseI propagate_lit_def)
 
           moreover have "state_conflict S2 = Some (D, \<gamma>\<^sub>D)"
             unfolding conflictI(1,2) by simp
@@ -820,7 +820,7 @@ proof -
         with step have False
           using \<open>state_trail S3 = state_trail S1\<close>
           unfolding \<open>S3 = S\<close> \<open>state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>\<close>
-          by (auto simp add: trail_propagate_def elim!: skip.cases)
+          by (auto simp add: propagate_lit_def elim!: skip.cases)
         thus ?thesis ..
       qed
     qed
@@ -1117,7 +1117,7 @@ proof -
       using \<open>almost_no_conflict_with_trail N \<beta> S\<close> \<open>{#} |\<notin>| N\<close>
         \<open>state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>\<close> \<open>state_trail S3 = state_trail S1\<close>
         \<open>state_learned S3 = state_learned S1\<close> \<open>state_learned S1 = state_learned S0\<close>
-      by (simp add: almost_no_conflict_with_trail_def trail_propagate_def is_decision_lit_def)
+      by (simp add: almost_no_conflict_with_trail_def propagate_lit_def is_decision_lit_def)
     hence "{#} |\<notin>| state_learned S0"
       using nex_conflict_if_no_conflict_with_trail'[folded mempty_in_iff_ex_conflict] by simp
 
@@ -1152,7 +1152,7 @@ proof -
       qed
 
       ultimately have "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
-        by (metis subtrail_falseI trail_propagate_def)
+        by (metis subtrail_falseI propagate_lit_def)
 
       moreover have "state_conflict S2 = Some (D, \<gamma>\<^sub>D)"
         unfolding conflictI(1,2) by simp
@@ -1178,7 +1178,7 @@ proof -
     with backt \<open>S3 = S\<close> show False
       using \<open>state_trail S3 = state_trail S1\<close>
       unfolding \<open>S3 = S\<close> \<open>state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>\<close>
-      by (auto simp add: trail_decide_def trail_propagate_def elim!: backtrack.cases)
+      by (auto simp add: decide_lit_def propagate_lit_def elim!: backtrack.cases)
   qed
   with maybe_resolution obtain S4 where
     "resolve N \<beta> S3 S4" and "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S"
@@ -1235,7 +1235,7 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     using gr_D_\<gamma>\<^sub>D D_in not_trail_false_ground_cls_if_no_conflict[of N \<beta> _ D \<gamma>\<^sub>D]
     using S\<^sub>0_def by force
   with tr_false_\<Gamma>_L_\<mu> have "- (L \<cdot>l \<mu> \<cdot>l \<gamma>') \<in># D \<cdot> \<gamma>\<^sub>D"
-    unfolding trail_propagate_def by (metis subtrail_falseI)
+    unfolding propagate_lit_def by (metis subtrail_falseI)
   then obtain D' L' where D_def: "D = add_mset L' D'" and "- (L \<cdot>l \<mu> \<cdot>l \<gamma>') = L' \<cdot>l \<gamma>\<^sub>D"
     by (meson Melem_subst_cls multi_member_split)
   hence 1: "L \<cdot>l \<mu> \<cdot>l \<gamma>' = - (L' \<cdot>l \<gamma>\<^sub>D)"
@@ -1410,7 +1410,7 @@ proof -
   from trail_S2 conf have "state_trail S2 = trail_propagate \<Gamma> L C \<gamma>"
     unfolding conflict.simps by auto
   then show ?thesis
-    unfolding backtrack.simps trail_propagate_def trail_decide_def
+    unfolding backtrack.simps propagate_lit_def decide_lit_def
     by auto
 qed
 
@@ -1465,7 +1465,7 @@ proof -
         \<open>trail_propagated_or_decided' N \<beta> S1\<close> \<open>no_conflict_after_decide' N \<beta> S1\<close>] by metis
 
   from trail_lit propa have "\<not> is_decision_lit Lc"
-    by (auto simp: trail_propagate_def is_decision_lit_def elim!: propagate.cases)
+    by (auto simp: propagate_lit_def is_decision_lit_def elim!: propagate.cases)
 
   show ?thesis
   proof (rule conjI)
@@ -1495,7 +1495,7 @@ proof -
     next
       from backtrack \<open>\<not> is_decision_lit Lc\<close> show "state_trail Sn \<noteq> state_trail S1"
         unfolding trail_lit
-        by (auto simp: trail_decide_def is_decision_lit_def elim!: backtrack.cases)
+        by (auto simp: decide_lit_def is_decision_lit_def elim!: backtrack.cases)
     qed
   qed
 qed
@@ -1907,7 +1907,7 @@ proof -
         proof (rule trail_false_plusI)
           show "trail_false_cls \<Gamma>' (C \<cdot> \<delta>)" 
             using resolveI \<open>sound_trail N \<Gamma>\<close>
-            by (auto simp: trail_propagate_def elim: sound_trail.cases)
+            by (auto simp: propagate_lit_def elim: sound_trail.cases)
         next
           show "trail_false_cls (state_trail S1) (add_mset L' D \<cdot> \<sigma>)"
             using tr_false_L'_D_\<sigma> .
@@ -1997,9 +1997,9 @@ proof -
     using conflict_with_literal_gets_resolved[OF _ conflict resolution[THEN tranclp_into_rtranclp] _
         \<open>{#} |\<notin>| N\<close> \<open>learned_nonempty S0\<close> \<open>trail_propagated_or_decided' N \<beta> S0\<close>
         \<open>no_conflict_after_decide' N \<beta> S0\<close>]
-    by (metis (no_types, lifting) trail_propagate_def)
+    by (metis (no_types, lifting) propagate_lit_def)
   hence "suffix (state_trail Sn) (state_trail S)"
-    unfolding trail_S0_eq trail_propagate_def
+    unfolding trail_S0_eq propagate_lit_def
     by (metis suffix_Cons suffix_order.le_less suffix_order.less_irrefl)
 
   moreover have "\<not> trail_defined_lit (state_trail S) (L \<cdot>l \<gamma>)"
@@ -2008,7 +2008,7 @@ proof -
       using \<open>state_trail S1 = state_trail S0\<close> \<open>trail_consistent (state_trail S1)\<close> by simp
     thus ?thesis
       by (smt (verit, best) Pair_inject list.distinct(1) list.inject trail_S0_eq
-          trail_consistent.cases trail_propagate_def)
+          trail_consistent.cases propagate_lit_def)
   qed
 
   ultimately have "\<not> trail_defined_lit (state_trail Sn) (L \<cdot>l \<gamma>)"
@@ -2038,7 +2038,7 @@ proof -
       using \<open>almost_no_conflict_with_trail N \<beta> S0\<close>
       using \<open>propagate N \<beta> S S0\<close>
       by (auto simp: almost_no_conflict_with_trail_def \<open>state_learned S = state_learned S0\<close>
-          trail_propagate_def is_decision_lit_def elim!: propagate.cases)
+          propagate_lit_def is_decision_lit_def elim!: propagate.cases)
   qed
 
   have conf_at_S_if: "\<exists>S'. conflict N \<beta> S S'"
@@ -2111,14 +2111,14 @@ proof -
       hence "\<forall>K\<in>#Cn \<cdot> \<gamma>n. - K \<in> insert (L \<cdot>l \<gamma>) (fst ` set (state_trail S))"
         unfolding \<open>state_trail S1 = state_trail S0\<close>
           \<open>state_trail S0 = trail_propagate (state_trail S) L C \<gamma>\<close>
-          trail_propagate_def list.set image_insert prod.sel
+          propagate_lit_def list.set image_insert prod.sel
         by simp
       hence *: "\<forall>K\<in>#Cn \<cdot> \<gamma>n. - K \<in> fst ` set (state_trail S)"
         by (metis \<open>L \<cdot>l \<gamma> \<notin># Cn \<cdot> \<gamma>n \<and> - (L \<cdot>l \<gamma>) \<notin># Cn \<cdot> \<gamma>n\<close> insert_iff uminus_lit_swap)
       have **: "\<forall>K \<in># Cn \<cdot> \<gamma>n. trail_less (map fst (state_trail S1)) K (L \<cdot>l \<gamma>)"
         unfolding \<open>state_trail S1 = state_trail S0\<close>
           \<open>state_trail S0 = trail_propagate (state_trail S) L C \<gamma>\<close>
-          trail_propagate_def prod.sel list.map
+          propagate_lit_def prod.sel list.map
       proof (rule ballI)
         fix K assume "K \<in># Cn \<cdot> \<gamma>n"
         have "trail_less_comp_id (L \<cdot>l \<gamma> # map fst (state_trail S)) K (L \<cdot>l \<gamma>)"
@@ -2133,7 +2133,7 @@ proof -
       moreover have "trail_less (map fst (state_trail S1)) (L \<cdot>l \<gamma>) (- (L \<cdot>l \<gamma>))"
         unfolding \<open>state_trail S1 = state_trail S0\<close>
           \<open>state_trail S0 = trail_propagate (state_trail S) L C \<gamma>\<close>
-          trail_propagate_def list.map prod.sel
+          propagate_lit_def list.map prod.sel
         by (rule trail_less_comp_rightI) simp
 
       ultimately have ***: "\<forall>K \<in># Cn \<cdot> \<gamma>n. trail_less (map fst (state_trail S1)) K (- (L \<cdot>l \<gamma>))"
@@ -2165,7 +2165,7 @@ proof -
                 \<open>state_trail S0 = trail_propagate (state_trail S) L C \<gamma>\<close>
                 \<open>state_trail S1 = state_trail S0\<close> \<open>trail_consistent (state_trail S1)\<close> image_insert
                 insert_iff list.set(2) mk_disjoint_insert prod.sel(1) set_mset_union
-                trail_interp_cls_if_trail_true trail_propagate_def trail_true_cls_def
+                trail_interp_cls_if_trail_true propagate_lit_def trail_true_cls_def
                 trail_true_lit_def)
         next
           assume "- (L \<cdot>l \<gamma>) \<in># K"
@@ -2188,7 +2188,7 @@ proof -
       using D_in \<open>trail_false_cls (state_trail S1) D\<close>
       unfolding \<open>state_trail S1 = state_trail S0\<close>
         \<open>state_trail S0 = trail_propagate (state_trail S) L C \<gamma>\<close>
-      by (simp add: trail_propagate_def subtrail_falseI)
+      by (simp add: propagate_lit_def subtrail_falseI)
     thus False
       using no_conf_at_S conf_at_S_if[OF D_in] by metis
   qed
@@ -2241,7 +2241,7 @@ proof -
       using D_in \<open>trail_false_cls (state_trail S1) D\<close>
       unfolding \<open>state_trail S1 = state_trail S0\<close>
         \<open>state_trail S0 = trail_propagate (state_trail S) L C \<gamma>\<close>
-      by (simp add: trail_propagate_def subtrail_falseI)
+      by (simp add: propagate_lit_def subtrail_falseI)
     thus False
       using no_conf_at_S conf_at_S_if[OF D_in] by metis
   qed
