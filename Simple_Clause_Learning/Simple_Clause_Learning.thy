@@ -1053,28 +1053,6 @@ definition is_decision_lit
   :: "('f, 'v) term literal \<times> ('f, 'v) closure_with_lit option \<Rightarrow> bool" where
   "is_decision_lit Ln \<longleftrightarrow> snd Ln = None"
 
-primrec trail_level :: "('f, 'v) trail \<Rightarrow> nat" where
-  "trail_level [] = 0" |
-  "trail_level (Ln # \<Gamma>) = (if is_decision_lit Ln then Suc else id) (trail_level \<Gamma>)"
-
-primrec trail_level_lit :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> nat" where
-  "trail_level_lit [] _ = 0" |
-  "trail_level_lit (Ln # \<Gamma>) L =
-    (if fst Ln = L \<or> fst Ln = -L then trail_level (Ln # \<Gamma>) else trail_level_lit \<Gamma> L)"
-
-lemma trail_level_lit_le: "trail_level_lit \<Gamma> L \<le> trail_level \<Gamma>"
-  by (induction \<Gamma>) simp_all
-
-definition trail_level_cls :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term clause \<Rightarrow> nat" where
-  "trail_level_cls \<Gamma> C = (if C = {#} then 0 else Max_mset {#trail_level_lit \<Gamma> L. L \<in># C#})"
-
-lemma trail_level_cls_le: "trail_level_cls \<Gamma> C \<le> trail_level \<Gamma>"
-  unfolding trail_level_cls_def
-  using all_lt_Max_imp_lt_mset[of "image_mset (trail_level_lit \<Gamma>) C", simplified]
-  using trail_level_lit_le
-  by auto
-
-
 definition trail_interp :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term interp" where
   "trail_interp \<Gamma> = \<Union>((\<lambda>L. case L of Pos A \<Rightarrow> {A} | Neg A \<Rightarrow> {}) ` fst ` set \<Gamma>)"
 
@@ -1207,14 +1185,6 @@ qed
 
 lemma trail_defined_lit_iff_defined_uminus: "trail_defined_lit \<Gamma> L \<longleftrightarrow> trail_defined_lit \<Gamma> (-L)"
   by (auto simp add: trail_defined_lit_def)
-
-lemma trail_level_propagate[simp]:
-  "trail_level (trail_propagate \<Gamma> L C \<gamma>) = trail_level \<Gamma>"
-  by (simp add: trail_propagate_def is_decision_lit_def)
-
-lemma trail_level_decide[simp]:
-  "trail_level (trail_decide \<Gamma> L) = Suc (trail_level \<Gamma>)"
-  by (simp add: trail_decide_def is_decision_lit_def)
 
 lemma trail_defined_lit_iff: "trail_defined_lit \<Gamma> L \<longleftrightarrow> atm_of L \<in> atm_of ` fst ` set \<Gamma>"
   by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set trail_defined_lit_def)
