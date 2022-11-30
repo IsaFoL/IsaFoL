@@ -1628,19 +1628,6 @@ proof (rule notI)
   from could_conf obtain \<Gamma> U where S_def: "S = (\<Gamma>, U, None)"
     by (metis prod_cases3 state_conflict_simp)
 
-  define \<rho> where
-    "\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))"
-
-  have C_\<rho>_adapt_\<gamma>_simp: "C \<cdot> \<rho> \<cdot> rename_subst_domain \<rho> \<gamma> = C \<cdot> \<gamma>"
-  proof (rule subst_renaming_subst_adapted)
-    show "is_renaming \<rho>"
-      unfolding \<rho>_def
-      using is_renaming_renaming_wrt by (metis (opaque_lifting) finite_fset)
-  next
-    from gr_C_\<gamma> show "vars_cls C \<subseteq> subst_domain \<gamma>"
-      by (rule vars_cls_subset_subst_domain_if_grounding)
-  qed
-
   have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U,
     Some (C, restrict_subst_domain (vars_cls C) \<gamma>))"
   proof (rule conflictI)
@@ -1748,9 +1735,6 @@ proof -
   define \<gamma> where
     "\<gamma> \<equiv> restrict_subst_domain (vars_cls D') \<gamma>'"
 
-  define \<rho> where
-    "\<rho> \<equiv> renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))"
-
   have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D', \<gamma>))"
   proof (rule conflictI[OF D'_in])
     show "subst_domain \<gamma> \<subseteq> vars_cls D'"
@@ -1774,9 +1758,6 @@ proof (rule notI, erule exE)
   hence "\<exists>S. conflict N \<beta> (Ln # \<Gamma>, U, None) S"
   proof (cases N \<beta> _ S rule: conflict.cases)
     case (conflictI D \<gamma>)
-    define \<rho>' where
-      "\<rho>' = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail (Ln # \<Gamma>)))"
-
     have "conflict N \<beta> (Ln # \<Gamma>, U, None) (Ln # \<Gamma>, U, Some (D, \<gamma>))"
     proof (rule conflict.conflictI)
       show "D |\<in>| N |\<union>| U"

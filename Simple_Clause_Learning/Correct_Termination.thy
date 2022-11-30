@@ -155,13 +155,6 @@ proof -
       by (simp add: unify_pairs \<mu>_def)
   qed
 
-  have is_ren_wrt: "is_renaming (renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)))"
-    by (rule is_renaming_renaming_wrt) (rule finite_fset)
-
-  have vars_cls_subst_renaming: "vars_cls (CC \<cdot> renaming_wrt NN) \<inter> vars_clss NN = {}"
-    if "finite NN" for CC NN
-    by (simp add: that vars_cls_subst_renaming_disj vars_clss_def)
-
   show ?thesis
     using propagateI[OF D_in D_def, of \<gamma>\<^sub>D, unfolded subst_cls_comp_subst subst_lit_comp_subst,
       OF ground_D_\<sigma> ball_atms_lt_\<beta> C\<^sub>0_def C\<^sub>1_def tr_false_C\<^sub>1 not_def_L'_\<rho>_\<sigma>\<^sub>\<rho> mimgu_\<mu> refl]   

@@ -1847,10 +1847,8 @@ proof -
       thus ?thesis
       proof (cases N \<beta> Sm Sm' rule: resolve.cases)
         case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<rho> D \<mu> U)
-        have "is_renaming (renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|D + {#L'#}|})))"
-          apply (rule is_renaming_renaming_wrt)
-          using resolveI
-          by (smt (verit, best) finite_fset sound_Sm sound_state_def state_learned_simp)
+        have "is_renaming (renaming_wrt {add_mset L' D})"
+          by (rule is_renaming_renaming_wrt) simp
         with resolveI have ren_\<rho>: "is_renaming \<rho>"
           by simp
 
