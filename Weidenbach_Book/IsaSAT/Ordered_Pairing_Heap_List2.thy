@@ -78,7 +78,7 @@ fun del_min :: "('b, 'a) heap \<Rightarrow> ('b, 'a) heap" where
 fun remove_key_children :: \<open>'b \<Rightarrow> ('b, 'a) hp list \<Rightarrow> ('b, 'a) hp list\<close> where
   \<open>remove_key_children k [] = []\<close> |
   \<open>remove_key_children k ((Hp x n c) # xs) =
-  (if k = x then xs else ((Hp x n (remove_key_children k c)) # remove_key_children k xs))\<close>
+  (if k = x then remove_key_children k xs else ((Hp x n (remove_key_children k c)) # remove_key_children k xs))\<close>
 
 fun remove_key :: \<open>'b \<Rightarrow> ('b, 'a) hp \<Rightarrow> ('b, 'a) heap\<close> where
   \<open>remove_key k (Hp x n c) = (if x = k then None else Some (Hp x n (remove_key_children k c)))\<close>
