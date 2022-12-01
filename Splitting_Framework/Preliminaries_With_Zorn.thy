@@ -1501,7 +1501,7 @@ end
   (* TODO? If propositional_interpretation is never used, directly define total_interpretation from
   \<t>erm \<open>'v neg set\<close> *)
 
-lemma [simp]: \<open>a \<in>\<^sub>t J \<longleftrightarrow> a \<in> total_strip J\<close>
+lemma in_total_to_strip [simp]: \<open>a \<in>\<^sub>t J \<longleftrightarrow> a \<in> total_strip J\<close>
   unfolding belong_to_total_def belong_to_def by simp
 
 lemma neg_prop_interp: \<open>(v::'v sign) \<in>\<^sub>J J \<Longrightarrow> \<not> ((neg v) \<in>\<^sub>J J)\<close>
@@ -2622,7 +2622,37 @@ next
     have S_is: \<open>\<S> = (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>') \<union> \<S>'\<close>
       using S_sub \<S>\<^sub>\<J>_def \<S>\<^sub>\<E>_def \<S>'_def \<S>\<^sub>\<E>'_def by blast
     have a_from_E_to_J: \<open>neg a \<in> \<Union>(fset ` A_of ` \<S>\<^sub>\<E>') \<Longrightarrow> a \<in> \<Union>(fset ` A_of ` \<S>\<^sub>\<J>)\<close> for a
-      sorry
+    proof -
+      fix a
+      assume nega_in: \<open>neg a \<in> \<Union>(fset ` A_of ` \<S>\<^sub>\<E>')\<close>
+      then have \<open>to_V (neg a) \<in> to_V ` \<Union>(fset ` A_of ` \<S>\<^sub>\<J>)\<close>
+        unfolding \<S>\<^sub>\<E>'_def by blast
+      then have a_or_nega_in: \<open>a \<in> \<Union>(fset ` A_of ` \<S>\<^sub>\<J>) \<or> neg a \<in> \<Union>(fset ` A_of ` \<S>\<^sub>\<J>)\<close>
+        by (smt (verit) imageE neg.simps(1) neg.simps(2) to_V.elims) 
+      obtain \<C>1 where \<open>\<C>1 \<in> \<E>_from \<N>\<close> and \<open>neg a \<in> fset (A_of \<C>1)\<close>
+        using nega_in unfolding \<S>\<^sub>\<E>'_def \<S>\<^sub>\<E>_def \<E>_from_def by blast
+      then obtain \<C> where \<open>\<C> \<in> \<N>\<close> and \<open>a \<in> fset (A_of \<C>)\<close>
+        unfolding \<E>_from_def by (smt (verit) AF.sel(2) bot_fset.rep_eq empty_iff finsert.rep_eq
+          insert_iff mem_Collect_eq neg.simps(1) neg.simps(2) to_V.elims)
+      then have in_N_in_J: \<open>\<forall>J. (enabled_set \<N> J \<longrightarrow> a \<in>\<^sub>t J)›
+        using in_total_to_strip unfolding enabled_set_def enabled_def by blast 
+      have \<open>b \<in>  \<Union>(fset ` A_of ` \<S>\<^sub>\<J>) \<Longrightarrow> (\<exists>J. enabled_set \<N> J \<and> b \<in>\<^sub>t J)\<close> for b
+      proof clarsimp
+        fix \<C>2
+        assume C2_in: \<open>\<C>2 \<in> \<S>\<^sub>\<J>\<close> and
+          b_in: \<open>b \<in> fset (A_of \<C>2)\<close>
+        obtain J where enab_J: \<open>enabled_set \<N> J\<close> and \<open>\<C>2 = \<J>'_of J›
+          using C2_in unfolding \<S>\<^sub>\<J>_def by blast
+        then have \<open>b \<in> total_strip J›
+          using b_in fsets_from_J by auto
+        then show \<open>\<exists>J. enabled_set \<N> J \<and> b \<in> total_strip J\<close>
+          using enab_J by blast
+      qed
+      then have \<open>\<not>  neg a \<in> \<Union>(fset ` A_of ` \<S>\<^sub>\<J>)\<close>
+        using in_N_in_J by fastforce 
+      then show \<open>a \<in> \<Union>(fset ` A_of ` \<S>\<^sub>\<J>)\<close>
+        using a_or_nega_in by blast
+    qed
     have empty_inter_in_S: \<open>to_V ` \<Union> (fset ` A_of ` (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>')) \<inter> to_V ` \<Union> (fset ` A_of ` \<S>') = {}\<close>
     proof (rule ccontr)
       assume contra: \<open>to_V ` \<Union> (fset ` A_of ` (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>')) \<inter> to_V ` \<Union> (fset ` A_of ` \<S>') \<noteq> {}\<close>
@@ -2694,9 +2724,25 @@ next
       Js_is: \<open>\<J>'_of ` Js = \<S>\<^sub>\<J>\<close>
       by blast
 
-    have \<open>\<exists>\<N>\<^sub>\<J>. finite \<N>\<^sub>\<J> \<and> \<N>\<^sub>\<J> \<subseteq> \<N> \<and> (\<forall>a\<in>(\<Union>(fset ` A_of ` \<S>\<^sub>\<J>))\<inter>(\<Union>(fset ` A_of ` \<N>)). a \<in> \<Union>(fset ` A_of ` \<N>\<^sub>\<J>))\<close>
-      unfolding \<S>\<^sub>\<J>_def using fsets_from_J S_fin
-        sorry
+    have fin_inter: \<open>finite (\<Union>(fset ` A_of ` \<S>\<^sub>\<J>) \<inter> \<Union>(fset ` A_of ` \<N>))\<close>
+    proof
+      have \<open>finite (\<Union>(fset ` A_of ` \<S>\<^sub>\<J>))›
+        unfolding \<S>\<^sub>\<J>_def using S_fin image_Int_subset by simp
+      then show \<open>(finite (\<Union>(fset ` A_of ` \<S>\<^sub>\<J>))) \<or> (finite (\<Union> (fset ` A_of ` \<N>)))\<close>
+        by auto
+    qed
+    have \<open>\<forall>a\<in>(\<Union>(fset ` A_of ` \<N>)). \<exists>\<C>\<in>\<N>. a \<in> fset (A_of \<C>)›
+      by blast
+    then obtain f where f_def: \<open>\<forall>a\<in>(\<Union>(fset ` A_of ` \<N>)). f a \<in> \<N> \<and> a \<in> fset (A_of (f a))\<close>
+      by metis
+    have \<open>finite (f ` (\<Union>(fset ` A_of ` \<S>\<^sub>\<J>) \<inter> \<Union>(fset ` A_of ` \<N>)))\<close>
+      using fin_inter by blast
+    moreover have \<open>(f ` (\<Union>(fset ` A_of ` \<S>\<^sub>\<J>) \<inter> \<Union>(fset ` A_of ` \<N>))) \<subseteq> \<N>›
+      using f_def by blast
+    moreover have \<open>(\<forall>a\<in>(\<Union>(fset ` A_of ` \<S>\<^sub>\<J>))\<inter>(\<Union>(fset ` A_of ` \<N>)). a \<in> \<Union>(fset ` A_of ` (f ` (\<Union>(fset ` A_of ` \<S>\<^sub>\<J>) \<inter> \<Union>(fset ` A_of ` \<N>)))))\<close>
+      using f_def by fast
+    ultimately have \<open>\<exists>\<N>\<^sub>\<J>. finite \<N>\<^sub>\<J> \<and> \<N>\<^sub>\<J> \<subseteq> \<N> \<and> (\<forall>a\<in>(\<Union>(fset ` A_of ` \<S>\<^sub>\<J>))\<inter>(\<Union>(fset ` A_of ` \<N>)). a \<in> \<Union>(fset ` A_of ` \<N>\<^sub>\<J>))\<close>
+        by blast (* this is a bit circular, I create the set to show it exists to obtain the set... TODO: simplify *)
     then obtain \<N>\<^sub>\<J> where nj_fin: \<open>finite \<N>\<^sub>\<J>\<close> and nj_sub: \<open>\<N>\<^sub>\<J> \<subseteq> \<N>\<close> and nj_as: \<open>\<forall>a\<in>(\<Union>(fset ` A_of ` \<S>\<^sub>\<J>))\<inter>(\<Union>(fset ` A_of ` \<N>)). a \<in> \<Union>(fset ` A_of ` \<N>\<^sub>\<J>)\<close>
       by auto
         
@@ -2737,8 +2783,7 @@ next
             using C_is unfolding \<E>_from_def by blast
         qed
       ultimately have \<open>J \<Turnstile>\<^sub>p2 \<S>\<^sub>\<E>'\<close>
-        unfolding \<S>\<^sub>\<E>'_def \<S>\<^sub>\<E>_def using subset_model_p2
-        by (metis (no_types, lifting) mem_Collect_eq subsetI)
+        unfolding \<S>\<^sub>\<E>'_def \<S>\<^sub>\<E>_def using subset_model_p2 by (metis (no_types, lifting))
       then have \<open>\<not> J \<Turnstile>\<^sub>p2 \<S>\<^sub>\<J>\<close>
         using subset_not_model S'_unsat unfolding \<S>'_def by blast
       then have  \<open>\<exists>J'\<in>Js. fset (A_of (\<J>'_of J')) \<subseteq> total_strip J\<close>
