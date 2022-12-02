@@ -2792,25 +2792,30 @@ next
         by (smt (verit) Collect_cong Set.empty_def \<S>\<^sub>\<J>_def enabled_def image_iff mem_Collect_eq)
       then obtain J' where J'_in: \<open>J' \<in> Js\<close> and A_of_J'_in: \<open>fset (A_of (\<J>'_of J')) \<subseteq> total_strip J\<close>
         by blast
-      then have \<open>enabled_set \<N> J'\<close>
+      then have enab_nj': \<open>enabled_set \<N> J'\<close>
         using Js_enab by blast
       then have \<open>(\<M>'_of J') proj\<^sub>J J' \<Turnstile> F_of ` (\<N>'_of J')\<close>
         using fsets_from_J by auto
-      moreover have \<open>(\<M>'_of J') proj\<^sub>J J' = (\<M>'_of J') proj\<^sub>J J\<close>
+      moreover have \<open>(\<M>'_of J') proj\<^sub>J J' \<subseteq> (\<M>'_of J') proj\<^sub>J J\<close>
       proof -
-        have \<open>\<C> \<in> \<M>'_of J' \<Longrightarrow> enabled \<C> J' \<equiv> enabled \<C> J\<close> for \<C>
-          using A_of_J'_in fsets_from_J Js_enab J'_in 
-         (* by (smt (verit, del_insts) S_is S_sub atoms_simp empty_inter le_sup_iff proj_prop_J'
-            prop_proj_\<E>_from prop_proj_distrib prop_proj_sub contra) *)
-            sorry
-        then have \<open>(\<C> \<in> \<M>'_of J' \<and> enabled \<C> J') \<equiv> (\<C> \<in> \<M>'_of J' \<and> enabled \<C> J)\<close> for \<C>
+        have \<open>\<C> \<in> \<M>'_of J' \<Longrightarrow> enabled \<C> J' \<Longrightarrow> enabled \<C> J\<close> for \<C>
+        proof -
+          assume C_in: \<open>\<C> \<in> \<M>'_of J'› and
+            \<open>enabled \<C> J'\<close>
+          then have \<open>fset (A_of \<C>) \<subseteq> fset (A_of (\<J>'_of J'))›
+            using fsets_from_J[OF enab_nj'] by blast
+          then show \<open>enabled \<C> J›
+            using A_of_J'_in unfolding enabled_def by auto
+        qed
+        then have \<open>(\<C> \<in> \<M>'_of J' \<and> enabled \<C> J') \<Longrightarrow> (\<C> \<in> \<M>'_of J' \<and> enabled \<C> J)\<close> for \<C>
           by (smt (verit, ccfv_threshold))
-        then have \<open>{\<C>. \<C> \<in> \<M>'_of J' \<and> enabled \<C> J'} = {\<C>. \<C> \<in> \<M>'_of J' \<and> enabled \<C> J}\<close>
-          by simp
-        then show \<open>(\<M>'_of J') proj\<^sub>J J' = (\<M>'_of J') proj\<^sub>J J\<close>
+        then have \<open>{\<C>. \<C> \<in> \<M>'_of J' \<and> enabled \<C> J'} \<subseteq> {\<C>. \<C> \<in> \<M>'_of J' \<and> enabled \<C> J}\<close>
+          by blast
+        then show \<open>(\<M>'_of J') proj\<^sub>J J' \<subseteq> (\<M>'_of J') proj\<^sub>J J\<close>
           unfolding enabled_projection_def by blast
       qed
-      ultimately have entails_one: \<open>(\<M>'_of J') proj\<^sub>J J \<Turnstile> F_of ` (\<N>'_of J')\<close> by simp
+      ultimately have entails_one: \<open>(\<M>'_of J') proj\<^sub>J J \<Turnstile> F_of ` (\<N>'_of J')\<close>
+        using entails_subsets by blast
       have subs_M: \<open>\<M>'_of J' proj\<^sub>J J \<subseteq> \<M>' proj\<^sub>J J\<close>
         using J'_in using enabled_projection_def unfolding \<M>'_def by auto
       have subs_N: \<open>F_of ` (\<N>'_of J') \<subseteq> F_of ` \<N>'\<close>
