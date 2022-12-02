@@ -24,6 +24,9 @@ fun hp_next where
   \<open>hp_next a (Hp m s [b]) = hp_next a b\<close> |
   \<open>hp_next a (Hp m s []) = None\<close>
 
+lemma [simp]: \<open>size_list size (hps x) < Suc (size x + a)\<close>
+  by (cases x) auto
+
 fun hp_prev where
   \<open>hp_prev a (Hp m s (x # y # children)) = (if a = node y then Some x else (case hp_prev a x of Some a \<Rightarrow> Some a | None \<Rightarrow> hp_prev a (Hp m s (y # children))))\<close> |
   \<open>hp_prev a (Hp m s [b]) = hp_prev a b\<close> |
@@ -1767,8 +1770,6 @@ proof -
     done
 qed
 
-definition f where \<open>f = map_option the\<close>
-
 fun hp_parent :: \<open>'a \<Rightarrow> ('a, 'b) hp \<Rightarrow> ('a, 'b)hp option\<close> where
   \<open>hp_parent n (Hp a sc (x # children)) = (if n = node x then Some (Hp a sc (x # children)) else map_option the (option_hd (filter ((\<noteq>) None) (map (hp_parent n) (x#children)))))\<close> |
   \<open>hp_parent n _ = None\<close>
@@ -1894,5 +1895,693 @@ lemma hp_parent_children_append_skip_second[simp]:
   \<open>a \<notin># \<Sum>\<^sub># (mset_nodes `# mset ys) \<Longrightarrow> hp_parent_children a (xs @ ys) = hp_parent_children a xs\<close>
   by (auto simp: hp_parent_children_append_case split: option.splits)
 
-end
+lemma hp_parent_simps_single_if:
+ \<open>hp_parent n (Hp a sc (children)) =
+  (if children = [] then None else if n = node (hd children) then Some (Hp a sc (children))
+  else hp_parent_children n children)\<close>
+ by (cases children)
+   (auto simp: hp_parent_simps)
 
+lemma hp_parent_children_remove_key_children:
+  \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset xs)) \<Longrightarrow> hp_parent_children a (VSIDS.remove_key_children a xs) = None\<close>
+  apply (induction a xs rule: VSIDS.remove_key_children.induct)
+  subgoal by auto
+  subgoal for k x n c xs
+    apply (auto simp: hp_parent_simps_if hp_parent_children_cons
+      split: option.split
+      dest: WB_List_More.distinct_mset_union2)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in
+      distinct_mset_add hp.sel(1) hp_parent_simps_single_if list.map(2) list.sel(1) list.simps(3)
+      node_hd_in_sum node_in_mset_nodes option_last_Nil option_last_Some_iff(2) sum_list_simps(2)) 
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in
+      distinct_mset_add hp.sel(1) hp_parent_simps_single_if list.map(2) list.sel(1) list.simps(3)
+      node_hd_in_sum node_in_mset_nodes option_last_Nil option_last_Some_iff(2) sum_list_simps(2))
+   done
+  done
+
+lemma remove_key_children_notin_unchanged[simp]: \<open>x \<notin># sum_list (map mset_nodes c) \<Longrightarrow> VSIDS.remove_key_children x c = c\<close>
+  by (induction x c rule: VSIDS.remove_key_children.induct)
+     auto
+
+lemma remove_key_notin_unchanged[simp]: \<open>x \<notin># mset_nodes c \<Longrightarrow> VSIDS.remove_key x c = Some c\<close>
+  by (induction x c rule: VSIDS.remove_key.induct)
+     auto
+
+lemma remove_key_remove_all: \<open>k \<notin># \<Sum>\<^sub># (mset_nodes `# mset (VSIDS.remove_key_children k c))\<close>
+  by (induction k c rule: VSIDS.remove_key_children.induct) auto
+
+lemma hd_remove_key_node_same: \<open>c \<noteq> [] \<Longrightarrow> VSIDS.remove_key_children k c \<noteq> [] \<Longrightarrow>
+  node (hd (VSIDS.remove_key_children k c)) = node (hd c) \<longleftrightarrow> node (hd c) \<noteq> k\<close>
+  using remove_key_remove_all[of k]
+  apply (induction k c rule: VSIDS.remove_key_children.induct)
+  apply (auto)[]
+  by fastforce
+
+lemma hd_remove_key_node_same': \<open>c \<noteq> [] \<Longrightarrow> VSIDS.remove_key_children k c \<noteq> [] \<Longrightarrow>
+  node (hd c) = node (hd (VSIDS.remove_key_children k c)) \<longleftrightarrow> node (hd c) \<noteq> k\<close>
+  using hd_remove_key_node_same[of c k] by auto
+
+lemma remove_key_children_node_hd[simp]: \<open>c \<noteq> [] \<Longrightarrow> VSIDS.remove_key_children (node (hd c)) c= VSIDS.remove_key_children (node (hd c)) (tl c)\<close>
+  by (cases c; cases \<open>tl c›; cases \<open>hd c\<close>)
+     (auto simp: )
+
+lemma VSIDS_remove_key_children_alt_def:
+  \<open>VSIDS.remove_key_children k xs = map (\<lambda>x. case x of Hp a b c \<Rightarrow> Hp a b (VSIDS.remove_key_children k c)) (filter (\<lambda>n. node n \<noteq> k) xs)\<close>
+  by (induction k xs rule: VSIDS.remove_key_children.induct) auto
+
+lemma not_orig_notin_remove_key: \<open>b \<notin># sum_list (map mset_nodes xs) \<Longrightarrow>
+  b \<notin># sum_list (map mset_nodes (VSIDS.remove_key_children a xs))\<close>
+  by (induction a xs rule: VSIDS.remove_key_children.induct) auto
+
+lemma hp_parent_None_notin_same_hd[simp]: \<open>b \<notin># sum_list (map mset_nodes x3) \<Longrightarrow> hp_parent b (Hp b x2 x3) = None\<close>
+  by (induction x3 rule: induct_list012)
+   (auto simp: hp_parent_children_cons hp_parent.simps(1) filter_empty_conv split: if_splits)
+
+(*does not hold for the children of a*)
+lemma hp_parent_children_remove_key_children:
+  \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset xs)) \<Longrightarrow> a \<noteq> b \<Longrightarrow>  hp_parent_children b (VSIDS.remove_key_children a xs) = hp_parent_children b xs\<close>
+  oops
+
+
+lemma hp_parent_remove_key:
+  \<open>distinct_mset ((mset_nodes xs)) \<Longrightarrow> a \<noteq> node xs \<Longrightarrow> hp_parent a (the (VSIDS.remove_key a xs)) = None\<close>
+  apply (induction a xs rule: VSIDS.remove_key.induct)
+  subgoal for a b sc children
+    apply (cases \<open>VSIDS.remove_key_children a children\<close>)
+    apply (auto simp: hp_parent_simps_if)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims distinct_mset_add empty_iff
+        hp.sel(1) inter_iff list.map(2) list.sel(1) list.simps(3) node_hd_in_sum node_in_mset_nodes set_mset_empty sum_list_simps(2))
+    by (metis hp_parent_children_remove_key_children mset_map sum_mset_sum_list)
+  done
+
+lemma find_key_children_None_or_itself[simp]:
+  \<open>VSIDS.find_key_children a h \<noteq> None \<Longrightarrow> node (the (VSIDS.find_key_children a h)) = a\<close>
+  by (induction a h rule: VSIDS.find_key_children.induct)
+   (auto split: option.splits)
+
+lemma find_key_None_or_itself[simp]:
+  \<open>VSIDS.find_key a h \<noteq> None \<Longrightarrow> node (the (VSIDS.find_key a h)) = a\<close>
+  apply (induction a h rule: VSIDS.find_key.induct)
+  apply auto
+  using find_key_children_None_or_itself by fastforce
+
+lemma find_key_children_notin[simp]:
+  \<open>a \<notin>#  \<Sum>\<^sub># (mset_nodes `# mset xs) \<Longrightarrow> VSIDS.find_key_children a xs = None\<close>
+  by (induction a xs rule: VSIDS.find_key_children.induct) auto
+
+
+lemma find_key_notin[simp]:
+  \<open>a \<notin># mset_nodes h \<Longrightarrow> VSIDS.find_key a h = None\<close>
+  by (induction a h rule: VSIDS.find_key.induct) auto
+
+lemma mset_nodes_find_key_children_subset:
+  \<open>VSIDS.find_key_children a h \<noteq> None \<Longrightarrow> mset_nodes (the (VSIDS.find_key_children a h)) \<subseteq># \<Sum>\<^sub># (mset_nodes `# mset h)\<close>
+  apply (induction a h rule: VSIDS.find_key_children.induct)
+  apply (auto split: option.splits simp: ac_simps intro: mset_le_incr_right)
+  apply (metis mset_le_incr_right union_commute union_mset_add_mset_right)+
+  done
+
+lemma hp_parent_None_iff_children_None:
+  \<open>hp_parent z (Hp x n c) = None \<longleftrightarrow> (c \<noteq> [] \<longrightarrow> z \<noteq> node (hd c)) \<and> hp_parent_children (z) c = None\<close>
+  by (cases c; cases \<open>tl c\<close>)
+  (auto simp: hp_parent_children_cons hp_parent_simps_if hp_parent.simps(1) filter_empty_conv split: option.splits)
+
+
+lemma mset_nodes_find_key_subset:
+  \<open>VSIDS.find_key a h \<noteq> None \<Longrightarrow> mset_nodes (the (VSIDS.find_key a h)) \<subseteq># mset_nodes h\<close>
+  apply (induction a h rule: VSIDS.find_key.induct)
+  apply (auto intro: mset_nodes_find_key_children_subset)
+  by (metis mset_nodes_find_key_children_subset option.distinct(2) option.sel subset_mset_imp_subset_add_mset sum_image_mset_sum_map)
+
+lemma find_key_none_iff[simp]:
+  \<open>VSIDS.find_key_children a h = None \<longleftrightarrow> a \<notin># \<Sum>\<^sub># (mset_nodes `# mset h)\<close>
+  by (induction a h rule: VSIDS.find_key_children.induct) auto
+
+lemma hp_parent_children_hd_None[simp]:
+  \<open>xs \<noteq> [] \<Longrightarrow> distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset xs)) \<Longrightarrow> hp_parent_children (node (hd xs)) xs = None\<close>
+  by (cases xs; cases \<open>hd xs\<close>)
+    (auto simp: hp_parent_children_def filter_empty_conv sum_list_map_remove1)
+
+lemma hp_parent_hd_None[simp]:
+  \<open>x \<notin># (\<Sum>\<^sub># (mset_nodes `# mset xs)) \<Longrightarrow>x \<notin># sum_list (map mset_nodes c) \<Longrightarrow> hp_parent_children x (Hp x n c # xs) = None\<close>
+  by (cases xs; cases \<open>hd xs\<close>; cases c)
+    (auto simp: hp_parent_children_def filter_empty_conv sum_list_map_remove1 hp_parent.simps(1))
+
+lemma hp_parent_none_children: \<open>hp_parent_children z c = None \<Longrightarrow>
+    hp_parent z (Hp x n c) = Some x2a \<longleftrightarrow> (c \<noteq> [] \<and> z = node (hd c) \<and> x2a = Hp x n c)\<close>
+  by (cases c)
+   (auto simp:  filter_empty_conv sum_list_map_remove1 hp_parent_simps_if)
+
+(* does not hold for Hp x _ (a # b # ...)  *)
+lemma hp_parent_children_remove_key_children:
+  \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset xs)) \<Longrightarrow> a \<noteq> b \<Longrightarrow>  hp_parent_children b (VSIDS.remove_key_children a xs) =
+  (if VSIDS.find_key_children b xs \<noteq> None then None else hp_parent_children b xs)\<close>
+  oops
+
+lemma in_the_default_empty_iff: \<open>b \<in># the_default {#} M \<longleftrightarrow> M \<noteq> None \<and> b \<in># the M\<close>
+  by (cases M) auto
+
+lemma remove_key_children_hd_tl: \<open>distinct_mset (sum_list (map mset_nodes c)) \<Longrightarrow> c \<noteq> [] \<Longrightarrow> VSIDS.remove_key_children (node (hd c)) (tl c) = tl c\<close>
+  by (cases c) (auto simp add: disjunct_not_in distinct_mset_add)
+
+lemma in_find_key_children_notin_remove_key:
+  \<open>VSIDS.find_key_children k c = Some x2 \<Longrightarrow> distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset c)) \<Longrightarrow>
+      b \<in># mset_nodes x2 \<Longrightarrow>
+      b \<notin># \<Sum>\<^sub>#(mset_nodes `# mset (VSIDS.remove_key_children k c))\<close>
+  apply (induction k c rule: VSIDS.remove_key_children.induct)
+  subgoal by auto
+  subgoal for k x n c xs
+    using find_key_children_None_or_itself[of b c] find_key_children_None_or_itself[of b xs]
+    using distinct_mset_union[of \<open>\<Sum>\<^sub># (mset_nodes `# mset xs)\<close>  \<open>\<Sum>\<^sub># (mset_nodes `# mset c)\<close>, unfolded add.commute[of  \<open>\<Sum>\<^sub># (mset_nodes `# mset xs)\<close>]]
+      distinct_mset_union[of \<open>\<Sum>\<^sub># (mset_nodes `# mset c)\<close>  \<open>\<Sum>\<^sub># (mset_nodes `# mset xs)\<close>]
+     apply (auto dest: multi_member_split[of b] split: option.splits)
+     apply (auto dest!: multi_member_split[of b])[]
+     apply (metis mset_nodes_find_key_children_subset option.distinct(1) option.sel subset_mset.le_iff_add sum_image_mset_sum_map union_iff)
+     apply (metis add_diff_cancel_right' distinct_mset_in_diff mset_nodes_find_key_children_subset option.distinct(1) option.sel subset_mset.le_iff_add
+           sum_image_mset_sum_map)
+     apply (metis mset_nodes_find_key_children_subset mset_subset_eqD option.distinct(2) option.sel sum_image_mset_sum_map)
+     by (metis add_diff_cancel_right' distinct_mset_in_diff mset_nodes_find_key_children_subset not_orig_notin_remove_key option.distinct(1)
+  option.sel subset_mset.le_iff_add sum_image_mset_sum_map)
+   done
+
+find_theorems hp_parent hp_parent_children None
+lemma hp_parent_children_None_hp_parent_iff: \<open>hp_parent_children b list = None \<Longrightarrow> hp_parent b (Hp x n list) = Some x2a \<longleftrightarrow> list \<noteq> [] \<and> node (hd list) = b \<and> x2a = Hp x n list\<close>
+  by (cases list; cases \<open>tl list\<close>) (auto simp: hp_parent_simps_if)
+
+lemma hp_parent_children_not_hd_node:
+  \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset c)) \<Longrightarrow> node (hd c) = node x2a \<Longrightarrow> c \<noteq> [] \<Longrightarrow>  VSIDS.remove_key_children (node x2a) c \<noteq> [] \<Longrightarrow>
+    hp_parent_children (node (hd (VSIDS.remove_key_children (node x2a) c))) c = Some x2a \<Longrightarrow> False\<close>
+  apply (cases c; cases \<open>tl c\<close>; cases \<open>hd c\<close>)
+  apply (auto simp: hp_parent_children_cons
+    split: option.splits)
+  apply (simp add:  disjunct_not_in distinct_mset_add)
+  apply (simp add:  disjunct_not_in distinct_mset_add)
+  apply (auto simp add:  disjunct_not_in distinct_mset_add)
+    by (metis hp_parent_None_iff_children_None hp_parent_children_None_notin node_hd_in_sum node_in_mset_nodes option_last_Nil option_last_Some_iff(2))
+lemma hp_parent_children_hd_tl_None[simp]: \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset c)) \<Longrightarrow> c \<noteq> [] \<Longrightarrow> a \<in> set (tl c)\<Longrightarrow>  hp_parent_children (node a) c = None\<close>
+  apply (cases c)
+    apply (auto simp: hp_parent_children_def filter_empty_conv dest!: split_list[of a])
+apply (metis add_diff_cancel_left' add_diff_cancel_right' distinct_mset_add distinct_mset_in_diff hp_parent_None_notin node_in_mset_nodes)
+  apply (simp add: distinct_mset_add)
+  apply (simp add: distinct_mset_add)
+  apply (metis (no_types, opaque_lifting) disjunct_not_in hp_parent_None_notin mset_subset_eqD mset_subset_eq_add_right node_in_mset_nodes sum_list_map_remove1 union_commute)
+  by (metis WB_List_More.distinct_mset_union2 add_diff_cancel_left' distinct_mem_diff_mset hp_parent_None_notin node_in_mset_nodes sum_list_map_remove1 union_iff)
+
+
+lemma hp_parent_hp_parent_remove_key_not_None_same:
+  \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset c)) \<Longrightarrow> x \<notin># \<Sum>\<^sub># (mset_nodes `# mset c) \<Longrightarrow>
+  hp_parent b (Hp x n c) = Some x2a \<Longrightarrow> b \<notin># mset_nodes x2a \<Longrightarrow>
+    hp_parent b (Hp x n (VSIDS.remove_key_children k c)) = Some x2b \<Longrightarrow>
+  VSIDS.remove_key k x2a \<noteq> None \<and> (case VSIDS.remove_key k x2a of Some a \<Rightarrow> (x2b) = a | None \<Rightarrow> node x2a = k)\<close>
+  apply (induction k c rule: VSIDS.remove_key_children.induct)
+  subgoal by (auto simp: hp_parent_children_cons split: if_splits)
+  subgoal for k x n c xs
+    using distinct_mset_union[of \<open>\<Sum>\<^sub># (mset_nodes `# mset xs)\<close>  \<open>\<Sum>\<^sub># (mset_nodes `# mset c)\<close>, unfolded add.commute[of  \<open>\<Sum>\<^sub># (mset_nodes `# mset xs)\<close>]]
+      distinct_mset_union[of \<open>\<Sum>\<^sub># (mset_nodes `# mset c)\<close>  \<open>\<Sum>\<^sub># (mset_nodes `# mset xs)\<close>]
+    apply (auto simp: hp_parent_children_cons VSIDS.remove_key_None_iff split: if_splits option.splits)
+    apply (smt (z3) disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_None_notin hp_parent_children_append_case hp_parent_children_append_skip_first hp_parent_children_cons hp_parent_children_hd_None hp_parent_simps_single_if list.sel(1) node_hd_in_sum option.case(2) option.sel option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+    apply (smt (z3) disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_None_notin hp_parent_children_append_case hp_parent_children_append_skip_first hp_parent_children_cons hp_parent_children_hd_None hp_parent_simps_single_if list.sel(1) node_hd_in_sum option.case(2) option.sel option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+    apply (smt (z3) disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_None_notin hp_parent_children_append_case hp_parent_children_append_skip_first hp_parent_children_cons hp_parent_children_hd_None hp_parent_simps_single_if list.sel(1) node_hd_in_sum option.case(2) option.sel option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+    apply (auto simp: hp_parent_children_cons hp_parent_simps_single_if  handy_if_lemma split: if_splits option.splits )[]
+    apply (cases \<open>xs = []\<close>; cases \<open>b = node (hd xs)\<close>; cases \<open>VSIDS.remove_key_children (node x2a) xs = []\<close>;
+      cases \<open>b = node (hd (VSIDS.remove_key_children (node x2a) xs))\<close>; cases \<open>Hp x n (VSIDS.remove_key_children (node x2a) xs) = x2b\<close>;
+      auto simp: hp_parent_children_cons hp_parent_simps_single_if handy_if_lemma split: if_splits option.splits )
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (cases \<open>xs = []\<close>; cases \<open>b = node (hd xs)\<close>; cases \<open>VSIDS.remove_key_children (node x2a) xs = []\<close>;
+      cases \<open>b = node (hd (VSIDS.remove_key_children (node x2a) xs))\<close>; cases \<open>Hp x n (VSIDS.remove_key_children (node x2a) xs) = x2b\<close>;
+      auto simp: hp_parent_children_cons hp_parent_simps_single_if handy_if_lemma split: if_splits option.splits )
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (cases \<open>xs = []\<close>; cases \<open>b = node (hd xs)\<close>; cases \<open>VSIDS.remove_key_children (node x2a) xs = []\<close>;
+      cases \<open>b = node (hd (VSIDS.remove_key_children (node x2a) xs))\<close>; cases \<open>Hp x n (VSIDS.remove_key_children (node x2a) xs) = x2b\<close>;
+      auto simp: hp_parent_children_cons hp_parent_simps_single_if handy_if_lemma split: if_splits option.splits )
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (metis disjunct_not_in distinct_mset_add hp_parent_children_None_notin option.distinct(1) remove_key_children_notin_unchanged)
+    apply (metis disjunct_not_in distinct_mset_add hp_parent_children_None_notin option.distinct(1) remove_key_children_notin_unchanged)
+    apply (cases \<open>xs = []\<close>; cases \<open>b = node (hd xs)\<close>; cases \<open>VSIDS.remove_key_children (node x2a) xs = []\<close>;
+      cases \<open>b = node (hd (VSIDS.remove_key_children (node x2a) xs))\<close>; cases \<open>Hp x n (VSIDS.remove_key_children (node x2a) xs) = x2b\<close>;
+      auto simp: hp_parent_children_cons hp_parent_simps_single_if handy_if_lemma split: if_splits option.splits )
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_children_hd_None list.sel(1)
+      list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (metis disjunct_not_in distinct_mset_add  remove_key_children_notin_unchanged)
+    apply (metis disjunct_not_in distinct_mset_add  remove_key_children_notin_unchanged)
+    apply (metis disjunct_not_in distinct_mset_add  remove_key_children_notin_unchanged)
+    apply (metis add_diff_cancel_right' distinct_mem_diff_mset hp_parent_children_None_notin node_hd_in_sum not_orig_notin_remove_key option_last_Nil
+      option_last_Some_iff(2))
+
+    apply (cases \<open>xs = []\<close>; cases \<open>b = node (hd xs)\<close>; cases \<open>VSIDS.remove_key_children (node x2a) xs = []\<close>;
+      cases \<open>b = node (hd (VSIDS.remove_key_children (node x2a) xs))\<close>; cases \<open>Hp x n (VSIDS.remove_key_children (node x2a) xs) = x2b\<close>;
+      auto simp: hp_parent_children_cons hp_parent_simps_single_if handy_if_lemma hd_remove_key_node_same
+      dest: hp_parent_children_not_hd_node split: if_splits option.splits )
+    apply (metis hp_parent_children_not_hd_node sum_image_mset_sum_map)
+    apply (metis hp_parent_children_not_hd_node sum_image_mset_sum_map)
+    apply (metis hp_parent_children_not_hd_node sum_image_mset_sum_map)
+    apply (metis hp_parent_children_not_hd_node sum_image_mset_sum_map)
+    apply (metis hp_parent_children_not_hd_node sum_image_mset_sum_map)
+    apply (metis hp_parent_children_not_hd_node sum_image_mset_sum_map)
+    apply (metis hp_parent_children_not_hd_node sum_image_mset_sum_map)
+    apply (metis hp_parent_children_not_hd_node sum_image_mset_sum_map)
+    apply (metis hp_parent_children_not_hd_node sum_image_mset_sum_map)
+    apply (metis hp_parent_children_not_hd_node sum_image_mset_sum_map)
+    apply (metis hp_parent_children_not_hd_node sum_image_mset_sum_map)
+    apply (metis hp_parent_children_not_hd_node sum_image_mset_sum_map)
+    apply (smt (z3) hd_remove_key_node_same' hp_parent.simps(2) hp_parent_None_iff_children_None hp_parent_children_hd_None hp_parent_children_not_hd_node mset_map option_hd_Nil option_hd_Some_iff(1) sum_mset_sum_list)
+    apply (metis disjunct_not_in distinct_mset_add hp_parent_children_None_notin option.simps(2) remove_key_children_notin_unchanged)
+    apply (metis disjunct_not_in distinct_mset_add hp_parent_children_None_notin not_orig_notin_remove_key option.simps(2))
+    apply (metis VSIDS.remove_key_None_iff option.simps(2))
+
+    apply (
+      auto simp: hp_parent_children_cons hp_parent_simps_single_if handy_if_lemma hd_remove_key_node_same
+      dest: hp_parent_children_not_hd_node split: if_splits option.splits )
+
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_None_iff_children_None hp_parent_children_hd_None hp_parent_simps_single_if list.sel(1) list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_None_iff_children_None hp_parent_children_hd_None hp_parent_simps_single_if list.sel(1) list.simps(9) node_in_mset_nodes option_last_Nil option_last_Some_iff(2) remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list.Cons)
+    apply (metis add_diff_cancel_right' distinct_mset_in_diff hp_parent_children_None_notin not_orig_notin_remove_key option_last_Nil option_last_Some_iff(2))
+    apply (metis disjunct_not_in distinct_mset_add hp_parent_children_None_notin node_hd_in_sum not_orig_notin_remove_key option.simps(2) remove_key_children_node_hd)
+    apply (cases \<open>xs = []\<close>)
+    apply (auto simp: hp_parent_children_cons hp_parent_simps_single_if handy_if_lemma hd_remove_key_node_same remove_key_children_hd_tl
+      dest: hp_parent_children_not_hd_node split: if_splits option.splits)[2]
+    apply (smt (verit, best) VSIDS.remove_key_children.simps(1) hd_in_set hd_remove_key_node_same' hp_parent_children_None_notin hp_parent_children_hd_None hp_parent_children_hd_tl_None option.simps(2) remove_key_children_hd_tl remove_key_children_node_hd remove_key_remove_all sum_image_mset_sum_map)
+    apply (metis add_diff_cancel_right' distinct_mset_in_diff hp_parent_children_None_notin not_orig_notin_remove_key option_hd_Nil option_hd_Some_iff(2))
+    by (metis disjunct_not_in distinct_mset_add hp_parent_children_None_notin not_orig_notin_remove_key option_hd_Nil option_hd_Some_iff(2))
+  done
+
+lemma in_remove_key_children_changed: \<open>k \<in># sum_list (map mset_nodes c) \<Longrightarrow> VSIDS.remove_key_children k c \<noteq> c\<close>
+  apply (induction k c rule: VSIDS.remove_key_children.induct)
+  apply auto
+  apply (metis hp.sel(1) list.sel(1) mset_map neq_Nil_conv node_hd_in_sum remove_key_remove_all sum_mset_sum_list)+
+  done
+
+lemma hp_parent_in_nodes2: \<open>hp_parent (z) xs = Some a \<Longrightarrow> node a \<in># mset_nodes xs\<close>
+  apply (induction z xs rule: hp_parent.induct)
+  apply (auto simp: hp_parent_children_def filter_empty_conv)
+  by (metis empty_iff hp_node_None_notin2 hp_node_children_None_notin2 hp_node_children_simps(2) hp_parent_in_nodes
+    member_add_mset mset_nodes.simps option.discI option.sel set_mset_empty sum_image_mset_sum_map sum_mset_sum_list union_iff)
+
+lemma hp_parent_children_in_nodes2: \<open>hp_parent_children (z) xs = Some a \<Longrightarrow> node a \<in># \<Sum>\<^sub># (mset_nodes `# mset xs)\<close>
+    apply (induction xs)
+    apply (auto simp: hp_parent_children_cons filter_empty_conv split: option.splits)
+    using hp_parent_in_nodes by fastforce
+
+lemma hp_next_in_nodes2: \<open>hp_next (z) xs = Some a \<Longrightarrow> node a \<in># mset_nodes xs\<close>
+  apply (induction z xs rule: hp_next.induct)
+  apply (auto simp: )
+  by (metis hp_next_children.simps(1) hp_next_children_simps(2) hp_next_children_simps(3) node_in_mset_nodes option.sel)
+
+lemma hp_next_children_in_nodes2: \<open>hp_next_children (z) xs = Some a \<Longrightarrow> node a \<in># \<Sum>\<^sub># (mset_nodes `# mset xs)\<close>
+  apply (induction z xs rule: hp_next_children.induct)
+  apply (auto simp:  hp_next_in_nodes2 split: option.splits)
+  by (metis hp_next_children_simps(1) hp_next_children_simps(2) hp_next_children_simps(3) hp_next_in_nodes2 node_in_mset_nodes option.inject)
+
+lemma in_remove_key_changed: \<open>VSIDS.remove_key k a \<noteq> None \<Longrightarrow> a = the (VSIDS.remove_key k a) \<longleftrightarrow> k \<notin># mset_nodes a\<close>
+  apply (induction k a rule: VSIDS.remove_key.induct)
+  apply (auto simp: in_remove_key_children_changed)
+  by (metis in_remove_key_children_changed)
+
+lemma node_remove_key_in_mset_nodes: \<open>\<Sum>\<^sub># (mset_nodes `# mset (VSIDS.remove_key_children k c)) \<subseteq># (\<Sum>\<^sub># (mset_nodes `# mset c))\<close>
+  apply (induction k c rule: VSIDS.remove_key_children.induct)
+  apply auto
+  apply (metis mset_le_incr_right(2) union_commute union_mset_add_mset_right)
+  using subset_mset.add_mono by blast
+
+lemma remove_key_children_hp_parent_children_hd_None: \<open>VSIDS.remove_key_children k c = a # list \<Longrightarrow>
+  distinct_mset (sum_list (map mset_nodes c)) \<Longrightarrow>
+  hp_parent_children (node a) (a # list) = None\<close>
+  using node_remove_key_in_mset_nodes[of k c]
+  apply (auto simp: hp_parent_children_def filter_empty_conv)
+  apply (meson WB_List_More.distinct_mset_mono distinct_mset_union hp_parent_itself)
+  by (metis WB_List_More.distinct_mset_mono add_diff_cancel_left' distinct_mem_diff_mset hp_parent_None_notin node_in_mset_nodes sum_list_map_remove1 union_iff)
+
+
+lemma hp_next_not_same_node: \<open>distinct_mset (mset_nodes b) \<Longrightarrow> hp_next x b = Some y \<Longrightarrow> x \<noteq> node y\<close>
+  apply (induction x b rule: hp_next.induct)
+  apply auto
+    by (metis disjunct_not_in distinct_mset_add hp_next_children_simps(1) hp_next_children_simps(2) hp_next_children_simps(3) inter_mset_empty_distrib_right node_in_mset_nodes option.sel)
+
+lemma hp_next_children_not_same_node: \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset c)) \<Longrightarrow> hp_next_children x c = Some y \<Longrightarrow> x \<noteq> node y\<close>
+  apply (induction x c rule: hp_next_children.induct)
+  subgoal
+    apply (auto simp: hp_next_children.simps(1) split: if_splits option.splits dest: hp_next_not_same_node)
+    apply (metis (no_types, opaque_lifting) distinct_mset_iff hp.exhaust_sel mset_nodes.simps union_mset_add_mset_left union_mset_add_mset_right)
+    apply (metis Duplicate_Free_Multiset.distinct_mset_mono mset_subset_eq_add_left union_commute)
+      by (meson distinct_mset_union hp_next_not_same_node)
+  subgoal apply auto
+    by (meson hp_next_not_same_node)
+  subgoal by auto
+  done
+
+lemma hp_parent_children_remove_key_children:
+  assumes \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset xs))\<close>
+  shows \<open>hp_parent_children b (VSIDS.remove_key_children a xs) =
+    (if b \<in># (the_default {#} (map_option mset_nodes (VSIDS.find_key_children a xs))) then None
+    else if map_option node (hp_next_children a xs) = Some b then hp_parent_children a xs
+    else map_option (the o VSIDS.remove_key a) (hp_parent_children b xs))\<close>
+  using assms
+proof (induction a xs rule: VSIDS.remove_key_children.induct)
+  case (1 k)
+  then show ?case by auto
+next
+  case (2 k x n c xs)
+  have [intro]: \<open>b \<in># sum_list (map mset_nodes c) \<Longrightarrow> hp_parent_children b xs = None\<close>
+    using 2(4) by (auto simp: in_the_default_empty_iff dest!: multi_member_split split: if_splits)
+  consider
+    (kx) \<open>k=x\<close> |
+    (inc) \<open>k \<noteq> x› \<open>VSIDS.find_key_children k c \<noteq> None\<close> |
+    (inxs) \<open>k \<noteq> x› \<open>VSIDS.find_key_children k c = None\<close>
+    by blast
+  then show ?case
+  proof (cases)
+    case kx
+    then show ?thesis 
+      apply (auto simp: in_the_default_empty_iff)
+      using find_key_children_None_or_itself[of b c] find_key_children_None_or_itself[of b xs] 2
+      using distinct_mset_union[of \<open>\<Sum>\<^sub># (mset_nodes `# mset xs)\<close>  \<open>\<Sum>\<^sub># (mset_nodes `# mset c)\<close>, unfolded add.commute[of  \<open>\<Sum>\<^sub># (mset_nodes `# mset xs)\<close>]]
+        distinct_mset_union[of \<open>\<Sum>\<^sub># (mset_nodes `# mset c)\<close>  \<open>\<Sum>\<^sub># (mset_nodes `# mset xs)\<close>]
+      by (auto simp: not_orig_notin_remove_key in_the_default_empty_iff hp_parent_children_cons
+        split: option.split if_splits)
+  next
+    case inc
+    moreover have \<open>b \<in># mset_nodes (the (VSIDS.find_key_children k c)) \<Longrightarrow> b \<in># \<Sum>\<^sub># (mset_nodes `# mset c)\<close>
+      using inc by (meson mset_nodes_find_key_children_subset mset_subset_eqD)
+    moreover have c: \<open>c \<noteq> []\<close>
+      using inc by auto
+    moreover have [simp]: \<open>VSIDS.remove_key_children (node (hd c)) (tl c) = tl c\<close>
+      using c 2(4) by (cases c; cases \<open>hd c\<close>) auto
+    moreover have [simp]: \<open>VSIDS.find_key_children (node (hd c)) c = Some (hd c)\<close>
+      using c 2(4) by (cases c; cases \<open>hd c\<close>) auto
+    moreover have [simp]: \<open>k \<in># sum_list (map mset_nodes c) \<Longrightarrow> k \<notin># sum_list (map mset_nodes xs)\<close> for k
+      using 2(4) by (auto dest!: multi_member_split)
+    moreover have [iff]: \<open>VSIDS.remove_key_children k c = [] \<longleftrightarrow> c = [] \<or> (c \<noteq> [] \<and>  tl c = [] \<and> node (hd c) = k)\<close>
+      using 2(4)
+      by (induction k c rule: VSIDS.remove_key_children.induct) (auto simp: dest: multi_member_split)
+    ultimately show ?thesis
+      using find_key_children_None_or_itself[of b c] find_key_children_None_or_itself[of b xs] 2
+        find_key_children_None_or_itself[of k c] find_key_children_None_or_itself[of k xs] 
+      using distinct_mset_union[of \<open>\<Sum>\<^sub># (mset_nodes `# mset xs)\<close>  \<open>\<Sum>\<^sub># (mset_nodes `# mset c)\<close>, unfolded add.commute[of  \<open>\<Sum>\<^sub># (mset_nodes `# mset xs)\<close>]]
+        distinct_mset_union[of \<open>\<Sum>\<^sub># (mset_nodes `# mset c)\<close>  \<open>\<Sum>\<^sub># (mset_nodes `# mset xs)\<close>]
+      apply (auto simp: not_orig_notin_remove_key in_the_default_empty_iff split: option.split if_splits)
+      apply (auto simp: hp_parent_children_cons in_the_default_empty_iff split: option.split
+        dest: in_find_key_children_notin_remove_key)[]
+        apply (metis hp_parent_None_iff_children_None in_find_key_children_notin_remove_key mset_map node_hd_in_sum sum_mset_sum_list)
+      apply (auto simp: hp_parent_children_cons in_the_default_empty_iff split: option.split
+        dest: in_find_key_children_notin_remove_key)[]
+        apply (metis hp_parent_None_iff_children_None in_find_key_children_notin_remove_key mset_map node_hd_in_sum sum_mset_sum_list)
+defer
+
+        apply (auto simp: hp_parent_children_cons in_the_default_empty_iff hp_parent_None_iff_children_None
+          hp_parent_children_None_hp_parent_iff split: option.split
+        dest: in_find_key_children_notin_remove_key)[]
+apply (metis \<open>(VSIDS.remove_key_children k c = []) = (c = [] \<or> c \<noteq> [] \<and> tl c = [] \<and> node (hd c) = k)\<close> \<open>VSIDS.remove_key_children (node (hd c)) (tl c) = tl c\<close> hd_remove_key_node_same' hp_next_children_hd_simps list.exhaust_sel option_hd_def remove_key_children_node_hd)
+apply (metis \<open>(VSIDS.remove_key_children k c = []) = (c = [] \<or> c \<noteq> [] \<and> tl c = [] \<and> node (hd c) = k)\<close> hd_remove_key_node_same')
+apply (metis \<open>(VSIDS.remove_key_children k c = []) = (c = [] \<or> c \<noteq> [] \<and> tl c = [] \<and> node (hd c) = k)\<close> find_key_children_None_or_itself hd_remove_key_node_same inc(2) node_in_mset_nodes option.sel)
+apply (smt (verit) VSIDS.remove_key.simps \<open>VSIDS.remove_key_children (node (hd c)) (tl c) = tl c\<close> \<open>b \<in># sum_list (map mset_nodes c) \<Longrightarrow> hp_parent_children b xs = None\<close>
+  hd_remove_key_node_same hp_next_children.elims hp_parent_None_iff_children_None hp_parent_children_hd_None hp_parent_none_children
+  hp_parent_simps_single_if list.sel(1) list.sel(3) o_apply option.map_sel option.sel remove_key_children_node_hd sum_image_mset_sum_map)
+
+
+        apply (auto simp: hp_parent_children_cons in_the_default_empty_iff hp_parent_None_iff_children_None
+          hp_parent_children_None_hp_parent_iff in_remove_key_changed split: option.split
+        dest: in_find_key_children_notin_remove_key)[]
+apply (metis handy_if_lemma hd_Cons_tl hp_next_children_hd_simps option_hd_def)
+prefer 2
+apply (metis handy_if_lemma hp_next_children_hd_simps list.collapse option_hd_def)
+ apply (case_tac \<open>hp_parent_children (node z) xs\<close>)
+   apply simp
+   apply simp
+   apply (subst (asm) remove_key_notin_unchanged)
+
+   apply (auto simp: hp_parent_children_cons in_the_default_empty_iff hp_parent_None_iff_children_None
+     hp_parent_children_None_hp_parent_iff in_remove_key_changed split: option.split
+     dest: in_find_key_children_notin_remove_key hp_parent_children_in_nodes2)[2]
+   apply (metis (no_types, lifting) "2"(3) VSIDS.remove_key_None_iff \<open>\<And>k. k \<in># sum_list (map mset_nodes c) \<Longrightarrow> k \<notin># sum_list (map mset_nodes xs)\<close>
+     comp_def hp_next_children_None_notin hp_parent_children_in_nodes2 in_remove_key_changed mset_map option.map_sel
+     option.sel option.simps(8) option_last_Nil option_last_Some_iff(1) remove_key_children_notin_unchanged sum_mset_sum_list)
+   using hp_next_children_in_nodes2 apply force
+   apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims WB_List_More.distinct_mset_mono \<open>VSIDS.find_key_children (node (hd c)) c = Some (hd c)\<close>
+     \<open>VSIDS.remove_key_children (node (hd c)) (tl c) = tl c\<close> add_diff_cancel_left' distinct_mset_in_diff hp.exhaust_sel hp.inject hp_next_children_in_nodes2
+     hp_next_children_simps(2) hp_next_children_simps(3) hp_next_simps in_remove_key_children_changed list.exhaust_sel list.sel(1) mset_nodes.simps
+     mset_nodes_find_key_children_subset option.sel option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map sum_mset_sum_list union_single_eq_member)
+   apply (smt (verit, ccfv_threshold) VSIDS.remove_key_children.elims WB_List_More.distinct_mset_mono \<open>VSIDS.find_key_children (node (hd c)) c = Some (hd c)\<close>
+     \<open>VSIDS.remove_key_children (node (hd c)) (tl c) = tl c\<close> add_diff_cancel_left' distinct_mset_in_diff hp.exhaust_sel hp.inject hp_next_children_in_nodes2
+     hp_next_children_simps(2) hp_next_children_simps(3) hp_next_simps in_remove_key_children_changed list.exhaust_sel list.sel(1) mset_nodes.simps
+     mset_nodes_find_key_children_subset option.sel option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map sum_mset_sum_list union_single_eq_member)
+   apply (cases \<open>VSIDS.remove_key_children k c\<close>)
+
+   apply (auto simp: hp_parent_simps_if remove_key_children_hp_parent_children_hd_None split: if_splits)
+     defer
+    apply (frule remove_key_children_hp_parent_children_hd_None)
+      using find_key_children_None_or_itself[of k c]
+   apply (auto simp: hp_parent_simps_if remove_key_children_hp_parent_children_hd_None split: if_splits)
+   apply (metis \<open>VSIDS.remove_key_children (node (hd c)) (tl c) = tl c\<close> hp_next_children_hd_simps hp_parent_simps_single_if list.exhaust_sel list.sel(1) option_hd_Some_iff(1) remove_key_children_node_hd)
+subgoal for z x2 x2b a list
+  using hp_next_children_not_same_node[of c \<open>node x2\<close> z]
+    apply auto
+      sledgehammer
+
+apply (frule hp_next_children_not_same_node)
+  apply simp
+  apply simp
+find_theorems node VSIDS.find_key_children
+
+oops
+lemma hp_next_not_same_node: \<open>distinct_mset (mset_nodes b) \<Longrightarrow> hp_next x b = Some y \<Longrightarrow> x \<noteq> node y\<close>
+  apply (induction x b rule: hp_next.induct)
+  apply auto
+    by (metis disjunct_not_in distinct_mset_add hp_next_children_simps(1) hp_next_children_simps(2) hp_next_children_simps(3) inter_mset_empty_distrib_right node_in_mset_nodes option.sel)
+
+lemma hp_next_children_not_same_node: \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset c)) \<Longrightarrow> hp_next_children x c = Some y \<Longrightarrow> x \<noteq> node y\<close>
+  apply (induction x c rule: hp_next_children.induct)
+  subgoal
+    apply (auto simp: hp_next_children.simps(1) split: if_splits option.splits dest: hp_next_not_same_node)
+    apply (metis (no_types, opaque_lifting) distinct_mset_iff hp.exhaust_sel mset_nodes.simps union_mset_add_mset_left union_mset_add_mset_right)
+    apply (metis Duplicate_Free_Multiset.distinct_mset_mono mset_subset_eq_add_left union_commute)
+      by (meson distinct_mset_union hp_next_not_same_node)
+  subgoal apply auto
+    by (meson hp_next_not_same_node)
+  subgoal by auto
+  done
+
+  find_theorems hp_next_children hp_next If
+lemma node_remove_key_in_mset_nodes: \<open>\<Sum>\<^sub># (mset_nodes `# mset (VSIDS.remove_key_children k c)) \<subseteq># (\<Sum>\<^sub># (mset_nodes `# mset c))\<close>
+  apply (induction k c rule: VSIDS.remove_key_children.induct)
+  apply auto
+  apply (metis mset_le_incr_right(2) union_commute union_mset_add_mset_right)
+  using subset_mset.add_mono by blast
+
+  lemma remove_key_children_hp_parent_children_hd_None: \<open>VSIDS.remove_key_children k c = a # list \<Longrightarrow>
+    distinct_mset (sum_list (map mset_nodes c)) \<Longrightarrow>
+    hp_parent_children (node a) (a # list) = None\<close>
+    using node_remove_key_in_mset_nodes[of k c]
+    apply (auto simp: hp_parent_children_def filter_empty_conv)
+    apply (meson WB_List_More.distinct_mset_mono distinct_mset_union hp_parent_itself)
+    by (metis WB_List_More.distinct_mset_mono add_diff_cancel_left' distinct_mem_diff_mset hp_parent_None_notin node_in_mset_nodes sum_list_map_remove1 union_iff)
+
+
+      oops
+
+      apply (auto simp: hp_parent_children_cons in_the_default_empty_iff hp_parent_None_iff_children_None split: option.split
+        dest: in_find_key_children_notin_remove_key)[]
+      apply (metis handy_if_lemma hp_next_children_hd_simps list.exhaust_sel option_hd_def)
+        
+find_theorems VSIDS.remove_key "_ \<notin># mset_nodes _"
+oops
+      apply (metis (mono_tags, lifting) add_diff_cancel_left' distinct_mem_diff_mset hp_parent_None_iff_children_None hp_parent_children_None_notin
+        mset_nodes_find_key_children_subset mset_subset_eqD node_hd_in_sum option.sel option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+      apply (auto simp: hp_parent_children_cons in_the_default_empty_iff hp_parent_None_iff_children_None split: option.split
+        dest: in_find_key_children_notin_remove_key)[]
+      apply (metis hp_parent_None_iff_children_None in_find_key_children_notin_remove_key node_hd_in_sum sum_image_mset_sum_map)
+      apply (metis \<open>b \<in># sum_list (map mset_nodes c) \<Longrightarrow> hp_parent_children b xs = None\<close> hp_parent_None_iff_children_None
+        hp_parent_None_notin_same_hd hp_parent_children_cons hp_parent_hd_None in_find_key_children_notin_remove_key sum_image_mset_sum_map)
+      apply (metis add_diff_cancel_right' distinct_mset_in_diff)
+      apply (auto simp: hp_parent_children_cons in_the_default_empty_iff hp_parent_children_None_hp_parent_iff hp_parent_None_iff_children_None
+        hd_remove_key_node_same' hd_remove_key_node_same split: option.split)[]
+      apply (smt (verit, best) VSIDS.find_key_children.simps(2) VSIDS.remove_key_children.elims handy_if_lemma list.sel(1) neq_Nil_conv node_in_mset_nodes)
+      apply (smt (verit, best) VSIDS.remove_key_children.elims find_key_children_None_or_itself hp.sel(1) inc(2) list.sel(1) node_in_mset_nodes option.sel)
+      sledgehammer
+      apply (subst (asm) hd_remove_key_node_same)
+      apply simp
+
+oops
+find_theorems hd VSIDS.remove_key_children
+    apply (metis hp_parent_children_cons)
+    apply (meson disjunct_not_in distinct_mset_add)
+    apply (auto simp: hp_parent_children_cons split: option.split)[]
+      defer
+    apply (metis disjunct_not_in distinct_mset_add hp_parent_children_None_notin mset_map mset_nodes_find_key_children_subset
+      mset_subset_eqD option.sel option_hd_Nil option_hd_Some_iff(2) sum_mset_sum_list)
+    apply (auto simp: hp_parent_children_cons split: option.split)[]
+    apply (metis hp_parent_None_iff_children_None in_find_key_children_notin_remove_key node_hd_in_sum sum_image_mset_sum_map)
+    apply (metis disjunct_not_in distinct_mset_add hp_parent_children_None_notin mset_map mset_nodes_find_key_children_subset mset_subset_eqD option.sel option_hd_Nil option_hd_Some_iff(1) sum_mset_sum_list)
+    apply (metis disjunct_not_in distinct_mset_add find_key_children_notin option.distinct(1) sum_image_mset_sum_map)
+defer
+    apply (auto simp: hp_parent_children_cons hp_parent_None_iff_children_None
+      split: option.split)[]
+
+apply (smt (verit, best) VSIDS.remove_key_children.elims find_key_children_None_or_itself hp.sel(1) hp_parent_None_iff_children_None list.distinct(2) list.sel(1) node_in_mset_nodes option.sel option_last_Nil option_last_Some_iff(2))
+apply (metis VSIDS.remove_key_children.simps(2) find_key_children_None_or_itself hd_remove_key_node_same hp.exhaust_sel hp_parent_simps_single_if list.distinct(1) list.exhaust_sel node_in_mset_nodes option.distinct(1) option.sel)
+apply (cases \<open>c\<close>; cases \<open>hd c\<close>)
+    apply (auto simp: hp_parent_children_cons hp_parent_None_iff_children_None hp_parent_children_None_hp_parent_iff
+      split: option.splits if_splits)[]
+apply (simp split: if_splits)
+    apply (simp add: hp_parent_children_cons hp_parent_None_iff_children_None hp_parent_children_None_hp_parent_iff
+      split: option.splits if_splits)[]
+
+oops
+    apply (auto simp: hp_parent_children_cons)[]
+    apply (metis add_diff_cancel_left' distinct_mset_in_diff hp_next_children_None_notin option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+    apply (auto simp: hp_parent_children_cons split: option.split)[]
+    apply (smt (verit, del_insts) VSIDS.remove_key_children.elims ex_hp_node_children_Some_in_mset_nodes hp_next_children_hd_simps hp_next_children_simps(1)
+      hp_node_children_None_notin2 hp_parent_simps_single_if list.map(2) list.sel(1) node_hd_in_sum option.sel option_hd_Nil sum_image_mset_sum_map sum_list.Cons union_iff)
+apply (metis disjunct_not_in distinct_mset_add hp_next_children_None_notin hp_parent_children_None_notin mset_map option_last_Nil option_last_Some_iff(1) sum_mset_sum_list)
+    apply (auto simp: hp_parent_children_cons split: option.split)[]
+      apply (metis disjunct_not_in distinct_mset_add hp_next_children_None_notin hp_parent_children_None_notin hp_parent_simps_single_if mset_map node_hd_in_sum option.simps(2) sum_mset_sum_list)
+
+    apply (auto simp: hp_parent_children_cons split: option.split)[]
+      apply (metis hp.sel(1) hp_next_children_simps(2) hp_next_children_simps(3) hp_next_simps)
+      apply (metis hp.sel(1) hp_next_children_simps(2) hp_next_children_simps(3) hp_next_simps)
+
+    apply (auto simp: hp_parent_children_cons not_orig_notin_remove_key split: option.split)[]
+apply (metis add_diff_cancel_left' distinct_mset_in_diff hp_next_children_None_notin option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+
+    apply (auto simp: hp_parent_children_cons not_orig_notin_remove_key split: option.split)[]
+apply (metis get_min2_alt_def hp_next_children_hd_simps hp_next_children_simps(1) hp_parent_simps_single_if hp_prev_cadr_node
+  hp_prev_children_None_notin list.exhaust_sel mset_map option.simps(3) option_hd_Nil sum_mset_sum_list)
+  apply (metis disjunct_not_in distinct_mset_add hp_next_children_None_notin hp_parent_children_None_notin mset_map option_hd_Nil option_hd_Some_iff(1) sum_mset_sum_list)
+
+    apply (auto simp: hp_parent_children_cons not_orig_notin_remove_key split: option.split)[]
+apply (metis add_diff_cancel_left' distinct_mset_in_diff hp_next_children_None_notin hp_parent_children_None_notin hp_parent_simps_single_if node_hd_in_sum option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+
+ apply (auto simp: hp_parent_children_cons not_orig_notin_remove_key split: option.split)[]
+  apply (metis hp.sel(1) hp_next_children_simps(2) hp_next_children_simps(3) hp_next_simps)
+  apply (metis hp.sel(1) hp_next_children_simps(2) hp_next_children_simps(3) hp_next_simps)
+
+
+    apply (metis add_diff_cancel_left' distinct_mset_in_diff hp.sel(1) hp_next_None_notin_children hp_next_children_None_notin hp_next_children_simps(3) option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+apply (simp add: hp_parent_children_cons not_orig_notin_remove_key)
+
+apply (metis add_diff_cancel_right' distinct_mset_in_diff hp_next_children_None_notin option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+
+
+ apply (auto simp: hp_parent_children_cons not_orig_notin_remove_key split: option.split)[]
+apply (smt (verit, del_insts) VSIDS.remove_key_children.elims ex_hp_node_children_Some_in_mset_nodes hp_next_children_hd_simps hp_next_children_simps(1) hp_node_children_None_notin2 hp_parent_simps_single_if list.map(2) list.sel(1) node_hd_in_sum option.sel option_hd_Nil sum_image_mset_sum_map sum_list.Cons union_iff)
+apply (metis add_diff_cancel_right' distinct_mset_in_diff hp_next_children_None_notin hp_parent_children_None_notin option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+
+
+ apply (auto simp: hp_parent_children_cons not_orig_notin_remove_key split: option.split)[]
+apply (metis add_diff_cancel_left' distinct_mset_in_diff hp_next_children_None_notin hp_parent_children_None_notin hp_parent_simps_single_if node_hd_in_sum option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+
+
+ apply (auto simp: hp_parent_children_cons not_orig_notin_remove_key split: option.split)[]
+  apply (metis hp.sel(1) hp_next_children_simps(2) hp_next_children_simps(3) hp_next_simps)
+  apply (metis hp.sel(1) hp_next_children_simps(2) hp_next_children_simps(3) hp_next_simps)
+
+
+ apply (auto simp: hp_parent_children_cons not_orig_notin_remove_key split: option.split)[]
+  apply (metis disjunct_not_in distinct_mset_add hp_next_children_None_notin mset_map option.simps(2) sum_mset_sum_list)
+  apply (metis disjunct_not_in distinct_mset_add hp_next_children_None_notin mset_map option.simps(2) sum_mset_sum_list)
+  apply (metis disjunct_not_in distinct_mset_add hp_next_children_None_notin mset_map option.simps(2) sum_mset_sum_list)
+
+  
+ apply (auto simp: hp_parent_children_cons not_orig_notin_remove_key split: option.split)[]
+   apply (metis add_diff_cancel_right' distinct_mset_in_diff find_key_children_notin option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+   apply (metis add_diff_cancel_right' distinct_mset_in_diff find_key_children_notin option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+   apply (metis add_diff_cancel_right' distinct_mset_in_diff find_key_children_notin option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+   apply (metis add_diff_cancel_right' distinct_mset_in_diff find_key_children_notin option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+
+ apply (auto simp: hp_parent_children_cons not_orig_notin_remove_key hp_parent_None_iff_children_None hp_parent_none_children
+   split: option.split)[]
+    apply (metis disjunct_not_in distinct_mset_add hp_next_children_None_notin hp_parent_children_None_notin option.simps(3) sum_image_mset_sum_map)
+    apply (metis (mono_tags, lifting) Misc.last_in_set VSIDS_remove_key_children_alt_def append.right_neutral filter_empty_conv
+  hp_next_children_last list.map_disc_iff option_hd_Some_iff(2))
+    apply (metis add_diff_cancel_right' distinct_mset_in_diff hp_next_children_None_notin hp_parent_children_None_notin option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+    apply (metis (no_types, opaque_lifting) add_diff_cancel_right' distinct_mset_in_diff get_min2_alt_def hp_next_children_hd_simps hp_next_children_simps(1) list.exhaust_sel list.simps(9) node_in_mset_nodes option.distinct(1) option_hd_Nil remove_key_children_node_hd remove_key_children_notin_unchanged sum_list.Cons)
+
+sledgehammer
+
+  oops
+find_theorems   VSIDS.find_key_children node
+lemma \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset c)) \<Longrightarrow>
+    VSIDS.find_key_children k c = Some y \<Longrightarrow>
+    x \<in># sum_list (map mset_nodes c) \<Longrightarrow> k \<noteq> x \<Longrightarrow>
+    map_option node (hp_next_children x c) = map_option node (hp_next x y)\<close>
+  apply (induction x c arbitrary: y k rule: VSIDS.find_key_children.induct)
+  subgoal by auto
+  subgoal for ka x n c xsa y
+    apply (auto split: if_splits option.splits)
+    apply (cases xsa)
+    apply (auto split: if_splits option.splits)[2]
+    apply (metis disjunct_not_in distinct_mset_add hp_next_children_append2 list.map(2) sum_list_simps(2))
+
+
+    oops
+      find_theorems hp_next_children If
+
+lemma \<open>x \<in># mset_nodes h \<Longrightarrow>
+     VSIDS.find_key a h = Some y \<Longrightarrow> map_option node (hp_next x h) = map_option node (hp_next x y)\<close>
+  apply (induction a h arbitrary: y rule: VSIDS.find_key.induct)
+  apply (auto split: if_splits)
+    oops
+lemma
+  fixes h :: \<open>('a, nat) hp\<close> and a arr and hs :: \<open>('a, nat) hp multiset\<close>
+  defines \<open>arr\<^sub>1 \<equiv> (if hp_parent a h = None then arr else hp_update_child (node (the (hp_parent a h))) (map_option node (hp_next a h)) arr)\<close>
+  defines \<open>arr\<^sub>2 \<equiv> (if hp_prev a h = None then arr\<^sub>1 else hp_update_nxt (node (the (hp_prev a h))) (map_option node (hp_next a h)) arr\<^sub>1)\<close>
+  defines \<open>arr\<^sub>3 \<equiv> (if hp_next a h = None then arr\<^sub>2 else hp_update_prev (node (the (hp_next a h))) (map_option node (hp_prev a h)) arr\<^sub>2)\<close>
+  defines \<open>arr' \<equiv> hp_update_child a None arr\<^sub>3\<close>
+  assumes enc: \<open>encoded_hp_prop_list (add_mset h {#}) [] arr\<close>
+  shows \<open>encoded_hp_prop_list ({#} + (if VSIDS.remove_key a h = None then {#} else {#the (VSIDS.remove_key a h)#}) +
+        (if VSIDS.find_key a h = None then {#} else {#the (VSIDS.find_key a h)#})) []
+        arr'\<close>
+proof -
+  obtain prevs nxts childs scores \<V> where
+    arr: \<open>arr = ((prevs, nxts, childs, scores))\<close> and
+    dist: \<open>distinct_mset (mset_nodes h)\<close> and
+    \<V>: \<open>set_mset (sum_list (map mset_nodes xs)) \<subseteq> \<V>\<close>
+    by (cases arr) (use assms in \<open>auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
+        encoded_hp_prop_def\<close>)
+  have find_key_in_nodes: \<open>VSIDS.find_key a h \<noteq> None \<Longrightarrow> node (the (VSIDS.find_key a h)) \<in># mset_nodes h\<close>
+    by (cases \<open>a \<in># mset_nodes h\<close>)
+   	 (use find_key_None_or_itself[of a h] in \<open>auto simp del: find_key_None_or_itself\<close>)
+  have in_find_key_in_nodes: \<open>x \<in># mset_nodes y \<Longrightarrow> VSIDS.find_key a h = Some y \<Longrightarrow> x \<in># mset_nodes h\<close> for x y
+    using mset_nodes_find_key_subset[of a h]
+    by auto
+  show ?thesis
+    supply [[goals_limit=1]]
+    using enc
+    unfolding assms(1-4) arr  hp_update_child_def hp_update_nxt_def hp_update_prev_def
+    apply (clarsimp simp add: encoded_hp_prop_list_def)
+    apply (intro conjI impI allI ballI)
+    subgoal
+      using dist by (metis VSIDS.find_key.simps VSIDS.remove_key_None_iff hp.exhaust_sel option.sel)
+    subgoal for x
+      using find_key_in_nodes in_find_key_in_nodes[of x \<open>the (VSIDS.find_key a h)\<close>]
+      apply (auto dest: multi_member_split)
+
+
+
+end
