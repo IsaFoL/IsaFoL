@@ -146,8 +146,8 @@ proof -
   define \<mu> where
     "\<mu> = subst_of ys"
 
-  have mimgu_\<mu>: "is_mimgu \<mu> {atm_of ` set_mset (add_mset L' C\<^sub>1)}"
-  proof (intro is_mimgu_if_mgu_sets[unfolded mgu_sets_def] exI conjI)
+  have imgu_\<mu>: "is_imgu \<mu> {atm_of ` set_mset (add_mset L' C\<^sub>1)}"
+  proof (intro is_imgu_if_mgu_sets[unfolded mgu_sets_def] exI conjI)
     show "set (map set [(map atm_of xs)]) = {atm_of ` set_mset (add_mset L' C\<^sub>1)}"
       by (simp add: set_xs_conv)
   next
@@ -157,7 +157,7 @@ proof -
 
   show ?thesis
     using propagateI[OF D_in D_def, of \<gamma>\<^sub>D, unfolded subst_cls_comp_subst subst_lit_comp_subst,
-      OF ground_D_\<sigma> ball_atms_lt_\<beta> C\<^sub>0_def C\<^sub>1_def tr_false_C\<^sub>1 not_def_L'_\<rho>_\<sigma>\<^sub>\<rho> mimgu_\<mu> refl]   
+      OF ground_D_\<sigma> ball_atms_lt_\<beta> C\<^sub>0_def C\<^sub>1_def tr_false_C\<^sub>1 not_def_L'_\<rho>_\<sigma>\<^sub>\<rho> imgu_\<mu> refl]   
     unfolding S\<^sub>0_def by blast
 qed
 
@@ -458,11 +458,11 @@ proof -
             then obtain \<mu> where "Unification.mgu (atm_of L') (atm_of K \<cdot>a \<rho>) = Some \<mu>"
               using ex_mgu_if_subst_apply_term_eq_subst_apply_term
               by (metis subst_atm_comp_subst)
-            hence mimgu_\<mu>: "is_mimgu \<mu> {{atm_of L', atm_of K \<cdot>a \<rho>}}"
-              by (rule is_mimgu_if_mgu_eq_Some)
+            hence imgu_\<mu>: "is_imgu \<mu> {{atm_of L', atm_of K \<cdot>a \<rho>}}"
+              by (rule is_imgu_if_mgu_eq_Some)
 
             have "\<exists>S. resolve N \<beta> (\<Gamma>, U, Some (add_mset K C', \<gamma>)) S"
-              using resolveI[OF 1 2 ren_\<rho> vars_subst_\<rho>_disj mimgu_\<mu>, of N \<beta> U C'] ..
+              using resolveI[OF 1 2 ren_\<rho> vars_subst_\<rho>_disj imgu_\<mu>] ..
             with no_more_step have False
               unfolding scl_def
               using S_def \<Gamma>_def C_def decide_well_defined(5) u_def

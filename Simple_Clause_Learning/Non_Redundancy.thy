@@ -1265,8 +1265,8 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     show "vars_term (atm_of L \<cdot>a \<mu>) \<inter> vars_term (atm_of L' \<cdot>a \<rho>) = {}"
       using vars_subst_cls_\<rho>_disjoint[of "{#L'#}"] by auto
   qed
-  then obtain \<mu>' where mimgu_\<mu>': "is_mimgu \<mu>' {{atm_of (L \<cdot>l \<mu>), atm_of L' \<cdot>a \<rho>}}"
-    using is_mimgu_if_mgu_eq_Some by auto
+  then obtain \<mu>' where imgu_\<mu>': "is_imgu \<mu>' {{atm_of (L \<cdot>l \<mu>), atm_of L' \<cdot>a \<rho>}}"
+    using is_imgu_if_mgu_eq_Some by auto
 
   let ?\<Gamma>prop = "trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>'"
   let ?\<gamma>reso = "restrict_subst_domain (vars_cls ((D' \<cdot> \<rho> + C\<^sub>0 \<cdot> \<mu>) \<cdot> \<mu>')) (rename_subst_domain \<rho> \<gamma>\<^sub>D \<odot> \<gamma>')"
@@ -1284,8 +1284,8 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     show "vars_cls (add_mset L' D' \<cdot> \<rho>) \<inter> vars_cls (add_mset (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>)) = {}"
       using vars_subst_cls_\<rho>_disjoint[of "add_mset L' D'"] by simp
   next
-    show "is_mimgu \<mu>' {{atm_of (L \<cdot>l \<mu>), atm_of L' \<cdot>a \<rho>}}"
-      by (rule mimgu_\<mu>')
+    show "is_imgu \<mu>' {{atm_of (L \<cdot>l \<mu>), atm_of L' \<cdot>a \<rho>}}"
+      using imgu_\<mu>' by simp
   qed
   thus ?thesis
     unfolding S\<^sub>2_def D_def by metis
@@ -1303,7 +1303,7 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
     S\<^sub>1_def: "S\<^sub>1 = (\<Gamma>, U, Some (add_mset K' (add_mset K DD), \<sigma>))" and
     S\<^sub>3_def: "S\<^sub>3 = (\<Gamma>, U, Some (add_mset K DD \<cdot> \<mu>\<^sub>K, \<sigma>'))" and
     "K \<cdot>l \<sigma> = K' \<cdot>l \<sigma>" and
-    mimgu_\<mu>\<^sub>K: "is_mimgu \<mu>\<^sub>K {{atm_of K, atm_of K'}}" and
+    imgu_\<mu>\<^sub>K: "is_imgu \<mu>\<^sub>K {{atm_of K, atm_of K'}}" and
     \<sigma>'_def: "\<sigma>' = restrict_subst_domain (vars_cls (add_mset K DD \<cdot> \<mu>\<^sub>K)) \<sigma>"
     by (auto simp: \<open>S\<^sub>1 = (\<Gamma>, U, Some (add_mset L' D, \<sigma>))\<close> elim: factorize.cases)
 
@@ -1316,10 +1316,9 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
   have "add_mset L' D = add_mset K' (add_mset K DD)"
     using resolveI(1) S\<^sub>1_def by simp
 
-  from mimgu_\<mu>\<^sub>K have "\<sigma> = \<mu>\<^sub>K \<odot> \<sigma>"
+  from imgu_\<mu>\<^sub>K have "\<sigma> = \<mu>\<^sub>K \<odot> \<sigma>"
     using \<open>K \<cdot>l \<sigma> = K' \<cdot>l \<sigma>\<close>
-    by (auto simp add: is_mimgu_def is_imgu_def is_unifiers_def is_unifier_alt
-        intro!: subst_atm_of_eqI)
+    by (auto simp: is_imgu_def is_unifiers_def is_unifier_alt intro!: subst_atm_of_eqI)
 
   have L_\<mu>\<^sub>K_\<sigma>'_simp: "L \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>' = L \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>" if L_in: "L \<in># add_mset K DD" for L
     unfolding \<sigma>'_def
@@ -1331,8 +1330,7 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
   proof (cases "L' = K \<or> L' = K'")
     case True
     moreover have "K \<cdot>l \<mu>\<^sub>K = K' \<cdot>l \<mu>\<^sub>K"
-      using mimgu_\<mu>\<^sub>K[unfolded is_mimgu_def, THEN conjunct1, unfolded is_imgu_def, THEN conjunct1,
-          unfolded is_unifiers_def, simplified]
+      using imgu_\<mu>\<^sub>K[unfolded is_imgu_def, THEN conjunct1, unfolded is_unifiers_def, simplified]
       by (metis (no_types, opaque_lifting) \<open>K \<cdot>l \<sigma> = K' \<cdot>l \<sigma>\<close> atm_of_subst_lit finite.emptyI
           finite.insertI insertCI is_unifier_subst_atm_eqI literal.expand subst_lit_is_neg)
     ultimately have "L' \<cdot>l \<mu>\<^sub>K = K \<cdot>l \<mu>\<^sub>K"
@@ -1370,9 +1368,9 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
       using resolveI by simp
   qed
 
-  obtain \<mu>\<mu> where mimgu_\<mu>\<mu>: "is_mimgu \<mu>\<mu> {{atm_of L, atm_of (L' \<cdot>l \<mu>\<^sub>K) \<cdot>a \<rho>\<rho>}}"
+  obtain \<mu>\<mu> where imgu_\<mu>\<mu>: "is_imgu \<mu>\<mu> {{atm_of L, atm_of (L' \<cdot>l \<mu>\<^sub>K) \<cdot>a \<rho>\<rho>}}"
   proof -
-    assume "\<And>\<mu>\<mu>. is_mimgu \<mu>\<mu> {{atm_of L, atm_of (L' \<cdot>l \<mu>\<^sub>K) \<cdot>a \<rho>\<rho>}} \<Longrightarrow> thesis"
+    assume "\<And>\<mu>\<mu>. is_imgu \<mu>\<mu> {{atm_of L, atm_of (L' \<cdot>l \<mu>\<^sub>K) \<cdot>a \<rho>\<rho>}} \<Longrightarrow> thesis"
     moreover have "\<exists>\<mu>. Unification.mgu (atm_of L) (atm_of L' \<cdot>a \<mu>\<^sub>K \<cdot>a \<rho>\<rho>) = Some \<mu>"
     proof (rule ex_mgu_if_subst_eq_subst_and_disj_vars)
       have "is_ground_atm (atm_of L' \<cdot>a \<mu>\<^sub>K \<cdot>a \<sigma>')"
@@ -1391,13 +1389,13 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
         using vars_subst_cls_\<rho>\<rho>_disjoint[of "{#L' \<cdot>l \<mu>\<^sub>K#}"] by auto
     qed
     ultimately show ?thesis
-      using is_mimgu_if_mgu_eq_Some by auto
+      using is_imgu_if_mgu_eq_Some by auto
   qed
 
   show ?thesis
     unfolding S\<^sub>3_def \<open>add_mset K DD \<cdot> \<mu>\<^sub>K = add_mset L' DDD \<cdot> \<mu>\<^sub>K\<close>
     using resolve.resolveI[OF \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close> \<open>L \<cdot>l \<delta> = - (L' \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>')\<close> ren_\<rho>\<rho>
-        vars_subst_cls_\<rho>\<rho>_disjoint mimgu_\<mu>\<mu>, of N \<beta> U "DDD \<cdot> \<mu>\<^sub>K"]
+        vars_subst_cls_\<rho>\<rho>_disjoint imgu_\<mu>\<mu>, of N \<beta> U "DDD \<cdot> \<mu>\<^sub>K"]
     by auto
 qed
 
@@ -1902,8 +1900,8 @@ proof -
         hence "is_unifier (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>) {atm_of L, atm_of L' \<cdot>a \<rho>}"
           by (simp add: is_unifier_alt)
         hence "\<mu> \<odot> (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>) = rename_subst_domain \<rho> \<sigma> \<odot> \<delta>"
-          using \<open>is_mimgu \<mu> {{atm_of L, atm_of L' \<cdot>a \<rho>}}\<close>
-          by (auto simp add: is_mimgu_def is_imgu_def is_unifiers_def)
+          using \<open>is_imgu \<mu> {{atm_of L, atm_of L' \<cdot>a \<rho>}}\<close>
+          by (auto simp: is_imgu_def is_unifiers_def)
 
         have "trail_false_cls (state_trail S1) ((D \<cdot> \<rho> + C) \<cdot> rename_subst_domain \<rho> \<sigma> \<cdot> \<delta>)"
         proof (rule trail_false_plusI)

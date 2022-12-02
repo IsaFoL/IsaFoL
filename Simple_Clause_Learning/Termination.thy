@@ -362,8 +362,7 @@ next
             unfolding \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
             by (auto simp: is_unifiers_def is_unifier_alt intro: subst_atm_of_eqI)
           hence "\<mu> \<odot> \<gamma> = \<gamma>"
-            using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>[unfolded is_mimgu_def,
-                THEN conjunct1, unfolded is_imgu_def, THEN conjunct2]
+            using \<open>is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>[unfolded is_imgu_def, THEN conjunct2]
             by simp
           thus ?thesis
             by (metis subst_lit_comp_subst)
@@ -429,8 +428,8 @@ next
           using \<open>L \<cdot>l \<gamma> = L' \<cdot>l \<gamma>\<close>[THEN subst_atm_of_eqI]
           by (simp add: is_unifier_alt)
         hence "\<mu> \<odot> \<gamma> = \<gamma>"
-          using \<open>is_mimgu \<mu> {{atm_of L, atm_of L'}}\<close>
-          by (simp add: is_mimgu_def is_imgu_def is_unifiers_def)
+          using \<open>is_imgu \<mu> {{atm_of L, atm_of L'}}\<close>
+          by (simp add: is_imgu_def is_unifiers_def)
 
         have "add_mset L D \<cdot> \<mu> \<cdot> \<gamma>' = add_mset L D \<cdot> \<mu> \<cdot> \<gamma>"
           unfolding factorizeI
@@ -505,8 +504,8 @@ next
         hence "is_unifier (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>) {atm_of L, atm_of L' \<cdot>a \<rho>}"
           by (simp add: is_unifier_alt)
         hence "\<mu> \<odot> (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>) = rename_subst_domain \<rho> \<sigma> \<odot> \<delta>"
-          using \<open>is_mimgu \<mu> {{atm_of L, atm_of L' \<cdot>a \<rho>}}\<close>
-          by (auto simp add: is_mimgu_def is_imgu_def is_unifiers_def)
+          using \<open>is_imgu \<mu> {{atm_of L, atm_of L' \<cdot>a \<rho>}}\<close>
+          by (auto simp: is_imgu_def is_unifiers_def)
         hence subst_\<mu>_\<sigma>_\<delta>: "\<And>C. C \<cdot> \<mu> \<cdot> rename_subst_domain \<rho> \<sigma> \<cdot> \<delta> = C \<cdot> rename_subst_domain \<rho> \<sigma> \<cdot> \<delta>"
           by (metis subst_cls_comp_subst)
 

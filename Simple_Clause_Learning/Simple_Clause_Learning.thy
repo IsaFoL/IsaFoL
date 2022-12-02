@@ -218,10 +218,6 @@ subsection \<open>First_Order_Terms Extra\<close>
 
 subsubsection \<open>First_Order_Terms Only\<close>
 
-lemma ex_unify_if_unifiers_not_empty:
-  "unifiers es \<noteq> {} \<Longrightarrow> set xs = es \<Longrightarrow> \<exists>ys. unify xs [] = Some ys"
-  using unify_complete by auto
-
 lemma atm_of_eq_uminus_if_lit_eq: "L = - K \<Longrightarrow> atm_of L = atm_of K"
   by (cases L; cases K) simp_all
 
@@ -764,33 +760,17 @@ lemma range_vars_eq_empty_if_is_ground:
 
 subsubsection \<open>Minimal, Idempotent Most General Unifier\<close>
 
-text \<open>It may be necessary to add @{term "subst_domain \<mu> \<subseteq> (\<Union>T \<in> TT. (\<Union>t \<in> T. vars_term t))"} at
-one point.\<close>
-
-definition is_mimgu where
-  "is_mimgu \<mu> TT \<equiv> is_imgu \<mu> TT \<and> range_vars \<mu> \<subseteq> (\<Union>T \<in> TT. (\<Union>t \<in> T. vars_term t))"
-
-lemma is_imgu_if_is_mimgu[intro]: "is_mimgu \<mu> TT \<Longrightarrow> is_imgu \<mu> TT"
-  by (simp add: is_mimgu_def)
-
-lemma is_mimgu_if_mgu_eq_Some:
-  assumes mgu_t_u: "Unification.mgu t u = Some \<mu>"
-  shows "is_mimgu \<mu> {{t, u}}"
-  unfolding is_mimgu_def
-proof (rule conjI)
-  have unifs_Times_t_u: "unifiers ({t, u} \<times> {t, u}) = unifiers {(t, u)}"
+lemma is_imgu_if_mgu_eq_Some:
+  assumes mgu: "Unification.mgu t u = Some \<mu>"
+  shows "is_imgu \<mu> {{t, u}}"
+proof -
+  have "unifiers ({t, u} \<times> {t, u}) = unifiers {(t, u)}"
     by (auto simp: unifiers_def)
-  have "Unifiers.is_imgu \<mu> ({t, u} \<times> {t, u})"
-    using mgu_t_u[THEN mgu_sound]
-    unfolding Unifiers.is_imgu_def
-    unfolding unifs_Times_t_u
-    by simp
-  then show "is_imgu \<mu> {{t, u}}"
+  hence  "Unifiers.is_imgu \<mu> ({t, u} \<times> {t, u})"
+    using mgu_sound[OF mgu]
+    by (simp add: Unifiers.is_imgu_def)
+  thus ?thesis
     by (simp add: is_imgu_singleton_iff_Unifiers_is_imgu_Times)
-next
-  show "range_vars \<mu> \<subseteq> (\<Union>T\<in>{{t, u}}. \<Union> (vars_term ` T))"
-    using mgu_t_u
-    by (simp add: mgu_range_vars)
 qed
 
 primrec pairs where
@@ -828,11 +808,10 @@ definition mgu_sets where
   "mgu_sets \<mu> AAA \<longleftrightarrow> (\<exists>ass. set (map set ass) = AAA \<and>
     map_option subst_of (unify (concat (map pairs ass)) []) = Some \<mu>)"
 
-lemma is_mimgu_if_mgu_sets:
+lemma is_imgu_if_mgu_sets:
   assumes mgu_AAA: "mgu_sets \<mu> AAA"
-  shows "is_mimgu \<mu> AAA"
-  unfolding is_mimgu_def
-proof (rule conjI)
+  shows "is_imgu \<mu> AAA"
+proof -
   from mgu_AAA obtain ass xs where
     AAA_def: "AAA = set (map set ass)" and
     unify: "unify (concat (map pairs ass)) [] = Some xs" and
@@ -886,35 +865,6 @@ proof (rule conjI)
   qed
   ultimately show "is_imgu \<mu> AAA"
     unfolding Unifiers.is_imgu_def is_imgu_def by simp
-next
-  from mgu_AAA obtain Ass xs where
-    AAA_def: "AAA = set (map set Ass)" and
-    unify: "unify (concat (map pairs Ass)) [] = Some xs" and
-    "subst_of xs = \<mu>"
-    unfolding mgu_sets_def by auto
-
-  then obtain ss where
-    compose_ss: "compose ss = \<mu>" and
-    UNIF_ss: "UNIF ss (mset (concat (map pairs Ass))) {#}"
-    by (auto dest: unify_Some_UNIF)
-
-  have "vars_mset (mset (concat (map pairs Ass))) = (\<Union>T\<in>AAA. \<Union> (vars_term ` T))"
-    using AAA_def
-  proof (induction Ass arbitrary: AAA)
-    case Nil
-    thus ?case by (simp add: vars_mset_def)
-  next
-    case (Cons As Ass)
-    from Cons.prems have AAA_def': "AAA = insert (set As) (set (map set Ass))"
-      by simp
-    moreover have "vars_mset (mset (pairs As)) = \<Union> (vars_term ` set As)"
-      by (simp add: vars_mset_mset_pairs)
-    ultimately show ?case
-      by (simp add: Cons.IH[OF refl])
-  qed
-  then show "range_vars \<mu> \<subseteq> (\<Union>T\<in>AAA. \<Union> (vars_term ` T))"
-    using UNIF_range_vars_subset[OF UNIF_ss, unfolded compose_ss]
-    by simp
 qed
 
 
@@ -1420,7 +1370,7 @@ inductive propagate :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<
     \<forall>K \<in># C \<cdot> \<gamma>. atm_of K \<prec>\<^sub>B \<beta> \<Longrightarrow>
     C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<Longrightarrow> C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<Longrightarrow>
     trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
-    is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
+    is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
     \<gamma>' = restrict_subst_domain (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma> \<Longrightarrow>
     propagate N \<beta> (\<Gamma>, U, None) (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>', U, None)"
 
@@ -1445,7 +1395,7 @@ inductive skip :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Right
 
 inductive factorize :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
-  factorizeI: "L \<cdot>l \<gamma> = L' \<cdot>l \<gamma> \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
+  factorizeI: "L \<cdot>l \<gamma> = L' \<cdot>l \<gamma> \<Longrightarrow> is_imgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
     \<gamma>' = restrict_subst_domain (vars_cls (add_mset L D \<cdot> \<mu>)) \<gamma> \<Longrightarrow>
     factorize N \<beta> (\<Gamma>, U, Some (add_mset L' (add_mset L D), \<gamma>)) (\<Gamma>, U, Some (add_mset L D \<cdot> \<mu>, \<gamma>'))"
 
@@ -1453,7 +1403,7 @@ inductive resolve :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Ri
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   resolveI: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta> \<Longrightarrow> (L \<cdot>l \<delta>) = -(K \<cdot>l \<sigma>) \<Longrightarrow>
     is_renaming \<rho> \<Longrightarrow> vars_cls (add_mset K D \<cdot> \<rho>) \<inter> vars_cls (add_mset L C) = {} \<Longrightarrow>
-    is_mimgu \<mu> {{atm_of L, atm_of K \<cdot>a \<rho>}} \<Longrightarrow>
+    is_imgu \<mu> {{atm_of L, atm_of K \<cdot>a \<rho>}} \<Longrightarrow>
     resolve N \<beta> (\<Gamma>, U, Some (add_mset K D, \<sigma>)) (\<Gamma>, U, Some ((D \<cdot> \<rho> + C) \<cdot> \<mu>,
       restrict_subst_domain (vars_cls ((D \<cdot> \<rho> + C) \<cdot> \<mu>)) (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>)))"
 
@@ -1590,8 +1540,8 @@ proof (cases N \<beta> S S' rule: factorize.cases)
   from \<open>L \<cdot>l \<gamma> = L' \<cdot>l \<gamma>\<close> have "is_unifier \<gamma> {atm_of L, atm_of L'}"
     by (auto intro!: is_unifier_alt[THEN iffD2] intro: subst_atm_of_eqI)
   hence "\<mu> \<odot> \<gamma> = \<gamma>"
-    using \<open>is_mimgu \<mu> {{atm_of L, atm_of L'}}\<close>
-    by (simp add: is_mimgu_def is_imgu_def is_unifiers_def)
+    using \<open>is_imgu \<mu> {{atm_of L, atm_of L'}}\<close>
+    by (simp add: is_imgu_def is_unifiers_def)
 
   have "L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<gamma>"
   proof -
@@ -2269,8 +2219,8 @@ proof (cases N \<beta> S S' rule: propagate.cases)
         union_single_eq_member)
 
   moreover have "\<forall>\<tau>. is_unifiers \<tau> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<longrightarrow> \<tau> = \<mu> \<odot> \<tau>"
-    using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>
-    by (simp add: is_mimgu_def is_imgu_def)
+    using \<open>is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>
+    by (simp add: is_imgu_def)
 
   moreover have "is_unifiers \<gamma> {atm_of ` set_mset (add_mset L C\<^sub>1)}"
     by (auto simp: is_unifiers_def is_unifier_alt \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
@@ -2366,8 +2316,8 @@ proof (cases N \<beta> S S' rule: propagate.cases)
           is_unifiers_def local.propagateI(8) mem_Collect_eq set_mset_add_mset_insert
           set_mset_filter singletonD subst_atm_of_eqI)
     hence "\<gamma> = \<mu> \<odot> \<gamma>"
-      using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>
-      by (simp add: is_mimgu_def is_imgu_def)
+      using \<open>is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>
+      by (simp add: is_imgu_def)
     thus ?thesis
       by (metis subst_lit_comp_subst)
   qed
@@ -2443,7 +2393,7 @@ inductive trail_propagated_or_decided for N \<beta> U where
     C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<Longrightarrow>
     trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow>
     \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
-    is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
+    is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
     \<gamma>' = restrict_subst_domain (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma> \<Longrightarrow>
     trail_propagated_or_decided N \<beta> U \<Gamma> \<Longrightarrow>
     trail_propagated_or_decided N \<beta> U (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>')" |
@@ -2697,8 +2647,8 @@ proof (cases N \<beta> S S' rule: propagate.cases)
         union_single_eq_member)
 
   moreover have "\<forall>\<tau>. is_unifiers \<tau> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<longrightarrow> \<tau> = \<mu> \<odot> \<tau>"
-    using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>
-    by (simp add: is_mimgu_def is_imgu_def)
+    using \<open>is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>
+    by (simp add: is_imgu_def)
 
   moreover have "is_unifiers \<gamma> {atm_of ` set_mset (add_mset L C\<^sub>1)}"
     by (auto simp: is_unifiers_def is_unifier_alt \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
@@ -2718,7 +2668,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     from propagateI have "is_unifiers \<gamma> {atm_of ` set_mset (add_mset L C\<^sub>1)}"
       by (auto simp: is_unifiers_def is_unifier_alt intro: subst_atm_of_eqI)
     with propagateI have "\<gamma> = \<mu> \<odot> \<gamma>"
-      by (simp add: is_mimgu_def is_imgu_def)
+      by (simp add: is_imgu_def)
     thus ?thesis
       by (metis subst_atm_comp_subst)
   qed
@@ -2783,71 +2733,6 @@ definition trail_resolved_lits_pol where
 lemma trail_resolved_lits_pol_initial_state[simp]: "trail_resolved_lits_pol initial_state"
   by (simp add: trail_resolved_lits_pol_def)
 
-lemma mgu_and_renaming_cancel:
-  fixes C C\<^sub>0 C\<^sub>1 :: "('f, 'v) Term.term clause" and L :: "('f, 'v) Term.term literal"
-  assumes
-    C_def: \<open>C = add_mset L C'\<close> and
-    C\<^sub>0_def: \<open>C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#}\<close> and
-    C\<^sub>1_def: \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close> and
-    mgu_\<mu>: \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close> and
-    ground_C_\<gamma>: \<open>is_ground_cls (C \<cdot> \<gamma>)\<close> and
-    \<gamma>'_def: \<open>\<gamma>' = restrict_subst_domain (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>\<close> and
-    \<gamma>\<^sub>\<rho>'_def: \<open>\<gamma>\<^sub>\<rho>' = rename_subst_domain \<rho> \<gamma>'\<close> and
-    ren_\<rho>: \<open>is_renaming \<rho>\<close>
-  shows "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<gamma> \<and> C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho>' = C\<^sub>0 \<cdot> \<gamma>"
-proof (rule conjI)
-  have C_def: "C = add_mset L (C\<^sub>0 + C\<^sub>1)"
-    using C_def C\<^sub>0_def C\<^sub>1_def by auto
-
-  have "is_unifier \<gamma> (atm_of ` set_mset (add_mset L C\<^sub>1))"
-    unfolding is_unifier_alt[OF finite_imageI[OF finite_set_mset]]
-    unfolding C\<^sub>1_def
-    by (auto intro: subst_atm_of_eqI)
-  hence "\<mu> \<odot> \<gamma> = \<gamma>"
-    using mgu_\<mu>
-    by (simp add: is_mimgu_def is_imgu_def is_unifiers_def)
-
-  have "vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) \<subseteq> vars_cls (add_mset L C\<^sub>0) \<union> range_vars \<mu>"
-    using vars_subst_cls_subset by fast
-  also have "\<dots> \<subseteq> vars_cls (add_mset L C\<^sub>0) \<union> vars_cls (add_mset L C\<^sub>1)"
-    using mgu_\<mu>[unfolded is_mimgu_def UN_vars_term_atm_of_cls, THEN conjunct2]
-    by auto
-  also have "\<dots> = vars_cls C"
-    by (auto simp: \<open>C = add_mset L (C\<^sub>0 + C\<^sub>1)\<close>)
-  also have "\<dots> \<subseteq> subst_domain \<gamma>"
-    using ground_C_\<gamma>
-    by (rule vars_cls_subset_subst_domain_if_grounding)
-  finally have "vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) \<subseteq> subst_domain \<gamma>'"
-    using \<gamma>'_def
-    by (simp add: subst_domain_restrict_subst_domain)
-
-  have "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<mu> \<cdot>l \<gamma>'"
-    unfolding \<gamma>\<^sub>\<rho>'_def
-    using ren_\<rho> \<open>vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) \<subseteq> subst_domain \<gamma>'\<close>
-    by (simp add: subst_lit_renaming_subst_adapted)
-  also have "\<dots> = L \<cdot>l \<mu> \<cdot>l \<gamma>"
-    unfolding \<gamma>'_def
-    by (rule subst_lit_restrict_subst_domain) simp
-  also have "\<dots> = L \<cdot>l \<gamma>"
-    using \<open>\<mu> \<odot> \<gamma> = \<gamma>\<close>
-    by (metis subst_lit_comp_subst)
-  finally show "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<gamma>"
-    by assumption
-
-  have "C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho>' = C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma>'"
-    unfolding \<gamma>\<^sub>\<rho>'_def
-    using ren_\<rho> \<open>vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) \<subseteq> subst_domain \<gamma>'\<close>
-    by (simp add: subst_renaming_subst_adapted)
-  also have "\<dots> = C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma>"
-    unfolding \<gamma>'_def
-    by (rule subst_cls_restrict_subst_domain) simp
-  also have "\<dots> = C\<^sub>0 \<cdot> \<gamma>"
-    using \<open>\<mu> \<odot> \<gamma> = \<gamma>\<close>
-    by (metis subst_cls_comp_subst)
-  finally show "C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho>' = C\<^sub>0 \<cdot> \<gamma>"
-    by assumption
-qed
-
 lemma propagate_preserves_trail_resolved_lits_pol:
   assumes step: "propagate N \<beta> S S'" and invar: "trail_resolved_lits_pol S"
   shows "trail_resolved_lits_pol S'"
@@ -2858,8 +2743,8 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     unfolding \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
     by (auto simp add: is_unifiers_def is_unifier_alt intro: subst_atm_of_eqI)
   hence "\<mu> \<odot> \<gamma> = \<gamma>"
-    using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>
-    by (simp add: is_mimgu_def is_imgu_def)
+    using \<open>is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>
+    by (simp add: is_imgu_def)
   hence "L \<cdot>l \<mu> \<cdot>l \<gamma> = L \<cdot>l \<gamma>" and "C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma> = C\<^sub>0 \<cdot> \<gamma>"
     by (simp_all del: subst_lit_comp_subst subst_cls_comp_subst
         add: subst_lit_comp_subst[symmetric] subst_cls_comp_subst[symmetric])
@@ -2956,8 +2841,8 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     unfolding \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
     by (auto simp add: is_unifiers_def is_unifier_alt intro: subst_atm_of_eqI)
   hence "\<mu> \<odot> \<gamma> = \<gamma>"
-    using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>
-    by (simp add: is_mimgu_def is_imgu_def)
+    using \<open>is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>
+    by (simp add: is_imgu_def)
   hence "L \<cdot>l \<mu> \<cdot>l \<gamma> = L \<cdot>l \<gamma>" and "C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma> = C\<^sub>0 \<cdot> \<gamma>"
     by (simp_all del: subst_lit_comp_subst subst_cls_comp_subst
         add: subst_lit_comp_subst[symmetric] subst_cls_comp_subst[symmetric])
@@ -3013,8 +2898,8 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     using \<open>L \<cdot>l \<gamma> = L' \<cdot>l \<gamma>\<close>[THEN subst_atm_of_eqI]
     by (simp add: is_unifier_alt)
   hence "\<mu> \<odot> \<gamma> = \<gamma>"
-    using \<open>is_mimgu \<mu> {{atm_of L, atm_of L'}}\<close>
-    by (simp add: is_mimgu_def is_imgu_def is_unifiers_def)
+    using \<open>is_imgu \<mu> {{atm_of L, atm_of L'}}\<close>
+    by (simp add: is_imgu_def is_unifiers_def)
 
   have "add_mset L D \<cdot> \<mu> \<cdot> \<gamma>' = add_mset L D \<cdot> \<mu> \<cdot> \<gamma>"
     unfolding \<open>\<gamma>' = restrict_subst_domain (vars_cls (add_mset L D \<cdot> \<mu>)) \<gamma>\<close>
@@ -3087,8 +2972,8 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   hence is_unifs: "is_unifiers (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>) {{atm_of L, atm_of K \<cdot>a \<rho>}}"
     by (simp add: is_unifiers_def is_unifier_alt)
   hence cancel_\<mu>: "\<mu> \<odot> rename_subst_domain \<rho> \<sigma> \<odot> \<delta> = rename_subst_domain \<rho> \<sigma> \<odot> \<delta>"
-    using \<open>is_mimgu \<mu> {{atm_of L, atm_of K \<cdot>a \<rho>}}\<close>
-    by (auto simp add: is_mimgu_def is_imgu_def)
+    using \<open>is_imgu \<mu> {{atm_of L, atm_of K \<cdot>a \<rho>}}\<close>
+    by (auto simp: is_imgu_def)
 
   have "(D \<cdot> \<rho> + C) \<cdot> \<mu> \<cdot> restrict_subst_domain (vars_cls ((D \<cdot> \<rho> + C) \<cdot> \<mu>))
     (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>) = (D \<cdot> \<rho> + C) \<cdot> \<mu> \<cdot> rename_subst_domain \<rho> \<sigma> \<cdot> \<delta>"
@@ -3486,7 +3371,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     C\<^sub>1_def: "C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}" and
     \<Gamma>_false_C\<^sub>0_\<gamma>: "trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>)" and
     undef_\<Gamma>_L_\<gamma>: "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)" and
-    is_mimgu_\<mu>: "is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}" and
+    imgu_\<mu>: "is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}" and
     \<gamma>'_def: "\<gamma>' = restrict_subst_domain (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>"
     by simp_all
 
@@ -3494,9 +3379,6 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U"
     unfolding sound_state_def S_def by auto
-
-  from is_mimgu_\<mu> have range_vars_\<mu>: "range_vars \<mu> \<subseteq> vars_lit L \<union> vars_cls C\<^sub>1"
-    by (simp add: is_mimgu_def vars_cls_def)
 
   have vars_C\<^sub>0: "vars_cls C\<^sub>0 \<subseteq> vars_cls C'"
     apply (simp add: C\<^sub>0_def)
@@ -3511,7 +3393,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   hence "is_unifier \<gamma> (atm_of ` (set_mset (add_mset L C\<^sub>1)))"
     by (auto simp add: is_unifier_alt C\<^sub>1_def intro: subst_atm_of_eqI)
   hence \<mu>_\<gamma>_simp: "\<mu> \<odot> \<gamma> = \<gamma>"
-    using is_mimgu_\<mu>[unfolded is_mimgu_def, THEN conjunct1, unfolded is_imgu_def, THEN conjunct2]
+    using imgu_\<mu>[unfolded is_imgu_def, THEN conjunct2]
     using is_unifiers_def by fastforce
 
   have "L \<cdot>l \<mu> \<cdot>l \<gamma> = L \<cdot>l \<gamma>"
@@ -3554,8 +3436,8 @@ proof (cases N \<beta> S S' rule: propagate.cases)
           by (auto simp: grounding_of_cls_def)
         show ?thesis
         proof (rule bexI)
-          from is_mimgu_\<mu> have "is_unifier \<mu> (atm_of ` set_mset (add_mset L C\<^sub>1))"
-            by (simp add: is_mimgu_def is_imgu_def is_unifiers_def)
+          from imgu_\<mu> have "is_unifier \<mu> (atm_of ` set_mset (add_mset L C\<^sub>1))"
+            by (simp add: is_imgu_def is_unifiers_def)
           hence "\<forall>A\<in>atm_of ` set_mset (add_mset L C\<^sub>1). \<forall>B\<in>atm_of ` set_mset (add_mset L C\<^sub>1).
             A \<cdot>a \<mu> = B \<cdot>a \<mu>"
             using is_unifier_alt
@@ -3688,9 +3570,8 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     unfolding sound_state_def by (simp_all add: add_mset_commute)
 
   from factorizeI have
-    imgu_\<mu>: "is_imgu \<mu> {{atm_of L, atm_of L'}}" and
-    range_vars_\<mu>: "range_vars \<mu> \<subseteq> vars_lit L \<union> vars_lit L'"
-    by (simp_all add: is_mimgu_def)
+    imgu_\<mu>: "is_imgu \<mu> {{atm_of L, atm_of L'}}"
+    by simp
   from factorizeI have L_eq_L'_\<gamma>: "L \<cdot>l \<gamma> = L' \<cdot>l \<gamma>" by simp
   from factorizeI have \<gamma>'_def: "\<gamma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<gamma>" by simp
 
@@ -3814,7 +3695,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
 
   from resolveI have
     L_eq_comp_L': "L \<cdot>l \<delta> = - (K \<cdot>l \<sigma>)" and
-    is_mimgu_\<mu>: "is_mimgu \<mu> {{atm_of L, atm_of K \<cdot>a \<rho>}}" and
+    imgu_\<mu>: "is_imgu \<mu> {{atm_of L, atm_of K \<cdot>a \<rho>}}" and
     \<Gamma>_def: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta>" and
     ren_\<rho>: "is_renaming \<rho>"
     by simp_all
@@ -3861,8 +3742,8 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   hence is_unifs: "is_unifiers (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>) {{atm_of L, atm_of K \<cdot>a \<rho>}}"
     by (simp add: is_unifiers_def is_unifier_alt)
   hence cancel_\<mu>: "\<mu> \<odot> rename_subst_domain \<rho> \<sigma> \<odot> \<delta> = rename_subst_domain \<rho> \<sigma> \<odot> \<delta>"
-    using is_mimgu_\<mu>
-    by (auto simp add: is_mimgu_def is_imgu_def)
+    using imgu_\<mu>
+    by (auto simp: is_imgu_def)
 
   have "trail_false_cls \<Gamma> ((D \<cdot> \<rho> + C) \<cdot> \<mu> \<cdot>
     restrict_subst_domain (vars_cls ((D \<cdot> \<rho> + C) \<cdot> \<mu>)) (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>))"
@@ -3945,7 +3826,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
       proof (elim disjE)
         assume "I \<TTurnstile>l K \<cdot>l \<rho> \<cdot>l \<mu> \<cdot>l \<gamma>" and "I \<TTurnstile>l L \<cdot>l \<mu> \<cdot>l \<gamma>"
         moreover have "atm_of L \<cdot>a \<mu> = atm_of K \<cdot>a \<rho> \<cdot>a \<mu>"
-          using is_mimgu_\<mu>[unfolded is_mimgu_def is_imgu_def]
+          using imgu_\<mu>[unfolded is_imgu_def]
           by (meson finite.emptyI finite.insertI insertCI is_unifier_alt is_unifiers_def)
         ultimately have False
           using L_eq_comp_L'

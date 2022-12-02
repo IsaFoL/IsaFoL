@@ -14,6 +14,11 @@ translations
   "\<forall>x|\<in>|A. P" \<rightleftharpoons> "CONST fBall A (\<lambda>x. P)"
   "\<exists>x|\<in>|A. P" \<rightleftharpoons> "CONST fBex A (\<lambda>x. P)"
 
+print_translation \<open>
+ [Syntax_Trans.preserve_binder_abs2_tr' \<^const_syntax>\<open>fBall\<close> \<^syntax_const>\<open>_fBall\<close>,
+  Syntax_Trans.preserve_binder_abs2_tr' \<^const_syntax>\<open>fBex\<close> \<^syntax_const>\<open>_fBex\<close>]
+\<close> \<comment> \<open>to avoid eta-contraction of body\<close>
+
 global_interpretation comp_finsert_commute: comp_fun_commute finsert
 proof (unfold_locales)
   show "\<And>y x. finsert y \<circ> finsert x = finsert x \<circ> finsert y"
