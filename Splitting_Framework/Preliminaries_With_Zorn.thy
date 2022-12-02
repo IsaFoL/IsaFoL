@@ -2830,13 +2830,94 @@ next
 qed
 
 
+lemma [simp]: \<open>F_of ` to_AF ` N = N\<close>
+  unfolding to_AF_def by force
+
+lemma [simp]: \<open>to_AF ` M proj\<^sub>J J = M\<close>
+  unfolding to_AF_def enabled_projection_def enabled_def by force
+
+lemma [simp]: \<open>enabled_set (to_AF ` N) J\<close>
+  unfolding enabled_set_def enabled_def to_AF_def by simp
+
+lemma [simp]: \<open>{to_V C |C. C \<in> Pos ` N \<and> \<not> is_Pos C} = {}\<close>
+  by auto
+    
+lemma [simp]: \<open>{to_V C |C. C \<in> U \<union> Pos ` M \<and> \<not> is_Pos C} = {to_V C |C. C \<in> U \<and> \<not> is_Pos C}\<close>
+  by auto
+
+lemma [simp]: \<open>{to_V C |C. C \<in> Pos ` F_of ` N \<and> is_Pos C} = F_of ` N\<close>
+  by force 
+
+lemma [simp]: \<open>{C. F_of C \<in> M} proj\<^sub>J J = M\<close>
+proof (intro equalityI subsetI)
+  fix x
+  assume x_in: \<open>x \<in> {C. F_of C \<in> M} proj\<^sub>J J\<close>
+  define C where \<open>C = to_AF x\<close>
+  then show \<open>x \<in> M\<close> 
+    using x_in unfolding enabled_projection_def enabled_def to_AF_def by auto 
+next
+  fix x
+  assume x_in: \<open>x \<in> M\<close>
+  define C where \<open>C = to_AF x\<close>
+  then show \<open>x \<in>  {C. F_of C \<in> M} proj\<^sub>J J\<close> 
+    using x_in unfolding enabled_projection_def enabled_def to_AF_def
+    by (metis (mono_tags, lifting) AF.sel(1) AF.sel(2) bot_fset.rep_eq empty_subsetI mem_Collect_eq)
+qed 
+
+lemma [simp]: \<open>F_of ` {C. F_of C \<in> M} = M\<close>
+proof (intro equalityI subsetI)
+  fix x
+  assume x_in: \<open>x \<in> F_of ` {C. F_of C \<in> M}\<close>
+  define C where \<open>C = to_AF x\<close>
+  then show \<open>x \<in> M\<close>
+    using x_in by blast 
+next
+  fix x
+  assume x_in: \<open>x \<in> M\<close>
+  define C where \<open>C = to_AF x\<close>
+  then show \<open>x \<in> F_of ` {C. F_of C \<in> M}\<close>
+    using x_in by (smt (z3) AF.sel(1) imageI mem_Collect_eq) 
+qed
+  
+lemma set_on_union_triple_split: \<open>{f C |C. C \<in> M \<union> N \<union> g J \<and> l C J} = {f C |C. C \<in> M \<and> l C J} \<union>
+  {f C |C. C \<in> N \<and> l C J} \<union> {f C |C. C \<in> g J \<and> l C J}\<close>
+  by blast 
+
+lemma [simp]: \<open>{F_of C |C. C \<in> {C. F_of C \<in> Q' \<and> \<not> enabled C J} \<and> enabled C J} = {}\<close>
+proof (intro equalityI subsetI)
+  fix x
+  assume x_in: \<open>x \<in> {F_of C |C. C \<in> {C. F_of C \<in> Q' \<and> \<not> enabled C J} \<and> enabled C J}\<close>
+  then obtain C where \<open>F_of C = x\<close> and c_in: \<open>C \<in> {C. F_of C \<in> Q' \<and> \<not> enabled C J}\<close> and
+    enab_c: \<open>enabled C J\<close>
+    by blast
+  then have \<open>\<not> enabled C J\<close> using c_in by blast 
+  then have \<open>False\<close> using enab_c by auto 
+  then show \<open>x \<in> {}\<close> by auto 
+qed auto
+
+lemma f_of_simp_enabled [simp]: \<open>{F_of C |C. F_of C \<in> M \<and> enabled C J} = M\<close>
+  unfolding enabled_def
+  by (smt (verit, best) AF.sel(1) AF.sel(2) bot_fset.rep_eq empty_subsetI mem_Collect_eq subsetI subset_antisym)
+
+lemma [simp]: \<open>F_of ` {C. F_of C \<in> M \<and> enabled C J} = M\<close>
+proof -
+  have \<open>F_of ` {C. F_of C \<in> M \<and> enabled C J} = {F_of C |C. F_of C \<in> M \<and> enabled C J}\<close>
+    by blast 
+  then show ?thesis by simp
+qed
+
+  (* Splitting report Lemma 6, 1/2 *)
+lemma \<open>(to_AF ` M \<Turnstile>\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile> N)\<close>
+  unfolding AF_entails_def by simp
 
 
 
+interpretation ext_cons_rel_std: consequence_relation "Pos (to_AF bot)" AF_cons_rel.entails_neg
+  using AF_cons_rel.ext_cons_rel .
 
-
-
-
+interpretation sound_cons_rel: consequence_relation "Pos bot" sound_cons.entails_neg
+  using sound_cons.ext_cons_rel .
+    
 
 
 
@@ -2959,88 +3040,6 @@ end
 
 
   (*
-interpretation ext_cons_rel_std: consequence_relation "Pos (to_AF bot)" AF_cons_rel.entails_neg
-  using AF_cons_rel.ext_cons_rel .
-
-interpretation sound_cons_rel: consequence_relation "Pos bot" sound_cons.entails_neg
-  using sound_cons.ext_cons_rel .
-    
-lemma [simp]: \<open>F_of ` to_AF ` N = N\<close>
-  unfolding to_AF_def by force
-
-lemma [simp]: \<open>to_AF ` M proj\<^sub>J J = M\<close>
-  unfolding to_AF_def enabled_projection_def enabled_def by force
-
-lemma [simp]: \<open>enabled_set (to_AF ` N) J\<close>
-  unfolding enabled_set_def enabled_def to_AF_def by simp
-
-lemma [simp]: \<open>{to_V C |C. C \<in> Pos ` N \<and> \<not> is_Pos C} = {}\<close>
-  by auto
-    
-lemma [simp]: \<open>{to_V C |C. C \<in> U \<union> Pos ` M \<and> \<not> is_Pos C} = {to_V C |C. C \<in> U \<and> \<not> is_Pos C}\<close>
-  by auto
-
-lemma [simp]: \<open>{to_V C |C. C \<in> Pos ` F_of ` N \<and> is_Pos C} = F_of ` N\<close>
-  by force 
-
-lemma [simp]: \<open>{C. F_of C \<in> M} proj\<^sub>J J = M\<close>
-proof (intro equalityI subsetI)
-  fix x
-  assume x_in: \<open>x \<in> {C. F_of C \<in> M} proj\<^sub>J J\<close>
-  define C where \<open>C = to_AF x\<close>
-  then show \<open>x \<in> M\<close> 
-    using x_in unfolding enabled_projection_def enabled_def to_AF_def by auto 
-next
-  fix x
-  assume x_in: \<open>x \<in> M\<close>
-  define C where \<open>C = to_AF x\<close>
-  then show \<open>x \<in>  {C. F_of C \<in> M} proj\<^sub>J J\<close> 
-    using x_in unfolding enabled_projection_def enabled_def to_AF_def
-    by (metis (mono_tags, lifting) AF.sel(1) AF.sel(2) mem_Collect_eq subsetI)
-qed 
-
-lemma [simp]: \<open>F_of ` {C. F_of C \<in> M} = M\<close>
-proof (intro equalityI subsetI)
-  fix x
-  assume x_in: \<open>x \<in> F_of ` {C. F_of C \<in> M}\<close>
-  define C where \<open>C = to_AF x\<close>
-  then show \<open>x \<in> M\<close>
-    using x_in by blast 
-next
-  fix x
-  assume x_in: \<open>x \<in> M\<close>
-  define C where \<open>C = to_AF x\<close>
-  then show \<open>x \<in> F_of ` {C. F_of C \<in> M}\<close>
-    using x_in by (smt (z3) AF.sel(1) imageI mem_Collect_eq) 
-qed
-  
-lemma set_on_union_triple_split: \<open>{f C |C. C \<in> M \<union> N \<union> g J \<and> l C J} = {f C |C. C \<in> M \<and> l C J} \<union>
-  {f C |C. C \<in> N \<and> l C J} \<union> {f C |C. C \<in> g J \<and> l C J}\<close>
-  by blast 
-
-lemma [simp]: \<open>{F_of C |C. C \<in> {C. F_of C \<in> Q' \<and> \<not> enabled C J} \<and> enabled C J} = {}\<close>
-proof (intro equalityI subsetI)
-  fix x
-  assume x_in: \<open>x \<in> {F_of C |C. C \<in> {C. F_of C \<in> Q' \<and> \<not> enabled C J} \<and> enabled C J}\<close>
-  then obtain C where \<open>F_of C = x\<close> and c_in: \<open>C \<in> {C. F_of C \<in> Q' \<and> \<not> enabled C J}\<close> and
-    enab_c: \<open>enabled C J\<close>
-    by blast
-  then have \<open>\<not> enabled C J\<close> using c_in by blast 
-  then have \<open>False\<close> using enab_c by auto 
-  then show \<open>x \<in> {}\<close> by auto 
-qed auto
-
-lemma f_of_simp_enabled [simp]: \<open>{F_of C |C. F_of C \<in> M \<and> enabled C J} = M\<close>
-  unfolding enabled_def
-  by (smt (z3) AF.sel(1) AF.sel(2) Collect_mono_iff conj_subset_def mem_Collect_eq order_refl
-    subset_antisym subset_eq)
-
-lemma [simp]: \<open>F_of ` {C. F_of C \<in> M \<and> enabled C J} = M\<close>
-proof -
-  have \<open>F_of ` {C. F_of C \<in> M \<and> enabled C J} = {F_of C |C. F_of C \<in> M \<and> enabled C J}\<close>
-    by blast 
-  then show ?thesis by simp
-qed
 
 
 (* Splitting report Lemma 4, 2/2 *)
@@ -3265,6 +3264,9 @@ proof -
   qed 
 qed
   
+
+
+
   (* Splitting report Lemma 5, 1/2 *)
 lemma \<open>(to_AF ` M \<Turnstile>\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile> N)\<close>
   unfolding AF_entails_def by simp
