@@ -1236,10 +1236,8 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     using S\<^sub>0_def by force
   with tr_false_\<Gamma>_L_\<mu> have "- (L \<cdot>l \<mu> \<cdot>l \<gamma>') \<in># D \<cdot> \<gamma>\<^sub>D"
     unfolding propagate_lit_def by (metis subtrail_falseI)
-  then obtain D' L' where D_def: "D = add_mset L' D'" and "- (L \<cdot>l \<mu> \<cdot>l \<gamma>') = L' \<cdot>l \<gamma>\<^sub>D"
-    by (meson Melem_subst_cls multi_member_split)
-  hence 1: "L \<cdot>l \<mu> \<cdot>l \<gamma>' = - (L' \<cdot>l \<gamma>\<^sub>D)"
-    by (metis uminus_of_uminus_id)
+  then obtain D' L' where D_def: "D = add_mset L' D'" and 1: "L' \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<mu> \<cdot>l \<gamma>')"
+    by (metis Melem_subst_cls mset_add)
 
   define \<rho> where
     "\<rho> = renaming_wrt {add_mset L C\<^sub>0 \<cdot> \<mu>}"
@@ -1249,44 +1247,45 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
   hence "\<forall>x. is_Var (\<rho> x)" and "inj \<rho>"
     by (simp_all add: is_renaming_iff)
 
-  have vars_subst_cls_\<rho>_disjoint: "\<And>C. vars_cls (C \<cdot> \<rho>) \<inter> vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) = {}"
+  have disjoint_vars: "\<And>C. vars_cls (C \<cdot> \<rho>) \<inter> vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) = {}"
     by (simp add: \<rho>_def vars_cls_subst_renaming_disj)
 
-  have "\<exists>\<mu>'. Unification.mgu (atm_of L \<cdot>a \<mu>) (atm_of L' \<cdot>a \<rho>) = Some \<mu>'"
+  have "\<exists>\<mu>'. Unification.mgu (atm_of L' \<cdot>a \<rho>) (atm_of L \<cdot>a \<mu>) = Some \<mu>'"
   proof (rule ex_mgu_if_subst_eq_subst_and_disj_vars)
     have "vars_lit L' \<subseteq> subst_domain \<gamma>\<^sub>D"
       using gr_D_\<gamma>\<^sub>D[unfolded D_def]
       by (simp add: vars_lit_subset_subst_domain_if_grounding is_ground_cls_imp_is_ground_lit)
     hence "atm_of L' \<cdot>a \<rho> \<cdot>a rename_subst_domain \<rho> \<gamma>\<^sub>D = atm_of L' \<cdot>a \<gamma>\<^sub>D"
       by (rule renaming_cancels_rename_subst_domain[OF \<open>\<forall>x. is_Var (\<rho> x)\<close> \<open>inj \<rho>\<close>])
-    then show "atm_of L \<cdot>a \<mu> \<cdot>a \<gamma>' = atm_of L' \<cdot>a \<rho> \<cdot>a rename_subst_domain \<rho> \<gamma>\<^sub>D"
+    then show "atm_of L' \<cdot>a \<rho> \<cdot>a rename_subst_domain \<rho> \<gamma>\<^sub>D = atm_of L \<cdot>a \<mu> \<cdot>a \<gamma>'"
       using 1 by (metis atm_of_subst_lit atm_of_uminus)
   next
-    show "vars_term (atm_of L \<cdot>a \<mu>) \<inter> vars_term (atm_of L' \<cdot>a \<rho>) = {}"
-      using vars_subst_cls_\<rho>_disjoint[of "{#L'#}"] by auto
+    show "vars_term (atm_of L' \<cdot>a \<rho>) \<inter> vars_term (atm_of L \<cdot>a \<mu>) = {}"
+      using disjoint_vars[of "{#L'#}"] by auto
   qed
-  then obtain \<mu>' where imgu_\<mu>': "is_imgu \<mu>' {{atm_of (L \<cdot>l \<mu>), atm_of L' \<cdot>a \<rho>}}"
+  then obtain \<mu>' where imgu_\<mu>': "is_imgu \<mu>' {{atm_of L' \<cdot>a \<rho>, atm_of (L \<cdot>l \<mu>)}}"
     using is_imgu_if_mgu_eq_Some by auto
 
   let ?\<Gamma>prop = "trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>'"
-  let ?\<gamma>reso = "restrict_subst_domain (vars_cls ((D' \<cdot> \<rho> + C\<^sub>0 \<cdot> \<mu>) \<cdot> \<mu>')) (rename_subst_domain \<rho> \<gamma>\<^sub>D \<odot> \<gamma>')"
+  let ?\<gamma>reso = "restrict_subst_domain (vars_cls ((D' \<cdot> \<rho> + C\<^sub>0 \<cdot> \<mu>) \<cdot> \<mu>'))
+    (rename_subst_domain \<rho> \<gamma>\<^sub>D \<odot> \<gamma>')"
 
   have "resolve N \<beta>
-   (?\<Gamma>prop, U, Some (add_mset L' D', \<gamma>\<^sub>D))
-   (?\<Gamma>prop, U, Some ((D' \<cdot> \<rho> + C\<^sub>0 \<cdot> \<mu>) \<cdot> \<mu>', ?\<gamma>reso))"
+    (?\<Gamma>prop, U, Some (add_mset L' D', \<gamma>\<^sub>D))
+    (?\<Gamma>prop, U, Some ((D' \<cdot> \<rho> + C\<^sub>0 \<cdot> \<mu> \<cdot> Var) \<cdot> \<mu>', ?\<gamma>reso))"
   proof (rule resolveI[OF refl])
-    show "L \<cdot>l \<mu> \<cdot>l \<gamma>' = - (L' \<cdot>l \<gamma>\<^sub>D)"
+    show "L' \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<mu> \<cdot>l \<gamma>')"
       by (rule 1)
   next
     show "is_renaming \<rho>"
       by (metis \<rho>_def finite.emptyI finite.insertI is_renaming_renaming_wrt)
   next
-    show "vars_cls (add_mset L' D' \<cdot> \<rho>) \<inter> vars_cls (add_mset (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>)) = {}"
-      using vars_subst_cls_\<rho>_disjoint[of "add_mset L' D'"] by simp
+    show "vars_cls (add_mset L' D' \<cdot> \<rho>) \<inter> vars_cls (add_mset (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<cdot> Var) = {}"
+      using disjoint_vars[of "add_mset L' D'"] by simp
   next
-    show "is_imgu \<mu>' {{atm_of (L \<cdot>l \<mu>), atm_of L' \<cdot>a \<rho>}}"
+    show "is_imgu \<mu>' {{atm_of L' \<cdot>a \<rho>, atm_of (L \<cdot>l \<mu>) \<cdot>a Var}}"
       using imgu_\<mu>' by simp
-  qed
+  qed simp_all
   thus ?thesis
     unfolding S\<^sub>2_def D_def by metis
 qed
@@ -1297,105 +1296,99 @@ lemma factorize_preserves_resolvability:
   shows "\<exists>S\<^sub>4. resolve N \<beta> S\<^sub>3 S\<^sub>4"
   using reso
 proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
-  case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<rho> D \<mu> U)
+  case (resolveI \<Gamma> \<Gamma>' K D \<gamma>\<^sub>D L \<gamma>\<^sub>C \<rho>\<^sub>C \<rho>\<^sub>D C \<mu> \<gamma> U)
 
-  from fact obtain K K' \<mu>\<^sub>K \<sigma>' DD where
-    S\<^sub>1_def: "S\<^sub>1 = (\<Gamma>, U, Some (add_mset K' (add_mset K DD), \<sigma>))" and
-    S\<^sub>3_def: "S\<^sub>3 = (\<Gamma>, U, Some (add_mset K DD \<cdot> \<mu>\<^sub>K, \<sigma>'))" and
-    "K \<cdot>l \<sigma> = K' \<cdot>l \<sigma>" and
-    imgu_\<mu>\<^sub>K: "is_imgu \<mu>\<^sub>K {{atm_of K, atm_of K'}}" and
-    \<sigma>'_def: "\<sigma>' = restrict_subst_domain (vars_cls (add_mset K DD \<cdot> \<mu>\<^sub>K)) \<sigma>"
-    by (auto simp: \<open>S\<^sub>1 = (\<Gamma>, U, Some (add_mset L' D, \<sigma>))\<close> elim: factorize.cases)
+  from fact[unfolded resolveI(1,2)] obtain LL' LL CC \<mu>\<^sub>L \<gamma>\<^sub>C' where
+    S\<^sub>1_def: "S\<^sub>1 = (\<Gamma>, U, Some (add_mset LL' (add_mset LL CC), \<gamma>\<^sub>C))" and
+    S\<^sub>3_def: "S\<^sub>3 = (\<Gamma>, U, Some (add_mset LL CC \<cdot> \<mu>\<^sub>L, \<gamma>\<^sub>C'))" and
+    "LL \<cdot>l \<gamma>\<^sub>C = LL' \<cdot>l \<gamma>\<^sub>C" and
+    imgu_\<mu>\<^sub>L: "is_imgu \<mu>\<^sub>L {{atm_of LL, atm_of LL'}}" and
+    \<gamma>\<^sub>C'_def: "\<gamma>\<^sub>C' = restrict_subst_domain (vars_cls (add_mset LL CC \<cdot> \<mu>\<^sub>L)) \<gamma>\<^sub>C"
+    by (auto simp: \<open>S\<^sub>1 = (\<Gamma>, U, Some (add_mset L C, \<gamma>\<^sub>C))\<close> elim: factorize.cases)
 
   from invar have
-    dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (add_mset L' D)" and
-    ground_conf_\<sigma>: "is_ground_cls (add_mset L' D \<cdot> \<sigma>)"
+    dom_\<gamma>\<^sub>C: "subst_domain \<gamma>\<^sub>C \<subseteq> vars_cls (add_mset L C)" and
+    ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)"
     unfolding resolveI(1,2)
     by (simp_all add: minimal_ground_closures_def)
 
-  have "add_mset L' D = add_mset K' (add_mset K DD)"
+  have "add_mset L C = add_mset LL' (add_mset LL CC)"
     using resolveI(1) S\<^sub>1_def by simp
 
-  from imgu_\<mu>\<^sub>K have "\<sigma> = \<mu>\<^sub>K \<odot> \<sigma>"
-    using \<open>K \<cdot>l \<sigma> = K' \<cdot>l \<sigma>\<close>
+  from imgu_\<mu>\<^sub>L have "\<mu>\<^sub>L \<odot> \<gamma>\<^sub>C = \<gamma>\<^sub>C"
+    using \<open>LL \<cdot>l \<gamma>\<^sub>C = LL' \<cdot>l \<gamma>\<^sub>C\<close>
     by (auto simp: is_imgu_def is_unifiers_def is_unifier_alt intro!: subst_atm_of_eqI)
 
-  have L_\<mu>\<^sub>K_\<sigma>'_simp: "L \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>' = L \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>" if L_in: "L \<in># add_mset K DD" for L
-    unfolding \<sigma>'_def
-    using L_in
-    by (metis insert_DiffM subst_lit_restrict_subst_domain sup_ge1 vars_cls_add_mset
-        vars_lit_subst_subset_vars_cls_substI)
-
-  have "L' \<cdot>l \<mu>\<^sub>K \<in># add_mset K DD \<cdot> \<mu>\<^sub>K"
-  proof (cases "L' = K \<or> L' = K'")
+  have "L \<cdot>l \<mu>\<^sub>L \<in># add_mset LL CC \<cdot> \<mu>\<^sub>L"
+  proof (cases "L = LL \<or> L = LL'")
     case True
-    moreover have "K \<cdot>l \<mu>\<^sub>K = K' \<cdot>l \<mu>\<^sub>K"
-      using imgu_\<mu>\<^sub>K[unfolded is_imgu_def, THEN conjunct1, unfolded is_unifiers_def, simplified]
-      by (metis (no_types, opaque_lifting) \<open>K \<cdot>l \<sigma> = K' \<cdot>l \<sigma>\<close> atm_of_subst_lit finite.emptyI
-          finite.insertI insertCI is_unifier_subst_atm_eqI literal.expand subst_lit_is_neg)
-    ultimately have "L' \<cdot>l \<mu>\<^sub>K = K \<cdot>l \<mu>\<^sub>K"
+    moreover have "LL \<cdot>l \<mu>\<^sub>L = LL' \<cdot>l \<mu>\<^sub>L"
+      using imgu_\<mu>\<^sub>L[unfolded is_imgu_def, THEN conjunct1, unfolded is_unifiers_def, simplified]
+      using \<open>LL \<cdot>l \<gamma>\<^sub>C = LL' \<cdot>l \<gamma>\<^sub>C\<close>
+      by (metis (no_types, opaque_lifting) atm_of_subst_lit finite.emptyI finite.insertI insertCI
+          is_unifier_alt literal.expand subst_lit_is_neg)
+    ultimately have "L \<cdot>l \<mu>\<^sub>L = LL \<cdot>l \<mu>\<^sub>L"
       by presburger
     thus ?thesis
       by simp
   next
     case False
-    hence "L' \<in># DD"
-      by (metis \<open>add_mset L' D = add_mset K' (add_mset K DD)\<close> insert_iff set_mset_add_mset_insert)
+    hence "L \<in># CC"
+      using \<open>add_mset L C = add_mset LL' (add_mset LL CC)\<close>
+      by (metis insert_iff set_mset_add_mset_insert)
     thus ?thesis
       by auto
   qed
-  then obtain DDD where "add_mset K DD \<cdot> \<mu>\<^sub>K = add_mset L' DDD \<cdot> \<mu>\<^sub>K"
+  then obtain CCC where "add_mset LL CC \<cdot> \<mu>\<^sub>L = add_mset L CCC \<cdot> \<mu>\<^sub>L"
     by (smt (verit, best) Melem_subst_cls mset_add subst_cls_add_mset)
 
   define \<rho>\<rho> where
-    "\<rho>\<rho> = renaming_wrt {add_mset L C}"
+    "\<rho>\<rho> = renaming_wrt {add_mset K D}"
 
   have ren_\<rho>\<rho>: "is_renaming \<rho>\<rho>"
     by (metis \<rho>\<rho>_def finite.emptyI finite.insertI is_renaming_renaming_wrt)
 
-  have vars_subst_cls_\<rho>\<rho>_disjoint: "\<And>D. vars_cls (D \<cdot> \<rho>\<rho>) \<inter> vars_cls (add_mset L C) = {}"
+  have disjoint_vars: "\<And>C. vars_cls (C \<cdot> \<rho>\<rho>) \<inter> vars_cls (add_mset K D) = {}"
     by (simp add: \<rho>\<rho>_def vars_cls_subst_renaming_disj)
 
-  have "L \<cdot>l \<delta> = - (L' \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>')"
+  have "L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C' = - (K \<cdot>l \<gamma>\<^sub>D)"
   proof -
-    have "L' \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>' = L' \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>"
-      using L_\<mu>\<^sub>K_\<sigma>'_simp
-      by (metis Melem_subst_cls \<open>L' \<cdot>l \<mu>\<^sub>K \<in># add_mset K DD \<cdot> \<mu>\<^sub>K\<close>)
-    also have "... = L' \<cdot>l \<sigma>"
-      using \<open>\<sigma> = \<mu>\<^sub>K \<odot> \<sigma>\<close>
+    have "vars_lit (L \<cdot>l \<mu>\<^sub>L) \<subseteq> vars_cls (add_mset LL CC \<cdot> \<mu>\<^sub>L)"
+      unfolding \<open>add_mset LL CC \<cdot> \<mu>\<^sub>L = add_mset L CCC \<cdot> \<mu>\<^sub>L\<close>
+      by simp
+    hence "L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C' = L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C"
+      by (simp add: \<gamma>\<^sub>C'_def subst_lit_restrict_subst_domain)
+    also have "... = L \<cdot>l \<gamma>\<^sub>C"
+      using \<open>\<mu>\<^sub>L \<odot> \<gamma>\<^sub>C = \<gamma>\<^sub>C\<close>
       by (metis subst_lit_comp_subst)
     finally show ?thesis
       using resolveI by simp
   qed
 
-  obtain \<mu>\<mu> where imgu_\<mu>\<mu>: "is_imgu \<mu>\<mu> {{atm_of L, atm_of (L' \<cdot>l \<mu>\<^sub>K) \<cdot>a \<rho>\<rho>}}"
-  proof -
-    assume "\<And>\<mu>\<mu>. is_imgu \<mu>\<mu> {{atm_of L, atm_of (L' \<cdot>l \<mu>\<^sub>K) \<cdot>a \<rho>\<rho>}} \<Longrightarrow> thesis"
-    moreover have "\<exists>\<mu>. Unification.mgu (atm_of L) (atm_of L' \<cdot>a \<mu>\<^sub>K \<cdot>a \<rho>\<rho>) = Some \<mu>"
-    proof (rule ex_mgu_if_subst_eq_subst_and_disj_vars)
-      have "is_ground_atm (atm_of L' \<cdot>a \<mu>\<^sub>K \<cdot>a \<sigma>')"
-        using \<open>L \<cdot>l \<delta> = - (L' \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>')\<close> \<open>L \<cdot>l \<delta> = - (L' \<cdot>l \<sigma>)\<close>
-        using ground_conf_\<sigma> is_ground_lit_def local.resolveI(4) by force
-      hence "vars_term (atm_of L' \<cdot>a \<mu>\<^sub>K) \<subseteq> subst_domain \<sigma>'"
-        by (rule vars_atm_subset_subst_domain_if_grounding)
-      hence "atm_of L' \<cdot>a \<mu>\<^sub>K \<cdot>a \<rho>\<rho> \<cdot>a rename_subst_domain \<rho>\<rho> \<sigma>' = atm_of L' \<cdot>a \<mu>\<^sub>K \<cdot>a \<sigma>'"
-        using ren_\<rho>\<rho>
-        by (simp add: renaming_cancels_rename_subst_domain is_renaming_iff)
-      thus "atm_of L \<cdot>a \<delta> = atm_of L' \<cdot>a \<mu>\<^sub>K \<cdot>a \<rho>\<rho> \<cdot>a rename_subst_domain \<rho>\<rho> \<sigma>'"
-        using \<open>L \<cdot>l \<delta> = - (L' \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>')\<close>
-        by (metis atm_of_subst_lit atm_of_uminus)
-    next
-      show "vars_lit L \<inter> vars_term (atm_of L' \<cdot>a \<mu>\<^sub>K \<cdot>a \<rho>\<rho>) = {}"
-        using vars_subst_cls_\<rho>\<rho>_disjoint[of "{#L' \<cdot>l \<mu>\<^sub>K#}"] by auto
-    qed
-    ultimately show ?thesis
-      using is_imgu_if_mgu_eq_Some by auto
+  have "\<exists>\<mu>. Unification.mgu (atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<rho>\<rho>) (atm_of K) = Some \<mu>"
+  proof (rule ex_mgu_if_subst_eq_subst_and_disj_vars)
+    show "vars_term (atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<rho>\<rho>) \<inter> vars_lit K = {}"
+      using disjoint_vars[of "{#L \<cdot>l \<mu>\<^sub>L#}"] by auto
+  next
+    have "vars_term (atm_of L \<cdot>a \<mu>\<^sub>L) \<subseteq> subst_domain \<gamma>\<^sub>C'"
+      by (metis \<open>L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C' = - (K \<cdot>l \<gamma>\<^sub>D)\<close> atm_of_subst_lit ground_conf is_ground_cls_add_mset
+          local.resolveI(4) subst_cls_add_mset vars_lit_subset_subst_domain_if_grounding)
+    hence "atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<rho>\<rho> \<cdot>a rename_subst_domain \<rho>\<rho> \<gamma>\<^sub>C' = atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<gamma>\<^sub>C'"
+      using ren_\<rho>\<rho>
+      by (simp add: is_renaming_iff renaming_cancels_rename_subst_domain)
+    thus "atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<rho>\<rho> \<cdot>a rename_subst_domain \<rho>\<rho> \<gamma>\<^sub>C' = atm_of K \<cdot>a \<gamma>\<^sub>D"
+      using \<open>L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C' = - (K \<cdot>l \<gamma>\<^sub>D)\<close>
+      by (metis atm_of_subst_lit atm_of_uminus)
   qed
+  then obtain \<mu>\<mu> where imgu_\<mu>\<mu>: "is_imgu \<mu>\<mu> {{atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<rho>\<rho>, atm_of K}}"
+    using is_imgu_if_mgu_eq_Some by auto
 
   show ?thesis
-    unfolding S\<^sub>3_def \<open>add_mset K DD \<cdot> \<mu>\<^sub>K = add_mset L' DDD \<cdot> \<mu>\<^sub>K\<close>
-    using resolve.resolveI[OF \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close> \<open>L \<cdot>l \<delta> = - (L' \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>')\<close> ren_\<rho>\<rho>
-        vars_subst_cls_\<rho>\<rho>_disjoint imgu_\<mu>\<mu>, of N \<beta> U "DDD \<cdot> \<mu>\<^sub>K"]
+    unfolding S\<^sub>3_def \<open>add_mset LL CC \<cdot> \<mu>\<^sub>L = add_mset L CCC \<cdot> \<mu>\<^sub>L\<close>
+    find_theorems "atm_of (_ \<cdot>l _)"
+    using resolve.resolveI[OF \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close> \<open>L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C' = - (K \<cdot>l \<gamma>\<^sub>D)\<close> ren_\<rho>\<rho>
+        is_renaming_id_subst, unfolded subst_atm_id_subst subst_cls_id_subst atm_of_subst_lit,
+        OF disjoint_vars imgu_\<mu>\<mu> refl, of N \<beta> U "CCC \<cdot> \<mu>\<^sub>L"]
     by auto
 qed
 
@@ -1846,94 +1839,61 @@ proof -
       assume "resolve N \<beta> Sm Sm'"
       thus ?thesis
       proof (cases N \<beta> Sm Sm' rule: resolve.cases)
-        case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<rho> D \<mu> U)
-        have "is_renaming (renaming_wrt {add_mset L' D})"
-          by (rule is_renaming_renaming_wrt) simp
-        with resolveI have ren_\<rho>: "is_renaming \<rho>"
-          by simp
-
-        from resolveI conflict_Sm have Cm_def: "Cm = D + {#L'#}" and \<gamma>m_def: "\<gamma>m = \<sigma>"
+        case (resolveI \<Gamma> \<Gamma>' K D \<gamma>\<^sub>D L \<gamma>\<^sub>C \<rho>\<^sub>C \<rho>\<^sub>D C \<mu> \<gamma> U)
+        with conflict_Sm have Cm_def: "Cm = add_mset L C" and \<gamma>m_def: "\<gamma>m = \<gamma>\<^sub>C"
           by simp_all
-        hence tr_false_L'_D_\<sigma>: "trail_false_cls (state_trail S1) (add_mset L' D \<cdot> \<sigma>)"
+        hence tr_false_S1_conf: "trail_false_cls (state_trail S1) (add_mset L C \<cdot> \<gamma>\<^sub>C)"
           using trail_false_Cm_\<gamma>m by simp
 
         from resolveI sound_Sm have
-          ground_conf_\<sigma>: "is_ground_cls (add_mset L' D \<cdot> \<sigma>)" and
-          dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (add_mset L' D)" and
-          "sound_trail N \<Gamma>" and
-          "minimal_ground_closures Sm"
-          unfolding sound_state_def by (simp_all add: minimal_ground_closures_def)
+          ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
+          ground_reso: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)" and
+          dom_\<gamma>\<^sub>C: "subst_domain \<gamma>\<^sub>C \<subseteq> vars_cls (add_mset L C)" and
+          dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls (add_mset K D)" and
+          "sound_trail N \<Gamma>"
+          unfolding sound_state_def \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
+          by (simp_all add: minimal_ground_closures_def propagate_lit_def)
 
-        have "atm_of L \<cdot>a rename_subst_domain \<rho> \<sigma> \<cdot>a \<delta> =
-          atm_of L' \<cdot>a \<rho> \<cdot>a rename_subst_domain \<rho> \<sigma> \<cdot>a \<delta>"
-        proof -
-          from ren_\<rho> have "\<forall>x. is_Var (\<rho> x)" and "inj \<rho>"
-            by (simp_all add: is_renaming_iff)
-
-          have "atm_of L \<cdot>a rename_subst_domain \<rho> \<sigma> = atm_of L"
-          proof (rule subst_apply_term_ident)
-            have "subst_domain (rename_subst_domain \<rho> \<sigma>) \<subseteq> the_Var ` \<rho> ` subst_domain \<sigma>"
-              using subst_domain_rename_subst_domain_subset[OF \<open>\<forall>x. is_Var (\<rho> x)\<close>] by simp
-            also have "\<dots> \<subseteq> the_Var ` \<rho> ` vars_cls (add_mset L' D)"
-              using dom_\<sigma> by auto
-            also have "\<dots> = (\<Union>x \<in> vars_cls (add_mset L' D). vars_term (\<rho> x))"
-              using image_the_Var_image_subst_renaming_eq[OF \<open>\<forall>x. is_Var (\<rho> x)\<close>] by simp
-            also have "\<dots> = vars_cls (add_mset L' D \<cdot> \<rho>)"
-              using vars_subst_cls_eq by metis
-            finally show "vars_lit L \<inter> subst_domain (rename_subst_domain \<rho> \<sigma>) = {}"
-              using \<open>vars_cls (add_mset L' D \<cdot> \<rho>) \<inter> vars_cls (add_mset L C) = {}\<close>
-              by auto
-          qed
-          moreover have "atm_of L' \<cdot>a \<rho> \<cdot>a rename_subst_domain \<rho> \<sigma> = atm_of L' \<cdot>a \<sigma>"
-            using vars_cls_subset_subst_domain_if_grounding[OF ground_conf_\<sigma>]
-            by (simp add: renaming_cancels_rename_subst_domain[OF \<open>\<forall>x. is_Var (\<rho> x)\<close> \<open>inj \<rho>\<close>])
-          moreover have "atm_of L' \<cdot>a \<sigma> \<cdot>a \<delta> = atm_of L' \<cdot>a \<sigma>"
-          proof (rule subst_apply_term_ident)
-            show "vars_term (atm_of L' \<cdot>a \<sigma>) \<inter> subst_domain \<delta> = {}"
-              using ground_conf_\<sigma>[unfolded is_ground_cls_iff_vars_empty]
-              by simp
-          qed
-          ultimately show ?thesis
-            using \<open>L \<cdot>l \<delta> = - (L' \<cdot>l \<sigma>)\<close>
-            by (metis atm_of_subst_lit atm_of_uminus)
-        qed
-        hence "is_unifier (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>) {atm_of L, atm_of L' \<cdot>a \<rho>}"
-          by (simp add: is_unifier_alt)
-        hence "\<mu> \<odot> (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>) = rename_subst_domain \<rho> \<sigma> \<odot> \<delta>"
-          using \<open>is_imgu \<mu> {{atm_of L, atm_of L' \<cdot>a \<rho>}}\<close>
-          by (auto simp: is_imgu_def is_unifiers_def)
-
-        have "trail_false_cls (state_trail S1) ((D \<cdot> \<rho> + C) \<cdot> rename_subst_domain \<rho> \<sigma> \<cdot> \<delta>)"
+        have "trail_false_cls (state_trail S1) ((C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot>
+          rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C \<cdot> rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D)"
         proof (rule trail_false_plusI)
-          show "trail_false_cls \<Gamma>' (C \<cdot> \<delta>)" 
+          show "trail_false_cls (state_trail S1) (add_mset L C \<cdot> \<gamma>\<^sub>C)"
+            using tr_false_S1_conf .
+        next 
+          show "trail_false_cls \<Gamma>' (D \<cdot> \<gamma>\<^sub>D)" 
             using resolveI \<open>sound_trail N \<Gamma>\<close>
             by (auto simp: propagate_lit_def elim: sound_trail.cases)
         next
-          show "trail_false_cls (state_trail S1) (add_mset L' D \<cdot> \<sigma>)"
-            using tr_false_L'_D_\<sigma> .
-        next
           show "suffix \<Gamma>' (state_trail S1)"
             using resolveI \<open>suffix (state_trail Sm') (state_trail S1)\<close>
-            by (metis (no_types, lifting) state_trail_simp suffix_order.trans
+            by (metis (no_types, opaque_lifting) state_trail_simp suffix_order.trans
                 suffix_trail_propagate)
         next
-          show "subst_domain \<sigma> \<subseteq> vars_cls (add_mset L' D)"
-            using dom_\<sigma> .
+          show "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)"
+            using ground_conf .
         next
-          show "is_ground_cls (add_mset L' D \<cdot> \<sigma>)"
-            using ground_conf_\<sigma> .
+          show "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)"
+            using ground_reso .
         next
-          show "is_renaming \<rho>"
-            using ren_\<rho> .
+          show "subst_domain \<gamma>\<^sub>C \<subseteq> vars_cls (add_mset L C)"
+            using dom_\<gamma>\<^sub>C .
         next
-          show "vars_cls (add_mset L' D \<cdot> \<rho>) \<inter> vars_cls C = {}"
-            using resolveI by auto
+          show "is_renaming \<rho>\<^sub>C"
+            using resolveI by simp
+        next
+          show "is_renaming \<rho>\<^sub>D"
+            using resolveI by simp
+        next
+          show "vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D) = {}"
+            using resolveI by simp
         qed
-        hence "trail_false_cls (state_trail S1) ((D \<cdot> \<rho> + C) \<cdot> \<mu> \<cdot> (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>))"
-          using \<open>\<mu> \<odot> (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>) = rename_subst_domain \<rho> \<sigma> \<odot> \<delta>\<close>
-          by (metis subst_cls_comp_subst)
-        hence "trail_false_cls (state_trail S1) ((D \<cdot> \<rho> + C) \<cdot> \<mu> \<cdot>
-          restrict_subst_domain (vars_cls ((D \<cdot> \<rho> + C) \<cdot> \<mu>)) (rename_subst_domain \<rho> \<sigma> \<odot> \<delta>))"
+        hence "trail_false_cls (state_trail S1) ((C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu> \<cdot>
+          (rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C \<odot> rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D))"
+          using imgu_idempotent_on_renamed_comp_renamed[OF _ dom_\<gamma>\<^sub>C dom_\<gamma>\<^sub>D ground_conf ground_reso]
+          using resolveI(3-)
+          by (metis is_renaming_iff subst_cls_comp_subst)
+        hence "trail_false_cls (state_trail S1) ((C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu> \<cdot> \<gamma>)"
+          unfolding resolveI(3-)
           by (simp add: subst_cls_restrict_subst_domain)
         then show ?thesis
           using \<open>suffix (state_trail Sm') (state_trail S1)\<close>
