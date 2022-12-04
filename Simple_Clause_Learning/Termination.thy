@@ -352,11 +352,9 @@ next
       assume "propagate N \<beta> S S'"
       thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
       proof (cases N \<beta> S S' rule: propagate.cases)
-        case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>')
+        case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu>)
 
-        have "L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<mu> \<cdot>l \<gamma>"
-          using propagateI(3-) by (simp add: subst_lit_restrict_subst_domain)
-        also have "\<dots> = L \<cdot>l \<gamma>"
+        have "L \<cdot>l \<mu> \<cdot>l \<gamma> = L \<cdot>l \<gamma>"
         proof -
           have "is_unifiers \<gamma> {atm_of ` set_mset (add_mset L C\<^sub>1)}"
             unfolding \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
@@ -367,10 +365,8 @@ next
           thus ?thesis
             by (metis subst_lit_comp_subst)
         qed
-        finally have "L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<gamma>"
-          by assumption
 
-        have "\<M>_prop_deci \<beta> ((L \<cdot>l \<gamma>, Some (C\<^sub>0 \<cdot> \<mu>, L \<cdot>l \<mu>, \<gamma>')) # \<Gamma>) |\<subset>| \<M>_prop_deci \<beta> \<Gamma>"
+        have "\<M>_prop_deci \<beta> ((L \<cdot>l \<gamma>, Some (C\<^sub>0 \<cdot> \<mu>, L \<cdot>l \<mu>, \<gamma>)) # \<Gamma>) |\<subset>| \<M>_prop_deci \<beta> \<Gamma>"
           unfolding \<M>_prop_deci_def fset_of_list_simps fimage_finsert prod.sel
         proof (rule minus_pfsubset_minusI)
           show "fst |`| fset_of_list \<Gamma> |\<subset>| finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>)"
@@ -392,7 +388,7 @@ next
         qed
         thus ?thesis
           unfolding propagateI(1,2) propagate_lit_def \<M>_def state_proj_simp option.case
-          unfolding \<open>L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<gamma>\<close>
+          unfolding \<open>L \<cdot>l \<mu> \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<close>
           unfolding lex_prodp_def prod.sel by simp
       qed
     next
@@ -451,25 +447,31 @@ next
         case (resolveI \<Gamma> \<Gamma>' K D \<gamma>\<^sub>D L \<gamma>\<^sub>C \<rho>\<^sub>C \<rho>\<^sub>D C \<mu> \<gamma> U)
         from \<open>minimal_ground_closures S\<close> have
           ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
-          ground_reso: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)" and
-          dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls (add_mset K D)"
+          ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)"
           unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
           by (simp_all add: minimal_ground_closures_def propagate_lit_def)
 
-        let ?\<gamma>\<^sub>C' = "rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C"
-        let ?\<gamma>\<^sub>D' = "rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D"
+        let ?\<gamma>\<^sub>D' = "restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D"
 
-        let ?\<gamma> = "?\<gamma>\<^sub>D' \<odot> ?\<gamma>\<^sub>C'"
+        have "K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D" and "D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D"
+          by (simp_all add: subst_lit_restrict_subst_domain subst_cls_restrict_subst_domain)
+        hence "L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l ?\<gamma>\<^sub>D')" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
+          using \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> ground_prop by simp_all
+
+        have dom_\<gamma>\<^sub>D': "subst_domain ?\<gamma>\<^sub>D' \<subseteq> vars_cls (add_mset K D)"
+          by simp
+
+        let ?\<gamma> = "rename_subst_domain \<rho>\<^sub>D ?\<gamma>\<^sub>D' \<odot> rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C"
         have
           "L \<cdot>l \<rho>\<^sub>C \<cdot>l ?\<gamma> = L \<cdot>l \<gamma>\<^sub>C" and
           "C \<cdot> \<rho>\<^sub>C \<cdot> ?\<gamma> = C \<cdot> \<gamma>\<^sub>C" and
           "K \<cdot>l \<rho>\<^sub>D \<cdot>l ?\<gamma> = K \<cdot>l \<gamma>\<^sub>D" and
           "D \<cdot> \<rho>\<^sub>D \<cdot> ?\<gamma> = D \<cdot> \<gamma>\<^sub>D" and
-          \<mu>_cancels: "\<mu> \<odot> ?\<gamma> = ?\<gamma>"
-          using renamed_comp_renamed_simp[OF \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> ground_conf
-            ground_reso dom_\<gamma>\<^sub>D \<open>is_renaming \<rho>\<^sub>C\<close> \<open>is_renaming \<rho>\<^sub>D\<close>
+          "\<mu> \<odot> ?\<gamma> = ?\<gamma>"
+          using renamed_comp_renamed_simp[OF \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l ?\<gamma>\<^sub>D')\<close> ground_conf
+            ground_prop' dom_\<gamma>\<^sub>D' \<open>is_renaming \<rho>\<^sub>C\<close> \<open>is_renaming \<rho>\<^sub>D\<close>
             \<open>vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D) = {}\<close>]
-            \<open>is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}\<close>
+            \<open>is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}\<close> \<open>K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D\<close> \<open>D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D\<close>
           by simp_all
 
         have "- (K \<cdot>l \<gamma>\<^sub>D) \<notin># D \<cdot> \<gamma>\<^sub>D"
@@ -496,9 +498,8 @@ next
         thus ?thesis
           unfolding lex_prodp_def resolveI(1,2)
           unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
-          unfolding \<open>\<gamma> = ?\<gamma>\<^sub>D' \<odot> ?\<gamma>\<^sub>C'\<close>
-          unfolding subst_cls_restrict_subst_domain[OF subset_refl]
-          unfolding subst_cls_comp_subst[symmetric] \<mu>_cancels
+          unfolding \<open>\<gamma> = ?\<gamma>\<close>
+          unfolding subst_cls_comp_subst[symmetric] \<open>\<mu> \<odot> ?\<gamma> = ?\<gamma>\<close>
           unfolding subst_cls_union \<open>C \<cdot> \<rho>\<^sub>C \<cdot> ?\<gamma> = C \<cdot> \<gamma>\<^sub>C\<close> \<open>D \<cdot> \<rho>\<^sub>D \<cdot> ?\<gamma> = D \<cdot> \<gamma>\<^sub>D\<close>
           by simp
       qed

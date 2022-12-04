@@ -156,7 +156,7 @@ proof -
 
   show ?thesis
     using propagateI[OF D_in D_def, of \<gamma>\<^sub>D, unfolded subst_cls_comp_subst subst_lit_comp_subst,
-      OF ground_D_\<sigma> ball_atms_lt_\<beta> C\<^sub>0_def C\<^sub>1_def tr_false_C\<^sub>1 not_def_L'_\<rho>_\<sigma>\<^sub>\<rho> imgu_\<mu> refl]   
+      OF ground_D_\<sigma> ball_atms_lt_\<beta> C\<^sub>0_def C\<^sub>1_def tr_false_C\<^sub>1 not_def_L'_\<rho>_\<sigma>\<^sub>\<rho> imgu_\<mu>]   
     unfolding S\<^sub>0_def by blast
 qed
 
@@ -173,7 +173,7 @@ proof (induction \<Gamma> rule: trail_propagated_or_decided.induct)
   then show ?case
     by (simp add: trail_propagated_wf_def)
 next
-  case (Propagate C L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>')
+  case (Propagate C L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu>)
   then show ?case
     by (simp add: trail_propagated_wf_def propagate_lit_def)
 next
@@ -398,8 +398,7 @@ proof -
 
             from \<open>minimal_ground_closures S\<close> have
               ground_conf: "is_ground_cls (add_mset L C' \<cdot> \<gamma>)" and
-              ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)" and
-              dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls (add_mset K D)"
+              ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)"
               unfolding S_def minimal_ground_closures_def
               by (simp_all add: 1 C_def u_def minimal_ground_closures_def propagate_lit_def)
 
@@ -418,16 +417,28 @@ proof -
             have 2: "L \<cdot>l \<gamma> = - (K \<cdot>l \<gamma>\<^sub>D)"
               using K_\<gamma> L_def by fastforce
 
-            moreover have
-              "L \<cdot>l \<rho> \<cdot>l (rename_subst_domain Var \<gamma>\<^sub>D \<odot> rename_subst_domain \<rho> \<gamma>) = L \<cdot>l \<gamma>" and
-              "K \<cdot>l Var \<cdot>l (rename_subst_domain Var \<gamma>\<^sub>D \<odot> rename_subst_domain \<rho> \<gamma>) = K \<cdot>l \<gamma>\<^sub>D"
-              using subst_renamed_comp_renamed_simp[OF \<open>L \<cdot>l \<gamma> = - (K \<cdot>l \<gamma>\<^sub>D)\<close> ground_conf
-                ground_prop dom_\<gamma>\<^sub>D ren_\<rho> is_renaming_id_subst disjoint_vars]
+            let ?\<gamma>\<^sub>D' = "restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D"
+    
+            have "K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D" and "D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D"
+              by (simp_all add: subst_lit_restrict_subst_domain subst_cls_restrict_subst_domain)
+            hence "L \<cdot>l \<gamma> = - (K \<cdot>l ?\<gamma>\<^sub>D')" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
+              using \<open>L \<cdot>l \<gamma> = - (K \<cdot>l \<gamma>\<^sub>D)\<close> ground_prop by simp_all
+    
+            have dom_\<gamma>\<^sub>D': "subst_domain ?\<gamma>\<^sub>D' \<subseteq> vars_cls (add_mset K D)"
+              by simp
+    
+            let ?\<gamma> = "rename_subst_domain Var ?\<gamma>\<^sub>D' \<odot> rename_subst_domain \<rho> \<gamma>"
+            have
+              "L \<cdot>l \<rho> \<cdot>l (rename_subst_domain Var ?\<gamma>\<^sub>D' \<odot> rename_subst_domain \<rho> \<gamma>) = L \<cdot>l \<gamma>" and
+              "K \<cdot>l Var \<cdot>l (rename_subst_domain Var ?\<gamma>\<^sub>D' \<odot> rename_subst_domain \<rho> \<gamma>) = K \<cdot>l \<gamma>\<^sub>D"
+              using renamed_comp_renamed_simp[OF \<open>L \<cdot>l \<gamma> = - (K \<cdot>l ?\<gamma>\<^sub>D')\<close> ground_conf
+                ground_prop' dom_\<gamma>\<^sub>D' \<open>is_renaming \<rho>\<close> is_renaming_id_subst disjoint_vars]
+                \<open>K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D\<close> \<open>D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D\<close>
               by simp_all
 
-            ultimately have "atm_of L \<cdot>a \<rho> \<cdot>a (rename_subst_domain Var \<gamma>\<^sub>D \<odot> rename_subst_domain \<rho> \<gamma>) =
-              atm_of K \<cdot>a (rename_subst_domain Var \<gamma>\<^sub>D \<odot> rename_subst_domain \<rho> \<gamma>)"
-              by (smt (verit, best) atm_of_eq_uminus_if_lit_eq atm_of_subst_lit subst_lit_id_subst)
+            then have "atm_of L \<cdot>a \<rho> \<cdot>a (rename_subst_domain Var ?\<gamma>\<^sub>D' \<odot> rename_subst_domain \<rho> \<gamma>) =
+              atm_of K \<cdot>a (rename_subst_domain Var ?\<gamma>\<^sub>D' \<odot> rename_subst_domain \<rho> \<gamma>)"
+              by (smt (verit, best) "2" atm_of_uminus subst_lit_id_subst atm_of_subst_lit)
             then obtain \<mu> where "Unification.mgu (atm_of L \<cdot>a \<rho>) (atm_of K) = Some \<mu>"
               using ex_mgu_if_subst_apply_term_eq_subst_apply_term
               by (metis subst_atm_comp_subst)
