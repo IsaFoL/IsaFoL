@@ -2822,7 +2822,7 @@ subsection \<open>Trail And Conflict Closures Are Minimal And Ground\<close>
 definition minimal_ground_closures where
   "minimal_ground_closures S \<longleftrightarrow>
     (\<forall>Ln \<in> set (state_trail S). \<forall>C L \<gamma>. snd Ln = Some (C, L, \<gamma>) \<longrightarrow>
-      subst_domain \<gamma> \<subseteq> vars_cls (add_mset L C) \<and> is_ground_cls (add_mset L C \<cdot> \<gamma>)) \<and>
+      is_ground_cls (add_mset L C \<cdot> \<gamma>)) \<and>
     (\<forall>C \<gamma>. state_conflict S = Some (C, \<gamma>) \<longrightarrow>
       subst_domain \<gamma> \<subseteq> vars_cls C \<and> is_ground_cls (C \<cdot> \<gamma>))"
 
@@ -2944,9 +2944,8 @@ lemma imgu_idempotent_on_renamed_comp_renamed:
   assumes
     "L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)" and
     dom_\<gamma>\<^sub>C: "subst_domain \<gamma>\<^sub>C \<subseteq> vars_cls (add_mset L C)" and
-    dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls (add_mset K D)" and
-    gr_conf_\<gamma>\<^sub>C: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
-    gr_prop_\<gamma>\<^sub>D: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)" and
+    ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
+    ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)" and
     "\<forall>x. is_Var (\<rho>\<^sub>C x)" "inj \<rho>\<^sub>C" and
     "\<forall>x. is_Var (\<rho>\<^sub>D x)" "inj \<rho>\<^sub>D" and
     disjoint_vars: "vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D) = {}" and
@@ -2955,36 +2954,35 @@ lemma imgu_idempotent_on_renamed_comp_renamed:
   shows
     "\<mu> \<odot> \<gamma> = \<gamma>"
 proof -
-  from \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> have "atm_of L \<cdot>a \<gamma>\<^sub>C = atm_of K \<cdot>a \<gamma>\<^sub>D"
-    by (metis atm_of_eq_uminus_if_lit_eq atm_of_subst_lit)
-  moreover have "vars_lit L \<subseteq> subst_domain \<gamma>\<^sub>C"
-    using gr_conf_\<gamma>\<^sub>C
-    by (simp add: vars_lit_subset_subst_domain_if_grounding)
-  moreover have "vars_term (atm_of K) \<subseteq> subst_domain \<gamma>\<^sub>D"
-    using gr_prop_\<gamma>\<^sub>D
-    by (simp add: vars_lit_subset_subst_domain_if_grounding)
-  ultimately have "atm_of L \<cdot>a \<rho>\<^sub>C \<cdot>a rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C =
-    atm_of K \<cdot>a \<rho>\<^sub>D \<cdot>a rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D"
-    using \<open>\<forall>x. is_Var (\<rho>\<^sub>C x)\<close> \<open>inj \<rho>\<^sub>C\<close> \<open>\<forall>x. is_Var (\<rho>\<^sub>D x)\<close> \<open>inj \<rho>\<^sub>D\<close>
-    by (simp add: renaming_cancels_rename_subst_domain)
-  hence "atm_of L \<cdot>a \<rho>\<^sub>C \<cdot>a rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C \<cdot>a rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D =
-    atm_of K \<cdot>a \<rho>\<^sub>D \<cdot>a rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C \<cdot>a rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D"
-  proof (rule subst_subst_eq_subst_subst_if_subst_eq_substI)
-    show "vars_term (atm_of L \<cdot>a \<rho>\<^sub>C) \<inter> subst_domain (rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D) = {}"
-      using subst_domain_rename_subst_domain_subset_vars_cls_subst_cls[OF \<open>\<forall>x. is_Var (\<rho>\<^sub>D x)\<close> dom_\<gamma>\<^sub>D]
-        disjoint_vars
-      by auto
-  next
-    show "vars_term (atm_of K \<cdot>a \<rho>\<^sub>D) \<inter> subst_domain (rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C) = {}"
-      using subst_domain_rename_subst_domain_subset_vars_cls_subst_cls[OF \<open>\<forall>x. is_Var (\<rho>\<^sub>C x)\<close> dom_\<gamma>\<^sub>C]
-        disjoint_vars
-      by auto
-  next
-    have "range_vars \<gamma>\<^sub>C = {}"
-      using range_vars_eq_empty_if_is_ground[OF gr_conf_\<gamma>\<^sub>C dom_\<gamma>\<^sub>C] by simp
-    thus "range_vars (rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C) \<inter> subst_domain (rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D) = {}"
-      using range_vars_rename_subst_domain_subset[OF \<open>inj \<rho>\<^sub>C\<close>] by auto
+  have "atm_of L \<cdot>a \<rho>\<^sub>C \<cdot>a rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C = atm_of L \<cdot>a \<gamma>\<^sub>C"
+  proof (rule renaming_cancels_rename_subst_domain[OF \<open>\<forall>x. is_Var (\<rho>\<^sub>C x)\<close> \<open>inj \<rho>\<^sub>C\<close>])
+    show "vars_lit L \<subseteq> subst_domain \<gamma>\<^sub>C"
+      using ground_conf
+      by (simp add: vars_lit_subset_subst_domain_if_grounding)
   qed
+
+  moreover have "\<And>\<sigma>. atm_of L \<cdot>a \<gamma>\<^sub>C \<cdot>a \<sigma> = atm_of L \<cdot>a \<gamma>\<^sub>C"
+    using ground_conf by (simp add: is_ground_lit_def)
+
+  moreover have "atm_of K \<cdot>a \<rho>\<^sub>D \<cdot>a rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C = atm_of K \<cdot>a \<rho>\<^sub>D"
+  proof (rule subst_apply_term_ident)
+    show "vars_term (atm_of K \<cdot>a \<rho>\<^sub>D) \<inter> subst_domain (rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C) = {}"
+      using disjoint_vars
+        subst_domain_rename_subst_domain_subset_vars_cls_subst_cls[OF \<open>\<forall>x. is_Var (\<rho>\<^sub>C x)\<close> dom_\<gamma>\<^sub>C]
+      by auto
+  qed
+
+  moreover have "atm_of K \<cdot>a \<rho>\<^sub>D \<cdot>a rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D = atm_of K \<cdot>a \<gamma>\<^sub>D"
+  proof (rule renaming_cancels_rename_subst_domain[OF \<open>\<forall>x. is_Var (\<rho>\<^sub>D x)\<close> \<open>inj \<rho>\<^sub>D\<close>])
+    show "vars_lit K \<subseteq> subst_domain \<gamma>\<^sub>D"
+      using ground_prop
+      by (simp add: vars_lit_subset_subst_domain_if_grounding)
+  qed
+
+  ultimately have "atm_of L \<cdot>a \<rho>\<^sub>C \<cdot>a rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C \<cdot>a rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D =
+    atm_of K \<cdot>a \<rho>\<^sub>D \<cdot>a rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C \<cdot>a rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D"
+    using \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close>
+    by (metis atm_of_uminus atm_of_subst_lit)
   hence "is_unifiers \<gamma> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}"
     by (simp add: \<gamma>_def is_unifiers_def is_unifier_alt)
   thus "\<mu> \<odot> \<gamma> = \<gamma>"
@@ -3009,10 +3007,9 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   from invar have
     dom_\<gamma>\<^sub>C: "subst_domain \<gamma>\<^sub>C \<subseteq> vars_cls (add_mset L C)" and
     gr_conf_\<gamma>\<^sub>C: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
-    dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls (add_mset K D)" and
+    (* dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls (add_mset K D)" and *)
     gr_prop_\<gamma>\<^sub>D: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)" and
-    min_ground_clo_\<Gamma>: "\<forall>Ln \<in> set  \<Gamma>. \<forall>C L \<gamma>. snd Ln = Some (C, L, \<gamma>) \<longrightarrow>
-      subst_domain \<gamma> \<subseteq> vars_cls (add_mset L C) \<and> is_ground_cls (add_mset L C \<cdot> \<gamma>)"
+    min_ground_clo_\<Gamma>: "\<forall>Ln \<in> set  \<Gamma>. \<forall>C L \<gamma>. snd Ln = Some (C, L, \<gamma>) \<longrightarrow> is_ground_cls (add_mset L C \<cdot> \<gamma>)"
     unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
     by (simp_all add: propagate_lit_def minimal_ground_closures_def)
 
@@ -3022,7 +3019,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     unfolding resolveI(3-)
     by (simp add: subst_cls_restrict_subst_domain)
   also have "\<dots> = (C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> ?\<gamma>"
-    using \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> dom_\<gamma>\<^sub>C dom_\<gamma>\<^sub>D gr_conf_\<gamma>\<^sub>C gr_prop_\<gamma>\<^sub>D \<open>\<forall>x. is_Var (\<rho>\<^sub>C x)\<close> \<open>inj \<rho>\<^sub>C\<close>
+    using \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> dom_\<gamma>\<^sub>C gr_conf_\<gamma>\<^sub>C gr_prop_\<gamma>\<^sub>D \<open>\<forall>x. is_Var (\<rho>\<^sub>C x)\<close> \<open>inj \<rho>\<^sub>C\<close>
       \<open>\<forall>x. is_Var (\<rho>\<^sub>D x)\<close> \<open>inj \<rho>\<^sub>D\<close> disjoint_vars_after_renaming
       \<open>is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}\<close>
     using imgu_idempotent_on_renamed_comp_renamed
@@ -3760,16 +3757,16 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   from \<open>minimal_ground_closures S\<close> have
     dom_\<gamma>\<^sub>C: "subst_domain \<gamma>\<^sub>C \<subseteq> vars_cls (add_mset L C)" and
     ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
-    dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls (add_mset K D)" and
+    (* dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls (add_mset K D)" and *)
     ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)" and
     min_ground_clo_\<Gamma>: "\<forall>Ln \<in> set  \<Gamma>. \<forall>C L \<gamma>. snd Ln = Some (C, L, \<gamma>) \<longrightarrow>
-      subst_domain \<gamma> \<subseteq> vars_cls (add_mset L C) \<and> is_ground_cls (add_mset L C \<cdot> \<gamma>)"
+      is_ground_cls (add_mset L C \<cdot> \<gamma>)"
     unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
     by (simp_all add: propagate_lit_def minimal_ground_closures_def)
 
   let ?\<gamma> = "rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C \<odot> rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D"
   have cancel_\<mu>: "\<mu> \<odot> ?\<gamma> = ?\<gamma>"
-    using \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> dom_\<gamma>\<^sub>C dom_\<gamma>\<^sub>D ground_conf ground_prop \<open>\<forall>x. is_Var (\<rho>\<^sub>C x)\<close> \<open>inj \<rho>\<^sub>C\<close>
+    using \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> dom_\<gamma>\<^sub>C ground_conf ground_prop \<open>\<forall>x. is_Var (\<rho>\<^sub>C x)\<close> \<open>inj \<rho>\<^sub>C\<close>
       \<open>\<forall>x. is_Var (\<rho>\<^sub>D x)\<close> \<open>inj \<rho>\<^sub>D\<close> disjoint_vars imgu_\<mu>
     using imgu_idempotent_on_renamed_comp_renamed by metis
 

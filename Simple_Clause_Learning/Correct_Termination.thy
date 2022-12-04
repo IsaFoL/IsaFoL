@@ -405,11 +405,9 @@ proof -
 
             from \<open>minimal_ground_closures S\<close> have
               dom_\<gamma>: "subst_domain \<gamma> \<subseteq> vars_cls (add_mset L C')" and
-              ground_conf: "is_ground_cls (add_mset L C' \<cdot> \<gamma>)" and
-              dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls (add_mset K D)" and
-              ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)"
+              ground_conf: "is_ground_cls (add_mset L C' \<cdot> \<gamma>)"
               unfolding S_def minimal_ground_closures_def
-              by (simp_all add: 1 C_def u_def propagate_lit_def minimal_ground_closures_def)
+              by (simp_all add: C_def u_def minimal_ground_closures_def)
 
             define \<rho> :: "'v \<Rightarrow> ('f, 'v) Term.term" where
               "\<rho> = renaming_wrt {add_mset K D}"

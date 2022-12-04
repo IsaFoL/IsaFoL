@@ -455,8 +455,8 @@ next
         from \<open>minimal_ground_closures S\<close> have
           ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
           ground_reso: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)" and
-          dom_\<gamma>\<^sub>C: "subst_domain \<gamma>\<^sub>C \<subseteq> vars_cls (add_mset L C)" and
-          dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls (add_mset K D)"
+          dom_\<gamma>\<^sub>C: "subst_domain \<gamma>\<^sub>C \<subseteq> vars_cls (add_mset L C)" (* and
+          dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls (add_mset K D)" *)
           unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
           by (simp_all add: minimal_ground_closures_def propagate_lit_def)
 
@@ -464,7 +464,7 @@ next
         let ?\<gamma>\<^sub>D' = "rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D"
 
         have \<mu>_cancels: "\<mu> \<odot> (?\<gamma>\<^sub>C' \<odot> ?\<gamma>\<^sub>D') = ?\<gamma>\<^sub>C' \<odot> ?\<gamma>\<^sub>D'"
-          using imgu_idempotent_on_renamed_comp_renamed[OF _ dom_\<gamma>\<^sub>C dom_\<gamma>\<^sub>D ground_conf ground_reso]
+          using imgu_idempotent_on_renamed_comp_renamed[OF _ dom_\<gamma>\<^sub>C ground_conf ground_reso]
           using resolveI(3-)
           by (metis is_renaming_iff)
 
