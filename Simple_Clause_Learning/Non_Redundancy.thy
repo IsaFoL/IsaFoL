@@ -100,7 +100,7 @@ lemma backtrack_preserves_no_conflict_after_decide':
   shows "no_conflict_after_decide' N \<beta> S'"
   using step
 proof (cases N \<beta> S S' rule: backtrack.cases)
-  case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
+  case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' K L \<sigma> D U)
   have "no_conflict_after_decide N \<beta> U (\<Gamma>' @ \<Gamma>'')"
     using invar
     unfolding backtrackI(1,2,3) no_conflict_after_decide'_def
@@ -108,7 +108,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
   hence "no_conflict_after_decide N \<beta> U \<Gamma>''"
     by (induction \<Gamma>') (auto elim: no_conflict_after_decide.cases)
   hence "no_conflict_after_decide N \<beta> (finsert (add_mset L D) U) \<Gamma>''"
-    using backtrackI(4)
+    using backtrackI(5)
   proof (induction \<Gamma>'')
     case Nil
     show ?case
@@ -430,7 +430,7 @@ lemma backtrack_preserves_almost_no_conflict_with_trail:
   shows "almost_no_conflict_with_trail N \<beta> S'"
   using step
 proof (cases N \<beta> S S' rule: backtrack.cases)
-  case step_hyps: (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
+  case step_hyps: (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' K L \<sigma> D U)
   from invar have "no_conflict_with_trail N \<beta> U ((- (L \<cdot>l \<sigma>), None) # \<Gamma>' @ \<Gamma>'')"
     by (simp add: step_hyps almost_no_conflict_with_trail_def decide_lit_def is_decision_lit_def)
   hence "no_conflict_with_trail N \<beta> U (\<Gamma>' @ \<Gamma>'')"
@@ -440,7 +440,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
   then have "no_conflict_with_trail N \<beta> (finsert (add_mset L D) U) \<Gamma>''"
     by (metis learning_clause_without_conflict_preserves_nex_conflict
         nex_conflict_if_no_conflict_with_trail no_conflict_with_trail_if_nex_conflict
-        state_conflict_simp state_learned_simp state_trail_simp step_hyps(4))
+        state_conflict_simp state_learned_simp state_trail_simp step_hyps(5))
   thus ?thesis
     unfolding step_hyps(1,2)
     by (rule almost_no_conflict_with_trail_if_no_conflict_with_trail)

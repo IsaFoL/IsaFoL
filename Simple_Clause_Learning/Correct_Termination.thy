@@ -380,7 +380,7 @@ proof -
               by auto
 
             have "backtrack N \<beta> (\<Gamma>, U, Some (add_mset L C', \<gamma>)) ([], finsert (add_mset L C') U, None)"
-              using backtrackI[OF \<Gamma>_def' no_new_new_conflict] by simp
+              using backtrackI[OF \<Gamma>_def' refl no_new_new_conflict] by simp
             with no_more_step have False
               unfolding scl_def
               using S_def[unfolded u_def C_def, symmetric]

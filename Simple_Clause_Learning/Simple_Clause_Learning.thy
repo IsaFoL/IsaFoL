@@ -1415,7 +1415,7 @@ inductive resolve :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Ri
 
 inductive backtrack :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
-  backtrackI: "\<Gamma> = trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>)) \<Longrightarrow>
+  backtrackI: "\<Gamma> = trail_decide (\<Gamma>' @ \<Gamma>'') K \<Longrightarrow> K = - (L \<cdot>l \<sigma>) \<Longrightarrow>
     \<nexists>\<gamma>. is_ground_cls (add_mset L D \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma>'' (add_mset L D \<cdot> \<gamma>) \<Longrightarrow>
     backtrack N \<beta> (\<Gamma>, U, Some (add_mset L D, \<sigma>)) (\<Gamma>'', finsert (add_mset L D) U, None)"
 
@@ -2115,7 +2115,7 @@ lemma backtrack_preserves_trail_lits_from_clauses:
   shows "trail_lits_from_clauses N S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: backtrack.cases)
-  case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
+  case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' K L \<sigma> D U)
   hence "suffix \<Gamma>'' \<Gamma>"
     by (simp add: suffixI decide_lit_def)
   hence "set \<Gamma>'' \<subseteq> set \<Gamma>"
@@ -2570,7 +2570,7 @@ lemma backtrack_preserves_trail_propagated_or_decided:
   shows "trail_propagated_or_decided' N \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: backtrack.cases)
-  case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
+  case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' K L \<sigma> D U)
 
   have "trail_propagated_or_decided N \<beta> (finsert (add_mset L D) U) \<Gamma>''"
   proof (rule trail_propagated_or_decided_learned_finsert)
@@ -3759,7 +3759,7 @@ lemma backtrack_preserves_sound_state:
   shows "sound_state N \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: backtrack.cases)
-  case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
+  case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' K L \<sigma> D U)
   from backtrackI(1) sound have
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
