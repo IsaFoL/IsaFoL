@@ -250,7 +250,7 @@ lemma no_conflict_after_decide_if_no_conflict_with_trail:
 
 lemma not_trail_false_cls_if_no_conflict_with_trail:
   "no_conflict_with_trail N \<beta> U \<Gamma> \<Longrightarrow> D |\<in>| N |\<union>| U \<Longrightarrow> D \<noteq> {#} \<Longrightarrow> is_ground_cls (D \<cdot> \<gamma>) \<Longrightarrow>
-    subst_domain \<gamma> \<subseteq> vars_cls D \<Longrightarrow> \<not> trail_false_cls \<Gamma> (D \<cdot> \<gamma>)"
+    \<not> trail_false_cls \<Gamma> (D \<cdot> \<gamma>)"
 proof (induction \<Gamma> rule: no_conflict_with_trail.induct)
   case Nil
   thus ?case by simp
@@ -508,7 +508,6 @@ proof -
         S1_def: "S1 = (\<Gamma>, U, None)" and
         S2_def: "S2 = (\<Gamma>, U, Some (C, \<gamma>))" and
         C_in: "C |\<in>| N |\<union>| U" and
-        dom_\<gamma>: "subst_domain \<gamma> \<subseteq> vars_cls C" and
         ground_conf: "is_ground_cls (C \<cdot> \<gamma>)" and
         tr_false_conf: "trail_false_cls \<Gamma> (C \<cdot> \<gamma>)"
         unfolding conflict.simps by auto
@@ -787,9 +786,6 @@ proof -
           next
             show "is_ground_cls (D \<cdot> \<gamma>\<^sub>D)"
               by (rule \<open>is_ground_cls (D \<cdot> \<gamma>\<^sub>D)\<close>)
-          next
-            show "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls D"
-              by (rule \<open>subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls D\<close>)
           qed
 
           ultimately have "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
@@ -1027,19 +1023,20 @@ proof (rule notI)
     by (rule conflict_initial_state_if_mempty_in_intial_clauses)
   hence conf_init: "regular_scl N \<beta> initial_state ([], {||}, Some ({#}, Var))"
     using regular_scl_def by blast
-  hence S'_def: "S' = ([], {||}, Some ({#}, Var))"
+  then obtain \<gamma> where S'_def: "S' = ([], {||}, Some ({#}, \<gamma>))"
     using reg_scl_init_S'
     unfolding regular_scl_def
     using \<open>conflict N \<beta> initial_state ([], {||}, Some ({#}, Var))\<close>
       conflict_initial_state_only_with_mempty
     by blast
 
-  have "\<nexists>S'. scl N \<beta> ([], {||}, Some ({#}, Var)) S'"
+  have "\<nexists>S'. scl N \<beta> ([], {||}, Some ({#}, \<gamma>)) S'" for \<gamma>
     using no_more_step_if_conflict_mempty by simp
-  hence "\<nexists>S'. regular_scl N \<beta> ([], {||}, Some ({#}, Var)) S'"
+  hence "\<nexists>S'. regular_scl N \<beta> ([], {||}, Some ({#}, \<gamma>)) S'" for \<gamma>
     using scl_if_reasonable[OF reasonable_if_regular] by blast
   hence "S = S'"
-    using \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* S' S\<close> unfolding S'_def
+    using \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* S' S\<close>
+    unfolding S'_def
     by (metis converse_rtranclpE)
   with assms(2,3) show False by (simp add: S'_def)
 qed
@@ -1146,9 +1143,6 @@ proof -
       next
         show "is_ground_cls (D \<cdot> \<gamma>\<^sub>D)"
           by (rule \<open>is_ground_cls (D \<cdot> \<gamma>\<^sub>D)\<close>)
-      next
-        show "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls D"
-          by (rule \<open>subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls D\<close>)
       qed
 
       ultimately have "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
@@ -1226,7 +1220,6 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
   from conf obtain \<gamma>\<^sub>D D where
     S\<^sub>2_def: "S\<^sub>2 = (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>', U, Some (D, \<gamma>\<^sub>D))" and
     D_in: "D |\<in>| N |\<union>| U" and
-    dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls D" and
     gr_D_\<gamma>\<^sub>D: "is_ground_cls (D \<cdot> \<gamma>\<^sub>D)" and
     tr_false_\<Gamma>_L_\<mu>: "trail_false_cls (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>') (D \<cdot> \<gamma>\<^sub>D)"
     by (elim conflict.cases) (unfold propagateI(1,2), blast)
@@ -1267,8 +1260,7 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     using is_imgu_if_mgu_eq_Some by auto
 
   let ?\<Gamma>prop = "trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>'"
-  let ?\<gamma>reso = "restrict_subst_domain (vars_cls ((D' \<cdot> \<rho> + C\<^sub>0 \<cdot> \<mu>) \<cdot> \<mu>'))
-    (rename_subst_domain \<rho> \<gamma>\<^sub>D \<odot> \<gamma>')"
+  let ?\<gamma>reso = "\<gamma>' \<odot> rename_subst_domain \<rho> \<gamma>\<^sub>D"
 
   have "resolve N \<beta>
     (?\<Gamma>prop, U, Some (add_mset L' D', \<gamma>\<^sub>D))
@@ -1298,16 +1290,14 @@ lemma factorize_preserves_resolvability:
 proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
   case (resolveI \<Gamma> \<Gamma>' K D \<gamma>\<^sub>D L \<gamma>\<^sub>C \<rho>\<^sub>C \<rho>\<^sub>D C \<mu> \<gamma> U)
 
-  from fact[unfolded resolveI(1,2)] obtain LL' LL CC \<mu>\<^sub>L \<gamma>\<^sub>C' where
+  from fact[unfolded resolveI(1,2)] obtain LL' LL CC \<mu>\<^sub>L where
     S\<^sub>1_def: "S\<^sub>1 = (\<Gamma>, U, Some (add_mset LL' (add_mset LL CC), \<gamma>\<^sub>C))" and
-    S\<^sub>3_def: "S\<^sub>3 = (\<Gamma>, U, Some (add_mset LL CC \<cdot> \<mu>\<^sub>L, \<gamma>\<^sub>C'))" and
+    S\<^sub>3_def: "S\<^sub>3 = (\<Gamma>, U, Some (add_mset LL CC \<cdot> \<mu>\<^sub>L, \<gamma>\<^sub>C))" and
     "LL \<cdot>l \<gamma>\<^sub>C = LL' \<cdot>l \<gamma>\<^sub>C" and
-    imgu_\<mu>\<^sub>L: "is_imgu \<mu>\<^sub>L {{atm_of LL, atm_of LL'}}" and
-    \<gamma>\<^sub>C'_def: "\<gamma>\<^sub>C' = restrict_subst_domain (vars_cls (add_mset LL CC \<cdot> \<mu>\<^sub>L)) \<gamma>\<^sub>C"
+    imgu_\<mu>\<^sub>L: "is_imgu \<mu>\<^sub>L {{atm_of LL, atm_of LL'}}"
     by (auto simp: \<open>S\<^sub>1 = (\<Gamma>, U, Some (add_mset L C, \<gamma>\<^sub>C))\<close> elim: factorize.cases)
 
   from invar have
-    dom_\<gamma>\<^sub>C: "subst_domain \<gamma>\<^sub>C \<subseteq> vars_cls (add_mset L C)" and
     ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)"
     unfolding resolveI(1,2)
     by (simp_all add: minimal_ground_closures_def)
@@ -1351,17 +1341,12 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
   have disjoint_vars: "\<And>C. vars_cls (C \<cdot> \<rho>\<rho>) \<inter> vars_cls (add_mset K D) = {}"
     by (simp add: \<rho>\<rho>_def vars_cls_subst_renaming_disj)
 
-  have "L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C' = - (K \<cdot>l \<gamma>\<^sub>D)"
+  have "L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)"
   proof -
-    have "vars_lit (L \<cdot>l \<mu>\<^sub>L) \<subseteq> vars_cls (add_mset LL CC \<cdot> \<mu>\<^sub>L)"
-      unfolding \<open>add_mset LL CC \<cdot> \<mu>\<^sub>L = add_mset L CCC \<cdot> \<mu>\<^sub>L\<close>
-      by simp
-    hence "L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C' = L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C"
-      by (simp add: \<gamma>\<^sub>C'_def subst_lit_restrict_subst_domain)
-    also have "... = L \<cdot>l \<gamma>\<^sub>C"
+    have "L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C = L \<cdot>l \<gamma>\<^sub>C"
       using \<open>\<mu>\<^sub>L \<odot> \<gamma>\<^sub>C = \<gamma>\<^sub>C\<close>
       by (metis subst_lit_comp_subst)
-    finally show ?thesis
+    thus ?thesis
       using resolveI by simp
   qed
 
@@ -1370,14 +1355,14 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
     show "vars_term (atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<rho>\<rho>) \<inter> vars_lit K = {}"
       using disjoint_vars[of "{#L \<cdot>l \<mu>\<^sub>L#}"] by auto
   next
-    have "vars_term (atm_of L \<cdot>a \<mu>\<^sub>L) \<subseteq> subst_domain \<gamma>\<^sub>C'"
-      by (metis \<open>L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C' = - (K \<cdot>l \<gamma>\<^sub>D)\<close> atm_of_subst_lit ground_conf is_ground_cls_add_mset
+    have "vars_term (atm_of L \<cdot>a \<mu>\<^sub>L) \<subseteq> subst_domain \<gamma>\<^sub>C"
+      by (metis \<open>L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> atm_of_subst_lit ground_conf is_ground_cls_add_mset
           local.resolveI(4) subst_cls_add_mset vars_lit_subset_subst_domain_if_grounding)
-    hence "atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<rho>\<rho> \<cdot>a rename_subst_domain \<rho>\<rho> \<gamma>\<^sub>C' = atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<gamma>\<^sub>C'"
+    hence "atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<rho>\<rho> \<cdot>a rename_subst_domain \<rho>\<rho> \<gamma>\<^sub>C = atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<gamma>\<^sub>C"
       using ren_\<rho>\<rho>
       by (simp add: is_renaming_iff renaming_cancels_rename_subst_domain)
-    thus "atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<rho>\<rho> \<cdot>a rename_subst_domain \<rho>\<rho> \<gamma>\<^sub>C' = atm_of K \<cdot>a \<gamma>\<^sub>D"
-      using \<open>L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C' = - (K \<cdot>l \<gamma>\<^sub>D)\<close>
+    thus "atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<rho>\<rho> \<cdot>a rename_subst_domain \<rho>\<rho> \<gamma>\<^sub>C = atm_of K \<cdot>a \<gamma>\<^sub>D"
+      using \<open>L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close>
       by (metis atm_of_subst_lit atm_of_uminus)
   qed
   then obtain \<mu>\<mu> where imgu_\<mu>\<mu>: "is_imgu \<mu>\<mu> {{atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<rho>\<rho>, atm_of K}}"
@@ -1385,8 +1370,7 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
 
   show ?thesis
     unfolding S\<^sub>3_def \<open>add_mset LL CC \<cdot> \<mu>\<^sub>L = add_mset L CCC \<cdot> \<mu>\<^sub>L\<close>
-    find_theorems "atm_of (_ \<cdot>l _)"
-    using resolve.resolveI[OF \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close> \<open>L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C' = - (K \<cdot>l \<gamma>\<^sub>D)\<close> ren_\<rho>\<rho>
+    using resolve.resolveI[OF \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close> \<open>L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> ren_\<rho>\<rho>
         is_renaming_id_subst, unfolded subst_atm_id_subst subst_cls_id_subst atm_of_subst_lit,
         OF disjoint_vars imgu_\<mu>\<mu> refl, of N \<beta> U "CCC \<cdot> \<mu>\<^sub>L"]
     by auto
@@ -1421,9 +1405,9 @@ lemma mempty_not_in_initial_clauses_if_run_leads_to_trail:
   shows "{#} |\<notin>| N"
 proof (rule notI)
   assume "{#} |\<in>| N"
-  hence "conflict N \<beta> initial_state ([], {||}, Some ({#}, Var))"
-    by (rule conflict_initial_state_if_mempty_in_intial_clauses)
-  moreover hence "\<nexists>S'. local.scl N \<beta> ([], {||}, Some ({#}, Var)) S'"
+  then obtain \<gamma> where "conflict N \<beta> initial_state ([], {||}, Some ({#}, \<gamma>))"
+    using conflict_initial_state_if_mempty_in_intial_clauses by auto
+  moreover hence "\<nexists>S'. local.scl N \<beta> ([], {||}, Some ({#}, \<gamma>)) S'" for \<gamma>
     using no_more_step_if_conflict_mempty by simp
   ultimately show False
     using trail_lit
@@ -1818,7 +1802,7 @@ proof -
       assume "factorize N \<beta> Sm Sm'"
       thus ?thesis
       proof (cases N \<beta> Sm Sm' rule: factorize.cases)
-        case (factorizeI L \<gamma> L' \<mu> \<gamma>' D \<Gamma> U)
+        case (factorizeI L \<gamma> L' \<mu> \<Gamma> U D)
         with conflict_Sm have Cm_def: "Cm = add_mset L' (add_mset L D)" and \<gamma>m_def: "\<gamma>m = \<gamma>"
           by simp_all
         with factorizeI(3,4) have "trail_false_cls (state_trail S1) ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>)"
@@ -1828,9 +1812,6 @@ proof -
            apply auto
           by (smt (verit, best) atm_of_subst_lit finite.emptyI finite.insertI insertE is_unifier_alt
               is_unifiers_def singletonD)
-        with factorizeI(5) have "trail_false_cls (state_trail S1) ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>')"
-          using subst_cls_restrict_subst_domain
-          by (metis add_mset_add_single order_refl)
         with factorizeI(2) show ?thesis
           using \<open>suffix (state_trail Sm') (state_trail S1)\<close>
           by (metis add_mset_add_single state_conflict_simp)
@@ -1848,50 +1829,39 @@ proof -
         from resolveI sound_Sm have
           ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
           ground_reso: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)" and
-          dom_\<gamma>\<^sub>C: "subst_domain \<gamma>\<^sub>C \<subseteq> vars_cls (add_mset L C)" and
-          (* dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls (add_mset K D)" and *)
+          dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls (add_mset K D)" and
           "sound_trail N \<Gamma>"
           unfolding sound_state_def \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
           by (simp_all add: minimal_ground_closures_def propagate_lit_def)
 
-        have "trail_false_cls (state_trail S1) ((C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot>
-          rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C \<cdot> rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D)"
-        proof (rule trail_false_plusI)
-          show "trail_false_cls (state_trail S1) (add_mset L C \<cdot> \<gamma>\<^sub>C)"
-            using tr_false_S1_conf .
-        next 
-          show "trail_false_cls \<Gamma>' (D \<cdot> \<gamma>\<^sub>D)" 
-            using resolveI \<open>sound_trail N \<Gamma>\<close>
-            by (auto simp: propagate_lit_def elim: sound_trail.cases)
-        next
+        let ?\<gamma> = "rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D \<odot> rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C"
+        have
+          "L \<cdot>l \<rho>\<^sub>C \<cdot>l ?\<gamma> = L \<cdot>l \<gamma>\<^sub>C" and
+          "C \<cdot> \<rho>\<^sub>C \<cdot> ?\<gamma> = C \<cdot> \<gamma>\<^sub>C" and
+          "K \<cdot>l \<rho>\<^sub>D \<cdot>l ?\<gamma> = K \<cdot>l \<gamma>\<^sub>D" and
+          "D \<cdot> \<rho>\<^sub>D \<cdot> ?\<gamma> = D \<cdot> \<gamma>\<^sub>D" and
+          "\<mu> \<odot> ?\<gamma> = ?\<gamma>"
+          using renamed_comp_renamed_simp[OF \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> ground_conf
+            ground_reso dom_\<gamma>\<^sub>D \<open>is_renaming \<rho>\<^sub>C\<close> \<open>is_renaming \<rho>\<^sub>D\<close>
+            \<open>vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D) = {}\<close>]
+            \<open>is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}\<close>
+          by simp_all
+
+        moreover have "trail_false_cls (state_trail S1) (D \<cdot> \<gamma>\<^sub>D)"
+        proof (rule trail_false_cls_if_trail_false_suffix)
           show "suffix \<Gamma>' (state_trail S1)"
             using resolveI \<open>suffix (state_trail Sm') (state_trail S1)\<close>
             by (metis (no_types, opaque_lifting) state_trail_simp suffix_order.trans
                 suffix_trail_propagate)
         next
-          show "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)"
-            using ground_conf .
-        next
-          show "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)"
-            using ground_reso .
-        next
-          show "subst_domain \<gamma>\<^sub>C \<subseteq> vars_cls (add_mset L C)"
-            using dom_\<gamma>\<^sub>C .
-        next
-          show "is_renaming \<rho>\<^sub>C"
-            using resolveI by simp
-        next
-          show "is_renaming \<rho>\<^sub>D"
-            using resolveI by simp
-        next
-          show "vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D) = {}"
-            using resolveI by simp
+          show "trail_false_cls \<Gamma>' (D \<cdot> \<gamma>\<^sub>D)" 
+            using resolveI \<open>sound_trail N \<Gamma>\<close>
+            by (auto simp: propagate_lit_def elim: sound_trail.cases)
         qed
-        hence "trail_false_cls (state_trail S1) ((C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu> \<cdot>
-          (rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C \<odot> rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D))"
-          using imgu_idempotent_on_renamed_comp_renamed[OF _ dom_\<gamma>\<^sub>C ground_conf ground_reso]
-          using resolveI(3-)
-          by (metis is_renaming_iff subst_cls_comp_subst)
+
+        ultimately have "trail_false_cls (state_trail S1) ((C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu> \<cdot> ?\<gamma>)"
+          using tr_false_S1_conf
+          by (metis add_mset_add_single subst_cls_comp_subst subst_cls_union trail_false_cls_plus)
         hence "trail_false_cls (state_trail S1) ((C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu> \<cdot> \<gamma>)"
           unfolding resolveI(3-)
           by (simp add: subst_cls_restrict_subst_domain)
