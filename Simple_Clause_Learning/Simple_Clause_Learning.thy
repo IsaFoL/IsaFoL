@@ -3375,74 +3375,37 @@ subsection \<open>Sound Trail\<close>
 abbreviation entails_\<G> (infix "\<TTurnstile>\<G>e" 50) where
   "entails_\<G> N U \<equiv> grounding_of_clss N \<TTurnstile>e grounding_of_clss U"
 
-inductive sound_trail for N where
-  Nil[simp]: "sound_trail N []" |
-  Cons: "
-    (case u of None \<Rightarrow> True | Some (C, L', \<gamma>) \<Rightarrow> fset N \<TTurnstile>\<G>e {add_mset L' C}) \<Longrightarrow>
-    sound_trail N \<Gamma> \<Longrightarrow> sound_trail N ((L, u) # \<Gamma>)"
+definition sound_trail where
+  "sound_trail N \<Gamma> \<longleftrightarrow>
+    (\<forall>Ln \<in> set \<Gamma>. \<forall>D K \<gamma>. snd Ln = Some (D, K, \<gamma>) \<longrightarrow> fset N \<TTurnstile>\<G>e {add_mset K D})"
+
+lemma sound_trail_Nil[simp]: "sound_trail N []"
+  by (simp add: sound_trail_def)
 
 lemma entails_\<G>_mono: "N \<TTurnstile>\<G>e U \<Longrightarrow> N \<subseteq> NN \<Longrightarrow> NN \<TTurnstile>\<G>e U"
   by (meson grounding_of_clss_mono true_clss_mono)
 
 lemma sound_trail_supersetI: "sound_trail N \<Gamma> \<Longrightarrow> N |\<subseteq>| NN \<Longrightarrow> sound_trail NN \<Gamma>"
-proof (induction \<Gamma> rule: sound_trail.induct)
-  case Nil
-  thus ?case by simp
-next
-  case (Cons u L \<Gamma>)
-  show ?case
-  proof (intro sound_trail.Cons)
-    show
-      "case u of
-        None \<Rightarrow> True
-      | Some (C, L', \<gamma>) \<Rightarrow> fset NN \<TTurnstile>\<G>e {add_mset L' C}"
-    proof (cases u)
-      case None
-      then show ?thesis by simp
-    next
-      case (Some Cl)
-      moreover obtain C L' \<gamma> where Cl_def: "Cl = (C, L', \<gamma>)"
-        using prod_cases3 by blast
-      moreover have "fset NN \<TTurnstile>\<G>e {C + {#L'#}}"
-      proof -
-        have "fset N \<TTurnstile>\<G>e {C + {#L'#}}"
-          using Cons.hyps
-          by (auto simp: Some Cl_def)
-        thus ?thesis
-          apply (rule entails_\<G>_mono)
-          using Cons.prems by (simp add: less_eq_fset.rep_eq)
-      qed
-      ultimately show ?thesis
-        using Cons by simp
-    qed
-  qed (use Cons in simp_all)
-qed
+  unfolding sound_trail_def
+  by (meson entails_\<G>_mono less_eq_fset.rep_eq)
 
-lemma sound_subtrailI[intro]: "sound_trail N (Ln # \<Gamma>) \<Longrightarrow> sound_trail N \<Gamma>"
-  by (auto elim: sound_trail.cases)
+lemma sound_trail_ConsD: "sound_trail N (Ln # \<Gamma>) \<Longrightarrow> sound_trail N \<Gamma>"
+  by (simp add: sound_trail_def)
 
 lemma sound_trail_appendD: "sound_trail N (\<Gamma> @ \<Gamma>') \<Longrightarrow> sound_trail N \<Gamma>'"
-  by (induction \<Gamma>) auto
+  by (induction \<Gamma>) (auto intro: sound_trail_ConsD)
 
 lemma sound_trail_propagate:
   assumes
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_C_L: "fset N \<TTurnstile>\<G>e {C + {#L#}}"
   shows "sound_trail N (trail_propagate \<Gamma> L C \<sigma>)"
-  unfolding propagate_lit_def
-proof (rule sound_trail.Cons; (unfold option.case prod.case)?)
-  show "sound_trail N \<Gamma>"
-    by (rule sound_\<Gamma>)
-next
-  show "fset N \<TTurnstile>\<G>e {add_mset L C}"
-    using N_entails_C_L by auto
-qed
+  using assms
+  by (simp add: sound_trail_def propagate_lit_def)
 
 lemma sound_trail_decide:
-  "sound_trail N \<Gamma> \<Longrightarrow> \<not> trail_defined_lit \<Gamma> L \<Longrightarrow> is_ground_lit L \<Longrightarrow>
-  sound_trail N (trail_decide \<Gamma> L)"
-  unfolding decide_lit_def
-  by (auto intro: sound_trail.Cons)
+  "sound_trail N \<Gamma> \<Longrightarrow> sound_trail N (trail_decide \<Gamma> L)"
+  by (simp add: sound_trail_def decide_lit_def)
 
 
 subsection \<open>Sound State\<close>
@@ -3683,7 +3646,8 @@ proof (cases N \<beta> S S' rule: skip.cases)
 
   ultimately show ?thesis
     using sound
-    by (auto simp: sound_state_def trail_atoms_lt_def elim!: subtrail_falseI)
+    by (auto simp: sound_state_def trail_atoms_lt_def
+        intro: sound_trail_ConsD elim!: subtrail_falseI)
 qed
 
 lemma factorize_preserves_sound_state:
@@ -3780,9 +3744,8 @@ proof (cases N \<beta> S S' rule: resolve.cases)
 
   from sound_\<Gamma> have
     N_entails_prop: "fset N \<TTurnstile>\<G>e {add_mset K D}"
-    unfolding sound_trail.simps[of _ \<Gamma>]
-    unfolding \<Gamma>_def propagate_lit_def
-    by auto
+    unfolding sound_trail_def \<Gamma>_def
+    by (simp add: propagate_lit_def)
 
   from \<open>ground_closures S\<close> have
     ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
@@ -3914,7 +3877,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
     from sound_\<Gamma> have "sound_trail N \<Gamma>"
       by (rule sound_trail_supersetI) auto
     then show ?thesis
-      by (auto simp: \<Gamma>_def decide_lit_def intro: sound_trail_appendD)
+      by (auto simp: \<Gamma>_def decide_lit_def intro: sound_trail_ConsD sound_trail_appendD)
   qed
 
   moreover have "fset N \<TTurnstile>\<G>e (fset U \<union> {D + {#L#}})"
