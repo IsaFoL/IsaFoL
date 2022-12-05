@@ -1829,9 +1829,10 @@ proof -
         from resolveI sound_Sm have
           ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
           ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)" and
-          "sound_trail N \<Gamma>"
+          "sound_trail N \<Gamma>" and
+          "trail_closures_false \<Gamma>"
           unfolding sound_state_def \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
-          by (simp_all add: ground_closures_def propagate_lit_def)
+          by (simp_all add: ground_closures_def propagate_lit_def trail_closures_false'_def)
 
         let ?\<gamma>\<^sub>D' = "restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D"
 
@@ -1864,8 +1865,8 @@ proof -
                 suffix_trail_propagate)
         next
           show "trail_false_cls \<Gamma>' (D \<cdot> \<gamma>\<^sub>D)" 
-            using resolveI \<open>sound_trail N \<Gamma>\<close>
-            by (auto simp: propagate_lit_def elim: sound_trail.cases)
+            using resolveI \<open>trail_closures_false \<Gamma>\<close>
+            by (auto simp: propagate_lit_def elim: trail_closures_false.cases)
         qed
 
         ultimately have "trail_false_cls (state_trail S1) ((C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu> \<cdot> ?\<gamma>)"

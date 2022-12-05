@@ -1286,6 +1286,18 @@ next
       trail_true_or_false_cls_if_defined by blast
 qed
 
+inductive trail_closures_false where
+  Nil[simp]: "trail_closures_false []" |
+  Cons:
+    "(case u of None \<Rightarrow> True | Some (D, _, \<gamma>) \<Rightarrow> trail_false_cls \<Gamma> (D \<cdot> \<gamma>)) \<Longrightarrow>
+    trail_closures_false \<Gamma> \<Longrightarrow> trail_closures_false ((L, u) # \<Gamma>)"
+
+lemma trail_closures_false_ConsD: "trail_closures_false (Ln # \<Gamma>) \<Longrightarrow> trail_closures_false \<Gamma>"
+  by (auto elim: trail_closures_false.cases)
+
+lemma trail_closures_false_appendD: "trail_closures_false (\<Gamma> @ \<Gamma>') \<Longrightarrow> trail_closures_false \<Gamma>'"
+  by (induction \<Gamma>) (auto elim: trail_closures_false.cases)
+
 lemma is_ground_lit_if_true_in_ground_trail:
   assumes "\<forall>L \<in> fst ` set \<Gamma>. is_ground_lit L"
   shows "trail_true_lit \<Gamma> L \<Longrightarrow> is_ground_lit L"
@@ -2350,6 +2362,107 @@ lemma scl_preserves_trail_lits_consistent:
     backtrack_preserves_trail_lits_consistent
   by metis
 
+
+subsection \<open>Trail Closures Are False In Subtrails\<close>
+
+definition trail_closures_false' where
+  "trail_closures_false' S \<longleftrightarrow> trail_closures_false (state_trail S)"
+
+lemma trail_closures_false'_initial_state[simp]: "trail_closures_false' initial_state"
+  by (simp add: trail_closures_false'_def)
+
+lemma propagate_preserves_trail_closures_false':
+  assumes step: "propagate N \<beta> S S'" and invar: "trail_closures_false' S"
+  shows "trail_closures_false' S'"
+  using step
+proof (cases N \<beta> S S' rule: propagate.cases)
+  case step_hyps: (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu>)
+  have "is_unifier \<gamma> (atm_of ` set_mset (add_mset L C\<^sub>1))"
+    unfolding step_hyps
+    by (auto simp add: is_unifier_alt intro: subst_atm_of_eqI)
+  hence "\<mu> \<odot> \<gamma> = \<gamma>"
+    using \<open>is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>
+    by (simp add: is_imgu_def is_unifiers_def)
+  hence "trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma>)"
+    using \<open>trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>)\<close>
+    by (metis subst_cls_comp_subst)
+  with invar show ?thesis
+    unfolding step_hyps(1,2)
+    by (simp add: trail_closures_false'_def propagate_lit_def trail_closures_false.Cons)
+qed
+
+lemma decide_preserves_trail_closures_false':
+  assumes step: "decide N \<beta> S S'" and invar: "trail_closures_false' S"
+  shows "trail_closures_false' S'"
+  using step
+proof (cases N \<beta> S S' rule: decide.cases)
+  case step_hyps: (decideI L \<gamma> \<Gamma> U)
+  with invar show ?thesis
+    by (simp add: trail_closures_false'_def decide_lit_def trail_closures_false.Cons)
+qed
+
+lemma conflict_preserves_trail_closures_false':
+  assumes step: "conflict N \<beta> S S'" and invar: "trail_closures_false' S"
+  shows "trail_closures_false' S'"
+  using step
+proof (cases N \<beta> S S' rule: conflict.cases)
+  case (conflictI D U \<gamma> \<Gamma>)
+  with invar show ?thesis
+    by (simp add: trail_closures_false'_def)
+qed
+
+lemma skip_preserves_trail_closures_false':
+  assumes step: "skip N \<beta> S S'" and invar: "trail_closures_false' S"
+  shows "trail_closures_false' S'"
+  using step
+proof (cases N \<beta> S S' rule: skip.cases)
+  case (skipI L D \<sigma> n \<Gamma> U)
+  with invar show ?thesis
+    by (simp add: trail_closures_false'_def trail_closures_false_ConsD)
+qed
+
+lemma factorize_preserves_trail_closures_false':
+  assumes step: "factorize N \<beta> S S'" and invar: "trail_closures_false' S"
+  shows "trail_closures_false' S'"
+  using step
+proof (cases N \<beta> S S' rule: factorize.cases)
+  case (factorizeI L \<gamma> L' \<mu> \<Gamma> U D)
+  with invar show ?thesis
+    by (simp add: trail_closures_false'_def)
+qed
+
+lemma resolve_preserves_trail_closures_false':
+  assumes step: "resolve N \<beta> S S'" and invar: "trail_closures_false' S"
+  shows "trail_closures_false' S'"
+  using step
+proof (cases N \<beta> S S' rule: resolve.cases)
+  case (resolveI \<Gamma> \<Gamma>' K D \<gamma>\<^sub>D L \<gamma>\<^sub>C \<rho>\<^sub>C \<rho>\<^sub>D C \<mu> \<gamma> U)
+  with invar show ?thesis
+    by (simp add: trail_closures_false'_def)
+qed
+
+lemma backtrack_preserves_trail_closures_false':
+  assumes step: "backtrack N \<beta> S S'" and invar: "trail_closures_false' S"
+  shows "trail_closures_false' S'"
+  using step
+proof (cases N \<beta> S S' rule: backtrack.cases)
+  case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' K L \<sigma> D U)
+  with invar show ?thesis
+    by (auto simp add: trail_closures_false'_def
+        intro: trail_closures_false_ConsD trail_closures_false_appendD)
+qed
+
+lemma scl_preserves_trail_closures_false':
+  assumes "scl N \<beta> S S'" and "trail_closures_false' S"
+  shows "trail_closures_false' S'"
+  using assms unfolding scl_def
+  using propagate_preserves_trail_closures_false' decide_preserves_trail_closures_false'
+    conflict_preserves_trail_closures_false' skip_preserves_trail_closures_false'
+    factorize_preserves_trail_closures_false' resolve_preserves_trail_closures_false'
+    backtrack_preserves_trail_closures_false'
+  by metis
+
+
 subsection \<open>Trail Literals Were Propagated or Decided\<close>
 
 inductive trail_propagated_or_decided for N \<beta> U where
@@ -3265,9 +3378,7 @@ abbreviation entails_\<G> (infix "\<TTurnstile>\<G>e" 50) where
 inductive sound_trail for N where
   Nil[simp]: "sound_trail N []" |
   Cons: "
-    (case u of
-      None \<Rightarrow> True |
-      Some (C, L', \<gamma>) \<Rightarrow> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset N \<TTurnstile>\<G>e {add_mset L' C}) \<Longrightarrow>
+    (case u of None \<Rightarrow> True | Some (C, L', \<gamma>) \<Rightarrow> fset N \<TTurnstile>\<G>e {add_mset L' C}) \<Longrightarrow>
     sound_trail N \<Gamma> \<Longrightarrow> sound_trail N ((L, u) # \<Gamma>)"
 
 lemma entails_\<G>_mono: "N \<TTurnstile>\<G>e U \<Longrightarrow> N \<subseteq> NN \<Longrightarrow> NN \<TTurnstile>\<G>e U"
@@ -3284,7 +3395,7 @@ next
     show
       "case u of
         None \<Rightarrow> True
-      | Some (C, L', \<gamma>) \<Rightarrow> trail_false_cls L (C \<cdot> \<gamma>) \<and> fset NN \<TTurnstile>\<G>e {add_mset L' C}"
+      | Some (C, L', \<gamma>) \<Rightarrow> fset NN \<TTurnstile>\<G>e {add_mset L' C}"
     proof (cases u)
       case None
       then show ?thesis by simp
@@ -3316,7 +3427,6 @@ lemma sound_trail_appendD: "sound_trail N (\<Gamma> @ \<Gamma>') \<Longrightarro
 lemma sound_trail_propagate:
   assumes
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
-    tr_false_\<Gamma>_C_\<sigma>: "trail_false_cls \<Gamma> (C \<cdot> \<sigma>)" and
     N_entails_C_L: "fset N \<TTurnstile>\<G>e {C + {#L#}}"
   shows "sound_trail N (trail_propagate \<Gamma> L C \<sigma>)"
   unfolding propagate_lit_def
@@ -3324,8 +3434,8 @@ proof (rule sound_trail.Cons; (unfold option.case prod.case)?)
   show "sound_trail N \<Gamma>"
     by (rule sound_\<Gamma>)
 next
-  show "trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<and> fset N \<TTurnstile>\<G>e {add_mset L C}"
-    using tr_false_\<Gamma>_C_\<sigma> N_entails_C_L by auto
+  show "fset N \<TTurnstile>\<G>e {add_mset L C}"
+    using N_entails_C_L by auto
 qed
 
 lemma sound_trail_decide:
@@ -3339,7 +3449,7 @@ subsection \<open>Sound State\<close>
 
 definition sound_state :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow> bool" where
   "sound_state N \<beta> S \<longleftrightarrow>
-    ground_closures S \<and>
+    ground_closures S \<and> trail_closures_false' S \<and>
     (\<exists>\<Gamma> U u. S = (\<Gamma>, U, u) \<and> sound_trail N \<Gamma> \<and> fset N \<TTurnstile>\<G>e fset U \<and>
     (case u of None \<Rightarrow> True
     | Some (C, \<gamma>) \<Rightarrow> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset N \<TTurnstile>\<G>e {C}))"
@@ -3349,6 +3459,10 @@ subsection \<open>Miscellaneous Lemmas\<close>
 
 lemma ground_closures_if_sound_state:
   "sound_state N \<beta> S \<Longrightarrow> ground_closures S"
+  unfolding sound_state_def by auto
+
+lemma trail_closures_false'_if_sound_state:
+  "sound_state N \<beta> S \<Longrightarrow> trail_closures_false' S"
   unfolding sound_state_def by auto
 
 
@@ -3415,9 +3529,6 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     show "sound_trail N \<Gamma>"
       by (rule sound_\<Gamma>)
   next
-    show "trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma>)"
-      using \<Gamma>_false_C\<^sub>0_\<gamma> \<mu>_\<gamma>_simp by (metis subst_cls_comp_subst)
-  next
     from C_in N_entails_U have "fset N \<TTurnstile>\<G>e {C}"
       by (metis (no_types, opaque_lifting) empty_subsetI funion_iff grounding_of_clss_mono
           insert_subset notin_fset true_clss_mono)
@@ -3473,6 +3584,11 @@ proof (cases N \<beta> S S' rule: propagate.cases)
       step[THEN propagate_preserves_ground_closures]
     by argo
 
+  moreover have "trail_closures_false' S'"
+    using sound[THEN trail_closures_false'_if_sound_state]
+      step[THEN propagate_preserves_trail_closures_false']
+    by argo
+
   ultimately show ?thesis
     unfolding S'_def sound_state_def
     using N_entails_U by simp
@@ -3495,6 +3611,11 @@ proof (cases N \<beta> S S' rule: decide.cases)
   moreover have "ground_closures S'"
     using sound[THEN ground_closures_if_sound_state]
       step[THEN decide_preserves_ground_closures]
+    by argo
+
+  moreover have "trail_closures_false' S'"
+    using sound[THEN trail_closures_false'_if_sound_state]
+      step[THEN decide_preserves_trail_closures_false']
     by argo
 
   ultimately show ?thesis
@@ -3533,6 +3654,11 @@ proof (cases N \<beta> S S' rule: conflict.cases)
       step[THEN conflict_preserves_ground_closures]
     by argo
 
+  moreover have "trail_closures_false' S'"
+    using sound[THEN trail_closures_false'_if_sound_state]
+      step[THEN conflict_preserves_trail_closures_false']
+    by argo
+
   ultimately show ?thesis
     unfolding conflictI(1,2) sound_state_def
     using sound_\<Gamma> N_entails_U by simp
@@ -3548,6 +3674,11 @@ proof (cases N \<beta> S S' rule: skip.cases)
   moreover have "ground_closures S'"
     using sound[THEN ground_closures_if_sound_state]
       step[THEN skip_preserves_ground_closures]
+    by argo
+
+  moreover have "trail_closures_false' S'"
+    using sound[THEN trail_closures_false'_if_sound_state]
+      step[THEN skip_preserves_trail_closures_false']
     by argo
 
   ultimately show ?thesis
@@ -3613,6 +3744,11 @@ proof (cases N \<beta> S S' rule: factorize.cases)
       step[THEN factorize_preserves_ground_closures]
     by argo
 
+  moreover have "trail_closures_false' S'"
+    using sound[THEN trail_closures_false'_if_sound_state]
+      step[THEN factorize_preserves_trail_closures_false']
+    by argo
+
   ultimately show ?thesis
     unfolding factorizeI sound_state_def
     using sound_\<Gamma> N_entails_U by simp
@@ -3633,21 +3769,16 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     disjoint_vars: "vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D) = {}"
     by simp_all
 
-  from ren_\<rho>\<^sub>C ren_\<rho>\<^sub>D have
-    "\<forall>x. is_Var (\<rho>\<^sub>C x)" "inj \<rho>\<^sub>C"
-    "\<forall>x. is_Var (\<rho>\<^sub>D x)" "inj \<rho>\<^sub>D"
-    by (simp_all add: is_renaming_iff)
-
   from sound have
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
     tr_false_conf: "trail_false_cls \<Gamma> (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
     N_entails_conf: "fset N \<TTurnstile>\<G>e {add_mset L C}" and
-    "ground_closures S"
+    "ground_closures S" and
+    "trail_closures_false' S"
     unfolding resolveI(1,2) sound_state_def by simp_all
 
   from sound_\<Gamma> have
-    tr_false_prop: "trail_false_cls \<Gamma>' (D \<cdot> \<gamma>\<^sub>D)" and
     N_entails_prop: "fset N \<TTurnstile>\<G>e {add_mset K D}"
     unfolding sound_trail.simps[of _ \<Gamma>]
     unfolding \<Gamma>_def propagate_lit_def
@@ -3658,6 +3789,11 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)"
     unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
     by (simp_all add: propagate_lit_def ground_closures_def)
+
+  from \<open>trail_closures_false' S\<close> have
+    tr_false_prop: "trail_false_cls \<Gamma>' (D \<cdot> \<gamma>\<^sub>D)"
+    unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
+    by (auto simp: propagate_lit_def trail_closures_false'_def elim: trail_closures_false.cases)
 
   let ?\<gamma>\<^sub>D' = "restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D"
 
@@ -3749,6 +3885,11 @@ proof (cases N \<beta> S S' rule: resolve.cases)
       step[THEN resolve_preserves_ground_closures]
     by metis
 
+  moreover have "trail_closures_false' S'"
+    using sound[THEN trail_closures_false'_if_sound_state]
+      step[THEN resolve_preserves_trail_closures_false']
+    by argo
+
   ultimately show ?thesis
     unfolding resolveI sound_state_def
     using N_entails_U by simp
@@ -3782,6 +3923,11 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
   moreover have "ground_closures S'"
     using sound[THEN ground_closures_if_sound_state]
       step[THEN backtrack_preserves_ground_closures]
+    by argo
+
+  moreover have "trail_closures_false' S'"
+    using sound[THEN trail_closures_false'_if_sound_state]
+      step[THEN backtrack_preserves_trail_closures_false']
     by argo
 
   ultimately show ?thesis
