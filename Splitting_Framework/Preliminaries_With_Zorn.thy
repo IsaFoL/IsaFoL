@@ -58,15 +58,6 @@ lift_definition less_eq_sign :: "'a::{countable,linorder} sign \<Rightarrow> 'a 
 
 find_theorems "_ \<Longrightarrow> OFCLASS(_,linorder_class)"
 
-(*
-instance sign :: (linorder) linorder
-  apply (rule Orderings.class.Orderings.linorder.of_class.intro)
-  unfolding class.linorder_def class.order_def class.preorder_def class.order_axioms_def
-    class.linorder_axioms_def
-  apply auto
-  sorry  
-*)
-
 fun neg :: \<open>'a sign \<Rightarrow> 'a sign\<close> where
   \<open>neg (Pos C) = Neg C\<close> |
   \<open>neg (Neg C) = Pos C\<close>
@@ -151,6 +142,7 @@ lemma zorn_relation_antisym :  \<open>\<forall>C1 C2. (C1 \<preceq>\<^sub>s C2) 
         by auto
     qed
 
+ (* Splitting report Lemma 5 *) 
 lemma entails_supsets : "(\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile> N') \<Longrightarrow> M \<Turnstile> N"
 proof (rule ccontr)
   assume
@@ -2829,6 +2821,72 @@ next
   qed
 qed
 
+(* Splitting report Lemma 4, 2/2 *)
+interpretation AF_sound_cons_rel: consequence_relation "to_AF bot" AF_entails_sound
+proof
+  show \<open>{to_AF bot} \<Turnstile>s\<^sub>A\<^sub>F {}\<close>
+   (* using sound_cons.bot_entails_empty sound_cons.entails_subsets *)
+   unfolding AF_entails_sound_def enabled_def enabled_projection_def
+  proof clarsimp
+   fix J
+   assume \<open>enabled_set {} J\<close>
+   have bot_in: \<open>{Pos bot} \<subseteq> Pos ` {C. C = F_of (to_AF bot) \<and> fset (A_of (to_AF bot)) \<subseteq> total_strip J}›
+     unfolding to_AF_def by simp
+   show \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union>
+     Pos ` {C. C = F_of (to_AF bot) \<and> fset (A_of (to_AF bot)) \<subseteq> total_strip J}) {}\<close>
+     using sound_cons.bot_entails_empty sound_cons.entails_subsets bot_in
+     by (smt (verit, ccfv_threshold) AF.sel(2) Un_iff bot_fset.rep_eq
+       consequence_relation.bot_entails_empty consequence_relation.entails_subsets empty_subsetI
+       image_iff mem_Collect_eq sound_cons.ext_cons_rel subset_eq to_AF_def)
+ qed
+next
+  fix \<C> :: "('f, 'v) AF"
+  have \<open>Pos ` {F_of Ca |Ca. Ca \<in> {\<C>} \<and> fset (A_of Ca) \<subseteq> total_strip J} \<subseteq> (Pos ` F_of ` {\<C>})\<close>
+    by auto
+  show \<open>{\<C>} \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+    unfolding AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
+  proof clarsimp
+    fix J
+    assume \<open>fset (A_of \<C>) \<subseteq> total_strip J\<close>
+    show \<open>sound_cons.entails_neg (Pos (F_of \<C>) \<triangleright> fml_ext ` total_strip J) {Pos (F_of \<C>)}\<close>
+      using sound_cons.entails_reflexive[of "F_of \<C>"]
+      by (smt (verit, best) Set.insert_mono bot.extremum consequence_relation.entails_reflexive
+        consequence_relation.entails_subsets sound_cons.ext_cons_rel)
+  qed
+next
+  fix M N P Q
+  assume m_in_n: \<open>M \<subseteq> N\<close> and
+    p_in_q: \<open>P \<subseteq> Q\<close> and
+    m_entails_p: \<open>M \<Turnstile>s\<^sub>A\<^sub>F P\<close>
+  show \<open>N \<Turnstile>s\<^sub>A\<^sub>F Q\<close>
+    unfolding AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
+  proof clarsimp
+    fix J
+    assume q_enabled: \<open>\<forall>\<C>\<in>Q. fset (A_of \<C>) \<subseteq> total_strip J\<close>
+    have \<open>{F_of \<C> |\<C>. \<C> \<in> M \<and> fset (A_of \<C>) \<subseteq> total_strip J} \<subseteq>
+      {F_of \<C> |\<C>. \<C> \<in> N \<and> fset (A_of \<C>) \<subseteq> total_strip J}\<close>
+      using m_in_n by blast
+    moreover have \<open>F_of ` P \<subseteq> F_of ` Q\<close>
+      using p_in_q by blast
+    ultimately show \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union>
+      Pos ` {F_of \<C> |\<C>. \<C> \<in> N \<and> fset (A_of \<C>) \<subseteq> total_strip J}) (Pos ` F_of ` Q)\<close>
+      using m_entails_p sound_cons.entails_subsets m_in_n p_in_q q_enabled
+      unfolding AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
+      by (smt (z3) Un_iff consequence_relation.entails_subsets image_iff mem_Collect_eq
+        sound_cons.ext_cons_rel subset_eq)
+  qed
+next
+  fix M N \<C> M' N'
+  assume \<open>M \<Turnstile>s\<^sub>A\<^sub>F N \<union> {\<C>}\<close> and
+    \<open>M' \<union> {\<C>} \<Turnstile>s\<^sub>A\<^sub>F N'\<close>
+  show \<open>M \<union> M' \<Turnstile>s\<^sub>A\<^sub>F N \<union> N'›
+      sorry
+next
+  fix M N
+    assume \<open>M \<Turnstile>s\<^sub>A\<^sub>F N\<close>
+    show \<open>\<exists>M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile>s\<^sub>A\<^sub>F N'\<close>
+      sorry
+qed *)
 
 lemma [simp]: \<open>F_of ` to_AF ` N = N\<close>
   unfolding to_AF_def by force
@@ -2906,7 +2964,7 @@ proof -
   then show ?thesis by simp
 qed
 
-  (* Splitting report Lemma 6, 1/2 *)
+(* Splitting report Lemma 6, 1/2 *)
 lemma \<open>(to_AF ` M \<Turnstile>\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile> N)\<close>
   unfolding AF_entails_def by simp
 
@@ -2918,6 +2976,97 @@ interpretation ext_cons_rel_std: consequence_relation "Pos (to_AF bot)" AF_cons_
 interpretation sound_cons_rel: consequence_relation "Pos bot" sound_cons.entails_neg
   using sound_cons.ext_cons_rel .
     
+(* Splitting report Lemma 6, 2/2 *)
+lemma \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
+proof -
+  {
+    fix M N
+    assume m_to_n: \<open>M \<Turnstile>s N\<close>
+    have \<open>to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N\<close>
+      unfolding AF_entails_sound_def sound_cons.entails_neg_def 
+    proof (simp, rule allI)
+      fix J
+      have \<open>M \<subseteq> {to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` M) \<and> is_Pos C}\<close>
+        by force
+      then show \<open> {C. Pos C \<in> fml_ext ` total_strip J \<or> Pos C \<in> Pos ` M} \<union>
+        {C. Neg C \<in> Pos ` N} \<Turnstile>s
+        {C. Pos C \<in> Pos ` N} \<union>
+        {C. Neg C \<in> fml_ext ` total_strip J \<or> Neg C \<in> Pos ` M}\<close>
+        (* using m_to_n by (meson sound_cons.entails_subsets sup.cobounded1) *)
+        sorry
+    qed
+  } moreover {
+    fix M N
+    assume \<open>to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N\<close>
+    have all_bigger_entail: \<open>\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile>s N'\<close>
+    proof clarsimp 
+      fix M' N'
+      assume \<open>M \<subseteq> M'\<close> and
+        \<open>N \<subseteq> N'\<close> and
+        union_mnp_is_univ: \<open>M' \<union> N' = UNIV\<close>
+        {
+      assume \<open>M' \<inter> N' \<noteq> {}\<close>
+      then have \<open>M' \<Turnstile>s N'\<close>
+        using sound_cons.entails_reflexive sound_cons.entails_subsets
+        by (meson Int_lower1 Int_lower2 sound_cons.entails_cond_reflexive)
+          }
+      moreover {
+        assume empty_inter_mp_np: \<open>M' \<inter> N' = {}\<close>
+        define Jpos where \<open>Jpos = {v. to_V (fml_ext v) \<in> M' \<and> is_Pos v}\<close>
+          (* /!\ Jneg is empty because of sign preservation of fml_ext. Find correct definition! /!\ *)
+        define Jneg where \<open>Jneg = {v |v. to_V (fml_ext v) \<in> N' \<and> \<not> is_Pos v}\<close>
+        define Jstrip where \<open>Jstrip = Jpos \<union> Jneg\<close>
+        have \<open>is_interpretation Jstrip\<close>
+          unfolding is_interpretation_def 
+        proof (clarsimp, rule ccontr)
+          fix v1 v2
+          assume v1_in: \<open>v1 \<in> Jstrip\<close> and
+            v2_in: \<open>v2 \<in> Jstrip\<close> and
+            v12_eq: \<open>to_V v1 = to_V v2\<close> and
+            contra: \<open>v1 \<noteq> v2\<close>
+          have pos_neg_cases: \<open>(v1 \<in> Jpos \<and> v2 \<in> Jneg) \<or> (v1 \<in> Jneg \<and> v2 \<in> Jpos)\<close>
+            using v1_in v2_in contra unfolding Jstrip_def Jpos_def Jneg_def (* by force *) sorry 
+          then have \<open>to_V (fml_ext v1) \<noteq> to_V (fml_ext v2)\<close>
+            using empty_inter_mp_np unfolding Jneg_def Jpos_def by auto 
+          then show \<open>False\<close>
+            using fml_ext_preserves_val[OF v12_eq] by blast 
+        qed
+        then obtain Jinterp where \<open>Jinterp = interp_of Jstrip\<close> by simp
+        have \<open>total Jinterp\<close> unfolding total_def
+          sorry
+        (* proof (intro allI)
+          fix v::"'v sign"
+            {
+          assume \<open>to_V (fml_ext v) \<in> M'\<close>
+          then have \<open>(Pos (to_V (fml_ext v))) \<in> fml_ext ` Jpos\<close>
+            unfolding Jpos_def 
+            sorry
+            }
+          obtain v\<^sub>J where \<open>to_V v\<^sub>J = v\<close>
+            by (meson to_V.simps(1)) 
+          then have \<open>v\<^sub>J \<in> Jpos \<or> v\<^sub>J \<in> Jneg\<close>
+            using union_mnp_is_univ unfolding Jpos_def Jneg_def sorry
+          show \<open>\<exists>v\<^sub>J. v\<^sub>J \<in>\<^sub>J Jinterp \<and> to_V v\<^sub>J = v\<close>
+            sorry
+        qed *)
+      (* define J where \<open>J = total_interp_of ({v. fml_ext v \<in> Pos ` M'} \<union> {Neg v |v. fml_ext v \<notin> Pos ` M'})\<close>
+        (* why can I define J above without proving that UNIV is covered? This shouldn't work! *)
+      then have \<open>(fml_ext ` total_strip J) \<union> (Pos ` M) \<union> (Neg ` Pos ` N) \<subseteq> (Pos ` M') \<union> (Neg ` Pos ` N')\<close>
+
+        sorry *)
+      have \<open>M' \<Turnstile>s N'\<close>
+        sorry
+          }
+      ultimately show \<open>M' \<Turnstile>s N'\<close>
+        sorry
+    qed
+    have \<open>M \<Turnstile>s N\<close>
+      using sound_cons.entails_supsets[OF all_bigger_entail] .
+      }
+  ultimately show \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
+    sorry
+qed
+
 
 
 
@@ -2962,82 +3111,6 @@ interpretation sound_cons_rel: consequence_relation "Pos bot" sound_cons.entails
 end
 
 end
-
-    (* have \<open>\<forall>M' N'. M proj\<^sub>J J \<subseteq> M' \<and> F_of ` N \<subseteq> N' \<and> M' \<union> N' = UNIV \<longrightarrow> M' \<Turnstile> N'\<close>
-     * proof clarsimp
-     *   fix M' N'
-     *   assume proj_m: \<open>M proj\<^sub>J J \<subseteq> M'\<close> and
-     *     fn_in_np: \<open>F_of ` N \<subseteq> N'\<close> and
-     *     m_n_partition: \<open>M' \<union> N' = UNIV\<close>
-     *   show \<open>M' \<Turnstile> N'\<close>
-     *   proof (cases "M' \<inter> N' = {}")
-     *     case True
-     *     define \<N>' where np_def: \<open>\<N>' = {C. F_of C \<in> N' \<and> enabled C J}\<close>
-     *     define \<M>' where mp_def: \<open>\<M>' = UNIV - \<N>'\<close>
-     *     have \<open>M \<subseteq> \<M>'\<close>
-     *     proof
-     *       fix x
-     *       assume x_in: \<open>x \<in> M\<close>
-     *       have \<open>\<not> enabled x J \<or> F_of x \<in> M'\<close>
-     *         using proj_m unfolding enabled_def enabled_projection_def using x_in by blast 
-     *       then have \<open>x \<notin> \<N>'\<close>
-     *         unfolding np_def using True by fastforce 
-     *       then show \<open>x \<in> \<M>'\<close>
-     *         unfolding mp_def by blast 
-     *     qed
-     *     moreover have \<open>N \<subseteq> \<N>'\<close>
-     *       using fn_in_np enabled_n unfolding np_def enabled_set_def by force 
-     *     ultimately have mp_entails_af_np: \<open>\<M>' \<Turnstile>\<^sub>A\<^sub>F \<N>'\<close>
-     *       using prem_entails_supsets_af mp_def by simp 
-     *     moreover have enabled_np: \<open>enabled_set \<N>' J\<close>
-     *       unfolding np_def enabled_set_def by auto
-     *     moreover have \<open>F_of ` \<N>' = N'\<close>
-     *     proof (intro equalityI subsetI)
-     *       fix x
-     *       assume \<open>x \<in> F_of ` \<N>'\<close>
-     *       then show \<open>x \<in> N'\<close>
-     *         unfolding np_def by auto 
-     *     next
-     *       fix x
-     *       assume x_in: \<open>x \<in> N'\<close>
-     *       define C where \<open>C = Pair x (total_strip J)\<close>
-     *       have \<open>enabled C J\<close>
-     *         unfolding C_def enabled_def by auto 
-     *       then show \<open>x \<in> F_of ` \<N>'\<close>
-     *         unfolding C_def np_def using x_in by force 
-     *     qed
-     *     moreover have \<open>\<M>' proj\<^sub>J J = M'\<close>
-     *     proof (intro equalityI subsetI)
-     *       fix x
-     *       assume \<open>x \<in> \<M>' proj\<^sub>J J\<close>
-     *       then obtain C where f_of_c: \<open>F_of C = x\<close> and c_in: \<open>C \<in> \<M>'\<close> and c_enabled: \<open>enabled C J\<close>
-     *         unfolding enabled_projection_def by blast 
-     *       then show \<open>x \<in> M'\<close>
-     *         using m_n_partition unfolding mp_def np_def by auto
-     *     next
-     *       fix x
-     *       assume x_in: \<open>x \<in> M'\<close>
-     *       define C where \<open>C = Pair x (total_strip J)\<close>
-     *       then show \<open>x \<in> \<M>' proj\<^sub>J J\<close>
-     *         unfolding mp_def np_def enabled_projection_def using True x_in
-     *         by (smt (verit, del_insts) AF.sel(1) AF.sel(2) DiffI UNIV_I disjoint_iff enabled_def
-     *           mem_Collect_eq order_refl)
-     *     qed
-     *     ultimately show \<open>M' \<Turnstile> N'\<close>
-     *       unfolding AF_entails_def by blast 
-     *     next
-     *       case False
-     *       assume inter_not_empty: \<open>M' \<inter> N' \<noteq> {}\<close>
-     *       then obtain C where \<open>C \<in> M' \<inter> N'\<close> by blast 
-     *       then show \<open>M' \<Turnstile> N'\<close> using entails_reflexive entails_subsets
-     *         by (meson Int_lower1 Int_lower2 entails_cond_reflexive inter_not_empty)
-      *     qed
-
-     *     then show \<open>M proj\<^sub>J J \<Turnstile> F_of ` N\<close>
-     *       using entails_supsets by presburger 
-
-        *)
-
 
   (*
 
@@ -3267,7 +3340,7 @@ qed
 
 
 
-  (* Splitting report Lemma 5, 1/2 *)
+  (* Splitting report Lemma 6, 1/2 *)
 lemma \<open>(to_AF ` M \<Turnstile>\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile> N)\<close>
   unfolding AF_entails_def by simp
 
@@ -3294,7 +3367,7 @@ next
     by (clarsimp simp del: image_insert simp add: image_insert [symmetric]) blast
 qed
 
-    (* Splitting report Lemma 5, 2/2 *)
+    (* Splitting report Lemma 6, 2/2 *)
 lemma \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
 proof -
   {
@@ -3417,7 +3490,7 @@ qed
 
 
 
-  (* Splitting report Lemma 5, 2/2 *)
+  (* Splitting report Lemma 6, 2/2 *)
 lemma \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
 proof -
   fix M N
