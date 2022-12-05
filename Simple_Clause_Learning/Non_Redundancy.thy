@@ -1229,8 +1229,8 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     using S\<^sub>0_def by force
   with tr_false_\<Gamma>_L_\<mu> have "- (L \<cdot>l \<mu> \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
     unfolding propagate_lit_def by (metis subtrail_falseI)
-  then obtain D' L' where D_def: "D = add_mset L' D'" and 1: "L' \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<mu> \<cdot>l \<gamma>)"
-    by (metis Melem_subst_cls mset_add)
+  then obtain D' L' where D_def: "D = add_mset L' D'" and 1: "L \<cdot>l \<mu> \<cdot>l \<gamma> = - (L' \<cdot>l \<gamma>\<^sub>D)"
+    by (metis Melem_subst_cls multi_member_split uminus_of_uminus_id)
 
   define \<rho> where
     "\<rho> = renaming_wrt {add_mset L C\<^sub>0 \<cdot> \<mu>}"
@@ -1266,7 +1266,7 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     (?\<Gamma>prop, U, Some (add_mset L' D', \<gamma>\<^sub>D))
     (?\<Gamma>prop, U, Some ((D' \<cdot> \<rho> + C\<^sub>0 \<cdot> \<mu> \<cdot> Var) \<cdot> \<mu>', ?\<gamma>reso))"
   proof (rule resolveI[OF refl])
-    show "L' \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<mu> \<cdot>l \<gamma>)"
+    show "L \<cdot>l \<mu> \<cdot>l \<gamma> = - (L' \<cdot>l \<gamma>\<^sub>D)"
       by (rule 1)
   next
     show "is_renaming \<rho>"
@@ -1341,7 +1341,7 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
   have disjoint_vars: "\<And>C. vars_cls (C \<cdot> \<rho>\<rho>) \<inter> vars_cls (add_mset K D) = {}"
     by (simp add: \<rho>\<rho>_def vars_cls_subst_renaming_disj)
 
-  have "L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)"
+  have "K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C)"
   proof -
     have "L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C = L \<cdot>l \<gamma>\<^sub>C"
       using \<open>\<mu>\<^sub>L \<odot> \<gamma>\<^sub>C = \<gamma>\<^sub>C\<close>
@@ -1356,13 +1356,13 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
       using disjoint_vars[of "{#L \<cdot>l \<mu>\<^sub>L#}"] by auto
   next
     have "vars_term (atm_of L \<cdot>a \<mu>\<^sub>L) \<subseteq> subst_domain \<gamma>\<^sub>C"
-      by (metis \<open>L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> atm_of_subst_lit ground_conf is_ground_cls_add_mset
-          local.resolveI(4) subst_cls_add_mset vars_lit_subset_subst_domain_if_grounding)
+      by (metis \<open>\<mu>\<^sub>L \<odot> \<gamma>\<^sub>C = \<gamma>\<^sub>C\<close> atm_of_subst_lit ground_conf is_ground_cls_add_mset
+          subst_cls_add_mset subst_lit_comp_subst vars_lit_subset_subst_domain_if_grounding)
     hence "atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<rho>\<rho> \<cdot>a rename_subst_domain \<rho>\<rho> \<gamma>\<^sub>C = atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<gamma>\<^sub>C"
       using ren_\<rho>\<rho>
       by (simp add: is_renaming_iff renaming_cancels_rename_subst_domain)
     thus "atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<rho>\<rho> \<cdot>a rename_subst_domain \<rho>\<rho> \<gamma>\<^sub>C = atm_of K \<cdot>a \<gamma>\<^sub>D"
-      using \<open>L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close>
+      using \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C)\<close>
       by (metis atm_of_subst_lit atm_of_uminus)
   qed
   then obtain \<mu>\<mu> where imgu_\<mu>\<mu>: "is_imgu \<mu>\<mu> {{atm_of L \<cdot>a \<mu>\<^sub>L \<cdot>a \<rho>\<rho>, atm_of K}}"
@@ -1370,7 +1370,7 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
 
   show ?thesis
     unfolding S\<^sub>3_def \<open>add_mset LL CC \<cdot> \<mu>\<^sub>L = add_mset L CCC \<cdot> \<mu>\<^sub>L\<close>
-    using resolve.resolveI[OF \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close> \<open>L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> ren_\<rho>\<rho>
+    using resolve.resolveI[OF \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close> \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C)\<close> ren_\<rho>\<rho>
         is_renaming_id_subst, unfolded subst_atm_id_subst subst_cls_id_subst atm_of_subst_lit,
         OF disjoint_vars imgu_\<mu>\<mu> refl, of N \<beta> U "CCC \<cdot> \<mu>\<^sub>L"]
     by auto
@@ -1837,8 +1837,8 @@ proof -
 
         have "K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D" and "D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D"
           by (simp_all add: subst_lit_restrict_subst_domain subst_cls_restrict_subst_domain)
-        hence "L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l ?\<gamma>\<^sub>D')" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
-          using \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> ground_prop by simp_all
+        hence "K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
+          using \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)\<close> ground_prop by simp_all
 
         have dom_\<gamma>\<^sub>D': "subst_domain ?\<gamma>\<^sub>D' \<subseteq> vars_cls (add_mset K D)"
           by simp
@@ -1850,7 +1850,7 @@ proof -
           "K \<cdot>l \<rho>\<^sub>D \<cdot>l ?\<gamma> = K \<cdot>l \<gamma>\<^sub>D" and
           "D \<cdot> \<rho>\<^sub>D \<cdot> ?\<gamma> = D \<cdot> \<gamma>\<^sub>D" and
           "\<mu> \<odot> ?\<gamma> = ?\<gamma>"
-          using renamed_comp_renamed_simp[OF \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l ?\<gamma>\<^sub>D')\<close> ground_conf
+          using renamed_comp_renamed_simp[OF \<open>K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)\<close> ground_conf
             ground_prop' dom_\<gamma>\<^sub>D' \<open>is_renaming \<rho>\<^sub>C\<close> \<open>is_renaming \<rho>\<^sub>D\<close>
             \<open>vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D) = {}\<close>]
             \<open>is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}\<close> \<open>K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D\<close> \<open>D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D\<close>

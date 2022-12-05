@@ -1403,7 +1403,7 @@ inductive factorize :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<
 
 inductive resolve :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
-  resolveI: "\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D \<Longrightarrow> (L \<cdot>l \<gamma>\<^sub>C) = -(K \<cdot>l \<gamma>\<^sub>D) \<Longrightarrow>
+  resolveI: "\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D \<Longrightarrow> K \<cdot>l \<gamma>\<^sub>D = -(L \<cdot>l \<gamma>\<^sub>C) \<Longrightarrow>
     is_renaming \<rho>\<^sub>C \<Longrightarrow> is_renaming \<rho>\<^sub>D \<Longrightarrow>
     vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D) = {} \<Longrightarrow>
     is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}} \<Longrightarrow>
@@ -2883,7 +2883,7 @@ qed
 lemma renamed_comp_renamed_simp:
   fixes \<gamma>\<^sub>C \<gamma>\<^sub>D
   assumes
-    "L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)" and
+    "K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)" and
     ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
     ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)" and
     dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls (add_mset K D)" and
@@ -2967,7 +2967,7 @@ proof -
       by (simp add: literal.expand)
   qed
   ultimately have "atm_of L \<cdot>a \<rho>\<^sub>C \<cdot>a \<gamma> = atm_of K \<cdot>a \<rho>\<^sub>D \<cdot>a \<gamma>"
-    using \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close>
+    using \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)\<close>
     by (metis atm_of_subst_lit atm_of_uminus)
   hence "is_unifiers \<gamma> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}"
     by (simp add: \<gamma>_def is_unifiers_def is_unifier_alt)
@@ -3003,14 +3003,14 @@ proof (cases N \<beta> S S' rule: resolve.cases)
 
   have "K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D" and "D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D"
     by (simp_all add: subst_lit_restrict_subst_domain subst_cls_restrict_subst_domain)
-  hence "L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l ?\<gamma>\<^sub>D')" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
-    using \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> ground_prop by simp_all
+  hence "K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
+    using \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)\<close> ground_prop by simp_all
 
   have dom_\<gamma>\<^sub>D': "subst_domain ?\<gamma>\<^sub>D' \<subseteq> vars_cls (add_mset K D)"
     by simp
 
   have "(C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu> \<cdot> \<gamma> = C \<cdot> \<gamma>\<^sub>C + D \<cdot> \<gamma>\<^sub>D"
-    using renamed_comp_renamed_simp[OF \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l ?\<gamma>\<^sub>D')\<close> ground_conf ground_prop' dom_\<gamma>\<^sub>D'
+    using renamed_comp_renamed_simp[OF \<open>K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)\<close> ground_conf ground_prop' dom_\<gamma>\<^sub>D'
         ren_\<rho>\<^sub>C ren_\<rho>\<^sub>D disjoint_vars] \<open>is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}\<close>
     unfolding \<open>D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D\<close> resolveI
     by (metis subst_cls_comp_subst subst_cls_union)
@@ -3663,8 +3663,8 @@ proof (cases N \<beta> S S' rule: resolve.cases)
 
   have "K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D" and "D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D"
     by (simp_all add: subst_lit_restrict_subst_domain subst_cls_restrict_subst_domain)
-  hence "L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l ?\<gamma>\<^sub>D')" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
-    using \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> ground_prop by simp_all
+  hence "K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
+    using \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)\<close> ground_prop by simp_all
 
   have dom_\<gamma>\<^sub>D': "subst_domain ?\<gamma>\<^sub>D' \<subseteq> vars_cls (add_mset K D)"
     by simp
@@ -3674,7 +3674,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     "C \<cdot> \<rho>\<^sub>C \<cdot> ?\<gamma> = C \<cdot> \<gamma>\<^sub>C" and
     "D \<cdot> \<rho>\<^sub>D \<cdot> ?\<gamma> = D \<cdot> \<gamma>\<^sub>D" and
     cancel_\<mu>: "\<mu> \<odot> ?\<gamma> = ?\<gamma>"
-    using renamed_comp_renamed_simp[OF \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l ?\<gamma>\<^sub>D')\<close> ground_conf ground_prop' dom_\<gamma>\<^sub>D'
+    using renamed_comp_renamed_simp[OF \<open>K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)\<close> ground_conf ground_prop' dom_\<gamma>\<^sub>D'
         ren_\<rho>\<^sub>C ren_\<rho>\<^sub>D disjoint_vars] imgu_\<mu> \<open>D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D\<close>
     by simp_all
   hence "trail_false_cls \<Gamma> ((C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu> \<cdot> \<gamma>)"
@@ -3734,7 +3734,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
           using imgu_\<mu>[unfolded is_imgu_def]
           by (meson finite.emptyI finite.insertI insertCI is_unifier_alt is_unifiers_def)
         ultimately have False
-          using \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close>
+          using \<open>K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)\<close>
           by (cases L; cases K; simp add: uminus_literal_def subst_lit_def)
         thus ?thesis ..
       qed (auto simp: E_def)

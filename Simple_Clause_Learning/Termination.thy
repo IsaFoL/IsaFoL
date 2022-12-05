@@ -455,8 +455,8 @@ next
 
         have "K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D" and "D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D"
           by (simp_all add: subst_lit_restrict_subst_domain subst_cls_restrict_subst_domain)
-        hence "L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l ?\<gamma>\<^sub>D')" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
-          using \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close> ground_prop by simp_all
+        hence "K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
+          using \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)\<close> ground_prop by simp_all
 
         have dom_\<gamma>\<^sub>D': "subst_domain ?\<gamma>\<^sub>D' \<subseteq> vars_cls (add_mset K D)"
           by simp
@@ -468,14 +468,14 @@ next
           "K \<cdot>l \<rho>\<^sub>D \<cdot>l ?\<gamma> = K \<cdot>l \<gamma>\<^sub>D" and
           "D \<cdot> \<rho>\<^sub>D \<cdot> ?\<gamma> = D \<cdot> \<gamma>\<^sub>D" and
           "\<mu> \<odot> ?\<gamma> = ?\<gamma>"
-          using renamed_comp_renamed_simp[OF \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l ?\<gamma>\<^sub>D')\<close> ground_conf
+          using renamed_comp_renamed_simp[OF \<open>K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)\<close> ground_conf
             ground_prop' dom_\<gamma>\<^sub>D' \<open>is_renaming \<rho>\<^sub>C\<close> \<open>is_renaming \<rho>\<^sub>D\<close>
             \<open>vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D) = {}\<close>]
             \<open>is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}\<close> \<open>K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D\<close> \<open>D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D\<close>
           by simp_all
 
-        have "- (K \<cdot>l \<gamma>\<^sub>D) \<notin># D \<cdot> \<gamma>\<^sub>D"
-          using \<open>trail_resolved_lits_pol S\<close>
+        have "L \<cdot>l \<gamma>\<^sub>C \<notin># D \<cdot> \<gamma>\<^sub>D"
+          using \<open>trail_resolved_lits_pol S\<close> \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)\<close>
           unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
           by (simp add: trail_resolved_lits_pol_def propagate_lit_def)
 
@@ -488,10 +488,10 @@ next
            apply simp
           apply (rule exI[of _ "[]"])
           apply simp
-          using \<open>L \<cdot>l \<gamma>\<^sub>C = - (K \<cdot>l \<gamma>\<^sub>D)\<close>
+          using \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)\<close>
           apply simp
           unfolding count_eq_zero_iff
-          by (rule \<open>- (K \<cdot>l \<gamma>\<^sub>D) \<notin># D \<cdot> \<gamma>\<^sub>D\<close>)
+          by (rule \<open>L \<cdot>l \<gamma>\<^sub>C \<notin># D \<cdot> \<gamma>\<^sub>D\<close>)
         hence "(\<M>_skip_fact_reso \<Gamma> (C \<cdot> \<gamma>\<^sub>C + D \<cdot> \<gamma>\<^sub>D), \<M>_skip_fact_reso \<Gamma> (add_mset L C \<cdot> \<gamma>\<^sub>C)) \<in>
           lenlex {(x, y). x < y}"
           unfolding lenlex_conv by simp

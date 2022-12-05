@@ -414,15 +414,15 @@ proof -
             have disjoint_vars: "\<And>C. vars_cls (C \<cdot> \<rho>) \<inter> vars_cls (add_mset K D \<cdot> Var) = {}"
               by (simp add: \<rho>_def vars_cls_subst_renaming_disj)
 
-            have 2: "L \<cdot>l \<gamma> = - (K \<cdot>l \<gamma>\<^sub>D)"
+            have 2: "K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>)"
               using K_\<gamma> L_def by fastforce
 
             let ?\<gamma>\<^sub>D' = "restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D"
     
             have "K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D" and "D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D"
               by (simp_all add: subst_lit_restrict_subst_domain subst_cls_restrict_subst_domain)
-            hence "L \<cdot>l \<gamma> = - (K \<cdot>l ?\<gamma>\<^sub>D')" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
-              using \<open>L \<cdot>l \<gamma> = - (K \<cdot>l \<gamma>\<^sub>D)\<close> ground_prop by simp_all
+            hence "K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>)" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
+              using 2 ground_prop by simp_all
     
             have dom_\<gamma>\<^sub>D': "subst_domain ?\<gamma>\<^sub>D' \<subseteq> vars_cls (add_mset K D)"
               by simp
@@ -431,7 +431,7 @@ proof -
             have
               "L \<cdot>l \<rho> \<cdot>l (rename_subst_domain Var ?\<gamma>\<^sub>D' \<odot> rename_subst_domain \<rho> \<gamma>) = L \<cdot>l \<gamma>" and
               "K \<cdot>l Var \<cdot>l (rename_subst_domain Var ?\<gamma>\<^sub>D' \<odot> rename_subst_domain \<rho> \<gamma>) = K \<cdot>l \<gamma>\<^sub>D"
-              using renamed_comp_renamed_simp[OF \<open>L \<cdot>l \<gamma> = - (K \<cdot>l ?\<gamma>\<^sub>D')\<close> ground_conf
+              using renamed_comp_renamed_simp[OF \<open>K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>)\<close> ground_conf
                 ground_prop' dom_\<gamma>\<^sub>D' \<open>is_renaming \<rho>\<close> is_renaming_id_subst disjoint_vars]
                 \<open>K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D\<close> \<open>D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D\<close>
               by simp_all
