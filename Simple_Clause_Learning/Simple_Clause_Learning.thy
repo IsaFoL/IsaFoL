@@ -2776,17 +2776,17 @@ lemma scl_preserves_trail_resolved_lits_pol:
 
 subsection \<open>Trail And Conflict Closures Are Minimal And Ground\<close>
 
-definition minimal_ground_closures where
-  "minimal_ground_closures S \<longleftrightarrow>
+definition ground_closures where
+  "ground_closures S \<longleftrightarrow>
     (\<forall>Ln \<in> set (state_trail S). \<forall>C L \<gamma>. snd Ln = Some (C, L, \<gamma>) \<longrightarrow> is_ground_cls (add_mset L C \<cdot> \<gamma>)) \<and>
     (\<forall>C \<gamma>. state_conflict S = Some (C, \<gamma>) \<longrightarrow> is_ground_cls (C \<cdot> \<gamma>))"
 
-lemma minimal_ground_closures_initial_state[simp]: "minimal_ground_closures initial_state"
-  by (simp add: minimal_ground_closures_def)
+lemma ground_closures_initial_state[simp]: "ground_closures initial_state"
+  by (simp add: ground_closures_def)
 
-lemma propagate_preserves_minimal_ground_closures:
-  assumes step: "propagate N \<beta> S S'" and invar: "minimal_ground_closures S"
-  shows "minimal_ground_closures S'"
+lemma propagate_preserves_ground_closures:
+  assumes step: "propagate N \<beta> S S'" and invar: "ground_closures S"
+  shows "ground_closures S'"
   using step
 proof (cases N \<beta> S S' rule: propagate.cases)
   case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu>)
@@ -2809,36 +2809,36 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   thus ?thesis
     using invar
     unfolding propagateI(1,2)
-    by (simp add: minimal_ground_closures_def propagate_lit_def)
+    by (simp add: ground_closures_def propagate_lit_def)
 qed
 
-lemma decide_preserves_minimal_ground_closures:
-  assumes step: "decide N \<beta> S S'" and invar: "minimal_ground_closures S"
-  shows "minimal_ground_closures S'"
+lemma decide_preserves_ground_closures:
+  assumes step: "decide N \<beta> S S'" and invar: "ground_closures S"
+  shows "ground_closures S'"
   using assms
-  by (cases N \<beta> S S' rule: decide.cases) (simp add: minimal_ground_closures_def decide_lit_def)
+  by (cases N \<beta> S S' rule: decide.cases) (simp add: ground_closures_def decide_lit_def)
 
-lemma conflict_preserves_minimal_ground_closures:
-  assumes step: "conflict N \<beta> S S'" and invar: "minimal_ground_closures S"
-  shows "minimal_ground_closures S'"
+lemma conflict_preserves_ground_closures:
+  assumes step: "conflict N \<beta> S S'" and invar: "ground_closures S"
+  shows "ground_closures S'"
   using step
 proof (cases N \<beta> S S' rule: conflict.cases)
   case (conflictI D U \<gamma> \<Gamma>)
   thus ?thesis
     using invar
     unfolding conflictI(1,2)
-    by (simp add: minimal_ground_closures_def)
+    by (simp add: ground_closures_def)
 qed
 
-lemma skip_preserves_minimal_ground_closures:
-  assumes step: "skip N \<beta> S S'" and invar: "minimal_ground_closures S"
-  shows "minimal_ground_closures S'"
+lemma skip_preserves_ground_closures:
+  assumes step: "skip N \<beta> S S'" and invar: "ground_closures S"
+  shows "ground_closures S'"
   using assms
-  by (cases N \<beta> S S' rule: skip.cases) (simp add: minimal_ground_closures_def)
+  by (cases N \<beta> S S' rule: skip.cases) (simp add: ground_closures_def)
 
-lemma factorize_preserves_minimal_ground_closures:
-  assumes step: "factorize N \<beta> S S'" and invar: "minimal_ground_closures S"
-  shows "minimal_ground_closures S'"
+lemma factorize_preserves_ground_closures:
+  assumes step: "factorize N \<beta> S S'" and invar: "ground_closures S"
+  shows "ground_closures S'"
   using step
 proof (cases N \<beta> S S' rule: factorize.cases)
   case (factorizeI L \<gamma> L' \<mu> \<Gamma> U D)
@@ -2855,11 +2855,11 @@ proof (cases N \<beta> S S' rule: factorize.cases)
   hence "is_ground_cls (add_mset L D \<cdot> \<mu> \<cdot> \<gamma>)"
     using factorizeI(3-) invar
     unfolding factorizeI(1,2)
-    by (simp add: minimal_ground_closures_def)
+    by (simp add: ground_closures_def)
   thus ?thesis
     using invar
     unfolding factorizeI(1,2)
-    by (simp add: minimal_ground_closures_def)
+    by (simp add: ground_closures_def)
 qed
 
 lemma subst_domain_rename_subst_domain_subset_vars_cls_subst_cls:
@@ -2978,9 +2978,9 @@ proof -
     by (auto simp: is_imgu_def)
 qed
 
-lemma resolve_preserves_minimal_ground_closures:
-  assumes step: "resolve N \<beta> S S'" and invar: "minimal_ground_closures S"
-  shows "minimal_ground_closures S'"
+lemma resolve_preserves_ground_closures:
+  assumes step: "resolve N \<beta> S S'" and invar: "ground_closures S"
+  shows "ground_closures S'"
   using step
 proof (cases N \<beta> S S' rule: resolve.cases)
   case (resolveI \<Gamma> \<Gamma>' K D \<gamma>\<^sub>D L \<gamma>\<^sub>C \<rho>\<^sub>C \<rho>\<^sub>D C \<mu> \<gamma> U) 
@@ -2997,7 +2997,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)" and
     min_ground_clo_\<Gamma>: "\<forall>Ln \<in> set  \<Gamma>. \<forall>C L \<gamma>. snd Ln = Some (C, L, \<gamma>) \<longrightarrow> is_ground_cls (add_mset L C \<cdot> \<gamma>)"
     unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
-    by (simp_all add: propagate_lit_def minimal_ground_closures_def)
+    by (simp_all add: propagate_lit_def ground_closures_def)
 
   let ?\<gamma>\<^sub>D' = "restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D"
 
@@ -3017,24 +3017,24 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   then show ?thesis
     using ground_conf ground_prop min_ground_clo_\<Gamma>
     unfolding resolveI
-    by (simp add: minimal_ground_closures_def)
+    by (simp add: ground_closures_def)
 qed
 
-lemma backtrack_preserves_minimal_ground_closures:
-  assumes step: "backtrack N \<beta> S S'" and invar: "minimal_ground_closures S"
-  shows "minimal_ground_closures S'"
+lemma backtrack_preserves_ground_closures:
+  assumes step: "backtrack N \<beta> S S'" and invar: "ground_closures S"
+  shows "ground_closures S'"
   using assms
   by (cases N \<beta> S S' rule: backtrack.cases)
-    (simp add: minimal_ground_closures_def decide_lit_def ball_Un)
+    (simp add: ground_closures_def decide_lit_def ball_Un)
 
-lemma scl_preserves_minimal_ground_closures:
-  assumes "scl N \<beta> S S'" and "minimal_ground_closures S" and "conflict_disjoint_vars N S"
-  shows "minimal_ground_closures S'"
+lemma scl_preserves_ground_closures:
+  assumes "scl N \<beta> S S'" and "ground_closures S"
+  shows "ground_closures S'"
   using assms unfolding scl_def
-  using propagate_preserves_minimal_ground_closures decide_preserves_minimal_ground_closures
-    conflict_preserves_minimal_ground_closures skip_preserves_minimal_ground_closures
-    factorize_preserves_minimal_ground_closures resolve_preserves_minimal_ground_closures
-    backtrack_preserves_minimal_ground_closures
+  using propagate_preserves_ground_closures decide_preserves_ground_closures
+    conflict_preserves_ground_closures skip_preserves_ground_closures
+    factorize_preserves_ground_closures resolve_preserves_ground_closures
+    backtrack_preserves_ground_closures
   by metis
 
 
@@ -3339,7 +3339,7 @@ subsection \<open>Sound State\<close>
 
 definition sound_state :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow> bool" where
   "sound_state N \<beta> S \<longleftrightarrow>
-    minimal_ground_closures S \<and>
+    ground_closures S \<and>
     (\<exists>\<Gamma> U u. S = (\<Gamma>, U, u) \<and> sound_trail N \<Gamma> \<and> fset N \<TTurnstile>\<G>e fset U \<and>
     (case u of None \<Rightarrow> True
     | Some (C, \<gamma>) \<Rightarrow> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset N \<TTurnstile>\<G>e {C}))"
@@ -3347,8 +3347,8 @@ definition sound_state :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term
 
 subsection \<open>Miscellaneous Lemmas\<close>
 
-lemma minimal_ground_closures_if_sound_state:
-  "sound_state N \<beta> S \<Longrightarrow> minimal_ground_closures S"
+lemma ground_closures_if_sound_state:
+  "sound_state N \<beta> S \<Longrightarrow> ground_closures S"
   unfolding sound_state_def by auto
 
 
@@ -3468,9 +3468,9 @@ proof (cases N \<beta> S S' rule: propagate.cases)
           subst_cls_add_mset)
   qed
 
-  moreover have "minimal_ground_closures S'"
-    using sound[THEN minimal_ground_closures_if_sound_state]
-      step[THEN propagate_preserves_minimal_ground_closures]
+  moreover have "ground_closures S'"
+    using sound[THEN ground_closures_if_sound_state]
+      step[THEN propagate_preserves_ground_closures]
     by argo
 
   ultimately show ?thesis
@@ -3492,9 +3492,9 @@ proof (cases N \<beta> S S' rule: decide.cases)
   moreover have "sound_trail N (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
     by (simp add: local.decideI(4) local.decideI(5) sound_\<Gamma> sound_trail_decide)
 
-  moreover have "minimal_ground_closures S'"
-    using sound[THEN minimal_ground_closures_if_sound_state]
-      step[THEN decide_preserves_minimal_ground_closures]
+  moreover have "ground_closures S'"
+    using sound[THEN ground_closures_if_sound_state]
+      step[THEN decide_preserves_ground_closures]
     by argo
 
   ultimately show ?thesis
@@ -3528,9 +3528,9 @@ proof (cases N \<beta> S S' rule: conflict.cases)
   moreover have "trail_false_cls \<Gamma> (D \<cdot> \<gamma>)"
     using conflictI by simp
 
-  moreover have "minimal_ground_closures S'"
-    using sound[THEN minimal_ground_closures_if_sound_state]
-      step[THEN conflict_preserves_minimal_ground_closures]
+  moreover have "ground_closures S'"
+    using sound[THEN ground_closures_if_sound_state]
+      step[THEN conflict_preserves_ground_closures]
     by argo
 
   ultimately show ?thesis
@@ -3545,9 +3545,9 @@ lemma skip_preserves_sound_state:
 proof (cases N \<beta> S S' rule: skip.cases)
   case (skipI L D \<sigma> Cl \<Gamma> U)
 
-  moreover have "minimal_ground_closures S'"
-    using sound[THEN minimal_ground_closures_if_sound_state]
-      step[THEN skip_preserves_minimal_ground_closures]
+  moreover have "ground_closures S'"
+    using sound[THEN ground_closures_if_sound_state]
+      step[THEN skip_preserves_ground_closures]
     by argo
 
   ultimately show ?thesis
@@ -3608,9 +3608,9 @@ proof (cases N \<beta> S S' rule: factorize.cases)
       by simp
   qed
 
-  moreover have "minimal_ground_closures S'"
-    using sound[THEN minimal_ground_closures_if_sound_state]
-      step[THEN factorize_preserves_minimal_ground_closures]
+  moreover have "ground_closures S'"
+    using sound[THEN ground_closures_if_sound_state]
+      step[THEN factorize_preserves_ground_closures]
     by argo
 
   ultimately show ?thesis
@@ -3643,7 +3643,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
     tr_false_conf: "trail_false_cls \<Gamma> (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
     N_entails_conf: "fset N \<TTurnstile>\<G>e {add_mset L C}" and
-    "minimal_ground_closures S"
+    "ground_closures S"
     unfolding resolveI(1,2) sound_state_def by simp_all
 
   from sound_\<Gamma> have
@@ -3653,11 +3653,11 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     unfolding \<Gamma>_def propagate_lit_def
     by auto
 
-  from \<open>minimal_ground_closures S\<close> have
+  from \<open>ground_closures S\<close> have
     ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
     ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)"
     unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
-    by (simp_all add: propagate_lit_def minimal_ground_closures_def)
+    by (simp_all add: propagate_lit_def ground_closures_def)
 
   let ?\<gamma>\<^sub>D' = "restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D"
 
@@ -3744,9 +3744,9 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   moreover have "sound_trail N (trail_propagate \<Gamma>' K D \<gamma>\<^sub>D)"
     using \<Gamma>_def sound_\<Gamma> by blast
 
-  moreover have "minimal_ground_closures S'"
-    using sound[THEN minimal_ground_closures_if_sound_state]
-      step[THEN resolve_preserves_minimal_ground_closures]
+  moreover have "ground_closures S'"
+    using sound[THEN ground_closures_if_sound_state]
+      step[THEN resolve_preserves_ground_closures]
     by metis
 
   ultimately show ?thesis
@@ -3779,9 +3779,9 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
   moreover have "fset N \<TTurnstile>\<G>e (fset U \<union> {D + {#L#}})"
     using N_entails_U N_entails_D_L_L' by (metis UN_Un grounding_of_clss_def true_clss_union)
 
-  moreover have "minimal_ground_closures S'"
-    using sound[THEN minimal_ground_closures_if_sound_state]
-      step[THEN backtrack_preserves_minimal_ground_closures]
+  moreover have "ground_closures S'"
+    using sound[THEN ground_closures_if_sound_state]
+      step[THEN backtrack_preserves_ground_closures]
     by argo
 
   ultimately show ?thesis

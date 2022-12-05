@@ -258,7 +258,7 @@ lemma scl_without_backtrack_terminates:
       factorize N \<beta> \<squnion> resolve N \<beta>" and
     "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
       trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
-      minimal_ground_closures"
+      ground_closures"
   shows
     "wfP (\<lambda>S' S. scl_without_backtrack S S' \<and> invars S)" and
     "invars initial_state" and
@@ -279,7 +279,7 @@ next
         scl_preserves_trail_lits_ground
         scl_preserves_trail_lits_from_clauses
         scl_preserves_initial_lits_generalize_learned_trail_conflict
-        scl_preserves_minimal_ground_closures)
+        scl_preserves_ground_closures)
 next
   let ?less =
     "lex_prodp ((<) :: bool \<Rightarrow> bool \<Rightarrow> bool)
@@ -300,7 +300,7 @@ next
       "trail_lits_ground S" and
       "trail_lits_from_clauses N S" and
       "initial_lits_generalize_learned_trail_conflict N S" and
-      "minimal_ground_closures S"
+      "ground_closures S"
       by (simp_all add: invars_def)
     with step have
       "trail_lits_from_clauses N S'" and
@@ -445,11 +445,11 @@ next
       thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
       proof (cases N \<beta> S S' rule: resolve.cases)
         case (resolveI \<Gamma> \<Gamma>' K D \<gamma>\<^sub>D L \<gamma>\<^sub>C \<rho>\<^sub>C \<rho>\<^sub>D C \<mu> \<gamma> U)
-        from \<open>minimal_ground_closures S\<close> have
+        from \<open>ground_closures S\<close> have
           ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
           ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)"
           unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
-          by (simp_all add: minimal_ground_closures_def propagate_lit_def)
+          by (simp_all add: ground_closures_def propagate_lit_def)
 
         let ?\<gamma>\<^sub>D' = "restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D"
 
@@ -663,7 +663,7 @@ lemma \<M>_back_pfsubset_\<M>_back_after_regular_backtrack:
     backtrack: "backtrack N \<beta> Sn Sn'" and
     "transp lt" and
 
-    invars: "minimal_ground_closures Sn" "trail_atoms_lt \<beta> Sn" "sound_state N \<beta> Sn"
+    invars: "ground_closures Sn" "trail_atoms_lt \<beta> Sn" "sound_state N \<beta> Sn"
   defines
     "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))"
   shows "\<M>_back \<beta> Sn' |\<subset>| \<M>_back \<beta> Sn"
@@ -705,7 +705,7 @@ proof -
     fset (fclss_no_dup \<beta>) - Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned Sn))"
   proof (rule Diff_strict_subsetI)
     from invars(1) have "C \<cdot> \<gamma> \<in> grounding_of_cls C"
-      unfolding minimal_ground_closures_def conf
+      unfolding ground_closures_def conf
       using grounding_of_cls_ground grounding_of_subst_cls_subset by blast
     thus "Abs_fset (set_mset (C \<cdot> \<gamma>)) \<in> Abs_fset ` set_mset ` grounding_of_cls C"
       by blast
@@ -764,7 +764,7 @@ theorem regular_scl_terminates:
   defines
     "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
       trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
-      minimal_ground_closures \<sqinter> sound_state N \<beta> \<sqinter> almost_no_conflict_with_trail N \<beta> \<sqinter>
+      ground_closures \<sqinter> sound_state N \<beta> \<sqinter> almost_no_conflict_with_trail N \<beta> \<sqinter>
       regular_conflict_resolution N \<beta>"
   assumes "transp lt"
   shows
@@ -788,7 +788,7 @@ next
       reg_to_scl[THEN scl_preserves_trail_lits_ground]
       reg_to_scl[THEN scl_preserves_trail_lits_from_clauses]
       reg_to_scl[THEN scl_preserves_initial_lits_generalize_learned_trail_conflict]
-      reg_to_scl[THEN scl_preserves_minimal_ground_closures]
+      reg_to_scl[THEN scl_preserves_ground_closures]
       reg_to_scl[THEN scl_preserves_sound_state]
       regular_scl_preserves_almost_no_conflict_with_trail
       regular_scl_preserves_regular_conflict_resolution
@@ -822,7 +822,7 @@ next
       fix S' S assume "invars S"
       then show "trail_atoms_lt \<beta> S \<sqinter> trail_resolved_lits_pol S \<sqinter> trail_lits_ground S \<sqinter>
        trail_lits_from_clauses N S \<sqinter> initial_lits_generalize_learned_trail_conflict N S \<sqinter>
-       minimal_ground_closures S"
+       ground_closures S"
         by (simp add: invars_def)
     qed
   next
@@ -880,7 +880,7 @@ next
       show "transp lt"
         by (rule \<open>transp lt\<close>)
     next
-      from \<open>invars S\<close> show "minimal_ground_closures S"
+      from \<open>invars S\<close> show "ground_closures S"
         by (simp add: invars_def)
     next
       from \<open>invars S\<close> show "trail_atoms_lt \<beta> S"

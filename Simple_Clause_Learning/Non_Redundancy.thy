@@ -1284,7 +1284,7 @@ qed
 
 lemma factorize_preserves_resolvability:
   assumes reso: "resolve N \<beta> S\<^sub>1 S\<^sub>2" and fact: "factorize N \<beta> S\<^sub>1 S\<^sub>3" and
-    invar: "minimal_ground_closures S\<^sub>1"
+    invar: "ground_closures S\<^sub>1"
   shows "\<exists>S\<^sub>4. resolve N \<beta> S\<^sub>3 S\<^sub>4"
   using reso
 proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
@@ -1300,7 +1300,7 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
   from invar have
     ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)"
     unfolding resolveI(1,2)
-    by (simp_all add: minimal_ground_closures_def)
+    by (simp_all add: ground_closures_def)
 
   have "add_mset L C = add_mset LL' (add_mset LL CC)"
     using resolveI(1) S\<^sub>1_def by simp
@@ -1831,7 +1831,7 @@ proof -
           ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)" and
           "sound_trail N \<Gamma>"
           unfolding sound_state_def \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
-          by (simp_all add: minimal_ground_closures_def propagate_lit_def)
+          by (simp_all add: ground_closures_def propagate_lit_def)
 
         let ?\<gamma>\<^sub>D' = "restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D"
 
@@ -1887,7 +1887,7 @@ proof -
     by auto
 
   from sound_Sn conflict_Sn have Cn_\<gamma>n_in: "Cn \<cdot> \<gamma>n \<in> grounding_of_cls Cn"
-    unfolding sound_state_def minimal_ground_closures_def
+    unfolding sound_state_def ground_closures_def
     using grounding_of_cls_ground grounding_of_subst_cls_subset
     by fastforce
 

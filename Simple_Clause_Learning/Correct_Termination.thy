@@ -204,7 +204,7 @@ proof -
 
   from sound_S have
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
-    "minimal_ground_closures S"
+    "ground_closures S"
     by (simp_all add: S_def sound_state_def)
 
   from no_more_step have no_new_conflict: "\<nexists>S'. conflict N \<beta> S S'"
@@ -396,11 +396,11 @@ proof -
               using \<Gamma>_def n_def
               by (simp add: propagate_lit_def)
 
-            from \<open>minimal_ground_closures S\<close> have
+            from \<open>ground_closures S\<close> have
               ground_conf: "is_ground_cls (add_mset L C' \<cdot> \<gamma>)" and
               ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)"
-              unfolding S_def minimal_ground_closures_def
-              by (simp_all add: 1 C_def u_def minimal_ground_closures_def propagate_lit_def)
+              unfolding S_def ground_closures_def
+              by (simp_all add: 1 C_def u_def ground_closures_def propagate_lit_def)
 
             define \<rho> :: "'v \<Rightarrow> ('f, 'v) Term.term" where
               "\<rho> = renaming_wrt {add_mset K D}"
