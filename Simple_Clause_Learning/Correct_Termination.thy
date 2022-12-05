@@ -192,7 +192,7 @@ theorem correct_termination:
   assumes
     no_more_step: "\<nexists>S'. scl N \<beta> S S'" and
     sound_S: "sound_state N \<beta> S" and
-    invars: "trail_atoms_lt \<beta> S" "trail_propagated_or_decided' N \<beta> S" "trail_lits_consistent S"
+    invars: "trail_atoms_lt \<beta> S" "trail_propagated_wf (state_trail S)" "trail_lits_consistent S"
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
     "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
@@ -204,7 +204,7 @@ proof -
 
   from sound_S have
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
-    "minimal_ground_closures S"
+    "ground_closures S"
     by (simp_all add: S_def sound_state_def)
 
   from no_more_step have no_new_conflict: "\<nexists>S'. conflict N \<beta> S S'"
@@ -216,10 +216,6 @@ proof -
   from no_more_step have
     no_new_decide: "(\<nexists>S'. decide N \<beta> S S') \<or> (\<exists>S' S''. decide N \<beta> S S' \<and> conflict N \<beta> S' S'')"
     using local.scl_def by meson
-
-  have trail_propagate_wf: "trail_propagated_wf (state_trail S)"
-    using \<open>trail_propagated_or_decided' N \<beta> S\<close> trail_propagated_wf_if_trail_propagated_or_decided'
-    by simp
 
   have trail_consistent: "trail_consistent (state_trail S)"
     using \<open>trail_lits_consistent S\<close> by (simp add: trail_lits_consistent_def)
@@ -390,17 +386,17 @@ proof -
             case Some \<comment> \<open>Literal can be resolved\<close>
             then obtain D K \<gamma>\<^sub>D where n_def: "n = Some (D, K, \<gamma>\<^sub>D)"
               by (metis prod_cases3)
-            with trail_propagate_wf have L_def: "K\<^sub>\<Gamma> = K \<cdot>l \<gamma>\<^sub>D"
+            with \<open>trail_propagated_wf (state_trail S)\<close> have L_def: "K\<^sub>\<Gamma> = K \<cdot>l \<gamma>\<^sub>D"
               by (simp add: \<Gamma>_def S_def trail_propagated_wf_def)
             hence 1: "\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D"
               using \<Gamma>_def n_def
               by (simp add: propagate_lit_def)
 
-            from \<open>minimal_ground_closures S\<close> have
+            from \<open>ground_closures S\<close> have
               ground_conf: "is_ground_cls (add_mset L C' \<cdot> \<gamma>)" and
               ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)"
-              unfolding S_def minimal_ground_closures_def
-              by (simp_all add: 1 C_def u_def minimal_ground_closures_def propagate_lit_def)
+              unfolding S_def ground_closures_def
+              by (simp_all add: 1 C_def u_def ground_closures_def propagate_lit_def)
 
             define \<rho> :: "'v \<Rightarrow> ('f, 'v) Term.term" where
               "\<rho> = renaming_wrt {add_mset K D}"
