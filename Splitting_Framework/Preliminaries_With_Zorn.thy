@@ -2886,7 +2886,7 @@ next
     assume \<open>M \<Turnstile>s\<^sub>A\<^sub>F N\<close>
     show \<open>\<exists>M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile>s\<^sub>A\<^sub>F N'\<close>
       sorry
-qed *)
+qed
 
 lemma [simp]: \<open>F_of ` to_AF ` N = N\<close>
   unfolding to_AF_def by force
