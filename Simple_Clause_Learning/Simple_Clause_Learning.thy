@@ -1059,7 +1059,7 @@ lemma not_trail_true_Nil[simp]:
 
 lemma not_trail_false_Nil[simp]:
   "\<not> trail_false_lit [] L"
-  "C \<noteq> {#} \<Longrightarrow> \<not> trail_false_cls [] C"
+  "trail_false_cls [] C \<longleftrightarrow> C = {#}"
   by (simp_all add: trail_false_lit_def trail_false_cls_def)
 
 lemma not_trail_defined_lit_Nil[simp]: "\<not> trail_defined_lit [] L"
