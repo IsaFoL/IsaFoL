@@ -2,6 +2,8 @@ theory Strategy_Minimal_Backtracking
   imports
     Simple_Clause_Learning
     Correct_Termination
+    Non_Redundancy
+    Termination
 begin
 
 context scl begin
@@ -62,7 +64,6 @@ theorem correct_termination:
     "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
-
 proof -
   obtain \<Gamma> U u where S_def: "S = (\<Gamma>, U, u)"
     using prod_cases3 by blast
@@ -350,6 +351,141 @@ proof -
         qed
       qed
     qed
+  qed
+qed
+
+theorem learned_clauses_in_shortest_backtracking_regular_runs:
+  assumes
+    run: "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+    conflict: "conflict N \<beta> S0 S1" and
+    resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
+    backtrack: "shortest_backtrack_strategy backtrack N \<beta> Sn Sn'" and
+    "transp lt"
+  defines
+    "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))" and
+    "U \<equiv> state_learned S1"
+  shows "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>+\<^sup>+ initial_state Sn' \<and>
+    (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+      C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
+      set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
+      \<not> redundant trail_ord (fset N \<union> fset U) C)"
+  using learned_clauses_in_regular_runs
+proof -
+  from backtrack have backtrack': "backtrack N \<beta> Sn Sn'"
+    by (simp add: shortest_backtrack_strategy_def)
+
+
+  from run conflict have "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
+    by (metis (no_types, lifting) rtranclp.rtrancl_into_rtrancl scl.conflict_well_defined(6)
+        regular_scl_if_conflict scl_axioms shortest_backtrack_strategy_def)
+  also from resolution have reg_run_S1_Sn: "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>+\<^sup>+ ... Sn"
+  proof (induction Sn rule: tranclp_induct)
+    case (base y)
+    then show ?case
+      by (metis backtrack_well_defined(6) factorize_well_defined(5) regular_scl_if_factorize
+          regular_scl_if_resolve regular_scl_if_skip shortest_backtrack_strategy_def
+          skip_well_defined(6) sup2E tranclp.r_into_trancl)
+  next
+    case (step y z)
+    hence "(shortest_backtrack_strategy regular_scl N \<beta>) y z"
+      by (metis backtrack_well_defined(6) factorize_well_defined(5) regular_scl_if_factorize
+          regular_scl_if_resolve regular_scl_if_skip shortest_backtrack_strategy_def
+          skip_well_defined(6) sup2E)
+    with step.IH show ?case
+      by force
+  qed
+  also have "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>+\<^sup>+ ... Sn'"
+  proof (rule tranclp.r_into_trancl)
+    from backtrack' have "scl N \<beta> Sn Sn'"
+      by (simp add: scl_def)
+    with backtrack' have "reasonable_scl N \<beta> Sn Sn'"
+      using reasonable_scl_def decide_well_defined(6) by blast
+    with backtrack' have "regular_scl N \<beta> Sn Sn'"
+      unfolding regular_scl_def
+      by (smt (verit) conflict.simps option.simps(3) backtrack.cases state_conflict_simp)
+    with backtrack show "shortest_backtrack_strategy regular_scl N \<beta> Sn Sn'"
+      unfolding shortest_backtrack_strategy_def
+      by simp
+  qed
+  finally have "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>+\<^sup>+ initial_state Sn'" by assumption
+
+  moreover have "(\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+           C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset (state_learned S1)) \<and>
+           set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset (state_learned S1)) \<and>
+           \<not> redundant (multp (trail_less_ex lt (map fst (state_trail S1))))
+               (fset N \<union> fset (state_learned S1)) C)"
+  proof (rule learned_clauses_in_regular_runs[THEN conjunct2])
+    from run show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0"
+      by (induction S0 rule: rtranclp_induct) (auto simp: shortest_backtrack_strategy_def)
+  next
+    from assms show "conflict N \<beta> S0 S1"
+      by simp
+  next
+    from assms show "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn"
+      by simp
+  next
+    from assms show "backtrack N \<beta> Sn Sn'"
+      by (simp add: shortest_backtrack_strategy_def)
+  next
+    from assms show "transp lt"
+      by simp
+  qed
+
+  ultimately show ?thesis
+    by (simp add: U_def trail_ord_def)
+qed
+
+theorem shortest_backtracking_regular_scl_terminates:
+  fixes
+    N :: "('f, 'v) Term.term clause fset" and
+    \<beta> :: "('f, 'v) Term.term" and
+    lt :: "('f, 'v) Term.term literal \<Rightarrow> ('f, 'v) Term.term literal \<Rightarrow> bool"
+  defines
+    "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
+      trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
+      ground_closures \<sqinter> ground_false_closures \<sqinter> sound_state N \<beta> \<sqinter>
+      almost_no_conflict_with_trail N \<beta> \<sqinter>
+      regular_conflict_resolution N \<beta>"
+  assumes "transp lt"
+  shows
+    "wfP (\<lambda>S' S. shortest_backtrack_strategy regular_scl N \<beta> S S' \<and> invars S)" and
+    "invars initial_state" and
+    "\<And>S S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
+proof -
+  show "invars initial_state"
+    by (simp add: invars_def)
+next
+  have min_to_reg:
+    "\<And>S S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
+    by (simp add: shortest_backtrack_strategy_def)
+
+  note rea_to_scl = scl_if_reasonable
+  note reg_to_rea = reasonable_if_regular
+  note min_to_scl = min_to_reg[THEN reg_to_rea[THEN rea_to_scl]]
+
+  fix S S'
+  assume "shortest_backtrack_strategy regular_scl N \<beta> S S'"
+  thus "invars S \<Longrightarrow> invars S'"
+    unfolding invars_def
+    using
+      min_to_scl[THEN scl_preserves_trail_atoms_lt]
+      min_to_scl[THEN scl_preserves_trail_resolved_lits_pol]
+      min_to_scl[THEN scl_preserves_trail_lits_ground]
+      min_to_scl[THEN scl_preserves_trail_lits_from_clauses]
+      min_to_scl[THEN scl_preserves_initial_lits_generalize_learned_trail_conflict]
+      min_to_scl[THEN scl_preserves_ground_closures]
+      min_to_scl[THEN scl_preserves_ground_false_closures]
+      min_to_scl[THEN scl_preserves_sound_state]
+      min_to_reg[THEN regular_scl_preserves_almost_no_conflict_with_trail]
+      min_to_reg[THEN regular_scl_preserves_regular_conflict_resolution]
+    by simp
+next
+  show "wfP (\<lambda>S' S. shortest_backtrack_strategy regular_scl N \<beta> S S' \<and> invars S)"
+    using regular_scl_terminates(1)[OF \<open>transp lt\<close>, of N \<beta>, folded invars_def]
+  proof (rule wfP_subset, unfold le_fun_def le_bool_def inf_fun_def, intro allI impI, elim conjE)
+    fix S S'
+    show "shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> invars S \<Longrightarrow> regular_scl N \<beta> S S' \<and> invars S"
+      by (simp add: shortest_backtrack_strategy_def)
   qed
 qed
 
