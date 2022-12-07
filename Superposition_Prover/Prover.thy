@@ -35,7 +35,10 @@ definition subst_compose :: "('a \<Rightarrow> 'a trm) \<Rightarrow> ('a \<Right
 lemma subst_trm_subst_compose: "subst_trm t (subst_compose \<sigma> \<tau>) = subst_trm (subst_trm t \<sigma>) \<tau>"
   by (induction t) (simp_all add: subst_compose_def)
 
-global_interpretation substitution_eq_trm: substitution subst_eq Var subst_compose
+lemma (in substitution) var_disjoint_singleton[simp]: "var_disjoint [C]"
+  by (auto simp: var_disjoint_def)
+
+global_interpretation subst_eq_trm: substitution subst_eq Var subst_compose
 proof unfold_locales
   show "\<And>A. subst_eq A Var = A"
     by simp
@@ -518,6 +521,46 @@ lemma subst_ident_if_vars_distinct_dom: "vars_of t \<inter> fst ` set \<sigma> =
 
 lemma subst_ident_if_vars_empty: "vars_of t = {} \<Longrightarrow> subst t \<sigma> = t"
   by (rule subst_ident_if_vars_distinct_dom) simp
+
+lemma subst_eq_comp[simp]: "\<sigma> \<doteq> \<delta> \<Longrightarrow> \<sigma> \<lozenge> \<theta> \<doteq> \<delta> \<lozenge> \<theta>"
+  by (simp add: Unification.subst_eq_def)
+
+lemma subst_eq_Unifier[simp]: "\<sigma> \<doteq> \<delta> \<Longrightarrow> Unifier \<sigma> = Unifier \<delta>"
+  by (intro ext) (simp add: Unifier_def subst_eq_dest)
+
+lemma subst_eq_MGU[simp]:
+  assumes "\<sigma> \<doteq> \<delta>"
+  shows "MGU \<sigma> = MGU \<delta>"
+proof (intro ext)
+  fix t u
+  have "(\<forall>\<theta>. Unifier \<theta> t u \<longrightarrow> (\<exists>\<gamma>. \<theta> \<doteq> \<sigma> \<lozenge> \<gamma>)) \<longleftrightarrow> (\<forall>\<theta>. Unifier \<theta> t u \<longrightarrow> (\<exists>\<gamma>. \<theta> \<doteq> \<delta> \<lozenge> \<gamma>))"
+    using subst_eq_comp[OF \<open>\<sigma> \<doteq> \<delta>\<close>]
+    by (simp add: Unification.subst_eq_def)
+  thus "MGU \<sigma> t u = MGU \<delta> t u"
+    using \<open>\<sigma> \<doteq> \<delta>\<close>
+    by (simp add: MGU_def)
+qed
+
+lemma subst_eq_IMGU[simp]:
+  assumes "\<sigma> \<doteq> \<delta>"
+  shows "IMGU \<sigma> = IMGU \<delta>"
+proof (intro ext)
+  fix t u
+  have "(\<forall>\<theta>. Unifier \<theta> t u \<longrightarrow> \<theta> \<doteq> \<sigma> \<lozenge> \<theta>) \<longleftrightarrow> (\<forall>\<theta>. Unifier \<theta> t u \<longrightarrow> \<theta> \<doteq> \<delta> \<lozenge> \<theta>)"
+    using subst_eq_comp[OF \<open>\<sigma> \<doteq> \<delta>\<close>]
+    by (simp add: Unification.subst_eq_def)
+  thus "IMGU \<sigma> t u = IMGU \<delta> t u"
+    using \<open>\<sigma> \<doteq> \<delta>\<close>
+    by (simp add: IMGU_def)
+qed
+
+lemma subst_eq_subst_domain[simp]: "\<sigma> \<doteq> \<delta> \<Longrightarrow> subst_domain \<sigma> = subst_domain \<delta>"
+  unfolding subst_domain_def
+  by (simp add: subst_eq_dest del: subst.simps)
+
+lemma subst_eq_range_vars[simp]: "\<sigma> \<doteq> \<delta> \<Longrightarrow> range_vars \<sigma> = range_vars \<delta>"
+  unfolding range_vars_def
+  by (simp add: subst_eq_dest del: subst.simps)
 
 
 subsection \<open>Generic definitions and associated lemmas\<close>
@@ -1765,13 +1808,159 @@ proof -
   qed
 qed
 
+lemma subst_eq_reflexion:
+  assumes \<sigma>_eq_\<delta>: "\<sigma> \<doteq> \<delta>" and step: "reflexion P C \<sigma> FirstOrder C'"
+  shows "reflexion P C \<delta> FirstOrder C'"
+proof -
+  from step obtain L1 t u where
+    "eligible_literal L1 P \<sigma>" and
+    "L1 \<in> cl_ecl P" and
+    "orient_lit_inst L1 t u neg \<sigma>" and
+    "ck_unifier t u \<sigma> FirstOrder" and
+    "C' = cl_ecl P - {L1}" and
+    "C = Ecl (subst_cl C' \<sigma>) (get_trms (subst_cl C' \<sigma>) (dom_trms (subst_cl C' \<sigma>)
+      (subst_set (insert t (trms_ecl P)) \<sigma>)) FirstOrder)"
+    unfolding reflexion_def by auto
+
+  moreover have "eligible_literal L1 P \<sigma> \<longleftrightarrow> eligible_literal L1 P \<delta>"
+    unfolding eligible_literal_def
+    using \<sigma>_eq_\<delta>
+    by (auto simp add: subst_eq_cl subst_eq_lit simp del: subst_cl.simps)
+
+  moreover have "orient_lit_inst L1 t u neg \<sigma> \<longleftrightarrow> orient_lit_inst L1 t u neg \<delta>"
+    unfolding orient_lit_inst_def
+    using \<sigma>_eq_\<delta>
+    by (simp add: subst_eq_dest)
+
+  thm subst_eq_Unifier
+
+  moreover have "ck_unifier t u \<sigma> FirstOrder \<longleftrightarrow> ck_unifier t u \<delta> FirstOrder"
+    unfolding ck_unifier_def
+    using \<sigma>_eq_\<delta>
+    by (simp add: min_IMGU_def)
+
+  moreover have "\<And>N. subst_set N \<sigma> = subst_set N \<delta>"
+    using \<sigma>_eq_\<delta>
+    by (smt (verit, ccfv_SIG) Collect_cong Unification.subst_eq_def subst_set.simps)
+
+  moreover have "subst_cl C' \<sigma> = subst_cl C' \<delta>"
+    using \<sigma>_eq_\<delta> subst_eq_cl by blast
+
+  ultimately show ?thesis
+    unfolding reflexion_def
+    by (metis Un_insert_right local.step reflexion_def sup_bot.right_neutral)
+qed
+
+lemma subst_cl_Nil[simp]: "subst_cl C [] = C"
+  by simp
+
+lemma subst_set_Nil[simp]: "subst_set T [] = T"
+  by simp
+
+lemma
+  assumes step: "reflexion (Ecl (subst_cl P \<gamma>) {}) C [] FirstOrder C'" and
+    ground_P_\<gamma>: "ground_clause (subst_cl P \<gamma>)" and
+    sel_stable_under_grounding:
+    "\<And>C \<gamma>. ground_clause (subst_cl C \<gamma>) \<Longrightarrow> sel (subst_cl C \<gamma>) = subst_cl (sel C) \<gamma>"
+  shows "\<exists>D \<mu> D'. reflexion (Ecl P {}) D \<mu> FirstOrder D' \<and> \<mu> \<lozenge> \<gamma> \<doteq> \<gamma>"
+proof -
+  from step obtain L1 t u where
+    eligible: "eligible_literal L1 (Ecl (subst_cl P \<gamma>) {}) []" and
+    L1_in: "L1 \<in> subst_cl P \<gamma>" and
+    orient: "orient_lit_inst L1 t u neg []" and
+    unif: "ck_unifier t u [] FirstOrder" and
+    "C' = subst_cl P \<gamma> - {L1}" and
+    "C = Ecl C' (get_trms C' (dom_trms C' {t}) FirstOrder)"
+    unfolding reflexion_def
+    by (metis Un_commute cl_ecl.simps insert_is_Un subst_cl_Nil subst_set_Nil trms_ecl.simps)
+
+  from orient have L1_eq_disj_L1_eq: "(L1 = equational_clausal_logic.literal.Neg (Eq t u) \<or>
+     L1 = equational_clausal_logic.literal.Neg (Eq u t))" and "(t, u) \<notin> trm_ord"
+    by (simp_all add: orient_lit_inst_def)
+
+  from unif have "t = u"
+    by (metis ck_unifier_thm subst_Nil)
+
+  from L1_in obtain L1' where
+    "L1' \<in> P" and L1_def: "L1 = subst_lit L1' \<gamma>"
+    unfolding subst_cl_conv by blast
+
+  from L1_eq_disj_L1_eq L1_def obtain t' u' where
+    t_def: "t = subst t' \<gamma>" and u_def: "u = subst u' \<gamma>"
+    apply (cases L1')
+     apply simp_all
+    by (metis \<open>ck_unifier t u [] FirstOrder\<close> ck_unifier_thm equation.inject subst_Nil
+        subst_equation.elims)
+
+  from \<open>t = u\<close> obtain \<mu> where
+    "unify t' u' = Some \<mu> "
+    unfolding t_def u_def
+    using MGU_exists by auto
+  hence "min_IMGU \<mu> t' u'"
+    by (simp add: unify_computes_min_IMGU)
+  hence "\<mu> \<lozenge> \<gamma> \<doteq> \<gamma>"
+      by (metis IMGU_def Unifier_def \<open>t = u\<close> min_IMGU_def subst_sym t_def u_def)
+
+  define D' where
+    "D' = P - {L1'}"
+
+  define trms where
+    "trms = get_trms (subst_cl D' \<mu>) (dom_trms (subst_cl D' \<mu>) {t \<lhd> \<mu>}) FirstOrder"
+
+  define D where
+    "D = Ecl (subst_cl D' \<mu>) trms"
+
+  show ?thesis
+  proof (intro exI conjI)
+    have "eligible_literal L1' (Ecl P {}) \<mu>"
+      using eligible
+      unfolding eligible_literal_def
+      apply (simp del: subst_cl.simps)
+      apply (elim disjE conjE)
+      subgoal
+        unfolding sel_stable_under_grounding[OF ground_P_\<gamma>]
+        unfolding subst_cl_conv
+        apply (simp add: L1_def)
+        apply (rule disjI1)
+        find_theorems "?f _ \<in> ?f ` _"
+        sorry
+      subgoal
+      unfolding sel_stable_under_grounding[OF ground_P_\<gamma>]
+      unfolding subst_cl_conv
+      apply (simp add: L1_def)
+      unfolding maximal_literal_def Set.image_iff
+      apply (intro allI impI)
+      apply (elim bexE)
+      apply simp
+      subgoal premises prems for L L'
+        using prems(2)[rule_format, of "subst_lit L' \<gamma>"]
+        using lit_ord_subst[of "subst_lit L1' \<mu>" "subst_lit L' \<mu>" \<gamma>,
+            unfolded composition_of_substs_lit subst_eq_lit[OF \<open>\<mu> \<lozenge> \<gamma> \<doteq> \<gamma>\<close>]]
+        using prems(3,4)
+        by metis
+      done
+    done
+    show "reflexion (Ecl P {}) D \<mu> FirstOrder D'"
+      unfolding reflexion_def
+      apply simp
+      sorry
+  next
+    show "\<mu> \<lozenge> \<gamma> \<doteq> \<gamma>"
+      using \<open>min_IMGU \<mu> t' u'\<close>
+      by (metis IMGU_def Unifier_def \<open>t = u\<close> min_IMGU_def subst_sym t_def u_def)
+  qed
+qed
+
 end
 
 
-section \<open>Conversion between Clausal_Logic and SuperCalc\<close>
+subsection \<open>Conversion between Clausal_Logic and SuperCalc\<close>
 
 definition subst_fun_of_subst_list where
   "subst_fun_of_subst_list \<sigma> x = (case map_of \<sigma> x of None \<Rightarrow> Var x | Some t \<Rightarrow> t)"
+
+lemma subst_trm_subst_fun_of_subst_list: "subst_trm t (subst_fun_of_subst_list \<sigma>) = t \<lhd> \<sigma>"
+  by (induction t) (simp_all add: subst_fun_of_subst_list_def assoc_eq_map_of_or_default)
 
 primrec to_SuperCalc_equation where
   "to_SuperCalc_equation (t, u) = Eq t u"
@@ -1781,6 +1970,11 @@ primrec from_SuperCalc_equation where
 
 lemma to_from_SuperCalc_equation[simp]: "to_SuperCalc_equation (from_SuperCalc_equation eq) = eq"
   by (cases eq) simp_all
+
+lemma to_SuperCalc_equation_subst_eq_subst_fun_of_subst_list:
+  "to_SuperCalc_equation (subst_eq eq (subst_fun_of_subst_list \<gamma>)) =
+    subst_equation (to_SuperCalc_equation eq) \<gamma>"
+  by (cases eq) (simp add: subst_trm_subst_fun_of_subst_list)
 
 primrec to_SuperCalc_lit where
   "to_SuperCalc_lit (Clausal_Logic.Pos eq) = Pos (to_SuperCalc_equation eq)" |
@@ -1793,6 +1987,12 @@ primrec from_SuperCalc_lit where
 lemma to_from_SuperCalc_lit[simp]: "to_SuperCalc_lit (from_SuperCalc_lit L) = L"
   by (cases L) simp_all
 
+lemma to_SuperCalc_lit_subst_lit_subst_fun_of_subst_list:
+  "to_SuperCalc_lit (subst_eq_trm.subst_lit L (subst_fun_of_subst_list \<gamma>)) =
+    subst_lit (to_SuperCalc_lit L) \<gamma>"
+  by (cases L) (simp_all add: subst_eq_trm.subst_lit_def
+      to_SuperCalc_equation_subst_eq_subst_fun_of_subst_list)
+
 abbreviation to_SuperCalc_cl where
   "to_SuperCalc_cl C \<equiv> to_SuperCalc_lit ` set_mset C"
 
@@ -1801,6 +2001,26 @@ abbreviation from_SuperCalc_cl where
 
 lemma to_from_SuperCalc_cls[simp]: "finite C \<Longrightarrow> to_SuperCalc_cl (from_SuperCalc_cl C) = C"
   by (simp add: image_image)
+
+
+lemma to_SuperCalc_cl_subst_cls_subst_fun_of_subst_list:
+  "to_SuperCalc_cl (subst_eq_trm.subst_cls C (subst_fun_of_subst_list \<gamma>)) =
+    subst_cl (to_SuperCalc_cl C) \<gamma>"
+proof -
+  have "to_SuperCalc_cl (subst_eq_trm.subst_cls C (subst_fun_of_subst_list \<gamma>)) =
+    set_mset {#to_SuperCalc_lit L. L \<in># subst_eq_trm.subst_cls C (subst_fun_of_subst_list \<gamma>)#}"
+    unfolding multiset.set_map[symmetric] by simp
+  also have "\<dots> = set_mset {#to_SuperCalc_lit (subst_eq_trm.subst_lit x (subst_fun_of_subst_list \<gamma>)).
+    x \<in># C#}"
+    unfolding subst_eq_trm.subst_cls_def multiset.map_comp comp_def by simp
+  also have "\<dots> = set_mset {#subst_lit (to_SuperCalc_lit L) \<gamma>. L \<in># C#}"
+    unfolding to_SuperCalc_lit_subst_lit_subst_fun_of_subst_list by simp
+  also have "\<dots> = (\<lambda>L. subst_lit L \<gamma>) ` to_SuperCalc_lit ` set_mset C"
+    unfolding multiset.set_map by auto
+  also have "\<dots> = subst_cl (to_SuperCalc_cl C) \<gamma>"
+    unfolding subst_cl_conv[symmetric] by simp
+  finally show ?thesis .
+qed
 
 
 subsection \<open>Ground, Finite Clauses\<close>
@@ -1835,6 +2055,9 @@ lemma cl_gfclause_bot_gfclause[simp]: "cl_gfclause bot_gfclause = {}"
 subsection \<open>Finite Clauses\<close>
 
 type_synonym 'a fclause = "('a trm \<times> 'a trm) Clausal_Logic.clause"
+
+abbreviation bot_fclause where
+  "bot_fclause \<equiv> {#}"
 
 
 subsection \<open>Prover\<close>
@@ -2252,7 +2475,7 @@ proof unfold_locales
   fix \<iota> :: "'a gfclause inference"
   assume "\<iota> \<in> G_Inf M"
   then obtain Ps C \<sigma> C' where
-    \<iota>_def: "\<iota> = Infer Ps (Abs_gfclause (mset_set C'))" and
+    \<iota>_def: "\<iota> = Infer Ps (Abs_gfclause (from_SuperCalc_cl C'))" and
     deriv_Ps: "G_derivable_list M C (map (\<lambda>C. Ecl (cl_gfclause C) {}) Ps) \<sigma> G_SuperCalc.Ground C'"
     unfolding G_Inf_def mem_Collect_eq by blast
 
@@ -2264,14 +2487,15 @@ proof unfold_locales
 
   have fin_C': "finite C'"
     using G_derivable_list_finite_conclusion[OF _ deriv_Ps] by simp
-    
+
+  have ground_to_from_C': "ground_clause (to_SuperCalc_cl (from_SuperCalc_cl C'))"
+    by (metis fin_C' ground_C' to_from_SuperCalc_cls)
 
   have concl_\<iota>_conv: "cl_gfclause (concl_of \<iota>) = cl_ecl C"
     unfolding \<iota>_def inference.sel
-    unfolding Abs_fset_inverse[simplified, OF fin_C']
     unfolding cl_ecl_C_conv
-    unfolding substs_preserve_ground_clause[OF ground_C']
-    by (simp add: Abs_gfclause_inverse fin_C' ground_C')
+    unfolding Abs_gfclause_inverse[simplified, OF ground_to_from_C']
+    using fin_C' ground_C' substs_preserve_ground_clause to_from_SuperCalc_cls by blast
 
   from deriv_Ps show "set (prems_of \<iota>) \<TTurnstile>e {concl_of \<iota>}"
     unfolding G_derivable_list_def
@@ -2487,7 +2711,7 @@ proof unfold_locales
       unfolding G_derivable_list_def by auto
       
     define \<iota> :: "'a gfclause inference" where
-      "\<iota> = Infer Ps\<^sub>N (Abs_gfclause (mset_set C'))"
+      "\<iota> = Infer Ps\<^sub>N (Abs_gfclause (from_SuperCalc_cl C'))"
 
     have "\<iota> \<in> G_Inf M"
       using deriv_Ps\<^sub>N by (auto simp: G_Inf_def \<iota>_def)
@@ -2539,8 +2763,16 @@ proof unfold_locales
         by (simp add: entails_def image_Un)
 
       moreover have "(cl_gfclause (concl_of \<iota>)) = cl_ecl C"
-        using G_SuperCalc.derivable_clauses_lemma[OF deriv_C_P] finite_C' ground_C'
-        by (simp add: \<iota>_def Abs_gfclause_inverse substs_preserve_ground_clause)
+      proof -
+        have ground_to_from_C': "ground_clause (to_SuperCalc_cl (from_SuperCalc_cl C'))"
+          by (metis finite_C' ground_C' to_from_SuperCalc_cls)
+
+        show ?thesis
+          unfolding \<iota>_def inference.sel
+          unfolding G_SuperCalc.derivable_clauses_lemma[OF deriv_C_P]
+          unfolding Abs_gfclause_inverse[simplified, OF ground_to_from_C']
+          using finite_C' ground_C' substs_preserve_ground_clause to_from_SuperCalc_cls by blast
+      qed
 
       moreover have "cl_gfclause ` (DD \<union> set (side_prems_of \<iota>)) = G_SuperCalc.clset_instances S"
         unfolding S_def \<iota>_def inference.sel
@@ -2637,7 +2869,7 @@ proof unfold_locales
       proof (rule int_clset_is_a_model'[of "Ecl C {}" \<sigma>, unfolded cl_ecl.simps])
         show "\<And>x. x \<in> N \<Longrightarrow> cl_gfclause x \<noteq> {}"
           using bot_not_in
-          by (metis cls_gfclause_inverse set_mset_eq_empty_iff)
+          by (metis cls_gfclause_inverse empty_iff image_iff multiset_nonemptyE)
       next
         show "Ecl C {} \<in> (\<lambda>C. Ecl (cl_gfclause C) {}) ` N"
           using C_in by auto
@@ -2881,9 +3113,6 @@ qed
 
 primrec the_Var where
   "the_Var (Var x) = x"
-
-definition subst_domain where
-  "subst_domain \<sigma> = {x. Var x \<lhd> \<sigma> \<noteq> Var x}"
 
 lemma assoc_ident_if_not_in_dom': "x \<notin> subst_domain \<sigma> \<Longrightarrow> Var x \<lhd> \<sigma> = Var x"
   by (simp add: subst_domain_def)
@@ -3377,7 +3606,7 @@ qed
 
 (* lemma "A \<subseteq> B \<Longrightarrow> f ` A \<subseteq> f ` B" *)
 
-lemma ck_unifier_of_renamed_if_ck_unifier:
+(* lemma ck_unifier_of_renamed_if_ck_unifier:
   assumes "SuperCalc.ck_unifier t u \<mu> k" and
     ren_\<rho>: "renaming \<rho> V" and
     \<rho>_\<rho>_inv_ident: "\<forall>x\<in>V. Var x \<lhd> \<rho> \<lhd> \<rho>_inv = Var x" and
@@ -3438,9 +3667,10 @@ proof -
     qed
     ultimately show ?thesis
       unfolding FirstOrder
+      term subst_domain
       by (simp add: SuperCalc.ck_unifier_def min_IMGU_def)
   qed
-qed
+qed *)
 
 lemma renaming_subset: "V1 \<subseteq> V2 \<Longrightarrow> renaming \<rho> V2 \<Longrightarrow> renaming \<rho> V1"
   unfolding renaming_def by (meson subset_iff)
@@ -3846,7 +4076,7 @@ next
     unfolding SuperCalc.eligible_literal_def cl_ecl_subst_ecl_distrib
     by simp
 qed
-
+(* 
 lemma reflexion_if_renaming:
   fixes \<sigma>
   assumes
@@ -4084,7 +4314,7 @@ proof -
         by (simp add: \<open>C = Ecl Cl_C trms_C\<close> D_def)
     qed
   qed
-qed
+qed *)
 
 lemma subst_ecl_conv: "subst_ecl (Ecl C trms) \<sigma> = Ecl (subst_cl C \<sigma>) ((\<lambda>t. t \<lhd> \<sigma>) ` trms)"
   by auto
@@ -4092,7 +4322,7 @@ lemma subst_ecl_conv: "subst_ecl (Ecl C trms) \<sigma> = Ecl (subst_cl C \<sigma
 lemma subst_cl_union: "subst_cl (C \<union> D) \<sigma> = subst_cl C \<sigma> \<union> subst_cl D \<sigma>"
   by (simp add: image_Un subst_cl_conv)
 
-lemma factorization_if_renaming:
+(* lemma factorization_if_renaming:
   fixes \<sigma>
   assumes
     fact: "SuperCalc.factorization P1 C \<sigma>\<^sub>C SuperCalc.FirstOrder C'" and
@@ -4474,9 +4704,9 @@ proof -
 
   show ?thesis
     sorry
-qed
+qed *)
 
-lemma derivable_list_if_renaming:
+(* lemma derivable_list_if_renaming:
   fixes \<sigma>
   assumes
     deriv: "derivable_list C Ps \<sigma>\<^sub>C SuperCalc.FirstOrder C'" and
@@ -4529,26 +4759,21 @@ next
     using Ps_def by auto
   ultimately show ?thesis
     using reflexion_if_renaming[OF fact, of P1'] derivable_list_def by blast
-qed
+qed *)
 
 
 subsubsection \<open>First-Order Calculus\<close>
 
-text \<open>
-Renaming is performed here in order to keep @{const G_derivable_list} as similar as possible to
-@{const SuperCalc.derivable}. Renaming would not strictly be necessary for
-@{const SuperCalc.factorization} and @{const SuperCalc.reflexion}, but it does not hurt either.
-\<close>
-
-thm G_Inf_def
-
 term distinct
 term pairwise
 
+
+thm G_Inf_def
+
 definition F_Inf :: "'a fclause inference set" where
-  "F_Inf \<equiv> {Infer Ps (substitution_eq_trm.subst_cls (from_SuperCalc_cl C') (subst_fun_of_subst_list \<sigma>))
+  "F_Inf \<equiv> {Infer Ps (subst_eq_trm.subst_cls (from_SuperCalc_cl C') (subst_fun_of_subst_list \<sigma>))
     | Ps C \<sigma> C'.
-      substitution_eq_trm.var_disjoint Ps \<and>
+      subst_eq_trm.var_disjoint Ps \<and>
       derivable_list C (map (\<lambda>D. Ecl (to_SuperCalc_cl D) {}) Ps) \<sigma> SuperCalc.FirstOrder C'}"
 
 lemma F_Inf_have_prems: "\<iota> \<in> F_Inf \<Longrightarrow> prems_of \<iota> \<noteq> []"
@@ -4557,16 +4782,17 @@ lemma F_Inf_have_prems: "\<iota> \<in> F_Inf \<Longrightarrow> prems_of \<iota> 
 interpretation F: inference_system F_Inf .
 
 definition \<G>_F :: "'a fclause \<Rightarrow> 'a gfclause set" where
-  "\<G>_F C \<equiv> {Abs_gfclause (subst_cl (fset C) \<gamma>) | \<gamma>. ground_clause (subst_cl (fset C) \<gamma>)}"
+  "\<G>_F C \<equiv> {Abs_gfclause (subst_eq_trm.subst_cls C (subst_fun_of_subst_list \<gamma>)) | \<gamma>.
+    ground_clause (to_SuperCalc_cl (subst_eq_trm.subst_cls C (subst_fun_of_subst_list \<gamma>)))}"
 
-lemma \<G>_F_mempty[simp]: "\<G>_F {||} = {bot_gfclause}"
+lemma \<G>_F_mempty[simp]: "\<G>_F {#} = {bot_gfclause}"
   using ground_subst_exists[OF finite.emptyI]
   by (simp add: \<G>_F_def vars_of_cl.simps ground_on_def)
 
-definition \<G>_I where
+definition \<G>_I :: "_ \<Rightarrow> 'a fclause inference \<Rightarrow> 'a gfclause inference set" where
   "\<G>_I M \<iota> \<equiv> {\<iota>\<^sub>G | \<iota>\<^sub>G \<gamma>. \<iota>\<^sub>G \<in> G_Inf M \<and>
-    map cl_gfclause (prems_of \<iota>\<^sub>G) = map (\<lambda>D. subst_cl (fset D) \<gamma>) (prems_of \<iota>) \<and>
-    cl_gfclause (concl_of \<iota>\<^sub>G) = subst_cl (fset (concl_of \<iota>)) \<gamma>}"
+    map cls_gfclause (prems_of \<iota>\<^sub>G) = map (\<lambda>D. subst_eq_trm.subst_cls D (subst_fun_of_subst_list \<gamma>)) (prems_of \<iota>) \<and>
+    cls_gfclause (concl_of \<iota>\<^sub>G) = subst_eq_trm.subst_cls (concl_of \<iota>) (subst_fun_of_subst_list \<gamma>)}"
 
 lemma grounding_of_inferences_are_grounded_inferences: "\<iota> \<in> F_Inf \<Longrightarrow> \<iota>' \<in> \<G>_I M \<iota> \<Longrightarrow> \<iota>' \<in> G_Inf M"
   by (simp add: \<G>_I_def)
@@ -4578,7 +4804,7 @@ lemma
 proof unfold_locales
   show "po_on R UNIV"
     using partial_ord
-    by (metis irreflp_def irreflp_onI po_onI transpE transp_onI)
+    by (metis po_onI transpE transp_onI)
 next
   show "wfp_on R UNIV"
     using wf by simp
@@ -4587,7 +4813,7 @@ qed
 print_locale lifting_intersection
 
 interpretation F: lifting_intersection F_Inf "{bot_gfclause}" UNIV G_Inf "\<lambda>_. (\<TTurnstile>e)" G.Red_I
-  "\<lambda>_. G.Red_F" "{{||}}" "\<lambda>_. \<G>_F" "\<lambda>M. Some \<circ> \<G>_I M" "\<lambda>_ _ _. False"
+  "\<lambda>_. G.Red_F" "{{#}}" "\<lambda>_. \<G>_F" "\<lambda>M. Some \<circ> \<G>_I M" "\<lambda>_ _ _. False"
 proof (unfold_locales; (intro ballI)?)
   show "UNIV \<noteq> {}"
     by (rule UNIV_not_empty)
@@ -4595,7 +4821,7 @@ next
   show "consequence_relation {bot_gfclause} (\<TTurnstile>e)"
     by (rule G.consequence_relation_axioms)
 next
-  show "\<And>M. tiebreaker_lifting {{||}} F_Inf {bot_gfclause} (\<TTurnstile>e) (G_Inf M) (G.Red_I M) G.Red_F \<G>_F
+  show "\<And>M. tiebreaker_lifting {{#}} F_Inf {bot_gfclause} (\<TTurnstile>e) (G_Inf M) (G.Red_I M) G.Red_F \<G>_F
     (Some \<circ> \<G>_I M) (\<lambda>_ _ _. False)"
   proof (unfold_locales; (intro impI)?)
     fix M \<iota>
@@ -4607,25 +4833,26 @@ next
 
       obtain \<gamma> where
         \<iota>\<^sub>G_in: "\<iota>\<^sub>G \<in> G_Inf M" and
-        prems_\<iota>\<^sub>G_conv: "map cl_gfclause (prems_of \<iota>\<^sub>G) =
-          map (\<lambda>D. subst_cl (fset D) \<gamma>) (prems_of \<iota>)" and
-        concl_\<iota>\<^sub>G_conv: "cl_gfclause (concl_of \<iota>\<^sub>G) = subst_cl (fset (concl_of \<iota>)) \<gamma>"
+        prems_\<iota>\<^sub>G_conv: "map cls_gfclause (prems_of \<iota>\<^sub>G) =
+          map (\<lambda>D. subst_eq_trm.subst_cls D (subst_fun_of_subst_list \<gamma>)) (prems_of \<iota>)" and
+        concl_\<iota>\<^sub>G_conv: "cls_gfclause (concl_of \<iota>\<^sub>G) = subst_eq_trm.subst_cls (concl_of \<iota>)
+          (subst_fun_of_subst_list \<gamma>)"
         using \<iota>\<^sub>G_grounding[unfolded \<G>_I_def mem_Collect_eq] by metis
-
-      have "ground_clause (subst_cl (fset (concl_of \<iota>)) \<gamma>)"
-        unfolding concl_\<iota>\<^sub>G_conv[symmetric] by simp
 
       show "\<iota>\<^sub>G \<in> G.Red_I M (\<G>_F (concl_of \<iota>))"
       proof (rule G.Red_I_of_Inf_to_N[OF \<iota>\<^sub>G_in])
         show "concl_of \<iota>\<^sub>G \<in> \<G>_F (concl_of \<iota>)"
           unfolding \<G>_F_def mem_Collect_eq
         proof (intro exI[of _ \<gamma>] conjI)
-          show "concl_of \<iota>\<^sub>G = Abs_gfclause (subst_cl (fset (concl_of \<iota>)) \<gamma>)"
+          show "concl_of \<iota>\<^sub>G = Abs_gfclause (subst_eq_trm.subst_cls (concl_of \<iota>)
+            (subst_fun_of_subst_list \<gamma>))"
             unfolding concl_\<iota>\<^sub>G_conv[symmetric]
-            by (simp add: cl_gfclause_inverse)
+            by (simp add: cls_gfclause_inverse)
         next
-          show "ground_clause (subst_cl (fset (concl_of \<iota>)) \<gamma>)"
-            unfolding concl_\<iota>\<^sub>G_conv[symmetric] by simp
+          show "ground_clause (to_SuperCalc_cl (subst_eq_trm.subst_cls (concl_of \<iota>)
+            (subst_fun_of_subst_list \<gamma>)))"
+            unfolding concl_\<iota>\<^sub>G_conv[symmetric]
+            by simp
         qed
       qed
     qed
@@ -4638,23 +4865,24 @@ next
     fix M C assume "\<G>_F C \<inter> {bot_gfclause} \<noteq> {}"
     hence "bot_gfclause \<in> \<G>_F C"
       by simp
-    thus "C \<in> {{||}}"
-      unfolding \<G>_F_def
-      by (smt (verit, best) Abs_gfclause_inverse bot_fset.rep_eq cl_gfclause_bot_gfclause
-          finite_fset fset_cong image_is_empty insert_iff mem_Collect_eq subst_cl_conv
-          substs_preserve_finiteness)
+    thus "C \<in> {{#}}"
+      unfolding \<G>_F_def mem_Collect_eq
+      by (metis Abs_gfclause_inverse cl_gfclause_bot_gfclause empty_agrees_if_image_eq insert_iff
+          mem_Collect_eq set_mset_eq_empty_iff subst_eq_trm.subst_cls_empty_iff)
   qed auto
 qed
 
-lemma "statically_complete_calculus {{||}} F_Inf F.entails_\<G> F.Red_I_\<G> F.Red_F_\<G>_empty"
+lemma "statically_complete_calculus {{#}} F_Inf F.entails_\<G> F.Red_I_\<G> F.Red_F_\<G>_empty"
 proof (rule F.stat_ref_comp_to_non_ground_fam_inter)
   show "\<forall>q\<in>UNIV. statically_complete_calculus {bot_gfclause} (G_Inf q) (\<TTurnstile>e) (G.Red_I q) G.Red_F"
     using statically_complete_calculus_axioms by blast
 next
   fix N :: "'a fclause set"
-  assume "F.empty_ord.saturated N"
+  assume "F.saturated N"
+
   define M :: "'a clause set" where
-    "M = {subst_cl (fset C) \<gamma> | C \<gamma>. C \<in> N \<and> ground_clause (subst_cl (fset C) \<gamma>)}"
+    "M = {subst_cl (to_SuperCalc_cl C) \<gamma> | C \<gamma>.
+      C \<in> N \<and> ground_clause (subst_cl (to_SuperCalc_cl C) \<gamma>)}"
 
   show "\<exists>q\<in>UNIV. F.ground.Inf_from_q q (\<Union> (\<G>_F ` N)) \<subseteq> {\<iota>. \<exists>\<iota>'\<in>F.Inf_from N.
     (Some \<circ> \<G>_I q) \<iota>' \<noteq> None \<and> \<iota> \<in> the ((Some \<circ> \<G>_I q) \<iota>')} \<union> G.Red_I q (\<Union> (\<G>_F ` N))"
@@ -4663,8 +4891,8 @@ next
     assume "\<iota>\<^sub>G \<in> F.ground.Inf_from_q M (\<Union> (\<G>_F ` N))"
     hence "\<iota>\<^sub>G \<in> G_Inf M" and prems_\<iota>\<^sub>G_subset: "set (prems_of \<iota>\<^sub>G) \<subseteq> (\<Union> (\<G>_F ` N))"
       by (simp_all add: F.ground.Inf_from_q_def G.Inf_from_def)
-    then obtain Ps\<^sub>G C \<sigma> C' where
-      \<iota>\<^sub>G_def: "\<iota>\<^sub>G = Infer Ps\<^sub>G (Abs_gfclause C')" and
+    then obtain Ps\<^sub>G C \<sigma> and C' where
+      \<iota>\<^sub>G_def: "\<iota>\<^sub>G = Infer Ps\<^sub>G (Abs_gfclause (from_SuperCalc_cl C'))" and
       G_deriv: "G_derivable_list M C (map (\<lambda>D. Ecl (cl_gfclause D) {}) Ps\<^sub>G) \<sigma> SuperCalc.Ground C'"
       by (auto simp add: G_Inf_def)
 
@@ -4686,32 +4914,107 @@ next
         map_Ps_eq: "map (\<lambda>D. Ecl (cl_gfclause D) {}) Ps\<^sub>G = [P1\<^sub>G]" and
         SC_refl: "G_SuperCalc.reflexion M P1\<^sub>G C \<sigma> SuperCalc.Ground C'"
 
+      have ground_P1\<^sub>G: "ground_clause (cl_ecl P1\<^sub>G)" and trms_P1\<^sub>G_eq: "trms_ecl P1\<^sub>G = {}"
+        using map_Ps_eq by auto
+
+      have SC_refl': "G_SuperCalc.reflexion M P1\<^sub>G C \<sigma>' SuperCalc.Ground C'" for \<sigma>'
+      proof -
+        from SC_refl obtain L1 :: "'a equational_clausal_logic.literal" and t u where
+          eligible: "G_SuperCalc.eligible_literal M L1 P1\<^sub>G \<sigma>" and
+          L1_in: "L1 \<in> cl_ecl P1\<^sub>G" and
+          orient: "SuperCalc.orient_lit_inst L1 t u neg \<sigma>" and
+          unif: "SuperCalc.ck_unifier t u \<sigma> SuperCalc.Ground" and
+          C'_def: "C' = cl_ecl P1\<^sub>G - {L1}" and
+          C_def: "C = Ecl (subst_cl C' \<sigma>) (SuperCalc.get_trms (subst_cl C' \<sigma>)
+            (SuperCalc.dom_trms (subst_cl C' \<sigma>) (subst_set (insert t (trms_ecl P1\<^sub>G)) \<sigma>)) SuperCalc.Ground)"
+          unfolding G_SuperCalc.reflexion_def by auto
+
+        have "vars_of_lit L1 = {}"
+          using ground_P1\<^sub>G L1_in
+          by (auto simp add: ground_clause.simps vars_of_cl.simps)
+        hence "vars_of t = {}" and "vars_of u = {}"
+          using SuperCalc.orient_lit_inst_vars[OF orient]
+          by simp_all
+
+        have "G_SuperCalc.eligible_literal M L1 P1\<^sub>G \<sigma>'"
+          using eligible
+          unfolding G_SuperCalc.eligible_literal_def
+          using ground_P1\<^sub>G
+          apply (auto simp:)
+          by (simp add: SuperCalc.maximal_literal_def \<open>L1 \<in> cl_ecl P1\<^sub>G\<close>
+              substs_preserve_ground_clause substs_preserve_ground_lit)
+
+        moreover have "SuperCalc.orient_lit_inst L1 t u neg \<sigma>'"
+          using orient
+          unfolding SuperCalc.orient_lit_inst_def
+          using L1_in ground_P1\<^sub>G substs_preserve_ground_lit
+          by force
+
+        moreover have "SuperCalc.ck_unifier t u \<sigma>' SuperCalc.Ground"
+          using unif
+          unfolding SuperCalc.ck_unifier_def
+          apply simp
+          by (metis L1_in SuperCalc.orient_lit_inst_def Unifier_def calculation(2) equation.inject
+              equational_clausal_logic.literal.inject(2) ground_P1\<^sub>G sign.simps(2)
+              subst_equation.simps subst_lit.simps(2) substs_preserve_ground_lit)
+
+        moreover have "subst_set (insert t (trms_ecl P1\<^sub>G)) \<sigma>' =
+          subst_set (insert t (trms_ecl P1\<^sub>G)) \<sigma>"
+          using trms_P1\<^sub>G_eq \<open>vars_of t = {}\<close>
+          by (simp add: subst_set.simps subst_ident_if_vars_empty)
+
+        moreover have "subst_cl C' \<sigma> = subst_cl C' \<sigma>'"
+          using ground_C' substs_preserve_ground_clause by metis
+
+        ultimately show ?thesis
+          unfolding G_SuperCalc.reflexion_def
+          using L1_in C_def C'_def
+          apply simp
+          by metis
+      qed
+        
+
       from map_Ps_eq obtain P1 :: "'a fclause" where
         "P1 \<in> N" and cl_ecl_P1\<^sub>G_in: "cl_ecl P1\<^sub>G \<in> cl_gfclause ` \<G>_F P1"
         using ball_Ps_bex_N_mem_\<G>_F
         by (cases Ps\<^sub>G) force+
 
-      from cl_ecl_P1\<^sub>G_in obtain \<gamma> where "cl_ecl P1\<^sub>G = subst_cl (fset P1) \<gamma>"
+      obtain D where
+        "G_SuperCalc.reflexion M P1\<^sub>G D [] SuperCalc.FirstOrder C'"
+        using G_SuperCalc.lifting_lemma_reflexion[OF SC_refl', of "[]", simplified]
+        using G_SuperCalc.subst_eq_reflexion
+        by (metis subst_sym)
+      hence ***: "SuperCalc.reflexion P1\<^sub>G D [] SuperCalc.FirstOrder C'"
+        unfolding G_SuperCalc.reflexion_def SuperCalc.reflexion_def
+        by (metis (no_types, lifting) G_SuperCalc.eligible_literal_def
+            SuperCalc.eligible_literal_def ground_select_at_limit_grounding
+            ground_select_at_limit_not_grounding select_stable_under_grounding)
+
+      from cl_ecl_P1\<^sub>G_in obtain \<gamma> where
+        "cl_ecl P1\<^sub>G = to_SuperCalc_cl (subst_eq_trm.subst_cls P1 (subst_fun_of_subst_list \<gamma>))"
         unfolding \<G>_F_def Set.image_iff
-        by (auto simp: Abs_gfclause_inverse substs_preserve_finiteness)
-
-      from SC_refl have "\<exists>C \<sigma> C'. derivable_list C [Ecl (fset P1) {}] \<sigma> SuperCalc.FirstOrder C'"
-        sorry
-      then obtain D \<sigma>\<^sub>D D' where
-        deriv_P1_D: "derivable_list D [Ecl (fset P1) {}] \<sigma>\<^sub>D SuperCalc.FirstOrder D'"
-        by metis
-
-      from deriv_P1_D have fin_D': "finite D'"
-        by (auto intro: derivable_list_finite_conclusion[rotated])
+        by (auto simp: Abs_gfclause_inverse)
+      hence P1\<^sub>G_def: "P1\<^sub>G = Ecl (subst_cl (to_SuperCalc_cl P1) \<gamma>) {}"
+        using trms_P1\<^sub>G_eq map_Ps_eq to_SuperCalc_cl_subst_cls_subst_fun_of_subst_list
+        by fastforce
+        
 
       define \<iota> :: "'a fclause inference" where
-        "\<iota> = Infer [P1] (Abs_fset (subst_cl D' \<sigma>\<^sub>D))"
+        "\<iota> = Infer [P1] (subst_eq_trm.subst_cls (from_SuperCalc_cl C')
+          (subst_fun_of_subst_list \<gamma>))"
+        (* "\<iota> = Infer [P1] (Abs_fset (subst_cl D' \<sigma>\<^sub>D))" *)
 
       have "\<iota> \<in> F.Inf_from N"
         unfolding F.Inf_from_def
       proof (intro Set.CollectI conjI)
         show "\<iota> \<in> F_Inf"
           unfolding F_Inf_def mem_Collect_eq Let_def
+          apply (simp add: \<iota>_def derivable_list_def)
+          apply (rule exI[of _ D])
+          apply (rule exI[of _ \<gamma>])
+          apply (rule exI[of _ C'])
+          using ***
+          apply (simp add: P1\<^sub>G_def)
           using deriv_P1_D
           by (auto simp: \<iota>_def renamings_apart_singleton)
       next
