@@ -193,6 +193,7 @@ theorem correct_termination:
     no_more_step: "\<nexists>S'. scl N \<beta> S S'" and
     sound_S: "sound_state N \<beta> S" and
     invars: "trail_atoms_lt \<beta> S" "trail_propagated_wf (state_trail S)" "trail_lits_consistent S"
+      "ground_false_closures S"
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
     "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
@@ -331,8 +332,8 @@ proof -
     case (Some Cl)
     then obtain C \<gamma> where u_def: "u = Some (C, \<gamma>)" by force
 
-    from sound_S have \<Gamma>_false_C_\<gamma>: "trail_false_cls \<Gamma> (C \<cdot> \<gamma>)"
-      by (simp add: S_def u_def sound_state_def)
+    from \<open>ground_false_closures S\<close> have \<Gamma>_false_C_\<gamma>: "trail_false_cls \<Gamma> (C \<cdot> \<gamma>)"
+      by (simp add: S_def u_def ground_false_closures_def)
 
     show ?thesis
     proof (cases "C = {#}")

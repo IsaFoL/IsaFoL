@@ -3,7 +3,6 @@ theory Termination
     Simple_Clause_Learning
     Non_Redundancy
     "HOL-Library.Monad_Syntax"
-    (* "HOL-Library.State_Monad" *)
 begin
 
 
@@ -613,9 +612,6 @@ qed
 definition fclss_no_dup :: "('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term literal fset fset" where
   "fclss_no_dup \<beta> = fPow (Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>})"
 
-(* lemma finite_if_member_Pow_finite: "x \<in> Pow A \<Longrightarrow> finite A \<Longrightarrow> finite x"
-  using rev_finite_subset by auto *)
-
 lemma image_fset_fset_fPow_eq: "fset ` fset (fPow A) = Pow (fset A)"
 proof (rule Set.equalityI)
   show "fset ` fset (fPow A) \<subseteq> Pow (fset A)"
@@ -664,6 +660,7 @@ lemma \<M>_back_pfsubset_\<M>_back_after_regular_backtrack:
     "transp lt" and
 
     invars: "ground_closures Sn" "trail_atoms_lt \<beta> Sn" "sound_state N \<beta> Sn"
+      "ground_false_closures Sn"
   defines
     "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))"
   shows "\<M>_back \<beta> Sn' |\<subset>| \<M>_back \<beta> Sn"
@@ -736,7 +733,7 @@ proof -
         unfolding fmember_iff_member_fset
         by (metis fset_fset_mset fset_inverse)
       moreover have "trail_false_cls (state_trail Sn) (C \<cdot> \<gamma>)"
-        using invars(3) conf by (auto simp: sound_state_def)
+        using invars(4) conf by (auto simp: ground_false_closures_def)
       ultimately show "atm_of L \<prec>\<^sub>B \<beta>"
         using ball_less_B_if_trail_false_and_trail_atoms_lt[OF _ invars(2)]
         by metis
@@ -764,7 +761,8 @@ theorem regular_scl_terminates:
   defines
     "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
       trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
-      ground_closures \<sqinter> sound_state N \<beta> \<sqinter> almost_no_conflict_with_trail N \<beta> \<sqinter>
+      ground_closures \<sqinter> ground_false_closures \<sqinter> sound_state N \<beta> \<sqinter>
+      almost_no_conflict_with_trail N \<beta> \<sqinter>
       regular_conflict_resolution N \<beta>"
   assumes "transp lt"
   shows
@@ -789,6 +787,7 @@ next
       reg_to_scl[THEN scl_preserves_trail_lits_from_clauses]
       reg_to_scl[THEN scl_preserves_initial_lits_generalize_learned_trail_conflict]
       reg_to_scl[THEN scl_preserves_ground_closures]
+      reg_to_scl[THEN scl_preserves_ground_false_closures]
       reg_to_scl[THEN scl_preserves_sound_state]
       regular_scl_preserves_almost_no_conflict_with_trail
       regular_scl_preserves_regular_conflict_resolution
@@ -849,6 +848,9 @@ next
     moreover from \<open>invars S\<close> have "regular_conflict_resolution N \<beta> S"
       by (simp add: invars_def)
 
+    moreover from \<open>invars S\<close> have "ground_false_closures S"
+      by (simp add: invars_def)
+
     ultimately obtain S0 S1 S2 S3 S4 where
       reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
       propa: "propagate N \<beta> S0 S1" "regular_scl N \<beta> S0 S1" and
@@ -888,6 +890,9 @@ next
     next
       show "sound_state N \<beta> S"
         by (rule \<open>sound_state N \<beta> S\<close>)
+    next
+      show "ground_false_closures S"
+        by (rule \<open>ground_false_closures S\<close>)
     qed
   qed
 qed

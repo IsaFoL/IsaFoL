@@ -986,7 +986,7 @@ subsection \<open>Miscellaneous Lemmas\<close>
 
 lemma mempty_not_in_initial_clauses_if_non_empty_regular_conflict:
   assumes "state_conflict S = Some (C, \<gamma>)" and "C \<noteq> {#}" and
-    invars: "almost_no_conflict_with_trail N \<beta> S" "sound_state N \<beta> S"
+    invars: "almost_no_conflict_with_trail N \<beta> S" "sound_state N \<beta> S" "ground_false_closures S"
   shows "{#} |\<notin>| N"
 proof -
   from assms(1) obtain \<Gamma> U where S_def: "S = (\<Gamma>, U, Some (C, \<gamma>))"
@@ -995,8 +995,8 @@ proof -
   from assms(2) obtain L C' where C_def: "C = add_mset L C'"
     using multi_nonempty_split by metis
 
-  from invars(2) have "trail_false_cls \<Gamma> (C \<cdot> \<gamma>)"
-    by (simp add: S_def sound_state_def)
+  from invars(3) have "trail_false_cls \<Gamma> (C \<cdot> \<gamma>)"
+    by (simp add: S_def ground_false_closures_def)
   then obtain Ln \<Gamma>' where "\<Gamma> = Ln # \<Gamma>'"
     by (metis assms(2) neq_Nil_conv not_trail_false_Nil(2) subst_cls_empty_iff)
   with invars(1) have "no_conflict_with_trail N \<beta> U (if is_decision_lit Ln then Ln # \<Gamma>' else \<Gamma>')"
@@ -1045,7 +1045,7 @@ lemma before_regular_backtrack:
   assumes
     backt: "backtrack N \<beta> S S'" and
     invars: "sound_state N \<beta> S" "almost_no_conflict_with_trail N \<beta> S"
-      "regular_conflict_resolution N \<beta> S"
+      "regular_conflict_resolution N \<beta> S" "ground_false_closures S"
   shows "\<exists>S0 S1 S2 S3 S4. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0 \<and>
     propagate N \<beta> S0 S1 \<and> regular_scl N \<beta> S0 S1 \<and>
     conflict N \<beta> S1 S2 \<and> (factorize N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and> resolve N \<beta> S3 S4 \<and>
@@ -1067,6 +1067,9 @@ proof -
   next
     show "sound_state N \<beta> S"
       by (rule \<open>sound_state N \<beta> S\<close>)
+  next
+    show "ground_false_closures S"
+      by (rule \<open>ground_false_closures S\<close>)
   qed
 
   then obtain S0 S1 S2 S3 where
@@ -1700,7 +1703,7 @@ theorem learned_clauses_in_regular_runs_invars:
     sound_S0: "sound_state N \<beta> S0" and
     invars: "learned_nonempty S0" "trail_propagated_or_decided' N \<beta> S0"
       "no_conflict_after_decide' N \<beta> S0" "almost_no_conflict_with_trail N \<beta> S0"
-      "trail_lits_consistent S0" and
+      "trail_lits_consistent S0" "trail_closures_false' S0" "ground_false_closures S0" and
     conflict: "conflict N \<beta> S0 S1" and
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
     backtrack: "backtrack N \<beta> Sn Sn'" and
@@ -1736,19 +1739,32 @@ proof -
       by simp
   qed
 
-  from conflict sound_S0 have sound_S1: "sound_state N \<beta> S1"
-    by (simp add: conflict_preserves_sound_state)
-  with resolution have sound_Sn: "sound_state N \<beta> Sn"
+  from conflict have sound_S1: "sound_state N \<beta> S1" and "ground_false_closures S1"
+    using sound_S0 \<open>ground_false_closures S0\<close>
+    by (simp_all add: conflict_preserves_sound_state conflict_preserves_ground_false_closures)
+  with resolution have sound_Sn: "sound_state N \<beta> Sn" and "ground_false_closures Sn"
     by (induction rule: tranclp_induct)
-      (auto intro: skip_preserves_sound_state factorize_preserves_sound_state
-        resolve_preserves_sound_state)
+      (auto intro:
+        skip_preserves_sound_state
+        skip_preserves_ground_false_closures
+        factorize_preserves_sound_state
+        factorize_preserves_ground_false_closures
+        resolve_preserves_sound_state
+        resolve_preserves_ground_false_closures)
 
-  from conflict_Sn sound_Sn have "fset N \<TTurnstile>\<G>e {Cn}" and
-    trail_Sn_false_Cn_\<gamma>n: "trail_false_cls (state_trail Sn) (Cn \<cdot> \<gamma>n)"
+  from conflict \<open>trail_closures_false' S0\<close> have "trail_closures_false' S1"
+    by (simp add: conflict_preserves_trail_closures_false')
+
+  from conflict_Sn sound_Sn have "fset N \<TTurnstile>\<G>e {Cn}"
     by (auto simp add: sound_state_def)
 
-  from conflict_S1 sound_S1 have trail_S1_false_C1_\<gamma>1: "trail_false_cls (state_trail S1) (C1 \<cdot> \<gamma>1)"
-    by (auto simp add: sound_state_def)
+  from conflict_S1 \<open>ground_false_closures S1\<close> have trail_S1_false_C1_\<gamma>1:
+    "trail_false_cls (state_trail S1) (C1 \<cdot> \<gamma>1)"
+    by (auto simp add: ground_false_closures_def)
+
+  from conflict_Sn \<open>ground_false_closures Sn\<close> have trail_Sn_false_Cn_\<gamma>n:
+    "trail_false_cls (state_trail Sn) (Cn \<cdot> \<gamma>n)"
+    by (auto simp add: ground_false_closures_def)
 
   from resolution have "suffix (state_trail Sn) (state_trail S1) \<and>
     (\<exists>Cn \<gamma>n. state_conflict Sn = Some (Cn, \<gamma>n) \<and> trail_false_cls (state_trail S1) (Cn \<cdot> \<gamma>n))"
@@ -1761,16 +1777,16 @@ proof -
         using conflict_S1 skip.simps suffix_ConsI trail_S1_false_C1_\<gamma>1 by fastforce
     next
       assume "factorize N \<beta> S1 S2"
-      moreover with sound_S1 have "sound_state N \<beta> S2"
-        by (auto intro: factorize_preserves_sound_state)
+      moreover with \<open>ground_false_closures S1\<close> have "ground_false_closures S2"
+        by (auto intro: factorize_preserves_ground_false_closures)
       ultimately show ?thesis
-        by (cases N \<beta> S1 S2 rule: factorize.cases) (simp add: sound_state_def)
+        by (cases N \<beta> S1 S2 rule: factorize.cases) (simp add: ground_false_closures_def)
     next
       assume "resolve N \<beta> S1 S2"
-      moreover with sound_S1 have "sound_state N \<beta> S2"
-        by (auto intro: resolve_preserves_sound_state)
+      moreover with \<open>ground_false_closures S1\<close> have "ground_false_closures S2"
+        by (auto intro: resolve_preserves_ground_false_closures)
       ultimately show ?thesis
-        by (cases N \<beta> S1 S2 rule: resolve.cases) (simp add: sound_state_def)
+        by (cases N \<beta> S1 S2 rule: resolve.cases) (simp add: ground_false_closures_def)
     qed
   next
     case (step Sm Sm')
@@ -1783,6 +1799,11 @@ proof -
       by (induction rule: tranclp_induct)
         (auto intro: skip_preserves_sound_state factorize_preserves_sound_state
           resolve_preserves_sound_state)
+
+    from step.hyps(1) \<open>trail_closures_false' S1\<close> have "trail_closures_false' Sm"
+      by (induction rule: tranclp_induct)
+        (auto intro: skip_preserves_trail_closures_false' factorize_preserves_trail_closures_false'
+          resolve_preserves_trail_closures_false')
 
     from step.IH obtain Cm \<gamma>m where
       conflict_Sm: "state_conflict Sm = Some (Cm, \<gamma>m)" and
@@ -1829,10 +1850,13 @@ proof -
         from resolveI sound_Sm have
           ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
           ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)" and
-          "sound_trail N \<Gamma>" and
-          "trail_closures_false \<Gamma>"
+          "sound_trail N \<Gamma>"
           unfolding sound_state_def \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
           by (simp_all add: ground_closures_def propagate_lit_def trail_closures_false'_def)
+
+        from \<open>trail_closures_false' Sm\<close> have "trail_closures_false \<Gamma>"
+          unfolding resolveI(1,2)
+          by (simp add: trail_closures_false'_def)
 
         let ?\<gamma>\<^sub>D' = "restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D"
 
@@ -1911,7 +1935,7 @@ proof -
 
   have "{#} |\<notin>| N"
     by (rule mempty_not_in_initial_clauses_if_non_empty_regular_conflict[OF conflict_S1 \<open>C1 \<noteq> {#}\<close>
-          \<open>almost_no_conflict_with_trail N \<beta> S1\<close> sound_S1])
+          \<open>almost_no_conflict_with_trail N \<beta> S1\<close> sound_S1 \<open>ground_false_closures S1\<close>])
   then obtain S where "propagate N \<beta> S S0"
     using before_reasonable_conflict[OF conflict \<open>learned_nonempty S0\<close>
         \<open>trail_propagated_or_decided' N \<beta> S0\<close> \<open>no_conflict_after_decide' N \<beta> S0\<close>]
@@ -1956,7 +1980,7 @@ proof -
         uminus_of_uminus_id)
 
   moreover have "trail_false_cls (state_trail Sn) (Cn \<cdot> \<gamma>n)"
-    using sound_Sn conflict_Sn by (auto simp add: sound_state_def)
+    using \<open>ground_false_closures Sn\<close> conflict_Sn by (auto simp add: ground_false_closures_def)
 
   ultimately have "L \<cdot>l \<gamma> \<notin># Cn \<cdot> \<gamma>n \<and> - (L \<cdot>l \<gamma>) \<notin># Cn \<cdot> \<gamma>n"
     unfolding trail_false_cls_def trail_false_lit_def trail_defined_lit_def
@@ -2232,6 +2256,18 @@ proof -
     by (induction S0 rule: rtranclp_induct)
       (auto intro: scl_preserves_trail_lits_consistent reasonable_if_regular scl_if_reasonable)
 
+  from regular_run have "trail_lits_consistent S0"
+    by (induction S0 rule: rtranclp_induct)
+      (auto intro: scl_preserves_trail_lits_consistent reasonable_if_regular scl_if_reasonable)
+
+  from regular_run have "trail_closures_false' S0"
+    by (induction S0 rule: rtranclp_induct)
+      (auto intro: scl_preserves_trail_closures_false' reasonable_if_regular scl_if_reasonable)
+
+  from regular_run have  "ground_false_closures S0"
+    by (induction S0 rule: rtranclp_induct)
+      (auto intro: scl_preserves_ground_false_closures reasonable_if_regular scl_if_reasonable)
+
   from regular_run conflict have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
     by (meson regular_scl_def rtranclp.simps)
   also from resolution have reg_run_S1_Sn: "(regular_scl N \<beta>)\<^sup>*\<^sup>* ... Sn"
@@ -2251,7 +2287,7 @@ proof -
     using learned_clauses_in_regular_runs_invars[OF sound_S0 \<open>learned_nonempty S0\<close>
         \<open>trail_propagated_or_decided' N \<beta> S0\<close>
         \<open>no_conflict_after_decide' N \<beta> S0\<close> \<open>almost_no_conflict_with_trail N \<beta> S0\<close>
-        \<open>trail_lits_consistent S0\<close>
+        \<open>trail_lits_consistent S0\<close> \<open>trail_closures_false' S0\<close> \<open>ground_false_closures S0\<close>
         conflict resolution backtrack \<open>transp lt\<close>, folded trail_ord_def U_def]
     by argo
 qed
