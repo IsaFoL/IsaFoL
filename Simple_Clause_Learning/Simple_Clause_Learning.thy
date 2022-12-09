@@ -217,17 +217,6 @@ subsubsection \<open>First_Order_Terms Only\<close>
 lemma atm_of_eq_uminus_if_lit_eq: "L = - K \<Longrightarrow> atm_of L = atm_of K"
   by (cases L; cases K) simp_all
 
-lemma mem_range_varsI:
-  assumes "\<sigma> x = Var y" "x \<noteq> y"
-  shows "y \<in> range_vars \<sigma>"
-  unfolding range_vars_def UN_iff
-proof (rule bexI[of _ "Var y"])
-  show "y \<in> vars_term (Var y)" by simp
-next
-  from assms show "Var y \<in> subst_range \<sigma>"
-    by (simp_all add: subst_domain_def)
-qed
-
 lemma subst_subst_eq_subst_subst_if_subst_eq_substI:
   assumes "t \<cdot> \<sigma> = u \<cdot> \<delta>" and
     t_inter_\<delta>_empty: "vars_term t \<inter> subst_domain \<delta> = {}" and
@@ -317,6 +306,91 @@ proof -
     by metis
 qed
 
+(* corollary
+  fixes \<mu> :: "('f, 'v) subst" and E :: "('f, 'v) equations" and Evars :: "'v set"
+  assumes imgu_\<mu>: "is_imgu \<mu> E" and fin_E: "finite E"
+  defines "Evars \<equiv> (\<Union>e \<in> E. vars_term (fst e) \<union> vars_term (snd e))"
+  shows "(\<Union>x \<in> -Evars. vars_term (\<mu> x)) \<subseteq> -Evars"
+  using imgu_subst_domain_subset[OF assms(1,2), folded Evars_def] *)
+(*   by (smt (verit, del_insts) ComplD SUP_le_iff Term.term.simps(17) compl_le_swap1
+      subset_Compl_singleton subset_eq subst_ident_if_not_in_domain) *)
+
+lemma restrict_subst_domain_subst_composition:
+  fixes \<sigma>\<^sub>A \<sigma>\<^sub>B A B
+  assumes
+    distinct_domains: "A \<inter> B = {}" and
+    distinct_range: "\<forall>x \<in> A. vars_term (\<sigma>\<^sub>A x) \<inter> subst_domain \<sigma>\<^sub>B = {}"
+  defines "\<sigma> \<equiv> restrict_subst_domain A \<sigma>\<^sub>A \<circ>\<^sub>s \<sigma>\<^sub>B"
+  shows "x \<in> A \<Longrightarrow> \<sigma> x = \<sigma>\<^sub>A x" "x \<in> B \<Longrightarrow> \<sigma> x = \<sigma>\<^sub>B x"
+proof -
+  assume "x \<in> A"
+  hence "restrict_subst_domain A \<sigma>\<^sub>A x = \<sigma>\<^sub>A x"
+    by (simp add: restrict_subst_domain_def)
+  moreover have "\<sigma>\<^sub>A x \<cdot> \<sigma>\<^sub>B = \<sigma>\<^sub>A x"
+    using distinct_range
+    by (simp add: \<open>x \<in> A\<close> subst_apply_term_ident)
+  ultimately show "\<sigma> x = \<sigma>\<^sub>A x"
+    by (simp add: \<sigma>_def subst_compose_def)
+next
+  assume "x \<in> B"
+  hence "restrict_subst_domain A \<sigma>\<^sub>A x = Var x"
+    using distinct_domains
+    by (metis Int_iff empty_iff restrict_subst_domain_def)
+  then show "\<sigma> x = \<sigma>\<^sub>B x"
+    by (simp add: \<sigma>_def subst_compose_def)
+qed
+
+lemma merge_substs_on_disjoint_domains:
+  fixes \<sigma>\<^sub>A \<sigma>\<^sub>B A B
+  assumes distinct_domains: "A \<inter> B = {}"
+  defines "\<sigma> \<equiv> (\<lambda>x. if x \<in> A then \<sigma>\<^sub>A x else if x \<in> B then \<sigma>\<^sub>B x else Var x)"
+  shows
+    "x \<in> A \<Longrightarrow> \<sigma> x = \<sigma>\<^sub>A x"
+    "x \<in> B \<Longrightarrow> \<sigma> x = \<sigma>\<^sub>B x"
+    "x \<notin> A \<union> B \<Longrightarrow> \<sigma> x = Var x"
+proof -
+  show "x \<in> A \<Longrightarrow> \<sigma> x = \<sigma>\<^sub>A x"
+    by (simp add: \<sigma>_def)
+next
+  assume "x \<in> B"
+  moreover hence "x \<notin> A"
+    using distinct_domains by auto
+  ultimately show "\<sigma> x = \<sigma>\<^sub>B x"
+    by (simp add: \<sigma>_def)
+next
+  show "x \<notin> A \<union> B \<Longrightarrow> \<sigma> x = Var x"
+    by (simp add: \<sigma>_def)
+qed
+
+definition is_grounding_merge where
+  "is_grounding_merge \<gamma> A \<gamma>\<^sub>A B \<gamma>\<^sub>B \<longleftrightarrow>
+    A \<inter> B = {} \<longrightarrow> (\<forall>x \<in> A. vars_term (\<gamma>\<^sub>A x) = {}) \<longrightarrow> (\<forall>x \<in> B. vars_term (\<gamma>\<^sub>B x) = {}) \<longrightarrow>
+    (\<forall>x \<in> A. \<gamma> x = \<gamma>\<^sub>A x) \<and> (\<forall>x \<in> B. \<gamma> x = \<gamma>\<^sub>B x)"
+
+lemma is_grounding_merge_if_mem_then_else[simp]:
+  fixes \<gamma>\<^sub>A \<gamma>\<^sub>B A B
+  defines "\<gamma> \<equiv> (\<lambda>x. if x \<in> A then \<gamma>\<^sub>A x else \<gamma>\<^sub>B x)"
+  shows "is_grounding_merge \<gamma> A \<gamma>\<^sub>A B \<gamma>\<^sub>B"
+  unfolding is_grounding_merge_def
+  by (auto simp: \<gamma>_def)
+
+lemma is_grounding_merge_restrict_subst_domain_comp[simp]:
+  fixes \<gamma>\<^sub>A \<gamma>\<^sub>B A B
+  defines "\<gamma> \<equiv> restrict_subst_domain A \<gamma>\<^sub>A \<circ>\<^sub>s \<gamma>\<^sub>B"
+  shows "is_grounding_merge \<gamma> A \<gamma>\<^sub>A B \<gamma>\<^sub>B"
+  unfolding is_grounding_merge_def
+proof (intro impI)
+  assume disjoint: "A \<inter> B = {}" and
+    ball_A_ground: "\<forall>x\<in>A. vars_term (\<gamma>\<^sub>A x) = {}" and
+    ball_B_ground: "\<forall>x\<in>B. vars_term (\<gamma>\<^sub>B x) = {}"
+
+  from ball_A_ground have "\<forall>x\<in>A. vars_term (\<gamma>\<^sub>A x) \<inter> subst_domain \<gamma>\<^sub>B = {}"
+    by simp
+  thus "(\<forall>x\<in>A. \<gamma> x = \<gamma>\<^sub>A x) \<and> (\<forall>x\<in>B. \<gamma> x = \<gamma>\<^sub>B x)"
+    using restrict_subst_domain_subst_composition[OF disjoint, of \<gamma>\<^sub>A \<gamma>\<^sub>B]
+    by (simp_all add: \<gamma>_def)
+qed
+  
 
 subsubsection \<open>First_Order_Terms And Abstract_Substitution\<close>
 
@@ -1419,8 +1493,9 @@ inductive resolve :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Ri
     is_renaming \<rho>\<^sub>C \<Longrightarrow> is_renaming \<rho>\<^sub>D \<Longrightarrow>
     vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D) = {} \<Longrightarrow>
     is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}} \<Longrightarrow>
-    \<gamma> = rename_subst_domain \<rho>\<^sub>D (restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D) \<odot>
-      rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C \<Longrightarrow>
+    is_grounding_merge \<gamma>
+      (vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C)) (rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C)
+      (vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D)) (rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D) \<Longrightarrow>
     resolve N \<beta> (\<Gamma>, U, Some (add_mset L C, \<gamma>\<^sub>C)) (\<Gamma>, U, Some ((C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu>, \<gamma>))"
 
 (* Think about showing that the more specific rule from the paper is an instance of this generic rule. *)
@@ -1832,7 +1907,7 @@ proof -
     using \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)\<close>
     by (metis atm_of_subst_lit atm_of_uminus)
   hence "is_unifiers \<gamma> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}"
-    by (simp add: \<gamma>_def is_unifiers_def is_unifier_alt)
+    by (simp add: is_unifiers_def is_unifier_alt)
 
   moreover assume imgu_\<mu>: "is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}"
 
@@ -3091,6 +3166,82 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     by (simp add: ground_closures_def)
 qed
 
+lemma merge_of_renamed_groundings:
+  assumes
+    ren_\<rho>\<^sub>C: "is_renaming \<rho>\<^sub>C" and
+    ren_\<rho>\<^sub>D: "is_renaming \<rho>\<^sub>D" and
+    disjoint_vars: "vars_cls (C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (D \<cdot> \<rho>\<^sub>D) = {}" and
+    ground_conf: "is_ground_cls (C \<cdot> \<gamma>\<^sub>C)" and
+    ground_prop: "is_ground_cls (D \<cdot> \<gamma>\<^sub>D)" and
+    merge_\<gamma>: "is_grounding_merge \<gamma>
+      (vars_cls (C \<cdot> \<rho>\<^sub>C)) (rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C)
+      (vars_cls (D \<cdot> \<rho>\<^sub>D)) (rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D)"
+  shows
+    "\<forall>L \<in># C. L \<cdot>l \<rho>\<^sub>C \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<^sub>C"
+    "\<forall>K \<in># D. K \<cdot>l \<rho>\<^sub>D \<cdot>l \<gamma> = K \<cdot>l \<gamma>\<^sub>D"
+proof -
+  have "\<forall>x\<in>vars_cls (C \<cdot> \<rho>\<^sub>C). vars_term (rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C x) = {}"
+    using ground_conf ren_\<rho>\<^sub>C
+    by (metis is_ground_atm_iff_vars_empty is_ground_cls_is_ground_on_var
+        subst_renaming_subst_adapted vars_cls_subset_subst_domain_if_grounding)
+
+  moreover have "\<forall>x\<in>vars_cls (D \<cdot> \<rho>\<^sub>D). vars_term (rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D x) = {}"
+    using ground_prop ren_\<rho>\<^sub>D
+    by (metis is_ground_atm_iff_vars_empty is_ground_cls_is_ground_on_var
+        subst_renaming_subst_adapted vars_cls_subset_subst_domain_if_grounding)
+
+  ultimately have
+    ball_C_\<rho>\<^sub>C_apply_\<gamma>: "\<forall>x\<in>vars_cls (C \<cdot> \<rho>\<^sub>C). \<gamma> x = rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C x" and
+    ball_D_\<rho>\<^sub>D_apply_\<gamma>: "\<forall>x\<in>vars_cls (D \<cdot> \<rho>\<^sub>D). \<gamma> x = rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D x"
+    using disjoint_vars merge_\<gamma>
+    unfolding is_grounding_merge_def
+    by simp_all
+
+  show "\<forall>L \<in># C. L \<cdot>l \<rho>\<^sub>C \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<^sub>C"
+  proof (rule ballI)
+    fix L assume L_in: "L \<in># C"
+    show "L \<cdot>l \<rho>\<^sub>C \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<^sub>C"
+      unfolding subst_lit_comp_subst[symmetric]
+    proof (intro same_on_vars_lit ballI)
+      fix x assume "x \<in> vars_lit L"
+      moreover obtain x' where "\<rho>\<^sub>C x = Var x'"
+        using ren_\<rho>\<^sub>C
+        by (meson is_Var_def is_renaming_iff)
+      ultimately have "x' \<in> vars_lit (L \<cdot>l \<rho>\<^sub>C)"
+        using vars_subst_lit_eq by fastforce
+      hence "\<gamma> x' = rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C x'"
+        using ball_C_\<rho>\<^sub>C_apply_\<gamma> L_in multi_member_split by force
+      thus "(\<rho>\<^sub>C \<odot> \<gamma>) x = \<gamma>\<^sub>C x"
+        apply (simp add: subst_compose_def \<open>\<rho>\<^sub>C x = Var x'\<close>)
+        by (metis (no_types, opaque_lifting) L_in Un_iff \<open>\<rho>\<^sub>C x = Var x'\<close> \<open>x \<in> vars_lit L\<close>
+            ground_conf image_eqI insert_DiffM is_renaming_iff ren_\<rho>\<^sub>C rename_subst_domain_def
+            subsetD the_inv_f_f vars_cls_add_mset vars_cls_subset_subst_domain_if_grounding)
+    qed
+  qed
+
+  show "\<forall>K \<in># D. K \<cdot>l \<rho>\<^sub>D \<cdot>l \<gamma> = K \<cdot>l \<gamma>\<^sub>D"
+  proof (rule ballI)
+    fix K assume K_in: "K \<in># D"
+    show "K \<cdot>l \<rho>\<^sub>D \<cdot>l \<gamma> = K \<cdot>l \<gamma>\<^sub>D"
+      unfolding subst_lit_comp_subst[symmetric]
+    proof (intro same_on_vars_lit ballI)
+      fix x assume "x \<in> vars_lit K"
+      moreover obtain x' where "\<rho>\<^sub>D x = Var x'"
+        using ren_\<rho>\<^sub>D
+        by (meson is_Var_def is_renaming_iff)
+      ultimately have "x' \<in> vars_lit (K \<cdot>l \<rho>\<^sub>D)"
+        using vars_subst_lit_eq by fastforce
+      hence "\<gamma> x' = rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D x'"
+        using ball_D_\<rho>\<^sub>D_apply_\<gamma> K_in multi_member_split by force
+      thus "(\<rho>\<^sub>D \<odot> \<gamma>) x = \<gamma>\<^sub>D x"
+        apply (simp add: subst_compose_def \<open>\<rho>\<^sub>D x = Var x'\<close>)
+        by (metis (no_types, opaque_lifting) K_in UnI1 \<open>\<rho>\<^sub>D x = Var x'\<close> \<open>x \<in> vars_lit K\<close>
+            ground_prop image_eqI is_renaming_iff multi_member_split ren_\<rho>\<^sub>D rename_subst_domain_def
+            subset_iff the_inv_f_f vars_cls_add_mset vars_cls_subset_subst_domain_if_grounding)
+    qed
+  qed
+qed
+
 lemma resolve_preserves_ground_closures:
   assumes step: "resolve N \<beta> S S'" and invar: "ground_closures S"
   shows "ground_closures S'"
@@ -3100,7 +3251,10 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   hence
     ren_\<rho>\<^sub>C: "is_renaming \<rho>\<^sub>C" and
     ren_\<rho>\<^sub>D: "is_renaming \<rho>\<^sub>D" and
-    disjoint_vars: "vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D) = {}"
+    disjoint_vars: "vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D) = {}" and
+    merge_\<gamma>: "is_grounding_merge \<gamma>
+      (vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C)) (rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C)
+      (vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D)) (rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D)"
     by simp_all
   hence "\<forall>x. is_Var (\<rho>\<^sub>C x)" and "inj \<rho>\<^sub>C" and "\<forall>x. is_Var (\<rho>\<^sub>D x)" and "inj \<rho>\<^sub>D"
     by (simp_all add: is_renaming_iff)
@@ -3111,23 +3265,28 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     min_ground_clo_\<Gamma>: "\<forall>Ln \<in> set  \<Gamma>. \<forall>C L \<gamma>. snd Ln = Some (C, L, \<gamma>) \<longrightarrow> is_ground_cls (add_mset L C \<cdot> \<gamma>)"
     unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
     by (simp_all add: propagate_lit_def ground_closures_def)
+  hence
+    "\<forall>L\<in>#add_mset L C. L \<cdot>l \<rho>\<^sub>C \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<^sub>C"
+    "\<forall>K\<in>#add_mset K D. K \<cdot>l \<rho>\<^sub>D \<cdot>l \<gamma> = K \<cdot>l \<gamma>\<^sub>D"
+    using merge_of_renamed_groundings[OF ren_\<rho>\<^sub>C ren_\<rho>\<^sub>D disjoint_vars _ _ merge_\<gamma>] by simp_all
 
-  let ?\<gamma>\<^sub>D' = "restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D"
-
-  have "K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D" and "D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D"
-    by (simp_all add: subst_lit_restrict_subst_domain subst_cls_restrict_subst_domain)
-  hence "K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
-    using \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)\<close> ground_prop by simp_all
-
-  have dom_\<gamma>\<^sub>D': "subst_domain ?\<gamma>\<^sub>D' \<subseteq> vars_cls (add_mset K D)"
-    by simp
-
-  have "(C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu> \<cdot> \<gamma> = C \<cdot> \<gamma>\<^sub>C + D \<cdot> \<gamma>\<^sub>D"
-    using renamed_comp_renamed_simp[OF \<open>K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)\<close> ground_conf ground_prop' dom_\<gamma>\<^sub>D'
-        ren_\<rho>\<^sub>C ren_\<rho>\<^sub>D disjoint_vars] \<open>is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}\<close>
-    unfolding \<open>D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D\<close> resolveI
+  have "atm_of L \<cdot>a \<rho>\<^sub>C \<cdot>a \<gamma> = atm_of K \<cdot>a \<rho>\<^sub>D \<cdot>a \<gamma>"
+    using \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)\<close>
+      \<open>\<forall>L\<in>#add_mset L C. L \<cdot>l \<rho>\<^sub>C \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<^sub>C\<close>[rule_format, of L, simplified]
+      \<open>\<forall>K\<in>#add_mset K D. K \<cdot>l \<rho>\<^sub>D \<cdot>l \<gamma> = K \<cdot>l \<gamma>\<^sub>D\<close>[rule_format, of K, simplified]
+    by (metis atm_of_eq_uminus_if_lit_eq atm_of_subst_lit)
+  hence "is_unifiers \<gamma> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}"
+    by (simp add: is_unifiers_def is_unifier_alt)
+  hence "\<mu> \<odot> \<gamma> = \<gamma>"
+    using \<open>is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}\<close>
+    by (auto simp: is_imgu_def)
+  hence "C \<cdot> \<rho>\<^sub>C \<cdot> \<mu> \<cdot> \<gamma> = C \<cdot> \<gamma>\<^sub>C" and "D \<cdot> \<rho>\<^sub>D \<cdot> \<mu> \<cdot> \<gamma> = D \<cdot> \<gamma>\<^sub>D"
+    using \<open>\<forall>L\<in>#add_mset L C. L \<cdot>l \<rho>\<^sub>C \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<^sub>C\<close> \<open>\<forall>K\<in>#add_mset K D. K \<cdot>l \<rho>\<^sub>D \<cdot>l \<gamma> = K \<cdot>l \<gamma>\<^sub>D\<close>
+    by (metis insert_iff same_on_lits_clause set_mset_add_mset_insert subst_cls_comp_subst
+        subst_lit_comp_subst)+
+  hence "(C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu> \<cdot> \<gamma> = C \<cdot> \<gamma>\<^sub>C + D \<cdot> \<gamma>\<^sub>D"
     by (metis subst_cls_comp_subst subst_cls_union)
-  then show ?thesis
+  thus ?thesis
     using ground_conf ground_prop min_ground_clo_\<Gamma>
     unfolding resolveI
     by (simp add: ground_closures_def)
@@ -3303,24 +3462,26 @@ proof (cases N \<beta> S S' rule: resolve.cases)
       ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)"
       unfolding step_hyps(1,2)
       by (simp_all add: ground_closures_def \<Gamma>_def propagate_lit_def)
+    hence
+      "\<forall>L\<in>#add_mset L C. L \<cdot>l \<rho>\<^sub>C \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<^sub>C"
+      "\<forall>K\<in>#add_mset K D. K \<cdot>l \<rho>\<^sub>D \<cdot>l \<gamma> = K \<cdot>l \<gamma>\<^sub>D"
+      using merge_of_renamed_groundings step_hyps(3-)
+      by metis+
 
-    let ?\<gamma>\<^sub>D' = "restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D"
-
-    have "K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D" and "D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D"
-      by (simp_all add: subst_lit_restrict_subst_domain subst_cls_restrict_subst_domain)
-    hence "K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
-      using \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)\<close> ground_prop by simp_all
-
-    have dom_\<gamma>\<^sub>D': "subst_domain ?\<gamma>\<^sub>D' \<subseteq> vars_cls (add_mset K D)"
-      by simp
-
-    have "C \<cdot> \<rho>\<^sub>C \<cdot> \<mu> \<cdot> \<gamma> = C \<cdot> \<gamma>\<^sub>C" and "D \<cdot> \<rho>\<^sub>D \<cdot> \<mu> \<cdot> \<gamma> = D \<cdot> \<gamma>\<^sub>D"
-      using renamed_comp_renamed_simp[OF \<open>K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)\<close> ground_conf ground_prop' dom_\<gamma>\<^sub>D'
-          \<open>is_renaming \<rho>\<^sub>C\<close> \<open>is_renaming \<rho>\<^sub>D\<close>
-          \<open>vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D) = {}\<close>]
-        \<open>is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}\<close>
-      unfolding step_hyps(3-) \<open>D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D\<close>
-      by (metis subst_cls_comp_subst)+
+    have "atm_of L \<cdot>a \<rho>\<^sub>C \<cdot>a \<gamma> = atm_of K \<cdot>a \<rho>\<^sub>D \<cdot>a \<gamma>"
+      using \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)\<close>
+        \<open>\<forall>L\<in>#add_mset L C. L \<cdot>l \<rho>\<^sub>C \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<^sub>C\<close>[rule_format, of L, simplified]
+        \<open>\<forall>K\<in>#add_mset K D. K \<cdot>l \<rho>\<^sub>D \<cdot>l \<gamma> = K \<cdot>l \<gamma>\<^sub>D\<close>[rule_format, of K, simplified]
+      by (metis atm_of_eq_uminus_if_lit_eq atm_of_subst_lit)
+    hence "is_unifiers \<gamma> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}"
+      by (simp add: is_unifiers_def is_unifier_alt)
+    hence "\<mu> \<odot> \<gamma> = \<gamma>"
+      using \<open>is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}\<close>
+      by (auto simp: is_imgu_def)
+    hence "C \<cdot> \<rho>\<^sub>C \<cdot> \<mu> \<cdot> \<gamma> = C \<cdot> \<gamma>\<^sub>C" and "D \<cdot> \<rho>\<^sub>D \<cdot> \<mu> \<cdot> \<gamma> = D \<cdot> \<gamma>\<^sub>D"
+      using \<open>\<forall>L\<in>#add_mset L C. L \<cdot>l \<rho>\<^sub>C \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<^sub>C\<close> \<open>\<forall>K\<in>#add_mset K D. K \<cdot>l \<rho>\<^sub>D \<cdot>l \<gamma> = K \<cdot>l \<gamma>\<^sub>D\<close>
+      by (metis insert_iff same_on_lits_clause set_mset_add_mset_insert subst_cls_comp_subst
+          subst_lit_comp_subst)+
 
     moreover have "trail_false_cls \<Gamma> (C \<cdot> \<gamma>\<^sub>C)"
       using invar
@@ -3642,16 +3803,8 @@ subsection \<open>Sound State\<close>
 
 definition sound_state :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow> bool" where
   "sound_state N \<beta> S \<longleftrightarrow>
-    ground_closures S \<and>
     (\<exists>\<Gamma> U u. S = (\<Gamma>, U, u) \<and> sound_trail N \<Gamma> \<and> fset N \<TTurnstile>\<G>e fset U \<and>
     (case u of None \<Rightarrow> True | Some (C, \<gamma>) \<Rightarrow> fset N \<TTurnstile>\<G>e {C}))"
-
-
-subsection \<open>Miscellaneous Lemmas\<close>
-
-lemma ground_closures_if_sound_state:
-  "sound_state N \<beta> S \<Longrightarrow> ground_closures S"
-  unfolding sound_state_def by auto
 
 
 subsection \<open>Initial State Is Sound\<close>
@@ -3766,13 +3919,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
       by (metis (no_types, opaque_lifting) add_mset_add_single grounding_of_clss_singleton
           subst_cls_add_mset)
   qed
-
-  moreover have "ground_closures S'"
-    using sound[THEN ground_closures_if_sound_state]
-      step[THEN propagate_preserves_ground_closures]
-    by argo
-
-  ultimately show ?thesis
+  thus ?thesis
     unfolding S'_def sound_state_def
     using N_entails_U by simp
 qed
@@ -3790,11 +3937,6 @@ proof (cases N \<beta> S S' rule: decide.cases)
 
   moreover have "sound_trail N (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
     by (simp add: local.decideI(4) local.decideI(5) sound_\<Gamma> sound_trail_decide)
-
-  moreover have "ground_closures S'"
-    using sound[THEN ground_closures_if_sound_state]
-      step[THEN decide_preserves_ground_closures]
-    by argo
 
   ultimately show ?thesis
     unfolding decideI sound_state_def by simp
@@ -3823,13 +3965,7 @@ proof (cases N \<beta> S S' rule: conflict.cases)
       by (metis (mono_tags, opaque_lifting) N_entails_U UN_I funion_iff grounding_of_clss_def
           notin_fset true_clss_def)
   qed
-
-  moreover have "ground_closures S'"
-    using sound[THEN ground_closures_if_sound_state]
-      step[THEN conflict_preserves_ground_closures]
-    by argo
-
-  ultimately show ?thesis
+  thus ?thesis
     unfolding conflictI(1,2) sound_state_def
     using sound_\<Gamma> N_entails_U by simp
 qed
@@ -3840,13 +3976,7 @@ lemma skip_preserves_sound_state:
   using step
 proof (cases N \<beta> S S' rule: skip.cases)
   case (skipI L D \<sigma> Cl \<Gamma> U)
-
-  moreover have "ground_closures S'"
-    using sound[THEN ground_closures_if_sound_state]
-      step[THEN skip_preserves_ground_closures]
-    by argo
-
-  ultimately show ?thesis
+  thus ?thesis
     using sound
     by (auto simp: sound_state_def trail_atoms_lt_def
         intro: sound_trail_ConsD elim!: subtrail_falseI)
@@ -3881,7 +4011,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     apply (simp add: is_unifier_alt)
     by (metis L_eq_L'_\<gamma> atm_of_subst_lit literal.expand subst_lit_is_neg)
 
-  moreover have "fset N \<TTurnstile>\<G>e {(D + {#L#}) \<cdot> \<mu>}"
+  have "fset N \<TTurnstile>\<G>e {(D + {#L#}) \<cdot> \<mu>}"
   proof (rule entails_trans)
     show "fset N \<TTurnstile>\<G>e {D + {#L, L'#}}"
       by (rule N_entails_D_L_L')
@@ -3900,13 +4030,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     ultimately show "{D + {#L, L'#}} \<TTurnstile>\<G>e {(D + {#L#}) \<cdot> \<mu>}"
       by simp
   qed
-
-  moreover have "ground_closures S'"
-    using sound[THEN ground_closures_if_sound_state]
-      step[THEN factorize_preserves_ground_closures]
-    by argo
-
-  ultimately show ?thesis
+  thus ?thesis
     unfolding factorizeI sound_state_def
     using sound_\<Gamma> N_entails_U by simp
 qed
@@ -3919,49 +4043,19 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   case (resolveI \<Gamma> \<Gamma>' K D \<gamma>\<^sub>D L \<gamma>\<^sub>C \<rho>\<^sub>C \<rho>\<^sub>D C \<mu> \<gamma> U)
   hence
     \<Gamma>_def: "\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D" and
-    \<gamma>_def: "\<gamma> = rename_subst_domain \<rho>\<^sub>D (restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D) \<odot> rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C" and
-    imgu_\<mu>: "is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}" and
-    ren_\<rho>\<^sub>C: "is_renaming \<rho>\<^sub>C" and
-    ren_\<rho>\<^sub>D: "is_renaming \<rho>\<^sub>D" and
-    disjoint_vars: "vars_cls (add_mset L C \<cdot> \<rho>\<^sub>C) \<inter> vars_cls (add_mset K D \<cdot> \<rho>\<^sub>D) = {}"
+    imgu_\<mu>: "is_imgu \<mu> {{atm_of L \<cdot>a \<rho>\<^sub>C, atm_of K \<cdot>a \<rho>\<^sub>D}}"
     by simp_all
 
   from sound have
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
-    N_entails_conf: "fset N \<TTurnstile>\<G>e {add_mset L C}" and
-    "ground_closures S"
+    N_entails_conf: "fset N \<TTurnstile>\<G>e {add_mset L C}"
     unfolding resolveI(1,2) sound_state_def by simp_all
 
   from sound_\<Gamma> have
     N_entails_prop: "fset N \<TTurnstile>\<G>e {add_mset K D}"
     unfolding sound_trail_def \<Gamma>_def
     by (simp add: propagate_lit_def)
-
-  from \<open>ground_closures S\<close> have
-    ground_conf: "is_ground_cls (add_mset L C \<cdot> \<gamma>\<^sub>C)" and
-    ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)"
-    unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close>
-    by (simp_all add: propagate_lit_def ground_closures_def)
-
-  let ?\<gamma>\<^sub>D' = "restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D"
-
-  have "K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D" and "D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D"
-    by (simp_all add: subst_lit_restrict_subst_domain subst_cls_restrict_subst_domain)
-  hence "K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
-    using \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)\<close> ground_prop by simp_all
-
-  have dom_\<gamma>\<^sub>D': "subst_domain ?\<gamma>\<^sub>D' \<subseteq> vars_cls (add_mset K D)"
-    by simp
-
-  let ?\<gamma> = "rename_subst_domain \<rho>\<^sub>D ?\<gamma>\<^sub>D' \<odot> rename_subst_domain \<rho>\<^sub>C \<gamma>\<^sub>C"
-  have
-    "C \<cdot> \<rho>\<^sub>C \<cdot> ?\<gamma> = C \<cdot> \<gamma>\<^sub>C" and
-    "D \<cdot> \<rho>\<^sub>D \<cdot> ?\<gamma> = D \<cdot> \<gamma>\<^sub>D" and
-    cancel_\<mu>: "\<mu> \<odot> ?\<gamma> = ?\<gamma>"
-    using renamed_comp_renamed_simp[OF \<open>K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)\<close> ground_conf ground_prop' dom_\<gamma>\<^sub>D'
-        ren_\<rho>\<^sub>C ren_\<rho>\<^sub>D disjoint_vars] imgu_\<mu> \<open>D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D\<close>
-    by simp_all
 
   moreover have "fset N \<TTurnstile>\<G>e {(C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu>}"
   proof -
@@ -3981,25 +4075,26 @@ proof (cases N \<beta> S S' rule: resolve.cases)
       fix I E
       assume I_entails: "\<forall>E \<in> grounding_of_clss (fset N). I \<TTurnstile> E" and
         E_in: "E \<in> grounding_of_clss {(C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu>}"
-      then obtain \<gamma> where E_def: "E = (C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu> \<cdot> \<gamma>" and gr_\<gamma>: "is_ground_subst \<gamma>"
+      then obtain \<gamma>\<^sub>E where
+        E_def: "E = (C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu> \<cdot> \<gamma>\<^sub>E" and gr_\<gamma>\<^sub>E: "is_ground_subst \<gamma>\<^sub>E"
         unfolding grounding_of_clss_def grounding_of_cls_def by auto
 
-      have "I \<TTurnstile>l L \<cdot>l \<rho>\<^sub>C \<cdot>l \<mu> \<cdot>l \<gamma> \<or> (\<exists>x \<in># C \<cdot> \<rho>\<^sub>C \<cdot> \<mu> \<cdot> \<gamma>. I \<TTurnstile>l x)"
+      have "I \<TTurnstile>l L \<cdot>l \<rho>\<^sub>C \<cdot>l \<mu> \<cdot>l \<gamma>\<^sub>E \<or> (\<exists>x \<in># C \<cdot> \<rho>\<^sub>C \<cdot> \<mu> \<cdot> \<gamma>\<^sub>E. I \<TTurnstile>l x)"
       proof -
-        have "add_mset L C \<cdot> \<rho>\<^sub>C \<cdot> \<mu> \<cdot> \<gamma> \<in> grounding_of_clss {add_mset L C \<cdot> \<rho>\<^sub>C \<cdot> \<mu>}"
-          using gr_\<gamma> unfolding grounding_of_clss_def grounding_of_cls_def by auto
-        hence "\<exists>K \<in># add_mset L C \<cdot> \<rho>\<^sub>C \<cdot> \<mu> \<cdot> \<gamma>. I \<TTurnstile>l K"
+        have "add_mset L C \<cdot> \<rho>\<^sub>C \<cdot> \<mu> \<cdot> \<gamma>\<^sub>E \<in> grounding_of_clss {add_mset L C \<cdot> \<rho>\<^sub>C \<cdot> \<mu>}"
+          using gr_\<gamma>\<^sub>E unfolding grounding_of_clss_def grounding_of_cls_def by auto
+        hence "\<exists>K \<in># add_mset L C \<cdot> \<rho>\<^sub>C \<cdot> \<mu> \<cdot> \<gamma>\<^sub>E. I \<TTurnstile>l K"
           using *[rule_format, unfolded true_clss_def, OF I_entails]
           by (metis true_cls_def)
         thus ?thesis
           by simp
       qed
 
-      moreover have "I \<TTurnstile>l K \<cdot>l \<rho>\<^sub>D \<cdot>l \<mu> \<cdot>l \<gamma> \<or> (\<exists>x \<in># D \<cdot> \<rho>\<^sub>D \<cdot> \<mu> \<cdot> \<gamma>. I \<TTurnstile>l x)"
+      moreover have "I \<TTurnstile>l K \<cdot>l \<rho>\<^sub>D \<cdot>l \<mu> \<cdot>l \<gamma>\<^sub>E \<or> (\<exists>x \<in># D \<cdot> \<rho>\<^sub>D \<cdot> \<mu> \<cdot> \<gamma>\<^sub>E. I \<TTurnstile>l x)"
       proof -
-        have "add_mset K D \<cdot> \<rho>\<^sub>D \<cdot> \<mu> \<cdot> \<gamma> \<in> grounding_of_clss {add_mset K D \<cdot> \<rho>\<^sub>D \<cdot> \<mu>}"
-          using gr_\<gamma> unfolding grounding_of_clss_def grounding_of_cls_def by auto
-        hence "\<exists>K \<in># add_mset K D \<cdot> \<rho>\<^sub>D \<cdot> \<mu> \<cdot> \<gamma>. I \<TTurnstile>l K"
+        have "add_mset K D \<cdot> \<rho>\<^sub>D \<cdot> \<mu> \<cdot> \<gamma>\<^sub>E \<in> grounding_of_clss {add_mset K D \<cdot> \<rho>\<^sub>D \<cdot> \<mu>}"
+          using gr_\<gamma>\<^sub>E unfolding grounding_of_clss_def grounding_of_cls_def by auto
+        hence "\<exists>K \<in># add_mset K D \<cdot> \<rho>\<^sub>D \<cdot> \<mu> \<cdot> \<gamma>\<^sub>E. I \<TTurnstile>l K"
           using **[rule_format, unfolded true_clss_def, OF I_entails]
           by (metis true_cls_def)
         thus ?thesis
@@ -4008,12 +4103,12 @@ proof (cases N \<beta> S S' rule: resolve.cases)
 
       ultimately show "I \<TTurnstile> E"
       proof (elim disjE)
-        assume "I \<TTurnstile>l L \<cdot>l \<rho>\<^sub>C \<cdot>l \<mu> \<cdot>l \<gamma>" and "I \<TTurnstile>l K \<cdot>l \<rho>\<^sub>D \<cdot>l \<mu> \<cdot>l \<gamma>"
+        assume "I \<TTurnstile>l L \<cdot>l \<rho>\<^sub>C \<cdot>l \<mu> \<cdot>l \<gamma>\<^sub>E" and "I \<TTurnstile>l K \<cdot>l \<rho>\<^sub>D \<cdot>l \<mu> \<cdot>l \<gamma>\<^sub>E"
         moreover have "atm_of L \<cdot>a \<rho>\<^sub>C \<cdot>a \<mu> = atm_of K \<cdot>a \<rho>\<^sub>D \<cdot>a \<mu>"
           using imgu_\<mu>[unfolded is_imgu_def]
           by (meson finite.emptyI finite.insertI insertCI is_unifier_alt is_unifiers_def)
         ultimately have False
-          using \<open>K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)\<close>
+          using \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)\<close>
           by (cases L; cases K; simp add: uminus_literal_def subst_lit_def)
         thus ?thesis ..
       qed (auto simp: E_def)
@@ -4022,11 +4117,6 @@ proof (cases N \<beta> S S' rule: resolve.cases)
 
   moreover have "sound_trail N (trail_propagate \<Gamma>' K D \<gamma>\<^sub>D)"
     using \<Gamma>_def sound_\<Gamma> by blast
-
-  moreover have "ground_closures S'"
-    using sound[THEN ground_closures_if_sound_state]
-      step[THEN resolve_preserves_ground_closures]
-    by metis
 
   ultimately show ?thesis
     unfolding resolveI sound_state_def
@@ -4058,11 +4148,6 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
   moreover have "fset N \<TTurnstile>\<G>e (fset U \<union> {D + {#L#}})"
     using N_entails_U N_entails_D_L_L' by (metis UN_Un grounding_of_clss_def true_clss_union)
 
-  moreover have "ground_closures S'"
-    using sound[THEN ground_closures_if_sound_state]
-      step[THEN backtrack_preserves_ground_closures]
-    by argo
-
   ultimately show ?thesis
     unfolding backtrackI sound_state_def by simp
 qed
@@ -4074,14 +4159,6 @@ theorem scl_preserves_sound_state:
   using propagate_preserves_sound_state decide_preserves_sound_state conflict_preserves_sound_state skip_preserves_sound_state
     factorize_preserves_sound_state resolve_preserves_sound_state backtrack_preserves_sound_state
   by metis
-lemma not_satisfiable_if_sound_state_conflict_bottom:
-  assumes sound_S: "sound_state N \<beta> S" and conflict_S: "state_conflict S = Some ({#}, \<gamma>)"
-  shows "\<not> satisfiable (grounding_of_clss (fset N))"
-proof -
-  from sound_S conflict_S have "fset N \<TTurnstile>\<G>e {{#}}"
-    unfolding sound_state_def state_conflict_def by auto
-  thus ?thesis by simp
-qed
 
 end
 

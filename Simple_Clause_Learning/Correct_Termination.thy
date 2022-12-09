@@ -204,8 +204,7 @@ proof -
     using prod_cases3 by blast
 
   from sound_S have
-    sound_\<Gamma>: "sound_trail N \<Gamma>" and
-    "ground_closures S"
+    sound_\<Gamma>: "sound_trail N \<Gamma>"
     by (simp_all add: S_def sound_state_def)
 
   from no_more_step have no_new_conflict: "\<nexists>S'. conflict N \<beta> S S'"
@@ -393,11 +392,12 @@ proof -
               using \<Gamma>_def n_def
               by (simp add: propagate_lit_def)
 
-            from \<open>ground_closures S\<close> have
+            from \<open>ground_false_closures S\<close> have
               ground_conf: "is_ground_cls (add_mset L C' \<cdot> \<gamma>)" and
               ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)"
               unfolding S_def ground_closures_def
-              by (simp_all add: 1 C_def u_def ground_closures_def propagate_lit_def)
+              by (simp_all add: 1 C_def u_def ground_false_closures_def ground_closures_def
+                  propagate_lit_def)
 
             define \<rho> :: "'v \<Rightarrow> ('f, 'v) Term.term" where
               "\<rho> = renaming_wrt {add_mset K D}"
@@ -443,7 +443,8 @@ proof -
               by (simp add: is_imgu_if_mgu_eq_Some)
 
             have "\<exists>S. resolve N \<beta> (\<Gamma>, U, Some (add_mset L C', \<gamma>)) S"
-              using resolveI[OF 1 2 ren_\<rho> is_renaming_id_subst disjoint_vars imgu_\<mu> refl] ..
+              using resolveI[OF 1 2 ren_\<rho> is_renaming_id_subst disjoint_vars imgu_\<mu>
+                  is_subst_merge_restrict_subst_domain_comp] ..
             with no_more_step have False
               unfolding scl_def
               using S_def \<Gamma>_def C_def decide_well_defined(5) u_def
