@@ -1281,10 +1281,10 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     show "is_imgu \<mu>' {{atm_of L' \<cdot>a \<rho>, atm_of (L \<cdot>l \<mu>) \<cdot>a Var}}"
       using imgu_\<mu>' by simp
   next
-    show "is_subst_merge ?\<gamma>reso
+    show "is_grounding_merge ?\<gamma>reso
      (vars_cls (add_mset L' D' \<cdot> \<rho>)) (rename_subst_domain \<rho> \<gamma>\<^sub>D)
      (vars_cls (add_mset (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<cdot> Var)) (rename_subst_domain Var \<gamma>)"
-      using is_subst_merge_if_mem_then_else
+      using is_grounding_merge_if_mem_then_else
       by (metis rename_subst_domain_Var_lhs)
   qed simp_all
   thus ?thesis
@@ -1381,7 +1381,7 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
     unfolding S\<^sub>3_def \<open>add_mset LL CC \<cdot> \<mu>\<^sub>L = add_mset L CCC \<cdot> \<mu>\<^sub>L\<close>
     using resolve.resolveI[OF \<open>\<Gamma> = trail_propagate \<Gamma>' K D \<gamma>\<^sub>D\<close> \<open>K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<mu>\<^sub>L \<cdot>l \<gamma>\<^sub>C)\<close> ren_\<rho>\<rho>
         is_renaming_id_subst, unfolded subst_atm_id_subst subst_cls_id_subst atm_of_subst_lit,
-        OF disjoint_vars imgu_\<mu>\<mu> is_subst_merge_if_mem_then_else, of N \<beta> U  "CCC \<cdot> \<mu>\<^sub>L"]
+        OF disjoint_vars imgu_\<mu>\<mu> is_grounding_merge_if_mem_then_else, of N \<beta> U  "CCC \<cdot> \<mu>\<^sub>L"]
     by auto
 qed
 

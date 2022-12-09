@@ -444,7 +444,7 @@ proof -
 
             have "\<exists>S. resolve N \<beta> (\<Gamma>, U, Some (add_mset L C', \<gamma>)) S"
               using resolveI[OF 1 2 ren_\<rho> is_renaming_id_subst disjoint_vars imgu_\<mu>
-                  is_subst_merge_restrict_subst_domain_comp] ..
+                  is_grounding_merge_restrict_subst_domain_comp] ..
             with no_more_step have False
               unfolding scl_def
               using S_def \<Gamma>_def C_def decide_well_defined(5) u_def
