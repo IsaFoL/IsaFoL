@@ -341,18 +341,17 @@ proof -
       thus ?thesis by simp
     next
       case C_not_empty: False
-      show ?thesis
+      have False
       proof (cases \<Gamma>)
         case Nil
-        with \<Gamma>_false_C_\<gamma>\<^sub>C have False
+        with \<Gamma>_false_C_\<gamma>\<^sub>C show False
           using C_not_empty by simp
-        thus ?thesis ..
       next
         case (Cons Ln \<Gamma>')
         then obtain K\<^sub>\<Gamma> n where \<Gamma>_def: "\<Gamma> = (K\<^sub>\<Gamma>, n) # \<Gamma>'"
           by fastforce
 
-        show ?thesis
+        show False
         proof (cases "- K\<^sub>\<Gamma> \<in># C \<cdot> \<gamma>\<^sub>C")
           case True \<comment> \<open>Literal cannot be skipped\<close>
           then obtain C' L where C_def: "C = add_mset L C'" and K_\<gamma>: "L \<cdot>l \<gamma>\<^sub>C = - K\<^sub>\<Gamma>"
@@ -360,7 +359,7 @@ proof -
           hence L_eq_uminus_K_\<gamma>: "K\<^sub>\<Gamma> = - (L \<cdot>l \<gamma>\<^sub>C)"
             by simp
 
-          show ?thesis
+          show False
           proof (cases n)
             case None \<comment> \<open>Conflict clause can be backtracked\<close>
             hence \<Gamma>_def: "\<Gamma> = trail_decide \<Gamma>' (- (L \<cdot>l \<gamma>\<^sub>C))"
@@ -392,9 +391,8 @@ proof -
               by (metis C_def \<Gamma>_def \<Gamma>_false_C_\<gamma>\<^sub>C \<open>S = (\<Gamma>, U, Some (add_mset L C', \<gamma>\<^sub>C))\<close>
                   \<open>ground_closures S\<close> ex_conflict_def ground_closures_def is_shortest_backtrack_def
                   state_proj_simp(3) suffix_Cons)
-            ultimately have False
+            ultimately show False
               using no_new_backtrack by metis
-            thus ?thesis ..
           next
             case Some \<comment> \<open>Literal can be resolved\<close>
             then obtain D K \<gamma>\<^sub>D where n_def: "n = Some (D, K, \<gamma>\<^sub>D)"
@@ -458,19 +456,18 @@ proof -
             have "\<exists>S. resolve N \<beta> (\<Gamma>, U, Some (add_mset L C', \<gamma>\<^sub>C)) S"
               using resolveI[OF 1 2 ren_\<rho> is_renaming_id_subst disjoint_vars imgu_\<mu>
                   is_grounding_merge_if_mem_then_else] ..
-            with no_new_resolve have False
+            with no_new_resolve show False
               by (metis C_def S_def u_def)
-            thus ?thesis ..
           qed
         next
           case False \<comment> \<open>Literal can be skipped\<close>
           hence "skip N \<beta> ((K\<^sub>\<Gamma>, n) # \<Gamma>', U, Some (C, \<gamma>\<^sub>C)) (\<Gamma>', U, Some (C, \<gamma>\<^sub>C))"
             by (rule skipI[of K\<^sub>\<Gamma> C \<gamma>\<^sub>C N \<beta> n \<Gamma>' U])
-          with no_new_skip have False
+          with no_new_skip show False
             by (metis S_def \<Gamma>_def u_def)
-          thus ?thesis ..
         qed
       qed
+      thus ?thesis ..
     qed
   qed
 qed
