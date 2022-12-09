@@ -69,9 +69,11 @@ proof -
     using prod_cases3 by blast
 
   from sound_S have
-    sound_\<Gamma>: "sound_trail N \<Gamma>" and
-    "ground_closures S"
+    sound_\<Gamma>: "sound_trail N \<Gamma>"
     by (simp_all add: S_def sound_state_def)
+
+  from \<open>ground_false_closures S\<close> have "ground_closures S"
+    by (simp add: ground_false_closures_def)
 
   from no_more_step have no_new_conflict: "\<nexists>S'. conflict N \<beta> S S'"
     unfolding shortest_backtrack_strategy_def scl_def
@@ -206,9 +208,9 @@ proof -
     qed
   next
     case (Some Cl)
-    then obtain C \<gamma> where u_def: "u = Some (C, \<gamma>)" by force
+    then obtain C \<gamma>\<^sub>C where u_def: "u = Some (C, \<gamma>\<^sub>C)" by force
 
-    from \<open>ground_false_closures S\<close> have \<Gamma>_false_C_\<gamma>: "trail_false_cls \<Gamma> (C \<cdot> \<gamma>)"
+    from \<open>ground_false_closures S\<close> have \<Gamma>_false_C_\<gamma>\<^sub>C: "trail_false_cls \<Gamma> (C \<cdot> \<gamma>\<^sub>C)"
       by (simp add: S_def u_def ground_false_closures_def)
 
     show ?thesis
@@ -223,7 +225,7 @@ proof -
       show ?thesis
       proof (cases \<Gamma>)
         case Nil
-        with \<Gamma>_false_C_\<gamma> have False
+        with \<Gamma>_false_C_\<gamma>\<^sub>C have False
           using C_not_empty by simp
         thus ?thesis ..
       next
@@ -232,17 +234,17 @@ proof -
           by fastforce
 
         show ?thesis
-        proof (cases "- K\<^sub>\<Gamma> \<in># C \<cdot> \<gamma>")
+        proof (cases "- K\<^sub>\<Gamma> \<in># C \<cdot> \<gamma>\<^sub>C")
           case True \<comment> \<open>Literal cannot be skipped\<close>
-          then obtain C' L where C_def: "C = add_mset L C'" and K_\<gamma>: "L \<cdot>l \<gamma> = - K\<^sub>\<Gamma>"
+          then obtain C' L where C_def: "C = add_mset L C'" and K_\<gamma>: "L \<cdot>l \<gamma>\<^sub>C = - K\<^sub>\<Gamma>"
             by (metis Melem_subst_cls multi_member_split)
-          hence L_eq_uminus_K_\<gamma>: "K\<^sub>\<Gamma> = - (L \<cdot>l \<gamma>)"
+          hence L_eq_uminus_K_\<gamma>: "K\<^sub>\<Gamma> = - (L \<cdot>l \<gamma>\<^sub>C)"
             by simp
 
           show ?thesis
           proof (cases n)
             case None \<comment> \<open>Conflict clause can be backtracked\<close>
-            hence \<Gamma>_def: "\<Gamma> = trail_decide \<Gamma>' (- (L \<cdot>l \<gamma>))"
+            hence \<Gamma>_def: "\<Gamma> = trail_decide \<Gamma>' (- (L \<cdot>l \<gamma>\<^sub>C))"
               by (simp add: \<Gamma>_def L_eq_uminus_K_\<gamma> decide_lit_def)
 
             from suffix_shortest_backtrack[of "add_mset L C'" \<Gamma>'] obtain \<Gamma>'' where
@@ -255,7 +257,7 @@ proof -
             have "backtrack N \<beta> S S'"
               unfolding S_def[unfolded u_def C_def] S'_def
             proof (rule backtrackI[OF _ refl])
-              show "\<Gamma> = trail_decide (\<Gamma>'' @ shortest_backtrack (add_mset L C') \<Gamma>') (- (L \<cdot>l \<gamma>))"
+              show "\<Gamma> = trail_decide (\<Gamma>'' @ shortest_backtrack (add_mset L C') \<Gamma>') (- (L \<cdot>l \<gamma>\<^sub>C))"
                 using \<Gamma>_def \<Gamma>'_def by simp
             next
               show "\<nexists>\<gamma>. is_ground_cls (add_mset L C' \<cdot> \<gamma>) \<and>
@@ -268,7 +270,7 @@ proof -
               unfolding S_def[unfolded u_def C_def] S'_def
               apply simp
               using is_shortest_backtrack_shortest_backtrack[of "add_mset L C'", simplified]
-              by (metis C_def \<Gamma>_def \<Gamma>_false_C_\<gamma> \<open>S = (\<Gamma>, U, Some (add_mset L C', \<gamma>))\<close>
+              by (metis C_def \<Gamma>_def \<Gamma>_false_C_\<gamma>\<^sub>C \<open>S = (\<Gamma>, U, Some (add_mset L C', \<gamma>\<^sub>C))\<close>
                   \<open>ground_closures S\<close> ex_conflict_def ground_closures_def is_shortest_backtrack_def
                   state_proj_simp(3) suffix_Cons)
             ultimately have "\<exists>S'. shortest_backtrack_strategy scl N \<beta> S S'"
@@ -287,7 +289,7 @@ proof -
               by (simp add: propagate_lit_def)
 
             from \<open>ground_closures S\<close> have
-              ground_conf: "is_ground_cls (add_mset L C' \<cdot> \<gamma>)" and
+              ground_conf: "is_ground_cls (add_mset L C' \<cdot> \<gamma>\<^sub>C)" and
               ground_prop: "is_ground_cls (add_mset K D \<cdot> \<gamma>\<^sub>D)"
               unfolding S_def ground_closures_def
               by (simp_all add: 1 C_def u_def ground_closures_def propagate_lit_def)
@@ -304,47 +306,49 @@ proof -
             have disjoint_vars: "\<And>C. vars_cls (C \<cdot> \<rho>) \<inter> vars_cls (add_mset K D \<cdot> Var) = {}"
               by (simp add: \<rho>_def vars_cls_subst_renaming_disj)
 
-            have 2: "K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>)"
+            have 2: "K \<cdot>l \<gamma>\<^sub>D = - (L \<cdot>l \<gamma>\<^sub>C)"
               using K_\<gamma> L_def by fastforce
 
             let ?\<gamma>\<^sub>D' = "restrict_subst_domain (vars_cls (add_mset K D)) \<gamma>\<^sub>D"
     
             have "K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D" and "D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D"
               by (simp_all add: subst_lit_restrict_subst_domain subst_cls_restrict_subst_domain)
-            hence "K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>)" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
+            hence "K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>\<^sub>C)" and ground_prop': "is_ground_cls (add_mset K D \<cdot> ?\<gamma>\<^sub>D')"
               using 2 ground_prop by simp_all
     
             have dom_\<gamma>\<^sub>D': "subst_domain ?\<gamma>\<^sub>D' \<subseteq> vars_cls (add_mset K D)"
               by simp
     
-            let ?\<gamma> = "rename_subst_domain Var ?\<gamma>\<^sub>D' \<odot> rename_subst_domain \<rho> \<gamma>"
-            have
-              "L \<cdot>l \<rho> \<cdot>l (rename_subst_domain Var ?\<gamma>\<^sub>D' \<odot> rename_subst_domain \<rho> \<gamma>) = L \<cdot>l \<gamma>" and
-              "K \<cdot>l Var \<cdot>l (rename_subst_domain Var ?\<gamma>\<^sub>D' \<odot> rename_subst_domain \<rho> \<gamma>) = K \<cdot>l \<gamma>\<^sub>D"
-              using renamed_comp_renamed_simp[OF \<open>K \<cdot>l ?\<gamma>\<^sub>D' = - (L \<cdot>l \<gamma>)\<close> ground_conf
-                ground_prop' dom_\<gamma>\<^sub>D' \<open>is_renaming \<rho>\<close> is_renaming_id_subst disjoint_vars]
-                \<open>K \<cdot>l ?\<gamma>\<^sub>D' = K \<cdot>l \<gamma>\<^sub>D\<close> \<open>D \<cdot> ?\<gamma>\<^sub>D' = D \<cdot> \<gamma>\<^sub>D\<close>
+            let ?\<gamma> = "\<lambda>x.
+              if x \<in> vars_cls (add_mset L C' \<cdot> \<rho>) then
+                rename_subst_domain \<rho> \<gamma>\<^sub>C x
+              else
+                \<gamma>\<^sub>D x"
+            have "L \<cdot>l \<rho> \<cdot>l ?\<gamma> = L \<cdot>l \<gamma>\<^sub>C" and "K \<cdot>l ?\<gamma> = K \<cdot>l \<gamma>\<^sub>D"
+              using merge_of_renamed_groundings[OF ren_\<rho> is_renaming_id_subst disjoint_vars
+                  ground_conf ground_prop is_grounding_merge_if_mem_then_else]
+              unfolding rename_subst_domain_Var_lhs
               by simp_all
 
-            then have "atm_of L \<cdot>a \<rho> \<cdot>a (rename_subst_domain Var ?\<gamma>\<^sub>D' \<odot> rename_subst_domain \<rho> \<gamma>) =
-              atm_of K \<cdot>a (rename_subst_domain Var ?\<gamma>\<^sub>D' \<odot> rename_subst_domain \<rho> \<gamma>)"
+            then have "atm_of L \<cdot>a \<rho> \<cdot>a ?\<gamma> = atm_of K \<cdot>a ?\<gamma>"
               by (smt (verit, best) "2" atm_of_uminus subst_lit_id_subst atm_of_subst_lit)
             then obtain \<mu> where "Unification.mgu (atm_of L \<cdot>a \<rho>) (atm_of K) = Some \<mu>"
               using ex_mgu_if_subst_apply_term_eq_subst_apply_term
-              by (metis subst_atm_comp_subst)
+              by blast
             hence imgu_\<mu>: "is_imgu \<mu> {{atm_of L \<cdot>a \<rho>, atm_of K \<cdot>a Var}}"
               by (simp add: is_imgu_if_mgu_eq_Some)
 
-            have "\<exists>S. resolve N \<beta> (\<Gamma>, U, Some (add_mset L C', \<gamma>)) S"
-              using resolveI[OF 1 2 ren_\<rho> is_renaming_id_subst disjoint_vars imgu_\<mu> refl] ..
+            have "\<exists>S. resolve N \<beta> (\<Gamma>, U, Some (add_mset L C', \<gamma>\<^sub>C)) S"
+              using resolveI[OF 1 2 ren_\<rho> is_renaming_id_subst disjoint_vars imgu_\<mu>
+                  is_grounding_merge_if_mem_then_else] ..
             with no_new_resolve have False
               by (metis C_def S_def u_def)
             thus ?thesis ..
           qed
         next
           case False \<comment> \<open>Literal can be skipped\<close>
-          hence "skip N \<beta> ((K\<^sub>\<Gamma>, n) # \<Gamma>', U, Some (C, \<gamma>)) (\<Gamma>', U, Some (C, \<gamma>))"
-            by (rule skipI[of K\<^sub>\<Gamma> C \<gamma> N \<beta> n \<Gamma>' U])
+          hence "skip N \<beta> ((K\<^sub>\<Gamma>, n) # \<Gamma>', U, Some (C, \<gamma>\<^sub>C)) (\<Gamma>', U, Some (C, \<gamma>\<^sub>C))"
+            by (rule skipI[of K\<^sub>\<Gamma> C \<gamma>\<^sub>C N \<beta> n \<Gamma>' U])
           with no_new_skip have False
             by (metis S_def \<Gamma>_def u_def)
           thus ?thesis ..
