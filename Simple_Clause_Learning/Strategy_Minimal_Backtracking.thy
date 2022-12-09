@@ -1,196 +1,61 @@
-theory Correct_Termination
-  imports Simple_Clause_Learning
+theory Strategy_Minimal_Backtracking
+  imports
+    Simple_Clause_Learning
+    Correct_Termination
+    Non_Redundancy
+    Termination
 begin
 
 context scl begin
 
-lemma not_satisfiable_if_sound_state_conflict_bottom:
-  assumes sound_S: "sound_state N \<beta> S" and conflict_S: "state_conflict S = Some ({#}, \<gamma>)"
-  shows "\<not> satisfiable (grounding_of_clss (fset N))"
-proof -
-  from sound_S conflict_S have "fset N \<TTurnstile>\<G>e {{#}}"
-    unfolding sound_state_def state_conflict_def by auto
-  thus ?thesis by simp
-qed
+definition ex_conflict where
+  "ex_conflict C \<Gamma> \<longleftrightarrow> (\<exists>\<gamma>. is_ground_cls (C \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>))"
 
-lemma propagate_if_conflict_follows_decide:
-  assumes
-    trail_lt_\<beta>: "trail_atoms_lt \<beta> S\<^sub>2" and
-    no_conf: "\<nexists>S\<^sub>1. conflict N \<beta> S\<^sub>0 S\<^sub>1" and deci: "decide N \<beta> S\<^sub>0 S\<^sub>2" and conf: "conflict N \<beta> S\<^sub>2 S\<^sub>3"
-  shows "\<exists>S\<^sub>4. propagate N \<beta> S\<^sub>0 S\<^sub>4"
-proof -
-  from deci obtain L \<gamma> \<Gamma> U where
-    S\<^sub>0_def: "S\<^sub>0 = (\<Gamma>, U, None)" and
-    S\<^sub>2_def: "S\<^sub>2 = (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None)" and
-    "L \<in> \<Union> (set_mset ` fset N)" and
-    "is_ground_lit (L \<cdot>l \<gamma>)" and
-    "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)" and
-    "atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta>"
-    by (elim decide.cases) blast
-  
-  from conf S\<^sub>2_def obtain D \<gamma>\<^sub>D where
-    S\<^sub>3_def: "S\<^sub>3 = (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, Some (D, \<gamma>\<^sub>D))" and
-    D_in: "D |\<in>| N |\<union>| U" and
-    ground_D_\<sigma>: "is_ground_cls (D \<cdot> \<gamma>\<^sub>D)" and
-    tr_\<Gamma>_L_false_D: "trail_false_cls (trail_decide \<Gamma> (L \<cdot>l \<gamma>)) (D \<cdot> \<gamma>\<^sub>D)"
-    by (auto elim: conflict.cases)
+definition is_shortest_backtrack where
+  "is_shortest_backtrack C \<Gamma> \<Gamma>\<^sub>0 \<longleftrightarrow> C \<noteq> {#} \<longrightarrow> suffix \<Gamma>\<^sub>0 \<Gamma> \<and> \<not> ex_conflict C \<Gamma>\<^sub>0 \<and>
+    (\<forall>Kn. suffix (Kn # \<Gamma>\<^sub>0) \<Gamma> \<longrightarrow> ex_conflict C (Kn # \<Gamma>\<^sub>0))"
 
-  have "vars_cls D \<subseteq> subst_domain \<gamma>\<^sub>D"
-    using ground_D_\<sigma> vars_cls_subset_subst_domain_if_grounding by blast
+primrec shortest_backtrack where
+  "shortest_backtrack C [] = []" |
+  "shortest_backtrack C (Ln # \<Gamma>) =
+    (if ex_conflict C (Ln # \<Gamma>) then
+      shortest_backtrack C \<Gamma>
+    else
+      Ln # \<Gamma>)"
 
-  moreover have "\<not> trail_false_cls \<Gamma> (D \<cdot> \<gamma>\<^sub>D)"
-    using not_trail_false_ground_cls_if_no_conflict[OF no_conf] D_in
-    by (simp add: S\<^sub>0_def ground_D_\<sigma>)
+lemma suffix_shortest_backtrack: "suffix (shortest_backtrack C \<Gamma>) \<Gamma>"
+  by (induction \<Gamma>) (simp_all add: suffix_Cons)
 
-  ultimately have "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
-    using tr_\<Gamma>_L_false_D
-    by (metis subtrail_falseI decide_lit_def)
+lemma ex_conflict_shortest_backtrack: "ex_conflict C (shortest_backtrack C \<Gamma>) \<longleftrightarrow> C = {#}"
+  by (induction \<Gamma>) (auto simp add: ex_conflict_def)
 
-  then obtain D' L' where D_def: "D = add_mset L' D'" and "- (L \<cdot>l \<gamma>) = L' \<cdot>l \<gamma>\<^sub>D"
-    by (metis Melem_subst_cls multi_member_split)
-
-  define C\<^sub>0 where
-    "C\<^sub>0 = {#K \<in># D'. K \<cdot>l \<gamma>\<^sub>D \<noteq> L' \<cdot>l \<gamma>\<^sub>D#}"
-
-  define C\<^sub>1 where
-    "C\<^sub>1 = {#K \<in># D'. K \<cdot>l \<gamma>\<^sub>D = L' \<cdot>l \<gamma>\<^sub>D#}"
-
-  have ball_atms_lt_\<beta>: "\<forall>K \<in># D \<cdot> \<gamma>\<^sub>D. atm_of K \<prec>\<^sub>B \<beta>"
-  proof (rule ballI)
-    fix K assume "K \<in># D \<cdot> \<gamma>\<^sub>D"
-    hence "K = L' \<cdot>l \<gamma>\<^sub>D \<or> (K \<in># D' \<cdot> \<gamma>\<^sub>D)"
-      by (simp add: D_def)
-    thus "atm_of K \<prec>\<^sub>B \<beta>"
-    proof (rule disjE)
-      assume "K = L' \<cdot>l \<gamma>\<^sub>D"
-      thus ?thesis
-        apply simp
-        by (metis \<open>- (L \<cdot>l \<gamma>) = L' \<cdot>l \<gamma>\<^sub>D\<close> \<open>atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta>\<close> atm_of_eq_uminus_if_lit_eq
-            atm_of_subst_lit)
-    next
-      have trail_lt_\<beta>': "\<forall>atm \<in> atm_of ` fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>)). atm \<prec>\<^sub>B \<beta>"
-        using trail_lt_\<beta> by (simp add: trail_atoms_lt_def S\<^sub>2_def)
-
-      assume K_in: "K \<in># D' \<cdot> \<gamma>\<^sub>D"
-      hence "atm_of K \<in> atm_of ` fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
-        using tr_\<Gamma>_L_false_D[unfolded D_def]
-        by (metis D_def \<open>K \<in># D \<cdot> \<gamma>\<^sub>D\<close> atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-            trail_false_cls_def trail_false_lit_def)
-      moreover from trail_lt_\<beta> have "\<forall>atm \<in> atm_of ` fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>)). atm \<prec>\<^sub>B \<beta>"
-        by (simp add: trail_atoms_lt_def S\<^sub>2_def)
-      ultimately show ?thesis
-        by blast
-    qed
-  qed
-
-  have tr_false_C\<^sub>1: "trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>\<^sub>D)"
-  proof (rule subtrail_falseI)
-    show "trail_false_cls ((L \<cdot>l \<gamma>, None) # \<Gamma>) (C\<^sub>0 \<cdot> \<gamma>\<^sub>D)"
-      unfolding C\<^sub>0_def trail_false_cls_def
-      apply (rule ballI)
-      apply (rule tr_\<Gamma>_L_false_D[unfolded D_def trail_false_cls_def decide_lit_def, rule_format])
-      by auto
-  next
-    show "- (L \<cdot>l \<gamma>) \<notin># C\<^sub>0 \<cdot> \<gamma>\<^sub>D"
-      unfolding C\<^sub>0_def
-      using \<open>- (L \<cdot>l \<gamma>) = L' \<cdot>l \<gamma>\<^sub>D\<close> by fastforce
-  qed
-
-  have not_def_L'_\<rho>_\<sigma>\<^sub>\<rho>: "\<not> trail_defined_lit \<Gamma> (L' \<cdot>l \<gamma>\<^sub>D)"
-    using \<open>\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)\<close>
-    by (metis \<open>- (L \<cdot>l \<gamma>) = L' \<cdot>l \<gamma>\<^sub>D\<close> trail_defined_lit_iff_defined_uminus)
-
-  obtain xs where "mset xs = add_mset L' C\<^sub>1"
-    using ex_mset by auto
-  hence set_xs_conv:
-    "set xs = set_mset (add_mset L' C\<^sub>1)"
-    by (metis set_mset_mset)
-
-  have "unifiers (set (pairs (map atm_of xs))) \<noteq> {}"
-  proof (rule not_empty_if_mem)
-    have "set (pairs (map atm_of xs)) =
-      atm_of ` set_mset (add_mset L' C\<^sub>1) \<times> atm_of ` set_mset (add_mset L' C\<^sub>1)"
-      unfolding set_pairs list.set_map set_xs_conv by simp
-    also have "\<dots> =
-      atm_of ` insert L' (set_mset C\<^sub>1) \<times> atm_of ` insert L' (set_mset C\<^sub>1)"
-      unfolding set_mset_add_mset_insert by simp
-    also have "\<dots> =
-      atm_of ` insert L' {K. K \<in># D' \<and> K \<cdot>l \<gamma>\<^sub>D = L' \<cdot>l \<gamma>\<^sub>D} \<times>
-      atm_of ` insert L' {K. K \<in># D' \<and> K \<cdot>l \<gamma>\<^sub>D = L' \<cdot>l \<gamma>\<^sub>D}"
-      unfolding C\<^sub>1_def set_mset_filter by simp
-    finally have set_pairs_xs_simp: "set (pairs (map atm_of xs)) =
-      atm_of ` insert L' {K. K \<in># D' \<and> K \<cdot>l \<gamma>\<^sub>D = L' \<cdot>l \<gamma>\<^sub>D} \<times>
-      atm_of ` insert L' {K. K \<in># D' \<and> K \<cdot>l \<gamma>\<^sub>D = L' \<cdot>l \<gamma>\<^sub>D}"
-      by assumption
-      
-    show "\<gamma>\<^sub>D \<in> unifiers (set (pairs (map atm_of xs)))"
-      unfolding unifiers_def mem_Collect_eq
-    proof (rule ballI)
-      fix p assume p_in: "p \<in> set (pairs (map atm_of xs))"
-      then obtain K1 K2 where p_def: "p = (atm_of K1, atm_of K2)" and
-        "K1 = L' \<or> K1 \<in> {K. K \<in># D' \<and> K \<cdot>l \<gamma>\<^sub>D = L' \<cdot>l \<gamma>\<^sub>D}" and
-        "K2 = L' \<or> K2 \<in> {K. K \<in># D' \<and> K \<cdot>l \<gamma>\<^sub>D = L' \<cdot>l \<gamma>\<^sub>D}"
-        by (auto simp: set_pairs_xs_simp)
-      hence "K1 \<cdot>l \<gamma>\<^sub>D = L' \<cdot>l \<gamma>\<^sub>D \<and> K2 \<cdot>l \<gamma>\<^sub>D = L' \<cdot>l \<gamma>\<^sub>D"
-        by auto
-      thus "fst p \<cdot>a \<gamma>\<^sub>D = snd p \<cdot>a \<gamma>\<^sub>D"
-        unfolding p_def prod.sel
-        by (metis atm_of_subst_lit)
-    qed
-  qed
-  then obtain ys where
-    unify_pairs: "unify (pairs (map atm_of xs)) [] = Some ys"
-    using ex_unify_if_unifiers_not_empty[OF _ refl] by blast
-
-  define \<mu> where
-    "\<mu> = subst_of ys"
-
-  have imgu_\<mu>: "is_imgu \<mu> {atm_of ` set_mset (add_mset L' C\<^sub>1)}"
-  proof (intro is_imgu_if_mgu_sets[unfolded mgu_sets_def] exI conjI)
-    show "set (map set [(map atm_of xs)]) = {atm_of ` set_mset (add_mset L' C\<^sub>1)}"
-      by (simp add: set_xs_conv)
-  next
-    show "map_option subst_of (unify (concat (map pairs [map atm_of xs])) []) = Some \<mu>"
-      by (simp add: unify_pairs \<mu>_def)
-  qed
-
-  show ?thesis
-    using propagateI[OF D_in D_def, of \<gamma>\<^sub>D, unfolded subst_cls_comp_subst subst_lit_comp_subst,
-      OF ground_D_\<sigma> ball_atms_lt_\<beta> C\<^sub>0_def C\<^sub>1_def tr_false_C\<^sub>1 not_def_L'_\<rho>_\<sigma>\<^sub>\<rho> imgu_\<mu>]   
-    unfolding S\<^sub>0_def by blast
-qed
-
-definition trail_propagated_wf where
-  "trail_propagated_wf \<Gamma> \<longleftrightarrow> (\<forall>(L\<^sub>\<gamma>, n) \<in> set \<Gamma>.
-    case n of
-      None \<Rightarrow> True
-    | Some (_, L, \<gamma>) \<Rightarrow> L\<^sub>\<gamma> = L \<cdot>l \<gamma>)"
-
-lemma trail_propagated_wf_if_trail_propagated_or_decided:
-  "trail_propagated_or_decided N U \<beta> \<Gamma> \<Longrightarrow> trail_propagated_wf \<Gamma>"
-proof (induction \<Gamma> rule: trail_propagated_or_decided.induct)
+lemma is_shortest_backtrack_shortest_backtrack:
+  "C \<noteq> {#} \<Longrightarrow> is_shortest_backtrack C \<Gamma> (shortest_backtrack C \<Gamma>)"
+proof (induction \<Gamma>)
   case Nil
-  then show ?case
-    by (simp add: trail_propagated_wf_def)
+  then show ?case 
+    by (simp add: is_shortest_backtrack_def ex_conflict_def)
 next
-  case (Propagate C L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu>)
+  case (Cons Kn \<Gamma>)
   then show ?case
-    by (simp add: trail_propagated_wf_def propagate_lit_def)
-next
-  case (Decide L \<gamma> \<Gamma>)
-  then show ?case
-    by (simp add: trail_propagated_wf_def decide_lit_def)
+    apply (simp del: )
+    apply (rule conjI)
+     apply (simp add: is_shortest_backtrack_def suffix_Cons)
+    by (meson is_shortest_backtrack_def not_Cons_self2 suffix_ConsD suffix_appendD
+        suffix_order.dual_order.antisym suffix_order.dual_order.refl)
 qed
 
-lemma trail_propagated_wf_if_trail_propagated_or_decided':
-  "trail_propagated_or_decided' N \<beta> S \<Longrightarrow> trail_propagated_wf (state_trail S)"
-  unfolding trail_propagated_or_decided'_def
-  using trail_propagated_wf_if_trail_propagated_or_decided .
+definition shortest_backtrack_strategy where
+  "shortest_backtrack_strategy R N \<beta> S S' \<longleftrightarrow> R N \<beta> S S' \<and> (backtrack N \<beta> S S' \<longrightarrow>
+    is_shortest_backtrack (fst (the (state_conflict S))) (state_trail S) (state_trail S'))"
+
+lemma "shortest_backtrack_strategy scl N \<beta> S S' \<Longrightarrow> scl N \<beta> S S'"
+  by (simp add: shortest_backtrack_strategy_def)
 
 theorem correct_termination:
   fixes gnd_N and gnd_N_lt_\<beta>
   assumes
-    no_more_step: "\<nexists>S'. scl N \<beta> S S'" and
+    no_more_step: "\<nexists>S'. shortest_backtrack_strategy scl N \<beta> S S'" and
     sound_S: "sound_state N \<beta> S" and
     invars: "trail_atoms_lt \<beta> S" "trail_propagated_wf (state_trail S)" "trail_lits_consistent S"
       "ground_false_closures S"
@@ -209,14 +74,25 @@ proof -
     by (simp_all add: S_def sound_state_def)
 
   from no_more_step have no_new_conflict: "\<nexists>S'. conflict N \<beta> S S'"
-    unfolding scl_def by blast
+    unfolding shortest_backtrack_strategy_def scl_def
+    using backtrack_well_defined(3) by blast
 
   from no_more_step have no_new_propagate: "\<nexists>S'. propagate N \<beta> S S'"
-    by (meson decide_well_defined(1) local.scl_def)
+    unfolding shortest_backtrack_strategy_def scl_def
+    using backtrack_well_defined(1) by blast
 
   from no_more_step have
     no_new_decide: "(\<nexists>S'. decide N \<beta> S S') \<or> (\<exists>S' S''. decide N \<beta> S S' \<and> conflict N \<beta> S' S'')"
-    using local.scl_def by meson
+    unfolding shortest_backtrack_strategy_def scl_def
+    using decide_well_defined(6) by blast
+
+  from no_more_step have no_new_skip: "\<nexists>S'. skip N \<beta> S S'"
+    unfolding shortest_backtrack_strategy_def scl_def
+    using backtrack_well_defined(4) by blast
+
+  from no_more_step have no_new_resolve: "\<nexists>S'. resolve N \<beta> S S'"
+    unfolding shortest_backtrack_strategy_def scl_def
+    using backtrack_well_defined(6) by blast
 
   have trail_consistent: "trail_consistent (state_trail S)"
     using \<open>trail_lits_consistent S\<close> by (simp add: trail_lits_consistent_def)
@@ -369,19 +245,36 @@ proof -
             hence \<Gamma>_def: "\<Gamma> = trail_decide \<Gamma>' (- (L \<cdot>l \<gamma>))"
               by (simp add: \<Gamma>_def L_eq_uminus_K_\<gamma> decide_lit_def)
 
-            from \<Gamma>_def have \<Gamma>_def': "\<Gamma> = trail_decide (\<Gamma>' @ []) (- (L \<cdot>l \<gamma>))"
-              by auto
+            from suffix_shortest_backtrack[of "add_mset L C'" \<Gamma>'] obtain \<Gamma>'' where
+              \<Gamma>'_def: "\<Gamma>' = \<Gamma>'' @ shortest_backtrack (add_mset L C') \<Gamma>'"
+              using suffixE by blast
 
-            have no_new_new_conflict: "\<nexists>\<gamma>. is_ground_cls (add_mset L C' \<cdot> \<gamma>) \<and>
-              trail_false_cls [] (add_mset L C' \<cdot> \<gamma>)"
-              by auto
+            define S' :: "('f, 'v) state" where
+              "S' = (shortest_backtrack (add_mset L C') \<Gamma>', finsert (add_mset L C') U, None)"
 
-            have "backtrack N \<beta> (\<Gamma>, U, Some (add_mset L C', \<gamma>)) ([], finsert (add_mset L C') U, None)"
-              using backtrackI[OF \<Gamma>_def' refl no_new_new_conflict] by simp
-            with no_more_step have False
-              unfolding scl_def
-              using S_def[unfolded u_def C_def, symmetric]
-              using backtrack_well_defined(2) by blast
+            have "backtrack N \<beta> S S'"
+              unfolding S_def[unfolded u_def C_def] S'_def
+            proof (rule backtrackI[OF _ refl])
+              show "\<Gamma> = trail_decide (\<Gamma>'' @ shortest_backtrack (add_mset L C') \<Gamma>') (- (L \<cdot>l \<gamma>))"
+                using \<Gamma>_def \<Gamma>'_def by simp
+            next
+              show "\<nexists>\<gamma>. is_ground_cls (add_mset L C' \<cdot> \<gamma>) \<and>
+                trail_false_cls (shortest_backtrack (add_mset L C') \<Gamma>') (add_mset L C' \<cdot> \<gamma>)"
+                using ex_conflict_shortest_backtrack[of "add_mset L C'", simplified]
+                by (simp add: ex_conflict_def)
+            qed
+            moreover have "is_shortest_backtrack (fst (the (state_conflict S)))
+              (state_trail S) (state_trail S')"
+              unfolding S_def[unfolded u_def C_def] S'_def
+              apply simp
+              using is_shortest_backtrack_shortest_backtrack[of "add_mset L C'", simplified]
+              by (metis C_def \<Gamma>_def \<Gamma>_false_C_\<gamma> \<open>S = (\<Gamma>, U, Some (add_mset L C', \<gamma>))\<close>
+                  \<open>ground_closures S\<close> ex_conflict_def ground_closures_def is_shortest_backtrack_def
+                  state_proj_simp(3) suffix_Cons)
+            ultimately have "\<exists>S'. shortest_backtrack_strategy scl N \<beta> S S'"
+              unfolding shortest_backtrack_strategy_def
+              using scl_def by metis
+            with no_more_step have False ..
             thus ?thesis ..
           next
             case Some \<comment> \<open>Literal can be resolved\<close>
@@ -444,22 +337,155 @@ proof -
 
             have "\<exists>S. resolve N \<beta> (\<Gamma>, U, Some (add_mset L C', \<gamma>)) S"
               using resolveI[OF 1 2 ren_\<rho> is_renaming_id_subst disjoint_vars imgu_\<mu> refl] ..
-            with no_more_step have False
-              unfolding scl_def
-              using S_def \<Gamma>_def C_def decide_well_defined(5) u_def
-              by blast
+            with no_new_resolve have False
+              by (metis C_def S_def u_def)
             thus ?thesis ..
           qed
         next
           case False \<comment> \<open>Literal can be skipped\<close>
           hence "skip N \<beta> ((K\<^sub>\<Gamma>, n) # \<Gamma>', U, Some (C, \<gamma>)) (\<Gamma>', U, Some (C, \<gamma>))"
             by (rule skipI[of K\<^sub>\<Gamma> C \<gamma> N \<beta> n \<Gamma>' U])
-          with no_more_step have False
-            by (metis S_def \<Gamma>_def scl_def u_def)
+          with no_new_skip have False
+            by (metis S_def \<Gamma>_def u_def)
           thus ?thesis ..
         qed
       qed
     qed
+  qed
+qed
+
+theorem learned_clauses_in_shortest_backtracking_regular_runs:
+  assumes
+    run: "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+    conflict: "conflict N \<beta> S0 S1" and
+    resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
+    backtrack: "shortest_backtrack_strategy backtrack N \<beta> Sn Sn'" and
+    "transp lt"
+  defines
+    "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))" and
+    "U \<equiv> state_learned S1"
+  shows "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>+\<^sup>+ initial_state Sn' \<and>
+    (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+      C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
+      set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
+      \<not> redundant trail_ord (fset N \<union> fset U) C)"
+  using learned_clauses_in_regular_runs
+proof -
+  from backtrack have backtrack': "backtrack N \<beta> Sn Sn'"
+    by (simp add: shortest_backtrack_strategy_def)
+
+
+  from run conflict have "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
+    by (metis (no_types, lifting) rtranclp.rtrancl_into_rtrancl scl.conflict_well_defined(6)
+        regular_scl_if_conflict scl_axioms shortest_backtrack_strategy_def)
+  also from resolution have reg_run_S1_Sn: "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>+\<^sup>+ ... Sn"
+  proof (induction Sn rule: tranclp_induct)
+    case (base y)
+    then show ?case
+      by (metis backtrack_well_defined(6) factorize_well_defined(5) regular_scl_if_factorize
+          regular_scl_if_resolve regular_scl_if_skip shortest_backtrack_strategy_def
+          skip_well_defined(6) sup2E tranclp.r_into_trancl)
+  next
+    case (step y z)
+    hence "(shortest_backtrack_strategy regular_scl N \<beta>) y z"
+      by (metis backtrack_well_defined(6) factorize_well_defined(5) regular_scl_if_factorize
+          regular_scl_if_resolve regular_scl_if_skip shortest_backtrack_strategy_def
+          skip_well_defined(6) sup2E)
+    with step.IH show ?case
+      by force
+  qed
+  also have "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>+\<^sup>+ ... Sn'"
+  proof (rule tranclp.r_into_trancl)
+    from backtrack' have "scl N \<beta> Sn Sn'"
+      by (simp add: scl_def)
+    with backtrack' have "reasonable_scl N \<beta> Sn Sn'"
+      using reasonable_scl_def decide_well_defined(6) by blast
+    with backtrack' have "regular_scl N \<beta> Sn Sn'"
+      unfolding regular_scl_def
+      by (smt (verit) conflict.simps option.simps(3) backtrack.cases state_conflict_simp)
+    with backtrack show "shortest_backtrack_strategy regular_scl N \<beta> Sn Sn'"
+      unfolding shortest_backtrack_strategy_def
+      by simp
+  qed
+  finally have "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>+\<^sup>+ initial_state Sn'" by assumption
+
+  moreover have "(\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+           C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset (state_learned S1)) \<and>
+           set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset (state_learned S1)) \<and>
+           \<not> redundant (multp (trail_less_ex lt (map fst (state_trail S1))))
+               (fset N \<union> fset (state_learned S1)) C)"
+  proof (rule learned_clauses_in_regular_runs[THEN conjunct2])
+    from run show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0"
+      by (induction S0 rule: rtranclp_induct) (auto simp: shortest_backtrack_strategy_def)
+  next
+    from assms show "conflict N \<beta> S0 S1"
+      by simp
+  next
+    from assms show "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn"
+      by simp
+  next
+    from assms show "backtrack N \<beta> Sn Sn'"
+      by (simp add: shortest_backtrack_strategy_def)
+  next
+    from assms show "transp lt"
+      by simp
+  qed
+
+  ultimately show ?thesis
+    by (simp add: U_def trail_ord_def)
+qed
+
+theorem shortest_backtracking_regular_scl_terminates:
+  fixes
+    N :: "('f, 'v) Term.term clause fset" and
+    \<beta> :: "('f, 'v) Term.term" and
+    lt :: "('f, 'v) Term.term literal \<Rightarrow> ('f, 'v) Term.term literal \<Rightarrow> bool"
+  defines
+    "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
+      trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
+      ground_closures \<sqinter> ground_false_closures \<sqinter> sound_state N \<beta> \<sqinter>
+      almost_no_conflict_with_trail N \<beta> \<sqinter>
+      regular_conflict_resolution N \<beta>"
+  assumes "transp lt"
+  shows
+    "wfP (\<lambda>S' S. shortest_backtrack_strategy regular_scl N \<beta> S S' \<and> invars S)" and
+    "invars initial_state" and
+    "\<And>S S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
+proof -
+  show "invars initial_state"
+    by (simp add: invars_def)
+next
+  have min_to_reg:
+    "\<And>S S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
+    by (simp add: shortest_backtrack_strategy_def)
+
+  note rea_to_scl = scl_if_reasonable
+  note reg_to_rea = reasonable_if_regular
+  note min_to_scl = min_to_reg[THEN reg_to_rea[THEN rea_to_scl]]
+
+  fix S S'
+  assume "shortest_backtrack_strategy regular_scl N \<beta> S S'"
+  thus "invars S \<Longrightarrow> invars S'"
+    unfolding invars_def
+    using
+      min_to_scl[THEN scl_preserves_trail_atoms_lt]
+      min_to_scl[THEN scl_preserves_trail_resolved_lits_pol]
+      min_to_scl[THEN scl_preserves_trail_lits_ground]
+      min_to_scl[THEN scl_preserves_trail_lits_from_clauses]
+      min_to_scl[THEN scl_preserves_initial_lits_generalize_learned_trail_conflict]
+      min_to_scl[THEN scl_preserves_ground_closures]
+      min_to_scl[THEN scl_preserves_ground_false_closures]
+      min_to_scl[THEN scl_preserves_sound_state]
+      min_to_reg[THEN regular_scl_preserves_almost_no_conflict_with_trail]
+      min_to_reg[THEN regular_scl_preserves_regular_conflict_resolution]
+    by simp
+next
+  show "wfP (\<lambda>S' S. shortest_backtrack_strategy regular_scl N \<beta> S S' \<and> invars S)"
+    using regular_scl_terminates(1)[OF \<open>transp lt\<close>, of N \<beta>, folded invars_def]
+  proof (rule wfP_subset, unfold le_fun_def le_bool_def inf_fun_def, intro allI impI, elim conjE)
+    fix S S'
+    show "shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> invars S \<Longrightarrow> regular_scl N \<beta> S S' \<and> invars S"
+      by (simp add: shortest_backtrack_strategy_def)
   qed
 qed
 
