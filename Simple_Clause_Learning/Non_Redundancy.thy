@@ -9,10 +9,6 @@ context scl begin
 
 section \<open>Reasonable Steps\<close>
 
-definition reasonable_scl where
-  "reasonable_scl N \<beta> S S' \<longleftrightarrow>
-    scl N \<beta> S S' \<and> (decide N \<beta> S S' \<longrightarrow> \<not>(\<exists>S''. conflict N \<beta> S' S''))"
-
 lemma scl_if_reasonable: "reasonable_scl N \<beta> S S' \<Longrightarrow> scl N \<beta> S S'"
   unfolding reasonable_scl_def scl_def by simp
 
@@ -177,10 +173,6 @@ qed auto
 
 
 section \<open>Regular Steps\<close>
-
-definition regular_scl where
-  "regular_scl N \<beta> S S' \<longleftrightarrow>
-    conflict N \<beta> S S' \<or> \<not> (\<exists>S''. conflict N \<beta> S S'') \<and> reasonable_scl N \<beta> S S'"
 
 lemma regular_scl_if_conflict[simp]: "conflict N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
   by (simp add: regular_scl_def)
@@ -2314,6 +2306,51 @@ corollary learned_clauses_in_regular_runs_static_order:
     (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and> \<not> redundant (\<subset>#) (fset N \<union> fset U) C)"
   using learned_clauses_in_regular_runs[OF assms(1-5)]
   using U_def redundant_multp_if_redundant_strict_subset by blast
+
+theorem learned_clauses_in_strategy:
+  assumes
+    run: "(strategy N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+    conflict: "conflict N \<beta> S0 S1" and
+    resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
+    backtrack: "backtrack N \<beta> Sn Sn'" and
+    "transp lt" and
+    strategy_imp_regular_scl: "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
+  defines
+    "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))" and
+    "U \<equiv> state_learned S1"
+  shows "(\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+      C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
+      set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
+      \<not> redundant trail_ord (fset N \<union> fset U) C)"
+  using learned_clauses_in_regular_runs
+proof -
+  from backtrack have backtrack': "backtrack N \<beta> Sn Sn'"
+    by (simp add: shortest_backtrack_strategy_def)
+
+  have "(\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+    C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset (state_learned S1)) \<and>
+    set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset (state_learned S1)) \<and>
+    \<not> redundant (multp (trail_less_ex lt (map fst (state_trail S1))))
+      (fset N \<union> fset (state_learned S1)) C)"
+  proof (rule learned_clauses_in_regular_runs[THEN conjunct2])
+    from run show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0"
+      by (induction S0 rule: rtranclp_induct) (auto dest: strategy_imp_regular_scl)
+  next
+    from assms show "conflict N \<beta> S0 S1"
+      by simp
+  next
+    from assms show "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn"
+      by simp
+  next
+    from assms show "backtrack N \<beta> Sn Sn'"
+      by (simp add: shortest_backtrack_strategy_def)
+  next
+    from assms show "transp lt"
+      by simp
+  qed
+  thus ?thesis
+    by (simp add: U_def trail_ord_def)
+qed
 
 end
 

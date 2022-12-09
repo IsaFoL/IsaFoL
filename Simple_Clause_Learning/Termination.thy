@@ -557,7 +557,7 @@ lemma
     (\<exists>C' \<in> grounding_of_cls C. C' \<notin> grounding_of_clss (fset U))) \<and>
     grounding_of_clss (fset U) \<subset> grounding_of_clss (fset (state_learned Sn'))"
 proof -
-  from  learned_clauses_in_regular_runs_static_order[OF assms(1,2,3,4,5)]
+  from learned_clauses_in_regular_runs_static_order[OF assms(1,2,3,4,5)]
   obtain C \<gamma> where
     conf_Sn: "state_conflict Sn = Some (C, \<gamma>)" and
     not_redundant: "\<not> redundant (\<subset>#) (fset N \<union> fset (state_learned S1)) C"
@@ -890,6 +890,57 @@ next
       show "ground_false_closures S"
         by (rule \<open>ground_false_closures S\<close>)
     qed
+  qed
+qed
+
+theorem strategy_terminates:
+  fixes
+    N :: "('f, 'v) Term.term clause fset" and
+    \<beta> :: "('f, 'v) Term.term" and
+    lt :: "('f, 'v) Term.term literal \<Rightarrow> ('f, 'v) Term.term literal \<Rightarrow> bool"
+  defines
+    "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
+      trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
+      ground_closures \<sqinter> ground_false_closures \<sqinter> sound_state N \<beta> \<sqinter>
+      almost_no_conflict_with_trail N \<beta> \<sqinter>
+      regular_conflict_resolution N \<beta>"
+  assumes "transp lt" and
+    strategy_imp_regular_scl: "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
+  shows
+    "wfP (\<lambda>S' S. strategy N \<beta> S S' \<and> invars S)" and
+    "invars initial_state" and
+    "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
+proof -
+  show "invars initial_state"
+    by (simp add: invars_def)
+next
+  note rea_to_scl = scl_if_reasonable
+  note reg_to_rea = reasonable_if_regular
+  note min_to_scl = strategy_imp_regular_scl[THEN reg_to_rea[THEN rea_to_scl]]
+
+  fix S S'
+  assume "strategy N \<beta> S S'"
+  thus "invars S \<Longrightarrow> invars S'"
+    unfolding invars_def
+    using
+      min_to_scl[THEN scl_preserves_trail_atoms_lt]
+      min_to_scl[THEN scl_preserves_trail_resolved_lits_pol]
+      min_to_scl[THEN scl_preserves_trail_lits_ground]
+      min_to_scl[THEN scl_preserves_trail_lits_from_clauses]
+      min_to_scl[THEN scl_preserves_initial_lits_generalize_learned_trail_conflict]
+      min_to_scl[THEN scl_preserves_ground_closures]
+      min_to_scl[THEN scl_preserves_ground_false_closures]
+      min_to_scl[THEN scl_preserves_sound_state]
+      strategy_imp_regular_scl[THEN regular_scl_preserves_almost_no_conflict_with_trail]
+      strategy_imp_regular_scl[THEN regular_scl_preserves_regular_conflict_resolution]
+    by simp
+next
+  show "wfP (\<lambda>S' S. strategy N \<beta> S S' \<and> invars S)"
+    using regular_scl_terminates(1)[OF \<open>transp lt\<close>, of N \<beta>, folded invars_def]
+  proof (rule wfP_subset, unfold le_fun_def le_bool_def inf_fun_def, intro allI impI, elim conjE)
+    fix S S'
+    show "strategy N \<beta> S S' \<Longrightarrow> invars S \<Longrightarrow> regular_scl N \<beta> S S' \<and> invars S"
+      by (simp add: strategy_imp_regular_scl)
   qed
 qed
 

@@ -4160,6 +4160,62 @@ theorem scl_preserves_sound_state:
     factorize_preserves_sound_state resolve_preserves_sound_state backtrack_preserves_sound_state
   by metis
 
+
+section \<open>Strategies\<close>
+
+definition reasonable_scl where
+  "reasonable_scl N \<beta> S S' \<longleftrightarrow>
+    scl N \<beta> S S' \<and> (decide N \<beta> S S' \<longrightarrow> \<not>(\<exists>S''. conflict N \<beta> S' S''))"
+
+definition regular_scl where
+  "regular_scl N \<beta> S S' \<longleftrightarrow>
+    conflict N \<beta> S S' \<or> \<not> (\<exists>S''. conflict N \<beta> S S'') \<and> reasonable_scl N \<beta> S S'"
+
+definition ex_conflict where
+  "ex_conflict C \<Gamma> \<longleftrightarrow> (\<exists>\<gamma>. is_ground_cls (C \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>))"
+
+definition is_shortest_backtrack where
+  "is_shortest_backtrack C \<Gamma> \<Gamma>\<^sub>0 \<longleftrightarrow> C \<noteq> {#} \<longrightarrow> suffix \<Gamma>\<^sub>0 \<Gamma> \<and> \<not> ex_conflict C \<Gamma>\<^sub>0 \<and>
+    (\<forall>Kn. suffix (Kn # \<Gamma>\<^sub>0) \<Gamma> \<longrightarrow> ex_conflict C (Kn # \<Gamma>\<^sub>0))"
+
+definition shortest_backtrack_strategy where
+  "shortest_backtrack_strategy R N \<beta> S S' \<longleftrightarrow> R N \<beta> S S' \<and> (backtrack N \<beta> S S' \<longrightarrow>
+    is_shortest_backtrack (fst (the (state_conflict S))) (state_trail S) (state_trail S'))"
+
+lemma regular_scl_if_shortest_backtrack_strategy:
+  "shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
+  by (simp add: shortest_backtrack_strategy_def)
+
+primrec shortest_backtrack where
+  "shortest_backtrack C [] = []" |
+  "shortest_backtrack C (Ln # \<Gamma>) =
+    (if ex_conflict C (Ln # \<Gamma>) then
+      shortest_backtrack C \<Gamma>
+    else
+      Ln # \<Gamma>)"
+
+lemma suffix_shortest_backtrack: "suffix (shortest_backtrack C \<Gamma>) \<Gamma>"
+  by (induction \<Gamma>) (simp_all add: suffix_Cons)
+
+lemma ex_conflict_shortest_backtrack: "ex_conflict C (shortest_backtrack C \<Gamma>) \<longleftrightarrow> C = {#}"
+  by (induction \<Gamma>) (auto simp add: ex_conflict_def)
+
+lemma is_shortest_backtrack_shortest_backtrack:
+  "C \<noteq> {#} \<Longrightarrow> is_shortest_backtrack C \<Gamma> (shortest_backtrack C \<Gamma>)"
+proof (induction \<Gamma>)
+  case Nil
+  then show ?case
+    by (simp add: is_shortest_backtrack_def ex_conflict_def)
+next
+  case (Cons Kn \<Gamma>)
+  then show ?case
+    apply (simp del: )
+    apply (rule conjI)
+     apply (simp add: is_shortest_backtrack_def suffix_Cons)
+    by (meson is_shortest_backtrack_def not_Cons_self2 suffix_ConsD suffix_appendD
+        suffix_order.dual_order.antisym suffix_order.dual_order.refl)
+qed
+
 end
 
 end
