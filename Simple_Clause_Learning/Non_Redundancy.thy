@@ -9,9 +9,6 @@ context scl begin
 
 section \<open>Reasonable Steps\<close>
 
-lemma scl_if_reasonable: "reasonable_scl N \<beta> S S' \<Longrightarrow> scl N \<beta> S S'"
-  unfolding reasonable_scl_def scl_def by simp
-
 lemma reasonable_scl_sound_state:
   "reasonable_scl N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
   using scl_preserves_sound_state reasonable_scl_def by blast
@@ -189,22 +186,6 @@ lemma regular_scl_if_resolve[simp]: "resolve N \<beta> S S' \<Longrightarrow> re
 lemma regular_scl_if_backtrack[simp]: "backtrack N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
   by (smt (verit) backtrack.cases decide_well_defined(6) option.discI regular_scl_def conflict.simps
       reasonable_scl_def scl_def state_conflict_simp)
-
-lemma reasonable_if_regular:
-  "regular_scl N \<beta> S S' \<Longrightarrow> reasonable_scl N \<beta> S S'"
-  unfolding regular_scl_def
-proof (elim disjE conjE)
-  assume "conflict N \<beta> S S'"
-  hence "scl N \<beta> S S'"
-    by (simp add: scl_def)
-  moreover have "decide N \<beta> S S' \<longrightarrow> \<not>(\<exists>S''. conflict N \<beta> S' S'')"
-    by (smt (verit, best) \<open>conflict N \<beta> S S'\<close> conflict.cases option.distinct(1) snd_conv)
-  ultimately show "reasonable_scl N \<beta> S S'"
-    by (simp add: reasonable_scl_def)
-next
-  assume "\<not> (\<exists>S''. conflict N \<beta> S S'')" and "reasonable_scl N \<beta> S S'"
-  thus ?thesis by simp
-qed
 
 lemma regular_scl_sound_state: "regular_scl N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
   by (rule reasonable_scl_sound_state[OF reasonable_if_regular])

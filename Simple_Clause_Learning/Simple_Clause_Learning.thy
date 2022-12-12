@@ -4167,9 +4167,32 @@ definition reasonable_scl where
   "reasonable_scl N \<beta> S S' \<longleftrightarrow>
     scl N \<beta> S S' \<and> (decide N \<beta> S S' \<longrightarrow> \<not>(\<exists>S''. conflict N \<beta> S' S''))"
 
+lemma scl_if_reasonable: "reasonable_scl N \<beta> S S' \<Longrightarrow> scl N \<beta> S S'"
+  unfolding reasonable_scl_def scl_def by simp
+
 definition regular_scl where
   "regular_scl N \<beta> S S' \<longleftrightarrow>
     conflict N \<beta> S S' \<or> \<not> (\<exists>S''. conflict N \<beta> S S'') \<and> reasonable_scl N \<beta> S S'"
+
+lemma reasonable_if_regular:
+  "regular_scl N \<beta> S S' \<Longrightarrow> reasonable_scl N \<beta> S S'"
+  unfolding regular_scl_def
+proof (elim disjE conjE)
+  assume "conflict N \<beta> S S'"
+  hence "scl N \<beta> S S'"
+    by (simp add: scl_def)
+  moreover have "decide N \<beta> S S' \<longrightarrow> \<not>(\<exists>S''. conflict N \<beta> S' S'')"
+    by (smt (verit, best) \<open>conflict N \<beta> S S'\<close> conflict.cases option.distinct(1) snd_conv)
+  ultimately show "reasonable_scl N \<beta> S S'"
+    by (simp add: reasonable_scl_def)
+next
+  assume "\<not> (\<exists>S''. conflict N \<beta> S S'')" and "reasonable_scl N \<beta> S S'"
+  thus ?thesis by simp
+qed
+
+lemma scl_if_regular:
+  "regular_scl N \<beta> S S' \<Longrightarrow> scl N \<beta> S S'"
+  using scl_if_reasonable reasonable_if_regular by simp
 
 definition ex_conflict where
   "ex_conflict C \<Gamma> \<longleftrightarrow> (\<exists>\<gamma>. is_ground_cls (C \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>))"
