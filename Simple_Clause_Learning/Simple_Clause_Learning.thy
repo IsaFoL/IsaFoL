@@ -4194,6 +4194,51 @@ lemma scl_if_regular:
   "regular_scl N \<beta> S S' \<Longrightarrow> scl N \<beta> S S'"
   using scl_if_reasonable reasonable_if_regular by simp
 
+text \<open>The following specification of @{const regular_scl} is better for the paper as it highlights
+that it is a restriction of @{const reasonable_scl}.\<close>
+
+lemma "regular_scl N \<beta> S S' \<longleftrightarrow> reasonable_scl N \<beta> S S' \<and>
+  ((\<exists>S''. conflict N \<beta> S S'') \<longrightarrow> conflict N \<beta> S S')"
+  (is "?lhs = ?rhs")
+proof (rule iffI)
+  assume ?lhs
+  thus ?rhs
+    unfolding regular_scl_def
+  proof (elim disjE conjE)
+    assume conf: "conflict N \<beta> S S'"
+    show ?rhs
+    proof (rule conjI)
+      from conf have "\<not> decide N \<beta> S S'"
+        by (simp add: conflict_well_defined(2))
+      with conf show "reasonable_scl N \<beta> S S'"
+        unfolding reasonable_scl_def scl_def by simp
+    next
+      show "(\<exists>S''. conflict N \<beta> S S'') \<longrightarrow> conflict N \<beta> S S'"
+        using conf by simp
+    qed
+  next
+    assume "\<not> (\<exists>S''. conflict N \<beta> S S'')" and "reasonable_scl N \<beta> S S'"
+    thus ?rhs
+      by simp
+  qed
+next
+  assume ?rhs
+  thus ?lhs
+  proof (cases "\<exists>S''. conflict N \<beta> S S''")
+    case True
+    with \<open>?rhs\<close> have "conflict N \<beta> S S'"
+      by blast
+    then show ?thesis
+      unfolding regular_scl_def
+      by simp
+  next
+    case False
+    then show ?thesis
+      unfolding regular_scl_def
+      using \<open>?rhs\<close> by simp
+  qed
+qed
+
 definition ex_conflict where
   "ex_conflict C \<Gamma> \<longleftrightarrow> (\<exists>\<gamma>. is_ground_cls (C \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>))"
 
