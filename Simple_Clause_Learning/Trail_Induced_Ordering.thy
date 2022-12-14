@@ -102,7 +102,7 @@ lemma not_trail_less_Nil: "\<not> trail_less [] L K"
 
 lemma defined_if_trail_less:
   assumes "trail_less Ls L K"
-  shows "L \<in> set Ls \<union> uminus ` set Ls" "L \<in> set Ls \<union> uminus ` set Ls"
+  shows "L \<in> set Ls \<union> uminus ` set Ls" "K \<in> set Ls \<union> uminus ` set Ls"
    apply (atomize (full))
   using assms unfolding trail_less_def trail_less_id_id_def trail_less_comp_id_def
     trail_less_id_comp_def trail_less_comp_comp_def
@@ -519,6 +519,14 @@ definition trail_less_ex where
         False
       else
         lt L K)"
+
+lemma
+  fixes Ls :: "('a :: uminus) list"
+  assumes
+    uminus_uminus_id: "\<And>x :: 'a. - (- x) = x"
+  shows "K \<in> set Ls \<or> - K \<in> set Ls \<Longrightarrow> trail_less_ex lt Ls L K \<longleftrightarrow> trail_less Ls L K"
+  using not_less_if_undefined[OF uminus_uminus_id]
+  by (simp add: trail_less_ex_def)
 
 lemma trail_less_ex_if_trail_less:
   fixes Ls :: "('a :: uminus) list"
