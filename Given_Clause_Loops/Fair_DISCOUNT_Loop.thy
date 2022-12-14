@@ -291,8 +291,7 @@ proof -
     using lfinite_llength_enat[OF fin] by blast
 
   have im1_lt: "enat (i - 1) < llength Sts"
-    using i by (metis chain chain_length_pos diff_less enat_ord_simps(2) less_numeral_extra(1)
-        zero_enat_def)
+    by (metis chain chain_length_pos diff_less enat_ord_simps(2) i zero_enat_def zero_less_one)
 
   show ?thesis
     using chain_DLf_invariant_lnth[OF chain fair_hd im1_lt]

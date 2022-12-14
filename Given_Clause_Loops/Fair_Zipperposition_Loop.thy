@@ -342,7 +342,7 @@ next
         hence "\<iota>0 \<in> Inf_F"
           using inv t unfolding st ZLf_invariant.simps by auto
         hence \<iota>0_red: "\<iota>0 \<in> no_labels.Red_I_\<G> (fset A \<union> {concl_of \<iota>0})"
-          using no_labels.empty_ord.Red_I_of_Inf_to_N by auto
+          by (simp add: no_labels.empty_ord.Red_I_of_Inf_to_N)
 
         show ?thesis
           using fair_ZL.compute_infer[OF has_el pick \<iota>0_red] unfolding st y by blast
@@ -715,8 +715,7 @@ proof -
       using i j_ge by auto
 
     have step: "lnth Sts j \<leadsto>ZLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
-      using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
-      by blast
+      by (simp add: full_chain_lnth_rel[OF full] len)
 
     have "lnth Sts (Suc j) \<sqsubset> lnth Sts j" if j_ge: "j \<ge> i" for j
       by (rule non_compute_infer_ZLf_step_imp_Less_state[OF step[OF j_ge] not_ci[OF j_ge]])
@@ -840,14 +839,12 @@ proof -
             have td_at_sj: "lnth TDs (Suc j) = (snd (t_pick_elem T), insert \<iota>0 D)"
               using sts_at_sj TDs_def lt_tds pick by force
 
-            show ?thesis
-              apply (rule exI[of _ j])
-              apply (intro conjI)
-              apply (rule j_ge)
-              apply (simp add: todo.pick_lqueue_step.simps todo.pick_lqueue_step_w_details.simps,
+            have "todo.pick_lqueue_step (lnth TDs j) (lnth TDs (Suc j))"
+              by (simp add: todo.pick_lqueue_step.simps todo.pick_lqueue_step_w_details.simps,
                   rule exI[of _ \<iota>s], rule exI[of _ T], rule exI[of _ D],
                   simp add: td_at_j td_at_sj cons_in fst snd)
-              done
+            thus ?thesis
+              using j_ge by blast
           qed
         }
         thus ?thesis
