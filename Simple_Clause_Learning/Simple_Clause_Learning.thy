@@ -143,6 +143,34 @@ lemma not_mem_strict_suffix':
 
 subsection \<open>Multiset_Extra\<close>
 
+lemma multp\<^sub>D\<^sub>M_implies_one_step:
+  "multp\<^sub>D\<^sub>M R M N \<Longrightarrow> \<exists>I J K. N = I + J \<and> M = I + K \<and> J \<noteq> {#} \<and> (\<forall>k\<in>#K. \<exists>x\<in>#J. R k x)"
+  unfolding multp\<^sub>D\<^sub>M_def
+  by (metis subset_mset.le_imp_diff_is_add)
+
+lemma multp\<^sub>H\<^sub>O_implies_one_step:
+  "multp\<^sub>H\<^sub>O R M N \<Longrightarrow> \<exists>I J K. N = I + J \<and> M = I + K \<and> J \<noteq> {#} \<and> (\<forall>k\<in>#K. \<exists>x\<in>#J. R k x)"
+  by (metis multp\<^sub>D\<^sub>M_implies_one_step multp\<^sub>H\<^sub>O_imp_multp\<^sub>D\<^sub>M)
+
+lemma multp\<^sub>D\<^sub>M_mono_strong:
+  "multp\<^sub>D\<^sub>M R M1 M2 \<Longrightarrow> (\<And>x y. x \<in># M1 \<Longrightarrow> y \<in># M2 \<Longrightarrow> R x y \<Longrightarrow> S x y) \<Longrightarrow> multp\<^sub>D\<^sub>M S M1 M2"
+  unfolding multp\<^sub>D\<^sub>M_def
+  by (metis add_diff_cancel_left' in_diffD subset_mset.diff_add)
+
+lemma multp\<^sub>H\<^sub>O_mono_strong:
+  "multp\<^sub>H\<^sub>O R M1 M2 \<Longrightarrow> (\<And>x y. x \<in># M1 \<Longrightarrow> y \<in># M2 \<Longrightarrow> R x y \<Longrightarrow> S x y) \<Longrightarrow> multp\<^sub>H\<^sub>O S M1 M2"
+  unfolding multp\<^sub>H\<^sub>O_def
+  by (metis count_inI less_zeroE)
+
+lemma strict_subset_implies_multp\<^sub>D\<^sub>M: "A \<subset># B \<Longrightarrow> multp\<^sub>D\<^sub>M r A B"
+  unfolding multp\<^sub>D\<^sub>M_def
+  by (metis add.right_neutral add_diff_cancel_right' empty_iff mset_subset_eq_add_right
+      set_mset_empty subset_mset.lessE)
+
+lemma strict_subset_implies_multp\<^sub>H\<^sub>O: "A \<subset># B \<Longrightarrow> multp\<^sub>H\<^sub>O r A B"
+  unfolding multp\<^sub>H\<^sub>O_def
+  by (simp add: leD mset_subset_eq_count)
+
 lemma Multiset_Bex_plus_iff: "(\<exists>x \<in># (M1 + M2). P x) \<longleftrightarrow> (\<exists>x \<in># M1. P x) \<or> (\<exists>x \<in># M2. P x)"
   by auto
 

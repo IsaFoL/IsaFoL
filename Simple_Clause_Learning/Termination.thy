@@ -653,20 +653,16 @@ lemma \<M>_back_pfsubset_\<M>_back_after_regular_backtrack:
     conflict: "conflict N \<beta> S0 S1" and
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
     backtrack: "backtrack N \<beta> Sn Sn'" and
-    "transp lt" and
-
     invars: "ground_closures Sn" "trail_atoms_lt \<beta> Sn" "sound_state N \<beta> Sn"
       "ground_false_closures Sn"
-  defines
-    "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))"
   shows "\<M>_back \<beta> Sn' |\<subset>| \<M>_back \<beta> Sn"
 proof -
   obtain C \<gamma> where
     conf: "state_conflict Sn = Some (C, \<gamma>)" and
     set_conf_not_in_set_groundings:
       "set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset (state_learned S1))"
-    using learned_clauses_in_regular_runs[OF assms(1,2,3,4,5)]
-    by auto
+    using learned_clauses_in_regular_runs[OF assms(1,2,3,4)]
+    by metis
 
   have 1: "state_learned Sn' = finsert C (state_learned Sn)"
     using backtrack conf by (auto elim: backtrack.cases)
@@ -760,7 +756,6 @@ theorem regular_scl_terminates:
       ground_closures \<sqinter> ground_false_closures \<sqinter> sound_state N \<beta> \<sqinter>
       almost_no_conflict_with_trail N \<beta> \<sqinter>
       regular_conflict_resolution N \<beta>"
-  assumes "transp lt"
   shows
     "wfP (\<lambda>S' S. regular_scl N \<beta> S S' \<and> invars S)" and
     "invars initial_state" and
@@ -875,9 +870,6 @@ next
       show "backtrack N \<beta> S S'"
         by (rule backt)
     next
-      show "transp lt"
-        by (rule \<open>transp lt\<close>)
-    next
       from \<open>invars S\<close> show "ground_closures S"
         by (simp add: invars_def)
     next
@@ -904,8 +896,7 @@ theorem strategy_terminates:
       ground_closures \<sqinter> ground_false_closures \<sqinter> sound_state N \<beta> \<sqinter>
       almost_no_conflict_with_trail N \<beta> \<sqinter>
       regular_conflict_resolution N \<beta>"
-  assumes "transp lt" and
-    strategy_imp_regular_scl: "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
+  assumes strategy_imp_regular_scl: "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
   shows
     "wfP (\<lambda>S' S. strategy N \<beta> S S' \<and> invars S)" and
     "invars initial_state" and
@@ -936,7 +927,7 @@ next
     by simp
 next
   show "wfP (\<lambda>S' S. strategy N \<beta> S S' \<and> invars S)"
-    using regular_scl_terminates(1)[OF \<open>transp lt\<close>, of N \<beta>, folded invars_def]
+    using regular_scl_terminates(1)[of N \<beta>, folded invars_def]
   proof (rule wfP_subset, unfold le_fun_def le_bool_def inf_fun_def, intro allI impI, elim conjE)
     fix S S'
     show "strategy N \<beta> S S' \<Longrightarrow> invars S \<Longrightarrow> regular_scl N \<beta> S S' \<and> invars S"
