@@ -543,7 +543,7 @@ proof -
     by metis
 qed
 
-lemma
+(* lemma
   assumes
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
     conflict: "conflict N \<beta> S0 S1" and
@@ -557,7 +557,7 @@ lemma
     (\<exists>C' \<in> grounding_of_cls C. C' \<notin> grounding_of_clss (fset U))) \<and>
     grounding_of_clss (fset U) \<subset> grounding_of_clss (fset (state_learned Sn'))"
 proof -
-  from learned_clauses_in_regular_runs_static_order[OF assms(1,2,3,4,5)]
+  from learned_clauses_in_regular_runs_static_order
   obtain C \<gamma> where
     conf_Sn: "state_conflict Sn = Some (C, \<gamma>)" and
     not_redundant: "\<not> redundant (\<subset>#) (fset N \<union> fset (state_learned S1)) C"
@@ -603,7 +603,7 @@ proof -
 
   ultimately show ?thesis
     by simp
-qed
+qed *)
 
 definition fclss_no_dup :: "('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term literal fset fset" where
   "fclss_no_dup \<beta> = fPow (Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>})"
