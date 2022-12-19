@@ -3712,4 +3712,61 @@ proof -
     done
 qed
 
+
+lemma encoded_hp_prop_list_update_score:
+  fixes h :: \<open>('a, nat) hp\<close> and a arr and hs :: \<open>('a, nat) hp multiset\<close> and x
+  defines arr': \<open>arr' \<equiv> hp_update_score a (Some x) arr\<close>
+  assumes enc: \<open>encoded_hp_prop_list (add_mset (Hp a b c) hs) [] arr\<close>
+  shows \<open>encoded_hp_prop_list (add_mset (Hp a x c) hs) []
+        arr'\<close>
+proof -
+  obtain prevs nxts childs scores \<V> where
+    arr: \<open>arr = ((prevs, nxts, childs, scores))\<close> and
+    dist: \<open>distinct_mset (sum_list (map mset_nodes c) + \<Sum>\<^sub># (mset_nodes `# hs))\<close>
+      \<open>a \<notin># sum_list (map mset_nodes c)\<close>
+      \<open>a \<notin># \<Sum>\<^sub># (mset_nodes `# hs)\<close>
+    and
+    \<V>: \<open>set_mset (sum_list (map mset_nodes xs)) \<subseteq> \<V>\<close>
+    by (cases arr) (use assms in \<open>auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
+        encoded_hp_prop_def\<close>)
+  have find_key_in_nodes: \<open>VSIDS.find_key a h \<noteq> None \<Longrightarrow> node (the (VSIDS.find_key a h)) \<in># mset_nodes h\<close>
+    by (cases \<open>a \<in># mset_nodes h\<close>)
+   	 (use find_key_None_or_itself[of a h] in \<open>auto simp del: find_key_None_or_itself\<close>)
+  have in_find_key_in_nodes1: \<open>x \<in># mset_nodes y \<Longrightarrow> VSIDS.find_key a h = Some y \<Longrightarrow> x \<in># mset_nodes h\<close> for x y
+    using mset_nodes_find_key_subset[of a h]
+    by auto
+  have [simp]: \<open>VSIDS.find_key a h = None \<Longrightarrow> VSIDS.remove_key a h = Some h\<close>
+    by (metis VSIDS.find_key.simps find_key_none_iff hp.exhaust_sel hp_node_None_notin2
+      hp_node_children_None_notin2 hp_node_children_simps2 option_last_Nil option_last_Some_iff(2)
+      remove_key_notin_unchanged)
+  have \<open>VSIDS.remove_key a h \<noteq> None \<Longrightarrow> node (the (VSIDS.remove_key a h)) \<in># mset_nodes h\<close>
+    by (metis VSIDS.remove_key.simps get_min2.simps hp.exhaust_sel option.collapse option.distinct(2) remove_key_notin_unchanged)
+  then show ?thesis
+    supply [[goals_limit=1]]
+    using enc
+    unfolding arr hp_update_child_def hp_update_nxt_def hp_update_prev_def case_prod_beta
+      encoded_hp_prop_list_def prod.simps arr' apply -
+    apply (intro conjI impI ballI)
+    subgoal
+      by (auto simp: find_remove_mset_nodes_full)
+    subgoal
+      by (auto simp: find_remove_mset_nodes_full hp_update_score_def)
+    subgoal
+      by (auto simp: find_remove_mset_nodes_full hp_update_score_def)
+    subgoal
+      apply (auto simp: find_remove_mset_nodes_full hp_update_score_def)
+      by (metis hp_child_hp_children_simps2)
+    subgoal
+      by (auto simp: find_remove_mset_nodes_full hp_update_score_def)
+    subgoal
+      by (auto simp: find_remove_mset_nodes_full hp_update_score_def)
+    subgoal
+      by (auto simp: find_remove_mset_nodes_full hp_update_score_def)
+    subgoal
+      by (auto simp: find_remove_mset_nodes_full hp_update_score_def)
+    subgoal
+      by (auto simp: find_remove_mset_nodes_full hp_update_score_def)
+    done
+qed
+
 end
