@@ -5,6 +5,8 @@ theory Pairing_Heaps
     Watched_Literals_VMTF
 begin
 
+section \<open>Genealogy Over Pairing Heaps\<close>
+
 text \<open>We first tried to use the heapmap, but this attempt was a terrible failure, because as useful
 the heapmap is parametrized by the size. This might be useful in some contexts, but I consider this
 to be the most terrible idea ever, based on past experience. So instead I went for a modification
@@ -405,8 +407,6 @@ lemma ex_hp_node_children_Some_in_mset_nodes:
   \<open>(\<exists>y. hp_node_children xa a = Some y) \<longleftrightarrow> xa \<in># sum_list (map mset_nodes a)\<close>
   using hp_node_children_None_notin2[of xa a] by auto
 
-
-type_synonym ('a, 'b) hp_fun = \<open>(('a \<Rightarrow> 'a option) \<times> ('a \<Rightarrow> 'a option) \<times> ('a \<Rightarrow> 'a option) \<times> ('a \<Rightarrow> 'b option))\<close>
 
 interpretation VSIDS: pairing_heap where
   le = \<open>(\<ge>) :: nat \<Rightarrow> nat \<Rightarrow> bool\<close> and
@@ -2071,7 +2071,6 @@ lemma sum_next_prev_child_subset:
   by (auto simp add: hp_next_children.simps(1) hp_prev_children.simps(1) distinct_mset_add disjunct_not_in ac_simps
     split: if_splits option.splits intro: distinct_mset_mono' union_mset_add_mset_right
     intro: mset_le_incr_right mset_le_incr_right2 subset_mset_imp_subset_add_mset)
-  
 
 
 lemma distinct_sum_next_prev_child:
