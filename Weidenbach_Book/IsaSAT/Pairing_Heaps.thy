@@ -22,6 +22,43 @@ But maybe pointers are actually better, because by definition in Isabelle no gra
 fun mset_nodes :: "('b, 'a) hp \<Rightarrow>'b multiset" where
 "mset_nodes (Hp x _ hs) = {#x#} + \<Sum>\<^sub># (mset_nodes `# mset hs)"
 
+context pairing_heap
+begin
+
+lemma mset_nodes_link[simp]: \<open>mset_nodes (link a b) = mset_nodes a + mset_nodes b\<close>
+  by (cases a; cases b)
+   auto
+
+lemma mset_nodes_merge_pairs: \<open>merge_pairs a \<noteq> None \<Longrightarrow> mset_nodes (the (merge_pairs a)) = sum_list (map mset_nodes a)\<close>
+  apply (induction a rule: merge_pairs.induct)
+  subgoal by auto
+  subgoal by auto
+  subgoal for h1 h2 hs
+    by (cases hs)
+     (auto simp: Let_def split: option.splits)
+  done
+
+lemma mset_nodes_pass\<^sub>1[simp]: \<open>sum_list (map mset_nodes (pass\<^sub>1 a)) = sum_list (map mset_nodes a)\<close>
+  apply (induction a rule: pass\<^sub>1.induct)
+  subgoal by auto
+  subgoal by auto
+  subgoal for h1 h2 hs
+    by (cases hs)
+     (auto simp: Let_def split: option.splits)
+  done
+
+
+lemma mset_nodes_pass\<^sub>2[simp]: \<open>pass\<^sub>2 a \<noteq> None \<Longrightarrow> mset_nodes (the (pass\<^sub>2 a)) = sum_list (map mset_nodes a)\<close>
+  apply (induction a rule: pass\<^sub>1.induct)
+  subgoal by auto
+  subgoal by auto
+  subgoal for h1 h2 hs
+    by (cases hs)
+     (auto simp: Let_def split: option.splits)
+  done
+
+end
+
 lemma mset_nodes_simps[simp]: \<open>mset_nodes (Hp x n hs) = {#x#} + (sum_list (map mset_nodes hs))\<close>
   by auto
 
@@ -426,13 +463,6 @@ lemma hp_node_node_itself[simp]: \<open>hp_node (node x2) x2 = Some x2\<close>
 
 lemma hp_child_hd[simp]: \<open>hp_child x1 (Hp x1 x2 x3) = option_hd x3\<close>
   by (cases x3) auto
-
-lemma sum_list_mset_nodes_pass\<^sub>1 [simp]: \<open>sum_list (map mset_nodes (VSIDS.pass\<^sub>1 (xs))) = sum_list (map mset_nodes xs)\<close>
-  apply (induction xs rule: VSIDS.pass\<^sub>1.induct)
-  apply auto
-  apply (case_tac h1, case_tac h2)
-  apply auto
-  done
 
 (*TODO Move*)
 lemma drop_is_single_iff: \<open>drop e xs = [a] \<longleftrightarrow> last xs = a \<and> e = length xs - 1 \<and> xs \<noteq> []\<close>
@@ -2107,7 +2137,7 @@ lemma hp_node_in_find_key:
   by auto
 
 
-context pairing_heaps
+context hmstruct_with_prio
 begin
 
 definition hmrel :: \<open>(('a, 'v) hp option \<times> ('a multiset \<times> ('a \<Rightarrow> 'v))) set\<close> where
@@ -2268,10 +2298,10 @@ lemma score_pass2_same:
     apply (meson disjunct_not_in insert_subset_eq_iff)
     apply (meson disjunct_not_in ex_hp_node_children_Some_in_mset_nodes mset_le_add_mset mset_subset_eqD)
     apply (metis Diff_triv_mset distinct_mset_in_diff list.exhaust_sel list.simps(8) option.simps(2) pass\<^sub>2.simps(2) subset_mset.inf_idem sum_list_simps(1))
-    apply (metis Diff_triv_mset distinct_mset_in_diff list.exhaust_sel list.simps(8) option.simps(2) pass\<^sub>2.simps(2) subset_mset.inf_idem sum_list_simps(1))
-    apply (metis Diff_triv_mset distinct_mset_in_diff list.exhaust_sel list.simps(8) option.simps(2) pass\<^sub>2.simps(2) subset_mset.inf_idem sum_list_simps(1))
-    apply (metis Diff_triv_mset distinct_mset_in_diff list.exhaust_sel list.simps(8) option.simps(2) pass\<^sub>2.simps(2) subset_mset.inf_idem sum_list_simps(1))
-    apply (metis Diff_triv_mset distinct_mset_in_diff list.exhaust_sel list.simps(8) option.simps(2) pass\<^sub>2.simps(2) subset_mset.inf_idem sum_list_simps(1))
+    apply (metis Diff_triv_mset distinct_mset_in_diff)
+    apply (metis Diff_triv_mset distinct_mset_in_diff)
+    apply (metis Diff_triv_mset distinct_mset_in_diff)
+    apply (metis Diff_triv_mset distinct_mset_in_diff)
     done
   done
 
@@ -2305,6 +2335,20 @@ lemma get_min2_del_min2_mop_prio_pop_min:
   apply (meson invar_Some php.simps)
   apply (meson merge_pairs_None_iff not_None_eq)
   by (metis hp_node_children_simps2)
-end
 
+
+lemma mop_prio_insert:
+  \<open>(xs, ys) \<in> hmrel \<Longrightarrow>
+  RETURN (insert w v xs) \<le> \<Down>(hmrel) (mop_prio_insert w v ys)\<close>
+  unfolding mop_prio_insert_def
+  apply refine_vcg
+  subgoal for a b
+    apply (auto simp: hmrel_def invar_Some php_link le)
+    apply (smt (verit, del_insts) hp.exhaust_sel hp.inject hp_node_children_simps(3) hp_node_children_simps2 hp_node_simps link.simps node_in_mset_nodes
+      option.sel option_last_Nil option_last_Some_iff(2))
+    by (smt (verit, ccfv_threshold) add.right_neutral diff_single_trivial distinct_mset_in_diff hp.sel(1) hp.sel(2) hp_node_None_notin2
+      hp_node_children_simps(2) hp_node_children_simps(3) hp_node_children_simps2 hp_node_node_itself list.simps(8) mset_nodes_simps option.sel pairing_heap.link.simps pairing_heap.php.elims(2) pairing_heap_axioms sum_list_simps(1))
+  done
+
+end
 end
