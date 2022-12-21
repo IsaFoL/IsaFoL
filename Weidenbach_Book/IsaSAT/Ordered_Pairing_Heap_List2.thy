@@ -10,7 +10,13 @@ imports
   "HOL-Data_Structures.Priority_Queue_Specs"
 begin
 
-text \<open>To make it useful we simply parametrized the formalization by the order.\<close>
+chapter \<open>Pairing heaps\<close>
+
+
+text \<open>
+  To make it useful we simply parametrized the formalization by the order. We ruse the formalization
+  of Tobias Nipkow, but make it \<^emph>\<open>useful\<close> for refinement by separating node and score. We also need
+  to add way to increase the score.\<close>
 
 subsection \<open>Definitions\<close>
 
