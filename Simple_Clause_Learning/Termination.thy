@@ -208,6 +208,11 @@ primrec \<M>_skip_fact_reso where
     (case snd Ln of None \<Rightarrow> 0 | Some _ \<Rightarrow> n) #
       \<M>_skip_fact_reso \<Gamma> (C + (case snd Ln of None \<Rightarrow> {#} | Some (D, _, \<gamma>) \<Rightarrow> repeat_mset n (D \<cdot> \<gamma>))))"
 
+fun \<M> :: "_ \<Rightarrow> _ \<Rightarrow> ('f, 'v) state \<Rightarrow>
+  bool \<times> ('f, 'v) Term.term literal fset \<times> nat list \<times> nat" where
+  "\<M> N \<beta> (\<Gamma>, U, None) = (True, \<M>_prop_deci \<beta> \<Gamma>, [], 0)" |
+  "\<M> N \<beta> (\<Gamma>, U, Some (C, \<gamma>)) = (False, {||}, \<M>_skip_fact_reso \<Gamma> (C \<cdot> \<gamma>), size C)"
+
 lemma length_\<M>_skip_fact_reso[simp]: "length (\<M>_skip_fact_reso \<Gamma> C) = length \<Gamma>"
   by (induction \<Gamma> arbitrary: C) (simp_all add: Let_def)
 
@@ -239,13 +244,6 @@ next
     qed
   qed
 qed
-
-definition \<M>
-  :: "_ \<Rightarrow> _ \<Rightarrow> ('f, 'v) state \<Rightarrow> bool \<times> ('f, 'v) Term.term literal fset \<times> nat list \<times> nat" where
-  "\<M> N \<beta> S =
-    (case state_conflict S of
-      None \<Rightarrow> (True, \<M>_prop_deci \<beta> (state_trail S), [], 0)
-    | Some (C, \<gamma>) \<Rightarrow> (False, {||}, \<M>_skip_fact_reso (state_trail S) (C \<cdot> \<gamma>), size C))"
 
 lemma scl_without_backtrack_terminates:
   fixes N \<beta>
@@ -314,8 +312,9 @@ proof -
             by (simp add: less_eq_fset.rep_eq Abs_fset_inverse fset_of_list.rep_eq)
         qed
         then show ?thesis
-          unfolding decideI(1,2) decide_lit_def \<M>_def state_proj_simp option.case
-          unfolding lex_prodp_def prod.sel by simp
+          unfolding decideI(1,2) decide_lit_def
+          unfolding lex_prodp_def
+          by simp
       qed
     next
       assume "propagate N \<beta> S S'"
@@ -356,9 +355,10 @@ proof -
             by (simp add: less_eq_fset.rep_eq fset_of_list.rep_eq Abs_fset_inverse)
         qed
         thus ?thesis
-          unfolding propagateI(1,2) propagate_lit_def \<M>_def state_proj_simp option.case
+          unfolding propagateI(1,2) propagate_lit_def state_proj_simp option.case
           unfolding \<open>L \<cdot>l \<mu> \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<close>
-          unfolding lex_prodp_def prod.sel by simp
+          unfolding lex_prodp_def
+          by simp
       qed
     next
       assume "conflict N \<beta> S S'"
@@ -366,9 +366,7 @@ proof -
       proof (cases N \<beta> S S' rule: conflict.cases)
         case (conflictI D U \<gamma> \<Gamma>)
         show ?thesis
-          unfolding lex_prodp_def conflictI(1,2)
-          unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
-          by simp
+          unfolding lex_prodp_def conflictI(1,2) by simp
       qed
     next
       assume "skip N \<beta> S S'"
@@ -379,9 +377,7 @@ proof -
           lenlex {(x, y). x < y}"
           by (simp add: lenlex_conv Let_def)
         thus ?thesis
-          unfolding lex_prodp_def skipI(1,2)
-          unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
-          by simp
+          unfolding lex_prodp_def skipI(1,2) by simp
       qed
     next
       assume "factorize N \<beta> S S'"
@@ -405,7 +401,6 @@ proof -
           by (metis subst_cls_add_mset)
         thus ?thesis
           unfolding lex_prodp_def factorizeI(1,2)
-          unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
           unfolding add_mset_commute[of L' L]
           by simp
       qed
@@ -464,7 +459,7 @@ proof -
           unfolding lenlex_conv by simp
         thus ?thesis
           unfolding lex_prodp_def resolveI(1,2)
-          unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
+          unfolding \<M>.simps state_proj_simp option.case prod.case prod.sel
           unfolding \<open>(C \<cdot> \<rho>\<^sub>C + D \<cdot> \<rho>\<^sub>D) \<cdot> \<mu> \<cdot> \<gamma> = C \<cdot> \<gamma>\<^sub>C + D \<cdot> \<gamma>\<^sub>D\<close>
           by simp
       qed
