@@ -12,6 +12,8 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     "HOL-Data_Structures"
   theories
     Ordered_Pairing_Heap_List2
+    Heaps_Abs
+    Pairing_Heaps
     IsaSAT_Arena
     IsaSAT_Arena_LLVM
     IsaSAT_Clauses
@@ -26,7 +28,6 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     IsaSAT_Reluctant_LLVM
     Watched_Literals_VMTF
     LBD
-    Pairing_Heaps
     LBD_LLVM
     Version
     IsaSAT_Watch_List
@@ -47,6 +48,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     IsaSAT_Inner_Propagation_LLVM
     IsaSAT_VMTF
     IsaSAT_VMTF_LLVM
+    IsaSAT_VSIDS
     IsaSAT_Backtrack_Defs
     IsaSAT_Backtrack
     IsaSAT_Backtrack_LLVM

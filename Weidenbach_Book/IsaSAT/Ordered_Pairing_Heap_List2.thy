@@ -135,6 +135,9 @@ lemma php_link: "php h1 \<Longrightarrow> php h2 \<Longrightarrow> php (link h1 
   apply (auto 4 3 simp: le transt dest: transpD[OF transt] totalpD[OF totalt])
   by (metis totalpD totalt transpD transt)
 
+lemma invar_None[simp]: \<open>invar None\<close>
+  by (auto simp: invar_def)
+
 lemma invar_merge:
   "\<lbrakk> invar h1; invar h2 \<rbrakk> \<Longrightarrow> invar (merge h1 h2)"
 by (auto simp: php_link invar_def split: option.splits)
@@ -243,6 +246,41 @@ lemma mset_del_min: "h \<noteq> None \<Longrightarrow>
 by(induction h rule: del_min.induct)
   (auto simp: mset_heap_Some pass12_merge_pairs mset_merge_pairs)
 
+text \<open>Some more lemmas to make the heaps easier to use:\<close>
+lemma invar_merge_pairs:
+  "\<lbrakk>\<forall>h\<in>set h1. invar (Some h)\<rbrakk> \<Longrightarrow> invar (merge_pairs h1)"
+  by (metis invar_Some invar_pass1 invar_pass2 pass12_merge_pairs)
+
+lemma merge_pairs_None_iff [iff]: "merge_pairs hs = None \<longleftrightarrow> hs = []"
+  by (cases hs rule: merge_pairs.cases) auto
+
+lemma mset_nodes_merge_pairs: \<open>merge_pairs a \<noteq> None \<Longrightarrow> mset_nodes (the (merge_pairs a)) = sum_list (map mset_nodes a)\<close>
+  apply (induction a rule: merge_pairs.induct)
+  subgoal by auto
+  subgoal by auto
+  subgoal for h1 h2 hs
+    by (cases hs)
+     (auto simp: Let_def split: option.splits)
+  done
+
+lemma mset_nodes_pass\<^sub>1[simp]: \<open>sum_list (map mset_nodes (pass\<^sub>1 a)) = sum_list (map mset_nodes a)\<close>
+  apply (induction a rule: pass\<^sub>1.induct)
+  subgoal by auto
+  subgoal by auto
+  subgoal for h1 h2 hs
+    by (cases hs)
+     (auto simp: Let_def split: option.splits)
+  done
+
+
+lemma mset_nodes_pass\<^sub>2[simp]: \<open>pass\<^sub>2 a \<noteq> None \<Longrightarrow> mset_nodes (the (pass\<^sub>2 a)) = sum_list (map mset_nodes a)\<close>
+  apply (induction a rule: pass\<^sub>1.induct)
+  subgoal by auto
+  subgoal by auto
+  subgoal for h1 h2 hs
+    by (cases hs)
+     (auto simp: Let_def split: option.splits)
+  done
 end
 
 

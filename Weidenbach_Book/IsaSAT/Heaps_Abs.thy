@@ -1,81 +1,9 @@
-theory IsaSAT_VSIDS
-  imports Watched_Literals.WB_Sort IsaSAT_Setup Ordered_Pairing_Heap_List2
+theory Heaps_Abs
+  imports Ordered_Pairing_Heap_List2
     Weidenbach_Book_Base.Explorer
-    Pairing_Heaps
+    Isabelle_LLVM.IICF
+    More_Sepref.WB_More_Refinement
 begin
-
-definition mop_get_min where
-  \<open>mop_get_min xs = do {
-    ASSERT (xs \<noteq> None);
-    RETURN (get_min2 xs)
-  }\<close>
-
-context pairing_heap
-begin
-definition mop_pop_min where
-  \<open>mop_pop_min xs = do {
-    ASSERT (xs \<noteq> None);
-    a \<leftarrow> mop_get_min xs;
-    RETURN (a, del_min xs)
-  }\<close>
-
-definition mop_push where
-  \<open>mop_push a w xs = do {
-    ASSERT (xs \<noteq> None \<and> a \<notin># mset_nodes (the xs));
-    RETURN (insert a w xs)
-  }\<close>
-
-definition mop_rescore where
-  \<open>mop_rescore x w xs = do {
-    ASSERT (xs \<noteq> None);
-    let a = find_key x (the xs);
-    let b = remove_key x (the xs);
-    if a = None
-    then RETURN b
-    else do {
-      let a = the a;
-      ASSERT (le (score a) w);
-      let a = Hp (node a) w (hps a);
-      RETURN (merge (Some a) b)
-    }
-  }\<close>
-
-
-definition mop_score where
-  \<open>mop_score x xs = do {
-    if xs \<noteq> None \<and> x \<in># mset_nodes (the xs)
-    then RETURN (node (the (hp_node x (the xs))))
-    else
-      SPEC (\<lambda>_. True)
-  }\<close>
-
-
-text \<open>This is a bit stricter than required, but we decided to put distinctiveness already here, instead of adding it later.\<close>
-definition pairing_heap_rel where
-  \<open>pairing_heap_rel xs \<longleftrightarrow> invar xs \<and> (xs \<noteq> None \<longrightarrow> distinct_mset (mset_nodes (the xs)))\<close>
-
-lemma mop_push_rule:
-  assumes \<open>pairing_heap_rel xs\<close> \<open>xs \<noteq> None\<close> \<open>a \<notin># mset_nodes (the xs)\<close>
-  shows \<open>mop_push a w xs \<le> SPEC (\<lambda>xs'. xs' = insert a w xs \<and> pairing_heap_rel xs')\<close>
-  using assms unfolding mop_push_def
-  apply (refine_vcg)
-  subgoal by auto
-  subgoal by (auto simp: pairing_heap_rel_def intro!: invar_insert)
-  done
-
-lemma mop_pop_min:
-  assumes \<open>pairing_heap_rel xs\<close> \<open>xs \<noteq> None\<close>
-  shows \<open>mop_pop_min xs \<le> SPEC (\<lambda>(a, xs'). a = get_min2 xs \<and> xs' = del_min xs \<and> pairing_heap_rel xs')\<close>
-  using assms unfolding mop_pop_min_def mop_get_min_def
-  apply (refine_vcg)
-  subgoal by auto
-  subgoal by auto
-  subgoal
-    using invar_del_min[of xs] mset_nodes_merge_pairs[of \<open>hps (the xs)\<close>]
-    by (cases xs; cases \<open>the xs\<close>; cases \<open>hps (the xs)\<close>) (auto simp: pairing_heap_rel_def pass12_merge_pairs)
-  done
-
-end
 
 
 text \<open>
