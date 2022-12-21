@@ -14,10 +14,10 @@ text \<open>
 locale hmstruct_with_prio =
     fixes lt :: \<open>'v \<Rightarrow> 'v \<Rightarrow> bool\<close> and
     le :: \<open>'v \<Rightarrow> 'v \<Rightarrow> bool\<close>
-  assumes le: \<open>\<And>a b. le a b \<longleftrightarrow> a = b \<or> lt a b\<close> and
-    trans: \<open>transp le\<close> and
-    transt: \<open>transp lt\<close> and
-    totalt: \<open>totalp lt\<close>
+  assumes hm_le: \<open>\<And>a b. le a b \<longleftrightarrow> a = b \<or> lt a b\<close> and
+    hm_trans: \<open>transp le\<close> and
+    hm_transt: \<open>transp lt\<close> and
+    hm_totalt: \<open>totalp lt\<close>
 begin
 
     definition mop_prio_pop_min where
@@ -49,7 +49,7 @@ begin
      })"
 
 sublocale pairing_heap
-  by unfold_locales (rule le trans transt totalt)+
+  by unfold_locales (rule hm_le hm_trans hm_transt hm_totalt)+
 
 end
 
