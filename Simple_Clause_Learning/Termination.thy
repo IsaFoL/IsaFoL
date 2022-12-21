@@ -208,6 +208,32 @@ primrec \<M>_skip_fact_reso where
     (case snd Ln of None \<Rightarrow> 0 | Some _ \<Rightarrow> n) #
       \<M>_skip_fact_reso \<Gamma> (C + (case snd Ln of None \<Rightarrow> {#} | Some (D, _, \<gamma>) \<Rightarrow> repeat_mset n (D \<cdot> \<gamma>))))"
 
+fun \<M>_skip_fact_reso' where
+  "\<M>_skip_fact_reso' C [] = []" |
+  "\<M>_skip_fact_reso' C ((_, None) # \<Gamma>) = 0 # \<M>_skip_fact_reso' C \<Gamma>" |
+  "\<M>_skip_fact_reso' C ((K, Some (D, _, \<gamma>)) # \<Gamma>) =
+    (let n = count C (- K) in n # \<M>_skip_fact_reso' (C + repeat_mset n (D \<cdot> \<gamma>)) \<Gamma>)"
+
+lemma "\<M>_skip_fact_reso \<Gamma> C = \<M>_skip_fact_reso' C \<Gamma>"
+proof (induction \<Gamma> arbitrary: C)
+  case Nil
+  show ?case
+    by simp
+next
+  case (Cons Kn \<Gamma>)
+  then show ?case
+    apply (cases "Kn")
+    apply (cases "snd Kn")
+    by (auto simp add: Let_def)
+qed
+
+lemma "\<M>_skip_fact_reso' C (decide_lit K # \<Gamma>) = 0 # \<M>_skip_fact_reso' C \<Gamma>"
+  by (simp add: decide_lit_def)
+
+lemma "\<M>_skip_fact_reso' C (propagate_lit K D \<gamma> # \<Gamma>) =
+  (let n = count C (- (K \<cdot>l \<gamma>)) in n # \<M>_skip_fact_reso' (C + repeat_mset n (D \<cdot> \<gamma>)) \<Gamma>)"
+  by (simp add: propagate_lit_def)
+
 fun \<M> :: "_ \<Rightarrow> _ \<Rightarrow> ('f, 'v) state \<Rightarrow>
   bool \<times> ('f, 'v) Term.term literal fset \<times> nat list \<times> nat" where
   "\<M> N \<beta> (\<Gamma>, U, None) = (True, \<M>_prop_deci \<beta> \<Gamma>, [], 0)" |
