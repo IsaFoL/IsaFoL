@@ -33,8 +33,7 @@ begin
 
     definition mop_prio_change_weight where
       "mop_prio_change_weight \<equiv>  (\<lambda>v \<omega> (b, w). doN {
-        if v \<in># b then RETURN (b,w)
-        else RETURN (b, w(v := \<omega>))
+        RETURN (b, w(v := \<omega>))
      })"
 
     definition mop_prio_insert where

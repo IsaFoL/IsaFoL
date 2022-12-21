@@ -37,13 +37,9 @@ fun get_min2  :: "('b, 'a) heap \<Rightarrow> 'b" where
 "get_min2 (Some(Hp n x _)) = n"
 
 
-locale pairing_heap =
+locale pairing_heap_assms =
   fixes lt :: \<open>'a \<Rightarrow> 'a \<Rightarrow> bool\<close> and
     le :: \<open>'a \<Rightarrow> 'a \<Rightarrow> bool\<close>
-  assumes le: \<open>\<And>a b. le a b \<longleftrightarrow> a = b \<or> lt a b\<close> and
-    trans: \<open>transp le\<close> and
-    transt: \<open>transp lt\<close> and
-    totalt: \<open>totalp lt\<close>
 begin
 
 fun link :: "('b, 'a) hp \<Rightarrow> ('b, 'a) hp \<Rightarrow> ('b, 'a) hp" where
@@ -129,6 +125,16 @@ fun php :: "('b, 'a) hp \<Rightarrow> bool" where
 
 definition invar :: "('b, 'a) heap \<Rightarrow> bool" where
 "invar ho = (case ho of None \<Rightarrow> True | Some h \<Rightarrow> php h)"
+end
+
+locale pairing_heap = pairing_heap_assms lt le
+  for lt :: \<open>'a \<Rightarrow> 'a \<Rightarrow> bool\<close> and
+    le :: \<open>'a \<Rightarrow> 'a \<Rightarrow> bool\<close> +
+  assumes le: \<open>\<And>a b. le a b \<longleftrightarrow> a = b \<or> lt a b\<close> and
+    trans: \<open>transp le\<close> and
+    transt: \<open>transp lt\<close> and
+    totalt: \<open>totalp lt\<close>
+begin
 
 lemma php_link: "php h1 \<Longrightarrow> php h2 \<Longrightarrow> php (link h1 h2)"
   apply (induction h1 h2 rule: link.induct)
@@ -181,7 +187,7 @@ lemma invar_find_key: \<open>php h1 \<Longrightarrow> invar (find_key k h1)\<clo
   by (induction k h1 rule: find_key.induct)
    (use invar_find_key_children[of _ ] in \<open>force simp: invar_def\<close>)
 
-lemma remove_key_None_iff: \<open>remove_key k h1 = None \<longleftrightarrow> node h1 = k\<close>
+lemma (in pairing_heap_assms) remove_key_None_iff: \<open>remove_key k h1 = None \<longleftrightarrow> node h1 = k\<close>
   by (cases \<open>(k,h1)\<close> rule: remove_key.cases) auto
 
 lemma php_decrease_key:
@@ -201,22 +207,22 @@ lemma php_decrease_key:
 
 subsubsection \<open>Functional Correctness\<close>
 
-fun mset_hp :: "('b, 'a) hp \<Rightarrow>'a multiset" where
+fun (in pairing_heap_assms) mset_hp :: "('b, 'a) hp \<Rightarrow>'a multiset" where
 "mset_hp (Hp _ x hs) = {#x#} + sum_mset(mset(map mset_hp hs))"
 
-definition mset_heap :: "('b, 'a) heap \<Rightarrow>'a multiset" where
+definition (in pairing_heap_assms) mset_heap :: "('b, 'a) heap \<Rightarrow>'a multiset" where
 "mset_heap ho = (case ho of None \<Rightarrow> {#} | Some h \<Rightarrow> mset_hp h)"
 
-lemma set_mset_mset_hp: "set_mset (mset_hp h) = set_hp h"
+lemma (in pairing_heap_assms) set_mset_mset_hp: "set_mset (mset_hp h) = set_hp h"
 by(induction h) auto
 
-lemma mset_hp_empty[simp]: "mset_hp hp \<noteq> {#}"
+lemma (in pairing_heap_assms) mset_hp_empty[simp]: "mset_hp hp \<noteq> {#}"
 by (cases hp) auto
 
-lemma mset_heap_Some: "mset_heap(Some hp) = mset_hp hp"
+lemma (in pairing_heap_assms) mset_heap_Some: "mset_heap(Some hp) = mset_hp hp"
 by(simp add: mset_heap_def)
 
-lemma mset_heap_empty: "mset_heap h = {#} \<longleftrightarrow> h = None"
+lemma (in pairing_heap_assms) mset_heap_empty: "mset_heap h = {#} \<longleftrightarrow> h = None"
 by (cases h) (auto simp add: mset_heap_def)
 
 lemma get_min_in:
@@ -227,21 +233,21 @@ lemma get_min_min: "\<lbrakk> h \<noteq> None; invar h; x \<in> set_hp(the h) \<
   by (induction h rule: get_min.induct) (auto simp: invar_def le)
 
 
-lemma mset_link: "mset_hp (link h1 h2) = mset_hp h1 + mset_hp h2"
+lemma (in pairing_heap_assms) mset_link: "mset_hp (link h1 h2) = mset_hp h1 + mset_hp h2"
 by(induction h1 h2 rule: link.induct)(auto simp: add_ac)
 
-lemma mset_merge: "mset_heap (merge h1 h2) = mset_heap h1 + mset_heap h2"
+lemma (in pairing_heap_assms) mset_merge: "mset_heap (merge h1 h2) = mset_heap h1 + mset_heap h2"
 by (induction h1 h2 rule: merge.induct)
    (auto simp add: mset_heap_def mset_link ac_simps)
 
-lemma mset_insert: "mset_heap (insert n a h) = {#a#} + mset_heap h"
+lemma (in pairing_heap_assms) mset_insert: "mset_heap (insert n a h) = {#a#} + mset_heap h"
 by(cases h) (auto simp add: mset_link mset_heap_def insert_def)
 
-lemma mset_merge_pairs: "mset_heap (merge_pairs hs) = sum_mset(image_mset mset_hp (mset hs))"
+lemma (in pairing_heap_assms) mset_merge_pairs: "mset_heap (merge_pairs hs) = sum_mset(image_mset mset_hp (mset hs))"
 by(induction hs rule: merge_pairs.induct)
   (auto simp: mset_merge mset_link mset_heap_def Let_def split: option.split)
 
-lemma mset_del_min: "h \<noteq> None \<Longrightarrow>
+lemma (in pairing_heap_assms) mset_del_min: "h \<noteq> None \<Longrightarrow>
   mset_heap (del_min h) = mset_heap h - {#get_min h#}"
 by(induction h rule: del_min.induct)
   (auto simp: mset_heap_Some pass12_merge_pairs mset_merge_pairs)
@@ -251,36 +257,15 @@ lemma invar_merge_pairs:
   "\<lbrakk>\<forall>h\<in>set h1. invar (Some h)\<rbrakk> \<Longrightarrow> invar (merge_pairs h1)"
   by (metis invar_Some invar_pass1 invar_pass2 pass12_merge_pairs)
 
+end
+
+context pairing_heap_assms
+begin
+
 lemma merge_pairs_None_iff [iff]: "merge_pairs hs = None \<longleftrightarrow> hs = []"
   by (cases hs rule: merge_pairs.cases) auto
 
-lemma mset_nodes_merge_pairs: \<open>merge_pairs a \<noteq> None \<Longrightarrow> mset_nodes (the (merge_pairs a)) = sum_list (map mset_nodes a)\<close>
-  apply (induction a rule: merge_pairs.induct)
-  subgoal by auto
-  subgoal by auto
-  subgoal for h1 h2 hs
-    by (cases hs)
-     (auto simp: Let_def split: option.splits)
-  done
 
-lemma mset_nodes_pass\<^sub>1[simp]: \<open>sum_list (map mset_nodes (pass\<^sub>1 a)) = sum_list (map mset_nodes a)\<close>
-  apply (induction a rule: pass\<^sub>1.induct)
-  subgoal by auto
-  subgoal by auto
-  subgoal for h1 h2 hs
-    by (cases hs)
-     (auto simp: Let_def split: option.splits)
-  done
-
-
-lemma mset_nodes_pass\<^sub>2[simp]: \<open>pass\<^sub>2 a \<noteq> None \<Longrightarrow> mset_nodes (the (pass\<^sub>2 a)) = sum_list (map mset_nodes a)\<close>
-  apply (induction a rule: pass\<^sub>1.induct)
-  subgoal by auto
-  subgoal by auto
-  subgoal for h1 h2 hs
-    by (cases hs)
-     (auto simp: Let_def split: option.splits)
-  done
 end
 
 
