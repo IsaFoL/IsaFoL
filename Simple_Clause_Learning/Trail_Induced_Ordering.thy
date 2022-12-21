@@ -255,7 +255,7 @@ lemma asymp_trail_less:
       "\<forall>i < length Ls. \<forall>j < length Ls. i \<noteq> j \<longrightarrow> Ls ! i \<noteq> Ls ! j \<and> Ls ! i \<noteq> - (Ls ! j)"
   shows "asymp (trail_less Ls)"
   using irreflp_trail_less[OF assms] transp_trail_less[OF assms]
-  using asymp_if_irreflp_and_transp
+  using asymp_on_iff_irreflp_on_if_transp
   by auto
 
 
@@ -583,7 +583,7 @@ lemma asymp_trail_less_ex:
   shows "asymp (trail_less_ex lt Ls)"
   unfolding trail_less_ex_def
   using asymp_trail_less[OF uminus_not_id uminus_uminus_id pairwise_distinct] asymp_lt
-  by (simp add: asymp.simps)
+  by (auto dest: asympD)
 
 lemma totalp_on_trail_less_ex:
   fixes Ls :: "('a :: uminus) list"

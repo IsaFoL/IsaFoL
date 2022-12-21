@@ -2,18 +2,15 @@ theory Relation_Extra
   imports Main
 begin
 
+lemma irrefl_on_if_asym_on: "asym_on A r \<Longrightarrow> irrefl_on A r"
+  by (auto intro: irrefl_onI dest: asym_onD)
+
 lemma totalp_on_insert:
   "totalp_on (insert a A) R \<longleftrightarrow> (\<forall>b \<in> A. a \<noteq> b \<longrightarrow> R a b \<or> R b a) \<and> totalp_on A R"
   by (auto simp add: totalp_on_def)
 
-lemma transp_reflclp: "transp R \<Longrightarrow> transp R\<^sup>=\<^sup>="
-  unfolding transp_def by blast
-
 lemma antisymp_reflcp: "antisymp R \<Longrightarrow> antisymp R\<^sup>=\<^sup>="
   by (simp add: antisymp_def)
-
-lemma asymp_if_irreflp_and_transp: "irreflp R \<Longrightarrow> transp R \<Longrightarrow> asymp R"
-  by (rule asympI) (metis irreflp_def transpD)
 
 abbreviation strict_orderp where
   "strict_orderp R \<equiv> irreflp R \<and> transp R \<and> asymp R"
@@ -28,9 +25,9 @@ proof -
   have "reflp R\<^sup>=\<^sup>="
     by (rule reflp_on_reflclp)
   moreover have "transp R\<^sup>=\<^sup>="
-    using assms transp_reflclp by blast
+    using assms transp_on_reflclp by blast
   moreover have "antisymp R\<^sup>=\<^sup>="
-    using assms antisymp_if_asymp antisymp_reflcp by blast
+    using assms antisymp_on_if_asymp_on antisymp_reflcp by blast
   ultimately show ?thesis
     by simp
 qed
@@ -80,7 +77,7 @@ next
   moreover have "distinct (y # xs)"
     using 2 \<open>asymp R\<close>
     using exhaustive_order_all_smaller[OF \<open>transp R\<close> \<open>exhaustive_order R x xs\<close>]
-    by (metis asymp.simps distinct.simps(2))
+    by (metis asympD distinct.simps(2))
   ultimately show ?case
     using \<open>distinct (x # xs)\<close>
     unfolding distinct_length_2_or_more

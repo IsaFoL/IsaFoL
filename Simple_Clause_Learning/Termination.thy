@@ -2,6 +2,7 @@ theory Termination
   imports
     Simple_Clause_Learning
     Non_Redundancy
+    Wellfounded_Extra
     "HOL-Library.Monad_Syntax"
 begin
 
@@ -24,9 +25,6 @@ qed
 
 
 subsection \<open>Prod_Extra\<close>
-
-definition lex_prodp where
-  "lex_prodp RA RB x y \<longleftrightarrow> RA (fst x) (fst y) \<or> fst x = fst y \<and> RB (snd x) (snd y)"
 
 lemma lex_prod_lex_prodp_eq:
   "lex_prod {(x, y). RA x y} {(x, y). RB x y} = {(x, y). lex_prodp RA RB x y}"
@@ -60,7 +58,7 @@ lemma asymp_lex_prodp:
 proof (rule asympI)
   fix x y assume "lex_prodp RA RB x y"
   thus "\<not> lex_prodp RA RB y x"
-    using assms by (metis (full_types, opaque_lifting) asymp.cases lex_prodp_def)
+    using assms by (metis (full_types, opaque_lifting) asympD lex_prodp_def)
 qed
 
 lemma totalp_on_lex_prodp:
@@ -78,7 +76,6 @@ lemma wfP_lex_prodp:
   shows "wfP (lex_prodp RA RB)"
   using assms
   by (rule wf_lex_prod[of "{(x, y). RA x y}" "{(x, y). RB x y}", unfolded lex_prod_lex_prodp_eq, to_pred])
-  
 
 instantiation prod :: (preorder, preorder) order begin
 
@@ -110,7 +107,7 @@ next
   fix x y :: "'a \<times> 'b"
   show "x \<le> y \<Longrightarrow> y \<le> x \<Longrightarrow> x = y"
     unfolding less_eq_prod_def less_prod_def
-    using asymp_lex_prodp[OF asymp_less asymp_less, THEN asympD]
+    using asymp_lex_prodp[OF asymp_on_less asymp_on_less, THEN asympD]
     by metis
 qed
 
@@ -155,9 +152,9 @@ proof (rule wf_if_convertible_to_wf)
 next
   define h where
     "h \<equiv> \<lambda>z. (f z, z)"
-  
+
   fix x y assume "(x, y) \<in> R \<union> S"
-  with assms show "(h x, h y) \<in> Q <*lex*> S"
+  with assms(3,4) show "(h x, h y) \<in> Q <*lex*> S"
     unfolding h_def by fastforce
 qed
 
@@ -258,55 +255,28 @@ lemma scl_without_backtrack_terminates:
     "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
       trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
       ground_closures"
-  shows
-    "wfP (\<lambda>S' S. scl_without_backtrack S S' \<and> invars S)" and
-    "invars initial_state" and
-    "\<And>S S'. scl_without_backtrack S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
+  shows "wfp_on {S. invars S} scl_without_backtrack\<inverse>\<inverse>"
 proof -
-  show "invars initial_state"
-    by (simp add: invars_def)
-next
-  fix S S'
-  assume "scl_without_backtrack S S'"
-  hence "scl N \<beta> S S'"
-    unfolding scl_without_backtrack_def sup_apply sup_bool_def
-    by (auto simp add: scl_def)
-  thus "invars S \<Longrightarrow> invars S'"
-    unfolding invars_def
-    by (auto intro: scl_preserves_trail_atoms_lt
-        scl_preserves_trail_resolved_lits_pol
-        scl_preserves_trail_lits_ground
-        scl_preserves_trail_lits_from_clauses
-        scl_preserves_initial_lits_generalize_learned_trail_conflict
-        scl_preserves_ground_closures)
-next
   let ?less =
     "lex_prodp ((<) :: bool \<Rightarrow> bool \<Rightarrow> bool)
       (lex_prodp (|\<subset>|)
         (lex_prodp (\<lambda>x y. (x, y) \<in> List.lenlex {(x :: _ :: wellorder, y). x < y})
           ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool)))"
 
-  show "wfP (\<lambda>S' S. scl_without_backtrack S S' \<and> invars S)"
-  proof (rule wfP_if_convertible_to_wfP)
+  show "wfp_on {S. invars S} scl_without_backtrack\<inverse>\<inverse>"
+  proof (rule wfp_on_if_convertible_to_wfp)
     fix S' S :: "('f, 'v) state"
-    assume "scl_without_backtrack S S' \<and> invars S"
-    hence step: "scl_without_backtrack S S'" and invars: "invars S"
-      by simp_all
-
-    from invars have
+    assume "S' \<in> {S. invars S}" and "S \<in> {S. invars S}" and step: "scl_without_backtrack\<inverse>\<inverse> S' S"
+    hence
       "trail_atoms_lt \<beta> S" and
       "trail_resolved_lits_pol S" and
       "trail_lits_ground S" and
       "trail_lits_from_clauses N S" and
       "initial_lits_generalize_learned_trail_conflict N S" and
       "ground_closures S"
-      by (simp_all add: invars_def)
-    with step have
       "trail_lits_from_clauses N S'" and
       "initial_lits_generalize_learned_trail_conflict N S'"
-      unfolding scl_without_backtrack_def
-      by (auto simp add: scl_def intro: scl_preserves_trail_lits_from_clauses
-          scl_preserves_initial_lits_generalize_learned_trail_conflict)
+      by (simp_all add: invars_def)
 
     have "trail_lits_from_init_clauses N S"
       using \<open>trail_lits_from_clauses N S\<close> \<open>initial_lits_generalize_learned_trail_conflict N S\<close>
@@ -317,7 +287,7 @@ next
       by (simp add: trail_lits_from_init_clausesI)
 
     from step show "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
-      unfolding scl_without_backtrack_def sup_apply sup_bool_def
+      unfolding conversep_iff scl_without_backtrack_def sup_apply sup_bool_def
     proof (elim disjE)
       assume "decide N \<beta> S S'"
       thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
@@ -500,29 +470,76 @@ next
       qed
     qed
   next
-    show "wfP ?less"
-    proof (intro wfP_lex_prodp)
-      show "wfP ((<) :: bool \<Rightarrow> bool \<Rightarrow> bool)"
-        by (simp add: wfPUNIVI)
-    next
-      show "wfP (|\<subset>|)"
-        by (rule wfP_pfsubset)
-    next
-      show "wfP (\<lambda>x y. (x, y) \<in> lenlex {(x :: _ :: wellorder, y). x < y})"
-        unfolding wfP_wf_eq
-        using wf_lenlex
-        using wf by blast
-    next
-      show "wfP ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool)"
+    show "wfp_on (\<M> N \<beta> ` {S. invars S}) ?less"
+    proof (rule wfp_on_subset)
+      show "\<M> N \<beta> ` {S. invars S} \<subseteq> UNIV"
         by simp
+    next
+      show "wfp ?less"
+      proof (intro wfp_lex_prodp)
+        show "wfp ((<) :: bool \<Rightarrow> bool \<Rightarrow> bool)"
+          unfolding wfp_iff_wfP
+          by (simp add: wfPUNIVI)
+      next
+        show "wfp (|\<subset>|)"
+          unfolding wfp_iff_wfP
+          by (rule wfP_pfsubset)
+      next
+        show "wfp (\<lambda>x y. (x, y) \<in> lenlex {(x :: _ :: wellorder, y). x < y})"
+          unfolding wfp_iff_wfP wfP_wf_eq
+          using wf_lenlex
+          using wf by blast
+      next
+        show "wfp ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool)"
+          unfolding wfp_iff_wfP by simp
+      qed
     qed
   qed
 qed
 
+corollary scl_without_backtrack_terminates':
+  fixes
+    N :: "('f, 'v) Term.term clause fset" and
+    \<beta> :: "('f, 'v) Term.term"
+  defines
+    "scl_without_backtrack \<equiv> propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion>
+      factorize N \<beta> \<squnion> resolve N \<beta>" and
+    "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
+      trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
+      ground_closures"
+  shows "wfp_on {S. scl_without_backtrack\<^sup>*\<^sup>* initial_state S} scl_without_backtrack\<inverse>\<inverse>"
+proof (rule wfp_on_subset)
+  show "wfp_on {S. invars S} scl_without_backtrack\<inverse>\<inverse>"
+    by (rule scl_without_backtrack_terminates(1)[of \<beta> N,
+          folded invars_def scl_without_backtrack_def])
+next
+  have "invars initial_state"
+    by (simp add: invars_def)
+
+  moreover have "invars S \<Longrightarrow> invars S'"
+    if "scl_without_backtrack S S'"
+    for S S'
+  proof -
+    from that have "scl N \<beta> S S'"
+      by (auto simp: scl_without_backtrack_def scl_def)
+    thus "invars S \<Longrightarrow> invars S'"
+      unfolding invars_def
+      using
+        scl_preserves_trail_atoms_lt
+        scl_preserves_trail_resolved_lits_pol
+        scl_preserves_trail_lits_ground
+        scl_preserves_trail_lits_from_clauses
+        scl_preserves_initial_lits_generalize_learned_trail_conflict
+        scl_preserves_ground_closures
+      by simp_all
+  qed
+  ultimately have "scl_without_backtrack\<^sup>*\<^sup>* initial_state S \<Longrightarrow> invars S" for S
+    by (auto elim: rtranclp_induct)
+  thus "{S. scl_without_backtrack\<^sup>*\<^sup>* initial_state S} \<subseteq> {S. invars S}"
+    by auto
+qed
 
 subsection \<open>Backtracking can only be done finitely often\<close>
-
-thm learned_clauses_in_regular_runs_static_order
 
 lemma ex_new_grounding_if_not_redudant:
   assumes not_redundant: "\<not> redundant R N C"
@@ -748,8 +765,7 @@ subsection \<open>Regular SCL terminates\<close>
 theorem regular_scl_terminates:
   fixes
     N :: "('f, 'v) Term.term clause fset" and
-    \<beta> :: "('f, 'v) Term.term" and
-    lt :: "('f, 'v) Term.term literal \<Rightarrow> ('f, 'v) Term.term literal \<Rightarrow> bool"
+    \<beta> :: "('f, 'v) Term.term"
   defines
     "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
       trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
@@ -757,79 +773,31 @@ theorem regular_scl_terminates:
       almost_no_conflict_with_trail N \<beta> \<sqinter>
       regular_conflict_resolution N \<beta>"
   shows
-    "wfP (\<lambda>S' S. regular_scl N \<beta> S S' \<and> invars S)" and
-    "invars initial_state" and
-    "\<And>S S'. regular_scl N \<beta> S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
-proof -
-  show "invars initial_state"
-    by (simp add: invars_def)
+    "wfp_on {S. invars S} (regular_scl N \<beta>)\<inverse>\<inverse>"
+proof (rule wfp_on_mono_strong)
+  fix S S' assume "(regular_scl N \<beta>)\<inverse>\<inverse> S S'"
+  thus "(backtrack N \<beta> \<squnion> (propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion> factorize N \<beta> \<squnion>
+      resolve N \<beta>))\<inverse>\<inverse> S S'"
+    by (auto simp: regular_scl_def reasonable_scl_def scl_def)
 next
-  note rea_to_scl = scl_if_reasonable
-  note reg_to_rea = reasonable_if_regular
-  note reg_to_scl = reg_to_rea[THEN rea_to_scl]
-  fix S S'
-  assume "regular_scl N \<beta> S S'"
-  thus "invars S \<Longrightarrow> invars S'"
-    unfolding invars_def
-    using
-      reg_to_scl[THEN scl_preserves_trail_atoms_lt]
-      reg_to_scl[THEN scl_preserves_trail_resolved_lits_pol]
-      reg_to_scl[THEN scl_preserves_trail_lits_ground]
-      reg_to_scl[THEN scl_preserves_trail_lits_from_clauses]
-      reg_to_scl[THEN scl_preserves_initial_lits_generalize_learned_trail_conflict]
-      reg_to_scl[THEN scl_preserves_ground_closures]
-      reg_to_scl[THEN scl_preserves_ground_false_closures]
-      reg_to_scl[THEN scl_preserves_sound_state]
-      regular_scl_preserves_almost_no_conflict_with_trail
-      regular_scl_preserves_regular_conflict_resolution
-    by simp
-next
-  have "(\<lambda>S' S. regular_scl N \<beta> S S' \<and> invars S) =
-    (\<lambda>S' S. (backtrack N \<beta> S S' \<or> \<not> backtrack N \<beta> S S' \<and> regular_scl N \<beta> S S') \<and> invars S)"
-    by (auto simp: fun_eq_iff)
-  also have "\<dots> = (\<lambda>S' S. backtrack N \<beta> S S' \<and> invars S \<or>
-    regular_scl N \<beta> S S' \<and> \<not> backtrack N \<beta> S S' \<and> invars S)"
-    by auto
-  also have "\<dots> = (\<lambda>S' S. backtrack N \<beta> S S' \<and> invars S) \<squnion>
-    (\<lambda>S' S. regular_scl N \<beta> S S' \<and> \<not> backtrack N \<beta> S S' \<and> invars S)"
-    by auto
-  finally have *: "(\<lambda>S' S. regular_scl N \<beta> S S' \<and> invars S) =
-    (\<lambda>S' S. backtrack N \<beta> S S' \<and> invars S) \<squnion>
-    (\<lambda>S' S. regular_scl N \<beta> S S' \<and> \<not> backtrack N \<beta> S S' \<and> invars S)"
-    by assumption
-
-  show "wfP (\<lambda>S' S. regular_scl N \<beta> S S' \<and> invars S)"
-    unfolding *
-  proof (rule wfP_union_if_convertible_to_wfP; (elim conjE)?)
-    show "wfP (\<lambda>S' S. regular_scl N \<beta> S S' \<and> \<not> backtrack N \<beta> S S' \<and> invars S)"
-      using scl_without_backtrack_terminates(1)[of N \<beta>]
-    proof (rule wfP_subset, unfold le_fun_def le_bool_def inf_fun_def, intro allI impI conjI; elim conjE)
-      fix S' S
-      assume "regular_scl N \<beta> S S'" and "\<not> backtrack N \<beta> S S'"
-      thus "(propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>) S S'"
-        by (auto simp: regular_scl_def reasonable_scl_def scl_def)
-    next
-      fix S' S assume "invars S"
-      then show "trail_atoms_lt \<beta> S \<sqinter> trail_resolved_lits_pol S \<sqinter> trail_lits_ground S \<sqinter>
-       trail_lits_from_clauses N S \<sqinter> initial_lits_generalize_learned_trail_conflict N S \<sqinter>
-       ground_closures S"
-        by (simp add: invars_def)
-    qed
+  show "wfp_on {S. invars S} (backtrack N \<beta> \<squnion> (propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion>
+      skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>))\<inverse>\<inverse>"
+    unfolding converse_join[of "backtrack N \<beta>"]
+  proof (rule wfp_on_sup_if_convertible_to_wfp, unfold mem_Collect_eq)
+    show "wfp_on {S. invars S} (propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion>
+        factorize N \<beta> \<squnion> resolve N \<beta>)\<inverse>\<inverse>"
+      using scl_without_backtrack_terminates(1)[of \<beta> N]
+      by (auto simp: invars_def inf_assoc elim: wfp_on_subset)
   next
-    show "wfP (|\<subset>|)"
-      by (rule wfP_pfsubset)
+    show "wfp_on (\<M>_back \<beta> ` {S. invars S}) (|\<subset>|)"
+    proof (rule wfp_on_subset)
+      show "wfp (|\<subset>|)"
+        unfolding wfp_iff_wfP
+        by (rule wfP_pfsubset)
+    qed simp
   next
-    fix S S' assume "regular_scl N \<beta> S S'" and "\<not> backtrack N \<beta> S S'"
-    hence "(propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>) S S'"
-      by (auto simp add: regular_scl_def reasonable_scl_def scl_def)
-    hence "state_learned S' = state_learned S"
-      by (auto elim: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
-          resolve.cases)
-    then show "\<M>_back \<beta> S' |\<subset>| \<M>_back \<beta> S \<or> \<M>_back \<beta> S' = \<M>_back \<beta> S"
-      by (simp add: \<M>_back_def)
-  next
-    fix S S' assume backt: "backtrack N \<beta> S S'" and "invars S"
-    
+    fix S' S
+    assume "invars S'" and "invars S" and "(backtrack N \<beta>)\<inverse>\<inverse> S' S"
     moreover from \<open>invars S\<close> have "sound_state N \<beta> S"
       by (simp add: invars_def)
 
@@ -867,8 +835,8 @@ next
       finally show "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S2 S"
         using reg_res by simp
     next
-      show "backtrack N \<beta> S S'"
-        by (rule backt)
+      from \<open>(backtrack N \<beta>)\<inverse>\<inverse> S' S\<close> show "backtrack N \<beta> S S'"
+        by simp
     next
       from \<open>invars S\<close> show "ground_closures S"
         by (simp add: invars_def)
@@ -882,14 +850,66 @@ next
       show "ground_false_closures S"
         by (rule \<open>ground_false_closures S\<close>)
     qed
+  next
+    fix S' S
+    assume "invars S'" and "invars S" and
+      "(propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion> factorize N \<beta> \<squnion>
+          resolve N \<beta>)\<inverse>\<inverse> S' S"
+    hence "state_learned S' = state_learned S"
+      by (auto elim: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
+          resolve.cases)
+    hence "\<M>_back \<beta> S' = \<M>_back \<beta> S"
+      by (simp add: \<M>_back_def)
+    thus "\<M>_back \<beta> S' |\<subset>| \<M>_back \<beta> S \<or> \<M>_back \<beta> S' = \<M>_back \<beta> S" ..
   qed
+qed
+
+corollary regular_scl_terminates':
+  fixes
+    N :: "('f, 'v) Term.term clause fset" and
+    \<beta> :: "('f, 'v) Term.term"
+  defines
+    "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
+      trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
+      ground_closures \<sqinter> ground_false_closures \<sqinter> sound_state N \<beta> \<sqinter>
+      almost_no_conflict_with_trail N \<beta> \<sqinter>
+      regular_conflict_resolution N \<beta>"
+  shows "wfp_on {S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S} (regular_scl N \<beta>)\<inverse>\<inverse>"
+proof (rule wfp_on_subset)
+  show "wfp_on {S. invars S} (regular_scl N \<beta>)\<inverse>\<inverse>"
+    by (rule regular_scl_terminates(1)[of \<beta> N, folded invars_def])
+next
+  note rea_to_scl = scl_if_reasonable
+  note reg_to_rea = reasonable_if_regular
+  note reg_to_scl = reg_to_rea[THEN rea_to_scl]
+
+  have "invars initial_state"
+    by (simp add: invars_def)
+
+  moreover have "\<And>S S'. regular_scl N \<beta> S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
+    unfolding invars_def
+    using
+      reg_to_scl[THEN scl_preserves_trail_atoms_lt]
+      reg_to_scl[THEN scl_preserves_trail_resolved_lits_pol]
+      reg_to_scl[THEN scl_preserves_trail_lits_ground]
+      reg_to_scl[THEN scl_preserves_trail_lits_from_clauses]
+      reg_to_scl[THEN scl_preserves_initial_lits_generalize_learned_trail_conflict]
+      reg_to_scl[THEN scl_preserves_ground_closures]
+      reg_to_scl[THEN scl_preserves_ground_false_closures]
+      reg_to_scl[THEN scl_preserves_sound_state]
+      regular_scl_preserves_almost_no_conflict_with_trail
+      regular_scl_preserves_regular_conflict_resolution
+    by simp
+  ultimately have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S \<Longrightarrow> invars S" for S
+    by (auto elim: rtranclp_induct)
+  thus "{S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S} \<subseteq> {S. invars S}"
+    by auto
 qed
 
 theorem strategy_terminates:
   fixes
     N :: "('f, 'v) Term.term clause fset" and
-    \<beta> :: "('f, 'v) Term.term" and
-    lt :: "('f, 'v) Term.term literal \<Rightarrow> ('f, 'v) Term.term literal \<Rightarrow> bool"
+    \<beta> :: "('f, 'v) Term.term"
   defines
     "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
       trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
@@ -898,7 +918,7 @@ theorem strategy_terminates:
       regular_conflict_resolution N \<beta>"
   assumes strategy_imp_regular_scl: "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
   shows
-    "wfP (\<lambda>S' S. strategy N \<beta> S S' \<and> invars S)" and
+    "wfp_on {S. invars S} (strategy N \<beta>)\<inverse>\<inverse>" and
     "invars initial_state" and
     "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
 proof -
@@ -926,11 +946,13 @@ next
       strategy_imp_regular_scl[THEN regular_scl_preserves_regular_conflict_resolution]
     by simp
 next
-  show "wfP (\<lambda>S' S. strategy N \<beta> S S' \<and> invars S)"
-    using regular_scl_terminates(1)[of N \<beta>, folded invars_def]
-  proof (rule wfP_subset, unfold le_fun_def le_bool_def inf_fun_def, intro allI impI, elim conjE)
-    fix S S'
-    show "strategy N \<beta> S S' \<Longrightarrow> invars S \<Longrightarrow> regular_scl N \<beta> S S' \<and> invars S"
+  show "wfp_on {S. invars S} (strategy N \<beta>)\<inverse>\<inverse>"
+  proof (rule wfp_on_mono_strong, unfold mem_Collect_eq)
+    show "wfp_on {S. invars S} (regular_scl N \<beta>)\<inverse>\<inverse>"
+      by (rule regular_scl_terminates(1)[of \<beta> N, folded invars_def])
+  next
+    fix S' S
+    show "(strategy N \<beta>)\<inverse>\<inverse> S' S \<Longrightarrow> (regular_scl N \<beta>)\<inverse>\<inverse> S' S"
       by (simp add: strategy_imp_regular_scl)
   qed
 qed
