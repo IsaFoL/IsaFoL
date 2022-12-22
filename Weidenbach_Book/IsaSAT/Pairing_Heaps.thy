@@ -476,10 +476,10 @@ lemma pass\<^sub>2_None_iff[simp]: \<open>pass\<^sub>2 list = None \<longleftrig
 lemma last_pass\<^sub>1[simp]: "odd (length xs) \<Longrightarrow> last (pass\<^sub>1 xs) = last xs"
   by (metis pass\<^sub>1.simps(2) append_butlast_last_id even_Suc last_snoc length_append_singleton
     length_greater_0_conv odd_pos pass\<^sub>1_append_even)
+end
 
 lemma get_min2_alt_def: \<open>get_min2 (Some h) = node h\<close>
   by (cases h) auto
-
 
 fun hp_parent :: \<open>'a \<Rightarrow> ('a, 'b) hp \<Rightarrow> ('a, 'b)hp option\<close> where
   \<open>hp_parent n (Hp a sc (x # children)) = (if n = node x then Some (Hp a sc (x # children)) else map_option the (option_hd (filter ((\<noteq>) None) (map (hp_parent n) (x#children)))))\<close> |
@@ -561,8 +561,9 @@ lemma hp_parent_hp_child:
         distinct_mset_union[of \<open>sum_list (map mset_nodes children)\<close> \<open>mset_nodes x\<close> ]
       apply (auto simp add: hp_parent_simps_if ac_simps hp_parent_children_cons
         split: option.splits dest: distinct_mset_union)
-      apply (metis Groups.add_ac(2) add_mset_add_single disjunct_not_in distinct_mset_add hp_parent_None_notin member_add_mset mset_nodes_simps option_last_Nil option_last_Some_iff(2) sum_mset_sum_list)
-      by (smt (verit, best) get_min2.simps get_min2_alt_def hp.inject hp_parent.elims hp_parent_simps(2) option_last_Nil option_last_Some_iff(2))
+      apply (metis Groups.add_ac(2) add_mset_add_single disjunct_not_in distinct_mset_add hp_parent_None_notin member_add_mset mset_nodes_simps
+        option_last_Nil option_last_Some_iff(2) sum_mset_sum_list)
+      by (metis hp.sel(1) hp_parent.simps(2) hp_parent_simps_if option.sel option.simps(3) pairing_heap_assms.pass\<^sub>2.cases)
     done
   subgoal by auto
   done
@@ -662,7 +663,7 @@ lemma remove_key_children_node_hd[simp]: \<open>c \<noteq> [] \<Longrightarrow> 
   by (cases c; cases \<open>tl c›; cases \<open>hd c\<close>)
      (auto simp: )
 
-lemma VSIDS_remove_key_children_alt_def:
+lemma remove_key_children_alt_def:
   \<open>remove_key_children k xs = map (\<lambda>x. case x of Hp a b c \<Rightarrow> Hp a b (remove_key_children k c)) (filter (\<lambda>n. node n \<noteq> k) xs)\<close>
   by (induction k xs rule: remove_key_children.induct) auto
 
@@ -691,27 +692,27 @@ lemma hp_parent_remove_key:
     by (metis hp_parent_children_remove_key_children mset_map sum_mset_sum_list)
   done
 
-lemma (in pairing_heap_assms) find_key_children_None_or_itself[simp]:
+lemma find_key_children_None_or_itself[simp]:
   \<open>find_key_children a h \<noteq> None \<Longrightarrow> node (the (find_key_children a h)) = a\<close>
   by (induction a h rule: find_key_children.induct)
    (auto split: option.splits)
 
-lemma (in pairing_heap_assms) find_key_None_or_itself[simp]:
+lemma find_key_None_or_itself[simp]:
   \<open>find_key a h \<noteq> None \<Longrightarrow> node (the (find_key a h)) = a\<close>
   apply (induction a h rule: find_key.induct)
   apply auto
   using find_key_children_None_or_itself by fastforce
 
-lemma (in pairing_heap_assms) find_key_children_notin[simp]:
+lemma find_key_children_notin[simp]:
   \<open>a \<notin>#  \<Sum>\<^sub># (mset_nodes `# mset xs) \<Longrightarrow> find_key_children a xs = None\<close>
   by (induction a xs rule: find_key_children.induct) auto
 
 
-lemma (in pairing_heap_assms) find_key_notin[simp]:
+lemma find_key_notin[simp]:
   \<open>a \<notin># mset_nodes h \<Longrightarrow> find_key a h = None\<close>
   by (induction a h rule: find_key.induct) auto
 
-lemma (in pairing_heap_assms) mset_nodes_find_key_children_subset:
+lemma mset_nodes_find_key_children_subset:
   \<open>find_key_children a h \<noteq> None \<Longrightarrow> mset_nodes (the (find_key_children a h)) \<subseteq># \<Sum>\<^sub># (mset_nodes `# mset h)\<close>
   apply (induction a h rule: find_key_children.induct)
   apply (auto split: option.splits simp: ac_simps intro: mset_le_incr_right)
@@ -788,7 +789,7 @@ lemma in_find_key_children_notin_remove_key:
 lemma hp_parent_children_None_hp_parent_iff: \<open>hp_parent_children b list = None \<Longrightarrow> hp_parent b (Hp x n list) = Some x2a \<longleftrightarrow> list \<noteq> [] \<and> node (hd list) = b \<and> x2a = Hp x n list\<close>
   by (cases list; cases \<open>tl list\<close>) (auto simp: hp_parent_simps_if)
 
-lemma (in pairing_heap_assms) hp_parent_children_not_hd_node:
+lemma hp_parent_children_not_hd_node:
   \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset c)) \<Longrightarrow> node (hd c) = node x2a \<Longrightarrow> c \<noteq> [] \<Longrightarrow>  remove_key_children (node x2a) c \<noteq> [] \<Longrightarrow>
     hp_parent_children (node (hd (remove_key_children (node x2a) c))) c = Some x2a \<Longrightarrow> False\<close>
   apply (cases c; cases \<open>tl c\<close>; cases \<open>hd c\<close>)
@@ -900,7 +901,7 @@ proof -
   qed
 qed
 
-lemma (in pairing_heap_assms) in_remove_key_children_changed: \<open>k \<in># sum_list (map mset_nodes c) \<Longrightarrow> remove_key_children k c \<noteq> c\<close>
+lemma in_remove_key_children_changed: \<open>k \<in># sum_list (map mset_nodes c) \<Longrightarrow> remove_key_children k c \<noteq> c\<close>
   apply (induction k c rule: remove_key_children.induct)
   apply auto
   apply (metis hp.sel(1) list.sel(1) mset_map neq_Nil_conv node_hd_in_sum remove_key_remove_all sum_mset_sum_list)+
@@ -912,7 +913,7 @@ lemma hp_parent_in_nodes2: \<open>hp_parent (z) xs = Some a \<Longrightarrow> no
   by (metis empty_iff hp_node_None_notin2 hp_node_children_None_notin2 hp_node_children_simps(2) hp_parent_in_nodes
     member_add_mset mset_nodes_simps option.discI option.sel set_mset_empty sum_image_mset_sum_map sum_mset_sum_list union_iff)
 
-lemma hp_parent_children_in_nodes2: \<open>hp_parent_children (z) xs = Some a \<Longrightarrow> node a \<in># \<Sum>\<^sub># (mset_nodes `# mset xs)\<close>
+lemma hp_parent_children_in_nodes2: \<open>hp_parent_children z xs = Some a \<Longrightarrow> node a \<in># \<Sum>\<^sub># (mset_nodes `# mset xs)\<close>
     apply (induction xs)
     apply (auto simp: hp_parent_children_cons filter_empty_conv split: option.splits)
     using hp_parent_in_nodes by fastforce
@@ -1285,7 +1286,7 @@ proof (induction a xs rule: remove_key_children.induct)
       by (cases xs; cases "hd xs"; cases "tl xs")
         auto
     have remove_key_children_empty_iff: \<open>(remove_key_children k xs = []) = (\<forall>x. x \<in> set xs \<longrightarrow> node x = k)\<close>
-      by (auto simp: VSIDS_remove_key_children_alt_def filter_empty_conv)
+      by (auto simp: remove_key_children_alt_def filter_empty_conv)
     have [simp]: \<open>find_key_children k c = Some x2 \<Longrightarrow> remove_key_children k xs = xs\<close> for x2
       by (metis \<open>find_key_children k c \<noteq> None \<Longrightarrow> find_key_children k xs = None\<close> find_key_none_iff option.distinct(1) remove_key_children_notin_unchanged sum_image_mset_sum_map)
 
@@ -1343,8 +1344,7 @@ proof (induction a xs rule: remove_key_children.induct)
           by (metis (mono_tags, lifting) fun_comp_eq_conv hp_prev_children.simps(2) hp_prev_children.simps(3) hp_prev_children_None_notin hp_prev_children_simps(3) hp_prev_simps list.collapse sum_image_mset_sum_map)
       subgoal
         apply (auto split: option.splits if_splits simp: remove_key_children_hd_tl)
-     	  apply (smt (z3) pass\<^sub>2.cases add_diff_cancel_left' distinct_mset_in_diff find_key_none_iff hp_next_children_None_notin hp_prev_None_notin_children hp_prev_children_simps(3) in_find_key_children_notin_remove_key in_the_default_empty_iff list.sel(1) mset_nodes_find_key_children_subset mset_subset_eqD node_hd_in_sum option.exhaust_sel option.map_sel option_last_Some_iff(2) sum_image_mset_sum_map)
-        done
+        by (smt (verit, ccfv_threshold) None_eq_map_option_iff \<open>distinct_mset (sum_list (map mset_nodes (Hp x n (remove_key_children k c) # remove_key_children k xs)))\<close> distinct_mset_add hp_next_children_in_nodes2 hp_prev_children_None_notin hp_prev_in_first_child hp_prev_simps in_find_key_children_notin_remove_key in_the_default_empty_iff inter_iff list.map(2) option.exhaust_sel option.map_sel remove_key_children_notin_unchanged sum_image_mset_sum_map sum_list_simps(2) union_commute union_iff)
       subgoal
         apply (auto split: option.splits if_splits simp: remove_key_children_hd_tl)
           apply (simp add: hp_prev_children_cons_if)
@@ -1366,7 +1366,7 @@ proof (induction a xs rule: remove_key_children.induct)
         apply (auto split: option.splits if_splits simp: remove_key_children_empty_iff remove_key_children_hd_tl)
         apply (auto simp: hp_prev_children_cons_if hd_remove_key_node_same' remove_key_children_empty_iff comp_def split: option.splits if_splits)[]
         apply (metis list.set_sel(1) node_in_mset_nodes)
-        apply (smt (verit, best) Nil_is_map_conv VSIDS_remove_key_children_alt_def filter_empty_conv hd_in_set hd_remove_key_node_same' node_in_mset_nodes option.map(2) the_default.simps(1))
+        apply (smt (verit, best) Nil_is_map_conv remove_key_children_alt_def filter_empty_conv hd_in_set hd_remove_key_node_same' node_in_mset_nodes option.map(2) the_default.simps(1))
         apply (metis hd_remove_key_node_same hp_next_children_hd_is_hd_tl option_hd_Some_iff(2) remove_key_children_empty_iff remove_key_children_hd_tl remove_key_children_node_hd sum_image_mset_sum_map)
         apply (metis \<open>xs \<noteq> [] \<Longrightarrow> hp_prev_children (node (hd xs)) (remove_key_children k c) = None\<close> option.distinct(1) remove_key_children_notin_unchanged)
         by (metis \<open>remove_key_children k xs \<noteq> [] \<Longrightarrow> hp_prev_children (node (hd (remove_key_children k xs))) (remove_key_children k c) = None\<close> option.distinct(1) remove_key_children_empty_iff remove_key_children_notin_unchanged)
@@ -1471,7 +1471,7 @@ lemma hp_prev_find_key_itself:
     hp.exhaust_sel hp_prev_None_notin_children mset_nodes_simps mset_nodes_find_key_subset option.sel
     option.simps(2) sum_mset_sum_list union_mset_add_mset_left)
 
-lemma (in pairing_heap_assms) hp_child_find_key_children:
+lemma hp_child_find_key_children:
   \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset h)) \<Longrightarrow> find_key_children a h \<noteq> None ⟹
   x \<in># mset_nodes (the (find_key_children a h)) \<Longrightarrow>
   hp_child x (the (find_key_children a h)) = hp_child_children x h\<close>
@@ -1490,7 +1490,7 @@ lemma (in pairing_heap_assms) hp_child_find_key_children:
       mset_nodes_find_key_children_subset mset_subset_eqD option.sel sum_image_mset_sum_map)
   done
 
-lemma (in pairing_heap_assms) hp_child_find_key:
+lemma hp_child_find_key:
   \<open>distinct_mset (mset_nodes h) \<Longrightarrow>  find_key a h \<noteq> None ⟹ x \<in># mset_nodes (the (find_key a h)) \<Longrightarrow>
   hp_child x (the (find_key a h)) = hp_child x h\<close>
   using hp_child_find_key_children[of \<open>hps h\<close> a x]
@@ -1499,7 +1499,7 @@ lemma (in pairing_heap_assms) hp_child_find_key:
   apply clarsimp_all
   by (metis find_key_none_iff hp_child_hp_children_simps2 mset_nodes_find_key_children_subset mset_subset_eqD option.sel sum_image_mset_sum_map)+
 
-lemma (in pairing_heap_assms) find_remove_children_mset_nodes_full:
+lemma find_remove_children_mset_nodes_full:
   \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset h)) \<Longrightarrow>  find_key_children a h = Some x \<Longrightarrow>
   (\<Sum>\<^sub># (mset_nodes `# mset (remove_key_children a h))) + mset_nodes x = \<Sum>\<^sub># (mset_nodes `# mset h)\<close>
   apply (induction a h rule: find_key_children.induct)
@@ -1507,7 +1507,7 @@ lemma (in pairing_heap_assms) find_remove_children_mset_nodes_full:
   using distinct_mset_add apply blast
     by (metis (no_types, lifting) disjunct_not_in distinct_mset_add find_key_noneD remove_key_children_notin_unchanged sum_image_mset_sum_map union_assoc union_commute)
 
-lemma (in pairing_heap_assms) find_remove_mset_nodes_full:
+lemma find_remove_mset_nodes_full:
   \<open>distinct_mset (mset_nodes h) \<Longrightarrow>  remove_key a h = Some y \<Longrightarrow>
   find_key a h = Some ya \<Longrightarrow>  (mset_nodes y + mset_nodes ya) = mset_nodes h\<close>
   apply (induction a h rule: remove_key.induct)
@@ -1624,7 +1624,7 @@ lemma distinct_mset_find_node_next:
 lemma hp_child_node_itself[simp]: \<open>hp_child (node a) a = option_hd (hps a)\<close>
   by (cases a; auto)
 
-lemma VSIDS_find_key_children_itself_hd[simp]:
+lemma find_key_children_itself_hd[simp]:
   \<open>find_key_children (node a) [a]  = Some a\<close>
   by (cases a; auto)
 
@@ -1683,7 +1683,7 @@ lemma hp_child_remove_is_remove_hp_child:
     hp_child_hp_children_simps2 hp_parent_None_iff_children_None list.sel(1) option.sel option_hd_Some_iff(2))
 
 
-lemma VSIDS_remove_key_children_itself_hd[simp]: \<open>distinct_mset (mset_nodes a + sum_list (map mset_nodes list)) \<Longrightarrow>
+lemma remove_key_children_itself_hd[simp]: \<open>distinct_mset (mset_nodes a + sum_list (map mset_nodes list)) \<Longrightarrow>
     remove_key_children (node a) (a # list) = list\<close>
   by (cases a; auto)
 
@@ -1754,7 +1754,7 @@ proof (induction a xs rule: remove_key_children.induct)
 
 
       apply (auto simp add: hp_child_children_Cons_if)[]
-      apply (smt (verit, best) ex_hp_node_children_Some_in_mset_nodes hp.sel(1) hp_child_children_remove_is_remove_hp_child_children hp_child_hd hp_child_hp_children_simps2 hp_node_children_None_notin2 hp_parent_children_remove_key_children list.sel(1) option.sel option_hd_Some_iff(2) pairing_heap_assms.hd_remove_key_node_same pairing_heap_assms.remove_key.simps remove_key_children.elims remove_key_children_notin_unchanged sum_image_mset_sum_map)
+      apply (smt (verit, best) ex_hp_node_children_Some_in_mset_nodes hp.sel(1) hp_child_children_remove_is_remove_hp_child_children hp_child_hd hp_child_hp_children_simps2 hp_node_children_None_notin2 hp_parent_children_remove_key_children list.sel(1) option.sel option_hd_Some_iff(2) hd_remove_key_node_same remove_key.simps remove_key_children.elims remove_key_children_notin_unchanged sum_image_mset_sum_map)
       apply (metis add_diff_cancel_left' distinct_mset_in_diff)
       apply (metis add_diff_cancel_left' distinct_mset_in_diff hp_parent_children_None_notin option_last_Nil option_last_Some_iff(2))
       apply (metis (mono_tags, lifting) add_diff_cancel_right' distinct_mset_in_diff hp_child_None_notin_children hp_child_children_None_notin hp_child_children_simps(2) in_find_key_children_notin_remove_key mset_nodes_find_key_children_subset mset_subset_eqD option.sel option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
@@ -2138,8 +2138,6 @@ lemma hp_node_in_find_key:
   using hp_node_in_find_key0[of h x _ a]
   by auto
 
-end
-
 
 context hmstruct_with_prio
 begin
@@ -2317,7 +2315,7 @@ lemma score_hp_node_merge_pairs_same: \<open>distinct_mset (sum_list (map mset_n
   unfolding pass12_merge_pairs[symmetric]
   apply (subst score_pass2_same score_hp_node_pass\<^sub>1)
   apply simp_all
-  apply (metis in_multiset_nempty list.map(1) pairing_heap_assms.mset_nodes_pass\<^sub>1 sum_list.Nil)
+  apply (metis in_multiset_nempty list.map(1) mset_nodes_pass\<^sub>1 sum_list.Nil)
   by (meson score_hp_node_pass\<^sub>1)
 
 lemma get_min2_del_min2_mop_prio_pop_min:
@@ -2424,7 +2422,7 @@ proof -
     apply (subst \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close>) apply (auto simp: hmrel_def)
     apply (metis Some_to_the \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close> add_mset_disjoint(1) distinct_mset_add mset_nodes_simps)
     apply (metis \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close> hp.sel(1) in_find_key_notin_remove_key node_in_mset_nodes not_Some_eq option.sel)
-    by (metis (no_types, lifting) \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close> add_diff_cancel_left' disjunct_not_in distinct_mset_add distinct_mset_mono' in_diffD in_find_key_notin_remove_key mset_nodes.simps option.distinct(1) option.sel pairing_heap_assms.node_remove_key_in_mset_nodes sum_image_mset_sum_map)
+    by (metis (no_types, lifting) \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close> add_diff_cancel_left' disjunct_not_in distinct_mset_add distinct_mset_mono' in_diffD in_find_key_notin_remove_key mset_nodes.simps option.distinct(1) option.sel node_remove_key_in_mset_nodes sum_image_mset_sum_map)
  
   ultimately show ?thesis
     using assms

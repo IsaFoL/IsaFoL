@@ -77,22 +77,22 @@ fun del_min :: "('b, 'a) heap \<Rightarrow> ('b, 'a) heap" where
   "del_min None = None"
 | "del_min (Some(Hp _ x hs)) = pass\<^sub>2 (pass\<^sub>1 hs)"
 
-fun remove_key_children :: \<open>'b \<Rightarrow> ('b, 'a) hp list \<Rightarrow> ('b, 'a) hp list\<close> where
+fun (in -)remove_key_children :: \<open>'b \<Rightarrow> ('b, 'a) hp list \<Rightarrow> ('b, 'a) hp list\<close> where
   \<open>remove_key_children k [] = []\<close> |
   \<open>remove_key_children k ((Hp x n c) # xs) =
   (if k = x then remove_key_children k xs else ((Hp x n (remove_key_children k c)) # remove_key_children k xs))\<close>
 
-fun remove_key :: \<open>'b \<Rightarrow> ('b, 'a) hp \<Rightarrow> ('b, 'a) heap\<close> where
+fun (in -)remove_key :: \<open>'b \<Rightarrow> ('b, 'a) hp \<Rightarrow> ('b, 'a) heap\<close> where
   \<open>remove_key k (Hp x n c) = (if x = k then None else Some (Hp x n (remove_key_children k c)))\<close>
 
-fun find_key_children :: \<open>'b \<Rightarrow> ('b, 'a) hp list \<Rightarrow> ('b, 'a) heap\<close> where
+fun (in -)find_key_children :: \<open>'b \<Rightarrow> ('b, 'a) hp list \<Rightarrow> ('b, 'a) heap\<close> where
   \<open>find_key_children k [] = None\<close> |
   \<open>find_key_children k ((Hp x n c) # xs) =
   (if k = x then Some (Hp x n c) else
   (case find_key_children k c of Some a \<Rightarrow> Some a | _ \<Rightarrow> find_key_children k xs))\<close>
 
 
-fun find_key :: \<open>'b \<Rightarrow> ('b, 'a) hp \<Rightarrow> ('b, 'a) heap\<close> where
+fun (in -)find_key :: \<open>'b \<Rightarrow> ('b, 'a) hp \<Rightarrow> ('b, 'a) heap\<close> where
   \<open>find_key k (Hp x n c) =
   (if k = x then Some (Hp x n c) else find_key_children k c)\<close>
 
@@ -116,7 +116,7 @@ declare pass12_merge_pairs[code_unfold]
 
 subsubsection \<open>Invariants\<close>
 
-fun set_hp :: \<open>('b, 'a) hp \<Rightarrow> 'a set\<close> where
+fun (in -) set_hp :: \<open>('b, 'a) hp \<Rightarrow> 'a set\<close> where
   \<open>set_hp (Hp _ x hs) = ({x} \<union> \<Union>(set_hp ` set hs))\<close>
 
 
@@ -164,14 +164,14 @@ lemma invar_del_min: "invar h \<Longrightarrow> invar (del_min h)"
 by(induction h rule: del_min.induct)
   (auto simp: invar_Some intro!: invar_pass1 invar_pass2)
 
-lemma in_remove_key_children_in_childrenD: \<open>h \<in> set (remove_key_children k c) \<Longrightarrow> xa \<in> set_hp h \<Longrightarrow> xa \<in> \<Union>(set_hp ` set c)\<close>
+lemma (in -)in_remove_key_children_in_childrenD: \<open>h \<in> set (remove_key_children k c) \<Longrightarrow> xa \<in> set_hp h \<Longrightarrow> xa \<in> \<Union>(set_hp ` set c)\<close>
   by (induction k c arbitrary: h rule: remove_key_children.induct)
    (auto split: if_splits)
 
 lemma php_remove_key_children: \<open>\<forall>h\<in>set h1. php h  \<Longrightarrow> h \<in> set (remove_key_children k h1) \<Longrightarrow> php h\<close>
-  by (induction k h1 arbitrary: h rule: remove_key_children.induct)
-   (fastforce simp: decrease_key_def invar_def split: option.splits hp.splits if_splits
-    dest: in_remove_key_children_in_childrenD)+
+  by (induction k h1 arbitrary: h rule: remove_key_children.induct; simp)
+   (force simp: decrease_key_def invar_def split: option.splits hp.splits if_splits
+    dest: in_remove_key_children_in_childrenD)
 
 lemma php_remove_key: \<open>php h1  \<Longrightarrow> invar (remove_key k h1)\<close>
   by (induction k h1 rule: remove_key.induct)
@@ -187,7 +187,7 @@ lemma invar_find_key: \<open>php h1 \<Longrightarrow> invar (find_key k h1)\<clo
   by (induction k h1 rule: find_key.induct)
    (use invar_find_key_children[of _ ] in \<open>force simp: invar_def\<close>)
 
-lemma (in pairing_heap_assms) remove_key_None_iff: \<open>remove_key k h1 = None \<longleftrightarrow> node h1 = k\<close>
+lemma (in -)remove_key_None_iff: \<open>remove_key k h1 = None \<longleftrightarrow> node h1 = k\<close>
   by (cases \<open>(k,h1)\<close> rule: remove_key.cases) auto
 
 lemma php_decrease_key:
@@ -207,25 +207,25 @@ lemma php_decrease_key:
 
 subsubsection \<open>Functional Correctness\<close>
 
-fun (in pairing_heap_assms) mset_hp :: "('b, 'a) hp \<Rightarrow>'a multiset" where
+fun (in -) mset_hp :: "('b, 'a) hp \<Rightarrow>'a multiset" where
 "mset_hp (Hp _ x hs) = {#x#} + sum_mset(mset(map mset_hp hs))"
 
-definition (in pairing_heap_assms) mset_heap :: "('b, 'a) heap \<Rightarrow>'a multiset" where
+definition (in -) mset_heap :: "('b, 'a) heap \<Rightarrow>'a multiset" where
 "mset_heap ho = (case ho of None \<Rightarrow> {#} | Some h \<Rightarrow> mset_hp h)"
 
-lemma (in pairing_heap_assms) set_mset_mset_hp: "set_mset (mset_hp h) = set_hp h"
+lemma (in -) set_mset_mset_hp: "set_mset (mset_hp h) = set_hp h"
 by(induction h) auto
 
-lemma (in pairing_heap_assms) mset_hp_empty[simp]: "mset_hp hp \<noteq> {#}"
+lemma (in -) mset_hp_empty[simp]: "mset_hp hp \<noteq> {#}"
 by (cases hp) auto
 
-lemma (in pairing_heap_assms) mset_heap_Some: "mset_heap(Some hp) = mset_hp hp"
+lemma (in -) mset_heap_Some: "mset_heap(Some hp) = mset_hp hp"
 by(simp add: mset_heap_def)
 
-lemma (in pairing_heap_assms) mset_heap_empty: "mset_heap h = {#} \<longleftrightarrow> h = None"
+lemma (in -) mset_heap_empty: "mset_heap h = {#} \<longleftrightarrow> h = None"
 by (cases h) (auto simp add: mset_heap_def)
 
-lemma get_min_in:
+lemma (in -)get_min_in:
   "h \<noteq> None \<Longrightarrow> get_min h \<in> set_hp(the h)"
 by(induction rule: get_min.induct)(auto)
 
@@ -274,7 +274,7 @@ text \<open>Last step: prove all axioms of the priority queue specification with
 
 
 locale pairing_heap2 =
-  fixes ltype :: \<open>'a::linorder itself\<close> 
+  fixes ltype :: \<open>'a::linorder itself\<close>
 begin
 
 sublocale pairing_heap where
