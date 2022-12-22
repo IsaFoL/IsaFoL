@@ -2349,10 +2349,11 @@ lemma mop_prio_insert:
   apply refine_vcg
   subgoal for a b
     apply (auto simp: hmrel_def invar_Some php_link le)
-    apply (smt (verit, del_insts) hp.exhaust_sel hp.inject hp_node_children_simps(3) hp_node_children_simps2 hp_node_simps link.simps node_in_mset_nodes
-      option.sel option_last_Nil option_last_Some_iff(2))
-    by (smt (verit, ccfv_threshold) add.right_neutral diff_single_trivial distinct_mset_in_diff hp.sel(1) hp.sel(2) hp_node_None_notin2
-      hp_node_children_simps(2) hp_node_children_simps(3) hp_node_children_simps2 hp_node_node_itself list.simps(8) mset_nodes_simps option.sel link.simps php.elims(2) sum_list_simps(1))
+    apply (smt (verit, del_insts) hp.exhaust_sel hp.inject hp_node_children_simps(3) hp_node_children_simps2
+      hp_node_simps link.simps node_in_mset_nodes option.sel option_last_Nil option_last_Some_iff(2))
+    by (smt (verit, ccfv_threshold) add.right_neutral diff_single_trivial distinct_mset_in_diff hp.sel(1,2) hp_node_None_notin2
+      hp_node_children_simps(2) hp_node_children_simps(3) hp_node_children_simps2 hp_node_node_itself
+      list.simps(8) mset_nodes_simps option.sel link.simps php.elims(2) sum_list_simps(1))
   done
 
 lemma find_key_node_itself[simp]: \<open>find_key (node y) y = Some y\<close>
@@ -2372,7 +2373,7 @@ lemma hp_node_find_key_children:
   apply (induction x a rule: find_key_children.induct)
   apply (auto split: option.splits)
   apply (metis WB_List_More.distinct_mset_union2 find_key_noneD sum_image_mset_sum_map)
-  by (metis distinct_mset_add find_key_noneD hp_node_None_notin2 hp_node_children_Cons_if hp_node_children_simps2 option.map_disc_iff sum_image_mset_sum_map)
+  by (metis distinct_mset_add find_key_noneD hp_node_None_notin2 hp_node_children_Cons_if hp_node_children_simps2 sum_image_mset_sum_map)
 
 lemma hp_node_find_key:
   \<open>distinct_mset (mset_nodes a) \<Longrightarrow> find_key x a \<noteq> None \<Longrightarrow> hp_score x (the (find_key x a)) \<noteq> None \<Longrightarrow>
@@ -2382,10 +2383,30 @@ lemma hp_node_find_key:
   apply auto
   by (metis find_key_noneD sum_image_mset_sum_map)
 
+lemma score_hp_node_link:
+  \<open>distinct_mset (mset_nodes a + mset_nodes b) \<Longrightarrow>
+  map_option score (hp_node w (link a b)) = (case hp_node w a of Some a \<Rightarrow> Some (score a)
+  | _ \<Rightarrow> map_option score (hp_node w b))\<close>
+  apply (cases a; cases b)
+  apply (auto split: option.splits)
+  by (metis (no_types, opaque_lifting) distinct_mset_iff ex_hp_node_children_Some_in_mset_nodes mset_add union_mset_add_mset_left union_mset_add_mset_right)
+
+lemma hp_node_link_none_iff_parents: \<open>hp_node va (link a b) = None \<longleftrightarrow> hp_node va a = None \<and> hp_node va b = None\<close>
+  by auto
+
+lemma score_hp_node_link2:
+  \<open>distinct_mset (mset_nodes a + mset_nodes b) \<Longrightarrow> (hp_node w (link a b)) \<noteq> None \<Longrightarrow>
+  score (the (hp_node w (link a b))) = (case hp_node w a of Some a \<Rightarrow> (score a)
+  | _ \<Rightarrow> score (the (hp_node w b)))\<close>
+  using score_hp_node_link[of a b w] by (cases \<open>hp_node w (link a b)\<close>; cases \<open>hp_node w b\<close>)
+   (auto split: option.splits)
+
 lemma decrease_key_mop_prio_change_weight:
   assumes \<open>(xs, ys) \<in> hmrel\<close> \<open>w \<in># fst ys\<close> \<open>le v (snd ys w)\<close>
   shows \<open>RETURN (decrease_key w v (the xs)) \<le> \<Down>(hmrel) (mop_prio_change_weight w v ys)\<close>
 proof -
+  have K: \<open>xs' = xs \<Longrightarrow> node (the xs') \<noteq> w \<longleftrightarrow> remove_key w (the xs)\<noteq> None\<close> for xs'
+    using assms by (cases xs; cases \<open>the xs\<close>) (auto simp: hmrel_def)
   have \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close>
     using assms invar_find_key[of \<open>the xs\<close> w] find_key_None_or_itself[of w \<open>the xs\<close>]
        find_key_none_iff[of w \<open>[the xs]\<close>]
@@ -2397,7 +2418,15 @@ proof -
 
   then have \<open>invar (Some (Hp w (snd ys w) (hps (the (find_key w (the xs))))))\<close>
     using assms invar_find_key[of \<open>the xs\<close> w] by (auto simp: hmrel_def invar_Some)
-  then show ?thesis
+  moreover have \<open>find_key w (the xs) \<noteq> None ⟹ remove_key w (the xs) \<noteq> None \<Longrightarrow>
+    distinct_mset (mset_nodes (Hp w v (hps (the (find_key w (the xs))))) + mset_nodes (the (remove_key w (the xs))))\<close>
+    using assms distinct_mset_find_node_next[of \<open>the xs\<close> w \<open>the (find_key w (the xs))\<close>]
+    apply (subst \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close>) apply (auto simp: hmrel_def)
+    apply (metis Some_to_the \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close> add_mset_disjoint(1) distinct_mset_add mset_nodes_simps)
+    apply (metis \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close> hp.sel(1) in_find_key_notin_remove_key node_in_mset_nodes not_Some_eq option.sel)
+    by (metis (no_types, lifting) \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close> add_diff_cancel_left' disjunct_not_in distinct_mset_add distinct_mset_mono' in_diffD in_find_key_notin_remove_key mset_nodes.simps option.distinct(1) option.sel pairing_heap_assms.node_remove_key_in_mset_nodes sum_image_mset_sum_map)
+ 
+  ultimately show ?thesis
     using assms
     unfolding mop_prio_change_weight_def
     apply refine_vcg
@@ -2405,43 +2434,31 @@ proof -
       using invar_decrease_key[of v \<open>snd ys w\<close> w \<open>hps (the (find_key w (the xs)))\<close>]
         find_key_none_iff[of w \<open>[the xs]\<close>] find_key_None_or_itself[of w \<open>the xs\<close>]
         invar_find_key[of \<open>the xs\<close> w] hp_node_find_key[of \<open>the xs\<close> w]
-      apply (auto simp: hmrel_def decrease_key_def remove_key_None_iff invar_def
+        find_remove_mset_nodes_full[of \<open>the xs\<close> w \<open>the (remove_key w (the xs))\<close> \<open>the(find_key w (the xs))\<close>]
+      apply (auto simp: hmrel_def decrease_key_def remove_key_None_iff invar_def score_hp_node_link2
         simp del: find_key_none_iff php.simps
         intro:
         split: option.splits hp.splits)
       apply (metis invar_Some php_link php_remove_key)
-      apply (metis \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close>
-        empty_neutral(1) find_remove_mset_nodes_full hp.sel(3) mset_nodes_simps option.sel union_ac(2)
-        union_mset_add_mset_left)
+      apply (metis (no_types, lifting) \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close>
+        add_mset_add_single find_remove_mset_nodes_full hp.inject mset_nodes.simps option.sel sum_image_mset_sum_map union_ac(2)
+        union_mset_add_mset_right)
       apply (metis Some_to_the \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close>
         hp.sel(1) mset_cancel_elem(2) mset_nodes.simps mset_right_cancel_union
-        pairing_heap_assms.find_remove_mset_nodes_full sum_image_mset_sum_map)
-      apply (smt (z3) Some_to_the \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close>
-        hp.exhaust_sel hp.simps(1) hp_node_children_simps(3) hp_node_children_simps2 hp_node_node_itself
-        in_find_key_notin_remove_key link.simps node_in_mset_nodes option.distinct(1))
+        find_remove_mset_nodes_full sum_image_mset_sum_map)
+      using K
+      apply (simp add: score_hp_node_link2 del: php.simps)
+      apply auto
 
-      apply (case_tac x2c)
+      using K
+      apply (simp add: score_hp_node_link2 del: php.simps)
+      apply (subst score_hp_node_link2)
+      apply simp
+      apply (simp add: hp_node_link_none_iff_parents)
       apply (auto split: option.splits)
-      apply (metis get_min.simps hp.exhaust_sel hp_node_node_itself option.distinct(1) option.sel pairing_heap_assms.remove_key.simps)
-      apply (metis \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close>
-        find_remove_mset_nodes_full hp.simps(1) hp_node_None_notin2 hp_node_children_simps2 option.sel union_iff)
-      apply (metis Some_to_the get_min2.simps get_min2_alt_def hp_node_children_None_notin mset_nodes.simps
-        multi_member_skip node_in_mset_nodes option_last_Nil option_last_Some_iff(1) in_find_key_notin_remove_key)
-      apply (metis find_key_None_or_itself hp.sel(1) hp_node_None_notin2 hp_node_children_simps2
-        hp_node_in_find_key option.distinct(1) option.exhaust_sel option.inject)
-      apply (metis WB_List_More.distinct_mset_mono add_mset_disjoint(1) distinct_mset_add
-        hp_node_children_None_notin mset_nodes.simps option.sel option_last_Nil option_last_Some_iff(2)
-        pairing_heap_assms.node_remove_key_in_mset_nodes)
-      subgoal
-        by (smt (verit, ccfv_SIG) hp_node_None_notin2 hp_node_children_simps2 hp_score_remove_key_other
-          option.exhaust_sel option.map(2) option.simps(1) option_hd_Nil option_hd_Some_iff(2))
-      subgoal
-        by (metis hp_node_children_None_notin mset_nodes.simps multi_member_skip option.sel option_hd_Nil option_hd_Some_iff(1) in_find_key_notin_remove_key)
-      subgoal
-        by (metis hp_node_children_None_notin mset_nodes.simps multi_member_skip option.sel option_hd_Nil option_hd_Some_iff(1) in_find_key_notin_remove_key)
-      subgoal
-        by (metis hp_node_children_None_notin in_find_key_notin_remove_key mset_nodes.simps option.sel option_hd_Nil option_hd_Some_iff(2) union_iff)
-      done
+      apply (metis member_add_mset mset_cancel_union(2))
+      apply (metis hp_node_None_notin2 hp_node_children_None_notin2 hp_score_remove_key_other map_option_is_None member_add_mset option.map_sel option.sel option_hd_Nil option_hd_Some_iff(2) sum_image_mset_sum_map union_iff)
+      by (metis \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close> hp.simps(1) hp_node_children_None_notin2 hp_node_children_simps2 hp_node_in_find_key mset_nodes.simps option.sel option.simps(2) union_iff)
     done
 qed
 
