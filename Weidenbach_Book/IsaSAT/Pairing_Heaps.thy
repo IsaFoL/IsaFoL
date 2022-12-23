@@ -2405,7 +2405,7 @@ lemma decrease_key_mop_prio_change_weight:
 proof -
   have K: \<open>xs' = xs \<Longrightarrow> node (the xs') \<noteq> w \<longleftrightarrow> remove_key w (the xs)\<noteq> None\<close> for xs'
     using assms by (cases xs; cases \<open>the xs\<close>) (auto simp: hmrel_def)
-  have \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close>
+  have f: \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close>
     using assms invar_find_key[of \<open>the xs\<close> w] find_key_None_or_itself[of w \<open>the xs\<close>]
        find_key_none_iff[of w \<open>[the xs]\<close>]
        hp_node_find_key[of \<open>the xs\<close> w]
@@ -2423,7 +2423,6 @@ proof -
     apply (metis Some_to_the \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close> add_mset_disjoint(1) distinct_mset_add mset_nodes_simps)
     apply (metis \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close> hp.sel(1) in_find_key_notin_remove_key node_in_mset_nodes not_Some_eq option.sel)
     by (metis (no_types, lifting) \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close> add_diff_cancel_left' disjunct_not_in distinct_mset_add distinct_mset_mono' in_diffD in_find_key_notin_remove_key mset_nodes.simps option.distinct(1) option.sel node_remove_key_in_mset_nodes sum_image_mset_sum_map)
- 
   ultimately show ?thesis
     using assms
     unfolding mop_prio_change_weight_def
@@ -2431,32 +2430,32 @@ proof -
     subgoal
       using invar_decrease_key[of v \<open>snd ys w\<close> w \<open>hps (the (find_key w (the xs)))\<close>]
         find_key_none_iff[of w \<open>[the xs]\<close>] find_key_None_or_itself[of w \<open>the xs\<close>]
-        invar_find_key[of \<open>the xs\<close> w] hp_node_find_key[of \<open>the xs\<close> w]
+        invar_find_key[of \<open>the xs\<close> w] hp_node_find_key[of \<open>the xs\<close> w] f
         find_remove_mset_nodes_full[of \<open>the xs\<close> w \<open>the (remove_key w (the xs))\<close> \<open>the(find_key w (the xs))\<close>]
+        hp_node_in_find_key0[of \<open>the xs\<close> w \<open>the(find_key w (the xs))\<close>]
       apply (auto simp: hmrel_def decrease_key_def remove_key_None_iff invar_def score_hp_node_link2
         simp del: find_key_none_iff php.simps
         intro:
         split: option.splits hp.splits)
+      apply (metis empty_neutral(2) mset_nodes_simps union_ac(2) union_mset_add_mset_right)
+      apply (metis hp_node_None_notin2 hp_node_children_None_notin2 hp_node_children_simps2 sum_image_mset_sum_map)
+      apply (metis hp_node_children_simps2)
       apply (metis invar_Some php_link php_remove_key)
-      apply (metis (no_types, lifting) \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close>
-        add_mset_add_single find_remove_mset_nodes_full hp.inject mset_nodes.simps option.sel sum_image_mset_sum_map union_ac(2)
-        union_mset_add_mset_right)
-      apply (metis Some_to_the \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close>
-        hp.sel(1) mset_cancel_elem(2) mset_nodes.simps mset_right_cancel_union
-        find_remove_mset_nodes_full sum_image_mset_sum_map)
-      using K
-      apply (simp add: score_hp_node_link2 del: php.simps)
-      apply auto
+      apply (metis union_ac(2))
+      apply (metis member_add_mset union_iff)
 
-      using K
-      apply (simp add: score_hp_node_link2 del: php.simps)
+      using K apply (solves \<open>simp add: score_hp_node_link2 del: php.simps\<close>)
+
+      using K apply (simp add: score_hp_node_link2 del: php.simps)
       apply (subst score_hp_node_link2)
       apply simp
       apply (simp add: hp_node_link_none_iff_parents)
       apply (auto split: option.splits)
       apply (metis member_add_mset mset_cancel_union(2))
-      apply (metis hp_node_None_notin2 hp_node_children_None_notin2 hp_score_remove_key_other map_option_is_None member_add_mset option.map_sel option.sel option_hd_Nil option_hd_Some_iff(2) sum_image_mset_sum_map union_iff)
-      by (metis \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close> hp.simps(1) hp_node_children_None_notin2 hp_node_children_simps2 hp_node_in_find_key mset_nodes.simps option.sel option.simps(2) union_iff)
+      apply (smt (verit, ccfv_threshold) hp_node_None_notin2 hp_node_children_None_notin2
+        hp_score_remove_key_other map_option_is_None member_add_mset option.map_sel
+        option.sel option_hd_Nil option_hd_Some_iff(2) sum_image_mset_sum_map union_iff)
+      by (metis hp_node_None_notin2 hp_node_children_simps2 hp_node_in_find_key0 option.sel option_hd_Nil option_hd_Some_iff(2))
     done
 qed
 
