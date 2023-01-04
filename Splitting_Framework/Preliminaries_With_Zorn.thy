@@ -1416,8 +1416,6 @@ proof
   show \<open>{} \<in> {J. is_interpretation J}\<close> unfolding is_interpretation_def by blast 
 qed
   
-  find_theorems name: Abs name: propositional_interpretation
-
 abbreviation "interp_of \<equiv> Abs_propositional_interpretation"
 abbreviation "strip \<equiv> Rep_propositional_interpretation"
 
@@ -1623,6 +1621,7 @@ definition sound_consistent :: "'v total_interpretation \<Rightarrow> bool" wher
 
 
 (* TODO: try alternative def that makes use of prop semantic from AFP to ease use of compactness *)
+(* connection to compactness from AFP used but could it be made more direct? *)
 definition propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
   (infix "\<Turnstile>\<^sub>p" 50) where
   \<open>J \<Turnstile>\<^sub>p \<N> \<equiv> bot \<notin> ((proj\<^sub>\<bottom> \<N>) proj\<^sub>J J)\<close>
@@ -1704,8 +1703,6 @@ lemma form_shape_proj: \<open>\<forall>f\<in>\<Union> (AF_proj_to_formula_set_se
 
 definition to_valuation :: "'v total_interpretation \<Rightarrow> 'v valuation" where
   \<open>to_valuation J = (\<lambda>a. Pos a \<in>\<^sub>t J)\<close>
-
-find_theorems strip 
 
 lemma val_strip_pos: \<open>to_valuation J a \<equiv> Pos a \<in> total_strip J\<close>
   unfolding to_valuation_def belong_to_total_def belong_to_def by simp
@@ -2403,7 +2400,7 @@ next
         using entails_cut[OF cut_hyp1 cut_hyp2] distrib_proj by (simp add: image_Un) 
     }
     moreover
-        {
+    {
       assume not_enabled_c: \<open>\<not> enabled_set {\<C>} J\<close>
       then have \<open>\<M>' \<union> {\<C>} proj\<^sub>J J = \<M>' proj\<^sub>J J\<close>
         unfolding enabled_projection_def enabled_set_def by auto
@@ -2411,9 +2408,9 @@ next
         using c_entails enabled_n unfolding AF_entails_def by (metis enabled_union2) 
       then have \<open>\<M> \<union> \<M>' proj\<^sub>J J \<Turnstile> F_of ` (\<N> \<union> \<N>')\<close>
         using entails_subsets by (metis distrib_proj image_Un sup.cobounded2) 
-          }
-      ultimately show \<open>\<M> \<union> \<M>' proj\<^sub>J J \<Turnstile> F_of ` (\<N> \<union> \<N>')\<close>
-        by blast 
+    }
+    ultimately show \<open>\<M> \<union> \<M>' proj\<^sub>J J \<Turnstile> F_of ` (\<N> \<union> \<N>')\<close>
+      by blast 
     qed
 next
   fix \<M> \<N>
@@ -2839,10 +2836,49 @@ next
   qed
 next
   fix M N \<C> M' N'
-  assume \<open>M \<Turnstile>s\<^sub>A\<^sub>F N \<union> {\<C>}\<close> and
-    \<open>M' \<union> {\<C>} \<Turnstile>s\<^sub>A\<^sub>F N'\<close>
+  assume
+    entails_c: \<open>M \<Turnstile>s\<^sub>A\<^sub>F N \<union> {\<C>}\<close> and
+    c_entails: \<open>M' \<union> {\<C>} \<Turnstile>s\<^sub>A\<^sub>F N'\<close>
   show \<open>M \<union> M' \<Turnstile>s\<^sub>A\<^sub>F N \<union> N'›
+    unfolding AF_entails_sound_def
+  proof (intro allI impI)
+    fix J
+    assume enabled_n: \<open>enabled_set (N \<union> N') J\<close>
+    {
+      assume enabled_c: \<open>enabled_set {\<C>} J\<close>
+      (* then have proj_enabled_c: \<open>{\<C>} proj\<^sub>J J = {F_of \<C>}\<close> 
+       *   unfolding enabled_projection_def using enabled_set_def by blast 
+       * have cut_hyp1: \<open>M \<Turnstile>s N \<union> {\<C>}\<close>
+       *   using entails_c enabled_n enabled_c unfolding AF_entails_sound_def 
+       *       sorry
+       *   
+       * have \<open>(M' \<union> {\<C>}) proj\<^sub>J J \<Turnstile> F_of ` N'\<close>
+       *   using c_entails enabled_union2[of N N' J, OF enabled_n] unfolding AF_entails_def
+       *     sorry
+       * then have cut_hyp2: \<open>(M' proj\<^sub>J J) \<union> {F_of \<C>} \<Turnstile> F_of ` N'\<close>
+       *   using proj_enabled_c distrib_proj_singleton by metis
+       *     find_theorems name: neg_ext_cons_rel *)
+      have \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` (M \<union> M' proj\<^sub>J J)) (Pos ` F_of ` (N \<union> N'))\<close>
+        using sound_cons.entails_cut (*[OF cut_hyp1 cut_hyp2]*) distrib_proj
+        sorry
+        (* by (simp add: image_Un) *)
+    }
+    moreover
+    {
+      assume not_enabled_c: \<open>\<not> enabled_set {\<C>} J\<close>
+      (* then have \<open>\<M>' \<union> {\<C>} proj\<^sub>J J = \<M>' proj\<^sub>J J\<close>
+       *   unfolding enabled_projection_def enabled_set_def by auto
+       * then have \<open>\<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>'\<close>
+       *   using c_entails enabled_n unfolding AF_entails_def by (metis enabled_union2)  *)
+      then have \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` (M \<union> M' proj\<^sub>J J)) (Pos ` F_of ` (N \<union> N'))\<close>
+        using entails_subsets
+        sorry
+        (* by (metis distrib_proj image_Un sup.cobounded2) *)
+    }
+    ultimately 
+    show \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` (M \<union> M' proj\<^sub>J J)) (Pos ` F_of ` (N \<union> N'))\<close>
       sorry
+  qed
 next
   fix M N
     assume \<open>M \<Turnstile>s\<^sub>A\<^sub>F N\<close>
