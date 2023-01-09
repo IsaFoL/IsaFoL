@@ -391,7 +391,7 @@ lemma hp_child_children_skip_last[simp]:
   by (metis WB_List_More.distinct_mset_union2 union_ac(1))
 
 lemma hp_child_children_skip_last_in_first:
-  \<open> distinct_mset (sum_list (map mset_nodes (Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m) # b))) ⟹
+  \<open>distinct_mset (sum_list (map mset_nodes (Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m) # b))) ⟹
   hp_child_children n (Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m) # b) = hp_child n (Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m))\<close>
   by (auto simp: hp_child_children_Cons_if split: option.splits)
 
@@ -2102,9 +2102,8 @@ lemma node_remove_key_in_mset_nodes:
   by (metis node_remove_key_children_in_mset_nodes sum_image_mset_sum_map)
 
 
-lemma no_relative_ancestor_or_notin: \<open>hp_parent ( m') h = None \<Longrightarrow>
-      hp_prev ( m') h = None \<Longrightarrow>
-  hp_next ( m') h = None \<Longrightarrow>  m' = node h \<or> m' \<notin># mset_nodes h\<close>
+lemma no_relative_ancestor_or_notin: \<open>hp_parent ( m') h = None \<Longrightarrow> hp_prev m' h = None \<Longrightarrow>
+  hp_next m' h = None \<Longrightarrow>  m' = node h \<or> m' \<notin># mset_nodes h\<close>
   apply (induction m' h rule: hp_next.induct)
   apply (auto simp: hp_prev_children_cons_if
     split:option.splits )
@@ -2405,6 +2404,8 @@ lemma decrease_key_mop_prio_change_weight:
 proof -
   have K: \<open>xs' = xs \<Longrightarrow> node (the xs') \<noteq> w \<longleftrightarrow> remove_key w (the xs)\<noteq> None\<close> for xs'
     using assms by (cases xs; cases \<open>the xs\<close>) (auto simp: hmrel_def)
+  have [simp]: \<open>add_mset (node x2a) (sum_list (map mset_nodes (hps x2a))) = mset_nodes x2a\<close> for x2a
+    by (cases x2a) auto
   have f: \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close>
     using assms invar_find_key[of \<open>the xs\<close> w] find_key_None_or_itself[of w \<open>the xs\<close>]
        find_key_none_iff[of w \<open>[the xs]\<close>]
@@ -2437,7 +2438,6 @@ proof -
         simp del: find_key_none_iff php.simps
         intro:
         split: option.splits hp.splits)
-      apply (metis empty_neutral(2) mset_nodes_simps union_ac(2) union_mset_add_mset_right)
       apply (metis hp_node_None_notin2 hp_node_children_None_notin2 hp_node_children_simps2 sum_image_mset_sum_map)
       apply (metis hp_node_children_simps2)
       apply (metis invar_Some php_link php_remove_key)
@@ -2448,7 +2448,7 @@ proof -
 
       using K apply (simp add: score_hp_node_link2 del: php.simps)
       apply (subst score_hp_node_link2)
-      apply simp
+      apply (solves simp)
       apply (simp add: hp_node_link_none_iff_parents)
       apply (auto split: option.splits)
       apply (metis member_add_mset mset_cancel_union(2))
