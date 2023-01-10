@@ -43,7 +43,7 @@ lemma wf_on_induct[consumes 1, case_names less in_dom]:
   using assms unfolding wf_on_def by metis
 
 lemma "wf_on UNIV r \<longleftrightarrow> Wellfounded.wf r"
-  by (simp add: wf_def wf_on_def)
+  by (simp add: wf_on_def Wellfounded.wf_def)
 
 lemma wfp_iff_wfP: "wfp R \<longleftrightarrow> Wellfounded.wfP R"
   by (metis (no_types, opaque_lifting) UNIV_I wfPUNIVI wfP_induct_rule wfp_on_def)
@@ -341,15 +341,6 @@ qed
 
 
 section \<open>Backward-compatibility Layer\<close>
-
-abbreviation (input) wfP where
-  "wfP \<equiv> wfp"
-
-lemma wf_def[no_atp]: "wf r \<longleftrightarrow> (\<forall>P. (\<forall>x. (\<forall>y. (y, x) \<in> r \<longrightarrow> P y) \<longrightarrow> P x) \<longrightarrow> (\<forall>x. P x))"
-  by (simp add: wf_on_def)
-
-lemma wfP_def[no_atp]: "wfP r \<longleftrightarrow> wf {(x, y). r x y}"
-  by (simp add: wfp_on_def wf_on_def)
 
 lemma wfP_wf_eq[no_atp]: "wfP (\<lambda>x y. (x, y) \<in> r) = wf r"
   by (rule wfp_on_wf_on_iff)

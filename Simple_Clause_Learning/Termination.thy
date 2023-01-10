@@ -71,12 +71,6 @@ proof (rule totalp_onI)
     by (metis (full_types) lex_prodp_def mem_Times_iff prod_eq_iff totalp_on_def)
 qed
 
-lemma wfP_lex_prodp:
-  assumes "wfP RA" and "wfP RB"
-  shows "wfP (lex_prodp RA RB)"
-  using assms
-  by (rule wf_lex_prod[of "{(x, y). RA x y}" "{(x, y). RB x y}", unfolded lex_prod_lex_prodp_eq, to_pred])
-
 instantiation prod :: (preorder, preorder) order begin
 
 definition less_prod :: "'a \<times> 'b \<Rightarrow> 'a \<times> 'b \<Rightarrow> bool" where
@@ -101,7 +95,7 @@ next
   fix x y z :: "'a \<times> 'b"
   show "x \<le> y \<Longrightarrow> y \<le> z \<Longrightarrow> x \<le> z"
     unfolding less_eq_prod_def less_prod_def
-    using transp_lex_prodp[OF transp_less transp_less, THEN transpD]
+    using transp_lex_prodp[OF transp_on_less transp_on_less, THEN transpD]
     by metis
 next
   fix x y :: "'a \<times> 'b"
@@ -129,14 +123,14 @@ proof intro_classes
   assume "\<And>x. (\<And>y. y < x \<Longrightarrow> P y) \<Longrightarrow> P x"
   then show "P x"
     unfolding less_prod_def
-    using wfP_lex_prodp[OF wfP_less wfP_less, THEN wfP_induct]
-    by metis
+    using wfp_lex_prodp wfP_less
+    by (smt (verit, ccfv_threshold) UNIV_I wfp_iff_wfP wfp_on_def)
 qed
 
 
 subsection \<open>Wellfounded_Extra\<close>
 
-lemma wf_union_if_convertible_to_wf:
+(* lemma wf_union_if_convertible_to_wf:
   fixes
     f :: "'a \<Rightarrow> 'b" and g :: "'a \<Rightarrow> 'c" and
     R S :: "('a \<times> 'a) set" and Q :: "('b \<times> 'b) set" and T :: "('c \<times> 'c) set"
@@ -156,16 +150,16 @@ next
   fix x y assume "(x, y) \<in> R \<union> S"
   with assms(3,4) show "(h x, h y) \<in> Q <*lex*> S"
     unfolding h_def by fastforce
-qed
+qed *)
 
-lemma wfP_union_if_convertible_to_wfP:
+(* lemma wfP_union_if_convertible_to_wfP:
   assumes
     "wfP S"
     "wfP Q"
     "\<And>x y. R x y \<Longrightarrow> Q (f x) (f y)"
     "\<And>x y. S x y \<Longrightarrow> Q (f x) (f y) \<or> f x = f y"
   shows "wfP (R \<squnion> S)"
-  using assms by (rule wf_union_if_convertible_to_wf[to_pred])
+  using assms by (rule wf_union_if_convertible_to_wf[to_pred]) *)
 
 
 subsection \<open>FSet_Extra\<close>
@@ -500,14 +494,14 @@ proof -
       proof (intro wfp_lex_prodp)
         show "wfp ((<) :: bool \<Rightarrow> bool \<Rightarrow> bool)"
           unfolding wfp_iff_wfP
-          by (simp add: wfPUNIVI)
+          by (simp add: Wellfounded.wfPUNIVI)
       next
         show "wfp (|\<subset>|)"
           unfolding wfp_iff_wfP
           by (rule wfP_pfsubset)
       next
         show "wfp (\<lambda>x y. (x, y) \<in> lenlex {(x :: _ :: wellorder, y). x < y})"
-          unfolding wfp_iff_wfP wfP_wf_eq
+          unfolding wfp_iff_wfP Wellfounded.wfP_wf_eq
           using wf_lenlex
           using wf by blast
       next

@@ -255,7 +255,7 @@ lemma asymp_trail_less:
       "\<forall>i < length Ls. \<forall>j < length Ls. i \<noteq> j \<longrightarrow> Ls ! i \<noteq> Ls ! j \<and> Ls ! i \<noteq> - (Ls ! j)"
   shows "asymp (trail_less Ls)"
   using irreflp_trail_less[OF assms] transp_trail_less[OF assms]
-  using asymp_on_iff_irreflp_on_if_transp
+  using asymp_on_iff_irreflp_on_if_transp_on
   by auto
 
 
