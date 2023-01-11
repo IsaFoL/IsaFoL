@@ -1652,6 +1652,92 @@ lemma distinct_mset_hp_parent: \<open>distinct_mset (mset_nodes h) \<Longrightar
   apply (metis (no_types, lifting) WB_List_More.distinct_mset_union2 distinct_mset_union hp_parent_children_Some_iff in_list_in_setD list.map(2) map_append sum_list.Cons sum_list_append)
   by (metis distinct_mset_union)
 
+lemma in_find_key_children_same_hp_parent:
+  \<open>hp_parent k (Hp x n c) = None \<Longrightarrow>
+    x' \<in># mset_nodes m' \<Longrightarrow>
+    x \<notin># sum_list (map mset_nodes c) \<Longrightarrow>
+    distinct_mset (sum_list (map mset_nodes c)) \<Longrightarrow>
+    find_key_children k c = Some m' \<Longrightarrow> hp_parent x' (Hp x n c) = hp_parent x' m'\<close>
+  apply (induction k c rule: find_key_children.induct)
+  subgoal
+    by (auto split: if_splits option.splits simp: hp_parent_simps_single_if hp_parent_children_cons)
+  subgoal for k xa na c xs
+    apply (auto split: if_splits option.splits simp: hp_parent_simps_single_if hp_parent_children_cons)
+    apply (metis mset_nodes_find_key_children_subset mset_subset_eqD option.sel option.simps(3) sum_image_mset_sum_map)
+    apply (metis (no_types, lifting) VSIDS.hp_node_find_key_children find_key_children.simps(1) find_key_children_None_or_itself
+      hp.sel(1) hp_node_None_notin2 hp_node_children_simps(3) hp_node_node_itself hp_parent_children_in_first_child hp_parent_in_nodes list.exhaust_sel
+      list.simps(9) mset_nodes_find_key_children_subset mset_subset_eqD node_in_mset_nodes option.sel sum_image_mset_sum_map sum_list_simps(2))
+    apply (metis hp_node_None_notin2 hp_node_children_None_notin2 hp_node_in_find_key_children sum_image_mset_sum_map)
+    apply (smt (verit, ccfv_threshold) basic_trans_rules(31) find_key_children.elims find_key_children.simps(2) hp.exhaust_sel hp.sel(1)
+      hp_parent_children_in_first_child hp_parent_in_nodes list.distinct(1) list.exhaust_sel list.simps(9) mset_nodes_find_key_children_subset
+      option.sel option.simps(2) set_mset_mono sum_image_mset_sum_map sum_list_simps(2))
+    apply (metis disjunct_not_in distinct_mset_add find_key_noneD find_key_none_iff mset_map mset_nodes_find_key_children_subset
+      mset_subset_eqD node_hd_in_sum option.sel sum_mset_sum_list)
+    apply (smt (verit, ccfv_threshold) basic_trans_rules(31) find_key_children.elims find_key_children.simps(2) hp.exhaust_sel hp.sel(1)
+      hp_parent_children_in_first_child hp_parent_in_nodes list.distinct(1) list.exhaust_sel list.simps(9) mset_nodes_find_key_children_subset
+      option.sel option.simps(2) set_mset_mono sum_image_mset_sum_map sum_list_simps(2))
+    apply (smt (verit) VSIDS.hp_node_find_key_children distinct_mset_add ex_hp_node_children_Some_in_mset_nodes find_key_children.simps(1) find_key_children_None_or_itself
+      find_key_none_iff hp.sel(1) hp_node_None_notin2 hp_node_children_None_notin2 hp_node_children_simps(3) hp_node_in_find_key_children hp_node_node_itself
+      hp_parent_children_in_first_child hp_parent_in_nodes list.exhaust_sel list.simps(9) option.sel option_last_Nil option_last_Some_iff(2) sum_list_simps(2))
+    apply (metis Duplicate_Free_Multiset.distinct_mset_union2 hp_parent_children_hd_None option.simps(2) sum_image_mset_sum_map union_commute)
+    apply (metis disjunct_not_in distinct_mset_add hp_parent_children_None_notin if_Some_None_eq_None mset_map mset_nodes_find_key_children_subset mset_subset_eqD
+      option.sel sum_mset_sum_list)
+    apply (metis Duplicate_Free_Multiset.distinct_mset_union2 hp.sel(1) hp_parent_in_nodes mset_nodes_find_key_children_subset mset_subset_eqD option.sel option.simps(2) sum_image_mset_sum_map union_commute)
+    apply (metis basic_trans_rules(31) mset_nodes_find_key_children_subset option.distinct(1) option.sel set_mset_mono sum_image_mset_sum_map)
+    apply (metis distinct_mset_add find_key_noneD find_key_none_iff hp_parent_children_None_notin hp_parent_children_skip_first hp_parent_children_skip_last
+      mset_map mset_nodes_find_key_children_subset mset_subset_eqD option.sel sum_mset_sum_list)
+    apply (simp add: distinct_mset_add)
+    using distinct_mset_union by blast
+  done
+
+lemma in_find_key_same_hp_parent:
+  \<open>x' \<in># mset_nodes m' \<Longrightarrow>
+    distinct_mset (mset_nodes h) \<Longrightarrow>
+    find_key a h = Some m' \<Longrightarrow>
+    hp_parent a h = None \<Longrightarrow>
+    \<exists>y. hp_prev a h = Some y \<Longrightarrow>
+    hp_parent x' h = hp_parent x' m'\<close>
+  by (induction a h rule: find_key.induct)
+   (auto split: if_splits intro: in_find_key_children_same_hp_parent)
+
+
+lemma in_find_key_children_same_hp_parent2:
+  \<open>x' \<noteq> k \<Longrightarrow>
+    x' \<in># mset_nodes m' \<Longrightarrow>
+    x \<notin># sum_list (map mset_nodes c) \<Longrightarrow>
+    distinct_mset (sum_list (map mset_nodes c)) \<Longrightarrow>
+    find_key_children k c = Some m' \<Longrightarrow> hp_parent x' (Hp x n c) = hp_parent x' m'\<close>
+  apply (induction k c rule: find_key_children.induct)
+  subgoal
+    by (auto split: if_splits option.splits simp: hp_parent_simps_single_if hp_parent_children_cons)
+  subgoal for k xa na c xs
+    apply (auto split: if_splits option.splits simp: hp_parent_simps_single_if hp_parent_children_cons)
+    apply (metis add_diff_cancel_left' distinct_mem_diff_mset hp_parent_children_None_notin)
+    apply (metis hp_node_None_notin2 hp_node_children_None_notin2 hp_node_in_find_key_children sum_image_mset_sum_map)
+    apply (metis hp.sel(1) hp_parent_in_nodes2 mset_nodes_find_key_children_subset mset_subset_eqD option.sel option.simps(2) sum_image_mset_sum_map)
+    apply (metis disjunct_not_in distinct_mset_add find_key_noneD find_key_none_iff mset_map mset_nodes_find_key_children_subset mset_subset_eqD node_hd_in_sum option.sel sum_mset_sum_list)
+    apply (metis hp_node_None_notin2 hp_node_children_None_notin2 hp_node_in_find_key_children sum_image_mset_sum_map)
+    apply (metis hp.sel(1) hp_parent_in_nodes2 mset_nodes_find_key_children_subset mset_subset_eqD option.sel option.simps(2) sum_image_mset_sum_map)
+    apply (metis mset_nodes_find_key_children_subset mset_subset_eqD option.sel option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+    apply (metis basic_trans_rules(31) distinct_mset_union ex_hp_node_children_Some_in_mset_nodes hp.sel(1) hp_node_children_simps(1) hp_parent_in_nodes mset_nodes_find_key_children_subset option.sel option.simps(2) set_mset_mono sum_image_mset_sum_map union_commute)
+    apply (metis distinct_mset_union hp_parent_children_hd_None option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+    apply (metis disjunct_not_in distinct_mset_add hp_parent_children_None_notin mset_nodes_find_key_children_subset mset_subset_eqD option.sel option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+    apply (metis distinct_mset_union hp.sel(1) hp_parent_in_nodes mset_nodes_find_key_children_subset mset_subset_eqD option.sel option.simps(2) sum_image_mset_sum_map)
+    apply (metis mset_nodes_find_key_children_subset mset_subset_eqD option.sel option_last_Nil option_last_Some_iff(2) sum_image_mset_sum_map)
+    apply (metis disjunct_not_in distinct_mset_add hp_node_None_notin2 hp_node_children_None_notin2 hp_node_in_find_key_children hp_parent_children_None_notin sum_image_mset_sum_map)
+    apply (metis distinct_mset_union hp_parent_children_hd_None option.simps(2) sum_image_mset_sum_map)
+    using distinct_mset_union by blast
+  done
+
+lemma in_find_key_same_hp_parent2:
+  \<open>x' \<in># mset_nodes m' \<Longrightarrow>
+    distinct_mset (mset_nodes h) \<Longrightarrow>
+    find_key a h = Some m' \<Longrightarrow>
+    x' \<noteq> a \<Longrightarrow>
+    hp_parent x' h = hp_parent x' m'\<close>
+  by (induction a h rule: find_key.induct)
+   (auto split: if_splits intro: in_find_key_children_same_hp_parent2)
+
 lemma encoded_hp_prop_list_remove_find:
   fixes h :: \<open>('a, nat) hp\<close> and a arr and hs :: \<open>('a, nat) hp multiset\<close>
   defines \<open>arr\<^sub>1 \<equiv> (if hp_parent a h = None then arr else hp_update_child (node (the (hp_parent a h))) (map_option node (hp_next a h)) arr)\<close>
@@ -2069,21 +2155,52 @@ proof -
             option.map_sel option.sel option_last_Nil option_last_Some_iff(2) remove_key_None_iff)+)[7]
           done
       subgoal
+          apply (cases \<open>x' = a\<close>)
           unfolding assms(1-5) arr
           using find_key_None_remove_key_ident[of a h]
             hp_parent_remove_key_other[of h a x']
             distinct_mset_hp_parent[of h a \<open>the (hp_parent a h)\<close>]
+            in_find_key_same_hp_parent[of x' m' h a]
+            in_find_key_same_hp_parent2[of x' m' h a]
           apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
             map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def in_the_default_empty_iff
             split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
           apply (intro conjI impI allI)
           apply auto[]
           apply (metis VSIDS.find_key_node_itself no_relative_ancestor_or_notin option.sel)
+          apply (metis Duplicate_Free_Multiset.distinct_mset_mono find_key_None_or_itself hp_parent_itself mset_nodes_find_key_subset option.sel option.simps(3))
+          apply (metis distinct_mset_add distinct_mset_find_node_next find_key_None_or_itself hp_parent_itself option.sel option.simps(3))
+          apply metis
+          apply (metis option.simps(3))
+          apply (metis option.simps(3))
+          apply (metis option.simps(3))
           apply (metis Duplicate_Free_Multiset.distinct_mset_mono find_key_None_or_itself hp_parent_itself mset_nodes_find_key_subset option.sel)
           apply (metis Duplicate_Free_Multiset.distinct_mset_mono find_key_None_or_itself hp_parent_itself mset_nodes_find_key_subset option.sel option.simps(3))
           apply (metis Duplicate_Free_Multiset.distinct_mset_mono find_key_None_or_itself hp_parent_itself mset_nodes_find_key_subset option.sel option.simps(3))
           apply (metis Some_to_the find_key_head_node_iff find_key_notin no_relative_ancestor_or_notin option_hd_Nil option_hd_Some_iff(1))
+          apply (metis Duplicate_Free_Multiset.distinct_mset_mono find_key_None_or_itself hp_parent_itself mset_nodes_find_key_subset option.sel option.simps(3))
+
+
+          unfolding assms(1-5) arr
+          using find_key_None_remove_key_ident[of a h]
+            distinct_mset_hp_parent[of h a \<open>the (hp_parent a h)\<close>]
+            in_find_key_same_hp_parent[of x' m' h a]
+            in_find_key_same_hp_parent2[of x' m' h a]
+          apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
+            map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def in_the_default_empty_iff
+            split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
+          apply (intro conjI impI allI)
+          apply auto[]
+          apply (metis find_key_None_or_itself find_key_head_node_iff find_key_in_nodes no_relative_ancestor_or_notin option.simps(3))
+          apply auto[]
+          using
+            in_find_key_same_hp_parent2[of x' m' h a, simplified
+            ]
+            apply simp
           sledgehammer
+
+          apply (metis )
+          apply (metis find_key_None_or_itself find_key_head_node_iff find_key_in_nodes no_relative_ancestor_or_notin option.simps(3))
           apply auto[]
 
         sorry
