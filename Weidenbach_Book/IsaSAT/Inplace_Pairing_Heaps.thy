@@ -2182,28 +2182,21 @@ proof -
 
 
           unfolding assms(1-5) arr
-          using find_key_None_remove_key_ident[of a h]
+          using
             distinct_mset_hp_parent[of h a \<open>the (hp_parent a h)\<close>]
             in_find_key_same_hp_parent[of x' m' h a]
             in_find_key_same_hp_parent2[of x' m' h a]
-          apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
+            distinct_mset_find_node_next[of h a \<open>the (find_key a h)\<close>]
+          apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def distinct_mset_add
             map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def in_the_default_empty_iff
             split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
           apply (intro conjI impI allI)
-          apply auto[]
-          apply (metis find_key_None_or_itself find_key_head_node_iff find_key_in_nodes no_relative_ancestor_or_notin option.simps(3))
-          apply auto[]
-          using
-            in_find_key_same_hp_parent2[of x' m' h a, simplified
-            ]
-            apply simp
-          sledgehammer
-
-          apply (metis )
-          apply (metis find_key_None_or_itself find_key_head_node_iff find_key_in_nodes no_relative_ancestor_or_notin option.simps(3))
-          apply auto[]
-
-        sorry
+          apply auto
+          apply (smt (verit, best) disjunct_not_in distinct_mset_add node_in_mset_nodes option.sel option.simps(3))
+          apply (smt (verit, best) disjunct_not_in distinct_mset_add node_in_mset_nodes option.sel option.simps(3))
+          apply (smt (verit, best) disjunct_not_in distinct_mset_add node_in_mset_nodes option.sel option.simps(3))
+          apply (smt (verit, best) disjunct_not_in distinct_mset_add node_in_mset_nodes option.sel option.simps(3))
+          done
       done
     subgoal for m' x'
       using hp_child_find_key[of h a x']
@@ -2217,6 +2210,10 @@ proof -
         in_remove_key_changed[of a h]
         hp_parent_itself[of h] remove_key_None_iff[of a h] find_key_head_node_iff[of h m']
         node_remove_key_in_mset_nodes[of a h]
+      apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
+        map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def in_the_default_empty_iff
+        split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
+      apply (intro conjI impI allI)
       by (auto simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
           map_option.compositionality comp_def map_option_node_hp_next_remove_key
         split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
@@ -2232,7 +2229,5 @@ proof -
       by auto
     done
 qed
-
-term VSIDS.decrease_key
 
 end
