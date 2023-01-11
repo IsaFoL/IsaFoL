@@ -1574,25 +1574,6 @@ lemma asymp_trail_less_if_trail_consistant:
   by assumption
 
 
-subsection \<open>Extension on All Literals\<close>
-
-lemma transp_trail_less_ex_if_trail_consistant:
-  "trail_consistent \<Gamma> \<Longrightarrow> transp lt \<Longrightarrow> transp (trail_less_ex lt (map fst \<Gamma>))"
-  using transp_trail_less_ex[OF
-      Clausal_Logic.uminus_not_id'
-      Clausal_Logic.uminus_of_uminus_id
-      pairwise_distinct_if_trail_consistent]
-  by assumption
-
-lemma asymp_trail_less_ex_if_trail_consistant:
-  "trail_consistent \<Gamma> \<Longrightarrow> asymp lt \<Longrightarrow> asymp (trail_less_ex lt (map fst \<Gamma>))"
-  using asymp_trail_less_ex[OF
-      Clausal_Logic.uminus_not_id'
-      Clausal_Logic.uminus_of_uminus_id
-      pairwise_distinct_if_trail_consistent]
-  by assumption
-
-
 subsection \<open>Properties\<close>
 
 lemma trail_defined_if_trail_less:
@@ -1673,7 +1654,6 @@ lemma not_trail_true_and_false_cls:
   by (metis trail_false_cls_def trail_true_cls_def)
 
 theorem learned_clauses_in_regular_runs_invars:
-  fixes lt :: "('f, 'v) term literal \<Rightarrow> ('f, 'v) term literal \<Rightarrow> bool"
   assumes
     sound_S0: "sound_state N \<beta> S0" and
     invars: "learned_nonempty S0" "trail_propagated_or_decided' N \<beta> S0"
@@ -2181,7 +2161,6 @@ proof -
 qed
 
 theorem learned_clauses_in_regular_runs:
-  fixes lt :: "('f, 'v) term literal \<Rightarrow> ('f, 'v) term literal \<Rightarrow> bool"
   assumes
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
     conflict: "conflict N \<beta> S0 S1" and
@@ -2363,7 +2342,6 @@ theorem learned_clauses_in_strategy:
     conflict: "conflict N \<beta> S0 S1" and
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
     backtrack: "backtrack N \<beta> Sn Sn'" and
-    "transp lt" and
     strategy_imp_regular_scl: "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
   defines
     "trail_ord \<equiv> multp\<^sub>H\<^sub>O (trail_less (map fst (state_trail S1)))" and

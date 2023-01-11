@@ -28,6 +28,229 @@ definition trail_less where
   "trail_less Ls L K \<longleftrightarrow> trail_less_id_id Ls L K \<or> trail_less_comp_id Ls L K \<or>
     trail_less_id_comp Ls L K \<or> trail_less_comp_comp Ls L K"
 
+definition trail_less' where
+  "trail_less' Ls = (\<lambda>L K.
+    (\<exists>i. i < length Ls \<and> L = Ls ! i \<and> K = - (Ls ! i)) \<or>
+    (\<exists>i. Suc i < length Ls \<and> L = - (Ls ! Suc i) \<and> K = Ls ! i))\<^sup>+\<^sup>+"
+
+lemma transp_trail_less': "transp (trail_less' Ls)"
+proof (rule transpI)
+  show "\<And>x y z. trail_less' Ls x y \<Longrightarrow> trail_less' Ls y z \<Longrightarrow> trail_less' Ls x z"
+    by (metis (no_types, lifting) trail_less'_def tranclp_trans)
+qed
+
+lemma trail_less'_Suc:
+  assumes "Suc i < length Ls"
+  shows "trail_less' Ls (Ls ! Suc i) (Ls ! i)"
+proof -
+  have "trail_less' Ls (Ls ! Suc i) (- (Ls ! Suc i))"
+    unfolding trail_less'_def
+    using assms by blast
+  moreover have "trail_less' Ls (- (Ls ! Suc i)) (Ls ! i)"
+    by (metis (mono_tags, lifting) assms trail_less'_def tranclp.r_into_trancl)
+  ultimately show ?thesis
+    using transp_trail_less'[THEN transpD] by auto
+qed
+
+lemma trail_less'_comp_Suc_comp:
+  assumes "Suc i < length Ls"
+  shows "trail_less' Ls (- (Ls ! Suc i)) (- (Ls ! i))"
+proof -
+  have "trail_less' Ls (- (Ls ! Suc i)) (Ls ! i)"
+    unfolding trail_less'_def
+    using assms Suc_lessD by blast
+  moreover have "trail_less' Ls (Ls ! i) (- (Ls ! i))"
+    unfolding trail_less'_def
+    using assms Suc_lessD by blast
+  ultimately show ?thesis
+    using transp_trail_less'[THEN transpD] by auto
+qed
+
+lemma trail_less'_id_id: "j < i \<Longrightarrow> i < length Ls \<Longrightarrow> trail_less' Ls (Ls ! i) (Ls ! j)"
+proof (induction i arbitrary: j)
+  case 0
+  then show ?case
+    by simp
+next
+  case (Suc i)
+  then show ?case
+    using trail_less'_Suc
+    by (metis Suc_lessD less_Suc_eq transpD transp_trail_less')
+qed
+
+lemma trail_less'_comp_comp:
+  "j < i \<Longrightarrow> i < length Ls \<Longrightarrow> trail_less' Ls (- (Ls ! i)) (- (Ls ! j))"
+proof (induction i arbitrary: j)
+  case 0
+  then show ?case
+    by simp
+next
+  case (Suc i)
+  then show ?case
+    using trail_less'_comp_Suc_comp
+    by (metis Suc_lessD less_Suc_eq transpD transp_trail_less')
+qed
+
+lemma trail_less'_id_comp:
+  assumes "j < i" and "i < length Ls"
+  shows "trail_less' Ls (Ls ! i) (- (Ls ! j))"
+proof -
+  have "trail_less' Ls (Ls ! j) (- (Ls ! j))"
+    unfolding trail_less'_def
+    using assms dual_order.strict_trans by blast
+  thus ?thesis
+    using trail_less'_id_id[OF assms]
+    using transp_trail_less'[THEN transpD] by auto
+qed
+
+lemma trail_less'_comp_id:
+  assumes "j < i" and "i < length Ls"
+  shows "trail_less' Ls (- (Ls ! i)) (Ls ! j)"
+proof (cases i)
+  case 0
+  then show ?thesis
+    using assms(1) by blast
+next
+  case (Suc i')
+  hence "trail_less' Ls (- Ls ! i) (Ls ! i')"
+    unfolding trail_less'_def
+    using Suc_lessD assms(2) by blast
+  show ?thesis
+  proof (cases "i' = j")
+    case True
+    then show ?thesis
+      using \<open>trail_less' Ls (- Ls ! i) (Ls ! i')\<close> by metis
+  next
+    case False
+    hence "trail_less' Ls (Ls ! i') (Ls ! j)"
+      by (metis Suc Suc_lessD assms(1) assms(2) less_SucE trail_less'_id_id)
+    then show ?thesis
+      using \<open>trail_less' Ls (- Ls ! i) (Ls ! i')\<close>
+      using transp_trail_less'[THEN transpD] by auto
+  qed
+qed
+
+lemma trail_less_eq_trail_less':
+  fixes Ls :: "('a :: uminus) list"
+  assumes
+    uminus_not_id: "\<And>x :: 'a. - x \<noteq> x" and
+    uminus_uminus_id: "\<And>x :: 'a. - (- x) = x" and
+    pairwise_distinct:
+      "\<forall>i < length Ls. \<forall>j < length Ls. i \<noteq> j \<longrightarrow> Ls ! i \<noteq> Ls ! j \<and> Ls ! i \<noteq> - (Ls ! j)"
+  shows "trail_less Ls = trail_less' Ls"
+proof (intro ext iffI)
+  fix L K
+  show "trail_less Ls L K \<Longrightarrow> trail_less' Ls L K"
+    unfolding trail_less_def
+  proof (elim disjE)
+    assume "trail_less_id_id Ls L K"
+    thus ?thesis
+      using trail_less'_id_id by (metis trail_less_id_id_def)
+  next
+    show "trail_less_comp_id Ls L K \<Longrightarrow> ?thesis"
+      using trail_less'_comp_id by (metis trail_less_comp_id_def)
+  next
+    show "trail_less_id_comp Ls L K \<Longrightarrow> ?thesis"
+      using trail_less'_id_comp
+      unfolding trail_less_id_comp_def
+      by (metis (mono_tags, lifting) le_eq_less_or_eq trail_less'_def tranclp.r_into_trancl)
+  next
+    show "trail_less_comp_comp Ls L K \<Longrightarrow> ?thesis"
+      using trail_less'_comp_comp
+      by (metis trail_less_comp_comp_def)
+  qed
+next
+  fix L K
+  show "trail_less' Ls L K \<Longrightarrow> trail_less Ls L K"
+    unfolding trail_less'_def
+  proof (induction K rule: tranclp_induct)
+    case (base K)
+    then show ?case
+    proof (elim exE conjE disjE)
+      fix i assume "i < length Ls" and "L = Ls ! i" and "K = - (Ls ! i)"
+      hence "trail_less_id_comp Ls L K"
+        by (auto simp: trail_less_id_comp_def)
+      thus "trail_less Ls L K"
+        by (simp add: trail_less_def)
+    next
+      fix i assume "Suc i < length Ls" and "L = - (Ls ! Suc i)" and "K = Ls ! i"
+      hence "trail_less_comp_id Ls L K"
+        unfolding trail_less_comp_id_def
+        using Suc_lessD by blast
+      thus "trail_less Ls L K"
+        by (simp add: trail_less_def)
+    qed
+  next
+    case (step y z)
+    from step.hyps(2) show ?case
+    proof (elim exE conjE disjE)
+      fix i assume "i < length Ls" and "y = Ls ! i" and "z = - (Ls ! i)"
+
+      from step.IH[unfolded trail_less_def] show "trail_less Ls L z"
+      proof (elim disjE)
+        assume "trail_less_id_id Ls L y"
+        hence "trail_less_id_comp Ls L z"
+          unfolding trail_less_id_id_def trail_less_id_comp_def
+          by (metis \<open>y = Ls ! i\<close> \<open>z = - Ls ! i\<close> less_or_eq_imp_le)
+        thus "trail_less Ls L z"
+          by (simp add: trail_less_def)
+      next
+        assume "trail_less_comp_id Ls L y"
+        hence "trail_less_comp_comp Ls L z"
+          unfolding trail_less_comp_id_def trail_less_comp_comp_def
+          by (metis \<open>y = Ls ! i\<close> \<open>z = - Ls ! i\<close>)
+        thus "trail_less Ls L z"
+          by (simp add: trail_less_def)
+      next
+        assume "trail_less_id_comp Ls L y"
+        hence "trail_less_id_comp Ls L z"
+          unfolding trail_less_id_comp_def
+          by (metis \<open>i < length Ls\<close> \<open>y = Ls ! i\<close> \<open>z = - Ls ! i\<close> pairwise_distinct)
+        thus "trail_less Ls L z"
+          by (simp add: trail_less_def)
+      next
+        assume "trail_less_comp_comp Ls L y"
+        hence "trail_less_comp_comp Ls L z"
+          unfolding trail_less_comp_comp_def
+          by (metis \<open>i < length Ls\<close> \<open>y = Ls ! i\<close> \<open>z = - Ls ! i\<close> pairwise_distinct)
+        thus "trail_less Ls L z"
+          by (simp add: trail_less_def)
+      qed
+    next
+      fix i assume "Suc i < length Ls" and "y = - Ls ! Suc i" and "z = Ls ! i"
+
+      from step.IH[unfolded trail_less_def] show "trail_less Ls L z"
+      proof (elim disjE)
+        show "trail_less_id_id Ls L y \<Longrightarrow> trail_less Ls L z"
+          by (metis \<open>Suc i < length Ls\<close> \<open>y = - Ls ! Suc i\<close> \<open>z = Ls ! i\<close> not_less_eq
+              order_less_imp_not_less pairwise_distinct trail_less_def trail_less_id_id_def)
+      next
+        show "trail_less_comp_id Ls L y \<Longrightarrow> trail_less Ls L z"
+          by (smt (verit, best) \<open>Suc i < length Ls\<close> \<open>y = - Ls ! Suc i\<close> \<open>z = Ls ! i\<close>
+              dual_order.strict_trans lessI pairwise_distinct trail_less_comp_id_def trail_less_def)
+      next
+        assume "trail_less_id_comp Ls L y"
+        hence "trail_less_id_id Ls L z"
+          unfolding trail_less_def trail_less_id_comp_def trail_less_id_id_def
+          by (metis Suc_le_lessD Suc_lessD \<open>Suc i < length Ls\<close> \<open>y = - Ls ! Suc i\<close> \<open>z = Ls ! i\<close>
+              pairwise_distinct uminus_uminus_id)
+        thus "trail_less Ls L z"
+          by (simp add: trail_less_def)
+      next
+        assume "trail_less_comp_comp Ls L y"
+        hence "trail_less_comp_id Ls L z"
+          unfolding trail_less_comp_comp_def trail_less_comp_id_def
+          by (metis Suc_lessD \<open>Suc i < length Ls\<close> \<open>y = - Ls ! Suc i\<close> \<open>z = Ls ! i\<close> pairwise_distinct
+              uminus_uminus_id)
+        thus "trail_less Ls L z"
+          by (simp add: trail_less_def)
+      qed
+    qed
+  qed
+qed
+
+
+
 
 subsection \<open>Examples\<close>
 
