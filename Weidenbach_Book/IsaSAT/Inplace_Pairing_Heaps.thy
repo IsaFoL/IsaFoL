@@ -2024,7 +2024,8 @@ proof -
         apply auto
         by (metis no_relative_ancestor_or_notin)
       subgoal
-        by (smt (verit, ccfv_SIG) None_eq_map_option_iff  option.exhaust_sel option.map_sel remove_key_None_iff)
+        apply auto
+        by (smt (verit, del_insts) None_eq_map_option_iff hp.exhaust_sel hp_child_remove_is_remove_hp_child node_remove_key_itself_iff option.exhaust_sel option.map(2) option.simps(1))
       subgoal
         by (smt (verit, ccfv_SIG) None_eq_map_option_iff node_remove_key_itself_iff option.exhaust_sel option.map_sel remove_key_None_iff)
       subgoal
