@@ -1766,6 +1766,21 @@ proof -
     by (metis find_key.simps find_key_none_iff hp.exhaust_sel hp_node_None_notin2
       hp_node_children_None_notin2 hp_node_children_simps2 option_last_Nil option_last_Some_iff(2)
       remove_key_notin_unchanged)
+  have HX1: \<open>
+    (find_key (node m') h = Some (the (find_key (node m') h)) \<Longrightarrow>
+  distinct_mset
+   (mset_nodes (the (find_key (node m') h)) +
+    (if hp_next (node m') h = None then {#}
+     else mset_nodes (the (hp_next (node m') h))))) \<Longrightarrow>
+    x' \<in># mset_nodes m' \<Longrightarrow>
+    x' \<notin># mset_nodes y' \<Longrightarrow>
+    find_key (node y) h = Some y \<Longrightarrow>
+    m' = y' \<or> m' = y \<Longrightarrow>
+    \<exists>ya. hp_next (node y) h = Some ya \<Longrightarrow>
+    x' = node (the (hp_next (node y) h)) \<Longrightarrow>
+    map_option node (hp_prev (node y) h) = map_option node (hp_prev (node (the (hp_next (node y) h))) m')\<close>
+    for y y' m' x'
+    by (smt (z3) distinct_mset_iff mset_add node_in_mset_nodes option.distinct(1) option.sel union_mset_add_mset_left union_mset_add_mset_right)
   have \<open>remove_key a h \<noteq> None \<Longrightarrow> node (the (remove_key a h)) \<in># mset_nodes h\<close>
     by (metis remove_key.simps get_min2.simps hp.exhaust_sel option.collapse option.distinct(2) remove_key_notin_unchanged)
   then show ?thesis
@@ -1831,22 +1846,15 @@ proof -
         using node_in_mset_nodes[of \<open>the (hp_next (node m') h)\<close>]
         unfolding eq_commute[of _ x']
         by auto
-      subgoal
+      subgoal for y y'
         apply (clarsimp simp add: atomize_not hp_update_child_def hp_update_prev_def hp_update_nxt_def
           map_option.compositionality comp_def map_option_node_hp_prev_remove_key hp_update_parents_def
           split: if_splits simp del: find_key_None_or_itself hp_parent_itself)
         apply (intro conjI impI)
+        using HX1[of y x' y' m']
         apply (auto simp add: atomize_not hp_update_child_def hp_update_prev_def hp_update_nxt_def
           map_option.compositionality comp_def map_option_node_hp_prev_remove_key hp_update_parents_def
-          split: if_splits simp del: find_key_None_or_itself hp_parent_itself)[51]
-        apply (smt (z3) distinct_mset_iff mset_add node_in_mset_nodes option.distinct(1) option.sel union_mset_add_mset_left union_mset_add_mset_right)
-        apply (auto simp add: atomize_not hp_update_child_def hp_update_prev_def hp_update_nxt_def
-          map_option.compositionality comp_def map_option_node_hp_prev_remove_key hp_update_parents_def
-          split: if_splits simp del: find_key_None_or_itself hp_parent_itself)[3]
-        apply (smt (z3) distinct_mset_iff mset_add node_in_mset_nodes option.distinct(1) option.sel union_mset_add_mset_left union_mset_add_mset_right)
-        apply (auto simp add: atomize_not hp_update_child_def hp_update_prev_def hp_update_nxt_def
-          map_option.compositionality comp_def map_option_node_hp_prev_remove_key hp_update_parents_def
-          split: if_splits simp del: find_key_None_or_itself hp_parent_itself)[24]
+          split: if_splits simp del: find_key_None_or_itself hp_parent_itself)
         done
       subgoal
         by (auto simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
