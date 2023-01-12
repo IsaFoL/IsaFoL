@@ -1892,13 +1892,14 @@ proof -
     assume M': \<open>m'\<in>#?a\<close> \<open>x' \<in># mset_nodes m'\<close>
     moreover have \<open>find_key a h \<noteq> None \<Longrightarrow> distinct_mset (mset_nodes (the (find_key a h)))\<close>
       by (meson dist distinct_mset_mono' mset_nodes_find_key_subset)
-    ultimately then show \<open>fst (snd (snd arr')) x' = map_option node (hp_child x' m')\<close>
+    ultimately show \<open>fst (snd (snd arr')) x' = map_option node (hp_child x' m')\<close>
       using childs dist H
         hp_child_find_key[of h a x']
         in_remove_key_in_nodes[of a h x'] in_find_key_notin_remove_key[of h a x']
         in_find_key_in_nodes[of a h x']
         hp_parent_hp_child[of h x'] hp_child_hp_parent[of h x']
          hp_child_hp_parent[of h x'] (*hp_parent_hp_child[of \<open>the (find_key a h)\<close> x']*)
+          hp_parent_hp_child[of \<open>the (find_key a h)\<close> x']
       unfolding assms(1-5) arr
       using hp_child_remove_key_other[of h a x'] find_key_None_or_itself[of a h]
         hp_next_find_key_itself[of h a] has_prev_still_in_remove_key[of h a]
@@ -1924,12 +1925,11 @@ proof -
       subgoal by auto
       subgoal for y ya
         apply auto
-        using hp_child_hp_parent[of h \<open>the (hp_child _ y)\<close>] hp_parent_itself
-          hp_parent_hp_child[of \<open>the (find_key a h)\<close> x']
+        using hp_child_hp_parent[of h] hp_parent_itself
         by (metis option.sel option.simps(3))
       subgoal
         apply auto
-        by (metis hp_child_hp_parent hp_parent_itself option.discI option.map_sel option.sel)
+        by (metis handy_if_lemma hp_child_hp_parent hp_parent_itself option.sel)
       subgoal by auto
       subgoal by auto
       subgoal by auto
@@ -1941,11 +1941,11 @@ proof -
       subgoal by auto
       subgoal
         apply auto
-        by (metis distinct_mset_find_node_next distinct_mset_union hp_child_hp_parent hp_parent_hp_child hp_parent_itself map_option_is_None option.map_sel option.sel option_last_Nil option_last_Some_iff(1))
+        by (metis hp_child_hp_parent hp_parent_hp_child hp_parent_itself map_option_is_None option.map_sel option.sel option_last_Nil option_last_Some_iff(1))
       subgoal by auto
       subgoal
         apply auto
-          by (metis (no_types, lifting) None_eq_map_option_iff distinct_mset_add distinct_mset_find_node_next hp_child_hp_parent hp_parent_hp_child hp_parent_itself
+          by (metis (no_types, lifting) None_eq_map_option_iff hp_child_hp_parent hp_parent_hp_child hp_parent_itself
             option.map_sel option.sel option_hd_Nil option_hd_Some_iff(2))
       apply metis
       apply metis
@@ -1955,23 +1955,21 @@ proof -
       apply metis
       apply metis
       apply metis
-      apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
+      subgoal by (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
           map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def
         split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
-      apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
-          map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def
-        split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
+      subgoal by (auto simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
           map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def
         split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
       subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by (auto simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
+          map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def
+        split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
       apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
           map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def
         split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
@@ -2026,15 +2024,11 @@ proof -
         apply auto
         by (metis no_relative_ancestor_or_notin)
       subgoal
-        apply auto
-        by (smt (verit, del_insts) None_eq_map_option_iff hp.exhaust_sel hp_child_remove_is_remove_hp_child node_remove_key_itself_iff option.exhaust_sel option.map(2) option.simps(1))
+        by (smt (verit, ccfv_SIG) None_eq_map_option_iff  option.exhaust_sel option.map_sel remove_key_None_iff)
       subgoal
-        apply auto
-        apply (smt (verit, ccfv_threshold) None_eq_map_option_iff node_remove_key_itself_iff option.exhaust_sel option.map_sel option.sel remove_key_None_iff)
-        done
+        by (smt (verit, ccfv_SIG) None_eq_map_option_iff node_remove_key_itself_iff option.exhaust_sel option.map_sel remove_key_None_iff)
       subgoal
-        apply auto
-        by (smt (verit) None_eq_map_option_iff node_remove_key_itself_iff option.exhaust_sel option.map(2) remove_key_None_iff)
+        by (smt (verit, ccfv_SIG) None_eq_map_option_iff node_remove_key_itself_iff option.exhaust_sel option.map_sel remove_key_None_iff)
       subgoal by auto
       subgoal by auto
       subgoal by auto
