@@ -1787,9 +1787,9 @@ proof -
         hp_next_find_key_itself[of h a] has_prev_still_in_remove_key[of h a]
         in_remove_key_changed[of a h]
         hp_parent_itself[of h] remove_key_None_iff[of a h] find_key_head_node_iff[of h m']
-      by (auto simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def hp_update_parents_def
+      by (auto simp add: hp_update_child_def hp_update_prev_def hp_update_nxt_def hp_update_parents_def
         map_option.compositionality comp_def map_option_node_hp_next_remove_key
-        split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
+        split: if_splits simp del: find_key_None_or_itself hp_parent_itself)
     subgoal for m' x'
       using hp_prev_find_key[of h a x']
         in_remove_key_in_nodes[of a h x'] in_find_key_notin_remove_key[of h a x']
@@ -1830,15 +1830,23 @@ proof -
       subgoal
         using node_in_mset_nodes[of \<open>the (hp_next (node m') h)\<close>]
         unfolding eq_commute[of _ x']
-        by (smt (verit) add_diff_cancel_right' distinct_mset_in_diff option.distinct(2) option.sel)+
+        by auto
       subgoal
-        apply (auto simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
+        apply (clarsimp simp add: atomize_not hp_update_child_def hp_update_prev_def hp_update_nxt_def
           map_option.compositionality comp_def map_option_node_hp_prev_remove_key hp_update_parents_def
-          split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
-        using not_None_eq apply blast
-        apply (metis add_diff_cancel_left' distinct_mset_in_diff node_in_mset_nodes)
-        using not_None_eq apply blast
-        apply (metis add_diff_cancel_left' distinct_mset_in_diff node_in_mset_nodes)
+          split: if_splits simp del: find_key_None_or_itself hp_parent_itself)
+        apply (intro conjI impI)
+        apply (auto simp add: atomize_not hp_update_child_def hp_update_prev_def hp_update_nxt_def
+          map_option.compositionality comp_def map_option_node_hp_prev_remove_key hp_update_parents_def
+          split: if_splits simp del: find_key_None_or_itself hp_parent_itself)[51]
+        apply (smt (z3) distinct_mset_iff mset_add node_in_mset_nodes option.distinct(1) option.sel union_mset_add_mset_left union_mset_add_mset_right)
+        apply (auto simp add: atomize_not hp_update_child_def hp_update_prev_def hp_update_nxt_def
+          map_option.compositionality comp_def map_option_node_hp_prev_remove_key hp_update_parents_def
+          split: if_splits simp del: find_key_None_or_itself hp_parent_itself)[3]
+        apply (smt (z3) distinct_mset_iff mset_add node_in_mset_nodes option.distinct(1) option.sel union_mset_add_mset_left union_mset_add_mset_right)
+        apply (auto simp add: atomize_not hp_update_child_def hp_update_prev_def hp_update_nxt_def
+          map_option.compositionality comp_def map_option_node_hp_prev_remove_key hp_update_parents_def
+          split: if_splits simp del: find_key_None_or_itself hp_parent_itself)[24]
         done
       subgoal
         by (auto simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
