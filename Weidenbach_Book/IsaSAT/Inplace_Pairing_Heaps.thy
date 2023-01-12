@@ -1887,22 +1887,18 @@ proof -
             map_option.compositionality comp_def map_option_node_hp_prev_remove_key
             split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
         done
-
-    (*show
-     \<open>(\<forall>m\<in># ?a. \<forall>x \<in># mset_nodes m. fst (snd (snd (snd arr'))) x = map_option node (hp_parent x m))\<close>
-     \<open>(\<forall>m\<in># ?a. \<forall>x \<in># mset_nodes m. snd (snd (snd (snd arr'))) x = map_option score (hp_node x m))\<close>
-      *)
-
-
   next
     fix m' and x'
     assume M': \<open>m'\<in>#?a\<close> \<open>x' \<in># mset_nodes m'\<close>
-    then show \<open>fst (snd (snd arr')) x' = map_option node (hp_child x' m')\<close>
+    moreover have \<open>find_key a h \<noteq> None \<Longrightarrow> distinct_mset (mset_nodes (the (find_key a h)))\<close>
+      by (meson dist distinct_mset_mono' mset_nodes_find_key_subset)
+    ultimately then show \<open>fst (snd (snd arr')) x' = map_option node (hp_child x' m')\<close>
       using childs dist H
         hp_child_find_key[of h a x']
         in_remove_key_in_nodes[of a h x'] in_find_key_notin_remove_key[of h a x']
         in_find_key_in_nodes[of a h x']
         hp_parent_hp_child[of h x'] hp_child_hp_parent[of h x']
+         hp_child_hp_parent[of h x'] (*hp_parent_hp_child[of \<open>the (find_key a h)\<close> x']*)
       unfolding assms(1-5) arr
       using hp_child_remove_key_other[of h a x'] find_key_None_or_itself[of a h]
         hp_next_find_key_itself[of h a] has_prev_still_in_remove_key[of h a]
@@ -1926,13 +1922,14 @@ proof -
       apply (intro conjI impI)
       subgoal by auto
       subgoal by auto
+      subgoal for y ya
+        apply auto
+        using hp_child_hp_parent[of h \<open>the (hp_child _ y)\<close>] hp_parent_itself
+          hp_parent_hp_child[of \<open>the (find_key a h)\<close> x']
+        by (metis option.sel option.simps(3))
       subgoal
         apply auto
-        by (metis Duplicate_Free_Multiset.distinct_mset_mono hp_child_hp_parent hp_parent_hp_child hp_parent_itself
-          mset_nodes_find_key_subset option.distinct(2) option.sel option.simps(8))
-      subgoal
-        apply auto
-        by (metis None_eq_map_option_iff distinct_mset_find_node_next distinct_mset_union hp_child_hp_parent hp_parent_hp_child hp_parent_itself option.discI option.map_sel option.sel)
+        by (metis hp_child_hp_parent hp_parent_itself option.discI option.map_sel option.sel)
       subgoal by auto
       subgoal by auto
       subgoal by auto
