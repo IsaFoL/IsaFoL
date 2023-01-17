@@ -556,7 +556,7 @@ qed
 
 subsection \<open>Backtracking can only be done finitely often\<close>
 
-lemma ex_new_grounding_if_not_redudant:
+(* lemma ex_new_grounding_if_not_redudant:
   assumes not_redundant: "\<not> redundant R N C"
   shows "\<exists>C' \<in> grounding_of_cls C. C' \<notin> grounding_of_clss N"
 proof -
@@ -573,7 +573,7 @@ proof -
     by argo
   with C'_in show ?thesis
     by metis
-qed
+qed *)
 
 (* lemma
   assumes
