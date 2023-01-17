@@ -2229,4 +2229,69 @@ proof -
   qed
 qed
 
+
+text \<open>In the kissat implementation prev and parent are merged.\<close>
+lemma in_node_iff_prev_parent_or_root:
+  assumes \<open>distinct_mset (mset_nodes h)\<close>
+  shows \<open>i \<in># mset_nodes h \<longleftrightarrow> hp_prev i h \<noteq> None \<or> hp_parent i h \<noteq> None \<or> i = node h\<close>
+  using assms
+proof (induction h arbitrary: i)
+  case (Hp x1a x2a x3a) note IH = this(1) and dist = this(2)
+  have ?case if pre:\<open>i \<noteq> x1a\<close> \<open>i \<in># sum_list (map mset_nodes x3a)\<close>
+  proof -
+    obtain c where
+      c: \<open>c \<in> set x3a\<close> and
+      i_c: \<open>i \<in>#mset_nodes c\<close>
+      using pre
+      unfolding in_mset_sum_list_iff
+      by auto
+    have dist_c: \<open>distinct_mset (mset_nodes c)\<close>
+      using c dist by (simp add: distinct_mset_add sum_list_map_remove1)
+
+    obtain ys zs where x3a_def: \<open>x3a = ys @ c # zs\<close>
+      using split_list[OF c] by auto
+    have i_ys: \<open>i \<notin># \<Sum>\<^sub># (mset_nodes `# mset ys)\<close> \<open>i \<notin># sum_list (map mset_nodes zs)\<close>
+      using dist i_c
+      by (auto simp: x3a_def disjunct_not_in distinct_mset_add)
+    have dist_c_zs: \<open>distinct_mset (mset_nodes c + sum_list (map mset_nodes zs))\<close>
+      using WB_List_More.distinct_mset_union2 dist x3a_def by auto
+    consider
+      \<open>i = node c\<close> |
+      \<open>i \<noteq> node c\<close>
+      by blast
+    then show ?case
+    proof cases
+      case 2
+      then have \<open>hp_prev i c \<noteq> None \<Longrightarrow> hp_prev_children i x3a \<noteq> None\<close>
+        using c dist i_c i_ys dist_c_zs by (auto simp: x3a_def hp_prev_children_skip_last_append[of _ \<open>[_]\<close>, simplified])
+
+      moreover have \<open>hp_parent i c \<noteq> None \<Longrightarrow> hp_parent_children i x3a \<noteq> None\<close>
+        using c dist i_c by (auto dest!: split_list simp: hp_parent_children_append_case hp_parent_children_cons
+          split: option.splits)
+      ultimately show ?thesis
+        using i_c 2 IH[of c i, OF c dist_c]
+        by (cases \<open>hp_prev i c\<close>)
+         (auto simp del: hp_prev_None_notin hp_parent_None_notin simp: hp_parent_simps_single_if)
+    next
+      case 1
+       have \<open>hp_prev_children (node c) (ys @ c # zs) = (option_last ys)\<close>
+        using i_ys hp_prev_children_Cons_append_found[of i ys \<open>hps c\<close> zs \<open>score c\<close>] 1 dist_c
+        by (cases c)
+         (auto simp del: hp_prev_children_Cons_append_found)
+      then show ?thesis
+        using c dist i_c i_ys dist_c_zs by (auto dest!: simp: x3a_def 1)
+    qed
+  qed
+  then show ?case
+    using dist IH
+    by (auto simp add: hp_parent_none_children)
+qed
+
+lemma encoded_hp_prop_list_in_node_iff_prev_parent_or_root:
+  assumes \<open>encoded_hp_prop_list_conc arr h\<close> and \<open>h \<noteq> None\<close>
+  shows \<open>i \<in># mset_nodes (the h) \<longleftrightarrow> hp_prev i (the h) \<noteq> None \<or> hp_parent i (the h) \<noteq> None \<or> Some i = snd (snd arr)\<close>
+  using assms in_node_iff_prev_parent_or_root[of \<open>the h\<close> i]
+  by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+    simp del:  hp_prev_None_notin hp_parent_None_notin)
+
 end
