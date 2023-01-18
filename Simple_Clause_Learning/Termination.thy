@@ -554,6 +554,32 @@ next
     by auto
 qed
 
+corollary scl_without_backtrack_terminates'':
+  fixes
+    N :: "('f, 'v) Term.term clause fset" and
+    \<beta> :: "('f, 'v) Term.term"
+  defines
+    "scl_without_backtrack \<equiv> propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion>
+      factorize N \<beta> \<squnion> resolve N \<beta>"
+  assumes strategy_stronger: "\<And>S S'. strategy S S' \<Longrightarrow> scl_without_backtrack S S'"
+  shows "wfp_on {S. strategy\<^sup>*\<^sup>* initial_state S} strategy\<inverse>\<inverse>"
+proof (rule wfp_on_mono_strong)
+  show "wfp_on {S. strategy\<^sup>*\<^sup>* initial_state S} scl_without_backtrack\<inverse>\<inverse>"
+  proof (rule wfp_on_subset)
+    show "wfp_on {S. scl_without_backtrack\<^sup>*\<^sup>* initial_state S} scl_without_backtrack\<inverse>\<inverse>"
+      unfolding scl_without_backtrack_def
+      using scl_without_backtrack_terminates' by metis
+  next
+    show "{S. strategy\<^sup>*\<^sup>* initial_state S} \<subseteq> {S. scl_without_backtrack\<^sup>*\<^sup>* initial_state S}"
+      using strategy_stronger
+      by (metis (no_types, opaque_lifting) Collect_mono mono_rtranclp)
+  qed
+next
+  show "\<And>S' S. strategy\<inverse>\<inverse> S' S \<Longrightarrow> scl_without_backtrack\<inverse>\<inverse> S' S"
+    using strategy_stronger by simp
+qed
+  
+
 subsection \<open>Backtracking can only be done finitely often\<close>
 
 (* lemma ex_new_grounding_if_not_redudant:
@@ -970,6 +996,27 @@ next
     show "(strategy N \<beta>)\<inverse>\<inverse> S' S \<Longrightarrow> (regular_scl N \<beta>)\<inverse>\<inverse> S' S"
       by (simp add: strategy_imp_regular_scl)
   qed
+qed
+
+corollary strategy_terminates':
+  fixes
+    N :: "('f, 'v) Term.term clause fset" and
+    \<beta> :: "('f, 'v) Term.term"
+  assumes strategy_restricts_regular_scl: "\<And>S S'. strategy S S' \<Longrightarrow> regular_scl N \<beta> S S'"
+  shows "wfp_on {S. strategy\<^sup>*\<^sup>* initial_state S} strategy\<inverse>\<inverse>"
+proof (rule wfp_on_mono_strong)
+  show "wfp_on {S. strategy\<^sup>*\<^sup>* initial_state S} (regular_scl N \<beta>)\<inverse>\<inverse>"
+  proof (rule wfp_on_subset)
+    show "wfp_on {S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S} (regular_scl N \<beta>)\<inverse>\<inverse>"
+      using regular_scl_terminates' by metis
+  next
+    show "{S. strategy\<^sup>*\<^sup>* initial_state S} \<subseteq> {S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S}"
+      using strategy_restricts_regular_scl
+      by (metis (no_types, opaque_lifting) Collect_mono mono_rtranclp)
+  qed
+next
+  show "\<And>S' S. strategy\<inverse>\<inverse> S' S \<Longrightarrow> (regular_scl N \<beta>)\<inverse>\<inverse> S' S"
+    using strategy_restricts_regular_scl by simp
 qed
 
 end

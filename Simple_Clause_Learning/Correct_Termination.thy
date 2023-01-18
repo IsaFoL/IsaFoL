@@ -472,6 +472,78 @@ proof -
   qed
 qed
 
+corollary correct_termination_strategy:
+  fixes gnd_N and gnd_N_lt_\<beta>
+  assumes
+    run: "(strategy N \<beta>)\<^sup>*\<^sup>* initial_state S" and
+    no_step: "\<nexists>S'. strategy N \<beta> S S'" and
+    strategy_restricted_by_min_back:
+      "\<And>S S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> strategy N \<beta> S S'" and
+    strategy_preserves_invars:
+      "\<And>N \<beta> S S'. strategy N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
+      "\<And>N \<beta> S S'. strategy N \<beta> S S' \<Longrightarrow> trail_atoms_lt \<beta> S \<Longrightarrow> trail_atoms_lt \<beta> S'"
+      "\<And>N \<beta> S S'. strategy N \<beta> S S' \<Longrightarrow> trail_propagated_or_decided' N \<beta> S \<Longrightarrow> trail_propagated_or_decided' N \<beta> S'"
+      "\<And>N \<beta> S S'. strategy N \<beta> S S' \<Longrightarrow> trail_lits_consistent S \<Longrightarrow> trail_lits_consistent S'"
+      "\<And>N \<beta> S S'. strategy N \<beta> S S' \<Longrightarrow> ground_false_closures S \<Longrightarrow> ground_false_closures S'"
+  defines
+    "gnd_N \<equiv> grounding_of_clss (fset N)" and
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
+  shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
+    satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
+proof -
+  from no_step have no_step': "\<nexists>S'. shortest_backtrack_strategy regular_scl N \<beta> S S'"
+  proof (rule contrapos_nn)
+    show "\<exists>S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> \<exists>S'. strategy N \<beta> S S'"
+      using strategy_restricted_by_min_back by metis
+  qed
+
+  show ?thesis
+  proof (rule correct_termination[of N \<beta> S, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
+    from run show "sound_state N \<beta> S"
+      by (induction S rule: rtranclp_induct) (auto intro: strategy_preserves_invars(1))
+  next
+    from run show "trail_atoms_lt \<beta> S"
+      by (induction S rule: rtranclp_induct) (auto intro: strategy_preserves_invars(2))
+  next
+    from run have "trail_propagated_or_decided' N \<beta> S"
+      by (induction S rule: rtranclp_induct) (auto intro: strategy_preserves_invars(3))
+    thus "trail_propagated_wf (state_trail S)"
+      by (simp add: trail_propagated_or_decided'_def
+          trail_propagated_wf_if_trail_propagated_or_decided)
+  next
+    from run show "trail_lits_consistent S"
+      by (induction S rule: rtranclp_induct) (auto intro: strategy_preserves_invars(4))
+  next
+    from run show "ground_false_closures S"
+      by (induction S rule: rtranclp_induct) (auto intro: strategy_preserves_invars(5))
+  next
+    from no_step' show "\<nexists>S'. conflict N \<beta> S S'"
+      unfolding shortest_backtrack_strategy_def regular_scl_def reasonable_scl_def scl_def
+      using backtrack_well_defined(3) by blast
+  next
+    from no_step' show "\<nexists>S'. propagate N \<beta> S S'"
+      unfolding shortest_backtrack_strategy_def regular_scl_def reasonable_scl_def scl_def
+      using backtrack_well_defined(3) propagate_well_defined(1) propagate_well_defined(6) by blast
+  next
+    from no_step' show "\<nexists>S'. decide N \<beta> S S' \<and> (\<nexists>S''. conflict N \<beta> S' S'')"
+      unfolding shortest_backtrack_strategy_def regular_scl_def reasonable_scl_def scl_def
+      using backtrack_well_defined(2) backtrack_well_defined(3) by blast
+  next
+    from no_step' show "\<nexists>S'. skip N \<beta> S S'"
+      unfolding shortest_backtrack_strategy_def regular_scl_def reasonable_scl_def scl_def
+      using backtrack_well_defined(3) backtrack_well_defined(4) skip_well_defined(2) by blast
+  next
+    from no_step' show "\<nexists>S'. resolve N \<beta> S S'"
+      unfolding shortest_backtrack_strategy_def regular_scl_def reasonable_scl_def scl_def
+      using backtrack_well_defined(3) resolve_well_defined(2) resolve_well_defined(5) by blast
+  next
+    from no_step' show "\<nexists>S'. backtrack N \<beta> S S' \<and>
+    is_shortest_backtrack (fst (the (state_conflict S))) (state_trail S) (state_trail S')"
+      unfolding shortest_backtrack_strategy_def scl_def regular_scl_def reasonable_scl_def
+      using backtrack_well_defined(2) backtrack_well_defined(3) by blast
+  qed
+qed
+
 corollary correct_termination_scl_run:
   fixes gnd_N and gnd_N_lt_\<beta>
   assumes
@@ -482,46 +554,34 @@ corollary correct_termination_scl_run:
     "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
-proof (rule correct_termination[of N \<beta> S, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
-  from run show "sound_state N \<beta> S"
-    by (induction S rule: rtranclp_induct) (simp_all add: scl_preserves_sound_state)
+proof (rule correct_termination_strategy[of _ N \<beta>, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
+  show "(scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
+    by (rule run)
 next
-  from run show "trail_atoms_lt \<beta> S"
-    by (induction S rule: rtranclp_induct) (simp_all add: scl_preserves_trail_atoms_lt)
+  show "\<nexists>S'. scl N \<beta> S S'"
+    by (rule no_step)
 next
-  from run have "trail_propagated_or_decided' N \<beta> S"
-    by (induction S rule: rtranclp_induct) (simp_all add: scl_preserves_trail_propagated_or_decided)
-  thus "trail_propagated_wf (state_trail S)"
-    by (simp add: trail_propagated_or_decided'_def
-        trail_propagated_wf_if_trail_propagated_or_decided)
+  show "\<And>S S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> scl N \<beta> S S'"
+    by (simp add: regular_scl_if_shortest_backtrack_strategy scl_if_regular)
 next
-  from run show "trail_lits_consistent S"
-    by (induction S rule: rtranclp_induct) (simp_all add: scl_preserves_trail_lits_consistent)
+  show "\<And>N \<beta> S S'. scl N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
+    using scl_preserves_sound_state by simp
 next
-  from run show "ground_false_closures S"
-    by (induction S rule: rtranclp_induct) (simp_all add: scl_preserves_ground_false_closures)
+  show "\<And>N \<beta> S S'. scl N \<beta> S S' \<Longrightarrow> trail_atoms_lt \<beta> S \<Longrightarrow> trail_atoms_lt \<beta> S'"
+    using scl_preserves_trail_atoms_lt by simp
 next
-  from no_step show no_new_conflict: "\<nexists>S'. conflict N \<beta> S S'"
-    unfolding scl_def by metis
+  show "\<And>N \<beta> S S'. scl N \<beta> S S' \<Longrightarrow> trail_propagated_or_decided' N \<beta> S \<Longrightarrow>
+    trail_propagated_or_decided' N \<beta> S'"
+    using scl_preserves_trail_propagated_or_decided by simp
 next
-  from no_step show no_new_propagate: "\<nexists>S'. propagate N \<beta> S S'"
-    unfolding scl_def by metis
+  show "\<And>N \<beta> S S'. scl N \<beta> S S' \<Longrightarrow> trail_lits_consistent S \<Longrightarrow> trail_lits_consistent S'"
+    using scl_preserves_trail_lits_consistent by simp
 next
-  from no_step show no_new_decide: "\<nexists>S'. decide N \<beta> S S' \<and> (\<nexists>S''. conflict N \<beta> S' S'')"
-    unfolding scl_def by metis
-next
-  from no_step show no_new_skip: "\<nexists>S'. skip N \<beta> S S'"
-    unfolding scl_def by metis
-next
-  from no_step show no_new_resolve: "\<nexists>S'. resolve N \<beta> S S'"
-    unfolding scl_def by metis
-next
-  from no_step show no_new_backtrack: "\<nexists>S'. backtrack N \<beta> S S' \<and>
-    is_shortest_backtrack (fst (the (state_conflict S))) (state_trail S) (state_trail S')"
-    unfolding scl_def by metis
+  show "\<And>N \<beta> S S'. scl N \<beta> S S' \<Longrightarrow> ground_false_closures S \<Longrightarrow> ground_false_closures S'"
+    using scl_preserves_ground_false_closures by simp
 qed
 
-theorem correct_termination_reasonable_scl_run:
+corollary correct_termination_reasonable_scl_run:
   fixes gnd_N and gnd_N_lt_\<beta>
   assumes
     run: "(reasonable_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
@@ -531,57 +591,34 @@ theorem correct_termination_reasonable_scl_run:
     "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
-proof (rule correct_termination[of N \<beta> S, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
-  from run show "sound_state N \<beta> S"
-    by (induction S rule: rtranclp_induct)
-      (simp_all add: scl_preserves_sound_state[OF scl_if_reasonable])
+proof (rule correct_termination_strategy[of _ N \<beta>, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
+  show "(reasonable_scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
+    by (rule run)
 next
-  from run show "trail_atoms_lt \<beta> S"
-    by (induction S rule: rtranclp_induct)
-      (simp_all add: scl_preserves_trail_atoms_lt[OF scl_if_reasonable])
+  show "\<nexists>S'. reasonable_scl N \<beta> S S'"
+    by (rule no_step)
 next
-  from run have "trail_propagated_or_decided' N \<beta> S"
-    by (induction S rule: rtranclp_induct)
-      (simp_all add: scl_preserves_trail_propagated_or_decided[OF scl_if_reasonable])
-  thus "trail_propagated_wf (state_trail S)"
-    by (simp add: trail_propagated_or_decided'_def
-        trail_propagated_wf_if_trail_propagated_or_decided)
+  show "\<And>S S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> reasonable_scl N \<beta> S S'"
+    by (simp add: reasonable_if_regular regular_scl_if_shortest_backtrack_strategy)
 next
-  from run show "trail_lits_consistent S"
-    by (induction S rule: rtranclp_induct)
-      (simp_all add: scl_preserves_trail_lits_consistent[OF scl_if_reasonable])
+  show "\<And>N \<beta> S S'. reasonable_scl N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
+    using scl_preserves_sound_state[OF scl_if_reasonable] by simp
 next
-  from run show "ground_false_closures S"
-    by (induction S rule: rtranclp_induct)
-      (simp_all add: scl_preserves_ground_false_closures[OF scl_if_reasonable])
+  show "\<And>N \<beta> S S'. reasonable_scl N \<beta> S S' \<Longrightarrow> trail_atoms_lt \<beta> S \<Longrightarrow> trail_atoms_lt \<beta> S'"
+    using scl_preserves_trail_atoms_lt[OF scl_if_reasonable] by simp
 next
-  from no_step show "\<nexists>S'. conflict N \<beta> S S'"
-    unfolding reasonable_scl_def scl_def
-    using conflict_well_defined(2) by blast
+  show "\<And>N \<beta> S S'. reasonable_scl N \<beta> S S' \<Longrightarrow> trail_propagated_or_decided' N \<beta> S \<Longrightarrow>
+    trail_propagated_or_decided' N \<beta> S'"
+    using scl_preserves_trail_propagated_or_decided[OF scl_if_reasonable] by simp
 next
-  from no_step show "\<nexists>S'. propagate N \<beta> S S'"
-    unfolding reasonable_scl_def scl_def
-    using propagate_well_defined(1) by blast
+  show "\<And>N \<beta> S S'. reasonable_scl N \<beta> S S' \<Longrightarrow> trail_lits_consistent S \<Longrightarrow> trail_lits_consistent S'"
+    using scl_preserves_trail_lits_consistent[OF scl_if_reasonable] by simp
 next
-  from no_step show "\<nexists>S'. decide N \<beta> S S' \<and> (\<nexists>S''. conflict N \<beta> S' S'')"
-    unfolding reasonable_scl_def scl_def
-    by blast
-next
-  from no_step show "\<nexists>S'. skip N \<beta> S S'"
-    unfolding reasonable_scl_def scl_def
-    using skip_well_defined(2) by blast
-next
-  from no_step show "\<nexists>S'. resolve N \<beta> S S'"
-    unfolding reasonable_scl_def scl_def
-    using resolve_well_defined(2) by blast
-next
-  from no_step show "\<nexists>S'. backtrack N \<beta> S S' \<and>
-    is_shortest_backtrack (fst (the (state_conflict S))) (state_trail S) (state_trail S')"
-    unfolding reasonable_scl_def scl_def
-    using backtrack_well_defined(2) by blast
+  show "\<And>N \<beta> S S'. reasonable_scl N \<beta> S S' \<Longrightarrow> ground_false_closures S \<Longrightarrow> ground_false_closures S'"
+    using scl_preserves_ground_false_closures[OF scl_if_reasonable] by simp
 qed
 
-theorem correct_termination_regular_scl_run:
+corollary correct_termination_regular_scl_run:
   fixes gnd_N and gnd_N_lt_\<beta>
   assumes
     run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
@@ -591,117 +628,34 @@ theorem correct_termination_regular_scl_run:
     "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
-proof (rule correct_termination[of N \<beta> S, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
-  from run show "sound_state N \<beta> S"
-    by (induction S rule: rtranclp_induct)
-      (simp_all add: scl_preserves_sound_state[OF scl_if_regular])
+proof (rule correct_termination_strategy[of _ N \<beta>, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
+  show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
+    by (rule run)
 next
-  from run show "trail_atoms_lt \<beta> S"
-    by (induction S rule: rtranclp_induct)
-      (simp_all add: scl_preserves_trail_atoms_lt[OF scl_if_regular])
+  show "\<nexists>S'. regular_scl N \<beta> S S'"
+    by (rule no_step)
 next
-  from run have "trail_propagated_or_decided' N \<beta> S"
-    by (induction S rule: rtranclp_induct)
-      (simp_all add: scl_preserves_trail_propagated_or_decided[OF scl_if_regular])
-  thus "trail_propagated_wf (state_trail S)"
-    by (simp add: trail_propagated_or_decided'_def
-        trail_propagated_wf_if_trail_propagated_or_decided)
+  show "\<And>S S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
+    by (simp add: reasonable_if_regular regular_scl_if_shortest_backtrack_strategy)
 next
-  from run show "trail_lits_consistent S"
-    by (induction S rule: rtranclp_induct)
-      (simp_all add: scl_preserves_trail_lits_consistent[OF scl_if_regular])
+  show "\<And>N \<beta> S S'. regular_scl N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
+    using scl_preserves_sound_state[OF scl_if_regular] by simp
 next
-  from run show "ground_false_closures S"
-    by (induction S rule: rtranclp_induct)
-      (simp_all add: scl_preserves_ground_false_closures[OF scl_if_regular])
+  show "\<And>N \<beta> S S'. regular_scl N \<beta> S S' \<Longrightarrow> trail_atoms_lt \<beta> S \<Longrightarrow> trail_atoms_lt \<beta> S'"
+    using scl_preserves_trail_atoms_lt[OF scl_if_regular] by simp
 next
-  from no_step show "\<nexists>S'. conflict N \<beta> S S'"
-    unfolding regular_scl_def reasonable_scl_def scl_def
-    using conflict_well_defined(2) by blast
+  show "\<And>N \<beta> S S'. regular_scl N \<beta> S S' \<Longrightarrow> trail_propagated_or_decided' N \<beta> S \<Longrightarrow>
+    trail_propagated_or_decided' N \<beta> S'"
+    using scl_preserves_trail_propagated_or_decided[OF scl_if_regular] by simp
 next
-  from no_step show "\<nexists>S'. propagate N \<beta> S S'"
-    unfolding regular_scl_def reasonable_scl_def scl_def
-    using propagate_well_defined(1) by blast
+  show "\<And>N \<beta> S S'. regular_scl N \<beta> S S' \<Longrightarrow> trail_lits_consistent S \<Longrightarrow> trail_lits_consistent S'"
+    using scl_preserves_trail_lits_consistent[OF scl_if_regular] by simp
 next
-  from no_step show "\<nexists>S'. decide N \<beta> S S' \<and> (\<nexists>S''. conflict N \<beta> S' S'')"
-    unfolding regular_scl_def reasonable_scl_def scl_def
-    by blast
-next
-  from no_step show "\<nexists>S'. skip N \<beta> S S'"
-    unfolding regular_scl_def reasonable_scl_def scl_def
-    using skip_well_defined(2) by blast
-next
-  from no_step show "\<nexists>S'. resolve N \<beta> S S'"
-    unfolding regular_scl_def reasonable_scl_def scl_def
-    using resolve_well_defined(2) by blast
-next
-  from no_step show "\<nexists>S'. backtrack N \<beta> S S' \<and>
-    is_shortest_backtrack (fst (the (state_conflict S))) (state_trail S) (state_trail S')"
-    unfolding regular_scl_def reasonable_scl_def scl_def
-    using backtrack_well_defined(2) by blast
+  show "\<And>N \<beta> S S'. regular_scl N \<beta> S S' \<Longrightarrow> ground_false_closures S \<Longrightarrow> ground_false_closures S'"
+    using scl_preserves_ground_false_closures[OF scl_if_regular] by simp
 qed
 
-theorem correct_termination_shortest_backtrack_strategy_scl_run:
-  fixes gnd_N and gnd_N_lt_\<beta>
-  assumes
-    run: "(shortest_backtrack_strategy scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
-    no_step: "\<nexists>S'. shortest_backtrack_strategy scl N \<beta> S S'"
-  defines
-    "gnd_N \<equiv> grounding_of_clss (fset N)" and
-    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
-  shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
-    satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
-proof (rule correct_termination[of N \<beta> S, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
-  from run show "sound_state N \<beta> S"
-    by (induction S rule: rtranclp_induct)
-      (auto simp add: scl_preserves_sound_state shortest_backtrack_strategy_def)
-next
-  from run show "trail_atoms_lt \<beta> S"
-    by (induction S rule: rtranclp_induct)
-      (auto simp add: scl_preserves_trail_atoms_lt shortest_backtrack_strategy_def)
-next
-  from run have "trail_propagated_or_decided' N \<beta> S"
-    by (induction S rule: rtranclp_induct)
-      (auto simp add: scl_preserves_trail_propagated_or_decided shortest_backtrack_strategy_def)
-  thus "trail_propagated_wf (state_trail S)"
-    by (simp add: trail_propagated_or_decided'_def
-        trail_propagated_wf_if_trail_propagated_or_decided)
-next
-  from run show "trail_lits_consistent S"
-    by (induction S rule: rtranclp_induct)
-      (auto simp add: scl_preserves_trail_lits_consistent shortest_backtrack_strategy_def)
-next
-  from run show "ground_false_closures S"
-    by (induction S rule: rtranclp_induct)
-      (auto simp add: scl_preserves_ground_false_closures shortest_backtrack_strategy_def)
-next
-  from no_step show "\<nexists>S'. conflict N \<beta> S S'"
-    unfolding shortest_backtrack_strategy_def scl_def
-    using backtrack_well_defined(3) by blast
-next
-  from no_step show "\<nexists>S'. propagate N \<beta> S S'"
-    unfolding shortest_backtrack_strategy_def scl_def
-    using backtrack_well_defined(1) by blast
-next
-  from no_step show "\<nexists>S'. decide N \<beta> S S' \<and> (\<nexists>S''. conflict N \<beta> S' S'')"
-    unfolding shortest_backtrack_strategy_def scl_def
-    using decide_well_defined(6) by blast
-next
-  from no_step show "\<nexists>S'. skip N \<beta> S S'"
-    unfolding shortest_backtrack_strategy_def scl_def
-    using backtrack_well_defined(4) by blast
-next
-  from no_step show "\<nexists>S'. resolve N \<beta> S S'"
-    unfolding shortest_backtrack_strategy_def scl_def
-    using backtrack_well_defined(6) by blast
-next
-  from no_step show "\<nexists>S'. backtrack N \<beta> S S' \<and>
-    is_shortest_backtrack (fst (the (state_conflict S))) (state_trail S) (state_trail S')"
-    unfolding shortest_backtrack_strategy_def scl_def
-    by blast
-qed
-
-theorem correct_termination_shortest_backtrack_strategy_regular_scl:
+corollary correct_termination_shortest_backtrack_strategy_regular_scl:
   fixes gnd_N and gnd_N_lt_\<beta>
   assumes
     run: "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
@@ -711,57 +665,36 @@ theorem correct_termination_shortest_backtrack_strategy_regular_scl:
     "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
-proof (rule correct_termination[of N \<beta> S, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
-  from run show "sound_state N \<beta> S"
-    by (induction S rule: rtranclp_induct)
-      (auto simp: scl_preserves_sound_state[OF scl_if_regular] shortest_backtrack_strategy_def)
+proof (rule correct_termination_strategy[of _ N \<beta>, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
+  show "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
+    by (rule run)
 next
-  from run show "trail_atoms_lt \<beta> S"
-    by (induction S rule: rtranclp_induct)
-      (auto simp: scl_preserves_trail_atoms_lt[OF scl_if_regular] shortest_backtrack_strategy_def)
+  show "\<nexists>S'. shortest_backtrack_strategy regular_scl N \<beta> S S'"
+    by (rule no_step)
 next
-  from run have "trail_propagated_or_decided' N \<beta> S"
-    by (induction S rule: rtranclp_induct)
-      (auto simp: scl_preserves_trail_propagated_or_decided[OF scl_if_regular]
-        shortest_backtrack_strategy_def)
-  thus "trail_propagated_wf (state_trail S)"
-    by (simp add: trail_propagated_or_decided'_def
-        trail_propagated_wf_if_trail_propagated_or_decided)
+  show "\<And>S S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> shortest_backtrack_strategy regular_scl N \<beta> S S'"
+    by simp
 next
-  from run show "trail_lits_consistent S"
-    by (induction S rule: rtranclp_induct)
-      (auto simp: scl_preserves_trail_lits_consistent[OF scl_if_regular]
-        shortest_backtrack_strategy_def)
+  show "\<And>N \<beta> S S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
+    using scl_preserves_sound_state[OF scl_if_regular]
+    by (auto simp: shortest_backtrack_strategy_def)
 next
-  from run show "ground_false_closures S"
-    by (induction S rule: rtranclp_induct)
-      (auto simp: scl_preserves_ground_false_closures[OF scl_if_regular]
-        shortest_backtrack_strategy_def)
+  show "\<And>N \<beta> S S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> trail_atoms_lt \<beta> S \<Longrightarrow> trail_atoms_lt \<beta> S'"
+    using scl_preserves_trail_atoms_lt[OF scl_if_regular]
+    by (auto simp: shortest_backtrack_strategy_def)
 next
-  from no_step show "\<nexists>S'. conflict N \<beta> S S'"
-    unfolding shortest_backtrack_strategy_def regular_scl_def reasonable_scl_def scl_def
-    using backtrack_well_defined(3) by blast
+  show "\<And>N \<beta> S S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> trail_propagated_or_decided' N \<beta> S \<Longrightarrow>
+    trail_propagated_or_decided' N \<beta> S'"
+    using scl_preserves_trail_propagated_or_decided[OF scl_if_regular]
+    by (auto simp: shortest_backtrack_strategy_def)
 next
-  from no_step show "\<nexists>S'. propagate N \<beta> S S'"
-    unfolding shortest_backtrack_strategy_def regular_scl_def reasonable_scl_def scl_def
-    using backtrack_well_defined(3) propagate_well_defined(1) propagate_well_defined(6) by blast
+  show "\<And>N \<beta> S S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> trail_lits_consistent S \<Longrightarrow> trail_lits_consistent S'"
+    using scl_preserves_trail_lits_consistent[OF scl_if_regular]
+    by (auto simp: shortest_backtrack_strategy_def)
 next
-  from no_step show "\<nexists>S'. decide N \<beta> S S' \<and> (\<nexists>S''. conflict N \<beta> S' S'')"
-    unfolding shortest_backtrack_strategy_def regular_scl_def reasonable_scl_def scl_def
-    using backtrack_well_defined(2) backtrack_well_defined(3) by blast
-next
-  from no_step show "\<nexists>S'. skip N \<beta> S S'"
-    unfolding shortest_backtrack_strategy_def regular_scl_def reasonable_scl_def scl_def
-    using backtrack_well_defined(3) backtrack_well_defined(4) skip_well_defined(2) by blast
-next
-  from no_step show "\<nexists>S'. resolve N \<beta> S S'"
-    unfolding shortest_backtrack_strategy_def regular_scl_def reasonable_scl_def scl_def
-    using backtrack_well_defined(3) resolve_well_defined(2) resolve_well_defined(5) by blast
-next
-  from no_step show "\<nexists>S'. backtrack N \<beta> S S' \<and>
-    is_shortest_backtrack (fst (the (state_conflict S))) (state_trail S) (state_trail S')"
-    unfolding shortest_backtrack_strategy_def scl_def regular_scl_def reasonable_scl_def
-    using backtrack_well_defined(2) backtrack_well_defined(3) by blast
+  show "\<And>N \<beta> S S'. shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> ground_false_closures S \<Longrightarrow> ground_false_closures S'"
+    using scl_preserves_ground_false_closures[OF scl_if_regular]
+    by (auto simp: shortest_backtrack_strategy_def)
 qed
 
 end

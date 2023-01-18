@@ -2242,16 +2242,14 @@ proof -
     by argo
 qed
 
-corollary learned_clauses_in_regular_runs_static_order:
+lemma before_regular_backtrack':
   assumes
     run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
     step: "backtrack N \<beta> S S'"
-  defines
-    "U \<equiv> state_learned S"
-  shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S' \<and>
-    (\<exists>C \<gamma>. state_conflict S = Some (C, \<gamma>) \<and>
-    C \<notin> fset N \<union> fset U \<and>
-    \<not> redundant (\<subset>#) (fset N \<union> fset U) C)"
+  shows "\<exists>S0 S1 S2 S3 S4. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0 \<and>
+    propagate N \<beta> S0 S1 \<and> regular_scl N \<beta> S0 S1 \<and>
+    conflict N \<beta> S1 S2 \<and> (factorize N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and> resolve N \<beta> S3 S4 \<and>
+    (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S"
 proof -
   from run have "sound_state N \<beta> S"
     by (induction S rule: rtranclp_induct)
@@ -2270,6 +2268,30 @@ proof -
       (simp_all add: scl_preserves_ground_false_closures[OF scl_if_regular])
 
   ultimately obtain S0 S1 S2 S3 S4 where
+    run_S0: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+    propa: "propagate N \<beta> S0 S1" "regular_scl N \<beta> S0 S1" and
+    confl: "conflict N \<beta> S1 S2" and
+    facto: "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3" and
+    resol: "resolve N \<beta> S3 S4" and
+    reg_res: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S"
+    using before_regular_backtrack[OF step] by blast
+
+  thus ?thesis
+    by metis
+qed
+
+corollary learned_clauses_in_regular_runs_static_order:
+  assumes
+    run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
+    step: "backtrack N \<beta> S S'"
+  defines
+    "U \<equiv> state_learned S"
+  shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S' \<and>
+    (\<exists>C \<gamma>. state_conflict S = Some (C, \<gamma>) \<and>
+    C \<notin> fset N \<union> fset U \<and>
+    \<not> redundant (\<subset>#) (fset N \<union> fset U) C)"
+proof -
+  from before_regular_backtrack'[OF run step] obtain S0 S1 S2 S3 S4 where
     run_S0: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
     propa: "propagate N \<beta> S0 S1" "regular_scl N \<beta> S0 S1" and
     confl: "conflict N \<beta> S1 S2" and
