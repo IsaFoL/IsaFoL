@@ -2783,6 +2783,10 @@ qed
 interpretation neg_ext_sound_cons_rel: consequence_relation "Pos bot" sound_cons.entails_neg
   using sound_cons.ext_cons_rel by simp
 
+
+(* TODO: move in fset theory? *)
+lemma fin_set_fset: "finite A \<Longrightarrow> \<exists>Af. fset Af = A" by (metis finite_list fset_of_list.rep_eq)
+
 (* Splitting report Lemma 4, 2/2 *)
 interpretation AF_sound_cons_rel: consequence_relation "to_AF bot" AF_entails_sound
 proof
@@ -2913,7 +2917,7 @@ next
         mjp_entails_np: \<open>sound_cons.entails_neg  MJ' N'\<close>
         using neg_ext_sound_cons_rel.entails_compactness by metis
 
-      define M' where "M' = MJ' \<inter> Pos ` (\<M> proj\<^sub>J J)" (*{C \<in> MJ'. \<exists>\<C> \<in> \<M>. Pos (F_of \<C>) = C}" *)
+      define M' where "M' = MJ' \<inter> Pos ` (\<M> proj\<^sub>J J)"
       then have mp_fin: \<open>finite M'\<close>
         using mjp_fin by auto
       have mp_with_f_of: \<open>\<forall>C \<in> M'. \<exists>\<C> \<in> \<M>. Pos (F_of \<C>) = C \<and> enabled \<C> J\<close> 
@@ -2925,11 +2929,28 @@ next
         unfolding enabled_projection_def enabled_set_def by blast 
       then obtain \<M>' where mp_props: \<open>\<M>' \<subseteq> \<M>\<close> \<open>finite \<M>'\<close> \<open>Pos ` (\<M>' proj\<^sub>J J) = M'\<close> by auto
 
-      define J' where "J' = MJ' \<inter> fml_ext ` total_strip J"
+      let ?\<M>'_sel\<^sub>J = \<open>{\<C>. \<C> \<in> \<M>' \<and> enabled \<C> J}\<close>
+      have \<open>?\<M>'_sel\<^sub>J \<subseteq> \<M>'\<close> by simp
+      have \<open>finite (\<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> ?\<M>'_sel\<^sub>J})\<close> (*{a. \<exists>\<C>\<in>\<N>'. a \<in> (fset (A_of \<C>)) }\<close>*)
+        using mp_props by auto
+      then obtain \<A>\<^sub>\<M>\<^sub>' where AM_is: \<open>fset \<A>\<^sub>\<M>\<^sub>' = (\<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> ?\<M>'_sel\<^sub>J})\<close>
+        using fin_set_fset by fastforce 
+      then have AM_in_J: \<open>fset \<A>\<^sub>\<M>\<^sub>' \<subseteq> total_strip J\<close>
+        unfolding enabled_def by blast 
+      define J' where "J' = (MJ' \<inter> fml_ext ` total_strip J)"
       then have jp_fin: \<open>finite J'›
         using mjp_fin by blast
       then obtain \<J>' where jp_props: "\<J>' \<subseteq> total_strip J" "fml_ext ` \<J>' = J'" "finite \<J>'"
         using J'_def by (metis Int_lower2 finite_subset_image)
+      then obtain \<A>\<^sub>\<J>\<^sub>' where AJ_is: \<open>fset \<A>\<^sub>\<J>\<^sub>' = \<J>'\<close>
+        using fin_set_fset by blast 
+      then have AJ_in_J: \<open>fset \<A>\<^sub>\<J>\<^sub>' \<subseteq> total_strip J\<close>
+        using jp_props by auto
+      define \<J>\<^sub>f' where \<open>\<J>\<^sub>f' = Pair bot (\<A>\<^sub>\<J>\<^sub>' |\<union>| \<A>\<^sub>\<M>\<^sub>')\<close> 
+      then have Jf_in: \<open>fset (A_of \<J>\<^sub>f') \<subseteq> total_strip J\<close> using AM_in_J AJ_in_J by simp 
+      have Jf_bot: \<open>F_of \<J>\<^sub>f' = bot\<close> using \<J>\<^sub>f'_def by auto 
+      have AM_in_Jf: \<open>\<forall>\<C>\<in>\<M>'. enabled \<C> J \<longrightarrow> fset (A_of \<C>) \<subseteq> fset (A_of \<J>\<^sub>f')\<close>
+        using \<J>\<^sub>f'_def AM_is by auto 
 
       have np_with_f_of: \<open>\<forall>C \<in> N'. \<exists>\<C> \<in> \<N>. Pos (F_of \<C>) = C\<close> 
         using np_proj unfolding enabled_projection_def by blast
@@ -2942,32 +2963,28 @@ next
 
       have mjp_is: \<open>MJ' = Pos ` (\<M>' proj\<^sub>J J) \<union> fml_ext ` \<J>'\<close>
         using mj_in M'_def J'_def mp_props jp_props by auto
-      have fin_entail: \<open>sound_cons.entails_neg ((Pos ` (\<M>' proj\<^sub>J J))\<union> fml_ext ` \<J>') (Pos ` F_of ` \<N>')\<close>
-        using np_props mjp_entails_np unfolding mjp_is by blast 
+      have \<open>sound_cons.entails_neg ((Pos ` (\<M>' proj\<^sub>J J))\<union> fml_ext ` \<J>') (Pos ` F_of ` \<N>')\<close>
+        using np_props mjp_entails_np unfolding mjp_is by blast
+      then have fin_entail: \<open>sound_cons.entails_neg ((Pos ` (\<M>' proj\<^sub>J J))\<union> fml_ext ` (fset (A_of \<J>\<^sub>f'))) (Pos ` F_of ` \<N>')\<close>
+        using neg_ext_sound_cons_rel.entails_subsets[of
+          "(Pos ` (\<M>' proj\<^sub>J J))\<union> fml_ext ` \<J>'" "(Pos ` (\<M>' proj\<^sub>J J))\<union> fml_ext ` (fset (A_of \<J>\<^sub>f'))"
+          "Pos ` F_of ` \<N>'" "Pos ` F_of ` \<N>'"] AJ_is unfolding \<J>\<^sub>f'_def by (simp add: image_Un subsetI) 
 
-      have \<open>\<exists>\<M>' \<N>' \<J>'. \<M>' \<subseteq> \<M> \<and> \<J>' \<subseteq> total_strip J \<and> \<N>' \<subseteq> \<N> \<and>
-        finite \<M>' \<and> finite \<J>' \<and> finite \<N>' \<and>
-        sound_cons.entails_neg ((Pos ` (\<M>' proj\<^sub>J J))\<union> fml_ext ` \<J>') (Pos ` F_of ` \<N>') \<and>
-        enabled_set \<N>' J\<close>
-        using mp_props jp_props np_props fin_entail enab_np by blast
+      have \<open>\<exists>\<M>' \<N>' \<J>'. \<M>' \<subseteq> \<M> \<and> fset (A_of \<J>') \<subseteq> total_strip J \<and> \<N>' \<subseteq> \<N> \<and>
+        finite \<M>'  \<and> finite \<N>' \<and> F_of \<J>' = bot \<and> enabled_set \<N>' J \<and>
+        (\<forall>\<C>\<in>\<M>'. enabled \<C> J \<longrightarrow> fset (A_of \<C>) \<subseteq> fset (A_of \<J>')) \<and>
+        sound_cons.entails_neg ((Pos ` (\<M>' proj\<^sub>J J))\<union> fml_ext ` (fset (A_of \<J>'))) (Pos ` F_of ` \<N>')\<close>
+        using mp_props np_props fin_entail enab_np Jf_in Jf_bot \<J>\<^sub>f'_def AJ_is AM_is AM_in_Jf AF.sel(2) by blast 
     }
         
-    (* In the pen-and-paper proof, the \<J>'_of function is left vague, but in Isabelle the last
-          conjunct that fully defines it is extremelly important. Non trivial is the addition of
-          constraints from the enabled formulas in \<M>'_of J, but it is necessary to ensure that
-          \<open>(\<M>'_of J') proj\<^sub>J J' \<subseteq> (\<M>'_of J') proj\<^sub>J J\<close> close to the end of the proof*)
- (*   then obtain \<M>'_of \<N>'_of \<J>'_of where 
-      fsets_from_J: \<open>enabled_set \<N> J \<Longrightarrow> \<M>'_of J \<subseteq> \<M> \<and> \<N>'_of J \<subseteq> \<N> \<and> finite (\<M>'_of J) \<and> 
-      finite (\<N>'_of J) \<and> (\<M>'_of J) proj\<^sub>J J \<Turnstile> F_of ` (\<N>'_of J) \<and> enabled_set (\<N>'_of J) J \<and>
-      F_of (\<J>'_of J) = bot \<and> (\<forall>a\<in>fset (A_of (\<J>'_of J)). a \<in>\<^sub>t J) \<and>
-      (fset (A_of (\<J>'_of J)) = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> (\<N>'_of J) \<union>
-        {\<C>. \<C> \<in> (\<M>'_of J) \<and> enabled \<C> J}})\<close> for J 
-      using three_skolems[of "\<lambda>U. enabled_set \<N> U" 
-        "\<lambda>J \<M>' \<N>' \<J>'. \<M>' \<subseteq> \<M> \<and> \<N>' \<subseteq> \<N> \<and> finite \<M>' \<and> finite \<N>' \<and> \<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>' \<and> 
-        enabled_set \<N>' J \<and> F_of \<J>' = bot \<and> (\<forall>a\<in>fset (A_of \<J>'). a \<in>\<^sub>t J) \<and>
-        (fset (A_of \<J>') = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> \<N>' \<union> {\<C>. \<C> \<in> \<M>' \<and> enabled \<C> J}})"]
-      by force
-        
+          (* enabled_set (\<N>'_of J) J could be removed since it is a consequence of enabled_set \<N> J and the subset relation *)
+    then obtain \<M>'_of \<N>'_of \<J>'_of where 
+      fsets_from_J: \<open>enabled_set \<N> J \<Longrightarrow> \<M>'_of J \<subseteq> \<M> \<and> fset (A_of (\<J>'_of J)) \<subseteq> total_strip J \<and> \<N>'_of J \<subseteq> \<N> \<and>
+      finite (\<M>'_of J) \<and> finite (\<N>'_of J) \<and> F_of (\<J>'_of J) = bot \<and> enabled_set (\<N>'_of J) J \<and>
+      (\<forall>\<C>\<in>(\<M>'_of J). enabled \<C> J \<longrightarrow> fset (A_of \<C>) \<subseteq> fset (A_of (\<J>'_of J))) \<and>
+      sound_cons.entails_neg (Pos ` (\<M>'_of J proj\<^sub>J J) \<union> fml_ext ` (fset (A_of (\<J>'_of J)))) (Pos ` F_of ` \<N>'_of J) \<close> for J 
+      by metis
+    
     let ?\<J>'_set = \<open>{\<J>'_of J |J. enabled_set \<N> J}\<close>
     have ex_Js: \<open>\<exists>Js. ?\<J>'_set = \<J>'_of ` Js \<and> (\<forall>J\<in>Js. enabled_set \<N> J)\<close>
       by blast
@@ -2975,7 +2992,7 @@ next
       using fsets_from_J unfolding propositional_projection_def by blast
     let ?\<N>'_un = \<open>\<Union>{\<N>'_of J |J. enabled_set \<N> J}\<close>
     let ?\<M>'_un = \<open>\<Union>{{\<C>. \<C> \<in> \<M>'_of J \<and> enabled \<C> J} |J. enabled_set \<N> J}\<close>
-    have A_of_enabled: \<open>enabled_set \<N> J \<Longrightarrow> (fset (A_of (\<J>'_of J)) =
+ (*   have A_of_enabled: \<open>enabled_set \<N> J \<Longrightarrow> (fset (A_of (\<J>'_of J)) =
       \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> (\<N>'_of J) \<union> {\<C>. \<C> \<in> (\<M>'_of J) \<and> enabled \<C> J}})\<close> for J
       using fsets_from_J by presburger
     have A_of_eq: \<open>\<Union> (fset ` A_of ` ?\<J>'_set) = 
@@ -2990,7 +3007,7 @@ next
       finally show \<open>\<Union>(fset ` A_of ` ?\<J>'_set) =
         \<Union>(fset ` A_of ` ?\<N>'_un) \<union> \<Union> (fset ` A_of ` ?\<M>'_un)\<close>
         by simp
-    qed
+    qed *)
       
     have \<open>\<forall>J. \<not> (enabled_set \<N> J) \<longrightarrow> \<not> (J \<Turnstile>\<^sub>p2 (\<E>_from \<N>))\<close>
       using equiv_\<E>_enabled_\<N> by blast
@@ -3056,7 +3073,7 @@ next
         obtain J where enab_J: \<open>enabled_set \<N> J\<close> and \<open>\<C>2 = \<J>'_of J\<close>
           using C2_in unfolding \<S>\<^sub>\<J>_def by blast
         then have \<open>b \<in> total_strip J\<close>
-          using b_in fsets_from_J by auto
+          using b_in fsets_from_J by (meson basic_trans_rules(31))
         then show \<open>\<exists>J. enabled_set \<N> J \<and> b \<in> total_strip J\<close>
           using enab_J by blast
       qed
@@ -3147,7 +3164,6 @@ next
       by blast
     then obtain f where f_def: \<open>\<forall>a\<in>(\<Union>(fset ` A_of ` \<N>)). f a \<in> \<N> \<and> a \<in> fset (A_of (f a))\<close>
       by metis
-        (* the fact that \<N>\<^sub>\<J> is needed in the proof was found during the isabelle verification *)
     define \<N>\<^sub>\<J> where \<open>\<N>\<^sub>\<J> = (f ` (\<Union>(fset ` A_of ` \<S>\<^sub>\<J>) \<inter> \<Union>(fset ` A_of ` \<N>)))\<close>
     have nj_fin: \<open>finite \<N>\<^sub>\<J>\<close>
       unfolding \<N>\<^sub>\<J>_def using fin_inter by blast
@@ -3167,7 +3183,7 @@ next
       unfolding \<M>'_def using fsets_from_J Js_fin Js_enab by auto
     moreover have \<open>finite \<N>'\<close>
       unfolding \<N>'_def using fsets_from_J Js_fin Js_enab nj_fin by auto
-    moreover have \<open>\<M>' \<Turnstile>\<^sub>A\<^sub>F \<N>'\<close> unfolding AF_entails_def
+    moreover have \<open>\<M>' \<Turnstile>s\<^sub>A\<^sub>F \<N>'\<close> unfolding AF_entails_sound_def
     proof clarsimp
       fix J
       assume enab_N': \<open>enabled_set \<N>' J\<close>
@@ -3206,7 +3222,7 @@ next
         by blast
       then have enab_nj': \<open>enabled_set \<N> J'\<close>
         using Js_enab by blast
-      then have \<open>(\<M>'_of J') proj\<^sub>J J' \<Turnstile> F_of ` (\<N>'_of J')\<close>
+      then have \<open>sound_cons.entails_neg (Pos ` (\<M>'_of J' proj\<^sub>J J') \<union> fml_ext ` (fset (A_of (\<J>'_of J')))) (Pos ` F_of ` \<N>'_of J')\<close>
         using fsets_from_J by auto
       moreover have \<open>(\<M>'_of J') proj\<^sub>J J' \<subseteq> (\<M>'_of J') proj\<^sub>J J\<close>
       proof -
@@ -3226,19 +3242,23 @@ next
         then show \<open>(\<M>'_of J') proj\<^sub>J J' \<subseteq> (\<M>'_of J') proj\<^sub>J J\<close>
           unfolding enabled_projection_def by blast
       qed
-      ultimately have entails_one: \<open>(\<M>'_of J') proj\<^sub>J J \<Turnstile> F_of ` (\<N>'_of J')\<close>
-        using entails_subsets by blast
-      have subs_M: \<open>\<M>'_of J' proj\<^sub>J J \<subseteq> \<M>' proj\<^sub>J J\<close>
-        using J'_in using enabled_projection_def unfolding \<M>'_def by auto
-      have subs_N: \<open>F_of ` (\<N>'_of J') \<subseteq> F_of ` \<N>'\<close>
+      ultimately have entails_one:  \<open>sound_cons.entails_neg
+        (Pos ` (\<M>'_of J' proj\<^sub>J J) \<union> fml_ext ` (fset (A_of (\<J>'_of J')))) (Pos ` F_of ` \<N>'_of J')\<close>
+        using sound_cons.entails_subsets
+        by (smt (verit, ccfv_SIG) Un_absorb1 Un_assoc Un_left_commute image_Un
+          neg_ext_sound_cons_rel.entails_subsets subset_refl sup.cobounded1)
+      have subs_MJ: \<open>Pos ` (\<M>'_of J' proj\<^sub>J J) \<union> fml_ext ` (fset (A_of (\<J>'_of J'))) \<subseteq> Pos ` (\<M>' proj\<^sub>J J) \<union> fml_ext ` (total_strip J)\<close>
+        using J'_in A_of_J'_in using enabled_projection_def unfolding \<M>'_def by auto
+      have subs_N: \<open>Pos ` F_of ` (\<N>'_of J') \<subseteq> Pos ` F_of ` \<N>'\<close>
         using J'_in unfolding \<N>'_def by blast
-      show \<open>\<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>'\<close>
-        using entails_subsets[OF subs_M subs_N entails_one] .
+      show \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` (\<M>' proj\<^sub>J J))
+        (Pos ` F_of ` \<N>')\<close>
+        using neg_ext_sound_cons_rel.entails_subsets[OF subs_MJ subs_N entails_one] by (simp add: Un_commute)
     qed
 
-    ultimately *)
+    ultimately
     show \<open>\<exists>\<M>' \<N>'. \<M>' \<subseteq> \<M> \<and> \<N>' \<subseteq> \<N> \<and> finite \<M>' \<and> finite \<N>' \<and> \<M>' \<Turnstile>s\<^sub>A\<^sub>F \<N>'\<close>
-      sorry
+      by blast 
   qed
 qed
 
