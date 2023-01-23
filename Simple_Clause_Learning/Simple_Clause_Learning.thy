@@ -1111,6 +1111,9 @@ definition is_decision_lit
 definition trail_interp :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term interp" where
   "trail_interp \<Gamma> = \<Union>((\<lambda>L. case L of Pos A \<Rightarrow> {A} | Neg A \<Rightarrow> {}) ` fst ` set \<Gamma>)"
 
+lemma "trail_interp \<Gamma> = (\<Union>Ln \<in> set \<Gamma>. case fst Ln of Pos t \<Rightarrow> {t} | Neg t \<Rightarrow> {})"
+  unfolding trail_interp_def by simp
+
 definition trail_true_lit :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> bool" where
   "trail_true_lit \<Gamma> L \<longleftrightarrow> L \<in> fst ` set \<Gamma>"
 
