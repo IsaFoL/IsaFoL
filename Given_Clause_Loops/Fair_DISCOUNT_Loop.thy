@@ -16,7 +16,7 @@ theory Fair_DISCOUNT_Loop
 begin
 
 
-section \<open>Locale\<close>
+subsection \<open>Locale\<close>
 
 type_synonym ('p, 'f) DLf_state = "'p \<times> 'f option \<times> 'f fset"
 

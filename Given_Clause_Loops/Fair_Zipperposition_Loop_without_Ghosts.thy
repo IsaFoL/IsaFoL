@@ -155,7 +155,7 @@ lemma is_initial_ZLf_wo_ghosts_state_imp_is_initial_ZLf_state:
 end
 
 
-subsection \<open>Abstract Nonsense for Ghost–Ghostless Conversion\<close>
+subsection \<open>Abstract Nonsense for Ghost--Ghostless Conversion\<close>
 
 text \<open>This subsection was originally contributed by Andrei Popescu.\<close>
 
@@ -276,7 +276,7 @@ qed
 end
 
 
-subsection \<open>Ghost–Ghostless Conversions, the Concrete Version\<close>
+subsection \<open>Ghost--Ghostless Conversions, the Concrete Version\<close>
 
 context fair_zipperposition_loop_wo_ghosts
 begin

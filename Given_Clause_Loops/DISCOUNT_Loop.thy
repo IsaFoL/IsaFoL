@@ -369,7 +369,7 @@ next
 qed
 
 
-section \<open>Completeness\<close>
+subsection \<open>Completeness\<close>
 
 theorem
   assumes
