@@ -1,10 +1,13 @@
 (* Title:        More Lemmas about Given Clause Architectures 
    Authors:      Qi Qiu, 2021
-                 Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+                 Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022-2023
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
 section \<open>More Lemmas about Given Clause Architectures\<close>
+
+text \<open>This section proves lemmas about Tourret's formalization of the abstract
+given clause procedures @{text GC} and @{text LGC}.\<close>
 
 theory More_Given_Clause_Architectures
   imports Saturation_Framework.Given_Clause_Architectures

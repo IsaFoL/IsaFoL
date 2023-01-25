@@ -1,13 +1,13 @@
 (* Title:        Completeness of Fair Otter Loop
-   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022-2023
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
 section \<open>Completeness of Fair Otter Loop\<close>
 
-text \<open>The Otter loop is a special case of the iProver loop, with one rule less.
-We can therefore reuse the iProver completeness result to establish the
-completeness of the Otter loop.\<close>
+text \<open>The Otter loop is a special case of the iProver loop, with fewer rules.
+We can therefore reuse the fair iProver loop's completeness result to derive the
+(dynamic) refutational completeness of the fair Otter loop.\<close>
 
 theory Fair_Otter_Loop_Complete
   imports Fair_iProver_Loop

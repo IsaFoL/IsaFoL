@@ -1,9 +1,12 @@
 (* Title:        Fair DISCOUNT Loop
-   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022-2023
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
 section \<open>Fair DISCOUNT Loop\<close>
+
+text \<open>The fair DISCOUNT loop assumes that the passive queue is fair and
+ensures (dynamic) refutational completeness under that assumption.\<close>
 
 theory Fair_DISCOUNT_Loop
   imports

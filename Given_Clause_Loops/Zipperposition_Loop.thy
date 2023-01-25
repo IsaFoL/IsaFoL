@@ -1,10 +1,15 @@
 (* Title:        Zipperposition Loop with Ghost State
    Authors:      Qi Qiu, 2021
-                 Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+                 Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022-2023
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
 section \<open>Zipperposition Loop with Ghost State\<close>
+
+text \<open>The Zipperposition loop is a variant of the DISCOUNT loop that can cope
+with inferences generating (countably) infinitely many conclusions. The version
+formalized here has an additional ghost component @{text D} in its state tuple,
+which is used in the refinement proof from the abstract procedure @{text LGC}.\<close>
 
 theory Zipperposition_Loop
   imports DISCOUNT_Loop

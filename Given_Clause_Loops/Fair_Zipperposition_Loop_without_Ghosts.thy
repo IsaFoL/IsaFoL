@@ -1,15 +1,17 @@
 (* Title:        Fair Zipperposition Loop without Ghosts
-   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022-2023
                  Andrei Popescu <a.popescu at sheffield.ac.uk>, 2022
-   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
 section \<open>Fair Zipperposition Loop without Ghosts\<close>
 
+text \<open>This version of the fair Zipperposition loop eliminates the ghost state
+component @{text D}, thus confirming that @{text D} is indeed a ghost.\<close>
+
 theory Fair_Zipperposition_Loop_without_Ghosts
   imports Fair_Zipperposition_Loop
 begin
-
 
 subsection \<open>Locale\<close>
 

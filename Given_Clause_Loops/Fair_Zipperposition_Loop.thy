@@ -1,9 +1,9 @@
-(* Title:        Fair Zipperposition Loop
-   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+(* Title:        Fair Zipperposition Loop with Ghosts
+   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022-2023
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
-section \<open>Fair Zipperposition Loop\<close>
+section \<open>Fair Zipperposition Loop with Ghosts\<close>
 
 theory Fair_Zipperposition_Loop
   imports
@@ -12,6 +12,10 @@ theory Fair_Zipperposition_Loop
     Prover_Lazy_List_Queue
 begin
 
+text \<open>The fair Zipperposition loop makes assumptions about the scheduled
+inference queue and the passive clause queue and ensures (dynamic) refutational
+completeness under these assumptions. This version inherits the ghost state
+component from the ``unfair'' version of the loop.\<close>
 
 subsection \<open>Locale\<close>
 

@@ -1,10 +1,13 @@
 (* Title:        DISCOUNT Loop
    Authors:      Qi Qiu, 2021
-                 Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+                 Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022-2023
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
 section \<open>DISCOUNT Loop\<close>
+
+text \<open>The DISCOUNT loop is one of the two best-known given clause procedures. It
+is formalized as an instance of the abstract procedure @{text LGC}.\<close>
 
 theory DISCOUNT_Loop
   imports

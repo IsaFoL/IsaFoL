@@ -1,9 +1,12 @@
 (* Title:        Utilities for Given Clause Loops
-   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022-2023
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
 section \<open>Utilities for Given Clause Loops\<close>
+
+text \<open>This section contains various lemmas used by the rest of the formalization
+of given clause procedures.\<close>
 
 theory Given_Clause_Loops_Util
   imports
@@ -13,7 +16,6 @@ theory Given_Clause_Loops_Util
     Weighted_Path_Order.Multiset_Extension_Pair
     Lambda_Free_RPOs.Lambda_Free_Util
 begin
-
 
 hide_const (open) Seq.chain
 

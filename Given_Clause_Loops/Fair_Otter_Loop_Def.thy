@@ -1,9 +1,13 @@
 (* Title:        Definition of Fair Otter Loop
-   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022-2023
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
 section \<open>Definition of Fair Otter Loop\<close>
+
+text \<open>The fair Otter loop assumes that the passive queue is fair and ensures
+(dynamic) refutational completeness under that assumption. This section contains
+only the loop's definition.\<close>
 
 theory Fair_Otter_Loop_Def
   imports

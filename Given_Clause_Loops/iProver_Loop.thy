@@ -1,10 +1,13 @@
 (* Title:        iProver Loop
    Authors:      Qi Qiu, 2021
-                 Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+                 Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022-2023
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
 section \<open>iProver Loop\<close>
+
+text \<open>The iProver loop is a variant of the Otter loop that supports the
+elimination of clauses that are made redundant by their own children.\<close>
 
 theory iProver_Loop
   imports Otter_Loop
