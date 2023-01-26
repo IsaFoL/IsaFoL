@@ -61,7 +61,7 @@ abbreviation grounding_lits_of_clss where
 
 context scl begin
 
-corollary
+corollary grounding_lits_of_learned_subset_grounding_lits_of_initial:
   assumes "initial_lits_generalize_learned_trail_conflict N S"
   shows "grounding_lits_of_clss (fset (state_learned S)) \<subseteq> grounding_lits_of_clss (fset N)"
   (is "?lhs \<subseteq> ?rhs")
@@ -87,6 +87,69 @@ proof (rule subsetI)
     unfolding L_def \<open>L\<^sub>N \<cdot>l \<sigma>\<^sub>N = L'\<close>[symmetric]
     by (metis subst_lit_comp_subst)
 qed
+
+lemma grounding_lits_of_clss_conv:
+  "grounding_lits_of_clss N = {L | L C. add_mset L C \<in> grounding_of_clss N}"
+  (is "?lhs = ?rhs")
+proof (intro Set.equalityI Set.subsetI)
+  fix L
+  assume "L \<in> ?lhs"
+  then obtain L' \<gamma> where "L = L' \<cdot>l \<gamma>" and "L' \<in> \<Union> (set_mset ` N)" and "is_ground_lit (L' \<cdot>l \<gamma>)"
+    by auto
+
+  from \<open>L' \<in> \<Union> (set_mset ` N)\<close> obtain C where "C \<in> N" and "L' \<in># C"
+    by blast
+
+  obtain \<gamma>\<^sub>C where "is_ground_cls (C \<cdot> \<gamma> \<cdot> \<gamma>\<^sub>C)"
+    using ex_ground_subst ground_subst_ground_cls by blast
+  hence "L \<in># C \<cdot> \<gamma> \<cdot> \<gamma>\<^sub>C"
+    using \<open>L' \<in># C\<close> \<open>L = L' \<cdot>l \<gamma>\<close>
+    by (metis Melem_subst_cls \<open>is_ground_lit (L' \<cdot>l \<gamma>)\<close> is_ground_subst_lit)
+  then obtain C' where "C \<cdot> \<gamma> \<cdot> \<gamma>\<^sub>C = add_mset L C'"
+    using multi_member_split by metis
+
+  moreover have "C \<cdot> \<gamma> \<cdot> \<gamma>\<^sub>C \<in> grounding_of_clss N"
+    using \<open>C \<in> N\<close> \<open>is_ground_cls (C \<cdot> \<gamma> \<cdot> \<gamma>\<^sub>C)\<close>
+    unfolding grounding_of_clss_def
+    by (metis (no_types, opaque_lifting) UN_iff grounding_of_cls_ground
+        grounding_of_subst_cls_subset insert_subset subsetD)
+
+  ultimately show "L \<in> ?rhs"
+    by auto
+next
+  fix L
+  assume "L \<in> ?rhs"
+  then obtain C where "add_mset L C \<in> grounding_of_clss N"
+    by auto
+  then obtain CC \<gamma> where "CC \<in> N" and "CC \<cdot> \<gamma> = add_mset L C"
+    unfolding grounding_of_clss_def
+    by (smt (verit, best) UN_iff grounding_of_cls_def mem_Collect_eq)
+  then obtain L' C' where "CC = add_mset L' C'" and "L = L' \<cdot>l \<gamma>" and "C = C' \<cdot> \<gamma>"
+    by (metis (no_types, lifting) msed_map_invR subst_cls_def)
+
+  show "L \<in> ?lhs"
+  proof (intro CollectI exI conjI)
+    show "L = L' \<cdot>l \<gamma>"
+      using \<open>L = L' \<cdot>l \<gamma>\<close> by simp
+  next
+    show "L' \<in> \<Union> (set_mset ` N)"
+      using \<open>CC \<in> N\<close> \<open>CC = add_mset L' C'\<close>
+      by (metis Union_iff image_eqI union_single_eq_member)
+  next
+    show "is_ground_lit (L' \<cdot>l \<gamma>)"
+      using \<open>add_mset L C \<in> grounding_of_clss N\<close> \<open>L = L' \<cdot>l \<gamma>\<close>
+      by (metis grounding_ground is_ground_cls_add_mset)
+  qed
+qed
+
+corollary
+  assumes "initial_lits_generalize_learned_trail_conflict N S"
+  defines "U \<equiv> state_learned S"
+  shows "{L | L C. add_mset L C \<in> grounding_of_clss (fset U)} \<subseteq>
+    {L | L C. add_mset L C \<in> grounding_of_clss (fset N)}"
+  using assms grounding_lits_of_learned_subset_grounding_lits_of_initial
+  unfolding grounding_lits_of_clss_conv
+  by simp
 
 end
 
