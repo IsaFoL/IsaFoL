@@ -180,6 +180,128 @@ lemma multp_singleton_rightD:
   using multp_implies_one_step[OF \<open>transp R\<close> \<open>multp R M {#x#}\<close>]
   by (metis add_cancel_left_left set_mset_single single_is_union singletonD)
 
+lemma multp\<^sub>H\<^sub>O_plus_plus[simp]: "multp\<^sub>H\<^sub>O R (M + M1) (M + M2) \<longleftrightarrow> multp\<^sub>H\<^sub>O R M1 M2"
+  unfolding multp\<^sub>H\<^sub>O_def by simp
+
+lemma multp\<^sub>D\<^sub>M_plus_plusI[simp]:
+  assumes "multp\<^sub>D\<^sub>M R M1 M2"
+  shows "multp\<^sub>D\<^sub>M R (M + M1) (M + M2)"
+proof -
+  from assms obtain X Y where
+    "X \<noteq> {#}" and "X \<subseteq># M2" and "M1 = M2 - X + Y" and "\<forall>k. k \<in># Y \<longrightarrow> (\<exists>a. a \<in># X \<and> R k a)"
+  unfolding multp\<^sub>D\<^sub>M_def by auto
+
+  show "multp\<^sub>D\<^sub>M R (M + M1) (M + M2)"
+    unfolding multp\<^sub>D\<^sub>M_def
+  proof (intro exI conjI)
+    show "X \<noteq> {#}"
+      using \<open>X \<noteq> {#}\<close> by simp
+  next
+    show "X \<subseteq># M + M2"
+      using \<open>X \<subseteq># M2\<close>
+      by (simp add: subset_mset.add_increasing)
+  next
+    show "M + M1 = M + M2 - X + Y"
+      using \<open>X \<subseteq># M2\<close> \<open>M1 = M2 - X + Y\<close>
+      by (metis multiset_diff_union_assoc union_assoc)
+  next
+    show "\<forall>k. k \<in># Y \<longrightarrow> (\<exists>a. a \<in># X \<and> R k a)"
+      using \<open>\<forall>k. k \<in># Y \<longrightarrow> (\<exists>a. a \<in># X \<and> R k a)\<close> by simp
+  qed
+qed
+
+text \<open>The following is a negative result that @{const asymp} cannot be directly lifted to
+@{const multp\<^sub>H\<^sub>O}, as four distinct values suffice to produce a counter-example.\<close>
+
+lemma asymp_on_not_liftable_to_multp\<^sub>H\<^sub>O:
+  fixes a b c d :: 'a and R
+  assumes
+    "distinct [a, b, c, d]"
+  shows "\<not> (\<forall>(R :: 'a \<Rightarrow> 'a \<Rightarrow> bool) (A :: 'a set) (B :: 'a multiset set).
+    asymp_on A R \<longrightarrow> (\<forall>M\<in>B. set_mset M \<subseteq> A) \<longrightarrow> asymp_on B (multp\<^sub>H\<^sub>O R))"
+proof -
+  define R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
+    "R = (\<lambda>x y. x = a \<and> y = c \<or> x = b \<and> y = d \<or> x = c \<and> y = b \<or> x = d \<and> y = a)"
+
+  define A :: "'a set" where
+    "A = {a,b,c,d}"
+
+  define B :: "'a multiset set" where
+    "B = {{#a,b#}, {#c,d#}}"
+
+  from assms(1) have "{#a, b#} \<noteq> {#c, d#}"
+    by (metis add_mset_add_single distinct.simps(2) list.set(1) list.simps(15) multi_member_this
+        set_mset_add_mset_insert set_mset_single)
+
+  from assms(1) have "asymp_on A R"
+    by (auto simp: R_def intro: asymp_onI)
+
+  moreover have "\<forall>M\<in>B. set_mset M \<subseteq> A"
+    by (simp add: A_def B_def)
+
+  moreover have "\<not> asymp_on B (multp\<^sub>H\<^sub>O R)"
+    unfolding asymp_on_def
+    unfolding Set.ball_simps not_imp not_not
+  proof (intro bexI conjI)
+    show "{#a,b#} \<in> B"
+      by (simp add: B_def)
+  next
+    show "{#c,d#} \<in> B"
+      by (simp add: B_def)
+  next
+    show "multp\<^sub>H\<^sub>O R {#a, b#} {#c, d#}"
+      unfolding multp\<^sub>H\<^sub>O_def
+      using \<open>{#a, b#} \<noteq> {#c, d#}\<close> R_def assms by auto
+  next
+    show "multp\<^sub>H\<^sub>O R {#c, d#} {#a, b#}"
+      unfolding multp\<^sub>H\<^sub>O_def
+      using \<open>{#a, b#} \<noteq> {#c, d#}\<close> R_def assms by auto
+  qed
+
+  ultimately show ?thesis
+    unfolding not_all not_imp by auto
+qed
+
+lemma asymp_not_liftable_to_multp\<^sub>H\<^sub>O:
+  fixes a b c d :: 'a and R
+  assumes
+    "distinct [a, b, c, d]"
+  shows "\<not> (\<forall>(R :: 'a \<Rightarrow> 'a \<Rightarrow> bool). asymp R \<longrightarrow> asymp (multp\<^sub>H\<^sub>O R))"
+proof -
+  define R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
+    "R = (\<lambda>x y. x = a \<and> y = c \<or> x = b \<and> y = d \<or> x = c \<and> y = b \<or> x = d \<and> y = a)"
+
+  from assms(1) have "{#a, b#} \<noteq> {#c, d#}"
+    by (metis add_mset_add_single distinct.simps(2) list.set(1) list.simps(15) multi_member_this
+        set_mset_add_mset_insert set_mset_single)
+
+  from assms(1) have "asymp R"
+    by (auto simp: R_def intro: asymp_onI)
+
+  moreover have "\<not> asymp (multp\<^sub>H\<^sub>O R)"
+    unfolding asymp_on_def
+    unfolding Set.ball_simps not_all not_imp not_not
+  proof (intro exI conjI)
+    show "multp\<^sub>H\<^sub>O R {#a, b#} {#c, d#}"
+      unfolding multp\<^sub>H\<^sub>O_def
+      using \<open>{#a, b#} \<noteq> {#c, d#}\<close> R_def assms by auto
+  next
+    show "multp\<^sub>H\<^sub>O R {#c, d#} {#a, b#}"
+      unfolding multp\<^sub>H\<^sub>O_def
+      using \<open>{#a, b#} \<noteq> {#c, d#}\<close> R_def assms by auto
+  qed
+
+  ultimately show ?thesis
+    unfolding not_all not_imp by auto
+qed
+
+lemma
+  fixes R :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
+  assumes "asymp R" and "transp R"
+  shows "asymp (multp\<^sub>H\<^sub>O R)"
+  by (metis assms(1) assms(2) asymp_on_iff_irreflp_on_if_transp_on irreflp_multp multp_eq_multp\<^sub>H\<^sub>O
+      transp_multp)
+
 
 subsubsection \<open>Calculus_Extra\<close>
 
