@@ -1,0 +1,98 @@
+%Some LaTeX checking: no bad pratices
+%\RequirePackage[l2tabu, orthodox]{nag}
+%\RequirePackage[all,error]{onlyamsmath}
+\RequirePackage{fixltx2e}
+
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+
+% further packages required for unusual symbols (see also
+% isabellesym.sty), use only when needed
+
+% lualatex
+%\usepackage{spelling}
+\usepackage{fullpage}
+\usepackage{graphicx}
+\usepackage{comment}
+
+
+\usepackage{mdframed}
+\usepackage{subcaption}
+
+%% Pour composer des mathématiques
+\usepackage{amsmath,amssymb, amsthm}
+\usepackage{nicefrac}
+\usepackage{tikz}
+\usetikzlibrary{decorations, arrows, shapes, automata, mindmap, trees}
+  %for \<leadsto>, \<box>, \<diamond>, \<sqsupset>, \<mho>, \<Join>,
+  %\<lhd>, \<lesssim>, \<greatersim>, \<lessapprox>, \<greaterapprox>,
+  %\<triangleq>, \<yen>, \<lozenge>
+
+%\usepackage{eurosym}
+  %for \<euro>
+
+\usepackage[only,bigsqcap]{stmaryrd}
+  %for \<Sqinter>
+\usepackage{wasysym}
+
+%\usepackage{eufrak}
+  %for \<AA> ... \<ZZ>, \<aa> ... \<zz> (also included in amssymb)
+
+%\usepackage{textcomp}
+  %for \<onequarter>, \<onehalf>, \<threequarters>, \<degree>, \<cent>,
+  %\<currency>
+
+\usepackage[english]{babel}
+% this should be the last package used
+\usepackage{pdfsetup}
+
+% urls in roman style, theory text in math-similar italics
+\urlstyle{rm}
+\isabellestyle{it}
+
+\hyphenation{Schlicht-krull}
+
+\begin{document}
+
+\title{Given Clause Loops}
+\author{Jasmin Blanchette \and Qi Qiu \and Sophie Tourret}
+\maketitle
+
+\begin{abstract}
+\noindent
+This Isabelle/HOL formalization extends the
+\verb|Saturation_|\allowbreak\verb|Framework| and
+\verb|Saturation_|\allowbreak\verb|Framework_|\allowbreak\verb|Extensions|
+entries of the \emph{Archive of Formal Proofs} with the specification and
+verification of four semiabstract given clause procedures, or ``loops'':\ the
+DISCOUNT, Otter, iProver, and Zipperposition loops. For each loop, (dynamic)
+refutational completeness is proved under the assumption that the underlying
+calculus is (statically) refutationally complete and that the used queue data
+structures are fair.
+
+The formalization is inspired by the proof sketches found in the article ``A
+comprehensive framework for saturation theorem proving'' by Uwe Waldmann, Sophie
+Tourret, Simon Robillard, and Jasmin Blanchette (\emph{Journal of Automated
+Reasoning} \textbf{66}(4): 499--539, 2022). A paper titled ``Verified given
+clause procedures'' about the present formalization is in the works.
+\end{abstract}
+
+\tableofcontents
+
+% sane default for proof documents
+\parindent 0pt\parskip 0.5ex
+
+% generated text of all theories
+\input{session}
+
+% optional bibliography
+%\bibliographystyle{abbrv}
+%\bibliography{root}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

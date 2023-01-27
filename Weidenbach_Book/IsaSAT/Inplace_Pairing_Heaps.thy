@@ -1890,10 +1890,46 @@ proof -
   next
     fix m' and x'
     assume M': \<open>m'\<in>#?a\<close> \<open>x' \<in># mset_nodes m'\<close>
-    moreover have \<open>find_key a h \<noteq> None \<Longrightarrow> distinct_mset (mset_nodes (the (find_key a h)))\<close>
+    have helper1: \<open>hp_parent (node yb) yyy = None\<close>
+      if
+        \<open>distinct_mset (mset_nodes yyy)\<close> and
+        \<open>node y \<in># mset_nodes h\<close> and
+        \<open>hp_parent (node yyy) h = Some y\<close> and
+        \<open>hp_child (node y) h = Some yb\<close>
+      for y :: \<open>('a,
+        nat) hp\<close> and ya :: \<open>('a, nat) hp\<close> and yb :: \<open>('a, nat) hp\<close> and z :: \<open>('a, nat) hp\<close> and yyy
+      using childs[simplified]
+      by (metis dist hp_child_hp_parent hp_parent_itself option.map_sel option.sel option_last_Nil option_last_Some_iff(1)
+        that)
+    have helper2: \<open>hp_child (node ya) yyy \<noteq> hp_child (node ya) h\<close>
+      if
+        \<open>distinct_mset (mset_nodes yyy)\<close> and
+        \<open>hp_parent (node yyy) h = Some ya\<close>
+        \<open>node ya \<in># mset_nodes h\<close>
+      for y :: \<open>('a, nat) hp\<close> and ya :: \<open>('a, nat) hp\<close> and yyy yya
+      using childs[simplified]
+      by (metis dist that hp_child_hp_parent hp_parent_hp_child hp_parent_itself map_option_is_None option.map_sel option.sel option_last_Nil option_last_Some_iff(1))
+    have helper4: \<open>map_option node (map_option (\<lambda>x. the (remove_key (node yy) x)) (hp_child (x') h)) = map_option node (hp_child (x') h)\<close>
+      if
+        \<open>\<exists>y. hp_child (x') h = Some y \<Longrightarrow> \<exists>z. hp_parent (node (the (hp_child (x') h))) h = Some z \<and> node z = x'\<close> and
+        \<open>node h = node yya \<Longrightarrow> find_key (node yya) h \<noteq> Some yya\<close> and
+        \<open>hp_parent (node yy) h = None\<close>
+      for yya yy x'
+      using that childs[simplified] dist apply -
+      using distinct_sum_next_prev_child[of h x']
+      apply (auto simp: map_option_node_remove_key_iff)
+      apply (subst eq_commute)
+      apply (rule ccontr)
+      apply (subst (asm) map_option_node_remove_key_iff)
+      apply simp
+      apply (meson distinct_mset_add)
+      by (auto simp: remove_key_None_iff)
+
+    have \<open>find_key a h \<noteq> None \<Longrightarrow> distinct_mset (mset_nodes (the (find_key a h)))\<close>
       by (meson dist distinct_mset_mono' mset_nodes_find_key_subset)
-    ultimately show \<open>fst (snd (snd arr')) x' = map_option node (hp_child x' m')\<close>
-      using childs dist H
+
+    then show \<open>fst (snd (snd arr')) x' = map_option node (hp_child x' m')\<close>
+      using childs dist H M'
         hp_child_find_key[of h a x']
         in_remove_key_in_nodes[of a h x'] in_find_key_notin_remove_key[of h a x']
         in_find_key_in_nodes[of a h x']
@@ -1914,73 +1950,24 @@ proof -
       apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def hp_update_parents_def
         map_option.compositionality comp_def map_option_node_hp_next_remove_key
         split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
-      apply (simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def hp_update_parents_def
-        map_option.compositionality comp_def map_option_node_hp_next_remove_key
-        split: if_splits  del: find_key_None_or_itself hp_parent_itself)
-      apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
+      apply (solves \<open>auto simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def helper2
         map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def
-        split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
-      apply (intro conjI impI)
-      subgoal by auto
-      subgoal by auto
-      subgoal for y ya
-        apply auto
-        using hp_child_hp_parent[of h] hp_parent_itself
-        by (metis option.sel option.simps(3))
-      subgoal
-        apply auto
-        by (metis handy_if_lemma hp_child_hp_parent hp_parent_itself option.sel)
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal
-        apply auto
-        by (metis hp_child_hp_parent hp_parent_hp_child hp_parent_itself map_option_is_None option.map_sel option.sel option_last_Nil option_last_Some_iff(1))
-      subgoal by auto
-      subgoal
-        apply auto
-          by (metis (no_types, lifting) None_eq_map_option_iff hp_child_hp_parent hp_parent_hp_child hp_parent_itself
-            option.map_sel option.sel option_hd_Nil option_hd_Some_iff(2))
-      apply metis
-      apply metis
-      apply metis
-      apply metis
-      apply metis
-      apply metis
-      apply metis
-      apply metis
-      subgoal by (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
-          map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def
-        split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
-      subgoal by (auto simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
-          map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def
-        split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by (auto simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
-          map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def
-        split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
+        split: if_splits  simp del: find_key_None_or_itself hp_parent_itself\<close>)[]
+      apply (solves \<open>auto simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def helper2
+        map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def
+        split: if_splits  simp del: find_key_None_or_itself hp_parent_itself\<close>)[]
+
       apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
           map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def
         split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
       apply (intro conjI impI)
-      subgoal
-        using distinct_sum_next_prev_child[of h x']
-        apply (auto simp: map_option_node_remove_key_iff)
-        apply (subst (asm) map_option_node_remove_key_iff)
+
+      subgoal for yy yya
+        apply auto
+        apply (subst (asm) helper4)
+        apply assumption+
         apply simp
-        apply (meson distinct_mset_add)
-        by (auto simp: remove_key_None_iff)
+        done
       apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
           map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def
         split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
@@ -2077,6 +2064,110 @@ proof -
         by (auto simp: remove_key_None_iff)
       done
 
+    have helper1: False
+      if
+        \<open>distinct_mset (mset_nodes h)\<close> and
+        \<open>node y \<in># mset_nodes m'\<close> and
+        \<open>node y \<in># mset_nodes ya\<close> and
+        \<open>remove_key a h = Some m'\<close> and
+        \<open>find_key a h = Some ya\<close> and
+        \<open>x' = node y\<close>
+      for ya :: \<open>('a, nat) hp\<close> and y :: \<open>('a, nat) hp\<close> and yb :: \<open>('a, nat) hp\<close>
+      by (metis that Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(2))
+    have helper3: \<open>False\<close>
+      if
+        \<open>distinct_mset (mset_nodes h)\<close> and
+        \<open>x' \<in># mset_nodes m'\<close> and
+        \<open>x' \<in># mset_nodes ya\<close> and
+        \<open>remove_key a h = Some m'\<close> and
+        \<open>find_key a h = Some ya\<close>
+      for ya :: \<open>('a, nat) hp\<close>
+      by (metis that Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(1))
+    have helperb4: \<open>False\<close>
+      if
+        \<open>h = m'\<close> and
+        \<open>hp_next a m' = Some z\<close> and
+        \<open>find_key a m' = None\<close>
+      for z :: \<open>('a, nat) hp\<close> and y :: \<open>('a, nat) hp\<close>
+      by (metis that find_key_None_remove_key_ident hp_next_None_notin in_remove_key_changed option.sel option.simps(2))
+    have [simp]: \<open>map_option (\<lambda>x. node (the (remove_key a x))) (hp_parent a h) = map_option node (hp_parent a h)\<close>
+      for z :: \<open>('a, nat) hp\<close>
+      by (smt (verit, ccfv_SIG) None_eq_map_option_iff distinct_mset_find_node_next distinct_mset_union find_key_None_or_itself
+            find_key_None_remove_key_ident find_key_notin hp_child_find_key hp_child_hp_parent hp_parent_hp_child hp_parent_in_nodes
+            hp_parent_itself in_remove_key_changed node_remove_key_itself_iff option.exhaust_sel option.map_sel option.sel
+            option.sel remove_key_None_iff
+            dist)
+
+    have helperc1: \<open>a \<in># mset_nodes m' \<Longrightarrow> h = m' \<Longrightarrow> find_key a m' = None \<Longrightarrow> False\<close>
+      by (metis find_key_None_remove_key_ident in_remove_key_changed option.sel option_hd_Nil option_hd_Some_iff(1))
+
+    have helperc2: \<open>
+      \<forall>x\<in>#mset_nodes m'. parents x = map_option node (hp_parent x m') \<Longrightarrow>
+      hp_parent x' m' = map_option (\<lambda>x. the (remove_key a x)) (hp_parent x' m') \<Longrightarrow>
+      map_option node (hp_parent x' m') = map_option (\<lambda>x. node (the (remove_key a x))) (hp_parent x' m')\<close>
+      by (metis (mono_tags, lifting) None_eq_map_option_iff map_option_cong option.map_sel option.sel)
+    have helperc3: False
+      if
+        \<open>remove_key a h = Some m'\<close> and
+        \<open>hp_parent a m' = Some (the (remove_key a y))\<close> and
+        \<open>hp_parent a h = Some y\<close>
+      for y :: \<open>('a, nat) hp\<close>
+      by (metis dist that hp_parent_itself hp_parent_remove_key option.sel option.simps(2))
+
+    have helperc4: \<open>map_option node (hp_parent x' h) =
+      map_option node (map_option (\<lambda>x. the (remove_key a x)) (hp_parent x' h))\<close>
+      if
+        \<open>remove_key a h = Some m'\<close> and
+        \<open>hp_parent x' m' = map_option (\<lambda>x. the (remove_key a x)) (hp_parent x' h)\<close> and
+        \<open>hp_next a h = None\<close> and
+        \<open>hp_parent a h = None\<close> and
+        \<open>hp_prev a h = None\<close>
+      by (metis that find_key_None_remove_key_ident find_key_notin no_relative_ancestor_or_notin option.sel option.simps(2) remove_key_None_iff)
+
+    have helperc5: \<open>map_option node (hp_parent x' h) = map_option node (map_option (\<lambda>x. the (remove_key a x)) (hp_parent x' h))\<close>
+      if
+        \<open>\<forall>x\<in>#mset_nodes h. parents x = map_option node (hp_parent x h)\<close> and
+        \<open>distinct_mset (mset_nodes h)\<close> and
+        \<open>node m' \<in># mset_nodes h\<close> and
+        \<open>remove_key a h = Some m'\<close> and
+        \<open>hp_parent x' m' = map_option (\<lambda>x. the (remove_key a x)) (hp_parent x' h)\<close> and
+        \<open>x' \<notin># the (map_option mset_nodes (find_key a h))\<close>
+        \<open>node (the (None :: ('a, nat) hp option)) = x'\<close>
+      using that apply -
+      apply (rule map_option_node_map_option_node_iff)
+      apply (meson distinct_mset_hp_parent option.exhaust_sel)
+      apply auto[]
+      apply (smt (verit, ccfv_threshold) Duplicate_Free_Multiset.distinct_mset_mono None_eq_map_option_iff find_key_None_or_itself
+        find_key_None_remove_key_ident hp_child_find_key hp_child_hp_parent hp_parent_hp_child hp_parent_remove_key in_remove_key_changed
+        mset_nodes_find_key_subset node_in_mset_nodes option.map_sel option.sel option_last_Nil option_last_Some_iff(2) remove_key_notin_unchanged)
+      done
+    have helperc6: \<open>map_option node (hp_parent x' h) = map_option (\<lambda>x. node (the (remove_key a x))) (hp_parent x' h)\<close>
+      if
+        \<open>\<forall>x\<in>#mset_nodes h. parents x = map_option node (hp_parent x h)\<close> and
+        \<open>remove_key a h = Some m'\<close> and
+        \<open>hp_parent x' m' = map_option (\<lambda>x. the (remove_key a x)) (hp_parent x' h)\<close> and
+        \<open>x' \<notin># the (map_option mset_nodes (find_key a h))\<close>
+      using that dist
+      by ((smt (verit, ccfv_SIG) Duplicate_Free_Multiset.distinct_mset_mono None_eq_map_option_iff find_key_None_or_itself find_key_None_remove_key_ident
+        hp_child_find_key hp_child_hp_parent hp_parent_None_notin hp_parent_hp_child map_option_cong mset_nodes_find_key_subset node_in_mset_nodes node_remove_key_itself_iff
+            option.map_sel option.sel option_last_Nil option_last_Some_iff(2) remove_key_None_iff)+)[]
+    have helperd1: \<open>hp_parent a m' = None\<close>
+      if
+        \<open>a \<in># mset_nodes h\<close> and
+        \<open>find_key a h = Some m'\<close> and
+        \<open>hp_next a h = None\<close> and
+        \<open>hp_parent a h = None\<close> and
+        \<open>hp_prev a h = None\<close>
+      by (metis that VSIDS.find_key_node_itself no_relative_ancestor_or_notin option.sel)
+    have helperd2: \<open>hp_parent a m' = None\<close>
+      if
+        \<open>find_key a h = Some m'\<close>
+      by (metis dist that Duplicate_Free_Multiset.distinct_mset_mono find_key_None_or_itself hp_parent_itself mset_nodes_find_key_subset option.sel option.simps(3))
+    have helperd3:  \<open>node ya \<notin># mset_nodes m'\<close>
+      if
+        \<open>distinct_mset (mset_nodes m' + mset_nodes ya)\<close>
+      for ya :: \<open>('a, nat) hp\<close>
+      by (smt (verit, best) that disjunct_not_in distinct_mset_add node_in_mset_nodes option.sel option.simps(3))
 
    show \<open>fst (snd (snd (snd arr'))) x' = map_option node (hp_parent x' m')\<close>
       using parents dist H M' apply -
@@ -2090,151 +2181,23 @@ proof -
           using find_key_None_remove_key_ident[of a h]
             hp_parent_remove_key_other[of h a x']
             distinct_mset_hp_parent[of h a \<open>the (hp_parent a h)\<close>]
-          apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
+          by (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
             map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def in_the_default_empty_iff
+            intro: helper1
             split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
-          apply (intro conjI impI allI)
-          apply auto[59]
-          apply (metis Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(2))
-          apply (metis Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(1))
-          apply auto[30]
-          apply (metis Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(1))
-          apply (metis Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(1))
-          apply (metis Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(1))
-          apply (metis Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(1))
-          apply auto[30]
-          apply (metis Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(1))
-          apply (metis Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(1))
-          apply (metis Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(1))
-          apply (metis Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(1))
-          apply auto[40]
-          apply (metis Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(1))
-          apply (metis Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(1))
-          apply (metis Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(1))
-          apply (metis Some_to_the in_find_key_notin_remove_key option_last_Nil option_last_Some_iff(1))
-
-          apply (intro conjI impI allI)
-          apply auto[10]
-          apply (meson hp_next_not_same_node)
-          apply (meson hp_next_not_same_node)
-          apply (meson hp_next_not_same_node)
-          apply (metis find_key_None_remove_key_ident hp_next_None_notin in_remove_key_changed option.sel option.simps(2))
-          apply (metis find_key_None_remove_key_ident hp_next_None_notin in_remove_key_changed option.sel option.simps(2))
-          apply (metis find_key_None_remove_key_ident hp_next_None_notin in_remove_key_changed option.sel option.simps(2))
-          apply (metis option.map(1))
-          apply (metis option.map(1))
-          apply (metis hp_next_not_same_node)
-          apply (metis hp_next_not_same_node)
-          apply (smt (verit, ccfv_SIG) None_eq_map_option_iff distinct_mset_find_node_next distinct_mset_union find_key_None_or_itself
-            find_key_None_remove_key_ident find_key_notin hp_child_find_key hp_child_hp_parent hp_parent_hp_child hp_parent_in_nodes
-            hp_parent_itself in_remove_key_changed node_remove_key_itself_iff option.exhaust_sel option.map_sel option.sel
-            option.sel remove_key_None_iff)
-          apply (smt (verit, ccfv_SIG) None_eq_map_option_iff distinct_mset_find_node_next distinct_mset_union find_key_None_or_itself
-            find_key_None_remove_key_ident find_key_notin hp_child_find_key hp_child_hp_parent hp_parent_hp_child hp_parent_in_nodes
-            hp_parent_itself in_remove_key_changed node_remove_key_itself_iff option.exhaust_sel option.map_sel option.sel
-            option.sel remove_key_None_iff)
-
-
-          apply (intro conjI impI allI)
-          apply auto[300]
-          apply auto[10]
-          apply (metis find_key_None_remove_key_ident in_remove_key_changed option.sel option_hd_Nil option_hd_Some_iff(1))
-          apply (metis find_key_None_remove_key_ident in_remove_key_changed option.sel option_hd_Nil option_hd_Some_iff(1))
-          apply (metis find_key_None_remove_key_ident in_remove_key_changed option.sel option_hd_Nil option_hd_Some_iff(1))
-          apply (metis find_key_None_remove_key_ident in_remove_key_changed option.sel option_hd_Nil option_hd_Some_iff(1))
-          apply (metis (mono_tags, lifting) None_eq_map_option_iff map_option_cong option.map_sel option.sel)
-          apply (metis (mono_tags, lifting) None_eq_map_option_iff map_option_cong option.map_sel option.sel)
-          apply (metis (mono_tags, lifting) None_eq_map_option_iff map_option_cong option.map_sel option.sel)
-          apply (metis (mono_tags, lifting) None_eq_map_option_iff map_option_cong option.map_sel option.sel)
-          apply auto[20]
-          apply (metis find_key_None_remove_key_ident handy_if_lemma hp_parent_itself hp_parent_remove_key option.sel)
-          apply (metis find_key_None_remove_key_ident handy_if_lemma hp_parent_itself hp_parent_remove_key option.sel)
-          apply (metis find_key_None_remove_key_ident hp_next_None_notin in_remove_key_changed option.sel option.simps(2))
-          apply auto[5]
-          apply (metis find_key_None_remove_key_ident hp_prev_None_notin in_remove_key_changed option.sel option.simps(3))
-          apply (metis find_key_None_remove_key_ident hp_next_None_notin in_remove_key_changed option.sel option.simps(2))
-          apply auto[5]
-          apply (metis find_key_None_remove_key_ident hp_next_None_notin in_remove_key_changed option.sel option.simps(2))
-          apply (metis hp_parent_itself hp_parent_remove_key option.sel option.simps(2))
-          apply (metis hp_parent_itself hp_parent_remove_key option.sel option.simps(2))
-          apply auto[5]
-          apply (metis find_key_None_remove_key_ident find_key_notin no_relative_ancestor_or_notin option.sel option.simps(2) remove_key_None_iff)
-          subgoal
-            apply (rule map_option_node_map_option_node_iff)
-            apply (meson distinct_mset_hp_parent option.exhaust_sel)
-            apply auto[]
-            apply (smt (verit, ccfv_threshold) Duplicate_Free_Multiset.distinct_mset_mono None_eq_map_option_iff find_key_None_or_itself
-              find_key_None_remove_key_ident hp_child_find_key hp_child_hp_parent hp_parent_hp_child hp_parent_remove_key in_remove_key_changed
-              mset_nodes_find_key_subset node_in_mset_nodes option.map_sel option.sel option_last_Nil option_last_Some_iff(2) remove_key_notin_unchanged)
-            done
-          subgoal
-            apply (rule map_option_node_map_option_node_iff)
-            apply (meson distinct_mset_hp_parent option.exhaust_sel)
-            apply auto[]
-            apply (smt (verit, ccfv_threshold) Duplicate_Free_Multiset.distinct_mset_mono None_eq_map_option_iff find_key_None_or_itself
-              find_key_None_remove_key_ident hp_child_find_key hp_child_hp_parent hp_parent_hp_child hp_parent_remove_key in_remove_key_changed
-              mset_nodes_find_key_subset node_in_mset_nodes option.map_sel option.sel option_last_Nil option_last_Some_iff(2) remove_key_notin_unchanged)
-            done
-          subgoal
-            apply (rule map_option_node_map_option_node_iff)
-            apply (meson distinct_mset_hp_parent option.exhaust_sel)
-            apply auto[]
-            apply (smt (verit, ccfv_threshold) Duplicate_Free_Multiset.distinct_mset_mono None_eq_map_option_iff find_key_None_or_itself
-              find_key_None_remove_key_ident hp_child_find_key hp_child_hp_parent hp_parent_hp_child hp_parent_remove_key in_remove_key_changed
-              mset_nodes_find_key_subset node_in_mset_nodes option.map_sel option.sel option_last_Nil option_last_Some_iff(2) remove_key_notin_unchanged)
-            done
-          apply (solves auto)[]
-          apply (metis hp_parent_remove_key option.sel option.simps(2) remove_key_None_iff)
-          apply (metis hp_parent_remove_key option.sel option.simps(2) remove_key_None_iff)
-          apply (smt (verit, ccfv_SIG) in_remove_key_changed map_option_cong no_relative_ancestor_or_notin option.map_sel option.sel option.simps(3) remove_key_None_iff)
-          apply ((smt (verit, ccfv_SIG) Duplicate_Free_Multiset.distinct_mset_mono None_eq_map_option_iff find_key_None_or_itself find_key_None_remove_key_ident
-            hp_child_find_key hp_child_hp_parent hp_parent_None_notin hp_parent_hp_child map_option_cong mset_nodes_find_key_subset node_in_mset_nodes node_remove_key_itself_iff
-            option.map_sel option.sel option_last_Nil option_last_Some_iff(2) remove_key_None_iff)+)[56]
-          apply (metis hp_parent_itself hp_parent_remove_key option.sel option.simps(2))
-          apply (metis option.simps(2))
-          apply (metis hp_parent_itself hp_parent_remove_key option.sel option.simps(2))
-          apply (metis option.simps(2))
-          apply ((smt (verit, ccfv_SIG) Duplicate_Free_Multiset.distinct_mset_mono None_eq_map_option_iff find_key_None_or_itself find_key_None_remove_key_ident
-            hp_child_find_key hp_child_hp_parent hp_parent_None_notin hp_parent_hp_child map_option_cong mset_nodes_find_key_subset node_in_mset_nodes node_remove_key_itself_iff
-            option.map_sel option.sel option_last_Nil option_last_Some_iff(2) remove_key_None_iff)+)[7]
-          done
+           (intro conjI impI allI; auto dest: helper1 helper3
+            dest: helperb4 hp_next_not_same_node
+            intro: helperc1 helperc2 helperc3
+             dest: helperc4 helperc5 intro: helperc6)+
       subgoal
-          apply (cases \<open>x' = a\<close>)
           unfolding assms(1-5) arr
           using in_find_key_same_hp_parent[of x' m' h a]
-          apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
-            map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def in_the_default_empty_iff
-            split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
-          apply (intro conjI impI allI)
-          apply auto[]
-          apply (metis VSIDS.find_key_node_itself no_relative_ancestor_or_notin option.sel)
-          apply (metis Duplicate_Free_Multiset.distinct_mset_mono find_key_None_or_itself hp_parent_itself mset_nodes_find_key_subset option.sel option.simps(3))
-          apply (metis distinct_mset_add distinct_mset_find_node_next find_key_None_or_itself hp_parent_itself option.sel option.simps(3))
-          apply metis
-          apply (metis option.simps(3))
-          apply (metis option.simps(3))
-          apply (metis option.simps(3))
-          apply (metis Duplicate_Free_Multiset.distinct_mset_mono find_key_None_or_itself hp_parent_itself mset_nodes_find_key_subset option.sel)
-          apply (metis option.simps(3))
-          apply (metis Duplicate_Free_Multiset.distinct_mset_mono find_key_None_or_itself hp_parent_itself mset_nodes_find_key_subset option.sel option.simps(3))
-          apply (metis option_hd_Nil option_hd_Some_iff(1))
-          apply (metis Duplicate_Free_Multiset.distinct_mset_mono find_key_None_or_itself hp_parent_itself mset_nodes_find_key_subset option.sel option.simps(3))
-
-
-          unfolding assms(1-5) arr
-          using
             in_find_key_same_hp_parent2[of x' m' h a]
             distinct_mset_find_node_next[of h a \<open>the (find_key a h)\<close>]
-          apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def distinct_mset_add
+          by (cases \<open>x' = a\<close>) (auto simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def helperd3
             map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def in_the_default_empty_iff
-            split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
-          apply (intro conjI impI allI)
-          apply auto
-          apply (smt (verit, best) disjunct_not_in distinct_mset_add node_in_mset_nodes option.sel option.simps(3))
-          apply (smt (verit, best) disjunct_not_in distinct_mset_add node_in_mset_nodes option.sel option.simps(3))
-          apply (smt (verit, best) disjunct_not_in distinct_mset_add node_in_mset_nodes option.sel option.simps(3))
-          apply (smt (verit, best) disjunct_not_in distinct_mset_add node_in_mset_nodes option.sel option.simps(3))
-          done
+            split: if_splits  simp del: find_key_None_or_itself hp_parent_itself
+            intro: helperd1 simp: helperd2)
       done
 
     show \<open>snd (snd (snd (snd arr'))) x' = map_option score (hp_node x' m')\<close>
@@ -2250,12 +2213,8 @@ proof -
         in_remove_key_changed[of a h]
         hp_parent_itself[of h] remove_key_None_iff[of a h] find_key_head_node_iff[of h m']
         node_remove_key_in_mset_nodes[of a h]
-      apply (clarsimp simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
-        map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def in_the_default_empty_iff
-        split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
-      apply (intro conjI impI allI)
       by (auto simp add:  hp_update_child_def hp_update_prev_def hp_update_nxt_def
-          map_option.compositionality comp_def map_option_node_hp_next_remove_key
+        map_option.compositionality comp_def map_option_node_hp_next_remove_key hp_update_parents_def in_the_default_empty_iff
         split: if_splits  simp del: find_key_None_or_itself hp_parent_itself)
   next
     fix x :: 'a
@@ -2269,5 +2228,70 @@ proof -
      by auto
   qed
 qed
+
+
+text \<open>In the kissat implementation prev and parent are merged.\<close>
+lemma in_node_iff_prev_parent_or_root:
+  assumes \<open>distinct_mset (mset_nodes h)\<close>
+  shows \<open>i \<in># mset_nodes h \<longleftrightarrow> hp_prev i h \<noteq> None \<or> hp_parent i h \<noteq> None \<or> i = node h\<close>
+  using assms
+proof (induction h arbitrary: i)
+  case (Hp x1a x2a x3a) note IH = this(1) and dist = this(2)
+  have ?case if pre:\<open>i \<noteq> x1a\<close> \<open>i \<in># sum_list (map mset_nodes x3a)\<close>
+  proof -
+    obtain c where
+      c: \<open>c \<in> set x3a\<close> and
+      i_c: \<open>i \<in>#mset_nodes c\<close>
+      using pre
+      unfolding in_mset_sum_list_iff
+      by auto
+    have dist_c: \<open>distinct_mset (mset_nodes c)\<close>
+      using c dist by (simp add: distinct_mset_add sum_list_map_remove1)
+
+    obtain ys zs where x3a_def: \<open>x3a = ys @ c # zs\<close>
+      using split_list[OF c] by auto
+    have i_ys: \<open>i \<notin># \<Sum>\<^sub># (mset_nodes `# mset ys)\<close> \<open>i \<notin># sum_list (map mset_nodes zs)\<close>
+      using dist i_c
+      by (auto simp: x3a_def disjunct_not_in distinct_mset_add)
+    have dist_c_zs: \<open>distinct_mset (mset_nodes c + sum_list (map mset_nodes zs))\<close>
+      using WB_List_More.distinct_mset_union2 dist x3a_def by auto
+    consider
+      \<open>i = node c\<close> |
+      \<open>i \<noteq> node c\<close>
+      by blast
+    then show ?case
+    proof cases
+      case 2
+      then have \<open>hp_prev i c \<noteq> None \<Longrightarrow> hp_prev_children i x3a \<noteq> None\<close>
+        using c dist i_c i_ys dist_c_zs by (auto simp: x3a_def hp_prev_children_skip_last_append[of _ \<open>[_]\<close>, simplified])
+
+      moreover have \<open>hp_parent i c \<noteq> None \<Longrightarrow> hp_parent_children i x3a \<noteq> None\<close>
+        using c dist i_c by (auto dest!: split_list simp: hp_parent_children_append_case hp_parent_children_cons
+          split: option.splits)
+      ultimately show ?thesis
+        using i_c 2 IH[of c i, OF c dist_c]
+        by (cases \<open>hp_prev i c\<close>)
+         (auto simp del: hp_prev_None_notin hp_parent_None_notin simp: hp_parent_simps_single_if)
+    next
+      case 1
+       have \<open>hp_prev_children (node c) (ys @ c # zs) = (option_last ys)\<close>
+        using i_ys hp_prev_children_Cons_append_found[of i ys \<open>hps c\<close> zs \<open>score c\<close>] 1 dist_c
+        by (cases c)
+         (auto simp del: hp_prev_children_Cons_append_found)
+      then show ?thesis
+        using c dist i_c i_ys dist_c_zs by (auto dest!: simp: x3a_def 1)
+    qed
+  qed
+  then show ?case
+    using dist IH
+    by (auto simp add: hp_parent_none_children)
+qed
+
+lemma encoded_hp_prop_list_in_node_iff_prev_parent_or_root:
+  assumes \<open>encoded_hp_prop_list_conc arr h\<close> and \<open>h \<noteq> None\<close>
+  shows \<open>i \<in># mset_nodes (the h) \<longleftrightarrow> hp_prev i (the h) \<noteq> None \<or> hp_parent i (the h) \<noteq> None \<or> Some i = snd (snd arr)\<close>
+  using assms in_node_iff_prev_parent_or_root[of \<open>the h\<close> i]
+  by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+    simp del:  hp_prev_None_notin hp_parent_None_notin)
 
 end

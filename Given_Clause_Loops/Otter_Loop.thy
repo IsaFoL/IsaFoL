@@ -1,10 +1,13 @@
 (* Title:        Otter Loop
    Authors:      Qi Qiu, 2021
-                 Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+                 Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022-2023
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
 section \<open>Otter Loop\<close>
+
+text \<open>The Otter loop is one of the two best-known given clause procedures. It is
+formalized as an instance of the abstract procedure @{text GC}.\<close>
 
 theory Otter_Loop
   imports
@@ -451,7 +454,7 @@ next
 qed
 
 
-section \<open>Completeness\<close>
+subsection \<open>Completeness\<close>
 
 theorem
   assumes

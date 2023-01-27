@@ -1,12 +1,13 @@
 (* Title:        Fair iProver Loop
-   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022-2023
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
 section \<open>Fair iProver Loop\<close>
 
-text \<open>The iProver loop is a generalization of the Otter loop, with one more
-rule. By proving it complete, we also easily get (in a separate theory file) the
+text \<open>The fair iProver loop assumes that the passive queue is fair and ensures
+(dynamic) refutational completeness under that assumption. From this
+completeness proof, we also easily derive (in a separate section) the
 completeness of the Otter loop.\<close>
 
 theory Fair_iProver_Loop

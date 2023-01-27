@@ -1,6 +1,6 @@
 (* Title:        Prover Queue and Fairness
-   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022-2023
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
 section \<open>Prover Queues and Fairness\<close>
