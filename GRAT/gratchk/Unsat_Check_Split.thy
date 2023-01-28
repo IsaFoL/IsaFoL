@@ -571,7 +571,7 @@ lemma check_rat_proof_correct[THEN ESPEC_trans, refine_vcg]:
   subgoal using assms by auto  
   using assms    
   apply (cases CM)    
-  apply (elim conjE exE; simp; elim conjE)
+  apply (elim conjE exE; simp)
   apply hypsubst apply simp
   subgoal premises prems for reslit prf1 i prf2 it' A' prf3 CM RL l
   proof -  
@@ -2188,7 +2188,6 @@ context unsat_input begin
       apply (auto simp: is_syn_taut_def) []
       apply (auto simp: sem_lit'_assign_conv split: if_splits) []
       apply (force simp: sem_lit'_assign_conv split: if_splits) []
-      subgoal for _ l by (case_tac l; auto split: if_splits)
       subgoal premises prems for _ A
       proof -
         from prems have 
