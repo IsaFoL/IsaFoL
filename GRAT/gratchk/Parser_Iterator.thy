@@ -289,10 +289,10 @@ hide_const Word.slice
                     lz_string_def lz_string_empty seg_eq_iff_empty)  
         subgoal for ith s l1 l2
           apply (cases l2; simp)
-          subgoal for x l2'  
+          subgoal for l2'  
             apply (refine_vcg F_RL[of l1 _ "tl l2",THEN ESPEC_trans])
             apply vc_solve
-            subgoal by (rule exI[where x="l1@[x]"]) auto
+            subgoal by (rule exI[where x="l1@[peek ith]"]) auto
             subgoal by (metis itran_def itran_measure itran_next lz_string_def 
                               seg_invar2 seg_no_cyc)
             done

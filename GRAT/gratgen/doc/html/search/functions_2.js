@@ -1,10 +1,10 @@
 var searchData=
 [
-  ['c2p',['c2p',['../classClauseDB.html#a6c5800372f02eea49efb8c1defa99b98',1,'ClauseDB']]],
-  ['clausedb',['ClauseDB',['../classClauseDB.html#aeb7d6f4e316fffc35777c3190baa049c',1,'ClauseDB']]],
-  ['clid',['clid',['../classClauseDB.html#a398ba26454100ee10a8dfdfaeb73ae0f',1,'ClauseDB']]],
-  ['close',['close',['../classProof__Writer.html#ae3c8a116017211e54eea8aa058b21fff',1,'Proof_Writer']]],
-  ['clw1',['clw1',['../classClauseDB.html#a465d36e141a2d244a864b384bf3cfae7',1,'ClauseDB']]],
-  ['clw2',['clw2',['../classClauseDB.html#a98b56ec228b03578ab3b71aba6bcb9fa',1,'ClauseDB']]],
-  ['current',['current',['../classClauseDB.html#ad63e521e1b8b28a2806e9a6edb9a93a7',1,'ClauseDB']]]
+  ['c2p_185',['c2p',['../classClauseDB.html#abe7d76a6043fa05d15f0f73fefcbce4d',1,'ClauseDB']]],
+  ['clausedb_186',['ClauseDB',['../classClauseDB.html#aeb7d6f4e316fffc35777c3190baa049c',1,'ClauseDB']]],
+  ['clid_187',['clid',['../classClauseDB.html#a398ba26454100ee10a8dfdfaeb73ae0f',1,'ClauseDB']]],
+  ['close_188',['close',['../classProof__Writer.html#ae3c8a116017211e54eea8aa058b21fff',1,'Proof_Writer']]],
+  ['clw1_189',['clw1',['../classClauseDB.html#a465d36e141a2d244a864b384bf3cfae7',1,'ClauseDB']]],
+  ['clw2_190',['clw2',['../classClauseDB.html#a98b56ec228b03578ab3b71aba6bcb9fa',1,'ClauseDB']]],
+  ['current_191',['current',['../classClauseDB.html#a5d973877fc92bb55580ad4ad08fd32b7',1,'ClauseDB']]]
 ];

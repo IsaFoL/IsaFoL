@@ -251,16 +251,20 @@ end;
     fun array_upd_oo f i x a () = 
       (Array.update(a,IntInf.toInt i,x); a) handle Subscript => f () | Overflow => f ()
 
-    
 
-structure Bits_Integer : sig
+
+structure Integer_Bit : sig
+  val test_bit : IntInf.int -> IntInf.int -> bool
   val set_bit : IntInf.int -> IntInf.int -> bool -> IntInf.int
   val shiftl : IntInf.int -> IntInf.int -> IntInf.int
   val shiftr : IntInf.int -> IntInf.int -> IntInf.int
-  val test_bit : IntInf.int -> IntInf.int -> bool
 end = struct
 
 val maxWord = IntInf.pow (2, Word.wordSize);
+
+fun test_bit x n =
+  if n < maxWord then IntInf.andb (x, IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n))) <> 0
+  else raise (Fail ("Bit index too large: " ^ IntInf.toString n));
 
 fun set_bit x n b =
   if n < maxWord then
@@ -276,11 +280,7 @@ fun shiftr x n =
   if n < maxWord then IntInf.~>> (x, Word.fromLargeInt (IntInf.toLarge n))
   else raise (Fail ("Shift operand too large: " ^ IntInf.toString n));
 
-fun test_bit x n =
-  if n < maxWord then IntInf.andb (x, IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n))) <> 0
-  else raise (Fail ("Bit index too large: " ^ IntInf.toString n));
-
-end; (*struct Bits_Integer*)
+end; (*struct Integer_Bit*)
 
 structure Grat_Check : sig
   datatype int = Int_of_integer of IntInf.int
@@ -3020,12 +3020,12 @@ of Inl x1a => (fn () => (Inl x1a))
                 ()) ())
                 (fn aa =>
                   (case aa of Inl x1a => (fn () => (Inl x1a))
-                    | Inr x2ab => (fn () => (Inr let
-           val (a1a, ab) = x2ab;
-           val (_, ac) = ab;
-         in
-           (a1a, ac)
-         end))))))
+                    | Inr x2ab =>
+                      (fn () => (Inr let
+                                       val (a1a, (_, ab)) = x2ab;
+                                     in
+                                       (a1a, ab)
+                                     end))))))
         ()
     end)
     x;
@@ -3091,12 +3091,12 @@ fun remove_ids3a x =
                 ()) ())
                 (fn aa =>
                   (case aa of Inl x1a => (fn () => (Inl x1a))
-                    | Inr x2ab => (fn () => (Inr let
-           val (a1a, ab) = x2ab;
-           val (_, ac) = ab;
-         in
-           (a1a, ac)
-         end))))))
+                    | Inr x2ab =>
+                      (fn () => (Inr let
+                                       val (a1a, (_, ab)) = x2ab;
+                                     in
+                                       (a1a, ab)
+                                     end))))))
         ()
     end)
     x;
@@ -3414,10 +3414,9 @@ val (a1e, a2e) =
     (fn ab =>
       (case ab of Inl x1a => (fn () => (Inl x1a))
         | Inr x2ab => (fn () => (Inr let
-                                       val (a1b, ac) = x2ab;
-                                       val (_, ad) = ac;
+                                       val (a1b, (_, ac)) = x2ab;
                                      in
-                                       (a1b, ad)
+                                       (a1b, ac)
                                      end))))))
                                 end))
                    else (fn () =>
@@ -3449,10 +3448,9 @@ fun verify_unsat3a x =
                              (case ab of Inl _ => (fn () => false)
                                | Inr x2ab => (fn () => (not (is_None x2ab)))))
                            (fn s => let
-                                      val (a1a, ab) = the (projr s);
-                                      val (ac, b) = ab;
+                                      val (a1a, (ab, b)) = the (projr s);
                                     in
-                                      check_item3a ai bid a1a ac b
+                                      check_item3a ai bid a1a ab b
                                     end)
                            (Inr (SOME ((x2aa, xa), (bia, a2)))))
                         ()) ())
