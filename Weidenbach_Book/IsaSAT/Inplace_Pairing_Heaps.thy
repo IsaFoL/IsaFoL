@@ -733,7 +733,7 @@ definition hp_insert :: \<open>'a \<Rightarrow> 'b::linorder \<Rightarrow> 'a se
     let (j::'a) = ((the h) :: 'a);
     ASSERT (j \<in> (\<V>::'a set) \<and> j \<noteq> i);
     ASSERT (hp_read_score j (arr :: ('a, 'b) hp_fun) \<noteq> None);
-    ASSERT (hp_read_prev j arr = None \<and> hp_read_nxt j arr = None);
+    ASSERT (hp_read_prev j arr = None \<and> hp_read_nxt j arr = None \<and> hp_read_parent j arr = None);
     let y = (the (hp_read_score j arr)::'b);
     if y < w
     then do {
@@ -833,6 +833,9 @@ proof -
       by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list_def hp_set_all_def
         split: option.splits prod.splits)
     subgoal
+      by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list_def hp_set_all_def
+        split: option.splits prod.splits)
+    subgoal
       using enc
       by (cases h, simp; cases \<open>the h\<close>)
         (auto simp: hp_set_all_def encoded_hp_prop_list_conc_def fun_upd_idem hp_update_parents_def)
@@ -865,6 +868,11 @@ definition hp_link :: \<open>'a \<Rightarrow> 'a \<Rightarrow> 'a set \<times> (
       @ (if prev \<noteq> None then [the prev] else [])
       @ (if nxt \<noteq> None then [the nxt] else []))
       );
+    ASSERT (ch \<in> \<V>);
+    ASSERT (parent \<in> \<V>);
+    ASSERT (child \<noteq> None \<longrightarrow> the child \<in> \<V>);
+    ASSERT (nxt \<noteq> None \<longrightarrow> the nxt \<in> \<V>);
+    ASSERT (prev \<noteq> None \<longrightarrow> the prev \<in> \<V>);
     let arr = hp_set_all parent prev nxt (Some ch) None (Some (w\<^sub>p::'b)) (arr::('a, 'b) hp_fun);
     let arr = hp_set_all ch None child child\<^sub>c\<^sub>h (Some parent) (Some (w\<^sub>c\<^sub>h::'b)) (arr::('a, 'b) hp_fun);
     let arr = (if child = None then arr else hp_update_prev (the child) (Some ch) arr);
@@ -984,6 +992,25 @@ proof -
   have KK [intro!]: \<open>ch\<^sub>x \<noteq> [] \<Longrightarrow> ys \<noteq> [] \<Longrightarrow> node (hd ch\<^sub>x) \<noteq> node (hd ys)\<close>
     using dist2 sc' by simp
 
+  have subs: \<open>set_mset (sum_list (map mset_nodes (xs @ Hp i w\<^sub>x ch\<^sub>x # Hp j w\<^sub>y ch\<^sub>y # ys))) \<subseteq> \<V>\<close>
+    using assms(1) sc'(7,3) unfolding encoded_hp_prop_list2_conc_def x y arr prod.simps
+      encoded_hp_prop_list_def
+    by (clarsimp_all simp: encoded_hp_prop_list_def)
+  then have childs_i: \<open>childs i \<noteq> None \<Longrightarrow> the (childs i) \<in> \<V>\<close>
+    \<open>prevs i \<noteq> None \<Longrightarrow> the (prevs i) \<in> \<V>\<close>
+    using sc'(7,3) unfolding encoded_hp_prop_list2_conc_def x y arr prod.simps
+      encoded_hp_prop_list_def
+    apply (clarsimp_all simp: encoded_hp_prop_list_def)
+    apply (metis node_hd_in_sum option.sel subsetD)
+    by (metis \<V> dist distinct_mset_add hp_next_children_None_notin hp_next_children_last
+      list.discI map_append option_hd_Some_hd option_last_Nil option_last_Some_iff(2)
+      subset_eq sum_image_mset_sum_map sum_list_append)
+  have childs_j: \<open>childs j \<noteq> None \<Longrightarrow> the (childs j) \<in> \<V>\<close>
+    \<open>nxts j \<noteq> None \<Longrightarrow> the (nxts j) \<in> \<V>\<close>
+    using subs sc'(6,8) unfolding encoded_hp_prop_list2_conc_def x y arr prod.simps
+    apply (clarsimp_all simp: encoded_hp_prop_list_def)
+    apply (metis node_hd_in_sum option.sel subsetD)
+    by (metis basic_trans_rules(31) node_hd_in_sum option.sel)
   show ?thesis
     unfolding hp_link_def arr prod.simps
     apply refine_vcg
@@ -1000,21 +1027,26 @@ proof -
     subgoal using diff by (auto split: if_splits)
     subgoal using diff by (auto split: if_splits)
     subgoal using dist2 by (clarsimp split: if_splits)
+    subgoal by (clarsimp split: if_splits)
+    subgoal by (clarsimp split: if_splits)
+    subgoal using childs_i childs_j by (clarsimp simp: split: if_splits)
+    subgoal using childs_i childs_j by (clarsimp simp: split: if_splits)
+    subgoal using childs_i childs_j by (clarsimp simp: split: if_splits)
     subgoal premises p for parent b ch ba w\<^sub>p w\<^sub>c x1 x2
       apply (cases \<open>the (scores j) < the (scores i)\<close>)
       subgoal
         apply (subst H)
-        using p(1-10) p(12)[symmetric] dist2 \<V>
+        using p(1-10) p(17)[symmetric] dist2 \<V>
         apply (solves simp)
-        using p(1-10) p(12)[symmetric] dist2 \<V>
+        using p(1-10) p(17)[symmetric] dist2 \<V>
         apply (solves simp)
         apply (subst arg_cong2[THEN iffD1, of _ _ _ _ \<open>encoded_hp_prop_list {#}\<close>, OF _ _ encoded_hp_prop_list_link[of \<open>{#}\<close> xs \<open>node x\<close> \<open>score x\<close> \<open>hps x\<close> \<open>node y\<close> \<open>score y\<close> \<open>hps y\<close> ys
           prevs nxts childs parents scores, OF enc0]])
         subgoal
-          using sc' p(1-10) p(12)[symmetric] dist2 \<V>
+          using sc' p(1-10) p(17)[symmetric] dist2 \<V>
           by (simp add: x y)
         subgoal
-          using sc' p(1-10) p(12)[symmetric] dist2 \<V> par
+          using sc' p(1-10) p(17)[symmetric] dist2 \<V> par
           apply (simp add: x y)
           apply (intro conjI impI)
           subgoal apply (simp add: fun_upd_idem fun_upd_twist  fun_upd_idem[of \<open>childs(parent \<mapsto> ch)\<close>] hp_set_all_def)
@@ -1137,17 +1169,17 @@ proof -
         subgoal
           supply [[goals_limit=1]]
         apply (subst H)
-        using p(1-10) p(12)[symmetric] dist2 \<V>
+        using p(1-10) p(17)[symmetric] dist2 \<V>
         apply simp
-        using p(1-10) p(12)[symmetric] dist2 \<V>
+        using p(1-10) p(17)[symmetric] dist2 \<V>
         apply simp
         apply (subst arg_cong2[THEN iffD1, of _ _ _ _ \<open>encoded_hp_prop_list {#}\<close>, OF _ _ encoded_hp_prop_list_link2[of \<open>{#}\<close> xs \<open>node x\<close> \<open>score x\<close> \<open>hps x\<close> \<open>node y\<close> \<open>score y\<close> \<open>hps y\<close> ys
           prevs nxts childs parents scores, OF enc0]])
         subgoal
-          using sc' p(1-10) p(12)[symmetric] dist2 \<V>
+          using sc' p(1-10) p(17)[symmetric] dist2 \<V>
           by (simp add: x y)
         subgoal
-          using sc' p(1-10) p(12)[symmetric] dist2 \<V>
+          using sc' p(1-10) p(17)[symmetric] dist2 \<V>
           apply (simp add: x y)
           apply (intro conjI impI)
           subgoal
@@ -1262,7 +1294,7 @@ proof -
           done
         done
       subgoal premises p
-        using p(1-10) p(12)[symmetric] dist2 \<V>
+        using p(1-10) p(17)[symmetric] dist2 \<V>
         using sc'
         by (cases \<open>the (scores j) < the (scores i)\<close>)
          (simp_all add: x y split: if_split)
@@ -1280,10 +1312,12 @@ definition vsids_pass\<^sub>1 where
     if j = None then RETURN ((\<V>, arr, h), None, e, n)
     else do {
     let j = the j;
+    ASSERT (j \<in> \<V>);
     let nxt = hp_read_nxt j arr;
     if nxt = None then RETURN ((\<V>, arr, h), nxt, e+1, j)
     else do {
       ASSERT (nxt \<noteq> None);
+      ASSERT (the nxt \<in> \<V>);
       let nnxt = hp_read_nxt (the nxt) arr;
       ((\<V>, arr, h), n) \<leftarrow> hp_link j (the nxt) (\<V>, arr, h);
       RETURN ((\<V>, arr, h), nnxt, e+2, n)
@@ -1469,9 +1503,13 @@ proof -
     subgoal by (rule I0)
     subgoal by (auto simp: I_def)
     subgoal by (auto simp: I_def)
+    subgoal by (auto simp: I_def encoded_hp_prop_list2_conc_def)
     subgoal for s a b x1 x2 x1a x2a x1b x2b
       by (auto simp: I_no_next)
     subgoal by (auto simp: I_def)
+    subgoal for s a b x1 x2 x1a x2a x1b x2b x1c x2c
+      using hp_next_children_in_nodes2[of \<open>(node (hd (drop x1c xs)))\<close> \<open>(VSIDS.pass\<^sub>1 (take x1c xs) @ drop x1c xs)\<close>]
+      by (auto 5 3 simp: I_def encoded_hp_prop_list_def encoded_hp_prop_list2_conc_def)
     apply (rule link_pre1; assumption?)
     apply (rule link_pre2; assumption)
     subgoal premises p for s a b x1 x2 x1a x2a x1b x2b
@@ -1496,7 +1534,8 @@ definition vsids_pass\<^sub>2 where
   (\<lambda>((\<V>, arr, h), j, leader, e::nat). do {
     if j = None then RETURN ((\<V>, arr, h), None, leader, e)
     else do {
-    let j = the j;
+      let j = the j;
+      ASSERT (j \<in> \<V>);
       let nnxt = hp_read_prev j arr;
       ((\<V>, arr, h), n) \<leftarrow> hp_link j leader (\<V>, arr, h);
       RETURN ((\<V>, arr, h), nnxt, n, e+1)
@@ -1621,6 +1660,9 @@ proof -
     subgoal by (rule I0)
     subgoal by auto
     subgoal by auto
+    subgoal for s a b x1 x2 x1a x2a x1b x2b x1c x2c
+      by (cases \<open>take (length xs - x2c) xs\<close> rule: rev_cases)
+       (auto simp: I_def Let_def encoded_hp_prop_list2_conc_def)
     apply (rule links_pre1; assumption)
     subgoal
       by (rule links_pre2)
@@ -1667,9 +1709,11 @@ definition vsids_pop_min :: \<open>_\<close> where
   \<open>vsids_pop_min = (\<lambda>(\<V>::'a set, arr :: ('a, 'b::order) hp_fun, h :: 'a option). do {
   if h = None then RETURN (None, (\<V>, arr, h))
   else do {
+      ASSERT (the h \<in> \<V>);
       let j = hp_read_child (the h) arr;
       if j = None then RETURN (h, (\<V>, arr, None))
       else do {
+        ASSERT (the j \<in> \<V>);
         let arr = hp_update_prev (the h) None arr;
         let arr = hp_update_child (the h) None arr;
         let arr = hp_update_parents (the j) None arr;
@@ -1692,7 +1736,10 @@ proof -
     apply (refine_vcg vsids_merge_pairs[of _ \<open>case the h of Hp _ _ child \<Rightarrow> child\<close>])
     subgoal using assms by (cases h) (auto simp: encoded_hp_prop_list_conc_def)
     subgoal using assms by (auto simp: encoded_hp_prop_list_conc_def split: option.splits)
+    subgoal using assms by (auto simp: encoded_hp_prop_list_conc_def split: option.splits)
     subgoal using assms by (auto simp: encoded_hp_prop_list_conc_def get_min2_alt_def split: option.splits)
+    subgoal using assms by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+      get_min2_alt_def split: option.splits)
     subgoal using assms by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
       get_min2_alt_def split: option.splits)
     subgoal using assms encoded_hp_prop_list_remove_min[of \<open>node (the h)\<close> \<open>score (the h)\<close> \<open>hps (the h)\<close> \<open>{#}\<close>
@@ -2398,6 +2445,6 @@ lemma encoded_hp_prop_list_in_node_iff_prev_parent_or_root:
   shows \<open>i \<in># mset_nodes (the h) \<longleftrightarrow> hp_read_prev i (fst (snd arr)) \<noteq> None \<or> hp_read_parent i (fst (snd arr)) \<noteq> None \<or> Some i = snd (snd arr)\<close>
   using assms in_node_iff_prev_parent_or_root[of \<open>the h\<close> i]
   by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def empty_outside_def
-    simp del:  hp_prev_None_notin hp_parent_None_notin)
+    simp del: hp_prev_None_notin hp_parent_None_notin)
 
 end
