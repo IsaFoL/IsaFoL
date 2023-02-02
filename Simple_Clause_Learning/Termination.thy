@@ -265,7 +265,7 @@ next
   qed
 qed
 
-lemma scl_without_backtrack_terminates:
+lemma scl_without_backtrack_terminates_invars:
   fixes N \<beta>
   defines
     "scl_without_backtrack \<equiv> propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion>
@@ -512,7 +512,7 @@ proof -
   qed
 qed
 
-corollary scl_without_backtrack_terminates':
+corollary scl_without_backtrack_terminates:
   fixes
     N :: "('f, 'v) Term.term clause fset" and
     \<beta> :: "('f, 'v) Term.term"
@@ -525,7 +525,7 @@ corollary scl_without_backtrack_terminates':
   shows "wfp_on {S. scl_without_backtrack\<^sup>*\<^sup>* initial_state S} scl_without_backtrack\<inverse>\<inverse>"
 proof (rule wfp_on_subset)
   show "wfp_on {S. invars S} scl_without_backtrack\<inverse>\<inverse>"
-    by (rule scl_without_backtrack_terminates(1)[of \<beta> N,
+    by (rule scl_without_backtrack_terminates_invars(1)[of \<beta> N,
           folded invars_def scl_without_backtrack_def])
 next
   have "invars initial_state"
@@ -554,7 +554,7 @@ next
     by auto
 qed
 
-corollary scl_without_backtrack_terminates'':
+corollary strategy_without_backtrack_terminates:
   fixes
     N :: "('f, 'v) Term.term clause fset" and
     \<beta> :: "('f, 'v) Term.term"
@@ -568,7 +568,7 @@ proof (rule wfp_on_mono_strong)
   proof (rule wfp_on_subset)
     show "wfp_on {S. scl_without_backtrack\<^sup>*\<^sup>* initial_state S} scl_without_backtrack\<inverse>\<inverse>"
       unfolding scl_without_backtrack_def
-      using scl_without_backtrack_terminates' by metis
+      using scl_without_backtrack_terminates by metis
   next
     show "{S. strategy\<^sup>*\<^sup>* initial_state S} \<subseteq> {S. scl_without_backtrack\<^sup>*\<^sup>* initial_state S}"
       using strategy_stronger
@@ -803,7 +803,7 @@ qed
 
 subsection \<open>Regular SCL terminates\<close>
 
-theorem regular_scl_terminates:
+theorem regular_scl_terminates_invars:
   fixes
     N :: "('f, 'v) Term.term clause fset" and
     \<beta> :: "('f, 'v) Term.term"
@@ -827,7 +827,7 @@ next
   proof (rule wfp_on_sup_if_convertible_to_wfp, unfold mem_Collect_eq)
     show "wfp_on {S. invars S} (propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion>
         factorize N \<beta> \<squnion> resolve N \<beta>)\<inverse>\<inverse>"
-      using scl_without_backtrack_terminates(1)[of \<beta> N]
+      using scl_without_backtrack_terminates_invars(1)[of \<beta> N]
       by (auto simp: invars_def inf_assoc elim: wfp_on_subset)
   next
     show "wfp_on (\<M>_back \<beta> ` {S. invars S}) (|\<subset>|)"
@@ -905,7 +905,7 @@ next
   qed
 qed
 
-corollary regular_scl_terminates':
+corollary regular_scl_terminates:
   fixes
     N :: "('f, 'v) Term.term clause fset" and
     \<beta> :: "('f, 'v) Term.term"
@@ -918,7 +918,7 @@ corollary regular_scl_terminates':
   shows "wfp_on {S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S} (regular_scl N \<beta>)\<inverse>\<inverse>"
 proof (rule wfp_on_subset)
   show "wfp_on {S. invars S} (regular_scl N \<beta>)\<inverse>\<inverse>"
-    by (rule regular_scl_terminates(1)[of \<beta> N, folded invars_def])
+    by (rule regular_scl_terminates_invars(1)[of \<beta> N, folded invars_def])
 next
   note rea_to_scl = scl_if_reasonable
   note reg_to_rea = reasonable_if_regular
@@ -947,58 +947,7 @@ next
     by auto
 qed
 
-theorem strategy_terminates:
-  fixes
-    N :: "('f, 'v) Term.term clause fset" and
-    \<beta> :: "('f, 'v) Term.term"
-  defines
-    "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
-      trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
-      ground_closures \<sqinter> ground_false_closures \<sqinter> sound_state N \<beta> \<sqinter>
-      almost_no_conflict_with_trail N \<beta> \<sqinter>
-      regular_conflict_resolution N \<beta>"
-  assumes strategy_imp_regular_scl: "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
-  shows
-    "wfp_on {S. invars S} (strategy N \<beta>)\<inverse>\<inverse>" and
-    "invars initial_state" and
-    "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
-proof -
-  show "invars initial_state"
-    by (simp add: invars_def)
-next
-  note rea_to_scl = scl_if_reasonable
-  note reg_to_rea = reasonable_if_regular
-  note min_to_scl = strategy_imp_regular_scl[THEN reg_to_rea[THEN rea_to_scl]]
-
-  fix S S'
-  assume "strategy N \<beta> S S'"
-  thus "invars S \<Longrightarrow> invars S'"
-    unfolding invars_def
-    using
-      min_to_scl[THEN scl_preserves_trail_atoms_lt]
-      min_to_scl[THEN scl_preserves_trail_resolved_lits_pol]
-      min_to_scl[THEN scl_preserves_trail_lits_ground]
-      min_to_scl[THEN scl_preserves_trail_lits_from_clauses]
-      min_to_scl[THEN scl_preserves_initial_lits_generalize_learned_trail_conflict]
-      min_to_scl[THEN scl_preserves_ground_closures]
-      min_to_scl[THEN scl_preserves_ground_false_closures]
-      min_to_scl[THEN scl_preserves_sound_state]
-      strategy_imp_regular_scl[THEN regular_scl_preserves_almost_no_conflict_with_trail]
-      strategy_imp_regular_scl[THEN regular_scl_preserves_regular_conflict_resolution]
-    by simp
-next
-  show "wfp_on {S. invars S} (strategy N \<beta>)\<inverse>\<inverse>"
-  proof (rule wfp_on_mono_strong, unfold mem_Collect_eq)
-    show "wfp_on {S. invars S} (regular_scl N \<beta>)\<inverse>\<inverse>"
-      by (rule regular_scl_terminates(1)[of \<beta> N, folded invars_def])
-  next
-    fix S' S
-    show "(strategy N \<beta>)\<inverse>\<inverse> S' S \<Longrightarrow> (regular_scl N \<beta>)\<inverse>\<inverse> S' S"
-      by (simp add: strategy_imp_regular_scl)
-  qed
-qed
-
-corollary strategy_terminates':
+corollary strategy_terminates:
   fixes
     N :: "('f, 'v) Term.term clause fset" and
     \<beta> :: "('f, 'v) Term.term"
@@ -1008,7 +957,7 @@ proof (rule wfp_on_mono_strong)
   show "wfp_on {S. strategy\<^sup>*\<^sup>* initial_state S} (regular_scl N \<beta>)\<inverse>\<inverse>"
   proof (rule wfp_on_subset)
     show "wfp_on {S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S} (regular_scl N \<beta>)\<inverse>\<inverse>"
-      using regular_scl_terminates' by metis
+      using regular_scl_terminates by metis
   next
     show "{S. strategy\<^sup>*\<^sup>* initial_state S} \<subseteq> {S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S}"
       using strategy_restricts_regular_scl
