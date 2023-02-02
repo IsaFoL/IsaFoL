@@ -12,6 +12,7 @@ definition mop_get_min where
 
 context pairing_heap
 begin
+
 definition mop_pop_min where
   \<open>mop_pop_min xs = do {
     ASSERT (xs \<noteq> None);
