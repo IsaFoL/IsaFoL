@@ -1,4 +1,4 @@
-﻿theory Map_Fun_Rel
+theory Map_Fun_Rel
   imports More_Sepref.WB_More_Refinement
 begin
 
