@@ -1,12 +1,12 @@
-theory Inplace_Pairing_Heaps
+theory Relational_Pairing_Heaps
   imports Pairing_Heaps
 begin
 
-section \<open>Flat Version of Pairing Heaps\<close>
+subsection \<open>Flat Version of Pairing Heaps\<close>
 
-subsection \<open>Splitting genealogy to Relations\<close>
+subsubsection \<open>Splitting genealogy to Relations\<close>
 
-text \<open>In this section, we replace the tree version by several arrays that represent
+text \<open>In this subsection, we replace the tree version by several arrays that represent
   the relations (parent, child, next, previous) of the same trees.\<close>
 
 (*TODO: this is missing the parents*)
@@ -719,7 +719,7 @@ proof -
 qed
 
 
-subsection \<open>Refinement to Imperative version\<close>
+subsubsection \<open>Refinement to Imperative version\<close>
 
 definition hp_insert :: \<open>'a \<Rightarrow> 'b::linorder \<Rightarrow> 'a set \<times> ('a,'b) hp_fun \<times> 'a option \<Rightarrow> ('a set \<times> ('a,'b) hp_fun \<times> 'a option) nres\<close> where
   \<open>hp_insert = (\<lambda>(i::'a) (w::'b) (\<V>::'a set, arr :: ('a, 'b) hp_fun, h :: 'a option). do {
