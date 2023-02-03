@@ -12,6 +12,10 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     "HOL-Data_Structures"
   theories
     Ordered_Pairing_Heap_List2
+    Map_Fun_Rel
+    Relational_Pairing_Heaps
+    Pairing_Heaps_Impl
+
     Heaps_Abs
     Pairing_Heaps
     IsaSAT_Arena

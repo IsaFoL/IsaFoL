@@ -137,9 +137,6 @@ begin
 abbreviation D\<^sub>0 :: \<open>(nat \<times> nat literal) set\<close> where
   \<open>D\<^sub>0 \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)\<close>
 
-(*TODO is that really useful here?*)
-definition length_ll_f where
-  \<open>length_ll_f W L = length (W L)\<close>
 
 text \<open>
   The following lemma was necessary at some point to prove the existence of a watch list.

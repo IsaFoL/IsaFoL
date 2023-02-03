@@ -6,7 +6,9 @@ theory Pairing_Heaps
     Heaps_Abs
 begin
 
-section \<open>Genealogy Over Pairing Heaps\<close>
+section \<open>Pairing Heaps\<close>
+
+subsection \<open>Genealogy Over Pairing Heaps\<close>
 
 text \<open>We first tried to use the heapmap, but this attempt was a terrible failure, because as useful
 the heapmap is parametrized by the size. This might be useful in some contexts, but I consider this

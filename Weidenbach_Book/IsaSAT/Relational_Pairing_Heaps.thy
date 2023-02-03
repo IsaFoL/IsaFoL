@@ -1,12 +1,12 @@
-theory Inplace_Pairing_Heaps
+theory Relational_Pairing_Heaps
   imports Pairing_Heaps
 begin
 
-section \<open>Flat Version of Pairing Heaps\<close>
+subsection \<open>Flat Version of Pairing Heaps\<close>
 
-subsection \<open>Splitting genealogy to Relations\<close>
+subsubsection \<open>Splitting genealogy to Relations\<close>
 
-text \<open>In this section, we replace the tree version by several arrays that represent
+text \<open>In this subsection, we replace the tree version by several arrays that represent
   the relations (parent, child, next, previous) of the same trees.\<close>
 
 (*TODO: this is missing the parents*)
@@ -38,7 +38,7 @@ text \<open>
 
 It was not entirely clear from the ground up whether we would actually need to have the conditions
 of emptyness of the previous or the parent.  However, these are the only conditions to know whether
-a node is in the tree or not, so we decided to include them. It is critical to not add that the scores
+a node is in the treen or not, so we decided to include them. It is critical to not add that the scores
 are empty, because this is the only way to track the scores after removing a node.
 
 We initially inlined the definition of \<^term>\<open>empty_outside\<close>, but the simplifier immediatly hung himself.
@@ -719,7 +719,7 @@ proof -
 qed
 
 
-subsection \<open>Refinement to Imperative version\<close>
+subsubsection \<open>Refinement to Imperative version\<close>
 
 definition hp_insert :: \<open>'a \<Rightarrow> 'b::linorder \<Rightarrow> 'a set \<times> ('a,'b) hp_fun \<times> 'a option \<Rightarrow> ('a set \<times> ('a,'b) hp_fun \<times> 'a option) nres\<close> where
   \<open>hp_insert = (\<lambda>(i::'a) (w::'b) (\<V>::'a set, arr :: ('a, 'b) hp_fun, h :: 'a option). do {
