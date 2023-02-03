@@ -38,7 +38,7 @@ text \<open>
 
 It was not entirely clear from the ground up whether we would actually need to have the conditions
 of emptyness of the previous or the parent.  However, these are the only conditions to know whether
-a node is in the tree or not, so we decided to include them. It is critical to not add that the scores
+a node is in the treen or not, so we decided to include them. It is critical to not add that the scores
 are empty, because this is the only way to track the scores after removing a node.
 
 We initially inlined the definition of \<^term>\<open>empty_outside\<close>, but the simplifier immediatly hung himself.
