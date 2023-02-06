@@ -396,6 +396,9 @@ size_t cfg_rat_run_readd_upper_limit = 1<<8;  ///< Upper limit for re-added clau
 
 bool cfg_binary_drat = false; ///< Use binary format for drat file
 
+bool cfg_display_warnings = false; ///< Display warning messages (can lead to lot's of output for some files, in particular with invalid deletion lines)
+
+
 ///@}
 
 
@@ -432,6 +435,11 @@ atomic<size_t> stat_rat_run_h(0);     ///< How often RAT-run heuristics was succ
 /******************************************
  * Main Program
  ******************************************/
+
+void warn(string msg) {
+  if (cfg_display_warnings) clog<<"c WARNING: "<<msg<<endl;
+}
+
 
 /**
  * A relative position in the clause database. Used to point into the clause database during parsing phase, when the addresses of the stored data may still change.
@@ -1185,7 +1193,7 @@ template<typename T> pos_t Parser::parse_deletion(istream &in, T parse_append_ra
   auto orig_c = clause_map.find(pos);           // Look up clause
 
   if (orig_c == clause_map.end()) {
-    clog<<"c Ignoring deletion of non-existent clause (pos "<<pos.pos<<")"<<endl;
+    if (cfg_display_warnings) clog<<"c Ignoring deletion of non-existent clause (pos "<<pos.pos<<")"<<endl;
   } else {
     result = orig_c->second;
     clause_map.erase(orig_c);
@@ -3100,7 +3108,7 @@ void VController::dump_split_proof(ostream &lout, ostream &pout) {
 /// Print usage information
 void print_usage() {
   cerr<<"Usage gratgen <dimacs-file> <proof-file> <options>"<<endl;
-    cerr<<"Options:"<<endl;
+  cerr<<"Options:"<<endl;
     cerr<<"  -u, --no-core-first         Normal (no core first) unit propagation"<<endl;
     cerr<<"  -o name                     Name of GRAT-file"<<endl;
     cerr<<"  -l name                     Name of lemmas-file, activates split-proof mode"<<endl;
@@ -3112,6 +3120,8 @@ void print_usage() {
     cerr<<"      --[no-]premark-formula  Mark clauses of initial formula"<<endl;
     cerr<<"      --[no-]rat-run-h        Use RAT run heuristics"<<endl;
     cerr<<"  -b, --[no-]binary-drat      Use binary DRAT format"<<endl;
+    cerr<<"      --[no-]warnings         Display warnings"<<endl;
+  cerr<<"This binary was built at "<<__TIMESTAMP__<<endl;
 }
 
 /// Print sizes of data types used internally
@@ -3148,6 +3158,8 @@ int main(int argc, char **argv) {
     else if (           a=="--no-rat-run-h") cfg_rat_run_heuristics = false;
     else if (a=="-b" || a=="--binary-drat") cfg_binary_drat = true;
     else if (           a=="--no-binary-drat") cfg_binary_drat = false;
+    else if (           a=="--warnings") cfg_display_warnings = true;
+    else if (           a=="--no-warnings") cfg_display_warnings = false;
     else if (a=="-j" || a=="--num_parallel") {
       ++i; if (i>=argc) {cerr<<"Expecting argument for "<<a<<endl; fail();}
       num_parallel = stoul(argv[i]);
