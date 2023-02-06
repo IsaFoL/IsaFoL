@@ -1701,16 +1701,42 @@ lemma propagate_well_defined:
 lemma decide_well_defined:
   assumes "decide N \<beta> S S'"
   shows
-    "\<not> propagate N \<beta> S S'"
-    "\<not> conflict N \<beta> S S'"
-    "\<not> skip N \<beta> S S'"
-    "\<not> factorize N \<beta> S S'"
-    "\<not> resolve N \<beta> S S'"
-    "\<not> backtrack N \<beta> S S'"
-  using assms
-  by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
-          resolve.cases backtrack.cases
-        simp: decide_lit_def propagate_lit_def)
+    "\<not> propagate N' \<beta>' S S'"
+    "\<not> conflict N' \<beta>' S S'"
+    "\<not> skip N' \<beta>' S S'"
+    "\<not> factorize N' \<beta>' S S'"
+    "\<not> resolve N' \<beta>' S S'"
+    "\<not> backtrack N' \<beta>' S S'"
+proof -
+  from assms obtain L \<gamma> \<Gamma> U where
+    S_def: "S = (\<Gamma>, U, None)" and
+    S'_def: "S' = (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None)"
+    by (auto elim: decide.cases)
+
+  show "\<not> propagate N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto simp add: decide_lit_def propagate_lit_def elim: propagate.cases)
+
+  show "\<not> conflict N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: conflict.cases)
+
+  show "\<not> skip N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: skip.cases)
+
+  show "\<not> factorize N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: factorize.cases)
+
+  show "\<not> resolve N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: resolve.cases)
+
+  show "\<not> backtrack N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: backtrack.cases)
+qed
 
 lemma conflict_well_defined:
   assumes "conflict N \<beta> S S'"
@@ -1771,16 +1797,42 @@ lemma resolve_well_defined:
 lemma backtrack_well_defined:
   assumes "backtrack N \<beta> S S'"
   shows
-    "\<not> propagate N \<beta> S S'"
-    "\<not> decide N \<beta> S S'"
-    "\<not> conflict N \<beta> S S'"
-    "\<not> skip N \<beta> S S'"
-    "\<not> factorize N \<beta> S S'"
-    "\<not> resolve N \<beta> S S'"
-  using assms
-  by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
-          resolve.cases backtrack.cases
-        simp: decide_lit_def propagate_lit_def)
+    "\<not> propagate N' \<beta>' S S'"
+    "\<not> decide N' \<beta>' S S'"
+    "\<not> conflict N' \<beta>' S S'"
+    "\<not> skip N' \<beta>' S S'"
+    "\<not> factorize N' \<beta>' S S'"
+    "\<not> resolve N' \<beta>' S S'"
+proof -
+  from assms obtain \<Gamma> \<Gamma>'' U C \<gamma> where
+    S_def: "S = (\<Gamma>, U, Some (C, \<gamma>))" and
+    S'_def: "S' = (\<Gamma>'', finsert (C) U, None)"
+    by (auto elim: backtrack.cases)
+
+  show "\<not> propagate N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: propagate.cases)
+
+  show "\<not> decide N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: decide.cases)
+
+  show "\<not> conflict N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: conflict.cases)
+
+  show "\<not> skip N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: skip.cases)
+
+  show "\<not> factorize N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: factorize.cases)
+
+  show "\<not> resolve N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: resolve.cases)
+qed
 
 
 subsection \<open>Miscellaneous Lemmas\<close>
@@ -4449,6 +4501,133 @@ next
     by (meson is_shortest_backtrack_def not_Cons_self2 suffix_ConsD suffix_appendD
         suffix_order.dual_order.antisym suffix_order.dual_order.refl)
 qed
+
+
+section \<open>Monotonicity w.r.t. the Bounding Term\<close>
+
+lemma scl_monotone_on_bounding_term:
+  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'" and "scl N \<beta> S\<^sub>0 S\<^sub>1"
+  shows "scl N \<beta>' S\<^sub>0 S\<^sub>1"
+  using assms(2)[unfolded scl_def]
+proof (elim disjE)
+  assume "propagate N \<beta> S\<^sub>0 S\<^sub>1"
+  with assms(1) have "propagate N \<beta>' S\<^sub>0 S\<^sub>1"
+    by (auto intro!: propagateI elim: propagate.cases)
+  thus ?thesis
+    by (simp add: scl_def)
+next
+  assume "decide N \<beta> S\<^sub>0 S\<^sub>1"
+  with assms(1) have "decide N \<beta>' S\<^sub>0 S\<^sub>1"
+    by (auto intro!: decideI elim: decide.cases)
+  thus ?thesis
+    by (simp add: scl_def)
+next
+  assume "conflict N \<beta> S\<^sub>0 S\<^sub>1"
+  with assms(1) have "conflict N \<beta>' S\<^sub>0 S\<^sub>1"
+    by (auto intro!: conflictI elim: conflict.cases)
+  thus ?thesis
+    by (simp add: scl_def)
+next
+  assume "skip N \<beta> S\<^sub>0 S\<^sub>1"
+  with assms(1) have "skip N \<beta>' S\<^sub>0 S\<^sub>1"
+    by (auto intro!: skipI elim: skip.cases)
+  thus ?thesis
+    by (simp add: scl_def)
+next
+  assume "factorize N \<beta> S\<^sub>0 S\<^sub>1"
+  with assms(1) have "factorize N \<beta>' S\<^sub>0 S\<^sub>1"
+    by (auto intro!: factorizeI elim: factorize.cases)
+  thus ?thesis
+    by (simp add: scl_def)
+next
+  assume "resolve N \<beta> S\<^sub>0 S\<^sub>1"
+  with assms(1) have "resolve N \<beta>' S\<^sub>0 S\<^sub>1"
+    by (auto intro!: resolveI elim: resolve.cases)
+  thus ?thesis
+    by (simp add: scl_def)
+next
+  assume "backtrack N \<beta> S\<^sub>0 S\<^sub>1"
+  with assms(1) have "backtrack N \<beta>' S\<^sub>0 S\<^sub>1"
+    by (auto intro!: backtrackI elim: backtrack.cases)
+  thus ?thesis
+    by (simp add: scl_def)
+qed
+
+lemma reasonable_scl_monotone_on_bounding_term:
+  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'" and "reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1"
+  shows "reasonable_scl N \<beta>' S\<^sub>0 S\<^sub>1"
+  unfolding reasonable_scl_def
+proof (intro conjI impI)
+  show "scl N \<beta>' S\<^sub>0 S\<^sub>1"
+    using assms scl_monotone_on_bounding_term scl_if_reasonable by metis
+next
+  assume "decide N \<beta>' S\<^sub>0 S\<^sub>1"
+  with assms(2) have "decide N \<beta> S\<^sub>0 S\<^sub>1"
+    using decide_well_defined
+    by (simp add: reasonable_scl_def scl_def)
+  with assms(2) have "\<nexists>S\<^sub>2. conflict N \<beta> S\<^sub>1 S\<^sub>2"
+    by (simp add: reasonable_scl_def)
+  with assms(1) show "\<nexists>S\<^sub>2. conflict N \<beta>' S\<^sub>1 S\<^sub>2"
+    by (simp add: conflict.simps)
+qed
+
+lemma regular_scl_monotone_on_bounding_term:
+  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'" and "regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
+  shows "regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
+  using assms(2)[unfolded regular_scl_def]
+proof (elim disjE conjE)
+  assume "conflict N \<beta> S\<^sub>0 S\<^sub>1"
+  hence "conflict N \<beta>' S\<^sub>0 S\<^sub>1"
+    by (simp add: conflict.simps)
+  thus "regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
+    by (simp add: regular_scl_def)
+next
+  assume "\<nexists>S\<^sub>1'. conflict N \<beta> S\<^sub>0 S\<^sub>1'" and "reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1"
+  have "\<nexists>S\<^sub>1'. conflict N \<beta>' S\<^sub>0 S\<^sub>1'"
+    using \<open>\<nexists>S\<^sub>1'. conflict N \<beta> S\<^sub>0 S\<^sub>1'\<close>
+    by (simp add: conflict.simps)
+  moreover have "reasonable_scl N \<beta>' S\<^sub>0 S\<^sub>1"
+    using assms(1) \<open>reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1\<close> reasonable_scl_monotone_on_bounding_term
+    by metis
+  ultimately show "regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
+    by (simp add: regular_scl_def)
+qed
+
+lemma min_back_regular_scl_monotone_on_bounding_term:
+  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'" and "shortest_backtrack_strategy regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
+  shows "shortest_backtrack_strategy regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
+  unfolding shortest_backtrack_strategy_def
+proof (intro conjI impI)
+  from assms(2) have "regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
+    by (simp add: shortest_backtrack_strategy_def)
+  with assms(1) show "regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
+    using regular_scl_monotone_on_bounding_term
+    by metis
+next
+  assume "backtrack N \<beta>' S\<^sub>0 S\<^sub>1"
+  with assms(2) have "backtrack N \<beta> S\<^sub>0 S\<^sub>1"
+    using backtrack_well_defined
+    by (simp add: shortest_backtrack_strategy_def regular_scl_def reasonable_scl_def scl_def)
+  with assms(2) show "is_shortest_backtrack
+    (fst (the (state_conflict S\<^sub>0))) (state_trail S\<^sub>0) (state_trail S\<^sub>1)"
+    by (simp add: shortest_backtrack_strategy_def)
+qed
+
+
+lemma monotonicity_wrt_bounding_term:
+  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'"
+  shows
+    "scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> scl N \<beta>' S\<^sub>0 S\<^sub>1" and
+    "reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> reasonable_scl N \<beta>' S\<^sub>0 S\<^sub>1" and
+    "regular_scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> regular_scl N \<beta>' S\<^sub>0 S\<^sub>1" and
+    "shortest_backtrack_strategy regular_scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow>
+      shortest_backtrack_strategy regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
+  using assms
+    scl_monotone_on_bounding_term
+    reasonable_scl_monotone_on_bounding_term
+    regular_scl_monotone_on_bounding_term
+    min_back_regular_scl_monotone_on_bounding_term
+  by metis+
 
 end
 

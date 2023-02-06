@@ -1408,6 +1408,15 @@ lemma pcdcl_entailed_by_init:
     cdcl_inp_conflict_entailed_by_init cdcl_inp_propagate_entailed_by_init
     cdcl_unitres_true_same cdcl_promote_false_entailed_by_init)
 
+lemma rtranclp_pcdcl_entailed_by_init:
+  assumes \<open>pcdcl\<^sup>*\<^sup>* S T\<close> and
+    \<open>pcdcl_all_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
+  using assms
+  by (induction rule: rtranclp_induct)
+   (use pcdcl_entailed_by_init rtranclp_pcdcl_all_struct_invs in blast)+
+
 
 lemma pcdcl_core_stgy_stgy_invs:
   assumes
@@ -2263,16 +2272,6 @@ lemma pcdcl_stgy_conflict_non_zero_unless_level_0:
     by (auto simp: cdcl_inp_conflict.simps cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
   subgoal by (auto simp: cdcl_unitres_true_same)
   done
-
-(*TODO Move in this file*)
-lemma rtranclp_pcdcl_entailed_by_init:
-  assumes \<open>pcdcl\<^sup>*\<^sup>* S T\<close> and
-    \<open>pcdcl_all_struct_invs S\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
-  using assms
-  by (induction rule: rtranclp_induct)
-   (use pcdcl_entailed_by_init rtranclp_pcdcl_all_struct_invs in blast)+
 
 text \<open>
   TODO: rename to \<^term>\<open>full\<^sub>t\<close> or something along that line.

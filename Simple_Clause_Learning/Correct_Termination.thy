@@ -697,6 +697,27 @@ next
     by (auto simp: shortest_backtrack_strategy_def)
 qed
 
+corollary correct_termination_strategies:
+  fixes gnd_N and gnd_N_lt_\<beta>
+  assumes
+    "(scl N \<beta>)\<^sup>*\<^sup>* initial_state S \<and> (\<nexists>S'. scl N \<beta> S S') \<or>
+     (reasonable_scl N \<beta>)\<^sup>*\<^sup>* initial_state S \<and> (\<nexists>S'. reasonable_scl N \<beta> S S') \<or>
+     (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S \<and> (\<nexists>S'. regular_scl N \<beta> S S') \<or>
+     (shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S \<and>
+       (\<nexists>S'. shortest_backtrack_strategy regular_scl N \<beta> S S')"
+  defines
+    "gnd_N \<equiv> grounding_of_clss (fset N)" and
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
+  shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
+    satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
+  unfolding gnd_N_def gnd_N_lt_\<beta>_def
+  using assms(1)
+    correct_termination_scl_run[of N \<beta> S]
+    correct_termination_reasonable_scl_run[of N \<beta> S]
+    correct_termination_regular_scl_run[of N \<beta> S]
+    correct_termination_shortest_backtrack_strategy_regular_scl[of N \<beta> S]
+  by argo
+
 end
 
 end

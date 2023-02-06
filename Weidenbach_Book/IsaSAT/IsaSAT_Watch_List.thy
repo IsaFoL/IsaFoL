@@ -1,5 +1,6 @@
 theory IsaSAT_Watch_List
   imports IsaSAT_Literals IsaSAT_Clauses Watched_Literals.Watched_Literals_Watch_List_Initialisation
+    Map_Fun_Rel
 begin
 
 chapter \<open>Refinement of the Watched Function\<close>
@@ -24,14 +25,6 @@ text \<open>There is not much to say about watch lists since they are arrays of 
 \<close>
 
 section \<open>Definition\<close>
-
-definition map_fun_rel :: \<open>(nat \<times> 'key) set \<Rightarrow> ('b \<times> 'a) set \<Rightarrow> ('b list \<times> ('key \<Rightarrow> 'a)) set\<close> where
-  map_fun_rel_def_internal:
-    \<open>map_fun_rel D R = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
-
-lemma map_fun_rel_def:
-  \<open>\<langle>R\<rangle>map_fun_rel D = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
-  unfolding relAPP_def map_fun_rel_def_internal by auto
 
 definition mop_append_ll :: \<open>'a list list \<Rightarrow> nat literal \<Rightarrow> 'a \<Rightarrow> 'a list list nres\<close> where
   \<open>mop_append_ll xs i x = do {
@@ -69,8 +62,6 @@ lemma delete_index_and_swap_ll_delete_index_and_swap_update:
       nth_list_update' nat_lit_rel_def
       simp del: literal_of_nat.simps)
 
-definition append_update :: \<open>('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'a \<Rightarrow> 'b list\<close> where
-  \<open>append_update W L a = W(L:= W (L) @ [a])\<close>
 
 type_synonym nat_clauses_l = \<open>nat list list\<close>
 

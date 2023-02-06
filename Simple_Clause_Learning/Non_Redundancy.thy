@@ -1467,6 +1467,9 @@ definition redundant where
   "redundant lt N C \<longleftrightarrow>
     (\<forall>C' \<in> grounding_of_cls C. ground_redundant lt (grounding_of_clss N) C')"
 
+lemma "redundant lt N C \<longleftrightarrow> (\<forall>C'\<in> grounding_of_cls C. {D' \<in> grounding_of_clss N. lt D' C'} \<TTurnstile>e {C'})"
+  by (simp add: redundant_def ground_redundant_def)
+
 lemma ground_redundant_mono_strong:
   "ground_redundant R N C \<Longrightarrow> (\<And>x. x \<in> N \<Longrightarrow> R x C \<Longrightarrow> S x C) \<Longrightarrow> ground_redundant S N C"
   unfolding ground_redundant_def
