@@ -1,0 +1,25 @@
+e\.g\.
+e\..?.?g\.,
+i\.e\.
+i\..?.?e\.,
+w\..?.?r\..?.?t\.,
+w\.r\.t\.
+\\eg,
+\\ie,
+\\wrt,
+\\wrt\\ 
+[^\\].[A-Za-z]\\cite
+[^\\].[A-Za-z] \\cite
+\\cite\{\}
+~~+\\cite\{
+cf\.
+transfered
+[Dd]atastructure
+[Rr]e-phrase
+, +that
+both *,
+[^<\\](lambda,eta,beta)
+booleans?
+Buchi
+Buechi
+datatype
