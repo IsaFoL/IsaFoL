@@ -739,11 +739,11 @@ definition hp_insert :: \<open>'a \<Rightarrow> 'b::linorder \<Rightarrow> 'a se
     then do {
       let arr = hp_set_all i None None (Some j) None (Some (w::'b)) (arr::('a, 'b) hp_fun);
       let arr = hp_update_parents j (Some i) arr;
-      let nxt = hp_read_nxt j arr;
       RETURN (\<V>, arr :: ('a, 'b) hp_fun, Some i)
     }
     else do {
       let child = hp_read_child j arr;
+      ASSERT (child \<noteq> None \<longrightarrow> the child \<in> \<V>);
       let arr = hp_set_all j None None (Some i) None (Some y) arr;
       let arr = hp_set_all i None child None (Some j) (Some (w::'b)) arr;
       let arr = (if child = None then arr else hp_update_prev (the child) (Some i) arr);
@@ -835,6 +835,10 @@ proof -
     subgoal
       by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list_def hp_set_all_def
         split: option.splits prod.splits)
+    subgoal
+      using enc
+      by (cases h, simp; cases \<open>the h\<close>)
+        (auto simp: hp_set_all_def encoded_hp_prop_list_conc_def fun_upd_idem hp_update_parents_def)
     subgoal
       using enc
       by (cases h, simp; cases \<open>the h\<close>)
