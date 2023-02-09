@@ -1633,7 +1633,7 @@ next
     unfolding scl_def by blast
   with step.hyps(2) have "reasonable_scl N \<beta> S' S''"
     using reasonable_scl_def decide_well_defined(4) decide_well_defined(5) skip_well_defined(2)
-    by blast
+    by fast
   moreover from step.hyps(2) have "\<not> Ex (conflict N \<beta> S')"
     apply simp
     by (smt (verit, best) conflict.cases factorize.simps option.distinct(1) resolve.simps skip.simps
