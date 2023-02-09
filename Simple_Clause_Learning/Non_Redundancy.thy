@@ -1656,6 +1656,7 @@ lemma not_trail_true_and_false_cls:
   by (metis trail_false_cls_def trail_true_cls_def)
 
 theorem learned_clauses_in_regular_runs_invars:
+  fixes \<Gamma>
   assumes
     sound_S0: "sound_state N \<beta> S0" and
     invars: "learned_nonempty S0" "trail_propagated_or_decided' N \<beta> S0"
@@ -1665,8 +1666,9 @@ theorem learned_clauses_in_regular_runs_invars:
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
     backtrack: "backtrack N \<beta> Sn Sn'"
   defines
-    "trail_ord \<equiv> multp\<^sub>H\<^sub>O (trail_less (map fst (state_trail S1)))" and
-    "U \<equiv> state_learned S1"
+    "\<Gamma> \<equiv> state_trail S1" and
+    "U \<equiv> state_learned S1" and
+    "trail_ord \<equiv> multp\<^sub>H\<^sub>O (trail_less (map fst \<Gamma>))"
   shows "(\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
       C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
       set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
@@ -1989,35 +1991,21 @@ proof -
 
     from D_in have
       D_in: "D \<in> grounding_of_clss (fset N \<union> fset U)" and
-      D_le_Cn_\<gamma>n: "trail_ord\<^sup>=\<^sup>= D (Cn \<cdot> \<gamma>n)"
+      D_le_Cn_\<gamma>n: "trail_ord D (Cn \<cdot> \<gamma>n)"
       unfolding gnds_le_Cn_\<gamma>n_def by simp_all
 
     from D_le_Cn_\<gamma>n have "trail_defined_cls (state_trail S1) D"
-      unfolding Lattices.sup_apply Boolean_Algebras.sup_bool_def
-    proof (elim disjE)
-      assume multp_D_Cn_\<gamma>n: "trail_ord D (Cn \<cdot> \<gamma>n)"
-      show "trail_defined_cls (state_trail S1) D"
-        using tr_consistent_S1 multp_D_Cn_\<gamma>n
-          \<open>trail_defined_cls (state_trail S1) (Cn \<cdot> \<gamma>n)\<close>
-        by (auto simp add: trail_ord_def intro: trail_defined_cls_if_lt_defined)
-    next
-      assume "D = Cn \<cdot> \<gamma>n"
-      then show "trail_defined_cls (state_trail S1) D"
-        using \<open>trail_defined_cls (state_trail S1) (Cn \<cdot> \<gamma>n)\<close> by simp
-    qed
+        using tr_consistent_S1 \<open>trail_defined_cls (state_trail S1) (Cn \<cdot> \<gamma>n)\<close>
+        by (auto simp add: \<Gamma>_def trail_ord_def intro: trail_defined_cls_if_lt_defined)
     hence "trail_false_cls (state_trail S1) D"
       using \<open>\<not> trail_interp (state_trail S1) \<TTurnstile> D\<close>
       using \<open>trail_consistent (state_trail S1)\<close> trail_interp_cls_if_trail_true
         trail_true_or_false_cls_if_defined by blast
 
-    from D_le_Cn_\<gamma>n have "L \<cdot>l \<gamma> \<notin># D \<and> - (L \<cdot>l \<gamma>) \<notin># D"
-    proof (rule sup2E)
-      show "D = Cn \<cdot> \<gamma>n \<Longrightarrow> ?thesis"
-        using \<open>L \<cdot>l \<gamma> \<notin># Cn \<cdot> \<gamma>n \<and> - (L \<cdot>l \<gamma>) \<notin># Cn \<cdot> \<gamma>n\<close> by argo
-    next
-      assume "trail_ord D (Cn \<cdot> \<gamma>n)"
-      hence D_lt_Cn_\<gamma>n': "multp\<^sub>H\<^sub>O (trail_less (map fst (state_trail S1))) D (Cn \<cdot> \<gamma>n)"
-        unfolding trail_ord_def .
+    have "L \<cdot>l \<gamma> \<notin># D \<and> - (L \<cdot>l \<gamma>) \<notin># D"
+    proof -
+      from D_le_Cn_\<gamma>n have D_lt_Cn_\<gamma>n': "multp\<^sub>H\<^sub>O (trail_less (map fst (state_trail S1))) D (Cn \<cdot> \<gamma>n)"
+        unfolding trail_ord_def \<Gamma>_def .
 
       have "\<forall>K\<in>#Cn \<cdot> \<gamma>n. - K \<in> fst ` set (state_trail S1)"
         by (rule \<open>trail_false_cls (state_trail S1) (Cn \<cdot> \<gamma>n)\<close>[unfolded trail_false_cls_def
