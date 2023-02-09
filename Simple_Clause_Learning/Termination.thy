@@ -720,6 +720,7 @@ proof -
     set_conf_not_in_set_groundings:
       "set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset (state_learned S1))"
     using learned_clauses_in_regular_runs[OF assms(1,2,3,4)]
+    using standard_lit_less_preserves_term_less
     by metis
 
   have 1: "state_learned Sn' = finsert C (state_learned Sn)"

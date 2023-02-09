@@ -1392,6 +1392,11 @@ inductive trail_consistent where
   Nil[simp]: "trail_consistent []" |
   Cons: "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow> trail_consistent \<Gamma> \<Longrightarrow> trail_consistent ((L, u) # \<Gamma>)"
 
+lemma distinct_atm_of_trail_if_trail_consistent:
+  "trail_consistent \<Gamma> \<Longrightarrow> distinct (map (atm_of \<circ> fst) \<Gamma>)"
+  by (induction \<Gamma> rule: trail_consistent.induct)
+    (simp_all add: image_comp trail_defined_lit_iff)
+
 lemma trail_consistent_appendD: "trail_consistent (\<Gamma> @ \<Gamma>') \<Longrightarrow> trail_consistent \<Gamma>'"
   by (induction \<Gamma>) (auto elim: trail_consistent.cases)
 

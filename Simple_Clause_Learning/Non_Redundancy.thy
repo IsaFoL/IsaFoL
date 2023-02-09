@@ -1578,19 +1578,30 @@ lemma asymp_trail_less_if_trail_consistant:
 
 subsection \<open>Properties\<close>
 
-lemma trail_defined_if_trail_less:
-  "trail_less (map fst \<Gamma>) L K \<Longrightarrow> trail_defined_lit \<Gamma> K \<Longrightarrow> trail_defined_lit \<Gamma> L"
-  by (auto simp: trail_defined_lit_def dest: defined_if_trail_less)
+lemma trail_defined_lit_if_trail_term_less:
+  assumes "trail_term_less (map (atm_of o fst) \<Gamma>) (atm_of L) (atm_of K)"
+  shows "trail_defined_lit \<Gamma> L" "trail_defined_lit \<Gamma> K"
+proof -
+  from assms have "atm_of L \<in> set (map (atm_of o fst) \<Gamma>)" and "atm_of K \<in> set (map (atm_of o fst) \<Gamma>)"
+    by (auto simp: trail_term_less_def)
+  hence "atm_of L \<in> atm_of ` fst ` set \<Gamma>" and "atm_of K \<in> atm_of ` fst ` set \<Gamma>"
+    by auto
+  hence "L \<in> fst ` set \<Gamma> \<or> - L \<in> fst ` set \<Gamma>" and "K \<in> fst ` set \<Gamma> \<or> - K \<in> fst ` set \<Gamma>"
+    by (simp_all add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
+  thus "trail_defined_lit \<Gamma> L" and "trail_defined_lit \<Gamma> K"
+    by (simp_all add: trail_defined_lit_def)
+qed
 
 lemma trail_defined_cls_if_lt_defined:
   assumes consistent_\<Gamma>: "trail_consistent \<Gamma>" and
-    C_lt_D: "multp\<^sub>H\<^sub>O (trail_less (map fst \<Gamma>)) C D" and
-    tr_def_D: "trail_defined_cls \<Gamma> D"
+    C_lt_D: "multp\<^sub>H\<^sub>O (lit_less (trail_term_less (map (atm_of o fst) \<Gamma>))) C D" and
+    tr_def_D: "trail_defined_cls \<Gamma> D" and
+    lit_less_preserves_term_order: "\<And>R L1 L2. lit_less R L1 L2 \<Longrightarrow> R\<^sup>=\<^sup>= (atm_of L1) (atm_of L2)"
   shows "trail_defined_cls \<Gamma> C"
 proof -
   from multp\<^sub>H\<^sub>O_implies_one_step[OF C_lt_D]
   obtain I J K where D_def: "D = I + J" and C_def: "C = I + K" and "J \<noteq> {#}" and
-    *: "\<forall>k\<in>#K. \<exists>x\<in>#J. trail_less (map fst \<Gamma>) k x"
+    *: "\<forall>k\<in>#K. \<exists>x\<in>#J. lit_less (trail_term_less (map (atm_of o fst) \<Gamma>)) k x"
     by auto
 
   show ?thesis
@@ -1606,13 +1617,14 @@ proof -
     next
       case False
       with C_def L_in have "L \<in># K" by fastforce
-      then obtain L' where L'_in: "L'\<in>#J" and "trail_less (map fst \<Gamma>) L L'"
+      then obtain L' where L'_in: "L'\<in>#J" and "lit_less (trail_term_less (map (atm_of o fst) \<Gamma>)) L L'"
         using * by blast
-      moreover have "trail_defined_lit \<Gamma> L'"
-        using tr_def_D D_def L'_in
-        by (simp add: trail_defined_cls_def)
-      ultimately show ?thesis
-        by (auto intro: trail_defined_if_trail_less)
+      hence "(trail_term_less (map (atm_of o fst) \<Gamma>))\<^sup>=\<^sup>= (atm_of L) (atm_of L')"
+        using lit_less_preserves_term_order by metis
+      thus ?thesis
+        using trail_defined_lit_if_trail_term_less(1)
+        by (metis (mono_tags, lifting) D_def L'_in atm_of_eq_atm_of sup2E tr_def_D
+            trail_defined_cls_def trail_defined_lit_iff_defined_uminus union_iff)
     qed
   qed
 qed
@@ -1656,7 +1668,7 @@ lemma not_trail_true_and_false_cls:
   by (metis trail_false_cls_def trail_true_cls_def)
 
 theorem learned_clauses_in_regular_runs_invars:
-  fixes \<Gamma>
+  fixes \<Gamma> lit_less
   assumes
     sound_S0: "sound_state N \<beta> S0" and
     invars: "learned_nonempty S0" "trail_propagated_or_decided' N \<beta> S0"
@@ -1664,11 +1676,12 @@ theorem learned_clauses_in_regular_runs_invars:
       "trail_lits_consistent S0" "trail_closures_false' S0" "ground_false_closures S0" and
     conflict: "conflict N \<beta> S0 S1" and
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
-    backtrack: "backtrack N \<beta> Sn Sn'"
+    backtrack: "backtrack N \<beta> Sn Sn'" and
+    lit_less_preserves_term_order: "\<And>R L1 L2. lit_less R L1 L2 \<Longrightarrow> R\<^sup>=\<^sup>= (atm_of L1) (atm_of L2)"
   defines
     "\<Gamma> \<equiv> state_trail S1" and
     "U \<equiv> state_learned S1" and
-    "trail_ord \<equiv> multp\<^sub>H\<^sub>O (trail_less (map fst \<Gamma>))"
+    "trail_ord \<equiv> multp\<^sub>H\<^sub>O (lit_less (trail_term_less (map (atm_of o fst) \<Gamma>)))"
   shows "(\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
       C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
       set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
@@ -1995,8 +2008,10 @@ proof -
       unfolding gnds_le_Cn_\<gamma>n_def by simp_all
 
     from D_le_Cn_\<gamma>n have "trail_defined_cls (state_trail S1) D"
-        using tr_consistent_S1 \<open>trail_defined_cls (state_trail S1) (Cn \<cdot> \<gamma>n)\<close>
-        by (auto simp add: \<Gamma>_def trail_ord_def intro: trail_defined_cls_if_lt_defined)
+      using \<open>trail_defined_cls (state_trail S1) (Cn \<cdot> \<gamma>n)\<close>
+      using trail_defined_cls_if_lt_defined
+      using \<Gamma>_def lit_less_preserves_term_order tr_consistent_S1 trail_ord_def
+      by metis
     hence "trail_false_cls (state_trail S1) D"
       using \<open>\<not> trail_interp (state_trail S1) \<TTurnstile> D\<close>
       using \<open>trail_consistent (state_trail S1)\<close> trail_interp_cls_if_trail_true
@@ -2004,7 +2019,8 @@ proof -
 
     have "L \<cdot>l \<gamma> \<notin># D \<and> - (L \<cdot>l \<gamma>) \<notin># D"
     proof -
-      from D_le_Cn_\<gamma>n have D_lt_Cn_\<gamma>n': "multp\<^sub>H\<^sub>O (trail_less (map fst (state_trail S1))) D (Cn \<cdot> \<gamma>n)"
+      from D_le_Cn_\<gamma>n have D_lt_Cn_\<gamma>n':
+        "multp\<^sub>H\<^sub>O (lit_less (trail_term_less (map (atm_of \<circ> fst) (state_trail S1)))) D (Cn \<cdot> \<gamma>n)"
         unfolding trail_ord_def \<Gamma>_def .
 
       have "\<forall>K\<in>#Cn \<cdot> \<gamma>n. - K \<in> fst ` set (state_trail S1)"
@@ -2017,35 +2033,29 @@ proof -
         by simp
       hence *: "\<forall>K\<in>#Cn \<cdot> \<gamma>n. - K \<in> fst ` set (state_trail S)"
         by (metis \<open>L \<cdot>l \<gamma> \<notin># Cn \<cdot> \<gamma>n \<and> - (L \<cdot>l \<gamma>) \<notin># Cn \<cdot> \<gamma>n\<close> insert_iff uminus_lit_swap)
-      have **: "\<forall>K \<in># Cn \<cdot> \<gamma>n. trail_less (map fst (state_trail S1)) K (L \<cdot>l \<gamma>)"
+
+      have **: "\<forall>K \<in># Cn \<cdot> \<gamma>n. trail_term_less (map (atm_of o fst) (state_trail S1))
+        (atm_of K) (atm_of (L \<cdot>l \<gamma>))"
         unfolding \<open>state_trail S1 = state_trail S0\<close>
           \<open>state_trail S0 = trail_propagate (state_trail S) L C \<gamma>\<close>
-          propagate_lit_def prod.sel list.map
+          propagate_lit_def comp_def prod.sel list.map
       proof (rule ballI)
         fix K assume "K \<in># Cn \<cdot> \<gamma>n"
-        have "trail_less_comp_id (L \<cdot>l \<gamma> # map fst (state_trail S)) K (L \<cdot>l \<gamma>)"
-          unfolding trail_less_comp_id_def
-          using *[rule_format, OF \<open>K \<in># Cn \<cdot> \<gamma>n\<close>]
-          by (smt (verit, best) image_set in_set_conv_nth length_Cons less_Suc_eq_0_disj nth_Cons'
-              nth_Cons_Suc uminus_lit_swap)
-        thus "trail_less (L \<cdot>l \<gamma> # map fst (state_trail S)) K (L \<cdot>l \<gamma>)"
-          by (simp add: trail_less_def)
+        with * have "- K \<in> fst ` set (state_trail S)"
+          by metis
+        hence "atm_of K \<in> set (map (\<lambda>x. atm_of (fst x)) (state_trail S))"
+          by (metis (no_types, lifting) atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+              comp_eq_dest_lhs image_comp image_cong list.set_map)
+        thus "trail_term_less (atm_of (L \<cdot>l \<gamma>) # map (\<lambda>x. atm_of (fst x)) (state_trail S))
+          (atm_of K) (atm_of (L \<cdot>l \<gamma>))"
+          using trail_term_less_Cons_if_mem by metis
       qed
-      
-      moreover have "trail_less (map fst (state_trail S1)) (L \<cdot>l \<gamma>) (- (L \<cdot>l \<gamma>))"
-        unfolding \<open>state_trail S1 = state_trail S0\<close>
-          \<open>state_trail S0 = trail_propagate (state_trail S) L C \<gamma>\<close>
-          propagate_lit_def list.map prod.sel
-        by (rule trail_less_comp_rightI) simp
-
-      ultimately have ***: "\<forall>K \<in># Cn \<cdot> \<gamma>n. trail_less (map fst (state_trail S1)) K (- (L \<cdot>l \<gamma>))"
-        using transp_trail_less_if_trail_consistant[OF tr_consistent_S1, THEN transpD] by blast
 
       have "\<not> (L \<cdot>l \<gamma> \<in># D \<or> - (L \<cdot>l \<gamma>) \<in># D)"
       proof (rule notI)
         obtain I J K where
           "Cn \<cdot> \<gamma>n = I + J" and D_def: "D = I + K" and "J \<noteq> {#}" and
-          "\<forall>k\<in>#K. \<exists>x\<in>#J. trail_less (map fst (state_trail S1)) k x"
+          "\<forall>k\<in>#K. \<exists>x\<in>#J. lit_less (trail_term_less (map (atm_of \<circ> fst) (state_trail S1))) k x"
           using multp\<^sub>H\<^sub>O_implies_one_step[OF D_lt_Cn_\<gamma>n']
           by auto
         assume "L \<cdot>l \<gamma> \<in># D \<or> - (L \<cdot>l \<gamma>) \<in># D"
@@ -2060,7 +2070,7 @@ proof -
         next
           show "L \<cdot>l \<gamma> \<in># K \<Longrightarrow> False"
             using \<open>L \<cdot>l \<gamma> \<notin># Cn \<cdot> \<gamma>n \<and> - (L \<cdot>l \<gamma>) \<notin># Cn \<cdot> \<gamma>n\<close>[THEN conjunct1]
-              **[unfolded \<open>Cn \<cdot> \<gamma>n = I + J\<close>] \<open>\<forall>k\<in>#K. \<exists>x\<in>#J. trail_less (map fst (state_trail S1)) k x\<close>
+              **[unfolded \<open>Cn \<cdot> \<gamma>n = I + J\<close>] \<open>\<forall>k\<in>#K. \<exists>x\<in>#J. lit_less (trail_term_less (map (atm_of \<circ> fst) (state_trail S1))) k x\<close>
             by (metis (no_types, lifting) D_def Un_insert_right
                 \<open>\<not> trail_interp (state_trail S1) \<TTurnstile> D\<close>
                 \<open>state_trail S0 = trail_propagate (state_trail S) L C \<gamma>\<close>
@@ -2072,15 +2082,24 @@ proof -
           assume "- (L \<cdot>l \<gamma>) \<in># K"
           then obtain j where
             j_in: "j \<in># J" and
-            uminus_L_\<gamma>_lt_j: "trail_less (map fst (state_trail S1)) (- (L \<cdot>l \<gamma>)) j"
-            using \<open>\<forall>k\<in>#K. \<exists>x\<in>#J. trail_less (map fst (state_trail S1)) k x\<close> by auto
+            uminus_L_\<gamma>_lt_j: "lit_less (trail_term_less (map (atm_of \<circ> fst) (state_trail S1))) (- (L \<cdot>l \<gamma>)) j"
+            using \<open>\<forall>k\<in>#K. \<exists>x\<in>#J. lit_less (trail_term_less (map (atm_of \<circ> fst) (state_trail S1))) k x\<close>
+            by blast
 
           from j_in have
-            "trail_less (map fst (state_trail S1)) j (- (L \<cdot>l \<gamma>))"
-            using *** by (auto simp: \<open>Cn \<cdot> \<gamma>n = I + J\<close>)
-          with uminus_L_\<gamma>_lt_j show "False"
-            using asymp_trail_less_if_trail_consistant[OF tr_consistent_S1, THEN asympD]
-            by blast
+            "trail_term_less (map (atm_of \<circ> fst) (state_trail S1)) (atm_of j) (atm_of (L \<cdot>l \<gamma>))"
+            using **
+            by (auto simp: \<open>Cn \<cdot> \<gamma>n = I + J\<close>)
+
+          moreover from uminus_L_\<gamma>_lt_j have "trail_term_less (map (atm_of \<circ> fst) (state_trail S1)) (atm_of (L \<cdot>l \<gamma>)) (atm_of j)"
+            using calculation lit_less_preserves_term_order by fastforce
+
+          moreover from tr_consistent_S1 have "distinct (map (atm_of \<circ> fst) (state_trail S1))"
+            using distinct_atm_of_trail_if_trail_consistent by metis
+
+          ultimately show "False"
+            using asymp_trail_term_less[THEN asympD]
+            by metis
         qed
       qed
       thus ?thesis by simp
@@ -2156,14 +2175,17 @@ proof -
 qed
 
 theorem learned_clauses_in_regular_runs:
+  fixes \<Gamma>
   assumes
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
     conflict: "conflict N \<beta> S0 S1" and
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
-    backtrack: "backtrack N \<beta> Sn Sn'"
+    backtrack: "backtrack N \<beta> Sn Sn'" and
+    lit_less_preserves_term_order: "\<And>R L1 L2. lit_less R L1 L2 \<Longrightarrow> R\<^sup>=\<^sup>= (atm_of L1) (atm_of L2)"
   defines
-    "trail_ord \<equiv> multp\<^sub>H\<^sub>O (trail_less (map fst (state_trail S1)))" and
-    "U \<equiv> state_learned S1"
+    "\<Gamma> \<equiv> state_trail S1" and
+    "U \<equiv> state_learned S1" and
+    "trail_ord \<equiv> multp\<^sub>H\<^sub>O (lit_less (trail_term_less (map (atm_of o fst) \<Gamma>)))"
   shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn' \<and>
     (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
       C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
@@ -2229,8 +2251,9 @@ proof -
         \<open>trail_propagated_or_decided' N \<beta> S0\<close>
         \<open>no_conflict_after_decide' N \<beta> S0\<close> \<open>almost_no_conflict_with_trail N \<beta> S0\<close>
         \<open>trail_lits_consistent S0\<close> \<open>trail_closures_false' S0\<close> \<open>ground_false_closures S0\<close>
-        conflict resolution backtrack, folded trail_ord_def U_def]
-    by argo
+        conflict resolution backtrack]
+    using lit_less_preserves_term_order
+    using U_def \<Gamma>_def trail_ord_def by presburger
 qed
 
 lemma before_regular_backtrack':
@@ -2271,6 +2294,16 @@ proof -
     by metis
 qed
 
+fun standard_lit_less where
+  "standard_lit_less R (Pos t1) (Pos t2) = R t1 t2" |
+  "standard_lit_less R (Pos t1) (Neg t2) = R\<^sup>=\<^sup>= t1 t2" |
+  "standard_lit_less R (Neg t1) (Pos t2) = R t1 t2" |
+  "standard_lit_less R (Neg t1) (Neg t2) = R\<^sup>=\<^sup>= t1 t2"
+
+lemma standard_lit_less_preserves_term_less:
+  shows "standard_lit_less R L1 L2 \<Longrightarrow> R\<^sup>=\<^sup>= (atm_of L1) (atm_of L2)"
+  by (cases L1; cases L2) simp_all
+
 corollary learned_clauses_in_regular_runs_static_order:
   assumes
     run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
@@ -2308,9 +2341,11 @@ proof -
   ultimately have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S'" and
     "\<exists>C \<gamma>. state_conflict S = Some (C, \<gamma>) \<and>
       C \<notin> fset N \<union> fset (state_learned S2) \<and>
-      \<not> redundant (multp\<^sub>H\<^sub>O (trail_less (map fst (state_trail S2))))
-        (fset N \<union> fset (state_learned S2)) C"
-    using learned_clauses_in_regular_runs[OF _ confl _ step]
+      (\<exists>lt. \<not> redundant (multp\<^sub>H\<^sub>O (standard_lit_less
+                 (trail_term_less (map (atm_of \<circ> fst) (state_trail S2)))))
+        (fset N \<union> fset (state_learned S2)) C)"
+    using learned_clauses_in_regular_runs[OF _ confl _ step, of standard_lit_less]
+    using standard_lit_less_preserves_term_less
     by metis+
 
   moreover from reg_res' have "state_learned S2 = state_learned S"
@@ -2360,18 +2395,22 @@ next
 qed
 
 theorem learned_clauses_in_strategy:
+  fixes \<Gamma>
   assumes
     run: "(strategy N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
     conflict: "conflict N \<beta> S0 S1" and
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
     backtrack: "backtrack N \<beta> Sn Sn'" and
-    strategy_imp_regular_scl: "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
+    strategy_imp_regular_scl: "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'" and
+    lit_less_preserves_term_order: "\<And>R L1 L2. lit_less R L1 L2 \<Longrightarrow> R\<^sup>=\<^sup>= (atm_of L1) (atm_of L2)"
   defines
-    "trail_ord \<equiv> multp\<^sub>H\<^sub>O (trail_less (map fst (state_trail S1)))" and
-    "U \<equiv> state_learned S1"
+    "\<Gamma> \<equiv> state_trail S1" and
+    "U \<equiv> state_learned S1" and
+    "trail_ord \<equiv> multp\<^sub>H\<^sub>O (lit_less (trail_term_less (map (atm_of o fst) \<Gamma>)))"
   shows "(\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
       C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
       set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
+      C \<notin> fset N \<union> fset U \<and>
       \<not> redundant trail_ord (fset N \<union> fset U) C)"
 proof -
   from backtrack have backtrack': "backtrack N \<beta> Sn Sn'"
@@ -2381,7 +2420,8 @@ proof -
     C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
     set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
     C \<notin> fset N \<union> fset U \<and>
-    \<not> redundant (multp\<^sub>H\<^sub>O (trail_less (map fst (state_trail S1))))
+    \<not> redundant (multp\<^sub>H\<^sub>O (lit_less
+                 (trail_term_less (map (atm_of \<circ> fst) (state_trail S1)))))
       (fset N \<union> fset U) C)"
     unfolding U_def
   proof (rule learned_clauses_in_regular_runs[THEN conjunct2])
@@ -2396,9 +2436,12 @@ proof -
   next
     from assms show "backtrack N \<beta> Sn Sn'"
       by (simp add: shortest_backtrack_strategy_def)
+  next
+    from assms show "\<And>R L1 L2. lit_less R L1 L2 \<Longrightarrow> R\<^sup>=\<^sup>= (atm_of L1) (atm_of L2)"
+      by simp
   qed
   thus ?thesis
-    by (auto simp add: trail_ord_def)
+    by (auto simp add: trail_ord_def \<Gamma>_def)
 qed
 
 end

@@ -3,6 +3,9 @@ theory Trail_Induced_Ordering
     (* Isabelle theories *)
     Main
 
+    (* AFP theories *)
+    "List-Index.List_Index"
+
     (* Local theories *)
     Relation_Extra
 begin
@@ -847,6 +850,80 @@ proof (intro allI impI)
       using trail_subset_empty_or_ex_smallest[OF uminus_not_id uminus_uminus_id pairwise_distinct,
         unfolded wfP_eq_minimal, of "Q \<inter> (set Ls \<union> uminus ` set Ls)", simplified]
       by (metis (no_types, lifting) IntD1 IntD2 UnE defined_conv trail_less_ex_def uminus_uminus_id)
+  qed
+qed
+
+
+subsection \<open>Alternative only for terms\<close>
+
+
+(* definition trail_term_less where
+  "trail_term_less ts = (\<lambda>t1 t2. \<exists>i. Suc i < length ts \<and> t1 = ts ! Suc i \<and> t2 = ts ! i)\<^sup>+\<^sup>+"
+
+lemma transp_trail_term_less: "transp (trail_term_less ts)"
+proof (rule transpI)
+  fix t1 t2 t3
+  assume "trail_term_less ts t1 t2" and "trail_term_less ts t2 t3"
+  then show "trail_term_less ts t1 t3"
+    by (simp add: trail_term_less_def)
+qed *)
+
+definition trail_term_less where
+  "trail_term_less ts t1 t2 \<longleftrightarrow> (\<exists>i < length ts. \<exists>j < i. t1 = ts ! i \<and> t2 = ts ! j)"
+
+lemma transp_trail_term_less:
+  assumes "distinct ts"
+  shows "transp (trail_term_less ts)"
+  by (rule transpI)
+    (smt (verit, ccfv_SIG) Suc_lessD assms less_trans_Suc nth_eq_iff_index_eq trail_term_less_def)
+
+lemma asymp_trail_term_less:
+  assumes "distinct ts"
+  shows "asymp (trail_term_less ts)"
+  by (rule asympI)
+    (metis assms distinct_Ex1 dual_order.strict_trans nth_mem order_less_imp_not_less
+      trail_term_less_def)
+
+lemma irreflp_trail_term_less:
+  assumes "distinct ts"
+  shows "irreflp (trail_term_less ts)"
+  using assms irreflp_on_if_asymp_on[OF asymp_trail_term_less] by metis
+
+lemma totalp_on_trail_term_less:
+  shows "totalp_on (set ts) (trail_term_less ts)"
+  by (rule totalp_onI) (metis in_set_conv_nth nat_neq_iff trail_term_less_def)
+
+lemma wfP_trail_term_less:
+  assumes "distinct ts"
+  shows "wfP (trail_term_less ts)"
+proof (rule wfP_if_convertible_to_nat)
+  fix t1 t2 assume "trail_term_less ts t1 t2"
+  then obtain i j where "i<length ts" and "j<i" and "t1 = ts ! i" and "t2 = ts ! j"
+    unfolding trail_term_less_def by auto
+  then show "index (rev ts) t1 < index (rev ts) t2"
+    using assms diff_commute index_nth_id index_rev by fastforce
+qed
+
+lemma trail_term_less_Cons_if_mem:
+  assumes "y \<in> set xs"
+  shows "trail_term_less (x # xs) y x"
+proof -
+  from assms obtain i where "i < length xs" and "xs ! i = y"
+    by (meson in_set_conv_nth)
+  thus ?thesis
+    unfolding trail_term_less_def
+  proof (intro exI conjI)
+    show "Suc i < length (x # xs)"
+      using \<open>i < length xs\<close> by simp
+  next
+    show "0 < Suc i"
+      by simp
+  next
+    show "y = (x # xs) ! Suc i"
+      using \<open>xs ! i = y\<close> by simp
+  next
+    show "x = (x # xs) ! 0"
+      by simp
   qed
 qed
 
