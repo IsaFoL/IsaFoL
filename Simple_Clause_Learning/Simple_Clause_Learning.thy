@@ -1687,16 +1687,42 @@ subsection \<open>Well-Defined\<close>
 lemma propagate_well_defined:
   assumes "propagate N \<beta> S S'"
   shows
-    "\<not> decide N \<beta> S S'"
-    "\<not> conflict N \<beta> S S'"
-    "\<not> skip N \<beta> S S'"
-    "\<not> factorize N \<beta> S S'"
-    "\<not> resolve N \<beta> S S'"
-    "\<not> backtrack N \<beta> S S'"
-  using assms
-  by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
-          resolve.cases backtrack.cases
-        simp: decide_lit_def propagate_lit_def)
+    "\<not> decide N' \<beta>' S S'"
+    "\<not> conflict N' \<beta>' S S'"
+    "\<not> skip N' \<beta>' S S'"
+    "\<not> factorize N' \<beta>' S S'"
+    "\<not> resolve N' \<beta>' S S'"
+    "\<not> backtrack N' \<beta>' S S'"
+proof -
+  from assms obtain L C \<gamma> \<Gamma> U where
+    S_def: "S = (\<Gamma>, U, None)" and
+    S'_def: "S' = (trail_propagate \<Gamma> L C \<gamma>, U, None)"
+    by (auto elim: propagate.cases)
+
+  show "\<not> decide N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto simp add: decide_lit_def propagate_lit_def elim: decide.cases)
+
+  show "\<not> conflict N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: conflict.cases)
+
+  show "\<not> skip N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: skip.cases)
+
+  show "\<not> factorize N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: factorize.cases)
+
+  show "\<not> resolve N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: resolve.cases)
+
+  show "\<not> backtrack N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: backtrack.cases)
+qed
 
 lemma decide_well_defined:
   assumes "decide N \<beta> S S'"
@@ -1741,30 +1767,82 @@ qed
 lemma conflict_well_defined:
   assumes "conflict N \<beta> S S'"
   shows
-    "\<not> propagate N \<beta> S S'"
-    "\<not> decide N \<beta> S S'"
-    "\<not> skip N \<beta> S S'"
-    "\<not> factorize N \<beta> S S'"
-    "\<not> resolve N \<beta> S S'"
-    "\<not> backtrack N \<beta> S S'"
-  using assms
-  by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
-          resolve.cases backtrack.cases
-        simp: decide_lit_def propagate_lit_def)
+    "\<not> propagate N' \<beta>' S S'"
+    "\<not> decide N' \<beta>' S S'"
+    "\<not> skip N' \<beta>' S S'"
+    "\<not> factorize N' \<beta>' S S'"
+    "\<not> resolve N' \<beta>' S S'"
+    "\<not> backtrack N' \<beta>' S S'"
+proof -
+  from assms obtain C \<gamma> \<Gamma> U where
+    S_def: "S = (\<Gamma>, U, None)" and
+    S'_def: "S' = (\<Gamma>, U, Some (C, \<gamma>))"
+    by (auto elim: conflict.cases)
+
+  show "\<not> propagate N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto simp add: decide_lit_def propagate_lit_def elim: propagate.cases)
+
+  show "\<not> decide N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: decide.cases)
+
+  show "\<not> skip N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: skip.cases)
+
+  show "\<not> factorize N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: factorize.cases)
+
+  show "\<not> resolve N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: resolve.cases)
+
+  show "\<not> backtrack N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: backtrack.cases)
+qed
 
 lemma skip_well_defined:
   assumes "skip N \<beta> S S'"
   shows
-    "\<not> propagate N \<beta> S S'"
-    "\<not> decide N \<beta> S S'"
-    "\<not> conflict N \<beta> S S'"
-    "\<not> factorize N \<beta> S S'"
-    "\<not> resolve N \<beta> S S'"
-    "\<not> backtrack N \<beta> S S'"
-  using assms
-  by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
-          resolve.cases backtrack.cases
-        simp: decide_lit_def propagate_lit_def)
+    "\<not> propagate N' \<beta>' S S'"
+    "\<not> decide N' \<beta>' S S'"
+    "\<not> conflict N' \<beta>' S S'"
+    "\<not> factorize N' \<beta>' S S'"
+    "\<not> resolve N' \<beta>' S S'"
+    "\<not> backtrack N' \<beta>' S S'"
+proof -
+  from assms obtain Ln \<Gamma> U opt where
+    S_def: "S = (Ln # \<Gamma>, U, opt)" and
+    S'_def: "S' = (\<Gamma>, U, opt)"
+    by (auto elim: skip.cases)
+
+  show "\<not> propagate N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto simp add: decide_lit_def propagate_lit_def elim: propagate.cases)
+
+  show "\<not> decide N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: decide.cases)
+
+  show "\<not> conflict N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: conflict.cases)
+
+  show "\<not> factorize N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: factorize.cases)
+
+  show "\<not> resolve N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: resolve.cases)
+
+  show "\<not> backtrack N' \<beta>' S S'"
+    using S_def S'_def
+    by (auto elim: backtrack.cases)
+qed
 
 lemma factorize_well_defined:
   assumes "factorize N \<beta> S S'"
@@ -4628,6 +4706,11 @@ lemma monotonicity_wrt_bounding_term:
     regular_scl_monotone_on_bounding_term
     min_back_regular_scl_monotone_on_bounding_term
   by metis+
+
+lemma
+  assumes "transp (\<prec>\<^sub>B)" and "\<beta> \<prec>\<^sub>B \<beta>'"
+  shows "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'"
+  using assms by (metis transpD)
 
 end
 
