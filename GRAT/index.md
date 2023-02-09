@@ -17,6 +17,8 @@ verified <code>gratchk</code> tool.
 * Memory efficient checking with split certificates.
 
 ## News
+* Feb 6, 2023: No default display of invalid deletion clause warnings, as they could flood the logs. Added switch to get them back.
+* Jan 31, 2023: Ported to Isabelle 2022
 * Dec 25, 2018: Version 1.3.1. Bugfix in gratgen, now also works if initial clauses have conflict by unit propagation.
 * March 4, 2018: Version 1.3. Bugfixes and support for binary drat format.
 * June 28, 2017: Added OpenBSD style [license](LICENSE).

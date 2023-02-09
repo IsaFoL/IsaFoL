@@ -1,0 +1,26 @@
+
+\lstdefinelanguage{pseudo}{
+  morekeywords={if, then, else, while, do, for, parallel, fun, return, case, of, in, exit},
+%  ,
+%   morekeywords=[2]{rec, return, bind, foreach, if, then, else, do, let, in, res, spec, fail, assert, while, case, of,
+%     check},
+%  morekeywords=[3]{length,mod,insert},
+%   morekeywords=[4]{simp,auto,intro,elim,rprems,refine_mono,refine_rcg},
+  sensitive=True,
+  morecomment=[s]{(\*}{\*)},
+  literate={\\in}{{$\in$}}1
+    {<=}{{$\le$}}1
+    {>=}{{$\ge$}}1,
+%    
+  mathescape=true,
+  escapeinside={--"}{"},
+  basicstyle={\itshape},
+  keywordstyle=\rm\bfseries,
+  keywordstyle=[2]\rm\tt,
+  keywordstyle=[3]\rm,
+  keywordstyle=[4]\rm,
+  showstringspaces=false,
+  keepspaces=true,
+  columns=[c]fullflexible,
+  escapechar=@
+}
