@@ -61,7 +61,6 @@ lemma mop_hp_read_nxt_imp_spec:
     by (auto simp: pairing_heaps_rel_def map_fun_rel_def)
   done
 
-
 definition op_hp_read_prev_imp where
   \<open>op_hp_read_prev_imp = (\<lambda>i (prevs, nxts, children, parents, scores, h). do {
       prevs ! i
@@ -207,6 +206,9 @@ lemma mop_hp_set_all_imp_spec:
     by (force simp: pairing_heaps_rel_def map_fun_rel_def hp_set_all_def)
   done
 
+lemma fst_hp_set_all'[simp]: \<open>fst (hp_set_all' i p q r s t x) = fst x\<close>
+  by (cases x) auto
+
 fun update_source_node where
   \<open>update_source_node i (\<V>,arr,_) = (\<V>, arr, i)\<close>
 fun source_node :: \<open>(nat set \<times> (nat,'c) hp_fun \<times> nat option) \<Rightarrow> _\<close> where
@@ -239,9 +241,6 @@ fun hp_update_nxt' where
 
 fun hp_update_score' where
   \<open>hp_update_score' i p(\<V>, u, h) = (\<V>, hp_update_score i p u, h)\<close>
-
-lemma fst_hp_set_all'[simp]: \<open>fst (hp_set_all' i p q r s t arr) = fst arr\<close>
-  by (cases arr) auto
 
 
 lemma hp_insert_alt_def:
@@ -363,7 +362,6 @@ definition mop_hp_insert_impl :: \<open>nat \<Rightarrow> 'b::linorder \<Rightar
    }
   })\<close>
 
-
 lemma Some_x_y_option_theD: \<open>(Some x, y) \<in> \<langle>S\<rangle>option_rel \<Longrightarrow> (x, the y) \<in> S\<close>
   by (auto simp: option_rel_def)
 
@@ -374,7 +372,7 @@ private lemma in_pairing_heaps_rel_still: \<open>(arra, arr') \<in> \<langle>\<l
   by auto
 
 
-lemma mop_hp_insert_impl:
+lemma mop_hp_insert_impl_spec:
   assumes \<open>(xs, ys) \<in> \<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel\<close> \<open>(i,j)\<in>nat_rel\<close> \<open>(w,w')\<in>nat_rel\<close>
   shows \<open>mop_hp_insert_impl i w xs \<le> \<Down>(\<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel) (hp_insert j w' ys)\<close>
 proof -
@@ -484,10 +482,56 @@ proof -
     done
 qed
 
+
+lemma vsids_pass\<^sub>1_alt_def:
+  \<open>vsids_pass\<^sub>1 = (\<lambda>(arr::'a set \<times> ('a,'c::order) hp_fun \<times> 'a option) (j::'a). do {
+  (arr, j, _, n) \<leftarrow> WHILE\<^sub>T(\<lambda>(arr, j,_, _). j \<noteq> None)
+  (\<lambda>(arr, j, e::nat, n). do {
+    if j = None then RETURN (arr, None, e, n)
+    else do {
+    let j = the j;
+    ASSERT (j \<in> fst arr);
+    let nxt = hp_read_nxt' j arr;
+    if nxt = None then RETURN (arr, nxt, e+1, j)
+    else do {
+      ASSERT (nxt \<noteq> None);
+      ASSERT (the nxt \<in> fst arr);
+      let nnxt = hp_read_nxt' (the nxt) arr;
+      (arr, n) \<leftarrow> hp_link j (the nxt) arr;
+      RETURN (arr, nnxt, e+2, n)
+   }}
+  })
+  (arr, Some j, 0::nat, j);
+  RETURN (arr, n)
+        })\<close> (is \<open>?A = ?B\<close>)
+proof -
+  have K[refine]: \<open>x2 = (x1a, x2a) \<Longrightarrow> i = (x1, x2) \<Longrightarrow>
+    (((x1, x1a, x2a), Some arr, 0, arr), i::'a set \<times> ('a,'c::order) hp_fun \<times> 'a option, Some arr, 0::nat, arr)
+    \<in> Id \<times>\<^sub>r \<langle>Id\<rangle>option_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r Id\<close>
+    \<open>\<And>x1 x2 x1a x2a.
+    x2 = (x1a, x2a) \<Longrightarrow>
+    i = (x1, x2) \<Longrightarrow>
+    ((i, Some arr, 0, arr), (x1, x1a, x2a), Some arr, 0, arr)
+    \<in> Id \<times>\<^sub>r \<langle>Id\<rangle>option_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r Id\<close>
+
+    for x2 x1a x2a arr x1 i
+    by auto
+  have [refine]: \<open>(a,a')\<in>Id \<Longrightarrow> (b,b')\<in>Id \<Longrightarrow> (c,c')\<in>Id \<Longrightarrow> hp_link a b c \<le>\<Down>Id (hp_link a' b' c')\<close> for a b c a' b' c'
+    by auto
+  have \<open>?A i arr \<le> \<Down>Id (?B i arr)\<close> for i arr
+    unfolding vsids_pass\<^sub>1_def
+    by refine_vcg (solves auto)+
+  moreover have \<open>?B i arr \<le> \<Down>Id (?A i arr)\<close> for i arr
+    unfolding vsids_pass\<^sub>1_def
+    by refine_vcg (solves \<open>auto intro!: ext bind_cong[OF refl] simp: Let_def\<close>)+
+  ultimately show ?thesis unfolding Down_id_eq apply -
+    apply (intro ext)
+    apply (rule antisym)
+    apply assumption+
+    done
+qed
+
 (*TODO next:*)
-  term hp_link
   term vsids_pass\<^sub>1
   term vsids_pass\<^sub>2
-end
-
 end
