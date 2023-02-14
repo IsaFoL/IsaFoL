@@ -61,7 +61,6 @@ lemma mop_hp_read_nxt_imp_spec:
     by (auto simp: pairing_heaps_rel_def map_fun_rel_def)
   done
 
-
 definition op_hp_read_prev_imp where
   \<open>op_hp_read_prev_imp = (\<lambda>i (prevs, nxts, children, parents, scores, h). do {
       prevs ! i
@@ -207,6 +206,9 @@ lemma mop_hp_set_all_imp_spec:
     by (force simp: pairing_heaps_rel_def map_fun_rel_def hp_set_all_def)
   done
 
+lemma fst_hp_set_all'[simp]: \<open>fst (hp_set_all' i p q r s t x) = fst x\<close>
+  by (cases x) auto
+
 fun update_source_node where
   \<open>update_source_node i (\<V>,arr,_) = (\<V>, arr, i)\<close>
 fun source_node :: \<open>(nat set \<times> (nat,'c) hp_fun \<times> nat option) \<Rightarrow> _\<close> where
@@ -239,9 +241,6 @@ fun hp_update_nxt' where
 
 fun hp_update_score' where
   \<open>hp_update_score' i p(\<V>, u, h) = (\<V>, hp_update_score i p u, h)\<close>
-
-lemma fst_hp_set_all'[simp]: \<open>fst (hp_set_all' i p q r s t arr) = fst arr\<close>
-  by (cases arr) auto
 
 
 lemma hp_insert_alt_def:
@@ -363,7 +362,6 @@ definition mop_hp_insert_impl :: \<open>nat \<Rightarrow> 'b::linorder \<Rightar
    }
   })\<close>
 
-
 lemma Some_x_y_option_theD: \<open>(Some x, y) \<in> \<langle>S\<rangle>option_rel \<Longrightarrow> (x, the y) \<in> S\<close>
   by (auto simp: option_rel_def)
 
@@ -395,6 +393,7 @@ proof -
       Some_x_y_option_theD[where S=nat_rel]
       mop_hp_update_parent'_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
       mop_hp_update_prev'_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and j=\<open>the (hp_read_child' (the (source_node ys)) ys)\<close>])
+      
     subgoal by (auto dest: source_node_spec)
     subgoal by auto
     subgoal by auto
@@ -488,6 +487,4 @@ qed
   term hp_link
   term vsids_pass\<^sub>1
   term vsids_pass\<^sub>2
-end
-
 end
