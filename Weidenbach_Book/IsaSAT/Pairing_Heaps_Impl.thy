@@ -372,7 +372,7 @@ private lemma in_pairing_heaps_rel_still: \<open>(arra, arr') \<in> \<langle>\<l
   by auto
 
 
-lemma mop_hp_insert_impl:
+lemma mop_hp_insert_impl_spec:
   assumes \<open>(xs, ys) \<in> \<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel\<close> \<open>(i,j)\<in>nat_rel\<close> \<open>(w,w')\<in>nat_rel\<close>
   shows \<open>mop_hp_insert_impl i w xs \<le> \<Down>(\<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel) (hp_insert j w' ys)\<close>
 proof -
@@ -393,7 +393,6 @@ proof -
       Some_x_y_option_theD[where S=nat_rel]
       mop_hp_update_parent'_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
       mop_hp_update_prev'_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and j=\<open>the (hp_read_child' (the (source_node ys)) ys)\<close>])
-      
     subgoal by (auto dest: source_node_spec)
     subgoal by auto
     subgoal by auto
@@ -483,8 +482,56 @@ proof -
     done
 qed
 
+
+lemma vsids_pass\<^sub>1_alt_def:
+  \<open>vsids_pass\<^sub>1 = (\<lambda>(arr::'a set \<times> ('a,'c::order) hp_fun \<times> 'a option) (j::'a). do {
+  (arr, j, _, n) \<leftarrow> WHILE\<^sub>T(\<lambda>(arr, j,_, _). j \<noteq> None)
+  (\<lambda>(arr, j, e::nat, n). do {
+    if j = None then RETURN (arr, None, e, n)
+    else do {
+    let j = the j;
+    ASSERT (j \<in> fst arr);
+    let nxt = hp_read_nxt' j arr;
+    if nxt = None then RETURN (arr, nxt, e+1, j)
+    else do {
+      ASSERT (nxt \<noteq> None);
+      ASSERT (the nxt \<in> fst arr);
+      let nnxt = hp_read_nxt' (the nxt) arr;
+      (arr, n) \<leftarrow> hp_link j (the nxt) arr;
+      RETURN (arr, nnxt, e+2, n)
+   }}
+  })
+  (arr, Some j, 0::nat, j);
+  RETURN (arr, n)
+        })\<close> (is \<open>?A = ?B\<close>)
+proof -
+  have K[refine]: \<open>x2 = (x1a, x2a) \<Longrightarrow> i = (x1, x2) \<Longrightarrow>
+    (((x1, x1a, x2a), Some arr, 0, arr), i::'a set \<times> ('a,'c::order) hp_fun \<times> 'a option, Some arr, 0::nat, arr)
+    \<in> Id \<times>\<^sub>r \<langle>Id\<rangle>option_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r Id\<close>
+    \<open>\<And>x1 x2 x1a x2a.
+    x2 = (x1a, x2a) \<Longrightarrow>
+    i = (x1, x2) \<Longrightarrow>
+    ((i, Some arr, 0, arr), (x1, x1a, x2a), Some arr, 0, arr)
+    \<in> Id \<times>\<^sub>r \<langle>Id\<rangle>option_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r Id\<close>
+
+    for x2 x1a x2a arr x1 i
+    by auto
+  have [refine]: \<open>(a,a')\<in>Id \<Longrightarrow> (b,b')\<in>Id \<Longrightarrow> (c,c')\<in>Id \<Longrightarrow> hp_link a b c \<le>\<Down>Id (hp_link a' b' c')\<close> for a b c a' b' c'
+    by auto
+  have \<open>?A i arr \<le> \<Down>Id (?B i arr)\<close> for i arr
+    unfolding vsids_pass\<^sub>1_def
+    by refine_vcg (solves auto)+
+  moreover have \<open>?B i arr \<le> \<Down>Id (?A i arr)\<close> for i arr
+    unfolding vsids_pass\<^sub>1_def
+    by refine_vcg (solves \<open>auto intro!: ext bind_cong[OF refl] simp: Let_def\<close>)+
+  ultimately show ?thesis unfolding Down_id_eq apply -
+    apply (intro ext)
+    apply (rule antisym)
+    apply assumption+
+    done
+qed
+
 (*TODO next:*)
-  term hp_link
   term vsids_pass\<^sub>1
   term vsids_pass\<^sub>2
 end
