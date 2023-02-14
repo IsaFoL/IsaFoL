@@ -152,6 +152,23 @@ lemma wfp_iff_minimal: "wfp R \<longleftrightarrow> (\<forall>B. B \<noteq> {} \
 lemmas wfP_eq_minimal[no_atp] = wf_eq_minimal[to_pred]
 
 
+lemma ex_trans_min_element_if_wf_on:
+  assumes wf: "wf_on A r" and x_in: "x \<in> A"
+  shows "\<exists>y \<in> A. (y, x) \<in> r\<^sup>* \<and> \<not>(\<exists>z \<in> A. (z, y) \<in> r)"
+  using wf
+proof (induction x rule: wf_on_induct)
+  case (less x)
+  thus ?case
+    by (metis rtrancl.rtrancl_into_rtrancl rtrancl.rtrancl_refl)
+next
+  case in_dom
+  thus ?case
+    using x_in by metis
+qed
+
+lemma ex_trans_min_element_if_wfp_on: "wfp_on A R \<Longrightarrow> x \<in> A \<Longrightarrow> \<exists>y\<in>A. R\<^sup>*\<^sup>* y x \<and> \<not> (\<exists>z\<in>A. R z y)"
+  by (rule ex_trans_min_element_if_wf_on[to_pred])
+
 subsection \<open>Bound Restriction and Monotonicity\<close>
 
 lemma wf_on_subset: "wf_on A r \<Longrightarrow> B \<subseteq> A \<Longrightarrow> wf_on B r"
