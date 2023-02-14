@@ -4697,7 +4697,7 @@ next
 qed
 
 
-lemma monotonicity_wrt_bounding_term:
+lemma monotonicity_wrt_bound:
   assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'"
   shows
     "scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> scl N \<beta>' S\<^sub>0 S\<^sub>1" and
