@@ -71,7 +71,7 @@ proof (rule totalp_onI)
     by (metis (full_types) lex_prodp_def mem_Times_iff prod_eq_iff totalp_on_def)
 qed
 
-instantiation prod :: (preorder, preorder) order begin
+(* instantiation prod :: (preorder, preorder) order begin
 
 definition less_prod :: "'a \<times> 'b \<Rightarrow> 'a \<times> 'b \<Rightarrow> bool" where
   "x < y \<longleftrightarrow> lex_prodp less less x y"
@@ -105,9 +105,9 @@ next
     by metis
 qed
 
-end
+end *)
 
-instance prod :: (linorder, linorder) linorder
+(* instance prod :: (linorder, linorder) linorder
 proof intro_classes
   fix x y :: "'a \<times> 'b"
   show "x \<le> y \<or> y \<le> x"
@@ -125,7 +125,7 @@ proof intro_classes
     unfolding less_prod_def
     using wfp_lex_prodp wfP_less
     by (smt (verit, ccfv_threshold) UNIV_I wfp_iff_wfP wfp_on_def)
-qed
+qed *)
 
 
 subsection \<open>Wellfounded_Extra\<close>

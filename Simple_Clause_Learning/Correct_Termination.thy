@@ -202,7 +202,7 @@ theorem correct_termination:
       is_shortest_backtrack (fst (the (state_conflict S))) (state_trail S) (state_trail S')"
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
-    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
 proof -
@@ -227,7 +227,7 @@ proof -
     have tr_true: "trail_true_clss \<Gamma> gnd_N_lt_\<beta>"
       unfolding trail_true_clss_def gnd_N_lt_\<beta>_def gnd_N_def
     proof (rule ballI, unfold mem_Collect_eq, erule conjE)
-      fix C assume C_in: "C \<in> grounding_of_clss (fset N)" and C_lt_\<beta>: "\<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>"
+      fix C assume C_in: "C \<in> grounding_of_clss (fset N)" and C_lt_\<beta>: "\<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>"
 
       from C_in have "is_ground_cls C"
         by (rule grounding_ground)
@@ -317,7 +317,7 @@ proof -
       fix C
       have "trail_consistent \<Gamma>"
         using S_def trail_consistent by auto
-      show "C \<in> gnd_N \<Longrightarrow> \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta> \<Longrightarrow> trail_interp \<Gamma> \<TTurnstile> C"
+      show "C \<in> gnd_N \<Longrightarrow> \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta> \<Longrightarrow> trail_interp \<Gamma> \<TTurnstile> C"
         using tr_true[unfolded gnd_N_lt_\<beta>_def]
         using trail_interp_cls_if_trail_true[OF \<open>trail_consistent \<Gamma>\<close>]
         by (simp add: trail_true_clss_def)
@@ -487,7 +487,7 @@ corollary correct_termination_strategy:
       "\<And>N \<beta> S S'. strategy N \<beta> S S' \<Longrightarrow> ground_false_closures S \<Longrightarrow> ground_false_closures S'"
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
-    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
 proof -
@@ -625,7 +625,7 @@ corollary correct_termination_regular_scl_run:
     no_step: "\<nexists>S'. regular_scl N \<beta> S S'"
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
-    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
 proof (rule correct_termination_strategy[of _ N \<beta>, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
