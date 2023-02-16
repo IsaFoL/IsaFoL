@@ -739,6 +739,7 @@ definition hp_insert :: \<open>'a \<Rightarrow> 'b::linorder \<Rightarrow> 'a se
     then do {
       let arr = hp_set_all i None None (Some j) None (Some (w::'b)) (arr::('a, 'b) hp_fun);
       let arr = hp_update_parents j (Some i) arr;
+      let nxt = hp_read_nxt j arr;
       RETURN (\<V>, arr :: ('a, 'b) hp_fun, Some i)
     }
     else do {
