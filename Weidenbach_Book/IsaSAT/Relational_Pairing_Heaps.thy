@@ -739,6 +739,7 @@ definition hp_insert :: \<open>'a \<Rightarrow> 'b::linorder \<Rightarrow> 'a se
     then do {
       let arr = hp_set_all i None None (Some j) None (Some (w::'b)) (arr::('a, 'b) hp_fun);
       let arr = hp_update_parents j (Some i) arr;
+      let nxt = hp_read_nxt j arr;
       RETURN (\<V>, arr :: ('a, 'b) hp_fun, Some i)
     }
     else do {
@@ -856,6 +857,8 @@ definition hp_link :: \<open>'a \<Rightarrow> 'a \<Rightarrow> 'a set \<times> (
     ASSERT (i \<noteq> j);
     ASSERT (i \<in> \<V>);
     ASSERT (j \<in> \<V>);
+    ASSERT (hp_read_score i arr \<noteq> None);
+    ASSERT (hp_read_score j arr \<noteq> None);
     let x = (the (hp_read_score i arr)::'b);
     let y = (the (hp_read_score j arr)::'b);
     let prev = hp_read_prev i arr;
@@ -1021,6 +1024,8 @@ proof -
     subgoal using ij by auto
     subgoal using dist \<V> by (auto simp: x)
     subgoal using dist \<V> by (auto simp: y)
+    subgoal using sc' by auto
+    subgoal using sc' by auto
     subgoal using diff by auto
     subgoal using diff by auto
     subgoal using diff by (auto split: if_splits)
@@ -1040,17 +1045,17 @@ proof -
       apply (cases \<open>the (scores j) < the (scores i)\<close>)
       subgoal
         apply (subst H)
-        using p(1-10) p(17)[symmetric] dist2 \<V>
+        using p(1-12) p(19)[symmetric] dist2 \<V>
         apply (solves simp)
-        using p(1-10) p(17)[symmetric] dist2 \<V>
+        using p(1-12) p(19)[symmetric] dist2 \<V>
         apply (solves simp)
         apply (subst arg_cong2[THEN iffD1, of _ _ _ _ \<open>encoded_hp_prop_list {#}\<close>, OF _ _ encoded_hp_prop_list_link[of \<open>{#}\<close> xs \<open>node x\<close> \<open>score x\<close> \<open>hps x\<close> \<open>node y\<close> \<open>score y\<close> \<open>hps y\<close> ys
           prevs nxts childs parents scores, OF enc0]])
         subgoal
-          using sc' p(1-10) p(17)[symmetric] dist2 \<V>
+          using sc' p(1-12) p(19)[symmetric] dist2 \<V>
           by (simp add: x y)
         subgoal
-          using sc' p(1-10) p(17)[symmetric] dist2 \<V> par
+          using sc' p(1-12) p(19)[symmetric] dist2 \<V> par
           apply (simp add: x y)
           apply (intro conjI impI)
           subgoal apply (simp add: fun_upd_idem fun_upd_twist  fun_upd_idem[of \<open>childs(parent \<mapsto> ch)\<close>] hp_set_all_def)
@@ -1173,17 +1178,17 @@ proof -
         subgoal
           supply [[goals_limit=1]]
         apply (subst H)
-        using p(1-10) p(17)[symmetric] dist2 \<V>
+        using p(1-12) p(19)[symmetric] dist2 \<V>
         apply simp
-        using p(1-10) p(17)[symmetric] dist2 \<V>
+        using p(1-12) p(19)[symmetric] dist2 \<V>
         apply simp
         apply (subst arg_cong2[THEN iffD1, of _ _ _ _ \<open>encoded_hp_prop_list {#}\<close>, OF _ _ encoded_hp_prop_list_link2[of \<open>{#}\<close> xs \<open>node x\<close> \<open>score x\<close> \<open>hps x\<close> \<open>node y\<close> \<open>score y\<close> \<open>hps y\<close> ys
           prevs nxts childs parents scores, OF enc0]])
         subgoal
-          using sc' p(1-10) p(17)[symmetric] dist2 \<V>
+          using sc' p(1-12) p(19)[symmetric] dist2 \<V>
           by (simp add: x y)
         subgoal
-          using sc' p(1-10) p(17)[symmetric] dist2 \<V>
+          using sc' p(1-12) p(19)[symmetric] dist2 \<V>
           apply (simp add: x y)
           apply (intro conjI impI)
           subgoal
@@ -1298,7 +1303,7 @@ proof -
           done
         done
       subgoal premises p
-        using p(1-10) p(17)[symmetric] dist2 \<V>
+        using p(1-12) p(19)[symmetric] dist2 \<V>
         using sc'
         by (cases \<open>the (scores j) < the (scores i)\<close>)
          (simp_all add: x y split: if_split)
@@ -1533,6 +1538,7 @@ qed
 
 definition vsids_pass\<^sub>2 where
   \<open>vsids_pass\<^sub>2 = (\<lambda>(\<V>::'a set, arr :: ('a, 'b::order) hp_fun, h :: 'a option) (j::'a). do {
+  ASSERT (j \<in> \<V>);
   let nxt = hp_read_prev j arr;
   ((\<V>, arr, h), j, leader, _) \<leftarrow> WHILE\<^sub>T(\<lambda>((\<V>, arr, h), j, leader, e). j \<noteq> None)
   (\<lambda>((\<V>, arr, h), j, leader, e::nat). do {
@@ -1548,10 +1554,6 @@ definition vsids_pass\<^sub>2 where
   ((\<V>, arr, h), nxt, j, 1::nat);
   RETURN (\<V>, arr, Some leader)
   })\<close>
-
-lemma pass\<^sub>2_None_iff[simp]: \<open>VSIDS.pass\<^sub>2 list = None \<longleftrightarrow> list = []\<close>
-  by (cases list)
-   auto
 
 lemma vsids_pass\<^sub>2:
   fixes arr :: \<open>'a::linorder set \<times> ('a, nat) hp_fun \<times> 'a option\<close>
@@ -1576,6 +1578,8 @@ proof -
   have I0: \<open>I ((\<V>, (prevs, nxts, childs, scores), None), hp_read_prev j (prevs, nxts, childs, scores), j, 1)\<close>
     using assms prevs_lastxs unfolding I_def prod.simps Let_def
     by (auto simp: arr butlast_Nil_iff)
+  have j\<V>: \<open>j \<in> \<V>\<close>
+    using assms by (cases xs rule: rev_cases) (auto simp: encoded_hp_prop_list2_conc_def arr)
   have links_pre1: \<open>encoded_hp_prop_list2_conc (\<V>', arr', h')
     (take (length xs - Suc e) xs @
     xs ! (length xs - Suc e) #
@@ -1660,6 +1664,7 @@ proof -
     unfolding vsids_pass\<^sub>2_def arr prod.simps
     apply (refine_vcg WHILET_rule[where I=I and R = \<open>measure (\<lambda>(arr, nnxt::'a option, _, e). length xs -e)\<close>]
       hp_link)
+    subgoal using j\<V> by auto
     subgoal by auto
     subgoal by (rule I0)
     subgoal by auto
