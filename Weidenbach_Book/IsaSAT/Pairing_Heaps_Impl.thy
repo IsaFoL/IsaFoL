@@ -1075,9 +1075,191 @@ proof -
     done
 qed
 
-(*next*)
 
-thm vsids_pop_min_def
+definition mop_vsids_pop_min_impl where
+    \<open>mop_vsids_pop_min_impl = (\<lambda>arr. do {
+  let h = source_node_impl arr;
+  if h = None then RETURN (None, arr)
+  else do {
+      j \<leftarrow> mop_hp_read_child_imp (the h) arr;
+      if j = None then RETURN (h, update_source_node_impl None arr)
+      else do {
+        arr \<leftarrow> mop_hp_update_prev'_imp (the h) None arr;
+        arr \<leftarrow> mop_hp_update_child'_imp (the h) None arr;
+        arr \<leftarrow> mop_hp_update_parent'_imp (the j) None arr;
+        arr \<leftarrow> mop_merge_pairs_imp (update_source_node_impl None arr) (the j);
+        RETURN (h, arr)
+      }
+    }
+  })\<close>
+
+
+lemma mop_vsids_pop_min_impl:
+  assumes \<open>(xs, ys) \<in> \<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel\<close>
+  shows \<open>mop_vsids_pop_min_impl xs \<le> \<Down>(\<langle>nat_rel\<rangle>option_rel \<times>\<^sub>r \<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel) (vsids_pop_min ys)\<close>
+proof -
+  let ?R = \<open>{((arr, j, n), (arr', j', n', _)). (arr, arr') \<in> \<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel \<and>
+    (j, j') \<in> \<langle>nat_rel\<rangle>option_rel \<and> (n,n')\<in>Id}\<close>
+  have K[refine0]: \<open>(the (source_node_impl xs), the (source_node ys)) \<in> nat_rel\<close>
+    if \<open>source_node ys \<noteq> None\<close>
+    using source_node_spec[OF assms] by auto
+  show ?thesis
+    using assms source_node_spec[OF assms]
+    unfolding mop_vsids_pop_min_impl_def vsids_pop_min_alt_def
+    apply (refine_vcg mop_hp_insert_impl_spec WHILET_refine[where R= ?R]
+      mop_hp_read_nxt_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
+      mop_hp_read_prev_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
+      mop_hp_link_imp_spec mop_vsids_pass\<^sub>1_imp_spec
+      mop_merge_pairs_imp_spec
+      mop_hp_read_child_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
+      mop_hp_update_prev'_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
+      mop_hp_update_child'_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
+      mop_hp_update_parent'_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>])
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by (auto intro!: update_source_node_impl_spec)
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by (auto intro!: update_source_node_impl_spec)
+   subgoal by auto
+   subgoal by auto
+   done
+qed
+
+(*next*)
+find_theorems vsids_pop_min
+thm vsids_pop_min
+
+(*TODO we need to distinguish if a is in the tree or not -- nnext can be wrong otherwise*)
+definition unroot_hp_tree where
+  \<open>unroot_hp_tree arr h = do {
+    ASSERT (h \<in> fst arr);
+    let nnext = hp_read_nxt' h arr;
+    let parent = hp_read_parent' h arr;
+    let prev = hp_read_prev' h arr;
+    if prev = None \<and> parent = None \<and> Some h \<noteq> source_node arr then RETURN (update_source_node None arr)
+    else do {
+      let arr = maybe_hp_update_child' parent nnext arr;
+      let arr = maybe_hp_update_nxt' prev nnext arr;
+      let arr = maybe_hp_update_prev' nnext prev arr;
+      let arr = maybe_hp_update_parents' nnext parent arr;
+
+      let arr = hp_update_nxt' h None arr;
+      let arr = hp_update_prev' h None arr;
+      let arr = hp_update_parents' h None arr;
+
+      RETURN (arr)
+    }
+}\<close>
+
+
+lemma hp_update_fst_snd:
+  \<open>hp_update_prev i j (fst (snd arr)) = fst (snd (hp_update_prev' i j arr))\<close>
+  \<open>hp_update_nxt i j (fst (snd arr)) = fst (snd (hp_update_nxt' i j arr))\<close>
+  \<open>hp_update_parents i j (fst (snd arr)) = fst (snd (hp_update_parents' i j arr))\<close>
+  \<open>hp_update_child i j (fst (snd arr)) = fst (snd (hp_update_child' i j arr))\<close>
+  by (solves \<open>cases arr; auto\<close>)+
+
+lemma find_remove_mset_nodes_full2:
+  \<open>distinct_mset (mset_nodes h) \<Longrightarrow> sum_mset (mset_nodes `# ((if remove_key a h = None then {#} else {#the (remove_key a h)#}) +
+        (if find_key a h = None then {#} else {#the (find_key a h)#}))) = mset_nodes h\<close>
+  using find_remove_mset_nodes_full[of h a]
+  apply (auto)
+  apply (auto simp add: find_key_None_remove_key_ident)
+  apply (metis find_key_head_node_iff option.sel remove_key_None_iff)
+  done
+
+definition encoded_hp_prop_mset2_conc
+  :: "'a::linorder set \<times> ('a, 'b) hp_fun \<times> 'a option \<Rightarrow>
+     ('a, 'b) hp multiset \<Rightarrow> bool"
+  where
+  \<open>encoded_hp_prop_mset2_conc = (\<lambda>(\<V>, arr, h) x.
+  (encoded_hp_prop_list x  [] arr \<and> set_mset (sum_mset (mset_nodes `# x)) \<subseteq> \<V>))\<close>
+
+lemma unroot_hp_tree:
+  fixes h :: \<open>(nat, nat)hp option\<close>
+  assumes enc: \<open>encoded_hp_prop_list_conc arr h\<close> \<open>a \<in> fst arr\<close> \<open>h \<noteq> None\<close>
+  shows \<open>unroot_hp_tree arr a \<le> SPEC (\<lambda>arr'. encoded_hp_prop_mset2_conc arr' ((if remove_key a (the h) = None then {#} else {#the (remove_key a (the h))#}) +
+        (if find_key a (the h) = None then {#} else {#the (find_key a (the h))#})))\<close>
+proof -
+  obtain prevs nxts childs parents scores \<V> k where
+    arr: \<open>arr = (\<V>, (prevs, nxts, childs, parents, scores), k)\<close> and
+    dist: \<open>distinct_mset (mset_nodes (the h))\<close>
+    by (cases arr) (use assms in \<open>auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
+      encoded_hp_prop_list_conc_def encoded_hp_prop_def\<close>)
+  have K1: \<open>fst (snd (maybe_hp_update_child' (map_option node b) x arr)) =
+    (if b = None then fst (snd arr) else fst (snd (hp_update_child' (node (the b)) x arr)))\<close>
+    \<open>fst (snd (maybe_hp_update_prev' (map_option node b) x arr)) =
+    (if b = None then fst (snd arr) else fst (snd (hp_update_prev' (node (the b)) x arr)))\<close>
+    \<open>fst (snd (maybe_hp_update_nxt' (map_option node b) x arr)) =
+    (if b = None then fst (snd arr) else fst (snd (hp_update_nxt' (node (the b)) x arr)))\<close>
+    \<open>fst (snd (maybe_hp_update_parents' (map_option node b) x arr)) =
+    (if b = None then fst (snd arr) else fst (snd (hp_update_parents' (node (the b)) x arr)))\<close>
+    for x b arr
+    apply (solves \<open>cases arr; auto simp: maybe_hp_update_child'_def maybe_hp_update_parents'_def
+      maybe_hp_update_prev'_def maybe_hp_update_nxt'_def maybe_hp_update_prev'_def
+      maybe_hp_update_nxt'_def\<close>)+
+    done
+  have source_node_alt: \<open>snd (snd arr) = source_node arr\<close>
+    by (cases arr) auto
+  have KK: \<open>a\<in>#mset_nodes (the h) \<Longrightarrow> nxts a = map_option node (hp_next a (the h))\<close>
+    \<open>a\<in>#mset_nodes (the h) \<Longrightarrow> prevs a = map_option node (hp_prev a (the h))\<close>
+    \<open>a\<in>#mset_nodes (the h) \<Longrightarrow> parents a = map_option node (hp_parent a (the h))\<close>
+   using enc 
+   unfolding arr encoded_hp_prop_list_conc_def
+   by (auto simp: encoded_hp_prop_def)
+  have KK2: \<open>fst (hp_update_parents' a None
+     (hp_update_prev' a None
+    (hp_update_nxt' a None
+      (maybe_hp_update_parents' (nxts a) (parents a)
+        (maybe_hp_update_prev' (nxts a) (Some (node z))
+       (maybe_hp_update_nxt' (Some (node z)) (nxts a)
+         (maybe_hp_update_child' (parents a) (nxts a)
+    (\<V>, (prevs, nxts, childs, parents, scores), Some (node y))))))))) = \<V>\<close>
+   by auto
+  show ?thesis
+    using assms
+    unfolding unroot_hp_tree_def
+    apply refine_vcg
+    subgoal
+      using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
+      unfolding source_node_alt
+      by (auto simp add: find_key_None_remove_key_ident encoded_hp_prop_mset2_conc_def arr)
+       (solves \<open>auto simp: encoded_hp_prop_list_conc_def\<close>)+
+    subgoal
+      using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
+        encoded_hp_prop_list_remove_find[of \<open>the h\<close> \<open>fst (snd arr)\<close> a] KK[symmetric] KK2
+        find_remove_mset_nodes_full2[of \<open>the h\<close> a, OF dist]
+      unfolding maybe_hp_update_child'_def[symmetric] maybe_hp_update_parents'_def[symmetric]
+        maybe_hp_update_prev'_def[symmetric] maybe_hp_update_nxt'_def[symmetric]
+        hp_update_fst_snd K1[symmetric] arr encoded_hp_prop_list_conc_def encoded_hp_prop_mset2_conc_def
+        prod.simps case_prod_beta[of _ \<open>hp_update_parents' _ _ _\<close>] case_prod_beta[of _ \<open>snd (hp_update_parents' _ _ _)\<close>]
+      apply clarsimp
+      apply (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_mset2_conc_def
+        cong: if_cong)
+      done
+    done
+qed
+
+definition rescale_and_reroot where
+  \<open>rescale_and_reroot h w' arr = do {
+    ASSERT (w' \<ge> hp_read_score' h arr);
+    ASSERT (h \<in> fst arr);
+    let nnext = hp_read_nxt' h arr;
+    let parent = hp_read_parent' h arr;
+    let prev = hp_read_prev' h arr;
+    if prev = None \<and> parent = None \<and> Some h \<noteq> source_node arr then RETURN (arr)
+    else do {
+       arr \<leftarrow> unroot_hp_tree arr h;
+       let arr = (hp_update_score' h w' arr);
+       merge_pairs arr h
+   }
+}\<close>
   (*requires making a proper function out of it first for rescaling*)
 thm encoded_hp_prop_list_remove_find encoded_hp_prop_list_update_score
 end
