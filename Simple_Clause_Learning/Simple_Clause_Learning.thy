@@ -1586,7 +1586,7 @@ next
     by simp
 qed
 
-lemma finite_lits_less_eq_B: "finite {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>}"
+lemma finite_lits_less_eq_B: "finite {L. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
   using finite_lits_less_B by (simp add: lits_less_eq_B_conv)
 
 lemma Collect_ball_eq_Pow_Collect: "{X. \<forall>x \<in> X. P x} = Pow {x. P x}"
@@ -1616,30 +1616,31 @@ subsection \<open>Rules\<close>
 inductive propagate :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   propagateI: "C |\<in>| N |\<union>| U \<Longrightarrow> C = add_mset L C' \<Longrightarrow> is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow>
-    \<forall>K \<in># C \<cdot> \<gamma>. atm_of K \<prec>\<^sub>B \<beta> \<Longrightarrow>
+    \<forall>K \<in># C \<cdot> \<gamma>. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of K) \<beta> \<Longrightarrow>
     C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<Longrightarrow> C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<Longrightarrow>
     trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
     is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
     propagate N \<beta> (\<Gamma>, U, None) (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>, U, None)"
 
 lemma "C |\<in>| N |\<union>| U \<Longrightarrow> C = add_mset L C' \<Longrightarrow> is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow>
-    \<forall>K \<in># C. atm_of (K \<cdot>l \<gamma>) \<prec>\<^sub>B \<beta> \<Longrightarrow>
+    \<forall>K \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of (K \<cdot>l \<gamma>)) \<beta> \<Longrightarrow>
     C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<Longrightarrow> C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<Longrightarrow>
     trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
     is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
     propagate N \<beta> (\<Gamma>, U, None) (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>, U, None)"
-  by (auto intro!: propagateI)
+  apply (rule propagateI[of C N U L C' \<gamma> \<beta> _ _ \<Gamma> \<mu>]; assumption?)
+  by (metis Melem_subst_cls)
 
 (* Whatch out for equality! *)
 
 inductive decide :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   decideI: "L \<in> \<Union>(set_mset ` fset N) \<Longrightarrow> is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow>
-    \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow> atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta> \<Longrightarrow>
+    \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L \<cdot>a \<gamma>) \<beta> \<Longrightarrow>
     decide N \<beta> (\<Gamma>, U, None) (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None)"
 
 lemma "add_mset L C |\<in>| N \<Longrightarrow> is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow>
-    \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow> atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta> \<Longrightarrow>
+    \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L \<cdot>a \<gamma>) \<beta> \<Longrightarrow>
     decide N \<beta> (\<Gamma>, U, None) (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None)"
   by (auto simp: fmember_iff_member_fset intro!: decideI)
 
@@ -2963,7 +2964,7 @@ inductive trail_propagated_or_decided for N \<beta> U where
     C |\<in>| N |\<union>| U \<Longrightarrow>
     C = add_mset L C' \<Longrightarrow>
     is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow>
-    \<forall>K\<in>#C \<cdot> \<gamma>. atm_of K \<prec>\<^sub>B \<beta> \<Longrightarrow>
+    \<forall>K\<in>#C \<cdot> \<gamma>. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of K) \<beta> \<Longrightarrow>
     C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<Longrightarrow>
     C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<Longrightarrow>
     trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow>
@@ -2975,7 +2976,7 @@ inductive trail_propagated_or_decided for N \<beta> U where
     L \<in> \<Union> (set_mset ` fset N) \<Longrightarrow>
     is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow>
     \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
-    atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta> \<Longrightarrow>
+    (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L \<cdot>a \<gamma>) \<beta> \<Longrightarrow>
     trail_propagated_or_decided N \<beta> U \<Gamma> \<Longrightarrow>
     trail_propagated_or_decided N \<beta> U (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
 
@@ -3205,7 +3206,7 @@ lemma scl_preserves_trail_propagated_or_decided:
 subsection \<open>Trail Atoms Are Less Than \<beta>\<close>
 
 definition trail_atoms_lt where
-  "trail_atoms_lt \<beta> S \<longleftrightarrow> (\<forall>atm \<in> atm_of ` fst ` set (state_trail S). atm \<prec>\<^sub>B \<beta>)"
+  "trail_atoms_lt \<beta> S \<longleftrightarrow> (\<forall>atm \<in> atm_of ` fst ` set (state_trail S). (\<prec>\<^sub>B)\<^sup>=\<^sup>= atm \<beta>)"
 
 lemma ball_trail_lt_initial_state[simp]: "trail_atoms_lt \<beta> initial_state"
   by (simp add: trail_atoms_lt_def)
@@ -3241,11 +3242,11 @@ proof (cases N \<beta> S S' rule: propagate.cases)
       by (metis subst_atm_comp_subst)
   qed
 
-  moreover from propagateI have "atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta>"
+  moreover from propagateI have "(\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L \<cdot>a \<gamma>) \<beta>"
     by (metis add_mset_add_single atm_of_subst_lit subst_cls_single subst_cls_union
         union_single_eq_member)
 
-  ultimately have "atm_of L \<cdot>a \<mu> \<cdot>a \<gamma> \<prec>\<^sub>B \<beta>"
+  ultimately have "(\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L \<cdot>a \<mu> \<cdot>a \<gamma>) \<beta>"
     by simp
   with \<open>trail_atoms_lt \<beta> S\<close> show ?thesis
     by (simp add: trail_atoms_lt_def propagateI(1,2) propagate_lit_def)
@@ -4053,7 +4054,7 @@ proof (cases N \<beta> Sn Sm rule: backtrack.cases)
 qed
 
 lemma ball_less_B_if_trail_false_and_trail_atoms_lt:
-  "trail_false_cls (state_trail S) C \<Longrightarrow> trail_atoms_lt \<beta> S \<Longrightarrow> \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>"
+  "trail_false_cls (state_trail S) C \<Longrightarrow> trail_atoms_lt \<beta> S \<Longrightarrow> \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>"
   unfolding trail_atoms_lt_def
   by (meson atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set trail_false_cls_def
       trail_false_lit_def)
@@ -4589,7 +4590,7 @@ qed
 section \<open>Monotonicity w.r.t. the Bounding Term\<close>
 
 lemma scl_monotone_on_bounding_term:
-  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'" and "scl N \<beta> S\<^sub>0 S\<^sub>1"
+  assumes "\<And>t. (\<prec>\<^sub>B)\<^sup>=\<^sup>= t \<beta> \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= t \<beta>'" and "scl N \<beta> S\<^sub>0 S\<^sub>1"
   shows "scl N \<beta>' S\<^sub>0 S\<^sub>1"
   using assms(2)[unfolded scl_def]
 proof (elim disjE)
@@ -4637,7 +4638,7 @@ next
 qed
 
 lemma reasonable_scl_monotone_on_bounding_term:
-  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'" and "reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1"
+  assumes "\<And>t. (\<prec>\<^sub>B)\<^sup>=\<^sup>= t \<beta> \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= t \<beta>'" and "reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1"
   shows "reasonable_scl N \<beta>' S\<^sub>0 S\<^sub>1"
   unfolding reasonable_scl_def
 proof (intro conjI impI)
@@ -4655,7 +4656,7 @@ next
 qed
 
 lemma regular_scl_monotone_on_bounding_term:
-  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'" and "regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
+  assumes "\<And>t. (\<prec>\<^sub>B)\<^sup>=\<^sup>= t \<beta> \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= t \<beta>'" and "regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
   shows "regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
   using assms(2)[unfolded regular_scl_def]
 proof (elim disjE conjE)
@@ -4677,7 +4678,7 @@ next
 qed
 
 lemma min_back_regular_scl_monotone_on_bounding_term:
-  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'" and "shortest_backtrack_strategy regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
+  assumes "\<And>t. (\<prec>\<^sub>B)\<^sup>=\<^sup>= t \<beta> \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= t \<beta>'" and "shortest_backtrack_strategy regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
   shows "shortest_backtrack_strategy regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
   unfolding shortest_backtrack_strategy_def
 proof (intro conjI impI)
@@ -4698,7 +4699,7 @@ qed
 
 
 lemma monotonicity_wrt_bound:
-  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'"
+  assumes "\<And>t. (\<prec>\<^sub>B)\<^sup>=\<^sup>= t \<beta> \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= t \<beta>'"
   shows
     "scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> scl N \<beta>' S\<^sub>0 S\<^sub>1" and
     "reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> reasonable_scl N \<beta>' S\<^sub>0 S\<^sub>1" and
@@ -4714,8 +4715,15 @@ lemma monotonicity_wrt_bound:
 
 lemma
   assumes "transp (\<prec>\<^sub>B)" and "\<beta> \<prec>\<^sub>B \<beta>'"
-  shows "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'"
-  using assms by (metis transpD)
+  shows "\<And>t. (\<prec>\<^sub>B)\<^sup>=\<^sup>= t \<beta> \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= t \<beta>'"
+proof -
+  from \<open>transp (\<prec>\<^sub>B)\<close> have "transp (\<prec>\<^sub>B)\<^sup>=\<^sup>="
+    by (metis transp_on_reflclp)
+  moreover from \<open>\<beta> \<prec>\<^sub>B \<beta>'\<close> have "(\<prec>\<^sub>B)\<^sup>=\<^sup>= \<beta> \<beta>'"
+    by blast
+  ultimately show "\<And>t. (\<prec>\<^sub>B)\<^sup>=\<^sup>= t \<beta> \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= t \<beta>'"
+    by (metis transpD)
+qed
 
 end
 

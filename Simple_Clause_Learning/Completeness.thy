@@ -31,22 +31,14 @@ proof -
 qed
 
 
-locale compact_scl = scl renaming_vars less_B
-  for renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v" and
-    less_B :: "('f :: weighted, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>B" 50)
+locale compact_scl = scl renaming_vars "(<) :: ('f :: weighted, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool"
+  for renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v"
 begin
 
 theorem completeness:
-  fixes
-    N :: "('f, 'v) Term.term clause fset" and
-    gnd_N
+  fixes N
   defines "gnd_N \<equiv> grounding_of_clss (fset N)"
-  assumes
-    trans: "transp (\<prec>\<^sub>B)" and
-    irrefl: "irreflp (\<prec>\<^sub>B)" and
-    total: "totalp (\<prec>\<^sub>B)" and
-    wf_less_B: "wfp (\<prec>\<^sub>B)" and
-    unsat: "\<not> satisfiable gnd_N"
+  assumes unsat: "\<not> satisfiable gnd_N"
   shows "\<exists>\<beta> S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S \<and>
     (\<nexists>S'. regular_scl N \<beta> S S') \<and>
     (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>))"
@@ -102,7 +94,9 @@ proof -
     hence "\<not> satisfiable {D \<in> gnd_N. \<forall>K \<in># D. (atm_of K) \<le> (atm_of L)}"
       using \<open>\<not> satisfiable gnd_N'\<close>
       by (meson satisfiable_antimono)
-    then show ?thesis
+    hence "\<not> satisfiable {D \<in> gnd_N. \<forall>K \<in># D. (<)\<^sup>=\<^sup>= (atm_of K) (atm_of L)}"
+      by (smt (verit, best) Collect_cong leI nless_le strict_reflclp_conv sup2I1 sup2I2)
+    thus ?thesis
       using completeness_wrt_bound[of N, folded gnd_N_def]
       by blast
   qed
