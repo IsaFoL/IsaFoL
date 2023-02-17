@@ -4586,22 +4586,24 @@ next
 qed
 
 
-section \<open>Monotonicity w.r.t. the Bounding Term\<close>
+section \<open>Monotonicity w.r.t. the Bounding Atom\<close>
 
-lemma scl_monotone_on_bounding_term:
-  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'" and "scl N \<beta> S\<^sub>0 S\<^sub>1"
+lemma scl_monotone_wrt_bound:
+  assumes "\<And>A. is_ground_atm A \<Longrightarrow> A \<prec>\<^sub>B \<beta> \<Longrightarrow> A \<prec>\<^sub>B \<beta>'" and "scl N \<beta> S\<^sub>0 S\<^sub>1"
   shows "scl N \<beta>' S\<^sub>0 S\<^sub>1"
   using assms(2)[unfolded scl_def]
 proof (elim disjE)
   assume "propagate N \<beta> S\<^sub>0 S\<^sub>1"
   with assms(1) have "propagate N \<beta>' S\<^sub>0 S\<^sub>1"
-    by (auto intro!: propagateI elim: propagate.cases)
+    using propagateI propagate.cases
+    by (smt (verit) is_ground_cls_imp_is_ground_lit is_ground_lit_def)
   thus ?thesis
     by (simp add: scl_def)
 next
   assume "decide N \<beta> S\<^sub>0 S\<^sub>1"
   with assms(1) have "decide N \<beta>' S\<^sub>0 S\<^sub>1"
-    by (auto intro!: decideI elim: decide.cases)
+    using decideI decide.cases
+    by (metis atm_of_subst_lit is_ground_lit_def)
   thus ?thesis
     by (simp add: scl_def)
 next
@@ -4636,13 +4638,13 @@ next
     by (simp add: scl_def)
 qed
 
-lemma reasonable_scl_monotone_on_bounding_term:
-  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'" and "reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1"
+lemma reasonable_scl_monotone_wrt_bound:
+  assumes "\<And>A. is_ground_atm A \<Longrightarrow> A \<prec>\<^sub>B \<beta> \<Longrightarrow> A \<prec>\<^sub>B \<beta>'" and "reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1"
   shows "reasonable_scl N \<beta>' S\<^sub>0 S\<^sub>1"
   unfolding reasonable_scl_def
 proof (intro conjI impI)
   show "scl N \<beta>' S\<^sub>0 S\<^sub>1"
-    using assms scl_monotone_on_bounding_term scl_if_reasonable by metis
+    using assms scl_monotone_wrt_bound scl_if_reasonable by metis
 next
   assume "decide N \<beta>' S\<^sub>0 S\<^sub>1"
   with assms(2) have "decide N \<beta> S\<^sub>0 S\<^sub>1"
@@ -4654,8 +4656,8 @@ next
     by (simp add: conflict.simps)
 qed
 
-lemma regular_scl_monotone_on_bounding_term:
-  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'" and "regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
+lemma regular_scl_monotone_wrt_bound:
+  assumes "\<And>A. is_ground_atm A \<Longrightarrow> A \<prec>\<^sub>B \<beta> \<Longrightarrow> A \<prec>\<^sub>B \<beta>'" and "regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
   shows "regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
   using assms(2)[unfolded regular_scl_def]
 proof (elim disjE conjE)
@@ -4670,21 +4672,23 @@ next
     using \<open>\<nexists>S\<^sub>1'. conflict N \<beta> S\<^sub>0 S\<^sub>1'\<close>
     by (simp add: conflict.simps)
   moreover have "reasonable_scl N \<beta>' S\<^sub>0 S\<^sub>1"
-    using assms(1) \<open>reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1\<close> reasonable_scl_monotone_on_bounding_term
+    using assms(1) \<open>reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1\<close> reasonable_scl_monotone_wrt_bound
     by metis
   ultimately show "regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
     by (simp add: regular_scl_def)
 qed
 
-lemma min_back_regular_scl_monotone_on_bounding_term:
-  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'" and "shortest_backtrack_strategy regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
+lemma min_back_regular_scl_monotone_wrt_bound:
+  assumes
+    "\<And>A. is_ground_atm A \<Longrightarrow> A \<prec>\<^sub>B \<beta> \<Longrightarrow> A \<prec>\<^sub>B \<beta>'" and
+    "shortest_backtrack_strategy regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
   shows "shortest_backtrack_strategy regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
   unfolding shortest_backtrack_strategy_def
 proof (intro conjI impI)
   from assms(2) have "regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
     by (simp add: shortest_backtrack_strategy_def)
   with assms(1) show "regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
-    using regular_scl_monotone_on_bounding_term
+    using regular_scl_monotone_wrt_bound
     by metis
 next
   assume "backtrack N \<beta>' S\<^sub>0 S\<^sub>1"
@@ -4698,7 +4702,7 @@ qed
 
 
 lemma monotonicity_wrt_bound:
-  assumes "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'"
+  assumes "\<And>A. is_ground_atm A \<Longrightarrow> A \<prec>\<^sub>B \<beta> \<Longrightarrow> A \<prec>\<^sub>B \<beta>'"
   shows
     "scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> scl N \<beta>' S\<^sub>0 S\<^sub>1" and
     "reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> reasonable_scl N \<beta>' S\<^sub>0 S\<^sub>1" and
@@ -4706,16 +4710,37 @@ lemma monotonicity_wrt_bound:
     "shortest_backtrack_strategy regular_scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow>
       shortest_backtrack_strategy regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
   using assms
-    scl_monotone_on_bounding_term
-    reasonable_scl_monotone_on_bounding_term
-    regular_scl_monotone_on_bounding_term
-    min_back_regular_scl_monotone_on_bounding_term
+    scl_monotone_wrt_bound
+    reasonable_scl_monotone_wrt_bound
+    regular_scl_monotone_wrt_bound
+    min_back_regular_scl_monotone_wrt_bound
   by metis+
 
-lemma
-  assumes "transp (\<prec>\<^sub>B)" and "\<beta> \<prec>\<^sub>B \<beta>'"
-  shows "\<And>t. t \<prec>\<^sub>B \<beta> \<Longrightarrow> t \<prec>\<^sub>B \<beta>'"
-  using assms by (metis transpD)
+corollary
+  assumes
+    "transp_on {A. is_ground_atm A} (\<prec>\<^sub>B)" and
+    "is_ground_atm \<beta>" and
+    "is_ground_atm \<beta>'" and
+    "\<beta> \<prec>\<^sub>B \<beta>'"
+  shows
+    "scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> scl N \<beta>' S\<^sub>0 S\<^sub>1" and
+    "reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> reasonable_scl N \<beta>' S\<^sub>0 S\<^sub>1" and
+    "regular_scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> regular_scl N \<beta>' S\<^sub>0 S\<^sub>1" and
+    "shortest_backtrack_strategy regular_scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow>
+      shortest_backtrack_strategy regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
+proof -
+  have "\<And>A. is_ground_atm A \<Longrightarrow> A \<prec>\<^sub>B \<beta> \<Longrightarrow> A \<prec>\<^sub>B \<beta>'"
+    using assms
+    by (metis (no_types, opaque_lifting) mem_Collect_eq transp_onD)
+  thus
+    "scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> scl N \<beta>' S\<^sub>0 S\<^sub>1" and
+    "reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> reasonable_scl N \<beta>' S\<^sub>0 S\<^sub>1" and
+    "regular_scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> regular_scl N \<beta>' S\<^sub>0 S\<^sub>1" and
+    "shortest_backtrack_strategy regular_scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow>
+      shortest_backtrack_strategy regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
+    using monotonicity_wrt_bound
+    by metis+
+qed
 
 end
 
