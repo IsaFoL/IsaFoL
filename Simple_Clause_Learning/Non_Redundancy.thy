@@ -5,7 +5,7 @@ theory Non_Redundancy
     Initial_Literals_Generalize_Learned_Literals
 begin
 
-context scl begin
+context scl_calculus begin
 
 section \<open>Reasonable Steps\<close>
 
@@ -230,7 +230,7 @@ proof (induction \<Gamma> rule: no_conflict_with_trail.induct)
 next
   case (Cons Ln \<Gamma>)
   hence "\<not> trail_false_cls (Ln # \<Gamma>) (D \<cdot> \<gamma>)"
-    by (metis fst_conv scl.not_trail_false_ground_cls_if_no_conflict scl_axioms state_conflict_simp
+    by (metis fst_conv not_trail_false_ground_cls_if_no_conflict state_conflict_simp
         state_learned_simp state_trail_def)
   thus ?case
     by simp

@@ -5,7 +5,7 @@ theory Completeness
     "Functional_Ordered_Resolution_Prover.IsaFoR_Term"
 begin
 
-theorem (in scl) completeness_wrt_bound:
+theorem (in scl_calculus) completeness_wrt_bound:
   fixes N \<beta> gnd_N
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
@@ -30,7 +30,8 @@ proof -
     by metis
 qed
 
-locale compact_scl = scl renaming_vars "(\<le>) :: ('f :: weighted, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool"
+locale compact_scl =
+  scl_calculus renaming_vars "(\<le>) :: ('f :: weighted, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool"
   for renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v"
 begin
 
