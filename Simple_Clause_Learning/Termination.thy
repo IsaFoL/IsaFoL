@@ -71,62 +71,6 @@ proof (rule totalp_onI)
     by (metis (full_types) lex_prodp_def mem_Times_iff prod_eq_iff totalp_on_def)
 qed
 
-instantiation prod :: (preorder, preorder) order begin
-
-definition less_prod :: "'a \<times> 'b \<Rightarrow> 'a \<times> 'b \<Rightarrow> bool" where
-  "x < y \<longleftrightarrow> lex_prodp less less x y"
-
-definition less_eq_prod :: "'a \<times> 'b \<Rightarrow> 'a \<times> 'b \<Rightarrow> bool" where
-  "less_eq_prod x y \<longleftrightarrow> x < y \<or> x = y"
-
-instance
-proof intro_classes
-  fix x y :: "'a \<times> 'b"
-  show "(x < y) = (x \<le> y \<and> \<not> y \<le> x)"
-    unfolding less_eq_prod_def less_prod_def
-    using order_less_imp_not_less
-    by (metis (full_types, opaque_lifting) lex_prodp_def order_less_imp_not_less)
-next
-  fix x :: "'a \<times> 'b"
-  show "x \<le> x"
-    unfolding less_eq_prod_def
-    by simp
-next
-  fix x y z :: "'a \<times> 'b"
-  show "x \<le> y \<Longrightarrow> y \<le> z \<Longrightarrow> x \<le> z"
-    unfolding less_eq_prod_def less_prod_def
-    using transp_lex_prodp[OF transp_on_less transp_on_less, THEN transpD]
-    by metis
-next
-  fix x y :: "'a \<times> 'b"
-  show "x \<le> y \<Longrightarrow> y \<le> x \<Longrightarrow> x = y"
-    unfolding less_eq_prod_def less_prod_def
-    using asymp_lex_prodp[OF asymp_on_less asymp_on_less, THEN asympD]
-    by metis
-qed
-
-end
-
-instance prod :: (linorder, linorder) linorder
-proof intro_classes
-  fix x y :: "'a \<times> 'b"
-  show "x \<le> y \<or> y \<le> x"
-    unfolding less_eq_prod_def less_prod_def
-    using totalp_on_lex_prodp[OF totalp_on_less totalp_on_less, of UNIV UNIV, simplified,
-        THEN totalpD]
-    by metis
-qed
-
-instance prod :: (wellorder, wellorder) wellorder
-proof intro_classes
-  fix P :: "'a \<times> 'b \<Rightarrow> bool" and x :: "'a \<times> 'b"
-  assume "\<And>x. (\<And>y. y < x \<Longrightarrow> P y) \<Longrightarrow> P x"
-  then show "P x"
-    unfolding less_prod_def
-    using wfp_lex_prodp wfP_less
-    by (smt (verit, ccfv_threshold) UNIV_I wfp_iff_wfP wfp_on_def)
-qed
-
 
 subsection \<open>Wellfounded_Extra\<close>
 
