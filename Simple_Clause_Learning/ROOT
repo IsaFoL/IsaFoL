@@ -6,8 +6,5 @@ session Simple_Clause_Learning = First_Order_Terms +
     Saturation_Framework
     Saturation_Framework_Extensions
   theories
-    Correct_Termination
+    Completeness
     Initial_Literals_Generalize_Learned_Literals
-    Non_Redundancy
-    Simple_Clause_Learning
-    Termination
