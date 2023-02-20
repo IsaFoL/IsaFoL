@@ -183,6 +183,8 @@ lemma find_first_not_none_alt_def:
   \<open>find_first_not_none xs = map_option the (option_hd (filter ((\<noteq>) None) xs))\<close>
   by (induction xs rule: find_first_not_none.induct) auto
 
+text \<open>In the following we distinguish between the tree part and the tree part without parent (aka the list part).
+They are different for first level nexts and first level children.\<close>
 definition encoded_hp_prop_list :: \<open>('e,'f) hp multiset \<Rightarrow> ('e,'f) hp list \<Rightarrow> _\<close> where
   \<open>encoded_hp_prop_list m xs  = (\<lambda>(prevs,nxts,children, parents, scores). distinct_mset (\<Sum>\<^sub># (mset_nodes `# m + mset_nodes `# (mset xs))) \<and>
      (\<forall>m'\<in>#m. \<forall>x \<in># mset_nodes m'. nxts x = map_option node (hp_next x m')) \<and>
