@@ -1153,8 +1153,8 @@ definition unroot_hp_tree where
       let arr = hp_update_prev' h None arr;
       let arr = hp_update_parents' h None arr;
 
-      let arr = hp_update_nxt' a' (Some h) arr;
-      let arr = hp_update_prev' h (Some a') arr;
+      let arr = hp_update_nxt' h (Some a') arr;
+      let arr = hp_update_prev' a' (Some h) arr;
       RETURN (update_source_node None arr)
     }
 }\<close>
@@ -1184,8 +1184,8 @@ lemma unroot_hp_tree_alt_def:
         RETURN (update_source_node None arr)
       };
 
-      let arr = hp_update_nxt' a' (Some h) arr;
-      let arr = hp_update_prev' h (Some a') arr;
+      let arr = hp_update_nxt' h (Some a') arr;
+      let arr = hp_update_prev' a' (Some h) arr;
       RETURN (arr)
       }
 }\<close>
@@ -1321,12 +1321,13 @@ lemma encoded_hp_prop_list_remove_find2:
     apply (metis basic_trans_rules(31) mset_subset_eqD node_remove_key_in_mset_nodes option.sel option_last_Nil option_last_Some_iff(2))
     by (metis basic_trans_rules(31) mset_nodes_find_key_subset mset_subset_eqD option.sel option_last_Nil option_last_Some_iff(2))
 
-    
+
 lemma unroot_hp_tree:
   fixes h :: \<open>(nat, nat)hp option\<close>
   assumes enc: \<open>encoded_hp_prop_list_conc arr h\<close> \<open>a \<in> fst arr\<close> \<open>h \<noteq> None\<close>
-  shows \<open>unroot_hp_tree arr a \<le> SPEC (\<lambda>arr'. encoded_hp_prop_list2_conc arr' ((if remove_key a (the h) = None then [] else [the (remove_key a (the h))]) @
-        (if find_key a (the h) = None then [] else [the (find_key a (the h))])))\<close>
+  shows \<open>unroot_hp_tree arr a \<le> SPEC (\<lambda>arr'. encoded_hp_prop_list2_conc arr' 
+    ((if find_key a (the h) = None then [] else [the (find_key a (the h))]) @
+    (if remove_key a (the h) = None then [] else [the (remove_key a (the h))])))\<close>
 proof -
   obtain prevs nxts childs parents scores \<V> k where
     arr: \<open>arr = (\<V>, (prevs, nxts, childs, parents, scores), k)\<close> and
@@ -1404,10 +1405,9 @@ proof -
       apply ((split if_splits)+; intro impI conjI)
       subgoal by (simp add: find_key_None_remove_key_ident)
       subgoal
-        by (auto simp: remove_key_None_iff encoded_hp_prop_list2_conc_def encoded_hp_prop_list_conc_def)
+        by (metis encoded_hp_prop_list_in_node_iff_prev_parent_or_root find_key_None_remove_key_ident hp_read_fst_snd_simps(2) hp_read_fst_snd_simps(4) in_remove_key_changed option.exhaust_sel)
       subgoal
-        by (metis encoded_hp_prop_list_in_node_iff_prev_parent_or_root find_key_None_remove_key_ident hp_read_fst_snd_simps(2)
-          hp_read_fst_snd_simps(4) in_remove_key_changed option.collapse source_node_alt)
+        by (auto simp: remove_key_None_iff encoded_hp_prop_list2_conc_def encoded_hp_prop_list_conc_def)
       subgoal
         unfolding append.append_Cons append.append_Nil
         apply (insert encoded_hp_prop_list_remove_find2[of \<open>arr\<close> \<open>the h\<close> a, OF HH(2)])
@@ -1421,7 +1421,7 @@ proof -
           maybe_hp_update_fst_snd[symmetric]
         apply (subst arg_cong[of _ _ \<open>\<lambda>arr. encoded_hp_prop_list2_conc arr _\<close>])
           defer
-        apply (rule encoded_hp_prop_mset2_conc_combine_list2_conc[of ?arr \<open>the (remove_key a (the h))\<close> \<open>the (find_key a (the h))\<close>])
+        apply (rule encoded_hp_prop_mset2_conc_combine_list2_conc[of ?arr \<open>the (find_key a (the h))\<close> \<open>the (remove_key a (the h))\<close>])
         subgoal using HH(2) by (auto simp: add_mset_commute)
         subgoal using KK[symmetric] KK3
           encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of \<open>arr\<close> h a] arr k
@@ -1442,60 +1442,58 @@ definition rescale_and_reroot where
     else if prev = None \<and> parent = None \<and> Some h \<noteq> source_node arr then RETURN arr
     else if Some h = source_node arr then RETURN (hp_update_score' h (Some w') arr)
     else do {
-       let a' = source_node arr;
        arr \<leftarrow> unroot_hp_tree arr h;
        let arr = (hp_update_score' h (Some w') arr);
-       merge_pairs arr (the a')
+       merge_pairs arr h
    }
 }\<close>
 
 
 lemma encoded_hp_prop_list2_conc_update_score:
-  \<open>encoded_hp_prop_list2_conc h [x,y] \<Longrightarrow> node y = a \<Longrightarrow> encoded_hp_prop_list2_conc (hp_update_score' a (Some w') h) [x, Hp (node y) w' (hps y)]\<close>
+  \<open>encoded_hp_prop_list2_conc h [x,y] \<Longrightarrow> node x = a \<Longrightarrow> encoded_hp_prop_list2_conc (hp_update_score' a (Some w') h) [Hp (node x) w' (hps x), y]\<close>
   unfolding encoded_hp_prop_list2_conc_def case_prod_beta encoded_hp_prop_list_def
   apply (intro conjI  conjI allI impI ballI)
-  subgoal by (cases y) auto
+  subgoal by (cases x) auto
   subgoal by auto
   subgoal by auto
   subgoal by auto
   subgoal by auto
   subgoal by auto
   subgoal
-    apply (cases y; cases h)
+    apply (cases x; cases h)
     apply (clarsimp simp add: encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def hp_update_score_def)
       by (smt (verit, ccfv_threshold) add_diff_cancel_left' add_diff_cancel_right' distinct_mset_in_diff hp.sel(1) hp_next_children.simps(2)
         hp_next_children_simps(1) hp_next_children_simps(2) hp_next_children_simps(3) hp_next_simps option.map(2) set_mset_union)
    subgoal
-    apply (cases y; cases h)
+    apply (cases x; cases h)
     apply (clarsimp simp add: encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def hp_update_score_def)
-    by (metis hp.sel(1) hp_prev_children.simps(2) hp_prev_children_simps(1) hp_prev_children_simps(2) hp_prev_children_simps(3)
-      hp_prev_simps option.map(2) set_mset_union union_iff)
-   subgoal
-    apply (cases y; cases h)
+    by (metis (no_types, lifting) None_eq_map_option_iff Un_iff hp.sel(1) hp_prev_None_notin
+      hp_prev_None_notin_children hp_prev_children.simps(2) hp_prev_children_simps
+      hp_prev_simps node_in_mset_nodes option.map(2))
+  subgoal
+    apply (cases x; cases h)
     apply (clarsimp simp add: encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def hp_update_score_def)
       by (metis (no_types, opaque_lifting) hp_child_None_notin hp_child_children_hp_child hp_child_children_simps(2)
         hp_child_children_simps(3) hp_child_hd hp_child_hp_children_simps2 set_mset_union union_iff)
    subgoal
-    apply (cases y; cases h)
-    apply (auto simp add: encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def hp_update_score_def)
-    apply (metis hp_parent_None_notin_same_hd hp_parent_children_cons)
-      by (metis (no_types, opaque_lifting) disjunct_not_in distinct_mset_add hp.sel(1) hp_parent_None_notin
-        hp_parent_children_cons hp_parent_children_single_hp_parent hp_parent_simps_single_if option.case(1) option.map(2))
+    by (cases x; cases h)
+     (auto simp add: encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def hp_update_score_def
+      hp_parent_children_cons hp_parent_simps_single_if)
     subgoal
-    apply (cases y; cases h)
+    apply (cases x; cases h)
     apply (clarsimp simp add: encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def hp_update_score_def)
     by (metis hp_node_children_Cons_if hp_node_children_simps2)
   subgoal
-    by (cases h; cases y)
+    by (cases h; cases x)
      (auto simp: hp_update_score_def)
   subgoal
-    by (cases h; cases y)
+    by (cases h; cases x)
      (auto simp: hp_update_score_def)
   subgoal
-    by (cases h; cases y)
+    by (cases h; cases x)
      (auto simp: hp_update_score_def)
   subgoal
-    by (cases h; cases y)
+    by (cases h; cases x)
      (auto simp: hp_update_score_def)
   done
 
@@ -1523,7 +1521,7 @@ lemma encoded_hp_prop_list_conc_update_score: \<open>encoded_hp_prop_list_conc a
   subgoal by (cases arr) auto
   done
 
-lemma unroot_hp_tree:
+lemma rescale_and_reroot:
   fixes h :: \<open>(nat, nat)hp option\<close>
   assumes enc: \<open>encoded_hp_prop_list_conc arr h\<close> \<open>a \<in> fst arr\<close> \<open>h \<noteq> None\<close>
   shows \<open>rescale_and_reroot a w' arr \<le> SPEC (\<lambda>arr'. encoded_hp_prop_list_conc arr' (VSIDS.decrease_key a w' (the h)))\<close>
@@ -1540,47 +1538,43 @@ proof -
       apply (auto split: option.splits hp.splits)
       apply (metis prod.collapse source_node.simps)+
       done
-   subgoal
+    subgoal
       using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
         in_remove_key_changed[of a \<open>the h\<close>] remove_key_None_iff[of a \<open>the h\<close>] src
         encoded_hp_prop_list_conc_update_score[of arr a \<open>score (the h)\<close> \<open>hps (the h)\<close> w']
-     by (auto split: option.splits hp.splits simp: find_key_None_remove_key_ident)
-   apply assumption
+      by (auto split: option.splits hp.splits simp: find_key_None_remove_key_ident)
+    apply assumption
     subgoal by auto
-    apply (rule encoded_hp_prop_list2_conc_update_score[of _ \<open>the (remove_key a (the h))\<close> \<open>the (find_key a (the h))\<close>])
-    subgoal
-      using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
-        in_remove_key_changed[of a \<open>the h\<close>] remove_key_None_iff[of a \<open>the h\<close>]
-      by (auto split: if_splits simp add: find_key_None_remove_key_ident
-        encoded_hp_prop_list_conc_def)
-    subgoal
-      using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
-        in_remove_key_changed[of a \<open>the h\<close>] remove_key_None_iff[of a \<open>the h\<close>]
-        find_key_None_or_itself[of a \<open>the h\<close>] find_key_None_remove_key_ident[of a \<open>the h\<close>]
-        by (cases \<open>find_key a (the h)\<close>)
-         auto
+      apply (rule encoded_hp_prop_list2_conc_update_score[of _ \<open>the (find_key a (the h))\<close> \<open>the (remove_key a (the h))\<close>])
       subgoal
-      using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
-        in_remove_key_changed[of a \<open>the h\<close>] remove_key_None_iff[of a \<open>the h\<close>]
-      by (auto split: if_splits simp add: find_key_None_remove_key_ident
-        encoded_hp_prop_list_conc_def)
-    subgoal
-      using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
-        in_remove_key_changed[of a \<open>the h\<close>] remove_key_None_iff[of a \<open>the h\<close>]
-        node_remove_key_itself_iff[of a \<open>the h\<close>]
-      apply (auto split: if_splits simp add: find_key_None_remove_key_ident
-        encoded_hp_prop_list_conc_def)
-      apply (metis node_remove_key_itself_iff option.sel remove_key_None_iff)+
+        using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
+          in_remove_key_changed[of a \<open>the h\<close>] remove_key_None_iff[of a \<open>the h\<close>]
+        by (auto split: if_splits simp add: find_key_None_remove_key_ident
+          encoded_hp_prop_list_conc_def)
+      subgoal
+        using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
+          in_remove_key_changed[of a \<open>the h\<close>] remove_key_None_iff[of a \<open>the h\<close>]
+          find_key_None_or_itself[of a \<open>the h\<close>] find_key_None_remove_key_ident[of a \<open>the h\<close>]
+        by (cases \<open>find_key a (the h)\<close>)
+          auto
+      subgoal
+        using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
+          in_remove_key_changed[of a \<open>the h\<close>] remove_key_None_iff[of a \<open>the h\<close>]
+        by (auto split: if_splits simp add: find_key_None_remove_key_ident
+          encoded_hp_prop_list_conc_def)
+      subgoal
+        using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
+          in_remove_key_changed[of a \<open>the h\<close>] remove_key_None_iff[of a \<open>the h\<close>]
+          node_remove_key_itself_iff[of a \<open>the h\<close>]
+        by (auto split: if_splits simp add: find_key_None_remove_key_ident
+          encoded_hp_prop_list_conc_def)
+      subgoal
+        using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
+          in_remove_key_changed[of a \<open>the h\<close>] remove_key_None_iff[of a \<open>the h\<close>] src
+          find_key_None_or_itself[of a \<open>the h\<close>]
+        by (cases \<open>the (find_key a (the h))\<close>)
+          (clarsimp split: if_splits simp add: find_key_None_remove_key_ident simp del: VSIDS.merge_pairs.simps)
       done
-    subgoal
-      using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
-        in_remove_key_changed[of a \<open>the h\<close>] remove_key_None_iff[of a \<open>the h\<close>] src
-        apply (cases \<open>the (find_key a (the h))\<close>)
-        apply (clarsimp split: if_splits simp add: find_key_None_remove_key_ident simp del: VSIDS.merge_pairs.simps)
-          find_theorems encoded_hp_prop_list_conc VSIDS.merge_pairs
-        apply (simp add: src)
-            oops
-              (**TODO issue  is : wrong order, we need to merge find then remove, not the other way around *)
-  (*requires making a proper function out of it first for rescaling*)
-thm encoded_hp_prop_list_remove_find encoded_hp_prop_list_update_score
+  qed
+
 end
