@@ -2952,6 +2952,14 @@ lemma encoded_hp_prop_list_conc_update_score: \<open>encoded_hp_prop_list_conc a
   subgoal by (cases arr) auto
   done
 
+lemma encoded_hp_prop_list_conc_update_outside:
+  \<open>(h \<noteq> None \<Longrightarrow> a \<notin># mset_nodes (the h)) \<Longrightarrow> encoded_hp_prop_list_conc arr h \<Longrightarrow>
+  encoded_hp_prop_list_conc (hp_update_score' a w' arr) h\<close>
+  by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list_def
+    hp_update_score_def
+    split: option.splits)
+
+
 lemma rescale_and_reroot:
   fixes h :: \<open>(nat, nat)hp option\<close>
   assumes enc: \<open>encoded_hp_prop_list_conc arr h\<close> \<open>a \<in> fst arr\<close> \<open>h \<noteq> None\<close>
@@ -2966,7 +2974,7 @@ proof -
     subgoal by (auto simp: encoded_hp_prop_list_conc_def)
     subgoal
       using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
-      apply (auto split: option.splits hp.splits)
+      apply (auto split: option.splits hp.splits intro!: encoded_hp_prop_list_conc_update_outside)
       apply (metis prod.collapse source_node.simps)+
       done
     subgoal
