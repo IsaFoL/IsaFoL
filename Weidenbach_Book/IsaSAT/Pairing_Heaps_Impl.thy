@@ -169,7 +169,7 @@ fun hp_set_all' where
 
 definition mop_hp_set_all_imp :: \<open>nat \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> ('a,'b)pairing_heaps_imp \<Rightarrow> ('a,'b)pairing_heaps_imp nres\<close>where
   \<open>mop_hp_set_all_imp = (\<lambda>i p q r s t (prevs, nxts, children, parents, scores, h). do {
-      ASSERT (i < length nxts \<and> i < length prevs \<and> i < length children \<and> i < length scores);
+      ASSERT (i < length nxts \<and> i < length prevs \<and> i < length parents \<and> i < length children \<and> i < length scores);
       RETURN (prevs[i := p], nxts[i:=q], children[i:=r], parents[i:=s], scores[i:=t], h)
   })\<close>
 
@@ -180,6 +180,8 @@ lemma mop_hp_set_all_imp_spec:
   mop_hp_set_all_imp i p' q' r' s' t' xs \<le> SPEC (\<lambda>a. (a, hp_set_all' j p q r s t ys) \<in> \<langle>R,S\<rangle>pairing_heaps_rel)\<close>
   unfolding mop_hp_set_all_imp_def
   apply refine_vcg
+  subgoal
+    by (auto simp: pairing_heaps_rel_def map_fun_rel_def)
   subgoal
     by (auto simp: pairing_heaps_rel_def map_fun_rel_def)
   subgoal
@@ -379,7 +381,7 @@ definition mop_hp_insert_impl :: \<open>nat \<Rightarrow> 'b::linorder \<Rightar
       RETURN (update_source_node_impl (Some i) arr)
     }
     else do {
-      let child = op_hp_read_child_imp j arr;
+      child \<leftarrow> mop_hp_read_child_imp j arr;
       arr \<leftarrow> mop_hp_set_all_imp j None None (Some i) None (y) arr;
       arr \<leftarrow> mop_hp_set_all_imp i None child None (Some j) w arr;
       arr \<leftarrow> (if child = None then RETURN arr else mop_hp_update_prev'_imp (the child) (Some i) arr);
@@ -419,6 +421,7 @@ proof -
       mop_hp_read_score_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and ys=ys and j=\<open>the (source_node_impl xs)\<close>]
       Some_x_y_option_theD[where S=nat_rel]
       mop_hp_update_parent'_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
+      mop_hp_read_child_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
       mop_hp_update_prev'_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and j=\<open>the (hp_read_child' (the (source_node ys)) ys)\<close>])
     subgoal by (auto dest: source_node_spec)
     subgoal by auto
@@ -460,8 +463,8 @@ proof -
     subgoal using source_node_spec[of xs ys  \<open>\<langle>nat_rel\<rangle>option_rel\<close> \<open>\<langle>nat_rel\<rangle>option_rel\<close>] by auto
     subgoal by (auto intro!: update_source_node_impl_spec)
     subgoal using source_node_spec[of xs ys  \<open>\<langle>nat_rel\<rangle>option_rel\<close> \<open>\<langle>nat_rel\<rangle>option_rel\<close>] by auto
-    subgoal by auto
-    subgoal by auto
+    subgoal by (auto intro!: update_source_node_impl_spec)
+    subgoal using source_node_spec[of xs ys  \<open>\<langle>nat_rel\<rangle>option_rel\<close> \<open>\<langle>nat_rel\<rangle>option_rel\<close>] by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -474,13 +477,12 @@ proof -
       using source_node_spec[of xs ys  \<open>\<langle>nat_rel\<rangle>option_rel\<close> \<open>\<langle>nat_rel\<rangle>option_rel\<close>] by auto
     subgoal
       using source_node_spec[of xs ys  \<open>\<langle>nat_rel\<rangle>option_rel\<close> \<open>\<langle>nat_rel\<rangle>option_rel\<close>] by auto
+    subgoal using source_node_spec[of xs ys  \<open>\<langle>nat_rel\<rangle>option_rel\<close> \<open>\<langle>nat_rel\<rangle>option_rel\<close>] by auto
     subgoal by auto
     apply (rule in_pairing_heaps_rel_still, assumption)
-    subgoal apply auto
-      by (metis op_hp_read_child_imp_spec option.sel option.simps(3) pair_in_Id_conv source_node_spec)
+    subgoal by auto
     apply assumption
-    subgoal apply auto
-      by (metis HH fst_hp_set_all' option.distinct(1) option.sel option_rel_id_simp pair_in_Id_conv)
+    subgoal by auto
     subgoal
       using op_hp_read_child_imp_spec[of xs ys \<open>\<langle>nat_rel\<rangle>option_rel\<close> \<open>\<langle>nat_rel\<rangle>option_rel\<close>]
       by (metis HH option.collapse)
@@ -488,23 +490,24 @@ proof -
       using HH by auto
     apply (rule in_pairing_heaps_rel_still, assumption)
     subgoal
-      apply auto
-      by (metis HH fst_hp_set_all' option.sel option.simps(2) option_rel_id_simp pair_in_Id_conv)
+      by auto
     apply (assumption)
     apply (rule K)
     apply assumption
-    subgoal by auto
     subgoal by auto
     subgoal
       using source_node_spec[of xs ys  \<open>\<langle>nat_rel\<rangle>option_rel\<close> \<open>\<langle>nat_rel\<rangle>option_rel\<close>]
         op_hp_read_child_imp_spec[of xs ys \<open>\<langle>nat_rel\<rangle>option_rel\<close> \<open>\<langle>nat_rel\<rangle>option_rel\<close> \<open>the (source_node ys)\<close> \<open>the (source_node_impl xs)\<close>]
       by auto
-    apply (rule autoref_opt(1))
     subgoal
       apply (frule K)
-      apply auto
-      apply (metis K empty_iff option.distinct(2) option.sel)+
-      using K by auto
+      by auto
+       (metis BNF_Greatest_Fixpoint.IdD assms(1) op_hp_read_child_imp_spec option_rel_simp(3) source_node_spec)+
+    apply (rule autoref_opt(1))
+    subgoal
+      using source_node_spec[of xs ys  \<open>\<langle>nat_rel\<rangle>option_rel\<close> \<open>\<langle>nat_rel\<rangle>option_rel\<close>]
+        op_hp_read_child_imp_spec[of xs ys \<open>\<langle>nat_rel\<rangle>option_rel\<close> \<open>\<langle>nat_rel\<rangle>option_rel\<close> \<open>the (source_node ys)\<close> \<open>the (source_node_impl xs)\<close>]
+       by auto
     subgoal by auto
     done
 qed
@@ -523,6 +526,8 @@ lemma hp_link_alt_def:
     ASSERT (nxt \<noteq> Some i \<and> nxt \<noteq> Some j);
     ASSERT (prev \<noteq> Some i \<and> prev \<noteq> Some j);
     let (parent,ch,w\<^sub>p, w\<^sub>c\<^sub>h) = (if y < x then (i, j, x, y) else (j, i, y, x));
+    ASSERT (parent \<in> fst arr);
+    ASSERT (ch \<in> fst arr);
     let child = hp_read_child' parent arr;
     ASSERT (child \<noteq> Some i \<and> child \<noteq> Some j);
     let child\<^sub>c\<^sub>h = hp_read_child' ch arr;
@@ -580,8 +585,8 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
+    subgoal by (auto simp: f_def)
+    subgoal by (auto simp: f_def)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -651,11 +656,11 @@ definition mop_hp_link_imp  :: \<open>nat \<Rightarrow>nat \<Rightarrow>(nat, 'b
     ASSERT (i \<noteq> j);
     x \<leftarrow> mop_hp_read_score_imp i arr;
     y \<leftarrow> mop_hp_read_score_imp j arr;
-    let prev = op_hp_read_prev_imp i arr;
-    let nxt = op_hp_read_nxt_imp j arr;
+    prev \<leftarrow> mop_hp_read_prev_imp i arr;
+    nxt \<leftarrow> mop_hp_read_nxt_imp j arr;
     let (parent,ch,w\<^sub>p, w\<^sub>c\<^sub>h) = (if y < x then (i, j, x, y) else (j, i, y, x));
-    let child = op_hp_read_child_imp parent arr;
-    let child\<^sub>c\<^sub>h = op_hp_read_child_imp ch arr;
+    child \<leftarrow> mop_hp_read_child_imp parent arr;
+    child\<^sub>c\<^sub>h \<leftarrow> mop_hp_read_child_imp ch arr;
     arr \<leftarrow> mop_hp_set_all_imp parent prev nxt (Some ch) None ((w\<^sub>p)) arr;
     arr \<leftarrow> mop_hp_set_all_imp ch None child child\<^sub>c\<^sub>h (Some parent) ((w\<^sub>c\<^sub>h)) arr;
     arr \<leftarrow> (if child = None then RETURN arr else mop_hp_update_prev'_imp (the child) (Some ch) arr);
@@ -709,7 +714,10 @@ proof -
       maybe_mop_hp_update_parent'_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
       maybe_mop_hp_update_prev'_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
       maybe_mop_hp_update_nxt'_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
-      op_hp_read_child_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>])
+      mop_hp_read_child_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
+      mop_hp_read_prev_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
+      mop_hp_read_nxt_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
+      mop_hp_read_parent_imp_spec[where R=\<open>\<langle>nat_rel\<rangle>option_rel\<close> and S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>])
     subgoal by (auto dest: source_node_spec)
     subgoal by auto
     subgoal by auto
@@ -733,12 +741,6 @@ proof -
     subgoal by simp
     apply (solves auto)
     apply (solves auto)
-    subgoal by simp
-    apply (solves auto)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
     done
 qed
 
@@ -1187,8 +1189,5 @@ proof -
     done
 qed
 
-
-
-thm unroot_hp_tree_def
 end
 end

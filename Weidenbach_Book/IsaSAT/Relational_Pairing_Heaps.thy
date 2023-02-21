@@ -184,6 +184,7 @@ lemma find_first_not_none_alt_def:
   by (induction xs rule: find_first_not_none.induct) auto
 
 text \<open>In the following we distinguish between the tree part and the tree part without parent (aka the list part).
+The latter corresponds to a tree where we have removed the source, but the leafs remains in the correct form.
 They are different for first level nexts and first level children.\<close>
 definition encoded_hp_prop_list :: \<open>('e,'f) hp multiset \<Rightarrow> ('e,'f) hp list \<Rightarrow> _\<close> where
   \<open>encoded_hp_prop_list m xs  = (\<lambda>(prevs,nxts,children, parents, scores). distinct_mset (\<Sum>\<^sub># (mset_nodes `# m + mset_nodes `# (mset xs))) \<and>
@@ -638,7 +639,7 @@ proof -
     done
 qed
 
-
+(*TODO this seems to be never used in the refinement part*)
 definition encoded_hp_prop_list_conc
   :: "'a::linorder set \<times> ('a, 'b) hp_fun \<times> 'a option \<Rightarrow>
      ('a, 'b) hp option \<Rightarrow> bool"
