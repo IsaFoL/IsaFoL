@@ -320,6 +320,25 @@ lemma mop_hp_update_nxt'_imp_spec:
     by (force simp: pairing_heaps_rel_def map_fun_rel_def hp_update_nxt_def)
   done
 
+definition mop_hp_update_score_imp :: \<open>nat \<Rightarrow> 'b \<Rightarrow> ('a,'b)pairing_heaps_imp \<Rightarrow> ('a,'b)pairing_heaps_imp nres\<close> where
+  \<open>mop_hp_update_score_imp = (\<lambda>i v (prevs, nxts, parents, children, scores, h). do {
+    ASSERT (i < length scores);
+    RETURN (prevs, nxts, parents, children, scores[i:=v], h)
+  })\<close>
+
+
+lemma mop_hp_update_score_imp_spec:
+  \<open>(xs, ys) \<in> \<langle>R,S\<rangle>pairing_heaps_rel \<Longrightarrow> (i,j)\<in>nat_rel \<Longrightarrow> j \<in> fst ys \<Longrightarrow>
+   (Some p', p)\<in>S \<Longrightarrow>
+  mop_hp_update_score_imp i p' xs \<le> SPEC (\<lambda>a. (a, hp_update_score' j p ys) \<in> \<langle>R,S\<rangle>pairing_heaps_rel)\<close>
+  unfolding mop_hp_update_score_imp_def
+  apply refine_vcg
+  subgoal
+    by (auto simp: pairing_heaps_rel_def map_fun_rel_def hp_update_prev_def)
+  subgoal
+    by (force simp: pairing_heaps_rel_def map_fun_rel_def hp_update_score_def)
+  done
+
 
 definition mop_hp_update_child'_imp :: \<open>nat \<Rightarrow> 'a option \<Rightarrow> ('a,'b)pairing_heaps_imp \<Rightarrow> ('a,'b)pairing_heaps_imp nres\<close> where
   \<open>mop_hp_update_child'_imp = (\<lambda>i v (prevs, nxts, children, parents, scores). do {
@@ -1054,5 +1073,122 @@ proof -
    subgoal by auto
    done
 qed
+
+definition mop_unroot_hp_tree where
+  \<open>mop_unroot_hp_tree arr h = do {
+    let a = source_node_impl arr;
+    nnext \<leftarrow> mop_hp_read_nxt_imp h arr;
+    parent \<leftarrow> mop_hp_read_parent_imp h arr;
+    prev \<leftarrow> mop_hp_read_prev_imp h arr;
+    if prev = None \<and> parent = None \<and> Some h \<noteq> a then RETURN (update_source_node_impl None arr)
+    else if Some h = a then RETURN (update_source_node_impl None arr)
+    else do {
+      ASSERT (a \<noteq> None);
+      let a' = the a;
+      arr \<leftarrow>  maybe_mop_hp_update_child'_imp parent nnext arr;
+      arr \<leftarrow>  maybe_mop_hp_update_nxt'_imp prev nnext arr;
+      arr \<leftarrow>  maybe_mop_hp_update_prev'_imp nnext prev arr;
+      arr \<leftarrow>  maybe_mop_hp_update_parent'_imp nnext parent arr;
+
+      arr \<leftarrow>  mop_hp_update_nxt'_imp h None arr;
+      arr \<leftarrow>  mop_hp_update_prev'_imp h None arr;
+      arr \<leftarrow>  mop_hp_update_parent'_imp h None arr;
+
+      arr \<leftarrow>  mop_hp_update_nxt'_imp h (Some a') arr;
+      arr \<leftarrow>  mop_hp_update_prev'_imp a' (Some h) arr;
+      RETURN (update_source_node_impl None arr)
+    }
+}\<close>
+
+lemma mop_unroot_hp_tree_spec:
+  assumes \<open>(xs, ys) \<in> \<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel\<close> and \<open>(h,i)\<in>nat_rel\<close>
+  shows \<open>mop_unroot_hp_tree xs h \<le> \<Down>(\<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel) (unroot_hp_tree ys i)\<close>
+proof -
+  show ?thesis
+    using assms using source_node_spec[OF assms(1)]
+    unfolding mop_unroot_hp_tree_def unroot_hp_tree_def
+    apply (refine_rcg mop_hp_read_nxt_imp_spec assms
+      mop_hp_read_parent_imp_spec mop_hp_read_prev_imp_spec
+      update_source_node_impl_spec maybe_mop_hp_update_child'_imp_spec
+      maybe_mop_hp_update_nxt'_imp_spec maybe_mop_hp_update_parent'_imp_spec
+      maybe_mop_hp_update_prev'_imp_spec
+      mop_hp_update_nxt'_imp_spec[where S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
+      mop_hp_update_prev'_imp_spec[where S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>]
+      mop_hp_update_parent'_imp_spec[where S=\<open>\<langle>nat_rel\<rangle>option_rel\<close>])
+    subgoal using source_node_spec[OF assms(1)] by auto
+    subgoal by auto
+    subgoal using source_node_spec[OF assms(1)] by auto
+    subgoal by auto
+    subgoal using source_node_spec[OF assms(1)] by auto
+    subgoal by auto
+    apply assumption
+    subgoal by auto
+    subgoal by auto
+    apply assumption
+    subgoal by auto
+    subgoal by auto
+    apply assumption
+    subgoal by auto
+    subgoal by auto
+    apply assumption
+    subgoal by auto
+    subgoal by auto
+    apply assumption
+    subgoal by auto
+    subgoal by auto
+    apply assumption
+    subgoal by auto
+    subgoal by auto
+    apply assumption
+    subgoal by auto
+    subgoal by auto
+    apply assumption
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+definition mop_rescale_and_reroot where
+  \<open>mop_rescale_and_reroot h w' arr = do {
+    nnext \<leftarrow> mop_hp_read_nxt_imp h arr;
+    parent \<leftarrow> mop_hp_read_parent_imp h arr;
+    prev \<leftarrow> mop_hp_read_prev_imp h arr;
+    if source_node_impl arr = None then mop_hp_update_score_imp h w' arr
+    else if prev = None \<and> parent = None \<and> Some h \<noteq> source_node_impl arr then mop_hp_update_score_imp h w' arr
+    else if Some h = source_node_impl arr then mop_hp_update_score_imp h w' arr
+    else do {
+       arr \<leftarrow> mop_unroot_hp_tree arr h;
+       arr \<leftarrow> mop_hp_update_score_imp h w' arr;
+       mop_merge_pairs_imp arr h
+   }
+}\<close>
+
+
+lemma mop_rescale_and_reroot_spec:
+  assumes \<open>(xs, ys) \<in> \<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel\<close> and \<open>(h,i)\<in>nat_rel\<close> \<open>(w, w') \<in> nat_rel\<close>
+  shows \<open>mop_rescale_and_reroot h w xs \<le> \<Down>(\<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel) (rescale_and_reroot i w' ys)\<close>
+proof -
+  have [refine]: \<open>(Some w, Some w') \<in> \<langle>nat_rel\<rangle>option_rel\<close>
+    using assms by auto
+  show ?thesis
+    using source_node_spec[OF assms(1)] assms(2,3)
+    unfolding rescale_and_reroot_def mop_rescale_and_reroot_def
+    apply (refine_rcg mop_hp_read_nxt_imp_spec assms mop_hp_read_parent_imp_spec
+      mop_hp_read_prev_imp_spec mop_hp_update_score_imp_spec mop_unroot_hp_tree_spec
+      mop_merge_pairs_imp_spec)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply assumption
+    subgoal by auto
+    done
+qed
+
+
+
+thm unroot_hp_tree_def
 end
 end
