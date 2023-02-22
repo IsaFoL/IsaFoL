@@ -3018,7 +3018,6 @@ proof -
     done
 qed
 
-thm mop_prio_pop_min_def
 context hmstruct_with_prio
 begin
 
