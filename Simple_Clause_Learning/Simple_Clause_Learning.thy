@@ -1521,8 +1521,8 @@ qed
 inductive trail_closures_false where
   Nil[simp]: "trail_closures_false []" |
   Cons:
-    "(case u of None \<Rightarrow> True | Some (D, _, \<gamma>) \<Rightarrow> trail_false_cls \<Gamma> (D \<cdot> \<gamma>)) \<Longrightarrow>
-    trail_closures_false \<Gamma> \<Longrightarrow> trail_closures_false ((L, u) # \<Gamma>)"
+    "(\<forall>D K \<gamma>. Kn = propagate_lit K D \<gamma> \<longrightarrow> trail_false_cls \<Gamma> (D \<cdot> \<gamma>)) \<Longrightarrow>
+    trail_closures_false \<Gamma> \<Longrightarrow> trail_closures_false (Kn # \<Gamma>)"
 
 lemma trail_closures_false_ConsD: "trail_closures_false (Ln # \<Gamma>) \<Longrightarrow> trail_closures_false \<Gamma>"
   by (auto elim: trail_closures_false.cases)
@@ -2890,7 +2890,8 @@ lemma decide_preserves_trail_closures_false':
 proof (cases N \<beta> S S' rule: decide.cases)
   case step_hyps: (decideI L \<gamma> \<Gamma> U)
   with invar show ?thesis
-    by (simp add: trail_closures_false'_def decide_lit_def trail_closures_false.Cons)
+    by (simp add: trail_closures_false'_def decide_lit_def propagate_lit_def
+        trail_closures_false.Cons)
 qed
 
 lemma conflict_preserves_trail_closures_false':
@@ -2953,6 +2954,26 @@ lemma scl_preserves_trail_closures_false':
     factorize_preserves_trail_closures_false' resolve_preserves_trail_closures_false'
     backtrack_preserves_trail_closures_false'
   by metis
+
+lemma "trail_closures_false \<Gamma> \<longleftrightarrow>
+  (\<forall>K D \<gamma> \<Gamma>' \<Gamma>''. \<Gamma> = \<Gamma>'' @ propagate_lit K D \<gamma> # \<Gamma>' \<longrightarrow> trail_false_cls \<Gamma>' (D \<cdot> \<gamma>))"
+proof (intro iffI allI impI)
+  fix K D \<gamma> \<Gamma>' \<Gamma>''
+  assume "trail_closures_false \<Gamma>" and "\<Gamma> = \<Gamma>'' @ trail_propagate \<Gamma>' K D \<gamma>"
+  thus "trail_false_cls \<Gamma>' (D \<cdot> \<gamma>)"
+  proof (induction \<Gamma> arbitrary: \<Gamma>'' \<Gamma>' K D \<gamma> rule: trail_closures_false.induct)
+    case Nil
+    thus ?case by simp
+  next
+    case (Cons u \<Gamma> L)
+    thus ?case
+      by (metis (no_types, opaque_lifting) Cons_eq_append_conv list.inject)
+  qed
+next
+  assume "\<forall>K D \<gamma> \<Gamma>' \<Gamma>''. \<Gamma> = \<Gamma>'' @ trail_propagate \<Gamma>' K D \<gamma> \<longrightarrow> trail_false_cls \<Gamma>' (D \<cdot> \<gamma>)"
+  thus "trail_closures_false \<Gamma>"
+    by (induction \<Gamma>) (simp_all add: trail_closures_false.Cons)
+qed
 
 
 subsection \<open>Trail Literals Were Propagated or Decided\<close>
