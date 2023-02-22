@@ -2854,6 +2854,34 @@ lemma scl_preserves_trail_lits_consistent:
     backtrack_preserves_trail_lits_consistent
   by metis
 
+lemma "trail_consistent \<Gamma> \<longleftrightarrow> (\<forall>\<Gamma>' Ln \<Gamma>''. \<Gamma> = \<Gamma>'' @ Ln # \<Gamma>' \<longrightarrow> \<not> trail_defined_lit \<Gamma>' (fst Ln))"
+proof (intro iffI allI impI)
+  fix \<Gamma>' Ln \<Gamma>''
+  assume "trail_consistent \<Gamma>" and "\<Gamma> = \<Gamma>'' @ Ln # \<Gamma>'"
+  thus "\<not> trail_defined_lit \<Gamma>' (fst Ln)"
+  proof (induction \<Gamma> arbitrary: \<Gamma>'' rule: trail_consistent.induct)
+    case Nil
+    thus ?case
+      by simp
+  next
+    case ind_hyps: (Cons \<Gamma> L u)
+    thus ?case
+      by (cases \<Gamma>'') auto
+  qed
+next
+  assume "\<forall>\<Gamma>' Ln \<Gamma>''. \<Gamma> = \<Gamma>'' @ Ln # \<Gamma>' \<longrightarrow> \<not> trail_defined_lit \<Gamma>' (fst Ln)"
+  then show "trail_consistent \<Gamma>"
+  proof (induction \<Gamma>)
+    case Nil
+    thus ?case
+      by simp
+  next
+    case (Cons Ln \<Gamma>)
+    thus ?case
+      by (cases Ln) (simp add: trail_consistent.Cons)
+  qed
+qed
+
 
 subsection \<open>Trail Closures Are False In Subtrails\<close>
 
