@@ -60,16 +60,15 @@ locale compact_scl =
   for renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v"
 begin
 
-theorem completeness:
-  fixes N
-  defines "gnd_N \<equiv> grounding_of_clss (fset N)"
+theorem ex_bound_if_unsat:
+  fixes N :: "('f, 'v) term clause fset"
+  defines
+    "gnd_N \<equiv> grounding_of_clss (fset N)"
   assumes unsat: "\<not> satisfiable gnd_N"
-  shows "\<exists>\<beta> S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S \<and>
-    (\<nexists>S'. regular_scl N \<beta> S S') \<and>
-    (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>))"
+  shows "\<exists>\<beta>. \<not> satisfiable {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<le> \<beta>}"
 proof -
   from unsat obtain gnd_N' where
-    "gnd_N' \<subseteq> gnd_N" and "finite gnd_N'" and "\<not> satisfiable gnd_N'"
+    "gnd_N' \<subseteq> gnd_N" and "finite gnd_N'" and unsat': "\<not> satisfiable gnd_N'"
     using clausal_logic_compact[of gnd_N] by metis
 
   have "gnd_N' \<noteq> {}"
@@ -84,26 +83,21 @@ proof -
     let ?S = "([], {||}, Some ({#}, Var))"
 
     show ?thesis
-    proof (intro exI conjI)
+    proof (rule exI)
       have "{#} |\<in>| N"
         using C_in \<open>gnd_N' \<subseteq> gnd_N\<close>
         unfolding empty gnd_N_def
         by (smt (verit, del_insts) Simple_Clause_Learning.grounding_of_clss_def
             Simple_Clause_Learning.subst_cls_empty_iff UN_E mem_Collect_eq notin_fset subset_iff
             substitution_ops.grounding_of_cls_def)
-      hence "conflict N undefined initial_state ?S"
-        by (auto intro: conflictI)
-      hence "regular_scl N undefined initial_state ?S"
-        by simp
-      thus "(regular_scl N undefined)\<^sup>*\<^sup>* initial_state ?S"
-        by auto
-    next
-      show "\<nexists>S'. regular_scl N undefined ?S S'"
-        using no_more_step_if_conflict_mempty scl_if_regular state_conflict_simp state_trail_simp
-        by blast
-    next
-      show "state_conflict ?S = Some ({#}, Var)"
-        by simp
+      hence "{#} \<in> gnd_N"
+        using C_in \<open>gnd_N' \<subseteq> gnd_N\<close> local.empty by blast
+      hence "{#} \<in> {C \<in> gnd_N. \<forall>L\<in>#C. atm_of L < undefined}"
+        by force
+      thus "\<not> satisfiable {C \<in> gnd_N. \<forall>L\<in>#C. atm_of L \<le> undefined}"
+        using unsat'
+        by (smt (verit, best) C_min le_multiset_empty_right local.empty mem_Collect_eq nless_le
+            subset_entailed subset_iff)
     qed
   next
     case (add x C')
@@ -120,8 +114,7 @@ proof -
       using \<open>\<not> satisfiable gnd_N'\<close>
       by (meson satisfiable_antimono)
     thus ?thesis
-      using completeness_wrt_bound[of N, folded gnd_N_def]
-      by blast
+      by auto
   qed
 qed
 
