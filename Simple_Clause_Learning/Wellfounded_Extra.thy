@@ -447,14 +447,94 @@ next
     by (simp add: Suc_ile_eq)
 qed
 
-lemma wfp_on_rtranclp_implies_no_infinite_chain:
+lemma rtranclp_implies_ex_lfinite_chain:
+  assumes run: "R\<^sup>*\<^sup>* x\<^sub>0 x"
+  shows "\<exists>xs. lfinite xs \<and> chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) (LCons x\<^sub>0 xs) \<and> llast (LCons x\<^sub>0 xs) = x"
+  using run
+proof (induction x rule: rtranclp_induct)
+  case base
+  then show ?case
+    by (meson chain.chain_singleton lfinite_code(1) llast_singleton)
+next
+  case (step y z)
+  from step.IH obtain xs where
+    "lfinite xs" and "chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) (LCons x\<^sub>0 xs)" and "llast (LCons x\<^sub>0 xs) = y"
+    by auto
+  let ?xs = "lappend xs (LCons z LNil)"
+  show ?case
+  proof (intro exI conjI)
+    show "lfinite ?xs"
+      using \<open>lfinite xs\<close> by simp
+  next
+    show "chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) (LCons x\<^sub>0 ?xs)"
+      using \<open>chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) (LCons x\<^sub>0 xs)\<close> \<open>llast (LCons x\<^sub>0 xs) = y\<close>
+        chain.chain_singleton chain_lappend step.hyps(1) step.hyps(2)
+      by fastforce
+  next
+    show "llast (LCons x\<^sub>0 ?xs) = z"
+      by (simp add: \<open>lfinite xs\<close> llast_LCons)
+  qed
+qed
+
+lemma chain_conj_rtranclpD:
+  fixes xs :: "'a llist"
+  assumes inf: "\<not> lfinite xs" and chain: "chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) xs"
+  shows "\<exists>ys. lfinite ys \<and> chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) (lappend ys xs) \<and> lhd (lappend ys xs) = x\<^sub>0"
+  using chain
+proof (cases "\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y" xs rule: chain.cases)
+  case (chain_singleton x)
+  with inf have False
+    by simp
+  thus ?thesis ..
+next
+  case (chain_cons xs' x)
+  hence "R\<^sup>*\<^sup>* x\<^sub>0 x"
+    by auto
+  thus ?thesis
+  proof (cases R x\<^sub>0 x rule: rtranclp.cases)
+    case rtrancl_refl
+    then show ?thesis
+      using chain local.chain_cons(1) by force
+  next
+    case (rtrancl_into_rtrancl x\<^sub>n)
+    then obtain ys where
+      lfin_ys: "lfinite ys" and
+      chain_ys: "chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) (LCons x\<^sub>0 ys)" and
+      llast_ys: "llast (LCons x\<^sub>0 ys) = x\<^sub>n"
+      by (auto dest: rtranclp_implies_ex_lfinite_chain)
+    show ?thesis
+    proof (intro exI conjI)
+      show "lfinite (LCons x\<^sub>0 ys)"
+        using lfin_ys
+        by simp
+    next
+      have "R (llast (LCons x\<^sub>0 ys)) (lhd xs)"
+        using rtrancl_into_rtrancl(2) chain_cons(1) llast_ys
+        by simp
+      moreover have "R\<^sup>*\<^sup>* x\<^sub>0 (llast (LCons x\<^sub>0 ys))"
+        using rtrancl_into_rtrancl(1,2)
+        using lappend_code(2)[of x\<^sub>0 ys xs]
+          lhd_LCons[of x\<^sub>0 "(lappend ys xs)"] local.chain_cons(1)
+        using llast_ys
+        by fastforce
+      ultimately show "chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) (lappend (LCons x\<^sub>0 ys) xs)"
+        using chain_lappend[OF chain_ys chain]
+        by metis
+    next
+      show "lhd (lappend (LCons x\<^sub>0 ys) xs) = x\<^sub>0"
+        by simp
+    qed 
+  qed
+qed
+
+lemma wfp_on_rtranclp_conversep_iff_no_infinite_down_chain_llist:
   fixes R x\<^sub>0
-  assumes wf: "Wellfounded_Extra.wfp_on {x. R\<^sup>*\<^sup>* x\<^sub>0 x} R\<inverse>\<inverse>"
-  shows "\<nexists>xs. \<not> lfinite xs \<and> Lazy_List_Chain.chain R (LCons x\<^sub>0 xs)"
-proof -
-  from wf have "Wellfounded_Extra.wfp (\<lambda>z y. R\<inverse>\<inverse> z y \<and> z \<in> {x. R\<^sup>*\<^sup>* x\<^sub>0 x} \<and> y \<in> {x. R\<^sup>*\<^sup>* x\<^sub>0 x})"
+  shows "wfp_on {x. R\<^sup>*\<^sup>* x\<^sub>0 x} R\<inverse>\<inverse> \<longleftrightarrow> (\<nexists>xs. \<not> lfinite xs \<and> Lazy_List_Chain.chain R (LCons x\<^sub>0 xs))"
+proof (rule iffI)
+  assume "wfp_on {x. R\<^sup>*\<^sup>* x\<^sub>0 x} R\<inverse>\<inverse>"
+  hence "wfp (\<lambda>z y. R\<inverse>\<inverse> z y \<and> z \<in> {x. R\<^sup>*\<^sup>* x\<^sub>0 x} \<and> y \<in> {x. R\<^sup>*\<^sup>* x\<^sub>0 x})"
     using wfp_on_iff_wfp by blast
-  hence "Wellfounded_Extra.wfp (\<lambda>z y. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y)"
+  hence "wfp (\<lambda>z y. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y)"
     by (auto elim: wfp_on_mono_strong)
   hence "Wellfounded.wfP (\<lambda>z y. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y)"
     by (simp add: wfp_iff_wfP)
@@ -466,6 +546,39 @@ proof -
   thus "\<nexists>xs. \<not> lfinite xs \<and> Lazy_List_Chain.chain R (LCons x\<^sub>0 xs)"
     using chain_conj_rtranclpI
     by fastforce
+next
+  assume "\<nexists>xs. \<not> lfinite xs \<and> Lazy_List_Chain.chain R (LCons x\<^sub>0 xs)"
+  hence no_inf_chain: "\<nexists>xs. \<not> lfinite xs \<and> chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) (LCons x\<^sub>0 xs)"
+    by (metis (mono_tags, lifting) Lazy_List_Chain.chain_mono)
+  have "\<nexists>xs. \<not> lfinite xs \<and> chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) xs"
+  proof (rule notI, elim exE conjE)
+    fix xs assume "\<not> lfinite xs" and "chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) xs"
+    then obtain ys where
+      "lfinite ys" and "chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) (lappend ys xs)" and "lhd (lappend ys xs) = x\<^sub>0"
+    by (auto dest: chain_conj_rtranclpD)
+    hence "\<exists>xs. \<not> lfinite xs \<and> chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) (LCons x\<^sub>0 xs)"
+    proof (intro exI conjI)
+      show "\<not> lfinite (ltl (lappend ys xs))"
+        using \<open>\<not> lfinite xs\<close> lfinite_lappend lfinite_ltl
+        by blast
+    next
+      show "chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) (LCons x\<^sub>0 (ltl (lappend ys xs)))"
+        using \<open>chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) (lappend ys xs)\<close> \<open>lhd (lappend ys xs) = x\<^sub>0\<close>
+          chain_not_lnull lhd_LCons_ltl
+        by fastforce
+    qed
+    with no_inf_chain show False
+      by argo
+  qed
+  hence "Wellfounded.wfP (\<lambda>z y. R y z \<and> y \<in> {x. R\<^sup>*\<^sup>* x\<^sub>0 x})"
+    unfolding wfP_iff_no_infinite_down_chain_llist
+    using Lazy_List_Chain.chain_mono by fastforce
+  hence "wfp (\<lambda>z y. R y z \<and> y \<in> {x. R\<^sup>*\<^sup>* x\<^sub>0 x})"
+    unfolding wfp_iff_wfP by argo
+  hence "wfp (\<lambda>z y. R\<inverse>\<inverse> z y \<and> z \<in> {x. R\<^sup>*\<^sup>* x\<^sub>0 x} \<and> y \<in> {x. R\<^sup>*\<^sup>* x\<^sub>0 x})"
+    by (auto elim: wfp_on_mono_strong)
+  thus "wfp_on {x. R\<^sup>*\<^sup>* x\<^sub>0 x} R\<inverse>\<inverse>"
+    unfolding wfp_on_iff_wfp[of "{x. R\<^sup>*\<^sup>* x\<^sub>0 x}" "R\<inverse>\<inverse>"] by argo
 qed
 
 
