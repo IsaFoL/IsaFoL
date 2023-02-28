@@ -2,6 +2,7 @@ theory Wellfounded_Extra
   imports
     Main
     Relation_Extra
+    "Ordered_Resolution_Prover.Lazy_List_Chain"
 begin
 
 definition wf_on :: "'a set \<Rightarrow> 'a rel \<Rightarrow> bool"
@@ -151,6 +152,23 @@ lemma wfp_iff_minimal: "wfp R \<longleftrightarrow> (\<forall>B. B \<noteq> {} \
 
 lemmas wfP_eq_minimal[no_atp] = wf_eq_minimal[to_pred]
 
+
+lemma ex_trans_min_element_if_wf_on:
+  assumes wf: "wf_on A r" and x_in: "x \<in> A"
+  shows "\<exists>y \<in> A. (y, x) \<in> r\<^sup>* \<and> \<not>(\<exists>z \<in> A. (z, y) \<in> r)"
+  using wf
+proof (induction x rule: wf_on_induct)
+  case (less x)
+  thus ?case
+    by (metis rtrancl.rtrancl_into_rtrancl rtrancl.rtrancl_refl)
+next
+  case in_dom
+  thus ?case
+    using x_in by metis
+qed
+
+lemma ex_trans_min_element_if_wfp_on: "wfp_on A R \<Longrightarrow> x \<in> A \<Longrightarrow> \<exists>y\<in>A. R\<^sup>*\<^sup>* y x \<and> \<not> (\<exists>z\<in>A. R z y)"
+  by (rule ex_trans_min_element_if_wf_on[to_pred])
 
 subsection \<open>Bound Restriction and Monotonicity\<close>
 
@@ -337,6 +355,117 @@ next
   show "x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> (R \<squnion> S) x y \<Longrightarrow> lex_prodp Q S (f x, x) (f y, y)"
     using convertible_R convertible_S
     by (auto simp add: lex_prodp_def)
+qed
+
+lemma wf_on_iff_wf: "wf_on A r \<longleftrightarrow> wf {(x, y) \<in> r. x \<in> A \<and> y \<in> A}"
+proof (rule iffI)
+  assume wf: "wf_on A r"
+  show "wf {(x, y) \<in> r. x \<in> A \<and> y \<in> A}"
+    unfolding wf_def
+  proof (intro allI impI ballI)
+    fix P x
+    assume IH: "\<forall>x. (\<forall>y. (y, x) \<in> {(x, y). (x, y) \<in> r \<and> x \<in> A \<and> y \<in> A} \<longrightarrow> P y) \<longrightarrow> P x"
+    show "P x"
+    proof (cases "x \<in> A")
+      case True
+      from wf show ?thesis
+      proof (induction x rule: wf_on_induct)
+        case (less x)
+        then show ?case
+          by (auto intro: IH[rule_format])
+      next
+        case in_dom
+        show ?case
+          using True .
+      qed
+    next
+      case False
+      then show ?thesis
+        by (auto intro: IH[rule_format])
+    qed
+  qed
+next
+  assume wf: "wf {(x, y). (x, y) \<in> r \<and> x \<in> A \<and> y \<in> A}"
+  show "wf_on A r"
+    unfolding wf_on_def
+  proof (intro allI impI ballI)
+    fix P x
+    assume IH: "\<forall>x\<in>A. (\<forall>y\<in>A. (y, x) \<in> r \<longrightarrow> P y) \<longrightarrow> P x" and "x \<in> A"
+    show "P x"
+      using wf \<open>x \<in> A\<close>
+    proof (induction x rule: wf_on_induct)
+      case (less y)
+      hence "\<And>z. (z, y) \<in> r \<Longrightarrow> z \<in> A \<Longrightarrow> P z"
+        by simp
+      thus ?case
+        using IH[rule_format, OF \<open>y \<in> A\<close>] by simp
+    next
+      case in_dom
+      show ?case
+        by simp
+    qed
+  qed
+qed
+
+lemma wfp_on_iff_wfp: "wfp_on A R \<longleftrightarrow> wfp (\<lambda>x y. R x y \<and>  x \<in> A \<and> y \<in> A)"
+  by (rule wf_on_iff_wf[to_pred])
+
+lemma chain_lnth_rtranclp:
+  assumes
+    chain: "Lazy_List_Chain.chain R xs" and
+    len: "enat j < llength xs"
+  shows "R\<^sup>*\<^sup>* (lhd xs) (lnth xs j)"
+  using len
+proof (induction j)
+  case 0
+  from chain obtain x xs' where "xs = LCons x xs'"
+    by (auto elim: chain.cases)
+  thus ?case
+    by simp
+next
+  case (Suc j)
+  then show ?case
+    by (metis Suc_ile_eq chain chain_lnth_rel less_le_not_le rtranclp.simps)
+qed
+
+lemma chain_conj_rtranclpI:
+  fixes xs :: "'a llist"
+  assumes "Lazy_List_Chain.chain (\<lambda>x y. R x y) (LCons init xs)"
+  shows "Lazy_List_Chain.chain (\<lambda>x y. R x y \<and> R\<^sup>*\<^sup>* init x) (LCons init xs)"
+proof (intro lnth_rel_chain allI impI conjI)
+  show "\<not> lnull (LCons init xs)"
+    by simp
+next
+  fix j
+  assume hyp: "enat (j + 1) < llength (LCons init xs)"
+
+  from hyp show "R (lnth (LCons init xs) j) (lnth (LCons init xs) (j + 1))"
+    using assms[THEN chain_lnth_rel, of j] by simp
+
+  from hyp show "R\<^sup>*\<^sup>* init (lnth (LCons init xs) j)"
+    using assms[THEN chain_lnth_rtranclp, of j]
+    by (simp add: Suc_ile_eq)
+qed
+
+lemma wfp_on_rtranclp_implies_no_infinite_chain:
+  fixes R x\<^sub>0
+  assumes wf: "Wellfounded_Extra.wfp_on {x. R\<^sup>*\<^sup>* x\<^sub>0 x} R\<inverse>\<inverse>"
+  shows "\<nexists>xs. \<not> lfinite xs \<and> Lazy_List_Chain.chain R (LCons x\<^sub>0 xs)"
+proof -
+  from wf have "Wellfounded_Extra.wfp (\<lambda>z y. R\<inverse>\<inverse> z y \<and> z \<in> {x. R\<^sup>*\<^sup>* x\<^sub>0 x} \<and> y \<in> {x. R\<^sup>*\<^sup>* x\<^sub>0 x})"
+    using wfp_on_iff_wfp by blast
+  hence "Wellfounded_Extra.wfp (\<lambda>z y. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y)"
+    by (auto elim: wfp_on_mono_strong)
+  hence "Wellfounded.wfP (\<lambda>z y. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y)"
+    by (simp add: wfp_iff_wfP)
+  hence "\<nexists>xs. \<not> lfinite xs \<and> Lazy_List_Chain.chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) xs"
+    unfolding wfP_iff_no_infinite_down_chain_llist
+    by (metis (no_types, lifting) Lazy_List_Chain.chain_mono conversepI)
+  hence "\<nexists>xs. \<not> lfinite xs \<and> Lazy_List_Chain.chain (\<lambda>y z. R y z \<and> R\<^sup>*\<^sup>* x\<^sub>0 y) (LCons x\<^sub>0 xs)"
+    by (meson lfinite_LCons)
+  thus "\<nexists>xs. \<not> lfinite xs \<and> Lazy_List_Chain.chain R (LCons x\<^sub>0 xs)"
+    using chain_conj_rtranclpI
+    by fastforce
 qed
 
 

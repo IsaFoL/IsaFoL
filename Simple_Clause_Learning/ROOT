@@ -2,12 +2,10 @@ session Simple_Clause_Learning = First_Order_Terms +
   options [document = pdf, document_output = "output"]
   sessions
     First_Order_Terms
+    Functional_Ordered_Resolution_Prover
     Ordered_Resolution_Prover
     Saturation_Framework
     Saturation_Framework_Extensions
   theories
-    Correct_Termination
+    Completeness
     Initial_Literals_Generalize_Learned_Literals
-    Non_Redundancy
-    Simple_Clause_Learning
-    Termination
