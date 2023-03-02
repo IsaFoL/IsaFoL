@@ -9,7 +9,7 @@ lemma (in scl_calculus) regular_scl_run_derives_contradiction_if_unsat:
   fixes N \<beta> gnd_N
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
-    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
   assumes
     unsat: "\<not> satisfiable gnd_N_lt_\<beta>" and
     run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
@@ -22,7 +22,7 @@ theorem (in scl_calculus)
   fixes N \<beta> gnd_N
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
-    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
   assumes unsat: "\<not> satisfiable gnd_N_lt_\<beta>"
   shows "\<exists>S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S \<and>
     (\<nexists>S'. regular_scl N \<beta> S S') \<and>
@@ -51,7 +51,7 @@ theorem (in scl_calculus) completeness_wrt_bound:
   fixes N \<beta> gnd_N
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
-    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
   assumes unsat: "\<not> satisfiable gnd_N_lt_\<beta>"
   shows
     "\<nexists>Ss. \<not> lfinite Ss \<and> Lazy_List_Chain.chain (\<lambda>S S'. regular_scl N \<beta> S S')
@@ -63,7 +63,7 @@ theorem (in scl_calculus) completeness_wrt_bound:
 
 
 locale compact_scl =
-  scl_calculus renaming_vars "(\<le>) :: ('f :: weighted, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool"
+  scl_calculus renaming_vars "(<) :: ('f :: weighted, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool"
   for renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v"
 begin
 
