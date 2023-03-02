@@ -35,6 +35,8 @@ endif()
 
 add_executable(gratgen gratgen.cpp)
 
+add_executable(lrat_grat_cnv lrat_grat_cnv.cpp)
+
 install(TARGETS gratgen RUNTIME DESTINATION bin)
 
 
