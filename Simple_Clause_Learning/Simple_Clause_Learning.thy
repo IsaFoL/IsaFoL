@@ -1564,6 +1564,9 @@ inductive skip :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Right
   skipI: "-L \<notin># D \<cdot> \<sigma> \<Longrightarrow>
     skip N \<beta> ((L, n) # \<Gamma>, U, Some (D, \<sigma>)) (\<Gamma>, U, Some (D, \<sigma>))"
 
+lemma "-(fst \<K>) \<notin># D \<cdot> \<sigma> \<Longrightarrow> skip N \<beta> (\<K> # \<Gamma>, U, Some (D, \<sigma>)) (\<Gamma>, U, Some (D, \<sigma>))"
+  by (metis prod.exhaust_sel skipI)
+
 inductive factorize :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   factorizeI: "L \<cdot>l \<gamma> = L' \<cdot>l \<gamma> \<Longrightarrow> is_imgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
