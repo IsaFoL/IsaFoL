@@ -18,7 +18,7 @@ lemma (in scl_calculus) regular_scl_run_derives_contradiction_if_unsat:
     using unsat correct_termination_regular_scl_run[OF run no_more_step]
     by (simp add: gnd_N_lt_\<beta>_def gnd_N_def)
 
-theorem (in scl_calculus) completeness_wrt_bound:
+theorem (in scl_calculus)
   fixes N \<beta> gnd_N
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
@@ -43,17 +43,24 @@ proof -
     by metis
 qed
 
-theorem (in scl_calculus)
+lemma (in scl_calculus) no_infinite_down_chain:
+  "\<nexists>Ss. \<not> lfinite Ss \<and> Lazy_List_Chain.chain (\<lambda>S S'. regular_scl N \<beta> S S') (LCons initial_state Ss)"
+  using regular_scl_terminates wfp_on_rtranclp_conversep_iff_no_infinite_down_chain_llist by metis
+
+theorem (in scl_calculus) completeness_wrt_bound:
   fixes N \<beta> gnd_N
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
     "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
   assumes unsat: "\<not> satisfiable gnd_N_lt_\<beta>"
   shows
-    "\<forall>S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S \<longrightarrow> (\<nexists>S'. regular_scl N \<beta> S S') \<longrightarrow> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>))"
-    "\<exists>S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S \<and> (\<nexists>S'. regular_scl N \<beta> S S') \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>))"
-  using assms regular_scl_run_derives_contradiction_if_unsat completeness_wrt_bound
+    "\<nexists>Ss. \<not> lfinite Ss \<and> Lazy_List_Chain.chain (\<lambda>S S'. regular_scl N \<beta> S S')
+      (LCons initial_state Ss)" and
+    "\<forall>S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S \<longrightarrow> (\<nexists>S'. regular_scl N \<beta> S S') \<longrightarrow>
+      (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>))"
+  using assms regular_scl_run_derives_contradiction_if_unsat no_infinite_down_chain
   by simp_all
+
 
 locale compact_scl =
   scl_calculus renaming_vars "(\<le>) :: ('f :: weighted, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool"
