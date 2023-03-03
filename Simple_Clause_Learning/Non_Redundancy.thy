@@ -1508,6 +1508,56 @@ lemma redundant_is_standard_redundancy:
   shows "Red_F N = {C. \<forall>D \<in> \<G>\<^sub>F C. D \<in> Red_F\<^sub>\<G> (\<G>\<^sub>F\<^sub>s N)}"
   using Red_F_def Red_F\<^sub>\<G>_def \<G>\<^sub>F\<^sub>s_def \<G>\<^sub>F_def redundant_def by auto
 
+lemma ground_redundant_if_strict_subset:
+  assumes "D \<in> N" and "D \<subset># C"
+  shows "ground_redundant (multp\<^sub>H\<^sub>O R) N C"
+  using assms
+  unfolding ground_redundant_def
+  by (metis (mono_tags, lifting) CollectI strict_subset_implies_multp\<^sub>H\<^sub>O subset_mset.less_le
+      true_clss_def true_clss_singleton true_clss_subclause)
+
+lemma redundant_if_strict_subset:
+  assumes "D \<in> N" and "D \<subset># C"
+  shows "redundant (multp\<^sub>H\<^sub>O R) N C"
+  unfolding redundant_def
+proof (rule ballI)
+  fix C' assume "C' \<in> grounding_of_cls C"
+  then obtain \<gamma> where "C' = C \<cdot> \<gamma>" and "is_ground_subst \<gamma>"
+    by (auto simp: grounding_of_cls_def)
+
+  show "ground_redundant (multp\<^sub>H\<^sub>O R) (grounding_of_clss N) C'"
+  proof (rule ground_redundant_if_strict_subset)
+    from \<open>D \<in> N\<close> show "D \<cdot> \<gamma> \<in> grounding_of_clss N"
+      using \<open>is_ground_subst \<gamma>\<close>
+      by (auto simp: grounding_of_clss_def grounding_of_cls_def)
+  next
+    from \<open>D \<subset># C\<close> show "D \<cdot> \<gamma> \<subset># C'"
+      by (simp add: \<open>C' = C \<cdot> \<gamma>\<close> subst_subset_mono)
+  qed
+qed
+
+lemma redundant_if_strict_subsumes:
+  assumes "D \<cdot> \<sigma> \<subset># C" and "D \<in> N"
+  shows "redundant (multp\<^sub>H\<^sub>O R) N C"
+  unfolding redundant_def
+proof (rule ballI)
+  fix C' assume "C' \<in> grounding_of_cls C"
+  then obtain \<gamma> where "C' = C \<cdot> \<gamma>" and "is_ground_subst \<gamma>"
+    by (auto simp: grounding_of_cls_def)
+
+  show "ground_redundant (multp\<^sub>H\<^sub>O R) (grounding_of_clss N) C'"
+  proof (rule ground_redundant_if_strict_subset)
+    from \<open>D \<in> N\<close> show "D \<cdot> \<sigma> \<cdot> \<gamma> \<in> grounding_of_clss N"
+      using \<open>is_ground_subst \<gamma>\<close>
+      by (metis (no_types, lifting) UN_iff ground_subst_ground_cls grounding_of_cls_ground
+          grounding_of_clss_def insert_subset subst_cls_comp_subst
+          subst_cls_eq_grounding_of_cls_subset_eq)
+  next
+    from \<open>D \<cdot> \<sigma> \<subset># C\<close> show "D \<cdot> \<sigma> \<cdot> \<gamma> \<subset># C'"
+      by (simp add: \<open>C' = C \<cdot> \<gamma>\<close> subst_subset_mono)
+  qed
+qed
+
 lemma ground_redundant_mono_strong:
   "ground_redundant R N C \<Longrightarrow> (\<And>x. x \<in> N \<Longrightarrow> R x C \<Longrightarrow> S x C) \<Longrightarrow> ground_redundant S N C"
   unfolding ground_redundant_def
