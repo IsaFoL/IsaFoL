@@ -357,7 +357,7 @@ termination
 
 text \<open>Using this as version number makes our work on the cluster easier and makes the version checking
   slightly easier (because the git hash is never up-to-date).\<close>
-definition internal_version :: \<open>string\<close> where \<open>internal_version = ''1g''\<close>
+definition internal_version :: \<open>string\<close> where \<open>internal_version = ''1h''\<close>
 
 sepref_definition llvm_version
   is \<open>uncurry0 (RETURN (
