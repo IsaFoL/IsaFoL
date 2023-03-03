@@ -1718,7 +1718,7 @@ proof -
 qed
 
 
-section \<open>Learned Clauses in Regular Runs\<close>
+section \<open>Dynamic Non-Redundancy\<close>
 
 lemma regular_run_if_skip_factorize_resolve_run:
   assumes "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S S'"
@@ -1755,6 +1755,16 @@ lemma not_trail_true_and_false_cls:
   using not_trail_true_and_false_lit
   by (metis trail_false_cls_def trail_true_cls_def)
 
+fun standard_lit_less where
+  "standard_lit_less R (Pos t1) (Pos t2) = R t1 t2" |
+  "standard_lit_less R (Pos t1) (Neg t2) = R\<^sup>=\<^sup>= t1 t2" |
+  "standard_lit_less R (Neg t1) (Pos t2) = R t1 t2" |
+  "standard_lit_less R (Neg t1) (Neg t2) = R\<^sup>=\<^sup>= t1 t2"
+
+lemma standard_lit_less_preserves_term_less:
+  shows "standard_lit_less R L1 L2 \<Longrightarrow> R\<^sup>=\<^sup>= (atm_of L1) (atm_of L2)"
+  by (cases L1; cases L2) simp_all
+
 theorem learned_clauses_in_regular_runs_invars:
   fixes \<Gamma> lit_less
   assumes
@@ -1774,6 +1784,7 @@ theorem learned_clauses_in_regular_runs_invars:
       C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
       set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
       C \<notin> (fset N \<union> fset U) \<and>
+      \<not> (\<exists>D \<in> fset N \<union> fset U. \<exists>\<sigma>. D \<cdot> \<sigma> = C) \<and>
       \<not> redundant trail_ord (fset N \<union> fset U) C)"
 proof -
   from conflict have "almost_no_conflict_with_trail N \<beta> S1"
@@ -2255,14 +2266,18 @@ proof -
       using no_conf_at_S conf_at_S_if[OF D_in] by metis
   qed
 
-  moreover have "Cn \<notin> fset N \<union> fset U"
-    using Cn_\<gamma>n_in calculation(2) grounding_of_clss_def by fastforce
+  moreover have "\<not>(\<exists>D \<in> fset N \<union> fset U. \<exists>\<sigma>. D \<cdot> \<sigma> = Cn)"
+    by (metis (no_types, lifting) Cn_\<gamma>n_in Set.set_insert UnCI calculation(2)
+        grounding_of_clss_insert grounding_of_subst_cls_subset subsetD)
+
+  moreover hence "Cn \<notin> fset N \<union> fset U"
+    using subst_cls_id_subst by blast
 
   ultimately show ?thesis
     using conflict_Sn by simp
 qed
 
-theorem learned_clauses_in_regular_runs:
+theorem dynamic_non_redundancy_regular_scl:
   fixes \<Gamma>
   assumes
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
@@ -2279,6 +2294,7 @@ theorem learned_clauses_in_regular_runs:
       C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
       set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
       C \<notin> fset N \<union> fset U \<and>
+      \<not> (\<exists>D \<in> fset N \<union> fset U. \<exists>\<sigma>. D \<cdot> \<sigma> = C) \<and>
       \<not> redundant trail_ord (fset N \<union> fset U) C)"
 proof -
   have "sound_state N \<beta> initial_state"
@@ -2344,6 +2360,61 @@ proof -
     using U_def \<Gamma>_def trail_ord_def by presburger
 qed
 
+theorem dynamic_non_redundancy_strategy:
+  fixes \<Gamma>
+  assumes
+    run: "(strategy N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+    conflict: "conflict N \<beta> S0 S1" and
+    resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
+    backtrack: "backtrack N \<beta> Sn Sn'" and
+    strategy_imp_regular_scl: "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'" and
+    lit_less_preserves_term_order: "\<And>R L1 L2. lit_less R L1 L2 \<Longrightarrow> R\<^sup>=\<^sup>= (atm_of L1) (atm_of L2)"
+  defines
+    "\<Gamma> \<equiv> state_trail S1" and
+    "U \<equiv> state_learned S1" and
+    "trail_ord \<equiv> multp\<^sub>H\<^sub>O (lit_less (trail_term_less (map (atm_of o fst) \<Gamma>)))"
+  shows "(\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+      C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
+      set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
+      C \<notin> fset N \<union> fset U \<and>
+      \<not> (\<exists>D \<in> fset N \<union> fset U. \<exists>\<sigma>. D \<cdot> \<sigma> = C) \<and>
+      \<not> redundant trail_ord (fset N \<union> fset U) C)"
+proof -
+  from backtrack have backtrack': "backtrack N \<beta> Sn Sn'"
+    by (simp add: shortest_backtrack_strategy_def)
+
+  have "(\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+    C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
+    set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
+    C \<notin> fset N \<union> fset U \<and>
+    \<not> (\<exists>D \<in> fset N \<union> fset U. \<exists>\<sigma>. D \<cdot> \<sigma> = C) \<and>
+    \<not> redundant (multp\<^sub>H\<^sub>O (lit_less
+                 (trail_term_less (map (atm_of \<circ> fst) (state_trail S1)))))
+      (fset N \<union> fset U) C)"
+    unfolding U_def
+  proof (rule dynamic_non_redundancy_regular_scl[THEN conjunct2])
+    from run show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0"
+      by (induction S0 rule: rtranclp_induct) (auto dest: strategy_imp_regular_scl)
+  next
+    from assms show "conflict N \<beta> S0 S1"
+      by simp
+  next
+    from assms show "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn"
+      by simp
+  next
+    from assms show "backtrack N \<beta> Sn Sn'"
+      by (simp add: shortest_backtrack_strategy_def)
+  next
+    from assms show "\<And>R L1 L2. lit_less R L1 L2 \<Longrightarrow> R\<^sup>=\<^sup>= (atm_of L1) (atm_of L2)"
+      by simp
+  qed
+  thus ?thesis
+    by (auto simp add: trail_ord_def \<Gamma>_def)
+qed
+
+
+section \<open>Static Non-Redundancy\<close>
+
 lemma before_regular_backtrack':
   assumes
     run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
@@ -2382,26 +2453,13 @@ proof -
     by metis
 qed
 
-fun standard_lit_less where
-  "standard_lit_less R (Pos t1) (Pos t2) = R t1 t2" |
-  "standard_lit_less R (Pos t1) (Neg t2) = R\<^sup>=\<^sup>= t1 t2" |
-  "standard_lit_less R (Neg t1) (Pos t2) = R t1 t2" |
-  "standard_lit_less R (Neg t1) (Neg t2) = R\<^sup>=\<^sup>= t1 t2"
-
-lemma standard_lit_less_preserves_term_less:
-  shows "standard_lit_less R L1 L2 \<Longrightarrow> R\<^sup>=\<^sup>= (atm_of L1) (atm_of L2)"
-  by (cases L1; cases L2) simp_all
-
-corollary learned_clauses_in_regular_runs_static_order:
+theorem static_non_subsumption_regular_scl:
   assumes
     run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
     step: "backtrack N \<beta> S S'"
   defines
     "U \<equiv> state_learned S"
-  shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S' \<and>
-    (\<exists>C \<gamma>. state_conflict S = Some (C, \<gamma>) \<and>
-    C \<notin> fset N \<union> fset U \<and>
-    \<not> redundant (\<subset>#) (fset N \<union> fset U) C)"
+  shows "\<exists>C \<gamma>. state_conflict S = Some (C, \<gamma>) \<and> \<not> (\<exists>D \<in> fset N \<union> fset U. subsumes D C)"
 proof -
   from before_regular_backtrack'[OF run step] obtain S0 S1 S2 S3 S4 where
     run_S0: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
@@ -2426,17 +2484,26 @@ proof -
       using reg_res by simp
   qed
 
-  ultimately have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S'" and
-    "\<exists>C \<gamma>. state_conflict S = Some (C, \<gamma>) \<and>
-      C \<notin> fset N \<union> fset (state_learned S2) \<and>
-      (\<exists>lt. \<not> redundant (multp\<^sub>H\<^sub>O (standard_lit_less
+  ultimately obtain C \<gamma> lt where
+    reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S'" and
+    conf: "state_conflict S = Some (C, \<gamma>)" and
+    not_gen: "\<not> (\<exists>D \<in> fset N \<union> fset (state_learned S2). \<exists>\<sigma>. D \<cdot> \<sigma> = C)" and
+    not_red: "\<not> redundant (multp\<^sub>H\<^sub>O (standard_lit_less
                  (trail_term_less (map (atm_of \<circ> fst) (state_trail S2)))))
-        (fset N \<union> fset (state_learned S2)) C)"
-    using learned_clauses_in_regular_runs[OF _ confl _ step, of standard_lit_less]
+        (fset N \<union> fset (state_learned S2)) C"
+    using dynamic_non_redundancy_regular_scl[OF _ confl _ step, of standard_lit_less]
     using standard_lit_less_preserves_term_less
     by metis+
 
-  moreover from reg_res' have "state_learned S2 = state_learned S"
+  from not_red have "\<not> (\<exists>D\<in>fset N \<union> fset (state_learned S2). \<exists>\<sigma>. D \<cdot> \<sigma> \<subset># C)"
+    using redundant_if_strict_subsumes
+    by (metis union_fset)
+  with not_gen have "\<not> (\<exists>D\<in>fset N \<union> fset (state_learned S2). \<exists>\<sigma>. D \<cdot> \<sigma> \<subseteq># C)"
+    using subset_mset.order_iff_strict by blast
+  hence not_sub: "\<not> (\<exists>D\<in>fset N \<union> fset (state_learned S2). subsumes D C)"
+    by (simp add: subsumes_def)
+
+  from reg_res' have learned_S2: "state_learned S2 = state_learned S"
   proof (induction S)
     case (base y)
     thus ?case
@@ -2449,87 +2516,28 @@ proof -
       by simp
   qed
 
-  ultimately show ?thesis
+  show ?thesis
     unfolding U_def
-    using redundant_multp_if_redundant_strict_subset
+    using conf not_sub[unfolded learned_S2]
     by metis
 qed
 
-corollary learned_clauses_in_shortest_backtrack_regular_runs_static_order:
+corollary static_non_subsumption_strategy:
   assumes
-    run: "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
-    step: "shortest_backtrack_strategy backtrack N \<beta> S S'"
+    run: "(strategy N \<beta>)\<^sup>*\<^sup>* initial_state S" and
+    step: "backtrack N \<beta> S S'" and
+    strategy_imp_regular_scl: "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
   defines
     "U \<equiv> state_learned S"
-  shows "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S' \<and>
-    (\<exists>C \<gamma>. state_conflict S = Some (C, \<gamma>) \<and> C \<notin> fset N \<union> fset U \<and>
-    \<not> redundant (\<subset>#) (fset N \<union> fset U) C)"
-proof (rule conjI)
-  show "(shortest_backtrack_strategy regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S'"
-    using run step
-    by (metis (no_types, opaque_lifting) regular_scl_if_backtrack rtranclp.simps
-        shortest_backtrack_strategy_def)
+  shows "\<exists>C \<gamma>. state_conflict S = Some (C, \<gamma>) \<and> \<not> (\<exists>D \<in> fset N \<union> fset U. subsumes D C)"
+  unfolding U_def
+proof (rule static_non_subsumption_regular_scl)
+  from run show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
+    by (induction S rule: rtranclp_induct)
+      (auto intro: rtranclp.rtrancl_into_rtrancl strategy_imp_regular_scl)
 next
-  show "\<exists>C \<gamma>. state_conflict S = Some (C, \<gamma>) \<and> C \<notin> fset N \<union> fset U \<and>
-    \<not> redundant (\<subset>#) (fset N \<union> fset U) C"
-    unfolding U_def
-  proof (rule learned_clauses_in_regular_runs_static_order[THEN conjunct2])
-    from run show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
-      by (induction S rule: rtranclp_induct) (auto simp add: shortest_backtrack_strategy_def)
-  next
-    from step show "backtrack N \<beta> S S'"
-      by (simp add: shortest_backtrack_strategy_def)
-  qed
-qed
-
-theorem learned_clauses_in_strategy:
-  fixes \<Gamma>
-  assumes
-    run: "(strategy N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
-    conflict: "conflict N \<beta> S0 S1" and
-    resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
-    backtrack: "backtrack N \<beta> Sn Sn'" and
-    strategy_imp_regular_scl: "\<And>S S'. strategy N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'" and
-    lit_less_preserves_term_order: "\<And>R L1 L2. lit_less R L1 L2 \<Longrightarrow> R\<^sup>=\<^sup>= (atm_of L1) (atm_of L2)"
-  defines
-    "\<Gamma> \<equiv> state_trail S1" and
-    "U \<equiv> state_learned S1" and
-    "trail_ord \<equiv> multp\<^sub>H\<^sub>O (lit_less (trail_term_less (map (atm_of o fst) \<Gamma>)))"
-  shows "(\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
-      C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
-      set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
-      C \<notin> fset N \<union> fset U \<and>
-      \<not> redundant trail_ord (fset N \<union> fset U) C)"
-proof -
-  from backtrack have backtrack': "backtrack N \<beta> Sn Sn'"
-    by (simp add: shortest_backtrack_strategy_def)
-
-  have "(\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
-    C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
-    set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
-    C \<notin> fset N \<union> fset U \<and>
-    \<not> redundant (multp\<^sub>H\<^sub>O (lit_less
-                 (trail_term_less (map (atm_of \<circ> fst) (state_trail S1)))))
-      (fset N \<union> fset U) C)"
-    unfolding U_def
-  proof (rule learned_clauses_in_regular_runs[THEN conjunct2])
-    from run show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0"
-      by (induction S0 rule: rtranclp_induct) (auto dest: strategy_imp_regular_scl)
-  next
-    from assms show "conflict N \<beta> S0 S1"
-      by simp
-  next
-    from assms show "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn"
-      by simp
-  next
-    from assms show "backtrack N \<beta> Sn Sn'"
-      by (simp add: shortest_backtrack_strategy_def)
-  next
-    from assms show "\<And>R L1 L2. lit_less R L1 L2 \<Longrightarrow> R\<^sup>=\<^sup>= (atm_of L1) (atm_of L2)"
-      by simp
-  qed
-  thus ?thesis
-    by (auto simp add: trail_ord_def \<Gamma>_def)
+  from step show "backtrack N \<beta> S S'"
+    by simp
 qed
 
 end
