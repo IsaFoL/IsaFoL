@@ -1470,6 +1470,44 @@ definition redundant where
 lemma "redundant lt N C \<longleftrightarrow> (\<forall>C'\<in> grounding_of_cls C. {D' \<in> grounding_of_clss N. lt D' C'} \<TTurnstile>e {C'})"
   by (simp add: redundant_def ground_redundant_def)
 
+lemma ground_redundant_iff:
+  "ground_redundant lt N C \<longleftrightarrow> (\<exists>M \<subseteq> N. M \<TTurnstile>e {C} \<and> (\<forall>D \<in> M. lt D C))"
+proof (rule iffI)
+  assume red: "ground_redundant lt N C"
+  show "\<exists>M\<subseteq>N. M \<TTurnstile>e {C} \<and> (\<forall>D\<in>M. lt D C)"
+  proof (intro exI conjI)
+    show "{D \<in> N. lt D C} \<subseteq> N"
+      by simp
+  next
+    show "{D \<in> N. lt D C} \<TTurnstile>e {C}"
+      using red by (simp add: ground_redundant_def)
+  next
+    show "\<forall>D\<in>{D \<in> N. lt D C}. lt D C"
+      by simp
+  qed
+next
+  assume "\<exists>M\<subseteq>N. M \<TTurnstile>e {C} \<and> (\<forall>D\<in>M. lt D C)"
+  then show "ground_redundant lt N C"
+    unfolding ground_redundant_def
+    by (smt (verit, ccfv_SIG) mem_Collect_eq subset_iff true_clss_mono)
+qed
+
+lemma ground_redundant_is_ground_standard_redundancy:
+  fixes lt
+  defines "Red_F\<^sub>\<G> \<equiv> \<lambda>N. {C. ground_redundant lt N C}"
+  shows "Red_F\<^sub>\<G> N = {C. \<exists>M \<subseteq> N. M \<TTurnstile>e {C} \<and> (\<forall>D \<in> M. lt D C)}"
+  by (auto simp: Red_F\<^sub>\<G>_def ground_redundant_iff)
+
+lemma redundant_is_standard_redundancy:
+  fixes lt \<G>\<^sub>F \<G>\<^sub>F\<^sub>s Red_F\<^sub>\<G> Red_F
+  defines
+    "\<G>\<^sub>F \<equiv> grounding_of_cls" and
+    "\<G>\<^sub>F\<^sub>s \<equiv> grounding_of_clss" and
+    "Red_F\<^sub>\<G> \<equiv> \<lambda>N. {C. ground_redundant lt N C}" and
+    "Red_F \<equiv> \<lambda>N. {C. redundant lt N C}"
+  shows "Red_F N = {C. \<forall>D \<in> \<G>\<^sub>F C. D \<in> Red_F\<^sub>\<G> (\<G>\<^sub>F\<^sub>s N)}"
+  using Red_F_def Red_F\<^sub>\<G>_def \<G>\<^sub>F\<^sub>s_def \<G>\<^sub>F_def redundant_def by auto
+
 lemma ground_redundant_mono_strong:
   "ground_redundant R N C \<Longrightarrow> (\<And>x. x \<in> N \<Longrightarrow> R x C \<Longrightarrow> S x C) \<Longrightarrow> ground_redundant S N C"
   unfolding ground_redundant_def
