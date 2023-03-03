@@ -118,7 +118,7 @@ definition isa_is_candidate_forward_subsumption where
     sze \<leftarrow> mop_arena_length (get_clauses_wl_heur S) C;
     status \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
     ASSERT (sze \<le> length (get_clauses_wl_heur S));
-    (_, added) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, added). i < sze)
+    (_, added) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, added). i < sze \<and> added \<le> 2)
        (\<lambda>(i, added). do {
            ASSERT (i < sze);
            L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i;
