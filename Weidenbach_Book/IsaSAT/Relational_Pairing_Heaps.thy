@@ -283,8 +283,8 @@ proof -
     \<open>m \<notin># sum_list (map mset_nodes b)\<close>
     \<open>n \<noteq> m\<close> \<open>m \<noteq> n\<close> and
     nxts1: \<open>(\<forall>m'\<in>#xs. \<forall>x\<in>#mset_nodes m'. nxts x = map_option node (hp_next x m'))\<close> and
-    prevs1: ‹(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. prevs x = map_option node (hp_prev x m))\<close> and
-    parents1: ‹(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. parents x = map_option node (hp_parent x m))\<close> and
+    prevs1: \<open>(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. prevs x = map_option node (hp_prev x m))\<close> and
+    parents1: \<open>(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. parents x = map_option node (hp_parent x m))\<close> and
     child1: \<open>(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. children x = map_option node (hp_child x m))\<close> and
     scores1: \<open>(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. scores x = map_option score (hp_node x m))\<close> and
     nxts2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
@@ -339,11 +339,11 @@ proof -
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     done
   have [simp]: \<open>m \<noteq> node (hd ch\<^sub>m)\<close> \<open>n \<noteq> node (hd ch\<^sub>m)\<close> \<open>(node (hd ch\<^sub>m)) \<notin># sum_list (map mset_nodes b)\<close>
-    \<open>node (hd ch\<^sub>m) \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>if \<open>ch\<^sub>m \<noteq> []›
+    \<open>node (hd ch\<^sub>m) \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>if \<open>ch\<^sub>m \<noteq> []\<close>
     using dist that notin by (cases ch\<^sub>m; auto dest: multi_member_split; fail)+
-  have [simp]: \<open>m \<noteq> node (hd b)\<close> \<open>n \<noteq> node (hd b)\<close> if \<open>b \<noteq> []›
+  have [simp]: \<open>m \<noteq> node (hd b)\<close> \<open>n \<noteq> node (hd b)\<close> if \<open>b \<noteq> []\<close>
     using dist that notin unfolding encoded_hp_prop_list_def by (cases b; auto; fail)+
-  have [simp]: \<open>ma \<in># xs \<Longrightarrow> node (hd ch\<^sub>m) \<notin># mset_nodes ma\<close> if \<open>ch\<^sub>m \<noteq> []› for ma
+  have [simp]: \<open>ma \<in># xs \<Longrightarrow> node (hd ch\<^sub>m) \<notin># mset_nodes ma\<close> if \<open>ch\<^sub>m \<noteq> []\<close> for ma
     using dist that notin by (cases ch\<^sub>m; auto dest!: multi_member_split; fail)+
   have [simp]: \<open>hp_parent_children (node (hd ch\<^sub>m)) ch\<^sub>m = None\<close>
     by (metis \<open>distinct_mset (sum_list (map mset_nodes a) + sum_list (map mset_nodes ch\<^sub>m))\<close> distinct_mset_add
@@ -460,9 +460,9 @@ proof -
     \<open>m \<notin># sum_list (map mset_nodes b)\<close>
     \<open>n \<noteq> m\<close> \<open>m \<noteq> n\<close> and
     nxts1: \<open>(\<forall>m'\<in>#xs. \<forall>x\<in>#mset_nodes m'. nxts x = map_option node (hp_next x m'))\<close> and
-    prevs1: ‹(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. prevs x = map_option node (hp_prev x m))\<close> and
+    prevs1: \<open>(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. prevs x = map_option node (hp_prev x m))\<close> and
     child1: \<open>(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. children x = map_option node (hp_child x m))\<close> and
-    parent1: ‹(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. parents x = map_option node (hp_parent x m))\<close> and
+    parent1: \<open>(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. parents x = map_option node (hp_parent x m))\<close> and
     nxts2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
      nxts x = map_option node (hp_next_children x (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close> and
     prevs2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
@@ -528,12 +528,12 @@ proof -
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     done
   have [simp]: \<open>m \<noteq> node (hd ch\<^sub>m)\<close> \<open>n \<noteq> node (hd ch\<^sub>m)\<close> \<open>(node (hd ch\<^sub>m)) \<notin># sum_list (map mset_nodes b)\<close>
-    \<open>node (hd ch\<^sub>m) \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>if \<open>ch\<^sub>m \<noteq> []›
+    \<open>node (hd ch\<^sub>m) \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>if \<open>ch\<^sub>m \<noteq> []\<close>
     using dist that notin by (cases ch\<^sub>m; auto dest: multi_member_split; fail)+
   have [simp]: \<open>m \<noteq> node (hd ch\<^sub>n)\<close> \<open>n \<noteq> node (hd ch\<^sub>n)\<close> \<open>(node (hd ch\<^sub>n)) \<notin># sum_list (map mset_nodes b)\<close>
-    \<open>node (hd ch\<^sub>n) \<notin># sum_list (map mset_nodes ch\<^sub>m)\<close>if \<open>ch\<^sub>n \<noteq> []›
+    \<open>node (hd ch\<^sub>n) \<notin># sum_list (map mset_nodes ch\<^sub>m)\<close>if \<open>ch\<^sub>n \<noteq> []\<close>
     using dist that notin by (cases ch\<^sub>n; auto dest: multi_member_split; fail)+
-  have [simp]: \<open>m \<noteq> node (hd b)\<close> \<open>n \<noteq> node (hd b)\<close> if \<open>b \<noteq> []›
+  have [simp]: \<open>m \<noteq> node (hd b)\<close> \<open>n \<noteq> node (hd b)\<close> if \<open>b \<noteq> []\<close>
     using dist that notin unfolding encoded_hp_prop_list_def by (cases b; auto; fail)+
 
   define NOTIN where
@@ -950,7 +950,7 @@ proof -
     apply (auto simp:)
     by (simp add: hp_parent_None_notin_same_hd hp_parent_children_cons)
 
-  have par: \<open>parents j = None› \<open>parents i = None›
+  have par: \<open>parents j = None\<close> \<open>parents i = None\<close>
     \<open>ch\<^sub>x \<noteq> [] \<Longrightarrow> parents (node (hd ch\<^sub>x)) = Some i\<close>
     \<open>ch\<^sub>y \<noteq> [] \<Longrightarrow> parents (node (hd ch\<^sub>y)) = Some j\<close>
     using assms(1) x y apply (auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
@@ -1392,10 +1392,10 @@ proof -
       \<open>s = (a, b)\<close>
       "x2b' = (x2b, j)"
       \<open>b = (x1b, x2b')\<close>
-      ‹x2 = (x1a, x2a)\<close>
+      \<open>x2 = (x1a, x2a)\<close>
       \<open>a = (x1, x2)\<close>
-      ‹x1b \<noteq> None\<close> and
-      nxt: ‹hp_read_nxt (the x1b) x1a \<noteq> None\<close>
+      \<open>x1b \<noteq> None\<close> and
+      nxt: \<open>hp_read_nxt (the x1b) x1a \<noteq> None\<close>
     for s a b x1 x2 x1a x2a x1b x2b j x2b'
   proof -
     have \<open>encoded_hp_prop_list {#} (VSIDS.pass\<^sub>1 (take x2b xs) @ drop x2b xs) x1a\<close>
@@ -1931,9 +1931,9 @@ proof -
   have
     dist: \<open>distinct_mset (mset_nodes h)\<close> and
     nxts: \<open>(\<forall>m'\<in>#{#h#}. \<forall>x\<in>#mset_nodes m'. nxts x = map_option node (hp_next x m'))\<close> and
-    prevs: ‹(\<forall>m\<in>#{#h#}. \<forall>x\<in>#mset_nodes m. prevs x = map_option node (hp_prev x m))\<close> and
+    prevs: \<open>(\<forall>m\<in>#{#h#}. \<forall>x\<in>#mset_nodes m. prevs x = map_option node (hp_prev x m))\<close> and
     childs: \<open>(\<forall>m\<in>#{#h#}. \<forall>x\<in>#mset_nodes m. childs x = map_option node (hp_child x m))\<close> and
-    parents: \<open>(\<forall>m\<in>#{#h#}. \<forall>x\<in>#mset_nodes m. parents x = map_option node (hp_parent x m))› and
+    parents: \<open>(\<forall>m\<in>#{#h#}. \<forall>x\<in>#mset_nodes m. parents x = map_option node (hp_parent x m))\<close> and
     scores: \<open>(\<forall>m\<in>#{#h#}. \<forall>x\<in>#mset_nodes m. scores x = hp_score x m)\<close> and
     empty_outside: \<open>empty_outside (\<Sum>\<^sub># (mset_nodes `# {#h#} + mset_nodes `# mset [])) prevs\<close>
       \<open>empty_outside (\<Sum>\<^sub># (mset_nodes `# {#h#} + mset_nodes `# mset [])) parents\<close>
@@ -2681,17 +2681,17 @@ lemma maybe_hp_update_fst_snd: \<open>fst (snd (maybe_hp_update_child' (map_opti
     done
 
 lemma fst_hp_update_simp[simp]:
-  \<open>fst (hp_update_prev' i x arr) = fst arr›
-  \<open>fst (hp_update_nxt' i x arr) = fst arr›
-  \<open>fst (hp_update_child' i x arr) = fst arr›
-  \<open>fst (hp_update_parents' i x arr) = fst arr›
+  \<open>fst (hp_update_prev' i x arr) = fst arr\<close>
+  \<open>fst (hp_update_nxt' i x arr) = fst arr\<close>
+  \<open>fst (hp_update_child' i x arr) = fst arr\<close>
+  \<open>fst (hp_update_parents' i x arr) = fst arr\<close>
   by (solves \<open>cases arr; auto\<close>)+
 
 lemma fst_maybe_hp_update_simp[simp]:
-  \<open>fst (maybe_hp_update_prev' i y arr) = fst arr›
-  \<open>fst (maybe_hp_update_nxt' i y arr) = fst arr›
-  \<open>fst (maybe_hp_update_child' i y arr) = fst arr›
-  \<open>fst (maybe_hp_update_parents' i y arr) = fst arr›
+  \<open>fst (maybe_hp_update_prev' i y arr) = fst arr\<close>
+  \<open>fst (maybe_hp_update_nxt' i y arr) = fst arr\<close>
+  \<open>fst (maybe_hp_update_child' i y arr) = fst arr\<close>
+  \<open>fst (maybe_hp_update_parents' i y arr) = fst arr\<close>
   by (solves \<open>cases arr; cases i; auto simp: maybe_hp_update_prev'_def maybe_hp_update_nxt'_def
     maybe_hp_update_child'_def maybe_hp_update_parents'_def\<close>)+
 

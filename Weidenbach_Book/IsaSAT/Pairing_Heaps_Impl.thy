@@ -7,7 +7,7 @@ begin
 section \<open>Imperative Pairing heaps\<close>
 
 type_synonym ('a,'b)pairing_heaps_imp = \<open>('a option list \<times> 'a option list \<times> 'a option list \<times> 'a option list \<times> 'b list \<times> 'a option)\<close>
-definition pairing_heaps_rel :: \<open>('a option \<times> nat option) set ⇒ ('b option \<times>'c option) set ⇒
+definition pairing_heaps_rel :: \<open>('a option \<times> nat option) set \<Rightarrow> ('b option \<times>'c option) set \<Rightarrow>
   (('a,'b)pairing_heaps_imp \<times> (nat set \<times> (nat,'c) hp_fun \<times> nat option)) set\<close> where
 pairing_heaps_rel_def_internal:
   \<open>pairing_heaps_rel R S = {((prevs', nxts', children', parents', scores', h'), (\<V>, (prevs, nxts, children, parents, scores), h)).
@@ -204,13 +204,13 @@ fun source_node_impl :: \<open>('a,'b)pairing_heaps_imp \<Rightarrow> 'a option\
   \<open>source_node_impl (prevs, nxts, parents, children, scores,h) = h\<close>
 
 lemma update_source_node_impl_spec:
-  \<open>(xs, ys) \<in> \<langle>R,S\<rangle>pairing_heaps_rel \<Longrightarrow> (i,j) \<in> R ⟹
-  (update_source_node_impl i xs, update_source_node j ys) \<in> \<langle>R,S\<rangle>pairing_heaps_rel›
+  \<open>(xs, ys) \<in> \<langle>R,S\<rangle>pairing_heaps_rel \<Longrightarrow> (i,j) \<in> R \<Longrightarrow>
+  (update_source_node_impl i xs, update_source_node j ys) \<in> \<langle>R,S\<rangle>pairing_heaps_rel\<close>
   by (auto simp: pairing_heaps_rel_def map_fun_rel_def)
 
 lemma source_node_spec:
   \<open>(xs, ys) \<in> \<langle>R,S\<rangle>pairing_heaps_rel \<Longrightarrow>
-  (source_node_impl xs, source_node ys) \<in> R›
+  (source_node_impl xs, source_node ys) \<in> R\<close>
   by (auto simp: pairing_heaps_rel_def map_fun_rel_def)
 
 lemma hp_insert_alt_def:
