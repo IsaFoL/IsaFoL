@@ -1474,6 +1474,8 @@ locale scl_calculus = renaming_apart renaming_vars
     finite_less_B: "\<And>\<beta>. finite {x. x \<prec>\<^sub>B \<beta>}"
 begin
 
+abbreviation lesseq_B (infix "\<preceq>\<^sub>B" 50) where
+  "lesseq_B \<equiv> (\<prec>\<^sub>B)\<^sup>=\<^sup>="
 
 subsection \<open>Lemmas About @{term less_B}\<close>
 
@@ -1527,14 +1529,14 @@ subsection \<open>Rules\<close>
 inductive propagate :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   propagateI: "C |\<in>| N |\<union>| U \<Longrightarrow> C = add_mset L C' \<Longrightarrow> is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow>
-    \<forall>K \<in># C \<cdot> \<gamma>. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of K) \<beta> \<Longrightarrow>
+    \<forall>K \<in># C \<cdot> \<gamma>. atm_of K \<preceq>\<^sub>B \<beta> \<Longrightarrow>
     C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<Longrightarrow> C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<Longrightarrow>
     trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
     is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
     propagate N \<beta> (\<Gamma>, U, None) (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>, U, None)"
 
 lemma "C |\<in>| N |\<union>| U \<Longrightarrow> C = add_mset L C' \<Longrightarrow> is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow>
-    \<forall>K \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of (K \<cdot>l \<gamma>)) \<beta> \<Longrightarrow>
+    \<forall>K \<in># C. atm_of (K \<cdot>l \<gamma>) \<preceq>\<^sub>B \<beta> \<Longrightarrow>
     C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<Longrightarrow> C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<Longrightarrow>
     trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
     is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
@@ -1547,11 +1549,11 @@ lemma "C |\<in>| N |\<union>| U \<Longrightarrow> C = add_mset L C' \<Longrighta
 inductive decide :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   decideI: "L \<in> \<Union>(set_mset ` fset N) \<Longrightarrow> is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow>
-    \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L \<cdot>a \<gamma>) \<beta> \<Longrightarrow>
+    \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow> atm_of L \<cdot>a \<gamma> \<preceq>\<^sub>B \<beta> \<Longrightarrow>
     decide N \<beta> (\<Gamma>, U, None) (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None)"
 
 lemma "add_mset L C |\<in>| N \<Longrightarrow> is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow>
-    \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L \<cdot>a \<gamma>) \<beta> \<Longrightarrow>
+    \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow> atm_of L \<cdot>a \<gamma> \<preceq>\<^sub>B \<beta> \<Longrightarrow>
     decide N \<beta> (\<Gamma>, U, None) (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None)"
   by (auto simp: fmember_iff_member_fset intro!: decideI)
 
