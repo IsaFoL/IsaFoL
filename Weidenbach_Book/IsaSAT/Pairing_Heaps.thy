@@ -331,7 +331,7 @@ lemma hp_prev_children_first_child[simp]:
   by (cases b) (auto simp: hp_prev_children.simps(1) split: option.splits)
 
 lemma hp_prev_children_skip_last_append[simp]:
-  \<open>NO_MATCH [] ch' ⟹
+  \<open>NO_MATCH [] ch' \<Longrightarrow>
      distinct_mset (sum_list (map mset_nodes (ch @ch'))) \<Longrightarrow>
   xa \<notin># \<Sum>\<^sub># (mset_nodes `# mset ch') \<Longrightarrow> xa \<in># \<Sum>\<^sub># (mset_nodes `# mset (ch )) \<Longrightarrow> hp_prev_children xa (ch @ ch') = hp_prev_children xa (ch)\<close>
   apply (induction xa ch rule: hp_prev_children.induct)
@@ -393,7 +393,7 @@ lemma hp_child_children_skip_last[simp]:
   by (metis WB_List_More.distinct_mset_union2 union_ac(1))
 
 lemma hp_child_children_skip_last_in_first:
-  \<open>distinct_mset (sum_list (map mset_nodes (Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m) # b))) ⟹
+  \<open>distinct_mset (sum_list (map mset_nodes (Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m) # b))) \<Longrightarrow>
   hp_child_children n (Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m) # b) = hp_child n (Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m))\<close>
   by (auto simp: hp_child_children_Cons_if split: option.splits)
 
@@ -662,7 +662,7 @@ lemma hd_remove_key_node_same': \<open>c \<noteq> [] \<Longrightarrow> remove_ke
   using hd_remove_key_node_same[of c k] by auto
 
 lemma remove_key_children_node_hd[simp]: \<open>c \<noteq> [] \<Longrightarrow> remove_key_children (node (hd c)) c= remove_key_children (node (hd c)) (tl c)\<close>
-  by (cases c; cases \<open>tl c›; cases \<open>hd c\<close>)
+  by (cases c; cases \<open>tl c\<close>; cases \<open>hd c\<close>)
      (auto simp: )
 
 lemma remove_key_children_alt_def:
@@ -815,7 +815,7 @@ lemma hp_parent_hp_parent_remove_key_not_None_same:
   assumes \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset c))\<close> and
     \<open>x \<notin># \<Sum>\<^sub># (mset_nodes `# mset c)\<close> and
     \<open>hp_parent b (Hp x n c) = Some x2a\<close> \<open>b \<notin># mset_nodes x2a\<close>
-    \<open>hp_parent b (Hp x n (remove_key_children k c)) = Some x2b›
+    \<open>hp_parent b (Hp x n (remove_key_children k c)) = Some x2b\<close>
   shows \<open>remove_key k x2a \<noteq> None \<and> (case remove_key k x2a of Some a \<Rightarrow> (x2b) = a | None \<Rightarrow> node x2a = k)\<close>
 proof -
   show ?thesis
@@ -986,8 +986,8 @@ next
     using 2(4) by (auto simp: in_the_default_empty_iff dest!: multi_member_split split: if_splits)
   consider
     (kx) \<open>k=x\<close> |
-    (inc) \<open>k \<noteq> x› \<open>find_key_children k c \<noteq> None\<close> |
-    (inxs) \<open>k \<noteq> x› \<open>find_key_children k c = None\<close>
+    (inc) \<open>k \<noteq> x\<close> \<open>find_key_children k c \<noteq> None\<close> |
+    (inxs) \<open>k \<noteq> x\<close> \<open>find_key_children k c = None\<close>
     by blast
   then show ?case
   proof (cases)
@@ -1213,7 +1213,7 @@ proof (induction a xs rule: remove_key_children.induct)
       \<open>k \<notin># sum_list (map mset_nodes xs) \<Longrightarrow> xs \<noteq> [] \<Longrightarrow> the (remove_key k (hd xs)) = hd xs\<close>
       for z
       by (cases xs; cases \<open>hd xs\<close>; auto; fail)+
-    moreover have\<open>mset_nodes y \<subseteq># sum_list (map mset_nodes xs)⟹
+    moreover have\<open>mset_nodes y \<subseteq># sum_list (map mset_nodes xs)\<Longrightarrow>
       distinct_mset (sum_list (map mset_nodes c) + sum_list (map mset_nodes xs)) \<Longrightarrow> b \<in># mset_nodes y \<Longrightarrow>
       b \<notin># (sum_list (map mset_nodes c))\<close> for y :: "('b, 'a) hp"
       by (metis (no_types, lifting) add_diff_cancel_right' distinct_mset_in_diff mset_subset_eqD)
@@ -1407,7 +1407,7 @@ lemma hp_prev_remove_key_other:
   by (cases xs) auto
 
 lemma hp_next_find_key_children:
-  \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset h)) \<Longrightarrow> find_key_children a h \<noteq> None ⟹
+  \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset h)) \<Longrightarrow> find_key_children a h \<noteq> None \<Longrightarrow>
   x \<in># mset_nodes (the (find_key_children a h)) \<Longrightarrow> x \<noteq>a \<Longrightarrow>
   hp_next x (the (find_key_children a h)) = hp_next_children x h\<close>
   apply (induction a h arbitrary: x rule: find_key_children.induct)
@@ -1425,7 +1425,7 @@ lemma hp_next_find_key_children:
   done
 
 lemma hp_next_find_key:
-  \<open>distinct_mset (mset_nodes h) \<Longrightarrow>  find_key a h \<noteq> None ⟹ x \<in># mset_nodes (the (find_key a h)) \<Longrightarrow> x \<noteq>a \<Longrightarrow>
+  \<open>distinct_mset (mset_nodes h) \<Longrightarrow>  find_key a h \<noteq> None \<Longrightarrow> x \<in># mset_nodes (the (find_key a h)) \<Longrightarrow> x \<noteq>a \<Longrightarrow>
   hp_next x (the (find_key a h)) = hp_next x h\<close>
   using hp_next_find_key_children[of \<open>hps h\<close> a x]
   by (cases \<open>(a,h)\<close> rule: find_key.cases;
@@ -1443,7 +1443,7 @@ lemma hp_next_find_key_itself:
 
 
 lemma hp_prev_find_key_children:
-  \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset h)) \<Longrightarrow> find_key_children a h \<noteq> None ⟹
+  \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset h)) \<Longrightarrow> find_key_children a h \<noteq> None \<Longrightarrow>
   x \<in># mset_nodes (the (find_key_children a h)) \<Longrightarrow> x \<noteq>a \<Longrightarrow>
   hp_prev x (the (find_key_children a h)) = hp_prev_children x h\<close>
   apply (induction a h arbitrary: x rule: find_key_children.induct)
@@ -1457,7 +1457,7 @@ lemma hp_prev_find_key_children:
   done
 
 lemma hp_prev_find_key:
-  \<open>distinct_mset (mset_nodes h) \<Longrightarrow>  find_key a h \<noteq> None ⟹ x \<in># mset_nodes (the (find_key a h)) \<Longrightarrow> x \<noteq>a \<Longrightarrow>
+  \<open>distinct_mset (mset_nodes h) \<Longrightarrow>  find_key a h \<noteq> None \<Longrightarrow> x \<in># mset_nodes (the (find_key a h)) \<Longrightarrow> x \<noteq>a \<Longrightarrow>
   hp_prev x (the (find_key a h)) = hp_prev x h\<close>
   using hp_prev_find_key_children[of \<open>hps h\<close> a x]
   by (cases \<open>(a,h)\<close> rule: find_key.cases;
@@ -1474,7 +1474,7 @@ lemma hp_prev_find_key_itself:
     option.simps(2) sum_mset_sum_list union_mset_add_mset_left)
 
 lemma hp_child_find_key_children:
-  \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset h)) \<Longrightarrow> find_key_children a h \<noteq> None ⟹
+  \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# mset h)) \<Longrightarrow> find_key_children a h \<noteq> None \<Longrightarrow>
   x \<in># mset_nodes (the (find_key_children a h)) \<Longrightarrow>
   hp_child x (the (find_key_children a h)) = hp_child_children x h\<close>
   apply (induction a h arbitrary: x rule: find_key_children.induct)
@@ -1493,7 +1493,7 @@ lemma hp_child_find_key_children:
   done
 
 lemma hp_child_find_key:
-  \<open>distinct_mset (mset_nodes h) \<Longrightarrow>  find_key a h \<noteq> None ⟹ x \<in># mset_nodes (the (find_key a h)) \<Longrightarrow>
+  \<open>distinct_mset (mset_nodes h) \<Longrightarrow>  find_key a h \<noteq> None \<Longrightarrow> x \<in># mset_nodes (the (find_key a h)) \<Longrightarrow>
   hp_child x (the (find_key a h)) = hp_child x h\<close>
   using hp_child_find_key_children[of \<open>hps h\<close> a x]
   apply (cases \<open>(a,h)\<close> rule: find_key.cases;
@@ -1691,7 +1691,7 @@ lemma remove_key_children_itself_hd[simp]: \<open>distinct_mset (mset_nodes a + 
 
 lemma hp_child_children_remove_key_children_other_helper:
   assumes
-    K: ‹hp_child_children b (remove_key_children k c) = map_option ((the \<circ>\<circ> remove_key) k) (hp_child_children b c)\<close> and
+    K: \<open>hp_child_children b (remove_key_children k c) = map_option ((the \<circ>\<circ> remove_key) k) (hp_child_children b c)\<close> and
     H: \<open>node x2a \<noteq> b\<close>
     \<open>hp_parent k (Hp x n c) = Some x2a\<close>
     \<open>hp_child b (Hp x n c) = Some y\<close>
@@ -2419,7 +2419,7 @@ proof -
 
   then have \<open>invar (Some (Hp w (snd ys w) (hps (the (find_key w (the xs))))))\<close>
     using assms invar_find_key[of \<open>the xs\<close> w] by (auto simp: hmrel_def invar_Some)
-  moreover have \<open>find_key w (the xs) \<noteq> None ⟹ remove_key w (the xs) \<noteq> None \<Longrightarrow>
+  moreover have \<open>find_key w (the xs) \<noteq> None \<Longrightarrow> remove_key w (the xs) \<noteq> None \<Longrightarrow>
     distinct_mset (mset_nodes (Hp w v (hps (the (find_key w (the xs))))) + mset_nodes (the (remove_key w (the xs))))\<close>
     using assms distinct_mset_find_node_next[of \<open>the xs\<close> w \<open>the (find_key w (the xs))\<close>]
     apply (subst \<open>find_key w (the xs) = Some (Hp w (snd ys w) (hps (the (find_key w (the xs)))))\<close>) apply (auto simp: hmrel_def)
