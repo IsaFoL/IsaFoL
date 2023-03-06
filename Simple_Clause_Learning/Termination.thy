@@ -178,7 +178,7 @@ next
   qed
 qed
 
-lemma scl_without_backtrack_terminates_invars:
+lemma termination_scl_without_back_invars:
   fixes N \<beta>
   defines
     "scl_without_backtrack \<equiv> propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion>
@@ -425,7 +425,7 @@ proof -
   qed
 qed
 
-corollary scl_without_backtrack_terminates:
+corollary termination_scl_without_back:
   fixes
     N :: "('f, 'v) Term.term clause fset" and
     \<beta> :: "('f, 'v) Term.term"
@@ -438,7 +438,7 @@ corollary scl_without_backtrack_terminates:
   shows "wfp_on {S. scl_without_backtrack\<^sup>*\<^sup>* initial_state S} scl_without_backtrack\<inverse>\<inverse>"
 proof (rule wfp_on_subset)
   show "wfp_on {S. invars S} scl_without_backtrack\<inverse>\<inverse>"
-    by (rule scl_without_backtrack_terminates_invars(1)[of \<beta> N,
+    by (rule termination_scl_without_back_invars(1)[of \<beta> N,
           folded invars_def scl_without_backtrack_def])
 next
   have "invars initial_state"
@@ -467,7 +467,7 @@ next
     by auto
 qed
 
-corollary strategy_without_backtrack_terminates:
+corollary termination_stragegy_without_back:
   fixes
     N :: "('f, 'v) Term.term clause fset" and
     \<beta> :: "('f, 'v) Term.term"
@@ -481,7 +481,7 @@ proof (rule wfp_on_mono_strong)
   proof (rule wfp_on_subset)
     show "wfp_on {S. scl_without_backtrack\<^sup>*\<^sup>* initial_state S} scl_without_backtrack\<inverse>\<inverse>"
       unfolding scl_without_backtrack_def
-      using scl_without_backtrack_terminates by metis
+      using termination_scl_without_back by metis
   next
     show "{S. strategy\<^sup>*\<^sup>* initial_state S} \<subseteq> {S. scl_without_backtrack\<^sup>*\<^sup>* initial_state S}"
       using strategy_stronger
@@ -619,21 +619,42 @@ definition \<M>_back :: " _ \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) 
   "\<M>_back \<beta> S = Abs_fset (fset (fclss_no_dup \<beta>) -
     Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned S)))"
 
-lemma \<M>_back_pfsubset_\<M>_back_after_regular_backtrack:
+lemma \<M>_back_after_regular_backtrack:
   assumes
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
     conflict: "conflict N \<beta> S0 S1" and
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
-    backtrack: "backtrack N \<beta> Sn Sn'" and
-    invars: "ground_closures Sn" "trail_atoms_lt \<beta> Sn" "sound_state N \<beta> Sn"
-      "ground_false_closures Sn"
-  shows "\<M>_back \<beta> Sn' |\<subset>| \<M>_back \<beta> Sn"
+    backtrack: "backtrack N \<beta> Sn Sn'"
+  defines "U \<equiv> state_learned Sn"
+  shows
+    "\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+      set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U)" and
+    "\<M>_back \<beta> Sn' |\<subset>| \<M>_back \<beta> Sn"
 proof -
+  from regular_run have "(scl N \<beta>)\<^sup>*\<^sup>* initial_state S0"
+    by (induction S0 rule: rtranclp_induct)
+      (auto intro: scl_if_regular rtranclp.rtrancl_into_rtrancl)
+  with conflict have "(scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
+    by (meson regular_scl_if_conflict rtranclp.rtrancl_into_rtrancl scl_if_regular)
+  with resolution have scl_run: "(scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn"
+    by (metis (no_types, lifting) Nitpick.rtranclp_unfold mono_rtranclp
+        regular_run_if_skip_factorize_resolve_run rtranclp_tranclp_tranclp scl_if_regular)
+
+  from scl_run have "ground_false_closures Sn"
+    by (induction Sn rule: rtranclp_induct)
+      (auto intro: scl_preserves_ground_false_closures)
+  hence "ground_closures Sn"
+    using ground_false_closures_def by blast
+
+  from scl_run have "trail_atoms_lt \<beta> Sn"
+    by (induction Sn rule: rtranclp_induct)
+      (auto intro: scl_preserves_trail_atoms_lt)
+
   obtain C \<gamma> where
     conf: "state_conflict Sn = Some (C, \<gamma>)" and
     set_conf_not_in_set_groundings:
       "set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset (state_learned S1))"
-    using learned_clauses_in_regular_runs[OF assms(1,2,3,4)]
+    using dynamic_non_redundancy_regular_scl[OF assms(1,2,3,4)]
     using standard_lit_less_preserves_term_less
     by metis
 
@@ -653,6 +674,9 @@ proof -
     with step.IH show ?case
       by simp
   qed
+  with conf set_conf_not_in_set_groundings show "\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+      set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U)"
+    by (simp add: U_def)
 
   have Diff_strict_subsetI: "x \<in> A \<Longrightarrow> x \<in> B \<Longrightarrow> A - B \<subset> A" for x A B
     by auto
@@ -666,7 +690,7 @@ proof -
   also have "\<dots> \<subset>
     fset (fclss_no_dup \<beta>) - Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned Sn))"
   proof (rule Diff_strict_subsetI)
-    from invars(1) have "C \<cdot> \<gamma> \<in> grounding_of_cls C"
+    from \<open>ground_closures Sn\<close> have "C \<cdot> \<gamma> \<in> grounding_of_cls C"
       unfolding ground_closures_def conf
       using grounding_of_cls_ground grounding_of_subst_cls_subset by blast
     thus "Abs_fset (set_mset (C \<cdot> \<gamma>)) \<in> Abs_fset ` set_mset ` grounding_of_cls C"
@@ -698,9 +722,9 @@ proof -
         unfolding fmember_iff_member_fset
         by (metis fset_fset_mset fset_inverse)
       moreover have "trail_false_cls (state_trail Sn) (C \<cdot> \<gamma>)"
-        using invars(4) conf by (auto simp: ground_false_closures_def)
+        using \<open>ground_false_closures Sn\<close> conf by (auto simp: ground_false_closures_def)
       ultimately show "(\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>"
-        using ball_less_B_if_trail_false_and_trail_atoms_lt[OF _ invars(2)]
+        using ball_less_B_if_trail_false_and_trail_atoms_lt[OF _ \<open>trail_atoms_lt \<beta> Sn\<close>]
         by metis
     qed
 
@@ -709,7 +733,7 @@ proof -
       by simp
   qed
 
-  finally show ?thesis
+  finally show "\<M>_back \<beta> Sn' |\<subset>| \<M>_back \<beta> Sn"
     unfolding \<M>_back_def
     unfolding fminus_conv
     by (simp add: Abs_fset_inverse[simplified])
@@ -718,7 +742,7 @@ qed
 
 subsection \<open>Regular SCL terminates\<close>
 
-theorem regular_scl_terminates_invars:
+theorem termination_regular_scl_invars:
   fixes
     N :: "('f, 'v) Term.term clause fset" and
     \<beta> :: "('f, 'v) Term.term"
@@ -742,7 +766,7 @@ next
   proof (rule wfp_on_sup_if_convertible_to_wfp, unfold mem_Collect_eq)
     show "wfp_on {S. invars S} (propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion>
         factorize N \<beta> \<squnion> resolve N \<beta>)\<inverse>\<inverse>"
-      using scl_without_backtrack_terminates_invars(1)[of \<beta> N]
+      using termination_scl_without_back_invars(1)[of \<beta> N]
       by (auto simp: invars_def inf_assoc elim: wfp_on_subset)
   next
     show "wfp_on (\<M>_back \<beta> ` {S. invars S}) (|\<subset>|)"
@@ -776,7 +800,7 @@ next
       using before_regular_backtrack by blast
 
     show "\<M>_back \<beta> S' |\<subset>| \<M>_back \<beta> S"
-    proof (rule \<M>_back_pfsubset_\<M>_back_after_regular_backtrack)
+    proof (rule \<M>_back_after_regular_backtrack)
       show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
         using reg_run propa(2) by simp
     next
@@ -793,18 +817,6 @@ next
     next
       from \<open>(backtrack N \<beta>)\<inverse>\<inverse> S' S\<close> show "backtrack N \<beta> S S'"
         by simp
-    next
-      from \<open>invars S\<close> show "ground_closures S"
-        by (simp add: invars_def)
-    next
-      from \<open>invars S\<close> show "trail_atoms_lt \<beta> S"
-        by (simp add: invars_def)
-    next
-      show "sound_state N \<beta> S"
-        by (rule \<open>sound_state N \<beta> S\<close>)
-    next
-      show "ground_false_closures S"
-        by (rule \<open>ground_false_closures S\<close>)
     qed
   next
     fix S' S
@@ -820,7 +832,7 @@ next
   qed
 qed
 
-corollary regular_scl_terminates:
+corollary termination_regular_scl:
   fixes
     N :: "('f, 'v) Term.term clause fset" and
     \<beta> :: "('f, 'v) Term.term"
@@ -833,7 +845,7 @@ corollary regular_scl_terminates:
   shows "wfp_on {S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S} (regular_scl N \<beta>)\<inverse>\<inverse>"
 proof (rule wfp_on_subset)
   show "wfp_on {S. invars S} (regular_scl N \<beta>)\<inverse>\<inverse>"
-    by (rule regular_scl_terminates_invars(1)[of \<beta> N, folded invars_def])
+    by (rule termination_regular_scl_invars(1)[of \<beta> N, folded invars_def])
 next
   note rea_to_scl = scl_if_reasonable
   note reg_to_rea = reasonable_if_regular
@@ -862,7 +874,7 @@ next
     by auto
 qed
 
-corollary strategy_terminates:
+corollary termination_strategy:
   fixes
     N :: "('f, 'v) Term.term clause fset" and
     \<beta> :: "('f, 'v) Term.term"
@@ -872,7 +884,7 @@ proof (rule wfp_on_mono_strong)
   show "wfp_on {S. strategy\<^sup>*\<^sup>* initial_state S} (regular_scl N \<beta>)\<inverse>\<inverse>"
   proof (rule wfp_on_subset)
     show "wfp_on {S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S} (regular_scl N \<beta>)\<inverse>\<inverse>"
-      using regular_scl_terminates by metis
+      using termination_regular_scl by metis
   next
     show "{S. strategy\<^sup>*\<^sup>* initial_state S} \<subseteq> {S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S}"
       using strategy_restricts_regular_scl
