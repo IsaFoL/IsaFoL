@@ -52,7 +52,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     IsaSAT_Inner_Propagation_LLVM
     IsaSAT_VMTF
     IsaSAT_VMTF_LLVM
-    IsaSAT_VSIDS
+    (* IsaSAT_VSIDS *)
     IsaSAT_Backtrack_Defs
     IsaSAT_Backtrack
     IsaSAT_Backtrack_LLVM
