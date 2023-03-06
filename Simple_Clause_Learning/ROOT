@@ -9,3 +9,4 @@ session Simple_Clause_Learning = First_Order_Terms +
   theories
     Completeness
     Initial_Literals_Generalize_Learned_Literals
+    Invariants

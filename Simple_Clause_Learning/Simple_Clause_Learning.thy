@@ -2769,7 +2769,7 @@ lemma scl_preserves_trail_lits_consistent:
     backtrack_preserves_trail_lits_consistent
   by metis
 
-lemma "trail_consistent \<Gamma> \<longleftrightarrow> (\<forall>\<Gamma>' Ln \<Gamma>''. \<Gamma> = \<Gamma>'' @ Ln # \<Gamma>' \<longrightarrow> \<not> trail_defined_lit \<Gamma>' (fst Ln))"
+lemma trail_consistent_iff: "trail_consistent \<Gamma> \<longleftrightarrow> (\<forall>\<Gamma>' Ln \<Gamma>''. \<Gamma> = \<Gamma>'' @ Ln # \<Gamma>' \<longrightarrow> \<not> trail_defined_lit \<Gamma>' (fst Ln))"
 proof (intro iffI allI impI)
   fix \<Gamma>' Ln \<Gamma>''
   assume "trail_consistent \<Gamma>" and "\<Gamma> = \<Gamma>'' @ Ln # \<Gamma>'"
@@ -3165,13 +3165,105 @@ lemma scl_preserves_trail_propagated_or_decided:
     backtrack_preserves_trail_propagated_or_decided
   by metis
 
+definition trail_propagated_wf where
+  "trail_propagated_wf \<Gamma> \<longleftrightarrow> (\<forall>(L\<^sub>\<gamma>, n) \<in> set \<Gamma>.
+    case n of
+      None \<Rightarrow> True
+    | Some (_, L, \<gamma>) \<Rightarrow> L\<^sub>\<gamma> = L \<cdot>l \<gamma>)"
+
+lemma trail_propagated_wf_iff:
+  "trail_propagated_wf \<Gamma> \<longleftrightarrow> (\<forall>Ln \<in> set \<Gamma>. \<forall>D K \<gamma>. snd Ln = Some (D, K, \<gamma>) \<longrightarrow> fst Ln = K \<cdot>l \<gamma>)"
+  (is "?lhs \<longleftrightarrow> ?rhs")
+proof (rule iffI)
+  show "?lhs \<Longrightarrow> ?rhs"
+    unfolding trail_propagated_wf_def
+    by fastforce
+next
+  assume ?rhs
+  show ?lhs
+    unfolding trail_propagated_wf_def
+  proof (rule ballI)
+    fix \<K> assume "\<K> \<in> set \<Gamma>"
+    show "case \<K> of (L\<^sub>\<gamma>, None) \<Rightarrow> True | (L\<^sub>\<gamma>, Some (x, L, \<gamma>)) \<Rightarrow> L\<^sub>\<gamma> = L \<cdot>l \<gamma>"
+      unfolding case_prod_beta
+      using \<open>?rhs\<close>[rule_format, OF \<open>\<K> \<in> set \<Gamma>\<close>]
+      by (cases "snd \<K>") auto
+  qed
+qed
+
+lemma trail_propagated_wf_if_trail_propagated_or_decided:
+  "trail_propagated_or_decided N U \<beta> \<Gamma> \<Longrightarrow> trail_propagated_wf \<Gamma>"
+proof (induction \<Gamma> rule: trail_propagated_or_decided.induct)
+  case Nil
+  then show ?case
+    by (simp add: trail_propagated_wf_def)
+next
+  case (Propagate C L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu>)
+  then show ?case
+    by (simp add: trail_propagated_wf_def propagate_lit_def)
+next
+  case (Decide L \<gamma> \<Gamma>)
+  then show ?case
+    by (simp add: trail_propagated_wf_def decide_lit_def)
+qed
+
+lemma trail_propagated_wf_if_trail_propagated_or_decided':
+  "trail_propagated_or_decided' N \<beta> S \<Longrightarrow> trail_propagated_wf (state_trail S)"
+  unfolding trail_propagated_or_decided'_def
+  using trail_propagated_wf_if_trail_propagated_or_decided .
+
+lemma trail_propagated_lit_wf_initial_state:
+  "\<forall>\<K>\<in>set (state_trail initial_state). \<forall>D K \<gamma>. snd \<K> = Some (D, K, \<gamma>) \<longrightarrow> fst \<K> = K \<cdot>l \<gamma>"
+  by simp
+
+lemma scl_preserves_trail_propagated_lit_wf:
+  assumes step: "scl N \<beta> S S'" and
+    inv: "\<forall>\<K> \<in> set (state_trail S). \<forall>D K \<gamma>. snd \<K> = Some (D, K, \<gamma>) \<longrightarrow> fst \<K> = K \<cdot>l \<gamma>"
+  shows "\<forall>\<K> \<in> set (state_trail S'). \<forall>D K \<gamma>. snd \<K> = Some (D, K, \<gamma>) \<longrightarrow> fst \<K> = K \<cdot>l \<gamma>"
+  using step inv
+  unfolding scl_def
+proof (elim disjE)
+  assume "propagate N \<beta> S S'"
+  thus "\<forall>\<K>\<in>set (state_trail S'). \<forall>D K \<gamma>. snd \<K> = Some (D, K, \<gamma>) \<longrightarrow> fst \<K> = K \<cdot>l \<gamma>"
+    using inv
+    by (smt (verit) fst_conv insert_iff list.simps(15) option.inject propagate.cases
+        propagate_lit_def snd_conv state_trail_simp)
+next
+  assume "decide N \<beta> S S'"
+  thus "\<forall>\<K>\<in>set (state_trail S'). \<forall>D K \<gamma>. snd \<K> = Some (D, K, \<gamma>) \<longrightarrow> fst \<K> = K \<cdot>l \<gamma>"
+    using inv
+    by (smt (verit) Pair_inject decide.simps decide_lit_def option.discI set_ConsD sndI state_simp)
+next
+  assume "conflict N \<beta> S S'"
+  thus "\<forall>\<K>\<in>set (state_trail S'). \<forall>D K \<gamma>. snd \<K> = Some (D, K, \<gamma>) \<longrightarrow> fst \<K> = K \<cdot>l \<gamma>"
+    using inv conflict.simps by fastforce
+next
+  assume "skip N \<beta> S S'"
+  thus "\<forall>\<K>\<in>set (state_trail S'). \<forall>D K \<gamma>. snd \<K> = Some (D, K, \<gamma>) \<longrightarrow> fst \<K> = K \<cdot>l \<gamma>"
+    using inv skip.simps by fastforce
+next
+  assume "factorize N \<beta> S S'"
+  thus "\<forall>\<K>\<in>set (state_trail S'). \<forall>D K \<gamma>. snd \<K> = Some (D, K, \<gamma>) \<longrightarrow> fst \<K> = K \<cdot>l \<gamma>"
+    using inv factorize.simps by fastforce
+next
+  assume "resolve N \<beta> S S'"
+  thus "\<forall>\<K>\<in>set (state_trail S'). \<forall>D K \<gamma>. snd \<K> = Some (D, K, \<gamma>) \<longrightarrow> fst \<K> = K \<cdot>l \<gamma>"
+    using inv
+    by (smt (verit) resolve.cases state_trail_simp)
+next
+  assume "backtrack N \<beta> S S'"
+  thus "\<forall>\<K>\<in>set (state_trail S'). \<forall>D K \<gamma>. snd \<K> = Some (D, K, \<gamma>) \<longrightarrow> fst \<K> = K \<cdot>l \<gamma>"
+    using inv
+    by (smt (verit, del_insts) Un_iff fst_conv insertCI list.simps(15) backtrack.cases set_append state_trail_def)
+qed
+
 
 subsection \<open>Trail Atoms Are Less Than \<beta>\<close>
 
 definition trail_atoms_lt where
   "trail_atoms_lt \<beta> S \<longleftrightarrow> (\<forall>atm \<in> atm_of ` fst ` set (state_trail S). (\<prec>\<^sub>B)\<^sup>=\<^sup>= atm \<beta>)"
 
-lemma ball_trail_lt_initial_state[simp]: "trail_atoms_lt \<beta> initial_state"
+lemma trail_atoms_lt_initial_state[simp]: "trail_atoms_lt \<beta> initial_state"
   by (simp add: trail_atoms_lt_def)
 
 lemma propagate_preserves_trail_atoms_lt:

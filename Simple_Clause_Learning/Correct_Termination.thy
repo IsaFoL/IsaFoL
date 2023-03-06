@@ -159,33 +159,6 @@ proof -
     unfolding S\<^sub>0_def by blast
 qed
 
-definition trail_propagated_wf where
-  "trail_propagated_wf \<Gamma> \<longleftrightarrow> (\<forall>(L\<^sub>\<gamma>, n) \<in> set \<Gamma>.
-    case n of
-      None \<Rightarrow> True
-    | Some (_, L, \<gamma>) \<Rightarrow> L\<^sub>\<gamma> = L \<cdot>l \<gamma>)"
-
-lemma trail_propagated_wf_if_trail_propagated_or_decided:
-  "trail_propagated_or_decided N U \<beta> \<Gamma> \<Longrightarrow> trail_propagated_wf \<Gamma>"
-proof (induction \<Gamma> rule: trail_propagated_or_decided.induct)
-  case Nil
-  then show ?case
-    by (simp add: trail_propagated_wf_def)
-next
-  case (Propagate C L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu>)
-  then show ?case
-    by (simp add: trail_propagated_wf_def propagate_lit_def)
-next
-  case (Decide L \<gamma> \<Gamma>)
-  then show ?case
-    by (simp add: trail_propagated_wf_def decide_lit_def)
-qed
-
-lemma trail_propagated_wf_if_trail_propagated_or_decided':
-  "trail_propagated_or_decided' N \<beta> S \<Longrightarrow> trail_propagated_wf (state_trail S)"
-  unfolding trail_propagated_or_decided'_def
-  using trail_propagated_wf_if_trail_propagated_or_decided .
-
 theorem correct_termination:
   fixes gnd_N and gnd_N_lt_\<beta>
   assumes

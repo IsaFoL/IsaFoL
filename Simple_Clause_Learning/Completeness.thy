@@ -31,7 +31,7 @@ proof -
   obtain S where
     run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
     no_more_step: "(\<nexists>S'. regular_scl N \<beta> S S')"
-    using regular_scl_terminates[THEN ex_trans_min_element_if_wfp_on, of initial_state]
+    using termination_regular_scl[THEN ex_trans_min_element_if_wfp_on, of initial_state]
     by (metis (no_types, opaque_lifting) conversep_iff mem_Collect_eq rtranclp.rtrancl_into_rtrancl
         rtranclp.rtrancl_refl)
   
@@ -45,7 +45,7 @@ qed
 
 lemma (in scl_calculus) no_infinite_down_chain:
   "\<nexists>Ss. \<not> lfinite Ss \<and> Lazy_List_Chain.chain (\<lambda>S S'. regular_scl N \<beta> S S') (LCons initial_state Ss)"
-  using regular_scl_terminates wfp_on_rtranclp_conversep_iff_no_infinite_down_chain_llist by metis
+  using termination_regular_scl wfp_on_rtranclp_conversep_iff_no_infinite_down_chain_llist by metis
 
 theorem (in scl_calculus) completeness_wrt_bound:
   fixes N \<beta> gnd_N
