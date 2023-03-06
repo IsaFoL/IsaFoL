@@ -1,7 +1,7 @@
 theory IsaSAT_VSIDS
   imports Watched_Literals.WB_Sort IsaSAT_Setup Ordered_Pairing_Heap_List2
     Weidenbach_Book_Base.Explorer
-    (* Pairing_Heaps *)
+    Pairing_Heaps
 begin
 
 definition mop_get_min where
@@ -266,8 +266,9 @@ lemma score_hp_node_pass\<^sub>1: \<open>distinct_mset (sum_list (map mset_nodes
   done
 
 lemma node_pass\<^sub>2_in_nodes: \<open>pass\<^sub>2 hs \<noteq> None \<Longrightarrow> mset_nodes (the (pass\<^sub>2 hs)) \<subseteq># sum_list (map mset_nodes hs)\<close>
-  by (induction hs rule: pass\<^sub>2.induct) (auto split: option.splits simp del: mset_nodes_pass\<^sub>2)
+  by (auto)
 
+thm mset_nodes_pass\<^sub>2
 lemma score_pass2_same:
   \<open>distinct_mset (sum_list (map mset_nodes x3)) \<Longrightarrow> pass\<^sub>2 x3 \<noteq> None \<Longrightarrow>v \<in># sum_list (map mset_nodes x3) \<Longrightarrow>
   score (the (hp_node v (the (pass\<^sub>2 x3)))) = score (the (hp_node_children v x3))\<close>
@@ -277,16 +278,19 @@ lemma score_pass2_same:
     using node_pass\<^sub>2_in_nodes[of hs]
     apply (cases h; cases \<open>the (pass\<^sub>2 hs)\<close>)
     apply (auto split: option.splits simp: hp_node_children_None_notin2 hp_node_children_Cons_if distinct_mset_add)
-    apply (meson insert_subset_eq_iff)
-    apply (meson disjunct_not_in insert_subset_eq_iff)
-    apply (meson disjunct_not_in insert_subset_eq_iff)
-    apply (meson disjunct_not_in insert_subset_eq_iff)
+                apply (metis if_Some_None_eq_None mset_subset_eq_insertD pass\<^sub>2.simps(1))
+               apply (metis disjunct_not_in insert_subset_eq_iff option.simps(2) pass\<^sub>2.simps(1))
+              apply (metis insert_subset_eq_iff option.simps(2) pass\<^sub>2.simps(1))
+             apply (metis disjunct_not_in mset_subset_eq_insertD not_None_eq2 pass\<^sub>2.simps(1))
+            apply (metis add_mset_disjoint(1) hp_node_children_None_notin2 insert_DiffM mset_le_add_mset_decr_left1 mset_map mset_subset_eqD option.simps(2) pass\<^sub>2.simps(1) sum_mset_sum_list)
+           apply (metis option.simps(2) pass\<^sub>2.simps(1))
+          apply (metis option.distinct(1) pass\<^sub>2.simps(1))
+         apply (metis option.simps(2) pass\<^sub>2.simps(1))
+        apply (metis option.distinct(1) pass\<^sub>2.simps(1))
+       apply (meson disjunct_not_in insert_subset_eq_iff)
+      apply (meson disjunct_not_in insert_subset_eq_iff)
+     apply (meson disjunct_not_in insert_subset_eq_iff)
     apply (meson disjunct_not_in ex_hp_node_children_Some_in_mset_nodes mset_le_add_mset mset_subset_eqD)
-    apply (metis Diff_triv_mset distinct_mset_in_diff list.exhaust_sel list.simps(8) option.simps(2) pass\<^sub>2.simps(2) subset_mset.inf_idem sum_list_simps(1))
-    apply (metis Diff_triv_mset distinct_mset_in_diff list.exhaust_sel list.simps(8) option.simps(2) pass\<^sub>2.simps(2) subset_mset.inf_idem sum_list_simps(1))
-    apply (metis Diff_triv_mset distinct_mset_in_diff list.exhaust_sel list.simps(8) option.simps(2) pass\<^sub>2.simps(2) subset_mset.inf_idem sum_list_simps(1))
-    apply (metis Diff_triv_mset distinct_mset_in_diff list.exhaust_sel list.simps(8) option.simps(2) pass\<^sub>2.simps(2) subset_mset.inf_idem sum_list_simps(1))
-    apply (metis Diff_triv_mset distinct_mset_in_diff list.exhaust_sel list.simps(8) option.simps(2) pass\<^sub>2.simps(2) subset_mset.inf_idem sum_list_simps(1))
     done
   done
 
@@ -295,7 +299,7 @@ lemma score_hp_node_merge_pairs_same: \<open>distinct_mset (sum_list (map mset_n
   unfolding pass12_merge_pairs[symmetric]
   apply (subst score_pass2_same score_hp_node_pass\<^sub>1)
   apply simp_all
-  apply (metis ex_Melem_conv list.simps(8) merge_pairs_None_iff not_None_eq pass12_merge_pairs sum_list_simps(1))
+  apply (metis empty_iff list.map(1) pairing_heap_assms.mset_nodes_pass\<^sub>1 set_mset_empty sum_list_simps(1))
   apply (subst score_pass2_same score_hp_node_pass\<^sub>1)
   apply simp_all
   done
