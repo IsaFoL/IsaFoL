@@ -4611,6 +4611,14 @@ lemma regular_scl_if_shortest_backtrack_strategy:
   "shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
   by (simp add: shortest_backtrack_strategy_def)
 
+lemma strategy_restrictions:
+  shows
+    "shortest_backtrack_strategy regular_scl N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'" and
+    "regular_scl N \<beta> S S' \<Longrightarrow> reasonable_scl N \<beta> S S'" and
+    "reasonable_scl N \<beta> S S' \<Longrightarrow> scl N \<beta> S S'"
+  using regular_scl_if_shortest_backtrack_strategy reasonable_if_regular scl_if_reasonable
+  by metis+
+
 primrec shortest_backtrack where
   "shortest_backtrack C [] = []" |
   "shortest_backtrack C (Ln # \<Gamma>) =
