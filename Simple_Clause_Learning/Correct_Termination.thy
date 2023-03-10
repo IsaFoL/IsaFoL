@@ -25,7 +25,7 @@ proof -
     "L \<in> \<Union> (set_mset ` fset N)" and
     "is_ground_lit (L \<cdot>l \<gamma>)" and
     "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)" and
-    "(\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L \<cdot>a \<gamma>) \<beta>"
+    "atm_of L \<cdot>a \<gamma> \<preceq>\<^sub>B \<beta>"
     by (elim decide.cases) blast
   
   from conf S\<^sub>2_def obtain D \<gamma>\<^sub>D where
@@ -55,19 +55,19 @@ proof -
   define C\<^sub>1 where
     "C\<^sub>1 = {#K \<in># D'. K \<cdot>l \<gamma>\<^sub>D = L' \<cdot>l \<gamma>\<^sub>D#}"
 
-  have ball_atms_lt_\<beta>: "\<forall>K \<in># D \<cdot> \<gamma>\<^sub>D. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of K) \<beta>"
+  have ball_atms_lt_\<beta>: "\<forall>K \<in># D \<cdot> \<gamma>\<^sub>D. atm_of K \<preceq>\<^sub>B \<beta>"
   proof (rule ballI)
     fix K assume "K \<in># D \<cdot> \<gamma>\<^sub>D"
     hence "K = L' \<cdot>l \<gamma>\<^sub>D \<or> (K \<in># D' \<cdot> \<gamma>\<^sub>D)"
       by (simp add: D_def)
-    thus "(\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of K) \<beta>"
+    thus "atm_of K \<preceq>\<^sub>B \<beta>"
     proof (rule disjE)
       assume "K = L' \<cdot>l \<gamma>\<^sub>D"
       thus ?thesis
-        using \<open>- (L \<cdot>l \<gamma>) = L' \<cdot>l \<gamma>\<^sub>D\<close> \<open>(\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L \<cdot>a \<gamma>) \<beta>\<close>
+        using \<open>- (L \<cdot>l \<gamma>) = L' \<cdot>l \<gamma>\<^sub>D\<close> \<open>atm_of L \<cdot>a \<gamma> \<preceq>\<^sub>B \<beta>\<close>
         by (metis  atm_of_eq_uminus_if_lit_eq atm_of_subst_lit)
     next
-      have trail_lt_\<beta>': "\<forall>atm \<in> atm_of ` fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>)). (\<prec>\<^sub>B)\<^sup>=\<^sup>= atm \<beta>"
+      have trail_lt_\<beta>': "\<forall>A \<in> atm_of ` fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>)). A \<preceq>\<^sub>B \<beta>"
         using trail_lt_\<beta> by (simp add: trail_atoms_lt_def S\<^sub>2_def)
 
       assume K_in: "K \<in># D' \<cdot> \<gamma>\<^sub>D"
@@ -75,7 +75,7 @@ proof -
         using tr_\<Gamma>_L_false_D[unfolded D_def]
         by (metis D_def \<open>K \<in># D \<cdot> \<gamma>\<^sub>D\<close> atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
             trail_false_cls_def trail_false_lit_def)
-      moreover from trail_lt_\<beta> have "\<forall>atm \<in> atm_of ` fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>)). (\<prec>\<^sub>B)\<^sup>=\<^sup>= atm \<beta>"
+      moreover from trail_lt_\<beta> have "\<forall>A \<in> atm_of ` fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>)). A \<preceq>\<^sub>B \<beta>"
         by (simp add: trail_atoms_lt_def S\<^sub>2_def)
       ultimately show ?thesis
         by blast
@@ -174,7 +174,7 @@ theorem correct_termination:
       is_shortest_backtrack (fst (the (state_conflict S))) (state_trail S) (state_trail S')"
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
-    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<preceq>\<^sub>B \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
 proof -
@@ -199,7 +199,7 @@ proof -
     have tr_true: "trail_true_clss \<Gamma> gnd_N_lt_\<beta>"
       unfolding trail_true_clss_def gnd_N_lt_\<beta>_def gnd_N_def
     proof (rule ballI, unfold mem_Collect_eq, erule conjE)
-      fix C assume C_in: "C \<in> grounding_of_clss (fset N)" and C_lt_\<beta>: "\<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>"
+      fix C assume C_in: "C \<in> grounding_of_clss (fset N)" and C_lt_\<beta>: "\<forall>L \<in># C. atm_of L \<preceq>\<^sub>B \<beta>"
 
       from C_in have "is_ground_cls C"
         by (rule grounding_ground)
@@ -228,7 +228,7 @@ proof -
           show "\<not> trail_defined_lit \<Gamma> (L' \<cdot>l \<gamma>)"
             using \<open>L = L' \<cdot>l \<gamma>\<close> \<open>\<not> trail_defined_lit \<Gamma> L\<close> by blast
         next
-          show "(\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L' \<cdot>a \<gamma>) \<beta>"
+          show "atm_of L' \<cdot>a \<gamma> \<preceq>\<^sub>B \<beta>"
             using \<open>L = L' \<cdot>l \<gamma>\<close> C_lt_\<beta> L_in by fastforce
         qed
 
@@ -289,7 +289,7 @@ proof -
       fix C
       have "trail_consistent \<Gamma>"
         using S_def trail_consistent by auto
-      show "C \<in> gnd_N \<Longrightarrow> \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta> \<Longrightarrow> trail_interp \<Gamma> \<TTurnstile> C"
+      show "C \<in> gnd_N \<Longrightarrow> \<forall>L \<in># C. atm_of L \<preceq>\<^sub>B \<beta> \<Longrightarrow> trail_interp \<Gamma> \<TTurnstile> C"
         using tr_true[unfolded gnd_N_lt_\<beta>_def]
         using trail_interp_cls_if_trail_true[OF \<open>trail_consistent \<Gamma>\<close>]
         by (simp add: trail_true_clss_def)
@@ -459,7 +459,7 @@ corollary correct_termination_strategy:
       "\<And>N \<beta> S S'. strategy N \<beta> S S' \<Longrightarrow> ground_false_closures S \<Longrightarrow> ground_false_closures S'"
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
-    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<preceq>\<^sub>B \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
 proof -
@@ -523,7 +523,7 @@ corollary correct_termination_scl_run:
     no_step: "\<nexists>S'. scl N \<beta> S S'"
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
-    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<preceq>\<^sub>B \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
 proof (rule correct_termination_strategy[of _ N \<beta>, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
@@ -560,7 +560,7 @@ corollary correct_termination_reasonable_scl_run:
     no_step: "\<nexists>S'. reasonable_scl N \<beta> S S'"
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
-    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<preceq>\<^sub>B \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
 proof (rule correct_termination_strategy[of _ N \<beta>, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
@@ -597,7 +597,7 @@ corollary correct_termination_regular_scl_run:
     no_step: "\<nexists>S'. regular_scl N \<beta> S S'"
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
-    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<preceq>\<^sub>B \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
 proof (rule correct_termination_strategy[of _ N \<beta>, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
@@ -634,7 +634,7 @@ corollary correct_termination_shortest_backtrack_strategy_regular_scl:
     no_step: "\<nexists>S'. shortest_backtrack_strategy regular_scl N \<beta> S S'"
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
-    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<preceq>\<^sub>B \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
 proof (rule correct_termination_strategy[of _ N \<beta>, folded gnd_N_def, folded gnd_N_lt_\<beta>_def])
@@ -679,7 +679,7 @@ corollary correct_termination_strategies:
        (\<nexists>S'. shortest_backtrack_strategy regular_scl N \<beta> S S')"
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
-    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<preceq>\<^sub>B \<beta>}"
   shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
     satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
   unfolding gnd_N_def gnd_N_lt_\<beta>_def

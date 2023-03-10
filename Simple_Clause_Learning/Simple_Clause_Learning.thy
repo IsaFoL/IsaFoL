@@ -1499,7 +1499,7 @@ next
     by simp
 qed
 
-lemma finite_lits_less_eq_B: "finite {L. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
+lemma finite_lits_less_eq_B: "finite {L. atm_of L \<preceq>\<^sub>B \<beta>}"
   using finite_lits_less_B by (simp add: lits_less_eq_B_conv)
 
 lemma Collect_ball_eq_Pow_Collect: "{X. \<forall>x \<in> X. P x} = Pow {x. P x}"
@@ -2929,7 +2929,7 @@ inductive trail_propagated_or_decided for N \<beta> U where
     C |\<in>| N |\<union>| U \<Longrightarrow>
     C = add_mset L C' \<Longrightarrow>
     is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow>
-    \<forall>K\<in>#C \<cdot> \<gamma>. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of K) \<beta> \<Longrightarrow>
+    \<forall>K\<in>#C \<cdot> \<gamma>. atm_of K \<preceq>\<^sub>B \<beta> \<Longrightarrow>
     C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<Longrightarrow>
     C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<Longrightarrow>
     trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow>
@@ -2941,7 +2941,7 @@ inductive trail_propagated_or_decided for N \<beta> U where
     L \<in> \<Union> (set_mset ` fset N) \<Longrightarrow>
     is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow>
     \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
-    (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L \<cdot>a \<gamma>) \<beta> \<Longrightarrow>
+    atm_of L \<cdot>a \<gamma> \<preceq>\<^sub>B \<beta> \<Longrightarrow>
     trail_propagated_or_decided N \<beta> U \<Gamma> \<Longrightarrow>
     trail_propagated_or_decided N \<beta> U (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
 
@@ -3263,7 +3263,7 @@ qed
 subsection \<open>Trail Atoms Are Less Than \<beta>\<close>
 
 definition trail_atoms_lt where
-  "trail_atoms_lt \<beta> S \<longleftrightarrow> (\<forall>atm \<in> atm_of ` fst ` set (state_trail S). (\<prec>\<^sub>B)\<^sup>=\<^sup>= atm \<beta>)"
+  "trail_atoms_lt \<beta> S \<longleftrightarrow> (\<forall>A \<in> atm_of ` fst ` set (state_trail S). A \<preceq>\<^sub>B \<beta>)"
 
 lemma trail_atoms_lt_initial_state[simp]: "trail_atoms_lt \<beta> initial_state"
   by (simp add: trail_atoms_lt_def)
@@ -3299,11 +3299,11 @@ proof (cases N \<beta> S S' rule: propagate.cases)
       by (metis subst_atm_comp_subst)
   qed
 
-  moreover from propagateI have "(\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L \<cdot>a \<gamma>) \<beta>"
+  moreover from propagateI have "atm_of L \<cdot>a \<gamma> \<preceq>\<^sub>B \<beta>"
     by (metis add_mset_add_single atm_of_subst_lit subst_cls_single subst_cls_union
         union_single_eq_member)
 
-  ultimately have "(\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L \<cdot>a \<mu> \<cdot>a \<gamma>) \<beta>"
+  ultimately have "atm_of L \<cdot>a \<mu> \<cdot>a \<gamma> \<preceq>\<^sub>B \<beta>"
     by simp
   with \<open>trail_atoms_lt \<beta> S\<close> show ?thesis
     by (simp add: trail_atoms_lt_def propagateI(1,2) propagate_lit_def)
@@ -4111,7 +4111,7 @@ proof (cases N \<beta> Sn Sm rule: backtrack.cases)
 qed
 
 lemma ball_less_B_if_trail_false_and_trail_atoms_lt:
-  "trail_false_cls (state_trail S) C \<Longrightarrow> trail_atoms_lt \<beta> S \<Longrightarrow> \<forall>L \<in># C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>"
+  "trail_false_cls (state_trail S) C \<Longrightarrow> trail_atoms_lt \<beta> S \<Longrightarrow> \<forall>L \<in># C. atm_of L \<preceq>\<^sub>B \<beta>"
   unfolding trail_atoms_lt_def
   by (meson atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set trail_false_cls_def
       trail_false_lit_def)
@@ -4655,7 +4655,7 @@ qed
 section \<open>Monotonicity w.r.t. the Bounding Atom\<close>
 
 lemma scl_monotone_wrt_bound:
-  assumes "\<And>A. is_ground_atm A \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= A \<beta> \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= A \<beta>'" and "scl N \<beta> S\<^sub>0 S\<^sub>1"
+  assumes "\<And>A. is_ground_atm A \<Longrightarrow> A \<preceq>\<^sub>B \<beta> \<Longrightarrow> A \<preceq>\<^sub>B \<beta>'" and "scl N \<beta> S\<^sub>0 S\<^sub>1"
   shows "scl N \<beta>' S\<^sub>0 S\<^sub>1"
   using assms(2)[unfolded scl_def]
 proof (elim disjE)
@@ -4705,7 +4705,7 @@ next
 qed
 
 lemma reasonable_scl_monotone_wrt_bound:
-  assumes "\<And>A. is_ground_atm A \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= A \<beta> \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= A \<beta>'" and "reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1"
+  assumes "\<And>A. is_ground_atm A \<Longrightarrow> A \<preceq>\<^sub>B \<beta> \<Longrightarrow> A \<preceq>\<^sub>B \<beta>'" and "reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1"
   shows "reasonable_scl N \<beta>' S\<^sub>0 S\<^sub>1"
   unfolding reasonable_scl_def
 proof (intro conjI impI)
@@ -4723,7 +4723,7 @@ next
 qed
 
 lemma regular_scl_monotone_wrt_bound:
-  assumes "\<And>A. is_ground_atm A \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= A \<beta> \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= A \<beta>'" and "regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
+  assumes "\<And>A. is_ground_atm A \<Longrightarrow> A \<preceq>\<^sub>B \<beta> \<Longrightarrow> A \<preceq>\<^sub>B \<beta>'" and "regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
   shows "regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
   using assms(2)[unfolded regular_scl_def]
 proof (elim disjE conjE)
@@ -4746,7 +4746,7 @@ qed
 
 lemma min_back_regular_scl_monotone_wrt_bound:
   assumes
-    "\<And>A. is_ground_atm A \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= A \<beta> \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= A \<beta>'" and
+    "\<And>A. is_ground_atm A \<Longrightarrow> A \<preceq>\<^sub>B \<beta> \<Longrightarrow> A \<preceq>\<^sub>B \<beta>'" and
     "shortest_backtrack_strategy regular_scl N \<beta> S\<^sub>0 S\<^sub>1"
   shows "shortest_backtrack_strategy regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
   unfolding shortest_backtrack_strategy_def
@@ -4768,7 +4768,7 @@ qed
 
 
 lemma monotonicity_wrt_bound:
-  assumes "\<And>A. is_ground_atm A \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= A \<beta> \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= A \<beta>'"
+  assumes "\<And>A. is_ground_atm A \<Longrightarrow> A \<preceq>\<^sub>B \<beta> \<Longrightarrow> A \<preceq>\<^sub>B \<beta>'"
   shows
     "scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> scl N \<beta>' S\<^sub>0 S\<^sub>1" and
     "reasonable_scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow> reasonable_scl N \<beta>' S\<^sub>0 S\<^sub>1" and
@@ -4795,11 +4795,11 @@ corollary
     "shortest_backtrack_strategy regular_scl N \<beta> S\<^sub>0 S\<^sub>1 \<Longrightarrow>
       shortest_backtrack_strategy regular_scl N \<beta>' S\<^sub>0 S\<^sub>1"
 proof -
-  from \<open>transp_on {A. is_ground_atm A} (\<prec>\<^sub>B)\<close> have "transp_on {A. is_ground_atm A} (\<prec>\<^sub>B)\<^sup>=\<^sup>="
+  from \<open>transp_on {A. is_ground_atm A} (\<prec>\<^sub>B)\<close> have "transp_on {A. is_ground_atm A} (\<preceq>\<^sub>B)"
     by (metis transp_on_reflclp)
-  moreover from \<open>\<beta> \<prec>\<^sub>B \<beta>'\<close> have "(\<prec>\<^sub>B)\<^sup>=\<^sup>= \<beta> \<beta>'"
+  moreover from \<open>\<beta> \<prec>\<^sub>B \<beta>'\<close> have "\<beta> \<preceq>\<^sub>B \<beta>'"
     by blast
-  ultimately have "\<And>A. is_ground_atm A \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= A \<beta> \<Longrightarrow> (\<prec>\<^sub>B)\<^sup>=\<^sup>= A \<beta>'"
+  ultimately have "\<And>A. is_ground_atm A \<Longrightarrow> A \<preceq>\<^sub>B \<beta> \<Longrightarrow> A \<preceq>\<^sub>B \<beta>'"
     using \<open>is_ground_atm \<beta>\<close> \<open>is_ground_atm \<beta>'\<close>
     by (meson CollectI transp_onD)
   thus

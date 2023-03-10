@@ -106,7 +106,7 @@ context scl_calculus begin
 subsection \<open>SCL without backtracking terminates\<close>
 
 definition \<M>_prop_deci :: "_ \<Rightarrow> _ \<Rightarrow> (_, _) Term.term literal fset" where
-  "\<M>_prop_deci \<beta> \<Gamma> = Abs_fset {L. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>} |-| (fst |`| fset_of_list \<Gamma>)"
+  "\<M>_prop_deci \<beta> \<Gamma> = Abs_fset {L. atm_of L \<preceq>\<^sub>B \<beta>} |-| (fst |`| fset_of_list \<Gamma>)"
 
 primrec \<M>_skip_fact_reso where
   "\<M>_skip_fact_reso [] C = []" |
@@ -232,15 +232,15 @@ proof -
             by (metis (no_types, lifting) finsertCI fset_of_list_elem fset_of_list_map
                 fsubset_finsertI list.set_map nless_le)
         next
-          have "L \<cdot>l \<gamma> \<in> {L. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
-            using \<open>(\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L \<cdot>a \<gamma>) \<beta>\<close>
+          have "L \<cdot>l \<gamma> \<in> {L. atm_of L \<preceq>\<^sub>B \<beta>}"
+            using \<open>atm_of L \<cdot>a \<gamma> \<preceq>\<^sub>B \<beta>\<close>
             by simp
-          moreover have "fst ` set \<Gamma> \<subseteq> {L. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
+          moreover have "fst ` set \<Gamma> \<subseteq> {L. atm_of L \<preceq>\<^sub>B \<beta>}"
             using \<open>trail_atoms_lt \<beta> S\<close>
             by (auto simp: trail_atoms_lt_def decideI(1))
-          ultimately have "insert (L \<cdot>l \<gamma>) (fst ` set \<Gamma>) \<subseteq> {L. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
+          ultimately have "insert (L \<cdot>l \<gamma>) (fst ` set \<Gamma>) \<subseteq> {L. atm_of L \<preceq>\<^sub>B \<beta>}"
             by simp
-          then show "finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>) |\<subseteq>| Abs_fset {L. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
+          then show "finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>) |\<subseteq>| Abs_fset {L. atm_of L \<preceq>\<^sub>B \<beta>}"
             using finite_lits_less_eq_B
             by (simp add: less_eq_fset.rep_eq Abs_fset_inverse fset_of_list.rep_eq)
         qed
@@ -275,15 +275,15 @@ proof -
             by (metis (no_types, lifting) finsertCI fset_of_list_elem fset_of_list_map
                 fsubset_finsertI list.set_map nless_le)
         next
-          have "insert (L \<cdot>l \<gamma>) (fst ` set \<Gamma>) \<subseteq> {L. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
+          have "insert (L \<cdot>l \<gamma>) (fst ` set \<Gamma>) \<subseteq> {L. atm_of L \<preceq>\<^sub>B \<beta>}"
           proof (intro Set.subsetI Set.CollectI)
             fix K assume "K \<in> insert (L \<cdot>l \<gamma>) (fst ` set \<Gamma>)"
-            thus "(\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of K) \<beta>"
+            thus "atm_of K \<preceq>\<^sub>B \<beta>"
               using \<open>trail_atoms_lt \<beta> S\<close>
               by (metis image_eqI insert_iff propagateI(1,4,6) state_trail_simp subst_cls_add_mset
                   trail_atoms_lt_def union_single_eq_member)
           qed
-          then show "finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>) |\<subseteq>| Abs_fset {L. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
+          then show "finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>) |\<subseteq>| Abs_fset {L. atm_of L \<preceq>\<^sub>B \<beta>}"
             using finite_lits_less_eq_B
             by (simp add: less_eq_fset.rep_eq fset_of_list.rep_eq Abs_fset_inverse)
         qed
@@ -577,7 +577,7 @@ proof -
 qed *)
 
 definition fclss_no_dup :: "('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term literal fset fset" where
-  "fclss_no_dup \<beta> = fPow (Abs_fset {L. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>})"
+  "fclss_no_dup \<beta> = fPow (Abs_fset {L. atm_of L \<preceq>\<^sub>B \<beta>})"
 
 lemma image_fset_fset_fPow_eq: "fset ` fset (fPow A) = Pow (fset A)"
 proof (rule Set.equalityI)
@@ -602,14 +602,14 @@ lemma
   by (metis count_eq_zero_iff count_mset_set(1) count_mset_set(3) finite_set_mset multiset_eqI)
 
 lemma fmember_fclss_no_dup_if:
-  assumes "\<forall>L |\<in>| C. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>"
+  assumes "\<forall>L |\<in>| C. atm_of L \<preceq>\<^sub>B \<beta>"
   shows "C |\<in>| fclss_no_dup \<beta>"
 proof -
   show ?thesis
     unfolding fclss_no_dup_def fPow_iff
   proof (rule fsubsetI)
     fix K assume "K |\<in>| C"
-    with assms show "K |\<in>| Abs_fset {L. (\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>}"
+    with assms show "K |\<in>| Abs_fset {L. atm_of L \<preceq>\<^sub>B \<beta>}"
       using Abs_fset_inverse[simplified, OF finite_lits_less_eq_B]
       by (auto simp: fmember_iff_member_fset)
   qed
@@ -723,7 +723,7 @@ proof -
         by (metis fset_fset_mset fset_inverse)
       moreover have "trail_false_cls (state_trail Sn) (C \<cdot> \<gamma>)"
         using \<open>ground_false_closures Sn\<close> conf by (auto simp: ground_false_closures_def)
-      ultimately show "(\<prec>\<^sub>B)\<^sup>=\<^sup>= (atm_of L) \<beta>"
+      ultimately show "atm_of L \<preceq>\<^sub>B \<beta>"
         using ball_less_B_if_trail_false_and_trail_atoms_lt[OF _ \<open>trail_atoms_lt \<beta> Sn\<close>]
         by metis
     qed
