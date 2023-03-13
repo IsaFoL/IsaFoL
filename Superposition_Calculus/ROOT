@@ -1,0 +1,7 @@
+session Superposition_Calculus = Saturation_Framework_Extensions +
+  sessions
+    Ordered_Resolution_Prover
+    Saturation_Framework
+    Saturation_Framework_Extensions
+  theories
+    Superposition
