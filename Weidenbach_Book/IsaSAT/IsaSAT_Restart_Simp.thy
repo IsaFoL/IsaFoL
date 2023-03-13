@@ -87,7 +87,7 @@ lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
   \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
     twl_st_heur_loop \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   unfolding get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def comp_def
-  apply (intro WB_More_Refinement.frefI nres_relI) apply refine_rcg
+  apply (intro frefI nres_relI) apply refine_rcg
   by (auto simp: twl_st_heur_loop_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
       option_lookup_clause_rel_def
      split: option.splits)

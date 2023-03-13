@@ -1,16 +1,22 @@
 theory IsaSAT_Bump_Heuristics
   imports Watched_Literals_VMTF
     IsaSAT_VMTF
-    IsaSAT_VSIDS
     Tuple4
+    IsaSAT_Bump_Heuristics_State
 begin
-
 
 
 section \<open>Backtrack level for Restarts\<close>
 
 hide_const (open) find_decomp_wl_imp
-  
+
+
+definition isa_bump_heur_flush where
+  \<open>isa_bump_heur_flush M x = (case x of Tuple4 stabl focused foc bumped \<Rightarrow> do {
+  (stable, bumped) \<leftarrow> (if foc then RETURN (stabl, bumped) else isa_vmtf_flush_int M stabl bumped);
+  (focused, bumped) \<leftarrow> (if \<not>foc then RETURN (focused, bumped) else isa_vmtf_flush_int M focused bumped);
+  RETURN (Tuple4 stable focused foc bumped)})\<close>
+
 text \<open>
   We here find out how many decisions can be reused. Remark that since VMTF does not reuse many levels anyway,
   the implementation might be mostly useless, but I was not aware of that when I implemented it.

@@ -1,5 +1,5 @@
 theory IsaSAT_VSIDS
-  imports Watched_Literals.WB_Sort IsaSAT_Setup Ordered_Pairing_Heap_List2
+  imports Watched_Literals.WB_Sort Ordered_Pairing_Heap_List2
     Weidenbach_Book_Base.Explorer
     Pairing_Heaps
 begin

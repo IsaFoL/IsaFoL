@@ -3,9 +3,6 @@ theory Tuple4
     More_Sepref.WB_More_Refinement IsaSAT_Literals
 begin
 
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
-
 text \<open>
 This is the setup for accessing and modifying the state as an abstract tuple of 4 elements.
  The construction is kept generic 

@@ -1,11 +1,12 @@
 theory IsaSAT_VMTF
-imports Watched_Literals.WB_Sort IsaSAT_Setup
+imports Watched_Literals.WB_Sort IsaSAT_Setup Weidenbach_Book_Base.Explorer
 begin
 
 
 chapter \<open>Decision heuristic\<close>
 
 section \<open>Code generation for the VMTF decision heuristic and the trail\<close>
+type_synonym (in -) isa_vmtf_remove_int = \<open>vmtf \<times> (nat list \<times> bool list)\<close>
 
 definition update_next_search where
   \<open>update_next_search L = (\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove).
@@ -188,12 +189,12 @@ qed
 lemma quicksort_vmtf_nth_reorder:
    \<open>(uncurry quicksort_vmtf_nth, uncurry reorder_list) \<in>
       Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
-  apply (intro WB_More_Refinement.frefI nres_relI)
+  apply (intro frefI nres_relI)
   subgoal for x y
     using insert_sort_reorder_list[unfolded fref_def nres_rel_def, of
      \<open>(\<le>)\<close> \<open>(\<lambda>n. stamp (fst (fst y) ! n) :: nat)\<close> \<open>fst y\<close>]
     by (cases x, cases y)
-      (fastforce simp: quicksort_vmtf_nth_def uncurry_def WB_More_Refinement.fref_def)
+      (fastforce simp: quicksort_vmtf_nth_def uncurry_def fref_def)
   done
 
 lemma atoms_hash_del_op_set_delete:
@@ -237,13 +238,13 @@ definition vmtf_reorder_list_raw where
   })\<close>
 
 
-definition vmtf_reorder_list where
+definition vmtf_reorder_list :: \<open>vmtf \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
   \<open>vmtf_reorder_list = (\<lambda>(vm, _) to_remove. do {
     vmtf_reorder_list_raw vm to_remove
   })\<close>
 
-definition isa_vmtf_flush_int :: \<open>trail_pol \<Rightarrow> _ \<Rightarrow> _ nres\<close> where
-\<open>isa_vmtf_flush_int  = (\<lambda>M (vm, (to_remove, h)). do {
+definition isa_vmtf_flush_int :: \<open>trail_pol \<Rightarrow> vmtf \<Rightarrow> _ \<Rightarrow> (vmtf \<times> _) nres\<close> where
+\<open>isa_vmtf_flush_int  = (\<lambda>M vm (to_remove, h). do {
     ASSERT(\<forall>x\<in>set to_remove. x < length (fst vm));
     ASSERT(length to_remove \<le> uint32_max);
     to_remove' \<leftarrow> vmtf_reorder_list vm to_remove;
@@ -266,10 +267,10 @@ definition isa_vmtf_flush_int :: \<open>trail_pol \<Rightarrow> _ \<Rightarrow> 
 
 
 lemma isa_vmtf_flush_int:
-  \<open>(uncurry isa_vmtf_flush_int, uncurry (vmtf_flush_int \<A>)) \<in> trail_pol \<A> \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  \<open>(uncurry2 isa_vmtf_flush_int, uncurry2 (vmtf_flush_int \<A>)) \<in> trail_pol (\<A>::nat multiset) \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<times>\<^sub>f Id\<rangle>nres_rel\<close>
 proof -
   have vmtf_flush_int_alt_def:
-    \<open>vmtf_flush_int \<A>\<^sub>i\<^sub>n = (\<lambda>M (vm, (to_remove, h)). do {
+    \<open>vmtf_flush_int \<A>\<^sub>i\<^sub>n = (\<lambda>M vm (to_remove, h). do {
       ASSERT(\<forall>x\<in>set to_remove. x < length (fst vm));
       ASSERT(length to_remove \<le> uint32_max);
       to_remove' \<leftarrow> reorder_list vm to_remove;
@@ -292,22 +293,23 @@ proof -
     unfolding vmtf_flush_int_def
     by auto
 
-  have reorder_list: \<open>vmtf_reorder_list x1d x1e
-	\<le> \<Down> Id
-	   (reorder_list x1a x1b)\<close>
+  have reorder_list: \<open>vmtf_reorder_list x2c x1e
+    \<le> \<Down> Id
+    (reorder_list x2 x1b)\<close>
     if
-      \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id\<close> and    \<open>x2a = (x1b, x2b)\<close> and
-      \<open>x2 = (x1a, x2a)\<close> and
-      \<open>y = (x1, x2)\<close> and
+      \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id\<close> and
+      \<open>x1 = (x1a, x2)\<close> and
+      \<open>x2a = (x1b, x2b)\<close> and
+      \<open>y = (x1, x2a)\<close> and
+      \<open>x1c = (x1d, x2c)\<close> and
       \<open>x2d = (x1e, x2e)\<close> and
-      \<open>x2c = (x1d, x2d)\<close> and
-      \<open>x = (x1c, x2c)\<close> and
-      \<open>\<forall>x\<in>set x1b. x < length (fst x1a)\<close> and
+      \<open>x = (x1c, x2d)\<close> and
+      \<open>\<forall>x\<in>set x1b. x < length (fst x2)\<close> and
       \<open>length x1b \<le> uint32_max\<close> and
-      \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
+      \<open>\<forall>x\<in>set x1e. x < length (fst x2c)\<close> and
       \<open>length x1e \<le> uint32_max\<close>
-    for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
-    using that unfolding vmtf_reorder_list_def by (cases x1a)
+    for x y x1 x1a x2 x2a x1b x2b x1c x1d x2c x2d x1e x2e
+    using that unfolding vmtf_reorder_list_def by (cases x2)
       (auto intro!: ASSERT_leI simp: reorder_list_def vmtf_reorder_list_raw_def)
 
   have vmtf_rescale: \<open>vmtf_rescale x1d
@@ -315,7 +317,7 @@ proof -
 	   (vmtf_rescale x1a)\<close>
     if
       \<open>True\<close> and
-      \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id\<close> and    \<open>x2a = (x1b, x2b)\<close> and
+      \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id\<close> and    \<open>x2a = (x1b, x2b)\<close> and
       \<open>x2 = (x1a, x2a)\<close> and
       \<open>y = (x1, x2)\<close> and
       \<open>x2d = (x1e, x2e)\<close> and
@@ -421,7 +423,7 @@ proof -
       by auto
     subgoal
       by auto
-    apply (rule reorder_list; assumption)
+      apply (rule reorder_list; assumption)
     subgoal
       by auto
     subgoal
@@ -505,7 +507,7 @@ definition (in -) atoms_hash_set_member where
 
 
 definition isa_vmtf_mark_to_rescore
-  :: \<open>nat \<Rightarrow> bump_heuristics \<Rightarrow> bump_heuristics\<close>
+  :: \<open>nat \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> isa_vmtf_remove_int\<close>
 where
   \<open>isa_vmtf_mark_to_rescore L = (\<lambda>((ns, m, fst_As, next_search), to_remove).
      ((ns, m, fst_As, next_search), atoms_hash_insert L to_remove))\<close>
@@ -522,7 +524,7 @@ lemma isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore:
   by (intro frefI nres_relI)
     (auto intro!: atoms_hash_del_op_set_insert[THEN fref_to_Down_unRET_uncurry])
 
-definition (in -) isa_vmtf_unset :: \<open>nat \<Rightarrow> bump_heuristics \<Rightarrow> bump_heuristics\<close> where
+definition (in -) isa_vmtf_unset :: \<open>nat \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> isa_vmtf_remove_int\<close> where
 \<open>isa_vmtf_unset = (\<lambda>L ((ns, m, fst_As, lst_As, next_search), to_remove).
   (if next_search = None \<or> stamp (ns ! (the next_search)) < stamp (ns ! L)
   then ((ns, m, fst_As, lst_As, Some L), to_remove)
@@ -540,9 +542,14 @@ lemma vmtf_unset_pre_vmtf:
   using assms
   by (auto simp: vmtf_def vmtf_unset_pre_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 
+definition isa_vmtf where
+  \<open>isa_vmtf \<A> M =
+     ((Id \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>option_rel) \<times>\<^sub>f distinct_atoms_rel \<A>)\<inverse>
+       `` vmtf \<A> M\<close>
+
 lemma vmtf_unset_pre:
   assumes
-    \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> bump_heur \<A> M\<close> and
+    \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> isa_vmtf \<A> M\<close> and
     \<open>L \<in># \<A>\<close>
   shows \<open>vmtf_unset_pre L ((ns, m, fst_As, lst_As, next_search), to_remove)\<close>
   using assms vmtf_unset_pre_vmtf[of ns m fst_As lst_As next_search _ \<A> M L]
@@ -551,13 +558,13 @@ lemma vmtf_unset_pre:
 
 lemma vmtf_unset_pre':
   assumes
-    \<open>vm \<in> bump_heur \<A> M\<close> and
+    \<open>vm \<in> vmtf \<A> M\<close> and
     \<open>L \<in># \<A>\<close>
   shows \<open>vmtf_unset_pre L vm\<close>
   using assms by (cases vm) (auto dest: vmtf_unset_pre)
 
 (*
-definition isa_vmtf_mark_to_rescore_and_unset :: \<open>nat \<Rightarrow> bump_heuristics \<Rightarrow> bump_heuristics\<close>
+definition isa_vmtf_mark_to_rescore_and_unset :: \<open>nat \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> isa_vmtf_remove_int\<close>
 where
   \<open>isa_vmtf_mark_to_rescore_and_unset L M = isa_vmtf_mark_to_rescore L (isa_vmtf_unset L M)\<close>
 
@@ -589,8 +596,8 @@ lemma isa_vmtf_unset_vmtf_unset:
   by (intro frefI nres_relI) auto
 
 lemma isa_vmtf_unset_isa_vmtf:
-  assumes \<open>vm \<in> bump_heur \<A> M\<close> and \<open>L \<in># \<A>\<close>
-  shows \<open>isa_vmtf_unset L vm \<in> bump_heur \<A> M\<close>
+  assumes \<open>vm \<in> vmtf \<A> M\<close> and \<open>L \<in># \<A>\<close>
+  shows \<open>isa_vmtf_unset L vm \<in> vmtf \<A> M\<close>
 proof -
   obtain vm0 to_remove to_remove' where
     vm: \<open>vm = (vm0, to_remove)\<close> and
@@ -607,9 +614,9 @@ proof -
 qed
 
 lemma isa_vmtf_tl_isa_vmtf:
-  assumes \<open>vm \<in> bump_heur \<A> M\<close> and \<open>M \<noteq> []\<close> and \<open>lit_of (hd M) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
+  assumes \<open>vm \<in> vmtf \<A> M\<close> and \<open>M \<noteq> []\<close> and \<open>lit_of (hd M) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
     \<open>L = (atm_of (lit_of (hd M)))\<close>
-  shows \<open>isa_vmtf_unset L vm \<in> bump_heur \<A> (tl M)\<close>
+  shows \<open>isa_vmtf_unset L vm \<in> vmtf \<A> (tl M)\<close>
 proof -
   let ?L = \<open>atm_of (lit_of (hd M))\<close>
   obtain vm0 to_remove to_remove' where
@@ -629,7 +636,7 @@ qed
 
 
 
-definition isa_vmtf_find_next_undef :: \<open>bump_heuristics \<Rightarrow> trail_pol \<Rightarrow> (nat option) nres\<close> where
+definition isa_vmtf_find_next_undef :: \<open>isa_vmtf_remove_int \<Rightarrow> trail_pol \<Rightarrow> (nat option) nres\<close> where
 \<open>isa_vmtf_find_next_undef = (\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove) M. do {
     WHILE\<^sub>T\<^bsup>\<lambda>next_search. next_search \<noteq> None \<longrightarrow> defined_atm_pol_pre M (the next_search)\<^esup>
       (\<lambda>next_search. next_search \<noteq> None \<and> defined_atm_pol M (the next_search))
@@ -691,8 +698,8 @@ where
 find_theorems isa_vmtf_mark_to_rescore
 
 definition isa_vmtf_rescore_body
- :: \<open>nat clause_l \<Rightarrow> trail_pol \<Rightarrow> bump_heuristics \<Rightarrow>
-    (nat \<times> bump_heuristics) nres\<close>
+ :: \<open>nat clause_l \<Rightarrow> trail_pol \<Rightarrow> isa_vmtf_remove_int \<Rightarrow>
+    (nat \<times> isa_vmtf_remove_int) nres\<close>
 where
   \<open>isa_vmtf_rescore_body C _ vm = do {
          WHILE\<^sub>T\<^bsup>\<lambda>(i, vm). i \<le> length C  \<and>
@@ -708,8 +715,8 @@ where
     }\<close>
 
 definition isa_vmtf_rescore
- :: \<open>nat clause_l \<Rightarrow> trail_pol \<Rightarrow> bump_heuristics \<Rightarrow>
-       (bump_heuristics) nres\<close>
+ :: \<open>nat clause_l \<Rightarrow> trail_pol \<Rightarrow> isa_vmtf_remove_int \<Rightarrow>
+       (isa_vmtf_remove_int) nres\<close>
 where
   \<open>isa_vmtf_rescore C M vm = do {
       (_, vm) \<leftarrow> isa_vmtf_rescore_body C M vm;

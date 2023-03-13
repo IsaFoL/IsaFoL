@@ -18,8 +18,7 @@ begin
 chapter \<open>Complete state\<close>
 
 hide_const (open) IsaSAT_VDom.get_aivdom
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
+
 hide_const (open) NEMonad.ASSERT NEMonad.RETURN NEMonad.SPEC
 
 text \<open>We here define the last step of our refinement: the step with all the heuristics and fully
@@ -1574,11 +1573,11 @@ definition end_of_restart_phase_st :: \<open>isasat \<Rightarrow> 64 word\<close
  \<open>end_of_restart_phase_st = (\<lambda>S. end_of_restart_phase (get_heur S))\<close>
 
 definition get_vmtf_heur_array where
-  \<open>get_vmtf_heur_array S = fst (fst (if is_focused_heuristics (get_vmtf_heur S)
+  \<open>get_vmtf_heur_array S = (fst (if is_focused_heuristics (get_vmtf_heur S)
   then get_focused_heuristics (get_vmtf_heur S) else get_stable_heuristics (get_vmtf_heur S)))\<close>
 
 definition get_vmtf_heur_fst where
-  \<open>get_vmtf_heur_fst S = (fst o snd o snd) (fst (if is_focused_heuristics (get_vmtf_heur S)
+  \<open>get_vmtf_heur_fst S = (fst o snd o snd) ((if is_focused_heuristics (get_vmtf_heur S)
   then get_focused_heuristics (get_vmtf_heur S) else get_stable_heuristics (get_vmtf_heur S)))\<close>
 
 definition mop_mark_added_heur_st :: \<open>_\<close> where
