@@ -67,7 +67,7 @@ lemma distinct_atms_int_empty_distinct_atms_empty:
 
 type_synonym vmtf_remove_int_option_fst_As = \<open>vmtf_option_fst_As \<times> nat set\<close>
 
-type_synonym isa_vmtf_remove_int_option_fst_As = \<open>vmtf_option_fst_As \<times> nat list \<times> bool list\<close>
+type_synonym bump_heuristics_option_fst_As = \<open>vmtf_option_fst_As \<times> nat list \<times> bool list\<close>
 
 definition vmtf_init
    :: \<open>nat multiset \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> vmtf_remove_int_option_fst_As set\<close>
@@ -110,12 +110,12 @@ lemma isa_vmtf_init_cong:
 
 type_synonym (in -) twl_st_wl_heur_init =
   \<open>(trail_pol, arena, conflict_option_rel, nat,
-    (nat \<times> nat literal \<times> bool) list list, isa_vmtf_remove_int_option_fst_As, bool list,
+    (nat \<times> nat literal \<times> bool) list list, bump_heuristics_option_fst_As, bool list,
     nat, conflict_min_cach_l, lbd, vdom, vdom, bool, clss_size, lookup_clause_rel) tuple15\<close>
 
 type_synonym (in -) twl_st_wl_heur_init_full =
   \<open>(trail_pol, arena, conflict_option_rel, nat,
-    (nat \<times> nat literal \<times> bool) list list, isa_vmtf_remove_int_option_fst_As, bool list,
+    (nat \<times> nat literal \<times> bool) list list, bump_heuristics_option_fst_As, bool list,
     nat, conflict_min_cach_l, lbd, vdom, vdom, bool, clss_size, lookup_clause_rel) tuple15\<close>
 
 abbreviation get_trail_init_wl_heur :: \<open>twl_st_wl_heur_init \<Rightarrow> trail_pol\<close> where
@@ -148,10 +148,10 @@ abbreviation get_watchlist_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarr
 abbreviation set_watchlist_wl_heur_init :: \<open>(nat \<times> nat literal \<times> bool) list list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init\<close> where
   \<open>set_watchlist_wl_heur_init \<equiv> Tuple15.set_e\<close>
 
-abbreviation get_vmtf_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> isa_vmtf_remove_int_option_fst_As\<close> where
+abbreviation get_vmtf_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bump_heuristics_option_fst_As\<close> where
   \<open>get_vmtf_wl_heur_init \<equiv> Tuple15_f\<close>
 
-abbreviation set_vmtf_wl_heur_init :: \<open>isa_vmtf_remove_int_option_fst_As \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> _\<close> where
+abbreviation set_vmtf_wl_heur_init :: \<open>bump_heuristics_option_fst_As \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> _\<close> where
   \<open>set_vmtf_wl_heur_init \<equiv> Tuple15.set_f\<close>
 
 abbreviation get_phases_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool list\<close> where
@@ -388,7 +388,7 @@ definition twl_st_heur_post_parsing_wl :: \<open>bool \<Rightarrow> (twl_st_wl_h
 
 subsubsection \<open>VMTF\<close>
 
-definition initialise_VMTF :: \<open>nat list \<Rightarrow> nat \<Rightarrow> isa_vmtf_remove_int_option_fst_As nres\<close> where
+definition initialise_VMTF :: \<open>nat list \<Rightarrow> nat \<Rightarrow> bump_heuristics_option_fst_As nres\<close> where
 \<open>initialise_VMTF N n = do {
    let A = replicate n (VMTF_Node 0 None None);
    to_remove \<leftarrow> distinct_atms_int_empty n;
@@ -794,7 +794,7 @@ context
     D' :: conflict_option_rel and
     j' :: nat and
     W' :: \<open>_\<close> and
-    vm :: \<open>isa_vmtf_remove_int_option_fst_As\<close> and
+    vm :: \<open>bump_heuristics_option_fst_As\<close> and
     clvls :: nat and
     cach :: conflict_min_cach_l and
     lbd :: lbd and
@@ -2153,7 +2153,7 @@ lemma isa_vmtf_init_nemptyD: \<open>((ak, al, am, an, bc), ao, bd)
 
 lemma isa_vmtf_init_isa_vmtf: \<open>\<A> \<noteq> {#} \<Longrightarrow> ((ak, al, Some am, Some an, bc), ao, bd)
        \<in> isa_vmtf_init \<A> au \<Longrightarrow> ((ak, al, am, an, bc), ao, bd)
-       \<in> isa_vmtf \<A> au\<close>
+       \<in> bump_heur \<A> au\<close>
   by (auto simp: isa_vmtf_init_def vmtf_init_def Image_iff intro!: isa_vmtfI)
 
 lemma heuristic_rel_initI:
@@ -2180,13 +2180,13 @@ lemma finalise_init_finalise_init_full:
     twl_st_heur_parsing_no_WL_wl_def distinct_mset_dom AIvdom_init_def
       finalise_init_code_def out_learned_def all_lits_st_alt_def[symmetric]
       twl_st_heur_post_parsing_wl_def all_atms_st_def aivdom_inv_dec_def
-    intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf heuristic_rel_initI
+    intro!: ASSERT_leI intro!: isa_vmtf_init_bump_heur heuristic_rel_initI
     intro: isa_vmtf_init_nemptyD)
   apply (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def
     twl_st_heur_parsing_no_WL_wl_def distinct_mset_dom AIvdom_init_def init_empty_occ_list_from_WL_length
       finalise_init_code_def out_learned_def all_lits_st_alt_def[symmetric] phase_saving_def
       twl_st_heur_post_parsing_wl_def all_atms_st_def aivdom_inv_dec_def ac_simps
-    intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf heuristic_rel_initI
+    intro!: ASSERT_leI intro!: isa_vmtf_init_bump_heur heuristic_rel_initI
     intro: isa_vmtf_init_nemptyD)
   done
 

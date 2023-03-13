@@ -7,8 +7,8 @@ chapter \<open>Decide\<close>
 
 
 definition isa_vmtf_find_next_undef_upd
-  :: \<open>trail_pol \<Rightarrow> isa_vmtf_remove_int \<Rightarrow>
-        ((trail_pol \<times> isa_vmtf_remove_int) \<times> nat option)nres\<close>
+  :: \<open>trail_pol \<Rightarrow> bump_heuristics \<Rightarrow>
+        ((trail_pol \<times> bump_heuristics) \<times> nat option)nres\<close>
 where
   \<open>isa_vmtf_find_next_undef_upd = (\<lambda>M vm. do{
       L \<leftarrow> isa_vmtf_find_next_undef vm M;

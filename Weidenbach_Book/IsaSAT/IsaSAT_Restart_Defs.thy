@@ -36,7 +36,7 @@ definition twl_st_heur_restart :: \<open>(isasat \<times> nat twl_st_wl) set\<cl
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms N (NE+NEk+NS+N0))) \<and>
-    vm \<in> isa_vmtf (all_init_atms N (NE+NEk+NS+N0)) M \<and>
+    vm \<in> bump_heur (all_init_atms N (NE+NEk+NS+N0)) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_init_atms N (NE+NEk+NS+N0)) cach \<and>

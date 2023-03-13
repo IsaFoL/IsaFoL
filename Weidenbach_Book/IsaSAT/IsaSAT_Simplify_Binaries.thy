@@ -873,7 +873,7 @@ proof -
   obtain ns m fst_As lst_As next_search to_remove where
     vm: \<open>get_vmtf_heur S = ((ns, m, fst_As, lst_As, next_search), to_remove)\<close>
     by (cases \<open>get_vmtf_heur S\<close>) auto
-  have 1: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> isa_vmtf (atm_of `# all_init_lits_of_wl S') (get_trail_wl S')\<close> and
+  have 1: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> bump_heur (atm_of `# all_init_lits_of_wl S') (get_trail_wl S')\<close> and
     2: \<open>isasat_input_nempty (all_init_atms_st S')\<close> and
     3: \<open>isasat_input_bounded (all_init_atms_st S')\<close>
      using assms unfolding twl_st_heur_restart_ana_def twl_st_heur_restart_alt_def2 Let_def vm

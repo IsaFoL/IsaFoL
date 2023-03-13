@@ -173,7 +173,7 @@ lemma [sepref_fr_rules]: \<open>(uncurry0 (Mreturn 0), uncurry0 (RETURN bottom_a
   apply (auto simp: atom_rel_def unat_rel_def unat.rel_def br_def entails_def ENTAILS_def)
   by (smt (verit, best) pure_true_conv rel_simps(51) sep.add_0)
 
-definition bottom_vmtf :: \<open>isa_vmtf_remove_int\<close> where
+definition bottom_vmtf :: \<open>bump_heuristics\<close> where
   \<open>bottom_vmtf = ((replicate 0 (VMTF_Node 0 None None), 0, bottom_atom, bottom_atom, None), [], replicate 0 False)\<close>
 
 definition extract_vmtf_wl_heur where
@@ -991,11 +991,11 @@ end
 
 locale read_all_param_adder_ops =
   fixes f' :: \<open>'a \<Rightarrow> trail_pol \<Rightarrow> arena \<Rightarrow>
-      conflict_option_rel \<Rightarrow> nat \<Rightarrow> (nat watcher) list list \<Rightarrow> isa_vmtf_remove_int \<Rightarrow>
+      conflict_option_rel \<Rightarrow> nat \<Rightarrow> (nat watcher) list list \<Rightarrow> bump_heuristics \<Rightarrow>
       nat \<Rightarrow> conflict_min_cach_l \<Rightarrow> lbd \<Rightarrow> out_learned \<Rightarrow> isasat_stats \<Rightarrow> isasat_restart_heuristics \<Rightarrow> 
     isasat_aivdom \<Rightarrow> clss_size \<Rightarrow> opts \<Rightarrow> arena \<Rightarrow> occurences_ref \<Rightarrow> 'e nres\<close> and
     P :: \<open>'a \<Rightarrow> trail_pol \<Rightarrow> arena \<Rightarrow>
-      conflict_option_rel \<Rightarrow> nat \<Rightarrow> (nat watcher) list list \<Rightarrow> isa_vmtf_remove_int \<Rightarrow>
+      conflict_option_rel \<Rightarrow> nat \<Rightarrow> (nat watcher) list list \<Rightarrow> bump_heuristics \<Rightarrow>
       nat \<Rightarrow> conflict_min_cach_l \<Rightarrow> lbd \<Rightarrow> out_learned \<Rightarrow> isasat_stats \<Rightarrow> isasat_restart_heuristics \<Rightarrow> 
     isasat_aivdom \<Rightarrow> clss_size \<Rightarrow> opts \<Rightarrow> arena \<Rightarrow> occurences_ref \<Rightarrow> bool\<close> 
 begin
@@ -1024,11 +1024,11 @@ definition mop where
 
 locale read_all_param_adder = read_all_param_adder_ops f' P
   for f' :: \<open>'a \<Rightarrow> trail_pol \<Rightarrow> arena \<Rightarrow>
-      conflict_option_rel \<Rightarrow> nat \<Rightarrow> (nat watcher) list list \<Rightarrow> isa_vmtf_remove_int \<Rightarrow>
+      conflict_option_rel \<Rightarrow> nat \<Rightarrow> (nat watcher) list list \<Rightarrow> bump_heuristics \<Rightarrow>
       nat \<Rightarrow> conflict_min_cach_l \<Rightarrow> lbd \<Rightarrow> out_learned \<Rightarrow> isasat_stats \<Rightarrow> isasat_restart_heuristics \<Rightarrow> 
     isasat_aivdom \<Rightarrow> clss_size \<Rightarrow> opts \<Rightarrow> arena \<Rightarrow> occurences_ref \<Rightarrow> 'r nres\<close> and
     P :: \<open>'a \<Rightarrow> trail_pol \<Rightarrow> arena \<Rightarrow>
-      conflict_option_rel \<Rightarrow> nat \<Rightarrow> (nat watcher) list list \<Rightarrow> isa_vmtf_remove_int \<Rightarrow>
+      conflict_option_rel \<Rightarrow> nat \<Rightarrow> (nat watcher) list list \<Rightarrow> bump_heuristics \<Rightarrow>
       nat \<Rightarrow> conflict_min_cach_l \<Rightarrow> lbd \<Rightarrow> out_learned \<Rightarrow> isasat_stats \<Rightarrow> isasat_restart_heuristics \<Rightarrow> 
     isasat_aivdom \<Rightarrow> clss_size \<Rightarrow> opts \<Rightarrow> arena \<Rightarrow> occurences_ref \<Rightarrow> bool\<close>  +
   fixes R and f and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close>
@@ -2549,7 +2549,7 @@ end
 
 
 locale read_trail_vmtf_param_adder =
-  fixes P :: \<open>'b \<Rightarrow> _ \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> bool\<close> and f' :: \<open>'b \<Rightarrow> trail_pol \<Rightarrow> _ \<Rightarrow> 'r nres\<close> and
+  fixes P :: \<open>'b \<Rightarrow> _ \<Rightarrow> bump_heuristics \<Rightarrow> bool\<close> and f' :: \<open>'b \<Rightarrow> trail_pol \<Rightarrow> _ \<Rightarrow> 'r nres\<close> and
      R :: \<open>('a \<times> 'b) set\<close> and f and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close>
   assumes not_deleted_code_refine: \<open>(uncurry2 (\<lambda>S T C. f C S T), uncurry2 (\<lambda>S T C'. f' C' S T)) \<in> [uncurry2 (\<lambda>S T C. P C S T)]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
@@ -2715,7 +2715,7 @@ abbreviation update_literals_to_update_wl_heur :: \<open>nat \<Rightarrow>isasat
 abbreviation update_watchlist_wl_heur :: \<open>nat watcher list list \<Rightarrow>isasat \<Rightarrow> _\<close> where
   \<open>update_watchlist_wl_heur \<equiv> update_e\<close>
 
-abbreviation update_vmtf_wl_heur :: \<open>isa_vmtf_remove_int \<Rightarrow>isasat \<Rightarrow> _\<close> where
+abbreviation update_vmtf_wl_heur :: \<open>bump_heuristics \<Rightarrow>isasat \<Rightarrow> _\<close> where
   \<open>update_vmtf_wl_heur \<equiv> update_f\<close>
 
 abbreviation update_clvls_wl_heur :: \<open>nat \<Rightarrow>isasat \<Rightarrow> _\<close> where

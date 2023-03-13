@@ -12,7 +12,7 @@ definition (in -) find_local_restart_target_level_int_inv where
      (\<lambda>(brk, i). i \<le> length cs \<and> length cs < uint32_max)\<close>
 
 definition find_local_restart_target_level_int
-   :: \<open>trail_pol \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> nat nres\<close>
+   :: \<open>trail_pol \<Rightarrow> bump_heuristics \<Rightarrow> nat nres\<close>
 where
   \<open>find_local_restart_target_level_int =
      (\<lambda>(M, xs, lvls, reasons, k, cs) ((ns :: nat_vmtf_node list, m :: nat, fst_As::nat, lst_As::nat,

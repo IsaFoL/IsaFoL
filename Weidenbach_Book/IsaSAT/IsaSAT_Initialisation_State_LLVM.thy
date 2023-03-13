@@ -16,7 +16,7 @@ abbreviation (in -) vmtf_conc_option_fst_As :: \<open>_ \<Rightarrow> _ \<Righta
     atom.option_assn \<times>\<^sub>a atom.option_assn \<times>\<^sub>a atom.option_assn)\<close>
 
 abbreviation vmtf_remove_conc_option_fst_As
-  :: \<open>isa_vmtf_remove_int_option_fst_As \<Rightarrow> vmtf_remove_assn_option_fst_As \<Rightarrow> assn\<close>
+  :: \<open>bump_heuristics_option_fst_As \<Rightarrow> vmtf_remove_assn_option_fst_As \<Rightarrow> assn\<close>
 where
   \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As \<times>\<^sub>a distinct_atoms_assn\<close>
 
@@ -96,7 +96,7 @@ lemma free_phase_saver2: \<open>MK_FREE phase_saver_assn free_phase_saver\<close
   by (rule back_subst[of \<open>MK_FREE phase_saver_assn\<close>, OF free_phase_saver])
     (auto intro!: ext simp: free_phase_saver_def)
 
-definition bottom_vmtf2 :: \<open>isa_vmtf_remove_int_option_fst_As\<close> where
+definition bottom_vmtf2 :: \<open>bump_heuristics_option_fst_As\<close> where
   \<open>bottom_vmtf2 = (([], 0, None, None, None), [], [])\<close>
 
 sepref_def free_vmtf_remove2

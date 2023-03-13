@@ -459,7 +459,7 @@ qed
 section \<open>Updates\<close>
 
 lemma isa_vmtf_mark_to_rescore_also_reasons_cl_isa_vmtf:
-  assumes \<open>(M,M')\<in>trail_pol \<A>\<close> \<open>isasat_input_bounded \<A>\<close> \<open>vm \<in> isa_vmtf \<A> M'\<close> and
+  assumes \<open>(M,M')\<in>trail_pol \<A>\<close> \<open>isasat_input_bounded \<A>\<close> \<open>vm \<in> bump_heur \<A> M'\<close> and
     valid: \<open>valid_arena N N' vd\<close> and
     C: \<open>C \<in># dom_m N'\<close> and
     H:\<open> \<forall>L\<in>set (N' \<propto> C). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
@@ -467,7 +467,7 @@ lemma isa_vmtf_mark_to_rescore_also_reasons_cl_isa_vmtf:
     \<forall>C. Propagated (- L) C \<in> set M' \<longrightarrow>
      C \<noteq> 0 \<longrightarrow> C \<in># dom_m N' \<and> (\<forall>C\<in>set [C..<C + arena_length N C]. arena_lit N C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
   shows
-    \<open>isa_vmtf_mark_to_rescore_also_reasons_cl M N C L vm \<le> RES (isa_vmtf \<A> M')\<close>
+    \<open>isa_vmtf_mark_to_rescore_also_reasons_cl M N C L vm \<le> RES (bump_heur \<A> M')\<close>
 proof -
   obtain vm' where vm: \<open>(vm, vm') \<in> Id \<times>\<^sub>f distinct_atoms_rel \<A>\<close> and
     vm': \<open>vm' \<in> vmtf \<A> M'\<close>
@@ -503,7 +503,7 @@ proof -
     apply normalize_goal+
     by auto
   have valid: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl T) (set (get_vdom S))\<close> and
-    vm: \<open>get_vmtf_heur S \<in> isa_vmtf (all_atms_st T) (get_trail_wl T)\<close> and
+    vm: \<open>get_vmtf_heur S \<in> bump_heur (all_atms_st T) (get_trail_wl T)\<close> and
     bounded: \<open>isasat_input_bounded (all_atms_st T)\<close> and
     trail: \<open> (get_trail_wl_heur S, get_trail_wl T) \<in> trail_pol (all_atms_st T)\<close>
     using assms unfolding arena_is_valid_clause_idx_def unfolding twl_st_heur'_def
@@ -542,8 +542,8 @@ proof -
     by (simp add: C literals_are_in_\<L>\<^sub>i\<^sub>n_nth2)
   show ?thesis
     unfolding mark_conflict_to_rescore_def mop_arena_length_def nres_monad3 mop_arena_lit2_def
-    apply (refine_vcg WHILET_rule[where \<Phi> = \<open>\<lambda>(i,vm). vm \<in> isa_vmtf (all_atms_st T) (get_trail_wl T)\<close> and
-      I = \<open>\<lambda>(i,vm). i \<le> length (get_clauses_wl T \<propto> C) \<and> vm \<in> isa_vmtf (all_atms_st T) (get_trail_wl T)\<close> and
+    apply (refine_vcg WHILET_rule[where \<Phi> = \<open>\<lambda>(i,vm). vm \<in> bump_heur (all_atms_st T) (get_trail_wl T)\<close> and
+      I = \<open>\<lambda>(i,vm). i \<le> length (get_clauses_wl T \<propto> C) \<and> vm \<in> bump_heur (all_atms_st T) (get_trail_wl T)\<close> and
       R = \<open>measure (\<lambda>(i,vm). length (get_clauses_wl T \<propto> C) -i)\<close>] trail bounded valid
       isa_vmtf_mark_to_rescore_also_reasons_cl_isa_vmtf[THEN order_trans]
       calculate_LBD_heur_st_calculate_LBD_st[where

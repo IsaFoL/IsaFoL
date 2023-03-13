@@ -708,7 +708,7 @@ lemma twl_st_heur_restart_alt_def[unfolded Let_def]:
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A> ) \<and>
-    vm \<in> isa_vmtf \<A>  M \<and>
+    vm \<in> bump_heur \<A>  M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty \<A>  cach \<and>

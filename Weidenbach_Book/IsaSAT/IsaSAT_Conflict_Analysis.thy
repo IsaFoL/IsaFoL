@@ -755,7 +755,7 @@ note [[goals_limit=1]]
        b} \<Longrightarrow>
     arena_act_pre x1t x2g \<Longrightarrow>
     isa_vmtf_mark_to_rescore_also_reasons_cl (get_trail_wl_heur S) x1t x2g (-x1g) (get_vmtf_heur S)
-           \<le> \<Down> {(vm, N'). N = N' \<and> vm \<in> isa_vmtf (all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la)) x1a}
+           \<le> \<Down> {(vm, N'). N = N' \<and> vm \<in> bump_heur (all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la)) x1a}
     (RETURN N)\<close>
    for l m n p q ra s ha ia ja ka la x1 x2 x1a x1b x1c x1d x1e x1f x1g x2g x1h x1i x1k x1l x2k
      x1m x1n x1o x1p x1q x1r x1s N x1t x2t D x1v x1w x2v x1x x2x CLS CLS' S
@@ -842,7 +842,7 @@ note [[goals_limit=1]]
              intro!: tl_trailt_tr_pre)
       subgoal by (clarsimp simp: twl_st_heur_conflict_ana_def update_confl_tl_wl_pre'_def
            valid_arena_mark_used subset_mset.sup_commute[of _ \<open>remove1_mset _ _\<close>]
-          tl_trail_tr[THEN fref_to_Down_unRET] resolve_cls_wl'_def isa_vmtf_tl_isa_vmtf no_dup_tlD
+          tl_trail_tr[THEN fref_to_Down_unRET] resolve_cls_wl'_def isa_vmtf_tl_bump_heur no_dup_tlD
           counts_maximum_level_def
         simp flip: all_lits_st_alt_def)
     done
@@ -854,12 +854,12 @@ lemma phase_saving_le: \<open>phase_saving \<A> \<phi> \<Longrightarrow> A \<in>
   by (auto simp: phase_saving_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 
 lemma isa_vmtf_le:
-  \<open>((a, b), M) \<in> isa_vmtf \<A> M' \<Longrightarrow> A \<in># \<A> \<Longrightarrow> A < length a\<close>
-  \<open>((a, b), M) \<in> isa_vmtf \<A> M' \<Longrightarrow> B \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> atm_of B < length a\<close>
+  \<open>((a, b), M) \<in> bump_heur \<A> M' \<Longrightarrow> A \<in># \<A> \<Longrightarrow> A < length a\<close>
+  \<open>((a, b), M) \<in> bump_heur \<A> M' \<Longrightarrow> B \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> atm_of B < length a\<close>
   by (auto simp:  isa_vmtf_def vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 
 lemma isa_vmtf_next_search_le:
-  \<open>((a, b, c, c', Some d), M) \<in> isa_vmtf \<A> M' \<Longrightarrow> d < length a\<close>
+  \<open>((a, b, c, c', Some d), M) \<in> bump_heur \<A> M' \<Longrightarrow> d < length a\<close>
   by (auto simp: isa_vmtf_def vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 
 lemma trail_pol_nempty: \<open>\<not>(([], aa, ab, ac, ad, b), L # ys) \<in> trail_pol \<A>\<close>

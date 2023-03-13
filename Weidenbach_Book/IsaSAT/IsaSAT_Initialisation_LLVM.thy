@@ -5,7 +5,7 @@ theory IsaSAT_Initialisation_LLVM
 begin
 hide_const (open) NEMonad.RETURN  NEMonad.ASSERT
 
-definition split_vmtf2 :: \<open>isa_vmtf_remove_int_option_fst_As \<Rightarrow> _\<close> where
+definition split_vmtf2 :: \<open>bump_heuristics_option_fst_As \<Rightarrow> _\<close> where
   \<open>split_vmtf2 = (\<lambda>x. x)\<close>
 
 sepref_def split_vmtf2_impl

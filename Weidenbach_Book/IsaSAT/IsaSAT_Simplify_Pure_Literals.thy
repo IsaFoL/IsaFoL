@@ -404,7 +404,7 @@ proof -
       done
    qed
 
-   have vmtf: \<open>get_vmtf_heur S\<^sub>0 \<in> isa_vmtf (all_init_atms_st T) (get_trail_wl T)\<close> and
+   have vmtf: \<open>get_vmtf_heur S\<^sub>0 \<in> bump_heur (all_init_atms_st T) (get_trail_wl T)\<close> and
      nempty: \<open>isasat_input_nempty (all_init_atms_st T)\<close> and
      bounded: \<open>isasat_input_bounded (all_init_atms_st T)\<close>
      using assms unfolding twl_st_heur_restart_ana_def twl_st_heur_restart_def

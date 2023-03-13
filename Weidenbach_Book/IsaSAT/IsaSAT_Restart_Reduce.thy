@@ -15,7 +15,7 @@ lemma find_local_restart_target_level_alt_def:
 
 lemma find_local_restart_target_level_int_find_local_restart_target_level:
    \<open>(uncurry find_local_restart_target_level_int, uncurry find_local_restart_target_level) \<in>
-     [\<lambda>(M, vm). vm \<in> isa_vmtf \<A> M]\<^sub>f trail_pol \<A> \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+     [\<lambda>(M, vm). vm \<in> bump_heur \<A> M]\<^sub>f trail_pol \<A> \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
   unfolding find_local_restart_target_level_int_def find_local_restart_target_level_alt_def
     uncurry_def Let_def
   apply (intro frefI nres_relI)
@@ -183,7 +183,7 @@ proof -
     have
       tr: \<open>(get_trail_wl_heur S, bt) \<in> trail_pol ?\<A>\<close> and
       \<open>valid_arena ?ae bu (set ?bo)\<close> and
-      vm: \<open>?vm \<in> isa_vmtf ?\<A> bt\<close> and (*
+      vm: \<open>?vm \<in> bump_heur ?\<A> bt\<close> and (*
       \<open>(heur, bv)
        \<in> option_lookup_clause_rel ?\<A>\<close> and
       \<open>by = {#- lit_of x. x \<in># mset (drop ah (rev bt))#}\<close> and
@@ -2649,7 +2649,7 @@ definition twl_st_heur_restart_strong_aivdom :: \<open>(isasat \<times> nat twl_
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms N (NE+NEk+NS+N0))) \<and>
-    vm \<in> isa_vmtf (all_init_atms N (NE+NEk+NS+N0)) M \<and>
+    vm \<in> bump_heur (all_init_atms N (NE+NEk+NS+N0)) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_init_atms N (NE+NEk+NS+N0)) cach \<and>

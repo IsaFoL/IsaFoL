@@ -478,8 +478,8 @@ proof -
     have \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms aaa ca) (ys @ Propagated x2 C # zs) =
        vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms aaa ca) (ys @ Propagated x2 0 # zs)\<close>
        by (auto simp: vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def)
-    then have \<open>isa_vmtf (all_init_atms aaa ca) (ys @ Propagated x2 C # zs) =
-      isa_vmtf (all_init_atms aaa ca) (ys @ Propagated x2 0 # zs)\<close>
+    then have \<open>bump_heur (all_init_atms aaa ca) (ys @ Propagated x2 C # zs) =
+      bump_heur (all_init_atms aaa ca) (ys @ Propagated x2 0 # zs)\<close>
       by (auto simp: isa_vmtf_def vmtf_def
 	image_iff)
   }
@@ -831,7 +831,7 @@ proof -
       done
 
     let ?\<A> = \<open>all_init_atms_st y\<close>
-    have \<open>get_vmtf_heur S \<in> isa_vmtf ?\<A> (get_trail_wl y)\<close>and
+    have \<open>get_vmtf_heur S \<in> bump_heur ?\<A> (get_trail_wl y)\<close>and
       n_d: \<open>no_dup (get_trail_wl y)\<close>
       using Sy
       by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def
@@ -1785,7 +1785,7 @@ lemma twl_st_heur_restart_alt_def2:
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st T)) \<and>
-    vm \<in> isa_vmtf (all_init_atms_st T) M \<and>
+    vm \<in> bump_heur (all_init_atms_st T) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_init_atms_st T) cach \<and>

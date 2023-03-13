@@ -705,7 +705,7 @@ proof -
     have
       M'_M: \<open>(?M', M) \<in> trail_pol (all_atms_st S)\<close>  and
       \<open>(?W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st S))\<close> and
-      vm: \<open>?vm \<in> isa_vmtf (all_atms_st S) M\<close> and
+      vm: \<open>?vm \<in> bump_heur (all_atms_st S) M\<close> and
       n_d: \<open>no_dup M\<close> and
       \<open>?clvls \<in> counts_maximum_level M D\<close> and
       cach_empty: \<open>cach_refinement_empty (all_atms_st S) ?cach\<close> and
@@ -1049,7 +1049,7 @@ proof -
         \<open>x2 = (x1a, x2a)\<close>
         \<open>x = (x1, x2)\<close>
         \<open>xa = (x1b, x2b)\<close> and
-        vm': \<open>(vm', uu) \<in> {(c, uu). c \<in> isa_vmtf (all_atms_st S) M}\<close>
+        vm': \<open>(vm', uu) \<in> {(c, uu). c \<in> bump_heur (all_atms_st S) M}\<close>
       for x E' x1 x2 x1a x2a xa Da x1b x2b x1c x2c vm' uu lbd
     proof -
       have x1b_None: \<open>(x1b, None) \<in> option_lookup_clause_rel (all_atms_st S)\<close>
@@ -1154,7 +1154,7 @@ proof -
 
     have vmtf_mark_to_rescore_also_reasons:
       \<open>isa_vmtf_mark_to_rescore_also_reasons ?M' ?arena (?outl[0 := - lit_of (hd M)]) K ?vm
-          \<le> SPEC (\<lambda>c. (c, ()) \<in> {(c, _). c \<in> isa_vmtf (all_atms_st S) M})\<close>
+          \<le> SPEC (\<lambda>c. (c, ()) \<in> {(c, _). c \<in> bump_heur (all_atms_st S) M})\<close>
       if
         \<open>M \<noteq> []\<close> and
         \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (all_atms_st S) M\<close> and
@@ -1346,7 +1346,7 @@ proof -
      *      opts, old_arena)\<close>
      *   using TT' by (cases T) (auto simp: twl_st_heur_bt_def T' del_conflict_wl_def) *)
     have
-      vm: \<open>?vm \<in> isa_vmtf (all_atms_st T') M\<close> and
+      vm: \<open>?vm \<in> bump_heur (all_atms_st T') M\<close> and
       M'M: \<open>(?M', M) \<in> trail_pol (all_atms_st T')\<close> and
       lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (all_atms_st T') (get_trail_wl T')\<close>
       using TT' by (auto simp: twl_st_heur_bt_def del_conflict_wl_def all_atms_st_def
@@ -1594,7 +1594,7 @@ proof -
     have
       M1'_M1: \<open>(?M1', M1) \<in> trail_pol (all_atms_st U')\<close> and
       W'W: \<open>(?W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st U'))\<close> and
-      vmtf: \<open>?vm' \<in> isa_vmtf (all_atms_st U') M1\<close> and
+      vmtf: \<open>?vm' \<in> bump_heur (all_atms_st U') M1\<close> and
       n_d_M1: \<open>no_dup M1\<close> and
       empty_cach: \<open>cach_refinement_empty (all_atms_st U') ?cach\<close> and
       \<open>length ?outl = Suc 0\<close> and
@@ -1752,7 +1752,7 @@ proof -
       using vmtf unfolding isa_vmtf_def by (cases ?vm') auto
     have [refine0]:
       \<open>isa_vmtf_rescore C ?M1' ?vm' \<le> SPEC (\<lambda>c. (c, ()) \<in> {((vm), _).
-         vm \<in> isa_vmtf (all_atms_st U') M1})\<close>
+         vm \<in> bump_heur (all_atms_st U') M1})\<close>
       apply (rule order.trans)
        apply (rule isa_vmtf_rescore[of \<open>all_atms_st U'\<close>, THEN fref_to_Down_curry2, of _ _ _ C M1 vm0])
       subgoal using bounded by auto
@@ -1766,8 +1766,8 @@ proof -
       done
 
     have [refine0]: \<open>isa_vmtf_flush_int Ma vm \<le>
-         SPEC(\<lambda>c. (c, ()) \<in> {(vm', _). vm' \<in> isa_vmtf (all_atms_st U') M2})\<close>
-      if vm: \<open>vm \<in> isa_vmtf (all_atms_st U') M1\<close> and
+         SPEC(\<lambda>c. (c, ()) \<in> {(vm', _). vm' \<in> bump_heur (all_atms_st U') M2})\<close>
+      if vm: \<open>vm \<in> bump_heur (all_atms_st U') M1\<close> and
        Ma: \<open>(Ma, M2)
        \<in> {(M0, M0'').
          (M0, M0'') \<in> trail_pol (all_atms_st U') \<and>
@@ -1781,7 +1781,7 @@ proof -
       have M1'_M1: \<open>(Ma, M2) \<in> trail_pol (all_atms_st U')\<close>
         using Ma by auto
 
-      have vm: \<open>vm \<in> isa_vmtf (all_atms_st U') ?M1\<close>
+      have vm: \<open>vm \<in> bump_heur (all_atms_st U') ?M1\<close>
         using vm by (auto simp: isa_vmtf_def dest: vmtf_consD)
       obtain vm0 where
         vm: \<open>(vm, vm0) \<in> Id \<times>\<^sub>r distinct_atoms_rel (all_atms_st U')\<close> and
@@ -1877,8 +1877,8 @@ proof -
         set_mset (all_atms N ?NUE_after)\<close> (is ?A)
       \<open>trail_pol (all_atms (fmupd x' (C', b) N) ?NUE_before) =
         trail_pol (all_atms N ?NUE_after)\<close> (is ?B)
-      \<open>isa_vmtf (all_atms (fmupd x' (C', b) N) ?NUE_before) =
-        isa_vmtf (all_atms N ?NUE_after)\<close> (is ?C)
+      \<open>bump_heur (all_atms (fmupd x' (C', b) N) ?NUE_before) =
+        bump_heur (all_atms N ?NUE_after)\<close> (is ?C)
       \<open>option_lookup_clause_rel  (all_atms (fmupd x' (C', b) N) ?NUE_before) =
         option_lookup_clause_rel (all_atms N ?NUE_after)\<close> (is ?D)
       \<open>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms (fmupd x' (C', b) N) ?NUE_before)) =
@@ -1970,8 +1970,8 @@ proof -
     have avdom: \<open>mset (get_avdom_aivdom ?aivdom) \<subseteq># mset (get_vdom_aivdom ?aivdom)\<close> and
       ivdom: \<open>mset (get_ivdom_aivdom ?aivdom) \<subseteq># mset (get_vdom_aivdom ?aivdom)\<close>
       using aivdom unfolding aivdom_inv_dec_alt_def by auto
-    have vm: \<open>vm \<in> isa_vmtf (all_atms N (NE + UE)) M1 \<Longrightarrow>
-       vm \<in> isa_vmtf (all_atms N (NE + UE)) (Propagated (- lit_of (hd M)) x2a # M1)\<close> for x2a vm
+    have vm: \<open>vm \<in> bump_heur (all_atms N (NE + UE)) M1 \<Longrightarrow>
+       vm \<in> bump_heur (all_atms N (NE + UE)) (Propagated (- lit_of (hd M)) x2a # M1)\<close> for x2a vm
       by (cases vm)
         (auto intro!: vmtf_consD simp: isa_vmtf_def)
     then show ?thesis
@@ -2184,7 +2184,7 @@ proof -
     have
       M'M: \<open>(?M1', M1) \<in> trail_pol (all_atms_st U')\<close> and
       W'W: \<open>(?W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0  (all_atms_st U'))\<close> and
-      vmtf: \<open>?vm' \<in> isa_vmtf  (all_atms_st U') M1\<close> and
+      vmtf: \<open>?vm' \<in> bump_heur  (all_atms_st U') M1\<close> and
       n_d_M1: \<open>no_dup M1\<close> and
       empty_cach: \<open>cach_refinement_empty  (all_atms_st U') ?cach\<close> and
       \<open>length ?outl = Suc 0\<close> and
@@ -2234,7 +2234,7 @@ proof -
         (auto simp: RETURN_def conc_fun_RES)
 
     have [refine0]: \<open>isa_vmtf_flush_int ?M1' ?vm' \<le>
-         SPEC(\<lambda>c. (c, ()) \<in> {(vm', _). vm' \<in> isa_vmtf (all_atms_st U') M1})\<close>
+         SPEC(\<lambda>c. (c, ()) \<in> {(vm', _). vm' \<in> bump_heur (all_atms_st U') M1})\<close>
       for vm i L
     proof -
       obtain vm0 where
@@ -2271,8 +2271,8 @@ proof -
         set_mset (all_atms N ?NE_after)\<close> (is ?A)
       \<open>trail_pol (all_atms (N) (?NE)) =
         trail_pol (all_atms N ?NE_after)\<close> (is ?B)
-      \<open>isa_vmtf (all_atms (N) (?NE)) =
-        isa_vmtf (all_atms N ?NE_after)\<close> (is ?C)
+      \<open>bump_heur (all_atms (N) (?NE)) =
+        bump_heur (all_atms N ?NE_after)\<close> (is ?C)
       \<open>option_lookup_clause_rel  (all_atms (N) (?NE)) =
         option_lookup_clause_rel (all_atms N ?NE_after)\<close> (is ?D)
       \<open>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms (N) (?NE))) =

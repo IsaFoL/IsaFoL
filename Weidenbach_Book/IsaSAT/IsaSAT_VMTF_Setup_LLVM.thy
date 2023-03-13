@@ -85,7 +85,7 @@ abbreviation distinct_atoms_assn where
   \<open>distinct_atoms_assn \<equiv> arl64_assn atom_assn \<times>\<^sub>a atoms_hash_assn\<close>
 
 definition vmtf_remove_assn
-  :: \<open>isa_vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>
+  :: \<open>bump_heuristics \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>
 where
   \<open>vmtf_remove_assn \<equiv> vmtf_assn \<times>\<^sub>a distinct_atoms_assn\<close>
 

@@ -115,7 +115,7 @@ proof -
        (get_vmtf_heur S)
       \<le> \<Down> {(((M, vm), A), L). A = map_option atm_of L \<and>
               unassigned_atm (bt, bu, bv, bw, bx, by, bz, baa, bab) L \<and>
-             vm \<in> isa_vmtf (all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab)) bt \<and>
+             vm \<in> bump_heur (all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab)) bt \<and>
              (L \<noteq> None \<longrightarrow> the A \<in># all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab)) \<and>
              (M, bt) \<in> trail_pol (all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab))}
          (SPEC (unassigned_atm (bt, bu, bv, bw, bx, by, bz, baa, bab)))\<close>
@@ -246,7 +246,7 @@ proof -
   have [simp]:
     \<open>rev (cons_trail_Decided L M) = rev M @ [Decided L]\<close>
     \<open>no_dup (cons_trail_Decided L M) = no_dup (Decided L # M)\<close>
-    \<open>isa_vmtf \<A> (cons_trail_Decided L M) = isa_vmtf \<A> (Decided L # M)\<close>
+    \<open>bump_heur \<A> (cons_trail_Decided L M) = bump_heur \<A> (Decided L # M)\<close>
     for M L \<A>
     by (auto simp: cons_trail_Decided_def)
 

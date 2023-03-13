@@ -12,11 +12,15 @@ theory IsaSAT_Setup
     IsaSAT_Profile
     IsaSAT_VDom
     IsaSAT_Occurence_List
+    IsaSAT_Bump_Heuristics_State
 begin
 
 chapter \<open>Complete state\<close>
 
 hide_const (open) IsaSAT_VDom.get_aivdom
+no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
+no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN NEMonad.SPEC
 
 text \<open>We here define the last step of our refinement: the step with all the heuristics and fully
   deterministic code.
@@ -53,8 +57,6 @@ lemma get_unit_learned_clss_wl_alt_def:
 
 section \<open>VMTF\<close>
 
-type_synonym (in -) isa_vmtf_remove_int = \<open>vmtf \<times> (nat list \<times> bool list)\<close>
-
 type_synonym out_learned = \<open>nat clause_l\<close>
 
 
@@ -79,7 +81,7 @@ paragraph \<open>Definition\<close>
 
 
 type_synonym isasat = \<open>(trail_pol, arena,
-      conflict_option_rel, nat, (nat watcher) list list, isa_vmtf_remove_int,
+      conflict_option_rel, nat, (nat watcher) list list, bump_heuristics,
       nat, conflict_min_cach_l, lbd, out_learned, isasat_stats, isasat_restart_heuristics,
      isasat_aivdom, clss_size, opts, arena, occurences_ref) tuple17\<close>
 
@@ -108,7 +110,7 @@ abbreviation literals_to_update_wl_heur :: \<open>isasat \<Rightarrow> nat\<clos
 abbreviation get_watched_wl_heur :: \<open>isasat \<Rightarrow> (nat watcher) list list\<close> where
   \<open>get_watched_wl_heur \<equiv> Tuple17_get_e\<close>
 
-abbreviation get_vmtf_heur :: \<open>isasat \<Rightarrow> isa_vmtf_remove_int\<close> where
+abbreviation get_vmtf_heur :: \<open>isasat \<Rightarrow> bump_heuristics\<close> where
   \<open>get_vmtf_heur \<equiv> Tuple17_get_f\<close>
 
 abbreviation get_count_max_lvls_heur :: \<open>isasat \<Rightarrow> nat\<close> where
@@ -159,7 +161,7 @@ abbreviation set_literals_to_update_wl_heur :: \<open>nat \<Rightarrow>isasat \<
 abbreviation set_watched_wl_heur :: \<open>nat watcher list list \<Rightarrow>isasat \<Rightarrow> _\<close> where
   \<open>set_watched_wl_heur \<equiv> Tuple17.set_e\<close>
 
-abbreviation set_vmtf_wl_heur :: \<open>isa_vmtf_remove_int \<Rightarrow>isasat \<Rightarrow> _\<close> where
+abbreviation set_vmtf_wl_heur :: \<open>bump_heuristics \<Rightarrow>isasat \<Rightarrow> _\<close> where
   \<open>set_vmtf_wl_heur \<equiv> Tuple17.set_f\<close>
 
 abbreviation set_count_max_wl_heur :: \<open>nat \<Rightarrow>isasat \<Rightarrow> _\<close> where
@@ -248,25 +250,27 @@ definition cach_refinement_empty where
 
 paragraph \<open>VMTF\<close>
 
-definition isa_vmtf where
-  \<open>isa_vmtf \<A> M =
+(*
+definition bump_heur where
+  \<open>bump_heur \<A> M =
     ((Id \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>option_rel) \<times>\<^sub>f distinct_atoms_rel \<A>)\<inverse>
       `` vmtf \<A> M\<close>
 
 lemma isa_vmtfI:
   \<open>(vm, to_remove') \<in> vmtf \<A> M \<Longrightarrow> (to_remove, to_remove') \<in> distinct_atoms_rel \<A> \<Longrightarrow>
-    (vm, to_remove) \<in> isa_vmtf \<A> M\<close>
+    (vm, to_remove) \<in> bump_heur \<A> M\<close>
   by (auto simp: isa_vmtf_def Image_iff intro!: bexI[of _ \<open>(vm, to_remove')\<close>])
 
 lemma isa_vmtf_consD:
-  \<open>((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf \<A> M \<Longrightarrow>
-     ((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf \<A> (L # M)\<close>
+  \<open>((ns, m, fst_As, lst_As, next_search), remove) \<in> bump_heur \<A> M \<Longrightarrow>
+     ((ns, m, fst_As, lst_As, next_search), remove) \<in> bump_heur \<A> (L # M)\<close>
   by (auto simp: isa_vmtf_def dest: vmtf_consD)
 
 lemma isa_vmtf_consD2:
-  \<open>f \<in> isa_vmtf \<A> M \<Longrightarrow>
-     f \<in> isa_vmtf \<A> (L # M)\<close>
+  \<open>f \<in> bump_heur \<A> M \<Longrightarrow>
+     f \<in> bump_heur \<A> (L # M)\<close>
   by (auto simp: isa_vmtf_def dest: vmtf_consD)
+    *)
 
 text \<open>\<^term>\<open>vdom\<close> is an upper bound on all the address of the clauses that are used in the
 state. \<^term>\<open>avdom\<close> includes the active clauses.
@@ -294,7 +298,7 @@ definition twl_st_heur :: \<open>(isasat \<times> nat twl_st_wl) set\<close> whe
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st T)) \<and>
-    vm \<in> isa_vmtf (all_atms_st T) M \<and>
+    vm \<in> bump_heur (all_atms_st T) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_atms_st T) cach \<and>
@@ -349,7 +353,7 @@ definition twl_st_heur_loop :: \<open>(isasat \<times> nat twl_st_wl) set\<close
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st T)) \<and>
-    vm \<in> isa_vmtf (all_atms_st T) M \<and>
+    vm \<in> bump_heur (all_atms_st T) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_atms_st T) cach \<and>
@@ -427,7 +431,7 @@ where
     valid_arena N' N (set (get_vdom_aivdom vdom)) \<and>
     (D', D) \<in> option_lookup_clause_rel (all_atms_st T) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st T)) \<and>
-    vm \<in> isa_vmtf (all_atms_st T) M \<and>
+    vm \<in> bump_heur (all_atms_st T) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_atms_st T) cach \<and>
@@ -476,7 +480,7 @@ definition twl_st_heur_bt :: \<open>(isasat \<times> nat twl_st_wl) set\<close> 
     valid_arena N' N (set (get_vdom_aivdom vdom)) \<and>
     (D', None) \<in> option_lookup_clause_rel (all_atms_st T) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st T)) \<and>
-    vm \<in> isa_vmtf (all_atms_st T) M \<and>
+    vm \<in> bump_heur (all_atms_st T) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M None \<and>
     cach_refinement_empty (all_atms_st T) cach \<and>
@@ -523,7 +527,7 @@ lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
   \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
     twl_st_heur \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   unfolding get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def comp_def
-  apply (intro WB_More_Refinement.frefI nres_relI) apply refine_rcg
+  apply (intro frefI nres_relI) apply refine_rcg
   by (auto simp: twl_st_heur_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
       option_lookup_clause_rel_def Let_def
      split: option.splits prod.splits)
@@ -536,7 +540,7 @@ definition isa_count_decided_st :: \<open>isasat \<Rightarrow> nat\<close> where
 
 lemma count_decided_st_count_decided_st:
   \<open>(RETURN o isa_count_decided_st, RETURN o count_decided_st) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
-  by (intro WB_More_Refinement.frefI nres_relI)
+  by (intro frefI nres_relI)
      (auto simp: count_decided_st_def twl_st_heur_def isa_count_decided_st_def Let_def
        count_decided_trail_ref[THEN fref_to_Down_unRET_Id])
 
@@ -652,19 +656,17 @@ lemma vmtf_cong:
   by auto
 
 lemma isa_vmtf_cong:
-  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> isa_vmtf \<A> M \<Longrightarrow> L \<in> isa_vmtf \<B> M\<close>
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> bump_heur \<A> M \<Longrightarrow> L \<in> bump_heur \<B> M\<close>
   using vmtf_cong[of \<A> \<B>]  distinct_atoms_rel_cong[of \<A> \<B>]
-  apply (subst (asm) isa_vmtf_def)
-  apply (cases L)
-  by (auto intro!: isa_vmtfI)
-
+  apply (subst (asm) bump_heur_def)
+  apply (subst bump_heur_def)
+  by blast
 
 lemma option_lookup_clause_rel_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> option_lookup_clause_rel \<A> \<Longrightarrow> L \<in> option_lookup_clause_rel \<B>\<close>
   using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
   unfolding option_lookup_clause_rel_def lookup_clause_rel_def
-  apply (cases L)
-  by (auto intro!: isa_vmtfI)
+  by (cases L) auto
 
 
 lemma D\<^sub>0_cong:
@@ -723,7 +725,7 @@ lemma clause_not_marked_to_delete_rel:
     uncurry (RETURN oo clause_not_marked_to_delete)) \<in>
     [clause_not_marked_to_delete_pre]\<^sub>f
      twl_st_heur \<times>\<^sub>f nat_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
-  by (intro WB_More_Refinement.frefI nres_relI)
+  by (intro frefI nres_relI)
     (use arena_dom_status_iff in_dom_in_vdom in
       \<open>auto 5 5 simp: clause_not_marked_to_delete_def twl_st_heur_def Let_def
         clause_not_marked_to_delete_heur_def arena_dom_status_iff
@@ -1571,11 +1573,13 @@ definition end_of_rephasing_phase_st :: \<open>isasat \<Rightarrow> 64 word\<clo
 definition end_of_restart_phase_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
  \<open>end_of_restart_phase_st = (\<lambda>S. end_of_restart_phase (get_heur S))\<close>
 
-
 definition get_vmtf_heur_array where
-  \<open>get_vmtf_heur_array S = fst (fst (get_vmtf_heur S))\<close>
+  \<open>get_vmtf_heur_array S = fst (fst (if is_focused_heuristics (get_vmtf_heur S)
+  then get_focused_heuristics (get_vmtf_heur S) else get_stable_heuristics (get_vmtf_heur S)))\<close>
+
 definition get_vmtf_heur_fst where
-  \<open>get_vmtf_heur_fst S = (fst o snd o snd) (fst (get_vmtf_heur S))\<close>
+  \<open>get_vmtf_heur_fst S = (fst o snd o snd) (fst (if is_focused_heuristics (get_vmtf_heur S)
+  then get_focused_heuristics (get_vmtf_heur S) else get_stable_heuristics (get_vmtf_heur S)))\<close>
 
 definition mop_mark_added_heur_st :: \<open>_\<close> where
   \<open>mop_mark_added_heur_st L S = do {
@@ -1848,7 +1852,7 @@ proof -
       arena_is_valid_clause_idx_def)
     subgoal using valid by (auto simp: arena_is_valid_clause_idx_def)
     subgoal using valid by (auto simp: arena_is_valid_clause_vdom_def)
-    subgoal by (auto simp: RETURN_def conc_fun_RES)
+    subgoal by (auto simp: Refine_Basic.RETURN_def conc_fun_RES)
     subgoal by auto
     done
 qed
