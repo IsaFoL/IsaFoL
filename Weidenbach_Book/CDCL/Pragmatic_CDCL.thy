@@ -342,7 +342,9 @@ text \<open>
   model of the clauses. Therefore, we do not learn tautologies.
 
   E.g.: \<^term>\<open>(A \<or> B) \<and> (A \<or> C)\<close> entails the clause \<^term>\<open>(\<not>B \<or> B)\<close>, but the model containing only the
-  literal \<^term>\<open>A\<close> does not entail the latter.
+  literal \<^term>\<open>A\<close> does not entail the latter. This is also why this predicate is different from
+  the previous one: in \<^term>\<open>cdcl_resolution\<close> we can learn a tautology because we do not destroy models.
+  This is not the case in this predicate.
 
   This function has nothing to with CDCL's learn: any clause can be learned by this function,
   including the empty clause.
