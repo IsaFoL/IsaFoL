@@ -75,8 +75,8 @@ lemma switch_bump_heur:
 
 
 subsection \<open>Access Function\<close>
-definition isa_vmtf_unset :: \<open>nat \<Rightarrow> bump_heuristics \<Rightarrow> bump_heuristics\<close> where
-  \<open>isa_vmtf_unset L vm = (case vm of Tuple4 (hstable) (focused) foc a \<Rightarrow>
+definition isa_bump_unset :: \<open>nat \<Rightarrow> bump_heuristics \<Rightarrow> bump_heuristics\<close> where
+  \<open>isa_bump_unset L vm = (case vm of Tuple4 (hstable) (focused) foc a \<Rightarrow>
   Tuple4 (if \<not>foc then vmtf_unset L hstable else hstable)
     (if foc then vmtf_unset L focused else focused)
     foc a)\<close>
@@ -101,17 +101,17 @@ lemma isa_vmtf_consD:
   by (auto simp add: bump_heur_def takeWhile_append get_unit_trail_cons_if
       intro!: vmtf_consD')
 
-lemma is_focused_heuristics_isa_vmtf_unset[simp]:
-  \<open>is_focused_heuristics (isa_vmtf_unset L x) = is_focused_heuristics x\<close>
-  by (auto simp: isa_vmtf_unset_def split: bump_heuristics_splits)
+lemma is_focused_heuristics_isa_bump_unset[simp]:
+  \<open>is_focused_heuristics (isa_bump_unset L x) = is_focused_heuristics x\<close>
+  by (auto simp: isa_bump_unset_def split: bump_heuristics_splits)
 
-lemma isa_vmtf_unset_vmtf_tl:
+lemma isa_bump_unset_vmtf_tl:
   fixes M
   defines [simp]: \<open>L \<equiv> atm_of (lit_of (hd M))\<close>
   assumes vmtf: \<open>x\<in> bump_heur \<A> M\<close> and
     L_N: \<open>L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close> and [simp]: \<open>M \<noteq> []\<close> and
     nz: \<open>count_decided M > 0\<close>
-  shows \<open>isa_vmtf_unset L x \<in> bump_heur \<A> (tl M)\<close>
+  shows \<open>isa_bump_unset L x \<in> bump_heur \<A> (tl M)\<close>
 proof -
   obtain ns m fst_As lst_As next_search where
     \<open>is_focused_heuristics x \<Longrightarrow> get_focused_heuristics x = ((ns, m, fst_As, lst_As, next_search))\<close>
@@ -119,7 +119,7 @@ proof -
    by (cases \<open>get_focused_heuristics x\<close>; cases \<open>get_stable_heuristics x\<close>; cases \<open>is_focused_heuristics x\<close>) auto
   then show ?thesis
     using vmtf_unset_vmtf_tl[of ns m fst_As lst_As next_search \<A> M] nz
-      assms by (auto simp: bump_heur_def isa_vmtf_unset_def split: bump_heuristics_splits)
+      assms by (auto simp: bump_heur_def isa_bump_unset_def split: bump_heuristics_splits)
 qed
 
 end
