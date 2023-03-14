@@ -1,8 +1,10 @@
 theory IsaSAT_Backtrack_Defs
   imports IsaSAT_Setup IsaSAT_VMTF IsaSAT_Rephase_State IsaSAT_LBD
-     IsaSAT_Proofs
+    IsaSAT_Proofs
+    IsaSAT_Bump_Heuristics (*TODO: should be  _State*)
 begin
 
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 
 chapter \<open>Backtrack\<close>
 
@@ -141,7 +143,7 @@ definition propagate_bt_wl_D_heur
       ASSERT(length C > 1);
       let L' = C!1;
       ASSERT(length C \<le> uint32_max div 2 + 1);
-      vm \<leftarrow> isa_vmtf_rescore C M vm0;
+      vm \<leftarrow> isa_bump_rescore C M vm0;
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let b' = (length C = 2);
@@ -159,7 +161,7 @@ definition propagate_bt_wl_D_heur
       ASSERT(i \<noteq> DECISION_REASON);
       ASSERT(cons_trail_Propagated_tr_pre ((-L, i), M));
       M \<leftarrow> cons_trail_Propagated_tr (- L) i M;
-      vm \<leftarrow> isa_vmtf_flush_int M vm;
+      vm \<leftarrow> isa_bump_heur_flush M vm;
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       let S = set_watched_wl_heur W S\<^sub>0;
       let S = set_learned_count_wl_heur (clss_size_incr_lcount lcount) S;
@@ -190,7 +192,7 @@ definition propagate_unit_bt_wl_D_int
       let stats = get_stats_heur S;
       let lbd = get_lbd S;
       let vm0 = get_vmtf_heur S;
-      vm \<leftarrow> isa_vmtf_flush_int M vm0;
+      vm \<leftarrow> isa_bump_heur_flush M vm0;
       glue \<leftarrow> get_LBD lbd;
       lbd \<leftarrow> lbd_empty lbd;
       j \<leftarrow> mop_isa_length_trail M;

@@ -190,7 +190,7 @@ lemma update_confl_tl_wl_heur_alt_def:
       ASSERT(curry lookup_conflict_remove1_pre L (nxs) \<and> clvls \<ge> 1);
       let (nxs) = lookup_conflict_remove1 L (nxs);
       ASSERT(arena_act_pre N C);
-      vm \<leftarrow> isa_vmtf_mark_to_rescore_also_reasons_cl M N C (-L) vm;
+      vm \<leftarrow> isa_vmtf_bump_to_rescore_also_reasons_cl M N C (-L) vm;
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       let S = update_trail_wl_heur (tl_trailt_tr M) S;

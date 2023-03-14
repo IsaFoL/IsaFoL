@@ -2996,6 +2996,23 @@ lemma vmtf_change_to_remove_order':
   by (intro frefI nres_relI)
     (use in \<open>auto intro!: vmtf_change_to_remove_order\<close>)
 
+definition (in -) isa_vmtf_unset :: \<open>nat \<Rightarrow> vmtf \<Rightarrow> vmtf\<close> where
+\<open>isa_vmtf_unset = (\<lambda>L (ns, m, fst_As, lst_As, next_search).
+  (if next_search = None \<or> stamp (ns ! (the next_search)) < stamp (ns ! L)
+  then ((ns, m, fst_As, lst_As, Some L))
+  else ((ns, m, fst_As, lst_As, next_search))))\<close>
+
+definition vmtf_unset_pre where
+\<open>vmtf_unset_pre = (\<lambda>L (ns, m, fst_As, lst_As, next_search).
+  L < length ns \<and> (next_search \<noteq> None \<longrightarrow> the next_search < length ns))\<close>
+
+lemma vmtf_unset_pre_vmtf:
+  assumes
+    \<open>((ns, m, fst_As, lst_As, next_search)) \<in> vmtf \<A> M\<close> and
+    \<open>L \<in># \<A>\<close>
+  shows \<open>vmtf_unset_pre L ((ns, m, fst_As, lst_As, next_search))\<close>
+  using assms
+  by (auto simp: vmtf_def vmtf_unset_pre_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 
 subsection \<open>Phase saving\<close>
 

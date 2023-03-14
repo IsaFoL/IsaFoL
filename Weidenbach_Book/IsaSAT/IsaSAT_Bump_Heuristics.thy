@@ -392,9 +392,9 @@ definition vmtf_mark_to_rescore_also_reasons_cl
       vm
   }\<close>
 
-definition isa_vmtf_mark_to_rescore_also_reasons_cl
+definition isa_vmtf_bump_to_rescore_also_reasons_cl
   :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
-\<open>isa_vmtf_mark_to_rescore_also_reasons_cl M arena C L vm = do {
+\<open>isa_vmtf_bump_to_rescore_also_reasons_cl M arena C L vm = do {
     ASSERT(arena_is_valid_clause_idx arena C);
     nfoldli
       ([0..<arena_length arena C])
@@ -416,15 +416,15 @@ definition isa_vmtf_mark_to_rescore_also_reasons_cl
       vm
   }\<close>
 
-lemma isa_vmtf_mark_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl:
-  \<open>(uncurry4 isa_vmtf_mark_to_rescore_also_reasons_cl, uncurry4 (vmtf_mark_to_rescore_also_reasons_cl \<A>)) \<in>
+lemma isa_vmtf_bump_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl:
+  \<open>(uncurry4 isa_vmtf_bump_to_rescore_also_reasons_cl, uncurry4 (vmtf_mark_to_rescore_also_reasons_cl \<A>)) \<in>
     [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
   trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f (Id) \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
 proof -
   have H: \<open>f = g \<Longrightarrow> (f,g) \<in> Id\<close> for f g
     by auto
   show ?thesis
-    unfolding isa_vmtf_mark_to_rescore_also_reasons_cl_def vmtf_mark_to_rescore_also_reasons_cl_def
+    unfolding isa_vmtf_bump_to_rescore_also_reasons_cl_def vmtf_mark_to_rescore_also_reasons_cl_def
       uncurry_def mop_arena_lit2_def
     apply (intro frefI nres_relI)
     apply (refine_rcg nfoldli_refine[where R = \<open>Id\<close> and S = Id]

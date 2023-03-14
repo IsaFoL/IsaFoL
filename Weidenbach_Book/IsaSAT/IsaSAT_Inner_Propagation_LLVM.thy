@@ -366,7 +366,7 @@ lemma mark_conflict_to_rescore_alt_def:
       (\<lambda>(i, vm). do{
        ASSERT (i < n);
        L \<leftarrow> mop_arena_lit2 N C i;
-       vm \<leftarrow> isa_vmtf_mark_to_rescore_also_reasons_cl M N C (-L) vm;
+       vm \<leftarrow> isa_vmtf_bump_to_rescore_also_reasons_cl M N C (-L) vm;
       RETURN (i+1, vm)
      })
       (0, vm);

@@ -458,33 +458,30 @@ qed
 
 section \<open>Updates\<close>
 
-lemma isa_vmtf_mark_to_rescore_also_reasons_cl_isa_vmtf:
-  assumes \<open>(M,M')\<in>trail_pol \<A>\<close> \<open>isasat_input_bounded \<A>\<close> \<open>vm \<in> bump_heur \<A> M'\<close> and
+lemma isa_vmtf_bump_to_rescore_also_reasons_cl_isa_vmtf:
+  assumes \<open>(M,M')\<in>trail_pol \<A>\<close> \<open>isasat_input_bounded \<A>\<close> and vm: \<open>vm \<in> bump_heur \<A> M'\<close> and
     valid: \<open>valid_arena N N' vd\<close> and
     C: \<open>C \<in># dom_m N'\<close> and
     H:\<open> \<forall>L\<in>set (N' \<propto> C). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
     \<open>\<forall>L\<in>set (N' \<propto> C).
     \<forall>C. Propagated (- L) C \<in> set M' \<longrightarrow>
-     C \<noteq> 0 \<longrightarrow> C \<in># dom_m N' \<and> (\<forall>C\<in>set [C..<C + arena_length N C]. arena_lit N C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
+    C \<noteq> 0 \<longrightarrow> C \<in># dom_m N' \<and> (\<forall>C\<in>set [C..<C + arena_length N C]. arena_lit N C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close> and
+    bound: \<open>isasat_input_bounded \<A>\<close>
   shows
-    \<open>isa_vmtf_mark_to_rescore_also_reasons_cl M N C L vm \<le> RES (bump_heur \<A> M')\<close>
+    \<open>isa_vmtf_bump_to_rescore_also_reasons_cl M N C L vm \<le> RES (bump_heur \<A> M')\<close>
 proof -
-  obtain vm' where vm: \<open>(vm, vm') \<in> Id \<times>\<^sub>f distinct_atoms_rel \<A>\<close> and
-    vm': \<open>vm' \<in> vmtf \<A> M'\<close>
-    using assms(3) unfolding isa_vmtf_def
-    by auto
   show ?thesis
     apply (rule order_trans)
-    apply (rule isa_vmtf_mark_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl[
+    apply (rule isa_vmtf_bump_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl[
         where \<A> = \<A>,
         THEN fref_to_Down_curry4,
-          of  _ _  _ _ _ \<open>M'\<close> \<open>N\<close> C L vm'])
+          of  _ _  _ _ _ \<open>M'\<close> \<open>N\<close> C L vm])
    subgoal using assms by auto
-   subgoal using assms vm by auto
+   subgoal using assms by auto
    subgoal
      apply (rule order_trans)
      apply (rule ref_two_step')
-     apply (rule vmtf_mark_to_rescore_also_reasons_cl_spec[OF vm' valid C H])
+     apply (rule vmtf_mark_to_rescore_also_reasons_cl_spec[OF vm valid C bound H])
      subgoal by (auto simp: isa_vmtf_def conc_fun_RES)
      done
   done
@@ -545,7 +542,7 @@ proof -
     apply (refine_vcg WHILET_rule[where \<Phi> = \<open>\<lambda>(i,vm). vm \<in> bump_heur (all_atms_st T) (get_trail_wl T)\<close> and
       I = \<open>\<lambda>(i,vm). i \<le> length (get_clauses_wl T \<propto> C) \<and> vm \<in> bump_heur (all_atms_st T) (get_trail_wl T)\<close> and
       R = \<open>measure (\<lambda>(i,vm). length (get_clauses_wl T \<propto> C) -i)\<close>] trail bounded valid
-      isa_vmtf_mark_to_rescore_also_reasons_cl_isa_vmtf[THEN order_trans]
+      isa_vmtf_bump_to_rescore_also_reasons_cl_isa_vmtf[THEN order_trans]
       calculate_LBD_heur_st_calculate_LBD_st[where
         vdom = \<open>set (get_vdom (S))\<close> and \<A> = \<open>all_atms_st T\<close> and C'=C, unfolded calculate_LBD_st_def conc_fun_RES RETURN_def, THEN order_trans])
     subgoal using C valid unfolding arena_is_valid_clause_idx_def by auto
@@ -762,7 +759,7 @@ lemma propagate_lit_wl_heur_propagate_lit_wl:
         intro!: save_phase_heur_preI)
   subgoal for x y
     by (cases x; cases y; hypsubst)
-     (clarsimp simp add: twl_st_heur_def twl_st_heur'_def isa_vmtf_consD2
+     (clarsimp simp add: twl_st_heur_def twl_st_heur'_def isa_vmtf_consD
       op_clauses_swap_def ac_simps)
    done
 
@@ -802,7 +799,7 @@ lemma propagate_lit_wl_bin_heur_propagate_lit_wl_bin:
         intro!: save_phase_heur_preI)
   subgoal for x y
     by (cases x; cases y; hypsubst)
-     (clarsimp simp add: ac_simps twl_st_heur_def twl_st_heur'_def isa_vmtf_consD2
+     (clarsimp simp add: ac_simps twl_st_heur_def twl_st_heur'_def isa_vmtf_consD
       op_clauses_swap_def)
   done
 
