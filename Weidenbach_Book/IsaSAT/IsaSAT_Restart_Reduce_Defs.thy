@@ -1,5 +1,6 @@
 theory IsaSAT_Restart_Reduce_Defs
-imports IsaSAT_Restart_Defs
+  imports IsaSAT_Restart_Defs
+    IsaSAT_Bump_Heuristics
 begin
 
 text \<open>
@@ -7,25 +8,44 @@ text \<open>
   possible (other possibilites that are growing slower include \<^term>\<open>\<lambda>(n::nat). n >> 50\<close>).
 \<close>
 
+definition bump_get_heuristics where
+  \<open>bump_get_heuristics x = (if is_focused_heuristics x then get_focused_heuristics x else get_stable_heuristics x)\<close>
+
+definition length_focused_vmtf_array :: \<open>bump_heuristics \<Rightarrow> nat\<close> where
+  \<open>length_focused_vmtf_array x =
+  length (fst (get_focused_heuristics x))\<close>
+  
+definition focused_vmtf_array_nxt_score :: \<open>bump_heuristics \<Rightarrow> nat\<close> where
+  \<open>focused_vmtf_array_nxt_score x = fst (snd (bump_get_heuristics x))\<close>
+
 definition (in -) find_local_restart_target_level_int_inv where
-  \<open>find_local_restart_target_level_int_inv ns cs =
+  \<open>find_local_restart_target_level_int_inv bmp cs =
      (\<lambda>(brk, i). i \<le> length cs \<and> length cs < uint32_max)\<close>
+
+definition access_focused_vmtf_array where
+  \<open>access_focused_vmtf_array x i = do {
+  ASSERT (i < length (fst (bump_get_heuristics x)));
+  RETURN (fst (bump_get_heuristics x) ! i)}\<close>
+
+definition focused_vmtf_array_next where
+  \<open>focused_vmtf_array_next x =
+  fst (snd (snd (snd (bump_get_heuristics x))))\<close>
+
 
 definition find_local_restart_target_level_int
    :: \<open>trail_pol \<Rightarrow> bump_heuristics \<Rightarrow> nat nres\<close>
 where
   \<open>find_local_restart_target_level_int =
-     (\<lambda>(M, xs, lvls, reasons, k, cs) ((ns :: nat_vmtf_node list, m :: nat, fst_As::nat, lst_As::nat,
-        next_search::nat option), _). do {
-     (brk, i) \<leftarrow> WHILE\<^sub>T\<^bsup>find_local_restart_target_level_int_inv ns cs\<^esup>
-        (\<lambda>(brk, i). \<not>brk \<and> i < length_uint32_nat cs)
+     (\<lambda>(M, xs, lvls, reasons, k, cs) bmp. do {
+     let m = focused_vmtf_array_nxt_score bmp;
+     (brk, i) \<leftarrow> WHILE\<^sub>T\<^bsup>find_local_restart_target_level_int_inv bmp cs\<^esup>
+        (\<lambda>(brk, i). \<not>brk \<and> i < length cs)
         (\<lambda>(brk, i). do {
-           ASSERT(i < length cs);
            let t = (cs  ! i);
+           u \<leftarrow> access_focused_vmtf_array bmp i;
 	   ASSERT(t < length M);
 	   let L = atm_of (M ! t);
-           ASSERT(L < length ns);
-           let brk = stamp (ns ! L) < m;
+           let brk = stamp u < m;
            RETURN (brk, if brk then i else i+1)
          })
         (False, 0);
@@ -354,7 +374,7 @@ where
             (if arena_length N C > 4 then MAX_HEADER_SIZE else MIN_HEADER_SIZE) +
             arena_length N C \<le> length N0);
           ASSERT(length N = length N0);
-          ASSERT(length (get_vdom_aivdom aivdom) < length N0);
+           ASSERT(length (get_vdom_aivdom aivdom) < length N0);
           ASSERT(length (get_avdom_aivdom aivdom) < length N0);
           ASSERT(length (get_ivdom_aivdom aivdom) < length N0);
           ASSERT(length (get_tvdom_aivdom aivdom) < length N0);
@@ -385,35 +405,35 @@ where
   })\<close>
 
 definition isasat_GC_clauses_prog_wl2 where
-  \<open>isasat_GC_clauses_prog_wl2 \<equiv> (\<lambda>(ns :: (nat, nat) vmtf_node list, n) x0. do {
+  \<open>isasat_GC_clauses_prog_wl2 \<equiv> (\<lambda>(ns :: bump_heuristics) x0. do {
       (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n, x). length (fst x) = length (fst x0)\<^esup>
         (\<lambda>(n, _). n \<noteq> None)
         (\<lambda>(n, x). do {
           ASSERT(n \<noteq> None);
           let A = the n;
-          ASSERT(A < length ns);
           ASSERT(A \<le> uint32_max div 2);
           x \<leftarrow> (\<lambda>(arena\<^sub>o, arena, W). isasat_GC_clauses_prog_single_wl arena\<^sub>o arena W A) x;
-          RETURN (get_next ((ns ! A)), x)
+          n \<leftarrow>  access_focused_vmtf_array ns A;
+          RETURN (get_next n, x)
         })
-        (n, x0);
+        (Some (focused_vmtf_array_next ns), x0);
       RETURN x
     })\<close>
 
 definition isasat_GC_clauses_prog_wl :: \<open>isasat \<Rightarrow> isasat nres\<close> where
   \<open>isasat_GC_clauses_prog_wl = (\<lambda>S. do {
-    let ((ns, st, fst_As, lst_As, nxt), to_remove) = get_vmtf_heur S;
+    let vm = get_vmtf_heur S;
     let N' = get_clauses_wl_heur S;
     let W' = get_watched_wl_heur S;
     let vdom = get_aivdom S;
     let old_arena = get_old_arena S;
     ASSERT(old_arena = []);
-    (N, (N', vdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As)
+    (N, (N', vdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 vm
         (N', (old_arena, empty_aivdom vdom), W');
     let S = set_watched_wl_heur WS S;
     let S = set_clauses_wl_heur N' S;
     let S = set_old_arena_wl_heur (take 0 N) S;
-    let S = set_vmtf_wl_heur ((ns, st, fst_As, lst_As, nxt), to_remove) S;
+    let S = set_vmtf_wl_heur vm S;
     let S = set_stats_wl_heur (incr_GC (get_stats_heur S)) S;
     let S = set_aivdom_wl_heur vdom S;
     let heur = get_heur S;
@@ -421,6 +441,7 @@ definition isasat_GC_clauses_prog_wl :: \<open>isasat \<Rightarrow> isasat nres\
     let S = set_heur_wl_heur heur S;
     RETURN S
   })\<close>
+
 definition isasat_GC_clauses_pre_wl_D :: \<open>isasat \<Rightarrow> bool\<close> where
 \<open>isasat_GC_clauses_pre_wl_D S \<longleftrightarrow> (
   \<exists>T. (S, T) \<in> twl_st_heur_restart \<and> cdcl_GC_clauses_pre_wl T

@@ -265,7 +265,7 @@ lemma isa_vmtf_consD:
      ((ns, m, fst_As, lst_As, next_search), remove) \<in> bump_heur \<A> (L # M)\<close>
   by (auto simp: isa_vmtf_def dest: vmtf_consD)
 
-lemma isa_vmtf_consD2:
+lemma isa_vmtf_consD:
   \<open>f \<in> bump_heur \<A> M \<Longrightarrow>
      f \<in> bump_heur \<A> (L # M)\<close>
   by (auto simp: isa_vmtf_def dest: vmtf_consD)

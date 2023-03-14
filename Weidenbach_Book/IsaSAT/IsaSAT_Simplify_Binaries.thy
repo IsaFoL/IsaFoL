@@ -175,10 +175,10 @@ proof -
       apply normalize_goal+
       apply (drule cong[OF p(28)])+
       apply (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def valid_arena_extra_information_mark_to_delete' aivdom_inv_dec_remove_clause
-        arena_lifting isa_vmtf_consD2 all_init_atms_st_def
+        arena_lifting isa_vmtf_consD all_init_atms_st_def
       dest!: in_vdom_m_fmdropD)
       apply (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def valid_arena_extra_information_mark_to_delete' aivdom_inv_dec_remove_clause
-        arena_lifting isa_vmtf_consD2 clss_size_corr_restart_def clss_size_def learned_clss_count_def
+        arena_lifting isa_vmtf_consD clss_size_corr_restart_def clss_size_def learned_clss_count_def
       dest!: in_vdom_m_fmdropD)
       done
      done

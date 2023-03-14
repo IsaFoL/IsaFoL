@@ -840,37 +840,32 @@ proof -
       done
 
     let ?\<A> = \<open>all_init_atms_st y\<close>
-    have \<open>get_vmtf_heur S \<in> bump_heur ?\<A> (get_trail_wl y)\<close>and
+    have vm: \<open>get_vmtf_heur S \<in> bump_heur ?\<A> (get_trail_wl y)\<close> (is \<open>?vm \<in> _\<close>) and
       n_d: \<open>no_dup (get_trail_wl y)\<close>
       using Sy
       by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def
         all_init_atms_st_def get_unit_init_clss_wl_alt_def)
-    then obtain vm' where
-      vm': \<open>(get_vmtf_heur S, vm') \<in> Id \<times>\<^sub>f distinct_atoms_rel ?\<A>\<close> and
-      vm: \<open>vm' \<in> vmtf (all_init_atms_st y) (get_trail_wl y)\<close>
-      unfolding isa_vmtf_def
-      by force
 
     have find_decomp_w_ns_pre:
-      \<open>find_decomp_w_ns_pre (all_init_atms_st y) ((get_trail_wl y, 0), vm')\<close>
-      using that assms vm' vm unfolding find_decomp_w_ns_pre_def
+      \<open>find_decomp_w_ns_pre (all_init_atms_st y) ((get_trail_wl y, 0), ?vm)\<close>
+      using that assms vm unfolding find_decomp_w_ns_pre_def
       by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def
         all_init_atms_st_def get_unit_init_clss_wl_alt_def
         dest: trail_pol_literals_are_in_\<L>\<^sub>i\<^sub>n_trail)
     have 1: \<open>isa_find_decomp_wl_imp (get_trail_wl_heur S) 0 (get_vmtf_heur S) \<le>
-       \<Down> ({(M, M'). (M, M') \<in> trail_pol ?\<A> \<and> count_decided M' = 0} \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel ?\<A>))
+       \<Down> ({(M, M'). (M, M') \<in> trail_pol ?\<A> \<and> count_decided M' = 0} \<times>\<^sub>f Id)
          (find_decomp_w_ns ?\<A> (get_trail_wl y) 0 vm')\<close>
       apply (rule  order_trans)
       apply (rule isa_find_decomp_wl_imp_find_decomp_wl_imp[THEN fref_to_Down_curry2,
-        of \<open>get_trail_wl y\<close> 0 vm' _ _ _ ?\<A>])
+        of \<open>get_trail_wl y\<close> 0 ?vm _ _ _ ?\<A>])
       subgoal using that by auto
       subgoal
-        using Sy vm'
+        using Sy vm
 	by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def get_unit_init_clss_wl_alt_def
           all_init_atms_st_def)
       apply (rule order_trans, rule ref_two_step')
       apply (rule find_decomp_wl_imp_find_decomp_wl'[THEN fref_to_Down_curry2,
-        of ?\<A> \<open>get_trail_wl y\<close> 0 vm'])
+        of ?\<A> \<open>get_trail_wl y\<close> 0 ?vm])
       subgoal by (rule find_decomp_w_ns_pre)
       subgoal by auto
       subgoal
@@ -889,7 +884,7 @@ proof -
         intro!: RETURN_SPEC_refine clss_size_corr_simp simp: twl_st_heur_restart_def out_learned_def
 	    empty_Q_wl2_def twl_st_heur_restart_ana_def learned_clss_count_def
             all_init_atms_st_def
-	intro: isa_vmtfI isa_length_trail_pre dest: no_dup_appendD)
+	intro: isa_length_trail_pre dest: no_dup_appendD)
   qed
   have [simp]: \<open>clss_size_corr_restart x1a x1c x1d NEk UEk x1e x1f x1g x1h (ck, cl, cd, cm, cn) \<Longrightarrow>
     clss_size_corr_restart x1a x1c x1d NEk UEk x1e {#} x1g {#} (ck, 0, cd, 0, 0)\<close>
@@ -1248,7 +1243,7 @@ lemmas iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def =
 
 lemma iterate_over_VMTFC_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>lC:
   fixes x :: 'a
-  assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close> and
+  assumes vmtf: \<open>(ns, m, fst_As, lst_As, next_search) \<in> vmtf \<A> M\<close> and
     nempty: \<open>\<A> \<noteq> {#}\<close> \<open>isasat_input_bounded \<A>\<close> and
     II': \<open>\<And>x \<B>. set_mset \<B> \<subseteq> set_mset \<A> \<Longrightarrow> I' \<B> x \<Longrightarrow> I x\<close> and
     \<open>\<And>x. I x \<Longrightarrow> P x = Q x\<close>
@@ -1258,7 +1253,7 @@ proof -
     vmtf_ns: \<open>vmtf_ns (ys' @ xs') m ns\<close> and
     \<open>fst_As = hd (ys' @ xs')\<close> and
     \<open>lst_As = last (ys' @ xs')\<close> and
-    vmtf_\<L>: \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> M ((set xs', set ys'), to_remove)\<close> and
+    vmtf_\<L>: \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> M (set xs', set ys')\<close> and
     fst_As: \<open>fst_As = hd (ys' @ xs')\<close> and
     le: \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>). L < length ns\<close>
     using vmtf unfolding vmtf_def
@@ -1446,7 +1441,7 @@ qed
 
 lemma iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l:
   fixes x :: 'a
-  assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close> and
+  assumes vmtf: \<open>(ns, m, fst_As, lst_As, next_search) \<in> vmtf \<A> M\<close> and
     nempty: \<open>\<A> \<noteq> {#}\<close> \<open>isasat_input_bounded \<A>\<close> \<open>\<And>x \<B>. set_mset \<B> \<subseteq> set_mset \<A> \<Longrightarrow> I' \<B> x \<Longrightarrow> I x\<close>
   shows \<open>iterate_over_VMTF f I (ns, Some fst_As) x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l f \<A> I' x)\<close>
   unfolding iterate_over_VMTF_alt_def iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def

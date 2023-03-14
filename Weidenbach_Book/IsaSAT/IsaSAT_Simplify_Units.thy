@@ -925,7 +925,7 @@ proof -
          prod_rel_iff TrueI refl accessors_def
        cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev x1)), x2k)\<close>
-       \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2 clss_size_corr_restart_def
+       \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD clss_size_corr_restart_def
         clss_size_def clss_size_incr_lcountUEk_def learned_clss_count_def aivdom_inv_dec_mono empty_occs_list_cong[of  \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>]
         clss_size_decr_lcount_def)
       (auto split: if_splits intro: aivdom_inv_dec_mono simp:
@@ -940,7 +940,7 @@ proof -
        isasat_state_simp prod_rel_iff TrueI refl accessors_def
        cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev x1)), x2k)\<close>
-       \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2
+       \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD
        clss_size_def clss_size_incr_lcountUE_def clss_size_incr_lcountUS_def
        clss_size_incr_lcountU0_def
        clss_size_decr_lcount_def clss_size_corr_restart_def empty_occs_list_cong[of  \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>]
@@ -961,7 +961,7 @@ proof -
        prod_rel_iff TrueI refl accessors_def isasat_state_simp empty_occs_list_cong[of  \<open>all_init_atms_st (_, _, _, _, _, _, _,(If _ _ _) _, _)\<close>]
        cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev x1)), x2k)\<close>
-       \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2
+       \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD
        clss_size_def clss_size_incr_lcountUE_def clss_size_incr_lcountUS_def
        clss_size_incr_lcountU0_def aivdom_inv_dec_mono
        clss_size_decr_lcount_def clss_size_corr_restart_def

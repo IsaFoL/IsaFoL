@@ -252,7 +252,7 @@ proof -
        D\<^sub>0_cong[THEN H]
        lookup_clause_rel_cong
        map_fun_rel_D\<^sub>0_cong
-       isa_vmtf_cong[THEN isa_vmtf_consD2]
+       isa_vmtf_cong[THEN isa_vmtf_consD]
        isasat_input_nempty_cong[THEN iffD1]
        isasat_input_bounded_cong[THEN iffD1]
     note subst = empty_occs_list_cong
