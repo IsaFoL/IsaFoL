@@ -8,9 +8,9 @@ chapter \<open>Decision heuristic\<close>
 section \<open>Code generation for the VMTF decision heuristic and the trail\<close>
 type_synonym (in -) isa_vmtf_remove_int = \<open>vmtf \<times> (nat list \<times> bool list)\<close>
 
-definition update_next_search where
-  \<open>update_next_search L = (\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove).
-    ((ns, m, fst_As, lst_As, L), to_remove))\<close>
+definition update_next_search :: \<open>nat option \<Rightarrow> vmtf \<Rightarrow> vmtf\<close> where
+  \<open>update_next_search L = (\<lambda>(ns, m, fst_As, lst_As, next_search).
+    ((ns, m, fst_As, lst_As, L)))\<close>
 
 definition vmtf_enqueue_pre where
   \<open>vmtf_enqueue_pre =
