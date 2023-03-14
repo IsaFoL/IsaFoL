@@ -1044,6 +1044,13 @@ proof -
     unfolding vmtf_def by fast
 qed
 
+
+lemma vmtf_consD':
+  assumes vmtf: \<open>x \<in> vmtf \<A> M\<close>
+  shows \<open>x \<in> vmtf \<A> (L # M)\<close>
+  using vmtf_consD
+  by (metis prod_cases5 vmtf) 
+
 type_synonym (in -) vmtf_option_fst_As = \<open>nat_vmtf_node list \<times> nat \<times> nat option \<times> nat option \<times> nat option\<close>
 
 definition (in -) vmtf_dequeue :: \<open>nat \<Rightarrow> vmtf \<Rightarrow> vmtf_option_fst_As\<close> where

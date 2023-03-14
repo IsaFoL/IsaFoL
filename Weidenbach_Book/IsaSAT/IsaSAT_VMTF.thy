@@ -312,108 +312,118 @@ proof -
     using that unfolding vmtf_reorder_list_def by (cases x2)
       (auto intro!: ASSERT_leI simp: reorder_list_def vmtf_reorder_list_raw_def)
 
-  have vmtf_rescale: \<open>vmtf_rescale x1d
-	\<le> \<Down> Id
-	   (vmtf_rescale x1a)\<close>
+  have vmtf_rescale: \<open>vmtf_rescale x2c
+      \<le> \<Down> Id
+          (vmtf_rescale x2)\<close>
     if
-      \<open>True\<close> and
-      \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id\<close> and    \<open>x2a = (x1b, x2b)\<close> and
-      \<open>x2 = (x1a, x2a)\<close> and
-      \<open>y = (x1, x2)\<close> and
+      \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id\<close> and
+      \<open>x1 = (x1a, x2)\<close> and
+      \<open>x2a = (x1b, x2b)\<close> and
+      \<open>y = (x1, x2a)\<close> and
+      \<open>x1c = (x1d, x2c)\<close> and
       \<open>x2d = (x1e, x2e)\<close> and
-      \<open>x2c = (x1d, x2d)\<close> and
-      \<open>x = (x1c, x2c)\<close> and
-      \<open>\<forall>x\<in>set x1b. x < length (fst x1a)\<close> and
+      \<open>x = (x1c, x2d)\<close> and
+      \<open>\<forall>x\<in>set x1b. x < length (fst x2)\<close> and
       \<open>length x1b \<le> uint32_max\<close> and
-      \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
+      \<open>\<forall>x\<in>set x1e. x < length (fst x2c)\<close> and
       \<open>length x1e \<le> uint32_max\<close> and
       \<open>(to_remove', to_remove'a) \<in> Id\<close> and
       \<open>length to_remove'a \<le> uint32_max\<close> and
       \<open>length to_remove' \<le> uint32_max\<close> and
-      \<open>uint64_max \<le> length to_remove'a + fst (snd x1a)\<close>
-    for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e to_remove' to_remove'a
+      \<open>uint64_max - fst (snd x2c) \<le> length to_remove'\<close> and
+      \<open>uint64_max \<le> length to_remove'a + fst (snd x2)\<close>
+    for x y x1 x1a x2 x2a x1b x2b x1c x1d x2c x2d x1e x2e
+      to_remove' to_remove'a
     using that by auto
-
-  have loop_rel: \<open>((0, vm, x2e), 0, vma, x2b) \<in> Id\<close>
-    if
-      \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id\<close> and
+  have loop_rel: \<open>((0, vm, x2e), 0, vma, x2b)
+      \<in> Id\<close>
+    if 
+      True and
+      \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id\<close> and
+      \<open>x1 = (x1a, x2)\<close> and
       \<open>x2a = (x1b, x2b)\<close> and
-      \<open>x2 = (x1a, x2a)\<close> and
-      \<open>y = (x1, x2)\<close> and
+      \<open>y = (x1, x2a)\<close> and
+      \<open>x1c = (x1d, x2c)\<close> and
       \<open>x2d = (x1e, x2e)\<close> and
-      \<open>x2c = (x1d, x2d)\<close> and
-      \<open>x = (x1c, x2c)\<close> and
-      \<open>\<forall>x\<in>set x1b. x < length (fst x1a)\<close> and
+      \<open>x = (x1c, x2d)\<close> and
+      \<open>\<forall>x\<in>set x1b. x < length (fst x2)\<close> and
       \<open>length x1b \<le> uint32_max\<close> and
-      \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
+      \<open>\<forall>x\<in>set x1e. x < length (fst x2c)\<close> and
       \<open>length x1e \<le> uint32_max\<close> and
       \<open>(to_remove', to_remove'a) \<in> Id\<close> and
       \<open>length to_remove'a \<le> uint32_max\<close> and
       \<open>length to_remove' \<le> uint32_max\<close> and
       \<open>(vm, vma) \<in> Id\<close> and
-      \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close>
+      \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close> and
+      \<open>length to_remove' + fst (snd vm) \<le> uint64_max\<close> and
       \<open>case (0, vma, x2b) of
-       (i, vm', h) \<Rightarrow>
-	 i \<le> length to_remove'a \<and>
-	 fst (snd vm') = i + fst (snd vma) \<and>
-	 (i < length to_remove'a \<longrightarrow>
-	  vmtf_en_dequeue_pre \<A> ((x1, to_remove'a ! i), vm'))\<close>
-    for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e to_remove' to_remove'a vm
-       vma
+     (i, vm', h) \<Rightarrow>
+       i \<le> length to_remove'a \<and>
+       fst (snd vm') = i + fst (snd vma) \<and>
+       (i < length to_remove'a \<longrightarrow>
+        vmtf_en_dequeue_pre \<A> ((x1a, to_remove'a ! i), vm'))\<close>
+    for x y x1 x1a x2 x2a x1b x2b x1c x1d x2c x2d x1e x2e
+      to_remove' to_remove'a vm vma
     using that by auto
+
   have isa_vmtf_en_dequeue_pre:
     \<open>vmtf_en_dequeue_pre \<A> ((M, L), x) \<Longrightarrow> isa_vmtf_en_dequeue_pre ((M', L), x)\<close> for x M M' L
     unfolding vmtf_en_dequeue_pre_def isa_vmtf_en_dequeue_pre_def
     by auto
-  have isa_vmtf_en_dequeue: \<open>isa_vmtf_en_dequeue x1c (to_remove' ! x1h) x1i
-       \<le> SPEC
-	  (\<lambda>c. (c, vmtf_en_dequeue x1 (to_remove'a ! x1f) x1g)
-	       \<in> Id)\<close>
-   if
-     \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id\<close> and
-     \<open>\<forall>x\<in>set x1b. x < length (fst x1a)\<close> and
-     \<open>length x1b \<le> uint32_max\<close> and
-     \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
-     \<open>length x1e \<le> uint32_max\<close> and
-     \<open>length to_remove'a \<le> uint32_max\<close> and
-     \<open>length to_remove' \<le> uint32_max\<close> and
-     \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close> and
-     \<open>case xa of (i, vm, h) \<Rightarrow> i < length to_remove'\<close> and
-     \<open>case x' of (i, vm, h) \<Rightarrow> i < length to_remove'a\<close> and
-     \<open>case xa of
-      (i, vm', h) \<Rightarrow>
-	i \<le> length to_remove' \<and>
-	fst (snd vm') = i + fst (snd vm) \<and>
-	(i < length to_remove' \<longrightarrow>
-	 isa_vmtf_en_dequeue_pre ((x1c, to_remove' ! i), vm'))\<close> and
-     \<open>case x' of
-      (i, vm', h) \<Rightarrow>
-	i \<le> length to_remove'a \<and>
-	fst (snd vm') = i + fst (snd vma) \<and>
-	(i < length to_remove'a \<longrightarrow>
-	 vmtf_en_dequeue_pre \<A> ((x1, to_remove'a ! i), vm'))\<close> and
-     \<open>isa_vmtf_en_dequeue_pre ((x1c, to_remove' ! x1h), x1i)\<close> and
-     \<open>x1f < length to_remove'a\<close> and
-     \<open>to_remove'a ! x1f \<in># \<A>\<close> and
-     \<open>x1h < length to_remove'\<close> and
-     \<open>x2a = (x1b, x2b)\<close> and
-     \<open>x2 = (x1a, x2a)\<close> and
-     \<open>y = (x1, x2)\<close> and
-     \<open>x = (x1c, x2c)\<close>  and
-     \<open>x2d = (x1e, x2e)\<close> and
-     \<open>x2c = (x1d, x2d)\<close> and
-     \<open>x2f = (x1g, x2g)\<close> and
-     \<open>x' = (x1f, x2f)\<close> and
-     \<open>x2h = (x1i, x2i)\<close> and
-     \<open>xa = (x1h, x2h)\<close> and
-     \<open>(to_remove', to_remove'a) \<in> Id\<close> and
-     \<open>(xa, x') \<in> Id\<close> and
-     \<open>(vm, vma) \<in> Id\<close>
-   for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e to_remove' to_remove'a vm
-       vma xa x' x1f x2f x1g x2g x1h x2h x1i and x2i :: \<open>bool list\<close>
-  using isa_vmtf_en_dequeue[of \<A>, THEN fref_to_Down_curry2, of x1 \<open>to_remove'a ! x1f\<close> x1g
-     x1c \<open>to_remove' ! x1h\<close> x1i] that
-  by (auto simp: RETURN_def)
+
+  have isa_vmtf_en_dequeue:
+    \<open>isa_vmtf_en_dequeue x1d (to_remove' ! x1h) x1i
+      \<le> Refine_Basic.SPEC
+          (\<lambda>c. (c, vmtf_en_dequeue x1a (to_remove'a ! x1f) x1g)
+               \<in> Id)\<close>
+    if
+      \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id\<close> and
+      \<open>x1 = (x1a, x2)\<close> and
+      \<open>x2a = (x1b, x2b)\<close> and
+      \<open>y = (x1, x2a)\<close> and
+      \<open>x1c = (x1d, x2c)\<close> and
+      \<open>x2d = (x1e, x2e)\<close> and
+      \<open>x = (x1c, x2d)\<close> and
+      \<open>\<forall>x\<in>set x1b. x < length (fst x2)\<close> and
+      \<open>length x1b \<le> uint32_max\<close> and
+      \<open>\<forall>x\<in>set x1e. x < length (fst x2c)\<close> and
+      \<open>length x1e \<le> uint32_max\<close> and
+      \<open>(to_remove', to_remove'a) \<in> Id\<close> and
+      \<open>length to_remove'a \<le> uint32_max\<close> and
+      \<open>length to_remove' \<le> uint32_max\<close> and
+      \<open>(vm, vma) \<in> Id\<close> and
+      \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close> and
+      \<open>length to_remove' + fst (snd vm) \<le> uint64_max\<close> and
+      \<open>(xa, x') \<in> Id\<close> and
+      \<open>case xa of (i, vm, h) \<Rightarrow> i < length to_remove'\<close> and
+      \<open>case x' of (i, vm, h) \<Rightarrow> i < length to_remove'a\<close> and
+      \<open>case xa of
+     (i, vm', h) \<Rightarrow>
+       i \<le> length to_remove' \<and>
+       fst (snd vm') = i + fst (snd vm) \<and>
+       (i < length to_remove' \<longrightarrow>
+        isa_vmtf_en_dequeue_pre ((x1d, to_remove' ! i), vm'))\<close> and
+      \<open>case x' of
+     (i, vm', h) \<Rightarrow>
+       i \<le> length to_remove'a \<and>
+       fst (snd vm') = i + fst (snd vma) \<and>
+       (i < length to_remove'a \<longrightarrow>
+        vmtf_en_dequeue_pre \<A> ((x1a, to_remove'a ! i), vm'))\<close> and
+      \<open>x2f = (x1g, x2g)\<close> and
+      \<open>x' = (x1f, x2f)\<close> and
+      \<open>x2h = (x1i, x2i)\<close> and
+      \<open>xa = (x1h, x2h)\<close> and
+      \<open>x1f < length to_remove'a\<close> and
+      \<open>to_remove'a ! x1f \<in># \<A>\<close> and
+      \<open>atoms_hash_del_pre (to_remove'a ! x1f) x2g\<close> and
+      \<open>x1h < length to_remove'\<close> and
+      \<open>isa_vmtf_en_dequeue_pre ((x1d, to_remove' ! x1h), x1i)\<close>
+    for x y x1 x1a x2 x2a x1b x2b x1c x1d x2c x2d x1e
+      x2e to_remove' to_remove'a vm vma xa x' x1f x2f x1g
+      x2g x1h x2h x1i x2i
+    using isa_vmtf_en_dequeue[of \<A>, THEN fref_to_Down_curry2, of x1a \<open>to_remove'a ! x1f\<close> x1g
+        x1d \<open>to_remove' ! x1h\<close> x1i] that
+    by (auto simp: RETURN_def)
 
   show ?thesis
    unfolding isa_vmtf_flush_int_def uncurry_def vmtf_flush_int_alt_def
@@ -507,62 +517,63 @@ definition (in -) atoms_hash_set_member where
 
 
 definition isa_vmtf_mark_to_rescore
-  :: \<open>nat \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> isa_vmtf_remove_int\<close>
+  :: \<open>nat \<Rightarrow> vmtf \<Rightarrow> _ \<Rightarrow> isa_vmtf_remove_int\<close>
 where
-  \<open>isa_vmtf_mark_to_rescore L = (\<lambda>((ns, m, fst_As, next_search), to_remove).
+  \<open>isa_vmtf_mark_to_rescore L = (\<lambda>(ns, m, fst_As, next_search) to_remove.
      ((ns, m, fst_As, next_search), atoms_hash_insert L to_remove))\<close>
 
 definition isa_vmtf_mark_to_rescore_pre where
   \<open>isa_vmtf_mark_to_rescore_pre = (\<lambda>L ((ns, m, fst_As, next_search), to_remove).
      atms_hash_insert_pre L to_remove)\<close>
 
+(*
 lemma isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore:
-  \<open>(uncurry (RETURN oo isa_vmtf_mark_to_rescore), uncurry (RETURN oo vmtf_mark_to_rescore)) \<in>
+  \<open>(uncurry2 (RETURN oo isa_vmtf_mark_to_rescore), uncurry (RETURN oo vmtf_mark_to_rescore)) \<in>
       [\<lambda>(L, vm). L\<in># \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f Id \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>\<^sub>i\<^sub>n) \<rightarrow>
       \<langle>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
   unfolding isa_vmtf_mark_to_rescore_def vmtf_mark_to_rescore_def
   by (intro frefI nres_relI)
     (auto intro!: atoms_hash_del_op_set_insert[THEN fref_to_Down_unRET_uncurry])
-
-definition (in -) isa_vmtf_unset :: \<open>nat \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> isa_vmtf_remove_int\<close> where
-\<open>isa_vmtf_unset = (\<lambda>L ((ns, m, fst_As, lst_As, next_search), to_remove).
+*)
+definition (in -) isa_vmtf_unset :: \<open>nat \<Rightarrow> vmtf \<Rightarrow> vmtf\<close> where
+\<open>isa_vmtf_unset = (\<lambda>L (ns, m, fst_As, lst_As, next_search).
   (if next_search = None \<or> stamp (ns ! (the next_search)) < stamp (ns ! L)
-  then ((ns, m, fst_As, lst_As, Some L), to_remove)
-  else ((ns, m, fst_As, lst_As, next_search), to_remove)))\<close>
+  then ((ns, m, fst_As, lst_As, Some L))
+  else ((ns, m, fst_As, lst_As, next_search))))\<close>
 
 definition vmtf_unset_pre where
-\<open>vmtf_unset_pre = (\<lambda>L ((ns, m, fst_As, lst_As, next_search), to_remove).
+\<open>vmtf_unset_pre = (\<lambda>L (ns, m, fst_As, lst_As, next_search).
   L < length ns \<and> (next_search \<noteq> None \<longrightarrow> the next_search < length ns))\<close>
 
 lemma vmtf_unset_pre_vmtf:
   assumes
-    \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close> and
+    \<open>((ns, m, fst_As, lst_As, next_search)) \<in> vmtf \<A> M\<close> and
     \<open>L \<in># \<A>\<close>
-  shows \<open>vmtf_unset_pre L ((ns, m, fst_As, lst_As, next_search), to_remove)\<close>
+  shows \<open>vmtf_unset_pre L ((ns, m, fst_As, lst_As, next_search))\<close>
   using assms
   by (auto simp: vmtf_def vmtf_unset_pre_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 
 definition isa_vmtf where
   \<open>isa_vmtf \<A> M =
-     ((Id \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>option_rel) \<times>\<^sub>f distinct_atoms_rel \<A>)\<inverse>
+     ((Id \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>option_rel))\<inverse>
        `` vmtf \<A> M\<close>
 
 lemma vmtf_unset_pre:
   assumes
-    \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> isa_vmtf \<A> M\<close> and
+    \<open>((ns, m, fst_As, lst_As, next_search)) \<in> isa_vmtf \<A> M\<close> and
     \<open>L \<in># \<A>\<close>
-  shows \<open>vmtf_unset_pre L ((ns, m, fst_As, lst_As, next_search), to_remove)\<close>
-  using assms vmtf_unset_pre_vmtf[of ns m fst_As lst_As next_search _ \<A> M L]
+  shows \<open>vmtf_unset_pre L ((ns, m, fst_As, lst_As, next_search))\<close>
+  using assms vmtf_unset_pre_vmtf[of ns m fst_As lst_As next_search \<A> M L]
   unfolding isa_vmtf_def vmtf_unset_pre_def
   by auto
-
+(*
 lemma vmtf_unset_pre':
   assumes
     \<open>vm \<in> vmtf \<A> M\<close> and
     \<open>L \<in># \<A>\<close>
   shows \<open>vmtf_unset_pre L vm\<close>
   using assms by (cases vm) (auto dest: vmtf_unset_pre)
-
+*)
 (*
 definition isa_vmtf_mark_to_rescore_and_unset :: \<open>nat \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> isa_vmtf_remove_int\<close>
 where
@@ -582,16 +593,16 @@ lemma size_conflict_int_size_conflict:
       lookup_clause_rel_def)
 
 definition rescore_clause
-  :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat)ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
-    (vmtf_remove_int) nres\<close>
+  :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat)ann_lits \<Rightarrow> vmtf \<Rightarrow>
+    vmtf nres\<close>
 where
   \<open>rescore_clause \<A> C M vm = SPEC (\<lambda>(vm'). vm' \<in> vmtf \<A> M)\<close>
 
 
 lemma isa_vmtf_unset_vmtf_unset:
   \<open>(uncurry (RETURN oo isa_vmtf_unset), uncurry (RETURN oo vmtf_unset)) \<in>
-     nat_rel \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<rightarrow>\<^sub>f
-     \<langle>(Id \<times>\<^sub>r distinct_atoms_rel \<A>)\<rangle>nres_rel\<close>
+     nat_rel \<times>\<^sub>f (Id) \<rightarrow>\<^sub>f
+     \<langle>(Id)\<rangle>nres_rel\<close>
   unfolding vmtf_unset_def isa_vmtf_unset_def uncurry_def
   by (intro frefI nres_relI) auto
 
@@ -601,16 +612,16 @@ lemma isa_vmtf_unset_isa_vmtf:
 proof -
   obtain vm0 to_remove to_remove' where
     vm: \<open>vm = (vm0, to_remove)\<close> and
-    vm0: \<open>(vm0, to_remove') \<in> vmtf \<A> M\<close> and
-    \<open>(to_remove, to_remove') \<in> distinct_atoms_rel \<A>\<close>
+    vm0: \<open>(vm0, to_remove') \<in> vmtf \<A> M\<close>
     using assms by (cases vm) (auto simp: isa_vmtf_def)
 
   then show ?thesis
     using assms
-      isa_vmtf_unset_vmtf_unset[of \<A>, THEN fref_to_Down_unRET_uncurry, of L vm L \<open>(vm0, to_remove')\<close>]
-      abs_vmtf_ns_unset_vmtf_unset[of \<open>fst vm0\<close> \<open>fst (snd vm0)\<close>  \<open>fst (snd (snd vm0))\<close>
-         \<open>fst (snd (snd (snd vm0)))\<close> \<open>snd (snd (snd (snd vm0)))\<close> to_remove' \<A> M L to_remove']
-    by (auto simp: vm atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n intro: isa_vmtfI elim!: prod_relE)
+      isa_vmtf_unset_vmtf_unset[THEN fref_to_Down_unRET_uncurry, of L vm L vm]
+    using
+      abs_vmtf_ns_unset_vmtf_unset[of \<open>fst vm\<close> \<open>fst (snd vm)\<close>  \<open>fst (snd (snd vm))\<close>
+         \<open>fst (snd (snd (snd vm)))\<close> \<open>snd (snd (snd (snd vm)))\<close> \<A> M L]
+    by (auto simp: vm atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n intro: elim!: prod_relE)
 qed
 
 lemma isa_vmtf_tl_isa_vmtf:
@@ -621,23 +632,20 @@ proof -
   let ?L = \<open>atm_of (lit_of (hd M))\<close>
   obtain vm0 to_remove to_remove' where
     vm: \<open>vm = (vm0, to_remove)\<close> and
-    vm0: \<open>(vm0, to_remove') \<in> vmtf \<A> M\<close> and
-    \<open>(to_remove, to_remove') \<in> distinct_atoms_rel \<A>\<close>
+    vm0: \<open>(vm0, to_remove') \<in> vmtf \<A> M\<close>
     using assms by (cases vm) (auto simp: isa_vmtf_def)
 
   then show ?thesis
     using assms
-      isa_vmtf_unset_vmtf_unset[of \<A>, THEN fref_to_Down_unRET_uncurry, of ?L vm ?L \<open>(vm0, to_remove')\<close>]
-      vmtf_unset_vmtf_tl[of \<open>fst vm0\<close> \<open>fst (snd vm0)\<close>  \<open>fst (snd (snd vm0))\<close>
-         \<open>fst (snd (snd (snd vm0)))\<close> \<open>snd (snd (snd (snd vm0)))\<close> to_remove' \<A> M]
+      isa_vmtf_unset_vmtf_unset[THEN fref_to_Down_unRET_uncurry, of ?L vm ?L vm]
+    using vmtf_unset_vmtf_tl[of \<open>fst vm\<close> \<open>fst (snd vm)\<close>  \<open>fst (snd (snd vm))\<close>
+         \<open>fst (snd (snd (snd vm)))\<close> \<open>snd (snd (snd (snd vm)))\<close> \<A> M]
     by (cases M)
-     (auto simp: vm atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n intro: isa_vmtfI elim!: prod_relE)
+     (auto simp: vm atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n elim!: prod_relE)
 qed
 
-
-
-definition isa_vmtf_find_next_undef :: \<open>isa_vmtf_remove_int \<Rightarrow> trail_pol \<Rightarrow> (nat option) nres\<close> where
-\<open>isa_vmtf_find_next_undef = (\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove) M. do {
+definition isa_vmtf_find_next_undef :: \<open>vmtf \<Rightarrow> trail_pol \<Rightarrow> (nat option) nres\<close> where
+\<open>isa_vmtf_find_next_undef = (\<lambda>(ns, m, fst_As, lst_As, next_search) M. do {
     WHILE\<^sub>T\<^bsup>\<lambda>next_search. next_search \<noteq> None \<longrightarrow> defined_atm_pol_pre M (the next_search)\<^esup>
       (\<lambda>next_search. next_search \<noteq> None \<and> defined_atm_pol M (the next_search))
       (\<lambda>next_search. do {
@@ -650,9 +658,10 @@ definition isa_vmtf_find_next_undef :: \<open>isa_vmtf_remove_int \<Rightarrow> 
       next_search
   })\<close>
 
+
 lemma isa_vmtf_find_next_undef_vmtf_find_next_undef:
   \<open>(uncurry isa_vmtf_find_next_undef, uncurry (vmtf_find_next_undef \<A>)) \<in>
-      (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<times>\<^sub>r trail_pol \<A>  \<rightarrow>\<^sub>f \<langle>\<langle>nat_rel\<rangle>option_rel\<rangle>nres_rel \<close>
+      Id \<times>\<^sub>r trail_pol \<A>  \<rightarrow>\<^sub>f \<langle>\<langle>nat_rel\<rangle>option_rel\<rangle>nres_rel \<close>
   unfolding isa_vmtf_find_next_undef_def vmtf_find_next_undef_def uncurry_def
     defined_atm_def[symmetric]
   apply (intro frefI nres_relI)
@@ -666,454 +675,6 @@ lemma isa_vmtf_find_next_undef_vmtf_find_next_undef:
   subgoal by auto
   done
 
-
-section \<open>Bumping\<close>
-
-definition vmtf_rescore_body
- :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
-    (nat \<times> vmtf_remove_int) nres\<close>
-where
-  \<open>vmtf_rescore_body \<A>\<^sub>i\<^sub>n C _ vm = do {
-         WHILE\<^sub>T\<^bsup>\<lambda>(i, vm). i \<le> length C  \<and>
-            (\<forall>c \<in> set C. atm_of c < length (fst (fst vm)))\<^esup>
-           (\<lambda>(i, vm). i < length C)
-           (\<lambda>(i, vm). do {
-               ASSERT(i < length C);
-               ASSERT(atm_of (C!i) \<in># \<A>\<^sub>i\<^sub>n);
-               let vm' = vmtf_mark_to_rescore (atm_of (C!i)) vm;
-               RETURN(i+1, vm')
-             })
-           (0, vm)
-    }\<close>
-
-definition vmtf_rescore
- :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
-       (vmtf_remove_int) nres\<close>
-where
-  \<open>vmtf_rescore \<A>\<^sub>i\<^sub>n C M vm = do {
-      (_, vm) \<leftarrow> vmtf_rescore_body \<A>\<^sub>i\<^sub>n C M vm;
-      RETURN (vm)
-   }\<close>
-
-find_theorems isa_vmtf_mark_to_rescore
-
-definition isa_vmtf_rescore_body
- :: \<open>nat clause_l \<Rightarrow> trail_pol \<Rightarrow> isa_vmtf_remove_int \<Rightarrow>
-    (nat \<times> isa_vmtf_remove_int) nres\<close>
-where
-  \<open>isa_vmtf_rescore_body C _ vm = do {
-         WHILE\<^sub>T\<^bsup>\<lambda>(i, vm). i \<le> length C  \<and>
-            (\<forall>c \<in> set C. atm_of c < length (fst (fst vm)))\<^esup>
-           (\<lambda>(i, vm). i < length C)
-           (\<lambda>(i, vm). do {
-               ASSERT(i < length C);
-               ASSERT(isa_vmtf_mark_to_rescore_pre (atm_of (C!i)) vm);
-               let vm' = isa_vmtf_mark_to_rescore (atm_of (C!i)) vm;
-               RETURN(i+1, vm')
-             })
-           (0, vm)
-    }\<close>
-
-definition isa_vmtf_rescore
- :: \<open>nat clause_l \<Rightarrow> trail_pol \<Rightarrow> isa_vmtf_remove_int \<Rightarrow>
-       (isa_vmtf_remove_int) nres\<close>
-where
-  \<open>isa_vmtf_rescore C M vm = do {
-      (_, vm) \<leftarrow> isa_vmtf_rescore_body C M vm;
-      RETURN (vm)
-    }\<close>
-
-lemma vmtf_rescore_score_clause:
-  \<open>(uncurry2 (vmtf_rescore \<A>), uncurry2 (rescore_clause \<A>)) \<in>
-     [\<lambda>((C, M), vm). literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset C) \<and> vm \<in> vmtf \<A> M]\<^sub>f
-     (\<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
-proof -
-  have H: \<open>vmtf_rescore_body \<A> C M vm \<le>
-        SPEC (\<lambda>(n :: nat, vm').  vm' \<in> vmtf \<A> M)\<close>
-    if M: \<open>vm \<in> vmtf \<A> M\<close> and C: \<open>\<forall>c\<in>set C. atm_of c \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
-    for C vm \<phi> M
-    unfolding vmtf_rescore_body_def vmtf_mark_to_rescore_def
-    apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(i, _). length C - i)\<close> and
-       I' = \<open>\<lambda>(i, vm'). vm' \<in> vmtf \<A> M\<close>])
-    subgoal by auto
-    subgoal by auto
-    subgoal using C M by (auto simp: vmtf_def phase_saving_def)
-    subgoal using C M by auto
-    subgoal using M by auto
-    subgoal using C by (auto simp: atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
-    subgoal using C by auto
-    subgoal using C by auto
-    subgoal using C by (auto simp: vmtf_append_remove_iff')
-    subgoal by auto
-    done
-  have K: \<open>((a, b),(a', b')) \<in> A \<times>\<^sub>f B \<longleftrightarrow> (a, a') \<in> A \<and> (b, b') \<in> B\<close> for a b a' b' A B
-    by auto
-  show ?thesis
-    unfolding vmtf_rescore_def rescore_clause_def uncurry_def
-    apply (intro frefI nres_relI)
-    apply clarify
-    apply (rule bind_refine_spec)
-     prefer 2
-     apply (subst (asm) K)
-     apply (rule H; auto)
-    subgoal
-      by (meson atm_of_lit_in_atms_of contra_subsetD in_all_lits_of_m_ain_atms_of_iff
-          in_multiset_in_set literals_are_in_\<L>\<^sub>i\<^sub>n_def)
-    subgoal by auto
-    done
-qed
-
-lemma isa_vmtf_rescore_body:
-  \<open>(uncurry2 (isa_vmtf_rescore_body), uncurry2 (vmtf_rescore_body \<A>)) \<in> [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
-     (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>)) \<rightarrow> \<langle>Id \<times>\<^sub>r (Id \<times>\<^sub>f distinct_atoms_rel \<A>)\<rangle> nres_rel\<close>
-proof -
-  show ?thesis
-    unfolding isa_vmtf_rescore_body_def vmtf_rescore_body_def uncurry_def
-    apply (intro frefI nres_relI)
-    apply refine_rcg
-    subgoal by auto
-    subgoal by auto
-    subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x1g x2g
-      by (cases x2g) auto
-    subgoal by auto
-    subgoal by auto
-    subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e x1g x2g
-      unfolding isa_vmtf_mark_to_rescore_pre_def
-      by (cases x2e)
-        (auto intro!: atms_hash_insert_pre)
-    subgoal
-      by (auto intro!:  isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore[THEN fref_to_Down_unRET_uncurry])
-    done
-qed
-
-lemma isa_vmtf_rescore:
-  \<open>(uncurry2 (isa_vmtf_rescore), uncurry2 (vmtf_rescore \<A>)) \<in> [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
-     (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>)) \<rightarrow> \<langle>(Id \<times>\<^sub>f distinct_atoms_rel \<A>)\<rangle> nres_rel\<close>
-proof -
-  show ?thesis
-    unfolding isa_vmtf_rescore_def vmtf_rescore_def uncurry_def
-    apply (intro frefI nres_relI)
-    apply (refine_rcg isa_vmtf_rescore_body[THEN fref_to_Down_curry2])
-    subgoal by auto
-    subgoal by auto
-    done
-qed
-
-
-(* TODO use in vmtf_mark_to_rescore_and_unset *)
-
-definition vmtf_mark_to_rescore_clause where
-\<open>vmtf_mark_to_rescore_clause \<A>\<^sub>i\<^sub>n arena C vm = do {
-    ASSERT(arena_is_valid_clause_idx arena C);
-    nfoldli
-      ([C..<C + (arena_length arena C)])
-      (\<lambda>_. True)
-      (\<lambda>i vm. do {
-        ASSERT(i < length arena);
-        ASSERT(arena_lit_pre arena i);
-        ASSERT(atm_of (arena_lit arena i) \<in># \<A>\<^sub>i\<^sub>n);
-        RETURN (vmtf_mark_to_rescore (atm_of (arena_lit arena i)) vm)
-      })
-      vm
-  }\<close>
-
-definition isa_vmtf_mark_to_rescore_clause where
-\<open>isa_vmtf_mark_to_rescore_clause arena C vm = do {
-    ASSERT(arena_is_valid_clause_idx arena C);
-    nfoldli
-      ([C..<C + (arena_length arena C)])
-      (\<lambda>_. True)
-      (\<lambda>i vm. do {
-        ASSERT(i < length arena);
-        ASSERT(arena_lit_pre arena i);
-        ASSERT(isa_vmtf_mark_to_rescore_pre (atm_of (arena_lit arena i)) vm);
-        RETURN (isa_vmtf_mark_to_rescore (atm_of (arena_lit arena i)) vm)
-      })
-      vm
-  }\<close>
-
-lemma isa_vmtf_mark_to_rescore_clause_vmtf_mark_to_rescore_clause:
-  \<open>(uncurry2 isa_vmtf_mark_to_rescore_clause, uncurry2 (vmtf_mark_to_rescore_clause \<A>)) \<in> [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
-    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<rightarrow> \<langle>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<rangle>nres_rel\<close>
-  unfolding isa_vmtf_mark_to_rescore_clause_def vmtf_mark_to_rescore_clause_def
-    uncurry_def
-  apply (intro frefI nres_relI)
-  apply (refine_rcg nfoldli_refine[where R = \<open>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<close> and S = Id])
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal for x y x1 x1a x2 x2a x1b x1c x2b x2c xi xa si s
-    by (cases s)
-      (auto simp: isa_vmtf_mark_to_rescore_pre_def
-        intro!: atms_hash_insert_pre)
-  subgoal
-    by (rule isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore[THEN fref_to_Down_unRET_uncurry])
-     auto
-  done
-
-
-lemma vmtf_mark_to_rescore_clause_spec:
-  \<open>vm \<in> vmtf \<A>  M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>
-   (\<forall>C \<in> set [C..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<Longrightarrow>
-    vmtf_mark_to_rescore_clause \<A> arena C vm \<le> RES (vmtf \<A> M)\<close>
-  unfolding vmtf_mark_to_rescore_clause_def
-  apply (subst RES_SPEC_conv)
-  apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ vm. vm \<in> vmtf \<A> M\<close>])
-  subgoal
-    unfolding arena_lit_pre_def arena_is_valid_clause_idx_def
-    apply (rule exI[of _ N])
-    apply (rule exI[of _ vdom])
-    apply (fastforce simp: arena_lifting)
-    done
-  subgoal for x it \<sigma>
-    using arena_lifting(7)[of arena N vdom C \<open>x - C\<close>]
-    by (auto simp: arena_lifting(1-6) dest!: in_list_in_setD)
-  subgoal for x it \<sigma>
-    unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
-    apply (rule exI[of _ C])
-    apply (intro conjI)
-    apply (solves \<open>auto dest: in_list_in_setD\<close>)
-    apply (rule exI[of _ N])
-    apply (rule exI[of _ vdom])
-    apply (fastforce simp: arena_lifting dest: in_list_in_setD)
-    done
-  subgoal for x it \<sigma>
-    by fastforce
-  subgoal for x it _ \<sigma>
-    by (cases \<sigma>)
-     (auto intro!: vmtf_mark_to_rescore simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-       dest: in_list_in_setD)
-  done
-
-definition vmtf_mark_to_rescore_also_reasons
-  :: \<open>nat multiset \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat literal list \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
-\<open>vmtf_mark_to_rescore_also_reasons \<A> M arena outl L vm = do {
-    ASSERT(length outl \<le> uint32_max);
-    nfoldli
-      ([0..<length outl])
-      (\<lambda>_. True)
-      (\<lambda>i vm. do {
-        ASSERT(i < length outl); ASSERT(length outl \<le> uint32_max);
-        ASSERT(-outl ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
-        if(outl!i = L)
-        then
-           RETURN vm
-        else do {
-          C \<leftarrow> get_the_propagation_reason M (-(outl ! i));
-          case C of
-            None \<Rightarrow> RETURN (vmtf_mark_to_rescore (atm_of (outl ! i)) vm)
-          | Some C \<Rightarrow> if C = 0 then RETURN vm else vmtf_mark_to_rescore_clause \<A> arena C vm}
-      })
-      vm
-  }\<close>
-
-definition isa_vmtf_mark_to_rescore_also_reasons
-  :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> nat literal list \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
-\<open>isa_vmtf_mark_to_rescore_also_reasons M arena outl L vm = do {
-    ASSERT(length outl \<le> uint32_max);
-    nfoldli
-      ([0..<length outl])
-      (\<lambda>_. True)
-      (\<lambda>i vm. do {
-        ASSERT(i < length outl); ASSERT(length outl\<le> uint32_max);
-        if(outl!i = L)
-        then
-          RETURN vm
-        else do {
-              C \<leftarrow> get_the_propagation_reason_pol M (-(outl ! i));
-              case C of
-                None \<Rightarrow> do {
-                  ASSERT (isa_vmtf_mark_to_rescore_pre (atm_of (outl ! i)) vm);
-                  RETURN (isa_vmtf_mark_to_rescore (atm_of (outl ! i)) vm)
-                }
-              | Some C \<Rightarrow> if C = 0 then RETURN vm else isa_vmtf_mark_to_rescore_clause arena C vm
-            }
-          })
-      vm
-  }\<close>
-
-lemma isa_vmtf_mark_to_rescore_also_reasons_vmtf_mark_to_rescore_also_reasons:
-  \<open>(uncurry4 isa_vmtf_mark_to_rescore_also_reasons, uncurry4 (vmtf_mark_to_rescore_also_reasons \<A>)) \<in>
-    [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
-  trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<rightarrow> \<langle>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<rangle>nres_rel\<close>
-  unfolding isa_vmtf_mark_to_rescore_also_reasons_def vmtf_mark_to_rescore_also_reasons_def
-    uncurry_def
-  apply (intro frefI nres_relI)
-  apply (refine_rcg nfoldli_refine[where R = \<open>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<close> and S = Id]
-    get_the_propagation_reason_pol[of \<A>, THEN fref_to_Down_curry]
-     isa_vmtf_mark_to_rescore_clause_vmtf_mark_to_rescore_clause[of \<A>, THEN fref_to_Down_curry2])
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  apply assumption
-  subgoal for x y x1 x1a _ _ _ x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xi xa si s xb x'
-    by (cases xb)
-     (auto simp: isa_vmtf_mark_to_rescore_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        intro!: atms_hash_insert_pre[of _ \<A>])
-  subgoal
-    by (rule isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore[THEN fref_to_Down_unRET_uncurry])
-      (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-  subgoal by auto
-  subgoal by auto
-  done
-
-lemma vmtf_mark_to_rescore':
- \<open>L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<Longrightarrow> vm \<in> vmtf \<A> M \<Longrightarrow> vmtf_mark_to_rescore L vm \<in> vmtf \<A> M\<close>
-  by (cases vm) (auto intro: vmtf_mark_to_rescore)
-
-lemma vmtf_mark_to_rescore_also_reasons_spec:
-  \<open>vm \<in> vmtf \<A> M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow> length outl \<le> uint32_max \<Longrightarrow>
-   (\<forall>L \<in> set outl. L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<Longrightarrow>
-   (\<forall>L \<in> set outl. \<forall>C. (Propagated (-L) C \<in> set M \<longrightarrow> C \<noteq> 0 \<longrightarrow> (C \<in># dom_m N \<and>
-       (\<forall>C \<in> set [C..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)))) \<Longrightarrow>
-    vmtf_mark_to_rescore_also_reasons \<A> M arena outl L vm \<le> RES (vmtf \<A> M)\<close>
-  unfolding vmtf_mark_to_rescore_also_reasons_def
-  apply (subst RES_SPEC_conv)
-  apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ vm. vm \<in> vmtf \<A> M\<close>])
-  subgoal by (auto dest: in_list_in_setD)
-  subgoal for x l1 l2 \<sigma>
-    unfolding all_set_conv_nth
-    by (auto simp: uminus_\<A>\<^sub>i\<^sub>n_iff dest!: in_list_in_setD)
-  subgoal for x l1 l2 \<sigma>
-    unfolding get_the_propagation_reason_def
-    apply (rule SPEC_rule)
-    apply (rename_tac reason, case_tac reason; simp only: option.simps RES_SPEC_conv[symmetric])
-    subgoal
-      by (auto simp: vmtf_mark_to_rescore'
-        in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric])
-    apply (rename_tac D, case_tac \<open>D = 0\<close>; simp)
-    subgoal
-      by (rule vmtf_mark_to_rescore_clause_spec, assumption, assumption)
-       fastforce+
-    done
-  done
-
-definition vmtf_mark_to_rescore_also_reasons_cl
-  :: \<open>nat multiset \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
-\<open>vmtf_mark_to_rescore_also_reasons_cl \<A> M arena C L vm = do {
-    ASSERT(arena_is_valid_clause_idx arena C);
-    nfoldli
-      ([0..<arena_length arena C])
-      (\<lambda>_. True)
-      (\<lambda>i vm. do {
-        K \<leftarrow> mop_arena_lit2 arena C i;
-        ASSERT(-K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
-        if(K = L)
-        then
-           RETURN vm
-        else do {
-          C \<leftarrow> get_the_propagation_reason M (-K);
-          case C of
-            None \<Rightarrow> RETURN (vmtf_mark_to_rescore (atm_of K) vm)
-          | Some C \<Rightarrow> if C = 0 then RETURN vm else vmtf_mark_to_rescore_clause \<A> arena C vm}
-      })
-      vm
-  }\<close>
-
-definition isa_vmtf_mark_to_rescore_also_reasons_cl
-  :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
-\<open>isa_vmtf_mark_to_rescore_also_reasons_cl M arena C L vm = do {
-    ASSERT(arena_is_valid_clause_idx arena C);
-    nfoldli
-      ([0..<arena_length arena C])
-      (\<lambda>_. True)
-      (\<lambda>i vm. do {
-         K \<leftarrow> mop_arena_lit2 arena C i;
-        if(K = L)
-        then
-          RETURN vm
-        else do {
-              C \<leftarrow> get_the_propagation_reason_pol M (-K);
-              case C of
-                None \<Rightarrow> do {
-                  ASSERT (isa_vmtf_mark_to_rescore_pre (atm_of K) vm);
-                  RETURN (isa_vmtf_mark_to_rescore (atm_of K) vm)
-                }
-              | Some C \<Rightarrow> if C = 0 then RETURN vm else isa_vmtf_mark_to_rescore_clause arena C vm
-            }
-          })
-      vm
-  }\<close>
-
-lemma isa_vmtf_mark_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl:
-  \<open>(uncurry4 isa_vmtf_mark_to_rescore_also_reasons_cl, uncurry4 (vmtf_mark_to_rescore_also_reasons_cl \<A>)) \<in>
-    [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
-  trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<rightarrow> \<langle>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<rangle>nres_rel\<close>
-proof -
-  have H: \<open>f = g \<Longrightarrow> (f,g) \<in> Id\<close> for f g
-    by auto
-  show ?thesis
-    unfolding isa_vmtf_mark_to_rescore_also_reasons_cl_def vmtf_mark_to_rescore_also_reasons_cl_def
-      uncurry_def mop_arena_lit2_def
-    apply (intro frefI nres_relI)
-    apply (refine_rcg nfoldli_refine[where R = \<open>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<close> and S = Id]
-      get_the_propagation_reason_pol[of \<A>, THEN fref_to_Down_curry]
-       isa_vmtf_mark_to_rescore_clause_vmtf_mark_to_rescore_clause[of \<A>, THEN fref_to_Down_curry2])
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    apply (rule H)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    apply assumption
-    subgoal for x y x1 x1a _ _ _ x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xi xa si s xb x'
-      by (cases xb)
-       (auto simp: isa_vmtf_mark_to_rescore_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-          intro!: atms_hash_insert_pre[of _ \<A>])
-    subgoal
-      by (rule isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore[THEN fref_to_Down_unRET_uncurry])
-        (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-    subgoal by auto
-    subgoal by auto
-    done
-qed
-
-(*TODO*)
-lemma arena_lifting_list:
-  \<open>valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>
-  N \<propto> C = map (\<lambda>i. arena_lit arena (C+i)) [0..<arena_length arena C]\<close>
-  by (subst list_eq_iff_nth_eq)
-   (auto simp: arena_lifting)
-
-lemma vmtf_mark_to_rescore_also_reasons_cl_spec:
-  \<open>vm \<in> vmtf \<A> M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>
-    (\<forall>L \<in> set (N \<propto> C). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<Longrightarrow>
-   (\<forall>L \<in> set (N \<propto> C). \<forall>C. (Propagated (-L) C \<in> set M \<longrightarrow> C \<noteq> 0 \<longrightarrow> (C \<in># dom_m N \<and>
-       (\<forall>C \<in> set [C..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)))) \<Longrightarrow>
-    vmtf_mark_to_rescore_also_reasons_cl \<A> M arena C L vm \<le> RES (vmtf \<A> M)\<close>
-  unfolding vmtf_mark_to_rescore_also_reasons_cl_def mop_arena_lit2_def
-  apply (subst RES_SPEC_conv)
-  apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ vm. vm \<in> vmtf \<A> M\<close>])
-  subgoal by (auto simp: arena_is_valid_clause_idx_def)
-  subgoal for x l1 l2 \<sigma> by (auto simp: arena_lit_pre_def arena_lifting
-    arena_is_valid_clause_idx_and_access_def intro!: exI[of _ C] exI[of _ N]
-    dest: in_list_in_setD)
-  subgoal by (auto simp: arena_lifting arena_lifting_list image_image uminus_\<A>\<^sub>i\<^sub>n_iff)
-  subgoal for x l1 l2 \<sigma>
-    unfolding get_the_propagation_reason_def
-    apply (rule SPEC_rule)
-    apply (rename_tac reason, case_tac reason; simp only: option.simps RES_SPEC_conv[symmetric])
-    subgoal
-      by (auto intro!: vmtf_mark_to_rescore'
-        simp: arena_lifting_list in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric])
-    apply (rename_tac D, case_tac \<open>D = 0\<close>; simp)
-    subgoal
-      by (rule vmtf_mark_to_rescore_clause_spec, assumption, assumption)
-        (auto simp: arena_lifting arena_lifting_list image_image uminus_\<A>\<^sub>i\<^sub>n_iff)
-    done
-  done
 
 end
 

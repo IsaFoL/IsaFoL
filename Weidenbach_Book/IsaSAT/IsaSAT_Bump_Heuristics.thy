@@ -6,10 +6,490 @@ theory IsaSAT_Bump_Heuristics
 begin
 
 
+section \<open>Bumping\<close>
+(*TODO Move to IsaSAT_Bump_Heuristics_State_State*)
+definition isa_bump_mark_to_rescore
+  :: \<open>nat \<Rightarrow> bump_heuristics \<Rightarrow> bump_heuristics nres\<close>
+where
+  \<open>isa_bump_mark_to_rescore L x = (case x of Bump_Heuristics a b c d \<Rightarrow> do {
+    ASSERT (atms_hash_insert_pre L d);
+    RETURN (Bump_Heuristics a b c (atoms_hash_insert L d))
+  })\<close>
+
+definition vmtf_rescore_body
+ :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> bump_heuristics \<Rightarrow>
+    (nat \<times> bump_heuristics) nres\<close>
+where
+  \<open>vmtf_rescore_body \<A>\<^sub>i\<^sub>n C _ vm = do {
+         WHILE\<^sub>T\<^bsup>\<lambda>(i, vm). i \<le> length C\<^esup>
+           (\<lambda>(i, vm). i < length C)
+           (\<lambda>(i, vm). do {
+               ASSERT(i < length C);
+               ASSERT(atm_of (C!i) \<in># \<A>\<^sub>i\<^sub>n);
+               vm' \<leftarrow> isa_bump_mark_to_rescore (atm_of (C!i)) vm;
+               RETURN(i+1, vm')
+             })
+           (0, vm)
+    }\<close>
+
+definition vmtf_rescore
+ :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> bump_heuristics \<Rightarrow>
+       (bump_heuristics) nres\<close>
+where
+  \<open>vmtf_rescore \<A>\<^sub>i\<^sub>n C M vm = do {
+      (_, vm) \<leftarrow> vmtf_rescore_body \<A>\<^sub>i\<^sub>n C M vm;
+      RETURN (vm)
+   }\<close>
+
+definition isa_bump_rescore_body
+ :: \<open>nat clause_l \<Rightarrow> trail_pol \<Rightarrow> bump_heuristics \<Rightarrow>
+    (nat \<times> bump_heuristics) nres\<close>
+where
+  \<open>isa_bump_rescore_body C _ vm = do {
+         WHILE\<^sub>T\<^bsup>\<lambda>(i, vm). i \<le> length C\<^esup>
+           (\<lambda>(i, vm). i < length C)
+           (\<lambda>(i, vm). do {
+               ASSERT(i < length C);
+               vm' \<leftarrow> isa_bump_mark_to_rescore (atm_of (C!i)) vm;
+               RETURN(i+1, vm')
+             })
+           (0, vm)
+    }\<close>
+
+definition isa_bump_rescore
+ :: \<open>nat clause_l \<Rightarrow> trail_pol \<Rightarrow> bump_heuristics \<Rightarrow> bump_heuristics nres\<close>
+where
+  \<open>isa_bump_rescore C M vm = do {
+      (_, vm) \<leftarrow> isa_bump_rescore_body C M vm;
+      RETURN (vm)
+    }\<close>
+
+definition isa_rescore_clause
+  :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat)ann_lits \<Rightarrow> bump_heuristics \<Rightarrow>
+    bump_heuristics nres\<close>
+where
+  \<open>isa_rescore_clause \<A> C M vm = SPEC (\<lambda>(vm'). vm' \<in> bump_heur \<A> M)\<close>
+
+lemma isa_bump_mark_to_rescore:
+  assumes
+    \<open>L \<in># \<A>\<close> \<open>b \<in> bump_heur \<A> M\<close> \<open>length (fst (get_bumped_variables b)) < Suc (Suc (uint32_max div 2))\<close>
+  shows \<open>
+     isa_bump_mark_to_rescore L b \<le> SPEC (\<lambda>vm'. vm' \<in> bump_heur \<A> M)\<close>
+proof -
+  have [simp]: \<open>(atoms_hash_insert L x, set (fst (atoms_hash_insert L x))) \<in> distinct_atoms_rel \<A>\<close>
+    if \<open>(x, set (fst x)) \<in> distinct_atoms_rel \<A>\<close>
+    for x
+    unfolding distinct_atoms_rel_def
+    apply (rule relcompI[of _ \<open>(fst (atoms_hash_insert L x), insert L (set (fst x)))\<close>])
+    using that assms(1)
+    by (auto simp: distinct_atoms_rel_def atoms_hash_rel_def atoms_hash_insert_def
+        distinct_hash_atoms_rel_def split: if_splits)
+    
+  show ?thesis
+    using assms
+    unfolding isa_bump_mark_to_rescore_def
+    apply (auto split: bump_heuristics_splits simp: atms_hash_insert_pre_def
+      intro!: ASSERT_leI)
+    apply (auto simp: bump_heur_def distinct_atoms_rel_def atoms_hash_rel_def atoms_hash_insert_def
+distinct_hash_atoms_rel_def intro: relcompI dest!: multi_member_split[of L])[]
+     apply (auto simp: bump_heur_def intro:  dest!: multi_member_split[of L])
+    done
+qed
+
+lemma length_get_bumped_variables_le:
+  assumes \<open>vm \<in> bump_heur \<A> M\<close> \<open>isasat_input_bounded \<A>\<close>
+  shows \<open>length (fst (get_bumped_variables vm)) < Suc (Suc (uint32_max div 2))\<close>
+  using assms bounded_included_le[of \<A> \<open>fst (get_bumped_variables vm)\<close>]
+  by (cases vm)
+   (auto simp: bump_heur_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
+      atoms_hash_rel_def)
+
+lemma vmtf_rescore_score_clause:
+  \<open>(uncurry2 (vmtf_rescore \<A>), uncurry2 (isa_rescore_clause \<A>)) \<in>
+     [\<lambda>((C, M), vm). literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset C) \<and> vm \<in> bump_heur \<A> M \<and> isasat_input_bounded \<A>]\<^sub>f
+     \<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+proof -
+  have H: \<open>vmtf_rescore_body \<A> C M vm \<le>
+        SPEC (\<lambda>(n :: nat, vm').  vm' \<in> bump_heur \<A> M)\<close>
+    if M: \<open>vm \<in> bump_heur \<A> M\<close> and C: \<open>\<forall>c\<in>set C. atm_of c \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close> and
+      bounded: \<open>isasat_input_bounded \<A>\<close>
+    for C vm \<phi> M
+    unfolding vmtf_rescore_body_def 
+    apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(i, _). length C - i)\<close> and
+       I' = \<open>\<lambda>(i, vm'). vm' \<in> bump_heur \<A> M\<close>] isa_bump_mark_to_rescore[where \<A>=\<A> and M=M])
+    subgoal by auto
+    subgoal by auto
+    subgoal using C M by (auto simp: vmtf_def phase_saving_def)
+    subgoal using C M by auto
+    subgoal using C by (auto simp: atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
+    subgoal using C by auto
+    subgoal using C length_get_bumped_variables_le[OF _ bounded] by auto
+    subgoal using C by auto
+    subgoal using C by auto
+    subgoal by auto
+    done
+  have K: \<open>((a, b),(a', b')) \<in> A \<times>\<^sub>f B \<longleftrightarrow> (a, a') \<in> A \<and> (b, b') \<in> B\<close> for a b a' b' A B
+    by auto
+  show ?thesis
+    unfolding vmtf_rescore_def rescore_clause_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply clarify
+    apply (rule bind_refine_spec)
+     prefer 2
+     apply (subst (asm) K)
+     apply (rule H; auto)
+    subgoal
+      by (meson atm_of_lit_in_atms_of contra_subsetD in_all_lits_of_m_ain_atms_of_iff
+          in_multiset_in_set literals_are_in_\<L>\<^sub>i\<^sub>n_def)
+    subgoal by (auto simp: isa_rescore_clause_def)
+    done
+qed
+
+
+lemma isa_vmtf_rescore_body:
+  \<open>(uncurry2 (isa_bump_rescore_body), uncurry2 (vmtf_rescore_body \<A>)) \<in> [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
+     (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f Id) \<rightarrow> \<langle>Id \<times>\<^sub>r Id\<rangle> nres_rel\<close>
+proof -
+  show ?thesis
+    unfolding isa_bump_rescore_body_def vmtf_rescore_body_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply refine_rcg
+    subgoal by auto
+    subgoal by auto
+    subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x1g x2g
+      by (cases x2g) auto
+    subgoal by auto
+    apply (rule refine_IdI[OF eq_refl])
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+lemma isa_vmtf_rescore:
+  \<open>(uncurry2 (isa_bump_rescore), uncurry2 (vmtf_rescore \<A>)) \<in> [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
+     (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f (Id)) \<rightarrow> \<langle>(Id)\<rangle> nres_rel\<close>
+proof -
+  show ?thesis
+    unfolding isa_bump_rescore_def vmtf_rescore_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg isa_vmtf_rescore_body[THEN fref_to_Down_curry2])
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
+(* TODO use in vmtf_mark_to_rescore_and_unset *)
+
+definition vmtf_mark_to_rescore_clause where
+\<open>vmtf_mark_to_rescore_clause \<A>\<^sub>i\<^sub>n arena C vm = do {
+    ASSERT(arena_is_valid_clause_idx arena C);
+    nfoldli
+      ([C..<C + (arena_length arena C)])
+      (\<lambda>_. True)
+      (\<lambda>i vm. do {
+        ASSERT(i < length arena);
+        ASSERT(arena_lit_pre arena i);
+        ASSERT(atm_of (arena_lit arena i) \<in># \<A>\<^sub>i\<^sub>n);
+        isa_bump_mark_to_rescore (atm_of (arena_lit arena i)) vm
+      })
+      vm
+  }\<close>
+
+definition isa_bump_mark_to_rescore_clause where
+\<open>isa_bump_mark_to_rescore_clause arena C vm = do {
+    ASSERT(arena_is_valid_clause_idx arena C);
+    nfoldli
+      ([C..<C + (arena_length arena C)])
+      (\<lambda>_. True)
+      (\<lambda>i vm. do {
+        ASSERT(i < length arena);
+        ASSERT(arena_lit_pre arena i);
+        isa_bump_mark_to_rescore (atm_of (arena_lit arena i)) vm
+      })
+      vm
+  }\<close>
+
+lemma isa_bump_mark_to_rescore_clause_vmtf_mark_to_rescore_clause:
+  \<open>(uncurry2 isa_bump_mark_to_rescore_clause, uncurry2 (vmtf_mark_to_rescore_clause \<A>)) \<in> [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
+    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f (Id) \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  unfolding isa_bump_mark_to_rescore_clause_def vmtf_mark_to_rescore_clause_def
+    uncurry_def
+  apply (intro frefI nres_relI)
+  apply (refine_rcg nfoldli_refine[where R = \<open>Id\<close> and S = Id])
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal for x y x1 x1a x2 x2a x1b x1c x2b x2c xi xa si s
+    by (cases s)
+      (auto simp: isa_vmtf_mark_to_rescore_pre_def
+        intro!: atms_hash_insert_pre)
+  done
+
+
+lemma vmtf_mark_to_rescore_clause_spec:
+  \<open>vm \<in> bump_heur \<A>  M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> isasat_input_bounded \<A> \<Longrightarrow>
+   (\<forall>C \<in> set [C..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<Longrightarrow>
+    vmtf_mark_to_rescore_clause \<A> arena C vm \<le> RES (bump_heur \<A> M)\<close>
+  unfolding vmtf_mark_to_rescore_clause_def
+  apply (subst RES_SPEC_conv)
+  apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ vm. vm \<in> bump_heur \<A> M\<close>])
+  subgoal
+    unfolding arena_lit_pre_def arena_is_valid_clause_idx_def
+    apply (rule exI[of _ N])
+    apply (rule exI[of _ vdom])
+    apply (fastforce simp: arena_lifting)
+    done
+  subgoal for x it \<sigma>
+    using arena_lifting(7)[of arena N vdom C \<open>x - C\<close>]
+    by (auto simp: arena_lifting(1-6) dest!: in_list_in_setD)
+  subgoal for x it \<sigma>
+    unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
+    apply (rule exI[of _ C])
+    apply (intro conjI)
+    apply (solves \<open>auto dest: in_list_in_setD\<close>)
+    apply (rule exI[of _ N])
+    apply (rule exI[of _ vdom])
+    apply (fastforce simp: arena_lifting dest: in_list_in_setD)
+    done
+  subgoal for x it \<sigma>
+    by fastforce
+  subgoal for x it _ \<sigma>
+    using length_get_bumped_variables_le[of _ \<A>]
+    by (cases \<sigma>)
+     (auto intro!: isa_bump_mark_to_rescore[THEN order_trans] simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+       dest: in_list_in_setD)
+  done
+
+definition vmtf_mark_to_rescore_also_reasons
+  :: \<open>nat multiset \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat literal list \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
+\<open>vmtf_mark_to_rescore_also_reasons \<A> M arena outl L vm = do {
+    ASSERT(length outl \<le> uint32_max);
+    nfoldli
+      ([0..<length outl])
+      (\<lambda>_. True)
+      (\<lambda>i vm. do {
+        ASSERT(i < length outl); ASSERT(length outl \<le> uint32_max);
+        ASSERT(-outl ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
+        if(outl!i = L)
+        then
+           RETURN vm
+        else do {
+          C \<leftarrow> get_the_propagation_reason M (-(outl ! i));
+          case C of
+            None \<Rightarrow> isa_bump_mark_to_rescore (atm_of (outl ! i)) vm
+          | Some C \<Rightarrow> if C = 0 then RETURN vm else vmtf_mark_to_rescore_clause \<A> arena C vm}
+      })
+      vm
+  }\<close>
+
+definition isa_vmtf_mark_to_rescore_also_reasons
+  :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> nat literal list \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
+\<open>isa_vmtf_mark_to_rescore_also_reasons M arena outl L vm = do {
+    ASSERT(length outl \<le> uint32_max);
+    nfoldli
+      ([0..<length outl])
+      (\<lambda>_. True)
+      (\<lambda>i vm. do {
+        ASSERT(i < length outl); ASSERT(length outl\<le> uint32_max);
+        if(outl!i = L)
+        then
+          RETURN vm
+        else do {
+              C \<leftarrow> get_the_propagation_reason_pol M (-(outl ! i));
+              case C of
+                None \<Rightarrow> do {
+                  isa_bump_mark_to_rescore (atm_of (outl ! i)) vm
+                }
+              | Some C \<Rightarrow> if C = 0 then RETURN vm else isa_bump_mark_to_rescore_clause arena C vm
+            }
+          })
+      vm
+  }\<close>
+
+lemma isa_vmtf_mark_to_rescore_also_reasons_vmtf_mark_to_rescore_also_reasons:
+  \<open>(uncurry4 isa_vmtf_mark_to_rescore_also_reasons, uncurry4 (vmtf_mark_to_rescore_also_reasons \<A>)) \<in>
+    [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
+  trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  unfolding isa_vmtf_mark_to_rescore_also_reasons_def vmtf_mark_to_rescore_also_reasons_def
+    uncurry_def
+  apply (intro frefI nres_relI)
+  apply (refine_rcg nfoldli_refine[where R = \<open>Id\<close> and S = Id]
+    get_the_propagation_reason_pol[of \<A>, THEN fref_to_Down_curry]
+     isa_bump_mark_to_rescore_clause_vmtf_mark_to_rescore_clause[of \<A>, THEN fref_to_Down_curry2])
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  apply assumption
+  subgoal for x y x1 x1a _ _ _ x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xi xa si s xb x'
+    by (cases xb)
+     (auto simp: isa_vmtf_mark_to_rescore_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+        intro!: atms_hash_insert_pre[of _ \<A>])
+  subgoal by auto
+  subgoal by auto
+  done
+
+(* TODO remove (seems to be isa_bump_mark_to_rescore)
+lemma vmtf_mark_to_rescore':
+ \<open>L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<Longrightarrow> vm \<in> vmtf \<A> M \<Longrightarrow> isa_bump_mark_to_rescore L vm \<in> vmtf \<A> M\<close>
+  by (cases vm) (auto intro: vmtf_mark_to_rescore)
+*)
+lemma vmtf_mark_to_rescore_also_reasons_spec:
+  \<open>vm \<in> bump_heur \<A> M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow> length outl \<le> uint32_max \<Longrightarrow> isasat_input_bounded \<A> \<Longrightarrow>
+   (\<forall>L \<in> set outl. L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<Longrightarrow>
+   (\<forall>L \<in> set outl. \<forall>C. (Propagated (-L) C \<in> set M \<longrightarrow> C \<noteq> 0 \<longrightarrow> (C \<in># dom_m N \<and>
+       (\<forall>C \<in> set [C..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)))) \<Longrightarrow>
+    vmtf_mark_to_rescore_also_reasons \<A> M arena outl L vm \<le> RES (bump_heur \<A> M)\<close>
+  unfolding vmtf_mark_to_rescore_also_reasons_def
+  apply (subst RES_SPEC_conv)
+  apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ vm. vm \<in> bump_heur \<A> M\<close>])
+  subgoal by (auto dest: in_list_in_setD)
+  subgoal for x l1 l2 \<sigma>
+    unfolding all_set_conv_nth
+    by (auto simp: uminus_\<A>\<^sub>i\<^sub>n_iff dest!: in_list_in_setD)
+  subgoal for x l1 l2 \<sigma>
+    unfolding get_the_propagation_reason_def
+    apply (rule SPEC_rule)
+    apply (rename_tac reason, case_tac reason; simp only: option.simps RES_SPEC_conv[symmetric])
+    subgoal
+      using length_get_bumped_variables_le[of _ \<A> M]
+      by (auto intro!: isa_bump_mark_to_rescore[where M=M and \<A>=\<A>, THEN order_trans]
+        simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric])
+    apply (rename_tac D, case_tac \<open>D = 0\<close>; simp)
+    subgoal
+      by (rule vmtf_mark_to_rescore_clause_spec, assumption, assumption)
+       fastforce+
+    done
+  done
+
+definition vmtf_mark_to_rescore_also_reasons_cl
+  :: \<open>nat multiset \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
+\<open>vmtf_mark_to_rescore_also_reasons_cl \<A> M arena C L vm = do {
+    ASSERT(arena_is_valid_clause_idx arena C);
+    nfoldli
+      ([0..<arena_length arena C])
+      (\<lambda>_. True)
+      (\<lambda>i vm. do {
+        K \<leftarrow> mop_arena_lit2 arena C i;
+        ASSERT(-K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
+        if(K = L)
+        then
+           RETURN vm
+        else do {
+          C \<leftarrow> get_the_propagation_reason M (-K);
+          case C of
+            None \<Rightarrow> isa_bump_mark_to_rescore (atm_of K) vm
+          | Some C \<Rightarrow> if C = 0 then RETURN vm else vmtf_mark_to_rescore_clause \<A> arena C vm}
+      })
+      vm
+  }\<close>
+
+definition isa_vmtf_mark_to_rescore_also_reasons_cl
+  :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
+\<open>isa_vmtf_mark_to_rescore_also_reasons_cl M arena C L vm = do {
+    ASSERT(arena_is_valid_clause_idx arena C);
+    nfoldli
+      ([0..<arena_length arena C])
+      (\<lambda>_. True)
+      (\<lambda>i vm. do {
+         K \<leftarrow> mop_arena_lit2 arena C i;
+        if(K = L)
+        then
+          RETURN vm
+        else do {
+              C \<leftarrow> get_the_propagation_reason_pol M (-K);
+              case C of
+                None \<Rightarrow> do {
+                  isa_bump_mark_to_rescore (atm_of K) vm
+                }
+              | Some C \<Rightarrow> if C = 0 then RETURN vm else isa_bump_mark_to_rescore_clause arena C vm
+            }
+          })
+      vm
+  }\<close>
+
+lemma isa_vmtf_mark_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl:
+  \<open>(uncurry4 isa_vmtf_mark_to_rescore_also_reasons_cl, uncurry4 (vmtf_mark_to_rescore_also_reasons_cl \<A>)) \<in>
+    [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
+  trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f (Id) \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+proof -
+  have H: \<open>f = g \<Longrightarrow> (f,g) \<in> Id\<close> for f g
+    by auto
+  show ?thesis
+    unfolding isa_vmtf_mark_to_rescore_also_reasons_cl_def vmtf_mark_to_rescore_also_reasons_cl_def
+      uncurry_def mop_arena_lit2_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg nfoldli_refine[where R = \<open>Id\<close> and S = Id]
+      get_the_propagation_reason_pol[of \<A>, THEN fref_to_Down_curry]
+       isa_bump_mark_to_rescore_clause_vmtf_mark_to_rescore_clause[of \<A>, THEN fref_to_Down_curry2])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply (rule H)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply assumption
+    subgoal for x y x1 x1a _ _ _ x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xi xa si s xb x'
+      by (cases xb)
+       (auto simp: isa_vmtf_mark_to_rescore_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+          intro!: atms_hash_insert_pre[of _ \<A>])
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+(*TODO*)
+lemma arena_lifting_list:
+  \<open>valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>
+  N \<propto> C = map (\<lambda>i. arena_lit arena (C+i)) [0..<arena_length arena C]\<close>
+  by (subst list_eq_iff_nth_eq)
+   (auto simp: arena_lifting)
+
+lemma vmtf_mark_to_rescore_also_reasons_cl_spec:
+  \<open>vm \<in> bump_heur \<A> M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> isasat_input_bounded \<A> \<Longrightarrow>
+    (\<forall>L \<in> set (N \<propto> C). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<Longrightarrow>
+   (\<forall>L \<in> set (N \<propto> C). \<forall>C. (Propagated (-L) C \<in> set M \<longrightarrow> C \<noteq> 0 \<longrightarrow> (C \<in># dom_m N \<and>
+       (\<forall>C \<in> set [C..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)))) \<Longrightarrow>
+    vmtf_mark_to_rescore_also_reasons_cl \<A> M arena C L vm \<le> RES (bump_heur \<A> M)\<close>
+  unfolding vmtf_mark_to_rescore_also_reasons_cl_def mop_arena_lit2_def
+  apply (subst RES_SPEC_conv)
+  apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ vm. vm \<in> bump_heur \<A> M\<close>])
+  subgoal by (auto simp: arena_is_valid_clause_idx_def)
+  subgoal for x l1 l2 \<sigma> by (auto simp: arena_lit_pre_def arena_lifting
+    arena_is_valid_clause_idx_and_access_def intro!: exI[of _ C] exI[of _ N]
+    dest: in_list_in_setD)
+  subgoal by (auto simp: arena_lifting arena_lifting_list image_image uminus_\<A>\<^sub>i\<^sub>n_iff)
+  subgoal for x l1 l2 \<sigma>
+    unfolding get_the_propagation_reason_def
+    apply (rule SPEC_rule)
+    apply (rename_tac reason, case_tac reason; simp only: option.simps RES_SPEC_conv[symmetric])
+    subgoal
+      using length_get_bumped_variables_le[of _ \<A>]
+      by (auto intro!: isa_bump_mark_to_rescore[where \<A>=\<A> and M=M, THEN order_trans]
+        simp: arena_lifting_list in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric])
+    apply (rename_tac D, case_tac \<open>D = 0\<close>; simp)
+    subgoal
+      by (rule vmtf_mark_to_rescore_clause_spec, assumption, assumption)
+        (auto simp: arena_lifting arena_lifting_list image_image uminus_\<A>\<^sub>i\<^sub>n_iff)
+    done
+  done
+
+
 section \<open>Backtrack level for Restarts\<close>
 
 hide_const (open) find_decomp_wl_imp
-
 
 definition isa_bump_heur_flush where
   \<open>isa_bump_heur_flush M x = (case x of Tuple4 stabl focused foc bumped \<Rightarrow> do {
