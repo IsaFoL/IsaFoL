@@ -491,11 +491,6 @@ section \<open>Backtrack level for Restarts\<close>
 
 hide_const (open) find_decomp_wl_imp
 
-definition isa_bump_unset_pre where
-  \<open>isa_bump_unset_pre = (\<lambda>L x.
-  (is_focused_heuristics x \<longrightarrow> vmtf_unset_pre L (get_focused_heuristics x)) \<and>
-  (is_stable_heuristics x \<longrightarrow> vmtf_unset_pre L (get_stable_heuristics x))
-  )\<close>
 lemma isa_bump_unset_pre:
   assumes
     \<open>x \<in> bump_heur \<A> M\<close> and

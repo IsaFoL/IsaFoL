@@ -2,6 +2,7 @@ theory IsaSAT_Restart
   imports
     Watched_Literals.WB_Sort Watched_Literals.Watched_Literals_Watch_List_Simp IsaSAT_Rephase_State
     IsaSAT_Setup IsaSAT_VMTF IsaSAT_Sorting IsaSAT_Proofs IsaSAT_Restart_Defs
+    IsaSAT_Bump_Heuristics
 begin
 
 chapter \<open>Restarts\<close>
@@ -474,14 +475,22 @@ proof -
     using n_d x2 inA bounded
     unfolding trail_pol_def x2d
     by simp
+
   moreover { fix aaa ca
     have \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms aaa ca) (ys @ Propagated x2 C # zs) =
        vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms aaa ca) (ys @ Propagated x2 0 # zs)\<close>
        by (auto simp: vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def)
-    then have \<open>bump_heur (all_init_atms aaa ca) (ys @ Propagated x2 C # zs) =
-      bump_heur (all_init_atms aaa ca) (ys @ Propagated x2 0 # zs)\<close>
-      by (auto simp: isa_vmtf_def vmtf_def
+    then have \<open>vmtf (all_init_atms aaa ca) (ys @ Propagated x2 C # zs) =
+      vmtf (all_init_atms aaa ca) (ys @ Propagated x2 0 # zs)\<close>
+      by (auto simp: isa_vmtf_def vmtf_def  vmtf_def
 	image_iff)
+    moreover have \<open>vmtf (all_init_atms aaa ca) (get_unit_trail (ys @ Propagated x2 C # zs)) =
+      vmtf (all_init_atms aaa ca) (get_unit_trail(ys @ Propagated x2 0 # zs))\<close>
+      by (auto simp: isa_vmtf_def vmtf_def  vmtf_def get_unit_trail_def takeWhile_append vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+	image_iff)
+    ultimately have \<open>bump_heur (all_init_atms aaa ca) (ys @ Propagated x2 C # zs) =
+      bump_heur (all_init_atms aaa ca) (ys @ Propagated x2 0 # zs)\<close>
+      by (auto simp: bump_heur_def)
   }
   moreover { fix D
     have \<open>get_level (ys @ Propagated x2 C # zs) = get_level (ys @ Propagated x2 0 # zs)\<close>

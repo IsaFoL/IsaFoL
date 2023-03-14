@@ -76,9 +76,9 @@ lemma switch_bump_heur:
 
 subsection \<open>Access Function\<close>
 definition isa_bump_unset_pre where
-  \<open>isa_bump_unset_pre L vm = (case vm of Tuple4 hstable focused foc a \<Rightarrow>
-  (foc \<longrightarrow> vmtf_unset_pre L focused) \<and>
-  (\<not>foc \<longrightarrow> vmtf_unset_pre L hstable)
+  \<open>isa_bump_unset_pre = (\<lambda>L x.
+  (is_focused_heuristics x \<longrightarrow> vmtf_unset_pre L (get_focused_heuristics x)) \<and>
+  (is_stable_heuristics x \<longrightarrow> vmtf_unset_pre L (get_stable_heuristics x))
   )\<close>
 definition isa_bump_unset :: \<open>nat \<Rightarrow> bump_heuristics \<Rightarrow> bump_heuristics\<close> where
   \<open>isa_bump_unset L vm = (case vm of Tuple4 (hstable) (focused) foc a \<Rightarrow>
