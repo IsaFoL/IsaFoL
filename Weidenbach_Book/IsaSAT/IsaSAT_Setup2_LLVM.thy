@@ -484,48 +484,35 @@ lemmas [sepref_fr_rules] = watched_by_app.refine watched_by_app.XX.mop_refine
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   length_ll_fs_heur_fast_code_def[unfolded read_all_st_code_def]
 
+definition isa_vmtf_heur_fst where
+  \<open>isa_vmtf_heur_fst x = (case x of Bump_Heuristics hstable focused foc _ \<Rightarrow>
+  if foc then RETURN (vmtf_heur_fst focused) else RETURN (vmtf_heur_fst hstable))\<close>
 
-definition vmtf_heur_fst where
-  \<open>vmtf_heur_fst = (\<lambda>((_, _, a, _),_). a)\<close>
-
-sepref_def vmtf_heur_fst_code
-  is \<open>RETURN o vmtf_heur_fst\<close>
-  :: \<open>vmtf_remove_assn\<^sup>k \<rightarrow>\<^sub>a atom_assn\<close>
-  unfolding vmtf_heur_fst_def vmtf_remove_assn_def
+sepref_def isa_vmtf_heur_fst_code
+  is \<open>isa_vmtf_heur_fst\<close>
+  :: \<open>heuristic_bump_assn\<^sup>k \<rightarrow>\<^sub>a atom_assn\<close>
+  unfolding isa_vmtf_heur_fst_def
   by sepref
 
 definition get_vmtf_heur_fst_impl where
-  \<open>get_vmtf_heur_fst_impl = read_vmtf_wl_heur_code (vmtf_heur_fst_code)\<close>
+  \<open>get_vmtf_heur_fst_impl = read_vmtf_wl_heur_code (isa_vmtf_heur_fst_code)\<close>
 
 global_interpretation vmtf_fst: read_vmtf_param_adder0 where
-  f' = \<open>RETURN o vmtf_heur_fst\<close> and
-  f = \<open>vmtf_heur_fst_code\<close> and
+  f' = \<open>isa_vmtf_heur_fst\<close> and
+  f = \<open>isa_vmtf_heur_fst_code\<close> and
   x_assn = atom_assn and
   P = \<open>(\<lambda>_. True)\<close>
   rewrites
-    \<open>read_vmtf_wl_heur (RETURN \<circ> vmtf_heur_fst) = RETURN o get_vmtf_heur_fst\<close> and
-    \<open>read_vmtf_wl_heur_code (vmtf_heur_fst_code) = get_vmtf_heur_fst_impl\<close>
+    \<open>read_vmtf_wl_heur (isa_vmtf_heur_fst) = RETURN o get_vmtf_heur_fst\<close> and
+    \<open>read_vmtf_wl_heur_code (isa_vmtf_heur_fst_code) = get_vmtf_heur_fst_impl\<close>
   apply unfold_locales
-  apply (rule vmtf_heur_fst_code.refine)
+  apply (rule isa_vmtf_heur_fst_code.refine)
   subgoal
-     by (auto intro!: ext simp: get_vmtf_heur_fst_def read_all_st_def vmtf_heur_fst_def
-       split: isasat_int_splits)
+    by (auto intro!: ext simp: get_vmtf_heur_fst_def read_all_st_def vmtf_heur_fst_def
+      isa_vmtf_heur_fst_def
+       split: isasat_int_splits bump_heuristics_splits)
   subgoal by (auto simp: get_vmtf_heur_fst_impl_def)
   done
-
-definition vmtf_heur_array_nth where
-  \<open>vmtf_heur_array_nth = (\<lambda>((ns, _, _, _),_) i. RETURN (ns ! i))\<close>
-
-sepref_def vmtf_heur_array_nth_code
-  is \<open>uncurry (vmtf_heur_array_nth)\<close>
-  :: \<open>[\<lambda>(vm, n). n < length (fst (fst vm))]\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow> vmtf_node_assn\<close>
-  supply [[eta_contract = false, goals_limit=1]]
-  supply [sepref_fr_rules] = al_nth_hnr array_get_hnr
-  supply [sepref_fr_rules del] = wo_array_get_hnrs
-  unfolding vmtf_heur_array_nth_def vmtf_remove_assn_def
-  apply (rewrite at \<open>(!) _ \<hole>\<close> value_of_atm_def[symmetric])
-  unfolding  index_of_atm_def[symmetric]
-  by sepref
 
 definition get_vmtf_heur_array_nth where
   \<open>get_vmtf_heur_array_nth S i = get_vmtf_heur_array S ! i\<close>

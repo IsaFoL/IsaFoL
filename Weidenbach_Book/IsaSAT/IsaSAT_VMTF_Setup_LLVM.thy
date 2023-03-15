@@ -67,8 +67,6 @@ lemmas [sepref_fr_rules] =
   VMTF_get_next_impl.refine[FCOMP vmtf_get_next_refine1]
 
 
-
-
 type_synonym vmtf_assn = \<open>vmtf_node_assn ptr \<times> 64 word \<times> 32 word \<times> 32 word \<times> 32 word\<close>
 
 type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> (32 word array_list64 \<times> 1 word ptr)\<close>
@@ -83,5 +81,27 @@ abbreviation atoms_hash_assn :: \<open>bool list \<Rightarrow> 1 word ptr \<Righ
 
 abbreviation distinct_atoms_assn where
   \<open>distinct_atoms_assn \<equiv> arl64_assn atom_assn \<times>\<^sub>a atoms_hash_assn\<close>
+
+definition vmtf_heur_fst where
+  \<open>vmtf_heur_fst = (\<lambda>(_, _, a, _). a)\<close>
+
+sepref_def vmtf_heur_fst_code
+  is \<open>RETURN o vmtf_heur_fst\<close>
+  :: \<open>vmtf_assn\<^sup>k \<rightarrow>\<^sub>a atom_assn\<close>
+  unfolding vmtf_heur_fst_def vmtf_assn_def
+  by sepref
+
+definition vmtf_heur_array_nth :: \<open>vmtf \<Rightarrow> _\<close>where
+  \<open>vmtf_heur_array_nth = (\<lambda>(ns, _, _, _) i. RETURN (ns ! i))\<close>
+
+sepref_def vmtf_heur_array_nth_code
+  is \<open>uncurry (vmtf_heur_array_nth)\<close>
+  :: \<open>[\<lambda>(vm,i). i < length (fst vm)]\<^sub>a vmtf_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow> vmtf_node_assn\<close>
+  supply [[eta_contract = false, goals_limit=1]]
+  supply [sepref_fr_rules] = al_nth_hnr array_get_hnr
+  unfolding vmtf_heur_array_nth_def vmtf_assn_def
+  apply (rewrite at \<open>(!) _ \<hole>\<close> value_of_atm_def[symmetric])
+  unfolding  index_of_atm_def[symmetric]
+  by sepref
 
 end

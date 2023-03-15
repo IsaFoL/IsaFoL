@@ -114,7 +114,6 @@ export_llvm
   isa_bump_rescore_fast_code
   isa_bump_mark_to_rescore_clause_fast_code
   isa_bump_heur_flush_impl
-
 end
 
 end

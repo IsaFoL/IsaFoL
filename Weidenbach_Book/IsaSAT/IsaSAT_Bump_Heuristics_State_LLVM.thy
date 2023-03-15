@@ -4,7 +4,12 @@
     Tuple4_LLVM
 begin
 
-definition heuristic_bump_assn where
+type_synonym bump_heuristics_assn = \<open>
+  ((64 word \<times> 32 word \<times> 32 word) ptr \<times> 64 word \<times> 32 word \<times> 32 word \<times> 32 word,
+     (64 word \<times> 32 word \<times> 32 word) ptr \<times> 64 word \<times> 32 word \<times> 32 word \<times> 32 word,
+     1 word, (64 word \<times> 64 word \<times> 32 word ptr) \<times> 1 word ptr) tuple4\<close>
+
+definition heuristic_bump_assn :: \<open>bump_heuristics \<Rightarrow> bump_heuristics_assn \<Rightarrow> _\<close> where
   \<open>heuristic_bump_assn = tuple4_assn vmtf_assn vmtf_assn bool1_assn distinct_atoms_assn\<close>
 
 definition bottom_atom where
