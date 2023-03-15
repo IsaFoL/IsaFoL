@@ -208,8 +208,7 @@ lemma lookup_clause_rel_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> lookup_clause_rel \<A> \<Longrightarrow> L \<in> lookup_clause_rel \<B>\<close>
   using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
   unfolding lookup_clause_rel_def
-  apply (cases L)
-  by (auto intro!: isa_vmtfI)
+  by (cases L) (auto)
 
 lemma isa_propagate_pure_bt_wl_propagate_pure_bt_wl:
   assumes S\<^sub>0T: \<open>(S\<^sub>0, T) \<in> twl_st_heur_restart_ana' r u\<close> and
@@ -409,11 +408,12 @@ proof -
      bounded: \<open>isasat_input_bounded (all_init_atms_st T)\<close>
      using assms unfolding twl_st_heur_restart_ana_def twl_st_heur_restart_def
      by (simp_all add: all_init_atms_alt_def del: isasat_input_nempty_def)
-   obtain a aa ac b ba where
-      vm: \<open>((get_vmtf_heur_array S\<^sub>0, aa, get_vmtf_heur_fst S\<^sub>0, ac, b), ba) \<in> vmtf (all_init_atms_st T) (get_trail_wl T)\<close> and
-      \<open>(get_vmtf_heur S\<^sub>0, (get_vmtf_heur_array S\<^sub>0, aa, get_vmtf_heur_fst S\<^sub>0, ac, b), ba) \<in> Id \<times>\<^sub>f distinct_atoms_rel (all_init_atms_st T)\<close>
-     using vmtf unfolding isa_vmtf_def get_vmtf_heur_fst_def get_vmtf_heur_array_def
-     by (cases \<open>get_vmtf_heur S\<^sub>0\<close>) auto
+  let ?vm = \<open>get_vmtf_heur S\<^sub>0\<close>
+  have vmtf': \<open>(get_vmtf_heur_array S\<^sub>0, fst (snd (bump_get_heuristics ?vm)),
+    get_vmtf_heur_fst S\<^sub>0, fst (snd (snd (snd (bump_get_heuristics ?vm)))), snd (snd (snd (snd (bump_get_heuristics ?vm))))) \<in> vmtf (all_init_atms_st T) (get_trail_wl T)\<close>
+    using vmtf unfolding bump_heur_def get_vmtf_heur_array_def bump_get_heuristics_def get_vmtf_heur_fst_def
+    by (cases \<open>bump_get_heuristics ns\<close>) (auto simp: bump_get_heuristics_def bumped_vmtf_array_fst_def
+      split: if_splits)
    have C: \<open>\<Down>Id ?B \<ge> (do {
      ASSERT (pure_literal_deletion_wl_pre T);
      (S) \<leftarrow> iterate_over_VMTF ?f
@@ -423,7 +423,7 @@ proof -
      })\<close> (is \<open>_ \<ge> ?C\<close>)
      apply (refine_vcg iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l)
      unfolding nres_monad2 all_init_atms_st_alt_def[symmetric]
-     apply (rule iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l[OF vm])
+     apply (rule iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l[OF vmtf'])
      subgoal using nempty by auto
      subgoal using bounded by auto
      subgoal by blast

@@ -870,29 +870,22 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl_mark_duplicated_binary_cl
   shows \<open>isa_mark_duplicated_binary_clauses_as_garbage_wl S \<le>
     \<Down>(twl_st_heur_restart_ana' r u) (mark_duplicated_binary_clauses_as_garbage_wl S')\<close>
 proof -
-  obtain ns m fst_As lst_As next_search to_remove where
-    vm: \<open>get_vmtf_heur S = ((ns, m, fst_As, lst_As, next_search), to_remove)\<close>
-    by (cases \<open>get_vmtf_heur S\<close>) auto
-  have 1: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> bump_heur (atm_of `# all_init_lits_of_wl S') (get_trail_wl S')\<close> and
+  have 1: \<open>get_vmtf_heur S \<in> bump_heur (atm_of `# all_init_lits_of_wl S') (get_trail_wl S')\<close> and
     2: \<open>isasat_input_nempty (all_init_atms_st S')\<close> and
     3: \<open>isasat_input_bounded (all_init_atms_st S')\<close>
-     using assms unfolding twl_st_heur_restart_ana_def twl_st_heur_restart_alt_def2 Let_def vm
-     by (simp_all add: vm all_init_atms_st_alt_def)
-   then obtain ba where
-     1: \<open>((ns, m, fst_As, lst_As, next_search), ba) \<in> vmtf (atm_of `# all_init_lits_of_wl S') (get_trail_wl S')\<close>
-     unfolding isa_vmtf_def
-     by auto
+     using assms unfolding twl_st_heur_restart_ana_def twl_st_heur_restart_alt_def2 Let_def
+     by (simp_all add: all_init_atms_st_alt_def)
   have [refine0]: \<open>RETURN False \<le> \<Down> {(a,b). a = b \<and> \<not>b} (RES UNIV)\<close>
     by (auto intro!: RETURN_RES_refine)
   have create: \<open>create (length (get_watched_wl_heur S)) \<le> SPEC (\<lambda>c. (c, Map.empty) \<in> {((c :: nat literal \<Rightarrow> (nat \<times> bool) option, m::nat), c'). c = c' \<and> m =  (length (get_watched_wl_heur S))})\<close> (is \<open>_ _\<le> SPEC(\<lambda>_. _ \<in> ?CS)\<close>)
     by (auto simp: create_def)
    have init: \<open>(x2a, x2) \<in> \<langle>nat_rel\<rangle>option_rel \<Longrightarrow> (CS, Map.empty) \<in> ?CS \<Longrightarrow>
      ((x2a, CS, S), x2, S') \<in> {((a,CS,T), (b,T')). ((a,T), b,T') \<in> \<langle>nat_rel\<rangle>option_rel \<times>\<^sub>r {(a,b). (a,b)\<in> twl_st_heur_restart_ana'' (length (get_clauses_wl_heur S))
-        (learned_clss_count S) (get_vmtf_heur S) (length (get_watched_wl_heur S)) \<and> ns = get_vmtf_heur_array S} \<and>
+        (learned_clss_count S) (get_vmtf_heur S) (length (get_watched_wl_heur S))} \<and>
      (CS, Map.empty) \<in> {((c :: nat literal \<Rightarrow> (nat \<times> bool) option, m::nat), c'). c = c' \<and> m =  (length (get_watched_wl_heur T))}}\<close>
      (is \<open>_ \<Longrightarrow> _ \<Longrightarrow> _ \<in> ?loop\<close>)
     for x2a x2 CS
-    using vm assms
+    using assms
     by (auto simp: get_vmtf_heur_array_def twl_st_heur_restart_ana_def)
   have rel: \<open>(xa, Sa)
     \<in> {((CS, T), T').
@@ -923,8 +916,7 @@ proof -
       {(a, b).
        (a, b)
        \<in> twl_st_heur_restart_ana'' (length (get_clauses_wl_heur S)) (learned_clss_count S)
-       (get_vmtf_heur S) (length (get_watched_wl_heur S)) \<and>
-       ns = get_vmtf_heur_array S} \<and>
+       (get_vmtf_heur S) (length (get_watched_wl_heur S))} \<and>
     (CS, Map.empty) \<in> {((c, m), c'). c = c' \<and> m = length (get_watched_wl_heur T)}} \<Longrightarrow>
     x' = (x1b, x2b) \<Longrightarrow> x = (x1c, x2c) \<Longrightarrow> (x2c, x2b) \<in> {((CS, T), T').
     ((T), T')
@@ -932,8 +924,7 @@ proof -
       {(a, b).
        (a, b)
        \<in> twl_st_heur_restart_ana'' (length (get_clauses_wl_heur S)) (learned_clss_count S)
-       (get_vmtf_heur S) (length (get_watched_wl_heur S)) \<and>
-       ns = get_vmtf_heur_array S} \<and>
+       (get_vmtf_heur S) (length (get_watched_wl_heur S))} \<and>
     (CS, Map.empty) \<in> {((c, m), c'). c = c' \<and> m = length (get_watched_wl_heur T)}}\<close> for x' x1b x2b x1c x2c x
     by auto
   have rel0: \<open>((x1d, x2d), x2b) \<in> {((CS, T), T'). (T,T')\<in>twl_st_heur_restart_ana'' (length (get_clauses_wl_heur S)) (learned_clss_count S) (get_vmtf_heur S)
@@ -944,7 +935,6 @@ proof -
     \<open>mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S\<close> and
     \<open>inres (create (length (get_watched_wl_heur S))) CS\<close> and
     \<open>(CS, Map.empty) \<in> {((c, m), c'). c = c' \<and> m = length (get_watched_wl_heur S)}\<close> and
-    \<open>(ns, Some fst_As) = (x1, x2)\<close> and
     \<open>(get_vmtf_heur_array S, Some (get_vmtf_heur_fst S)) = (x1a, x2a)\<close> and
     \<open>(x, x')
   \<in> {((a, CS, T), b, T').
@@ -953,8 +943,7 @@ proof -
     {(a, b).
      (a, b)
      \<in> twl_st_heur_restart_ana'' (length (get_clauses_wl_heur S)) (learned_clss_count S)
-        (get_vmtf_heur S) (length (get_watched_wl_heur S)) \<and>
-     ns = get_vmtf_heur_array S} \<and>
+        (get_vmtf_heur S) (length (get_watched_wl_heur S))} \<and>
      (CS, Map.empty) \<in> {((c, m), c'). c = c' \<and> m = length (get_watched_wl_heur T)}}\<close> and
     \<open>case x of (n, x) \<Rightarrow> \<forall>x1 x2. x = (x1, x2) \<longrightarrow> n \<noteq> None \<and> get_conflict_wl_is_None_heur x2\<close> and
     \<open>case x' of (n, x) \<Rightarrow> n \<noteq> None \<and> get_conflict_wl x = None\<close> and
@@ -988,7 +977,6 @@ proof -
       \<open>inres (create (length (get_watched_wl_heur S))) CS\<close> and
       \<open>(CS, Map.empty)
     \<in> {((c, m), c'). c = c' \<and> m = length (get_watched_wl_heur S)}\<close> and
-      \<open>(ns, Some fst_As) = (x1, x2)\<close> and
       \<open>(get_vmtf_heur_array S, Some (get_vmtf_heur_fst S)) =
     (x1a, x2a)\<close> and
       \<open>(x, x')
@@ -999,8 +987,7 @@ proof -
        (a, b)
        \<in> twl_st_heur_restart_ana'' (length (get_clauses_wl_heur S))
           (learned_clss_count S) (get_vmtf_heur S)
-          (length (get_watched_wl_heur S)) \<and>
-       ns = get_vmtf_heur_array S} \<and>
+          (length (get_watched_wl_heur S))} \<and>
        (CS, Map.empty)
        \<in> {((c, m), c').
        c = c' \<and> m = length (get_watched_wl_heur T)}}\<close> and
@@ -1087,7 +1074,7 @@ proof -
         })
        (\<lambda>(x). \<exists>\<B>'. mark_duplicated_binary_clauses_as_garbage_wl_inv
             (all_init_atms_st S') S' (x, \<B>'))
-       (\<lambda>(x). get_conflict_wl x = None) (ns, Some fst_As) (S');
+       (\<lambda>(x). get_conflict_wl x = None) (get_vmtf_heur_array S, Some (get_vmtf_heur_fst S)) (S');
       RETURN x
             })\<close> for CS
     supply [[goals_limit=1]]
@@ -1099,9 +1086,9 @@ proof -
       by fast
     apply (rule create)
     apply (rule init)
-    subgoal by (use vm in \<open>auto simp: get_vmtf_heur_fst_def\<close>)
+    subgoal by (use  in \<open>auto simp: get_vmtf_heur_fst_def\<close>)
     subgoal by auto
-    subgoal using vm by (auto simp: get_vmtf_heur_array_def)
+    subgoal by (auto simp: get_vmtf_heur_array_def)
     subgoal
       apply auto
       apply (subst (asm) get_conflict_wl_is_None_heur_get_conflict_wl_is_None_ana[THEN fref_to_Down_unRET_Id])
@@ -1113,7 +1100,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    apply (rule GC_required_skip; assumption)
+    apply (rule GC_required_skip; assumption?)
     apply (rule skip; assumption)
     apply (rule rel0; assumption)
     subgoal by (auto simp add: twl_st_heur_restart_ana_def)
@@ -1127,12 +1114,20 @@ proof -
     subgoal by auto
     subgoal by simp
     subgoal premises p
-      using p(26-) unfolding get_vmtf_heur_array_def by simp
+      using p(25-) unfolding get_vmtf_heur_array_def by simp
     apply (rule rel; assumption?)
     subgoal by auto
     apply (rule rel2; assumption)
     subgoal using assms by (auto simp: twl_st_heur_restart_ana_def)
     done
+
+  let ?vm = \<open>get_vmtf_heur S\<close>
+  have vmtf': \<open>(get_vmtf_heur_array S, fst (snd (bump_get_heuristics ?vm)),
+    get_vmtf_heur_fst S, fst (snd (snd (snd (bump_get_heuristics ?vm)))),
+    snd (snd (snd (snd (bump_get_heuristics ?vm))))) \<in> vmtf (atm_of `# all_init_lits_of_wl S') (get_trail_wl S')\<close>
+    using 1 unfolding bump_heur_def get_vmtf_heur_array_def bump_get_heuristics_def get_vmtf_heur_fst_def
+    by (cases \<open>bump_get_heuristics ?vm\<close>) (auto simp: bump_get_heuristics_def bumped_vmtf_array_fst_def
+      split: if_splits)
 
   show ?thesis
     unfolding isa_mark_duplicated_binary_clauses_as_garbage_wl_alt_def
@@ -1156,7 +1151,7 @@ proof -
     apply (rule iterate_over_VMTFC_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>lC[unfolded Down_id_eq,
       where I = \<open>\<lambda>x. \<exists>\<B>'. mark_duplicated_binary_clauses_as_garbage_wl_inv (all_init_atms_st S') S' (x, \<B>')\<close> and
        P = \<open>\<lambda>x. get_conflict_wl x = None\<close> for \<B>])
-    apply (rule 1)
+    apply (rule vmtf')
     apply (solves \<open>use 2 in \<open>auto simp: all_init_atms_st_alt_def\<close>\<close>)
     apply (solves \<open>use 3 in \<open>auto simp: all_init_atms_st_alt_def\<close>\<close>)
     apply (solves auto)

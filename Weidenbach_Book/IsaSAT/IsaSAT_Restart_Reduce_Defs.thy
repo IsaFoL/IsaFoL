@@ -8,28 +8,9 @@ text \<open>
   possible (other possibilites that are growing slower include \<^term>\<open>\<lambda>(n::nat). n >> 50\<close>).
 \<close>
 
-definition bump_get_heuristics where
-  \<open>bump_get_heuristics x = (if is_focused_heuristics x then get_focused_heuristics x else get_stable_heuristics x)\<close>
-
-definition length_focused_vmtf_array :: \<open>bump_heuristics \<Rightarrow> nat\<close> where
-  \<open>length_focused_vmtf_array x =
-  length (fst (get_focused_heuristics x))\<close>
-  
-definition focused_vmtf_array_nxt_score :: \<open>bump_heuristics \<Rightarrow> nat\<close> where
-  \<open>focused_vmtf_array_nxt_score x = fst (snd (bump_get_heuristics x))\<close>
-
 definition (in -) find_local_restart_target_level_int_inv where
   \<open>find_local_restart_target_level_int_inv bmp cs =
      (\<lambda>(brk, i). i \<le> length cs \<and> length cs < uint32_max)\<close>
-
-definition access_focused_vmtf_array where
-  \<open>access_focused_vmtf_array x i = do {
-  ASSERT (i < length (fst (bump_get_heuristics x)));
-  RETURN (fst (bump_get_heuristics x) ! i)}\<close>
-
-definition focused_vmtf_array_next where
-  \<open>focused_vmtf_array_next x =
-  fst (snd (snd (snd (bump_get_heuristics x))))\<close>
 
 
 definition find_local_restart_target_level_int
@@ -37,14 +18,14 @@ definition find_local_restart_target_level_int
 where
   \<open>find_local_restart_target_level_int =
      (\<lambda>(M, xs, lvls, reasons, k, cs) bmp. do {
-     let m = focused_vmtf_array_nxt_score bmp;
+     let m = current_vmtf_array_nxt_score bmp;
      (brk, i) \<leftarrow> WHILE\<^sub>T\<^bsup>find_local_restart_target_level_int_inv bmp cs\<^esup>
         (\<lambda>(brk, i). \<not>brk \<and> i < length cs)
         (\<lambda>(brk, i). do {
            let t = (cs  ! i);
-           u \<leftarrow> access_focused_vmtf_array bmp i;
 	   ASSERT(t < length M);
 	   let L = atm_of (M ! t);
+           u \<leftarrow> access_focused_vmtf_array bmp L;
            let brk = stamp u < m;
            RETURN (brk, if brk then i else i+1)
          })
@@ -411,12 +392,13 @@ definition isasat_GC_clauses_prog_wl2 where
         (\<lambda>(n, x). do {
           ASSERT(n \<noteq> None);
           let A = the n;
+          ASSERT (A < length_bumped_vmtf_array ns);
           ASSERT(A \<le> uint32_max div 2);
           x \<leftarrow> (\<lambda>(arena\<^sub>o, arena, W). isasat_GC_clauses_prog_single_wl arena\<^sub>o arena W A) x;
           n \<leftarrow>  access_focused_vmtf_array ns A;
           RETURN (get_next n, x)
         })
-        (Some (focused_vmtf_array_next ns), x0);
+        (Some (bumped_vmtf_array_fst ns), x0);
       RETURN x
     })\<close>
 

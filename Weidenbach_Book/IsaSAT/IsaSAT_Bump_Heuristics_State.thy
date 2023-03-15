@@ -127,4 +127,26 @@ proof -
       assms by (auto simp: bump_heur_def isa_bump_unset_def split: bump_heuristics_splits)
 qed
 
+
+  (*TODO: this should probably be only the focused version, but for our first porting experiments, let's
+  implement the switching version*)
+definition bump_get_heuristics where
+  \<open>bump_get_heuristics x = (if is_focused_heuristics x then get_focused_heuristics x else get_stable_heuristics x)\<close>
+
+definition length_bumped_vmtf_array :: \<open>bump_heuristics \<Rightarrow> nat\<close> where
+  \<open>length_bumped_vmtf_array x =
+  length (fst (bump_get_heuristics x))\<close>
+
+definition current_vmtf_array_nxt_score :: \<open>bump_heuristics \<Rightarrow> nat\<close> where
+  \<open>current_vmtf_array_nxt_score x = fst (snd (bump_get_heuristics x))\<close>
+definition access_focused_vmtf_array where
+  \<open>access_focused_vmtf_array x i = do {
+  ASSERT (i < length (fst (bump_get_heuristics x)));
+  RETURN (fst (bump_get_heuristics x) ! i)}\<close>
+
+definition bumped_vmtf_array_fst where
+  \<open>bumped_vmtf_array_fst x =
+  fst (snd (snd (bump_get_heuristics x)))\<close>
+
+
 end
