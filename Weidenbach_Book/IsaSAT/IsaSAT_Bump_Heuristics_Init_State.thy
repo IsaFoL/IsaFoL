@@ -295,9 +295,22 @@ lemma vmtf_cong:
   unfolding vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
   by auto
 lemma isa_vmtf_init_cong:
-  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> isa_vmtf_init \<A> M \<Longrightarrow> L \<in> isa_vmtf_init \<B> M\<close>
-  using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] vmtf_cong[of \<A> \<B>]
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> isa_vmtf_init \<A> M  =isa_vmtf_init \<B> M\<close>
+  using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] vmtf_cong[of \<A> \<B>] vmtf_cong[of \<B> \<A>]
   unfolding isa_vmtf_init_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+  by auto
+
+lemma distinct_atoms_rel_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> distinct_atoms_rel \<A> = distinct_atoms_rel \<B>\<close>
+  using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  unfolding vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def distinct_atoms_rel_def atoms_hash_rel_def distinct_hash_atoms_rel_def
+  by auto
+
+lemma bump_heur_init_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow>  bump_heur_init \<A> M = bump_heur_init \<B> M\<close>
+  using isa_vmtf_init_cong[of \<A> \<B> _ M] 
+    \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] distinct_atoms_rel_cong[of \<A> \<B>] 
+  unfolding bump_heur_init_def
   by auto
 
 

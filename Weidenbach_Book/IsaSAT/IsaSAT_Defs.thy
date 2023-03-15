@@ -82,8 +82,6 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
         ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
         ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
         _ \<leftarrow> isasat_information_banner T;
-        ASSERT((\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). fst_As \<noteq> None \<and>
-          lst_As \<noteq> None) (get_vmtf_wl_heur_init T));
         ASSERT(rewatch_heur_st_fast_pre T);
         T \<leftarrow> rewatch_heur_st_init T;
         ASSERT(isasat_fast_init T);
