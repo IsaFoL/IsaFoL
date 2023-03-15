@@ -2,9 +2,10 @@ theory IsaSAT_Initialisation
   imports Watched_Literals.Watched_Literals_Watch_List_Initialisation
     IsaSAT_Setup IsaSAT_VMTF WB_More_Word
     IsaSAT_Mark Tuple15
+    IsaSAT_Bump_Heuristics_Init_State
     Automatic_Refinement.Relators \<comment> \<open>for more lemmas\<close>
 begin
-
+thm vmtf_cong
 (*TODO Move*)
 definition [to_relAPP]: \<open>mset_rel A \<equiv> p2rel (rel_mset (rel2p A))\<close>
 
@@ -51,71 +52,16 @@ lemma atoms_hash_int_empty_atoms_hash_empty:
       in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def
       dest: spec[of _ \<open>Pos _\<close>]\<close>)
 
-definition (in -) distinct_atms_empty where
-  \<open>distinct_atms_empty _ = {}\<close>
-
-definition (in -) distinct_atms_int_empty where
-  \<open>distinct_atms_int_empty n = RETURN ([], replicate n False)\<close>
-
-
-lemma distinct_atms_int_empty_distinct_atms_empty:
-  \<open>(distinct_atms_int_empty, RETURN o distinct_atms_empty) \<in>
-     [\<lambda>n. (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<A>. atm_of L < n)]\<^sub>f nat_rel \<rightarrow> \<langle>distinct_atoms_rel \<A>\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  apply (auto simp: distinct_atoms_rel_alt_def distinct_atms_empty_def distinct_atms_int_empty_def)
-  by (metis atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n atms_of_def imageE)
-
-type_synonym vmtf_remove_int_option_fst_As = \<open>vmtf_option_fst_As \<times> nat set\<close>
-
-type_synonym bump_heuristics_option_fst_As = \<open>vmtf_option_fst_As \<times> nat list \<times> bool list\<close>
-
-definition vmtf_init
-   :: \<open>nat multiset \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> vmtf_remove_int_option_fst_As set\<close>
-where
-  \<open>vmtf_init \<A>\<^sub>i\<^sub>n M = {((ns, m, fst_As, lst_As, next_search), to_remove).
-   \<A>\<^sub>i\<^sub>n \<noteq> {#} \<longrightarrow> (fst_As \<noteq> None \<and> lst_As \<noteq> None \<and> ((ns, m, the fst_As, the lst_As, next_search),
-     to_remove) \<in> vmtf \<A>\<^sub>i\<^sub>n M)}\<close>
-
-definition isa_vmtf_init where
-  \<open>isa_vmtf_init \<A> M =
-    ((Id \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>option_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>option_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>option_rel) \<times>\<^sub>f
-        distinct_atoms_rel \<A>)\<inverse>
-      `` vmtf_init \<A> M\<close>
-
-lemma isa_vmtf_initI:
-  \<open>(vm, to_remove') \<in> vmtf_init \<A> M \<Longrightarrow> (to_remove, to_remove') \<in> distinct_atoms_rel \<A> \<Longrightarrow>
-    (vm, to_remove) \<in> isa_vmtf_init \<A> M\<close>
-  by (auto simp: isa_vmtf_init_def Image_iff intro!: bexI[of _ \<open>(vm, to_remove')\<close>])
-
-lemma isa_vmtf_init_consD:
-  \<open>((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf_init \<A> M \<Longrightarrow>
-     ((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf_init \<A> (L # M)\<close>
-  by (auto simp: isa_vmtf_init_def vmtf_init_def dest: vmtf_consD)
-lemma isa_vmtf_init_consD':
-  \<open>vm \<in> isa_vmtf_init \<A> M \<Longrightarrow> vm \<in> isa_vmtf_init \<A> (L # M)\<close>
-  by (auto simp: isa_vmtf_init_def vmtf_init_def dest: vmtf_consD)
-
-lemma vmtf_init_cong:
-  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> vmtf_init \<A> M \<Longrightarrow> L \<in> vmtf_init \<B> M\<close>
-  using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] vmtf_cong[of \<A> \<B>]
-  unfolding vmtf_init_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-  by auto
-
-lemma isa_vmtf_init_cong:
-  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> isa_vmtf_init \<A> M \<Longrightarrow> L \<in> isa_vmtf_init \<B> M\<close>
-  using vmtf_init_cong[of \<A> \<B>] distinct_atoms_rel_cong[of \<A> \<B>]
-  apply (subst (asm) isa_vmtf_init_def)
-  by (cases L) (auto intro!: isa_vmtf_initI)
 
 
 type_synonym (in -) twl_st_wl_heur_init =
   \<open>(trail_pol, arena, conflict_option_rel, nat,
-    (nat \<times> nat literal \<times> bool) list list, bump_heuristics_option_fst_As, bool list,
+    (nat \<times> nat literal \<times> bool) list list, bump_heuristics_init, bool list,
     nat, conflict_min_cach_l, lbd, vdom, vdom, bool, clss_size, lookup_clause_rel) tuple15\<close>
 
 type_synonym (in -) twl_st_wl_heur_init_full =
   \<open>(trail_pol, arena, conflict_option_rel, nat,
-    (nat \<times> nat literal \<times> bool) list list, bump_heuristics_option_fst_As, bool list,
+    (nat \<times> nat literal \<times> bool) list list, bump_heuristics_init, bool list,
     nat, conflict_min_cach_l, lbd, vdom, vdom, bool, clss_size, lookup_clause_rel) tuple15\<close>
 
 abbreviation get_trail_init_wl_heur :: \<open>twl_st_wl_heur_init \<Rightarrow> trail_pol\<close> where
@@ -148,10 +94,10 @@ abbreviation get_watchlist_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarr
 abbreviation set_watchlist_wl_heur_init :: \<open>(nat \<times> nat literal \<times> bool) list list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init\<close> where
   \<open>set_watchlist_wl_heur_init \<equiv> Tuple15.set_e\<close>
 
-abbreviation get_vmtf_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bump_heuristics_option_fst_As\<close> where
+abbreviation get_vmtf_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bump_heuristics_init\<close> where
   \<open>get_vmtf_wl_heur_init \<equiv> Tuple15_f\<close>
 
-abbreviation set_vmtf_wl_heur_init :: \<open>bump_heuristics_option_fst_As \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> _\<close> where
+abbreviation set_vmtf_wl_heur_init :: \<open>bump_heuristics_init \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> _\<close> where
   \<open>set_vmtf_wl_heur_init \<equiv> Tuple15.set_f\<close>
 
 abbreviation get_phases_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool list\<close> where
@@ -245,7 +191,7 @@ where
     (D',  D) \<in> option_lookup_clause_rel \<A> \<and>
     j \<le> length M \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
-    vm \<in> isa_vmtf_init \<A> M \<and>
+    vm \<in> bump_heur_init \<A> M \<and>
     phase_saving \<A> \<phi> \<and>
     no_dup M \<and>
     cach_refinement_empty \<A> cach \<and>
@@ -276,7 +222,7 @@ where
     (D',  D) \<in> option_lookup_clause_rel \<A> \<and>
     j \<le> length M \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
-    vm \<in> isa_vmtf_init \<A> M \<and>
+    vm \<in> bump_heur_init \<A> M \<and>
     phase_saving \<A> \<phi> \<and>
     no_dup M \<and>
     cach_refinement_empty \<A> cach \<and>
@@ -311,7 +257,7 @@ definition twl_st_heur_parsing_no_WL_wl :: \<open>nat multiset \<Rightarrow> boo
     (D', D) \<in> option_lookup_clause_rel \<A> \<and>
     j \<le> length M \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
-    vm \<in> isa_vmtf_init \<A> M \<and>
+    vm \<in> bump_heur_init \<A> M \<and>
     phase_saving \<A> \<phi> \<and>
     no_dup M \<and>
     cach_refinement_empty \<A> cach \<and>
@@ -340,7 +286,7 @@ definition twl_st_heur_parsing_no_WL_wl_no_watched :: \<open>nat multiset \<Righ
     (D', D) \<in> option_lookup_clause_rel \<A> \<and>
     j \<le> length M \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
-    vm \<in> isa_vmtf_init \<A> M \<and>
+    vm \<in> bump_heur_init \<A> M \<and>
     phase_saving \<A> \<phi> \<and>
     no_dup M \<and>
     cach_refinement_empty \<A> cach \<and>
@@ -371,7 +317,7 @@ definition twl_st_heur_post_parsing_wl :: \<open>bool \<Rightarrow> (twl_st_wl_h
     (D', D) \<in> option_lookup_clause_rel (all_atms N ((NE+NEk) + (UE+UEk) + NS + US + N0 + U0)) \<and>
     j \<le> length M \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
-    vm \<in> isa_vmtf_init (all_atms N ((NE+NEk) + (UE+UEk) + NS + US + N0 + U0)) M \<and>
+    vm \<in> bump_heur_init (all_atms N ((NE+NEk) + (UE+UEk) + NS + US + N0 + U0)) M \<and>
     phase_saving (all_atms N ((NE+NEk) + (UE+UEk) + NS + US + N0 + U0)) \<phi> \<and>
     no_dup M \<and>
     cach_refinement_empty (all_atms N ((NE+NEk) + (UE+UEk) + NS + US + N0 + U0)) cach \<and>
@@ -384,195 +330,6 @@ definition twl_st_heur_post_parsing_wl :: \<open>bool \<Rightarrow> (twl_st_wl_h
    clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount \<and>
   (mark, {#}) \<in> lookup_clause_rel (all_atms N ((NE+NEk) + (UE+UEk) + NS + US + N0 + U0))
   }\<close>
-
-
-subsubsection \<open>VMTF\<close>
-
-definition initialise_VMTF :: \<open>nat list \<Rightarrow> nat \<Rightarrow> bump_heuristics_option_fst_As nres\<close> where
-\<open>initialise_VMTF N n = do {
-   let A = replicate n (VMTF_Node 0 None None);
-   to_remove \<leftarrow> distinct_atms_int_empty n;
-   ASSERT(length N \<le> uint32_max);
-   (n, A, cnext) \<leftarrow> WHILE\<^sub>T
-      (\<lambda>(i, A, cnext). i < length_uint32_nat N)
-      (\<lambda>(i, A, cnext). do {
-        ASSERT(i < length_uint32_nat N);
-        let L = (N ! i);
-        ASSERT(L < length A);
-        ASSERT(cnext \<noteq> None \<longrightarrow> the cnext < length A);
-        ASSERT(i + 1 \<le> uint32_max);
-        RETURN (i + 1, vmtf_cons A L cnext (i), Some L)
-      })
-      (0, A, None);
-   RETURN ((A, n, cnext, (if N = [] then None else Some ((N!0))), cnext), to_remove)
-  }\<close>
-
-
-lemma initialise_VMTF:
-  shows  \<open>(uncurry initialise_VMTF, uncurry (\<lambda>N n. RES (vmtf_init N []))) \<in>
-      [\<lambda>(N,n). (\<forall>L\<in># N. L < n) \<and> (distinct_mset N) \<and> size N < uint32_max \<and> set_mset N = set_mset \<A>]\<^sub>f
-      (\<langle>nat_rel\<rangle>list_rel_mset_rel) \<times>\<^sub>f nat_rel \<rightarrow>
-      \<langle>(\<langle>Id\<rangle>list_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle> option_rel \<times>\<^sub>r \<langle>nat_rel\<rangle> option_rel \<times>\<^sub>r \<langle>nat_rel\<rangle> option_rel)
-        \<times>\<^sub>r distinct_atoms_rel \<A>\<rangle>nres_rel\<close>
-    (is \<open>(?init, ?R) \<in> _\<close>)
-proof -
-  have vmtf_ns_notin_empty: \<open>vmtf_ns_notin [] 0 (replicate n (VMTF_Node 0 None None))\<close> for n
-    unfolding vmtf_ns_notin_def
-    by auto
-
-  have K2: \<open>distinct N \<Longrightarrow> fst_As < length N \<Longrightarrow> N!fst_As \<in> set (take fst_As N) \<Longrightarrow> False\<close>
-    for fst_As x N
-    by (metis (no_types, lifting) in_set_conv_nth length_take less_not_refl min_less_iff_conj
-      nth_eq_iff_index_eq nth_take)
-  have W_ref: \<open>WHILE\<^sub>T (\<lambda>(i, A, cnext). i < length_uint32_nat N')
-        (\<lambda>(i, A, cnext). do {
-              _ \<leftarrow> ASSERT (i < length_uint32_nat N');
-              let L = (N' ! i);
-              _ \<leftarrow> ASSERT (L < length A);
-              _ \<leftarrow> ASSERT (cnext \<noteq> None \<longrightarrow> the cnext < length A);
-              _ \<leftarrow> ASSERT (i + 1 \<le> uint32_max);
-              RETURN
-               (i + 1,
-                vmtf_cons A L cnext (i), Some L)
-            })
-        (0, replicate n' (VMTF_Node 0 None None),
-         None)
-    \<le> SPEC(\<lambda>(i, A', cnext).
-      vmtf_ns (rev ((take i N'))) i A'
-        \<and> cnext = (option_last (take i N')) \<and>  i = length N' \<and>
-          length A' = n \<and> vmtf_ns_notin (rev ((take i N'))) i A'
-      )\<close>
-    (is \<open>_ \<le> SPEC ?P\<close>)
-    if H: \<open>case y of (N, n) \<Rightarrow>(\<forall>L\<in># N. L < n) \<and> distinct_mset N \<and> size N < uint32_max \<and>
-         set_mset N = set_mset \<A>\<close> and
-       ref: \<open>(x, y) \<in> \<langle>Id\<rangle>list_rel_mset_rel \<times>\<^sub>f nat_rel\<close> and
-       st[simp]: \<open>x = (N', n')\<close> \<open>y = (N, n)\<close>
-     for N N' n n' A x y
-  proof -
-  have [simp]: \<open>n = n'\<close> and NN': \<open>(N', N) \<in> \<langle>Id\<rangle>list_rel_mset_rel\<close>
-    using ref unfolding st by auto
-  then have dist: \<open>distinct N'\<close>
-    using NN' H by (auto simp: list_rel_def br_def list_mset_rel_def list.rel_eq
-      list_all2_op_eq_map_right_iff' distinct_image_mset_inj list_rel_mset_rel_def)
-
-  have L_N: \<open>\<forall>L\<in>set N'. L < n\<close>
-    using H ref by (auto simp: list_rel_def br_def list_mset_rel_def
-      list_all2_op_eq_map_right_iff' list_rel_mset_rel_def list.rel_eq)
-  let ?Q = \<open>\<lambda>(i, A', cnext).
-      vmtf_ns (rev ((take i N'))) i A' \<and> i \<le> length N' \<and>
-      cnext = (option_last (take i N')) \<and>
-      length A' = n \<and> vmtf_ns_notin (rev ((take i N'))) i A'\<close>
-  show ?thesis
-    apply (refine_vcg WHILET_rule[where R = \<open>measure (\<lambda>(i, _). length N' + 1 - i)\<close> and I = \<open>?Q\<close>])
-    subgoal by auto
-    subgoal by (auto intro: vmtf_ns.intros)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal for S N' x2 A'
-      unfolding assert_bind_spec_conv vmtf_ns_notin_def
-      using L_N dist
-      by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2
-          option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
-    subgoal by auto
-    subgoal
-      using L_N dist
-      by (auto simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2
-          option_last_def hd_rev last_map)
-    subgoal
-      using L_N dist
-      by (auto simp: last_take_nth_conv option_last_def)
-    subgoal
-      using H dist ref
-      by (auto simp: last_take_nth_conv option_last_def list_rel_mset_rel_imp_same_length)
-    subgoal
-      using L_N dist
-      by (auto 5 5 simp: take_Suc_conv_app_nth option_last_def hd_rev last_map intro!: vmtf_cons
-          dest: K2)
-    subgoal by (auto simp: take_Suc_conv_app_nth)
-    subgoal by (auto simp: take_Suc_conv_app_nth)
-    subgoal by auto
-    subgoal
-      using L_N dist
-      by (auto 5 5 simp: take_Suc_conv_app_nth hd_rev last_map option_last_def
-          intro!: vmtf_notin_vmtf_cons dest: K2 split: if_splits)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    done
-  qed
-  have [simp]: \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l n' [] ((set N, {}), {})\<close>
-    if \<open>(N, n') \<in> \<langle>Id\<rangle>list_rel_mset_rel\<close> for N N' n'
-    using that unfolding vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-    by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def image_image image_Un list_rel_def
-       br_def list_mset_rel_def list_all2_op_eq_map_right_iff'
-      list_rel_mset_rel_def list.rel_eq)
-  have in_N_in_N1: \<open>L \<in> set N' \<Longrightarrow>  L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l N)\<close>
-    if  \<open>(N', N) \<in> list_mset_rel\<close> for L N N' y
-    using that by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def image_image image_Un list_rel_def
-      list.rel_eq br_def list_mset_rel_def list_all2_op_eq_map_right_iff')
-
-  have length_ba: \<open>\<forall>L\<in># N. L < length ba \<Longrightarrow> L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l N) \<Longrightarrow>
-     L < length ba\<close>
-    if \<open>(N', y) \<in> \<langle>Id\<rangle>list_rel_mset_rel\<close>
-    for L ba N N' y
-    using that
-    by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def nat_shiftr_div2 list.rel_eq
-      atms_of_def image_image image_Un split: if_splits)
-  show ?thesis
-    supply list.rel_eq[simp]
-    apply (intro frefI nres_relI)
-    unfolding initialise_VMTF_def uncurry_def conc_Id id_def vmtf_init_def
-      distinct_atms_int_empty_def nres_monad1
-    apply (refine_rcg)
-   subgoal by (auto dest: list_rel_mset_rel_imp_same_length)
-    apply (rule specify_left)
-     apply (rule W_ref; assumption?)
-    subgoal for N' N'n' n' Nn N n st
-      apply (case_tac st)
-      apply clarify
-      apply (subst RETURN_RES_refine_iff)
-      apply (auto dest: list_rel_mset_rel_imp_same_length)
-      apply (rule exI[of _ \<open>{}\<close>])
-      apply (auto simp: distinct_atoms_rel_alt_def list_rel_mset_rel_def list_mset_rel_def
-        br_def; fail)
-      apply (rule exI[of _ \<open>{}\<close>])
-      unfolding vmtf_def in_pair_collect_simp prod.case
-      apply (intro conjI impI)
-      apply (rule exI[of _ \<open>(rev (fst N'))\<close>])
-      apply (rule_tac exI[of _ \<open>[]\<close>])
-      apply (intro conjI impI)
-      subgoal
-        by (auto simp: rev_map[symmetric] vmtf_def option_last_def last_map
-            hd_rev list_rel_mset_rel_def br_def list_mset_rel_def)
-     (* subgoal apply (auto simp: rev_map[symmetric] vmtf_def option_hd_rev
-            map_option_option_last)*)
-      subgoal by (auto simp: rev_map[symmetric] vmtf_def option_hd_rev
-            map_option_option_last hd_map hd_conv_nth rev_nth last_conv_nth
-	    list_rel_mset_rel_def br_def list_mset_rel_def)
-      subgoal by (auto simp: rev_map[symmetric] vmtf_def option_hd_rev
-            map_option_option_last hd_map last_map hd_conv_nth rev_nth last_conv_nth
-	    list_rel_mset_rel_def br_def list_mset_rel_def)
-      subgoal by (auto simp: rev_map[symmetric] vmtf_def option_hd_rev
-            map_option_option_last hd_rev last_map distinct_atms_empty_def)
-      subgoal by (auto simp: rev_map[symmetric] vmtf_def option_hd_rev
-            map_option_option_last list_rel_mset_rel_def)
-      subgoal by (auto simp: rev_map[symmetric] vmtf_def option_hd_rev
-            map_option_option_last dest: length_ba)
-      subgoal by (auto simp: rev_map[symmetric] vmtf_def option_hd_rev
-            map_option_option_last hd_map hd_conv_nth rev_nth last_conv_nth
-	    list_rel_mset_rel_def br_def list_mset_rel_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
-      subgoal by (auto simp: rev_map[symmetric] vmtf_def option_hd_rev
-            map_option_option_last list_rel_mset_rel_def dest: in_N_in_N1)
-      subgoal by (auto simp: distinct_atoms_rel_alt_def list_rel_mset_rel_def list_mset_rel_def
-        br_def)
-      done
-    done
-qed
-
 
 subsection \<open>Parsing\<close>
 
@@ -626,7 +383,7 @@ lemma propagate_unit_cls_heur_propagate_unit_cls:
   apply (refine_rcg cons_trail_Propagated_tr2[where \<A> = \<A>])
   subgoal by auto
   subgoal by auto
-  subgoal by  (auto intro!: isa_vmtf_init_consD'
+  subgoal by  (auto intro!: bump_heur_init_consD'
     simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff)
   done
 
@@ -838,7 +595,7 @@ private lemma
     \<open>(get_conflict_wl_heur_init T, D) \<in> option_lookup_clause_rel \<A>\<close> and
     \<open>get_literals_to_update_wl_init T \<le> length M\<close> and
     Q: \<open>Q = {#- lit_of x. x \<in># mset (drop (get_literals_to_update_wl_init T) (rev M))#}\<close> and
-    \<open>get_vmtf_wl_heur_init T \<in> isa_vmtf_init \<A> M\<close> and
+    \<open>get_vmtf_wl_heur_init T \<in> bump_heur_init \<A> M\<close> and
     \<open>phase_saving \<A> (get_phases_wl_heur_init T)\<close> and
     \<open>no_dup M\<close> and
     \<open>cach_refinement_empty \<A> (get_cach_wl_heur_init T)\<close> and
@@ -1837,7 +1594,7 @@ definition init_state_wl_heur :: \<open>nat multiset \<Rightarrow> twl_st_wl_heu
     D \<leftarrow> SPEC(\<lambda>D. (D, None) \<in> option_lookup_clause_rel \<A>);
     mark \<leftarrow> SPEC(\<lambda>D. (D, {#}) \<in> lookup_clause_rel \<A>);
     W \<leftarrow> SPEC (\<lambda>W. (W, empty_watched \<A>) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>));
-    vm \<leftarrow> RES (isa_vmtf_init \<A> []);
+    vm \<leftarrow> RES (bump_heur_init \<A> []);
     \<phi> \<leftarrow> SPEC (phase_saving \<A>);
     cach \<leftarrow> SPEC (cach_refinement_empty \<A>);
     let lbd = empty_lbd;
@@ -2125,12 +1882,24 @@ definition rephasing_end_of_initial_phase :: \<open>64 word\<close> where \<open
 
 definition subsuming_length_initial_phase :: \<open>64 word\<close> where \<open>subsuming_length_initial_phase = 10000\<close>
 
+definition finalize_vmtf_init where \<open>
+  finalize_vmtf_init = (\<lambda>(ns, m, fst_As, lst_As, next_search). do {
+  ASSERT (fst_As \<noteq> None);
+  ASSERT (lst_As \<noteq> None);
+  RETURN (ns, m, the fst_As, the lst_As, next_search)})\<close>
+
+definition finalize_bump_init :: \<open>bump_heuristics_init \<Rightarrow> bump_heuristics nres\<close> where
+  \<open>finalize_bump_init = (\<lambda>x. case x of Tuple4 hstable focused foc to_remove ⇒ do {
+    focused \<leftarrow> finalize_vmtf_init focused;
+    hstable \<leftarrow> finalize_vmtf_init hstable;
+    RETURN (Tuple4 hstable focused foc to_remove)
+  })\<close>
+
 text \<open>The value 160 is random (but larger than the default 16 for array lists).\<close>
 definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> isasat nres\<close> where
   \<open>finalise_init_code opts =
-    (\<lambda>S. case S of Tuple15 M' N' D' Q' W' ((ns, m, fst_As, lst_As, next_search), to_remove) \<phi> clvls cach
+    (\<lambda>S. case S of Tuple15 M' N' D' Q' W' bmp \<phi> clvls cach
        lbd vdom ivdom _ lcount mark \<Rightarrow> do {
-     ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
      let init_stats = empty_stats_clss (of_nat (length ivdom));
      let fema = ema_init (opts_fema opts);
      let sema = ema_init (opts_sema opts);
@@ -2140,21 +1909,28 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
      let heur = Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, rephasing_end_of_initial_phase, 0, rephasing_initial_phase), reluctant_init, False, replicate (length \<phi>) False, (inprocessing_interval_init, reduce_interval_init, subsuming_length_initial_phase), other_fema, other_sema));
      let vdoms = AIvdom_init vdom [] ivdom;
      let occs =  replicate (length W') [];
-    RETURN (IsaSAT M' N' D' Q' W' ((ns, m, the fst_As, the lst_As, next_search), to_remove)
+    bmp \<leftarrow> finalize_bump_init bmp;
+    RETURN (IsaSAT M' N' D' Q' W' bmp
        clvls cach lbd (take 1 (replicate 160 (Pos 0))) init_stats
        heur vdoms lcount opts [] occs)
      })\<close>
 
-lemma isa_vmtf_init_nemptyD: \<open>((ak, al, am, an, bc), ao, bd)
-       \<in> isa_vmtf_init \<A> au \<Longrightarrow> \<A> \<noteq> {#} \<Longrightarrow>  \<exists>y. an = Some y\<close>
-     \<open>((ak, al, am, an, bc), ao, bd)
-       \<in> isa_vmtf_init \<A> au \<Longrightarrow> \<A> \<noteq> {#} \<Longrightarrow>  \<exists>y. am = Some y\<close>
-   by (auto simp: isa_vmtf_init_def vmtf_init_def)
+lemma isa_vmtf_init_nemptyD:
+     \<open>((ak, al, am, an, bc)) \<in> isa_vmtf_init \<A> au \<Longrightarrow> \<A> \<noteq> {#} \<Longrightarrow>  \<exists>y. an = Some y\<close>
+     \<open>((ak, al, am, an, bc)) \<in> isa_vmtf_init \<A> au \<Longrightarrow> \<A> \<noteq> {#} \<Longrightarrow>  \<exists>y. am = Some y\<close>
+   by (auto simp: isa_vmtf_init_def bump_heur_init_def)
 
-lemma isa_vmtf_init_isa_vmtf: \<open>\<A> \<noteq> {#} \<Longrightarrow> ((ak, al, Some am, Some an, bc), ao, bd)
-       \<in> isa_vmtf_init \<A> au \<Longrightarrow> ((ak, al, am, an, bc), ao, bd)
-       \<in> bump_heur \<A> au\<close>
-  by (auto simp: isa_vmtf_init_def vmtf_init_def Image_iff intro!: isa_vmtfI)
+lemma isa_vmtf_init_isa_vmtf: \<open>\<A> \<noteq> {#} \<Longrightarrow> ((ak, al, Some am, Some an, bc))
+       \<in> isa_vmtf_init \<A> au \<Longrightarrow> ((ak, al, am, an, bc))
+       \<in> isa_vmtf \<A> au\<close>
+  by (auto simp: isa_vmtf_init_def isa_vmtf_def Image_iff)
+
+lemma bump_heur_init_isa_vmtf: \<open>\<A> \<noteq> {#} \<Longrightarrow> x \<in> bump_heur_init \<A> M \<Longrightarrow> finalize_bump_init x \<le> \<Down>Id (SPEC (\<lambda>x. x \<in> bump_heur \<A> M))\<close>
+  unfolding finalize_bump_init_def bump_heur_init_def bump_heur_def finalize_vmtf_init_def
+    nres_monad3
+  apply (cases x, hypsubst, simp)
+  apply refine_vcg
+  by (auto dest: isa_vmtf_init_nemptyD intro!: isa_vmtf_init_isa_vmtf)
 
 lemma heuristic_rel_initI:
   \<open>phase_saving \<A> \<phi> \<Longrightarrow> length \<phi>' = length \<phi> \<Longrightarrow> length \<phi>'' = length \<phi> \<Longrightarrow> phase_saving \<A> g \<Longrightarrow>
@@ -2180,14 +1956,15 @@ lemma finalise_init_finalise_init_full:
     twl_st_heur_parsing_no_WL_wl_def distinct_mset_dom AIvdom_init_def
       finalise_init_code_def out_learned_def all_lits_st_alt_def[symmetric]
       twl_st_heur_post_parsing_wl_def all_atms_st_def aivdom_inv_dec_def
-    intro!: ASSERT_leI intro!: isa_vmtf_init_bump_heur heuristic_rel_initI
-    intro: isa_vmtf_init_nemptyD)
+    intro!: ASSERT_leI intro!: heuristic_rel_initI
+    specify_left_RES[OF bump_heur_init_isa_vmtf[where \<A>= \<open>all_atms_st S\<close> and M=\<open>get_trail_wl S\<close>, unfolded conc_fun_RES]]
+    intro: )
   apply (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def
     twl_st_heur_parsing_no_WL_wl_def distinct_mset_dom AIvdom_init_def init_empty_occ_list_from_WL_length
       finalise_init_code_def out_learned_def all_lits_st_alt_def[symmetric] phase_saving_def
       twl_st_heur_post_parsing_wl_def all_atms_st_def aivdom_inv_dec_def ac_simps
-    intro!: ASSERT_leI intro!: isa_vmtf_init_bump_heur heuristic_rel_initI
-    intro: isa_vmtf_init_nemptyD)
+    intro!: ASSERT_leI intro!:  heuristic_rel_initI
+    intro: )
   done
 
 lemma finalise_init_finalise_init:
@@ -2237,7 +2014,7 @@ definition init_state_wl_D' :: \<open>nat list \<times> nat \<Rightarrow>  (twl_
      let D = (True, 0, replicate n NOTIN);
      let mark = (0, replicate n None);
      let WS = replicate m [];
-     vm \<leftarrow> initialise_VMTF \<A>\<^sub>i\<^sub>n n;
+     vm \<leftarrow> initialize_Bump_Init \<A>\<^sub>i\<^sub>n n;
      let \<phi> = replicate n False;
      let cach = (replicate n SEEN_UNKNOWN, []);
      let lbd = empty_lbd;
@@ -2306,7 +2083,7 @@ proof -
     subgoal by auto
     done
 qed
-term "uncurry15 id"
+
 fun to_tuple where
   \<open>to_tuple (Tuple15 a b c d e f g h i j k l m n ko) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, ko)\<close>
 
@@ -2345,7 +2122,7 @@ proof -
     D \<leftarrow> SPEC (\<lambda>D. (D, None) \<in> option_lookup_clause_rel \<A>\<^sub>i\<^sub>n);
     mark \<leftarrow> SPEC (\<lambda>D. (D, {#}) \<in> lookup_clause_rel \<A>\<^sub>i\<^sub>n);
     W \<leftarrow> SPEC (\<lambda>W. (W, empty_watched \<A>\<^sub>i\<^sub>n ) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>\<^sub>i\<^sub>n));
-    vm \<leftarrow> RES (isa_vmtf_init \<A>\<^sub>i\<^sub>n []);
+    vm \<leftarrow> RES (bump_heur_init \<A>\<^sub>i\<^sub>n []);
     \<phi> \<leftarrow> SPEC (phase_saving \<A>\<^sub>i\<^sub>n);
     cach \<leftarrow> SPEC (cach_refinement_empty \<A>\<^sub>i\<^sub>n);
     let lbd = empty_lbd;
@@ -2406,29 +2183,12 @@ proof -
         lits_with_max_rel_def
         intro!: nth_replicate dest!: in_N0
         simp del: replicate.simps)
-  have initialise_VMTF: \<open>(\<forall>L\<in>#aa. L < b) \<and> distinct_mset aa \<and> (a, aa) \<in>
-          \<langle>Id\<rangle>list_rel_mset_rel \<and> size aa < uint32_max \<Longrightarrow>
-        initialise_VMTF a b \<le> RES (isa_vmtf_init aa [])\<close>
-    for aa b a
-    using initialise_VMTF[of aa, THEN fref_to_Down_curry, of aa b a b]
-    by (auto simp: isa_vmtf_init_def conc_fun_RES)
   have [simp]: \<open>(x, y) \<in> \<langle>Id\<rangle>list_rel_mset_rel \<Longrightarrow> L \<in># y \<Longrightarrow>
      L < Suc ((Max (insert 0 (set x))))\<close>
     for x y L
     by (auto simp: list_rel_mset_rel_def br_def list_rel_def Id_def
         list_all2_op_eq_map_right_iff' list_mset_rel_def dest: in_N0)
 
-  have initialise_VMTF: \<open>initialise_VMTF a (Suc (b)) \<le>
-       \<Down> Id (RES (isa_vmtf_init y []))\<close>
-    if \<open>(x, y) \<in> ?arg\<close> and \<open>distinct_mset y\<close> and \<open>length a < uint32_max\<close> and \<open>x = (a, b)\<close> for x y a b
-    using that
-    by (auto simp: P_def lits_with_max_rel_def intro!: initialise_VMTF in_N0)
-  have K[simp]: \<open>(x, \<A>\<^sub>i\<^sub>n) \<in> \<langle>Id\<rangle>list_rel_mset_rel \<Longrightarrow>
-         L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n) \<Longrightarrow> L < Suc ((Max (insert 0 (set x))))\<close>
-    for x L \<A>\<^sub>i\<^sub>n
-    unfolding atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
-    by (auto simp: list_rel_mset_rel_def br_def list_rel_def Id_def
-        list_all2_op_eq_map_right_iff' list_mset_rel_def)
   have cach: \<open>RETURN (replicate (Suc (b)) SEEN_UNKNOWN, [])
       \<le> \<Down> Id
           (SPEC (cach_refinement_empty y))\<close>
@@ -2445,7 +2205,7 @@ proof -
           \<open>auto simp: map_fun_rel_def empty_watched_def \<L>\<^sub>a\<^sub>l\<^sub>l_def
              list_mset_rel_def lits_with_max_rel_def
             simp del: replicate_Suc
-            dest!: in_N0 intro: K\<close>)
+            dest!: in_N0 intro: \<close>)
   qed
   have conflict: \<open>RETURN (True, 0, replicate (Suc (b)) NOTIN)
       \<le> SPEC (\<lambda>D. (D, None) \<in> option_lookup_clause_rel \<A>\<^sub>i\<^sub>n)\<close>
@@ -2491,7 +2251,12 @@ proof -
     apply (auto simp: uint32_max_def)
     apply (auto simp: max_def  \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
     done
-
+  have K[simp]: \<open>(x, \<A>\<^sub>i\<^sub>n) \<in> \<langle>Id\<rangle>list_rel_mset_rel \<Longrightarrow>
+         L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n) \<Longrightarrow> L < Suc ((Max (insert 0 (set x))))\<close>
+    for x L \<A>\<^sub>i\<^sub>n
+    unfolding atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
+    by (auto simp: list_rel_mset_rel_def br_def list_rel_def Id_def
+        list_all2_op_eq_map_right_iff' list_mset_rel_def)
 
   show ?thesis
     apply (intro frefI nres_relI)
@@ -2500,9 +2265,9 @@ proof -
     apply (rewrite in \<open>let _ = Suc _in _\<close> Let_def)
     apply (rewrite in \<open>let _ = 2 * _in _\<close> Let_def)
     apply (cases x; simp only: prod.case)
-    apply (refine_rcg init[of y x] initialise_VMTF cach)
+    apply (refine_rcg init[of y x] initialize_Bump_Init[where \<A>=\<A>\<^sub>i\<^sub>n, THEN fref_to_Down_curry, of _ \<open>Suc (snd x)\<close>] cach)
     subgoal for a b by (auto simp: lits_with_max_rel_def intro: le_uint32)
-    subgoal by (auto intro!: K[of _ \<A>\<^sub>i\<^sub>n] simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
+    subgoal by (auto intro!: simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
      lits_with_max_rel_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
     subgoal by auto
     subgoal by auto
@@ -2510,13 +2275,14 @@ proof -
     subgoal by (rule conflict)
     subgoal by (rule mark)
     subgoal by (rule RETURN_rule) (rule H; simp only:)
-         apply assumption
-    subgoal by fast
-    subgoal by (auto simp: lits_with_max_rel_def P_def)
+    subgoal using in_N0 by (auto simp: lits_with_max_rel_def P_def)
     subgoal by simp
+    subgoal by (auto simp: lits_with_max_rel_def)
+    subgoal by (auto simp: lits_with_max_rel_def)
+    subgoal by (auto simp: lits_with_max_rel_def)
     subgoal unfolding phase_saving_def lits_with_max_rel_def by (auto intro!: K)
     subgoal by fast
-    subgoal by fast
+    subgoal by (auto simp: lits_with_max_rel_def)
       apply assumption
     apply (rule refl)
     subgoal by (auto simp: P_def init_rll_def option_lookup_clause_rel_def

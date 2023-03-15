@@ -536,10 +536,11 @@ lemma isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore:
     (auto intro!: atoms_hash_del_op_set_insert[THEN fref_to_Down_unRET_uncurry])
 *)
 
-definition isa_vmtf where
-  \<open>isa_vmtf \<A> M =
-     ((Id \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>option_rel))\<inverse>
-       `` vmtf \<A> M\<close>
+(*TODO remove!*)
+abbreviation (input) isa_vmtf where
+  \<open>isa_vmtf \<equiv> vmtf\<close>
+
+lemmas isa_vmtf_def = TrueI
 
 lemma vmtf_unset_pre:
   assumes
