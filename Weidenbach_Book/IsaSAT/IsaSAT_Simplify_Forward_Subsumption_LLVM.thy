@@ -180,7 +180,7 @@ proof -
    (\<lambda>x. nofail (uncurry sort_cands_by_length2 x))]\<^sub>a ?im \<rightarrow> ?f\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> _\<close>)
     using hfref_compI_PRE[OF clause_size_sort_clauses_impl.refine,
-  OF quicksort_clauses_by_score_sort[unfolded convert_fref], unfolded fcomp_norm_unfold] by blast
+  OF quicksort_clauses_by_score_sort, unfolded fcomp_norm_unfold] by blast
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that 
     by (case_tac x, case_tac \<open>snd x\<close>)

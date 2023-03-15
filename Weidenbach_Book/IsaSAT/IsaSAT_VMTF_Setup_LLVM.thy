@@ -74,7 +74,7 @@ type_synonym vmtf_assn = \<open>vmtf_node_assn ptr \<times> 64 word \<times> 32 
 type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> (32 word array_list64 \<times> 1 word ptr)\<close>
 
 
-abbreviation vmtf_assn :: \<open>_ \<Rightarrow> vmtf_assn \<Rightarrow> assn\<close> where
+definition vmtf_assn :: \<open>_ \<Rightarrow> vmtf_assn \<Rightarrow> assn\<close> where
   \<open>vmtf_assn \<equiv> (array_assn vmtf_node_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a atom_assn \<times>\<^sub>a atom_assn
     \<times>\<^sub>a atom.option_assn)\<close>
 
@@ -83,10 +83,5 @@ abbreviation atoms_hash_assn :: \<open>bool list \<Rightarrow> 1 word ptr \<Righ
 
 abbreviation distinct_atoms_assn where
   \<open>distinct_atoms_assn \<equiv> arl64_assn atom_assn \<times>\<^sub>a atoms_hash_assn\<close>
-
-definition vmtf_remove_assn
-  :: \<open>bump_heuristics \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>
-where
-  \<open>vmtf_remove_assn \<equiv> vmtf_assn \<times>\<^sub>a distinct_atoms_assn\<close>
 
 end

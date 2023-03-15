@@ -471,7 +471,7 @@ sepref_def print_trail_code
   by sepref
 
 lemmas print_trail[sepref_fr_rules] =
-  print_trail_code.refine[FCOMP print_trail_print_trail2_rel[unfolded convert_fref]]
+  print_trail_code.refine[FCOMP print_trail_print_trail2_rel]
 
 definition print_trail_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>print_trail_st_code = read_trail_wl_heur_code print_trail_code\<close>
@@ -492,7 +492,7 @@ global_interpretation print_trail: read_trail_param_adder0 where
   done
 
 lemmas [sepref_fr_rules] =
-  print_trail.refine[FCOMP print_trail_st_print_trail_st2_rel[unfolded convert_fref]]
+  print_trail.refine[FCOMP print_trail_st_print_trail_st2_rel]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   print_trail_st_code_def[unfolded read_all_st_code_def]

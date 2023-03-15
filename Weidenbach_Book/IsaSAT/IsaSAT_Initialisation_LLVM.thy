@@ -610,7 +610,7 @@ lemma [sepref_fr_rules]:
   \<in> [\<lambda>(a, b). a \<le> uint32_max div 2]\<^sub>a
     atom_assn\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow> nat_lit_list_hm_assn\<close>
   by (rule nat_lit_lits_init_assn_assn_in.refine[FCOMP add_to_atms_ext_op_set_insert
-  [unfolded convert_fref op_set_insert_def[symmetric]]])
+  [unfolded op_set_insert_def[symmetric]]])
 hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 lemma while_nfoldli:
   "do {
@@ -661,7 +661,7 @@ lemma extract_atms_clss_hnr[sepref_fr_rules]:
   \<open>(uncurry extract_atms_clss_imp, uncurry (RETURN \<circ>\<circ> extract_atms_clss))
     \<in> [\<lambda>(a, b). \<forall>C\<in>set a. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max]\<^sub>a
       (clauses_ll_assn)\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow> nat_lit_list_hm_assn\<close>
-  using extract_atms_clss_imp.refine[FCOMP extract_atms_clss_i_extract_atms_clss[unfolded convert_fref]]
+  using extract_atms_clss_imp.refine[FCOMP extract_atms_clss_i_extract_atms_clss]
   by simp
 
 sepref_def extract_atms_clss_imp_empty_assn
@@ -681,7 +681,7 @@ lemma extract_atms_clss_imp_empty_assn[sepref_fr_rules]:
   \<open>(uncurry0 extract_atms_clss_imp_empty_assn, uncurry0 (RETURN op_extract_list_empty))
     \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
   using extract_atms_clss_imp_empty_assn.refine[unfolded uncurry0_def, FCOMP extract_atms_clss_imp_empty_rel
-    [unfolded convert_fref]]
+    ]
   unfolding uncurry0_def
   by simp
 
@@ -788,7 +788,7 @@ proof -
        hrp_comp (isasat_atms_ext_rel_assn\<^sup>d) isasat_atms_ext_rel \<rightarrow> lits_with_max_assn\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF extract_lits_sorted_code.refine
-      extract_lits_sorted_mset_set[unfolded convert_fref]]
+      extract_lits_sorted_mset_set]
       unfolding H
     by auto
 

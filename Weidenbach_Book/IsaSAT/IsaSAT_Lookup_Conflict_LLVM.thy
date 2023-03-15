@@ -55,7 +55,7 @@ sepref_def minimize_status_rel_eq_impl
 
 sepref_register minimize_status_rel_eq
 
-lemmas [sepref_fr_rules] = minimize_status_rel_eq_impl.refine[unfolded convert_fref, FCOMP minimize_status_rel_eq]
+lemmas [sepref_fr_rules] = minimize_status_rel_eq_impl.refine[ FCOMP minimize_status_rel_eq]
 
 lemma
    SEEN_FAILED_rel: \<open>(1, SEEN_FAILED) \<in> minimize_status_int_rel\<close> and

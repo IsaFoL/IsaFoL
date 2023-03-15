@@ -216,14 +216,14 @@ sepref_def isasat_fast_init_code
 sepref_register
    cdcl_twl_stgy_restart_prog_wl_heur
 
-declare init_state_wl_D'_code.refine[FCOMP init_state_wl_D'[unfolded convert_fref],
+declare init_state_wl_D'_code.refine[FCOMP init_state_wl_D',
   unfolded lits_with_max_assn_alt_def[symmetric] init_state_wl_heur_fast_def[symmetric],
   unfolded init_state_wl_D'_code_isasat, sepref_fr_rules]
 
 lemma [sepref_fr_rules]: \<open>(init_state_wl_D'_code, init_state_wl_heur_fast)
 \<in> [\<lambda>x. distinct_mset x \<and>
        (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l x. nat_of_lit L \<le> uint32_max)]\<^sub>a lits_with_max_assn\<^sup>k \<rightarrow> isasat_init_assn\<close>
-  using init_state_wl_D'_code.refine[FCOMP init_state_wl_D'[unfolded convert_fref]]
+  using init_state_wl_D'_code.refine[FCOMP init_state_wl_D']
   unfolding lits_with_max_assn_alt_def[symmetric] init_state_wl_D'_code_isasat
     init_state_wl_heur_fast_def
   by auto

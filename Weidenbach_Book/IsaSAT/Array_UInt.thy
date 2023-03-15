@@ -1838,7 +1838,7 @@ lemma array_nat_of_uint64_conv_hnr[sepref_fr_rules]:
   \<open>(array_nat_of_uint64_code, (RETURN \<circ> array_nat_of_uint64_conv))
     \<in> (array_assn uint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a array_assn nat_assn\<close>
   using array_nat_of_uint64_code.refine[unfolded array_nat_of_uint64_def,
-    FCOMP op_map_map_rel[unfolded convert_fref]] unfolding array_nat_of_uint64_conv_alt_def
+    FCOMP op_map_map_rel] unfolding array_nat_of_uint64_conv_alt_def
   by simp
 
 sepref_definition array_uint64_of_nat_code
@@ -1859,7 +1859,7 @@ lemma array_uint64_of_nat_conv_hnr[sepref_fr_rules]:
     \<in> [\<lambda>xs. \<forall>a\<in>set xs. a \<le> uint64_max]\<^sub>a
        (array_assn nat_assn)\<^sup>k \<rightarrow> array_assn uint64_nat_assn\<close>
   using array_uint64_of_nat_code.refine[unfolded array_uint64_of_nat_def,
-    FCOMP op_map_map_rel[unfolded convert_fref]] unfolding array_uint64_of_nat_conv_alt_def
+    FCOMP op_map_map_rel] unfolding array_uint64_of_nat_conv_alt_def
   by simp
 
 definition swap_arl_u64 where

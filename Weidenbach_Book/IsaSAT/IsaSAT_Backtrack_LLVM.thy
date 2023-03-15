@@ -86,7 +86,7 @@ proof -
                      Id \<rightarrow> hr_comp cach_refinement_l_assn Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE[OF empty_cach_code.refine[unfolded PR_CONST_def convert_fref]
-        empty_cach_ref_set_empty_cach_ref[unfolded convert_fref]] by simp
+        empty_cach_ref_set_empty_cach_ref] by simp
   have pre: \<open>?pre' h x\<close> if \<open>?pre x\<close> for x h
     using that by (auto simp: comp_PRE_def trail_pol_def
         ann_lits_split_reasons_def empty_cach_ref_pre_def)

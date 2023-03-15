@@ -387,7 +387,7 @@ lemma arl_nat_of_uint64_conv_hnr[sepref_fr_rules]:
   \<open>(arl_nat_of_uint64_code, (RETURN \<circ> arl_nat_of_uint64_conv))
     \<in> (arl_assn uint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a arl_assn nat_assn\<close>
   using arl_nat_of_uint64_code.refine[unfolded array_nat_of_uint64_def,
-    FCOMP op_map_map_rel[unfolded convert_fref]] unfolding arl_nat_of_uint64_conv_alt_def
+    FCOMP op_map_map_rel] unfolding arl_nat_of_uint64_conv_alt_def
   by simp
 
 end

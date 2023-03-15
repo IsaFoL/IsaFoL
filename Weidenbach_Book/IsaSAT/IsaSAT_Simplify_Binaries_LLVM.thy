@@ -181,7 +181,7 @@ proof -
     by (auto simp: encoded_irred_indices_def)
   show ?thesis
     unfolding fref_param1
-    apply (rule ahm_set_marked_set_marked[unfolded convert_fref])
+    apply (rule ahm_set_marked_set_marked)
     apply (rule H)
     done
 qed
@@ -194,21 +194,21 @@ proof -
     by (auto simp: encoded_irred_indices_def)
   show ?thesis
     unfolding fref_param1
-    apply (rule ahm_update_marked_update_marked[unfolded convert_fref])
+    apply (rule ahm_update_marked_update_marked)
     apply (rule H)
     done
 qed
 
 thm 
-  ahm_create_code.refine[FCOMP ahm_create_create[unfolded convert_fref, where R= encoded_irred_indices]]
+  ahm_create_code.refine[FCOMP ahm_create_create[ where R= encoded_irred_indices]]
 
 lemmas [unfolded ahm_full_assn_def[symmetric], sepref_fr_rules] =
-  ahm_create_code.refine[FCOMP ahm_create_create[unfolded convert_fref, where R= encoded_irred_indices]]
-  ahm_empty_code.refine[FCOMP ahm_empty_empty[unfolded convert_fref, where R = encoded_irred_indices]]
-  ahm_is_marked_code.refine[FCOMP ahm_is_marked_is_marked[unfolded convert_fref, where R = encoded_irred_indices]]
+  ahm_create_code.refine[FCOMP ahm_create_create[ where R= encoded_irred_indices]]
+  ahm_empty_code.refine[FCOMP ahm_empty_empty[ where R = encoded_irred_indices]]
+  ahm_is_marked_code.refine[FCOMP ahm_is_marked_is_marked[ where R = encoded_irred_indices]]
   ahm_get_marked_code.refine[FCOMP ahm_get_marked_get_marked[where R = encoded_irred_indices]]
   ahm_empty_code.refine[FCOMP ahm_empty_empty, where R19 = encoded_irred_indices]
-  ahm_set_marked_code.refine[FCOMP ahm_set_marked_set_marked[unfolded convert_fref]]
+  ahm_set_marked_code.refine[FCOMP ahm_set_marked_set_marked]
   ahm_update_marked_code.refine[FCOMP ahm_update_marked_update_marked]
 
 

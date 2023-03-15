@@ -140,18 +140,6 @@ lemma uint32_max_refine[sepref_import_param]: \<open>(0xFFFFFFFF, uint32_max)\<i
   done
 
 
-
-
-
-lemma convert_fref:
-  \<open>WB_More_Refinement.fref = Sepref_Rules.frefnd\<close>
-  \<open>WB_More_Refinement.freft = Sepref_Rules.freftnd\<close>
-  unfolding WB_More_Refinement.fref_def Sepref_Rules.fref_def
-  by auto
-
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
-
 (* TODO: Move *)
 
 abbreviation \<open>uint32_nat_assn \<equiv> unat_assn' TYPE(32)\<close>
@@ -455,5 +443,5 @@ lemmas [sepref_fr_rules] =
   tri_bool_SET_TRUE_impl.refine[FCOMP tri_bool_SET_TRUE_refine_aux]
   tri_bool_SET_FALSE_impl.refine[FCOMP tri_bool_SET_FALSE_refine_aux]
   tri_bool_eq_impl.refine[FCOMP tri_bool_eq_refine_aux]
-
+hide_const (open) tuple4 tuple7
 end
