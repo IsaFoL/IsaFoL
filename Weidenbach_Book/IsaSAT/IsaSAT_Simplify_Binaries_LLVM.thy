@@ -308,7 +308,7 @@ sepref_def isa_deduplicate_binary_clauses_wl_code
   by sepref
 
 
-sepref_register get_vmtf_heur_array_nth get_vmtf_heur_fst
+sepref_register get_bump_heur_array_nth get_vmtf_heur_fst
   isa_deduplicate_binary_clauses_wl
 
 lemma Massign_split: \<open>do{ x \<leftarrow> (M :: _ nres); f x} = do{(a,b) \<leftarrow> M; f (a,b)}\<close>
@@ -356,7 +356,7 @@ sepref_def isa_deduplicate_binary_clauses_code
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def
-    get_vmtf_heur_array_nth_def[symmetric] atom.fold_option nres_monad3
+    get_bump_heur_array_nth_def[symmetric] atom.fold_option nres_monad3
     length_watchlist_def[unfolded length_ll_def, symmetric]
     length_watchlist_raw_def[symmetric]
   apply (rewrite at \<open>let _ = get_vmtf_heur_array _ in _\<close> Let_def)

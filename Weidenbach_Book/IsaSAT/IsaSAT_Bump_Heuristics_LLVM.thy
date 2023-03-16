@@ -1,4 +1,4 @@
-﻿theory IsaSAT_Bump_Heuristics_LLVM
+theory IsaSAT_Bump_Heuristics_LLVM
   imports IsaSAT_Bump_Heuristics
     IsaSAT_VMTF_LLVM
     Tuple4_LLVM

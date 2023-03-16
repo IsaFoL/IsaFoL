@@ -484,10 +484,6 @@ lemmas [sepref_fr_rules] = watched_by_app.refine watched_by_app.XX.mop_refine
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   length_ll_fs_heur_fast_code_def[unfolded read_all_st_code_def]
 
-definition isa_vmtf_heur_fst where
-  \<open>isa_vmtf_heur_fst x = (case x of Bump_Heuristics hstable focused foc _ \<Rightarrow>
-  if foc then RETURN (vmtf_heur_fst focused) else RETURN (vmtf_heur_fst hstable))\<close>
-
 sepref_def isa_vmtf_heur_fst_code
   is \<open>isa_vmtf_heur_fst\<close>
   :: \<open>heuristic_bump_assn\<^sup>k \<rightarrow>\<^sub>a atom_assn\<close>
@@ -514,10 +510,8 @@ global_interpretation vmtf_fst: read_vmtf_param_adder0 where
   subgoal by (auto simp: get_vmtf_heur_fst_impl_def)
   done
 
-definition get_vmtf_heur_array_nth where
-  \<open>get_vmtf_heur_array_nth S i = get_vmtf_heur_array S ! i\<close>
-definition get_vmtf_heur_array_nth_impl where
-  \<open>get_vmtf_heur_array_nth_impl N C' = read_vmtf_wl_heur_code (\<lambda>M. vmtf_heur_array_nth_code M C') N\<close>
+definition get_bump_heur_array_nth_impl where
+  \<open>get_bump_heur_array_nth_impl N C' = read_vmtf_wl_heur_code (\<lambda>M. vmtf_heur_array_nth_code M C') N\<close>
 
 global_interpretation vmtf_array_nth: read_vmtf_param_adder where
   f' = \<open>\<lambda>a b. vmtf_heur_array_nth b a\<close> and
@@ -526,16 +520,16 @@ global_interpretation vmtf_array_nth: read_vmtf_param_adder where
   P = \<open>(\<lambda>n S. n < length (fst (fst S)))\<close> and
   R = atom_rel
  rewrites
-    \<open>(\<lambda>N C'. read_vmtf_wl_heur (\<lambda>M. vmtf_heur_array_nth M C') N) = RETURN oo get_vmtf_heur_array_nth\<close>  and
-    \<open>(\<lambda>N C'. read_vmtf_wl_heur_code (\<lambda>M. vmtf_heur_array_nth_code M C') N) = get_vmtf_heur_array_nth_impl\<close>
+    \<open>(\<lambda>N C'. read_vmtf_wl_heur (\<lambda>M. vmtf_heur_array_nth M C') N) = RETURN oo get_bump_heur_array_nth\<close>  and
+    \<open>(\<lambda>N C'. read_vmtf_wl_heur_code (\<lambda>M. vmtf_heur_array_nth_code M C') N) = get_bump_heur_array_nth_impl\<close>
   apply unfold_locales
   apply (subst (3)uncurry_def)
   apply (rule vmtf_heur_array_nth_code.refine)
   subgoal
-    by (auto intro!: ext simp: get_vmtf_heur_array_nth_def read_all_st_def vmtf_heur_array_nth_def
+    by (auto intro!: ext simp: get_bump_heur_array_nth_def read_all_st_def vmtf_heur_array_nth_def
         get_vmtf_heur_array_def
        split: isasat_int_splits)
-  subgoal by (auto simp: get_vmtf_heur_array_nth_impl_def[abs_def])
+  subgoal by (auto simp: get_bump_heur_array_nth_impl_def[abs_def])
   done
 
 lemmas [sepref_fr_rules] = vmtf_fst.refine
@@ -543,7 +537,7 @@ lemmas [sepref_fr_rules] = vmtf_fst.refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   get_vmtf_heur_fst_impl_def[unfolded read_all_st_code_def]
-  get_vmtf_heur_array_nth_impl_def[unfolded read_all_st_code_def]
+  get_bump_heur_array_nth_impl_def[unfolded read_all_st_code_def]
 
 
 lemma mop_mark_added_heur_st_alt_def:
