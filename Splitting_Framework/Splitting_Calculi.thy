@@ -13,10 +13,7 @@ locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_
     Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
     V :: \<open>'v :: countable itself\<close> and
     fml :: \<open>'v \<Rightarrow> 'f\<close>
-  + fixes
-      asn :: \<open>'f \<Rightarrow> 'v sign set\<close> and
-      splittable :: \<open>[ 'f, 'f set ] \<Rightarrow> bool\<close>
-    assumes
+  + assumes
       (* D6 *)
       entails_sound_nontrivial: \<open>\<not> {} \<Turnstile>s {}\<close> and
       (* R5 *)
@@ -24,11 +21,7 @@ locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_
       (* R6 *)
       complete: \<open>bot \<notin> Red_F N\<close> and
       (* R7 *)
-      all_red_to_bot: \<open>\<C> \<noteq> bot \<Longrightarrow> \<C> \<in> Red_F {bot}\<close> and
-
-      splittable_if1: \<open>splittable \<C> \<N> \<Longrightarrow> card \<N> \<ge> 2\<close> and
-      splittable_if2: \<open>splittable \<C> \<N> \<Longrightarrow> {\<C>} \<Turnstile>s \<N>\<close> and
-      splittable_if3: \<open>splittable \<C> \<N> \<Longrightarrow> \<forall> C \<in> \<N>. \<C> \<in> Red_F {C}\<close>
+      all_red_to_bot: \<open>\<C> \<noteq> bot \<Longrightarrow> \<C> \<in> Red_F {bot}\<close>
 begin
 
 (* Propositional clauses are of the form \<open>\<bottom> \<leftarrow> A\<close> *)
@@ -61,7 +54,71 @@ inductive_set SInf :: \<open>('f, 'v) AF inference set\<close> where
   simp: \<open>\<lbrakk> set P \<equiv>\<^sub>S set P'; Infer P C \<in> SInf \<rbrakk> \<Longrightarrow> Infer P' C \<in> SInf\<close> *)
 
 abbreviation SInf :: \<open>('f, 'v) AF inference set\<close> where
-  \<open>SInf ≡ {I. S I}\<close>
+  \<open>SInf \<equiv> {I. S I}\<close>
+
+lemma SInf_cong_if:
+  assumes \<open>map F_of (prems_of \<iota>) = map F_of (prems_of \<iota>')\<close>
+      and \<open>F_of (concl_of \<iota>) = F_of (concl_of \<iota>')\<close>
+      and \<open>\<iota>' \<in> inference_system.Inf_from SInf \<N>\<close>
+      and \<open>enabled_inf \<iota>' J\<close>
+  shows \<open>\<iota> \<in> inference_system.Inf_from SInf \<N>\<close>
+proof -
+  have \<open>S \<iota>'\<close>
+    using assms(3)
+    by (simp add: inference_system.Inf_from_def)
+  moreover have \<open>enabled_inf \<iota>' J\<close>
+    using assms(3) assms(4)
+    by linarith
+  show \<open>\<iota> \<in> inference_system.Inf_from SInf \<N>\<close>
+    sorry
+qed
+
+
+(* Report lemma 13 1/2 *)
+lemma SInf_commutes_Inf1: \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarrow> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J \<subseteq> Inf_from (\<N> proj\<^sub>J J)\<close>
+proof (intro subsetI)
+  fix x
+  assume 1: \<open>bot \<notin> \<N> proj\<^sub>J J\<close> and
+         2: \<open>x \<in> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J\<close>
+
+  have no_enabled_prop_clause_in_\<N>: \<open>\<forall> \<C> \<in> \<N>. enabled \<C> J \<longrightarrow> \<not> propositional_clause \<C>\<close>
+    using "1"
+    unfolding enabled_projection_def
+    by blast
+
+  obtain \<iota> where x_is: \<open>x = \<iota>F_of \<iota>\<close>
+    using "2" enabled_projection_Inf_def
+    by auto
+  have \<open>\<iota> \<in> inference_system.Inf_from SInf \<N>\<close>
+    using "2"
+    unfolding enabled_projection_Inf_def \<iota>F_of_def x_is
+    apply auto
+    sorry
+  moreover have \<iota>_is_enabled: \<open>enabled_inf \<iota> J\<close>
+    using "2"
+    unfolding enabled_projection_Inf_def x_is
+    sorry
+  moreover have \<open>S \<iota>\<close>
+    using calculation(1)
+    by (simp add: inference_system.Inf_from_def)
+  moreover have prems_of_\<iota>_subset_\<N>: \<open>set (prems_of \<iota>) \<subseteq> \<N>\<close>
+    using calculation(1)
+    by (simp add: inference_system.Inf_from_def)
+  moreover have \<open>\<iota>F_of \<iota> \<in> Inf\<close>
+    unfolding \<iota>F_of_def
+    sorry
+  moreover have \<open>set (prems_of (\<iota>F_of \<iota>)) \<subseteq> \<N> proj\<^sub>J J\<close>
+    using \<iota>_is_enabled prems_of_\<iota>_subset_\<N>
+    by (auto simp add: enabled_inf_def enabled_projection_def \<iota>F_of_def)
+  ultimately have \<open>\<iota>F_of \<iota> \<in> Inf_from (\<N> proj\<^sub>J J)\<close>
+    by (simp add: Inf_from_def)
+  then show \<open>x \<in> Inf_from (\<N> proj\<^sub>J J)\<close>
+    by (simp add: x_is)
+qed
+
+(* Report lemma 13 2/2 *)
+lemma SInf_commutes_Inf2: \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarrow> Inf_from (\<N> proj\<^sub>J J) \<subseteq> (inference_system.Inf_from SIng \<N>) \<iota>proj\<^sub>J J\<close>
+  sorry
 
 end (* locale splitting_calculus *)
 
