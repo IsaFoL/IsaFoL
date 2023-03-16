@@ -82,9 +82,6 @@ abbreviation atoms_hash_assn :: \<open>bool list \<Rightarrow> 1 word ptr \<Righ
 abbreviation distinct_atoms_assn where
   \<open>distinct_atoms_assn \<equiv> arl64_assn atom_assn \<times>\<^sub>a atoms_hash_assn\<close>
 
-definition vmtf_heur_fst where
-  \<open>vmtf_heur_fst = (\<lambda>(_, _, a, _). a)\<close>
-
 sepref_def vmtf_heur_fst_code
   is \<open>RETURN o vmtf_heur_fst\<close>
   :: \<open>vmtf_assn\<^sup>k \<rightarrow>\<^sub>a atom_assn\<close>

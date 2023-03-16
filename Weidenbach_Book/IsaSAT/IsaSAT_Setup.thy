@@ -1580,6 +1580,13 @@ definition get_vmtf_heur_fst where
   \<open>get_vmtf_heur_fst S = (fst o snd o snd) ((if is_focused_heuristics (get_vmtf_heur S)
   then get_focused_heuristics (get_vmtf_heur S) else get_stable_heuristics (get_vmtf_heur S)))\<close>
 
+definition isa_vmtf_heur_fst where
+  \<open>isa_vmtf_heur_fst x = (case x of Bump_Heuristics hstable focused foc _ \<Rightarrow>
+  if foc then RETURN (vmtf_heur_fst focused) else RETURN (vmtf_heur_fst hstable))\<close>
+
+definition get_bump_heur_array_nth where
+  \<open>get_bump_heur_array_nth S i = get_vmtf_heur_array S ! i\<close>
+
 definition mop_mark_added_heur_st :: \<open>_\<close> where
   \<open>mop_mark_added_heur_st L S = do {
     let heur = get_heur S;

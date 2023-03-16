@@ -3014,6 +3014,10 @@ lemma vmtf_unset_pre_vmtf:
   using assms
   by (auto simp: vmtf_def vmtf_unset_pre_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 
+
+definition vmtf_heur_fst where
+  \<open>vmtf_heur_fst = (\<lambda>(_, _, a, _). a)\<close>
+
 subsection \<open>Phase saving\<close>
 
 type_synonym phase_saver = \<open>bool list\<close>

@@ -106,6 +106,29 @@ sepref_def isa_bump_heur_flush_impl
   unfolding isa_bump_heur_flush_def
  by sepref
 
+
+sepref_def isa_vmtf_heur_fst_code
+  is \<open>isa_vmtf_heur_fst\<close>
+  :: \<open>heuristic_bump_assn\<^sup>k \<rightarrow>\<^sub>a atom_assn\<close>
+  unfolding isa_vmtf_heur_fst_def
+  by sepref
+
+definition isa_vmtf_heur_array_nth where
+  \<open>isa_vmtf_heur_array_nth x = vmtf_heur_array_nth (bump_get_heuristics x)\<close>
+
+lemma isa_vmtf_heur_array_nth_alt_def:
+  \<open>isa_vmtf_heur_array_nth x i = (case x of Bump_Heuristics hstable focused foc _ \<Rightarrow>
+     (if foc then vmtf_heur_array_nth focused i else vmtf_heur_array_nth hstable i))\<close>
+  by (cases x) (auto simp: bump_get_heuristics_def isa_vmtf_heur_array_nth_def)
+
+sepref_register is_focused_heuristics vmtf_heur_array_nth
+sepref_def isa_vmtf_heur_array_nth_code
+  is \<open>uncurry isa_vmtf_heur_array_nth\<close>
+  :: \<open>[\<lambda>(vm, i). i < length (fst (bump_get_heuristics vm))]\<^sub>a heuristic_bump_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow> vmtf_node_assn\<close>
+  supply if_splits[split]
+  unfolding isa_vmtf_heur_array_nth_alt_def bump_get_heuristics_def
+  by sepref
+
 experiment begin
 
 export_llvm
@@ -114,6 +137,7 @@ export_llvm
   isa_bump_rescore_fast_code
   isa_bump_mark_to_rescore_clause_fast_code
   isa_bump_heur_flush_impl
+  isa_vmtf_heur_array_nth_code
 end
 
 end

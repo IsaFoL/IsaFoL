@@ -149,11 +149,4 @@ definition bumped_vmtf_array_fst where
   fst (snd (snd (bump_get_heuristics x)))\<close>
 
 
-definition isa_vmtf_heur_fst where
-  \<open>isa_vmtf_heur_fst x = (case x of Bump_Heuristics hstable focused foc _ \<Rightarrow>
-  if foc then RETURN (vmtf_heur_fst focused) else RETURN (vmtf_heur_fst hstable))\<close>
-
-definition get_bump_heur_array_nth where
-  \<open>get_bump_heur_array_nth S i = get_vmtf_heur_array (bump_get_heuristics S) ! i\<close>
-
 end
