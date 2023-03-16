@@ -5,9 +5,6 @@ theory IsaSAT_Simplify_Pure_Literals_LLVM
     IsaSAT_Proofs_LLVM
 begin
 
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
-
 sepref_register mop_arena_status_st isa_pure_literal_count_occs_clause_wl
 sepref_def isa_pure_literal_count_occs_clause_wl_code
   is \<open>uncurry3 isa_pure_literal_count_occs_clause_wl\<close>
@@ -76,9 +73,9 @@ lemma isa_pure_literal_deletion_wl_alt_def:
        else RETURN (get_next (get_vmtf_heur_array T ! A),eliminated, T)
      })
     (Some (get_vmtf_heur_fst S\<^sub>0), 0, S\<^sub>0);
-   mop_free occs;
-  RETURN (eliminated, S)
-         })\<close>
+    mop_free occs;
+    RETURN (eliminated, S)
+  })\<close>
   unfolding isa_pure_literal_deletion_wl_def mop_free_def
   by auto
 
@@ -90,6 +87,7 @@ sepref_def isa_pure_literal_deletion_wl_code
     get_bump_heur_array_nth_def[symmetric] UNSET_def[symmetric] atom.fold_option
     mop_polarity_st_heur_def[symmetric] tri_bool_eq_def[symmetric]
     get_bump_heur_array_nth_def[symmetric] prod.simps
+    get_vmtf_heur_array_def[symmetric]
   by sepref
 
 end

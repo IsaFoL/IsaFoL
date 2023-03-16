@@ -308,7 +308,7 @@ lemma distinct_atoms_rel_cong:
 
 lemma bump_heur_init_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow>  bump_heur_init \<A> M = bump_heur_init \<B> M\<close>
-  using isa_vmtf_init_cong[of \<A> \<B> _ M] 
+  using isa_vmtf_init_cong[of \<A> \<B> M] 
     \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] distinct_atoms_rel_cong[of \<A> \<B>] 
   unfolding bump_heur_init_def
   by auto

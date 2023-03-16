@@ -3,9 +3,6 @@ theory IsaSAT_Simplify_Units_LLVM
     IsaSAT_Simplify_Clause_Units_LLVM
 begin
 
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
-
 
 lemma isa_simplify_clauses_with_unit_st2_alt_def:
   \<open>isa_simplify_clauses_with_unit_st2 S =

@@ -84,6 +84,9 @@ sepref_def vmtf_mark_to_rescore_also_reasons_fast_code
   unfolding  nres_monad3 case_option_split
   by sepref
 
+sepref_register isa_vmtf_bump_to_rescore_also_reasons_cl isa_vmtf_mark_to_rescore_also_reasons
+  isa_bump_heur_flush
+  
 sepref_def isa_vmtf_bump_to_rescore_also_reasons_cl_impl
   is \<open>uncurry4 (isa_vmtf_bump_to_rescore_also_reasons_cl)\<close>
   :: \<open>[\<lambda>((((_, N), _), _), _). length N \<le> sint64_max]\<^sub>a

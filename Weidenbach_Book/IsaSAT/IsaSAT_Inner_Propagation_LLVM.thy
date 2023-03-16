@@ -4,7 +4,7 @@ theory IsaSAT_Inner_Propagation_LLVM
     IsaSAT_VMTF_LLVM
     IsaSAT_LBD_LLVM
 begin
-
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 sepref_register isa_save_pos unit_propagation_update_statistics
 
 lemma unit_propagation_update_statistics_alt_def:
@@ -380,6 +380,8 @@ lemma mark_conflict_to_rescore_alt_def:
   by (auto intro!: ext simp: state_extractors mark_conflict_to_rescore_def Let_def
     split: isasat_int_splits)
 
+(*TODO Move*)
+sepref_register isa_vmtf_bump_to_rescore_also_reasons_cl
 sepref_def mark_conflict_to_rescore_impl
   is \<open>uncurry mark_conflict_to_rescore\<close>
   :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>

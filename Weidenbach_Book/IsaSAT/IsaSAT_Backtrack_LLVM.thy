@@ -4,6 +4,8 @@ theory IsaSAT_Backtrack_LLVM
     IsaSAT_Stats_LLVM
 begin
 
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN
+
 lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
     \<open>isa_empty_conflict_and_extract_clause_heur M D outl = do {
      let C = replicate (length outl) (outl!0);
@@ -29,8 +31,7 @@ lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
      ASSERT(length outl \<noteq> 1 \<longrightarrow>  get_level_pol_pre (M, C!1));
      RETURN ((True, D), C, if length outl = 1 then 0 else get_level_pol M (C!1))
   }\<close>
-  unfolding isa_empty_conflict_and_extract_clause_heur_def (*WB_More_Refinement_List.swap_def
-    swap_def[symmetric]*)
+  unfolding isa_empty_conflict_and_extract_clause_heur_def
   by auto
 
 sepref_def empty_conflict_and_extract_clause_heur_fast_code
@@ -85,7 +86,7 @@ proof -
       hrp_comp (cach_refinement_l_assn\<^sup>d)
                      Id \<rightarrow> hr_comp cach_refinement_l_assn Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE[OF empty_cach_code.refine[unfolded PR_CONST_def convert_fref]
+    using hfref_compI_PRE[OF empty_cach_code.refine[unfolded PR_CONST_def]
         empty_cach_ref_set_empty_cach_ref] by simp
   have pre: \<open>?pre' h x\<close> if \<open>?pre x\<close> for x h
     using that by (auto simp: comp_PRE_def trail_pol_def
@@ -135,7 +136,7 @@ lemma propagate_unit_bt_wl_D_int_alt_def:
       let (stats, S) = extract_stats_wl_heur S;
       let (lbd, S) = extract_lbd_wl_heur S;
       let (vm0, S) = extract_vmtf_wl_heur S;
-      vm \<leftarrow> isa_vmtf_flush_int M vm0;
+      vm \<leftarrow> isa_bump_heur_flush M vm0;
       glue \<leftarrow> get_LBD lbd;
       lbd \<leftarrow> lbd_empty lbd;
       j \<leftarrow> mop_isa_length_trail M;
@@ -184,7 +185,7 @@ sepref_def propagate_bt_wl_D_heur_extract_impl
   is \<open>propagate_bt_wl_D_heur_extract\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn \<times>\<^sub>a aivdom_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
   watchlist_fast_assn \<times>\<^sub>a lcount_assn \<times>\<^sub>a heuristic_assn \<times>\<^sub>a isasat_stats_assn \<times>\<^sub>a lbd_assn \<times>\<^sub>a
-  vmtf_remove_assn \<times>\<^sub>a isasat_bounded_assn\<close>
+  heuristic_bump_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding propagate_bt_wl_D_heur_extract_def
   by sepref
 
@@ -198,7 +199,7 @@ definition propagate_bt_wl_D_heur_update where
       let (S) = update_heur_wl_heur heur S;
       let (S) = update_stats_wl_heur stats S;
       let S = update_lbd_wl_heur lbd S;
-      let (S) = update_vmtf_wl_heur vm0 S;
+      let S = update_vmtf_wl_heur vm0 S;
       let S = update_clvls_wl_heur 0 S;
       let S = update_literals_to_update_wl_heur j S;
       RETURN (S)})\<close>
@@ -207,7 +208,7 @@ sepref_def propagate_bt_wl_D_heur_update_impl
   is \<open>uncurry10 propagate_bt_wl_D_heur_update\<close>
   :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a trail_pol_fast_assn\<^sup>d *\<^sub>a aivdom_assn\<^sup>d *\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a
   watchlist_fast_assn\<^sup>d *\<^sub>a lcount_assn\<^sup>d *\<^sub>a heuristic_assn\<^sup>d *\<^sub>a isasat_stats_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>d *\<^sub>a
-  vmtf_remove_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k  \<rightarrow>\<^sub>a  isasat_bounded_assn\<close>
+  heuristic_bump_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k  \<rightarrow>\<^sub>a  isasat_bounded_assn\<close>
   supply [[goals_limit = 1]]
   unfolding propagate_bt_wl_D_heur_update_def
   apply (rewrite at \<open>update_clvls_wl_heur \<hole> _\<close> unat_const_fold[where 'a=32])
@@ -224,7 +225,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       ASSERT(length C > 1);
       let L' = C!1;
       ASSERT(length C \<le> uint32_max div 2 + 1);
-      vm \<leftarrow> isa_vmtf_rescore C M vm0;
+      vm \<leftarrow> isa_bump_rescore C M vm0;
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let l = 2;
@@ -243,14 +244,14 @@ lemma propagate_bt_wl_D_heur_alt_def:
       ASSERT(i \<noteq> DECISION_REASON);
       ASSERT(cons_trail_Propagated_tr_pre ((-L, i), M));
       M \<leftarrow> cons_trail_Propagated_tr (- L) i M;
-      vm \<leftarrow> isa_vmtf_flush_int M vm;
+      vm \<leftarrow> isa_bump_heur_flush M vm;
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       S \<leftarrow> propagate_bt_wl_D_heur_update S M (add_learned_clause_aivdom i vdom) N
           W (clss_size_incr_lcount lcount) (unset_fully_propagated_heur (heuristic_reluctant_tick (update_propagation_heuristics glue heur))) (add_lbd (of_nat glue) stats) lbd vm j;
         _ \<leftarrow> log_new_clause_heur S i;
       S \<leftarrow> maybe_mark_added_clause_heur2 S i;
       RETURN (S)
-        })\<close>
+  })\<close>
   unfolding propagate_bt_wl_D_heur_def Let_def propagate_bt_wl_D_heur_update_def
           propagate_bt_wl_D_heur_extract_def nres_monad3
   by (auto simp: propagate_bt_wl_D_heur_def Let_def state_extractors propagate_bt_wl_D_heur_update_def
@@ -395,7 +396,6 @@ begin
      mop_isa_length_trail_fast_code
      cons_trail_Propagated_tr_fast_code
      update_heuristics_impl
-     vmtf_rescore_fast_code
      append_and_length_fast_code
      update_lbd_impl
      reluctant_tick_impl

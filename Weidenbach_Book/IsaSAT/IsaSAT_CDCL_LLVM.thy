@@ -13,5 +13,4 @@ declare cdcl_twl_stgy_prog_wl_D_code.refine[sepref_fr_rules]
 
 export_llvm cdcl_twl_stgy_prog_wl_D_code file \<open>code/isasat.ll\<close>
 
-
 end

@@ -1,11 +1,8 @@
 theory IsaSAT_Simplify_Binaries_LLVM
-  imports 
+  imports
     IsaSAT_Simplify_Clause_Units_LLVM
     IsaSAT_Simplify_Binaries_Defs
 begin
-
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
 
 abbreviation ahm_assn :: \<open>_\<close> where
@@ -117,8 +114,6 @@ definition encoded_irred_index_set where
 
 definition encoded_irred_index_set_int where
   \<open>encoded_irred_index_set_int a b = do { (if b then RETURN (int a) else RETURN (- int a))}\<close>
-
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
 
 lemma encoded_irred_index_set:
   \<open>(uncurry encoded_irred_index_set_int, uncurry (RETURN oo encoded_irred_index_set)) \<in> [\<lambda>(a,b). a \<noteq> 0 \<and> a \<le> sint64_max]\<^sub>f nat_rel \<times>\<^sub>r bool_rel \<rightarrow> \<langle>encoded_irred_indices\<rangle>nres_rel\<close>

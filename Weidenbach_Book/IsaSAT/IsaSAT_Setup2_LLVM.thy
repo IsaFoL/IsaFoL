@@ -508,6 +508,9 @@ global_interpretation vmtf_fst: read_vmtf_param_adder0 where
 definition get_bump_heur_array_nth_impl where
   \<open>get_bump_heur_array_nth_impl N C' = read_vmtf_wl_heur_code (\<lambda>M. isa_vmtf_heur_array_nth_code M C') N\<close>
 
+lemma get_vmtf_heur_array_alt_def: \<open>get_vmtf_heur_array S = fst (bump_get_heuristics (get_vmtf_heur S))\<close>
+  by (auto simp: get_vmtf_heur_array_def bump_get_heuristics_def)
+
 global_interpretation vmtf_array_nth: read_vmtf_param_adder where
   f' = \<open>\<lambda>a b. isa_vmtf_heur_array_nth b a\<close> and
   f = \<open>\<lambda>a b. isa_vmtf_heur_array_nth_code b a\<close> and
@@ -528,7 +531,7 @@ global_interpretation vmtf_array_nth: read_vmtf_param_adder where
   done
 
 lemmas [sepref_fr_rules] = vmtf_fst.refine
-  vmtf_array_nth.refine[unfolded get_vmtf_heur_array_def[symmetric, unfolded comp_def]]
+  vmtf_array_nth.refine[unfolded get_vmtf_heur_array_def[symmetric, unfolded comp_def] get_vmtf_heur_array_alt_def[symmetric]]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   get_vmtf_heur_fst_impl_def[unfolded read_all_st_code_def]

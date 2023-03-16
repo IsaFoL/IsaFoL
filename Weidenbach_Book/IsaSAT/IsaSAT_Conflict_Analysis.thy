@@ -82,12 +82,32 @@ lemma tl_state_out_learned:
 
 lemma mop_tl_state_wl_pre_tl_state_wl_heur_pre:
   \<open>(x, y) \<in> twl_st_heur_conflict_ana \<Longrightarrow> mop_tl_state_wl_pre y \<Longrightarrow> tl_state_wl_heur_pre x\<close>
+  \<open>(x, y) \<in> twl_st_heur_conflict_ana \<Longrightarrow> mop_tl_state_wl_pre y \<Longrightarrow>
+    isa_bump_unset_pre (atm_of (lit_of_last_trail_pol (get_trail_wl_heur x)))
+  (get_vmtf_heur x)
+\<close>
   using tl_trailt_tr_pre[of \<open>get_trail_wl y\<close> \<open>get_trail_wl_heur x\<close> \<open>all_atms_st y\<close>]
-  unfolding mop_tl_state_wl_pre_def tl_state_wl_heur_pre_def mop_tl_state_l_pre_def
-    mop_tl_state_pre_def tl_state_wl_heur_pre_def apply (cases \<open>get_trail_wl_heur x\<close>; cases y)
-  apply (clarsimp simp: twl_st_heur_conflict_ana_def state_wl_l_def twl_st_l_def trail_pol_alt_def
+  subgoal 
+    unfolding mop_tl_state_wl_pre_def tl_state_wl_heur_pre_def mop_tl_state_l_pre_def
+      mop_tl_state_pre_def tl_state_wl_heur_pre_def
+    by (cases \<open>get_trail_wl_heur x\<close>; cases y)
+      (clarsimp_all simp: twl_st_heur_conflict_ana_def state_wl_l_def twl_st_l_def trail_pol_alt_def
       rev_map[symmetric] last_rev hd_map simp flip: all_lits_st_alt_def
     intro!: isa_bump_unset_pre[where M = \<open>get_trail_wl y\<close>])
+  subgoal
+    unfolding mop_tl_state_wl_pre_def tl_state_wl_heur_pre_def mop_tl_state_l_pre_def
+      mop_tl_state_pre_def tl_state_wl_heur_pre_def
+    apply normalize_goal+
+    apply (cases \<open>get_trail_wl y\<close>)
+    apply (solves simp)
+    apply (rule isa_bump_unset_pre[of _ \<open>all_atms_st y\<close> \<open>get_trail_wl y\<close>])
+    apply (simp add: twl_st_heur_conflict_ana_def)
+    apply (simp add: twl_st_heur_conflict_ana_def lit_of_last_trail_pol_def)
+    apply (clarsimp_all simp: twl_st_heur_conflict_ana_def state_wl_l_def twl_st_l_def trail_pol_alt_def
+      rev_map[symmetric] last_rev hd_map lit_of_last_trail_pol_def
+      simp flip: all_lits_st_alt_def IsaSAT_Setup.all_lits_st_alt_def
+    intro!: isa_bump_unset_pre[where M = \<open>get_trail_wl y\<close>])
+    using IsaSAT_Setup.all_lits_st_alt_def by blast
   done
 
 lemma mop_tl_state_wl_pre_simps:
@@ -124,6 +144,8 @@ lemma tl_state_wl_heur_tl_state_wl:
   unfolding tl_state_wl_heur_def mop_tl_state_wl_def
   apply (intro frefI nres_relI)
   apply refine_vcg
+  subgoal for x y
+    using mop_tl_state_wl_pre_tl_state_wl_heur_pre[of x y] by simp
   subgoal for x y
     using mop_tl_state_wl_pre_tl_state_wl_heur_pre[of x y] by simp
   subgoal for x y

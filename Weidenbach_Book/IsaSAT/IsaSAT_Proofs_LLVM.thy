@@ -2,6 +2,8 @@ theory IsaSAT_Proofs_LLVM
   imports IsaSAT_Proofs IsaSAT_Setup_LLVM
 begin
 
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN
+
 sepref_def log_literal_impl
   is \<open>RETURN o log_literal\<close>
   :: \<open>unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>

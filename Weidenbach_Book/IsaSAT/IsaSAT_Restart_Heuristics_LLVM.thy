@@ -8,10 +8,6 @@ theory IsaSAT_Restart_Heuristics_LLVM
 begin
 
 hide_fact (open) Sepref_Rules.frefI
-no_notation Sepref_Rules.fref (\<open>[_]\<^sub>f\<^sub>d _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation Sepref_Rules.freft (\<open>_ \<rightarrow>\<^sub>f\<^sub>d _\<close> [60,60] 60)
-no_notation Sepref_Rules.freftnd (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
-no_notation Sepref_Rules.frefnd (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
 
 sepref_def FLAG_restart_impl
   is \<open>uncurry0 (RETURN FLAG_restart)\<close>

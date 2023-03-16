@@ -25,7 +25,9 @@ definition tl_state_wl_heur :: \<open>isasat \<Rightarrow> (bool \<times> isasat
   \<open>tl_state_wl_heur = (\<lambda>S. do {
        ASSERT(tl_state_wl_heur_pre S);
        let M = get_trail_wl_heur S; let vm = get_vmtf_heur S;
-       let S = set_trail_wl_heur (tl_trailt_tr M) S; let S = set_vmtf_wl_heur (isa_bump_unset (atm_of (lit_of_last_trail_pol M)) vm) S;
+       let S = set_trail_wl_heur (tl_trailt_tr M) S;
+       ASSERT (isa_bump_unset_pre  (atm_of (lit_of_last_trail_pol M)) vm);
+       let S = set_vmtf_wl_heur (isa_bump_unset (atm_of (lit_of_last_trail_pol M)) vm) S;
        RETURN (False, S)
   })\<close>
 
