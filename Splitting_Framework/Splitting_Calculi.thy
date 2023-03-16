@@ -24,10 +24,6 @@ locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_
       all_red_to_bot: \<open>\<C> \<noteq> bot \<Longrightarrow> \<C> \<in> Red_F {bot}\<close>
 begin
 
-(* Propositional clauses are of the form \<open>\<bottom> \<leftarrow> A\<close> *)
-abbreviation propositional_clause :: \<open>('f, 'v) AF \<Rightarrow> bool\<close> where
-  \<open>propositional_clause \<C> \<equiv> F_of \<C> = bot\<close>
-
 (* Inference rules *)
 
 (* The basic SInf inference system, with the two basic rules BASE and UNSAT.
@@ -35,7 +31,7 @@ abbreviation propositional_clause :: \<open>('f, 'v) AF \<Rightarrow> bool\<clos
  * \<open>S \<iota>\<close> means that \<open>\<iota>\<close> is an inference rule of the system S *)
 inductive S :: \<open>('f, 'v) AF inference \<Rightarrow> bool\<close> where
   base: \<open>\<lbrakk> Infer (map F_of \<N>) D \<in> Inf \<rbrakk> \<Longrightarrow> S (Infer \<N> (Pair D (ffUnion (fset_of_list (map A_of \<N>)))))\<close>
-| unsat: \<open>\<lbrakk> \<forall> x \<in> set \<N>. propositional_clause x; set \<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}; \<N> \<noteq> [] \<rbrakk> \<Longrightarrow> S (Infer \<N> (to_AF bot))\<close>
+| unsat: \<open>\<lbrakk> \<forall> x \<in> set \<N>. F_of x = bot; set \<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}; \<N> \<noteq> [] \<rbrakk> \<Longrightarrow> S (Infer \<N> (to_AF bot))\<close>
      (* NOTE: can we have that \<open>\<N>\<close> is \<open>[]\<close>? *)
 (* | strong_unsat: \<open>\<lbrakk> \<forall> x \<in> set \<N>. propositional_clause x; set \<N> \<Turnstile>s\<^sub>A\<^sub>F {to_AF bot} \<rbrakk> \<Longrightarrow> S (Infer \<N> (to_AF bot))\<close>
 | approx: \<open>\<lbrakk> a \<in> asn (to_F \<C>) \<rbrakk> \<Longrightarrow> S (Infer [\<C>] (Pair bot (finsert (neg a) (to_A \<C>))))\<close>
@@ -61,7 +57,7 @@ lemma F_of_to_AF [simp]: \<open>F_of (to_AF \<C>) = \<C>\<close>
   unfolding to_AF_def
   by auto
 
-lemma F_of_propositional_clauses [simp]: \<open>(\<forall> x \<in> set \<N>. propositional_clause x) \<Longrightarrow> map F_of \<N> = map (\<lambda> _. bot) \<N>\<close>
+lemma F_of_propositional_clauses [simp]: \<open>(\<forall> x \<in> set \<N>. F_of x = bot) \<Longrightarrow> map F_of \<N> = map (\<lambda> _. bot) \<N>\<close>
   using map_eq_conv
   by blast
 
@@ -75,7 +71,7 @@ proof (intro subsetI)
   assume bot_not_in_proj: \<open>bot \<notin> \<N> proj\<^sub>J J\<close> and
          x_is_inf: \<open>x \<in> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J\<close>
 
-  have no_enabled_prop_clause_in_\<N>: \<open>\<forall> \<C> \<in> \<N>. enabled \<C> J \<longrightarrow> \<not> propositional_clause \<C>\<close>
+  have no_enabled_prop_clause_in_\<N>: \<open>\<forall> \<C> \<in> \<N>. enabled \<C> J \<longrightarrow> F_of \<C> \<noteq> bot\<close>
     using bot_not_in_proj
     unfolding enabled_projection_def
     by blast
@@ -106,13 +102,13 @@ proof (intro subsetI)
   next
     fix \<N> D
     assume \<iota>_def: \<open>\<iota> = Infer \<N> (to_AF bot)\<close>
-       and all_clauses_in_\<N>_propositional: \<open>\<forall> \<C> \<in> set \<N>. propositional_clause \<C>\<close>
+       and all_clauses_in_\<N>_propositional: \<open>\<forall> \<C> \<in> set \<N>. F_of \<C> = bot\<close>
        and \<open>set \<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
        and \<N>_not_empty: \<open>\<N> \<noteq> []\<close>
     moreover have \<open>enabled_inf \<iota> J\<close>
       using \<iota>_is_enabled
       by fastforce
-    then have \<open>\<forall> \<C> \<in> set \<N>. \<not> propositional_clause \<C>\<close>
+    then have \<open>\<forall> \<C> \<in> set \<N>. F_of \<C> \<noteq> bot\<close>
       by (metis \<iota>_def enabled_inf_def inference.sel(1) no_enabled_prop_clause_in_\<N> prems_of_\<iota>_subset_\<N> subset_eq)
     then have \<open>False\<close>
       using all_clauses_in_\<N>_propositional \<N>_not_empty
@@ -136,33 +132,42 @@ proof (intro subsetI)
   assume bot_not_in_proj: \<open>bot \<notin> \<N> proj\<^sub>J J\<close> and
          \<iota>_in_inf: \<open>\<iota> \<in> Inf_from (\<N> proj\<^sub>J J)\<close>
 
-  have \<iota>_is_inf: \<open>\<iota> \<in> Inf\<close>
-    using Inf_if_Inf_from \<iota>_in_inf
-    by blast
-  moreover have \<open>set (prems_of \<iota>) \<subseteq> \<N> proj\<^sub>J J\<close>
+  have \<open>\<forall> \<C> \<in> \<N> proj\<^sub>J J. \<C> \<noteq> bot\<close>
+    using bot_not_in_proj
+    by force
+  then have \<open>\<forall> \<C> \<in> set (prems_of \<iota>). \<C> \<noteq> bot\<close>
     using Inf_from_def \<iota>_in_inf
     by auto
-  then have all_prems_enabled: \<open>set (prems_of \<iota>) \<subseteq> {F_of \<C> | \<C>. \<C> \<in> \<N> \<and> enabled \<C> J}\<close>
-    unfolding enabled_projection_def
-    by simp
-  moreover obtain \<iota>' where \<iota>'_def: \<open>\<iota> = \<iota>F_of \<iota>'\<close>
-    by (metis F_of_to_AF \<iota>F_of_def ex_map_conv inference.exhaust_sel inference.sel(1) inference.sel(2))
-  then have \<iota>'_in_S: \<open>S \<iota>'\<close>
-    sorry
-  moreover have \<open>prems_of \<iota> = map F_of (prems_of \<iota>')\<close>
-    using \<iota>'_def
-    unfolding \<iota>F_of_def
-    by auto
-  then have prems_\<iota>'_all_enabled: \<open>set (prems_of \<iota>') \<subseteq> { \<C> \<in> \<N>. enabled \<C> J }\<close>
-    sorry
-  then have \<open>\<forall> \<C> \<in> set (prems_of \<iota>'). enabled \<C> J\<close>
+  moreover have \<iota>_is_inf: \<open>\<iota> \<in> Inf\<close>
+    using Inf_if_Inf_from \<iota>_in_inf
     by blast
+  moreover have prems_of_\<iota>_subset_proj: \<open>set (prems_of \<iota>) \<subseteq> \<N> proj\<^sub>J J\<close>
+    using Inf_from_def \<iota>_in_inf
+    by auto
+  then have all_\<iota>_prems_are_heads_of_enabled_clauses: \<open>\<forall> \<C> \<in> set (prems_of \<iota>). \<exists> \<C>' \<in> \<N>. \<C> = F_of \<C>' \<and> enabled \<C>' J\<close>
+    using enabled_projection_def
+    by auto
+  moreover obtain \<iota>' where \<iota>'_def: \<open>\<iota> = \<iota>F_of \<iota>'\<close>
+    by (metis AF.sel(1) \<iota>F_of_def ex_map_conv inference.collapse inference.sel(1) inference.sel(2))
+  then have prems_of_\<iota>_def: \<open>prems_of \<iota> = map F_of (prems_of \<iota>')\<close>
+    using \<iota>F_of_def
+    by auto
+  then have \<open>concl_of \<iota> = F_of (concl_of \<iota>')\<close>
+    using \<iota>'_def \<iota>F_of_def
+    by auto
+  (* uhhhhhh..... how do we get this result? *)
+  then have all_prems_of_\<iota>'_enabled: \<open>set (prems_of \<iota>') \<subseteq> { \<C> \<in> \<N>. enabled \<C> J }\<close>
+    sorry
   then have \<open>enabled_inf \<iota>' J\<close>
     using enabled_inf_def
     by auto
-  moreover have \<open>\<iota>' \<in> inference_system.Inf_from SInf \<N>\<close>
-    using \<iota>'_in_S prems_\<iota>'_all_enabled inference_system.Inf_from_def
-    by fast
+  (* same here *)
+  moreover have \<iota>'_in_S: \<open>S \<iota>'\<close>
+    sorry
+  then have \<open>\<iota>' \<in> inference_system.Inf_from SInf \<N>\<close>
+    using all_prems_of_\<iota>'_enabled
+    using inference_system.Inf_from_def
+    by blast
   ultimately have \<open>\<exists> \<iota>'. \<iota> = \<iota>F_of \<iota>' \<and> \<iota>' \<in> inference_system.Inf_from SInf \<N> \<and> enabled_inf \<iota>' J\<close>
     using \<iota>'_def
     by blast
@@ -170,6 +175,13 @@ proof (intro subsetI)
     unfolding enabled_projection_Inf_def
     by simp
 qed
+
+(* Report lemma 13 *)
+lemma SInf_commutes_Inf: \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarrow> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J = Inf_from (\<N> proj\<^sub>J J)\<close>
+  using SInf_commutes_Inf1 SInf_commutes_Inf2
+  by blast
+
+
 
 end (* locale splitting_calculus *)
 
