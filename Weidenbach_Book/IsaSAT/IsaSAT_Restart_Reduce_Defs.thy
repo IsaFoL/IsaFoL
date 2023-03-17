@@ -22,6 +22,7 @@ where
      (brk, i) \<leftarrow> WHILE\<^sub>T\<^bsup>find_local_restart_target_level_int_inv bmp cs\<^esup>
         (\<lambda>(brk, i). \<not>brk \<and> i < length cs)
         (\<lambda>(brk, i). do {
+           ASSERT (i < length cs);
            let t = (cs  ! i);
 	   ASSERT(t < length M);
 	   let L = atm_of (M ! t);

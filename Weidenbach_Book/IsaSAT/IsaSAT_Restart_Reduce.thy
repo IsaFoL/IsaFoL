@@ -28,6 +28,7 @@ lemma find_local_restart_target_level_int_find_local_restart_target_level:
     subgoal
       unfolding find_local_restart_target_level_int_inv_def
       by (auto simp: trail_pol_alt_def control_stack_length_count_dec)
+    subgoal by auto
     subgoal by (auto simp: trail_pol_alt_def intro: control_stack_le_length_M)
     subgoal for s x1 x2
       by (subgoal_tac \<open>a ! (b ! x2) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>)

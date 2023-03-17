@@ -132,6 +132,58 @@ sepref_def isa_vmtf_heur_array_nth_code
   unfolding isa_vmtf_heur_array_nth_alt_def bump_get_heuristics_def
   by sepref
 
+
+definition vmtf_array_fst :: \<open>vmtf \<Rightarrow> nat\<close> where
+  \<open>vmtf_array_fst = (\<lambda>(a, b, c, d, e). c)\<close>
+
+
+lemma bumped_vmtf_array_fst_alt_def: \<open>bumped_vmtf_array_fst x = (case x of Bump_Heuristics a b c d \<Rightarrow>
+  (if c then vmtf_array_fst b else vmtf_array_fst a))\<close>
+  by (cases x) (auto simp: vmtf_array_fst_def current_vmtf_array_nxt_score_def
+    bump_get_heuristics_def bumped_vmtf_array_fst_def)
+
+sepref_def vmtf_array_fst_code
+  is \<open>RETURN o vmtf_array_fst\<close>
+  :: \<open>vmtf_assn\<^sup>k \<rightarrow>\<^sub>a atom_assn\<close>
+  unfolding vmtf_assn_def vmtf_array_fst_def
+  by sepref
+
+sepref_def bumped_vmtf_array_fst_code
+  is \<open>RETURN o bumped_vmtf_array_fst\<close>
+  :: \<open>heuristic_bump_assn\<^sup>k \<rightarrow>\<^sub>a atom_assn\<close>
+  unfolding bumped_vmtf_array_fst_alt_def
+  by sepref
+
+
+sepref_register access_focused_vmtf_array
+
+definition access_vmtf_array :: \<open>vmtf \<Rightarrow> nat \<Rightarrow> _ nres\<close> where
+  \<open>access_vmtf_array = (\<lambda>(a, b, c, d, f) i. do {
+  ASSERT (i < length a);
+  RETURN (a ! i)})\<close>
+
+lemma access_focused_vmtf_array_alt_def:
+  \<open>access_focused_vmtf_array x i = (case x of Bump_Heuristics a b c d \<Rightarrow> do {
+   if c then access_vmtf_array b i else access_vmtf_array a i
+  })\<close>
+  by (cases x) (auto simp: access_focused_vmtf_array_def access_vmtf_array_def
+    bump_get_heuristics_def)
+
+
+sepref_def access_vmtf_array_code
+  is \<open>uncurry access_vmtf_array\<close>
+  :: \<open>vmtf_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_node_assn\<close>
+  unfolding access_vmtf_array_def vmtf_assn_def
+  apply (rewrite at \<open>RETURN \<hole>\<close> annot_index_of_atm)
+  by sepref
+
+sepref_register access_vmtf_array 
+sepref_def access_focused_vmtf_array_code
+  is \<open>uncurry access_focused_vmtf_array\<close>
+  :: \<open>heuristic_bump_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_node_assn\<close>
+  unfolding access_focused_vmtf_array_alt_def
+  by sepref
+
 experiment begin
 
 export_llvm
@@ -141,6 +193,7 @@ export_llvm
   isa_bump_mark_to_rescore_clause_fast_code
   isa_bump_heur_flush_impl
   isa_vmtf_heur_array_nth_code
+
 end
 
 end

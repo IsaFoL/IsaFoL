@@ -76,39 +76,31 @@ sepref_def isasat_GC_clauses_prog_single_wl_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-
-definition isasat_GC_clauses_prog_wl2' where
-  \<open>isasat_GC_clauses_prog_wl2' ns fst' = (isasat_GC_clauses_prog_wl2 (ns, fst'))\<close>
-
 sepref_register isasat_GC_clauses_prog_wl2 isasat_GC_clauses_prog_single_wl
 sepref_def isasat_GC_clauses_prog_wl2_code
-  is \<open>uncurry2 isasat_GC_clauses_prog_wl2'\<close>
-  :: \<open>[\<lambda>((_, _), (N, _)). length N \<le> sint64_max]\<^sub>a
-     (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (atom.option_assn)\<^sup>k *\<^sub>a
+  is \<open>uncurry isasat_GC_clauses_prog_wl2\<close>
+  :: \<open>[\<lambda>(_, (N, _)). length N \<le> sint64_max]\<^sub>a
+     (heuristic_bump_assn)\<^sup>k *\<^sub>a
      (arena_fast_assn \<times>\<^sub>a (arena_fast_assn \<times>\<^sub>a aivdom_assn) \<times>\<^sub>a watchlist_fast_assn)\<^sup>d \<rightarrow>
      (arena_fast_assn \<times>\<^sub>a (arena_fast_assn \<times>\<^sub>a aivdom_assn) \<times>\<^sub>a watchlist_fast_assn)\<close>
   supply [[goals_limit=1]]
-  unfolding isasat_GC_clauses_prog_wl2_def isasat_GC_clauses_prog_wl2'_def prod.case
-    atom.fold_option
-  apply (rewrite at \<open> _ ! _\<close> annot_index_of_atm)
+  unfolding isasat_GC_clauses_prog_wl2_def prod.case atom.fold_option
   by sepref
 
 lemma isasat_GC_clauses_prog_wl_alt_def:
   \<open>isasat_GC_clauses_prog_wl = (\<lambda>S\<^sub>0. do {
      let (vm, S) = extract_vmtf_wl_heur S\<^sub>0;
-    let ((ns, st, fst_As, lst_As, nxt), to_remove) = split_vmtf vm;
     let (N', S) = extract_arena_wl_heur S;
     ASSERT (N' = get_clauses_wl_heur S\<^sub>0);
     let (W', S) = extract_watchlist_wl_heur S;
     let (vdom, S) = extract_vdom_wl_heur S;
     let (old_arena, S) = extract_old_arena_wl_heur S;
     ASSERT(old_arena = []);
-    (N, (N', vdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As)
+    (N, (N', vdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 vm
         (N', (old_arena, empty_aivdom vdom), W');
     let S = update_watchlist_wl_heur WS S;
     let S = update_arena_wl_heur N' S;
     let S = update_old_arena_wl_heur (take 0 N) S;
-    let vm = recombine_vmtf ((ns, st, fst_As, lst_As, nxt), to_remove);
     let S = update_vmtf_wl_heur vm S;
     let (stats, S) = extract_stats_wl_heur S;
     let S = update_stats_wl_heur (incr_GC stats) S;
@@ -118,17 +110,16 @@ lemma isasat_GC_clauses_prog_wl_alt_def:
     let S = update_heur_wl_heur heur S;
     RETURN S
       })\<close>
-      by (auto simp: isasat_GC_clauses_prog_wl_def state_extractors recombine_vmtf_def split_vmtf_def
+      by (auto simp: isasat_GC_clauses_prog_wl_def state_extractors
          Let_def intro!: ext bind_cong[OF refl]
         split: isasat_int_splits)
 
-sepref_register isasat_GC_clauses_prog_wl isasat_GC_clauses_prog_wl2' rewatch_heur_st
+sepref_register isasat_GC_clauses_prog_wl rewatch_heur_st
 sepref_def isasat_GC_clauses_prog_wl_code
   is \<open>isasat_GC_clauses_prog_wl\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding isasat_GC_clauses_prog_wl_alt_def
-     isasat_GC_clauses_prog_wl2'_def[symmetric]
     atom.fold_option
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref

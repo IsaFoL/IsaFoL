@@ -2,12 +2,6 @@ theory IsaSAT_Restart_Reduce_LLVM
   imports IsaSAT_Restart_Reduce_Defs IsaSAT_Setup_LLVM IsaSAT_VMTF_State_LLVM
 begin
 
-hide_fact (open) Sepref_Rules.frefI
-no_notation Sepref_Rules.fref (\<open>[_]\<^sub>f\<^sub>d _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation Sepref_Rules.freft (\<open>_ \<rightarrow>\<^sub>f\<^sub>d _\<close> [60,60] 60)
-no_notation Sepref_Rules.freftnd (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
-no_notation Sepref_Rules.frefnd (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-
 
 lemma schedule_next_reduce_st_alt_def:
   \<open>schedule_next_reduce_st b S = (let (heur, S) = extract_heur_wl_heur S; heur = schedule_next_reduce b heur in update_heur_wl_heur heur S)\<close>
@@ -40,14 +34,42 @@ sepref_def schedule_next_reduction_st_impl
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
+definition vmtf_array_nxt_score :: \<open>vmtf \<Rightarrow> _\<close> where \<open>vmtf_array_nxt_score x = fst (snd x)\<close>
+
+lemma \<open>current_vmtf_array_nxt_score x = (case x of Bump_Heuristics a b c d \<Rightarrow>
+  (if c then vmtf_array_nxt_score b else vmtf_array_nxt_score a))\<close>
+  by (cases x) (auto simp: vmtf_array_nxt_score_def current_vmtf_array_nxt_score_def
+    bump_get_heuristics_def)
+
+lemma vmtf_array_nxt_score_alt_def: \<open>RETURN o vmtf_array_nxt_score = (\<lambda>(a,b,c,d,e) . let b' = COPY b in RETURN b)\<close>
+  by (auto intro!: ext simp: vmtf_array_nxt_score_def)
+
+find_theorems hn_refine PASS
+sepref_def vmtf_array_nxt_score_code
+  is \<open>RETURN o vmtf_array_nxt_score\<close>
+  :: \<open>vmtf_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding vmtf_array_nxt_score_alt_def vmtf_assn_def
+  by sepref
+
+lemma current_vmtf_array_nxt_score_alt_def: \<open>RETURN o current_vmtf_array_nxt_score = (\<lambda>x. case x of Bump_Heuristics hstable focused foc a \<Rightarrow>
+    if foc then RETURN (vmtf_array_nxt_score focused) else RETURN (vmtf_array_nxt_score hstable))\<close>
+    by (auto intro!: ext simp: bump_get_heuristics_def current_vmtf_array_nxt_score_def vmtf_array_nxt_score_def
+      split: bump_heuristics_splits)
+
+sepref_def current_vmtf_array_nxt_score_code
+  is \<open>RETURN o current_vmtf_array_nxt_score\<close>
+  :: \<open>heuristic_bump_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding current_vmtf_array_nxt_score_alt_def
+  by sepref
+
+
 sepref_def find_local_restart_target_level_fast_code
   is \<open>uncurry find_local_restart_target_level_int\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a heuristic_bump_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=1]] length_rev[simp del]
   unfolding find_local_restart_target_level_int_def find_local_restart_target_level_int_inv_def
-    length_uint32_nat_def vmtf_remove_assn_def trail_pol_fast_assn_def
+    length_uint32_nat_def trail_pol_fast_assn_def
   apply (annot_unat_const \<open>TYPE(32)\<close>)
-   apply (rewrite at \<open>stamp (\<hole>)\<close> annot_index_of_atm)
    apply (rewrite in \<open>(_ ! _)\<close> annot_unat_snat_upcast[where 'l=64])
    apply (rewrite in \<open>(_ ! \<hole>)\<close> annot_unat_snat_upcast[where 'l=64])
    apply (rewrite in \<open>(\<hole> < length _)\<close> annot_unat_snat_upcast[where 'l=64])
