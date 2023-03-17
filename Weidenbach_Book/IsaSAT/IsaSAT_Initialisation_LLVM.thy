@@ -5,15 +5,6 @@ theory IsaSAT_Initialisation_LLVM
 begin
 hide_const (open) NEMonad.RETURN  NEMonad.ASSERT
 
-definition split_vmtf2 :: \<open>bump_heuristics_option_fst_As \<Rightarrow> _\<close> where
-  \<open>split_vmtf2 = (\<lambda>x. x)\<close>
-
-sepref_def split_vmtf2_impl
-  is \<open>RETURN o split_vmtf2\<close>
-  :: \<open>vmtf_remove_conc_option_fst_As\<^sup>d \<rightarrow>\<^sub>a vmtf_conc_option_fst_As \<times>\<^sub>a distinct_atoms_assn\<close>
-  unfolding split_vmtf2_def
-  by sepref
-
 definition polarity_st_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> _\<close> where
   \<open>polarity_st_heur_init S L = polarity_pol (Tuple15_a S) L\<close>
 
@@ -185,9 +176,9 @@ abbreviation snat_rel64 :: \<open>(64 word \<times> nat) set\<close> where \<ope
 
 sepref_def initialise_VMTF_code
   is \<open>uncurry initialise_VMTF\<close>
-  :: \<open>[\<lambda>(N, n). True]\<^sub>a (arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> vmtf_remove_conc_option_fst_As\<close>
+  :: \<open>[\<lambda>(N, n). True]\<^sub>a (arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> vmtf_init_assn\<close>
   unfolding initialise_VMTF_def vmtf_cons_def Suc_eq_plus1 atom.fold_option length_uint32_nat_def
-    option.case_eq_if
+    option.case_eq_if vmtf_init_assn_def
   apply (rewrite in \<open>let _ = \<hole> in _ \<close> array_fold_custom_replicate op_list_replicate_def[symmetric])
   apply (rewrite at 0 in \<open>VMTF_Node \<hole>\<close> unat_const_fold[where 'a=64])
   apply (rewrite at \<open>VMTF_Node (\<hole> + 1)\<close> annot_snat_unat_conv)
@@ -196,12 +187,18 @@ sepref_def initialise_VMTF_code
   apply (rewrite in \<open>list_update _ _ _\<close> annot_index_of_atm)
   apply (rewrite in \<open>if _ then _ else list_update _ _ _\<close> annot_index_of_atm)
   apply (rewrite at \<open>\<hole>\<close> in \<open>_ ! atom.the _\<close> annot_index_of_atm)+
-  apply (rewrite at \<open>RETURN ((_, \<hole>, _), _)\<close> annot_snat_unat_conv)
+  apply (rewrite at \<open>RETURN ((_, \<hole>, _))\<close> annot_snat_unat_conv)
   supply [[goals_limit = 1]]
   by sepref
 
 
-declare initialise_VMTF_code.refine[sepref_fr_rules]
+sepref_register initialize_Bump_Init
+sepref_def initialize_Bump_Init_code
+  is \<open>uncurry initialize_Bump_Init\<close>
+  :: \<open>[\<lambda>(N, n). True]\<^sub>a (arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> heuristic_bump_init_assn\<close>
+  unfolding initialize_Bump_Init_def
+  by sepref
+
 sepref_register cons_trail_Propagated_tr
 
 lemma propagate_unit_cls_heur_b_alt_def:
@@ -898,20 +895,29 @@ lemma finalise_init_code_alt_def:
   \<open>finalise_init_code opts =
   (\<lambda>S. case S of Tuple15 M'  N' D' Q' W' vm \<phi> clvls cach
   lbd vdom ivdom failed lcount mark \<Rightarrow> do {
-  let ((ns, m, fst_As, lst_As, next_search), to_remove) = split_vmtf2 vm;
-   ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
   let init_stats = empty_stats_clss (of_nat(length ivdom));
   let heur = empty_heuristics_stats opts \<phi>;
     mop_free mark; mop_free failed;
-  let vm = recombine_vmtf ((ns, m, the fst_As, the lst_As, next_search), to_remove);
   let occs =  replicate (length W') [];
+  vm \<leftarrow> finalize_bump_init vm;
   RETURN (IsaSAT M' N' D' Q' W' vm
     clvls cach lbd (take 1(replicate 160 (Pos 0))) init_stats
     (Restart_Heuristics heur) (AIvdom_init vdom [] ivdom) lcount opts [] occs)
     })\<close>
-    unfolding finalise_init_code_def mop_free_def empty_heuristics_stats_def split_vmtf2_def
-    by (auto simp: Let_def recombine_vmtf_def split: prod.splits tuple15.splits intro!: ext)
+    unfolding finalise_init_code_def mop_free_def empty_heuristics_stats_def
+    by (auto simp: Let_def split: prod.splits tuple15.splits intro!: ext)
 
+sepref_def finalize_vmtf_init_code
+  is \<open>finalize_vmtf_init\<close>
+  :: \<open>vmtf_init_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_assn\<close>
+  unfolding finalize_vmtf_init_def vmtf_init_assn_def vmtf_assn_def atom.fold_option
+  by sepref
+
+sepref_def finalize_bump_init_code
+  is \<open>finalize_bump_init\<close>
+  :: \<open>heuristic_bump_init_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_bump_assn\<close>
+  unfolding finalize_bump_init_def
+  by sepref
 
 sepref_def finalise_init_code'
   is \<open>uncurry finalise_init_code\<close>
@@ -919,7 +925,7 @@ sepref_def finalise_init_code'
       opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply  [[goals_limit=1]]  of_nat_snat[sepref_import_param]
   unfolding finalise_init_code_alt_def isasat_init_assn_def
-     INITIAL_OUTL_SIZE_def[symmetric] atom.fold_the vmtf_remove_assn_def
+     INITIAL_OUTL_SIZE_def[symmetric]
      phase_heur_assn_def op_list_list_len_def[symmetric]
   apply (rewrite at \<open>Pos \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>Pos \<hole>\<close> atom_of_value_def[symmetric])
@@ -928,7 +934,6 @@ sepref_def finalise_init_code'
   apply (rewrite at \<open>IsaSAT _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \<hole> _\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite in \<open>take _ \<hole>\<close> al_fold_custom_replicate)
   apply (rewrite in \<open>replicate _ []\<close> aal_fold_custom_empty(1)[where 'l=64 and 'll=64])
-  apply (rewrite at \<open>let vm = recombine_vmtf _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>occs_assn\<close>])
   by sepref
 
 sepref_register initialise_VMTF
@@ -1002,7 +1007,7 @@ lemma init_state_wl_D'_alt_def:
      let D = combine_conflict (True, 0, replicate n NOTIN);
      let mark = (0, replicate n None);
      let WS = replicate m [];
-     vm \<leftarrow> initialise_VMTF \<A>\<^sub>i\<^sub>n n;
+     vm \<leftarrow> initialize_Bump_Init \<A>\<^sub>i\<^sub>n n;
      let \<phi> = replicate n False;
      let cach = combine_ccach (replicate n SEEN_UNKNOWN, []);
      let lbd = empty_lbd;
