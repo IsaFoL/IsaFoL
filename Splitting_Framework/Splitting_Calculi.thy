@@ -125,17 +125,37 @@ proof (intro subsetI)
     by (simp add: \<iota>\<^sub>S_is)
 qed
 
+lemma map2_first_is_first [simp]: \<open>length x = length y \<Longrightarrow> map2 (\<lambda>x y. x) x y = x\<close>
+  by (metis fst_def map_eq_conv map_fst_zip)
+
+lemma fimage_snd_zip_is_snd [simp]: \<open>length x = length y \<Longrightarrow> (\<lambda>(x, y). y) |`| fset_of_list (zip x y) = fset_of_list y\<close>
+proof -
+  assume length_x_eq_length_y: \<open>length x = length y\<close>
+  have \<open>(\<lambda>(x, y). y) |`| fset_of_list A = fset_of_list (map (\<lambda>(x, y). y) A)\<close> for A
+    by auto
+  then show ?thesis
+    using length_x_eq_length_y
+    by (smt (verit, ccfv_SIG) cond_case_prod_eta map_snd_zip snd_conv)
+qed
+
+lemma F_of_Pair [simp]: \<open>F_of \<circ> (\<lambda>(x, y). Pair x y) = (\<lambda>(x, y). x)\<close>
+  by (smt (verit, ccfv_SIG) AF.sel(1) comp_apply cond_case_prod_eta old.prod.case)
+
+lemma A_of_Pair [simp]: \<open>A_of \<circ> (\<lambda>(x, y). Pair x y) = (\<lambda>(x, y). y)\<close>
+  by fastforce
+
+lemma list_all_exists_is_exists_list_all2:
+  assumes \<open>list_all (\<lambda> x. \<exists> y. P x y) xs\<close>
+  shows \<open>\<exists> ys. list_all2 P xs ys\<close>
+  using assms
+  by (induct xs, auto)
+
 (* Report lemma 13 2/2 *)
 lemma SInf_commutes_Inf2: \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarrow> Inf_from (\<N> proj\<^sub>J J) \<subseteq> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J\<close>
 proof (intro subsetI)
   fix \<iota>\<^sub>F
   assume bot_not_in_proj: \<open>bot \<notin> \<N> proj\<^sub>J J\<close> and
          \<iota>\<^sub>F_in_inf: \<open>\<iota>\<^sub>F \<in> Inf_from (\<N> proj\<^sub>J J)\<close>
-
-  have F_of_Pair [simp]: \<open>F_of \<circ> (\<lambda>(x, y). Pair x y) = (\<lambda>(x, y). x)\<close>
-    by (smt (verit, ccfv_SIG) AF.sel(1) comp_apply cond_case_prod_eta old.prod.case)
-  have A_of_Pair [simp]: \<open>A_of \<circ> (\<lambda>(x, y). Pair x y) = (\<lambda>(x, y). y)\<close>
-    by fastforce
 
   have \<iota>\<^sub>F_is_Inf: \<open>\<iota>\<^sub>F \<in> Inf\<close>
     using Inf_if_Inf_from \<iota>\<^sub>F_in_inf
@@ -144,20 +164,24 @@ proof (intro subsetI)
     using Inf_from_def \<iota>\<^sub>F_in_inf
     by blast
   then have \<open>\<forall> \<C> \<in> set (prems_of \<iota>\<^sub>F). \<exists> A. Pair \<C> A \<in> \<N> \<and> enabled (Pair \<C> A) J\<close>
-    by (smt (verit) AF.collapse CollectD enabled_projection_def subsetD)
-  then obtain As where length_As_is_length_prems_\<iota>\<^sub>F: \<open>length As = length (prems_of \<iota>\<^sub>F)\<close> and
+    by (smt (verit, ccfv_SIG) AF.collapse enabled_projection_def mem_Collect_eq subsetD)
+  then have \<open>list_all (\<lambda> \<C>. \<exists> A. Pair \<C> A \<in> \<N> \<and> enabled (Pair \<C> A) J) (prems_of \<iota>\<^sub>F)\<close>
+    using Ball_set
+    by blast
+  then have \<open>\<exists> As. list_all2 (\<lambda> C A. Pair C A \<in> \<N> \<and> enabled (Pair C A) J) (prems_of \<iota>\<^sub>F) As\<close>
+    by (simp add: list_all_exists_is_exists_list_all2)
+  then have \<open>\<exists> As. length (prems_of \<iota>\<^sub>F) = length As \<and> (\<forall> (C, A) \<in> set (zip (prems_of \<iota>\<^sub>F) As). Pair C A \<in> \<N> \<and> enabled (Pair C A) J)\<close>
+    by (meson list_all2_iff)
+  then obtain As where length_As_is_length_prems_\<iota>\<^sub>F: \<open>length (prems_of \<iota>\<^sub>F) = length As\<close> and
                        As_def: \<open>\<forall> (C, A) \<in> set (zip (prems_of \<iota>\<^sub>F) As). Pair C A \<in> \<N> \<and> enabled (Pair C A) J\<close>
-    sorry
-  have [simp]: \<open>map2 (\<lambda>x y. x) (prems_of \<iota>\<^sub>F) As \<equiv> prems_of \<iota>\<^sub>F\<close>
-    by (smt (verit, best) fst_def length_As_is_length_prems_\<iota>\<^sub>F map_eq_conv map_fst_zip)
+    by auto
   define \<iota>\<^sub>S where
     \<open>\<iota>\<^sub>S \<equiv> Infer [ Pair \<C> A. (\<C>, A) \<leftarrow> zip (prems_of \<iota>\<^sub>F) As ] (Pair (concl_of \<iota>\<^sub>F) (ffUnion (fset_of_list As)))\<close>
   have \<iota>\<^sub>F_is_Inf2: \<open>Infer (map F_of [ Pair \<C> A. (\<C>, A) \<leftarrow> zip (prems_of \<iota>\<^sub>F) As ]) (concl_of \<iota>\<^sub>F) \<in> Inf\<close>
+    using length_As_is_length_prems_\<iota>\<^sub>F
     by (auto simp add: \<iota>\<^sub>F_is_Inf)
-  then have [simp]: \<open>(\<lambda>(x, y). y) |`| fset_of_list (zip (prems_of \<iota>\<^sub>F) As) = fset_of_list As\<close>
-    by (smt (verit, best) case_prod_conv cond_case_prod_eta fset_of_list_map length_As_is_length_prems_\<iota>\<^sub>F split_beta zip_eq_conv)
   then have \<iota>\<^sub>S_is_SInf: \<open>\<iota>\<^sub>S \<in> SInf\<close>
-    using S.base[OF \<iota>\<^sub>F_is_Inf2]
+    using S.base[OF \<iota>\<^sub>F_is_Inf2] length_As_is_length_prems_\<iota>\<^sub>F
     unfolding \<iota>\<^sub>S_def
     by auto
   moreover have \<open>set (prems_of \<iota>\<^sub>S) \<subseteq> \<N>\<close>
@@ -165,11 +189,11 @@ proof (intro subsetI)
     using As_def
     by auto
   then have \<open>\<iota>\<^sub>S \<in> inference_system.Inf_from SInf \<N>\<close>
-    using calculation inference_system.Inf_from_def
+    using inference_system.Inf_from_def \<iota>\<^sub>S_is_SInf
     by blast
   moreover have \<open>\<iota>F_of \<iota>\<^sub>S = \<iota>\<^sub>F\<close>
     unfolding \<iota>\<^sub>S_def \<iota>F_of_def
-    by auto
+    by (simp add: length_As_is_length_prems_\<iota>\<^sub>F)
   moreover have \<open>enabled_inf \<iota>\<^sub>S J\<close>
     unfolding enabled_inf_def \<iota>\<^sub>S_def
     using As_def
