@@ -264,11 +264,52 @@ schematic_goal mk_free_ghost_assn[sepref_frame_free_rules]: \<open>MK_FREE ghost
   unfolding ghost_assn_def
   by synthesize_free
 
+lemma IsaSAT_bounded_heur_alt_def:
+  \<open>IsaSAT_bounded_heur opts CS = do{
+    _ \<leftarrow> RETURN (IsaSAT_Profile.start_initialisation);
+    ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max);
+    let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
+    ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
+    ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
+    let \<A>\<^sub>i\<^sub>n'' = virtual_copy \<A>\<^sub>i\<^sub>n';
+    let b = opts_unbounded_mode opts;
+    S \<leftarrow> init_state_wl_heur_fast \<A>\<^sub>i\<^sub>n';
+    (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur_b CS S;
+    let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
+    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
+    if isasat_fast_init T \<and> \<not>is_failed_heur_init T
+    then do {
+      if \<not>get_conflict_wl_is_None_heur_init T
+      then RETURN (False, empty_init_code)
+      else if CS = [] then do {mop_free CS; stat \<leftarrow> empty_conflict_code; RETURN (False, stat)}
+      else do {
+        _ \<leftarrow> RETURN (IsaSAT_Profile.start_initialisation);
+        mop_free CS;
+        ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
+        ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
+        _ \<leftarrow> isasat_information_banner T;
+        ASSERT(rewatch_heur_st_fast_pre T);
+        T \<leftarrow> rewatch_heur_st_init T;
+        ASSERT(isasat_fast_init T);
+        T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
+        _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
+        ASSERT(isasat_fast T);
+        (b, U) \<leftarrow> cdcl_twl_stgy_restart_prog_bounded_wl_heur T;
+        RETURN (b, if \<not>b \<and> get_conflict_wl_is_None_heur U then IsaSAT_Defs.extract_model_of_state_stat U
+          else IsaSAT_Defs.extract_state_stat U)
+      }
+    }
+    else do {mop_free CS; RETURN (True, empty_init_code)}
+        }\<close>
+  unfolding mop_free_def
+ by (auto simp: IsaSAT_bounded_heur_def cong: if_cong)
+
 sepref_def IsaSAT_code
   is \<open>uncurry IsaSAT_bounded_heur\<close>
-  :: \<open>opts_assn\<^sup>d *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn \<times>\<^sub>a model_stat_assn\<close>
+  :: \<open>opts_assn\<^sup>d *\<^sub>a (clauses_ll_assn)\<^sup>d \<rightarrow>\<^sub>a bool1_assn \<times>\<^sub>a model_stat_assn\<close>
   supply [[goals_limit=1]] isasat_fast_init_def[simp]
-  unfolding IsaSAT_bounded_heur_def empty_conflict_def[symmetric]
+  unfolding IsaSAT_bounded_heur_alt_def empty_conflict_def[symmetric]
     get_conflict_wl_is_None (*extract_model_of_state_def[symmetric]*)
     (*extract_stats_def[symmetric]*) init_dt_wl_heur_b_def[symmetric]
     (*length_get_clauses_wl_heur_init_def[symmetric]*)
@@ -332,7 +373,7 @@ sepref_def IsaSAT_wrapped
   is \<open>uncurry11 IsaSAT_bounded_heur_wrapper\<close>
   :: \<open>bool_C_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a
       (snat_assn' (TYPE(64)))\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a
-      word64_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+      word64_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a (clauses_ll_assn)\<^sup>d \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit=1]] if_splits[split]
   unfolding IsaSAT_bounded_heur_wrapper_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
