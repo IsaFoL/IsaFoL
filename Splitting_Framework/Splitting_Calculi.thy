@@ -67,111 +67,116 @@ lemma set_map_is_image: \<open>set (map f l) = f ` set l\<close>
 (* Report lemma 13 1/2 *)
 lemma SInf_commutes_Inf1: \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarrow> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J \<subseteq> Inf_from (\<N> proj\<^sub>J J)\<close>
 proof (intro subsetI)
-  fix x
+  fix \<iota>\<^sub>S
   assume bot_not_in_proj: \<open>bot \<notin> \<N> proj\<^sub>J J\<close> and
-         x_is_inf: \<open>x \<in> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J\<close>
+         \<iota>\<^sub>S_is_inf: \<open>\<iota>\<^sub>S \<in> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J\<close>
 
   have no_enabled_prop_clause_in_\<N>: \<open>\<forall> \<C> \<in> \<N>. enabled \<C> J \<longrightarrow> F_of \<C> \<noteq> bot\<close>
     using bot_not_in_proj
     unfolding enabled_projection_def
     by blast
 
-  obtain \<iota> where x_is: \<open>x = \<iota>F_of \<iota>\<close> and
-                 \<iota>_is_inf: \<open>\<iota> \<in> inference_system.Inf_from SInf \<N>\<close> and
-                 \<iota>_is_enabled: \<open>enabled_inf \<iota> J\<close>
-    using x_is_inf enabled_projection_Inf_def
+  obtain \<iota>\<^sub>F where \<iota>\<^sub>S_is: \<open>\<iota>\<^sub>S = \<iota>F_of \<iota>\<^sub>F\<close> and
+                 \<iota>\<^sub>F_is_inf: \<open>\<iota>\<^sub>F \<in> inference_system.Inf_from SInf \<N>\<close> and
+                 \<iota>\<^sub>F_is_enabled: \<open>enabled_inf \<iota>\<^sub>F J\<close>
+    using \<iota>\<^sub>S_is_inf enabled_projection_Inf_def
     by auto
-  then have \<iota>_in_S: \<open>S \<iota>\<close>
+  then have \<iota>\<^sub>F_in_S: \<open>S \<iota>\<^sub>F\<close>
     by (simp add: inference_system.Inf_from_def)
-  moreover have prems_of_\<iota>_subset_\<N>: \<open>set (prems_of \<iota>) \<subseteq> \<N>\<close>
-    using \<iota>_is_inf
+  moreover have prems_of_\<iota>\<^sub>F_subset_\<N>: \<open>set (prems_of \<iota>\<^sub>F) \<subseteq> \<N>\<close>
+    using \<iota>\<^sub>F_is_inf
     by (simp add: inference_system.Inf_from_def)
-  moreover have \<open>\<iota>F_of \<iota> \<in> Inf\<close>
+  moreover have \<open>\<iota>F_of \<iota>\<^sub>F \<in> Inf\<close>
     unfolding \<iota>F_of_def
-  proof (cases \<iota> rule: S.cases)
+  proof (cases \<iota>\<^sub>F rule: S.cases)
     (* NOTE: using \<open>case ...\<close> does not work here because of the first case.
      * May this come from the definition of \<open>S\<close>? *)
-    show \<open>S \<iota>\<close>
-      by (simp add: \<iota>_in_S)
+    show \<open>S \<iota>\<^sub>F\<close>
+      by (simp add: \<iota>\<^sub>F_in_S)
   next
     fix \<N> D
-    assume \<iota>_def: \<open>\<iota> = Infer \<N> (AF.Pair D (ffUnion (fset_of_list (map A_of \<N>))))\<close>
+    assume \<iota>\<^sub>F_def: \<open>\<iota>\<^sub>F = Infer \<N> (AF.Pair D (ffUnion (fset_of_list (map A_of \<N>))))\<close>
        and inf_from_\<N>_to_D: \<open>Infer (map F_of \<N>) D \<in> Inf\<close>
-    show \<open>Infer (map F_of (prems_of \<iota>)) (F_of (concl_of \<iota>)) \<in> Inf\<close>
-      by (auto simp add: \<iota>_def inf_from_\<N>_to_D)
+    show \<open>Infer (map F_of (prems_of \<iota>\<^sub>F)) (F_of (concl_of \<iota>\<^sub>F)) \<in> Inf\<close>
+      by (auto simp add: \<iota>\<^sub>F_def inf_from_\<N>_to_D)
   next
     fix \<N> D
-    assume \<iota>_def: \<open>\<iota> = Infer \<N> (to_AF bot)\<close>
+    assume \<iota>\<^sub>F_def: \<open>\<iota>\<^sub>F = Infer \<N> (to_AF bot)\<close>
        and all_clauses_in_\<N>_propositional: \<open>\<forall> \<C> \<in> set \<N>. F_of \<C> = bot\<close>
        and \<open>set \<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
        and \<N>_not_empty: \<open>\<N> \<noteq> []\<close>
-    moreover have \<open>enabled_inf \<iota> J\<close>
-      using \<iota>_is_enabled
+    moreover have \<open>enabled_inf \<iota>\<^sub>F J\<close>
+      using \<iota>\<^sub>F_is_enabled
       by fastforce
     then have \<open>\<forall> \<C> \<in> set \<N>. F_of \<C> \<noteq> bot\<close>
-      by (metis \<iota>_def enabled_inf_def inference.sel(1) no_enabled_prop_clause_in_\<N> prems_of_\<iota>_subset_\<N> subset_eq)
+      by (metis \<iota>\<^sub>F_def enabled_inf_def inference.sel(1) no_enabled_prop_clause_in_\<N> prems_of_\<iota>\<^sub>F_subset_\<N> subset_eq)
     then have \<open>False\<close>
       using all_clauses_in_\<N>_propositional \<N>_not_empty
       by fastforce
-    ultimately show \<open>Infer (map F_of (prems_of \<iota>)) (F_of (concl_of \<iota>)) \<in> Inf\<close>
+    ultimately show \<open>Infer (map F_of (prems_of \<iota>\<^sub>F)) (F_of (concl_of \<iota>\<^sub>F)) \<in> Inf\<close>
       by blast
   qed
-  moreover have \<open>set (prems_of (\<iota>F_of \<iota>)) \<subseteq> \<N> proj\<^sub>J J\<close>
-    using \<iota>_is_enabled prems_of_\<iota>_subset_\<N>
+  moreover have \<open>set (prems_of (\<iota>F_of \<iota>\<^sub>F)) \<subseteq> \<N> proj\<^sub>J J\<close>
+    using \<iota>\<^sub>F_is_enabled prems_of_\<iota>\<^sub>F_subset_\<N>
     by (auto simp add: enabled_inf_def enabled_projection_def \<iota>F_of_def)
-  ultimately have \<open>\<iota>F_of \<iota> \<in> Inf_from (\<N> proj\<^sub>J J)\<close>
+  ultimately have \<open>\<iota>F_of \<iota>\<^sub>F \<in> Inf_from (\<N> proj\<^sub>J J)\<close>
     by (simp add: Inf_from_def)
-  then show \<open>x \<in> Inf_from (\<N> proj\<^sub>J J)\<close>
-    by (simp add: x_is)
+  then show \<open>\<iota>\<^sub>S \<in> Inf_from (\<N> proj\<^sub>J J)\<close>
+    by (simp add: \<iota>\<^sub>S_is)
 qed
 
 (* Report lemma 13 2/2 *)
 lemma SInf_commutes_Inf2: \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarrow> Inf_from (\<N> proj\<^sub>J J) \<subseteq> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J\<close>
 proof (intro subsetI)
-  fix \<iota>
+  fix \<iota>\<^sub>F
   assume bot_not_in_proj: \<open>bot \<notin> \<N> proj\<^sub>J J\<close> and
-         \<iota>_in_inf: \<open>\<iota> \<in> Inf_from (\<N> proj\<^sub>J J)\<close>
+         \<iota>\<^sub>F_in_inf: \<open>\<iota>\<^sub>F \<in> Inf_from (\<N> proj\<^sub>J J)\<close>
 
-  have \<open>\<forall> \<C> \<in> \<N> proj\<^sub>J J. \<C> \<noteq> bot\<close>
-    using bot_not_in_proj
-    by force
-  then have \<open>\<forall> \<C> \<in> set (prems_of \<iota>). \<C> \<noteq> bot\<close>
-    using Inf_from_def \<iota>_in_inf
-    by auto
-  moreover have \<iota>_is_inf: \<open>\<iota> \<in> Inf\<close>
-    using Inf_if_Inf_from \<iota>_in_inf
+  have F_of_Pair [simp]: \<open>F_of \<circ> (\<lambda>(x, y). Pair x y) = (\<lambda>(x, y). x)\<close>
+    by (smt (verit, ccfv_SIG) AF.sel(1) comp_apply cond_case_prod_eta old.prod.case)
+  have A_of_Pair [simp]: \<open>A_of \<circ> (\<lambda>(x, y). Pair x y) = (\<lambda>(x, y). y)\<close>
+    by fastforce
+
+  have \<iota>\<^sub>F_is_Inf: \<open>\<iota>\<^sub>F \<in> Inf\<close>
+    using Inf_if_Inf_from \<iota>\<^sub>F_in_inf
     by blast
-  moreover have prems_of_\<iota>_subset_proj: \<open>set (prems_of \<iota>) \<subseteq> \<N> proj\<^sub>J J\<close>
-    using Inf_from_def \<iota>_in_inf
-    by auto
-  then have all_\<iota>_prems_are_heads_of_enabled_clauses: \<open>\<forall> \<C> \<in> set (prems_of \<iota>). \<exists> \<C>' \<in> \<N>. \<C> = F_of \<C>' \<and> enabled \<C>' J\<close>
-    using enabled_projection_def
-    by auto
-  moreover obtain \<iota>' where \<iota>'_def: \<open>\<iota> = \<iota>F_of \<iota>'\<close>
-    by (metis AF.sel(1) \<iota>F_of_def ex_map_conv inference.collapse inference.sel(1) inference.sel(2))
-  then have prems_of_\<iota>_def: \<open>prems_of \<iota> = map F_of (prems_of \<iota>')\<close>
-    using \<iota>F_of_def
-    by auto
-  then have \<open>concl_of \<iota> = F_of (concl_of \<iota>')\<close>
-    using \<iota>'_def \<iota>F_of_def
-    by auto
-  (* uhhhhhh..... how do we get this result? *)
-  then have all_prems_of_\<iota>'_enabled: \<open>set (prems_of \<iota>') \<subseteq> { \<C> \<in> \<N>. enabled \<C> J }\<close>
+  have \<open>set (prems_of \<iota>\<^sub>F) \<subseteq> \<N> proj\<^sub>J J\<close>
+    using Inf_from_def \<iota>\<^sub>F_in_inf
+    by blast
+  then have \<open>\<forall> \<C> \<in> set (prems_of \<iota>\<^sub>F). \<exists> A. Pair \<C> A \<in> \<N> \<and> enabled (Pair \<C> A) J\<close>
+    by (smt (verit) AF.collapse CollectD enabled_projection_def subsetD)
+  then obtain As where length_As_is_length_prems_\<iota>\<^sub>F: \<open>length As = length (prems_of \<iota>\<^sub>F)\<close> and
+                       As_def: \<open>\<forall> (C, A) \<in> set (zip (prems_of \<iota>\<^sub>F) As). Pair C A \<in> \<N> \<and> enabled (Pair C A) J\<close>
     sorry
-  then have \<open>enabled_inf \<iota>' J\<close>
-    using enabled_inf_def
+  have [simp]: \<open>map2 (\<lambda>x y. x) (prems_of \<iota>\<^sub>F) As \<equiv> prems_of \<iota>\<^sub>F\<close>
+    by (smt (verit, best) fst_def length_As_is_length_prems_\<iota>\<^sub>F map_eq_conv map_fst_zip)
+  define \<iota>\<^sub>S where
+    \<open>\<iota>\<^sub>S \<equiv> Infer [ Pair \<C> A. (\<C>, A) \<leftarrow> zip (prems_of \<iota>\<^sub>F) As ] (Pair (concl_of \<iota>\<^sub>F) (ffUnion (fset_of_list As)))\<close>
+  have \<iota>\<^sub>F_is_Inf2: \<open>Infer (map F_of [ Pair \<C> A. (\<C>, A) \<leftarrow> zip (prems_of \<iota>\<^sub>F) As ]) (concl_of \<iota>\<^sub>F) \<in> Inf\<close>
+    by (auto simp add: \<iota>\<^sub>F_is_Inf)
+  then have [simp]: \<open>(\<lambda>(x, y). y) |`| fset_of_list (zip (prems_of \<iota>\<^sub>F) As) = fset_of_list As\<close>
+    by (smt (verit, best) case_prod_conv cond_case_prod_eta fset_of_list_map length_As_is_length_prems_\<iota>\<^sub>F split_beta zip_eq_conv)
+  then have \<iota>\<^sub>S_is_SInf: \<open>\<iota>\<^sub>S \<in> SInf\<close>
+    using S.base[OF \<iota>\<^sub>F_is_Inf2]
+    unfolding \<iota>\<^sub>S_def
     by auto
-  (* same here *)
-  moreover have \<iota>'_in_S: \<open>S \<iota>'\<close>
-    sorry
-  then have \<open>\<iota>' \<in> inference_system.Inf_from SInf \<N>\<close>
-    using all_prems_of_\<iota>'_enabled
-    using inference_system.Inf_from_def
+  moreover have \<open>set (prems_of \<iota>\<^sub>S) \<subseteq> \<N>\<close>
+    unfolding \<iota>\<^sub>S_def
+    using As_def
+    by auto
+  then have \<open>\<iota>\<^sub>S \<in> inference_system.Inf_from SInf \<N>\<close>
+    using calculation inference_system.Inf_from_def
     by blast
-  ultimately have \<open>\<exists> \<iota>'. \<iota> = \<iota>F_of \<iota>' \<and> \<iota>' \<in> inference_system.Inf_from SInf \<N> \<and> enabled_inf \<iota>' J\<close>
-    using \<iota>'_def
+  moreover have \<open>\<iota>F_of \<iota>\<^sub>S = \<iota>\<^sub>F\<close>
+    unfolding \<iota>\<^sub>S_def \<iota>F_of_def
+    by auto
+  moreover have \<open>enabled_inf \<iota>\<^sub>S J\<close>
+    unfolding enabled_inf_def \<iota>\<^sub>S_def
+    using As_def
+    by auto
+  ultimately have \<open>\<exists> \<iota>'. \<iota>\<^sub>F = \<iota>F_of \<iota>' \<and> \<iota>' \<in> inference_system.Inf_from SInf \<N> \<and> enabled_inf \<iota>' J\<close>
     by blast
-  then show \<open>\<iota> \<in> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J\<close>
+  then show \<open>\<iota>\<^sub>F \<in> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J\<close>
     unfolding enabled_projection_Inf_def
     by simp
 qed
