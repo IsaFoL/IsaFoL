@@ -1140,7 +1140,7 @@ locale sound_inference_system =
     bot :: "'f" and
     entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s" 50)
   + assumes
-    sound: "\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s {concle_of \<iota>}"
+    sound: "\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s {concl_of \<iota>}"
     
    (* There are several options to represent sequences that I considered:
       - using everywhere a type \<open>nat \<Rightarrow> 'f set\<close> (pros: super simple, cons: maintenance heavy, i.e. any
@@ -1345,7 +1345,7 @@ begin
 lemma inf_from_subs: "M \<subseteq> N \<Longrightarrow> Inf_from M \<subseteq> Inf_from N"
   unfolding Inf_from_def by blast
     
-    (* Splitting report Lemma 3 *)
+    (* Splitting report Lemma 2 *)
 lemma nobot_in_Red: \<open>bot \<notin> Red_F N\<close>
 proof -
   have \<open>UNIV \<Turnstile> {bot}\<close>
@@ -1360,7 +1360,7 @@ proof -
   then show ?thesis using Red_F_of_subset[of _ UNIV] by auto
 qed
   
-  (* Splitting report Remark 4 *)
+  (* Splitting report Remark 3 *)
 interpretation strict_calculus:
   statically_complete_calculus bot Inf entails Red_I_strict Red_F_strict
 proof -
@@ -2923,9 +2923,9 @@ next
       have mp_with_f_of: \<open>\<forall>C \<in> M'. \<exists>\<C> \<in> \<M>. Pos (F_of \<C>) = C \<and> enabled \<C> J\<close> 
         using mj_in unfolding enabled_projection_def M'_def by blast
       have \<open>\<exists>\<M>'\<subseteq> \<M>. finite \<M>' \<and> M' = Pos ` F_of ` \<M>' \<and> enabled_set \<M>' J\<close>
-        using finite_subset_image_strong[of M' \<M> "(λx. Pos (F_of x))" "\<lambda>x. enabled x J", OF mp_fin mp_with_f_of]
+        using finite_subset_image_strong[of M' \<M> "(\<lambda>x. Pos (F_of x))" "\<lambda>x. enabled x J", OF mp_fin mp_with_f_of]
         unfolding enabled_set_def by blast
-      then have ex_mp: \<open>\<exists>\<M>'\<subseteq>\<M>. finite \<M>' \<and> Pos ` (\<M>' proj\<^sub>J J) = M'›
+      then have ex_mp: \<open>\<exists>\<M>'\<subseteq>\<M>. finite \<M>' \<and> Pos ` (\<M>' proj\<^sub>J J) = M'\<close>
         unfolding enabled_projection_def enabled_set_def by blast 
       then obtain \<M>' where mp_props: \<open>\<M>' \<subseteq> \<M>\<close> \<open>finite \<M>'\<close> \<open>Pos ` (\<M>' proj\<^sub>J J) = M'\<close> by auto
 
@@ -2938,7 +2938,7 @@ next
       then have AM_in_J: \<open>fset \<A>\<^sub>\<M>\<^sub>' \<subseteq> total_strip J\<close>
         unfolding enabled_def by blast 
       define J' where "J' = (MJ' \<inter> fml_ext ` total_strip J)"
-      then have jp_fin: \<open>finite J'›
+      then have jp_fin: \<open>finite J'\<close>
         using mjp_fin by blast
       then obtain \<J>' where jp_props: "\<J>' \<subseteq> total_strip J" "fml_ext ` \<J>' = J'" "finite \<J>'"
         using J'_def by (metis Int_lower2 finite_subset_image)
