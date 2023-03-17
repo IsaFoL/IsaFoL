@@ -168,13 +168,13 @@ proof (intro subsetI)
   then have \<open>list_all (\<lambda> \<C>. \<exists> A. Pair \<C> A \<in> \<N> \<and> enabled (Pair \<C> A) J) (prems_of \<iota>\<^sub>F)\<close>
     using Ball_set
     by blast
-  then have \<open>\<exists> As. list_all2 (\<lambda> C A. Pair C A \<in> \<N> \<and> enabled (Pair C A) J) (prems_of \<iota>\<^sub>F) As\<close>
-    by (simp add: list_all_exists_is_exists_list_all2)
-  then have \<open>\<exists> As. length (prems_of \<iota>\<^sub>F) = length As \<and> (\<forall> (C, A) \<in> set (zip (prems_of \<iota>\<^sub>F) As). Pair C A \<in> \<N> \<and> enabled (Pair C A) J)\<close>
-    by (meson list_all2_iff)
+(*  then have \<open>\<exists> As. list_all2 (\<lambda> C A. Pair C A \<in> \<N> \<and> enabled (Pair C A) J) (prems_of \<iota>\<^sub>F) As\<close>
+     by (simp add: list_all_exists_is_exists_list_all2) *)
+(*  then have \<open>\<exists> As. length (prems_of \<iota>\<^sub>F) = length As \<and> (\<forall> (C, A) \<in> set (zip (prems_of \<iota>\<^sub>F) As). Pair C A \<in> \<N> \<and> enabled (Pair C A) J)\<close>
+    by (meson list_all2_iff) *)
   then obtain As where length_As_is_length_prems_\<iota>\<^sub>F: \<open>length (prems_of \<iota>\<^sub>F) = length As\<close> and
                        As_def: \<open>\<forall> (C, A) \<in> set (zip (prems_of \<iota>\<^sub>F) As). Pair C A \<in> \<N> \<and> enabled (Pair C A) J\<close>
-    by auto
+    by (smt (verit, del_insts) Ball_set_list_all list_all2_iff list_all_exists_is_exists_list_all2)
   define \<iota>\<^sub>S where
     \<open>\<iota>\<^sub>S \<equiv> Infer [ Pair \<C> A. (\<C>, A) \<leftarrow> zip (prems_of \<iota>\<^sub>F) As ] (Pair (concl_of \<iota>\<^sub>F) (ffUnion (fset_of_list As)))\<close>
   have \<iota>\<^sub>F_is_Inf2: \<open>Infer (map F_of [ Pair \<C> A. (\<C>, A) \<leftarrow> zip (prems_of \<iota>\<^sub>F) As ]) (concl_of \<iota>\<^sub>F) \<in> Inf\<close>
@@ -211,6 +211,23 @@ lemma SInf_commutes_Inf: \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarro
   by blast
 
 
+(* Report theorem 14 1/2 (UNSAT) *)
+theorem unsat_sound_wrt_entails_sound: \<open>\<lbrakk> \<forall> x \<in> set \<N>. F_of x = bot; set \<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}; \<N> \<noteq> [] \<rbrakk> \<Longrightarrow> set \<N> \<Turnstile>s\<^sub>A\<^sub>F {to_AF bot}\<close>
+  sorry
+
+(* Report theorem 14 2/2 (BASE) *)
+theorem base_sound_wrt_entails_sound: \<open>\<lbrakk> Infer (map F_of \<N>) D \<in> Inf \<rbrakk> \<Longrightarrow> set \<N> \<Turnstile>s\<^sub>A\<^sub>F {Pair D (ffUnion (fset_of_list (map A_of \<N>)))}\<close>
+proof -
+  assume \<open>Infer (map F_of \<N>) D \<in> Inf\<close>
+  then have \<open>set (map F_of \<N>) \<Turnstile>s {D}\<close>
+    by (metis inference.sel(1) inference.sel(2) sound)
+  then show \<open>set \<N> \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair D (ffUnion (fset_of_list (map A_of \<N>)))}\<close>
+    unfolding AF_entails_sound_def
+    apply auto
+
+
+    sorry
+qed
 
 end (* locale splitting_calculus *)
 
