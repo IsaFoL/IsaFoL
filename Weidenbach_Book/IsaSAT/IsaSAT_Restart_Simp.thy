@@ -15,17 +15,15 @@ lemma rephase_heur_st_spec:
   done
 
 lemma update_all_phases_Pair:
-  \<open>(update_all_phases, (RETURN o id)) \<in>
-  twl_st_heur_loop''''uu r  u  \<rightarrow>\<^sub>f \<langle>twl_st_heur_loop''''uu r u\<rangle>nres_rel\<close> (is ?A) and
-  update_all_phases_Pair2:
   \<open>(S, S') \<in> twl_st_heur_loop''''uu r u\<Longrightarrow>
      update_all_phases S \<le> \<Down> ({(T, T'). (T,T')\<in>twl_st_heur_loop''''uu r u \<and> T' = S'}) (RETURN (id S'))\<close>
 proof -
-  have [refine0]: \<open>(S, S') \<in> twl_st_heur_loop''''uu r u \<Longrightarrow> update_restart_phases S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur_loop''''uu r u)\<close>
+  have [refine0]: \<open>(S, S') \<in> twl_st_heur_loop''''uu r u \<Longrightarrow> count_decided (get_trail_wl S') = 0 \<Longrightarrow>
+    update_restart_phases S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur_loop''''uu r u)\<close>
     for S :: isasat and S' :: \<open>nat twl_st_wl\<close>
     unfolding update_all_phases_def update_restart_phases_def Let_def
     by (auto simp: twl_st_heur'_def twl_st_heur_loop_def learned_clss_count_def
-        intro!: rephase_heur_st_spec[THEN order_trans]
+        intro!: rephase_heur_st_spec[THEN order_trans] switch_bump_heur
         simp del: incr_restart_phase_end_stats.simps incr_restart_phase_stats.simps)
   have [refine0]: \<open>(S, S') \<in> twl_st_heur_loop''''uu r u \<Longrightarrow> rephase_heur_st S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur_loop''''uu r u)\<close>
     for S :: isasat and S' :: \<open>nat twl_st_wl\<close>
@@ -37,24 +35,6 @@ proof -
     apply (clarsimp simp add: twl_st_heur_loop_def learned_clss_count_def)
     done
 
-  show ?A
-    supply[[goals_limit=1]]
-    unfolding update_all_phases_def
-    apply (subst (1) bind_to_let_conv)
-    apply (subst (1) Let_def)
-    apply (subst (1) Let_def)
-    apply (intro frefI nres_relI)
-    apply (simp only: uncurry_def prod.case comp_def)
-    apply refine_vcg
-    apply assumption
-    apply assumption
-    subgoal by simp
-    subgoal by simp
-    apply assumption
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    done
    show \<open>(S, S') \<in> twl_st_heur_loop''''uu r u\<Longrightarrow>
      update_all_phases S \<le> \<Down> ({(T, T'). (T,T')\<in>twl_st_heur_loop''''uu r u \<and> T' = S'}) (RETURN (id S'))\<close> for S S'
     unfolding update_all_phases_def
@@ -63,6 +43,10 @@ proof -
     apply (subst (1) Let_def)
     apply refine_vcg
     apply assumption
+    subgoal 
+      using count_decided_trail_ref[THEN fref_to_Down_unRET_Id, of \<open>get_trail_wl_heur S\<close>
+          \<open>get_trail_wl S'\<close> \<open>all_atms_st S'\<close>]
+      by (simp add: count_decided_st_def twl_st_heur_loop_def isa_count_decided_st_def Let_def)
     apply assumption
     subgoal by simp
     subgoal by simp
@@ -623,7 +607,7 @@ proof -
         restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down_curry4]
         cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
         unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down]
-        update_all_phases_Pair2
+        update_all_phases_Pair
         convert_to_full_state_wl_heur
         WHILEIT_refine[where R = \<open>?R\<close>])
     subgoal using r by (auto simp: sint64_max_def isasat_fast_def uint32_max_def

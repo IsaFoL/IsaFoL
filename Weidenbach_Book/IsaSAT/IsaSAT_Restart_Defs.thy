@@ -257,11 +257,13 @@ definition update_restart_phases :: \<open>isasat \<Rightarrow> isasat nres\<clo
   \<open>update_restart_phases = (\<lambda>S. do {
      let heur = get_heur S;
      let lcount = get_global_conflict_count S;
+     let vm = get_vmtf_heur S;
+     let vm = switch_bump_heur vm;
      heur \<leftarrow> RETURN (incr_restart_phase heur);
      heur \<leftarrow> RETURN (incr_restart_phase_end lcount heur);
      heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
      heur \<leftarrow> RETURN (swap_emas heur);
-     RETURN (set_heur_wl_heur heur S)
+     RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
   })\<close>
 
 

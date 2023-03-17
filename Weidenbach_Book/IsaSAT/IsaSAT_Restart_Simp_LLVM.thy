@@ -43,7 +43,7 @@ sepref_register restart_required_heur cdcl_twl_restart_wl_heur
   cdcl_twl_full_restart_wl_D_inprocess_heur_prog
 
 sepref_def restart_prog_wl_D_heur_fast_code
-  is \<open>uncurry4 (restart_prog_wl_D_heur)\<close>
+  is \<open>uncurry4 restart_prog_wl_D_heur\<close>
   :: \<open>[\<lambda>((((S, _), _), n), _). isasat_fast_relaxed2 S n]\<^sub>a
       isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
         bool1_assn\<^sup>k \<rightarrow> isasat_bounded_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn\<close>

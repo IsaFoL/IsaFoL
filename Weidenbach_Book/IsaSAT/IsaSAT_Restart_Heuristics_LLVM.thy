@@ -87,11 +87,13 @@ lemma update_restart_phases_alt_def:
   \<open>update_restart_phases = (\<lambda>S. do {
      let lcount = get_global_conflict_count S;
      let (heur, S) = extract_heur_wl_heur S;
+     let (vm, S) = extract_vmtf_wl_heur S;
+     let vm = switch_bump_heur vm;
      heur \<leftarrow> RETURN (incr_restart_phase heur);
      heur \<leftarrow> RETURN (incr_restart_phase_end lcount heur);
      heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
      heur \<leftarrow> RETURN (swap_emas heur);
-     RETURN (update_heur_wl_heur heur S)
+     RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm S))
   })\<close>
   by (auto simp: update_restart_phases_def state_extractors split: isasat_int_splits intro!: ext)
 

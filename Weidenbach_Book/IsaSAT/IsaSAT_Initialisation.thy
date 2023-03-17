@@ -1889,7 +1889,7 @@ definition finalize_vmtf_init where \<open>
   RETURN (ns, m, the fst_As, the lst_As, next_search)})\<close>
 
 definition finalize_bump_init :: \<open>bump_heuristics_init \<Rightarrow> bump_heuristics nres\<close> where
-  \<open>finalize_bump_init = (\<lambda>x. case x of Tuple4 hstable focused foc to_remove ⇒ do {
+  \<open>finalize_bump_init = (\<lambda>x. case x of Tuple4 hstable focused foc to_remove \<Rightarrow> do {
     focused \<leftarrow> finalize_vmtf_init focused;
     hstable \<leftarrow> finalize_vmtf_init hstable;
     RETURN (Tuple4 hstable focused foc to_remove)

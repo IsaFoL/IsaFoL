@@ -147,5 +147,18 @@ lemmas [unfolded Tuple4_LLVM.inline_direct_return_node_case, llvm_code] =
 lemmas [sepref_fr_rules] =
   Bump_Heur.separation_rules
 
+(*The if/then/else is a work-around for sepref...*)
+lemma switch_bump_heur_alt_def:
+  \<open>RETURN o switch_bump_heur = (\<lambda>x. case x of Bump_Heuristics hstable focused foc b \<Rightarrow> do {
+  f \<leftarrow> RETURN (\<not>foc);
+  mop_free foc;
+  RETURN (Bump_Heuristics hstable focused (f) b)})\<close>
+  by (auto intro!: ext simp: mop_free_def switch_bump_heur_def split: bump_heuristics_splits)
+
+sepref_def switch_bump_heur_code
+  is \<open>RETURN o switch_bump_heur\<close>
+  :: \<open>heuristic_bump_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_bump_assn\<close>
+  unfolding switch_bump_heur_alt_def
+  by sepref
 
 end

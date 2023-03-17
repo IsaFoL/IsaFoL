@@ -168,31 +168,7 @@ sepref_def rewatch_heur_st_code
   by sepref
 
 sepref_register isasat_GC_clauses_wl_D
-(*
-lemma schedule_next_pure_lits_st_alt_def:
-  \<open>schedule_next_pure_lits_st b S =
-      (let should_inprocess = should_inprocess_st S;
-           (heur, S) = extract_heur_wl_heur S;
-           (stats, S) = extract_stats_wl_heur S;
-           (lcount, S) = extract_lcount_wl_heur S;
-           bc = current_restart_phase heur;
-           heur = if b \<and> should_inprocess then (schedule_next_pure_lits (heur)) else heur;
-           _ = isasat_print_progress (if should_inprocess then 105 else 103) bc stats (lcount);
-           S = update_heur_wl_heur heur (update_stats_wl_heur stats (update_lcount_wl_heur lcount S)) in
-  S)\<close>
-  by (auto simp: schedule_next_pure_lits_st_def state_extractors split: isasat_int_splits
-    intro!: ext)
 
-
-(*TODO Move*)
-sepref_register should_inprocess_st
-sepref_def should_inprocess_st
-  is \<open>(RETURN o should_inprocess_st)\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding should_inprocess_st_def
-  by sepref
-(*END Move*)
-*)
 sepref_register rewatch_heur_and_reorder_st
 sepref_def isasat_GC_clauses_wl_D_code
   is \<open>uncurry isasat_GC_clauses_wl_D\<close>
