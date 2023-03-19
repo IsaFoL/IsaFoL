@@ -49,7 +49,7 @@ lemma atoms_hash_int_empty_atoms_hash_empty:
    [\<lambda>n. (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<A>. atm_of L < n)]\<^sub>f nat_rel \<rightarrow> \<langle>atoms_hash_rel \<A>\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (use Max_less_iff in \<open>auto simp: atoms_hash_rel_def atoms_hash_int_empty_def atoms_hash_empty_def
-      in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def
+      in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of Ball_def
       dest: spec[of _ \<open>Pos _\<close>]\<close>)
 
 
@@ -420,7 +420,7 @@ lemma set_conflict_unit_heur_set_conflict_unit:
      \<langle>option_lookup_clause_rel \<A>\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: twl_st_heur_def set_conflict_unit_heur_def set_conflict_unit_def
-      option_lookup_clause_rel_def lookup_clause_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+      option_lookup_clause_rel_def lookup_clause_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
       intro!: mset_as_position.intros)
 
 definition conflict_propagated_unit_cls
@@ -506,11 +506,11 @@ definition add_init_cls_heur
   :: \<open>bool \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>  where
   \<open>add_init_cls_heur unbdd = (\<lambda>C S. do {
      let C = C;
-     ASSERT(length C \<le> uint32_max + 2);
+     ASSERT(length C \<le> unat32_max + 2);
      ASSERT(length C \<ge> 2);
      let N = get_clauses_wl_heur_init S;
      let failed = is_failed_heur_init S;
-     if unbdd \<or> (length N \<le> sint64_max - length C - 5 \<and> \<not>failed)
+     if unbdd \<or> (length N \<le> snat64_max - length C - 5 \<and> \<not>failed)
      then do {
        let vdom = get_vdom_heur_init S;
        let ivdom = get_ivdom_heur_init S;
@@ -581,8 +581,8 @@ context
       \<open>CT = (C', T)\<close>
 begin
 
-lemma add_init_pre1: \<open>length C' \<le> uint32_max + 2\<close>
-  using pre clss_size_uint32_max[of \<A> \<open>mset C\<close>] xy st
+lemma add_init_pre1: \<open>length C' \<le> unat32_max + 2\<close>
+  using pre clss_size_unat32_max[of \<A> \<open>mset C\<close>] xy st
   by (auto simp: twl_st_heur_parsing_no_WL_def)
 
 lemma add_init_pre2: \<open>2 \<le> length C'\<close>
@@ -1119,7 +1119,7 @@ proof -
      subgoal by (auto simp: pre_simplify_clause_lookup_st_rel_def list_mset_rel_def br_def)
      subgoal by auto
      subgoal by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def
-       in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+       in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
        split: list.splits)
      subgoal by (simp add: get_conflict_wl_is_None_init_alt_def)
      subgoal by (simp add: hd_conv_nth pre_simplify_clause_lookup_st_rel_def)
@@ -1186,8 +1186,8 @@ definition isasat_atms_ext_rel :: \<open>((nat list \<times> nat \<times> nat li
   \<open>isasat_atms_ext_rel = {((xs, n, atms), l).
       init_valid_rep xs l \<and>
       n = Max (insert 0 l) \<and>
-      length xs < uint32_max \<and>
-      (\<forall>s\<in>set xs. s \<le> uint64_max) \<and>
+      length xs < unat32_max \<and>
+      (\<forall>s\<in>set xs. s \<le> unat64_max) \<and>
       finite l \<and>
       distinct atms \<and>
       set atms = l \<and>
@@ -1210,8 +1210,8 @@ lemma isasat_atms_ext_rel_alt_def:
   \<open>isasat_atms_ext_rel = {((xs, n, atms), l).
       init_valid_rep xs l \<and>
       n = Max (insert 0 l) \<and>
-      length xs < uint32_max \<and>
-      (\<forall>s\<in>set xs. s \<le> uint64_max) \<and>
+      length xs < unat32_max \<and>
+      (\<forall>s\<in>set xs. s \<le> unat64_max) \<and>
       finite l \<and>
       distinct atms \<and>
       set atms = l \<and>
@@ -1227,29 +1227,29 @@ definition in_map_atm_of :: \<open>'a \<Rightarrow> 'a list \<Rightarrow> bool\<
 definition (in -) init_next_size where
   \<open>init_next_size L = 2 * L\<close>
 
-lemma init_next_size: \<open>L \<noteq> 0 \<Longrightarrow> L + 1 \<le> uint32_max \<Longrightarrow> L < init_next_size L\<close>
-  by (auto simp: init_next_size_def uint32_max_def)
+lemma init_next_size: \<open>L \<noteq> 0 \<Longrightarrow> L + 1 \<le> unat32_max \<Longrightarrow> L < init_next_size L\<close>
+  by (auto simp: init_next_size_def unat32_max_def)
 
 definition add_to_atms_ext where
   \<open>add_to_atms_ext = (\<lambda>i (xs, n, atms). do {
-    ASSERT(i \<le> uint32_max div 2);
-    ASSERT(length xs \<le> uint32_max);
+    ASSERT(i \<le> unat32_max div 2);
+    ASSERT(length xs \<le> unat32_max);
     ASSERT(length atms \<le> Suc n);
     let n = max i n;
     (if i < length_uint32_nat xs then do {
-       ASSERT(xs!i \<le> uint64_max);
+       ASSERT(xs!i \<le> unat64_max);
        let atms = (if xs!i AND 1 = 1 then atms else atms @ [i]);
        RETURN (xs[i := 1], n, atms)
      }
      else do {
-        ASSERT(i + 1 \<le> uint32_max);
+        ASSERT(i + 1 \<le> unat32_max);
         ASSERT(length_uint32_nat xs \<noteq> 0);
         ASSERT(i < init_next_size i);
         RETURN ((list_grow xs (init_next_size i) 0)[i := 1], n,
             atms @ [i])
      })
     })\<close>
-(*((*sum_mod_uint64_max (xs ! i) 2) OR*)*)
+(*((*sum_mod_unat64_max (xs ! i) 2) OR*)*)
 lemma init_valid_rep_upd_OR:
   \<open>init_valid_rep (x1b[x1a := a OR 1]) x2 \<longleftrightarrow>
     init_valid_rep (x1b[x1a := 1]) x2 \<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
@@ -1363,7 +1363,7 @@ lemma init_valid_rep_in_set_iff:
 
 lemma add_to_atms_ext_op_set_insert:
   \<open>(uncurry add_to_atms_ext, uncurry (RETURN oo Set.insert))
-   \<in> [\<lambda>(n, l). n \<le> uint32_max div 2]\<^sub>f nat_rel \<times>\<^sub>f isasat_atms_ext_rel \<rightarrow> \<langle>isasat_atms_ext_rel\<rangle>nres_rel\<close>
+   \<in> [\<lambda>(n, l). n \<le> unat32_max div 2]\<^sub>f nat_rel \<times>\<^sub>f isasat_atms_ext_rel \<rightarrow> \<langle>isasat_atms_ext_rel\<rangle>nres_rel\<close>
 proof -
   have H: \<open>finite x2 \<Longrightarrow> Max (insert x1 (insert 0 x2)) = Max (insert x1 x2)\<close>
     \<open>finite x2 \<Longrightarrow> Max (insert 0 (insert x1 x2)) = Max (insert x1 x2)\<close>
@@ -1391,7 +1391,7 @@ proof -
       subgoal by auto
       subgoal
         unfolding bitOR_1_if_mod_2_nat
-        by (auto simp del: simp: uint64_max_def
+        by (auto simp del: simp: unat64_max_def
             elim!: in_set_upd_cases)
       subgoal
         unfolding bitAND_1_mod_2
@@ -1405,9 +1405,9 @@ proof -
       subgoal
         by (auto simp add: init_valid_rep_in_set_iff)
       done
-    subgoal by (auto simp: uint32_max_def)
-    subgoal by (auto simp: uint32_max_def)
-    subgoal by (auto simp: uint32_max_def init_next_size_def elim: neq_NilE)
+    subgoal by (auto simp: unat32_max_def)
+    subgoal by (auto simp: unat32_max_def)
+    subgoal by (auto simp: unat32_max_def init_next_size_def elim: neq_NilE)
     subgoal
       unfolding comp_def list_grow_def
       apply (rule RETURN_refine)
@@ -1423,10 +1423,10 @@ proof -
         apply (auto elim: neq_NilE)
         done
       subgoal by (auto simp: H Max_insert[symmetric] simp del: Max_insert)
-      subgoal by (auto simp: init_next_size_def uint32_max_def)
+      subgoal by (auto simp: init_next_size_def unat32_max_def)
       subgoal
         unfolding bitOR_1_if_mod_2_nat
-        by (auto simp: uint64_max_def
+        by (auto simp: unat64_max_def
             elim!: in_set_upd_cases)
       subgoal by (auto simp: init_valid_rep_in_set_iff)
       subgoal by (auto simp add: init_valid_rep_in_set_iff)
@@ -1442,7 +1442,7 @@ definition extract_atms_cls :: \<open>'a clause_l \<Rightarrow> 'a set \<Rightar
 definition extract_atms_cls_i :: \<open>nat clause_l \<Rightarrow> nat set \<Rightarrow> nat set nres\<close> where
   \<open>extract_atms_cls_i C \<A>\<^sub>i\<^sub>n = nfoldli C (\<lambda>_. True)
        (\<lambda>L \<A>\<^sub>i\<^sub>n. do {
-         ASSERT(atm_of L \<le> uint32_max div 2);
+         ASSERT(atm_of L \<le> unat32_max div 2);
          RETURN(insert (atm_of L) \<A>\<^sub>i\<^sub>n)})
     \<A>\<^sub>i\<^sub>n\<close>
 
@@ -1455,12 +1455,12 @@ lemma extract_atms_cls_alt_def: \<open>extract_atms_cls C \<A>\<^sub>i\<^sub>n =
 
 lemma extract_atms_cls_i_extract_atms_cls:
   \<open>(uncurry extract_atms_cls_i, uncurry (RETURN oo extract_atms_cls))
-   \<in> [\<lambda>(C, \<A>\<^sub>i\<^sub>n). \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max]\<^sub>f
+   \<in> [\<lambda>(C, \<A>\<^sub>i\<^sub>n). \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max]\<^sub>f
      \<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
 proof -
-  have H1: \<open>(x1a, x1) \<in> \<langle>{(L, L'). L = L' \<and> nat_of_lit L \<le> uint32_max}\<rangle>list_rel\<close>
+  have H1: \<open>(x1a, x1) \<in> \<langle>{(L, L'). L = L' \<and> nat_of_lit L \<le> unat32_max}\<rangle>list_rel\<close>
     if
-      \<open>case y of (C, \<A>\<^sub>i\<^sub>n) \<Rightarrow>  \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max\<close> and
+      \<open>case y of (C, \<A>\<^sub>i\<^sub>n) \<Rightarrow>  \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max\<close> and
       \<open>(x, y) \<in> \<langle>nat_lit_lit_rel\<rangle>list_rel \<times>\<^sub>f Id\<close> and
       \<open>y = (x1, x2)\<close> and
       \<open>x = (x1a, x2a)\<close>
@@ -1468,8 +1468,8 @@ proof -
       x1 :: \<open>nat literal list\<close> and x2 :: \<open>nat set\<close> and x1a :: \<open>nat literal list\<close> and x2a :: \<open>nat set\<close>
     using that by (auto simp: list_rel_def list_all2_conj list.rel_eq list_all2_conv_all_nth)
 
-  have atm_le: \<open>nat_of_lit xa \<le> uint32_max \<Longrightarrow> atm_of xa \<le> uint32_max div 2\<close> for xa
-    by (cases xa) (auto simp: uint32_max_def)
+  have atm_le: \<open>nat_of_lit xa \<le> unat32_max \<Longrightarrow> atm_of xa \<le> unat32_max div 2\<close> for xa
+    by (cases xa) (auto simp: unat32_max_def)
 
   show ?thesis
     supply RETURN_as_SPEC_refine[refine2 del]
@@ -1495,12 +1495,12 @@ definition extract_atms_clss_i :: \<open>nat clause_l list \<Rightarrow> nat set
 
 lemma extract_atms_clss_i_extract_atms_clss:
   \<open>(uncurry extract_atms_clss_i, uncurry (RETURN oo extract_atms_clss))
-   \<in> [\<lambda>(N, \<A>\<^sub>i\<^sub>n). \<forall>C\<in>set N. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max]\<^sub>f
+   \<in> [\<lambda>(N, \<A>\<^sub>i\<^sub>n). \<forall>C\<in>set N. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max]\<^sub>f
      \<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
 proof -
-  have H1: \<open>(x1a, x1) \<in> \<langle>{(C, C'). C = C' \<and> (\<forall>L\<in>set C. nat_of_lit L \<le> uint32_max)}\<rangle>list_rel\<close>
+  have H1: \<open>(x1a, x1) \<in> \<langle>{(C, C'). C = C' \<and> (\<forall>L\<in>set C. nat_of_lit L \<le> unat32_max)}\<rangle>list_rel\<close>
     if
-      \<open>case y of (N, \<A>\<^sub>i\<^sub>n) \<Rightarrow> \<forall>C\<in>set N. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max\<close> and
+      \<open>case y of (N, \<A>\<^sub>i\<^sub>n) \<Rightarrow> \<forall>C\<in>set N. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max\<close> and
       \<open>(x, y) \<in> \<langle>Id\<rangle>list_rel \<times>\<^sub>f Id\<close> and
       \<open>y = (x1, x2)\<close> and
       \<open>x = (x1a, x2a)\<close>
@@ -1548,7 +1548,7 @@ lemma extract_atms_clss_imp_empty_rel:
   \<open>(\<lambda>_. extract_atms_clss_imp_empty_rel, \<lambda>_. (RETURN op_extract_list_empty)) \<in>
      unit_rel \<rightarrow>\<^sub>f \<langle>isasat_atms_ext_rel\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
-    (simp add:  op_extract_list_empty_def uint32_max_def
+    (simp add:  op_extract_list_empty_def unat32_max_def
       isasat_atms_ext_rel_def init_valid_rep_def extract_atms_clss_imp_empty_rel_def
        del: replicate_numeral)
 
@@ -1691,7 +1691,7 @@ definition rewatch_heur_st_fast where
 
 definition rewatch_heur_st_fast_pre where
   \<open>rewatch_heur_st_fast_pre S =
-     ((\<forall>x \<in> set (get_vdom_heur_init S). x \<le> sint64_max) \<and> length (get_clauses_wl_heur_init S) \<le> sint64_max)\<close>
+     ((\<forall>x \<in> set (get_vdom_heur_init S). x \<le> snat64_max) \<and> length (get_clauses_wl_heur_init S) \<le> snat64_max)\<close>
 
 definition rewatch_heur_st_init
  :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
@@ -1828,7 +1828,7 @@ definition extract_lits_sorted where
 
 definition lits_with_max_rel where
   \<open>lits_with_max_rel = {((xs, n), \<A>\<^sub>i\<^sub>n). mset xs = \<A>\<^sub>i\<^sub>n \<and> n = Max (insert 0 (set xs)) \<and>
-    length xs < uint32_max}\<close>
+    length xs < unat32_max}\<close>
 
 lemma extract_lits_sorted_mset_set:
   \<open>(extract_lits_sorted, RETURN o mset_set)
@@ -1836,21 +1836,21 @@ lemma extract_lits_sorted_mset_set:
 proof -
   have K: \<open>RETURN o mset_set = (\<lambda>v. do {v' \<leftarrow> SPEC(\<lambda>v'. v' = mset_set v); RETURN v'})\<close>
     by auto
-  have K': \<open>length x2a < uint32_max\<close> if \<open>distinct b\<close> \<open>init_valid_rep x1 (set b)\<close>
-    \<open>length x1 < uint32_max\<close> \<open>mset x2a = mset b\<close>for x1 x2a b
+  have K': \<open>length x2a < unat32_max\<close> if \<open>distinct b\<close> \<open>init_valid_rep x1 (set b)\<close>
+    \<open>length x1 < unat32_max\<close> \<open>mset x2a = mset b\<close>for x1 x2a b
   proof -
     have \<open>distinct x2a\<close>
       by (simp add: same_mset_distinct_iff that(1) that(4))
     have \<open>length x2a = length b\<close> \<open>set x2a = set b\<close>
       using \<open>mset x2a = mset b\<close> apply (metis size_mset)
        using \<open>mset x2a = mset b\<close> by (rule mset_eq_setD)
-    then have \<open>set x2a \<subseteq> {0..<uint32_max - 1}\<close>
+    then have \<open>set x2a \<subseteq> {0..<unat32_max - 1}\<close>
       using that by (auto simp: init_valid_rep_def)
     from card_mono[OF _ this] show ?thesis
-      using \<open>distinct x2a\<close> by (auto simp: uint32_max_def distinct_card)
+      using \<open>distinct x2a\<close> by (auto simp: unat32_max_def distinct_card)
   qed
   have H_simple: \<open>RETURN x2a
-      \<le> \<Down> (list_mset_rel \<inter> {(v, v'). length v < uint32_max})
+      \<le> \<Down> (list_mset_rel \<inter> {(v, v'). length v < unat32_max})
           (SPEC (\<lambda>v'. v' = mset_set y))\<close>
     if
       \<open>(x, y) \<in> isasat_atms_ext_rel\<close> and
@@ -2006,7 +2006,7 @@ definition init_trail_D_fast where
 
 definition init_state_wl_D' :: \<open>nat list \<times> nat \<Rightarrow>  (twl_st_wl_heur_init) nres\<close> where
   \<open>init_state_wl_D' = (\<lambda>(\<A>\<^sub>i\<^sub>n, n). do {
-     ASSERT(Suc (2 * (n)) \<le> uint32_max);
+     ASSERT(Suc (2 * (n)) \<le> unat32_max);
      let n = Suc (n);
      let m = 2 * n;
      M \<leftarrow> init_trail_D \<A>\<^sub>i\<^sub>n n m;
@@ -2061,14 +2061,14 @@ proof -
       by (auto simp: ann_lits_split_reasons_def
           list_mset_rel_def Collect_eq_comp list_rel_def
           list_all2_op_eq_map_right_iff' Id_def
-          br_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
+          br_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
         dest: multi_member_split)
     subgoal
       by auto
     subgoal using K' by (auto simp: polarity_def)
     subgoal
       by (auto simp:
-        nat_shiftr_div2 in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+        nat_shiftr_div2 in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
         polarity_atm_def trail_pol_def K
         phase_saving_def list_rel_mset_rel_def  atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
         list_rel_def Id_def br_def list_all2_op_eq_map_right_iff'
@@ -2245,10 +2245,10 @@ proof -
      \<open>NO_MATCH 0 a1 \<Longrightarrow> max 0 (Max (insert a1 (set a2))) = max a1 (Max (insert 0 (set a2)))\<close>
     for a1 :: nat and a2
     by (metis (mono_tags, lifting) List.finite_set Max_insert all_not_in_conv finite_insert insertI1 insert_commute)
-  have le_uint32: \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l (mset a). nat_of_lit L \<le> uint32_max \<Longrightarrow>
-    Suc (2 * (Max (insert 0 (set a)))) \<le> uint32_max\<close> for a
+  have le_uint32: \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l (mset a). nat_of_lit L \<le> unat32_max \<Longrightarrow>
+    Suc (2 * (Max (insert 0 (set a)))) \<le> unat32_max\<close> for a
     apply (induction a)
-    apply (auto simp: uint32_max_def)
+    apply (auto simp: unat32_max_def)
     apply (auto simp: max_def  \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
     done
   have K[simp]: \<open>(x, \<A>\<^sub>i\<^sub>n) \<in> \<langle>Id\<rangle>list_rel_mset_rel \<Longrightarrow>

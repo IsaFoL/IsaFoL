@@ -23,7 +23,7 @@ lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
            let L1 = C!i;
            let L2 = C!1;
            let C = (if get_level_pol M L1 > get_level_pol M L2 then swap C 1 i else C);
-           ASSERT(i+1 \<le> uint32_max);
+           ASSERT(i+1 \<le> unat32_max);
            RETURN (D, C, i+1)
          })
         (D, C, 1);
@@ -36,11 +36,11 @@ lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
 
 sepref_def empty_conflict_and_extract_clause_heur_fast_code
   is \<open>uncurry2 (isa_empty_conflict_and_extract_clause_heur)\<close>
-  :: \<open>[\<lambda>((M, D), outl). outl \<noteq> [] \<and> length outl \<le> uint32_max]\<^sub>a
+  :: \<open>[\<lambda>((M, D), outl). outl \<noteq> [] \<and> length outl \<le> unat32_max]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k \<rightarrow>
        (conflict_option_rel_assn) \<times>\<^sub>a clause_ll_assn \<times>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=1]] image_image[simp]
-  supply [simp] = max_snat_def uint32_max_def
+  supply [simp] = max_snat_def unat32_max_def
   unfolding isa_empty_conflict_and_extract_clause_heur_alt_def
     larray_fold_custom_replicate length_uint32_nat_def conflict_option_rel_assn_def
   apply (rewrite at \<open>\<hole>\<close> in \<open>_ !1\<close> snat_const_fold[where 'a=64])+
@@ -79,7 +79,7 @@ proof -
     \<in>[comp_PRE Id
      (\<lambda>(cach, supp).
          (\<forall>L\<in>set supp. L < length cach) \<and>
-         length supp \<le> Suc (uint32_max div 2) \<and>
+         length supp \<le> Suc (unat32_max div 2) \<and>
          (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))
      (\<lambda>x y. True)
      (\<lambda>x. nofail ((RETURN \<circ> empty_cach_ref) x))]\<^sub>a
@@ -105,7 +105,7 @@ qed
 sepref_register fm_add_new_fast
 
 lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> Suc (length (get_clauses_wl_heur S)) < max_snat 64\<close>
-  by (cases S) (auto simp: isasat_fast_def max_snat_def sint64_max_def)
+  by (cases S) (auto simp: isasat_fast_def max_snat_def snat64_max_def)
 
 sepref_register update_propagation_heuristics
 sepref_def update_heuristics_stats_impl
@@ -122,7 +122,7 @@ sepref_def update_heuristics_impl
 
 (*TODO Move to isasat_fast_countD*)
 lemma isasat_fast_countD_tmp:
-  \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUEk (get_learned_count S) < uint64_max\<close>
+  \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUEk (get_learned_count S) < unat64_max\<close>
   by (auto simp: isasat_fast_def learned_clss_count_def)
 
 lemma propagate_unit_bt_wl_D_int_alt_def:
@@ -224,20 +224,20 @@ lemma propagate_bt_wl_D_heur_alt_def:
       ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
       ASSERT(length C > 1);
       let L' = C!1;
-      ASSERT(length C \<le> uint32_max div 2 + 1);
+      ASSERT(length C \<le> unat32_max div 2 + 1);
       vm \<leftarrow> isa_bump_rescore C M vm0;
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let l = 2;
       let b' = (length C = l);
       ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> clss_size_lcount lcount < sint64_max);
+      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> clss_size_lcount lcount < snat64_max);
       (N, i) \<leftarrow> fm_add_new b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd_and_mark_used i glue N;
-      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < snat64_max);
       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
-      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W (nat_of_lit L') < snat64_max);
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
       j \<leftarrow> mop_isa_length_trail M;
@@ -273,16 +273,16 @@ lemma [sepref_fr_rules]:
 
 section \<open>Backtrack with direct extraction of literal if highest level\<close>
 
-lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint32_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
-  by (auto simp: uint32_max_def sint64_max_def)
+lemma le_unat32_max_div_2_le_unat32_max: \<open>a \<le> unat32_max div 2 + 1 \<Longrightarrow> a \<le> unat32_max\<close>
+  by (auto simp: unat32_max_def snat64_max_def)
 
 lemma propagate_bt_wl_D_fast_code_isasat_fastI2: \<open>isasat_fast b \<Longrightarrow>
-       a < length (get_clauses_wl_heur b) \<Longrightarrow> a \<le> sint64_max\<close>
+       a < length (get_clauses_wl_heur b) \<Longrightarrow> a \<le> snat64_max\<close>
   by (cases b) (auto simp: isasat_fast_def)
 
 lemma propagate_bt_wl_D_fast_code_isasat_fastI3: \<open>isasat_fast b \<Longrightarrow>
-       a \<le> length (get_clauses_wl_heur b) \<Longrightarrow> a < sint64_max\<close>
-  by (cases b) (auto simp: isasat_fast_def sint64_max_def uint32_max_def)
+       a \<le> length (get_clauses_wl_heur b) \<Longrightarrow> a < snat64_max\<close>
+  by (cases b) (auto simp: isasat_fast_def snat64_max_def unat32_max_def)
 
 sepref_register propagate_bt_wl_D_heur_update propagate_bt_wl_D_heur_extract two_sint64
 sepref_def propagate_bt_wl_D_fast_codeXX
@@ -323,7 +323,7 @@ lemma extract_shorter_conflict_list_heur_st_alt_def:
      (D, ccach, outl) \<leftarrow> isa_minimize_and_extract_highest_lookup_conflict M N D ccach lbd outl;
      ASSERT(empty_cach_ref_pre ccach);
      let ccach = empty_cach_ref ccach;
-     ASSERT(outl \<noteq> [] \<and> length outl \<le> uint32_max);
+     ASSERT(outl \<noteq> [] \<and> length outl \<le> unat32_max);
      (D, C, n) \<leftarrow> isa_empty_conflict_and_extract_clause_heur M D outl;
       let S = update_trail_wl_heur M S;
       let S = update_arena_wl_heur N S;
@@ -343,7 +343,7 @@ sepref_register isa_minimize_and_extract_highest_lookup_conflict
 
 sepref_def extract_shorter_conflict_list_heur_st_fast
   is \<open>extract_shorter_conflict_list_heur_st\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
         isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a clause_ll_assn\<close>
   supply [[goals_limit=1]]
   unfolding extract_shorter_conflict_list_heur_st_alt_def PR_CONST_def

@@ -72,7 +72,7 @@ where
 
 lemma isa_bump_mark_to_rescore:
   assumes
-    \<open>L \<in># \<A>\<close> \<open>b \<in> bump_heur \<A> M\<close> \<open>length (fst (get_bumped_variables b)) < Suc (Suc (uint32_max div 2))\<close>
+    \<open>L \<in># \<A>\<close> \<open>b \<in> bump_heur \<A> M\<close> \<open>length (fst (get_bumped_variables b)) < Suc (Suc (unat32_max div 2))\<close>
   shows \<open>
      isa_bump_mark_to_rescore L b \<le> SPEC (\<lambda>vm'. vm' \<in> bump_heur \<A> M)\<close>
 proof -
@@ -98,7 +98,7 @@ qed
 
 lemma length_get_bumped_variables_le:
   assumes \<open>vm \<in> bump_heur \<A> M\<close> \<open>isasat_input_bounded \<A>\<close>
-  shows \<open>length (fst (get_bumped_variables vm)) < Suc (Suc (uint32_max div 2))\<close>
+  shows \<open>length (fst (get_bumped_variables vm)) < Suc (Suc (unat32_max div 2))\<close>
   using assms bounded_included_le[of \<A> \<open>fst (get_bumped_variables vm)\<close>]
   by (cases vm)
    (auto simp: bump_heur_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
@@ -260,19 +260,19 @@ lemma vmtf_mark_to_rescore_clause_spec:
   subgoal for x it _ \<sigma>
     using length_get_bumped_variables_le[of _ \<A>]
     by (cases \<sigma>)
-     (auto intro!: isa_bump_mark_to_rescore[THEN order_trans] simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+     (auto intro!: isa_bump_mark_to_rescore[THEN order_trans] simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
        dest: in_list_in_setD)
   done
 
 definition vmtf_mark_to_rescore_also_reasons
   :: \<open>nat multiset \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat literal list \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
 \<open>vmtf_mark_to_rescore_also_reasons \<A> M arena outl L vm = do {
-    ASSERT(length outl \<le> uint32_max);
+    ASSERT(length outl \<le> unat32_max);
     nfoldli
       ([0..<length outl])
       (\<lambda>_. True)
       (\<lambda>i vm. do {
-        ASSERT(i < length outl); ASSERT(length outl \<le> uint32_max);
+        ASSERT(i < length outl); ASSERT(length outl \<le> unat32_max);
         ASSERT(-outl ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
         if(outl!i = L)
         then
@@ -289,12 +289,12 @@ definition vmtf_mark_to_rescore_also_reasons
 definition isa_vmtf_mark_to_rescore_also_reasons
   :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> nat literal list \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
 \<open>isa_vmtf_mark_to_rescore_also_reasons M arena outl L vm = do {
-    ASSERT(length outl \<le> uint32_max);
+    ASSERT(length outl \<le> unat32_max);
     nfoldli
       ([0..<length outl])
       (\<lambda>_. True)
       (\<lambda>i vm. do {
-        ASSERT(i < length outl); ASSERT(length outl\<le> uint32_max);
+        ASSERT(i < length outl); ASSERT(length outl\<le> unat32_max);
         if(outl!i = L)
         then
           RETURN vm
@@ -331,7 +331,7 @@ lemma isa_vmtf_mark_to_rescore_also_reasons_vmtf_mark_to_rescore_also_reasons:
   apply assumption
   subgoal for x y x1 x1a _ _ _ x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xi xa si s xb x'
     by (cases xb)
-     (auto simp: isa_vmtf_mark_to_rescore_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+     (auto simp: isa_vmtf_mark_to_rescore_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
         intro!: atms_hash_insert_pre[of _ \<A>])
   subgoal by auto
   subgoal by auto
@@ -343,7 +343,7 @@ lemma vmtf_mark_to_rescore':
   by (cases vm) (auto intro: vmtf_mark_to_rescore)
 *)
 lemma vmtf_mark_to_rescore_also_reasons_spec:
-  \<open>vm \<in> bump_heur \<A> M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow> length outl \<le> uint32_max \<Longrightarrow> isasat_input_bounded \<A> \<Longrightarrow>
+  \<open>vm \<in> bump_heur \<A> M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow> length outl \<le> unat32_max \<Longrightarrow> isasat_input_bounded \<A> \<Longrightarrow>
    (\<forall>L \<in> set outl. L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<Longrightarrow>
    (\<forall>L \<in> set outl. \<forall>C. (Propagated (-L) C \<in> set M \<longrightarrow> C \<noteq> 0 \<longrightarrow> (C \<in># dom_m N \<and>
        (\<forall>C \<in> set [C..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)))) \<Longrightarrow>
@@ -362,7 +362,7 @@ lemma vmtf_mark_to_rescore_also_reasons_spec:
     subgoal
       using length_get_bumped_variables_le[of _ \<A> M]
       by (auto intro!: isa_bump_mark_to_rescore[where M=M and \<A>=\<A>, THEN order_trans]
-        simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric])
+        simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of[symmetric])
     apply (rename_tac D, case_tac \<open>D = 0\<close>; simp)
     subgoal
       by (rule vmtf_mark_to_rescore_clause_spec, assumption, assumption)
@@ -443,7 +443,7 @@ proof -
     apply assumption
     subgoal for x y x1 x1a _ _ _ x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xi xa si s xb x'
       by (cases xb)
-       (auto simp: isa_vmtf_mark_to_rescore_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+       (auto simp: isa_vmtf_mark_to_rescore_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
           intro!: atms_hash_insert_pre[of _ \<A>])
     subgoal by auto
     subgoal by auto
@@ -478,7 +478,7 @@ lemma vmtf_mark_to_rescore_also_reasons_cl_spec:
     subgoal
       using length_get_bumped_variables_le[of _ \<A>]
       by (auto intro!: isa_bump_mark_to_rescore[where \<A>=\<A> and M=M, THEN order_trans]
-        simp: arena_lifting_list in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric])
+        simp: arena_lifting_list in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of[symmetric])
     apply (rename_tac D, case_tac \<open>D = 0\<close>; simp)
     subgoal
       by (rule vmtf_mark_to_rescore_clause_spec, assumption, assumption)
@@ -583,7 +583,7 @@ where
     let M\<^sub>0 = trail_conv_to_no_CS M\<^sub>0;
     let n = length M\<^sub>0;
     pos \<leftarrow> get_pos_of_level_in_trail M\<^sub>0 lev;
-    ASSERT((n - pos) \<le> uint32_max);
+    ASSERT((n - pos) \<le> unat32_max);
     ASSERT(n \<ge> pos);
     let target = n - pos;
     (_, M, vm') \<leftarrow>
@@ -594,7 +594,7 @@ where
          (\<lambda>(j, M, vm). do {
             ASSERT (count_decided M > lev);
             ASSERT(M \<noteq> []);
-            ASSERT(Suc j \<le> uint32_max);
+            ASSERT(Suc j \<le> unat32_max);
             let L = atm_of (lit_of_hd_trail M);
             ASSERT(L \<in># \<A>);
             RETURN (j + 1, tl M, isa_bump_unset L vm)
@@ -614,14 +614,14 @@ where
     ASSERT(isa_length_trail_pre M\<^sub>0);
     let n = isa_length_trail M\<^sub>0;
     pos \<leftarrow> get_pos_of_level_in_trail_imp M\<^sub>0 lev;
-    ASSERT((n - pos) \<le> uint32_max);
+    ASSERT((n - pos) \<le> unat32_max);
     ASSERT(n \<ge> pos);
     let target = n - pos;
     (_, M, vm') \<leftarrow>
        WHILE\<^sub>T\<^bsup>\<lambda>(j, M, vm'). j \<le> target\<^esup>
          (\<lambda>(j, M, vm). j < target)
          (\<lambda>(j, M, vm). do {
-            ASSERT(Suc j \<le> uint32_max);
+            ASSERT(Suc j \<le> unat32_max);
             ASSERT(case M of (M, _) \<Rightarrow> M \<noteq> []);
             ASSERT(tl_trailt_tr_no_CS_pre M);
             let L = atm_of (lit_of_last_trail_pol M);
@@ -662,9 +662,9 @@ proof -
     x = (x1b, x2c) \<Longrightarrow>
     isa_length_trail_pre (trail_pol_conv_to_no_CS x1c) \<Longrightarrow>
     (pos, posa) \<in> nat_rel \<Longrightarrow>
-    length (trail_conv_to_no_CS x1a) - posa \<le> uint32_max \<Longrightarrow>
+    length (trail_conv_to_no_CS x1a) - posa \<le> unat32_max \<Longrightarrow>
     posa \<le> length (trail_conv_to_no_CS x1a) \<Longrightarrow>
-    isa_length_trail (trail_pol_conv_to_no_CS x1c) - pos \<le> uint32_max \<Longrightarrow>
+    isa_length_trail (trail_pol_conv_to_no_CS x1c) - pos \<le> unat32_max \<Longrightarrow>
     pos \<le> isa_length_trail (trail_pol_conv_to_no_CS x1c) \<Longrightarrow>
     case (0, trail_conv_to_no_CS x1a, x2a) of
     (j, M, vm') \<Rightarrow>
@@ -709,8 +709,8 @@ proof -
       \<open>x = (x1b, x2c)\<close> and
       \<open>isa_length_trail_pre (trail_pol_conv_to_no_CS x1c)\<close> and
       \<open>(pos, posa) \<in> nat_rel\<close> and
-      \<open>length (trail_conv_to_no_CS x1a) - posa \<le> uint32_max\<close> and
-      \<open>isa_length_trail (trail_pol_conv_to_no_CS x1c) - pos \<le> uint32_max\<close> and
+      \<open>length (trail_conv_to_no_CS x1a) - posa \<le> unat32_max\<close> and
+      \<open>isa_length_trail (trail_pol_conv_to_no_CS x1c) - pos \<le> unat32_max\<close> and
       \<open>(xa, x') \<in> nat_rel \<times>\<^sub>r trail_pol_no_CS \<A> \<times>\<^sub>r Id\<close> and
        \<open>x2d = (x1e, x2e)\<close> and
       \<open>x' = (x1d, x2d)\<close> and
@@ -800,8 +800,8 @@ lemma
       \<open>find_decomp_wl_imp \<A> M\<^sub>0 highest vm \<le> find_decomp_w_ns \<A> M\<^sub>0 highest vm\<close>
      (is ?decomp)
 proof -
-  have length_M0:  \<open>length M\<^sub>0 \<le> uint32_max div 2 + 1\<close>
-    using length_trail_uint32_max_div2[of \<A> M\<^sub>0, OF bounded]
+  have length_M0:  \<open>length M\<^sub>0 \<le> unat32_max div 2 + 1\<close>
+    using length_trail_unat32_max_div2[of \<A> M\<^sub>0, OF bounded]
       n_d literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of \<A>, OF lits]
     by (auto simp: lits_of_def)
   have 1: \<open>((count_decided x1g, x1g), count_decided x1, x1) \<in> Id\<close>
@@ -842,7 +842,7 @@ proof -
   have atm_of_N:
     \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (lit_of `# mset aa) \<Longrightarrow> aa \<noteq> [] \<Longrightarrow> atm_of (lit_of (hd aa)) \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
     for aa
-    by (cases aa) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+    by (cases aa) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
   have Lin_drop_tl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (lit_of `# mset (drop b M\<^sub>0)) \<Longrightarrow>
       literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (lit_of `# mset (tl (drop b M\<^sub>0)))\<close> for b
     apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mono)
@@ -857,7 +857,7 @@ proof -
     if
       pos: \<open>pos < length M\<^sub>0 \<and> is_decided (rev M\<^sub>0 ! pos) \<and> get_level M\<^sub>0 (lit_of (rev M\<^sub>0 ! pos)) =
          highest + 1\<close> and
-      \<open>length M\<^sub>0 - pos \<le> uint32_max\<close> and
+      \<open>length M\<^sub>0 - pos \<le> unat32_max\<close> and
       inv: \<open>case s of (j, M, vm') \<Rightarrow>
          j \<le> length M\<^sub>0 - pos \<and>
          M = drop j M\<^sub>0 \<and>
@@ -909,7 +909,7 @@ proof -
     if
       pos: \<open>pos < length M\<^sub>0 \<and> is_decided (rev M\<^sub>0 ! pos) \<and> get_level M\<^sub>0 (lit_of (rev M\<^sub>0 ! pos)) =
          highest + 1\<close> and
-      \<open>length M\<^sub>0 - pos \<le> uint32_max\<close> and
+      \<open>length M\<^sub>0 - pos \<le> unat32_max\<close> and
       inv: \<open>case s of (j, M, vm') \<Rightarrow>
          j \<le> length M\<^sub>0 - pos \<and>
          M = drop j M\<^sub>0 \<and>
@@ -949,7 +949,7 @@ proof -
     unfolding find_decomp_wl_imp_def Let_def find_decomp_w_ns_def trail_conv_to_no_CS_def
       get_pos_of_level_in_trail_def trail_conv_back_def
     apply (refine_vcg 1 WHILEIT_rule[where R=\<open>measure (\<lambda>(_, M, _). length M)\<close>])
-    subgoal using length_M0 unfolding uint32_max_def by simp
+    subgoal using length_M0 unfolding unat32_max_def by simp
     subgoal by auto
     subgoal by auto
     subgoal using target by (auto simp: count_decided_ge_get_maximum_level)
@@ -959,7 +959,7 @@ proof -
     subgoal using lits unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_trail_lit_of_mset by auto
     subgoal by (rule count_dec_larger)
     subgoal for target s j b M vm by simp
-    subgoal using length_M0 unfolding uint32_max_def by simp
+    subgoal using length_M0 unfolding unat32_max_def by simp
     subgoal for x s a ab aa bb
       by (cases \<open>drop a M\<^sub>0\<close>)
         (auto simp: lit_of_hd_trail_def literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)

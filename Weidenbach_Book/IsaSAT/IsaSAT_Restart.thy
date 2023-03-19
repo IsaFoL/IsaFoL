@@ -416,9 +416,9 @@ proof -
     inA:\<open>\<forall>L\<in>set (ys @ Propagated x2 C # zs). lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>\<close> and
     cs: \<open>control_stack y (ys @ Propagated x2 C # zs)\<close> and
     \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail ?\<A> (ys @ Propagated x2 C # zs)\<close> and
-    \<open>length (ys @ Propagated x2 C # zs) < uint32_max\<close> and
-    \<open>length (ys @ Propagated x2 C # zs) \<le> uint32_max div 2 + 1\<close> and
-    \<open>count_decided (ys @ Propagated x2 C # zs) < uint32_max\<close> and
+    \<open>length (ys @ Propagated x2 C # zs) < unat32_max\<close> and
+    \<open>length (ys @ Propagated x2 C # zs) \<le> unat32_max div 2 + 1\<close> and
+    \<open>count_decided (ys @ Propagated x2 C # zs) < unat32_max\<close> and
     \<open>length (map lit_of (rev (ys @ Propagated x2 C # zs))) =
      length (ys @ Propagated x2 C # zs)\<close> and
     bounded: \<open>isasat_input_bounded ?\<A>\<close> and
@@ -634,7 +634,7 @@ lemma twl_st_heur_restart_isa_length_trail_get_trail_wl:
   unfolding isa_length_trail_def twl_st_heur_restart_ana_def twl_st_heur_restart_def trail_pol_alt_def
     mop_isa_length_trail_def isa_length_trail_pre_def
   by (subgoal_tac \<open>(case get_trail_wl_heur S of
-            (M', xs, lvls, reasons, k, cs) \<Rightarrow> length M' \<le> uint32_max)\<close>)
+            (M', xs, lvls, reasons, k, cs) \<Rightarrow> length M' \<le> unat32_max)\<close>)
     (cases S;auto dest: ann_lits_split_reasons_map_lit_of intro!: ASSERT_leI; fail)+
 
 lemma twl_st_heur_restart_count_decided_st_alt_def:
@@ -1027,7 +1027,7 @@ lemma remove_one_annot_true_clause_one_imp_wl_pre_fst_le_uint32:
   assumes \<open>(x, y) \<in> nat_rel \<times>\<^sub>f {p. (fst p, snd p) \<in> twl_st_heur_restart_ana r \<and>
           learned_clss_count (fst p) \<le> u}\<close> and
     \<open>remove_one_annot_true_clause_one_imp_wl_pre (fst y) (snd y)\<close>
-  shows \<open>fst x + 1 \<le> Suc (uint32_max div 2)\<close>
+  shows \<open>fst x + 1 \<le> Suc (unat32_max div 2)\<close>
 proof -
   have [simp]: \<open>fst y = fst x\<close>
     using assms by (cases x, cases y) auto
@@ -1291,7 +1291,7 @@ proof -
           ASSERT(n \<noteq> None);
           let A = the n;
           ASSERT(A < length ns);
-          ASSERT(A \<le> uint32_max div 2);
+          ASSERT(A \<le> unat32_max div 2);
           x \<leftarrow> f A x;
           RETURN (get_next ((ns ! A)), Suc m, x)
         })
@@ -1306,7 +1306,7 @@ proof -
           ASSERT(n \<noteq> None);
           let A = the n;
           ASSERT(A < length ns);
-          ASSERT(A \<le> uint32_max div 2);
+          ASSERT(A \<le> unat32_max div 2);
           x \<leftarrow> f A x;
           RETURN (get_next ((ns ! A)), Suc m, x)
         })
@@ -1383,7 +1383,7 @@ proof -
       set_append[symmetric]zs_def[symmetric] zs2
     by (auto simp: eq_commute[of \<open>set zs\<close> \<open>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>] hd_drop_conv_nth
       simp del: nth_mem)
-  have le_uint32_max: \<open>the x1a \<le> uint32_max div 2\<close>
+  have le_unat32_max: \<open>the x1a \<le> unat32_max div 2\<close>
     if
       \<open>(remdups_mset \<A>, \<A>') \<in> Id\<close> and
       \<open>(x, x') \<in> {((n, m, x), \<A>', y). is_lasts \<A>' n m \<and> x = y}\<close> and
@@ -1424,7 +1424,7 @@ proof -
       by (simp add: is_lasts_def in_set_dropI)
     subgoal for \<A>' x x' x1 x2 x1a x2a x1b xb
       by (auto simp: is_lasts_le)
-    subgoal by (rule le_uint32_max)
+    subgoal by (rule le_unat32_max)
     subgoal by auto
     subgoal for \<A>' x x' x1 x2 x1a x2a x1b x2b A xa xb
       by (rule IH)
@@ -1683,45 +1683,7 @@ lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart:
   by (auto simp: twl_st_heur_restart_ana_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
       option_lookup_clause_rel_def twl_st_heur_restart_def
      split: option.splits)
-(*TODO Move*)
-lemma mop_arena_status2:
-  assumes \<open>(C,C')\<in>nat_rel\<close> \<open>C \<in> vdom\<close>
-    \<open>valid_arena arena N vdom\<close>
-  shows
-    \<open>mop_arena_status arena C
-    \<le> SPEC
-    (\<lambda>c. (c, C \<in># dom_m N)
-    \<in> {(a,b). (b \<longrightarrow> (a = IRRED \<longleftrightarrow> irred N C) \<and> (a = LEARNED \<longleftrightarrow> \<not>irred N C)) \<and>  (a = DELETED \<longleftrightarrow> \<not>b)})\<close>
-  using assms arena_dom_status_iff[of arena N vdom C] unfolding mop_arena_status_def
-  by (cases \<open>C \<in># dom_m N\<close>)
-    (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def
-     arena_lifting)
 
-lemma mop_arena_status3:
-  assumes \<open>(C,C')\<in>nat_rel\<close> \<open>C \<in># dom_m N\<close>
-    \<open>valid_arena arena N vdom\<close>
-  shows
-    \<open>mop_arena_status arena C
-    \<le> SPEC
-    (\<lambda>c. (c, irred N C)
-    \<in> {(a,b). (a = IRRED \<longleftrightarrow> irred N C) \<and> (a = LEARNED \<longleftrightarrow> \<not>irred N C) \<and> b = (irred N C)\<and>  (a \<noteq> DELETED)})\<close>
-  using assms arena_dom_status_iff[of arena N vdom C] unfolding mop_arena_status_def
-  by (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def
-     arena_lifting)
-(*END Move*)
-(*TODO Move*)
-lemma mop_arena_status_vdom:
-  assumes \<open>C \<in> vdom\<close> and \<open>(C,C')\<in>nat_rel\<close>
-    \<open>valid_arena arena N vdom\<close>
-  shows
-    \<open>mop_arena_status arena C
-    \<le> SPEC
-    (\<lambda>c. (c, C' \<in># dom_m N)
-    \<in> {(a,b). (a \<noteq> DELETED \<longleftrightarrow> b) \<and> (((a = IRRED \<longleftrightarrow> (irred N C' \<and> b)) \<and> (a = LEARNED \<longleftrightarrow> (\<not>irred N C' \<and> b))))})\<close>
-   using assms arena_lifting(24,25)[of arena N vdom C] arena_dom_status_iff(1)[of arena N vdom C]
-   unfolding mop_arena_status_def
-   by (cases \<open>arena_status arena C'\<close>)
-    (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def)
 (*TODO rename*)
 lemma all_init_atms_alt_def:
   \<open>all_init_atms (get_clauses_wl S')

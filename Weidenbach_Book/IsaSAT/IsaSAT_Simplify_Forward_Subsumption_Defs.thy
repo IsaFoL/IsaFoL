@@ -139,7 +139,7 @@ definition find_best_subsumption_candidate where
     n \<leftarrow> mop_arena_length_st S C;
    (i,score,L) \<leftarrow> WHILE\<^sub>T (\<lambda>(i,score,L). i < n)
      (\<lambda>(i,score,L). do {
-       ASSERT (Suc i \<le> uint32_max);
+       ASSERT (Suc i \<le> unat32_max);
        new_L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i;
        ASSERT (nat_of_lit L < length (get_occs S));
        new_score \<leftarrow> mop_cocc_list_length (get_occs S) L;
@@ -166,7 +166,7 @@ definition find_best_subsumption_candidate_and_push where
     n \<leftarrow> mop_arena_length_st S C;
    (i,score,L,push) \<leftarrow> WHILE\<^sub>T (\<lambda>(i,score,L,push). i < n \<and> push)
      (\<lambda>(i,score,L,push). do {
-       ASSERT (Suc i \<le> uint32_max);
+       ASSERT (Suc i \<le> unat32_max);
        new_L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i;
        ASSERT (nat_of_lit L < length (get_occs S));
        new_score \<leftarrow> mop_cocc_list_length (get_occs S) L;
@@ -407,7 +407,7 @@ definition isa_try_to_forward_subsume_wl2 :: \<open>nat \<Rightarrow> bool list 
   \<open>isa_try_to_forward_subsume_wl2 C D shrunken S = do {
   ASSERT (isa_try_to_forward_subsume_wl_pre C shrunken S);
   n \<leftarrow> mop_arena_length_st S C;
-  ASSERT (n \<le> Suc (uint32_max div 2));
+  ASSERT (n \<le> Suc (unat32_max div 2));
   let n = 2 * n;
   ebreak \<leftarrow> isa_try_to_forward_subsume_wl2_break S;
   (_, changed, _, D, S) \<leftarrow> WHILE\<^sub>T\<^bsup> isa_try_to_forward_subsume_wl_inv S C\<^esup>
@@ -467,8 +467,8 @@ definition isa_all_lit_clause_unset where
     n \<leftarrow> mop_arena_length_st S C;
     (i, unset, added) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, unset, _). unset \<and> i < n)
     (\<lambda>(i, unset, added). do {
-      ASSERT (i+1 \<le> Suc (uint32_max div 2));
-      ASSERT(Suc i \<le> uint32_max);
+      ASSERT (i+1 \<le> Suc (unat32_max div 2));
+      ASSERT(Suc i \<le> unat32_max);
       L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i;
       val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S) L;
       is_added \<leftarrow> mop_is_marked_added_heur_st S (atm_of L);

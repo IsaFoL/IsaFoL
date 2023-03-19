@@ -1349,7 +1349,7 @@ lemma find_best_subsumption_candidate:
     SS': \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> and
     pre0: \<open>push_to_occs_list2_pre C S' occs\<close> and
     occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close> and
-    le_bound: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (uint32_max div 2)\<close>
+    le_bound: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (unat32_max div 2)\<close>
   shows \<open>find_best_subsumption_candidate C S \<le> SPEC (\<lambda>L. L \<in># mset (get_clauses_wl S' \<propto> C))\<close>
 proof -
   have valid: \<open>valid_occs (get_occs S) (get_aivdom S)\<close> and
@@ -1415,7 +1415,7 @@ lemma find_best_subsumption_candidate_and_push:
     SS': \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> and
     pre0: \<open>push_to_occs_list2_pre C S' occs\<close> and
     occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close> and
-    le_bound: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (uint32_max div 2)\<close>
+    le_bound: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (unat32_max div 2)\<close>
   shows \<open>find_best_subsumption_candidate_and_push C S \<le> SPEC (\<lambda>(L, push). L \<in># mset (get_clauses_wl S' \<propto> C))\<close>
 proof -
   have valid: \<open>valid_occs (get_occs S) (get_aivdom S)\<close> and
@@ -1531,7 +1531,7 @@ lemma isa_push_to_occs_list_st_push_to_occs_list2:
     CC': \<open>(C,C')\<in>nat_rel\<close>and
     occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close> and
     C: \<open>C \<in> set (get_vdom S)\<close> and
-    length: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (uint32_max div 2)\<close>
+    length: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (unat32_max div 2)\<close>
   shows \<open>isa_push_to_occs_list_st C S
     \<le> \<Down> {(U, occs'). (get_occs U, occs') \<in> occurrence_list_ref \<and> (U, S') \<in> twl_st_heur_restart_occs' r u \<and> get_aivdom U = get_aivdom S} (push_to_occs_list2 C' S' occs)\<close>
 proof -
@@ -1599,7 +1599,7 @@ lemma isa_maybe_push_to_occs_list_st_push_to_occs_list2:
     CC': \<open>(C,C')\<in>nat_rel\<close>and
     occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close> and
     C: \<open>C \<in> set (get_vdom S)\<close> and
-    length: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (uint32_max div 2)\<close>
+    length: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (unat32_max div 2)\<close>
   shows \<open>isa_maybe_push_to_occs_list_st C S
     \<le> \<Down> {(U, occs'). (get_occs U, occs') \<in> occurrence_list_ref \<and> (U, S') \<in> twl_st_heur_restart_occs' r u \<and> get_aivdom U = get_aivdom S} (maybe_push_to_occs_list2 C' S' occs)\<close>
 proof -
@@ -1660,7 +1660,7 @@ proof -
     SS': \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> and
     pre0: \<open>push_to_occs_list2_pre C S' occs\<close> and
     occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close> and
-    le_bound: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (uint32_max div 2)\<close>
+    le_bound: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (unat32_max div 2)\<close>
    by (rule find_best_subsumption_candidate_and_push[OF that, THEN order_trans]) (auto simp: conc_fun_RES)
   show ?thesis
     unfolding isa_maybe_push_to_occs_list_st_def maybe_push_to_occs_list2_alt_def eq
@@ -3059,7 +3059,7 @@ lemma isa_try_to_forward_subsume_wl2_try_to_forward_subsume_wl2:
        (U, S') \<in> twl_st_heur_restart_occs' r u \<and> get_aivdom U = get_aivdom S \<and> shrunken' = mset shrunken}
     (try_to_forward_subsume_wl2 C' occs cands D' shrunken S')\<close>
 proof -
-  have le: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (uint32_max div 2)\<close>
+  have le: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (unat32_max div 2)\<close>
     if \<open>try_to_forward_subsume_wl2_pre C' cands shrunken S'\<close>
   proof -
     have lits:  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_init_atms_st S') (mset (get_clauses_wl S' \<propto> C'))\<close> and
@@ -3239,7 +3239,7 @@ proof -
       using assms(1,2) simple_clss_size_upper_div2[of \<open>all_init_atms_st T\<close> \<open>mset (get_clauses_wl T \<propto> C)\<close>, OF _ lits dist tauto]
       by (auto simp del: isasat_input_bounded_def simp: clause_not_marked_to_delete_def
         simp: twl_st_heur_restart_occs_def IsaSAT_Restart.all_init_atms_alt_def)
-    subgoal by (auto simp: uint32_max_def)
+    subgoal by (auto simp: unat32_max_def)
     subgoal using assms unfolding twl_st_heur_restart_occs_def by auto
     subgoal using assms by fast
     subgoal by auto
@@ -3547,7 +3547,7 @@ proof -
     subgoal by auto
     subgoal by (auto simp: nth_append)
     subgoal by auto
-    subgoal by (auto simp: uint32_max_def nth_append)
+    subgoal by (auto simp: unat32_max_def nth_append)
     subgoal by auto
     apply (solves auto)
     subgoal by (auto simp: nth_append)

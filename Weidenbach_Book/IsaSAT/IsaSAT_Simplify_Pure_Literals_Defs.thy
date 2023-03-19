@@ -116,7 +116,7 @@ definition isa_pure_literal_deletion_wl :: \<open>bool list \<Rightarrow> isasat
        ASSERT (n \<noteq> None);
        let A = the n;
        ASSERT (A < length (get_vmtf_heur_array S\<^sub>0));
-       ASSERT (A \<le> uint32_max div 2);
+       ASSERT (A \<le> unat32_max div 2);
        ASSERT (get_vmtf_heur_array S\<^sub>0 = get_vmtf_heur_array T);
        ASSERT (nat_of_lit (Pos A) < length occs);
        ASSERT (nat_of_lit (Neg A) < length occs);

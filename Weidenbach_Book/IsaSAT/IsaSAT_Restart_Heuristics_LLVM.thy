@@ -156,7 +156,7 @@ sepref_register ema_get_value get_fast_ema_heur get_slow_ema_heur
 
 sepref_def restart_required_heur_fast_code
   is \<open>uncurry3 restart_required_heur\<close>
-  :: \<open>[\<lambda>(((S, _), _), _). learned_clss_count S \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a
+  :: \<open>[\<lambda>(((S, _), _), _). learned_clss_count S \<le> unat64_max]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a
      uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> word_assn\<close>
   supply [[goals_limit=1]] isasat_fast_def[simp] clss_size_allcount_alt_def[simp]
     learned_clss_count_def[simp]
@@ -201,13 +201,13 @@ sepref_register remove_one_annot_true_clause_one_imp_wl_D_heur
 lemma remove_one_annot_true_clause_one_imp_wl_D_heurI:
   \<open>isasat_fast b \<Longrightarrow>
        learned_clss_count xb \<le> learned_clss_count b \<Longrightarrow>
-        learned_clss_count xb \<le> uint64_max\<close>
+        learned_clss_count xb \<le> unat64_max\<close>
  by (auto simp: isasat_fast_def)
 
 
 sepref_def remove_one_annot_true_clause_one_imp_wl_D_heur_code
   is \<open>uncurry remove_one_annot_true_clause_one_imp_wl_D_heur\<close>
-  :: \<open>[\<lambda>(C, S). learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>(C, S). learned_clss_count S \<le> unat64_max]\<^sub>a
        sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]] remove_one_annot_true_clause_one_imp_wl_D_heurI[intro]
   unfolding remove_one_annot_true_clause_one_imp_wl_D_heur_def
@@ -220,15 +220,15 @@ sepref_def remove_one_annot_true_clause_one_imp_wl_D_heur_code
 sepref_register remove_one_annot_true_clause_imp_wl_D_heur
 
 lemma remove_one_annot_true_clause_imp_wl_D_heurI:
-  \<open>learned_clss_count x \<le> uint64_max \<Longrightarrow>
+  \<open>learned_clss_count x \<le> unat64_max \<Longrightarrow>
        remove_one_annot_true_clause_imp_wl_D_heur_inv x (a1', a2') \<Longrightarrow>
-       learned_clss_count a2' \<le> uint64_max\<close>
+       learned_clss_count a2' \<le> unat64_max\<close>
   by (auto simp: isasat_fast_def remove_one_annot_true_clause_imp_wl_D_heur_inv_def)
 
 sepref_def remove_one_annot_true_clause_imp_wl_D_heur_code
   is \<open>remove_one_annot_true_clause_imp_wl_D_heur\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> 
-          learned_clss_count S \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max \<and> 
+          learned_clss_count S \<le> unat64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] remove_one_annot_true_clause_imp_wl_D_heurI[intro]
   unfolding remove_one_annot_true_clause_imp_wl_D_heur_def
     isasat_length_trail_st_def[symmetric] get_pos_of_level_in_trail_imp_st_def[symmetric]

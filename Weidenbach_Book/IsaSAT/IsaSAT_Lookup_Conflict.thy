@@ -167,12 +167,12 @@ where
   \<open>lookup_conflict_merge init' M D  = (\<lambda>(b, xs) clvls outl. do {
      (_, clvls, zs, outl) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i::nat, clvls :: nat, zs, outl).
          length (snd zs) = length (snd xs) \<and>
-             Suc i \<le> uint32_max \<and> Suc (fst zs) \<le> uint32_max \<and> Suc clvls \<le> uint32_max\<^esup>
+             Suc i \<le> unat32_max \<and> Suc (fst zs) \<le> unat32_max \<and> Suc clvls \<le> unat32_max\<^esup>
        (\<lambda>(i :: nat, clvls, zs, outl). i < length_uint32_nat D)
        (\<lambda>(i :: nat, clvls, zs, outl). do {
            ASSERT(i < length_uint32_nat D);
-           ASSERT(Suc i \<le> uint32_max);
-           ASSERT(\<not>is_in_lookup_conflict zs (D!i) \<longrightarrow> length outl < uint32_max);
+           ASSERT(Suc i \<le> unat32_max);
+           ASSERT(\<not>is_in_lookup_conflict zs (D!i) \<longrightarrow> length outl < unat32_max);
            let outl = outlearned_add M (D!i) zs outl;
            let clvls = clvls_add M (D!i) zs clvls;
            let zs = add_to_lookup_conflict (D!i) zs;
@@ -240,15 +240,15 @@ where
      ASSERT( arena_is_valid_clause_idx N i);
      (_, clvls, zs, outl) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i::nat, clvls :: nat, zs, outl).
          length (snd zs) = length (snd xs) \<and>
-             Suc (fst zs) \<le> uint32_max \<and> Suc clvls \<le> uint32_max\<^esup>
+             Suc (fst zs) \<le> unat32_max \<and> Suc clvls \<le> unat32_max\<^esup>
        (\<lambda>(j :: nat, clvls, zs, outl). j < i + arena_length N i)
        (\<lambda>(j :: nat, clvls, zs, outl). do {
            ASSERT(j < length N);
            ASSERT(arena_lit_pre N j);
            ASSERT(get_level_pol_pre (M, arena_lit N j));
-	   ASSERT(get_level_pol M (arena_lit N j) \<le> Suc (uint32_max div 2));
+	   ASSERT(get_level_pol M (arena_lit N j) \<le> Suc (unat32_max div 2));
            ASSERT(atm_of (arena_lit N j) < length (snd zs));
-           ASSERT(\<not>is_in_lookup_conflict zs (arena_lit N j) \<longrightarrow> length outl < uint32_max);
+           ASSERT(\<not>is_in_lookup_conflict zs (arena_lit N j) \<longrightarrow> length outl < unat32_max);
            let outl = isa_outlearned_add M (arena_lit N j) zs outl;
            let clvls = isa_clvls_add M (arena_lit N j) zs clvls;
            let zs = add_to_lookup_conflict (arena_lit N j) zs;
@@ -276,8 +276,8 @@ proof -
     using assms by (auto simp: trail_pol_def)
   have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close>
     using M'M by (auto simp: trail_pol_def literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def)
-  from literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[OF bound this \<open>no_dup M\<close>]
-  have lev_le: \<open>get_level M L \<le> Suc (uint32_max div 2)\<close> for L .
+  from literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_unat32_max[OF bound this \<open>no_dup M\<close>]
+  have lev_le: \<open>get_level M L \<le> Suc (unat32_max div 2)\<close> for L .
 
   show ?thesis
     unfolding isa_lookup_conflict_merge_def lookup_conflict_merge_def prod.case
@@ -297,33 +297,33 @@ proof -
     subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
       using valid i literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> N i x1] lits
       by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def
-        in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff arena_lifting ac_simps get_level_get_level_pol[OF M'M, symmetric]
+        in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of arena_lifting ac_simps get_level_get_level_pol[OF M'M, symmetric]
         isa_outlearned_add_outlearned_add[OF M'M] isa_clvls_add_clvls_add[OF M'M] lev_le)
     subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
       using i literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> N i x1] lits valid M'M
       using bxs by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def
-      in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff arena_lifting ac_simps)
+      in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of arena_lifting ac_simps)
     subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
       using valid i literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> N i x1] lits
       by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def
-        in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff arena_lifting ac_simps get_level_get_level_pol[OF M'M]
+        in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of arena_lifting ac_simps get_level_get_level_pol[OF M'M]
         isa_outlearned_add_outlearned_add[OF M'M] isa_clvls_add_clvls_add[OF M'M])
     subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
       using valid i literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> N i x1] lits
       by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def
-        in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff arena_lifting ac_simps get_level_get_level_pol[OF M'M]
+        in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of arena_lifting ac_simps get_level_get_level_pol[OF M'M]
         isa_outlearned_add_outlearned_add[OF M'M] isa_clvls_add_clvls_add[OF M'M])
     subgoal using bxs by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def
-      in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff get_level_get_level_pol[OF M'M])
+      in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of get_level_get_level_pol[OF M'M])
     done
 qed
 
-lemma (in -) arena_is_valid_clause_idx_le_uint64_max:
+lemma (in -) arena_is_valid_clause_idx_le_unat64_max:
   \<open>arena_is_valid_clause_idx be bd \<Longrightarrow>
-    length be \<le> uint64_max \<Longrightarrow>
-   bd + arena_length be bd \<le> uint64_max\<close>
-  \<open>arena_is_valid_clause_idx be bd \<Longrightarrow> length be \<le> uint64_max \<Longrightarrow>
-   bd \<le> uint64_max\<close>
+    length be \<le> unat64_max \<Longrightarrow>
+   bd + arena_length be bd \<le> unat64_max\<close>
+  \<open>arena_is_valid_clause_idx be bd \<Longrightarrow> length be \<le> unat64_max \<Longrightarrow>
+   bd \<le> unat64_max\<close>
   using arena_lifting(10)[of be _ _ bd]
   by (fastforce simp: arena_lifting arena_is_valid_clause_idx_def)+
 
@@ -344,7 +344,7 @@ lemma lookup_conflict_merge'_spec:
     lits_C: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C\<close> and
     \<open>clvls = card_max_lvl M C\<close> and
     CD: \<open>\<And>L. L \<in> set (drop init' D) \<Longrightarrow> -L \<notin># C\<close> and
-    \<open>Suc init' \<le> uint32_max\<close> and
+    \<open>Suc init' \<le> unat32_max\<close> and
     \<open>out_learned M (Some C) outl\<close> and
     bounded: \<open>isasat_input_bounded \<A>\<close>
   shows
@@ -354,10 +354,10 @@ lemma lookup_conflict_merge'_spec:
      (is \<open>_ \<le>  \<Down> ?Ref ?Spec\<close>)
 proof -
   let ?D = \<open>drop init' D\<close>
-  have le_D_le_upper[simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) \<le> uint32_max\<close> for a
-    using simple_clss_size_upper_div2[of \<A> \<open>mset D\<close>] assms by (auto simp: uint32_max_def)
-  have Suc_N_uint32_max: \<open>Suc n \<le> uint32_max\<close> and
-     size_C_uint32_max: \<open>size C \<le> 1 + uint32_max div 2\<close> and
+  have le_D_le_upper[simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) \<le> unat32_max\<close> for a
+    using simple_clss_size_upper_div2[of \<A> \<open>mset D\<close>] assms by (auto simp: unat32_max_def)
+  have Suc_N_unat32_max: \<open>Suc n \<le> unat32_max\<close> and
+     size_C_unat32_max: \<open>size C \<le> 1 + unat32_max div 2\<close> and
      clvls: \<open>clvls = card_max_lvl M C\<close> and
      tauto_C: \<open>\<not> tautology C\<close> and
      dist_C: \<open>distinct_mset C\<close> and
@@ -366,14 +366,14 @@ proof -
     using assms simple_clss_size_upper_div2[of \<A> C] mset_as_position_distinct_mset[of xs C]
       lookup_clause_rel_not_tautolgy[of n xs C] bounded
     unfolding option_lookup_clause_rel_def lookup_clause_rel_def
-    by (auto simp: uint32_max_def)
-  then have clvls_uint32_max: \<open>clvls \<le> 1 + uint32_max div 2\<close>
+    by (auto simp: unat32_max_def)
+  then have clvls_unat32_max: \<open>clvls \<le> 1 + unat32_max div 2\<close>
     using size_filter_mset_lesseq[of \<open>\<lambda>L. get_level M L = count_decided M\<close> C]
-    unfolding uint32_max_def card_max_lvl_def by linarith
+    unfolding unat32_max_def card_max_lvl_def by linarith
   have [intro]: \<open>((b, a, ba), Some C) \<in> option_lookup_clause_rel \<A> \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C \<Longrightarrow>
-        Suc (Suc a) \<le> uint32_max\<close> for b a ba C
+        Suc (Suc a) \<le> unat32_max\<close> for b a ba C
     using lookup_clause_rel_size[of a ba C, OF _ bounded] by (auto simp: option_lookup_clause_rel_def
-        lookup_clause_rel_def uint32_max_def)
+        lookup_clause_rel_def unat32_max_def)
   have [simp]: \<open>remdups_mset C = C\<close>
     using o mset_as_position_distinct_mset[of xs C] by (auto simp: option_lookup_clause_rel_def
         lookup_clause_rel_def distinct_mset_remdups_mset_id)
@@ -393,9 +393,9 @@ proof -
      \<open>I xs = (\<lambda>(i, clvls, zs :: lookup_clause_rel, outl :: out_learned).
                      length (snd zs) =
                      length (snd xs) \<and>
-                     Suc i \<le> uint32_max \<and>
-                     Suc (fst zs) \<le> uint32_max \<and>
-                     Suc clvls \<le> uint32_max)\<close>
+                     Suc i \<le> unat32_max \<and>
+                     Suc (fst zs) \<le> unat32_max \<and>
+                     Suc clvls \<le> unat32_max)\<close>
    for xs :: lookup_clause_rel
   define I' where \<open>I' = (\<lambda>(i, clvls, zs, outl).
       lookup_conflict_merge'_step \<A> init' M i clvls zs D C outl \<and> i \<ge> init')\<close>
@@ -410,10 +410,10 @@ proof -
   have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (take (a - init') (drop init' D)) \<union># C)\<close> for a
    using lits_C lits by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_def
      dest!: in_set_takeD in_set_dropD)
-  then have size_outl_le: \<open>size (mset (take (a - init') (drop init' D)) \<union># C) \<le> Suc uint32_max div 2\<close> if \<open>a \<ge> init'\<close> for a
+  then have size_outl_le: \<open>size (mset (take (a - init') (drop init' D)) \<union># C) \<le> Suc unat32_max div 2\<close> if \<open>a \<ge> init'\<close> for a
     using simple_clss_size_upper_div2[OF bounded, of \<open>mset (take (a - init') (drop init' D)) \<union># C\<close>]
        tauto_C'[OF that] \<open>distinct_mset C\<close> dist_D
-    by (auto simp: uint32_max_def)
+    by (auto simp: unat32_max_def)
 
   have
     if_True_I: \<open>I x2 (Suc a, clvls_add M (D ! a) baa aa,
@@ -428,7 +428,7 @@ proof -
       cond: \<open>case s of (i, clvls, zs, outl) \<Rightarrow> i < length D\<close> and
       s: \<open>s = (a, ba)\<close> \<open>ba = (aa, baa2)\<close> \<open>baa2 = (baa, outl)\<close> \<open>(b, n, xs) = (x1, x2)\<close> and
       a_le_D: \<open>a < length D\<close> and
-      a_uint32_max: \<open>Suc a \<le> uint32_max\<close>
+      a_unat32_max: \<open>Suc a \<le> unat32_max\<close>
     for x1 x2 s a ba aa baa baa2 lbd' lbdL' outl x
   proof -
     have [simp]:
@@ -457,18 +457,18 @@ proof -
     have \<open>size (card_max_lvl M (remdups_mset (?C' a))) \<le> size (remdups_mset (?C' a))\<close>
       unfolding card_max_lvl_def
       by auto
-    then have [simp]: \<open>Suc (Suc aa) \<le> uint32_max\<close> \<open>Suc aa \<le> uint32_max\<close>
-      using size_C_uint32_max lits a_init
+    then have [simp]: \<open>Suc (Suc aa) \<le> unat32_max\<close> \<open>Suc aa \<le> unat32_max\<close>
+      using size_C_unat32_max lits a_init
       simple_clss_size_upper_div2[of \<A> \<open>remdups_mset (?C' a)\<close>, OF bounded]
-      unfolding uint32_max_def aa[symmetric]
+      unfolding unat32_max_def aa[symmetric]
       by (auto simp: tauto_C')
     have [simp]: \<open>length b = length xs\<close>
       using I unfolding I_def by simp_all
 
-    have ab_upper: \<open>Suc (Suc ab) \<le> uint32_max\<close>
+    have ab_upper: \<open>Suc (Suc ab) \<le> unat32_max\<close>
       using simple_clss_size_upper_div2[OF bounded, of \<open>remdups_mset (?C' a)\<close>]
       lookup_clause_rel_not_tautolgy[OF cr] a_le_D lits mset_as_position_distinct_mset[OF map]
-      unfolding ab literals_are_in_\<L>\<^sub>i\<^sub>n_remdups uint32_max_def by auto
+      unfolding ab literals_are_in_\<L>\<^sub>i\<^sub>n_remdups unat32_max_def by auto
     show ?I
       using le_D_le_upper a_le_D ab_upper a_init
       unfolding I_def add_to_lookup_conflict_def baa clvls_add_def by auto
@@ -505,7 +505,7 @@ proof -
             dest: in_diffD)
       have [simp]: \<open>atm_of (D ! a) < length xs\<close> \<open>D ! a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
         using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset D)\<close> a_le_D] atms_le_xs
-        by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+        by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
 
       have ocr: \<open>((False, add_to_lookup_conflict (D ! a) (ab, b)), Some (remdups_mset (?C' (Suc a))))
         \<in> option_lookup_clause_rel \<A>\<close>
@@ -526,7 +526,7 @@ proof -
       case if_cond: False
       have atm_D_a_le_xs: \<open>atm_of (D ! a) < length xs\<close> \<open>D ! a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
         using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset D)\<close> a_le_D] atms_le_xs
-        by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+        by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
       have [simp]: \<open>D ! a \<notin># C - add_mset (- D ! a)
              (add_mset (D ! a)
                (mset (take a D) + uminus `# mset (take a D)))\<close>
@@ -574,7 +574,7 @@ proof -
               dest: in_diffD)
         have [simp]: \<open>atm_of (D ! a) < length xs\<close> \<open>D ! a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
           using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset D)\<close> a_le_D] atms_le_xs
-          by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+          by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
 
         show ocr: \<open>((False, add_to_lookup_conflict (D ! a) (ab, b)),
           Some (remdups_mset (?C' (Suc a)))) \<in> option_lookup_clause_rel \<A>\<close>
@@ -639,7 +639,7 @@ proof -
   have uL_C_if_L_C: \<open>-L \<notin># C\<close> if \<open>L \<in># C\<close> for L
     using tauto_C that unfolding tautology_decomp' by blast
 
-  have outl_le: \<open>length bc < uint32_max\<close>
+  have outl_le: \<open>length bc < unat32_max\<close>
     if
       \<open>I x2 s\<close> and
       \<open>I' s\<close> and
@@ -650,7 +650,7 @@ proof -
     have \<open>mset (tl bc) \<subseteq># (remdups_mset (mset (take (a - init') (drop init' D)) + C))\<close> and \<open>init' \<le> a\<close>
       using that by (auto simp: I_def I'_def lookup_conflict_merge'_step_def Let_def out_learned_def)
     from size_mset_mono[OF this(1)] this(2) show ?thesis using size_outl_le[of a] dist_C dist_D
-      by (auto simp: uint32_max_def distinct_mset_rempdups_union_mset)
+      by (auto simp: unat32_max_def distinct_mset_rempdups_union_mset)
   qed
   show confl: \<open>lookup_conflict_merge init' M D (b, n, xs) clvls outl
     \<le> \<Down> ?Ref (merge_conflict_m_g init' M D (Some C))\<close>
@@ -662,11 +662,11 @@ proof -
           I' = I'])
     subgoal by auto
     subgoal
-      using clvls_uint32_max Suc_N_uint32_max \<open>Suc init' \<le> uint32_max\<close>
-      unfolding uint32_max_def I_def by auto
+      using clvls_unat32_max Suc_N_unat32_max \<open>Suc init' \<le> unat32_max\<close>
+      unfolding unat32_max_def I_def by auto
     subgoal using assms
       unfolding lookup_conflict_merge'_step_def Let_def option_lookup_clause_rel_def I'_def
-      by (auto simp add: uint32_max_def lookup_conflict_merge'_step_def option_lookup_clause_rel_def)
+      by (auto simp add: unat32_max_def lookup_conflict_merge'_step_def option_lookup_clause_rel_def)
     subgoal by auto
     subgoal unfolding I_def by fast
     subgoal for x1 x2 s a ba aa baa ab bb by (rule outl_le)
@@ -694,7 +694,7 @@ proof (standard)
     by (auto dest!: multi_member_split)
   then show \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
     using lits atm_of_notin_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff
-    unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+    unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
     by blast
 qed
 
@@ -735,7 +735,7 @@ proof -
       using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_literals_are_in_\<L>\<^sub>i\<^sub>n[OF lits i] .
     then show ?thesis unfolding set_lookup_conflict_aa_def set_conflict_m_def
       using lookup_conflict_merge'_spec[of False n xs \<open>{#}\<close> \<A> \<open>N\<propto>i\<close> 0 _ 0 outl] that dist T
-      by (auto simp: lookup_conflict_merge_normalise uint32_max_def merge_conflict_m_g_def)
+      by (auto simp: lookup_conflict_merge_normalise unat32_max_def merge_conflict_m_g_def)
   qed
 
   have H: \<open>isa_set_lookup_conflict_aa M' arena i (b, n, xs) clvls outl
@@ -809,7 +809,7 @@ proof -
     then show ?thesis unfolding resolve_lookup_conflict_aa_def merge_conflict_m_def
       using lookup_conflict_merge'_spec[of b n xs \<open>the C\<close> \<A> \<open>N\<propto>i\<close> clvls M 1 outl] that dist
          not_neg ocr C_None lits'
-      by (auto simp: lookup_conflict_merge_normalise uint32_max_def merge_conflict_m_g_def
+      by (auto simp: lookup_conflict_merge_normalise unat32_max_def merge_conflict_m_g_def
          drop_Suc)
   qed
 
@@ -899,7 +899,7 @@ where
 
 definition minimize_and_extract_highest_lookup_conflict_inv where
   \<open>minimize_and_extract_highest_lookup_conflict_inv = (\<lambda>(D, i, s, outl).
-    length outl \<le> uint32_max \<and> mset (tl outl) = D \<and> outl \<noteq> [] \<and> i \<ge> 1)\<close>
+    length outl \<le> unat32_max \<and> mset (tl outl) = D \<and> outl \<noteq> [] \<and> i \<ge> 1)\<close>
 
 type_synonym 'v conflict_highest_conflict = \<open>('v literal \<times> nat) option\<close>
 
@@ -949,7 +949,7 @@ definition (in -) conflict_min_cach_set_removable_l
 where
   \<open>conflict_min_cach_set_removable_l = (\<lambda>(cach, sup) L. do {
      ASSERT(L < length cach);
-     ASSERT(length sup \<le> 1 + uint32_max div 2);
+     ASSERT(length sup \<le> 1 + unat32_max div 2);
      RETURN (cach[L := SEEN_REMOVABLE], if cach ! L = SEEN_UNKNOWN then sup @ [L] else sup)
    })\<close>
 
@@ -1016,7 +1016,7 @@ where
             ASSERT (NU \<propto> C ! k \<in> lits_of_l M);
             ASSERT(NU \<propto> C ! k \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
 	    ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (NU \<propto> C)));
-	    ASSERT(length (NU \<propto> C) \<le> Suc (uint32_max div 2));
+	    ASSERT(length (NU \<propto> C) \<le> Suc (unat32_max div 2));
 	    ASSERT(len \<le> length (NU \<propto> C)); \<comment> \<open>makes the refinement easier\<close>
             let C = NU \<propto> C;
             if i \<ge> len
@@ -1044,7 +1044,7 @@ where
 		      ASSERT(C \<in># dom_m NU);
 		      ASSERT(length (NU \<propto> C) \<ge> 2);
 		      ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (NU \<propto> C)));
-                      ASSERT(length (NU \<propto> C) \<le> Suc (uint32_max div 2));
+                      ASSERT(length (NU \<propto> C) \<le> Suc (unat32_max div 2));
 		      RETURN (cach, analyse @ [lit_redundant_reason_stack2 (-L) NU C], False)
 		    }
                   | None \<Rightarrow> do {
@@ -1347,8 +1347,8 @@ lemma ccmin_literals_are_in_\<L>\<^sub>i\<^sub>n_NU_x1g:
   using lits_NU multi_member_split[OF x1g_dom]
   by (auto simp: ran_m_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_mset)
 
-lemma ccmin_le_uint32_max:
-  \<open>length (NU \<propto> x1g) \<le> Suc (uint32_max div 2)\<close>
+lemma ccmin_le_unat32_max:
+  \<open>length (NU \<propto> x1g) \<le> Suc (unat32_max div 2)\<close>
   using simple_clss_size_upper_div2[OF bounded ccmin_literals_are_in_\<L>\<^sub>i\<^sub>n_NU_x1g]
     dist tauto unfolding x1g_x1d
   by auto
@@ -1613,8 +1613,8 @@ lemma ccmin_literals_are_in_\<L>\<^sub>i\<^sub>n_NU_xb:
   using lits_NU multi_member_split[of xb \<open>dom_m NU\<close>] H
   by (auto simp: ran_m_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_mset)
 
-lemma ccmin_le_uint32_max_xb:
-  \<open>length (NU \<propto> xb) \<le> Suc (uint32_max div 2)\<close>
+lemma ccmin_le_unat32_max_xb:
+  \<open>length (NU \<propto> xb) \<le> Suc (unat32_max div 2)\<close>
   using simple_clss_size_upper_div2[OF bounded ccmin_literals_are_in_\<L>\<^sub>i\<^sub>n_NU_xb]
     H unfolding x1g_x1d
   by auto
@@ -1702,7 +1702,7 @@ proof -
     subgoal by (rule ccmin_in_trail)
     subgoal by (rule ccmin_in_all_lits)
     subgoal by (rule ccmin_literals_are_in_\<L>\<^sub>i\<^sub>n_NU_x1g)
-    subgoal by (rule ccmin_le_uint32_max)
+    subgoal by (rule ccmin_le_unat32_max)
     subgoal by (rule ccmin_less_length)
     subgoal by (rule ccmin_same_cond)
     subgoal by (rule ccmin_set_removable)
@@ -1722,7 +1722,7 @@ proof -
     subgoal by (rule ccmin_stack_pre)
     subgoal by (rule ccmin_stack_pre)
     subgoal by (rule ccmin_literals_are_in_\<L>\<^sub>i\<^sub>n_NU_xb)
-    subgoal by (rule ccmin_le_uint32_max_xb)
+    subgoal by (rule ccmin_le_unat32_max_xb)
     subgoal by (rule ccmin_stack_rel)
     done
   show ?thesis
@@ -1747,7 +1747,7 @@ definition literal_redundant_wl_lookup where
 	   ASSERT(length (NU \<propto> C) \<ge> 2);
 	   ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (NU \<propto> C)));
 	   ASSERT(distinct (NU \<propto> C) \<and> \<not>tautology (mset (NU \<propto> C)));
-	   ASSERT(length (NU \<propto> C) \<le> Suc (uint32_max div 2));
+	   ASSERT(length (NU \<propto> C) \<le> Suc (unat32_max div 2));
 	   lit_redundant_rec_wl_lookup \<A> M NU D cach [lit_redundant_reason_stack2 (-L) NU C] lbd
 	 }
        | None \<Rightarrow> do {
@@ -1968,7 +1968,7 @@ proof -
     show ?thesis
       using that simple_clss_size_upper_div2[OF bounded lits_D dist_D tauto]
       unfolding minimize_and_extract_highest_lookup_conflict_inv_def
-      by (auto simp: R_def uint32_max_def)
+      by (auto simp: R_def unat32_max_def)
   qed
   have cond: \<open>(m < length outl') = (D' \<noteq> {#})\<close>
     if
@@ -2339,13 +2339,13 @@ definition (in -) conflict_min_cach_set_failed_l
 where
   \<open>conflict_min_cach_set_failed_l = (\<lambda>(cach, sup) L. do {
      ASSERT(L < length cach);
-     ASSERT(length sup \<le> 1 + uint32_max div 2);
+     ASSERT(length sup \<le> 1 + unat32_max div 2);
      RETURN (cach[L := SEEN_FAILED], if cach ! L = SEEN_UNKNOWN then sup @ [L] else sup)
    })\<close>
 
 lemma bounded_included_le:
    assumes bounded: \<open>isasat_input_bounded \<A>\<close> and \<open>distinct n\<close> and \<open>set n \<subseteq> set_mset \<A>\<close>
-   shows \<open>length n \<le> Suc (uint32_max div 2)\<close>
+   shows \<open>length n \<le> Suc (unat32_max div 2)\<close>
 proof -
   have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (Pos `# mset n)\<close> and
     dist: \<open>distinct n\<close>
@@ -2359,7 +2359,7 @@ proof -
 
   show ?thesis
     using simple_clss_size_upper_div2[OF bounded lits dist tauto]
-    by (auto simp: uint32_max_def)
+    by (auto simp: unat32_max_def)
 qed
 
 lemma conflict_min_cach_set_failed:
@@ -2396,7 +2396,7 @@ lemma conflict_min_cach_set_removable:
 definition isa_mark_failed_lits_stack where
   \<open>isa_mark_failed_lits_stack NU analyse cach = do {
     let l = length analyse;
-    ASSERT(length analyse \<le> 1 + uint32_max div 2);
+    ASSERT(length analyse \<le> 1 + unat32_max div 2);
     (_, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, cach). True\<^esup>
       (\<lambda>(i, cach). i < l)
       (\<lambda>(i, cach). do {
@@ -2432,7 +2432,7 @@ lemma mark_failed_lits_stack_inv_helper2: \<open>mark_failed_lits_stack_inv a ba
 lemma isa_mark_failed_lits_stack_isa_mark_failed_lits_stack:
   assumes \<open>isasat_input_bounded \<A>\<^sub>i\<^sub>n\<close>
   shows \<open>(uncurry2 isa_mark_failed_lits_stack, uncurry2 (mark_failed_lits_stack \<A>\<^sub>i\<^sub>n)) \<in>
-     [\<lambda>((N, ana), cach). length ana \<le> 1 +  uint32_max div 2]\<^sub>f
+     [\<lambda>((N, ana), cach). length ana \<le> 1 +  unat32_max div 2]\<^sub>f
      {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f ana_lookups_rel NU \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<rightarrow>
      \<langle>cach_refinement \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
 proof -
@@ -2455,7 +2455,7 @@ proof -
                    \<in> nat_rel \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n))\<close> (is ?final) and
       ge1: \<open>x1g + x2g \<ge> 1\<close>
     if
-      \<open>case y of (x, xa) \<Rightarrow> (case x of (N, ana) \<Rightarrow> \<lambda>cach. length ana \<le> 1 +  uint32_max div 2) xa\<close> and
+      \<open>case y of (x, xa) \<Rightarrow> (case x of (N, ana) \<Rightarrow> \<lambda>cach. length ana \<le> 1 +  unat32_max div 2) xa\<close> and
       xy: \<open>(x, y) \<in> {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f ana_lookups_rel NU
          \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n\<close> and
       st:
@@ -2570,16 +2570,16 @@ definition isa_get_literal_and_remove_of_analyse_wl_pre
    :: \<open>arena \<Rightarrow> (nat \<times> nat \<times> bool) list \<Rightarrow> bool\<close> where
 \<open>isa_get_literal_and_remove_of_analyse_wl_pre arena analyse \<longleftrightarrow>
   (let (i, j, b) = last analyse in
-    analyse \<noteq> [] \<and> arena_lit_pre arena (i+j) \<and> j < uint32_max)\<close>
+    analyse \<noteq> [] \<and> arena_lit_pre arena (i+j) \<and> j < unat32_max)\<close>
 
 
-lemma arena_lit_pre_le: \<open>length a \<le> uint64_max \<Longrightarrow>
-       arena_lit_pre a i \<Longrightarrow> i \<le> uint64_max\<close>
+lemma arena_lit_pre_le: \<open>length a \<le> unat64_max \<Longrightarrow>
+       arena_lit_pre a i \<Longrightarrow> i \<le> unat64_max\<close>
    using arena_lifting(7)[of a _ _] unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
   by fastforce
 
-lemma arena_lit_pre_le2: \<open>length a \<le> uint64_max \<Longrightarrow>
-       arena_lit_pre a i \<Longrightarrow> i < uint64_max\<close>
+lemma arena_lit_pre_le2: \<open>length a \<le> unat64_max \<Longrightarrow>
+       arena_lit_pre a i \<Longrightarrow> i < unat64_max\<close>
    using arena_lifting(7)[of a _ _] unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
   by fastforce
 
@@ -2613,7 +2613,7 @@ where
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
-            ASSERT(length analyse \<le> 1 +  uint32_max div 2);
+            ASSERT(length analyse \<le> 1 +  unat32_max div 2);
             ASSERT(arena_is_valid_clause_idx NU (fst (last analyse)));
 	    ASSERT(ana_lookup_conv_lookup_pre NU ((last analyse)));
 	    let (C, k, i, len) = ana_lookup_conv_lookup NU ((last analyse));
@@ -2628,7 +2628,7 @@ where
             else do {
 	      ASSERT (isa_get_literal_and_remove_of_analyse_wl_pre NU analyse);
 	      let (L, analyse) = isa_get_literal_and_remove_of_analyse_wl NU analyse;
-              ASSERT(length analyse \<le> 1 +  uint32_max div 2);
+              ASSERT(length analyse \<le> 1 +  unat32_max div 2);
 	      ASSERT(get_level_pol_pre (M, L));
 	      let b = \<not>level_in_lbd (get_level_pol M L) lbd;
 	      ASSERT(atm_in_conflict_lookup_pre (atm_of L) D);
@@ -2664,7 +2664,7 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
       (\<lambda>(cach, analyse, b). analyse \<noteq> [])
       (\<lambda>(cach, analyse, b). do {
           ASSERT(analyse \<noteq> []);
-          ASSERT(length analyse \<le> 1 +  uint32_max div 2);
+          ASSERT(length analyse \<le> 1 +  unat32_max div 2);
 	  let (C, i, b) = last analyse;
           ASSERT(arena_is_valid_clause_idx NU (fst (last analyse)));
 	  ASSERT(ana_lookup_conv_lookup_pre NU (last analyse));
@@ -2685,7 +2685,7 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
           else do {
               ASSERT (isa_get_literal_and_remove_of_analyse_wl_pre NU analyse);
               let (L, analyse) = isa_get_literal_and_remove_of_analyse_wl NU analyse;
-              ASSERT(length analyse \<le> 1+ uint32_max div 2);
+              ASSERT(length analyse \<le> 1+ unat32_max div 2);
               ASSERT(get_level_pol_pre (M, L));
               let b = \<not>level_in_lbd (get_level_pol M L) lbd;
               ASSERT(atm_in_conflict_lookup_pre (atm_of L) D);
@@ -2730,7 +2730,7 @@ lemma lit_redundant_rec_wl_lookup_alt_def:
             ASSERT (NU \<propto> C ! k \<in> lits_of_l M);
             ASSERT(NU \<propto> C ! k \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
 	    ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (NU \<propto> C)));
-	    ASSERT(length (NU \<propto> C) \<le> Suc (uint32_max div 2));
+	    ASSERT(length (NU \<propto> C) \<le> Suc (unat32_max div 2));
 	    ASSERT(len \<le> length (NU \<propto> C)); \<comment> \<open>makes the refinement easier\<close>
 	    let (C,k, i, len) = (C,k,i,len);
             let C = NU \<propto> C;
@@ -2759,7 +2759,7 @@ lemma lit_redundant_rec_wl_lookup_alt_def:
 		      ASSERT(C \<in># dom_m NU);
 		      ASSERT(length (NU \<propto> C) \<ge> 2);
 		      ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (NU \<propto> C)));
-                      ASSERT(length (NU \<propto> C) \<le> Suc (uint32_max div 2));
+                      ASSERT(length (NU \<propto> C) \<le> Suc (unat32_max div 2));
 		      RETURN (cach, analyse @ [lit_redundant_reason_stack2 (-L) NU C], False)
 		    }
                   | None \<Rightarrow> do {
@@ -2839,7 +2839,7 @@ proof -
       \<open>x2 \<propto> x1n ! x1o \<in> lits_of_l x1d\<close> and
       \<open>x2 \<propto> x1n ! x1o \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
       \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (x2 \<propto> x1n))\<close> and
-      \<open>length (x2 \<propto> x1n) \<le> Suc (uint32_max div 2)\<close> and
+      \<open>length (x2 \<propto> x1n) \<le> Suc (unat32_max div 2)\<close> and
       \<open>x2p \<le> length (x2 \<propto> x1n)\<close> and
       \<open>arena_is_valid_clause_idx x2e (fst (last x1m))\<close> and
       \<open>x2t = (x1u, x2u)\<close> and
@@ -2870,7 +2870,7 @@ proof -
       \<open>\<not> level_in_lbd (get_level x1d x1y) x2d \<or>
        conflict_min_cach x1j (atm_of x1y) = SEEN_FAILED\<close> and
       inv2: \<open>mark_failed_lits_stack_inv2 x2 x2y x1j\<close> and
-      \<open>length x1m \<le> 1+ uint32_max div 2\<close>
+      \<open>length x1m \<le> 1+ unat32_max div 2\<close>
      for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
 	 x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
 	 x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y x1z
@@ -2973,7 +2973,7 @@ proof -
       \<open>x2 \<propto> x1n ! x1o \<in> lits_of_l x1d\<close> and
       \<open>x2 \<propto> x1n ! x1o \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
       \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (x2 \<propto> x1n))\<close> and
-      \<open>length (x2 \<propto> x1n) \<le> Suc (uint32_max div 2)\<close> and
+      \<open>length (x2 \<propto> x1n) \<le> Suc (unat32_max div 2)\<close> and
       \<open>x2p \<le> length (x2 \<propto> x1n)\<close> and
       \<open>arena_is_valid_clause_idx x2e (fst (last x1m))\<close> and
       \<open>x2t = (x1u, x2u)\<close> and
@@ -2991,7 +2991,7 @@ proof -
       \<open>x1f = (x1g, x2g)\<close> and
       \<open>x1e = (x1f, x2h)\<close> and
       \<open>x = (x1e, x2i)\<close> and
-      \<open>length x1m \<le> 1 + uint32_max div 2\<close>
+      \<open>length x1m \<le> 1 + unat32_max div 2\<close>
     for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
        x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y x1z
@@ -3076,9 +3076,9 @@ proof -
        x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x
       by (auto simp: arena_is_valid_clause_idx_def lit_redundant_rec_wl_inv_def
         isa_get_literal_and_remove_of_analyse_wl_pre_def arena_lit_pre_def
-	uint32_max_def
+	unat32_max_def
         arena_is_valid_clause_idx_and_access_def lit_redundant_rec_wl_ref_def)
-        (rule_tac x = x1s in exI; auto simp: uint32_max_def; fail)+
+        (rule_tac x = x1s in exI; auto simp: unat32_max_def; fail)+
     subgoal by (auto simp: list_rel_imp_same_length)
     subgoal by (auto intro!: get_level_pol_pre
       simp: get_literal_and_remove_of_analyse_wl2_def)
@@ -3345,7 +3345,7 @@ lemma lookup_conflict_remove1:
     using mset_as_position_remove[of c b \<open>atm_of aa\<close>]
     by (cases \<open>aa\<close>)
       (auto simp: lookup_clause_rel_def lookup_conflict_remove1_def lookup_clause_rel_atm_in_iff
-        minus_notin_trivial2 size_remove1_mset_If in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff minus_notin_trivial
+        minus_notin_trivial2 size_remove1_mset_If in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of minus_notin_trivial
         mset_as_position_in_iff_nth)
    done
 
@@ -3359,7 +3359,7 @@ where
   \<open>isa_minimize_and_extract_highest_lookup_conflict  = (\<lambda>M NU nxs s lbd outl. do {
   _ \<leftarrow> RETURN (IsaSAT_Profile.start_minimization);
     (D, _, s, outl) \<leftarrow>
-       WHILE\<^sub>T\<^bsup>\<lambda>(nxs, i, s, outl). length outl \<le> uint32_max\<^esup>
+       WHILE\<^sub>T\<^bsup>\<lambda>(nxs, i, s, outl). length outl \<le> unat32_max\<^esup>
          (\<lambda>(nxs, i, s, outl). i < length outl)
          (\<lambda>(nxs, x, s, outl). do {
             ASSERT(x < length outl);
@@ -3380,7 +3380,7 @@ where
 lemma isa_minimize_and_extract_highest_lookup_conflict_alt_def:
   \<open>isa_minimize_and_extract_highest_lookup_conflict  = (\<lambda>M NU nxs s lbd outl. do {
   (D, _, s, outl) \<leftarrow>
-  WHILE\<^sub>T\<^bsup>\<lambda>(nxs, i, s, outl). length outl \<le> uint32_max\<^esup>
+  WHILE\<^sub>T\<^bsup>\<lambda>(nxs, i, s, outl). length outl \<le> unat32_max\<^esup>
   (\<lambda>(nxs, i, s, outl). i < length outl)
   (\<lambda>(nxs, x, s, outl). do {
   ASSERT(x < length outl);
@@ -3482,12 +3482,12 @@ definition lookup_merge_eq2
 \<open>lookup_merge_eq2 L M N = (\<lambda>(_, zs) clvls outl. do {
     ASSERT(length N = 2);
     let L' = (if N ! 0 = L then N ! 1 else N ! 0);
-    ASSERT(get_level M L' \<le> Suc (uint32_max div 2));
+    ASSERT(get_level M L' \<le> Suc (unat32_max div 2));
     ASSERT(atm_of L' < length (snd zs));
-    ASSERT(length outl < uint32_max);
+    ASSERT(length outl < unat32_max);
     let outl = outlearned_add M L' zs outl;
-    ASSERT(clvls < uint32_max);
-    ASSERT(fst zs < uint32_max);
+    ASSERT(clvls < unat32_max);
+    ASSERT(fst zs < unat32_max);
     let clvls = clvls_add M L' zs clvls;
     let zs = add_to_lookup_conflict L' zs;
     RETURN((False, zs), clvls, outl)
@@ -3524,10 +3524,10 @@ lemma lookup_merge_eq2_spec:
      (is \<open>_ \<le>  \<Down> ?Ref ?Spec\<close>)
 proof -
   let ?D = \<open>remove1 L D\<close>
-  have le_D_le_upper[simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) \<le> uint32_max\<close> for a
-    using simple_clss_size_upper_div2[of \<A> \<open>mset D\<close>] assms by (auto simp: uint32_max_def)
-  have Suc_N_uint32_max: \<open>Suc n \<le> uint32_max\<close> and
-     size_C_uint32_max: \<open>size C \<le> 1 + uint32_max div 2\<close> and
+  have le_D_le_upper[simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) \<le> unat32_max\<close> for a
+    using simple_clss_size_upper_div2[of \<A> \<open>mset D\<close>] assms by (auto simp: unat32_max_def)
+  have Suc_N_unat32_max: \<open>Suc n \<le> unat32_max\<close> and
+     size_C_unat32_max: \<open>size C \<le> 1 + unat32_max div 2\<close> and
      clvls: \<open>clvls = card_max_lvl M C\<close> and
      tauto_C: \<open>\<not> tautology C\<close> and
      dist_C: \<open>distinct_mset C\<close> and
@@ -3536,14 +3536,14 @@ proof -
     using assms simple_clss_size_upper_div2[of \<A> C] mset_as_position_distinct_mset[of xs C]
       lookup_clause_rel_not_tautolgy[of n xs C] bounded
     unfolding option_lookup_clause_rel_def lookup_clause_rel_def
-    by (auto simp: uint32_max_def)
-  then have clvls_uint32_max: \<open>clvls \<le> 1 + uint32_max div 2\<close>
+    by (auto simp: unat32_max_def)
+  then have clvls_unat32_max: \<open>clvls \<le> 1 + unat32_max div 2\<close>
     using size_filter_mset_lesseq[of \<open>\<lambda>L. get_level M L = count_decided M\<close> C]
-    unfolding uint32_max_def card_max_lvl_def by linarith
+    unfolding unat32_max_def card_max_lvl_def by linarith
   have [intro]: \<open>((b, a, ba), Some C) \<in> option_lookup_clause_rel \<A> \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C \<Longrightarrow>
-        Suc (Suc a) \<le> uint32_max\<close> for b a ba C
+        Suc (Suc a) \<le> unat32_max\<close> for b a ba C
     using lookup_clause_rel_size[of a ba C, OF _ bounded] by (auto simp: option_lookup_clause_rel_def
-        lookup_clause_rel_def uint32_max_def)
+        lookup_clause_rel_def unat32_max_def)
   have [simp]: \<open>remdups_mset C = C\<close>
     using o mset_as_position_distinct_mset[of xs C] by (auto simp: option_lookup_clause_rel_def
         lookup_clause_rel_def distinct_mset_remdups_mset_id)
@@ -3555,8 +3555,8 @@ proof -
     unfolding option_lookup_clause_rel_def lookup_clause_rel_def by auto
   have \<open>mset (tl outl) \<subseteq># C\<close>
      using out by (auto simp: out_learned_def)
-  from size_mset_mono[OF this] have outl_le: \<open>length outl < uint32_max\<close>
-    using simple_clss_size_upper_div2[OF bounded lits_C] dist_C tauto_C by (auto simp: uint32_max_def)
+  from size_mset_mono[OF this] have outl_le: \<open>length outl < unat32_max\<close>
+    using simple_clss_size_upper_div2[OF bounded lits_C] dist_C tauto_C by (auto simp: unat32_max_def)
   define L' where \<open>L' \<equiv> if D ! 0 = L then D ! 1 else D ! 0\<close>
   have L'_all: \<open>L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
     using lits le2 by (cases D; cases \<open>tl D\<close>)
@@ -3591,11 +3591,11 @@ proof -
     unfolding lookup_merge_eq2_def prod.simps L'_def[symmetric]
     apply refine_vcg
     subgoal by (rule le2)
-    subgoal using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[OF bounded lits_tr n_d] by blast
+    subgoal using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_unat32_max[OF bounded lits_tr n_d] by blast
     subgoal using atms_le_xs L' by simp
     subgoal using outl_le .
-    subgoal using clvls_uint32_max by (auto simp: uint32_max_def)
-    subgoal using Suc_N_uint32_max by auto
+    subgoal using clvls_unat32_max by (auto simp: unat32_max_def)
+    subgoal using Suc_N_unat32_max by auto
     subgoal
       using o' clvls_add out'
       by (auto simp: merge_conflict_m_eq2_def DLL
@@ -3611,12 +3611,12 @@ definition isasat_lookup_merge_eq2
     ASSERT(arena_lit_pre N (C+1));
     let L' = (if arena_lit N C = L then arena_lit N (C + 1) else arena_lit N C);
     ASSERT(get_level_pol_pre (M, L'));
-    ASSERT(get_level_pol M L' \<le> Suc (uint32_max div 2));
+    ASSERT(get_level_pol M L' \<le> Suc (unat32_max div 2));
     ASSERT(atm_of L' < length (snd zs));
-    ASSERT(length outl < uint32_max);
+    ASSERT(length outl < unat32_max);
     let outl = isa_outlearned_add M L' zs outl;
-    ASSERT(clvls < uint32_max);
-    ASSERT(fst zs < uint32_max);
+    ASSERT(clvls < unat32_max);
+    ASSERT(fst zs < unat32_max);
     let clvls = isa_clvls_add M L' zs clvls;
     let zs = add_to_lookup_conflict L' zs;
     RETURN((False, zs), clvls, outl)
@@ -3839,7 +3839,7 @@ proof -
   have map: \<open>mset_as_position d yb\<close> and le: \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>). L < length d\<close> and [simp]: \<open>\<not>b\<close>
     using assms by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def)
   have aa_d: \<open>atm_of aa < length d\<close> and uaa_d: \<open>atm_of (-aa) < length d\<close>
-    using le aa by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+    using le aa by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
   from mset_as_position_in_iff_nth[OF map aa_d]
   have 1: \<open>(aa \<in># yb) = (d ! atm_of aa = Some (is_pos aa))\<close>
     .

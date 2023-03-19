@@ -36,8 +36,8 @@ definition learned_clss_count_init :: \<open>twl_st_wl_heur_init \<Rightarrow> n
 
 definition isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
   \<open>isasat_fast_init S \<longleftrightarrow>
-      (length (get_clauses_wl_heur_init S) \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1) \<and>
-       learned_clss_count_init S < uint64_max)\<close>
+      (length (get_clauses_wl_heur_init S) \<le> snat64_max - (unat32_max div 2 + MAX_HEADER_SIZE+1) \<and>
+       learned_clss_count_init S < unat64_max)\<close>
 
 definition empty_init_code :: \<open>bool \<times> _ list \<times> isasat_stats\<close> where
   \<open>empty_init_code = (True, [], empty_stats)\<close>
@@ -62,7 +62,7 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
   \<open>IsaSAT_bounded_heur opts CS = do{
     _ \<leftarrow> RETURN (IsaSAT_Profile.start_initialisation);
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
-    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max);
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max);
     let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');

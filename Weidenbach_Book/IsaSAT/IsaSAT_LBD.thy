@@ -10,7 +10,7 @@ definition mark_lbd_from_clause_heur :: \<open>trail_pol \<Rightarrow> arena \<R
        L \<leftarrow> mop_arena_lit2 N C i;
        ASSERT(get_level_pol_pre (M, L));
        let lev = get_level_pol M L;
-       ASSERT(lev \<le> Suc (uint32_max div 2));
+       ASSERT(lev \<le> Suc (unat32_max div 2));
        RETURN (if lev = 0 then lbd else lbd_write lbd lev)})
     lbd}\<close>
 
@@ -196,7 +196,7 @@ definition mark_lbd_from_list_heur :: \<open>trail_pol \<Rightarrow> nat clause_
        let L = C ! i;
        ASSERT(get_level_pol_pre (M, L));
        let lev = get_level_pol M L;
-       ASSERT(lev \<le> Suc (uint32_max div 2));
+       ASSERT(lev \<le> Suc (unat32_max div 2));
        RETURN (if lev = 0 then lbd else lbd_write lbd lev)})
     lbd}\<close>
 

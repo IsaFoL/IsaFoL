@@ -8,7 +8,7 @@ lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D:
   \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl) \<in>
    {(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) = r \<and> learned_clss_count S = u} \<rightarrow>\<^sub>f
      \<langle>bool_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur \<and>
-        length (get_clauses_wl_heur S) \<le> r + MAX_HEADER_SIZE+1 + uint32_max div 2  \<and> 
+        length (get_clauses_wl_heur S) \<le> r + MAX_HEADER_SIZE+1 + unat32_max div 2  \<and> 
            learned_clss_count S \<le> Suc u}\<rangle>nres_rel\<close>
 proof -
   have H: \<open>(x, y) \<in> {(S, T).
@@ -35,12 +35,12 @@ proof -
  have UUa: \<open>(U, Ua)
        \<in> {(S, T).
           (S, T) \<in> twl_st_heur \<and>
-          length (get_clauses_wl_heur S) \<le> 3 + 1 + r + uint32_max div 2 \<and>
+          length (get_clauses_wl_heur S) \<le> 3 + 1 + r + unat32_max div 2 \<and>
           learned_clss_count S \<le> Suc u} \<Longrightarrow>
        (U,  Ua)
        \<in> {(S, Tb).
           (S, Tb) \<in> twl_st_heur \<and>
-     length (get_clauses_wl_heur S) \<le> 3 + 1 + r + uint32_max div 2 \<and> learned_clss_count S \<le> Suc u}\<close> for U Ua
+     length (get_clauses_wl_heur S) \<le> 3 + 1 + r + unat32_max div 2 \<and> learned_clss_count S \<le> Suc u}\<close> for U Ua
    by auto
   show ?thesis
     unfolding cdcl_twl_o_prog_wl_D_heur_def cdcl_twl_o_prog_wl_def

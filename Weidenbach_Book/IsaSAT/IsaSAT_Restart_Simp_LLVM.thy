@@ -7,14 +7,14 @@ sepref_register cdcl_twl_mark_clauses_to_delete mark_to_delete_clauses_GC_wl_D_h
 
 sepref_def cdcl_twl_restart_wl_heur_fast_code
   is \<open>cdcl_twl_restart_wl_heur\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding cdcl_twl_restart_wl_heur_def
   supply [[goals_limit = 1]]
   by sepref
 
 sepref_def cdcl_twl_mark_clauses_to_delete_fast_code
   is \<open>cdcl_twl_mark_clauses_to_delete\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding cdcl_twl_mark_clauses_to_delete_def
   supply [[goals_limit = 1]]
   by sepref
@@ -22,7 +22,7 @@ sepref_def cdcl_twl_mark_clauses_to_delete_fast_code
 
 sepref_def cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
   is \<open>cdcl_twl_full_restart_wl_D_GC_heur_prog\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]]
   unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def
@@ -31,7 +31,7 @@ sepref_def cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
 
 sepref_def cdcl_twl_full_restart_wl_D_inprocess_heur_prog_fast_code
   is \<open>cdcl_twl_full_restart_wl_D_inprocess_heur_prog\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]]
   supply [simp] = isasat_fast_relaxed_def
@@ -56,12 +56,12 @@ lemma cdcl_twl_stgy_restart_prog_bounded_wl_heurI1:
   assumes
     \<open>isasat_fast a1'b\<close>
     \<open>learned_clss_count a2'e \<le> Suc (learned_clss_count a1'b)\<close>
-  shows \<open>learned_clss_count a2'e \<le> uint64_max\<close>
+  shows \<open>learned_clss_count a2'e \<le> unat64_max\<close>
   using assms
   by (auto simp: isasat_fast_def)
 
 lemma cdcl_twl_stgy_restart_prog_bounded_wl_heurI2:
-  \<open>isasat_fast x \<Longrightarrow> learned_clss_count x \<le> uint64_max\<close>
+  \<open>isasat_fast x \<Longrightarrow> learned_clss_count x \<le> unat64_max\<close>
   by (auto simp: isasat_fast_def)
 
 
@@ -81,7 +81,7 @@ sepref_def cdcl_twl_stgy_restart_prog_wl_heur_fast_code
   unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def
   supply [[goals_limit = 1]] isasat_fast_countD[dest]
   supply [intro] = cdcl_twl_stgy_restart_prog_bounded_wl_heurI2
-  supply [sepref_bounds_simps del] = uint32_max_def sint32_max_def uint64_max_def sint64_max_def
+  supply [sepref_bounds_simps del] = unat32_max_def snat32_max_def unat64_max_def snat64_max_def
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 

@@ -28,7 +28,7 @@ sepref_def level_in_lbd_code
 lemma level_in_lbd_hnr[sepref_fr_rules]:
   \<open>(uncurry level_in_lbd_code, uncurry (RETURN \<circ>\<circ> level_in_lbd)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a
      lbd_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  supply lbd_ref_def[simp] uint32_max_def[simp]
+  supply lbd_ref_def[simp] unat32_max_def[simp]
   using level_in_lbd_code.refine[FCOMP level_in_lbd_ref_level_in_lbd]
   unfolding lbd_assn_def[symmetric]
   by simp
@@ -45,20 +45,20 @@ sepref_def lbd_empty_loop_code
 
 sepref_def lbd_empty_cheap_code
   is \<open>lbd_empty_cheap_ref\<close>
-  :: \<open>[\<lambda>(_, stamp, _). stamp < uint32_max]\<^sub>a lbd_int_assn\<^sup>d  \<rightarrow> lbd_int_assn\<close>
+  :: \<open>[\<lambda>(_, stamp, _). stamp < unat32_max]\<^sub>a lbd_int_assn\<^sup>d  \<rightarrow> lbd_int_assn\<close>
   unfolding lbd_empty_cheap_ref_def
   supply [[goals_limit=1]]
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
-lemma uint32_max_alt_def: "uint32_max = 4294967295"
-  by (auto simp: uint32_max_def)
+lemma unat32_max_alt_def: "unat32_max = 4294967295"
+  by (auto simp: unat32_max_def)
 sepref_register lbd_empty_cheap_ref lbd_empty_loop_ref
 
 sepref_def lbd_empty_code
   is \<open>lbd_empty_ref\<close>
   :: \<open>lbd_int_assn\<^sup>d  \<rightarrow>\<^sub>a lbd_int_assn\<close>
-  unfolding lbd_empty_ref_def uint32_max_alt_def
+  unfolding lbd_empty_ref_def unat32_max_alt_def
   supply [[goals_limit=1]]
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
@@ -104,7 +104,7 @@ lemmas list_grow_alt = list_grow_def[unfolded op_list_grow_init'_def[symmetric]]
 
 sepref_def lbd_write_code
   is [] \<open>uncurry lbd_ref_write\<close>
-  :: \<open> [\<lambda>(lbd, i). i \<le> Suc (uint32_max div 2)]\<^sub>a
+  :: \<open> [\<lambda>(lbd, i). i \<le> Suc (unat32_max div 2)]\<^sub>a
      lbd_int_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lbd_int_assn\<close>
   supply [[goals_limit=1]]
   unfolding lbd_ref_write_def length_uint32_nat_def list_grow_alt max_def
@@ -121,7 +121,7 @@ sepref_def lbd_write_code
 
 lemma lbd_write_hnr_[sepref_fr_rules]:
   \<open>(uncurry lbd_write_code, uncurry (RETURN \<circ>\<circ> lbd_write))
-    \<in> [\<lambda>(lbd, i). i \<le> Suc (uint32_max div 2)]\<^sub>a
+    \<in> [\<lambda>(lbd, i). i \<le> Suc (unat32_max div 2)]\<^sub>a
       lbd_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lbd_assn\<close>
   using lbd_write_code.refine[FCOMP lbd_ref_write_lbd_write]
   unfolding lbd_assn_def .

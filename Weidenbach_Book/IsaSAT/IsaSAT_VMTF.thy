@@ -17,7 +17,7 @@ definition vmtf_enqueue_pre where
      (\<lambda>((M, L),(ns,m,fst_As,lst_As, next_search)). L < length ns \<and>
        (fst_As \<noteq> None \<longrightarrow> the fst_As < length ns) \<and>
        (fst_As \<noteq> None \<longrightarrow> lst_As \<noteq> None) \<and>
-       m+1 \<le> uint64_max)\<close>
+       m+1 \<le> unat64_max)\<close>
 
 definition isa_vmtf_enqueue :: \<open>trail_pol \<Rightarrow> nat \<Rightarrow> vmtf_option_fst_As \<Rightarrow> vmtf nres\<close> where
 \<open>isa_vmtf_enqueue = (\<lambda>M L (ns, m, fst_As, lst_As, next_search). do {
@@ -142,7 +142,7 @@ definition isa_vmtf_en_dequeue_pre :: \<open>(trail_pol \<times> nat) \<times> v
        L < length ns \<and> vmtf_dequeue_pre (L, ns) \<and>
        fst_As < length ns \<and> (get_next (ns ! fst_As) \<noteq> None \<longrightarrow> get_prev (ns ! lst_As) \<noteq> None) \<and>
        (get_next (ns ! fst_As) = None \<longrightarrow> fst_As = lst_As) \<and>
-       m+1 \<le> uint64_max)\<close>
+       m+1 \<le> unat64_max)\<close>
 
 lemma isa_vmtf_en_dequeue_preD:
   assumes \<open>isa_vmtf_en_dequeue_pre ((M, ah), a, aa, ab, ac, b)\<close>
@@ -218,7 +218,7 @@ lemma vmtf_rescale_alt_def:
       (\<lambda>(ns, n, lst_As). lst_As \<noteq>None)
       (\<lambda>(ns, n, a). do {
          ASSERT(a \<noteq> None);
-         ASSERT(n+1 \<le> uint32_max);
+         ASSERT(n+1 \<le> unat32_max);
          ASSERT(the a < length ns);
          let m = the a;
          let c = ns ! m;
@@ -246,12 +246,12 @@ definition vmtf_reorder_list :: \<open>vmtf \<Rightarrow> nat list \<Rightarrow>
 definition isa_vmtf_flush_int :: \<open>trail_pol \<Rightarrow> vmtf \<Rightarrow> _ \<Rightarrow> (vmtf \<times> _) nres\<close> where
 \<open>isa_vmtf_flush_int  = (\<lambda>M vm (to_remove, h). do {
     ASSERT(\<forall>x\<in>set to_remove. x < length (fst vm));
-    ASSERT(length to_remove \<le> uint32_max);
+    ASSERT(length to_remove \<le> unat32_max);
     to_remove' \<leftarrow> vmtf_reorder_list vm to_remove;
-    ASSERT(length to_remove' \<le> uint32_max);
-    vm \<leftarrow> (if length to_remove' \<ge> uint64_max - fst (snd vm)
+    ASSERT(length to_remove' \<le> unat32_max);
+    vm \<leftarrow> (if length to_remove' \<ge> unat64_max - fst (snd vm)
       then vmtf_rescale vm else RETURN vm);
-    ASSERT(length to_remove' + fst (snd vm) \<le> uint64_max);
+    ASSERT(length to_remove' + fst (snd vm) \<le> unat64_max);
     (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> length to_remove' \<and> fst (snd vm') = i + fst (snd vm) \<and>
           (i < length to_remove' \<longrightarrow> isa_vmtf_en_dequeue_pre ((M, to_remove'!i), vm'))\<^esup>
       (\<lambda>(i, vm, h). i < length to_remove')
@@ -272,12 +272,12 @@ proof -
   have vmtf_flush_int_alt_def:
     \<open>vmtf_flush_int \<A>\<^sub>i\<^sub>n = (\<lambda>M vm (to_remove, h). do {
       ASSERT(\<forall>x\<in>set to_remove. x < length (fst vm));
-      ASSERT(length to_remove \<le> uint32_max);
+      ASSERT(length to_remove \<le> unat32_max);
       to_remove' \<leftarrow> reorder_list vm to_remove;
-      ASSERT(length to_remove' \<le> uint32_max);
-      vm \<leftarrow> (if length to_remove' + fst (snd vm) \<ge> uint64_max
+      ASSERT(length to_remove' \<le> unat32_max);
+      vm \<leftarrow> (if length to_remove' + fst (snd vm) \<ge> unat64_max
 	then vmtf_rescale vm else RETURN vm);
-      ASSERT(length to_remove' + fst (snd vm) \<le> uint64_max);
+      ASSERT(length to_remove' + fst (snd vm) \<le> unat64_max);
       (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> length to_remove' \<and> fst (snd vm') = i + fst (snd vm) \<and>
 	    (i < length to_remove' \<longrightarrow> vmtf_en_dequeue_pre \<A>\<^sub>i\<^sub>n ((M, to_remove'!i), vm'))\<^esup>
 	(\<lambda>(i, vm, h). i < length to_remove')
@@ -305,9 +305,9 @@ proof -
       \<open>x2d = (x1e, x2e)\<close> and
       \<open>x = (x1c, x2d)\<close> and
       \<open>\<forall>x\<in>set x1b. x < length (fst x2)\<close> and
-      \<open>length x1b \<le> uint32_max\<close> and
+      \<open>length x1b \<le> unat32_max\<close> and
       \<open>\<forall>x\<in>set x1e. x < length (fst x2c)\<close> and
-      \<open>length x1e \<le> uint32_max\<close>
+      \<open>length x1e \<le> unat32_max\<close>
     for x y x1 x1a x2 x2a x1b x2b x1c x1d x2c x2d x1e x2e
     using that unfolding vmtf_reorder_list_def by (cases x2)
       (auto intro!: ASSERT_leI simp: reorder_list_def vmtf_reorder_list_raw_def)
@@ -324,14 +324,14 @@ proof -
       \<open>x2d = (x1e, x2e)\<close> and
       \<open>x = (x1c, x2d)\<close> and
       \<open>\<forall>x\<in>set x1b. x < length (fst x2)\<close> and
-      \<open>length x1b \<le> uint32_max\<close> and
+      \<open>length x1b \<le> unat32_max\<close> and
       \<open>\<forall>x\<in>set x1e. x < length (fst x2c)\<close> and
-      \<open>length x1e \<le> uint32_max\<close> and
+      \<open>length x1e \<le> unat32_max\<close> and
       \<open>(to_remove', to_remove'a) \<in> Id\<close> and
-      \<open>length to_remove'a \<le> uint32_max\<close> and
-      \<open>length to_remove' \<le> uint32_max\<close> and
-      \<open>uint64_max - fst (snd x2c) \<le> length to_remove'\<close> and
-      \<open>uint64_max \<le> length to_remove'a + fst (snd x2)\<close>
+      \<open>length to_remove'a \<le> unat32_max\<close> and
+      \<open>length to_remove' \<le> unat32_max\<close> and
+      \<open>unat64_max - fst (snd x2c) \<le> length to_remove'\<close> and
+      \<open>unat64_max \<le> length to_remove'a + fst (snd x2)\<close>
     for x y x1 x1a x2 x2a x1b x2b x1c x1d x2c x2d x1e x2e
       to_remove' to_remove'a
     using that by auto
@@ -347,15 +347,15 @@ proof -
       \<open>x2d = (x1e, x2e)\<close> and
       \<open>x = (x1c, x2d)\<close> and
       \<open>\<forall>x\<in>set x1b. x < length (fst x2)\<close> and
-      \<open>length x1b \<le> uint32_max\<close> and
+      \<open>length x1b \<le> unat32_max\<close> and
       \<open>\<forall>x\<in>set x1e. x < length (fst x2c)\<close> and
-      \<open>length x1e \<le> uint32_max\<close> and
+      \<open>length x1e \<le> unat32_max\<close> and
       \<open>(to_remove', to_remove'a) \<in> Id\<close> and
-      \<open>length to_remove'a \<le> uint32_max\<close> and
-      \<open>length to_remove' \<le> uint32_max\<close> and
+      \<open>length to_remove'a \<le> unat32_max\<close> and
+      \<open>length to_remove' \<le> unat32_max\<close> and
       \<open>(vm, vma) \<in> Id\<close> and
-      \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close> and
-      \<open>length to_remove' + fst (snd vm) \<le> uint64_max\<close> and
+      \<open>length to_remove'a + fst (snd vma) \<le> unat64_max\<close> and
+      \<open>length to_remove' + fst (snd vm) \<le> unat64_max\<close> and
       \<open>case (0, vma, x2b) of
      (i, vm', h) \<Rightarrow>
        i \<le> length to_remove'a \<and>
@@ -385,15 +385,15 @@ proof -
       \<open>x2d = (x1e, x2e)\<close> and
       \<open>x = (x1c, x2d)\<close> and
       \<open>\<forall>x\<in>set x1b. x < length (fst x2)\<close> and
-      \<open>length x1b \<le> uint32_max\<close> and
+      \<open>length x1b \<le> unat32_max\<close> and
       \<open>\<forall>x\<in>set x1e. x < length (fst x2c)\<close> and
-      \<open>length x1e \<le> uint32_max\<close> and
+      \<open>length x1e \<le> unat32_max\<close> and
       \<open>(to_remove', to_remove'a) \<in> Id\<close> and
-      \<open>length to_remove'a \<le> uint32_max\<close> and
-      \<open>length to_remove' \<le> uint32_max\<close> and
+      \<open>length to_remove'a \<le> unat32_max\<close> and
+      \<open>length to_remove' \<le> unat32_max\<close> and
       \<open>(vm, vma) \<in> Id\<close> and
-      \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close> and
-      \<open>length to_remove' + fst (snd vm) \<le> uint64_max\<close> and
+      \<open>length to_remove'a + fst (snd vma) \<le> unat64_max\<close> and
+      \<open>length to_remove' + fst (snd vm) \<le> unat64_max\<close> and
       \<open>(xa, x') \<in> Id\<close> and
       \<open>case xa of (i, vm, h) \<Rightarrow> i < length to_remove'\<close> and
       \<open>case x' of (i, vm, h) \<Rightarrow> i < length to_remove'a\<close> and
@@ -469,7 +469,7 @@ qed
 
 
 definition atms_hash_insert_pre :: \<open>nat \<Rightarrow> nat list \<times> bool list \<Rightarrow> bool\<close> where
-\<open>atms_hash_insert_pre i = (\<lambda>(n, xs). i < length xs \<and> (\<not>xs!i \<longrightarrow> length n < 2 + uint32_max div 2))\<close>
+\<open>atms_hash_insert_pre i = (\<lambda>(n, xs). i < length xs \<and> (\<not>xs!i \<longrightarrow> length n < 2 + unat32_max div 2))\<close>
 
 definition atoms_hash_insert :: \<open>nat \<Rightarrow> nat list \<times> bool list \<Rightarrow> (nat list \<times> bool list)\<close> where
 \<open>atoms_hash_insert i  = (\<lambda>(n, xs). if xs ! i then (n, xs) else (n @ [i], xs[i := True]))\<close>
@@ -477,7 +477,7 @@ definition atoms_hash_insert :: \<open>nat \<Rightarrow> nat list \<times> bool 
 lemma bounded_included_le:
    assumes bounded: \<open>isasat_input_bounded \<A>\<close> and \<open>distinct n\<close> and
    \<open>set n \<subseteq> set_mset \<A> \<close>
-  shows \<open>length n < uint32_max\<close>  \<open>length n \<le> 1 + uint32_max div 2\<close>
+  shows \<open>length n < unat32_max\<close>  \<open>length n \<le> 1 + unat32_max div 2\<close>
 proof -
   have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (Pos `# mset n)\<close> and
     dist: \<open>distinct n\<close>
@@ -489,9 +489,9 @@ proof -
   have tauto: \<open>\<not> tautology (poss (mset n))\<close>
     by (auto simp: tautology_decomp)
 
-  show \<open>length n < uint32_max\<close>  \<open>length n \<le> 1 + uint32_max div 2\<close>
+  show \<open>length n < unat32_max\<close>  \<open>length n \<le> 1 + unat32_max div 2\<close>
     using simple_clss_size_upper_div2[OF bounded lits dist tauto]
-    by (auto simp: uint32_max_def)
+    by (auto simp: unat32_max_def)
 qed
 
 

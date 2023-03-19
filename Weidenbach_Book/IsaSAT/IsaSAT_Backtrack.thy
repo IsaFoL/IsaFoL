@@ -50,7 +50,7 @@ definition empty_conflict_and_extract_clause_heur ::
            let C = C[i := outl ! i];
            ASSERT(C!i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> C!1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> 1 < length C);
            let C = (if get_level M (C!i) > get_level M (C!1) then swap C 1 i else C);
-           ASSERT(i+1 \<le> uint32_max);
+           ASSERT(i+1 \<le> unat32_max);
            RETURN (D, C, i+1)
          })
         (D, C, 1);
@@ -72,7 +72,7 @@ lemma empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause:
     \<open>empty_conflict_and_extract_clause_heur \<A> M D' outl \<le> \<Down> (option_lookup_clause_rel \<A> \<times>\<^sub>r Id \<times>\<^sub>r Id)
         (empty_conflict_and_extract_clause M D outl)\<close>
 proof -
-  have size_out: \<open>size (mset outl) \<le> 1 + uint32_max div 2\<close>
+  have size_out: \<open>size (mset outl) \<le> 1 + unat32_max div 2\<close>
     using simple_clss_size_upper_div2[OF bounded lits _ consistent]
       \<open>distinct outl\<close> by auto
   have empty_conflict_and_extract_clause_alt_def:
@@ -118,7 +118,7 @@ proof -
     by (cases outl) auto
   have
     C1_L: \<open>aa[ba := outl ! ba] ! 1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> (is ?A1inL) and
-    ba_le:  \<open>ba + 1 \<le> uint32_max\<close> (is ?ba_le) and
+    ba_le:  \<open>ba + 1 \<le> unat32_max\<close> (is ?ba_le) and
     I_rec: \<open>I (lookup_conflict_remove1 (outl ! ba) a,
           if get_level M (aa[ba := outl ! ba] ! 1)
              < get_level M (aa[ba := outl ! ba] ! ba)
@@ -160,7 +160,7 @@ proof -
       using mset_aa by (blast dest: mset_eq_setD)
     show ?ba_le
       using ba_le assms size_out
-      by (auto simp: uint32_max_def)
+      by (auto simp: unat32_max_def)
     have ba_ge1_aa_ge:  \<open>ba > 1 \<Longrightarrow> aa ! 1 \<in> set (take ba aa)\<close>
       using ba_ge1 ba_le l_aa_outl
       by (auto simp: in_set_take_conv_nth intro!: bex_lessI[of _ \<open>Suc 0\<close>])
@@ -259,7 +259,7 @@ proof -
                 (C[i := outl ! i] ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and>
                  C[i := outl ! i] ! 1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and>
                 1 < length (C[i := outl ! i]));
-           _ \<leftarrow> ASSERT (i + 1 \<le> uint32_max);
+           _ \<leftarrow> ASSERT (i + 1 \<le> unat32_max);
            RETURN
             (lookup_conflict_remove1 (outl ! i) D,
              if get_level M (C[i := outl ! i] ! 1)
@@ -480,7 +480,7 @@ definition empty_conflict_and_extract_clause_pre
   :: \<open>(((nat,nat) ann_lits \<times> nat clause) \<times> nat clause_l) \<Rightarrow> bool\<close> where
   \<open>empty_conflict_and_extract_clause_pre =
     (\<lambda>((M, D), outl). D = mset (tl outl)  \<and> outl \<noteq> [] \<and> distinct outl \<and>
-    \<not>tautology (mset outl) \<and> length outl \<le> uint32_max)\<close>
+    \<not>tautology (mset outl) \<and> length outl \<le> unat32_max)\<close>
 
 lemma empty_cach_ref_empty_cach:
   \<open>isasat_input_bounded \<A> \<Longrightarrow> (RETURN o empty_cach_ref, RETURN o empty_cach) \<in> cach_refinement \<A> \<rightarrow>\<^sub>f \<langle>cach_refinement \<A>\<rangle> nres_rel\<close>
@@ -619,7 +619,7 @@ lemma backtrack_wl_D_nlit_backtrack_wl_D:
   \<open>(backtrack_wl_D_nlit_heur, backtrack_wl) \<in>
   {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and> length (get_clauses_wl_heur S) = r \<and>
        learned_clss_count S \<le> u} \<rightarrow>\<^sub>f
-  \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> MAX_HEADER_SIZE+1 + r + uint32_max div 2 \<and>
+  \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> MAX_HEADER_SIZE+1 + r + unat32_max div 2 \<and>
        learned_clss_count S \<le> Suc u}\<rangle>nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f \<langle>?S\<rangle>nres_rel\<close>)
 proof -
@@ -1170,9 +1170,9 @@ proof -
             all_atms_def literals_are_in_\<L>\<^sub>i\<^sub>n_def literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l
             dest: multi_member_split)
       have \<open>distinct (?outl[0 := - lit_of (hd M)])\<close> using dist_D by(auto simp: S mset_outl_D[symmetric])
-      then have length_outl: \<open>length ?outl \<le> uint32_max\<close>
+      then have length_outl: \<open>length ?outl \<le> unat32_max\<close>
         using bounded tauto_confl \<L>\<^sub>i\<^sub>n_S simple_clss_size_upper_div2[OF bounded, of \<open>mset (?outl[0 := - lit_of (hd M)])\<close>]
-        by (auto simp: out_learned_def S  mset_outl_D[symmetric] uint32_max_def simp flip: all_atms_def)
+        by (auto simp: out_learned_def S  mset_outl_D[symmetric] unat32_max_def simp flip: all_atms_def)
       have lit_annots: \<open>\<forall>L\<in>set (?outl[0 := - lit_of (hd M)]).
         \<forall>C. Propagated (- L) C \<in> set M \<longrightarrow>
            C \<noteq> 0 \<longrightarrow>
@@ -1287,7 +1287,7 @@ proof -
           intro: true_clss_cls_subsetI)
       subgoal by auto
       subgoal using bounded pre2
-        by (auto dest!: simple_clss_size_upper_div2 simp: uint32_max_def S all_atms_def[symmetric]
+        by (auto dest!: simple_clss_size_upper_div2 simp: unat32_max_def S all_atms_def[symmetric]
             simp del: isasat_input_bounded_def)
       subgoal using trail_nempty by fast
       subgoal using uM_\<L>\<^sub>a\<^sub>l\<^sub>l .
@@ -1645,19 +1645,19 @@ proof -
           ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
           ASSERT(length C > 1);
           let L' = C!1;
-          ASSERT (length C \<le> uint32_max div 2 + 1);
+          ASSERT (length C \<le> unat32_max div 2 + 1);
           vm \<leftarrow> isa_bump_rescore C M vm0;
           glue \<leftarrow> get_LBD lbd;
           let _ = C;
           let b = False;
           ASSERT(isasat_fast S \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-          ASSERT(isasat_fast S \<longrightarrow> clss_size_lcount lcount < sint64_max);
+          ASSERT(isasat_fast S \<longrightarrow> clss_size_lcount lcount < snat64_max);
           (N, i) \<leftarrow> fm_add_new b C N0;
           ASSERT(update_lbd_pre ((i, glue), N));
           let N = update_lbd_and_mark_used i glue N;
-          ASSERT(isasat_fast S \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+          ASSERT(isasat_fast S \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < snat64_max);
           let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', length C = 2)]];
-          ASSERT(isasat_fast S \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+          ASSERT(isasat_fast S \<longrightarrow> length_ll W (nat_of_lit L') < snat64_max);
           let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, length C = 2)]];
           lbd \<leftarrow> lbd_empty lbd;
           j \<leftarrow> mop_isa_length_trail M;
@@ -1843,11 +1843,11 @@ proof -
      W'_eq:  \<open>?W' ! (nat_of_lit (C ! Suc 0)) = W (C! Suc 0)\<close>
         \<open>?W' ! (nat_of_lit (- lit_of (hd (get_trail_wl S')))) = W (- lit_of (hd (get_trail_wl S')))\<close>
       using uM_\<L>\<^sub>a\<^sub>l\<^sub>l W'W unfolding map_fun_rel_def by (auto simp: image_image S' U' all_atms_st_def)
-    have le_C_ge: \<open>length C \<le> uint32_max div 2 + 1\<close>
-      using clss_size_uint32_max[OF bounded, of \<open>mset C\<close>] \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st S') (mset C)\<close> list_confl_S'
+    have le_C_ge: \<open>length C \<le> unat32_max div 2 + 1\<close>
+      using clss_size_unat32_max[OF bounded, of \<open>mset C\<close>] \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st S') (mset C)\<close> list_confl_S'
         dist_S' incl size_mset_mono[OF incl] distinct_mset_mono[OF incl]
         simple_clss_size_upper_div2[OF bounded _ _ tauto]
-      by (auto simp: uint32_max_def S' U' all_atms_def[symmetric] simp: all_atms_st_def)
+      by (auto simp: unat32_max_def S' U' all_atms_def[symmetric] simp: all_atms_st_def)
     have tr_SS': \<open>(get_trail_wl_heur S, M) \<in> trail_pol (all_atms_st S')\<close>
       using \<open>(S, S') \<in> ?R\<close> unfolding twl_st_heur_conflict_ana_def
       by (auto simp: all_atms_def S')
@@ -1947,8 +1947,8 @@ proof -
       by (auto intro!: ASSERT_leI save_phase_heur_preI simp: U' S' all_atms_st_def)
     have stuff: \<open>?NUE_before = ?NUE_after\<close>
       by auto
-    have arena_le: \<open>length ?arena + header_size C + length C \<le> MAX_HEADER_SIZE+1 + r + uint32_max div 2\<close>
-      using r r' le_C_ge by (auto simp: uint32_max_def header_size_def S')
+    have arena_le: \<open>length ?arena + header_size C + length C \<le> MAX_HEADER_SIZE+1 + r + unat32_max div 2\<close>
+      using r r' le_C_ge by (auto simp: unat32_max_def header_size_def S')
     have avdom: \<open>mset (get_avdom_aivdom ?aivdom) \<subseteq># mset (get_vdom_aivdom ?aivdom)\<close> and
       ivdom: \<open>mset (get_ivdom_aivdom ?aivdom) \<subseteq># mset (get_vdom_aivdom ?aivdom)\<close>
       using aivdom unfolding aivdom_inv_dec_alt_def by auto
@@ -1997,12 +1997,12 @@ proof -
         by (simp add: S' lit_of_hd_trail_def)
       subgoal using le_C_ge .
       subgoal by (auto simp: append_and_length_fast_code_pre_def isasat_fast_def
-        sint64_max_def uint32_max_def)
+        snat64_max_def unat32_max_def)
       subgoal
         using D' C_1_neq_hd vmtf avdom M1'_M1 size_learned_clss_dom_m[of N] valid_arena_size_dom_m_le_arena[OF valid]
         by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
           phase_saving_def atms_of_def S' U' lit_of_hd_trail_def all_atms_def[symmetric] isasat_fast_def
-          sint64_max_def uint32_max_def)
+          snat64_max_def unat32_max_def)
 
       subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x'
         by (auto simp: update_lbd_pre_def arena_is_valid_clause_idx_def)
@@ -2439,7 +2439,7 @@ proof -
                \<in> {(S, T).
                   (S, T) \<in> twl_st_heur \<and>
                   length (get_clauses_wl_heur S)
-                  \<le> MAX_HEADER_SIZE+1 + r + uint32_max div 2 \<and>
+                  \<le> MAX_HEADER_SIZE+1 + r + unat32_max div 2 \<and>
                   learned_clss_count S \<le> Suc u})\<close> for xb x'
     unfolding save_phase_st_def
     by (refine_vcg save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st x'\<close>])

@@ -67,7 +67,7 @@ sepref_register 0 1
 
 sepref_def isa_find_unwatched_between_fast_code
   is \<open>uncurry4 isa_find_unset_lit\<close>
-  :: \<open>[\<lambda>((((M, N), _), _), _). length N \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((((M, N), _), _), _). length N \<le> snat64_max]\<^sub>a
      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>
        snat_option_assn' TYPE(64)\<close>
   supply [[goals_limit = 3]]
@@ -92,7 +92,7 @@ global_interpretation find_unset_lit: read_trail_arena_param_adder2_threeargs wh
   f = \<open>\<lambda>C C' C'' M N. isa_find_unwatched_between_fast_code M N C C' C''\<close> and
   f' = \<open>\<lambda>C C' C'' M N. isa_find_unset_lit M N C C' C''\<close> and
   x_assn = \<open>snat_option_assn' TYPE(64)\<close> and
-  P = \<open>\<lambda>C C' C'' M N. length N \<le> sint64_max\<close>
+  P = \<open>\<lambda>C C' C'' M N. length N \<le> snat64_max\<close>
   rewrites
   \<open>(\<lambda>N C D E.
   read_all_st (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. isa_find_unset_lit M N C D E) N) = isa_find_unset_lit_st\<close> and
@@ -130,7 +130,7 @@ lemma case_tri_bool_If:
 
 sepref_def find_unwatched_wl_st_heur_fast_code
   is \<open>uncurry isa_find_unwatched_wl_st_heur\<close>
-  :: \<open>[\<lambda>(S, C). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>(S, C). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
          isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> snat_option_assn' TYPE(64)\<close>
   supply [[goals_limit = 1]] isasat_fast_def[simp]
   unfolding isa_find_unwatched_wl_st_heur_def PR_CONST_def
@@ -172,12 +172,12 @@ sepref_register update_clause_wl_heur
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
 
 lemma arena_lit_pre_le2: \<open>
-       arena_lit_pre a i \<Longrightarrow> length a \<le> sint64_max \<Longrightarrow> i < max_snat 64\<close>
-   using arena_lifting(7)[of a _ _] unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def sint64_max_def max_snat_def
+       arena_lit_pre a i \<Longrightarrow> length a \<le> snat64_max \<Longrightarrow> i < max_snat 64\<close>
+   using arena_lifting(7)[of a _ _] unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def snat64_max_def max_snat_def
   by fastforce
 
-lemma sint64_max_le_max_snat64: \<open>a < sint64_max \<Longrightarrow> Suc a < max_snat 64\<close>
-  by (auto simp: max_snat_def sint64_max_def)
+lemma snat64_max_le_max_snat64: \<open>a < snat64_max \<Longrightarrow> Suc a < max_snat 64\<close>
+  by (auto simp: max_snat_def snat64_max_def)
 
 lemma update_clause_wl_heur_alt_def:
   \<open>update_clause_wl_heur = (\<lambda>(L::nat literal) L' C b j w i f S\<^sub>0. do {
@@ -200,12 +200,12 @@ lemma update_clause_wl_heur_alt_def:
 
 sepref_def update_clause_wl_fast_code
   is \<open>uncurry8 update_clause_wl_heur\<close>
-  :: \<open>[\<lambda>((((((((L, L'), C), b), j), w), i), f), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((((((((L, L'), C), b), j), w), i), f), S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
        sint64_nat_assn\<^sup>k
         *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> sint64_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]  arena_lit_pre_le2[intro] swap_lits_pre_def[simp]
-    sint64_max_le_max_snat64[intro]
+    snat64_max_le_max_snat64[intro]
   unfolding update_clause_wl_heur_alt_def
     fmap_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
     delete_index_and_swap_ll_def[symmetric] fmap_swap_ll_def[symmetric]
@@ -238,7 +238,7 @@ lemma propagate_lit_wl_heur_propagate_lit_wl_heur_inner:
 
 sepref_def propagate_lit_wl_fast_code
   is \<open>uncurry3 propagate_lit_wl_heur\<close>
-  :: \<open>[\<lambda>(((L, C), i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>(((L, C), i), S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding PR_CONST_def propagate_lit_wl_heur_propagate_lit_wl_heur_inner
     RETURN_case_tuple16_invers comp_def propagate_lit_wl_heur_inner_def
@@ -285,7 +285,7 @@ lemma propagate_lit_wl_bin_heur_alt_def:
 
 sepref_def propagate_lit_wl_bin_fast_code
   is \<open>uncurry2 propagate_lit_wl_bin_heur\<close>
-  :: \<open>[\<lambda>((L, C), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((L, C), S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
       isasat_bounded_assn\<close>
   unfolding PR_CONST_def propagate_lit_wl_bin_heur_alt2
@@ -309,11 +309,11 @@ lemma update_blit_wl_heur_alt_def:
 
 sepref_def update_blit_wl_heur_fast_code
   is \<open>uncurry6 update_blit_wl_heur\<close>
-  :: \<open>[\<lambda>((((((_, _), _), _), C), i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((((((_, _), _), _), C), i), S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
       sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
      sint64_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] sint64_max_le_max_snat64[intro]
+  supply [[goals_limit=1]] snat64_max_le_max_snat64[intro]
   unfolding update_blit_wl_heur_alt_def append_ll_def[symmetric]
     op_list_list_upd_alt_def[symmetric]
   apply (annot_snat_const \<open>TYPE (64)\<close>)
@@ -412,7 +412,7 @@ lemma set_conflict_wl_heur_alt_def:
 
 sepref_def set_conflict_wl_heur_fast_code
   is \<open>uncurry set_conflict_wl_heur\<close>
-  :: \<open>[\<lambda>(C, S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>(C, S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
     sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding set_conflict_wl_heur_alt_def
@@ -444,11 +444,11 @@ sepref_def pos_of_watched_heur_impl
 
 sepref_def unit_propagation_inner_loop_body_wl_fast_heur_code
   is \<open>uncurry3 unit_propagation_inner_loop_body_wl_heur\<close>
-  :: \<open>[\<lambda>((L, w), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((L, w), S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
        sint64_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-    if_splits[split] sint64_max_le_max_snat64[intro] unit_propagation_inner_loop_wl_loop_D_heur_inv0D[dest!]
+    if_splits[split] snat64_max_le_max_snat64[intro] unit_propagation_inner_loop_wl_loop_D_heur_inv0D[dest!]
   unfolding unit_propagation_inner_loop_body_wl_heur_def PR_CONST_def
   unfolding fmap_rll_def[symmetric]
   unfolding option.case_eq_if is_None_alt[symmetric]

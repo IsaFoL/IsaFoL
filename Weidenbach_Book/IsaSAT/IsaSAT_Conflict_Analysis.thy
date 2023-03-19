@@ -158,8 +158,8 @@ lemma tl_state_wl_heur_tl_state_wl:
   apply (subst lit_of_last_trail_pol_lit_of_last_trail[THEN fref_to_Down_unRET_Id])
   apply (auto simp: mop_tl_state_wl_pre_simps lit_of_hd_trail_def mop_tl_state_wl_pre_simps counts_maximum_level_def
     intro!: isa_bump_unset_vmtf_tl)
-  apply (metis (no_types, lifting) IsaSAT_Setup.all_lits_st_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff mop_tl_state_wl_pre_simps(2))
-  apply (metis (no_types, lifting) IsaSAT_Setup.all_lits_st_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff mop_tl_state_wl_pre_simps(2))
+  apply (metis (no_types, lifting) IsaSAT_Setup.all_lits_st_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of mop_tl_state_wl_pre_simps(2))
+  apply (metis (no_types, lifting) IsaSAT_Setup.all_lits_st_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of mop_tl_state_wl_pre_simps(2))
   apply (subst card_max_lvl_tl)
     apply (auto simp: mop_tl_state_wl_pre_simps lookup_clause_rel_not_tautolgy lookup_clause_rel_distinct_mset
       option_lookup_clause_rel_def)
@@ -870,7 +870,7 @@ note [[goals_limit=1]]
         apply (auto
           dest: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of _ M \<open>lit_of (hd M)\<close> for M])
         apply (meson all_in_dom atm_of_lit_in_atms_of)
-        by (meson atm_of_in_atms_of_iff literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l)
+        by (meson atm_of_in_atms_of literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l)
       done
   done
 qed
@@ -955,7 +955,7 @@ proof -
     apply (subst atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id, of \<open>all_atms_st x2\<close>  \<open>atm_of x1\<close> \<open>the (get_conflict_wl (snd y))\<close>])
     apply (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def all_lits_st_alt_def[symmetric])[]
     apply (auto simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def option_lookup_clause_rel_def)[]
-    apply (simp add: atm_in_conflict_def atm_of_in_atms_of_iff)
+    apply (simp add: atm_in_conflict_def atm_of_in_atms_of)
     done
   done
 qed

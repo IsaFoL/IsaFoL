@@ -957,9 +957,9 @@ proof -
     \<open>x1b \<noteq> None\<close> and
     \<open>x1c \<noteq> None\<close> and
     \<open>the x1b < length x1\<close> and
-    \<open>the x1b \<le> uint32_max div 2\<close> and
+    \<open>the x1b \<le> unat32_max div 2\<close> and
     \<open>the x1c < length x1a\<close> and
-    \<open>the x1c \<le> uint32_max div 2\<close> and
+    \<open>the x1c \<le> unat32_max div 2\<close> and
     \<open>x2c = (x1d, x2d)\<close> and
     \<open>get_vmtf_heur_array S = get_vmtf_heur_array x2d\<close> and
     \<open>the x1b \<in># atm_of `# all_init_lits_of_wl x2b\<close>
@@ -1007,9 +1007,9 @@ proof -
       \<open>x1b \<noteq> None\<close> and
       \<open>x1c \<noteq> None\<close> and
       \<open>the x1b < length x1\<close> and
-      \<open>the x1b \<le> uint32_max div 2\<close> and
+      \<open>the x1b \<le> unat32_max div 2\<close> and
       \<open>the x1c < length x1a\<close> and
-      \<open>the x1c \<le> uint32_max div 2\<close> and
+      \<open>the x1c \<le> unat32_max div 2\<close> and
       \<open>x2c = (x1d, x2d)\<close> and
       \<open>get_vmtf_heur_array S = get_vmtf_heur_array x2d\<close> and
       \<open>the x1b \<in># atm_of `# all_init_lits_of_wl x2b\<close>

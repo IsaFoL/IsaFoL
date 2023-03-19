@@ -17,7 +17,7 @@ definition clause_score_ordering where
 definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<times> nat \<times> nat\<close> where
   \<open>clause_score_extract arena C = (
      if arena_status arena C = DELETED
-     then (uint32_max, sint64_max, sint64_max) \<comment> \<open>deleted elements are the
+     then (unat32_max, snat64_max, snat64_max) \<comment> \<open>deleted elements are the
         largest possible\<close>
      else
        let lbd = arena_lbd arena C;

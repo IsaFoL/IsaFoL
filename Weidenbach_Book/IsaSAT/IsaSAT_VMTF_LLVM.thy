@@ -299,7 +299,7 @@ lemma isa_vmtf_en_dequeue_preI:
     and \<open>get_next (ns ! fst_As) \<noteq> None \<longrightarrow> get_prev (ns ! lst_As) \<noteq> None\<close>
   using assms
   unfolding isa_vmtf_en_dequeue_pre_def vmtf_dequeue_pre_def
-  apply (auto simp: max_unat_def uint64_max_def sint64_max_def)
+  apply (auto simp: max_unat_def unat64_max_def snat64_max_def)
   done
 
 lemma isa_vmtf_en_dequeue_alt_def2:
@@ -361,7 +361,7 @@ lemma vmtf_en_dequeue_fast_codeI:
   assumes \<open>isa_vmtf_en_dequeue_pre ((M, L),(ns,m,fst_As, lst_As, next_search))\<close>
   shows \<open>Suc m < max_unat 64\<close>
   using assms
-  unfolding isa_vmtf_en_dequeue_pre_def max_unat_def uint64_max_def
+  unfolding isa_vmtf_en_dequeue_pre_def max_unat_def unat64_max_def
   by auto
 
 sepref_def vmtf_en_dequeue_fast_code
@@ -404,8 +404,8 @@ sepref_register partition_between_ref
 sepref_register isa_vmtf_enqueue
 
 (*
-lemma uint64_nal_rel_le_uint64_max: \<open>(a, b) \<in> uint64_nat_rel \<Longrightarrow> b \<le> uint64_max\<close>
-  by (auto simp: uint64_nat_rel_def br_def nat_of_uint64_le_uint64_max)
+lemma uint64_nal_rel_le_unat64_max: \<open>(a, b) \<in> uint64_nat_rel \<Longrightarrow> b \<le> unat64_max\<close>
+  by (auto simp: uint64_nat_rel_def br_def nat_of_uint64_le_unat64_max)
 *)
 lemma emptied_list_alt_def: \<open>emptied_list xs = take 0 xs\<close>
   by (auto simp: emptied_list_def)
@@ -441,7 +441,7 @@ sepref_def isa_vmtf_mark_to_rescore_code
   is \<open>uncurry (RETURN oo isa_vmtf_mark_to_rescore)\<close>
   :: \<open>[uncurry isa_vmtf_mark_to_rescore_pre]\<^sub>a
      atom_assn\<^sup>k *\<^sub>a vmtf_assn\<^sup>d \<rightarrow> vmtf_assn\<close>
-  supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
+  supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of[simp]
     neq_NilE[elim!] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
   unfolding isa_vmtf_mark_to_rescore_pre_def isa_vmtf_mark_to_rescore_def
   by sepref
@@ -452,7 +452,7 @@ sepref_def isa_vmtf_unset_code
   is \<open>uncurry (RETURN oo isa_vmtf_unset)\<close>
   :: \<open>[uncurry vmtf_unset_pre]\<^sub>a
      atom_assn\<^sup>k *\<^sub>a vmtf_assn\<^sup>d \<rightarrow> vmtf_assn\<close>
-  supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
+  supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of[simp]
     neq_NilE[elim!] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
   unfolding isa_vmtf_unset_def vmtf_unset_pre_def atom.fold_option  vmtf_assn_def
   apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)
@@ -501,20 +501,20 @@ sepref_def vmtf_rescore_fast_code
   by sepref
 *)
 
-lemma (in -) arena_is_valid_clause_idx_le_uint64_max:
+lemma (in -) arena_is_valid_clause_idx_le_unat64_max:
   \<open>arena_is_valid_clause_idx be bd \<Longrightarrow>
-    length be \<le> sint64_max \<Longrightarrow>
+    length be \<le> snat64_max \<Longrightarrow>
    bd + arena_length be bd < max_snat 64\<close>
-  \<open>arena_is_valid_clause_idx be bd \<Longrightarrow> length be \<le> sint64_max \<Longrightarrow>
+  \<open>arena_is_valid_clause_idx be bd \<Longrightarrow> length be \<le> snat64_max \<Longrightarrow>
    bd < max_snat 64\<close>
-  using arena_lifting(10)[of be _ _ bd] unfolding max_snat_def sint64_max_def
+  using arena_lifting(10)[of be _ _ bd] unfolding max_snat_def snat64_max_def
   by (fastforce simp: arena_lifting arena_is_valid_clause_idx_def)+
 (*
 sepref_def vmtf_mark_to_rescore_clause_fast_code
   is \<open>uncurry2 (isa_vmtf_mark_to_rescore_clause)\<close>
-  :: \<open>[\<lambda>((N, _), _). length N \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((N, _), _). length N \<le> snat64_max]\<^sub>a
        arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a vmtf_assn\<^sup>d \<rightarrow> vmtf_assn\<close>
-  supply [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
+  supply [[goals_limit=1]] arena_is_valid_clause_idx_le_unat64_max[intro]
   unfolding isa_vmtf_mark_to_rescore_clause_def PR_CONST_def
   unfolding while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)
@@ -525,7 +525,7 @@ sepref_def vmtf_mark_to_rescore_clause_fast_code
 
 sepref_def vmtf_mark_to_rescore_also_reasons_fast_code
   is \<open>uncurry4 (isa_vmtf_mark_to_rescore_also_reasons)\<close>
-  :: \<open>[\<lambda>((((_, N), _), _), _). length N \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((((_, N), _), _), _). length N \<le> snat64_max]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a vmtf_assn\<^sup>d \<rightarrow>
       vmtf_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
@@ -546,7 +546,7 @@ lemma isa_vmtf_bump_to_rescore_also_reasons_clD:
 sepref_register  isa_vmtf_bump_to_rescore_also_reasons_cl
 sepref_def isa_vmtf_bump_to_rescore_also_reasons_cl_impl
   is \<open>uncurry4 (isa_vmtf_bump_to_rescore_also_reasons_cl)\<close>
-  :: \<open>[\<lambda>((((_, N), _), _), _). length N \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((((_, N), _), _), _). length N \<le> snat64_max]\<^sub>a
   trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a vmtf_assn\<^sup>d \<rightarrow>
   vmtf_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]

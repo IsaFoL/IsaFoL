@@ -10,7 +10,7 @@ text \<open>
 
 definition (in -) find_local_restart_target_level_int_inv where
   \<open>find_local_restart_target_level_int_inv bmp cs =
-     (\<lambda>(brk, i). i \<le> length cs \<and> length cs < uint32_max)\<close>
+     (\<lambda>(brk, i). i \<le> length cs \<and> length cs < unat32_max)\<close>
 
 
 definition find_local_restart_target_level_int
@@ -394,7 +394,7 @@ definition isasat_GC_clauses_prog_wl2 where
           ASSERT(n \<noteq> None);
           let A = the n;
           ASSERT (A < length_bumped_vmtf_array ns);
-          ASSERT(A \<le> uint32_max div 2);
+          ASSERT(A \<le> unat32_max div 2);
           x \<leftarrow> (\<lambda>(arena\<^sub>o, arena, W). isasat_GC_clauses_prog_single_wl arena\<^sub>o arena W A) x;
           n \<leftarrow>  access_focused_vmtf_array ns A;
           RETURN (get_next n, x)

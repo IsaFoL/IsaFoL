@@ -291,29 +291,29 @@ sepref_register fm_add_new
 
 lemma add_init_cls_code_bI:
   assumes
-    \<open>length at' \<le> Suc (Suc uint32_max)\<close> and
+    \<open>length at' \<le> Suc (Suc unat32_max)\<close> and
     \<open>2 \<le> length at'\<close> and
     \<open>length a1'j \<le> length a1'a\<close> and
-    \<open>length a1'a \<le> sint64_max - length at' - 5\<close>
-  shows \<open>append_and_length_fast_code_pre ((True, at'), a1'a)\<close> \<open>5 \<le> sint64_max - length at'\<close>
+    \<open>length a1'a \<le> snat64_max - length at' - 5\<close>
+  shows \<open>append_and_length_fast_code_pre ((True, at'), a1'a)\<close> \<open>5 \<le> snat64_max - length at'\<close>
   using assms unfolding append_and_length_fast_code_pre_def
-  by (auto simp: uint64_max_def uint32_max_def sint64_max_def)
+  by (auto simp: unat64_max_def unat32_max_def snat64_max_def)
 
 lemma add_init_cls_code_bI2:
   assumes
-    \<open>length at' \<le> Suc (Suc uint32_max)\<close>
-  shows \<open>5 \<le> sint64_max - length at'\<close>
+    \<open>length at' \<le> Suc (Suc unat32_max)\<close>
+  shows \<open>5 \<le> snat64_max - length at'\<close>
   using assms unfolding append_and_length_fast_code_pre_def
-  by (auto simp: uint64_max_def uint32_max_def sint64_max_def)
+  by (auto simp: unat64_max_def unat32_max_def snat64_max_def)
 
 lemma add_init_clss_codebI:
   assumes
-    \<open>length at' \<le> Suc (Suc uint32_max)\<close> and
+    \<open>length at' \<le> Suc (Suc unat32_max)\<close> and
     \<open>2 \<le> length at'\<close> and
     \<open>length a1'j \<le> length a1'a\<close> and
-    \<open>length a1'a \<le> uint64_max - (length at' + 5)\<close>
-  shows \<open>length a1'j < uint64_max\<close>
-  using assms by (auto simp: uint64_max_def uint32_max_def)
+    \<open>length a1'a \<le> unat64_max - (length at' + 5)\<close>
+  shows \<open>length a1'j < unat64_max\<close>
+  using assms by (auto simp: unat64_max_def unat32_max_def)
 
 abbreviation clauses_ll_assn where
   \<open>clauses_ll_assn \<equiv> aal_assn' TYPE(64) TYPE(64) unat_lit_assn\<close>
@@ -347,11 +347,11 @@ sepref_register fm_add_new_fast
 lemma add_init_cls_heur_b_alt_def:
   \<open>add_init_cls_heur_b C S = do {
      let C = C;
-     ASSERT(length C \<le> uint32_max + 2);
+     ASSERT(length C \<le> unat32_max + 2);
      ASSERT(length C \<ge> 2);
      let (N, S) = extract_arena_wl_heur_init S;
      let (failed, S) = extract_failed_wl_heur_init S;
-     if (length N \<le> sint64_max - length C - 5 \<and> \<not>failed)
+     if (length N \<le> snat64_max - length C - 5 \<and> \<not>failed)
      then do {
        let (vdom, S) = extract_vdom_wl_heur_init S;
        let (ivdom, S) = extract_ivdom_wl_heur_init S;
@@ -577,7 +577,7 @@ abbreviation nat_lit_list_hm_assn where
 
 sepref_def init_next_size_impl
   is \<open>RETURN o init_next_size\<close>
-  :: \<open>[\<lambda>L. L \<le> uint32_max div 2]\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
+  :: \<open>[\<lambda>L. L \<le> unat32_max div 2]\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
   unfolding init_next_size_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
@@ -604,7 +604,7 @@ sepref_def nat_lit_lits_init_assn_assn_in
 
 lemma [sepref_fr_rules]:
   \<open>(uncurry nat_lit_lits_init_assn_assn_in,  uncurry (RETURN \<circ>\<circ> op_set_insert))
-  \<in> [\<lambda>(a, b). a \<le> uint32_max div 2]\<^sub>a
+  \<in> [\<lambda>(a, b). a \<le> unat32_max div 2]\<^sub>a
     atom_assn\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow> nat_lit_list_hm_assn\<close>
   by (rule nat_lit_lits_init_assn_assn_in.refine[FCOMP add_to_atms_ext_op_set_insert
   [unfolded op_set_insert_def[symmetric]]])
@@ -656,7 +656,7 @@ sepref_def extract_atms_clss_imp
 
 lemma extract_atms_clss_hnr[sepref_fr_rules]:
   \<open>(uncurry extract_atms_clss_imp, uncurry (RETURN \<circ>\<circ> extract_atms_clss))
-    \<in> [\<lambda>(a, b). \<forall>C\<in>set a. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max]\<^sub>a
+    \<in> [\<lambda>(a, b). \<forall>C\<in>set a. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max]\<^sub>a
       (clauses_ll_assn)\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow> nat_lit_list_hm_assn\<close>
   using extract_atms_clss_imp.refine[FCOMP extract_atms_clss_i_extract_atms_clss]
   by simp
@@ -921,7 +921,7 @@ sepref_def finalize_bump_init_code
 
 sepref_def finalise_init_code'
   is \<open>uncurry finalise_init_code\<close>
-  :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur_init S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur_init S) \<le> snat64_max]\<^sub>a
       opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply  [[goals_limit=1]]  of_nat_snat[sepref_import_param]
   unfolding finalise_init_code_alt_def isasat_init_assn_def
@@ -999,7 +999,7 @@ sepref_register empty_mark_struct combine_conflict combine_ccach combine_lcount
 
 lemma init_state_wl_D'_alt_def:
   \<open>init_state_wl_D' = (\<lambda>(\<A>\<^sub>i\<^sub>n, n). do {
-     ASSERT(Suc (2 * (n)) \<le> uint32_max);
+     ASSERT(Suc (2 * (n)) \<le> unat32_max);
      let n = Suc (n);
      let m = 2 * n;
      M \<leftarrow> init_trail_D \<A>\<^sub>i\<^sub>n n m;

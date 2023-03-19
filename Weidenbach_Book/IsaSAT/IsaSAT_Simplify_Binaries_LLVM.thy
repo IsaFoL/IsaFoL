@@ -16,7 +16,7 @@ sepref_def ahm_create_code
   by sepref
 
 definition encoded_irred_indices where
-  \<open>encoded_irred_indices = {(a, b::nat \<times> bool). a \<le> int sint64_max \<and> -a \<le> int sint64_max \<and> (snd b \<longleftrightarrow> a > 0) \<and> fst b = (if a < 0 then nat (-a) else nat a) \<and> fst b \<noteq> 0}\<close>
+  \<open>encoded_irred_indices = {(a, b::nat \<times> bool). a \<le> int snat64_max \<and> -a \<le> int snat64_max \<and> (snd b \<longleftrightarrow> a > 0) \<and> fst b = (if a < 0 then nat (-a) else nat a) \<and> fst b \<noteq> 0}\<close>
 
 sepref_def ahm_is_marked_code
   is \<open>uncurry ahm_is_marked\<close>
@@ -56,7 +56,7 @@ definition encoded_irred_index_get where
   \<open>encoded_irred_index_get a = fst a\<close>
 
 definition encoded_irred_index_get_int where
-  \<open>encoded_irred_index_get_int a = do {ASSERT (a \<le> int sint64_max \<and> -a \<le> int sint64_max); RETURN (if a > 0 then nat a else nat (-a))}\<close>
+  \<open>encoded_irred_index_get_int a = do {ASSERT (a \<le> int snat64_max \<and> -a \<le> int snat64_max); RETURN (if a > 0 then nat a else nat (-a))}\<close>
 
 lemma encoded_irred_index_get:
   \<open>(encoded_irred_index_get_int, RETURN o encoded_irred_index_get) \<in> encoded_irred_indices \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
@@ -81,21 +81,21 @@ lemma [sepref_fr_rules]:
     pure_true_conv Exists_eq_simp snat_invar_def word_msb_sint nat_sint_snat)
   done
 lemma [sepref_fr_rules]:
-  \<open>(Mreturn o (\<lambda>x. -x), RETURN o uminus) \<in> [\<lambda>a. a \<le> int sint64_max \<and> -a \<le> int sint64_max]\<^sub>a (sint_assn' TYPE(64))\<^sup>k \<rightarrow> (sint_assn' TYPE(64))\<close>
+  \<open>(Mreturn o (\<lambda>x. -x), RETURN o uminus) \<in> [\<lambda>a. a \<le> int snat64_max \<and> -a \<le> int snat64_max]\<^sub>a (sint_assn' TYPE(64))\<^sup>k \<rightarrow> (sint_assn' TYPE(64))\<close>
   apply sepref_to_hoare
   apply vcg
   subgoal for x xi asf s
     using sdiv_word_min'[of xi 1] sdiv_word_max'[of xi 1]
   apply (auto simp: sint_rel_def ENTAILS_def snat_rel_def snat.rel_def br_def sint.rel_def
     pure_true_conv Exists_eq_simp snat_invar_def word_msb_sint nat_sint_snat
-    signed_arith_ineq_checks_to_eq word_size sint64_max_def word_size)
+    signed_arith_ineq_checks_to_eq word_size snat64_max_def word_size)
   apply (subst signed_arith_ineq_checks_to_eq[symmetric])
   apply (auto simp: word_size pure_true_conv)
   done
   done
 
 lemma encoded_irred_index_get_int_alt_def:
-  \<open>encoded_irred_index_get_int a = do {ASSERT (a \<le> int sint64_max \<and> -a \<le> int sint64_max); RETURN (if a > 0 then nat a else nat (0-a))}\<close>
+  \<open>encoded_irred_index_get_int a = do {ASSERT (a \<le> int snat64_max \<and> -a \<le> int snat64_max); RETURN (if a > 0 then nat a else nat (0-a))}\<close>
   unfolding encoded_irred_index_get_int_def by auto
 sepref_def encoded_irred_index_irred_get_impl
   is \<open>encoded_irred_index_get_int\<close>
@@ -116,7 +116,7 @@ definition encoded_irred_index_set_int where
   \<open>encoded_irred_index_set_int a b = do { (if b then RETURN (int a) else RETURN (- int a))}\<close>
 
 lemma encoded_irred_index_set:
-  \<open>(uncurry encoded_irred_index_set_int, uncurry (RETURN oo encoded_irred_index_set)) \<in> [\<lambda>(a,b). a \<noteq> 0 \<and> a \<le> sint64_max]\<^sub>f nat_rel \<times>\<^sub>r bool_rel \<rightarrow> \<langle>encoded_irred_indices\<rangle>nres_rel\<close>
+  \<open>(uncurry encoded_irred_index_set_int, uncurry (RETURN oo encoded_irred_index_set)) \<in> [\<lambda>(a,b). a \<noteq> 0 \<and> a \<le> snat64_max]\<^sub>f nat_rel \<times>\<^sub>r bool_rel \<rightarrow> \<langle>encoded_irred_indices\<rangle>nres_rel\<close>
   by (clarsimp simp: encoded_irred_indices_def encoded_irred_index_set_int_def
     encoded_irred_index_set_def  intro!: nres_relI frefI)
 
@@ -233,7 +233,7 @@ lemma isa_clause_remove_duplicate_clause_wl_alt_def:
 
 sepref_def isa_clause_remove_duplicate_clause_wl_impl
   is \<open>uncurry isa_clause_remove_duplicate_clause_wl\<close>
-  :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
   sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding isa_clause_remove_duplicate_clause_wl_alt_def
@@ -271,7 +271,7 @@ lemma isa_binary_clause_subres_wl_alt_def:
 
 sepref_def isa_binary_clause_subres_wl_impl
   is \<open>uncurry3 isa_binary_clause_subres_wl\<close>
-  :: \<open>[\<lambda>(((C,L), L'), S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>(((C,L), L'), S). length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
   sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding isa_binary_clause_subres_wl_alt_def[abs_def]
@@ -288,7 +288,7 @@ sepref_def should_eliminate_pure_st_impl
 
 sepref_def isa_deduplicate_binary_clauses_wl_code
   is \<open>uncurry2 isa_deduplicate_binary_clauses_wl\<close>
-  :: \<open>[\<lambda>((L, CS), S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>((L, CS), S). length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
   unat_lit_assn\<^sup>k *\<^sub>a ahm_full_assn\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
   ahm_full_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
@@ -320,7 +320,7 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def:
         ASSERT (n \<noteq> None);
         let A = the n;
         ASSERT (A < length (get_vmtf_heur_array S));
-        ASSERT (A \<le> uint32_max div 2);
+        ASSERT (A \<le> unat32_max div 2);
         added \<leftarrow> mop_is_marked_added_heur_st S A;
         if \<not>skip \<or> \<not>added then RETURN (get_next (get_vmtf_heur_array S ! A), CS, S)
         else do {
@@ -348,7 +348,7 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def:
 
 sepref_def isa_deduplicate_binary_clauses_code
   is isa_mark_duplicated_binary_clauses_as_garbage_wl2
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def
     get_bump_heur_array_nth_def[symmetric] atom.fold_option nres_monad3

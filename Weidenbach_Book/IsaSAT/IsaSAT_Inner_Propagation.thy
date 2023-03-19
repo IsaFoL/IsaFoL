@@ -510,7 +510,7 @@ proof -
     \<forall>C. Propagated (- L) C \<in> set (get_trail_wl T) \<longrightarrow>
     C \<noteq> 0 \<longrightarrow> C \<in># dom_m (get_clauses_wl T) \<and> (\<forall>C\<in>set [C..<C + arena_length (get_clauses_wl_heur S) C]. arena_lit (get_clauses_wl_heur S) C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st T))\<close>
     subgoal
-      using valid C by (auto simp: arena_lifting in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
+      using valid C by (auto simp: arena_lifting in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
         all_atms_st_def all_atms_def all_lits_def all_lits_of_mm_union ran_m_def all_lits_of_mm_add_mset image_Un
         atm_of_all_lits_of_m(2)
         dest!: multi_member_split[of C]
@@ -525,7 +525,7 @@ proof -
         using TU list arena_lifting(5)[OF valid, of D \<open>C - D\<close>,symmetric]
         apply (auto simp: twl_list_invs_def dest!: spec[of _ \<open>-L\<close>] spec[of _ \<open>D\<close>])
         using valid
-        apply (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
+        apply (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
           all_atms_st_def all_atms_def all_lits_def all_lits_of_mm_union ran_m_def all_lits_of_mm_add_mset image_Un
           atm_of_all_lits_of_m(2) arena_lifting
           dest!: multi_member_split[of D] spec[of _ \<open>-L\<close>] spec[of _ \<open>D\<close>]
@@ -1894,10 +1894,10 @@ lemma watched_by_app_watched_by_app_heur:
 lemma update_clause_wl_heur_pre_le_sint64:
   assumes
     \<open>arena_is_valid_clause_idx_and_access (get_clauses_wl_heur S) bf baa\<close> and
-    \<open>length (get_clauses_wl_heur S)\<le> sint64_max\<close> and
+    \<open>length (get_clauses_wl_heur S)\<le> snat64_max\<close> and
     \<open>arena_lit_pre (get_clauses_wl_heur S) (bf + baa)\<close>
-  shows \<open>bf + baa \<le> sint64_max\<close>
-       \<open>length (get_clauses_wl_heur S) \<le> sint64_max\<close>
+  shows \<open>bf + baa \<le> snat64_max\<close>
+       \<open>length (get_clauses_wl_heur S) \<le> snat64_max\<close>
   using assms
   by (auto simp: arena_is_valid_clause_idx_and_access_def isasat_fast_def
     dest!: arena_lifting(10))

@@ -500,15 +500,15 @@ text \<open>
   following condition:
 \<close>
 definition isasat_fast :: \<open>isasat \<Rightarrow> bool\<close> where
-  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1) \<and>
-  learned_clss_count S < uint64_max)\<close>
+  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> snat64_max - (unat32_max div 2 + MAX_HEADER_SIZE+1) \<and>
+  learned_clss_count S < unat64_max)\<close>
 
-lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get_clauses_wl_heur S) \<le> sint64_max\<close> and
+lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get_clauses_wl_heur S) \<le> snat64_max\<close> and
   isasat_fast_countD:
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcount (get_learned_count S) < uint64_max\<close>
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUS (get_learned_count S) < uint64_max\<close>
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUE (get_learned_count S) < uint64_max\<close>
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountU0 (get_learned_count S) < uint64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcount (get_learned_count S) < unat64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUS (get_learned_count S) < unat64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUE (get_learned_count S) < unat64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountU0 (get_learned_count S) < unat64_max\<close>
   by (solves \<open>cases S; auto simp: isasat_fast_def clss_size_lcountUS_def
     clss_size_lcountUE_def clss_size_lcount_def clss_size_lcountU0_def
     clss_size_allcount_def learned_clss_count_def\<close>)+
@@ -534,15 +534,6 @@ lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
 definition count_decided_st :: \<open>nat twl_st_wl \<Rightarrow> nat\<close> where
   \<open>count_decided_st = (\<lambda>(M, _). count_decided M)\<close>
 
-definition isa_count_decided_st :: \<open>isasat \<Rightarrow> nat\<close> where
-  \<open>isa_count_decided_st = count_decided_pol o get_trail_wl_heur\<close>
-
-lemma count_decided_st_count_decided_st:
-  \<open>(RETURN o isa_count_decided_st, RETURN o count_decided_st) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-     (auto simp: count_decided_st_def twl_st_heur_def isa_count_decided_st_def Let_def
-       count_decided_trail_ref[THEN fref_to_Down_unRET_Id])
-
 
 lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_trail_wl S)\<close>
   unfolding count_decided_st_def
@@ -559,9 +550,6 @@ lemma atm_is_in_conflict_st_heur_alt_def:
   \<open>atm_is_in_conflict_st_heur = (\<lambda>L S. case (get_conflict_wl_heur S) of (_, (_, D)) \<Rightarrow> do {ASSERT ((atm_of L) < length D); RETURN (D ! (atm_of L) = None)})\<close>
   unfolding atm_is_in_conflict_st_heur_def by (auto intro!: ext simp: atm_in_conflict_lookup_def atm_in_conflict_lookup_pre_def split:option.splits
     intro!: prod.case_cong)
-
-(*TODO remove*)
-lemmas atm_of_in_atms_of_iff = atm_of_in_atms_of
 
 lemma all_lits_st_alt_def: \<open>set_mset (all_lits_st S) =  set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S))\<close>
   by (auto simp: all_lits_st_def all_lits_def all_lits_of_mm_union
@@ -588,7 +576,7 @@ proof -
     apply (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def)[]
     apply (auto simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def option_lookup_clause_rel_def
       ac_simps)[]
-    apply (simp add: atm_in_conflict_def atm_of_in_atms_of_iff)
+    apply (simp add: atm_in_conflict_def atm_of_in_atms_of)
     done
   done
 qed
@@ -607,6 +595,12 @@ lemma valid_arena_DECISION_REASON:
 
 definition count_decided_st_heur :: \<open>isasat \<Rightarrow> _\<close> where
    \<open>count_decided_st_heur S = count_decided_pol (get_trail_wl_heur S)\<close>
+
+lemma count_decided_st_count_decided_st:
+  \<open>(RETURN o count_decided_st_heur, RETURN o count_decided_st) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+     (auto simp: count_decided_st_def twl_st_heur_def count_decided_st_heur_def Let_def
+       count_decided_trail_ref[THEN fref_to_Down_unRET_Id])
 
 lemma twl_st_heur_count_decided_st_alt_def:
   fixes S :: isasat
@@ -744,7 +738,7 @@ definition (in -) mop_access_lit_in_clauses_heur where
 
 lemma access_lit_in_clauses_heur_fast_pre:
   \<open>arena_lit_pre (get_clauses_wl_heur a) (ba + b) \<Longrightarrow>
-    isasat_fast a \<Longrightarrow> ba + b \<le> sint64_max\<close>
+    isasat_fast a \<Longrightarrow> ba + b \<le> snat64_max\<close>
   by (auto simp: arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
       dest!: arena_lifting(10)
       dest!: isasat_fast_length_leD)[]
@@ -788,9 +782,9 @@ proof
 qed
 
 
-lemma arena_lit_pre_le_sint64_max:
- \<open>length ba \<le> sint64_max \<Longrightarrow>
-       arena_lit_pre ba a \<Longrightarrow> a \<le> sint64_max\<close>
+lemma arena_lit_pre_le_snat64_max:
+ \<open>length ba \<le> snat64_max \<Longrightarrow>
+       arena_lit_pre ba a \<Longrightarrow> a \<le> snat64_max\<close>
   using arena_lifting(10)[of ba _ _]
   by (fastforce simp: arena_lifting arena_is_valid_clause_idx_def arena_lit_pre_def
       arena_is_valid_clause_idx_and_access_def)
@@ -812,7 +806,7 @@ definition rewatch_heur_st_fast where
 
 definition rewatch_heur_st_fast_pre where
   \<open>rewatch_heur_st_fast_pre S =
-     ((\<forall>x \<in> set (get_tvdom S). x \<le> sint64_max) \<and> length (get_clauses_wl_heur S) \<le> sint64_max)\<close>
+     ((\<forall>x \<in> set (get_tvdom S). x \<le> snat64_max) \<and> length (get_clauses_wl_heur S) \<le> snat64_max)\<close>
 
 definition rewatch_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>rewatch_st S = do{
@@ -1802,10 +1796,10 @@ lemma [simp]:
   by (cases aivdom; auto simp: empty_tvdom_def; fail)+
 
 definition isasat_fast_relaxed :: \<open>isasat \<Rightarrow> bool\<close> where
-  \<open>isasat_fast_relaxed S \<longleftrightarrow> length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max\<close>
+  \<open>isasat_fast_relaxed S \<longleftrightarrow> length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max\<close>
 
 definition isasat_fast_relaxed2 :: \<open>isasat \<Rightarrow> nat \<Rightarrow> bool\<close> where
-  \<open>isasat_fast_relaxed2 S n  \<longleftrightarrow> isasat_fast_relaxed S \<and> n < uint64_max\<close>
+  \<open>isasat_fast_relaxed2 S n  \<longleftrightarrow> isasat_fast_relaxed S \<and> n < unat64_max\<close>
 
 
 definition  mop_arena_promote_st where
@@ -1869,4 +1863,8 @@ definition stats_forward_rounds_st :: \<open>isasat \<Rightarrow> 64 word\<close
 definition incr_purelit_rounds_st :: \<open>_\<close> where
   \<open>incr_purelit_rounds_st S = set_stats_wl_heur (incr_purelit_rounds (get_stats_heur S)) S\<close>
 
+lemma all_count_learned[simp]: \<open>clss_size_allcount (get_learned_count S) = learned_clss_count S\<close>
+    by (auto simp: twl_st_heur'_def clss_size_allcount_def learned_clss_count_def clss_size_lcountU0_def
+      clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountUEk_def
+      split: prod.splits)
 end

@@ -82,7 +82,7 @@ definition bump_heur_import_variable where
 definition initialise_VMTF :: \<open>nat list \<Rightarrow> nat \<Rightarrow> vmtf_remove_int_option_fst_As nres\<close> where
 \<open>initialise_VMTF N n = do {
    let A = replicate n (VMTF_Node 0 None None);
-   ASSERT(length N \<le> uint32_max);
+   ASSERT(length N \<le> unat32_max);
    (n, A, cnext) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(i, A, cnext). i < length_uint32_nat N)
       (\<lambda>(i, A, cnext). do {
@@ -90,7 +90,7 @@ definition initialise_VMTF :: \<open>nat list \<Rightarrow> nat \<Rightarrow> vm
         let L = (N ! i);
         ASSERT(L < length A);
         ASSERT(cnext \<noteq> None \<longrightarrow> the cnext < length A);
-        ASSERT(i + 1 \<le> uint32_max);
+        ASSERT(i + 1 \<le> unat32_max);
         RETURN (i + 1, vmtf_cons A L cnext (i), Some L)
       })
       (0, A, None);
@@ -113,7 +113,7 @@ lemma distinct_atms_int_empty_distinct_atms_empty:
 
 lemma initialise_VMTF:
   shows  \<open>(uncurry initialise_VMTF, uncurry (\<lambda>N n. RES (isa_vmtf_init N []))) \<in>
-      [\<lambda>(N,n). (\<forall>L\<in># N. L < n) \<and> (distinct_mset N) \<and> size N < uint32_max \<and> set_mset N = set_mset \<A>]\<^sub>f
+      [\<lambda>(N,n). (\<forall>L\<in># N. L < n) \<and> (distinct_mset N) \<and> size N < unat32_max \<and> set_mset N = set_mset \<A>]\<^sub>f
       (\<langle>nat_rel\<rangle>list_rel_mset_rel) \<times>\<^sub>f nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
     (is \<open>(?init, ?R) \<in> _\<close>)
 proof -
@@ -131,7 +131,7 @@ proof -
               let L = (N' ! i);
               _ \<leftarrow> ASSERT (L < length A);
               _ \<leftarrow> ASSERT (cnext \<noteq> None \<longrightarrow> the cnext < length A);
-              _ \<leftarrow> ASSERT (i + 1 \<le> uint32_max);
+              _ \<leftarrow> ASSERT (i + 1 \<le> unat32_max);
               RETURN
                (i + 1,
                 vmtf_cons A L cnext (i), Some L)
@@ -144,7 +144,7 @@ proof -
           length A' = n \<and> vmtf_ns_notin (rev ((take i N'))) i A'
       )\<close>
     (is \<open>_ \<le> SPEC ?P\<close>)
-    if H: \<open>case y of (N, n) \<Rightarrow>(\<forall>L\<in># N. L < n) \<and> distinct_mset N \<and> size N < uint32_max \<and>
+    if H: \<open>case y of (N, n) \<Rightarrow>(\<forall>L\<in># N. L < n) \<and> distinct_mset N \<and> size N < unat32_max \<and>
          set_mset N = set_mset \<A>\<close> and
        ref: \<open>(x, y) \<in> \<langle>Id\<rangle>list_rel_mset_rel \<times>\<^sub>f nat_rel\<close> and
        st[simp]: \<open>x = (N', n')\<close> \<open>y = (N, n)\<close>
@@ -260,7 +260,7 @@ lemma specify_left_RES:
 
 lemma initialize_Bump_Init:
   shows  \<open>(uncurry initialize_Bump_Init, uncurry (\<lambda>N n. RES (bump_heur_init N []))) \<in>
-      [\<lambda>(N,n). (\<forall>L\<in># N. L < n) \<and> (distinct_mset N) \<and> size N < uint32_max \<and> set_mset N = set_mset \<A>]\<^sub>f
+      [\<lambda>(N,n). (\<forall>L\<in># N. L < n) \<and> (distinct_mset N) \<and> size N < unat32_max \<and> set_mset N = set_mset \<A>]\<^sub>f
       (\<langle>nat_rel\<rangle>list_rel_mset_rel) \<times>\<^sub>f nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
     (is \<open>(?init, ?R) \<in> _\<close>)
   unfolding initialize_Bump_Init_def uncurry_def distinct_atms_int_empty_def nres_monad1

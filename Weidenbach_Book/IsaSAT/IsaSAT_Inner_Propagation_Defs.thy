@@ -344,7 +344,7 @@ definition select_and_remove_from_literals_to_update_wl_heur
 where
 \<open>select_and_remove_from_literals_to_update_wl_heur S = do {
     ASSERT(literals_to_update_wl_heur S < length (fst (get_trail_wl_heur S)));
-    ASSERT(literals_to_update_wl_heur S + 1 \<le> uint32_max);
+    ASSERT(literals_to_update_wl_heur S + 1 \<le> unat32_max);
     L \<leftarrow> isa_trail_nth (get_trail_wl_heur S) (literals_to_update_wl_heur S);
     RETURN (set_literals_to_update_wl_heur (literals_to_update_wl_heur S + 1) S, -L)
   }\<close>

@@ -8,7 +8,7 @@ begin
 
 type_synonym 'a array_list64 = \<open>'a Heap.array \<times> uint64\<close>
 
-definition \<open>is_array_list64 l \<equiv> \<lambda>(a,n). \<exists>\<^sub>Al'. a \<mapsto>\<^sub>a l' * \<up>(nat_of_uint64 n \<le> length l' \<and> l = take (nat_of_uint64 n) l' \<and> length l'>0 \<and> nat_of_uint64 n \<le> uint64_max \<and> length l' \<le> uint64_max)\<close>
+definition \<open>is_array_list64 l \<equiv> \<lambda>(a,n). \<exists>\<^sub>Al'. a \<mapsto>\<^sub>a l' * \<up>(nat_of_uint64 n \<le> length l' \<and> l = take (nat_of_uint64 n) l' \<and> length l'>0 \<and> nat_of_uint64 n \<le> unat64_max \<and> length l' \<le> unat64_max)\<close>
 
 lemma is_array_list64_prec[safe_constraint_rules]: \<open>precise is_array_list64\<close>
   unfolding is_array_list64_def[abs_def]
@@ -22,12 +22,12 @@ definition "arl64_empty \<equiv> do {
 }"
 
 definition "arl64_empty_sz init_cap \<equiv> do {
-  a \<leftarrow> Array.new (min uint64_max (max init_cap minimum_capacity)) default;
+  a \<leftarrow> Array.new (min unat64_max (max init_cap minimum_capacity)) default;
   return (a,0)
 }"
 
-definition uint64_max_uint64 :: uint64 where
-  \<open>uint64_max_uint64 = 2 ^64 - 1\<close>
+definition unat64_max_uint64 :: uint64 where
+  \<open>unat64_max_uint64 = 2 ^64 - 1\<close>
 
 definition "arl64_append \<equiv> \<lambda>(a,n) x. do {
   len \<leftarrow> length_u64_code a;
@@ -36,7 +36,7 @@ definition "arl64_append \<equiv> \<lambda>(a,n) x. do {
     a \<leftarrow> Array_upd_u64 n x a;
     return (a,n+1)
   } else do {
-    let newcap = (if len < uint64_max_uint64 >> 1 then 2 * len else uint64_max_uint64);
+    let newcap = (if len < unat64_max_uint64 >> 1 then 2 * len else unat64_max_uint64);
     a \<leftarrow> array_grow a (nat_of_uint64 newcap) default;
     a \<leftarrow> Array_upd_u64 n x a;
     return (a,n+1)
@@ -78,23 +78,23 @@ definition arl64_set :: \<open>'a::heap array_list64 \<Rightarrow> uint64 \<Righ
 
 
 lemma arl64_empty_rule[sep_heap_rules]: \<open>< emp > arl64_empty <is_array_list64 []>\<close>
-  by (sep_auto simp: arl64_empty_def is_array_list64_def initial_capacity_def uint64_max_def)
+  by (sep_auto simp: arl64_empty_def is_array_list64_def initial_capacity_def unat64_max_def)
 
 lemma arl64_empty_sz_rule[sep_heap_rules]: \<open>< emp > arl64_empty_sz N <is_array_list64 []>\<close>
-  by (sep_auto simp: arl64_empty_sz_def is_array_list64_def minimum_capacity_def uint64_max_def)
+  by (sep_auto simp: arl64_empty_sz_def is_array_list64_def minimum_capacity_def unat64_max_def)
 
 lemma arl64_copy_rule[sep_heap_rules]: \<open>< is_array_list64 l a > arl64_copy a <\<lambda>r. is_array_list64 l a * is_array_list64 l r>\<close>
   by (sep_auto simp: arl64_copy_def is_array_list64_def)
-lemma [simp]: \<open>nat_of_uint64 uint64_max_uint64 = uint64_max\<close>
-  by (auto simp:  nat_of_uint64_mult_le nat_of_uint64_shiftl uint64_max_uint64_def uint64_max_def)[]
-lemma \<open>2 * (uint64_max div 2) = uint64_max - 1\<close>
-  by (auto simp:  nat_of_uint64_mult_le nat_of_uint64_shiftl uint64_max_uint64_def uint64_max_def)[]
+lemma [simp]: \<open>nat_of_uint64 unat64_max_uint64 = unat64_max\<close>
+  by (auto simp:  nat_of_uint64_mult_le nat_of_uint64_shiftl unat64_max_uint64_def unat64_max_def)[]
+lemma \<open>2 * (unat64_max div 2) = unat64_max - 1\<close>
+  by (auto simp:  nat_of_uint64_mult_le nat_of_uint64_shiftl unat64_max_uint64_def unat64_max_def)[]
 
 lemma nat_of_uint64_0_iff: \<open>nat_of_uint64 x2 = 0 \<longleftrightarrow> x2 = 0\<close>
   using word_nat_of_uint64_Rep_inject by fastforce
 
 lemma arl64_append_rule[sep_heap_rules]:
-  assumes \<open>length l < uint64_max\<close>
+  assumes \<open>length l < unat64_max\<close>
   shows "< is_array_list64 l a >
       arl64_append a x
     <\<lambda>a. is_array_list64 (l@[x]) a >\<^sub>t"
@@ -102,33 +102,33 @@ proof -
   have [simp]: \<open>\<And>x1 x2 y ys.
        x2 < uint64_of_nat ys \<Longrightarrow>
        nat_of_uint64 x2 \<le> ys \<Longrightarrow>
-       ys \<le> uint64_max \<Longrightarrow> nat_of_uint64 x2 < ys\<close>
+       ys \<le> unat64_max \<Longrightarrow> nat_of_uint64 x2 < ys\<close>
     by (metis nat_of_uint64_less_iff nat_of_uint64_uint64_of_nat_id)
   have [simp]: \<open>\<And>x2 ys. x2 < uint64_of_nat (Suc (ys)) \<Longrightarrow>
-       Suc (ys) \<le> uint64_max \<Longrightarrow>
+       Suc (ys) \<le> unat64_max \<Longrightarrow>
        nat_of_uint64 (x2 + 1) = 1 + nat_of_uint64 x2\<close>
      by (smt ab_semigroup_add_class.add.commute le_neq_implies_less less_or_eq_imp_le
          less_trans_Suc linorder_neqE_nat nat_of_uint64_012(3) nat_of_uint64_add
           nat_of_uint64_less_iff nat_of_uint64_uint64_of_nat_id not_less_eq plus_1_eq_Suc)
   have [dest]: \<open>\<And>x2a x2 ys. x2 < uint64_of_nat (Suc (ys)) \<Longrightarrow>
-       Suc (ys) \<le> uint64_max \<Longrightarrow>
+       Suc (ys) \<le> unat64_max \<Longrightarrow>
        nat_of_uint64 x2 = Suc x2a \<Longrightarrow>Suc x2a \<le> ys\<close>
     by (metis less_Suc_eq_le nat_of_uint64_less_iff nat_of_uint64_uint64_of_nat_id)
-  have [simp]: \<open>\<And>ys. ys \<le> uint64_max \<Longrightarrow>
-       uint64_of_nat ys \<le> uint64_max_uint64 >> Suc 0 \<Longrightarrow>
+  have [simp]: \<open>\<And>ys. ys \<le> unat64_max \<Longrightarrow>
+       uint64_of_nat ys \<le> unat64_max_uint64 >> Suc 0 \<Longrightarrow>
        nat_of_uint64 (2 * uint64_of_nat ys) = 2 * ys\<close>
    by (subst (asm) nat_of_uint64_le_iff[symmetric])
-    (auto simp: nat_of_uint64_uint64_of_nat_id uint64_max_uint64_def uint64_max_def nat_of_uint64_shiftl
+    (auto simp: nat_of_uint64_uint64_of_nat_id unat64_max_uint64_def unat64_max_def nat_of_uint64_shiftl
        nat_of_uint64_mult_le)
-  have [simp]: \<open>\<And>ys. ys \<le> uint64_max \<Longrightarrow>
-       uint64_of_nat ys \<le> uint64_max_uint64 >> Suc 0 \<longleftrightarrow> ys \<le> uint64_max div 2\<close>
+  have [simp]: \<open>\<And>ys. ys \<le> unat64_max \<Longrightarrow>
+       uint64_of_nat ys \<le> unat64_max_uint64 >> Suc 0 \<longleftrightarrow> ys \<le> unat64_max div 2\<close>
    by (subst nat_of_uint64_le_iff[symmetric])
-    (auto simp: nat_of_uint64_uint64_of_nat_id uint64_max_uint64_def uint64_max_def nat_of_uint64_shiftl
+    (auto simp: nat_of_uint64_uint64_of_nat_id unat64_max_uint64_def unat64_max_def nat_of_uint64_shiftl
        nat_of_uint64_mult_le)
-  have [simp]: \<open>\<And>ys. ys \<le> uint64_max \<Longrightarrow>
-       uint64_of_nat ys < uint64_max_uint64 >> Suc 0 \<longleftrightarrow> ys < uint64_max div 2\<close>
+  have [simp]: \<open>\<And>ys. ys \<le> unat64_max \<Longrightarrow>
+       uint64_of_nat ys < unat64_max_uint64 >> Suc 0 \<longleftrightarrow> ys < unat64_max div 2\<close>
    by (subst nat_of_uint64_less_iff[symmetric])
-    (auto simp: nat_of_uint64_uint64_of_nat_id uint64_max_uint64_def uint64_max_def nat_of_uint64_shiftl
+    (auto simp: nat_of_uint64_uint64_of_nat_id unat64_max_uint64_def unat64_max_def nat_of_uint64_shiftl
        nat_of_uint64_mult_le)
 
   show ?thesis
@@ -268,7 +268,7 @@ begin
     by sep_auto
   sepref_decl_impl arl64_copy: arl64_copy_hnr_aux .
 
-  lemma arl64_append_hnr_aux: \<open>(uncurry arl64_append,uncurry (RETURN oo op_list_append)) \<in> [\<lambda>(xs, x). length xs < uint64_max]\<^sub>a (is_array_list64\<^sup>d *\<^sub>a id_assn\<^sup>k) \<rightarrow> is_array_list64\<close>
+  lemma arl64_append_hnr_aux: \<open>(uncurry arl64_append,uncurry (RETURN oo op_list_append)) \<in> [\<lambda>(xs, x). length xs < unat64_max]\<^sub>a (is_array_list64\<^sup>d *\<^sub>a id_assn\<^sup>k) \<rightarrow> is_array_list64\<close>
     by sep_auto
   sepref_decl_impl arl64_append: arl64_append_hnr_aux
     unfolding fref_param1 by (auto intro!: frefI nres_relI simp: list_rel_imp_same_length)
@@ -344,16 +344,16 @@ definition arl64_of_arl :: \<open>'a list \<Rightarrow> 'a list\<close> where
 definition arl64_of_arl_code :: \<open>'a :: heap array_list \<Rightarrow> 'a array_list64 Heap\<close> where
   \<open>arl64_of_arl_code = (\<lambda>(a, n). do {
     m \<leftarrow> Array.len a;
-    if m > uint64_max then do {
-        a \<leftarrow> array_shrink a uint64_max;
+    if m > unat64_max then do {
+        a \<leftarrow> array_shrink a unat64_max;
         return (a, (uint64_of_nat n))}
    else return (a, (uint64_of_nat n))})\<close>
 
 lemma arl64_of_arl[sepref_fr_rules]:
-  \<open>(arl64_of_arl_code, RETURN o arl64_of_arl) \<in> [\<lambda>n. length n \<le> uint64_max]\<^sub>a (arl_assn R)\<^sup>d \<rightarrow> arl64_assn R\<close>
+  \<open>(arl64_of_arl_code, RETURN o arl64_of_arl) \<in> [\<lambda>n. length n \<le> unat64_max]\<^sub>a (arl_assn R)\<^sup>d \<rightarrow> arl64_assn R\<close>
 proof -
-  have [iff]: \<open>take uint64_max l' = [] \<longleftrightarrow> l' = []\<close> \<open>0 < uint64_max\<close> for l'
-    by (auto simp: uint64_max_def)
+  have [iff]: \<open>take unat64_max l' = [] \<longleftrightarrow> l' = []\<close> \<open>0 < unat64_max\<close> for l'
+    by (auto simp: unat64_max_def)
   have H: \<open>x2 \<le> length l' \<Longrightarrow>
        (take x2 l', x) \<in> \<langle>the_pure R\<rangle>list_rel \<Longrightarrow> length x = x2\<close>
       \<open>x2 \<le> length l' \<Longrightarrow>

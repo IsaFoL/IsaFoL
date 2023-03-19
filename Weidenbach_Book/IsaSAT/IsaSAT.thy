@@ -1294,13 +1294,13 @@ proof -
       apply fast
       using U' by (auto simp: finalise_init_def)
   qed
-  have all_le: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max\<close>
+  have all_le: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max\<close>
   proof (intro ballI)
     fix C L
     assume \<open>C \<in> set CS\<close> and \<open>L \<in> set C\<close>
     then have \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (\<Union>C\<in>set CS. atm_of ` set C))\<close>
       by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
-    then show \<open>nat_of_lit L \<le> uint32_max\<close>
+    then show \<open>nat_of_lit L \<le> unat32_max\<close>
       using assms by auto
   qed
   have [simp]: \<open>(Tc, fst Td) \<in> state_wl_l None \<Longrightarrow>
@@ -1534,7 +1534,7 @@ definition IsaSAT_use_fast_mode where
 definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> nat literal list \<times> isasat_stats) nres\<close> where
   \<open>IsaSAT_heur opts CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
-    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max);
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max);
     let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
@@ -1660,7 +1660,7 @@ lemma all_lits_of_mm_extract_atms_clss:
 lemma IsaSAT_heur_alt_def:
   \<open>IsaSAT_heur opts CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
-    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max);
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max);
     let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
@@ -1919,14 +1919,14 @@ proof -
   qed
   have virtual_copy: \<open>(virtual_copy \<A>, ()) \<in> {(\<B>, c). c = () \<and> \<B> = \<A>}\<close> for \<B> \<A>
     by (auto simp: virtual_copy_def)
-  have input_le: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max\<close>
+  have input_le: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max\<close>
     if \<open>isasat_input_bounded (mset_set (extract_atms_clss CS {}))\<close>
   proof (intro ballI)
     fix C L
     assume \<open>C \<in> set CS\<close> and \<open>L \<in> set C\<close>
     then have \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss CS {}))\<close>
       by (auto simp: extract_atms_clss_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
-    then show \<open>nat_of_lit L \<le> uint32_max\<close>
+    then show \<open>nat_of_lit L \<le> unat32_max\<close>
       using that by auto
   qed
   have lits_C: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset_set (extract_atms_clss CS {})) (mset C)\<close>
@@ -2050,7 +2050,7 @@ proof -
       using T by (auto simp: twl_st_heur_parsing_no_WL_def)
     then show ?thesis
       using length_le unfolding rewatch_heur_st_fast_pre_def convert_state_def
-        isasat_fast_init_def uint64_max_def uint32_max_def
+        isasat_fast_init_def unat64_max_def unat32_max_def
       by (auto dest: valid_arena_in_vdom_le_arena)
   qed
   have rewatch_heur_st_fast_pre2: \<open>rewatch_heur_st_fast_pre
@@ -2265,7 +2265,7 @@ proof -
       learned_clss_count_init_def learned_clss_count_def)
     apply (rule_tac r1 = \<open>length (get_clauses_wl_heur Tc)\<close> in cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D[
       THEN fref_to_Down])
-      subgoal by (auto simp: isasat_fast_def sint64_max_def uint64_max_def uint32_max_def)
+      subgoal by (auto simp: isasat_fast_def snat64_max_def unat64_max_def unat32_max_def)
     subgoal by fast
     subgoal by fast
     subgoal premises p for _ ba S T Ta Tb Tc u v
@@ -2420,11 +2420,11 @@ lemma IsaSAT_heur_model_if_sat:
   done
 
 lemma IsaSAT_heur_model_if_sat': \<open>(uncurry IsaSAT_heur, uncurry (\<lambda>_. model_if_satisfiable)) \<in>
-   [\<lambda>(_, CS). (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint32_max)]\<^sub>f
+   [\<lambda>(_, CS). (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> unat32_max)]\<^sub>f
      Id \<times>\<^sub>r list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<rightarrow> \<langle>model_stat_rel\<rangle>nres_rel\<close>
 proof -
   have H: \<open>isasat_input_bounded (mset_set (\<Union>C\<in>set CS. atm_of ` set C))\<close>
-    if CS_p: \<open>\<forall>C\<in>#CS'. \<forall>L\<in>#C. nat_of_lit L \<le> uint32_max\<close> and
+    if CS_p: \<open>\<forall>C\<in>#CS'. \<forall>L\<in>#C. nat_of_lit L \<le> unat32_max\<close> and
       \<open>(CS, CS') \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close>
     for CS CS'
     unfolding isasat_input_bounded_def
@@ -2434,17 +2434,17 @@ proof -
     then obtain C where
       L: \<open>C\<in>set CS \<and> (L \<in>set C \<or> - L \<in> set C)\<close>
       apply (cases L)
-      apply (auto simp: extract_atms_clss_alt_def uint32_max_def
+      apply (auto simp: extract_atms_clss_alt_def unat32_max_def
           \<L>\<^sub>a\<^sub>l\<^sub>l_def)+
       apply (metis literal.exhaust_sel)+
       done
-    have \<open>nat_of_lit L \<le> uint32_max \<or> nat_of_lit (-L) \<le> uint32_max\<close>
+    have \<open>nat_of_lit L \<le> unat32_max \<or> nat_of_lit (-L) \<le> unat32_max\<close>
       using L CS_p that by (auto simp: list_mset_rel_def mset_rel_def br_def
       br_def mset_rel_def p2rel_def rel_mset_def
         rel2p_def[abs_def] list_all2_op_eq_map_right_iff')
-    then show \<open>nat_of_lit L \<le> uint32_max\<close>
+    then show \<open>nat_of_lit L \<le> unat32_max\<close>
       using L
-      by (cases L) (auto simp: extract_atms_clss_alt_def uint32_max_def)
+      by (cases L) (auto simp: extract_atms_clss_alt_def unat32_max_def)
   qed
   show ?thesis
     apply (intro frefI nres_relI)
@@ -3147,13 +3147,13 @@ proof -
       done
   qed
 
-  have all_le: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max\<close>
+  have all_le: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max\<close>
   proof (intro ballI)
     fix C L
     assume \<open>C \<in> set CS\<close> and \<open>L \<in> set C\<close>
     then have \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (\<Union>C\<in>set CS. atm_of ` set C))\<close>
       by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
-    then show \<open>nat_of_lit L \<le> uint32_max\<close>
+    then show \<open>nat_of_lit L \<le> unat32_max\<close>
       using assms by auto
   qed
   have [simp]: \<open>(Tc, fst Td) \<in> state_wl_l None \<Longrightarrow>
@@ -3407,7 +3407,7 @@ definition empty_conflict_code' :: \<open>(bool \<times> _ list \<times> isasat_
 lemma IsaSAT_bounded_heur_alt_def:
   \<open>IsaSAT_bounded_heur opts CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
-    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max);
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max);
     let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
@@ -3510,14 +3510,14 @@ proof -
   qed
   have virtual_copy: \<open>(virtual_copy \<A>, ()) \<in> {(\<B>, c). c = () \<and> \<B> = \<A>}\<close> for \<B> \<A>
     by (auto simp: virtual_copy_def)
-  have input_le: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max\<close>
+  have input_le: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max\<close>
     if \<open>isasat_input_bounded (mset_set (extract_atms_clss CS {}))\<close>
   proof (intro ballI)
     fix C L
     assume \<open>C \<in> set CS\<close> and \<open>L \<in> set C\<close>
     then have \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss CS {}))\<close>
       by (auto simp: extract_atms_clss_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
-    then show \<open>nat_of_lit L \<le> uint32_max\<close>
+    then show \<open>nat_of_lit L \<le> unat32_max\<close>
       using that by auto
   qed
   have lits_C: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset_set (extract_atms_clss CS {})) (mset C)\<close>
@@ -3637,7 +3637,7 @@ proof -
       using T by (auto simp: twl_st_heur_parsing_no_WL_def)
     then show ?thesis
       using length_le unfolding rewatch_heur_st_fast_pre_def convert_state_def
-        isasat_fast_init_def uint64_max_def uint32_max_def
+        isasat_fast_init_def unat64_max_def unat32_max_def
       by (auto dest: valid_arena_in_vdom_le_arena)
   qed
   have rewatch_heur_st_fast_pre2: \<open>rewatch_heur_st_fast_pre
@@ -3804,8 +3804,8 @@ proof -
       learned_clss_count_init_def learned_clss_count_def)
     apply (rule_tac r1 = \<open>length (get_clauses_wl_heur Td)\<close> in
       cdcl_twl_stgy_restart_prog_bounded_wl_heur_cdcl_twl_stgy_restart_prog_bounded_wl_D[THEN fref_to_Down])
-    subgoal by (simp add: isasat_fast_def sint64_max_def uint32_max_def
-      uint64_max_def)
+    subgoal by (simp add: isasat_fast_def snat64_max_def unat32_max_def
+      unat64_max_def)
     subgoal by fast
     subgoal by simp
     subgoal premises p
@@ -3866,11 +3866,11 @@ lemma IsaSAT_bounded_heur_model_if_sat:
 
 lemma IsaSAT_bounded_heur_model_if_sat':
   \<open>(uncurry IsaSAT_bounded_heur, uncurry (\<lambda>_. model_if_satisfiable_bounded)) \<in>
-   [\<lambda>(_, CS). (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint32_max)]\<^sub>f
+   [\<lambda>(_, CS). (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> unat32_max)]\<^sub>f
      Id \<times>\<^sub>r list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<rightarrow> \<langle>{((b, m), (b', m')). b=b' \<and> (\<not>b \<longrightarrow> (m,m') \<in> model_stat_rel)}\<rangle>nres_rel\<close>
 proof -
   have H: \<open>isasat_input_bounded (mset_set (\<Union>C\<in>set CS. atm_of ` set C))\<close>
-    if CS_p: \<open>\<forall>C\<in>#CS'. \<forall>L\<in>#C. nat_of_lit L \<le> uint32_max\<close> and
+    if CS_p: \<open>\<forall>C\<in>#CS'. \<forall>L\<in>#C. nat_of_lit L \<le> unat32_max\<close> and
       \<open>(CS, CS') \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close>
     for CS CS'
     unfolding isasat_input_bounded_def
@@ -3880,17 +3880,17 @@ proof -
     then obtain C where
       L: \<open>C\<in>set CS \<and> (L \<in>set C \<or> - L \<in> set C)\<close>
       apply (cases L)
-      apply (auto simp: extract_atms_clss_alt_def uint32_max_def
+      apply (auto simp: extract_atms_clss_alt_def unat32_max_def
           \<L>\<^sub>a\<^sub>l\<^sub>l_def)+
       apply (metis literal.exhaust_sel)+
       done
-    have \<open>nat_of_lit L \<le> uint32_max \<or> nat_of_lit (-L) \<le> uint32_max\<close>
+    have \<open>nat_of_lit L \<le> unat32_max \<or> nat_of_lit (-L) \<le> unat32_max\<close>
       using L CS_p that by (auto simp: list_mset_rel_def mset_rel_def br_def
       br_def mset_rel_def p2rel_def rel_mset_def
         rel2p_def[abs_def] list_all2_op_eq_map_right_iff')
-    then show \<open>nat_of_lit L \<le> uint32_max\<close>
+    then show \<open>nat_of_lit L \<le> unat32_max\<close>
       using L
-      by (cases L) (auto simp: extract_atms_clss_alt_def uint32_max_def)
+      by (cases L) (auto simp: extract_atms_clss_alt_def unat32_max_def)
   qed
   show ?thesis
     apply (intro frefI nres_relI)

@@ -509,7 +509,7 @@ lemma simplify_clause_with_unit_st_wl_preD:
   shows
     simplify_clause_with_unit_st_wl_pre_all_init_atms_all_atms:
       \<open>set_mset (all_init_atms_st S) = set_mset (all_atms_st S)\<close> and
-    \<open>isasat_input_bounded (all_init_atms_st S) \<Longrightarrow> length (get_clauses_wl S \<propto> C) \<le> Suc (uint32_max div 2)\<close>
+    \<open>isasat_input_bounded (all_init_atms_st S) \<Longrightarrow> length (get_clauses_wl S \<propto> C) \<le> Suc (unat32_max div 2)\<close>
 proof -
   obtain x xa where
     Sx: \<open>(S, x) \<in> state_wl_l None\<close> and
@@ -571,7 +571,7 @@ proof -
   moreover have \<open>\<not>tautology (mset (get_clauses_wl S \<propto> C))\<close>
     using list C Sx unfolding twl_list_invs_def
     by auto
-  ultimately show \<open>length (get_clauses_wl S \<propto> C) \<le> Suc (uint32_max div 2)\<close>
+  ultimately show \<open>length (get_clauses_wl S \<propto> C) \<le> Suc (unat32_max div 2)\<close>
     if \<open>isasat_input_bounded (all_init_atms_st S)\<close>
     using simple_clss_size_upper_div2[OF that, of \<open>mset (get_clauses_wl S \<propto> C)\<close>] by auto
 qed
@@ -581,7 +581,7 @@ lemma isa_simplify_clause_with_unit2_isa_simplify_clause_with_unit:
     trail: \<open>(M, M') \<in> trail_pol \<A>\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N)\<close> and
     C: \<open>(C,C')\<in>Id\<close> and
-    le: \<open>length (N \<propto> C) \<le> Suc (uint32_max div 2)\<close>
+    le: \<open>length (N \<propto> C) \<le> Suc (unat32_max div 2)\<close>
   shows \<open>isa_simplify_clause_with_unit2 C M arena \<le> \<Down>
     (bool_rel \<times>\<^sub>r {(arena', N). valid_arena arena' N vdom \<and> length arena' = length arena} \<times>\<^sub>r
     Id \<times>\<^sub>r bool_rel \<times>\<^sub>r nat_rel)

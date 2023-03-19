@@ -330,7 +330,7 @@ definition isa_mark_duplicated_binary_clauses_as_garbage_wl :: \<open>isasat \<R
         ASSERT (n \<noteq> None);
         let A = the n;
         ASSERT (A < length ns);
-        ASSERT (A \<le> uint32_max div 2);
+        ASSERT (A \<le> unat32_max div 2);
         S \<leftarrow> do {ASSERT (ns = (get_vmtf_heur_array S));
         skip_lit \<leftarrow> mop_is_marked_added_heur_st S A;
         if \<not>skip \<or> \<not>skip_lit then RETURN (CS, S)
@@ -360,7 +360,7 @@ definition isa_mark_duplicated_binary_clauses_as_garbage_wl2 :: \<open>isasat \<
         ASSERT (n \<noteq> None);
         let A = the n;
         ASSERT (A < length (get_vmtf_heur_array S));
-        ASSERT (A \<le> uint32_max div 2);
+        ASSERT (A \<le> unat32_max div 2);
         (CS, S) \<leftarrow> do {
         added_lit \<leftarrow> mop_is_marked_added_heur_st S A;
         if \<not>dedup \<or> \<not>added_lit then RETURN (CS, S)

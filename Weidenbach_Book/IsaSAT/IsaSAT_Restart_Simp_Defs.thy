@@ -19,7 +19,7 @@ definition cdcl_twl_stgy_restart_abs_wl_heur_inv2 where
 text \<open>It would be better to add a backtrack to level 0 before instead of delaying the restart.\<close>
 definition update_all_phases :: \<open>isasat \<Rightarrow> (isasat) nres\<close> where
   \<open>update_all_phases = (\<lambda>S. do {
-     if (isa_count_decided_st S = 0) then do {
+     if (count_decided_st_heur S = 0) then do {
        let lcount = get_global_conflict_count S;
        end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
        S \<leftarrow> (if end_of_restart_phase < lcount then update_restart_phases S else RETURN S);
@@ -40,23 +40,23 @@ where
     (ebrk, brk, T, n) \<leftarrow>
        WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, last_GC, last_Restart, n).
        cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 (brk, T, last_GC, last_Restart, n) \<and>
-        (\<not>ebrk \<longrightarrow>isasat_fast T) \<and> length (get_clauses_wl_heur T) \<le> uint64_max\<^esup>
+        (\<not>ebrk \<longrightarrow>isasat_fast T) \<and> length (get_clauses_wl_heur T) \<le> unat64_max\<^esup>
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
       (\<lambda>(ebrk, brk, S, last_GC, last_Restart, n).
       do {
         ASSERT(\<not>brk \<and> \<not>ebrk);
-        ASSERT(length (get_clauses_wl_heur S) \<le> uint64_max);
+        ASSERT(length (get_clauses_wl_heur S) \<le> unat64_max);
         T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
-        ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max);
+        ASSERT(length (get_clauses_wl_heur T) \<le> unat64_max);
         ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S));
         (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
-        ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max);
+        ASSERT(length (get_clauses_wl_heur T) \<le> unat64_max);
         (T, n) \<leftarrow> restart_prog_wl_D_heur T last_GC last_Restart n brk;
 	ebrk \<leftarrow> RETURN (\<not>isasat_fast T);
         RETURN (ebrk, brk \<or> \<not>get_conflict_wl_is_None_heur T, T, n)
       })
       (ebrk, False, S\<^sub>0::isasat, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0,  0);
-    ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max \<and>
+    ASSERT(length (get_clauses_wl_heur T) \<le> unat64_max \<and>
         get_old_arena T = []);
     if \<not>brk then do {
        T \<leftarrow> isasat_fast_slow T;
@@ -82,8 +82,8 @@ where
     ebrk \<leftarrow> RETURN (\<not>isasat_fast S\<^sub>0);
     (ebrk, brk, T, n) \<leftarrow>
      WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, last_GC, last_Restart, n). cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 (brk, T, last_GC, last_Restart, n) \<and>
-        (\<not>ebrk \<longrightarrow>isasat_fast T \<and> n < uint64_max) \<and>
-        (\<not>ebrk \<longrightarrow>length (get_clauses_wl_heur T) \<le> sint64_max)\<^esup>
+        (\<not>ebrk \<longrightarrow>isasat_fast T \<and> n < unat64_max) \<and>
+        (\<not>ebrk \<longrightarrow>length (get_clauses_wl_heur T) \<le> snat64_max)\<^esup>
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
       (\<lambda>(ebrk, brk, S, last_GC, last_Restart, n).
       do {
@@ -96,7 +96,7 @@ where
         (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_wl_D_heur T last_GC last_Restart n brk;
         T \<leftarrow> update_all_phases T;
         ASSERT(isasat_fast_relaxed T);
-	      ebrk \<leftarrow> RETURN (\<not>(isasat_fast T \<and> n < uint64_max));
+	      ebrk \<leftarrow> RETURN (\<not>(isasat_fast T \<and> n < unat64_max));
         RETURN (ebrk, brk \<or> \<not>get_conflict_wl_is_None_heur T, T, last_GC, last_Restart, n)
       })
       (ebrk, False, S\<^sub>0::isasat, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0, 0);

@@ -189,7 +189,7 @@ lemma isasat_fast_init_alt_def:
 
       }
    }})\<close>
-  by (auto simp: isasat_fast_init_def uint64_max_def uint32_max_def isasat_fast_bound_def max_uint_def
+  by (auto simp: isasat_fast_init_def unat64_max_def unat32_max_def isasat_fast_bound_def max_uint_def
     clss_size_lcountUS_def clss_size_lcountUE_def clss_size_lcount_def learned_clss_count_init_def unats_def
     clss_size_lcountU0_def clss_size_lcountUEk_def Let_def bind_ASSERT_eq_if split: if_splits intro!: ASSERT_leI
   intro!: ext)
@@ -222,7 +222,7 @@ declare init_state_wl_D'_code.refine[FCOMP init_state_wl_D',
 
 lemma [sepref_fr_rules]: \<open>(init_state_wl_D'_code, init_state_wl_heur_fast)
 \<in> [\<lambda>x. distinct_mset x \<and>
-       (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l x. nat_of_lit L \<le> uint32_max)]\<^sub>a lits_with_max_assn\<^sup>k \<rightarrow> isasat_init_assn\<close>
+       (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l x. nat_of_lit L \<le> unat32_max)]\<^sub>a lits_with_max_assn\<^sup>k \<rightarrow> isasat_init_assn\<close>
   using init_state_wl_D'_code.refine[FCOMP init_state_wl_D']
   unfolding lits_with_max_assn_alt_def[symmetric] init_state_wl_D'_code_isasat
     init_state_wl_heur_fast_def
@@ -268,7 +268,7 @@ lemma IsaSAT_bounded_heur_alt_def:
   \<open>IsaSAT_bounded_heur opts CS = do{
     _ \<leftarrow> RETURN (IsaSAT_Profile.start_initialisation);
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
-    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max);
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max);
     let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');

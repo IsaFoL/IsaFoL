@@ -40,7 +40,7 @@ sepref_register isa_bump_mark_to_rescore isa_find_decomp_wl_imp
 sepref_def isa_bump_mark_to_rescore_code
   is \<open>uncurry (isa_bump_mark_to_rescore)\<close>
   :: \<open>atom_assn\<^sup>k *\<^sub>a heuristic_bump_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_bump_assn\<close>
-  supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
+  supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of[simp]
     neq_NilE[elim!] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
   unfolding isa_vmtf_mark_to_rescore_pre_def isa_vmtf_mark_to_rescore_def
     isa_bump_mark_to_rescore_def
@@ -49,9 +49,9 @@ sepref_def isa_bump_mark_to_rescore_code
 
 sepref_def isa_bump_mark_to_rescore_clause_fast_code
   is \<open>uncurry2 (isa_bump_mark_to_rescore_clause)\<close>
-  :: \<open>[\<lambda>((N, _), _). length N \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((N, _), _). length N \<le> snat64_max]\<^sub>a
        arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a heuristic_bump_assn\<^sup>d \<rightarrow> heuristic_bump_assn\<close>
-  supply [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
+  supply [[goals_limit=1]] arena_is_valid_clause_idx_le_unat64_max[intro]
   unfolding isa_bump_mark_to_rescore_clause_def PR_CONST_def
   unfolding while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)
@@ -71,7 +71,7 @@ sepref_def isa_bump_rescore_fast_code
 
 sepref_def vmtf_mark_to_rescore_also_reasons_fast_code
   is \<open>uncurry4 (isa_vmtf_mark_to_rescore_also_reasons)\<close>
-  :: \<open>[\<lambda>((((_, N), _), _), _). length N \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((((_, N), _), _), _). length N \<le> snat64_max]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a heuristic_bump_assn\<^sup>d \<rightarrow>
       heuristic_bump_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
@@ -89,7 +89,7 @@ sepref_register isa_vmtf_bump_to_rescore_also_reasons_cl isa_vmtf_mark_to_rescor
   
 sepref_def isa_vmtf_bump_to_rescore_also_reasons_cl_impl
   is \<open>uncurry4 (isa_vmtf_bump_to_rescore_also_reasons_cl)\<close>
-  :: \<open>[\<lambda>((((_, N), _), _), _). length N \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((((_, N), _), _), _). length N \<le> snat64_max]\<^sub>a
   trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a heuristic_bump_assn\<^sup>d \<rightarrow>
   heuristic_bump_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]

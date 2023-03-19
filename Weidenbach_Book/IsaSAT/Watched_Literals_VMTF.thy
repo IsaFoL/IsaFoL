@@ -1497,7 +1497,7 @@ proof -
   let ?ys' = \<open>set ys'\<close>
   have L_xs_ys: \<open>L \<in> ?xs' \<union> ?ys'\<close>
     using abs_vmtf L unfolding vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-    by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+    by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
   have dist: \<open>distinct (xs' @ ys')\<close>
     using vmtf_ns_distinct[OF vmtf_ns] by auto
 
@@ -1643,7 +1643,7 @@ definition vmtf_en_dequeue_pre :: \<open>nat multiset \<Rightarrow> ((nat, nat) 
        L < length ns \<and> vmtf_dequeue_pre (L, ns) \<and>
        fst_As < length ns \<and> (get_next (ns ! fst_As) \<noteq> None \<longrightarrow> get_prev (ns ! lst_As) \<noteq> None) \<and>
        (get_next (ns ! fst_As) = None \<longrightarrow> fst_As = lst_As) \<and>
-       m+1 \<le> uint64_max \<and>
+       m+1 \<le> unat64_max \<and>
        Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
 
 lemma (in -) id_reorder_list:
@@ -1652,7 +1652,7 @@ lemma (in -) id_reorder_list:
 
 lemma vmtf_vmtf_en_dequeue_pre_to_remove:
   assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search)) \<in> vmtf \<A> M\<close> and
-    m_le:  \<open>m + 1 \<le> uint64_max\<close> and
+    m_le:  \<open>m + 1 \<le> unat64_max\<close> and
     nempty: \<open>isasat_input_nempty \<A>\<close> and
     A:  \<open>A \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
   shows \<open>vmtf_en_dequeue_pre \<A> ((M, A), (ns, m, fst_As, lst_As, next_search))\<close>
@@ -1737,7 +1737,7 @@ qed
 
 lemma vmtf_vmtf_en_dequeue_pre_to_remove':
   assumes vmtf: \<open>(vm) \<in> vmtf \<A> M\<close> and
-    i:  \<open>A \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close> and \<open>fst (snd vm) + 1 \<le> uint64_max\<close> and
+    i:  \<open>A \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close> and \<open>fst (snd vm) + 1 \<le> unat64_max\<close> and
     A: \<open>isasat_input_nempty \<A>\<close>
   shows \<open>vmtf_en_dequeue_pre \<A> ((M, A), vm)\<close>
   using vmtf_vmtf_en_dequeue_pre_to_remove assms
@@ -1912,17 +1912,17 @@ proof -
   have no_next_search_all_defined:
     \<open>(ns', m', fst_As', lst_As', None) \<in> vmtf \<A> M \<Longrightarrow> x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> defined_lit M x\<close>
     for x ns' m' fst_As' lst_As' remove
-    by (auto simp: vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+    by (auto simp: vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
         defined_lit_map lits_of_def)
   have next_search_\<L>\<^sub>a\<^sub>l\<^sub>l:
     \<open>(ns', m', fst_As', lst_As', Some y) \<in> vmtf \<A> M \<Longrightarrow> y \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
     for ns' m' fst_As' remove y lst_As'
-    by (auto simp: vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+    by (auto simp: vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
         defined_lit_map lits_of_def)
   have next_search_le_A':
     \<open>(ns', m', fst_As', lst_As', Some y) \<in> vmtf \<A> M \<Longrightarrow> y < length ns'\<close>
     for ns' m' fst_As' remove y lst_As'
-    by (auto simp: vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+    by (auto simp: vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
         defined_lit_map lits_of_def)
   show ?thesis
     unfolding vmtf_find_next_undef_def
@@ -1930,20 +1930,20 @@ proof -
        WHILEIT_rule[where R=\<open>{(get_next (ns ! the a), a) |a. a \<noteq> None \<and> the a \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)}\<close>])
     subgoal using vmtf by (rule wf_vmtf_get_next)
     subgoal using next_search vmtf by auto
-    subgoal using vmtf by (auto dest!: next_search_\<L>\<^sub>a\<^sub>l\<^sub>l simp: image_image in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+    subgoal using vmtf by (auto dest!: next_search_\<L>\<^sub>a\<^sub>l\<^sub>l simp: image_image in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
     subgoal using vmtf by auto
     subgoal using vmtf by auto
     subgoal using vmtf by (auto dest: next_search_le_A')
-    subgoal by (auto simp: image_image in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+    subgoal by (auto simp: image_image in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
         (metis next_search_\<L>\<^sub>a\<^sub>l\<^sub>l option.distinct(1) option.sel vmtf_next_search_take_next)
-    subgoal by (auto simp: image_image in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+    subgoal by (auto simp: image_image in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
         (metis next_search_\<L>\<^sub>a\<^sub>l\<^sub>l option.distinct(1) option.sel vmtf_next_search_take_next)
     subgoal by (auto dest: no_next_search_all_defined next_search_\<L>\<^sub>a\<^sub>l\<^sub>l)
     subgoal by (auto dest: next_search_le_A')
     subgoal for x1 ns' x2 m' x2a fst_As' next_search' x2c s
       by (auto dest: no_next_search_all_defined next_search_\<L>\<^sub>a\<^sub>l\<^sub>l)
     subgoal by (auto dest: vmtf_next_search_take_next)
-    subgoal by (auto simp: image_image in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+    subgoal by (auto simp: image_image in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
     done
 qed
 
@@ -2358,7 +2358,7 @@ definition vmtf_rescale :: \<open>vmtf \<Rightarrow> vmtf nres\<close> where
      (\<lambda>(ns, n, lst_As). lst_As \<noteq>None)
      (\<lambda>(ns, n, a). do {
        ASSERT(a \<noteq> None);
-       ASSERT(n+1 \<le> uint32_max);
+       ASSERT(n+1 \<le> unat32_max);
        ASSERT(the a < length ns);
        RETURN (update_stamp ns n (the a), n+1, get_prev (ns ! the a))
      })
@@ -2373,7 +2373,7 @@ lemma vmtf_rescale_vmtf:
     nempty: \<open>isasat_input_nempty \<A>\<close> and
     bounded: \<open>isasat_input_bounded \<A>\<close>
   shows
-    \<open>vmtf_rescale vm \<le> SPEC (\<lambda>vm. vm \<in> vmtf \<A> M \<and> fst (snd vm) \<le> uint32_max)\<close>
+    \<open>vmtf_rescale vm \<le> SPEC (\<lambda>vm. vm \<in> vmtf \<A> M \<and> fst (snd vm) \<le> unat32_max)\<close>
     (is \<open>?A \<le> ?R\<close>)
 proof -
   obtain ns m fst_As lst_As next_search where
@@ -2426,9 +2426,9 @@ proof -
   have tauto: \<open>\<not> tautology (poss (mset zs))\<close>
     by (auto simp: tautology_decomp)
 
-  have length_zs_le:  \<open>length zs < uint32_max\<close> using vmtf_ns_distinct[OF vmtf_ns]
+  have length_zs_le:  \<open>length zs < unat32_max\<close> using vmtf_ns_distinct[OF vmtf_ns]
       using simple_clss_size_upper_div2[OF bounded lits dist tauto]
-      by (auto simp: uint32_max_def)
+      by (auto simp: unat32_max_def)
 
   have \<open>wf {(a, b). (a, b) \<in> {(get_prev (ns ! the a), a) |a. a \<noteq> None \<and> the a \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)}}\<close>
     by (rule wf_subset[OF wf_vmtf_get_prev[OF vmtf[unfolded vm]]]) auto
@@ -2444,7 +2444,7 @@ proof -
   have loop_body:  \<open>(case s' of
         (ns, n, a) \<Rightarrow> do {
             ASSERT (a \<noteq> None);
-            ASSERT (n + 1 \<le> uint32_max);
+            ASSERT (n + 1 \<le> unat32_max);
             ASSERT(the a < length ns);
             RETURN (update_stamp ns n (the a), n + 1, get_prev (ns ! the a))
           })
@@ -2606,7 +2606,7 @@ proof -
   have H: \<open>WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup> (\<lambda>(ns, n, lst_As). lst_As \<noteq> None)
      (\<lambda>(ns, n, a). do {
            _ \<leftarrow> ASSERT (a \<noteq> None);
-           _ \<leftarrow> ASSERT (n + 1 \<le> uint32_max);
+           _ \<leftarrow> ASSERT (n + 1 \<le> unat32_max);
            ASSERT(the a < length ns);
            RETURN (update_stamp ns n (the a), n + 1, get_prev (ns ! the a))
          })
@@ -2684,12 +2684,12 @@ definition atoms_hash_del where
 definition vmtf_flush_int :: \<open>nat multiset \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ nres\<close> where
 \<open>vmtf_flush_int \<A>\<^sub>i\<^sub>n = (\<lambda>M vm (to_remove, h). do {
     ASSERT(\<forall>x\<in>set to_remove. x < length (fst vm));
-    ASSERT(length to_remove \<le> uint32_max);
+    ASSERT(length to_remove \<le> unat32_max);
     to_remove' \<leftarrow> reorder_list vm to_remove;
-    ASSERT(length to_remove' \<le> uint32_max);
-    vm \<leftarrow> (if length to_remove' + fst (snd vm) \<ge> uint64_max
+    ASSERT(length to_remove' \<le> unat32_max);
+    vm \<leftarrow> (if length to_remove' + fst (snd vm) \<ge> unat64_max
       then vmtf_rescale vm else RETURN vm);
-    ASSERT(length to_remove' + fst (snd vm) \<le> uint64_max);
+    ASSERT(length to_remove' + fst (snd vm) \<le> unat64_max);
     (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> length to_remove' \<and> fst (snd vm') = i + fst (snd vm) \<and>
           (i < length to_remove' \<longrightarrow> vmtf_en_dequeue_pre \<A>\<^sub>i\<^sub>n ((M, to_remove'!i), vm'))\<^esup>
       (\<lambda>(i, vm, h). i < length to_remove')
@@ -2734,7 +2734,7 @@ proof -
       by (metis atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_mono)
   qed
 
-  have length_le: \<open>length x1a \<le> uint32_max\<close>
+  have length_le: \<open>length x1a \<le> unat32_max\<close>
     if
       \<open>(C, D) = (x1a, x2a)\<close> and
       \<open>\<forall>x\<in>set x1a. x < length (fst x1)\<close>
@@ -2754,7 +2754,7 @@ proof -
 
     show ?thesis
       using simple_clss_size_upper_div2[OF bounded lits dist tauto]
-      by (auto simp: uint32_max_def)
+      by (auto simp: unat32_max_def)
   qed
 
 
@@ -2774,19 +2774,19 @@ proof -
   qed
 
 
-  have [refine0]: \<open>(if uint64_max \<le> length to_remove' + fst (snd x1) then vmtf_rescale x1
+  have [refine0]: \<open>(if unat64_max \<le> length to_remove' + fst (snd x1) then vmtf_rescale x1
       else RETURN x1)
       \<le> SPEC (\<lambda>c. (c, ()) \<in>
-        {(vm ,vm'). uint64_max \<ge> length to_remove' + fst (snd vm) \<and>
+        {(vm ,vm'). unat64_max \<ge> length to_remove' + fst (snd vm) \<and>
           (vm) \<in> vmtf \<A>\<^sub>i\<^sub>n M}) \<close>
     (is \<open>_ \<le> SPEC(\<lambda>c. (c, ()) \<in> ?rescale)\<close> is \<open>_ \<le> ?H\<close>)
   if
     \<open>x2 = (x1a, x2a)\<close> and
     \<open>((ns, m, fst_As, lst_As, next_search), C, D) = (x1, x2)\<close> and
     \<open>\<forall>x\<in>set x1a. x < length (fst x1)\<close> and
-    \<open>length x1a \<le> uint32_max\<close> and
+    \<open>length x1a \<le> unat32_max\<close> and
     \<open>(to_remove', uu) \<in> ?reorder_list\<close> and
-    \<open>length to_remove' \<le> uint32_max\<close>
+    \<open>length to_remove' \<le> unat32_max\<close>
   for x1 x2 x1a x2a to_remove' uu
   proof -
     have \<open>vmtf_rescale x1 \<le> ?H\<close>
@@ -2795,7 +2795,7 @@ proof -
       subgoal using vmtf that by auto
       subgoal using nempty by fast
       subgoal using bounded by fast
-      subgoal using that by (auto intro!: RES_refine simp: uint64_max_def uint32_max_def)
+      subgoal using that by (auto intro!: RES_refine simp: unat64_max_def unat32_max_def)
       done
     then show ?thesis
       using that vmtf
@@ -2844,7 +2844,7 @@ proof -
     have in_lall: \<open>to_remove' ! x1 \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)\<close> if le': \<open>x1 < length to_remove'\<close> for x1
       using vmtf to_rem nth_mem[OF le'] t by (auto simp: vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
          atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n subsetD)
-    have bound: \<open>fst (snd x1) + 1 \<le> uint64_max\<close> if \<open>0 < length to_remove'\<close>
+    have bound: \<open>fst (snd x1) + 1 \<le> unat64_max\<close> if \<open>0 < length to_remove'\<close>
         using rel vmtf to_rem that x1 by (cases to_remove') auto
     have I_init: \<open>I (0, x1, x2a)\<close> (is ?A)
       for x1a x2 x1aa x2aa
@@ -2888,7 +2888,7 @@ proof -
         using I I' le dist that CD x2a' unfolding I_def I'_def x2a' x1aa
          by (auto simp: distinct_atoms_rel_def in_set_drop_conv_nth I'_def
              nth_eq_iff_index_eq intro: bex_geI[of _ \<open>Suc x2\<close>])
-      then have 4: \<open>fst (snd (vmtf_en_dequeue M (to_remove' ! x2) x2aa)) + 1 \<le> uint64_max\<close>
+      then have 4: \<open>fst (snd (vmtf_en_dequeue M (to_remove' ! x2) x2aa)) + 1 \<le> unat64_max\<close>
         if \<open>Suc x2 < length to_remove'\<close>
         using x1 le that
         by (cases x2aa)

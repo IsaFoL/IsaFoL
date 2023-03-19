@@ -2,7 +2,7 @@ theory Array_Array_List64
   imports Array_Array_List IICF_Array_List64
 begin
 
-subsection \<open>Array of Array Lists of maximum length \<^term>\<open>uint64_max\<close>\<close>
+subsection \<open>Array of Array Lists of maximum length \<^term>\<open>unat64_max\<close>\<close>
 
 definition length_aa64 :: \<open>('a::heap array_list64) array \<Rightarrow> uint64 \<Rightarrow> uint64 Heap\<close> where
   \<open>length_aa64 xs i = do {
@@ -110,7 +110,7 @@ declare arrayO_nth_rule[sep_heap_rules]
 
 lemma sep_auto_is_stupid:
   fixes R :: \<open>'a \<Rightarrow> 'b::{heap,default} \<Rightarrow> assn\<close>
-  assumes p: \<open>is_pure R\<close> and \<open>length l' < uint64_max\<close>
+  assumes p: \<open>is_pure R\<close> and \<open>length l' < unat64_max\<close>
   shows
     \<open><\<exists>\<^sub>Ap. R1 p * R2 p * arl64_assn R l' aa * R x x' * R4 p>
        arl64_append aa x' <\<lambda>r. (\<exists>\<^sub>Ap. arl64_assn R (l' @ [x]) r * R1 p * R2 p * R x x' * R4 p * true) >\<close>
@@ -133,7 +133,7 @@ lemma append_aa64_hnr[sepref_fr_rules]:
   assumes p: \<open>is_pure R\<close>
   shows
     \<open>(uncurry2 append64_el_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> append_ll)) \<in>
-     [\<lambda>((l,i),x). i < length l \<and> length (l ! i) < uint64_max]\<^sub>a (arrayO_assn (arl64_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl64_assn R))\<close>
+     [\<lambda>((l,i),x). i < length l \<and> length (l ! i) < unat64_max]\<^sub>a (arrayO_assn (arl64_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl64_assn R))\<close>
 proof -
   obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
     using p by fastforce
@@ -294,14 +294,14 @@ proof -
   have [simp]: \<open>\<And>aa n l'.
        (take (nat_of_uint64 n) l', ai) \<in> \<langle>the_pure R\<rangle>list_rel \<Longrightarrow>
        nat_of_uint64 n \<le> length l' \<Longrightarrow>
-       l' \<noteq> [] \<Longrightarrow> length l' \<le> uint64_max \<Longrightarrow> nat_of_uint64 n - Suc 0 < length l'\<close>
+       l' \<noteq> [] \<Longrightarrow> length l' \<le> unat64_max \<Longrightarrow> nat_of_uint64 n - Suc 0 < length l'\<close>
     using assms by (cases ai; auto simp: min_def split: if_splits dest!: list_rel_imp_same_length[symmetric]
       simp flip: nat_of_uint64_le_iff)+
   have [intro!]: \<open>(take (nat_of_uint64 n) l', ai) \<in> \<langle>R'\<rangle>list_rel \<Longrightarrow>
        a = (aa, n) \<Longrightarrow>
        nat_of_uint64 n \<le> length l' \<Longrightarrow>
        l' \<noteq> [] \<Longrightarrow>
-       length l' \<le> uint64_max \<Longrightarrow>
+       length l' \<le> unat64_max \<Longrightarrow>
        (aaa, b) \<Turnstile> aa \<mapsto>\<^sub>a l' \<Longrightarrow>
        (l' ! (nat_of_uint64 n - Suc 0), ai ! (length ai - Suc 0)) \<in> R'\<close> for aa n l' aaa b
      using assms
@@ -588,7 +588,7 @@ proof -
     apply (rule_tac x=\<open>p[a := (aaa, ba')]\<close> in ent_ex_postI)
     apply (rule_tac x=\<open>take ba l'\<close> in ent_ex_postI)
     apply (sep_auto simp: uint64_nat_rel_def br_def list_rel_imp_same_length
-      nat_of_uint64_le_uint64_max intro!: split: prod.splits)
+      nat_of_uint64_le_unat64_max intro!: split: prod.splits)
     apply (subst (2) heap_list_all_nth_cong[of _ _ b _ p])
     apply auto
     apply sep_auto
@@ -669,7 +669,7 @@ lemma append64_aa32_hnr[sepref_fr_rules]:
   assumes p: \<open>is_pure R\<close>
   shows
     \<open>(uncurry2 append64_el_aa32, uncurry2 (RETURN \<circ>\<circ>\<circ> append_ll)) \<in>
-     [\<lambda>((l,i),x). i < length l \<and> length (l ! i) < uint64_max]\<^sub>a (arrayO_assn (arl64_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl64_assn R))\<close>
+     [\<lambda>((l,i),x). i < length l \<and> length (l ! i) < unat64_max]\<^sub>a (arrayO_assn (arl64_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl64_assn R))\<close>
 proof -
   obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
     using p by fastforce

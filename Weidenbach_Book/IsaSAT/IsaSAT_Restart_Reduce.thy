@@ -192,7 +192,7 @@ proof -
       \<open>out_learned bt bv as\<close> and
       \<open>clss_size_corr bu bw bx NEk UEk NS US N0 U0 bp\<close> and
       \<open>vdom_m ?\<A> bz bu \<subseteq> set ?bo\<close> and
-      \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>. nat_of_lit L \<le> uint32_max\<close> and
+      \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>. nat_of_lit L \<le> unat32_max\<close> and
       \<open>?\<A> \<noteq> {#}\<close> and*)
       bounded: \<open>isasat_input_bounded ?\<A>\<close> and
       heur: \<open>heuristic_rel ?\<A> ?heur\<close>

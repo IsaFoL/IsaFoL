@@ -50,7 +50,7 @@ sepref_def get_level_fast_code
       trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   unfolding get_level_get_level_atm nat_shiftr_div2[symmetric]
   get_level_pol_pre_def get_level_pol_def
-  supply [[goals_limit = 1]] image_image[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
+  supply [[goals_limit = 1]] image_image[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of[simp]
     get_level_atm_pol_pre_def[simp]
   by sepref
 

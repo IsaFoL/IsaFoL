@@ -231,7 +231,7 @@ sepref_def isa_all_lit_clause_unset_impl
 lemma rdomp_aivdom_assn_length_avdomD: \<open>rdomp aivdom_assn x \<Longrightarrow> length (get_avdom_aivdom x) < max_snat 64\<close>
   unfolding isasat_bounded_assn_def
   apply (cases x)
-  apply (auto simp: isasat_bounded_assn_def sint64_max_def max_snat_def length_avdom_def
+  apply (auto simp: isasat_bounded_assn_def snat64_max_def max_snat_def length_avdom_def
     aivdom_assn_def code_hider_assn_def hr_comp_def code_hider_rel_def
     split: isasat_int_splits
     dest: al_assn_boundD[of sint64_nat_assn] mod_starD)
@@ -626,11 +626,11 @@ proof -
     by auto
   from this[of \<open>b - SIZE_SHIFT\<close>] have \<open>rdomp arena_el_impl_assn (a ! (b - SIZE_SHIFT))\<close>
     using le by auto
-  then have \<open>length (N \<propto> b) \<le> uint32_max + 2\<close>
+  then have \<open>length (N \<propto> b) \<le> unat32_max + 2\<close>
     using size eq unfolding rdomp_pure
     apply (auto simp: rdomp_def arena_el_impl_rel_def is_Size_def
        comp_def pure_def unat_rel_def unat.rel_def br_def arena_el_rel_def
-       arena_length_def uint32_max_def)
+       arena_length_def unat32_max_def)
      subgoal for x
        using unat_lt_max_unat[of x]
        apply (auto simp: max_unat_def)
@@ -640,7 +640,7 @@ proof -
     using assms POS_SHIFT_def
     unfolding isa_update_pos_pre_def
     by (auto simp: arena_is_valid_clause_idx_def arena_lifting eq
-       uint32_max_def max_unat_def)
+       unat32_max_def max_unat_def)
 qed
 
 lemma arena_is_valid_clause_idxD2: \<open>arena_is_valid_clause_idx b a \<Longrightarrow> a - Suc 0 < length b\<close>
@@ -762,7 +762,7 @@ lemma isasat_bounded_assn_get_vdomD: \<open>rdomp isasat_bounded_assn a \<Longri
   unfolding rdomp_def
   apply normalize_goal+
   apply (cases a, case_tac xa; cases \<open>get_aivdom a\<close>)
-  apply (auto 7 5 simp: isasat_bounded_assn_def sint64_max_def max_snat_def aivdom_assn_def
+  apply (auto 7 5 simp: isasat_bounded_assn_def snat64_max_def max_snat_def aivdom_assn_def
          code_hider_assn_def hr_comp_def code_hider_rel_def import_param_3 pred_lift_def
       split: isasat_int_splits
       dest!: mod_starD al_assn_boundD[of sint64_nat_assn, where 'l=\<open>64\<close>])

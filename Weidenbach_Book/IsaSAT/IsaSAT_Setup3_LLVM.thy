@@ -357,7 +357,7 @@ lemma mark_garbage_heur4_alt_def:
 sepref_def mark_garbage_heur4_code
   is \<open>uncurry mark_garbage_heur4\<close>
   :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C \<and>
-        learned_clss_count S \<le> uint64_max]\<^sub>a
+        learned_clss_count S \<le> unat64_max]\<^sub>a
      sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] isasat_fast_countD[dest] learned_clss_count_def[simp]
   unfolding mark_garbage_heur4_alt_def

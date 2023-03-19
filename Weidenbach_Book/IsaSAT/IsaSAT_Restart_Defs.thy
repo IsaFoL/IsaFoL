@@ -133,7 +133,7 @@ where
         L \<leftarrow> isa_trail_nth (get_trail_wl_heur S\<^sub>0) i;
 	C \<leftarrow> get_the_propagation_reason_pol (get_trail_wl_heur S\<^sub>0) L;
 	RETURN (L, C)};
-      ASSERT(C \<noteq> None \<and> i + 1 \<le> Suc (uint32_max div 2));
+      ASSERT(C \<noteq> None \<and> i + 1 \<le> Suc (unat32_max div 2));
       if the C = 0 then RETURN (i+1, S\<^sub>0)
       else do {
         ASSERT(C \<noteq> None);
@@ -238,7 +238,7 @@ definition iterate_over_VMTFC where
           ASSERT(n \<noteq> None);
           let A = the n;
           ASSERT(A < length ns);
-          ASSERT(A \<le> uint32_max div 2);
+          ASSERT(A \<le> unat32_max div 2);
           x \<leftarrow> f A x;
           RETURN (get_next ((ns ! A)), x)
         })
@@ -277,11 +277,11 @@ lemma valid_arena_header_size:
 
 
 definition rewatch_heur_st_pre :: \<open>isasat \<Rightarrow> bool\<close> where
-  \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i < length (get_tvdom S). get_tvdom S ! i \<le> sint64_max)\<close>
+  \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i < length (get_tvdom S). get_tvdom S ! i \<le> snat64_max)\<close>
 
 lemma isasat_GC_clauses_wl_D_rewatch_pre:
   assumes
-    \<open>length (get_clauses_wl_heur x) \<le> sint64_max\<close> and
+    \<open>length (get_clauses_wl_heur x) \<le> snat64_max\<close> and
     \<open>length (get_clauses_wl_heur xc) \<le> length (get_clauses_wl_heur x)\<close> and
     \<open>\<forall>i \<in> set (get_tvdom xc). i \<le> length (get_clauses_wl_heur x)\<close>
   shows \<open>rewatch_heur_st_pre xc\<close>

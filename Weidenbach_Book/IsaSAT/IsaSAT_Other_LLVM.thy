@@ -8,19 +8,15 @@ sepref_register get_conflict_wl_is_None decide_wl_or_skip_D_heur skip_and_resolv
 
 lemma cdcl_twl_o_prog_wl_D_heurI1:
   \<open>get_learned_count x = get_learned_count xc \<Longrightarrow>
-       learned_clss_count x < uint64_max \<Longrightarrow> learned_clss_count xc \<le> uint64_max\<close>
+       learned_clss_count x < unat64_max \<Longrightarrow> learned_clss_count xc \<le> unat64_max\<close>
   using get_learned_count_learned_clss_countD2[of xc x]
   by (auto dest: get_learned_count_learned_clss_countD2)
 
 lemma cdcl_twl_o_prog_wl_D_heurI:
   \<open> get_learned_count x = get_learned_count xc \<Longrightarrow>
-       learned_clss_count x < uint64_max \<Longrightarrow>  learned_clss_count xc < uint64_max\<close>
+       learned_clss_count x < unat64_max \<Longrightarrow>  learned_clss_count xc < unat64_max\<close>
   using get_learned_count_learned_clss_countD2[of xc x]
   by auto
-
-(*TODO Copy paste*)
-lemma [def_pat_rules]: \<open>count_decided_st_heur$S \<equiv> isa_count_decided_st$S\<close>
-  by (auto simp: isa_count_decided_st_def count_decided_st_heur_def)
 
 sepref_def cdcl_twl_o_prog_wl_D_fast_code
   is \<open>cdcl_twl_o_prog_wl_D_heur\<close>
@@ -47,8 +43,8 @@ lemma isasat_fast_alt_def: \<open>isasat_fast S = (length_clauses_heur S \<le> 9
     clss_size_lcountUE (get_learned_count S) + clss_size_lcountUS (get_learned_count S) + clss_size_lcountU0 (get_learned_count S) < 18446744073709551615 -  clss_size_lcountUEk (get_learned_count S)\<and>
    clss_size_lcount (get_learned_count S) +
     clss_size_lcountUE (get_learned_count S) + clss_size_lcountUS (get_learned_count S) + clss_size_lcountU0 (get_learned_count S) + clss_size_lcountUEk (get_learned_count S) < 18446744073709551615)\<close>
-  by (cases S; auto simp: isasat_fast_def sint64_max_def uint32_max_def length_clauses_heur_def
-    uint64_max_def learned_clss_count_def clss_size_lcountU0_def)
+  by (cases S; auto simp: isasat_fast_def snat64_max_def unat32_max_def length_clauses_heur_def
+    unat64_max_def learned_clss_count_def clss_size_lcountU0_def)
 
 sepref_def isasat_fast_impl
   is \<open>RETURN o isasat_fast\<close>

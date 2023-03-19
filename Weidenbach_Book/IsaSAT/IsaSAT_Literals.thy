@@ -100,28 +100,28 @@ definition the_is_empty where
 
 section \<open>Atoms with bound\<close>
 
-definition uint32_max :: nat where
-  \<open>uint32_max \<equiv> 2^32-1\<close>
+definition unat32_max :: nat where
+  \<open>unat32_max \<equiv> 2^32-1\<close>
 
-definition uint64_max :: nat where
-  \<open>uint64_max \<equiv> 2^64-1\<close>
+definition unat64_max :: nat where
+  \<open>unat64_max \<equiv> 2^64-1\<close>
 
-definition sint32_max :: nat where
-  \<open>sint32_max \<equiv> 2^31-1\<close>
+definition snat32_max :: nat where
+  \<open>snat32_max \<equiv> 2^31-1\<close>
 
-definition sint64_max :: nat where
-  \<open>sint64_max \<equiv> 2^63-1\<close>
+definition snat64_max :: nat where
+  \<open>snat64_max \<equiv> 2^63-1\<close>
 
-lemma li_uint32_maxdiv2_le_unit32_max: \<open>a \<le> uint32_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
-  by (auto simp: uint32_max_def)
+lemma li_unat32_maxdiv2_le_unit32_max: \<open>a \<le> unat32_max div 2 + 1 \<Longrightarrow> a \<le> unat32_max\<close>
+  by (auto simp: unat32_max_def)
 
-lemma uint64_max_uint_def: \<open>unat (-1 :: 64 Word.word) = uint64_max\<close>
+lemma unat64_max_uint_def: \<open>unat (-1 :: 64 Word.word) = unat64_max\<close>
 proof -
   have \<open>unat (-1 :: 64 Word.word) = unat (- Numeral1 :: 64 Word.word)\<close>
     unfolding numeral.numeral_One ..
-  also have \<open>\<dots> = uint64_max\<close>
+  also have \<open>\<dots> = unat64_max\<close>
     unfolding unat_bintrunc_neg
-    apply (simp add: uint64_max_def)
+    apply (simp add: unat64_max_def)
     apply (subst numeral_eq_Suc; subst semiring_bit_operations_class.mask_Suc_exp; simp)+
     done
   finally show ?thesis .
@@ -192,7 +192,7 @@ qed
 text \<open>The following two definitions are very important in practise for the invariants for the SAT
 solver.\<close>
 definition isasat_input_bounded where
-  [simp]: \<open>isasat_input_bounded = (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L \<le> uint32_max)\<close>
+  [simp]: \<open>isasat_input_bounded = (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L \<le> unat32_max)\<close>
 
 definition isasat_input_nempty where
   [simp]: \<open>isasat_input_nempty = (set_mset \<A>\<^sub>i\<^sub>n \<noteq> {})\<close>
@@ -204,25 +204,25 @@ definition isasat_input_bounded_nempty where
 section \<open>Set of atoms with bound\<close>
 
 context
-  assumes in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max: \<open>isasat_input_bounded\<close>
+  assumes in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_unat32_max: \<open>isasat_input_bounded\<close>
 begin
 
-lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max': \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n \<Longrightarrow> nat_of_lit L \<le> uint32_max\<close>
-  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max by auto
+lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_unat32_max': \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n \<Longrightarrow> nat_of_lit L \<le> unat32_max\<close>
+  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_unat32_max by auto
 
-lemma in_\<A>\<^sub>i\<^sub>n_less_than_uint32_max_div_2:
-  \<open>L \<in># \<A>\<^sub>i\<^sub>n \<Longrightarrow> L \<le> uint32_max div 2\<close>
-  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max'[of \<open>Neg L\<close>]
-  unfolding Ball_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-  by (auto simp: uint32_max_def)
+lemma in_\<A>\<^sub>i\<^sub>n_less_than_unat32_max_div_2:
+  \<open>L \<in># \<A>\<^sub>i\<^sub>n \<Longrightarrow> L \<le> unat32_max div 2\<close>
+  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_unat32_max'[of \<open>Neg L\<close>]
+  unfolding Ball_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
+  by (auto simp: unat32_max_def)
 
 lemma simple_clss_size_upper_div2':
   assumes
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n  \<A>\<^sub>i\<^sub>n C\<close> and
     dist: \<open>distinct_mset C\<close> and
     tauto: \<open>\<not>tautology C\<close> and
-    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L < uint32_max - 1\<close>
-  shows \<open>size C \<le> uint32_max div 2\<close>
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_unat32_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L < unat32_max - 1\<close>
+  shows \<open>size C \<le> unat32_max div 2\<close>
 proof -
   let ?C = \<open>atm_of `# C\<close>
   have \<open>distinct_mset ?C\<close>
@@ -244,7 +244,7 @@ proof -
   have size: \<open>size ?C = size C\<close>
     using dist tauto
     by (induction C) (auto simp: tautology_add_mset)
-  have m: \<open>set_mset ?C \<subseteq> {0..<uint32_max div 2}\<close>
+  have m: \<open>set_mset ?C \<subseteq> {0..<unat32_max div 2}\<close>
   proof
     fix L
     assume \<open>L \<in> set_mset ?C\<close>
@@ -252,20 +252,20 @@ proof -
     using lits by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
     then have \<open>Pos L \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)\<close>
-      using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-    then have \<open>nat_of_lit (Pos L) < uint32_max - 1\<close>
-      using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max by (auto simp: atm_of_lit_in_atms_of
+      using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
+    then have \<open>nat_of_lit (Pos L) < unat32_max - 1\<close>
+      using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_unat32_max by (auto simp: atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
-    then have \<open>L < uint32_max div 2\<close>
+    then have \<open>L < unat32_max div 2\<close>
        by (auto simp: atm_of_lit_in_atms_of
-        in_all_lits_of_m_ain_atms_of_iff subset_iff uint32_max_def)
-    then show \<open>L \<in> {0..<uint32_max div 2}\<close>
-       by (auto simp: atm_of_lit_in_atms_of uint32_max_def
+        in_all_lits_of_m_ain_atms_of_iff subset_iff unat32_max_def)
+    then show \<open>L \<in> {0..<unat32_max div 2}\<close>
+       by (auto simp: atm_of_lit_in_atms_of unat32_max_def
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
   qed
-  moreover have \<open>card \<dots> =  uint32_max div 2\<close>
+  moreover have \<open>card \<dots> =  unat32_max div 2\<close>
     by auto
-  ultimately have \<open>card (set_mset ?C) \<le> uint32_max div 2\<close>
+  ultimately have \<open>card (set_mset ?C) \<le> unat32_max div 2\<close>
     using card_mono[OF _ m] by auto
   then show ?thesis
     unfolding card[symmetric] size .
@@ -277,7 +277,7 @@ lemma simple_clss_size_upper_div2:
    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n  \<A>\<^sub>i\<^sub>n C\<close> and
    dist: \<open>distinct_mset C\<close> and
    tauto: \<open>\<not>tautology C\<close>
-  shows \<open>size C \<le> 1 + uint32_max div 2\<close>
+  shows \<open>size C \<le> 1 + unat32_max div 2\<close>
 proof -
   let ?C = \<open>atm_of `# C\<close>
   have \<open>distinct_mset ?C\<close>
@@ -299,7 +299,7 @@ proof -
   have size: \<open>size ?C = size C\<close>
     using dist tauto
     by (induction C) (auto simp: tautology_add_mset)
-  have m: \<open>set_mset ?C \<subseteq> {0..uint32_max div 2}\<close>
+  have m: \<open>set_mset ?C \<subseteq> {0..unat32_max div 2}\<close>
   proof
     fix L
     assume \<open>L \<in> set_mset ?C\<close>
@@ -307,30 +307,30 @@ proof -
     using lits by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
     then have \<open>Neg L \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l  \<A>\<^sub>i\<^sub>n)\<close>
-      using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-    then have \<open>nat_of_lit (Neg L) \<le> uint32_max\<close>
-      using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max by (auto simp: atm_of_lit_in_atms_of
+      using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
+    then have \<open>nat_of_lit (Neg L) \<le> unat32_max\<close>
+      using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_unat32_max by (auto simp: atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
-    then have \<open>L \<le> uint32_max div 2\<close>
+    then have \<open>L \<le> unat32_max div 2\<close>
        by (auto simp: atm_of_lit_in_atms_of
-        in_all_lits_of_m_ain_atms_of_iff subset_iff uint32_max_def)
-    then show \<open>L \<in> {0 .. uint32_max div 2}\<close>
-       by (auto simp: atm_of_lit_in_atms_of uint32_max_def
+        in_all_lits_of_m_ain_atms_of_iff subset_iff unat32_max_def)
+    then show \<open>L \<in> {0 .. unat32_max div 2}\<close>
+       by (auto simp: atm_of_lit_in_atms_of unat32_max_def
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
   qed
-  moreover have \<open>card \<dots> =  1 + uint32_max div 2\<close>
+  moreover have \<open>card \<dots> =  1 + unat32_max div 2\<close>
     by auto
-  ultimately have \<open>card (set_mset ?C) \<le> 1 + uint32_max div 2\<close>
+  ultimately have \<open>card (set_mset ?C) \<le> 1 + unat32_max div 2\<close>
     using card_mono[OF _ m] by auto
   then show ?thesis
     unfolding card[symmetric] size .
 qed
 
-lemma clss_size_uint32_max:
+lemma clss_size_unat32_max:
   assumes
    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n C\<close> and
    dist: \<open>distinct_mset C\<close>
-  shows \<open>size C \<le> uint32_max + 2\<close>
+  shows \<open>size C \<le> unat32_max + 2\<close>
 proof -
   let ?posC = \<open>filter_mset is_pos C\<close>
   let ?negC = \<open>filter_mset is_neg C\<close>
@@ -341,14 +341,14 @@ proof -
     by (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF lits]) auto
   moreover have \<open>distinct_mset ?posC\<close>
     by (rule distinct_mset_mono[OF _dist]) auto
-  ultimately have pos: \<open>size ?posC \<le> 1 + uint32_max div 2\<close>
+  ultimately have pos: \<open>size ?posC \<le> 1 + unat32_max div 2\<close>
     by (rule simple_clss_size_upper_div2) (auto simp: tautology_decomp)
 
   have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n ?negC\<close>
     by (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF lits]) auto
   moreover have \<open>distinct_mset ?negC\<close>
     by (rule distinct_mset_mono[OF _dist]) auto
-  ultimately have neg: \<open>size ?negC \<le> 1 + uint32_max div 2\<close>
+  ultimately have neg: \<open>size ?negC \<le> 1 + unat32_max div 2\<close>
     by (rule simple_clss_size_upper_div2) (auto simp: tautology_decomp)
 
   show ?thesis
@@ -361,8 +361,8 @@ lemma clss_size_upper:
   assumes
    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n C\<close> and
    dist: \<open>distinct_mset C\<close> and
-   in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L < uint32_max - 1\<close>
- shows \<open>size C \<le> uint32_max\<close>
+   in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_unat32_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L < unat32_max - 1\<close>
+ shows \<open>size C \<le> unat32_max\<close>
 proof -
   let ?A = \<open>remdups_mset (atm_of `# C)\<close>
   have [simp]: \<open>distinct_mset (poss ?A)\<close> \<open>distinct_mset (negs ?A)\<close>
@@ -381,14 +381,14 @@ proof -
 
   have \<open>\<not> tautology (poss ?A)\<close> \<open>\<not> tautology (negs ?A)\<close>
     by (auto simp: tautology_decomp)
-  then have \<open>size (poss ?A) \<le> uint32_max div 2\<close> and \<open>size (negs ?A) \<le> uint32_max div 2\<close>
+  then have \<open>size (poss ?A) \<le> unat32_max div 2\<close> and \<open>size (negs ?A) \<le> unat32_max div 2\<close>
     using simple_clss_size_upper_div2'[of \<open>poss ?A\<close>]
-      simple_clss_size_upper_div2'[of \<open>negs ?A\<close>] in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max
+      simple_clss_size_upper_div2'[of \<open>negs ?A\<close>] in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_unat32_max
     by auto
-  then have \<open>size C \<le> uint32_max div 2 + uint32_max div 2\<close>
+  then have \<open>size C \<le> unat32_max div 2 + unat32_max div 2\<close>
     using \<open>C \<subseteq># poss (remdups_mset (atm_of `# C)) + negs (remdups_mset (atm_of `# C))\<close>
       size_mset_mono by fastforce
-  then show ?thesis by (auto simp: uint32_max_def)
+  then show ?thesis by (auto simp: unat32_max_def)
 qed
 
 lemma
@@ -396,12 +396,12 @@ lemma
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A>\<^sub>i\<^sub>n M\<close> and
     n_d: \<open>no_dup M\<close>
   shows
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_length_le_uint32_max:
-      \<open>length M \<le> Suc (uint32_max div 2)\<close> and
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_count_decided_uint32_max:
-      \<open>count_decided M \<le> Suc (uint32_max div 2)\<close> and
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max:
-      \<open>get_level M L \<le> Suc (uint32_max div 2)\<close>
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_length_le_unat32_max:
+      \<open>length M \<le> Suc (unat32_max div 2)\<close> and
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_count_decided_unat32_max:
+      \<open>count_decided M \<le> Suc (unat32_max div 2)\<close> and
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_unat32_max:
+      \<open>get_level M L \<le> Suc (unat32_max div 2)\<close>
 proof -
   have \<open>length M = card (atm_of ` lits_of_l M)\<close>
     using no_dup_length_eq_card_atm_of_lits_of_l[OF n_d] .
@@ -410,28 +410,28 @@ proof -
   ultimately have \<open>length M \<le> card (set_mset \<A>\<^sub>i\<^sub>n)\<close>
     by (simp add: card_mono)
   moreover {
-    have \<open>set_mset \<A>\<^sub>i\<^sub>n \<subseteq> {0 ..< (uint32_max div 2) + 1}\<close>
-      using in_\<A>\<^sub>i\<^sub>n_less_than_uint32_max_div_2 by (fastforce simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-          Ball_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n uint32_max_def)
-    from subset_eq_atLeast0_lessThan_card[OF this] have \<open>card (set_mset \<A>\<^sub>i\<^sub>n) \<le> uint32_max div 2 + 1\<close>
+    have \<open>set_mset \<A>\<^sub>i\<^sub>n \<subseteq> {0 ..< (unat32_max div 2) + 1}\<close>
+      using in_\<A>\<^sub>i\<^sub>n_less_than_unat32_max_div_2 by (fastforce simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
+          Ball_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n unat32_max_def)
+    from subset_eq_atLeast0_lessThan_card[OF this] have \<open>card (set_mset \<A>\<^sub>i\<^sub>n) \<le> unat32_max div 2 + 1\<close>
       .
   }
-  ultimately show \<open>length M \<le> Suc (uint32_max div 2)\<close>
+  ultimately show \<open>length M \<le> Suc (unat32_max div 2)\<close>
     by linarith
   moreover have \<open>count_decided M \<le> length M\<close>
     unfolding count_decided_def by auto
-  ultimately show \<open>count_decided M \<le> Suc (uint32_max div 2)\<close> by simp
-  then show \<open>get_level M L \<le> Suc (uint32_max div 2)\<close>
+  ultimately show \<open>count_decided M \<le> Suc (unat32_max div 2)\<close> by simp
+  then show \<open>get_level M L \<le> Suc (unat32_max div 2)\<close>
     using count_decided_ge_get_level[of M L]
     by simp
 qed
 
-lemma length_trail_uint32_max_div2:
+lemma length_trail_unat32_max_div2:
   fixes M :: \<open>(nat, 'b) ann_lits\<close>
   assumes
     M_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n\<close> and
     n_d: \<open>no_dup M\<close>
-  shows \<open>length M \<le> uint32_max div 2 + 1\<close>
+  shows \<open>length M \<le> unat32_max div 2 + 1\<close>
 proof -
   have dist_atm_M: \<open>distinct_mset {#atm_of (lit_of x). x \<in># mset M#}\<close>
     using n_d by (metis distinct_mset_mset_distinct mset_map no_dup_def)
@@ -442,10 +442,10 @@ proof -
         atm_of_eq_atm_of)
   have inj_on: \<open>inj_on nat_of_lit (set_mset (remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)))\<close>
     by (auto simp: inj_on_def)
-  have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n \<Longrightarrow> atm_of xa \<le> uint32_max div 2\<close> for xa
-    using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max
-    by (cases xa) (auto simp: uint32_max_def)
-  have \<open>remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n) \<subseteq># mset [0..< 1 + (uint32_max div 2)]\<close>
+  have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n \<Longrightarrow> atm_of xa \<le> unat32_max div 2\<close> for xa
+    using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_unat32_max
+    by (cases xa) (auto simp: unat32_max_def)
+  have \<open>remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n) \<subseteq># mset [0..< 1 + (unat32_max div 2)]\<close>
     apply (subst distinct_subseteq_iff[THEN iffD1])
     using H distinct_image_mset_inj[OF inj_on]
     by (force simp del: literal_of_nat.simps simp: distinct_mset_mset_set
@@ -453,13 +453,13 @@ proof -
   note _ = size_mset_mono[OF this]
   moreover have \<open>size (nat_of_lit `# remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)) = size (remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n))\<close>
     by simp
-  ultimately have 2: \<open>size (remdups_mset (atm_of `# (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n))) \<le> 1 + uint32_max div 2\<close>
+  ultimately have 2: \<open>size (remdups_mset (atm_of `# (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n))) \<le> 1 + unat32_max div 2\<close>
     by auto
   from size_mset_mono[OF incl] have 1: \<open>length M \<le> size (remdups_mset (atm_of `# (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)))\<close>
-    unfolding uint32_max_def count_decided_def
+    unfolding unat32_max_def count_decided_def
     by (auto simp del: length_filter_le)
   with 2 show ?thesis
-    by (auto simp: uint32_max_def)
+    by (auto simp: unat32_max_def)
 qed
 
 end
