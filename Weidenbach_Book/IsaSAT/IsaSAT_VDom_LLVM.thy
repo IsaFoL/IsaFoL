@@ -1,9 +1,7 @@
 theory IsaSAT_VDom_LLVM
   imports IsaSAT_VDom IsaSAT_Stats_LLVM IsaSAT_Clauses_LLVM IsaSAT_Arena_Sorting_LLVM
 begin
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
-
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN NEMonad.SPEC
 type_synonym aivdom2 = \<open>vdom \<times> vdom \<times> vdom\<close>
 abbreviation aivdom_int_rel :: \<open>(aivdom2 \<times> aivdom) set\<close> where
   \<open>aivdom_int_rel \<equiv> {(a, (_, a')). (a,a') \<in> \<langle>nat_rel\<rangle>list_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>list_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>list_rel}\<close>

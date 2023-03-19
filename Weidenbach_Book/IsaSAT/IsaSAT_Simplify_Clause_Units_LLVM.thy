@@ -4,8 +4,6 @@ theory IsaSAT_Simplify_Clause_Units_LLVM
     IsaSAT_Proofs_LLVM
 begin
 
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
 sepref_register 0 1
 
@@ -15,7 +13,7 @@ sepref_register mop_arena_update_lit
 lemma isa_simplify_clause_with_unit2_alt_def:
   \<open>isa_simplify_clause_with_unit2 C M N = do {
      l \<leftarrow> mop_arena_length N C;
-    ASSERT(l < length N \<and> l \<le> Suc (uint32_max div 2));
+    ASSERT(l < length N \<and> l \<le> Suc (unat32_max div 2));
     (i, j, N::arena, is_true) \<leftarrow> WHILE\<^sub>T(\<lambda>(i, j, N::arena, b). \<not>b \<and> j < l)
     (\<lambda>(i, j, N, is_true). do {
       ASSERT(i \<le> j \<and> j < l);
@@ -44,7 +42,7 @@ lemma isa_simplify_clause_with_unit2_alt_def:
 
 sepref_def isa_simplify_clause_with_unit2_code
   is \<open>uncurry2 isa_simplify_clause_with_unit2\<close>
-  :: \<open>[\<lambda>((_, _), N). length (N) \<le> sint64_max]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>
+  :: \<open>[\<lambda>((_, _), N). length (N) \<le> snat64_max]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>
   bool1_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a unat_lit_assn \<times>\<^sub>a  bool1_assn \<times>\<^sub>a uint32_nat_assn\<close>
   unfolding isa_simplify_clause_with_unit2_alt_def
     length_avdom_def[symmetric] Suc_eq_plus1[symmetric]
@@ -141,7 +139,7 @@ lemma [simp]:
 
 sepref_def isa_simplify_clause_with_unit_st2_code
   is \<open>uncurry isa_simplify_clause_with_unit_st2\<close>
-  :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
   sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [simp] = learned_clss_count_def
   unfolding isa_simplify_clause_with_unit_st2_alt_def

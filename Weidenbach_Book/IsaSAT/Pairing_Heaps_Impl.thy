@@ -3,6 +3,7 @@ theory Pairing_Heaps_Impl
     Map_Fun_Rel
 begin
 
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN NEMonad.SPEC
 
 section \<open>Imperative Pairing heaps\<close>
 

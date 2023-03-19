@@ -2,6 +2,7 @@ theory IsaSAT_Restart
   imports
     Watched_Literals.WB_Sort Watched_Literals.Watched_Literals_Watch_List_Simp IsaSAT_Rephase_State
     IsaSAT_Setup IsaSAT_VMTF IsaSAT_Sorting IsaSAT_Proofs IsaSAT_Restart_Defs
+    IsaSAT_Bump_Heuristics
 begin
 
 chapter \<open>Restarts\<close>
@@ -415,9 +416,9 @@ proof -
     inA:\<open>\<forall>L\<in>set (ys @ Propagated x2 C # zs). lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>\<close> and
     cs: \<open>control_stack y (ys @ Propagated x2 C # zs)\<close> and
     \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail ?\<A> (ys @ Propagated x2 C # zs)\<close> and
-    \<open>length (ys @ Propagated x2 C # zs) < uint32_max\<close> and
-    \<open>length (ys @ Propagated x2 C # zs) \<le> uint32_max div 2 + 1\<close> and
-    \<open>count_decided (ys @ Propagated x2 C # zs) < uint32_max\<close> and
+    \<open>length (ys @ Propagated x2 C # zs) < unat32_max\<close> and
+    \<open>length (ys @ Propagated x2 C # zs) \<le> unat32_max div 2 + 1\<close> and
+    \<open>count_decided (ys @ Propagated x2 C # zs) < unat32_max\<close> and
     \<open>length (map lit_of (rev (ys @ Propagated x2 C # zs))) =
      length (ys @ Propagated x2 C # zs)\<close> and
     bounded: \<open>isasat_input_bounded ?\<A>\<close> and
@@ -474,14 +475,22 @@ proof -
     using n_d x2 inA bounded
     unfolding trail_pol_def x2d
     by simp
+
   moreover { fix aaa ca
     have \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms aaa ca) (ys @ Propagated x2 C # zs) =
        vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms aaa ca) (ys @ Propagated x2 0 # zs)\<close>
        by (auto simp: vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def)
-    then have \<open>isa_vmtf (all_init_atms aaa ca) (ys @ Propagated x2 C # zs) =
-      isa_vmtf (all_init_atms aaa ca) (ys @ Propagated x2 0 # zs)\<close>
-      by (auto simp: isa_vmtf_def vmtf_def
+    then have \<open>vmtf (all_init_atms aaa ca) (ys @ Propagated x2 C # zs) =
+      vmtf (all_init_atms aaa ca) (ys @ Propagated x2 0 # zs)\<close>
+      by (auto simp: vmtf_def  vmtf_def
 	image_iff)
+    moreover have \<open>vmtf (all_init_atms aaa ca) (get_unit_trail (ys @ Propagated x2 C # zs)) =
+      vmtf (all_init_atms aaa ca) (get_unit_trail(ys @ Propagated x2 0 # zs))\<close>
+      by (auto simp: vmtf_def  vmtf_def get_unit_trail_def takeWhile_append vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+	image_iff)
+    ultimately have \<open>bump_heur (all_init_atms aaa ca) (ys @ Propagated x2 C # zs) =
+      bump_heur (all_init_atms aaa ca) (ys @ Propagated x2 0 # zs)\<close>
+      by (auto simp: bump_heur_def)
   }
   moreover { fix D
     have \<open>get_level (ys @ Propagated x2 C # zs) = get_level (ys @ Propagated x2 0 # zs)\<close>
@@ -625,7 +634,7 @@ lemma twl_st_heur_restart_isa_length_trail_get_trail_wl:
   unfolding isa_length_trail_def twl_st_heur_restart_ana_def twl_st_heur_restart_def trail_pol_alt_def
     mop_isa_length_trail_def isa_length_trail_pre_def
   by (subgoal_tac \<open>(case get_trail_wl_heur S of
-            (M', xs, lvls, reasons, k, cs) \<Rightarrow> length M' \<le> uint32_max)\<close>)
+            (M', xs, lvls, reasons, k, cs) \<Rightarrow> length M' \<le> unat32_max)\<close>)
     (cases S;auto dest: ann_lits_split_reasons_map_lit_of intro!: ASSERT_leI; fail)+
 
 lemma twl_st_heur_restart_count_decided_st_alt_def:
@@ -831,37 +840,32 @@ proof -
       done
 
     let ?\<A> = \<open>all_init_atms_st y\<close>
-    have \<open>get_vmtf_heur S \<in> isa_vmtf ?\<A> (get_trail_wl y)\<close>and
+    have vm: \<open>get_vmtf_heur S \<in> bump_heur ?\<A> (get_trail_wl y)\<close> (is \<open>?vm \<in> _\<close>) and
       n_d: \<open>no_dup (get_trail_wl y)\<close>
       using Sy
       by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def
         all_init_atms_st_def get_unit_init_clss_wl_alt_def)
-    then obtain vm' where
-      vm': \<open>(get_vmtf_heur S, vm') \<in> Id \<times>\<^sub>f distinct_atoms_rel ?\<A>\<close> and
-      vm: \<open>vm' \<in> vmtf (all_init_atms_st y) (get_trail_wl y)\<close>
-      unfolding isa_vmtf_def
-      by force
 
     have find_decomp_w_ns_pre:
-      \<open>find_decomp_w_ns_pre (all_init_atms_st y) ((get_trail_wl y, 0), vm')\<close>
-      using that assms vm' vm unfolding find_decomp_w_ns_pre_def
+      \<open>find_decomp_w_ns_pre (all_init_atms_st y) ((get_trail_wl y, 0), ?vm)\<close>
+      using that assms vm unfolding find_decomp_w_ns_pre_def
       by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def
         all_init_atms_st_def get_unit_init_clss_wl_alt_def
         dest: trail_pol_literals_are_in_\<L>\<^sub>i\<^sub>n_trail)
     have 1: \<open>isa_find_decomp_wl_imp (get_trail_wl_heur S) 0 (get_vmtf_heur S) \<le>
-       \<Down> ({(M, M'). (M, M') \<in> trail_pol ?\<A> \<and> count_decided M' = 0} \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel ?\<A>))
+       \<Down> ({(M, M'). (M, M') \<in> trail_pol ?\<A> \<and> count_decided M' = 0} \<times>\<^sub>f Id)
          (find_decomp_w_ns ?\<A> (get_trail_wl y) 0 vm')\<close>
       apply (rule  order_trans)
       apply (rule isa_find_decomp_wl_imp_find_decomp_wl_imp[THEN fref_to_Down_curry2,
-        of \<open>get_trail_wl y\<close> 0 vm' _ _ _ ?\<A>])
+        of \<open>get_trail_wl y\<close> 0 ?vm _ _ _ ?\<A>])
       subgoal using that by auto
       subgoal
-        using Sy vm'
+        using Sy vm
 	by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def get_unit_init_clss_wl_alt_def
           all_init_atms_st_def)
       apply (rule order_trans, rule ref_two_step')
       apply (rule find_decomp_wl_imp_find_decomp_wl'[THEN fref_to_Down_curry2,
-        of ?\<A> \<open>get_trail_wl y\<close> 0 vm'])
+        of ?\<A> \<open>get_trail_wl y\<close> 0 ?vm])
       subgoal by (rule find_decomp_w_ns_pre)
       subgoal by auto
       subgoal
@@ -880,7 +884,7 @@ proof -
         intro!: RETURN_SPEC_refine clss_size_corr_simp simp: twl_st_heur_restart_def out_learned_def
 	    empty_Q_wl2_def twl_st_heur_restart_ana_def learned_clss_count_def
             all_init_atms_st_def
-	intro: isa_vmtfI isa_length_trail_pre dest: no_dup_appendD)
+	intro: isa_length_trail_pre dest: no_dup_appendD)
   qed
   have [simp]: \<open>clss_size_corr_restart x1a x1c x1d NEk UEk x1e x1f x1g x1h (ck, cl, cd, cm, cn) \<Longrightarrow>
     clss_size_corr_restart x1a x1c x1d NEk UEk x1e {#} x1g {#} (ck, 0, cd, 0, 0)\<close>
@@ -1023,7 +1027,7 @@ lemma remove_one_annot_true_clause_one_imp_wl_pre_fst_le_uint32:
   assumes \<open>(x, y) \<in> nat_rel \<times>\<^sub>f {p. (fst p, snd p) \<in> twl_st_heur_restart_ana r \<and>
           learned_clss_count (fst p) \<le> u}\<close> and
     \<open>remove_one_annot_true_clause_one_imp_wl_pre (fst y) (snd y)\<close>
-  shows \<open>fst x + 1 \<le> Suc (uint32_max div 2)\<close>
+  shows \<open>fst x + 1 \<le> Suc (unat32_max div 2)\<close>
 proof -
   have [simp]: \<open>fst y = fst x\<close>
     using assms by (cases x, cases y) auto
@@ -1239,7 +1243,7 @@ lemmas iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def =
 
 lemma iterate_over_VMTFC_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>lC:
   fixes x :: 'a
-  assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close> and
+  assumes vmtf: \<open>(ns, m, fst_As, lst_As, next_search) \<in> vmtf \<A> M\<close> and
     nempty: \<open>\<A> \<noteq> {#}\<close> \<open>isasat_input_bounded \<A>\<close> and
     II': \<open>\<And>x \<B>. set_mset \<B> \<subseteq> set_mset \<A> \<Longrightarrow> I' \<B> x \<Longrightarrow> I x\<close> and
     \<open>\<And>x. I x \<Longrightarrow> P x = Q x\<close>
@@ -1249,7 +1253,7 @@ proof -
     vmtf_ns: \<open>vmtf_ns (ys' @ xs') m ns\<close> and
     \<open>fst_As = hd (ys' @ xs')\<close> and
     \<open>lst_As = last (ys' @ xs')\<close> and
-    vmtf_\<L>: \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> M ((set xs', set ys'), to_remove)\<close> and
+    vmtf_\<L>: \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> M (set xs', set ys')\<close> and
     fst_As: \<open>fst_As = hd (ys' @ xs')\<close> and
     le: \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>). L < length ns\<close>
     using vmtf unfolding vmtf_def
@@ -1287,7 +1291,7 @@ proof -
           ASSERT(n \<noteq> None);
           let A = the n;
           ASSERT(A < length ns);
-          ASSERT(A \<le> uint32_max div 2);
+          ASSERT(A \<le> unat32_max div 2);
           x \<leftarrow> f A x;
           RETURN (get_next ((ns ! A)), Suc m, x)
         })
@@ -1302,7 +1306,7 @@ proof -
           ASSERT(n \<noteq> None);
           let A = the n;
           ASSERT(A < length ns);
-          ASSERT(A \<le> uint32_max div 2);
+          ASSERT(A \<le> unat32_max div 2);
           x \<leftarrow> f A x;
           RETURN (get_next ((ns ! A)), Suc m, x)
         })
@@ -1379,7 +1383,7 @@ proof -
       set_append[symmetric]zs_def[symmetric] zs2
     by (auto simp: eq_commute[of \<open>set zs\<close> \<open>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>] hd_drop_conv_nth
       simp del: nth_mem)
-  have le_uint32_max: \<open>the x1a \<le> uint32_max div 2\<close>
+  have le_unat32_max: \<open>the x1a \<le> unat32_max div 2\<close>
     if
       \<open>(remdups_mset \<A>, \<A>') \<in> Id\<close> and
       \<open>(x, x') \<in> {((n, m, x), \<A>', y). is_lasts \<A>' n m \<and> x = y}\<close> and
@@ -1420,7 +1424,7 @@ proof -
       by (simp add: is_lasts_def in_set_dropI)
     subgoal for \<A>' x x' x1 x2 x1a x2a x1b xb
       by (auto simp: is_lasts_le)
-    subgoal by (rule le_uint32_max)
+    subgoal by (rule le_unat32_max)
     subgoal by auto
     subgoal for \<A>' x x' x1 x2 x1a x2a x1b x2b A xa xb
       by (rule IH)
@@ -1437,7 +1441,7 @@ qed
 
 lemma iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l:
   fixes x :: 'a
-  assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close> and
+  assumes vmtf: \<open>(ns, m, fst_As, lst_As, next_search) \<in> vmtf \<A> M\<close> and
     nempty: \<open>\<A> \<noteq> {#}\<close> \<open>isasat_input_bounded \<A>\<close> \<open>\<And>x \<B>. set_mset \<B> \<subseteq> set_mset \<A> \<Longrightarrow> I' \<B> x \<Longrightarrow> I x\<close>
   shows \<open>iterate_over_VMTF f I (ns, Some fst_As) x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l f \<A> I' x)\<close>
   unfolding iterate_over_VMTF_alt_def iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
@@ -1667,7 +1671,7 @@ lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None_ana:
   \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
     twl_st_heur_restart_ana' r (u) \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   unfolding get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def comp_def
-  apply (intro WB_More_Refinement.frefI nres_relI) apply refine_rcg
+  apply (intro frefI nres_relI) apply refine_rcg
   by (auto simp: twl_st_heur_restart_ana_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
       option_lookup_clause_rel_def twl_st_heur_restart_def
      split: option.splits)
@@ -1675,49 +1679,11 @@ lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart:
   \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
     twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   unfolding get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def comp_def
-  apply (intro WB_More_Refinement.frefI nres_relI) apply refine_rcg
+  apply (intro frefI nres_relI) apply refine_rcg
   by (auto simp: twl_st_heur_restart_ana_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
       option_lookup_clause_rel_def twl_st_heur_restart_def
      split: option.splits)
-(*TODO Move*)
-lemma mop_arena_status2:
-  assumes \<open>(C,C')\<in>nat_rel\<close> \<open>C \<in> vdom\<close>
-    \<open>valid_arena arena N vdom\<close>
-  shows
-    \<open>mop_arena_status arena C
-    \<le> SPEC
-    (\<lambda>c. (c, C \<in># dom_m N)
-    \<in> {(a,b). (b \<longrightarrow> (a = IRRED \<longleftrightarrow> irred N C) \<and> (a = LEARNED \<longleftrightarrow> \<not>irred N C)) \<and>  (a = DELETED \<longleftrightarrow> \<not>b)})\<close>
-  using assms arena_dom_status_iff[of arena N vdom C] unfolding mop_arena_status_def
-  by (cases \<open>C \<in># dom_m N\<close>)
-    (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def
-     arena_lifting)
 
-lemma mop_arena_status3:
-  assumes \<open>(C,C')\<in>nat_rel\<close> \<open>C \<in># dom_m N\<close>
-    \<open>valid_arena arena N vdom\<close>
-  shows
-    \<open>mop_arena_status arena C
-    \<le> SPEC
-    (\<lambda>c. (c, irred N C)
-    \<in> {(a,b). (a = IRRED \<longleftrightarrow> irred N C) \<and> (a = LEARNED \<longleftrightarrow> \<not>irred N C) \<and> b = (irred N C)\<and>  (a \<noteq> DELETED)})\<close>
-  using assms arena_dom_status_iff[of arena N vdom C] unfolding mop_arena_status_def
-  by (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def
-     arena_lifting)
-(*END Move*)
-(*TODO Move*)
-lemma mop_arena_status_vdom:
-  assumes \<open>C \<in> vdom\<close> and \<open>(C,C')\<in>nat_rel\<close>
-    \<open>valid_arena arena N vdom\<close>
-  shows
-    \<open>mop_arena_status arena C
-    \<le> SPEC
-    (\<lambda>c. (c, C' \<in># dom_m N)
-    \<in> {(a,b). (a \<noteq> DELETED \<longleftrightarrow> b) \<and> (((a = IRRED \<longleftrightarrow> (irred N C' \<and> b)) \<and> (a = LEARNED \<longleftrightarrow> (\<not>irred N C' \<and> b))))})\<close>
-   using assms arena_lifting(24,25)[of arena N vdom C] arena_dom_status_iff(1)[of arena N vdom C]
-   unfolding mop_arena_status_def
-   by (cases \<open>arena_status arena C'\<close>)
-    (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def)
 (*TODO rename*)
 lemma all_init_atms_alt_def:
   \<open>all_init_atms (get_clauses_wl S')
@@ -1785,7 +1751,7 @@ lemma twl_st_heur_restart_alt_def2:
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st T)) \<and>
-    vm \<in> isa_vmtf (all_init_atms_st T) M \<and>
+    vm \<in> bump_heur (all_init_atms_st T) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_init_atms_st T) cach \<and>

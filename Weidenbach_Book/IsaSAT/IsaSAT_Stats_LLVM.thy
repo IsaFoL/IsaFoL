@@ -2,8 +2,6 @@ theory IsaSAT_Stats_LLVM
 imports IsaSAT_Stats IsaSAT_EMA_LLVM IsaSAT_Rephase_LLVM IsaSAT_Reluctant_LLVM Tuple16_LLVM
 begin
 
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 hide_const (open) NEMonad.RETURN NEMonad.ASSERT
 
 
@@ -1206,7 +1204,7 @@ lemma clss_size_incr_lcountUS_alt_def:
 
 sepref_def clss_size_incr_lcountUS_fast_code
   is \<open>RETURN o clss_size_incr_lcountUS\<close>
-  :: \<open>[\<lambda>S. clss_size_lcountUS S < uint64_max]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  :: \<open>[\<lambda>S. clss_size_lcountUS S < unat64_max]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
   unfolding clss_size_incr_lcountUS_alt_def lcount_assn_def clss_size_lcountUS_def
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
@@ -1230,7 +1228,7 @@ lemma clss_size_incr_lcountU0_alt_def:
 
 sepref_def clss_size_incr_lcountU0_fast_code
   is \<open>RETURN o clss_size_incr_lcountU0\<close>
-  :: \<open>[\<lambda>S. clss_size_lcountU0 S < uint64_max]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  :: \<open>[\<lambda>S. clss_size_lcountU0 S < unat64_max]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
   unfolding clss_size_incr_lcountU0_alt_def lcount_assn_def clss_size_lcountU0_def
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
@@ -1254,7 +1252,7 @@ lemma clss_size_incr_lcountUE_alt_def:
 
 sepref_def clss_size_incr_lcountUE_fast_code
   is \<open>RETURN o clss_size_incr_lcountUE\<close>
-  :: \<open>[\<lambda>S. clss_size_lcountUE S < uint64_max]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  :: \<open>[\<lambda>S. clss_size_lcountUE S < unat64_max]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
   unfolding clss_size_incr_lcountUE_alt_def lcount_assn_def clss_size_lcountUE_def
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
@@ -1266,7 +1264,7 @@ lemma clss_size_incr_lcountUEk_alt_def:
 
 sepref_def clss_size_incr_lcountUEk_fast_code
   is \<open>RETURN o clss_size_incr_lcountUEk\<close>
-  :: \<open>[\<lambda>S. clss_size_lcountUEk S < uint64_max]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  :: \<open>[\<lambda>S. clss_size_lcountUEk S < unat64_max]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
   unfolding clss_size_incr_lcountUEk_alt_def lcount_assn_def clss_size_lcountUEk_def
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref

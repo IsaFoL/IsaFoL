@@ -276,9 +276,9 @@ lemma trail_pol_alt_def:
     k = count_decided M \<and>
     (\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
     control_stack cs M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M \<and>
-    length M < uint32_max \<and>
-    length M \<le> uint32_max div 2 + 1 \<and>
-    count_decided M < uint32_max \<and>
+    length M < unat32_max \<and>
+    length M \<le> unat32_max div 2 + 1 \<and>
+    count_decided M < unat32_max \<and>
     length M' = length M \<and>
     M' = map lit_of (rev M) \<and>
     isasat_input_bounded \<A>
@@ -286,13 +286,13 @@ lemma trail_pol_alt_def:
 proof -
   have [intro!]: \<open>length M < n \<Longrightarrow> count_decided M < n\<close> for M n
     using length_filter_le[of is_decided M]
-    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def uint32_max_def count_decided_def
+    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def unat32_max_def count_decided_def
         simp del: length_filter_le
-        dest: length_trail_uint32_max_div2)
+        dest: length_trail_unat32_max_div2)
   show ?thesis
     unfolding trail_pol_def
-    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def uint32_max_def ann_lits_split_reasons_def
-        dest: length_trail_uint32_max_div2
+    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def unat32_max_def ann_lits_split_reasons_def
+        dest: length_trail_unat32_max_div2
 	simp del: isasat_input_bounded_def)
 qed
 
@@ -321,7 +321,7 @@ lemma trail_pol_slow_of_fast_alt_def:
 
 lemma trail_pol_fast_of_slow_trail_fast_of_slow:
   \<open>(RETURN o trail_pol_fast_of_slow, RETURN o trail_fast_of_slow)
-    \<in> [\<lambda>M. (\<forall>C L. Propagated L C \<in> set M \<longrightarrow> C < uint64_max)]\<^sub>f
+    \<in> [\<lambda>M. (\<forall>C L. Propagated L C \<in> set M \<longrightarrow> C < unat64_max)]\<^sub>f
         trail_pol \<A> \<rightarrow> \<langle>trail_pol \<A>\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
    (auto simp: trail_pol_def trail_pol_fast_of_slow_def
@@ -433,7 +433,7 @@ definition mop_polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Righ
 subsection \<open>Length of the trail\<close>
 
 definition (in -) isa_length_trail_pre where
-  \<open>isa_length_trail_pre = (\<lambda> (M', xs, lvls, reasons, k, cs). length M' \<le> uint32_max)\<close>
+  \<open>isa_length_trail_pre = (\<lambda> (M', xs, lvls, reasons, k, cs). length M' \<le> unat32_max)\<close>
 
 definition (in -) isa_length_trail where
   \<open>isa_length_trail = (\<lambda> (M', xs, lvls, reasons, k, cs). length_uint32_nat M')\<close>
@@ -464,7 +464,7 @@ subsection \<open>Consing elements\<close>
 
 definition cons_trail_Propagated_tr_pre where
   \<open>cons_trail_Propagated_tr_pre = (\<lambda>((L, C), (M, xs, lvls, reasons, k)). nat_of_lit L < length xs \<and>
-    nat_of_lit (-L) < length xs \<and> atm_of L < length lvls \<and> atm_of L < length reasons \<and> length M < uint32_max)\<close>
+    nat_of_lit (-L) < length xs \<and> atm_of L < length lvls \<and> atm_of L < length reasons \<and> length M < unat32_max)\<close>
 
 definition cons_trail_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trail_pol \<Rightarrow> trail_pol nres\<close> where
   \<open>cons_trail_Propagated_tr = (\<lambda>L C (M', xs, lvls, reasons, k, cs). do {
@@ -530,12 +530,12 @@ lemma cons_trail_Propagated_tr2:
   done
 
 
-lemma undefined_lit_count_decided_uint32_max:
+lemma undefined_lit_count_decided_unat32_max:
   assumes
     M_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and n_d: \<open>no_dup M\<close> and
     \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and \<open>undefined_lit M L\<close> and
     bounded: \<open>isasat_input_bounded \<A>\<close>
-  shows \<open>Suc (count_decided M) \<le> uint32_max\<close>
+  shows \<open>Suc (count_decided M) \<le> unat32_max\<close>
 proof -
   have dist_atm_M: \<open>distinct_mset {#atm_of (lit_of x). x \<in># mset M#}\<close>
     using n_d by (metis distinct_mset_mset_distinct mset_map no_dup_def)
@@ -545,14 +545,14 @@ proof -
     by (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def no_dup_distinct
         atm_of_eq_atm_of)
   from size_mset_mono[OF this] have 1: \<open>count_decided M + 1 \<le> size (remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>))\<close>
-    using length_filter_le[of is_decided M] unfolding uint32_max_def count_decided_def
+    using length_filter_le[of is_decided M] unfolding unat32_max_def count_decided_def
     by (auto simp del: length_filter_le)
   have inj_on: \<open>inj_on nat_of_lit (set_mset (remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)))\<close>
     by (auto simp: inj_on_def)
-  have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> atm_of xa \<le> uint32_max div 2\<close> for xa
+  have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> atm_of xa \<le> unat32_max div 2\<close> for xa
     using bounded
-    by (cases xa) (auto simp: uint32_max_def)
-  have \<open>remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<subseteq># mset [0..< 1 + (uint32_max div 2)]\<close>
+    by (cases xa) (auto simp: unat32_max_def)
+  have \<open>remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<subseteq># mset [0..< 1 + (unat32_max div 2)]\<close>
     apply (subst distinct_subseteq_iff[THEN iffD1])
     using H distinct_image_mset_inj[OF inj_on]
     by (force simp del: literal_of_nat.simps simp: distinct_mset_mset_set
@@ -560,24 +560,24 @@ proof -
   note _ = size_mset_mono[OF this]
   moreover have \<open>size (nat_of_lit `# remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)) = size (remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>))\<close>
     by simp
-  ultimately have 2: \<open>size (remdups_mset (atm_of `# (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>))) \<le> 1 + uint32_max div 2\<close>
+  ultimately have 2: \<open>size (remdups_mset (atm_of `# (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>))) \<le> 1 + unat32_max div 2\<close>
     by auto
 
   show ?thesis
-    using 1 2 by (auto simp: uint32_max_def)
+    using 1 2 by (auto simp: unat32_max_def)
 
   from size_mset_mono[OF incl] have 1: \<open>length M + 1 \<le> size (remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>))\<close>
-    unfolding uint32_max_def count_decided_def
+    unfolding unat32_max_def count_decided_def
     by (auto simp del: length_filter_le)
-  with 2 have \<open>length M  \<le> uint32_max\<close>
+  with 2 have \<open>length M  \<le> unat32_max\<close>
     by auto
 qed
 
-lemma length_trail_uint32_max:
+lemma length_trail_unat32_max:
   assumes
     M_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and n_d: \<open>no_dup M\<close> and
     bounded: \<open>isasat_input_bounded \<A>\<close>
-  shows \<open>length M \<le> uint32_max\<close>
+  shows \<open>length M \<le> unat32_max\<close>
 proof -
   have dist_atm_M: \<open>distinct_mset {#atm_of (lit_of x). x \<in># mset M#}\<close>
     using n_d by (metis distinct_mset_mset_distinct mset_map no_dup_def)
@@ -589,10 +589,10 @@ proof -
 
   have inj_on: \<open>inj_on nat_of_lit (set_mset (remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)))\<close>
     by (auto simp: inj_on_def)
-  have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> atm_of xa \<le> uint32_max div 2\<close> for xa
+  have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> atm_of xa \<le> unat32_max div 2\<close> for xa
     using bounded
-    by (cases xa) (auto simp: uint32_max_def)
-  have \<open>remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<subseteq># mset [0..< 1 + (uint32_max div 2)]\<close>
+    by (cases xa) (auto simp: unat32_max_def)
+  have \<open>remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<subseteq># mset [0..< 1 + (unat32_max div 2)]\<close>
     apply (subst distinct_subseteq_iff[THEN iffD1])
     using H distinct_image_mset_inj[OF inj_on]
     by (force simp del: literal_of_nat.simps simp: distinct_mset_mset_set
@@ -600,13 +600,13 @@ proof -
   note _ = size_mset_mono[OF this]
   moreover have \<open>size (nat_of_lit `# remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)) = size (remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>))\<close>
     by simp
-  ultimately have 2: \<open>size (remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)) \<le> 1 + uint32_max div 2\<close>
+  ultimately have 2: \<open>size (remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)) \<le> 1 + unat32_max div 2\<close>
     by auto
   from size_mset_mono[OF incl] have 1: \<open>length M \<le> size (remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>))\<close>
-    unfolding uint32_max_def count_decided_def
+    unfolding unat32_max_def count_decided_def
     by (auto simp del: length_filter_le)
   with 2 show ?thesis
-    by (auto simp: uint32_max_def)
+    by (auto simp: unat32_max_def)
 qed
 
 
@@ -774,8 +774,8 @@ definition cons_trail_Decided_tr :: \<open>nat literal \<Rightarrow> trail_pol \
 definition cons_trail_Decided_tr_pre where
   \<open>cons_trail_Decided_tr_pre =
     (\<lambda>(L, (M, xs, lvls, reason, k, cs)). nat_of_lit L < length xs \<and> nat_of_lit (-L) < length xs \<and>
-      atm_of L < length lvls \<and> atm_of L < length reason  \<and> length cs < uint32_max \<and>
-      Suc k \<le> uint32_max \<and> length M < uint32_max)\<close>
+      atm_of L < length lvls \<and> atm_of L < length reason  \<and> length cs < unat32_max \<and>
+      Suc k \<le> unat32_max \<and> length M < unat32_max)\<close>
 
 lemma length_cons_trail_Decided[simp]:
   \<open>length (cons_trail_Decided L M) = Suc (length M)\<close>
@@ -799,14 +799,14 @@ lemma cons_trail_Decided_tr_pre:
   using assms
   by (auto simp: trail_pol_alt_def image_image ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
          cons_trail_Decided_tr_pre_def control_stack_length_count_dec
-       intro!: ext undefined_lit_count_decided_uint32_max length_trail_uint32_max)
+       intro!: ext undefined_lit_count_decided_unat32_max length_trail_unat32_max)
 
 
 subsection \<open>Polarity: Defined or Undefined\<close>
 
 definition (in -) defined_atm_pol_pre where
   \<open>defined_atm_pol_pre = (\<lambda>(M, xs, lvls, k) L. 2*L < length xs \<and>
-      2*L \<le> uint32_max)\<close>
+      2*L \<le> unat32_max)\<close>
 
 definition (in -) defined_atm_pol where
   \<open>defined_atm_pol = (\<lambda>(M, xs, lvls, k) L. \<not>((xs!(2*L)) = None))\<close>
@@ -819,7 +819,7 @@ lemma undefined_atm_code:
 proof -
   have H: \<open>2*L < length xs\<close> (is \<open>?length\<close>) and
     none: \<open>defined_atm M L \<longleftrightarrow> xs ! (2*L) \<noteq> None\<close> (is ?undef) and
-    le: \<open>2*L \<le> uint32_max\<close> (is ?le)
+    le: \<open>2*L \<le> unat32_max\<close> (is ?le)
     if L_N: \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and tr: \<open>((M', xs, lvls, k), M) \<in> trail_pol \<A>\<close>
     for M xs lvls k M' L
   proof -
@@ -835,7 +835,7 @@ proof -
     show ?undef
       using xsL by (auto simp: polarity_def defined_atm_def
           Decided_Propagated_in_iff_in_lits_of_l split: if_splits)
-    show \<open>2*L \<le> uint32_max\<close>
+    show \<open>2*L \<le> unat32_max\<close>
       using tr L_N unfolding trail_pol_def by auto
   qed
   show ?A
@@ -1108,9 +1108,9 @@ lemma trail_pol_no_CS_alt_def:
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. atm_of L < length lvls \<and> lvls ! (atm_of L) = get_level M L) \<and>
     (\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
     control_stack (take (count_decided M) cs) M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M \<and>
-    length M < uint32_max \<and>
-    length M \<le> uint32_max div 2 + 1 \<and>
-    count_decided M < uint32_max \<and>
+    length M < unat32_max \<and>
+    length M \<le> unat32_max div 2 + 1 \<and>
+    count_decided M < unat32_max \<and>
     length M' = length M \<and>
     isasat_input_bounded \<A> \<and>
     M' = map lit_of (rev M)
@@ -1118,13 +1118,13 @@ lemma trail_pol_no_CS_alt_def:
 proof -
   have [intro!]: \<open>length M < n \<Longrightarrow> count_decided M < n\<close> for M n
     using length_filter_le[of is_decided M]
-    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def uint32_max_def count_decided_def
+    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def unat32_max_def count_decided_def
         simp del: length_filter_le
-        dest: length_trail_uint32_max_div2)
+        dest: length_trail_unat32_max_div2)
   show ?thesis
     unfolding trail_pol_no_CS_def
-    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def uint32_max_def ann_lits_split_reasons_def
-        dest: length_trail_uint32_max_div2
+    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def unat32_max_def ann_lits_split_reasons_def
+        dest: length_trail_unat32_max_div2
 	simp del: isasat_input_bounded_def)
 qed
 

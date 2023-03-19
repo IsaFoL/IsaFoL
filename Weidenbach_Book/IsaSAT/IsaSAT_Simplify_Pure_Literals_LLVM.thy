@@ -5,13 +5,10 @@ theory IsaSAT_Simplify_Pure_Literals_LLVM
     IsaSAT_Proofs_LLVM
 begin
 
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
-
 sepref_register mop_arena_status_st isa_pure_literal_count_occs_clause_wl
 sepref_def isa_pure_literal_count_occs_clause_wl_code
   is \<open>uncurry3 isa_pure_literal_count_occs_clause_wl\<close>
-  :: \<open>[\<lambda>(((C, S), _), _). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>(((C, S), _), _). length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
     sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a (larray_assn' TYPE(64) bool1_assn)\<^sup>d *\<^sub>a word64_assn\<^sup>d  \<rightarrow> larray_assn' TYPE(64) bool1_assn \<times>\<^sub>a word64_assn\<close>
   unfolding isa_pure_literal_count_occs_clause_wl_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
@@ -20,7 +17,7 @@ sepref_def isa_pure_literal_count_occs_clause_wl_code
 sepref_register isa_pure_literal_count_occs_wl
 sepref_def isa_pure_literal_count_occs_wl_code
   is isa_pure_literal_count_occs_wl
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
      isasat_bounded_assn\<^sup>k \<rightarrow> bool1_assn \<times>\<^sub>a larray_assn' TYPE(64) bool1_assn\<close>
   unfolding isa_pure_literal_count_occs_wl_def nth_append Let_def
     larray_fold_custom_replicate mop_arena_status_st_def[symmetric]
@@ -61,7 +58,7 @@ lemma isa_pure_literal_deletion_wl_alt_def:
        ASSERT (n \<noteq> None);
        let A = the n;
        ASSERT (A < length (get_vmtf_heur_array S\<^sub>0));
-       ASSERT (A \<le> uint32_max div 2);
+       ASSERT (A \<le> unat32_max div 2);
        ASSERT (get_vmtf_heur_array S\<^sub>0 = get_vmtf_heur_array T);
        ASSERT (nat_of_lit (Pos A) < length occs);
        ASSERT (nat_of_lit (Neg A) < length occs);
@@ -76,20 +73,21 @@ lemma isa_pure_literal_deletion_wl_alt_def:
        else RETURN (get_next (get_vmtf_heur_array T ! A),eliminated, T)
      })
     (Some (get_vmtf_heur_fst S\<^sub>0), 0, S\<^sub>0);
-   mop_free occs;
-  RETURN (eliminated, S)
-         })\<close>
+    mop_free occs;
+    RETURN (eliminated, S)
+  })\<close>
   unfolding isa_pure_literal_deletion_wl_def mop_free_def
   by auto
 
 sepref_def isa_pure_literal_deletion_wl_code
   is \<open>uncurry isa_pure_literal_deletion_wl\<close>
-  :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
      (larray_assn' TYPE(64) bool1_assn)\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> word64_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding isa_pure_literal_deletion_wl_alt_def nres_monad3 nres_monad2
-    get_vmtf_heur_array_nth_def[symmetric] UNSET_def[symmetric] atom.fold_option
+    get_bump_heur_array_nth_def[symmetric] UNSET_def[symmetric] atom.fold_option
     mop_polarity_st_heur_def[symmetric] tri_bool_eq_def[symmetric]
-    get_vmtf_heur_array_nth_def[symmetric] prod.simps
+    get_bump_heur_array_nth_def[symmetric] prod.simps
+    get_vmtf_heur_array_def[symmetric]
   by sepref
 
 end

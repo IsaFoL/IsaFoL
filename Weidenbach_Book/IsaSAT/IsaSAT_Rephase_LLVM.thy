@@ -2,6 +2,8 @@ theory IsaSAT_Rephase_LLVM
   imports IsaSAT_Rephase IsaSAT_Literals_LLVM
 begin
 
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN
+ 
 type_synonym phase_saver_assn = \<open>1 word larray64\<close>
 abbreviation phase_saver_assn :: \<open>phase_saver \<Rightarrow> phase_saver_assn \<Rightarrow> assn\<close> where
   \<open>phase_saver_assn \<equiv> larray64_assn bool1_assn\<close>

@@ -37,9 +37,9 @@ export_llvm
   VMTF_get_prev_impl
   VMTF_get_next_impl
   get_conflict_wl_is_None_fast_code
-  isa_count_decided_st_fast_code
+  count_decided_st_heur_fast_code
   polarity_st_heur_pol_fast
-  isa_count_decided_st_fast_code
+  count_decided_st_heur_fast_code
   access_lit_in_clauses_heur_fast_code
   rewatch_heur_fast_code
   rewatch_heur_st_fast_code

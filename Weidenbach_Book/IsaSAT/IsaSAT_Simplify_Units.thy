@@ -509,7 +509,7 @@ lemma simplify_clause_with_unit_st_wl_preD:
   shows
     simplify_clause_with_unit_st_wl_pre_all_init_atms_all_atms:
       \<open>set_mset (all_init_atms_st S) = set_mset (all_atms_st S)\<close> and
-    \<open>isasat_input_bounded (all_init_atms_st S) \<Longrightarrow> length (get_clauses_wl S \<propto> C) \<le> Suc (uint32_max div 2)\<close>
+    \<open>isasat_input_bounded (all_init_atms_st S) \<Longrightarrow> length (get_clauses_wl S \<propto> C) \<le> Suc (unat32_max div 2)\<close>
 proof -
   obtain x xa where
     Sx: \<open>(S, x) \<in> state_wl_l None\<close> and
@@ -571,7 +571,7 @@ proof -
   moreover have \<open>\<not>tautology (mset (get_clauses_wl S \<propto> C))\<close>
     using list C Sx unfolding twl_list_invs_def
     by auto
-  ultimately show \<open>length (get_clauses_wl S \<propto> C) \<le> Suc (uint32_max div 2)\<close>
+  ultimately show \<open>length (get_clauses_wl S \<propto> C) \<le> Suc (unat32_max div 2)\<close>
     if \<open>isasat_input_bounded (all_init_atms_st S)\<close>
     using simple_clss_size_upper_div2[OF that, of \<open>mset (get_clauses_wl S \<propto> C)\<close>] by auto
 qed
@@ -581,7 +581,7 @@ lemma isa_simplify_clause_with_unit2_isa_simplify_clause_with_unit:
     trail: \<open>(M, M') \<in> trail_pol \<A>\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N)\<close> and
     C: \<open>(C,C')\<in>Id\<close> and
-    le: \<open>length (N \<propto> C) \<le> Suc (uint32_max div 2)\<close>
+    le: \<open>length (N \<propto> C) \<le> Suc (unat32_max div 2)\<close>
   shows \<open>isa_simplify_clause_with_unit2 C M arena \<le> \<Down>
     (bool_rel \<times>\<^sub>r {(arena', N). valid_arena arena' N vdom \<and> length arena' = length arena} \<times>\<^sub>r
     Id \<times>\<^sub>r bool_rel \<times>\<^sub>r nat_rel)
@@ -708,7 +708,7 @@ lemma twl_st_heur_restart_alt_def[unfolded Let_def]:
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A> ) \<and>
-    vm \<in> isa_vmtf \<A>  M \<and>
+    vm \<in> bump_heur \<A>  M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty \<A>  cach \<and>
@@ -925,7 +925,7 @@ proof -
          prod_rel_iff TrueI refl accessors_def
        cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev x1)), x2k)\<close>
-       \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2 clss_size_corr_restart_def
+       \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD clss_size_corr_restart_def
         clss_size_def clss_size_incr_lcountUEk_def learned_clss_count_def aivdom_inv_dec_mono empty_occs_list_cong[of  \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>]
         clss_size_decr_lcount_def)
       (auto split: if_splits intro: aivdom_inv_dec_mono simp:
@@ -940,7 +940,7 @@ proof -
        isasat_state_simp prod_rel_iff TrueI refl accessors_def
        cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev x1)), x2k)\<close>
-       \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2
+       \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD
        clss_size_def clss_size_incr_lcountUE_def clss_size_incr_lcountUS_def
        clss_size_incr_lcountU0_def
        clss_size_decr_lcount_def clss_size_corr_restart_def empty_occs_list_cong[of  \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>]
@@ -961,7 +961,7 @@ proof -
        prod_rel_iff TrueI refl accessors_def isasat_state_simp empty_occs_list_cong[of  \<open>all_init_atms_st (_, _, _, _, _, _, _,(If _ _ _) _, _)\<close>]
        cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev x1)), x2k)\<close>
-       \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2
+       \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD
        clss_size_def clss_size_incr_lcountUE_def clss_size_incr_lcountUS_def
        clss_size_incr_lcountU0_def aivdom_inv_dec_mono
        clss_size_decr_lcount_def clss_size_corr_restart_def

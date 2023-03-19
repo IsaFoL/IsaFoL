@@ -29,7 +29,7 @@ We also handle growing of the structure by hand instead of using a proper hash-t
 \<close>
 definition lbd_ref :: \<open>(lbd_ref \<times> lbd) set\<close> where
   \<open>lbd_ref = {((lbd, stamp, m), lbd').
-      length lbd' \<le> Suc (Suc (uint32_max div 2)) \<and>
+      length lbd' \<le> Suc (Suc (unat32_max div 2)) \<and>
       m = length (filter id lbd') \<and>
       stamp > 0 \<and>
       length lbd = length lbd' \<and>
@@ -63,12 +63,12 @@ definition lbd_write :: \<open>lbd \<Rightarrow> nat \<Rightarrow> lbd\<close> w
 
 definition lbd_ref_write :: \<open>lbd_ref \<Rightarrow> nat \<Rightarrow> lbd_ref nres\<close>  where
   \<open>lbd_ref_write = (\<lambda>(lbd, stamp, n) i. do {
-    ASSERT(length lbd \<le> uint32_max \<and> n + 1 \<le> uint32_max);
+    ASSERT(length lbd \<le> unat32_max \<and> n + 1 \<le> unat32_max);
     (if i < length_uint32_nat lbd then
        let n = if lbd ! i = stamp then n else n+1 in
        RETURN (lbd[i := stamp], stamp, n)
      else do {
-        ASSERT(i + 1 \<le> uint32_max);
+        ASSERT(i + 1 \<le> unat32_max);
         RETURN ((list_grow lbd (i + 1) 0)[i := stamp], stamp, n + 1)
      })
   })\<close>
@@ -82,12 +82,12 @@ lemma list_update_append2: \<open>i \<ge> length xs \<Longrightarrow> (xs @ ys)[
 
 lemma lbd_ref_write_lbd_write:
   \<open>(uncurry (lbd_ref_write), uncurry (RETURN oo lbd_write)) \<in>
-    [\<lambda>(lbd, i). i \<le> Suc (uint32_max div 2)]\<^sub>f
+    [\<lambda>(lbd, i). i \<le> Suc (unat32_max div 2)]\<^sub>f
      lbd_ref \<times>\<^sub>f nat_rel \<rightarrow> \<langle>lbd_ref\<rangle>nres_rel\<close>
   unfolding lbd_ref_write_def lbd_write_def
   by (intro frefI nres_relI)
     (auto simp: level_in_lbd_ref_def level_in_lbd_def lbd_ref_def list_grow_def
-        nth_append uint32_max_def length_filter_update_true list_update_append2
+        nth_append unat32_max_def length_filter_update_true list_update_append2
         length_filter_update_false
       intro!: ASSERT_leI le_trans[OF length_filter_le]
       elim!: in_set_upd_cases)
@@ -105,7 +105,7 @@ definition lbd_empty_loop_ref where
          (\<lambda>(xs, i). i < length xs)
          (\<lambda>(xs, i). do {
             ASSERT(i < length xs);
-            ASSERT(i + 1 < uint32_max);
+            ASSERT(i + 1 < unat32_max);
             RETURN (xs[i := 0], i + 1)})
          (xs, 0);
      RETURN (xs, 1, 0)
@@ -119,7 +119,7 @@ lemma lbd_empty_loop_ref:
   shows
     \<open>lbd_empty_loop_ref (xs, m, n) \<le> \<Down> lbd_ref (RETURN (replicate (length ys) False))\<close>
 proof -
-  have le_xs: \<open>length xs \<le> uint32_max div 2 + 2\<close>
+  have le_xs: \<open>length xs \<le> unat32_max div 2 + 2\<close>
     \<open>length ys = length xs\<close>
     using assms by (auto simp: lbd_ref_def)
   have [iff]: \<open>(\<forall>j. \<not> j < (b :: nat)) \<longleftrightarrow> b = 0\<close> for b
@@ -178,7 +178,7 @@ proof -
     subgoal by (rule init)
     subgoal by auto
     subgoal by auto
-    subgoal using assms by (auto simp: lbd_ref_def lbd_emtpy_inv_def uint32_max_def)
+    subgoal using assms by (auto simp: lbd_ref_def lbd_emtpy_inv_def unat32_max_def)
     subgoal by (rule lbd_remove)
     subgoal by auto
     subgoal by (auto simp: lbd_emtpy_inv_def)
@@ -197,7 +197,7 @@ lemma lbd_empty_cheap_ref:
   by (auto simp: filter_empty_conv all_set_conv_nth in_set_conv_nth)
 
 definition lbd_empty_ref :: \<open>lbd_ref \<Rightarrow>  lbd_ref nres\<close> where
-  \<open>lbd_empty_ref = (\<lambda>(xs, m, n). if m = uint32_max then lbd_empty_loop_ref (xs,m,n)
+  \<open>lbd_empty_ref = (\<lambda>(xs, m, n). if m = unat32_max then lbd_empty_loop_ref (xs,m,n)
     else lbd_empty_cheap_ref (xs, m, n)) \<close>
 
 lemma lbd_empty_ref:
@@ -225,7 +225,7 @@ definition empty_lbd_ref :: \<open>lbd_ref\<close> where
 lemma empty_lbd_ref_empty_lbd:
   \<open>(\<lambda>_. (RETURN empty_lbd_ref), \<lambda>_. (RETURN empty_lbd)) \<in> unit_rel \<rightarrow>\<^sub>f \<langle>lbd_ref\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: empty_lbd_def lbd_ref_def empty_lbd_ref_def
-      uint32_max_def nth_Cons split: nat.splits)
+      unat32_max_def nth_Cons split: nat.splits)
 
 
 section \<open>Extracting the LBD\<close>

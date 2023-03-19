@@ -4,8 +4,6 @@ theory IsaSAT_Sorting_LLVM
     IsaSAT_Literals_LLVM 
 begin
 
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 declare \<alpha>_butlast[simp del]
 hide_const (open) NEMonad.RETURN NEMonad.ASSERT
 

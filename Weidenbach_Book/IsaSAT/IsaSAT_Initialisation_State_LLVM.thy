@@ -5,24 +5,134 @@ theory IsaSAT_Initialisation_State_LLVM
 begin
 hide_const (open) NEMonad.RETURN  NEMonad.ASSERT
 
-type_synonym (in -)vmtf_assn_option_fst_As =
-  \<open>vmtf_node_assn ptr \<times> 64 word \<times> 32 word \<times> 32 word \<times> 32 word\<close>
+type_synonym bump_heuristics_init_assn = \<open>
+  ((64 word \<times> 32 word \<times> 32 word) ptr \<times> 64 word \<times> 32 word \<times> 32 word \<times> 32 word,
+  (64 word \<times> 32 word \<times> 32 word) ptr \<times> 64 word \<times> 32 word \<times> 32 word \<times> 32 word,
+  1 word, (64 word \<times> 64 word \<times> 32 word ptr) \<times> 1 word ptr) tuple4\<close>
 
-type_synonym (in -)vmtf_remove_assn_option_fst_As =
-  \<open>vmtf_assn_option_fst_As \<times> (32 word array_list64) \<times> 1 word ptr\<close>
-
-abbreviation (in -) vmtf_conc_option_fst_As :: \<open>_ \<Rightarrow> _ \<Rightarrow> llvm_amemory \<Rightarrow> bool\<close> where
-  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn vmtf_node_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a
+type_synonym vmtf_init = \<open>(nat, nat) vmtf_node list \<times> nat \<times> nat option \<times> nat option \<times> nat option\<close>
+definition (in -) vmtf_init_assn :: \<open>vmtf_init \<Rightarrow> _ \<Rightarrow> llvm_amemory \<Rightarrow> bool\<close> where
+  \<open>vmtf_init_assn \<equiv> (array_assn vmtf_node_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a
     atom.option_assn \<times>\<^sub>a atom.option_assn \<times>\<^sub>a atom.option_assn)\<close>
 
-abbreviation vmtf_remove_conc_option_fst_As
-  :: \<open>isa_vmtf_remove_int_option_fst_As \<Rightarrow> vmtf_remove_assn_option_fst_As \<Rightarrow> assn\<close>
-where
-  \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As \<times>\<^sub>a distinct_atoms_assn\<close>
+type_synonym bump_heuristics_init = \<open>(vmtf_init, vmtf_init, bool, nat list \<times> bool list) tuple4\<close>
+
+abbreviation Bump_Heuristics_Init :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> bump_heuristics_init\<close> where
+  \<open>Bump_Heuristics_Init a b c d \<equiv> Tuple4 a b c d\<close>
+
+definition heuristic_bump_init_assn :: \<open>bump_heuristics_init \<Rightarrow> bump_heuristics_init_assn \<Rightarrow> _\<close> where
+  \<open>heuristic_bump_init_assn = tuple4_assn vmtf_init_assn vmtf_init_assn bool1_assn distinct_atoms_assn\<close>
+
+definition bottom_atom where
+  \<open>bottom_atom = 0\<close>
+
+definition bottom_init_vmtf :: \<open>vmtf_init\<close> where
+  \<open>bottom_init_vmtf = (replicate 0 (VMTF_Node 0 None None), 0, None, None, None)\<close>
+
+definition extract_bump_stable where
+  \<open>extract_bump_stable = tuple4_state_ops.remove_a bottom_init_vmtf\<close>
+definition extract_bump_focused where
+  \<open>extract_bump_focused = tuple4_state_ops.remove_b bottom_init_vmtf\<close>
+
+lemma [sepref_fr_rules]: \<open>(uncurry0 (Mreturn 0), uncurry0 (RETURN bottom_atom)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a atom_assn\<close>
+  unfolding bottom_atom_def
+  apply sepref_to_hoare
+  apply vcg
+  apply (auto simp: atom_rel_def unat_rel_def unat.rel_def br_def entails_def ENTAILS_def)
+  by (smt (verit, best) pure_true_conv rel_simps(51) sep.add_0)
+
+sepref_def bottom_init_vmtf_code
+  is \<open>uncurry0 (RETURN bottom_init_vmtf)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_init_assn\<close>
+  unfolding bottom_init_vmtf_def
+  apply (rewrite in \<open>((\<hole>, _, _, _, _))\<close> array_fold_custom_replicate)
+  unfolding
+   atom.fold_option array_fold_custom_replicate vmtf_init_assn_def
+    al_fold_custom_empty[where 'l=64]
+  apply (rewrite at 0 in \<open>VMTF_Node \<hole>\<close> unat_const_fold[where 'a=64])
+  apply (rewrite at \<open>(_, \<hole>, _, _)\<close> unat_const_fold[where 'a=64])
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+schematic_goal free_vmtf_remove_assn[sepref_frame_free_rules]: \<open>MK_FREE vmtf_init_assn ?a\<close>
+  unfolding vmtf_init_assn_def
+  by synthesize_free
+
+sepref_def free_vmtf_remove
+  is \<open>mop_free\<close>
+  :: \<open>vmtf_init_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+definition extract_bump_is_focused where
+  \<open>extract_bump_is_focused = tuple4_state_ops.remove_c False\<close>
+
+definition bottom_atms_hash where
+  \<open>bottom_atms_hash = ([], replicate 0 False)\<close>
+
+definition extract_bump_atms_to_bump where
+  \<open>extract_bump_atms_to_bump = tuple4_state_ops.remove_d bottom_atms_hash\<close>
+  
+sepref_def bottom_atms_hash_code
+  is \<open>uncurry0 (RETURN bottom_atms_hash)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a distinct_atoms_assn\<close>
+  unfolding bottom_atms_hash_def
+  unfolding
+   atom.fold_option array_fold_custom_replicate
+    al_fold_custom_empty[where 'l=64]
+  apply (rewrite at \<open>(\<hole>, _)\<close> annotate_assn[where A =\<open>al_assn atom_assn\<close>])
+  apply (rewrite at \<open>(_, \<hole>)\<close> annotate_assn[where A =\<open>atoms_hash_assn\<close>])
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+lemma free_vmtf_init_assn_assn2: \<open>MK_FREE vmtf_init_assn free_vmtf_remove\<close>
+  unfolding free_vmtf_remove_def
+  by (rule back_subst[of \<open>MK_FREE vmtf_init_assn\<close>, OF free_vmtf_remove_assn])
+    (auto intro!: ext)
+
+global_interpretation Bump_Heur_Init: tuple4_state where
+  a_assn = vmtf_init_assn and
+  b_assn = vmtf_init_assn and
+  c_assn = bool1_assn and
+  d_assn = distinct_atoms_assn and
+  a_default = bottom_init_vmtf and
+  a = \<open>bottom_init_vmtf_code\<close> and
+  a_free = free_vmtf_remove and
+  b_default = bottom_init_vmtf and
+  b = \<open>bottom_init_vmtf_code\<close> and
+  b_free = free_vmtf_remove and
+  c_default = False and
+  c = \<open>bottom_focused\<close> and
+  c_free = free_focused and
+  d_default = \<open>bottom_atms_hash\<close> and
+  d = \<open>bottom_atms_hash_code\<close> and
+  d_free = \<open>free_atms_hash_code\<close>
+  rewrites
+  \<open>Bump_Heur_Init.tuple4_int_assn \<equiv> heuristic_bump_init_assn\<close>and
+  \<open>Bump_Heur_Init.remove_a \<equiv> extract_bump_stable\<close> and
+  \<open>Bump_Heur_Init.remove_b \<equiv> extract_bump_focused\<close> and
+  \<open>Bump_Heur_Init.remove_c \<equiv> extract_bump_is_focused\<close> and
+  \<open>Bump_Heur_Init.remove_d \<equiv> extract_bump_atms_to_bump\<close>
+  apply unfold_locales
+  apply (rule bottom_init_vmtf_code.refine bottom_focused.refine
+    bottom_atms_hash_code.refine free_vmtf_init_assn_assn2 free_focused_assn2
+    free_distinct_atoms_assn2)+
+  subgoal unfolding heuristic_bump_init_assn_def tuple4_state_ops.tuple4_int_assn_def by auto
+  subgoal unfolding extract_bump_stable_def by auto
+  subgoal unfolding extract_bump_focused_def by auto
+  subgoal unfolding extract_bump_is_focused_def by auto
+  subgoal unfolding extract_bump_atms_to_bump_def by auto
+  done
+
+lemmas [unfolded Tuple4_LLVM.inline_direct_return_node_case, llvm_code] =
+  Bump_Heur_Init.code_rules[unfolded Mreturn_comp_Tuple4]
+
+lemmas [sepref_fr_rules] =
+  Bump_Heur_Init.separation_rules
+
 
 type_synonym (in -)twl_st_wll_trail_init =
   \<open>(trail_pol_fast_assn, arena_assn, option_lookup_clause_assn,
-    64 word, watched_wl_uint32, vmtf_remove_assn_option_fst_As, phase_saver_assn,
+    64 word, watched_wl_uint32, bump_heuristics_init_assn, phase_saver_assn,
     32 word, cach_refinement_l_assn, lbd_assn, vdom_fast_assn, vdom_fast_assn, 1 word,
   (64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word), mark_assn) tuple15\<close>
 
@@ -34,7 +144,7 @@ where
   conflict_option_rel_assn
   sint64_nat_assn
   watchlist_fast_assn
-  vmtf_remove_conc_option_fst_As phase_saver_assn
+  heuristic_bump_init_assn phase_saver_assn
   uint32_nat_assn
   cach_refinement_l_assn
   lbd_assn
@@ -96,21 +206,24 @@ lemma free_phase_saver2: \<open>MK_FREE phase_saver_assn free_phase_saver\<close
   by (rule back_subst[of \<open>MK_FREE phase_saver_assn\<close>, OF free_phase_saver])
     (auto intro!: ext simp: free_phase_saver_def)
 
-definition bottom_vmtf2 :: \<open>isa_vmtf_remove_int_option_fst_As\<close> where
-  \<open>bottom_vmtf2 = (([], 0, None, None, None), [], [])\<close>
+definition bottom_init_bump :: \<open>bump_heuristics_init\<close> where
+  \<open>bottom_init_bump = Bump_Heuristics_Init bottom_init_vmtf bottom_init_vmtf False bottom_atms_hash\<close>
 
-sepref_def free_vmtf_remove2
-  is \<open>mop_free\<close>
-  :: \<open>vmtf_remove_conc_option_fst_As\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
-  by sepref
-
-schematic_goal free_vmtf_remove_conc_option_fst_As[sepref_frame_free_rules]: \<open>MK_FREE vmtf_remove_conc_option_fst_As ?a\<close>
+schematic_goal free_vmtf_init_assn[sepref_frame_free_rules]: \<open>MK_FREE heuristic_bump_init_assn ?a\<close>
+  unfolding heuristic_bump_init_assn_def
   by synthesize_free
 
-lemma free_vmtf_remove2: \<open>MK_FREE vmtf_remove_conc_option_fst_As free_vmtf_remove2\<close>
-  unfolding free_arena_fast_def
-  by (rule back_subst[of \<open>MK_FREE vmtf_remove_conc_option_fst_As\<close>, OF free_vmtf_remove_conc_option_fst_As])
-    (auto intro!: ext simp: free_vmtf_remove2_def)
+sepref_def free_bottom_init_bump_code
+  is \<open>mop_free\<close>
+  :: \<open>heuristic_bump_init_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+
+lemma free_vmtf_remove2: \<open>MK_FREE heuristic_bump_init_assn free_bottom_init_bump_code\<close>
+  unfolding free_bottom_init_bump_code_def
+  apply (rule back_subst[of \<open>MK_FREE heuristic_bump_init_assn\<close>, OF free_vmtf_init_assn])
+  apply (auto intro!: ext simp: M_monad_laws)
+  by (metis M_monad_laws(1))
 
 
 definition op_empty_array where
@@ -124,13 +237,10 @@ lemma [sepref_fr_rules]: \<open>(uncurry0 (Mreturn null), uncurry0 (RETURN op_em
     pure_true_conv narray_assn_null_init)
   done
 
-sepref_def bottom_vmtf2_code
-  is \<open>uncurry0 (RETURN bottom_vmtf2)\<close>
-  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_remove_conc_option_fst_As\<close>
-  unfolding bottom_vmtf2_def atom.fold_None
-  apply (annot_unat_const \<open>TYPE(64)\<close>)
-  apply (rewrite at \<open>RETURN ((\<hole>, _),_,_)\<close> op_empty_array_def[symmetric])
-  apply (rewrite at \<open>RETURN ((_, _),_,\<hole>)\<close> op_empty_array_def[symmetric])
+sepref_def bottom_init_vmtf2_code
+  is \<open>uncurry0 (RETURN bottom_init_bump)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a heuristic_bump_init_assn\<close>
+  unfolding bottom_init_bump_def atom.fold_None
   unfolding al_fold_custom_empty[where 'l=64]
   by sepref
 
@@ -152,9 +262,9 @@ schematic_goal free_bool[sepref_frame_free_rules]: \<open>MK_FREE bool1_assn ?a\
   by synthesize_free
 
 lemma free_bool2: \<open>MK_FREE bool1_assn free_bool\<close>
-  unfolding free_arena_fast_def
+  unfolding free_focused_def
   by (rule back_subst[of \<open>MK_FREE bool1_assn\<close>, OF free_bool])
-    (auto intro!: ext simp: free_bool_def)
+    (auto intro!: ext simp: free_bool_def free_focused_def)
 
 definition bottom_marked_struct :: \<open>_\<close> where
   \<open>bottom_marked_struct = (0, [])\<close>
@@ -187,7 +297,7 @@ global_interpretation IsaSAT_Init: tuple15_state_ops where
   c_assn = conflict_option_rel_assn and
   d_assn = sint64_nat_assn and
   e_assn = watchlist_fast_assn and
-  f_assn = vmtf_remove_conc_option_fst_As and
+  f_assn = heuristic_bump_init_assn and
   g_assn = phase_saver_assn and
   h_assn = uint32_nat_assn and
   i_assn = cach_refinement_l_assn and
@@ -207,8 +317,8 @@ global_interpretation IsaSAT_Init: tuple15_state_ops where
   d = \<open>(bottom_decision_level_code)\<close> and
   e_default = bottom_watchlist and
   e = \<open>bottom_watchlist_code\<close> and
-  f_default = bottom_vmtf2 and
-  f = \<open>bottom_vmtf2_code\<close> and
+  f_default = bottom_init_bump and
+  f = \<open>bottom_init_vmtf2_code\<close> and
   g_default = bottom_phase_saver and
   g = \<open>bottom_phase_saver_code\<close> and
   h_default = bottom_clvls and
@@ -283,7 +393,7 @@ global_interpretation IsaSAT_Init: tuple15_state where
   c_assn = conflict_option_rel_assn and
   d_assn = sint64_nat_assn and
   e_assn = watchlist_fast_assn and
-  f_assn = vmtf_remove_conc_option_fst_As and
+  f_assn = heuristic_bump_init_assn and
   g_assn = phase_saver_assn and
   h_assn = uint32_nat_assn and
   i_assn = cach_refinement_l_assn and
@@ -308,9 +418,9 @@ global_interpretation IsaSAT_Init: tuple15_state where
   e_default = bottom_watchlist and
   e = \<open>bottom_watchlist_code\<close> and
   e_free = free_watchlist_fast and
-  f_default = bottom_vmtf2 and
-  f = \<open>bottom_vmtf2_code\<close> and
-  f_free = free_vmtf_remove2 and
+  f_default = bottom_init_bump and
+  f = \<open>bottom_init_vmtf2_code\<close> and
+  f_free = free_bottom_init_bump_code and
   g_default = bottom_phase_saver and
   g = \<open>bottom_phase_saver_code\<close> and
   g_free = free_phase_saver and
@@ -361,7 +471,7 @@ global_interpretation IsaSAT_Init: tuple15_state where
   subgoal by (rule bottom_conflict_code.refine)
   subgoal by (rule bottom_decision_level_code.refine)
   subgoal by (rule bottom_watchlist_code.refine)
-  subgoal by (rule bottom_vmtf2_code.refine)
+  subgoal by (rule bottom_init_vmtf2_code.refine)
   subgoal by (rule bottom_phase_saver_code.refine)
   subgoal by (rule bottom_clvls_code.refine)
   subgoal by (rule bottom_ccach_code.refine)
@@ -444,7 +554,7 @@ lemmas isasat_init_getters_and_setters_def =
 
 
 lemma (in -) case_isasat_int_split_getter: \<open>P 
-  (Tuple15_a S) 
+  (Tuple15_a S)
   (Tuple15_b S)
   (Tuple15_c S)
   (Tuple15_d S)
@@ -472,7 +582,7 @@ begin
 definition mop where
   \<open>mop S C = do {
   ASSERT (P C
-  (Tuple15_a S) 
+  (Tuple15_a S)
   (Tuple15_b S)
   (Tuple15_c S)
   (Tuple15_d S)

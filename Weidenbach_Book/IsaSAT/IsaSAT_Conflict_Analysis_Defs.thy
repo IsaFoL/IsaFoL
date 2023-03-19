@@ -1,5 +1,7 @@
 theory IsaSAT_Conflict_Analysis_Defs
-  imports IsaSAT_Setup IsaSAT_VMTF IsaSAT_LBD
+  imports IsaSAT_Setup
+    IsaSAT_Bump_Heuristics (*TODO _State *)
+    IsaSAT_VMTF IsaSAT_LBD
 begin
 
 definition lit_and_ann_of_propagated_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<times> nat\<close> where
@@ -16,17 +18,16 @@ where
 definition tl_state_wl_heur_pre :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>tl_state_wl_heur_pre =
       (\<lambda>S.
-         let M = get_trail_wl_heur S in let((A, m, fst_As, lst_As, next_search), to_remove) = get_vmtf_heur S in fst M \<noteq> [] \<and>
-         tl_trailt_tr_pre M \<and>
-	 vmtf_unset_pre (atm_of (last (fst M))) ((A, m, fst_As, lst_As, next_search), to_remove) \<and>
-         atm_of (last (fst M)) < length A \<and>
-         (next_search \<noteq> None \<longrightarrow>  the next_search < length A))\<close>
+         let M = get_trail_wl_heur S in let x = get_vmtf_heur S in fst M \<noteq> [] \<and>
+         tl_trailt_tr_pre M)\<close>
 
 definition tl_state_wl_heur :: \<open>isasat \<Rightarrow> (bool \<times> isasat) nres\<close> where
   \<open>tl_state_wl_heur = (\<lambda>S. do {
        ASSERT(tl_state_wl_heur_pre S);
        let M = get_trail_wl_heur S; let vm = get_vmtf_heur S;
-       let S = set_trail_wl_heur (tl_trailt_tr M) S; let S = set_vmtf_wl_heur (isa_vmtf_unset (atm_of (lit_of_last_trail_pol M)) vm) S;
+       let S = set_trail_wl_heur (tl_trailt_tr M) S;
+       ASSERT (isa_bump_unset_pre  (atm_of (lit_of_last_trail_pol M)) vm);
+       let S = set_vmtf_wl_heur (isa_bump_unset (atm_of (lit_of_last_trail_pol M)) vm) S;
        RETURN (False, S)
   })\<close>
 
@@ -51,12 +52,12 @@ where
       ASSERT(curry lookup_conflict_remove1_pre L (n, xs) \<and> clvls \<ge> 1);
       let (n, xs) = lookup_conflict_remove1 L (n, xs);
       ASSERT(arena_act_pre N C);
-      vm \<leftarrow> isa_vmtf_mark_to_rescore_also_reasons_cl M N C (-L) vm;
-      ASSERT(vmtf_unset_pre L' vm);
+      vm \<leftarrow> isa_vmtf_bump_to_rescore_also_reasons_cl M N C (-L) vm;
+      ASSERT(isa_bump_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       let S = set_trail_wl_heur (tl_trailt_tr M) S;
       let S = set_conflict_wl_heur (b, (n, xs)) S;
-      let S = set_vmtf_wl_heur (isa_vmtf_unset L' vm) S;
+      let S = set_vmtf_wl_heur (isa_bump_unset L' vm) S;
       let S = set_count_max_wl_heur (clvls - 1) S;
       let S = set_outl_wl_heur outl S;
       let S = set_clauses_wl_heur N S;
@@ -79,10 +80,10 @@ definition update_confl_tl_wl_heur_pre
 where
 \<open>update_confl_tl_wl_heur_pre =
   (\<lambda>((i, L), S).
-      let M = get_trail_wl_heur S; ((A, m, fst_As, lst_As, next_search), _) = get_vmtf_heur S in
+      let M = get_trail_wl_heur S; x = get_vmtf_heur S in
       i > 0 \<and>
-      (fst M) \<noteq> [] \<and>
-      atm_of ((last (fst M))) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A) \<and>
+        (fst M) \<noteq> [] \<and>
+        isa_bump_unset_pre (atm_of L) x \<and>
       L = (last (fst M))
       )\<close>
 

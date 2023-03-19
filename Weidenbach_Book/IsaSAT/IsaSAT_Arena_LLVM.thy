@@ -4,9 +4,6 @@ begin
 
 section \<open>Code Generation\<close>
 
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
-
 hide_const (open) NEMonad.RETURN  NEMonad.ASSERT
 
 
@@ -523,7 +520,7 @@ sepref_def mop_arena_lit_impl
 
 sepref_def mop_arena_lit2_impl
   is \<open>uncurry2 (mop_arena_lit2)\<close>
-    :: \<open>[\<lambda>((N, _), _). length N \<le> sint64_max]\<^sub>a 
+    :: \<open>[\<lambda>((N, _), _). length N \<le> snat64_max]\<^sub>a 
           arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   supply [intro] = arena_lit_implI
   supply [dest] = arena_lit_pre_le_lengthD
@@ -707,11 +704,11 @@ proof -
     by auto
   from this[of \<open>b - SIZE_SHIFT\<close>] have \<open>rdomp arena_el_impl_assn (a ! (b - SIZE_SHIFT))\<close>
     using le by auto
-  then have \<open>length (N \<propto> b) \<le> uint32_max + 2\<close>
+  then have \<open>length (N \<propto> b) \<le> unat32_max + 2\<close>
     using size eq unfolding rdomp_pure
     apply (auto simp: rdomp_def arena_el_impl_rel_def is_Size_def
        comp_def pure_def unat_rel_def unat.rel_def br_def
-       arena_length_def uint32_max_def)
+       arena_length_def unat32_max_def)
      subgoal for x
        using unat_lt_max_unat[of x]
        apply (auto simp: max_unat_def)
@@ -721,7 +718,7 @@ proof -
     using assms POS_SHIFT_def
     unfolding isa_update_pos_pre_def
     by (auto simp: arena_is_valid_clause_idx_def arena_lifting eq
-       uint32_max_def max_unat_def)
+       unat32_max_def max_unat_def)
 qed
 
 sepref_register arena_update_pos
@@ -1020,7 +1017,7 @@ lemma arena_lit_pre2_le_lengthD: \<open>arena_lit_pre2 arena i j \<Longrightarro
 
 sepref_def mop_arena_update_lit_code
   is \<open>uncurry3 mop_arena_update_lit\<close>
-  :: \<open>[\<lambda>(((_, _), _), N). length N \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>(((_, _), _), N). length N \<le> snat64_max]\<^sub>a
   sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow> arena_fast_assn\<close>
   supply [intro] = arena_lit_implI
   supply [dest] = arena_lit_pre2_le_lengthD

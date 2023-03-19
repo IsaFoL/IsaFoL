@@ -524,8 +524,8 @@ lemma restart_prog_wl_D_heur_restart_prog_wl_D2:
   \<open>(uncurry4 restart_prog_wl_D_heur, uncurry4 restart_prog_wl) \<in>
   twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f \<langle>restart_prog_wl_heur_rel2\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
-  apply (rule_tac r2 = \<open>length(get_clauses_wl_heur (fst (fst (fst (fst x)))))\<close> and
-       u2 = \<open>learned_clss_count (fst (fst (fst (fst x))))\<close> in
+  apply (rule_tac r3 = \<open>length(get_clauses_wl_heur (fst (fst (fst (fst x)))))\<close> and
+       u4 = \<open>learned_clss_count (fst (fst (fst (fst x))))\<close> in
     order_trans[OF restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down]])
   apply fast
   apply (auto intro!: conc_fun_R_mono)

@@ -2,8 +2,7 @@ theory IsaSAT_Rephase_State_LLVM
 imports
   IsaSAT_Rephase_State IsaSAT_Rephase_LLVM IsaSAT_Show_LLVM IsaSAT_Setup_LLVM
 begin
-
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 
 sepref_def save_phase_heur_stats_impl
   is \<open>uncurry save_rephase_heur_stats\<close>

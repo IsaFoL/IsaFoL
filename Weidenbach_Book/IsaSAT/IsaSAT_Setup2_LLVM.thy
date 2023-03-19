@@ -1,5 +1,6 @@
 theory IsaSAT_Setup2_LLVM
   imports IsaSAT_Setup
+    IsaSAT_Bump_Heuristics_LLVM
     IsaSAT_Setup0_LLVM
 begin
 
@@ -484,79 +485,57 @@ lemmas [sepref_fr_rules] = watched_by_app.refine watched_by_app.XX.mop_refine
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   length_ll_fs_heur_fast_code_def[unfolded read_all_st_code_def]
 
-
-definition vmtf_heur_fst where
-  \<open>vmtf_heur_fst = (\<lambda>((_, _, a, _),_). a)\<close>
-
-sepref_def vmtf_heur_fst_code
-  is \<open>RETURN o vmtf_heur_fst\<close>
-  :: \<open>vmtf_remove_assn\<^sup>k \<rightarrow>\<^sub>a atom_assn\<close>
-  unfolding vmtf_heur_fst_def vmtf_remove_assn_def
-  by sepref
-
 definition get_vmtf_heur_fst_impl where
-  \<open>get_vmtf_heur_fst_impl = read_vmtf_wl_heur_code (vmtf_heur_fst_code)\<close>
+  \<open>get_vmtf_heur_fst_impl = read_vmtf_wl_heur_code (isa_vmtf_heur_fst_code)\<close>
 
 global_interpretation vmtf_fst: read_vmtf_param_adder0 where
-  f' = \<open>RETURN o vmtf_heur_fst\<close> and
-  f = \<open>vmtf_heur_fst_code\<close> and
+  f' = \<open>isa_vmtf_heur_fst\<close> and
+  f = \<open>isa_vmtf_heur_fst_code\<close> and
   x_assn = atom_assn and
   P = \<open>(\<lambda>_. True)\<close>
   rewrites
-    \<open>read_vmtf_wl_heur (RETURN \<circ> vmtf_heur_fst) = RETURN o get_vmtf_heur_fst\<close> and
-    \<open>read_vmtf_wl_heur_code (vmtf_heur_fst_code) = get_vmtf_heur_fst_impl\<close>
+    \<open>read_vmtf_wl_heur (isa_vmtf_heur_fst) = RETURN o get_vmtf_heur_fst\<close> and
+    \<open>read_vmtf_wl_heur_code (isa_vmtf_heur_fst_code) = get_vmtf_heur_fst_impl\<close>
   apply unfold_locales
-  apply (rule vmtf_heur_fst_code.refine)
+  apply (rule isa_vmtf_heur_fst_code.refine)
   subgoal
-     by (auto intro!: ext simp: get_vmtf_heur_fst_def read_all_st_def vmtf_heur_fst_def
-       split: isasat_int_splits)
+    by (auto intro!: ext simp: get_vmtf_heur_fst_def read_all_st_def vmtf_heur_fst_def
+      isa_vmtf_heur_fst_def
+       split: isasat_int_splits bump_heuristics_splits)
   subgoal by (auto simp: get_vmtf_heur_fst_impl_def)
   done
 
-definition vmtf_heur_array_nth where
-  \<open>vmtf_heur_array_nth = (\<lambda>((ns, _, _, _),_) i. RETURN (ns ! i))\<close>
+definition get_bump_heur_array_nth_impl where
+  \<open>get_bump_heur_array_nth_impl N C' = read_vmtf_wl_heur_code (\<lambda>M. isa_vmtf_heur_array_nth_code M C') N\<close>
 
-sepref_def vmtf_heur_array_nth_code
-  is \<open>uncurry (vmtf_heur_array_nth)\<close>
-  :: \<open>[\<lambda>(vm, n). n < length (fst (fst vm))]\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow> vmtf_node_assn\<close>
-  supply [[eta_contract = false, goals_limit=1]]
-  supply [sepref_fr_rules] = al_nth_hnr array_get_hnr
-  supply [sepref_fr_rules del] = wo_array_get_hnrs
-  unfolding vmtf_heur_array_nth_def vmtf_remove_assn_def
-  apply (rewrite at \<open>(!) _ \<hole>\<close> value_of_atm_def[symmetric])
-  unfolding  index_of_atm_def[symmetric]
-  by sepref
-
-definition get_vmtf_heur_array_nth where
-  \<open>get_vmtf_heur_array_nth S i = get_vmtf_heur_array S ! i\<close>
-definition get_vmtf_heur_array_nth_impl where
-  \<open>get_vmtf_heur_array_nth_impl N C' = read_vmtf_wl_heur_code (\<lambda>M. vmtf_heur_array_nth_code M C') N\<close>
+lemma get_vmtf_heur_array_alt_def: \<open>get_vmtf_heur_array S = fst (bump_get_heuristics (get_vmtf_heur S))\<close>
+  by (auto simp: get_vmtf_heur_array_def bump_get_heuristics_def)
 
 global_interpretation vmtf_array_nth: read_vmtf_param_adder where
-  f' = \<open>\<lambda>a b. vmtf_heur_array_nth b a\<close> and
-  f = \<open>\<lambda>a b. vmtf_heur_array_nth_code b a\<close> and
+  f' = \<open>\<lambda>a b. isa_vmtf_heur_array_nth b a\<close> and
+  f = \<open>\<lambda>a b. isa_vmtf_heur_array_nth_code b a\<close> and
   x_assn = vmtf_node_assn and
-  P = \<open>(\<lambda>n S. n < length (fst (fst S)))\<close> and
+  P = \<open>(\<lambda>n S. n < length (fst (bump_get_heuristics S)))\<close> and
   R = atom_rel
  rewrites
-    \<open>(\<lambda>N C'. read_vmtf_wl_heur (\<lambda>M. vmtf_heur_array_nth M C') N) = RETURN oo get_vmtf_heur_array_nth\<close>  and
-    \<open>(\<lambda>N C'. read_vmtf_wl_heur_code (\<lambda>M. vmtf_heur_array_nth_code M C') N) = get_vmtf_heur_array_nth_impl\<close>
+    \<open>(\<lambda>N C'. read_vmtf_wl_heur (\<lambda>M. isa_vmtf_heur_array_nth M C') N) = RETURN oo get_bump_heur_array_nth\<close>  and
+    \<open>(\<lambda>N C'. read_vmtf_wl_heur_code (\<lambda>M. isa_vmtf_heur_array_nth_code M C') N) = get_bump_heur_array_nth_impl\<close>
   apply unfold_locales
   apply (subst (3)uncurry_def)
-  apply (rule vmtf_heur_array_nth_code.refine)
+  apply (rule isa_vmtf_heur_array_nth_code.refine)
   subgoal
-    by (auto intro!: ext simp: get_vmtf_heur_array_nth_def read_all_st_def vmtf_heur_array_nth_def
-        get_vmtf_heur_array_def
-       split: isasat_int_splits)
-  subgoal by (auto simp: get_vmtf_heur_array_nth_impl_def[abs_def])
+    by (auto intro!: ext simp: get_bump_heur_array_nth_def read_all_st_def vmtf_heur_array_nth_def
+        get_vmtf_heur_array_def isa_vmtf_heur_array_nth_def bump_get_heuristics_def
+      split: isasat_int_splits bump_heuristics_splits prod.splits)
+  subgoal by (auto simp: get_bump_heur_array_nth_impl_def[abs_def])
   done
 
 lemmas [sepref_fr_rules] = vmtf_fst.refine
-  vmtf_array_nth.refine[unfolded get_vmtf_heur_array_def[symmetric, unfolded comp_def]]
+  vmtf_array_nth.refine[unfolded get_vmtf_heur_array_def[symmetric, unfolded comp_def] get_vmtf_heur_array_alt_def[symmetric]]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   get_vmtf_heur_fst_impl_def[unfolded read_all_st_code_def]
-  get_vmtf_heur_array_nth_impl_def[unfolded read_all_st_code_def]
+  get_bump_heur_array_nth_impl_def[unfolded read_all_st_code_def]
 
 
 lemma mop_mark_added_heur_st_alt_def:
@@ -586,7 +565,7 @@ sepref_def mop_mark_added_heur_st_impl
 
 experiment
 begin
-term empty_search_stats_impl
+
 export_llvm opts_reduction_st_fast_code opts_restart_st_fast_code opts_unbounded_mode_st_fast_code
   opts_minimum_between_restart_st_fast_code mop_arena_status_st_impl full_arena_length_st_impl
   get_global_conflict_count_impl get_count_max_lvls_heur_impl clss_size_resetUS0_st
