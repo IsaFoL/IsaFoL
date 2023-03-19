@@ -1195,13 +1195,13 @@ proof -
               THEN fref_to_Down_curry4,
               of _ _ _ K ?vm M ?arena \<open>?outl[0 := - lit_of (hd M)]\<close> K ?vm])
         subgoal using bounded S by (auto simp: all_atms_def)
-        subgoal using vm arena M'_M by (auto simp: isa_vmtf_def)[]
+        subgoal using vm arena M'_M by (auto simp:)[]
         apply (rule order.trans, rule ref_two_step')
         apply (rule vmtf_mark_to_rescore_also_reasons_spec[OF _ arena _ _ outl_Lall lit_annots])
         subgoal using vm by auto
         subgoal using length_outl by auto
         subgoal using bounded by auto
-        subgoal by (auto simp: isa_vmtf_def conc_fun_RES S all_atms_def)
+        subgoal by (auto simp: conc_fun_RES S all_atms_def)
         done
     qed
 
@@ -1771,7 +1771,7 @@ proof -
         using Ma by auto
 
       have vm: \<open>vm \<in> bump_heur (all_atms_st U') ?M1\<close>
-        using vm by (auto simp: isa_vmtf_def dest: isa_vmtf_consD)
+        using vm by (auto simp: dest: isa_vmtf_consD)
       show ?thesis
       	apply (rule order.trans)
         apply (rule isa_bump_heur_flush_isa_bump_flush[THEN fref_to_Down_curry, of \<open>all_atms_st U'\<close> ?M1 vm])
@@ -1902,7 +1902,7 @@ proof -
 
       show ?B and ?C and ?D and ?E and ?F and ?G and ?G2 and ?H and ?I and ?J and ?L and ?M
         unfolding trail_pol_def A A2 ann_lits_split_reasons_def isasat_input_bounded_def
-          isa_vmtf_def vmtf_def distinct_atoms_rel_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def
+          vmtf_def distinct_atoms_rel_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def
           distinct_hash_atoms_rel_def
           atoms_hash_rel_def A A2 A3 C option_lookup_clause_rel_def
           lookup_clause_rel_def phase_saving_def cach_refinement_empty_def
@@ -1955,7 +1955,7 @@ proof -
     have vm: \<open>vm \<in> bump_heur (all_atms N (NE + UE)) M1 \<Longrightarrow>
        vm \<in> bump_heur (all_atms N (NE + UE)) (Propagated (- lit_of (hd M)) x2a # M1)\<close> for x2a vm
       by (cases vm)
-        (auto intro!: isa_vmtf_consD simp: isa_vmtf_def)
+        (auto intro!: isa_vmtf_consD simp:)
     then show ?thesis
       supply [[goals_limit=1]]
       using empty_cach n_d_M1 C_L' W'W outl vmtf undef \<open>1 < length C\<close> lits
@@ -2288,7 +2288,7 @@ proof -
 
       show ?B and ?C and ?D and ?E and ?F and ?G and ?H and ?I and ?J and ?K and ?L and ?M
         unfolding trail_pol_def A A2 ann_lits_split_reasons_def isasat_input_bounded_def
-          isa_vmtf_def vmtf_def distinct_atoms_rel_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def
+          vmtf_def distinct_atoms_rel_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def
           distinct_hash_atoms_rel_def heuristic_rel_stats_def
           atoms_hash_rel_def A A2 A3 C option_lookup_clause_rel_def
           lookup_clause_rel_def phase_saving_def cach_refinement_empty_def

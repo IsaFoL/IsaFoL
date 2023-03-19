@@ -148,5 +148,13 @@ definition bumped_vmtf_array_fst where
   \<open>bumped_vmtf_array_fst x =
   fst (snd (snd (bump_get_heuristics x)))\<close>
 
+definition isa_bump_mark_to_rescore
+  :: \<open>nat \<Rightarrow> bump_heuristics \<Rightarrow> bump_heuristics nres\<close>
+where
+  \<open>isa_bump_mark_to_rescore L x = (case x of Bump_Heuristics a b c d \<Rightarrow> do {
+    ASSERT (atms_hash_insert_pre L d);
+    RETURN (Bump_Heuristics a b c (atoms_hash_insert L d))
+  })\<close>
+
 
 end

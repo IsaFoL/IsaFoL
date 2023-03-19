@@ -33,7 +33,7 @@ lemma find_local_restart_target_level_int_find_local_restart_target_level:
     subgoal for s x1 x2
       by (subgoal_tac \<open>a ! (b ! x2) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>)
         (auto simp: trail_pol_alt_def rev_map lits_of_def rev_nth
-            vmtf_def atms_of_def isa_vmtf_def bump_heur_def bump_get_heuristics_def
+            vmtf_def atms_of_def bump_heur_def bump_get_heuristics_def
           intro!: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l)
     subgoal by (auto simp: find_local_restart_target_level_int_inv_def)
     subgoal by (auto simp: trail_pol_alt_def control_stack_length_count_dec
@@ -2725,7 +2725,7 @@ proof-
        (S,
         x1, x1a, x1b, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e, x2e)
        \<in> ?T \<Longrightarrow> (get_watched_wl_heur S, x2e) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms x1a (x1c+NEk+NS+N0)))\<close>
-    unfolding twl_st_heur_restart_def isa_vmtf_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
+    unfolding twl_st_heur_restart_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
       all_init_atms_st_def
     by (case_tac \<open>get_vmtf_heur S\<close>; auto; fail)+
   have H: \<open>vdom_m (all_init_atms x1a x1c) x2ad x1ad \<subseteq> set x2af\<close>

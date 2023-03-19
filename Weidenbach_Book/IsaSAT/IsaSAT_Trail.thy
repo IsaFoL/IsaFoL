@@ -672,13 +672,13 @@ proof -
             dest!: ann_lits_split_reasons_map_lit_of)
       subgoal
         by (cases \<open>L\<close>)
-          (auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of ann_lits_split_reasons_def
+          (auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff ann_lits_split_reasons_def
             dest: no_dup_consistentD)
       subgoal
         by (auto simp: tl_trailt_tr_def)
       subgoal
         by (cases \<open>L\<close>)
-          (auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of ann_lits_split_reasons_def
+          (auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff ann_lits_split_reasons_def
             control_stack_dec_butlast
             dest: no_dup_consistentD)
       done
@@ -732,16 +732,16 @@ lemma tl_trail_propedt_tr_pre:
 	dest!: ann_lits_split_reasons_map_lit_of)
   subgoal
     by (cases \<open>hd M\<close>)
-      (auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of ann_lits_split_reasons_def
+      (auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff ann_lits_split_reasons_def
 	dest: no_dup_consistentD)
   subgoal
     by (cases \<open>hd M\<close>)
-      (auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of ann_lits_split_reasons_def
+      (auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff ann_lits_split_reasons_def
 	control_stack_dec_butlast
 	dest: no_dup_consistentD)
   subgoal
     by (cases \<open>hd M\<close>)
-      (auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of ann_lits_split_reasons_def
+      (auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff ann_lits_split_reasons_def
 	control_stack_dec_butlast
 	dest: no_dup_consistentD)
   done
@@ -1048,12 +1048,12 @@ lemma tl_trail_tr_no_CS:
 	  dest!: ann_lits_split_reasons_map_lit_of)
     subgoal
       by (cases \<open>L\<close>)
-	(auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of ann_lits_split_reasons_def
+	(auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff ann_lits_split_reasons_def
 	  control_stack_dec_butlast
 	  dest: no_dup_consistentD)
     subgoal
       by (cases \<open>L\<close>)
-	(auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of ann_lits_split_reasons_def
+	(auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff ann_lits_split_reasons_def
 	  control_stack_dec_butlast control_stack_take_Suc_count_dec_unstack
 	  dest: no_dup_consistentD ann_lits_split_reasons_map_lit_of)
     done

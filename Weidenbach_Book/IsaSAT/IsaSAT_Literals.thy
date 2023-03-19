@@ -213,7 +213,7 @@ lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_unat32_max': \<open>L \<in># \<L>\<^s
 lemma in_\<A>\<^sub>i\<^sub>n_less_than_unat32_max_div_2:
   \<open>L \<in># \<A>\<^sub>i\<^sub>n \<Longrightarrow> L \<le> unat32_max div 2\<close>
   using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_unat32_max'[of \<open>Neg L\<close>]
-  unfolding Ball_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
+  unfolding Ball_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
   by (auto simp: unat32_max_def)
 
 lemma simple_clss_size_upper_div2':
@@ -252,7 +252,7 @@ proof -
     using lits by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
     then have \<open>Pos L \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)\<close>
-      using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
+      using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
     then have \<open>nat_of_lit (Pos L) < unat32_max - 1\<close>
       using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_unat32_max by (auto simp: atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
@@ -307,7 +307,7 @@ proof -
     using lits by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
     then have \<open>Neg L \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l  \<A>\<^sub>i\<^sub>n)\<close>
-      using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
+      using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
     then have \<open>nat_of_lit (Neg L) \<le> unat32_max\<close>
       using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_unat32_max by (auto simp: atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
@@ -411,7 +411,7 @@ proof -
     by (simp add: card_mono)
   moreover {
     have \<open>set_mset \<A>\<^sub>i\<^sub>n \<subseteq> {0 ..< (unat32_max div 2) + 1}\<close>
-      using in_\<A>\<^sub>i\<^sub>n_less_than_unat32_max_div_2 by (fastforce simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
+      using in_\<A>\<^sub>i\<^sub>n_less_than_unat32_max_div_2 by (fastforce simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
           Ball_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n unat32_max_def)
     from subset_eq_atLeast0_lessThan_card[OF this] have \<open>card (set_mset \<A>\<^sub>i\<^sub>n) \<le> unat32_max div 2 + 1\<close>
       .

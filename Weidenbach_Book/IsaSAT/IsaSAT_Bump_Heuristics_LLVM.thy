@@ -40,7 +40,7 @@ sepref_register isa_bump_mark_to_rescore isa_find_decomp_wl_imp
 sepref_def isa_bump_mark_to_rescore_code
   is \<open>uncurry (isa_bump_mark_to_rescore)\<close>
   :: \<open>atom_assn\<^sup>k *\<^sub>a heuristic_bump_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_bump_assn\<close>
-  supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of[simp]
+  supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
     neq_NilE[elim!] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
   unfolding isa_vmtf_mark_to_rescore_pre_def isa_vmtf_mark_to_rescore_def
     isa_bump_mark_to_rescore_def

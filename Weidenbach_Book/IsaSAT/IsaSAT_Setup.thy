@@ -258,17 +258,17 @@ definition bump_heur where
 lemma isa_vmtfI:
   \<open>(vm, to_remove') \<in> vmtf \<A> M \<Longrightarrow> (to_remove, to_remove') \<in> distinct_atoms_rel \<A> \<Longrightarrow>
     (vm, to_remove) \<in> bump_heur \<A> M\<close>
-  by (auto simp: isa_vmtf_def Image_iff intro!: bexI[of _ \<open>(vm, to_remove')\<close>])
+  by (auto simp: Image_iff intro!: bexI[of _ \<open>(vm, to_remove')\<close>])
 
 lemma isa_vmtf_consD:
   \<open>((ns, m, fst_As, lst_As, next_search), remove) \<in> bump_heur \<A> M \<Longrightarrow>
      ((ns, m, fst_As, lst_As, next_search), remove) \<in> bump_heur \<A> (L # M)\<close>
-  by (auto simp: isa_vmtf_def dest: vmtf_consD)
+  by (auto simp: dest: vmtf_consD)
 
 lemma isa_vmtf_consD:
   \<open>f \<in> bump_heur \<A> M \<Longrightarrow>
      f \<in> bump_heur \<A> (L # M)\<close>
-  by (auto simp: isa_vmtf_def dest: vmtf_consD)
+  by (auto simp: dest: vmtf_consD)
     *)
 
 text \<open>\<^term>\<open>vdom\<close> is an upper bound on all the address of the clauses that are used in the

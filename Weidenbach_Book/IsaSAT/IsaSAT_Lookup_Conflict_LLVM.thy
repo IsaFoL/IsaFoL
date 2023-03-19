@@ -757,7 +757,6 @@ export_llvm
   conflict_min_cach_l_code
   conflict_min_cach_set_failed_l_code
   conflict_min_cach_set_removable_l_code
-  lookup_conflict_size_impl
   set_lookup_empty_conflict_to_none_imple
   isa_mark_failed_lits_stack_fast_code
   isa_get_literal_and_remove_of_analyse_wl_fast_code

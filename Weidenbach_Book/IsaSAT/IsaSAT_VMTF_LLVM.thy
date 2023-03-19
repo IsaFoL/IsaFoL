@@ -441,7 +441,7 @@ sepref_def isa_vmtf_mark_to_rescore_code
   is \<open>uncurry (RETURN oo isa_vmtf_mark_to_rescore)\<close>
   :: \<open>[uncurry isa_vmtf_mark_to_rescore_pre]\<^sub>a
      atom_assn\<^sup>k *\<^sub>a vmtf_assn\<^sup>d \<rightarrow> vmtf_assn\<close>
-  supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of[simp]
+  supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
     neq_NilE[elim!] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
   unfolding isa_vmtf_mark_to_rescore_pre_def isa_vmtf_mark_to_rescore_def
   by sepref
@@ -452,7 +452,7 @@ sepref_def isa_vmtf_unset_code
   is \<open>uncurry (RETURN oo isa_vmtf_unset)\<close>
   :: \<open>[uncurry vmtf_unset_pre]\<^sub>a
      atom_assn\<^sup>k *\<^sub>a vmtf_assn\<^sup>d \<rightarrow> vmtf_assn\<close>
-  supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of[simp]
+  supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
     neq_NilE[elim!] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
   unfolding isa_vmtf_unset_def vmtf_unset_pre_def atom.fold_option  vmtf_assn_def
   apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)

@@ -81,7 +81,7 @@ lemma lit_of_found_atm_D_pre:
     get_saved_phase_option_heur_pre (L) (get_content heur)\<close>
   by (auto simp: lit_of_found_atm_D_pre_def phase_saving_def heuristic_rel_def phase_save_heur_rel_def
     get_saved_phase_option_heur_pre_def get_next_phase_pre_def heuristic_rel_stats_def get_next_phase_heur_pre_stats_def
-    atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of dest: bspec[of _ _ \<open>Pos (the L)\<close>])
+    atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff dest: bspec[of _ _ \<open>Pos (the L)\<close>])
 
 definition find_unassigned_lit_wl_D_heur_pre where
   \<open>find_unassigned_lit_wl_D_heur_pre S \<longleftrightarrow>
@@ -241,7 +241,7 @@ proof -
     apply (rule isa_vmtf_find_next_undef_upd; assumption)
     subgoal
       by (rule lit_of_found_atm_D_pre)
-       (auto simp add: twl_st_heur_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of Ball_def image_image
+       (auto simp add: twl_st_heur_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def image_image
         mset_take_mset_drop_mset' all_atms_def[symmetric] unassigned_atm_def
           simp del: twl_st_of_wl.simps dest!: intro!: RETURN_RES_refine)
     apply (rule lit_of_found_atm; assumption)

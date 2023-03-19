@@ -158,8 +158,8 @@ lemma tl_state_wl_heur_tl_state_wl:
   apply (subst lit_of_last_trail_pol_lit_of_last_trail[THEN fref_to_Down_unRET_Id])
   apply (auto simp: mop_tl_state_wl_pre_simps lit_of_hd_trail_def mop_tl_state_wl_pre_simps counts_maximum_level_def
     intro!: isa_bump_unset_vmtf_tl)
-  apply (metis (no_types, lifting) IsaSAT_Setup.all_lits_st_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of mop_tl_state_wl_pre_simps(2))
-  apply (metis (no_types, lifting) IsaSAT_Setup.all_lits_st_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of mop_tl_state_wl_pre_simps(2))
+  apply (metis (no_types, lifting) IsaSAT_Setup.all_lits_st_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff mop_tl_state_wl_pre_simps(2))
+  apply (metis (no_types, lifting) IsaSAT_Setup.all_lits_st_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff mop_tl_state_wl_pre_simps(2))
   apply (subst card_max_lvl_tl)
     apply (auto simp: mop_tl_state_wl_pre_simps lookup_clause_rel_not_tautolgy lookup_clause_rel_distinct_mset
       option_lookup_clause_rel_def)
@@ -778,7 +778,7 @@ note [[goals_limit=1]]
     (RETURN N)\<close>
    for l m n p q ra s ha ia ja ka la x1 x2 x1a x1b x1c x1d x1e x1f x1g x2g x1h x1i x1k x1l x2k
      x1m x1n x1o x1p x1q x1r x1s N x1t x2t D x1v x1w x2v x1x x2x CLS CLS' S
-  unfolding twl_st_heur_conflict_ana_def isa_vmtf_def apply (clarsimp simp only: prod_rel_iff)
+  unfolding twl_st_heur_conflict_ana_def apply (clarsimp simp only: prod_rel_iff)
   subgoal
     apply (rule isa_vmtf_bump_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl[
         where \<A> = \<open>all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la)\<close>,
@@ -786,7 +786,7 @@ note [[goals_limit=1]]
           of _ _ _ _ _ x1a x1t x2 \<open>-x1\<close> \<open>get_vmtf_heur S\<close>,
         THEN order_trans])
     subgoal by (simp add: twl_st_heur_conflict_ana_def)
-    subgoal by (auto simp add: twl_st_heur_conflict_ana_def isa_vmtf_def)
+    subgoal by (auto simp add: twl_st_heur_conflict_ana_def)
     subgoal
       apply (rule ref_two_step'[THEN order_trans, OF vmtf_mark_to_rescore_also_reasons_cl_spec,
         of _ _ x1a _
@@ -882,11 +882,11 @@ lemma phase_saving_le: \<open>phase_saving \<A> \<phi> \<Longrightarrow> A \<in>
 lemma isa_vmtf_le:
   \<open>((a, b), M) \<in> bump_heur \<A> M' \<Longrightarrow> A \<in># \<A> \<Longrightarrow> A < length a\<close>
   \<open>((a, b), M) \<in> bump_heur \<A> M' \<Longrightarrow> B \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> atm_of B < length a\<close>
-  by (auto simp:  isa_vmtf_def vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
+  by (auto simp:  vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 
 lemma isa_vmtf_next_search_le:
   \<open>((a, b, c, c', Some d), M) \<in> bump_heur \<A> M' \<Longrightarrow> d < length a\<close>
-  by (auto simp: isa_vmtf_def vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
+  by (auto simp: vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 *)
 
 lemma trail_pol_nempty: \<open>\<not>(([], aa, ab, ac, ad, b), L # ys) \<in> trail_pol \<A>\<close>

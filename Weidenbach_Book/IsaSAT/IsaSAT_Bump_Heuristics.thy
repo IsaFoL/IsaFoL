@@ -7,14 +7,6 @@ begin
 
 
 section \<open>Bumping\<close>
-(*TODO Move to IsaSAT_Bump_Heuristics_State_State*)
-definition isa_bump_mark_to_rescore
-  :: \<open>nat \<Rightarrow> bump_heuristics \<Rightarrow> bump_heuristics nres\<close>
-where
-  \<open>isa_bump_mark_to_rescore L x = (case x of Bump_Heuristics a b c d \<Rightarrow> do {
-    ASSERT (atms_hash_insert_pre L d);
-    RETURN (Bump_Heuristics a b c (atoms_hash_insert L d))
-  })\<close>
 
 definition vmtf_rescore_body
  :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> bump_heuristics \<Rightarrow>
@@ -260,7 +252,7 @@ lemma vmtf_mark_to_rescore_clause_spec:
   subgoal for x it _ \<sigma>
     using length_get_bumped_variables_le[of _ \<A>]
     by (cases \<sigma>)
-     (auto intro!: isa_bump_mark_to_rescore[THEN order_trans] simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
+     (auto intro!: isa_bump_mark_to_rescore[THEN order_trans] simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
        dest: in_list_in_setD)
   done
 
@@ -331,7 +323,7 @@ lemma isa_vmtf_mark_to_rescore_also_reasons_vmtf_mark_to_rescore_also_reasons:
   apply assumption
   subgoal for x y x1 x1a _ _ _ x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xi xa si s xb x'
     by (cases xb)
-     (auto simp: isa_vmtf_mark_to_rescore_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
+     (auto simp: isa_vmtf_mark_to_rescore_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
         intro!: atms_hash_insert_pre[of _ \<A>])
   subgoal by auto
   subgoal by auto
@@ -362,7 +354,7 @@ lemma vmtf_mark_to_rescore_also_reasons_spec:
     subgoal
       using length_get_bumped_variables_le[of _ \<A> M]
       by (auto intro!: isa_bump_mark_to_rescore[where M=M and \<A>=\<A>, THEN order_trans]
-        simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of[symmetric])
+        simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric])
     apply (rename_tac D, case_tac \<open>D = 0\<close>; simp)
     subgoal
       by (rule vmtf_mark_to_rescore_clause_spec, assumption, assumption)
@@ -443,7 +435,7 @@ proof -
     apply assumption
     subgoal for x y x1 x1a _ _ _ x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xi xa si s xb x'
       by (cases xb)
-       (auto simp: isa_vmtf_mark_to_rescore_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
+       (auto simp: isa_vmtf_mark_to_rescore_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
           intro!: atms_hash_insert_pre[of _ \<A>])
     subgoal by auto
     subgoal by auto
@@ -478,7 +470,7 @@ lemma vmtf_mark_to_rescore_also_reasons_cl_spec:
     subgoal
       using length_get_bumped_variables_le[of _ \<A>]
       by (auto intro!: isa_bump_mark_to_rescore[where \<A>=\<A> and M=M, THEN order_trans]
-        simp: arena_lifting_list in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of[symmetric])
+        simp: arena_lifting_list in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric])
     apply (rename_tac D, case_tac \<open>D = 0\<close>; simp)
     subgoal
       by (rule vmtf_mark_to_rescore_clause_spec, assumption, assumption)
@@ -497,7 +489,7 @@ lemma isa_bump_unset_pre:
     \<open>L \<in># \<A>\<close>
   shows \<open>isa_bump_unset_pre L x\<close>
   using assms vmtf_unset_pre_vmtf[where \<A>=\<A> and M=M and L=L]
-  unfolding isa_vmtf_def
+  unfolding
   by (cases \<open>get_stable_heuristics x\<close>; cases \<open>get_focused_heuristics x\<close>)
    (auto simp: isa_bump_unset_pre_def bump_heur_def)
 
@@ -688,7 +680,7 @@ proof -
        for x y x1 x1a x2 x2a x1b x1c x2b x2c pos posa xa x' x1d x2d x1e x2e x1f x2f
        x1g x1h x2g x2h aa ab ac ad ba baa ca h
        by (cases x2e)
-        (auto 6 6 simp: isa_vmtf_def Image_iff converse_iff prod_rel_iff
+        (auto 6 6 simp: Image_iff converse_iff prod_rel_iff
          intro!: bexI[of _ x2e])
 *)
   have trail_pol_no_CS_last_hd:
@@ -842,7 +834,7 @@ proof -
   have atm_of_N:
     \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (lit_of `# mset aa) \<Longrightarrow> aa \<noteq> [] \<Longrightarrow> atm_of (lit_of (hd aa)) \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
     for aa
-    by (cases aa) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of)
+    by (cases aa) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
   have Lin_drop_tl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (lit_of `# mset (drop b M\<^sub>0)) \<Longrightarrow>
       literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (lit_of `# mset (tl (drop b M\<^sub>0)))\<close> for b
     apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mono)

@@ -49,7 +49,7 @@ lemma atoms_hash_int_empty_atoms_hash_empty:
    [\<lambda>n. (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<A>. atm_of L < n)]\<^sub>f nat_rel \<rightarrow> \<langle>atoms_hash_rel \<A>\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (use Max_less_iff in \<open>auto simp: atoms_hash_rel_def atoms_hash_int_empty_def atoms_hash_empty_def
-      in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of Ball_def
+      in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def
       dest: spec[of _ \<open>Pos _\<close>]\<close>)
 
 
@@ -420,7 +420,7 @@ lemma set_conflict_unit_heur_set_conflict_unit:
      \<langle>option_lookup_clause_rel \<A>\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: twl_st_heur_def set_conflict_unit_heur_def set_conflict_unit_def
-      option_lookup_clause_rel_def lookup_clause_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
+      option_lookup_clause_rel_def lookup_clause_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
       intro!: mset_as_position.intros)
 
 definition conflict_propagated_unit_cls
@@ -1119,7 +1119,7 @@ proof -
      subgoal by (auto simp: pre_simplify_clause_lookup_st_rel_def list_mset_rel_def br_def)
      subgoal by auto
      subgoal by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def
-       in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
+       in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
        split: list.splits)
      subgoal by (simp add: get_conflict_wl_is_None_init_alt_def)
      subgoal by (simp add: hd_conv_nth pre_simplify_clause_lookup_st_rel_def)
@@ -1922,8 +1922,8 @@ lemma isa_vmtf_init_nemptyD:
 
 lemma isa_vmtf_init_isa_vmtf: \<open>\<A> \<noteq> {#} \<Longrightarrow> ((ak, al, Some am, Some an, bc))
        \<in> isa_vmtf_init \<A> au \<Longrightarrow> ((ak, al, am, an, bc))
-       \<in> isa_vmtf \<A> au\<close>
-  by (auto simp: isa_vmtf_init_def isa_vmtf_def Image_iff)
+       \<in> vmtf \<A> au\<close>
+  by (auto simp: isa_vmtf_init_def Image_iff)
 
 lemma bump_heur_init_isa_vmtf: \<open>\<A> \<noteq> {#} \<Longrightarrow> x \<in> bump_heur_init \<A> M \<Longrightarrow> finalize_bump_init x \<le> \<Down>Id (SPEC (\<lambda>x. x \<in> bump_heur \<A> M))\<close>
   unfolding finalize_bump_init_def bump_heur_init_def bump_heur_def finalize_vmtf_init_def
@@ -2061,14 +2061,14 @@ proof -
       by (auto simp: ann_lits_split_reasons_def
           list_mset_rel_def Collect_eq_comp list_rel_def
           list_all2_op_eq_map_right_iff' Id_def
-          br_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
+          br_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
         dest: multi_member_split)
     subgoal
       by auto
     subgoal using K' by (auto simp: polarity_def)
     subgoal
       by (auto simp:
-        nat_shiftr_div2 in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of
+        nat_shiftr_div2 in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
         polarity_atm_def trail_pol_def K
         phase_saving_def list_rel_mset_rel_def  atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
         list_rel_def Id_def br_def list_all2_op_eq_map_right_iff'

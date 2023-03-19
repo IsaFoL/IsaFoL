@@ -3,7 +3,7 @@ imports Watched_Literals.WB_Sort IsaSAT_Setup Weidenbach_Book_Base.Explorer
 begin
 
 
-chapter \<open>Decision heuristic\<close>
+chapter \<open>VMTF Decision Heuristic\<close>
 
 section \<open>Code generation for the VMTF decision heuristic and the trail\<close>
 type_synonym (in -) isa_vmtf_remove_int = \<open>vmtf \<times> (nat list \<times> bool list)\<close>
@@ -467,13 +467,6 @@ proof -
     done
 qed
 
-
-definition atms_hash_insert_pre :: \<open>nat \<Rightarrow> nat list \<times> bool list \<Rightarrow> bool\<close> where
-\<open>atms_hash_insert_pre i = (\<lambda>(n, xs). i < length xs \<and> (\<not>xs!i \<longrightarrow> length n < 2 + unat32_max div 2))\<close>
-
-definition atoms_hash_insert :: \<open>nat \<Rightarrow> nat list \<times> bool list \<Rightarrow> (nat list \<times> bool list)\<close> where
-\<open>atoms_hash_insert i  = (\<lambda>(n, xs). if xs ! i then (n, xs) else (n @ [i], xs[i := True]))\<close>
-
 lemma bounded_included_le:
    assumes bounded: \<open>isasat_input_bounded \<A>\<close> and \<open>distinct n\<close> and
    \<open>set n \<subseteq> set_mset \<A> \<close>
@@ -504,8 +497,7 @@ lemma atms_hash_insert_pre:
 
 
 lemma atoms_hash_del_op_set_insert:
-  \<open>(uncurry (RETURN oo atoms_hash_insert),
-    uncurry (RETURN oo insert)) \<in>
+  \<open>(uncurry (RETURN oo atoms_hash_insert), uncurry (RETURN oo insert)) \<in>
      [\<lambda>(i, xs). i \<in># \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>]\<^sub>f
      nat_rel \<times>\<^sub>r distinct_atoms_rel \<A>\<^sub>i\<^sub>n \<rightarrow> \<langle>distinct_atoms_rel \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
@@ -525,49 +517,6 @@ where
 definition isa_vmtf_mark_to_rescore_pre where
   \<open>isa_vmtf_mark_to_rescore_pre = (\<lambda>L ((ns, m, fst_As, next_search), to_remove).
      atms_hash_insert_pre L to_remove)\<close>
-
-(*
-lemma isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore:
-  \<open>(uncurry2 (RETURN oo isa_vmtf_mark_to_rescore), uncurry (RETURN oo vmtf_mark_to_rescore)) \<in>
-      [\<lambda>(L, vm). L\<in># \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f Id \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>\<^sub>i\<^sub>n) \<rightarrow>
-      \<langle>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
-  unfolding isa_vmtf_mark_to_rescore_def vmtf_mark_to_rescore_def
-  by (intro frefI nres_relI)
-    (auto intro!: atoms_hash_del_op_set_insert[THEN fref_to_Down_unRET_uncurry])
-*)
-
-(*TODO remove!*)
-abbreviation (input) isa_vmtf where
-  \<open>isa_vmtf \<equiv> vmtf\<close>
-
-lemmas isa_vmtf_def = TrueI
-
-lemma vmtf_unset_pre:
-  assumes
-    \<open>((ns, m, fst_As, lst_As, next_search)) \<in> isa_vmtf \<A> M\<close> and
-    \<open>L \<in># \<A>\<close>
-  shows \<open>vmtf_unset_pre L ((ns, m, fst_As, lst_As, next_search))\<close>
-  using assms vmtf_unset_pre_vmtf[of ns m fst_As lst_As next_search \<A> M L]
-  unfolding isa_vmtf_def vmtf_unset_pre_def
-  by auto
-(*
-lemma vmtf_unset_pre':
-  assumes
-    \<open>vm \<in> vmtf \<A> M\<close> and
-    \<open>L \<in># \<A>\<close>
-  shows \<open>vmtf_unset_pre L vm\<close>
-  using assms by (cases vm) (auto dest: vmtf_unset_pre)
-*)
-(*
-definition isa_vmtf_mark_to_rescore_and_unset :: \<open>nat \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> isa_vmtf_remove_int\<close>
-where
-  \<open>isa_vmtf_mark_to_rescore_and_unset L M = isa_vmtf_mark_to_rescore L (isa_vmtf_unset L M)\<close>
-
-definition isa_vmtf_mark_to_rescore_and_unset_pre where
-  \<open>isa_vmtf_mark_to_rescore_and_unset_pre = (\<lambda>(L, ((ns, m, fst_As, lst_As, next_search), tor)).
-      vmtf_unset_pre L ((ns, m, fst_As, lst_As, next_search), tor) \<and>
-      atms_hash_insert_pre L tor)\<close>
-*)
 
 lemma size_conflict_int_size_conflict:
   \<open>(RETURN o size_conflict_int, RETURN o size_conflict) \<in> [\<lambda>D. D \<noteq> None]\<^sub>f option_lookup_clause_rel \<A> \<rightarrow>
@@ -597,7 +546,7 @@ proof -
   obtain vm0 to_remove to_remove' where
     vm: \<open>vm = (vm0, to_remove)\<close> and
     vm0: \<open>(vm0, to_remove') \<in> vmtf \<A> M\<close>
-    using assms by (cases vm) (auto simp: isa_vmtf_def)
+    using assms by (cases vm) (auto simp:)
 
   then show ?thesis
     using assms
@@ -617,7 +566,7 @@ proof -
   obtain vm0 to_remove to_remove' where
     vm: \<open>vm = (vm0, to_remove)\<close> and
     vm0: \<open>(vm0, to_remove') \<in> vmtf \<A> M\<close>
-    using assms by (cases vm) (auto simp: isa_vmtf_def)
+    using assms by (cases vm) (auto simp:)
 
   then show ?thesis
     using assms

@@ -482,11 +482,11 @@ proof -
        by (auto simp: vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def)
     then have \<open>vmtf (all_init_atms aaa ca) (ys @ Propagated x2 C # zs) =
       vmtf (all_init_atms aaa ca) (ys @ Propagated x2 0 # zs)\<close>
-      by (auto simp: isa_vmtf_def vmtf_def  vmtf_def
+      by (auto simp: vmtf_def  vmtf_def
 	image_iff)
     moreover have \<open>vmtf (all_init_atms aaa ca) (get_unit_trail (ys @ Propagated x2 C # zs)) =
       vmtf (all_init_atms aaa ca) (get_unit_trail(ys @ Propagated x2 0 # zs))\<close>
-      by (auto simp: isa_vmtf_def vmtf_def  vmtf_def get_unit_trail_def takeWhile_append vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+      by (auto simp: vmtf_def  vmtf_def get_unit_trail_def takeWhile_append vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
 	image_iff)
     ultimately have \<open>bump_heur (all_init_atms aaa ca) (ys @ Propagated x2 C # zs) =
       bump_heur (all_init_atms aaa ca) (ys @ Propagated x2 0 # zs)\<close>
