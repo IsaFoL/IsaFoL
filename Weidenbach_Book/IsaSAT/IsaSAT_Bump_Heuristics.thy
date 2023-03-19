@@ -489,7 +489,6 @@ lemma isa_bump_unset_pre:
     \<open>L \<in># \<A>\<close>
   shows \<open>isa_bump_unset_pre L x\<close>
   using assms vmtf_unset_pre_vmtf[where \<A>=\<A> and M=M and L=L]
-  unfolding
   by (cases \<open>get_stable_heuristics x\<close>; cases \<open>get_focused_heuristics x\<close>)
    (auto simp: isa_bump_unset_pre_def bump_heur_def)
 
