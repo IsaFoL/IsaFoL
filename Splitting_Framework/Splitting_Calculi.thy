@@ -321,6 +321,18 @@ proof -
   qed
 qed
 
+(* Report lemma 17 *)
+lemma bot_not_in_sredF_\<N>: \<open>to_AF bot \<notin> SRed\<^sub>F(\<N>)\<close>
+proof -
+  have \<open>to_AF bot \<notin> { AF.Pair C A | C A. \<forall> \<J>. total_strip \<J> \<supseteq> fset A \<and> C \<in> Red_F (\<N> proj\<^sub>J \<J>) }\<close>
+    by (simp add: complete to_AF_def)
+  moreover have \<open>to_AF bot \<notin> { AF.Pair C A | C A. \<exists> \<C> \<in> \<N>. F_of \<C> = C \<and> A_of \<C> |\<subset>| A }\<close>
+    by (simp add: to_AF_def)
+  ultimately show ?thesis
+    using SRed\<^sub>F_def
+    by auto
+qed
+
 end (* locale splitting_calculus *)
 
 end (* theory Splitting_Calculi *)
