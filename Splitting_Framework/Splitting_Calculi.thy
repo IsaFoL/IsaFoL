@@ -286,6 +286,41 @@ next
   qed
 qed
 
+(* Report definition 15: splitting redundancy criterion *)
+definition SRed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> where
+  \<open>SRed\<^sub>F \<N> = { AF.Pair C A | C A. \<forall> \<J>. total_strip \<J> \<supseteq> fset A \<and> C \<in> Red_F (\<N> proj\<^sub>J \<J>) }
+            \<union> { AF.Pair C A | C A. \<exists> \<C> \<in> \<N>. F_of \<C> = C \<and> A_of \<C> |\<subset>| A }\<close>
+
+definition SRed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> where
+  \<open>SRed\<^sub>I \<N> = { Infer \<M> (Pair \<C> (ffUnion (fset_of_list (map A_of \<M>)))) | \<M> \<C>. Infer (map F_of \<M>) \<C> \<in> Inf \<and> (\<forall> \<J>. {Infer \<M> (Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))))} \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)) }
+            \<union> { Infer \<M> (to_AF bot) | \<M>. (\<forall> x \<in> set \<M>. F_of x = bot) \<and> propositionally_unsatisfiable (set \<M>) \<and> \<M> \<noteq> [] \<and> to_AF bot \<in> \<N> }\<close>
+
+(* Report lemma 16 *)
+lemma sredI_\<N>_proj_J_subset_redI_proj_J: \<open>to_AF bot \<notin> \<N> \<Longrightarrow> (SRed\<^sub>I \<N>) \<iota>proj\<^sub>J J \<subseteq> Red_I (\<N> proj\<^sub>J J)\<close>
+proof -
+  assume \<open>to_AF bot \<notin> \<N>\<close>
+  then have SRed\<^sub>I_\<N>_is: \<open>SRed\<^sub>I \<N> = { Infer \<M> (Pair \<C> (ffUnion (fset_of_list (map A_of \<M>)))) | \<M> \<C>. Infer (map F_of \<M>) \<C> \<in> Inf \<and> (\<forall> \<J>. {Infer \<M> (Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))))} \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)) }\<close>
+    using SRed\<^sub>I_def
+    by auto
+  then show \<open>(SRed\<^sub>I \<N>) \<iota>proj\<^sub>J J \<subseteq> Red_I (\<N> proj\<^sub>J J)\<close>
+  proof (cases \<open>(SRed\<^sub>I \<N>) \<iota>proj\<^sub>J J = {}\<close>)
+    case True
+    then show ?thesis
+      by fast
+  next
+    case False
+    then obtain \<iota>\<^sub>S where \<open>\<iota>\<^sub>S \<in> SRed\<^sub>I \<N>\<close>
+      using enabled_projection_Inf_def
+      by fastforce
+    then have \<open>{\<iota>\<^sub>S} \<iota>proj\<^sub>J J \<subseteq> Red_I (\<N> proj\<^sub>J J)\<close>
+      using SRed\<^sub>I_\<N>_is
+      by auto
+    then show ?thesis
+      using SRed\<^sub>I_\<N>_is enabled_projection_Inf_def
+      by force
+  qed
+qed
+
 end (* locale splitting_calculus *)
 
 end (* theory Splitting_Calculi *)
