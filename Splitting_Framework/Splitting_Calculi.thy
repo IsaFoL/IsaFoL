@@ -31,7 +31,7 @@ begin
  * \<open>S \<iota>\<close> means that \<open>\<iota>\<close> is an inference rule of the system S *)
 inductive S :: \<open>('f, 'v) AF inference \<Rightarrow> bool\<close> where
   base: \<open>\<lbrakk> Infer (map F_of \<N>) D \<in> Inf \<rbrakk> \<Longrightarrow> S (Infer \<N> (Pair D (ffUnion (fset_of_list (map A_of \<N>)))))\<close>
-| unsat: \<open>\<lbrakk> \<forall> x \<in> set \<N>. F_of x = bot; set \<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}; \<N> \<noteq> [] \<rbrakk> \<Longrightarrow> S (Infer \<N> (to_AF bot))\<close>
+| unsat: \<open>\<lbrakk> \<forall> x \<in> set \<N>. F_of x = bot; propositionally_unsatisfiable (set \<N>); \<N> \<noteq> [] \<rbrakk> \<Longrightarrow> S (Infer \<N> (to_AF bot))\<close>
      (* NOTE: can we have that \<open>\<N>\<close> is \<open>[]\<close>? *)
 (* | strong_unsat: \<open>\<lbrakk> \<forall> x \<in> set \<N>. propositional_clause x; set \<N> \<Turnstile>s\<^sub>A\<^sub>F {to_AF bot} \<rbrakk> \<Longrightarrow> S (Infer \<N> (to_AF bot))\<close>
 | approx: \<open>\<lbrakk> a \<in> asn (to_F \<C>) \<rbrakk> \<Longrightarrow> S (Infer [\<C>] (Pair bot (finsert (neg a) (to_A \<C>))))\<close>
@@ -103,7 +103,7 @@ proof (intro subsetI)
     fix \<N> D
     assume \<iota>\<^sub>F_def: \<open>\<iota>\<^sub>F = Infer \<N> (to_AF bot)\<close>
        and all_clauses_in_\<N>_propositional: \<open>\<forall> \<C> \<in> set \<N>. F_of \<C> = bot\<close>
-       and \<open>set \<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+       and \<open>propositionally_unsatisfiable (set \<N>)\<close>
        and \<N>_not_empty: \<open>\<N> \<noteq> []\<close>
     moreover have \<open>enabled_inf \<iota>\<^sub>F J\<close>
       using \<iota>\<^sub>F_is_enabled
@@ -210,23 +210,80 @@ lemma SInf_commutes_Inf: \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarro
   using SInf_commutes_Inf1 SInf_commutes_Inf2
   by blast
 
+lemma fset_ffUnion_subset_has_all_fsets_subset: \<open>fset (ffUnion A) \<subseteq> B \<Longrightarrow> fBall A (\<lambda> x. fset x \<subseteq> B)\<close>
+proof (intro fBallI subsetI)
+  fix a x
+  assume ffUnion_A_subset_B: \<open>fset (ffUnion A) \<subseteq> B\<close> and
+         a_in_A: \<open>a |\<in>| A\<close> and
+         x_in_fset_a: \<open>x \<in> fset a\<close>
+  then have \<open>x |\<in>| a\<close>
+    by (simp add: fmember.rep_eq)
+  then have \<open>x |\<in>| ffUnion A\<close>
+    by (metis a_in_A ffunion_insert funion_iff set_finsert)
+  then show \<open>x \<in> B\<close>
+    by (meson ffUnion_A_subset_B fmember.rep_eq subsetD)
+qed
 
-(* Report theorem 14 1/2 (UNSAT) *)
-theorem unsat_sound_wrt_entails_sound: \<open>\<lbrakk> \<forall> x \<in> set \<N>. F_of x = bot; set \<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}; \<N> \<noteq> [] \<rbrakk> \<Longrightarrow> set \<N> \<Turnstile>s\<^sub>A\<^sub>F {to_AF bot}\<close>
-  sorry
+lemma fBall_fset_of_list: \<open>fBall (fset_of_list A) P \<longleftrightarrow> Ball (set A) P\<close>
+  by (simp add: fBall.rep_eq fset_of_list.rep_eq)
 
-(* Report theorem 14 2/2 (BASE) *)
-theorem base_sound_wrt_entails_sound: \<open>\<lbrakk> Infer (map F_of \<N>) D \<in> Inf \<rbrakk> \<Longrightarrow> set \<N> \<Turnstile>s\<^sub>A\<^sub>F {Pair D (ffUnion (fset_of_list (map A_of \<N>)))}\<close>
+(* Report theorem 14 *)
+theorem Sinf_sound_wrt_entails_sound:
+  \<open>\<lbrakk> \<forall> x \<in> set \<N>. F_of x = bot; propositionally_unsatisfiable (set \<N>); \<N> \<noteq> [] \<rbrakk> \<Longrightarrow> set \<N> \<Turnstile>s\<^sub>A\<^sub>F {to_AF bot}\<close>
+  \<open>\<lbrakk> Infer (map F_of \<N>) D \<in> Inf \<rbrakk> \<Longrightarrow> set \<N> \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair D (ffUnion (fset_of_list (map A_of \<N>)))}\<close>
 proof -
+  assume heads_of_\<N>_are_bot: \<open>\<forall> x \<in> set \<N>. F_of x = bot\<close> and
+         \<N>_is_prop_unsat: \<open>propositionally_unsatisfiable (set \<N>)\<close> and
+         \<N>_not_empty: \<open>\<N> \<noteq> []\<close>
+  then have \<open>proj\<^sub>\<bottom> (set \<N>) = set \<N>\<close>
+    using heads_of_\<N>_are_bot propositional_projection_def
+    by blast
+  then have \<open>\<forall> J. bot \<in> (set \<N>) proj\<^sub>J J\<close>
+    using \<N>_is_prop_unsat propositional_model_def propositionally_unsatisfiable_def
+    by force
+  then show \<open>set \<N> \<Turnstile>s\<^sub>A\<^sub>F {to_AF bot}\<close>
+    unfolding AF_entails_sound_def sound_cons.entails_neg_def
+    by (metis (no_types, lifting) UnCI empty_subsetI image_eqI insert_subset mem_Collect_eq sound_cons.bot_entails_empty sound_cons.entails_subsets)
+next
   assume \<open>Infer (map F_of \<N>) D \<in> Inf\<close>
-  then have \<open>set (map F_of \<N>) \<Turnstile>s {D}\<close>
-    by (metis inference.sel(1) inference.sel(2) sound)
-  then show \<open>set \<N> \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair D (ffUnion (fset_of_list (map A_of \<N>)))}\<close>
-    unfolding AF_entails_sound_def
-    apply auto
-
-
-    sorry
+  then have inf_is_sound: \<open>set (map F_of \<N>) \<Turnstile>s {D}\<close>
+    using sound
+    by fastforce
+  then show \<open>set \<N> \<Turnstile>s\<^sub>A\<^sub>F {Pair D (ffUnion (fset_of_list (map A_of \<N>)))}\<close>
+    unfolding AF_entails_sound_def sound_cons.entails_neg_def
+  proof (intro allI impI)
+    fix J
+    assume Pair_D_A_of_\<N>_is_enabled: \<open>enabled_set {AF.Pair D (ffUnion (fset_of_list (map A_of \<N>)))} J\<close>
+    then have \<open>F_of ` {AF.Pair D (ffUnion (fset_of_list (map A_of \<N>)))} = {D}\<close>
+      by simp
+    moreover have \<open>fset (ffUnion (fset_of_list (map A_of \<N>))) \<subseteq> total_strip J\<close>
+      using Pair_D_A_of_\<N>_is_enabled
+      unfolding enabled_set_def enabled_def
+      by auto
+    then have \<open>fBall (fset_of_list (map A_of \<N>)) (\<lambda> As. fset As \<subseteq> total_strip J)\<close>
+      using fset_ffUnion_subset_has_all_fsets_subset
+      by fast
+    then have \<open>\<forall> As \<in> set (map A_of \<N>). fset As \<subseteq> total_strip J\<close>
+      using fBall_fset_of_list
+      by metis
+    then have \<open>\<forall> \<C> \<in> set \<N>. enabled \<C> J\<close>
+      unfolding enabled_def
+      by simp
+    then have \<open>set \<N> proj\<^sub>J J = F_of ` set \<N>\<close>
+      unfolding enabled_projection_def
+      by auto
+    moreover have \<open>{C. Pos C \<in> fml_ext ` total_strip J \<union> Pos ` F_of ` set \<N>} \<Turnstile>s {D}\<close>
+      using inf_is_sound
+      by (smt (verit, ccfv_threshold) UnCI imageI mem_Collect_eq set_map_is_image sound_cons.entails_subsets subsetI)
+    moreover have \<open>{C. Neg C \<in> Pos ` F_of ` {AF.Pair D (ffUnion (fset_of_list (map A_of \<N>)))}} = {}\<close>
+      by fast
+    ultimately show \<open>{C. Pos C \<in> fml_ext ` total_strip J \<union> Pos ` (set \<N> proj\<^sub>J J)} \<union>
+                     {C. Neg C \<in> Pos ` F_of ` {AF.Pair D (ffUnion (fset_of_list (map A_of \<N>)))}} \<Turnstile>s
+                     {C. Pos C \<in> Pos ` F_of ` {AF.Pair D (ffUnion (fset_of_list (map A_of \<N>)))}} \<union>
+                     {C. Neg C \<in> fml_ext ` total_strip J \<union> Pos ` (set \<N> proj\<^sub>J J)}\<close>
+      (* Careful, this one is a little bit slow (enough to be noticed) *)
+      by (smt (verit, del_insts) UnCI empty_subsetI image_insert insert_subset mem_Collect_eq sound_cons.entails_subsets subsetI)
+  qed
 qed
 
 end (* locale splitting_calculus *)
