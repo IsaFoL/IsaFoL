@@ -1,7 +1,10 @@
 theory Splitting_Calculi
   imports
     Preliminaries_With_Zorn
+    Light_Lifting_to_Non_Ground_Calculi
 begin
+
+section \<open>Splitting calculi\<close>
 
 locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_F V fml
   for
@@ -24,7 +27,9 @@ locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_
       all_red_to_bot: \<open>\<C> \<noteq> bot \<Longrightarrow> \<C> \<in> Red_F {bot}\<close>
 begin
 
-(* Inference rules *)
+subsection \<open>The inference rules\<close>
+
+text \<open>We define SInf, our inference system comprising two rules:\<close>
 
 (* The basic SInf inference system, with the two basic rules BASE and UNSAT.
  *
@@ -210,8 +215,11 @@ lemma SInf_commutes_Inf: \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarro
   using SInf_commutes_Inf1 SInf_commutes_Inf2
   by blast
 
-lemma fset_ffUnion_subset_has_all_fsets_subset: \<open>fset (ffUnion A) \<subseteq> B \<Longrightarrow> fBall A (\<lambda> x. fset x \<subseteq> B)\<close>
-proof (intro fBallI subsetI)
+lemma if_in_ffUnion_then_in_subset: \<open>x |\<in>| ffUnion A \<Longrightarrow> \<exists> a. a |\<in>| A \<and> x |\<in>| a\<close>
+  by (induct \<open>A\<close> rule: fset_induct, fastforce+)
+
+lemma fset_ffUnion_subset_iff_all_fsets_subset: \<open>fset (ffUnion A) \<subseteq> B \<longleftrightarrow> fBall A (\<lambda> x. fset x \<subseteq> B)\<close>
+proof (intro fBallI subsetI iffI)
   fix a x
   assume ffUnion_A_subset_B: \<open>fset (ffUnion A) \<subseteq> B\<close> and
          a_in_A: \<open>a |\<in>| A\<close> and
@@ -222,9 +230,23 @@ proof (intro fBallI subsetI)
     by (metis a_in_A ffunion_insert funion_iff set_finsert)
   then show \<open>x \<in> B\<close>
     by (meson ffUnion_A_subset_B fmember.rep_eq subsetD)
+next
+  fix x
+  assume all_in_A_subset_B: \<open>fBall A (\<lambda> x. fset x \<subseteq> B)\<close> and
+         \<open>x \<in> fset (ffUnion A)\<close>
+  then have \<open>x |\<in>| ffUnion A\<close>
+    by (simp add: fmember.rep_eq)
+  then obtain a where \<open>a |\<in>| A\<close> and
+                      x_in_a: \<open>x |\<in>| a\<close>
+    by (meson if_in_ffUnion_then_in_subset)
+  then have \<open>fset a \<subseteq> B\<close>
+    using all_in_A_subset_B
+    by blast
+  then show \<open>x \<in> B\<close>
+    by (meson fmember.rep_eq subsetD x_in_a)
 qed
 
-lemma fBall_fset_of_list: \<open>fBall (fset_of_list A) P \<longleftrightarrow> Ball (set A) P\<close>
+lemma fBall_fset_of_list_iff_Ball_set: \<open>fBall (fset_of_list A) P \<longleftrightarrow> Ball (set A) P\<close>
   by (simp add: fBall.rep_eq fset_of_list.rep_eq)
 
 (* Report theorem 14 *)
@@ -261,11 +283,11 @@ next
       unfolding enabled_set_def enabled_def
       by auto
     then have \<open>fBall (fset_of_list (map A_of \<N>)) (\<lambda> As. fset As \<subseteq> total_strip J)\<close>
-      using fset_ffUnion_subset_has_all_fsets_subset
+      using fset_ffUnion_subset_iff_all_fsets_subset
       by fast
     then have \<open>\<forall> As \<in> set (map A_of \<N>). fset As \<subseteq> total_strip J\<close>
-      using fBall_fset_of_list
-      by metis
+      sledgehammer
+      by (meson fBall_fset_of_list_iff_Ball_set)
     then have \<open>\<forall> \<C> \<in> set \<N>. enabled \<C> J\<close>
       unfolding enabled_def
       by simp
@@ -281,10 +303,12 @@ next
                      {C. Neg C \<in> Pos ` F_of ` {AF.Pair D (ffUnion (fset_of_list (map A_of \<N>)))}} \<Turnstile>s
                      {C. Pos C \<in> Pos ` F_of ` {AF.Pair D (ffUnion (fset_of_list (map A_of \<N>)))}} \<union>
                      {C. Neg C \<in> fml_ext ` total_strip J \<union> Pos ` (set \<N> proj\<^sub>J J)}\<close>
-      (* Careful, this one is a little bit slow (enough to be noticed) *)
+      (* /!\ Careful, this one is a little bit slow (enough to be noticed) /!\ *)
       by (smt (verit, del_insts) UnCI empty_subsetI image_insert insert_subset mem_Collect_eq sound_cons.entails_subsets subsetI)
   qed
 qed
+
+subsection \<open>The redundancy criterion\<close>
 
 (* Report definition 15: splitting redundancy criterion *)
 definition SRed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> where
@@ -332,6 +356,266 @@ proof -
     using SRed\<^sub>F_def
     by auto
 qed
+
+definition ARed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> where
+  \<open>ARed\<^sub>F \<N> \<equiv> SRed\<^sub>F \<N>\<close>
+
+definition ARed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> where
+  \<open>ARed\<^sub>I \<N> \<equiv> { Infer \<M> (Pair \<C> (ffUnion (fset_of_list (map A_of \<M>)))) | \<M> \<C>. Infer (map F_of \<M>) \<C> \<in> Inf \<and> (\<forall> \<J>. {Infer \<M> (Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))))} \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)) }\<close>
+
+definition AInf :: \<open>('f, 'v) AF inference set\<close> where
+  (* AInf is SInf with only the BASE rule. *)
+  \<open>AInf \<equiv> { Infer \<N> (Pair D (ffUnion (fset_of_list (map A_of \<N>)))) | \<N> D. Infer (map F_of \<N>) D \<in> Inf }\<close>
+
+definition \<G>\<^sub>F :: \<open>'v total_interpretation \<Rightarrow> ('f, 'v) AF \<Rightarrow> 'f set\<close> where
+  \<open>\<G>\<^sub>F \<J> \<C> \<equiv> {\<C>} proj\<^sub>J \<J>\<close>
+
+definition \<G>\<^sub>I :: \<open>'v total_interpretation \<Rightarrow> ('f, 'v) AF inference \<Rightarrow> 'f inference set\<close> where
+  \<open>\<G>\<^sub>I \<J> \<iota> \<equiv> {\<iota>} \<iota>proj\<^sub>J \<J>\<close>
+
+definition tiebreaker_order :: \<open>('f, 'v :: countable) AF rel\<close> where
+  \<open>tiebreaker_order = { (\<C>, \<C>'). F_of \<C> = F_of \<C>' \<and> A_of \<C>' |\<subset>| A_of \<C> }\<close>
+
+abbreviation sqsupset_is_tiebreaker_order (infix \<open>\<sqsupset>\<close> 50) where
+  \<open>\<C> \<sqsupset> \<C>' \<equiv> (\<C>, \<C>') \<in> tiebreaker_order\<close>
+
+lemma tiebreaker_order_is_strict_partial_order: \<open>po_on (\<sqsupset>) UNIV\<close>
+  unfolding po_on_def irreflp_on_def transp_on_def tiebreaker_order_def
+  by auto
+
+lemma tiebreaker_order_is_well_founded: \<open>wfp_on (\<sqsupset>) (UNIV :: ('f, 'v) AF set)\<close>
+  sorry (* This MUST be possible to prove... *)
+
+sublocale lift_from_ARed_to_FRed: light_tiebreaker_lifting \<open>{to_AF bot}\<close> AInf \<open>{bot}\<close> \<open>(\<Turnstile>\<inter>)\<close> Inf Red_I_strict Red_F_strict \<open>\<G>\<^sub>F \<J>\<close> \<open>Some \<circ> \<G>\<^sub>I \<J>\<close> \<open>\<lambda>_. (\<sqsupset>)\<close>
+proof
+  fix N
+  show \<open>Red_I_strict N \<subseteq> Inf\<close>
+    by (meson Preliminaries_With_Zorn.calculus.Red_I_to_Inf splitting_calculus.complete
+              splitting_calculus_axioms strict_calc_if_nobot)
+next
+  fix B N
+  assume \<open>B \<in> {bot}\<close> and
+         \<open>N \<Turnstile>\<inter> {B}\<close>
+  then show \<open>N - Red_F_strict N \<Turnstile>\<inter> {B}\<close>
+    unfolding Red_F_strict_def
+    by (smt (z3) Diff_iff Red_F_Bot complete consequence_relation.entails_conjunctive_def consequence_relation.entails_subsets
+                 consequence_relation_axioms entails_reflexive mem_Collect_eq singletonD subsetI)
+next
+  fix N N' :: \<open>'f set\<close>
+  assume \<open>N \<subseteq> N'\<close>
+  then show \<open>Red_F_strict N \<subseteq> Red_F_strict N'\<close>
+    by (meson Preliminaries_With_Zorn.calculus.Red_F_of_subset complete strict_calc_if_nobot)
+next
+  fix N N' :: \<open>'f set\<close>
+  assume \<open>N \<subseteq> N'\<close>
+  then show \<open>Red_I_strict N \<subseteq> Red_I_strict N'\<close>
+   by (meson Preliminaries_With_Zorn.calculus.Red_I_of_subset complete strict_calc_if_nobot)
+next
+  fix N N'
+  assume \<open>N' \<subseteq> Red_F_strict N\<close>
+  then show \<open>Red_F_strict N \<subseteq> Red_F_strict (N - N')\<close>
+    by (meson Preliminaries_With_Zorn.calculus.Red_F_of_Red_F_subset complete strict_calc_if_nobot)
+next
+  fix N N'
+  assume \<open>N' \<subseteq> Red_F_strict N\<close>
+  then show \<open>Red_I_strict N \<subseteq> Red_I_strict (N - N')\<close>
+    by (meson Preliminaries_With_Zorn.calculus.Red_I_of_Red_F_subset complete strict_calc_if_nobot)
+next
+  fix \<iota> N
+  assume \<open>\<iota> \<in> Inf\<close> and
+         \<open>concl_of \<iota> \<in> N\<close>
+  then show \<open>\<iota> \<in> Red_I_strict N\<close>
+    using Red_I_of_Inf_to_N Red_I_strict_def
+    by fastforce
+next
+  show \<open>{to_AF bot} \<noteq> {}\<close>
+    by fast
+next
+  fix B :: \<open>('f, 'v) AF\<close>
+  assume \<open>B \<in> {to_AF bot}\<close>
+  then show \<open>\<G>\<^sub>F \<J> B \<noteq> {}\<close>
+    by (simp add: \<G>\<^sub>F_def enabled_def enabled_projection_def to_AF_def)
+next
+  fix B :: \<open>('f, 'v) AF\<close>
+  assume \<open>B \<in> {to_AF bot}\<close>
+  then show \<open>\<G>\<^sub>F \<J> B \<subseteq> {bot}\<close>
+    using \<G>\<^sub>F_def enabled_projection_def
+    by auto
+next
+  fix \<iota>\<^sub>A
+  assume \<iota>\<^sub>A_is_ainf: \<open>\<iota>\<^sub>A \<in> AInf\<close> and
+         \<open>(Some \<circ> \<G>\<^sub>I \<J>) \<iota>\<^sub>A \<noteq> None\<close>
+  have \<open>\<G>\<^sub>I \<J> \<iota>\<^sub>A \<subseteq> Red_I_strict (\<G>\<^sub>F \<J> (concl_of \<iota>\<^sub>A))\<close>
+  proof (intro subsetI)
+    fix x
+    assume x_in_\<G>\<^sub>I_of_\<iota>\<^sub>A: \<open>x \<in> \<G>\<^sub>I \<J> \<iota>\<^sub>A\<close>
+    then obtain \<N> D where \<iota>\<^sub>A_is: \<open>\<iota>\<^sub>A = Infer \<N> (Pair D (ffUnion (fset_of_list (map A_of \<N>))))\<close> and
+                           infer_\<N>_D_is_inf: \<open>Infer (map F_of \<N>) D \<in> Inf\<close>
+      using AInf_def \<iota>\<^sub>A_is_ainf
+      by auto
+    moreover have \<iota>\<^sub>A_is_enabled: \<open>enabled_inf \<iota>\<^sub>A \<J>\<close> and
+                  x_is: \<open>x = \<iota>F_of \<iota>\<^sub>A\<close>
+      using \<G>\<^sub>I_def enabled_projection_Inf_def x_in_\<G>\<^sub>I_of_\<iota>\<^sub>A
+      by auto
+    then have \<open>prems_of \<iota>\<^sub>A = \<N>\<close> 
+      using \<iota>\<^sub>A_is 
+      by auto 
+    then have \<open>fBall (fset_of_list (map A_of \<N>)) (\<lambda> As. fset As \<subseteq> total_strip \<J>)\<close>
+      using \<iota>\<^sub>A_is \<iota>\<^sub>A_is_enabled
+      unfolding enabled_inf_def enabled_def
+      by (simp add: fBall_fset_of_list_iff_Ball_set)
+    then have \<open>fset (ffUnion (A_of |`| fset_of_list \<N>)) \<subseteq> total_strip \<J>\<close>
+      by (simp add: fset_ffUnion_subset_iff_all_fsets_subset)
+    then have \<open>enabled (AF.Pair D (ffUnion (A_of |`| fset_of_list \<N>))) \<J>\<close>
+      unfolding enabled_def
+      by auto
+    then have \<open>{AF.Pair D (ffUnion (fset_of_list (map A_of \<N>)))} proj\<^sub>J \<J> = {D}\<close>
+      unfolding enabled_projection_def F_of_def
+      using \<iota>\<^sub>A_is_enabled \<iota>\<^sub>A_is
+      by auto
+    then have \<open>x \<in> Red_I_strict (\<G>\<^sub>F \<J> (Pair D (ffUnion (fset_of_list (map A_of \<N>)))))\<close>
+      using x_in_\<G>\<^sub>I_of_\<iota>\<^sub>A \<iota>\<^sub>A_is_enabled x_is infer_\<N>_D_is_inf \<iota>\<^sub>A_is
+      unfolding \<G>\<^sub>I_def \<G>\<^sub>F_def \<iota>F_of_def
+      by (simp add: Red_I_of_Inf_to_N Red_I_strict_def)
+    then show \<open>x \<in> Red_I_strict (\<G>\<^sub>F \<J> (concl_of \<iota>\<^sub>A))\<close>
+      by (simp add: \<iota>\<^sub>A_is)
+  qed
+  then show \<open>the ((Some \<circ> \<G>\<^sub>I \<J>) \<iota>\<^sub>A) \<subseteq> Red_I_strict (\<G>\<^sub>F \<J> (concl_of \<iota>\<^sub>A))\<close>
+    by simp
+next
+  fix g
+  show \<open>po_on (\<sqsupset>) UNIV\<close>
+    using tiebreaker_order_is_strict_partial_order
+    by blast
+next
+  fix g
+  show \<open>wfp_on (\<sqsupset>) UNIV\<close>
+    using tiebreaker_order_is_well_founded
+    by blast
+qed
+
+lemma ARed\<^sub>I_is_FRed\<^sub>I: \<open>ARed\<^sub>I \<N> = lift_from_ARed_to_FRed.Red_I_\<G> \<J> \<N>\<close>
+proof (intro subset_antisym subsetI)
+  fix \<iota>
+  assume \<open>\<iota> \<in> ARed\<^sub>I \<N>\<close>
+  then obtain \<M> \<C> where \<iota>_is: \<open>\<iota> = Infer \<M> (AF.Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))))\<close> and
+                         Infer_\<M>_\<C>_in_Inf: \<open>Infer (map F_of \<M>) \<C> \<in> Inf\<close> and
+                         \<iota>_in_Red_I: \<open>\<forall> \<J>. {Infer \<M> (Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))))} \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)\<close>
+    using ARed\<^sub>I_def
+    by fastforce
+  then have \<iota>_proj_subset_Red_I: \<open>{\<iota>} \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)\<close>
+    by presburger
+
+  then have \<open>x \<in> \<G>\<^sub>I \<J> (Infer \<M> (AF.Pair \<C> (ffUnion (A_of |`| fset_of_list \<M>)))) \<Longrightarrow>
+             x \<in> Red_I_strict (\<Union> (\<G>\<^sub>F \<J> ` \<N>))\<close> for x
+  proof -
+    assume x_in: \<open>x \<in> \<G>\<^sub>I \<J> (Infer \<M> (AF.Pair \<C> (ffUnion (A_of |`| fset_of_list \<M>))))\<close>
+    then have \<open>enabled_inf \<iota> \<J>\<close>
+      using \<G>\<^sub>I_def \<iota>_is enabled_projection_Inf_def
+      by auto
+    then have all_enabled_in_\<M>: \<open>\<forall> C \<in> set \<M>. enabled C \<J>\<close>
+      by (simp add: \<iota>_is enabled_inf_def)
+    then have concl_of_\<iota>_enabled: \<open>enabled (AF.Pair \<C> (ffUnion (A_of |`| fset_of_list \<M>))) \<J>\<close>
+      sorry
+    moreover have \<open>\<C> \<in> \<N> proj\<^sub>J \<J>\<close>
+      using \<iota>_in_Red_I
+      unfolding enabled_projection_Inf_def enabled_projection_def \<iota>F_of_def enabled_inf_def
+      apply auto
+
+      sorry
+    then have \<open>\<C> \<in> (\<Union> x \<in> \<N>. {u. u = F_of x \<and> enabled x \<J>})\<close>
+      using enabled_projection_def
+      by auto
+    then show \<open>x \<in> Red_I_strict (\<Union> (\<G>\<^sub>F \<J> ` \<N>))\<close>
+      using x_in
+      unfolding \<G>\<^sub>I_def \<G>\<^sub>F_def enabled_projection_def enabled_projection_Inf_def Red_I_strict_def
+      using Infer_\<M>_\<C>_in_Inf Red_I_of_Inf_to_N \<iota>F_of_def Infer_\<M>_\<C>_in_Inf
+      by auto
+  qed
+  then show \<open>\<iota> \<in> lift_from_ARed_to_FRed.Red_I_\<G> \<J> \<N>\<close>
+    unfolding lift_from_ARed_to_FRed.Red_I_\<G>_def
+    by (auto simp add: AInf_def \<iota>_is Infer_\<M>_\<C>_in_Inf)
+next
+  fix \<iota>
+  assume \<open>\<iota> \<in> lift_from_ARed_to_FRed.Red_I_\<G> \<J> \<N>\<close>
+  then show \<open>\<iota> \<in> ARed\<^sub>I \<N>\<close>
+    sorry
+qed
+
+lemma ARed\<^sub>F_is_FRef\<^sub>F: \<open>ARed\<^sub>F \<N> = lift_from_ARed_to_FRed.Red_F_\<G> \<J> \<N>\<close>
+proof (intro subset_antisym subsetI)
+  fix \<C>
+  assume \<open>\<C> \<in> ARed\<^sub>F \<N>\<close>
+  then show \<open>\<C> \<in> lift_from_ARed_to_FRed.Red_F_\<G> \<J> \<N>\<close>
+    unfolding lift_from_ARed_to_FRed.Red_F_\<G>_def ARed\<^sub>F_def SRed\<^sub>F_def
+    sorry
+next
+  fix \<C>
+  assume \<open>\<C> \<in> lift_from_ARed_to_FRed.Red_F_\<G> \<J> \<N>\<close>
+  then show \<open>\<C> \<in> ARed\<^sub>F \<N>\<close>
+    unfolding lift_from_ARed_to_FRed.Red_F_\<G>_def ARed\<^sub>F_def SRed\<^sub>F_def
+    sorry
+qed
+
+lemma entails_is_entails_G: \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {\<C>} \<longleftrightarrow> lift_from_ARed_to_FRed.entails_\<G> \<J> \<M> {\<C>}\<close>
+proof (intro iffI)
+  assume \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {\<C>}\<close>
+  then show \<open>lift_from_ARed_to_FRed.entails_\<G> \<J> \<M> {\<C>}\<close>
+    unfolding \<G>\<^sub>F_def AF_entails_def enabled_projection_def enabled_set_def
+    sorry
+next
+  assume \<open>lift_from_ARed_to_FRed.entails_\<G> \<J> \<M> {\<C>}\<close>
+  then show \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {\<C>}\<close>
+    unfolding \<G>\<^sub>F_def AF_entails_def entails_conjunctive_def enabled_set_def
+    sorry
+qed
+
+(* Report lemma 18 *)
+sublocale SRed_is_redundancy_criterion: calculus \<open>to_AF bot\<close> SInf AF_entails SRed\<^sub>I SRed\<^sub>F
+proof
+  fix N
+  show \<open>SRed\<^sub>I N \<subseteq> SInf\<close>
+    unfolding SRed\<^sub>I_def
+    using S.base S.unsat
+    by auto
+next
+  fix N
+  assume \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+  then show \<open>N - SRed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+    unfolding SRed\<^sub>F_def AF_entails_def
+    sorry
+next
+  fix N N' :: \<open>('f, 'v) AF set\<close>
+  assume \<open>N \<subseteq> N'\<close>
+  then show \<open>SRed\<^sub>F N \<subseteq> SRed\<^sub>F N'\<close>
+    sorry
+next
+  fix N N' :: \<open>('f, 'v) AF set\<close>
+  assume \<open>N \<subseteq> N'\<close>
+  then show \<open>SRed\<^sub>I N \<subseteq> SRed\<^sub>I N'\<close>
+    sorry
+next
+  fix N N'
+  assume \<open>N' \<subseteq> SRed\<^sub>F N\<close>
+  then show \<open>SRed\<^sub>F N \<subseteq> SRed\<^sub>F (N - N')\<close>
+    sorry
+next
+  fix N N'
+  assume \<open>N' \<subseteq> SRed\<^sub>F N\<close>
+  then show \<open>SRed\<^sub>I N \<subseteq> SRed\<^sub>I (N - N')\<close>
+    sorry
+next
+  fix \<iota>\<^sub>S N
+  assume \<open>\<iota>\<^sub>S \<in> SInf\<close> and
+         \<open>concl_of \<iota>\<^sub>S \<in> N\<close>
+  then show \<open>\<iota>\<^sub>S \<in> SRed\<^sub>I N\<close>
+    sorry
+qed
+
+
+subsection \<open>Standard saturation\<close>
+
+subsection \<open>Local saturation\<close>
 
 end (* locale splitting_calculus *)
 
