@@ -20,16 +20,13 @@ locale hmstruct_with_prio =
     hm_totalt: \<open>totalp lt\<close>
 begin
 
-    definition mop_prio_pop_min where
-      "mop_prio_pop_min = (\<lambda>(b, w). doN {ASSERT (b\<noteq>{#}); SPEC (\<lambda>(v, (b', w)).
-        v \<in># b
-      \<and> b'=b - {#v#}
-      \<and> (\<forall>v'\<in>set_mset b. le (w v) (w v')))})"
+    definition prio_peek_min where
+      "prio_peek_min \<equiv>  (\<lambda>(b, w). (\<lambda>v.
+          v \<in># b
+        \<and> (\<forall>v'\<in>set_mset b. le (w v) (w v'))))"
 
     definition mop_prio_peek_min where
-      "mop_prio_peek_min \<equiv>  (\<lambda>(b, w). doN {ASSERT (b\<noteq>{#}); SPEC (\<lambda>v.
-          v \<in># b
-        \<and> (\<forall>v'\<in>set_mset b. le (w v) (w v')))})"
+      "mop_prio_peek_min \<equiv>  (\<lambda>(b, w). doN {ASSERT (b\<noteq>{#}); SPEC (prio_peek_min (b,w))})"
 
     definition mop_prio_change_weight where
       "mop_prio_change_weight \<equiv>  (\<lambda>v \<omega> (b, w). doN {
@@ -47,6 +44,34 @@ begin
         if v \<notin># fst bw then mop_prio_insert v \<omega> (bw)
         else mop_prio_change_weight v \<omega> (bw)
      })"
+
+    definition mop_prio_insert_raw_unchanged where
+      "mop_prio_insert_raw_unchanged = (\<lambda>v (b, w). doN {
+        ASSERT (v \<notin># b);
+        RETURN (add_mset v b, w)
+     })"
+
+    definition mop_prio_insert_unchanged where
+      "mop_prio_insert_unchanged =  (\<lambda>v (bw). doN {
+        if v \<notin># fst bw then mop_prio_insert_raw_unchanged v (bw)
+        else RETURN bw
+     })"
+
+    definition prio_del where
+      \<open>prio_del = (\<lambda>v (b, w). (b - {#v#}, w))\<close>
+
+    definition mop_prio_del where
+      "mop_prio_del = (\<lambda>v (b, w). doN {
+        ASSERT (v \<in># b);
+        RETURN (prio_del v (b, w))
+     })"
+
+    definition mop_prio_pop_min where
+      "mop_prio_pop_min = (\<lambda>(b, w). doN {ASSERT (b\<noteq>{#});
+      v \<leftarrow> mop_prio_peek_min (b, w);
+      bw \<leftarrow> mop_prio_del v (b, w);
+      RETURN (v, bw)
+      })"
 
 sublocale pairing_heap
   by unfold_locales (rule hm_le hm_trans hm_transt hm_totalt)+

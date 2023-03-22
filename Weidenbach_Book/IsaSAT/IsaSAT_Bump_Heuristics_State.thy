@@ -1,8 +1,5 @@
 theory IsaSAT_Bump_Heuristics_State
 imports Watched_Literals_VMTF 
-(*
-  IsaSAT_VSIDS
-  *)
   Tuple4
 begin
 
