@@ -62,6 +62,10 @@ lemma F_of_to_AF [simp]: \<open>F_of (to_AF \<C>) = \<C>\<close>
   unfolding to_AF_def
   by auto
 
+lemma A_of_to_AF [simp]: \<open>A_of (to_AF \<C>) = {||}\<close>
+  unfolding to_AF_def
+  by auto
+
 lemma F_of_propositional_clauses [simp]: \<open>(\<forall> x \<in> set \<N>. F_of x = bot) \<Longrightarrow> map F_of \<N> = map (\<lambda> _. bot) \<N>\<close>
   using map_eq_conv
   by blast
@@ -312,7 +316,7 @@ subsection \<open>The redundancy criterion\<close>
 
 (* Report definition 15: splitting redundancy criterion *)
 definition SRed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> where
-  \<open>SRed\<^sub>F \<N> = { AF.Pair C A | C A. \<forall> \<J>. total_strip \<J> \<supseteq> fset A \<and> C \<in> Red_F (\<N> proj\<^sub>J \<J>) }
+  \<open>SRed\<^sub>F \<N> = { AF.Pair C A | C A. \<forall> \<J>. total_strip \<J> \<supseteq> fset A \<longrightarrow> C \<in> Red_F (\<N> proj\<^sub>J \<J>) }
             \<union> { AF.Pair C A | C A. \<exists> \<C> \<in> \<N>. F_of \<C> = C \<and> A_of \<C> |\<subset>| A }\<close>
 
 definition SRed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> where
@@ -346,9 +350,9 @@ proof -
 qed
 
 (* Report lemma 17 *)
-lemma bot_not_in_sredF_\<N>: \<open>to_AF bot \<notin> SRed\<^sub>F(\<N>)\<close>
+lemma bot_not_in_sredF_\<N>: \<open>to_AF bot \<notin> SRed\<^sub>F \<N>\<close>
 proof -
-  have \<open>to_AF bot \<notin> { AF.Pair C A | C A. \<forall> \<J>. total_strip \<J> \<supseteq> fset A \<and> C \<in> Red_F (\<N> proj\<^sub>J \<J>) }\<close>
+  have \<open>to_AF bot \<notin> { AF.Pair C A | C A. \<forall> \<J>. total_strip \<J> \<supseteq> fset A \<longrightarrow> C \<in> Red_F (\<N> proj\<^sub>J \<J>) }\<close>
     by (simp add: complete to_AF_def)
   moreover have \<open>to_AF bot \<notin> { AF.Pair C A | C A. \<exists> \<C> \<in> \<N>. F_of \<C> = C \<and> A_of \<C> |\<subset>| A }\<close>
     by (simp add: to_AF_def)
@@ -360,6 +364,7 @@ qed
 definition ARed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> where
   \<open>ARed\<^sub>F \<N> \<equiv> SRed\<^sub>F \<N>\<close>
 
+text \<open>ARed_I is SRed_I limited to BASE inferences.\<close>
 definition ARed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> where
   \<open>ARed\<^sub>I \<N> \<equiv> { Infer \<M> (Pair \<C> (ffUnion (fset_of_list (map A_of \<M>)))) | \<M> \<C>. Infer (map F_of \<M>) \<C> \<in> Inf \<and> (\<forall> \<J>. {Infer \<M> (Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))))} \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)) }\<close>
 
@@ -413,48 +418,51 @@ proof (intro notI)
     by blast
 qed
 
-sublocale lift_from_ARed_to_FRed: light_tiebreaker_lifting \<open>{to_AF bot}\<close> AInf \<open>{bot}\<close> \<open>(\<Turnstile>\<inter>)\<close> Inf Red_I_strict
-                                                           Red_F_strict \<open>\<G>\<^sub>F \<J>\<close> \<open>Some \<circ> \<G>\<^sub>I \<J>\<close> \<open>\<lambda>_. (\<sqsupset>)\<close>
-proof
+sublocale lift_from_ARed_to_FRed: light_tiebreaker_lifting \<open>{to_AF bot}\<close> AInf \<open>{bot}\<close> \<open>(\<Turnstile>\<inter>)\<close> Inf Red_I
+                                                           Red_F \<open>\<G>\<^sub>F \<J>\<close> \<open>Some \<circ> \<G>\<^sub>I \<J>\<close> \<open>\<lambda>_. (\<sqsupset>)\<close>
+proof (standard)
   fix N
-  show \<open>Red_I_strict N \<subseteq> Inf\<close>
-    by (meson Preliminaries_With_Zorn.calculus.Red_I_to_Inf splitting_calculus.complete
-              splitting_calculus_axioms strict_calc_if_nobot)
+  show \<open>Red_I N \<subseteq> Inf\<close>
+    using Red_I_to_Inf
+    by presburger
 next
   fix B N
   assume \<open>B \<in> {bot}\<close> and
          \<open>N \<Turnstile>\<inter> {B}\<close>
-  then show \<open>N - Red_F_strict N \<Turnstile>\<inter> {B}\<close>
-    unfolding Red_F_strict_def
-    by (smt (z3) Diff_iff Red_F_Bot complete consequence_relation.entails_conjunctive_def consequence_relation.entails_subsets
-                 consequence_relation_axioms entails_reflexive mem_Collect_eq singletonD subsetI)
+  then show \<open>N - Red_F N \<Turnstile>\<inter> {B}\<close>
+    using Red_F_Bot consequence_relation.entails_conjunctive_def consequence_relation_axioms
+    by fastforce
 next
   fix N N' :: \<open>'f set\<close>
   assume \<open>N \<subseteq> N'\<close>
-  then show \<open>Red_F_strict N \<subseteq> Red_F_strict N'\<close>
-    by (meson Preliminaries_With_Zorn.calculus.Red_F_of_subset complete strict_calc_if_nobot)
+  then show \<open>Red_F N \<subseteq> Red_F N'\<close>
+    using Red_F_of_subset
+    by presburger
 next
   fix N N' :: \<open>'f set\<close>
   assume \<open>N \<subseteq> N'\<close>
-  then show \<open>Red_I_strict N \<subseteq> Red_I_strict N'\<close>
-   by (meson Preliminaries_With_Zorn.calculus.Red_I_of_subset complete strict_calc_if_nobot)
+  then show \<open>Red_I N \<subseteq> Red_I N'\<close>
+    using Red_I_of_subset
+    by presburger
 next
   fix N N'
-  assume \<open>N' \<subseteq> Red_F_strict N\<close>
-  then show \<open>Red_F_strict N \<subseteq> Red_F_strict (N - N')\<close>
-    by (meson Preliminaries_With_Zorn.calculus.Red_F_of_Red_F_subset complete strict_calc_if_nobot)
+  assume \<open>N' \<subseteq> Red_F N\<close>
+  then show \<open>Red_F N \<subseteq> Red_F (N - N')\<close>
+    using Red_F_of_Red_F_subset
+    by presburger
 next
   fix N N'
-  assume \<open>N' \<subseteq> Red_F_strict N\<close>
-  then show \<open>Red_I_strict N \<subseteq> Red_I_strict (N - N')\<close>
-    by (meson Preliminaries_With_Zorn.calculus.Red_I_of_Red_F_subset complete strict_calc_if_nobot)
+  assume \<open>N' \<subseteq> Red_F N\<close>
+  then show \<open>Red_I N \<subseteq> Red_I (N - N')\<close>
+    using Red_I_of_Red_F_subset
+    by presburger
 next
   fix \<iota> N
   assume \<open>\<iota> \<in> Inf\<close> and
          \<open>concl_of \<iota> \<in> N\<close>
-  then show \<open>\<iota> \<in> Red_I_strict N\<close>
-    using Red_I_of_Inf_to_N Red_I_strict_def
-    by fastforce
+  then show \<open>\<iota> \<in> Red_I N\<close>
+    using Red_I_of_Inf_to_N
+    by blast
 next
   show \<open>{to_AF bot} \<noteq> {}\<close>
     by fast
@@ -473,7 +481,7 @@ next
   fix \<iota>\<^sub>A
   assume \<iota>\<^sub>A_is_ainf: \<open>\<iota>\<^sub>A \<in> AInf\<close> and
          \<open>(Some \<circ> \<G>\<^sub>I \<J>) \<iota>\<^sub>A \<noteq> None\<close>
-  have \<open>\<G>\<^sub>I \<J> \<iota>\<^sub>A \<subseteq> Red_I_strict (\<G>\<^sub>F \<J> (concl_of \<iota>\<^sub>A))\<close>
+  have \<open>\<G>\<^sub>I \<J> \<iota>\<^sub>A \<subseteq> Red_I (\<G>\<^sub>F \<J> (concl_of \<iota>\<^sub>A))\<close>
   proof (intro subsetI)
     fix x
     assume x_in_\<G>\<^sub>I_of_\<iota>\<^sub>A: \<open>x \<in> \<G>\<^sub>I \<J> \<iota>\<^sub>A\<close>
@@ -485,9 +493,9 @@ next
                   x_is: \<open>x = \<iota>F_of \<iota>\<^sub>A\<close>
       using \<G>\<^sub>I_def enabled_projection_Inf_def x_in_\<G>\<^sub>I_of_\<iota>\<^sub>A
       by auto
-    then have \<open>prems_of \<iota>\<^sub>A = \<N>\<close> 
-      using \<iota>\<^sub>A_is 
-      by auto 
+    then have \<open>prems_of \<iota>\<^sub>A = \<N>\<close>
+      using \<iota>\<^sub>A_is
+      by auto
     then have \<open>fBall (fset_of_list (map A_of \<N>)) (\<lambda> As. fset As \<subseteq> total_strip \<J>)\<close>
       using \<iota>\<^sub>A_is \<iota>\<^sub>A_is_enabled
       unfolding enabled_inf_def enabled_def
@@ -501,14 +509,14 @@ next
       unfolding enabled_projection_def F_of_def
       using \<iota>\<^sub>A_is_enabled \<iota>\<^sub>A_is
       by auto
-    then have \<open>x \<in> Red_I_strict (\<G>\<^sub>F \<J> (Pair D (ffUnion (fset_of_list (map A_of \<N>)))))\<close>
+    then have \<open>x \<in> Red_I (\<G>\<^sub>F \<J> (Pair D (ffUnion (fset_of_list (map A_of \<N>)))))\<close>
       using x_in_\<G>\<^sub>I_of_\<iota>\<^sub>A \<iota>\<^sub>A_is_enabled x_is infer_\<N>_D_is_inf \<iota>\<^sub>A_is
       unfolding \<G>\<^sub>I_def \<G>\<^sub>F_def \<iota>F_of_def
-      by (simp add: Red_I_of_Inf_to_N Red_I_strict_def)
-    then show \<open>x \<in> Red_I_strict (\<G>\<^sub>F \<J> (concl_of \<iota>\<^sub>A))\<close>
+      by (simp add: Red_I_of_Inf_to_N)
+    then show \<open>x \<in> Red_I (\<G>\<^sub>F \<J> (concl_of \<iota>\<^sub>A))\<close>
       by (simp add: \<iota>\<^sub>A_is)
   qed
-  then show \<open>the ((Some \<circ> \<G>\<^sub>I \<J>) \<iota>\<^sub>A) \<subseteq> Red_I_strict (\<G>\<^sub>F \<J> (concl_of \<iota>\<^sub>A))\<close>
+  then show \<open>the ((Some \<circ> \<G>\<^sub>I \<J>) \<iota>\<^sub>A) \<subseteq> Red_I (\<G>\<^sub>F \<J> (concl_of \<iota>\<^sub>A))\<close>
     by simp
 next
   fix g
@@ -533,14 +541,15 @@ proof (intro subset_antisym subsetI)
   assume \<open>\<iota> \<in> ARed\<^sub>I \<N>\<close>
   then obtain \<M> \<C> where \<iota>_is: \<open>\<iota> = Infer \<M> (AF.Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))))\<close> and
                          Infer_\<M>_\<C>_in_Inf: \<open>Infer (map F_of \<M>) \<C> \<in> Inf\<close> and
-                         \<iota>_in_Red_I: \<open>\<forall> \<J>. {Infer \<M> (Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))))} \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)\<close>
+                         \<iota>_in_Red_I: \<open>\<forall> \<J>. {Infer \<M> (Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))))} \<iota>proj\<^sub>J \<J>
+                                                                                          \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)\<close>
     using ARed\<^sub>I_def
     by fastforce
   then have \<iota>_is_AInf: \<open>\<iota> \<in> AInf\<close>
     using AInf_def
     by blast
-  then have \<open>\<forall> J. {\<iota>} \<iota>proj\<^sub>J J \<subseteq> Red_I_strict (\<Union> (\<G>\<^sub>F J ` \<N>))\<close>
-    unfolding \<G>\<^sub>F_def Red_I_strict_def
+  then have \<open>\<forall> J. {\<iota>} \<iota>proj\<^sub>J J \<subseteq> Red_I (\<Union> (\<G>\<^sub>F J ` \<N>))\<close>
+    unfolding \<G>\<^sub>F_def
     using \<iota>_in_Red_I \<iota>_is Union_of_enabled_projection_is_enabled_projection
     by auto
   then have \<open>\<forall> J. \<iota> \<in> lift_from_ARed_to_FRed.Red_I_\<G> J \<N>\<close>
@@ -553,8 +562,8 @@ next
   fix \<iota>
   assume \<iota>_in_Red_I_\<G>: \<open>\<iota> \<in> (\<Inter> J. lift_from_ARed_to_FRed.Red_I_\<G> J \<N>)\<close>
   then have \<iota>_is_AInf: \<open>\<iota> \<in> AInf\<close> and
-            all_J_\<G>\<^sub>I_subset_Red_I: \<open>\<forall> J. \<G>\<^sub>I J \<iota> \<subseteq> Red_I_strict (\<Union> (\<G>\<^sub>F J ` \<N>))\<close>
-    using lift_from_ARed_to_FRed.Red_I_\<G>_def
+            all_J_\<G>\<^sub>I_subset_Red_I: \<open>\<forall> J. \<G>\<^sub>I J \<iota> \<subseteq> Red_I (\<Union> (\<G>\<^sub>F J ` \<N>))\<close>
+    unfolding lift_from_ARed_to_FRed.Red_I_\<G>_def
     by auto
   then obtain \<M> \<C> where \<iota>_is: \<open>\<iota> = Infer \<M> (AF.Pair \<C> (ffUnion (A_of |`| fset_of_list \<M>)))\<close> and
                          Infer_\<M>_\<C>_is_Inf: \<open>Infer (map F_of \<M>) \<C> \<in> Inf\<close>
@@ -562,47 +571,88 @@ next
     by auto
   then obtain \<iota>\<^sub>F where \<iota>\<^sub>F_is: \<open>\<iota>\<^sub>F = \<iota>F_of \<iota>\<close>
     by auto
-  have \<open>\<forall> J. \<not> (\<exists> x \<in> \<N>. bot \<in> \<G>\<^sub>F J x)\<close>
-    unfolding \<G>\<^sub>F_def enabled_projection_def
-    apply auto
-    sorry
-  then have \<open>\<forall> J. \<G>\<^sub>I J \<iota> \<subseteq> Red_I (\<Union> (\<G>\<^sub>F J ` \<N>))\<close>
-    unfolding \<G>\<^sub>I_def enabled_projection_Inf_def Red_I_strict_def
-    using \<iota>\<^sub>F_is Red_I_strict_def \<G>\<^sub>I_def all_J_\<G>\<^sub>I_subset_Red_I enabled_projection_Inf_def empty_iff subsetD
-    by fastforce
   then have \<open>\<exists> \<M> \<C>. \<iota> = Infer \<M> (AF.Pair \<C> (ffUnion (A_of |`| fset_of_list \<M>))) \<and>
                      Infer (map F_of \<M>) \<C> \<in> Inf \<and>
                      (\<forall>\<J>. {Infer \<M> (AF.Pair \<C> (ffUnion (A_of |`| fset_of_list \<M>)))} \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>))\<close>
-    using \<iota>_is Infer_\<M>_\<C>_is_Inf
+    using \<iota>_is Infer_\<M>_\<C>_is_Inf all_J_\<G>\<^sub>I_subset_Red_I
     unfolding \<G>\<^sub>I_def \<G>\<^sub>F_def
     using Union_of_enabled_projection_is_enabled_projection
-    by auto
+    by fastforce
   then show \<open>\<iota> \<in> ARed\<^sub>I \<N>\<close>
     unfolding ARed\<^sub>I_def
     by auto
 qed
 
+lemma subformula_of_enabled_formula_is_enabled: \<open>A_of \<C> |\<subset>| A_of \<C>' \<Longrightarrow> enabled \<C>' J \<Longrightarrow> enabled \<C> J\<close>
+  unfolding enabled_def
+  by (meson less_eq_fset.rep_eq pfsubset_imp_fsubset subset_trans)
+
 (* Check that ARed\<^sub>F and FRed\<^sub>F\<^bsup>\<inter>\<G>,\<sqsupset>\<^esup> coincide *)
-lemma ARed\<^sub>F_is_FRef\<^sub>F: \<open>ARed\<^sub>F \<N> = (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J \<N>)\<close>
+lemma ARed\<^sub>F_is_FRed\<^sub>F: \<open>ARed\<^sub>F \<N> = (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J \<N>)\<close>
 proof (intro subset_antisym subsetI)
   fix \<C>
-  assume \<open>\<C> \<in> ARed\<^sub>F \<N>\<close>
+  assume \<C>_in_ARed\<^sub>F: \<open>\<C> \<in> ARed\<^sub>F \<N>\<close>
+  then obtain C A where \<C>_is: \<open>\<C> = AF.Pair C A\<close>
+    unfolding ARed\<^sub>F_def SRed\<^sub>F_def
+    by blast
+  consider (a) \<open>\<forall> \<J>. fset A \<subseteq> total_strip \<J> \<longrightarrow> C \<in> Red_F (\<N> proj\<^sub>J \<J>)\<close> |
+           (b) \<open>\<exists> \<C> \<in> \<N>. F_of \<C> = C \<and> A_of \<C> |\<subset>| A\<close>
+    using \<C>_in_ARed\<^sub>F \<C>_is
+    unfolding ARed\<^sub>F_def SRed\<^sub>F_def
+    by blast
   then show \<open>\<C> \<in> (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J \<N>)\<close>
-    unfolding lift_from_ARed_to_FRed.Red_F_\<G>_def ARed\<^sub>F_def SRed\<^sub>F_def
-    sorry
+    unfolding lift_from_ARed_to_FRed.Red_F_\<G>_def
+  proof (cases)
+    case a
+    then have \<open>\<forall> J. \<forall> D \<in> \<G>\<^sub>F J \<C>. D \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>))\<close>
+      unfolding Red_F_strict_def \<G>\<^sub>F_def
+      using Union_of_enabled_projection_is_enabled_projection \<C>_is enabled_projection_def
+            \<C>_is complete enabled_projection_def
+      using enabled_def
+      by force
+    then have \<open>\<C> \<in> (\<Inter> J. { C. \<forall> D \<in> \<G>\<^sub>F J C. D \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) })\<close>
+      by blast
+    then show \<open>\<C> \<in> (\<Inter> J. { C. \<forall> D \<in> \<G>\<^sub>F J C. D \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> C \<and> D \<in> \<G>\<^sub>F J E) })\<close>
+      by blast
+  next
+    case b
+    then have \<open>\<forall> J. \<forall> D \<in> \<G>\<^sub>F J \<C>. \<exists> E \<in> \<N>. E \<sqsupset> \<C> \<and> D \<in> \<G>\<^sub>F J E\<close>
+      unfolding \<G>\<^sub>F_def tiebreaker_order_def enabled_projection_def
+      using subformula_of_enabled_formula_is_enabled
+      (* /!\ Careful, a bit slow (\<sim> 1s) /!\ *)
+      by (smt (verit, ccfv_SIG) AF.sel(1) AF.sel(2) \<C>_is case_prodI mem_Collect_eq singletonD singletonI)
+    then have \<open>\<C> \<in> (\<Inter> J. { C. \<forall> D \<in> \<G>\<^sub>F J C. \<exists> E \<in> \<N>. E \<sqsupset> C \<and> D \<in> \<G>\<^sub>F J E })\<close>
+      by blast
+    then show \<open>\<C> \<in> (\<Inter> J. { C. \<forall> D \<in> \<G>\<^sub>F J C. D \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> C \<and> D \<in> \<G>\<^sub>F J E) })\<close>
+      by blast
+  qed
 next
   fix \<C>
-  assume \<open>\<C> \<in> (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J \<N>)\<close>
+  assume \<C>_in_Red_F_\<G>: \<open>\<C> \<in> (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J \<N>)\<close>
+  then have \<C>_in_Red_F_\<G>_unfolded: \<open>\<forall> J. \<forall> D \<in> \<G>\<^sub>F J \<C>. D \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> \<C> \<and> D \<in> \<G>\<^sub>F J E)\<close>
+    unfolding lift_from_ARed_to_FRed.Red_F_\<G>_def
+    by blast
+  then have \<C>_in_Red_F_\<G>_if_enabled: \<open>\<forall> J. enabled \<C> J \<longrightarrow> F_of \<C> \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> \<C> \<and> F_of \<C> \<in> \<G>\<^sub>F J E)\<close>
+    unfolding \<G>\<^sub>F_def enabled_projection_def
+    by auto
+  obtain C A where \<C>_is: \<open>\<C> = AF.Pair C A\<close>
+    by (meson AF.exhaust_sel)
+  then have \<open>\<forall> J. fset A \<subseteq> total_strip J \<longrightarrow> C \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> \<C> \<and> C \<in> \<G>\<^sub>F J E)\<close>
+    using \<C>_in_Red_F_\<G>_if_enabled
+    unfolding enabled_def
+    by simp
   then show \<open>\<C> \<in> ARed\<^sub>F \<N>\<close>
-    unfolding lift_from_ARed_to_FRed.Red_F_\<G>_def ARed\<^sub>F_def SRed\<^sub>F_def
-    sorry
+    using \<C>_is \<C>_in_Red_F_\<G>_if_enabled
+    unfolding ARed\<^sub>F_def SRed\<^sub>F_def \<G>\<^sub>F_def enabled_def tiebreaker_order_def
+    using Union_of_enabled_projection_is_enabled_projection
+    by auto
 qed
 
 lemma Union_of_singleton_is_setcompr: \<open>(\<Union> x \<in> A. { y. y = f x \<and> P x }) = { f x | x. x \<in> A \<and> P x }\<close>
   by auto
 
 (* Check that both \<Turnstile>\<^sub>A\<^sub>F and \<Turnstile>\<^sub>\<G>\<^sup>\<inter> coincide *)
-lemma entails_is_entails_G: \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {\<C>} \<longleftrightarrow> (\<forall> \<J>. lift_from_ARed_to_FRed.entails_\<G> \<J> \<M> {\<C>})\<close>
+lemma entails_is_entails_\<G>: \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {\<C>} \<longleftrightarrow> (\<forall> \<J>. lift_from_ARed_to_FRed.entails_\<G> \<J> \<M> {\<C>})\<close>
 proof (intro iffI allI)
   fix \<J>
   assume \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {\<C>}\<close>
@@ -633,36 +683,136 @@ proof
     by auto
 next
   fix N
-  assume \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+  assume N_entails_bot: \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+  have \<open>lift_from_ARed_to_FRed.entails_\<G> J N {to_AF bot} \<Longrightarrow> lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close> for J
+    using lift_from_ARed_to_FRed.Red_F_Bot_F
+    by blast
+  then have \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> N - ARed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+  proof -
+    assume \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close> and
+           \<open>\<And> J. lift_from_ARed_to_FRed.entails_\<G> J N {to_AF bot} \<Longrightarrow> lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+    then have \<open>\<And> J. lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+      using entails_is_entails_\<G>
+      by blast
+    then have \<open>N - (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J N) \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+      sorry
+    then show \<open>N - ARed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+      using ARed\<^sub>F_is_FRed\<^sub>F
+      by presburger
+  qed
   then show \<open>N - SRed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
-    unfolding SRed\<^sub>F_def AF_entails_def
-    sorry
+    using ARed\<^sub>F_def N_entails_bot
+    by force
 next
   fix N N' :: \<open>('f, 'v) AF set\<close>
   assume \<open>N \<subseteq> N'\<close>
   then show \<open>SRed\<^sub>F N \<subseteq> SRed\<^sub>F N'\<close>
-    sorry
+    unfolding SRed\<^sub>F_def enabled_projection_def
+    by (auto, smt (verit, best) Collect_mono Red_F_of_subset subsetD)
 next
   fix N N' :: \<open>('f, 'v) AF set\<close>
   assume \<open>N \<subseteq> N'\<close>
   then show \<open>SRed\<^sub>I N \<subseteq> SRed\<^sub>I N'\<close>
-    sorry
+    unfolding SRed\<^sub>I_def enabled_projection_Inf_def enabled_projection_def enabled_inf_def \<iota>F_of_def
+    (* /!\ This is a bit slow (between 5 and 10s), but this works... /!\ *)
+    by (auto, (smt (verit, best) Red_I_of_subset mem_Collect_eq subset_iff)+)
 next
   fix N N'
-  assume \<open>N' \<subseteq> SRed\<^sub>F N\<close>
+  assume N'_subset_SRed\<^sub>F_N: \<open>N' \<subseteq> SRed\<^sub>F N\<close>
+  have \<open>N' \<subseteq> ARed\<^sub>F N \<Longrightarrow> ARed\<^sub>F N \<subseteq> ARed\<^sub>F (N - N')\<close>
+    using lift_from_ARed_to_FRed.Red_F_of_Red_F_subset_F
+  proof -
+    assume N'_subset_ARed\<^sub>F_N: \<open>N' \<subseteq> ARed\<^sub>F N\<close> and
+           \<open>(\<And> N' \<J> N. N' \<subseteq> lift_from_ARed_to_FRed.Red_F_\<G> \<J> N \<Longrightarrow>
+              lift_from_ARed_to_FRed.Red_F_\<G> \<J> N \<subseteq> lift_from_ARed_to_FRed.Red_F_\<G> \<J> (N - N'))\<close>
+    then have \<open>\<And> N' N. N' \<subseteq> (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> N) \<Longrightarrow>
+                  (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> N) \<subseteq> (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> (N - N'))\<close>
+      by (meson INF_mono' UNIV_I le_INF_iff)
+    then show \<open>ARed\<^sub>F N \<subseteq> ARed\<^sub>F (N - N')\<close>
+      using ARed\<^sub>F_is_FRed\<^sub>F N'_subset_ARed\<^sub>F_N
+      by presburger
+  qed
   then show \<open>SRed\<^sub>F N \<subseteq> SRed\<^sub>F (N - N')\<close>
-    sorry
+    by (simp add: ARed\<^sub>F_def N'_subset_SRed\<^sub>F_N)
 next
   fix N N'
-  assume \<open>N' \<subseteq> SRed\<^sub>F N\<close>
+  assume N'_subset_SRed\<^sub>F_N: \<open>N' \<subseteq> SRed\<^sub>F N\<close>
+  have \<open>N' \<subseteq> ARed\<^sub>F N \<Longrightarrow> ARed\<^sub>I N \<subseteq> ARed\<^sub>I (N - N')\<close>
+    using lift_from_ARed_to_FRed.Red_I_of_Red_F_subset_F
+  proof -
+    assume N'_subset_ARed\<^sub>F_N: \<open>N' \<subseteq> ARed\<^sub>F N\<close> and
+           \<open>(\<And> N' \<J> N. N' \<subseteq> lift_from_ARed_to_FRed.Red_F_\<G> \<J> N \<Longrightarrow>
+               lift_from_ARed_to_FRed.Red_I_\<G> \<J> N \<subseteq> lift_from_ARed_to_FRed.Red_I_\<G> \<J> (N - N'))\<close>
+    then have \<open>\<And> N' N. N' \<subseteq> (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> N) \<Longrightarrow>
+                  (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_I_\<G> \<J> N) \<subseteq> (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_I_\<G> \<J> (N - N'))\<close>
+      by (metis (no_types, lifting) INF_mono' UNIV_I le_INF_iff)
+    then show \<open>ARed\<^sub>I N \<subseteq> ARed\<^sub>I (N - N')\<close>
+      using ARed\<^sub>I_is_FRed\<^sub>I ARed\<^sub>F_is_FRed\<^sub>F N'_subset_ARed\<^sub>F_N
+      by presburger
+  qed
   then show \<open>SRed\<^sub>I N \<subseteq> SRed\<^sub>I (N - N')\<close>
+    (* TODO: check that it works for all UNSAT inferences *)
     sorry
 next
   fix \<iota>\<^sub>S N
   assume \<open>\<iota>\<^sub>S \<in> SInf\<close> and
-         \<open>concl_of \<iota>\<^sub>S \<in> N\<close>
+         concl_\<iota>\<^sub>S_in_N: \<open>concl_of \<iota>\<^sub>S \<in> N\<close>
+  then have \<open>S \<iota>\<^sub>S\<close>
+    by blast
   then show \<open>\<iota>\<^sub>S \<in> SRed\<^sub>I N\<close>
-    sorry
+    unfolding SRed\<^sub>I_def
+  proof (cases \<iota>\<^sub>S rule: S.cases)
+    case (base \<N> D)
+    obtain \<M> \<C> where \<iota>\<^sub>S_is: \<open>\<iota>\<^sub>S = Infer \<M> (AF.Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))))\<close> and
+                      Infer_\<M>_\<C>_is_Inf: \<open>Infer (map F_of \<M>) \<C> \<in> Inf\<close>
+      using base
+      by blast
+    have \<open>\<forall> J. {Infer \<M> (AF.Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))))} \<iota>proj\<^sub>J J \<subseteq> Red_I (N proj\<^sub>J J)\<close>
+      unfolding enabled_projection_Inf_def enabled_projection_def \<iota>F_of_def enabled_inf_def
+    proof (intro allI subsetI, simp)
+      fix J
+      assume all_enabled_in_\<M>: \<open>\<forall> \<C> \<in> set \<M>. enabled \<C> J\<close>
+      then have A_of_\<M>_to_\<C>_in_N: \<open>AF.Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))) \<in> N\<close>
+        using \<iota>\<^sub>S_is concl_\<iota>\<^sub>S_in_N
+        by auto
+      moreover have \<open>fBall (fset_of_list \<M>) (\<lambda> x. fset (A_of x) \<subseteq> total_strip J)\<close>
+        using all_enabled_in_\<M>
+        unfolding enabled_def
+        by (meson fBall_fset_of_list_iff_Ball_set)
+      then have \<open>fBall (A_of |`| fset_of_list \<M>) (\<lambda> x. fset x \<subseteq> total_strip J)\<close>
+        by auto
+      then have \<open>enabled (AF.Pair \<C> (ffUnion (A_of |`| fset_of_list \<M>))) J\<close>
+        using A_of_\<M>_to_\<C>_in_N
+        unfolding enabled_def
+        using fset_ffUnion_subset_iff_all_fsets_subset
+        by (metis AF.sel(2))
+      ultimately show \<open>Infer (map F_of \<M>) \<C> \<in> Red_I {F_of \<C> |\<C>. \<C> \<in> N \<and> enabled \<C> J}\<close>
+        by (metis (mono_tags, lifting) AF.sel(1) Infer_\<M>_\<C>_is_Inf Red_I_of_Inf_to_N fset_of_list_map inference.sel(2) mem_Collect_eq)
+    qed
+    then have \<open>\<iota>\<^sub>S \<in> {Infer \<M> (AF.Pair \<C> (ffUnion (fset_of_list (map A_of \<M>)))) | \<M> \<C>.
+                       Infer (map F_of \<M>) \<C> \<in> Inf \<and>
+                       (\<forall>\<J>. {Infer \<M> (AF.Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))))} \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>))}\<close>
+      using \<iota>\<^sub>S_is Infer_\<M>_\<C>_is_Inf
+      by auto
+    then show \<open>\<iota>\<^sub>S \<in> {Infer \<M> (AF.Pair \<C> (ffUnion (fset_of_list (map A_of \<M>)))) | \<M> \<C>.
+                       Infer (map F_of \<M>) \<C> \<in> Inf \<and>
+                       (\<forall>\<J>. {Infer \<M> (AF.Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))))} \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>))} \<union>
+                    {Infer \<M> (to_AF bot) |\<M>. (\<forall>x\<in>set \<M>. F_of x = bot) \<and>
+                       propositionally_unsatisfiable (set \<M>) \<and> \<M> \<noteq> [] \<and> to_AF bot \<in> N}\<close>
+      by fast
+  next
+    case (unsat \<N>)
+    then have \<open>\<iota>\<^sub>S \<in> {Infer \<M> (to_AF bot) |\<M>. (\<forall>x\<in>set \<M>. F_of x = bot) \<and>
+                       propositionally_unsatisfiable (set \<M>) \<and> \<M> \<noteq> [] \<and> to_AF bot \<in> N}\<close>
+      using concl_\<iota>\<^sub>S_in_N
+      by fastforce
+    then show \<open>\<iota>\<^sub>S \<in> {Infer \<M> (AF.Pair \<C> (ffUnion (fset_of_list (map A_of \<M>)))) | \<M> \<C>.
+                       Infer (map F_of \<M>) \<C> \<in> Inf \<and>
+                       (\<forall>\<J>. {Infer \<M> (AF.Pair \<C> (ffUnion (fset_of_list (map A_of \<M>))))} \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>))} \<union>
+                    {Infer \<M> (to_AF bot) |\<M>. (\<forall>x\<in>set \<M>. F_of x = bot) \<and>
+                       propositionally_unsatisfiable (set \<M>) \<and> \<M> \<noteq> [] \<and> to_AF bot \<in> N}\<close>
+      by fast
+  qed
 qed
 
 
