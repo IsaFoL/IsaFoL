@@ -28,6 +28,9 @@ definition generalizes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
 definition strictly_generalizes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
   "strictly_generalizes x y \<longleftrightarrow> generalizes x y \<and> \<not> generalizes y x"
 
+definition is_renaming :: "'s \<Rightarrow> bool" where
+  "is_renaming \<rho> \<longleftrightarrow> (\<exists>\<sigma>. \<rho> \<odot> \<sigma> = id_subst)"
+
 definition is_unifier :: "'s \<Rightarrow> 'x set \<Rightarrow> bool" where
   "is_unifier \<sigma> X \<longleftrightarrow> card (X \<cdot>s \<sigma>) \<le> 1"
 
