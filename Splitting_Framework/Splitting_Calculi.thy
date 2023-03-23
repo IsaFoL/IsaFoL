@@ -391,15 +391,30 @@ proof -
     by (smt (verit, ccfv_threshold) pfsubset_fcard_mono wfPUNIVI wfP_induct)
 qed
 
-lemma wf_subset_A_of: \<open>wfP (\<lambda> \<C> \<C>'. A_of \<C> |\<subset>| A_of \<C>')\<close>
-  sorry
+lemma wfp_on_fsubset: \<open>wfp_on (|\<subset>|) UNIV\<close>
+  using wf_fsubset
+  by auto
 
 lemma wfp_on_tiebreaker_order: \<open>wfp_on (\<sqsupset>) (UNIV :: ('f, 'v) AF set)\<close>
-  unfolding tiebreaker_order_def
-  (* /!\ Takes a bit of time /!\ *)
-  by (smt (verit, best) CollectD CollectI case_prodD case_prodI wfP_def wf_def wfp_on_UNIV wf_subset_A_of)
+  unfolding wfp_on_def
+proof (intro notI)
+  assume \<open>\<exists> f. \<forall> i. f i \<in> UNIV \<and> f (Suc i) \<sqsupset> f i\<close>
+  then obtain f where f_is: \<open>\<forall> i. f i \<in> UNIV \<and> f (Suc i) \<sqsupset> f i\<close>
+    by auto
+  define f' where \<open>f' = (\<lambda> i. A_of (f i))\<close>
 
-sublocale lift_from_ARed_to_FRed: light_tiebreaker_lifting \<open>{to_AF bot}\<close> AInf \<open>{bot}\<close> \<open>(\<Turnstile>\<inter>)\<close> Inf Red_I_strict Red_F_strict \<open>\<G>\<^sub>F \<J>\<close> \<open>Some \<circ> \<G>\<^sub>I \<J>\<close> \<open>\<lambda>_. (\<sqsupset>)\<close>
+  have \<open>\<forall> i. f' i \<in> UNIV \<and> f' (Suc i) |\<subset>| f' i\<close>
+    using f_is
+    unfolding f'_def tiebreaker_order_def
+    by auto
+  then show \<open>False\<close>
+    using wfp_on_fsubset
+    unfolding wfp_on_def
+    by blast
+qed
+
+sublocale lift_from_ARed_to_FRed: light_tiebreaker_lifting \<open>{to_AF bot}\<close> AInf \<open>{bot}\<close> \<open>(\<Turnstile>\<inter>)\<close> Inf Red_I_strict
+                                                           Red_F_strict \<open>\<G>\<^sub>F \<J>\<close> \<open>Some \<circ> \<G>\<^sub>I \<J>\<close> \<open>\<lambda>_. (\<sqsupset>)\<close>
 proof
   fix N
   show \<open>Red_I_strict N \<subseteq> Inf\<close>
