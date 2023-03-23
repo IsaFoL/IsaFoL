@@ -737,7 +737,7 @@ next
 next
   fix N N'
   assume N'_subset_SRed\<^sub>F_N: \<open>N' \<subseteq> SRed\<^sub>F N\<close>
-  have \<open>N' \<subseteq> ARed\<^sub>F N \<Longrightarrow> ARed\<^sub>I N \<subseteq> ARed\<^sub>I (N - N')\<close>
+  have works_for_ARed\<^sub>I: \<open>N' \<subseteq> ARed\<^sub>F N \<Longrightarrow> ARed\<^sub>I N \<subseteq> ARed\<^sub>I (N - N')\<close>
     using lift_from_ARed_to_FRed.Red_I_of_Red_F_subset_F
   proof -
     assume N'_subset_ARed\<^sub>F_N: \<open>N' \<subseteq> ARed\<^sub>F N\<close> and
@@ -750,9 +750,19 @@ next
       using ARed\<^sub>I_is_FRed\<^sub>I ARed\<^sub>F_is_FRed\<^sub>F N'_subset_ARed\<^sub>F_N
       by presburger
   qed
-  then show \<open>SRed\<^sub>I N \<subseteq> SRed\<^sub>I (N - N')\<close>
-    (* TODO: check that it works for all UNSAT inferences *)
-    sorry
+  moreover have \<open>Infer \<N> (to_AF bot) \<in> SRed\<^sub>I (N - N')\<close> if \<open>\<forall> x \<in> set \<N>. F_of x = bot\<close> and
+                                                          \<open>propositionally_unsatisfiable (set \<N>)\<close> and
+                                                          \<open>\<N> \<noteq> []\<close> and
+                                                          \<iota>_is_redundant: \<open>Infer \<N> (to_AF bot) \<in> SRed\<^sub>I N\<close> for \<N>
+    using bot_not_in_sredF_\<N> N'_subset_SRed\<^sub>F_N \<iota>_is_redundant
+    unfolding SRed\<^sub>I_def SRed\<^sub>F_def
+    (* /!\ Quite slow... /!\ *)
+    by (smt (verit, del_insts) ARed\<^sub>F_def ARed\<^sub>I_def Diff_iff N'_subset_SRed\<^sub>F_N Un_iff bot_not_in_sredF_\<N> works_for_ARed\<^sub>I mem_Collect_eq subsetD)
+  ultimately show \<open>SRed\<^sub>I N \<subseteq> SRed\<^sub>I (N - N')\<close>
+    using N'_subset_SRed\<^sub>F_N bot_not_in_sredF_\<N>
+    unfolding SRed\<^sub>F_def ARed\<^sub>F_def SRed\<^sub>I_def ARed\<^sub>I_def
+    (* /!\ A bit slow /!\ *)
+    by (smt (verit, del_insts) Collect_cong Diff_iff N'_subset_SRed\<^sub>F_N Un_iff bot_not_in_sredF_\<N> subset_iff)
 next
   fix \<iota>\<^sub>S N
   assume \<open>\<iota>\<^sub>S \<in> SInf\<close> and
