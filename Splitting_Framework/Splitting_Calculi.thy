@@ -588,7 +588,7 @@ lemma subformula_of_enabled_formula_is_enabled: \<open>A_of \<C> |\<subset>| A_o
   by (meson less_eq_fset.rep_eq pfsubset_imp_fsubset subset_trans)
 
 (* Check that ARed\<^sub>F and FRed\<^sub>F\<^bsup>\<inter>\<G>,\<sqsupset>\<^esup> coincide *)
-lemma ARed\<^sub>F_is_FRef\<^sub>F: \<open>ARed\<^sub>F \<N> = (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J \<N>)\<close>
+lemma ARed\<^sub>F_is_FRed\<^sub>F: \<open>ARed\<^sub>F \<N> = (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J \<N>)\<close>
 proof (intro subset_antisym subsetI)
   fix \<C>
   assume \<C>_in_ARed\<^sub>F: \<open>\<C> \<in> ARed\<^sub>F \<N>\<close>
@@ -684,15 +684,25 @@ proof
 next
   fix N
   assume N_entails_bot: \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
-  have \<open>\<forall> J. enabled (to_AF bot) J\<close> and
-       \<open>\<forall> J. enabled_set {to_AF bot} J\<close>
-    unfolding enabled_def enabled_set_def
-    using A_of_to_AF
-    by auto
+  have \<open>lift_from_ARed_to_FRed.entails_\<G> J N {to_AF bot} \<Longrightarrow> lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close> for J
+    using lift_from_ARed_to_FRed.Red_F_Bot_F
+    by blast
+  then have \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> N - ARed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+  proof -
+    assume \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close> and
+           \<open>\<And> J. lift_from_ARed_to_FRed.entails_\<G> J N {to_AF bot} \<Longrightarrow> lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+    then have \<open>\<And> J. lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+      using entails_is_entails_\<G>
+      by blast
+    then have \<open>N - (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J N) \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+      sorry
+    then show \<open>N - ARed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+      using ARed\<^sub>F_is_FRed\<^sub>F
+      by presburger
+  qed
   then show \<open>N - SRed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
-    using N_entails_bot
-    unfolding SRed\<^sub>F_def AF_entails_def enabled_projection_def enabled_def
-    sorry
+    using ARed\<^sub>F_def N_entails_bot
+    by force
 next
   fix N N' :: \<open>('f, 'v) AF set\<close>
   assume \<open>N \<subseteq> N'\<close>
@@ -704,17 +714,44 @@ next
   assume \<open>N \<subseteq> N'\<close>
   then show \<open>SRed\<^sub>I N \<subseteq> SRed\<^sub>I N'\<close>
     unfolding SRed\<^sub>I_def enabled_projection_Inf_def enabled_projection_def enabled_inf_def \<iota>F_of_def
-    (* /!\ This is a bit slow, but this works... /!\ *)
+    (* /!\ This is a bit slow (between 5 and 10s), but this works... /!\ *)
     by (auto, (smt (verit, best) Red_I_of_subset mem_Collect_eq subset_iff)+)
 next
   fix N N'
-  assume \<open>N' \<subseteq> SRed\<^sub>F N\<close>
+  assume N'_subset_SRed\<^sub>F_N: \<open>N' \<subseteq> SRed\<^sub>F N\<close>
+  have \<open>N' \<subseteq> ARed\<^sub>F N \<Longrightarrow> ARed\<^sub>F N \<subseteq> ARed\<^sub>F (N - N')\<close>
+    using lift_from_ARed_to_FRed.Red_F_of_Red_F_subset_F
+  proof -
+    assume N'_subset_ARed\<^sub>F_N: \<open>N' \<subseteq> ARed\<^sub>F N\<close> and
+           \<open>(\<And> N' \<J> N. N' \<subseteq> lift_from_ARed_to_FRed.Red_F_\<G> \<J> N \<Longrightarrow>
+              lift_from_ARed_to_FRed.Red_F_\<G> \<J> N \<subseteq> lift_from_ARed_to_FRed.Red_F_\<G> \<J> (N - N'))\<close>
+    then have \<open>\<And> N' N. N' \<subseteq> (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> N) \<Longrightarrow>
+                  (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> N) \<subseteq> (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> (N - N'))\<close>
+      by (meson INF_mono' UNIV_I le_INF_iff)
+    then show \<open>ARed\<^sub>F N \<subseteq> ARed\<^sub>F (N - N')\<close>
+      using ARed\<^sub>F_is_FRed\<^sub>F N'_subset_ARed\<^sub>F_N
+      by presburger
+  qed
   then show \<open>SRed\<^sub>F N \<subseteq> SRed\<^sub>F (N - N')\<close>
-    sorry
+    by (simp add: ARed\<^sub>F_def N'_subset_SRed\<^sub>F_N)
 next
   fix N N'
-  assume \<open>N' \<subseteq> SRed\<^sub>F N\<close>
+  assume N'_subset_SRed\<^sub>F_N: \<open>N' \<subseteq> SRed\<^sub>F N\<close>
+  have \<open>N' \<subseteq> ARed\<^sub>F N \<Longrightarrow> ARed\<^sub>I N \<subseteq> ARed\<^sub>I (N - N')\<close>
+    using lift_from_ARed_to_FRed.Red_I_of_Red_F_subset_F
+  proof -
+    assume N'_subset_ARed\<^sub>F_N: \<open>N' \<subseteq> ARed\<^sub>F N\<close> and
+           \<open>(\<And> N' \<J> N. N' \<subseteq> lift_from_ARed_to_FRed.Red_F_\<G> \<J> N \<Longrightarrow>
+               lift_from_ARed_to_FRed.Red_I_\<G> \<J> N \<subseteq> lift_from_ARed_to_FRed.Red_I_\<G> \<J> (N - N'))\<close>
+    then have \<open>\<And> N' N. N' \<subseteq> (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> N) \<Longrightarrow>
+                  (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_I_\<G> \<J> N) \<subseteq> (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_I_\<G> \<J> (N - N'))\<close>
+      by (metis (no_types, lifting) INF_mono' UNIV_I le_INF_iff)
+    then show \<open>ARed\<^sub>I N \<subseteq> ARed\<^sub>I (N - N')\<close>
+      using ARed\<^sub>I_is_FRed\<^sub>I ARed\<^sub>F_is_FRed\<^sub>F N'_subset_ARed\<^sub>F_N
+      by presburger
+  qed
   then show \<open>SRed\<^sub>I N \<subseteq> SRed\<^sub>I (N - N')\<close>
+    (* TODO: check that it works for all UNSAT inferences *)
     sorry
 next
   fix \<iota>\<^sub>S N
