@@ -839,7 +839,7 @@ proof -
 qed
 
 (* Report lemma 18 *)
-sublocale SRed_is_redundancy_criterion: calculus \<open>to_AF bot\<close> SInf AF_entails SRed\<^sub>I SRed\<^sub>F
+sublocale S_calculus: calculus \<open>to_AF bot\<close> SInf AF_entails SRed\<^sub>I SRed\<^sub>F
 proof
   fix N N' \<iota>\<^sub>S
   show \<open>SRed\<^sub>I N \<subseteq> SInf\<close>
@@ -860,10 +860,230 @@ proof
     using SRed\<^sub>I_of_SInf_to_N_F .
 qed
 
+end (* locale splitting_calculus *)
+
+locale splitting_calculus_with_simps =
+  splitting_calculus bot Inf entails entails_sound Red_I Red_F V fml
+  for bot :: 'f and
+      Inf :: \<open>'f inference set\<close> and
+      entails :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
+      entails_sound :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
+      Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
+      Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
+      V :: \<open>'v :: countable itself\<close> and
+      fml :: \<open>'v \<Rightarrow> 'f\<close>
+  + fixes asn :: \<open>'f \<Rightarrow> 'v sign set\<close>
+    assumes
+      fml_entails_C: \<open>fml_ext ` asn C \<Turnstile>\<^sub>\<sim> {Pos C}\<close> and
+      C_entails_fml: \<open>{Pos C} \<Turnstile>\<^sub>\<sim> fml_ext ` asn C\<close> and
+      asn_not_empty: \<open>asn C \<noteq> {}\<close>
+begin
+
+definition splittable :: \<open>'f \<Rightarrow> 'f fset \<Rightarrow> bool\<close> where
+  \<open>splittable C Cs \<longleftrightarrow> C \<noteq> bot \<and> fcard Cs \<ge> 2 \<and> {C} \<Turnstile>s fset Cs \<and> (\<forall> C'. C' |\<in>| Cs \<longrightarrow> C \<in> Red_F {C'})\<close>
+
+definition split :: \<open>'f \<Rightarrow> 'f fset \<Rightarrow> ('f, 'v) AF fset\<close> where
+  \<open>splittable C Cs \<Longrightarrow> split C Cs \<equiv> (\<lambda> C'. AF.Pair C' {| SOME a. a \<in> asn C' |}) |`| Cs\<close>
+
+(* Report theorem 19 *)
+theorem simplification_to_redundant:
+  \<open>splittable (F_of \<C>) Cs \<Longrightarrow> split (F_of \<C>) Cs = As \<Longrightarrow> \<C> \<in> SRed\<^sub>F ({ AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) } \<union> fset As)\<close>
+  \<open>F_of \<C> \<noteq> bot \<Longrightarrow> \<M> \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot (A_of \<C>)} \<Longrightarrow> (\<forall> \<C> \<in> \<M>. F_of \<C> = bot) \<Longrightarrow> \<C> \<in> SRed\<^sub>F \<M>\<close>
+  \<open>A_of \<C> = A |\<union>| B \<Longrightarrow> A \<noteq> B \<Longrightarrow> B \<noteq> {||} \<Longrightarrow> F_of \<C> \<noteq> bot \<Longrightarrow> \<M> \<union> {AF.Pair bot A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B} \<Longrightarrow> (\<forall> \<C> \<in> \<M>. F_of \<C> = bot) \<Longrightarrow> \<C> \<in> SRed\<^sub>F (\<M> \<union> {AF.Pair (F_of \<C>) A})\<close>
+               (* Check that \<open>A \<noteq> B\<close> is okay... *)
+proof -
+  assume split_Cs_to_As: \<open>split (F_of \<C>) Cs = As\<close> and
+         \<C>_splittable: \<open>splittable (F_of \<C>) Cs\<close>
+  then have \<open>\<forall> J. total_strip J \<supseteq> fset (A_of \<C>) \<longrightarrow> F_of \<C> \<in> Red_F (({AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>)} \<union> fset As) proj\<^sub>J J)\<close>
+  proof (cases \<open>\<forall> J. \<exists> a. a |\<in>| ffUnion (A_of |`| As) \<and> a \<in> J\<close>)
+    case True
+    then show ?thesis
+      using split_Cs_to_As \<C>_splittable split_def splittable_def
+      by auto
+  next
+    case False
+    then have \<open>\<forall> J. {AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>)} proj\<^sub>J J = {bot}\<close> and
+              \<open>\<forall> J. fset As proj\<^sub>J J = {}\<close>
+      unfolding enabled_projection_def enabled_def
+      apply auto
+      sorry
+    then have \<open>\<forall> J. ({AF.Pair bot (ffUnion ((|`|) neg |`| A_of |`| As) |\<union>| A_of \<C>)} \<union> fset As) proj\<^sub>J J = {bot}\<close>
+      by (metis distrib_proj sup_bot_right)
+    then show ?thesis
+      using all_red_to_bot split_Cs_to_As \<C>_splittable split_def splittable_def
+      by auto
+  qed
+  then show \<open>\<C> \<in> SRed\<^sub>F ({AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>)} \<union> fset As)\<close>
+    unfolding SRed\<^sub>F_def
+    by (smt (verit, del_insts) AF.collapse Collect_disj_eq mem_Collect_eq)
+next
+  assume C_not_bot: \<open>F_of \<C> \<noteq> bot\<close> and
+         \<M>_entails_bot_A: \<open>\<M> \<Turnstile>s\<^sub>A\<^sub>F { AF.Pair bot (A_of \<C>) }\<close> and
+         \<open>\<forall> \<C> \<in> \<M>. F_of \<C> = bot\<close>
+  then have \<open>\<forall> J. total_strip J \<supseteq> fset (A_of \<C>) \<longrightarrow> F_of \<C> \<in> Red_F (\<M> proj\<^sub>J J)\<close>
+  proof (cases \<open>\<exists> J. \<exists> A \<in> A_of ` \<M>. total_strip J \<supseteq> fset A\<close>)
+    case True
+    then show ?thesis
+      using C_not_bot all_red_to_bot
+      sorry
+  next
+    case False
+    then have \<open>\<forall> J. \<forall> \<C> \<in> \<M>. \<not> enabled \<C> J\<close>
+      using enabled_def
+      by blast
+    then have \<open>{} \<Turnstile>s {bot}\<close>
+      using \<M>_entails_bot_A local.False
+      unfolding AF_entails_sound_def
+      sorry
+    then show ?thesis
+      using entails_sound_nontrivial sound_cons.entails_bot_to_entails_empty
+      by blast
+  qed
+  then show \<open>\<C> \<in> SRed\<^sub>F \<M>\<close>
+    unfolding SRed\<^sub>F_def
+    by (smt (verit, del_insts) AF.collapse Collect_disj_eq enabled_projection_def mem_Collect_eq sup_commute)
+next
+  assume A_of_\<C>_is: \<open>A_of \<C> = A |\<union>| B\<close> and
+         A_neq_B: \<open>A \<noteq> B\<close> and
+         B_not_empty: \<open>B \<noteq> {||}\<close> and
+         \<open>F_of \<C> \<noteq> bot\<close> and
+         \<open>\<M> \<union> { AF.Pair bot A } \<Turnstile>s\<^sub>A\<^sub>F { AF.Pair bot B }\<close> and
+         \<open>\<forall> \<C> \<in> \<M>. F_of \<C> = bot\<close>
+  then have \<open>\<exists> \<C>' \<in> \<M> \<union> { AF.Pair (F_of \<C>) A }. F_of \<C>' = F_of \<C> \<and> A_of \<C>' |\<subset>| A_of \<C>\<close>
+  proof -
+    have \<open>A |\<subset>| A |\<union>| B\<close>
+      using A_neq_B B_not_empty
+      apply auto
+      sorry
+    then have \<open>A |\<subset>| A_of \<C>\<close>
+      using A_of_\<C>_is
+      by auto
+    then show ?thesis
+      by auto
+  qed
+  then show \<open>\<C> \<in> SRed\<^sub>F (\<M> \<union> { AF.Pair (F_of \<C>) A })\<close>
+    unfolding SRed\<^sub>F_def
+    using AF.exhaust_sel
+    by blast
+qed (* TODO *)
+
+end (* locale splitting_calculus_with_simps *)
+
 subsection \<open>Standard saturation\<close>
 
-subsection \<open>Local saturation\<close>
+context splitting_calculus
+begin
 
-end (* locale splitting_calculus *)
+alias S_saturated = S_calculus.saturated
+alias F_saturated = local.saturated
+
+(* Report lemma 20 *)
+lemma S_saturated_to_F_saturated: \<open>S_saturated \<N> \<Longrightarrow> F_saturated (\<N> proj\<^sub>J \<J>)\<close>
+proof -
+  assume \<N>_is_S_saturated: \<open>S_calculus.saturated \<N>\<close>
+  then show \<open>saturated (\<N> proj\<^sub>J \<J>)\<close>
+    unfolding saturated_def S_calculus.saturated_def
+  proof (intro subsetI)
+    fix \<iota>\<^sub>F
+    assume \<open>\<iota>\<^sub>F \<in> Inf_from (\<N> proj\<^sub>J \<J>)\<close>
+    then have \<iota>\<^sub>F_is_Inf: \<open>\<iota>\<^sub>F \<in> Inf\<close> and
+                         \<open>set (prems_of \<iota>\<^sub>F) \<subseteq> \<N> proj\<^sub>J \<J>\<close>
+      unfolding Inf_from_def
+      by auto
+    then have \<open>\<iota>\<^sub>F \<in> S_calculus.Inf_from \<N> \<iota>proj\<^sub>J \<J>\<close>
+      using S.base
+      unfolding enabled_projection_Inf_def S_calculus.Inf_from_def
+      using \<N>_is_S_saturated
+      apply auto
+      (* TODO: need to prove that \<iota> is enabled by \<J> *)
+      sorry
+    then obtain \<iota>\<^sub>S where \<iota>\<^sub>S_is_SInf: \<open>\<iota>\<^sub>S \<in> SInf\<close> and
+                         \<open>set (prems_of \<iota>\<^sub>S) \<subseteq> \<N>\<close> and
+                         \<iota>F_of_\<iota>\<^sub>S_is_\<iota>\<^sub>F: \<open>\<iota>F_of \<iota>\<^sub>S = \<iota>\<^sub>F\<close> and
+                         \<iota>\<^sub>S_is_enabled: \<open>enabled_inf \<iota>\<^sub>S \<J>\<close>
+      using S_calculus.Inf_from_def enabled_projection_Inf_def
+      by auto
+    then have \<open>\<iota>\<^sub>S \<in> SRed\<^sub>I \<N>\<close>
+      using \<N>_is_S_saturated
+      unfolding S_calculus.saturated_def S_calculus.Inf_from_def
+      by blast
+    then show \<open>\<iota>\<^sub>F \<in> Red_I (\<N> proj\<^sub>J \<J>)\<close>
+      using \<iota>F_of_\<iota>\<^sub>S_is_\<iota>\<^sub>F \<iota>\<^sub>S_is_enabled
+      unfolding SRed\<^sub>I_def enabled_projection_Inf_def
+      by auto
+         (metis (mono_tags, lifting) AF.sel(2) Red_I_of_Inf_to_N \<iota>F_of_def \<iota>\<^sub>F_is_Inf bot_fset.rep_eq empty_subsetI
+                enabled_def enabled_projection_def inference.sel(2) mem_Collect_eq to_AF_def)
+  qed
+qed
+
+lemma prop_unsat_to_entails_bot: \<open>propositionally_unsatisfiable \<N> \<Longrightarrow> \<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+proof -
+  assume \<open>propositionally_unsatisfiable \<N>\<close>
+  then show \<open>\<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+    unfolding propositionally_unsatisfiable_def propositional_model_def AF_entails_def
+              enabled_set_def enabled_projection_def propositional_projection_def
+    by (smt (verit, ccfv_threshold) CollectD CollectI bot_entails_empty empty_subsetI entails_subsets insert_subset)
+qed
+
+(* Report lemma 21 *)
+theorem S_calculus_statically_complete: \<open>statically_complete_calculus bot Inf (\<Turnstile>) Red_I Red_F \<Longrightarrow>
+                                             statically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+  unfolding statically_complete_calculus_def statically_complete_calculus_axioms_def
+proof (intro conjI allI impI; elim conjE)
+  show \<open>Preliminaries_With_Zorn.calculus (to_AF bot) SInf (\<Turnstile>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+    using S_calculus.calculus_axioms
+    by blast
+next
+  fix N
+  assume \<open>Preliminaries_With_Zorn.calculus bot Inf (\<Turnstile>) Red_I Red_F\<close> and
+         if_F_saturated_and_N_entails_bot_then_bot_in_N: \<open>\<forall> N. F_saturated N \<longrightarrow> N \<Turnstile> {bot} \<longrightarrow> bot \<in> N\<close> and
+         N_is_S_saturated: \<open>S_saturated N\<close> and
+         N_entails_bot: \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+  then have N_proj_\<J>_entails_bot: \<open>\<And> \<J>. N proj\<^sub>J \<J> \<Turnstile> {bot}\<close>
+    unfolding AF_entails_def
+    using F_of_to_AF[of bot]
+    by (smt (verit) enabled_to_AF_set image_empty image_insert)
+  then have N_proj_\<J>_F_saturated: \<open>\<And> \<J>. F_saturated (N proj\<^sub>J \<J>)\<close>
+    using N_is_S_saturated
+    using S_saturated_to_F_saturated
+    by blast
+  then have \<open>\<And> \<J>. bot \<in> N proj\<^sub>J \<J>\<close>
+    using N_proj_\<J>_entails_bot if_F_saturated_and_N_entails_bot_then_bot_in_N
+    by presburger
+  then have prop_proj_N_is_prop_unsat: \<open>propositionally_unsatisfiable (proj\<^sub>\<bottom> N)\<close>
+    unfolding enabled_projection_def propositional_model_def propositional_projection_def propositionally_unsatisfiable_def
+    by fast
+  then have \<open>proj\<^sub>\<bottom> N \<noteq> {}\<close>
+    unfolding propositionally_unsatisfiable_def propositional_model_def
+    using enabled_projection_def prop_proj_in
+    by auto
+  then have \<open>\<exists> \<M> \<subseteq> proj\<^sub>\<bottom> N. finite \<M> \<and> \<M> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+    using AF_cons_rel.entails_compactness[of \<open>proj\<^sub>\<bottom> N\<close> \<open>{to_AF bot}\<close>]
+    by (meson AF_cons_rel.entails_subsets prop_proj_N_is_prop_unsat prop_unsat_to_entails_bot subset_refl)
+  then obtain \<M> where \<M>_subset_prop_proj_N: \<open>\<M> \<subseteq> proj\<^sub>\<bottom> N\<close> and
+                       \<M>_subset_N: \<open>\<M> \<subseteq> N\<close> and
+                       \<open>finite \<M>\<close> and
+                       \<M>_entails_bot: \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close> and
+                       \<M>_not_empty: \<open>\<M> \<noteq> {}\<close>
+    by (smt (verit, del_insts) AF_cons_rel.entails_bot_to_entails_empty AF_cons_rel.entails_empty_reflexive_dangerous
+                               compactness_AF_proj equiv_prop_entails image_empty prop_proj_N_is_prop_unsat
+                               prop_proj_in propositional_model2_def propositionally_unsatisfiable_def subset_empty
+                               subset_trans to_AF_proj_J)
+  have \<open>\<forall> x \<in> \<M>. F_of x = bot\<close>
+    using \<M>_subset_prop_proj_N
+    unfolding propositional_projection_def
+    by blast
+  then have \<open>\<exists> \<M>. set \<M> \<subseteq> N \<and> Infer \<M> (to_AF bot) \<in> SInf \<and> (\<forall> x \<in> set \<M>. F_of x = bot)
+                    \<and> propositionally_unsatisfiable (set \<M>) \<and> \<M> \<noteq> [] \<and> to_AF bot \<in> N\<close> (* N? *)
+    using \<M>_subset_N S.unsat \<M>_not_empty \<M>_entails_bot
+    apply auto
+    sorry
+  then show \<open>to_AF bot \<in> N\<close>
+    by auto
+qed
+
+end (* context splitting_calculus *)
+
+subsection \<open>Local saturation\<close>
 
 end (* theory Splitting_Calculi *)
