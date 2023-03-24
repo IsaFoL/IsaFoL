@@ -673,16 +673,13 @@ next
     qed
 qed
 
-(* Report lemma 18 *)
-sublocale SRed_is_redundancy_criterion: calculus \<open>to_AF bot\<close> SInf AF_entails SRed\<^sub>I SRed\<^sub>F
-proof
+lemma SRed\<^sub>F_entails_bot: \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> N - SRed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+proof -
   fix N
-  show \<open>SRed\<^sub>I N \<subseteq> SInf\<close>
-    unfolding SRed\<^sub>I_def
-    using S.base S.unsat
-    by auto
-next
-  fix N
+
+  have And_to_Union: \<open>\<And> J. N - lift_from_ARed_to_FRed.Red_F_\<G> J N \<subseteq> (\<Union> J. N - lift_from_ARed_to_FRed.Red_F_\<G> J N)\<close>
+    by blast
+
   assume N_entails_bot: \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
   have \<open>lift_from_ARed_to_FRed.entails_\<G> J N {to_AF bot} \<Longrightarrow> lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close> for J
     using lift_from_ARed_to_FRed.Red_F_Bot_F
@@ -691,32 +688,42 @@ next
   proof -
     assume \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close> and
            \<open>\<And> J. lift_from_ARed_to_FRed.entails_\<G> J N {to_AF bot} \<Longrightarrow> lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
-    then have \<open>\<And> J. lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+    then have Red_F_\<G>_entails_\<G>_bot: \<open>\<And> J. lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
       using entails_is_entails_\<G>
       by blast
-    then have \<open>N - (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J N) \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
-      sorry
+    then have \<open>\<And> J. lift_from_ARed_to_FRed.entails_\<G> J (\<Union> J. N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+      using And_to_Union
+      by (meson lift_from_ARed_to_FRed.entails_trans lift_from_ARed_to_FRed.subset_entailed)
     then show \<open>N - ARed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
-      using ARed\<^sub>F_is_FRed\<^sub>F
-      by presburger
+      using ARed\<^sub>F_is_FRed\<^sub>F entails_is_entails_\<G>
+      by fastforce
   qed
   then show \<open>N - SRed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
     using ARed\<^sub>F_def N_entails_bot
     by force
-next
+qed
+
+lemma SRed\<^sub>F_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> SRed\<^sub>F N \<subseteq> SRed\<^sub>F N'\<close>
+proof -
   fix N N' :: \<open>('f, 'v) AF set\<close>
   assume \<open>N \<subseteq> N'\<close>
   then show \<open>SRed\<^sub>F N \<subseteq> SRed\<^sub>F N'\<close>
     unfolding SRed\<^sub>F_def enabled_projection_def
     by (auto, smt (verit, best) Collect_mono Red_F_of_subset subsetD)
-next
+qed
+
+lemma SRed\<^sub>I_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> SRed\<^sub>I N \<subseteq> SRed\<^sub>I N'\<close>
+proof -
   fix N N' :: \<open>('f, 'v) AF set\<close>
   assume \<open>N \<subseteq> N'\<close>
   then show \<open>SRed\<^sub>I N \<subseteq> SRed\<^sub>I N'\<close>
     unfolding SRed\<^sub>I_def enabled_projection_Inf_def enabled_projection_def enabled_inf_def \<iota>F_of_def
     (* /!\ This is a bit slow (between 5 and 10s), but this works... /!\ *)
     by (auto, (smt (verit, best) Red_I_of_subset mem_Collect_eq subset_iff)+)
-next
+qed
+
+lemma SRed\<^sub>F_of_SRed\<^sub>F_subset_F: \<open>N' \<subseteq> SRed\<^sub>F N \<Longrightarrow> SRed\<^sub>F N \<subseteq> SRed\<^sub>F (N - N')\<close>
+proof -
   fix N N'
   assume N'_subset_SRed\<^sub>F_N: \<open>N' \<subseteq> SRed\<^sub>F N\<close>
   have \<open>N' \<subseteq> ARed\<^sub>F N \<Longrightarrow> ARed\<^sub>F N \<subseteq> ARed\<^sub>F (N - N')\<close>
@@ -734,7 +741,10 @@ next
   qed
   then show \<open>SRed\<^sub>F N \<subseteq> SRed\<^sub>F (N - N')\<close>
     by (simp add: ARed\<^sub>F_def N'_subset_SRed\<^sub>F_N)
-next
+qed
+
+lemma SRed\<^sub>I_of_SRed\<^sub>F_subset_F: \<open>N' \<subseteq> SRed\<^sub>F N \<Longrightarrow> SRed\<^sub>I N \<subseteq> SRed\<^sub>I (N - N')\<close>
+proof -
   fix N N'
   assume N'_subset_SRed\<^sub>F_N: \<open>N' \<subseteq> SRed\<^sub>F N\<close>
   have works_for_ARed\<^sub>I: \<open>N' \<subseteq> ARed\<^sub>F N \<Longrightarrow> ARed\<^sub>I N \<subseteq> ARed\<^sub>I (N - N')\<close>
@@ -763,7 +773,10 @@ next
     unfolding SRed\<^sub>F_def ARed\<^sub>F_def SRed\<^sub>I_def ARed\<^sub>I_def
     (* /!\ A bit slow /!\ *)
     by (smt (verit, del_insts) Collect_cong Diff_iff N'_subset_SRed\<^sub>F_N Un_iff bot_not_in_sredF_\<N> subset_iff)
-next
+qed
+
+lemma SRed\<^sub>I_of_SInf_to_N_F: \<open>\<iota>\<^sub>S \<in> SInf \<Longrightarrow> concl_of \<iota>\<^sub>S \<in> N \<Longrightarrow> \<iota>\<^sub>S \<in> SRed\<^sub>I N\<close>
+proof -
   fix \<iota>\<^sub>S N
   assume \<open>\<iota>\<^sub>S \<in> SInf\<close> and
          concl_\<iota>\<^sub>S_in_N: \<open>concl_of \<iota>\<^sub>S \<in> N\<close>
@@ -825,6 +838,27 @@ next
   qed
 qed
 
+(* Report lemma 18 *)
+sublocale SRed_is_redundancy_criterion: calculus \<open>to_AF bot\<close> SInf AF_entails SRed\<^sub>I SRed\<^sub>F
+proof
+  fix N N' \<iota>\<^sub>S
+  show \<open>SRed\<^sub>I N \<subseteq> SInf\<close>
+    unfolding SRed\<^sub>I_def
+    using S.base S.unsat
+    by blast
+  show \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> N - SRed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+    using SRed\<^sub>F_entails_bot .
+  show \<open>N \<subseteq> N' \<Longrightarrow> SRed\<^sub>F N \<subseteq> SRed\<^sub>F N'\<close>
+    using SRed\<^sub>F_of_subset_F .
+  show \<open>N \<subseteq> N' \<Longrightarrow> SRed\<^sub>I N \<subseteq> SRed\<^sub>I N'\<close>
+    using SRed\<^sub>I_of_subset_F .
+  show \<open>N' \<subseteq> SRed\<^sub>F N \<Longrightarrow> SRed\<^sub>F N \<subseteq> SRed\<^sub>F (N - N')\<close>
+    using SRed\<^sub>F_of_SRed\<^sub>F_subset_F .
+  show \<open>N' \<subseteq> SRed\<^sub>F N \<Longrightarrow> SRed\<^sub>I N \<subseteq> SRed\<^sub>I (N - N')\<close>
+    using SRed\<^sub>I_of_SRed\<^sub>F_subset_F .
+  show \<open>\<iota>\<^sub>S \<in> SInf \<Longrightarrow> concl_of \<iota>\<^sub>S \<in> N \<Longrightarrow> \<iota>\<^sub>S \<in> SRed\<^sub>I N\<close>
+    using SRed\<^sub>I_of_SInf_to_N_F .
+qed
 
 subsection \<open>Standard saturation\<close>
 
