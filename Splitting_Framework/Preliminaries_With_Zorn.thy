@@ -3429,12 +3429,11 @@ proof -
             qed
             ultimately have \<open>to_V ` fml_ext ` Jpos = M'\<close>
               by auto
-
-              sorry
             show \<open>v \<in> to_V ` (Jpos \<union> Jneg)\<close>
 
               sorry
           qed
+        qed
         define Jstrip where \<open>Jstrip = Jpos \<union> Jneg\<close>
         have \<open>is_interpretation Jstrip\<close>
           unfolding is_interpretation_def 
@@ -3454,7 +3453,8 @@ proof -
         qed
         then obtain Jinterp where Jinterp_is: \<open>Jinterp = interp_of Jstrip\<close> by simp
         have \<open>total Jinterp\<close> unfolding total_def
-        proof (intro allI)
+          sorry
+(*        proof (intro allI)
           fix v::"'v"
           obtain v' where v'_is: "(to_V v') = v"
             by (meson to_V.simps(1))
@@ -3463,9 +3463,11 @@ proof -
             using belong_to_def unfolding Jinterp_is Jstrip_def
             sorry
           then show \<open>\<exists>v\<^sub>J. v\<^sub>J \<in>\<^sub>J Jinterp \<and> to_V v\<^sub>J = v\<close>
-            by auto
+            sorry
         qed
         obtain J where J_is: "J = total_interp_of Jstrip" by simp
+*)
+        have \<open>True\<close> sorry
 
 
 
@@ -3481,14 +3483,13 @@ proof -
 
 
 
-
-      }
-    qed
+    
     then have \<open>M \<Turnstile>s N\<close>
       using sound_cons.entails_supsets (* by blast*) sorry
   }
-  ultimately show \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
-    by (smt (verit, best))
+  ultimately have \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
+    sorry
+    (*by (smt (verit, best))*)
 
     have all_bigger_entail: \<open>\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile>s N'\<close>
     proof clarsimp 
@@ -3564,11 +3565,12 @@ proof -
     qed
     have \<open>M \<Turnstile>s N\<close>
       using sound_cons.entails_supsets[OF all_bigger_entail] .
-      }
+        oops
+(*      }
   ultimately show \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
     sorry
 qed
-
+*)
 
 
 
