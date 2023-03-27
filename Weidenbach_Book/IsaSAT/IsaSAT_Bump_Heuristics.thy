@@ -8,6 +8,48 @@ begin
 
 section \<open>Bumping\<close>
 
+
+
+thm isa_vmtf_find_next_undef_def
+  term isa_acids_find_next_undef
+definition isa_acids_find_next_undef :: \<open>(nat, nat) acids \<Rightarrow> trail_pol \<Rightarrow> (nat option \<times> (nat, nat) acids) nres\<close> where
+\<open>isa_acids_find_next_undef = (\<lambda>ac M. do {
+  WHILE\<^sub>T\<^bsup>\<lambda>(L, ac). True\<^esup>
+      (\<lambda>(nxt, ac). nxt = None \<and> acids_mset ac \<noteq> {#})
+      (\<lambda>(a, ac). do {
+         ASSERT (a = None);
+         (L, ac) \<leftarrow> acids_pop_min ac;
+         ASSERT (defined_atm_pol_pre M L);
+         if defined_atm_pol M L then RETURN (None, ac)
+         else RETURN (Some L, ac)
+        }
+      )
+      (None, ac)
+  })\<close>
+
+lemma isa_acids_find_next_undef_acids_find_next_undef:
+  \<open>(uncurry isa_acids_find_next_undef, uncurry (acids_find_next_undef \<A>)) \<in>
+      Id \<times>\<^sub>r trail_pol \<A>  \<rightarrow>\<^sub>f \<langle>\<langle>nat_rel\<rangle>option_rel \<times>\<^sub>r Id\<rangle>nres_rel \<close>
+proof -
+  have [refine]: \<open>a=b\<Longrightarrow> acids_pop_min a \<le> \<Down> Id (acids_pop_min b)\<close>for a b
+    by auto
+  show ?thesis
+  unfolding isa_acids_find_next_undef_def acids_find_next_undef_def uncurry_def
+    defined_atm_def[symmetric]
+  apply (intro frefI nres_relI)
+  apply refine_rcg
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (rule defined_atm_pol_pre) (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
+  subgoal
+    by (auto simp: undefined_atm_code[THEN fref_to_Down_unRET_uncurry_Id])
+  subgoal by auto
+  subgoal by auto
+  done
+qed
+
 definition vmtf_rescore_body
  :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> bump_heuristics \<Rightarrow>
     (nat \<times> bump_heuristics) nres\<close>
@@ -489,12 +531,57 @@ lemma isa_bump_unset_pre:
     \<open>L \<in># \<A>\<close>
   shows \<open>isa_bump_unset_pre L x\<close>
   using assms vmtf_unset_pre_vmtf[where \<A>=\<A> and M=M and L=L]
-  by (cases \<open>get_stable_heuristics x\<close>; cases \<open>get_focused_heuristics x\<close>)
-   (auto simp: isa_bump_unset_pre_def bump_heur_def)
+    acids_tl[where  \<A>=\<A> and M=M and L=L]
+  by (cases \<open>get_focused_heuristics x\<close>)
+    (auto simp: isa_bump_unset_pre_def bump_heur_def acids_tl_pre_def
+      atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n acids_def)
+
+thm acids_flush_int_def
+
+definition isa_acids_flush_int :: \<open>trail_pol \<Rightarrow> (nat, nat)acids \<Rightarrow> _ \<Rightarrow> ((nat, nat)acids \<times> _) nres\<close> where
+\<open>isa_acids_flush_int  = (\<lambda>M vm (to_remove, h). do {
+    ASSERT(length to_remove \<le> unat32_max);
+    (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> length to_remove\<^esup>
+      (\<lambda>(i, vm, h). i < length to_remove)
+      (\<lambda>(i, vm, h). do {
+         ASSERT(i < length to_remove);
+         vm \<leftarrow> acids_push_literal (to_remove!i) vm;
+	 ASSERT(atoms_hash_del_pre (to_remove!i) h);
+         RETURN (i+1, vm, atoms_hash_del (to_remove!i) h)})
+      (0, vm, h);
+    RETURN (vm, (emptied_list to_remove, h))
+  })\<close>
+
+
+lemma isa_acids_flush_int:
+  \<open>(uncurry2 isa_acids_flush_int, uncurry2 (acids_flush_int \<A>)) \<in> trail_pol (\<A>::nat multiset) \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<times>\<^sub>f Id\<rangle>nres_rel\<close>
+proof -
+  have [refine]: \<open>x2c=x2 \<Longrightarrow> x2e=x2b \<Longrightarrow> ((0, x2c::(nat, nat)acids, x2e), 0, x2, x2b) \<in> nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id\<close>
+    for x2c x2 x2e x2b
+    by auto
+  have [refine]: \<open>(a,a')\<in>Id\<Longrightarrow>(b,b')\<in>Id \<Longrightarrow> acids_push_literal a b \<le>\<Down>Id (acids_push_literal a' b')\<close> for a a' b b'
+    by auto
+  show ?thesis
+    unfolding isa_acids_flush_int_def acids_flush_int_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply refine_vcg
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
 
 definition isa_bump_heur_flush where
   \<open>isa_bump_heur_flush M x = (case x of Tuple4 stabl focused foc bumped \<Rightarrow> do {
-  (stable, bumped) \<leftarrow> (if foc then RETURN (stabl, bumped) else isa_vmtf_flush_int M stabl bumped);
+  (stable, bumped) \<leftarrow> (if foc then RETURN (stabl, bumped) else isa_acids_flush_int M stabl bumped);
   (focused, bumped) \<leftarrow> (if \<not>foc then RETURN (focused, bumped) else isa_vmtf_flush_int M focused bumped);
   RETURN (Tuple4 stable focused foc bumped)})\<close>
 
@@ -510,6 +597,13 @@ lemma in_distinct_atoms_rel_in_atmsD: \<open>(ba, y) \<in> distinct_atoms_rel \<
   distinct_atoms_rel_emptiedI: \<open>((ae, baa), {}) \<in> distinct_atoms_rel \<A> \<Longrightarrow>
     ((ae, baa), set ae) \<in> distinct_atoms_rel \<A>\<close>
   by (auto simp: distinct_atoms_rel_def distinct_hash_atoms_rel_def)
+
+lemma acids_change_to_remove_order':
+  \<open>(uncurry2 (acids_flush_int \<A>\<^sub>i\<^sub>n), uncurry2 (acids_flush \<A>\<^sub>i\<^sub>n)) \<in>
+   [\<lambda>((M, vm), to_r). vm \<in> acids \<A>\<^sub>i\<^sub>n M \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n \<and> isasat_input_nempty \<A>\<^sub>i\<^sub>n \<and> to_r \<subseteq> set_mset \<A>\<^sub>i\<^sub>n]\<^sub>f
+     Id \<times>\<^sub>f Id \<times>\<^sub>f distinct_atoms_rel \<A>\<^sub>i\<^sub>n \<rightarrow> \<langle>(Id \<times>\<^sub>r distinct_atoms_rel \<A>\<^sub>i\<^sub>n)\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+    (use in \<open>auto intro!: acids_change_to_remove_order\<close>)
 
 lemma isa_bump_heur_flush_isa_bump_flush:
   \<open>(uncurry (isa_bump_heur_flush), uncurry (isa_bump_flush \<A>))
@@ -539,16 +633,13 @@ lemma isa_bump_heur_flush_isa_bump_flush:
     apply (cases y)
     apply (auto split: bump_heuristics_splits simp: bump_heur_def vmtf_flush_def
       conc_fun_RES distinct_atoms_rel_emptiedI
-      intro!: isa_vmtf_flush_int[where \<A>=\<A>, THEN fref_to_Down_curry2, of _ _ _ , THEN order_trans]
-      vmtf_change_to_remove_order'[THEN fref_to_Down_curry2, of \<A> \<open>fst y\<close>, THEN order_trans]
+      intro!: isa_acids_flush_int[where \<A>=\<A>, THEN fref_to_Down_curry2, of _ _ _ , THEN order_trans]
+      acids_change_to_remove_order'[THEN fref_to_Down_curry2, of \<A> \<open>fst y\<close>, THEN order_trans]
       dest: in_distinct_atoms_rel_in_atmsD
       )
-    apply (auto split: bump_heuristics_splits simp: bump_heur_def vmtf_flush_def
+    apply (auto split: bump_heuristics_splits simp: bump_heur_def acids_flush_def
       conc_fun_RES distinct_atoms_rel_emptiedI
-      intro!: isa_vmtf_flush_int[where \<A>=\<A>, THEN fref_to_Down_curry2, of _ _ _ , THEN order_trans]
-      vmtf_change_to_remove_order'[THEN fref_to_Down_curry2, of \<A> \<open>fst y\<close>, THEN order_trans]
-      dest: in_distinct_atoms_rel_in_atmsD
-      )
+      dest: in_distinct_atoms_rel_in_atmsD)
     done
   done
 
@@ -588,7 +679,8 @@ where
             ASSERT(Suc j \<le> unat32_max);
             let L = atm_of (lit_of_hd_trail M);
             ASSERT(L \<in># \<A>);
-            RETURN (j + 1, tl M, isa_bump_unset L vm)
+            vm \<leftarrow>isa_bump_unset L vm;
+            RETURN (j + 1, tl M, vm)
          })
          (0, M\<^sub>0, vm);
     ASSERT(lev = count_decided M);
@@ -617,7 +709,8 @@ where
             ASSERT(tl_trailt_tr_no_CS_pre M);
             let L = atm_of (lit_of_last_trail_pol M);
             ASSERT(isa_bump_unset_pre L vm);
-            RETURN (j + 1, tl_trailt_tr_no_CS M, isa_bump_unset L vm)
+            vm \<leftarrow> isa_bump_unset L vm;
+            RETURN (j + 1, tl_trailt_tr_no_CS M, vm)
          })
          (0, M\<^sub>0, vm);
     M \<leftarrow> trail_conv_back_imp lev M;
@@ -713,12 +806,14 @@ proof -
    apply (rule trail_conv_back[THEN fref_to_Down_curry, THEN order_trans])
    using that by (auto simp: conc_fun_RETURN)
 
-
+ have bump: \<open>(a,a')\<in>Id \<Longrightarrow> (b,b')\<in>Id \<Longrightarrow> isa_bump_unset a b \<le>\<Down>Id (isa_bump_unset a' b')\<close> for a a' b b'
+   by auto
   show ?thesis
+    supply [refine del] = refine(13)
     supply trail_pol_conv_to_no_CS_def[simp] trail_conv_to_no_CS_def[simp]
     unfolding isa_find_decomp_wl_imp_def find_decomp_wl_imp_def uncurry_def
     apply (intro frefI nres_relI)
-    apply (refine_vcg
+    apply (refine_vcg bump
       id_trail_conv_to_no_CS[THEN fref_to_Down, unfolded comp_def]
       get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail[of \<A>, THEN fref_to_Down_curry])
     subgoal
@@ -731,7 +826,7 @@ proof -
       by (subst isa_length_trail_length_u_no_CS[THEN fref_to_Down_unRET_Id]) auto
     subgoal
       by (subst isa_length_trail_length_u_no_CS[THEN fref_to_Down_unRET_Id]) auto
-    apply (assumption+)[10]
+      apply (assumption+)[10]
     subgoal
       by (subst isa_length_trail_length_u_no_CS[THEN fref_to_Down_unRET_Id]) auto
     subgoal
@@ -750,7 +845,15 @@ proof -
        x1g x1h x2g x2h
        by (cases x1g, cases x2h)
          (auto intro!: isa_bump_unset_pre[of _ \<A> \<open>drop x1d x1a\<close>]
-           simp: lit_of_last_trail_pol_def trail_pol_no_CS_last_hd lit_of_hd_trail_def)
+         simp: lit_of_last_trail_pol_def trail_pol_no_CS_last_hd lit_of_hd_trail_def)
+    subgoal
+      by (auto simp: lit_of_last_trail_pol_def trail_pol_no_CS_last_hd lit_of_hd_trail_def
+        intro!: tl_trail_tr_no_CS[THEN fref_to_Down_unRET]
+          isa_vmtf_unset_vmtf_unset[THEN fref_to_Down_unRET_uncurry])
+    subgoal
+      by (auto simp: lit_of_last_trail_pol_def trail_pol_no_CS_last_hd lit_of_hd_trail_def
+        intro!: tl_trail_tr_no_CS[THEN fref_to_Down_unRET]
+          isa_vmtf_unset_vmtf_unset[THEN fref_to_Down_unRET_uncurry])
     subgoal
       by (auto simp: lit_of_last_trail_pol_def trail_pol_no_CS_last_hd lit_of_hd_trail_def
         intro!: tl_trail_tr_no_CS[THEN fref_to_Down_unRET]
@@ -936,10 +1039,12 @@ proof -
     ultimately show ?thesis
       by auto
   qed
+find_theorems isa_bump_unset bump_heur
   show ?decomp
     unfolding find_decomp_wl_imp_def Let_def find_decomp_w_ns_def trail_conv_to_no_CS_def
       get_pos_of_level_in_trail_def trail_conv_back_def
-    apply (refine_vcg 1 WHILEIT_rule[where R=\<open>measure (\<lambda>(_, M, _). length M)\<close>])
+    apply (refine_vcg 1 WHILEIT_rule[where R=\<open>measure (\<lambda>(_, M, _). length M)\<close>]
+      isa_bump_unset_vmtf_tl[unfolded lit_of_hd_trail_def[symmetric], of _ \<A>, THEN order_trans])
     subgoal using length_M0 unfolding unat32_max_def by simp
     subgoal by auto
     subgoal by auto
@@ -955,12 +1060,16 @@ proof -
       by (cases \<open>drop a M\<^sub>0\<close>)
         (auto simp: lit_of_hd_trail_def literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
     subgoal by auto
-    subgoal by (auto simp: drop_Suc drop_tl)
+    subgoal by (auto simp: drop_Suc drop_tl atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
     subgoal by auto
     subgoal for s a b aa ba vm x2 x1a x2a
       using target
       by (cases vm)
         (auto intro!: isa_bump_unset_vmtf_tl atm_of_N drop_tl simp: lit_of_hd_trail_def)
+    subgoal for s a b aa ba x1 x2 x1a x2a
+      using lits by (auto intro: Lin_drop_tl simp: drop_Suc tl_drop)
+    subgoal by auto
+    subgoal by auto
     subgoal for s a b aa ba x1 x2 x1a x2a
       using lits by (auto intro: Lin_drop_tl)
     subgoal by auto

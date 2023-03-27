@@ -7,26 +7,36 @@ lemma (in -)not_is_None_not_None: \<open>\<not>is_None s \<Longrightarrow> s \<n
 
 
 definition bump_find_next_undef where \<open>
-  bump_find_next_undef \<A> x M = (if is_focused_heuristics x then vmtf_find_next_undef \<A> (get_focused_heuristics x) M
-  else vmtf_find_next_undef \<A> (get_stable_heuristics x) M)\<close>
+  bump_find_next_undef \<A> x M = (case x of Bump_Heuristics hstable focused foc tobmp \<Rightarrow>
+  if foc then do {
+    L \<leftarrow> vmtf_find_next_undef \<A> focused M;
+    RETURN (L, Bump_Heuristics hstable (update_next_search L focused) foc tobmp)
+    } else  do {
+    (L, hstable) \<leftarrow> acids_find_next_undef \<A> hstable M;
+    RETURN (L, Bump_Heuristics hstable focused foc tobmp)
+  })\<close>
 
 definition bump_find_next_undef_upd
   :: \<open>nat multiset \<Rightarrow> (nat,nat)ann_lits \<Rightarrow> bump_heuristics \<Rightarrow>
         (((nat,nat)ann_lits \<times> bump_heuristics) \<times> nat option)nres\<close>
 where
   \<open>bump_find_next_undef_upd \<A> = (\<lambda>M vm. do{
-      L \<leftarrow> bump_find_next_undef \<A> vm M;
-      RETURN ((M, isa_bump_update_next_search L vm), L)
+      (L, vm) \<leftarrow> bump_find_next_undef \<A> vm M;
+      RETURN ((M, vm), L)
   })\<close>
 
 
 lemma isa_bump_find_next_undef_bump_find_next_undef:
   \<open>(uncurry isa_bump_find_next_undef, uncurry (bump_find_next_undef \<A>)) \<in>
-      Id \<times>\<^sub>r trail_pol \<A>  \<rightarrow>\<^sub>f \<langle>\<langle>nat_rel\<rangle>option_rel\<rangle>nres_rel \<close>
+      Id \<times>\<^sub>r trail_pol \<A>  \<rightarrow>\<^sub>f \<langle>\<langle>nat_rel\<rangle>option_rel \<times>\<^sub>r Id\<rangle>nres_rel \<close>
   unfolding isa_bump_find_next_undef_def bump_find_next_undef_def uncurry_def
     defined_atm_def[symmetric]
   apply (intro frefI nres_relI)
-  apply (refine_rcg isa_vmtf_find_next_undef_vmtf_find_next_undef[THEN fref_to_Down_curry])
+  apply (case_tac \<open>x\<close>, case_tac \<open>fst x\<close>,  case_tac \<open>y\<close>, case_tac \<open>fst y\<close>, hypsubst, clarsimp simp only: fst_conv tuple4.case)
+  apply (refine_rcg isa_vmtf_find_next_undef_vmtf_find_next_undef[THEN fref_to_Down_curry]
+    isa_acids_find_next_undef_acids_find_next_undef[THEN fref_to_Down_curry])
+  subgoal by auto
+  subgoal by auto
   subgoal by auto
   subgoal by auto
   subgoal by auto
