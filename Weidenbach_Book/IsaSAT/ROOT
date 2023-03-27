@@ -10,6 +10,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     Isabelle_LLVM
     Word_Lib
     "HOL-Data_Structures"
+    Examples
   theories
     Ordered_Pairing_Heap_List2
     Map_Fun_Rel

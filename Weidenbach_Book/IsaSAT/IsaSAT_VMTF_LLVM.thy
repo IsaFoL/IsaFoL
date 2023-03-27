@@ -1,7 +1,7 @@
 theory IsaSAT_VMTF_LLVM
 imports Watched_Literals.WB_Sort IsaSAT_VMTF
    IsaSAT_VMTF_Setup_LLVM
-   Isabelle_LLVM.Sorting_Introsort
+   Examples.Sorting_Introsort
    IsaSAT_Sorting_LLVM
    IsaSAT_Literals_LLVM
    IsaSAT_Trail_LLVM

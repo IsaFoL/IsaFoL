@@ -1,6 +1,6 @@
 theory IsaSAT_Sorting_LLVM
   imports IsaSAT_Sorting
-    Isabelle_LLVM.Sorting_Ex_Array_Idxs
+    Examples.Sorting_Ex_Array_Idxs
     IsaSAT_Literals_LLVM 
 begin
 
