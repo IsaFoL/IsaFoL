@@ -844,7 +844,7 @@ proof
   fix N N' \<iota>\<^sub>S
   show \<open>SRed\<^sub>I N \<subseteq> SInf\<close>
     unfolding SRed\<^sub>I_def
-    using S.base S.unsat
+    using Splitting_rules.base Splitting_rules.unsat
     by blast
   show \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> N - SRed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
     using SRed\<^sub>F_entails_bot .
