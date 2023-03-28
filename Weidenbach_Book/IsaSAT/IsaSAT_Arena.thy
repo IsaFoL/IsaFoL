@@ -62,7 +62,7 @@ instead of introducing refinement rules. This is mostly done because iteration i
 
 Some technical details: due to the fact that we plan to refine the arena to uint32 and that our
 clauses can be tautologies, the size does not fit into uint32 (technically, we have the bound
-\<^term>\<open>uint32_max +1\<close>). Therefore, we restrict the clauses to have at least length 2 and we keep
+\<^term>\<open>unat32_max +1\<close>). Therefore, we restrict the clauses to have at least length 2 and we keep
 \<^term>\<open>length C - 2\<close> instead of \<^term>\<open>length C\<close> (same for position saving). If we ever add a
 preprocessing path that removes tautologies, we could get rid of these two limitations.
 
@@ -2320,5 +2320,44 @@ definition mop_arena_set_status where
     ASSERT(arena_is_valid_clause_idx arena C);
     RETURN(arena_set_status arena C b)
   }\<close>
+
+
+lemma mop_arena_status2:
+  assumes \<open>(C,C')\<in>nat_rel\<close> \<open>C \<in> vdom\<close>
+    \<open>valid_arena arena N vdom\<close>
+  shows
+    \<open>mop_arena_status arena C
+    \<le> SPEC
+    (\<lambda>c. (c, C \<in># dom_m N)
+    \<in> {(a,b). (b \<longrightarrow> (a = IRRED \<longleftrightarrow> irred N C) \<and> (a = LEARNED \<longleftrightarrow> \<not>irred N C)) \<and>  (a = DELETED \<longleftrightarrow> \<not>b)})\<close>
+  using assms arena_dom_status_iff[of arena N vdom C] unfolding mop_arena_status_def
+  by (cases \<open>C \<in># dom_m N\<close>)
+    (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def
+     arena_lifting)
+
+lemma mop_arena_status3:
+  assumes \<open>(C,C')\<in>nat_rel\<close> \<open>C \<in># dom_m N\<close>
+    \<open>valid_arena arena N vdom\<close>
+  shows
+    \<open>mop_arena_status arena C
+    \<le> SPEC
+    (\<lambda>c. (c, irred N C)
+    \<in> {(a,b). (a = IRRED \<longleftrightarrow> irred N C) \<and> (a = LEARNED \<longleftrightarrow> \<not>irred N C) \<and> b = (irred N C)\<and>  (a \<noteq> DELETED)})\<close>
+  using assms arena_dom_status_iff[of arena N vdom C] unfolding mop_arena_status_def
+  by (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def
+     arena_lifting)
+
+lemma mop_arena_status_vdom:
+  assumes \<open>C \<in> vdom\<close> and \<open>(C,C')\<in>nat_rel\<close>
+    \<open>valid_arena arena N vdom\<close>
+  shows
+    \<open>mop_arena_status arena C
+    \<le> SPEC
+    (\<lambda>c. (c, C' \<in># dom_m N)
+    \<in> {(a,b). (a \<noteq> DELETED \<longleftrightarrow> b) \<and> (((a = IRRED \<longleftrightarrow> (irred N C' \<and> b)) \<and> (a = LEARNED \<longleftrightarrow> (\<not>irred N C' \<and> b))))})\<close>
+   using assms arena_lifting(24,25)[of arena N vdom C] arena_dom_status_iff(1)[of arena N vdom C]
+   unfolding mop_arena_status_def
+   by (cases \<open>arena_status arena C'\<close>)
+    (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def)
 
 end

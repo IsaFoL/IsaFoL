@@ -118,39 +118,25 @@ lemmas fold_tuple_optimizations = fold_tuples fold_case_prod_open
 
 (* TODO: Move!
   TODO: General max functions!
-  TODO: Name should be snatN_max
-
 *)
-lemma sint64_max_refine[sepref_import_param]: \<open>(0x7FFFFFFFFFFFFFFF, sint64_max)\<in>snat_rel' TYPE(64)\<close>
-  apply (auto simp: snat_rel_def snat.rel_def in_br_conv sint64_max_def snat_invar_def)
+lemma snat64_max_refine[sepref_import_param]: \<open>(0x7FFFFFFFFFFFFFFF, snat64_max)\<in>snat_rel' TYPE(64)\<close>
+  apply (auto simp: snat_rel_def snat.rel_def in_br_conv snat64_max_def snat_invar_def)
   apply (auto simp: snat_def)
   done
 
-lemma sint32_max_refine[sepref_import_param]: \<open>(0x7FFFFFFF, sint32_max)\<in>snat_rel' TYPE(32)\<close>
-  apply (auto simp: snat_rel_def snat.rel_def in_br_conv sint32_max_def snat_invar_def)
+lemma snat32_max_refine[sepref_import_param]: \<open>(0x7FFFFFFF, snat32_max)\<in>snat_rel' TYPE(32)\<close>
+  apply (auto simp: snat_rel_def snat.rel_def in_br_conv snat32_max_def snat_invar_def)
   apply (auto simp: snat_def)
   done
 
-lemma uint64_max_refine[sepref_import_param]: \<open>(0xFFFFFFFFFFFFFFFF, uint64_max)\<in>unat_rel' TYPE(64)\<close>
-  apply (auto simp: unat_rel_def unat.rel_def in_br_conv uint64_max_def)
+lemma unat64_max_refine[sepref_import_param]: \<open>(0xFFFFFFFFFFFFFFFF, unat64_max)\<in>unat_rel' TYPE(64)\<close>
+  apply (auto simp: unat_rel_def unat.rel_def in_br_conv unat64_max_def)
   done
 
-lemma uint32_max_refine[sepref_import_param]: \<open>(0xFFFFFFFF, uint32_max)\<in>unat_rel' TYPE(32)\<close>
-  apply (auto simp: unat_rel_def unat.rel_def in_br_conv uint32_max_def)
+lemma unat32_max_refine[sepref_import_param]: \<open>(0xFFFFFFFF, unat32_max)\<in>unat_rel' TYPE(32)\<close>
+  apply (auto simp: unat_rel_def unat.rel_def in_br_conv unat32_max_def)
   done
 
-
-
-
-
-lemma convert_fref:
-  \<open>WB_More_Refinement.fref = Sepref_Rules.frefnd\<close>
-  \<open>WB_More_Refinement.freft = Sepref_Rules.freftnd\<close>
-  unfolding WB_More_Refinement.fref_def Sepref_Rules.fref_def
-  by auto
-
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
 (* TODO: Move *)
 
@@ -163,8 +149,8 @@ abbreviation \<open>sint64_nat_assn \<equiv> snat_assn' TYPE(64)\<close>
 text \<open>It is critical for performance of auto to calculate the power instead of letting auto do it
 every time.\<close>
 lemmas [simplified, sepref_bounds_simps] =
-  uint32_max_def sint32_max_def
-  uint64_max_def sint64_max_def
+  unat32_max_def snat32_max_def
+  unat64_max_def snat64_max_def
 
 
 lemma is_up'_32_64[simp,intro!]: \<open>is_up' UCAST(32 \<rightarrow> 64)\<close> by (simp add: is_up')
@@ -455,5 +441,5 @@ lemmas [sepref_fr_rules] =
   tri_bool_SET_TRUE_impl.refine[FCOMP tri_bool_SET_TRUE_refine_aux]
   tri_bool_SET_FALSE_impl.refine[FCOMP tri_bool_SET_FALSE_refine_aux]
   tri_bool_eq_impl.refine[FCOMP tri_bool_eq_refine_aux]
-
+hide_const (open) tuple4 tuple7
 end

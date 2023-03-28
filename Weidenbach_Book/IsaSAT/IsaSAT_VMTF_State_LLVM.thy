@@ -1,6 +1,8 @@
 theory IsaSAT_VMTF_State_LLVM
   imports IsaSAT_VMTF_LLVM IsaSAT_Setup_LLVM
 begin
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN
+  
 lemma find_decomp_wl_st_int_alt_def:
   \<open>find_decomp_wl_st_int = (\<lambda>highest S. do{
      let (M, S) = extract_trail_wl_heur S;

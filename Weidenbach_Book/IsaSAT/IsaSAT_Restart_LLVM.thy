@@ -29,7 +29,7 @@ qed
 
 sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding mark_to_delete_clauses_wl_D_heur_def
     access_tvdom_at_def[symmetric] length_tvdom_def[symmetric]
     get_the_propagation_reason_heur_def[symmetric]
@@ -51,7 +51,7 @@ sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
 
 sepref_def mark_to_delete_clauses_GC_wl_D_heur_heur_fast_impl
   is \<open>mark_to_delete_clauses_GC_wl_D_heur\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding mark_to_delete_clauses_GC_wl_D_heur_def
     access_tvdom_at_def[symmetric] length_tvdom_def[symmetric]
     get_the_propagation_reason_heur_def[symmetric]
@@ -71,13 +71,13 @@ sepref_def mark_to_delete_clauses_GC_wl_D_heur_heur_fast_impl
   by sepref
 
 definition isasat_fast_bound where
-  \<open>isasat_fast_bound = sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE + 1)\<close>
+  \<open>isasat_fast_bound = snat64_max - (unat32_max div 2 + MAX_HEADER_SIZE + 1)\<close>
 
 lemma isasat_fast_bound_alt_def:
   \<open>isasat_fast_bound = 9223372034707292156\<close>
-  \<open>uint64_max = 18446744073709551615\<close>
+  \<open>unat64_max = 18446744073709551615\<close>
   by (auto simp: br_def isasat_fast_bound_def
-     sint64_max_def uint32_max_def uint64_max_def)
+     snat64_max_def unat32_max_def unat64_max_def)
 
 
 lemma isasat_fast_alt_def: \<open>isasat_fast S = (length_clauses_heur S \<le> 9223372034707292156 \<and>
@@ -85,8 +85,8 @@ lemma isasat_fast_alt_def: \<open>isasat_fast S = (length_clauses_heur S \<le> 9
     clss_size_lcountUE (get_learned_count S) + clss_size_lcountUS (get_learned_count S) +
       clss_size_lcountU0 (get_learned_count S)+
       clss_size_lcountUEk (get_learned_count S) < 18446744073709551615)\<close>
-  by (cases S; auto simp: isasat_fast_def sint64_max_def uint32_max_def length_clauses_heur_def
-    uint64_max_def learned_clss_count_def)
+  by (cases S; auto simp: isasat_fast_def snat64_max_def unat32_max_def length_clauses_heur_def
+    unat64_max_def learned_clss_count_def)
 
 sepref_register isasat_fast
 

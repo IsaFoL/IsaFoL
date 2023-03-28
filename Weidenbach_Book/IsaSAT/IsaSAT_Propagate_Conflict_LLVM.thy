@@ -6,15 +6,15 @@ begin
 
 
 lemma unit_propagation_inner_loop_wl_loop_D_heur_fast:
-  \<open>length (get_clauses_wl_heur b) \<le> sint64_max \<Longrightarrow>
+  \<open>length (get_clauses_wl_heur b) \<le> snat64_max \<Longrightarrow>
     unit_propagation_inner_loop_wl_loop_D_heur_inv b a (a1', a1'a, a2'a) \<Longrightarrow>
-     length (get_clauses_wl_heur a2'a) \<le> sint64_max\<close>
+     length (get_clauses_wl_heur a2'a) \<le> snat64_max\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv_def
   by auto
 
 sepref_def unit_propagation_inner_loop_wl_loop_D_fast
   is \<open>uncurry unit_propagation_inner_loop_wl_loop_D_heur\<close>
-  :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> sint64_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_def PR_CONST_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
@@ -26,8 +26,8 @@ sepref_def unit_propagation_inner_loop_wl_loop_D_fast
   apply (annot_snat_const \<open>TYPE (64)\<close>)
   by sepref
 
-lemma le_uint64_max_minus_4_uint64_max: \<open>a \<le> sint64_max - MIN_HEADER_SIZE \<Longrightarrow> Suc a < max_snat 64\<close>
-  by (auto simp: sint64_max_def max_snat_def)
+lemma le_unat64_max_minus_4_unat64_max: \<open>a \<le> snat64_max - MIN_HEADER_SIZE \<Longrightarrow> Suc a < max_snat 64\<close>
+  by (auto simp: snat64_max_def max_snat_def)
 
 definition cut_watch_list_heur2_inv where
   \<open>cut_watch_list_heur2_inv L n = (\<lambda>(j, w, W). j \<le> w \<and> w \<le> n \<and> nat_of_lit L < length W)\<close>
@@ -54,13 +54,13 @@ lemma cut_watch_list_heur2_alt_def:
   by (auto simp: state_extractors Let_def intro!: ext split: isasat_int_splits)
 
 lemma cut_watch_list_heur2I:
-  \<open>length (a1'd ! nat_of_lit baa) \<le> sint64_max - MIN_HEADER_SIZE \<Longrightarrow>
+  \<open>length (a1'd ! nat_of_lit baa) \<le> snat64_max - MIN_HEADER_SIZE \<Longrightarrow>
        cut_watch_list_heur2_inv baa (length (a1'd ! nat_of_lit baa))
         (a1'e, a1'f, a2'f) \<Longrightarrow>
        a1'f < length_ll a2'f (nat_of_lit baa) \<Longrightarrow>
        ez \<le> bba \<Longrightarrow>
        Suc a1'e < max_snat 64\<close>
-  \<open>length (a1'd ! nat_of_lit baa) \<le> sint64_max - MIN_HEADER_SIZE \<Longrightarrow>
+  \<open>length (a1'd ! nat_of_lit baa) \<le> snat64_max - MIN_HEADER_SIZE \<Longrightarrow>
        cut_watch_list_heur2_inv baa (length (a1'd ! nat_of_lit baa))
         (a1'e, a1'f, a2'f) \<Longrightarrow>
        a1'f < length_ll a2'f (nat_of_lit baa) \<Longrightarrow>
@@ -71,11 +71,11 @@ lemma cut_watch_list_heur2I:
   \<open>cut_watch_list_heur2_inv baa (length (a1'd ! nat_of_lit baa))
         (a1'e, a1'f, a2'f) \<Longrightarrow> a1'f < length_ll a2'f (nat_of_lit baa) \<Longrightarrow>
        a1'e < length (a2'f ! nat_of_lit baa)\<close>
-  by (auto simp: max_snat_def sint64_max_def cut_watch_list_heur2_inv_def length_ll_def)
+  by (auto simp: max_snat_def snat64_max_def cut_watch_list_heur2_inv_def length_ll_def)
 
 sepref_def cut_watch_list_heur2_fast_code
   is \<open>uncurry3 cut_watch_list_heur2\<close>
-  :: \<open>[\<lambda>(((j, w), L), S). length (watched_by_int S L) \<le> sint64_max-MIN_HEADER_SIZE]\<^sub>a
+  :: \<open>[\<lambda>(((j, w), L), S). length (watched_by_int S L) \<le> snat64_max-MIN_HEADER_SIZE]\<^sub>a
      sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] cut_watch_list_heur2I[intro] length_ll_def[simp]
@@ -89,7 +89,7 @@ sepref_def cut_watch_list_heur2_fast_code
 
 sepref_def unit_propagation_inner_loop_wl_D_fast_code
   is \<open>uncurry unit_propagation_inner_loop_wl_D_heur\<close>
-  :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
         unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_heur_def
@@ -103,7 +103,7 @@ lemma [sepref_fr_rules]: \<open>(Mreturn o Tuple17_get_d, RETURN o literals_to_u
 lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
 \<open>select_and_remove_from_literals_to_update_wl_heur S = do {
     ASSERT(literals_to_update_wl_heur S < length (fst (get_trail_wl_heur S)));
-    ASSERT(literals_to_update_wl_heur S + 1 \<le> uint32_max);
+    ASSERT(literals_to_update_wl_heur S + 1 \<le> unat32_max);
     let (j, T) = extract_literals_to_update_wl_heur S;
     ASSERT (j = literals_to_update_wl_heur S);
     L \<leftarrow> isa_trail_nth (get_trail_wl_heur T) j;
@@ -124,11 +124,11 @@ sepref_def select_and_remove_from_literals_to_update_wlfast_code
 
 
 lemma unit_propagation_outer_loop_wl_D_heur_fast:
-  \<open>length (get_clauses_wl_heur x) \<le> sint64_max \<Longrightarrow>
+  \<open>length (get_clauses_wl_heur x) \<le> snat64_max \<Longrightarrow>
        unit_propagation_outer_loop_wl_D_heur_inv x s' \<Longrightarrow>
        length (get_clauses_wl_heur a1') =
        length (get_clauses_wl_heur s') \<Longrightarrow>
-       length (get_clauses_wl_heur s') \<le> sint64_max\<close>
+       length (get_clauses_wl_heur s') \<le> snat64_max\<close>
   by (auto simp: unit_propagation_outer_loop_wl_D_heur_inv_def)
 
 lemma unit_propagation_outer_loop_wl_D_invI:
@@ -139,7 +139,7 @@ lemma unit_propagation_outer_loop_wl_D_invI:
 
 sepref_def unit_propagation_outer_loop_wl_D_fast_code
   is \<open>unit_propagation_outer_loop_wl_D_heur\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] unit_propagation_outer_loop_wl_D_heur_fast[intro] of_nat_snat[sepref_import_param]
     unit_propagation_outer_loop_wl_D_invI[intro]
   unfolding unit_propagation_outer_loop_wl_D_heur_def isasat_length_trail_st_def[symmetric]

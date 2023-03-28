@@ -127,9 +127,7 @@ sepref_def atm_is_in_conflict_st_heur_fast2_code
 
 lemma tl_state_wl_heurI: \<open>tl_state_wl_heur_pre S \<Longrightarrow> fst (get_trail_wl_heur S) \<noteq> []\<close>
   \<open>tl_state_wl_heur_pre S \<Longrightarrow> tl_trailt_tr_pre (get_trail_wl_heur S)\<close>
-  \<open>tl_state_wl_heur_pre S \<Longrightarrow>
-       vmtf_unset_pre (atm_of (lit_of_last_trail_pol (get_trail_wl_heur S))) (get_vmtf_heur S)\<close>
-  by (auto simp: tl_state_wl_heur_pre_def tl_trailt_tr_pre_def Let_def
+  by (auto simp: tl_state_wl_heur_pre_def tl_trailt_tr_pre_def Let_def isa_bump_unset_pre_def
     vmtf_unset_pre_def lit_of_last_trail_pol_def)
 
 lemma tl_state_wl_heur_alt_def:
@@ -140,10 +138,11 @@ lemma tl_state_wl_heur_alt_def:
        ASSERT (vm = get_vmtf_heur S\<^sub>0);
        let L = lit_of_last_trail_pol M;
        let S = update_trail_wl_heur (tl_trailt_tr M) S;
-       let S = update_vmtf_wl_heur (isa_vmtf_unset (atm_of L) vm) S;
+       ASSERT (isa_bump_unset_pre (atm_of L) vm);
+       let S = update_vmtf_wl_heur (isa_bump_unset (atm_of L) vm) S;
        RETURN (False, S)
   })\<close>
-  by (auto simp: tl_state_wl_heur_def state_extractors intro!: ext split: isasat_int_splits)
+  by (auto simp: tl_state_wl_heur_def state_extractors Let_def intro!: ext split: isasat_int_splits)
 
 sepref_def tl_state_wl_heur_fast_code
   is \<open>tl_state_wl_heur\<close>
@@ -190,12 +189,12 @@ lemma update_confl_tl_wl_heur_alt_def:
       ASSERT(curry lookup_conflict_remove1_pre L (nxs) \<and> clvls \<ge> 1);
       let (nxs) = lookup_conflict_remove1 L (nxs);
       ASSERT(arena_act_pre N C);
-      vm \<leftarrow> isa_vmtf_mark_to_rescore_also_reasons_cl M N C (-L) vm;
-      ASSERT(vmtf_unset_pre L' vm);
+      vm \<leftarrow> isa_vmtf_bump_to_rescore_also_reasons_cl M N C (-L) vm;
+      ASSERT(isa_bump_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       let S = update_trail_wl_heur (tl_trailt_tr M) S;
       let S = update_conflict_wl_heur (None_lookup_conflict b nxs) S;
-      let S = update_vmtf_wl_heur (isa_vmtf_unset L' vm) S;
+      let S = update_vmtf_wl_heur (isa_bump_unset L' vm) S;
       let S = update_clvls_wl_heur (clvls - 1) S;
       let S = update_outl_wl_heur outl S;
       let S = update_arena_wl_heur N S;
@@ -217,8 +216,8 @@ sepref_def update_confl_tl_wl_fast_code
   apply (annot_unat_const \<open>TYPE (32)\<close>)
   by sepref
 
-declare update_confl_tl_wl_fast_code.refine[sepref_fr_rules]
-
+(*TODO create mop_isa_bump_unset*)
+(*TODO Move*)
 sepref_register is_in_conflict_st atm_is_in_conflict_st_heur
 sepref_def skip_and_resolve_loop_wl_D_fast
   is \<open>skip_and_resolve_loop_wl_D_heur\<close>
@@ -229,8 +228,6 @@ sepref_def skip_and_resolve_loop_wl_D_fast
   unfolding skip_and_resolve_loop_wl_D_heur_def
   apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
   by sepref (* slow *)
-
-declare skip_and_resolve_loop_wl_D_fast.refine[sepref_fr_rules]
 
 experiment
 begin

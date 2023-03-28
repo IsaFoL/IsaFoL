@@ -1,5 +1,5 @@
 theory IsaSAT_Inner_Propagation_Defs
-  imports IsaSAT_Setup
+  imports IsaSAT_Setup IsaSAT_Bump_Heuristics
      IsaSAT_Clauses IsaSAT_VMTF IsaSAT_LBD
 begin
 
@@ -71,7 +71,7 @@ definition mark_conflict_to_rescore :: \<open>nat \<Rightarrow> isasat \<Rightar
   (\<lambda>(i, vm). do{
       ASSERT (i < n);
      L \<leftarrow> mop_arena_lit2 N C i;
-     vm \<leftarrow> isa_vmtf_mark_to_rescore_also_reasons_cl M N C (-L) vm;
+     vm \<leftarrow> isa_vmtf_bump_to_rescore_also_reasons_cl M N C (-L) vm;
     RETURN (i+1, vm)
    })
     (0, vm);
@@ -344,7 +344,7 @@ definition select_and_remove_from_literals_to_update_wl_heur
 where
 \<open>select_and_remove_from_literals_to_update_wl_heur S = do {
     ASSERT(literals_to_update_wl_heur S < length (fst (get_trail_wl_heur S)));
-    ASSERT(literals_to_update_wl_heur S + 1 \<le> uint32_max);
+    ASSERT(literals_to_update_wl_heur S + 1 \<le> unat32_max);
     L \<leftarrow> isa_trail_nth (get_trail_wl_heur S) (literals_to_update_wl_heur S);
     RETURN (set_literals_to_update_wl_heur (literals_to_update_wl_heur S + 1) S, -L)
   }\<close>

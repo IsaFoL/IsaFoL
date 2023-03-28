@@ -92,7 +92,7 @@ sepref_def unmark_clause_impl
 
 sepref_def add_to_lookup_conflict
   is \<open>uncurry (RETURN oo add_to_lookup_conflict)\<close>
-  :: \<open>[\<lambda>(L, n, D). atm_of L < length D \<and> n < uint32_max]\<^sub>a
+  :: \<open>[\<lambda>(L, n, D). atm_of L < length D \<and> n < unat32_max]\<^sub>a
     unat_lit_assn\<^sup>k *\<^sub>a marked_struct_assn\<^sup>d \<rightarrow> marked_struct_assn\<close>
   unfolding mark_defs marked_struct_assn_def add_to_lookup_conflict_def NOTIN_def ISIN_def
   apply (annot_unat_const \<open>TYPE(32)\<close>)

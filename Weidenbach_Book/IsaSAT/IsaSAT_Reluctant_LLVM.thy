@@ -22,11 +22,11 @@ definition reluctant_assn where
   \<open>reluctant_assn = hr_comp reluctant_rel_assn reluctant_rel\<close>
 schematic_goal mk_free_reluctant_rel_assn[sepref_frame_free_rules]: \<open>MK_FREE reluctant_rel_assn ?fr\<close>
   unfolding reluctant_rel_assn_def
-  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+  by synthesize_free
 
 schematic_goal mk_free_reluctant_assn[sepref_frame_free_rules]: \<open>MK_FREE reluctant_assn ?fr\<close>
   unfolding reluctant_assn_def
-  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+  by synthesize_free
 
 lemma [safe_constraint_rules]:
   \<open>CONSTRAINT Sepref_Basic.is_pure reluctant_rel_assn\<close>

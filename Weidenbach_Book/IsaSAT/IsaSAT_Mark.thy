@@ -172,7 +172,7 @@ lemma
   shows
     lookup_clause_rel_not_tautolgy: \<open>\<not>tautology C\<close> and
     lookup_clause_rel_distinct_mset: \<open>distinct_mset C\<close> and
-    lookup_clause_rel_size: \<open>isasat_input_bounded \<A> \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C \<Longrightarrow> size C \<le> 1 + uint32_max div 2\<close>
+    lookup_clause_rel_size: \<open>isasat_input_bounded \<A> \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C \<Longrightarrow> size C \<le> 1 + unat32_max div 2\<close>
 proof -
   have mset: \<open>mset_as_position xs C\<close> and \<open>n = size C\<close> and \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>). L < length xs\<close>
     using c unfolding lookup_clause_rel_def by fast+
@@ -184,7 +184,7 @@ proof -
     done
   show \<open>distinct_mset C\<close>
     using mset mset_as_position_distinct_mset by blast
-  then show \<open>isasat_input_bounded \<A> \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C \<Longrightarrow> size C \<le> 1 + uint32_max div 2\<close>
+  then show \<open>isasat_input_bounded \<A> \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C \<Longrightarrow> size C \<le> 1 + unat32_max div 2\<close>
     using simple_clss_size_upper_div2[of \<A> \<open>C\<close>] \<open>\<not>tautology C\<close> by auto
 qed
 
@@ -404,12 +404,12 @@ lemma id_conflict_from_lookup:
     (auto simp: lookup_clause_rel_def conflict_from_lookup_def RETURN_RES_refine_iff)
 
 
-lemma lookup_clause_rel_exists_le_uint32_max:
+lemma lookup_clause_rel_exists_le_unat32_max:
   assumes ocr: \<open>((n, xs), D) \<in> lookup_clause_rel \<A>\<close> and \<open>n > 0\<close> and
     le_i: \<open>\<forall>k<i. xs ! k = None\<close> and lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> D\<close> and
     bounded: \<open>isasat_input_bounded \<A>\<close>
   shows
-    \<open>\<exists>j. j \<ge> i \<and> j < length xs \<and> j < uint32_max \<and> xs ! j \<noteq> None\<close>
+    \<open>\<exists>j. j \<ge> i \<and> j < length xs \<and> j < unat32_max \<and> xs ! j \<noteq> None\<close>
 proof -
   have
     n_D: \<open>n = size D\<close> and
@@ -434,12 +434,12 @@ proof -
   let ?L = \<open>if the (xs ! j) then Pos j else Neg j\<close>
   have \<open>?L \<in># D\<close>
     using j mset_as_position_in_iff_nth[OF map, of ?L] by auto
-  then have \<open>nat_of_lit ?L \<le> uint32_max\<close>
+  then have \<open>nat_of_lit ?L \<le> unat32_max\<close>
     using lits bounded
     by (auto 5 5 dest!: multi_member_split[of _ D]
         simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset split: if_splits)
-  then have \<open>j < uint32_max\<close>
-    by (auto simp: uint32_max_def split: if_splits)
+  then have \<open>j < unat32_max\<close>
+    by (auto simp: unat32_max_def split: if_splits)
   then show ?thesis
     using j by blast
 qed
@@ -574,7 +574,7 @@ where
     (\<lambda>(i, tauto, D, D'). i < length C \<and> \<not>tauto)
     (\<lambda>(i, tauto, D, D'). do {
       ASSERT(i < length C);
-      ASSERT(fst D < uint32_max \<and> atm_of (C!i) < length (snd D));
+      ASSERT(fst D < unat32_max \<and> atm_of (C!i) < length (snd D));
       ASSERT(length D' = fst D);
       let L = C!i;
       b \<leftarrow> lit_is_in_lookup (-L) D;
@@ -618,13 +618,13 @@ proof -
       unfolding  literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def apply -
       by (subgoal_tac \<open>atm_of ` set (take x1 C) \<subseteq> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>)   
         (auto simp: lit_is_in_lookup_spec in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n pre_simplify_clause_inv_def
-        lookup_clause_rel_def uint32_max_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n dest!: in_set_takeD)
+        lookup_clause_rel_def unat32_max_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n dest!: in_set_takeD)
     subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
       using simple_clss_size_upper_div2[of \<A> \<open>mset x2b\<close>] assms
       unfolding  literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def apply -
       by (subgoal_tac \<open>atm_of ` set (take x1 C) \<subseteq> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>)   
         (auto simp: lit_is_in_lookup_spec in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n pre_simplify_clause_inv_def
-        lookup_clause_rel_def uint32_max_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n dest!: in_set_takeD)
+        lookup_clause_rel_def unat32_max_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n dest!: in_set_takeD)
     subgoal by (clarsimp simp add: lookup_clause_rel_def pre_simplify_clause_inv_def
       simp del: size_mset simp flip: size_mset)
     subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e

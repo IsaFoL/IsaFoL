@@ -1,8 +1,10 @@
 theory IsaSAT_Backtrack_Defs
   imports IsaSAT_Setup IsaSAT_VMTF IsaSAT_Rephase_State IsaSAT_LBD
-     IsaSAT_Proofs
+    IsaSAT_Proofs
+    IsaSAT_Bump_Heuristics (*TODO: should be  _State*)
 begin
 
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 
 chapter \<open>Backtrack\<close>
 
@@ -40,7 +42,7 @@ definition isa_empty_conflict_and_extract_clause_heur ::
 	   ASSERT(get_level_pol_pre (M, C!1));
 	   ASSERT(1 < length C);
            let C = (if get_level_pol M (C!i) > get_level_pol M (C!1) then swap C 1 i else C);
-           ASSERT(i+1 \<le> uint32_max);
+           ASSERT(i+1 \<le> unat32_max);
            RETURN (D, C, i+1)
          })
         (D, C, 1);
@@ -60,7 +62,7 @@ definition empty_cach_ref_set_inv where
 definition empty_cach_ref_set where
   \<open>empty_cach_ref_set = (\<lambda>(cach0, support). do {
     let n = length support;
-    ASSERT(n \<le> Suc (uint32_max div 2));
+    ASSERT(n \<le> Suc (unat32_max div 2));
     (_, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>empty_cach_ref_set_inv cach0 support\<^esup>
       (\<lambda>(i, cach). i < length support)
       (\<lambda>(i, cach). do {
@@ -78,7 +80,7 @@ paragraph \<open>Minimisation of the conflict\<close>
 definition empty_cach_ref_pre where
   \<open>empty_cach_ref_pre = (\<lambda>(cach :: minimize_status list, supp :: nat list).
          (\<forall>L\<in>set supp. L < length cach) \<and>
-         length supp \<le> Suc (uint32_max div 2) \<and>
+         length supp \<le> Suc (unat32_max div 2) \<and>
          (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))\<close>
 
 definition (in -) empty_cach_ref where
@@ -106,7 +108,7 @@ definition extract_shorter_conflict_list_heur_st
      (D, cach, outl) \<leftarrow> isa_minimize_and_extract_highest_lookup_conflict M N D cach lbd outl;
      ASSERT(empty_cach_ref_pre cach);
      let cach = empty_cach_ref cach;
-     ASSERT(outl \<noteq> [] \<and> length outl \<le> uint32_max);
+     ASSERT(outl \<noteq> [] \<and> length outl \<le> unat32_max);
      (D, C, n) \<leftarrow> isa_empty_conflict_and_extract_clause_heur M D outl;
      let S = set_outl_wl_heur (take 1 outl) S;
      let S = set_conflict_wl_heur D S; let S = set_vmtf_wl_heur vm S;
@@ -140,26 +142,26 @@ definition propagate_bt_wl_D_heur
       ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
       ASSERT(length C > 1);
       let L' = C!1;
-      ASSERT(length C \<le> uint32_max div 2 + 1);
-      vm \<leftarrow> isa_vmtf_rescore C M vm0;
+      ASSERT(length C \<le> unat32_max div 2 + 1);
+      vm \<leftarrow> isa_bump_rescore C M vm0;
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let b' = (length C = 2);
       ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> clss_size_lcount lcount < sint64_max);
+      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> clss_size_lcount lcount < snat64_max);
       (N, i) \<leftarrow> fm_add_new b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd_and_mark_used i glue N;
-      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < snat64_max);
       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
-      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W (nat_of_lit L') < snat64_max);
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
       j \<leftarrow> mop_isa_length_trail M;
       ASSERT(i \<noteq> DECISION_REASON);
       ASSERT(cons_trail_Propagated_tr_pre ((-L, i), M));
       M \<leftarrow> cons_trail_Propagated_tr (- L) i M;
-      vm \<leftarrow> isa_vmtf_flush_int M vm;
+      vm \<leftarrow> isa_bump_heur_flush M vm;
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       let S = set_watched_wl_heur W S\<^sub>0;
       let S = set_learned_count_wl_heur (clss_size_incr_lcount lcount) S;
@@ -190,7 +192,7 @@ definition propagate_unit_bt_wl_D_int
       let stats = get_stats_heur S;
       let lbd = get_lbd S;
       let vm0 = get_vmtf_heur S;
-      vm \<leftarrow> isa_vmtf_flush_int M vm0;
+      vm \<leftarrow> isa_bump_heur_flush M vm0;
       glue \<leftarrow> get_LBD lbd;
       lbd \<leftarrow> lbd_empty lbd;
       j \<leftarrow> mop_isa_length_trail M;
@@ -240,7 +242,7 @@ definition backtrack_wl_D_nlit_heur
 
 lemma empty_cach_ref_set_empty_cach_ref:
   \<open>(empty_cach_ref_set, RETURN o empty_cach_ref) \<in>
-    [\<lambda>(cach, supp). (\<forall>L \<in> set supp. L < length cach) \<and> length supp \<le> Suc (uint32_max div 2) \<and>
+    [\<lambda>(cach, supp). (\<forall>L \<in> set supp. L < length cach) \<and> length supp \<le> Suc (unat32_max div 2) \<and>
       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp)]\<^sub>f
     Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
 proof -

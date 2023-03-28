@@ -5,15 +5,6 @@ theory IsaSAT_Initialisation_LLVM
 begin
 hide_const (open) NEMonad.RETURN  NEMonad.ASSERT
 
-definition split_vmtf2 :: \<open>isa_vmtf_remove_int_option_fst_As \<Rightarrow> _\<close> where
-  \<open>split_vmtf2 = (\<lambda>x. x)\<close>
-
-sepref_def split_vmtf2_impl
-  is \<open>RETURN o split_vmtf2\<close>
-  :: \<open>vmtf_remove_conc_option_fst_As\<^sup>d \<rightarrow>\<^sub>a vmtf_conc_option_fst_As \<times>\<^sub>a distinct_atoms_assn\<close>
-  unfolding split_vmtf2_def
-  by sepref
-
 definition polarity_st_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> _\<close> where
   \<open>polarity_st_heur_init S L = polarity_pol (Tuple15_a S) L\<close>
 
@@ -185,9 +176,9 @@ abbreviation snat_rel64 :: \<open>(64 word \<times> nat) set\<close> where \<ope
 
 sepref_def initialise_VMTF_code
   is \<open>uncurry initialise_VMTF\<close>
-  :: \<open>[\<lambda>(N, n). True]\<^sub>a (arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> vmtf_remove_conc_option_fst_As\<close>
+  :: \<open>[\<lambda>(N, n). True]\<^sub>a (arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> vmtf_init_assn\<close>
   unfolding initialise_VMTF_def vmtf_cons_def Suc_eq_plus1 atom.fold_option length_uint32_nat_def
-    option.case_eq_if
+    option.case_eq_if vmtf_init_assn_def
   apply (rewrite in \<open>let _ = \<hole> in _ \<close> array_fold_custom_replicate op_list_replicate_def[symmetric])
   apply (rewrite at 0 in \<open>VMTF_Node \<hole>\<close> unat_const_fold[where 'a=64])
   apply (rewrite at \<open>VMTF_Node (\<hole> + 1)\<close> annot_snat_unat_conv)
@@ -196,12 +187,18 @@ sepref_def initialise_VMTF_code
   apply (rewrite in \<open>list_update _ _ _\<close> annot_index_of_atm)
   apply (rewrite in \<open>if _ then _ else list_update _ _ _\<close> annot_index_of_atm)
   apply (rewrite at \<open>\<hole>\<close> in \<open>_ ! atom.the _\<close> annot_index_of_atm)+
-  apply (rewrite at \<open>RETURN ((_, \<hole>, _), _)\<close> annot_snat_unat_conv)
+  apply (rewrite at \<open>RETURN ((_, \<hole>, _))\<close> annot_snat_unat_conv)
   supply [[goals_limit = 1]]
   by sepref
 
 
-declare initialise_VMTF_code.refine[sepref_fr_rules]
+sepref_register initialize_Bump_Init
+sepref_def initialize_Bump_Init_code
+  is \<open>uncurry initialize_Bump_Init\<close>
+  :: \<open>[\<lambda>(N, n). True]\<^sub>a (arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> heuristic_bump_init_assn\<close>
+  unfolding initialize_Bump_Init_def
+  by sepref
+
 sepref_register cons_trail_Propagated_tr
 
 lemma propagate_unit_cls_heur_b_alt_def:
@@ -294,29 +291,29 @@ sepref_register fm_add_new
 
 lemma add_init_cls_code_bI:
   assumes
-    \<open>length at' \<le> Suc (Suc uint32_max)\<close> and
+    \<open>length at' \<le> Suc (Suc unat32_max)\<close> and
     \<open>2 \<le> length at'\<close> and
     \<open>length a1'j \<le> length a1'a\<close> and
-    \<open>length a1'a \<le> sint64_max - length at' - 5\<close>
-  shows \<open>append_and_length_fast_code_pre ((True, at'), a1'a)\<close> \<open>5 \<le> sint64_max - length at'\<close>
+    \<open>length a1'a \<le> snat64_max - length at' - 5\<close>
+  shows \<open>append_and_length_fast_code_pre ((True, at'), a1'a)\<close> \<open>5 \<le> snat64_max - length at'\<close>
   using assms unfolding append_and_length_fast_code_pre_def
-  by (auto simp: uint64_max_def uint32_max_def sint64_max_def)
+  by (auto simp: unat64_max_def unat32_max_def snat64_max_def)
 
 lemma add_init_cls_code_bI2:
   assumes
-    \<open>length at' \<le> Suc (Suc uint32_max)\<close>
-  shows \<open>5 \<le> sint64_max - length at'\<close>
+    \<open>length at' \<le> Suc (Suc unat32_max)\<close>
+  shows \<open>5 \<le> snat64_max - length at'\<close>
   using assms unfolding append_and_length_fast_code_pre_def
-  by (auto simp: uint64_max_def uint32_max_def sint64_max_def)
+  by (auto simp: unat64_max_def unat32_max_def snat64_max_def)
 
 lemma add_init_clss_codebI:
   assumes
-    \<open>length at' \<le> Suc (Suc uint32_max)\<close> and
+    \<open>length at' \<le> Suc (Suc unat32_max)\<close> and
     \<open>2 \<le> length at'\<close> and
     \<open>length a1'j \<le> length a1'a\<close> and
-    \<open>length a1'a \<le> uint64_max - (length at' + 5)\<close>
-  shows \<open>length a1'j < uint64_max\<close>
-  using assms by (auto simp: uint64_max_def uint32_max_def)
+    \<open>length a1'a \<le> unat64_max - (length at' + 5)\<close>
+  shows \<open>length a1'j < unat64_max\<close>
+  using assms by (auto simp: unat64_max_def unat32_max_def)
 
 abbreviation clauses_ll_assn where
   \<open>clauses_ll_assn \<equiv> aal_assn' TYPE(64) TYPE(64) unat_lit_assn\<close>
@@ -350,11 +347,11 @@ sepref_register fm_add_new_fast
 lemma add_init_cls_heur_b_alt_def:
   \<open>add_init_cls_heur_b C S = do {
      let C = C;
-     ASSERT(length C \<le> uint32_max + 2);
+     ASSERT(length C \<le> unat32_max + 2);
      ASSERT(length C \<ge> 2);
      let (N, S) = extract_arena_wl_heur_init S;
      let (failed, S) = extract_failed_wl_heur_init S;
-     if (length N \<le> sint64_max - length C - 5 \<and> \<not>failed)
+     if (length N \<le> snat64_max - length C - 5 \<and> \<not>failed)
      then do {
        let (vdom, S) = extract_vdom_wl_heur_init S;
        let (ivdom, S) = extract_ivdom_wl_heur_init S;
@@ -580,7 +577,7 @@ abbreviation nat_lit_list_hm_assn where
 
 sepref_def init_next_size_impl
   is \<open>RETURN o init_next_size\<close>
-  :: \<open>[\<lambda>L. L \<le> uint32_max div 2]\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
+  :: \<open>[\<lambda>L. L \<le> unat32_max div 2]\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
   unfolding init_next_size_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
@@ -607,10 +604,10 @@ sepref_def nat_lit_lits_init_assn_assn_in
 
 lemma [sepref_fr_rules]:
   \<open>(uncurry nat_lit_lits_init_assn_assn_in,  uncurry (RETURN \<circ>\<circ> op_set_insert))
-  \<in> [\<lambda>(a, b). a \<le> uint32_max div 2]\<^sub>a
+  \<in> [\<lambda>(a, b). a \<le> unat32_max div 2]\<^sub>a
     atom_assn\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow> nat_lit_list_hm_assn\<close>
   by (rule nat_lit_lits_init_assn_assn_in.refine[FCOMP add_to_atms_ext_op_set_insert
-  [unfolded convert_fref op_set_insert_def[symmetric]]])
+  [unfolded op_set_insert_def[symmetric]]])
 hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 lemma while_nfoldli:
   "do {
@@ -659,9 +656,9 @@ sepref_def extract_atms_clss_imp
 
 lemma extract_atms_clss_hnr[sepref_fr_rules]:
   \<open>(uncurry extract_atms_clss_imp, uncurry (RETURN \<circ>\<circ> extract_atms_clss))
-    \<in> [\<lambda>(a, b). \<forall>C\<in>set a. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max]\<^sub>a
+    \<in> [\<lambda>(a, b). \<forall>C\<in>set a. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max]\<^sub>a
       (clauses_ll_assn)\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow> nat_lit_list_hm_assn\<close>
-  using extract_atms_clss_imp.refine[FCOMP extract_atms_clss_i_extract_atms_clss[unfolded convert_fref]]
+  using extract_atms_clss_imp.refine[FCOMP extract_atms_clss_i_extract_atms_clss]
   by simp
 
 sepref_def extract_atms_clss_imp_empty_assn
@@ -681,7 +678,7 @@ lemma extract_atms_clss_imp_empty_assn[sepref_fr_rules]:
   \<open>(uncurry0 extract_atms_clss_imp_empty_assn, uncurry0 (RETURN op_extract_list_empty))
     \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
   using extract_atms_clss_imp_empty_assn.refine[unfolded uncurry0_def, FCOMP extract_atms_clss_imp_empty_rel
-    [unfolded convert_fref]]
+    ]
   unfolding uncurry0_def
   by simp
 
@@ -788,7 +785,7 @@ proof -
        hrp_comp (isasat_atms_ext_rel_assn\<^sup>d) isasat_atms_ext_rel \<rightarrow> lits_with_max_assn\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF extract_lits_sorted_code.refine
-      extract_lits_sorted_mset_set[unfolded convert_fref]]
+      extract_lits_sorted_mset_set]
       unfolding H
     by auto
 
@@ -898,28 +895,37 @@ lemma finalise_init_code_alt_def:
   \<open>finalise_init_code opts =
   (\<lambda>S. case S of Tuple15 M'  N' D' Q' W' vm \<phi> clvls cach
   lbd vdom ivdom failed lcount mark \<Rightarrow> do {
-  let ((ns, m, fst_As, lst_As, next_search), to_remove) = split_vmtf2 vm;
-   ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
   let init_stats = empty_stats_clss (of_nat(length ivdom));
   let heur = empty_heuristics_stats opts \<phi>;
     mop_free mark; mop_free failed;
-  let vm = recombine_vmtf ((ns, m, the fst_As, the lst_As, next_search), to_remove);
   let occs =  replicate (length W') [];
+  vm \<leftarrow> finalize_bump_init vm;
   RETURN (IsaSAT M' N' D' Q' W' vm
     clvls cach lbd (take 1(replicate 160 (Pos 0))) init_stats
     (Restart_Heuristics heur) (AIvdom_init vdom [] ivdom) lcount opts [] occs)
     })\<close>
-    unfolding finalise_init_code_def mop_free_def empty_heuristics_stats_def split_vmtf2_def
-    by (auto simp: Let_def recombine_vmtf_def split: prod.splits tuple15.splits intro!: ext)
+    unfolding finalise_init_code_def mop_free_def empty_heuristics_stats_def
+    by (auto simp: Let_def split: prod.splits tuple15.splits intro!: ext)
 
+sepref_def finalize_vmtf_init_code
+  is \<open>finalize_vmtf_init\<close>
+  :: \<open>vmtf_init_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_assn\<close>
+  unfolding finalize_vmtf_init_def vmtf_init_assn_def vmtf_assn_def atom.fold_option
+  by sepref
+
+sepref_def finalize_bump_init_code
+  is \<open>finalize_bump_init\<close>
+  :: \<open>heuristic_bump_init_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_bump_assn\<close>
+  unfolding finalize_bump_init_def
+  by sepref
 
 sepref_def finalise_init_code'
   is \<open>uncurry finalise_init_code\<close>
-  :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur_init S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur_init S) \<le> snat64_max]\<^sub>a
       opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply  [[goals_limit=1]]  of_nat_snat[sepref_import_param]
   unfolding finalise_init_code_alt_def isasat_init_assn_def
-     INITIAL_OUTL_SIZE_def[symmetric] atom.fold_the vmtf_remove_assn_def
+     INITIAL_OUTL_SIZE_def[symmetric]
      phase_heur_assn_def op_list_list_len_def[symmetric]
   apply (rewrite at \<open>Pos \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>Pos \<hole>\<close> atom_of_value_def[symmetric])
@@ -928,7 +934,6 @@ sepref_def finalise_init_code'
   apply (rewrite at \<open>IsaSAT _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \<hole> _\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite in \<open>take _ \<hole>\<close> al_fold_custom_replicate)
   apply (rewrite in \<open>replicate _ []\<close> aal_fold_custom_empty(1)[where 'l=64 and 'll=64])
-  apply (rewrite at \<open>let vm = recombine_vmtf _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>occs_assn\<close>])
   by sepref
 
 sepref_register initialise_VMTF
@@ -994,7 +999,7 @@ sepref_register empty_mark_struct combine_conflict combine_ccach combine_lcount
 
 lemma init_state_wl_D'_alt_def:
   \<open>init_state_wl_D' = (\<lambda>(\<A>\<^sub>i\<^sub>n, n). do {
-     ASSERT(Suc (2 * (n)) \<le> uint32_max);
+     ASSERT(Suc (2 * (n)) \<le> unat32_max);
      let n = Suc (n);
      let m = 2 * n;
      M \<leftarrow> init_trail_D \<A>\<^sub>i\<^sub>n n m;
@@ -1002,7 +1007,7 @@ lemma init_state_wl_D'_alt_def:
      let D = combine_conflict (True, 0, replicate n NOTIN);
      let mark = (0, replicate n None);
      let WS = replicate m [];
-     vm \<leftarrow> initialise_VMTF \<A>\<^sub>i\<^sub>n n;
+     vm \<leftarrow> initialize_Bump_Init \<A>\<^sub>i\<^sub>n n;
      let \<phi> = replicate n False;
      let cach = combine_ccach (replicate n SEEN_UNKNOWN, []);
      let lbd = empty_lbd;

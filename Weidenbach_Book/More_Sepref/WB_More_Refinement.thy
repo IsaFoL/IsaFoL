@@ -5,10 +5,10 @@ theory WB_More_Refinement
     "HOL-Library.Rewrite"
     "Isabelle_LLVM.Refine_Monadic_Thin"
     \<comment> \<open>don't import \<open>Refine_Monadic.Monadic\<close>, that imports too much.\<close>
+    Isabelle_LLVM.Sepref_Rules
     Isabelle_LLVM.Sepref_Misc
     More_Refinement_Libs.WB_More_Refinement_Loops
     WB_More_Refinement_List
-      \<comment> \<open>TODO: replace by a Isabelle\_LLVM.More\_Notations to fix \<^text>\<open>WB_More_IICF_SML.thy\<close>\<close>
 begin
 
 no_notation funcset (infixr "\<rightarrow>" 60)
@@ -29,32 +29,8 @@ theories from this attempt like fref defined below.
 
 Additionaly some of the things developed here moved to Isabelle\_LLVM.
 \<close>
-(*
-  term \<open>a \<rightarrow>\<^sub>f b\<close>
-no_notation fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
-no_notation freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60) *)
 
 hide_const Autoref_Fix_Rel.CONSTRAINT
-
-definition fref :: "('c \<Rightarrow> bool) \<Rightarrow> ('a \<times> 'c) set \<Rightarrow> ('b \<times> 'd) set
-           \<Rightarrow> (('a \<Rightarrow> 'b) \<times> ('c \<Rightarrow> 'd)) set"
-    ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
-  where "[P]\<^sub>f R \<rightarrow> S \<equiv> {(f,g). \<forall>x y. P y \<and> (x,y)\<in>R \<longrightarrow> (f x, g y)\<in>S}"
-
-abbreviation freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60) where "R \<rightarrow>\<^sub>f S \<equiv> ([\<lambda>_. True]\<^sub>f R \<rightarrow> S)"
-
-lemma frefI[intro?]:
-  assumes "\<And>x y. \<lbrakk>P y; (x,y)\<in>R\<rbrakk> \<Longrightarrow> (f x, g y)\<in>S"
-  shows "(f,g)\<in>fref P R S"
-  using assms
-  unfolding fref_def
-  by auto
-
-lemma fref_mono: "\<lbrakk> \<And>x. P' x \<Longrightarrow> P x; R' \<subseteq> R; S \<subseteq> S' \<rbrakk>
-    \<Longrightarrow> fref P R S \<subseteq> fref P' R' S'"
-    unfolding fref_def
-    by auto blast
-
 
 section \<open>Some Tooling for Refinement\<close>
 
@@ -98,10 +74,6 @@ method "to_\<Down>" =
    unfold Ball2_split_def all_to_meta;
    intro allI impI)
 
-
-lemma fref_param1: "R\<rightarrow>S = fref (\<lambda>_. True) R S"
-  by (auto simp: fref_def fun_relD)
-
 lemma fref_syn_invert:
   \<open>a = a' \<Longrightarrow> b \<subseteq> b' \<Longrightarrow> a \<rightarrow>\<^sub>f b \<subseteq> a' \<rightarrow>\<^sub>f b'\<close>
   unfolding fref_param1[symmetric]
@@ -126,9 +98,9 @@ section \<open>More Theorems for Refinement\<close>
 
 lemma fref_weaken_pre_weaken:
   assumes "\<And>x. P x \<longrightarrow> P' x"
-  assumes "(f,h) \<in> fref P' R S"
+  assumes "(f,h) \<in> frefnd P' R S"
   assumes \<open>S \<subseteq> S'\<close>
-  shows "(f,h) \<in> fref P R S'"
+  shows "(f,h) \<in> frefnd P R S'"
   using assms unfolding fref_def by blast
 
 lemma fref_to_Down:

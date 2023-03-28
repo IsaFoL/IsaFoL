@@ -130,13 +130,13 @@ definition (in -)fm_add_new_fast where
  [simp]: \<open>fm_add_new_fast = fm_add_new\<close>
 
 lemma (in -)append_and_length_code_fast:
-  \<open>length ba \<le> Suc (Suc uint32_max) \<Longrightarrow>
+  \<open>length ba \<le> Suc (Suc unat32_max) \<Longrightarrow>
        2 \<le> length ba \<Longrightarrow>
-       length b \<le> uint64_max - (uint32_max + 5) \<Longrightarrow>
+       length b \<le> unat64_max - (unat32_max + 5) \<Longrightarrow>
        (aa, header_size ba) \<in> uint64_nat_rel \<Longrightarrow>
        (ab, length b) \<in> uint64_nat_rel \<Longrightarrow>
-       length b + header_size ba \<le> uint64_max\<close>
-  by (auto simp: uint64_max_def uint32_max_def header_size_def)
+       length b + header_size ba \<le> unat64_max\<close>
+  by (auto simp: unat64_max_def unat32_max_def header_size_def)
 
 
 
@@ -146,8 +146,8 @@ definition (in -)five_uint64_nat where
   [simp]: \<open>five_uint64_nat = (5 :: nat)\<close>
 
 definition append_and_length_fast_code_pre where
-  \<open>append_and_length_fast_code_pre \<equiv> \<lambda>((b, C), N). length C \<le> uint32_max+2 \<and> length C \<ge> 2 \<and>
-          length N + length C + MAX_HEADER_SIZE \<le> sint64_max\<close>
+  \<open>append_and_length_fast_code_pre \<equiv> \<lambda>((b, C), N). length C \<le> unat32_max+2 \<and> length C \<ge> 2 \<and>
+          length N + length C + MAX_HEADER_SIZE \<le> snat64_max\<close>
 
 
 lemma fm_add_new_alt_def:

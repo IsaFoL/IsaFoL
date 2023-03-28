@@ -116,7 +116,7 @@ definition simplify_clauses_with_unit_st2 :: \<open>nat twl_st_wl \<Rightarrow> 
 definition isa_simplify_clause_with_unit2 where
   \<open>isa_simplify_clause_with_unit2 C M N = do {
      l \<leftarrow> mop_arena_length N C;
-    ASSERT(l < length N \<and> l \<le> Suc (uint32_max div 2));
+    ASSERT(l < length N \<and> l \<le> Suc (unat32_max div 2));
     (i, j, N::arena, is_true) \<leftarrow> WHILE\<^sub>T(\<lambda>(i, j, N::arena, b). \<not>b \<and> j < l)
     (\<lambda>(i, j, N, is_true). do {
       ASSERT(i \<le> j \<and> j < l);

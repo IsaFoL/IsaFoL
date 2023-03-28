@@ -1,7 +1,7 @@
 theory Pointer_LLVM
   imports
     Isabelle_LLVM.LLVM_DS_Block_Alloc
-    Isabelle_LLVM.Sorting_Ex_Array_Idxs
+    Examples.Sorting_Ex_Array_Idxs
     More_Sepref.WB_More_Refinement
 begin
 

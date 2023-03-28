@@ -16,7 +16,7 @@ sepref_def delete_index_and_swap_code2
 definition idx_cdom :: \<open>arena \<Rightarrow> nat set\<close> where
  \<open>idx_cdom arena \<equiv> {i. valid_sort_clause_score_pre_at arena i}\<close>
 
-sepref_register clause_score_extract arena_status arena_lbd uint32_max DELETED
+sepref_register clause_score_extract arena_status arena_lbd unat32_max DELETED
 
 lemma valid_sort_clause_score_pre_at_alt_def:
   \<open>valid_sort_clause_score_pre_at arena C \<longleftrightarrow>
@@ -33,7 +33,7 @@ sepref_def (in -) clause_score_extract_code
   :: \<open>[uncurry valid_sort_clause_score_pre_at]\<^sub>a
       arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit = 1]]
-  unfolding clause_score_extract_def valid_sort_clause_score_pre_at_alt_def uint64_max_def[simplified]
+  unfolding clause_score_extract_def valid_sort_clause_score_pre_at_alt_def unat64_max_def[simplified]
   by sepref
 
 sepref_def (in -) clause_score_ordering_code
@@ -166,7 +166,7 @@ sepref_def (in -) arena_length_code
   :: \<open>[uncurry arena_is_valid_clause_idx]\<^sub>a
       arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
   supply [[goals_limit = 1]]
-  unfolding clause_score_extract_def valid_sort_clause_score_pre_at_alt_def uint64_max_def[simplified]
+  unfolding clause_score_extract_def valid_sort_clause_score_pre_at_alt_def unat64_max_def[simplified]
   by sepref
 
 sepref_def (in -) clause_size_ordering_code

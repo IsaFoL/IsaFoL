@@ -5,38 +5,76 @@ begin
 lemma (in -)not_is_None_not_None: \<open>\<not>is_None s \<Longrightarrow> s \<noteq> None\<close>
   by (auto split: option.splits)
 
-definition vmtf_find_next_undef_upd
-  :: \<open>nat multiset \<Rightarrow> (nat,nat)ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
-        (((nat,nat)ann_lits \<times> vmtf_remove_int) \<times> nat option)nres\<close>
+
+definition bump_find_next_undef where \<open>
+  bump_find_next_undef \<A> x M = (if is_focused_heuristics x then vmtf_find_next_undef \<A> (get_focused_heuristics x) M
+  else vmtf_find_next_undef \<A> (get_stable_heuristics x) M)\<close>
+
+definition bump_find_next_undef_upd
+  :: \<open>nat multiset \<Rightarrow> (nat,nat)ann_lits \<Rightarrow> bump_heuristics \<Rightarrow>
+        (((nat,nat)ann_lits \<times> bump_heuristics) \<times> nat option)nres\<close>
 where
-  \<open>vmtf_find_next_undef_upd \<A> = (\<lambda>M vm. do{
-      L \<leftarrow> vmtf_find_next_undef \<A> vm M;
-      RETURN ((M, update_next_search L vm), L)
+  \<open>bump_find_next_undef_upd \<A> = (\<lambda>M vm. do{
+      L \<leftarrow> bump_find_next_undef \<A> vm M;
+      RETURN ((M, isa_bump_update_next_search L vm), L)
   })\<close>
 
-lemma isa_vmtf_find_next_undef_vmtf_find_next_undef:
-  \<open>(uncurry isa_vmtf_find_next_undef_upd, uncurry (vmtf_find_next_undef_upd \<A>)) \<in>
-       trail_pol \<A>  \<times>\<^sub>r  (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<rightarrow>\<^sub>f
-          \<langle>trail_pol \<A> \<times>\<^sub>f  (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<times>\<^sub>f  \<langle>nat_rel\<rangle>option_rel\<rangle>nres_rel \<close>
-  unfolding isa_vmtf_find_next_undef_upd_def vmtf_find_next_undef_upd_def uncurry_def
+
+lemma isa_bump_find_next_undef_bump_find_next_undef:
+  \<open>(uncurry isa_bump_find_next_undef, uncurry (bump_find_next_undef \<A>)) \<in>
+      Id \<times>\<^sub>r trail_pol \<A>  \<rightarrow>\<^sub>f \<langle>\<langle>nat_rel\<rangle>option_rel\<rangle>nres_rel \<close>
+  unfolding isa_bump_find_next_undef_def bump_find_next_undef_def uncurry_def
     defined_atm_def[symmetric]
   apply (intro frefI nres_relI)
   apply (refine_rcg isa_vmtf_find_next_undef_vmtf_find_next_undef[THEN fref_to_Down_curry])
   subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
+
+lemma isa_vmtf_find_next_undef_vmtf_find_next_undef:
+  \<open>(uncurry isa_vmtf_find_next_undef_upd, uncurry (bump_find_next_undef_upd \<A>)) \<in>
+       trail_pol \<A>  \<times>\<^sub>r  Id \<rightarrow>\<^sub>f
+          \<langle>trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f  \<langle>nat_rel\<rangle>option_rel\<rangle>nres_rel \<close>
+  unfolding isa_vmtf_find_next_undef_upd_def isa_vmtf_find_next_undef_upd_def uncurry_def
+    defined_atm_def[symmetric] bump_find_next_undef_upd_def
+  apply (intro frefI nres_relI)
+  apply (refine_rcg isa_bump_find_next_undef_bump_find_next_undef[THEN fref_to_Down_curry])
+  subgoal by auto
   subgoal by (auto simp: update_next_search_def split: prod.splits)
   done
 
+lemma is_focused_heuristics_isa_bump_update_next_search[simp]:
+  \<open>is_focused_heuristics (isa_bump_update_next_search a x) = is_focused_heuristics x\<close>
+  \<open>is_focused_heuristics x \<Longrightarrow> get_stable_heuristics (isa_bump_update_next_search a x) = get_stable_heuristics x\<close>
+  \<open>is_stable_heuristics x \<Longrightarrow> get_focused_heuristics (isa_bump_update_next_search a x) = get_focused_heuristics x\<close>
+  by (auto simp: isa_bump_update_next_search_def)
+
+lemma bump_find_next_undef_ref:
+  assumes
+    vmtf: \<open>x \<in> bump_heur \<A> M\<close>
+  shows \<open>bump_find_next_undef \<A> x M
+     \<le> \<Down> Id (SPEC (\<lambda>L. isa_bump_update_next_search L x \<in> bump_heur \<A> M \<and>
+        (L = None \<longrightarrow> (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<A>. defined_lit M L)) \<and>
+    (L \<noteq> None \<longrightarrow> Pos (the L) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> undefined_lit M (Pos (the L)))))\<close>
+  using assms
+  unfolding bump_find_next_undef_def
+  apply (cases \<open>get_focused_heuristics x\<close>; cases \<open>get_stable_heuristics x\<close>)
+  apply refine_vcg
+  by (auto intro!: vmtf_find_next_undef_ref[THEN order_trans] simp: bump_heur_def
+    isa_bump_update_next_search_def update_next_search_def)
+
 definition find_undefined_atm
-  :: \<open>nat multiset \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
-       (((nat,nat) ann_lits \<times> vmtf_remove_int) \<times> nat option) nres\<close>
+  :: \<open>nat multiset \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> bump_heuristics \<Rightarrow>
+       (((nat,nat) ann_lits \<times> bump_heuristics) \<times> nat option) nres\<close>
 where
   \<open>find_undefined_atm \<A> M _ = SPEC(\<lambda>((M', vm), L).
      (L \<noteq> None \<longrightarrow> Pos (the L) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> undefined_atm M (the L)) \<and>
-     (L = None \<longrightarrow> (\<forall>K\<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. defined_lit M K)) \<and> M = M' \<and> vm \<in> vmtf \<A> M)\<close>
+     (L = None \<longrightarrow> (\<forall>K\<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. defined_lit M K)) \<and> M = M' \<and> vm \<in> bump_heur \<A> M)\<close>
 
 definition lit_of_found_atm_D_pre where
 \<open>lit_of_found_atm_D_pre \<A> = (\<lambda>((\<phi>, _), L). L \<noteq> None \<longrightarrow>
-       (the L \<le> uint32_max div 2 \<and> the L \<in># \<A> \<and> phase_save_heur_rel \<A> \<phi> ))\<close>
+       (the L \<le> unat32_max div 2 \<and> the L \<in># \<A> \<and> phase_save_heur_rel \<A> \<phi> ))\<close>
 
 lemma lit_of_found_atm_D_pre:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> isasat_input_bounded \<A> \<Longrightarrow> (L \<noteq> None \<Longrightarrow> the L \<in># \<A>) \<Longrightarrow>
@@ -57,15 +95,15 @@ definition find_unassigned_lit_wl_D_heur_pre where
     )\<close>
 
 lemma vmtf_find_next_undef_upd:
-  \<open>(uncurry (vmtf_find_next_undef_upd \<A>), uncurry (find_undefined_atm \<A>)) \<in>
-     [\<lambda>(M, vm). vm \<in> vmtf \<A> M]\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id \<times>\<^sub>f Id \<times>\<^sub>f \<langle>nat_rel\<rangle>option_rel\<rangle>nres_rel\<close>
-  unfolding vmtf_find_next_undef_upd_def find_undefined_atm_def
+  \<open>(uncurry (bump_find_next_undef_upd \<A>), uncurry (find_undefined_atm \<A>)) \<in>
+     [\<lambda>(M, vm). vm \<in> bump_heur \<A> M]\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id \<times>\<^sub>f Id \<times>\<^sub>f \<langle>nat_rel\<rangle>option_rel\<rangle>nres_rel\<close>
+  unfolding bump_find_next_undef_upd_def find_undefined_atm_def
     update_next_search_def uncurry_def
   apply (intro frefI nres_relI)
   apply (clarify)
   apply (rule bind_refine_spec)
    prefer 2
-   apply (rule vmtf_find_next_undef_ref[simplified])
+   apply (rule bump_find_next_undef_ref[simplified])
   by (auto intro!: RETURN_SPEC_refine simp: image_image defined_atm_def[symmetric])
 
 lemma find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D:
@@ -115,7 +153,7 @@ proof -
        (get_vmtf_heur S)
       \<le> \<Down> {(((M, vm), A), L). A = map_option atm_of L \<and>
               unassigned_atm (bt, bu, bv, bw, bx, by, bz, baa, bab) L \<and>
-             vm \<in> isa_vmtf (all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab)) bt \<and>
+             vm \<in> bump_heur (all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab)) bt \<and>
              (L \<noteq> None \<longrightarrow> the A \<in># all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab)) \<and>
              (M, bt) \<in> trail_pol (all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab))}
          (SPEC (unassigned_atm (bt, bu, bv, bw, bx, by, bz, baa, bab)))\<close>
@@ -137,10 +175,6 @@ proof -
     have pol:
       \<open>(get_trail_wl_heur S, bt) \<in> trail_pol ?\<A>\<close>
       using that by (cases bz; auto simp: twl_st_heur_def)
-    obtain vm0 where
-       vm0: \<open>(snd (get_vmtf_heur S), vm0) \<in> distinct_atoms_rel ?\<A>\<close> and
-       vm: \<open>((fst (get_vmtf_heur S)), vm0) \<in> vmtf ?\<A> bt\<close>
-      using T by (cases bz; cases \<open>get_vmtf_heur S\<close>; auto simp: twl_st_heur_def isa_vmtf_def)
     have [intro]:
        \<open>Multiset.Ball (\<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>) (defined_lit bt) \<Longrightarrow>
 	 atm_of L' \<in># ?\<A> \<Longrightarrow>
@@ -155,23 +189,23 @@ proof -
     show ?thesis
       apply (rule order.trans)
       apply (rule isa_vmtf_find_next_undef_vmtf_find_next_undef[of ?\<A>, THEN fref_to_Down_curry,
-	 of _ _ bt \<open>(fst (get_vmtf_heur S), vm0)\<close>])
+	 of _ _ bt \<open>get_vmtf_heur S\<close>])
       subgoal by fast
       subgoal
-	 using pol vm0 by (cases \<open>get_vmtf_heur S\<close>) (auto simp: twl_st_heur_def all_atms_def[symmetric])
+	 using pol by (cases \<open>get_vmtf_heur S\<close>) (auto simp: twl_st_heur_def all_atms_def[symmetric])
       apply (rule order.trans)
       apply (rule ref_two_step')
-      apply (rule vmtf_find_next_undef_upd[THEN fref_to_Down_curry, of ?\<A> bt \<open>(fst (get_vmtf_heur S), vm0)\<close>])
-      subgoal using vm by (auto simp: all_atms_def)
+      apply (rule vmtf_find_next_undef_upd[THEN fref_to_Down_curry, of ?\<A> bt \<open>get_vmtf_heur S\<close>])
+      subgoal using T by (auto simp: all_atms_def twl_st_heur_def)
       subgoal by auto
-      subgoal using vm vm0 pre
+      subgoal using pre
         apply (cases bab)
 	apply (auto 5 0 simp: find_undefined_atm_def unassigned_atm_def conc_fun_RES all_atms_def[symmetric]
 	   mset_take_mset_drop_mset'
-	   intro!: RES_refine intro: isa_vmtfI)
-	apply (auto intro: isa_vmtfI simp: defined_atm_def)
+	   intro!: RES_refine intro: )
+	apply (auto intro:  simp: defined_atm_def)
 	apply (rule_tac x = \<open>Some (Pos y)\<close> in exI)
-	apply (auto intro: isa_vmtfI simp: defined_atm_def  in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
+	apply (auto intro: simp: defined_atm_def  in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
 	 in_set_all_atms_iff)
 	done
     done
@@ -246,7 +280,7 @@ proof -
   have [simp]:
     \<open>rev (cons_trail_Decided L M) = rev M @ [Decided L]\<close>
     \<open>no_dup (cons_trail_Decided L M) = no_dup (Decided L # M)\<close>
-    \<open>isa_vmtf \<A> (cons_trail_Decided L M) = isa_vmtf \<A> (Decided L # M)\<close>
+    \<open>bump_heur \<A> (cons_trail_Decided L M) = bump_heur \<A> (Decided L # M)\<close>
     for M L \<A>
     by (auto simp: cons_trail_Decided_def)
 
@@ -293,12 +327,12 @@ proof -
 	   isa_length_trail_length_u[THEN fref_to_Down_unRET_Id] out_learned_def
           all_lits_st_alt_def[symmetric] all_atms_st_cons_trail_empty_Q
 	  intro!: cons_trail_Decided_tr[THEN fref_to_Down_unRET_uncurry]
-	    isa_vmtf_consD2)
+	    isa_vmtf_consD)
         by (auto simp add: twl_st_heur_def all_atms_def[symmetric] learned_clss_count_def
 	   isa_length_trail_length_u[THEN fref_to_Down_unRET_Id] out_learned_def
           all_lits_st_alt_def[symmetric] all_atms_st_cons_trail_empty_Q
 	  intro!: cons_trail_Decided_tr[THEN fref_to_Down_unRET_uncurry]
-	    isa_vmtf_consD2)
+	    isa_vmtf_consD)
       done
   qed
 

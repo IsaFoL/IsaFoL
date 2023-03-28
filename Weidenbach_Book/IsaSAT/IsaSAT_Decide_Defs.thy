@@ -5,14 +5,22 @@ begin
 
 chapter \<open>Decide\<close>
 
+definition isa_bump_find_next_undef where \<open>
+  isa_bump_find_next_undef x M = (if is_focused_heuristics x then isa_vmtf_find_next_undef (get_focused_heuristics x) M
+  else isa_vmtf_find_next_undef (get_stable_heuristics x) M)\<close>
+
+definition isa_bump_update_next_search where \<open>
+  isa_bump_update_next_search L x = (if is_focused_heuristics x
+  then set_focused_heuristics (update_next_search L (get_focused_heuristics x)) x
+  else set_stable_heuristics (update_next_search L (get_stable_heuristics x)) x)\<close>
 
 definition isa_vmtf_find_next_undef_upd
-  :: \<open>trail_pol \<Rightarrow> isa_vmtf_remove_int \<Rightarrow>
-        ((trail_pol \<times> isa_vmtf_remove_int) \<times> nat option)nres\<close>
+  :: \<open>trail_pol \<Rightarrow> bump_heuristics \<Rightarrow>
+        ((trail_pol \<times> bump_heuristics) \<times> nat option)nres\<close>
 where
   \<open>isa_vmtf_find_next_undef_upd = (\<lambda>M vm. do{
-      L \<leftarrow> isa_vmtf_find_next_undef vm M;
-      RETURN ((M, update_next_search L vm), L)
+      L \<leftarrow> isa_bump_find_next_undef vm M;
+      RETURN ((M, isa_bump_update_next_search L vm), L)
   })\<close>
 
 definition get_saved_phase_option_heur_pre :: \<open>nat option \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where

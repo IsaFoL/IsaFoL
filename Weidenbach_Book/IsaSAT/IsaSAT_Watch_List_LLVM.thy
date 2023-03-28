@@ -14,18 +14,18 @@ sepref_register mop_append_ll mop_arena_length
 
 sepref_def mop_append_ll_impl
   is \<open>uncurry2 mop_append_ll\<close>
-  :: \<open>[\<lambda>((W, i), _). length (W ! (nat_of_lit i)) < sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((W, i), _). length (W ! (nat_of_lit i)) < snat64_max]\<^sub>a
     watchlist_fast_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a watcher_fast_assn\<^sup>k \<rightarrow> watchlist_fast_assn\<close>
   unfolding mop_append_ll_def
   by sepref
 
 sepref_def rewatch_heur_fast_code
   is \<open>uncurry2 (rewatch_heur)\<close>
-  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> sint64_max) \<and> length arena \<le> sint64_max \<and>
-        length vdom \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> snat64_max) \<and> length arena \<le> snat64_max \<and>
+        length vdom \<le> snat64_max]\<^sub>a
         vdom_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
   supply [[goals_limit=1]]
-     arena_lit_pre_le_sint64_max[dest] arena_is_valid_clause_idx_le_uint64_max[dest]
+     arena_lit_pre_le_snat64_max[dest] arena_is_valid_clause_idx_le_unat64_max[dest]
   supply [simp] = append_ll_def
   supply [dest] = arena_lit_implI(1)
   unfolding rewatch_heur_alt_def Let_def PR_CONST_def

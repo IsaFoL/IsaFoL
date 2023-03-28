@@ -2,6 +2,7 @@ theory IsaSAT_Trail_LLVM
 imports IsaSAT_Literals_LLVM IsaSAT_Trail
 begin
 
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 
 type_synonym trail_pol_fast_assn =
    \<open>32 word array_list64 \<times> tri_bool_assn larray64 \<times> 32 word larray64 \<times>

@@ -3,9 +3,6 @@ theory IsaSAT_Simplify_Units_LLVM
     IsaSAT_Simplify_Clause_Units_LLVM
 begin
 
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
-
 
 lemma isa_simplify_clauses_with_unit_st2_alt_def:
   \<open>isa_simplify_clauses_with_unit_st2 S =
@@ -43,7 +40,7 @@ sepref_register length_ivdom access_ivdom_at
 sepref_register isa_simplify_clauses_with_unit_st2
 sepref_def isa_simplify_clauses_with_unit_st2_code
   is isa_simplify_clauses_with_unit_st2
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding isa_simplify_clauses_with_unit_st2_alt_def
     length_avdom_def[symmetric] Suc_eq_plus1[symmetric] length_ivdom_def[symmetric]
@@ -54,7 +51,7 @@ sepref_def isa_simplify_clauses_with_unit_st2_code
 
 sepref_def isa_simplify_clauses_with_units_st_wl2_code
   is isa_simplify_clauses_with_units_st_wl2
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding isa_simplify_clauses_with_units_st_wl2_def
   supply [[goals_limit=1]]

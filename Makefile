@@ -92,10 +92,10 @@ current: Ordered_Resolution_Prover Functional_Ordered_Resolution_Prover
 # move the html documentation to the locale directory
 doc:
 	mkdir -p $(DESTINATION)/current
-	cp -R $(ISABELLE20211_HOME)/Weidenbach_Book $(DESTINATION)/current || :
-	cp -R $(ISABELLE20211_HOME)/PAC_Checker $(DESTINATION)/current || :
+	cp -R $(ISABELLE2022_HOME)/Weidenbach_Book $(DESTINATION)/current || :
+	cp -R $(ISABELLE2022_HOME)/PAC_Checker $(DESTINATION)/current || :
 	find $(DESTINATION)/current -name "*.html" -exec sed -i -e "s|(\* *\\\\htmllink{\(.*\)} *\*)|<a id=\"\1\"></a>|g" {} \;
-	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2022" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP20211_version)"
+	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2022" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP2022_version)"
 
 refs:
 	../isafol-private/Other/update_refs.pl  --unsafe

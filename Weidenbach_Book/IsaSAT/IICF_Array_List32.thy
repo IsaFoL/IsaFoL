@@ -8,7 +8,7 @@ begin
 
 type_synonym 'a array_list32 = \<open>'a Heap.array \<times> uint32\<close>
 
-definition \<open>is_array_list32 l \<equiv> \<lambda>(a,n). \<exists>\<^sub>Al'. a \<mapsto>\<^sub>a l' * \<up>(nat_of_uint32 n \<le> length l' \<and> l = take (nat_of_uint32 n) l' \<and> length l'>0 \<and> nat_of_uint32 n \<le> uint32_max \<and> length l' \<le> uint32_max)\<close>
+definition \<open>is_array_list32 l \<equiv> \<lambda>(a,n). \<exists>\<^sub>Al'. a \<mapsto>\<^sub>a l' * \<up>(nat_of_uint32 n \<le> length l' \<and> l = take (nat_of_uint32 n) l' \<and> length l'>0 \<and> nat_of_uint32 n \<le> unat32_max \<and> length l' \<le> unat32_max)\<close>
 
 lemma is_array_list32_prec[safe_constraint_rules]: \<open>precise is_array_list32\<close>
   unfolding is_array_list32_def[abs_def]
@@ -22,12 +22,12 @@ definition "arl32_empty \<equiv> do {
 }"
 
 definition "arl32_empty_sz init_cap \<equiv> do {
-  a \<leftarrow> Array.new (min uint32_max (max init_cap minimum_capacity)) default;
+  a \<leftarrow> Array.new (min unat32_max (max init_cap minimum_capacity)) default;
   return (a,0)
 }"
 
-definition uint32_max_uint32 :: uint32 where
-  \<open>uint32_max_uint32 = 2 ^32 - 1\<close>
+definition unat32_max_uint32 :: uint32 where
+  \<open>unat32_max_uint32 = 2 ^32 - 1\<close>
 
 definition "arl32_append \<equiv> \<lambda>(a,n) x. do {
   len \<leftarrow> length_u_code a;
@@ -36,7 +36,7 @@ definition "arl32_append \<equiv> \<lambda>(a,n) x. do {
     a \<leftarrow> Array_upd_u n x a;
     return (a,n+1)
   } else do {
-    let newcap = (if len < uint32_max_uint32 >> 1 then 2 * len else uint32_max_uint32);
+    let newcap = (if len < unat32_max_uint32 >> 1 then 2 * len else unat32_max_uint32);
     a \<leftarrow> array_grow a (nat_of_uint32 newcap) default;
     a \<leftarrow> Array_upd_u n x a;
     return (a,n+1)
@@ -78,10 +78,10 @@ definition arl32_set :: \<open>'a::heap array_list32 \<Rightarrow> uint32 \<Righ
 
 
 lemma arl32_empty_rule[sep_heap_rules]: \<open>< emp > arl32_empty <is_array_list32 []>\<close>
-  by (sep_auto simp: arl32_empty_def is_array_list32_def initial_capacity_def uint32_max_def)
+  by (sep_auto simp: arl32_empty_def is_array_list32_def initial_capacity_def unat32_max_def)
 
 lemma arl32_empty_sz_rule[sep_heap_rules]: \<open>< emp > arl32_empty_sz N <is_array_list32 []>\<close>
-  by (sep_auto simp: arl32_empty_sz_def is_array_list32_def minimum_capacity_def uint32_max_def)
+  by (sep_auto simp: arl32_empty_sz_def is_array_list32_def minimum_capacity_def unat32_max_def)
 
 lemma arl32_copy_rule[sep_heap_rules]: \<open>< is_array_list32 l a > arl32_copy a <\<lambda>r. is_array_list32 l a * is_array_list32 l r>\<close>
   by (sep_auto simp: arl32_copy_def is_array_list32_def)
@@ -89,14 +89,14 @@ lemma arl32_copy_rule[sep_heap_rules]: \<open>< is_array_list32 l a > arl32_copy
 lemma nat_of_uint32_shiftl:  \<open>nat_of_uint32 (xs >> a) = nat_of_uint32 xs >> a\<close>
   by transfer (auto simp: unat_shiftr nat_shifl_div)
 
-lemma [simp]: \<open>nat_of_uint32 uint32_max_uint32 = uint32_max\<close>
-  by (auto simp:  nat_of_uint32_mult_le nat_of_uint32_shiftl uint32_max_uint32_def uint32_max_def)[]
+lemma [simp]: \<open>nat_of_uint32 unat32_max_uint32 = unat32_max\<close>
+  by (auto simp:  nat_of_uint32_mult_le nat_of_uint32_shiftl unat32_max_uint32_def unat32_max_def)[]
 
-lemma \<open>2 * (uint32_max div 2) = uint32_max - 1\<close>
-  by (auto simp:  nat_of_uint32_mult_le nat_of_uint32_shiftl uint32_max_uint32_def uint32_max_def)[]
+lemma \<open>2 * (unat32_max div 2) = unat32_max - 1\<close>
+  by (auto simp:  nat_of_uint32_mult_le nat_of_uint32_shiftl unat32_max_uint32_def unat32_max_def)[]
 
 lemma arl32_append_rule[sep_heap_rules]:
-  assumes \<open>length l < uint32_max\<close>
+  assumes \<open>length l < unat32_max\<close>
   shows "< is_array_list32 l a >
       arl32_append a x
     <\<lambda>a. is_array_list32 (l@[x]) a >\<^sub>t"
@@ -104,33 +104,33 @@ proof -
   have [simp]: \<open>\<And>x1 x2 y ys.
        x2 < uint32_of_nat ys \<Longrightarrow>
        nat_of_uint32 x2 \<le> ys \<Longrightarrow>
-       ys \<le> uint32_max \<Longrightarrow> nat_of_uint32 x2 < ys\<close>
+       ys \<le> unat32_max \<Longrightarrow> nat_of_uint32 x2 < ys\<close>
     by (metis nat_of_uint32_less_iff nat_of_uint32_uint32_of_nat_id)
   have [simp]: \<open>\<And>x2 ys. x2 < uint32_of_nat (Suc (ys)) \<Longrightarrow>
-       Suc (ys) \<le> uint32_max \<Longrightarrow>
+       Suc (ys) \<le> unat32_max \<Longrightarrow>
        nat_of_uint32 (x2 + 1) = 1 + nat_of_uint32 x2\<close>
      by (smt ab_semigroup_add_class.add.commute le_neq_implies_less less_or_eq_imp_le
          less_trans_Suc linorder_neqE_nat nat_of_uint32_012(3) nat_of_uint32_add
           nat_of_uint32_less_iff nat_of_uint32_uint32_of_nat_id not_less_eq plus_1_eq_Suc)
   have [dest]: \<open>\<And>x2a x2 ys. x2 < uint32_of_nat (Suc (ys)) \<Longrightarrow>
-       Suc (ys) \<le> uint32_max \<Longrightarrow>
+       Suc (ys) \<le> unat32_max \<Longrightarrow>
        nat_of_uint32 x2 = Suc x2a \<Longrightarrow>Suc x2a \<le> ys\<close>
     by (metis less_Suc_eq_le nat_of_uint32_less_iff nat_of_uint32_uint32_of_nat_id)
-  have [simp]: \<open>\<And>ys. ys \<le> uint32_max \<Longrightarrow>
-       uint32_of_nat ys \<le> uint32_max_uint32 >> Suc 0 \<Longrightarrow>
+  have [simp]: \<open>\<And>ys. ys \<le> unat32_max \<Longrightarrow>
+       uint32_of_nat ys \<le> unat32_max_uint32 >> Suc 0 \<Longrightarrow>
        nat_of_uint32 (2 * uint32_of_nat ys) = 2 * ys\<close>
    by (subst (asm) nat_of_uint32_le_iff[symmetric])
-    (auto simp: nat_of_uint32_uint32_of_nat_id uint32_max_uint32_def uint32_max_def nat_of_uint32_shiftl
+    (auto simp: nat_of_uint32_uint32_of_nat_id unat32_max_uint32_def unat32_max_def nat_of_uint32_shiftl
        nat_of_uint32_mult_le)
-  have [simp]: \<open>\<And>ys. ys \<le> uint32_max \<Longrightarrow>
-       uint32_of_nat ys \<le> uint32_max_uint32 >> Suc 0 \<longleftrightarrow> ys \<le> uint32_max div 2\<close>
+  have [simp]: \<open>\<And>ys. ys \<le> unat32_max \<Longrightarrow>
+       uint32_of_nat ys \<le> unat32_max_uint32 >> Suc 0 \<longleftrightarrow> ys \<le> unat32_max div 2\<close>
    by (subst nat_of_uint32_le_iff[symmetric])
-    (auto simp: nat_of_uint32_uint32_of_nat_id uint32_max_uint32_def uint32_max_def nat_of_uint32_shiftl
+    (auto simp: nat_of_uint32_uint32_of_nat_id unat32_max_uint32_def unat32_max_def nat_of_uint32_shiftl
        nat_of_uint32_mult_le)
-  have [simp]: \<open>\<And>ys. ys \<le> uint32_max \<Longrightarrow>
-       uint32_of_nat ys < uint32_max_uint32 >> Suc 0 \<longleftrightarrow> ys < uint32_max div 2\<close>
+  have [simp]: \<open>\<And>ys. ys \<le> unat32_max \<Longrightarrow>
+       uint32_of_nat ys < unat32_max_uint32 >> Suc 0 \<longleftrightarrow> ys < unat32_max div 2\<close>
    by (subst nat_of_uint32_less_iff[symmetric])
-    (auto simp: nat_of_uint32_uint32_of_nat_id uint32_max_uint32_def uint32_max_def nat_of_uint32_shiftl
+    (auto simp: nat_of_uint32_uint32_of_nat_id unat32_max_uint32_def unat32_max_def nat_of_uint32_shiftl
        nat_of_uint32_mult_le)
 
   show ?thesis
@@ -278,7 +278,7 @@ begin
     by sep_auto
   sepref_decl_impl arl32_copy: arl32_copy_hnr_aux .
 
-  lemma arl32_append_hnr_aux: \<open>(uncurry arl32_append,uncurry (RETURN oo op_list_append)) \<in> [\<lambda>(xs, x). length xs < uint32_max]\<^sub>a (is_array_list32\<^sup>d *\<^sub>a id_assn\<^sup>k) \<rightarrow> is_array_list32\<close>
+  lemma arl32_append_hnr_aux: \<open>(uncurry arl32_append,uncurry (RETURN oo op_list_append)) \<in> [\<lambda>(xs, x). length xs < unat32_max]\<^sub>a (is_array_list32\<^sup>d *\<^sub>a id_assn\<^sup>k) \<rightarrow> is_array_list32\<close>
     by sep_auto
   sepref_decl_impl arl32_append: arl32_append_hnr_aux
     unfolding fref_param1 by (auto intro!: frefI nres_relI simp: list_rel_imp_same_length)

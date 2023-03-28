@@ -37,7 +37,7 @@ qed
 
 
 lemma cdcl_twl_stgy_prog_early_wl_heur_cdcl_twl_stgy_prog_early_wl_D:
-  assumes r: \<open>r \<le> sint64_max\<close>
+  assumes r: \<open>r \<le> snat64_max\<close>
   shows \<open>(cdcl_twl_stgy_prog_bounded_wl_heur, cdcl_twl_stgy_prog_early_wl) \<in>
     {(S,T). (S, T) \<in> twl_st_heur''' r} \<rightarrow>\<^sub>f
     \<langle>bool_rel \<times>\<^sub>r  twl_st_heur\<rangle>nres_rel\<close>
@@ -75,7 +75,7 @@ proof -
         unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down]
         WHILEIT_refine[where R = \<open>{((ebrk, brk, T), (ebrk', brk', T')).
 	    (ebrk = ebrk') \<and> (brk = brk') \<and> (T, T')  \<in> twl_st_heur \<and>
-	      (ebrk \<longrightarrow> isasat_fast T) \<and> (length (get_clauses_wl_heur T) \<le> sint64_max)}\<close>])
+	      (ebrk \<longrightarrow> isasat_fast T) \<and> (length (get_clauses_wl_heur T) \<le> snat64_max)}\<close>])
     subgoal using r by auto
     subgoal by fast
     subgoal by auto
@@ -84,7 +84,7 @@ proof -
     apply (rule twl_st_heur'''; assumption)
     subgoal
       apply clarsimp
-      by (auto simp: isasat_fast_def sint64_max_def uint32_max_def
+      by (auto simp: isasat_fast_def snat64_max_def unat32_max_def
       dest: )
     subgoal by auto
     done

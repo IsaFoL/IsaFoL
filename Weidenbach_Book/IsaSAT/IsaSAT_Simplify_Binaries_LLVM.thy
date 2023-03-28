@@ -1,11 +1,8 @@
 theory IsaSAT_Simplify_Binaries_LLVM
-  imports 
+  imports
     IsaSAT_Simplify_Clause_Units_LLVM
     IsaSAT_Simplify_Binaries_Defs
 begin
-
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
 
 abbreviation ahm_assn :: \<open>_\<close> where
@@ -19,7 +16,7 @@ sepref_def ahm_create_code
   by sepref
 
 definition encoded_irred_indices where
-  \<open>encoded_irred_indices = {(a, b::nat \<times> bool). a \<le> int sint64_max \<and> -a \<le> int sint64_max \<and> (snd b \<longleftrightarrow> a > 0) \<and> fst b = (if a < 0 then nat (-a) else nat a) \<and> fst b \<noteq> 0}\<close>
+  \<open>encoded_irred_indices = {(a, b::nat \<times> bool). a \<le> int snat64_max \<and> -a \<le> int snat64_max \<and> (snd b \<longleftrightarrow> a > 0) \<and> fst b = (if a < 0 then nat (-a) else nat a) \<and> fst b \<noteq> 0}\<close>
 
 sepref_def ahm_is_marked_code
   is \<open>uncurry ahm_is_marked\<close>
@@ -59,7 +56,7 @@ definition encoded_irred_index_get where
   \<open>encoded_irred_index_get a = fst a\<close>
 
 definition encoded_irred_index_get_int where
-  \<open>encoded_irred_index_get_int a = do {ASSERT (a \<le> int sint64_max \<and> -a \<le> int sint64_max); RETURN (if a > 0 then nat a else nat (-a))}\<close>
+  \<open>encoded_irred_index_get_int a = do {ASSERT (a \<le> int snat64_max \<and> -a \<le> int snat64_max); RETURN (if a > 0 then nat a else nat (-a))}\<close>
 
 lemma encoded_irred_index_get:
   \<open>(encoded_irred_index_get_int, RETURN o encoded_irred_index_get) \<in> encoded_irred_indices \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
@@ -84,21 +81,21 @@ lemma [sepref_fr_rules]:
     pure_true_conv Exists_eq_simp snat_invar_def word_msb_sint nat_sint_snat)
   done
 lemma [sepref_fr_rules]:
-  \<open>(Mreturn o (\<lambda>x. -x), RETURN o uminus) \<in> [\<lambda>a. a \<le> int sint64_max \<and> -a \<le> int sint64_max]\<^sub>a (sint_assn' TYPE(64))\<^sup>k \<rightarrow> (sint_assn' TYPE(64))\<close>
+  \<open>(Mreturn o (\<lambda>x. -x), RETURN o uminus) \<in> [\<lambda>a. a \<le> int snat64_max \<and> -a \<le> int snat64_max]\<^sub>a (sint_assn' TYPE(64))\<^sup>k \<rightarrow> (sint_assn' TYPE(64))\<close>
   apply sepref_to_hoare
   apply vcg
   subgoal for x xi asf s
     using sdiv_word_min'[of xi 1] sdiv_word_max'[of xi 1]
   apply (auto simp: sint_rel_def ENTAILS_def snat_rel_def snat.rel_def br_def sint.rel_def
     pure_true_conv Exists_eq_simp snat_invar_def word_msb_sint nat_sint_snat
-    signed_arith_ineq_checks_to_eq word_size sint64_max_def word_size)
+    signed_arith_ineq_checks_to_eq word_size snat64_max_def word_size)
   apply (subst signed_arith_ineq_checks_to_eq[symmetric])
   apply (auto simp: word_size pure_true_conv)
   done
   done
 
 lemma encoded_irred_index_get_int_alt_def:
-  \<open>encoded_irred_index_get_int a = do {ASSERT (a \<le> int sint64_max \<and> -a \<le> int sint64_max); RETURN (if a > 0 then nat a else nat (0-a))}\<close>
+  \<open>encoded_irred_index_get_int a = do {ASSERT (a \<le> int snat64_max \<and> -a \<le> int snat64_max); RETURN (if a > 0 then nat a else nat (0-a))}\<close>
   unfolding encoded_irred_index_get_int_def by auto
 sepref_def encoded_irred_index_irred_get_impl
   is \<open>encoded_irred_index_get_int\<close>
@@ -118,10 +115,8 @@ definition encoded_irred_index_set where
 definition encoded_irred_index_set_int where
   \<open>encoded_irred_index_set_int a b = do { (if b then RETURN (int a) else RETURN (- int a))}\<close>
 
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-
 lemma encoded_irred_index_set:
-  \<open>(uncurry encoded_irred_index_set_int, uncurry (RETURN oo encoded_irred_index_set)) \<in> [\<lambda>(a,b). a \<noteq> 0 \<and> a \<le> sint64_max]\<^sub>f nat_rel \<times>\<^sub>r bool_rel \<rightarrow> \<langle>encoded_irred_indices\<rangle>nres_rel\<close>
+  \<open>(uncurry encoded_irred_index_set_int, uncurry (RETURN oo encoded_irred_index_set)) \<in> [\<lambda>(a,b). a \<noteq> 0 \<and> a \<le> snat64_max]\<^sub>f nat_rel \<times>\<^sub>r bool_rel \<rightarrow> \<langle>encoded_irred_indices\<rangle>nres_rel\<close>
   by (clarsimp simp: encoded_irred_indices_def encoded_irred_index_set_int_def
     encoded_irred_index_set_def  intro!: nres_relI frefI)
 
@@ -181,7 +176,7 @@ proof -
     by (auto simp: encoded_irred_indices_def)
   show ?thesis
     unfolding fref_param1
-    apply (rule ahm_set_marked_set_marked[unfolded convert_fref])
+    apply (rule ahm_set_marked_set_marked)
     apply (rule H)
     done
 qed
@@ -194,21 +189,21 @@ proof -
     by (auto simp: encoded_irred_indices_def)
   show ?thesis
     unfolding fref_param1
-    apply (rule ahm_update_marked_update_marked[unfolded convert_fref])
+    apply (rule ahm_update_marked_update_marked)
     apply (rule H)
     done
 qed
 
 thm 
-  ahm_create_code.refine[FCOMP ahm_create_create[unfolded convert_fref, where R= encoded_irred_indices]]
+  ahm_create_code.refine[FCOMP ahm_create_create[ where R= encoded_irred_indices]]
 
 lemmas [unfolded ahm_full_assn_def[symmetric], sepref_fr_rules] =
-  ahm_create_code.refine[FCOMP ahm_create_create[unfolded convert_fref, where R= encoded_irred_indices]]
-  ahm_empty_code.refine[FCOMP ahm_empty_empty[unfolded convert_fref, where R = encoded_irred_indices]]
-  ahm_is_marked_code.refine[FCOMP ahm_is_marked_is_marked[unfolded convert_fref, where R = encoded_irred_indices]]
+  ahm_create_code.refine[FCOMP ahm_create_create[ where R= encoded_irred_indices]]
+  ahm_empty_code.refine[FCOMP ahm_empty_empty[ where R = encoded_irred_indices]]
+  ahm_is_marked_code.refine[FCOMP ahm_is_marked_is_marked[ where R = encoded_irred_indices]]
   ahm_get_marked_code.refine[FCOMP ahm_get_marked_get_marked[where R = encoded_irred_indices]]
   ahm_empty_code.refine[FCOMP ahm_empty_empty, where R19 = encoded_irred_indices]
-  ahm_set_marked_code.refine[FCOMP ahm_set_marked_set_marked[unfolded convert_fref]]
+  ahm_set_marked_code.refine[FCOMP ahm_set_marked_set_marked]
   ahm_update_marked_code.refine[FCOMP ahm_update_marked_update_marked]
 
 
@@ -238,7 +233,7 @@ lemma isa_clause_remove_duplicate_clause_wl_alt_def:
 
 sepref_def isa_clause_remove_duplicate_clause_wl_impl
   is \<open>uncurry isa_clause_remove_duplicate_clause_wl\<close>
-  :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
   sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding isa_clause_remove_duplicate_clause_wl_alt_def
@@ -276,7 +271,7 @@ lemma isa_binary_clause_subres_wl_alt_def:
 
 sepref_def isa_binary_clause_subres_wl_impl
   is \<open>uncurry3 isa_binary_clause_subres_wl\<close>
-  :: \<open>[\<lambda>(((C,L), L'), S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>(((C,L), L'), S). length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
   sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding isa_binary_clause_subres_wl_alt_def[abs_def]
@@ -293,7 +288,7 @@ sepref_def should_eliminate_pure_st_impl
 
 sepref_def isa_deduplicate_binary_clauses_wl_code
   is \<open>uncurry2 isa_deduplicate_binary_clauses_wl\<close>
-  :: \<open>[\<lambda>((L, CS), S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>((L, CS), S). length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
   unat_lit_assn\<^sup>k *\<^sub>a ahm_full_assn\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
   ahm_full_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
@@ -308,7 +303,7 @@ sepref_def isa_deduplicate_binary_clauses_wl_code
   by sepref
 
 
-sepref_register get_vmtf_heur_array_nth get_vmtf_heur_fst
+sepref_register get_bump_heur_array_nth get_vmtf_heur_fst
   isa_deduplicate_binary_clauses_wl
 
 lemma Massign_split: \<open>do{ x \<leftarrow> (M :: _ nres); f x} = do{(a,b) \<leftarrow> M; f (a,b)}\<close>
@@ -325,7 +320,7 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def:
         ASSERT (n \<noteq> None);
         let A = the n;
         ASSERT (A < length (get_vmtf_heur_array S));
-        ASSERT (A \<le> uint32_max div 2);
+        ASSERT (A \<le> unat32_max div 2);
         added \<leftarrow> mop_is_marked_added_heur_st S A;
         if \<not>skip \<or> \<not>added then RETURN (get_next (get_vmtf_heur_array S ! A), CS, S)
         else do {
@@ -353,10 +348,10 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def:
 
 sepref_def isa_deduplicate_binary_clauses_code
   is isa_mark_duplicated_binary_clauses_as_garbage_wl2
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max \<and> learned_clss_count S \<le> unat64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def
-    get_vmtf_heur_array_nth_def[symmetric] atom.fold_option nres_monad3
+    get_bump_heur_array_nth_def[symmetric] atom.fold_option nres_monad3
     length_watchlist_def[unfolded length_ll_def, symmetric]
     length_watchlist_raw_def[symmetric]
   apply (rewrite at \<open>let _ = get_vmtf_heur_array _ in _\<close> Let_def)

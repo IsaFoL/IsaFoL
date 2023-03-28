@@ -1,9 +1,6 @@
 theory LBD_LLVM
   imports LBD IsaSAT_Literals_LLVM
 begin
-(*TODO bundle?*)
-no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
 type_synonym 'a larray64 = \<open>('a,64) larray\<close>
 type_synonym lbd_assn = \<open>(32 word) larray64 \<times> 32 word \<times> 32 word\<close>
@@ -31,8 +28,8 @@ sepref_def level_in_lbd_code
 lemma level_in_lbd_hnr[sepref_fr_rules]:
   \<open>(uncurry level_in_lbd_code, uncurry (RETURN \<circ>\<circ> level_in_lbd)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a
      lbd_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  supply lbd_ref_def[simp] uint32_max_def[simp]
-  using level_in_lbd_code.refine[FCOMP level_in_lbd_ref_level_in_lbd[unfolded convert_fref]]
+  supply lbd_ref_def[simp] unat32_max_def[simp]
+  using level_in_lbd_code.refine[FCOMP level_in_lbd_ref_level_in_lbd]
   unfolding lbd_assn_def[symmetric]
   by simp
 
@@ -48,27 +45,27 @@ sepref_def lbd_empty_loop_code
 
 sepref_def lbd_empty_cheap_code
   is \<open>lbd_empty_cheap_ref\<close>
-  :: \<open>[\<lambda>(_, stamp, _). stamp < uint32_max]\<^sub>a lbd_int_assn\<^sup>d  \<rightarrow> lbd_int_assn\<close>
+  :: \<open>[\<lambda>(_, stamp, _). stamp < unat32_max]\<^sub>a lbd_int_assn\<^sup>d  \<rightarrow> lbd_int_assn\<close>
   unfolding lbd_empty_cheap_ref_def
   supply [[goals_limit=1]]
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
-lemma uint32_max_alt_def: "uint32_max = 4294967295"
-  by (auto simp: uint32_max_def)
+lemma unat32_max_alt_def: "unat32_max = 4294967295"
+  by (auto simp: unat32_max_def)
 sepref_register lbd_empty_cheap_ref lbd_empty_loop_ref
 
 sepref_def lbd_empty_code
   is \<open>lbd_empty_ref\<close>
   :: \<open>lbd_int_assn\<^sup>d  \<rightarrow>\<^sub>a lbd_int_assn\<close>
-  unfolding lbd_empty_ref_def uint32_max_alt_def
+  unfolding lbd_empty_ref_def unat32_max_alt_def
   supply [[goals_limit=1]]
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 lemma lbd_empty_hnr[sepref_fr_rules]:
   \<open>(lbd_empty_code, lbd_empty) \<in> lbd_assn\<^sup>d \<rightarrow>\<^sub>a lbd_assn\<close>
-  using lbd_empty_code.refine[FCOMP lbd_empty_ref_lbd_empty[unfolded convert_fref]]
+  using lbd_empty_code.refine[FCOMP lbd_empty_ref_lbd_empty]
   unfolding lbd_assn_def .
 
 sepref_def empty_lbd_code
@@ -82,7 +79,7 @@ sepref_def empty_lbd_code
 
 lemma empty_lbd_ref_empty_lbd:
   \<open>(uncurry0 (RETURN empty_lbd_ref), uncurry0 (RETURN empty_lbd)) \<in> unit_rel \<rightarrow>\<^sub>f \<langle>lbd_ref\<rangle>nres_rel\<close>
-  using empty_lbd_ref_empty_lbd unfolding uncurry0_def convert_fref .
+  using empty_lbd_ref_empty_lbd unfolding uncurry0_def .
 
 lemma empty_lbd_hnr[sepref_fr_rules]:
   \<open>(Sepref_Misc.uncurry0 empty_lbd_code, Sepref_Misc.uncurry0 (RETURN empty_lbd)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_assn\<close>
@@ -97,7 +94,7 @@ sepref_def get_LBD_code
 
 lemma get_LBD_hnr[sepref_fr_rules]:
   \<open>(get_LBD_code, get_LBD) \<in> lbd_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  using get_LBD_code.refine[FCOMP get_LBD_ref_get_LBD[unfolded convert_fref],
+  using get_LBD_code.refine[FCOMP get_LBD_ref_get_LBD,
      unfolded lbd_assn_def[symmetric]] .
 
 
@@ -107,7 +104,7 @@ lemmas list_grow_alt = list_grow_def[unfolded op_list_grow_init'_def[symmetric]]
 
 sepref_def lbd_write_code
   is [] \<open>uncurry lbd_ref_write\<close>
-  :: \<open> [\<lambda>(lbd, i). i \<le> Suc (uint32_max div 2)]\<^sub>a
+  :: \<open> [\<lambda>(lbd, i). i \<le> Suc (unat32_max div 2)]\<^sub>a
      lbd_int_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lbd_int_assn\<close>
   supply [[goals_limit=1]]
   unfolding lbd_ref_write_def length_uint32_nat_def list_grow_alt max_def
@@ -124,9 +121,9 @@ sepref_def lbd_write_code
 
 lemma lbd_write_hnr_[sepref_fr_rules]:
   \<open>(uncurry lbd_write_code, uncurry (RETURN \<circ>\<circ> lbd_write))
-    \<in> [\<lambda>(lbd, i). i \<le> Suc (uint32_max div 2)]\<^sub>a
+    \<in> [\<lambda>(lbd, i). i \<le> Suc (unat32_max div 2)]\<^sub>a
       lbd_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lbd_assn\<close>
-  using lbd_write_code.refine[FCOMP lbd_ref_write_lbd_write[unfolded convert_fref]]
+  using lbd_write_code.refine[FCOMP lbd_ref_write_lbd_write]
   unfolding lbd_assn_def .
 
 schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE lbd_assn ?fr\<close>

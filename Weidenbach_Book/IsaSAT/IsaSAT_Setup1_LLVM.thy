@@ -98,8 +98,8 @@ definition count_decided_st_heur_impl where
 sepref_register extract_trail_wl_heur count_decided_pol count_decided_st_heur
 
 
-definition isa_count_decided_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
-  \<open>isa_count_decided_st_fast_code = read_trail_wl_heur_code count_decided_pol_impl\<close>
+definition count_decided_st_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>count_decided_st_heur_fast_code = read_trail_wl_heur_code count_decided_pol_impl\<close>
 
 
 global_interpretation count_decided: read_trail_param_adder0 where
@@ -107,20 +107,20 @@ global_interpretation count_decided: read_trail_param_adder0 where
   f' = \<open>RETURN o count_decided_pol\<close> and
   x_assn = uint32_nat_assn and
   P = \<open>(\<lambda>S. True)\<close>
-  rewrites \<open>read_trail_wl_heur (RETURN o count_decided_pol) = RETURN o isa_count_decided_st\<close> and
-  \<open>read_trail_wl_heur_code count_decided_pol_impl = isa_count_decided_st_fast_code\<close>
+  rewrites \<open>read_trail_wl_heur (RETURN o count_decided_pol) = RETURN o count_decided_st_heur\<close> and
+  \<open>read_trail_wl_heur_code count_decided_pol_impl = count_decided_st_heur_fast_code\<close>
   apply unfold_locales
   apply (rule count_decided_pol_impl.refine)
   subgoal
-    by (auto simp: read_all_st_def isa_count_decided_st_def intro!: ext
+    by (auto simp: read_all_st_def count_decided_st_heur_def intro!: ext
       split: isasat_int_splits)
   subgoal
-    by (auto simp: isa_count_decided_st_fast_code_def)
+    by (auto simp: count_decided_st_heur_fast_code_def)
   done
 
 lemmas [sepref_fr_rules] = count_decided.refine[unfolded lambda_comp_true]
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  isa_count_decided_st_fast_code_def[unfolded read_all_st_code_def]
+  count_decided_st_heur_fast_code_def[unfolded read_all_st_code_def]
 
 definition polarity_st_heur_pol_fast ::  \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close>  where
   \<open>polarity_st_heur_pol_fast = (\<lambda>S C. read_trail_wl_heur_code (\<lambda>L. polarity_pol_fast L C) S)\<close>
@@ -151,7 +151,7 @@ definition arena_lit2 where \<open>arena_lit2 N i j = arena_lit N (i+j)\<close>
 
 sepref_def arena_lit2_impl
   is \<open>uncurry2 (RETURN ooo arena_lit2)\<close>
-    :: \<open>[uncurry2 (\<lambda>N i j. arena_lit_pre N (i+j) \<and> length N \<le> sint64_max)]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+    :: \<open>[uncurry2 (\<lambda>N i j. arena_lit_pre N (i+j) \<and> length N \<le> snat64_max)]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   supply [dest] = arena_lit_implI
   unfolding arena_lit_def arena_lit2_def
   by sepref
@@ -160,7 +160,7 @@ lemma arena_lit2_impl_arena_lit:
   assumes \<open>(C, C') \<in> snat_rel\<close> and
     \<open>(D, D') \<in> snat_rel\<close>
   shows \<open>(\<lambda>S. arena_lit2_impl S C D, \<lambda>S. RETURN (arena_lit S (C' + D')))
-    \<in> [\<lambda>S. arena_lit_pre S (C' + D') \<and> length S \<le> sint64_max]\<^sub>a (al_assn arena_el_impl_assn)\<^sup>k \<rightarrow> unat_lit_assn\<close>
+    \<in> [\<lambda>S. arena_lit_pre S (C' + D') \<and> length S \<le> snat64_max]\<^sub>a (al_assn arena_el_impl_assn)\<^sup>k \<rightarrow> unat_lit_assn\<close>
 proof -
   have arena_lit2: \<open>RETURN ooo arena_lit2 = (\<lambda>S C' D'. RETURN (arena_lit2 S C' D'))\<close> for f
     by (auto intro!: ext)
@@ -179,8 +179,8 @@ lemma access_lit_in_clauses_heur_pre:
   \<open>uncurry2
    (\<lambda>S C D.
     arena_lit_pre (get_clauses_wl_heur S) (C + D) \<and>
-    length (get_clauses_wl_heur S) \<le> sint64_max) = uncurry2 (\<lambda>S i j. access_lit_in_clauses_heur_pre ((S, i), j) \<and>
-           length (get_clauses_wl_heur S) \<le> sint64_max)\<close>
+    length (get_clauses_wl_heur S) \<le> snat64_max) = uncurry2 (\<lambda>S i j. access_lit_in_clauses_heur_pre ((S, i), j) \<and>
+           length (get_clauses_wl_heur S) \<le> snat64_max)\<close>
   by (auto simp: access_lit_in_clauses_heur_pre_def)
 
 definition access_lit_in_clauses_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _\<close> where
@@ -195,12 +195,12 @@ global_interpretation access_arena: read_arena_param_adder2_twoargs where
   f' = \<open>\<lambda>i j N. RETURN (arena_lit N (i+j))\<close> and
   f = \<open>\<lambda>i j N. arena_lit2_impl N i j\<close> and
   x_assn = unat_lit_assn and
-  P = \<open>(\<lambda>i j S. arena_lit_pre (S) (i+j) \<and> length S \<le> sint64_max)\<close>
+  P = \<open>(\<lambda>i j S. arena_lit_pre (S) (i+j) \<and> length S \<le> snat64_max)\<close>
   rewrites
      \<open>(\<lambda>N C' D. read_arena_wl_heur (\<lambda>N. RETURN (arena_lit N (C' + D))) N) = RETURN ooo access_lit_in_clauses_heur\<close> and
     \<open>(\<lambda>N C D. read_arena_wl_heur_code (\<lambda>N. arena_lit2_impl N C D) N) = access_lit_in_clauses_heur_fast_code\<close> and
-  \<open>uncurry2 (\<lambda>S C D. arena_lit_pre (get_clauses_wl_heur S) (C + D) \<and> length (get_clauses_wl_heur S) \<le> sint64_max) =
-  uncurry2 (\<lambda>S i j. access_lit_in_clauses_heur_pre ((S, i), j) \<and> length (get_clauses_wl_heur S) \<le> sint64_max)\<close> 
+  \<open>uncurry2 (\<lambda>S C D. arena_lit_pre (get_clauses_wl_heur S) (C + D) \<and> length (get_clauses_wl_heur S) \<le> snat64_max) =
+  uncurry2 (\<lambda>S i j. access_lit_in_clauses_heur_pre ((S, i), j) \<and> length (get_clauses_wl_heur S) \<le> snat64_max)\<close> 
   apply unfold_locales
   apply (rule arena_lit2_impl.refine[unfolded comp_def arena_lit2_def])
   apply (subst access_lit_in_clauses_heur_alt_def; rule refl)
@@ -240,7 +240,7 @@ lemma arena_lit_arena_lit_read_arena_wl_heur_arena_lit:
 sepref_register mop_access_lit_in_clauses_heur
 lemma mop_access_lit_in_clauses_heur_refine[sepref_fr_rules]:
   \<open>(uncurry2 access_lit_in_clauses_heur_fast_code, uncurry2 mop_access_lit_in_clauses_heur)
-    \<in> [uncurry2 (\<lambda>S i j. length (get_clauses_wl_heur S) \<le> sint64_max)]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a snat_assn\<^sup>k *\<^sub>a snat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+    \<in> [uncurry2 (\<lambda>S i j. length (get_clauses_wl_heur S) \<le> snat64_max)]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a snat_assn\<^sup>k *\<^sub>a snat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   using access_arena.mop_refine[unfolded access_arena.mop_def  refine_ASSERT_move_to_pre2'[symmetric, where Q = \<open>\<lambda>_ _ _. True\<close>, unfolded simp_thms lambda_comp_true]]
   unfolding mop_access_lit_in_clauses_heur_def mop_access_lit_in_clauses_heur_def mop_arena_lit2_def Let_def
     access_arena.mop_def  refine_ASSERT_move_to_pre2'[symmetric] access_lit_in_clauses_heur_alt_def
@@ -251,11 +251,11 @@ lemma al_assn_boundD2: \<open>al_assn arena_el_impl_assn x2 (d:: 'a :: len2 word
   using al_assn_boundD[unfolded rdomp_def, of arena_el_impl_assn \<open>x2\<close>, where 'l = 'a]
   by (cases d) auto
 
-lemma isasat_bounded_assn_length_arenaD: \<open>rdomp isasat_bounded_assn a \<Longrightarrow>  length (get_clauses_wl_heur a) \<le> sint64_max\<close> apply -
+lemma isasat_bounded_assn_length_arenaD: \<open>rdomp isasat_bounded_assn a \<Longrightarrow>  length (get_clauses_wl_heur a) \<le> snat64_max\<close> apply -
   unfolding rdomp_def
   apply normalize_goal+
   by (cases a, case_tac xa)
-   (auto simp: isasat_bounded_assn_def rdomp_def sint64_max_def max_snat_def split: isasat_int_splits
+   (auto simp: isasat_bounded_assn_def rdomp_def snat64_max_def max_snat_def split: isasat_int_splits
     dest!: al_assn_boundD2 mod_starD)
 
 sepref_def mop_access_lit_in_clauses_heur_impl
@@ -274,11 +274,11 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
 sepref_register mop_arena_lit2 mop_arena_length mop_append_ll
 sepref_def rewatch_heur_vdom_fast_code
   is \<open>uncurry2 (rewatch_heur_vdom)\<close>
-  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set (get_tvdom_aivdom vdom). x \<le> sint64_max) \<and> length arena \<le> sint64_max \<and>
-        length (get_tvdom_aivdom vdom) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set (get_tvdom_aivdom vdom). x \<le> snat64_max) \<and> length arena \<le> snat64_max \<and>
+        length (get_tvdom_aivdom vdom) \<le> snat64_max]\<^sub>a
         aivdom_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
   supply [[goals_limit=1]]
-     arena_lit_pre_le_sint64_max[dest] arena_is_valid_clause_idx_le_uint64_max[dest]
+     arena_lit_pre_le_snat64_max[dest] arena_is_valid_clause_idx_le_unat64_max[dest]
   supply [simp] = append_ll_def length_tvdom_aivdom_def
   supply [dest] = arena_lit_implI(1)
   unfolding rewatch_heur_alt_def Let_def PR_CONST_def rewatch_heur_vdom_def
@@ -503,7 +503,7 @@ lemma mop_mark_garbage_heur_alt_def:
 
 sepref_def mop_mark_garbage_heur_impl
   is \<open>uncurry2 mop_mark_garbage_heur\<close>
-  :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
       sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding mop_mark_garbage_heur_alt_def clause_not_marked_to_delete_heur_pre_def
@@ -558,7 +558,7 @@ lemma mop_mark_garbage_heur3_alt_def:
 
 sepref_def mop_mark_garbage_heur3_impl
   is \<open>uncurry2 mop_mark_garbage_heur3\<close>
-  :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
       sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding mop_mark_garbage_heur3_alt_def
@@ -739,7 +739,7 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
 
 sepref_def learned_clss_count_fast_code
   is \<open>RETURN o learned_clss_count\<close>
-  :: \<open>[\<lambda>S. learned_clss_count S \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  :: \<open>[\<lambda>S. learned_clss_count S \<le> unat64_max]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
   unfolding clss_size_allcount_alt_def learned_clss_count_def
   by sepref
 
@@ -778,7 +778,7 @@ sepref_register get_the_propagation_reason_heur delete_index_vdom_heur access_le
 experiment
 begin
 
-export_llvm polarity_st_heur_pol_fast isa_count_decided_st_fast_code get_conflict_wl_is_None_fast_code
+export_llvm polarity_st_heur_pol_fast count_decided_st_heur_fast_code get_conflict_wl_is_None_fast_code
   clause_not_marked_to_delete_heur_code access_lit_in_clauses_heur_fast_code length_ivdom_fast_code
   length_avdom_fast_code length_tvdom_fast_code
   clause_is_learned_heur_code2 clause_lbd_heur_code2 mop_mark_garbage_heur_impl mark_garbage_heur_code2

@@ -1431,8 +1431,8 @@ proof -
     moreover have \<open>clauses_to_update ?T' = {#}\<close>
         using WS by (auto simp: propagate_bt_def)
 
-    moreover have False if \<open>cdcl_twl_o ?T' (an, ao, ap, aq, ar, as, at, b)\<close>
-        for an ao ap aq ar as at b
+    moreover have False if \<open>cdcl_twl_o ?T' (an, ao, ap, aq, ar, as, at', b)\<close>
+        for an ao ap aq ar as at' b
         using that by (auto simp: cdcl_twl_o.simps propagate_bt_def)
     ultimately show cdcl:
        \<open>cdcl_twl_o ?S (propagate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>
@@ -1489,8 +1489,8 @@ proof -
       unfolding propagate_unit_bt_def by auto
       show False if \<open>literals_to_update (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = {#}\<close>
         using that by (auto simp add: propagate_unit_bt_def)
-      fix an ao ap aq ar as at b
-      show False if \<open>cdcl_twl_o (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) (an, ao, ap, aq, ar, as, at, b)\<close>
+      fix an ao ap aq ar as at' b
+      show False if \<open>cdcl_twl_o (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) (an, ao, ap, aq, ar, as, at', b)\<close>
         using that by (auto simp: cdcl_twl_o.simps propagate_unit_bt_def)
       have \<open>undefined_lit M1 (lit_of (hd (get_trail ?S)))\<close>
         using decomp n_d M

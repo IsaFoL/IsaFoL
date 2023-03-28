@@ -2,6 +2,8 @@ theory IsaSAT_Proofs_LLVM
   imports IsaSAT_Proofs IsaSAT_Setup_LLVM
 begin
 
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN
+
 sepref_def log_literal_impl
   is \<open>RETURN o log_literal\<close>
   :: \<open>unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
@@ -29,7 +31,7 @@ sepref_def log_end_clause_impl
 
 sepref_def log_clause_heur_impl
   is \<open>uncurry log_clause_heur\<close>
-  :: \<open>[\<lambda>(S, C). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a snat64_assn\<^sup>k \<rightarrow> unit_assn\<close>
+  :: \<open>[\<lambda>(S, C). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a snat64_assn\<^sup>k \<rightarrow> unit_assn\<close>
   unfolding log_clause_heur_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref

@@ -2,12 +2,6 @@ theory IsaSAT_Restart_Reduce_LLVM
   imports IsaSAT_Restart_Reduce_Defs IsaSAT_Setup_LLVM IsaSAT_VMTF_State_LLVM
 begin
 
-hide_fact (open) Sepref_Rules.frefI
-no_notation Sepref_Rules.fref (\<open>[_]\<^sub>f\<^sub>d _ \<rightarrow> _\<close> [0,60,60] 60)
-no_notation Sepref_Rules.freft (\<open>_ \<rightarrow>\<^sub>f\<^sub>d _\<close> [60,60] 60)
-no_notation Sepref_Rules.freftnd (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
-no_notation Sepref_Rules.frefnd (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
-
 
 lemma schedule_next_reduce_st_alt_def:
   \<open>schedule_next_reduce_st b S = (let (heur, S) = extract_heur_wl_heur S; heur = schedule_next_reduce b heur in update_heur_wl_heur heur S)\<close>
@@ -40,14 +34,42 @@ sepref_def schedule_next_reduction_st_impl
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
+definition vmtf_array_nxt_score :: \<open>vmtf \<Rightarrow> _\<close> where \<open>vmtf_array_nxt_score x = fst (snd x)\<close>
+
+lemma \<open>current_vmtf_array_nxt_score x = (case x of Bump_Heuristics a b c d \<Rightarrow>
+  (if c then vmtf_array_nxt_score b else vmtf_array_nxt_score a))\<close>
+  by (cases x) (auto simp: vmtf_array_nxt_score_def current_vmtf_array_nxt_score_def
+    bump_get_heuristics_def)
+
+lemma vmtf_array_nxt_score_alt_def: \<open>RETURN o vmtf_array_nxt_score = (\<lambda>(a,b,c,d,e) . let b' = COPY b in RETURN b)\<close>
+  by (auto intro!: ext simp: vmtf_array_nxt_score_def)
+
+find_theorems hn_refine PASS
+sepref_def vmtf_array_nxt_score_code
+  is \<open>RETURN o vmtf_array_nxt_score\<close>
+  :: \<open>vmtf_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding vmtf_array_nxt_score_alt_def vmtf_assn_def
+  by sepref
+
+lemma current_vmtf_array_nxt_score_alt_def: \<open>RETURN o current_vmtf_array_nxt_score = (\<lambda>x. case x of Bump_Heuristics hstable focused foc a \<Rightarrow>
+    if foc then RETURN (vmtf_array_nxt_score focused) else RETURN (vmtf_array_nxt_score hstable))\<close>
+    by (auto intro!: ext simp: bump_get_heuristics_def current_vmtf_array_nxt_score_def vmtf_array_nxt_score_def
+      split: bump_heuristics_splits)
+
+sepref_def current_vmtf_array_nxt_score_code
+  is \<open>RETURN o current_vmtf_array_nxt_score\<close>
+  :: \<open>heuristic_bump_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding current_vmtf_array_nxt_score_alt_def
+  by sepref
+
+
 sepref_def find_local_restart_target_level_fast_code
   is \<open>uncurry find_local_restart_target_level_int\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a heuristic_bump_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=1]] length_rev[simp del]
   unfolding find_local_restart_target_level_int_def find_local_restart_target_level_int_inv_def
-    length_uint32_nat_def vmtf_remove_assn_def trail_pol_fast_assn_def
+    length_uint32_nat_def trail_pol_fast_assn_def
   apply (annot_unat_const \<open>TYPE(32)\<close>)
-   apply (rewrite at \<open>stamp (\<hole>)\<close> annot_index_of_atm)
    apply (rewrite in \<open>(_ ! _)\<close> annot_unat_snat_upcast[where 'l=64])
    apply (rewrite in \<open>(_ ! \<hole>)\<close> annot_unat_snat_upcast[where 'l=64])
    apply (rewrite in \<open>(\<hole> < length _)\<close> annot_unat_snat_upcast[where 'l=64])
@@ -94,10 +116,6 @@ sepref_def empty_Q_fast_code
 
 sepref_register cdcl_twl_local_restart_wl_D_heur
     empty_Q find_decomp_wl_st_int
-
-(*TODO: deduplicate*)
-lemma [def_pat_rules]: \<open>count_decided_st_heur$S \<equiv> isa_count_decided_st$S\<close>
-  by (auto simp: isa_count_decided_st_def count_decided_st_heur_def)
 
 sepref_def cdcl_twl_local_restart_wl_D_heur_fast_code
   is \<open>cdcl_twl_local_restart_wl_D_heur\<close>
@@ -167,7 +185,7 @@ sepref_register isa_is_candidate_for_removal
 
 sepref_def remove_deleted_clauses_from_avdom_fast_code
   is \<open>uncurry2 isa_gather_candidates_for_reduction\<close>
-  :: \<open>[\<lambda>((M, N), vdom). length (get_vdom_aivdom vdom) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((M, N), vdom). length (get_vdom_aivdom vdom) \<le> snat64_max]\<^sub>a
   trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a aivdom_assn\<^sup>d \<rightarrow>
   arena_fast_assn \<times>\<^sub>a aivdom_assn\<close>
   supply [[goals_limit=1]]
@@ -184,7 +202,7 @@ definition lbd_sort_clauses :: \<open>arena \<Rightarrow> aivdom2 \<Rightarrow> 
 
 sepref_def lbd_sort_clauses_impl
   is \<open>uncurry lbd_sort_clauses\<close>
-  :: \<open>[\<lambda>(N, vdom). length (fst vdom) \<le> sint64_max]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a aivdom_int_assn\<^sup>d \<rightarrow> aivdom_int_assn\<close>
+  :: \<open>[\<lambda>(N, vdom). length (fst vdom) \<le> snat64_max]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a aivdom_int_assn\<^sup>d \<rightarrow> aivdom_int_assn\<close>
   unfolding lbd_sort_clauses_def map_tvdom_aivdom_int_def
   by sepref
 
@@ -243,15 +261,15 @@ begin
 
 lemma lbd_sort_clauses_impl_lbd_sort_clauses[sepref_fr_rules]:
   \<open>(uncurry lbd_sort_clauses_impl, uncurry sort_clauses_by_score)
-  \<in> [\<lambda>(N, vdom). length (get_avdom_aivdom vdom) \<le> sint64_max]\<^sub>a (al_assn arena_el_impl_assn)\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
+  \<in> [\<lambda>(N, vdom). length (get_avdom_aivdom vdom) \<le> snat64_max]\<^sub>a (al_assn arena_el_impl_assn)\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
-\<in> [comp_PRE (Id \<times>\<^sub>f aivdom_rel) (\<lambda>_. True) (\<lambda>x y. case y of (N, vdom) \<Rightarrow> length (fst vdom) \<le> sint64_max)
+\<in> [comp_PRE (Id \<times>\<^sub>f aivdom_rel) (\<lambda>_. True) (\<lambda>x y. case y of (N, vdom) \<Rightarrow> length (fst vdom) \<le> snat64_max)
    (\<lambda>x. nofail (uncurry sort_clauses_by_score x))]\<^sub>a ?im \<rightarrow> ?f\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> _\<close>)
     using hfref_compI_PRE[OF lbd_sort_clauses_impl.refine,
-  OF quicksort_clauses_by_score_sort[unfolded convert_fref], unfolded fcomp_norm_unfold] by blast
+  OF quicksort_clauses_by_score_sort, unfolded fcomp_norm_unfold] by blast
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that 
     by (case_tac x, case_tac \<open>snd x\<close>)
@@ -286,7 +304,7 @@ lemma sort_vdom_heur_alt_def:
 
 sepref_def sort_vdom_heur_fast_code
   is \<open>sort_vdom_heur\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>aisasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>aisasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding sort_vdom_heur_alt_def EQ_def
   by sepref
@@ -296,7 +314,6 @@ sepref_def find_largest_lbd_and_size_impl
   :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn \<times>\<^sub>a sint64_nat_assn\<close>
   supply [simp] = length_tvdom_def[symmetric]
   supply [dest] = isasat_bounded_assn_length_arenaD
-  supply [sepref_fr_rules] = arena_get_lbd.mop_refine (*TODO: Should in IsaSAT_Setup1*)
   unfolding find_largest_lbd_and_size_def access_tvdom_at_def[symmetric]
     length_tvdom_def[symmetric] max_def
   apply (rewrite at \<open>(_, _, \<hole>)\<close> snat_const_fold[where 'a=64])

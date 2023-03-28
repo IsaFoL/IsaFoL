@@ -36,7 +36,7 @@ definition twl_st_heur_restart :: \<open>(isasat \<times> nat twl_st_wl) set\<cl
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms N (NE+NEk+NS+N0))) \<and>
-    vm \<in> isa_vmtf (all_init_atms N (NE+NEk+NS+N0)) M \<and>
+    vm \<in> bump_heur (all_init_atms N (NE+NEk+NS+N0)) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_init_atms N (NE+NEk+NS+N0)) cach \<and>
@@ -133,7 +133,7 @@ where
         L \<leftarrow> isa_trail_nth (get_trail_wl_heur S\<^sub>0) i;
 	C \<leftarrow> get_the_propagation_reason_pol (get_trail_wl_heur S\<^sub>0) L;
 	RETURN (L, C)};
-      ASSERT(C \<noteq> None \<and> i + 1 \<le> Suc (uint32_max div 2));
+      ASSERT(C \<noteq> None \<and> i + 1 \<le> Suc (unat32_max div 2));
       if the C = 0 then RETURN (i+1, S\<^sub>0)
       else do {
         ASSERT(C \<noteq> None);
@@ -238,7 +238,7 @@ definition iterate_over_VMTFC where
           ASSERT(n \<noteq> None);
           let A = the n;
           ASSERT(A < length ns);
-          ASSERT(A \<le> uint32_max div 2);
+          ASSERT(A \<le> unat32_max div 2);
           x \<leftarrow> f A x;
           RETURN (get_next ((ns ! A)), x)
         })
@@ -257,11 +257,13 @@ definition update_restart_phases :: \<open>isasat \<Rightarrow> isasat nres\<clo
   \<open>update_restart_phases = (\<lambda>S. do {
      let heur = get_heur S;
      let lcount = get_global_conflict_count S;
+     let vm = get_vmtf_heur S;
+     let vm = switch_bump_heur vm;
      heur \<leftarrow> RETURN (incr_restart_phase heur);
      heur \<leftarrow> RETURN (incr_restart_phase_end lcount heur);
      heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
      heur \<leftarrow> RETURN (swap_emas heur);
-     RETURN (set_heur_wl_heur heur S)
+     RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
   })\<close>
 
 
@@ -275,11 +277,11 @@ lemma valid_arena_header_size:
 
 
 definition rewatch_heur_st_pre :: \<open>isasat \<Rightarrow> bool\<close> where
-  \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i < length (get_tvdom S). get_tvdom S ! i \<le> sint64_max)\<close>
+  \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i < length (get_tvdom S). get_tvdom S ! i \<le> snat64_max)\<close>
 
 lemma isasat_GC_clauses_wl_D_rewatch_pre:
   assumes
-    \<open>length (get_clauses_wl_heur x) \<le> sint64_max\<close> and
+    \<open>length (get_clauses_wl_heur x) \<le> snat64_max\<close> and
     \<open>length (get_clauses_wl_heur xc) \<le> length (get_clauses_wl_heur x)\<close> and
     \<open>\<forall>i \<in> set (get_tvdom xc). i \<le> length (get_clauses_wl_heur x)\<close>
   shows \<open>rewatch_heur_st_pre xc\<close>

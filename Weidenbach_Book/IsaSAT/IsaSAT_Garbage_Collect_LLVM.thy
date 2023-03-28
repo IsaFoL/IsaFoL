@@ -49,7 +49,7 @@ qed
 
 sepref_def isasat_GC_clauses_prog_copy_wl_entry_code
   is \<open>uncurry3 isasat_GC_clauses_prog_copy_wl_entry\<close>
-  :: \<open>[\<lambda>(((N, _), _), _). length N \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>(((N, _), _), _). length N \<le> snat64_max]\<^sub>a
      arena_fast_assn\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
          (arena_fast_assn \<times>\<^sub>a aivdom_assn)\<^sup>d \<rightarrow>
      (arena_fast_assn \<times>\<^sub>a (arena_fast_assn \<times>\<^sub>a aivdom_assn))\<close>
@@ -67,7 +67,7 @@ lemma shorten_taken_op_list_list_take:
 
 sepref_def isasat_GC_clauses_prog_single_wl_code
   is \<open>uncurry3 isasat_GC_clauses_prog_single_wl\<close>
-  :: \<open>[\<lambda>(((N, _), _), A). A \<le> uint32_max div 2 \<and> length N \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>(((N, _), _), A). A \<le> unat32_max div 2 \<and> length N \<le> snat64_max]\<^sub>a
      arena_fast_assn\<^sup>d *\<^sub>a (arena_fast_assn \<times>\<^sub>a aivdom_assn)\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>d *\<^sub>a atom_assn\<^sup>k \<rightarrow>
      (arena_fast_assn \<times>\<^sub>a (arena_fast_assn \<times>\<^sub>a aivdom_assn) \<times>\<^sub>a watchlist_fast_assn)\<close>
   supply [[goals_limit=1]]
@@ -76,39 +76,31 @@ sepref_def isasat_GC_clauses_prog_single_wl_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-
-definition isasat_GC_clauses_prog_wl2' where
-  \<open>isasat_GC_clauses_prog_wl2' ns fst' = (isasat_GC_clauses_prog_wl2 (ns, fst'))\<close>
-
 sepref_register isasat_GC_clauses_prog_wl2 isasat_GC_clauses_prog_single_wl
 sepref_def isasat_GC_clauses_prog_wl2_code
-  is \<open>uncurry2 isasat_GC_clauses_prog_wl2'\<close>
-  :: \<open>[\<lambda>((_, _), (N, _)). length N \<le> sint64_max]\<^sub>a
-     (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (atom.option_assn)\<^sup>k *\<^sub>a
+  is \<open>uncurry isasat_GC_clauses_prog_wl2\<close>
+  :: \<open>[\<lambda>(_, (N, _)). length N \<le> snat64_max]\<^sub>a
+     (heuristic_bump_assn)\<^sup>k *\<^sub>a
      (arena_fast_assn \<times>\<^sub>a (arena_fast_assn \<times>\<^sub>a aivdom_assn) \<times>\<^sub>a watchlist_fast_assn)\<^sup>d \<rightarrow>
      (arena_fast_assn \<times>\<^sub>a (arena_fast_assn \<times>\<^sub>a aivdom_assn) \<times>\<^sub>a watchlist_fast_assn)\<close>
   supply [[goals_limit=1]]
-  unfolding isasat_GC_clauses_prog_wl2_def isasat_GC_clauses_prog_wl2'_def prod.case
-    atom.fold_option
-  apply (rewrite at \<open> _ ! _\<close> annot_index_of_atm)
+  unfolding isasat_GC_clauses_prog_wl2_def prod.case atom.fold_option
   by sepref
 
 lemma isasat_GC_clauses_prog_wl_alt_def:
   \<open>isasat_GC_clauses_prog_wl = (\<lambda>S\<^sub>0. do {
      let (vm, S) = extract_vmtf_wl_heur S\<^sub>0;
-    let ((ns, st, fst_As, lst_As, nxt), to_remove) = split_vmtf vm;
     let (N', S) = extract_arena_wl_heur S;
     ASSERT (N' = get_clauses_wl_heur S\<^sub>0);
     let (W', S) = extract_watchlist_wl_heur S;
     let (vdom, S) = extract_vdom_wl_heur S;
     let (old_arena, S) = extract_old_arena_wl_heur S;
     ASSERT(old_arena = []);
-    (N, (N', vdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As)
+    (N, (N', vdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 vm
         (N', (old_arena, empty_aivdom vdom), W');
     let S = update_watchlist_wl_heur WS S;
     let S = update_arena_wl_heur N' S;
     let S = update_old_arena_wl_heur (take 0 N) S;
-    let vm = recombine_vmtf ((ns, st, fst_As, lst_As, nxt), to_remove);
     let S = update_vmtf_wl_heur vm S;
     let (stats, S) = extract_stats_wl_heur S;
     let S = update_stats_wl_heur (incr_GC stats) S;
@@ -118,23 +110,22 @@ lemma isasat_GC_clauses_prog_wl_alt_def:
     let S = update_heur_wl_heur heur S;
     RETURN S
       })\<close>
-      by (auto simp: isasat_GC_clauses_prog_wl_def state_extractors recombine_vmtf_def split_vmtf_def
+      by (auto simp: isasat_GC_clauses_prog_wl_def state_extractors
          Let_def intro!: ext bind_cong[OF refl]
         split: isasat_int_splits)
 
-sepref_register isasat_GC_clauses_prog_wl isasat_GC_clauses_prog_wl2' rewatch_heur_st
+sepref_register isasat_GC_clauses_prog_wl rewatch_heur_st
 sepref_def isasat_GC_clauses_prog_wl_code
   is \<open>isasat_GC_clauses_prog_wl\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding isasat_GC_clauses_prog_wl_alt_def
-     isasat_GC_clauses_prog_wl2'_def[symmetric]
     atom.fold_option
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 lemma rewatch_heur_st_pre_alt_def:
-  \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i \<in> set (get_tvdom S). i \<le> sint64_max)\<close>
+  \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i \<in> set (get_tvdom S). i \<le> snat64_max)\<close>
   by (auto simp: rewatch_heur_st_pre_def all_set_conv_nth)
 
 
@@ -143,11 +134,11 @@ definition rewatch_heur_and_reorder_vdom where
 
 sepref_def rewatch_heur_and_reorder_code
   is \<open>uncurry2 (rewatch_heur_and_reorder_vdom)\<close>
-  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set (get_tvdom_aivdom vdom). x \<le> sint64_max) \<and> length arena \<le> sint64_max \<and>
-        length (get_tvdom_aivdom vdom) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set (get_tvdom_aivdom vdom). x \<le> snat64_max) \<and> length arena \<le> snat64_max \<and>
+        length (get_tvdom_aivdom vdom) \<le> snat64_max]\<^sub>a
         aivdom_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
   supply [[goals_limit=1]]
-     arena_lit_pre_le_sint64_max[dest] arena_is_valid_clause_idx_le_uint64_max[dest]
+     arena_lit_pre_le_snat64_max[dest] arena_is_valid_clause_idx_le_unat64_max[dest]
   supply [simp] = append_ll_def
   supply [dest] = arena_lit_implI(1)
   unfolding rewatch_heur_and_reorder_def Let_def PR_CONST_def rewatch_heur_and_reorder_vdom_def
@@ -170,42 +161,18 @@ lemma rewatch_heur_and_reorder_st_alt_def:
 sepref_register rewatch_heur_and_reorder rewatch_heur_and_reorder_vdom
 sepref_def rewatch_heur_st_code
   is \<open>rewatch_heur_and_reorder_st\<close>
-  :: \<open>[\<lambda>S. rewatch_heur_st_pre S \<and> length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. rewatch_heur_st_pre S \<and> length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]  append_ll_def[simp]
   unfolding rewatch_heur_and_reorder_st_alt_def rewatch_heur_st_pre_alt_def rewatch_heur_vdom_def[symmetric]
     rewatch_heur_and_reorder_vdom_def[symmetric]
   by sepref
 
 sepref_register isasat_GC_clauses_wl_D
-(*
-lemma schedule_next_pure_lits_st_alt_def:
-  \<open>schedule_next_pure_lits_st b S =
-      (let should_inprocess = should_inprocess_st S;
-           (heur, S) = extract_heur_wl_heur S;
-           (stats, S) = extract_stats_wl_heur S;
-           (lcount, S) = extract_lcount_wl_heur S;
-           bc = current_restart_phase heur;
-           heur = if b \<and> should_inprocess then (schedule_next_pure_lits (heur)) else heur;
-           _ = isasat_print_progress (if should_inprocess then 105 else 103) bc stats (lcount);
-           S = update_heur_wl_heur heur (update_stats_wl_heur stats (update_lcount_wl_heur lcount S)) in
-  S)\<close>
-  by (auto simp: schedule_next_pure_lits_st_def state_extractors split: isasat_int_splits
-    intro!: ext)
 
-
-(*TODO Move*)
-sepref_register should_inprocess_st
-sepref_def should_inprocess_st
-  is \<open>(RETURN o should_inprocess_st)\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding should_inprocess_st_def
-  by sepref
-(*END Move*)
-*)
 sepref_register rewatch_heur_and_reorder_st
 sepref_def isasat_GC_clauses_wl_D_code
   is \<open>uncurry isasat_GC_clauses_wl_D\<close>
-  :: \<open>[\<lambda>(b, S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>(b, S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
       bool1_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] isasat_GC_clauses_wl_D_rewatch_pre[intro!]
   unfolding isasat_GC_clauses_wl_D_def
