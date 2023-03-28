@@ -271,15 +271,46 @@ lemma initialise_ACIDS:
     (is \<open>(?init, ?R) \<in> _\<close>)
 proof -
   define I' where \<open>I' x \<equiv> (\<lambda>(a,b::(nat,nat)acids). b \<in> acids \<A> (map (\<lambda>a. (Decided (Pos a)) :: (nat,nat)ann_lit) (drop a (fst x))) \<and> a \<le> length (fst x) \<and>
-    snd b = a)\<close> for x :: \<open>nat list \<times> nat\<close>
- have \<open>y \<in># \<A> \<Longrightarrow> Max ((\<lambda>a. baa) ` (set_mset \<A> \<inter> {y}) \<union>
-   bb ` (set_mset \<A> \<inter> {x. x \<noteq> y})) = (if \<A> = {#} then baa else max baa (Max (bb ` (set_mset \<A> \<inter> {y}))))\<close> for y bb and baa :: nat
-   apply (auto dest!: multi_member_split simp: Max.insert_remove max_def)
-     sledgehammer
-    apply (subst Max.insert_remove)
-apply auto
-   sorry
-find_theorems "Max (insert _ _)" " max _ _"  If
+    snd b = a \<and> fst (snd (fst b)) = mset (take a (fst x)))\<close> for x :: \<open>nat list \<times> nat\<close>
+ have I0: \<open>(\<forall>L\<in>#fst y. L < snd y) \<and>
+    distinct_mset (fst y) \<and>
+    size (fst y) < unat32_max \<and> set_mset (fst y) = set_mset \<A> \<Longrightarrow>
+    (x, y) \<in> \<langle>nat_rel\<rangle>list_rel_mset_rel \<times>\<^sub>f nat_rel \<Longrightarrow>
+   length (fst x) \<le> unat32_max \<Longrightarrow> I' x (0, (mset (fst x), {#}, \<lambda>_. 0), 0)\<close> for x y
+   by (cases x, cases y)
+    (auto simp: I'_def acids_def list_rel_mset_rel_def list_mset_rel_def br_def defined_lit_map
+     dest!: multi_member_split)
+     
+ have I'_Suc: \<open>I' x (fst s + 1, acids_heur_import_variable (fst x ! fst s) (snd s))\<close>
+   if 
+     \<open>(\<forall>L\<in>#fst y. L < snd y) \<and>
+     distinct_mset (fst y) \<and>
+     size (fst y) < unat32_max \<and> set_mset (fst y) = set_mset \<A>\<close> and
+     \<open>(x, y) \<in> \<langle>nat_rel\<rangle>list_rel_mset_rel \<times>\<^sub>f nat_rel\<close> and
+     \<open>x = (a, b)\<close> and
+     \<open>y = (aa, ba)\<close> and
+     \<open>length (fst x) \<le> unat32_max\<close> and
+     \<open>I' x s\<close> and
+     \<open>fst s < length_uint32_nat (fst x)\<close> and
+     \<open>fst s < length_uint32_nat (fst x)\<close> and
+     \<open>snd (snd s) = fst s\<close> and
+     \<open>fst s + 1 \<le> unat32_max\<close>
+   for a b aa ba s x y
+ proof -
+   have \<open>mset (take (Suc (fst s)) a) \<subseteq># \<A>\<close>
+     apply (rule subset_mset.trans[of _ \<open>mset a\<close>])
+     using that
+     apply (clarsimp_all simp: acids_def defined_lit_map list_rel_mset_rel_def br_def list_mset_rel_def
+       image_image acids_heur_import_variable_def I'_def mset_take_subseteq)
+     by (metis distinct_subseteq_iff fst_eqD le_refl set_take_subset take_all_iff that(1))
+
+   then show ?thesis
+     using that
+     by (auto simp: acids_def take_Suc_conv_app_nth defined_lit_map list_rel_mset_rel_def br_def list_mset_rel_def
+       image_image acids_heur_import_variable_def I'_def Cons_nth_drop_Suc[symmetric] distinct_in_set_take_iff
+       dest: multi_member_split)
+ qed
+
   show ?thesis
     unfolding uncurry_def case_prod_beta initialise_ACIDS_def
     apply (intro frefI nres_relI)
@@ -288,27 +319,20 @@ find_theorems "Max (insert _ _)" " max _ _"  If
       apply (refine_vcg specify_left[OF WHILEIT_rule_stronger_inv[where \<Phi> = \<open>\<lambda>(a::nat,b::(nat,nat)acids). b \<in> acids \<A> ([]::(nat,nat)ann_lits)\<close> and
         I' = \<open>I' x\<close> and
         R = \<open>measure (\<lambda>(a,b). length (fst x) - a)\<close>]])
-        thm specify_left[OF WHILEIT_rule_stronger_inv[where \<Phi> = \<open>\<lambda>(a,b). b \<in> acids \<A> []\<close>]]
       subgoal by (auto simp: list_rel_mset_rel_def list_mset_rel_def br_def)
       subgoal by auto
       subgoal by auto
-      subgoal apply (cases \<A>)
-        apply (auto simp: acids_def list_rel_mset_rel_def list_mset_rel_def br_def I'_def
-        defined_lit_map dest: multi_member_split)
-        sorry
+      subgoal by (rule I0)
       subgoal by (auto simp: I'_def)
       subgoal by (auto simp:)
-      subgoal apply (auto simp: acids_def take_Suc_conv_app_nth defined_lit_map
-        in_set_conv_nth image_image acids_heur_import_variable_def I'_def)
-thm TrueI
-  sorry
-    subgoal by (auto simp: I'_def)
-    subgoal 
-      by (auto simp add: I'_def)
-    subgoal apply (auto simp: list_rel_mset_rel_def list_mset_rel_def br_def acids_def)
-      by (metis distinct_subseteq_iff set_mset_mset)
+      subgoal by (rule I'_Suc)
+      subgoal by (auto simp: I'_def)
+      subgoal 
+        by (auto simp add: I'_def)
+      subgoal apply (auto simp: list_rel_mset_rel_def list_mset_rel_def br_def acids_def)
+        by (metis distinct_subseteq_iff set_mset_mset)
+      done
     done
-  done
 qed
 
 definition initialize_Bump_Init :: \<open>nat list \<Rightarrow> nat \<Rightarrow> bump_heuristics_init nres\<close> where
@@ -336,7 +360,7 @@ lemma initialize_Bump_Init:
   apply hypsubst
   apply (rule specify_left_RES[OF initialise_VMTF[where \<A>=\<A>, THEN fref_to_Down_curry, unfolded conc_fun_RES]])
   apply assumption+
-  apply (rule specify_left_RES[OF initialise_VMTF[where \<A>=\<A>, THEN fref_to_Down_curry, unfolded conc_fun_RES]])
+  apply (rule specify_left_RES[OF initialise_ACIDS[where \<A>=\<A>, THEN fref_to_Down_curry, unfolded conc_fun_RES]])
   apply assumption+
   apply (auto simp: bump_heur_init_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
     atoms_hash_rel_def intro!: relcompI)
@@ -366,6 +390,11 @@ lemma isa_vmtf_init_cong:
   using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] vmtf_cong[of \<A> \<B>] vmtf_cong[of \<B> \<A>]
   unfolding isa_vmtf_init_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
   by auto
+lemma isa_acids_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> acids \<A>  = acids \<B>\<close>
+  using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  unfolding acids_def
+  by (auto intro!: ext intro!: distinct_subseteq_iff[THEN iffD1])
 
 lemma distinct_atoms_rel_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> distinct_atoms_rel \<A> = distinct_atoms_rel \<B>\<close>
@@ -376,13 +405,13 @@ lemma distinct_atoms_rel_cong:
 lemma bump_heur_init_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow>  bump_heur_init \<A> M = bump_heur_init \<B> M\<close>
   using isa_vmtf_init_cong[of \<A> \<B> M] 
-    \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] distinct_atoms_rel_cong[of \<A> \<B>] 
-  unfolding bump_heur_init_def
+    \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] distinct_atoms_rel_cong[of \<A> \<B>] isa_acids_cong[of \<A> \<B>]
+  unfolding bump_heur_init_def isa_acids_cong[of \<A> \<B>]
   by auto
 
 
 lemma bump_heur_init_consD':
   \<open>vm \<in> bump_heur_init \<A> M \<Longrightarrow> vm \<in> bump_heur_init \<A> (Propagated L n # M)\<close>
-  by (auto simp: bump_heur_init_def dest: isa_vmtf_init_consD')
+  by (auto simp: bump_heur_init_def dest: isa_vmtf_init_consD' acids_prepend)
 
 end
