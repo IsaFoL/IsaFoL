@@ -46,8 +46,9 @@ We initially inlined the definition of \<^term>\<open>empty_outside\<close>, but
 definition empty_outside :: \<open>_\<close> where
   \<open>empty_outside \<V> prevs = (\<forall>x. x \<notin># \<V> \<longrightarrow> prevs x = None)\<close>
 
-definition encoded_hp_prop :: \<open>('e,'f) hp multiset \<Rightarrow>  ('e, 'f) hp_fun \<Rightarrow> _\<close> where
-  \<open>encoded_hp_prop m = (\<lambda>(prevs,nxts,children, parents, scores). distinct_mset (\<Sum>\<^sub># (mset_nodes `# m)) \<and>
+definition encoded_hp_prop :: \<open>'e multiset \<Rightarrow> ('e,'f) hp multiset \<Rightarrow>  ('e, 'f) hp_fun \<Rightarrow> _\<close> where
+  \<open>encoded_hp_prop \<V> m = (\<lambda>(prevs,nxts,children, parents, scores). distinct_mset (\<Sum>\<^sub># (mset_nodes `# m)) \<and>
+     set_mset (\<Sum>\<^sub># (mset_nodes `# m)) \<subseteq> set_mset \<V> \<and>
      (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. prevs x = map_option node (hp_prev x m)) \<and>
      (\<forall>m'\<in>#m. \<forall>x \<in># mset_nodes m'. nxts x = map_option node (hp_next x m')) \<and>
      (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. children x = map_option node (hp_child x m)) \<and>
@@ -74,10 +75,10 @@ lemma empty_outside_update_already_in[simp]: \<open>x \<in># \<V> \<Longrightarr
   by auto
 
 lemma encoded_hp_prop_irrelevant:
-  assumes \<open>a \<notin># \<Sum>\<^sub># (mset_nodes `# m)\<close> and
-    \<open>encoded_hp_prop m (prevs, nxts, children, parents, scores)\<close>
+  assumes \<open>a \<notin># \<Sum>\<^sub># (mset_nodes `# m)\<close> and \<open>a\<in>#\<V>\<close> and
+    \<open>encoded_hp_prop \<V> m (prevs, nxts, children, parents, scores)\<close>
   shows
-    \<open>encoded_hp_prop (add_mset (Hp a sc []) m) (prevs, nxts(a:=None), children(a:=None), parents, scores(a:=Some sc))\<close>
+    \<open>encoded_hp_prop \<V> (add_mset (Hp a sc []) m) (prevs, nxts(a:=None), children(a:=None), parents, scores(a:=Some sc))\<close>
   using assms by (auto simp: encoded_hp_prop_def empty_outside_notin_None)
 
 lemma hp_parent_single_child[simp]: \<open>hp_parent (node a) (Hp m w\<^sub>m [a]) = Some (Hp m w\<^sub>m [a])\<close>
@@ -113,15 +114,16 @@ lemma encoded_hp_prop_link:
   fixes ch\<^sub>m a prevs parents m
   defines \<open>prevs' \<equiv> (if ch\<^sub>m = [] then prevs else prevs (node (hd ch\<^sub>m) := Some (node a)))\<close>
   defines \<open>parents' \<equiv> (if ch\<^sub>m = [] then parents else parents (node (hd ch\<^sub>m) := None))\<close>
-  assumes \<open>encoded_hp_prop (add_mset (Hp m w\<^sub>m ch\<^sub>m) (add_mset a x)) (prevs, nxts, children, parents, scores)\<close>
+  assumes \<open>encoded_hp_prop \<V> (add_mset (Hp m w\<^sub>m ch\<^sub>m) (add_mset a x)) (prevs, nxts, children, parents, scores)\<close>
   shows
-    \<open>encoded_hp_prop (add_mset (Hp m w\<^sub>m (a # ch\<^sub>m)) x) (prevs', nxts(node a:= if ch\<^sub>m = [] then None else Some (node (hd ch\<^sub>m))),
+    \<open>encoded_hp_prop \<V> (add_mset (Hp m w\<^sub>m (a # ch\<^sub>m)) x) (prevs', nxts(node a:= if ch\<^sub>m = [] then None else Some (node (hd ch\<^sub>m))),
       children(m := Some (node a)), parents'(node a:= Some m), scores(m:=Some w\<^sub>m))\<close>
 proof -
   have H[simp]: \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (mset_nodes a))\<close> \<open>distinct_mset (mset_nodes a)\<close>
      \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m))\<close> and
     dist: \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (mset_nodes a) + \<Sum>\<^sub># (mset_nodes `# x))\<close>
-      \<open>m \<notin># sum_list (map mset_nodes ch\<^sub>m) + (mset_nodes a) + \<Sum>\<^sub># (mset_nodes `# x)\<close>
+    \<open>m \<notin># sum_list (map mset_nodes ch\<^sub>m) + (mset_nodes a) + \<Sum>\<^sub># (mset_nodes `# x)\<close> and
+    incl: \<open>set_mset (\<Sum>\<^sub># (mset_nodes `# add_mset (Hp m w\<^sub>m ch\<^sub>m) (add_mset a x))) \<subseteq> set_mset \<V>\<close>
     using assms unfolding encoded_hp_prop_def prod.simps apply auto
     by (metis distinct_mset_add mset_nodes_simps sum_mset.insert union_assoc)+
   have [simp]: \<open>distinct_mset (mset_nodes a + sum_list (map mset_nodes ch\<^sub>m))\<close>
@@ -148,6 +150,7 @@ proof -
   show ?thesis
     using assms 1 unfolding encoded_hp_prop_def prod.simps
     apply (intro conjI impI ballI)
+    subgoal by (auto simp: ac_simps)
     subgoal by (auto simp: ac_simps)
     subgoal
       apply (auto simp: prevs'_def hp_prev_skip_hd_children dest: multi_member_split)
@@ -186,8 +189,9 @@ lemma find_first_not_none_alt_def:
 text \<open>In the following we distinguish between the tree part and the tree part without parent (aka the list part).
 The latter corresponds to a tree where we have removed the source, but the leafs remains in the correct form.
 They are different for first level nexts and first level children.\<close>
-definition encoded_hp_prop_list :: \<open>('e,'f) hp multiset \<Rightarrow> ('e,'f) hp list \<Rightarrow> _\<close> where
-  \<open>encoded_hp_prop_list m xs  = (\<lambda>(prevs,nxts,children, parents, scores). distinct_mset (\<Sum>\<^sub># (mset_nodes `# m + mset_nodes `# (mset xs))) \<and>
+definition encoded_hp_prop_list :: \<open>'e multiset \<Rightarrow> ('e,'f) hp multiset \<Rightarrow> ('e,'f) hp list \<Rightarrow> _\<close> where
+  \<open>encoded_hp_prop_list \<V> m xs  = (\<lambda>(prevs,nxts,children, parents, scores). distinct_mset (\<Sum>\<^sub># (mset_nodes `# m + mset_nodes `# (mset xs))) \<and>
+     set_mset (\<Sum>\<^sub># (mset_nodes `# m + mset_nodes `# (mset xs))) \<subseteq> set_mset \<V> \<and>
      (\<forall>m'\<in>#m. \<forall>x \<in># mset_nodes m'. nxts x = map_option node (hp_next x m')) \<and>
      (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. prevs x = map_option node (hp_prev x m)) \<and>
      (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. children x = map_option node (hp_child x m)) \<and>
@@ -202,10 +206,10 @@ definition encoded_hp_prop_list :: \<open>('e,'f) hp multiset \<Rightarrow> ('e,
     empty_outside (\<Sum>\<^sub># (mset_nodes `# m + mset_nodes `# (mset xs))) parents)
   \<close>
 
-lemma encoded_hp_prop_list_encoded_hp_prop[simp]: \<open>encoded_hp_prop_list arr [] h = encoded_hp_prop arr h\<close>
+lemma encoded_hp_prop_list_encoded_hp_prop[simp]: \<open>encoded_hp_prop_list \<V> arr [] h = encoded_hp_prop \<V> arr h\<close>
   unfolding encoded_hp_prop_list_def encoded_hp_prop_def by auto
 
-lemma encoded_hp_prop_list_encoded_hp_prop_single[simp]: \<open>encoded_hp_prop_list {#} [arr] h = encoded_hp_prop {#arr#} h\<close>
+lemma encoded_hp_prop_list_encoded_hp_prop_single[simp]: \<open>encoded_hp_prop_list \<V> {#} [arr] h = encoded_hp_prop \<V> {#arr#} h\<close>
   unfolding encoded_hp_prop_list_def encoded_hp_prop_def by auto
 
 lemma empty_outside_set_none_outside[simp]: \<open>empty_outside \<V> prevs \<Longrightarrow> a \<notin># \<V> \<Longrightarrow>  empty_outside \<V> (prevs(a := None))\<close>
@@ -214,8 +218,8 @@ lemma empty_outside_set_none_outside[simp]: \<open>empty_outside \<V> prevs \<Lo
 lemma encoded_hp_prop_list_remove_min:
   fixes parents a child children
   defines \<open>parents' \<equiv> (if children a = None then parents else parents(the (children a) := None))\<close>
-  assumes \<open>encoded_hp_prop_list (add_mset (Hp a b child) xs) [] (prevs, nxts, children, parents, scores)\<close>
-  shows \<open>encoded_hp_prop_list xs child (prevs(a:=None), nxts, children(a:=None), parents', scores)\<close>
+  assumes \<open>encoded_hp_prop_list \<V> (add_mset (Hp a b child) xs) [] (prevs, nxts, children, parents, scores)\<close>
+  shows \<open>encoded_hp_prop_list \<V> xs child (prevs(a:=None), nxts, children(a:=None), parents', scores)\<close>
 proof -
   have a: \<open>children a = None \<longleftrightarrow> child = []\<close> and
     b: \<open>children a \<noteq> None \<Longrightarrow> the (children a) = node (hd child)\<close>
@@ -228,14 +232,18 @@ proof -
   then have \<open>child \<noteq> [] \<Longrightarrow> distinct_mset (mset_nodes ((hd child)) + sum_list (map mset_nodes (tl child)))\<close>
      \<open>child \<noteq> [] \<Longrightarrow> distinct_mset (mset_nodes ((hd child)))\<close>
     using distinct_mset_union by (cases child; auto; fail)+
-  then show ?thesis
+  moreover have \<open>parents a = None\<close>
+    using assms
+    unfolding encoded_hp_prop_list_def a
+    by (cases child)
+     (auto simp: ac_simps hp_parent_single_child_If3 hp_parent_simps_if
+      dest: multi_member_split)
+  ultimately show ?thesis
     using assms b
     unfolding encoded_hp_prop_list_def a
     apply (cases child)
     apply (auto simp: ac_simps hp_parent_single_child_If3 hp_parent_simps_if
       dest: multi_member_split)
-    apply (metis (full_types) empty_outside_add_mset hp_parent_None_notin hp_parent_children_None_notin
-      hp_parent_children_cons node_in_mset_nodes option.case(1) option.map_disc_iff)
     apply (metis (no_types, lifting) disjunct_not_in distinct_mset_add insert_DiffM node_in_mset_nodes sum_mset.insert union_iff)
     apply (metis hp_node_None_notin2 option.case_eq_if option.exhaust_sel)
     apply (metis hp_node.simps(1) hp_node_children_simps2)
@@ -266,8 +274,8 @@ lemma encoded_hp_prop_list_link:
   defines \<open>nxts' \<equiv> nxts (m := map_option node (option_hd b), n := map_option node (option_hd ch\<^sub>m))\<close>
   defines \<open>children' \<equiv> children (m := Some n)\<close>
   defines \<open>parents' \<equiv> (if ch\<^sub>m = [] then parents else parents(node (hd ch\<^sub>m) := None))(n := Some m)\<close>
-  assumes \<open>encoded_hp_prop_list (xs) (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b) (prevs, nxts, children, parents, scores)\<close>
-  shows \<open>encoded_hp_prop_list xs (a @ [Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m)] @ b)
+  assumes \<open>encoded_hp_prop_list \<V> (xs) (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b) (prevs, nxts, children, parents, scores)\<close>
+  shows \<open>encoded_hp_prop_list \<V> xs (a @ [Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m)] @ b)
        (prevs', nxts', children', parents', scores)\<close>
 proof -
   have dist: \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (sum_list (map mset_nodes ch\<^sub>n) +
@@ -642,9 +650,9 @@ qed
 (*TODO this seems to be never used in the refinement part*)
 definition encoded_hp_prop_list_conc
   :: "'a::linorder set \<times> ('a, 'b) hp_fun \<times> 'a option \<Rightarrow>
-     ('a, 'b) hp option \<Rightarrow> bool"
+     'a multiset \<times> ('a, 'b) hp option \<Rightarrow> bool"
   where
-  \<open>encoded_hp_prop_list_conc = (\<lambda>(\<V>, arr, h) x.
+  \<open>encoded_hp_prop_list_conc = (\<lambda>(\<V>, arr, h) (\<V>', x). \<V> = set_mset \<V>' \<and>
   (case x of None \<Rightarrow> encoded_hp_prop_list {#} ([]:: ('a, 'b) hp list) arr \<and> h = None
   | Some x \<Rightarrow> encoded_hp_prop_list {#x#} [] arr \<and> set_mset (mset_nodes x) \<subseteq> \<V> \<and> h = Some (node x)))\<close>
 
@@ -760,13 +768,14 @@ definition hp_insert :: \<open>'a \<Rightarrow> 'b::linorder \<Rightarrow> 'a se
 
 lemma hp_insert_spec:
   assumes \<open>encoded_hp_prop_list_conc arr h\<close> and
-    \<open>h \<noteq> None \<Longrightarrow> i \<notin># mset_nodes (the h)\<close> and
+    \<open>snd h \<noteq> None \<Longrightarrow> i \<notin># mset_nodes (the (snd h))\<close> and
     \<open>i \<in> fst arr\<close>
-  shows \<open>hp_insert i w arr \<le> SPEC (\<lambda>arr. encoded_hp_prop_list_conc arr (ACIDS.insert i w h))\<close>
+  shows \<open>hp_insert i w arr \<le> \<Down> {(arr, h). encoded_hp_prop_list_conc arr h}  (ACIDS.mop_hm_insert i w h)\<close>
 proof -
+  let ?h = \<open>snd h\<close>
   obtain prevs nxts childs scores parents \<V> where
-    arr: \<open>arr = (\<V>, (prevs, nxts, childs, parents, scores), map_option node h)\<close>
-    by (cases arr; cases h) (use assms in \<open>auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list_def
+    arr: \<open>arr = (\<V>, (prevs, nxts, childs, parents, scores), map_option node ?h)\<close>
+    by (cases arr; cases ?h) (use assms in \<open>auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list_def
         encoded_hp_prop_def\<close>)
 
   have enc: \<open>encoded_hp_prop {#Hp i w [the h]#}
@@ -1772,10 +1781,6 @@ proof -
       (auto simp: get_min2_alt_def ACIDS.pass12_merge_pairs encoded_hp_prop_list_conc_def split: option.splits)
     done
 qed
-
-lemma find_key_None_remove_key_ident: \<open>find_key a h = None \<Longrightarrow> remove_key a h = Some h\<close>
-  by (induction a h rule: find_key.induct)
-   (auto split: if_splits)
 
 lemma in_remove_key_in_find_keyD:
   \<open>m' \<in># (if remove_key a h = None then {#} else {#the (remove_key a h)#}) +
@@ -3018,99 +3023,14 @@ proof -
     done
 qed
 
-context hmstruct_with_prio
-begin
+thm sint_
 
-abbreviation (input) hp_mset_rel :: \<open>_\<close> where
-  \<open>hp_mset_rel \<equiv> hmrel\<close>
+lemma hp_insert_spec:
+  assumes \<open>(arr, h) \<in> {(arr, h). encoded_hp_prop_list_conc arr h} O B O ACIDS.hmrel\<close>
+  shows \<open>hp_insert i w arr \<le> SPEC (\<lambda>arr. encoded_hp_prop_list_conc' arr (ACIDS.mop_prio_insert i w h))\<close>
+    term B
 
-lemma pass\<^sub>1_empty_iff[simp]: \<open>pass\<^sub>1 x = [] \<longleftrightarrow> x= []\<close>
-  by (cases x rule: pass\<^sub>1.cases) auto
-
-lemma sum_list_map_mset_nodes_empty_iff[simp]: \<open>sum_list (map mset_nodes x3) = {#} \<longleftrightarrow> x3 = []\<close>
-  by (cases x3; cases \<open>hd x3\<close>) auto
-
-lemma hp_score_link:
-  \<open>a \<in># mset_nodes h1 \<Longrightarrow> distinct_mset (mset_nodes h1 + mset_nodes h2) \<Longrightarrow> hp_score a (link h1 h2) = hp_score a h1\<close>
-  apply (cases h1; cases h2)
-  apply (auto split: option.splits simp add: hp_node_children_None_notin2)
- by (metis diff_union_cancelL distinct_mem_diff_mset ex_hp_node_children_Some_in_mset_nodes hp_node_children_simps2)
-
-lemma hp_score_link_skip_first[simp]:
-  \<open>a \<notin># mset_nodes h1 \<Longrightarrow> hp_score a (link h1 h2) = hp_score a h2\<close>
-  by (cases h1; cases h2)
-   (auto split: option.splits simp add: hp_node_children_None_notin2)
-
-lemma hp_score_merge_pairs:
-  \<open>distinct_mset (sum_list (map mset_nodes ys)) \<Longrightarrow> merge_pairs ys \<noteq> None \<Longrightarrow>
-    hp_score a (the (merge_pairs (ys))) = hp_score_children a (ys)\<close>
-  apply (induction ys rule: pass\<^sub>1.induct)
-  apply (auto simp add: hp_node_children_Cons_if Let_def
-    split: option.splits)
-  apply (simp add: disjunct_not_in distinct_mset_add hp_score_link)
-  apply (subst hp_score_link)
-    apply simp
-    apply simp
-  apply (metis mset_nodes_merge_pairs option.sel option_hd_Nil option_hd_Some_iff(2) union_assoc)
-  apply (metis Groups.add_ac(1) distinct_mset_union hp_score_link)
-  apply (subst hp_score_link)
-    apply simp
-    apply simp
-  apply (metis mset_nodes_merge_pairs option.sel option_hd_Nil option_hd_Some_iff(2) union_assoc)
-    apply (meson hp_score_link_skip_first)
-  apply (subst hp_score_link)
-    apply simp
-    apply simp
-  apply (metis mset_nodes_merge_pairs option.sel option_hd_Nil option_hd_Some_iff(2) union_assoc)
-  apply (metis Groups.add_ac(1) distinct_mset_union hp_score_link)
-  by (metis Duplicate_Free_Multiset.distinct_mset_union2 merge_pairs_None_iff option.simps(2))
-
-
-definition decrease_key2 where
-  \<open>decrease_key2 a w h = (if h = None then None else decrease_key a w (the h))\<close>
-lemma hp_mset_rel_def:  \<open>hp_mset_rel = {(h, (\<A>, m, w)). distinct_mset m \<and>
-  (h = None \<longleftrightarrow> m = {#}) \<and>
-  (m \<noteq> {#} \<longrightarrow> (mset_nodes (the h) = m \<and> (\<forall>a\<in>#m. Some (w a) = hp_score a (the h)) \<and> invar h))}\<close>
-  unfolding hmrel_def
-  apply (auto simp:)
-  apply (metis in_multiset_nempty node_in_mset_nodes)
-  apply (simp add: option.expand option.map_sel)
-  apply (metis Some_to_the hp_node_None_notin2 option.map_sel)
-  by (metis Some_to_the hp_node_None_notin2 option.map_sel)
-
-lemma decrease_key2:
-  assumes \<open>(x, m) \<in> hp_mset_rel\<close> \<open>(a,a')\<in>Id\<close> \<open>(w,w')\<in>Id\<close> \<open>le w (snd (snd m) a)\<close>
-  shows \<open>RETURN (decrease_key2 a w x) \<le> \<Down> (hp_mset_rel) (mop_prio_change_weight a' w' m)\<close>
-proof -
-  show ?thesis
-    using assms
-    unfolding decrease_key2_def
-      mop_prio_insert_def mop_prio_change_weight_def
-    apply refine_rcg
-    subgoal
-       using php_decrease_key[of \<open>the x\<close> w a]
-      apply (auto simp: hp_mset_rel_def decrease_key_def invar_def split: option.splits hp.splits)
-       apply (metis find_key_None_remove_key_ident in_remove_key_changed option.sel option.simps(2))
-       apply (metis empty_neutral(1) find_key_head_node_iff hp.sel(1) mset_map mset_nodes.simps option.simps(1) remove_key_None_iff sum_mset_sum_list union_mset_add_mset_left)
-       apply (metis find_key_node_itself hp.sel(1) hp_node_children_simps2 option.sel remove_key_None_iff)
-      apply (metis find_key_node_itself find_key_notin hp.sel(2) hp_node_node_itself option.distinct(1) option.map_sel option.sel remove_key_None_iff)
-      apply (metis invar_Some invar_find_key php.simps)
-       apply (metis (no_types, lifting) add_mset_add_single find_key_None_or_itself find_remove_mset_nodes_full hp.sel(1) mset_nodes_simps option.sel option.simps(2) union_commute union_mset_add_mset_left)
-      apply (smt (verit) Duplicate_Free_Multiset.distinct_mset_mono disjunct_not_in distinct_mset_add find_key_None_or_itself hp.sel(1) hp.sel(2) hp_node_simps hp_score_link in_find_key_notin_remove_key mset_nodes.simps mset_nodes_find_key_subset node_remove_key_in_mset_nodes option.distinct(1) option.sel option.simps(9) union_iff union_single_eq_member)
-      apply (smt (verit) disjunct_not_in distinct_mset_add find_key_None_or_itself find_remove_mset_nodes_full hp.sel(1) hp_node_None_notin2 hp_node_children_simps2 hp_node_in_find_key0 hp_score_link hp_score_link_skip_first hp_score_remove_key_other map_option_is_None mset_nodes_simps option.distinct(1) option.sel union_iff)
-      by (metis find_key_None_or_itself find_key_notin hp.sel(1) hp.sel(2) hp_node_find_key hp_node_simps option.distinct(1) option.sel option.simps(9))
-    done
-qed
-
-lemma insert_mop_prio_insert:
-  assumes \<open>(x, m) \<in> hp_mset_rel\<close> \<open>(a,a')\<in>Id\<close> \<open>(w,w')\<in>Id\<close>
-  shows \<open>RETURN (insert a w x) \<le> \<Down> (hp_mset_rel) (mop_prio_insert a' w' m)\<close>
-  using assms
-  unfolding insert_def mop_prio_insert_def
-  apply refine_vcg
-  apply (auto simp: hp_mset_rel_def invar_def hp_score_link)
-  by (metis insert.simps(2) invar_Some invar_insert)
-
-end
-
+thm hp_insert_spec ACIDS.mop_prio_insert
+find_theorems ACIDS.insert
+  find_theorems ACIDS.mop_hm_insert
 end
