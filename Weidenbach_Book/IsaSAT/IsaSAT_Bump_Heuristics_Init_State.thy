@@ -73,12 +73,11 @@ definition vmtf_heur_import_variable :: \<open>nat \<Rightarrow> vmtf_remove_int
      (vmtf_cons n L cnext stmp, stmp+1, fst, Some L, cnext))\<close>
 
 definition acids_heur_import_variable :: \<open>nat \<Rightarrow> (nat, nat) acids \<Rightarrow> _\<close> where
-  \<open>acids_heur_import_variable L = (\<lambda>((\<B>, b, w), m).
-     ((\<B>, add_mset L b, w(L:=m)), (m+1)))\<close>
+  \<open>acids_heur_import_variable L = (\<lambda>(bw, m). do {
+     bw \<leftarrow> ACIDS.mop_prio_insert L m bw;
+     RETURN (bw, (m+1))
+  })\<close>
 
-definition bump_heur_import_variable where
-  \<open>bump_heur_import_variable L x = (case x of Bump_Heuristics_Init hstable focused foc n \<Rightarrow>
-    Bump_Heuristics_Init (acids_heur_import_variable L hstable) (vmtf_heur_import_variable L focused) foc n)\<close>
 
 (*TODO: should be a single loop*)
 definition initialise_VMTF :: \<open>nat list \<Rightarrow> nat \<Rightarrow> vmtf_remove_int_option_fst_As nres\<close> where
@@ -109,8 +108,9 @@ definition initialise_ACIDS :: \<open>nat list \<Rightarrow> nat \<Rightarrow> (
         ASSERT(i < length_uint32_nat N);
         let L = (N ! i);
         ASSERT (snd A = i);
-        ASSERT(i + 1 \<le> unat32_max);
-        RETURN (i + 1, acids_heur_import_variable L A)
+          ASSERT(i + 1 \<le> unat32_max);
+        A \<leftarrow> acids_heur_import_variable L A;
+        RETURN (i + 1, A)
       })
       (0, A);
    RETURN A
@@ -280,9 +280,13 @@ proof -
    by (cases x, cases y)
     (auto simp: I'_def acids_def list_rel_mset_rel_def list_mset_rel_def br_def defined_lit_map
      dest!: multi_member_split)
-     
- have I'_Suc: \<open>I' x (fst s + 1, acids_heur_import_variable (fst x ! fst s) (snd s))\<close>
-   if 
+
+ have I'_Suc: \<open>I' x (fst s + 1,
+      (fst (fst (snd s)), add_mset (fst x ! fst s) (fst (snd (fst (snd s)))),
+    (snd (snd (fst (snd s))))(fst x ! fst s := snd (snd s))),
+   snd (snd s) + 1)\<close> and
+   pre: \<open>fst x ! fst s \<notin># fst (snd (fst (snd s)))\<close>
+   if
      \<open>(\<forall>L\<in>#fst y. L < snd y) \<and>
      distinct_mset (fst y) \<and>
      size (fst y) < unat32_max \<and> set_mset (fst y) = set_mset \<A>\<close> and
@@ -304,7 +308,10 @@ proof -
        image_image acids_heur_import_variable_def I'_def mset_take_subseteq)
      by (metis distinct_subseteq_iff fst_eqD le_refl set_take_subset take_all_iff that(1))
 
-   then show ?thesis
+   then show  \<open>I' x (fst s + 1,
+      (fst (fst (snd s)), add_mset (fst x ! fst s) (fst (snd (fst (snd s)))),
+    (snd (snd (fst (snd s))))(fst x ! fst s := snd (snd s))),
+   snd (snd s) + 1)\<close> \<open>fst x ! fst s \<notin># fst (snd (fst (snd s)))\<close>
      using that
      by (auto simp: acids_def take_Suc_conv_app_nth defined_lit_map list_rel_mset_rel_def br_def list_mset_rel_def
        image_image acids_heur_import_variable_def I'_def Cons_nth_drop_Suc[symmetric] distinct_in_set_take_iff
@@ -313,6 +320,7 @@ proof -
 
   show ?thesis
     unfolding uncurry_def case_prod_beta initialise_ACIDS_def
+      acids_heur_import_variable_def ACIDS.mop_prio_insert_def nres_monad3
     apply (intro frefI nres_relI)
     subgoal for x y
       apply (cases x, cases y)
@@ -325,6 +333,9 @@ proof -
       subgoal by (rule I0)
       subgoal by (auto simp: I'_def)
       subgoal by (auto simp:)
+      subgoal by (rule pre)
+      subgoal by (auto simp: I'_def list_rel_mset_rel_def list_mset_rel_def br_def
+        acids_def)
       subgoal by (rule I'_Suc)
       subgoal by (auto simp: I'_def)
       subgoal 

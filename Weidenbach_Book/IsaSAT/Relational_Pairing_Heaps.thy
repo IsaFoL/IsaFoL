@@ -762,7 +762,7 @@ lemma hp_insert_spec:
   assumes \<open>encoded_hp_prop_list_conc arr h\<close> and
     \<open>h \<noteq> None \<Longrightarrow> i \<notin># mset_nodes (the h)\<close> and
     \<open>i \<in> fst arr\<close>
-  shows \<open>hp_insert i w arr \<le> SPEC (\<lambda>arr. encoded_hp_prop_list_conc arr (VSIDS.insert i w h))\<close>
+  shows \<open>hp_insert i w arr \<le> SPEC (\<lambda>arr. encoded_hp_prop_list_conc arr (ACIDS.insert i w h))\<close>
 proof -
   obtain prevs nxts childs scores parents \<V> where
     arr: \<open>arr = (\<V>, (prevs, nxts, childs, parents, scores), map_option node h)\<close>
@@ -900,8 +900,8 @@ lemma hp_link:
   assumes enc: \<open>encoded_hp_prop_list2_conc arr (xs @ x # y # ys)\<close> and
     \<open>i = node x\<close> and
     \<open>j = node y\<close>
-  shows \<open>hp_link i j arr \<le> SPEC (\<lambda>(arr, n). encoded_hp_prop_list2_conc arr (xs @ VSIDS.link x y # ys) \<and>
-    n = node (VSIDS.link x y))\<close>
+  shows \<open>hp_link i j arr \<le> SPEC (\<lambda>(arr, n). encoded_hp_prop_list2_conc arr (xs @ ACIDS.link x y # ys) \<and>
+    n = node (ACIDS.link x y))\<close>
 proof -
   obtain prevs nxts childs parents scores \<V> where
     arr: \<open>arr = (\<V>, (prevs, nxts, childs, parents, scores), None)\<close> and
@@ -914,10 +914,10 @@ proof -
     using dist assms(2,3) by (cases x; cases y) auto
   have xy: \<open>Hp (node x) (score x) (hps x) = x\<close>  \<open>Hp (node y) (score y) (hps y) = y\<close> and
     sc: \<open>score x = the (scores i)\<close> \<open>score y = the (scores j)\<close> and
-    link_x_y: \<open>VSIDS.link x y = VSIDS.link (Hp i (the (scores i)) (hps x))
+    link_x_y: \<open>ACIDS.link x y = ACIDS.link (Hp i (the (scores i)) (hps x))
      (Hp j (the (scores j)) (hps y))\<close>
     by (cases x; cases y; use assms in \<open>auto simp: encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def arr
-      simp del: VSIDS.link.simps\<close>; fail)+
+      simp del: ACIDS.link.simps\<close>; fail)+
   obtain ch\<^sub>x w\<^sub>x ch\<^sub>y w\<^sub>y where
     x: \<open>x = Hp i w\<^sub>x ch\<^sub>x\<close> and
     y: \<open>y = Hp j w\<^sub>y ch\<^sub>y\<close>
@@ -994,8 +994,8 @@ proof -
     by auto
   have enc0: \<open>encoded_hp_prop_list {#} (xs @ [Hp (node x) (score x) (hps x), Hp (node y) (score y) (hps y)] @ ys) (prevs, nxts, childs, parents, scores)\<close>
     using enc unfolding x y by (auto simp: encoded_hp_prop_list2_conc_def arr)
-  then have H: \<open>fst x1= \<V> \<Longrightarrow> snd (snd x1) = None\<Longrightarrow> encoded_hp_prop_list2_conc x1 (xs @ VSIDS.link x y # ys) \<longleftrightarrow>
-    encoded_hp_prop_list {#} (xs @ VSIDS.link x y # ys) (fst (snd x1))\<close> for x1
+  then have H: \<open>fst x1= \<V> \<Longrightarrow> snd (snd x1) = None\<Longrightarrow> encoded_hp_prop_list2_conc x1 (xs @ ACIDS.link x y # ys) \<longleftrightarrow>
+    encoded_hp_prop_list {#} (xs @ ACIDS.link x y # ys) (fst (snd x1))\<close> for x1
     using dist \<V> unfolding x y
     by (cases x1)
       (simp add: encoded_hp_prop_list2_conc_def)
@@ -1343,7 +1343,7 @@ definition vsids_pass\<^sub>1 where
 lemma vsids_pass\<^sub>1:
   fixes arr :: \<open>'a::linorder set \<times> ('a, nat) hp_fun \<times> 'a option\<close>
   assumes \<open>encoded_hp_prop_list2_conc arr xs\<close> and \<open>xs \<noteq> []\<close> and \<open>j = node (hd xs)\<close>
-  shows \<open>vsids_pass\<^sub>1 arr j \<le> SPEC(\<lambda>(arr, j). encoded_hp_prop_list2_conc arr (VSIDS.pass\<^sub>1 xs) \<and> j = node (last (VSIDS.pass\<^sub>1 xs)))\<close>
+  shows \<open>vsids_pass\<^sub>1 arr j \<le> SPEC(\<lambda>(arr, j). encoded_hp_prop_list2_conc arr (ACIDS.pass\<^sub>1 xs) \<and> j = node (last (ACIDS.pass\<^sub>1 xs)))\<close>
 proof -
   obtain prevs nxts childs scores \<V> where
     arr: \<open>arr = (\<V>, (prevs, nxts, childs, scores), None)\<close> and
@@ -1352,9 +1352,9 @@ proof -
     by (cases arr) (use assms in \<open>auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
         encoded_hp_prop_def\<close>)
   define I where \<open>I \<equiv> (\<lambda>(arr, nnxt::'a option, e, k).
-    encoded_hp_prop_list2_conc arr (VSIDS.pass\<^sub>1(take e xs) @ drop e xs) \<and> nnxt = map_option node (option_hd (drop (e) xs)) \<and>
+    encoded_hp_prop_list2_conc arr (ACIDS.pass\<^sub>1(take e xs) @ drop e xs) \<and> nnxt = map_option node (option_hd (drop (e) xs)) \<and>
     e \<le> (length xs) \<and> (nnxt = None \<longleftrightarrow> e = length xs) \<and> (nnxt \<noteq> None \<longrightarrow> even e) \<and>
-    k = (if e=0 then j else node (last (VSIDS.pass\<^sub>1(take e xs)))))\<close>
+    k = (if e=0 then j else node (last (ACIDS.pass\<^sub>1(take e xs)))))\<close>
   have I0: \<open>I ((\<V>, (prevs, nxts, childs, scores), None), Some j, 0, j)\<close>
     using assms unfolding I_def prod.simps
     by (cases xs, auto simp: arr; fail)+
@@ -1378,12 +1378,12 @@ proof -
       apply (auto simp: I_def)
       done
     then show ?thesis
-      using that VSIDS.pass\<^sub>1_append_even[of \<open>butlast xs\<close> \<open>[last xs]\<close>]
+      using that ACIDS.pass\<^sub>1_append_even[of \<open>butlast xs\<close> \<open>[last xs]\<close>]
       by (auto simp: I_def)
   qed
 
   have link_pre1: \<open>encoded_hp_prop_list2_conc (x1, x1a, x2a)
-    (VSIDS.pass\<^sub>1 (take x2b xs) @
+    (ACIDS.pass\<^sub>1 (take x2b xs) @
     xs!x2b # xs!(Suc x2b) # drop (x2b+2) xs)\<close> (is ?H1) and
     link_pre2: \<open>the x1b = node (xs ! x2b)\<close>  (is ?H2) and
     link_pre3: \<open>the (hp_read_nxt (the x1b) x1a) = node (xs ! Suc x2b)\<close> (is ?H3)
@@ -1398,7 +1398,7 @@ proof -
       nxt: \<open>hp_read_nxt (the x1b) x1a \<noteq> None\<close>
     for s a b x1 x2 x1a x2a x1b x2b j x2b'
   proof -
-    have \<open>encoded_hp_prop_list {#} (VSIDS.pass\<^sub>1 (take x2b xs) @ drop x2b xs) x1a\<close>
+    have \<open>encoded_hp_prop_list {#} (ACIDS.pass\<^sub>1 (take x2b xs) @ drop x2b xs) x1a\<close>
       \<open>x2b < length xs\<close>
       \<open>x1b = Some (node (hd (drop x2b xs)))\<close>
       using that
@@ -1452,14 +1452,14 @@ proof -
       linkedn: \<open>case linkedn of
       (arr, n) \<Rightarrow>
       encoded_hp_prop_list2_conc arr
-      (VSIDS.pass\<^sub>1 (take k xs) @ VSIDS.link (xs ! k) (xs ! Suc k) # drop (k + 2) xs) \<and>
-      n = node (VSIDS.link (xs ! k) (xs ! Suc k))\<close>
+      (ACIDS.pass\<^sub>1 (take k xs) @ ACIDS.link (xs ! k) (xs ! Suc k) # drop (k + 2) xs) \<and>
+      n = node (ACIDS.link (xs ! k) (xs ! Suc k))\<close>
     for s arr2 b \<V>' x1a x2a x1b nxt k linkedn linked n x2c x1d x2d xe j k'
   proof -
-    have enc: \<open>encoded_hp_prop_list {#} (VSIDS.pass\<^sub>1 (take k xs) @ drop k xs) x2a\<close>
+    have enc: \<open>encoded_hp_prop_list {#} (ACIDS.pass\<^sub>1 (take k xs) @ drop k xs) x2a\<close>
       \<open>k < length xs\<close>
       \<open>nxt = Some (node (hd (drop k xs)))\<close> and
-      dist: \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# (mset (VSIDS.pass\<^sub>1 (take k xs) @ drop k xs))))\<close>
+      dist: \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# (mset (ACIDS.pass\<^sub>1 (take k xs) @ drop k xs))))\<close>
       using that
       by (auto simp: I_def encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def)
 
@@ -1504,7 +1504,7 @@ proof -
     show ?thesis
       using inv nxt le linkedn nnxts
       unfolding st
-      by (auto simp: I_def take_Suc take_nth VSIDS.pass\<^sub>1_append_even)
+      by (auto simp: I_def take_Suc take_nth ACIDS.pass\<^sub>1_append_even)
   qed
 
   show ?thesis
@@ -1520,7 +1520,7 @@ proof -
       by (auto simp: I_no_next)
     subgoal by (auto simp: I_def)
     subgoal for s a b x1 x2 x1a x2a x1b x2b x1c x2c
-      using hp_next_children_in_nodes2[of \<open>(node (hd (drop x1c xs)))\<close> \<open>(VSIDS.pass\<^sub>1 (take x1c xs) @ drop x1c xs)\<close>]
+      using hp_next_children_in_nodes2[of \<open>(node (hd (drop x1c xs)))\<close> \<open>(ACIDS.pass\<^sub>1 (take x1c xs) @ drop x1c xs)\<close>]
       by (auto 5 3 simp: I_def encoded_hp_prop_list_def encoded_hp_prop_list2_conc_def)
     apply (rule link_pre1; assumption?)
     apply (rule link_pre2; assumption)
@@ -1561,7 +1561,7 @@ definition vsids_pass\<^sub>2 where
 lemma vsids_pass\<^sub>2:
   fixes arr :: \<open>'a::linorder set \<times> ('a, nat) hp_fun \<times> 'a option\<close>
   assumes \<open>encoded_hp_prop_list2_conc arr xs\<close> and \<open>xs \<noteq> []\<close> and \<open>j = node (last xs)\<close>
-  shows \<open>vsids_pass\<^sub>2 arr j \<le> SPEC(\<lambda>(arr). encoded_hp_prop_list_conc arr (VSIDS.pass\<^sub>2 xs))\<close>
+  shows \<open>vsids_pass\<^sub>2 arr j \<le> SPEC(\<lambda>(arr). encoded_hp_prop_list_conc arr (ACIDS.pass\<^sub>2 xs))\<close>
 proof -
   obtain prevs nxts childs scores \<V> where
     arr: \<open>arr = (\<V>, (prevs, nxts, childs, scores), None)\<close> and
@@ -1575,8 +1575,8 @@ proof -
      (auto simp: encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def arr)
 
   define I where \<open>I \<equiv> (\<lambda>(arr, nnxt::'a option, leader, e'). let e = length xs - e' in
-    encoded_hp_prop_list2_conc arr (take e xs @ [the (VSIDS.pass\<^sub>2 (drop e xs))]) \<and> nnxt = map_option node (option_last (take e xs)) \<and>
-    leader = node (the (VSIDS.pass\<^sub>2 (drop e xs))) \<and>
+    encoded_hp_prop_list2_conc arr (take e xs @ [the (ACIDS.pass\<^sub>2 (drop e xs))]) \<and> nnxt = map_option node (option_last (take e xs)) \<and>
+    leader = node (the (ACIDS.pass\<^sub>2 (drop e xs))) \<and>
     e \<le> (length xs) \<and> (nnxt = None \<longleftrightarrow> e = 0) \<and> e' > 0)\<close>
   have I0: \<open>I ((\<V>, (prevs, nxts, childs, scores), None), hp_read_prev j (prevs, nxts, childs, scores), j, 1)\<close>
     using assms prevs_lastxs unfolding I_def prod.simps Let_def
@@ -1586,9 +1586,9 @@ proof -
   have links_pre1: \<open>encoded_hp_prop_list2_conc (\<V>', arr', h')
     (take (length xs - Suc e) xs @
     xs ! (length xs - Suc e) #
-    the (VSIDS.pass\<^sub>2 (drop (length xs - e) xs)) # [])\<close> (is ?H1) and
+    the (ACIDS.pass\<^sub>2 (drop (length xs - e) xs)) # [])\<close> (is ?H1) and
     links_pre2: \<open>the x1b = node (xs ! (length xs - Suc e))\<close> (is ?H2) and
-    links_pre3: \<open>leader = node (the (VSIDS.pass\<^sub>2 (drop (length xs - e) xs)))\<close> (is ?H3)
+    links_pre3: \<open>leader = node (the (ACIDS.pass\<^sub>2 (drop (length xs - e) xs)))\<close> (is ?H3)
     if
       I: \<open>I s\<close> and
       brk: \<open>case s of (x, xa) \<Rightarrow> (case x of (\<V>, arr, h) \<Rightarrow> \<lambda>(j, leader, e). j \<noteq> None) xa\<close> and
@@ -1640,18 +1640,18 @@ proof -
       (arr, n) \<Rightarrow>
       encoded_hp_prop_list2_conc arr
       (take (length xs - Suc e) xs @
-      [VSIDS.link (xs ! (length xs - Suc e)) (the (VSIDS.pass\<^sub>2 (drop (length xs - e) xs)))]) \<and>
+      [ACIDS.link (xs ! (length xs - Suc e)) (the (ACIDS.pass\<^sub>2 (drop (length xs - e) xs)))]) \<and>
       n =
       node
-      (VSIDS.link (xs ! (length xs - Suc e)) (the (VSIDS.pass\<^sub>2 (drop (length xs - e) xs))))\<close>
+      (ACIDS.link (xs ! (length xs - Suc e)) (the (ACIDS.pass\<^sub>2 (drop (length xs - e) xs))))\<close>
     for s a b \<V>' x2 x1a x2a x1b x2b x1c e linkedn linked new_leader x1d x2d x1e x2e
   proof -
     have e: \<open>e < length xs\<close> \<open>length xs - e < length xs\<close>
       using I brk no_None
       unfolding st I_def
       by (auto simp: I_def Let_def)
-    then have [simp]: \<open>VSIDS.link (xs ! (length xs - Suc e)) (the (VSIDS.pass\<^sub>2 (drop (length xs - e) xs)))  =
-      the (VSIDS.pass\<^sub>2 (drop (length xs - Suc e) xs))\<close>
+    then have [simp]: \<open>ACIDS.link (xs ! (length xs - Suc e)) (the (ACIDS.pass\<^sub>2 (drop (length xs - e) xs)))  =
+      the (ACIDS.pass\<^sub>2 (drop (length xs - Suc e) xs))\<close>
       using that
       by (auto simp: I_def Let_def simp flip: Cons_nth_drop_Suc split: option.split)
     have [simp]: \<open>hp_read_prev (node (last (take (length xs - e) xs))) x1a = map_option node (option_last (take (length xs - Suc e) xs))\<close>
@@ -1684,9 +1684,9 @@ proof -
       by (rule I_Suc)
     subgoal for s a b \<V>' x2 x1a x2a x1b x2b x1c e linkedn linked new_leader x1d x2d x1e x2e
       by (auto simp: I_def Let_def)
-    subgoal using assms VSIDS.mset_nodes_pass\<^sub>2[of xs] by (auto simp: I_def Let_def
+    subgoal using assms ACIDS.mset_nodes_pass\<^sub>2[of xs] by (auto simp: I_def Let_def
       encoded_hp_prop_list_conc_def encoded_hp_prop_list2_conc_def
-      split: option.split simp del: VSIDS.mset_nodes_pass\<^sub>2)
+      split: option.split simp del: ACIDS.mset_nodes_pass\<^sub>2)
     done
 qed
 
@@ -1700,16 +1700,16 @@ definition merge_pairs where
 lemma vsids_merge_pairs:
   fixes arr :: \<open>'a::linorder set \<times> ('a, nat) hp_fun \<times> 'a option\<close>
   assumes \<open>encoded_hp_prop_list2_conc arr xs\<close> and \<open>xs \<noteq> []\<close> and \<open>j = node (hd xs)\<close>
-  shows \<open>merge_pairs arr j \<le> SPEC(\<lambda>(arr). encoded_hp_prop_list_conc arr (VSIDS.merge_pairs xs))\<close>
+  shows \<open>merge_pairs arr j \<le> SPEC(\<lambda>(arr). encoded_hp_prop_list_conc arr (ACIDS.merge_pairs xs))\<close>
 proof -
   show ?thesis
     unfolding merge_pairs_def
-    apply (refine_vcg vsids_pass\<^sub>1 vsids_pass\<^sub>2[of _ "VSIDS.pass\<^sub>1 xs"])
+    apply (refine_vcg vsids_pass\<^sub>1 vsids_pass\<^sub>2[of _ "ACIDS.pass\<^sub>1 xs"])
     apply (rule assms)+
     subgoal by auto
-    subgoal using assms by (cases xs rule: VSIDS.pass\<^sub>1.cases) auto
+    subgoal using assms by (cases xs rule: ACIDS.pass\<^sub>1.cases) auto
     subgoal using assms by auto
-    subgoal by (auto simp: VSIDS.pass12_merge_pairs)
+    subgoal by (auto simp: ACIDS.pass12_merge_pairs)
     done
 qed
 
@@ -1741,7 +1741,7 @@ lemma node_remove_key_itself_iff[simp]: \<open>remove_key (y) z \<noteq> None \<
 lemma vsids_pop_min:
   fixes arr :: \<open>'a::linorder set \<times> ('a, nat) hp_fun \<times> 'a option\<close>
   assumes \<open>encoded_hp_prop_list_conc arr h\<close>
-  shows \<open>vsids_pop_min arr \<le> SPEC(\<lambda>(j, arr). j = (if h = None then None else Some (get_min2 h)) \<and> encoded_hp_prop_list_conc arr (VSIDS.del_min h))\<close>
+  shows \<open>vsids_pop_min arr \<le> SPEC(\<lambda>(j, arr). j = (if h = None then None else Some (get_min2 h)) \<and> encoded_hp_prop_list_conc arr (ACIDS.del_min h))\<close>
 proof -
   show ?thesis
     unfolding vsids_pop_min_def
@@ -1769,7 +1769,7 @@ proof -
     subgoal using assms by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
       get_min2_alt_def split: option.splits)
     subgoal using assms by (cases \<open>h\<close>; cases \<open>the h\<close>)
-      (auto simp: get_min2_alt_def VSIDS.pass12_merge_pairs encoded_hp_prop_list_conc_def split: option.splits)
+      (auto simp: get_min2_alt_def ACIDS.pass12_merge_pairs encoded_hp_prop_list_conc_def split: option.splits)
     done
 qed
 
@@ -1811,7 +1811,7 @@ lemma in_find_key_children_same_hp_parent:
   subgoal for k xa na c xs
     apply (auto split: if_splits option.splits simp: hp_parent_simps_single_if hp_parent_children_cons)
     apply (metis mset_nodes_find_key_children_subset mset_subset_eqD option.sel option.simps(3) sum_image_mset_sum_map)
-    apply (metis (no_types, lifting) VSIDS.hp_node_find_key_children find_key_children.simps(1) find_key_children_None_or_itself
+    apply (metis (no_types, lifting) ACIDS.hp_node_find_key_children find_key_children.simps(1) find_key_children_None_or_itself
       hp.sel(1) hp_node_None_notin2 hp_node_children_simps(3) hp_node_node_itself hp_parent_children_in_first_child hp_parent_in_nodes list.exhaust_sel
       list.simps(9) mset_nodes_find_key_children_subset mset_subset_eqD node_in_mset_nodes option.sel sum_image_mset_sum_map sum_list_simps(2))
     apply (metis hp_node_None_notin2 hp_node_children_None_notin2 hp_node_in_find_key_children sum_image_mset_sum_map)
@@ -1823,7 +1823,7 @@ lemma in_find_key_children_same_hp_parent:
     apply (smt (verit, ccfv_threshold) basic_trans_rules(31) find_key_children.elims find_key_children.simps(2) hp.exhaust_sel hp.sel(1)
       hp_parent_children_in_first_child hp_parent_in_nodes list.distinct(1) list.exhaust_sel list.simps(9) mset_nodes_find_key_children_subset
       option.sel option.simps(2) set_mset_mono sum_image_mset_sum_map sum_list_simps(2))
-    apply (smt (verit) VSIDS.hp_node_find_key_children distinct_mset_add ex_hp_node_children_Some_in_mset_nodes find_key_children.simps(1) find_key_children_None_or_itself
+    apply (smt (verit) ACIDS.hp_node_find_key_children distinct_mset_add ex_hp_node_children_Some_in_mset_nodes find_key_children.simps(1) find_key_children_None_or_itself
       find_key_none_iff hp.sel(1) hp_node_None_notin2 hp_node_children_None_notin2 hp_node_children_simps(3) hp_node_in_find_key_children hp_node_node_itself
       hp_parent_children_in_first_child hp_parent_in_nodes list.exhaust_sel list.simps(9) option.sel option_last_Nil option_last_Some_iff(2) sum_list_simps(2))
     apply (metis Duplicate_Free_Multiset.distinct_mset_union2 hp_parent_children_hd_None option.simps(2) sum_image_mset_sum_map union_commute)
@@ -2305,7 +2305,7 @@ proof -
         \<open>hp_next a h = None\<close> and
         \<open>hp_parent a h = None\<close> and
         \<open>hp_prev a h = None\<close>
-      by (metis that VSIDS.find_key_node_itself no_relative_ancestor_or_notin option.sel)
+      by (metis that ACIDS.find_key_node_itself no_relative_ancestor_or_notin option.sel)
     have helperd2: \<open>hp_parent a m' = None\<close>
       if
         \<open>find_key a h = Some m'\<close>
@@ -2716,7 +2716,7 @@ lemma encoded_hp_prop_list_remove_find2:
       encoded_hp_prop_mset2_conc_def case_prod_beta hp_update_fst_snd maybe_hp_update_fst_snd2[symmetric]
       maybe_hp_update_fst_snd[symmetric]
     apply auto
-    apply (metis (mono_tags, opaque_lifting) VSIDS.find_key_node_itself basic_trans_rules(31) option.sel remove_key_None_iff)
+    apply (metis (mono_tags, opaque_lifting) ACIDS.find_key_node_itself basic_trans_rules(31) option.sel remove_key_None_iff)
     apply (simp add: basic_trans_rules(31) find_key_None_remove_key_ident)
     apply (metis basic_trans_rules(31) mset_subset_eqD node_remove_key_in_mset_nodes option.sel option_last_Nil option_last_Some_iff(2))
     by (metis basic_trans_rules(31) mset_nodes_find_key_subset mset_subset_eqD option.sel option_last_Nil option_last_Some_iff(2))
@@ -2964,13 +2964,13 @@ lemma encoded_hp_prop_list_conc_update_outside:
 lemma rescale_and_reroot:
   fixes h :: \<open>(nat, nat)hp option\<close>
   assumes enc: \<open>encoded_hp_prop_list_conc arr h\<close> \<open>a \<in> fst arr\<close> \<open>h \<noteq> None\<close>
-  shows \<open>rescale_and_reroot a w' arr \<le> SPEC (\<lambda>arr'. encoded_hp_prop_list_conc arr' (VSIDS.decrease_key a w' (the h)))\<close>
+  shows \<open>rescale_and_reroot a w' arr \<le> SPEC (\<lambda>arr'. encoded_hp_prop_list_conc arr' (ACIDS.decrease_key a w' (the h)))\<close>
 proof -
   have src: \<open>source_node arr = map_option node h\<close>
     using enc by (auto simp: encoded_hp_prop_list_conc_def)
   show ?thesis
     using assms
-    unfolding rescale_and_reroot_def VSIDS.decrease_key_def
+    unfolding rescale_and_reroot_def ACIDS.decrease_key_def
     apply (refine_vcg unroot_hp_tree vsids_merge_pairs)
     subgoal by (auto simp: encoded_hp_prop_list_conc_def)
     subgoal
@@ -3014,17 +3014,15 @@ proof -
         in_remove_key_changed[of a \<open>the h\<close>] remove_key_None_iff[of a \<open>the h\<close>] src
         find_key_None_or_itself[of a \<open>the h\<close>]
       by (cases \<open>the (find_key a (the h))\<close>)
-        (clarsimp split: if_splits simp add: find_key_None_remove_key_ident simp del: VSIDS.merge_pairs.simps)
+        (clarsimp split: if_splits simp add: find_key_None_remove_key_ident simp del: ACIDS.merge_pairs.simps)
     done
 qed
 
 context hmstruct_with_prio
 begin
 
-definition hp_mset_rel where
- \<open>hp_mset_rel = {(h, (m, w)). distinct_mset m \<and>
-  (h = None \<longleftrightarrow> m = {#}) \<and>
-  (m \<noteq> {#} \<longrightarrow> (mset_nodes (the h) = m \<and> (\<forall>a\<in>#m. Some (w a) = hp_score a (the h)) \<and> invar h))}\<close>
+abbreviation (input) hp_mset_rel :: \<open>_\<close> where
+  \<open>hp_mset_rel \<equiv> hmrel\<close>
 
 lemma pass\<^sub>1_empty_iff[simp]: \<open>pass\<^sub>1 x = [] \<longleftrightarrow> x= []\<close>
   by (cases x rule: pass\<^sub>1.cases) auto
@@ -3067,39 +3065,21 @@ lemma hp_score_merge_pairs:
   apply (metis Groups.add_ac(1) distinct_mset_union hp_score_link)
   by (metis Duplicate_Free_Multiset.distinct_mset_union2 merge_pairs_None_iff option.simps(2))
 
-lemma
-  assumes \<open>(x, m) \<in> hp_mset_rel\<close> and \<open>fst m \<noteq> {#}\<close>
-  shows \<open>SPEC
-   (\<lambda>(j, h').
-    j = (get_min2 x) \<and> h' = del_min x) \<le> \<Down> (Id \<times>\<^sub>r hp_mset_rel) (mop_prio_pop_min m)\<close>
-proof -
-  have \<open>x \<noteq> None\<close>
-    using assms
-    by (clarsimp simp add: hp_mset_rel_def)+
-  then show ?thesis
-    using assms
-    apply (cases \<open>the x\<close>)
-    apply (auto simp: mop_prio_pop_min_def hp_mset_rel_def conc_fun_RES Image_iff
-      get_min2_alt_def invar_def in_mset_sum_list_iff pass12_merge_pairs mset_nodes_merge_pairs
-      intro!: exI[of _ \<open>snd m\<close>] exI[of _ \<open>node (the x)\<close>]
-      dest!: split_list
-      simp flip: set_mset_mset_hp)
-      using hm_le apply presburger
-
-    apply (metis (no_types, lifting) WB_List_More.distinct_mset_union2 add_diff_cancel_right' distinct_mset_in_diff distinct_mset_union
-      hp_node_None_notin2 hp_node_children_None_notin2 hp_node_children_append(1) hp_node_children_simps(3) hp_node_children_simps2 image_iff
-      option.sel set_hp_is_hp_score_mset_nodes set_mset_mset_hp set_mset_union sum_image_mset_sum_map union_iff)
-      apply (smt (verit, ccfv_threshold) append_is_Nil_conv hp_node_None_notin2 hp_node_children_simps2 list.map(2) map_append map_option_eq_Some mset_nodes_merge_pairs option.exhaust_sel option.sel pairing_heap_assms.merge_pairs_None_iff score_hp_node_merge_pairs_same set_mset_union sum_list.append sum_list_simps(2) union_iff)
-    apply (metis append_is_Nil_conv hp_node_children_simps2 hp_score_merge_pairs list.discI list.map(2) map_append merge_pairs_None_iff sum_list_append sum_list_simps(2))
-    by (metis invar_Some invar_merge_pairs option.case_eq_if option.exhaust_sel)
-qed
-
 
 definition decrease_key2 where
   \<open>decrease_key2 a w h = (if h = None then None else decrease_key a w (the h))\<close>
+lemma hp_mset_rel_def:  \<open>hp_mset_rel = {(h, (\<A>, m, w)). distinct_mset m \<and>
+  (h = None \<longleftrightarrow> m = {#}) \<and>
+  (m \<noteq> {#} \<longrightarrow> (mset_nodes (the h) = m \<and> (\<forall>a\<in>#m. Some (w a) = hp_score a (the h)) \<and> invar h))}\<close>
+  unfolding hmrel_def
+  apply (auto simp:)
+  apply (metis in_multiset_nempty node_in_mset_nodes)
+  apply (simp add: option.expand option.map_sel)
+  apply (metis Some_to_the hp_node_None_notin2 option.map_sel)
+  by (metis Some_to_the hp_node_None_notin2 option.map_sel)
 
 lemma decrease_key2:
-  assumes \<open>(x, m) \<in> hp_mset_rel\<close> \<open>(a,a')\<in>Id\<close> \<open>(w,w')\<in>Id\<close> \<open>le w (snd m a)\<close>
+  assumes \<open>(x, m) \<in> hp_mset_rel\<close> \<open>(a,a')\<in>Id\<close> \<open>(w,w')\<in>Id\<close> \<open>le w (snd (snd m) a)\<close>
   shows \<open>RETURN (decrease_key2 a w x) \<le> \<Down> (hp_mset_rel) (mop_prio_change_weight a' w' m)\<close>
 proof -
   show ?thesis
@@ -3108,14 +3088,14 @@ proof -
       mop_prio_insert_def mop_prio_change_weight_def
     apply refine_rcg
     subgoal
-      using php_decrease_key[of \<open>the x\<close> w a]
+       using php_decrease_key[of \<open>the x\<close> w a]
       apply (auto simp: hp_mset_rel_def decrease_key_def invar_def split: option.splits hp.splits)
-      apply (metis find_key_None_remove_key_ident in_remove_key_changed option.sel option.simps(2))
-      apply (metis empty_neutral(1) find_key_head_node_iff hp.sel(1) mset_map mset_nodes.simps option.simps(1) remove_key_None_iff sum_mset_sum_list union_mset_add_mset_left)
-      apply (metis find_key_node_itself hp.sel(1) hp_node_children_simps2 option.sel remove_key_None_iff)
+       apply (metis find_key_None_remove_key_ident in_remove_key_changed option.sel option.simps(2))
+       apply (metis empty_neutral(1) find_key_head_node_iff hp.sel(1) mset_map mset_nodes.simps option.simps(1) remove_key_None_iff sum_mset_sum_list union_mset_add_mset_left)
+       apply (metis find_key_node_itself hp.sel(1) hp_node_children_simps2 option.sel remove_key_None_iff)
       apply (metis find_key_node_itself find_key_notin hp.sel(2) hp_node_node_itself option.distinct(1) option.map_sel option.sel remove_key_None_iff)
       apply (metis invar_Some invar_find_key php.simps)
-      apply (metis (no_types, lifting) add_mset_add_single find_key_None_or_itself find_remove_mset_nodes_full hp.sel(1) mset_nodes_simps option.sel option.simps(2) union_commute union_mset_add_mset_left)
+       apply (metis (no_types, lifting) add_mset_add_single find_key_None_or_itself find_remove_mset_nodes_full hp.sel(1) mset_nodes_simps option.sel option.simps(2) union_commute union_mset_add_mset_left)
       apply (smt (verit) Duplicate_Free_Multiset.distinct_mset_mono disjunct_not_in distinct_mset_add find_key_None_or_itself hp.sel(1) hp.sel(2) hp_node_simps hp_score_link in_find_key_notin_remove_key mset_nodes.simps mset_nodes_find_key_subset node_remove_key_in_mset_nodes option.distinct(1) option.sel option.simps(9) union_iff union_single_eq_member)
       apply (smt (verit) disjunct_not_in distinct_mset_add find_key_None_or_itself find_remove_mset_nodes_full hp.sel(1) hp_node_None_notin2 hp_node_children_simps2 hp_node_in_find_key0 hp_score_link hp_score_link_skip_first hp_score_remove_key_other map_option_is_None mset_nodes_simps option.distinct(1) option.sel union_iff)
       by (metis find_key_None_or_itself find_key_notin hp.sel(1) hp.sel(2) hp_node_find_key hp_node_simps option.distinct(1) option.sel option.simps(9))
