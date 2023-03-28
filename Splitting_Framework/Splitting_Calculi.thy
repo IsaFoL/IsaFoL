@@ -150,6 +150,9 @@ qed
 lemma map2_first_is_first [simp]: \<open>length x = length y \<Longrightarrow> map2 (\<lambda>x y. x) x y = x\<close>
   by (metis fst_def map_eq_conv map_fst_zip)
 
+lemma map2_second_is_second [simp]: \<open>length A = length B \<Longrightarrow> map2 (\<lambda> x y. y) A B = B\<close>
+  by (metis map_eq_conv map_snd_zip snd_def)
+
 lemma fimage_snd_zip_is_snd [simp]: \<open>length x = length y \<Longrightarrow> (\<lambda>(x, y). y) |`| fset_of_list (zip x y) = fset_of_list y\<close>
 proof -
   assume length_x_eq_length_y: \<open>length x = length y\<close>
@@ -979,6 +982,33 @@ begin
 alias S_saturated = S_calculus.saturated
 alias F_saturated = local.saturated
 
+lemma F_of_circ_to_AF_is_id [simp]: \<open>F_of \<circ> to_AF = id\<close>
+  by fastforce
+
+lemma A_of_circ_to_AF_is_empty_set [simp]: \<open>A_of \<circ> to_AF = (\<lambda> _. {||})\<close>
+  by fastforce
+
+lemma map_A_of_map2_Pair: \<open>length A = length B \<Longrightarrow> map A_of (map2 AF.Pair A B) = B\<close>
+  by auto
+
+lemma ball_set_f_to_ball_set_map: \<open>(\<forall> x \<in> set A. P (f x)) \<longleftrightarrow> (\<forall> x \<in> set (map f A). P x)\<close>
+  by simp
+
+lemma list_all_ex_to_ex_list_all2:
+  \<open>list_all (\<lambda> x. \<exists> y. P x y) A \<longleftrightarrow> (\<exists> ys. length A = length ys \<and> list_all2 (\<lambda> x y. P x y) A ys)\<close>
+  by (metis list_all2_conv_all_nth list_all_exists_is_exists_list_all2 list_all_length)
+
+lemma list_all2_to_map:
+  assumes lengths_eq: \<open>length A = length B\<close>
+  shows \<open>list_all2 (\<lambda> x y. P (f x y)) A B \<longleftrightarrow> list_all P (map2 f A B)\<close>
+proof -
+  have \<open>list_all2 (\<lambda> x y. P (f x y)) A B \<longleftrightarrow> list_all (\<lambda> (x, y). P (f x y)) (zip A B)\<close>
+    by (simp add: lengths_eq list_all2_iff list_all_iff)
+  also have \<open>... \<longleftrightarrow> list_all (\<lambda> x. P x) (map2 f A B)\<close>
+    by (simp add: case_prod_beta list_all_iff)
+  finally show ?thesis .
+qed
+
 (* Report lemma 20 *)
 lemma S_saturated_to_F_saturated: \<open>S_saturated \<N> \<Longrightarrow> F_saturated (\<N> proj\<^sub>J \<J>)\<close>
 proof -
@@ -989,32 +1019,90 @@ proof -
     fix \<iota>\<^sub>F
     assume \<open>\<iota>\<^sub>F \<in> Inf_from (\<N> proj\<^sub>J \<J>)\<close>
     then have \<iota>\<^sub>F_is_Inf: \<open>\<iota>\<^sub>F \<in> Inf\<close> and
-                         \<open>set (prems_of \<iota>\<^sub>F) \<subseteq> \<N> proj\<^sub>J \<J>\<close>
+              prems_of_\<iota>\<^sub>F_in_\<N>_proj_\<J>: \<open>set (prems_of \<iota>\<^sub>F) \<subseteq> \<N> proj\<^sub>J \<J>\<close>
       unfolding Inf_from_def
       by auto
-    then have \<open>\<iota>\<^sub>F \<in> S_calculus.Inf_from \<N> \<iota>proj\<^sub>J \<J>\<close>
-      using Splitting_rules.base
-      unfolding enabled_projection_Inf_def S_calculus.Inf_from_def
-      using \<N>_is_S_saturated
-      apply auto
-      (* TODO: need to prove that \<iota> is enabled by \<J> *)
-      sorry
-    then obtain \<iota>\<^sub>S where \<iota>\<^sub>S_is_SInf: \<open>\<iota>\<^sub>S \<in> SInf\<close> and
-                         \<open>set (prems_of \<iota>\<^sub>S) \<subseteq> \<N>\<close> and
-                         \<iota>F_of_\<iota>\<^sub>S_is_\<iota>\<^sub>F: \<open>\<iota>F_of \<iota>\<^sub>S = \<iota>\<^sub>F\<close> and
-                         \<iota>\<^sub>S_is_enabled: \<open>enabled_inf \<iota>\<^sub>S \<J>\<close>
-      using S_calculus.Inf_from_def enabled_projection_Inf_def
-      by auto
-    then have \<open>\<iota>\<^sub>S \<in> SRed\<^sub>I \<N>\<close>
-      using \<N>_is_S_saturated
-      unfolding S_calculus.saturated_def S_calculus.Inf_from_def
+    moreover have \<open>\<forall> C \<in> set (prems_of \<iota>\<^sub>F). \<exists> \<C> \<in> \<N>. F_of \<C> = C \<and> enabled \<C> \<J>\<close>
+      using prems_of_\<iota>\<^sub>F_in_\<N>_proj_\<J>
+      unfolding enabled_projection_def
       by blast
-    then show \<open>\<iota>\<^sub>F \<in> Red_I (\<N> proj\<^sub>J \<J>)\<close>
-      using \<iota>F_of_\<iota>\<^sub>S_is_\<iota>\<^sub>F \<iota>\<^sub>S_is_enabled
-      unfolding SRed\<^sub>I_def enabled_projection_Inf_def
+    then have \<open>list_all (\<lambda> C. \<exists> \<C> \<in> \<N>. F_of \<C> = C \<and> enabled \<C> \<J>) (prems_of \<iota>\<^sub>F)\<close>
+      using Ball_set
+      by blast
+    then have \<open>\<exists> \<C>s. length \<C>s = length (prems_of \<iota>\<^sub>F) \<and>
+                     list_all2 (\<lambda> C \<C>. \<C> \<in> \<N> \<and> F_of \<C> = C \<and> enabled \<C> \<J>) (prems_of \<iota>\<^sub>F) \<C>s\<close>
+      using list_all_ex_to_ex_list_all2
+      by (smt (verit, best) Ball_set)
+    then have \<open>\<exists> As. length As = length (prems_of \<iota>\<^sub>F) \<and>
+                     list_all2 (\<lambda> C A. AF.Pair C A \<in> \<N> \<and> enabled (AF.Pair C A) \<J>) (prems_of \<iota>\<^sub>F) As\<close>
+      by (smt (verit, del_insts) AF.exhaust AF.sel(1) list.pred_mono_strong list_all_ex_to_ex_list_all2)
+    then have \<open>\<exists> As. length As = length (prems_of \<iota>\<^sub>F) \<and>
+                     list_all (\<lambda> \<C>. \<C> \<in> \<N> \<and> enabled \<C> \<J>) (map2 AF.Pair (prems_of \<iota>\<^sub>F) As)\<close>
+      using list_all2_to_map[where f = \<open>\<lambda> C A. AF.Pair C A\<close>]
+      by (smt (verit) list_all2_mono)
+    then obtain As :: \<open>'v sign fset list\<close>
+                   where \<open>\<forall> \<C> \<in> set (map2 AF.Pair (prems_of \<iota>\<^sub>F) As). \<C> \<in> \<N> \<and> enabled \<C> \<J>\<close> and
+                         length_As_eq_length_prems: \<open>length As = length (prems_of \<iota>\<^sub>F)\<close>
+      by (metis (no_types, lifting) Ball_set_list_all)
+    then have set_prems_As_subset_\<N>: \<open>set (map2 AF.Pair (prems_of \<iota>\<^sub>F) As) \<subseteq> \<N>\<close> and
+              all_enabled: \<open>\<forall> \<C> \<in> set (map2 AF.Pair (prems_of \<iota>\<^sub>F) As). enabled \<C> \<J>\<close>
       by auto
-         (metis (mono_tags, lifting) AF.sel(2) Red_I_of_Inf_to_N \<iota>F_of_def \<iota>\<^sub>F_is_Inf bot_fset.rep_eq empty_subsetI
-                enabled_def enabled_projection_def inference.sel(2) mem_Collect_eq to_AF_def)
+
+    let ?prems = \<open>map2 AF.Pair (prems_of \<iota>\<^sub>F) As\<close>
+
+    have \<open>set ?prems \<subseteq> \<N>\<close>
+      using set_prems_As_subset_\<N> .
+    moreover have \<open>length ?prems = length (prems_of \<iota>\<^sub>F)\<close>
+      using length_As_eq_length_prems
+      by simp
+    then have F_of_dummy_prems_is_prems_of_\<iota>\<^sub>F: \<open>map F_of ?prems = prems_of \<iota>\<^sub>F\<close>
+      by (simp add: length_As_eq_length_prems)
+    moreover have \<open>\<forall> \<C> \<in> set (map A_of (map2 AF.Pair (prems_of \<iota>\<^sub>F) As)). fset \<C> \<subseteq> total_strip \<J>\<close>
+      using all_enabled ball_set_f_to_ball_set_map[where P = \<open>\<lambda> x. fset x \<subseteq> total_strip \<J>\<close> and f = A_of]
+      unfolding enabled_def
+      by blast
+    then have \<open>\<forall> \<C> \<in> set As. fset \<C> \<subseteq> total_strip \<J>\<close>
+      using map_A_of_map2_Pair length_As_eq_length_prems
+      by metis
+    then have \<open>fset (ffUnion (fset_of_list As)) \<subseteq> total_strip \<J>\<close>
+      using all_enabled
+      unfolding enabled_def[of _ \<J>]
+      by (simp add: fBall_fset_of_list_iff_Ball_set fset_ffUnion_subset_iff_all_fsets_subset)
+    then have base_inf_enabled: \<open>enabled_inf (base_inf ?prems (concl_of \<iota>\<^sub>F)) \<J>\<close>
+      using all_enabled enabled_inf_def
+      by auto
+    moreover have pre_holds: \<open>base_pre ?prems (concl_of \<iota>\<^sub>F)\<close>
+      using \<iota>\<^sub>F_is_Inf F_of_dummy_prems_is_prems_of_\<iota>\<^sub>F
+      by force
+    moreover have \<iota>F_of_base_inf_is_\<iota>\<^sub>F: \<open>\<iota>F_of (base_inf ?prems (concl_of \<iota>\<^sub>F)) = \<iota>\<^sub>F\<close>
+      using F_of_dummy_prems_is_prems_of_\<iota>\<^sub>F \<iota>F_of_def
+      by force
+    ultimately have \<iota>\<^sub>F_in_Inf_\<N>_proj_\<J>: \<open>\<iota>\<^sub>F \<in> (S_calculus.Inf_from \<N>) \<iota>proj\<^sub>J \<J>\<close>
+      using Splitting_rules.base[OF pre_holds]
+      unfolding enabled_projection_Inf_def S_calculus.Inf_from_def
+      by (metis (mono_tags, lifting) inference.sel(1) mem_Collect_eq)
+    then have \<open>\<exists> \<M> D. base_inf \<M> D \<in> S_calculus.Inf_from \<N> \<and> \<iota>F_of (base_inf \<M> D) = \<iota>\<^sub>F \<and> enabled_inf (base_inf \<M> D) \<J>\<close>
+      using \<iota>F_of_base_inf_is_\<iota>\<^sub>F
+      unfolding enabled_projection_Inf_def
+      by (metis (mono_tags, lifting) CollectI S_calculus.Inf_from_def Splitting_rules.base base_inf_enabled
+                                     inference.sel(1) pre_holds set_prems_As_subset_\<N>)
+    then obtain \<M> D where base_inf_in_Inf_\<N>: \<open>base_inf \<M> D \<in> S_calculus.Inf_from \<N>\<close> and
+                           \<iota>F_of_base_inf_is_\<iota>\<^sub>F: \<open>\<iota>F_of (base_inf \<M> D) = \<iota>\<^sub>F\<close> and
+                           base_inf_enabled: \<open>enabled_inf (base_inf \<M> D) \<J>\<close>
+      by blast
+    then have \<open>base_inf \<M> D \<in> SRed\<^sub>I \<N>\<close>
+      using \<N>_is_S_saturated
+      unfolding S_calculus.saturated_def
+      by blast
+    moreover have \<open>base_pre \<M> D\<close>
+      using \<iota>F_of_base_inf_is_\<iota>\<^sub>F \<iota>\<^sub>F_is_Inf
+      by (simp add: \<iota>F_of_def)
+    ultimately show \<open>\<iota>\<^sub>F \<in> Red_I (\<N> proj\<^sub>J \<J>)\<close>
+      using \<iota>\<^sub>F_in_Inf_\<N>_proj_\<J> \<iota>F_of_base_inf_is_\<iota>\<^sub>F base_inf_enabled
+      unfolding SRed\<^sub>I_def enabled_projection_Inf_def \<iota>F_of_def enabled_def enabled_projection_def
+      by auto
+         (metis (mono_tags, lifting) AF.sel(2) F_of_to_AF Red_I_of_Inf_to_N bot_fset.rep_eq empty_subsetI
+                                     inference.sel(2) mem_Collect_eq to_AF_def)
   qed
 qed
 
@@ -1174,6 +1262,8 @@ next
       by fastforce
   qed
 qed
+
+
 
 end (* context splitting_calculus *)
 
