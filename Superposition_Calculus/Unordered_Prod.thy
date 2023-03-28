@@ -22,7 +22,7 @@ definition make_uprod (infix "\<approx>" 60) where
 lemma make_uprod_sym: "t\<^sub>1 \<approx> t\<^sub>2 = t\<^sub>2 \<approx> t\<^sub>1"
   by (simp add: make_uprod_def add_mset_commute)
 
-lemma make_uprod_eq_make_uprod_sym_iff: "x \<approx> y = z \<approx> w \<longleftrightarrow> x = z \<and> y = w \<or> x = w \<and> y = z"
+lemma make_uprod_eq_make_uprod_iff: "x \<approx> y = z \<approx> w \<longleftrightarrow> x = z \<and> y = w \<or> x = w \<and> y = z"
   by (smt (verit) Abs_uprod_inverse One_nat_def Suc_1 add_eq_conv_ex make_uprod_def mem_Collect_eq
       single_eq_add_mset size_add_mset size_empty)
 
@@ -39,6 +39,9 @@ proof -
       by (metis \<open>mset_uprod p = {#x, y#}\<close> make_uprod_def mset_uprod_inverse)
   qed
 qed
+
+lemma mset_uprod_make_uprod[simp]: "mset_uprod (x \<approx> y) = {#x, y#}"
+  by (simp add: Abs_uprod_inverse make_uprod_def)
 
 lemma set_uprod_make_uprod[simp]: "set_uprod (x \<approx> y) = {x, y}"
   by (simp add: Abs_uprod_inverse make_uprod_def set_uprod_def)

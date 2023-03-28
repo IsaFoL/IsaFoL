@@ -146,24 +146,24 @@ locale superposition_calculus =
     asymp_less_trm[simp]: "asymp (\<prec>\<^sub>t)" and
     wfP_less_trm[simp]: "wfP (\<prec>\<^sub>t)" and
     totalp_on_less_trm[simp]: "totalp_on {t. is_ground_trm t} (\<prec>\<^sub>t)" and
+    less_trm_compatible_with_ctxt: "\<And>ctxt t t'. t \<prec>\<^sub>t t' \<Longrightarrow> ctxt\<langle>t\<rangle> \<prec>\<^sub>t ctxt\<langle>t'\<rangle>" and
+    less_trm_subterm: "\<And>t t'. t \<lhd> t' \<Longrightarrow> t \<prec>\<^sub>t t'" and
     select_negative_lits: "\<And>C L. L \<in># select C \<Longrightarrow> is_neg L" and
     select_stable_under_renaming: "\<And>C \<rho>. term_subst.is_renaming \<rho> \<Longrightarrow> select (C \<cdot> \<rho>) = select C \<cdot> \<rho>"
 begin
 
-lemma irreflp_less_trm[simp]: "irreflp (\<prec>\<^sub>t)"
-  by simp
+lemma irreflp_on_less_trm[simp]: "irreflp_on A (\<prec>\<^sub>t)"
+  by (metis asympD asymp_less_trm irreflp_onI)
 
 abbreviation lesseq_trm (infix "\<preceq>\<^sub>t" 50) where
   "lesseq_trm \<equiv> (\<prec>\<^sub>t)\<^sup>=\<^sup>="
 
-abbreviation less_atm :: "('f, 'v) term atom \<Rightarrow> ('f, 'v) term atom \<Rightarrow> bool" (infix "\<prec>\<^sub>a" 50) where
-  "less_atm A\<^sub>1 A\<^sub>2 \<equiv> multp (\<prec>\<^sub>t) (mset_uprod A\<^sub>1) (mset_uprod A\<^sub>2)"
+primrec mset_lit :: "'a uprod literal \<Rightarrow> 'a multiset" where
+  "mset_lit (Pos A) = mset_uprod A" |
+  "mset_lit (Neg A) = mset_uprod A + mset_uprod A"
 
-abbreviation lesseq_atm (infix "\<preceq>\<^sub>a" 50) where
-  "lesseq_atm \<equiv> (\<prec>\<^sub>a)\<^sup>=\<^sup>="
-
-abbreviation less_lit :: "('f, 'v) term atom literal \<Rightarrow> ('f, 'v) term atom literal \<Rightarrow> bool" (infix "\<prec>\<^sub>l" 50) where
-  "less_lit \<equiv> Clausal_Logic.less_lit (\<prec>\<^sub>a)"
+definition less_lit :: "('f, 'v) term atom literal \<Rightarrow> ('f, 'v) term atom literal \<Rightarrow> bool" (infix "\<prec>\<^sub>l" 50) where
+  "less_lit L1 L2 \<equiv> multp (\<prec>\<^sub>t) (mset_lit L1) (mset_lit L2)"
 
 abbreviation lesseq_lit (infix "\<preceq>\<^sub>l" 50) where
   "lesseq_lit \<equiv> (\<prec>\<^sub>l)\<^sup>=\<^sup>="
@@ -175,46 +175,47 @@ abbreviation lesseq_cls (infix "\<preceq>\<^sub>c" 50) where
   "lesseq_cls \<equiv> (\<prec>\<^sub>c)\<^sup>=\<^sup>="
 
 
-lemma transp_less_atm[simp]: "transp (\<prec>\<^sub>a)"
-  using transp_less_trm transp_multp
-  by (metis (no_types, lifting) transpD transpI)
-
 lemma transp_less_lit[simp]: "transp (\<prec>\<^sub>l)"
-  by (simp add: transp_less_lit)
+  by (metis (no_types, lifting) less_lit_def transpD transpI transp_less_trm transp_multp)
 
 lemma transp_less_cls[simp]: "transp (\<prec>\<^sub>c)"
   by (simp add: transp_multp)
 
-lemma totalp_on_less_atm[simp]: "totalp_on {A. is_ground_atm A} (\<prec>\<^sub>a)"
+lemma totalp_on_less_lit[simp]: "totalp_on {L. is_ground_lit L} (\<prec>\<^sub>l)"
 proof (rule totalp_onI, unfold mem_Collect_eq)
-  fix A1 A2 :: "('f, 'v) Term.term uprod"
-  assume "is_ground_atm A1" and "is_ground_atm A2" and "A1 \<noteq> A2"
+  fix L1 L2 :: "('f, 'v) term atom literal"
+  assume "is_ground_lit L1" and "is_ground_lit L2" and "L1 \<noteq> L2"
+  
+  let ?TT = "{T. \<forall>t \<in># T. is_ground_trm t}"
 
-  let ?GT = "{T. \<forall>t \<in># T. is_ground_trm t}"
-
-  show "A1 \<prec>\<^sub>a A2 \<or> A2 \<prec>\<^sub>a A1"
-  proof (rule totalp_on_multp[OF totalp_on_less_trm transp_less_trm, THEN totalp_onD])
-    show "\<And>M. M \<in> ?GT \<Longrightarrow> set_mset M \<subseteq> {t. is_ground_trm t}"
+  show "L1 \<prec>\<^sub>l L2 \<or> L2 \<prec>\<^sub>l L1"
+    unfolding less_lit_def
+  proof (rule totalp_on_multp[THEN totalp_onD])
+    show "totalp_on {t. is_ground_trm t} (\<prec>\<^sub>t)"
+      using totalp_on_less_trm .
+  next
+    show "transp (\<prec>\<^sub>t)"
+      using transp_less_trm .
+  next
+    show "\<And>M. M \<in> ?TT \<Longrightarrow> set_mset M \<subseteq> {t. is_ground_trm t}"
       by auto
   next
-    show "mset_uprod A1 \<in> ?GT"
-      using \<open>is_ground_atm A1\<close>
-      by (simp add: vars_atm_def set_uprod_def)
+    show "mset_lit L1 \<in> ?TT"
+      using \<open>is_ground_lit L1\<close>
+      by (cases L1) (simp_all add: set_uprod_def vars_atm_def)
   next
-    show "mset_uprod A2 \<in> ?GT"
-      using \<open>is_ground_atm A2\<close>
-      by (simp add: vars_atm_def set_uprod_def)
+    show "mset_lit L2 \<in> ?TT"
+      using \<open>is_ground_lit L2\<close>
+      by (cases L2) (simp_all add: set_uprod_def vars_atm_def)
   next
-    show "mset_uprod A1 \<noteq> mset_uprod A2"
-      using \<open>A1 \<noteq> A2\<close>
-      by (simp add: mset_uprod_inject)
+    obtain x1 y1 x2 y2 :: "('f, 'v) term" where
+      "atm_of L1 = x1 \<approx> y1" and "atm_of L2 = x2 \<approx> y2"
+      using ex_make_uprod by metis
+    thus "mset_lit L1 \<noteq> mset_lit L2"
+      using \<open>L1 \<noteq> L2\<close>
+      by (cases L1; cases L2) (auto simp add: make_uprod_eq_make_uprod_iff add_eq_conv_ex)
   qed
 qed
-
-lemma totalp_on_less_lit[simp]: "totalp_on {L. is_ground_lit L} (\<prec>\<^sub>l)"
-  using totalp_on_less_atm
-  by (smt (verit, del_insts) Neg_atm_of_iff le_boolE less_lit_def linorder_not_less
-      literal.collapse(1) mem_Collect_eq totalp_on_def vars_lit_def)
 
 lemma totalp_on_less_cls[simp]: "totalp_on {C. is_ground_cls C} (\<prec>\<^sub>c)"
 proof (rule totalp_on_multp)
@@ -229,49 +230,8 @@ next
         vars_cls_add_mset)
 qed
 
-lemma mset_uprod_make_uprod[simp]: "mset_uprod (t\<^sub>1 \<approx> t\<^sub>2) = {#t\<^sub>1, t\<^sub>2#}"
-  using Abs_uprod_inverse[of "{#t\<^sub>1, t\<^sub>2#}", simplified]
-  by (simp add: make_uprod_def)
 
-lemma make_uprod_eq_make_uprod_iff: "t\<^sub>1 \<approx> s\<^sub>1 = t\<^sub>2 \<approx> s\<^sub>2 \<longleftrightarrow> t\<^sub>1 = t\<^sub>2 \<and> s\<^sub>1 = s\<^sub>2 \<or> t\<^sub>1 = s\<^sub>2 \<and> s\<^sub>1 = t\<^sub>2"
-  by (metis add_mset_eq_single add_mset_remove_trivial diff_union_swap2 insert_noteq_member
-      make_uprod_sym mset_uprod_make_uprod)
-
-lemma multp_subset_supersetI: "multp (\<prec>\<^sub>t) A B \<Longrightarrow> C \<subseteq># A \<Longrightarrow> B \<subseteq># D \<Longrightarrow> multp (\<prec>\<^sub>t) C D"
-  by (metis subset_implies_multp subset_mset.antisym_conv2 transpE transp_less_trm transp_multp)
-
-lemma multp_plus_plusI:
-  assumes "transp R" "multp R A B"
-  shows "multp R (A + A) (B + B)"
-  using multp_repeat_mset_repeat_msetI[OF \<open>transp R\<close> \<open>multp R A B\<close>, of 2]
-  by (simp add: numeral_Bit0)
-
-(* lemma
-  defines "lift \<equiv> \<lambda>L t\<^sub>1 s\<^sub>1. if is_pos L then {#t\<^sub>1, s\<^sub>1#} else {#t\<^sub>1, t\<^sub>1, s\<^sub>1, s\<^sub>1#}"
-  assumes "atm_of L\<^sub>1 = t\<^sub>1 \<approx> s\<^sub>1" and "atm_of L\<^sub>2 = t\<^sub>2 \<approx> s\<^sub>2"
-  shows "L\<^sub>1 \<prec>\<^sub>l L\<^sub>2 \<longleftrightarrow> multp (\<prec>\<^sub>t) (lift L\<^sub>1 t\<^sub>1 s\<^sub>1) (lift L\<^sub>2 t\<^sub>2 s\<^sub>2)"
-  unfolding lift_def
-  using assms(2,3)
-  apply (cases L\<^sub>1; cases L\<^sub>2)
-  apply simp_all
-  apply auto
-  apply (erule transp_multp[THEN transpD, OF transp_less_trm, of "{#t\<^sub>1, s\<^sub>1#}" "{#t\<^sub>2, s\<^sub>2#}" "{#t\<^sub>2, t\<^sub>2, s\<^sub>2, s\<^sub>2#}"])
-  apply (simp add: subset_implies_multp)
-  unfolding make_uprod_eq_make_uprod_iff
-  apply (auto intro: subset_implies_multp) []
-  defer
-  defer
-  apply (auto elim: multp_subset_supersetI) []
-  apply (drule multp_plus_plusI[OF transp_less_trm])
-  apply (simp add: add_mset_commute)
-  defer
-  apply simp
-  sledgehammer *)
-  
-  
-
-
-section \<open>Rules\<close>
+subsection \<open>Rules\<close>
 
 abbreviation is_maximal_lit where
   "is_maximal_lit \<equiv> is_maximal_wrt (\<prec>\<^sub>l)"
@@ -294,11 +254,12 @@ where
     \<not> is_Var u\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
     \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
-    select P\<^sub>1 = {#} \<and> is_strictly_maximal_lit (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or> L\<^sub>1 \<in># select P\<^sub>1 \<Longrightarrow>
-    select P\<^sub>2 = {#} \<and> is_strictly_maximal_lit (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    (\<P> = Pos \<and> is_strictly_maximal_lit (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)) \<or>
+    (\<P> = Neg \<and> (select P\<^sub>1 = {#} \<and> is_maximal_lit (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or> L\<^sub>1 \<in># select P\<^sub>1)) \<Longrightarrow>
+    is_strictly_maximal_lit (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
     \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
-    C = add_mset (\<P> ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2 \<cdot>t \<rho>\<^sub>2\<rangle> \<approx> s\<^sub>1' \<cdot>t \<rho>\<^sub>1)) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
+    C = add_mset (\<P> ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> \<approx> s\<^sub>1' \<cdot>t \<rho>\<^sub>1)) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
     superposition P\<^sub>1 P\<^sub>2 C"
 
 inductive eq_resolution :: "('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> bool" where
@@ -381,7 +342,7 @@ proof (cases P C rule: eq_factoring.cases)
 qed
 
 
-section \<open>Ground Layer\<close>
+subsection \<open>Ground Layer\<close>
 
 definition gcls_cls where
   "gcls_cls \<equiv> map_clause (map_uprod gterm_term)"
@@ -434,6 +395,37 @@ definition compatible_with_Fun :: "(('f, 'v) Term.term \<times> ('f, 'v) Term.te
   "compatible_with_Fun I \<longleftrightarrow>
     (\<forall>f ts ts'. list_all2 (\<lambda>t t'. (t, t') \<in> I) ts ts' \<longrightarrow> (Fun f ts, Fun f ts') \<in> I)"
 
+lemma compatible_with_ctxt_apply_term:
+  assumes
+    "refl I" and "compatible_with_Fun I"
+    "(t, t') \<in> I"
+  shows "(ctxt\<langle>t\<rangle>, ctxt\<langle>t'\<rangle>) \<in> I"
+proof (induction ctxt)
+  case Hole
+  then show ?case
+    using \<open>(t, t') \<in> I\<close> by simp
+next
+  case (More f ts1 ctxt ts2)
+  have "list_all2 (\<lambda>t t'. (t, t') \<in> I) (ts1 @ ctxt\<langle>t\<rangle> # ts2) (ts1 @ ctxt\<langle>t'\<rangle> # ts2)"
+  proof (intro list_all2_appendI list.rel_intros)
+    show "list_all2 (\<lambda>t t'. (t, t') \<in> I) ts1 ts1"
+      using \<open>refl I\<close>
+      by (simp add: list.rel_refl reflD)
+  next
+    show "(ctxt\<langle>t\<rangle>, ctxt\<langle>t'\<rangle>) \<in> I"
+      using More by simp
+  next
+    show "list_all2 (\<lambda>t t'. (t, t') \<in> I) ts2 ts2"
+      using \<open>refl I\<close>
+      by (simp add: list.rel_refl reflD)
+  qed
+  hence "(Fun f (ts1 @ ctxt\<langle>t\<rangle> # ts2), Fun f (ts1 @ ctxt\<langle>t'\<rangle> # ts2)) \<in> I"
+    using \<open>compatible_with_Fun I\<close>
+    by (simp add: compatible_with_Fun_def)
+  thus ?case
+    by (metis ctxt_apply_term.simps(2))
+qed
+
 definition G_entails ::
   "('f, 'v) gterm atom clause set \<Rightarrow> ('f, 'v) gterm atom clause set \<Rightarrow> bool"
 where
@@ -443,7 +435,7 @@ where
     (\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>s (cls_gcls ` N\<^sub>2))"
 
 
-subsection \<open>Correctness\<close>
+subsubsection \<open>Correctness\<close>
 
 lemma true_lit_uprod_iff_true_lit_prod[simp]:
   assumes "sym I"
@@ -455,12 +447,17 @@ lemma true_lit_uprod_iff_true_lit_prod[simp]:
   by (smt (z3) case_prod_unfold image_iff make_uprod_eq_make_uprod_iff pair_imageI prod.collapse)
 
 lemma correctness_ground_superposition:
-  assumes step: "superposition P1 P2 C" and ground_P1: "is_ground_cls P1" and ground_P2: "is_ground_cls P2"
+  assumes
+    step: "superposition P1 P2 C" and
+    ground_P1: "is_ground_cls P1" and
+    ground_P2: "is_ground_cls P2"
   shows "G_entails {gcls_cls P1, gcls_cls P2} {gcls_cls C}"
   using step
 proof (cases P1 P2 C rule: superposition.cases)
   case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
-  with ground_P1 ground_P2 have "is_ground_atm (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')" and "is_ground_atm (t\<^sub>2 \<approx> t\<^sub>2')"
+  with ground_P1 ground_P2 have
+    "is_ground_atm (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')" and "is_ground_cls P\<^sub>1'" and
+    "is_ground_atm (t\<^sub>2 \<approx> t\<^sub>2')" and "is_ground_cls P\<^sub>2'"
     by (metis insert_iff singletonD sup_eq_bot_iff vars_cls_add_mset vars_lit_Neg vars_lit_Pos)+
   hence
     "is_ground_trm s\<^sub>1\<langle>u\<^sub>1\<rangle>" and "is_ground_trm_ctxt s\<^sub>1" and "is_ground_trm u\<^sub>1" and
@@ -497,11 +494,66 @@ proof (cases P1 P2 C rule: superposition.cases)
 
     show "?I' \<TTurnstile> C"
     proof (cases "K1 = \<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')")
-      case True
-      then show ?thesis
-        using ground_P1 ground_P2 \<open>?I' \<TTurnstile>l K1\<close>
-        unfolding superpositionI \<open>u\<^sub>1 = t\<^sub>2\<close>
-        using \<open>is_ground_trm_ctxt s\<^sub>1\<close> \<open>is_ground_trm s\<^sub>1'\<close> \<open>is_ground_trm t\<^sub>2\<close> by auto
+      case K1_def: True
+      hence "?I' \<TTurnstile>l \<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')"
+        using \<open>?I' \<TTurnstile>l K1\<close> by simp
+
+      show ?thesis
+      proof (cases "K2 = Pos (t\<^sub>2 \<approx> t\<^sub>2')")
+        case K2_def: True
+        hence "(t\<^sub>2, t\<^sub>2') \<in> I"
+          using \<open>?I' \<TTurnstile>l K2\<close> true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] by simp
+
+        have ?thesis if "\<P> = Pos"
+        proof -
+          from that have "(s\<^sub>1\<langle>u\<^sub>1\<rangle>, s\<^sub>1') \<in> I"
+            using \<open>?I' \<TTurnstile>l K1\<close> K1_def true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] by simp
+          hence "(s\<^sub>1\<langle>t\<^sub>2'\<rangle>, s\<^sub>1') \<in> I"
+            unfolding \<open>u\<^sub>1 = t\<^sub>2\<close>
+            using \<open>(t\<^sub>2, t\<^sub>2') \<in> I\<close>
+            by (meson \<open>compatible_with_Fun I\<close> \<open>refl I\<close> \<open>sym I\<close> \<open>trans I\<close>
+                compatible_with_ctxt_apply_term symD transD)
+          hence "?I' \<TTurnstile>l Pos (s\<^sub>1\<langle>t\<^sub>2'\<rangle> \<approx> s\<^sub>1')"
+            by blast
+          thus ?thesis
+            unfolding superpositionI that
+            using \<open>is_ground_trm_ctxt s\<^sub>1\<close> \<open>is_ground_trm t\<^sub>2'\<close> \<open>is_ground_trm s\<^sub>1'\<close>
+              \<open>is_ground_cls P\<^sub>1'\<close> \<open>is_ground_cls P\<^sub>2'\<close>
+            by simp
+        qed
+
+        moreover have ?thesis if "\<P> = Neg"
+        proof -
+          from that have "(s\<^sub>1\<langle>u\<^sub>1\<rangle>, s\<^sub>1') \<notin> I"
+            using \<open>?I' \<TTurnstile>l K1\<close> K1_def true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] by simp
+          hence "(s\<^sub>1\<langle>t\<^sub>2'\<rangle>, s\<^sub>1') \<notin> I"
+            unfolding \<open>u\<^sub>1 = t\<^sub>2\<close>
+            using \<open>(t\<^sub>2, t\<^sub>2') \<in> I\<close>
+            by (metis \<open>compatible_with_Fun I\<close> \<open>refl I\<close> \<open>trans I\<close>
+                compatible_with_ctxt_apply_term transD)
+          hence "?I' \<TTurnstile>l Neg (s\<^sub>1\<langle>t\<^sub>2'\<rangle> \<approx> s\<^sub>1')"
+            by (meson \<open>sym I\<close> true_lit_simps(2) true_lit_uprod_iff_true_lit_prod(2))
+          thus ?thesis
+            unfolding superpositionI that
+            using \<open>is_ground_trm_ctxt s\<^sub>1\<close> \<open>is_ground_trm t\<^sub>2'\<close> \<open>is_ground_trm s\<^sub>1'\<close>
+              \<open>is_ground_cls P\<^sub>1'\<close> \<open>is_ground_cls P\<^sub>2'\<close>
+            by simp
+        qed
+
+        ultimately show ?thesis
+          using \<open>\<P> \<in> {Pos, Neg}\<close> by auto
+      next
+        case False
+        hence "K2 \<in># P\<^sub>2'"
+          using \<open>K2 \<in># P2\<close>
+          unfolding superpositionI by simp
+        hence "?I' \<TTurnstile> P\<^sub>2'"
+          using \<open>?I' \<TTurnstile>l K2\<close> by blast
+        thus ?thesis
+          unfolding superpositionI
+          using \<open>is_ground_cls P\<^sub>2'\<close>
+          by (simp add: subst_cls_add_mset subst_cls_plus)
+      qed
     next
       case False
       hence "K1 \<in># P\<^sub>1'"
@@ -671,6 +723,203 @@ next
     by (auto simp: G_entails_def)
 qed
 
+lemma smaller_conclusion_ground_superposition:
+  assumes
+    step: "superposition P1 P2 C" and
+    ground_P1: "is_ground_cls P1" and
+    ground_P2: "is_ground_cls P2"
+  shows "C \<prec>\<^sub>c P1"
+  using step
+proof (cases P1 P2 C rule: superposition.cases)
+  case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
+  with ground_P1 ground_P2 have
+    "is_ground_atm (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')" and "is_ground_cls P\<^sub>1'" and
+    "is_ground_atm (t\<^sub>2 \<approx> t\<^sub>2')" and "is_ground_cls P\<^sub>2'"
+    by (metis insert_iff singletonD sup_eq_bot_iff vars_cls_add_mset vars_lit_Neg vars_lit_Pos)+
+  hence
+    "is_ground_trm s\<^sub>1\<langle>u\<^sub>1\<rangle>" and "is_ground_trm_ctxt s\<^sub>1" and "is_ground_trm u\<^sub>1" and
+    "is_ground_trm s\<^sub>1'" and "is_ground_trm t\<^sub>2" and "is_ground_trm t\<^sub>2'"
+    by simp_all
+  hence "term_subst.is_ground_set {u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}"
+    by (simp add: term_subst.is_ground_set_def term_subst.is_ground_def)
+  moreover have "term_subst.is_unifier \<mu> {u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}"
+    using \<open>term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}}\<close>
+    by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
+  ultimately have "u\<^sub>1 = t\<^sub>2"
+    using term_subst.ball_eq_constant_if_unifier[of "{_}" \<mu>, simplified]
+    using \<open>is_ground_trm t\<^sub>2\<close> \<open>is_ground_trm u\<^sub>1\<close> by auto
+
+  have "P2 \<prec>\<^sub>c P1"
+    using \<open>\<not> (P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)\<close> ground_P1 ground_P2
+    using totalp_on_less_cls[THEN totalp_onD] by auto
+
+  have "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1\<langle>u\<^sub>1\<rangle>"
+    using \<open>\<not> s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>\<close> \<open>is_ground_trm s\<^sub>1\<langle>u\<^sub>1\<rangle>\<close> \<open>is_ground_trm s\<^sub>1'\<close>
+    using totalp_on_less_trm[THEN totalp_onD, simplified]
+    by (metis reflclp_iff subst_trm_ident_if_is_ground_trm)
+
+  have "t\<^sub>2' \<prec>\<^sub>t t\<^sub>2"
+    by (metis (mono_tags) \<open>is_ground_trm t\<^sub>2'\<close> \<open>is_ground_trm u\<^sub>1\<close> \<open>u\<^sub>1 = t\<^sub>2\<close> superpositionI(15)
+        mem_Collect_eq subst_trm_ident_if_is_ground_trm sup2I1 sup2I2 totalp_onD totalp_on_less_trm)
+
+  have "P\<^sub>1' + add_mset (\<P> (s\<^sub>1\<langle>t\<^sub>2'\<rangle> \<approx> s\<^sub>1')) P\<^sub>2' \<prec>\<^sub>c P\<^sub>1' + {#\<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')#}"
+  proof (intro one_step_implies_multp ballI)
+    fix K assume "K \<in># add_mset (\<P> (s\<^sub>1\<langle>t\<^sub>2'\<rangle> \<approx> s\<^sub>1')) P\<^sub>2'"
+
+    moreover have "\<P> (s\<^sub>1\<langle>t\<^sub>2'\<rangle> \<approx> s\<^sub>1') \<prec>\<^sub>l \<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')"
+    proof -
+      have "t\<^sub>2' \<prec>\<^sub>t u\<^sub>1"
+        using \<open>t\<^sub>2' \<prec>\<^sub>t t\<^sub>2\<close> \<open>u\<^sub>1 = t\<^sub>2\<close> by simp
+      hence "s\<^sub>1\<langle>t\<^sub>2'\<rangle> \<prec>\<^sub>t s\<^sub>1\<langle>u\<^sub>1\<rangle>"
+        using less_trm_compatible_with_ctxt by simp
+      hence "multp (\<prec>\<^sub>t) {#s\<^sub>1\<langle>t\<^sub>2'\<rangle>, s\<^sub>1'#} {#s\<^sub>1\<langle>u\<^sub>1\<rangle>, s\<^sub>1'#}"
+        by (simp add: add_mset_commute multp_cancel_add_mset)
+
+      have ?thesis if "\<P> = Pos"
+        unfolding that less_lit_def
+        using \<open>multp (\<prec>\<^sub>t) {#s\<^sub>1\<langle>t\<^sub>2'\<rangle>, s\<^sub>1'#} {#s\<^sub>1\<langle>u\<^sub>1\<rangle>, s\<^sub>1'#}\<close> by simp
+
+      moreover have ?thesis if "\<P> = Neg"
+        unfolding that less_lit_def
+        using \<open>multp (\<prec>\<^sub>t) {#s\<^sub>1\<langle>t\<^sub>2'\<rangle>, s\<^sub>1'#} {#s\<^sub>1\<langle>u\<^sub>1\<rangle>, s\<^sub>1'#}\<close>
+        using multp_double_doubleI by force
+
+      ultimately show ?thesis
+        using \<open>\<P> \<in> {Pos, Neg}\<close> by auto
+    qed
+
+    moreover have "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l \<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')"
+    proof -
+      have "is_strictly_maximal_lit (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)"
+        using superpositionI by simp
+      hence "is_strictly_maximal_lit L\<^sub>2 P2"
+        using \<open>is_ground_atm (t\<^sub>2 \<approx> t\<^sub>2')\<close> ground_P2 superpositionI(8) by auto
+      hence "\<forall>K \<in># P\<^sub>2'. \<not> Pos (t\<^sub>2 \<approx> t\<^sub>2') \<prec>\<^sub>l K \<and> Pos (t\<^sub>2 \<approx> t\<^sub>2') \<noteq> K"
+        unfolding is_maximal_wrt_def superpositionI by simp
+      hence "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l Pos (t\<^sub>2 \<approx> t\<^sub>2')"
+        using totalp_on_less_lit[THEN totalp_onD, unfolded mem_Collect_eq]
+        by (metis (mono_tags, lifting) \<open>is_ground_atm (t\<^sub>2 \<approx> t\<^sub>2')\<close> \<open>is_ground_cls P\<^sub>2'\<close>
+            is_ground_lit_if_in_ground_cls vars_lit_Pos)
+
+      moreover have "Pos (t\<^sub>2 \<approx> t\<^sub>2') \<prec>\<^sub>l \<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')"
+        if "\<P> = Neg"
+      proof -
+        have "u\<^sub>1 \<preceq>\<^sub>t s\<^sub>1\<langle>u\<^sub>1\<rangle>"
+          apply (cases s\<^sub>1)
+          apply simp_all
+          using ctxt_supt[THEN less_trm_subterm]
+          by fastforce
+        hence " multp (\<prec>\<^sub>t) {#t\<^sub>2, t\<^sub>2'#} {#s\<^sub>1\<langle>u\<^sub>1\<rangle>, s\<^sub>1', s\<^sub>1\<langle>u\<^sub>1\<rangle>, s\<^sub>1'#}"
+          unfolding reflclp_iff
+        proof (elim disjE)
+          assume "u\<^sub>1 \<prec>\<^sub>t s\<^sub>1\<langle>u\<^sub>1\<rangle>"
+          hence "t\<^sub>2 \<prec>\<^sub>t s\<^sub>1\<langle>u\<^sub>1\<rangle>"
+            using \<open>u\<^sub>1 = t\<^sub>2\<close> by simp
+          moreover hence "t\<^sub>2' \<prec>\<^sub>t s\<^sub>1\<langle>u\<^sub>1\<rangle>"
+            by (meson \<open>t\<^sub>2' \<prec>\<^sub>t t\<^sub>2\<close> transpD transp_less_trm)
+          ultimately show ?thesis
+            by (auto intro: one_step_implies_multp[of _ _ _ "{#}", simplified])
+        next
+          assume "u\<^sub>1 = s\<^sub>1\<langle>u\<^sub>1\<rangle>"
+          show ?thesis
+            unfolding \<open>u\<^sub>1 = s\<^sub>1\<langle>u\<^sub>1\<rangle>\<close>[symmetric]
+            unfolding \<open>u\<^sub>1 = t\<^sub>2\<close>
+            using \<open>t\<^sub>2' \<prec>\<^sub>t t\<^sub>2\<close>
+            by (smt (verit, ccfv_SIG) add.commute add_mset_add_single add_mset_commute bex_empty
+                one_step_implies_multp set_mset_add_mset_insert set_mset_empty singletonD
+                union_single_eq_member)
+        qed
+        thus "Pos (t\<^sub>2 \<approx> t\<^sub>2') \<prec>\<^sub>l \<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')"
+          using \<open>\<P> = Neg\<close>
+          by (simp add: less_lit_def)
+      qed
+
+      moreover have "Pos (t\<^sub>2 \<approx> t\<^sub>2') \<preceq>\<^sub>l \<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')"
+        if "\<P> = Pos" and "is_maximal_lit (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)"
+      proof (cases "s\<^sub>1")
+        case Hole
+        show ?thesis
+        proof (cases "t\<^sub>2' \<preceq>\<^sub>t s\<^sub>1'")
+          case True
+          hence "(multp (\<prec>\<^sub>t))\<^sup>=\<^sup>= {#t\<^sub>2, t\<^sub>2'#} {#s\<^sub>1\<langle>u\<^sub>1\<rangle>, s\<^sub>1'#}"
+            unfolding Hole \<open>u\<^sub>1 = t\<^sub>2\<close>
+            by (simp add: multp_cancel_add_mset)
+          thus ?thesis
+            using Hole \<open>u\<^sub>1 = t\<^sub>2\<close> \<open>\<P> = Pos\<close>
+            by (auto simp: less_lit_def)
+        next
+          case False
+          hence "s\<^sub>1' \<prec>\<^sub>t t\<^sub>2'"
+            using \<open>is_ground_trm s\<^sub>1'\<close> \<open>is_ground_trm t\<^sub>2'\<close>
+            by (metis (mono_tags, lifting) mem_Collect_eq reflclp_iff totalp_onD totalp_on_less_trm)
+          hence "multp (\<prec>\<^sub>t) {#s\<^sub>1\<langle>u\<^sub>1\<rangle>, s\<^sub>1'#} {#t\<^sub>2, t\<^sub>2'#}"
+            by (simp add: Hole \<open>u\<^sub>1 = t\<^sub>2\<close> multp_cancel_add_mset)
+          hence "\<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1') \<prec>\<^sub>l Pos (t\<^sub>2 \<approx> t\<^sub>2')"
+            using \<open>\<P> = Pos\<close>
+            by (simp add: less_lit_def)
+          moreover have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l \<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')"
+            using that
+            unfolding superpositionI is_maximal_wrt_def
+            using \<open>is_ground_atm (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')\<close> \<open>is_ground_cls P\<^sub>1'\<close>
+            apply (simp add: subst_cls_add_mset)
+            by (metis (mono_tags, lifting) ground_P1 is_ground_lit_if_in_ground_cls
+                superpositionI(4,7) mem_Collect_eq subst_lit_ident_if_is_ground_lit
+                sup_bot.right_neutral totalp_on_def totalp_on_less_lit vars_cls_add_mset)
+          ultimately have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l Pos (t\<^sub>2 \<approx> t\<^sub>2')"
+            using transp_less_lit
+            by (metis (no_types, lifting) reflclp_iff transpD)
+          hence "P1 \<prec>\<^sub>c P2"
+            using \<open>\<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1') \<prec>\<^sub>l Pos (t\<^sub>2 \<approx> t\<^sub>2')\<close>
+              one_step_implies_multp[of P2 P1 "(\<prec>\<^sub>l)" "{#}", simplified]
+            unfolding superpositionI
+            by (metis (no_types, lifting) \<open>\<forall>K\<in>#P\<^sub>1'. (\<prec>\<^sub>l)\<^sup>=\<^sup>= K (\<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1'))\<close> empty_iff insert_iff
+                transp_less_lit reflclp_iff set_mset_add_mset_insert set_mset_empty transpD)
+          hence False
+            using \<open>\<not> (P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)\<close> ground_P1 ground_P2 by simp
+          thus ?thesis ..
+        qed
+      next
+        case (More f ts1 ctxt ts2)
+        hence "u\<^sub>1 \<lhd> s\<^sub>1\<langle>u\<^sub>1\<rangle>"
+          by auto
+        hence "u\<^sub>1 \<prec>\<^sub>t s\<^sub>1\<langle>u\<^sub>1\<rangle>"
+          using less_trm_subterm by simp
+        hence \<open>t\<^sub>2 \<prec>\<^sub>t s\<^sub>1\<langle>u\<^sub>1\<rangle>\<close>
+          using \<open>u\<^sub>1 = t\<^sub>2\<close> by simp
+        moreover hence "t\<^sub>2' \<prec>\<^sub>t s\<^sub>1\<langle>u\<^sub>1\<rangle>"
+          using \<open>t\<^sub>2' \<prec>\<^sub>t t\<^sub>2\<close> transp_less_trm
+          by (metis transpD)
+        ultimately have "multp (\<prec>\<^sub>t) {#t\<^sub>2, t\<^sub>2'#} {#s\<^sub>1\<langle>u\<^sub>1\<rangle>, s\<^sub>1'#}"
+          using one_step_implies_multp[of "{#s\<^sub>1\<langle>u\<^sub>1\<rangle>, s\<^sub>1'#}" "{#t\<^sub>2, t\<^sub>2'#}" "(\<prec>\<^sub>t)" "{#}"] by simp
+        hence "Pos (t\<^sub>2 \<approx> t\<^sub>2') \<prec>\<^sub>l \<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')"
+          using \<open>\<P> = Pos\<close>
+          by (simp add: less_lit_def)
+        thus ?thesis
+          by simp
+      qed
+
+      ultimately show ?thesis
+        using superpositionI
+        by (metis is_maximal_wrt_def local.transp_less_lit reflclp_iff transpD)
+    qed
+
+    ultimately show "\<exists>j \<in># {#\<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')#}. K \<prec>\<^sub>l j"
+      by auto
+  qed simp
+
+  moreover have "C = add_mset (\<P> (s\<^sub>1\<langle>t\<^sub>2'\<rangle> \<approx> s\<^sub>1')) (P\<^sub>1' + P\<^sub>2')"
+    unfolding superpositionI
+    using \<open>is_ground_cls P\<^sub>1'\<close> \<open>is_ground_cls P\<^sub>2'\<close> \<open>is_ground_trm s\<^sub>1'\<close> \<open>is_ground_trm t\<^sub>2'\<close>
+      \<open>is_ground_trm_ctxt s\<^sub>1\<close> superpositionI(6)
+    by auto
+
+  moreover have "P1 = P\<^sub>1' + {#\<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')#}"
+    unfolding superpositionI by simp
+
+  ultimately show ?thesis
+    by simp
+qed
+
 lemma smaller_conclusion_ground_eq_resolution:
   assumes step: "eq_resolution P C" and ground_P: "is_ground_cls P"
   shows "C \<prec>\<^sub>c P"
@@ -724,22 +973,19 @@ proof (cases P C rule: eq_factoring.cases)
     by (simp add: is_maximal_wrt_def)
   hence "\<not> Pos (s\<^sub>1 \<approx> s\<^sub>1') \<prec>\<^sub>l Pos (t\<^sub>2 \<approx> t\<^sub>2')"
     by simp
-  hence "(t\<^sub>2 \<approx> t\<^sub>2') \<preceq>\<^sub>a (s\<^sub>1 \<approx> s\<^sub>1')"
-    using totalp_on_less_atm[THEN totalp_onD, unfolded mem_Collect_eq,
-        OF \<open>is_ground_atm (s\<^sub>1 \<approx> s\<^sub>1')\<close> \<open>is_ground_atm (t\<^sub>2 \<approx> t\<^sub>2')\<close>]
-    by force
+  hence "Pos (t\<^sub>2 \<approx> t\<^sub>2') \<preceq>\<^sub>l Pos (s\<^sub>1 \<approx> s\<^sub>1')"
+    using totalp_on_less_lit
+    by (metis (mono_tags, lifting) \<open>is_ground_atm (s\<^sub>1 \<approx> s\<^sub>1')\<close> \<open>is_ground_atm (t\<^sub>2 \<approx> t\<^sub>2')\<close>
+        mem_Collect_eq reflclp_iff totalp_onD vars_lit_Pos)
   hence "t\<^sub>2' \<preceq>\<^sub>t s\<^sub>1'"
     unfolding \<open>s\<^sub>1 = t\<^sub>2\<close>
     unfolding reflclp_iff
-    apply (simp add: make_uprod_eq_make_uprod_sym_iff)
-    apply safe
-    unfolding multp_cancel_add_mset[OF transp_less_trm
-        irreflp_on_subset[OF irreflp_less_trm subset_UNIV]]
-    by (smt (verit, del_insts) multp_implies_one_step set_mset_add_mset_insert set_mset_empty
-        single_is_union singletonD transp_less_trm union_single_eq_member)
+    by (metis irreflp_on_less_trm literal.inject(1) local.less_lit_def make_uprod_eq_make_uprod_iff
+        mset_lit.simps(1) mset_uprod_make_uprod multp_cancel_add_mset multp_singleton_singleton
+        transp_less_trm)
 
-  from eq_factoringI have "C = add_mset (Pos (s\<^sub>1 \<approx> t\<^sub>2')) (add_mset (Neg (s\<^sub>1' \<approx> t\<^sub>2')) P')"
-    using ground_P by auto
+  from eq_factoringI have "C = add_mset (Neg (s\<^sub>1' \<approx> t\<^sub>2')) (add_mset (Pos (s\<^sub>1 \<approx> t\<^sub>2')) P')"
+    using ground_P by fastforce
 
   moreover have "add_mset (Neg (s\<^sub>1' \<approx> t\<^sub>2')) (add_mset (Pos (s\<^sub>1 \<approx> t\<^sub>2')) P') \<prec>\<^sub>c P"
     unfolding eq_factoringI \<open>s\<^sub>1 = t\<^sub>2\<close>
@@ -747,16 +993,16 @@ proof (cases P C rule: eq_factoring.cases)
     have "t\<^sub>2' \<prec>\<^sub>t t\<^sub>2"
       using \<open>s\<^sub>1' \<prec>\<^sub>t t\<^sub>2\<close> \<open>t\<^sub>2' \<preceq>\<^sub>t s\<^sub>1'\<close>
       by (metis reflclp_iff transpD transp_less_trm)
+    hence "multp (\<prec>\<^sub>t) {#s\<^sub>1', t\<^sub>2', s\<^sub>1', t\<^sub>2'#} {#t\<^sub>2, s\<^sub>1'#}"
+      using one_step_implies_multp[of _ _ _ "{#}", simplified]
+      by (metis \<open>s\<^sub>1' \<prec>\<^sub>t t\<^sub>2\<close> diff_empty id_remove_1_mset_iff_notin insert_iff
+          set_mset_add_mset_insert)
     thus "Neg (s\<^sub>1' \<approx> t\<^sub>2') \<prec>\<^sub>l Pos (t\<^sub>2 \<approx> s\<^sub>1')"
-      apply simp
-      by (smt (verit) add_mset_add_single add_mset_commute multi_self_add_other_not_self
-          one_step_implies_multp set_mset_add_mset_insert set_mset_empty singletonD
-          union_single_eq_member)
+      by (simp add: less_lit_def)
   qed
 
   ultimately show ?thesis
-    unfolding eq_factoringI
-    by (simp add: add_mset_commute)
+    by simp
 qed
 
 interpretation G: calculus_with_finitary_standard_redundancy G_Inf G_Bot G_entails
@@ -766,11 +1012,9 @@ proof unfold_locales
     using transp_less_cls
     by (metis (no_types, lifting) transpD transpI)
 next
-  have "wfP (\<prec>\<^sub>a)"
-    using wfP_less_trm wfP_multp
-    by (metis (no_types, lifting) wfP_if_convertible_to_wfP)
-  hence "wfP (\<prec>\<^sub>l)"
-    using wfP_less_lit by blast
+  have "wfP (\<prec>\<^sub>l)"
+    unfolding less_lit_def
+    using wfP_less_trm wfP_multp wfP_if_convertible_to_wfP by meson
   hence "wfP (\<prec>\<^sub>c)"
     using wfP_multp by blast
   thus "wfP (\<lambda>C\<^sub>1 C\<^sub>2. cls_gcls C\<^sub>1 \<prec>\<^sub>c cls_gcls C\<^sub>2)"
@@ -779,8 +1023,37 @@ next
   show "\<And>\<iota>. \<iota> \<in> G_Inf \<Longrightarrow> prems_of \<iota> \<noteq> []"
     by (auto simp: G_Inf_def)
 next
-  show "\<And>\<iota>. \<iota> \<in> G_Inf \<Longrightarrow> cls_gcls (concl_of \<iota>) \<prec>\<^sub>c cls_gcls (main_prem_of \<iota>)"
-    sorry
+  fix \<iota>
+  have "cls_gcls (concl_of \<iota>) \<prec>\<^sub>c cls_gcls (main_prem_of \<iota>)"
+    if \<iota>_def: "\<iota> = Infer [P\<^sub>2, P\<^sub>1] (gcls_cls C)" and
+      infer: "superposition (cls_gcls P\<^sub>1) (cls_gcls P\<^sub>2) C"
+    for P\<^sub>2 P\<^sub>1 C
+    unfolding \<iota>_def
+    using smaller_conclusion_ground_superposition[OF infer]
+    using superposition_preserves_groundness[OF infer]
+    by force
+
+  moreover have "cls_gcls (concl_of \<iota>) \<prec>\<^sub>c cls_gcls (main_prem_of \<iota>)"
+    if \<iota>_def: "\<iota> = Infer [P] (gcls_cls C)" and
+      infer: "eq_resolution (cls_gcls P) C"
+    for P C
+    unfolding \<iota>_def
+    using smaller_conclusion_ground_eq_resolution[OF infer]
+    using eq_resolution_preserves_groundness[OF infer]
+    by force
+
+  moreover have "cls_gcls (concl_of \<iota>) \<prec>\<^sub>c cls_gcls (main_prem_of \<iota>)"
+    if \<iota>_def: "\<iota> = Infer [P] (gcls_cls C)" and
+      infer: "eq_factoring (cls_gcls P) C"
+    for P C
+    unfolding \<iota>_def
+    using smaller_conclusion_ground_eq_factoring[OF infer]
+    using eq_factoring_preserves_groundness[OF infer]
+    by force
+
+  ultimately show "\<iota> \<in> G_Inf \<Longrightarrow> cls_gcls (concl_of \<iota>) \<prec>\<^sub>c cls_gcls (main_prem_of \<iota>)"
+    unfolding G_Inf_def
+    by fast
 qed
 
 interpretation G: statically_complete_calculus G_Bot G_Inf G_entails G.Red_I G.Red_F
@@ -790,7 +1063,7 @@ proof unfold_locales
 qed
 
 
-section \<open>First-Order Layer\<close>
+subsection \<open>First-Order Layer\<close>
 
 
 abbreviation F_Inf :: "('f, 'v) term atom clause inference set" where
@@ -804,13 +1077,13 @@ abbreviation F_entails :: "('f, 'v) term atom clause set \<Rightarrow> ('f, 'v) 
 
 typedecl Q
 
-definition \<G>_F :: "Q \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause set" where
+definition \<G>_F :: "Q \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> ('f, 'v) gterm atom clause set" where
   "\<G>_F \<equiv> \<lambda>_ _. {}"
 
-definition \<G>_I :: "Q \<Rightarrow> ('f, 'v) term atom clause inference \<Rightarrow> ('f, 'v) term atom clause inference set option" where
+definition \<G>_I :: "Q \<Rightarrow> ('f, 'v) term atom clause inference \<Rightarrow> ('f, 'v) gterm atom clause inference set option" where
   "\<G>_I \<equiv> \<lambda>_ _. None"
 
-definition Prec_F :: "('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> bool" where
+definition Prec_F :: "('f, 'v) gterm atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> bool" where
   "Prec_F \<equiv> \<lambda>_ _ _. False"
 
 interpretation F: lifting_intersection F_Inf G_Bot "UNIV :: Q set" "\<lambda>(_ :: Q). G_Inf"
@@ -819,11 +1092,10 @@ proof unfold_locales
   show "UNIV \<noteq> {}"
     by simp
 next
-  show "\<forall>q\<in>UNIV. consequence_relation F_Bot F_entails"
+  show "\<forall>q\<in>UNIV. consequence_relation G_Bot G_entails"
     sorry
 next
-  show "\<forall>q\<in>UNIV. tiebreaker_lifting F_Bot F_Inf F_Bot F_entails F_Inf G.Red_I G.Red_F (\<G>_F q)
-    (\<G>_I q) Prec_F"
+  show "\<forall>q\<in>UNIV. tiebreaker_lifting F_Bot F_Inf G_Bot G_entails G_Inf G.Red_I G.Red_F (\<G>_F q) (\<G>_I q) Prec_F"
     sorry
 qed
 
