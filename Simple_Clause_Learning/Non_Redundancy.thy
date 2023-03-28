@@ -1759,7 +1759,7 @@ fun standard_lit_less where
   "standard_lit_less R (Pos t1) (Pos t2) = R t1 t2" |
   "standard_lit_less R (Pos t1) (Neg t2) = R\<^sup>=\<^sup>= t1 t2" |
   "standard_lit_less R (Neg t1) (Pos t2) = R t1 t2" |
-  "standard_lit_less R (Neg t1) (Neg t2) = R\<^sup>=\<^sup>= t1 t2"
+  "standard_lit_less R (Neg t1) (Neg t2) = R t1 t2"
 
 lemma standard_lit_less_preserves_term_less:
   shows "standard_lit_less R L1 L2 \<Longrightarrow> R\<^sup>=\<^sup>= (atm_of L1) (atm_of L2)"
