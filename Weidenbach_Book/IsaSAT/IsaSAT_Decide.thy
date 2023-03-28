@@ -53,26 +53,25 @@ lemma isa_vmtf_find_next_undef_vmtf_find_next_undef:
   subgoal by auto
   subgoal by (auto simp: update_next_search_def split: prod.splits)
   done
-
-lemma is_focused_heuristics_isa_bump_update_next_search[simp]:
-  \<open>is_focused_heuristics (isa_bump_update_next_search a x) = is_focused_heuristics x\<close>
-  \<open>is_focused_heuristics x \<Longrightarrow> get_stable_heuristics (isa_bump_update_next_search a x) = get_stable_heuristics x\<close>
-  \<open>is_stable_heuristics x \<Longrightarrow> get_focused_heuristics (isa_bump_update_next_search a x) = get_focused_heuristics x\<close>
-  by (auto simp: isa_bump_update_next_search_def)
-
+term isa_bump_find_next_undef
+term bump_find_next_undef
 lemma bump_find_next_undef_ref:
   assumes
     vmtf: \<open>x \<in> bump_heur \<A> M\<close>
   shows \<open>bump_find_next_undef \<A> x M
-     \<le> \<Down> Id (SPEC (\<lambda>L. isa_bump_update_next_search L x \<in> bump_heur \<A> M \<and>
+    \<le> \<Down> Id (SPEC (\<lambda>(L, bmp).
+        (L \<noteq> None \<longrightarrow> bmp \<in> bump_heur \<A> (Decided (Pos (the L)) # M)) \<and>
+        (L = None \<longrightarrow> bmp \<in> bump_heur \<A> M) \<and>
         (L = None \<longrightarrow> (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<A>. defined_lit M L)) \<and>
     (L \<noteq> None \<longrightarrow> Pos (the L) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> undefined_lit M (Pos (the L)))))\<close>
   using assms
   unfolding bump_find_next_undef_def
   apply (cases \<open>get_focused_heuristics x\<close>; cases \<open>get_stable_heuristics x\<close>)
-  apply refine_vcg
-  by (auto intro!: vmtf_find_next_undef_ref[THEN order_trans] simp: bump_heur_def
-    isa_bump_update_next_search_def update_next_search_def)
+  apply (cases x, simp only: tuple4.case)
+  by (refine_vcg lhs_step_If)
+   (auto intro!: vmtf_find_next_undef_ref[THEN order_trans]
+      acids_find_next_undef[THEN order_trans] dest: vmtf_consD
+    simp: bump_heur_def update_next_search_def)
 
 definition find_undefined_atm
   :: \<open>nat multiset \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> bump_heuristics \<Rightarrow>
@@ -80,7 +79,9 @@ definition find_undefined_atm
 where
   \<open>find_undefined_atm \<A> M _ = SPEC(\<lambda>((M', vm), L).
      (L \<noteq> None \<longrightarrow> Pos (the L) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> undefined_atm M (the L)) \<and>
-     (L = None \<longrightarrow> (\<forall>K\<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. defined_lit M K)) \<and> M = M' \<and> vm \<in> bump_heur \<A> M)\<close>
+  (L = None \<longrightarrow> (\<forall>K\<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. defined_lit M K)) \<and> M = M' \<and>
+  (L = None \<longrightarrow> vm \<in> bump_heur \<A> M)\<and>
+  (L \<noteq> None \<longrightarrow> vm \<in> bump_heur \<A> (Decided (Pos (the L)) # M)))\<close>
 
 definition lit_of_found_atm_D_pre where
 \<open>lit_of_found_atm_D_pre \<A> = (\<lambda>((\<phi>, _), L). L \<noteq> None \<longrightarrow>
@@ -104,6 +105,51 @@ definition find_unassigned_lit_wl_D_heur_pre where
         get_conflict_wl S = None
     )\<close>
 
+definition twl_st_heur_decide_find :: \<open>nat literal \<Rightarrow> (isasat \<times> nat twl_st_wl) set\<close> where
+[unfolded Let_def]: \<open>twl_st_heur_decide_find L =
+  {(S, T).
+  let M' = get_trail_wl_heur S; N' = get_clauses_wl_heur S; D' = get_conflict_wl_heur S;
+    W' = get_watched_wl_heur S; j = literals_to_update_wl_heur S; outl = get_outlearned_heur S;
+    cach = get_conflict_cach S; clvls = get_count_max_lvls_heur S;
+    vm = get_vmtf_heur S;
+    vdom = get_aivdom S; heur = get_heur S; old_arena = get_old_arena S;
+    lcount = get_learned_count S;
+    occs = get_occs S in
+  let M = get_trail_wl T; LM = Decided (L) # get_trail_wl T;
+      N = get_clauses_wl T;  D = get_conflict_wl T;
+      Q = literals_to_update_wl T;
+      W = get_watched_wl T; N0 = get_init_clauses0_wl T; U0 = get_learned_clauses0_wl T;
+      NS = get_subsumed_init_clauses_wl T; US = get_subsumed_learned_clauses_wl T;
+      NEk = get_kept_unit_init_clss_wl T; UEk = get_kept_unit_learned_clss_wl T;
+      NE = get_unkept_unit_init_clss_wl T; UE = get_unkept_unit_learned_clss_wl T in
+    (M', M) \<in> trail_pol (all_atms_st T) \<and>
+    valid_arena N' N (set (get_vdom_aivdom vdom)) \<and>
+    (D', D) \<in> option_lookup_clause_rel (all_atms_st T) \<and>
+    (D = None \<longrightarrow> j \<le> length M) \<and>
+    Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st T)) \<and>
+    vm \<in> bump_heur (all_atms_st T) LM \<and>
+    no_dup M \<and>
+    clvls \<in> counts_maximum_level M D \<and>
+    cach_refinement_empty (all_atms_st T) cach \<and>
+    out_learned M D outl \<and>
+    clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount \<and>
+    vdom_m (all_atms_st T) W N \<subseteq> set (get_vdom_aivdom vdom) \<and>
+    aivdom_inv_dec vdom (dom_m N) \<and>
+    isasat_input_bounded (all_atms_st T) \<and>
+    isasat_input_nempty (all_atms_st T) \<and>
+    old_arena = [] \<and>
+    heuristic_rel (all_atms_st T) heur \<and>
+    (occs, empty_occs_list (all_atms_st T)) \<in> occurrence_list_ref
+  }\<close>
+
+
+abbreviation twl_st_heur_decide_find'''
+   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> (isasat \<times> nat twl_st_wl) set\<close>
+where
+\<open>twl_st_heur_decide_find''' L r \<equiv> {(S, T). (S, T) \<in> twl_st_heur_decide_find L \<and>
+           length (get_clauses_wl_heur S) = r}\<close>
+
 lemma vmtf_find_next_undef_upd:
   \<open>(uncurry (bump_find_next_undef_upd \<A>), uncurry (find_undefined_atm \<A>)) \<in>
      [\<lambda>(M, vm). vm \<in> bump_heur \<A> M]\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id \<times>\<^sub>f Id \<times>\<^sub>f \<langle>nat_rel\<rangle>option_rel\<rangle>nres_rel\<close>
@@ -120,7 +166,8 @@ lemma find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D:
   \<open>(find_unassigned_lit_wl_D_heur, find_unassigned_lit_wl) \<in>
      [find_unassigned_lit_wl_D_heur_pre]\<^sub>f
     {(S, T). (S, T) \<in> twl_st_heur''' r \<and> learned_clss_count S = u} \<rightarrow>
-     \<langle>{((T, L), (T', L')). (T, T') \<in> twl_st_heur''' r  \<and> L = L' \<and> learned_clss_count T = u \<and>
+  \<langle>{((T, L), (T', L')). (L \<noteq> None \<longrightarrow> (T, T') \<in> twl_st_heur_decide_find''' (the L) r)  \<and>
+         (L = None \<longrightarrow> (T, T') \<in> twl_st_heur''' r)  \<and>  L = L' \<and> learned_clss_count T = u \<and>
          (L \<noteq> None \<longrightarrow> undefined_lit (get_trail_wl T') (the L) \<and> the L \<in># all_lits_st T') \<and>
          get_conflict_wl T' = None}\<rangle>nres_rel\<close>
 proof -
@@ -163,7 +210,8 @@ proof -
        (get_vmtf_heur S)
       \<le> \<Down> {(((M, vm), A), L). A = map_option atm_of L \<and>
               unassigned_atm (bt, bu, bv, bw, bx, by, bz, baa, bab) L \<and>
-             vm \<in> bump_heur (all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab)) bt \<and>
+             (L \<noteq> None \<longrightarrow> vm \<in> bump_heur (all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab)) (Decided (Pos (the A)) # bt)) \<and>
+             (L = None \<longrightarrow> vm \<in> bump_heur (all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab)) bt) \<and>
              (L \<noteq> None \<longrightarrow> the A \<in># all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab)) \<and>
              (M, bt) \<in> trail_pol (all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab))}
          (SPEC (unassigned_atm (bt, bu, bv, bw, bx, by, bz, baa, bab)))\<close>
@@ -214,9 +262,12 @@ proof -
 	   mset_take_mset_drop_mset'
 	   intro!: RES_refine intro: )
 	apply (auto intro:  simp: defined_atm_def)
+	apply (rule_tac x = \<open>Some (Pos ya)\<close> in exI)
+	apply (auto intro: simp: defined_atm_def  in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
+	  in_set_all_atms_iff)
 	apply (rule_tac x = \<open>Some (Pos y)\<close> in exI)
 	apply (auto intro: simp: defined_atm_def  in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
-	 in_set_all_atms_iff)
+	  in_set_all_atms_iff)
 	done
     done
   qed
@@ -239,6 +290,18 @@ proof -
       using that unfolding lit_of_found_atm_def
       by (auto simp: atm_of_eq_atm_of twl_st_heur_def intro!: RES_refine)
   qed
+  have [simp]: \<open>vmtf \<A> (Decided (Pos (atm_of ap)) # aa) = vmtf \<A> (Decided ap # aa)\<close>
+    \<open>vmtf \<A> (Decided (-ap) # aa) = vmtf \<A> (Decided ap # aa)\<close> for \<A> ap aa
+    unfolding vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+    by auto
+  have [simp]: \<open>acids \<A> (Decided (Pos (atm_of ap)) # aa) = acids \<A> (Decided ap # aa)\<close>
+    \<open>acids \<A> (Decided (-ap) # aa) = acids \<A> (Decided ap # aa)\<close> for \<A> ap aa
+    unfolding acids_def defined_lit_map
+    by auto
+  have [simp]: \<open>bump_heur \<A> (Decided (Pos (atm_of ap)) # aa)= bump_heur \<A> (Decided ap # aa)\<close>
+    \<open>bump_heur \<A> (Decided (-ap) # aa) = bump_heur \<A> (Decided ap # aa)\<close> for \<A> ap aa bc
+    unfolding bump_heur_def
+    by auto
   have [dest]: \<open>find_unassigned_lit_wl_D_heur_pre (ca, cb, cc, cd, ce, cf, cg, ch, ci, cx, cy) \<Longrightarrow> cc = None\<close>
     for ca cb cc cd ce cf cg ch ci cy cx
     unfolding find_unassigned_lit_wl_D_heur_pre_def by auto
@@ -257,7 +320,7 @@ proof -
     apply (rule lit_of_found_atm; assumption)
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao L L'
       by (cases am)
-       (clarsimp_all simp: twl_st_heur_def unassigned_atm_def atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff learned_clss_count_def
+      (clarsimp_all simp: twl_st_heur_def twl_st_heur_decide_find_def unassigned_atm_def atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff learned_clss_count_def
          all_lits_st_alt_def[symmetric]
         simp del: twl_st_of_wl.simps dest!: intro!: RETURN_RES_refine;
         auto simp: atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff all_atms_st_def; fail)+
@@ -305,12 +368,13 @@ proof -
       \<open>(x, y) \<in> {(S, T). (S, T) \<in> twl_st_heur''' r \<and> learned_clss_count S = u}\<close> and
       \<open>(xa, x')
        \<in> {((T, L), T', L').
-	  (T, T') \<in> ?A \<and>
-	  L = L' \<and>
-	  (L \<noteq> None \<longrightarrow>
-	   undefined_lit (get_trail_wl T') (the L) \<and>
-	   the L \<in># all_lits_st T') \<and>
-	  get_conflict_wl T' = None}\<close> and
+    (L \<noteq> None \<longrightarrow> (T, T') \<in> twl_st_heur_decide_find''' (the L) r) \<and>
+    (L = None \<longrightarrow> (T, T') \<in> twl_st_heur''' r) \<and>
+    L = L' \<and>
+    learned_clss_count T = u \<and>
+    (L \<noteq> None \<longrightarrow>
+     undefined_lit (get_trail_wl T') (the L) \<and> the L \<in># all_lits_st T') \<and>
+    get_conflict_wl T' = None}\<close> and
       st:
         \<open>x' = (x1, x2)\<close>
         \<open>xa = (x1a, x2a)\<close>
@@ -325,15 +389,15 @@ proof -
       apply refine_vcg
       subgoal
         by (rule isa_length_trail_pre[of _ \<open>get_trail_wl x1\<close> \<open>all_atms_st x1\<close>])
-	  (use that(2) in \<open>auto simp: twl_st_heur_def st all_atms_def[symmetric]\<close>)
+	  (use that(2) in \<open>auto simp: twl_st_heur_decide_find_def twl_st_heur_def st all_atms_def[symmetric]\<close>)
       subgoal
         by (rule cons_trail_Decided_tr_pre[of _ \<open>get_trail_wl x1\<close> \<open>all_atms_st x1\<close>])
-	  (use that(2) in \<open>auto simp: twl_st_heur_def st all_atms_def[symmetric]
+	  (use that(2) in \<open>auto simp: twl_st_heur_decide_find_def st all_atms_def[symmetric]
           all_lits_st_alt_def[symmetric]\<close>)
       subgoal
         using that(2) unfolding cons_trail_Decided_def[symmetric] st
         apply (clarsimp simp: twl_st_heur_def)[]
-        apply (clarsimp simp add: twl_st_heur_def all_atms_def[symmetric]
+        apply (clarsimp simp add: twl_st_heur_def twl_st_heur_decide_find_def all_atms_def[symmetric]
 	   isa_length_trail_length_u[THEN fref_to_Down_unRET_Id] out_learned_def
           all_lits_st_alt_def[symmetric] all_atms_st_cons_trail_empty_Q
 	  intro!: cons_trail_Decided_tr[THEN fref_to_Down_unRET_uncurry]
@@ -371,9 +435,7 @@ proof -
     apply (rule same_in_Id_option_rel)
     subgoal by (auto simp del: simp: twl_st_heur_def)
     subgoal by auto
-      apply (rule final; assumption?)
-      apply auto
-    done
+    by (rule final; assumption?)
  qed
 
 

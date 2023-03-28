@@ -80,7 +80,6 @@ therefore, have a high chance to be in the same watch lists).
 We can mark clause as used. This trick is used to implement a MTF-like scheme to keep clauses.
 \<close>
 
-
 section \<open>Status of a clause\<close>
 
 datatype clause_status = IRRED | LEARNED | DELETED

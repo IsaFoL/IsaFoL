@@ -663,6 +663,11 @@ lemma isa_vmtf_cong:
   apply (subst bump_heur_def)
   by blast
 
+lemma isa_vmtf_cong':
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> bump_heur \<A> = bump_heur \<B>\<close>
+  using isa_vmtf_cong[of \<A> \<B>] isa_vmtf_cong[of \<B> \<A>]
+  by blast
+
 lemma option_lookup_clause_rel_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> option_lookup_clause_rel \<A> \<Longrightarrow> L \<in> option_lookup_clause_rel \<B>\<close>
   using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]

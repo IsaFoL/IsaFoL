@@ -1,5 +1,5 @@
 theory IsaSAT_Bump_Heuristics_Init_State
-imports Watched_Literals_VMTF 
+imports Watched_Literals_VMTF IsaSAT_ACIDS
   Tuple4
 begin
 
@@ -13,7 +13,7 @@ where
    \<A>\<^sub>i\<^sub>n \<noteq> {#} \<longrightarrow> (fst_As \<noteq> None \<and> lst_As \<noteq> None \<and> (ns, m, the fst_As, the lst_As, next_search) \<in> vmtf \<A>\<^sub>i\<^sub>n M)}\<close>
 
 (*TODO: share the to_remove part of Bump_Heuristics_Init*)
-type_synonym bump_heuristics_init = \<open>(vmtf_remove_int_option_fst_As, vmtf_remove_int_option_fst_As, bool, nat list \<times> bool list) tuple4\<close>
+type_synonym bump_heuristics_init = \<open>((nat,nat)acids,vmtf_remove_int_option_fst_As, bool, nat list \<times> bool list) tuple4\<close>
 
 abbreviation Bump_Heuristics_Init :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> bump_heuristics_init\<close> where
   \<open>Bump_Heuristics_Init a b c d \<equiv> Tuple4 a b c d\<close>
@@ -21,7 +21,7 @@ abbreviation Bump_Heuristics_Init :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<
 lemmas bump_heuristics_init_splits = Tuple4.tuple4.splits
 hide_fact tuple4.splits
 
-abbreviation get_stable_heuristics :: \<open>bump_heuristics_init \<Rightarrow> vmtf_remove_int_option_fst_As\<close> where
+abbreviation get_stable_heuristics :: \<open>bump_heuristics_init \<Rightarrow> (nat,nat) acids\<close> where
   \<open>get_stable_heuristics \<equiv> Tuple4_a\<close>
 
 abbreviation get_focused_heuristics :: \<open>bump_heuristics_init \<Rightarrow> vmtf_remove_int_option_fst_As\<close> where
@@ -36,7 +36,7 @@ abbreviation is_stable_heuristics:: \<open>bump_heuristics_init \<Rightarrow> bo
 abbreviation get_bumped_variables :: \<open>bump_heuristics_init \<Rightarrow> nat list \<times> bool list\<close> where
   \<open>get_bumped_variables \<equiv> Tuple4_d\<close>
 
-abbreviation set_stable_heuristics :: \<open>vmtf_remove_int_option_fst_As \<Rightarrow>bump_heuristics_init \<Rightarrow> _\<close> where
+abbreviation set_stable_heuristics :: \<open>(nat,nat)acids \<Rightarrow>bump_heuristics_init \<Rightarrow> _\<close> where
   \<open>set_stable_heuristics \<equiv> Tuple4.set_a\<close>
 
 abbreviation set_focused_heuristics :: \<open>vmtf_remove_int_option_fst_As \<Rightarrow>bump_heuristics_init \<Rightarrow> _\<close> where
@@ -53,7 +53,7 @@ definition get_unit_trail where
 
 definition bump_heur_init :: \<open>_ \<Rightarrow> _ \<Rightarrow> bump_heuristics_init set\<close> where
   \<open>bump_heur_init \<A> M = {x.
-      get_stable_heuristics x \<in> isa_vmtf_init \<A> M \<and>
+      get_stable_heuristics x \<in> acids \<A> M \<and>
        get_focused_heuristics x \<in> isa_vmtf_init \<A> M \<and>
   (get_bumped_variables x, set (fst (get_bumped_variables x))) \<in> distinct_atoms_rel \<A> \<and>
   count_decided M = 0
@@ -72,10 +72,15 @@ definition vmtf_heur_import_variable :: \<open>nat \<Rightarrow> vmtf_remove_int
   \<open>vmtf_heur_import_variable L = (\<lambda>(n, stmp, fst, last, cnext).
      (vmtf_cons n L cnext stmp, stmp+1, fst, Some L, cnext))\<close>
 
+definition acids_heur_import_variable :: \<open>nat \<Rightarrow> (nat, nat) acids \<Rightarrow> _\<close> where
+  \<open>acids_heur_import_variable L = (\<lambda>((\<B>, b, w), m).
+     ((\<B>, add_mset L b, w(L:=m)), (m+1)))\<close>
+
 definition bump_heur_import_variable where
   \<open>bump_heur_import_variable L x = (case x of Bump_Heuristics_Init hstable focused foc n \<Rightarrow>
-    Bump_Heuristics_Init (vmtf_heur_import_variable L hstable) (vmtf_heur_import_variable L focused) foc n)\<close>
+    Bump_Heuristics_Init (acids_heur_import_variable L hstable) (vmtf_heur_import_variable L focused) foc n)\<close>
 
+(*TODO: should be a single loop*)
 definition initialise_VMTF :: \<open>nat list \<Rightarrow> nat \<Rightarrow> vmtf_remove_int_option_fst_As nres\<close> where
 \<open>initialise_VMTF N n = do {
    let A = replicate n (VMTF_Node 0 None None);
@@ -92,6 +97,23 @@ definition initialise_VMTF :: \<open>nat list \<Rightarrow> nat \<Rightarrow> vm
       })
       (0, A, None);
    RETURN ((A, n, cnext, (if N = [] then None else Some ((N!0))), cnext))
+  }\<close>
+
+definition initialise_ACIDS :: \<open>nat list \<Rightarrow> nat \<Rightarrow> (nat, nat) acids nres\<close> where
+\<open>initialise_ACIDS N n = do {
+   let A = ((mset N, {#}, \<lambda>_. 0), 0);
+   ASSERT(length N \<le> unat32_max);
+   (n, A) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>_. True\<^esup>
+      (\<lambda>(i, A). i < length_uint32_nat N)
+      (\<lambda>(i, A). do {
+        ASSERT(i < length_uint32_nat N);
+        let L = (N ! i);
+        ASSERT (snd A = i);
+        ASSERT(i + 1 \<le> unat32_max);
+        RETURN (i + 1, acids_heur_import_variable L A)
+      })
+      (0, A);
+   RETURN A
   }\<close>
 
 definition (in -) distinct_atms_empty where
@@ -241,10 +263,58 @@ proof -
     done
 qed
 
+
+lemma initialise_ACIDS:
+  shows  \<open>(uncurry initialise_ACIDS, uncurry (\<lambda>N n. RES (acids N ([]::(nat,nat)ann_lits)))) \<in>
+      [\<lambda>(N,n). (\<forall>L\<in># N. L < n) \<and> (distinct_mset N) \<and> size N < unat32_max \<and> set_mset N = set_mset \<A>]\<^sub>f
+      (\<langle>nat_rel\<rangle>list_rel_mset_rel) \<times>\<^sub>f nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+    (is \<open>(?init, ?R) \<in> _\<close>)
+proof -
+  define I' where \<open>I' x \<equiv> (\<lambda>(a,b::(nat,nat)acids). b \<in> acids \<A> (map (\<lambda>a. (Decided (Pos a)) :: (nat,nat)ann_lit) (drop a (fst x))) \<and> a \<le> length (fst x) \<and>
+    snd b = a)\<close> for x :: \<open>nat list \<times> nat\<close>
+ have \<open>y \<in># \<A> \<Longrightarrow> Max ((\<lambda>a. baa) ` (set_mset \<A> \<inter> {y}) \<union>
+   bb ` (set_mset \<A> \<inter> {x. x \<noteq> y})) = (if \<A> = {#} then baa else max baa (Max (bb ` (set_mset \<A> \<inter> {y}))))\<close> for y bb and baa :: nat
+   apply (auto dest!: multi_member_split simp: Max.insert_remove max_def)
+     sledgehammer
+    apply (subst Max.insert_remove)
+apply auto
+   sorry
+find_theorems "Max (insert _ _)" " max _ _"  If
+  show ?thesis
+    unfolding uncurry_def case_prod_beta initialise_ACIDS_def
+    apply (intro frefI nres_relI)
+    subgoal for x y
+      apply (cases x, cases y)
+      apply (refine_vcg specify_left[OF WHILEIT_rule_stronger_inv[where \<Phi> = \<open>\<lambda>(a::nat,b::(nat,nat)acids). b \<in> acids \<A> ([]::(nat,nat)ann_lits)\<close> and
+        I' = \<open>I' x\<close> and
+        R = \<open>measure (\<lambda>(a,b). length (fst x) - a)\<close>]])
+        thm specify_left[OF WHILEIT_rule_stronger_inv[where \<Phi> = \<open>\<lambda>(a,b). b \<in> acids \<A> []\<close>]]
+      subgoal by (auto simp: list_rel_mset_rel_def list_mset_rel_def br_def)
+      subgoal by auto
+      subgoal by auto
+      subgoal apply (cases \<A>)
+        apply (auto simp: acids_def list_rel_mset_rel_def list_mset_rel_def br_def I'_def
+        defined_lit_map dest: multi_member_split)
+        sorry
+      subgoal by (auto simp: I'_def)
+      subgoal by (auto simp:)
+      subgoal apply (auto simp: acids_def take_Suc_conv_app_nth defined_lit_map
+        in_set_conv_nth image_image acids_heur_import_variable_def I'_def)
+thm TrueI
+  sorry
+    subgoal by (auto simp: I'_def)
+    subgoal 
+      by (auto simp add: I'_def)
+    subgoal apply (auto simp: list_rel_mset_rel_def list_mset_rel_def br_def acids_def)
+      by (metis distinct_subseteq_iff set_mset_mset)
+    done
+  done
+qed
+
 definition initialize_Bump_Init :: \<open>nat list \<Rightarrow> nat \<Rightarrow> bump_heuristics_init nres\<close> where
   \<open>initialize_Bump_Init A n = do {
   focused \<leftarrow> initialise_VMTF A n;
-  hstable \<leftarrow> initialise_VMTF A n;
+  hstable \<leftarrow> initialise_ACIDS A n;
   to_remove \<leftarrow> distinct_atms_int_empty n;
   RETURN (Tuple4 hstable focused False to_remove)
   }\<close>

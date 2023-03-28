@@ -1,4 +1,4 @@
-﻿theory IsaSAT_ACIDS
+theory IsaSAT_ACIDS
   imports IsaSAT_Literals
     Heaps_Abs
     Watched_Literals_VMTF
@@ -13,8 +13,8 @@ integer, we simply stop incrementing it. \<close>
 section \<open>ACIDS\<close>
 
 type_synonym ('a, 'v) acids = \<open>('a multiset \<times> 'a multiset \<times> ('a \<Rightarrow> 'v)) \<times> 'v\<close>
-definition acids :: \<open>'a multiset \<Rightarrow> ('a, 'ann) ann_lits \<Rightarrow> ('a, 'v::linorder) acids set\<close> where
-\<open>acids \<A> M = {((\<B>, b, w), m). set_mset \<B> = set_mset \<A> \<and> b \<subseteq># \<A> \<and> Max (w ` set_mset \<A>) \<le> m \<and> (\<forall>L \<in>#\<A>. L \<notin># b \<longrightarrow> defined_lit M (Pos L)) \<and> distinct_mset b}\<close>
+definition acids :: \<open>'a multiset \<Rightarrow> ('a, 'ann) ann_lits \<Rightarrow> ('a, 'v::{zero,linorder}) acids set\<close> where
+\<open>acids \<A> M = {((\<B>, b, w), m). set_mset \<B> = set_mset \<A> \<and> b \<subseteq># \<A> \<and> Max ({0} \<union> w ` set_mset \<A>) \<le> m \<and> (\<forall>L \<in>#\<A>. L \<notin># b \<longrightarrow> defined_lit M (Pos L)) \<and> distinct_mset b}\<close>
 
 lemma acids_prepend: \<open>ac \<in> acids \<A> M \<Longrightarrow> ac \<in> acids \<A> (L # M)\<close>
   unfolding acids_def by (auto simp: defined_lit_map)
