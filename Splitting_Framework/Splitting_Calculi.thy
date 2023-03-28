@@ -1263,10 +1263,125 @@ next
   qed
 qed
 
+end (* context splitting_calculus *)
+
+(* lemma cons_rel_equiv:
+  fixes bot entails
+  shows \<open>Preliminaries_With_Zorn.consequence_relation bot entails =
+         Calculus.consequence_relation {bot} entails\<close>
+proof (intro iffI)
+  assume prelim_cons_rel: \<open>Preliminaries_With_Zorn.consequence_relation bot entails\<close>
+  then show \<open>Calculus.consequence_relation {bot} entails\<close>
+    unfolding Calculus.consequence_relation_def
+  proof (intro conjI)
+    show \<open>{bot} ≠ {}\<close>
+      by simp
+  next
+    show \<open>\<forall>B N1. B \<in> {bot} \<longrightarrow> entails {B} N1\<close>
+      using Preliminaries_With_Zorn.consequence_relation.entails_empty_reflexive_dangerous[OF prelim_cons_rel]
+            Preliminaries_With_Zorn.consequence_relation.entails_bot_to_entails_empty[OF prelim_cons_rel]
+            prelim_cons_rel Preliminaries_With_Zorn.consequence_relation_def
+      by (metis empty_subsetI order_refl singletonD)
+  next
+    show \<open>\<forall>N2 N1. N2 \<subseteq> N1 \<longrightarrow> entails N1 N2\<close>
+      using prelim_cons_rel Preliminaries_With_Zorn.consequence_relation_def
+      sorry
+  next
+    show \<open>\<forall>N2 N1. (\<forall>C\<in>N2. entails N1 {C}) \<longrightarrow> entails N1 N2\<close>
+      using prelim_cons_rel Preliminaries_With_Zorn.consequence_relation_def
+            Preliminaries_With_Zorn.consequence_relation.entails_conjunctive_def[OF prelim_cons_rel]
+
+      sorry
+  next
+    show \<open>\<forall>N1 N2 N3. entails N1 N2 \<longrightarrow> entails N2 N3 \<longrightarrow> entails N1 N3\<close>
+      using prelim_cons_rel Preliminaries_With_Zorn.consequence_relation_def
+
+      sorry
+  qed
+next oops
+
+lemma calculus_equiv:
+  fixes bot Inf entails Red_I Red_F
+  shows \<open>Preliminaries_With_Zorn.calculus bot Inf entails Red_I Red_F =
+         Calculus.calculus {bot} Inf entails Red_I Red_F\<close>
+  unfolding Preliminaries_With_Zorn.calculus_def Calculus.calculus_def
+            Preliminaries_With_Zorn.calculus_axioms_def Calculus.calculus_axioms_def
+  using cons_rel_equiv[of bot entails]
+  by fastforce
+
+lemma statically_complete_calculus_equiv:
+  fixes bot Inf entails Red_I Red_F
+  shows \<open>Preliminaries_With_Zorn.statically_complete_calculus bot Inf entails Red_I Red_F =
+         Calculus.statically_complete_calculus {bot} Inf entails Red_I Red_F\<close>
+  unfolding Calculus.statically_complete_calculus_def Preliminaries_With_Zorn.statically_complete_calculus_def
+            Calculus.statically_complete_calculus_axioms_def Preliminaries_With_Zorn.statically_complete_calculus_axioms_def
+  using calculus_equiv[of bot Inf entails Red_I Red_F]
+  by (metis Calculus.calculus.saturated_def Preliminaries_With_Zorn.calculus.saturated_def singletonD singletonI)
+
+lemma dynamically_complete_calculus_equiv:
+  fixes bot Inf entails Red_I Red_F
+  shows \<open>Preliminaries_With_Zorn.dynamically_complete_calculus bot Inf entails Red_I Red_F =
+         Calculus.dynamically_complete_calculus {bot} Inf entails Red_I Red_F\<close>
+  unfolding Preliminaries_With_Zorn.dynamically_complete_calculus_def Calculus.dynamically_complete_calculus_def
+            Preliminaries_With_Zorn.dynamically_complete_calculus_axioms_def Calculus.dynamically_complete_calculus_axioms_def
+  using calculus_equiv[of bot Inf entails Red_I Red_F]
+  apply auto
+  sorry *)
+
+sublocale statically_complete_calculus ⊆ dynamically_complete_calculus
+proof
+  fix Ns
+  assume \<open>is_derivation (\<rhd>) Ns\<close> and
+         \<open>fair Ns\<close> and
+         \<open>shd Ns \<Turnstile> {bot}\<close>
+  then have \<open>bot ∈ lim_inf Ns\<close>
+    sorry
+  then show \<open>\<exists> i. bot \<in> Ns !! i\<close>
+    unfolding lim_inf_def
+    by blast
+qed
+
+sublocale dynamically_complete_calculus \<subseteq> statically_complete_calculus
+proof
+  fix N
+  assume \<open>saturated N\<close> and
+         \<open>N \<Turnstile> {bot}\<close>
+  then show \<open>bot \<in> N\<close>
+    sorry
+qed
+
+(* Uhhhhhhhh... *)
+
+lemma dyn_equiv_stat:
+  fixes bot Inf entails Red_I Red_F
+  shows "dynamically_complete_calculus bot Inf entails Red_I Red_F =
+         statically_complete_calculus bot Inf entails Red_I Red_F"
+proof
+  assume "dynamically_complete_calculus bot Inf entails Red_I Red_F"
+  then interpret dynamically_complete_calculus bot Inf entails Red_I Red_F
+    by simp
+  show "statically_complete_calculus bot Inf entails Red_I Red_F"
+    by (simp add: statically_complete_calculus_axioms)
+next
+  assume "statically_complete_calculus bot Inf entails Red_I Red_F"
+  then interpret statically_complete_calculus bot Inf entails Red_I Red_F
+    by simp
+  show "dynamically_complete_calculus bot Inf entails Red_I Red_F"
+    by (simp add: dynamically_complete_calculus_axioms)
+qed
+
+context splitting_calculus
+begin
+
+corollary S_calculus_dynamically_complete:
+  assumes F_statically_complete: \<open>statically_complete_calculus bot Inf (\<Turnstile>) Red_I Red_F\<close>
+  shows \<open>dynamically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+  using dyn_equiv_stat S_calculus_statically_complete[OF F_statically_complete]
+  by fast
+
+subsection \<open>Local saturation\<close>
 
 
 end (* context splitting_calculus *)
-
-subsection \<open>Local saturation\<close>
 
 end (* theory Splitting_Calculi *)
