@@ -20,7 +20,7 @@ locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_
       (* D6 *)
       entails_sound_nontrivial: \<open>\<not> {} \<Turnstile>s {}\<close> and
       (* /!\ This needs to be approved, but we need it for theorem 21 (currently) /!\ *)
-      entails_nontrivial: \<open>\<not> {} \<Turnstile> {}\<close> and
+      (* entails_nontrivial: \<open>\<not> {} \<Turnstile> {}\<close> and *)
       (* R5 *)
       reducedness: \<open>Inf_between UNIV (Red_F N) \<subseteq> Red_I N\<close> and
       (* R6 *)
@@ -1129,7 +1129,7 @@ proof -
   qed
 qed
 
-lemma AF_entails_bot_to_prop_unsat: \<open>(\<forall> x \<in> \<M>. F_of x = bot) \<Longrightarrow> \<M> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> propositionally_unsatisfiable \<M>\<close>
+(* lemma AF_entails_bot_to_prop_unsat: \<open>(\<forall> x \<in> \<M>. F_of x = bot) \<Longrightarrow> \<M> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> propositionally_unsatisfiable \<M>\<close>
 proof -
   assume all_heads_are_bot_in_\<M>: \<open>\<forall> x \<in> \<M>. F_of x = bot\<close> and
          \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
@@ -1151,13 +1151,16 @@ proof -
     by auto
   then show \<open>propositionally_unsatisfiable \<M>\<close>
     unfolding propositionally_unsatisfiable_def .
-qed
+qed *)
 
 lemma Union_empty_if_set_empty_or_all_empty: \<open>ffUnion A = {||} \<Longrightarrow> A = {||} \<or> fBall A (\<lambda> x. x = {||})\<close>
   by (metis (mono_tags, lifting) fBallI ffunion_insert finsert_absorb funion_fempty_right)
 
 lemma fBall_fimage_is_fBall: \<open>fBall (f |`| A) P \<longleftrightarrow> fBall A (\<lambda> x. P (f x))\<close>
   by auto
+
+lemma prop_unsat_compactness: \<open>propositionally_unsatisfiable A \<Longrightarrow> \<exists> B \<subseteq> A. finite B \<and> propositionally_unsatisfiable B\<close>
+  by (meson compactness_AF_proj equiv_prop_entails propositionally_unsatisfiable_def)
 
 (* Report theorem 21 *)
 theorem S_calculus_statically_complete:
@@ -1193,7 +1196,18 @@ next
     unfolding propositionally_unsatisfiable_def propositional_model_def
     using enabled_projection_def prop_proj_in
     by auto
-  then have \<open>\<exists> \<M>. set \<M> \<subseteq> proj\<^sub>\<bottom> N \<and> finite (set \<M>) \<and> set \<M> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+  then have \<open>\<exists> \<M>. set \<M> \<subseteq> proj\<^sub>\<bottom> N \<and> finite (set \<M>) \<and> propositionally_unsatisfiable (set \<M>)\<close>
+    by (metis finite_list prop_proj_N_is_prop_unsat prop_unsat_compactness)
+  then obtain \<M> where \<M>_subset_prop_proj_N: \<open>set \<M> \<subseteq> proj\<^sub>\<bottom> N\<close> and
+                       \<M>_subset_N: \<open>set \<M> \<subseteq> N\<close> and
+                       \<open>finite (set \<M>)\<close> and
+                       \<M>_prop_unsat: \<open>propositionally_unsatisfiable (set \<M>)\<close> and
+                       \<M>_not_empty: \<open>\<M> \<noteq> []\<close>
+    by (smt (verit, del_insts) AF_cons_rel.entails_bot_to_entails_empty AF_cons_rel.entails_empty_reflexive_dangerous
+                               compactness_AF_proj equiv_prop_entails finite_list image_empty prop_proj_N_is_prop_unsat
+                               prop_proj_in propositional_model2_def propositionally_unsatisfiable_def set_empty2
+                               subset_empty subset_trans to_AF_proj_J)
+(*  then have \<open>\<exists> \<M>. set \<M> \<subseteq> proj\<^sub>\<bottom> N \<and> finite (set \<M>) \<and> set \<M> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
     using AF_cons_rel.entails_compactness[of \<open>proj\<^sub>\<bottom> N\<close> \<open>{to_AF bot}\<close>]
     by (metis (no_types, lifting) AF_cons_rel.entails_subsets finite_list prop_proj_N_is_prop_unsat
                                   prop_unsat_to_AF_entails_bot subset_refl)
@@ -1205,9 +1219,9 @@ next
     by (smt (verit, del_insts) AF_cons_rel.entails_bot_to_entails_empty AF_cons_rel.entails_empty_reflexive_dangerous
                                compactness_AF_proj equiv_prop_entails finite_list image_empty prop_proj_N_is_prop_unsat
                                prop_proj_in propositional_model2_def propositionally_unsatisfiable_def set_empty2
-                               subset_empty subset_trans to_AF_proj_J)
-  then have \<M>_prop_unsat: \<open>propositionally_unsatisfiable (set \<M>)\<close>
-    by (simp add: AF_entails_bot_to_prop_unsat propositional_projection_def subset_iff)
+                               subset_empty subset_trans to_AF_proj_J) *)
+(*  then have \<M>_prop_unsat: \<open>propositionally_unsatisfiable (set \<M>)\<close>
+    by (simp add: AF_entails_bot_to_prop_unsat propositional_projection_def subset_iff) *)
   then have \<open>unsat_inf \<M> \<in> S_calculus.Inf_from N\<close> and
             Infer_\<M>_bot_in_SInf: \<open>unsat_inf \<M> \<in> SInf\<close>
     using \<M>_not_empty \<M>_subset_prop_proj_N Splitting_rules.unsat S_calculus.Inf_if_Inf_from
@@ -1265,7 +1279,7 @@ qed
 
 end (* context splitting_calculus *)
 
-(* lemma cons_rel_equiv:
+lemma cons_rel_equiv:
   fixes bot entails
   shows \<open>Preliminaries_With_Zorn.consequence_relation bot entails =
          Calculus.consequence_relation {bot} entails\<close>
@@ -1326,49 +1340,9 @@ lemma dynamically_complete_calculus_equiv:
             Preliminaries_With_Zorn.dynamically_complete_calculus_axioms_def Calculus.dynamically_complete_calculus_axioms_def
   using calculus_equiv[of bot Inf entails Red_I Red_F]
   apply auto
-  sorry *)
-
-sublocale statically_complete_calculus ⊆ dynamically_complete_calculus
-proof
-  fix Ns
-  assume \<open>is_derivation (\<rhd>) Ns\<close> and
-         \<open>fair Ns\<close> and
-         \<open>shd Ns \<Turnstile> {bot}\<close>
-  then have \<open>bot ∈ lim_inf Ns\<close>
-    sorry
-  then show \<open>\<exists> i. bot \<in> Ns !! i\<close>
-    unfolding lim_inf_def
-    by blast
-qed
-
-sublocale dynamically_complete_calculus \<subseteq> statically_complete_calculus
-proof
-  fix N
-  assume \<open>saturated N\<close> and
-         \<open>N \<Turnstile> {bot}\<close>
-  then show \<open>bot \<in> N\<close>
-    sorry
-qed
+  sorry
 
 (* Uhhhhhhhh... *)
-
-lemma dyn_equiv_stat:
-  fixes bot Inf entails Red_I Red_F
-  shows "dynamically_complete_calculus bot Inf entails Red_I Red_F =
-         statically_complete_calculus bot Inf entails Red_I Red_F"
-proof
-  assume "dynamically_complete_calculus bot Inf entails Red_I Red_F"
-  then interpret dynamically_complete_calculus bot Inf entails Red_I Red_F
-    by simp
-  show "statically_complete_calculus bot Inf entails Red_I Red_F"
-    by (simp add: statically_complete_calculus_axioms)
-next
-  assume "statically_complete_calculus bot Inf entails Red_I Red_F"
-  then interpret statically_complete_calculus bot Inf entails Red_I Red_F
-    by simp
-  show "dynamically_complete_calculus bot Inf entails Red_I Red_F"
-    by (simp add: dynamically_complete_calculus_axioms)
-qed
 
 context splitting_calculus
 begin
@@ -1380,7 +1354,6 @@ corollary S_calculus_dynamically_complete:
   by fast
 
 subsection \<open>Local saturation\<close>
-
 
 end (* context splitting_calculus *)
 
