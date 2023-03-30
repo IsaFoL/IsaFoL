@@ -46,5 +46,9 @@ lemma mset_uprod_make_uprod[simp]: "mset_uprod (x \<approx> y) = {#x, y#}"
 lemma set_uprod_make_uprod[simp]: "set_uprod (x \<approx> y) = {x, y}"
   by (simp add: Abs_uprod_inverse make_uprod_def set_uprod_def)
 
+lemma map_uprod_make_uprod[simp]: "map_uprod f (x \<approx> y) = (f x \<approx> f y)"
+  by (metis comp_apply image_mset_add_mset image_mset_single make_uprod_def map_uprod_def
+      mset_uprod_make_uprod)
+
 
 end

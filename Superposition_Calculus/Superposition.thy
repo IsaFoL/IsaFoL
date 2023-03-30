@@ -1,17 +1,22 @@
 theory Superposition
   imports
+    (* Theories from the Isabelle distribution *)
     Main
+
+    (* Theories from the AFP *)
     "Ordered_Resolution_Prover.Abstract_Substitution"
     "Saturation_Framework.Calculus"
     "Saturation_Framework.Lifting_to_Non_Ground_Calculi"
     "Saturation_Framework_Extensions.Clausal_Calculus"
     "First_Order_Terms.Term"
     "Knuth_Bendix_Order.Subterm_and_Context"
+    "Abstract-Rewriting.Abstract_Rewriting"
 
     (* Theories from this formalization *)
     "Multiset_Extra"
     "Abstract_Substitution_Extra_First_Order_Term"
     "Unordered_Prod"
+    "Term_Rewrite_System"
 begin
 
 no_notation subst_compose (infixl "\<circ>\<^sub>s" 75)
@@ -124,15 +129,72 @@ lemma subst_lit_ident_if_is_ground_lit[simp]: "is_ground_lit L \<Longrightarrow>
 lemma subst_cls_ident_if_is_ground_cls[simp]: "is_ground_cls C \<Longrightarrow> C \<cdot> \<sigma> = C"
   by (induction C) (simp_all add: subst_cls_def)
 
-
 typedef ('f, 'v) gterm = \<open>{t :: ('f, 'v) term. is_ground_trm t}\<close>
-  morphisms term_gterm gterm_term
+  morphisms trm_gtrm gtrm_trm
 proof -
   have "is_ground_trm (Fun undefined [])"
     by simp
   thus "\<exists>x. x \<in> {t. is_ground_trm t}"
     by blast
 qed
+
+definition lit_glit where
+  "lit_glit = map_literal (map_uprod trm_gtrm)"
+
+definition glit_lit where
+  "glit_lit = map_literal (map_uprod gtrm_trm)"
+
+definition gcls_cls where
+  "gcls_cls \<equiv> image_mset glit_lit"
+
+definition cls_gcls where
+  "cls_gcls \<equiv> image_mset lit_glit"
+
+lemma cls_gcls_empty_mset[simp]: "cls_gcls {#} = {#}"
+  by (simp add: cls_gcls_def)
+
+lemma lit_glit_inverse[simp]: "glit_lit (lit_glit L) = L"
+  unfolding lit_glit_def glit_lit_def
+  by (simp add: literal.map_comp uprod.map_comp comp_def trm_gtrm_inverse literal.map_ident_strong
+      uprod.map_ident_strong)
+
+lemma cls_gcls_inverse[simp]: "gcls_cls (cls_gcls C) = C"
+  unfolding gcls_cls_def cls_gcls_def
+  by simp
+
+lemma vars_trm_gtrm[simp]: "vars_term (trm_gtrm t) = {}"
+  using trm_gtrm by fastforce
+
+lemma vars_lit_glit[simp]: "vars_lit (lit_glit L) = {}"
+  unfolding lit_glit_def vars_lit_def
+  by (smt (verit, ccfv_SIG) empty_iff equals0I imageE literal.map_sel(1) literal.map_sel(2)
+      mem_simps(9) uprod.set_map vars_atm_def vars_trm_gtrm)
+
+lemma vars_cls_gcls[simp]: "vars_cls (cls_gcls C) = {}"
+  unfolding cls_gcls_def vars_cls_def
+  by simp
+
+lemma is_ground_lit_if_in_ground_cls[intro]:
+  "L \<in># C \<Longrightarrow> is_ground_cls C \<Longrightarrow> is_ground_lit L"
+  by (simp add: vars_cls_def)
+
+lemma is_ground_atm_if_in_ground_lit[intro]:
+  "A \<in> set_literal L \<Longrightarrow> is_ground_lit L \<Longrightarrow> is_ground_atm A"
+  by (metis literal.set_cases vars_lit_Neg vars_lit_Pos)
+
+lemma is_ground_term_if_in_ground_atm[intro]:
+  "t \<in> set_uprod A \<Longrightarrow> is_ground_atm A \<Longrightarrow> is_ground_trm t"
+  by (simp add: vars_atm_def)
+
+lemma glit_lit_inverse[simp]: "is_ground_lit L \<Longrightarrow> lit_glit (glit_lit L) = L"
+  unfolding lit_glit_def glit_lit_def
+  by (auto simp: literal.map_comp uprod.map_comp comp_def lit_glit_def
+      elim!: is_ground_term_if_in_ground_atm is_ground_atm_if_in_ground_lit
+      intro!: literal.map_ident_strong uprod.map_ident_strong gtrm_trm_inverse)
+
+lemma gcls_cls_inverse[simp]: "is_ground_cls C \<Longrightarrow> cls_gcls (gcls_cls C) = C"
+  unfolding cls_gcls_def gcls_cls_def
+  by (simp add: multiset.map_comp comp_def multiset.map_ident_strong is_ground_lit_if_in_ground_cls)
 
 
 section \<open>Superposition Calculus\<close>
@@ -229,6 +291,13 @@ next
     by (metis (mono_tags, lifting) insert_DiffM mem_Collect_eq subsetI sup_eq_bot_iff
         vars_cls_add_mset)
 qed
+
+lemma wfP_less_lit[simp]: "wfP (\<prec>\<^sub>l)"
+  unfolding less_lit_def
+  using wfP_less_trm wfP_multp wfP_if_convertible_to_wfP by meson
+
+lemma wfP_less_cls[simp]: "wfP (\<prec>\<^sub>c)"
+  using wfP_less_lit wfP_multp by blast
 
 
 subsection \<open>Rules\<close>
@@ -345,10 +414,10 @@ qed
 subsection \<open>Ground Layer\<close>
 
 definition gcls_cls where
-  "gcls_cls \<equiv> map_clause (map_uprod gterm_term)"
+  "gcls_cls \<equiv> map_clause (map_uprod gtrm_trm)"
 
 definition cls_gcls where
-  "cls_gcls \<equiv> map_clause (map_uprod term_gterm)"
+  "cls_gcls \<equiv> map_clause (map_uprod trm_gtrm)"
 
 lemma cls_gcls_empty_mset[simp]: "cls_gcls {#} = {#}"
   by (simp add: cls_gcls_def)
@@ -356,12 +425,12 @@ lemma cls_gcls_empty_mset[simp]: "cls_gcls {#} = {#}"
 lemma cls_gcls_inverse[simp]: "gcls_cls (cls_gcls C) = C"
   unfolding gcls_cls_def cls_gcls_def
   by (simp add: multiset.map_comp literal.map_comp uprod.map_comp comp_def
-      literal.map_ident_strong term_gterm_inverse uprod.map_ident_strong)
+      literal.map_ident_strong trm_gtrm_inverse uprod.map_ident_strong)
 
 lemma is_ground_cls_gcls[simp]: "is_ground_cls (cls_gcls C)"
   unfolding cls_gcls_def
   apply (simp add: vars_cls_def vars_lit_def vars_atm_def)
-  by (smt (verit) imageE literal.map_sel(1) literal.map_sel(2) mem_Collect_eq term_gterm
+  by (smt (verit) imageE literal.map_sel(1) literal.map_sel(2) mem_Collect_eq trm_gtrm
       uprod.set_map)
 
 lemma is_ground_lit_if_in_ground_cls[intro]:
@@ -380,7 +449,7 @@ lemma gcls_cls_inverse[simp]: "is_ground_cls C \<Longrightarrow> cls_gcls (gcls_
   unfolding cls_gcls_def gcls_cls_def
   by (auto simp: literal.map_comp uprod.map_comp comp_def
       elim!: is_ground_term_if_in_ground_atm is_ground_atm_if_in_ground_lit is_ground_lit_if_in_ground_cls
-      intro!: multiset.map_ident_strong literal.map_ident_strong uprod.map_ident_strong gterm_term_inverse)
+      intro!: multiset.map_ident_strong literal.map_ident_strong uprod.map_ident_strong gtrm_trm_inverse)
 
 definition G_Inf :: "('f, 'v) gterm atom clause inference set" where
   "G_Inf \<equiv>
@@ -391,46 +460,11 @@ definition G_Inf :: "('f, 'v) gterm atom clause inference set" where
 abbreviation G_Bot :: "('f, 'v) gterm atom clause set" where
   "G_Bot \<equiv> {{#}}"
 
-definition compatible_with_Fun :: "(('f, 'v) Term.term \<times> ('f, 'v) Term.term) set \<Rightarrow> bool" where
-  "compatible_with_Fun I \<longleftrightarrow>
-    (\<forall>f ts ts'. list_all2 (\<lambda>t t'. (t, t') \<in> I) ts ts' \<longrightarrow> (Fun f ts, Fun f ts') \<in> I)"
-
-lemma compatible_with_ctxt_apply_term:
-  assumes
-    "refl I" and "compatible_with_Fun I"
-    "(t, t') \<in> I"
-  shows "(ctxt\<langle>t\<rangle>, ctxt\<langle>t'\<rangle>) \<in> I"
-proof (induction ctxt)
-  case Hole
-  then show ?case
-    using \<open>(t, t') \<in> I\<close> by simp
-next
-  case (More f ts1 ctxt ts2)
-  have "list_all2 (\<lambda>t t'. (t, t') \<in> I) (ts1 @ ctxt\<langle>t\<rangle> # ts2) (ts1 @ ctxt\<langle>t'\<rangle> # ts2)"
-  proof (intro list_all2_appendI list.rel_intros)
-    show "list_all2 (\<lambda>t t'. (t, t') \<in> I) ts1 ts1"
-      using \<open>refl I\<close>
-      by (simp add: list.rel_refl reflD)
-  next
-    show "(ctxt\<langle>t\<rangle>, ctxt\<langle>t'\<rangle>) \<in> I"
-      using More by simp
-  next
-    show "list_all2 (\<lambda>t t'. (t, t') \<in> I) ts2 ts2"
-      using \<open>refl I\<close>
-      by (simp add: list.rel_refl reflD)
-  qed
-  hence "(Fun f (ts1 @ ctxt\<langle>t\<rangle> # ts2), Fun f (ts1 @ ctxt\<langle>t'\<rangle> # ts2)) \<in> I"
-    using \<open>compatible_with_Fun I\<close>
-    by (simp add: compatible_with_Fun_def)
-  thus ?case
-    by (metis ctxt_apply_term.simps(2))
-qed
-
 definition G_entails ::
   "('f, 'v) gterm atom clause set \<Rightarrow> ('f, 'v) gterm atom clause set \<Rightarrow> bool"
 where
   "G_entails N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: (('f, 'v) Term.term \<times> ('f, 'v) Term.term) set).
-    refl I \<longrightarrow> trans I \<longrightarrow> sym I \<longrightarrow> compatible_with_Fun I \<longrightarrow>
+    refl I \<longrightarrow> trans I \<longrightarrow> sym I \<longrightarrow> compatible_with_ctxt I \<longrightarrow>
     (\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>s (cls_gcls ` N\<^sub>1) \<longrightarrow>
     (\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>s (cls_gcls ` N\<^sub>2))"
 
@@ -486,7 +520,7 @@ proof (cases P1 P2 C rule: superposition.cases)
 
     let ?I' = "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I"
 
-    assume "refl I" and "trans I" and "sym I" and "compatible_with_Fun I" and
+    assume "refl I" and "trans I" and "sym I" and "compatible_with_ctxt I" and
       "?I' \<TTurnstile> P1" and "?I' \<TTurnstile> P2"
     then obtain K1 K2 :: "('f, 'v) Term.term uprod literal" where
       "K1 \<in># P1" and "?I' \<TTurnstile>l K1" and "K2 \<in># P2" and "?I' \<TTurnstile>l K2"
@@ -511,8 +545,8 @@ proof (cases P1 P2 C rule: superposition.cases)
           hence "(s\<^sub>1\<langle>t\<^sub>2'\<rangle>, s\<^sub>1') \<in> I"
             unfolding \<open>u\<^sub>1 = t\<^sub>2\<close>
             using \<open>(t\<^sub>2, t\<^sub>2') \<in> I\<close>
-            by (meson \<open>compatible_with_Fun I\<close> \<open>refl I\<close> \<open>sym I\<close> \<open>trans I\<close>
-                compatible_with_ctxt_apply_term symD transD)
+            using \<open>compatible_with_ctxt I\<close> \<open>refl I\<close> \<open>sym I\<close> \<open>trans I\<close>
+            by (meson compatible_with_ctxtD refl_onD1 symD trans_onD)
           hence "?I' \<TTurnstile>l Pos (s\<^sub>1\<langle>t\<^sub>2'\<rangle> \<approx> s\<^sub>1')"
             by blast
           thus ?thesis
@@ -529,8 +563,8 @@ proof (cases P1 P2 C rule: superposition.cases)
           hence "(s\<^sub>1\<langle>t\<^sub>2'\<rangle>, s\<^sub>1') \<notin> I"
             unfolding \<open>u\<^sub>1 = t\<^sub>2\<close>
             using \<open>(t\<^sub>2, t\<^sub>2') \<in> I\<close>
-            by (metis \<open>compatible_with_Fun I\<close> \<open>refl I\<close> \<open>trans I\<close>
-                compatible_with_ctxt_apply_term transD)
+            using \<open>compatible_with_ctxt I\<close> \<open>trans I\<close>
+            by (metis compatible_with_ctxtD transD)
           hence "?I' \<TTurnstile>l Neg (s\<^sub>1\<langle>t\<^sub>2'\<rangle> \<approx> s\<^sub>1')"
             by (meson \<open>sym I\<close> true_lit_simps(2) true_lit_uprod_iff_true_lit_prod(2))
           thus ?thesis
@@ -704,7 +738,7 @@ next
     unfolding G_entails_def
   proof (intro allI impI)
     fix I
-    assume "refl I" and "trans I" and "sym I" and "compatible_with_Fun I" and
+    assume "refl I" and "trans I" and "sym I" and "compatible_with_ctxt I" and
       "(\<lambda>(x, y). x \<approx> y) ` I \<TTurnstile>s cls_gcls ` N1"
     hence "\<forall>C \<in> N2. (\<lambda>(x, y). x \<approx> y) ` I \<TTurnstile>s {cls_gcls C}"
       using ball_G_entails by (simp add: G_entails_def)
@@ -722,6 +756,9 @@ next
     using correctness_ground_eq_factoring
     by (auto simp: G_entails_def)
 qed
+
+
+subsubsection \<open>Redundancy Criterion\<close>
 
 lemma smaller_conclusion_ground_superposition:
   assumes
@@ -1012,12 +1049,8 @@ proof unfold_locales
     using transp_less_cls
     by (metis (no_types, lifting) transpD transpI)
 next
-  have "wfP (\<prec>\<^sub>l)"
-    unfolding less_lit_def
-    using wfP_less_trm wfP_multp wfP_if_convertible_to_wfP by meson
-  hence "wfP (\<prec>\<^sub>c)"
-    using wfP_multp by blast
-  thus "wfP (\<lambda>C\<^sub>1 C\<^sub>2. cls_gcls C\<^sub>1 \<prec>\<^sub>c cls_gcls C\<^sub>2)"
+  show "wfP (\<lambda>C\<^sub>1 C\<^sub>2. cls_gcls C\<^sub>1 \<prec>\<^sub>c cls_gcls C\<^sub>2)"
+    using wfP_less_cls
     by (metis (no_types, lifting) wfP_if_convertible_to_wfP)
 next
   show "\<And>\<iota>. \<iota> \<in> G_Inf \<Longrightarrow> prems_of \<iota> \<noteq> []"
@@ -1056,11 +1089,185 @@ next
     by fast
 qed
 
+
+subsubsection \<open>Refutational Completeness\<close>
+
+definition prod_uprod where
+  "prod_uprod up = (SOME (x, y). up = (x \<approx> y))"
+
+function production :: "('f, 'v) term uprod clause \<Rightarrow> ('f, 'v) term rel" where
+  "production C = {(s, t)| s t C'.
+    C = add_mset (Pos (s \<approx> t)) C' \<and>
+    select C = {#} \<and>
+    is_strictly_maximal_lit (Pos (s \<approx> t)) C \<and>
+    t \<prec>\<^sub>t s \<and>
+    (let R\<^sub>C = (\<Union>D \<in> {D. D \<prec>\<^sub>c C}. production D) in
+    \<not> (R\<^sub>C \<TTurnstile> map_clause prod_uprod C) \<and>
+    \<not> (insert (s, t) R\<^sub>C \<TTurnstile> map_clause prod_uprod C') \<and>
+    s \<in> NF R\<^sub>C)}"
+  by simp_all
+
+termination production
+proof (relation "{(x, y). x \<prec>\<^sub>c y}")
+  show "wf {(x, y). x \<prec>\<^sub>c y}"
+    using wfP_less_cls
+    by (simp add: wfP_def)
+next
+  show "\<And>C D. D \<in> {D. D \<prec>\<^sub>c C} \<Longrightarrow> (D, C) \<in> {(x, y). x \<prec>\<^sub>c y}"
+    by simp
+qed
+
+declare production.simps [simp del]
+
+abbreviation equation where
+  "equation C \<equiv> production C"
+
+abbreviation rewrite_sys where
+  "rewrite_sys C \<equiv> (\<Union>D \<in> {D. D \<prec>\<^sub>c C}. equation D)"
+
+lemma singleton_eq_CollectD: "{x} = {y. P y} \<Longrightarrow> P x"
+  by blast
+
+lemma subset_Union_mem_CollectI: "P x \<Longrightarrow> f x \<subseteq> (\<Union>y \<in> {z. P z}. f y)"
+  by blast
+
+lemma less_trm_iff_less_cls_if_lhs_equation:
+  assumes E\<^sub>C: "equation C = {(s, t)}" and E\<^sub>D: "equation D = {(u, v)}" and
+    gr_C: "is_ground_cls C" and gr_D: "is_ground_cls D"
+  shows "u \<prec>\<^sub>t s \<longleftrightarrow> D \<prec>\<^sub>c C"
+proof -
+  from E\<^sub>C obtain C' where
+    C_def: "C = add_mset (Pos (s \<approx> t)) C'" and
+    "is_strictly_maximal_lit (Pos (s \<approx> t)) C" and
+    "t \<prec>\<^sub>t s" and
+    s_irreducible: "s \<in> NF (\<Union>C' \<in> {C'. C' \<prec>\<^sub>c C}. production C')"
+    by (auto elim!: production.elims dest: singleton_eq_CollectD)
+  with gr_C have "\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (s \<approx> t)"
+    unfolding is_maximal_wrt_def
+    using totalp_on_less_lit[THEN totalp_onD, unfolded mem_Collect_eq]
+    by (metis add_mset_remove_trivial is_ground_lit_if_in_ground_cls reflclp_iff sup_eq_bot_iff
+        vars_cls_add_mset)
+
+  from E\<^sub>D obtain D' where
+    D_def: "D = add_mset (Pos (u \<approx> v)) D'" and
+    "is_strictly_maximal_lit (Pos (u \<approx> v)) D" and
+    "v \<prec>\<^sub>t u"
+    by (auto elim: production.elims dest: singleton_eq_CollectD)
+  with gr_D have "\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (u \<approx> v)"
+    unfolding is_maximal_wrt_def
+    using totalp_on_less_lit[THEN totalp_onD, unfolded mem_Collect_eq]
+    by (metis add_mset_remove_trivial is_ground_lit_if_in_ground_cls reflclp_iff sup_eq_bot_iff
+        vars_cls_add_mset)
+
+  show ?thesis
+  proof (rule iffI)
+    assume "u \<prec>\<^sub>t s"
+    moreover hence "v \<prec>\<^sub>t s"
+      using \<open>v \<prec>\<^sub>t u\<close>
+      by (meson transpD transp_less_trm)
+    ultimately have "multp (\<prec>\<^sub>t) {#u, v#} {#s, t#}"
+      using one_step_implies_multp[of "{#s, t#}" "{#u, v#}" _ "{#}"] by simp
+    hence "Pos (u \<approx> v) \<prec>\<^sub>l Pos (s \<approx> t)"
+      by (simp add: less_lit_def)
+    moreover hence "\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (s \<approx> t)"
+      using \<open>\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (u \<approx> v)\<close>
+      by (meson transp_less_lit transpD)
+    ultimately show "D \<prec>\<^sub>c C"
+      using one_step_implies_multp[of C D _ "{#}"]
+      by (simp add: D_def C_def)
+  next
+    assume "D \<prec>\<^sub>c C"
+    hence "equation D \<subseteq> rewrite_sys C"
+      by auto
+    hence "s \<noteq> u"
+      using s_irreducible E\<^sub>D by auto
+    moreover have "\<not> (s \<prec>\<^sub>t u)"
+    proof (rule notI)
+      assume "s \<prec>\<^sub>t u"
+      moreover hence "t \<prec>\<^sub>t u"
+        using \<open>t \<prec>\<^sub>t s\<close>
+        by (meson transpD transp_less_trm)
+      ultimately have "multp (\<prec>\<^sub>t) {#s, t#} {#u, v#}"
+        using one_step_implies_multp[of "{#u, v#}" "{#s, t#}" _ "{#}"] by simp
+      hence "Pos (s \<approx> t) \<prec>\<^sub>l Pos (u \<approx> v)"
+        by (simp add: less_lit_def)
+      moreover hence "\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (u \<approx> v)"
+        using \<open>\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (s \<approx> t)\<close>
+        by (meson transp_less_lit transpD)
+      ultimately have "C \<prec>\<^sub>c D"
+        using one_step_implies_multp[of D C _ "{#}"]
+        by (simp add: D_def C_def)
+      thus False
+        using \<open>D \<prec>\<^sub>c C\<close>
+        by (meson irreflpD transpD transp_less_cls wfP_imp_irreflp wfP_less_cls)
+    qed
+    ultimately show "u \<prec>\<^sub>t s"
+      using totalp_on_less_trm[THEN totalp_onD, unfolded mem_Collect_eq, of s u]
+      using C_def D_def gr_C gr_D by auto
+  qed
+qed
+
+lemma model_construction0:
+  assumes "G.saturated N" and "{#} \<notin> N" and "C \<in> N"
+  shows "D \<in> N \<Longrightarrow> cls_gcls D \<prec>\<^sub>c cls_gcls C \<Longrightarrow>
+    (\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` (rewrite_inside_ctxt (rewrite_sys (cls_gcls D)))\<^sup>\<leftrightarrow>\<^sup>* \<TTurnstile> cls_gcls C"
+  sorry
+
+lemma model_construction:
+  assumes "G.saturated N" and "{#} \<notin> N" and "C \<in> N"
+  shows "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` (rewrite_inside_ctxt (\<Union>D \<in> N. equation (cls_gcls D)))\<^sup>\<leftrightarrow>\<^sup>* \<TTurnstile> cls_gcls C"
+  using model_construction0[OF assms]
+  sorry
+
 interpretation G: statically_complete_calculus G_Bot G_Inf G_entails G.Red_I G.Red_F
 proof unfold_locales
-  show "\<And>B N. B \<in> G_Bot \<Longrightarrow> G.saturated N \<Longrightarrow> G_entails N {B} \<Longrightarrow> \<exists>B'\<in>G_Bot. B' \<in> N"
-    sorry
+  fix B :: "('f, 'v) gterm uprod clause" and N :: "('f, 'v) gterm uprod clause set"
+  assume "B \<in> G_Bot" and "G.saturated N"
+  hence "B = {#}"
+    by simp
+
+  assume "G_entails N {B}"
+  hence "{#} \<in> N"
+    unfolding \<open>B = {#}\<close>
+  proof (rule contrapos_pp)
+    assume "{#} \<notin> N"
+
+    define I :: "(('f, 'v) term \<times> ('f, 'v) term) set" where
+      "I = (rewrite_inside_ctxt (\<Union>D \<in> N. equation (cls_gcls D)))\<^sup>\<leftrightarrow>\<^sup>*"
+
+    show "\<not> G_entails N G_Bot"
+      unfolding G_entails_def not_all not_imp
+    proof (intro exI conjI)
+      show "refl I"
+        unfolding I_def
+        by (metis conversion_rtrancl refl_rtrancl)
+    next
+      show "trans I"
+        unfolding I_def
+        by (simp add: conversion_trans)
+    next
+      show "sym I"
+        unfolding I_def
+        by (simp add: conversion_sym)
+    next
+      show "compatible_with_ctxt I"
+        unfolding I_def
+        by (simp add: compatible_with_ctxt_conversion compatible_with_ctxt_rewrite_inside_ctxt)
+    next
+      show "(\<lambda>(x, y). x \<approx> y) ` I \<TTurnstile>s cls_gcls ` N"
+        unfolding I_def
+        using model_construction[OF \<open>G.saturated N\<close> \<open>{#} \<notin> N\<close>]
+        by (simp add: true_clss_def)
+    next
+      show "\<not> (\<lambda>(x, y). x \<approx> y) ` I \<TTurnstile>s cls_gcls ` G_Bot"
+        by simp
+    qed
+  qed
+  thus "\<exists>B'\<in>G_Bot. B' \<in> N"
+    by auto
 qed
+
+end
 
 
 subsection \<open>First-Order Layer\<close>
