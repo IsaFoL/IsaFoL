@@ -651,7 +651,6 @@ proof -
     done
 qed
 
-(*TODO this seems to be never used in the refinement part*)
 definition encoded_hp_prop_list_conc
   :: "'a::linorder multiset \<times> ('a, 'b) hp_fun \<times> 'a option \<Rightarrow>
      'a multiset \<times> ('a, 'b) hp option \<Rightarrow> bool"
@@ -3008,19 +3007,21 @@ definition ACIDS_decrease_key' where
 
 lemma rescale_and_reroot:
   fixes h :: \<open>nat multiset \<times> (nat, nat)hp option\<close>
-  assumes enc: \<open>encoded_hp_prop_list_conc arr h\<close> \<open>a \<in># fst arr\<close> \<open>snd h \<noteq> None\<close>
-  shows \<open>rescale_and_reroot a w' arr \<le> SPEC (\<lambda>arr'. encoded_hp_prop_list_conc arr' (ACIDS_decrease_key' a w' (h)))\<close>
+  assumes enc: \<open>encoded_hp_prop_list_conc arr h\<close> \<open>a \<in># fst arr\<close> (*\<open>snd h \<noteq> None\<close>*)
+  shows \<open>rescale_and_reroot a w' arr \<le> \<Down> {(arr, h). encoded_hp_prop_list_conc arr h} (ACIDS.mop_hm_decrease_key a w' h)\<close>
 proof -
   let ?h = \<open>snd h\<close>
   have 1: \<open>encoded_hp_prop_list_conc arr h \<Longrightarrow> encoded_hp_prop_list_conc arr (fst h, snd h)\<close>
     by (cases h) auto
   have src: \<open>source_node arr = map_option node ?h\<close>
-    using enc by (auto simp: encoded_hp_prop_list_conc_def)
+    using enc by (auto simp: encoded_hp_prop_list_conc_def split: option.splits)
   show ?thesis
     using assms
     unfolding rescale_and_reroot_def ACIDS.decrease_key_def ACIDS_decrease_key'_def
+      ACIDS.mop_hm_decrease_key_def
     apply (refine_vcg unroot_hp_tree vsids_merge_pairs)
-    subgoal by (auto simp: encoded_hp_prop_list_conc_def)
+    subgoal by (auto simp: encoded_hp_prop_list_conc_def split: option.splits)
+    subgoal by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def hp_update_score_def split: option.splits)
     subgoal
       using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
       apply (auto split: option.splits hp.splits intro!: encoded_hp_prop_list_conc_update_outside)
@@ -3045,7 +3046,7 @@ proof -
         in_remove_key_changed[of a \<open>the ?h\<close>] remove_key_None_iff[of a \<open>the ?h\<close>]
         find_key_None_or_itself[of a \<open>the ?h\<close>] find_key_None_remove_key_ident[of a \<open>the ?h\<close>]
       by (cases \<open>find_key a (the ?h)\<close>)
-        auto
+       (auto simp del: find_key_None_or_itself)
     subgoal
       using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
         in_remove_key_changed[of a \<open>the ?h\<close>] remove_key_None_iff[of a \<open>the ?h\<close>]
@@ -3067,16 +3068,19 @@ proof -
     done
 qed
 
+definition acids_encoded_hmrel where
+  \<open>acids_encoded_hmrel = {(arr, h). encoded_hp_prop_list_conc arr h} O ACIDS.hmrel\<close>
+
 lemma hp_insert_spec_mop_prio_insert:
-  assumes \<open>(arr, h) \<in> {(arr, h). encoded_hp_prop_list_conc arr h} O ACIDS.hmrel\<close>
-  shows \<open>hp_insert i w arr \<le> \<Down>({(arr, h). encoded_hp_prop_list_conc arr h} O ACIDS.hmrel) (ACIDS.mop_prio_insert i w h)\<close>
+  assumes \<open>(arr, h) \<in> acids_encoded_hmrel\<close>
+  shows \<open>hp_insert i w arr \<le> \<Down>acids_encoded_hmrel (ACIDS.mop_prio_insert i w h)\<close>
 proof -
   obtain j where
     i: \<open> encoded_hp_prop_list_conc arr j\<close>
     \<open>(j, h) \<in> ACIDS.hmrel\<close>
-    using assms by auto
+    using assms unfolding acids_encoded_hmrel_def by auto
   show ?thesis
-    unfolding ACIDS.mop_prio_insert_def case_prod_beta
+    unfolding ACIDS.mop_prio_insert_def case_prod_beta acids_encoded_hmrel_def
     apply (refine_vcg hp_insert_spec[THEN order_trans] i)
     subgoal using i by (auto simp: encoded_hp_prop_list_conc_def ACIDS.hmrel_def)
     subgoal using i by (auto simp: encoded_hp_prop_list_conc_def ACIDS.hmrel_def)
@@ -3085,6 +3089,26 @@ proof -
      apply (rule i)
      apply (auto simp: conc_fun_chain conc_fun_RES ACIDS.mop_prio_insert_def case_prod_beta RETURN_def)
      done
+qed
+
+lemma rescale_and_reroot_mop_prio_change_weight:
+  assumes \<open>(arr, h) \<in> acids_encoded_hmrel\<close> and nempty: \<open>fst (snd h) \<noteq> {#}\<close>
+  shows \<open>rescale_and_reroot a w arr \<le> \<Down>acids_encoded_hmrel (ACIDS.mop_prio_change_weight a w h)\<close>
+proof -
+  obtain j where
+    i: \<open> encoded_hp_prop_list_conc arr j\<close>
+    \<open>(j, h) \<in> ACIDS.hmrel\<close>
+    using assms unfolding acids_encoded_hmrel_def by auto
+  show ?thesis
+    unfolding ACIDS.mop_prio_change_weight_def case_prod_beta
+      ACIDS.mop_hm_decrease_key_def
+    apply (refine_vcg rescale_and_reroot[THEN order_trans] i)
+    subgoal using i by (auto simp: encoded_hp_prop_list_conc_def ACIDS.hmrel_def)
+    apply (rule order_trans, rule ref_two_step')
+    apply (rule ACIDS.decrease_key_mop_prio_change_weight i)+
+    apply (auto simp: conc_fun_chain conc_fun_RES ACIDS.mop_prio_insert_def case_prod_beta RETURN_def
+      ACIDS.mop_prio_change_weight_def acids_encoded_hmrel_def)
+    done
 qed
 
 end

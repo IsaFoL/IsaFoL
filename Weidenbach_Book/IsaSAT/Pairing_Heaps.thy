@@ -2359,23 +2359,35 @@ definition mop_hm_pop_min :: \<open>_\<close> where
   })\<close>
 
 lemma get_min2_del_min2_mop_prio_pop_min:
-  \<open>(xs, ys) \<in> hmrel \<Longrightarrow>
-  mop_hm_pop_min xs \<le> \<Down>(Id \<times>\<^sub>r hmrel) (mop_prio_pop_min ys)\<close>
-(*  using get_min2_mop_prio_peek_min[of xs ys]*)
-  unfolding mop_prio_pop_min_def mop_prio_del_def prio_peek_min_def prio_peek_min_def
-     nres_monad3 case_prod_beta mop_hm_pop_min_def
-  apply (refine_vcg get_min2_mop_prio_peek_min2)
-  subgoal by (auto simp: hmrel_def)
-  subgoal by auto
-  subgoal
-    apply (cases \<open>the (snd xs)\<close>; cases xs)
-    apply (auto simp: hmrel_def invar_del_min del_min_None_iff pass12_merge_pairs prio_del_def
-      mset_nodes_merge_pairs invar_Some intro!: invar_merge_pairs)
-    apply (metis hp_node_children_simps2 score_hp_node_merge_pairs_same)
-    apply (metis list.map(1) mset_nodes_merge_pairs pairing_heap_assms.merge_pairs_None_iff sum_list.Nil)
-    apply (metis list.map(1) mset_nodes_merge_pairs pairing_heap_assms.merge_pairs_None_iff sum_list.Nil)
-    by (metis hp_node_children_simps2 score_hp_node_merge_pairs_same)
-  done
+  assumes \<open>(xs, ys) \<in> hmrel\<close>
+  shows \<open>mop_hm_pop_min xs \<le> \<Down>(Id \<times>\<^sub>r hmrel) (mop_prio_pop_min ys)\<close>
+proof -
+  have mop_prio_pop_min_def: \<open>mop_prio_pop_min ys = do {
+    ASSERT (fst (snd ys)\<noteq>{#});
+   v \<leftarrow> local.mop_prio_peek_min ys;
+   bw \<leftarrow> mop_prio_del v ys;
+   RETURN (v, bw)
+    }\<close>
+    unfolding mop_prio_pop_min_def local.mop_prio_peek_min_def nres_monad3
+    by (cases ys) (auto simp: summarize_ASSERT_conv)
+  show ?thesis
+    (*  using get_min2_mop_prio_peek_min[of xs ys]*)
+    using assms
+    unfolding mop_prio_pop_min_def mop_prio_del_def prio_peek_min_def prio_peek_min_def
+      nres_monad3 case_prod_beta mop_hm_pop_min_def 
+    apply (refine_vcg get_min2_mop_prio_peek_min2)
+    subgoal by (auto simp: hmrel_def)
+    subgoal by auto
+    subgoal
+      apply (cases \<open>the (snd xs)\<close>; cases xs)
+      apply (auto simp: hmrel_def invar_del_min del_min_None_iff pass12_merge_pairs prio_del_def
+        mset_nodes_merge_pairs invar_Some intro!: invar_merge_pairs)
+      apply (metis hp_node_children_simps2 score_hp_node_merge_pairs_same)
+      apply (metis list.map(1) mset_nodes_merge_pairs pairing_heap_assms.merge_pairs_None_iff sum_list.Nil)
+      apply (metis list.map(1) mset_nodes_merge_pairs pairing_heap_assms.merge_pairs_None_iff sum_list.Nil)
+      by (metis hp_node_children_simps2 score_hp_node_merge_pairs_same)
+    done
+qed
 
 definition mop_hm_insert :: \<open>_\<close> where
   \<open>mop_hm_insert = (\<lambda>w v (\<B>, xs). do {
@@ -2447,12 +2459,13 @@ lemma score_hp_node_link2:
 
 definition mop_hm_decrease_key :: \<open>_\<close> where
   \<open>mop_hm_decrease_key = (\<lambda>w v (\<B>, xs). do {
-    ASSERT (w \<in># \<B> \<and> w \<in># mset_nodes (the xs) \<and> xs \<noteq> None);
-    RETURN (\<B>, decrease_key w v (the xs))
+  ASSERT (w \<in># \<B>);
+    if xs = None then RETURN (\<B>, xs)
+    else RETURN (\<B>, decrease_key w v (the xs))
   })\<close>
 
 lemma decrease_key_mop_prio_change_weight:
-  assumes \<open>(xs, ys) \<in> hmrel\<close> \<open>w \<in># fst (snd ys)\<close> \<open>le v (snd (snd ys) w)\<close>
+  assumes \<open>(xs, ys) \<in> hmrel\<close>
   shows \<open>mop_hm_decrease_key w v xs \<le> \<Down>(hmrel) (mop_prio_change_weight w v ys)\<close>
 proof -
   let ?w = \<open>snd (snd ys)\<close>
@@ -2461,7 +2474,7 @@ proof -
     using assms by (cases xs; cases \<open>the ?xs\<close>) (auto simp: hmrel_def)
   have [simp]: \<open>add_mset (node x2a) (sum_list (map mset_nodes (hps x2a))) = mset_nodes x2a\<close> for x2a
     by (cases x2a) auto
-  have f: \<open>find_key w (the ?xs) = Some (Hp w (?w w) (hps (the (find_key w (the ?xs)))))\<close>
+  have f: \<open>w \<in># fst (snd ys) \<Longrightarrow> find_key w (the ?xs) = Some (Hp w (?w w) (hps (the (find_key w (the ?xs)))))\<close>
     using assms invar_find_key[of \<open>the ?xs\<close> w] find_key_None_or_itself[of w \<open>the ?xs\<close>]
        find_key_none_iff[of w \<open>[the ?xs]\<close>]
        hp_node_find_key[of \<open>the ?xs\<close> w]
@@ -2470,20 +2483,19 @@ proof -
     apply (auto simp: hmrel_def invar_Some)
     by (metis hp_node_None_notin2 option.map_sel option.sel)
 
-  then have \<open>invar (Some (Hp w (?w w) (hps (the (find_key w (the ?xs))))))\<close>
+  then have \<open>w \<in># fst (snd ys) \<Longrightarrow> invar (Some (Hp w (?w w) (hps (the (find_key w (the ?xs))))))\<close>
     using assms invar_find_key[of \<open>the ?xs\<close> w] by (auto simp: hmrel_def invar_Some)
-  moreover have \<open>find_key w (the ?xs) \<noteq> None \<Longrightarrow> remove_key w (the ?xs) \<noteq> None \<Longrightarrow>
+  moreover have \<open>w \<in># fst (snd ys) \<Longrightarrow> find_key w (the ?xs) \<noteq> None \<Longrightarrow> remove_key w (the ?xs) \<noteq> None \<Longrightarrow>
     distinct_mset (mset_nodes (Hp w v (hps (the (find_key w (the ?xs))))) + mset_nodes (the (remove_key w (the ?xs))))\<close>
     using assms distinct_mset_find_node_next[of \<open>the ?xs\<close> w \<open>the (find_key w (the ?xs))\<close>]
-    apply (subst \<open>find_key w (the ?xs) = Some (Hp w (?w w) (hps (the (find_key w (the ?xs)))))\<close>) apply (auto simp: hmrel_def)
+    apply (subst \<open>w \<in># fst (snd ys) \<Longrightarrow> find_key w (the ?xs) = Some (Hp w (?w w) (hps (the (find_key w (the ?xs)))))\<close>) apply (auto simp: hmrel_def)
     apply (metis \<open>\<And>x2a. add_mset (node x2a) (sum_list (map mset_nodes (hps x2a))) = mset_nodes x2a\<close> distinct_mset_add distinct_mset_add_mset find_key_None_or_itself option.distinct(1) option.sel)
-    apply (metis f hp.sel(1) in_find_key_notin_remove_key node_in_mset_nodes option.distinct(1) option.sel snd_conv)
+    apply (metis find_key_None_or_itself in_find_key_notin_remove_key node_in_mset_nodes option.distinct(1) option.sel)
     by (metis (no_types, opaque_lifting) Groups.add_ac(2) \<open>\<And>x2a. add_mset (node x2a) (sum_list (map mset_nodes (hps x2a))) = mset_nodes x2a\<close> distinct_mset_add_mset find_remove_mset_nodes_full union_mset_add_mset_right)
   ultimately show ?thesis
     using assms
     unfolding mop_prio_change_weight_def mop_hm_decrease_key_def
     apply refine_vcg
-    subgoal by (auto simp: hmrel_def)
     subgoal by (auto simp: hmrel_def)
     subgoal by (auto simp: hmrel_def)
     subgoal
@@ -2576,20 +2588,14 @@ lemma (in -)find_key_None_remove_key_ident: \<open>find_key a h = None \<Longrig
   by (induction a h rule: find_key.induct)
    (auto split: if_splits)
 
-definition mop_hm_decrease_key2 :: \<open>_\<close> where
-  \<open>mop_hm_decrease_key2 = (\<lambda>w v (\<B>, xs). do {
-    ASSERT (w \<in># \<B>);
-    RETURN (\<B>, decrease_key2 w v xs)
-  })\<close>
-
 lemma decrease_key2:
   assumes \<open>(x, m) \<in> hmrel\<close> \<open>(a,a')\<in>Id\<close> \<open>(w,w')\<in>Id\<close> \<open>le w (snd (snd m) a)\<close>
-  shows \<open>mop_hm_decrease_key2 a w x \<le> \<Down> (hmrel) (mop_prio_change_weight a' w' m)\<close>
+  shows \<open>mop_hm_decrease_key a w x \<le> \<Down> (hmrel) (mop_prio_change_weight a' w' m)\<close>
 proof -
   show ?thesis
     using assms
     unfolding decrease_key2_def
-      mop_prio_insert_def mop_prio_change_weight_def mop_hm_decrease_key2_def
+      mop_prio_insert_def mop_prio_change_weight_def mop_hm_decrease_key_def
     apply refine_rcg
     subgoal by (auto simp: hmrel_def)
     subgoal
