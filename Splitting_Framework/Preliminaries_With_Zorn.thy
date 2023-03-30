@@ -2800,6 +2800,7 @@ lemma fin_set_fset: "finite A \<Longrightarrow> \<exists>Af. fset Af = A" by (me
 
 (* Splitting report Lemma 4, 2/2 *)
 interpretation AF_sound_cons_rel: consequence_relation "to_AF bot" AF_entails_sound
+  (* TODO: separate the proof from the interpretation *)
 proof
   show \<open>{to_AF bot} \<Turnstile>s\<^sub>A\<^sub>F {}\<close>
    (* using sound_cons.bot_entails_empty sound_cons.entails_subsets *)
