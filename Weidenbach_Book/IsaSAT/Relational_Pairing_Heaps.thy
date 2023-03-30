@@ -2491,16 +2491,16 @@ proof (induction h arbitrary: i)
 qed
 
 lemma encoded_hp_prop_list_in_node_iff_prev_parent_or_root:
-  assumes \<open>encoded_hp_prop_list_conc arr h\<close> and \<open>h \<noteq> None\<close>
-  shows \<open>i \<in># mset_nodes (the h) \<longleftrightarrow> hp_read_prev i (fst (snd arr)) \<noteq> None \<or> hp_read_parent i (fst (snd arr)) \<noteq> None \<or> Some i = snd (snd arr)\<close>
-  using assms in_node_iff_prev_parent_or_root[of \<open>the h\<close> i]
+  assumes \<open>encoded_hp_prop_list_conc arr h\<close> and \<open>snd h \<noteq> None\<close>
+  shows \<open>i \<in># mset_nodes (the (snd h)) \<longleftrightarrow> hp_read_prev i (fst (snd arr)) \<noteq> None \<or> hp_read_parent i (fst (snd arr)) \<noteq> None \<or> Some i = snd (snd arr)\<close>
+  using assms in_node_iff_prev_parent_or_root[of \<open>the (snd h)\<close> i]
   by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def empty_outside_def
     simp del: hp_prev_None_notin hp_parent_None_notin)
 
 (*TODO Move*)
 fun update_source_node where
   \<open>update_source_node i (\<V>,arr,_) = (\<V>, arr, i)\<close>
-fun source_node :: \<open>(nat set \<times> (nat,'c) hp_fun \<times> nat option) \<Rightarrow> _\<close> where
+fun source_node :: \<open>(nat multiset \<times> (nat,'c) hp_fun \<times> nat option) \<Rightarrow> _\<close> where
   \<open>source_node (\<V>,arr,h) = h\<close>
 fun hp_read_nxt' :: \<open>_\<close> where
   \<open>hp_read_nxt' i (\<V>, arr, h) = hp_read_nxt i arr\<close>
@@ -2549,9 +2549,9 @@ definition maybe_hp_update_child' where
 
 definition unroot_hp_tree where
   \<open>unroot_hp_tree arr h = do {
-    ASSERT (h \<in> fst arr);
+    ASSERT (h \<in># fst arr);
     let a = source_node arr;
-    ASSERT (a \<noteq> None \<longrightarrow> the a \<in> fst arr);
+    ASSERT (a \<noteq> None \<longrightarrow> the a \<in># fst arr);
     let nnext = hp_read_nxt' h arr;
     let parent = hp_read_parent' h arr;
     let prev = hp_read_prev' h arr;
@@ -2559,9 +2559,9 @@ definition unroot_hp_tree where
     else if Some h = a then RETURN (update_source_node None arr)
     else do {
       ASSERT (a \<noteq> None);
-      ASSERT (nnext \<noteq> None \<longrightarrow> the nnext \<in> fst arr);
-      ASSERT (parent \<noteq> None \<longrightarrow> the parent \<in> fst arr);
-      ASSERT (prev \<noteq> None \<longrightarrow> the prev \<in> fst arr);
+      ASSERT (nnext \<noteq> None \<longrightarrow> the nnext \<in># fst arr);
+      ASSERT (parent \<noteq> None \<longrightarrow> the parent \<in># fst arr);
+      ASSERT (prev \<noteq> None \<longrightarrow> the prev \<in># fst arr);
       let a' = the a;
       let arr = maybe_hp_update_child' parent nnext arr;
       let arr = maybe_hp_update_nxt' prev nnext arr;
@@ -2580,9 +2580,9 @@ definition unroot_hp_tree where
 
 lemma unroot_hp_tree_alt_def:
   \<open>unroot_hp_tree arr h = do {
-    ASSERT (h \<in> fst arr);
+    ASSERT (h \<in># fst arr);
     let a = source_node arr;
-    ASSERT (a \<noteq> None \<longrightarrow> the a \<in> fst arr);
+    ASSERT (a \<noteq> None \<longrightarrow> the a \<in># fst arr);
     let nnext = hp_read_nxt' h arr;
     let parent = hp_read_parent' h arr;
     let prev = hp_read_prev' h arr;
@@ -2590,9 +2590,9 @@ lemma unroot_hp_tree_alt_def:
     else if Some h = a then RETURN (update_source_node None arr)
     else do {
       ASSERT (a \<noteq> None);
-      ASSERT (nnext \<noteq> None \<longrightarrow> the nnext \<in> fst arr);
-      ASSERT (parent \<noteq> None \<longrightarrow> the parent \<in> fst arr);
-      ASSERT (prev \<noteq> None \<longrightarrow> the prev \<in> fst arr);
+      ASSERT (nnext \<noteq> None \<longrightarrow> the nnext \<in># fst arr);
+      ASSERT (parent \<noteq> None \<longrightarrow> the parent \<in># fst arr);
+      ASSERT (prev \<noteq> None \<longrightarrow> the prev \<in># fst arr);
       let a' = the a;
        arr \<leftarrow> do {
          let arr = maybe_hp_update_child' parent nnext arr;
@@ -2634,18 +2634,19 @@ lemma find_remove_mset_nodes_full2:
   done
 
 definition encoded_hp_prop_mset2_conc
-  :: "'a::linorder set \<times> ('a, 'b) hp_fun \<times> 'a option \<Rightarrow>
-     ('a, 'b) hp multiset \<Rightarrow> bool"
+  :: "'a::linorder multiset \<times> ('a, 'b) hp_fun \<times> 'a option \<Rightarrow>
+     'a::linorder multiset \<times> ('a, 'b) hp multiset \<Rightarrow> bool"
   where
-  \<open>encoded_hp_prop_mset2_conc = (\<lambda>(\<V>, arr, h) x.
-  (encoded_hp_prop_list x  [] arr \<and> set_mset (sum_mset (mset_nodes `# x)) \<subseteq> \<V>))\<close>
+  \<open>encoded_hp_prop_mset2_conc = (\<lambda>(\<V>, arr, h) (\<V>', x). \<V> = \<V>' \<and> 
+  (encoded_hp_prop_list \<V> x  [] arr))\<close>
 
 lemma encoded_hp_prop_mset2_conc_combine_list2_conc:
-  \<open>encoded_hp_prop_mset2_conc arr {#a,b#} \<Longrightarrow>
-  encoded_hp_prop_list2_conc (hp_update_prev' (node b) (Some (node a)) (hp_update_nxt' (node a) (Some (node b)) (update_source_node None arr))) [a,b]\<close>
-  unfolding encoded_hp_prop_mset2_conc_def encoded_hp_prop_list2_conc_def
+  \<open>encoded_hp_prop_mset2_conc arr (\<V>, {#a,b#}) \<Longrightarrow>
+  encoded_hp_prop_list2_conc (hp_update_prev' (node b) (Some (node a)) (hp_update_nxt' (node a) (Some (node b)) (update_source_node None arr))) (\<V>, [a,b])\<close>
+  unfolding encoded_hp_prop_mset2_conc_def encoded_hp_prop_list2_conc_alt_def
     encoded_hp_prop_list_def case_prod_beta
   apply (intro conjI)
+  subgoal by auto
   subgoal by auto
   subgoal by auto
   subgoal by auto
@@ -2740,9 +2741,9 @@ lemma encoded_hp_prop_list_remove_find2:
   defines \<open>arr\<^sub>3 \<equiv> (if hp_next a h = None then arr\<^sub>2 else hp_update_prev' (node (the (hp_next a h))) (map_option node (hp_prev a h)) arr\<^sub>2)\<close>
   defines \<open>arr\<^sub>4 \<equiv> (if hp_next a h = None then arr\<^sub>3 else hp_update_parents' (node (the (hp_next a h))) (map_option node (hp_parent a h)) arr\<^sub>3)\<close>
   defines \<open>arr' \<equiv> hp_update_parents' a None (hp_update_prev' a None (hp_update_nxt' a None arr\<^sub>4))\<close>
-  assumes enc: \<open>encoded_hp_prop_mset2_conc arr (add_mset h {#})\<close>
+  assumes enc: \<open>encoded_hp_prop_mset2_conc arr (\<V>, add_mset h {#})\<close>
   shows \<open>encoded_hp_prop_mset2_conc arr' ((if remove_key a h = None then {#} else {#the (remove_key a h)#}) +
-        (if find_key a h = None then {#} else {#the (find_key a h)#}))\<close>
+        (\<V>, if find_key a h = None then {#} else {#the (find_key a h)#}))\<close>
     using encoded_hp_prop_list_remove_find[of h \<open>fst (snd arr)\<close> a] enc
     unfolding assms(1-5) apply -
     unfolding encoded_hp_prop_mset2_conc_def case_prod_beta hp_update_fst_snd
