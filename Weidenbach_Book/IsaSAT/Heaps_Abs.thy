@@ -53,10 +53,19 @@ begin
         else mop_prio_change_weight v \<omega> (bw)
      })"
 
+     text \<open>TODO this is a shortcut and it could make sense to force w to remember the old values.\<close>
+    definition mop_prio_old_weight where
+      "mop_prio_old_weight = (\<lambda>v (\<A>, b, w). doN {
+        ASSERT (v \<in># \<A>);
+        b \<leftarrow> mop_prio_is_in v (\<A>, b, w);
+        if b then RETURN (w v) else RES UNIV
+     })"
+
     definition mop_prio_insert_raw_unchanged where
-      "mop_prio_insert_raw_unchanged = (\<lambda>v (\<A>, b, w). doN {
-        ASSERT (v \<notin># b \<and> v \<in># \<A>);
-        RETURN (\<A>, add_mset v b, w)
+      "mop_prio_insert_raw_unchanged = (\<lambda>v h. doN {
+        ASSERT (v \<notin># fst (snd h));
+        w \<leftarrow> mop_prio_old_weight v h;
+        mop_prio_insert v w h
      })"
 
     definition mop_prio_insert_unchanged where
@@ -81,12 +90,6 @@ begin
       bw \<leftarrow> mop_prio_del v \<A>bw;
       RETURN (v, bw)
       })"
-
-    definition mop_prio_old_weight where
-      "mop_prio_old_weight = (\<lambda>v (\<A>, b, w). doN {
-        ASSERT (v \<in># \<A>);
-        RETURN (w v)
-     })"
 
 sublocale pairing_heap
   by unfold_locales (rule hm_le hm_trans hm_transt hm_totalt)+

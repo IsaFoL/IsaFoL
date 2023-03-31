@@ -1805,6 +1805,59 @@ proof -
     done
 qed
 
+text \<open>Unconditionnal version of the previous function\<close>
+definition vsids_pop_min2 :: \<open>_\<close> where
+  \<open>vsids_pop_min2 = (\<lambda>(\<V>::'a multiset, arr :: ('a, 'b::order) hp_fun, h :: 'a option). do {
+    ASSERT (h\<noteq>None);
+    ASSERT (the h \<in># \<V>);
+    let j = hp_read_child (the h) arr;
+    if j = None then RETURN (the h, (\<V>, arr, None))
+    else do {
+      ASSERT (the j \<in># \<V>);
+      let arr = hp_update_prev (the h) None arr;
+      let arr = hp_update_child (the h) None arr;
+      let arr = hp_update_parents (the j) None arr;
+      arr \<leftarrow> merge_pairs (\<V>, arr, None) (the j);
+      RETURN (the h, arr)
+    }
+  }
+  )\<close>
+
+lemma vsids_pop_min2:
+  fixes arr :: \<open>'a::linorder multiset \<times> ('a, nat) hp_fun \<times> 'a option\<close>
+  assumes \<open>encoded_hp_prop_list_conc arr (\<V>, h)\<close> and \<open>h \<noteq> None\<close>
+  shows \<open>vsids_pop_min2 arr \<le> SPEC(\<lambda>(j, arr). j = (get_min2 h) \<and> encoded_hp_prop_list_conc arr (\<V>, ACIDS.del_min h))\<close>
+proof -
+  show ?thesis
+    unfolding vsids_pop_min2_def
+    apply (refine_vcg vsids_merge_pairs[of _ \<V> \<open>case the h of Hp _ _ child \<Rightarrow> child\<close>])
+    subgoal using assms by (cases h) (auto simp: encoded_hp_prop_list_conc_def)
+    subgoal using assms by (auto simp: encoded_hp_prop_list_conc_def split: option.splits)
+    subgoal using assms by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+      get_min2_alt_def split: option.splits)
+    subgoal using assms by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+      get_min2_alt_def split: option.splits)
+    subgoal using assms by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+      get_min2_alt_def split: option.splits)
+    subgoal using assms encoded_hp_prop_list_remove_min[of \<V> \<open>node (the h)\<close> \<open>score (the h)\<close> \<open>hps (the h)\<close> \<open>{#}\<close>
+      \<open>fst (fst (snd arr))\<close> \<open>(fst o snd) (fst (snd arr))\<close> \<open>(fst o snd o snd) (fst (snd arr))\<close>
+      \<open>(fst o snd o snd o snd) (fst (snd arr))\<close>
+      \<open>(snd o snd o snd o snd) (fst (snd arr))\<close>]
+      by (cases \<open>the h\<close>; cases \<open>fst (snd arr)\<close>)
+       (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list2_conc_def hp_update_parents_def
+        hp_update_nxt_def hp_update_score_def hp_update_child_def hp_update_prev_def
+        get_min2_alt_def split: option.splits if_splits)
+    subgoal using assms by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+      get_min2_alt_def split: option.splits)
+    subgoal using assms by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+      get_min2_alt_def split: option.splits)
+    subgoal using assms by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+      get_min2_alt_def split: option.splits)
+    subgoal using assms by (cases \<open>h\<close>; cases \<open>the h\<close>)
+      (auto simp: get_min2_alt_def ACIDS.pass12_merge_pairs encoded_hp_prop_list_conc_def split: option.splits)
+    done
+qed
+
 lemma in_remove_key_in_find_keyD:
   \<open>m' \<in># (if remove_key a h = None then {#} else {#the (remove_key a h)#}) +
     (if find_key a h = None then {#} else {#the (find_key a h)#}) \<Longrightarrow>
@@ -3007,7 +3060,7 @@ definition ACIDS_decrease_key' where
 
 lemma rescale_and_reroot:
   fixes h :: \<open>nat multiset \<times> (nat, nat)hp option\<close>
-  assumes enc: \<open>encoded_hp_prop_list_conc arr h\<close> \<open>a \<in># fst arr\<close> (*\<open>snd h \<noteq> None\<close>*)
+  assumes enc: \<open>encoded_hp_prop_list_conc arr h\<close> (*\<open>snd h \<noteq> None\<close>*)
   shows \<open>rescale_and_reroot a w' arr \<le> \<Down> {(arr, h). encoded_hp_prop_list_conc arr h} (ACIDS.mop_hm_decrease_key a w' h)\<close>
 proof -
   let ?h = \<open>snd h\<close>
@@ -3018,9 +3071,10 @@ proof -
   show ?thesis
     using assms
     unfolding rescale_and_reroot_def ACIDS.decrease_key_def ACIDS_decrease_key'_def
-      ACIDS.mop_hm_decrease_key_def
+      ACIDS.mop_hm_decrease_key_def case_prod_beta[of _ h] prod.collapse
     apply (refine_vcg unroot_hp_tree vsids_merge_pairs)
     subgoal by (auto simp: encoded_hp_prop_list_conc_def split: option.splits)
+    subgoal by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def hp_update_score_def split: option.splits)
     subgoal by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def hp_update_score_def split: option.splits)
     subgoal
       using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
@@ -3031,7 +3085,9 @@ proof -
       using encoded_hp_prop_list_in_node_iff_prev_parent_or_root[of arr h a]
         in_remove_key_changed[of a \<open>the ?h\<close>] remove_key_None_iff[of a \<open>the ?h\<close>] src
         encoded_hp_prop_list_conc_update_score[of arr \<open>fst h\<close> a \<open>score (the ?h)\<close> \<open>hps (the ?h)\<close> w']
-      by (auto split: option.splits hp.splits simp: find_key_None_remove_key_ident)
+      apply (auto split: option.splits hp.splits simp: find_key_None_remove_key_ident)
+      apply (metis prod.collapse source_node.simps)+
+      done
     apply (rule 1; assumption)
     subgoal by auto
     subgoal by auto
@@ -3092,23 +3148,244 @@ proof -
 qed
 
 lemma rescale_and_reroot_mop_prio_change_weight:
-  assumes \<open>(arr, h) \<in> acids_encoded_hmrel\<close> and nempty: \<open>fst (snd h) \<noteq> {#}\<close>
+  assumes \<open>(arr, h) \<in> acids_encoded_hmrel\<close>
   shows \<open>rescale_and_reroot a w arr \<le> \<Down>acids_encoded_hmrel (ACIDS.mop_prio_change_weight a w h)\<close>
 proof -
   obtain j where
-    i: \<open> encoded_hp_prop_list_conc arr j\<close>
+    i: \<open>encoded_hp_prop_list_conc arr j\<close>
     \<open>(j, h) \<in> ACIDS.hmrel\<close>
     using assms unfolding acids_encoded_hmrel_def by auto
   show ?thesis
-    unfolding ACIDS.mop_prio_change_weight_def case_prod_beta
-      ACIDS.mop_hm_decrease_key_def
     apply (refine_vcg rescale_and_reroot[THEN order_trans] i)
-    subgoal using i by (auto simp: encoded_hp_prop_list_conc_def ACIDS.hmrel_def)
     apply (rule order_trans, rule ref_two_step')
     apply (rule ACIDS.decrease_key_mop_prio_change_weight i)+
-    apply (auto simp: conc_fun_chain conc_fun_RES ACIDS.mop_prio_insert_def case_prod_beta RETURN_def
-      ACIDS.mop_prio_change_weight_def acids_encoded_hmrel_def)
+    apply (auto simp: conc_fun_chain conc_fun_RES case_prod_beta RETURN_def acids_encoded_hmrel_def)
     done
 qed
 
+
+context hmstruct_with_prio
+begin
+
+definition mop_hm_is_in :: \<open>_\<close> where
+  \<open>mop_hm_is_in w = (\<lambda>(\<A>, xs). do {
+  ASSERT (w \<in># \<A>);
+  RETURN (xs \<noteq> None \<and> w \<in># mset_nodes (the xs))
+  })\<close>
+
+lemma mop_hm_is_in_mop_prio_is_in:
+  assumes \<open>(xs, ys) \<in> hmrel\<close>
+  shows \<open>mop_hm_is_in w xs \<le> \<Down>bool_rel (mop_prio_is_in w ys)\<close>
+  using assms
+  unfolding mop_hm_is_in_def mop_prio_is_in_def
+  apply (refine_vcg)
+  subgoal by (auto simp: hmrel_def)
+  subgoal by (auto simp: hmrel_def)
+  done
+
+
+lemma del_min_None_iff: \<open>del_min (Some ya) = None \<longleftrightarrow> mset_nodes ya = {#node ya#}\<close> and
+  del_min_Some_mset_nodes: \<open>del_min (Some ya) = Some yb \<Longrightarrow> mset_nodes ya = add_mset (node ya) (mset_nodes yb)\<close>
+  apply (cases ya; auto; fail)
+  apply (cases ya; use mset_nodes_pass\<^sub>2[of \<open>pass\<^sub>1 (hps ya)\<close>] in auto)
+  done
+
+lemma mset_nodes_del_min[simp]:
+  \<open>del_min (Some ya) \<noteq> None \<Longrightarrow> mset_nodes (the (del_min (Some ya))) = remove1_mset (node ya) (mset_nodes ya)\<close>
+  by (cases ya; auto)
+
+lemma hp_score_del_min:
+  \<open>h \<noteq> None \<Longrightarrow> del_min h \<noteq> None \<Longrightarrow> distinct_mset (mset_nodes (the h)) \<Longrightarrow> hp_score a (the (del_min h)) = (if a = get_min2 h then None else hp_score a (the h))\<close>
+  using mset_nodes_pass\<^sub>2[of \<open>pass\<^sub>1 (hps (the h))\<close>]
+  apply (cases h; cases \<open>the h\<close>; cases \<open>hps (the h) = []\<close>)
+  apply (auto simp del: mset_nodes_pass\<^sub>2)
+  by (metis hp_score_merge_pairs option.sel option.simps(2) pairing_heap_assms.pass12_merge_pairs)
+
+lemma del_min_prio_del: \<open>(j, h) \<in> hmrel \<Longrightarrow> fst (snd h) \<noteq> {#}\<Longrightarrow>
+  ((fst j, del_min (snd j)), prio_del (get_min2 (snd j)) h) \<in> hmrel\<close>
+  using hp_score_del_min[of \<open>snd j\<close>]
+  apply (cases \<open>del_min (snd j)\<close>)
+  apply (auto simp: hmrel_def ACIDS.prio_del_def del_min_None_iff get_min2_alt_def del_min_Some_mset_nodes
+    intro: invar_del_min dest: multi_member_split)
+  apply (metis invar_del_min)
+  apply (metis None_eq_map_option_iff option.map_sel option.sel snd_conv)
+  done
+
+
+definition mop_hm_old_weight :: \<open>_\<close> where
+  \<open>mop_hm_old_weight w = (\<lambda>(\<A>, xs). do {
+  ASSERT (w \<in># \<A>);
+  if xs \<noteq> None \<and> w \<in># mset_nodes (the xs) then RETURN (the (hp_score w (the xs)))
+  else RES UNIV
+  })\<close>
+
+
+text \<open>This requires a stronger invariant than what we want to do.\<close>
+lemma mop_hm_old_weight_mop_prio_old_weight:
+  \<open>(xs, ys) \<in> hmrel \<Longrightarrow> mop_hm_old_weight w xs \<le> \<Down>Id (mop_prio_old_weight w ys)\<close>
+  unfolding mop_prio_old_weight_def mop_hm_old_weight_def mop_prio_is_in_def nres_monad3
+  apply refine_vcg
+  subgoal by (auto simp: hmrel_def)
+  subgoal by (cases \<open>hp_node w (the (snd xs))\<close>)
+    (auto simp: union_single_eq_member hmrel_def dest!: multi_member_split[of w])
+  done
+
+end
+
+
+definition hp_is_in :: \<open>_\<close> where
+  \<open>hp_is_in w = (\<lambda>bw. do {
+  ASSERT (w \<in># fst bw);
+  RETURN (source_node bw \<noteq> None \<and> (hp_read_prev' w bw \<noteq> None \<or> hp_read_parent' w bw \<noteq> None \<or> the (source_node bw) = w))
+  })\<close>
+
+lemma hp_is_in:
+  assumes \<open>encoded_hp_prop_list_conc arr h\<close>
+  shows \<open>hp_is_in i arr \<le> \<Down>bool_rel (ACIDS.mop_hm_is_in i h)\<close>
+proof -
+  have dist: \<open>source_node arr \<noteq> None \<Longrightarrow> distinct_mset (mset_nodes (the (snd h)))\<close>
+    \<open>source_node arr = None \<longleftrightarrow> snd h = None\<close>
+    using assms by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+      split: option.splits)
+  have rel:
+    \<open>hp_read_prev' i arr = map_option node (hp_prev i (the (snd h)))\<close>
+    \<open>hp_read_parent' i arr = map_option node (hp_parent i (the (snd h)))\<close>
+    if \<open>i \<in># fst arr\<close> \<open>snd h \<noteq> None\<close>
+    using assms that
+    by (cases \<open>i \<in># mset_nodes (the (snd h))\<close>;
+      auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def empty_outside_notin_None
+      split: option.splits; fail)+
+  show ?thesis
+    unfolding hp_is_in_def ACIDS.mop_hm_is_in_def case_prod_beta[of _ h]
+    apply refine_vcg
+    subgoal using assms by (auto simp: encoded_hp_prop_list_conc_def)
+    subgoal using rel dist assms in_node_iff_prev_parent_or_root[of \<open>the (snd h)\<close> i]
+      apply (cases \<open>source_node arr = None\<close>)
+      apply simp
+      apply (simp only:)
+      by (smt (verit, best) None_eq_map_option_iff encoded_hp_prop_list_in_node_iff_prev_parent_or_root
+        hp_read_fst_snd_simps(2) hp_read_fst_snd_simps(4) option.collapse option.map_sel pair_in_Id_conv
+        prod.collapse source_node.simps)
+    done
+qed
+
+lemma hp_is_in_mop_prio_is_in:
+  assumes \<open>(arr, h) \<in> acids_encoded_hmrel\<close>
+  shows \<open>hp_is_in a arr \<le> \<Down>bool_rel (ACIDS.mop_prio_is_in a h)\<close>
+proof -
+  obtain j where
+    i: \<open>encoded_hp_prop_list_conc arr j\<close>
+    \<open>(j, h) \<in> ACIDS.hmrel\<close>
+    using assms unfolding acids_encoded_hmrel_def by auto
+  show ?thesis
+    apply (refine_vcg hp_is_in[THEN order_trans] i)
+    apply (rule order_trans, rule ref_two_step')
+    apply (rule ACIDS.mop_hm_is_in_mop_prio_is_in i)+
+    apply (auto simp: conc_fun_chain conc_fun_RES case_prod_beta RETURN_def acids_encoded_hmrel_def)
+    done
+qed
+
+lemma vsids_pop_min2_mop_prio_pop_min:
+  fixes arr :: \<open>'a::linorder multiset \<times> ('a, nat) hp_fun \<times> 'a option\<close>
+  assumes \<open>(arr, h) \<in> acids_encoded_hmrel\<close>
+  shows \<open>vsids_pop_min2 arr \<le> \<Down>(Id\<times>\<^sub>racids_encoded_hmrel)(ACIDS.mop_prio_pop_min h)\<close>
+proof -
+  obtain j where
+    i: \<open>encoded_hp_prop_list_conc arr j\<close>  \<open>encoded_hp_prop_list_conc arr (fst j, snd j)\<close>
+    \<open>(j, h) \<in> ACIDS.hmrel\<close>
+    using assms unfolding acids_encoded_hmrel_def by auto
+  have 1: \<open>SPEC
+  (\<lambda>(ja, arr).
+      ja = get_min2 (snd j) \<and>
+      encoded_hp_prop_list_conc arr (fst j, ACIDS.del_min (snd j)))
+    \<le> \<Down> (Id \<times>\<^sub>f acids_encoded_hmrel)
+    (do {
+    v \<leftarrow> SPEC (ACIDS.prio_peek_min (fst h, fst (snd h), snd (snd h)));
+    x \<leftarrow> ASSERT (v \<in># fst (snd h) \<and> v \<in># fst h);
+    bw \<leftarrow> RETURN (ACIDS.prio_del v (fst h, fst (snd h), snd (snd h)));
+    RETURN (v, bw)
+    })\<close> (is \<open>?A \<le> \<Down> _ ?B\<close>)
+    if \<open>fst (snd h) \<noteq> {#}\<close>
+  proof -
+    have A: \<open>?A = do {
+    let ja = get_min2 (snd j);
+      bw \<leftarrow> SPEC (\<lambda>bw. encoded_hp_prop_list_conc bw (fst j, ACIDS.del_min (snd j)));
+      RETURN (ja, bw)
+      }\<close>
+      by (auto simp: RETURN_def conc_fun_RES RES_RES_RETURN_RES)
+    have 1: \<open>(get_min2 (snd j), v) \<in> Id \<Longrightarrow> v \<in># fst (snd h) \<and> v \<in># fst h \<Longrightarrow>
+      encoded_hp_prop_list_conc x (fst j, ACIDS.del_min (snd j)) \<Longrightarrow>
+      (x, ACIDS.prio_del v (fst h, fst (snd h), snd (snd h))) \<in> acids_encoded_hmrel\<close>
+      for v x
+      using ACIDS.del_min_prio_del[of j h] i that
+      by (auto simp: acids_encoded_hmrel_def)
+    show ?thesis
+      unfolding A
+      apply refine_vcg
+      subgoal using i that apply (cases \<open>the (snd j)\<close>) apply (auto simp: ACIDS.prio_peek_min_def ACIDS.hmrel_def ACIDS.invar_def in_mset_sum_list_iff
+        encoded_hp_prop_list_conc_def
+        ACIDS.set_hp_is_hp_score_mset_nodes)
+        apply (drule bspec, assumption)
+        apply (subst (asm) ACIDS.set_hp_is_hp_score_mset_nodes)
+        apply (auto simp: encoded_hp_prop_def distinct_mset_add dest!: split_list multi_member_split)
+        by (metis hp_node_None_notin2 member_add_mset option.map_sel)
+        apply (rule 1; assumption)
+        subgoal by auto
+        done
+    qed
+
+  show ?thesis
+    unfolding ACIDS.mop_prio_pop_min_def ACIDS.mop_prio_peek_min_def
+      ACIDS.mop_prio_del_def nres_monad2 case_prod_beta[of _ h] case_prod_beta[of _ \<open>snd h\<close>] nres_monad3
+    apply (refine_vcg vsids_pop_min2[THEN order_trans] i 1)
+    subgoal using i by (auto simp: ACIDS.hmrel_def)
+    done
+qed
+
+
+definition mop_hp_read_score :: \<open>_\<close> where
+  \<open>mop_hp_read_score x = (\<lambda>(\<A>, w, h). do {
+  ASSERT (x \<in># \<A>);
+  if hp_read_score x w \<noteq> None then RETURN (the (hp_read_score x w)) else RES UNIV
+  }) \<close>
+
+lemma mop_hp_read_score_mop_hm_old_weight:
+  assumes \<open>encoded_hp_prop_list_conc arr h\<close>
+  shows
+    \<open>mop_hp_read_score w arr  \<le> \<Down>Id (ACIDS.mop_hm_old_weight w h)\<close>
+proof -
+  show ?thesis
+    unfolding mop_hp_read_score_def ACIDS.mop_hm_old_weight_def RETURN_def RES_RES_RETURN_RES
+      Many_More.if_f
+    apply refine_vcg
+    subgoal using assms by (auto simp: encoded_hp_prop_list_conc_def)
+    subgoal using assms by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+      split: option.splits)
+    done
+qed
+
+lemma mop_hp_read_score_mop_prio_old_weight:
+  fixes arr :: \<open>'a::linorder multiset \<times> ('a, nat) hp_fun \<times> 'a option\<close>
+  assumes \<open>(arr, h) \<in> acids_encoded_hmrel\<close>
+  shows \<open>mop_hp_read_score w arr \<le> \<Down>(Id)(ACIDS.mop_prio_old_weight w h)\<close>
+proof -
+  obtain j where
+    i: \<open>encoded_hp_prop_list_conc arr j\<close>  \<open>encoded_hp_prop_list_conc arr (fst j, snd j)\<close>
+    \<open>(j, h) \<in> ACIDS.hmrel\<close>
+    using assms unfolding acids_encoded_hmrel_def by auto
+  show ?thesis
+    apply (rule mop_hp_read_score_mop_hm_old_weight[THEN order_trans] i)+
+    subgoal
+      by (rule ref_two_step' ACIDS.mop_hm_old_weight_mop_prio_old_weight[THEN order_trans] i)+
+        auto
+    done
+qed
+
+
+thm ACIDS.mop_prio_insert_raw_unchanged_def
+thm ACIDS.mop_prio_insert_maybe_def (*covered by ACIDS.mop_prio_change_weight and ACIDS.mop_prio_insert *)
+  term ACIDS.prio_peek_min (*TODO remove: unused as acids_get_min*)
+  thm ACIDS.mop_prio_old_weight_def
+  thm ACIDS.mop_prio_insert_raw_unchanged_def
+  term ACIDS.mop_prio_insert_unchanged(*covered by the two previous ones*)
 end
