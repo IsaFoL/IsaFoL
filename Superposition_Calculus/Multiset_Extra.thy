@@ -5,6 +5,9 @@ begin
 definition is_maximal_wrt where
   "is_maximal_wrt R x M \<longleftrightarrow> (\<forall>y \<in># M - {#x#}. \<not> (R x y))"
 
+lemma Uniq_is_maximal_wrt_reflclp:
+  shows "totalp_on (set_mset C) R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1L. L \<in># C \<and> is_maximal_wrt R\<^sup>=\<^sup>= L C"
+  by (rule Uniq_I) (metis insert_DiffM insert_noteq_member is_maximal_wrt_def sup2CI totalp_onD)
 
 lemma multp_singleton_singleton[simp]: "transp R \<Longrightarrow> multp R {#x#} {#y#} \<longleftrightarrow> R x y"
   using one_step_implies_multp[of "{#y#}" "{#x#}" R "{#}", simplified]
