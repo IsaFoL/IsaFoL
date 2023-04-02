@@ -8,7 +8,7 @@ begin
 
 section \<open>Bumping\<close>
 
-
+(*TODO: FIXME missing bumping for ACIDS!*)
 
 thm isa_vmtf_find_next_undef_def
   term isa_acids_find_next_undef
@@ -536,8 +536,6 @@ lemma isa_bump_unset_pre:
     (auto simp: isa_bump_unset_pre_def bump_heur_def acids_tl_pre_def
       atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n acids_def)
 
-thm acids_flush_int_def
-
 definition isa_acids_flush_int :: \<open>trail_pol \<Rightarrow> (nat, nat)acids \<Rightarrow> _ \<Rightarrow> ((nat, nat)acids \<times> _) nres\<close> where
 \<open>isa_acids_flush_int  = (\<lambda>M vm (to_remove, h). do {
     ASSERT(length to_remove \<le> unat32_max);
@@ -551,7 +549,6 @@ definition isa_acids_flush_int :: \<open>trail_pol \<Rightarrow> (nat, nat)acids
       (0, vm, h);
     RETURN (vm, (emptied_list to_remove, h))
   })\<close>
-
 
 lemma isa_acids_flush_int:
   \<open>(uncurry2 isa_acids_flush_int, uncurry2 (acids_flush_int \<A>)) \<in> trail_pol (\<A>::nat multiset) \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<times>\<^sub>f Id\<rangle>nres_rel\<close>
@@ -579,9 +576,16 @@ proof -
     done
 qed
 
+
+definition isa_acids_incr_score :: \<open>(nat, nat)acids \<Rightarrow> (nat, nat)acids\<close> where
+  \<open>isa_acids_incr_score = (\<lambda>(a, m). (a, if m < unat64_max then m+1 else m))\<close>
+
+lemma isa_acids_incr_score: \<open>ac \<in> acids \<A> M \<Longrightarrow> isa_acids_incr_score ac \<in> acids \<A> M\<close>
+  by (auto simp: isa_acids_incr_score_def acids_def)
+
 definition isa_bump_heur_flush where
   \<open>isa_bump_heur_flush M x = (case x of Tuple4 stabl focused foc bumped \<Rightarrow> do {
-  (stable, bumped) \<leftarrow> (if foc then RETURN (stabl, bumped) else isa_acids_flush_int M stabl bumped);
+  (stable, bumped) \<leftarrow> (if foc then RETURN (stabl, bumped) else isa_acids_flush_int M (isa_acids_incr_score stabl) bumped);
   (focused, bumped) \<leftarrow> (if \<not>foc then RETURN (focused, bumped) else isa_vmtf_flush_int M focused bumped);
   RETURN (Tuple4 stable focused foc bumped)})\<close>
 
@@ -635,6 +639,7 @@ lemma isa_bump_heur_flush_isa_bump_flush:
       conc_fun_RES distinct_atoms_rel_emptiedI
       intro!: isa_acids_flush_int[where \<A>=\<A>, THEN fref_to_Down_curry2, of _ _ _ , THEN order_trans]
       acids_change_to_remove_order'[THEN fref_to_Down_curry2, of \<A> \<open>fst y\<close>, THEN order_trans]
+      dest!: isa_acids_incr_score[of x1]
       dest: in_distinct_atoms_rel_in_atmsD
       )
     apply (auto split: bump_heuristics_splits simp: bump_heur_def acids_flush_def
@@ -688,6 +693,7 @@ where
     RETURN (M, vm')
   })\<close>
 
+(*TODO: fix me, buggy in stable mode*)
 definition isa_find_decomp_wl_imp
   :: \<open>trail_pol \<Rightarrow> nat \<Rightarrow> bump_heuristics \<Rightarrow> (trail_pol \<times> bump_heuristics) nres\<close>
 where

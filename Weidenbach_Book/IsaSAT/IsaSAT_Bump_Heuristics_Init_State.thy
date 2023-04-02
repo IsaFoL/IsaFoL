@@ -1,6 +1,6 @@
 theory IsaSAT_Bump_Heuristics_Init_State
 imports Watched_Literals_VMTF IsaSAT_ACIDS
-  Tuple4
+  Tuple4 IsaSAT_ACIDS_LLVM
 begin
 
 type_synonym vmtf_remove_int_option_fst_As = \<open>nat_vmtf_node list \<times> nat \<times> nat option \<times> nat option \<times> nat option\<close>
@@ -74,6 +74,7 @@ definition vmtf_heur_import_variable :: \<open>nat \<Rightarrow> vmtf_remove_int
 
 definition acids_heur_import_variable :: \<open>nat \<Rightarrow> (nat, nat) acids \<Rightarrow> _\<close> where
   \<open>acids_heur_import_variable L = (\<lambda>(bw, m). do {
+     ASSERT (m \<le> unat32_max);
      bw \<leftarrow> ACIDS.mop_prio_insert L m bw;
      RETURN (bw, (m+1))
   })\<close>
@@ -98,9 +99,50 @@ definition initialise_VMTF :: \<open>nat list \<Rightarrow> nat \<Rightarrow> vm
    RETURN ((A, n, cnext, (if N = [] then None else Some ((N!0))), cnext))
   }\<close>
 
+definition init_ACIDS0 :: \<open>_ \<Rightarrow> nat \<Rightarrow>  (nat multiset \<times> nat multiset \<times> (nat \<Rightarrow> nat)) nres\<close> where
+  \<open>init_ACIDS0 \<A> n = do {
+    ASSERT (\<A> \<noteq> {#} \<longrightarrow> n > Max (insert 0 (set_mset \<A>)));
+    RETURN ((\<A>, {#}, \<lambda>_. 0))
+  }\<close>
+
+definition hp_init_ACIDS0 where
+  \<open>hp_init_ACIDS0 _ n = do {
+    RETURN ((replicate n None, replicate n None, replicate n None, replicate n None, replicate n 0, None))
+  }\<close>
+
+lemma hp_acids_empty:
+  \<open>(hp_init_ACIDS0 \<A>, init_ACIDS0 \<A>) \<in> 
+   Id \<rightarrow>\<^sub>f \<langle>((\<langle>\<langle>nat_rel\<rangle>option_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel)) O
+   acids_encoded_hmrel\<rangle>nres_rel\<close>
+proof -
+  have 1: \<open>((\<A>, (\<lambda>_. None, \<lambda>_. None, \<lambda>_. None, \<lambda>_. None, \<lambda>_. Some 0), None), (\<A>, {#}, \<lambda>_. 0)) \<in> acids_encoded_hmrel\<close>
+    by (auto simp: acids_encoded_hmrel_def bottom_acids0_def pairing_heaps_rel_def map_fun_rel_def
+      ACIDS.hmrel_def encoded_hp_prop_list_conc_def encoded_hp_prop_def empty_outside_def empty_acids0_def
+      intro!: relcompI)
+  have H: \<open>mset_nodes ya \<noteq> {#}\<close> for ya
+    by (cases ya) auto
+  show ?thesis
+    unfolding uncurry0_def hp_init_ACIDS0_def init_ACIDS0_def
+    apply (intro frefI nres_relI)
+    apply refine_rcg
+    apply (rule relcompI[of])
+    defer
+    apply (rule 1)
+    by (auto simp add: acids_encoded_hmrel_def  encoded_hp_prop_def hp_init_ACIDS0_def
+      ACIDS.hmrel_def encoded_hp_prop_list_conc_def pairing_heaps_rel_def H map_fun_rel_def
+      split: option.splits dest!: multi_member_split)
+qed
+
+definition init_ACIDS where
+  \<open>init_ACIDS \<A> n = do {
+  ac \<leftarrow> init_ACIDS0 \<A> n;
+  RETURN (ac, 0)
+  }\<close>
+
+
 definition initialise_ACIDS :: \<open>nat list \<Rightarrow> nat \<Rightarrow> (nat, nat) acids nres\<close> where
 \<open>initialise_ACIDS N n = do {
-   let A = ((mset N, {#}, \<lambda>_. 0), 0);
+   A \<leftarrow> init_ACIDS (mset N) n;
    ASSERT(length N \<le> unat32_max);
    (n, A) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>_. True\<^esup>
       (\<lambda>(i, A). i < length_uint32_nat N)
@@ -313,26 +355,31 @@ proof -
     (snd (snd (fst (snd s))))(fst x ! fst s := snd (snd s))),
    snd (snd s) + 1)\<close> \<open>fst x ! fst s \<notin># fst (snd (fst (snd s)))\<close>
      using that
-     by (auto simp: acids_def take_Suc_conv_app_nth defined_lit_map list_rel_mset_rel_def br_def list_mset_rel_def
+     by (force simp: acids_def take_Suc_conv_app_nth defined_lit_map list_rel_mset_rel_def br_def list_mset_rel_def
        image_image acids_heur_import_variable_def I'_def Cons_nth_drop_Suc[symmetric] distinct_in_set_take_iff
-       dest: multi_member_split)
+       dest: multi_member_split)+
  qed
 
   show ?thesis
     unfolding uncurry_def case_prod_beta initialise_ACIDS_def
       acids_heur_import_variable_def ACIDS.mop_prio_insert_def nres_monad3
+      init_ACIDS_def nres_monad3 init_ACIDS0_def
+      bind_to_let_conv Let_def
     apply (intro frefI nres_relI)
     subgoal for x y
       apply (cases x, cases y)
       apply (refine_vcg specify_left[OF WHILEIT_rule_stronger_inv[where \<Phi> = \<open>\<lambda>(a::nat,b::(nat,nat)acids). b \<in> acids \<A> ([]::(nat,nat)ann_lits)\<close> and
         I' = \<open>I' x\<close> and
         R = \<open>measure (\<lambda>(a,b). length (fst x) - a)\<close>]])
+      subgoal  apply (auto simp: list_rel_mset_rel_def list_mset_rel_def br_def acids_def)
+        using gt_or_eq_0 by blast
       subgoal by (auto simp: list_rel_mset_rel_def list_mset_rel_def br_def)
       subgoal by auto
       subgoal by auto
       subgoal by (rule I0)
       subgoal by (auto simp: I'_def)
       subgoal by (auto simp:)
+      subgoal by auto
       subgoal by (rule pre)
       subgoal by (auto simp: I'_def list_rel_mset_rel_def list_mset_rel_def br_def
         acids_def)

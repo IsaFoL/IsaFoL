@@ -3147,6 +3147,12 @@ proof -
      done
 qed
 
+lemma hp_insert_spec_mop_prio_insert2:
+  \<open>(uncurry2 hp_insert, uncurry2 ACIDS.mop_prio_insert) \<in>
+  nat_rel \<times>\<^sub>f  nat_rel \<times>\<^sub>f acids_encoded_hmrel \<rightarrow>\<^sub>f \<langle>acids_encoded_hmrel\<rangle>nres_rel›
+  by (intro frefI nres_relI)
+   (auto intro!: hp_insert_spec_mop_prio_insert[THEN order_trans])
+
 lemma rescale_and_reroot_mop_prio_change_weight:
   assumes \<open>(arr, h) \<in> acids_encoded_hmrel\<close>
   shows \<open>rescale_and_reroot a w arr \<le> \<Down>acids_encoded_hmrel (ACIDS.mop_prio_change_weight a w h)\<close>
@@ -3163,6 +3169,11 @@ proof -
     done
 qed
 
+lemma rescale_and_reroot_mop_prio_change_weight2:
+  \<open>(uncurry2 rescale_and_reroot, uncurry2 ACIDS.mop_prio_change_weight) \<in>
+  nat_rel \<times>\<^sub>f  nat_rel \<times>\<^sub>f acids_encoded_hmrel \<rightarrow>\<^sub>f \<langle>acids_encoded_hmrel\<rangle>nres_rel›
+  by (intro frefI nres_relI)
+   (auto intro!: rescale_and_reroot_mop_prio_change_weight[THEN order_trans])
 
 context hmstruct_with_prio
 begin
@@ -3285,6 +3296,11 @@ proof -
     done
 qed
 
+lemma hp_is_in_mop_prio_is_in2:
+  \<open>(uncurry hp_is_in, uncurry ACIDS.mop_prio_is_in) \<in> nat_rel \<times>\<^sub>f acids_encoded_hmrel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel›
+  by (intro frefI nres_relI)
+   (auto intro!: hp_is_in_mop_prio_is_in[THEN order_trans])
+
 lemma vsids_pop_min2_mop_prio_pop_min:
   fixes arr :: \<open>'a::linorder multiset \<times> ('a, nat) hp_fun \<times> 'a option\<close>
   assumes \<open>(arr, h) \<in> acids_encoded_hmrel\<close>
@@ -3342,6 +3358,11 @@ proof -
     done
 qed
 
+lemma vsids_pop_min2_mop_prio_pop_min2:
+  \<open>(vsids_pop_min2, ACIDS.mop_prio_pop_min) \<in> acids_encoded_hmrel \<rightarrow>\<^sub>f \<langle>nat_rel \<times>\<^sub>r acids_encoded_hmrel\<rangle>nres_rel›
+  by (intro frefI nres_relI)
+   (auto intro!: vsids_pop_min2_mop_prio_pop_min[THEN order_trans])
+
 
 definition mop_hp_read_score :: \<open>_\<close> where
   \<open>mop_hp_read_score x = (\<lambda>(\<A>, w, h). do {
@@ -3381,6 +3402,10 @@ proof -
     done
 qed
 
+lemma mop_hp_read_score_mop_prio_old_weight2:
+  \<open>(uncurry mop_hp_read_score, uncurry ACIDS.mop_prio_old_weight) \<in> nat_rel \<times>\<^sub>r acids_encoded_hmrel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel›
+  by (intro frefI nres_relI)
+   (auto intro!: mop_hp_read_score_mop_prio_old_weight[THEN order_trans])
 
 thm ACIDS.mop_prio_insert_raw_unchanged_def
 thm ACIDS.mop_prio_insert_maybe_def (*covered by ACIDS.mop_prio_change_weight and ACIDS.mop_prio_insert *)

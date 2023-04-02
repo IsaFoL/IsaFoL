@@ -37,7 +37,7 @@ sepref_def schedule_next_reduction_st_impl
 definition vmtf_array_nxt_score :: \<open>vmtf \<Rightarrow> _\<close> where \<open>vmtf_array_nxt_score x = fst (snd x)\<close>
 
 lemma \<open>current_vmtf_array_nxt_score x = (case x of Bump_Heuristics a b c d \<Rightarrow>
-  (if c then vmtf_array_nxt_score b else vmtf_array_nxt_score a))\<close>
+  (vmtf_array_nxt_score b))\<close>
   by (cases x) (auto simp: vmtf_array_nxt_score_def current_vmtf_array_nxt_score_def
     bump_get_heuristics_def)
 
@@ -52,7 +52,7 @@ sepref_def vmtf_array_nxt_score_code
   by sepref
 
 lemma current_vmtf_array_nxt_score_alt_def: \<open>RETURN o current_vmtf_array_nxt_score = (\<lambda>x. case x of Bump_Heuristics hstable focused foc a \<Rightarrow>
-    if foc then RETURN (vmtf_array_nxt_score focused) else RETURN (vmtf_array_nxt_score hstable))\<close>
+    RETURN (vmtf_array_nxt_score focused))\<close>
     by (auto intro!: ext simp: bump_get_heuristics_def current_vmtf_array_nxt_score_def vmtf_array_nxt_score_def
       split: bump_heuristics_splits)
 

@@ -14,7 +14,7 @@ section \<open>ACIDS\<close>
 
 type_synonym ('a, 'v) acids = \<open>('a multiset \<times> 'a multiset \<times> ('a \<Rightarrow> 'v)) \<times> 'v\<close>
 definition acids :: \<open>'a multiset \<Rightarrow> ('a, 'ann) ann_lits \<Rightarrow> ('a, 'v::{zero,linorder}) acids set\<close> where
-\<open>acids \<A> M = {((\<B>, b, w), m). set_mset \<B> = set_mset \<A> \<and> b \<subseteq># \<A> \<and> Max ({0} \<union> w ` set_mset \<A>) \<le> m \<and> (\<forall>L \<in>#\<A>. L \<notin># b \<longrightarrow> defined_lit M (Pos L)) \<and> distinct_mset b}\<close>
+\<open>acids \<A> M = {((\<B>, b, w), m). set_mset \<B> = set_mset \<A> \<and> b \<subseteq># \<A> \<and> Max ({0} \<union> w ` set_mset b) \<le> m \<and> (\<forall>L \<in>#\<A>. L \<notin># b \<longrightarrow> defined_lit M (Pos L)) \<and> distinct_mset b}\<close>
 
 lemma acids_prepend: \<open>ac \<in> acids \<A> M \<Longrightarrow> ac \<in> acids \<A> (L # M)\<close>
   unfolding acids_def by (auto simp: defined_lit_map)
@@ -32,27 +32,44 @@ interpretation ACIDS: hmstruct_with_prio where
 definition acids_tl_pre :: \<open>'a \<Rightarrow> ('a, 'v) acids \<Rightarrow> bool\<close> where
   \<open>acids_tl_pre L = (\<lambda>(ac, m). L \<in># fst ac)\<close>
 
-definition acids_tl :: \<open>'a \<Rightarrow> ('a, 'v) acids \<Rightarrow> ('a, 'v) acids nres\<close> where
+definition acids_tl :: \<open>'a \<Rightarrow> ('a, 'v::ord) acids \<Rightarrow> ('a, 'v) acids nres\<close> where
   \<open>acids_tl L = (\<lambda>(ac, m). do {
     ASSERT (acids_tl_pre L (ac, m));
     ac \<leftarrow> ACIDS.mop_prio_insert_unchanged L ac;
-    RETURN (ac, m)
+    w \<leftarrow> ACIDS.mop_prio_old_weight L ac;
+    RETURN (ac, max m w)
   })\<close>
 
 lemma acids_tl:
   \<open>ac \<in> acids \<A> M \<Longrightarrow> L \<in># \<A> \<Longrightarrow> M \<noteq> [] \<Longrightarrow> L = atm_of (lit_of (hd M)) \<Longrightarrow> acids_tl L ac \<le> RES (acids \<A> (tl M))\<close>
   unfolding acids_tl_def ACIDS.mop_prio_insert_unchanged_def
     ACIDS.mop_prio_insert_raw_unchanged_def nres_monad3
+    ACIDS.mop_prio_is_in_def
+    ACIDS.mop_prio_old_weight_def
+    ACIDS.mop_prio_insert_def RES_RES_RETURN_RES RETURN_def
+    ACIDS.mop_prio_old_weight_def case_prod_beta nres_monad1
   apply (refine_vcg lhs_step_If)
   subgoal
     by (cases M) (auto simp: acids_def ACIDS.mop_prio_insert_unchanged_def insert_subset_eq_iff
         acids_tl_pre_def
       intro!: subset_add_mset_notin_subset)
   subgoal
-    by (cases M)
-     (auto simp: acids_def ACIDS.mop_prio_insert_unchanged_def
+    by (auto simp: acids_def ACIDS.mop_prio_insert_unchanged_def insert_subset_eq_iff
+        acids_tl_pre_def
+      intro!: subset_add_mset_notin_subset)
+  subgoal
+    apply (auto simp: acids_def ACIDS.mop_prio_insert_unchanged_def RES_RES_RETURN_RES
       defined_lit_map acids_tl_pre_def dest: subset_add_mset_notin_subset
-      dest!: multi_member_split)
+      dest: multi_member_split)
+    apply (smt (verit, best) image_iff not_hd_in_tl)
+    apply refine_vcg
+    apply fastforce
+    apply fastforce
+    apply (smt (verit, del_insts) Union_iff imageE insert_DiffM insert_subset_eq_iff prod.simps(1)
+      singletonD subset_add_mset_notin_subset_mset)
+    apply (auto simp: max_def)
+    apply fastforce
+    by (smt (verit, best) image_iff not_hd_in_tl)
   done
 
 definition acids_get_min :: \<open>('a, nat) acids \<Rightarrow> 'a nres\<close> where
@@ -154,8 +171,10 @@ definition acids_push_literal :: \<open>'a \<Rightarrow> ('a, nat) acids \<Right
   \<open>acids_push_literal L = (\<lambda>(ac, m). do {
   ASSERT (L \<in># fst ac);
   w \<leftarrow> ACIDS.mop_prio_old_weight L ac;
-  ASSERT (m \<ge> w);
-  let w = m - (m - w) div 2;
+  let w = min m w;
+  ASSERT (w \<le> m);
+  ASSERT ((m - w) div 2 \<le> m);
+  let w = m - ((m - w) div 2);
   ac \<leftarrow> ACIDS.mop_prio_insert_maybe L w ac;
   RETURN (ac, m)
   })\<close>
@@ -165,6 +184,7 @@ lemma acids_push_literal:
   unfolding acids_push_literal_def ACIDS.mop_prio_insert_maybe_def
     ACIDS.mop_prio_old_weight_def acids_push_literal_pre_def
     ACIDS.mop_prio_insert_def ACIDS.mop_prio_change_weight_def
+    ACIDS.mop_prio_is_in_def
   apply refine_vcg
   subgoal by (auto simp: acids_def acids_mset_def)
   subgoal by (auto simp: acids_def dest!: multi_member_split)
@@ -172,6 +192,32 @@ lemma acids_push_literal:
     dest!: multi_member_split)
   subgoal by (auto simp: acids_def dest!: multi_member_split)
   subgoal by (auto simp: acids_def acids_mset_def)
+  subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
+    dest: subset_add_mset_notin_subset)
+  subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
+    dest: subset_add_mset_notin_subset)
+  subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
+    dest: subset_add_mset_notin_subset)
+  subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
+    dest: subset_add_mset_notin_subset)
+  subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
+    dest: subset_add_mset_notin_subset)
+  subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
+    dest: subset_add_mset_notin_subset)
+  subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
+    dest: subset_add_mset_notin_subset)
+  subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
+    dest: subset_add_mset_notin_subset)
+  subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
+    dest: subset_add_mset_notin_subset)
+  subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
+    dest: subset_add_mset_notin_subset)
+  subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
+    dest: subset_add_mset_notin_subset)
+  subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
+    dest: subset_add_mset_notin_subset)
+  subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
+    dest: subset_add_mset_notin_subset)
   subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
     dest: subset_add_mset_notin_subset)
   subgoal by (auto simp: acids_def acids_mset_def dest!: multi_member_split
@@ -297,5 +343,4 @@ proof -
     subgoal by (auto simp add: emptied_list_def conc_fun_RES I_def Image_iff to_C)
     done
 qed
-
 end
