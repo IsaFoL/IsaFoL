@@ -1406,7 +1406,7 @@ proof -
           simp flip: all_atms_def n2
           intro!: RETURN_RES_refine
           intro: )
-      apply (rule_tac x=an in exI)
+      apply (rule_tac x=al in exI)
       by (auto dest: no_dup_appendD intro:  simp: T' all_atms_st_def)
   qed
 
@@ -1911,7 +1911,7 @@ proof -
           isasat_input_bounded_def
           isasat_input_nempty_def cach_refinement_nonull_def
           heuristic_rel_def phase_save_heur_rel_def heuristic_rel_stats_def empty_occs_list_def
-          bump_heur_def
+          isa_vmtf_cong'[OF A, unfolded C]
         unfolding trail_pol_def[symmetric] ann_lits_split_reasons_def[symmetric]
           isasat_input_bounded_def[symmetric]
           vmtf_def[symmetric]
@@ -1929,7 +1929,6 @@ proof -
           isasat_input_nempty_def[symmetric]
           heuristic_rel_def[symmetric] empty_occs_list_def[symmetric]
           heuristic_rel_def[symmetric] phase_save_heur_rel_def[symmetric] heuristic_rel_stats_def[symmetric]
-          bump_heur_def[symmetric]
         apply auto
         done
       show ?K
@@ -2296,7 +2295,8 @@ proof -
           cach_refinement_list_def vdom_m_def
           isasat_input_bounded_def heuristic_rel_def
           isasat_input_nempty_def cach_refinement_nonull_def vdom_m_def
-          phase_save_heur_rel_def phase_saving_def empty_occs_list_def bump_heur_def
+          phase_save_heur_rel_def phase_saving_def empty_occs_list_def
+          isa_vmtf_cong'[OF A, unfolded C]
         unfolding trail_pol_def[symmetric] ann_lits_split_reasons_def[symmetric]
           isasat_input_bounded_def[symmetric]
           vmtf_def[symmetric]

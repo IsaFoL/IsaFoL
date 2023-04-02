@@ -174,6 +174,85 @@ abbreviation unat_rel64 :: \<open>(64 word \<times> nat) set\<close> where \<ope
 abbreviation snat_rel32 :: \<open>(32 word \<times> nat) set\<close> where \<open>snat_rel32 \<equiv> snat_rel\<close>
 abbreviation snat_rel64 :: \<open>(64 word \<times> nat) set\<close> where \<open>snat_rel64 \<equiv> snat_rel\<close>
 
+
+sepref_def hp_init_ACIDS0_code
+  is \<open>uncurry hp_init_ACIDS0\<close>
+  :: \<open>(arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a hp_assn\<close>
+  unfolding hp_init_ACIDS0_def
+    array_fold_custom_replicate op_list_replicate_def[symmetric]
+    atom.fold_option hp_assn_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+
+definition init_ACIDS0' :: \<open>_ \<Rightarrow> nat \<Rightarrow>  (nat multiset \<times> nat multiset \<times> (nat \<Rightarrow> nat)) nres\<close> where
+  \<open>init_ACIDS0' \<A> n = init_ACIDS0 (mset \<A>) n\<close>
+
+
+lemma hp_acids_empty:
+  \<open>(uncurry hp_init_ACIDS0, uncurry init_ACIDS0') \<in> 
+   Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>((\<langle>\<langle>nat_rel\<rangle>option_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel)) O
+   acids_encoded_hmrel\<rangle>nres_rel\<close>
+proof -
+  have 1: \<open>((\<A>, (\<lambda>_. None, \<lambda>_. None, \<lambda>_. None, \<lambda>_. None, \<lambda>_. Some 0), None), (\<A>, {#}, \<lambda>_. 0)) \<in> acids_encoded_hmrel\<close> for \<A>
+    by (auto simp: acids_encoded_hmrel_def bottom_acids0_def pairing_heaps_rel_def map_fun_rel_def
+      ACIDS.hmrel_def encoded_hp_prop_list_conc_def encoded_hp_prop_def empty_outside_def empty_acids0_def
+      intro!: relcompI)
+  have H: \<open>mset_nodes ya \<noteq> {#}\<close> for ya
+    by (cases ya) auto
+  show ?thesis
+    unfolding uncurry0_def hp_init_ACIDS0_def init_ACIDS0_def
+      init_ACIDS0'_def uncurry_def case_prod_beta
+    apply (intro frefI nres_relI)
+    apply refine_rcg
+    apply (rule relcompI[of])
+    defer
+    apply (rule 1)
+    by (auto simp add: acids_encoded_hmrel_def  encoded_hp_prop_def hp_init_ACIDS0_def
+      ACIDS.hmrel_def encoded_hp_prop_list_conc_def pairing_heaps_rel_def H map_fun_rel_def
+      split: option.splits dest!: multi_member_split)
+qed
+
+lemmas [sepref_fr_rules] =
+  hp_init_ACIDS0_code.refine[FCOMP hp_acids_empty, unfolded hr_comp_assoc[symmetric]
+  acids_assn_def[symmetric]]
+
+
+definition init_ACIDS' where
+  \<open>init_ACIDS' \<A> n = do {
+  ac \<leftarrow> init_ACIDS0' \<A> n;
+  RETURN (ac, 0)
+  }\<close>
+
+lemma init_ACIDS'_alt: \<open>init_ACIDS (mset N) n = init_ACIDS' N n\<close>
+  by (auto simp: init_ACIDS'_def init_ACIDS0'_def init_ACIDS_def)
+
+sepref_register init_ACIDS0' acids_heur_import_variable
+
+sepref_def hp_init_ACIDS_code
+  is \<open>uncurry init_ACIDS'\<close>
+  :: \<open>(arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a acids_assn2\<close>
+  unfolding init_ACIDS'_def acids_assn2_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def acids_heur_import_variable_code
+  is \<open>uncurry acids_heur_import_variable\<close>
+  :: \<open>atom_assn\<^sup>k *\<^sub>a acids_assn2\<^sup>d \<rightarrow>\<^sub>a acids_assn2\<close>
+  unfolding acids_heur_import_variable_def acids_assn2_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def initialise_ACIDS_code
+  is \<open>uncurry initialise_ACIDS\<close>
+  :: \<open>[\<lambda>(N, n). True]\<^sub>a (arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> acids_assn2\<close>
+  unfolding initialise_ACIDS_def vmtf_cons_def Suc_eq_plus1 atom.fold_option length_uint32_nat_def
+    option.case_eq_if vmtf_init_assn_def init_ACIDS'_alt
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  supply [[goals_limit = 1]]
+  by sepref
+
+
 sepref_def initialise_VMTF_code
   is \<open>uncurry initialise_VMTF\<close>
   :: \<open>[\<lambda>(N, n). True]\<^sub>a (arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> vmtf_init_assn\<close>

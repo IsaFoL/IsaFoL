@@ -3,22 +3,123 @@ theory IsaSAT_Bump_Heuristics_LLVM
     IsaSAT_VMTF_LLVM
     Tuple4_LLVM
     IsaSAT_Bump_Heuristics_State_LLVM
+    IsaSAT_ACIDS_LLVM
 begin
+
+sepref_register isa_acids_flush_int isa_acids_find_next_undef
+  acids_push_literal isa_acids_incr_score
+
+sepref_def isa_acids_incr_score_code
+  is \<open>RETURN o isa_acids_incr_score\<close>
+  :: \<open>acids_assn2\<^sup>d \<rightarrow>\<^sub>a acids_assn2\<close>
+  unfolding isa_acids_incr_score_def acids_assn2_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+lemma isa_acids_flush_int_alt_def:
+\<open>isa_acids_flush_int  = (\<lambda>M vm (to_remove, h). do {
+    ASSERT(length to_remove \<le> unat32_max);
+    let n = length to_remove;
+    (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> n\<^esup>
+      (\<lambda>(i, vm, h). i < n)
+      (\<lambda>(i, vm, h). do {
+         ASSERT(i < length to_remove);
+         let L = to_remove!i;
+         vm \<leftarrow> acids_push_literal L vm;
+	 ASSERT(atoms_hash_del_pre L h);
+         RETURN (i+1, vm, atoms_hash_del L h)})
+      (0, vm, h);
+    RETURN (vm, (emptied_list to_remove, h))
+  })\<close>
+  unfolding isa_acids_flush_int_def Let_def
+  by auto
+
+sepref_def acids_flush_int
+  is \<open>uncurry2 isa_acids_flush_int\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a acids_assn2\<^sup>d *\<^sub>a distinct_atoms_assn\<^sup>d  \<rightarrow>\<^sub>a acids_assn2 \<times>\<^sub>a distinct_atoms_assn \<close>
+  unfolding isa_acids_flush_int_alt_def emptied_list_alt_def
+  apply (rewrite at \<open>WHILEIT _ (\<lambda>(_, _, _)._ < \<hole>)\<close> annot_snat_unat_conv)
+  apply (rewrite at \<open>_ ! \<hole>\<close> annot_unat_snat_conv)
+  apply (rewrite at \<open>take \<hole> _\<close> snat_const_fold[where 'a=64])
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+definition acids0_mset_empty where
+  \<open>acids0_mset_empty = (\<lambda>(_, b, _). b= {#})\<close>
+
+definition hp_acids_empty where
+  \<open>hp_acids_empty =  (\<lambda>(_, _, _, _, _, h). h = None)\<close>
+
+lemma hp_acids_empty:
+  \<open>(RETURN o hp_acids_empty, RETURN o acids0_mset_empty) \<in> 
+   (((\<langle>\<langle>nat_rel\<rangle>option_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel)) O
+   acids_encoded_hmrel) \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+proof -
+  have [intro!]: \<open>Me \<in># {#} \<Longrightarrow> False\<close>for Me
+    by auto
+  have 1: \<open>(({#}, (\<lambda>_. None, \<lambda>_. None, \<lambda>_. None, \<lambda>_. None, \<lambda>_. None), None), empty_acids0) \<in> acids_encoded_hmrel\<close>
+    by (auto simp: acids_encoded_hmrel_def bottom_acids0_def pairing_heaps_rel_def map_fun_rel_def
+      ACIDS.hmrel_def encoded_hp_prop_list_conc_def encoded_hp_prop_def empty_outside_def empty_acids0_def
+      intro!: relcompI)
+  have H: \<open>mset_nodes ya \<noteq> {#}\<close> for ya
+    by (cases ya) auto
+  show ?thesis
+    unfolding uncurry0_def
+    by (intro frefI nres_relI)
+     (auto simp add: acids_encoded_hmrel_def acids0_mset_empty_def encoded_hp_prop_def ACIDS.hmrel_def encoded_hp_prop_list_conc_def hp_acids_empty_def pairing_heaps_rel_def H
+      split: option.splits)
+qed
+
+
+definition acids_mset_empty :: \<open>_\<close> where
+  \<open>acids_mset_empty x = (acids_mset x = {#})\<close>
+
+lemma acids_mset_empty_alt_def:
+   \<open>acids_mset_empty = (\<lambda>(a, b). acids0_mset_empty a)\<close>
+  by (auto intro!: ext simp: acids_mset_empty_def acids0_mset_empty_def
+    acids_mset_def)
+
+
+
+sepref_def hp_acids_empty_code
+  is \<open>RETURN o  hp_acids_empty\<close>
+  :: \<open>hp_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding hp_assn_def hp_acids_empty_def atom.fold_option
+  by sepref
+
+lemmas [fcomp_norm_unfold] = acids_assn_def[symmetric]
+
+lemmas [sepref_fr_rules] = hp_acids_empty_code.refine[FCOMP hp_acids_empty,
+  unfolded hr_comp_assoc[symmetric] acids_assn_def[symmetric] acids_assn2_def[symmetric]]
+
+sepref_def acids_mset_empty_code
+  is \<open>RETURN o acids_mset_empty\<close>
+  :: \<open>acids_assn2\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding acids_mset_empty_alt_def acids_assn2_def
+  by sepref  
+
+sepref_def acids_find_next_undef_impl
+  is \<open>uncurry isa_acids_find_next_undef\<close>
+  :: \<open>acids_assn2\<^sup>d *\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a atom.option_assn \<times>\<^sub>a acids_assn2\<close>
+  unfolding isa_acids_find_next_undef_def
+    atom.fold_option acids_mset_empty_def[symmetric]
+  by sepref
 
 
 (*TODO remove isa_vmtf_unset = vmtf_unset *)
 lemma isa_bump_unset_alt_def:
-  \<open>RETURN oo isa_bump_unset = (\<lambda>L vm. case vm of Tuple4 (hstable) (focused) foc a \<Rightarrow>
-  RETURN (Tuple4 (if \<not>foc then isa_vmtf_unset L hstable else hstable)
-    (if foc then isa_vmtf_unset L focused else focused)
-  foc a))\<close>
+  \<open>isa_bump_unset L vm = (case vm of Tuple4 (hstable) (focused) foc a \<Rightarrow> do {
+  hstable \<leftarrow> (if \<not>foc then acids_tl L hstable else RETURN hstable);
+  let focused = (if foc then isa_vmtf_unset L focused else focused);
+  RETURN (Tuple4 hstable focused foc a)
+  })\<close>
   unfolding isa_bump_unset_def isa_vmtf_unset_def vmtf_unset_def[symmetric]
   by (auto intro!: ext split: bump_heuristics_splits)
 
 
 sepref_register vmtf_unset case_tuple4
 sepref_def isa_bump_unset_impl
-  is \<open>uncurry (RETURN oo isa_bump_unset)\<close>
+  is \<open>uncurry (isa_bump_unset)\<close>
   :: \<open>[uncurry isa_bump_unset_pre]\<^sub>a atom_assn\<^sup>k *\<^sub>a heuristic_bump_assn\<^sup>d \<rightarrow> heuristic_bump_assn\<close>
   unfolding isa_bump_unset_alt_def isa_bump_unset_pre_def
   by sepref
@@ -121,7 +222,7 @@ definition isa_vmtf_heur_array_nth where
 
 lemma isa_vmtf_heur_array_nth_alt_def:
   \<open>isa_vmtf_heur_array_nth x i = (case x of Bump_Heuristics hstable focused foc _ \<Rightarrow>
-     (if foc then vmtf_heur_array_nth focused i else vmtf_heur_array_nth hstable i))\<close>
+     (vmtf_heur_array_nth focused i))\<close>
   by (cases x) (auto simp: bump_get_heuristics_def isa_vmtf_heur_array_nth_def)
 
 sepref_register is_focused_heuristics vmtf_heur_array_nth
@@ -138,7 +239,7 @@ definition vmtf_array_fst :: \<open>vmtf \<Rightarrow> nat\<close> where
 
 
 lemma bumped_vmtf_array_fst_alt_def: \<open>bumped_vmtf_array_fst x = (case x of Bump_Heuristics a b c d \<Rightarrow>
-  (if c then vmtf_array_fst b else vmtf_array_fst a))\<close>
+  (vmtf_array_fst b))\<close>
   by (cases x) (auto simp: vmtf_array_fst_def current_vmtf_array_nxt_score_def
     bump_get_heuristics_def bumped_vmtf_array_fst_def)
 
@@ -164,7 +265,7 @@ definition access_vmtf_array :: \<open>vmtf \<Rightarrow> nat \<Rightarrow> _ nr
 
 lemma access_focused_vmtf_array_alt_def:
   \<open>access_focused_vmtf_array x i = (case x of Bump_Heuristics a b c d \<Rightarrow> do {
-   if c then access_vmtf_array b i else access_vmtf_array a i
+   access_vmtf_array b i
   })\<close>
   by (cases x) (auto simp: access_focused_vmtf_array_def access_vmtf_array_def
     bump_get_heuristics_def)
@@ -177,7 +278,7 @@ sepref_def access_vmtf_array_code
   apply (rewrite at \<open>RETURN \<hole>\<close> annot_index_of_atm)
   by sepref
 
-sepref_register access_vmtf_array 
+sepref_register access_vmtf_array
 sepref_def access_focused_vmtf_array_code
   is \<open>uncurry access_focused_vmtf_array\<close>
   :: \<open>heuristic_bump_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_node_assn\<close>

@@ -5,10 +5,6 @@ theory IsaSAT_Initialisation
     IsaSAT_Bump_Heuristics_Init_State
     Automatic_Refinement.Relators \<comment> \<open>for more lemmas\<close>
 begin
-thm vmtf_cong
-(*TODO Move*)
-definition [to_relAPP]: \<open>mset_rel A \<equiv> p2rel (rel_mset (rel2p A))\<close>
-
 lemma in_mset_rel_eq_f_iff:
   \<open>(a, b) \<in> \<langle>{(c, a). a = f c}\<rangle>mset_rel \<longleftrightarrow> b = f `# a\<close>
   using ex_mset[of a]
@@ -1891,7 +1887,6 @@ definition finalize_vmtf_init where \<open>
 definition finalize_bump_init :: \<open>bump_heuristics_init \<Rightarrow> bump_heuristics nres\<close> where
   \<open>finalize_bump_init = (\<lambda>x. case x of Tuple4 hstable focused foc to_remove \<Rightarrow> do {
     focused \<leftarrow> finalize_vmtf_init focused;
-    hstable \<leftarrow> finalize_vmtf_init hstable;
     RETURN (Tuple4 hstable focused foc to_remove)
   })\<close>
 

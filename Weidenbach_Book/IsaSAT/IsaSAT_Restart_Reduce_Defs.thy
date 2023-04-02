@@ -12,7 +12,7 @@ definition (in -) find_local_restart_target_level_int_inv where
   \<open>find_local_restart_target_level_int_inv bmp cs =
      (\<lambda>(brk, i). i \<le> length cs \<and> length cs < unat32_max)\<close>
 
-
+(*TODO fix*)
 definition find_local_restart_target_level_int
    :: \<open>trail_pol \<Rightarrow> bump_heuristics \<Rightarrow> nat nres\<close>
 where

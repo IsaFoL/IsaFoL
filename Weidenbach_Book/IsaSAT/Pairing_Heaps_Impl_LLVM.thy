@@ -2,14 +2,14 @@ theory Pairing_Heaps_Impl_LLVM
   imports Pairing_Heaps_Impl IsaSAT_Literals_LLVM
 begin
 
-type_synonym hp_assn = \<open>32 word ptr \<times> 32 word ptr \<times> 32 word ptr \<times> 32 word ptr \<times> 32 word ptr \<times> 32 word\<close>
+type_synonym hp_assn = \<open>32 word ptr \<times> 32 word ptr \<times> 32 word ptr \<times> 32 word ptr \<times> 64 word ptr \<times> 32 word\<close>
 
 definition hp_assn :: \<open>_ \<Rightarrow> hp_assn \<Rightarrow> assn\<close> where
   \<open>hp_assn \<equiv> (IICF_Array.array_assn atom.option_assn \<times>\<^sub>a
     IICF_Array.array_assn atom.option_assn \<times>\<^sub>a
     IICF_Array.array_assn atom.option_assn \<times>\<^sub>a
     IICF_Array.array_assn atom.option_assn \<times>\<^sub>a
-    IICF_Array.array_assn uint32_nat_assn \<times>\<^sub>a atom.option_assn)\<close>
+    IICF_Array.array_assn uint64_nat_assn \<times>\<^sub>a atom.option_assn)\<close>
 
 sepref_def mop_hp_read_prev_imp_code
   is \<open>uncurry mop_hp_read_prev_imp\<close>
@@ -45,7 +45,7 @@ sepref_def mop_hp_read_child_imp_code
 
 sepref_def mop_hp_read_score_imp_code
   is \<open>uncurry mop_hp_read_score_imp\<close>
-  :: \<open>atom_assn\<^sup>k *\<^sub>a hp_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  :: \<open>atom_assn\<^sup>k *\<^sub>a hp_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
   unfolding mop_hp_read_score_imp_def hp_assn_def
   apply (rewrite at \<open>_! \<hole>\<close> value_of_atm_def[symmetric])
   apply (rewrite in \<open>_ ! \<hole>\<close> annot_unat_snat_upcast[where 'l=\<open>64\<close>])
@@ -105,7 +105,7 @@ sepref_def mop_hp_update_parent'_imp_code
 
 sepref_def mop_hp_set_all_imp_code
   is \<open>uncurry6 mop_hp_set_all_imp\<close>
-  ::  \<open>atom_assn\<^sup>k *\<^sub>a atom.option_assn\<^sup>k *\<^sub>a atom.option_assn\<^sup>k *\<^sub>a atom.option_assn\<^sup>k *\<^sub>a atom.option_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a hp_assn\<^sup>d \<rightarrow>\<^sub>a hp_assn\<close>
+  ::  \<open>atom_assn\<^sup>k *\<^sub>a atom.option_assn\<^sup>k *\<^sub>a atom.option_assn\<^sup>k *\<^sub>a atom.option_assn\<^sup>k *\<^sub>a atom.option_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a hp_assn\<^sup>d \<rightarrow>\<^sub>a hp_assn\<close>
   unfolding mop_hp_set_all_imp_def hp_assn_def
   apply (rewrite at \<open>_[\<hole>:=_]\<close> value_of_atm_def[symmetric])
   apply (rewrite in \<open>_ [\<hole>:=_]\<close> annot_unat_snat_upcast[where 'l=\<open>64\<close>])
@@ -125,9 +125,9 @@ sepref_register mop_hp_set_all_imp
   maybe_mop_hp_update_prev'_imp maybe_mop_hp_update_nxt'_imp maybe_mop_hp_update_child'_imp maybe_mop_hp_update_parent'_imp
 
 
-sepref_def mop_hp_insert_impl
+sepref_def mop_hp_insert_impl_code
   is \<open>uncurry2 mop_hp_insert_impl\<close>
-  :: \<open>atom_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a hp_assn\<^sup>d \<rightarrow>\<^sub>a hp_assn\<close>
+  :: \<open>atom_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a hp_assn\<^sup>d \<rightarrow>\<^sub>a hp_assn\<close>
   unfolding mop_hp_insert_impl_def
     atom.fold_option
   by sepref
@@ -250,7 +250,7 @@ sepref_def mop_unroot_hp_tree_code
 
 sepref_def mop_hp_update_score_imp_code
   is \<open>uncurry2 mop_hp_update_score_imp\<close>
-  :: \<open>atom_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a hp_assn\<^sup>d \<rightarrow>\<^sub>a hp_assn\<close>
+  :: \<open>atom_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a hp_assn\<^sup>d \<rightarrow>\<^sub>a hp_assn\<close>
   unfolding mop_hp_update_score_imp_def hp_assn_def
   apply (rewrite at \<open>_[\<hole>:=_]\<close> value_of_atm_def[symmetric])
   apply (rewrite in \<open>_ [\<hole>:=_]\<close> annot_unat_snat_upcast[where 'l=\<open>64\<close>])
@@ -262,9 +262,82 @@ lemma Some_eq_not_None_sepref_id_work_around: \<open>Some h = a \<longleftrighta
 
 sepref_def mop_rescale_and_reroot_code
   is \<open>uncurry2 mop_rescale_and_reroot\<close>
-  :: \<open>atom_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a hp_assn\<^sup>d \<rightarrow>\<^sub>a hp_assn\<close>
+  :: \<open>atom_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a hp_assn\<^sup>d \<rightarrow>\<^sub>a hp_assn\<close>
   unfolding mop_rescale_and_reroot_def Some_eq_not_None_sepref_id_work_around
   unfolding atom.fold_option short_circuit_conv
   by sepref
+
+sepref_def mop_hp_is_in_code
+  is \<open>uncurry mop_hp_is_in\<close>
+  :: \<open>atom_assn\<^sup>k *\<^sub>a hp_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding mop_hp_is_in_def Some_eq_not_None_sepref_id_work_around
+  unfolding atom.fold_option short_circuit_conv
+  by sepref
+
+sepref_def mop_vsids_pop_min2_impl_code
+  is mop_vsids_pop_min2_impl
+  :: \<open>hp_assn\<^sup>d \<rightarrow>\<^sub>a atom_assn \<times>\<^sub>a hp_assn\<close>
+  unfolding mop_vsids_pop_min2_impl_def
+  unfolding atom.fold_option
+  by sepref
+
+lemma mop_hp_insert_impl_spec2:
+  \<open>(uncurry2 mop_hp_insert_impl, uncurry2 hp_insert) \<in>
+    nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel \<rightarrow>\<^sub>f
+    \<langle>\<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto intro!: mop_hp_insert_impl_spec[THEN order_trans])
+
+lemma mop_rescale_and_reroot_spec2:
+   \<open>(uncurry2 mop_rescale_and_reroot, uncurry2 rescale_and_reroot) \<in>
+    nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f  \<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel \<rightarrow>\<^sub>f
+    \<langle>\<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto intro!: mop_rescale_and_reroot_spec[THEN order_trans])
+
+lemma rescale_and_reroot_mop_prio_change_weight2:
+  \<open>(uncurry2 rescale_and_reroot, uncurry2 (PR_CONST ACIDS.mop_prio_change_weight)) \<in>
+  nat_rel \<times>\<^sub>f  nat_rel \<times>\<^sub>f acids_encoded_hmrel \<rightarrow>\<^sub>f \<langle>acids_encoded_hmrel\<rangle>nres_rel›
+  by (intro frefI nres_relI)
+   (auto intro!: rescale_and_reroot_mop_prio_change_weight[THEN order_trans])
+
+lemma mop_hp_is_in_spec2:
+  \<open>(uncurry mop_hp_is_in, uncurry hp_is_in) \<in> nat_rel \<times>\<^sub>f \<langle>\<langle>nat_rel\<rangle>option_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+   (auto intro!: mop_hp_is_in_spec[THEN order_trans])
+
+lemma vsids_pop_min2_mop_prio_pop_min2:
+  \<open>(vsids_pop_min2, PR_CONST ACIDS.mop_prio_pop_min) \<in> acids_encoded_hmrel \<rightarrow>\<^sub>f \<langle>nat_rel \<times>\<^sub>r acids_encoded_hmrel\<rangle>nres_rel›
+  by (intro frefI nres_relI)
+   (auto intro!: vsids_pop_min2_mop_prio_pop_min[THEN order_trans])
+
+lemma mop_vsids_pop_min2_impl2:
+  shows \<open>(mop_vsids_pop_min2_impl, vsids_pop_min2) \<in>
+    \<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel \<rightarrow>\<^sub>f
+    \<langle>nat_rel \<times>\<^sub>r \<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+   (auto intro!: mop_vsids_pop_min2_impl[THEN order_trans])
+
+lemma mop_hp_read_score_imp_mop_hp_read_score2:
+  \<open>(uncurry mop_hp_read_score_imp, uncurry mop_hp_read_score) \<in>
+  Id \<times>\<^sub>f \<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+   (auto intro!: mop_hp_read_score_imp_mop_hp_read_score[THEN order_trans])
+
+
+thm mop_hp_read_score_imp_mop_hp_read_score
+definition acids_assn :: \<open>_\<close> where
+  \<open>acids_assn = hr_comp (hr_comp hp_assn (\<langle>\<langle>nat_rel\<rangle>option_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel))
+              acids_encoded_hmrel\<close>
+
+lemmas [fcomp_norm_unfold] = acids_assn_def[symmetric]
+
+sepref_register ACIDS.mop_prio_change_weight ACIDS.mop_prio_insert
+  ACIDS.mop_prio_pop_min ACIDS.mop_prio_is_in
+
+lemmas [sepref_fr_rules] =
+  mop_hp_insert_impl_code.refine[FCOMP mop_hp_insert_impl_spec2, FCOMP hp_insert_spec_mop_prio_insert2]
+  mop_rescale_and_reroot_code.refine[FCOMP mop_rescale_and_reroot_spec2, FCOMP rescale_and_reroot_mop_prio_change_weight2]
+  mop_hp_is_in_code.refine[FCOMP mop_hp_is_in_spec2, FCOMP hp_is_in_mop_prio_is_in2]
+  mop_vsids_pop_min2_impl_code.refine[FCOMP mop_vsids_pop_min2_impl2, FCOMP vsids_pop_min2_mop_prio_pop_min2]
+  mop_hp_read_score_imp_code.refine[FCOMP mop_hp_read_score_imp_mop_hp_read_score2, FCOMP mop_hp_read_score_mop_prio_old_weight2]
 
 end

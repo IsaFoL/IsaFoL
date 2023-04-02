@@ -37,16 +37,9 @@ sepref_def isa_vmtf_find_next_undef_code is
   apply annot_all_atm_idxs
   by sepref
 
-
-lemma isa_bump_find_next_undef_alt_def: \<open>
-  isa_bump_find_next_undef x M = (case x of Bump_Heuristics hstable focused foc h \<Rightarrow>
-    if foc then isa_vmtf_find_next_undef focused M
-      else isa_vmtf_find_next_undef hstable M)\<close>
-  unfolding isa_bump_find_next_undef_def by (cases x) auto
-
 sepref_def isa_bump_find_next_undef_code is
-  \<open>uncurry isa_bump_find_next_undef\<close> :: \<open>heuristic_bump_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a atom.option_assn\<close>
-  unfolding isa_bump_find_next_undef_alt_def
+  \<open>uncurry isa_bump_find_next_undef\<close> :: \<open>heuristic_bump_assn\<^sup>d *\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a atom.option_assn \<times>\<^sub>a heuristic_bump_assn\<close>
+  unfolding isa_bump_find_next_undef_def
   unfolding atom.fold_option
   supply [[goals_limit = 1]]
   apply annot_all_atm_idxs
@@ -58,19 +51,9 @@ sepref_def update_next_search_code is
   unfolding update_next_search_def vmtf_assn_def
   by sepref
 
-lemma isa_bump_update_next_search_alt_def: \<open>
-  isa_bump_update_next_search L x = (case x of Bump_Heuristics hstable focused foc h \<Rightarrow>if foc
-  then Bump_Heuristics hstable (update_next_search L focused) foc h
-    else Bump_Heuristics (update_next_search L hstable) focused foc h)\<close>
-  unfolding isa_bump_update_next_search_def by (cases x) auto
-
-sepref_def isa_bump_update_next_search_code is
-  \<open>uncurry (RETURN oo isa_bump_update_next_search)\<close> :: \<open>atom.option_assn\<^sup>k *\<^sub>a heuristic_bump_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_bump_assn\<close>
-  unfolding isa_bump_update_next_search_alt_def
-  by sepref
 
 sepref_register isa_vmtf_find_next_undef_upd  mop_get_saved_phase_heur get_next_phase_st
-  isa_bump_update_next_search
+
 sepref_def isa_vmtf_find_next_undef_upd_code is
   \<open>uncurry isa_vmtf_find_next_undef_upd\<close>
     :: \<open>trail_pol_fast_assn\<^sup>d *\<^sub>a heuristic_bump_assn\<^sup>d \<rightarrow>\<^sub>a (trail_pol_fast_assn \<times>\<^sub>a heuristic_bump_assn) \<times>\<^sub>a atom.option_assn\<close>
