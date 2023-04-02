@@ -47,9 +47,9 @@ abbreviation lits_with_max_assn\<^sub>0 :: \<open>nat multiset
   \<open>lits_with_max_assn\<^sub>0 \<equiv> hr_comp (al_assn atom_assn \<times>\<^sub>a unat32_assn) lits_with_max_rel\<close>
 
 lemma lits_with_max_assn_alt_def: \<open>lits_with_max_assn = hr_comp (arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn)
-          (lits_with_max_rel O \<langle>nat_rel\<rangle>mset_rel)\<close>
+          (lits_with_max_rel O \<langle>nat_rel\<rangle>IICF_Multiset.mset_rel)\<close>
 proof -
-  have 1: \<open>(lits_with_max_rel O \<langle>nat_rel\<rangle>mset_rel) = lits_with_max_rel\<close>
+  have 1: \<open>(lits_with_max_rel O \<langle>nat_rel\<rangle>IICF_Multiset.mset_rel) = lits_with_max_rel\<close>
     by (auto simp: mset_rel_def  p2rel_def rel2p_def[abs_def] br_def
          rel_mset_def lits_with_max_rel_def list_rel_def list_all2_op_eq_map_right_iff' list.rel_eq)
   show ?thesis
