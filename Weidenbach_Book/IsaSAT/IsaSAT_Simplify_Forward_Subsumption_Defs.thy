@@ -220,6 +220,7 @@ definition isa_subsume_clauses_match2 :: \<open>nat \<Rightarrow> nat \<Rightarr
     (\<lambda>(i, st). do {
       ASSERT (i < n);
       L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur N) C' i;
+      let _ = mark_literal_for_unit_deletion L;
       lin \<leftarrow> mop_cch_in L D;
       if lin
       then RETURN (i+1, st)
@@ -271,6 +272,7 @@ definition mark_garbage_heur_as_subsumed :: \<open>nat \<Rightarrow> isasat \<Ri
   \<open>mark_garbage_heur_as_subsumed C S = (do{
     let N' = get_clauses_wl_heur S;
     ASSERT (arena_is_valid_clause_vdom N' C);
+    _ \<leftarrow> log_del_clause_heur S C;
     let st = arena_status N' C = IRRED;
     ASSERT (mark_garbage_pre (N', C));
     let N' = extra_information_mark_to_delete (N') C;
@@ -294,7 +296,8 @@ definition isa_strengthen_clause_wl2 where
     st1 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
     st2 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C';
     S \<leftarrow> remove_lit_from_clause_st S C (-L);
-
+    _ \<leftarrow> log_new_clause_heur S C;
+    let _ = mark_clause_for_unit_as_changed 0;
     if m = n
     then do {
       S \<leftarrow> RETURN S;
@@ -326,6 +329,7 @@ definition isa_subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> nat subsumpt
   | SUBSUMED_BY C' \<Rightarrow> do {
      st1 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
      st2 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C';
+     _ \<leftarrow> log_del_clause_heur S C;
      S \<leftarrow> mark_garbage_heur2 C S;
      S \<leftarrow> (if st1 = IRRED \<and> st2 = LEARNED then mop_arena_promote_st S C' else RETURN S);
      let S = (set_stats_wl_heur (incr_forward_subsumed (get_stats_heur S)) S);
