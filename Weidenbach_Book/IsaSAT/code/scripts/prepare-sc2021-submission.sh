@@ -3,8 +3,8 @@ set -e
 
 cd `dirname $0`/..
 root=`pwd`
-tmp=/tmp/prepare-isasat-sc2022-submission.log
-VERSION="sc2022"
+tmp=/tmp/prepare-isasat-sc2023-submission.log
+VERSION="sc2023"
 rm -f $tmp
 ##########################################################################
 echo "make-src-release.sh"

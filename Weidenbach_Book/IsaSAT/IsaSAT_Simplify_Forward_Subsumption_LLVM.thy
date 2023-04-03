@@ -741,6 +741,7 @@ sepref_def isa_subsume_or_strengthen_wl_impl
   :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a subsumption_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding isa_subsume_or_strengthen_wl_def subsumption_cases_split mop_arena_status_st_def[symmetric]
     incr_forward_subsumed_st_def[symmetric]
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_def isa_forward_subsumption_one_wl_impl
