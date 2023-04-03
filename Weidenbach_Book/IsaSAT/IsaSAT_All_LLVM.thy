@@ -22,4 +22,4 @@ theorem IsaSAT_full_correctness:
   unfolding model_bounded_assn_def clauses_l_assn_def
   by auto
 
-end
+end 

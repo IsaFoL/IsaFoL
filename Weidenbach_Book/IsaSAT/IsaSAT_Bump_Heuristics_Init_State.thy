@@ -398,7 +398,7 @@ definition initialize_Bump_Init :: \<open>nat list \<Rightarrow> nat \<Rightarro
   focused \<leftarrow> initialise_VMTF A n;
   hstable \<leftarrow> initialise_ACIDS A n;
   to_remove \<leftarrow> distinct_atms_int_empty n;
-  RETURN (Tuple4 hstable focused False to_remove)
+  RETURN (Tuple4 hstable focused True to_remove)
   }\<close>
 
 lemma specify_left_RES:
