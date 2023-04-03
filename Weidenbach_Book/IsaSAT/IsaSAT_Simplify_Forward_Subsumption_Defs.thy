@@ -220,7 +220,6 @@ definition isa_subsume_clauses_match2 :: \<open>nat \<Rightarrow> nat \<Rightarr
     (\<lambda>(i, st). do {
       ASSERT (i < n);
       L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur N) C' i;
-      let _ = mark_literal_for_unit_deletion L;
       lin \<leftarrow> mop_cch_in L D;
       if lin
       then RETURN (i+1, st)
@@ -325,7 +324,7 @@ definition isa_subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> nat subsumpt
   \<open>isa_subsume_or_strengthen_wl = (\<lambda>C s S. do {
    ASSERT(isa_subsume_or_strengthen_wl_pre C s S);
    (case s of
-     NONE \<Rightarrow> RETURN (S)
+     NONE \<Rightarrow> RETURN S
   | SUBSUMED_BY C' \<Rightarrow> do {
      st1 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
      st2 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C';
@@ -375,6 +374,7 @@ definition isa_forward_subsumption_one_wl :: \<open>nat \<Rightarrow> bool list 
   D \<leftarrow> (if s \<noteq> NONE then mop_cch_remove_all_clauses S C D else RETURN D);
   S \<leftarrow> (if is_strengthened s then isa_maybe_push_to_occs_list_st C S else RETURN S);
   S \<leftarrow> isa_subsume_or_strengthen_wl C s S;
+  let _ = (if s \<noteq> NONE then mark_clause_for_unit_as_unchanged 0 else ());
   RETURN (S, s, D)
   })\<close>
 
@@ -569,6 +569,7 @@ definition mop_cch_add_all_clause :: \<open>_\<close> where
     (\<lambda>(i,D). do {
       ASSERT (i < n);
       L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i;
+      let _ = mark_literal_for_unit_deletion L;
       D \<leftarrow> mop_cch_add L D;
       RETURN (i+1, D)
       }) (0, D);

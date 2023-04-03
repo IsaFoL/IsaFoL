@@ -3950,6 +3950,7 @@ proof -
   show ?thesis
     apply (rule ref_two_step[OF _ 1[unfolded Down_id_eq]])
     unfolding mop_cch_add_all_clause_def mop_ch_add_all_clause_def mop_arena_length_st_def
+      mark_literal_for_unit_deletion_def
     apply (refine_vcg mop_arena_length[where vdom = \<open>set (get_vdom S)\<close>,THEN fref_to_Down_curry, unfolded comp_def, of \<open>get_clauses_wl S'\<close> C']
       mop_arena_lit[where vdom=\<open>set (get_vdom S)\<close>] mop_cch_add_mop_cch_add)
     subgoal using assms by auto

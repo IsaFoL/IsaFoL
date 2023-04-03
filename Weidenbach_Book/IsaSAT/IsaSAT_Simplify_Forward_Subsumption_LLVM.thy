@@ -689,6 +689,7 @@ sepref_register remove_lit_from_clause_st
 lemma mark_garbage_heur_as_subsumed_alt_def:
   \<open>mark_garbage_heur_as_subsumed C S\<^sub>0 = (do{
     ASSERT (arena_is_valid_clause_vdom (get_clauses_wl_heur S\<^sub>0) C);
+    _ \<leftarrow> log_del_clause_heur S\<^sub>0 C;
     ASSERT (mark_garbage_pre (get_clauses_wl_heur S\<^sub>0, C));
     size \<leftarrow> mop_arena_length (get_clauses_wl_heur S\<^sub>0) C;
     let (N', S) = extract_arena_wl_heur S\<^sub>0;
@@ -706,9 +707,9 @@ lemma mark_garbage_heur_as_subsumed_alt_def:
     let S = incr_wasted_st (of_nat size) S;
     RETURN S
   })\<close>
-      by (auto simp: mark_garbage_heur_as_subsumed_def Let_def state_extractors push_to_tvdom_st_def
-        intro!: bind_cong[OF refl]
-         split: isasat_int_splits)
+  by (auto simp: mark_garbage_heur_as_subsumed_def Let_def state_extractors push_to_tvdom_st_def
+    intro!: bind_cong[OF refl]
+    split: isasat_int_splits)
 
 sepref_def mark_garbage_heur_as_subsumed_impl
   is \<open>uncurry mark_garbage_heur_as_subsumed\<close>
@@ -725,9 +726,10 @@ sepref_def isa_strengthen_clause_wl2_impl
   unfolding isa_strengthen_clause_wl2_def mop_arena_status_st_def[symmetric]
     mop_arena_length_st_def[symmetric]
   apply (subst incr_forward_strengthened_st_def[symmetric])+
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
-  
+
 lemma subsumption_cases_split:
   \<open>(case s of SUBSUMED_BY s \<Rightarrow> f s | STRENGTHENED_BY x y \<Rightarrow> g x y | NONE \<Rightarrow> h) =
   (if is_NONE s then h else if is_subsumed s then f (subsumed_by s) else do {ASSERT (is_strengthened s); g (strengthened_on_lit s) (strengthened_by s)})\<close>
@@ -739,6 +741,7 @@ sepref_def isa_subsume_or_strengthen_wl_impl
   :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a subsumption_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding isa_subsume_or_strengthen_wl_def subsumption_cases_split mop_arena_status_st_def[symmetric]
     incr_forward_subsumed_st_def[symmetric]
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_def isa_forward_subsumption_one_wl_impl
