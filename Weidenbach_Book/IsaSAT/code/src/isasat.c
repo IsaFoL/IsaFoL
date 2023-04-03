@@ -879,6 +879,8 @@ int main(int argc, char *argv[]) {
       printf ("cannot open proof file, aborting");
       return 0;
     }
+    
+    setvbuf ( proof , NULL , _IOFBF , 1000000 );
   }
 
 
