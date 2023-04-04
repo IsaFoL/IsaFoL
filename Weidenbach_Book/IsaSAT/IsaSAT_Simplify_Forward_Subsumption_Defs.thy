@@ -328,7 +328,6 @@ definition isa_subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> nat subsumpt
   | SUBSUMED_BY C' \<Rightarrow> do {
      st1 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
      st2 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C';
-     _ \<leftarrow> log_del_clause_heur S C;
      S \<leftarrow> mark_garbage_heur2 C S;
      let _ = mark_clause_for_unit_as_changed 0;
      S \<leftarrow> (if st1 = IRRED \<and> st2 = LEARNED then mop_arena_promote_st S C' else RETURN S);
@@ -375,7 +374,6 @@ definition isa_forward_subsumption_one_wl :: \<open>nat \<Rightarrow> bool list 
   D \<leftarrow> (if s \<noteq> NONE then mop_cch_remove_all_clauses S C D else RETURN D);
   S \<leftarrow> (if is_strengthened s then isa_maybe_push_to_occs_list_st C S else RETURN S);
   S \<leftarrow> isa_subsume_or_strengthen_wl C s S;
-  let _ = (if s = NONE then mark_clause_for_unit_as_unchanged 0 else ());
   RETURN (S, s, D)
   })\<close>
 
@@ -427,6 +425,7 @@ definition isa_try_to_forward_subsume_wl2 :: \<open>nat \<Rightarrow> bool list 
     })
   (0, NONE, ebreak, D, S);
   D \<leftarrow> (if changed = NONE then mop_cch_remove_all_clauses S C D else RETURN D);
+  let _ = (if changed = NONE then mark_clause_for_unit_as_unchanged 0 else ());
   ASSERT (Suc (length shrunken) \<le> length (get_tvdom S));
   let add_to_shunken = (is_strengthened changed);
   let shrunken = (if add_to_shunken then shrunken @ [C] else shrunken);

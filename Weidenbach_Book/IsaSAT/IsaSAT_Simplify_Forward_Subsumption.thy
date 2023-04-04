@@ -3212,7 +3212,7 @@ proof -
   show ?thesis
     supply [[goals_limit=1]]
     unfolding isa_try_to_forward_subsume_wl2_def
-      try_to_forward_subsume_wl2_def mop_arena_length_st_def
+      try_to_forward_subsume_wl2_def mop_arena_length_st_def Let_def[of \<open>if _ then mark_clause_for_unit_as_unchanged _ else _\<close>]
     apply (refine_vcg mop_arena_lit[of \<open>get_clauses_wl_heur S\<close> _ \<open>set (get_vdom S)\<close> for S]
       mop_arena_length[THEN fref_to_Down_curry, of _ _ _ _ \<open>set (get_vdom S)\<close>, unfolded comp_def] loop_rel
       isa_forward_subsumption_one_forward_subsumption_wl_one[where r=\<open>length (get_clauses_wl_heur S)\<close>  and u=\<open>(learned_clss_count S)\<close>]

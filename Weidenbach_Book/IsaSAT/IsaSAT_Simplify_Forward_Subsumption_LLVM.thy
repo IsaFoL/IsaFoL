@@ -751,7 +751,6 @@ sepref_def isa_forward_subsumption_one_wl_impl
   supply [[goals_limit=1]]
   unfolding isa_forward_subsumption_one_wl_def get_occs_list_at_def[symmetric] fold_is_NONE
     mop_access_lit_in_clauses_heur_def[symmetric] length_occs_at_def[symmetric] mop_arena_status_st_def[symmetric]
-  apply (rewrite at \<open>if _ then mark_clause_for_unit_as_unchanged \<hole> else _\<close> unat_const_fold[where 'a=\<open>64\<close>])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
@@ -783,6 +782,7 @@ sepref_def isa_try_to_forward_subsume_wl2_impl
   supply [[goals_limit=1]]
   supply [intro] = isa_try_to_forward_subsume_wl_invI
   supply [dest] = isasat_bounded_assn_get_vdomD
+  apply (rewrite at \<open>if _ then mark_clause_for_unit_as_unchanged \<hole> else _\<close> unat_const_fold[where 'a=\<open>64\<close>])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
