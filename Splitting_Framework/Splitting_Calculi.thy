@@ -709,6 +709,10 @@ next
     qed
 qed
 
+lemma SRed\<^sub>I_in_SInf: \<open>SRed\<^sub>I N \<subseteq> SInf\<close>
+  using SRed\<^sub>I_def Splitting_rules.simps
+  by force
+
 lemma SRed\<^sub>F_entails_bot: \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> N - SRed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
 proof -
   fix N
@@ -1000,7 +1004,25 @@ lemma split_creates_singleton_assertion_sets: \<open>split_pre \<C> Cs As \<Long
   by force
 
 lemma split_all_assertion_sets_asn: \<open>split_pre \<C> Cs As \<Longrightarrow> A |\<in>| As \<Longrightarrow> (\<exists> a. A_of A = {|a|} \<and> a \<in> asn (Pos (F_of A)))\<close>
-  sorry
+proof -
+  assume pre_cond: \<open>split_pre \<C> Cs As\<close> and
+         A_elem_As: \<open>A |\<in>| As\<close>
+  then have \<open>\<exists> a. A_of A = {|a|}\<close>
+    by (simp add: split_creates_singleton_assertion_sets)
+  then obtain a where A_of_A_singleton_a: \<open>A_of A = {|a|}\<close>
+    by blast
+  then have \<open>a \<in> asn (Pos (F_of A))\<close>
+    using pre_cond mk_split_def A_elem_As
+    using asn_not_empty some_in_eq
+    by (auto, blast)
+  then show \<open>\<exists> a. A_of A = {|a|} \<and> a \<in> asn (Pos (F_of A))\<close>
+    using A_of_A_singleton_a
+    by blast
+qed
+
+lemma split_all_pairs_in_As_in_Cs: \<open>split_pre \<C> Cs As \<Longrightarrow> (\<forall> P. P |\<in>| As \<Longrightarrow> F_of P |\<in>| Cs)\<close>
+  using mk_split_def
+  by fastforce
 
 abbreviation split_simp :: \<open>('f, 'v) AF \<Rightarrow> 'f fset \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> ('f, 'v) AF simplification\<close> where
   \<open>split_simp \<C> Cs As \<equiv> Simplify { \<C> } (insert (AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>)) (fset As))\<close>
@@ -1086,6 +1108,51 @@ proof -
   qed
 qed
 
+lemma AF_entails_sound_right_disjunctive: \<open>(\<exists> \<C>' \<in> A. \<M> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}) \<Longrightarrow> \<M> \<Turnstile>s\<^sub>A\<^sub>F A\<close>
+proof -
+  assume \<open>\<exists> \<C>' \<in> A. \<M> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
+  then obtain \<C>' where \<open>\<M> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close> and
+                       \<open>\<C>' \<in> A\<close>
+    by blast
+  then show \<open>\<M> \<Turnstile>s\<^sub>A\<^sub>F A\<close>
+    by (meson AF_sound_cons_rel.entails_subsets empty_subsetI insert_subset subset_refl)
+qed
+
+lemma non_zero_fcard_of_non_empty_set: \<open>fcard A > 0 \<longleftrightarrow> A \<noteq> {||}\<close>
+  by (metis bot.not_eq_extremum fcard_fempty less_numeral_extra(3) pfsubset_fcard_mono)
+
+lemma fimage_of_non_fempty_is_non_fempty: \<open>A \<noteq> {||} \<Longrightarrow> f |`| A \<noteq> {||}\<close>
+  by blast
+
+lemma entails_neg_of_entails_iff: \<open>{\<C>} \<Turnstile>s Cs \<Longrightarrow> (\<forall> \<C>\<^sub>i \<in> Cs. sound_cons.entails_neg (\<M> \<union> {Pos \<C>\<^sub>i}) \<N>) \<Longrightarrow>
+                                                     sound_cons.entails_neg (\<M> \<union> {Pos \<C>}) \<N>\<close>
+proof -
+  assume \<open>{\<C>} \<Turnstile>s Cs\<close> and
+         \<open>\<forall> \<C>\<^sub>i \<in> Cs. sound_cons.entails_neg (\<M> \<union> {Pos \<C>\<^sub>i}) \<N>\<close>
+  then have \<open>\<forall> \<C>\<^sub>i \<in> Cs. {C. Pos C \<in> \<M>} \<union> {\<C>\<^sub>i} \<union> {C. Neg C \<in> \<N>} \<Turnstile>s {C. Neg C \<in> \<M>} \<union> {C. Pos C \<in> \<N>}\<close>
+    unfolding sound_cons.entails_neg_def
+  proof -
+    assume \<open>\<forall> \<C>\<^sub>i \<in> Cs. {C. Pos C \<in> \<M> \<union> {Pos \<C>\<^sub>i}} \<union> {C. Neg C \<in> \<N>} \<Turnstile>s {C. Pos C \<in> \<N>} \<union> {C. Neg C \<in> \<M> \<union> {Pos \<C>\<^sub>i}}\<close>
+    moreover have \<open>\<And> \<C>\<^sub>i. {C. Neg C \<in> \<M> \<union> {Pos \<C>\<^sub>i}} = {C. Neg C \<in> \<M>}\<close>
+      by blast
+    moreover have \<open>\<And> \<C>\<^sub>i. {C. Pos C \<in> \<M> \<union> {Pos \<C>\<^sub>i}} = {C. Pos C \<in> \<M>} \<union> {\<C>\<^sub>i}\<close>
+      by fastforce
+    ultimately show ?thesis
+      by (simp add: Un_commute)
+  qed
+  then have \<open>{C. Pos C \<in> \<M>} \<union> Cs \<union> {C. Neg C \<in> \<N>} \<Turnstile>s {C. Neg C \<in> \<M>} \<union> {C. Pos C \<in> \<N>}\<close>
+    sorry
+  then have \<open>{C. Pos C \<in> \<M>} \<union> {\<C>} \<union> {C. Neg C \<in> \<N>} \<Turnstile>s {C. Neg C \<in> \<M>} \<union> {C. Pos C \<in> \<N>}\<close>
+
+    sorry
+  then have \<open>{C. Pos C \<in> \<M> \<union> {Pos \<C>}} \<union> {C. Neg C \<in> \<N>} \<Turnstile>s {C. Neg C \<in> \<M> \<union> {Pos \<C>}} \<union> {C. Pos C \<in> \<N>}\<close>
+    (* /!\ A bit slow /!\ *)
+    by (smt (verit, del_insts) UnCI UnE insert_iff mem_Collect_eq sound_cons.entails_subsets subsetI sup_bot_right)
+  then show \<open>sound_cons.entails_neg (\<M> \<union> {Pos \<C>}) \<N>\<close>
+    unfolding sound_cons.entails_neg_def
+    by (simp add: Un_commute)
+qed
+
 (* Report theorem 14 *)
 theorem SInf_with_simps_sound_wrt_entails_sound: \<open>\<iota> \<in> Simps \<Longrightarrow> S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F S_to \<iota>\<close>
 proof -
@@ -1095,6 +1162,13 @@ proof -
   then show \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F S_to \<iota>\<close>
   proof (cases \<iota> rule: Simplification_rules.cases)
     case (split \<C> Cs As)
+    then have Cs_not_empty: \<open>Cs \<noteq> {||}\<close>
+      unfolding splittable_def
+      by (metis bot_nat_0.extremum_unique fcard_fempty nat.simps(3) numerals(2))
+    then have As_not_empty: \<open>As \<noteq> {||}\<close>
+      using mk_split_def[of \<open>F_of \<C>\<close> \<open>Cs\<close>] splittable_def fimage_of_non_fempty_is_non_fempty[OF Cs_not_empty]
+            split(2)
+      by blast
     moreover have \<open>\<And> J \<C>\<^sub>i a\<^sub>i. fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) \<subseteq> total_strip J \<Longrightarrow> AF.Pair \<C>\<^sub>i {|a\<^sub>i|} |\<in>| As \<Longrightarrow>
                          sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos \<C>\<^sub>i}) {Pos bot}\<close>
     (* Same as for APPROX *)
@@ -1125,25 +1199,76 @@ proof -
     qed
     then have \<open>\<And> J. fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) \<subseteq> total_strip J \<Longrightarrow>
                          sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos (F_of \<C>)}) {Pos bot}\<close>
-
-      sorry
+      using entails_neg_of_entails_iff[of \<open>F_of \<C>\<close> \<open>fset Cs\<close>] split(2)
+      unfolding splittable_def
+      by (metis (full_types, lifting) fimage_eqI mk_split_def notin_fset splittable_def)
     then have \<open>\<And> J. fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) \<subseteq> total_strip J \<Longrightarrow>
                          sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> Pos ` (S_from \<iota> proj\<^sub>J J)) {Pos bot}\<close>
       using split(2)
-      by (simp add: calculation(1) enabled_def enabled_projection_def)
+      by (simp add: split(1) enabled_def enabled_projection_def)
     then have \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F { AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) }\<close>
       unfolding AF_entails_sound_def
       using enabled_def enabled_set_def
       by auto
-    moreover have \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F fset As\<close>
-      sorry
+    moreover have \<open>\<And> \<C>' J. \<C>' |\<in>| As \<Longrightarrow> fset (A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
+                               sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` ({\<C>} proj\<^sub>J J)) {Pos (F_of \<C>')}\<close>
+    proof -
+      fix \<C>' J
+      assume \<open>\<C>' |\<in>| As\<close> and
+             \<open>fset (A_of \<C>') \<subseteq> total_strip J\<close>
+      then obtain a where \<open>A_of \<C>' = {|a|}\<close> and
+                          \<open>a \<in> total_strip J\<close> and
+                          \<open>a \<in> asn (Pos (F_of \<C>'))\<close>
+        by (metis split(2) finsert.rep_eq insert_subset splitting_calculus_with_simps.split_all_assertion_sets_asn
+                  splitting_calculus_with_simps_axioms)
+      moreover have \<open>sound_cons.entails_neg {Pos (F_of \<C>')} {Pos (F_of \<C>')}\<close>
+        by (meson consequence_relation.entails_reflexive sound_cons.ext_cons_rel)
+      then have \<open>sound_cons.entails_neg (fml_ext ` (total_strip J - {a}) \<union> {Pos (F_of \<C>')}) {Pos (F_of \<C>')}\<close>
+        by (metis (no_types, lifting) Un_upper2 consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
+      ultimately show \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` ({\<C>} proj\<^sub>J J)) {Pos (F_of \<C>')}\<close>
+        by (smt (verit, del_insts) consequence_relation.entails_subsets fml_entails_C image_eqI insert_is_Un insert_subset
+                                   sound_cons.ext_cons_rel sup_bot_left sup_ge1)
+    qed
+    then have \<open>\<And> \<C>'. \<C>' |\<in>| As \<Longrightarrow> S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
+      unfolding AF_entails_sound_def
+      by (simp add: split(1) enabled_def enabled_set_def)
+    then have \<open>\<forall> \<C>' \<in> fset As. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
+      by (meson notin_fset)
+    then have \<open>\<exists> \<C>' \<in> fset As. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
+      by (metis As_not_empty all_not_in_conv bot_fset.rep_eq fset_cong)
+    then have \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F fset As\<close>
+      by (rule AF_entails_sound_right_disjunctive)
     ultimately show ?thesis
       by (metis (no_types, lifting) AF_sound_cons_rel.entails_subsets Un_upper2 insert_subset
-                                    simplification.collapse simplification.inject sup.idem)
+                                    simplification.collapse simplification.inject sup.idem split(1))
   next
     case (collect \<C> \<N>)
+    have \<open>\<N> \<noteq> {}\<close>
+    proof (rule ccontr)
+      assume \<open>\<not> \<N> \<noteq> {}\<close>
+      then have \<open>\<N> = {}\<close>
+        by simp
+      then have \<open>\<And> J. fset (A_of \<C>) \<subseteq> total_strip J \<Longrightarrow> {} \<Turnstile> {bot}\<close>
+        using collect(2)
+        unfolding AF_entails_def enabled_projection_def enabled_set_def enabled_def
+        by auto
+      (* Here is a quick problem: \<C> may not be enabled by J, in which case we cannot conclude that
+       * {} \<Turnstile> {bot}.
+       *
+       * We need to think: does it make sense for collect to have no conclusion (\<N> = {})?
+       * I don't think so...but we'll see with Sophie I guess. *)
+      then have \<open>{} \<Turnstile> {bot}\<close>
+        sorry
+      then show \<open>False\<close>
+        using entails_bot_to_entails_empty entails_sound_nontrivial
+        by blast
+    qed
+    then have \<open>\<N> \<Turnstile>s\<^sub>A\<^sub>F \<N>\<close>
+      using AF_sound_cons_rel.entails_cond_reflexive
+      by presburger
     then show ?thesis
-      sorry
+      by (metis AF_sound_cons_rel.entails_subsets Un_upper2 insert_is_Un local.collect(1)
+                simplification.sel(1) simplification.sel(2) subset_refl)
   next
     case (trim \<C> A B \<N>)
     then have \<open>A_of \<C> = A |\<union>| B\<close> and
@@ -1466,27 +1591,12 @@ subsection \<open>Standard saturation\<close>
 context splitting_calculus
 begin
 
+lemmas SRed_rules = SRed\<^sub>F_entails_bot SRed\<^sub>F_of_subset_F SRed\<^sub>I_of_subset_F SRed\<^sub>F_of_SRed\<^sub>F_subset_F
+                    SRed\<^sub>I_of_SRed\<^sub>F_subset_F SRed\<^sub>I_of_SInf_to_N_F SRed\<^sub>I_in_SInf
+
 (* Report lemma 18 *)
 sublocale S_calculus: calculus \<open>to_AF bot\<close> SInf AF_entails SRed\<^sub>I SRed\<^sub>F
-proof
-  fix N N' \<iota>\<^sub>S
-  show \<open>SRed\<^sub>I N \<subseteq> SInf\<close>
-    unfolding SRed\<^sub>I_def
-    using Splitting_rules.base Splitting_rules.unsat
-    by blast
-  show \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> N - SRed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
-    using SRed\<^sub>F_entails_bot .
-  show \<open>N \<subseteq> N' \<Longrightarrow> SRed\<^sub>F N \<subseteq> SRed\<^sub>F N'\<close>
-    using SRed\<^sub>F_of_subset_F .
-  show \<open>N \<subseteq> N' \<Longrightarrow> SRed\<^sub>I N \<subseteq> SRed\<^sub>I N'\<close>
-    using SRed\<^sub>I_of_subset_F .
-  show \<open>N' \<subseteq> SRed\<^sub>F N \<Longrightarrow> SRed\<^sub>F N \<subseteq> SRed\<^sub>F (N - N')\<close>
-    using SRed\<^sub>F_of_SRed\<^sub>F_subset_F .
-  show \<open>N' \<subseteq> SRed\<^sub>F N \<Longrightarrow> SRed\<^sub>I N \<subseteq> SRed\<^sub>I (N - N')\<close>
-    using SRed\<^sub>I_of_SRed\<^sub>F_subset_F .
-  show \<open>\<iota>\<^sub>S \<in> SInf \<Longrightarrow> concl_of \<iota>\<^sub>S \<in> N \<Longrightarrow> \<iota>\<^sub>S \<in> SRed\<^sub>I N\<close>
-    using SRed\<^sub>I_of_SInf_to_N_F .
-qed
+  by (standard; simp add: SRed_rules)
 
 alias S_saturated = S_calculus.saturated
 alias F_saturated = local.saturated
@@ -1671,26 +1781,86 @@ lemma fBall_fimage_is_fBall: \<open>fBall (f |`| A) P \<longleftrightarrow> fBal
 lemma prop_unsat_compactness: \<open>propositionally_unsatisfiable A \<Longrightarrow> \<exists> B \<subseteq> A. finite B \<and> propositionally_unsatisfiable B\<close>
   by (meson compactness_AF_proj equiv_prop_entails propositionally_unsatisfiable_def)
 
+interpretation AF_sound_cons_rel: consequence_relation \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  by (rule AF_ext_sound_cons_rel)
+
+notation AF_cons_rel.entails_conjunctive (infix \<open>\<Turnstile>\<inter>\<^sub>A\<^sub>F\<close> 50)
+
+text \<open>
+  Unfortunately, our previous definition for @{term S_calculus} does not fit the next few proofs.
+  In the report, from Corollary 22, we are required to make a connection with the
+  @{emph \<open>Saturation Framework\<close>}@cite{saturation-framework-IJCAR-2020} in order to prove that if our calculus for @{const SInf}
+  is statically complete, then it is also dynamically complete.
+
+  Unfortunately, @{term S_calculus} is defined using @{const AF_entails}, which is interpreted as disjunctive on its right
+  hand side, not conjunctive as we would need.
+
+  So we redefine the base calculus here using @{const AF_cons_rel.entails_conjunctive}, which is conjunctive on the right.
+\<close>
+
+lemma S_calculus_conj: \<open>calculus (to_AF bot) SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+proof (standard; (simp only: SRed_rules)?)
+  show \<open>{to_AF bot} \<Turnstile>\<inter>\<^sub>A\<^sub>F {}\<close>
+    by (simp add: AF_cons_rel.bot_entails_all)
+next
+  fix C
+  show \<open>{C} \<Turnstile>\<inter>\<^sub>A\<^sub>F {C}\<close>
+    by (simp add: AF_cons_rel.subset_entailed)
+next
+  fix M M' N N'
+  assume \<open>M' \<subseteq> M\<close> and
+         \<open>N' \<subseteq> N\<close> and
+         \<open>M' \<Turnstile>\<inter>\<^sub>A\<^sub>F N'\<close>
+  then show \<open>M \<Turnstile>\<inter>\<^sub>A\<^sub>F N\<close>
+    (* Can this be done?
+     *
+     * I don't think so, because \<Turnstile>\<inter>\<^sub>A\<^sub>F is conjunctive on the right, meaning
+     * that we can't add whatever we want on the right side\<dots> *)
+    using AF_cons_rel.entails_subsets
+
+    sorry
+next
+  fix M M' N N' C
+  assume \<open>M \<Turnstile>\<inter>\<^sub>A\<^sub>F N \<union> {C}\<close> and
+         \<open>M' \<union> {C} \<Turnstile>\<inter>\<^sub>A\<^sub>F N'\<close>
+  then show \<open>M \<union> M' \<Turnstile>\<inter>\<^sub>A\<^sub>F N \<union> N'\<close>
+    by (smt (verit) AF_cons_rel.entail_union AF_cons_rel.entails_trans AF_cons_rel.subset_entailed sup_ge1 sup_ge2)
+next
+  fix M N
+  assume \<open>M \<Turnstile>\<inter>\<^sub>A\<^sub>F N\<close>
+  then show \<open>\<exists> M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile>\<inter>\<^sub>A\<^sub>F N'\<close>
+    by (meson AF_cons_rel.subset_entailed empty_subsetI finite.emptyI)
+next
+  fix N
+  show \<open>N \<Turnstile>\<inter>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> N - SRed\<^sub>F N \<Turnstile>\<inter>\<^sub>A\<^sub>F {to_AF bot}\<close>
+    using AF_cons_rel.entails_conjunctive_def SRed\<^sub>F_entails_bot
+    by force
+qed
+
+interpretation S_calculus': calculus \<open>to_AF bot\<close> SInf \<open>(\<Turnstile>\<inter>\<^sub>A\<^sub>F)\<close> SRed\<^sub>I SRed\<^sub>F
+  using S_calculus_conj
+  by blast
+
 (* Report theorem 21 *)
 theorem S_calculus_statically_complete:
-  assumes F_statically_complete: \<open>statically_complete_calculus bot Inf (\<Turnstile>) Red_I Red_F\<close>
-  shows \<open>statically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+  assumes F_statically_complete: \<open>statically_complete_calculus bot Inf (\<Turnstile>\<inter>) Red_I Red_F\<close>
+  shows \<open>statically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
   using F_statically_complete
   unfolding statically_complete_calculus_def statically_complete_calculus_axioms_def
 proof (intro conjI allI impI; elim conjE)
-  show \<open>Preliminaries_With_Zorn.calculus (to_AF bot) SInf (\<Turnstile>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
-    using S_calculus.calculus_axioms
+  show \<open>Preliminaries_With_Zorn.calculus (to_AF bot) SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+    using S_calculus_conj
     by blast
 next
   fix N
-  assume \<open>Preliminaries_With_Zorn.calculus bot Inf (\<Turnstile>) Red_I Red_F\<close> and
-         if_F_saturated_and_N_entails_bot_then_bot_in_N: \<open>\<forall> N. F_saturated N \<longrightarrow> N \<Turnstile> {bot} \<longrightarrow> bot \<in> N\<close> and
-         N_is_S_saturated: \<open>S_saturated N\<close> and
-         N_entails_bot: \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
-  then have N_proj_\<J>_entails_bot: \<open>\<forall> \<J>. N proj\<^sub>J \<J> \<Turnstile> {bot}\<close>
+  assume \<open>Preliminaries_With_Zorn.calculus bot Inf (\<Turnstile>\<inter>) Red_I Red_F\<close> and
+         if_F_saturated_and_N_entails_bot_then_bot_in_N: \<open>\<forall> N. F_saturated N \<longrightarrow> N \<Turnstile>\<inter> {bot} \<longrightarrow> bot \<in> N\<close> and
+         N_is_S_saturated: \<open>S_calculus'.saturated N\<close> and
+         N_entails_bot: \<open>N \<Turnstile>\<inter>\<^sub>A\<^sub>F {to_AF bot}\<close>
+  then have N_proj_\<J>_entails_bot: \<open>\<forall> \<J>. N proj\<^sub>J \<J> \<Turnstile>\<inter> {bot}\<close>
     unfolding AF_entails_def
     using F_of_to_AF[of bot]
-    by (smt (verit) enabled_to_AF_set image_empty image_insert)
+    by (smt (verit) Preliminaries_With_Zorn.calculus_def consequence_relation.entails_subsets empty_subsetI subset_entailed)
   then have N_proj_\<J>_F_saturated: \<open>\<forall> \<J>. F_saturated (N proj\<^sub>J \<J>)\<close>
     using N_is_S_saturated
     using S_saturated_to_F_saturated
@@ -1786,51 +1956,79 @@ next
   qed
 qed
 
-(* lemma cons_rel_equiv:
-  shows \<open>Preliminaries_With_Zorn.consequence_relation (to_AF bot) (\<Turnstile>\<^sub>A\<^sub>F) =
-         Calculus.consequence_relation {bot} (\<Turnstile>\<inter>)\<close>
-  sorry
+lemma S_calculus'_is_calculus: \<open>Calculus.calculus {to_AF bot} SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+proof (standard; (simp only: SRed_rules)?)
+  fix N B
+  show \<open>B \<in> {to_AF bot} \<Longrightarrow> N \<Turnstile>\<inter>\<^sub>A\<^sub>F {B} \<Longrightarrow> N - SRed\<^sub>F N \<Turnstile>\<inter>\<^sub>A\<^sub>F {B}\<close>
+    using AF_cons_rel.subset_entailed S_calculus'.entails_empty_reflexive_dangerous
+    by blast
+qed
 
-lemma calculus_equiv:
-  shows \<open>Preliminaries_With_Zorn.calculus (to_AF bot) SInf (\<Turnstile>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F =
-         Calculus.calculus {bot} Inf (\<Turnstile>\<inter>) Red_I Red_F\<close>
-  unfolding Preliminaries_With_Zorn.calculus_def Calculus.calculus_def
-            Preliminaries_With_Zorn.calculus_axioms_def Calculus.calculus_axioms_def
-  using Red_F_Bot cons_rel_equiv lift_from_ARed_to_FRed.ground.Red_F_Bot
-  sorry
+lemma stat_comp_calc_equiv: \<open>Calculus.statically_complete_calculus {to_AF bot} SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F =
+                             statically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+proof (intro iffI; standard; (simp only: SRed_rules)?)
+  fix N
+  assume \<open>Calculus.statically_complete_calculus {to_AF bot} SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close> and
+         \<open>S_calculus'.saturated N\<close> and
+         \<open>N \<Turnstile>\<inter>\<^sub>A\<^sub>F {to_AF bot}\<close>
+  then show \<open>to_AF bot \<in> N\<close>
+    sorry
+next
+  fix B N
+  show \<open>B \<in> {to_AF bot} \<Longrightarrow> N \<Turnstile>\<inter>\<^sub>A\<^sub>F {B} \<Longrightarrow> N - SRed\<^sub>F N \<Turnstile>\<inter>\<^sub>A\<^sub>F {B}\<close>
+    using AF_cons_rel.subset_entailed S_calculus'.entails_empty_reflexive_dangerous
+    by blast
+next
+  fix B N
+  assume \<open>Preliminaries_With_Zorn.statically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close> and
+         \<open>B \<in> {to_AF bot}\<close> and
+         \<open>Calculus.calculus.saturated SInf SRed\<^sub>I N\<close> and
+         \<open>N \<Turnstile>\<inter>\<^sub>A\<^sub>F {B}\<close>
+  then show \<open>\<exists> B' \<in> {to_AF bot}. B' \<in> N\<close>
+    sorry
+qed
 
-lemma statically_complete_calculus_equiv:
-  shows \<open>Preliminaries_With_Zorn.statically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F =
-         Calculus.statically_complete_calculus {bot} Inf (\<Turnstile>\<inter>) Red_I Red_F\<close>
-  unfolding Calculus.statically_complete_calculus_def Preliminaries_With_Zorn.statically_complete_calculus_def
-            Calculus.statically_complete_calculus_axioms_def Preliminaries_With_Zorn.statically_complete_calculus_axioms_def
-  using calculus_equiv
-  sorry
+lemma dyn_comp_calc_equiv: \<open>Calculus.dynamically_complete_calculus {to_AF bot} SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F =
+                            dynamically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+proof (intro iffI; standard; (simp only: SRed_rules)?)
+  fix Ns
+  assume \<open>Calculus.dynamically_complete_calculus {to_AF bot} SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close> and
+         \<open>is_derivation S_calculus'.derive Ns\<close> and
+         \<open>S_calculus'.fair Ns\<close> and
+         \<open>shd Ns \<Turnstile>\<inter>\<^sub>A\<^sub>F {to_AF bot}\<close>
+  then show \<open>\<exists> i. to_AF bot \<in> Ns !! i\<close>
+    sorry
+next
+  fix B N
+  show \<open>B \<in> {to_AF bot} \<Longrightarrow> N \<Turnstile>\<inter>\<^sub>A\<^sub>F {B} \<Longrightarrow> N - SRed\<^sub>F N \<Turnstile>\<inter>\<^sub>A\<^sub>F {B}\<close>
+    using AF_cons_rel.subset_entailed S_calculus'.entails_empty_reflexive_dangerous
+    by blast
+next
+  fix B Ns
+  assume \<open>Preliminaries_With_Zorn.dynamically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close> and
+         \<open>B \<in> {to_AF bot}\<close> and
+         \<open>chain (Calculus.calculus.derive SRed\<^sub>F) Ns\<close> and
+         \<open>Calculus.calculus.fair SInf SRed\<^sub>I Ns\<close> and
+         \<open>lhd Ns \<Turnstile>\<inter>\<^sub>A\<^sub>F {B}\<close>
+  then show \<open>\<exists> i \<in> {i. enat i < llength Ns}. \<exists> B' \<in> {to_AF bot}. B' \<in> lnth Ns i\<close>
+    sorry
+qed
 
-lemma dynamically_complete_calculus_equiv:
-  shows \<open>Preliminaries_With_Zorn.dynamically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F =
-         Calculus.dynamically_complete_calculus {bot} Inf (\<Turnstile>\<inter>) Red_I Red_F\<close>
-  unfolding Preliminaries_With_Zorn.dynamically_complete_calculus_def Calculus.dynamically_complete_calculus_def
-            Preliminaries_With_Zorn.dynamically_complete_calculus_axioms_def Calculus.dynamically_complete_calculus_axioms_def
-  using calculus_equiv
-  sorry  *)
 
+(* Report corollary 22 *)
 corollary S_calculus_dynamically_complete:
-  assumes F_statically_complete: \<open>statically_complete_calculus bot Inf (\<Turnstile>) Red_I Red_F\<close>
-  shows \<open>dynamically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+  assumes F_statically_complete: \<open>statically_complete_calculus bot Inf (\<Turnstile>\<inter>) Red_I Red_F\<close>
+  shows \<open>dynamically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
   (* We'd want to use Calculus_Variations.calculus.dyn_equiv_stat here *)
-  sorry
-
-(* @{const Calculus_Variations.calculus.dyn_equiv_stat} states that static and dynamic completeness are equivalent.
- *
- * In our case though, our definition of a calculus does not conform to this one's.
- * So we'd need to prove that both calculi are equivalent.
- *
- * Here's a small problem: the former calculi uses a *conjunctive* entailment, where the latter uses a *disjunctive* entailment.
- *
- * In our proof, we use \<Turnstile>\<^sub>A\<^sub>F (which degenerates to \<Turnstile> on F-formulas, not on \<Turnstile>\<inter>).
- * So we would need to prove the equivalence between both calculi with \<Turnstile>\<inter> (it will not be possible otherwise), but then
- * we'd get stuck because we are using \<Turnstile> not \<Turnstile>\<inter>. *)
+proof -
+  have \<open>statically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+    using S_calculus_statically_complete F_statically_complete
+    by blast
+  then show \<open>dynamically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+    using Calculus_Variations.calculus.dyn_equiv_stat[OF S_calculus'_is_calculus]
+          stat_comp_calc_equiv dyn_comp_calc_equiv
+    by blast
+qed
 
 subsection \<open>Local saturation\<close>
 
