@@ -7,6 +7,7 @@ theory Preliminaries_With_Zorn
     Propositional_Proof_Systems.Compactness
     "HOL-Library.Library"
     "HOL-Library.Product_Lexorder"
+    Lazy_List_Limsup
   (* Finite_Set *)
 begin
 
@@ -1132,6 +1133,36 @@ qed
 end
   
 
+context
+begin
+
+no_notation Extended.extended.Pinf (\<open>\<infinity>\<close>)
+
+typedef 'a infinite_llist = \<open>{ l :: 'a llist. llength l = \<infinity> }\<close>
+  morphisms to_llist Abs_infinite_llist
+  using llength_inf_llist
+  by blast
+
+setup_lifting type_definition_infinite_llist
+
+lift_definition llmap :: \<open>('a \<Rightarrow> 'b) \<Rightarrow> 'a infinite_llist \<Rightarrow> 'b infinite_llist\<close> is lmap
+  by auto
+
+lift_definition llnth :: \<open>'a infinite_llist \<Rightarrow> nat \<Rightarrow> 'a\<close> is lnth .
+
+lift_definition Liminf_infinite_llist :: \<open>'a set infinite_llist \<Rightarrow> 'a set\<close> is Liminf_llist .
+
+lift_definition Limsup_infinite_llist :: \<open>'a set infinite_llist \<Rightarrow> 'a set\<close> is Limsup_llist .
+
+lift_definition Sup_infinite_llist :: \<open>'a set infinite_llist \<Rightarrow> 'a set\<close> is Sup_llist .
+
+lift_definition llhd :: \<open>'a infinite_llist \<Rightarrow> 'a\<close> is lhd .
+
+lemma llength_of_to_llist_is_infinite: \<open>llength (to_llist L) = \<infinity>\<close>
+  using to_llist
+  by auto
+
+end (* unnamed context *)
 
 locale sound_inference_system =
   inference_system Inf + sound_cons: consequence_relation bot entails_sound
@@ -1153,23 +1184,30 @@ locale sound_inference_system =
     lazy lists, infinite lists...
 
     Temporary conclusion: I'll try the last option with the Stream library.
+
+    Update: option 3 seems way easier to interact with the Saturation Framework.
     *)
 
 no_notation IArray.sub (infixl "!!" 100)
   
-definition is_derivation :: "('f set \<Rightarrow> 'f set \<Rightarrow> bool) \<Rightarrow> ('f set stream) \<Rightarrow> bool" where
-  "is_derivation R Ns \<equiv> \<forall>i. R (Ns !! i) (Ns !! (Suc i))"
+definition is_derivation :: "('f set \<Rightarrow> 'f set \<Rightarrow> bool) \<Rightarrow> ('f set infinite_llist) \<Rightarrow> bool" where
+  "is_derivation R Ns \<equiv> \<forall>i. R (llnth Ns i) (llnth Ns (Suc i))"
   
-definition terminates :: "'f set stream \<Rightarrow> bool" where
-  "terminates Ns \<equiv> \<exists>i. \<forall>j>i. Ns !! j = Ns !! i"
+definition terminates :: "'f set infinite_llist \<Rightarrow> bool" where
+  "terminates Ns \<equiv> \<exists>i. \<forall>j>i. llnth Ns j = llnth Ns i"
 
-definition lim_inf :: "'f set stream \<Rightarrow> 'f set" where
-  "lim_inf Ns = (\<Union>i. \<Inter>j \<in> {j. i \<le> j}. Ns !! j)"
+abbreviation \<open>lim_inf \<equiv> Liminf_infinite_llist\<close>
 
-abbreviation limit :: "'f set stream \<Rightarrow> 'f set" where "limit Ns \<equiv> lim_inf Ns"
+(* definition lim_inf :: "'f set stream \<Rightarrow> 'f set" where
+  "lim_inf Ns = (\<Union>i. \<Inter>j \<in> {j. i \<le> j}. Ns !! j)" *)
 
-definition lim_sup :: "'f set stream \<Rightarrow> 'f set" where
-  "lim_sup Ns = (\<Inter>i. \<Union>j \<in> {j. i \<le> j}. Ns !! j)"
+abbreviation limit :: "'f set infinite_llist \<Rightarrow> 'f set" where "limit Ns \<equiv> lim_inf Ns"
+
+abbreviation lim_sup :: \<open>'f set infinite_llist \<Rightarrow> 'f set\<close> where
+  \<open>lim_sup Ns \<equiv> Limsup_infinite_llist Ns\<close>
+
+(* definition lim_sup :: "'f set stream \<Rightarrow> 'f set" where
+  "lim_sup Ns = (\<Inter>i. \<Union>j \<in> {j. i \<le> j}. Ns !! j)" *)
 
 locale calculus = inference_system Inf + consequence_relation bot entails
   for
@@ -1277,10 +1315,11 @@ next
     unfolding Red_I_strict_def using Red_I_of_Inf_to_N Red_I_to_Inf by simp
 qed
 
-definition weakly_fair :: "'f set stream \<Rightarrow> bool" where
-  "weakly_fair Ns \<equiv> Inf_from (lim_inf Ns) \<subseteq> (\<Union>i. (Red_I (Ns !! i)))"
+definition weakly_fair :: "'f set infinite_llist \<Rightarrow> bool" where
+  \<open>weakly_fair Ns \<equiv> Inf_from (Liminf_infinite_llist Ns) ⊆ Sup_infinite_llist (llmap Red_I Ns)\<close>
+  (* "weakly_fair Ns \<equiv> Inf_from (lim_inf Ns) \<subseteq> (\<Union>i. (Red_I (Ns !! i)))" *)
 
-abbreviation fair :: "'f set stream \<Rightarrow> bool" where "fair N \<equiv> weakly_fair N"
+abbreviation fair :: "'f set infinite_llist \<Rightarrow> bool" where "fair N \<equiv> weakly_fair N"
 
 definition derive :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<rhd>" 50) where
   "M \<rhd> N \<equiv> (M - N \<subseteq> Red_F N)"
@@ -1391,7 +1430,7 @@ end
 
 locale dynamically_complete_calculus = calculus +
   assumes dynamically_complete:
-    \<open>is_derivation (\<rhd>) Ns \<Longrightarrow> fair Ns \<Longrightarrow> shd Ns \<Turnstile> {bot} \<Longrightarrow> \<exists>i. bot \<in> Ns !! i\<close>
+    \<open>is_derivation (\<rhd>) Ns \<Longrightarrow> fair Ns \<Longrightarrow> llhd Ns \<Turnstile> {bot} \<Longrightarrow> \<exists>i. bot \<in> llnth Ns i\<close>
 
     (* First attempt at formalizing sect. 2.3 *)
     (* below, I force 'v to be countable, but not infinite, alternative, enforce bijection with nat
