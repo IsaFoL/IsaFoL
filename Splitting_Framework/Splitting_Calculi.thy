@@ -2078,6 +2078,13 @@ qed
 
 subsection \<open>Local saturation\<close>
 
+(* Report definition 23 *)
+definition locally_saturated :: \<open>('f, 'v) AF inference set \<Rightarrow> (('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set) \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> where
+  \<open>locally_saturated S_Inf SRed_I \<N> \<equiv> to_AF bot \<in> \<N> \<or>
+                                      (\<exists> J :: 'v total_interpretation. J \<Turnstile>\<^sub>p \<N> \<and> saturated (\<N> proj\<^sub>J J))\<close>
+                                      (* Note: in the paper, the propositional projection is explicit.
+                                       * In our case, it is hidden within the definition for @{const propositional_model}. *)
+
 end (* context splitting_calculus *)
 
 end (* theory Splitting_Calculi *)
