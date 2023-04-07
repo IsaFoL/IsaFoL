@@ -6,6 +6,13 @@ begin
 
 section \<open>Splitting calculi\<close>
 
+text \<open>
+  In this section, we formalize an abstract version of a splitting calculus.
+  We start by considering only two basic rules:
+  \<^item> \textsc{Base} performs an inference from out inference system;
+  \<^item> \textsc{Unsat} closes a branch if the set of assumptions is unsatisfiable.
+\<close>
+
 locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_F V fml
   for
     bot :: 'f and
@@ -18,9 +25,7 @@ locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_
     fml :: \<open>'v \<Rightarrow> 'f\<close>
   + assumes
       (* D6 *)
-      entails_sound_nontrivial: \<open>\<not> {} \<Turnstile> {}\<close> and
-      (* /!\ This needs to be approved, but we need it for theorem 21 (currently) /!\ *)
-      (* entails_nontrivial: \<open>\<not> {} \<Turnstile> {}\<close> and *)
+      entails_nontrivial: \<open>\<not> {} \<Turnstile> {}\<close> and
       (* R5 *)
       reducedness: \<open>Inf_between UNIV (Red_F N) \<subseteq> Red_I N\<close> and
       (* R6 *)
@@ -355,7 +360,8 @@ subsection \<open>The redundancy criterion\<close>
 (* Report definition 15: splitting redundancy criterion *)
 definition SRed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> where
   \<open>SRed\<^sub>F \<N> = { AF.Pair C A | C A. \<forall> \<J>. total_strip \<J> \<supseteq> fset A \<longrightarrow> C \<in> Red_F (\<N> proj\<^sub>J \<J>) }
-            \<union> { AF.Pair C A | C A. \<exists> \<C> \<in> \<N>. F_of \<C> = C \<and> A_of \<C> |\<subset>| A }\<close>
+            \<union> { AF.Pair C A | C A. \<exists> \<C> \<in> \<N>. F_of \<C> = C \<and> A_of \<C> |\<subset>| A }
+            \<union> { AF.Pair C A | C A. \<forall> J. \<not> fset A \<subseteq> total_strip J }\<close>
 
 definition SRed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> where
   \<open>SRed\<^sub>I \<N> = { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)) }
@@ -393,6 +399,8 @@ proof -
   have \<open>to_AF bot \<notin> { AF.Pair C A | C A. \<forall> \<J>. total_strip \<J> \<supseteq> fset A \<longrightarrow> C \<in> Red_F (\<N> proj\<^sub>J \<J>) }\<close>
     by (simp add: complete to_AF_def)
   moreover have \<open>to_AF bot \<notin> { AF.Pair C A | C A. \<exists> \<C> \<in> \<N>. F_of \<C> = C \<and> A_of \<C> |\<subset>| A }\<close>
+    by (simp add: to_AF_def)
+  moreover have \<open>to_AF bot \<notin> { AF.Pair C A | C A. \<forall> J. \<not> fset A \<subseteq> total_strip J }\<close>
     by (simp add: to_AF_def)
   ultimately show ?thesis
     using SRed\<^sub>F_def
@@ -749,7 +757,8 @@ proof -
   assume \<open>N \<subseteq> N'\<close>
   then show \<open>SRed\<^sub>F N \<subseteq> SRed\<^sub>F N'\<close>
     unfolding SRed\<^sub>F_def enabled_projection_def
-    by (auto, smt (verit, best) Collect_mono Red_F_of_subset subsetD)
+    (* /!\ Takes a bit of time /!\ *)
+    by (auto, metis Red_F_of_subset distrib_proj enabled_projection_def subsetD sup.order_iff, blast)
 qed
 
 lemma SRed\<^sub>I_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> SRed\<^sub>I N \<subseteq> SRed\<^sub>I N'\<close>
@@ -958,6 +967,13 @@ qed
 
 end (* locale splitting_calculus_with_asn *)
 
+text \<open>
+  Here, we extend our basic calculus with simplification rules:
+  \<^item> \textsc{Split}
+  \<^item> \textsc{Collect}
+  \<^item> \textsc{Trim}
+\<close>
+
 datatype 'f simplification =
   Simplify (S_from: \<open>'f set\<close>) (S_to: \<open>'f set\<close>)
 
@@ -1032,7 +1048,7 @@ abbreviation split_simp :: \<open>('f, 'v) AF \<Rightarrow> 'f fset \<Rightarrow
   \<open>split_simp \<C> Cs As \<equiv> Simplify { \<C> } (insert (AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>)) (fset As))\<close>
 
 abbreviation collect_pre :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> where
-  \<open>collect_pre \<C> \<M> \<equiv> F_of \<C> \<noteq> bot \<and> \<M> \<Turnstile>\<^sub>A\<^sub>F { AF.Pair bot (A_of \<C>) } \<and> (\<forall> \<C> \<in> \<M>. F_of \<C> = bot)\<close>
+  \<open>collect_pre \<C> \<M> \<equiv> F_of \<C> \<noteq> bot \<and> \<M> \<Turnstile>\<^sub>A\<^sub>F { AF.Pair bot (A_of \<C>) } \<and> (\<forall> \<C> \<in> \<M>. F_of \<C> = bot) \<and> \<M> \<noteq> {}\<close>
 
 abbreviation collect_simp :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF set \<Rightarrow> ('f, 'v) AF simplification\<close> where
   \<open>collect_simp \<C> \<M> \<equiv> Simplify (insert \<C> \<M>) \<M>\<close>
@@ -1308,26 +1324,6 @@ proof -
                                     simplification.collapse simplification.inject sup.idem split(1))
   next
     case (collect \<C> \<N>)
-    have \<open>\<N> \<noteq> {}\<close>
-    proof (rule ccontr)
-      assume \<open>\<not> \<N> \<noteq> {}\<close>
-      then have \<open>\<N> = {}\<close>
-        by simp
-      then have \<open>\<And> J. fset (A_of \<C>) \<subseteq> total_strip J \<Longrightarrow> {} \<Turnstile> {bot}\<close>
-        using collect(2)
-        unfolding AF_entails_def enabled_projection_def enabled_set_def enabled_def
-        by auto
-      (* Here is a quick problem: \<C> may not be enabled by J, in which case we cannot conclude that
-       * {} \<Turnstile> {bot}.
-       *
-       * We need to think: does it make sense for collect to have no conclusion (\<N> = {})?
-       * I don't think so...but we'll see with Sophie I guess. *)
-      then have \<open>{} \<Turnstile> {bot}\<close>
-        sorry
-      then show \<open>False\<close>
-        using entails_bot_to_entails_empty entails_sound_nontrivial
-        by blast
-    qed
     then have \<open>\<N> \<Turnstile>s\<^sub>A\<^sub>F \<N>\<close>
       using AF_sound_cons_rel.entails_cond_reflexive
       by presburger
@@ -1513,14 +1509,14 @@ next
       using AF_entails_def
       by auto
     then show \<open>False\<close>
-      using entails_bot_to_entails_empty entails_sound_nontrivial
+      using entails_bot_to_entails_empty entails_nontrivial
       by blast
   qed
   then show \<open>\<C> \<in> SRed\<^sub>F \<M>\<close>
     unfolding SRed\<^sub>F_def enabled_def
     by (smt (verit, ccfv_SIG) AF.collapse CollectI UnI1)
 next
-  assume \<open>trim_pre \<C> A B \<M>\<close>
+  assume pre_cond: \<open>trim_pre \<C> A B \<M>\<close>
   then have A_of_\<C>_is: \<open>A_of \<C> = A |\<union>| B\<close> and
             \<open>F_of \<C> \<noteq> bot\<close> and
             \<M>_and_A_entail_bot_B: \<open>\<M> \<union> { AF.Pair bot A } \<Turnstile>s\<^sub>A\<^sub>F { AF.Pair bot B }\<close> and
@@ -1528,18 +1524,22 @@ next
             A_B_disjoint: \<open>A |\<inter>| B = {||}\<close> and
             A_not_empty: \<open>A \<noteq> {||}\<close>
     by blast+
+  then have \<open>\<exists> \<C>' \<in> \<M> \<union> {AF.Pair (F_of \<C>) B}. F_of \<C>' = F_of \<C> \<and> A_of \<C>' |\<subset>| A_of \<C>\<close>
+    by auto
   then show \<open>\<C> \<in> SRed\<^sub>F (\<M> \<union> { AF.Pair (F_of \<C>) B })\<close>
     unfolding SRed\<^sub>F_def
     (* /!\ A little bit slow /!\ *)
-    by (intro UnI2)
-       (smt (verit, best) AF.collapse AF.sel(1) AF.sel(2) CollectI Un_insert_right inf_sup_absorb insertCI
-                          order_le_imp_less_or_eq sup.cobounded2)
+    by (smt (verit, del_insts) AF.collapse AF.sel(1) AF.sel(2) CollectI UnI1 UnI2 inf_sup_absorb insert_subset
+                               order_le_imp_less_or_eq pre_cond sup.cobounded2)
 qed
 
 end (* locale splitting_calculus_with_simps *)
 
 text \<open>
-  We extend our basic splitting calculus with new optional rules: \textsc{StrongUnsat}, \textsc{Approx} and \textsc{Tauto}.
+  We extend our basic splitting calculus with new optional rules:
+  \<^item> \textsc{StrongUnsat}
+  \<^item> \textsc{Approx}
+  \<^item> \textsc{Tauto}
 \<close>
 
 locale splitting_calculus_extensions =
@@ -1967,14 +1967,78 @@ next
   qed
 qed
 
+lemma entails_conj_is_entails_disj_if_right_singleton: \<open>\<M> \<Turnstile>\<inter>\<^sub>A\<^sub>F {\<C>} \<longleftrightarrow> \<M> \<Turnstile>\<^sub>A\<^sub>F {\<C>}\<close>
+  unfolding AF_cons_rel.entails_conjunctive_def
+  by blast
+
 lemma S_with_conj_is_calculus: \<open>Calculus.calculus {to_AF bot} SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
 proof (standard; (simp only: SRed_rules)?)
   fix N B
   show \<open>B \<in> {to_AF bot} \<Longrightarrow> N \<Turnstile>\<inter>\<^sub>A\<^sub>F {B} \<Longrightarrow> N - SRed\<^sub>F N \<Turnstile>\<inter>\<^sub>A\<^sub>F {B}\<close>
-    sorry
+    by (simp add: AF_cons_rel.entails_conjunctive_def SRed\<^sub>F_entails_bot)
 qed
 
+lemma saturated_equiv: \<open>S_saturated N \<longleftrightarrow> Calculus.calculus.saturated SInf SRed\<^sub>I N\<close>
+  by (meson Calculus.calculus.saturated_def S_calculus.saturated_def S_with_conj_is_calculus)
 
+lemma derivation_equiv: \<open>is_derivation S_calculus.derive Ns \<longleftrightarrow> chain (Calculus.calculus.derive SRed\<^sub>F) (to_llist Ns)\<close>
+proof -
+  have \<open>S_calculus.derive M N \<longleftrightarrow> Calculus.calculus.derive SRed\<^sub>F M N\<close> for M N
+    unfolding S_calculus.derive_def
+  proof (intro iffI)
+    show \<open>M - N \<subseteq> SRed\<^sub>F N \<Longrightarrow> Calculus.calculus.derive SRed\<^sub>F M N\<close>
+      using S_with_conj_is_calculus calculus.derive.intros
+      by blast
+  next
+    assume \<open>Calculus.calculus.derive SRed\<^sub>F M N\<close>
+    then have \<open>M - N \<subseteq> SRed\<^sub>F N\<close>
+      by (meson S_with_conj_is_calculus calculus.derive.cases)
+    then show \<open>M - N \<subseteq> SRed\<^sub>F N\<close> .
+  qed
+  moreover have \<open>(\<forall> i. R (llnth M i) (llnth M (Suc i))) \<longleftrightarrow> chain R (to_llist M)\<close> for R M
+  proof (intro iffI)
+    assume all_of_M_in_rel: \<open>\<forall> i. R (llnth M i) (llnth M (Suc i))\<close>
+    then show \<open>chain R (to_llist M)\<close>
+    proof -
+      have \<open>\<not> lnull (to_llist M)\<close>
+        by (metis enat.simps(3) llength_eq_0 llength_of_to_llist_is_infinite zero_enat_def)
+      moreover have \<open>\<forall> j. enat (j + 1) < \<infinity> \<longrightarrow> R (llnth M j) (llnth M (Suc j))\<close>
+        using all_of_M_in_rel
+        by blast
+      then have \<open>\<forall> j. enat (j + 1) < \<infinity> \<longrightarrow> R (lnth (to_llist M) j) (lnth (to_llist M) (Suc j))\<close>
+        by (simp add: llnth.rep_eq)
+      ultimately show \<open>chain R (to_llist M)\<close>
+        by (metis Suc_eq_plus1 all_of_M_in_rel llnth.rep_eq lnth_rel_chain)
+    qed
+  next
+    assume chain_R_M: \<open>chain R (to_llist M)\<close>
+    then show \<open>\<forall> i. R (llnth M i) (llnth M (Suc i))\<close>
+    proof (intro allI)
+      fix i
+      have \<open>enat i < \<infinity>\<close>
+        using enat_ord_code(4)
+        by presburger
+      then have \<open>R (lnth (to_llist M) i) (lnth (to_llist M) (Suc i))\<close>
+        by (simp add: chain_R_M chain_lnth_rel llength_of_to_llist_is_infinite)
+      then show \<open>R (llnth M i) (llnth M (Suc i))\<close>
+        by (simp add: llnth.rep_eq)
+    qed
+  qed
+  ultimately have \<open>(\<forall> i. S_calculus.derive (llnth Ns i) (llnth Ns (Suc i))) \<longleftrightarrow> chain (Calculus.calculus.derive SRed\<^sub>F) (to_llist Ns)\<close>
+    by metis
+  then show ?thesis
+    by (simp add: is_derivation_def)
+qed
+
+lemma fair_equiv: \<open>S_calculus.fair Ns \<longleftrightarrow> Calculus.calculus.fair SInf SRed\<^sub>I (to_llist Ns)\<close>
+proof -
+  have \<open>S_calculus.Inf_from (Liminf_llist (to_llist Ns)) ⊆ Sup_llist (lmap SRed\<^sub>I (to_llist Ns)) \<longleftrightarrow>
+        S_calculus.Inf_from (Liminf_infinite_llist Ns) \<subseteq> Sup_infinite_llist (llmap SRed\<^sub>I Ns)\<close>
+    by transfer meson
+  then show ?thesis
+    using S_calculus.weakly_fair_def S_with_conj_is_calculus calculus.fair_def
+    by blast
+qed
 
 (* Report corollary 22 *)
 corollary S_calculus_dynamically_complete:
@@ -1984,10 +2048,32 @@ proof -
   have \<open>statically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
     using S_calculus_statically_complete F_statically_complete
     by blast
+  then have \<open>statically_complete_calculus_axioms (to_AF bot) SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I\<close>
+    using entails_conj_is_entails_disj_if_right_singleton[where ?\<C> = \<open>to_AF bot\<close>]
+    unfolding statically_complete_calculus_def statically_complete_calculus_axioms_def
+    by blast
+  then have \<open>Calculus.statically_complete_calculus_axioms {to_AF bot} SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I\<close>
+    unfolding statically_complete_calculus_axioms_def Calculus.statically_complete_calculus_axioms_def
+    using saturated_equiv
+    by blast
+  then have \<open>Calculus.statically_complete_calculus {to_AF bot} SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+    using Calculus.statically_complete_calculus.intro S_with_conj_is_calculus
+    by blast
+  then have \<open>Calculus.dynamically_complete_calculus {to_AF bot} SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+    using S_with_conj_is_calculus calculus.dyn_equiv_stat
+    by blast
+  then have \<open>Calculus.dynamically_complete_calculus_axioms {to_AF bot} SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+    using Calculus.dynamically_complete_calculus_def
+    by blast
+  then have \<open>dynamically_complete_calculus_axioms (to_AF bot) SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+    unfolding dynamically_complete_calculus_axioms_def Calculus.dynamically_complete_calculus_axioms_def
+    by (metis derivation_equiv fair_equiv llhd.rep_eq llnth.rep_eq singletonD singletonI)
+  then have \<open>dynamically_complete_calculus_axioms (to_AF bot) SInf (\<Turnstile>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
+    unfolding dynamically_complete_calculus_axioms_def
+    using entails_conj_is_entails_disj_if_right_singleton
+    by presburger
   then show \<open>dynamically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
-    using Calculus_Variations.calculus.dyn_equiv_stat[OF S_with_conj_is_calculus]
-
-    sorry
+    by (simp add: Preliminaries_With_Zorn.dynamically_complete_calculus_def S_calculus.calculus_axioms)
 qed
 
 subsection \<open>Local saturation\<close>
