@@ -2032,13 +2032,27 @@ qed
 
 lemma fair_equiv: \<open>S_calculus.fair Ns \<longleftrightarrow> Calculus.calculus.fair SInf SRed\<^sub>I (to_llist Ns)\<close>
 proof -
-  have \<open>S_calculus.Inf_from (Liminf_llist (to_llist Ns)) ⊆ Sup_llist (lmap SRed\<^sub>I (to_llist Ns)) \<longleftrightarrow>
+  have \<open>S_calculus.Inf_from (Liminf_llist (to_llist Ns)) \<subseteq> Sup_llist (lmap SRed\<^sub>I (to_llist Ns)) \<longleftrightarrow>
         S_calculus.Inf_from (Liminf_infinite_llist Ns) \<subseteq> Sup_infinite_llist (llmap SRed\<^sub>I Ns)\<close>
     by transfer meson
   then show ?thesis
     using S_calculus.weakly_fair_def S_with_conj_is_calculus calculus.fair_def
     by blast
 qed
+
+text \<open>
+  The following proof works as follows.
+
+  We assume that \<open>(Inf, (Red\<^sub>I, Red\<^sub>F))\<close>.
+  From that and theorem @{thm S_calculus_statically_complete}, we obtain that \<open>(SInf, (SRed\<^sub>I, SRed\<^sub>F))\<close> is statically complete.
+  This means that for all \<open>\<N> \<subseteq> UNIV\<close>, if \<open>\<N>\<close> is saturated w.r.t. \<open>(SInf, SRed\<^sub>I)\<close> and \<open>\<N> \<Turnstile>\<union>\<^sub>A\<^sub>F {\<bottom>}\<close> then \<open>\<bottom> \<in> \<N>\<close>.
+  Since \<open>\<Turnstile>\<union>\<^sub>A\<^sub>F \<equiv> \<Turnstile>\<inter>\<^sub>A\<^sub>F\<close> when the right hand side is a singleton set, we have that for all \<open>\<N> \<subseteq> UNIV\<close>, if \<open>\<N>\<close> is saturated w.r.t. \<open>(SInf, SRed\<^sub>I)\<close>
+  and \<open>\<N> \<Turnstile>\<inter>\<^sub>A\<^sub>F {\<bottom>}\<close> then \<open>\<bottom> \<in> \<N>\<close>.
+
+  Because \<open>\<Turnstile>\<inter>\<^sub>A\<^sub>F\<close> is a consequence relation for the Saturation Framework, we can derive that \<open>(SInf, (SRed\<^sub>I, SRed\<^sub>F))\<close> is dynamically complete
+  (using the conjunctive entailment).
+  We then proceed as above but in the opposite way to show that \<open>(SInf, (SRed\<^sub>I, SRed\<^sub>F))\<close> is dynamically complete using the disjunctive entailment \<open>\<Turnstile>\<union>\<^sub>A\<^sub>F\<close>.
+\<close>
 
 (* Report corollary 22 *)
 corollary S_calculus_dynamically_complete:
