@@ -2093,11 +2093,241 @@ qed
 subsection \<open>Local saturation\<close>
 
 (* Report definition 23 *)
-definition locally_saturated :: \<open>('f, 'v) AF inference set \<Rightarrow> (('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set) \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> where
+definition locally_saturated :: \<open>('f, 'v) AF inference set \<Rightarrow> (('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set) \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> where
   \<open>locally_saturated S_Inf SRed_I \<N> \<equiv> to_AF bot \<in> \<N> \<or>
                                       (\<exists> J :: 'v total_interpretation. J \<Turnstile>\<^sub>p \<N> \<and> saturated (\<N> proj\<^sub>J J))\<close>
-                                      (* Note: in the paper, the propositional projection is explicit.
+                                      (* NOTE: in the paper, the propositional projection is explicit.
                                        * In our case, it is hidden within the definition for @{const propositional_model}. *)
+(* NOTE: what's the point of S_Inf and SRed_I if we are not using them in our definition? *)
+
+(* Report theorem 24 *)
+theorem S_calculus_strong_statically_complete:
+  assumes F_statically_complete: \<open>statically_complete_calculus bot Inf (\<Turnstile>) Red_I Red_F\<close> and
+          \<N>_locally_saturated: \<open>locally_saturated SInf SRed\<^sub>I \<N>\<close> and
+          \<N>_entails_bot: \<open>\<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+  shows \<open>to_AF bot \<in> \<N>\<close>
+  using \<N>_locally_saturated
+  unfolding locally_saturated_def
+proof (elim disjE)
+  show \<open>to_AF bot \<in> \<N> \<Longrightarrow> to_AF bot \<in> \<N>\<close>
+    by blast
+next
+  assume \<open>\<exists> J. J \<Turnstile>\<^sub>p \<N> \<and> F_saturated (\<N> proj\<^sub>J J)\<close>
+  then obtain J where J_prop_model_of_\<N>: \<open>J \<Turnstile>\<^sub>p \<N>\<close> and
+                      \<N>_proj_J_saturated: \<open>F_saturated (\<N> proj\<^sub>J J)\<close>
+    by blast
+  then have \<open>\<N> proj\<^sub>J J \<Turnstile> {bot}\<close>
+    using \<N>_entails_bot AF_entails_def enabled_to_AF_set
+    by fastforce
+  then have \<open>bot \<in> \<N> proj\<^sub>J J\<close>
+    using \<N>_proj_J_saturated F_statically_complete
+    by (simp add: Preliminaries_With_Zorn.statically_complete_calculus.statically_complete)
+  then show \<open>to_AF bot \<in> \<N>\<close>
+    using J_prop_model_of_\<N>
+    using enabled_projection_def propositional_model_def propositional_projection_def
+    by force
+qed
+
+(* Report definition 26 *)
+definition locally_fair :: \<open>('f, 'v) AF set infinite_llist \<Rightarrow> ('f, 'v) AF inference set \<Rightarrow> (('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set) \<Rightarrow> bool\<close> where
+  \<open>locally_fair \<N>i S_Inf SRed_I \<equiv> (\<exists> i. to_AF bot \<in> llnth \<N>i i)
+                                 \<or> (\<exists> J :: 'v total_interpretation. J \<Turnstile>\<^sub>p lim_inf \<N>i \<and>
+                                                                    Inf_from (lim_inf \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J)))\<close>
+
+lemma SRed_of_lim_inf: \<open>SRed\<^sub>F (lim_inf \<N>i) proj\<^sub>J J \<subseteq> Red_F (lim_inf \<N>i proj\<^sub>J J) \<union> (lim_inf \<N>i proj\<^sub>J J)\<close>
+proof (intro subsetI)
+  fix f
+  assume \<open>f \<in> SRed\<^sub>F (lim_inf \<N>i) proj\<^sub>J J\<close>
+  then show \<open>f \<in> Red_F (lim_inf \<N>i proj\<^sub>J J) \<union> (lim_inf \<N>i proj\<^sub>J J)\<close>
+    unfolding SRed\<^sub>F_def enabled_projection_def
+    apply auto
+    sorry
+qed
+
+lemma bot_at_i_implies_bot_at_liminf: \<open>is_derivation S_calculus.derive \<N>i \<Longrightarrow> to_AF bot \<in> llnth \<N>i i \<Longrightarrow> to_AF bot \<in> lim_inf \<N>i\<close>
+proof -
+  assume \<N>i_is_derivation: \<open>is_derivation S_calculus.derive \<N>i\<close> and
+         bot_at_i: \<open>to_AF bot \<in> llnth \<N>i i\<close>
+  then have \<open>\<forall> i. llnth \<N>i i - llnth \<N>i (Suc i) \<subseteq> SRed\<^sub>F (llnth \<N>i (Suc i))\<close>
+    unfolding is_derivation_def S_calculus.derive_def
+    by blast
+  then show ?thesis
+    using bot_at_i
+  proof (transfer fixing: bot i Red_F)
+    fix \<N>i'
+    assume llength_is_infinity: \<open>llength \<N>i' = \<infinity>\<close> and
+           bot_at_i: \<open>to_AF bot \<in> lnth \<N>i' i\<close> and
+           all_at_i_minus_next_i_are_redundant: \<open>\<forall> i. lnth \<N>i' i - lnth \<N>i' (Suc i) \<subseteq> SRed\<^sub>F (lnth \<N>i' (Suc i))\<close>
+    then have \<open>to_AF bot \<in> lnth \<N>i' (Suc i)\<close>
+      using bot_not_in_sredF_\<N>
+      by auto
+    then have \<open>\<forall> j \<ge> i. to_AF bot \<in> lnth \<N>i' j\<close>
+    proof (intro allI impI)
+      fix j
+      assume \<open>i \<le> j\<close>
+      then show \<open>to_AF bot \<in> lnth \<N>i' j\<close>
+      proof (induct j rule: full_nat_induct)
+        case less: (1 n)
+        show ?case
+        proof (cases \<open>i = n\<close>)
+          case True
+          then show ?thesis
+            using bot_at_i
+            by force
+        next
+          case False
+          then have i_less_than_n: \<open>i < n\<close>
+            using le_eq_less_or_eq less.prems
+            by presburger
+          then have n_positive: \<open>n > 0\<close>
+            by force
+          then have \<open>to_AF bot \<in> lnth \<N>i' (n - 1)\<close>
+            using i_less_than_n less.hyps
+            by fastforce
+          then show ?thesis
+            using all_at_i_minus_next_i_are_redundant[rule_format, of \<open>n - 1\<close>] bot_not_in_sredF_\<N> n_positive
+            by auto
+        qed
+      qed
+    qed
+    then have \<open>\<exists> i. \<forall> j \<ge> i. to_AF bot \<in> lnth \<N>i' j\<close>
+      by blast
+    then show \<open>to_AF bot \<in> Liminf_llist \<N>i'\<close>
+      using llength_is_infinity
+      unfolding Liminf_llist_def
+      by auto
+  qed
+qed
+
+(* Report lemma 27 *)
+lemma locally_fair_derivation_is_saturated_at_liminf: \<open>\<lbrakk> is_derivation S_calculus.derive \<N>i; locally_fair \<N>i SInf SRed\<^sub>I \<rbrakk> \<Longrightarrow>
+                                                           locally_saturated SInf SRed\<^sub>I (lim_inf \<N>i)\<close>
+proof -
+  assume \<N>i_is_derivation: \<open>is_derivation S_calculus.derive \<N>i\<close> and
+         \<open>locally_fair \<N>i SInf SRed\<^sub>I\<close>
+  then show \<open>locally_saturated SInf SRed\<^sub>I (lim_inf \<N>i)\<close>
+    unfolding locally_fair_def
+  proof (elim disjE)
+    assume \<open>\<exists> i. to_AF bot \<in> llnth \<N>i i\<close>
+    then obtain i where \<open>to_AF bot \<in> llnth \<N>i i\<close>
+      by blast
+    then have \<open>to_AF bot \<in> lim_inf \<N>i\<close>
+      using bot_at_i_implies_bot_at_liminf[OF \<N>i_is_derivation]
+      by blast
+    then show ?thesis
+      unfolding locally_saturated_def
+      by blast
+  next
+    assume \<open>\<exists> J. J \<Turnstile>\<^sub>p limit \<N>i \<and> Inf_from (limit \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J))\<close>
+    then obtain J where J_prop_model_of_limit: \<open>J \<Turnstile>\<^sub>p limit \<N>i\<close> and
+                        all_inf_of_limit_are_redundant: \<open>Inf_from (limit \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J))\<close>
+      by blast
+    then have \<open>\<forall> i. llnth \<N>i i \<subseteq> lim_inf \<N>i \<union> SRed\<^sub>F (lim_inf \<N>i)\<close>
+      using Calculus.calculus.i_in_Liminf_or_Red_F[OF S_with_conj_is_calculus, of \<open>to_llist \<N>i\<close>] derivation_equiv[of \<open>\<N>i\<close>]
+      by (simp add: Liminf_infinite_llist.rep_eq \<N>i_is_derivation llength_of_to_llist_is_infinite llnth.rep_eq sup_commute)
+    then have \<open>\<forall> i. llnth \<N>i i proj\<^sub>J J \<subseteq> (lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J)\<close>
+      by (smt (verit, best) SRed_of_lim_inf UN_iff UnE UnI1 Un_commute Union_of_enabled_projection_is_enabled_projection subset_iff)
+    then have Red_I_in_Red_I_of_Red_F: \<open>(\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J)) \<subseteq> (\<Union> i. Red_I ((lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J)))\<close>
+      by (meson Red_I_of_subset SUP_mono UNIV_I)
+    then have \<open>(\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J)) \<subseteq> (\<Union> i. Red_I (lim_inf \<N>i proj\<^sub>J J))\<close>
+      (* mmmmh *)
+      sorry
+    then show ?thesis
+      unfolding locally_saturated_def
+      using J_prop_model_of_limit all_inf_of_limit_are_redundant saturated_def
+      by force
+  qed
+qed
+
+lemma minus_subset_iff: \<open>A - B \<subseteq> C \<longleftrightarrow> A - C \<subseteq> B\<close>
+  by blast
+
+lemma llhd_is_llnth_0: \<open>llhd S = llnth S 0\<close>
+proof transfer
+  fix S
+  assume \<open>llength S = \<infinity>\<close>
+  then show \<open>lhd S = lnth S 0\<close>
+    using lhd_conv_lnth
+    by force
+qed
+
+(* Report theorem 28 (proof 1) *)
+
+(* Report theorem 28 (proof 2) *)
+(* TODO: move this one underneath the other *)
+theorem S_calculus_strong_dynamically_complete2:
+  assumes F_statically_complete: \<open>statically_complete_calculus bot Inf (\<Turnstile>) Red_I Red_F\<close> and
+          \<N>i_is_derivation: \<open>is_derivation S_calculus.derive \<N>i\<close> and
+          \<N>i_is_locally_fair: \<open>locally_fair \<N>i SInf SRed\<^sub>I\<close> and
+          \<N>i0_entails_bot: \<open>llhd \<N>i \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+  shows \<open>\<exists> i. to_AF bot \<in> llnth \<N>i i\<close>
+  using \<N>i_is_locally_fair
+  unfolding locally_fair_def
+proof (elim disjE)
+  show \<open>\<exists> i. to_AF bot \<in> llnth \<N>i i \<Longrightarrow> \<exists> i. to_AF bot \<in> llnth \<N>i i\<close>
+    by blast
+next
+  assume \<open>\<exists> J. J \<Turnstile>\<^sub>p limit \<N>i \<and> Inf_from (limit \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J))\<close>
+  then obtain J where J_prop_model_of_limit_\<N>i: \<open>J \<Turnstile>\<^sub>p limit \<N>i\<close> and
+                      all_inf_from_limit_are_redundant: \<open>Inf_from (limit \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J))\<close>
+    by blast
+  then have \<open>llhd \<N>i proj\<^sub>J J \<Turnstile> {bot}\<close>
+    using \<N>i0_entails_bot AF_calculus.enabled_to_AF_set AF_calculus_axioms AF_entails_def
+    by fastforce
+  then have \<open>\<exists> i. bot \<in> llnth \<N>i i proj\<^sub>J J\<close>
+    using S_calculus_dynamically_complete[OF F_statically_complete,
+                                          unfolded dynamically_complete_calculus_def dynamically_complete_calculus_axioms_def,
+                                          THEN conjunct2, rule_format, OF \<N>i_is_derivation]
+          all_inf_from_limit_are_redundant
+    unfolding S_calculus.weakly_fair_def
+    sorry
+  then have \<open>bot \<in> limit \<N>i proj\<^sub>J J\<close>
+    using bot_at_i_implies_bot_at_liminf[OF \<N>i_is_derivation]
+    unfolding enabled_projection_def
+    apply auto
+    sorry
+  then show \<open>\<exists> i. to_AF bot \<in> llnth \<N>i i\<close>
+    using J_prop_model_of_limit_\<N>i enabled_projection_def propositional_model_def propositional_projection_def
+    by auto
+qed
+
+
+theorem S_calculus_strong_dynamically_complete1:
+  assumes F_statically_complete: \<open>statically_complete_calculus bot Inf (\<Turnstile>) Red_I Red_F\<close> and
+          \<N>i_is_derivation: \<open>is_derivation S_calculus.derive \<N>i\<close> and
+          \<N>i_is_locally_fair: \<open>locally_fair \<N>i SInf SRed\<^sub>I\<close> and
+          \<N>i0_entails_bot: \<open>llhd \<N>i \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+  shows \<open>\<exists> i. to_AF bot \<in> llnth \<N>i i\<close>
+proof -
+  have \<open>llhd \<N>i \<subseteq> (\<Union> i. llnth \<N>i i)\<close>
+    by (simp add: SUP_upper llhd_is_llnth_0)
+  then have \<open>(\<Union> i. llnth \<N>i i) \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+    using \<N>i0_entails_bot
+    by (meson AF_cons_rel.entails_trans AF_cons_rel.subset_entailed entails_conj_is_entails_disj_if_right_singleton)
+  then have \<open>(\<Union> i. llnth \<N>i i) - SRed\<^sub>F (\<Union> i. llnth \<N>i i) \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+    using SRed\<^sub>F_entails_bot
+    by blast
+  moreover have \<open>chain (Calculus.calculus.derive SRed\<^sub>F) (to_llist \<N>i)\<close>
+    using derivation_equiv[of \<open>\<N>i\<close>] \<N>i_is_derivation
+    by blast
+  then have \<open>Sup_llist (to_llist \<N>i) - Liminf_llist (to_llist \<N>i) \<subseteq> SRed\<^sub>F (Sup_llist (to_llist \<N>i))\<close>
+    using Calculus.calculus.Red_in_Sup[OF S_with_conj_is_calculus]
+    by blast
+  then have \<open>(\<Union> i. llnth \<N>i i) - SRed\<^sub>F (\<Union> i. llnth \<N>i i) \<subseteq> lim_inf \<N>i\<close>
+    by (transfer fixing: Red_F, unfold Sup_llist_def Liminf_llist_def, auto)
+  ultimately have \<N>i_inf_entails_bot: \<open>lim_inf \<N>i \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+    by (meson AF_cons_rel.entails_subsets subset_iff)
+  then have \<N>i_inf_locally_saturated: \<open>locally_saturated SInf SRed\<^sub>I (lim_inf \<N>i)\<close>
+    using \<N>i_is_derivation \<N>i_is_locally_fair
+    using locally_fair_derivation_is_saturated_at_liminf
+    by blast
+  then have \<open>to_AF bot \<in> lim_inf \<N>i\<close>
+    using F_statically_complete S_calculus_strong_statically_complete \<N>i_inf_entails_bot
+    by blast
+  then show \<open>\<exists> i. to_AF bot \<in> llnth \<N>i i\<close>
+    by (transfer fixing: bot)
+       (meson Liminf_llist_imp_exists_index)
+qed
 
 end (* context splitting_calculus *)
 
