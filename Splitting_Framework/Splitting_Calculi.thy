@@ -360,8 +360,7 @@ subsection \<open>The redundancy criterion\<close>
 (* Report definition 15: splitting redundancy criterion *)
 definition SRed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> where
   \<open>SRed\<^sub>F \<N> = { AF.Pair C A | C A. \<forall> \<J>. total_strip \<J> \<supseteq> fset A \<longrightarrow> C \<in> Red_F (\<N> proj\<^sub>J \<J>) }
-            \<union> { AF.Pair C A | C A. \<exists> \<C> \<in> \<N>. F_of \<C> = C \<and> A_of \<C> |\<subset>| A }
-            \<union> { AF.Pair C A | C A. \<forall> J. \<not> fset A \<subseteq> total_strip J }\<close>
+            \<union> { AF.Pair C A | C A. \<exists> \<C> \<in> \<N>. F_of \<C> = C \<and> A_of \<C> |\<subset>| A }\<close>
 
 definition SRed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> where
   \<open>SRed\<^sub>I \<N> = { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)) }
@@ -758,7 +757,8 @@ proof -
   then show \<open>SRed\<^sub>F N \<subseteq> SRed\<^sub>F N'\<close>
     unfolding SRed\<^sub>F_def enabled_projection_def
     (* /!\ Takes a bit of time /!\ *)
-    by (auto, metis Red_F_of_subset distrib_proj enabled_projection_def subsetD sup.order_iff, blast)
+    by auto
+      (smt (verit, best) Collect_mono Red_F_of_subset subset_iff)
 qed
 
 lemma SRed\<^sub>I_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> SRed\<^sub>I N \<subseteq> SRed\<^sub>I N'\<close>
@@ -985,7 +985,7 @@ locale sound_simplification_rules =
   + fixes
       Simps :: \<open>'f simplification set\<close>
     assumes
-      sound_simplifications: \<open>\<iota> \<in> Simps \<Longrightarrow> \<M> \<union> S_from \<iota> \<Turnstile>s \<M> \<union> S_to \<iota>\<close>
+      sound_simplifications: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> \<M> \<union> S_to \<iota>. \<M> \<union> S_from \<iota> \<Turnstile>s {\<C>}\<close>
 
 locale splitting_calculus_with_simps =
   splitting_calculus_with_asn bot Inf entails entails_sound Red_I Red_F V fml asn
@@ -1048,7 +1048,7 @@ abbreviation split_simp :: \<open>('f, 'v) AF \<Rightarrow> 'f fset \<Rightarrow
   \<open>split_simp \<C> Cs As \<equiv> Simplify { \<C> } (insert (AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>)) (fset As))\<close>
 
 abbreviation collect_pre :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> where
-  \<open>collect_pre \<C> \<M> \<equiv> F_of \<C> \<noteq> bot \<and> \<M> \<Turnstile>\<^sub>A\<^sub>F { AF.Pair bot (A_of \<C>) } \<and> (\<forall> \<C> \<in> \<M>. F_of \<C> = bot) \<and> \<M> \<noteq> {}\<close>
+  \<open>collect_pre \<C> \<M> \<equiv> F_of \<C> \<noteq> bot \<and> \<M> \<Turnstile>\<^sub>A\<^sub>F { AF.Pair bot (A_of \<C>) } \<and> (\<forall> \<C> \<in> \<M>. F_of \<C> = bot)\<close>
 
 abbreviation collect_simp :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF set \<Rightarrow> ('f, 'v) AF simplification\<close> where
   \<open>collect_simp \<C> \<M> \<equiv> Simplify (insert \<C> \<M>) \<M>\<close>
@@ -1194,219 +1194,229 @@ proof -
 qed
 
 (* Report theorem 14 *)
-theorem SInf_with_simps_sound_wrt_entails_sound: \<open>\<iota> \<in> Simps \<Longrightarrow> S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F S_to \<iota>\<close>
+theorem SInf_with_simps_sound_wrt_entails_sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
 proof -
   assume \<open>\<iota> \<in> Simps\<close>
-  then have \<open>Simplification_rules \<iota>\<close>
+  then have \<iota>_is_simp_rule: \<open>Simplification_rules \<iota>\<close>
     by simp
-  then show \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F S_to \<iota>\<close>
-  proof (cases \<iota> rule: Simplification_rules.cases)
-    case (split \<C> Cs As)
-    then have Cs_not_empty: \<open>Cs \<noteq> {||}\<close>
-      unfolding splittable_def
-      by (metis bot_nat_0.extremum_unique fcard_fempty nat.simps(3) numerals(2))
-    then have As_not_empty: \<open>As \<noteq> {||}\<close>
-      using mk_split_def[of \<open>F_of \<C>\<close> \<open>Cs\<close>] splittable_def fimage_of_non_fempty_is_non_fempty[OF Cs_not_empty]
-            split(2)
-      by blast
+  then show \<open>\<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+  proof (intro ballI)
+    fix \<C>
+    assume \<C>_is_consq_of_\<iota>: \<open>\<C> \<in> S_to \<iota>\<close>
+    show \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+      using \<iota>_is_simp_rule
+    proof (cases rule: Simplification_rules.cases)
+      case (split \<C>' Cs As)
 
-    have \<open>fcard Cs \<ge> 1\<close>
-      by (simp add: Cs_not_empty Suc_le_eq non_zero_fcard_of_non_empty_set)
-    then have card_fset_Cs_ge_1: \<open>card (Pos ` fset Cs) \<ge> 1\<close>
-      by (metis Cs_not_empty bot_fset.rep_eq card_eq_0_iff empty_is_image finite_fset finite_imageI fset_cong
+      have pre_cond: \<open>split_pre \<C>' Cs As\<close>
+        using split(2) .
+
+      have Cs_not_empty: \<open>Cs \<noteq> {||}\<close>
+        using split(2)
+        unfolding splittable_def
+        by (metis bot_nat_0.extremum_unique fcard_fempty nat.simps(3) numerals(2))
+      then have As_not_empty: \<open>As \<noteq> {||}\<close>
+        using mk_split_def[of \<open>F_of \<C>'\<close> \<open>Cs\<close>] splittable_def fimage_of_non_fempty_is_non_fempty[OF Cs_not_empty]
+              split(2)
+        by blast
+
+      have \<open>fcard Cs \<ge> 1\<close>
+        by (simp add: Cs_not_empty Suc_le_eq non_zero_fcard_of_non_empty_set)
+      then have card_fset_Cs_ge_1: \<open>card (Pos ` fset Cs) \<ge> 1\<close>
+        by (metis Cs_not_empty bot_fset.rep_eq card_eq_0_iff empty_is_image finite_fset finite_imageI fset_cong
                 less_one linorder_not_le)
 
-    have \<open>{F_of \<C>} \<Turnstile>s fset Cs\<close>
-      using split(2)
-      unfolding splittable_def[of \<open>F_of \<C>\<close> \<open>Cs\<close>]
-      by blast
-    then have F_of_\<C>_entails_Cs: \<open>{Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> Pos ` fset Cs\<close>
-      unfolding sound_cons.entails_neg_def
-      by (smt (verit, del_insts) UnCI imageI mem_Collect_eq singleton_conv sound_cons.entails_subsets subsetI)
-
-    have finite_image_Pos_Cs: \<open>finite (Pos ` fset Cs)\<close>
-      using finite_fset
-      by blast
-
-    have all_C\<^sub>i_entail_bot: \<open>\<And> J C\<^sub>i a\<^sub>i. fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) \<subseteq> total_strip J \<Longrightarrow>
-                                 AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As \<Longrightarrow> (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
-    (* Same as for APPROX *)
-    proof -
-      fix J \<C>\<^sub>i a\<^sub>i
-      assume \<open>fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) \<subseteq> total_strip J\<close> and
-             Pair_\<C>\<^sub>i_a\<^sub>i_in_As: \<open>AF.Pair \<C>\<^sub>i {|a\<^sub>i|} |\<in>| As\<close>
-      then have \<open>neg a\<^sub>i \<in> total_strip J\<close>
-        using mk_disjoint_finsert
-        by fastforce
-      then have neg_fml_a\<^sub>i_in_J: \<open>neg (fml_ext a\<^sub>i) \<in> fml_ext ` total_strip J\<close>
-        by (metis fml_ext.simps(1) fml_ext.simps(2) image_iff is_Neg_to_V is_Pos_to_V neg.simps(1) neg.simps(2))
-      moreover have a\<^sub>i_in_asn_\<C>\<^sub>i: \<open>a\<^sub>i \<in> asn (Pos \<C>\<^sub>i)\<close>
-        using split_all_assertion_sets_asn[OF split(2) Pair_\<C>\<^sub>i_a\<^sub>i_in_As]
-        by auto
-      moreover have \<open>sound_cons.entails_neg {Pos \<C>\<^sub>i} {Pos \<C>\<^sub>i}\<close>
-        by (meson consequence_relation.entails_reflexive sound_cons.ext_cons_rel)
-      then have \<open>sound_cons.entails_neg (fml_ext ` (total_strip J - {neg a\<^sub>i}) \<union> {Pos \<C>\<^sub>i}) {Pos \<C>\<^sub>i, Pos bot}\<close>
-        by (smt (verit, best) Un_upper2 consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
-      ultimately show \<open>sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos \<C>\<^sub>i}) {Pos bot}\<close>
-      proof -
-        have \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> {fml_ext a\<^sub>i}) ({Pos bot} \<union> {})\<close>
-          by (smt (z3) Bex_def_raw UnCI Un_commute Un_insert_right Un_upper2 neg_fml_a\<^sub>i_in_J consequence_relation.entails_subsets
-                       insert_is_Un insert_subset sound_cons.ext_cons_rel sound_cons.pos_neg_entails_bot)
-        then show ?thesis
-          by (smt (z3) C_entails_fml Un_commute a\<^sub>i_in_asn_\<C>\<^sub>i consequence_relation.entails_cut insert_is_Un sound_cons.ext_cons_rel)
-      qed
-    qed
-    then have \<open>\<And> J. fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) \<subseteq> total_strip J \<Longrightarrow>
-                         sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos (F_of \<C>)}) {Pos bot}\<close>
-      unfolding splittable_def
-    proof -
-      fix J
-      assume \<open>fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) \<subseteq> total_strip J\<close>
-      then have C\<^sub>i_head_of_pair_entails_bot: \<open>\<And> C\<^sub>i a\<^sub>i. AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As \<Longrightarrow>
-                                                    (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
-        using all_C\<^sub>i_entail_bot
+      have \<open>{F_of \<C>'} \<Turnstile>s fset Cs\<close>
+        using split(2)
+        unfolding splittable_def[of \<open>F_of \<C>'\<close> \<open>Cs\<close>]
         by blast
-      then have \<open>\<And> C\<^sub>i. C\<^sub>i |\<in>| Cs \<Longrightarrow> (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+      then have F_of_\<C>_entails_Cs: \<open>{Pos (F_of \<C>')} \<Turnstile>s\<^sub>\<sim> Pos ` fset Cs\<close>
+        unfolding sound_cons.entails_neg_def
+        by (smt (verit, del_insts) UnCI imageI mem_Collect_eq singleton_conv sound_cons.entails_subsets subsetI)
+
+      have finite_image_Pos_Cs: \<open>finite (Pos ` fset Cs)\<close>
+        using finite_fset
+        by blast
+
+      have all_C\<^sub>i_entail_bot: \<open>\<And> J C\<^sub>i a\<^sub>i. fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
+                                   AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As \<Longrightarrow> (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+      (* Same as for APPROX *)
       proof -
-        fix C\<^sub>i
-        assume \<open>C\<^sub>i |\<in>| Cs\<close>
-        then have \<open>\<exists> a\<^sub>i. AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As\<close>
-          using split_all_pairs_in_Cs_in_As[OF split(2)]
-          by presburger
-        then obtain a\<^sub>i where \<open>AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As\<close>
-          by blast
-        then show \<open>(fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
-          using C\<^sub>i_head_of_pair_entails_bot
-          by blast
-      qed
-      then show \<open>(fml_ext ` total_strip J) \<union> {Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
-        using entails_of_entails_iff[OF F_of_\<C>_entails_Cs finite_image_Pos_Cs card_fset_Cs_ge_1]
-        by (metis (no_types, opaque_lifting) image_iff notin_fset)
-    qed
-    then have \<open>\<And> J. fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) \<subseteq> total_strip J \<Longrightarrow>
-                         sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> Pos ` (S_from \<iota> proj\<^sub>J J)) {Pos bot}\<close>
-      using split(2)
-      by (simp add: split(1) enabled_def enabled_projection_def)
-    then have \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F { AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) }\<close>
-      unfolding AF_entails_sound_def
-      using enabled_def enabled_set_def
-      by auto
-    moreover have \<open>\<And> \<C>' J. \<C>' |\<in>| As \<Longrightarrow> fset (A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
-                               sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` ({\<C>} proj\<^sub>J J)) {Pos (F_of \<C>')}\<close>
-    proof -
-      fix \<C>' J
-      assume \<open>\<C>' |\<in>| As\<close> and
-             \<open>fset (A_of \<C>') \<subseteq> total_strip J\<close>
-      then obtain a where \<open>A_of \<C>' = {|a|}\<close> and
-                          \<open>a \<in> total_strip J\<close> and
-                          \<open>a \<in> asn (Pos (F_of \<C>'))\<close>
-        by (metis split(2) finsert.rep_eq insert_subset splitting_calculus_with_simps.split_all_assertion_sets_asn
-                  splitting_calculus_with_simps_axioms)
-      moreover have \<open>sound_cons.entails_neg {Pos (F_of \<C>')} {Pos (F_of \<C>')}\<close>
-        by (meson consequence_relation.entails_reflexive sound_cons.ext_cons_rel)
-      then have \<open>sound_cons.entails_neg (fml_ext ` (total_strip J - {a}) \<union> {Pos (F_of \<C>')}) {Pos (F_of \<C>')}\<close>
-        by (metis (no_types, lifting) Un_upper2 consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
-      ultimately show \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` ({\<C>} proj\<^sub>J J)) {Pos (F_of \<C>')}\<close>
-        by (smt (verit, del_insts) consequence_relation.entails_subsets fml_entails_C image_eqI insert_is_Un insert_subset
-                                   sound_cons.ext_cons_rel sup_bot_left sup_ge1)
-    qed
-    then have \<open>\<And> \<C>'. \<C>' |\<in>| As \<Longrightarrow> S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
-      unfolding AF_entails_sound_def
-      by (simp add: split(1) enabled_def enabled_set_def)
-    then have \<open>\<forall> \<C>' \<in> fset As. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
-      by (meson notin_fset)
-    then have \<open>\<exists> \<C>' \<in> fset As. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
-      by (metis As_not_empty all_not_in_conv bot_fset.rep_eq fset_cong)
-    then have \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F fset As\<close>
-      by (rule AF_entails_sound_right_disjunctive)
-    ultimately show ?thesis
-      by (metis (no_types, lifting) AF_sound_cons_rel.entails_subsets Un_upper2 insert_subset
-                                    simplification.collapse simplification.inject sup.idem split(1))
-  next
-    case (collect \<C> \<N>)
-    then have \<open>\<N> \<Turnstile>s\<^sub>A\<^sub>F \<N>\<close>
-      using AF_sound_cons_rel.entails_cond_reflexive
-      by presburger
-    then show ?thesis
-      by (metis AF_sound_cons_rel.entails_subsets Un_upper2 insert_is_Un local.collect(1)
-                simplification.sel(1) simplification.sel(2) subset_refl)
-  next
-    case (trim \<C> A B \<N>)
-    then have \<open>A_of \<C> = A |\<union>| B\<close> and
-              \<open>F_of \<C> \<noteq> bot\<close> and
-              \<N>_and_Pair_bot_A_entails_Pair_bot_B: \<open>\<N> \<union> {AF.Pair bot A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B}\<close> and
-              all_heads_in_\<N>_are_bot: \<open>(\<forall> \<C> \<in> \<N>. F_of \<C> = bot)\<close> and
-              \<open>A |\<inter>| B = {||}\<close> and
-              \<open>A \<noteq> {||}\<close>
-      by blast+
-    then have \<open>\<forall> J. enabled_set (insert (AF.Pair (F_of \<C>) B) \<N>) J \<longrightarrow>
-                   sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` ((insert (AF.Pair (F_of \<C>) A) \<N>) proj\<^sub>J J))
-                                          (Pos ` F_of ` (insert (AF.Pair (F_of \<C>) B) \<N>))\<close>
-    proof (intro allI impI)
-      fix J
-      assume set_Pair_F_of_\<C>_B_\<N>_enabled: \<open>enabled_set (insert (AF.Pair (F_of \<C>) B) \<N>) J\<close>
-      then have B_in_J: \<open>fset B \<subseteq> total_strip J\<close>
-        by (simp add: enabled_def enabled_set_def)
-      then consider (fml_unsat) \<open>sound_cons.entails_neg (fml_ext ` total_strip J) {Pos bot}\<close> |
-                    (\<N>_unsat) \<open>\<exists> A' \<in> A_of ` \<N>. fset A' \<subseteq> total_strip J\<close> |
-                    (A_subset_J) \<open>fset A \<subseteq> total_strip J\<close>
-        using strong_entails_bot_cases[OF \<N>_and_Pair_bot_A_entails_Pair_bot_B, rule_format, OF B_in_J]
-              strong_entails_bot_cases_Union[rule_format, OF _ _ B_in_J]
-        by (metis Un_commute set_Pair_F_of_\<C>_B_\<N>_enabled all_not_in_conv enabled_def enabled_set_def image_iff
-                  insert_iff sup_bot_left to_AF_proj_J)
-      then have \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` (\<N> proj\<^sub>J J) \<union> Pos ` ({AF.Pair (F_of \<C>) A} proj\<^sub>J J))
-                                        (insert (Pos (F_of \<C>)) (Pos ` F_of ` \<N>))\<close>
-      proof (cases)
-        case fml_unsat
-        then have \<open>sound_cons.entails_neg (fml_ext ` total_strip J) {Pos bot, Pos (F_of \<C>)}\<close>
-          by (smt (verit, best) Un_absorb consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
-        moreover have \<open>sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos bot}) {Pos (F_of \<C>)}\<close>
-          by (smt (verit, del_insts) Un_commute Un_upper2 empty_subsetI insert_subset mem_Collect_eq sound_cons.bot_entails_empty
-                                     sound_cons.entails_neg_def sound_cons.entails_subsets)
-        ultimately have \<open>sound_cons.entails_neg (fml_ext ` total_strip J) {Pos (F_of \<C>)}\<close>
-          using consequence_relation.entails_cut sound_cons.ext_cons_rel
+        fix J \<C>\<^sub>i a\<^sub>i
+        assume \<open>fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J\<close> and
+               Pair_\<C>\<^sub>i_a\<^sub>i_in_As: \<open>AF.Pair \<C>\<^sub>i {|a\<^sub>i|} |\<in>| As\<close>
+        then have \<open>neg a\<^sub>i \<in> total_strip J\<close>
+          using mk_disjoint_finsert
           by fastforce
-        then show ?thesis
-          by (smt (verit, ccfv_SIG) consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
-      next
-        case \<N>_unsat
-        then have \<open>bot \<in> \<N> proj\<^sub>J J\<close>
-          unfolding enabled_projection_def enabled_def
-          using local.trim(2)
-          by fastforce
-        then have \<open>sound_cons.entails_neg (Pos ` (\<N> proj\<^sub>J J)) {}\<close>
-          by (smt (verit, del_insts) consequence_relation.bot_entails_empty consequence_relation.entails_subsets image_insert
-                                     insert_is_Un mk_disjoint_insert sound_cons.ext_cons_rel sup_bot_right sup_ge1)
-        then show ?thesis
-          by (smt (verit, ccfv_SIG) Un_commute Un_left_commute consequence_relation.entails_subsets empty_subsetI
-                                    sound_cons.ext_cons_rel sup_ge1)
-      next
-        case A_subset_J
-        then have pair_bot_A_enabled: \<open>enabled (AF.Pair bot A) J\<close>
-          by (simp add: enabled_def)
-        then have \<open>sound_cons.entails_neg {Pos (F_of \<C>)} {Pos (F_of \<C>)}\<close>
+        then have neg_fml_a\<^sub>i_in_J: \<open>neg (fml_ext a\<^sub>i) \<in> fml_ext ` total_strip J\<close>
+          by (metis fml_ext.simps(1) fml_ext.simps(2) image_iff is_Neg_to_V is_Pos_to_V neg.simps(1) neg.simps(2))
+        moreover have a\<^sub>i_in_asn_\<C>\<^sub>i: \<open>a\<^sub>i \<in> asn (Pos \<C>\<^sub>i)\<close>
+          using split_all_assertion_sets_asn[OF split(2) Pair_\<C>\<^sub>i_a\<^sub>i_in_As]
+          by auto
+        moreover have \<open>sound_cons.entails_neg {Pos \<C>\<^sub>i} {Pos \<C>\<^sub>i}\<close>
           by (meson consequence_relation.entails_reflexive sound_cons.ext_cons_rel)
-        then have \<open>sound_cons.entails_neg (Pos ` ({AF.Pair (F_of \<C>) A} proj\<^sub>J J)) {Pos (F_of \<C>)}\<close>
-          using pair_bot_A_enabled enabled_def enabled_projection_def
-          by force
-        then show ?thesis
-          by (smt (verit, ccfv_threshold) Un_upper2 consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
+        then have \<open>sound_cons.entails_neg (fml_ext ` (total_strip J - {neg a\<^sub>i}) \<union> {Pos \<C>\<^sub>i}) {Pos \<C>\<^sub>i, Pos bot}\<close>
+          by (smt (verit, best) Un_upper2 consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
+        ultimately show \<open>sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos \<C>\<^sub>i}) {Pos bot}\<close>
+        proof -
+          have \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> {fml_ext a\<^sub>i}) ({Pos bot} \<union> {})\<close>
+            by (smt (z3) Bex_def_raw UnCI Un_commute Un_insert_right Un_upper2 neg_fml_a\<^sub>i_in_J consequence_relation.entails_subsets
+                         insert_is_Un insert_subset sound_cons.ext_cons_rel sound_cons.pos_neg_entails_bot)
+          then show ?thesis
+            by (smt (z3) C_entails_fml Un_commute a\<^sub>i_in_asn_\<C>\<^sub>i consequence_relation.entails_cut insert_is_Un sound_cons.ext_cons_rel)
+        qed
       qed
-      then show \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` ((insert (AF.Pair (F_of \<C>) A) \<N>) proj\<^sub>J J))
-                                        (Pos ` F_of ` (insert (AF.Pair (F_of \<C>) B) \<N>))\<close>
-        by (metis (no_types, lifting) AF.sel(1) Un_insert_right distrib_proj_singleton image_Un image_insert sup_assoc sup_bot_right)
+      then have \<open>\<And> J. fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
+                           sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos (F_of \<C>')}) {Pos bot}\<close>
+        unfolding splittable_def
+      proof -
+        fix J
+        assume \<open>fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J\<close>
+        then have C\<^sub>i_head_of_pair_entails_bot: \<open>\<And> C\<^sub>i a\<^sub>i. AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As \<Longrightarrow>
+                                                      (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+          using all_C\<^sub>i_entail_bot
+          by blast
+        then have \<open>\<And> C\<^sub>i. C\<^sub>i |\<in>| Cs \<Longrightarrow> (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+        proof -
+          fix C\<^sub>i
+          assume \<open>C\<^sub>i |\<in>| Cs\<close>
+          then have \<open>\<exists> a\<^sub>i. AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As\<close>
+            using split_all_pairs_in_Cs_in_As[OF split(2)]
+            by presburger
+          then obtain a\<^sub>i where \<open>AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As\<close>
+            by blast
+          then show \<open>(fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+            using C\<^sub>i_head_of_pair_entails_bot
+            by blast
+        qed
+        then show \<open>(fml_ext ` total_strip J) \<union> {Pos (F_of \<C>')} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+          using entails_of_entails_iff[OF F_of_\<C>_entails_Cs finite_image_Pos_Cs card_fset_Cs_ge_1]
+          by (metis (no_types, opaque_lifting) image_iff notin_fset)
+      qed
+      then have \<open>\<And> J. fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
+                           sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> Pos ` (S_from \<iota> proj\<^sub>J J)) {Pos bot}\<close>
+        using split(2)
+        by (simp add: split(1) enabled_def enabled_projection_def)
+      then have \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F { AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') }\<close>
+        unfolding AF_entails_sound_def
+        using enabled_def enabled_set_def
+        by auto
+      moreover have \<open>\<And> J C''. C'' |\<in>| As \<Longrightarrow> fset (A_of C'') \<subseteq> total_strip J \<Longrightarrow>
+                          (fml_ext ` total_strip J) \<union> Pos ` ({\<C>'} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of C'')}\<close>
+      proof -
+        fix J C''
+        assume C''_in_As: \<open>C'' |\<in>| As\<close> and
+               A_of_C''_subset_J: \<open>fset (A_of C'') \<subseteq> total_strip J\<close>
+        then have \<open>\<exists> a\<^sub>i. a\<^sub>i \<in> asn (Pos (F_of C'')) \<and> A_of C'' = {| a\<^sub>i |}\<close>
+          using split_all_assertion_sets_asn[OF pre_cond C''_in_As]
+          by blast
+        then obtain a\<^sub>i where a\<^sub>i_in_asn_F_of_C'': \<open>a\<^sub>i \<in> asn (Pos (F_of C''))\<close> and
+                             A_of_C''_is: \<open>A_of C'' = {| a\<^sub>i |}\<close>
+          by blast
+        then have \<open>a\<^sub>i \<in> total_strip J\<close>
+          using A_of_C''_subset_J
+          by simp
+        then show \<open>(fml_ext ` total_strip J) \<union> Pos ` ({\<C>'} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of C'')}\<close>
+          by (smt (verit, ccfv_threshold) Un_commute Un_upper2 a\<^sub>i_in_asn_F_of_C'' consequence_relation.entails_subsets
+                                          fml_entails_C image_eqI insert_subset sound_cons.ext_cons_rel sup_bot_right)
+      qed
+      then have \<open>\<And> J C''. C'' \<in> fset As \<Longrightarrow> fset (A_of C'') \<subseteq> total_strip J \<Longrightarrow>
+                          (fml_ext ` total_strip J) \<union> Pos ` ({\<C>'} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of C'')}\<close>
+        by (meson notin_fset)
+      then have \<open>\<forall> \<C>'' \<in> fset As. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>''}\<close>
+        unfolding AF_entails_sound_def enabled_set_def enabled_def
+        using split(1)
+        by auto
+      ultimately show ?thesis
+        using \<C>_is_consq_of_\<iota> split(1)
+        unfolding S_to_def
+        by auto
+    next
+      case (collect \<C>' \<N>)
+      then show ?thesis
+        using \<C>_is_consq_of_\<iota>
+        by (metis AF_sound_cons_rel.entails_conjunctive_def AF_sound_cons_rel.subset_entailed insert_iff simplification.sel(1)
+                  simplification.sel(2) subset_refl)
+    next
+      case (trim \<C>' A B \<N>)
+      then have \<open>A_of \<C>' = A |\<union>| B\<close> and
+                \<open>F_of \<C>' \<noteq> bot\<close> and
+                \<N>_and_Pair_bot_A_entails_Pair_bot_B: \<open>\<N> \<union> {AF.Pair bot A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B}\<close> and
+                all_heads_in_\<N>_are_bot: \<open>(\<forall> \<C> \<in> \<N>. F_of \<C> = bot)\<close> and
+                \<open>A |\<inter>| B = {||}\<close> and
+                \<open>A \<noteq> {||}\<close>
+        by blast+
+      then show ?thesis
+        using trim projection_of_enabled_subset \<C>_is_consq_of_\<iota>
+      proof (clarsimp, elim disjE)
+        assume \<C>_is: \<open>\<C> = AF.Pair (F_of \<C>') B\<close>
+        then have \<open>\<And> J. enabled \<C> J \<Longrightarrow> fml_ext ` total_strip J \<union> Pos ` (insert (AF.Pair (F_of \<C>') A) \<N> proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
+        proof -
+          fix J
+          assume \<open>enabled \<C> J\<close>
+          then have B_in_J: \<open>fset B \<subseteq> total_strip J\<close>
+            by (simp add: \<C>_is enabled_def)
+          then consider (fml_unsat) \<open>sound_cons.entails_neg (fml_ext ` total_strip J) {Pos bot}\<close> |
+                         (\<N>_unsat) \<open>\<exists> A' \<in> A_of ` \<N>. fset A' \<subseteq> total_strip J\<close> |
+                         (A_subset_J) \<open>fset A \<subseteq> total_strip J\<close>
+            using strong_entails_bot_cases[OF \<N>_and_Pair_bot_A_entails_Pair_bot_B, rule_format, OF B_in_J]
+                  strong_entails_bot_cases_Union[rule_format, OF _ _ B_in_J]
+            by (smt (verit, ccfv_SIG) Un_commute enabled_def enabled_projection_def equals0I image_iff mem_Collect_eq sup_bot_left)
+          then show \<open>fml_ext ` total_strip J \<union> Pos ` (insert (AF.Pair (F_of \<C>') A) \<N> proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
+          proof cases
+            case fml_unsat
+            then have \<open>sound_cons.entails_neg (fml_ext ` total_strip J) {Pos bot, Pos (F_of \<C>')}\<close>
+              by (smt (verit, best) Un_absorb consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
+            moreover have \<open>sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos bot}) {Pos (F_of \<C>')}\<close>
+              by (smt (verit, del_insts) Un_commute Un_upper2 empty_subsetI insert_subset mem_Collect_eq sound_cons.bot_entails_empty
+                                         sound_cons.entails_neg_def sound_cons.entails_subsets)
+            ultimately have \<open>sound_cons.entails_neg (fml_ext ` total_strip J) {Pos (F_of \<C>')}\<close>
+              using consequence_relation.entails_cut sound_cons.ext_cons_rel
+              by fastforce
+            then show ?thesis
+              by (smt (verit, best) AF.sel(1) \<C>_is consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
+          next
+            case \<N>_unsat
+            then have \<open>bot \<in> \<N> proj\<^sub>J J\<close>
+              unfolding enabled_projection_def enabled_def
+              using local.trim(2)
+              by fastforce
+            then have \<open>sound_cons.entails_neg (Pos ` (\<N> proj\<^sub>J J)) {}\<close>
+              by (smt (verit, del_insts) consequence_relation.bot_entails_empty consequence_relation.entails_subsets image_insert
+                                         insert_is_Un mk_disjoint_insert sound_cons.ext_cons_rel sup_bot_right sup_ge1)
+            then show ?thesis
+              by (smt (verit, ccfv_threshold) Un_upper2 consequence_relation.entails_subsets distrib_proj
+                                              image_Un insert_is_Un sound_cons.ext_cons_rel sup_assoc)
+          next
+            case A_subset_J
+            then have pair_bot_A_enabled: \<open>enabled (AF.Pair bot A) J\<close>
+              by (simp add: enabled_def)
+            then have \<open>sound_cons.entails_neg {Pos (F_of \<C>')} {Pos (F_of \<C>')}\<close>
+               by (meson consequence_relation.entails_reflexive sound_cons.ext_cons_rel)
+            then have \<open>sound_cons.entails_neg (Pos ` ({AF.Pair (F_of \<C>') A} proj\<^sub>J J)) {Pos (F_of \<C>')}\<close>
+              using pair_bot_A_enabled enabled_def enabled_projection_def
+              by force
+            then show ?thesis
+              by (smt (verit, ccfv_threshold) AF.sel(1) Un_commute Un_upper2 \<C>_is consequence_relation.entails_subsets
+                                              distrib_proj image_Un insert_is_Un sound_cons.ext_cons_rel)
+          qed
+        qed
+        then show \<open>insert \<C>' \<N> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+          unfolding AF_entails_sound_def enabled_set_def
+          by (smt (verit, best) AF.collapse AF.sel(2) Un_insert_right \<C>_is distrib_proj_singleton enabled_def image_empty image_insert
+                                insertCI local.trim(2) projection_of_enabled_subset sup_bot_right)
+      next
+        show \<open>\<C> \<in> \<N> \<Longrightarrow> insert \<C>' \<N> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+          by (metis AF_sound_cons_rel.entails_conjunctive_def AF_sound_cons_rel.subset_entailed Un_upper2 insert_is_Un)
+      qed
     qed
-    then show ?thesis
-      unfolding AF_entails_sound_def
-      using trim projection_of_enabled_subset
-      by (metis (no_types, lifting) AF.collapse AF.sel(2) Un_insert_right distrib_proj_singleton enabled_def enabled_set_def
-                                    insertCI simplification.sel(1) simplification.sel(2) sup_bot_right)
   qed
 qed
 
-lemma SInf_with_simps_sound_wrt_entails_sound2: \<open>\<iota> \<in> Simps \<Longrightarrow> \<M> \<union> S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F \<M> \<union> S_to \<iota>\<close>
+lemma SInf_with_simps_sound_wrt_entails_sound2: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> \<M> \<union> S_to \<iota>. \<M> \<union> S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
   using SInf_with_simps_sound_wrt_entails_sound
-  by (meson AF_sound_cons_rel.entails_subsets Un_upper2)
+  by (meson AF_sound_cons_rel.entails_conjunctive_def AF_sound_cons_rel.entails_subsets
+            AF_sound_cons_rel.subset_entailed Un_iff Un_upper2 subset_refl)
 
 interpretation Simps_sound: sound_simplification_rules \<open>to_AF bot\<close> SInf \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close> Simps
   by (standard, auto simp add: SInf_with_simps_sound_wrt_entails_sound2)
