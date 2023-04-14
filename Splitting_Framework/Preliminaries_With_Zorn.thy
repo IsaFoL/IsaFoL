@@ -1316,7 +1316,7 @@ next
 qed
 
 definition weakly_fair :: "'f set infinite_llist \<Rightarrow> bool" where
-  \<open>weakly_fair Ns \<equiv> Inf_from (Liminf_infinite_llist Ns) ⊆ Sup_infinite_llist (llmap Red_I Ns)\<close>
+  \<open>weakly_fair Ns \<equiv> Inf_from (Liminf_infinite_llist Ns) \<subseteq> Sup_infinite_llist (llmap Red_I Ns)\<close>
   (* "weakly_fair Ns \<equiv> Inf_from (lim_inf Ns) \<subseteq> (\<Union>i. (Red_I (Ns !! i)))" *)
 
 abbreviation fair :: "'f set infinite_llist \<Rightarrow> bool" where "fair N \<equiv> weakly_fair N"
