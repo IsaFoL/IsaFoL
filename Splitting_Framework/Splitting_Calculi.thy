@@ -285,13 +285,13 @@ lemma fBall_fset_of_list_iff_Ball_set: \<open>fBall (fset_of_list A) P \<longlef
 
 
 (* Report theorem 14 *)
-theorem SInf_sound_wrt_entails_sound: \<open>\<iota> \<in> SInf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
+theorem SInf_sound_wrt_entails_sound: \<open>\<iota>\<^sub>S \<in> SInf \<Longrightarrow> set (prems_of \<iota>\<^sub>S) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>\<^sub>S}\<close>
 proof -
-  assume \<open>\<iota> \<in> SInf\<close>
-  then have \<open>Splitting_rules \<iota>\<close>
+  assume \<open>\<iota>\<^sub>S \<in> SInf\<close>
+  then have \<open>Splitting_rules \<iota>\<^sub>S\<close>
     by simp
-  then show \<open>set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
-  proof (cases \<iota> rule: Splitting_rules.cases)
+  then show \<open>set (prems_of \<iota>\<^sub>S) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>\<^sub>S}\<close>
+  proof (cases \<iota>\<^sub>S rule: Splitting_rules.cases)
     case (base \<N> D)
     assume \<open>base_pre \<N> D\<close>
     then have inf_is_sound: \<open>set (map F_of \<N>) \<Turnstile>s {D}\<close>
@@ -301,11 +301,11 @@ proof -
       unfolding AF_entails_sound_def sound_cons.entails_neg_def
     proof (intro allI impI)
       fix J
-      assume \<open>enabled_set {concl_of \<iota>} J\<close>
-      then have Pair_D_A_of_\<N>_is_enabled: \<open>enabled_set {concl_of \<iota>} J\<close>
+      assume \<open>enabled_set {concl_of \<iota>\<^sub>S} J\<close>
+      then have Pair_D_A_of_\<N>_is_enabled: \<open>enabled_set {concl_of \<iota>\<^sub>S} J\<close>
         using base
         by simp
-      then have \<open>F_of ` {concl_of \<iota>} = {D}\<close>
+      then have \<open>F_of ` {concl_of \<iota>\<^sub>S} = {D}\<close>
         using base
         by simp
       moreover have \<open>fset (ffUnion (fset_of_list (map A_of \<N>))) \<subseteq> total_strip J\<close>
@@ -326,12 +326,12 @@ proof -
       moreover have \<open>{C. Pos C \<in> fml_ext ` total_strip J \<union> Pos ` F_of ` set \<N>} \<Turnstile>s {D}\<close>
         using inf_is_sound
         by (smt (verit, ccfv_threshold) UnCI imageI mem_Collect_eq set_map_is_image sound_cons.entails_subsets subsetI)
-      moreover have \<open>{C. Neg C \<in> Pos ` F_of ` {concl_of \<iota>}} = {}\<close>
+      moreover have \<open>{C. Neg C \<in> Pos ` F_of ` {concl_of \<iota>\<^sub>S}} = {}\<close>
         by fast
-      ultimately show \<open>{C. Pos C \<in> fml_ext ` total_strip J \<union> Pos ` (set (prems_of \<iota>) proj\<^sub>J J)} \<union>
-                       {C. Neg C \<in> Pos ` F_of ` {concl_of \<iota>}} \<Turnstile>s
-                       {C. Pos C \<in> Pos ` F_of ` {concl_of \<iota>}} \<union>
-                       {C. Neg C \<in> fml_ext ` total_strip J \<union> Pos ` (set (prems_of \<iota>) proj\<^sub>J J)}\<close>
+      ultimately show \<open>{C. Pos C \<in> fml_ext ` total_strip J \<union> Pos ` (set (prems_of \<iota>\<^sub>S) proj\<^sub>J J)} \<union>
+                       {C. Neg C \<in> Pos ` F_of ` {concl_of \<iota>\<^sub>S}} \<Turnstile>s
+                       {C. Pos C \<in> Pos ` F_of ` {concl_of \<iota>\<^sub>S}} \<union>
+                       {C. Neg C \<in> fml_ext ` total_strip J \<union> Pos ` (set (prems_of \<iota>\<^sub>S) proj\<^sub>J J)}\<close>
         (* /!\ Careful, this one is a little bit slow (enough to be noticed) /!\ *)
         using base
         by (smt (verit, del_insts) UnCI imageI inference.sel(1) inference.sel(2) mem_Collect_eq sound_cons.entails_subsets subsetI)
@@ -880,13 +880,13 @@ proof -
         unfolding enabled_def
         using fset_ffUnion_subset_iff_all_fsets_subset
         by (metis AF.sel(2))
-      ultimately show \<open>Infer (map F_of \<M>) \<C> \<in> Red_I {F_of \<C> |\<C>. \<C> \<in> N \<and> enabled \<C> J}\<close>
+      ultimately show \<open>Infer (map F_of \<M>) \<C> \<in> Red_I {F_of \<C> | \<C>. \<C> \<in> N \<and> enabled \<C> J}\<close>
         by (metis (mono_tags, lifting) AF.sel(1) Infer_\<M>_\<C>_is_Inf Red_I_of_Inf_to_N fset_of_list_map inference.sel(2) mem_Collect_eq)
     qed
-    then have \<open>\<iota>\<^sub>S \<in> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall>\<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>))}\<close>
+    then have \<open>\<iota>\<^sub>S \<in> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>))}\<close>
       using \<iota>\<^sub>S_is Infer_\<M>_\<C>_is_Inf
       by auto
-    then show \<open>\<iota>\<^sub>S \<in> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall>\<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>)) } \<union>
+    then show \<open>\<iota>\<^sub>S \<in> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>)) } \<union>
                     { unsat_inf \<M> | \<M>. unsat_pre \<M> \<and> to_AF bot \<in> N }\<close>
       by fast
   next
@@ -894,7 +894,7 @@ proof -
     then have \<open>\<iota>\<^sub>S \<in> { unsat_inf \<M> | \<M>. unsat_pre \<M> \<and> to_AF bot \<in> N}\<close>
       using concl_\<iota>\<^sub>S_in_N
       by fastforce
-    then show \<open>\<iota>\<^sub>S \<in> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall>\<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>)) } \<union>
+    then show \<open>\<iota>\<^sub>S \<in> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>)) } \<union>
                     { unsat_inf \<M> | \<M>. unsat_pre \<M> \<and> to_AF bot \<in> N }\<close>
       by fast
   qed
@@ -1678,7 +1678,7 @@ next
       then have \<open>sound_cons.entails_neg ((fml_ext ` (total_strip J - {neg a})) \<union> {Pos (F_of \<C>)}) {Pos bot, Pos (F_of \<C>)}\<close>
         by (metis (no_types, lifting) consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup.cobounded2)
       ultimately show \<open>sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos (F_of \<C>)}) {Pos bot}\<close>
-      (* Sledgehammer produced this?????
+      (* Sledgehammer can produce this Isar-style proofs????
        * Well nice one I guess. *)
       proof -
         have \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> {fml_ext a}) ({Pos bot} \<union> {})\<close>
