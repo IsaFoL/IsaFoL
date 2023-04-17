@@ -2149,9 +2149,9 @@ proof (intro subsetI)
   fix f
   assume \<open>f \<in> SRed\<^sub>F (lim_inf \<N>i) proj\<^sub>J J\<close>
   then show \<open>f \<in> Red_F (lim_inf \<N>i proj\<^sub>J J) \<union> (lim_inf \<N>i proj\<^sub>J J)\<close>
-    unfolding SRed\<^sub>F_def enabled_projection_def
-    apply auto
-    sorry
+    unfolding SRed\<^sub>F_def enabled_projection_def enabled_def
+    using less_eq_fset.rep_eq
+    by (auto, fastforce)
 qed
 
 lemma bot_at_i_implies_bot_at_liminf: \<open>is_derivation S_calculus.derive \<N>i \<Longrightarrow> to_AF bot \<in> llnth \<N>i i \<Longrightarrow> to_AF bot \<in> lim_inf \<N>i\<close>
@@ -2209,6 +2209,17 @@ proof -
   qed
 qed
 
+lemma Red_I_of_inf_Red_F_subset_Red_I_of_inf: \<open>Red_I ((lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J)) = Red_I (lim_inf \<N>i proj\<^sub>J J)\<close>
+proof (intro subset_antisym)
+  have \<open>Red_F (lim_inf \<N>i proj\<^sub>J J) \<subseteq> Red_F ((lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J))\<close>
+    by (simp add: Red_F_of_subset)
+  then show \<open>Red_I ((lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J)) \<subseteq> Red_I (lim_inf \<N>i proj\<^sub>J J)\<close>
+   by (smt (verit, del_insts) DiffE Red_I_of_subset Un_iff lift_from_ARed_to_FRed.ground.Red_I_without_red_F subset_iff)
+next
+  show \<open>Red_I (lim_inf \<N>i proj\<^sub>J J) \<subseteq> Red_I ((lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J))\<close>
+    by (simp add: Red_I_of_subset)
+qed
+
 (* Report lemma 27 *)
 lemma locally_fair_derivation_is_saturated_at_liminf: \<open>\<lbrakk> is_derivation S_calculus.derive \<N>i; locally_fair \<N>i SInf SRed\<^sub>I \<rbrakk> \<Longrightarrow>
                                                            locally_saturated SInf SRed\<^sub>I (lim_inf \<N>i)\<close>
@@ -2240,8 +2251,8 @@ proof -
     then have Red_I_in_Red_I_of_Red_F: \<open>(\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J)) \<subseteq> (\<Union> i. Red_I ((lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J)))\<close>
       by (meson Red_I_of_subset SUP_mono UNIV_I)
     then have \<open>(\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J)) \<subseteq> (\<Union> i. Red_I (lim_inf \<N>i proj\<^sub>J J))\<close>
-      (* mmmmh *)
-      sorry
+      using Red_I_of_inf_Red_F_subset_Red_I_of_inf
+      by auto
     then show ?thesis
       unfolding locally_saturated_def
       using J_prop_model_of_limit all_inf_of_limit_are_redundant saturated_def
@@ -2262,46 +2273,6 @@ proof transfer
 qed
 
 (* Report theorem 28 (proof 1) *)
-
-(* Report theorem 28 (proof 2) *)
-(* TODO: move this one underneath the other *)
-theorem S_calculus_strong_dynamically_complete2:
-  assumes F_statically_complete: \<open>statically_complete_calculus bot Inf (\<Turnstile>) Red_I Red_F\<close> and
-          \<N>i_is_derivation: \<open>is_derivation S_calculus.derive \<N>i\<close> and
-          \<N>i_is_locally_fair: \<open>locally_fair \<N>i SInf SRed\<^sub>I\<close> and
-          \<N>i0_entails_bot: \<open>llhd \<N>i \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
-  shows \<open>\<exists> i. to_AF bot \<in> llnth \<N>i i\<close>
-  using \<N>i_is_locally_fair
-  unfolding locally_fair_def
-proof (elim disjE)
-  show \<open>\<exists> i. to_AF bot \<in> llnth \<N>i i \<Longrightarrow> \<exists> i. to_AF bot \<in> llnth \<N>i i\<close>
-    by blast
-next
-  assume \<open>\<exists> J. J \<Turnstile>\<^sub>p limit \<N>i \<and> Inf_from (limit \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J))\<close>
-  then obtain J where J_prop_model_of_limit_\<N>i: \<open>J \<Turnstile>\<^sub>p limit \<N>i\<close> and
-                      all_inf_from_limit_are_redundant: \<open>Inf_from (limit \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J))\<close>
-    by blast
-  then have \<open>llhd \<N>i proj\<^sub>J J \<Turnstile> {bot}\<close>
-    using \<N>i0_entails_bot AF_calculus.enabled_to_AF_set AF_calculus_axioms AF_entails_def
-    by fastforce
-  then have \<open>\<exists> i. bot \<in> llnth \<N>i i proj\<^sub>J J\<close>
-    using S_calculus_dynamically_complete[OF F_statically_complete,
-                                          unfolded dynamically_complete_calculus_def dynamically_complete_calculus_axioms_def,
-                                          THEN conjunct2, rule_format, OF \<N>i_is_derivation]
-          all_inf_from_limit_are_redundant
-    unfolding S_calculus.weakly_fair_def
-    sorry
-  then have \<open>bot \<in> limit \<N>i proj\<^sub>J J\<close>
-    using bot_at_i_implies_bot_at_liminf[OF \<N>i_is_derivation]
-    unfolding enabled_projection_def
-    apply auto
-    sorry
-  then show \<open>\<exists> i. to_AF bot \<in> llnth \<N>i i\<close>
-    using J_prop_model_of_limit_\<N>i enabled_projection_def propositional_model_def propositional_projection_def
-    by auto
-qed
-
-
 theorem S_calculus_strong_dynamically_complete1:
   assumes F_statically_complete: \<open>statically_complete_calculus bot Inf (\<Turnstile>) Red_I Red_F\<close> and
           \<N>i_is_derivation: \<open>is_derivation S_calculus.derive \<N>i\<close> and
@@ -2338,6 +2309,238 @@ proof -
     by (transfer fixing: bot)
        (meson Liminf_llist_imp_exists_index)
 qed
+
+lemma Un_of_enabled_projection_is_enabled_projection_of_Un: \<open>(\<Union> x. P x) proj\<^sub>J J = (\<Union> x. P x proj\<^sub>J J)\<close>
+proof (intro subset_antisym subsetI)
+  fix x
+  assume \<open>x \<in> (\<Union> x. P x) proj\<^sub>J J\<close>
+  then have \<open>\<exists> y. x = F_of y \<and> enabled y J \<and> y \<in> (\<Union> x. P x)\<close>
+    unfolding enabled_projection_def
+    by blast
+  then have \<open>\<exists> y. x = F_of y \<and> enabled y J \<and> (\<exists> z. y \<in> P z)\<close>
+    by blast
+  then have \<open>\<exists> y. \<exists> z. x = F_of y \<and> enabled y J \<and> y \<in> P z\<close>
+    by blast
+  then show \<open>x \<in> (\<Union> x. P x proj\<^sub>J J)\<close>
+    unfolding enabled_projection_def
+    by blast
+next
+  fix x
+  assume \<open>x \<in> (\<Union> x. P x proj\<^sub>J J)\<close>
+  then have \<open>\<exists> y. x \<in> P y proj\<^sub>J J\<close>
+    by blast
+  then have \<open>\<exists> y. \<exists> z. x = F_of z \<and> enabled z J \<and> z \<in> P y\<close>
+    unfolding enabled_projection_def
+    by blast
+  then show \<open>x \<in> (\<Union> x. P x) proj\<^sub>J J\<close>
+    unfolding enabled_projection_def
+    by blast
+qed
+
+lemma enabled_projection_of_Int_is_Int_of_enabled_projection: \<open>x \<in> (\<Inter> S) proj\<^sub>J J \<Longrightarrow> x \<in> \<Inter> { x proj\<^sub>J J | x. x \<in> S }\<close>
+  unfolding enabled_projection_def
+  by blast
+
+(* lemma bot_at_i_proj_J_implies_bot_at_liminf_proj_J: \<open>is_derivation S_calculus.derive \<N>i \<Longrightarrow>
+                                                          bot \<in> llnth \<N>i i proj\<^sub>J J \<Longrightarrow> bot \<in> lim_inf \<N>i proj\<^sub>J J\<close>
+proof -
+  assume \<open>is_derivation S_calculus.derive \<N>i\<close> and
+         bot_at_i: \<open>bot \<in> llnth \<N>i i proj\<^sub>J J\<close>
+  then have \<open>\<forall> i. llnth \<N>i i - llnth \<N>i (Suc i) \<subseteq> SRed\<^sub>F (llnth \<N>i (Suc i))\<close>
+    unfolding is_derivation_def S_calculus.derive_def
+    by blast
+  then show ?thesis
+    using bot_at_i
+  proof (transfer fixing: Red_F bot J i)
+    fix \<N>i
+    assume llength_is_infinity: \<open>llength \<N>i = \<infinity>\<close> and
+           \<open>\<forall> i. lnth \<N>i i - lnth \<N>i (Suc i) \<subseteq> SRed\<^sub>F (lnth \<N>i (Suc i))\<close> and
+           bot_at_i: \<open>bot \<in> lnth \<N>i i proj\<^sub>J J\<close>
+    then have all_at_i_minus_next_i_are_redundant:
+              \<open>\<forall> i. \<forall> x \<in> lnth \<N>i i - lnth \<N>i (Suc i). (\<forall> \<J>. fset (A_of x) \<subseteq> total_strip \<J> \<longrightarrow> F_of x \<in> Red_F (lnth \<N>i (Suc i) proj\<^sub>J \<J>)) \<or>
+                                                        (\<exists> \<C> \<in> lnth \<N>i (Suc i). F_of \<C> = F_of x \<and> A_of \<C> |\<subset>| A_of x)\<close>
+      unfolding SRed\<^sub>F_def
+      by force
+    then have \<open>\<exists> A. AF.Pair bot A \<in> lnth \<N>i i \<and> fset A \<subseteq> total_strip J\<close>
+      using bot_at_i
+      unfolding enabled_projection_def enabled_def
+      by force
+    then obtain A where Pair_bot_A_at_i: \<open>AF.Pair bot A \<in> lnth \<N>i i\<close> and
+                        A_in_J: \<open>fset A \<subseteq> total_strip J\<close>
+      by blast
+    then have \<open>\<exists> B k. B |\<subseteq>| A \<and> k \<ge> i \<and> AF.Pair bot B \<in> lnth \<N>i k \<longrightarrow> (\<forall> C j. j \<ge> i \<and> C |\<subset>| B \<longrightarrow> AF.Pair bot C \<notin> lnth \<N>i j)\<close>
+      by blast
+    then have \<open>\<exists> B k. \<forall> C j. B |\<subseteq>| A \<and> k \<ge> i \<and> AF.Pair bot B \<in> lnth \<N>i k \<and> j \<ge> i \<and> C |\<subset>| B \<longrightarrow> AF.Pair bot C \<notin> lnth \<N>i j\<close>
+      by blast
+    then obtain B and k where \<open>\<forall> C j. B |\<subseteq>| A \<and> k \<ge> i \<and> AF.Pair bot B \<in> lnth \<N>i k \<and> j \<ge> i \<and> C |\<subset>| B \<longrightarrow> AF.Pair bot C \<notin> lnth \<N>i j\<close>
+      by blast
+    then have \<open>B |\<subseteq>| A \<and> k \<ge> i \<and> AF.Pair bot B \<in> lnth \<N>i k \<longrightarrow> (\<forall> C j. j \<ge> i \<and> C |\<subset>| B \<longrightarrow> AF.Pair bot C \<notin> lnth \<N>i j)\<close>
+      by blast
+    then have \<open>B |\<subseteq>| A \<and> k \<ge> i \<and> AF.Pair bot B \<in> lnth \<N>i k \<and> (\<forall> C j. j \<ge> i \<and> C |\<subset>| B \<longrightarrow> AF.Pair bot C \<notin> lnth \<N>i j)\<close>
+      (* TODO: this should be trivial, if the left part of the implication is really true...
+       *
+       * It seems that the problem is the implication itself... *)
+      sorry
+    then have B_in_A: \<open>B |\<subseteq>| A\<close> and
+              k_ge_i: \<open>k \<ge> i\<close> and
+              Pair_bot_B_at_k: \<open>AF.Pair bot B \<in> lnth \<N>i k\<close> and
+              no_subset_of_B_in_deriv: \<open>\<forall> C j. j \<ge> i \<and> C |\<subset>| B \<longrightarrow> AF.Pair bot C \<notin> lnth \<N>i j\<close>
+      by blast+
+    then have B_in_J: \<open>fset B \<subseteq> total_strip J\<close>
+      by (meson A_in_J dual_order.trans less_eq_fset.rep_eq)
+    then have \<open>\<forall> j \<ge> k. AF.Pair bot B \<in> lnth \<N>i j\<close>
+    proof (intro allI impI)
+      fix j
+      assume k_le_j: \<open>k \<le> j\<close>
+      then show \<open>AF.Pair bot B \<in> lnth \<N>i j\<close>
+      proof (induct j rule: full_nat_induct)
+        case less: (1 n)
+        then show ?case
+        proof (cases \<open>k = n\<close>)
+          case True
+          then show ?thesis
+            using Pair_bot_B_at_k k_le_j less.hyps not_less_eq_eq
+            by blast
+        next
+          case False
+          then have j_lt_n: \<open>k < n\<close>
+            using less.prems
+            by linarith
+          then have n_positive: \<open>n > 0\<close>
+            using zero_less_iff_neq_zero
+            by blast
+          then show ?thesis
+          proof (cases \<open>B = {||}\<close>)
+            case True
+            then show ?thesis
+              using all_at_i_minus_next_i_are_redundant[rule_format, where ?i=\<open>n - 1\<close> and ?x=\<open>AF.Pair bot B\<close>]
+                    False complete less.hyps less.prems
+              by auto
+          next
+            case False
+            then show ?thesis
+              using all_at_i_minus_next_i_are_redundant[rule_format, where ?i=\<open>n - 1\<close> and ?x=\<open>AF.Pair bot B\<close>]
+              by (smt (z3) AF.exhaust AF.sel(1) AF.sel(2) B_in_J Diff_iff One_nat_def Suc_leI Suc_le_mono Suc_pred B_in_A k_ge_i
+                           Pair_bot_B_at_k no_subset_of_B_in_deriv complete j_lt_n le_Suc_eq le_trans less.hyps n_positive)
+          qed
+        qed
+      qed
+    qed
+    then have \<open>AF.Pair bot B \<in> (\<Union> i. \<Inter> { lnth \<N>i j | j. j \<ge> i })\<close>
+      by blast
+    then have \<open>bot \<in> (\<Union> i. \<Inter> (lnth \<N>i ` { j. i \<le> j })) proj\<^sub>J J\<close>
+      using B_in_J
+      unfolding enabled_projection_def enabled_def
+      (* /!\ A bit slow /!\ *)
+      by (smt (verit) AF.sel(1) AF.sel(2) INT_I Inter_iff UN_iff mem_Collect_eq)
+    then show \<open>bot \<in> Liminf_llist \<N>i proj\<^sub>J J\<close>
+      using llength_is_infinity
+      unfolding Liminf_llist_def
+      by auto
+  qed
+qed *)
+
+(* lemma inf_from_limit_all_redundant: \<open>J \<Turnstile>\<^sub>p limit \<N>i \<Longrightarrow> Inf_from (limit \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J)) \<Longrightarrow> S_calculus.fair \<N>i\<close>
+  unfolding S_calculus.weakly_fair_def
+proof (transfer fixing: bot J Inf Red_I, intro subsetI)
+  fix \<N>i \<iota>\<^sub>S
+  assume length_\<N>i_is_infinite: \<open>llength \<N>i = \<infinity>\<close> and
+         J_prop_model_of_lim_inf: \<open>J \<Turnstile>\<^sub>p Liminf_llist \<N>i\<close> and
+         \<open>Inf_from (Liminf_llist \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (lnth \<N>i i proj\<^sub>J J))\<close> and
+         \<open>\<iota>\<^sub>S \<in> S_calculus.Inf_from (Liminf_llist \<N>i)\<close>
+  then have \<iota>\<^sub>S_is_splitting_rule: \<open>Splitting_rules \<iota>\<^sub>S\<close> and
+            prems_of_\<iota>\<^sub>S_at_limit: \<open>set (prems_of \<iota>\<^sub>S) \<subseteq> Liminf_llist \<N>i\<close> and
+            inf_redundant_at_some_i_if: \<open>\<forall> \<iota>\<^sub>F \<in> Inf. (\<forall> C \<in> set (prems_of \<iota>\<^sub>F). \<exists> \<C> \<in> Liminf_llist \<N>i. C = F_of \<C> \<and> enabled \<C> J) \<longrightarrow>
+                                              (\<exists> i. \<iota>\<^sub>F \<in> Red_I (lnth \<N>i i proj\<^sub>J J))\<close>
+    unfolding S_calculus.Inf_from_def Inf_from_def enabled_projection_def
+    by blast+
+  then have \<open>\<exists> i. \<iota>\<^sub>S \<in> SRed\<^sub>I (lnth \<N>i i)\<close>
+  proof (cases \<iota>\<^sub>S)
+    case (base \<N> D)
+    then have \<open>set \<N> \<subseteq> Liminf_llist \<N>i\<close>
+      by (metis inference.sel(1) prems_of_\<iota>\<^sub>S_at_limit)
+    then have \<open>\<forall> C \<in> set (map F_of \<N>). \<exists> \<C> \<in> Liminf_llist \<N>i. C = F_of \<C> \<and> enabled \<C> J\<close>
+      (* Can we prove that?
+       *
+       * We need to prove that \<open>\<forall> C \<in> set (prems_of \<iota>\<^sub>F). \<exists> \<C> \<in> Liminf_llist \<N>i. C = F_of \<C> \<and> enabled \<C> J\<close>.
+       * However, while the \<open>C = F_of \<C>\<close> part is mostly trivial, \<open>enabled \<C> J\<close> is not.
+       * *)
+      sorry
+    then have \<open>\<exists> i. Infer (map F_of \<N>) D \<in> Red_I (lnth \<N>i i proj\<^sub>J J)\<close>
+      using inf_redundant_at_some_i_if
+      by (simp add: local.base(2))
+    then obtain i where \<open>Infer (map F_of \<N>) D \<in> Red_I (lnth \<N>i i proj\<^sub>J J)\<close>
+      by blast
+    then have \<open>\<forall> \<J>. {base_inf \<N> D} \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (lnth \<N>i i proj\<^sub>J \<J>)\<close>
+      (* But can we prove that?
+       *
+       * We know that \<open>Infer (map F_of \<N>) D \<in> Red_I (lnth \<N>i i proj\<^sub>J J)\<close> but here we need to prove that
+       * \<open>Infer (map F_of \<N>) D \<in> Red_I (lnth \<N>i i proj\<^sub>J \<J>)\<close> for all \<J> such that \<open>F_of ` \<N> \<subseteq> total_strip J\<close>.
+       * *)
+    proof (intro allI subsetI)
+      fix \<iota>\<^sub>F J'
+      assume \<open>\<iota>\<^sub>F \<in> {base_inf \<N> D} \<iota>proj\<^sub>J J'\<close>
+      then have \<open>\<iota>\<^sub>F = Infer (map F_of \<N>) D\<close> and
+                \<open>enabled_inf (base_inf \<N> D) J'\<close>
+        unfolding enabled_projection_Inf_def
+        using \<iota>F_of_def
+        by force+
+      then show \<open>\<iota>\<^sub>F \<in> Red_I (lnth \<N>i i proj\<^sub>J J')\<close>
+        sorry
+    qed
+    then show ?thesis
+      unfolding SRed\<^sub>I_def
+      using base
+      by auto
+  next
+    case (unsat \<N>)
+    then show ?thesis
+      sorry
+  qed
+  then show \<open>\<iota>\<^sub>S \<in> Sup_llist (lmap SRed\<^sub>I \<N>i)\<close>
+    unfolding Sup_llist_def
+    by (simp add: length_\<N>i_is_infinite)
+qed *)
+
+(* TODO: This is the second proof for theorem 28.
+ * Currently, proof 1 is done, but this proof appears to be more troublesome.
+ * See later, maybe towards the end of my internship, if this is actually doable.
+ *
+ * (* Report theorem 28 (proof 2) *)
+theorem S_calculus_strong_dynamically_complete2:
+  assumes F_statically_complete: \<open>statically_complete_calculus bot Inf (\<Turnstile>) Red_I Red_F\<close> and
+          \<N>i_is_derivation: \<open>is_derivation S_calculus.derive \<N>i\<close> and
+          \<N>i_is_locally_fair: \<open>locally_fair \<N>i SInf SRed\<^sub>I\<close> and
+          \<N>i0_entails_bot: \<open>llhd \<N>i \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+  shows \<open>\<exists> i. to_AF bot \<in> llnth \<N>i i\<close>
+  using \<N>i_is_locally_fair
+  unfolding locally_fair_def
+proof (elim disjE)
+  show \<open>\<exists> i. to_AF bot \<in> llnth \<N>i i \<Longrightarrow> \<exists> i. to_AF bot \<in> llnth \<N>i i\<close>
+    by blast
+next
+  assume \<open>\<exists> J. J \<Turnstile>\<^sub>p limit \<N>i \<and> Inf_from (limit \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J))\<close>
+  then obtain J where J_prop_model_of_limit_\<N>i: \<open>J \<Turnstile>\<^sub>p limit \<N>i\<close> and
+                      all_inf_from_limit_are_redundant: \<open>Inf_from (limit \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J))\<close>
+    by blast
+  have \<open>\<exists> i. bot \<in> llnth \<N>i i proj\<^sub>J J\<close>
+    using S_calculus_dynamically_complete[OF F_statically_complete,
+                                          unfolded dynamically_complete_calculus_def dynamically_complete_calculus_axioms_def,
+                                          THEN conjunct2, rule_format,
+                                          OF \<N>i_is_derivation
+                                             inf_from_limit_all_redundant[OF J_prop_model_of_limit_\<N>i all_inf_from_limit_are_redundant]
+                                             \<N>i0_entails_bot]
+    using enabled_projection_def ex_in_conv to_AF_proj_J
+    by fastforce
+  then obtain i where \<open>bot \<in> llnth \<N>i i proj\<^sub>J J\<close>
+    by blast
+  then have \<open>bot \<in> limit \<N>i proj\<^sub>J J\<close>
+    using bot_at_i_proj_J_implies_bot_at_liminf_proj_J[OF \<N>i_is_derivation]
+    by blast
+  then show \<open>\<exists> i. to_AF bot \<in> llnth \<N>i i\<close>
+    using J_prop_model_of_limit_\<N>i enabled_projection_def propositional_model_def propositional_projection_def
+    by auto
+qed *)
 
 end (* context splitting_calculus *)
 
