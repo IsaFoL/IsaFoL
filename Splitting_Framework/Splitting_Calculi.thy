@@ -14,15 +14,14 @@ text \<open>
 \<close>
 
 locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_F V fml
-  for
-    bot :: 'f and
-    Inf :: \<open>'f inference set\<close> and
-    entails :: \<open>[ 'f set, 'f set ] \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
-    entails_sound :: \<open>[ 'f set, 'f set ] \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
-    Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
-    Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
-    V :: \<open>'v :: countable itself\<close> and
-    fml :: \<open>'v \<Rightarrow> 'f\<close>
+  for bot :: 'f and
+      Inf :: \<open>'f inference set\<close> and
+      entails :: \<open>[ 'f set, 'f set ] \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
+      entails_sound :: \<open>[ 'f set, 'f set ] \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
+      Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
+      Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
+      V :: \<open>'v :: countable itself\<close> and
+      fml :: \<open>'v \<Rightarrow> 'f\<close>
   + assumes
       (* D6 *)
       entails_nontrivial: \<open>\<not> {} \<Turnstile> {}\<close> and
@@ -36,11 +35,14 @@ begin
   
 subsection \<open>The inference rules\<close>
 
-text \<open>We define SInf, our inference system comprising two rules:\<close>
-
 (* The basic SInf inference system, with the two basic rules BASE and UNSAT.
  *
- * \<open>S \<iota>\<close> means that \<open>\<iota>\<close> is an inference rule of the system S *)
+ * \<open>Splitting_rules \<iota>\<close> means that \<open>\<iota>\<close> is an inference rule of the system S *)
+
+text \<open>
+  Every inference rule $X$ is defined using two functions: $X\_pre$ and $X\_inf$.
+  $X\_inf$ is the inference rule itself, while $X\_pre$ are side-conditions for the rule to be applicable.
+\<close>
 
 abbreviation base_pre :: \<open>('f, 'v) AF list \<Rightarrow> 'f \<Rightarrow> bool\<close> where
   \<open>base_pre \<N> D \<equiv> Infer (map F_of \<N>) D \<in> Inf\<close>
@@ -60,6 +62,7 @@ inductive Splitting_rules :: \<open>('f, 'v) AF inference \<Rightarrow> bool\<cl
 
 text \<open>
   All optional rules are later included within our framework, as the main results do not fully depend on them.
+  For now, we only care about \textsc{Base} and \textsc{Unsat}.
 \<close>
 
 abbreviation SInf :: \<open>('f, 'v) AF inference set\<close> where
@@ -231,6 +234,7 @@ qed
 
 text \<open>
   We use @{thm SInf_commutes_Inf1} and @{thm SInf_commutes_Inf2} to put the Lemma 13 together into a single proof.
+  It is not needed but better reflects the content of the article.
 \<close>
 
 (* Report lemma 13 *)
@@ -1872,30 +1876,6 @@ proof -
   qed
 qed
 
-(* lemma AF_entails_bot_to_prop_unsat: \<open>(\<forall> x \<in> \<M>. F_of x = bot) \<Longrightarrow> \<M> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> propositionally_unsatisfiable \<M>\<close>
-proof -
-  assume all_heads_are_bot_in_\<M>: \<open>\<forall> x \<in> \<M>. F_of x = bot\<close> and
-         \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
-  then have \<open>\<forall> J. \<M> proj\<^sub>J J \<Turnstile> {bot}\<close>
-    unfolding AF_entails_def
-    by (metis F_of_to_AF enabled_to_AF_set image_empty image_insert)
-  moreover have \<open>proj\<^sub>\<bottom> \<M> = \<M>\<close>
-    using all_heads_are_bot_in_\<M>
-    unfolding propositional_projection_def
-    by blast
-  then have \<open>\<forall> J. bot \<in> \<M> proj\<^sub>J J\<close>
-    using entails_nontrivial
-    unfolding enabled_projection_def
-    by (metis calculation enabled_projection_def entails_bot_to_entails_empty equiv_prop_entails
-              propositional_model2_def propositional_model_def)
-  then have \<open>\<forall> J. \<not> (J \<Turnstile>\<^sub>p \<M>)\<close>
-    using \<open>proj\<^sub>\<bottom> \<M> = \<M>\<close>
-    unfolding propositional_model_def
-    by auto
-  then show \<open>propositionally_unsatisfiable \<M>\<close>
-    unfolding propositionally_unsatisfiable_def .
-qed *)
-
 lemma Union_empty_if_set_empty_or_all_empty: \<open>ffUnion A = {||} \<Longrightarrow> A = {||} \<or> fBall A (\<lambda> x. x = {||})\<close>
   by (metis (mono_tags, lifting) fBallI ffunion_insert finsert_absorb funion_fempty_right)
 
@@ -2319,13 +2299,7 @@ qed
 
 (*<*)
 lemma llhd_is_llnth_0: \<open>llhd S = llnth S 0\<close>
-proof transfer
-  fix S
-  assume \<open>llength S = \<infinity>\<close>
-  then show \<open>lhd S = lnth S 0\<close>
-    using lhd_conv_lnth
-    by force
-qed
+  by (transfer, metis infinity_ne_i0 llength_lnull lnth_0_conv_lhd)
 (*>*)
 
 
@@ -2605,5 +2579,35 @@ next
 qed *)
 
 end (* context splitting_calculus *)
+
+
+
+(* (* NOTE: see if we actually do this *)
+subsection \<open>Full splitting calculus\<close>
+
+text \<open>
+  We now put everything together to form the splitting calculus defined in the article.
+\<close>
+
+locale full_splitting_calculus = splitting_calculus_extensions bot Inf entails entails_sound Red_I Red_F V fml asn +
+                                 splitting_calculus_with_simps bot Inf entails entails_sound Red_I Red_F V fml asn
+  for bot :: 'f and
+      Inf :: \<open>'f inference set\<close> and
+      entails :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
+      entails_sound :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
+      Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
+      Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
+      V :: \<open>'v :: countable itself\<close> and
+      fml :: \<open>'v \<Rightarrow> 'f\<close> and
+      asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close>
+begin
+
+(* TODO: define Splitting_Inf which allows for simplification over premises of inferences in SInf2 *)
+(* TODO: prove that theorem 14 holds for Splitting_Inf *)
+(* TODO: prove that lemma 13 holds for Splitting_Inf *)
+
+end (* locale full_splitting_calculus *)
+*)
+
 
 end (* theory Splitting_Calculi *)
