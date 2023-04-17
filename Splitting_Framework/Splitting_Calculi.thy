@@ -1,3 +1,5 @@
+(* Title:        Formalizing an abstract calculus based on splitting
+ * Author:       Ghilain Bergeron <ghilain.bergeron at inria.fr>, 2023 *)
 theory Splitting_Calculi
   imports
     Preliminaries_With_Zorn
