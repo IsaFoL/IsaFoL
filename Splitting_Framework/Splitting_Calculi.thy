@@ -1,9 +1,14 @@
 (* Title:        Formalizing an abstract calculus based on splitting
  * Author:       Ghilain Bergeron <ghilain.bergeron at inria.fr>, 2023 *)
+
 theory Splitting_Calculi
   imports
     Preliminaries_With_Zorn
     Light_Lifting_to_Non_Ground_Calculi
+    (* As noted in lemma 18 of the paper, the definition of lifting used in the Saturation Framework does not
+     * work for our purpose, because it is too restrictive.
+     * However, the condition (G2) is not of interest in our setting (because we don't really care about static completeness
+     * in lemma 18), so we simply removed this condition, together with all the lemmas/theorems which depended upon it. *)
 begin
 
 section \<open>Splitting calculi\<close>
@@ -12,7 +17,7 @@ text \<open>
   In this section, we formalize an abstract version of a splitting calculus.
   We start by considering only two basic rules:
   \<^item> \textsc{Base} performs an inference from our inference system;
-  \<^item> \textsc{Unsat} closes a branch if the set of assumptions is unsatisfiable.
+  \<^item> \textsc{Unsat} replaces a set of propositionally unsatisfiable formulas with \<bottom>.
 \<close>
 
 locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_F V fml
@@ -1092,6 +1097,9 @@ abbreviation trim_pre :: \<open>('f, 'v) AF \<Rightarrow> 'v sign fset \<Rightar
 abbreviation trim_simp :: \<open>('f, 'v) AF \<Rightarrow> 'v sign fset \<Rightarrow> 'v sign fset \<Rightarrow> ('f, 'v) AF set \<Rightarrow> ('f, 'v) AF simplification\<close> where
   \<open>trim_simp \<C> A B \<M> \<equiv> Simplify (insert \<C> \<M>) (insert (AF.Pair (F_of \<C>) B) \<M>)\<close>
 
+
+
+(* Report definition 9 (cont) *)
 inductive Simplification_rules :: \<open>('f, 'v) AF simplification \<Rightarrow> bool\<close> where
   split: \<open>split_pre \<C> Cs As \<Longrightarrow> Simplification_rules (split_simp \<C> Cs As)\<close> |
   collect: \<open>collect_pre \<C> \<M> \<Longrightarrow> Simplification_rules (collect_simp \<C> \<M>)\<close> |
@@ -1100,7 +1108,13 @@ inductive Simplification_rules :: \<open>('f, 'v) AF simplification \<Rightarrow
 abbreviation Simps :: \<open>('f, 'v) AF simplification set\<close> where
   \<open>Simps \<equiv> { \<iota>. Simplification_rules \<iota> }\<close>
 
+
+
 (*<*)
+lemma no_infinite_simp_set: \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> Simps \<Longrightarrow> finite (S_to \<iota>)\<close>
+  using Simplification_rules.cases
+  by fastforce
+
 lemma projection_of_enabled_subset: \<open>fset B \<subseteq> total_strip J \<Longrightarrow> {AF.Pair C (A |\<union>| B)} proj\<^sub>J J = {AF.Pair C A} proj\<^sub>J J\<close>
   unfolding enabled_projection_def enabled_def
   by auto
@@ -1625,6 +1639,9 @@ abbreviation approx_pre :: \<open>'v sign \<Rightarrow> ('f, 'v) AF \<Rightarrow
 abbreviation approx_inf :: \<open>('f, 'v) AF \<Rightarrow> 'v sign \<Rightarrow> ('f, 'v) AF inference\<close> where
   \<open>approx_inf \<C> a \<equiv> Infer [\<C>] (AF.Pair bot (finsert (neg a) (A_of \<C>)))\<close>
 
+
+
+(* Report definition 9 (cont) *)
 inductive Splitting_rules2 :: \<open>('f, 'v) AF inference \<Rightarrow> bool\<close> where
   strong_unsat: \<open>strong_unsat_pre \<M> \<Longrightarrow> Splitting_rules2 (strong_unsat_inf \<M>)\<close> |
   tauto: \<open>tauto_pre \<C> \<Longrightarrow> Splitting_rules2 (tauto_inf \<C>)\<close> |
@@ -1632,6 +1649,8 @@ inductive Splitting_rules2 :: \<open>('f, 'v) AF inference \<Rightarrow> bool\<c
 
 abbreviation SInf2 :: \<open>('f, 'v) AF inference set\<close> where
   \<open>SInf2 \<equiv> SInf \<union> {\<iota>. Splitting_rules2 \<iota>}\<close>
+
+
 
 (*<*)
 lemma enabled_iff: \<open>A_of \<C> = A_of \<C>' \<Longrightarrow> enabled \<C> J \<longleftrightarrow> enabled \<C>' J\<close>
@@ -2584,11 +2603,11 @@ end (* context splitting_calculus *)
 
 
 
-(* (* NOTE: see if we actually do this *)
 subsection \<open>Full splitting calculus\<close>
 
 text \<open>
-  We now put everything together to form the splitting calculus defined in the article.
+  Up until now, we have been working with separate locales for simplification rules and inference rules.
+  We now put everything together to form the splitting calculus defined in the article (definition 9).
 \<close>
 
 locale full_splitting_calculus = splitting_calculus_extensions bot Inf entails entails_sound Red_I Red_F V fml asn +
@@ -2604,12 +2623,67 @@ locale full_splitting_calculus = splitting_calculus_extensions bot Inf entails e
       asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close>
 begin
 
-(* TODO: define Splitting_Inf which allows for simplification over premises of inferences in SInf2 *)
-(* TODO: prove that theorem 14 holds for Splitting_Inf *)
-(* TODO: prove that lemma 13 holds for Splitting_Inf *)
+definition set_to_list :: \<open>'a set \<Rightarrow> 'a list\<close> where
+  \<open>set_to_list S \<equiv> (SOME l. set l = S)\<close>
+
+lemma set_set_to_list: \<open>finite S \<Longrightarrow> set (set_to_list S) = S\<close>
+  unfolding set_to_list_def
+  by (meson finite_list someI)
+
+
+
+(* Report definition 9 (cont) *)
+inductive_set Splitting_Inf :: \<open>('f, 'v) AF inference set\<close> where
+  infer: \<open>\<iota> \<in> SInf2 \<Longrightarrow> \<iota> \<in> Splitting_Inf\<close> |
+  simplify: \<open>Infer \<M> \<C> \<in> SInf2 \<Longrightarrow> set \<M> = \<N>'' \<union> \<N>' \<Longrightarrow> Simplify \<N> \<N>'' \<in> Simps \<Longrightarrow> Infer (set_to_list (\<N> \<union> \<N>')) \<C> \<in> Splitting_Inf\<close>
+
+
+
+interpretation AF_sound_cons_rel: consequence_relation \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  by (rule AF_ext_sound_cons_rel)
+
+notation AF_sound_cons_rel.entails_conjunctive (infix \<open>\<Turnstile>\<inter>s\<^sub>A\<^sub>F\<close> 50)
+
+
+
+(* Report lemma 14 (cont) *)
+lemma Splitting_Inf_sound: \<open>\<iota> \<in> Splitting_Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
+proof -
+  assume \<open>\<iota> \<in> Splitting_Inf\<close>
+  then show ?thesis
+  proof (cases \<iota> rule: Splitting_Inf.cases)
+    case infer
+    then show ?thesis
+      using SInf2_sound_wrt_entails_sound
+      by blast
+  next
+    case (simplify \<M> \<C> \<N>'' \<N>' \<N>)
+
+    have \<open>set \<M> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+     using SInf2_sound_wrt_entails_sound local.simplify(2)
+     by fastforce
+    then have \<open>set \<M> \<Turnstile>\<inter>s\<^sub>A\<^sub>F {\<C>}\<close>
+      by (simp add: AF_sound_cons_rel.entails_conjunctive_def)
+    moreover have \<open>\<forall> \<C>' \<in> \<N>''. \<N> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
+      using SInf_with_simps_sound_wrt_entails_sound local.simplify(4)
+      by fastforce
+    then have \<open>\<N> \<Turnstile>\<inter>s\<^sub>A\<^sub>F \<N>''\<close>
+      using AF_sound_cons_rel.entails_conjunctive_def
+      by blast
+    then have \<open>\<N> \<union> \<N>' \<Turnstile>\<inter>s\<^sub>A\<^sub>F set \<M>\<close>
+      by (metis AF_sound_cons_rel.entail_union AF_sound_cons_rel.entails_trans AF_sound_cons_rel.subset_entailed
+                Un_upper1 Un_upper2 local.simplify(3))
+    ultimately have \<open>\<N> \<union> \<N>' \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+      by (meson AF_ext_sound_cons_rel AF_sound_cons_rel.entails_trans consequence_relation.entails_conjunctive_def singletonI)
+    then show ?thesis
+      using local.simplify(1) set_set_to_list no_infinite_simp_set
+      by (smt (verit, best) List.finite_set Simplification_rules.cases finite.emptyI finite_Un finite_insert inference.sel(1) inference.sel(2)
+                            local.simplify(3) local.simplify(4) simplification.sel(1) simplification.sel(2))
+  qed
+qed
+
+
 
 end (* locale full_splitting_calculus *)
-*)
-
 
 end (* theory Splitting_Calculi *)
