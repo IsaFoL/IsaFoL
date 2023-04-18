@@ -295,7 +295,7 @@ lemma mop_rescale_and_reroot_spec2:
 
 lemma rescale_and_reroot_mop_prio_change_weight2:
   \<open>(uncurry2 rescale_and_reroot, uncurry2 (PR_CONST ACIDS.mop_prio_change_weight)) \<in>
-  nat_rel \<times>\<^sub>f  nat_rel \<times>\<^sub>f acids_encoded_hmrel \<rightarrow>\<^sub>f \<langle>acids_encoded_hmrel\<rangle>nres_rel›
+  nat_rel \<times>\<^sub>f  nat_rel \<times>\<^sub>f acids_encoded_hmrel \<rightarrow>\<^sub>f \<langle>acids_encoded_hmrel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
    (auto intro!: rescale_and_reroot_mop_prio_change_weight[THEN order_trans])
 
@@ -305,7 +305,7 @@ lemma mop_hp_is_in_spec2:
    (auto intro!: mop_hp_is_in_spec[THEN order_trans])
 
 lemma vsids_pop_min2_mop_prio_pop_min2:
-  \<open>(vsids_pop_min2, PR_CONST ACIDS.mop_prio_pop_min) \<in> acids_encoded_hmrel \<rightarrow>\<^sub>f \<langle>nat_rel \<times>\<^sub>r acids_encoded_hmrel\<rangle>nres_rel›
+  \<open>(vsids_pop_min2, PR_CONST ACIDS.mop_prio_pop_min) \<in> acids_encoded_hmrel \<rightarrow>\<^sub>f \<langle>nat_rel \<times>\<^sub>r acids_encoded_hmrel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
    (auto intro!: vsids_pop_min2_mop_prio_pop_min[THEN order_trans])
 
