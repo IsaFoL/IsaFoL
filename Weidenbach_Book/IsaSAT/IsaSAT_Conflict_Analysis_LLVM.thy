@@ -139,11 +139,13 @@ lemma tl_state_wl_heur_alt_def:
        let L = lit_of_last_trail_pol M;
        let S = update_trail_wl_heur (tl_trailt_tr M) S;
        ASSERT (isa_bump_unset_pre (atm_of L) vm);
-       let S = update_vmtf_wl_heur (isa_bump_unset (atm_of L) vm) S;
+       vm \<leftarrow> isa_bump_unset (atm_of L) vm;
+       let S = update_vmtf_wl_heur vm S;
        RETURN (False, S)
   })\<close>
   by (auto simp: tl_state_wl_heur_def state_extractors Let_def intro!: ext split: isasat_int_splits)
 
+sepref_register isa_bump_unset
 sepref_def tl_state_wl_heur_fast_code
   is \<open>tl_state_wl_heur\<close>
   :: \<open>[\<lambda>_. True]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn \<times>\<^sub>a isasat_bounded_assn\<close>
@@ -192,9 +194,10 @@ lemma update_confl_tl_wl_heur_alt_def:
       vm \<leftarrow> isa_vmtf_bump_to_rescore_also_reasons_cl M N C (-L) vm;
       ASSERT(isa_bump_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
+      vm \<leftarrow> isa_bump_unset L' vm;
       let S = update_trail_wl_heur (tl_trailt_tr M) S;
       let S = update_conflict_wl_heur (None_lookup_conflict b nxs) S;
-      let S = update_vmtf_wl_heur (isa_bump_unset L' vm) S;
+      let S = update_vmtf_wl_heur vm S;
       let S = update_clvls_wl_heur (clvls - 1) S;
       let S = update_outl_wl_heur outl S;
       let S = update_arena_wl_heur N S;

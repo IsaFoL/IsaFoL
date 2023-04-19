@@ -2458,8 +2458,9 @@ proof -
   qed
   have empty[simp]: \<open>aivdom_inv_dec (AIvdom ([], [], [], [])) {#}\<close>
     by (auto simp: aivdom_inv_dec_alt_def)
-  have vmtf': \<open>(fst (bump_get_heuristics ns), fst (snd (bump_get_heuristics ns)),
-    bumped_vmtf_array_fst  ns, fst (snd (snd (snd (bump_get_heuristics ns)))), snd (snd (snd (snd (bump_get_heuristics ns))))) \<in> vmtf \<A> M\<close>
+  obtain M' where vmtf': \<open>(fst (bump_get_heuristics ns), fst (snd (bump_get_heuristics ns)),
+    bumped_vmtf_array_fst  ns, fst (snd (snd (snd (bump_get_heuristics ns)))), snd (snd (snd (snd (bump_get_heuristics ns))))) \<in> vmtf \<A> M'\<close> and
+    \<open>M' = M \<or> M' = get_unit_trail M\<close>
     using vmtf unfolding bump_heur_def
     by (cases \<open>bump_get_heuristics ns\<close>) (auto simp: bump_get_heuristics_def bumped_vmtf_array_fst_def
       split: if_splits)
