@@ -5,14 +5,15 @@ theory Splitting_Calculi
   imports
     Preliminaries_With_Zorn
     Light_Lifting_to_Non_Ground_Calculi
-    (* As noted in lemma 18 of the paper, the definition of lifting used in the Saturation Framework does not
-     * work for our purpose, because it is too restrictive.
-     * However, the condition (G2) is not of interest in our setting (because we don't really care about static completeness
-     * in lemma 18), so we simply removed this condition, together with all the lemmas/theorems which depended upon it. *)
+    (* As noted in lemma 18 of the paper, the definition of lifting used in the Saturation Framework
+     * does not work for our purpose, because it is too restrictive. However, the condition (G2) is
+     * not of interest in our setting (because we don't really care about static completeness
+     * in lemma 18), so we simply removed this condition, together with all the lemmas/theorems 
+     * which depended upon it. *)
 begin
 
 section \<open>Splitting calculi\<close>
-
+                                                                                          
 text \<open>
   In this section, we formalize an abstract version of a splitting calculus.
   We start by considering only two basic rules:
@@ -68,8 +69,9 @@ inductive Splitting_rules :: \<open>('f, 'v) AF inference \<Rightarrow> bool\<cl
 | unsat: \<open>unsat_pre \<N> \<Longrightarrow> Splitting_rules (unsat_inf \<N>)\<close>
 
 text \<open>
-  All optional rules are later included within our framework, as the main results do not fully depend on them.
-  For now, we only care about \textsc{Base} and \textsc{Unsat}.
+  We consider first only the inference rules \textsc{Base} and \textsc{Unsat}. The optional 
+  inference and simplification rules are handled separately in the locales 
+  splitting_calculus_extensions and splitting_calculus_with_simps respectively.
 \<close>
 
 abbreviation SInf :: \<open>('f, 'v) AF inference set\<close> where
@@ -100,7 +102,7 @@ lemma set_map_is_image: \<open>set (map f l) = f ` set l\<close>
 
 
 text \<open>
-  The proof for Lemma 13 is split into two parts, for each case of the set equality.
+  The proof for Lemma 13 is split into two parts, for each inclusion in the set equality.
 \<close>
 
 (* Report lemma 13 1/2 *)
@@ -241,7 +243,6 @@ qed
 
 text \<open>
   We use @{thm SInf_commutes_Inf1} and @{thm SInf_commutes_Inf2} to put the Lemma 13 together into a single proof.
-  It is not needed but better reflects the content of the article.
 \<close>
 
 (* Report lemma 13 *)
@@ -289,7 +290,7 @@ lemma fBall_fset_of_list_iff_Ball_set: \<open>fBall (fset_of_list A) P \<longlef
 
 
 
-(* Report theorem 14 *)
+(* Report theorem 14 for the Base and Unsat rules *)
 theorem SInf_sound_wrt_entails_sound: \<open>\<iota>\<^sub>S \<in> SInf \<Longrightarrow> set (prems_of \<iota>\<^sub>S) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>\<^sub>S}\<close>
 proof -
   assume \<open>\<iota>\<^sub>S \<in> SInf\<close>
@@ -484,8 +485,8 @@ proof (intro notI)
 qed
 (*>*)
 
-sublocale lift_from_ARed_to_FRed: light_tiebreaker_lifting \<open>{to_AF bot}\<close> AInf \<open>{bot}\<close> \<open>(\<Turnstile>\<inter>)\<close> Inf Red_I
-                                                           Red_F \<open>\<G>\<^sub>F \<J>\<close> \<open>Some \<circ> \<G>\<^sub>I \<J>\<close> \<open>\<lambda>_. (\<sqsupset>)\<close>
+sublocale lift_from_ARed_to_FRed: light_tiebreaker_lifting \<open>{to_AF bot}\<close> AInf \<open>{bot}\<close> \<open>(\<Turnstile>\<inter>)\<close> Inf
+  Red_I Red_F \<open>\<G>\<^sub>F \<J>\<close> \<open>Some \<circ> \<G>\<^sub>I \<J>\<close> \<open>\<lambda>_. (\<sqsupset>)\<close>
 proof (standard)
   fix N
   show \<open>Red_I N \<subseteq> Inf\<close>
@@ -602,8 +603,9 @@ lemma Union_of_enabled_projection_is_enabled_projection: \<open>(\<Union> \<C> \
   by blast
 (*>*)
 
-(* It was left as an exercice to check ARed\<^sub>I and FRed\<^sub>I\<^bsup>\<inter>\<G>\<^esup> coincide, meaning that the set of redundant inferences
- * according to ARed\<^sub>I is the same as the intersection of all sets of redundant inferences according to FRed\<^sub>I\<^bsup>\<inter>\<G>\<^esup>. *)
+(* It was left as an exercice to check ARed\<^sub>I and FRed\<^sub>I\<^sup>\<inter>\<^sup>\<G> coincide, meaning that the set of 
+ * redundant inferences according to ARed\<^sub>I is the same as the intersection of all sets of redundant
+ *  inferences according to FRed\<^sub>I\<^sup>\<inter>\<^sup>\<G>. *)
 lemma ARed\<^sub>I_is_FRed\<^sub>I: \<open>ARed\<^sub>I \<N> = (\<Inter> J. lift_from_ARed_to_FRed.Red_I_\<G> J \<N>)\<close>
 proof (intro subset_antisym subsetI)
   fix \<iota>
@@ -1193,8 +1195,9 @@ lemma fimage_of_non_fempty_is_non_fempty: \<open>A \<noteq> {||} \<Longrightarro
 
 notation sound_cons.entails_neg (infix \<open>\<Turnstile>s\<^sub>\<sim>\<close> 50)
 
-lemma entails_of_entails_iff: \<open>{C} \<Turnstile>s\<^sub>\<sim> Cs \<Longrightarrow> finite Cs \<Longrightarrow> card Cs \<ge> 1 \<Longrightarrow>
-                                     (\<forall> C\<^sub>i \<in> Cs. \<M> \<union> {C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}) \<Longrightarrow> \<M> \<union> {C} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+lemma entails_of_entails_iff: 
+  \<open>{C} \<Turnstile>s\<^sub>\<sim> Cs \<Longrightarrow> finite Cs \<Longrightarrow> card Cs \<ge> 1 \<Longrightarrow>
+    (\<forall> C\<^sub>i \<in> Cs. \<M> \<union> {C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}) \<Longrightarrow> \<M> \<union> {C} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
 proof -
   assume \<open>{C} \<Turnstile>s\<^sub>\<sim> Cs\<close> and
          finite_Cs: \<open>finite Cs\<close> and
@@ -1221,8 +1224,8 @@ proof -
       by (meson card_0_eq insert.hyps(1) insert.hyps(2) less_one linorder_not_less)
 
     have \<open>\<M> \<union> {C} \<Turnstile>s\<^sub>\<sim> {Pos bot, x} \<union> F\<close>
-      by (smt (verit, ccfv_threshold) Un_insert_left Un_insert_right Un_upper2 consequence_relation.entails_subsets
-                                      insert.prems(1) insert_is_Un sound_cons.ext_cons_rel)
+      by (smt (verit, ccfv_threshold) Un_insert_left Un_insert_right Un_upper2
+          consequence_relation.entails_subsets insert.prems(1) insert_is_Un sound_cons.ext_cons_rel)
     then have \<open>\<M> \<union> {C} \<Turnstile>s\<^sub>\<sim> {Pos bot} \<union> {x} \<union> F\<close>
       by (metis insert_is_Un)
     moreover have \<open>\<M> \<union> {C} \<union> {x} \<Turnstile>s\<^sub>\<sim> {Pos bot} \<union> F\<close>
