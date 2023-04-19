@@ -12,7 +12,7 @@ locale renaming_apart =
     inj_renaming: "finite V \<Longrightarrow> inj (renaming V)"
 
 
-subsubsection \<open>Interpretation to Prove That Assumptions Are Consistent\<close>
+subsection \<open>Interpretation to Prove That Assumptions Are Consistent\<close>
 
 experiment begin
 
