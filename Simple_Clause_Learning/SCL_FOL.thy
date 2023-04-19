@@ -1,4 +1,4 @@
-theory Simple_Clause_Learning
+theory SCL_FOL
   imports
     Main
     "HOL-Library.FSet"
@@ -1045,7 +1045,7 @@ lemma ex_renaming_to_disjoint_vars:
   assumes fin: "finite N"
   shows "\<exists>\<rho>. is_renaming \<rho> \<and> vars_cls (C \<cdot> \<rho>) \<inter> vars_clss N = {}"
 proof (intro exI conjI)
-  show "Simple_Clause_Learning.is_renaming (renaming_wrt N)"
+  show "SCL_FOL.is_renaming (renaming_wrt N)"
     using fin is_renaming_renaming_wrt by metis
 next
   show "vars_cls (C \<cdot> renaming_wrt N) \<inter> vars_clss N = {}"

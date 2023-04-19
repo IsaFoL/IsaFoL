@@ -1,4 +1,4 @@
-session Simple_Clause_Learning (AFP) = First_Order_Terms +
+session Simple_Clause_Learning = First_Order_Terms +
   options [timeout = 600, document = pdf, document_output = "output"]
   sessions
     First_Order_Terms

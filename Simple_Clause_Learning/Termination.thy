@@ -1,6 +1,6 @@
 theory Termination
   imports
-    Simple_Clause_Learning
+    SCL_FOL
     Non_Redundancy
     Wellfounded_Extra
     "HOL-Library.Monad_Syntax"
