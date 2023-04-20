@@ -5,7 +5,7 @@ theory Completeness
     "Functional_Ordered_Resolution_Prover.IsaFoR_Term"
 begin
 
-lemma (in scl_calculus) regular_scl_run_derives_contradiction_if_unsat:
+lemma (in scl_fol_calculus) regular_scl_run_derives_contradiction_if_unsat:
   fixes N \<beta> gnd_N
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
@@ -18,7 +18,7 @@ lemma (in scl_calculus) regular_scl_run_derives_contradiction_if_unsat:
     using unsat correct_termination_regular_scl_run[OF run no_more_step]
     by (simp add: gnd_N_lt_\<beta>_def gnd_N_def)
 
-theorem (in scl_calculus)
+theorem (in scl_fol_calculus)
   fixes N \<beta> gnd_N
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
@@ -43,11 +43,11 @@ proof -
     by metis
 qed
 
-lemma (in scl_calculus) no_infinite_down_chain:
+lemma (in scl_fol_calculus) no_infinite_down_chain:
   "\<nexists>Ss. \<not> lfinite Ss \<and> Lazy_List_Chain.chain (\<lambda>S S'. regular_scl N \<beta> S S') (LCons initial_state Ss)"
   using termination_regular_scl wfp_on_rtranclp_conversep_iff_no_infinite_down_chain_llist by metis
 
-theorem (in scl_calculus) completeness_wrt_bound:
+theorem (in scl_fol_calculus) completeness_wrt_bound:
   fixes N \<beta> gnd_N
   defines
     "gnd_N \<equiv> grounding_of_clss (fset N)" and
@@ -63,7 +63,7 @@ theorem (in scl_calculus) completeness_wrt_bound:
 
 
 locale compact_scl =
-  scl_calculus renaming_vars "(<) :: ('f :: weighted, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool"
+  scl_fol_calculus renaming_vars "(<) :: ('f :: weighted, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool"
   for renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v"
 begin
 

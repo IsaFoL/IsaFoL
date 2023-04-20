@@ -100,7 +100,7 @@ lemma fminus_conv: "A |\<subset>| B \<longleftrightarrow> fset A \<subset> fset 
 
 section \<open>Termination\<close>
 
-context scl_calculus begin
+context scl_fol_calculus begin
 
 
 subsection \<open>SCL without backtracking terminates\<close>

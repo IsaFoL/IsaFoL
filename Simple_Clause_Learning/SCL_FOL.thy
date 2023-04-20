@@ -1465,9 +1465,9 @@ lemma is_ground_cls_if_false_in_ground_trail:
   using assms by (auto intro: is_ground_lit_if_false_in_ground_trail)
 
 
-section \<open>SCL Calculus\<close>
+section \<open>SCL(FOL) Calculus\<close>
 
-locale scl_calculus = renaming_apart renaming_vars
+locale scl_fol_calculus = renaming_apart renaming_vars
   for renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v" +
   fixes less_B :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>B" 50)
   assumes
