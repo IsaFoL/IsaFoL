@@ -135,7 +135,10 @@ text \<open>
  *   calculus.
  * \<^item> \<open>\<Sigma>\<close>-interpretation are more tricky though, because they would need to be models of \<open>'f\<close> formulas
  *   which we don't know what they are.
- *   From the proof of lemma 81, it seems that these are @{typ \<open>'v total_interpretation\<close>}s too. *)
+ *   From the proof of lemma 81, it seems that these are @{typ \<open>'v total_interpretation\<close>}s too.
+ *   This seems to be in accordance with the notation.
+ *   However, in what way does an @{typ \<open>'v total_interpretation\<close>} qualify as a model of a \<open>'f\<close>
+ *   formula? *)
 
 
 
@@ -162,6 +165,13 @@ text \<open>
 (* NOTE: to prove the bijectivity of \<open>\<alpha>(\<cdot>)\<close> we can use the predicates @{const inj}, @{const surj}
  * and @{const bij} from the theory @{theory Fun}.
  * @{term \<open>bij \<alpha>\<close>} should basically follow from @{term \<open>inj \<alpha>\<close>} and @{term \<open>surj \<alpha>\<close>}. *)
+(* WARN: we need to be careful when defining this function, as a \<open>\<Sigma>\<^sub>\<bbbP>\<close>-clause contains a finite
+ * \<^emph>\<open>multiset\<close> of literals, but @{typ \<open>('f, 'v) AF\<close>} only maps finite sets of V-literals.
+ * This may hurt injectivity\<dots>
+ * For example, consider \<open>D\<^sub>1 \<equiv> C \<or> L\<^sub>1 \<or> L\<^sub>1\<close> and \<open>D\<^sub>2 \<equiv> C \<or> L\<^sub>1\<close>. Turns out that \<open>\<alpha>(D\<^sub>1) = \<alpha>(D\<^sub>2)\<close>.
+ * But \<open>D\<^sub>1 \<noteq> D\<^sub>2\<close> because \<open>{# L\<^sub>1, L\<^sub>1 #} \<noteq> {# L\<^sub>1 #}\<close>.
+ * This means that \<open>\<alpha>(\<cdot>)\<close> is \<^emph>\<open>NOT\<close> bijective in this state!
+ * Can we solve this? *)
 
 
 
