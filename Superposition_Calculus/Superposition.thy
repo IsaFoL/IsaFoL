@@ -12,6 +12,9 @@ theory Superposition
     "Knuth_Bendix_Order.Subterm_and_Context"
     "Abstract-Rewriting.Abstract_Rewriting"
 
+    (* Theories from CeTA *)
+    "CR.Critical_Pairs"
+
     (* Theories from this formalization *)
     "Multiset_Extra"
     "Abstract_Substitution_Extra_First_Order_Term"
@@ -62,6 +65,21 @@ lemma Collect_eq_if_Uniq_prod: "(\<exists>\<^sub>\<le>\<^sub>1(x, y). P x y) \<L
   using Collect_eq_if_Uniq by fastforce
 
 
+section \<open>Abstract_Rewriting_Extra\<close>
+
+lemma trans_join:
+  assumes strongly_norm: "SN r" and confluent: "WCR r"
+  shows "trans (r\<^sup>\<down>)"
+proof -
+  from confluent strongly_norm have "CR r"
+    using Newman by metis
+  hence "r\<^sup>\<leftrightarrow>\<^sup>* = r\<^sup>\<down>"
+    using CR_imp_conversionIff_join by metis
+  thus ?thesis
+    using conversion_trans by metis
+qed
+
+
 section \<open>Abstract_Substitutions_Extra\<close>
 
 lemma (in substitution_ops) subst_cls_cong:
@@ -109,6 +127,9 @@ definition vars_lit :: "('f, 'v) term atom literal \<Rightarrow> 'v set" where
 definition vars_cls :: "('f, 'v) term atom clause \<Rightarrow> 'v set" where
   "vars_cls C = (\<Union>L \<in> set_mset C. vars_lit L)"
 
+definition vars_cls_set :: "('f, 'v) term atom clause set \<Rightarrow> 'v set" where
+  "vars_cls_set N = (\<Union>C \<in> N. vars_cls C)"
+
 lemma vars_term_ctxt_apply_term[simp]: "vars_term c\<langle>t\<rangle> = vars_ctxt c \<union> vars_term t"
   by (induction c) auto
 
@@ -141,6 +162,9 @@ abbreviation is_ground_lit where
 
 abbreviation is_ground_cls where
   "is_ground_cls C \<equiv> vars_cls C = {}"
+
+abbreviation is_ground_cls_set where
+  "is_ground_cls_set N \<equiv> vars_cls_set N = {}"
 
 lemma subst_trm_ident_if_is_ground_trm[simp]: "is_ground_trm t \<Longrightarrow> t \<cdot>t \<sigma> = t"
   by (simp add: subst_apply_term_ident)
@@ -236,7 +260,7 @@ locale superposition_calculus =
     asymp_less_trm[simp]: "asymp (\<prec>\<^sub>t)" and
     wfP_less_trm[simp]: "wfP (\<prec>\<^sub>t)" and
     totalp_on_less_trm[simp]: "totalp_on {t. is_ground_trm t} (\<prec>\<^sub>t)" and
-    less_trm_compatible_with_ctxt: "\<And>ctxt t t'. t \<prec>\<^sub>t t' \<Longrightarrow> ctxt\<langle>t\<rangle> \<prec>\<^sub>t ctxt\<langle>t'\<rangle>" and
+    less_trm_compatible_with_ctxt[simp]: "\<And>ctxt t t'. t \<prec>\<^sub>t t' \<Longrightarrow> ctxt\<langle>t\<rangle> \<prec>\<^sub>t ctxt\<langle>t'\<rangle>" and
     less_trm_subterm: "\<And>t t'. t \<lhd> t' \<Longrightarrow> t \<prec>\<^sub>t t'" and
     select_negative_lits: "\<And>C L. L \<in># select C \<Longrightarrow> is_neg L" and
     select_stable_under_renaming: "\<And>C \<rho>. term_subst.is_renaming \<rho> \<Longrightarrow> select (C \<cdot> \<rho>) = select C \<cdot> \<rho>"
@@ -1124,15 +1148,15 @@ definition prod_uprod where
   "prod_uprod up = (SOME (x, y). up = (x \<approx> y))"
 
 primrec equations_entail_lit where
-  "equations_entail_lit E (Pos A) \<longleftrightarrow> (\<exists>s t. A = s \<approx> t \<and> (s, t) \<in> (rewrite_inside_ctxt E)\<^sup>\<down>)" |
-  "equations_entail_lit E (Neg A) \<longleftrightarrow> (\<exists>s t. A = s \<approx> t \<and> (s, t) \<notin> (rewrite_inside_ctxt E)\<^sup>\<down>)"
+  "equations_entail_lit E (Pos A) \<longleftrightarrow> (\<exists>s t. A = s \<approx> t \<and> (s, t) \<in> (rewrite_inside_ctxt E)\<^sup>\<leftrightarrow>\<^sup>*)" |
+  "equations_entail_lit E (Neg A) \<longleftrightarrow> (\<exists>s t. A = s \<approx> t \<and> (s, t) \<notin> (rewrite_inside_ctxt E)\<^sup>\<leftrightarrow>\<^sup>*)"
 
 definition equations_entail_cls where
   "equations_entail_cls E C \<longleftrightarrow> (\<exists>L \<in># C. equations_entail_lit E L)"
 
 lemma true_lit_if_equations_entail_lit:
   assumes "equations_entail_lit E L"
-  shows "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt E)\<^sup>\<down> \<TTurnstile>l L"
+  shows "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt E)\<^sup>\<leftrightarrow>\<^sup>* \<TTurnstile>l L"
 proof -
   show ?thesis
   proof (cases L)
@@ -1143,13 +1167,13 @@ proof -
     case (Neg A)
     then show ?thesis
       using \<open>equations_entail_lit E L\<close>
-      by (metis equations_entail_lit.simps(2) sym_join true_lit_simps(2)
+      by (metis conversion_sym equations_entail_lit.simps(2) true_lit_simps(2)
           true_lit_uprod_iff_true_lit_prod(2))
   qed
 qed
 
 lemma true_cls_if_equations_entail_cls:
-  "equations_entail_cls E C \<Longrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt E)\<^sup>\<down> \<TTurnstile> C"
+  "equations_entail_cls E C \<Longrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt E)\<^sup>\<leftrightarrow>\<^sup>* \<TTurnstile> C"
   using true_lit_if_equations_entail_lit
   by (metis equations_entail_cls_def true_cls_def)
 
@@ -1160,8 +1184,8 @@ function production :: "('f, 'v) term uprod clause \<Rightarrow> ('f, 'v) term r
     is_strictly_maximal_lit (Pos (s \<approx> t)) C \<and>
     t \<prec>\<^sub>t s \<and>
     (let R\<^sub>C = (\<Union>D \<in> {D. D \<prec>\<^sub>c C}. production D) in
-    \<not> equations_entail_cls R\<^sub>C C \<and>
-    \<not> equations_entail_cls (insert (s, t) R\<^sub>C) C' \<and>
+    \<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
+    \<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt (insert (s, t) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
     s \<in> NF R\<^sub>C)}"
   by simp_all
 
@@ -1203,8 +1227,10 @@ proof -
   hence Uniq_production: "\<exists>\<^sub>\<le>\<^sub>1 (x, y). \<exists>C'.
     C = add_mset (Pos (x \<approx> y)) C' \<and> select C = {#} \<and>
     is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (x \<approx> y)) C \<and> y \<prec>\<^sub>t x \<and>
-    (let R\<^sub>C = \<Union> (production ` {D. D \<prec>\<^sub>c C}) in \<not> equations_entail_cls R\<^sub>C C \<and>
-      \<not> equations_entail_cls (insert (x, y) R\<^sub>C) C' \<and> x \<in> NF R\<^sub>C)"
+    (let R\<^sub>C = \<Union> (production ` {D. D \<prec>\<^sub>c C}) in
+      \<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
+      \<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt (insert (x, y) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
+      x \<in> NF R\<^sub>C)"
     using Uniq_mono_decr'
     by (smt (verit) Uniq_def Uniq_prodI case_prod_conv)
   show ?thesis
@@ -1342,29 +1368,114 @@ next
     by (simp add: ) 
 qed
 
-lemma WCR_rewrite_sys:
+thm wfP_if_convertible_to_wfP
+
+definition critical_pairs
+  :: "(('f, 'v) term \<times> ('f, 'v) term) set \<Rightarrow> (('f, 'v) term \<times> ('f, 'v) term) set"
+where
+  "critical_pairs r = {(y, ctxt\<langle>z\<rangle>) | ctxt x y z. (ctxt\<langle>x\<rangle>, y) \<in> r \<and> (x, z) \<in> r \<and> \<not> is_Var x}"
+
+lemma
+  assumes "(ctxt1\<langle>l1\<rangle>, ctxt1\<langle>r1\<rangle>) \<in> r" and "(ctxt2\<langle>l2\<rangle>, ctxt2\<langle>r2\<rangle>) \<in> r" and "ctxt1\<langle>l1\<rangle> = ctxt2\<langle>l2\<rangle>"
+  shows False
+  oops
+
+
+(* p1 = [0]
+p2 = [0,0]
+
+parallel = \<not> (if p1[i] = p2[i] for all 0 \<le> i \<le> min (length p1) (length p2))
+
+parallel = (\<exists>n. n < length p1 \<and> n < length p2 \<and> p1[n] \<noteq> p2[n]) *)
+
+(* lemma critical_pair_lemma:
+  assumes "compatible_with_ctxt r" and "(s, t1) \<in> r" and "(s, t2) \<in> r"
+  shows "(t1, t2) \<in> join r \<or>
+    (\<exists>ctxt s' u1 u2. s = ctxt\<langle>s'\<rangle> \<and> t1 = ctxt\<langle>u1\<rangle> \<and> t2 = ctxt\<langle>u2\<rangle> \<and>
+      ((u1, u2) \<in> critical_pairs r \<or> (u2, u1) \<in> critical_pairs r))"
+proof -
+  show ?thesis
+    sorry
+qed *)
+
+(* lemma critical_pair_theorem:
+  assumes compatible_contexts: "compatible_with_ctxt r"
+  shows "WCR r \<longleftrightarrow> critical_pairs r \<subseteq> join r"
+proof (rule iffI)
+  assume "WCR r"
+  hence locally_confluent: "\<forall>a b c. (a, b) \<in> r \<and> (a, c) \<in> r \<longrightarrow> (b, c) \<in> r\<^sup>\<down>"
+    by (simp add: WCR_on_def)
+  show "critical_pairs r \<subseteq> r\<^sup>\<down>"
+    apply (rule subsetI)
+    unfolding critical_pairs_def mem_Collect_eq
+    apply safe
+    subgoal for _ _ ctxt x y z
+    using locally_confluent[rule_format, of "ctxt\<langle>x\<rangle>" y "ctxt\<langle>z\<rangle>"]
+    by (meson compatible_contexts compatible_with_ctxtD)
+  done
+next
+  assume "critical_pairs r \<subseteq> r\<^sup>\<down>"
+  hence "(b, c) \<in> r\<^sup>\<down>" if "(a, b) \<in> r" and "(a, c) \<in> r" for a b c
+    using critical_pair_lemma[OF compatible_contexts that]
+    by (meson compatible_contexts compatible_with_ctxtD compatible_with_ctxt_join join_sym subsetD)
+  thus "WCR r"
+    by (auto simp: WCR_on_def)
+qed *)
+
+
+(* lemma "critical_pairs (rewrite_inside_ctxt r) = rewrite_inside_ctxt (critical_pairs r)"
+proof (intro Set.equalityI Set.subsetI)
+  fix p
+  assume "p \<in> critical_pairs (rewrite_inside_ctxt r)"
+  then show "p \<in> rewrite_inside_ctxt (critical_pairs r)"
+    sorry
+next
+  fix p'
+  assume "p' \<in> critical_pairs r"
+  then show "p' \<in> critical_pairs (rewrite_inside_ctxt r)"
+    unfolding critical_pairs_def
+    using subset_rewrite_inside_ctxt by blast
+qed
+
+lemma critical_pairs_rewrite_inside_ctxt_eq_empty:
+  "critical_pairs (rewrite_inside_ctxt r) = {} \<longleftrightarrow> critical_pairs r = {}"
+proof (rule iffI)
+  show "critical_pairs (rewrite_inside_ctxt r) = {} \<Longrightarrow> critical_pairs r = {}"
+    sorry
+next
+  show "critical_pairs r = {} \<Longrightarrow> critical_pairs (rewrite_inside_ctxt r) = {}"
+    sorry
+qed *)
+
+(* lemma WCR_rewrite_sys:
   assumes "is_ground_cls C"
-  shows "WCR (rewrite_sys C)"
-  unfolding WCR_alt_def
-proof (rule Set.subsetI)
-  fix e assume "e \<in> (rewrite_sys C)\<inverse> O rewrite_sys C"
-  then obtain a b c where
-    e_def: "e = (b, c)" and "(a, b) \<in> rewrite_sys C" and "(a, c) \<in> rewrite_sys C"
-    by blast
-  show "e \<in> (rewrite_sys C)\<^sup>\<down>"
-    unfolding e_def join_def
-    using \<open>(a, b) \<in> rewrite_sys C\<close> \<open>(a, c) \<in> rewrite_sys C\<close>
-    oops
+  shows "WCR (rewrite_inside_ctxt (rewrite_sys C))"
+proof -
+  have "critical_pairs (rewrite_sys C) = {}"
+    sorry
+  hence "critical_pairs (rewrite_inside_ctxt (rewrite_sys C)) = {}"
+    by (simp add: critical_pairs_rewrite_inside_ctxt_eq_empty)
+  moreover have "compatible_with_ctxt (rewrite_inside_ctxt (rewrite_sys C))"
+    by simp
+  ultimately show ?thesis
+    using critical_pair_theorem
+    by simp
+qed *)
+
+lemma WCR_Union_rewrite_sys:
+  assumes "is_ground_cls_set N"
+  shows "WCR ((\<Union>D \<in> N. rewrite_sys D))"
+  sorry
 
 lemma model_construction0:
   assumes "G.saturated N" and "{#} \<notin> N" and "C \<in> N"
   shows "D \<in> N \<Longrightarrow> cls_gcls D \<prec>\<^sub>c cls_gcls C \<Longrightarrow>
-    equations_entail_cls (rewrite_sys (cls_gcls D)) (cls_gcls C)"
+    (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt (rewrite_sys (cls_gcls D)))\<^sup>\<down> \<TTurnstile> cls_gcls C"
   sorry
 
-lemma model_construction:
+theorem model_construction:
   assumes "G.saturated N" and "{#} \<notin> N" and "C \<in> N"
-  shows "equations_entail_cls (\<Union>D \<in> N. equation (cls_gcls D)) (cls_gcls C)"
+  shows "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt (\<Union>D \<in> N. rewrite_sys (cls_gcls D)))\<^sup>\<down> \<TTurnstile> cls_gcls C"
   using model_construction0[OF assms]
   sorry
 
@@ -1382,22 +1493,44 @@ proof unfold_locales
     assume "{#} \<notin> N"
 
     define I :: "(('f, 'v) term \<times> ('f, 'v) term) set" where
-      "I = (rewrite_inside_ctxt (\<Union>D \<in> N. equation (cls_gcls D)))\<^sup>\<down>"
+      "I = (rewrite_inside_ctxt (\<Union>D \<in> cls_gcls ` N. rewrite_sys D))\<^sup>\<down>"
 
     show "\<not> G_entails N G_Bot"
       unfolding G_entails_def not_all not_imp
     proof (intro exI conjI)
       show "refl I"
         unfolding I_def
-        by (simp add: joinI_left reflI)
+        by (simp add: joinI_right reflI)
     next
+      have ground_N: "is_ground_cls_set (cls_gcls ` N)"
+        sorry
+
       show "trans I"
         unfolding I_def
-        by (simp add: conversion_trans)
+      proof (rule trans_join)
+        have "wf ((rewrite_inside_ctxt (\<Union>D \<in> cls_gcls ` N. rewrite_sys D))\<inverse>)"
+        proof (rule wf_converse_rewrite_inside_ctxt)
+          fix s t
+          assume "(s, t) \<in> (\<Union>D \<in> cls_gcls ` N. rewrite_sys D)"
+          then obtain C where "C \<in> cls_gcls ` N" "(s, t) \<in> rewrite_sys C"
+            by auto
+          then obtain D where "D \<prec>\<^sub>c C" and "(s, t) \<in> equation D"
+            unfolding rewrite_sys_def by blast
+          thus "t \<prec>\<^sub>t s"
+            using production.elims by (auto simp: equation_def)
+        qed simp_all
+        thus "SN (rewrite_inside_ctxt (\<Union>D \<in> cls_gcls ` N. rewrite_sys D))"
+          using SN_iff_wf by metis
+      next
+        have "WCR (\<Union>D \<in> cls_gcls ` N. rewrite_sys D)"
+          using WCR_Union_rewrite_sys[OF ground_N] by simp
+        then show "WCR (rewrite_inside_ctxt (\<Union>D \<in> cls_gcls ` N. rewrite_sys D))"
+          sorry
+      qed
     next
       show "sym I"
         unfolding I_def
-        by (simp add: sym_join)
+        using sym_join by metis
     next
       show "compatible_with_ctxt I"
         unfolding I_def
@@ -1405,8 +1538,7 @@ proof unfold_locales
     next
       show "(\<lambda>(x, y). x \<approx> y) ` I \<TTurnstile>s cls_gcls ` N"
         unfolding I_def
-        using model_construction[OF \<open>G.saturated N\<close> \<open>{#} \<notin> N\<close>,
-            THEN true_cls_if_equations_entail_cls]
+        using model_construction[OF \<open>G.saturated N\<close> \<open>{#} \<notin> N\<close>]
         by (simp add: true_clss_def)
     next
       show "\<not> (\<lambda>(x, y). x \<approx> y) ` I \<TTurnstile>s cls_gcls ` G_Bot"
