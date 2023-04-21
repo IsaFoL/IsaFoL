@@ -39,14 +39,7 @@ text \<open>
   Note that we do not add the simplification rule \textsc{BinSplit} yet, as it complexifies the
   proofs for lemma 81.
   See locale \<open>???\<close> for the full calculus with \textsc{BinSplit}. 
-
-  By Theorem @{thm splitting_calculus.S_calculus_statically_complete}, we can show that \<open>LA\<close> is
-  statically complete, and therefore dynamically complete.
 \<close>
-
-
-
-(* Report theorem 21 and corollary 22 *)
 
 
 
@@ -90,7 +83,7 @@ text \<open>
  *   As noted in the paper, \<open>C\<close> is only a \<open>\<Sigma>\<close>-clause, not a \<open>\<Sigma>\<^sub>\<bbbP>\<close>-clause.
  *
  * This leads me to think that \<open>\<Sigma>\<^sub>\<bbbP>\<close> is actually \<^emph>\<open>not\<close> defined in @{theory Clausal_Logic} (only
- * \<open>\<Sigma>\<close>-clauses are through the datatoe @{typ clause}) and that we need to define \<open>\<Sigma>\<^sub>\<bbbP>\<close> clauses
+ * \<open>\<Sigma>\<close>-clauses are through the datatype @{typ clause}) and that we need to define \<open>\<Sigma>\<^sub>\<bbbP>\<close>-clauses
  * ourselves.
  * This needs some more investigation, because the \<open>\<G>\<close> functions are defined on @{typ clauses}s.
  *
@@ -98,8 +91,8 @@ text \<open>
  * 
  * UPDATE: the more I read this section of the paper (the first few paragraphs of the subsection,
  * until \textsc{BinSplit}), the more I'm starting to believe that we actually need to define
- * \<open>O\<^sub>\<bbbP>\<close> ourselves, using custom clause datatype along the lines of \<open>
-     datatype ('f, 'v) \<bbbP>_clause =
+ * \<open>O\<^sub>\<bbbP>\<close> ourselves, using a custom clause datatype along the lines of \<open>
+     datatype ('f, 'v) \<Sigma>\<^sub>\<bbbP>_clause =
        Or \<open>'f\<close> \<open>'v clause\<close> (infix \<open>\<or>\<^sub>\<bbbP>\<close> 60)
    \<close>, which defines what a \<open>\<Sigma>\<^sub>\<bbbP>\<close>-clause is.
  * Hence, a \<open>\<bbbP>\<close>-clause may just be represented by the type @{typ clause}.
@@ -115,9 +108,10 @@ text \<open>
  *
  * For all the properties on \<open>O\<^sub>\<bbbP>\<close>, I guess we will need to instantiate (or extend) the locale
  * @{locale FO_resolution_prover}:
- * \<^item> \<open>S\<close> is the selection function;
+ * \<^item> \<open>S\<close> is the selection function (returns a set of selected literals);
  * \<^item> \<open>subst_atm\<close> is the application of a substitution to an atom;
- * \<^item> \<open>subst_id\<close> is the empty substitution;
+ * \<^item> \<open>subst_id\<close> is the empty substitution, which is the identity of the composition
+     operator \<open>comp_subst\<close>;
  * \<^item> \<open>comp_subst\<close> is the substitution composition operator;
  * \<^item> \<open>renamings_apart\<close> ?;
  * \<^item> \<open>atm_of_atms\<close> ?;
@@ -129,7 +123,18 @@ text \<open>
  * so that all \<open>'v\<close> atoms are smaller than any \<open>'f\<close> (\<open>\<Sigma>\<close>-)clause.
  *
  * Do we also need to lift the \<closedblquote>\<open>\<G>\<close> functions\<opendblquote> to \<open>\<Sigma>\<^sub>\<bbbP>\<close>-clauses? The paper says that they are defined
- * on \<open>\<Sigma>\<close> clauses, but later in lemmas 80 and 81, they are used on \<open>\<Sigma>\<^sub>\<bbbP>\<close> clauses. *)
+ * on \<open>\<Sigma>\<close> clauses, but later in lemmas 80 and 81, they are used on \<open>\<Sigma>\<^sub>\<bbbP>\<close> clauses.
+ * So if we do, how do we do it?
+ *
+ * Together with \<open>\<Sigma>\<^sub>\<bbbP>\<close>, lemma 78 uses the notion of \<open>\<Sigma>\<^sub>\<bbbP>\<close>-model, which is basically a pair \<open>\<K> \<union> \<J>\<close>.
+ * I guess we also need to define that, given @{const \<open>(\<TTurnstile>s)\<close>} (modelhood on \<open>\<bbbP>\<close>-clauses).
+ * However, we need a notion of \<open>\<Sigma>\<close>-modelhood, which we would have to define on \<open>'f\<close>.
+ * What does that mean?
+ * \<^item> \<open>\<bbbP>\<close>-interpretation are easy: they are, in our case, instances of
+ *   @{typ \<open>'v total_interpretation\<close>}, which is what we have already been using in the splitting
+ *   calculus.
+ * \<^item> \<open>\<Sigma>\<close>-interpretation are more tricky though, because they would need to be models of \<open>'f\<close> formulas
+ *   which we don't know what they are. *)
 
 
 
@@ -202,9 +207,34 @@ text \<open>
 
 (* I think that this proof may not be as simple as described in the paper, but I'll see.
  *
- * Specifically, the fact that all \<open>C\<^sub>i\<close> (for \<open>i \<in> {1 ,\<dots>, n}\<close>) are not \<open>\<bottom>\<close> is blurry.
+ * Specifically, the fact that all \<open>\<lfloor>C\<^sub>i\<rfloor>\<close> (for \<open>i \<in> {1 ,\<dots>, n}\<close>) are not \<open>\<bottom>\<close> is blurry.
+ * We know that \<open>\<alpha>(\<iota>)\<close> is a \textsc{Base} infernece, hence that \<open>(\<alpha>(C\<^sub>n), \<dots>, \<alpha>(C\<^sub>1), D) \<in> FInf\<close> for 
+ * some \<open>D\<close>. However, the inference \<open>(\<bottom>, \<bottom>)\<close> is a valid \<open>FInf\<close>-inference.
+ * Hence \<open>(\<bottom> \<leftarrow> A, \<bottom> \<leftarrow> A)\<close> is a valid \<open>SInf\<close>-inference.
+ * Given that \<open>\<alpha>(\<bottom> \<or> A) \<equiv> \<bottom> \<leftarrow> A\<close>, it is possible for some \<open>\<lfloor>C\<^sub>i\<rfloor>\<close> to be \<open>\<bottom>\<close> because \<open>\<lfloor>\<bottom> \<or> A\<rfloor> = \<bottom>\<close>.
+ * So there is something that I'm missing in this proof.
+ * 
  * Same goes for using the selection function with selected literals: how do we know that the
- * function will select those exactly? . *)
+ * function will select those exactly? In fact, which literals in the premises are selected?
+ *
+ * Unfortunately, we cannot drop this lemma as it is used in the proof for lemma 81.
+ * So either we find another way of doing things, or we understand how to do things.
+ * I guess the better solution is the second one, although either this will take a lot of time or
+ * I'll have to resort to try understanding this with Sophie. My best guess is that I don't know
+ * what definition they are talking about, and I can't seem to find it in the source of the
+ * formalization.
+ * Let's see if this is in the paper of Riazanov and Voronkov.
+ *
+ * Okay. I think I understand the argument.
+ * If \<open>\<iota> = (C\<^sub>n, \<dots>, C\<^sub>1, C\<^sub>0)\<close> and there exists an \<open>i\<close> such that \<open>\<lfloor>C\<^sub>i\<rfloor> = \<bottom>\<close> then \<open>\<iota>\<close> must not be an
+ * inference in the system, as \<open>\<bottom>\<close> would have been selected before to close the branch.
+ * However, what I find blurry is how this argument is actually applied here.
+ * Since we are trying to prove that \<open>\<iota> \<in> FPinf\<close>, we cannot just restrict the \<closedblquote>values\<opendblquote> of any \<open>\<lfloor>C\<^sub>i\<rfloor>\<close>
+ * just so that it fits the goal. We must be able to derive this fact from some assumption, which
+ * we cannot seem to be able to do here (reminder: \textsc{Base} inference can be carried out on
+ * A-formulas whose head is \<open>\<bottom>\<close>), and the fact that \<open>\<iota>\<close> is a \<open>\<Sigma>\<^sub>\<bbbP>\<close>-clause does not restrict our field
+ * of possibilities either.
+ * So mmh yeah this seems to be quite a problem. *)
 
 
 
@@ -278,9 +308,14 @@ text \<open>
   (which we show to be sound and to make its premises redundant,
   Theorem @{thm splitting_calculus_with_simps.SInf_with_simps_sound_wrt_entails_sound}
   and Theorem @{thm splitting_calculus_with_simps.simplification_to_redundant} respectively).
+
+  By Theorem @{thm splitting_calculus.S_calculus_statically_complete}, we can show that \<open>LA\<close> is
+  statically complete, and therefore dynamically complete by Theorem
+  @{thm splitting_calculus.S_calculus_dynamically_complete}.
+
+  For completeness' sake, we also show that Lemma 81 holds of the SInf inference system augmented
+  with \textsc{BinSplit}.
 \<close> 
-
-
 
 text \<open>
   The definition of simplification rules follows what we have been doing in
@@ -299,6 +334,18 @@ text \<open>
 
 
 (* Report theorem 19 for the case BinSplit *) 
+
+
+
+
+
+(* Report theorem 21 for the full calculus *)
+
+
+
+
+
+(* Report corollary 22 for the full calculus *)
 
 
 
