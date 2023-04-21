@@ -134,7 +134,8 @@ text \<open>
  *   @{typ \<open>'v total_interpretation\<close>}, which is what we have already been using in the splitting
  *   calculus.
  * \<^item> \<open>\<Sigma>\<close>-interpretation are more tricky though, because they would need to be models of \<open>'f\<close> formulas
- *   which we don't know what they are. *)
+ *   which we don't know what they are.
+ *   From the proof of lemma 81, it seems that these are @{typ \<open>'v total_interpretation\<close>}s too. *)
 
 
 
@@ -190,7 +191,10 @@ text \<open>
 \<close>
 (* Report lemma 78 *)
 
-
+(* FIXME: the notation \<open>\<K> \<Turnstile> \<lfloor>C\<rfloor>\<close> does not make sens here, if \<open>\<K>\<close> is an interpretation. In fact, it
+ * is not defined in the article (only \<open>\<J> \<Turnstile> C\<^sub>\<bottom>\<close> is defined, note the propositional projection).
+ * I guess this does not mean the same thing (the propositional projection is a bit too restricte
+ * I think) hence we need to see what it \<^emph>\<open>really\<close> means. *)
 
 
 
@@ -223,18 +227,8 @@ text \<open>
  * I'll have to resort to try understanding this with Sophie. My best guess is that I don't know
  * what definition they are talking about, and I can't seem to find it in the source of the
  * formalization.
- * Let's see if this is in the paper of Riazanov and Voronkov.
  *
- * Okay. I think I understand the argument.
- * If \<open>\<iota> = (C\<^sub>n, \<dots>, C\<^sub>1, C\<^sub>0)\<close> and there exists an \<open>i\<close> such that \<open>\<lfloor>C\<^sub>i\<rfloor> = \<bottom>\<close> then \<open>\<iota>\<close> must not be an
- * inference in the system, as \<open>\<bottom>\<close> would have been selected before to close the branch.
- * However, what I find blurry is how this argument is actually applied here.
- * Since we are trying to prove that \<open>\<iota> \<in> FPinf\<close>, we cannot just restrict the \<closedblquote>values\<opendblquote> of any \<open>\<lfloor>C\<^sub>i\<rfloor>\<close>
- * just so that it fits the goal. We must be able to derive this fact from some assumption, which
- * we cannot seem to be able to do here (reminder: \textsc{Base} inference can be carried out on
- * A-formulas whose head is \<open>\<bottom>\<close>), and the fact that \<open>\<iota>\<close> is a \<open>\<Sigma>\<^sub>\<bbbP>\<close>-clause does not restrict our field
- * of possibilities either.
- * So mmh yeah this seems to be quite a problem. *)
+ * I just don't get it. *)
 
 
 
