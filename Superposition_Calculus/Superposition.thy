@@ -1569,6 +1569,87 @@ proof (rule ballI)
     by (cases "t1 = t2") simp_all
 qed
 
+lemma
+  assumes
+    ground_D: "is_ground_cls D" and
+    ground_C: "is_ground_cls C" and
+    "D \<preceq>\<^sub>c C" and
+    E\<^sub>C_eq: "equation N C = {(s, t)}" and
+    L_in: "L \<in># D" and
+    L_atm: "atm_of L = (u \<approx> v)"
+  shows
+    lesseq_trm_if_pos: "is_pos L \<Longrightarrow> u \<preceq>\<^sub>t s" and
+    less_trm_if_neg: "is_neg L \<Longrightarrow> u \<prec>\<^sub>t s"
+proof -
+  from E\<^sub>C_eq have "(s, t) \<in> equation N C"
+    by simp
+  then obtain C' where
+    C_def: "C = add_mset (Pos (s \<approx> t)) C'" and
+    C_max_lit: "is_strictly_maximal_lit (Pos (s \<approx> t)) C" and
+    "t \<prec>\<^sub>t s"
+    by (auto elim: mem_equationE)
+  with ground_C have ground_s: "is_ground_trm s" and ground_t: "is_ground_trm t"
+    by simp_all
+
+  from ground_D L_in L_atm have ground_u: "is_ground_trm u"
+    by (metis is_ground_lit_if_in_ground_cls sup_bot.neutr_eq_iff vars_atm_make_uprod vars_lit_def)
+
+  from ground_C ground_D have "set_mset C \<union> set_mset D \<subseteq> {L. is_ground_lit L}"
+    by (meson Ball_Collect Un_iff is_ground_lit_if_in_ground_cls)
+  hence less_lit_tot_on_C_D[simp]: "totalp_on (set_mset C \<union> set_mset D) (\<prec>\<^sub>l)"
+    using totalp_on_less_lit totalp_on_subset by blast
+
+  have "Pos (s \<approx> t) \<prec>\<^sub>l L" if "is_pos L" and "\<not> u \<preceq>\<^sub>t s"
+  proof -
+    from that(2) have "s \<prec>\<^sub>t u"
+      using ground_s ground_u totalp_on_less_trm[THEN totalp_onD, unfolded mem_Collect_eq] by auto
+    hence "multp (\<prec>\<^sub>t) {#s, t#} {#u, v#}"
+      using \<open>t \<prec>\<^sub>t s\<close>
+      by (smt (verit, del_insts) add.right_neutral empty_iff insert_iff one_step_implies_multp
+          set_mset_add_mset_insert set_mset_empty transpD transp_less_trm union_mset_add_mset_right)
+    with that(1) show "Pos (s \<approx> t) \<prec>\<^sub>l L"
+      using L_atm
+      by (metis less_lit_def literal.collapse(1) mset_lit.simps(1) mset_uprod_make_uprod)
+  qed
+
+  moreover have "Pos (s \<approx> t) \<prec>\<^sub>l L" if "is_neg L" and "\<not> u \<prec>\<^sub>t s"
+  proof -
+    from that(2) have "s \<preceq>\<^sub>t u"
+      using ground_s ground_u totalp_on_less_trm[THEN totalp_onD, unfolded mem_Collect_eq] by auto
+    hence "multp (\<prec>\<^sub>t) {#s, t#} {#u, v, u, v#}"
+      using \<open>t \<prec>\<^sub>t s\<close>
+      by (smt (z3) add_mset_add_single add_mset_remove_trivial add_mset_remove_trivial_iff
+          empty_not_add_mset insert_DiffM insert_noteq_member one_step_implies_multp reflclp_iff
+          transp_def transp_less_trm union_mset_add_mset_left union_mset_add_mset_right)
+    with that(1) show "Pos (s \<approx> t) \<prec>\<^sub>l L"
+      using L_atm
+      by (cases L) (simp_all add: less_lit_def)
+  qed
+
+  moreover have False if "Pos (s \<approx> t) \<prec>\<^sub>l L"
+  proof -
+    have "C \<prec>\<^sub>c D"
+    proof (rule multp_if_maximal_less)
+      show "Pos (s \<approx> t) \<in># C"
+        by (simp add: C_def)
+    next
+      show "L \<in># D"
+        using L_in by simp
+    next
+      show "is_maximal_lit (Pos (s \<approx> t)) C"
+        using C_max_lit by simp
+    next
+      show "Pos (s \<approx> t) \<prec>\<^sub>l L"
+        using that by simp
+    qed simp_all
+    with \<open>D \<preceq>\<^sub>c C\<close> show False
+      by (metis asympD reflclp_iff wfP_imp_asymp wfP_less_cls)
+  qed
+
+  ultimately show "is_pos L \<Longrightarrow> u \<preceq>\<^sub>t s" and "is_neg L \<Longrightarrow> u \<prec>\<^sub>t s"
+    by metis+
+qed
+
 lemma model_construction0:
   assumes "G.saturated N" and "{#} \<notin> N" and "C \<in> N"
   shows "D \<in> N \<Longrightarrow> cls_gcls D \<prec>\<^sub>c cls_gcls C \<Longrightarrow>
