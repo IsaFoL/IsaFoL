@@ -9,6 +9,10 @@ term asymp
 definition is_maximal_wrt where
   "is_maximal_wrt R x M \<longleftrightarrow> (\<forall>y \<in># M - {#x#}. \<not> (R x y))"
 
+lemma is_maximal_wrt_if_is_maximal_wrt_reflclp[simp]:
+  "is_maximal_wrt R\<^sup>=\<^sup>= L C \<Longrightarrow> is_maximal_wrt R L C"
+  unfolding is_maximal_wrt_def by simp
+
 lemma Uniq_is_maximal_wrt_reflclp:
   shows "totalp_on (set_mset C) R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1L. L \<in># C \<and> is_maximal_wrt R\<^sup>=\<^sup>= L C"
   by (rule Uniq_I) (metis insert_DiffM insert_noteq_member is_maximal_wrt_def sup2CI totalp_onD)
@@ -38,45 +42,6 @@ lemma multp\<^sub>H\<^sub>O_implies_one_step_strong:
       subset_mset.add_diff_inverse subset_mset.inf.cobounded2 subset_mset.le_zero_eq)
   using assms
   by (metis J_def K_def in_diff_count multp\<^sub>H\<^sub>O_def)
-
-
-lemma multp\<^sub>H\<^sub>O_repeat_mset_repeat_mset[simp]:
-  assumes "n \<noteq> 0"
-  shows "multp\<^sub>H\<^sub>O R (repeat_mset n A) (repeat_mset n B) \<longleftrightarrow> multp\<^sub>H\<^sub>O R A B"
-proof (rule iffI)
-  assume hyp: "multp\<^sub>H\<^sub>O R (repeat_mset n A) (repeat_mset n B)"
-  hence
-    1: "repeat_mset n A \<noteq> repeat_mset n B" and
-    2: "\<forall>y. n * count B y < n * count A y \<longrightarrow> (\<exists>x. R y x \<and> n * count A x < n * count B x)"
-    by (simp_all add: multp\<^sub>H\<^sub>O_def)
-
-  from 1 \<open>n \<noteq> 0\<close> have "A \<noteq> B"
-    by auto
-
-  moreover from 2 \<open>n \<noteq> 0\<close> have "\<forall>y. count B y < count A y \<longrightarrow> (\<exists>x. R y x \<and> count A x < count B x)"
-    by auto
-
-  ultimately show "multp\<^sub>H\<^sub>O R A B"
-    by (simp add: multp\<^sub>H\<^sub>O_def)
-next
-  assume "multp\<^sub>H\<^sub>O R A B"
-  hence 1: "A \<noteq> B" and 2: "\<forall>y. count B y < count A y \<longrightarrow> (\<exists>x. R y x \<and> count A x < count B x)"
-    by (simp_all add: multp\<^sub>H\<^sub>O_def)
-
-  from 1 have "repeat_mset n A \<noteq> repeat_mset n B"
-    by (simp add: assms repeat_mset_cancel1)
-
-  moreover from 2 have "\<forall>y. n * count B y < n * count A y \<longrightarrow>
-    (\<exists>x. R y x \<and> n * count A x < n * count B x)"
-    by auto
-
-  ultimately show "multp\<^sub>H\<^sub>O R (repeat_mset n A) (repeat_mset n B)"
-    by (simp add: multp\<^sub>H\<^sub>O_def)
-qed
-
-lemma multp\<^sub>H\<^sub>O_double_double[simp]: "multp\<^sub>H\<^sub>O R (A + A) (B + B) \<longleftrightarrow> multp\<^sub>H\<^sub>O R A B"
-  using multp\<^sub>H\<^sub>O_repeat_mset_repeat_mset[of 2]
-  by (simp add: numeral_Bit0)
 
 lemma multp_implies_one_step_strong:
   fixes A B I J K :: "_ multiset"
@@ -156,6 +121,24 @@ proof -
   show "\<forall>k \<in># A - B. \<exists>j \<in># B - A. (k, j) \<in> r"
     by (metis A_def B_def \<open>\<forall>a. a \<in># A' \<longrightarrow> (a, b) \<in> r\<close> \<open>b \<in># B - A\<close> \<open>b \<notin># A'\<close> add_diff_cancel_left'
         add_mset_add_single diff_diff_add_mset diff_single_trivial)
+qed
+
+
+lemma multp_if_maximal_less:
+  assumes
+    "transp R" and
+    "totalp_on (set_mset M1 \<union> set_mset M2) R" and
+    "x1 \<in># M1" and "x2 \<in># M2" and
+    "is_maximal_wrt R x1 M1" and "R x1 x2"
+  shows "multp R M1 M2"
+proof (rule one_step_implies_multp[of _ _ _ "{#}", simplified])
+  show "M2 \<noteq> {#}"
+    using \<open>x2 \<in># M2\<close> by auto
+next
+  show "\<forall>k\<in>#M1. \<exists>j\<in>#M2. R k j"
+    using assms
+    by (smt (verit, ccfv_threshold) UnI1 at_most_one_mset_mset_diff insertE insert_Diff
+        is_maximal_wrt_def iso_tuple_UNIV_I more_than_one_mset_mset_diff totalp_onD transp_onD)
 qed
 
 thm mult_implies_one_step
