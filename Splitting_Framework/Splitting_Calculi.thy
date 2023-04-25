@@ -5,14 +5,21 @@ theory Splitting_Calculi
   imports
     Preliminaries_With_Zorn
     Light_Lifting_to_Non_Ground_Calculi
-    (* As noted in lemma 18 of the paper, the definition of lifting used in the Saturation Framework does not
-     * work for our purpose, because it is too restrictive.
-     * However, the condition (G2) is not of interest in our setting (because we don't really care about static completeness
-     * in lemma 18), so we simply removed this condition, together with all the lemmas/theorems which depended upon it. *)
+    (* As noted in lemma 18 of the paper, the definition of lifting used in the Saturation Framework
+     * does not work for our purpose, because it is too restrictive. However, the condition (G2) is
+     * not of interest in our setting (because we don't really care about static completeness
+     * in lemma 18), so we simply removed this condition, together with all the lemmas/theorems 
+     * which depended upon it. *)
 begin
 
-section \<open>Splitting calculi\<close>
+(* This file contains some comments regarding the potential move of some lemmas.
+ * These comments all start with \<open>!\<close> (in fact, searching for \<open>(*!\<close> should yield all of them).
+ * Most of the time, appropriate theories are suggested, although sometimes I could not
+ * really about a better one.
+ *) \<longleftarrow> This looks funny but this is necessary to close the inner comment. :) *)
 
+section \<open>Splitting calculi\<close>
+                                                                                          
 text \<open>
   In this section, we formalize an abstract version of a splitting calculus.
   We start by considering only two basic rules:
@@ -20,7 +27,7 @@ text \<open>
   \<^item> \textsc{Unsat} replaces a set of propositionally unsatisfiable formulas with \<bottom>.
 \<close>
 
-locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_F V fml
+locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_F V fml asn 
   for bot :: 'f and
       Inf :: \<open>'f inference set\<close> and
       entails :: \<open>[ 'f set, 'f set ] \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
@@ -28,7 +35,8 @@ locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_
       Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
       Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
       V :: \<open>'v :: countable itself\<close> and
-      fml :: \<open>'v \<Rightarrow> 'f\<close>
+      fml :: \<open>'v \<Rightarrow> 'f\<close> and
+      asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close> 
   + assumes
       (* D6 *)
       entails_nontrivial: \<open>\<not> {} \<Turnstile> {}\<close> and
@@ -39,7 +47,9 @@ locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_
       (* R7 *)
       all_red_to_bot: \<open>\<C> \<noteq> bot \<Longrightarrow> \<C> \<in> Red_F {bot}\<close>
 begin
-  
+
+notation sound_cons.entails_neg (infix \<open>\<Turnstile>s\<^sub>\<sim>\<close> 50) 
+
 subsection \<open>The inference rules\<close>
 
 (* The basic SInf inference system, with the two basic rules BASE and UNSAT.
@@ -48,7 +58,8 @@ subsection \<open>The inference rules\<close>
 
 text \<open>
   Every inference rule $X$ is defined using two functions: $X\_pre$ and $X\_inf$.
-  $X\_inf$ is the inference rule itself, while $X\_pre$ are side-conditions for the rule to be applicable.
+  $X\_inf$ is the inference rule itself, while $X\_pre$ are side-conditions for
+  the rule to be applicable.
 \<close>
 
 abbreviation base_pre :: \<open>('f, 'v) AF list \<Rightarrow> 'f \<Rightarrow> bool\<close> where
@@ -68,8 +79,9 @@ inductive Splitting_rules :: \<open>('f, 'v) AF inference \<Rightarrow> bool\<cl
 | unsat: \<open>unsat_pre \<N> \<Longrightarrow> Splitting_rules (unsat_inf \<N>)\<close>
 
 text \<open>
-  All optional rules are later included within our framework, as the main results do not fully depend on them.
-  For now, we only care about \textsc{Base} and \textsc{Unsat}.
+  We consider first only the inference rules \textsc{Base} and \textsc{Unsat}. The optional 
+  inference and simplification rules are handled separately in the locales 
+  \<open>splitting_calculus_extensions\<close> and \<open>splitting_calculus_with_simps\<close> respectively.
 \<close>
 
 abbreviation SInf :: \<open>('f, 'v) AF inference set\<close> where
@@ -81,30 +93,15 @@ text \<open>
 
 interpretation SInf_inf_system: inference_system SInf .
 
-(*<*)
-lemma F_of_to_AF [simp]: \<open>F_of (to_AF \<C>) = \<C>\<close>
-  unfolding to_AF_def
-  by auto
-
-lemma A_of_to_AF [simp]: \<open>A_of (to_AF \<C>) = {||}\<close>
-  unfolding to_AF_def
-  by auto
-
-lemma F_of_propositional_clauses [simp]: \<open>(\<forall> x \<in> set \<N>. F_of x = bot) \<Longrightarrow> map F_of \<N> = map (\<lambda> _. bot) \<N>\<close>
-  using map_eq_conv
-  by blast
-
-lemma set_map_is_image: \<open>set (map f l) = f ` set l\<close>
-  by fastforce
-(*>*)
 
 
 text \<open>
-  The proof for Lemma 13 is split into two parts, for each case of the set equality.
+  The proof for Lemma 13 is split into two parts, for each inclusion in the set equality.
 \<close>
 
 (* Report lemma 13 1/2 *)
-lemma SInf_commutes_Inf1: \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarrow> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J \<subseteq> Inf_from (\<N> proj\<^sub>J J)\<close>
+lemma SInf_commutes_Inf1:
+  \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarrow> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J \<subseteq> Inf_from (\<N> proj\<^sub>J J)\<close>
 proof (intro subsetI)
   fix \<iota>\<^sub>S
   assume bot_not_in_proj: \<open>bot \<notin> \<N> proj\<^sub>J J\<close> and
@@ -138,7 +135,8 @@ proof (intro subsetI)
       using \<iota>\<^sub>F_is_enabled
       by fastforce
     then have \<open>\<forall> \<C> \<in> set \<N>. F_of \<C> \<noteq> bot\<close>
-      by (metis enabled_inf_def inference.sel(1) local.unsat(1) no_enabled_prop_clause_in_\<N> prems_of_\<iota>\<^sub>F_subset_\<N> subset_eq)
+      by (metis enabled_inf_def inference.sel(1) local.unsat(1) no_enabled_prop_clause_in_\<N>
+           prems_of_\<iota>\<^sub>F_subset_\<N> subset_eq)
     then have \<open>False\<close>
       by (simp add: local.unsat(2))
     ultimately show \<open>base_pre (prems_of \<iota>\<^sub>F) (F_of (concl_of \<iota>\<^sub>F))\<close>
@@ -155,13 +153,22 @@ qed
 
 
 (*<*)
-lemma map2_first_is_first [simp]: \<open>length x = length y \<Longrightarrow> map2 (\<lambda>x y. x) x y = x\<close>
+(*! Perhaps these could go in the List theory, where \<open>map2\<close> is defined? *)
+lemma map2_first_is_first [simp]: \<open>length x = length y \<Longrightarrow> map2 (\<lambda> x y. x) x y = x\<close>
   by (metis fst_def map_eq_conv map_fst_zip)
 
 lemma map2_second_is_second [simp]: \<open>length A = length B \<Longrightarrow> map2 (\<lambda> x y. y) A B = B\<close>
   by (metis map_eq_conv map_snd_zip snd_def)
 
-lemma fimage_snd_zip_is_snd [simp]: \<open>length x = length y \<Longrightarrow> (\<lambda>(x, y). y) |`| fset_of_list (zip x y) = fset_of_list y\<close>
+lemma list_all_exists_is_exists_list_all2:
+  assumes \<open>list_all (\<lambda> x. \<exists> y. P x y) xs\<close>
+  shows \<open>\<exists> ys. list_all2 P xs ys\<close>
+  using assms
+  by (induct xs, auto)
+
+(*! Move to FSet theory? *)
+lemma fimage_snd_zip_is_snd [simp]:
+  \<open>length x = length y \<Longrightarrow> (\<lambda>(x, y). y) |`| fset_of_list (zip x y) = fset_of_list y\<close>
 proof -
   assume length_x_eq_length_y: \<open>length x = length y\<close>
   have \<open>(\<lambda>(x, y). y) |`| fset_of_list A = fset_of_list (map (\<lambda>(x, y). y) A)\<close> for A
@@ -170,24 +177,13 @@ proof -
     using length_x_eq_length_y
     by (smt (verit, ccfv_SIG) cond_case_prod_eta map_snd_zip snd_conv)
 qed
-
-lemma F_of_Pair [simp]: \<open>F_of \<circ> (\<lambda>(x, y). Pair x y) = (\<lambda>(x, y). x)\<close>
-  by (smt (verit, ccfv_SIG) AF.sel(1) comp_apply cond_case_prod_eta old.prod.case)
-
-lemma A_of_Pair [simp]: \<open>A_of \<circ> (\<lambda>(x, y). Pair x y) = (\<lambda>(x, y). y)\<close>
-  by fastforce
-
-lemma list_all_exists_is_exists_list_all2:
-  assumes \<open>list_all (\<lambda> x. \<exists> y. P x y) xs\<close>
-  shows \<open>\<exists> ys. list_all2 P xs ys\<close>
-  using assms
-  by (induct xs, auto)
 (*>*)
 
 
 
 (* Report lemma 13 2/2 *)
-lemma SInf_commutes_Inf2: \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarrow> Inf_from (\<N> proj\<^sub>J J) \<subseteq> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J\<close>
+lemma SInf_commutes_Inf2:
+  \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarrow> Inf_from (\<N> proj\<^sub>J J) \<subseteq> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J\<close>
 proof (intro subsetI)
   fix \<iota>\<^sub>F
   assume bot_not_in_proj: \<open>bot \<notin> \<N> proj\<^sub>J J\<close> and
@@ -204,11 +200,13 @@ proof (intro subsetI)
   then have \<open>list_all (\<lambda> \<C>. \<exists> A. Pair \<C> A \<in> \<N> \<and> enabled (Pair \<C> A) J) (prems_of \<iota>\<^sub>F)\<close>
     using Ball_set
     by blast
-  then obtain As where length_As_is_length_prems_\<iota>\<^sub>F: \<open>length (prems_of \<iota>\<^sub>F) = length As\<close> and
-                       As_def: \<open>\<forall> (C, A) \<in> set (zip (prems_of \<iota>\<^sub>F) As). Pair C A \<in> \<N> \<and> enabled (Pair C A) J\<close>
+  then obtain As where
+      length_As_is_length_prems_\<iota>\<^sub>F: \<open>length (prems_of \<iota>\<^sub>F) = length As\<close> and
+      As_def: \<open>\<forall> (C, A) \<in> set (zip (prems_of \<iota>\<^sub>F) As). Pair C A \<in> \<N> \<and> enabled (Pair C A) J\<close>
     by (smt (verit, del_insts) Ball_set_list_all list_all2_iff list_all_exists_is_exists_list_all2)
   define \<iota>\<^sub>S where
-    \<open>\<iota>\<^sub>S \<equiv> Infer [ Pair \<C> A. (\<C>, A) \<leftarrow> zip (prems_of \<iota>\<^sub>F) As ] (Pair (concl_of \<iota>\<^sub>F) (ffUnion (fset_of_list As)))\<close>
+    \<open>\<iota>\<^sub>S \<equiv> Infer [ Pair \<C> A. (\<C>, A) \<leftarrow> zip (prems_of \<iota>\<^sub>F) As ]
+                (Pair (concl_of \<iota>\<^sub>F) (ffUnion (fset_of_list As)))\<close>
   have \<iota>\<^sub>F_is_Inf2: \<open>Infer (map F_of [ Pair \<C> A. (\<C>, A) \<leftarrow> zip (prems_of \<iota>\<^sub>F) As ]) (concl_of \<iota>\<^sub>F) \<in> Inf\<close>
     using length_As_is_length_prems_\<iota>\<^sub>F
     by (auto simp add: \<iota>\<^sub>F_is_Inf)
@@ -240,18 +238,20 @@ qed
 
 
 text \<open>
-  We use @{thm SInf_commutes_Inf1} and @{thm SInf_commutes_Inf2} to put the Lemma 13 together into a single proof.
-  It is not needed but better reflects the content of the article.
+  We use @{thm SInf_commutes_Inf1} and @{thm SInf_commutes_Inf2} to put the Lemma 13
+  together into a single proof.
 \<close>
 
 (* Report lemma 13 *)
-lemma SInf_commutes_Inf: \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarrow> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J = Inf_from (\<N> proj\<^sub>J J)\<close>
+lemma SInf_commutes_Inf:
+  \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarrow> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J = Inf_from (\<N> proj\<^sub>J J)\<close>
   using SInf_commutes_Inf1 SInf_commutes_Inf2
   by blast
 
 
 
 (*<*)
+(*! Move to FSet? *)
 lemma if_in_ffUnion_then_in_subset: \<open>x |\<in>| ffUnion A \<Longrightarrow> \<exists> a. a |\<in>| A \<and> x |\<in>| a\<close>
   by (induct \<open>A\<close> rule: fset_induct, fastforce+)
 
@@ -283,13 +283,14 @@ next
     by (meson fmember.rep_eq subsetD x_in_a)
 qed
 
+(*! Move to FSet too? *)
 lemma fBall_fset_of_list_iff_Ball_set: \<open>fBall (fset_of_list A) P \<longleftrightarrow> Ball (set A) P\<close>
   by (simp add: fBall.rep_eq fset_of_list.rep_eq)
 (*>*)
 
 
 
-(* Report theorem 14 *)
+(* Report theorem 14 for the cases Base and Unsat *)
 theorem SInf_sound_wrt_entails_sound: \<open>\<iota>\<^sub>S \<in> SInf \<Longrightarrow> set (prems_of \<iota>\<^sub>S) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>\<^sub>S}\<close>
 proof -
   assume \<open>\<iota>\<^sub>S \<in> SInf\<close>
@@ -330,7 +331,8 @@ proof -
         by auto
       moreover have \<open>{C. Pos C \<in> fml_ext ` total_strip J \<union> Pos ` F_of ` set \<N>} \<Turnstile>s {D}\<close>
         using inf_is_sound
-        by (smt (verit, ccfv_threshold) UnCI imageI mem_Collect_eq set_map_is_image sound_cons.entails_subsets subsetI)
+       by (smt (verit, ccfv_threshold) UnCI imageI list.set_map mem_Collect_eq
+            sound_cons.entails_subsets subsetI)  
       moreover have \<open>{C. Neg C \<in> Pos ` F_of ` {concl_of \<iota>\<^sub>S}} = {}\<close>
         by fast
       ultimately show \<open>{C. Pos C \<in> fml_ext ` total_strip J \<union> Pos ` (set (prems_of \<iota>\<^sub>S) proj\<^sub>J J)} \<union>
@@ -339,7 +341,8 @@ proof -
                        {C. Neg C \<in> fml_ext ` total_strip J \<union> Pos ` (set (prems_of \<iota>\<^sub>S) proj\<^sub>J J)}\<close>
         (* /!\ Careful, this one is a little bit slow (enough to be noticed) /!\ *)
         using base
-        by (smt (verit, del_insts) UnCI imageI inference.sel(1) inference.sel(2) mem_Collect_eq sound_cons.entails_subsets subsetI)
+        by (smt (verit, del_insts) UnCI imageI inference.sel(1) inference.sel(2) mem_Collect_eq
+             sound_cons.entails_subsets subsetI)
     qed
   next
     case (unsat \<N>)
@@ -357,8 +360,8 @@ proof -
       unfolding AF_entails_sound_def sound_cons.entails_neg_def
       using unsat
       by auto
-         (metis (no_types, lifting) empty_subsetI image_eqI insert_subset mem_Collect_eq sound_cons.bot_entails_empty
-                                    sound_cons.entails_subsets)
+         (metis (no_types, lifting) empty_subsetI image_eqI insert_subset mem_Collect_eq
+           sound_cons.bot_entails_empty sound_cons.entails_subsets)
   qed
 qed
 
@@ -378,7 +381,8 @@ definition SRed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\
             \<union> { AF.Pair C A | C A. \<exists> \<C> \<in> \<N>. F_of \<C> = C \<and> A_of \<C> |\<subset>| A }\<close>
 
 definition SRed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> where
-  \<open>SRed\<^sub>I \<N> = { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)) }
+  \<open>SRed\<^sub>I \<N> = { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and>
+                 (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)) }
            \<union> { unsat_inf \<M> | \<M>. unsat_pre \<M> \<and> to_AF bot \<in> \<N> }\<close>
 
 
@@ -387,7 +391,9 @@ definition SRed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF infe
 lemma sredI_\<N>_proj_J_subset_redI_proj_J: \<open>to_AF bot \<notin> \<N> \<Longrightarrow> (SRed\<^sub>I \<N>) \<iota>proj\<^sub>J J \<subseteq> Red_I (\<N> proj\<^sub>J J)\<close>
 proof -
   assume \<open>to_AF bot \<notin> \<N>\<close>
-  then have SRed\<^sub>I_\<N>_is: \<open>SRed\<^sub>I \<N> = { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall> \<J>. {base_inf \<M> \<C>} \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)) }\<close>
+  then have SRed\<^sub>I_\<N>_is:
+    \<open>SRed\<^sub>I \<N> = { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and>
+                   (\<forall> \<J>. {base_inf \<M> \<C>} \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)) }\<close>
     using SRed\<^sub>I_def
     by auto
   then show \<open>(SRed\<^sub>I \<N>) \<iota>proj\<^sub>J J \<subseteq> Red_I (\<N> proj\<^sub>J J)\<close>
@@ -427,11 +433,19 @@ qed
 
 
 
+text \<open>
+  We need to set things up for the proof of lemma 18.
+  We first restrict @{const SRed\<^sub>I} to \textsc{Base} inferences (under the name \<open>ARed\<^sub>I\<close>) and show
+  that it is a redundancy criterion.
+  And then we consider the case of \textsc{Unsat} inferences separately.
+\<close>
+
 definition ARed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> where
   \<open>ARed\<^sub>F \<N> \<equiv> SRed\<^sub>F \<N>\<close>
 
 definition ARed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> where
-  \<open>ARed\<^sub>I \<N> \<equiv> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)) }\<close>
+  \<open>ARed\<^sub>I \<N> \<equiv> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and>
+                  (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>)) }\<close>
 
 definition AInf :: \<open>('f, 'v) AF inference set\<close> where
   \<open>AInf \<equiv> { base_inf \<N> D | \<N> D. base_pre \<N> D }\<close>
@@ -441,6 +455,11 @@ definition \<G>\<^sub>F :: \<open>'v total_interpretation \<Rightarrow> ('f, 'v)
 
 definition \<G>\<^sub>I :: \<open>'v total_interpretation \<Rightarrow> ('f, 'v) AF inference \<Rightarrow> 'f inference set\<close> where
   \<open>\<G>\<^sub>I \<J> \<iota> \<equiv> {\<iota>} \<iota>proj\<^sub>J \<J>\<close>
+
+text \<open>
+  We also define a wellfounded ordering on A-formulas to strengthen @{const ARed\<^sub>I}.
+  Basically, \<open>A \<leftarrow> \<C> \<sqsupset> A \<leftarrow> \<C>'\<close> if \<open>\<C> \<subset> \<C>'\<close>.
+\<close> 
 
 definition tiebreaker_order :: \<open>('f, 'v :: countable) AF rel\<close> where
   \<open>tiebreaker_order \<equiv> { (\<C>, \<C>'). F_of \<C> = F_of \<C>' \<and> A_of \<C> |\<subset>| A_of \<C>' }\<close>
@@ -453,6 +472,7 @@ lemma tiebreaker_order_is_strict_partial_order: \<open>po_on (\<sqsupset>) UNIV\
   unfolding po_on_def irreflp_on_def transp_on_def tiebreaker_order_def
   by auto
 
+(*! Move only this one to FSet? *)
 lemma wf_fsubset: \<open>wfP (|\<subset>|)\<close>
 proof -
   have \<open>wfP (\<lambda> A B. fcard A < fcard B)\<close>
@@ -484,8 +504,12 @@ proof (intro notI)
 qed
 (*>*)
 
-sublocale lift_from_ARed_to_FRed: light_tiebreaker_lifting \<open>{to_AF bot}\<close> AInf \<open>{bot}\<close> \<open>(\<Turnstile>\<inter>)\<close> Inf Red_I
-                                                           Red_F \<open>\<G>\<^sub>F \<J>\<close> \<open>Some \<circ> \<G>\<^sub>I \<J>\<close> \<open>\<lambda>_. (\<sqsupset>)\<close>
+text \<open>
+  And we need to show that we can lift inferences from @{const ARed\<^sub>I} to \<open>FRed\<^sub>I\<close>.
+\<close>
+
+interpretation lift_from_ARed_to_FRed: light_tiebreaker_lifting \<open>{to_AF bot}\<close> AInf \<open>{bot}\<close> \<open>(\<Turnstile>\<inter>)\<close>
+  Inf Red_I Red_F \<open>\<G>\<^sub>F \<J>\<close> \<open>Some \<circ> \<G>\<^sub>I \<J>\<close> \<open>\<lambda>_. (\<sqsupset>)\<close>
 proof (standard)
   fix N
   show \<open>Red_I N \<subseteq> Inf\<close>
@@ -542,7 +566,7 @@ next
   assume \<open>B \<in> {to_AF bot}\<close>
   then show \<open>\<G>\<^sub>F \<J> B \<subseteq> {bot}\<close>
     using \<G>\<^sub>F_def enabled_projection_def
-    by auto
+    by (auto simp add: F_of_to_AF) 
 next
   fix \<iota>\<^sub>A
   assume \<iota>\<^sub>A_is_ainf: \<open>\<iota>\<^sub>A \<in> AInf\<close> and
@@ -596,14 +620,9 @@ next
     by blast
 qed
 
-(*<*)
-lemma Union_of_enabled_projection_is_enabled_projection: \<open>(\<Union> \<C> \<in> \<N>. {\<C>} proj\<^sub>J \<J>) = \<N> proj\<^sub>J \<J>\<close>
-  unfolding enabled_projection_def
-  by blast
-(*>*)
-
-(* It was left as an exercice to check ARed\<^sub>I and FRed\<^sub>I\<^bsup>\<inter>\<G>\<^esup> coincide, meaning that the set of redundant inferences
- * according to ARed\<^sub>I is the same as the intersection of all sets of redundant inferences according to FRed\<^sub>I\<^bsup>\<inter>\<G>\<^esup>. *)
+(* It was left as an exercice to check ARed\<^sub>I and FRed\<^sub>I\<^sup>\<inter>\<^sup>\<G> coincide, meaning that the set of 
+ * redundant inferences according to ARed\<^sub>I is the same as the intersection of all sets of redundant
+ *  inferences according to FRed\<^sub>I\<^sup>\<inter>\<^sup>\<G>. *)
 lemma ARed\<^sub>I_is_FRed\<^sub>I: \<open>ARed\<^sub>I \<N> = (\<Inter> J. lift_from_ARed_to_FRed.Red_I_\<G> J \<N>)\<close>
 proof (intro subset_antisym subsetI)
   fix \<iota>
@@ -639,7 +658,8 @@ next
     by auto
   then obtain \<iota>\<^sub>F where \<iota>\<^sub>F_is: \<open>\<iota>\<^sub>F = \<iota>F_of \<iota>\<close>
     by auto
-  then have \<open>\<exists> \<M> \<C>. \<iota> = base_inf \<M> \<C> \<and> base_pre \<M> \<C> \<and> (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>))\<close>
+  then have \<open>\<exists> \<M> \<C>. \<iota> = base_inf \<M> \<C> \<and> base_pre \<M> \<C> \<and>
+               (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (\<N> proj\<^sub>J \<J>))\<close>
     using \<iota>_is Infer_\<M>_\<C>_is_Inf all_J_\<G>\<^sub>I_subset_Red_I
     unfolding \<G>\<^sub>I_def \<G>\<^sub>F_def
     using Union_of_enabled_projection_is_enabled_projection
@@ -648,12 +668,6 @@ next
     unfolding ARed\<^sub>I_def
     by auto
 qed
-
-(*<*)
-lemma subformula_of_enabled_formula_is_enabled: \<open>A_of \<C> |\<subset>| A_of \<C>' \<Longrightarrow> enabled \<C>' J \<Longrightarrow> enabled \<C> J\<close>
-  unfolding enabled_def
-  by (meson less_eq_fset.rep_eq pfsubset_imp_fsubset subset_trans)
-(*>*)
 
 (* Check that ARed\<^sub>F and FRed\<^sub>F\<^bsup>\<inter>\<G>,\<sqsupset>\<^esup> coincide *)
 lemma ARed\<^sub>F_is_FRed\<^sub>F: \<open>ARed\<^sub>F \<N> = (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J \<N>)\<close>
@@ -680,7 +694,8 @@ proof (intro subset_antisym subsetI)
       by force
     then have \<open>\<C> \<in> (\<Inter> J. { C. \<forall> D \<in> \<G>\<^sub>F J C. D \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) })\<close>
       by blast
-    then show \<open>\<C> \<in> (\<Inter> J. { C. \<forall> D \<in> \<G>\<^sub>F J C. D \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> C \<and> D \<in> \<G>\<^sub>F J E) })\<close>
+    then show \<open>\<C> \<in> (\<Inter> J. { C. \<forall> D \<in> \<G>\<^sub>F J C. D \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or>
+                              (\<exists> E \<in> \<N>. E \<sqsupset> C \<and> D \<in> \<G>\<^sub>F J E) })\<close>
       by blast
   next
     case b
@@ -688,24 +703,30 @@ proof (intro subset_antisym subsetI)
       unfolding \<G>\<^sub>F_def tiebreaker_order_def enabled_projection_def
       using subformula_of_enabled_formula_is_enabled
       (* /!\ Careful, a bit slow (\<sim> 1s) /!\ *)
-      by (smt (verit, ccfv_SIG) AF.sel(1) AF.sel(2) \<C>_is case_prodI mem_Collect_eq singletonD singletonI)
+      by (smt (verit, ccfv_SIG) AF.sel(1) AF.sel(2) \<C>_is case_prodI mem_Collect_eq
+           singletonD singletonI)
     then have \<open>\<C> \<in> (\<Inter> J. { C. \<forall> D \<in> \<G>\<^sub>F J C. \<exists> E \<in> \<N>. E \<sqsupset> C \<and> D \<in> \<G>\<^sub>F J E })\<close>
       by blast
-    then show \<open>\<C> \<in> (\<Inter> J. { C. \<forall> D \<in> \<G>\<^sub>F J C. D \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> C \<and> D \<in> \<G>\<^sub>F J E) })\<close>
+    then show \<open>\<C> \<in> (\<Inter> J. { C. \<forall> D \<in> \<G>\<^sub>F J C. D \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or>
+                              (\<exists> E \<in> \<N>. E \<sqsupset> C \<and> D \<in> \<G>\<^sub>F J E) })\<close>
       by blast
   qed
 next
   fix \<C>
   assume \<C>_in_Red_F_\<G>: \<open>\<C> \<in> (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J \<N>)\<close>
-  then have \<C>_in_Red_F_\<G>_unfolded: \<open>\<forall> J. \<forall> D \<in> \<G>\<^sub>F J \<C>. D \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> \<C> \<and> D \<in> \<G>\<^sub>F J E)\<close>
+  then have \<C>_in_Red_F_\<G>_unfolded:
+    \<open>\<forall> J. \<forall> D \<in> \<G>\<^sub>F J \<C>. D \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> \<C> \<and> D \<in> \<G>\<^sub>F J E)\<close>
     unfolding lift_from_ARed_to_FRed.Red_F_\<G>_def
     by blast
-  then have \<C>_in_Red_F_\<G>_if_enabled: \<open>\<forall> J. enabled \<C> J \<longrightarrow> F_of \<C> \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> \<C> \<and> F_of \<C> \<in> \<G>\<^sub>F J E)\<close>
+  then have \<C>_in_Red_F_\<G>_if_enabled:
+    \<open>\<forall> J. enabled \<C> J \<longrightarrow> F_of \<C> \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> \<C> \<and> F_of \<C> \<in> \<G>\<^sub>F J E)\<close>
     unfolding \<G>\<^sub>F_def enabled_projection_def
     by auto
   obtain C A where \<C>_is: \<open>\<C> = AF.Pair C A\<close>
     by (meson AF.exhaust_sel)
-  then have \<open>\<forall> J. fset A \<subseteq> total_strip J \<longrightarrow> C \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> \<C> \<and> C \<in> \<G>\<^sub>F J E)\<close>
+  then have
+    \<open>\<forall> J. fset A \<subseteq> total_strip J \<longrightarrow>
+      C \<in> Red_F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> \<C> \<and> C \<in> \<G>\<^sub>F J E)\<close>
     using \<C>_in_Red_F_\<G>_if_enabled
     unfolding enabled_def
     by simp
@@ -717,6 +738,7 @@ next
 qed
 
 (*<*)
+(*! Where should we put this? *)
 lemma Union_of_singleton_is_setcompr: \<open>(\<Union> x \<in> A. { y. y = f x \<and> P x }) = { f x | x. x \<in> A \<and> P x }\<close>
   by auto
 (*>*)
@@ -753,21 +775,29 @@ lemma SRed\<^sub>F_entails_bot: \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot
 proof -
   fix N
 
-  have And_to_Union: \<open>\<And> J. N - lift_from_ARed_to_FRed.Red_F_\<G> J N \<subseteq> (\<Union> J. N - lift_from_ARed_to_FRed.Red_F_\<G> J N)\<close>
+  have And_to_Union:
+    \<open>\<And> J. N - lift_from_ARed_to_FRed.Red_F_\<G> J N \<subseteq> (\<Union> J. N - lift_from_ARed_to_FRed.Red_F_\<G> J N)\<close>
     by blast
 
   assume N_entails_bot: \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
-  have \<open>lift_from_ARed_to_FRed.entails_\<G> J N {to_AF bot} \<Longrightarrow> lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close> for J
+  have \<open>lift_from_ARed_to_FRed.entails_\<G> J N {to_AF bot} \<Longrightarrow>
+         lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+    for J
     using lift_from_ARed_to_FRed.Red_F_Bot_F
     by blast
   then have \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> N - ARed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
   proof -
     assume \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close> and
-           \<open>\<And> J. lift_from_ARed_to_FRed.entails_\<G> J N {to_AF bot} \<Longrightarrow> lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
-    then have Red_F_\<G>_entails_\<G>_bot: \<open>\<And> J. lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+           \<open>\<And> J. lift_from_ARed_to_FRed.entails_\<G> J N {to_AF bot} \<Longrightarrow>
+            lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+    then have Red_F_\<G>_entails_\<G>_bot:
+      \<open>lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+      for J
       using entails_is_entails_\<G>
       by blast
-    then have \<open>\<And> J. lift_from_ARed_to_FRed.entails_\<G> J (\<Union> J. N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+    then have
+      \<open>lift_from_ARed_to_FRed.entails_\<G> J (\<Union> J. N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+      for J
       using And_to_Union
       by (meson lift_from_ARed_to_FRed.entails_trans lift_from_ARed_to_FRed.subset_entailed)
     then show \<open>N - ARed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
@@ -811,7 +841,8 @@ proof -
            \<open>(\<And> N' \<J> N. N' \<subseteq> lift_from_ARed_to_FRed.Red_F_\<G> \<J> N \<Longrightarrow>
               lift_from_ARed_to_FRed.Red_F_\<G> \<J> N \<subseteq> lift_from_ARed_to_FRed.Red_F_\<G> \<J> (N - N'))\<close>
     then have \<open>\<And> N' N. N' \<subseteq> (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> N) \<Longrightarrow>
-                  (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> N) \<subseteq> (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> (N - N'))\<close>
+                  (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> N) \<subseteq>
+                    (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> (N - N'))\<close>
       by (meson INF_mono' UNIV_I le_INF_iff)
     then show \<open>ARed\<^sub>F N \<subseteq> ARed\<^sub>F (N - N')\<close>
       using ARed\<^sub>F_is_FRed\<^sub>F N'_subset_ARed\<^sub>F_N
@@ -832,7 +863,8 @@ proof -
            \<open>(\<And> N' \<J> N. N' \<subseteq> lift_from_ARed_to_FRed.Red_F_\<G> \<J> N \<Longrightarrow>
                lift_from_ARed_to_FRed.Red_I_\<G> \<J> N \<subseteq> lift_from_ARed_to_FRed.Red_I_\<G> \<J> (N - N'))\<close>
     then have \<open>\<And> N' N. N' \<subseteq> (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> N) \<Longrightarrow>
-                  (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_I_\<G> \<J> N) \<subseteq> (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_I_\<G> \<J> (N - N'))\<close>
+                  (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_I_\<G> \<J> N) \<subseteq>
+                    (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_I_\<G> \<J> (N - N'))\<close>
       by (metis (no_types, lifting) INF_mono' UNIV_I le_INF_iff)
     then show \<open>ARed\<^sub>I N \<subseteq> ARed\<^sub>I (N - N')\<close>
       using ARed\<^sub>I_is_FRed\<^sub>I ARed\<^sub>F_is_FRed\<^sub>F N'_subset_ARed\<^sub>F_N
@@ -843,12 +875,14 @@ proof -
     using bot_not_in_sredF_\<N> N'_subset_SRed\<^sub>F_N \<iota>_is_redundant
     unfolding SRed\<^sub>I_def SRed\<^sub>F_def
     (* /!\ Quite slow... /!\ *)
-    by (smt (verit, del_insts) ARed\<^sub>F_def ARed\<^sub>I_def Diff_iff N'_subset_SRed\<^sub>F_N Un_iff bot_not_in_sredF_\<N> works_for_ARed\<^sub>I mem_Collect_eq subsetD)
+    by (smt (verit, del_insts) ARed\<^sub>F_def ARed\<^sub>I_def Diff_iff N'_subset_SRed\<^sub>F_N Un_iff
+         bot_not_in_sredF_\<N> works_for_ARed\<^sub>I mem_Collect_eq subsetD)
   ultimately show \<open>SRed\<^sub>I N \<subseteq> SRed\<^sub>I (N - N')\<close>
     using N'_subset_SRed\<^sub>F_N bot_not_in_sredF_\<N>
     unfolding SRed\<^sub>F_def ARed\<^sub>F_def SRed\<^sub>I_def ARed\<^sub>I_def
     (* /!\ A bit slow /!\ *)
-    by (smt (verit, del_insts) Collect_cong Diff_iff N'_subset_SRed\<^sub>F_N Un_iff bot_not_in_sredF_\<N> subset_iff)
+    by (smt (verit, del_insts) Collect_cong Diff_iff N'_subset_SRed\<^sub>F_N Un_iff
+         bot_not_in_sredF_\<N> subset_iff)
 qed
 
 lemma SRed\<^sub>I_of_SInf_to_N_F: \<open>\<iota>\<^sub>S \<in> SInf \<Longrightarrow> concl_of \<iota>\<^sub>S \<in> N \<Longrightarrow> \<iota>\<^sub>S \<in> SRed\<^sub>I N\<close>
@@ -886,12 +920,15 @@ proof -
         using fset_ffUnion_subset_iff_all_fsets_subset
         by (metis AF.sel(2))
       ultimately show \<open>Infer (map F_of \<M>) \<C> \<in> Red_I {F_of \<C> | \<C>. \<C> \<in> N \<and> enabled \<C> J}\<close>
-        by (metis (mono_tags, lifting) AF.sel(1) Infer_\<M>_\<C>_is_Inf Red_I_of_Inf_to_N fset_of_list_map inference.sel(2) mem_Collect_eq)
+        by (metis (mono_tags, lifting) AF.sel(1) Infer_\<M>_\<C>_is_Inf Red_I_of_Inf_to_N
+             fset_of_list_map inference.sel(2) mem_Collect_eq)
     qed
-    then have \<open>\<iota>\<^sub>S \<in> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>))}\<close>
+    then have \<open>\<iota>\<^sub>S \<in> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and>
+                        (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>))}\<close>
       using \<iota>\<^sub>S_is Infer_\<M>_\<C>_is_Inf
       by auto
-    then show \<open>\<iota>\<^sub>S \<in> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>)) } \<union>
+    then show \<open>\<iota>\<^sub>S \<in> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and>
+                       (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>)) } \<union>
                     { unsat_inf \<M> | \<M>. unsat_pre \<M> \<and> to_AF bot \<in> N }\<close>
       by fast
   next
@@ -899,7 +936,8 @@ proof -
     then have \<open>\<iota>\<^sub>S \<in> { unsat_inf \<M> | \<M>. unsat_pre \<M> \<and> to_AF bot \<in> N}\<close>
       using concl_\<iota>\<^sub>S_in_N
       by fastforce
-    then show \<open>\<iota>\<^sub>S \<in> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>)) } \<union>
+    then show \<open>\<iota>\<^sub>S \<in> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and>
+                        (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>)) } \<union>
                     { unsat_inf \<M> | \<M>. unsat_pre \<M> \<and> to_AF bot \<in> N }\<close>
       by fast
   qed
@@ -907,109 +945,16 @@ qed
 
 end (* locale splitting_calculus *)
 
-locale splitting_calculus_with_asn = splitting_calculus bot Inf entails entails_sound Red_I Red_F V fml
-  for bot :: 'f and
-      Inf :: \<open>'f inference set\<close> and
-      entails :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
-      entails_sound :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
-      Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
-      Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
-      V :: \<open>'v :: countable itself\<close> and
-      fml :: \<open>'v \<Rightarrow> 'f\<close>
-  + fixes asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close>
-    assumes fml_entails_C: \<open>\<forall> a \<in> asn C. sound_cons.entails_neg {fml_ext a} {C}\<close> and
-            C_entails_fml: \<open>\<forall> a \<in> asn C. sound_cons.entails_neg {C} {fml_ext a}\<close> and
-            asn_not_empty: \<open>asn C \<noteq> {}\<close>
-begin
 
-lemma neg_neg_A_is_A [simp]: \<open>neg (neg A) = A\<close>
-  by (metis neg.simps(1) neg.simps(2) to_V.elims)
-
-lemma swap_neg_in_entails_neg: \<open>sound_cons.entails_neg {neg A} {neg B} \<longleftrightarrow> sound_cons.entails_neg {B} {A}\<close>
-  unfolding sound_cons.entails_neg_def
-  by (smt (verit, ccfv_threshold) Collect_cong Un_commute mem_Collect_eq neg.simps(1) neg_neg_A_is_A singleton_conv2)
-
-lemma \<C>_bientails_\<C>':
-  \<open>a \<in> asn \<C> \<Longrightarrow> a \<in> asn \<C>' \<Longrightarrow> sound_cons.entails_neg {\<C>} {\<C>'}\<close>
-  \<open>a \<in> asn \<C> \<Longrightarrow> a \<in> asn \<C>' \<Longrightarrow> sound_cons.entails_neg {\<C>'} {\<C>}\<close>
-  \<open>a \<in> asn \<C> \<Longrightarrow> neg a \<in> asn \<C>' \<Longrightarrow> sound_cons.entails_neg {\<C>} {neg \<C>'}\<close>
-  \<open>a \<in> asn \<C> \<Longrightarrow> neg a \<in> asn \<C>' \<Longrightarrow> sound_cons.entails_neg {neg \<C>'} {\<C>}\<close>
-proof -
-  assume \<open>a \<in> asn \<C>\<close> and
-         \<open>a \<in> asn \<C>'\<close>
-  then show \<open>sound_cons.entails_neg {\<C>} {\<C>'}\<close>
-    using fml_entails_C C_entails_fml
-    by (smt (verit) Un_commute consequence_relation.entails_cut insert_is_Un sound_cons.ext_cons_rel)
-next
-  assume \<open>a \<in> asn \<C>\<close> and
-         \<open>a \<in> asn \<C>'\<close>
-  then show \<open>sound_cons.entails_neg {\<C>'} {\<C>}\<close>
-    using fml_entails_C C_entails_fml
-    by (smt (verit) Un_commute consequence_relation.entails_cut insert_is_Un sound_cons.ext_cons_rel)
-next
-  assume a_in_asn_\<C>: \<open>a \<in> asn \<C>\<close> and
-         neg_a_in_asn_\<C>': \<open>neg a \<in> asn \<C>'\<close>
-
-  have \<open>sound_cons.entails_neg {\<C>} {fml_ext a}\<close>
-    using a_in_asn_\<C> C_entails_fml
-    by blast
-  then have \<open>sound_cons.entails_neg {\<C>} {neg \<C>', fml_ext a}\<close>
-    by (smt (verit, best) Un_upper2 consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
-  moreover have \<open>sound_cons.entails_neg {\<C>'} {fml_ext (neg a)}\<close>
-    using neg_a_in_asn_\<C>' C_entails_fml
-    by blast
-  then have \<open>sound_cons.entails_neg {neg (neg \<C>')} {neg (fml_ext a)}\<close>
-    (* /!\ A bit slow /!\ *)
-    by (metis fml_ext.simps(1) fml_ext.simps(2) neg.simps(1) neg_neg_A_is_A to_V.elims)
-  then have \<open>sound_cons.entails_neg {fml_ext a} {neg \<C>'}\<close>
-    using swap_neg_in_entails_neg
-    by blast
-  then have \<open>sound_cons.entails_neg {fml_ext a, \<C>} {neg \<C>'}\<close>
-    by (smt (verit, best) consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
-  ultimately show \<open>sound_cons.entails_neg {\<C>} {neg \<C>'}\<close>
-    using consequence_relation.entails_cut
-    by (smt (verit, ccfv_threshold) Un_commute insert_is_Un sound_cons.ext_cons_rel sup.idem)
-next
-  assume a_in_asn_\<C>: \<open>a \<in> asn \<C>\<close> and
-         neg_a_in_asn_\<C>': \<open>neg a \<in> asn \<C>'\<close>
-
-  have \<open>sound_cons.entails_neg {fml_ext a} {\<C>}\<close>
-    using a_in_asn_\<C> fml_entails_C
-    by blast
-  then have \<open>sound_cons.entails_neg {neg \<C>', fml_ext a} {\<C>}\<close>
-    by (smt (verit, best) Un_upper2 consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
-  moreover have \<open>sound_cons.entails_neg {fml_ext (neg a)} {\<C>'}\<close>
-    using neg_a_in_asn_\<C>' fml_entails_C
-    by blast
-  then have \<open>sound_cons.entails_neg {neg (fml_ext a)} {neg (neg \<C>')}\<close>
-    (* /!\ A bit slow /!\ *)
-    by (metis fml_ext.simps(1) fml_ext.simps(2) neg.simps(1) neg_neg_A_is_A to_V.elims)
-  then have \<open>sound_cons.entails_neg {neg \<C>'} {fml_ext a}\<close>
-    using swap_neg_in_entails_neg
-    by blast
-  then have \<open>sound_cons.entails_neg {neg \<C>'} {fml_ext a, \<C>}\<close>
-    by (smt (verit, best) consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
-  ultimately show \<open>sound_cons.entails_neg {neg \<C>'} {\<C>}\<close>
-    using consequence_relation.entails_cut
-    by (smt (verit, ccfv_threshold) Un_commute insert_is_Un sound_cons.ext_cons_rel sup.idem)
-qed
-
-end (* locale splitting_calculus_with_asn *)
-
-text \<open>
-  Here, we extend our basic calculus with simplification rules:
-  \<^item> \textsc{Split} performs a $n$-ary case analysis on the head of the premise;
-  \<^item> \textsc{Collect} performs garbage collection on clauses which contain propositionally unsatisfiable heads;
-  \<^item> \textsc{Trim} removes assertions which are entailed by others.
-\<close>
 
 datatype 'f simplification =
   Simplify (S_from: \<open>'f set\<close>) (S_to: \<open>'f set\<close>)
 
 text \<open>
   Simplification rules are said to be sound if every conclusion is entailed by all premises.
-  We could have also used our conjunctive entailment @{const consequence_relation.entails_conjunctive}, but it is defined that way
-  so there is nothing to worry about.
+  We could have also used our conjunctive entailment
+  @{const consequence_relation.entails_conjunctive}, but it is defined that way so there is
+  nothing to worry about.
 \<close>
 
 locale sound_simplification_rules =
@@ -1022,8 +967,16 @@ locale sound_simplification_rules =
     assumes
       sound_simplifications: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> \<M> \<union> S_to \<iota>. \<M> \<union> S_from \<iota> \<Turnstile>s {\<C>}\<close>
 
+text \<open>
+  Here, we extend our basic calculus with simplification rules:
+  \<^item> \textsc{Split} performs a $n$-ary case analysis on the head of the premise;
+  \<^item> \textsc{Collect} performs garbage collection on clauses which contain propositionally
+  unsatisfiable heads;
+  \<^item> \textsc{Trim} removes assertions which are entailed by others.
+\<close>
+
 locale splitting_calculus_with_simps =
-  splitting_calculus_with_asn bot Inf entails entails_sound Red_I Red_F V fml asn
+  splitting_calculus bot Inf entails entails_sound Red_I Red_F V fml asn
   for bot :: 'f and
       Inf :: \<open>'f inference set\<close> and
       entails :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
@@ -1041,8 +994,16 @@ interpretation AF_sound_cons_rel: consequence_relation \<open>to_AF bot\<close> 
 interpretation SInf_sound_inf_system: sound_inference_system SInf \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
   by (standard, auto simp add: SInf_sound_wrt_entails_sound)
 
+text \<open>
+  Rule definitions follow a similar naming convention to our two inference rules
+  \textsc{Base} and \textsc{Unsat} defined in @{locale splitting_calculus}:
+  $X\_simp$ is the definition of the simplification rule, while $X\_pre$ is some
+  precondition which must hold for the rule to be applicable.
+\<close> 
+
 definition splittable :: \<open>'f \<Rightarrow> 'f fset \<Rightarrow> bool\<close> where
-  \<open>splittable C Cs \<longleftrightarrow> C \<noteq> bot \<and> fcard Cs \<ge> 2 \<and> {C} \<Turnstile>s fset Cs \<and> (\<forall> C'. C' |\<in>| Cs \<longrightarrow> C \<in> Red_F {C'})\<close>
+  \<open>splittable C Cs \<longleftrightarrow> C \<noteq> bot \<and> fcard Cs \<ge> 2
+                    \<and> {C} \<Turnstile>s fset Cs \<and> (\<forall> C'. C' |\<in>| Cs \<longrightarrow> C \<in> Red_F {C'})\<close>
 
 definition mk_split :: \<open>'f \<Rightarrow> 'f fset \<Rightarrow> ('f, 'v) AF fset\<close> where
   \<open>splittable C Cs \<Longrightarrow> mk_split C Cs \<equiv> (\<lambda> C'. AF.Pair C' {| SOME a. a \<in> asn (Pos C') |}) |`| Cs\<close>
@@ -1051,11 +1012,13 @@ abbreviation split_pre :: \<open>('f, 'v) AF \<Rightarrow> 'f fset \<Rightarrow>
   \<open>split_pre \<C> Cs As \<equiv> splittable (F_of \<C>) Cs \<and> mk_split (F_of \<C>) Cs = As\<close>
 
 (*<*)
-lemma split_creates_singleton_assertion_sets: \<open>split_pre \<C> Cs As \<Longrightarrow> A |\<in>| As \<Longrightarrow> (\<exists> a. A_of A = {| a |})\<close>
+lemma split_creates_singleton_assertion_sets:
+  \<open>split_pre \<C> Cs As \<Longrightarrow> A |\<in>| As \<Longrightarrow> (\<exists> a. A_of A = {| a |})\<close>
   using mk_split_def
   by force
 
-lemma split_all_assertion_sets_asn: \<open>split_pre \<C> Cs As \<Longrightarrow> A |\<in>| As \<Longrightarrow> (\<exists> a. A_of A = {|a|} \<and> a \<in> asn (Pos (F_of A)))\<close>
+lemma split_all_assertion_sets_asn:
+  \<open>split_pre \<C> Cs As \<Longrightarrow> A |\<in>| As \<Longrightarrow> (\<exists> a. A_of A = {|a|} \<and> a \<in> asn (Pos (F_of A)))\<close>
 proof -
   assume pre_cond: \<open>split_pre \<C> Cs As\<close> and
          A_elem_As: \<open>A |\<in>| As\<close>
@@ -1076,13 +1039,16 @@ lemma split_all_pairs_in_As_in_Cs: \<open>split_pre \<C> Cs As \<Longrightarrow>
   using mk_split_def
   by fastforce
 
-lemma split_all_pairs_in_Cs_in_As: \<open>split_pre \<C> Cs As \<Longrightarrow> (\<forall> C. C |\<in>| Cs \<longrightarrow> (\<exists> a. AF.Pair C {|a|} |\<in>| As))\<close>
+lemma split_all_pairs_in_Cs_in_As:
+  \<open>split_pre \<C> Cs As \<Longrightarrow> (\<forall> C. C |\<in>| Cs \<longrightarrow> (\<exists> a. AF.Pair C {|a|} |\<in>| As))\<close>
   using mk_split_def
   by fastforce
 (*>*)
 
-abbreviation split_simp :: \<open>('f, 'v) AF \<Rightarrow> 'f fset \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> ('f, 'v) AF simplification\<close> where
-  \<open>split_simp \<C> Cs As \<equiv> Simplify { \<C> } (insert (AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>)) (fset As))\<close>
+abbreviation split_simp :: \<open>('f, 'v) AF \<Rightarrow> 'f fset \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> ('f, 'v) AF simplification\<close>
+  where
+  \<open>split_simp \<C> Cs As \<equiv>
+   Simplify { \<C> } (insert (AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>)) (fset As))\<close>
 
 abbreviation collect_pre :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> where
   \<open>collect_pre \<C> \<M> \<equiv> F_of \<C> \<noteq> bot \<and> \<M> \<Turnstile>\<^sub>A\<^sub>F { AF.Pair bot (A_of \<C>) } \<and> (\<forall> \<C> \<in> \<M>. F_of \<C> = bot)\<close>
@@ -1091,10 +1057,12 @@ abbreviation collect_simp :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF set \<
   \<open>collect_simp \<C> \<M> \<equiv> Simplify (insert \<C> \<M>) \<M>\<close>
 
 abbreviation trim_pre :: \<open>('f, 'v) AF \<Rightarrow> 'v sign fset \<Rightarrow> 'v sign fset \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> where
-  \<open>trim_pre \<C> A B \<M> \<equiv> A_of \<C> = A |\<union>| B \<and> F_of \<C> \<noteq> bot \<and> \<M> \<union> { AF.Pair bot A } \<Turnstile>s\<^sub>A\<^sub>F { AF.Pair bot B } \<and>
+  \<open>trim_pre \<C> A B \<M> \<equiv> A_of \<C> = A |\<union>| B \<and> F_of \<C> \<noteq> bot \<and>
+                       \<M> \<union> { AF.Pair bot A } \<Turnstile>s\<^sub>A\<^sub>F { AF.Pair bot B } \<and>
                        (\<forall> \<C> \<in> \<M>. F_of \<C> = bot) \<and> A |\<inter>| B = {||} \<and> A \<noteq> {||}\<close>
 
-abbreviation trim_simp :: \<open>('f, 'v) AF \<Rightarrow> 'v sign fset \<Rightarrow> 'v sign fset \<Rightarrow> ('f, 'v) AF set \<Rightarrow> ('f, 'v) AF simplification\<close> where
+abbreviation trim_simp :: \<open>('f, 'v) AF \<Rightarrow> 'v sign fset \<Rightarrow> 'v sign fset \<Rightarrow> ('f, 'v) AF set \<Rightarrow>
+  ('f, 'v) AF simplification\<close> where
   \<open>trim_simp \<C> A B \<M> \<equiv> Simplify (insert \<C> \<M>) (insert (AF.Pair (F_of \<C>) B) \<M>)\<close>
 
 
@@ -1115,30 +1083,33 @@ lemma no_infinite_simp_set: \<open>finite (S_from \<iota>) \<Longrightarrow> \<i
   using Simplification_rules.cases
   by fastforce
 
-lemma projection_of_enabled_subset: \<open>fset B \<subseteq> total_strip J \<Longrightarrow> {AF.Pair C (A |\<union>| B)} proj\<^sub>J J = {AF.Pair C A} proj\<^sub>J J\<close>
-  unfolding enabled_projection_def enabled_def
-  by auto
-
+(*! Should we put these in the preliminaries? *)
 lemma strong_entails_bot_cases: \<open>\<N> \<union> {AF.Pair bot A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B} \<Longrightarrow>
-            (\<forall> J. fset B \<subseteq> total_strip J \<longrightarrow> sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` (\<N> proj\<^sub>J J)) {Pos bot}
-                                              \<or> fset A \<subseteq> total_strip J)\<close>
+  (\<forall> J. fset B \<subseteq> total_strip J \<longrightarrow>
+    (fml_ext ` total_strip J \<union> Pos ` (\<N> proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {Pos bot} \<or> fset A \<subseteq> total_strip J)\<close>
 proof -
   assume \<open>\<N> \<union> {AF.Pair bot A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B}\<close>
-  then have \<open>\<And> J. fset B \<subseteq> total_strip J \<Longrightarrow>
-                   sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> Pos ` (\<N> proj\<^sub>J J) \<union> Pos ` ({AF.Pair bot A} proj\<^sub>J J)) {Pos bot}\<close>
+  then have \<open>fset B \<subseteq> total_strip J \<Longrightarrow>
+              (fml_ext ` total_strip J \<union> Pos ` (\<N> proj\<^sub>J J) \<union> Pos ` ({AF.Pair bot A} proj\<^sub>J J))
+              \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+    for J
     unfolding AF_entails_sound_def
-    by (metis (no_types, lifting) AF.sel(1) AF.sel(2) distrib_proj_singleton enabled_def enabled_set_def image_Un
-                                  image_empty image_insert singletonD sup_assoc)
-  then have \<open>\<And> J. fset B \<subseteq> total_strip J \<Longrightarrow>
-                  sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> Pos ` (\<N> proj\<^sub>J J)) {Pos bot} \<or> enabled (AF.Pair bot A) J\<close>
-    by (smt (verit, ccfv_SIG) enabled_projection_def ex_in_conv image_empty mem_Collect_eq singletonD sup_bot_right)
+    by (metis (no_types, lifting) AF.sel(1) AF.sel(2) distrib_proj_singleton enabled_def
+         enabled_set_def image_Un image_empty image_insert singletonD sup_assoc)
+  then have \<open>fset B \<subseteq> total_strip J \<Longrightarrow>
+        ((fml_ext ` total_strip J) \<union> Pos ` (\<N> proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {Pos bot} \<or> enabled (AF.Pair bot A) J\<close>
+    for J 
+    by (smt (verit, ccfv_SIG) enabled_projection_def ex_in_conv image_empty
+         mem_Collect_eq singletonD sup_bot_right)
   then show ?thesis
     by (simp add: enabled_def)
 qed
 
-lemma strong_entails_bot_cases_Union: \<open>\<N> \<union> \<M> \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B} \<Longrightarrow> (\<forall> x \<in> \<M>. F_of x = bot) \<Longrightarrow>
-                (\<forall> J. fset B \<subseteq> total_strip J \<longrightarrow> sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> Pos ` (\<N> proj\<^sub>J J)) {Pos bot}
-                           \<or> (\<exists> A \<in> A_of ` \<M>. fset A \<subseteq> total_strip J))\<close>
+lemma strong_entails_bot_cases_Union:
+  \<open>\<N> \<union> \<M> \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B} \<Longrightarrow> (\<forall> x \<in> \<M>. F_of x = bot) \<Longrightarrow>
+    (\<forall> J. fset B \<subseteq> total_strip J \<longrightarrow>
+      (fml_ext ` total_strip J \<union> Pos ` (\<N> proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {Pos bot} \<or>
+      (\<exists> A \<in> A_of ` \<M>. fset A \<subseteq> total_strip J))\<close>
 proof -
   assume \<N>_union_\<M>_entails_Pair_bot_B: \<open>\<N> \<union> \<M> \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B}\<close> and
          \<open>\<forall> x \<in> \<M>. F_of x = bot\<close>
@@ -1154,7 +1125,7 @@ proof -
     proof (intro allI impI)
       fix J
       assume B_in_J: \<open>fset B \<subseteq> total_strip J\<close>
-      then show \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` (\<N> proj\<^sub>J J)) {Pos bot} \<or>
+      then show \<open>(fml_ext ` total_strip J \<union> Pos ` (\<N> proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {Pos bot} \<or>
                     (\<exists> A \<in> A_of ` \<M>. fset A \<subseteq> total_strip J)\<close>
       proof (cases \<open>\<exists> A \<in> A_of ` \<M>. fset A \<subseteq> total_strip J\<close>)
         case True
@@ -1185,16 +1156,17 @@ proof -
     by (meson AF_sound_cons_rel.entails_subsets empty_subsetI insert_subset subset_refl)
 qed
 
+(*! Move these two to FSet? *)
 lemma non_zero_fcard_of_non_empty_set: \<open>fcard A > 0 \<longleftrightarrow> A \<noteq> {||}\<close>
   by (metis bot.not_eq_extremum fcard_fempty less_numeral_extra(3) pfsubset_fcard_mono)
 
 lemma fimage_of_non_fempty_is_non_fempty: \<open>A \<noteq> {||} \<Longrightarrow> f |`| A \<noteq> {||}\<close>
   by blast
 
-notation sound_cons.entails_neg (infix \<open>\<Turnstile>s\<^sub>\<sim>\<close> 50)
-
-lemma entails_of_entails_iff: \<open>{C} \<Turnstile>s\<^sub>\<sim> Cs \<Longrightarrow> finite Cs \<Longrightarrow> card Cs \<ge> 1 \<Longrightarrow>
-                                     (\<forall> C\<^sub>i \<in> Cs. \<M> \<union> {C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}) \<Longrightarrow> \<M> \<union> {C} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+(*! Keep this here? *)
+lemma entails_of_entails_iff: 
+  \<open>{C} \<Turnstile>s\<^sub>\<sim> Cs \<Longrightarrow> finite Cs \<Longrightarrow> card Cs \<ge> 1 \<Longrightarrow>
+    (\<forall> C\<^sub>i \<in> Cs. \<M> \<union> {C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}) \<Longrightarrow> \<M> \<union> {C} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
 proof -
   assume \<open>{C} \<Turnstile>s\<^sub>\<sim> Cs\<close> and
          finite_Cs: \<open>finite Cs\<close> and
@@ -1221,18 +1193,19 @@ proof -
       by (meson card_0_eq insert.hyps(1) insert.hyps(2) less_one linorder_not_less)
 
     have \<open>\<M> \<union> {C} \<Turnstile>s\<^sub>\<sim> {Pos bot, x} \<union> F\<close>
-      by (smt (verit, ccfv_threshold) Un_insert_left Un_insert_right Un_upper2 consequence_relation.entails_subsets
-                                      insert.prems(1) insert_is_Un sound_cons.ext_cons_rel)
+      by (smt (verit, ccfv_threshold) Un_insert_left Un_insert_right Un_upper2
+          consequence_relation.entails_subsets insert.prems(1) insert_is_Un sound_cons.ext_cons_rel)
     then have \<open>\<M> \<union> {C} \<Turnstile>s\<^sub>\<sim> {Pos bot} \<union> {x} \<union> F\<close>
       by (metis insert_is_Un)
     moreover have \<open>\<M> \<union> {C} \<union> {x} \<Turnstile>s\<^sub>\<sim> {Pos bot} \<union> F\<close>
-      by (smt (verit, ccfv_SIG) Un_upper2 consequence_relation.entails_subsets insert.prems(3) insertCI
-                                sound_cons.ext_cons_rel sup_assoc sup_ge1 sup_left_commute)
+      by (smt (verit, ccfv_SIG) Un_upper2 consequence_relation.entails_subsets insert.prems(3)
+          insertCI sound_cons.ext_cons_rel sup_assoc sup_ge1 sup_left_commute)
     ultimately have \<open>\<M> \<union> {C} \<Turnstile>s\<^sub>\<sim> {Pos bot} \<union> F\<close>
       using consequence_relation.entails_cut sound_cons.ext_cons_rel
       by fastforce
     then have \<open>\<M> \<union> {C} \<Turnstile>s\<^sub>\<sim> F\<close>
-      using consequence_relation.bot_entails_empty consequence_relation.entails_cut sound_cons.ext_cons_rel
+      using consequence_relation.bot_entails_empty consequence_relation.entails_cut
+            sound_cons.ext_cons_rel
       by fastforce
     then show ?case
       using insert card_F_ge_1
@@ -1243,7 +1216,7 @@ qed
 
 
 
-(* Report theorem 14 *)
+(* Report theorem 14 for the cases Split, Collect and Trim *)
 theorem SInf_with_simps_sound_wrt_entails_sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
 proof -
   assume \<open>\<iota> \<in> Simps\<close>
@@ -1266,15 +1239,15 @@ proof -
         unfolding splittable_def
         by (metis bot_nat_0.extremum_unique fcard_fempty nat.simps(3) numerals(2))
       then have As_not_empty: \<open>As \<noteq> {||}\<close>
-        using mk_split_def[of \<open>F_of \<C>'\<close> \<open>Cs\<close>] splittable_def fimage_of_non_fempty_is_non_fempty[OF Cs_not_empty]
-              split(2)
+        using mk_split_def[of \<open>F_of \<C>'\<close> \<open>Cs\<close>] splittable_def
+              fimage_of_non_fempty_is_non_fempty[OF Cs_not_empty] split(2)
         by blast
 
       have \<open>fcard Cs \<ge> 1\<close>
         by (simp add: Cs_not_empty Suc_le_eq non_zero_fcard_of_non_empty_set)
       then have card_fset_Cs_ge_1: \<open>card (Pos ` fset Cs) \<ge> 1\<close>
-        by (metis Cs_not_empty bot_fset.rep_eq card_eq_0_iff empty_is_image finite_fset finite_imageI fset_cong
-                less_one linorder_not_le)
+        by (metis Cs_not_empty bot_fset.rep_eq card_eq_0_iff empty_is_image finite_fset
+             finite_imageI fset_cong less_one linorder_not_le)
 
       have \<open>{F_of \<C>'} \<Turnstile>s fset Cs\<close>
         using split(2)
@@ -1282,14 +1255,17 @@ proof -
         by blast
       then have F_of_\<C>_entails_Cs: \<open>{Pos (F_of \<C>')} \<Turnstile>s\<^sub>\<sim> Pos ` fset Cs\<close>
         unfolding sound_cons.entails_neg_def
-        by (smt (verit, del_insts) UnCI imageI mem_Collect_eq singleton_conv sound_cons.entails_subsets subsetI)
+        by (smt (verit, del_insts) UnCI imageI mem_Collect_eq singleton_conv
+             sound_cons.entails_subsets subsetI)
 
       have finite_image_Pos_Cs: \<open>finite (Pos ` fset Cs)\<close>
         using finite_fset
         by blast
 
-      have all_C\<^sub>i_entail_bot: \<open>\<And> J C\<^sub>i a\<^sub>i. fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
-                                   AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As \<Longrightarrow> (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+      have all_C\<^sub>i_entail_bot:
+        \<open>fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
+         AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As \<Longrightarrow> (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+        for J C\<^sub>i a\<^sub>i
       (* Same as for APPROX *)
       proof -
         fix J \<C>\<^sub>i a\<^sub>i
@@ -1299,34 +1275,42 @@ proof -
           using mk_disjoint_finsert
           by fastforce
         then have neg_fml_a\<^sub>i_in_J: \<open>neg (fml_ext a\<^sub>i) \<in> fml_ext ` total_strip J\<close>
-          by (metis fml_ext.simps(1) fml_ext.simps(2) image_iff is_Neg_to_V is_Pos_to_V neg.simps(1) neg.simps(2))
+          by (metis fml_ext.simps(1) fml_ext.simps(2) image_iff is_Neg_to_V is_Pos_to_V
+              neg.simps(1) neg.simps(2))
         moreover have a\<^sub>i_in_asn_\<C>\<^sub>i: \<open>a\<^sub>i \<in> asn (Pos \<C>\<^sub>i)\<close>
           using split_all_assertion_sets_asn[OF split(2) Pair_\<C>\<^sub>i_a\<^sub>i_in_As]
           by auto
-        moreover have \<open>sound_cons.entails_neg {Pos \<C>\<^sub>i} {Pos \<C>\<^sub>i}\<close>
+        moreover have \<open>{Pos \<C>\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos \<C>\<^sub>i}\<close>
           by (meson consequence_relation.entails_reflexive sound_cons.ext_cons_rel)
-        then have \<open>sound_cons.entails_neg (fml_ext ` (total_strip J - {neg a\<^sub>i}) \<union> {Pos \<C>\<^sub>i}) {Pos \<C>\<^sub>i, Pos bot}\<close>
-          by (smt (verit, best) Un_upper2 consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
+        then have \<open>(fml_ext ` (total_strip J - {neg a\<^sub>i}) \<union> {Pos \<C>\<^sub>i}) \<Turnstile>s\<^sub>\<sim> {Pos \<C>\<^sub>i, Pos bot}\<close>
+          by (smt (verit, best) Un_upper2 consequence_relation.entails_subsets insert_is_Un
+               sound_cons.ext_cons_rel sup_ge1)
         ultimately show \<open>sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos \<C>\<^sub>i}) {Pos bot}\<close>
         proof -
-          have \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> {fml_ext a\<^sub>i}) ({Pos bot} \<union> {})\<close>
-            by (smt (z3) Bex_def_raw UnCI Un_commute Un_insert_right Un_upper2 neg_fml_a\<^sub>i_in_J consequence_relation.entails_subsets
-                         insert_is_Un insert_subset sound_cons.ext_cons_rel sound_cons.pos_neg_entails_bot)
+          have \<open>(fml_ext ` total_strip J \<union> {fml_ext a\<^sub>i}) \<Turnstile>s\<^sub>\<sim> ({Pos bot} \<union> {})\<close>
+            by (smt (z3) Bex_def_raw UnCI Un_commute Un_insert_right Un_upper2 neg_fml_a\<^sub>i_in_J
+                consequence_relation.entails_subsets insert_is_Un insert_subset
+                sound_cons.ext_cons_rel sound_cons.pos_neg_entails_bot)
           then show ?thesis
-            by (smt (z3) C_entails_fml Un_commute a\<^sub>i_in_asn_\<C>\<^sub>i consequence_relation.entails_cut insert_is_Un sound_cons.ext_cons_rel)
+            by (smt (z3) C_entails_fml Un_commute a\<^sub>i_in_asn_\<C>\<^sub>i consequence_relation.entails_cut
+                insert_is_Un sound_cons.ext_cons_rel)
         qed
       qed
-      then have \<open>\<And> J. fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
-                           sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos (F_of \<C>')}) {Pos bot}\<close>
+      then have
+        \<open>fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
+         ((fml_ext ` total_strip J) \<union> {Pos (F_of \<C>')}) \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+        for J 
         unfolding splittable_def
       proof -
         fix J
         assume \<open>fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J\<close>
-        then have C\<^sub>i_head_of_pair_entails_bot: \<open>\<And> C\<^sub>i a\<^sub>i. AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As \<Longrightarrow>
-                                                      (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+        then have C\<^sub>i_head_of_pair_entails_bot:
+          \<open>AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As \<Longrightarrow> (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+          for C\<^sub>i a\<^sub>i
           using all_C\<^sub>i_entail_bot
           by blast
-        then have \<open>\<And> C\<^sub>i. C\<^sub>i |\<in>| Cs \<Longrightarrow> (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+        then have \<open>C\<^sub>i |\<in>| Cs \<Longrightarrow> (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+          for C\<^sub>i
         proof -
           fix C\<^sub>i
           assume \<open>C\<^sub>i |\<in>| Cs\<close>
@@ -1343,16 +1327,20 @@ proof -
           using entails_of_entails_iff[OF F_of_\<C>_entails_Cs finite_image_Pos_Cs card_fset_Cs_ge_1]
           by (metis (no_types, opaque_lifting) image_iff notin_fset)
       qed
-      then have \<open>\<And> J. fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
-                           sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> Pos ` (S_from \<iota> proj\<^sub>J J)) {Pos bot}\<close>
+      then have
+        \<open>fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
+         ((fml_ext ` total_strip J) \<union> Pos ` (S_from \<iota> proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+        for J 
         using split(2)
         by (simp add: split(1) enabled_def enabled_projection_def)
       then have \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F { AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') }\<close>
         unfolding AF_entails_sound_def
         using enabled_def enabled_set_def
         by auto
-      moreover have \<open>\<And> J C''. C'' |\<in>| As \<Longrightarrow> fset (A_of C'') \<subseteq> total_strip J \<Longrightarrow>
-                          (fml_ext ` total_strip J) \<union> Pos ` ({\<C>'} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of C'')}\<close>
+      moreover have
+        \<open>C'' |\<in>| As \<Longrightarrow> fset (A_of C'') \<subseteq> total_strip J \<Longrightarrow>
+         (fml_ext ` total_strip J) \<union> Pos ` ({\<C>'} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of C'')}\<close>
+        for J C''
       proof -
         fix J C''
         assume C''_in_As: \<open>C'' |\<in>| As\<close> and
@@ -1367,11 +1355,14 @@ proof -
           using A_of_C''_subset_J
           by simp
         then show \<open>(fml_ext ` total_strip J) \<union> Pos ` ({\<C>'} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of C'')}\<close>
-          by (smt (verit, ccfv_threshold) Un_commute Un_upper2 a\<^sub>i_in_asn_F_of_C'' consequence_relation.entails_subsets
-                                          fml_entails_C image_eqI insert_subset sound_cons.ext_cons_rel sup_bot_right)
+          by (smt (verit, ccfv_threshold) Un_commute Un_upper2 a\<^sub>i_in_asn_F_of_C''
+              consequence_relation.entails_subsets fml_entails_C image_eqI insert_subset
+              sound_cons.ext_cons_rel sup_bot_right)
       qed
-      then have \<open>\<And> J C''. C'' \<in> fset As \<Longrightarrow> fset (A_of C'') \<subseteq> total_strip J \<Longrightarrow>
-                          (fml_ext ` total_strip J) \<union> Pos ` ({\<C>'} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of C'')}\<close>
+      then have
+        \<open>C'' \<in> fset As \<Longrightarrow> fset (A_of C'') \<subseteq> total_strip J \<Longrightarrow>
+         (fml_ext ` total_strip J) \<union> Pos ` ({\<C>'} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of C'')}\<close>
+        for J C''
         by (meson notin_fset)
       then have \<open>\<forall> \<C>'' \<in> fset As. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>''}\<close>
         unfolding AF_entails_sound_def enabled_set_def enabled_def
@@ -1385,8 +1376,8 @@ proof -
       case (collect \<C>' \<N>)
       then show ?thesis
         using \<C>_is_consq_of_\<iota>
-        by (metis AF_sound_cons_rel.entails_conjunctive_def AF_sound_cons_rel.subset_entailed insert_iff simplification.sel(1)
-                  simplification.sel(2) subset_refl)
+        by (metis AF_sound_cons_rel.entails_conjunctive_def AF_sound_cons_rel.subset_entailed
+            insert_iff simplification.sel(1) simplification.sel(2) subset_refl)
     next
       case (trim \<C>' A B \<N>)
       then have \<open>A_of \<C>' = A |\<union>| B\<close> and
@@ -1400,7 +1391,11 @@ proof -
         using trim projection_of_enabled_subset \<C>_is_consq_of_\<iota>
       proof (clarsimp, elim disjE)
         assume \<C>_is: \<open>\<C> = AF.Pair (F_of \<C>') B\<close>
-        then have \<open>\<And> J. enabled \<C> J \<Longrightarrow> fml_ext ` total_strip J \<union> Pos ` (insert (AF.Pair (F_of \<C>') A) \<N> proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
+        then have
+          \<open>enabled \<C> J \<Longrightarrow>
+           fml_ext ` total_strip J \<union> Pos ` (insert (AF.Pair (F_of \<C>') A) \<N> proj\<^sub>J J)
+             \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
+          for J
         proof -
           fix J
           assume \<open>enabled \<C> J\<close>
@@ -1409,55 +1404,66 @@ proof -
           then consider (fml_unsat) \<open>sound_cons.entails_neg (fml_ext ` total_strip J) {Pos bot}\<close> |
                          (\<N>_unsat) \<open>\<exists> A' \<in> A_of ` \<N>. fset A' \<subseteq> total_strip J\<close> |
                          (A_subset_J) \<open>fset A \<subseteq> total_strip J\<close>
-            using strong_entails_bot_cases[OF \<N>_and_Pair_bot_A_entails_Pair_bot_B, rule_format, OF B_in_J]
+            using strong_entails_bot_cases[OF \<N>_and_Pair_bot_A_entails_Pair_bot_B, rule_format,
+                                           OF B_in_J]
                   strong_entails_bot_cases_Union[rule_format, OF _ _ B_in_J]
-            by (smt (verit, ccfv_SIG) Un_commute enabled_def enabled_projection_def equals0I image_iff mem_Collect_eq sup_bot_left)
-          then show \<open>fml_ext ` total_strip J \<union> Pos ` (insert (AF.Pair (F_of \<C>') A) \<N> proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
+            by (smt (verit, ccfv_SIG) Un_commute enabled_def enabled_projection_def equals0I
+                image_iff mem_Collect_eq sup_bot_left)
+          then show
+            \<open>fml_ext ` total_strip J \<union> Pos ` (insert (AF.Pair (F_of \<C>') A) \<N> proj\<^sub>J J)
+               \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
           proof cases
             case fml_unsat
-            then have \<open>sound_cons.entails_neg (fml_ext ` total_strip J) {Pos bot, Pos (F_of \<C>')}\<close>
-              by (smt (verit, best) Un_absorb consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
-            moreover have \<open>sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos bot}) {Pos (F_of \<C>')}\<close>
-              by (smt (verit, del_insts) Un_commute Un_upper2 empty_subsetI insert_subset mem_Collect_eq sound_cons.bot_entails_empty
-                                         sound_cons.entails_neg_def sound_cons.entails_subsets)
-            ultimately have \<open>sound_cons.entails_neg (fml_ext ` total_strip J) {Pos (F_of \<C>')}\<close>
+            then have \<open>(fml_ext ` total_strip J) \<Turnstile>s\<^sub>\<sim> {Pos bot, Pos (F_of \<C>')}\<close>
+              by (smt (verit, best) Un_absorb consequence_relation.entails_subsets insert_is_Un
+                  sound_cons.ext_cons_rel sup_ge1)
+            moreover have \<open>((fml_ext ` total_strip J) \<union> {Pos bot}) \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>')}\<close>
+              by (smt (verit, del_insts) Un_commute Un_upper2 empty_subsetI insert_subset
+                  mem_Collect_eq sound_cons.bot_entails_empty sound_cons.entails_neg_def
+                sound_cons.entails_subsets)
+            ultimately have \<open>(fml_ext ` total_strip J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>')}\<close>
               using consequence_relation.entails_cut sound_cons.ext_cons_rel
               by fastforce
             then show ?thesis
-              by (smt (verit, best) AF.sel(1) \<C>_is consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup_ge1)
+              by (smt (verit, best) AF.sel(1) \<C>_is consequence_relation.entails_subsets
+                  insert_is_Un sound_cons.ext_cons_rel sup_ge1)
           next
             case \<N>_unsat
             then have \<open>bot \<in> \<N> proj\<^sub>J J\<close>
               unfolding enabled_projection_def enabled_def
               using local.trim(2)
               by fastforce
-            then have \<open>sound_cons.entails_neg (Pos ` (\<N> proj\<^sub>J J)) {}\<close>
-              by (smt (verit, del_insts) consequence_relation.bot_entails_empty consequence_relation.entails_subsets image_insert
-                                         insert_is_Un mk_disjoint_insert sound_cons.ext_cons_rel sup_bot_right sup_ge1)
+            then have \<open>(Pos ` (\<N> proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {}\<close>
+              by (smt (verit, del_insts) consequence_relation.bot_entails_empty
+                  consequence_relation.entails_subsets image_insert insert_is_Un mk_disjoint_insert
+                  sound_cons.ext_cons_rel sup_bot_right sup_ge1)
             then show ?thesis
-              by (smt (verit, ccfv_threshold) Un_upper2 consequence_relation.entails_subsets distrib_proj
-                                              image_Un insert_is_Un sound_cons.ext_cons_rel sup_assoc)
+              by (smt (verit, ccfv_threshold) Un_upper2 consequence_relation.entails_subsets
+                  distrib_proj image_Un insert_is_Un sound_cons.ext_cons_rel sup_assoc)
           next
             case A_subset_J
             then have pair_bot_A_enabled: \<open>enabled (AF.Pair bot A) J\<close>
               by (simp add: enabled_def)
-            then have \<open>sound_cons.entails_neg {Pos (F_of \<C>')} {Pos (F_of \<C>')}\<close>
+            then have \<open>{Pos (F_of \<C>')} \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>')}\<close>
                by (meson consequence_relation.entails_reflexive sound_cons.ext_cons_rel)
-            then have \<open>sound_cons.entails_neg (Pos ` ({AF.Pair (F_of \<C>') A} proj\<^sub>J J)) {Pos (F_of \<C>')}\<close>
+            then have \<open>(Pos ` ({AF.Pair (F_of \<C>') A} proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>')}\<close>
               using pair_bot_A_enabled enabled_def enabled_projection_def
               by force
             then show ?thesis
-              by (smt (verit, ccfv_threshold) AF.sel(1) Un_commute Un_upper2 \<C>_is consequence_relation.entails_subsets
-                                              distrib_proj image_Un insert_is_Un sound_cons.ext_cons_rel)
+              by (smt (verit, ccfv_threshold) AF.sel(1) Un_commute Un_upper2 \<C>_is
+                  consequence_relation.entails_subsets distrib_proj image_Un insert_is_Un
+                  sound_cons.ext_cons_rel)
           qed
         qed
         then show \<open>insert \<C>' \<N> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
           unfolding AF_entails_sound_def enabled_set_def
-          by (smt (verit, best) AF.collapse AF.sel(2) Un_insert_right \<C>_is distrib_proj_singleton enabled_def image_empty image_insert
-                                insertCI local.trim(2) projection_of_enabled_subset sup_bot_right)
+          by (smt (verit, best) AF.collapse AF.sel(2) Un_insert_right \<C>_is distrib_proj_singleton
+              enabled_def image_empty image_insert insertCI local.trim(2)
+              projection_of_enabled_subset sup_bot_right)
       next
         show \<open>\<C> \<in> \<N> \<Longrightarrow> insert \<C>' \<N> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
-          by (metis AF_sound_cons_rel.entails_conjunctive_def AF_sound_cons_rel.subset_entailed Un_upper2 insert_is_Un)
+          by (metis AF_sound_cons_rel.entails_conjunctive_def AF_sound_cons_rel.subset_entailed
+              Un_upper2 insert_is_Un)
       qed
     qed
   qed
@@ -1465,10 +1471,11 @@ qed
 
 
 
-lemma SInf_with_simps_sound_wrt_entails_sound2: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> \<M> \<union> S_to \<iota>. \<M> \<union> S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+lemma SInf_with_simps_sound_wrt_entails_sound2:
+  \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> \<M> \<union> S_to \<iota>. \<M> \<union> S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
   using SInf_with_simps_sound_wrt_entails_sound
   by (meson AF_sound_cons_rel.entails_conjunctive_def AF_sound_cons_rel.entails_subsets
-            AF_sound_cons_rel.subset_entailed Un_iff Un_upper2 subset_refl)
+      AF_sound_cons_rel.subset_entailed Un_iff Un_upper2 subset_refl)
 
 interpretation Simps_sound: sound_simplification_rules \<open>to_AF bot\<close> SInf \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close> Simps
   by (standard, auto simp add: SInf_with_simps_sound_wrt_entails_sound2)
@@ -1482,7 +1489,8 @@ lemma enabled_set_singleton [simp]: \<open>enabled_set {\<C>} J \<longleftrighta
 
 (* Report theorem 19 *)
 theorem simplification_to_redundant:
-  \<open>split_pre \<C> Cs As \<Longrightarrow> \<C> \<in> SRed\<^sub>F ({ AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) } \<union> fset As)\<close>
+  \<open>split_pre \<C> Cs As \<Longrightarrow>
+    \<C> \<in> SRed\<^sub>F ({ AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) } \<union> fset As)\<close>
   \<open>collect_pre \<C> \<M> \<Longrightarrow> \<C> \<in> SRed\<^sub>F \<M>\<close>
   \<open>trim_pre \<C> A B \<M> \<Longrightarrow> \<C> \<in> SRed\<^sub>F (\<M> \<union> { AF.Pair (F_of \<C>) B })\<close>
 proof -
@@ -1495,12 +1503,15 @@ proof -
             split_to_As: \<open>mk_split (F_of \<C>) Cs = As\<close>
     using split_def splittable_def
     by blast+
-  then have \<open>\<forall> J. enabled \<C> J \<longrightarrow> F_of \<C> \<in> Red_F (({ AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) } proj\<^sub>J J)
-                                                   \<union> (fset As proj\<^sub>J J))\<close>
+  then have \<open>\<forall> J. enabled \<C> J \<longrightarrow>
+    F_of \<C> \<in> Red_F (({ AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) } proj\<^sub>J J)
+    \<union> (fset As proj\<^sub>J J))\<close>
   proof (intro allI impI)
     fix J
     assume \<C>_enabled: \<open>enabled \<C> J\<close>
-    then show \<open>F_of \<C> \<in> Red_F (({ AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) } proj\<^sub>J J) \<union> (fset As proj\<^sub>J J))\<close>
+    then show
+      \<open>F_of \<C> \<in> Red_F (({ AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) } proj\<^sub>J J)
+       \<union> (fset As proj\<^sub>J J))\<close>
     proof (cases \<open>\<exists> A. A |\<in>| A_of |`| As \<and> (\<exists> a. a |\<in>| A \<and> a \<in> total_strip J)\<close>)
       case True
       then have ex_C_enabled_in_As: \<open>\<exists> C. C |\<in>| As \<and> enabled C J\<close>
@@ -1511,14 +1522,15 @@ proof -
       then show ?thesis
         using \<C>_red_to_splitted_\<C>s split_to_As Red_F_of_subset[of \<open>fset As proj\<^sub>J J\<close>]
         unfolding mk_split_def[OF splittable_pre]
-        by (smt (verit, del_insts) AF.sel(1) CollectI Red_F_of_subset Un_subset_iff ex_C_enabled_in_As enabled_projection_def
-                                   fimageE fmember.rep_eq insert_subset subset_iff sup_bot_right)
+        by (smt (verit, del_insts) AF.sel(1) CollectI Red_F_of_subset Un_subset_iff
+            ex_C_enabled_in_As enabled_projection_def fimageE fmember.rep_eq insert_subset
+            subset_iff sup_bot_right)
     next
       case False
       then have \<open>fset As proj\<^sub>J J = {}\<close>
         using split_creates_singleton_assertion_sets[OF pre_cond]
-        by (smt (verit, del_insts) Collect_empty_eq enabled_def enabled_projection_def fimage_finsert finsert.rep_eq
-                                   finsertCI insert_subset mk_disjoint_finsert notin_fset)
+        by (smt (verit, del_insts) Collect_empty_eq enabled_def enabled_projection_def
+            fimage_finsert finsert.rep_eq finsertCI insert_subset mk_disjoint_finsert notin_fset)
       moreover have \<open>\<forall> A. A |\<in>| A_of |`| As \<longrightarrow> (\<forall> a. a |\<in>| A \<longrightarrow> \<not> a \<in> total_strip J)\<close>
         using False
         by blast
@@ -1526,7 +1538,8 @@ proof -
         by auto
       then have \<open>fset (ffUnion ((fimage neg \<circ> A_of) |`| As)) \<subseteq> total_strip J\<close>
         (* /!\ Slow enough to be noticed /!\ *)
-        by (smt (verit, ccfv_threshold) fimageE fset.map_comp if_in_ffUnion_then_in_subset notin_fset subsetI)
+        by (smt (verit, ccfv_threshold) fimageE fset.map_comp if_in_ffUnion_then_in_subset
+            notin_fset subsetI)
       then have \<open>fset (ffUnion ((fimage neg \<circ> A_of) |`| As) |\<union>| A_of \<C>) \<subseteq> total_strip J\<close>
         using \<C>_enabled
         by (simp add: enabled_def)
@@ -1595,21 +1608,22 @@ next
   then show \<open>\<C> \<in> SRed\<^sub>F (\<M> \<union> { AF.Pair (F_of \<C>) B })\<close>
     unfolding SRed\<^sub>F_def
     (* /!\ A little bit slow /!\ *)
-    by (smt (verit, del_insts) AF.collapse AF.sel(1) AF.sel(2) CollectI UnI1 UnI2 inf_sup_absorb insert_subset
-                               order_le_imp_less_or_eq pre_cond sup.cobounded2)
+    by (smt (verit, del_insts) AF.collapse AF.sel(1) AF.sel(2) CollectI UnI1 UnI2 inf_sup_absorb
+        insert_subset order_le_imp_less_or_eq pre_cond sup.cobounded2)
 qed
 
 end (* locale splitting_calculus_with_simps *)
 
 text \<open>
   We extend our basic splitting calculus with new optional rules:
-  \<^item> \textsc{StrongUnsat} is a variant of \textsc{Unsat} which uses the sound entailment instead of the "normal" entailment;
+  \<^item> \textsc{StrongUnsat} is a variant of \textsc{Unsat} which uses the sound entailment
+    instead of the "normal" entailment;
   \<^item> \textsc{Approx} is a very special case for \textsc{Split} where $n = 1$;
   \<^item> \textsc{Tauto} inserts a new formula which is always true.
 \<close>
 
 locale splitting_calculus_extensions =
-  splitting_calculus_with_asn bot Inf entails entails_sound Red_I Red_F V fml asn
+  splitting_calculus bot Inf entails entails_sound Red_I Red_F V fml asn
   for bot :: 'f and
       Inf :: \<open>'f inference set\<close> and
       entails :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
@@ -1620,6 +1634,13 @@ locale splitting_calculus_extensions =
       fml :: \<open>'v \<Rightarrow> 'f\<close> and
       asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close>
 begin
+
+text \<open>
+  We follow the same naming conventions for our new inference rules as for the two inference rules
+  defined in @{locale splitting_calculus}.
+  $X\_inf$ defines the inference rule, while $X\_pre$ is the precondition for the application of
+  the inference rule.
+\<close>
 
 abbreviation strong_unsat_pre :: \<open>('f, 'v) AF list \<Rightarrow> bool\<close> where
   \<open>strong_unsat_pre \<M> \<equiv> set \<M> \<Turnstile>s\<^sub>A\<^sub>F {to_AF bot} \<and> (\<forall> x \<in> set \<M>. F_of x = bot)\<close>
@@ -1647,20 +1668,19 @@ inductive Splitting_rules2 :: \<open>('f, 'v) AF inference \<Rightarrow> bool\<c
   tauto: \<open>tauto_pre \<C> \<Longrightarrow> Splitting_rules2 (tauto_inf \<C>)\<close> |
   approx: \<open>approx_pre a \<C> \<Longrightarrow> Splitting_rules2 (approx_inf \<C> a)\<close>
 
+text \<open>
+  Instead of considering an inference system with only the rules \textsc{StrongUnsat},
+  \textsc{Tauto} and \textsc{Approx}, we instead add them to the inference system containing the
+  rules \textsc{Base} and \textsc{Unsat} to show how one would extend the basic inference system
+  @{const SInf} of @{locale splitting_calculus}.
+\<close> 
+
 abbreviation SInf2 :: \<open>('f, 'v) AF inference set\<close> where
   \<open>SInf2 \<equiv> SInf \<union> {\<iota>. Splitting_rules2 \<iota>}\<close>
 
 
 
-(*<*)
-lemma enabled_iff: \<open>A_of \<C> = A_of \<C>' \<Longrightarrow> enabled \<C> J \<longleftrightarrow> enabled \<C>' J\<close>
-  unfolding enabled_def
-  by simp
-(*>*)
-
-
-
-(* Report theorem 14 (cont) *)
+(* Report theorem 14 for the cases StrongUnsat, Tauto and Approx *)
 theorem SInf2_sound_wrt_entails_sound: \<open>\<iota> \<in> SInf2 \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
 proof (elim UnE)
   show \<open>\<iota> \<in> SInf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
@@ -1680,8 +1700,10 @@ next
       by auto
   next
     case (approx a \<C>)
-    then have \<open>\<And> J. enabled (AF.Pair bot (finsert (neg a) (A_of \<C>))) J \<Longrightarrow>
-                       sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos (F_of \<C>)}) {Pos bot}\<close>
+    then have
+      \<open>enabled (AF.Pair bot (finsert (neg a) (A_of \<C>))) J \<Longrightarrow>
+       (fml_ext ` total_strip J) \<union> {Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+      for J 
     proof -
       fix J
       assume \<open>enabled (AF.Pair bot (finsert (neg a) (A_of \<C>))) J\<close>
@@ -1689,26 +1711,31 @@ next
         unfolding enabled_def
         by simp
       then have neg_fml_ext_in_J: \<open>neg (fml_ext a) \<in> fml_ext ` total_strip J\<close>
-        by (smt (verit, ccfv_threshold) finsert.rep_eq fml_ext.elims fml_ext.simps(1) fml_ext.simps(2) image_iff
-                                        insert_subset neg.simps(1) neg.simps(2))
-      moreover have \<open>sound_cons.entails_neg {Pos (F_of \<C>)} {Pos (F_of \<C>)}\<close>
-        using \<C>_bientails_\<C>'(2) local.approx(2)
-        by presburger
-      then have \<open>sound_cons.entails_neg ((fml_ext ` (total_strip J - {neg a})) \<union> {Pos (F_of \<C>)}) {Pos bot, Pos (F_of \<C>)}\<close>
-        by (metis (no_types, lifting) consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel sup.cobounded2)
-      ultimately show \<open>sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos (F_of \<C>)}) {Pos bot}\<close>
+        by (smt (verit, ccfv_threshold) finsert.rep_eq fml_ext.elims fml_ext.simps(1)
+            fml_ext.simps(2) image_iff insert_subset neg.simps(1) neg.simps(2))
+      moreover have \<open>{Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
+        using equi_entails_if_a_in_asns local.approx(2)
+        by blast
+      then have \<open>(fml_ext ` (total_strip J - {neg a})) \<union> {Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {Pos bot, Pos (F_of \<C>)}\<close>
+        by (metis (no_types, lifting) consequence_relation.entails_subsets insert_is_Un
+            sound_cons.ext_cons_rel sup.cobounded2)
+      ultimately show \<open>(fml_ext ` total_strip J) \<union> {Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
       (* Sledgehammer can produce this Isar-style proofs????
-       * Well nice one I guess. *)
+       * Well nice one I guess. *) 
       proof -
-        have \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> {fml_ext a}) ({Pos bot} \<union> {})\<close>
-          by (smt (z3) Bex_def_raw UnCI Un_commute Un_insert_right Un_upper2 neg_fml_ext_in_J consequence_relation.entails_subsets
-                       insert_is_Un insert_subset sound_cons.ext_cons_rel sound_cons.pos_neg_entails_bot)
+        have \<open>fml_ext ` total_strip J \<union> {fml_ext a} \<Turnstile>s\<^sub>\<sim> ({Pos bot} \<union> {})\<close>
+          by (smt (z3) Bex_def_raw UnCI Un_commute Un_insert_right Un_upper2 neg_fml_ext_in_J
+              consequence_relation.entails_subsets insert_is_Un insert_subset
+              sound_cons.ext_cons_rel sound_cons.pos_neg_entails_bot)
         then show ?thesis
-          by (smt (z3) C_entails_fml Un_commute consequence_relation.entails_cut insert_is_Un local.approx(2) sound_cons.ext_cons_rel)
+          by (smt (z3) C_entails_fml Un_commute consequence_relation.entails_cut insert_is_Un
+              local.approx(2) sound_cons.ext_cons_rel)
       qed
     qed
-    then have \<open>\<And> J. enabled_set {AF.Pair bot (finsert (neg a) (A_of \<C>))} J \<Longrightarrow>
-                       sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` ({\<C>} proj\<^sub>J J)) {Pos bot}\<close>
+    then have
+      \<open>enabled_set {AF.Pair bot (finsert (neg a) (A_of \<C>))} J \<Longrightarrow>
+       fml_ext ` total_strip J \<union> Pos ` ({\<C>} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+      for J 
       unfolding enabled_projection_def enabled_def enabled_set_def
       by auto
     then show ?thesis
@@ -1738,6 +1765,8 @@ begin
 lemmas SRed_rules = SRed\<^sub>F_entails_bot SRed\<^sub>F_of_subset_F SRed\<^sub>I_of_subset_F SRed\<^sub>F_of_SRed\<^sub>F_subset_F
                     SRed\<^sub>I_of_SRed\<^sub>F_subset_F SRed\<^sub>I_of_SInf_to_N_F SRed\<^sub>I_in_SInf
 
+
+
 (* Report lemma 18 *)
 sublocale S_calculus: calculus \<open>to_AF bot\<close> SInf AF_entails SRed\<^sub>I SRed\<^sub>F
   by (standard; simp add: SRed_rules)
@@ -1746,15 +1775,7 @@ sublocale S_calculus: calculus \<open>to_AF bot\<close> SInf AF_entails SRed\<^s
 alias S_saturated = S_calculus.saturated
 alias F_saturated = local.saturated
 
-lemma F_of_circ_to_AF_is_id [simp]: \<open>F_of \<circ> to_AF = id\<close>
-  by fastforce
-
-lemma A_of_circ_to_AF_is_empty_set [simp]: \<open>A_of \<circ> to_AF = (\<lambda> _. {||})\<close>
-  by fastforce
-
-lemma map_A_of_map2_Pair: \<open>length A = length B \<Longrightarrow> map A_of (map2 AF.Pair A B) = B\<close>
-  by auto
-
+(*! Move these in the List theory? *)
 lemma ball_set_f_to_ball_set_map: \<open>(\<forall> x \<in> set A. P (f x)) \<longleftrightarrow> (\<forall> x \<in> set (map f A). P x)\<close>
   by simp
 
@@ -1802,7 +1823,8 @@ proof -
       by (smt (verit, best) Ball_set)
     then have \<open>\<exists> As. length As = length (prems_of \<iota>\<^sub>F) \<and>
                      list_all2 (\<lambda> C A. AF.Pair C A \<in> \<N> \<and> enabled (AF.Pair C A) \<J>) (prems_of \<iota>\<^sub>F) As\<close>
-      by (smt (verit, del_insts) AF.exhaust AF.sel(1) list.pred_mono_strong list_all_ex_to_ex_list_all2)
+      by (smt (verit, del_insts) AF.exhaust AF.sel(1) list.pred_mono_strong
+          list_all_ex_to_ex_list_all2)
     then have \<open>\<exists> As. length As = length (prems_of \<iota>\<^sub>F) \<and>
                      list_all (\<lambda> \<C>. \<C> \<in> \<N> \<and> enabled \<C> \<J>) (map2 AF.Pair (prems_of \<iota>\<^sub>F) As)\<close>
       using list_all2_to_map[where f = \<open>\<lambda> C A. AF.Pair C A\<close>]
@@ -1825,7 +1847,8 @@ proof -
     then have F_of_dummy_prems_is_prems_of_\<iota>\<^sub>F: \<open>map F_of ?prems = prems_of \<iota>\<^sub>F\<close>
       by (simp add: length_As_eq_length_prems)
     moreover have \<open>\<forall> \<C> \<in> set (map A_of (map2 AF.Pair (prems_of \<iota>\<^sub>F) As)). fset \<C> \<subseteq> total_strip \<J>\<close>
-      using all_enabled ball_set_f_to_ball_set_map[where P = \<open>\<lambda> x. fset x \<subseteq> total_strip \<J>\<close> and f = A_of]
+      using
+        all_enabled ball_set_f_to_ball_set_map[where P = \<open>\<lambda> x. fset x \<subseteq> total_strip \<J>\<close> and f = A_of]
       unfolding enabled_def
       by blast
     then have \<open>\<forall> \<C> \<in> set As. fset \<C> \<subseteq> total_strip \<J>\<close>
@@ -1848,11 +1871,12 @@ proof -
       using Splitting_rules.base[OF pre_holds]
       unfolding enabled_projection_Inf_def S_calculus.Inf_from_def
       by (metis (mono_tags, lifting) inference.sel(1) mem_Collect_eq)
-    then have \<open>\<exists> \<M> D. base_inf \<M> D \<in> S_calculus.Inf_from \<N> \<and> \<iota>F_of (base_inf \<M> D) = \<iota>\<^sub>F \<and> enabled_inf (base_inf \<M> D) \<J>\<close>
+    then have \<open>\<exists> \<M> D. base_inf \<M> D \<in> S_calculus.Inf_from \<N> \<and>
+                \<iota>F_of (base_inf \<M> D) = \<iota>\<^sub>F \<and> enabled_inf (base_inf \<M> D) \<J>\<close>
       using \<iota>F_of_base_inf_is_\<iota>\<^sub>F
       unfolding enabled_projection_Inf_def
-      by (metis (mono_tags, lifting) CollectI S_calculus.Inf_from_def Splitting_rules.base base_inf_enabled
-                                     inference.sel(1) pre_holds set_prems_As_subset_\<N>)
+      by (metis (mono_tags, lifting) CollectI S_calculus.Inf_from_def Splitting_rules.base
+          base_inf_enabled inference.sel(1) pre_holds set_prems_As_subset_\<N>)
     then obtain \<M> D where base_inf_in_Inf_\<N>: \<open>base_inf \<M> D \<in> S_calculus.Inf_from \<N>\<close> and
                            \<iota>F_of_base_inf_is_\<iota>\<^sub>F: \<open>\<iota>F_of (base_inf \<M> D) = \<iota>\<^sub>F\<close> and
                            base_inf_enabled: \<open>enabled_inf (base_inf \<M> D) \<J>\<close>
@@ -1868,50 +1892,26 @@ proof -
       using \<iota>\<^sub>F_in_Inf_\<N>_proj_\<J> \<iota>F_of_base_inf_is_\<iota>\<^sub>F base_inf_enabled
       unfolding SRed\<^sub>I_def enabled_projection_Inf_def \<iota>F_of_def enabled_def enabled_projection_def
       by auto
-         (metis (mono_tags, lifting) AF.sel(2) F_of_to_AF Red_I_of_Inf_to_N bot_fset.rep_eq empty_subsetI
-                                     inference.sel(2) mem_Collect_eq to_AF_def)
+         (metis (mono_tags, lifting) AF.sel(2) F_of_to_AF Red_I_of_Inf_to_N bot_fset.rep_eq
+          empty_subsetI inference.sel(2) mem_Collect_eq to_AF_def)
   qed
 qed
 
 (*<*)
-lemma prop_unsat_to_AF_entails_bot: \<open>propositionally_unsatisfiable \<M> \<Longrightarrow> \<M> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
-proof -
-  assume prop_unsat_\<M>: \<open>propositionally_unsatisfiable \<M>\<close>
-  then show \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
-    unfolding AF_entails_def
-  proof (intro allI impI)
-    fix J
-    assume \<open>enabled_set {to_AF bot} J\<close>
-    have \<open>bot \<in> (proj\<^sub>\<bottom> \<M>) proj\<^sub>J J\<close>
-      using prop_unsat_\<M>
-      unfolding propositionally_unsatisfiable_def propositional_model_def
-      by blast
-    then have \<open>bot \<in> \<M> proj\<^sub>J J\<close>
-      using enabled_projection_def prop_proj_in
-      by fastforce
-    then have \<open>\<M> proj\<^sub>J J \<Turnstile> {bot}\<close>
-      using bot_entails_empty entails_subsets
-      by (meson empty_subsetI insert_subset)
-    then show \<open>\<M> proj\<^sub>J J \<Turnstile> F_of ` {to_AF bot}\<close>
-      by auto
-  qed
-qed
-
-lemma Union_empty_if_set_empty_or_all_empty: \<open>ffUnion A = {||} \<Longrightarrow> A = {||} \<or> fBall A (\<lambda> x. x = {||})\<close>
+(*! Move to FSet? *)
+lemma Union_empty_if_set_empty_or_all_empty:
+  \<open>ffUnion A = {||} \<Longrightarrow> A = {||} \<or> fBall A (\<lambda> x. x = {||})\<close>
   by (metis (mono_tags, lifting) fBallI ffunion_insert finsert_absorb funion_fempty_right)
 
 lemma fBall_fimage_is_fBall: \<open>fBall (f |`| A) P \<longleftrightarrow> fBall A (\<lambda> x. P (f x))\<close>
   by auto
-
-lemma prop_unsat_compactness: \<open>propositionally_unsatisfiable A \<Longrightarrow> \<exists> B \<subseteq> A. finite B \<and> propositionally_unsatisfiable B\<close>
-  by (meson compactness_AF_proj equiv_prop_entails propositionally_unsatisfiable_def)
-(*>*)
 
 interpretation AF_sound_cons_rel: consequence_relation \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
   by (rule AF_ext_sound_cons_rel)
 
 (* This is easier to type than \<open>AF_cons_rel.entails_conjunctive\<close>, and looks more beautiful. *)
 notation AF_cons_rel.entails_conjunctive (infix \<open>\<Turnstile>\<inter>\<^sub>A\<^sub>F\<close> 50)
+(*>*)
 
 
 
@@ -1928,7 +1928,8 @@ proof (intro conjI allI impI; elim conjE)
 next
   fix N
   assume \<open>Preliminaries_With_Zorn.calculus bot Inf (\<Turnstile>) Red_I Red_F\<close> and
-         if_F_saturated_and_N_entails_bot_then_bot_in_N: \<open>\<forall> N. F_saturated N \<longrightarrow> N \<Turnstile> {bot} \<longrightarrow> bot \<in> N\<close> and
+         if_F_saturated_and_N_entails_bot_then_bot_in_N:
+           \<open>\<forall> N. F_saturated N \<longrightarrow> N \<Turnstile> {bot} \<longrightarrow> bot \<in> N\<close> and
          N_is_S_saturated: \<open>S_saturated N\<close> and
          N_entails_bot: \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
   then have N_proj_\<J>_entails_bot: \<open>\<forall> \<J>. N proj\<^sub>J \<J> \<Turnstile> {bot}\<close>
@@ -1943,7 +1944,8 @@ next
     using N_proj_\<J>_entails_bot if_F_saturated_and_N_entails_bot_then_bot_in_N
     by presburger
   then have prop_proj_N_is_prop_unsat: \<open>propositionally_unsatisfiable (proj\<^sub>\<bottom> N)\<close>
-    unfolding enabled_projection_def propositional_model_def propositional_projection_def propositionally_unsatisfiable_def
+    unfolding enabled_projection_def propositional_model_def propositional_projection_def
+      propositionally_unsatisfiable_def
     by fast
   then have \<open>proj\<^sub>\<bottom> N \<noteq> {}\<close>
     unfolding propositionally_unsatisfiable_def propositional_model_def
@@ -1956,14 +1958,15 @@ next
                        \<open>finite (set \<M>)\<close> and
                        \<M>_prop_unsat: \<open>propositionally_unsatisfiable (set \<M>)\<close> and
                        \<M>_not_empty: \<open>\<M> \<noteq> []\<close>
-    by (smt (verit, del_insts) AF_cons_rel.entails_bot_to_entails_empty AF_cons_rel.entails_empty_reflexive_dangerous
-                               compactness_AF_proj equiv_prop_entails finite_list image_empty prop_proj_N_is_prop_unsat
-                               prop_proj_in propositional_model2_def propositionally_unsatisfiable_def set_empty2
-                               subset_empty subset_trans to_AF_proj_J)
+    by (smt (verit, del_insts) AF_cons_rel.entails_bot_to_entails_empty
+        AF_cons_rel.entails_empty_reflexive_dangerous compactness_AF_proj equiv_prop_entails
+        finite_list image_empty prop_proj_N_is_prop_unsat prop_proj_in propositional_model2_def
+        propositionally_unsatisfiable_def set_empty2 subset_empty subset_trans to_AF_proj_J)
   then have \<open>unsat_inf \<M> \<in> S_calculus.Inf_from N\<close> and
             Infer_\<M>_bot_in_SInf: \<open>unsat_inf \<M> \<in> SInf\<close>
     using \<M>_not_empty \<M>_subset_prop_proj_N Splitting_rules.unsat S_calculus.Inf_if_Inf_from
-    unfolding S_calculus.Inf_from_def propositionally_unsatisfiable_def propositional_model_def propositional_projection_def
+    unfolding S_calculus.Inf_from_def propositionally_unsatisfiable_def propositional_model_def
+      propositional_projection_def
     by fastforce+
   then have \<open>unsat_inf \<M> \<in> SRed\<^sub>I N\<close>
     using N_is_S_saturated S_calculus.saturated_def
@@ -1971,7 +1974,8 @@ next
   then show \<open>to_AF bot \<in> N\<close>
     unfolding SRed\<^sub>I_def
   proof (elim UnE)
-    assume \<open>unsat_inf \<M> \<in> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and> (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>)) }\<close>
+    assume \<open>unsat_inf \<M> \<in> { base_inf \<M> \<C> | \<M> \<C>. base_pre \<M> \<C> \<and>
+      (\<forall> \<J>. { base_inf \<M> \<C> } \<iota>proj\<^sub>J \<J> \<subseteq> Red_I (N proj\<^sub>J \<J>)) }\<close>
     then have \<open>unsat_inf \<M> = base_inf \<M> bot\<close>
       by (smt (verit, best) AF.exhaust_sel AF.sel(2) F_of_to_AF inference.inject mem_Collect_eq)
     then have \<open>to_AF bot = AF.Pair bot (ffUnion (A_of |`| fset_of_list \<M>))\<close>
@@ -2031,7 +2035,8 @@ qed
 lemma saturated_equiv: \<open>S_saturated N \<longleftrightarrow> Calculus.calculus.saturated SInf SRed\<^sub>I N\<close>
   by (meson Calculus.calculus.saturated_def S_calculus.saturated_def S_with_conj_is_calculus)
 
-lemma derivation_equiv: \<open>is_derivation S_calculus.derive Ns \<longleftrightarrow> chain (Calculus.calculus.derive SRed\<^sub>F) (to_llist Ns)\<close>
+lemma derivation_equiv:
+  \<open>is_derivation S_calculus.derive Ns \<longleftrightarrow> chain (Calculus.calculus.derive SRed\<^sub>F) (to_llist Ns)\<close>
 proof -
   have \<open>S_calculus.derive M N \<longleftrightarrow> Calculus.calculus.derive SRed\<^sub>F M N\<close> for M N
     unfolding S_calculus.derive_def
@@ -2074,7 +2079,9 @@ proof -
         by (simp add: llnth.rep_eq)
     qed
   qed
-  ultimately have \<open>(\<forall> i. S_calculus.derive (llnth Ns i) (llnth Ns (Suc i))) \<longleftrightarrow> chain (Calculus.calculus.derive SRed\<^sub>F) (to_llist Ns)\<close>
+  ultimately have
+    \<open>(\<forall> i. S_calculus.derive (llnth Ns i) (llnth Ns (Suc i))) \<longleftrightarrow>
+     chain (Calculus.calculus.derive SRed\<^sub>F) (to_llist Ns)\<close>
     by metis
   then show ?thesis
     by (simp add: is_derivation_def)
@@ -2097,15 +2104,17 @@ text \<open>
   The following proof works as follows.
 
   We assume that \<open>(Inf, (Red\<^sub>I, Red\<^sub>F))\<close>.
-  From that and theorem @{thm S_calculus_statically_complete}, we obtain that \<open>(SInf, (SRed\<^sub>I, SRed\<^sub>F))\<close> is statically complete.
-  This means that for all \<open>\<N> \<subseteq> UNIV\<close>, if \<open>\<N>\<close> is saturated w.r.t. \<open>(SInf, SRed\<^sub>I)\<close> and \<open>\<N> \<Turnstile>\<union>\<^sub>A\<^sub>F {\<bottom>}\<close> then \<open>\<bottom> \<in> \<N>\<close>.
-  Since \<open>\<Turnstile>\<union>\<^sub>A\<^sub>F \<equiv> \<Turnstile>\<inter>\<^sub>A\<^sub>F\<close> when the right hand side is a singleton set, we have that for all \<open>\<N> \<subseteq> UNIV\<close>, if \<open>\<N>\<close> is saturated w.r.t. \<open>(SInf, SRed\<^sub>I)\<close>
-  and \<open>\<N> \<Turnstile>\<inter>\<^sub>A\<^sub>F {\<bottom>}\<close> then \<open>\<bottom> \<in> \<N>\<close>.
+  From that and theorem @{thm S_calculus_statically_complete}, we obtain that
+    \<open>(SInf, (SRed\<^sub>I, SRed\<^sub>F))\<close> is statically complete.
+  This means that for all \<open>\<N> \<subseteq> UNIV\<close>, if \<open>\<N>\<close> is saturated w.r.t. \<open>(SInf, SRed\<^sub>I)\<close>
+    and \<open>\<N> \<Turnstile>\<union>\<^sub>A\<^sub>F {\<bottom>}\<close> then \<open>\<bottom> \<in> \<N>\<close>.
+  Since \<open>\<Turnstile>\<union>\<^sub>A\<^sub>F \<equiv> \<Turnstile>\<inter>\<^sub>A\<^sub>F\<close> when the right hand side is a singleton set, we have that
+    for all \<open>\<N> \<subseteq> UNIV\<close>, if \<open>\<N>\<close> is saturated w.r.t. \<open>(SInf, SRed\<^sub>I)\<close> and \<open>\<N> \<Turnstile>\<inter>\<^sub>A\<^sub>F {\<bottom>}\<close> then \<open>\<bottom> \<in> \<N>\<close>.
 
-  Because \<open>\<Turnstile>\<inter>\<^sub>A\<^sub>F\<close> is a consequence relation for the Saturation Framework, we can derive that \<open>(SInf, (SRed\<^sub>I, SRed\<^sub>F))\<close> is dynamically complete
-  (using the conjunctive entailment).
-  We then proceed as above but in the opposite way to show that \<open>(SInf, (SRed\<^sub>I, SRed\<^sub>F))\<close> is dynamically complete
-  using the disjunctive entailment \<open>\<Turnstile>\<union>\<^sub>A\<^sub>F\<close>.
+  Because \<open>\<Turnstile>\<inter>\<^sub>A\<^sub>F\<close> is a consequence relation for the Saturation Framework, we can derive
+      that \<open>(SInf, (SRed\<^sub>I, SRed\<^sub>F))\<close> is dynamically complete (using the conjunctive entailment).
+  We then proceed as above but in the opposite way to show that \<open>(SInf, (SRed\<^sub>I, SRed\<^sub>F))\<close>
+      is dynamically complete using the disjunctive entailment \<open>\<Turnstile>\<union>\<^sub>A\<^sub>F\<close>.
 \<close>
 
 (* Report corollary 22 *)
@@ -2121,7 +2130,8 @@ proof -
     unfolding statically_complete_calculus_def statically_complete_calculus_axioms_def
     by blast
   then have \<open>Calculus.statically_complete_calculus_axioms {to_AF bot} SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I\<close>
-    unfolding statically_complete_calculus_axioms_def Calculus.statically_complete_calculus_axioms_def
+    unfolding statically_complete_calculus_axioms_def
+      Calculus.statically_complete_calculus_axioms_def
     using saturated_equiv
     by blast
   then have \<open>Calculus.statically_complete_calculus {to_AF bot} SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
@@ -2134,14 +2144,16 @@ proof -
     using Calculus.dynamically_complete_calculus_def
     by blast
   then have \<open>dynamically_complete_calculus_axioms (to_AF bot) SInf (\<Turnstile>\<inter>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
-    unfolding dynamically_complete_calculus_axioms_def Calculus.dynamically_complete_calculus_axioms_def
+    unfolding dynamically_complete_calculus_axioms_def
+      Calculus.dynamically_complete_calculus_axioms_def
     by (metis derivation_equiv fair_equiv llhd.rep_eq llnth.rep_eq singletonD singletonI)
   then have \<open>dynamically_complete_calculus_axioms (to_AF bot) SInf (\<Turnstile>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
     unfolding dynamically_complete_calculus_axioms_def
     using entails_conj_is_entails_disj_if_right_singleton
     by presburger
   then show \<open>dynamically_complete_calculus (to_AF bot) SInf (\<Turnstile>\<^sub>A\<^sub>F) SRed\<^sub>I SRed\<^sub>F\<close>
-    by (simp add: Preliminaries_With_Zorn.dynamically_complete_calculus_def S_calculus.calculus_axioms)
+    by (simp add: Preliminaries_With_Zorn.dynamically_complete_calculus_def
+        S_calculus.calculus_axioms)
 qed
 
 
@@ -2153,11 +2165,13 @@ text \<open>
 \<close>
 
 (* Report definition 23 *)
-definition locally_saturated :: \<open>('f, 'v) AF inference set \<Rightarrow> (('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set) \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> where
-  \<open>locally_saturated S_Inf SRed_I \<N> \<equiv> to_AF bot \<in> \<N> \<or>
-                                      (\<exists> J :: 'v total_interpretation. J \<Turnstile>\<^sub>p \<N> \<and> saturated (\<N> proj\<^sub>J J))\<close>
-                                      (* NOTE: in the paper, the propositional projection is explicit.
-                                       * In our case, it is hidden within the definition for @{const propositional_model}. *)
+definition locally_saturated :: \<open>('f, 'v) AF inference set \<Rightarrow> (('f, 'v) AF set \<Rightarrow>
+  ('f, 'v) AF inference set) \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> where
+  \<open>locally_saturated S_Inf SRed_I \<N> \<equiv>
+    to_AF bot \<in> \<N> \<or>
+    (\<exists> J :: 'v total_interpretation. J \<Turnstile>\<^sub>p \<N> \<and> saturated (\<N> proj\<^sub>J J))\<close>
+    (* NOTE: in the paper, the propositional projection is explicit.
+     * In our case, it is hidden within the definition for @{const propositional_model}. *)
 (* NOTE: what's the point of S_Inf and SRed_I if we are not using them in our definition? *)
 
 
@@ -2193,13 +2207,18 @@ qed
 
 
 (* Report definition 26 *)
-definition locally_fair :: \<open>('f, 'v) AF set infinite_llist \<Rightarrow> ('f, 'v) AF inference set \<Rightarrow> (('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set) \<Rightarrow> bool\<close> where
-  \<open>locally_fair \<N>i S_Inf SRed_I \<equiv> (\<exists> i. to_AF bot \<in> llnth \<N>i i)
-                                 \<or> (\<exists> J :: 'v total_interpretation. J \<Turnstile>\<^sub>p lim_inf \<N>i \<and>
-                                                                    Inf_from (lim_inf \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J)))\<close>
+definition locally_fair :: \<open>('f, 'v) AF set infinite_llist \<Rightarrow> ('f, 'v) AF inference set \<Rightarrow>
+  (('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set) \<Rightarrow> bool\<close> where
+  \<open>locally_fair \<N>i S_Inf SRed_I \<equiv>
+     (\<exists> i. to_AF bot \<in> llnth \<N>i i)
+   \<or> (\<exists> J :: 'v total_interpretation. J \<Turnstile>\<^sub>p lim_inf \<N>i \<and>
+        Inf_from (lim_inf \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J)))\<close>
+(* NOTE: same as for the definition of @{const locally_saturated}, we are not using \<open>S_inf\<close> nor
+ * \<open>SRed_I\<close> so should we really keep them? :*)
 
 (*<*)
-lemma SRed_of_lim_inf: \<open>SRed\<^sub>F (lim_inf \<N>i) proj\<^sub>J J \<subseteq> Red_F (lim_inf \<N>i proj\<^sub>J J) \<union> (lim_inf \<N>i proj\<^sub>J J)\<close>
+lemma SRed_of_lim_inf:
+  \<open>SRed\<^sub>F (lim_inf \<N>i) proj\<^sub>J J \<subseteq> Red_F (lim_inf \<N>i proj\<^sub>J J) \<union> (lim_inf \<N>i proj\<^sub>J J)\<close>
 proof (intro subsetI)
   fix f
   assume \<open>f \<in> SRed\<^sub>F (lim_inf \<N>i) proj\<^sub>J J\<close>
@@ -2209,7 +2228,8 @@ proof (intro subsetI)
     by (auto, fastforce)
 qed
 
-lemma bot_at_i_implies_bot_at_liminf: \<open>is_derivation S_calculus.derive \<N>i \<Longrightarrow> to_AF bot \<in> llnth \<N>i i \<Longrightarrow> to_AF bot \<in> lim_inf \<N>i\<close>
+lemma bot_at_i_implies_bot_at_liminf:
+  \<open>is_derivation S_calculus.derive \<N>i \<Longrightarrow> to_AF bot \<in> llnth \<N>i i \<Longrightarrow> to_AF bot \<in> lim_inf \<N>i\<close>
 proof -
   assume \<N>i_is_derivation: \<open>is_derivation S_calculus.derive \<N>i\<close> and
          bot_at_i: \<open>to_AF bot \<in> llnth \<N>i i\<close>
@@ -2222,7 +2242,8 @@ proof -
     fix \<N>i'
     assume llength_is_infinity: \<open>llength \<N>i' = \<infinity>\<close> and
            bot_at_i: \<open>to_AF bot \<in> lnth \<N>i' i\<close> and
-           all_at_i_minus_next_i_are_redundant: \<open>\<forall> i. lnth \<N>i' i - lnth \<N>i' (Suc i) \<subseteq> SRed\<^sub>F (lnth \<N>i' (Suc i))\<close>
+           all_at_i_minus_next_i_are_redundant:
+             \<open>\<forall> i. lnth \<N>i' i - lnth \<N>i' (Suc i) \<subseteq> SRed\<^sub>F (lnth \<N>i' (Suc i))\<close>
     then have \<open>to_AF bot \<in> lnth \<N>i' (Suc i)\<close>
       using bot_not_in_sredF_\<N>
       by auto
@@ -2250,7 +2271,8 @@ proof -
             using i_less_than_n less.hyps
             by fastforce
           then show ?thesis
-            using all_at_i_minus_next_i_are_redundant[rule_format, of \<open>n - 1\<close>] bot_not_in_sredF_\<N> n_positive
+            using all_at_i_minus_next_i_are_redundant[rule_format, of \<open>n - 1\<close>]
+                  bot_not_in_sredF_\<N> n_positive
             by auto
         qed
       qed
@@ -2264,12 +2286,13 @@ proof -
   qed
 qed
 
-lemma Red_I_of_inf_Red_F_subset_Red_I_of_inf: \<open>Red_I ((lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J)) = Red_I (lim_inf \<N>i proj\<^sub>J J)\<close>
+lemma Red_I_of_inf_Red_F_subset_Red_I_of_inf:
+  \<open>Red_I ((lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J)) = Red_I (lim_inf \<N>i proj\<^sub>J J)\<close>
 proof (intro subset_antisym)
   have \<open>Red_F (lim_inf \<N>i proj\<^sub>J J) \<subseteq> Red_F ((lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J))\<close>
     by (simp add: Red_F_of_subset)
   then show \<open>Red_I ((lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J)) \<subseteq> Red_I (lim_inf \<N>i proj\<^sub>J J)\<close>
-   by (smt (verit, del_insts) DiffE Red_I_of_subset Un_iff lift_from_ARed_to_FRed.ground.Red_I_without_red_F subset_iff)
+    by (smt (verit, del_insts) DiffE Red_I_of_Red_F_subset Red_I_of_subset Un_iff subset_iff) 
 next
   show \<open>Red_I (lim_inf \<N>i proj\<^sub>J J) \<subseteq> Red_I ((lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J))\<close>
     by (simp add: Red_I_of_subset)
@@ -2279,8 +2302,9 @@ qed
 
 
 (* Report lemma 27 *)
-lemma locally_fair_derivation_is_saturated_at_liminf: \<open>\<lbrakk> is_derivation S_calculus.derive \<N>i; locally_fair \<N>i SInf SRed\<^sub>I \<rbrakk> \<Longrightarrow>
-                                                           locally_saturated SInf SRed\<^sub>I (lim_inf \<N>i)\<close>
+lemma locally_fair_derivation_is_saturated_at_liminf:
+  \<open>is_derivation S_calculus.derive \<N>i \<Longrightarrow> locally_fair \<N>i SInf SRed\<^sub>I \<Longrightarrow>
+   locally_saturated SInf SRed\<^sub>I (lim_inf \<N>i)\<close>
 proof -
   assume \<N>i_is_derivation: \<open>is_derivation S_calculus.derive \<N>i\<close> and
          \<open>locally_fair \<N>i SInf SRed\<^sub>I\<close>
@@ -2299,14 +2323,20 @@ proof -
   next
     assume \<open>\<exists> J. J \<Turnstile>\<^sub>p limit \<N>i \<and> Inf_from (limit \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J))\<close>
     then obtain J where J_prop_model_of_limit: \<open>J \<Turnstile>\<^sub>p limit \<N>i\<close> and
-                        all_inf_of_limit_are_redundant: \<open>Inf_from (limit \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J))\<close>
+                        all_inf_of_limit_are_redundant:
+                          \<open>Inf_from (limit \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J))\<close>
       by blast
     then have \<open>\<forall> i. llnth \<N>i i \<subseteq> lim_inf \<N>i \<union> SRed\<^sub>F (lim_inf \<N>i)\<close>
-      using Calculus.calculus.i_in_Liminf_or_Red_F[OF S_with_conj_is_calculus, of \<open>to_llist \<N>i\<close>] derivation_equiv[of \<open>\<N>i\<close>]
-      by (simp add: Liminf_infinite_llist.rep_eq \<N>i_is_derivation llength_of_to_llist_is_infinite llnth.rep_eq sup_commute)
+      using Calculus.calculus.i_in_Liminf_or_Red_F[OF S_with_conj_is_calculus, of \<open>to_llist \<N>i\<close>]
+            derivation_equiv[of \<open>\<N>i\<close>]
+      by (simp add: Liminf_infinite_llist.rep_eq \<N>i_is_derivation llength_of_to_llist_is_infinite
+          llnth.rep_eq sup_commute)
     then have \<open>\<forall> i. llnth \<N>i i proj\<^sub>J J \<subseteq> (lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J)\<close>
-      by (smt (verit, best) SRed_of_lim_inf UN_iff UnE UnI1 Un_commute Union_of_enabled_projection_is_enabled_projection subset_iff)
-    then have Red_I_in_Red_I_of_Red_F: \<open>(\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J)) \<subseteq> (\<Union> i. Red_I ((lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J)))\<close>
+      by (smt (verit, best) SRed_of_lim_inf UN_iff UnE UnI1 Un_commute
+          Union_of_enabled_projection_is_enabled_projection subset_iff)
+    then have Red_I_in_Red_I_of_Red_F:
+      \<open>(\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J)) \<subseteq>
+        (\<Union> i. Red_I ((lim_inf \<N>i proj\<^sub>J J) \<union> Red_F (lim_inf \<N>i proj\<^sub>J J)))\<close>
       by (meson Red_I_of_subset SUP_mono UNIV_I)
     then have \<open>(\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J)) \<subseteq> (\<Union> i. Red_I (lim_inf \<N>i proj\<^sub>J J))\<close>
       using Red_I_of_inf_Red_F_subset_Red_I_of_inf
@@ -2337,7 +2367,8 @@ proof -
     by (simp add: SUP_upper llhd_is_llnth_0)
   then have \<open>(\<Union> i. llnth \<N>i i) \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
     using \<N>i0_entails_bot
-    by (meson AF_cons_rel.entails_trans AF_cons_rel.subset_entailed entails_conj_is_entails_disj_if_right_singleton)
+    by (meson AF_cons_rel.entails_trans AF_cons_rel.subset_entailed
+        entails_conj_is_entails_disj_if_right_singleton)
   then have \<open>(\<Union> i. llnth \<N>i i) - SRed\<^sub>F (\<Union> i. llnth \<N>i i) \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
     using SRed\<^sub>F_entails_bot
     by blast
@@ -2365,38 +2396,11 @@ qed
 
 
 
-(*<*)
-lemma Un_of_enabled_projection_is_enabled_projection_of_Un: \<open>(\<Union> x. P x) proj\<^sub>J J = (\<Union> x. P x proj\<^sub>J J)\<close>
-proof (intro subset_antisym subsetI)
-  fix x
-  assume \<open>x \<in> (\<Union> x. P x) proj\<^sub>J J\<close>
-  then have \<open>\<exists> y. x = F_of y \<and> enabled y J \<and> y \<in> (\<Union> x. P x)\<close>
-    unfolding enabled_projection_def
-    by blast
-  then have \<open>\<exists> y. x = F_of y \<and> enabled y J \<and> (\<exists> z. y \<in> P z)\<close>
-    by blast
-  then have \<open>\<exists> y. \<exists> z. x = F_of y \<and> enabled y J \<and> y \<in> P z\<close>
-    by blast
-  then show \<open>x \<in> (\<Union> x. P x proj\<^sub>J J)\<close>
-    unfolding enabled_projection_def
-    by blast
-next
-  fix x
-  assume \<open>x \<in> (\<Union> x. P x proj\<^sub>J J)\<close>
-  then have \<open>\<exists> y. x \<in> P y proj\<^sub>J J\<close>
-    by blast
-  then have \<open>\<exists> y. \<exists> z. x = F_of z \<and> enabled z J \<and> z \<in> P y\<close>
-    unfolding enabled_projection_def
-    by blast
-  then show \<open>x \<in> (\<Union> x. P x) proj\<^sub>J J\<close>
-    unfolding enabled_projection_def
-    by blast
-qed
-
-lemma enabled_projection_of_Int_is_Int_of_enabled_projection: \<open>x \<in> (\<Inter> S) proj\<^sub>J J \<Longrightarrow> x \<in> \<Inter> { x proj\<^sub>J J | x. x \<in> S }\<close>
-  unfolding enabled_projection_def
-  by blast
-(*>*)
+(* If you are reading this, please discard the entire content of this comment, unless you
+ * are working on the second proof of theorem 28.
+ * If this is the case, then good luck to you!
+ * Also, this is not formatted properly so yeah, this will surely be a pain to work with.
+ * It would probably be wise to start the proof all over. *)
 
 (* lemma bot_at_i_proj_J_implies_bot_at_liminf_proj_J: \<open>is_derivation S_calculus.derive \<N>i \<Longrightarrow>
                                                           bot \<in> llnth \<N>i i proj\<^sub>J J \<Longrightarrow> bot \<in> lim_inf \<N>i proj\<^sub>J J\<close>
@@ -2606,12 +2610,16 @@ end (* context splitting_calculus *)
 subsection \<open>Full splitting calculus\<close>
 
 text \<open>
-  Up until now, we have been working with separate locales for simplification rules and inference rules.
-  We now put everything together to form the splitting calculus defined in the article (definition 9).
+  Up until now, we have been working with separate locales for simplification rules
+  and inference rules (@{locale splitting_calculus_with_simps}
+  and @{locale splitting_calculus_extensions}).
+  We now put everything together to form the full splitting calculus defined in the article
+  (definition 9).
 \<close>
 
-locale full_splitting_calculus = splitting_calculus_extensions bot Inf entails entails_sound Red_I Red_F V fml asn +
-                                 splitting_calculus_with_simps bot Inf entails entails_sound Red_I Red_F V fml asn
+locale full_splitting_calculus =
+  splitting_calculus_extensions bot Inf entails entails_sound Red_I Red_F V fml asn +
+  splitting_calculus_with_simps bot Inf entails entails_sound Red_I Red_F V fml asn
   for bot :: 'f and
       Inf :: \<open>'f inference set\<close> and
       entails :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
@@ -2623,24 +2631,29 @@ locale full_splitting_calculus = splitting_calculus_extensions bot Inf entails e
       asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close>
 begin
 
+(*<*)
+(*! Perhaps this could be moved within the theory List or Set? *)
 definition set_to_list :: \<open>'a set \<Rightarrow> 'a list\<close> where
   \<open>set_to_list S \<equiv> (SOME l. set l = S)\<close>
 
 lemma set_set_to_list: \<open>finite S \<Longrightarrow> set (set_to_list S) = S\<close>
   unfolding set_to_list_def
   by (meson finite_list someI)
-
+(*>*)
 
 
 (* Report definition 9 (cont) *)
 inductive_set Splitting_Inf :: \<open>('f, 'v) AF inference set\<close> where
   infer: \<open>\<iota> \<in> SInf2 \<Longrightarrow> \<iota> \<in> Splitting_Inf\<close> |
-  simplify: \<open>Infer \<M> \<C> \<in> SInf2 \<Longrightarrow> set \<M> = \<N>'' \<union> \<N>' \<Longrightarrow> Simplify \<N> \<N>'' \<in> Simps \<Longrightarrow> Infer (set_to_list (\<N> \<union> \<N>')) \<C> \<in> Splitting_Inf\<close>
+  simplify: \<open>Infer \<M> \<C> \<in> SInf2 \<Longrightarrow> set \<M> = \<N>'' \<union> \<N>' \<Longrightarrow> Simplify \<N> \<N>'' \<in> Simps \<Longrightarrow>
+    Infer (set_to_list (\<N> \<union> \<N>')) \<C> \<in> Splitting_Inf\<close>
 
 
 
+(*<*)
 interpretation AF_sound_cons_rel: consequence_relation \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
   by (rule AF_ext_sound_cons_rel)
+(*>*)
 
 notation AF_sound_cons_rel.entails_conjunctive (infix \<open>\<Turnstile>\<inter>s\<^sub>A\<^sub>F\<close> 50)
 
@@ -2671,18 +2684,18 @@ proof -
       using AF_sound_cons_rel.entails_conjunctive_def
       by blast
     then have \<open>\<N> \<union> \<N>' \<Turnstile>\<inter>s\<^sub>A\<^sub>F set \<M>\<close>
-      by (metis AF_sound_cons_rel.entail_union AF_sound_cons_rel.entails_trans AF_sound_cons_rel.subset_entailed
-                Un_upper1 Un_upper2 local.simplify(3))
+      by (metis AF_sound_cons_rel.entail_union AF_sound_cons_rel.entails_trans
+          AF_sound_cons_rel.subset_entailed Un_upper1 Un_upper2 local.simplify(3))
     ultimately have \<open>\<N> \<union> \<N>' \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
-      by (meson AF_ext_sound_cons_rel AF_sound_cons_rel.entails_trans consequence_relation.entails_conjunctive_def singletonI)
+      by (meson AF_ext_sound_cons_rel AF_sound_cons_rel.entails_trans
+          consequence_relation.entails_conjunctive_def singletonI)
     then show ?thesis
       using local.simplify(1) set_set_to_list no_infinite_simp_set
-      by (smt (verit, best) List.finite_set Simplification_rules.cases finite.emptyI finite_Un finite_insert inference.sel(1) inference.sel(2)
-                            local.simplify(3) local.simplify(4) simplification.sel(1) simplification.sel(2))
+      by (smt (verit, best) List.finite_set Simplification_rules.cases finite.emptyI finite_Un
+          finite_insert inference.sel(1) inference.sel(2) local.simplify(3) local.simplify(4)
+          simplification.sel(1) simplification.sel(2))
   qed
 qed
-
-
 
 end (* locale full_splitting_calculus *)
 
