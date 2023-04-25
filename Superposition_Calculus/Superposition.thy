@@ -1275,10 +1275,12 @@ lemma mem_equationE:
     "select C = {#}" and
     "is_strictly_maximal_lit (Pos (l \<approx> r)) C" and
     "r \<prec>\<^sub>t l" and
-    "l \<in> NF (rstep (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. production N D))"
+    "\<not> (\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C" and
+    "\<not> (\<lambda>(x, y). x \<approx> y) ` (rstep (insert (l, r) (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'" and
+    "l \<in> NF (rstep (rewrite_sys N C))"
   using rule_in
-  unfolding equation_def production.simps[of N C]
-  by auto
+  unfolding equation_def production.simps[of N C] mem_Collect_eq Let_def rewrite_sys_def
+  by (metis (no_types, lifting))
 
 lemma singleton_eq_CollectD: "{x} = {y. P y} \<Longrightarrow> P x"
   by blast
@@ -1416,7 +1418,7 @@ proof -
     "C \<in> N" and
     "C = add_mset (Pos (l \<approx> r)) C'" and
     "rule = (l, r)"
-    by (auto elim: mem_equationE)
+    by (auto elim!: mem_equationE)
   moreover have "is_ground_cls C"
     using ground_N \<open>C \<in> N\<close>
     by (simp add: vars_cls_set_def)
@@ -1480,14 +1482,13 @@ proof (rule ccontr)
     D1_def: "D1 = add_mset (Pos (l1 \<approx> r1)) D1'" and
     D1_max: "is_strictly_maximal_lit (Pos (l1 \<approx> r1)) D1" and
     "r1 \<prec>\<^sub>t l1" and
-    l1_irreducible: "l1 \<in> NF (rstep (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c D1}. production N D))"
+    l1_irreducible: "l1 \<in> NF (rstep (rewrite_sys N D1))"
     by (auto elim: mem_equationE)
 
   from rule2_in'' obtain D2' where
     D2_def: "D2 = add_mset (Pos (l2 \<approx> r2)) D2'" and
     D2_max: "is_strictly_maximal_lit (Pos (l2 \<approx> r2)) D2" and
-    "r2 \<prec>\<^sub>t l2" and
-    l2_irreducible: "l2 \<in> NF (rstep (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c D2}. production N D))"
+    "r2 \<prec>\<^sub>t l2"
     by (auto elim: mem_equationE)
 
   have
@@ -1553,11 +1554,10 @@ proof (rule ccontr)
     hence "equation N D2 \<subseteq> rewrite_sys N D1"
       unfolding rewrite_sys_def
       using \<open>D2 \<in> N\<close> by auto
-    then show False
+    thus False
       unfolding \<open>equation N D2 = {(l2, r2)}\<close>
-      unfolding rewrite_sys_def equation_def
       using l1_irreducible[unfolded \<open>l1 = ctxt\<langle>l1'\<rangle>\<close> \<open>l1' = l2\<close>]
-      by (meson NF_iff_no_step insert_subset rstep_ctxt rstep_rule)
+      by auto
   qed
 qed
 
@@ -1662,11 +1662,13 @@ proof -
     by metis+
 qed
 
-lemma
+lemma lift_entailment_to_Union:
   fixes N D
   defines "R\<^sub>D \<equiv> rewrite_sys N D"
   assumes D_in: "D \<in> N" and R\<^sub>D_entails_D: "(\<lambda>(x, y). x \<approx> y) ` (rstep R\<^sub>D)\<^sup>\<down> \<TTurnstile> D"
-  shows "(\<lambda>(x, y). x \<approx> y) ` (rstep (\<Union>D \<in> N. rewrite_sys N D))\<^sup>\<down> \<TTurnstile> D"
+  shows
+    "(\<lambda>(x, y). x \<approx> y) ` (rstep (\<Union>D \<in> N. rewrite_sys N D))\<^sup>\<down> \<TTurnstile> D" and
+    "C \<in> N \<Longrightarrow> D \<prec>\<^sub>c C \<Longrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D"
 proof -
   from R\<^sub>D_entails_D obtain L s t where
     L_in: "L \<in># D" and
@@ -1674,7 +1676,7 @@ proof -
      L = Neg (s \<approx> t) \<and> (s, t) \<notin> (rstep R\<^sub>D)\<^sup>\<down>"
     unfolding true_cls_def true_lit_iff
     by (metis (no_types, opaque_lifting) ex_make_uprod image_iff prod.case surj_pair)
-  then show ?thesis
+  then show "(\<lambda>(x, y). x \<approx> y) ` (rstep (\<Union>D \<in> N. rewrite_sys N D))\<^sup>\<down> \<TTurnstile> D"
   proof (elim disjE conjE)
     assume L_def: "L = Pos (s \<approx> t)" and "(s, t) \<in> (rstep R\<^sub>D)\<^sup>\<down>"
     have "R\<^sub>D \<subseteq> (\<Union>D \<in> N. rewrite_sys N D)"
@@ -1706,13 +1708,38 @@ proof -
       unfolding true_cls_def true_lit_iff
       using L_in L_def by blast
   qed
-  oops
-  
 
-lemma
-  assumes "D \<in> N" and "C \<in> N" and "D \<prec>\<^sub>c C" and "(\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> D"
-  shows "(\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D"
-  oops
+  show "C \<in> N \<Longrightarrow> D \<prec>\<^sub>c C \<Longrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D"
+    sorry
+qed
+
+lemma true_cls_if_productive_equation:
+  assumes productive: "equation N C = {(l, r)}"
+  shows
+    "(\<lambda>(x, y). x \<approx> y) ` (rstep (\<Union>D \<in> N. rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C"
+    "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C"
+    (* "\<not> D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> \<not> (\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (l \<approx> r)#}" *)
+    (* "\<not> (\<lambda>(x, y). x \<approx> y) ` (rstep (\<Union>D \<in> N. rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (l \<approx> r)#}" *)
+proof -
+  from productive have "(l, r) \<in> equation N C"
+    by simp
+  then obtain C' where
+    C_in: "C \<in> N" and
+    C_def: "C = add_mset (Pos (l \<approx> r)) C'" and
+    "select C = {#}" and
+    "is_strictly_maximal_lit (Pos (l \<approx> r)) C" and
+    "r \<prec>\<^sub>t l" and
+    "\<not> (\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C" and
+    "\<not> (\<lambda>(x, y). x \<approx> y) ` (rstep (insert (l, r) (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'" and
+    "l \<in> NF_trs (rewrite_sys N C)"
+    by (rule mem_equationE) blast
+
+  show "(\<lambda>(x, y). x \<approx> y) ` (rstep (\<Union>D \<in> N. rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C"
+    sorry
+
+  show "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C"
+    sorry
+qed
 
 lemma model_construction:
   fixes
@@ -1732,6 +1759,9 @@ lemma model_construction:
 proof (induction C\<^sub>\<G> rule: wfP_induct_rule)
   case (less C\<^sub>\<G>)
 
+  have ground_C\<^sub>\<G>: "is_ground_cls C\<^sub>\<G>"
+    using N\<^sub>\<G>_def less.prems by fastforce
+
   have i: "entails (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) C\<^sub>\<G> \<longleftrightarrow> (equation N\<^sub>\<G> C\<^sub>\<G> = {})"
   proof (rule iffI)
     show "entails (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) C\<^sub>\<G> \<Longrightarrow> equation N\<^sub>\<G> C\<^sub>\<G> = {}"
@@ -1742,11 +1772,37 @@ proof (induction C\<^sub>\<G> rule: wfP_induct_rule)
       sorry
   qed
 
-  moreover from i have iia: "entails (\<Union> (rewrite_sys N\<^sub>\<G> ` N\<^sub>\<G>)) C\<^sub>\<G>"
-    sorry
+  moreover have iia: "entails (\<Union> (rewrite_sys N\<^sub>\<G> ` N\<^sub>\<G>)) C\<^sub>\<G>"
+    using production_eq_empty_or_singleton[OF ground_C\<^sub>\<G>, of N\<^sub>\<G>, folded equation_def]
+  proof (elim disjE exE)
+    assume "equation N\<^sub>\<G> C\<^sub>\<G> = {}"
+    hence "entails (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) C\<^sub>\<G>"
+      unfolding i by simp
+    thus ?thesis
+      using lift_entailment_to_Union(1)[OF \<open>C\<^sub>\<G> \<in> N\<^sub>\<G>\<close>]
+      by (simp add: entails_def)
+  next
+    fix l r assume "equation N\<^sub>\<G> C\<^sub>\<G> = {(l, r)}"
+    thus ?thesis
+      using true_cls_if_productive_equation(1)[OF \<open>equation N\<^sub>\<G> C\<^sub>\<G> = {(l, r)}\<close>]
+      by (simp add: entails_def)
+  qed
 
-  moreover from i have iib: "D\<^sub>\<G> \<in> N\<^sub>\<G> \<longrightarrow> C\<^sub>\<G> \<prec>\<^sub>c D\<^sub>\<G> \<longrightarrow> entails (rewrite_sys N\<^sub>\<G> D\<^sub>\<G>) C\<^sub>\<G>"
-    sorry
+  moreover have iib: "entails (rewrite_sys N\<^sub>\<G> D\<^sub>\<G>) C\<^sub>\<G>" if "D\<^sub>\<G> \<in> N\<^sub>\<G>" and "C\<^sub>\<G> \<prec>\<^sub>c D\<^sub>\<G>"
+    using production_eq_empty_or_singleton[OF ground_C\<^sub>\<G>, of N\<^sub>\<G>, folded equation_def]
+  proof (elim disjE exE)
+    assume "equation N\<^sub>\<G> C\<^sub>\<G> = {}"
+    hence "entails (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) C\<^sub>\<G>"
+      unfolding i by simp
+    thus ?thesis
+      using lift_entailment_to_Union(2)[OF \<open>C\<^sub>\<G> \<in> N\<^sub>\<G>\<close> _ that]
+      by (simp add: entails_def)
+  next
+    fix l r assume "equation N\<^sub>\<G> C\<^sub>\<G> = {(l, r)}"
+    thus ?thesis
+      using true_cls_if_productive_equation(2)[OF \<open>equation N\<^sub>\<G> C\<^sub>\<G> = {(l, r)}\<close> that]
+      by (simp add: entails_def)
+  qed
 
   ultimately show ?case
     by simp
