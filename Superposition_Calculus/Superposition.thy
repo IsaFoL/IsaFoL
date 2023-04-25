@@ -1144,37 +1144,48 @@ qed
 
 subsubsection \<open>Refutational Completeness\<close>
 
-definition prod_uprod where
-  "prod_uprod up = (SOME (x, y). up = (x \<approx> y))"
-
 primrec equations_entail_lit where
-  "equations_entail_lit E (Pos A) \<longleftrightarrow> (\<exists>s t. A = s \<approx> t \<and> (s, t) \<in> (rewrite_inside_ctxt E)\<^sup>\<leftrightarrow>\<^sup>*)" |
-  "equations_entail_lit E (Neg A) \<longleftrightarrow> (\<exists>s t. A = s \<approx> t \<and> (s, t) \<notin> (rewrite_inside_ctxt E)\<^sup>\<leftrightarrow>\<^sup>*)"
+  "equations_entail_lit E (Pos A) \<longleftrightarrow> (\<exists>s t. A = s \<approx> t \<and> (s, t) \<in> (rstep E)\<^sup>\<down>)" |
+  "equations_entail_lit E (Neg A) \<longleftrightarrow> (\<exists>s t. A = s \<approx> t \<and> (s, t) \<notin> (rstep E)\<^sup>\<down>)"
 
 definition equations_entail_cls where
   "equations_entail_cls E C \<longleftrightarrow> (\<exists>L \<in># C. equations_entail_lit E L)"
 
-lemma true_lit_if_equations_entail_lit:
-  assumes "equations_entail_lit E L"
-  shows "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt E)\<^sup>\<leftrightarrow>\<^sup>* \<TTurnstile>l L"
-proof -
-  show ?thesis
+lemma equations_entail_lit_iff:
+  "equations_entail_lit E L \<longleftrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rstep E)\<^sup>\<down> \<TTurnstile>l L"
+proof (rule iffI)
+  assume "equations_entail_lit E L"
+  show "(\<lambda>(x, y). x \<approx> y) ` (rstep E)\<^sup>\<down> \<TTurnstile>l L"
   proof (cases L)
     case (Pos A)
-    then show ?thesis
+    thus ?thesis
       using \<open>equations_entail_lit E L\<close> by auto
   next
     case (Neg A)
-    then show ?thesis
+    thus ?thesis
       using \<open>equations_entail_lit E L\<close>
-      by (metis conversion_sym equations_entail_lit.simps(2) true_lit_simps(2)
+      by (metis equations_entail_lit.simps(2) sym_join true_lit_simps(2)
           true_lit_uprod_iff_true_lit_prod(2))
+  qed
+next
+  assume "(\<lambda>(x, y). x \<approx> y) ` (rstep E)\<^sup>\<down> \<TTurnstile>l L"
+  show "equations_entail_lit E L"
+  proof (cases L)
+    case (Pos A)
+    then show ?thesis
+      using \<open>(\<lambda>(x, y). x \<approx> y) ` (rstep E)\<^sup>\<down> \<TTurnstile>l L\<close>
+      by auto
+  next
+    case (Neg A)
+    thus ?thesis
+      using \<open>(\<lambda>(x, y). x \<approx> y) ` (rstep E)\<^sup>\<down> \<TTurnstile>l L\<close>
+      by (metis equations_entail_lit.simps(2) ex_make_uprod pair_imageI true_lit_simps(2))
   qed
 qed
 
-lemma true_cls_if_equations_entail_cls:
-  "equations_entail_cls E C \<Longrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt E)\<^sup>\<leftrightarrow>\<^sup>* \<TTurnstile> C"
-  using true_lit_if_equations_entail_lit
+lemma equations_entail_cls_iff:
+  "equations_entail_cls E C \<longleftrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rstep E)\<^sup>\<down> \<TTurnstile> C"
+  using equations_entail_lit_iff
   by (metis equations_entail_cls_def true_cls_def)
 
 context
@@ -1232,11 +1243,12 @@ proof -
     using totalp_on_less_trm
     by (metis asympD asymp_less_trm union_single_eq_member)
   hence Uniq_production: "\<exists>\<^sub>\<le>\<^sub>1 (x, y). \<exists>C'.
+    C \<in> N \<and>
     C = add_mset (Pos (x \<approx> y)) C' \<and> select C = {#} \<and>
     is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (x \<approx> y)) C \<and> y \<prec>\<^sub>t x \<and>
     (let R\<^sub>C = \<Union> (production N ` {D \<in> N. D \<prec>\<^sub>c C}) in
-      \<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
-      \<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt (insert (x, y) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
+      \<not> (\<lambda>(x, y). x \<approx> y) ` (rstep R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
+      \<not> (\<lambda>(x, y). x \<approx> y) ` (rstep (insert (x, y) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
       x \<in> NF (rstep R\<^sub>C))"
     using Uniq_mono_decr'
     by (smt (verit) Uniq_def Uniq_prodI case_prod_conv)
@@ -1481,8 +1493,8 @@ proof (rule ccontr)
   have
     "is_ground_trm l1" and "is_ground_trm r1" and
     "is_ground_trm l2" and "is_ground_trm r2"
-    using ground_rules_if_ground_cls_set[OF ground_N, rule_format, OF rule1_in]
-    using ground_rules_if_ground_cls_set[OF ground_N, rule_format, OF rule2_in]
+    using ground_rule_if_mem_rewrite_sys[OF ground_N rule1_in']
+    using ground_rule_if_mem_rewrite_sys[OF ground_N rule2_in']
     by simp_all
 
   have "is_ground_trm_ctxt ctxt" and "is_ground_trm l1'"
@@ -1650,21 +1662,118 @@ proof -
     by metis+
 qed
 
-lemma model_construction0:
-  assumes "G.saturated N" and "{#} \<notin> N" and "C \<in> N"
-  shows "D \<in> N \<Longrightarrow> cls_gcls D \<prec>\<^sub>c cls_gcls C \<Longrightarrow>
-    (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt (rewrite_sys (cls_gcls D)))\<^sup>\<down> \<TTurnstile> cls_gcls C"
-  sorry
+lemma
+  fixes N D
+  defines "R\<^sub>D \<equiv> rewrite_sys N D"
+  assumes D_in: "D \<in> N" and R\<^sub>D_entails_D: "(\<lambda>(x, y). x \<approx> y) ` (rstep R\<^sub>D)\<^sup>\<down> \<TTurnstile> D"
+  shows "(\<lambda>(x, y). x \<approx> y) ` (rstep (\<Union>D \<in> N. rewrite_sys N D))\<^sup>\<down> \<TTurnstile> D"
+proof -
+  from R\<^sub>D_entails_D obtain L s t where
+    L_in: "L \<in># D" and
+    "L = Pos (s \<approx> t) \<and> (s, t) \<in> (rstep R\<^sub>D)\<^sup>\<down> \<or>
+     L = Neg (s \<approx> t) \<and> (s, t) \<notin> (rstep R\<^sub>D)\<^sup>\<down>"
+    unfolding true_cls_def true_lit_iff
+    by (metis (no_types, opaque_lifting) ex_make_uprod image_iff prod.case surj_pair)
+  then show ?thesis
+  proof (elim disjE conjE)
+    assume L_def: "L = Pos (s \<approx> t)" and "(s, t) \<in> (rstep R\<^sub>D)\<^sup>\<down>"
+    have "R\<^sub>D \<subseteq> (\<Union>D \<in> N. rewrite_sys N D)"
+      unfolding R\<^sub>D_def
+      using D_in by blast
+    hence "rstep R\<^sub>D \<subseteq> rstep (\<Union>D \<in> N. rewrite_sys N D)"
+      using rstep_mono by blast
+    hence "(s, t) \<in> (rstep (\<Union>D \<in> N. rewrite_sys N D))\<^sup>\<down>"
+      using \<open>(s, t) \<in> (rstep R\<^sub>D)\<^sup>\<down>\<close>
+      using join_mono by blast
+    thus ?thesis
+      unfolding true_cls_def true_lit_iff
+      using L_in L_def by blast
+  next
+    assume L_def: "L = Neg (s \<approx> t)" and "(s, t) \<notin> (rstep R\<^sub>D)\<^sup>\<down>"
+    have "(s, t) \<notin> (rstep (\<Union>D \<in> N. rewrite_sys N D))\<^sup>\<down>"
+    proof (rule notI)
+      assume "(s, t) \<in> (rstep (\<Union> (rewrite_sys N ` N)))\<^sup>\<down>"
+      then obtain u where
+        "(s, u) \<in> (rstep (\<Union> (rewrite_sys N ` N)))\<^sup>*" and
+        "(t, u) \<in> (rstep (\<Union> (rewrite_sys N ` N)))\<^sup>*"
+        by auto
+      then show False
+        sorry
+    qed
+    hence "(s \<approx> t) \<notin> (\<lambda>(x, y). x \<approx> y) ` (rstep (\<Union>D \<in> N. rewrite_sys N D))\<^sup>\<down>"
+      by (meson sym_join true_lit_simps(1) true_lit_uprod_iff_true_lit_prod(1))
+    thus ?thesis
+      unfolding true_cls_def true_lit_iff
+      using L_in L_def by blast
+  qed
+  oops
+  
 
-theorem model_construction:
-  assumes "G.saturated N" and "{#} \<notin> N" and "C \<in> N"
-  shows "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_ctxt (\<Union>D \<in> N. rewrite_sys (cls_gcls D)))\<^sup>\<down> \<TTurnstile> cls_gcls C"
-  using model_construction0[OF assms]
-  sorry
+lemma
+  assumes "D \<in> N" and "C \<in> N" and "D \<prec>\<^sub>c C" and "(\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> D"
+  shows "(\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D"
+  oops
+
+lemma model_construction:
+  fixes
+    N :: "('f, char list) gterm uprod clause set" and
+    C :: "('f, char list) gterm uprod clause"
+  defines
+    "N\<^sub>\<G> \<equiv> cls_gcls ` N" and
+    "C\<^sub>\<G> \<equiv> cls_gcls C" and
+    "entails \<equiv> \<lambda>E C. (\<lambda>(x, y). x \<approx> y) ` (rstep E)\<^sup>\<down> \<TTurnstile> C"
+  assumes "G.saturated N" and "{#} \<notin> N" and C_in: "C \<in> N"
+  shows
+    "equation N\<^sub>\<G> C\<^sub>\<G> = {} \<longleftrightarrow> entails (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) C\<^sub>\<G>"
+    "entails (\<Union>D\<^sub>\<G> \<in> N\<^sub>\<G>. rewrite_sys N\<^sub>\<G> D\<^sub>\<G>) C\<^sub>\<G>"
+    "D\<^sub>\<G> \<in> N\<^sub>\<G> \<Longrightarrow> C\<^sub>\<G> \<prec>\<^sub>c D\<^sub>\<G> \<Longrightarrow> entails (rewrite_sys N\<^sub>\<G> D\<^sub>\<G>) C\<^sub>\<G>"
+  unfolding atomize_conj atomize_imp
+  using wfP_less_cls imageI[OF C_in, of cls_gcls, folded C\<^sub>\<G>_def N\<^sub>\<G>_def]
+proof (induction C\<^sub>\<G> rule: wfP_induct_rule)
+  case (less C\<^sub>\<G>)
+
+  have i: "entails (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) C\<^sub>\<G> \<longleftrightarrow> (equation N\<^sub>\<G> C\<^sub>\<G> = {})"
+  proof (rule iffI)
+    show "entails (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) C\<^sub>\<G> \<Longrightarrow> equation N\<^sub>\<G> C\<^sub>\<G> = {}"
+      unfolding entails_def rewrite_sys_def
+      by (smt (z3) Collect_cong Collect_empty_eq equation_def production.elims)
+  next
+    show "equation N\<^sub>\<G> C\<^sub>\<G> = {} \<Longrightarrow> entails (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) C\<^sub>\<G>"
+      sorry
+  qed
+
+  moreover from i have iia: "entails (\<Union> (rewrite_sys N\<^sub>\<G> ` N\<^sub>\<G>)) C\<^sub>\<G>"
+    sorry
+
+  moreover from i have iib: "D\<^sub>\<G> \<in> N\<^sub>\<G> \<longrightarrow> C\<^sub>\<G> \<prec>\<^sub>c D\<^sub>\<G> \<longrightarrow> entails (rewrite_sys N\<^sub>\<G> D\<^sub>\<G>) C\<^sub>\<G>"
+    sorry
+
+  ultimately show ?case
+    by simp
+qed
+
+lemma rstep_eq_rewrite_inside_ctxt_if_ground:
+  assumes ground_r: "\<forall>rule \<in> r. is_ground_trm (fst rule) \<and> is_ground_trm (snd rule)"
+  shows "rstep r = rewrite_inside_ctxt r"
+proof (intro Set.equalityI Set.subsetI)
+  fix rule assume rule_in: "rule \<in> rstep r"
+  then obtain t1 t2 where rule_def: "rule = (t1, t2)"
+    by fastforce
+
+  show "rule \<in> rewrite_inside_ctxt r"
+    using rule_in[unfolded rule_def]
+    apply (rule rstep.cases)
+    using assms
+    by (metis (no_types, lifting) compatible_with_ctxtD compatible_with_ctxt_rewrite_inside_ctxt
+        fst_conv rule_def snd_conv subsetD subset_rewrite_inside_ctxt subst_trm_ident_if_is_ground_trm)
+next
+  show "\<And>x. x \<in> rewrite_inside_ctxt r \<Longrightarrow> x \<in> rstep r"
+    by (smt (verit, best) mem_Collect_eq rewrite_inside_ctxt_def rstep_ctxt subset_iff subset_rstep)
+qed
 
 interpretation G: statically_complete_calculus G_Bot G_Inf G_entails G.Red_I G.Red_F
 proof unfold_locales
-  fix B :: "('f, 'v) gterm uprod clause" and N :: "('f, 'v) gterm uprod clause set"
+  fix B :: "('f, string) gterm uprod clause" and N :: "('f, string) gterm uprod clause set"
   assume "B \<in> G_Bot" and "G.saturated N"
   hence "B = {#}"
     by simp
@@ -1675,8 +1784,11 @@ proof unfold_locales
   proof (rule contrapos_pp)
     assume "{#} \<notin> N"
 
+    have ground_N: "is_ground_cls_set (cls_gcls ` N)"
+      by (simp add: vars_cls_set_def)
+
     define I :: "(('f, string) term \<times> ('f, string) term) set" where
-      "I = (rewrite_inside_ctxt (\<Union>D \<in> cls_gcls ` N. rewrite_sys D))\<^sup>\<down>"
+      "I = (rstep (\<Union>D \<in> cls_gcls ` N. rewrite_sys (cls_gcls ` N) D))\<^sup>\<down>"
 
     show "\<not> G_entails N G_Bot"
       unfolding G_entails_def not_all not_imp
@@ -1685,30 +1797,31 @@ proof unfold_locales
         unfolding I_def
         by (simp add: joinI_right reflI)
     next
-      have ground_N: "is_ground_cls_set (cls_gcls ` N)"
-        sorry
-
       show "trans I"
         unfolding I_def
       proof (rule trans_join)
-        have "wf ((rewrite_inside_ctxt (\<Union>D \<in> cls_gcls ` N. rewrite_sys D))\<inverse>)"
+        have ground_model: "\<forall>rule \<in> (\<Union>D \<in> cls_gcls ` N. rewrite_sys (cls_gcls ` N) D).
+          is_ground_trm (fst rule) \<and> is_ground_trm (snd rule)"
+          using ground_N
+          by (meson ground_rule_if_in_Union_rewrite_sys)
+
+        have "wf ((rewrite_inside_ctxt (\<Union>D \<in> cls_gcls ` N. rewrite_sys (cls_gcls ` N) D))\<inverse>)"
         proof (rule wf_converse_rewrite_inside_ctxt)
           fix s t
-          assume "(s, t) \<in> (\<Union>D \<in> cls_gcls ` N. rewrite_sys D)"
-          then obtain C where "C \<in> cls_gcls ` N" "(s, t) \<in> rewrite_sys C"
+          assume "(s, t) \<in> (\<Union>D \<in> cls_gcls ` N. rewrite_sys (cls_gcls ` N) D)"
+          then obtain C where "C \<in> cls_gcls ` N" "(s, t) \<in> rewrite_sys (cls_gcls ` N) C"
             by auto
-          then obtain D where "D \<prec>\<^sub>c C" and "(s, t) \<in> equation D"
+          then obtain D where "D \<prec>\<^sub>c C" and "(s, t) \<in> equation (cls_gcls ` N) D"
             unfolding rewrite_sys_def by blast
           thus "t \<prec>\<^sub>t s"
-            using production.elims by (auto simp: equation_def)
+            by (auto elim: mem_equationE)
         qed simp_all
-        thus "SN (rewrite_inside_ctxt (\<Union>D \<in> cls_gcls ` N. rewrite_sys D))"
+        thus "SN (rstep (\<Union>D \<in> cls_gcls ` N. rewrite_sys (cls_gcls ` N) D))"
+          unfolding rstep_eq_rewrite_inside_ctxt_if_ground[OF ground_model]
           using SN_iff_wf by metis
       next
-        have "WCR (\<Union>D \<in> cls_gcls ` N. rewrite_sys D)"
-          using WCR_Union_rewrite_sys[OF ground_N] by simp
-        then show "WCR (rewrite_inside_ctxt (\<Union>D \<in> cls_gcls ` N. rewrite_sys D))"
-          sorry
+        show "WCR (rstep (\<Union> (rewrite_sys (local.cls_gcls ` N) ` local.cls_gcls ` N)))"
+          using WCR_Union_rewrite_sys[OF ground_N] by metis
       qed
     next
       show "sym I"
@@ -1717,7 +1830,8 @@ proof unfold_locales
     next
       show "compatible_with_ctxt I"
         unfolding I_def
-        by (simp add: compatible_with_ctxt_join compatible_with_ctxt_rewrite_inside_ctxt)
+        apply (rule compatible_with_ctxt_join)
+        using compatible_with_ctxt_def by blast
     next
       show "(\<lambda>(x, y). x \<approx> y) ` I \<TTurnstile>s cls_gcls ` N"
         unfolding I_def
