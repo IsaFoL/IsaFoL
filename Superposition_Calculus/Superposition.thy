@@ -2000,7 +2000,9 @@ proof -
 qed
 
 lemma true_cls_if_productive_equation:
-  assumes productive: "equation N C = {(l, r)}"
+  assumes
+    ground_N: "is_ground_cls_set N" and
+    productive: "equation N C = {(l, r)}"
   shows
     "(\<lambda>(x, y). x \<approx> y) ` (rstep (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C"
     "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C"
@@ -2020,11 +2022,17 @@ proof -
     "l \<in> NF_trs (rewrite_sys N C)"
     by (rule mem_equationE) blast
 
-  show "(\<lambda>(x, y). x \<approx> y) ` (rstep (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C"
-    sorry
+  have "(l, r) \<in> (rstep (\<Union>D \<in> N. equation N D))\<^sup>\<down>"
+    using C_in \<open>(l, r) \<in> equation N C\<close> rstep_rule by blast
+  thus "(\<lambda>(x, y). x \<approx> y) ` (rstep (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C"
+    using C_def by blast
 
-  show "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C"
-    sorry
+  assume "D \<in> N" and "C \<prec>\<^sub>c D"
+  then have "(l, r) \<in> (rstep (rewrite_sys N D))\<^sup>\<down>"
+    by (smt (verit, ccfv_threshold) C_in UN_iff \<open>(l, r) \<in> equation N C\<close> joinI_left mem_Collect_eq
+        r_into_rtrancl rstep_rule rewrite_sys_def)
+  thus "(\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C"
+    using C_def by blast
 qed
 
 lemma model_construction:
@@ -2074,7 +2082,7 @@ proof (induction C\<^sub>\<G> rule: wfP_induct_rule)
   next
     fix l r assume "equation N\<^sub>\<G> C\<^sub>\<G> = {(l, r)}"
     thus ?thesis
-      using true_cls_if_productive_equation(1)[OF \<open>equation N\<^sub>\<G> C\<^sub>\<G> = {(l, r)}\<close>]
+      using true_cls_if_productive_equation(1)[OF ground_N\<^sub>\<G> \<open>equation N\<^sub>\<G> C\<^sub>\<G> = {(l, r)}\<close>]
       by (simp add: entails_def)
   qed
 
@@ -2090,7 +2098,7 @@ proof (induction C\<^sub>\<G> rule: wfP_induct_rule)
   next
     fix l r assume "equation N\<^sub>\<G> C\<^sub>\<G> = {(l, r)}"
     thus ?thesis
-      using true_cls_if_productive_equation(2)[OF \<open>equation N\<^sub>\<G> C\<^sub>\<G> = {(l, r)}\<close> that]
+      using true_cls_if_productive_equation(2)[OF ground_N\<^sub>\<G> \<open>equation N\<^sub>\<G> C\<^sub>\<G> = {(l, r)}\<close> that]
       by (simp add: entails_def)
   qed
 
