@@ -2190,8 +2190,6 @@ proof unfold_locales
     by auto
 qed
 
-end
-
 
 subsection \<open>First-Order Layer\<close>
 
@@ -2213,8 +2211,9 @@ definition \<G>_F :: "Q \<Rightarrow> ('f, string) term atom clause \<Rightarrow
 definition \<G>_I :: "Q \<Rightarrow> ('f, string) term atom clause inference \<Rightarrow> ('f, 'v) gterm atom clause inference set option" where
   "\<G>_I \<equiv> \<lambda>_ _. None"
 
-definition Prec_F :: "('f, 'v) gterm atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> bool" where
+definition Prec_F :: "('f, string) gterm atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> bool" where
   "Prec_F \<equiv> \<lambda>_ _ _. False"
+
 
 interpretation F: lifting_intersection F_Inf G_Bot "UNIV :: Q set" "\<lambda>(_ :: Q). G_Inf"
   "\<lambda>(_ :: Q). G_entails" "\<lambda>(_ :: Q). G.Red_I" "\<lambda>(_ :: Q). G.Red_F" F_Bot \<G>_F \<G>_I Prec_F
