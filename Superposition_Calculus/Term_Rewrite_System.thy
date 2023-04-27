@@ -96,10 +96,61 @@ lemma compatible_with_ctxt_conversion:
 definition rewrite_inside_ctxt where
   "rewrite_inside_ctxt E = {(ctxt\<langle>s\<rangle>, ctxt\<langle>t\<rangle>) | ctxt s t. (s, t) \<in> E}"
 
-lemma compatible_with_ctxt_rewrite_inside_ctxt: "compatible_with_ctxt (rewrite_inside_ctxt E)"
+lemma compatible_with_ctxt_rewrite_inside_ctxt[simp]: "compatible_with_ctxt (rewrite_inside_ctxt E)"
   unfolding compatible_with_ctxt_def rewrite_inside_ctxt_def
   unfolding mem_Collect_eq
   by (metis Pair_inject ctxt_ctxt)
-    
+
+lemma subset_rewrite_inside_ctxt[simp]: "E \<subseteq> rewrite_inside_ctxt E"
+proof (rule Set.subsetI)
+  fix e assume "e \<in> E"
+  moreover obtain s t where "e = (s, t)"
+    by fastforce
+  ultimately show "e \<in> rewrite_inside_ctxt E"
+    unfolding rewrite_inside_ctxt_def
+    by (metis (mono_tags, lifting) ctxt_apply_term.simps(1) mem_Collect_eq)
+qed
+
+lemma wf_converse_rewrite_inside_ctxt:
+  fixes E :: "('f, 'v) term rel"
+  assumes
+    wfP_R: "wfP R" and
+    R_compatible_with_ctxt: "\<And>ctxt t t'. R t t' \<Longrightarrow> R ctxt\<langle>t\<rangle> ctxt\<langle>t'\<rangle>" and
+    equations_subset_R: "\<And>x y. (x, y) \<in> E \<Longrightarrow> R y x"
+  shows "wf ((rewrite_inside_ctxt E)\<inverse>)"
+proof (rule wf_subset)
+  from wfP_R show "wf {(x, y). R x y}"
+    by (simp add: wfP_def)
+next
+  show "(rewrite_inside_ctxt E)\<inverse> \<subseteq> {(x, y). R x y}"
+  proof (rule Set.subsetI)
+    fix e assume "e \<in> (rewrite_inside_ctxt E)\<inverse>"
+    then obtain ctxt s t where e_def: "e = (ctxt\<langle>s\<rangle>, ctxt\<langle>t\<rangle>)" and "(t, s) \<in> E"
+      by (smt (verit) Pair_inject converseE mem_Collect_eq rewrite_inside_ctxt_def)
+    hence "R s t"
+      using equations_subset_R by simp
+    hence "R ctxt\<langle>s\<rangle> ctxt\<langle>t\<rangle>"
+      using R_compatible_with_ctxt by simp
+    then show "e \<in> {(x, y). R x y}"
+      by (simp add: e_def)
+  qed
+qed
+
+(* lemma
+  assumes "WCR E"
+  shows "WCR (rewrite_inside_ctxt E)"
+  (* using assms *)
+  unfolding WCR_defs
+proof (intro ballI allI impI, elim conjE)
+  fix x y z
+  assume "(x, y) \<in> rewrite_inside_ctxt E" and "(x, z) \<in> rewrite_inside_ctxt E"
+  then obtain ctxt1 ctxt2 tx1 tx2 ty tz where
+    "x = ctxt1\<langle>tx1\<rangle>" and "y = ctxt1\<langle>ty\<rangle>" and "(tx1, ty) \<in> E" and
+    "x = ctxt2\<langle>tx2\<rangle>" and "z = ctxt2\<langle>tz\<rangle>" and "(tx2, tz) \<in> E"
+    unfolding rewrite_inside_ctxt_def by blast
+  then show "(y, z) \<in> (rewrite_inside_ctxt E)\<^sup>\<down>"
+    unfolding join_def relcomp.simps
+    apply simp
+    find_theorems "WCR _" *)
 
 end

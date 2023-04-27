@@ -5,3 +5,4 @@ session "Splitting_Framework" = Saturation_Framework +
     Propositional_Proof_Systems
   theories
 	  Preliminaries_With_Zorn
+      Splitting_Calculi

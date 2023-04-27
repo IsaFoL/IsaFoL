@@ -2989,7 +2989,7 @@ proof -
     apply (rule order_trans)
     defer
     apply (rule ref_two_step'[OF subsume_or_strengthen_wl_alt_def])
-    unfolding isa_subsume_or_strengthen_wl_def Let_def[of \<open>If _ _ _\<close>]
+    unfolding isa_subsume_or_strengthen_wl_def Let_def[of \<open>If _ _ _\<close>] Let_def[of \<open>log_clause _ _\<close>]
       case_wl_split state_wl_recompose H
     apply (refine_vcg subsumption_cases_lhs mop_arena_status2[where vdom = \<open>set (get_vdom T)\<close>]
       mark_garbage mop_arena_promote_st_spec[where T=\<open>mark_garbage_wl2 C S\<close> and r=r and u=u]
@@ -3012,8 +3012,6 @@ proof -
     subgoal using valid C'_dom C_dom by (auto simp add: arena_lifting)
     subgoal using valid C'_dom C_dom by (auto simp add: arena_lifting)
     subgoal by auto
-    subgoal by auto
-    subgoal using T by auto
     subgoal using T by auto
     done
 qed

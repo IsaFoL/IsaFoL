@@ -1,10 +1,10 @@
 theory Invariants
-  imports Simple_Clause_Learning
+  imports SCL_FOL
 begin
 
 text \<open>The following lemma restate existing invariants in a compact, paper-friendly way.\<close>
 
-lemma (in scl_calculus) scl_state_invariants:
+lemma (in scl_fol_calculus) scl_state_invariants:
   shows
     inv_trail_lits_ground:
       "trail_lits_ground initial_state"

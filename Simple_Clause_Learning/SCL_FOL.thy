@@ -1,4 +1,4 @@
-theory Simple_Clause_Learning
+theory SCL_FOL
   imports
     Main
     "HOL-Library.FSet"
@@ -18,7 +18,7 @@ sledgehammer_params
 section \<open>Extra Lemmas\<close>
 
 
-subsection \<open>Set_Extra\<close>
+subsection \<open>Set Extra\<close>
 
 lemma not_in_iff: "L \<notin> xs \<longleftrightarrow> (\<forall>y\<in>xs. L \<noteq> y)"
   by auto
@@ -34,7 +34,7 @@ lemma not_empty_if_mem: "x \<in> X \<Longrightarrow> X \<noteq> {}"
   by blast
 
 
-subsection \<open>Finite_Set_Extra\<close>
+subsection \<open>Finite Set Extra\<close>
 
 lemma finite_induct' [case_names empty singleton insert_insert, induct set: finite]:
   \<comment> \<open>Discharging \<open>x \<notin> F\<close> entails extra work.\<close>
@@ -88,7 +88,7 @@ next
 qed
 
 
-subsection \<open>Product_Type_Extra\<close>
+subsection \<open>Product Type Extra\<close>
 
 lemma insert_Times: "insert a A \<times> B = Pair a ` B \<union> A \<times> B"
   by blast
@@ -102,7 +102,7 @@ lemma insert_Times_insert':
   unfolding insert_Times_insert by auto
 
 
-subsection \<open>List_Extra\<close>
+subsection \<open>List Extra\<close>
 
 lemma lt_lengthD:
   assumes i_lt_xs: "i < length xs"
@@ -127,7 +127,7 @@ proof -
 qed
 
 
-subsection \<open>Sublist_Extra\<close>
+subsection \<open>Sublist Extra\<close>
 
 lemma not_mem_strict_suffix:
   shows "strict_suffix xs (y # ys) \<Longrightarrow> y \<notin> set ys \<Longrightarrow> y \<notin> set xs"
@@ -141,7 +141,7 @@ lemma not_mem_strict_suffix':
   by fast
 
 
-subsection \<open>Multiset_Extra\<close>
+subsection \<open>Multiset Extra\<close>
 
 lemma multp\<^sub>D\<^sub>M_implies_one_step:
   "multp\<^sub>D\<^sub>M R M N \<Longrightarrow> \<exists>I J K. N = I + J \<and> M = I + K \<and> J \<noteq> {#} \<and> (\<forall>k\<in>#K. \<exists>x\<in>#J. R k x)"
@@ -214,13 +214,13 @@ proof -
 qed
 
 
-subsubsection \<open>Calculus_Extra\<close>
+subsubsection \<open>Calculus Extra\<close>
 
 lemma (in consequence_relation) entails_one_formula: "N \<Turnstile> U \<Longrightarrow> D \<in> U \<Longrightarrow> N \<Turnstile> {D}"
   using entail_set_all_formulas by blast
 
 
-subsection \<open>Abstract_Substitution_Extra\<close>
+subsection \<open>Abstract Substitution Extra\<close>
 
 lemma (in substitution_ops) subst_atm_of_eqI:
   "L \<cdot>l \<sigma>\<^sub>L = K \<cdot>l \<sigma>\<^sub>K \<Longrightarrow> atm_of L \<cdot>a \<sigma>\<^sub>L = atm_of K \<cdot>a \<sigma>\<^sub>K"
@@ -234,10 +234,10 @@ lemma (in substitution_ops) set_mset_subst_cls_conv: "set_mset (C \<cdot> \<sigm
   by (simp add: subst_cls_def)
 
 
-subsection \<open>Clausal_Calculus_Extra\<close>
+subsection \<open>Clausal Calculus Extra\<close>
 
 
-subsubsection \<open>Clausal_Calculus Only\<close>
+subsubsection \<open>Clausal Calculus Only\<close>
 
 lemma true_cls_iff_set_mset_eq: "set_mset C = set_mset D \<Longrightarrow> I \<TTurnstile> C \<longleftrightarrow> I \<TTurnstile> D"
   by (simp add: true_cls_def)
@@ -261,7 +261,7 @@ next
 qed
 
 
-subsubsection \<open>Clausal_Calculus and Abstract_Substitution\<close>
+subsubsection \<open>Clausal Calculus and Abstract Substitution\<close>
 
 lemma (in substitution) is_ground_lit_Pos[simp]: "is_ground_atm atm \<Longrightarrow> is_ground_lit (Pos atm)"
   by (simp add: is_ground_lit_def)
@@ -270,10 +270,10 @@ lemma (in substitution) is_ground_lit_Neg[simp]: "is_ground_atm atm \<Longrighta
   by (simp add: is_ground_lit_def)
 
 
-subsection \<open>First_Order_Terms Extra\<close>
+subsection \<open>First Order Terms Extra\<close>
 
 
-subsubsection \<open>First_Order_Terms Only\<close>
+subsubsection \<open>First Order Terms Only\<close>
 
 lemma atm_of_eq_uminus_if_lit_eq: "L = - K \<Longrightarrow> atm_of L = atm_of K"
   by (cases L; cases K) simp_all
@@ -453,7 +453,7 @@ proof (intro impI)
 qed
   
 
-subsubsection \<open>First_Order_Terms And Abstract_Substitution\<close>
+subsubsection \<open>First Order Terms And Abstract Substitution\<close>
 
 no_notation subst_apply_term (infixl "\<cdot>" 67)
 no_notation subst_compose (infixl "\<circ>\<^sub>s" 75)
@@ -1045,7 +1045,7 @@ lemma ex_renaming_to_disjoint_vars:
   assumes fin: "finite N"
   shows "\<exists>\<rho>. is_renaming \<rho> \<and> vars_cls (C \<cdot> \<rho>) \<inter> vars_clss N = {}"
 proof (intro exI conjI)
-  show "Simple_Clause_Learning.is_renaming (renaming_wrt N)"
+  show "SCL_FOL.is_renaming (renaming_wrt N)"
     using fin is_renaming_renaming_wrt by metis
 next
   show "vars_cls (C \<cdot> renaming_wrt N) \<inter> vars_clss N = {}"
@@ -1465,9 +1465,9 @@ lemma is_ground_cls_if_false_in_ground_trail:
   using assms by (auto intro: is_ground_lit_if_false_in_ground_trail)
 
 
-section \<open>SCL Calculus\<close>
+section \<open>SCL(FOL) Calculus\<close>
 
-locale scl_calculus = renaming_apart renaming_vars
+locale scl_fol_calculus = renaming_apart renaming_vars
   for renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v" +
   fixes less_B :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>B" 50)
   assumes
@@ -3260,7 +3260,7 @@ next
 qed
 
 
-subsection \<open>Trail Atoms Are Less Than \<beta>\<close>
+subsection \<open>Trail Atoms Are Less Than Bound\<close>
 
 definition trail_atoms_lt where
   "trail_atoms_lt \<beta> S \<longleftrightarrow> (\<forall>A \<in> atm_of ` fst ` set (state_trail S). A \<preceq>\<^sub>B \<beta>)"

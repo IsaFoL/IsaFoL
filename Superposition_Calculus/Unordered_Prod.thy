@@ -16,6 +16,9 @@ setup_lifting type_definition_uprod
 lift_bnf (no_warn_wits) 'a uprod
   by auto
 
+definition uprod_prod where
+  "uprod_prod p = Abs_uprod {#fst p, snd p#}"
+
 definition make_uprod (infix "\<approx>" 60) where
   "t\<^sub>1 \<approx> t\<^sub>2 \<equiv> Abs_uprod {#t\<^sub>1, t\<^sub>2#}"
 

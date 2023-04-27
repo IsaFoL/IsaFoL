@@ -152,6 +152,13 @@ public:
     if (opr=='a') {
       addition=true;
       this_id = bp.parse<cid_t>();
+      // ids at this position are encoded differently from
+      // the rest of the chain.
+      if (this_id.val < 0)
+	this_id.val = -2*this_id.val+1;
+      else
+	this_id.val = 2*this_id.val;
+      printf ("%d\n", this_id.val);
       rd_until_zero(literals);
       rd_until_zero(ids);
     } else if (opr=='d') {

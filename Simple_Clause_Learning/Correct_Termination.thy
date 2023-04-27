@@ -1,8 +1,8 @@
 theory Correct_Termination
-  imports Simple_Clause_Learning
+  imports SCL_FOL
 begin
 
-context scl_calculus begin
+context scl_fol_calculus begin
 
 lemma not_satisfiable_if_sound_state_conflict_bottom:
   assumes sound_S: "sound_state N \<beta> S" and conflict_S: "state_conflict S = Some ({#}, \<gamma>)"

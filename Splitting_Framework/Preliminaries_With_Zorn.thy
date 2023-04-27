@@ -1,6 +1,7 @@
 (* Title:        Preliminaries of the Splitting Framework
  * Author:       Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020-2022
- *               Florent Krasnopol <florent.krasnopol at ens-paris-saclay.fr>, 2022 *)
+ *               Florent Krasnopol <florent.krasnopol at ens-paris-saclay.fr>, 2022
+ *               Ghilain Bergeron <ghilain.bergeron at inria.fr>, 2023 *)
 
 theory Preliminaries_With_Zorn
   imports Saturation_Framework.Calculus
@@ -67,6 +68,9 @@ fun to_V :: "'a sign \<Rightarrow> 'a" where
   "to_V (Pos C) = C" |
   "to_V (Neg C) = C"
 
+lemma neg_neg_A_is_A [simp]: \<open>neg (neg A) = A\<close>
+  by (metis neg.simps(1) neg.simps(2) to_V.elims)
+
 fun is_Pos :: "'a sign \<Rightarrow> bool" where
   "is_Pos (Pos C) = True" |
   "is_Pos (Neg C) = False"
@@ -102,7 +106,6 @@ locale consequence_relation =
     (* this was an earlier version of entails_each: "M \<Turnstile> N \<Longrightarrow> (\<forall>D\<in>N. M \<union> {D} \<Turnstile> P) \<Longrightarrow> M \<Turnstile> P"
     it was detected to be unsufficient thanks to the forma*)
 begin
-
 
 definition order_double_subsets :: "('f set * 'f set) \<Rightarrow> ('f set * 'f set) \<Rightarrow> bool"
       (infix "\<preceq>\<^sub>s" 50) where
@@ -940,6 +943,11 @@ qed
 definition entails_neg :: "'f sign set \<Rightarrow> 'f sign set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>\<sim>" 50) where
   "entails_neg M N \<equiv> {C. Pos C \<in> M} \<union> {C. Neg C \<in> N} \<Turnstile> {C. Pos C \<in> N} \<union> {C. Neg C \<in> M}"
 
+lemma swap_neg_in_entails_neg: \<open>{neg A} \<Turnstile>\<^sub>\<sim> {neg B} \<longleftrightarrow> {B} \<Turnstile>\<^sub>\<sim> {A}\<close>
+  unfolding entails_neg_def
+  by (smt (verit, ccfv_threshold) Collect_cong Un_commute mem_Collect_eq neg.simps(1)
+       neg_neg_A_is_A singleton_conv2)
+
 lemma ext_cons_rel: \<open>consequence_relation (Pos bot) entails_neg\<close>
 proof
   show "entails_neg {Pos bot} {}"
@@ -1316,7 +1324,7 @@ next
 qed
 
 definition weakly_fair :: "'f set infinite_llist \<Rightarrow> bool" where
-  \<open>weakly_fair Ns \<equiv> Inf_from (Liminf_infinite_llist Ns) ⊆ Sup_infinite_llist (llmap Red_I Ns)\<close>
+  \<open>weakly_fair Ns \<equiv> Inf_from (Liminf_infinite_llist Ns) \<subseteq> Sup_infinite_llist (llmap Red_I Ns)\<close>
   (* "weakly_fair Ns \<equiv> Inf_from (lim_inf Ns) \<subseteq> (\<Union>i. (Red_I (Ns !! i)))" *)
 
 abbreviation fair :: "'f set infinite_llist \<Rightarrow> bool" where "fair N \<equiv> weakly_fair N"
@@ -1575,6 +1583,40 @@ qed
 definition to_AF :: "'f \<Rightarrow> ('f, 'v::countable) AF" where
   \<open>to_AF C = Pair C {||}\<close>
 
+lemma F_of_to_AF: \<open>F_of (to_AF \<C>) = \<C>\<close>
+  unfolding to_AF_def
+  by auto
+
+lemma A_of_to_AF: \<open>A_of (to_AF \<C>) = {||}\<close>
+  unfolding to_AF_def
+  by auto
+
+lemma F_of_circ_to_AF_is_id [simp]: \<open>F_of \<circ> to_AF = id\<close>
+  by (fastforce simp: F_of_to_AF)
+
+lemma A_of_circ_to_AF_is_empty_set [simp]: \<open>A_of \<circ> to_AF = (\<lambda> _. {||})\<close>
+  by (fastforce simp: A_of_to_AF) 
+
+lemma F_of_propositional_clauses [simp]:
+  \<open>(\<forall> x \<in> set \<N>. F_of x = bot) \<Longrightarrow> map F_of \<N> = map (\<lambda> _. bot) \<N>\<close>
+  using map_eq_conv
+  by blast
+
+lemma F_of_Pair [simp]: \<open>F_of \<circ> (\<lambda>(x, y). AF.Pair x y) = (\<lambda>(x, y). x)\<close>
+  by (smt (verit, ccfv_SIG) AF.sel(1) comp_apply cond_case_prod_eta old.prod.case)
+
+lemma A_of_Pair [simp]: \<open>A_of \<circ> (\<lambda>(x, y). AF.Pair x y) = (\<lambda>(x, y). y)\<close>
+  by fastforce
+
+lemma map_A_of_map2_Pair: \<open>length A = length B \<Longrightarrow> map A_of (map2 AF.Pair A B) = B\<close>
+proof -
+  assume \<open>length A = length B\<close>
+  then have \<open>map2 (\<lambda> x y. y) A B = B\<close>
+    by (metis map_eq_conv map_snd_zip snd_def)
+  then show ?thesis
+    by auto 
+qed  
+
 definition Neg_set :: "'v sign set \<Rightarrow> 'v sign set" ("\<sim>_" 55) where
   \<open>\<sim>V \<equiv> {neg v |v. v \<in> V}\<close>
 
@@ -1601,12 +1643,25 @@ locale AF_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F
   + fixes
     V:: "'v::countable itself" and
     (* \<J> :: "'v::countable neg set set" and *)
-    fml :: "'v \<Rightarrow> 'f"
+    fml :: "'v \<Rightarrow> 'f" and
+    asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close>
     assumes
-      entails_sound_compact: \<open>M \<Turnstile>s N \<Longrightarrow> (\<exists>M'\<subseteq>M. (\<exists>N'\<subseteq>N. finite M' \<and> finite N' \<and> M' \<Turnstile>s N'))\<close>
+      entails_sound_compact: \<open>M \<Turnstile>s N \<Longrightarrow> (\<exists>M'\<subseteq>M. (\<exists>N'\<subseteq>N. finite M' \<and> finite N' \<and> M' \<Turnstile>s N'))\<close> and
+      fml_entails_C: \<open>\<forall> a \<in> asn C. sound_cons.entails_neg {fml_ext a} {C}\<close> and
+      C_entails_fml: \<open>\<forall> a \<in> asn C. sound_cons.entails_neg {C} {fml_ext a}\<close> and
+      asn_not_empty: \<open>asn C \<noteq> {}\<close>
     (*  j_is: \<open>\<J> = {J. is_interpretation J}\<close>*)
 begin
-  
+
+notation sound_cons.entails_neg (infix \<open>\<Turnstile>s\<^sub>\<sim>\<close> 50)
+
+lemma equi_entails_if_a_in_asns: \<open>a \<in> asn C \<Longrightarrow> a \<in> asn D \<Longrightarrow> {C} \<Turnstile>s\<^sub>\<sim> {D} \<and> {D} \<Turnstile>s\<^sub>\<sim> {C}\<close>
+  by (meson C_entails_fml fml_entails_C)
+
+lemma equi_entails_if_neg_a_in_asn:
+  \<open>a \<in> asn C \<Longrightarrow> neg a \<in> asn D \<Longrightarrow> {C} \<Turnstile>s\<^sub>\<sim> {neg D} \<and> {neg D} \<Turnstile>s\<^sub>\<sim> {C}\<close>
+  by (meson C_entails_fml fml_entails_C)
+
   (* various attempts at representing the "enabled" concept *)
 (* definition enabled0 :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
  *   \<open>enabled0 C J = (J \<in> \<J> \<and> ((A_of C) \<subseteq> J \<or> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {})))\<close> *)
@@ -1632,6 +1687,14 @@ lemma prop_proj_in: \<open>proj\<^sub>\<bottom> \<N> \<subseteq> \<N>\<close>
 definition enabled :: "('f, 'v) AF \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
   "enabled \<C> J \<equiv> fset (A_of \<C>) \<subseteq> (total_strip J)"
 
+lemma subformula_of_enabled_formula_is_enabled: \<open>A_of \<C> |\<subset>| A_of \<C>' \<Longrightarrow> enabled \<C>' J \<Longrightarrow> enabled \<C> J\<close>
+  unfolding enabled_def
+  by (meson less_eq_fset.rep_eq pfsubset_imp_fsubset subset_trans)
+
+lemma enabled_iff: \<open>A_of \<C> = A_of \<C>' \<Longrightarrow> enabled \<C> J \<longleftrightarrow> enabled \<C>' J\<close>
+  unfolding enabled_def
+  by simp
+
 definition enabled_set :: "('f, 'v) AF set \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
   \<open>enabled_set \<N> J = (\<forall>\<C>\<in>\<N>. enabled \<C> J)\<close>
 
@@ -1641,6 +1704,48 @@ definition enabled_inf :: "('f, 'v) AF inference \<Rightarrow> 'v total_interpre
 definition enabled_projection :: "('f, 'v) AF set \<Rightarrow> 'v total_interpretation \<Rightarrow> 'f set"
   (infix "proj\<^sub>J" 60)  where
   \<open>\<N> proj\<^sub>J J = {F_of \<C> |\<C>. \<C> \<in> \<N> \<and> enabled \<C> J}\<close>
+
+lemma Union_of_enabled_projection_is_enabled_projection: \<open>(\<Union> \<C> \<in> \<N>. {\<C>} proj\<^sub>J \<J>) = \<N> proj\<^sub>J \<J>\<close>
+  unfolding enabled_projection_def
+  by blast
+
+lemma projection_of_enabled_subset:
+  \<open>fset B \<subseteq> total_strip J \<Longrightarrow> {AF.Pair C (A |\<union>| B)} proj\<^sub>J J = {AF.Pair C A} proj\<^sub>J J\<close>
+  unfolding enabled_projection_def enabled_def
+  by auto
+
+lemma Un_of_enabled_projection_is_enabled_projection_of_Un:
+  \<open>(\<Union> x. P x) proj\<^sub>J J = (\<Union> x. P x proj\<^sub>J J)\<close>
+proof (intro subset_antisym subsetI)
+  fix x
+  assume \<open>x \<in> (\<Union> x. P x) proj\<^sub>J J\<close>
+  then have \<open>\<exists> y. x = F_of y \<and> enabled y J \<and> y \<in> (\<Union> x. P x)\<close>
+    unfolding enabled_projection_def
+    by blast
+  then have \<open>\<exists> y. x = F_of y \<and> enabled y J \<and> (\<exists> z. y \<in> P z)\<close>
+    by blast
+  then have \<open>\<exists> y. \<exists> z. x = F_of y \<and> enabled y J \<and> y \<in> P z\<close>
+    by blast
+  then show \<open>x \<in> (\<Union> x. P x proj\<^sub>J J)\<close>
+    unfolding enabled_projection_def
+    by blast
+next
+  fix x
+  assume \<open>x \<in> (\<Union> x. P x proj\<^sub>J J)\<close>
+  then have \<open>\<exists> y. x \<in> P y proj\<^sub>J J\<close>
+    by blast
+  then have \<open>\<exists> y. \<exists> z. x = F_of z \<and> enabled z J \<and> z \<in> P y\<close>
+    unfolding enabled_projection_def
+    by blast
+  then show \<open>x \<in> (\<Union> x. P x) proj\<^sub>J J\<close>
+    unfolding enabled_projection_def
+    by blast
+qed
+
+lemma enabled_projection_of_Int_is_Int_of_enabled_projection:
+  \<open>x \<in> (\<Inter> S) proj\<^sub>J J \<Longrightarrow> x \<in> \<Inter> { x proj\<^sub>J J | x. x \<in> S }\<close>
+  unfolding enabled_projection_def
+  by blast
 
 definition enabled_projection_Inf :: "('f, 'v) AF inference set \<Rightarrow> 'v total_interpretation \<Rightarrow>
   'f inference set" (infix "\<iota>proj\<^sub>J" 60) where
@@ -2249,6 +2354,9 @@ proof -
     .
 qed
 
+lemma prop_unsat_compactness:
+  \<open>propositionally_unsatisfiable A \<Longrightarrow> \<exists> B \<subseteq> A. finite B \<and> propositionally_unsatisfiable B\<close>
+  by (meson compactness_AF_proj equiv_prop_entails propositionally_unsatisfiable_def)
 
 definition \<E>_from :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> where
   \<open>\<E>_from \<N> \<equiv> {Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<N>. a \<in> fset (A_of \<C>)}\<close>
@@ -2322,6 +2430,29 @@ qed
 
 definition AF_entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>A\<^sub>F" 50) where
   \<open>AF_entails \<M> \<N> \<equiv> (\<forall>J. (enabled_set \<N> J \<longrightarrow> \<M> proj\<^sub>J J \<Turnstile> F_of ` \<N>))\<close>
+
+lemma prop_unsat_to_AF_entails_bot: \<open>propositionally_unsatisfiable \<M> \<Longrightarrow> \<M> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+proof -
+  assume prop_unsat_\<M>: \<open>propositionally_unsatisfiable \<M>\<close>
+  then show \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
+    unfolding AF_entails_def
+  proof (intro allI impI)
+    fix J
+    assume \<open>enabled_set {to_AF bot} J\<close>
+    have \<open>bot \<in> (proj\<^sub>\<bottom> \<M>) proj\<^sub>J J\<close>
+      using prop_unsat_\<M>
+      unfolding propositionally_unsatisfiable_def propositional_model_def
+      by blast
+    then have \<open>bot \<in> \<M> proj\<^sub>J J\<close>
+      using enabled_projection_def prop_proj_in
+      by fastforce
+    then have \<open>\<M> proj\<^sub>J J \<Turnstile> {bot}\<close>
+      using bot_entails_empty entails_subsets
+      by (meson empty_subsetI insert_subset)
+    then show \<open>\<M> proj\<^sub>J J \<Turnstile> F_of ` {to_AF bot}\<close>
+      by (auto simp add: F_of_to_AF)
+  qed
+qed
 
 lemma \<open>enabled_set {} J\<close>
   unfolding enabled_set_def by blast
