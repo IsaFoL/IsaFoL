@@ -160,7 +160,10 @@
 #include <chrono>
 #include <limits>
 #include <cmath>
+#include <iomanip>
 
+// TODO: Gives deprecation warning, but in my version of boost, the replacement boost/timer/progress_display.hpp is missing (See issue https://github.com/boostorg/timer/issues/12).
+// FIXME when newer boost versions (>=1.72) are more widely available!
 #include <boost/progress.hpp>
 
 #ifdef WITH_PROFILING
@@ -194,6 +197,15 @@ void fail(string msg = "") {
   clog<<endl;
   clog<<"s ERROR"<<endl;
   exit(1);
+}
+
+
+template< typename T >
+std::string int_to_hex( T i )
+{
+  std::stringstream stream;
+  stream << "0x" << std::hex << i;
+  return stream.str();
 }
 
 /**
@@ -1266,19 +1278,40 @@ inline unsigned Parser::bin_parse_unsigned(istream &in) {
   int c;
   do {
     c = in.get();
-    assert(c>=0); // Assuming exception on fail!
-    res |= (c & 0x7F) << shift;  // TODO: Overflow check!
+    if (!(c>=0 && c!=char_traits<char>::eof())) fail("Binary parser: premature EOF");
+
+    assert(shift<32); // Actually, this will never go beyond 28. Trying to shift again (c>=128) will trigger the overflow error in the next line.
+    if (shift > 32-7 && c>=(1<<(32-shift)))
+      fail("Binary parser: literal overflow. Max supported variable is (2^31)-1. (shift=" +  to_string(shift) + ", c="+int_to_hex(c) + ", res=" + int_to_hex(res) + ")");
+
+    res |= (c & 0x7F) << shift;
     shift += 7;
   } while ((c&0x80) != 0);
 
   return res;
 }
 
-
 inline lit_t Parser::bin_parse_lit(istream &in) {
   unsigned ul = bin_parse_unsigned(in);
-  if ((ul&0x01) != 0) return -(static_cast<int>(ul>>1));
-  else return static_cast<int>(ul>>1);
+
+  lit_t res;
+
+  if ((ul&0x01) != 0) res = -(static_cast<int>(ul>>1));
+  else res = static_cast<int>(ul>>1);
+
+// The drat-trim code actually overflows on variables >2^30, and interprets them differently from what the binary drat format description suggests. The following code can be used to flag that behaviour.
+//   {
+//     int sl = *((int*)&ul);
+//     lit_t res_drat;
+//
+//     if (sl%2) res_drat = (sl>>1)*-1; else res_drat = sl>>1;
+//
+//     if (res_drat != res)
+//       clog<<"Big literal (would parse that differently) "<<hex<<ul<<dec<<" [" << res << " != " << res_drat << "] "<< endl;
+//
+//   }
+
+  return res;
 }
 
 inline void Parser::bin_parse_append_clause_raw(istream &in) {
@@ -2479,6 +2512,7 @@ pos_t Verifier::fwd_pass_aux() {
             return db->c2p(cl);
 
           case acres_t::UNIT: item.set_trpos(trpos);
+          [[fallthrough]];
           case acres_t::NORMAL: {
             conflict = propagate_units();
             if (conflict) {

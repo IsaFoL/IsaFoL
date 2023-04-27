@@ -1641,14 +1641,14 @@ locale AF_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F
     Red_I :: "'f set \<Rightarrow> 'f inference set" and
     Red_F :: "'f set \<Rightarrow> 'f set"
   + fixes
-    V:: "'v::countable itself" and
+    (* V:: "'v::countable itself" and *)
     (* \<J> :: "'v::countable neg set set" and *)
-    fml :: "'v \<Rightarrow> 'f" and
+    fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and 
     asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close>
     assumes
       entails_sound_compact: \<open>M \<Turnstile>s N \<Longrightarrow> (\<exists>M'\<subseteq>M. (\<exists>N'\<subseteq>N. finite M' \<and> finite N' \<and> M' \<Turnstile>s N'))\<close> and
-      fml_entails_C: \<open>\<forall> a \<in> asn C. sound_cons.entails_neg {fml_ext a} {C}\<close> and
-      C_entails_fml: \<open>\<forall> a \<in> asn C. sound_cons.entails_neg {C} {fml_ext a}\<close> and
+      fml_entails_C: \<open>\<forall> a \<in> asn C. sound_cons.entails_neg {map_sign fml a} {C}\<close> and
+      C_entails_fml: \<open>\<forall> a \<in> asn C. sound_cons.entails_neg {C} {map_sign fml a}\<close> and
       asn_not_empty: \<open>asn C \<noteq> {}\<close>
     (*  j_is: \<open>\<J> = {J. is_interpretation J}\<close>*)
 begin
@@ -1656,11 +1656,68 @@ begin
 notation sound_cons.entails_neg (infix \<open>\<Turnstile>s\<^sub>\<sim>\<close> 50)
 
 lemma equi_entails_if_a_in_asns: \<open>a \<in> asn C \<Longrightarrow> a \<in> asn D \<Longrightarrow> {C} \<Turnstile>s\<^sub>\<sim> {D} \<and> {D} \<Turnstile>s\<^sub>\<sim> {C}\<close>
-  by (meson C_entails_fml fml_entails_C)
+  by (smt (verit) C_entails_fml Un_commute consequence_relation.entails_cut fml_entails_C
+    sound_cons.ext_cons_rel sup_bot_left)
 
 lemma equi_entails_if_neg_a_in_asn:
   \<open>a \<in> asn C \<Longrightarrow> neg a \<in> asn D \<Longrightarrow> {C} \<Turnstile>s\<^sub>\<sim> {neg D} \<and> {neg D} \<Turnstile>s\<^sub>\<sim> {C}\<close>
-  by (meson C_entails_fml fml_entails_C)
+proof (intro conjI)
+  assume a_in_asn_C: \<open>a \<in> asn C\<close> and
+         neg_a_in_asn_D: \<open>neg a \<in> asn D\<close>
+
+  have fml_neg_is_neg_fml: \<open>map_sign fml (neg x) = neg (map_sign fml x)\<close> for x
+    by (smt (verit, ccfv_threshold) neg.simps(1) neg_neg_A_is_A sign.simps(10) sign.simps(9)
+        to_V.elims)  
+
+  have \<open>{C} \<Turnstile>s\<^sub>\<sim> {map_sign fml a}\<close>
+    using a_in_asn_C C_entails_fml
+    by blast
+  then have \<open>{C} \<Turnstile>s\<^sub>\<sim> {neg D, map_sign fml a}\<close>
+    by (smt (verit, best) Un_upper2 consequence_relation.entails_subsets insert_is_Un
+        sound_cons.ext_cons_rel sup_ge1)
+  moreover have \<open>{D} \<Turnstile>s\<^sub>\<sim> {map_sign fml (neg a)}\<close>
+    using neg_a_in_asn_D C_entails_fml
+    by blast
+  then have \<open>{neg (neg D)} \<Turnstile>s\<^sub>\<sim> {neg (map_sign fml a)}\<close>
+    by (simp add: fml_neg_is_neg_fml)
+  then have \<open>{map_sign fml a} \<Turnstile>s\<^sub>\<sim> {neg D}\<close>
+    using sound_cons.swap_neg_in_entails_neg
+    by blast 
+  then have \<open>{map_sign fml a, C} \<Turnstile>s\<^sub>\<sim> {neg D}\<close>
+    by (smt (verit, best) consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel
+        sup_ge1)
+  ultimately show \<open>{C} \<Turnstile>s\<^sub>\<sim> {neg D}\<close>
+    using consequence_relation.entails_cut
+    by (smt (verit, ccfv_threshold) Un_commute insert_is_Un sound_cons.ext_cons_rel sup.idem)
+next
+  assume a_in_asn_C: \<open>a \<in> asn C\<close> and
+         neg_a_in_asn_D: \<open>neg a \<in> asn D\<close>
+
+  have fml_neg_is_neg_fml: \<open>map_sign fml (neg x) = neg (map_sign fml x)\<close> for x
+    by (smt (verit, ccfv_threshold) neg.simps(1) neg_neg_A_is_A sign.simps(10) sign.simps(9)
+        to_V.elims)  
+
+  have \<open>{map_sign fml a} \<Turnstile>s\<^sub>\<sim> {C}\<close>
+    using a_in_asn_C fml_entails_C
+    by blast
+  then have \<open>{neg D, map_sign fml a} \<Turnstile>s\<^sub>\<sim> {C}\<close>
+    by (smt (verit, best) Un_upper2 consequence_relation.entails_subsets insert_is_Un
+        sound_cons.ext_cons_rel sup_ge1)
+  moreover have \<open>{map_sign fml (neg a)} \<Turnstile>s\<^sub>\<sim> {D}\<close>
+    using neg_a_in_asn_D fml_entails_C
+    by blast
+  then have \<open>{neg (map_sign fml a)} \<Turnstile>s\<^sub>\<sim> {neg (neg D)}\<close>
+    by (simp add: fml_neg_is_neg_fml)
+  then have \<open>{neg D} \<Turnstile>s\<^sub>\<sim> {map_sign fml a}\<close>
+    using sound_cons.swap_neg_in_entails_neg
+    by blast
+  then have \<open>{neg D} \<Turnstile>s\<^sub>\<sim> {map_sign fml a, C}\<close>
+    by (smt (verit, best) consequence_relation.entails_subsets insert_is_Un sound_cons.ext_cons_rel
+        sup_ge1)
+  ultimately show \<open>{neg D} \<Turnstile>s\<^sub>\<sim> {C}\<close>
+    using consequence_relation.entails_cut
+    by (smt (verit, ccfv_threshold) Un_commute insert_is_Un sound_cons.ext_cons_rel sup.idem)
+qed
 
   (* various attempts at representing the "enabled" concept *)
 (* definition enabled0 :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
@@ -1754,6 +1811,9 @@ definition enabled_projection_Inf :: "('f, 'v) AF inference set \<Rightarrow> 'v
 fun fml_ext :: "'v sign \<Rightarrow> 'f sign" where
   "fml_ext (Pos v) = Pos (fml v)" |
   "fml_ext (Neg v) = Neg (fml v)"
+
+lemma fml_ext_is_mapping: \<open>fml_ext v = map_sign fml v\<close>
+  by (metis fml_ext.cases fml_ext.simps(1) fml_ext.simps(2) sign.simps(10) sign.simps(9)) 
 
 lemma fml_ext_preserves_sign: "is_Pos v \<equiv> is_Pos (fml_ext v)"
   by (induct v, auto)

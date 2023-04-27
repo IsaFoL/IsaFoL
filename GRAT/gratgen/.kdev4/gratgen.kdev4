@@ -248,7 +248,7 @@ Name=gratgen
 Type=Native Application
 
 [Launch][Launch Configuration 0][Data]
-Arguments=~/tmp/fmla.cnf ~/tmp/cert2.drat
+Arguments=~/tmp/gratgenbug/9vliw_bp_mc.shuffled.cnf ~/tmp/gratgenbug/proof.binary.drat -b
 Debugger Shell=
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00g\x00e\x00n\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00g\x00e\x00n)
 Dependency Action=Build
