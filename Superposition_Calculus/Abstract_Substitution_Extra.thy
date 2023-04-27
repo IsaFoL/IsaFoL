@@ -73,6 +73,9 @@ begin
 
 subsection \<open>Identity Substitution\<close>
 
+lemma subst_set_id_subst[simp]: "X \<cdot>s id_subst = X"
+  by (simp add: subst_set_def)
+
 lemma id_subst_comp_subst[simp]: "id_subst \<odot> \<sigma> = \<sigma>"
   by (rule subst_ext) simp
 
@@ -139,6 +142,18 @@ next
   ultimately show ?case
     by simp
 qed
+
+lemma is_unifier_id_subst:
+  shows "is_unifier id_subst X \<longleftrightarrow> card X \<le> 1"
+  by (simp add: is_unifier_def)
+
+lemma is_unifiers_id_subst:
+  shows "is_unifiers id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
+  by (simp add: is_unifiers_def is_unifier_id_subst)
+
+lemma is_imgu_id_subst:
+  shows "is_imgu id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
+  by (simp add: is_imgu_def is_unifiers_id_subst)
 
 end
   
