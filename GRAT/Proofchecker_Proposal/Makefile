@@ -15,14 +15,7 @@ check:
 	done; true
 #	egrep -o "[[:alpha:]]+-[[:alpha:]-]+" *.tex | tr "[:upper:]" "[:lower:]" | sed -re "s/:/: /g" | sort -k2 -u | egrep -v --file allow_hyphen | sort | egrep --color "[[:alpha:]]+-[[:alpha:]-]+"; true
 
-# Note: Diabled, until we have solution how to build snippets and document
-#snippets/snippets.tex:
-#	isabelle build -d ../formalization Snippets && cp ../formalization/generated/snippets.tex snippets/snippets.tex
-
-snippets.out.tex: snippets.tex massage_snippets.sed
-	sed -rf massage_snippets.sed snippets.tex > snippets.out.tex
-
-$(TEX).pdf: *.tex snippets.out.tex *.bib *.data.tex
+$(TEX).pdf: *.tex *.bib
 	latexmk -pdf $(TEX).tex; err=$$?; egrep --color -i 'error|warning|overfull|underfull|undef|^l\.[0-9]' $(TEX).log; grep --color=never "Output written" $(TEX).log; exit $$err
 
 clean:
