@@ -27,15 +27,14 @@ text \<open>
   \<^item> \textsc{Unsat} replaces a set of propositionally unsatisfiable formulas with \<bottom>.
 \<close>
 
-locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_F V fml asn 
+locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_F fml asn
   for bot :: 'f and
       Inf :: \<open>'f inference set\<close> and
       entails :: \<open>[ 'f set, 'f set ] \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
       entails_sound :: \<open>[ 'f set, 'f set ] \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
       Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
       Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
-      V :: \<open>'v :: countable itself\<close> and
-      fml :: \<open>'v \<Rightarrow> 'f\<close> and
+      fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and
       asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close> 
   + assumes
       (* D6 *)
@@ -965,7 +964,7 @@ locale sound_simplification_rules =
   + fixes
       Simps :: \<open>'f simplification set\<close>
     assumes
-      sound_simplifications: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> \<M> \<union> S_to \<iota>. \<M> \<union> S_from \<iota> \<Turnstile>s {\<C>}\<close>
+      sound_simplifications: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s {\<C>}\<close>
 
 text \<open>
   Here, we extend our basic calculus with simplification rules:
@@ -976,16 +975,15 @@ text \<open>
 \<close>
 
 locale splitting_calculus_with_simps =
-  splitting_calculus bot Inf entails entails_sound Red_I Red_F V fml asn
+  splitting_calculus bot Inf entails entails_sound Red_I Red_F fml asn
   for bot :: 'f and
       Inf :: \<open>'f inference set\<close> and
       entails :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
       entails_sound :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
       Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
       Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
-      V :: \<open>'v :: countable itself\<close> and
-      fml :: \<open>'v \<Rightarrow> 'f\<close> and
-      asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close>
+      fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and
+      asn :: \<open>'f sign \<Rightarrow> ('v :: countable) sign set\<close>
 begin
 
 interpretation AF_sound_cons_rel: consequence_relation \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
@@ -1292,8 +1290,9 @@ proof -
                 consequence_relation.entails_subsets insert_is_Un insert_subset
                 sound_cons.ext_cons_rel sound_cons.pos_neg_entails_bot)
           then show ?thesis
-            by (smt (z3) C_entails_fml Un_commute a\<^sub>i_in_asn_\<C>\<^sub>i consequence_relation.entails_cut
-                insert_is_Un sound_cons.ext_cons_rel)
+            by (smt (verit, ccfv_threshold) C_entails_fml Un_commute a\<^sub>i_in_asn_\<C>\<^sub>i
+                consequence_relation.entails_cut fml_ext_is_mapping insert_is_Un
+                sound_cons.ext_cons_rel) 
         qed
       qed
       then have
@@ -1351,13 +1350,10 @@ proof -
         then obtain a\<^sub>i where a\<^sub>i_in_asn_F_of_C'': \<open>a\<^sub>i \<in> asn (Pos (F_of C''))\<close> and
                              A_of_C''_is: \<open>A_of C'' = {| a\<^sub>i |}\<close>
           by blast
-        then have \<open>a\<^sub>i \<in> total_strip J\<close>
-          using A_of_C''_subset_J
-          by simp
         then show \<open>(fml_ext ` total_strip J) \<union> Pos ` ({\<C>'} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of C'')}\<close>
-          by (smt (verit, ccfv_threshold) Un_commute Un_upper2 a\<^sub>i_in_asn_F_of_C''
-              consequence_relation.entails_subsets fml_entails_C image_eqI insert_subset
-              sound_cons.ext_cons_rel sup_bot_right)
+          by (smt (verit, best) A_of_C''_subset_J consequence_relation.entails_subsets empty_subsetI
+              finsert.rep_eq fml_entails_C fml_ext_is_mapping image_eqI insert_is_Un insert_subset
+              sound_cons.ext_cons_rel sup_ge1)
       qed
       then have
         \<open>C'' \<in> fset As \<Longrightarrow> fset (A_of C'') \<subseteq> total_strip J \<Longrightarrow>
@@ -1471,14 +1467,8 @@ qed
 
 
 
-lemma SInf_with_simps_sound_wrt_entails_sound2:
-  \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> \<M> \<union> S_to \<iota>. \<M> \<union> S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
-  using SInf_with_simps_sound_wrt_entails_sound
-  by (meson AF_sound_cons_rel.entails_conjunctive_def AF_sound_cons_rel.entails_subsets
-      AF_sound_cons_rel.subset_entailed Un_iff Un_upper2 subset_refl)
-
 interpretation Simps_sound: sound_simplification_rules \<open>to_AF bot\<close> SInf \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close> Simps
-  by (standard, auto simp add: SInf_with_simps_sound_wrt_entails_sound2)
+  by (standard, auto simp add: SInf_with_simps_sound_wrt_entails_sound)
 
 (*<*)
 lemma enabled_set_singleton [simp]: \<open>enabled_set {\<C>} J \<longleftrightarrow> enabled \<C> J\<close>
@@ -1623,15 +1613,14 @@ text \<open>
 \<close>
 
 locale splitting_calculus_extensions =
-  splitting_calculus bot Inf entails entails_sound Red_I Red_F V fml asn
+  splitting_calculus bot Inf entails entails_sound Red_I Red_F fml asn
   for bot :: 'f and
       Inf :: \<open>'f inference set\<close> and
       entails :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
       entails_sound :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
       Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
       Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
-      V :: \<open>'v :: countable itself\<close> and
-      fml :: \<open>'v \<Rightarrow> 'f\<close> and
+      fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and
       asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close>
 begin
 
@@ -1728,8 +1717,8 @@ next
               consequence_relation.entails_subsets insert_is_Un insert_subset
               sound_cons.ext_cons_rel sound_cons.pos_neg_entails_bot)
         then show ?thesis
-          by (smt (z3) C_entails_fml Un_commute consequence_relation.entails_cut insert_is_Un
-              local.approx(2) sound_cons.ext_cons_rel)
+          by (smt (verit, ccfv_threshold) C_entails_fml Un_commute consequence_relation.entails_cut
+              fml_ext_is_mapping local.approx(2) sound_cons.ext_cons_rel sup_bot_right) 
       qed
     qed
     then have
@@ -1768,13 +1757,10 @@ lemmas SRed_rules = SRed\<^sub>F_entails_bot SRed\<^sub>F_of_subset_F SRed\<^sub
 
 
 (* Report lemma 18 *)
-sublocale S_calculus: calculus \<open>to_AF bot\<close> SInf AF_entails SRed\<^sub>I SRed\<^sub>F
+interpretation S_calculus: calculus \<open>to_AF bot\<close> SInf AF_entails SRed\<^sub>I SRed\<^sub>F
   by (standard; simp add: SRed_rules)
 
 (*<*)
-alias S_saturated = S_calculus.saturated
-alias F_saturated = local.saturated
-
 (*! Move these in the List theory? *)
 lemma ball_set_f_to_ball_set_map: \<open>(\<forall> x \<in> set A. P (f x)) \<longleftrightarrow> (\<forall> x \<in> set (map f A). P x)\<close>
   by simp
@@ -1798,7 +1784,7 @@ qed
 
 
 (* Report lemma 20 *)
-lemma S_saturated_to_F_saturated: \<open>S_saturated \<N> \<Longrightarrow> F_saturated (\<N> proj\<^sub>J \<J>)\<close>
+lemma S_saturated_to_F_saturated: \<open>S_calculus.saturated \<N> \<Longrightarrow> saturated (\<N> proj\<^sub>J \<J>)\<close>
 proof -
   assume \<N>_is_S_saturated: \<open>S_calculus.saturated \<N>\<close>
   then show \<open>saturated (\<N> proj\<^sub>J \<J>)\<close>
@@ -1929,14 +1915,14 @@ next
   fix N
   assume \<open>Preliminaries_With_Zorn.calculus bot Inf (\<Turnstile>) Red_I Red_F\<close> and
          if_F_saturated_and_N_entails_bot_then_bot_in_N:
-           \<open>\<forall> N. F_saturated N \<longrightarrow> N \<Turnstile> {bot} \<longrightarrow> bot \<in> N\<close> and
-         N_is_S_saturated: \<open>S_saturated N\<close> and
+           \<open>\<forall> N. saturated N \<longrightarrow> N \<Turnstile> {bot} \<longrightarrow> bot \<in> N\<close> and
+         N_is_S_saturated: \<open>S_calculus.saturated N\<close> and
          N_entails_bot: \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
   then have N_proj_\<J>_entails_bot: \<open>\<forall> \<J>. N proj\<^sub>J \<J> \<Turnstile> {bot}\<close>
     unfolding AF_entails_def
     using F_of_to_AF[of bot]
     by (smt (verit) enabled_to_AF_set image_empty image_insert)
-  then have N_proj_\<J>_F_saturated: \<open>\<forall> \<J>. F_saturated (N proj\<^sub>J \<J>)\<close>
+  then have N_proj_\<J>_F_saturated: \<open>\<forall> \<J>. saturated (N proj\<^sub>J \<J>)\<close>
     using N_is_S_saturated
     using S_saturated_to_F_saturated
     by blast
@@ -2032,7 +2018,7 @@ proof (standard; (simp only: SRed_rules)?)
     by (simp add: AF_cons_rel.entails_conjunctive_def SRed\<^sub>F_entails_bot)
 qed
 
-lemma saturated_equiv: \<open>S_saturated N \<longleftrightarrow> Calculus.calculus.saturated SInf SRed\<^sub>I N\<close>
+lemma saturated_equiv: \<open>S_calculus.saturated N \<longleftrightarrow> Calculus.calculus.saturated SInf SRed\<^sub>I N\<close>
   by (meson Calculus.calculus.saturated_def S_calculus.saturated_def S_with_conj_is_calculus)
 
 lemma derivation_equiv:
@@ -2188,13 +2174,13 @@ proof (elim disjE)
   show \<open>to_AF bot \<in> \<N> \<Longrightarrow> to_AF bot \<in> \<N>\<close>
     by blast
 next
-  assume \<open>\<exists> J. J \<Turnstile>\<^sub>p \<N> \<and> F_saturated (\<N> proj\<^sub>J J)\<close>
+  assume \<open>\<exists> J. J \<Turnstile>\<^sub>p \<N> \<and> saturated (\<N> proj\<^sub>J J)\<close>
   then obtain J where J_prop_model_of_\<N>: \<open>J \<Turnstile>\<^sub>p \<N>\<close> and
-                      \<N>_proj_J_saturated: \<open>F_saturated (\<N> proj\<^sub>J J)\<close>
+                      \<N>_proj_J_saturated: \<open>saturated (\<N> proj\<^sub>J J)\<close>
     by blast
   then have \<open>\<N> proj\<^sub>J J \<Turnstile> {bot}\<close>
     using \<N>_entails_bot AF_entails_def enabled_to_AF_set
-    by fastforce
+    by (metis (no_types, lifting) f_of_to_AF image_insert image_is_empty) 
   then have \<open>bot \<in> \<N> proj\<^sub>J J\<close>
     using \<N>_proj_J_saturated F_statically_complete
     by (simp add: Preliminaries_With_Zorn.statically_complete_calculus.statically_complete)
@@ -2604,99 +2590,5 @@ next
 qed *)
 
 end (* context splitting_calculus *)
-
-
-
-subsection \<open>Full splitting calculus\<close>
-
-text \<open>
-  Up until now, we have been working with separate locales for simplification rules
-  and inference rules (@{locale splitting_calculus_with_simps}
-  and @{locale splitting_calculus_extensions}).
-  We now put everything together to form the full splitting calculus defined in the article
-  (definition 9).
-\<close>
-
-locale full_splitting_calculus =
-  splitting_calculus_extensions bot Inf entails entails_sound Red_I Red_F V fml asn +
-  splitting_calculus_with_simps bot Inf entails entails_sound Red_I Red_F V fml asn
-  for bot :: 'f and
-      Inf :: \<open>'f inference set\<close> and
-      entails :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
-      entails_sound :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
-      Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
-      Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
-      V :: \<open>'v :: countable itself\<close> and
-      fml :: \<open>'v \<Rightarrow> 'f\<close> and
-      asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close>
-begin
-
-(*<*)
-(*! Perhaps this could be moved within the theory List or Set? *)
-definition set_to_list :: \<open>'a set \<Rightarrow> 'a list\<close> where
-  \<open>set_to_list S \<equiv> (SOME l. set l = S)\<close>
-
-lemma set_set_to_list: \<open>finite S \<Longrightarrow> set (set_to_list S) = S\<close>
-  unfolding set_to_list_def
-  by (meson finite_list someI)
-(*>*)
-
-
-(* Report definition 9 (cont) *)
-inductive_set Splitting_Inf :: \<open>('f, 'v) AF inference set\<close> where
-  infer: \<open>\<iota> \<in> SInf2 \<Longrightarrow> \<iota> \<in> Splitting_Inf\<close> |
-  simplify: \<open>Infer \<M> \<C> \<in> SInf2 \<Longrightarrow> set \<M> = \<N>'' \<union> \<N>' \<Longrightarrow> Simplify \<N> \<N>'' \<in> Simps \<Longrightarrow>
-    Infer (set_to_list (\<N> \<union> \<N>')) \<C> \<in> Splitting_Inf\<close>
-
-
-
-(*<*)
-interpretation AF_sound_cons_rel: consequence_relation \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
-  by (rule AF_ext_sound_cons_rel)
-(*>*)
-
-notation AF_sound_cons_rel.entails_conjunctive (infix \<open>\<Turnstile>\<inter>s\<^sub>A\<^sub>F\<close> 50)
-
-
-
-(* Report lemma 14 (cont) *)
-lemma Splitting_Inf_sound: \<open>\<iota> \<in> Splitting_Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
-proof -
-  assume \<open>\<iota> \<in> Splitting_Inf\<close>
-  then show ?thesis
-  proof (cases \<iota> rule: Splitting_Inf.cases)
-    case infer
-    then show ?thesis
-      using SInf2_sound_wrt_entails_sound
-      by blast
-  next
-    case (simplify \<M> \<C> \<N>'' \<N>' \<N>)
-
-    have \<open>set \<M> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
-     using SInf2_sound_wrt_entails_sound local.simplify(2)
-     by fastforce
-    then have \<open>set \<M> \<Turnstile>\<inter>s\<^sub>A\<^sub>F {\<C>}\<close>
-      by (simp add: AF_sound_cons_rel.entails_conjunctive_def)
-    moreover have \<open>\<forall> \<C>' \<in> \<N>''. \<N> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
-      using SInf_with_simps_sound_wrt_entails_sound local.simplify(4)
-      by fastforce
-    then have \<open>\<N> \<Turnstile>\<inter>s\<^sub>A\<^sub>F \<N>''\<close>
-      using AF_sound_cons_rel.entails_conjunctive_def
-      by blast
-    then have \<open>\<N> \<union> \<N>' \<Turnstile>\<inter>s\<^sub>A\<^sub>F set \<M>\<close>
-      by (metis AF_sound_cons_rel.entail_union AF_sound_cons_rel.entails_trans
-          AF_sound_cons_rel.subset_entailed Un_upper1 Un_upper2 local.simplify(3))
-    ultimately have \<open>\<N> \<union> \<N>' \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
-      by (meson AF_ext_sound_cons_rel AF_sound_cons_rel.entails_trans
-          consequence_relation.entails_conjunctive_def singletonI)
-    then show ?thesis
-      using local.simplify(1) set_set_to_list no_infinite_simp_set
-      by (smt (verit, best) List.finite_set Simplification_rules.cases finite.emptyI finite_Un
-          finite_insert inference.sel(1) inference.sel(2) local.simplify(3) local.simplify(4)
-          simplification.sel(1) simplification.sel(2))
-  qed
-qed
-
-end (* locale full_splitting_calculus *)
 
 end (* theory Splitting_Calculi *)
