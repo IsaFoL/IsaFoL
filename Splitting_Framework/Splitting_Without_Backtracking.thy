@@ -12,10 +12,6 @@ begin
 
 subsection \<open>Splitting without Backtracking\<close>
 
-(* NOTE:
- * - First define LA and show it is an instance of splitting_calculus using O
- * - *)
-
 text \<open>
   In this section, we show that \<open>O\<^sub>\<bbbP>\<close>, an ordered resolution calculus with parallel selection,
   is closely related to \<open>LA\<close>, an instance of our Splitting Framework @{locale splitting_calculus}
@@ -32,12 +28,6 @@ text \<open>
   entailment, that the redundancy criterion used in \<open>O\<^sub>\<bbbP>\<close> is stronger than the one used in \<open>LA\<close>, and
   that saturation w.r.t. \<open>LA\<close> implies saturation w.r.t. \<open>O\<^sub>\<bbbP>\<close>.
 \<close>
-(* FIXME: there will be a slight problem with this simplification rule, in that we do not yet have
- * any way to represent the disjunction.
- * Since @{typ AF}-formulas only take a \<open>'f\<close>, and \<open>'f\<close> is fully abstract, we would probably need to
- * require the existence of a constant \<open>(\<or>\<^sub>F) :: 'f \<Rightarrow> 'f \<Rightarrow> 'f\<close> (although what properties would it
- * have?) in the locale.
- * I do not quite like this, but I don't quite see another way. *)
 
 text \<open>
   We start by defining \<open>LA\<close> as an instance of our locale @{locale splitting_calculus}.
