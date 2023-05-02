@@ -54,7 +54,8 @@ locale FO_resolution_prover' = FO_resolution_prover S subst_atm id_subst comp_su
     less_atm :: \<open>'a \<Rightarrow> 'a \<Rightarrow> bool\<close>
 begin
 
-no_notation entails_clss (infix \<open>\<TTurnstile>e\<close> 50) 
+no_notation entails_clss (infix \<open>\<TTurnstile>e\<close> 50)
+no_notation Sema.entailment (\<open>(_ \<TTurnstile>/ _)\<close> [53, 53] 53)  
 notation entails_clss (infix \<open>\<TTurnstile>\<inter>e\<close> 50)
 
 (* All this is taken from the file \<open>FO_Ordered_Resolution_Prover_Revisited.thy\<close>.
@@ -121,10 +122,16 @@ proof
     by blast
 qed
 
+(*** This one is not a copy-pasta! *)
+interpretation G: calculus_with_standard_redundancy \<open>G_Inf M\<close> \<open>{{#}}\<close> \<open>(\<TTurnstile>\<inter>e)\<close>
+  \<open>(<) :: 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool\<close>
+  using G_Inf_have_prems G_Inf_reductive
+  by (unfold_locales) simp_all 
+
+(*** This one has been modified too! *)
 interpretation G: clausal_counterex_reducing_calculus_with_standard_redundancy "G_Inf M"
   "gr.INTERP M"
-  using G_Inf_have_prems G_Inf_reductive
-  by (unfold_locales) simp_all
+  by (unfold_locales)
 
 interpretation G: Calculus.statically_complete_calculus "{{#}}" "G_Inf M" "(\<TTurnstile>\<inter>e)" "G.Red_I M" G.Red_F
   by unfold_locales (use G.clausal_saturated_complete in blast)
@@ -163,13 +170,6 @@ next
 qed
 
 notation F.entails_\<G> (infix "\<TTurnstile>\<inter>\<G>e" 50)
-
-lemma F_entails_\<G>_iff: "N1 \<TTurnstile>\<inter>\<G>e N2 \<longleftrightarrow> \<Union> (\<G>_F ` N1) \<TTurnstile>\<inter>e \<Union> (\<G>_F ` N2)"
-  unfolding F.entails_\<G>_def by simp
-
-lemma true_Union_grounding_of_cls_iff:
-  "I \<TTurnstile>s (\<Union>C \<in> N. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<longleftrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<TTurnstile>s N \<cdot>cs \<sigma>)"
-  unfolding true_clss_def subst_clss_def by blast
 
 sublocale F: sound_inference_system F_Inf "{{#}}" "(\<TTurnstile>\<inter>\<G>e)"
 proof
@@ -216,16 +216,6 @@ qed
 (********************************************************)  
 
 (*<*)
-lemma clause_union_entails_one: \<open>{C \<union># D} \<TTurnstile>\<inter>\<G>e {C} \<or> {C \<union># D} \<TTurnstile>\<inter>\<G>e {D}\<close>
-  unfolding F.entails_\<G>_def \<G>_F_def
-proof simp
-  let ?subst = \<open>\<lambda> S. {S \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}\<close>
-
-  show \<open>?subst (C \<union># D) \<TTurnstile>\<inter>e ?subst C \<or> ?subst (C \<union># D) \<TTurnstile>\<inter>e ?subst D\<close>
-    (* TODO: find how to prove that (holding back Th14) *) 
-    sorry 
-qed
-
 lemma unsat_equiv2: \<open>\<not> satisfiable M \<longleftrightarrow> M \<TTurnstile>\<inter>\<G>e {{#}}\<close>
 proof -
   have \<open>\<forall> I. (\<forall> C \<in> M. I \<TTurnstile>s {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}) \<longleftrightarrow> I \<TTurnstile>s M\<close>
@@ -424,7 +414,64 @@ qed
 sublocale entails_\<G>_disj_cons_rel: consequence_relation \<open>{#}\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
   by (rule entails_\<G>_disj_cons_rel_ext)
 
-notation entails_\<G>_disj_cons_rel.entails_neg (infix \<open>\<TTurnstile>\<union>\<G>e\<^sub>\<sim>\<close> 50) 
+notation entails_\<G>_disj_cons_rel.entails_neg (infix \<open>\<TTurnstile>\<union>\<G>e\<^sub>\<sim>\<close> 50)
+
+lemma all_redundant_to_bottom: \<open>\<C> \<noteq> {#} \<Longrightarrow> \<C> \<in> F.Red_F_\<G>_empty {{#}}\<close>
+  unfolding F.Red_F_\<G>_empty_def F.Red_F_\<G>_empty_q_def G.Red_F_def
+proof clarsimp
+  fix D :: \<open>'a clause\<close>
+
+  assume \<open>\<C> \<noteq> {#}\<close> and
+         \<open>D \<in> \<G>_F \<C>\<close>
+  then have \<open>D \<noteq> {#}\<close>
+    unfolding \<G>_F_def
+    by force 
+  then have \<open>{#} < D\<close>
+    by auto 
+  moreover have \<open>\<forall> I. I \<TTurnstile>s {{#}} \<longrightarrow> I \<TTurnstile> D\<close>
+    by blast
+  ultimately show \<open>\<exists> E \<subseteq> {{#}}. (\<forall>I. I \<TTurnstile>s E \<longrightarrow> I \<TTurnstile> D) \<and> (\<forall> C \<in> E. C < D)\<close>
+    by blast 
+qed 
+
+lemma bottom_never_redundant: \<open>{#} \<notin> F.Red_F_\<G>_empty N\<close>
+  unfolding F.Red_F_\<G>_empty_def F.Red_F_\<G>_empty_q_def G.Red_F_def
+  by auto
+
+lemma Inf_from_Red_F_subset_Red_I:
+  \<open>F.Inf_between UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.Red_I_\<G> N\<close>
+proof (intro subsetI)
+  fix \<iota>
+  assume \<open>\<iota> \<in> F.Inf_between UNIV (F.Red_F_\<G>_empty N)\<close>
+  then have \<iota>_in_FInf: \<open>\<iota> \<in> F_Inf\<close>
+    using F.Inf_if_Inf_between
+    by blast
+
+  have \<open>\<forall> M \<rho> \<rho>s. is_ground_subst_list \<rho>s \<longrightarrow> is_ground_subst \<rho> \<longrightarrow>
+    Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> G_Inf M \<longrightarrow>
+    Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> G.Red_I M (\<Union> C \<in> N. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>})\<close>
+    unfolding G.Red_I_def G.redundant_infer_def
+    unfolding G_Inf_def 
+  proof clarsimp
+    fix M \<rho> \<rho>s CAs DA AAs As
+    assume \<open>is_ground_subst_list \<rho>s\<close> and
+           \<open>is_ground_subst \<rho>\<close> and
+           \<open>prems_of \<iota> \<cdot>\<cdot>cl \<rho>s = CAs @ [DA]\<close> and 
+           \<open>gr.ord_resolve M CAs DA AAs As (concl_of \<iota> \<cdot> \<rho>)\<close>
+
+    show \<open>\<exists> DD \<subseteq> \<Union> C \<in> N. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}.
+      (\<forall> I. I \<TTurnstile>s DD \<and> I \<TTurnstile>s set CAs \<longrightarrow> I \<TTurnstile> concl_of \<iota> \<cdot> \<rho>) \<and> (\<forall> D \<in> DD. D < DA)\<close>
+      (* TODO: understand how the resolution prover works, for this proof.
+       * My instinct is telling me that we need to use \<open>gr.ord_resolve\<close>. *)
+      sorry 
+  qed
+  then have \<open>\<forall> M. \<forall> \<iota>\<^sub>G \<in> \<G>_I M \<iota>. \<iota>\<^sub>G \<in> G.Red_I M (\<Union> (\<G>_F ` N))\<close>
+    unfolding \<G>_F_def \<G>_I_def
+    by auto 
+  then show \<open>\<iota> \<in> F.Red_I_\<G> N\<close>
+    unfolding F.Red_I_\<G>_def F.Red_I_\<G>_q_def
+    by (auto simp add: \<iota>_in_FInf)
+qed
 
 end (* locale FO_resolution_prover' *)
 
@@ -527,13 +574,9 @@ proof standard
     apply auto
     sorry
   show \<open>\<And> N. {#} \<notin> F.Red_F_\<G>_empty N\<close>
-    unfolding F.Red_F_\<G>_empty_def F.Red_F_\<G>_empty_q_def \<G>_F_def
-    apply (auto simp add: ex_ground_subst)
-    sorry 
-  show \<open>\<And> \<C>. \<C> \<noteq> {#} \<Longrightarrow> \<C> \<in> F.Red_F_\<G>_empty {{#}}\<close>
-    unfolding F.Red_F_\<G>_empty_def F.Red_F_\<G>_empty_q_def \<G>_F_def
-    apply (auto simp add: ex_ground_subst) 
-    sorry
+    by (rule bottom_never_redundant)
+  show \<open>\<And> \<C>. \<C> \<noteq> {#} \<Longrightarrow> \<C> \<in> F.Red_F_\<G>_empty {{#}}\<close> 
+    by (rule all_redundant_to_bottom)
 qed
 
 notation LA_is_AF_calculus.AF_entails_sound (infix \<open>\<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F\<close> 50)
@@ -652,55 +695,7 @@ next
   then show \<open>map_sign fml ` total_strip J \<union> M \<TTurnstile>\<union>\<G>e\<^sub>\<sim> N\<close>
     using neg_a_in_J
     by (metis Un_empty_right Un_insert_right insert_image) 
-qed
-
-lemma insert_in_left_Pos:
-  \<open>{sign.Neg C} \<union> {sign.Pos D} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos D} \<Longrightarrow>
-   {sign.Neg C} \<union> {sign.Pos (C \<union># D)} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos D}\<close>
-proof -
-  assume \<open>{sign.Neg C} \<union> {sign.Pos D} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos D}\<close>
-  then have \<open>{D} \<TTurnstile>\<union>\<G>e {C, D}\<close>
-    unfolding entails_\<G>_disj_cons_rel.entails_neg_def
-    by simp
-  then have \<open>{D} \<TTurnstile>\<inter>\<G>e {{#}} \<or> (\<exists> E \<in> {C, D}. {D} \<TTurnstile>\<inter>\<G>e {E})\<close>
-    using entails_\<G>_disj_def
-    by blast
-  then have \<open>\<exists> E \<in> {C, D}. {C \<union># D} \<TTurnstile>\<inter>\<G>e {E}\<close>
-  proof (elim disjE)
-    assume \<open>{D} \<TTurnstile>\<inter>\<G>e {{#}}\<close>
-    then have \<open>{C \<union># D} \<TTurnstile>\<inter>\<G>e {C}\<close>
-      by (metis (mono_tags, lifting) F.entails_trans clause_union_entails_one entails_\<G>_disj_def
-          entails_conj_is_entails_disj_on_singleton)
-    then show ?thesis
-      by blast 
-  next
-    assume \<open>\<exists> E \<in> {C, D}. {D} \<TTurnstile>\<inter>\<G>e {E}\<close>
-    then obtain E where
-      \<open>E = C \<or> E = D\<close> and
-      \<open>{D} \<TTurnstile>\<inter>\<G>e {E}\<close>
-      by blast 
-    then show ?thesis
-    proof (elim disjE)
-      assume \<open>E = C\<close>
-      then show ?thesis
-        using clause_union_entails_one
-        by fastforce
-    next
-      assume \<open>E = D\<close>
-      then show ?thesis
-        using clause_union_entails_one
-        by auto
-    qed
-  qed
-  then have \<open>{C \<union># D} \<TTurnstile>\<union>\<G>e {C, D}\<close>
-    using entails_\<G>_disj_def
-    by blast
-  then have \<open>{sign.Neg C} \<union> {sign.Pos (C \<union># D)} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos D}\<close>
-    unfolding entails_\<G>_disj_cons_rel.entails_neg_def
-    by simp 
-  then show ?thesis
-    by blast 
-qed 
+qed  
 (*>*)
 
 
@@ -747,20 +742,13 @@ proof (intro ballI)
     next
       let ?fml = \<open>\<lambda> J. map_sign fml ` total_strip J\<close> 
 
-      have \<open>{sign.Neg C} \<union> {sign.Pos (C \<union># D)} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos D}\<close>
-      proof -
-        have \<open>{sign.Pos D} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos D}\<close>
-          by (meson consequence_relation.entails_reflexive entails_\<G>_disj_cons_rel.ext_cons_rel) 
-        then have \<open>{sign.Pos D} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos D} \<union> {sign.Pos C}\<close>
-          by (metis (no_types, lifting) Un_absorb consequence_relation.entails_subsets
-            entails_\<G>_disj_cons_rel.ext_cons_rel inf_sup_ord(3))
-        then have \<open>{sign.Neg C} \<union> {sign.Pos D} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos D}\<close>
-          by (metis (no_types, opaque_lifting) Un_upper2 consequence_relation.entails_reflexive
-            consequence_relation.entails_subsets dual_order.refl entails_\<G>_disj_cons_rel.ext_cons_rel)
-        then show \<open>{sign.Neg C} \<union> {sign.Pos (C \<union># D)} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos D}\<close>
-          using insert_in_left_Pos
-          by blast
-      qed
+      have \<open>{C \<union># D} \<TTurnstile>\<union>\<G>e {C, D}\<close>
+        using C_u_D_splittable
+        unfolding splittable_def 
+        by auto 
+      then have \<open>{sign.Neg C} \<union> {sign.Pos (C \<union># D)} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos D}\<close>
+        unfolding entails_\<G>_disj_cons_rel.entails_neg_def
+        by auto 
       then have \<open>\<forall> J. fset (finsert (neg a) A) \<subseteq> total_strip J \<longrightarrow>
         ?fml J \<union> {sign.Neg C} \<union> {sign.Pos (C \<union># D)} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos D}\<close>
         by (smt (verit, best) Un_upper2 consequence_relation.entails_subsets
