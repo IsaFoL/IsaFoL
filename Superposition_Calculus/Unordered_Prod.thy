@@ -53,5 +53,41 @@ lemma map_uprod_make_uprod[simp]: "map_uprod f (x \<approx> y) = (f x \<approx> 
   by (metis comp_apply image_mset_add_mset image_mset_single make_uprod_def map_uprod_def
       mset_uprod_make_uprod)
 
+lemma ex_ordered_make_uprod:
+  assumes tot: "totalp_on (set_uprod p) R"
+  shows "\<exists>x y. p = x \<approx> y \<and> R\<^sup>=\<^sup>= x y"
+proof -
+  have "size (mset_uprod p) = 2"
+    using mset_uprod by auto
+  then obtain x y where "mset_uprod p = {#x, y#}"
+    by (metis Suc_1 add_cancel_left_left size_1_singleton_mset size_mset_SucE
+        union_mset_add_mset_left)
+  show ?thesis
+  proof (cases "R\<^sup>=\<^sup>= x y")
+    case True
+    show ?thesis
+    proof (intro exI conjI)
+      show "p = x \<approx> y"
+        by (metis \<open>mset_uprod p = {#x, y#}\<close> make_uprod_def mset_uprod_inverse)
+    next
+      show "R\<^sup>=\<^sup>= x y"
+        using True by simp
+    qed
+  next
+    case False
+    then show ?thesis
+    proof (intro exI conjI)
+      show "p = y \<approx> x"
+        by (metis \<open>mset_uprod p = {#x, y#}\<close> make_uprod_sym mset_uprod_inverse mset_uprod_make_uprod)
+    next
+      from tot have "R y x"
+        using False
+        by (simp add: \<open>mset_uprod p = {#x, y#}\<close> set_uprod_def totalp_on_def)
+      thus "R\<^sup>=\<^sup>= y x"
+        by simp
+    qed
+  qed
+qed
+
 
 end

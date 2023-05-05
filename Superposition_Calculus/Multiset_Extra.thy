@@ -17,6 +17,49 @@ lemma Uniq_is_maximal_wrt_reflclp:
   shows "totalp_on (set_mset C) R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1L. L \<in># C \<and> is_maximal_wrt R\<^sup>=\<^sup>= L C"
   by (rule Uniq_I) (metis insert_DiffM insert_noteq_member is_maximal_wrt_def sup2CI totalp_onD)
 
+thm Finite_Set.bex_min_element Finite_Set.bex_least_element
+
+lemma ex_is_maximal_wrt_if_not_empty:
+  assumes "transp_on (set_mset M) R" and "asymp_on (set_mset M) R" and "M \<noteq> {#}"
+  shows "\<exists>x \<in># M. is_maximal_wrt R x M"
+  using assms
+proof (induction M rule: multiset_induct)
+  case empty
+  hence False
+    by simp
+  thus ?case ..
+next
+  case (add x M)
+  show ?case
+  proof (cases "M = {#}")
+    case True
+    then show ?thesis
+      by (simp add: is_maximal_wrt_def)
+  next
+    case False
+    with add.prems add.IH obtain m where "m \<in># M" and "is_maximal_wrt R m M"
+      using asymp_on_subset transp_on_subset
+      by (metis diff_subset_eq_self set_mset_mono union_single_eq_diff)
+    then show ?thesis
+      unfolding is_maximal_wrt_def
+      by (smt (verit, ccfv_SIG) add.prems(1) add.prems(2) add_mset_commute add_mset_remove_trivial
+          asymp_onD at_most_one_mset_mset_diff insertE insert_Diff more_than_one_mset_mset_diff
+          multi_member_split transp_onD union_single_eq_member)
+  qed
+qed
+
+lemma lift_is_maximal_wrt_to_is_maximal_wrt_reflclp:
+  assumes "is_maximal_wrt R x M"
+  shows "is_maximal_wrt R\<^sup>=\<^sup>= x M \<longleftrightarrow> x \<notin># M - {#x#}"
+  using assms
+  by (metis (mono_tags, lifting) is_maximal_wrt_def reflp_onD reflp_on_reflclp sup2E)
+
+lemma
+  assumes "is_maximal_wrt R x M" and "\<not> is_maximal_wrt R\<^sup>=\<^sup>= x M"
+  obtains M' where "M - {#x#} = add_mset x M'"
+  using assms lift_is_maximal_wrt_to_is_maximal_wrt_reflclp
+  by (meson mset_add)
+
 lemma multp_singleton_singleton[simp]: "transp R \<Longrightarrow> multp R {#x#} {#y#} \<longleftrightarrow> R x y"
   using one_step_implies_multp[of "{#y#}" "{#x#}" R "{#}", simplified]
   using multp_implies_one_step[of R "{#x#}" "{#y#}", simplified]
