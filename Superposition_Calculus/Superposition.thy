@@ -2907,7 +2907,7 @@ proof unfold_locales
             by auto
           thus "t \<prec>\<^sub>t s"
             by (auto elim: mem_equationE)
-        qed simp_all
+        qed auto
         thus "SN (rstep (\<Union>D \<in> cls_gcls ` N. equation (cls_gcls ` N) D))"
           unfolding rstep_eq_rewrite_inside_ctxt_if_ground[OF ground_model]
           using SN_iff_wf by metis
