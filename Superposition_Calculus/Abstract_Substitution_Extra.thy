@@ -82,6 +82,38 @@ lemma id_subst_comp_subst[simp]: "id_subst \<odot> \<sigma> = \<sigma>"
 lemma comp_subst_id_subst[simp]: "\<sigma> \<odot> id_subst = \<sigma>"
   by (rule subst_ext) simp
 
+lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
+  by (simp add: is_renaming_def)
+
+lemma is_unifier_id_subst:
+  shows "is_unifier id_subst X \<longleftrightarrow> card X \<le> 1"
+  by (simp add: is_unifier_def)
+
+lemma is_unifiers_id_subst:
+  shows "is_unifiers id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
+  by (simp add: is_unifiers_def is_unifier_id_subst)
+
+lemma is_imgu_id_subst:
+  shows "is_imgu id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
+  by (simp add: is_imgu_def is_unifiers_id_subst)
+
+lemma is_unifier_id_subst_empty[simp]: "is_unifier id_subst {}"
+  by (simp add: is_unifier_def)
+
+lemma is_unifiers_id_subst_empty[simp]: "is_unifiers id_subst {}"
+  by (simp add: is_unifiers_def)
+
+lemma is_imgu_id_subst_empty[simp]: "is_imgu id_subst {}"
+  by (simp add: is_imgu_def)
+
+lemma is_unifiers_id_subst_insert_singleton[simp]:
+  "is_unifiers id_subst (insert {x} XX) \<longleftrightarrow> is_unifiers id_subst XX"
+  by (simp add: is_unifiers_id_subst)
+
+lemma is_imgu_id_subst_insert_singleton[simp]:
+  "is_imgu id_subst (insert {x} XX) \<longleftrightarrow> is_imgu id_subst XX"
+  by (simp add: is_imgu_id_subst)
+
 
 subsection \<open>Associativity of Composition\<close>
 
@@ -142,18 +174,6 @@ next
   ultimately show ?case
     by simp
 qed
-
-lemma is_unifier_id_subst:
-  shows "is_unifier id_subst X \<longleftrightarrow> card X \<le> 1"
-  by (simp add: is_unifier_def)
-
-lemma is_unifiers_id_subst:
-  shows "is_unifiers id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
-  by (simp add: is_unifiers_def is_unifier_id_subst)
-
-lemma is_imgu_id_subst:
-  shows "is_imgu id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
-  by (simp add: is_imgu_def is_unifiers_id_subst)
 
 end
   
