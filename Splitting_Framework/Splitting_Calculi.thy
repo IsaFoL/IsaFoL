@@ -869,8 +869,9 @@ proof -
       using ARed\<^sub>I_is_FRed\<^sub>I ARed\<^sub>F_is_FRed\<^sub>F N'_subset_ARed\<^sub>F_N
       by presburger
   qed
-  moreover have \<open>unsat_inf \<N> \<in> SRed\<^sub>I (N - N')\<close> if \<open>unsat_pre \<N>\<close> and
-                                                   \<iota>_is_redundant: \<open>unsat_inf \<N> \<in> SRed\<^sub>I N\<close> for \<N>
+  moreover have \<open>unsat_pre \<N> \<Longrightarrow> unsat_inf \<N> \<in> SRed\<^sub>I (N - N')\<close> 
+    if \<iota>_is_redundant: \<open>unsat_inf \<N> \<in> SRed\<^sub>I N\<close>
+    for \<N>
     using bot_not_in_sredF_\<N> N'_subset_SRed\<^sub>F_N \<iota>_is_redundant
     unfolding SRed\<^sub>I_def SRed\<^sub>F_def
     (* /!\ Quite slow... /!\ *)
