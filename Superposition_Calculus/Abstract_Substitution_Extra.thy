@@ -58,7 +58,67 @@ next
         card_le_Suc0_iff_eq dual_order.eq_iff imageE le_Suc_eq)
 qed
 
+
+subsection \<open>Substituting on Ground Expression\<close>
+
+lemma subst_ident_if_ground[simp]: "is_ground x \<Longrightarrow> x \<cdot> \<sigma> = x"
+  unfolding is_ground_def by simp
+
+lemma subst_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> X \<cdot>s \<sigma> = X"
+  unfolding is_ground_set_def subst_set_def by simp
+
+
+subsection \<open>Unifier of Ground Expressions\<close>
+
+lemma
+  assumes "is_unifier \<mu> {t\<^sub>1, t\<^sub>2}" and "is_ground t\<^sub>1" and "is_ground t\<^sub>2"
+  shows "t\<^sub>1 = t\<^sub>2"
+  using assms by (simp add: card_Suc_eq is_unifier_def le_Suc_eq subst_set_def)
+
+lemma is_unifier_subset: "is_unifier \<mu> A \<Longrightarrow> finite A \<Longrightarrow> B \<subseteq> A \<Longrightarrow> is_unifier \<mu> B"
+  by (smt (verit, best) card_mono dual_order.trans finite_imageI image_mono is_unifier_def
+      subst_set_def)
+
+lemma is_ground_set_subset: "is_ground_set A \<Longrightarrow> B \<subseteq> A \<Longrightarrow> is_ground_set B"
+  by (auto simp: is_ground_set_def)
+
+lemma ball_eq_constant_if_unifier:
+  assumes fin: "finite X" and unif: "is_unifier \<upsilon> (insert x X)" and "is_ground_set (insert x X)"
+  shows "\<forall>y \<in> X. y = x"
+  using assms
+proof (induction X rule: finite_induct)
+  case empty
+  show ?case by simp
+next
+  case (insert z F)
+
+  have "\<forall>y\<in>F. y = x"
+  proof (rule insert.IH)
+    show "is_unifier \<upsilon> (insert x F)"
+      using insert.hyps insert.prems(1)
+      by (auto elim: is_unifier_subset)
+  next
+    show "is_ground_set (insert x F)"
+      using insert.prems(2)
+      by (simp_all add: is_ground_set_def)
+  qed
+
+  moreover have "z = x"
+  proof -
+    have "x \<cdot> \<upsilon> = z \<cdot> \<upsilon>"
+      using insert.hyps insert.prems(1)
+      using is_unifier_iff_if_finite
+      by (meson finite.insertI insertCI)
+    then show ?thesis
+      by (metis is_ground_set_def insert.prems(2) insertCI subst_ident_if_ground)
+  qed
+
+  ultimately show ?case
+    by simp
+qed
+
 end
+
 
 locale basic_substitution = basic_substitution_ops subst id_subst comp_subst for
     subst :: "'x \<Rightarrow> 's \<Rightarrow> 'x" (infixl "\<cdot>" 67) and
@@ -120,60 +180,6 @@ subsection \<open>Associativity of Composition\<close>
 lemma comp_subst_assoc[simp]: "\<sigma> \<odot> (\<tau> \<odot> \<gamma>) = \<sigma> \<odot> \<tau> \<odot> \<gamma>"
   by (rule subst_ext) simp
 
-
-subsection \<open>Substituting on Ground Expression\<close>
-
-lemma is_ground_subst_ident[simp]: "is_ground x \<Longrightarrow> x \<cdot> \<sigma> = x"
-  unfolding is_ground_def by simp
-
-subsection \<open>Unifier of Ground Expressions\<close>
-
-lemma
-  assumes "is_unifier \<mu> {t\<^sub>1, t\<^sub>2}" and "is_ground t\<^sub>1" and "is_ground t\<^sub>2"
-  shows "t\<^sub>1 = t\<^sub>2"
-  using assms by (simp add: card_Suc_eq is_unifier_def le_Suc_eq subst_set_def)
-
-lemma is_unifier_subset: "is_unifier \<mu> A \<Longrightarrow> finite A \<Longrightarrow> B \<subseteq> A \<Longrightarrow> is_unifier \<mu> B"
-  by (smt (verit, best) card_mono dual_order.trans finite_imageI image_mono is_unifier_def
-      subst_set_def)
-
-lemma is_ground_set_subset: "is_ground_set A \<Longrightarrow> B \<subseteq> A \<Longrightarrow> is_ground_set B"
-  by (auto simp: is_ground_set_def)
-
-lemma ball_eq_constant_if_unifier:
-  assumes fin: "finite X" and unif: "is_unifier \<upsilon> (insert x X)" and "is_ground_set (insert x X)"
-  shows "\<forall>y \<in> X. y = x"
-  using assms
-proof (induction X rule: finite_induct)
-  case empty
-  show ?case by simp
-next
-  case (insert z F)
-
-  have "\<forall>y\<in>F. y = x"
-  proof (rule insert.IH)
-    show "is_unifier \<upsilon> (insert x F)"
-      using insert.hyps insert.prems(1)
-      by (auto elim: is_unifier_subset)
-  next
-    show "is_ground_set (insert x F)"
-      using insert.prems(2)
-      by (simp_all add: is_ground_set_def)
-  qed
-
-  moreover have "z = x"
-  proof -
-    have "x \<cdot> \<upsilon> = z \<cdot> \<upsilon>"
-      using insert.hyps insert.prems(1)
-      using is_unifier_iff_if_finite
-      by (meson finite.insertI insertCI)
-    then show ?thesis
-      by (metis is_ground_set_def insert.prems(2) insertCI is_ground_subst_ident)
-  qed
-
-  ultimately show ?case
-    by simp
-qed
 
 end
   
