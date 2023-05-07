@@ -102,6 +102,9 @@ lemma subst_set_insert[simp]: "(insert x X) \<cdot>s \<sigma> = insert (x \<cdot
 lemma subst_set_union[simp]: "(X1 \<union> X2) \<cdot>s \<sigma> = X1 \<cdot>s \<sigma> \<union> X2 \<cdot>s \<sigma>"
   by (simp only: subst_set_def image_Un)
 
+lemma is_unifiers_union: "is_unifiers \<upsilon> (XX\<^sub>1 \<union> XX\<^sub>2) \<longleftrightarrow> is_unifiers \<upsilon> XX\<^sub>1 \<and> is_unifiers \<upsilon> XX\<^sub>2"
+  by (auto simp add: is_unifiers_def)
+
 
 subsection \<open>Substituting on Ground Expressions\<close>
 
