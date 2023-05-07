@@ -45,20 +45,9 @@ lemma ground_instances_of_set_eq_Union_ground_instances_of:
   unfolding instances_of_set_def
   by auto
 
-definition groundings_of :: "'x \<Rightarrow> 'x set" where
-  "groundings_of x = {x \<cdot> \<gamma> | \<gamma>. is_ground (x \<cdot> \<gamma>)}"
-
-definition groundings_of_set :: "'x set \<Rightarrow> 'x set" where
-  "groundings_of_set X = (\<Union>x \<in> X. groundings_of x)"
-
-lemma ground_instances_of_eq_groundings_of: "ground_instances_of = groundings_of"
-  by (rule ext)
-    (auto simp: ground_instances_of_def instances_of_def generalizes_def groundings_of_def)
-
-lemma "ground_instances_of_set = groundings_of_set"
-  by (rule ext)
-    (simp only: ground_instances_of_set_eq_Union_ground_instances_of groundings_of_set_def
-      ground_instances_of_eq_groundings_of)
+lemma ground_instances_of_eq_Collect_subst_grounding:
+  "ground_instances_of x = {x \<cdot> \<gamma> | \<gamma>. is_ground (x \<cdot> \<gamma>)}"
+  by (auto simp: ground_instances_of_def instances_of_def generalizes_def)
 
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<rho> \<longleftrightarrow> (\<exists>\<sigma>. \<rho> \<odot> \<sigma> = id_subst)"
@@ -115,13 +104,19 @@ lemma subst_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> X \<cd
   unfolding is_ground_set_def subst_set_def by simp
 
 
-subsection \<open>Groundings of Ground Expressions\<close>
+subsection \<open>Instances of Ground Expressions\<close>
 
-lemma groundings_of_ident_if_ground[simp]: "is_ground x \<Longrightarrow> groundings_of x = {x}"
-  by (simp add: groundings_of_def)
+lemma instances_of_ident_if_ground[simp]: "is_ground x \<Longrightarrow> instances_of x = {x}"
+  unfolding instances_of_def generalizes_def by simp
 
-lemma groundings_of_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> groundings_of_set X = X"
-  unfolding is_ground_set_def groundings_of_set_def by auto
+lemma instances_of_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> instances_of_set X = X"
+  unfolding instances_of_set_def is_ground_set_def by simp
+
+lemma ground_instances_of_ident_if_ground[simp]: "is_ground x \<Longrightarrow> ground_instances_of x = {x}"
+  unfolding ground_instances_of_def by auto
+
+lemma ground_instances_of_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> ground_instances_of_set X = X"
+  unfolding is_ground_set_def ground_instances_of_set_eq_Union_ground_instances_of by simp
 
 
 subsection \<open>Unifier of Ground Expressions\<close>
@@ -253,65 +248,65 @@ lemma is_imgu_iff_is_idem_and_is_mgu: "is_imgu \<mu> XX \<longleftrightarrow> is
   by (auto simp: is_imgu_def is_idem_def is_mgu_def)
 
 
-subsection \<open>Groundings of Substitution\<close>
-
-lemma groundings_of_subst: "groundings_of (x \<cdot> \<sigma>) \<subseteq> groundings_of x"
-proof (rule subsetI)
-  fix x\<^sub>\<G>
-  assume "x\<^sub>\<G> \<in> groundings_of (x \<cdot> \<sigma>)"
-  then obtain \<gamma> where "x\<^sub>\<G> = x \<cdot> \<sigma> \<cdot> \<gamma>" and "is_ground (x \<cdot> \<sigma> \<cdot> \<gamma>)"
-    unfolding groundings_of_def mem_Collect_eq by auto
-
-  thus "x\<^sub>\<G> \<in> groundings_of x"
-    unfolding groundings_of_def mem_Collect_eq
-    by (metis subst_comp_subst)
-qed
-
-lemma groundings_of_set_subst_set: "groundings_of_set (X \<cdot>s \<sigma>) \<subseteq> groundings_of_set X"
-proof (rule subsetI)
-  fix x\<^sub>\<G>
-  assume "x\<^sub>\<G> \<in> groundings_of_set (X \<cdot>s \<sigma>)"
-  then obtain x where "x \<in> X" and "x\<^sub>\<G> \<in> groundings_of (x \<cdot> \<sigma>)"
-    unfolding groundings_of_set_def subst_set_def by auto
-  then show "x\<^sub>\<G> \<in> groundings_of_set X"
-    unfolding groundings_of_set_def
-    using groundings_of_subst[of x \<sigma>] by auto
-qed
-
-
 subsection \<open>Groundings Idempotence\<close>
 
-lemma image_groundings_of_groundings_of:
-  "groundings_of ` groundings_of x = (\<lambda>x. {x}) ` groundings_of x"
+lemma image_ground_instances_of_ground_instances_of:
+  "ground_instances_of ` ground_instances_of x = (\<lambda>x. {x}) ` ground_instances_of x"
 proof (rule image_cong)
-  show "\<And>x\<^sub>\<G>. x\<^sub>\<G> \<in> groundings_of x \<Longrightarrow> groundings_of x\<^sub>\<G> = {x\<^sub>\<G>}"
-    using groundings_of_ident_if_ground groundings_of_def by auto
+  show "\<And>x\<^sub>\<G>. x\<^sub>\<G> \<in> ground_instances_of x \<Longrightarrow> ground_instances_of x\<^sub>\<G> = {x\<^sub>\<G>}"
+    using ground_instances_of_ident_if_ground ground_instances_of_def by auto
 qed simp
 
 lemma grounding_of_set_grounding_of_set_idem[simp]:
-  "groundings_of_set (groundings_of_set X) = groundings_of_set X"
-  unfolding groundings_of_set_def UN_UN_flatten
-  unfolding image_groundings_of_groundings_of
+  "ground_instances_of_set (ground_instances_of_set X) = ground_instances_of_set X"
+  unfolding ground_instances_of_set_eq_Union_ground_instances_of UN_UN_flatten
+  unfolding image_ground_instances_of_ground_instances_of
   by simp
 
 
-subsection \<open>Groundings of Renamed Expressions\<close>
+subsection \<open>Instances of Substitution\<close>
 
-lemma groundings_of_subst_ident_if_renaming[simp]:
-  assumes "is_renaming \<rho>"
-  shows "groundings_of (x \<cdot> \<rho>) = groundings_of x"
-  using assms
-  by (metis groundings_of_subst is_renaming_def subset_antisym subst_comp_subst subst_id_subst)
-
-lemma groundings_of_set_subst_set_ident_if_renaming[simp]:
-  assumes ren: "is_renaming \<rho>"
-  shows "groundings_of_set (X \<cdot>s \<rho>) = groundings_of_set X"
-proof -
-  have "(\<Union>x \<in> X. groundings_of (x \<cdot> \<rho>)) = (\<Union>x \<in> X. groundings_of x)"
-    using groundings_of_subst_ident_if_renaming[OF ren] by simp
-  thus ?thesis
-    by (simp add: groundings_of_set_def subst_set_def)
+lemma instances_of_subst:
+  "instances_of (x \<cdot> \<sigma>) \<subseteq> instances_of x"
+proof (rule subsetI)
+  fix x\<^sub>\<sigma> assume "x\<^sub>\<sigma> \<in> instances_of (x \<cdot> \<sigma>)"
+  thus "x\<^sub>\<sigma> \<in> instances_of x"
+    by (metis CollectD CollectI generalizes_def instances_of_def subst_comp_subst)
 qed
+
+lemma instances_of_set_subst_set:
+  "instances_of_set (X \<cdot>s \<sigma>) \<subseteq> instances_of_set X"
+  unfolding instances_of_set_def subst_set_def
+  using instances_of_subst by auto
+
+lemma ground_instances_of_subst:
+  "ground_instances_of (x \<cdot> \<sigma>) \<subseteq> ground_instances_of x"
+  unfolding ground_instances_of_def
+  using instances_of_subst by auto
+
+lemma ground_instances_of_set_subst_set:
+  "ground_instances_of_set (X \<cdot>s \<sigma>) \<subseteq> ground_instances_of_set X"
+  unfolding ground_instances_of_set_def
+  using instances_of_set_subst_set by auto
+
+
+subsection \<open>Instances of Renamed Expressions\<close>
+
+lemma instances_of_subst_ident_if_renaming[simp]:
+  "is_renaming \<rho> \<Longrightarrow> instances_of (x \<cdot> \<rho>) = instances_of x"
+  by (metis instances_of_subst is_renaming_def subset_antisym subst_comp_subst subst_id_subst)
+
+lemma instances_of_set_subst_set_ident_if_renaming[simp]:
+  "is_renaming \<rho> \<Longrightarrow> instances_of_set (X \<cdot>s \<rho>) = instances_of_set X"
+  by (simp add: instances_of_set_def subst_set_def)
+
+lemma ground_instances_of_subst_ident_if_renaming[simp]:
+  "is_renaming \<rho> \<Longrightarrow> ground_instances_of (x \<cdot> \<rho>) = ground_instances_of x"
+  by (simp add: ground_instances_of_def)
+
+lemma ground_instances_of_set_subst_set_ident_if_renaming[simp]:
+  "is_renaming \<rho> \<Longrightarrow> ground_instances_of_set (X \<cdot>s \<rho>) = ground_instances_of_set X"
+  by (simp add: ground_instances_of_set_def)
 
 end
   
