@@ -1,6 +1,5 @@
 theory Abstract_Substitution_Extra
-  imports
-    Main
+  imports Main
 begin
 
 locale basic_substitution_ops =
@@ -20,7 +19,13 @@ definition is_ground_set :: "'x set \<Rightarrow> bool" where
   "is_ground_set X \<longleftrightarrow> (\<forall>x \<in> X. is_ground x)"
 
 definition is_ground_subst :: "'s \<Rightarrow> bool" where
-  "is_ground_subst \<sigma> \<longleftrightarrow> (\<forall>x. is_ground (x \<cdot> \<sigma>))"
+  "is_ground_subst \<gamma> \<longleftrightarrow> (\<forall>x. is_ground (x \<cdot> \<gamma>))"
+
+definition groundings_of :: "'x \<Rightarrow> 'x set" where
+  "groundings_of x = {x \<cdot> \<gamma> | \<gamma>. is_ground (x \<cdot> \<gamma>)}"
+
+definition groundings_of_set :: "'x set \<Rightarrow> 'x set" where
+  "groundings_of_set X = (\<Union>x \<in> X. groundings_of x)"
 
 definition generalizes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
   "generalizes x y \<longleftrightarrow> (\<exists>\<sigma>. x \<cdot> \<sigma> = y)"
@@ -43,6 +48,9 @@ definition is_mgu :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
 definition is_imgu :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
   "is_imgu \<sigma> XX \<longleftrightarrow> is_unifiers \<sigma> XX \<and> (\<forall>\<tau>. is_unifiers \<tau> XX \<longrightarrow> \<tau> = \<sigma> \<odot> \<tau>)"
 
+definition is_idem :: "'s \<Rightarrow> bool" where
+  "is_idem \<sigma> \<longleftrightarrow> (\<sigma> \<odot> \<sigma>) = \<sigma>"
+
 lemma is_unifier_iff_if_finite:
   assumes "finite X"
   shows "is_unifier \<sigma> X \<longleftrightarrow> (\<forall>x\<in>X. \<forall>y\<in>X. x \<cdot> \<sigma> = y \<cdot> \<sigma>)"
@@ -58,14 +66,32 @@ next
         card_le_Suc0_iff_eq dual_order.eq_iff imageE le_Suc_eq)
 qed
 
+lemma subst_set_empty[simp]: "{} \<cdot>s \<sigma> = {}"
+  by (simp only: subst_set_def image_empty)
 
-subsection \<open>Substituting on Ground Expression\<close>
+lemma subst_set_insert[simp]: "(insert x X) \<cdot>s \<sigma> = insert (x \<cdot> \<sigma>) (X \<cdot>s \<sigma>)"
+  by (simp only: subst_set_def image_insert)
+
+lemma subst_set_union[simp]: "(X1 \<union> X2) \<cdot>s \<sigma> = X1 \<cdot>s \<sigma> \<union> X2 \<cdot>s \<sigma>"
+  by (simp only: subst_set_def image_Un)
+
+
+subsection \<open>Substituting on Ground Expressions\<close>
 
 lemma subst_ident_if_ground[simp]: "is_ground x \<Longrightarrow> x \<cdot> \<sigma> = x"
   unfolding is_ground_def by simp
 
 lemma subst_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> X \<cdot>s \<sigma> = X"
   unfolding is_ground_set_def subst_set_def by simp
+
+
+subsection \<open>Groundings of Ground Expressions\<close>
+
+lemma groundings_of_ident_if_ground[simp]: "is_ground x \<Longrightarrow> groundings_of x = {x}"
+  by (simp add: groundings_of_def)
+
+lemma groundings_of_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> groundings_of_set X = X"
+  unfolding is_ground_set_def groundings_of_set_def by auto
 
 
 subsection \<open>Unifier of Ground Expressions\<close>
@@ -145,30 +171,40 @@ lemma comp_subst_id_subst[simp]: "\<sigma> \<odot> id_subst = \<sigma>"
 lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
   by (simp add: is_renaming_def)
 
-lemma is_unifier_id_subst:
-  shows "is_unifier id_subst X \<longleftrightarrow> card X \<le> 1"
-  by (simp add: is_unifier_def)
-
-lemma is_unifiers_id_subst:
-  shows "is_unifiers id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
-  by (simp add: is_unifiers_def is_unifier_id_subst)
-
-lemma is_imgu_id_subst:
-  shows "is_imgu id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
-  by (simp add: is_imgu_def is_unifiers_id_subst)
-
 lemma is_unifier_id_subst_empty[simp]: "is_unifier id_subst {}"
   by (simp add: is_unifier_def)
 
 lemma is_unifiers_id_subst_empty[simp]: "is_unifiers id_subst {}"
   by (simp add: is_unifiers_def)
 
+lemma is_mgu_id_subst_empty[simp]: "is_mgu id_subst {}"
+  by (simp add: is_mgu_def)
+
 lemma is_imgu_id_subst_empty[simp]: "is_imgu id_subst {}"
   by (simp add: is_imgu_def)
+
+lemma is_idem_id_subst[simp]: "is_idem id_subst"
+  by (simp add: is_idem_def)
+
+lemma is_unifier_id_subst: "is_unifier id_subst X \<longleftrightarrow> card X \<le> 1"
+  by (simp add: is_unifier_def)
+
+lemma is_unifiers_id_subst: "is_unifiers id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
+  by (simp add: is_unifiers_def is_unifier_id_subst)
+
+lemma is_mgu_id_subst: "is_mgu id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
+  by (simp add: is_mgu_def is_unifiers_id_subst)
+
+lemma is_imgu_id_subst: "is_imgu id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
+  by (simp add: is_imgu_def is_unifiers_id_subst)
 
 lemma is_unifiers_id_subst_insert_singleton[simp]:
   "is_unifiers id_subst (insert {x} XX) \<longleftrightarrow> is_unifiers id_subst XX"
   by (simp add: is_unifiers_id_subst)
+
+lemma is_mgu_id_subst_insert_singleton[simp]:
+  "is_mgu id_subst (insert {x} XX) \<longleftrightarrow> is_mgu id_subst XX"
+  by (simp add: is_mgu_id_subst)
 
 lemma is_imgu_id_subst_insert_singleton[simp]:
   "is_imgu id_subst (insert {x} XX) \<longleftrightarrow> is_imgu id_subst XX"
@@ -180,6 +216,72 @@ subsection \<open>Associativity of Composition\<close>
 lemma comp_subst_assoc[simp]: "\<sigma> \<odot> (\<tau> \<odot> \<gamma>) = \<sigma> \<odot> \<tau> \<odot> \<gamma>"
   by (rule subst_ext) simp
 
+
+subsection \<open>IMGU is Idempotent and an MGU\<close>
+
+lemma is_imgu_iff_is_idem_and_is_mgu: "is_imgu \<mu> XX \<longleftrightarrow> is_idem \<mu> \<and> is_mgu \<mu> XX"
+  by (auto simp: is_imgu_def is_idem_def is_mgu_def)
+
+
+subsection \<open>Groundings of Substitution\<close>
+
+lemma groundings_of_subst: "groundings_of (x \<cdot> \<sigma>) \<subseteq> groundings_of x"
+proof (rule subsetI)
+  fix x\<^sub>\<G>
+  assume "x\<^sub>\<G> \<in> groundings_of (x \<cdot> \<sigma>)"
+  then obtain \<gamma> where "x\<^sub>\<G> = x \<cdot> \<sigma> \<cdot> \<gamma>" and "is_ground (x \<cdot> \<sigma> \<cdot> \<gamma>)"
+    unfolding groundings_of_def mem_Collect_eq by auto
+
+  thus "x\<^sub>\<G> \<in> groundings_of x"
+    unfolding groundings_of_def mem_Collect_eq
+    by (metis subst_comp_subst)
+qed
+
+lemma groundings_of_set_subst_set: "groundings_of_set (X \<cdot>s \<sigma>) \<subseteq> groundings_of_set X"
+proof (rule subsetI)
+  fix x\<^sub>\<G>
+  assume "x\<^sub>\<G> \<in> groundings_of_set (X \<cdot>s \<sigma>)"
+  then obtain x where "x \<in> X" and "x\<^sub>\<G> \<in> groundings_of (x \<cdot> \<sigma>)"
+    unfolding groundings_of_set_def subst_set_def by auto
+  then show "x\<^sub>\<G> \<in> groundings_of_set X"
+    unfolding groundings_of_set_def
+    using groundings_of_subst[of x \<sigma>] by auto
+qed
+
+
+subsection \<open>Groundings Idempotence\<close>
+
+lemma image_groundings_of_groundings_of:
+  "groundings_of ` groundings_of x = (\<lambda>x. {x}) ` groundings_of x"
+proof (rule image_cong)
+  show "\<And>x\<^sub>\<G>. x\<^sub>\<G> \<in> groundings_of x \<Longrightarrow> groundings_of x\<^sub>\<G> = {x\<^sub>\<G>}"
+    using groundings_of_ident_if_ground groundings_of_def by auto
+qed simp
+
+lemma grounding_of_set_grounding_of_set_idem[simp]:
+  "groundings_of_set (groundings_of_set X) = groundings_of_set X"
+  unfolding groundings_of_set_def UN_UN_flatten
+  unfolding image_groundings_of_groundings_of
+  by simp
+
+
+subsection \<open>Groundings of Renamed Expressions\<close>
+
+lemma groundings_of_subst_ident_if_renaming[simp]:
+  assumes "is_renaming \<rho>"
+  shows "groundings_of (x \<cdot> \<rho>) = groundings_of x"
+  using assms
+  by (metis groundings_of_subst is_renaming_def subset_antisym subst_comp_subst subst_id_subst)
+
+lemma groundings_of_set_subst_set_ident_if_renaming[simp]:
+  assumes ren: "is_renaming \<rho>"
+  shows "groundings_of_set (X \<cdot>s \<rho>) = groundings_of_set X"
+proof -
+  have "(\<Union>x \<in> X. groundings_of (x \<cdot> \<rho>)) = (\<Union>x \<in> X. groundings_of x)"
+    using groundings_of_subst_ident_if_renaming[OF ren] by simp
+  thus ?thesis
+    by (simp add: groundings_of_set_def subst_set_def)
+qed
 
 end
   
