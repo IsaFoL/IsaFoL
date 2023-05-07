@@ -21,17 +21,44 @@ definition is_ground_set :: "'x set \<Rightarrow> bool" where
 definition is_ground_subst :: "'s \<Rightarrow> bool" where
   "is_ground_subst \<gamma> \<longleftrightarrow> (\<forall>x. is_ground (x \<cdot> \<gamma>))"
 
+definition generalizes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
+  "generalizes x y \<longleftrightarrow> (\<exists>\<sigma>. x \<cdot> \<sigma> = y)"
+
+definition strictly_generalizes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
+  "strictly_generalizes x y \<longleftrightarrow> generalizes x y \<and> \<not> generalizes y x"
+
+definition instances_of :: "'x \<Rightarrow> 'x set" where
+  "instances_of x = {y. generalizes x y}"
+
+definition instances_of_set :: "'x set \<Rightarrow> 'x set" where
+  "instances_of_set X = (\<Union>x \<in> X. instances_of x)"
+
+definition ground_instances_of :: "'x \<Rightarrow> 'x set" where
+  "ground_instances_of x = {x\<^sub>\<G> \<in> instances_of x. is_ground x\<^sub>\<G>}"
+
+definition ground_instances_of_set :: "'x set \<Rightarrow> 'x set" where
+  "ground_instances_of_set X = {x\<^sub>\<G> \<in> instances_of_set X. is_ground x\<^sub>\<G>}"
+
+lemma ground_instances_of_set_eq_Union_ground_instances_of:
+  "ground_instances_of_set X = (\<Union>x \<in> X. ground_instances_of x)"
+  unfolding ground_instances_of_set_def ground_instances_of_def
+  unfolding instances_of_set_def
+  by auto
+
 definition groundings_of :: "'x \<Rightarrow> 'x set" where
   "groundings_of x = {x \<cdot> \<gamma> | \<gamma>. is_ground (x \<cdot> \<gamma>)}"
 
 definition groundings_of_set :: "'x set \<Rightarrow> 'x set" where
   "groundings_of_set X = (\<Union>x \<in> X. groundings_of x)"
 
-definition generalizes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
-  "generalizes x y \<longleftrightarrow> (\<exists>\<sigma>. x \<cdot> \<sigma> = y)"
+lemma ground_instances_of_eq_groundings_of: "ground_instances_of = groundings_of"
+  by (rule ext)
+    (auto simp: ground_instances_of_def instances_of_def generalizes_def groundings_of_def)
 
-definition strictly_generalizes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
-  "strictly_generalizes x y \<longleftrightarrow> generalizes x y \<and> \<not> generalizes y x"
+lemma "ground_instances_of_set = groundings_of_set"
+  by (rule ext)
+    (simp only: ground_instances_of_set_eq_Union_ground_instances_of groundings_of_set_def
+      ground_instances_of_eq_groundings_of)
 
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<rho> \<longleftrightarrow> (\<exists>\<sigma>. \<rho> \<odot> \<sigma> = id_subst)"
