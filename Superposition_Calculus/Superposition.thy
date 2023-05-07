@@ -135,8 +135,7 @@ lemma vars_cls_add_mset[simp]: "vars_cls (add_mset L C) = vars_lit L \<union> va
 lemma vars_cls_plus[simp]: "vars_cls (C\<^sub>1 + C\<^sub>2) = vars_cls C\<^sub>1 \<union> vars_cls C\<^sub>2"
   by (simp add: vars_cls_def)
 
-abbreviation is_ground_trm where
-  "is_ground_trm t \<equiv> vars_term t = {}"
+term Abstract_Substitution_Extra_First_Order_Term.is_ground_trm
 
 abbreviation is_ground_trm_ctxt where
   "is_ground_trm_ctxt c \<equiv> vars_ctxt c = {}"
@@ -156,9 +155,6 @@ abbreviation is_ground_cls_set where
 lemma is_ground_cls_if_in_ground_cls_set:
   "is_ground_cls_set N \<Longrightarrow> C \<in> N \<Longrightarrow> is_ground_cls C"
   by (simp add: vars_cls_set_def)
-
-lemma subst_trm_ident_if_is_ground_trm[simp]: "is_ground_trm t \<Longrightarrow> t \<cdot>t \<sigma> = t"
-  by (simp add: subst_apply_term_ident)
 
 lemma subst_trm_ctxt_ident_if_is_ground_trm_ctxt[simp]: "is_ground_trm_ctxt c \<Longrightarrow> c \<cdot>t\<^sub>c \<sigma> = c"
   by (induction c) (simp_all add: list.map_ident_strong)
@@ -185,7 +181,7 @@ proof (intro Set.equalityI Set.subsetI)
     apply (rule rstep.cases)
     using assms
     by (metis (no_types, lifting) compatible_with_ctxtD compatible_with_ctxt_rewrite_inside_ctxt
-        fst_conv rule_def snd_conv subsetD subset_rewrite_inside_ctxt subst_trm_ident_if_is_ground_trm)
+        fst_conv rule_def snd_conv subsetD subset_rewrite_inside_ctxt term_subst.subst_ident_if_ground)
 next
   show "\<And>x. x \<in> rewrite_inside_ctxt r \<Longrightarrow> x \<in> rstep r"
     by (smt (verit, best) mem_Collect_eq rewrite_inside_ctxt_def rstep_ctxt subset_iff subset_rstep)
@@ -575,7 +571,7 @@ proof (cases P1 P2 C rule: superposition.cases)
     "is_ground_trm s\<^sub>1'" and "is_ground_trm t\<^sub>2" and "is_ground_trm t\<^sub>2'"
     by simp_all
   hence "term_subst.is_ground_set {u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}"
-    by (simp add: term_subst.is_ground_set_def term_subst.is_ground_def)
+    by (simp add: term_subst.is_ground_set_def)
   moreover have "term_subst.is_unifier \<mu> {u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}"
     using \<open>term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}}\<close>
     by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
@@ -693,7 +689,7 @@ proof (cases P C rule: eq_resolution.cases)
   hence "is_ground_trm t\<^sub>1" and "is_ground_trm t\<^sub>2"
     by simp_all
   hence "term_subst.is_ground_set {t\<^sub>1, t\<^sub>2}"
-    by (simp add: term_subst.is_ground_set_def term_subst.is_ground_def)
+    by (simp add: term_subst.is_ground_set_def)
 
   moreover from \<open>term_subst.is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}}\<close> have "term_subst.is_unifier \<mu> {t\<^sub>1, t\<^sub>2}"
     by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
@@ -736,7 +732,7 @@ proof (cases P C rule: eq_factoring.cases)
   hence "is_ground_trm s\<^sub>1" and "is_ground_trm s\<^sub>1'" and "is_ground_trm t\<^sub>2" and "is_ground_trm t\<^sub>2'"
     by simp_all
   hence "term_subst.is_ground_set {s\<^sub>1, t\<^sub>2}"
-    by (simp add: term_subst.is_ground_set_def term_subst.is_ground_def)
+    by (simp add: term_subst.is_ground_set_def)
   moreover from \<open>term_subst.is_imgu \<mu> {{s\<^sub>1, t\<^sub>2}}\<close> have "term_subst.is_unifier \<mu> {s\<^sub>1, t\<^sub>2}"
     by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
   ultimately have "s\<^sub>1 = t\<^sub>2"
@@ -855,7 +851,7 @@ proof (cases P1 P2 C rule: superposition.cases)
     "is_ground_trm s\<^sub>1'" and "is_ground_trm t\<^sub>2" and "is_ground_trm t\<^sub>2'"
     by simp_all
   hence "term_subst.is_ground_set {u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}"
-    by (simp add: term_subst.is_ground_set_def term_subst.is_ground_def)
+    by (simp add: term_subst.is_ground_set_def)
   moreover have "term_subst.is_unifier \<mu> {u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}"
     using \<open>term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}}\<close>
     by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
@@ -870,11 +866,11 @@ proof (cases P1 P2 C rule: superposition.cases)
   have "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1\<langle>u\<^sub>1\<rangle>"
     using \<open>\<not> s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>\<close> \<open>is_ground_trm s\<^sub>1\<langle>u\<^sub>1\<rangle>\<close> \<open>is_ground_trm s\<^sub>1'\<close>
     using totalp_on_less_trm[THEN totalp_onD, simplified]
-    by (metis reflclp_iff subst_trm_ident_if_is_ground_trm)
+    by (metis reflclp_iff term_subst.subst_ident_if_ground)
 
   have "t\<^sub>2' \<prec>\<^sub>t t\<^sub>2"
     by (metis (mono_tags) \<open>is_ground_trm t\<^sub>2'\<close> \<open>is_ground_trm u\<^sub>1\<close> \<open>u\<^sub>1 = t\<^sub>2\<close> superpositionI(15)
-        mem_Collect_eq subst_trm_ident_if_is_ground_trm sup2I1 sup2I2 totalp_onD totalp_on_less_trm)
+        mem_Collect_eq term_subst.subst_ident_if_ground sup2I1 sup2I2 totalp_onD totalp_on_less_trm)
 
   have "P\<^sub>1' + add_mset (\<P> (s\<^sub>1\<langle>t\<^sub>2'\<rangle> \<approx> s\<^sub>1')) P\<^sub>2' \<prec>\<^sub>c P\<^sub>1' + {#\<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')#}"
   proof (intro one_step_implies_multp ballI)
@@ -1067,7 +1063,7 @@ proof (cases P C rule: eq_factoring.cases)
     by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
   moreover have "term_subst.is_ground_set {s\<^sub>1, t\<^sub>2}"
     using \<open>is_ground_trm s\<^sub>1\<close> \<open>is_ground_trm t\<^sub>2\<close>
-    by (simp add: term_subst.is_ground_set_def term_subst.is_ground_def)
+    by (simp add: term_subst.is_ground_set_def)
   ultimately have "s\<^sub>1 = t\<^sub>2"
     using term_subst.ball_eq_constant_if_unifier[of "{s\<^sub>1, t\<^sub>2}" _ \<mu>] by auto
   hence "s\<^sub>1' \<prec>\<^sub>t t\<^sub>2"
@@ -1562,7 +1558,7 @@ proof (rule ccontr)
 
   have "l1' = l2"
     using mgu_l1'_l2 \<open>is_ground_trm l1'\<close> \<open>is_ground_trm l2\<close>
-    by (metis mgu_var_disjoint_string_sound subst_trm_ident_if_is_ground_trm)
+    by (metis mgu_var_disjoint_string_sound term_subst.subst_ident_if_ground)
 
   have "equation N2 C1 = {(l1, r1)}"
     using rule1_in' production_eq_empty_or_singleton[OF ground_C1]
@@ -1948,7 +1944,7 @@ proof -
     hence ball_R\<^sub>D_rhs_lt_lhs: "(t1, t2) \<in> rstep R\<^sub>D \<Longrightarrow> t2 \<prec>\<^sub>t t1" for t1 t2
       by (smt (verit) R\<^sub>D_def fst_conv ground_N ground_rule_if_mem_rewrite_sys
           less_trm_compatible_with_ctxt prod.collapse rstepE snd_conv
-          subst_trm_ident_if_is_ground_trm)
+          term_subst.subst_ident_if_ground)
 
     assume L_def: "L = Neg (s \<approx> t)" and "(s, t) \<notin> (rstep R\<^sub>D)\<^sup>\<down>"
 
@@ -2467,7 +2463,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
             "u\<^sub>0 = ctxt\<langle>t'\<rangle>" and
             "(t, t') \<in> rewrite_sys N\<^sub>\<G> C\<^sub>\<G>"
             by (smt (verit, ccfv_SIG) \<open>s \<prec>\<^sub>t s' \<or> s' \<prec>\<^sub>t s\<close> asympD asymp_less_trm fst_conv ground_N\<^sub>\<G>
-                rstep.cases snd_conv subst_trm_ident_if_is_ground_trm ground_rule_if_mem_rewrite_sys)
+                rstep.cases snd_conv term_subst.subst_ident_if_ground ground_rule_if_mem_rewrite_sys)
           then obtain D\<^sub>\<G> where
             "(t, t') \<in> equation N\<^sub>\<G> D\<^sub>\<G>" and "D\<^sub>\<G> \<in> N\<^sub>\<G>" and "D\<^sub>\<G> \<prec>\<^sub>c C\<^sub>\<G>"
             unfolding rewrite_sys_def by auto
@@ -2679,7 +2675,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
               by (simp only:
                   is_ground_cls_if_in_ground_cls_set[OF ground_N\<^sub>\<G>, of D\<^sub>\<G>]
                   is_ground_trm_if_mem_equation(1)[of D\<^sub>\<G> t t' N\<^sub>\<G>]
-                  subst_trm_ident_if_is_ground_trm[of t \<sigma>])
+                  term_subst.subst_ident_if_ground[of t \<sigma>])
 
             obtain D\<^sub>\<G>' where
               D\<^sub>\<G>_def: "D\<^sub>\<G> = add_mset (Pos (t \<approx> t')) D\<^sub>\<G>'" and
