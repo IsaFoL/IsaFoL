@@ -580,7 +580,7 @@ proof (cases P1 P2 C rule: superposition.cases)
     using \<open>term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}}\<close>
     by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
   ultimately have "u\<^sub>1 = t\<^sub>2"
-    using term_subst.ball_eq_constant_if_unifier[of "{_}" \<mu>, simplified]
+    using term_subst.ball_eq_constant_if_unifier[of "{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}" _ \<mu>]
     using \<open>is_ground_trm t\<^sub>2\<close> \<open>is_ground_trm u\<^sub>1\<close> by auto
 
   have 1: "cls_gcls ` {gcls_cls P1, gcls_cls P2} = {P1, P2}"
@@ -699,7 +699,7 @@ proof (cases P C rule: eq_resolution.cases)
     by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
 
   ultimately have "t\<^sub>1 = t\<^sub>2"
-    using term_subst.ball_eq_constant_if_unifier[of "{t\<^sub>2}" \<mu> t\<^sub>1] by simp
+    using term_subst.ball_eq_constant_if_unifier[of "{t\<^sub>1, t\<^sub>2}" _ \<mu>] by simp
 
   have 1: "cls_gcls ` {gcls_cls P} = {P}"
     using ground_P by simp
@@ -740,7 +740,7 @@ proof (cases P C rule: eq_factoring.cases)
   moreover from \<open>term_subst.is_imgu \<mu> {{s\<^sub>1, t\<^sub>2}}\<close> have "term_subst.is_unifier \<mu> {s\<^sub>1, t\<^sub>2}"
     by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
   ultimately have "s\<^sub>1 = t\<^sub>2"
-    using term_subst.ball_eq_constant_if_unifier[of "{t\<^sub>2}" \<mu> s\<^sub>1] by simp
+    using term_subst.ball_eq_constant_if_unifier[of "{s\<^sub>1, t\<^sub>2}" _ \<mu>] by simp
 
   have 1: "cls_gcls ` {gcls_cls P} = {P}"
     using ground_P by simp
@@ -860,7 +860,7 @@ proof (cases P1 P2 C rule: superposition.cases)
     using \<open>term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}}\<close>
     by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
   ultimately have "u\<^sub>1 = t\<^sub>2"
-    using term_subst.ball_eq_constant_if_unifier[of "{_}" \<mu>, simplified]
+    using term_subst.ball_eq_constant_if_unifier[of "{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}" _ \<mu>]
     using \<open>is_ground_trm t\<^sub>2\<close> \<open>is_ground_trm u\<^sub>1\<close> by auto
 
   have "P2 \<prec>\<^sub>c P1"
@@ -1069,7 +1069,7 @@ proof (cases P C rule: eq_factoring.cases)
     using \<open>is_ground_trm s\<^sub>1\<close> \<open>is_ground_trm t\<^sub>2\<close>
     by (simp add: term_subst.is_ground_set_def term_subst.is_ground_def)
   ultimately have "s\<^sub>1 = t\<^sub>2"
-    using term_subst.ball_eq_constant_if_unifier[of "{_}", simplified] by auto
+    using term_subst.ball_eq_constant_if_unifier[of "{s\<^sub>1, t\<^sub>2}" _ \<mu>] by auto
   hence "s\<^sub>1' \<prec>\<^sub>t t\<^sub>2"
     using \<open>\<not> s\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<mu>\<close> \<open>is_ground_trm s\<^sub>1\<close> \<open>is_ground_trm s\<^sub>1'\<close>
     using totalp_on_less_trm[THEN totalp_onD, unfolded mem_Collect_eq]
