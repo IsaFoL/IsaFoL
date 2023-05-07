@@ -4,7 +4,6 @@ theory Superposition
     Main
 
     (* Theories from the AFP *)
-    "Ordered_Resolution_Prover.Abstract_Substitution"
     "Saturation_Framework.Calculus"
     "Saturation_Framework.Lifting_to_Non_Ground_Calculi"
     "Saturation_Framework_Extensions.Clausal_Calculus"
@@ -16,40 +15,14 @@ theory Superposition
     "CR.Critical_Pairs"
 
     (* Theories from this formalization *)
-    "Multiset_Extra"
+    "Abstract_Rewriting_Extra"
     "Abstract_Substitution_Extra_First_Order_Term"
-    "Unordered_Prod"
+    "Multiset_Extra"
     "Term_Rewrite_System"
+    "Term_Rewriting_Extra"
+    "Transitive_Closure_Extra"
+    "Unordered_Prod"
 begin
-
-
-lemma rhs_lt_lhs_if_rule_in_rstep:
-  fixes less_trm :: "('f, 'a) term \<Rightarrow> ('f, 'a) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50)
-  assumes
-    rule_in: "(t1, t2) \<in> rstep R" and
-    ball_R_rhs_lt_lhs: "\<And>t1 t2. (t1, t2) \<in> R \<Longrightarrow> t2 \<prec>\<^sub>t t1" and
-    closed_unter_subst_strong: "\<And>t1 t2 \<sigma>. (t1, t2) \<in> R \<Longrightarrow> t2 \<prec>\<^sub>t t1 \<Longrightarrow> t2 \<cdot> \<sigma> \<prec>\<^sub>t t1 \<cdot> \<sigma>" and
-    compatible_with_ctxt: "\<And>t1 t2 ctxt. t2 \<prec>\<^sub>t t1 \<Longrightarrow> ctxt\<langle>t2\<rangle> \<prec>\<^sub>t ctxt\<langle>t1\<rangle>"
-  shows "t2 \<prec>\<^sub>t t1"
-proof -
-  from rule_in obtain t1' t2' ctxt \<sigma> where
-    "(t1', t2') \<in> R" and
-    "t1 = ctxt\<langle>t1' \<cdot> \<sigma>\<rangle>" and
-    "t2 = ctxt\<langle>t2' \<cdot> \<sigma>\<rangle>"
-    by auto
-
-  from ball_R_rhs_lt_lhs have "t2' \<prec>\<^sub>t t1'"
-    using \<open>(t1', t2') \<in> R\<close> by simp
-
-  with closed_unter_subst_strong have "t2' \<cdot> \<sigma> \<prec>\<^sub>t t1' \<cdot> \<sigma>"
-    using \<open>(t1', t2') \<in> R\<close> by blast
-
-  with compatible_with_ctxt have "ctxt\<langle>t2' \<cdot> \<sigma>\<rangle> \<prec>\<^sub>t ctxt\<langle>t1' \<cdot> \<sigma>\<rangle>"
-    by metis
-
-  thus ?thesis
-    using \<open>t1 = ctxt\<langle>t1' \<cdot> \<sigma>\<rangle>\<close> \<open>t2 = ctxt\<langle>t2' \<cdot> \<sigma>\<rangle>\<close> by metis
-qed
 
 
 no_notation subst_compose (infixl "\<circ>\<^sub>s" 75)
@@ -61,57 +34,6 @@ hide_const
   Inference_System.prems_of
   Inference_System.concl_of
   Inference_System.main_prem_of
-
-
-lemma reflclp_iff: "\<And>R x y. R\<^sup>=\<^sup>= x y \<longleftrightarrow> R x y \<or> x = y"
-  by (metis sup2CI sup2E)
-
-lemma transpD_strict_non_strict:
-  assumes "transp R"
-  shows "\<And>x y z. R x y \<Longrightarrow> R\<^sup>=\<^sup>= y z \<Longrightarrow> R x z"
-  using \<open>transp R\<close>[THEN transpD] by blast
-
-lemma transpD_non_strict_strict:
-  assumes "transp R"
-  shows "\<And>x y z. R\<^sup>=\<^sup>= x y \<Longrightarrow> R y z \<Longrightarrow> R x z"
-  using \<open>transp R\<close>[THEN transpD] by blast
-
-lemma mem_rtrancl_union_iff_mem_rtrancl_lhs:
-  assumes "\<And>z. (x, z) \<in> A\<^sup>* \<Longrightarrow> z \<notin> Domain B"
-  shows "(x, y) \<in> (A \<union> B)\<^sup>* \<longleftrightarrow> (x, y) \<in> A\<^sup>*"
-  using assms
-  by (meson Domain.DomainI in_rtrancl_UnI rtrancl_Un_separatorE)
-
-lemma mem_rtrancl_union_iff_mem_rtrancl_rhs:
-  assumes
-    "\<And>z. (x, z) \<in> B\<^sup>* \<Longrightarrow> z \<notin> Domain A"
-  shows "(x, y) \<in> (A \<union> B)\<^sup>* \<longleftrightarrow> (x, y) \<in> B\<^sup>*"
-  using assms
-  by (metis mem_rtrancl_union_iff_mem_rtrancl_lhs sup_commute)
-
-lemma mem_join_union_iff_mem_join_lhs:
-  assumes
-    "\<And>z. (x, z) \<in> A\<^sup>* \<Longrightarrow> z \<notin> Domain B" and
-    "\<And>z. (y, z) \<in> A\<^sup>* \<Longrightarrow> z \<notin> Domain B"
-  shows "(x, y) \<in> (A \<union> B)\<^sup>\<down> \<longleftrightarrow> (x, y) \<in> A\<^sup>\<down>"
-proof (rule iffI)
-  assume "(x, y) \<in> (A \<union> B)\<^sup>\<down>"
-  then obtain z where
-    "(x, z) \<in> (A \<union> B)\<^sup>*" and "(y, z) \<in> (A \<union> B)\<^sup>*"
-    by auto
-
-  show "(x, y) \<in> A\<^sup>\<down>"
-  proof (rule joinI)
-    from assms(1) show "(x, z) \<in> A\<^sup>*"
-      using \<open>(x, z) \<in> (A \<union> B)\<^sup>*\<close> mem_rtrancl_union_iff_mem_rtrancl_lhs[of x A B z] by simp
-  next
-    from assms(2) show "(y, z) \<in> A\<^sup>*"
-      using \<open>(y, z) \<in> (A \<union> B)\<^sup>*\<close> mem_rtrancl_union_iff_mem_rtrancl_lhs[of y A B z] by simp
-  qed
-next
-  show "(x, y) \<in> A\<^sup>\<down> \<Longrightarrow> (x, y) \<in> (A \<union> B)\<^sup>\<down>"
-    by (metis UnCI join_mono subset_Un_eq sup.left_idem)
-qed
 
 
 section \<open>HOL_Extra\<close>
@@ -128,12 +50,15 @@ lemma Uniq_prodI:
   using assms
   by (metis UniqI case_prodE)
 
-lemma Uniq_mono_decr: "Q \<le> P \<Longrightarrow> Uniq Q \<ge> Uniq P"
-  by (simp add: UniqI Uniq_D le_fun_def)
+lemma Uniq_implies_ex1: "\<exists>\<^sub>\<le>\<^sub>1x. P x \<Longrightarrow> P y \<Longrightarrow> \<exists>!x. P x"
+  by (iprover intro: ex1I dest: Uniq_D)
 
-lemma Uniq_mono_decr': "(\<And>x. Q x \<Longrightarrow> P x) \<Longrightarrow> Uniq P \<Longrightarrow> Uniq Q"
-  using Uniq_mono_decr
-  by (auto simp: le_fun_def)
+lemma Uniq_antimono: "Q \<le> P \<Longrightarrow> Uniq Q \<ge> Uniq P"
+  unfolding le_fun_def le_bool_def
+  by (rule impI) (simp only: Uniq_I Uniq_D)
+
+lemma Uniq_antimono': "(\<And>x. Q x \<Longrightarrow> P x) \<Longrightarrow> Uniq P \<Longrightarrow> Uniq Q"
+  by (fact Uniq_antimono[unfolded le_fun_def le_bool_def, rule_format])
 
 lemma Collect_eq_if_Uniq: "(\<exists>\<^sub>\<le>\<^sub>1x. P x) \<Longrightarrow> {x. P x} = {} \<or> (\<exists>x. {x. P x} = {x})"
   using Uniq_D by fastforce
@@ -141,44 +66,11 @@ lemma Collect_eq_if_Uniq: "(\<exists>\<^sub>\<le>\<^sub>1x. P x) \<Longrightarro
 lemma Collect_eq_if_Uniq_prod: "(\<exists>\<^sub>\<le>\<^sub>1(x, y). P x y) \<Longrightarrow> {(x, y). P x y} = {} \<or> (\<exists>x y. {(x, y). P x y} = {(x, y)})"
   using Collect_eq_if_Uniq by fastforce
 
-lemma reflclp_refl: "R\<^sup>=\<^sup>= x x"
-  by simp
-
 
 section \<open>Abstract_Rewriting_Extra\<close>
 
-lemma refl_join: "refl (r\<^sup>\<down>)"
-  by (simp add: joinI_right reflI)
-
-lemma trans_join:
-  assumes strongly_norm: "SN r" and confluent: "WCR r"
-  shows "trans (r\<^sup>\<down>)"
-proof -
-  from confluent strongly_norm have "CR r"
-    using Newman by metis
-  hence "r\<^sup>\<leftrightarrow>\<^sup>* = r\<^sup>\<down>"
-    using CR_imp_conversionIff_join by metis
-  thus ?thesis
-    using conversion_trans by metis
-qed
-
 lemma compatible_with_ctxt_rstep: "compatible_with_ctxt (rstep r)"
   by (auto simp: compatible_with_ctxt_def)
-
-section \<open>Abstract_Substitutions_Extra\<close>
-
-lemma (in substitution_ops) subst_cls_cong:
-  assumes "\<And>L. L \<in># C \<Longrightarrow> atm_of L \<cdot>a \<sigma> = atm_of L \<cdot>a \<tau>"
-  shows "subst_cls C \<sigma> = subst_cls C \<tau>"
-  unfolding subst_cls_def
-proof (rule multiset.map_cong0)
-  fix L assume "L \<in># C"
-  with assms have "atm_of L \<cdot>a \<sigma> = atm_of L \<cdot>a \<tau>"
-    by simp
-  thus "L \<cdot>l \<sigma> = L \<cdot>l \<tau>"
-    by (metis atm_of_subst_lit literal.expand literal.map_disc_iff subst_lit_def)
-qed
-
 
 
 section \<open>First_Order_Terms And Abstract_Substitution\<close>
@@ -1386,7 +1278,7 @@ proof -
       \<not> (\<lambda>(x, y). x \<approx> y) ` (rstep R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
       \<not> (\<lambda>(x, y). x \<approx> y) ` (rstep (insert (x, y) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
       x \<in> NF (rstep R\<^sub>C))"
-    using Uniq_mono_decr'
+    using Uniq_antimono'
     by (smt (verit) Uniq_def Uniq_prodI case_prod_conv)
   show ?thesis
     unfolding production.simps[of N C]
