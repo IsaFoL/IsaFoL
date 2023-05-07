@@ -19,7 +19,7 @@ next
     by simp
 next
   show "\<And>\<sigma> \<tau>. (\<And>x. x \<cdot> \<sigma> = x \<cdot> \<tau>) \<Longrightarrow> \<sigma> = \<tau>"
-    by (simp add: subst_term_eqI)
+    by (simp add: subst_term_eqI)(* 
 next
   fix T :: "('f, 'v) term set" and \<sigma> :: "'v \<Rightarrow> ('f, 'v) term"
 
@@ -56,7 +56,7 @@ next
   next
     show "\<forall>t\<in>T. t \<cdot> \<gamma> = t \<cdot> \<sigma>"
       using \<gamma>_def term_subst_eq_conv by fastforce
-  qed
+  qed *)
 qed
 
 end

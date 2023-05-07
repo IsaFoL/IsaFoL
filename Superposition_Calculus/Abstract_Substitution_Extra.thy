@@ -156,8 +156,8 @@ locale basic_substitution = basic_substitution_ops subst id_subst comp_subst for
   assumes
     subst_id_subst[simp]: "x \<cdot> id_subst = x" and
     subst_comp_subst[simp]: "x \<cdot> (\<sigma> \<odot> \<tau>) = (x \<cdot> \<sigma>) \<cdot> \<tau>" and
-    subst_ext: "(\<And>x. x \<cdot> \<sigma> = x \<cdot> \<tau>) \<Longrightarrow> \<sigma> = \<tau>" and
-    make_ground_subst: "is_ground_set (X \<cdot>s \<sigma>) \<Longrightarrow> \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>x \<in> X. x \<cdot> \<tau> = x \<cdot> \<sigma>)"
+    subst_ext: "(\<And>x. x \<cdot> \<sigma> = x \<cdot> \<tau>) \<Longrightarrow> \<sigma> = \<tau>" (* and
+    make_ground_subst: "is_ground_set (X \<cdot>s \<sigma>) \<Longrightarrow> \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>x \<in> X. x \<cdot> \<tau> = x \<cdot> \<sigma>)" *)
 begin
 
 subsection \<open>Identity Substitution\<close>
