@@ -168,6 +168,18 @@ lemma subst_lit_ident_if_is_ground_lit[simp]: "is_ground_lit L \<Longrightarrow>
 lemma subst_cls_ident_if_is_ground_cls[simp]: "is_ground_cls C \<Longrightarrow> C \<cdot> \<sigma> = C"
   by (induction C) (simp_all add: subst_cls_def)
 
+lemma subst_lit_Pos: "Pos A \<cdot>l \<sigma> = Pos (A \<cdot>a \<sigma>)"
+  by (simp add: subst_lit_def)
+
+lemma subst_lit_Neg: "Neg A \<cdot>l \<sigma> = Neg (A \<cdot>a \<sigma>)"
+  by (simp add: subst_lit_def)
+
+lemma subst_cls_add_mset: "add_mset L C \<cdot> \<sigma> = add_mset (L \<cdot>l \<sigma>) (C \<cdot> \<sigma>)"
+  by (simp add: subst_cls_def)
+
+lemma subst_cls_plus: "(C\<^sub>1 + C\<^sub>2) \<cdot> \<sigma> = (C\<^sub>1 \<cdot> \<sigma>) + (C\<^sub>2 \<cdot> \<sigma>)"
+  by (simp add: subst_cls_def)
+
 lemma rstep_eq_rewrite_inside_ctxt_if_ground:
   assumes ground_r: "\<forall>rule \<in> r. is_ground_trm (fst rule) \<and> is_ground_trm (snd rule)"
   shows "rstep r = rewrite_inside_ctxt r"
@@ -419,19 +431,6 @@ inductive eq_factoring :: "('f, string) term atom clause \<Rightarrow> ('f, stri
     C = add_mset (Pos (s\<^sub>1 \<approx> t\<^sub>2')) (add_mset (Neg (s\<^sub>1' \<approx> t\<^sub>2')) P') \<cdot> \<mu> \<Longrightarrow>
     eq_factoring P C"
 
-
-lemma subst_lit_Pos: "Pos A \<cdot>l \<sigma> = Pos (A \<cdot>a \<sigma>)"
-  by (simp add: subst_lit_def)
-
-lemma subst_lit_Neg: "Neg A \<cdot>l \<sigma> = Neg (A \<cdot>a \<sigma>)"
-  by (simp add: subst_lit_def)
-
-lemma subst_cls_add_mset: "add_mset L C \<cdot> \<sigma> = add_mset (L \<cdot>l \<sigma>) (C \<cdot> \<sigma>)"
-  by (simp add: subst_cls_def)
-
-lemma subst_cls_plus: "(C\<^sub>1 + C\<^sub>2) \<cdot> \<sigma> = (C\<^sub>1 \<cdot> \<sigma>) + (C\<^sub>2 \<cdot> \<sigma>)"
-  by (simp add: subst_cls_def)
-
 lemma superposition_preserves_groundness:
   assumes
     step: "superposition P1 P2 C" and
@@ -478,6 +477,90 @@ proof (cases P C rule: eq_factoring.cases)
     unfolding eq_factoringI by simp
 qed
 
+
+subsection \<open>Alternative Specification of the Superposition Rule\<close>
+
+inductive pos_superposition ::
+  "('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> bool"
+where
+  pos_superpositionI: "
+    term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
+    term_subst.is_renaming \<rho>\<^sub>2 \<Longrightarrow>
+    vars_cls (P\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_cls (P\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
+    P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
+    P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
+    L\<^sub>1 = Pos (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1') \<Longrightarrow>
+    L\<^sub>2 = Pos (t\<^sub>2 \<approx> t\<^sub>2') \<Longrightarrow>
+    \<not> is_Var u\<^sub>1 \<Longrightarrow>
+    term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
+    \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    is_strictly_maximal_lit (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<Longrightarrow>
+    is_strictly_maximal_lit (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
+    \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
+    C = add_mset (Pos ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> \<approx> s\<^sub>1' \<cdot>t \<rho>\<^sub>1)) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
+    pos_superposition P\<^sub>1 P\<^sub>2 C"
+
+lemma superposition_if_pos_superposition:
+  assumes "pos_superposition P\<^sub>1 P\<^sub>2 C"
+  shows "superposition P\<^sub>1 P\<^sub>2 C"
+  using assms
+proof (cases P\<^sub>1 P\<^sub>2 C rule: pos_superposition.cases)
+  case (pos_superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
+  then show ?thesis
+    using superpositionI
+    by (metis insert_iff)
+qed
+
+inductive neg_superposition ::
+  "('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> bool"
+where
+  neg_superpositionI: "
+    term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
+    term_subst.is_renaming \<rho>\<^sub>2 \<Longrightarrow>
+    vars_cls (P\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_cls (P\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
+    P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
+    P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
+    L\<^sub>1 = Neg (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1') \<Longrightarrow>
+    L\<^sub>2 = Pos (t\<^sub>2 \<approx> t\<^sub>2') \<Longrightarrow>
+    \<not> is_Var u\<^sub>1 \<Longrightarrow>
+    term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
+    \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    select P\<^sub>1 = {#} \<and> is_maximal_lit (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or> L\<^sub>1 \<in># select P\<^sub>1 \<Longrightarrow>
+    is_strictly_maximal_lit (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
+    \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
+    C = add_mset (Neg ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> \<approx> s\<^sub>1' \<cdot>t \<rho>\<^sub>1)) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
+    neg_superposition P\<^sub>1 P\<^sub>2 C"
+
+lemma superposition_if_neg_superposition:
+  assumes "neg_superposition P\<^sub>1 P\<^sub>2 C"
+  shows "superposition P\<^sub>1 P\<^sub>2 C"
+  using assms
+proof (cases P\<^sub>1 P\<^sub>2 C rule: neg_superposition.cases)
+  case (neg_superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
+  then show ?thesis
+    using superpositionI
+    by (metis insert_iff)
+qed
+
+lemma superposition_imp_pos_or_neg:
+  assumes "superposition P\<^sub>1 P\<^sub>2 C"
+  shows "pos_superposition P\<^sub>1 P\<^sub>2 C \<or> neg_superposition P\<^sub>1 P\<^sub>2 C"
+  using assms
+proof (cases P\<^sub>1 P\<^sub>2 C rule: superposition.cases)
+  case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
+  then show ?thesis
+    using pos_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>]
+    using neg_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>]
+    by metis
+qed
+
+lemma superposition_iff_pos_or_neg:
+  "superposition P\<^sub>1 P\<^sub>2 C \<longleftrightarrow> pos_superposition P\<^sub>1 P\<^sub>2 C \<or> neg_superposition P\<^sub>1 P\<^sub>2 C"
+  using superposition_imp_pos_or_neg
+    superposition_if_neg_superposition superposition_if_pos_superposition
+  by metis
 
 subsection \<open>Ground Layer\<close>
 
@@ -2477,10 +2560,10 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
           have ground_D\<^sub>\<G>: "is_ground_cls D\<^sub>\<G>"
             using \<open>D\<^sub>\<G> \<in> N\<^sub>\<G>\<close> N\<^sub>\<G>_def by fastforce
 
-          have superI: "superposition C\<^sub>\<G> D\<^sub>\<G> (add_mset (Neg (s\<^sub>1\<langle>t'\<rangle> \<approx> s\<^sub>1')) (C\<^sub>\<G>' + D\<^sub>\<G>'))"
+          have superI: "neg_superposition C\<^sub>\<G> D\<^sub>\<G> (add_mset (Neg (s\<^sub>1\<langle>t'\<rangle> \<approx> s\<^sub>1')) (C\<^sub>\<G>' + D\<^sub>\<G>'))"
             if "{s, s'} = {s\<^sub>1\<langle>t\<rangle>, s\<^sub>1'}" and "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1\<langle>t\<rangle>"
             for s\<^sub>1 s\<^sub>1'
-          proof (rule superpositionI)
+          proof (rule neg_superpositionI)
             show "vars_cls (C\<^sub>\<G> \<cdot> Var) \<inter> vars_cls (D\<^sub>\<G> \<cdot> Var) = {}"
               using ground_D\<^sub>\<G> ground_C\<^sub>\<G> by simp
           next
@@ -2498,10 +2581,8 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
               using \<open>D\<^sub>\<G> \<prec>\<^sub>c C\<^sub>\<G>\<close> asymp_less_cls
               by (metis asympD reflclp_iff subst_cls_Var_ident)
           next
-            show "Neg = Pos \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Neg (s \<approx> s') \<cdot>l Var \<cdot>l Var) (C\<^sub>\<G> \<cdot> Var \<cdot> Var) \<or>
-              Neg = Neg \<and>
-              (select C\<^sub>\<G> = {#} \<and> is_maximal_lit (Neg (s \<approx> s') \<cdot>l Var \<cdot>l Var) (C\<^sub>\<G> \<cdot> Var \<cdot> Var) \<or>
-                Neg (s \<approx> s') \<in># select C\<^sub>\<G>)"
+            show "select C\<^sub>\<G> = {#} \<and> is_maximal_lit (Neg (s \<approx> s') \<cdot>l Var \<cdot>l Var) (C\<^sub>\<G> \<cdot> Var \<cdot> Var) \<or>
+              Neg (s \<approx> s') \<in># select C\<^sub>\<G>"
               using sel_or_max by auto
           next
             show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (t \<approx> t') \<cdot>l Var \<cdot>l Var) (D\<^sub>\<G> \<cdot> Var \<cdot> Var)"
@@ -2520,7 +2601,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
               by (metis (full_types) asympD subst_apply_term_empty sup2E)
           qed simp_all
 
-          have "superposition C\<^sub>\<G> D\<^sub>\<G> (add_mset (Neg (ctxt\<langle>t'\<rangle> \<approx> s')) (C\<^sub>\<G>' + D\<^sub>\<G>'))"
+          have "neg_superposition C\<^sub>\<G> D\<^sub>\<G> (add_mset (Neg (ctxt\<langle>t'\<rangle> \<approx> s')) (C\<^sub>\<G>' + D\<^sub>\<G>'))"
             if \<open>s' \<prec>\<^sub>t s\<close>
           proof (rule superI)
             from that show "{s, s'} = {ctxt\<langle>t\<rangle>, s'}"
@@ -2530,7 +2611,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
               using s_eq_if by simp
           qed
 
-          moreover have "superposition C\<^sub>\<G>  D\<^sub>\<G> (add_mset (Neg (ctxt\<langle>t'\<rangle> \<approx> s)) (C\<^sub>\<G>' + D\<^sub>\<G>'))"
+          moreover have "neg_superposition C\<^sub>\<G>  D\<^sub>\<G> (add_mset (Neg (ctxt\<langle>t'\<rangle> \<approx> s)) (C\<^sub>\<G>' + D\<^sub>\<G>'))"
             if \<open>s \<prec>\<^sub>t s'\<close>
           proof (rule superI)
             from that show "{s, s'} = {ctxt\<langle>t\<rangle>, s}"
@@ -2541,18 +2622,20 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
           qed
 
           ultimately obtain C\<^sub>\<G>D\<^sub>\<G> where
-            super: "superposition C\<^sub>\<G>  D\<^sub>\<G> C\<^sub>\<G>D\<^sub>\<G>" and
+            super: "neg_superposition C\<^sub>\<G>  D\<^sub>\<G> C\<^sub>\<G>D\<^sub>\<G>" and
             C\<^sub>\<G>D\<^sub>\<G>_eq1: "s' \<prec>\<^sub>t s \<Longrightarrow> C\<^sub>\<G>D\<^sub>\<G> = add_mset (Neg (ctxt\<langle>t'\<rangle> \<approx> s')) (C\<^sub>\<G>' + D\<^sub>\<G>')" and
             C\<^sub>\<G>D\<^sub>\<G>_eq2: "s \<prec>\<^sub>t s' \<Longrightarrow> C\<^sub>\<G>D\<^sub>\<G> = add_mset (Neg (ctxt\<langle>t'\<rangle> \<approx> s)) (C\<^sub>\<G>' + D\<^sub>\<G>')"
             using \<open>s \<prec>\<^sub>t s' \<or> s' \<prec>\<^sub>t s\<close> s'_eq_if s_eq_if by metis
           hence ground_C\<^sub>\<G>D\<^sub>\<G>: "is_ground_cls C\<^sub>\<G>D\<^sub>\<G>"
-            using ground_C\<^sub>\<G> ground_D\<^sub>\<G> superposition_preserves_groundness by metis
+            using ground_C\<^sub>\<G> ground_D\<^sub>\<G> superposition_preserves_groundness
+              superposition_if_neg_superposition
+            by metis
 
           define \<iota> :: "('f, char list) gterm uprod clause inference" where
             "\<iota> = Infer [gcls_cls D\<^sub>\<G>, gcls_cls C\<^sub>\<G>] (gcls_cls C\<^sub>\<G>D\<^sub>\<G>)"
 
           have "\<iota> \<in> G_Inf"
-            using ground_C\<^sub>\<G> ground_D\<^sub>\<G> super
+            using ground_C\<^sub>\<G> ground_D\<^sub>\<G> super superposition_if_neg_superposition
             by (auto simp: \<iota>_def G_Inf_def)
 
           moreover have "\<And>t. t \<in> set (prems_of \<iota>) \<Longrightarrow> t \<in> N"
@@ -2645,7 +2728,6 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
           using A_def C\<^sub>\<G>_eq entails_def by blast
       next
         case False
-        thm \<open>equation N\<^sub>\<G> C\<^sub>\<G> = {}\<close>
 
         from False have "\<not> (\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<^sup>\<down> \<TTurnstile> C\<^sub>\<G>'"
           by simp
@@ -2693,8 +2775,8 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
               "\<iota> = Infer [gcls_cls D\<^sub>\<G>, gcls_cls C\<^sub>\<G>]
                 (gcls_cls ((add_mset (Pos (ctxt\<langle>t'\<rangle> \<approx> s')) (C\<^sub>\<G>' + D\<^sub>\<G>'))))"
 
-            have super: "superposition C\<^sub>\<G> D\<^sub>\<G> (add_mset (Pos (ctxt\<langle>t'\<rangle> \<approx> s')) (C\<^sub>\<G>' + D\<^sub>\<G>'))"
-            proof (rule superpositionI)
+            have super: "pos_superposition C\<^sub>\<G> D\<^sub>\<G> (add_mset (Pos (ctxt\<langle>t'\<rangle> \<approx> s')) (C\<^sub>\<G>' + D\<^sub>\<G>'))"
+            proof (rule pos_superpositionI)
               show "vars_cls (C\<^sub>\<G> \<cdot> Var) \<inter> vars_cls (D\<^sub>\<G> \<cdot> Var) = {}"
                 using ground_D\<^sub>\<G> ground_C\<^sub>\<G> by simp
             next
@@ -2712,9 +2794,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
                 using \<open>D\<^sub>\<G> \<prec>\<^sub>c C\<^sub>\<G>\<close> asymp_less_cls
                 by (metis asympD reflclp_iff subst_cls_Var_ident)
             next
-              show "Pos = Pos \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (s \<approx> s') \<cdot>l Var \<cdot>l Var) (C\<^sub>\<G> \<cdot> Var \<cdot> Var) \<or>
-                Pos = Neg \<and> (select C\<^sub>\<G> = {#} \<and> is_maximal_lit (Pos (s \<approx> s') \<cdot>l Var \<cdot>l Var) (C\<^sub>\<G> \<cdot> Var \<cdot> Var) \<or>
-                  Pos (s \<approx> s') \<in># select C\<^sub>\<G>)"
+              show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (s \<approx> s') \<cdot>l Var \<cdot>l Var) (C\<^sub>\<G> \<cdot> Var \<cdot> Var)"
                 using A_def strictly_maximal by simp
             next
               show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (t \<approx> t') \<cdot>l Var \<cdot>l Var) (D\<^sub>\<G> \<cdot> Var \<cdot> Var)"
@@ -2733,7 +2813,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
                 by (metis (full_types) asympD subst_apply_term_empty sup2E)
             qed simp_all
             hence "\<iota> \<in> G_Inf"
-              using ground_C\<^sub>\<G> ground_D\<^sub>\<G>
+              using ground_C\<^sub>\<G> ground_D\<^sub>\<G> superposition_if_pos_superposition
               by (auto simp: \<iota>_def G_Inf_def)
 
             moreover have "\<And>t. t \<in> set (prems_of \<iota>) \<Longrightarrow> t \<in> N"
