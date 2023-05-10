@@ -2741,8 +2741,32 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
           show ?thesis
           proof (cases "s \<in> NF (rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))")
             case s_irreducible: True
-            then show ?thesis
-              sorry
+            hence e_or_f_doesnt_hold: "(\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<^sup>\<down> \<TTurnstile> C\<^sub>\<G> \<or>
+              (\<lambda>(x, y). x \<approx> y) ` (rstep (insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>)))\<^sup>\<down> \<TTurnstile> C\<^sub>\<G>'"
+              using \<open>equation N\<^sub>\<G> C\<^sub>\<G> = {}\<close>[unfolded equation_def production.simps[of N\<^sub>\<G> C\<^sub>\<G>]]
+              using \<open>C\<^sub>\<G> \<in> N\<^sub>\<G>\<close> C\<^sub>\<G>_eq \<open>select C\<^sub>\<G> = {#}\<close> strictly_maximal \<open>s' \<prec>\<^sub>t s\<close>
+              unfolding A_def rewrite_sys_def equation_def
+              by (smt (verit, best) Collect_empty_eq)
+            show ?thesis
+            proof (cases "(\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<^sup>\<down> \<TTurnstile> C\<^sub>\<G>")
+              case e_doesnt_hold: True
+              thus ?thesis
+                by (simp add: entails_def)
+            next
+              case e_holds: False
+              show ?thesis
+              proof (cases "(\<lambda>(x, y). x \<approx> y) ` (rstep (insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>)))\<^sup>\<down> \<TTurnstile> C\<^sub>\<G>'")
+                case f_doesnt_hold: True
+                then show ?thesis
+                  using e_holds
+                  sorry
+              next
+                case f_holds: False
+                hence False
+                  using e_or_f_doesnt_hold e_holds by metis
+                thus ?thesis ..
+              qed
+            qed
           next
             case s_reducible: False
             hence "\<exists>ss. (s, ss) \<in> rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>)"
