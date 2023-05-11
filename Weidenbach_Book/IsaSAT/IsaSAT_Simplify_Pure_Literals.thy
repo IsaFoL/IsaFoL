@@ -409,8 +409,9 @@ proof -
      using assms unfolding twl_st_heur_restart_ana_def twl_st_heur_restart_def
      by (simp_all add: all_init_atms_alt_def del: isasat_input_nempty_def)
   let ?vm = \<open>get_vmtf_heur S\<^sub>0\<close>
-  have vmtf': \<open>(get_vmtf_heur_array S\<^sub>0, fst (snd (bump_get_heuristics ?vm)),
-    get_vmtf_heur_fst S\<^sub>0, fst (snd (snd (snd (bump_get_heuristics ?vm)))), snd (snd (snd (snd (bump_get_heuristics ?vm))))) \<in> vmtf (all_init_atms_st T) (get_trail_wl T)\<close>
+  obtain M where vmtf': \<open>(get_vmtf_heur_array S\<^sub>0, fst (snd (bump_get_heuristics ?vm)),
+    get_vmtf_heur_fst S\<^sub>0, fst (snd (snd (snd (bump_get_heuristics ?vm)))), snd (snd (snd (snd (bump_get_heuristics ?vm))))) \<in> vmtf (all_init_atms_st T) M\<close> and
+    M: \<open>M = (get_trail_wl T)  \<or> M = (get_unit_trail (get_trail_wl T))\<close>
     using vmtf unfolding bump_heur_def get_vmtf_heur_array_def bump_get_heuristics_def get_vmtf_heur_fst_def
     by (cases \<open>bump_get_heuristics ns\<close>) (auto simp: bump_get_heuristics_def bumped_vmtf_array_fst_def
       split: if_splits)

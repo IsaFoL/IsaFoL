@@ -99,4 +99,4 @@ competition:
 clean:
 	rm -rf isasat
 debug:
-	$(CLANG) -Og -DPRINTSTATS=1 isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat
+	$(CLANG) -Oggdb3 -Og -DPRINTSTATS=1 isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat

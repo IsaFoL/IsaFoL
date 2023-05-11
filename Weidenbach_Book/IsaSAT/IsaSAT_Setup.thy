@@ -648,11 +648,24 @@ lemma vmtf_cong:
   unfolding vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
   by auto
 
+lemma acids_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> acids \<A> M \<Longrightarrow> L \<in> acids \<B> M\<close>
+  using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  unfolding acids_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+  apply (auto simp: distinct_subseteq_iff)
+  by (metis distinct_subseteq_iff)
+
 lemma isa_vmtf_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> bump_heur \<A> M \<Longrightarrow> L \<in> bump_heur \<B> M\<close>
   using vmtf_cong[of \<A> \<B>]  distinct_atoms_rel_cong[of \<A> \<B>]
+    acids_cong
   apply (subst (asm) bump_heur_def)
   apply (subst bump_heur_def)
+  by blast
+
+lemma isa_vmtf_cong':
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> bump_heur \<A> = bump_heur \<B>\<close>
+  using isa_vmtf_cong[of \<A> \<B>] isa_vmtf_cong[of \<B> \<A>]
   by blast
 
 lemma option_lookup_clause_rel_cong:
@@ -1567,16 +1580,14 @@ definition end_of_restart_phase_st :: \<open>isasat \<Rightarrow> 64 word\<close
  \<open>end_of_restart_phase_st = (\<lambda>S. end_of_restart_phase (get_heur S))\<close>
 
 definition get_vmtf_heur_array where
-  \<open>get_vmtf_heur_array S = (fst (if is_focused_heuristics (get_vmtf_heur S)
-  then get_focused_heuristics (get_vmtf_heur S) else get_stable_heuristics (get_vmtf_heur S)))\<close>
+  \<open>get_vmtf_heur_array S = (fst (get_focused_heuristics (get_vmtf_heur S)))\<close>
 
 definition get_vmtf_heur_fst where
-  \<open>get_vmtf_heur_fst S = (fst o snd o snd) ((if is_focused_heuristics (get_vmtf_heur S)
-  then get_focused_heuristics (get_vmtf_heur S) else get_stable_heuristics (get_vmtf_heur S)))\<close>
+  \<open>get_vmtf_heur_fst S = (fst o snd o snd) (get_focused_heuristics (get_vmtf_heur S))\<close>
 
 definition isa_vmtf_heur_fst where
   \<open>isa_vmtf_heur_fst x = (case x of Bump_Heuristics hstable focused foc _ \<Rightarrow>
-  if foc then RETURN (vmtf_heur_fst focused) else RETURN (vmtf_heur_fst hstable))\<close>
+    RETURN (vmtf_heur_fst focused))\<close>
 
 definition get_bump_heur_array_nth where
   \<open>get_bump_heur_array_nth S i = get_vmtf_heur_array S ! i\<close>

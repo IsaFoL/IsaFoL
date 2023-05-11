@@ -271,6 +271,7 @@ definition mark_garbage_heur_as_subsumed :: \<open>nat \<Rightarrow> isasat \<Ri
   \<open>mark_garbage_heur_as_subsumed C S = (do{
     let N' = get_clauses_wl_heur S;
     ASSERT (arena_is_valid_clause_vdom N' C);
+    _ \<leftarrow> log_del_clause_heur S C;
     let st = arena_status N' C = IRRED;
     ASSERT (mark_garbage_pre (N', C));
     let N' = extra_information_mark_to_delete (N') C;
@@ -294,7 +295,8 @@ definition isa_strengthen_clause_wl2 where
     st1 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
     st2 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C';
     S \<leftarrow> remove_lit_from_clause_st S C (-L);
-
+    _ \<leftarrow> log_new_clause_heur S C;
+    let _ = mark_clause_for_unit_as_changed 0;
     if m = n
     then do {
       S \<leftarrow> RETURN S;
@@ -322,11 +324,12 @@ definition isa_subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> nat subsumpt
   \<open>isa_subsume_or_strengthen_wl = (\<lambda>C s S. do {
    ASSERT(isa_subsume_or_strengthen_wl_pre C s S);
    (case s of
-     NONE \<Rightarrow> RETURN (S)
+     NONE \<Rightarrow> RETURN S
   | SUBSUMED_BY C' \<Rightarrow> do {
      st1 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
      st2 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C';
      S \<leftarrow> mark_garbage_heur2 C S;
+     let _ = mark_clause_for_unit_as_changed 0;
      S \<leftarrow> (if st1 = IRRED \<and> st2 = LEARNED then mop_arena_promote_st S C' else RETURN S);
      let S = (set_stats_wl_heur (incr_forward_subsumed (get_stats_heur S)) S);
      RETURN S
@@ -422,6 +425,7 @@ definition isa_try_to_forward_subsume_wl2 :: \<open>nat \<Rightarrow> bool list 
     })
   (0, NONE, ebreak, D, S);
   D \<leftarrow> (if changed = NONE then mop_cch_remove_all_clauses S C D else RETURN D);
+  let _ = (if changed = NONE then mark_clause_for_unit_as_unchanged 0 else ());
   ASSERT (Suc (length shrunken) \<le> length (get_tvdom S));
   let add_to_shunken = (is_strengthened changed);
   let shrunken = (if add_to_shunken then shrunken @ [C] else shrunken);
@@ -565,6 +569,7 @@ definition mop_cch_add_all_clause :: \<open>_\<close> where
     (\<lambda>(i,D). do {
       ASSERT (i < n);
       L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i;
+      let _ = mark_literal_for_unit_deletion L;
       D \<leftarrow> mop_cch_add L D;
       RETURN (i+1, D)
       }) (0, D);

@@ -1,6 +1,6 @@
 theory Termination
   imports
-    Simple_Clause_Learning
+    SCL_FOL
     Non_Redundancy
     Wellfounded_Extra
     "HOL-Library.Monad_Syntax"
@@ -10,7 +10,7 @@ begin
 section \<open>Extra Lemmas\<close>
 
 
-subsection \<open>Set_Extra\<close>
+subsection \<open>Set Extra\<close>
 
 lemma minus_psubset_minusI:
   assumes "C \<subset> B" and "B \<subseteq> A"
@@ -24,7 +24,7 @@ next
 qed
 
 
-subsection \<open>Prod_Extra\<close>
+subsection \<open>Prod Extra\<close>
 
 lemma lex_prod_lex_prodp_eq:
   "lex_prod {(x, y). RA x y} {(x, y). RB x y} = {(x, y). lex_prodp RA RB x y}"
@@ -72,10 +72,10 @@ proof (rule totalp_onI)
 qed
 
 
-subsection \<open>Wellfounded_Extra\<close>
+subsection \<open>Wellfounded Extra\<close>
 
 
-subsection \<open>FSet_Extra\<close>
+subsection \<open>FSet Extra\<close>
 
 lemma finsert_Abs_fset: "finite A \<Longrightarrow> finsert a (Abs_fset A) = Abs_fset (insert a A)"
   by (simp add: eq_onp_same_args finsert.abs_eq)
@@ -100,7 +100,7 @@ lemma fminus_conv: "A |\<subset>| B \<longleftrightarrow> fset A \<subset> fset 
 
 section \<open>Termination\<close>
 
-context scl_calculus begin
+context scl_fol_calculus begin
 
 
 subsection \<open>SCL without backtracking terminates\<close>

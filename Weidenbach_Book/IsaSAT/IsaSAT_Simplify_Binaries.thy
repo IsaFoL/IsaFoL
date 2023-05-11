@@ -1122,9 +1122,9 @@ proof -
     done
 
   let ?vm = \<open>get_vmtf_heur S\<close>
-  have vmtf': \<open>(get_vmtf_heur_array S, fst (snd (bump_get_heuristics ?vm)),
+  obtain M' where vmtf': \<open>(get_vmtf_heur_array S, fst (snd (bump_get_heuristics ?vm)),
     get_vmtf_heur_fst S, fst (snd (snd (snd (bump_get_heuristics ?vm)))),
-    snd (snd (snd (snd (bump_get_heuristics ?vm))))) \<in> vmtf (atm_of `# all_init_lits_of_wl S') (get_trail_wl S')\<close>
+    snd (snd (snd (snd (bump_get_heuristics ?vm))))) \<in> vmtf (atm_of `# all_init_lits_of_wl S') M'\<close>
     using 1 unfolding bump_heur_def get_vmtf_heur_array_def bump_get_heuristics_def get_vmtf_heur_fst_def
     by (cases \<open>bump_get_heuristics ?vm\<close>) (auto simp: bump_get_heuristics_def bumped_vmtf_array_fst_def
       split: if_splits)

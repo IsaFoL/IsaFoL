@@ -3,5 +3,8 @@ session "Splitting_Framework" = Saturation_Framework +
   sessions
     "HOL-Library"
     Propositional_Proof_Systems
+    Saturation_Framework_Extensions
   theories
-	  Preliminaries_With_Zorn
+    Preliminaries_With_Zorn
+    Splitting_Calculi
+    Splitting_Without_Backtracking

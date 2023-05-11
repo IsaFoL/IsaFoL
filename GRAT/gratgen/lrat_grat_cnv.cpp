@@ -64,6 +64,9 @@ public:
 
   template<typename R> R parse();
 
+  // Parse unsigned encoding of id (apparently used in binary lrat at certain positions)
+  cid_t parse_unsigned_id();
+
 //   char parse_char();
 //   unsigned parse_uint();
 //   int parse_int();
@@ -110,6 +113,13 @@ template <> inline int32_t Bin_Parser::parse<int32_t>() {
 template <> inline lit_t Bin_Parser::parse<lit_t>() { return {parse<int32_t>()}; }
 template <> inline cid_t Bin_Parser::parse<cid_t>() { return {parse<int32_t>()}; }
 
+cid_t Bin_Parser::parse_unsigned_id() {
+  uint32_t ul = parse<uint32_t>();
+
+  if (ul > INT32_MAX) fail("unsigned id parser: overflow");
+
+  return { (int32_t)ul };
+}
 
 
 
@@ -151,7 +161,7 @@ public:
 
     if (opr=='a') {
       addition=true;
-      this_id = bp.parse<cid_t>();
+      this_id = {bp.parse_unsigned_id()}; // ids at this position are encoded as unsigned values
       rd_until_zero(literals);
       rd_until_zero(ids);
     } else if (opr=='d') {

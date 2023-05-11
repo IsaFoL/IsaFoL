@@ -27,7 +27,8 @@ definition tl_state_wl_heur :: \<open>isasat \<Rightarrow> (bool \<times> isasat
        let M = get_trail_wl_heur S; let vm = get_vmtf_heur S;
        let S = set_trail_wl_heur (tl_trailt_tr M) S;
        ASSERT (isa_bump_unset_pre  (atm_of (lit_of_last_trail_pol M)) vm);
-       let S = set_vmtf_wl_heur (isa_bump_unset (atm_of (lit_of_last_trail_pol M)) vm) S;
+       vm \<leftarrow> isa_bump_unset (atm_of (lit_of_last_trail_pol M)) vm;
+       let S = set_vmtf_wl_heur vm S;
        RETURN (False, S)
   })\<close>
 
@@ -55,9 +56,10 @@ where
       vm \<leftarrow> isa_vmtf_bump_to_rescore_also_reasons_cl M N C (-L) vm;
       ASSERT(isa_bump_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
+      vm \<leftarrow> isa_bump_unset L' vm;
       let S = set_trail_wl_heur (tl_trailt_tr M) S;
       let S = set_conflict_wl_heur (b, (n, xs)) S;
-      let S = set_vmtf_wl_heur (isa_bump_unset L' vm) S;
+      let S = set_vmtf_wl_heur vm S;
       let S = set_count_max_wl_heur (clvls - 1) S;
       let S = set_outl_wl_heur outl S;
       let S = set_clauses_wl_heur N S;

@@ -1,11 +1,11 @@
 theory Non_Redundancy
   imports
-    Simple_Clause_Learning
+    SCL_FOL
     Trail_Induced_Ordering
     Initial_Literals_Generalize_Learned_Literals
 begin
 
-context scl_calculus begin
+context scl_fol_calculus begin
 
 section \<open>Reasonable Steps\<close>
 

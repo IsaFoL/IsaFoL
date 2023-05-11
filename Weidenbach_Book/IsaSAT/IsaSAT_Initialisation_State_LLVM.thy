@@ -6,7 +6,7 @@ begin
 hide_const (open) NEMonad.RETURN  NEMonad.ASSERT
 
 type_synonym bump_heuristics_init_assn = \<open>
-  ((64 word \<times> 32 word \<times> 32 word) ptr \<times> 64 word \<times> 32 word \<times> 32 word \<times> 32 word,
+  ((32 word ptr \<times> 32 word ptr \<times> 32 word ptr \<times> 32 word ptr \<times> 64 word ptr \<times> 32 word) \<times> 64 word,
   (64 word \<times> 32 word \<times> 32 word) ptr \<times> 64 word \<times> 32 word \<times> 32 word \<times> 32 word,
   1 word, (64 word \<times> 64 word \<times> 32 word ptr) \<times> 1 word ptr) tuple4\<close>
 
@@ -15,13 +15,13 @@ definition (in -) vmtf_init_assn :: \<open>vmtf_init \<Rightarrow> _ \<Rightarro
   \<open>vmtf_init_assn \<equiv> (array_assn vmtf_node_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a
     atom.option_assn \<times>\<^sub>a atom.option_assn \<times>\<^sub>a atom.option_assn)\<close>
 
-type_synonym bump_heuristics_init = \<open>(vmtf_init, vmtf_init, bool, nat list \<times> bool list) tuple4\<close>
+type_synonym bump_heuristics_init = \<open>((nat,nat)acids, vmtf_init, bool, nat list \<times> bool list) tuple4\<close>
 
 abbreviation Bump_Heuristics_Init :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> bump_heuristics_init\<close> where
   \<open>Bump_Heuristics_Init a b c d \<equiv> Tuple4 a b c d\<close>
 
 definition heuristic_bump_init_assn :: \<open>bump_heuristics_init \<Rightarrow> bump_heuristics_init_assn \<Rightarrow> _\<close> where
-  \<open>heuristic_bump_init_assn = tuple4_assn vmtf_init_assn vmtf_init_assn bool1_assn distinct_atoms_assn\<close>
+  \<open>heuristic_bump_init_assn = tuple4_assn acids_assn2 vmtf_init_assn bool1_assn distinct_atoms_assn\<close>
 
 definition bottom_atom where
   \<open>bottom_atom = 0\<close>
@@ -30,7 +30,7 @@ definition bottom_init_vmtf :: \<open>vmtf_init\<close> where
   \<open>bottom_init_vmtf = (replicate 0 (VMTF_Node 0 None None), 0, None, None, None)\<close>
 
 definition extract_bump_stable where
-  \<open>extract_bump_stable = tuple4_state_ops.remove_a bottom_init_vmtf\<close>
+  \<open>extract_bump_stable = tuple4_state_ops.remove_a empty_acids\<close>
 definition extract_bump_focused where
   \<open>extract_bump_focused = tuple4_state_ops.remove_b bottom_init_vmtf\<close>
 
@@ -71,7 +71,7 @@ definition bottom_atms_hash where
 
 definition extract_bump_atms_to_bump where
   \<open>extract_bump_atms_to_bump = tuple4_state_ops.remove_d bottom_atms_hash\<close>
-  
+
 sepref_def bottom_atms_hash_code
   is \<open>uncurry0 (RETURN bottom_atms_hash)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a distinct_atoms_assn\<close>
@@ -90,13 +90,13 @@ lemma free_vmtf_init_assn_assn2: \<open>MK_FREE vmtf_init_assn free_vmtf_remove\
     (auto intro!: ext)
 
 global_interpretation Bump_Heur_Init: tuple4_state where
-  a_assn = vmtf_init_assn and
+  a_assn = acids_assn2 and
   b_assn = vmtf_init_assn and
   c_assn = bool1_assn and
   d_assn = distinct_atoms_assn and
-  a_default = bottom_init_vmtf and
-  a = \<open>bottom_init_vmtf_code\<close> and
-  a_free = free_vmtf_remove and
+  a_default = empty_acids and
+  a = \<open>empty_acids_code\<close> and
+  a_free = free_acids and
   b_default = bottom_init_vmtf and
   b = \<open>bottom_init_vmtf_code\<close> and
   b_free = free_vmtf_remove and
@@ -113,9 +113,9 @@ global_interpretation Bump_Heur_Init: tuple4_state where
   \<open>Bump_Heur_Init.remove_c \<equiv> extract_bump_is_focused\<close> and
   \<open>Bump_Heur_Init.remove_d \<equiv> extract_bump_atms_to_bump\<close>
   apply unfold_locales
-  apply (rule bottom_init_vmtf_code.refine bottom_focused.refine
+  apply (rule bottom_init_vmtf_code.refine bottom_focused.refine free_acids_assn2
     bottom_atms_hash_code.refine free_vmtf_init_assn_assn2 free_focused_assn2
-    free_distinct_atoms_assn2)+
+    free_distinct_atoms_assn2 empty_acids_code.refine free_acids_assn2')+
   subgoal unfolding heuristic_bump_init_assn_def tuple4_state_ops.tuple4_int_assn_def by auto
   subgoal unfolding extract_bump_stable_def by auto
   subgoal unfolding extract_bump_focused_def by auto
@@ -207,7 +207,7 @@ lemma free_phase_saver2: \<open>MK_FREE phase_saver_assn free_phase_saver\<close
     (auto intro!: ext simp: free_phase_saver_def)
 
 definition bottom_init_bump :: \<open>bump_heuristics_init\<close> where
-  \<open>bottom_init_bump = Bump_Heuristics_Init bottom_init_vmtf bottom_init_vmtf False bottom_atms_hash\<close>
+  \<open>bottom_init_bump = Bump_Heuristics_Init empty_acids bottom_init_vmtf False bottom_atms_hash\<close>
 
 schematic_goal free_vmtf_init_assn[sepref_frame_free_rules]: \<open>MK_FREE heuristic_bump_init_assn ?a\<close>
   unfolding heuristic_bump_init_assn_def

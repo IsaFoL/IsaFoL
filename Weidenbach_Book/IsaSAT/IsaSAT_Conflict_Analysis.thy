@@ -87,7 +87,7 @@ lemma mop_tl_state_wl_pre_tl_state_wl_heur_pre:
   (get_vmtf_heur x)
 \<close>
   using tl_trailt_tr_pre[of \<open>get_trail_wl y\<close> \<open>get_trail_wl_heur x\<close> \<open>all_atms_st y\<close>]
-  subgoal 
+  subgoal
     unfolding mop_tl_state_wl_pre_def tl_state_wl_heur_pre_def mop_tl_state_l_pre_def
       mop_tl_state_pre_def tl_state_wl_heur_pre_def
     by (cases \<open>get_trail_wl_heur x\<close>; cases y)
@@ -157,9 +157,11 @@ lemma tl_state_wl_heur_tl_state_wl:
       intro!: tl_trail_tr[THEN fref_to_Down_unRET] isa_bump_unset_vmtf_tl)
   apply (subst lit_of_last_trail_pol_lit_of_last_trail[THEN fref_to_Down_unRET_Id])
   apply (auto simp: mop_tl_state_wl_pre_simps lit_of_hd_trail_def mop_tl_state_wl_pre_simps counts_maximum_level_def
-    intro!: isa_bump_unset_vmtf_tl)
+    intro!: isa_bump_unset_vmtf_tl[THEN order_trans] IsaSAT_Trail.tl_trail_tr[THEN fref_to_Down_unRET]
+    intro: no_dup_tlD)
   apply (metis (no_types, lifting) IsaSAT_Setup.all_lits_st_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff mop_tl_state_wl_pre_simps(2))
   apply (metis (no_types, lifting) IsaSAT_Setup.all_lits_st_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff mop_tl_state_wl_pre_simps(2))
+  apply (rule no_dup_tlD, assumption)
   apply (subst card_max_lvl_tl)
     apply (auto simp: mop_tl_state_wl_pre_simps lookup_clause_rel_not_tautolgy lookup_clause_rel_distinct_mset
       option_lookup_clause_rel_def)
@@ -475,6 +477,7 @@ proof -
       N \<leftarrow> calculate_LBD_st M N C;
       D \<leftarrow> RETURN (resolve_cls_wl' (M, N, D, NE, UE, WS, Q) C L);
       N \<leftarrow> RETURN N;
+      _ \<leftarrow> RETURN ();
       N \<leftarrow> RETURN N;
       _ \<leftarrow> RETURN ();
       RETURN (False, (tl M, N, Some D, NE, UE, WS, Q))
@@ -508,9 +511,10 @@ proof -
       vm \<leftarrow> isa_vmtf_bump_to_rescore_also_reasons_cl M N C (-L) vm;
       ASSERT(isa_bump_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
+      vm \<leftarrow> isa_bump_unset L' vm;
       let S = set_trail_wl_heur (tl_trailt_tr M) S;
       let S = set_conflict_wl_heur (b, (n, xs)) S;
-      let S = set_vmtf_wl_heur (isa_bump_unset L' vm) S;
+      let S = set_vmtf_wl_heur vm S;
       let S = set_count_max_wl_heur (clvls - 1) S;
       let S = set_outl_wl_heur outl S;
       let S = set_clauses_wl_heur N S;
@@ -811,10 +815,20 @@ note [[goals_limit=1]]
       subgoal by (auto simp: RETURN_def conc_fun_RES)
      done
    done
-   done
+  done
 
- have mset_tl_nth_0: \<open>length Na > 0 \<Longrightarrow> mset (tl (Na)) = mset Na - {#(Na ! 0)#}\<close> for Na
-   by (cases Na) auto
+  have isa_bump_unset: \<open>isa_bump_unset L x \<le> \<Down>{(a, _). a \<in> bump_heur \<A> (tl M)} (RETURN ())\<close>
+  if
+    vmtf: \<open>x\<in> bump_heur \<A> M\<close> and
+    L_N: \<open>L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close> and [simp]: \<open>M \<noteq> []\<close> and
+    nz: \<open>count_decided M > 0\<close> and
+    L: \<open>L = atm_of (lit_of (hd M))\<close> for L x M \<A>
+    unfolding L
+    by (rule isa_bump_unset_vmtf_tl[OF that(1-4)[unfolded L], THEN order_trans])
+      (auto simp: conc_fun_RES RETURN_def)
+
+  have mset_tl_nth_0: \<open>length Na > 0 \<Longrightarrow> mset (tl (Na)) = mset Na - {#(Na ! 0)#}\<close> for Na
+    by (cases Na) auto
   show ?thesis
     supply [[goals_limit = 1]]
     supply RETURN_as_SPEC_refine[refine2 del]
@@ -825,8 +839,10 @@ note [[goals_limit=1]]
       unfolding uncurry_def update_confl_tl_wl_heur_alt_def comp_def Let_def
         update_confl_tl_wl_def mop_update_confl_tl_wl_alt_def prod.case
       apply (refine_rcg calculate_LBD_heur_st_calculate_LBD_st[where
-        vdom = \<open>set (get_vdom (snd CLS'))\<close> and
-        \<A> = \<open>all_atms_st (snd CLS)\<close>]; remove_dummy_vars)
+          vdom = \<open>set (get_vdom (snd CLS'))\<close> and
+          \<A> = \<open>all_atms_st (snd CLS)\<close>]
+        isa_bump_unset[where \<A>3 = \<open>all_atms_st (snd CLS)\<close> and M3 = \<open>get_trail_wl (snd CLS)\<close>];
+        remove_dummy_vars)
       subgoal
         by (auto simp: twl_st_heur_conflict_ana_def update_confl_tl_wl_pre'_def
             RES_RETURN_RES RETURN_def counts_maximum_level_def)
@@ -860,17 +876,39 @@ note [[goals_limit=1]]
              simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def
              simp flip: all_lits_st_alt_def
              intro!: tl_trailt_tr_pre)
+      subgoal by auto
       subgoal apply (clarsimp simp: twl_st_heur_conflict_ana_def update_confl_tl_wl_pre'_def
            valid_arena_mark_used subset_mset.sup_commute[of _ \<open>remove1_mset _ _\<close>]
           tl_trail_tr[THEN fref_to_Down_unRET] resolve_cls_wl'_def isa_bump_unset_vmtf_tl no_dup_tlD
           counts_maximum_level_def
         simp flip: all_lits_st_alt_def
         dest: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of _ M \<open>lit_of (hd M)\<close> for M])
-        apply (rule isa_bump_unset_vmtf_tl)
-        apply (auto
-          dest: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of _ M \<open>lit_of (hd M)\<close> for M])
         apply (meson all_in_dom atm_of_lit_in_atms_of)
-        by (meson atm_of_in_atms_of literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l)
+        by (meson atm_of_in_atms_of literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l)+
+      subgoal by (clarsimp simp: twl_st_heur_conflict_ana_def update_confl_tl_wl_pre'_def
+           valid_arena_mark_used subset_mset.sup_commute[of _ \<open>remove1_mset _ _\<close>]
+          tl_trail_tr[THEN fref_to_Down_unRET] resolve_cls_wl'_def isa_bump_unset_vmtf_tl no_dup_tlD
+          counts_maximum_level_def
+        simp flip: all_lits_st_alt_def
+        dest: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of _ M \<open>lit_of (hd M)\<close> for M])
+      subgoal by (clarsimp simp: twl_st_heur_conflict_ana_def update_confl_tl_wl_pre'_def
+           valid_arena_mark_used subset_mset.sup_commute[of _ \<open>remove1_mset _ _\<close>]
+          tl_trail_tr[THEN fref_to_Down_unRET] resolve_cls_wl'_def isa_bump_unset_vmtf_tl no_dup_tlD
+          counts_maximum_level_def
+        simp flip: all_lits_st_alt_def
+        dest: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of _ M \<open>lit_of (hd M)\<close> for M])
+      subgoal by (clarsimp simp: twl_st_heur_conflict_ana_def update_confl_tl_wl_pre'_def
+           valid_arena_mark_used subset_mset.sup_commute[of _ \<open>remove1_mset _ _\<close>]
+          tl_trail_tr[THEN fref_to_Down_unRET] resolve_cls_wl'_def isa_bump_unset_vmtf_tl no_dup_tlD
+          counts_maximum_level_def
+        simp flip: all_lits_st_alt_def
+        dest: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of _ M \<open>lit_of (hd M)\<close> for M])
+      subgoal by (clarsimp simp: twl_st_heur_conflict_ana_def update_confl_tl_wl_pre'_def
+           valid_arena_mark_used subset_mset.sup_commute[of _ \<open>remove1_mset _ _\<close>]
+          tl_trail_tr[THEN fref_to_Down_unRET] resolve_cls_wl'_def isa_bump_unset_vmtf_tl no_dup_tlD
+          counts_maximum_level_def
+        simp flip: all_lits_st_alt_def
+        dest: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of _ M \<open>lit_of (hd M)\<close> for M])
       done
   done
 qed
@@ -878,16 +916,6 @@ qed
 lemma phase_saving_le: \<open>phase_saving \<A> \<phi> \<Longrightarrow> A \<in># \<A> \<Longrightarrow> A < length \<phi>\<close>
    \<open>phase_saving \<A> \<phi> \<Longrightarrow> B \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> atm_of B < length \<phi>\<close>
   by (auto simp: phase_saving_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
-(*
-lemma isa_vmtf_le:
-  \<open>((a, b), M) \<in> bump_heur \<A> M' \<Longrightarrow> A \<in># \<A> \<Longrightarrow> A < length a\<close>
-  \<open>((a, b), M) \<in> bump_heur \<A> M' \<Longrightarrow> B \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> atm_of B < length a\<close>
-  by (auto simp:  vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
-
-lemma isa_vmtf_next_search_le:
-  \<open>((a, b, c, c', Some d), M) \<in> bump_heur \<A> M' \<Longrightarrow> d < length a\<close>
-  by (auto simp: vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
-*)
 
 lemma trail_pol_nempty: \<open>\<not>(([], aa, ab, ac, ad, b), L # ys) \<in> trail_pol \<A>\<close>
   by (auto simp: trail_pol_def ann_lits_split_reasons_def)

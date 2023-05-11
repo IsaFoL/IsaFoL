@@ -503,6 +503,7 @@ FILE * read_pipe (const char * fmt,
 void LLVM_DS_NArray_narray_free1(int32_t *);
 
 void print_version() {
+  printf("sc2023 ");
   int32_t* version = llvm_version();
   while(*version) {
     printf("%c", (char)*version);
@@ -553,9 +554,9 @@ void IsaSAT_Proofs_LLVM_log_end_clause_impl(uint64_t _w) {
 
 
 static void
-isasat_print_binary_lit (uint32_t x)
+isasat_print_binary_lit (int32_t x)
 {
-  x = x>0 ? 2*x : -2*x+1;
+  x = x>0 ? 2*x : 2*(-x)+1;
   unsigned char ch;
   while (x & ~0x7f)
     {
@@ -602,7 +603,7 @@ static void isasat_print_clause ()
 
 static void isasat_print_literal (uint32_t lit)
 {
-  const int ilit = ((lit %2 == 0) ? 1 : -1) * ((lit >> 1) + 1);
+  const int ilit = ((lit % 2 == 0) ? 1 : -1) * ((lit >> 1) + 1);
   if (binary_proof)
     isasat_print_binary_lit (ilit);
   else
@@ -879,6 +880,8 @@ int main(int argc, char *argv[]) {
       printf ("cannot open proof file, aborting");
       return 0;
     }
+    
+    setvbuf ( proof , NULL , _IOFBF , 1000000 );
   }
 
 

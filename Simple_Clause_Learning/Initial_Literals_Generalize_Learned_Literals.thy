@@ -1,5 +1,5 @@
 theory Initial_Literals_Generalize_Learned_Literals
-  imports Simple_Clause_Learning
+  imports SCL_FOL
 begin
 
 syntax (input)
@@ -59,7 +59,7 @@ lemma fBall_ffUnion_iff: "(\<forall>z |\<in>| ffUnion (f |`| A). P z) \<longleft
 abbreviation grounding_lits_of_clss where
   "grounding_lits_of_clss N \<equiv> {L \<cdot>l \<gamma> | L \<gamma>. L \<in> \<Union>(set_mset ` N) \<and> is_ground_lit (L \<cdot>l \<gamma>)}"
 
-context scl_calculus begin
+context scl_fol_calculus begin
 
 corollary grounding_lits_of_learned_subset_grounding_lits_of_initial:
   assumes "initial_lits_generalize_learned_trail_conflict N S"
