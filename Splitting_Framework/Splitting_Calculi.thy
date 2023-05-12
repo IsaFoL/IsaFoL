@@ -10,6 +10,8 @@ theory Splitting_Calculi
      * not of interest in our setting (because we don't really care about static completeness
      * in lemma 18), so we simply removed this condition, together with all the lemmas/theorems 
      * which depended upon it. *)
+    List_Extra
+    FSet_Extra
 begin
 
 (* This file contains some comments regarding the potential move of some lemmas.
@@ -151,34 +153,6 @@ proof (intro subsetI)
 qed
 
 
-(*<*)
-(*! Perhaps these could go in the List theory, where \<open>map2\<close> is defined? *)
-lemma map2_first_is_first [simp]: \<open>length x = length y \<Longrightarrow> map2 (\<lambda> x y. x) x y = x\<close>
-  by (metis fst_def map_eq_conv map_fst_zip)
-
-lemma map2_second_is_second [simp]: \<open>length A = length B \<Longrightarrow> map2 (\<lambda> x y. y) A B = B\<close>
-  by (metis map_eq_conv map_snd_zip snd_def)
-
-lemma list_all_exists_is_exists_list_all2:
-  assumes \<open>list_all (\<lambda> x. \<exists> y. P x y) xs\<close>
-  shows \<open>\<exists> ys. list_all2 P xs ys\<close>
-  using assms
-  by (induct xs, auto)
-
-(*! Move to FSet theory? *)
-lemma fimage_snd_zip_is_snd [simp]:
-  \<open>length x = length y \<Longrightarrow> (\<lambda>(x, y). y) |`| fset_of_list (zip x y) = fset_of_list y\<close>
-proof -
-  assume length_x_eq_length_y: \<open>length x = length y\<close>
-  have \<open>(\<lambda>(x, y). y) |`| fset_of_list A = fset_of_list (map (\<lambda>(x, y). y) A)\<close> for A
-    by auto
-  then show ?thesis
-    using length_x_eq_length_y
-    by (smt (verit, ccfv_SIG) cond_case_prod_eta map_snd_zip snd_conv)
-qed
-(*>*)
-
-
 
 (* Report lemma 13 2/2 *)
 lemma SInf_commutes_Inf2:
@@ -246,46 +220,6 @@ lemma SInf_commutes_Inf:
   \<open>bot \<notin> \<N> proj\<^sub>J J \<Longrightarrow> (inference_system.Inf_from SInf \<N>) \<iota>proj\<^sub>J J = Inf_from (\<N> proj\<^sub>J J)\<close>
   using SInf_commutes_Inf1 SInf_commutes_Inf2
   by blast
-
-
-
-(*<*)
-(*! Move to FSet? *)
-lemma if_in_ffUnion_then_in_subset: \<open>x |\<in>| ffUnion A \<Longrightarrow> \<exists> a. a |\<in>| A \<and> x |\<in>| a\<close>
-  by (induct \<open>A\<close> rule: fset_induct, fastforce+)
-
-lemma fset_ffUnion_subset_iff_all_fsets_subset: \<open>fset (ffUnion A) \<subseteq> B \<longleftrightarrow> fBall A (\<lambda> x. fset x \<subseteq> B)\<close>
-proof (intro fBallI subsetI iffI)
-  fix a x
-  assume ffUnion_A_subset_B: \<open>fset (ffUnion A) \<subseteq> B\<close> and
-         a_in_A: \<open>a |\<in>| A\<close> and
-         x_in_fset_a: \<open>x \<in> fset a\<close>
-  then have \<open>x |\<in>| a\<close>
-    by (simp add: fmember.rep_eq)
-  then have \<open>x |\<in>| ffUnion A\<close>
-    by (metis a_in_A ffunion_insert funion_iff set_finsert)
-  then show \<open>x \<in> B\<close>
-    by (meson ffUnion_A_subset_B fmember.rep_eq subsetD)
-next
-  fix x
-  assume all_in_A_subset_B: \<open>fBall A (\<lambda> x. fset x \<subseteq> B)\<close> and
-         \<open>x \<in> fset (ffUnion A)\<close>
-  then have \<open>x |\<in>| ffUnion A\<close>
-    by (simp add: fmember.rep_eq)
-  then obtain a where \<open>a |\<in>| A\<close> and
-                      x_in_a: \<open>x |\<in>| a\<close>
-    by (meson if_in_ffUnion_then_in_subset)
-  then have \<open>fset a \<subseteq> B\<close>
-    using all_in_A_subset_B
-    by blast
-  then show \<open>x \<in> B\<close>
-    by (meson fmember.rep_eq subsetD x_in_a)
-qed
-
-(*! Move to FSet too? *)
-lemma fBall_fset_of_list_iff_Ball_set: \<open>fBall (fset_of_list A) P \<longleftrightarrow> Ball (set A) P\<close>
-  by (simp add: fBall.rep_eq fset_of_list.rep_eq)
-(*>*)
 
 
 
@@ -470,15 +404,6 @@ abbreviation sqsupset_is_tiebreaker_order (infix \<open>\<sqsupset>\<close> 50) 
 lemma tiebreaker_order_is_strict_partial_order: \<open>po_on (\<sqsupset>) UNIV\<close>
   unfolding po_on_def irreflp_on_def transp_on_def tiebreaker_order_def
   by auto
-
-(*! Move only this one to FSet? *)
-lemma wf_fsubset: \<open>wfP (|\<subset>|)\<close>
-proof -
-  have \<open>wfP (\<lambda> A B. fcard A < fcard B)\<close>
-    by (metis (no_types, lifting) in_measure wfPUNIVI wf_induct wf_measure)
-  then show \<open>wfP (|\<subset>|)\<close>
-    by (smt (verit, ccfv_threshold) pfsubset_fcard_mono wfPUNIVI wfP_induct)
-qed
 
 lemma wfp_on_fsubset: \<open>wfp_on (|\<subset>|) UNIV\<close>
   using wf_fsubset
@@ -1155,13 +1080,6 @@ proof -
     by (meson AF_sound_cons_rel.entails_subsets empty_subsetI insert_subset subset_refl)
 qed
 
-(*! Move these two to FSet? *)
-lemma non_zero_fcard_of_non_empty_set: \<open>fcard A > 0 \<longleftrightarrow> A \<noteq> {||}\<close>
-  by (metis bot.not_eq_extremum fcard_fempty less_numeral_extra(3) pfsubset_fcard_mono)
-
-lemma fimage_of_non_fempty_is_non_fempty: \<open>A \<noteq> {||} \<Longrightarrow> f |`| A \<noteq> {||}\<close>
-  by blast
-
 (*! Keep this here? *)
 lemma entails_of_entails_iff: 
   \<open>{C} \<Turnstile>s\<^sub>\<sim> Cs \<Longrightarrow> finite Cs \<Longrightarrow> card Cs \<ge> 1 \<Longrightarrow>
@@ -1761,27 +1679,6 @@ lemmas SRed_rules = SRed\<^sub>F_entails_bot SRed\<^sub>F_of_subset_F SRed\<^sub
 interpretation S_calculus: calculus \<open>to_AF bot\<close> SInf AF_entails SRed\<^sub>I SRed\<^sub>F
   by (standard; simp add: SRed_rules)
 
-(*<*)
-(*! Move these in the List theory? *)
-lemma ball_set_f_to_ball_set_map: \<open>(\<forall> x \<in> set A. P (f x)) \<longleftrightarrow> (\<forall> x \<in> set (map f A). P x)\<close>
-  by simp
-
-lemma list_all_ex_to_ex_list_all2:
-  \<open>list_all (\<lambda> x. \<exists> y. P x y) A \<longleftrightarrow> (\<exists> ys. length A = length ys \<and> list_all2 (\<lambda> x y. P x y) A ys)\<close>
-  by (metis list_all2_conv_all_nth list_all_exists_is_exists_list_all2 list_all_length)
-
-lemma list_all2_to_map:
-  assumes lengths_eq: \<open>length A = length B\<close>
-  shows \<open>list_all2 (\<lambda> x y. P (f x y)) A B \<longleftrightarrow> list_all P (map2 f A B)\<close>
-proof -
-  have \<open>list_all2 (\<lambda> x y. P (f x y)) A B \<longleftrightarrow> list_all (\<lambda> (x, y). P (f x y)) (zip A B)\<close>
-    by (simp add: lengths_eq list_all2_iff list_all_iff)
-  also have \<open>... \<longleftrightarrow> list_all (\<lambda> x. P x) (map2 f A B)\<close>
-    by (simp add: case_prod_beta list_all_iff)
-  finally show ?thesis .
-qed
-(*>*)
-
 
 
 (* Report lemma 20 *)
@@ -1885,14 +1782,6 @@ proof -
 qed
 
 (*<*)
-(*! Move to FSet? *)
-lemma Union_empty_if_set_empty_or_all_empty:
-  \<open>ffUnion A = {||} \<Longrightarrow> A = {||} \<or> fBall A (\<lambda> x. x = {||})\<close>
-  by (metis (mono_tags, lifting) fBallI ffunion_insert finsert_absorb funion_fempty_right)
-
-lemma fBall_fimage_is_fBall: \<open>fBall (f |`| A) P \<longleftrightarrow> fBall A (\<lambda> x. P (f x))\<close>
-  by auto
-
 interpretation AF_sound_cons_rel: consequence_relation \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
   by (rule AF_ext_sound_cons_rel)
 
