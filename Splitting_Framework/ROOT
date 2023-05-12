@@ -7,3 +7,4 @@ session "Splitting_Framework" = Saturation_Framework +
   theories
     Preliminaries_With_Zorn
     Splitting_Calculi
+    Splitting_Without_Backtracking
