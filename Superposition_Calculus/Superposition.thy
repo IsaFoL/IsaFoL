@@ -25,6 +25,24 @@ theory Superposition
 begin
 
 
+lemma predicate_holds_of_mem_rstep:
+  assumes rule_in: "(t1, t2) \<in> rstep R" and
+    ball_P: "\<And>t1 t2. (t1, t2) \<in> R \<Longrightarrow> P t1 t2" and
+    preservation: "\<And>t1 t2 ctxt \<sigma>. (t1, t2) \<in> R \<Longrightarrow> P t1 t2 \<Longrightarrow> P ctxt\<langle>t1 \<cdot> \<sigma>\<rangle> ctxt\<langle>t2 \<cdot> \<sigma>\<rangle>"
+  shows "P t1 t2"
+proof -
+  from rule_in obtain t1' t2' ctxt \<sigma> where
+    "(t1', t2') \<in> R" and
+    "t1 = ctxt\<langle>t1' \<cdot> \<sigma>\<rangle>" and
+    "t2 = ctxt\<langle>t2' \<cdot> \<sigma>\<rangle>"
+    by auto
+  thus ?thesis
+    using ball_P[OF \<open>(t1', t2') \<in> R\<close>]
+    using preservation[OF \<open>(t1', t2') \<in> R\<close>]
+    by simp
+qed
+
+
 no_notation subst_compose (infixl "\<circ>\<^sub>s" 75)
 no_notation subst_apply_term (infixl "\<cdot>" 67)
 
@@ -1917,11 +1935,11 @@ proof -
     unfolding rewrite_sys_def by simp
 qed
 
-lemma mem_join_union_iff_mem_join_lhs': "(s, t) \<in> (R\<^sub>1 \<union> R\<^sub>2)\<^sup>\<down> \<longleftrightarrow> (s, t) \<in> R\<^sub>1\<^sup>\<down>"
-  if
+lemma mem_join_union_iff_mem_join_lhs':
+  assumes
     ball_R\<^sub>1_rhs_lt_lhs: "\<And>t1 t2. (t1, t2) \<in> R\<^sub>1 \<Longrightarrow> t2 \<prec>\<^sub>t t1" and
     ball_R\<^sub>2_lt_lhs: "\<And>t1 t2. (t1, t2) \<in> R\<^sub>2 \<Longrightarrow> s \<prec>\<^sub>t t1 \<and> t \<prec>\<^sub>t t1"
-  for C
+  shows "(s, t) \<in> (R\<^sub>1 \<union> R\<^sub>2)\<^sup>\<down> \<longleftrightarrow> (s, t) \<in> R\<^sub>1\<^sup>\<down>"
 proof -
   have ball_R\<^sub>1_rhs_lt_lhs': "(t1, t2) \<in> R\<^sub>1\<^sup>* \<Longrightarrow> t2 \<preceq>\<^sub>t t1" for t1 t2
   proof (induction t2 rule: rtrancl_induct)
@@ -1968,6 +1986,14 @@ proof -
     qed
   qed
 qed
+
+lemma mem_join_union_iff_mem_join_rhs':
+  assumes
+    ball_R\<^sub>1_rhs_lt_lhs: "\<And>t1 t2. (t1, t2) \<in> R\<^sub>2 \<Longrightarrow> t2 \<prec>\<^sub>t t1" and
+    ball_R\<^sub>2_lt_lhs: "\<And>t1 t2. (t1, t2) \<in> R\<^sub>1 \<Longrightarrow> s \<prec>\<^sub>t t1 \<and> t \<prec>\<^sub>t t1"
+  shows "(s, t) \<in> (R\<^sub>1 \<union> R\<^sub>2)\<^sup>\<down> \<longleftrightarrow> (s, t) \<in> R\<^sub>2\<^sup>\<down>"
+  using assms mem_join_union_iff_mem_join_lhs'
+  by (metis (no_types, opaque_lifting) sup_commute)
 
 lemma mem_join_union_iff_mem_join_lhs'':
   assumes
@@ -2408,6 +2434,84 @@ next
         vars_cls_set_def)
 qed
 
+lemma true_cls_insert_and_not_true_clsE:
+  assumes
+    ground_C: "is_ground_cls C" and
+    "(\<lambda>(x, y). x \<approx> y) ` (rstep (insert r R))\<^sup>\<down> \<TTurnstile> C" and
+    "\<not> (\<lambda>(x, y). x \<approx> y) ` (rstep R)\<^sup>\<down> \<TTurnstile> C"
+  obtains t t' where
+    "Pos (t \<approx> t') \<in># C" and
+    "t \<prec>\<^sub>t t'" and
+    "(t, t') \<in> (rstep (insert r R))\<^sup>\<down>" and
+    "(t, t') \<notin> (rstep R)\<^sup>\<down>"
+proof -
+  assume hyp: "\<And>t t'. Pos (t \<approx> t') \<in># C \<Longrightarrow> t \<prec>\<^sub>t t' \<Longrightarrow> (t, t') \<in> (rstep (insert r R))\<^sup>\<down> \<Longrightarrow>
+    (t, t') \<notin> (rstep R)\<^sup>\<down> \<Longrightarrow> thesis"
+
+  from assms(2,3) obtain L where
+    "L \<in># C" and
+    entails_L: "(\<lambda>(x, y). x \<approx> y) ` (rstep (insert r R))\<^sup>\<down> \<TTurnstile>l L" and
+    doesnt_entail_L: "\<not> (\<lambda>(x, y). x \<approx> y) ` (rstep R)\<^sup>\<down> \<TTurnstile>l L"
+    by (meson true_cls_def)
+
+  from ground_C have "set_uprod (atm_of L) \<subseteq> {t. is_ground_trm t}"
+    using \<open>L \<in># C\<close>
+    using is_ground_lit_if_in_ground_cls is_ground_term_if_in_ground_atm vars_lit_def by fastforce
+  hence "totalp_on (set_uprod (atm_of L)) (\<prec>\<^sub>t)"
+    using totalp_on_less_trm[THEN totalp_on_subset] by metis
+  then obtain t t' where "atm_of L = t \<approx> t'" and "t \<preceq>\<^sub>t t'"
+    using ex_ordered_make_uprod by metis
+
+  show ?thesis
+  proof (cases L)
+    case (Pos A)
+    hence L_def: "L = Pos (t \<approx> t')"
+      using \<open>atm_of L = t \<approx> t'\<close> by simp
+
+    moreover have "(t, t') \<in> (rstep (insert r R))\<^sup>\<down>"
+      using entails_L
+      unfolding L_def
+      unfolding true_lit_uprod_iff_true_lit_prod[OF sym_join]
+      by (simp add: true_lit_def)
+
+    moreover have "(t, t') \<notin> (rstep R)\<^sup>\<down>"
+      using doesnt_entail_L
+      unfolding L_def
+      unfolding true_lit_uprod_iff_true_lit_prod[OF sym_join]
+      by (simp add: true_lit_def)
+
+    ultimately show ?thesis
+      using hyp \<open>L \<in># C\<close> \<open>t \<preceq>\<^sub>t t'\<close> by auto
+  next
+    case (Neg A)
+    hence L_def: "L = Neg (t \<approx> t')"
+      using \<open>atm_of L = t \<approx> t'\<close> by simp
+
+    have "(t, t') \<notin> (rstep (insert r R))\<^sup>\<down>"
+      using entails_L
+      unfolding L_def
+      unfolding true_lit_uprod_iff_true_lit_prod[OF sym_join]
+      by (simp add: true_lit_def)
+
+    moreover have "(t, t') \<in> (rstep R)\<^sup>\<down>"
+      using doesnt_entail_L
+      unfolding L_def
+      unfolding true_lit_uprod_iff_true_lit_prod[OF sym_join]
+      by (simp add: true_lit_def)
+
+    moreover have "(rstep R)\<^sup>\<down> \<subseteq> (rstep (insert r R))\<^sup>\<down>"
+      by (auto intro!: join_mono intro: rstep_mono)
+
+    ultimately have False
+      by auto
+    thus ?thesis ..
+  qed
+qed
+
+(* lemma assumes "t \<prec>\<^sub>t s" and "t' \<prec>\<^sub>t t"
+  shows "(t, t') \<in> (rstep (insert (s, s') R))\<^sup>\<down> \<longleftrightarrow> (t, t') \<in> (rstep R)\<^sup>\<down>"
+  find_theorems "_ \<in> join _ \<longleftrightarrow> _ \<in> join _" *)
+
 lemma model_construction:
   fixes
     N :: "('f, char list) gterm uprod clause set" and
@@ -2716,13 +2820,15 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
         using select_subset select_negative_lits
         by (metis (no_types, opaque_lifting) literal.disc(1) literal.exhaust mset_subset_eqD
             multiset_nonemptyE)
-      then obtain C\<^sub>\<G>' where C\<^sub>\<G>_eq: "C\<^sub>\<G> = add_mset (Pos A) C\<^sub>\<G>'"
+      then obtain C\<^sub>\<G>' where C\<^sub>\<G>_def: "C\<^sub>\<G> = add_mset (Pos A) C\<^sub>\<G>'"
         by (meson mset_add)
 
-      have ground_A: "is_ground_atm A"
-        by (metis Pos_A_in ground_C\<^sub>\<G> is_ground_lit_if_in_ground_cls vars_lit_Pos)
-      hence "set_uprod A \<subseteq> {t. is_ground_trm t}"
-        using is_ground_term_if_in_ground_atm by auto
+      have ground_C\<^sub>\<G>': "is_ground_cls C\<^sub>\<G>'" and ground_A: "is_ground_atm A"
+        using ground_C\<^sub>\<G>
+        by (simp_all add: C\<^sub>\<G>_def)
+
+      have "set_uprod A \<subseteq> {t. is_ground_trm t}"
+        using ground_A is_ground_term_if_in_ground_atm by auto
       hence "totalp_on (set_uprod A) (\<prec>\<^sub>t)"
         using totalp_on_less_trm totalp_on_subset by blast
       then obtain s s' where A_def: "A = (s \<approx> s')" and "s' \<preceq>\<^sub>t s"
@@ -2737,7 +2843,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
         case True
         then show ?thesis
           using \<open>equation N\<^sub>\<G> C\<^sub>\<G> = {}\<close>
-          using A_def C\<^sub>\<G>_eq entails_def by blast
+          using A_def C\<^sub>\<G>_def entails_def by blast
       next
         case False
 
@@ -2756,7 +2862,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
             hence e_or_f_doesnt_hold: "(\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<^sup>\<down> \<TTurnstile> C\<^sub>\<G> \<or>
               (\<lambda>(x, y). x \<approx> y) ` (rstep (insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>)))\<^sup>\<down> \<TTurnstile> C\<^sub>\<G>'"
               using \<open>equation N\<^sub>\<G> C\<^sub>\<G> = {}\<close>[unfolded equation_def production.simps[of N\<^sub>\<G> C\<^sub>\<G>]]
-              using \<open>C\<^sub>\<G> \<in> N\<^sub>\<G>\<close> C\<^sub>\<G>_eq \<open>select C\<^sub>\<G> = {#}\<close> strictly_maximal \<open>s' \<prec>\<^sub>t s\<close>
+              using \<open>C\<^sub>\<G> \<in> N\<^sub>\<G>\<close> C\<^sub>\<G>_def \<open>select C\<^sub>\<G> = {#}\<close> strictly_maximal \<open>s' \<prec>\<^sub>t s\<close>
               unfolding A_def rewrite_sys_def equation_def
               by (smt (verit, best) Collect_empty_eq)
             show ?thesis
@@ -2766,12 +2872,188 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
                 by (simp add: entails_def)
             next
               case e_holds: False
+              hence R_C\<^sub>\<G>_doesnt_entail_C\<^sub>\<G>': "\<not> (\<lambda>(x, y). x \<approx> y) ` (rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<^sup>\<down> \<TTurnstile> C\<^sub>\<G>'"
+                unfolding C\<^sub>\<G>_def by simp
               show ?thesis
               proof (cases "(\<lambda>(x, y). x \<approx> y) ` (rstep (insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>)))\<^sup>\<down> \<TTurnstile> C\<^sub>\<G>'")
                 case f_doesnt_hold: True
-                then show ?thesis
-                  using e_holds
-                  sorry
+                then obtain C\<^sub>\<G>'' t t' where C\<^sub>\<G>'_def: "C\<^sub>\<G>' = add_mset (Pos (t \<approx> t')) C\<^sub>\<G>''" and
+                  "t' \<prec>\<^sub>t t" and
+                  "(t, t') \<in> (rstep (insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>)))\<^sup>\<down>" and
+                  "(t, t') \<notin> (rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<^sup>\<down>"
+                  using ground_C\<^sub>\<G>' f_doesnt_hold R_C\<^sub>\<G>_doesnt_entail_C\<^sub>\<G>'
+                  using true_cls_insert_and_not_true_clsE
+                  by (metis insert_DiffM join_sym make_uprod_sym)
+
+                have ground_t: "is_ground_trm t"
+                  using ground_C\<^sub>\<G>' C\<^sub>\<G>'_def by simp
+
+                have "Pos (t \<approx> t') \<prec>\<^sub>l Pos (s \<approx> s')"
+                  using strictly_maximal
+                  apply (simp add: C\<^sub>\<G>_def is_maximal_wrt_def) 
+                  using C\<^sub>\<G>'_def A_def
+                  by (smt (verit) ground_A ground_C\<^sub>\<G>' is_ground_lit_if_in_ground_cls mem_Collect_eq
+                      totalp_on_def totalp_on_less_lit union_single_eq_member vars_lit_Pos)
+
+                have "\<not> (t \<prec>\<^sub>t s)"
+                proof (rule notI)
+                  assume "t \<prec>\<^sub>t s"
+
+                  have "(t, t') \<in> (rstep (insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>)))\<^sup>\<down> \<longleftrightarrow>
+                    (t, t') \<in> (rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<^sup>\<down>"
+                    unfolding rstep_insert[of "(s, s')" "rewrite_sys N\<^sub>\<G> C\<^sub>\<G>"]
+                  proof (rule mem_join_union_iff_mem_join_rhs')
+                    show "\<And>t1 t2. (t1, t2) \<in> rstep {(s, s')} \<Longrightarrow> t \<prec>\<^sub>t t1 \<and> t' \<prec>\<^sub>t t1"
+                      using \<open>t \<prec>\<^sub>t s\<close> \<open>t' \<prec>\<^sub>t t\<close>
+                      by (smt (verit, ccfv_threshold) fst_conv ground_s singletonD
+                          less_trm_const_lhs_if_mem_rstep transpD transp_less_trm)
+                  next
+                    show "\<And>t1 t2. (t1, t2) \<in> rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) \<Longrightarrow> t2 \<prec>\<^sub>t t1"
+                      using ground_N\<^sub>\<G> rhs_less_trm_lhs_if_mem_rstep_rewrite_sys by force
+                  qed
+                  thus False
+                    using \<open>(t, t') \<in> (rstep (insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>)))\<^sup>\<down>\<close>
+                    using \<open>(t, t') \<notin> (rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<^sup>\<down>\<close>
+                    by metis
+                qed
+
+                moreover have "\<not> (s \<prec>\<^sub>t t)"
+                proof (rule notI)
+                  assume "s \<prec>\<^sub>t t"
+                  hence "multp (\<prec>\<^sub>t) {#s, s'#} {#t, t'#}"
+                    using \<open>s' \<prec>\<^sub>t s\<close> \<open>t' \<prec>\<^sub>t t\<close>
+                    using one_step_implies_multp[of _ _ _ "{#}", simplified]
+                    by (metis (mono_tags, opaque_lifting) empty_not_add_mset insert_iff
+                        set_mset_add_mset_insert set_mset_empty singletonD transpD transp_less_trm)
+                  hence "Pos (s \<approx> s') \<prec>\<^sub>l Pos (t \<approx> t')"
+                    by (simp add: less_lit_def)
+                  thus False
+                    using strictly_maximal
+                    by (simp add: A_def C\<^sub>\<G>_def \<open>C\<^sub>\<G>' = add_mset (Pos (t \<approx> t')) C\<^sub>\<G>''\<close>
+                        is_maximal_wrt_def)
+                qed
+
+                ultimately have "t = s"
+                  using totalp_on_less_trm[THEN totalp_onD, unfolded mem_Collect_eq]
+                  using ground_t ground_s by metis
+                hence "t' \<prec>\<^sub>t s'"
+                  using \<open>t' \<prec>\<^sub>t t\<close> \<open>s' \<prec>\<^sub>t s\<close>
+                  using \<open>Pos (t \<approx> t') \<prec>\<^sub>l Pos (s \<approx> s')\<close>
+                  unfolding less_lit_def
+                  by (simp add: multp_cancel_add_mset transp_less_trm)
+
+                obtain t'' where
+                  "(t, t'') \<in> rstep (insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))" and
+                  "(t'', t') \<in> (rstep (insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>)))\<^sup>\<down>"
+                  using \<open>(t, t') \<in> (rstep (insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>)))\<^sup>\<down>\<close>[THEN joinD]
+                  using ex_step_if_joinable[OF asymp_less_trm _ _ _ \<open>t' \<prec>\<^sub>t t\<close>]
+                  by (smt (verit, ccfv_threshold) \<open>t = s\<close> converse_rtranclE insertCI joinI_right
+                      join_sym r_into_rtrancl rstep_rule rtrancl_join_join)
+
+                have "t'' \<prec>\<^sub>t t"
+                proof (rule predicate_holds_of_mem_rstep[of _ _ _ "\<lambda>x y. y \<prec>\<^sub>t x"])
+                  show "(t, t'') \<in> rstep (insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))"
+                    using \<open>(t, t'') \<in> rstep (insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<close> .
+                next
+                  show "\<And>t1 t2. (t1, t2) \<in> insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) \<Longrightarrow> t2 \<prec>\<^sub>t t1"
+                    by (metis \<open>s' \<prec>\<^sub>t s\<close> insert_iff old.prod.inject rhs_lt_lhs_if_mem_rewrite_sys)
+                next
+                  show "\<And>t1 t2 ctxt \<sigma>. (t1, t2) \<in> insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) \<Longrightarrow>
+                    t2 \<prec>\<^sub>t t1 \<Longrightarrow> ctxt\<langle>t2 \<cdot>t \<sigma>\<rangle> \<prec>\<^sub>t ctxt\<langle>t1 \<cdot>t \<sigma>\<rangle>"
+                    by (rule less_trm_compatible_with_ctxt)
+                      (metis fst_conv ground_N\<^sub>\<G> ground_s ground_s' insert_iff snd_conv
+                        ground_rule_if_mem_rewrite_sys term_subst.subst_ident_if_ground)
+                qed
+
+                have "(t, t'') \<in> rstep {(s, s')}"
+                  using \<open>(t, t'') \<in> rstep (insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<close>
+                  using \<open>t = s\<close> s_irreducible
+                  by (metis NF_E UnE rstep_insert)
+                hence "t'' = s'"
+                  using ground_s'
+                  by (auto simp: \<open>t = s\<close>)
+
+                moreover have "(t'', t') \<in> (rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<^sup>\<down>"
+                proof (rule mem_join_union_iff_mem_join_rhs'[THEN iffD1])
+                  show "(t'', t') \<in> (rstep {(s, s')} \<union> rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<^sup>\<down>"
+                    using \<open>(t'', t') \<in> (rstep (insert (s, s') (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>)))\<^sup>\<down>\<close>
+                    by (metis rstep_insert)
+                next
+                  show "\<And>t1 t2. (t1, t2) \<in> rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) \<Longrightarrow> t2 \<prec>\<^sub>t t1"
+                    using rhs_less_trm_lhs_if_mem_rstep_rewrite_sys[OF ground_N\<^sub>\<G>] .
+                next
+                  show "\<And>t1 t2. (t1, t2) \<in> rstep {(s, s')} \<Longrightarrow> t'' \<prec>\<^sub>t t1 \<and> t' \<prec>\<^sub>t t1"
+                    using \<open>t' \<prec>\<^sub>t t\<close> \<open>t'' \<prec>\<^sub>t t\<close>
+                    unfolding \<open>t = s\<close>
+                    using ground_s less_trm_const_lhs_if_mem_rstep by fastforce
+                qed
+
+                ultimately have "(s', t') \<in> (rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<^sup>\<down>"
+                  by simp
+
+                let ?concl = "add_mset (Neg (s' \<approx> t')) (add_mset (Pos (t \<approx> t')) C\<^sub>\<G>'')"
+
+                define \<iota> :: "('f, char list) gterm uprod clause inference" where
+                  "\<iota> = Infer [gcls_cls C\<^sub>\<G>] (gcls_cls ?concl)"
+
+                have eq_fact: "eq_factoring C\<^sub>\<G> ?concl"
+                proof (rule eq_factoringI)
+                  show "C\<^sub>\<G> = add_mset (Pos (s \<approx> s')) (add_mset (Pos (t \<approx> t')) C\<^sub>\<G>'')"
+                    by (simp add: C\<^sub>\<G>_def C\<^sub>\<G>'_def A_def)
+                next
+                  show "select C\<^sub>\<G> = {#} \<and> is_maximal_lit (Pos (s \<approx> s') \<cdot>l Var) (C\<^sub>\<G> \<cdot> Var)"
+                    by (metis A_def \<open>select C\<^sub>\<G> = {#}\<close> max_Pos_A subst_cls_Var_ident
+                        subst_lit_Var_ident)
+                next
+                  show "\<not> s \<cdot>t Var \<preceq>\<^sub>t s' \<cdot>t Var"
+                    by (metis \<open>s' \<prec>\<^sub>t s\<close> asympD asymp_less_trm strict_reflclp_conv subst.cop_nil)
+                next
+                  show "term_subst.is_imgu Var {{s, t}}"
+                    by (simp add: \<open>t = s\<close>)
+                next
+                  show "add_mset (Neg (s' \<approx> t')) (add_mset (Pos (t \<approx> t')) C\<^sub>\<G>'') =
+                    add_mset (Pos (s \<approx> t')) (add_mset (Neg (s' \<approx> t')) C\<^sub>\<G>'') \<cdot> Var"
+                    by (auto simp add: \<open>t = s\<close>)
+                qed simp_all
+                hence "\<iota> \<in> G_Inf"
+                  using ground_C\<^sub>\<G>
+                  by (auto simp: \<iota>_def G_Inf_def)
+
+                moreover have "\<And>t. t \<in> set (prems_of \<iota>) \<Longrightarrow> t \<in> N"
+                  using \<open>C\<^sub>\<G> \<in> N\<^sub>\<G>\<close>
+                  by (auto simp add: \<iota>_def N\<^sub>\<G>_def)
+
+                ultimately have "\<iota> \<in> G.Inf_from N"
+                  by (auto simp: G.Inf_from_def)
+                hence "\<iota> \<in> G.Red_I N"
+                  using \<open>G.saturated N\<close>
+                  by (auto simp: G.saturated_def)
+                then obtain DD where
+                  DD_subset: "DD \<subseteq> N" and
+                  "finite DD" and
+                  DD_entails_C\<^sub>\<G>': "G_entails DD {gcls_cls ?concl}" and
+                  ball_DD_lt_C\<^sub>\<G>: "\<forall>D\<in>DD. cls_gcls D \<prec>\<^sub>c C\<^sub>\<G>"
+                  unfolding G.Red_I_def G.redundant_infer_def
+                  using ground_C\<^sub>\<G>
+                  by (auto simp: \<iota>_def)
+
+                have "\<forall>D\<in>DD. entails (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) (cls_gcls D)"
+                  using IH[THEN conjunct2, THEN conjunct2, rule_format, of _ C\<^sub>\<G>]
+                  using N\<^sub>\<G>_def \<open>C\<^sub>\<G> \<in> N\<^sub>\<G>\<close> DD_subset ball_DD_lt_C\<^sub>\<G>
+                  by blast
+
+                moreover have "is_ground_cls ?concl"
+                  using eq_fact ground_C\<^sub>\<G> eq_factoring_preserves_groundness by metis
+
+                ultimately have "entails (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) ?concl"
+                  unfolding entails_def I_def[symmetric]
+                  using DD_entails_C\<^sub>\<G>'[unfolded G_entails_def]
+                  using I_interp ground_C\<^sub>\<G>'
+                  by (simp add: true_clss_def)
+                thus "entails (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) C\<^sub>\<G>"
+                  unfolding entails_def I_def[symmetric]
+                  unfolding C\<^sub>\<G>_def C\<^sub>\<G>'_def A_def
+                  using I_def \<open>(s', t') \<in> (rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<^sup>\<down>\<close> by blast
               next
                 case f_holds: False
                 hence False
@@ -2817,7 +3099,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
                 using ground_D\<^sub>\<G> ground_C\<^sub>\<G> by simp
             next
               show "C\<^sub>\<G> = add_mset (Pos (s \<approx> s')) C\<^sub>\<G>'"
-                by (simp add: C\<^sub>\<G>_eq A_def)
+                by (simp add: C\<^sub>\<G>_def A_def)
             next
               show "D\<^sub>\<G> = add_mset (Pos (t \<approx> t')) D\<^sub>\<G>'"
                 by (simp add: D\<^sub>\<G>_def)
@@ -2878,7 +3160,8 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
 
             moreover have "is_ground_cls (add_mset (Pos (ctxt\<langle>t'\<rangle> \<approx> s')) (C\<^sub>\<G>' + D\<^sub>\<G>'))"
               using superposition_preserves_groundness
-              using super ground_C\<^sub>\<G> ground_D\<^sub>\<G> by blast
+              using super[THEN superposition_if_pos_superposition]
+              using ground_C\<^sub>\<G> ground_D\<^sub>\<G> by blast
 
             ultimately have "entails (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>) (add_mset (Pos (ctxt\<langle>t'\<rangle> \<approx> s')) (C\<^sub>\<G>' + D\<^sub>\<G>'))"
               using I_interp DD_entails_concl
@@ -2905,7 +3188,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
               unfolding uprod_mem_image_iff_prod_mem[OF sym_join]
               by (meson r_into_rtrancl rtrancl_join_join)
             thus ?thesis
-              using A_def C\<^sub>\<G>_eq \<open>s = ctxt\<langle>t\<rangle>\<close> entails_def by fastforce
+              using A_def C\<^sub>\<G>_def \<open>s = ctxt\<langle>t\<rangle>\<close> entails_def by fastforce
           qed
         next
           case False

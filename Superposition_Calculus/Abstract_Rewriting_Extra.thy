@@ -28,6 +28,14 @@ next
     by (metis UnCI join_mono subset_Un_eq sup.left_idem)
 qed
 
+lemma mem_join_union_iff_mem_join_rhs:
+  assumes
+    "\<And>z. (x, z) \<in> B\<^sup>* \<Longrightarrow> z \<notin> Domain A" and
+    "\<And>z. (y, z) \<in> B\<^sup>* \<Longrightarrow> z \<notin> Domain A"
+  shows "(x, y) \<in> (A \<union> B)\<^sup>\<down> \<longleftrightarrow> (x, y) \<in> B\<^sup>\<down>"
+  using mem_join_union_iff_mem_join_lhs
+  by (metis assms(1) assms(2) sup_commute)
+
 lemma refl_join: "refl (r\<^sup>\<down>)"
   by (simp add: joinI_right reflI)
 

@@ -2,6 +2,9 @@ theory Term_Rewriting_Extra
   imports "TRS.Term_Rewriting"
 begin
 
+lemma rstep_insert: "rstep (insert r R) = rstep {r} \<union> rstep R"
+  using rstep_union[of "{r}" R, simplified] .
+
 lemma rhs_lt_lhs_if_rule_in_rstep:
   fixes less_trm :: "('f, 'a) term \<Rightarrow> ('f, 'a) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50)
   assumes
