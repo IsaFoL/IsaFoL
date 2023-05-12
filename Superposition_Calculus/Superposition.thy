@@ -269,6 +269,13 @@ lemma gcls_cls_inverse[simp]: "is_ground_cls C \<Longrightarrow> cls_gcls (gcls_
 
 section \<open>Superposition Calculus\<close>
 
+(*
+Considérer de séparer en deux locales ground et non-ground afin qu'un utilisateur puisse obtenir
+uniquement les résultats au niveau ground.
+Pertinent si il y a une ou des contraintes supplémentaires pour le lifting.
+Voir papier CADE 2023 de Ahmed Bhayat, Johannes Schoisswohl et Michael Rawson
+*)
+
 locale superposition_calculus =
   fixes
     less_trm :: "('f, string) term \<Rightarrow> ('f, string) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
@@ -282,8 +289,8 @@ locale superposition_calculus =
     less_trm_compatible_with_ctxt[simp]: "\<And>ctxt t t'. t \<prec>\<^sub>t t' \<Longrightarrow> ctxt\<langle>t\<rangle> \<prec>\<^sub>t ctxt\<langle>t'\<rangle>" and
     less_trm_if_subterm[simp]: "\<And>t t'. t \<lhd> t' \<Longrightarrow> t \<prec>\<^sub>t t'" and
     select_subset: "\<And>C. select C \<subseteq># C" and
-    select_negative_lits: "\<And>C L. L \<in># select C \<Longrightarrow> is_neg L" and
-    select_stable_under_renaming: "\<And>C \<rho>. term_subst.is_renaming \<rho> \<Longrightarrow> select (C \<cdot> \<rho>) = select C \<cdot> \<rho>"
+    select_negative_lits: "\<And>C L. L \<in># select C \<Longrightarrow> is_neg L" (* and
+    select_stable_under_renaming: "\<And>C \<rho>. term_subst.is_renaming \<rho> \<Longrightarrow> select (C \<cdot> \<rho>) = select C \<cdot> \<rho>" *)
 begin
 
 lemma irreflp_on_less_trm[simp]: "irreflp_on A (\<prec>\<^sub>t)"
@@ -601,6 +608,11 @@ lemma gcls_cls_inverse[simp]: "is_ground_cls C \<Longrightarrow> cls_gcls (gcls_
   by (auto simp: literal.map_comp uprod.map_comp comp_def
       elim!: is_ground_term_if_in_ground_atm is_ground_atm_if_in_ground_lit is_ground_lit_if_in_ground_cls
       intro!: multiset.map_ident_strong literal.map_ident_strong uprod.map_ident_strong gtrm_trm_inverse)
+
+(*
+Considérer de changer l'ordre des prémisses des règles afin qu'elles soient cohérentes avec le
+framework et l'état de l'art. 
+*)
 
 definition G_Inf :: "('f, string) gterm atom clause inference set" where
   "G_Inf \<equiv>

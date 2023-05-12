@@ -19,6 +19,8 @@ lift_bnf (no_warn_wits) 'a uprod
 definition uprod_prod where
   "uprod_prod p = Abs_uprod {#fst p, snd p#}"
 
+
+(* Déplacer vers Superposition.thy *)
 definition make_uprod (infix "\<approx>" 60) where
   "t\<^sub>1 \<approx> t\<^sub>2 \<equiv> Abs_uprod {#t\<^sub>1, t\<^sub>2#}"
 
