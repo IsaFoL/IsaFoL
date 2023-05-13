@@ -19,7 +19,7 @@ next
 qed
   
 definition is_maximal_wrt where
-  "is_maximal_wrt R x M \<longleftrightarrow> (\<forall>y \<in># M - {#x#}. \<not> (R x y))"
+  "is_maximal_wrt R x M \<longleftrightarrow> x \<in># M \<and> (\<forall>y \<in># M - {#x#}. \<not> (R x y))"
 
 lemma is_maximal_wrt_if_is_maximal_wrt_reflclp[simp]:
   "is_maximal_wrt R\<^sup>=\<^sup>= L C \<Longrightarrow> is_maximal_wrt R L C"
