@@ -291,7 +291,7 @@ proof
     unfolding F.entails_\<G>_def \<G>_F_def true_Union_grounding_of_cls_iff by auto
 qed
 
-interpretation F: Calculus.statically_complete_calculus "{{#}}" F_Inf "(\<TTurnstile>\<inter>\<G>e)" F.Red_I_\<G>
+sublocale F: Calculus.statically_complete_calculus "{{#}}" F_Inf "(\<TTurnstile>\<inter>\<G>e)" F.Red_I_\<G>
   F.Red_F_\<G>_empty
 proof (rule F.stat_ref_comp_to_non_ground_fam_inter; clarsimp; (intro exI)?)
   show "\<And>M. Calculus.statically_complete_calculus {{#}} (G_Inf M) (\<TTurnstile>\<inter>e) (G.Red_I M) G.Red_F"
@@ -1202,6 +1202,8 @@ proof -
 qed
 
 
+
+
 (* proof (intro subsetI)
   fix \<iota>
   assume \<iota>_in_Inf_between_univ_N: \<open>\<iota> \<in> F.Inf_between UNIV (F.Red_F_\<G>_empty N)\<close>
@@ -1324,7 +1326,9 @@ qed
 interpretation statically_complete_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> F.Red_I_\<G> F.Red_F_\<G>_empty
 proof standard
   show \<open>\<And> N. LA_is_calculus.saturated N \<Longrightarrow> N \<TTurnstile>\<union>\<G>e {{#}} \<Longrightarrow> {#} \<in> N\<close>
-    sorry
+    unfolding LA_is_calculus.saturated_def
+    using F.saturated_def F.statically_complete entails_conj_is_entails_disj_on_singleton
+    by blast
 qed
 
 (* Taken from file \<^file>\<open>Preliminaries_With_Zorn.thy\<close> and modified accordingly. *)
@@ -1416,7 +1420,27 @@ proof standard
     by blast
 qed
 
-notation LA_is_AF_calculus.AF_entails_sound (infix \<open>\<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F\<close> 50)
+notation LA_is_AF_calculus.AF_entails_sound (infix \<open>\<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F\<close> 50)
+
+
+(* Right. So it is seems that using the lifted entailment \<open>(\<TTurnstile>\<inter>\<G>e)\<close> does not work for our purpose.
+ * We cannot prove compactness of this entailment, which we absolutely need to finish our proofs.
+ * Unfortunately, everything else would have worked.
+ * This means that all the work above needs to be changed somehow.
+ *
+ * First, we have to change the definition of our disjunctive entailment to get rid of the lifted
+ * conjunctive entailment.
+ * Once this is done, maybe we can try and see if any of this can actually be reused.
+ * I certainly hope so, otherwise here goes 3 weeks of work on this.
+ *
+ *
+ * Anything underneath this comment does not depend on the definition of the disjunctive entailment
+ * (as long as the interpretations are correctly defined).
+ * So this should be easy to reuse, if our (potentially new) redundancy criterion is indeed a correct
+ * one.
+ * At most, we'll have to change the names here and there, but that's all. *)
+
+
 
 
 
@@ -1539,12 +1563,12 @@ qed
 
 
 (* Report theorem 14 for the case BinSplit *) 
-theorem Simps_are_sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F {\<C>}\<close>
+theorem Simps_are_sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F {\<C>}\<close>
 proof (intro ballI)
   fix \<C>
   assume \<open>\<iota> \<in> Simps\<close> and 
          \<C>_in_concl: \<open>\<C> \<in> S_to \<iota>\<close>
-  then show \<open>S_from \<iota> \<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F {\<C>}\<close>
+  then show \<open>S_from \<iota> \<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F {\<C>}\<close>
   proof (cases \<iota> rule: Simps.cases) 
     case (bin_split C D A B)
     then have C_u_D_splittable: \<open>splittable (C \<union># D) {| C, D |}\<close> and
@@ -1574,7 +1598,7 @@ proof (intro ballI)
         map_sign fml ` total_strip J \<union> sign.Pos ` ({AF.Pair (C \<union># D) A} proj\<^sub>J J) \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos C}\<close>
         unfolding LA_is_AF_calculus.enabled_projection_def LA_is_AF_calculus.enabled_def
         by simp 
-      then show \<open>{AF.Pair (C \<union># D) A} \<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F {AF.Pair C (finsert a A)}\<close>
+      then show \<open>{AF.Pair (C \<union># D) A} \<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F {AF.Pair C (finsert a A)}\<close>
         unfolding LA_is_AF_calculus.AF_entails_sound_def LA_is_AF_calculus.enabled_set_def
                   LA_is_AF_calculus.enabled_def
         using LA_is_AF_calculus.fml_ext_is_mapping
@@ -1601,7 +1625,7 @@ proof (intro ballI)
         ?fml J \<union> sign.Pos ` ({AF.Pair (C \<union># D) A} proj\<^sub>J J) \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos D}\<close>
         unfolding LA_is_AF_calculus.enabled_projection_def LA_is_AF_calculus.enabled_def
         by simp 
-      then show \<open>{AF.Pair (C \<union># D) A} \<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F {AF.Pair D (finsert (neg a) A)}\<close>
+      then show \<open>{AF.Pair (C \<union># D) A} \<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F {AF.Pair D (finsert (neg a) A)}\<close>
         unfolding LA_is_AF_calculus.AF_entails_sound_def LA_is_AF_calculus.enabled_set_def
                   LA_is_AF_calculus.enabled_def 
         using LA_is_AF_calculus.fml_ext_is_mapping
@@ -1613,12 +1637,12 @@ qed
 
 
 interpretation SInf_sound:
-  Preliminaries_With_Zorn.sound_inference_system SInf \<open>to_AF {#}\<close> \<open>(\<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F)\<close>
+  Preliminaries_With_Zorn.sound_inference_system SInf \<open>to_AF {#}\<close> \<open>(\<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F)\<close>
   by (meson LA_is_AF_calculus.AF_ext_sound_cons_rel SInf_sound_wrt_entails_sound
       Preliminaries_With_Zorn.sound_inference_system.intro
       Preliminaries_With_Zorn.sound_inference_system_axioms.intro) 
 
-interpretation Simps_simplifies: sound_simplification_rules \<open>to_AF {#}\<close> SInf \<open>(\<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F)\<close> Simps
+interpretation Simps_simplifies: sound_simplification_rules \<open>to_AF {#}\<close> SInf \<open>(\<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F)\<close> Simps
   by (standard, auto simp add: Simps_are_sound)
 
 
@@ -1678,7 +1702,7 @@ proof -
     qed
     then show ?thesis
       unfolding SRed\<^sub>F_def
-      by simp
+      by (simp add: LA_is_calculus.Red_F_strict_def) 
   qed
 qed
 
@@ -1701,7 +1725,7 @@ end (* locale LA_calculus *)
 
 
 
-(* Ignore everything under this comment, for now *)
+(* Ignore everything under this comment, for now. *)
 
 
 
