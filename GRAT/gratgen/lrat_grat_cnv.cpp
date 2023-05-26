@@ -167,7 +167,7 @@ public:
 
     if (opr=='a') {
       addition=true;
-      this_id = {bp.parse_unsigned_id()}; // ids at this position are encoded as unsigned values
+      this_id = {bp.parse_unsigned_id()};
       rd_until_zero(literals);
       rd_until_zero(ids);
     } else if (opr=='d') {
