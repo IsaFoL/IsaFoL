@@ -24,6 +24,8 @@ theory Superposition
     "Unordered_Prod"
 begin
 
+notation make_uprod(infix "\<approx>" 60)
+
 
 lemma predicate_holds_of_mem_rstep:
   assumes rule_in: "(t1, t2) \<in> rstep R" and
