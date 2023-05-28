@@ -59,7 +59,7 @@ definition is_unifiers :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
   "is_unifiers \<sigma> XX \<longleftrightarrow> (\<forall>X \<in> XX. is_unifier \<sigma> X)"
 
 definition is_mgu :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
-  "is_mgu \<sigma> XX \<longleftrightarrow> is_unifiers \<sigma> XX \<and> (\<forall>\<tau>. is_unifiers \<tau> XX \<longrightarrow> (\<exists>\<gamma>. \<tau> = \<sigma> \<odot> \<gamma>))"
+  "is_mgu \<mu> XX \<longleftrightarrow> is_unifiers \<mu> XX \<and> (\<forall>\<upsilon>. is_unifiers \<upsilon> XX \<longrightarrow> (\<exists>\<sigma>. \<upsilon> = \<mu> \<odot> \<sigma>))"
 
 definition is_imgu :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
   "is_imgu \<sigma> XX \<longleftrightarrow> is_unifiers \<sigma> XX \<and> (\<forall>\<tau>. is_unifiers \<tau> XX \<longrightarrow> \<tau> = \<sigma> \<odot> \<tau>)"
