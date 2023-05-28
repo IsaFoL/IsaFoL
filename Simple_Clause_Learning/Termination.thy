@@ -582,7 +582,7 @@ definition fclss_no_dup :: "('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term 
 lemma image_fset_fset_fPow_eq: "fset ` fset (fPow A) = Pow (fset A)"
 proof (rule Set.equalityI)
   show "fset ` fset (fPow A) \<subseteq> Pow (fset A)"
-    by (meson PowI fPowD image_subset_iff less_eq_fset.rep_eq notin_fset)
+    by (meson PowI fPowD image_subset_iff less_eq_fset.rep_eq)
 next
   show "Pow (fset A) \<subseteq> fset ` fset (fPow A)"
   proof (rule Set.subsetI)
@@ -591,7 +591,7 @@ next
       by (metis PowD finite_fset rev_finite_subset)
     ultimately show "x \<in> fset ` fset (fPow A)"
       unfolding image_iff
-      by (metis PowD fPowI fset_cases less_eq_fset.rep_eq mem_Collect_eq notin_fset)
+      by (metis PowD fPowI fset_cases less_eq_fset.rep_eq mem_Collect_eq)
   qed
 qed
 
@@ -611,7 +611,7 @@ proof -
     fix K assume "K |\<in>| C"
     with assms show "K |\<in>| Abs_fset {L. atm_of L \<preceq>\<^sub>B \<beta>}"
       using Abs_fset_inverse[simplified, OF finite_lits_less_eq_B]
-      by (auto simp: fmember_iff_member_fset)
+      by auto
   qed
 qed
 
@@ -715,11 +715,9 @@ proof -
       by (metis finite_set_mset image_iff)
 
     moreover have "Abs_fset (set_mset (C \<cdot> \<gamma>)) \<in> fset (fclss_no_dup \<beta>)"
-      unfolding fmember_iff_member_fset[symmetric]
     proof (intro fmember_fclss_no_dup_if fBallI)
       fix L assume "L |\<in>| Abs_fset (set_mset (C \<cdot> \<gamma>))"
       hence "L \<in># C \<cdot> \<gamma>"
-        unfolding fmember_iff_member_fset
         by (metis fset_fset_mset fset_inverse)
       moreover have "trail_false_cls (state_trail Sn) (C \<cdot> \<gamma>)"
         using \<open>ground_false_closures Sn\<close> conf by (auto simp: ground_false_closures_def)
