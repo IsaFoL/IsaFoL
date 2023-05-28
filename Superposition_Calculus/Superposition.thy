@@ -1674,12 +1674,12 @@ qed
 
 lemma no_crit_pairs:
   assumes ground_N: "is_ground_cls_set N"
-  shows "{(t1, t2) \<in> ground_critical_pairs (\<Union> (equation N2 ` N)) (\<Union> (equation N2 ` N)). t1 \<noteq> t2} = {}"
+  shows "{(t1, t2) \<in> ground_critical_pairs (\<Union> (equation N2 ` N)). t1 \<noteq> t2} = {}"
 proof (rule ccontr)
   assume "{(t1, t2).
-    (t1, t2) \<in> ground_critical_pairs (\<Union> (equation N2 ` N)) (\<Union> (equation N2 ` N)) \<and> t1 \<noteq> t2} \<noteq> {}"
+    (t1, t2) \<in> ground_critical_pairs (\<Union> (equation N2 ` N)) \<and> t1 \<noteq> t2} \<noteq> {}"
   then obtain ctxt l r1 r2 where
-    "(ctxt\<langle>r2\<rangle>, r1) \<in> ground_critical_pairs (\<Union> (equation N2 ` N)) (\<Union> (equation N2 ` N))" and
+    "(ctxt\<langle>r2\<rangle>, r1) \<in> ground_critical_pairs (\<Union> (equation N2 ` N))" and
     "ctxt\<langle>r2\<rangle> \<noteq> r1" and
     rule1_in: "(ctxt\<langle>l\<rangle>, r1) \<in> \<Union> (equation N2 ` N)" and
     rule2_in: "(l, r2) \<in> \<Union> (equation N2 ` N)"
@@ -1775,7 +1775,7 @@ proof -
     unfolding WCR_iff_ground_critical_pairs_subset_join_rstep[OF ground_R\<^sub>N]
   proof (intro subsetI ballI)
     fix tuple
-    assume tuple_in: "tuple \<in> ground_critical_pairs (\<Union> (equation N2 ` N)) (\<Union> (equation N2 ` N))"
+    assume tuple_in: "tuple \<in> ground_critical_pairs (\<Union> (equation N2 ` N))"
     then obtain t1 t2 where tuple_def: "tuple = (t1, t2)"
       by fastforce
 
