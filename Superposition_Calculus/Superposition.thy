@@ -2,6 +2,7 @@ theory Superposition
   imports
     (* Theories from the Isabelle distribution *)
     Main
+    "HOL-Library.Uprod"
 
     (* Theories from the AFP *)
     "Saturation_Framework.Calculus"
@@ -21,10 +22,59 @@ theory Superposition
     "Term_Rewrite_System"
     "Term_Rewriting_Extra"
     "Transitive_Closure_Extra"
-    "Unordered_Prod"
 begin
 
-notation make_uprod(infix "\<approx>" 60)
+lemma Upair_sym: "Upair x y = Upair y x"
+  by (metis Upair_inject)
+
+lemma ex_ordered_Upair:
+  assumes tot: "totalp_on (set_uprod p) R"
+  shows "\<exists>x y. p = Upair x y \<and> R\<^sup>=\<^sup>= x y"
+proof -
+  obtain x y where "p = Upair x y"
+    by (metis uprod_exhaust)
+
+  show ?thesis
+  proof (cases "R\<^sup>=\<^sup>= x y")
+    case True
+    show ?thesis
+    proof (intro exI conjI)
+      show "p = Upair x y"
+        using \<open>p = Upair x y\<close> .
+    next
+      show "R\<^sup>=\<^sup>= x y"
+        using True by simp
+    qed
+  next
+    case False
+    then show ?thesis
+    proof (intro exI conjI)
+      show "p = Upair y x"
+        using \<open>p = Upair x y\<close> by simp
+    next
+      from tot have "R y x"
+        using False
+        by (simp add: \<open>p = Upair x y\<close> totalp_on_def)
+      thus "R\<^sup>=\<^sup>= y x"
+        by simp
+    qed
+  qed
+qed
+
+definition mset_uprod :: "'a uprod \<Rightarrow> 'a multiset" where
+  "mset_uprod = case_uprod (Abs_commute (\<lambda>x y. {#x, y#}))"
+
+lemma Abs_commute_inverse_mset[simp]:
+  "apply_commute (Abs_commute (\<lambda>x y. {#x, y#})) = (\<lambda>x y. {#x, y#})"
+  by (simp add: Abs_commute_inverse)
+
+lemma set_mset_mset_uprod[simp]: "set_mset (mset_uprod up) = set_uprod up"
+  by (simp add: mset_uprod_def case_uprod.rep_eq set_uprod.rep_eq case_prod_beta)
+
+lemma mset_uprod_Upair[simp]: "mset_uprod (Upair x y) = {#x, y#}"
+  by (simp add: mset_uprod_def)
+
+notation Upair (infix "\<approx>" 60)
 
 
 lemma predicate_holds_of_mem_rstep:
@@ -386,10 +436,10 @@ proof (rule totalp_onI, unfold mem_Collect_eq)
   next
     obtain x1 y1 x2 y2 :: "('f, string) term" where
       "atm_of L1 = x1 \<approx> y1" and "atm_of L2 = x2 \<approx> y2"
-      using ex_make_uprod by metis
+      using uprod_exhaust by metis
     thus "mset_lit L1 \<noteq> mset_lit L2"
       using \<open>L1 \<noteq> L2\<close>
-      by (cases L1; cases L2) (auto simp add: make_uprod_eq_make_uprod_iff add_eq_conv_ex)
+      by (cases L1; cases L2) (auto simp add: add_eq_conv_ex)
   qed
 qed
 
@@ -657,8 +707,7 @@ subsubsection \<open>Correctness\<close>
 lemma uprod_mem_image_iff_prod_mem[simp]:
   assumes "sym I"
   shows "(t \<approx> t') \<in> (\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<longleftrightarrow> (t, t') \<in> I"
-  using \<open>sym I\<close>[THEN symD]
-  by (smt (z3) case_prod_unfold image_iff make_uprod_eq_make_uprod_iff pair_imageI prod.collapse)
+  using \<open>sym I\<close>[THEN symD] by auto
 
 lemma true_lit_uprod_iff_true_lit_prod[simp]:
   assumes "sym I"
@@ -1208,9 +1257,8 @@ proof (cases P C rule: eq_factoring.cases)
   hence "t\<^sub>2' \<preceq>\<^sub>t s\<^sub>1'"
     unfolding \<open>s\<^sub>1 = t\<^sub>2\<close>
     unfolding reflclp_iff
-    by (metis irreflp_on_less_trm literal.inject(1) local.less_lit_def make_uprod_eq_make_uprod_iff
-        mset_lit.simps(1) mset_uprod_make_uprod multp_cancel_add_mset multp_singleton_singleton
-        transp_less_trm)
+    using transp_less_trm
+    by (auto simp: less_lit_def multp_cancel_add_mset)
 
   from eq_factoringI have "C = add_mset (Neg (s\<^sub>1' \<approx> t\<^sub>2')) (add_mset (Pos (s\<^sub>1 \<approx> t\<^sub>2')) P')"
     using ground_P by fastforce
@@ -1318,7 +1366,7 @@ next
     case (Neg A)
     thus ?thesis
       using \<open>(\<lambda>(x, y). x \<approx> y) ` (rstep E)\<^sup>\<down> \<TTurnstile>l L\<close>
-      by (metis equations_entail_lit.simps(2) ex_make_uprod pair_imageI true_lit_simps(2))
+      by (metis equations_entail_lit.simps(2) pair_imageI true_lit_simps(2) uprod_exhaust)
   qed
 qed
 
@@ -1378,9 +1426,9 @@ proof -
     apply (rule Uniq_prodI)
     apply (elim exE conjE)
     using Uniq_striclty_maximal_lit_in_ground_cls[OF \<open>is_ground_cls C\<close>, THEN Uniq_D,
-        of "Pos (_ \<approx> _)" "Pos (_ \<approx> _)", unfolded literal.inject make_uprod_eq_make_uprod_iff]
+        of "Pos (_ \<approx> _)" "Pos (_ \<approx> _)", unfolded literal.inject]
     using totalp_on_less_trm
-    by (metis asympD asymp_less_trm union_single_eq_member)
+    by (metis (no_types, opaque_lifting) Upair_inject asympD asymp_less_trm is_maximal_wrt_def)
   hence Uniq_production: "\<exists>\<^sub>\<le>\<^sub>1 (x, y). \<exists>C'.
     C \<in> N \<and>
     C = add_mset (Pos (x \<approx> y)) C' \<and> select C = {#} \<and>
@@ -1771,8 +1819,8 @@ proof -
     by simp_all
 
   from ground_D L_in topmost_trms_of_L have ground_u: "is_ground_trm u"
-    by (metis is_ground_lit_if_in_ground_cls mset_uprod_inject mset_uprod_make_uprod sup_eq_bot_iff
-        vars_atm_make_uprod vars_lit_def)
+    by (metis is_ground_lit_if_in_ground_cls is_ground_term_if_in_ground_atm set_mset_mset_uprod
+        union_single_eq_member vars_lit_def)
 
   from ground_C ground_D have "set_mset C \<union> set_mset D \<subseteq> {L. is_ground_lit L}"
     by (meson Ball_Collect Un_iff is_ground_lit_if_in_ground_cls)
@@ -2038,7 +2086,7 @@ proof -
     L_eq_disj_L_eq: "L = Pos (s \<approx> t) \<and> (s, t) \<in> (rstep R\<^sub>D)\<^sup>\<down> \<or>
      L = Neg (s \<approx> t) \<and> (s, t) \<notin> (rstep R\<^sub>D)\<^sup>\<down>"
     unfolding true_cls_def true_lit_iff
-    by (metis (no_types, opaque_lifting) ex_make_uprod image_iff prod.case surj_pair)
+    by (metis (no_types, opaque_lifting) image_iff prod.case surj_pair uprod_exhaust)
 
   from L_eq_disj_L_eq show
     "(\<lambda>(x, y). x \<approx> y) ` (rstep (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> D" and
@@ -2295,9 +2343,9 @@ proof -
 
     obtain t1 t2 where
       atm_L_eq: "atm_of L = t1 \<approx> t2"
-      by (metis ex_make_uprod)
+      by (metis uprod_exhaust)
     hence trms_of_L: "mset_uprod (atm_of L) = {#t1, t2#}"
-      by (metis mset_uprod_make_uprod)
+      by simp
     hence "t1 \<preceq>\<^sub>t l" and "t2 \<preceq>\<^sub>t l"
       unfolding atomize_conj
       using less_trm_if_neg[OF ground_C ground_C reflclp_refl productive \<open>L \<in># C\<close>]
@@ -2352,9 +2400,9 @@ proof -
 
     obtain t1 t2 where
       atm_L_eq: "atm_of L = t1 \<approx> t2"
-      by (metis ex_make_uprod)
+      by (metis uprod_exhaust)
     hence trms_of_L: "mset_uprod (atm_of L) = {#t1, t2#}"
-      by (metis mset_uprod_make_uprod)
+      by simp
     hence "t1 \<preceq>\<^sub>t l" and "t2 \<preceq>\<^sub>t l"
       unfolding atomize_conj
       using less_trm_if_neg[OF ground_C ground_C reflclp_refl productive \<open>L \<in># C\<close>]
@@ -2462,7 +2510,7 @@ proof -
   hence "totalp_on (set_uprod (atm_of L)) (\<prec>\<^sub>t)"
     using totalp_on_less_trm[THEN totalp_on_subset] by metis
   then obtain t t' where "atm_of L = t \<approx> t'" and "t \<preceq>\<^sub>t t'"
-    using ex_ordered_make_uprod by metis
+    using ex_ordered_Upair by metis
 
   show ?thesis
   proof (cases L)
@@ -2574,7 +2622,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
       then obtain s s' where
         "Neg (s \<approx> s') \<in># C\<^sub>\<G>" and
         sel_or_max: "Neg (s \<approx> s') \<in># select C\<^sub>\<G> \<or> select C\<^sub>\<G> = {#} \<and> is_maximal_lit (Neg (s \<approx> s')) C\<^sub>\<G>"
-        by (metis ex_make_uprod)
+        by (metis uprod_exhaust)
       then obtain C\<^sub>\<G>' where
         C\<^sub>\<G>_def: "C\<^sub>\<G> = add_mset (Neg (s \<approx> s')) C\<^sub>\<G>'"
         by (metis mset_add)
@@ -2712,7 +2760,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
               by (metis (full_types) asympD subst_apply_term_empty sup2E)
           next
             from that(1) show "Neg (s \<approx> s') = Neg (s\<^sub>1\<langle>t\<rangle> \<approx> s\<^sub>1')"
-              using make_uprod_eq_make_uprod_iff by fastforce
+              by fastforce
           next
             from that(2) show "\<not> s\<^sub>1\<langle>t\<rangle> \<cdot>t Var \<cdot>t Var \<preceq>\<^sub>t s\<^sub>1' \<cdot>t Var \<cdot>t Var"
               using asymp_less_trm
@@ -2834,8 +2882,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
       hence "totalp_on (set_uprod A) (\<prec>\<^sub>t)"
         using totalp_on_less_trm totalp_on_subset by blast
       then obtain s s' where A_def: "A = (s \<approx> s')" and "s' \<preceq>\<^sub>t s"
-        using ex_ordered_make_uprod[of A "(\<prec>\<^sub>t)"]
-        by (metis make_uprod_sym)
+        using ex_ordered_Upair[of A "(\<prec>\<^sub>t)"] by fastforce
 
       hence ground_s: "is_ground_trm s" and ground_s': "is_ground_trm s'"
         using ground_A by auto
@@ -2885,7 +2932,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
                   "(t, t') \<notin> (rstep (rewrite_sys N\<^sub>\<G> C\<^sub>\<G>))\<^sup>\<down>"
                   using ground_C\<^sub>\<G>' f_doesnt_hold R_C\<^sub>\<G>_doesnt_entail_C\<^sub>\<G>'
                   using true_cls_insert_and_not_true_clsE
-                  by (metis insert_DiffM join_sym make_uprod_sym)
+                  by (metis insert_DiffM join_sym Upair_sym)
 
                 have ground_t: "is_ground_trm t"
                   using ground_C\<^sub>\<G>' C\<^sub>\<G>'_def by simp
