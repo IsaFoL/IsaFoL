@@ -13,11 +13,12 @@ theory Superposition
     "Abstract-Rewriting.Abstract_Rewriting"
 
     (* Theories from CeTA *)
-    "CR.Critical_Pairs"
+    TRS.Trs
 
     (* Theories from this formalization *)
     "Abstract_Rewriting_Extra"
     "Abstract_Substitution_Extra_First_Order_Term"
+    "Ground_Critical_Pairs"
     "Multiset_Extra"
     "Term_Rewrite_System"
     "Term_Rewriting_Extra"
@@ -347,9 +348,10 @@ Voir papier CADE 2023 de Ahmed Bhayat, Johannes Schoisswohl et Michael Rawson
 *)
 
 locale superposition_calculus =
+  ground_critical_pair_lemma "undefined :: 'f" "undefined :: 'v" +
   fixes
-    less_trm :: "('f, string) term \<Rightarrow> ('f, string) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
-    select :: "('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause"
+    less_trm :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
+    select :: "('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause"
   assumes
     transp_less_trm[intro]: "transp (\<prec>\<^sub>t)" and
     asymp_less_trm[intro]: "asymp (\<prec>\<^sub>t)" and
@@ -376,13 +378,13 @@ primrec mset_lit :: "'a uprod literal \<Rightarrow> 'a multiset" where
   "mset_lit (Pos A) = mset_uprod A" |
   "mset_lit (Neg A) = mset_uprod A + mset_uprod A"
 
-definition less_lit :: "('f, string) term atom literal \<Rightarrow> ('f, string) term atom literal \<Rightarrow> bool" (infix "\<prec>\<^sub>l" 50) where
+definition less_lit :: "('f, 'v) term atom literal \<Rightarrow> ('f, 'v) term atom literal \<Rightarrow> bool" (infix "\<prec>\<^sub>l" 50) where
   "less_lit L1 L2 \<equiv> multp (\<prec>\<^sub>t) (mset_lit L1) (mset_lit L2)"
 
 abbreviation lesseq_lit (infix "\<preceq>\<^sub>l" 50) where
   "lesseq_lit \<equiv> (\<prec>\<^sub>l)\<^sup>=\<^sup>="
 
-abbreviation less_cls :: "('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> bool" (infix "\<prec>\<^sub>c" 50) where
+abbreviation less_cls :: "('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> bool" (infix "\<prec>\<^sub>c" 50) where
   "less_cls \<equiv> multp (\<prec>\<^sub>l)"
 
 abbreviation lesseq_cls (infix "\<preceq>\<^sub>c" 50) where
@@ -409,7 +411,7 @@ lemma wfP_less_cls[simp]: "wfP (\<prec>\<^sub>c)"
 
 lemma totalp_on_less_lit[simp]: "totalp_on {L. is_ground_lit L} (\<prec>\<^sub>l)"
 proof (rule totalp_onI, unfold mem_Collect_eq)
-  fix L1 L2 :: "('f, string) term atom literal"
+  fix L1 L2 :: "('f, 'v) term atom literal"
   assume "is_ground_lit L1" and "is_ground_lit L2" and "L1 \<noteq> L2"
   
   let ?TT = "{T. \<forall>t \<in># T. is_ground_trm t}"
@@ -434,7 +436,7 @@ proof (rule totalp_onI, unfold mem_Collect_eq)
       using \<open>is_ground_lit L2\<close>
       by (cases L2) (simp_all add: set_uprod_def vars_atm_def)
   next
-    obtain x1 y1 x2 y2 :: "('f, string) term" where
+    obtain x1 y1 x2 y2 :: "('f, 'v) term" where
       "atm_of L1 = x1 \<approx> y1" and "atm_of L2 = x2 \<approx> y2"
       using uprod_exhaust by metis
     thus "mset_lit L1 \<noteq> mset_lit L2"
@@ -466,7 +468,7 @@ abbreviation is_strictly_maximal_lit where
   "is_strictly_maximal_lit \<equiv> is_maximal_wrt (\<preceq>\<^sub>l)"
 
 inductive superposition ::
-  "('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> bool"
+  "('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> bool"
 where
   superpositionI: "
     term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
@@ -488,7 +490,7 @@ where
     C = add_mset (\<P> ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> \<approx> s\<^sub>1' \<cdot>t \<rho>\<^sub>1)) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
     superposition P\<^sub>1 P\<^sub>2 C"
 
-inductive eq_resolution :: "('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> bool" where
+inductive eq_resolution :: "('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> bool" where
   eq_resolutionI: "
     P = add_mset L P' \<Longrightarrow>
     L = Neg (s\<^sub>1 \<approx> s\<^sub>2) \<Longrightarrow>
@@ -497,7 +499,7 @@ inductive eq_resolution :: "('f, string) term atom clause \<Rightarrow> ('f, str
     C = P' \<cdot> \<mu> \<Longrightarrow>
     eq_resolution P C"
 
-inductive eq_factoring :: "('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> bool" where
+inductive eq_factoring :: "('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> bool" where
   eq_factoringI: "
     P = add_mset L\<^sub>1 (add_mset L\<^sub>2 P') \<Longrightarrow>
     L\<^sub>1 = Pos (s\<^sub>1 \<approx> s\<^sub>1') \<Longrightarrow>
@@ -558,7 +560,7 @@ qed
 subsection \<open>Alternative Specification of the Superposition Rule\<close>
 
 inductive pos_superposition ::
-  "('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> bool"
+  "('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> bool"
 where
   pos_superpositionI: "
     term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
@@ -590,7 +592,7 @@ proof (cases P\<^sub>1 P\<^sub>2 C rule: pos_superposition.cases)
 qed
 
 inductive neg_superposition ::
-  "('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> bool"
+  "('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> bool"
 where
   neg_superpositionI: "
     term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
@@ -684,19 +686,19 @@ Considérer de changer l'ordre des prémisses des règles afin qu'elles soient c
 framework et l'état de l'art. 
 *)
 
-definition G_Inf :: "('f, string) gterm atom clause inference set" where
+definition G_Inf :: "('f, 'v) gterm atom clause inference set" where
   "G_Inf \<equiv>
     {Infer [P\<^sub>2, P\<^sub>1] (gcls_cls C) | P\<^sub>2 P\<^sub>1 C. superposition (cls_gcls P\<^sub>1) (cls_gcls P\<^sub>2) C} \<union>
     {Infer [P] (gcls_cls C) | P C. eq_resolution (cls_gcls P) C} \<union>
     {Infer [P] (gcls_cls C) | P C. eq_factoring (cls_gcls P) C}"
 
-abbreviation G_Bot :: "('f, string) gterm atom clause set" where
+abbreviation G_Bot :: "('f, 'v) gterm atom clause set" where
   "G_Bot \<equiv> {{#}}"
 
 definition G_entails ::
-  "('f, string) gterm atom clause set \<Rightarrow> ('f, string) gterm atom clause set \<Rightarrow> bool"
+  "('f, 'v) gterm atom clause set \<Rightarrow> ('f, 'v) gterm atom clause set \<Rightarrow> bool"
 where
-  "G_entails N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: (('f, string) Term.term \<times> ('f, string) Term.term) set).
+  "G_entails N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: (('f, 'v) Term.term \<times> ('f, 'v) Term.term) set).
     refl I \<longrightarrow> trans I \<longrightarrow> sym I \<longrightarrow> compatible_with_ctxt I \<longrightarrow>
     (\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>s (cls_gcls ` N\<^sub>1) \<longrightarrow>
     (\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>s (cls_gcls ` N\<^sub>2))"
@@ -753,13 +755,13 @@ proof (cases P1 P2 C rule: superposition.cases)
     unfolding G_entails_def 1 2 true_clss_singleton
     unfolding true_clss_insert
   proof (intro allI impI, elim conjE)
-    fix I :: "(('f, string) Term.term \<times> ('f, string) Term.term) set"
+    fix I :: "(('f, 'v) Term.term \<times> ('f, 'v) Term.term) set"
 
     let ?I' = "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I"
 
     assume "refl I" and "trans I" and "sym I" and "compatible_with_ctxt I" and
       "?I' \<TTurnstile> P1" and "?I' \<TTurnstile> P2"
-    then obtain K1 K2 :: "('f, string) Term.term uprod literal" where
+    then obtain K1 K2 :: "('f, 'v) Term.term uprod literal" where
       "K1 \<in># P1" and "?I' \<TTurnstile>l K1" and "K2 \<in># P2" and "?I' \<TTurnstile>l K2"
       by (auto simp: true_cls_def)
 
@@ -911,12 +913,12 @@ proof (cases P C rule: eq_factoring.cases)
   show ?thesis
     unfolding G_entails_def 1 2 true_clss_singleton
   proof (intro allI impI)
-    fix I :: "(('f, string) Term.term \<times> ('f, string) Term.term) set"
+    fix I :: "(('f, 'v) Term.term \<times> ('f, 'v) Term.term) set"
 
     let ?I' = "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I"
 
     assume "trans I" and "sym I" and "?I' \<TTurnstile> P"
-    then obtain K :: "('f, string) Term.term uprod literal" where
+    then obtain K :: "('f, 'v) Term.term uprod literal" where
       "K \<in># P" and "?I' \<TTurnstile>l K"
       by (auto simp: true_cls_def)
 
@@ -1376,10 +1378,10 @@ lemma equations_entail_cls_iff:
   by (metis equations_entail_cls_def true_cls_def)
 
 context
-  fixes N :: "('f, string) term uprod clause set"
+  fixes N :: "('f, 'v) term uprod clause set"
 begin
 
-function production :: "('f, string) term uprod clause \<Rightarrow> ('f, string) term rel" where
+function production :: "('f, 'v) term uprod clause \<Rightarrow> ('f, 'v) term rel" where
   "production C = {(s, t)| s t C'.
     C \<in> N \<and>
     C = add_mset (Pos (s \<approx> t)) C' \<and>
@@ -1672,24 +1674,20 @@ qed
 
 lemma no_crit_pairs:
   assumes ground_N: "is_ground_cls_set N"
-  shows "{(b, t1, t2) \<in> critical_pairs (\<Union> (equation N2 ` N)) (\<Union> (equation N2 ` N)). t1 \<noteq> t2} = {}"
+  shows "{(t1, t2) \<in> ground_critical_pairs (\<Union> (equation N2 ` N)) (\<Union> (equation N2 ` N)). t1 \<noteq> t2} = {}"
 proof (rule ccontr)
-  assume "{(b, t1, t2).
-    (b, t1, t2) \<in> critical_pairs (\<Union> (equation N2 ` N)) (\<Union> (equation N2 ` N)) \<and> t1 \<noteq> t2} \<noteq> {}"
-  then obtain l1 r1 l2 r2 ctxt l1' \<mu>1 \<mu>2 where
-    "(ctxt = \<box>, (ctxt \<cdot>t\<^sub>c \<mu>1)\<langle>r2 \<cdot>t \<mu>2\<rangle>, r1 \<cdot>t \<mu>1) \<in>
-      critical_pairs (\<Union> (equation N2 ` N)) (\<Union> (equation N2 ` N))" and
-    rule1_in: "(l1, r1) \<in> \<Union> (equation N2 ` N)" and
-    rule2_in: "(l2, r2) \<in> \<Union> (equation N2 ` N)" and
-    "l1 = ctxt\<langle>l1'\<rangle>" and
-    "is_Fun l1'" and
-    mgu_l1'_l2: "mgu_var_disjoint_string l1' l2 = Some (\<mu>1, \<mu>2)" and
-    "(ctxt \<cdot>t\<^sub>c \<mu>1)\<langle>r2 \<cdot>t \<mu>2\<rangle> \<noteq> r1 \<cdot>t \<mu>1"
-    unfolding critical_pairs_def mem_Collect_eq by blast
+  assume "{(t1, t2).
+    (t1, t2) \<in> ground_critical_pairs (\<Union> (equation N2 ` N)) (\<Union> (equation N2 ` N)) \<and> t1 \<noteq> t2} \<noteq> {}"
+  then obtain ctxt l r1 r2 where
+    "(ctxt\<langle>r2\<rangle>, r1) \<in> ground_critical_pairs (\<Union> (equation N2 ` N)) (\<Union> (equation N2 ` N))" and
+    "ctxt\<langle>r2\<rangle> \<noteq> r1" and
+    rule1_in: "(ctxt\<langle>l\<rangle>, r1) \<in> \<Union> (equation N2 ` N)" and
+    rule2_in: "(l, r2) \<in> \<Union> (equation N2 ` N)"
+    unfolding ground_critical_pairs_def mem_Collect_eq by blast
 
   from rule1_in rule2_in obtain C1 C2 where
-    "C1 \<in> N" and rule1_in': "(l1, r1) \<in> equation N2 C1" and
-    "C2 \<in> N" and rule2_in': "(l2, r2) \<in> equation N2 C2"
+    "C1 \<in> N" and rule1_in': "(ctxt\<langle>l\<rangle>, r1) \<in> equation N2 C1" and
+    "C2 \<in> N" and rule2_in': "(l, r2) \<in> equation N2 C2"
     by auto
 
   have ground_C1: "is_ground_cls C1" and ground_C2: "is_ground_cls C2"
@@ -1697,38 +1695,31 @@ proof (rule ccontr)
     by (simp_all add: is_ground_cls_if_in_ground_cls_set)
 
   have
-    "is_ground_trm l1" and "is_ground_trm r1" and
-    "is_ground_trm l2" and "is_ground_trm r2"
+    "is_ground_trm_ctxt ctxt" and "is_ground_trm r1" and
+    "is_ground_trm l" and "is_ground_trm r2"
     using ground_rule_if_mem_Union_equation[OF ground_N rule1_in]
     using ground_rule_if_mem_Union_equation[OF ground_N rule2_in]
     by simp_all
 
   from rule1_in' obtain C1' where
-    C1_def: "C1 = add_mset (Pos (l1 \<approx> r1)) C1'" and
-    C1_max: "is_strictly_maximal_lit (Pos (l1 \<approx> r1)) C1" and
-    "r1 \<prec>\<^sub>t l1" and
-    l1_irreducible: "l1 \<in> NF (rstep (rewrite_sys N2 C1))"
+    C1_def: "C1 = add_mset (Pos (ctxt\<langle>l\<rangle> \<approx> r1)) C1'" and
+    C1_max: "is_strictly_maximal_lit (Pos (ctxt\<langle>l\<rangle> \<approx> r1)) C1" and
+    "r1 \<prec>\<^sub>t ctxt\<langle>l\<rangle>" and
+    l1_irreducible: "ctxt\<langle>l\<rangle> \<in> NF (rstep (rewrite_sys N2 C1))"
     by (auto elim: mem_equationE)
 
   from rule2_in' obtain C2' where
-    C2_def: "C2 = add_mset (Pos (l2 \<approx> r2)) C2'" and
-    C2_max: "is_strictly_maximal_lit (Pos (l2 \<approx> r2)) C2" and
-    "r2 \<prec>\<^sub>t l2"
+    C2_def: "C2 = add_mset (Pos (l \<approx> r2)) C2'" and
+    C2_max: "is_strictly_maximal_lit (Pos (l \<approx> r2)) C2" and
+    "r2 \<prec>\<^sub>t l"
     by (auto elim: mem_equationE)
 
-  have "is_ground_trm_ctxt ctxt" and "is_ground_trm l1'"
-    using \<open>is_ground_trm l1\<close> \<open>l1 = ctxt\<langle>l1'\<rangle>\<close> by force+
-
-  have "l1' = l2"
-    using mgu_l1'_l2 \<open>is_ground_trm l1'\<close> \<open>is_ground_trm l2\<close>
-    by (metis mgu_var_disjoint_string_sound term_subst.subst_ident_if_ground)
-
-  have "equation N2 C1 = {(l1, r1)}"
+  have "equation N2 C1 = {(ctxt\<langle>l\<rangle>, r1)}"
     using rule1_in' production_eq_empty_or_singleton[OF ground_C1]
     unfolding equation_def
     by fastforce
 
-  have "equation N2 C2 = {(l2, r2)}"
+  have "equation N2 C2 = {(l, r2)}"
     using rule2_in' production_eq_empty_or_singleton[OF ground_C2]
     unfolding equation_def
     by fastforce
@@ -1736,33 +1727,29 @@ proof (rule ccontr)
   show False
   proof (cases "ctxt = \<box>")
     case True
-    hence "l1 = l2"
-      using \<open>l1 = ctxt\<langle>l1'\<rangle>\<close> \<open>l1' = l2\<close>
-      by simp
-    hence "\<not> (l1 \<prec>\<^sub>t l2)" and "\<not> (l2 \<prec>\<^sub>t l1)"
+    hence "\<not> (ctxt\<langle>l\<rangle> \<prec>\<^sub>t l)" and "\<not> (l \<prec>\<^sub>t ctxt\<langle>l\<rangle>)"
       by (simp_all add: irreflpD)
     hence "\<not> (C1 \<prec>\<^sub>c C2)" and "\<not> (C2 \<prec>\<^sub>c C1)"
-      using \<open>equation N2 C1 = {(l1, r1)}\<close> \<open>equation N2 C2 = {(l2, r2)}\<close>
+      using \<open>equation N2 C1 = {(ctxt\<langle>l\<rangle>, r1)}\<close> \<open>equation N2 C2 = {(l, r2)}\<close>
         ground_C1 ground_C2 less_trm_iff_less_cls_if_lhs_equation
       by simp_all
     hence "C1 = C2"
       using ground_C1 ground_C2 totalp_on_less_cls[THEN totalp_onD, unfolded mem_Collect_eq]
       by metis
     hence "r1 = r2"
-      using \<open>equation N2 C1 = {(l1, r1)}\<close> \<open>equation N2 C2 = {(l2, r2)}\<close> by simp
+      using \<open>equation N2 C1 = {(ctxt\<langle>l\<rangle>, r1)}\<close> \<open>equation N2 C2 = {(l, r2)}\<close> by simp
     moreover have "r1 \<noteq> r2"
-      using \<open>(ctxt \<cdot>t\<^sub>c \<mu>1)\<langle>r2 \<cdot>t \<mu>2\<rangle> \<noteq> r1 \<cdot>t \<mu>1\<close> \<open>is_ground_trm r1\<close> \<open>is_ground_trm r2\<close>
+      using \<open>ctxt\<langle>r2\<rangle> \<noteq> r1\<close>
       unfolding \<open>ctxt = \<box>\<close>
       by simp
     ultimately show ?thesis
       by argo
   next
     case False
-    hence "l2 \<prec>\<^sub>t l1"
-      unfolding \<open>l1 = ctxt\<langle>l1'\<rangle>\<close> \<open>l1' = l2\<close>
+    hence "l \<prec>\<^sub>t ctxt\<langle>l\<rangle>"
       by (metis ctxt_supt less_trm_if_subterm)
     hence "C2 \<prec>\<^sub>c C1"
-      using \<open>equation N2 C1 = {(l1, r1)}\<close> \<open>equation N2 C2 = {(l2, r2)}\<close>
+      using \<open>equation N2 C1 = {(ctxt\<langle>l\<rangle>, r1)}\<close> \<open>equation N2 C2 = {(l, r2)}\<close>
         ground_C1 ground_C2 less_trm_iff_less_cls_if_lhs_equation
       by simp
     hence "equation N2 C2 \<subseteq> rewrite_sys N2 C1"
@@ -1770,8 +1757,8 @@ proof (rule ccontr)
       using \<open>C2 \<in> N\<close>
       using mem_equationE by blast
     thus False
-      unfolding \<open>equation N2 C2 = {(l2, r2)}\<close>
-      using l1_irreducible[unfolded \<open>l1 = ctxt\<langle>l1'\<rangle>\<close> \<open>l1' = l2\<close>]
+      unfolding \<open>equation N2 C2 = {(l, r2)}\<close>
+      using l1_irreducible
       by auto
   qed
 qed
@@ -1779,21 +1766,28 @@ qed
 lemma WCR_Union_rewrite_sys:
   assumes ground_N: "is_ground_cls_set N"
   shows "WCR (rstep (\<Union>D \<in> N. equation N2 D))"
-  unfolding critical_pair_lemma
-proof (rule ballI)
-  fix tuple
-  assume tuple_in: "tuple \<in> critical_pairs (\<Union> (equation N2 ` N)) (\<Union> (equation N2 ` N))"
-  then obtain b t1 t2 where tuple_def: "tuple = (b, t1, t2)"
-    using prod_cases3 by blast
+proof -
+  from ground_N have ground_R\<^sub>N: "vars_trs (\<Union> (equation N2 ` N)) = {}"
+    apply (simp add: vars_trs_def vars_rule_def)
+    using ground_rule_if_mem_equation is_ground_cls_if_in_ground_cls_set by blast
 
-  moreover have "(t1, t2) \<in> (rstep (\<Union> (equation N2 ` N)))\<^sup>\<down>" if "t1 = t2"
-    using that by auto
+  show ?thesis
+    unfolding WCR_iff_ground_critical_pairs_subset_join_rstep[OF ground_R\<^sub>N]
+  proof (intro subsetI ballI)
+    fix tuple
+    assume tuple_in: "tuple \<in> ground_critical_pairs (\<Union> (equation N2 ` N)) (\<Union> (equation N2 ` N))"
+    then obtain t1 t2 where tuple_def: "tuple = (t1, t2)"
+      by fastforce
 
-  moreover have False if "t1 \<noteq> t2"
-    using that tuple_def tuple_in no_crit_pairs[OF ground_N] by simp
+    moreover have "(t1, t2) \<in> (rstep (\<Union> (equation N2 ` N)))\<^sup>\<down>" if "t1 = t2"
+      using that by auto
 
-  ultimately show "case tuple of (b, s, t) \<Rightarrow> (s, t) \<in> (rstep (\<Union> (equation N2 ` N)))\<^sup>\<down>"
-    by (cases "t1 = t2") simp_all
+    moreover have False if "t1 \<noteq> t2"
+      using that tuple_def tuple_in no_crit_pairs[OF ground_N] by simp
+
+    ultimately show "tuple \<in> (rstep (\<Union> (equation N2 ` N)))\<^sup>\<down>"
+      by (cases "t1 = t2") simp_all
+  qed
 qed
 
 lemma
@@ -1920,8 +1914,8 @@ qed
 
 lemma split_Union_equation:
   fixes
-    N :: "('f, char list) term uprod clause set" and
-    D :: "('f, char list) term uprod clause"
+    N :: "('f, 'v) term uprod clause set" and
+    D :: "('f, 'v) term uprod clause"
   assumes ground_N: "is_ground_cls_set N" and D_in: "D \<in> N"
   shows "(\<Union>C \<in> N. equation N C) =
     rewrite_sys N D \<union> equation N D \<union> (\<Union>C \<in> {C \<in> N. D \<prec>\<^sub>c C}. equation N C)"
@@ -1947,8 +1941,8 @@ qed
 
 lemma split_Union_equation':
   fixes
-    N :: "('f, char list) term uprod clause set" and
-    D :: "('f, char list) term uprod clause"
+    N :: "('f, 'v) term uprod clause set" and
+    D :: "('f, 'v) term uprod clause"
   assumes ground_N: "is_ground_cls_set N" and D_in: "D \<in> N"
   shows "(\<Union>C \<in> N. equation N C) = rewrite_sys N D \<union> (\<Union>C \<in> {C \<in> N. D \<preceq>\<^sub>c C}. equation N C)"
   using split_Union_equation[OF ground_N D_in] D_in
@@ -2564,8 +2558,8 @@ qed
 
 lemma model_construction:
   fixes
-    N :: "('f, char list) gterm uprod clause set" and
-    C :: "('f, char list) gterm uprod clause"
+    N :: "('f, 'v) gterm uprod clause set" and
+    C :: "('f, 'v) gterm uprod clause"
   defines
     "N\<^sub>\<G> \<equiv> cls_gcls ` N" and
     "C\<^sub>\<G> \<equiv> cls_gcls C" and
@@ -2643,7 +2637,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
         thus ?thesis
         proof (rule disjE)
           assume "s = s'"
-          define \<iota> :: "('f, char list) gterm uprod clause inference" where
+          define \<iota> :: "('f, 'v) gterm uprod clause inference" where
             "\<iota> = Infer [gcls_cls C\<^sub>\<G>] (gcls_cls C\<^sub>\<G>')"
 
           have "eq_resolution C\<^sub>\<G> C\<^sub>\<G>'"
@@ -2797,7 +2791,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
               superposition_if_neg_superposition
             by metis
 
-          define \<iota> :: "('f, char list) gterm uprod clause inference" where
+          define \<iota> :: "('f, 'v) gterm uprod clause inference" where
             "\<iota> = Infer [gcls_cls D\<^sub>\<G>, gcls_cls C\<^sub>\<G>] (gcls_cls C\<^sub>\<G>D\<^sub>\<G>)"
 
           have "\<iota> \<in> G_Inf"
@@ -3042,7 +3036,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
 
                 let ?concl = "add_mset (Neg (s' \<approx> t')) (add_mset (Pos (t \<approx> t')) C\<^sub>\<G>'')"
 
-                define \<iota> :: "('f, char list) gterm uprod clause inference" where
+                define \<iota> :: "('f, 'v) gterm uprod clause inference" where
                   "\<iota> = Infer [gcls_cls C\<^sub>\<G>] (gcls_cls ?concl)"
 
                 have eq_fact: "eq_factoring C\<^sub>\<G> ?concl"
@@ -3138,7 +3132,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
             have ground_D\<^sub>\<G>: "is_ground_cls D\<^sub>\<G>"
               using \<open>D\<^sub>\<G> \<in> N\<^sub>\<G>\<close> ground_N\<^sub>\<G> is_ground_cls_if_in_ground_cls_set by blast
 
-            define \<iota> :: "('f, char list) gterm uprod clause inference" where
+            define \<iota> :: "('f, 'v) gterm uprod clause inference" where
               "\<iota> = Infer [gcls_cls D\<^sub>\<G>, gcls_cls C\<^sub>\<G>]
                 (gcls_cls ((add_mset (Pos (ctxt\<langle>t'\<rangle> \<approx> s')) (C\<^sub>\<G>' + D\<^sub>\<G>'))))"
 
@@ -3245,7 +3239,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
             using Pos_A_in max_Pos_A lift_is_maximal_wrt_to_is_maximal_wrt_reflclp
             by (metis insert_DiffM)
 
-          define \<iota> :: "('f, char list) gterm uprod clause inference" where
+          define \<iota> :: "('f, 'v) gterm uprod clause inference" where
             "\<iota> = Infer [gcls_cls C\<^sub>\<G>]
               (gcls_cls (add_mset (Pos (s \<approx> s')) (add_mset (Neg (s' \<approx> s')) C\<^sub>\<G>')))"
 
@@ -3348,7 +3342,7 @@ qed
 
 interpretation G: statically_complete_calculus G_Bot G_Inf G_entails G.Red_I G.Red_F
 proof unfold_locales
-  fix B :: "('f, string) gterm uprod clause" and N :: "('f, string) gterm uprod clause set"
+  fix B :: "('f, 'v) gterm uprod clause" and N :: "('f, 'v) gterm uprod clause set"
   assume "B \<in> G_Bot" and "G.saturated N"
   hence "B = {#}"
     by simp
@@ -3362,7 +3356,7 @@ proof unfold_locales
     have ground_N: "is_ground_cls_set (cls_gcls ` N)"
       by (simp add: vars_cls_set_def)
 
-    define I :: "(('f, string) term \<times> ('f, string) term) set" where
+    define I :: "(('f, 'v) term \<times> ('f, 'v) term) set" where
       "I = (rstep (\<Union>D \<in> cls_gcls ` N. equation (cls_gcls ` N) D))\<^sup>\<down>"
 
     show "\<not> G_entails N G_Bot"
@@ -3418,24 +3412,24 @@ qed
 subsection \<open>First-Order Layer\<close>
 
 
-abbreviation F_Inf :: "('f, string) term atom clause inference set" where
+abbreviation F_Inf :: "('f, 'v) term atom clause inference set" where
   "F_Inf \<equiv> {}"
 
-abbreviation F_Bot :: "('f, string) term atom clause set" where
+abbreviation F_Bot :: "('f, 'v) term atom clause set" where
   "F_Bot \<equiv> {{#}}"
 
-abbreviation F_entails :: "('f, string) term atom clause set \<Rightarrow> ('f, string) term atom clause set \<Rightarrow> bool" where
+abbreviation F_entails :: "('f, 'v) term atom clause set \<Rightarrow> ('f, 'v) term atom clause set \<Rightarrow> bool" where
   "F_entails \<equiv> (\<TTurnstile>e)"
 
 typedecl Q
 
-definition \<G>_F :: "Q \<Rightarrow> ('f, string) term atom clause \<Rightarrow> ('f, 'v) gterm atom clause set" where
+definition \<G>_F :: "Q \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> ('f, 'v) gterm atom clause set" where
   "\<G>_F \<equiv> \<lambda>_ _. {}"
 
-definition \<G>_I :: "Q \<Rightarrow> ('f, string) term atom clause inference \<Rightarrow> ('f, 'v) gterm atom clause inference set option" where
+definition \<G>_I :: "Q \<Rightarrow> ('f, 'v) term atom clause inference \<Rightarrow> ('f, 'v) gterm atom clause inference set option" where
   "\<G>_I \<equiv> \<lambda>_ _. None"
 
-definition Prec_F :: "('f, string) gterm atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> ('f, string) term atom clause \<Rightarrow> bool" where
+definition Prec_F :: "('f, 'v) gterm atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> ('f, 'v) term atom clause \<Rightarrow> bool" where
   "Prec_F \<equiv> \<lambda>_ _ _. False"
 
 

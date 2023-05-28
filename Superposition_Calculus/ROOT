@@ -1,7 +1,10 @@
 session Superposition_Calculus = Saturation_Framework_Extensions +
   sessions
+    CR
+    Knuth_Bendix_Order
     Ordered_Resolution_Prover
     Saturation_Framework
     Saturation_Framework_Extensions
+    TRS
   theories
     Superposition
