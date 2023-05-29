@@ -813,6 +813,33 @@ next
   qed
 qed
 
+
+lemma ground_superposition_preserves_groundness:
+  assumes
+    step: "ground_superposition P1 P2 C" and
+    ground_P1: "is_ground_cls P1" and
+    ground_P2: "is_ground_cls P2"
+  shows "is_ground_cls C"
+  using step
+proof (cases P1 P2 C rule: ground_superposition.cases)
+  case (ground_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
+  from ground_P1 ground_P2 have
+    "is_ground_lit L\<^sub>1" and "is_ground_cls P\<^sub>1'" and
+    "is_ground_lit L\<^sub>2" and "is_ground_cls P\<^sub>2'"
+    using \<open>P1 = add_mset L\<^sub>1 P\<^sub>1'\<close> \<open>P2 = add_mset L\<^sub>2 P\<^sub>2'\<close> by simp_all
+  moreover hence
+    "is_ground_atm (s\<langle>t\<rangle> \<approx> s')" and
+    "is_ground_atm (t \<approx> t')"
+    using \<open>\<P> \<in> {Pos, Neg}\<close> \<open>L\<^sub>1 = \<P> (s\<langle>t\<rangle> \<approx> s')\<close> \<open>L\<^sub>2 = Pos (t \<approx> t')\<close> by auto
+  moreover hence
+    "is_ground_trm s\<langle>t\<rangle>" and "is_ground_trm_ctxt s" and "is_ground_trm t" and
+    "is_ground_trm s'" and "is_ground_trm t'"
+    by simp_all
+  ultimately show ?thesis
+    unfolding ground_superpositionI
+    using \<open>\<P> \<in> {Pos, Neg}\<close> by auto
+qed
+
 lemma superposition_preserves_groundness:
   assumes
     step: "superposition P1 P2 C" and
@@ -839,6 +866,18 @@ proof (cases P1 P2 C rule: superposition.cases)
     using \<open>\<P> \<in> {Pos, Neg}\<close> by auto
 qed
 
+lemma ground_eq_resolution_preserves_groundness:
+  assumes step: "ground_eq_resolution P C" and ground_P: "is_ground_cls P"
+  shows "is_ground_cls C"
+  using step
+proof (cases P C rule: ground_eq_resolution.cases)
+  case (ground_eq_resolutionI L t)
+  with ground_P have "is_ground_cls C"
+    by (simp add: vars_cls_def)
+  thus ?thesis
+    unfolding eq_resolutionI by simp
+qed
+
 lemma eq_resolution_preserves_groundness:
   assumes step: "eq_resolution P C" and ground_P: "is_ground_cls P"
   shows "is_ground_cls C"
@@ -849,6 +888,18 @@ proof (cases P C rule: eq_resolution.cases)
     by (simp add: vars_cls_def)
   thus ?thesis
     unfolding eq_resolutionI by simp
+qed
+
+lemma ground_eq_factoring_preserves_groundness:
+  assumes step: "ground_eq_factoring P C" and ground_P: "is_ground_cls P"
+  shows "is_ground_cls C"
+  using step
+proof (cases P C rule: ground_eq_factoring.cases)
+  case (ground_eq_factoringI L\<^sub>1 L\<^sub>2 P' t t' t'')
+  with ground_P have "is_ground_cls P'" "is_ground_trm t" "is_ground_trm t'" "is_ground_trm t''"
+    by simp_all
+  thus ?thesis
+    unfolding ground_eq_factoringI by simp
 qed
 
 lemma eq_factoring_preserves_groundness:
@@ -1030,35 +1081,27 @@ lemma true_lit_uprod_iff_true_lit_prod[simp]:
 
 lemma correctness_ground_superposition:
   assumes
-    step: "superposition P1 P2 C" and
+    step: "ground_superposition P1 P2 C" and
     ground_P1: "is_ground_cls P1" and
     ground_P2: "is_ground_cls P2"
   shows "G_entails {gcls_cls P1, gcls_cls P2} {gcls_cls C}"
   using step
-proof (cases P1 P2 C rule: superposition.cases)
-  case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
+proof (cases P1 P2 C rule: ground_superposition.cases)
+  case (ground_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
   with ground_P1 ground_P2 have
-    "is_ground_atm (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')" and "is_ground_cls P\<^sub>1'" and
-    "is_ground_atm (t\<^sub>2 \<approx> t\<^sub>2')" and "is_ground_cls P\<^sub>2'"
-    by (metis insert_iff singletonD sup_eq_bot_iff vars_cls_add_mset vars_lit_Neg vars_lit_Pos)+
+    "is_ground_atm (s\<langle>t\<rangle> \<approx> s')" and "is_ground_cls P\<^sub>1'" and
+    "is_ground_atm (t \<approx> t')" and "is_ground_cls P\<^sub>2'"
+    by (metis sup_eq_bot_iff vars_cls_add_mset vars_lit_Neg vars_lit_Pos)+
   hence
-    "is_ground_trm s\<^sub>1\<langle>u\<^sub>1\<rangle>" and "is_ground_trm_ctxt s\<^sub>1" and "is_ground_trm u\<^sub>1" and
-    "is_ground_trm s\<^sub>1'" and "is_ground_trm t\<^sub>2" and "is_ground_trm t\<^sub>2'"
+    "is_ground_trm s\<langle>t\<rangle>" and "is_ground_trm_ctxt s" and "is_ground_trm t" and
+    "is_ground_trm s'" and "is_ground_trm t" and "is_ground_trm t'"
     by simp_all
-  hence "term_subst.is_ground_set {u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}"
-    by (simp add: term_subst.is_ground_set_def)
-  moreover have "term_subst.is_unifier \<mu> {u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}"
-    using \<open>term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}}\<close>
-    by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
-  ultimately have "u\<^sub>1 = t\<^sub>2"
-    using term_subst.ball_eq_constant_if_unifier[of "{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}" _ \<mu>]
-    using \<open>is_ground_trm t\<^sub>2\<close> \<open>is_ground_trm u\<^sub>1\<close> by auto
 
   have 1: "cls_gcls ` {gcls_cls P1, gcls_cls P2} = {P1, P2}"
     using ground_P1 ground_P2 by simp_all
 
   have 2: "cls_gcls ` {gcls_cls C} = {C}"
-    using superposition_preserves_groundness[OF step ground_P1 ground_P2] by simp
+    using ground_superposition_preserves_groundness[OF step ground_P1 ground_P2] by simp
 
   show ?thesis
     unfolding G_entails_def 1 2 true_clss_singleton
@@ -1066,7 +1109,7 @@ proof (cases P1 P2 C rule: superposition.cases)
   proof (intro allI impI, elim conjE)
     fix I :: "(('f, 'v) Term.term \<times> ('f, 'v) Term.term) set"
 
-    let ?I' = "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I"
+    let ?I' = "(\<lambda>(t\<^sub>1, t). t\<^sub>1 \<approx> t) ` I"
 
     assume "refl I" and "trans I" and "sym I" and "compatible_with_ctxt I" and
       "?I' \<TTurnstile> P1" and "?I' \<TTurnstile> P2"
@@ -1075,51 +1118,46 @@ proof (cases P1 P2 C rule: superposition.cases)
       by (auto simp: true_cls_def)
 
     show "?I' \<TTurnstile> C"
-    proof (cases "K1 = \<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')")
+    proof (cases "K1 = \<P> (s\<langle>t\<rangle> \<approx> s')")
       case K1_def: True
-      hence "?I' \<TTurnstile>l \<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')"
+      hence "?I' \<TTurnstile>l \<P> (s\<langle>t\<rangle> \<approx> s')"
         using \<open>?I' \<TTurnstile>l K1\<close> by simp
 
       show ?thesis
-      proof (cases "K2 = Pos (t\<^sub>2 \<approx> t\<^sub>2')")
+      proof (cases "K2 = Pos (t \<approx> t')")
         case K2_def: True
-        hence "(t\<^sub>2, t\<^sub>2') \<in> I"
+        hence "(t, t') \<in> I"
           using \<open>?I' \<TTurnstile>l K2\<close> true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] by simp
 
         have ?thesis if "\<P> = Pos"
         proof -
-          from that have "(s\<^sub>1\<langle>u\<^sub>1\<rangle>, s\<^sub>1') \<in> I"
+          from that have "(s\<langle>t\<rangle>, s') \<in> I"
             using \<open>?I' \<TTurnstile>l K1\<close> K1_def true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] by simp
-          hence "(s\<^sub>1\<langle>t\<^sub>2'\<rangle>, s\<^sub>1') \<in> I"
-            unfolding \<open>u\<^sub>1 = t\<^sub>2\<close>
-            using \<open>(t\<^sub>2, t\<^sub>2') \<in> I\<close>
+          hence "(s\<langle>t'\<rangle>, s') \<in> I"
+            using \<open>(t, t') \<in> I\<close>
             using \<open>compatible_with_ctxt I\<close> \<open>refl I\<close> \<open>sym I\<close> \<open>trans I\<close>
             by (meson compatible_with_ctxtD refl_onD1 symD trans_onD)
-          hence "?I' \<TTurnstile>l Pos (s\<^sub>1\<langle>t\<^sub>2'\<rangle> \<approx> s\<^sub>1')"
+          hence "?I' \<TTurnstile>l Pos (s\<langle>t'\<rangle> \<approx> s')"
             by blast
           thus ?thesis
-            unfolding superpositionI that
-            using \<open>is_ground_trm_ctxt s\<^sub>1\<close> \<open>is_ground_trm t\<^sub>2'\<close> \<open>is_ground_trm s\<^sub>1'\<close>
+            unfolding ground_superpositionI that
+            using \<open>is_ground_trm_ctxt s\<close> \<open>is_ground_trm t'\<close> \<open>is_ground_trm s'\<close>
               \<open>is_ground_cls P\<^sub>1'\<close> \<open>is_ground_cls P\<^sub>2'\<close>
             by simp
         qed
 
         moreover have ?thesis if "\<P> = Neg"
         proof -
-          from that have "(s\<^sub>1\<langle>u\<^sub>1\<rangle>, s\<^sub>1') \<notin> I"
+          from that have "(s\<langle>t\<rangle>, s') \<notin> I"
             using \<open>?I' \<TTurnstile>l K1\<close> K1_def true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] by simp
-          hence "(s\<^sub>1\<langle>t\<^sub>2'\<rangle>, s\<^sub>1') \<notin> I"
-            unfolding \<open>u\<^sub>1 = t\<^sub>2\<close>
-            using \<open>(t\<^sub>2, t\<^sub>2') \<in> I\<close>
+          hence "(s\<langle>t'\<rangle>, s') \<notin> I"
+            using \<open>(t, t') \<in> I\<close>
             using \<open>compatible_with_ctxt I\<close> \<open>trans I\<close>
             by (metis compatible_with_ctxtD transD)
-          hence "?I' \<TTurnstile>l Neg (s\<^sub>1\<langle>t\<^sub>2'\<rangle> \<approx> s\<^sub>1')"
+          hence "?I' \<TTurnstile>l Neg (s\<langle>t'\<rangle> \<approx> s')"
             by (meson \<open>sym I\<close> true_lit_simps(2) true_lit_uprod_iff_true_lit_prod(2))
           thus ?thesis
-            unfolding superpositionI that
-            using \<open>is_ground_trm_ctxt s\<^sub>1\<close> \<open>is_ground_trm t\<^sub>2'\<close> \<open>is_ground_trm s\<^sub>1'\<close>
-              \<open>is_ground_cls P\<^sub>1'\<close> \<open>is_ground_cls P\<^sub>2'\<close>
-            by simp
+            unfolding ground_superpositionI that by simp
         qed
 
         ultimately show ?thesis
@@ -1128,55 +1166,44 @@ proof (cases P1 P2 C rule: superposition.cases)
         case False
         hence "K2 \<in># P\<^sub>2'"
           using \<open>K2 \<in># P2\<close>
-          unfolding superpositionI by simp
+          unfolding ground_superpositionI by simp
         hence "?I' \<TTurnstile> P\<^sub>2'"
           using \<open>?I' \<TTurnstile>l K2\<close> by blast
         thus ?thesis
-          unfolding superpositionI
-          using \<open>is_ground_cls P\<^sub>2'\<close>
-          by (simp add: subst_cls_add_mset subst_cls_plus)
+          unfolding ground_superpositionI by simp
       qed
     next
       case False
       hence "K1 \<in># P\<^sub>1'"
         using \<open>K1 \<in># P1\<close>
-        unfolding superpositionI by simp
+        unfolding ground_superpositionI by simp
       hence "?I' \<TTurnstile> P\<^sub>1'"
         using \<open>?I' \<TTurnstile>l K1\<close> by blast
       moreover have "\<And>\<sigma>. P\<^sub>1' \<cdot> \<sigma> = P\<^sub>1'"
         using ground_P1
-        unfolding superpositionI by force
+        unfolding ground_superpositionI by simp
       ultimately show ?thesis
-        unfolding superpositionI
-        by (simp add: subst_cls_add_mset subst_cls_plus)
+        unfolding ground_superpositionI by simp
     qed
   qed
 qed
 
 lemma correctness_ground_eq_resolution:
-  assumes step: "eq_resolution P C" and ground_P: "is_ground_cls P"
+  assumes step: "ground_eq_resolution P C" and ground_P: "is_ground_cls P"
   shows "G_entails {gcls_cls P} {gcls_cls C}"
   using step
-proof (cases P C rule: eq_resolution.cases)
-  case (eq_resolutionI L P' t\<^sub>1 t\<^sub>2 \<mu>)
-  with ground_P have "is_ground_atm (t\<^sub>1 \<approx> t\<^sub>2)"
+proof (cases P C rule: ground_eq_resolution.cases)
+  case (ground_eq_resolutionI L t)
+  with ground_P have "is_ground_atm (t \<approx> t)"
     by simp
-  hence "is_ground_trm t\<^sub>1" and "is_ground_trm t\<^sub>2"
-    by simp_all
-  hence "term_subst.is_ground_set {t\<^sub>1, t\<^sub>2}"
-    by (simp add: term_subst.is_ground_set_def)
-
-  moreover from \<open>term_subst.is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}}\<close> have "term_subst.is_unifier \<mu> {t\<^sub>1, t\<^sub>2}"
-    by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
-
-  ultimately have "t\<^sub>1 = t\<^sub>2"
-    using term_subst.ball_eq_constant_if_unifier[of "{t\<^sub>1, t\<^sub>2}" _ \<mu>] by simp
+  hence "is_ground_trm t"
+    by simp
 
   have 1: "cls_gcls ` {gcls_cls P} = {P}"
     using ground_P by simp
 
   have 2: "cls_gcls ` {gcls_cls C} = {C}"
-    using eq_resolution_preserves_groundness[OF step ground_P] by simp
+    using ground_eq_resolution_preserves_groundness[OF step ground_P] by simp
 
   show ?thesis
     unfolding G_entails_def 1 2 true_clss_singleton
@@ -1186,45 +1213,37 @@ proof (cases P C rule: eq_resolution.cases)
     then obtain K where "K \<in># P" and "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>l K"
       by (auto simp: true_cls_def)
     hence "K \<noteq> L"
-      by (metis \<open>refl I\<close> \<open>t\<^sub>1 = t\<^sub>2\<close> local.eq_resolutionI(2) pair_imageI reflD true_lit_simps(2))
-    hence "K \<in># P'"
-      using \<open>K \<in># P\<close> \<open>P = add_mset L P'\<close> by simp
-    hence "K \<in># P' \<cdot> \<mu>"
-      using ground_P eq_resolutionI(1) by fastforce
+      by (metis \<open>refl I\<close> ground_eq_resolutionI(2) pair_imageI reflD true_lit_simps(2))
+    hence "K \<in># C"
+      using \<open>K \<in># P\<close> \<open>P = add_mset L C\<close> by simp
     thus "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile> C"
-      using \<open>C = P' \<cdot> \<mu>\<close> \<open>(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>l K\<close> by blast
+      using \<open>(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>l K\<close> by blast
   qed
 qed
 
 lemma correctness_ground_eq_factoring:
-  assumes step: "eq_factoring P C" and ground_P: "is_ground_cls P"
+  assumes step: "ground_eq_factoring P C" and ground_P: "is_ground_cls P"
   shows "G_entails {gcls_cls P} {gcls_cls C}"
   using step
-proof (cases P C rule: eq_factoring.cases)
-  case (eq_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
-  with ground_P have "is_ground_atm (s\<^sub>1 \<approx> s\<^sub>1')" and "is_ground_atm (t\<^sub>2 \<approx> t\<^sub>2')"
+proof (cases P C rule: ground_eq_factoring.cases)
+  case (ground_eq_factoringI L\<^sub>1 L\<^sub>2 P' t t' t'')
+  with ground_P have "is_ground_atm (t \<approx> t')" and "is_ground_atm (t \<approx> t'')"
     by simp_all
-  hence "is_ground_trm s\<^sub>1" and "is_ground_trm s\<^sub>1'" and "is_ground_trm t\<^sub>2" and "is_ground_trm t\<^sub>2'"
+  hence "is_ground_trm t" and "is_ground_trm t'"
     by simp_all
-  hence "term_subst.is_ground_set {s\<^sub>1, t\<^sub>2}"
-    by (simp add: term_subst.is_ground_set_def)
-  moreover from \<open>term_subst.is_imgu \<mu> {{s\<^sub>1, t\<^sub>2}}\<close> have "term_subst.is_unifier \<mu> {s\<^sub>1, t\<^sub>2}"
-    by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
-  ultimately have "s\<^sub>1 = t\<^sub>2"
-    using term_subst.ball_eq_constant_if_unifier[of "{s\<^sub>1, t\<^sub>2}" _ \<mu>] by simp
 
   have 1: "cls_gcls ` {gcls_cls P} = {P}"
     using ground_P by simp
 
   have 2: "cls_gcls ` {gcls_cls C} = {C}"
-    using eq_factoring_preserves_groundness[OF step ground_P] by simp
+    using ground_eq_factoring_preserves_groundness[OF step ground_P] by simp
 
   show ?thesis
     unfolding G_entails_def 1 2 true_clss_singleton
   proof (intro allI impI)
     fix I :: "(('f, 'v) Term.term \<times> ('f, 'v) Term.term) set"
 
-    let ?I' = "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I"
+    let ?I' = "(\<lambda>(t\<^sub>1, t). t\<^sub>1 \<approx> t) ` I"
 
     assume "trans I" and "sym I" and "?I' \<TTurnstile> P"
     then obtain K :: "('f, 'v) Term.term uprod literal" where
@@ -1234,38 +1253,36 @@ proof (cases P C rule: eq_factoring.cases)
     show "?I' \<TTurnstile> C"
     proof (cases "K = L\<^sub>1 \<or> K = L\<^sub>2")
       case True
-      hence "I \<TTurnstile>l Pos (t\<^sub>2, s\<^sub>1') \<or> I \<TTurnstile>l Pos (t\<^sub>2, t\<^sub>2')"
-        unfolding eq_factoringI \<open>s\<^sub>1 = t\<^sub>2\<close>
+      hence "I \<TTurnstile>l Pos (t, t') \<or> I \<TTurnstile>l Pos (t, t'')"
+        unfolding ground_eq_factoringI
         using \<open>?I' \<TTurnstile>l K\<close> true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] by metis
-      hence "I \<TTurnstile>l Pos (s\<^sub>1, t\<^sub>2') \<or> I \<TTurnstile>l Neg (s\<^sub>1', t\<^sub>2')"
+      hence "I \<TTurnstile>l Pos (t, t'') \<or> I \<TTurnstile>l Neg (t', t'')"
       proof (elim disjE)
-        assume "I \<TTurnstile>l Pos (t\<^sub>2, s\<^sub>1')"
+        assume "I \<TTurnstile>l Pos (t, t')"
         then show ?thesis
-          unfolding \<open>s\<^sub>1 = t\<^sub>2\<close> true_lit_simps
+          unfolding true_lit_simps
           by (metis \<open>trans I\<close> transD)
       next
-        assume "I \<TTurnstile>l Pos (t\<^sub>2, t\<^sub>2')"
+        assume "I \<TTurnstile>l Pos (t, t'')"
         then show ?thesis
-          using \<open>s\<^sub>1 = t\<^sub>2\<close> by simp
+          by simp
       qed
-      hence "?I' \<TTurnstile>l Pos (s\<^sub>1 \<approx> t\<^sub>2') \<or> ?I' \<TTurnstile>l Neg (s\<^sub>1' \<approx> t\<^sub>2')"
+      hence "?I' \<TTurnstile>l Pos (t \<approx> t'') \<or> ?I' \<TTurnstile>l Neg (t' \<approx> t'')"
         unfolding true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] .
-      hence "?I' \<TTurnstile>l Pos (s\<^sub>1 \<approx> t\<^sub>2') \<cdot>l \<mu> \<or> ?I' \<TTurnstile>l Neg (s\<^sub>1' \<approx> t\<^sub>2') \<cdot>l \<mu>"
-        using \<open>is_ground_atm (s\<^sub>1 \<approx> s\<^sub>1')\<close> \<open>is_ground_atm (t\<^sub>2 \<approx> t\<^sub>2')\<close> by auto
       thus ?thesis
-        unfolding eq_factoringI
+        unfolding ground_eq_factoringI
         by (metis subst_cls_add_mset true_cls_add_mset)
     next
       case False
       hence "K \<in># P'"
         using \<open>K \<in># P\<close>
-        unfolding eq_factoringI
+        unfolding ground_eq_factoringI
         by auto
       hence "K \<in># C"
         using ground_P
-        by (simp add: eq_factoringI(1,2,3,7))
+        by (simp add: ground_eq_factoringI(1,2,6))
       thus ?thesis
-        using \<open>(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>l K\<close> by blast
+        using \<open>(\<lambda>(t\<^sub>1, t). t\<^sub>1 \<approx> t) ` I \<TTurnstile>l K\<close> by blast
     qed
   qed
 qed
@@ -1302,9 +1319,6 @@ next
     using correctness_ground_superposition
     using correctness_ground_eq_resolution
     using correctness_ground_eq_factoring
-    using superposition_iff_ground_superposition
-    using eq_resolution_iff_ground_eq_resolution
-    using eq_factoring_iff_ground_eq_factoring
     by (auto simp: G_entails_def)
 qed
 
