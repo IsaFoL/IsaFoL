@@ -997,9 +997,9 @@ framework et l'état de l'art.
 
 definition G_Inf :: "('f, 'v) gterm atom clause inference set" where
   "G_Inf \<equiv>
-    {Infer [P\<^sub>2, P\<^sub>1] (gcls_cls C) | P\<^sub>2 P\<^sub>1 C. superposition (cls_gcls P\<^sub>1) (cls_gcls P\<^sub>2) C} \<union>
-    {Infer [P] (gcls_cls C) | P C. eq_resolution (cls_gcls P) C} \<union>
-    {Infer [P] (gcls_cls C) | P C. eq_factoring (cls_gcls P) C}"
+    {Infer [P\<^sub>2, P\<^sub>1] (gcls_cls C) | P\<^sub>2 P\<^sub>1 C. ground_superposition (cls_gcls P\<^sub>1) (cls_gcls P\<^sub>2) C} \<union>
+    {Infer [P] (gcls_cls C) | P C. ground_eq_resolution (cls_gcls P) C} \<union>
+    {Infer [P] (gcls_cls C) | P C. ground_eq_factoring (cls_gcls P) C}"
 
 abbreviation G_Bot :: "('f, 'v) gterm atom clause set" where
   "G_Bot \<equiv> {{#}}"
@@ -1302,6 +1302,9 @@ next
     using correctness_ground_superposition
     using correctness_ground_eq_resolution
     using correctness_ground_eq_factoring
+    using superposition_iff_ground_superposition
+    using eq_resolution_iff_ground_eq_resolution
+    using eq_factoring_iff_ground_eq_factoring
     by (auto simp: G_entails_def)
 qed
 
@@ -1609,30 +1612,36 @@ next
   fix \<iota>
   have "cls_gcls (concl_of \<iota>) \<prec>\<^sub>c cls_gcls (main_prem_of \<iota>)"
     if \<iota>_def: "\<iota> = Infer [P\<^sub>2, P\<^sub>1] (gcls_cls C)" and
-      infer: "superposition (cls_gcls P\<^sub>1) (cls_gcls P\<^sub>2) C"
+      infer: "ground_superposition (cls_gcls P\<^sub>1) (cls_gcls P\<^sub>2) C"
     for P\<^sub>2 P\<^sub>1 C
     unfolding \<iota>_def
-    using smaller_conclusion_ground_superposition[OF infer]
-    using superposition_preserves_groundness[OF infer]
-    by force
+    using infer
+    using superposition_iff_ground_superposition[symmetric]
+    using smaller_conclusion_ground_superposition
+    using superposition_preserves_groundness
+    by simp
 
   moreover have "cls_gcls (concl_of \<iota>) \<prec>\<^sub>c cls_gcls (main_prem_of \<iota>)"
     if \<iota>_def: "\<iota> = Infer [P] (gcls_cls C)" and
-      infer: "eq_resolution (cls_gcls P) C"
+      infer: "ground_eq_resolution (cls_gcls P) C"
     for P C
     unfolding \<iota>_def
-    using smaller_conclusion_ground_eq_resolution[OF infer]
-    using eq_resolution_preserves_groundness[OF infer]
-    by force
+    using infer
+    using eq_resolution_iff_ground_eq_resolution[symmetric]
+    using smaller_conclusion_ground_eq_resolution
+    using eq_resolution_preserves_groundness
+    by simp
 
   moreover have "cls_gcls (concl_of \<iota>) \<prec>\<^sub>c cls_gcls (main_prem_of \<iota>)"
     if \<iota>_def: "\<iota> = Infer [P] (gcls_cls C)" and
-      infer: "eq_factoring (cls_gcls P) C"
+      infer: "ground_eq_factoring (cls_gcls P) C"
     for P C
     unfolding \<iota>_def
-    using smaller_conclusion_ground_eq_factoring[OF infer]
-    using eq_factoring_preserves_groundness[OF infer]
-    by force
+    using infer
+    using eq_factoring_iff_ground_eq_factoring[symmetric]
+    using smaller_conclusion_ground_eq_factoring
+    using eq_factoring_preserves_groundness
+    by simp
 
   ultimately show "\<iota> \<in> G_Inf \<Longrightarrow> cls_gcls (concl_of \<iota>) \<prec>\<^sub>c cls_gcls (main_prem_of \<iota>)"
     unfolding G_Inf_def
@@ -2961,7 +2970,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
               using sel_or_max by force
           qed simp_all
           hence "\<iota> \<in> G_Inf"
-            using ground_C\<^sub>\<G>
+            using ground_C\<^sub>\<G> eq_resolution_iff_ground_eq_resolution
             by (auto simp: \<iota>_def G_Inf_def)
 
           moreover have "\<And>t. t \<in> set (prems_of \<iota>) \<Longrightarrow> t \<in> N"
@@ -3104,7 +3113,8 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
             "\<iota> = Infer [gcls_cls D\<^sub>\<G>, gcls_cls C\<^sub>\<G>] (gcls_cls C\<^sub>\<G>D\<^sub>\<G>)"
 
           have "\<iota> \<in> G_Inf"
-            using ground_C\<^sub>\<G> ground_D\<^sub>\<G> super superposition_if_neg_superposition
+            using ground_C\<^sub>\<G> ground_D\<^sub>\<G> superposition_if_neg_superposition[OF super]
+              superposition_iff_ground_superposition
             by (auto simp: \<iota>_def G_Inf_def)
 
           moreover have "\<And>t. t \<in> set (prems_of \<iota>) \<Longrightarrow> t \<in> N"
@@ -3368,7 +3378,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
                     by (auto simp add: \<open>t = s\<close>)
                 qed simp_all
                 hence "\<iota> \<in> G_Inf"
-                  using ground_C\<^sub>\<G>
+                  using ground_C\<^sub>\<G> eq_factoring_iff_ground_eq_factoring
                   by (auto simp: \<iota>_def G_Inf_def)
 
                 moreover have "\<And>t. t \<in> set (prems_of \<iota>) \<Longrightarrow> t \<in> N"
@@ -3483,8 +3493,8 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
                 by (metis (full_types) asympD subst_apply_term_empty sup2E)
             qed simp_all
             hence "\<iota> \<in> G_Inf"
-              using ground_C\<^sub>\<G> ground_D\<^sub>\<G> superposition_if_pos_superposition
-              by (auto simp: \<iota>_def G_Inf_def)
+              using ground_C\<^sub>\<G> ground_D\<^sub>\<G> superposition_iff_ground_superposition
+              by (auto simp: \<iota>_def G_Inf_def dest!: superposition_if_pos_superposition)
 
             moreover have "\<And>t. t \<in> set (prems_of \<iota>) \<Longrightarrow> t \<in> N"
               using \<open>C\<^sub>\<G> \<in> N\<^sub>\<G>\<close> \<open>D\<^sub>\<G> \<in> N\<^sub>\<G>\<close>
@@ -3571,7 +3581,7 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
               by (auto dest: asympD)
           qed simp_all
           hence "\<iota> \<in> G_Inf"
-            using ground_C\<^sub>\<G>
+            using ground_C\<^sub>\<G> eq_factoring_iff_ground_eq_factoring
             by (auto simp: \<iota>_def G_Inf_def)
 
           moreover have "\<And>t. t \<in> set (prems_of \<iota>) \<Longrightarrow> t \<in> N"
