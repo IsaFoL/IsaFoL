@@ -519,15 +519,16 @@ where
   ground_superpositionI: "
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
+    P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
     \<P> \<in> {Pos, Neg} \<Longrightarrow>
     L\<^sub>1 = \<P> (s\<langle>t\<rangle> \<approx> s') \<Longrightarrow>
     L\<^sub>2 = Pos (t \<approx> t') \<Longrightarrow>
-    P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
-    (\<P> = Pos \<and> is_strictly_maximal_lit (L\<^sub>1) (P\<^sub>1)) \<or>
-    (\<P> = Neg \<and> (select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> L\<^sub>1 \<in># select P\<^sub>1)) \<Longrightarrow>
-    is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle> \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
+    (\<P> = Pos \<and> select P\<^sub>1 = {#} \<and> is_strictly_maximal_lit L\<^sub>1 P\<^sub>1) \<or>
+    (\<P> = Neg \<and> (select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> L\<^sub>1 \<in># select P\<^sub>1)) \<Longrightarrow>
+    select P\<^sub>2 = {#} \<Longrightarrow>
+    is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (\<P> (s\<langle>t'\<rangle> \<approx> s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_superposition P\<^sub>1 P\<^sub>2 C"
 
@@ -545,7 +546,8 @@ inductive ground_eq_factoring ::
     P = add_mset L\<^sub>1 (add_mset L\<^sub>2 P') \<Longrightarrow>
     L\<^sub>1 = Pos (t \<approx> t') \<Longrightarrow>
     L\<^sub>2 = Pos (t \<approx> t'') \<Longrightarrow>
-    select P = {#} \<Longrightarrow> is_maximal_lit L\<^sub>1 P \<Longrightarrow>
+    select P = {#} \<Longrightarrow>
+    is_maximal_lit L\<^sub>1 P \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     C = add_mset (Neg (t' \<approx> t'')) (add_mset (Pos (t \<approx> t'')) P') \<Longrightarrow>
     ground_eq_factoring P C"
@@ -608,13 +610,15 @@ where
   ground_pos_superpositionI: "
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
+    P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
     L\<^sub>1 = Pos (s\<langle>t\<rangle> \<approx> s') \<Longrightarrow>
     L\<^sub>2 = Pos (t \<approx> t') \<Longrightarrow>
-    P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
-    is_strictly_maximal_lit (L\<^sub>1) (P\<^sub>1) \<Longrightarrow>
-    is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle> \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
+    select P\<^sub>1 = {#} \<Longrightarrow>
+    is_strictly_maximal_lit L\<^sub>1 P\<^sub>1 \<Longrightarrow>
+    select P\<^sub>2 = {#} \<Longrightarrow>
+    is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (Pos (s\<langle>t'\<rangle> \<approx> s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_pos_superposition P\<^sub>1 P\<^sub>2 C"
 
@@ -635,13 +639,14 @@ where
   ground_neg_superpositionI: "
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
+    P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
     L\<^sub>1 = Neg (s\<langle>t\<rangle> \<approx> s') \<Longrightarrow>
     L\<^sub>2 = Pos (t \<approx> t') \<Longrightarrow>
-    P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
-    select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> L\<^sub>1 \<in># select P\<^sub>1 \<Longrightarrow>
-    is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle> \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
+    select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> L\<^sub>1 \<in># select P\<^sub>1 \<Longrightarrow>
+    select P\<^sub>2 = {#} \<Longrightarrow>
+    is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (Neg (s\<langle>t'\<rangle> \<approx> s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_neg_superposition P\<^sub>1 P\<^sub>2 C"
 
@@ -1151,7 +1156,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
       qed
 
       ultimately show ?thesis
-        using ground_superpositionI(7)
+        using ground_superpositionI
         by (metis is_maximal_wrt_def local.transp_less_lit reflclp_iff transpD)
     qed
 
@@ -1160,9 +1165,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
   qed simp
 
   moreover have "C = add_mset (\<P> (s\<langle>t'\<rangle> \<approx> s')) (P\<^sub>1' + P\<^sub>2')"
-    using \<open>is_ground_cls P\<^sub>1'\<close> \<open>is_ground_cls P\<^sub>2'\<close> \<open>is_ground_trm s'\<close> \<open>is_ground_trm t'\<close>
-      \<open>is_ground_trm_ctxt s\<close> ground_superpositionI(11)
-    by auto
+    unfolding ground_superpositionI ..
 
   moreover have "P1 = P\<^sub>1' + {#\<P> (s\<langle>t\<rangle> \<approx> s')#}"
     unfolding ground_superpositionI by simp
@@ -2701,6 +2704,9 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
             show "select C\<^sub>\<G> = {#} \<and> is_maximal_lit (Neg (s \<approx> s')) C\<^sub>\<G> \<or> Neg (s \<approx> s') \<in># select C\<^sub>\<G>"
               using sel_or_max by auto
           next
+            show "select D\<^sub>\<G> = {#}"
+              using sel_D\<^sub>\<G> by blast
+          next
             show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (t \<approx> t')) D\<^sub>\<G>"
               using max_t_t' .
           next
@@ -3101,6 +3107,12 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
               show "D\<^sub>\<G> \<prec>\<^sub>c C\<^sub>\<G>"
                 using \<open>D\<^sub>\<G> \<prec>\<^sub>c C\<^sub>\<G>\<close> .
             next
+              show "select D\<^sub>\<G> = {#}"
+                using \<open>select D\<^sub>\<G> = {#}\<close> .
+            next
+              show "select C\<^sub>\<G> = {#}"
+                using \<open>select C\<^sub>\<G> = {#}\<close> .
+            next
               show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (s \<approx> s')) C\<^sub>\<G>"
                 using A_def strictly_maximal by simp
             next
@@ -3375,8 +3387,9 @@ where
     \<not> is_Var u\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
     \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
-    (\<P> = Pos \<and> is_strictly_maximal_lit (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)) \<or>
+    (\<P> = Pos \<and> select P\<^sub>1 = {#} \<and> is_strictly_maximal_lit (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)) \<or>
     (\<P> = Neg \<and> (select P\<^sub>1 = {#} \<and> is_maximal_lit (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or> L\<^sub>1 \<in># select P\<^sub>1)) \<Longrightarrow>
+    select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal_lit (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
     \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
@@ -3454,12 +3467,15 @@ proof (rule iffI)
       with ground_P1 ground_P2 show "P2 \<prec>\<^sub>c P1"
         by (metis (mono_tags, lifting) mem_Collect_eq reflclp_iff totalp_on_def totalp_on_less_cls)
     next
-      from ground_P1 show "\<P> = Pos \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= L\<^sub>1 P1 \<or>
+      from ground_P1 show "\<P> = Pos \<and> select P1 = {#} \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= L\<^sub>1 P1 \<or>
         \<P> = Neg \<and> (select P1 = {#} \<and> is_maximal_lit L\<^sub>1 P1 \<or> L\<^sub>1 \<in># select P1)"
-        using \<open>\<P> = Pos \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or>
+        using \<open>\<P> = Pos \<and> select P1 = {#} \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or>
           \<P> = Neg \<and> (select P1 = {#} \<and> is_maximal_lit (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or>
             L\<^sub>1 \<in># select P1)\<close>
         using \<open>is_ground_lit L\<^sub>1\<close> by simp
+    next
+      show "select P2 = {#}"
+        using \<open>select P2 = {#}\<close> .
     next
       from ground_P2 show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= L\<^sub>2 P2"
         using \<open>is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)\<close> \<open>is_ground_lit L\<^sub>2\<close> by simp
@@ -3517,12 +3533,15 @@ next
         using \<open>P2 \<prec>\<^sub>c P1\<close>
         by (metis asympD asymp_less_cls strict_reflclp_conv subst_cls_Var_ident)
     next
-      show "\<P> = Pos \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (L\<^sub>1 \<cdot>l Var \<cdot>l Var) (P1 \<cdot> Var \<cdot> Var) \<or>
+      show "\<P> = Pos \<and> select P1 = {#} \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (L\<^sub>1 \<cdot>l Var \<cdot>l Var) (P1 \<cdot> Var \<cdot> Var) \<or>
         \<P> = Neg \<and> (select P1 = {#} \<and> is_maximal_lit (L\<^sub>1 \<cdot>l Var \<cdot>l Var) (P1 \<cdot> Var \<cdot> Var) \<or>
           L\<^sub>1 \<in># select P1)"
-        using \<open>\<P> = Pos \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= L\<^sub>1 P1 \<or>
+        using \<open>\<P> = Pos \<and> select P1 = {#} \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= L\<^sub>1 P1 \<or>
           \<P> = Neg \<and> (select P1 = {#} \<and> is_maximal_lit L\<^sub>1 P1 \<or> L\<^sub>1 \<in># select P1)\<close>
         by simp
+    next
+      show "select P2 = {#}"
+        using \<open>select P2 = {#}\<close> .
     next
       show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (L\<^sub>2 \<cdot>l Var \<cdot>l Var) (P2 \<cdot> Var \<cdot> Var)"
         using \<open>is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= L\<^sub>2 P2\<close> by simp
@@ -3724,7 +3743,9 @@ where
     \<not> is_Var u\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
     \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    select P\<^sub>1 = {#} \<Longrightarrow>
     is_strictly_maximal_lit (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<Longrightarrow>
+    select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal_lit (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
     \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
@@ -3757,6 +3778,7 @@ where
     term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
     \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     select P\<^sub>1 = {#} \<and> is_maximal_lit (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or> L\<^sub>1 \<in># select P\<^sub>1 \<Longrightarrow>
+    select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal_lit (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
     \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
