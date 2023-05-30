@@ -25,6 +25,9 @@ theory Superposition
     "Transitive_Closure_Extra"
 begin
 
+text \<open>Prefer @{thm [source] term_subst.subst_id_subst} to @{thm [source] subst_apply_term_empty}.\<close>
+declare subst_apply_term_empty[no_atp]
+
 lemma mem_rewrite_steps_if_mem_rewrite_rules[intro]: "(l, r) \<in> R \<Longrightarrow> (l, r) \<in> rewrite_steps R"
   apply (simp add: rewrite_steps_def)
   by (metis ctxt_apply_term.simps(1))
@@ -519,12 +522,12 @@ where
     \<P> \<in> {Pos, Neg} \<Longrightarrow>
     L\<^sub>1 = \<P> (s\<langle>t\<rangle> \<approx> s') \<Longrightarrow>
     L\<^sub>2 = Pos (t \<approx> t') \<Longrightarrow>
-    \<not> (P\<^sub>1 \<preceq>\<^sub>c P\<^sub>2) \<Longrightarrow>
+    P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
     (\<P> = Pos \<and> is_strictly_maximal_lit (L\<^sub>1) (P\<^sub>1)) \<or>
     (\<P> = Neg \<and> (select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> L\<^sub>1 \<in># select P\<^sub>1)) \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
-    \<not> (s\<langle>t\<rangle> \<preceq>\<^sub>t s') \<Longrightarrow>
-    \<not> (t \<preceq>\<^sub>t t') \<Longrightarrow>
+    s' \<prec>\<^sub>t s\<langle>t\<rangle> \<Longrightarrow>
+    t' \<prec>\<^sub>t t \<Longrightarrow>
     C = add_mset (\<P> (s\<langle>t'\<rangle> \<approx> s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_superposition P\<^sub>1 P\<^sub>2 C"
 
@@ -543,7 +546,7 @@ inductive ground_eq_factoring ::
     L\<^sub>1 = Pos (t \<approx> t') \<Longrightarrow>
     L\<^sub>2 = Pos (t \<approx> t'') \<Longrightarrow>
     select P = {#} \<Longrightarrow> is_maximal_lit L\<^sub>1 P \<Longrightarrow>
-    \<not> (t \<preceq>\<^sub>t t') \<Longrightarrow>
+    t' \<prec>\<^sub>t t \<Longrightarrow>
     C = add_mset (Neg (t' \<approx> t'')) (add_mset (Pos (t \<approx> t'')) P') \<Longrightarrow>
     ground_eq_factoring P C"
 
@@ -607,11 +610,11 @@ where
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
     L\<^sub>1 = Pos (s\<langle>t\<rangle> \<approx> s') \<Longrightarrow>
     L\<^sub>2 = Pos (t \<approx> t') \<Longrightarrow>
-    \<not> (P\<^sub>1 \<preceq>\<^sub>c P\<^sub>2) \<Longrightarrow>
+    P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
     is_strictly_maximal_lit (L\<^sub>1) (P\<^sub>1) \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
-    \<not> (s\<langle>t\<rangle> \<preceq>\<^sub>t s') \<Longrightarrow>
-    \<not> (t \<preceq>\<^sub>t t') \<Longrightarrow>
+    s' \<prec>\<^sub>t s\<langle>t\<rangle> \<Longrightarrow>
+    t' \<prec>\<^sub>t t \<Longrightarrow>
     C = add_mset (Pos (s\<langle>t'\<rangle> \<approx> s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_pos_superposition P\<^sub>1 P\<^sub>2 C"
 
@@ -634,11 +637,11 @@ where
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
     L\<^sub>1 = Neg (s\<langle>t\<rangle> \<approx> s') \<Longrightarrow>
     L\<^sub>2 = Pos (t \<approx> t') \<Longrightarrow>
-    \<not> (P\<^sub>1 \<preceq>\<^sub>c P\<^sub>2) \<Longrightarrow>
+    P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
     select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> L\<^sub>1 \<in># select P\<^sub>1 \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
-    \<not> (s\<langle>t\<rangle> \<preceq>\<^sub>t s') \<Longrightarrow>
-    \<not> (t \<preceq>\<^sub>t t') \<Longrightarrow>
+    s' \<prec>\<^sub>t s\<langle>t\<rangle> \<Longrightarrow>
+    t' \<prec>\<^sub>t t \<Longrightarrow>
     C = add_mset (Neg (s\<langle>t'\<rangle> \<approx> s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_neg_superposition P\<^sub>1 P\<^sub>2 C"
 
@@ -1017,20 +1020,6 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
     "is_ground_trm s'" and "is_ground_trm t'"
     by simp_all
 
-  have "P2 \<prec>\<^sub>c P1"
-    using \<open>\<not> P1 \<preceq>\<^sub>c P2\<close> ground_P1 ground_P2
-    using totalp_on_less_cls[THEN totalp_onD] by auto
-
-  have "s' \<prec>\<^sub>t s\<langle>t\<rangle>"
-    using \<open>\<not> s\<langle>t\<rangle> \<preceq>\<^sub>t s'\<close> \<open>is_ground_trm s\<langle>t\<rangle>\<close> \<open>is_ground_trm s'\<close>
-    using totalp_on_less_trm[THEN totalp_onD, simplified]
-    by (metis reflclp_iff)
-
-  have "t' \<prec>\<^sub>t t"
-    using \<open>\<not> t \<preceq>\<^sub>t t'\<close> \<open>is_ground_trm t'\<close> \<open>is_ground_trm t\<close>
-    using totalp_on_less_trm[THEN totalp_onD, simplified]
-    by (metis reflclp_iff)
-
   have "P\<^sub>1' + add_mset (\<P> (s\<langle>t'\<rangle> \<approx> s')) P\<^sub>2' \<prec>\<^sub>c P\<^sub>1' + {#\<P> (s\<langle>t\<rangle> \<approx> s')#}"
   proof (intro one_step_implies_multp ballI)
     fix K assume "K \<in># add_mset (\<P> (s\<langle>t'\<rangle> \<approx> s')) P\<^sub>2'"
@@ -1139,7 +1128,8 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
             by (metis (no_types, lifting) \<open>\<forall>K\<in>#P\<^sub>1'. (\<prec>\<^sub>l)\<^sup>=\<^sup>= K (\<P> (s\<langle>t\<rangle> \<approx> s'))\<close> empty_iff insert_iff
                 transp_less_lit reflclp_iff set_mset_add_mset_insert set_mset_empty transpD)
           hence False
-            using \<open>\<not> P1 \<preceq>\<^sub>c P2\<close> ground_P1 ground_P2 by simp
+            using \<open>P2 \<prec>\<^sub>c P1\<close> ground_P1 ground_P2
+            by (meson asympD asymp_less_cls)
           thus ?thesis ..
         qed
       next
@@ -1204,11 +1194,6 @@ proof (cases P C rule: ground_eq_factoring.cases)
     by simp_all
   hence subst_ident: "t \<cdot>t \<sigma> = t" "t' \<cdot>t \<sigma> = t'" "t \<cdot>t \<sigma> = t" "t'' \<cdot>t \<sigma> = t''" for \<sigma>
     by simp_all
-
-  hence "t' \<prec>\<^sub>t t"
-    using \<open>\<not> t \<preceq>\<^sub>t t'\<close> \<open>is_ground_trm t\<close> \<open>is_ground_trm t'\<close>
-    using totalp_on_less_trm[THEN totalp_onD, unfolded mem_Collect_eq]
-    by blast
 
   have "is_ground_atm (t \<approx> t')"
     by (simp add: \<open>is_ground_trm t'\<close> \<open>is_ground_trm t\<close>)
@@ -2710,9 +2695,8 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
             show "D\<^sub>\<G> = add_mset (Pos (t \<approx> t')) D\<^sub>\<G>'"
               by (simp add: D\<^sub>\<G>_def)
           next
-            show "\<not> C\<^sub>\<G> \<preceq>\<^sub>c D\<^sub>\<G>"
-              using \<open>D\<^sub>\<G> \<prec>\<^sub>c C\<^sub>\<G>\<close> asymp_less_cls
-              by (metis asympD reflclp_iff)
+            show "D\<^sub>\<G> \<prec>\<^sub>c C\<^sub>\<G>"
+              using \<open>D\<^sub>\<G> \<prec>\<^sub>c C\<^sub>\<G>\<close> .
           next
             show "select C\<^sub>\<G> = {#} \<and> is_maximal_lit (Neg (s \<approx> s')) C\<^sub>\<G> \<or> Neg (s \<approx> s') \<in># select C\<^sub>\<G>"
               using sel_or_max by auto
@@ -2720,16 +2704,13 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
             show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (t \<approx> t')) D\<^sub>\<G>"
               using max_t_t' .
           next
-            show "\<not> t \<preceq>\<^sub>t t'"
-              using \<open>t' \<prec>\<^sub>t t\<close> asymp_less_trm
-              by (metis (full_types) asympD sup2E)
+            show "t' \<prec>\<^sub>t t"
+              using \<open>t' \<prec>\<^sub>t t\<close> .
           next
             from that(1) show "Neg (s \<approx> s') = Neg (s\<^sub>1\<langle>t\<rangle> \<approx> s\<^sub>1')"
               by fastforce
           next
-            from that(2) show "\<not> s\<^sub>1\<langle>t\<rangle> \<preceq>\<^sub>t s\<^sub>1'"
-              using asymp_less_trm
-              by (metis (full_types) asympD sup2E)
+            from that(2) show "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1\<langle>t\<rangle>" .
           qed simp_all
 
           have "ground_neg_superposition C\<^sub>\<G> D\<^sub>\<G> (add_mset (Neg (ctxt\<langle>t'\<rangle> \<approx> s')) (C\<^sub>\<G>' + D\<^sub>\<G>'))"
@@ -3022,8 +3003,8 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
                   show "is_maximal_lit (Pos (s \<approx> s')) C\<^sub>\<G>"
                     by (metis A_def max_Pos_A)
                 next
-                  show "\<not> s \<preceq>\<^sub>t s'"
-                    by (metis \<open>s' \<prec>\<^sub>t s\<close> asympD asymp_less_trm strict_reflclp_conv)
+                  show "s' \<prec>\<^sub>t s"
+                    using \<open>s' \<prec>\<^sub>t s\<close> .
                 next
                   show "Pos (t \<approx> t') = Pos (s \<approx> t')"
                     by (simp add: \<open>t = s\<close>)
@@ -3117,9 +3098,8 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
               show "D\<^sub>\<G> = add_mset (Pos (t \<approx> t')) D\<^sub>\<G>'"
                 by (simp add: D\<^sub>\<G>_def)
             next
-              show "\<not> C\<^sub>\<G> \<preceq>\<^sub>c D\<^sub>\<G>"
-                using \<open>D\<^sub>\<G> \<prec>\<^sub>c C\<^sub>\<G>\<close> asymp_less_cls
-                by (metis asympD reflclp_iff)
+              show "D\<^sub>\<G> \<prec>\<^sub>c C\<^sub>\<G>"
+                using \<open>D\<^sub>\<G> \<prec>\<^sub>c C\<^sub>\<G>\<close> .
             next
               show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (s \<approx> s')) C\<^sub>\<G>"
                 using A_def strictly_maximal by simp
@@ -3127,16 +3107,15 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
               show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (t \<approx> t')) D\<^sub>\<G>"
                 using max_t_t' .
             next
-              show "\<not> t \<preceq>\<^sub>t t'"
-                using \<open>t' \<prec>\<^sub>t t\<close> asymp_less_trm
-                by (metis (full_types) asympD sup2E)
+              show "t' \<prec>\<^sub>t t"
+                using \<open>t' \<prec>\<^sub>t t\<close> .
             next
               show "Pos (s \<approx> s') = Pos (ctxt\<langle>t\<rangle> \<approx> s')"
                 by (simp only: \<open>s = ctxt\<langle>t\<rangle>\<close>)
             next
-              show "\<not> ctxt\<langle>t\<rangle> \<preceq>\<^sub>t s'"
-                using \<open>s = ctxt\<langle>t\<rangle>\<close> \<open>s' \<prec>\<^sub>t s\<close>  asymp_less_trm
-                by (metis (full_types) asympD sup2E)
+              show "s' \<prec>\<^sub>t ctxt\<langle>t\<rangle>"
+                using \<open>s' \<prec>\<^sub>t s\<close>
+                unfolding \<open>s = ctxt\<langle>t\<rangle>\<close> .
             qed simp_all
             hence "\<iota> \<in> G_Inf"
               using ground_C\<^sub>\<G> ground_D\<^sub>\<G> ground_superposition_if_ground_pos_superposition
@@ -3227,9 +3206,8 @@ proof (induction C\<^sub>\<G> arbitrary: D\<^sub>\<G> rule: wfP_induct_rule)
             show "is_maximal_lit (Pos A) C\<^sub>\<G>"
               using max_Pos_A .
           next
-            show "\<not> s \<preceq>\<^sub>t s'"
-              using \<open>s' \<prec>\<^sub>t s\<close> asymp_less_trm
-              by (auto dest: asympD)
+            show "s' \<prec>\<^sub>t s"
+              using \<open>s' \<prec>\<^sub>t s\<close> .
           qed simp_all
           hence "\<iota> \<in> G_Inf"
             using ground_C\<^sub>\<G>
@@ -3471,8 +3449,10 @@ proof (rule iffI)
       show "L\<^sub>2 = Pos (u\<^sub>1 \<approx> t\<^sub>2')"
         using \<open>L\<^sub>2 = Pos (t\<^sub>2 \<approx> t\<^sub>2')\<close> \<open>u\<^sub>1 = t\<^sub>2\<close> by argo
     next
-      from ground_P1 ground_P2 show "\<not> (\<prec>\<^sub>c)\<^sup>=\<^sup>= P1 P2"
-        using \<open>\<not> (\<prec>\<^sub>c)\<^sup>=\<^sup>= (P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) (P2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)\<close> by simp
+      from ground_P1 ground_P2 have "\<not> (P1 \<preceq>\<^sub>c P2)"
+        using \<open>\<not> (P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)\<close> by simp
+      with ground_P1 ground_P2 show "P2 \<prec>\<^sub>c P1"
+        by (metis (mono_tags, lifting) mem_Collect_eq reflclp_iff totalp_on_def totalp_on_less_cls)
     next
       from ground_P1 show "\<P> = Pos \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= L\<^sub>1 P1 \<or>
         \<P> = Neg \<and> (select P1 = {#} \<and> is_maximal_lit L\<^sub>1 P1 \<or> L\<^sub>1 \<in># select P1)"
@@ -3484,12 +3464,17 @@ proof (rule iffI)
       from ground_P2 show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= L\<^sub>2 P2"
         using \<open>is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)\<close> \<open>is_ground_lit L\<^sub>2\<close> by simp
     next
-      show "\<not> s\<^sub>1\<langle>u\<^sub>1\<rangle> \<preceq>\<^sub>t s\<^sub>1'"
-        using \<open>\<not> s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>\<close> \<open>is_ground_trm s\<^sub>1\<langle>u\<^sub>1\<rangle>\<close> \<open>is_ground_trm s\<^sub>1'\<close> by simp
+      have "\<not> s\<^sub>1\<langle>u\<^sub>1\<rangle> \<preceq>\<^sub>t s\<^sub>1'"
+        using \<open>is_ground_trm s\<^sub>1\<langle>u\<^sub>1\<rangle>\<close> \<open>is_ground_trm s\<^sub>1'\<close> \<open>\<not> s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>\<close> by simp
+      thus "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1\<langle>u\<^sub>1\<rangle>"
+        using \<open>is_ground_trm s\<^sub>1\<langle>u\<^sub>1\<rangle>\<close> \<open>is_ground_trm s\<^sub>1'\<close> totalp_on_less_trm
+        by (metis (mono_tags, lifting) mem_Collect_eq sup2CI totalp_onD)
     next
-      show "\<not> u\<^sub>1 \<preceq>\<^sub>t t\<^sub>2'"
-        using \<open>\<not> t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>\<close> \<open>is_ground_trm t\<^sub>2\<close> \<open>is_ground_trm t\<^sub>2'\<close> \<open>u\<^sub>1 = t\<^sub>2\<close>
-        by simp
+      have "\<not> t\<^sub>2 \<preceq>\<^sub>t t\<^sub>2'"
+        using \<open>is_ground_trm t\<^sub>2\<close> \<open>is_ground_trm t\<^sub>2'\<close> \<open>\<not> t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>\<close> by simp
+      thus "t\<^sub>2' \<prec>\<^sub>t u\<^sub>1"
+        using \<open>is_ground_trm t\<^sub>2\<close> \<open>is_ground_trm t\<^sub>2'\<close> \<open>u\<^sub>1 = t\<^sub>2\<close> totalp_on_less_trm
+        by (metis (mono_tags, lifting) CollectI reflclp_iff totalp_onD)
     next
       show "C = add_mset (\<P> (s\<^sub>1\<langle>t\<^sub>2'\<rangle> \<approx> s\<^sub>1')) (P\<^sub>1' + P\<^sub>2')"
         using \<open>C = add_mset (\<P> ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> \<approx> s\<^sub>1' \<cdot>t \<rho>\<^sub>1)) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu>\<close>
@@ -3529,7 +3514,8 @@ next
         using \<open>is_ground_trm t\<close> by auto
     next
       show "\<not> (P1 \<cdot> Var \<cdot> Var \<preceq>\<^sub>c P2 \<cdot> Var \<cdot> Var)"
-        using \<open>\<not> (P1 \<preceq>\<^sub>c P2)\<close> by simp
+        using \<open>P2 \<prec>\<^sub>c P1\<close>
+        by (metis asympD asymp_less_cls strict_reflclp_conv subst_cls_Var_ident)
     next
       show "\<P> = Pos \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (L\<^sub>1 \<cdot>l Var \<cdot>l Var) (P1 \<cdot> Var \<cdot> Var) \<or>
         \<P> = Neg \<and> (select P1 = {#} \<and> is_maximal_lit (L\<^sub>1 \<cdot>l Var \<cdot>l Var) (P1 \<cdot> Var \<cdot> Var) \<or>
@@ -3542,10 +3528,12 @@ next
         using \<open>is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= L\<^sub>2 P2\<close> by simp
     next
       show "\<not> s\<langle>t\<rangle> \<cdot>t Var \<cdot>t Var \<preceq>\<^sub>t s' \<cdot>t Var \<cdot>t Var"
-        using \<open>\<not> s\<langle>t\<rangle> \<preceq>\<^sub>t s'\<close> by simp
+        using \<open>s' \<prec>\<^sub>t s\<langle>t\<rangle>\<close>
+        by (metis asympD asymp_less_trm strict_reflclp_conv term_subst.subst_id_subst)
     next
       show "\<not> t \<cdot>t Var \<cdot>t Var \<preceq>\<^sub>t t' \<cdot>t Var \<cdot>t Var"
-        using \<open>\<not> t \<preceq>\<^sub>t t'\<close> by simp
+        using \<open>t' \<prec>\<^sub>t t\<close>
+        by (metis asympD asymp_less_trm strict_reflclp_conv term_subst.subst_id_subst)
     next
       show "C = add_mset (\<P> ((s \<cdot>t\<^sub>c Var)\<langle>t' \<cdot>t Var\<rangle> \<approx> s' \<cdot>t Var)) (P\<^sub>1' \<cdot> Var + P\<^sub>2' \<cdot> Var) \<cdot> Var"
         using \<open>C = add_mset (\<P> (s\<langle>t'\<rangle> \<approx> s')) (P\<^sub>1' + P\<^sub>2')\<close> by simp
@@ -3654,8 +3642,11 @@ proof (rule iffI)
         using \<open>select P = {#} \<and> is_maximal_lit (L\<^sub>1 \<cdot>l \<mu>) (P \<cdot> \<mu>)\<close> \<open>is_ground_lit L\<^sub>1\<close>
           \<open>L\<^sub>1 = Pos (s\<^sub>1 \<approx> s\<^sub>1')\<close> by simp
     next
-      show "\<not> s\<^sub>1 \<preceq>\<^sub>t s\<^sub>1'"
-        using \<open>\<not> s\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<mu>\<close> \<open>is_ground_trm s\<^sub>1\<close> \<open>is_ground_trm s\<^sub>1'\<close> by simp
+      have "\<not> s\<^sub>1 \<preceq>\<^sub>t s\<^sub>1'"
+        using \<open>is_ground_trm s\<^sub>1\<close> \<open>is_ground_trm s\<^sub>1'\<close> \<open>\<not> s\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<mu>\<close> by simp
+      thus "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1"
+        using \<open>is_ground_trm s\<^sub>1\<close> \<open>is_ground_trm s\<^sub>1'\<close> totalp_on_less_trm
+        by (metis (mono_tags, lifting) mem_Collect_eq sup2I1 sup2I2 totalp_onD)
     next
       show "C = add_mset (Neg (s\<^sub>1' \<approx> t\<^sub>2')) (add_mset (Pos (s\<^sub>1 \<approx> t\<^sub>2')) P')"
         using \<open>C = add_mset (Pos (s\<^sub>1 \<approx> t\<^sub>2')) (add_mset (Neg (s\<^sub>1' \<approx> t\<^sub>2')) P') \<cdot> \<mu>\<close> \<open>s\<^sub>1 = t\<^sub>2\<close>
@@ -3686,7 +3677,8 @@ next
         using \<open>select P = {#}\<close> \<open>is_maximal_lit L\<^sub>1 P\<close> by simp
     next
       show "\<not> t \<cdot>t Var \<preceq>\<^sub>t t' \<cdot>t Var"
-        using \<open>\<not> t \<preceq>\<^sub>t t'\<close> by simp
+        using \<open>t' \<prec>\<^sub>t t\<close>
+        using asympD by fastforce
     next
       show "C = add_mset (Pos (t \<approx> t'')) (add_mset (Neg (t' \<approx> t'')) P') \<cdot> Var"
         using \<open>C = add_mset (Neg (t' \<approx> t'')) (add_mset (Pos (t \<approx> t'')) P')\<close> by simp
