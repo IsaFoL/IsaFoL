@@ -2,6 +2,7 @@ theory IsaSAT_Simplify_Binaries_LLVM
   imports
     IsaSAT_Simplify_Clause_Units_LLVM
     IsaSAT_Simplify_Binaries_Defs
+    IsaSAT_Proofs_LLVM
 begin
 
 
@@ -212,6 +213,7 @@ sepref_register uminus_lit:  "uminus :: nat literal \<Rightarrow> _"
 
 lemma isa_clause_remove_duplicate_clause_wl_alt_def:
   \<open>isa_clause_remove_duplicate_clause_wl C S = (do{
+    _ \<leftarrow> log_del_clause_heur S C;
     let (N', S) = extract_arena_wl_heur S;
     st \<leftarrow> mop_arena_status N' C;
     let st = st = IRRED;
@@ -238,6 +240,7 @@ sepref_def isa_clause_remove_duplicate_clause_wl_impl
   supply [[goals_limit=1]]
   unfolding isa_clause_remove_duplicate_clause_wl_alt_def
   by sepref
+
 sepref_register isa_binary_clause_subres_wl
 
 sepref_register incr_binary_unit_derived
