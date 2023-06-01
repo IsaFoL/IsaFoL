@@ -2,6 +2,7 @@ theory First_Order_Superposition
   imports
     First_Order_Terms.Term
     Knuth_Bendix_Order.Subterm_and_Context
+    Saturation_Framework.Lifting_to_Non_Ground_Calculi
 
     Ground_Superposition
     Abstract_Substitution_Extra_First_Order_Term

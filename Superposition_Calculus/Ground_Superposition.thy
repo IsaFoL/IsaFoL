@@ -5,7 +5,6 @@ theory Ground_Superposition
 
     (* Theories from the AFP *)
     "Saturation_Framework.Calculus"
-    "Saturation_Framework.Lifting_to_Non_Ground_Calculi"
     "Saturation_Framework_Extensions.Clausal_Calculus"
     "Abstract-Rewriting.Abstract_Rewriting"
     "Regular_Tree_Relations.Ground_Terms"
@@ -1392,7 +1391,7 @@ proof -
       hence "s \<prec>\<^sub>t u"
         using ball_R\<^sub>2_lt_lhs by simp
       with \<open>u \<preceq>\<^sub>t s\<close> show False
-        by (meson asympD asymp_less_trm strict_reflclp_conv)
+        by (metis asympD asymp_less_trm reflclp_iff)
     qed
   next
     fix u assume "(t, u) \<in> R\<^sub>1\<^sup>*"
@@ -1407,7 +1406,7 @@ proof -
       hence "t \<prec>\<^sub>t u"
         using ball_R\<^sub>2_lt_lhs by simp
       with \<open>u \<preceq>\<^sub>t t\<close> show False
-        by (meson asympD asymp_less_trm strict_reflclp_conv)
+        by (metis asympD asymp_less_trm reflclp_iff)
     qed
   qed
 qed

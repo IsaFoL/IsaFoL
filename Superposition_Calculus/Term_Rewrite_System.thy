@@ -90,8 +90,8 @@ lemma compatible_with_gctxt_conversion:
   shows "compatible_with_gctxt (I\<^sup>\<leftrightarrow>\<^sup>*)"
   by (simp add: assms compatible_with_gctxt_rtrancl compatible_with_gctxt_symcl conversion_def)
 
-definition rewrite_inside_gctxt where
-  "rewrite_inside_gctxt E = {(ctxt\<langle>s\<rangle>\<^sub>G, ctxt\<langle>t\<rangle>\<^sub>G) | ctxt s t. (s, t) \<in> E}"
+definition rewrite_inside_gctxt :: "'f gterm rel \<Rightarrow> 'f gterm rel" where
+  "rewrite_inside_gctxt R = {(ctxt\<langle>t1\<rangle>\<^sub>G, ctxt\<langle>t2\<rangle>\<^sub>G) | ctxt t1 t2. (t1, t2) \<in> R}"
 
 lemma mem_rewrite_inside_gctxt_if_mem_rewrite_rules[intro]:
   "(l, r) \<in> R \<Longrightarrow> (l, r) \<in> rewrite_inside_gctxt R"
