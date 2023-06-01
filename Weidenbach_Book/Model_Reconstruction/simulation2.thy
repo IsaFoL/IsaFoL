@@ -111,9 +111,11 @@ lemma interpr_composition_neg_itself_iff:
   "interpr_composition I (uminus ` set_mset D)  \<Turnstile> D \<longleftrightarrow> D \<noteq> {#} \<and> tautology D"
   by (auto simp:interpr_composition_def true_cls_def tautology_decomp')
 
+(*verdoppelt die klauseln ohne L*)
 lemma redundancy_of_resolvents: 
   assumes D: \<open>D\<in># {#D \<in># N. (L \<in># D \<and> -L \<notin># D)#}\<close> \<open>\<not>tautology D\<close>
-  shows "redundancy (N + {#C \<in># resolve_all_on L N. \<not> tautology C#}) D {L} (N + {#C \<in># resolve_all_on L N. \<not> tautology C#})"
+  shows "redundancy ((N - {#D#}) + {#C \<in># resolve_all_on L N. \<not> tautology C#}) D {L}
+      ((N - {#D#}) + {#C \<in># resolve_all_on L N. \<not> tautology C#})"
 proof -
   have "{L} \<Turnstile> D"
     using D true_cls_def by fastforce
@@ -121,7 +123,8 @@ proof -
     using D by (auto dest!: multi_member_split[of D]
         simp: interpr_composition_neg_itself_iff)
   then show ?thesis
-    unfolding redundancy_def by auto
+    unfolding redundancy_def apply auto
+    sorry
 qed
 
 lemma redundancy_of_resolvents2:
@@ -140,9 +143,146 @@ qed
 lemma add_mset: "{#a#} + M = add_mset a M"
   by auto
 
+
+
+lemma simulation_res_stack_rules:
+  assumes "res_stack (N, Z) (N', Z')" and"\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" and "\<forall>C. C\<in># N  \<longrightarrow>  \<not>tautology C"
+  shows "\<exists> S' V' R'. rules\<^sup>*\<^sup>*(N, R, S, V) (N', R', S', V')"
+  using assms
+proof (induction rule: res_stack_induct)
+  case (1 L N T Z) note L =this(1) and T = this(2,3) and N=this(4,5)
+  define N1 where \<open>N1 = {#C \<in>#N. L \<notin>#C \<and> -L \<notin># C#}\<close>
+  define NL where \<open>NL = {#C \<in>#N. L \<in>#C \<or> -L \<in># C#}\<close>
+  define NpL where \<open>NpL = {#C \<in>#N. (L \<in>#C)#}\<close>
+  define NuL where \<open>NuL = {#C \<in>#N. -L \<in># C#}\<close>
+  have NN: \<open>N = N1 + NL\<close>
+    unfolding N1_def NL_def by auto
+
+  obtain UpL UuL where
+    [simp]: \<open>mset UpL = NpL\<close>
+      \<open>mset UuL = NuL\<close>
+    by (metis list_of_mset_exi)
+  let ?SU = \<open>S @ map (\<lambda>C. Witness {L} C) U\<close>
+  have \<open>NuL = {#C \<in># N. L \<notin># C \<and> - L \<in># C#}\<close>
+    using N
+    unfolding NuL_def NpL_def NL_def
+    by (metis (mono_tags, lifting) filter_mset_cong0 tautology_minus) 
+  then have NNL: \<open>NuL + NpL = NL\<close>
+    using N
+    unfolding NuL_def NpL_def NL_def 
+    by (auto simp: filter_union_or_split)
+
+  have 1: \<open>rules\<^sup>*\<^sup>* (N, R, S, V)
+    (N + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S, 
+      V \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#})\<close> (is \<open>rules\<^sup>*\<^sup>* (N, R, S, V) ?st1\<close>)
+    (*schon gezeigt*)
+    sorry
+
+
+  have 2: \<open>rules\<^sup>*\<^sup>* ?st1
+     (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S @ map (\<lambda>C. Witness {L} C) (take i UpL), 
+      V  \<union> atms_of_mm (mset (take i UpL)) \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#})\<close> (is \<open>rules\<^sup>*\<^sup>* _ ?st2\<close>)
+    for i
+  proof (induction i)
+    case 0
+    then show ?case using NNL[symmetric] by (auto simp: NN ac_simps)
+  next
+    case (Suc i)
+    consider 
+      (1) \<open>Suc i \<le> length UpL\<close> |
+      (boring) \<open>Suc i>length UpL\<close>
+      by linarith
+    then show ?case
+    proof cases
+      case boring
+      then have \<open>take ( i) UpL = UpL\<close> \<open>mset (drop (Suc i) UpL) = {#}\<close>
+        by simp_all
+      then show ?thesis using Suc NNL[symmetric] by (auto simp: NN ac_simps)
+
+    next
+      case 1
+      have \<open>L \<in># (UpL ! i)\<close>
+        by (metis (mono_tags, lifting) "1" NpL_def Suc_le_lessD \<open>mset UpL = NpL\<close> mem_Collect_eq nth_mem_mset set_mset_filter)
+      then have \<open>{L} \<Turnstile> UpL ! i\<close>
+        by (auto simp: true_cls_def)
+      have \<open>atm_of L \<in> atms_of (UpL ! i)\<close>
+        by (simp add: \<open>L \<in># UpL ! i\<close> atm_of_lit_in_atms_of)
+      have [simp]: \<open>- L \<notin># UpL ! i\<close>
+        by (metis "1" N(2) NpL_def \<open>L \<in># UpL ! i\<close> \<open>mset UpL = NpL\<close> less_eq_Suc_le multiset_partition
+            nth_mem_mset tautology_minus union_iff)
+      have [simp]: \<open>mset (drop i UpL) = add_mset (UpL!i) (mset (drop (Suc i) UpL))\<close>
+        by (metis "1" Cons_nth_drop_Suc Suc_le_lessD mset.simps(2))
+      have \<open>\<not> tautology (UpL ! i)\<close>
+        by (metis "1" N(2) NpL_def Suc_le_lessD \<open>mset UpL = NpL\<close> mset_subset_eqD multiset_filter_subset
+            nth_mem_mset)
+
+      have \<open>UpL ! i
+       \<in>#  {#D \<in># N1 + NuL + mset (drop (i) UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}. L \<in># D \<and> - L \<notin># D#}\<close>
+        using 1 by (auto simp: \<open>L \<in># (UpL ! i)\<close> \<open>\<not> tautology (UpL ! i)\<close> simp flip: Cons_nth_drop_Suc)
+
+      then have \<open>redundancy (N1 + NuL + mset (drop (Suc i) UpL) + {#C \<in># resolve_all_on L NL.  \<not> tautology C#})
+           (UpL ! i) {L}
+          (N1 + NuL + mset (drop (Suc i) UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})\<close>
+        using redundancy_of_resolvents[of \<open>UpL ! i\<close> L "(N1 + NuL + mset (drop (i) UpL) + {#C \<in># resolve_all_on L NL.  \<not> tautology C#})"]
+        \<open>\<not> tautology (UpL ! i)\<close>
+        apply (auto simp: )
+        sorry
+      then have \<open>rules (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R,
+        S @ map (Witness {L}) (take i UpL),
+        V \<union> atms_of_ms (set (take i UpL)) \<union>
+        atms_of_ms {a. a \<in># resolve_all_on L NL \<and> \<not> tautology a})
+       (N1 + NuL + mset (drop (Suc i) UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R,
+        S @ map (Witness {L}) (take (Suc i) UpL),
+        V \<union> atms_of_ms (set (take (Suc i) UpL)) \<union>
+        atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#})\<close>
+        (is \<open>rules (?N, ?R, ?V, ?S) _\<close>)
+        using weakenp[of "{L}" "UpL ! i" "(N1 + NuL + mset (drop (Suc i) UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})"
+          ?R ?V ?S] 1 \<open>{L} \<Turnstile> UpL ! i\<close>\<open>atm_of L \<in> atms_of (UpL ! i)\<close>
+        apply auto
+          (*\S should be equal in both expression*)
+        sorry
+      then show ?thesis
+        using Suc by auto
+    qed
+  qed
+
+  have 2: \<open>rules\<^sup>*\<^sup>* ?st1
+     (N1 + NuL + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S @ map (\<lambda>C. Witness {L} C) UpL, 
+      V  \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#})\<close> (is \<open>rules\<^sup>*\<^sup>* _ ?st2\<close>)
+    sorry
+
+  have 3: \<open>rules\<^sup>*\<^sup>* ?st2
+     (N1 + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S @ map (\<lambda>C. Witness {L} C) UpL@ map (\<lambda>C. Witness {L} C) UuL, 
+      V  \<union> atms_of_mm NL \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#})\<close> 
+    sorry
+
+
+
+  obtain U where
+    \<open>mset U = N\<close>
+    by (metis list_of_mset_exi)
+  let ?SU = \<open>S @ map (\<lambda>C. Witness {L} C) U\<close>
+  let ?VU = \<open>V \<union> atms_of_mm (mset U) \<union> atms_of_mm (wit_clause `# mset (S @ map (\<lambda>C. Witness {L} C) U))\<close>
+  have \<open>rules\<^sup>*\<^sup>* (N + {#C \<in># resolve_all_on L N. \<not> tautology C#}, {#}, S, V)
+    (N - mset U + {#C \<in># resolve_all_on L N. \<not> tautology C#},{#}, S @ map (\<lambda>C. Witness {L} C) U, 
+      V \<union> atms_of_mm (mset U) \<union> atms_of_mm (wit_clause `# mset (S @ map (\<lambda>C. Witness {L} C) U)))\<close>
+    if \<open>mset U \<subseteq># N\<close>
+    for U
+    sorry
+  then have \<open>rules\<^sup>*\<^sup>* (N + {#C \<in># resolve_all_on L N. \<not> tautology C#}, {#}, S, V)
+    ({#C \<in># resolve_all_on L N. \<not> tautology C#},{#}, ?SU, ?VU)\<close>
+    sorry
+  show ?case sorry
+qed
+
+
+
+
 (*L hat verschiedene Farben, wie kann es eine Farbe haben?*)
 lemma weaken_resolvents_L:
-  assumes "res_stack (N, Z) (N', Z')" and"\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" and "\<forall>C. C\<in># N  \<longrightarrow>  \<not>tautology C" and  "C \<in># {#D \<in># N. (L \<in># D \<and> -L \<notin># D)#}"
+  assumes "res_stack (N, Z) (N', Z')" and
+    "\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" and "\<forall>C. C\<in># N  \<longrightarrow>  \<not>tautology C" and
+    "C \<in># {#D \<in># N. (L \<in># D \<and> -L \<notin># D)#}"
   shows "rules(N + {#C \<in># resolve_all_on L N. \<not> tautology C#}, {#}, S,
       atms_of C \<union> atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#} \<union> atms_of_mm (wit_clause `# mset (S @[Witness {L} C])))
   (N - {#C#} + {#C \<in># resolve_all_on L N. \<not> tautology C#},{#}, S @[Witness {L} C], 
