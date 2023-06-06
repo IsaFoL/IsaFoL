@@ -17,6 +17,30 @@ definition resolve_all_on  :: "'v literal \<Rightarrow> 'v clauses \<Rightarrow>
   "resolve_all_on L N = remdups_mset `# ({#resolve_on L C D. (C, D) \<in># filter_mset (\<lambda>C. L \<in># C) N \<times># filter_mset (\<lambda>C. -L \<in># C) N#} +
     {#C \<in>#N. L \<notin>#C \<and> -L \<notin># C#})"
 
+lemma resolve_all_on_no_lit:
+  assumes \<open>atm_of L \<notin> atms_of_ms (set_mset A)\<close>
+  shows \<open>resolve_all_on L A = remdups_mset `# A\<close>
+proof -
+  have [simp]: \<open>filter_mset ((\<in>#) L) A = {#}\<close> \<open>filter_mset ((\<in>#) (- L)) A = {#}\<close>
+    using assms
+    by (auto simp: resolve_all_on_def atms_of_ms_def filter_mset_empty_conv
+        dest!: multi_member_split intro!: image_mset_cong2)
+  have [simp]: \<open>{#C \<in># A. L \<notin># C \<and> - L \<notin># C#} = A\<close>
+    using assms
+    by (metis \<open>filter_mset ((\<in>#) (- L)) A = {#}\<close> \<open>filter_mset ((\<in>#) L) A = {#}\<close> 
+        add_0 filter_filter_mset multiset_partition)
+  show ?thesis
+    by (auto simp: resolve_all_on_def atms_of_ms_def filter_mset_empty_conv
+        dest!: multi_member_split cong: image_mset_cong2)
+qed  
+
+
+lemma resolve_all_on_distrib_no_lit:
+  "atm_of L \<notin> atms_of_ms (set_mset A) \<Longrightarrow> resolve_all_on L (A + B) = remdups_mset `# A + resolve_all_on L B"
+  by (subst resolve_all_on_no_lit[of L A, symmetric])
+   (auto simp: resolve_all_on_def atms_of_ms_def filter_mset_empty_conv
+      dest!: multi_member_split)
+
 inductive DP_eins :: \<open>'v clauses \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> where
   "DP_eins N {# C\<in>#resolve_all_on L N. \<not>tautology C#}"
 if \<open>atm_of L \<in> atms_of_ms (set_mset N)\<close>

@@ -46,7 +46,8 @@ qed
 
 lemma learn_resolvents: 
   assumes "res_stack (N, Z) (N', Z')" and"\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" and "\<forall>C. C\<in># N  \<longrightarrow>  \<not>tautology C" "C \<in># N'"
-  shows "rules(N,  R, [],  V \<union> atms_of_mm N \<union> atms_of C\<union> atms_of_mm R) (N, add_mset C R, [], V \<union> atms_of_mm N \<union> atms_of C\<union> atms_of_mm R)"
+  shows "rules(N,  R, S,  V \<union> atms_of_mm N \<union> atms_of C\<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
+      (N, add_mset C R, S, V \<union> atms_of_mm N \<union> atms_of C\<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
   using assms
 proof (induction rule: res_stack_induct)
   case (1 L N T Z)  note L = this(1) and T = this(2) and A3 = this(3) and dist = this(4) and taut = this(5) and C = this(6)
@@ -59,51 +60,53 @@ proof (induction rule: res_stack_induct)
   have learn2: "distinct_mset C"
     using res_stack_distinct rul dist C by blast
   show ?case
-    using learn3 learn2 rules.learn_minus[of N "R" C "[]" "V \<union> atms_of_mm N"]
+    using learn3 learn2 rules.learn_minus[of N "R" C S "V \<union> atms_of_mm N"]
     by (auto simp: ac_simps)
 qed
 
 lemma learn_resolvents2: 
-  assumes "res_stack (N, Z) (N', Z')" and "\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" and "\<forall>C. C\<in># N  \<longrightarrow>  \<not>tautology C"
-  shows "rules\<^sup>*\<^sup>* (N,  {#}, [],  atms_of_mm N \<union> atms_of_mm N') (N, N', [], atms_of_mm N \<union> atms_of_mm N')"
+  assumes "res_stack (N, Z) (N', Z')" and "\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" and "\<forall>C. C\<in># N  \<longrightarrow>  \<not>tautology C" and
+    \<open>N'' \<subseteq># N'\<close>
+  shows "rules\<^sup>*\<^sup>* (N,  R, S,  V \<union> atms_of_mm N \<union> atms_of_mm N' \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
+      (N, R+N'', S, V \<union> atms_of_mm N \<union> atms_of_mm N' \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
   using assms
 proof (induction rule: res_stack_induct)
-  case (1 L N T Z)  note L = this(1) and T = this(2) and A3 = this(3) and dist = this(4) and taut = this(5)
+  case (1 L N T Z)  note L = this(1) and T = this(2) and A3 = this(3) and dist = this(4) and taut = this(5) and N' = this(6)
   have rul: "res_stack (N, Z) ({#C \<in># resolve_all_on L N. \<not> tautology C#},  Z @ Elimination L {#C\<in>#N.  L\<in>#C#} {#C\<in>#N. -L\<in>#C#} # T)"
     using L T A3 by auto
   hence learn1: "(set_mset N) \<Turnstile>ps set_mset({#C \<in># resolve_all_on L N. \<not> tautology C#})" 
     using N_entail_resolvents dist taut by blast 
   have learn2: "\<forall>C. C\<in># {#C \<in># resolve_all_on L N. \<not> tautology C#}  \<longrightarrow> distinct_mset C"
     using res_stack_distinct rul dist by blast
-  have "rules\<^sup>*\<^sup>* (N,  {#}, [],  atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#}) 
-     (N, R, [], atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#})" 
-    if \<open>R \<subseteq># {#C \<in># resolve_all_on L N. \<not> tautology C#}\<close> for R
+  have "rules\<^sup>*\<^sup>* (N,  R, S,  V \<union> atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
+     (N, R+Relim, S, V \<union> atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
+    if \<open>Relim \<subseteq># {#C \<in># resolve_all_on L N. \<not> tautology C#}\<close> for Relim
     using that
-  proof (induction R)
+  proof (induction Relim)
     case empty
     then show ?case by auto
   next
-    case (add C R) note IH =this(1) and incl = this(2)
-    have R: \<open>R \<subseteq># {#C \<in># resolve_all_on L N. \<not> tautology C#}\<close> and
+    case (add C Relim) note IH =this(1) and incl = this(2)
+    have R: \<open>Relim \<subseteq># {#C \<in># resolve_all_on L N. \<not> tautology C#}\<close> and
      C: "C \<in># resolve_all_on L N" "\<not> tautology C"
       using incl
        apply (meson subset_mset.dual_order.refl subset_mset.order_trans subset_mset_imp_subset_add_mset)
       using incl by auto
-    have \<open>rules (N, R, [], atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#} \<union> atms_of_mm N \<union> atms_of C \<union> atms_of_mm R)
-       (N, add_mset C R, [],  atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#} \<union> atms_of_mm N \<union> atms_of C \<union> atms_of_mm R)\<close>
+    have \<open>rules (N, R+Relim, S, V \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#} \<union> atms_of_mm N \<union> atms_of C \<union> atms_of_mm (R+Relim) \<union> atms_of_ms (wit_clause ` set S))
+       (N, add_mset C (R+Relim), S,  V \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#} \<union> atms_of_mm N \<union> atms_of C \<union> atms_of_mm (R+Relim)\<union> atms_of_ms (wit_clause ` set S))\<close>
       by (rule learn_resolvents[OF rul dist taut]) (use C in auto)
-    moreover have \<open>atms_of_mm R \<union> atms_of_ms {a. \<not> tautology a \<and> a \<in># resolve_all_on L N} =  atms_of_ms {a. \<not> tautology a \<and> a \<in># resolve_all_on L N}\<close>
+    moreover have \<open>atms_of_mm Relim \<union> atms_of_ms {a. \<not> tautology a \<and> a \<in># resolve_all_on L N} =  atms_of_ms {a. \<not> tautology a \<and> a \<in># resolve_all_on L N}\<close>
       \<open>atms_of C \<union> (atms_of_mm N \<union> atms_of_ms {a. \<not> tautology a \<and> a \<in># resolve_all_on L N}) = 
         atms_of_mm N \<union> atms_of_ms {a. \<not> tautology a \<and> a \<in># resolve_all_on L N}\<close>
       using atms_of_ms_mono[OF set_mset_mono[OF incl]]
       by (auto simp: ac_simps)
-    ultimately have \<open>rules (N, R, [], atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#})
-       (N, add_mset C R, [], atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#})\<close>
+    ultimately have \<open>rules (N, R + Relim, S, V \<union> atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#}\<union> atms_of_mm R\<union> atms_of_ms (wit_clause ` set S))
+       (N, add_mset C (R+ Relim), S, V \<union> atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#}\<union> atms_of_mm R\<union> atms_of_ms (wit_clause ` set S))\<close>
       by (auto simp: ac_simps)
     with IH[OF R] show ?case
       by auto
   qed
-  then show ?case
+  from this[OF N'] show ?case
     by auto
 qed
 
@@ -149,25 +152,20 @@ lemma add_mset: "{#a#} + M = add_mset a M"
   by auto
 
 lemma strenghten_with_resolvents:
-"rules\<^sup>*\<^sup>*(N,D, [],  H \<union> atms_of_mm N \<union> atms_of_mm D) (N + D, {#} ,[], H \<union> atms_of_mm N \<union> atms_of_mm D)"
+"rules\<^sup>*\<^sup>*(N,D+R, S,  H \<union> atms_of_mm N \<union> atms_of_mm D \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
+        (N + D, R ,S, H \<union> atms_of_mm N \<union> atms_of_mm D \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
 proof (induction D arbitrary: N H)
   case empty
   then show ?case by auto
 next
   case (add x D) note A1 = this(1)
-  have rul: "rules (N , D + {#x#}, [],  H  \<union> atms_of x \<union> atms_of_mm N \<union> atms_of_mm D  \<union> atms_of_mm (wit_clause `# mset []))
-({#x#} + N, D, [],  H  \<union> atms_of x \<union> atms_of_mm N \<union> atms_of_mm D  \<union> atms_of_mm (wit_clause `# mset []))" 
-    using rules.strenghten[of N x D "[]" H] by auto
-  have eq:"H \<union> atms_of_mm ({#x#} + N) \<union> atms_of_mm D = H \<union> atms_of x \<union> atms_of_mm N \<union> atms_of_mm D \<union> atms_of_mm (wit_clause `# mset [])" 
-    apply simp by auto
-  hence "rules\<^sup>*\<^sup>*({#x#} + N, D, [],  H  \<union> atms_of x \<union> atms_of_mm N \<union> atms_of_mm D  \<union> atms_of_mm (wit_clause `# mset [])) 
-({#x#} + N + D, {#}, [], H \<union> atms_of x \<union> atms_of_mm N \<union> atms_of_mm D  \<union> atms_of_mm (wit_clause `# mset []))" using A1[of "{#x#} + N" H ] rul
-    by presburger  
-hence "rules\<^sup>*\<^sup>*(N, D + {#x#}, [],  H \<union> atms_of x \<union> atms_of_mm N \<union> atms_of_mm D  \<union> atms_of_mm (wit_clause `# mset []))
-({#x#} + N + D, {#}, [], H \<union> atms_of x \<union> atms_of_mm N \<union> atms_of_mm D  \<union> atms_of_mm (wit_clause `# mset []))" using rul
-  by (meson converse_rtranclp_into_rtranclp)
-  then show ?case using add_mset
-    by (smt (verit, ccfv_SIG) atms_of_ms_insert atms_of_ms_union boolean_algebra_cancel.sup1 image_mset_is_empty_iff mset.simps(1) set_mset_add_mset_insert set_mset_union union_commute union_mset_add_mset_right)
+  have 1: \<open>rtranclp rules (N, add_mset x D+R, S, H \<union> atms_of_mm N \<union> atms_of_mm (add_mset x D) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
+     ({#x#} + N, R + D, S, H \<union> atms_of x \<union> atms_of_mm N \<union> atms_of_mm (R + D) \<union> atms_of_mm (wit_clause `# mset S))\<close>
+    using rules.strenghten[of N x "R+D" S H] by (auto simp: ac_simps)
+  show ?case
+    apply -
+    apply (rule rtranclp_trans[OF 1])
+    using add[of \<open>{#x#} + N\<close> \<open>H \<union> atms_of x\<close>] by (auto simp: ac_simps)
 qed
 
 (*Ich dachte die nächsten zwei Lemmas helfen um die Redundancy weiter unten zu zeigen, aber irgendwie hat es nicht so viel geholfen*)
@@ -223,7 +221,9 @@ proof (induction rule: res_stack_induct)
     [simp]: \<open>mset UpL = NpL\<close>
       \<open>mset UuL = NuL\<close>
     by (metis list_of_mset_exi)
-  let ?SU = \<open>S @ map (\<lambda>C. Witness {L} C) U\<close>
+  have LN: \<open>atm_of L \<notin> atms_of_mm N1\<close>
+    using NN by (auto simp: N1_def atms_of_ms_def resolve_all_on_distrib_no_lit atm_of_notin_atms_of_iff
+        dest: multi_member_split)
   have \<open>NuL = {#C \<in># N. (L \<notin># C \<and> - L \<in># C)#}\<close>
     using N
     unfolding NuL_def NpL_def NL_def
@@ -233,27 +233,39 @@ proof (induction rule: res_stack_induct)
     unfolding NuL_def NpL_def NL_def 
     by (auto simp: filter_union_or_split)
 (*Wie kann ich den nächsten Schritt zeigen?*)
-  hence N_res:"{#C \<in># resolve_all_on L N. \<not> tautology C#} + N = {#C \<in># resolve_all_on L NL. \<not> tautology C#} + N" using NN NNL apply auto sorry
-  have 0:  "rules\<^sup>*\<^sup>* (N,  {#}, [],  atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#}) (N,{#C \<in># resolve_all_on L N. \<not> tautology C#}, [], atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#})"
-    using learn_resolvents2[of N _ "{#C \<in># resolve_all_on L N. \<not> tautology C#}"] N rul by auto
-  have  "rules\<^sup>*\<^sup>* (N, {#C \<in># resolve_all_on L N. \<not> tautology C#}, [], atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#})(N + {#C \<in># resolve_all_on L N. \<not> tautology C#}, {#}, [], 
-       atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#})"
-    using strenghten_with_resolvents[of N "{#C \<in># resolve_all_on L N. \<not> tautology C#}" "{}"] by auto
-  hence "rules\<^sup>*\<^sup>* (N,  {#}, [],  atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#}) (N + {#C \<in># resolve_all_on L N. \<not> tautology C#}, {#}, [], 
-       atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#})" using 0
+(*kein falschen schritte schreiben...*)
+  moreover have \<open>resolve_all_on L (N1 + (NuL + NpL)) = N1 + resolve_all_on L(NuL + NpL)\<close>
+    by (subst resolve_all_on_distrib_no_lit[OF LN])
+      (use N in \<open>auto simp: atms_of_ms_def resolve_all_on_distrib_no_lit NN
+        Duplicate_Free_Multiset.distinct_mset_remdups_mset_id
+        dest: multi_member_split\<close>)
+  ultimately have N_res:"{#C \<in># resolve_all_on L N. \<not> tautology C#} = {#C \<in># resolve_all_on L NL. \<not> tautology C#} + N1" 
+    using NN NNL N apply auto
+    by (metis add_0 filter_mset_empty_conv multiset_partition)
+  have atms_N_NL: \<open>V \<union> atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#} = V \<union> atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#}\<close>
+    using NN N_res by force
+  have 0:  "rules\<^sup>*\<^sup>* (N,  R, S,  V \<union> atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
+        (N,R + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, S, V \<union> atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
+    (is \<open>rules\<^sup>*\<^sup>* ?start ?add_added_to_R\<close>)
+    using learn_resolvents2[of N _ "{#C \<in># resolve_all_on L N. \<not> tautology C#}" _ "{#C \<in># resolve_all_on L NL. \<not> tautology C#}" R S V, OF rul] N 
+    unfolding atms_N_NL
+    by (auto simp: N_res)
+  have "rules\<^sup>*\<^sup>* ?add_added_to_R
+       (N + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S,
+       V \<union> atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
+       (is \<open>rules\<^sup>*\<^sup>* _ ?resolvents_in_N\<close>)
+    using strenghten_with_resolvents[of N "{#C \<in># resolve_all_on L NL. \<not> tautology C#}" R S "V"] by (auto simp: ac_simps)
+  hence R: "rules\<^sup>*\<^sup>* ?start ?resolvents_in_N" using 0
     by (meson rtranclp_trans)
-  hence "rules\<^sup>*\<^sup>* (N,  {#}, [],  atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#}) (N + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, {#}, [], 
-       atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#})"
-    using N_res apply auto 
-    by (metis set_mset_filter)
-  hence 1: \<open>rules\<^sup>*\<^sup>* (N, R, S, V)
-    (N + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S, 
-      V \<union> atms_of_mm N \<union>atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S)))\<close> (is \<open>rules\<^sup>*\<^sup>* (N, R, S, V) ?st1\<close>)
-    (* Soll das R und S hier leer sein und V die menge von einem schritt weiter oben?*) 
-    sorry
+  have [simp]: \<open>V \<union> atms_of_mm N \<union> (X \<union> atms_of_mm N1) \<union> V' =  V \<union> atms_of_mm N \<union> X \<union> V'\<close> for X V'
+    by (auto simp: N_res NN)
+  have 1: "rules\<^sup>*\<^sup>* (N,  R, S,  V \<union> atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
+     (N + ({#C \<in># resolve_all_on L NL. \<not> tautology C#}), R, S,
+       V \<union> atms_of_mm N \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"  (is \<open>rules\<^sup>*\<^sup>* _ ?st1\<close>)
+    using R by (auto simp: N_res)
   have 2: \<open>rules\<^sup>*\<^sup>* ?st1
      (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S @ map (\<lambda>C. Witness {L} C) (take i UpL), 
-      V  \<union> atms_of_mm N \<union> atms_of_mm (mset (take i UpL)) \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S)))\<close> (is \<open>rules\<^sup>*\<^sup>* _ ?st2\<close>)
+      V \<union> atms_of_mm N \<union> atms_of_mm (mset (take i UpL)) \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S)))\<close> (is \<open>rules\<^sup>*\<^sup>* _ ?st2\<close>)
     for i
   proof (induction i)
     case 0
@@ -304,17 +316,22 @@ proof (induction rule: res_stack_induct)
 ((remove1_mset (UpL ! i) (NL + {#C \<in># resolve_all_on L NL. \<not> tautology C#})) +(remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) +  {#C \<in># resolve_all_on L (N1 + NuL + mset (drop i UpL)). \<not> tautology C#})))" 
         using redundancy_add[of "(N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L (N1 + NuL + mset (drop i UpL)). \<not> tautology C#})" "UpL ! i" "{L}" "(NL + {#C \<in># resolve_all_on L NL. \<not> tautology C#})" ] red2 red
         by (metis "1" NNL Suc_le_lessD \<open>mset UpL = NpL\<close> nth_mem_mset single_subset_iff subset_mset.add_diff_assoc2 union_iff) 
-
+     then have red1: \<open>redundancy  (remove1_mset (UpL ! i)
+     (N1 + NuL + mset (drop i UpL) +
+      {#C \<in># resolve_all_on L NL.
+       \<not> tautology
+           C#})) (UpL!i) {L} (remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}))\<close>
+       apply (auto simp flip: NNL simp: ac_simps)
 (*Ich weiß nicht wie ich den nächsten Schritt zeigen soll, weil das lemma redundancy_of_resolvents sagt, dass die formel überall gleich sein muss, man kann also entweder NL + {#C \<in># resolve_all_on L NL. \<not> tautology C#} als Formel
 nehmen oder  (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L N1 + NuL + mset (drop i UpL). \<not> tautology C#}
 Ich habe das auch irgendwie versucht mit der Differenz und Summe der beiden Formeln, aber das hat auch nicht so viel geholfen
 
 Für Uul weiter unten  gibt es das gleiche Problem.*)
-
+(*
       hence red1:"redundancy (remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}))  (UpL ! i) {L}
  (remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}))"
-         sorry 
-
+        apply auto
+*)
       have cons: "consistent_interp {L}"
         by simp
      have h1:"mset (drop (Suc i) UpL) =  (remove1_mset (UpL ! i)  (mset (drop i UpL))) "
@@ -344,8 +361,9 @@ V \<union> atms_of_mm N \<union> atms_of_mm (mset (take i UpL)) \<union> atms_of
       V \<union> atms_of_mm N \<union> atms_of (UpL ! i) \<union> atms_of_mm (remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness {L}) (take i UpL))))
      (remove1_mset (UpL !  i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}), R, (S @ map (Witness {L}) (take i UpL)) @ [Witness {L} (UpL !i)],
      V \<union> atms_of_mm N \<union> atms_of (UpL ! i) \<union> atms_of_mm (remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness {L}) (take i UpL))))"
-using weakenp[of "{L}" "(UpL ! i)" "remove1_mset (UpL !  i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})" R "S @ map (Witness {L}) (take i UpL)" "V \<union> atms_of_mm N"]
-\<open>atm_of L \<in> atms_of (UpL ! i)\<close> \<open>{L} \<Turnstile> (UpL ! i)\<close> cons red1 by fastforce
+       using weakenp[of "{L}" "(UpL ! i)" "remove1_mset (UpL !  i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})" R "S @ map (Witness {L}) (take i UpL)"
+           "V \<union> atms_of_mm N", OF ]
+\<open>atm_of L \<in> atms_of (UpL ! i)\<close> \<open>{L} \<Turnstile> (UpL ! i)\<close> cons red1 apply auto by fastforce
   hence "rules (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S @ map (Witness {L}) (take i UpL),
       V \<union> atms_of_mm N \<union> atms_of_mm (mset (take i UpL)) \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
     (N1 + NuL + mset (drop (Suc i) UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S @ map (Witness {L}) (take (Suc i) UpL),
