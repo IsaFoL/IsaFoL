@@ -316,7 +316,7 @@ proof (induction rule: res_stack_induct)
 ((remove1_mset (UpL ! i) (NL + {#C \<in># resolve_all_on L NL. \<not> tautology C#})) +(remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) +  {#C \<in># resolve_all_on L (N1 + NuL + mset (drop i UpL)). \<not> tautology C#})))" 
         using redundancy_add[of "(N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L (N1 + NuL + mset (drop i UpL)). \<not> tautology C#})" "UpL ! i" "{L}" "(NL + {#C \<in># resolve_all_on L NL. \<not> tautology C#})" ] red2 red
         by (metis "1" NNL Suc_le_lessD \<open>mset UpL = NpL\<close> nth_mem_mset single_subset_iff subset_mset.add_diff_assoc2 union_iff) 
-     then have red1: \<open>redundancy  (remove1_mset (UpL ! i)
+     then have : \<open>redundancy  (remove1_mset (UpL ! i)
      (N1 + NuL + mset (drop i UpL) +
       {#C \<in># resolve_all_on L NL.
        \<not> tautology
@@ -328,7 +328,7 @@ Ich habe das auch irgendwie versucht mit der Differenz und Summe der beiden Form
 
 Für Uul weiter unten  gibt es das gleiche Problem.*)
 (*
-      hence red1:"redundancy (remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}))  (UpL ! i) {L}
+      hence :"redundancy (remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}))  (UpL ! i) {L}
  (remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}))"
         apply auto
 *)
@@ -363,7 +363,7 @@ V \<union> atms_of_mm N \<union> atms_of_mm (mset (take i UpL)) \<union> atms_of
      V \<union> atms_of_mm N \<union> atms_of (UpL ! i) \<union> atms_of_mm (remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness {L}) (take i UpL))))"
        using weakenp[of "{L}" "(UpL ! i)" "remove1_mset (UpL !  i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})" R "S @ map (Witness {L}) (take i UpL)"
            "V \<union> atms_of_mm N", OF ]
-\<open>atm_of L \<in> atms_of (UpL ! i)\<close> \<open>{L} \<Turnstile> (UpL ! i)\<close> cons red1 apply auto by fastforce
+\<open>atm_of L \<in> atms_of (UpL ! i)\<close> \<open>{L} \<Turnstile> (UpL ! i)\<close> cons  apply auto by fastforce
   hence "rules (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S @ map (Witness {L}) (take i UpL),
       V \<union> atms_of_mm N \<union> atms_of_mm (mset (take i UpL)) \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
     (N1 + NuL + mset (drop (Suc i) UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S @ map (Witness {L}) (take (Suc i) UpL),
