@@ -425,10 +425,10 @@ V  \<union> atms_of_mm N \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># 
 
       have red:"redundancy (remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})) (UuL ! i) {- L} (remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}))"
         using redundancy_of_resolvents[of "UuL ! i" "-L" "mset (drop (i) UuL)" "N1+NL"]
-        apply (auto simp: \<open>-L \<in># UuL ! i\<close>)
+        apply (auto simp: \<open>-L \<in># UuL ! i\<close> resolve_all_on_neg)
         using incl taut (*in1 N_res UpLi*)
         apply (auto simp: NN ac_simps N_res)
-        sorry
+        by (smt (verit, best) NN N_res add.commute add.left_commute)
       have g1:"mset (drop (Suc i) UuL) =  (remove1_mset (UuL ! i)  (mset (drop i UuL))) "
         by simp
       have g2: "map (Witness {- L}) (take i UuL) @ [Witness {- L} (UuL ! i)] = map (Witness {- L}) (take (Suc i) UuL)" 
