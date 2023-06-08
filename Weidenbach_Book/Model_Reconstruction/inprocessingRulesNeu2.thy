@@ -21,13 +21,17 @@ definition interpr_composition :: "'a literal set \<Rightarrow> 'a literal set \
 
 notation (output) interpr_composition ("_ \<circ> _ ")
 
+(*definition redundancy :: "'a clauses \<Rightarrow> 'a clause \<Rightarrow> 'a literal set \<Rightarrow> 'a clauses \<Rightarrow> bool" where
+"redundancy F C \<omega> F' = (\<forall>I. consistent_interp I \<longrightarrow>interpr_composition I (uminus ` set_mset C) \<Turnstile>m F \<longrightarrow>
+     (interpr_composition I \<omega>) \<Turnstile>m F' )"*)
+
 definition redundancy :: "'a clauses \<Rightarrow> 'a clause \<Rightarrow> 'a literal set \<Rightarrow> 'a clauses \<Rightarrow> bool" where
 "redundancy F C \<omega> F' = (\<forall>I. consistent_interp I \<longrightarrow>interpr_composition I (uminus ` set_mset C) \<Turnstile>m F \<longrightarrow>
-     (interpr_composition I \<omega>) \<Turnstile>m F' )"
+     (interpr_composition I (interpr_composition (uminus ` set_mset C) \<omega>)) \<Turnstile>m F' )"
 
 lemma redundancyD:
   assumes "redundancy F C \<omega> F'" and  "consistent_interp I" and "interpr_composition I (uminus ` set_mset C) \<Turnstile>m F"
-  shows "(interpr_composition I \<omega>) \<Turnstile>m F'"
+  shows "(interpr_composition I (interpr_composition (uminus ` set_mset C) \<omega>)) \<Turnstile>m F'"
   using assms unfolding redundancy_def by blast
 
 notation (output) redundancy ("_ \<^bold>\<and> _ \<equiv>\<^sub>s\<^sub>a\<^sub>t\<^bsub>_\<^esub> _")
@@ -124,8 +128,11 @@ proof-
     by (simp add: interpr_composition_def true_cls_mset_def)
   then have min:"interpr_composition \<tau> ?\<alpha> \<Turnstile>m N" 
     by auto
-  have sat:"interpr_composition \<tau> \<omega> \<Turnstile>m N"
-    using cons3 min redundancyD[OF red cons3 min] by blast 
+  have sat:"interpr_composition \<tau> (interpr_composition ?\<alpha> \<omega>) \<Turnstile>m N"
+(*have sat:"interpr_composition \<tau> \<omega> \<Turnstile>m N"*)
+(*using cons3 min redundancyD[OF red cons3 min] by blast *)
+    using cons3 min redundancyD redundancyD[OF red cons3 min] by blast 
+  hence sat2:"interpr_composition \<tau> \<omega> \<Turnstile>m N" using \<tau> min \<omega> assms(7) unfolding interpr_composition_def apply auto sorry
   then show ?thesis
     using C by auto
 qed
