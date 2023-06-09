@@ -127,6 +127,15 @@ lemma minus_L_not_in_resolve_on:
   unfolding resolve_on_def using assms apply auto
   by (smt (verit, del_insts) Multiset.diff_add add_diff_cancel_left' cancel_ab_semigroup_add_class.diff_right_commute distinct_mset_add_mset distinct_mset_size_2 in_multiset_minus_notin_snd insert_DiffM tautology_minus)
 
+lemma filter_mset_disj_eq: \<open>(\<And>x. P x \<Longrightarrow> \<not>Q x) \<Longrightarrow> 
+  filter_mset (\<lambda>x. P x \<or> Q x) C = filter_mset P C + filter_mset Q C\<close>
+  by (subst filter_union_or_split)
+   (auto intro: filter_mset_cong)
+
+(*TODO Move*)
+lemma filter_mset_id_conv: \<open>filter_mset P N = N \<longleftrightarrow> (\<forall>L\<in>#N. P L)\<close>
+  by (simp add: filter_mset_eq_conv)
+
 lemma redundancy_of_resolvents: 
   assumes D: \<open>D\<in># {#D \<in># N'. (L \<in># D \<and> -L \<notin># D)#}\<close> and "\<forall>C. C\<in># N  \<longrightarrow>  \<not>tautology C" and \<open>N' \<subseteq># N\<close> and"\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C"
   shows "redundancy ((N' - {#D#}) + {#C \<in># resolve_all_on L N. \<not> tautology C#}) D {L}
@@ -185,9 +194,17 @@ and B: "interpr_composition I (uminus ` set_mset D) \<Turnstile>m ((N' - {#D#}) 
             using true_cls_union_increase' by fastforce
         next
           case False note taut = this
-          have F1: "(resolve_on L D C) \<in># {#C \<in># resolve_all_on L N. \<not> tautology C#}" 
-            using taut D C assms(3) unfolding resolve_all_on_def apply auto 
-            sorry
+          have \<open>C\<in>#N\<close> and \<open>D\<in>#N\<close>
+            using C D assms(3) by auto
+          moreover have \<open>L \<notin># C\<close> \<open>-L \<notin># D\<close>
+            using taut C D by (auto dest!: multi_member_split 
+                simp: add_mset_eq_add_mset resolve_on_def)
+          ultimately have F1: "remdups_mset (resolve_on L D C) \<in># {#C \<in># resolve_all_on L N. \<not> tautology C#}" 
+            using taut assms(3) \<open>-L \<in># C\<close> \<open>L \<in># D\<close>
+            unfolding resolve_all_on_def 
+            by (auto simp: add_mset_eq_add_mset image_Un Times_insert_right
+                conj_disj_distribR Times_insert_left Collect_disj_eq Collect_conv_if
+                dest!: multi_member_split[of C]  multi_member_split[of D]) 
           have F2:"L \<notin># (resolve_on L D C)" 
               using L_not_in_resolve_on[of L D C]
               using \<open>-L \<in># C\<close> \<open>L \<in># D\<close> assms(2, 4) C D apply auto
@@ -285,8 +302,10 @@ and B: "interpr_composition I (uminus ` set_mset D) \<Turnstile>m ((N' - {#D#}) 
             then show ?thesis 
               using G2 unfolding interpr_composition_def using true_cls_def by auto
           qed note part4 = this
-          have N':"N' =  {#D \<in># N'. (L \<in># D \<and> -L \<notin># D)#} + {#D \<in># N'. (L \<notin># D \<and> -L \<notin># D)#} + {#D \<in># N'. (-L \<in># D \<and> L \<notin># D)#}" 
-             sorry
+          have N':"N' =  {#D \<in># N'. (L \<in># D \<and> -L \<notin># D)#} + {#D \<in># N'. (L \<notin># D \<and> -L \<notin># D)#} + 
+                         {#D \<in># N'. (-L \<in># D \<and> L \<notin># D)#} + {#D \<in># N'. (-L \<in># D \<and> L \<in># D)#}" 
+            by (subst filter_mset_disj_eq[symmetric], auto)+
+             (auto intro!: filter_mset_id_conv[THEN iffD2, symmetric])
           hence "interpr_composition I (interpr_composition (uminus ` set_mset D) {L}) \<Turnstile>m (N' - {#D#})" using part1 part2 part3 unfolding interpr_composition_def apply auto
             by (smt (verit, best) D Un_iff insertI1 insert_DiffM2 set_mset_union true_cls_def true_cls_mset_def true_lit_def) 
           then show ?thesis 
