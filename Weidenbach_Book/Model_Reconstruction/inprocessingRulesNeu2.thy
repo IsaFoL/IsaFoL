@@ -19,7 +19,7 @@ existing, given interpretation.
 definition interpr_composition :: "'a literal set \<Rightarrow> 'a literal set \<Rightarrow>'a literal set " where
 "interpr_composition I' I = ((I' - {L \<in> I'. -L \<in> I}) \<union> I) "
 
-notation (output) interpr_composition ("_ \<circ> _ ")
+notation interpr_composition (infixl "\<^bold>\<circ>" 80)
 
 (*definition redundancy :: "'a clauses \<Rightarrow> 'a clause \<Rightarrow> 'a literal set \<Rightarrow> 'a clauses \<Rightarrow> bool" where
 "redundancy F C \<omega> F' = (\<forall>I. consistent_interp I \<longrightarrow>interpr_composition I (uminus ` set_mset C) \<Turnstile>m F \<longrightarrow>
@@ -35,6 +35,23 @@ lemma redundancyD:
   using assms unfolding redundancy_def by blast
 
 notation (output) redundancy ("_ \<^bold>\<and> _ \<equiv>\<^sub>s\<^sub>a\<^sub>t\<^bsub>_\<^esub> _")
+
+(*This is the original definition of the paper.*)
+definition redundancy_old :: "'a clauses \<Rightarrow> 'a clause \<Rightarrow> 'a literal set \<Rightarrow> 'a clauses \<Rightarrow> bool" where
+"redundancy_old F C \<omega> F' = (\<forall>I. consistent_interp I \<longrightarrow>interpr_composition I (uminus ` set_mset C) \<Turnstile>m F \<longrightarrow>
+     (interpr_composition I \<omega>) \<Turnstile>m F')"
+
+lemma 
+  assumes \<open>redundancy_old F C \<omega> F'\<close> and \<open>\<omega> \<subseteq> set_mset C\<close>
+  shows \<open>redundancy F C \<omega> F'\<close>
+  unfolding redundancy_def
+proof (intro allI impI)
+  fix I
+  assume \<open>consistent_interp I\<close> \<open>I \<^bold>\<circ> uminus ` set_mset C  \<Turnstile>m F\<close>
+  then have \<open>I \<^bold>\<circ> \<omega> \<Turnstile>m F'\<close>
+    using assms unfolding redundancy_old_def by fast
+  then show \<open>I \<^bold>\<circ> (uminus ` set_mset C \<^bold>\<circ> \<omega>)  \<Turnstile>m F'\<close>
+    oops
 
 inductive rules :: "'v clauses \<times> 'v clauses \<times>  'v stackWit \<times> 'v set \<Rightarrow> 'v clauses \<times> 'v clauses \<times> 'v stackWit \<times> 'v set \<Rightarrow> bool" where
 drop: 
