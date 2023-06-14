@@ -316,8 +316,6 @@ and B: "interpr_composition I (uminus ` set_mset D) \<Turnstile>m ((N' - {#D#}) 
     unfolding redundancy_def by auto
 qed
 
- 
-
 lemma add_mset: "{#a#} + M = add_mset a M"
   by auto
 
@@ -342,34 +340,6 @@ lemma redundancy_add:
   assumes "redundancy (F-{#C#}) C \<omega> (F-{#C#})" and "redundancy (F'-{#C#}) C \<omega> (F'-{#C#})"
   shows "redundancy ((F'-{#C#}) + (F-{#C#})) C \<omega> ((F'-{#C#}) + (F-{#C#}))" 
   using assms unfolding redundancy_def by auto
-
-(*lemma redundancy_implied2:
-  assumes "redundancy (F-{#C#}) C \<omega> (F-{#C#})" and " (F-{#C#})\<subseteq>#  (F'-{#C#})" and "A \<subseteq># (F-{#C#})"
-    and "redundancy ((F'-{#C#}) - (F-{#C#}) + A) C \<omega> ((F'-{#C#}) - (F-{#C#}) + A)"
-  shows "redundancy (F'-{#C#}) C \<omega> (F'-{#C#})" 
-  using assms 
-proof-
-  have "consistent_interp I \<longrightarrow> (interpr_composition I (uminus ` set_mset C)) \<Turnstile>m  (F'-{#C#}) \<longrightarrow> (interpr_composition I \<omega>)  \<Turnstile>m  (F'-{#C#})" if A:"consistent_interp I " for I
-  proof-
-    have  1:" (interpr_composition I (uminus ` set_mset C))  \<Turnstile>m (F-{#C#}) \<longrightarrow> (interpr_composition I \<omega>)  \<Turnstile>m (F-{#C#})"
-      using assms(1) A unfolding redundancy_def by auto
-    have 2: " (interpr_composition I (uminus ` set_mset C))  \<Turnstile>m  ((F'-{#C#}) - (F-{#C#}) + A) \<longrightarrow> (interpr_composition I \<omega>)  \<Turnstile>m  ((F'-{#C#}) - (F-{#C#}) + A)" 
-      using assms(4) A unfolding redundancy_def by auto
-    hence " (interpr_composition I (uminus ` set_mset C))  \<Turnstile>m  (F'-{#C#}) \<longrightarrow>(interpr_composition I \<omega>)  \<Turnstile>m  (F'-{#C#})" 
-      using 1 apply auto unfolding interpr_composition_def
-      using assms(2) true_cls_mset_mono apply blast
-      using assms(2) true_cls_mset_mono apply blast
-         apply (smt (verit) Multiset.diff_add add_mset assms(2) subset_mset.add_diff_inverse true_cls_mset_union)
-        apply (meson assms(2) assms(3) set_mset_mono true_cls_mset_mono)
-      using assms(2) true_cls_mset_mono apply blast
-      by (smt (verit) add_mset assms(2) diff_diff_eq subset_mset.add_diff_inverse true_cls_mset_union)
-    then show ?thesis 
-      using A unfolding redundancy_def by auto 
-  qed
-  then show ?thesis
-    unfolding redundancy_def
-    by blast
-qed*)
 
 lemma simulation_res_stack_rules:
   assumes "res_stack (N, Z) (N', Z')" and"\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" and "\<forall>C. C\<in># N  \<longrightarrow>  \<not>tautology C"
@@ -664,7 +634,7 @@ V \<union> atms_of_mm N \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># r
     by auto
 qed
 
-
+(*Hier ist das Problem mit V und atms_of_mm N \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S). Ich weiß nicht wie man das lösen könnte, weil mit let... geht es irgendwie nicht*)
 lemma rtranclp_simulation_res_stack_rules:
   assumes "res_stack\<^sup>*\<^sup>* (N, Z) (N', Z')" and"\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" and "\<forall>C. C\<in># N  \<longrightarrow>  \<not>tautology C"
   shows "\<exists>  S'  V'  R'. rules\<^sup>*\<^sup>*(N, R, S, V \<union> atms_of_mm N \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) (N', R', S', V')"
@@ -686,12 +656,18 @@ next
     using rtranclp_res_stack_tauto rul taut by blast
   have rul4:"\<exists>  S''  V''  R''. rules\<^sup>*\<^sup>* (N', R', S', V' \<union> atms_of_mm N' \<union> atms_of_mm R' \<union> atms_of_ms (wit_clause ` set S')) (N'', R'', S'', V'')" 
     using simulation_res_stack_rules[of N' Z' N'' Z'' R' S' V'] A2 dist2 taut2 by auto
+  then obtain S'' V'' R'' where rul5:"rules\<^sup>*\<^sup>* (N', R', S', V' \<union> atms_of_mm N' \<union> atms_of_mm R' \<union> atms_of_ms (wit_clause ` set S')) (N'', R'', S'', V'')" 
+    by blast
+  let ?V'' = "V'' \<union> atms_of_mm N'' \<union> atms_of_mm R'' \<union> atms_of_ms (wit_clause ` set S'')"
+  have "rules\<^sup>*\<^sup>* (N', R', S', V' \<union> atms_of_mm N' \<union> atms_of_mm R' \<union> atms_of_ms (wit_clause ` set S')) (N'', R'', S'', ?V'')" using rul5 apply auto sorry
   (*then obtain  S''   V''  R'' where rul3: "rules\<^sup>*\<^sup>* (N', R', S', V') (N'', R'', S'', V'')" by blast*******)
   then show ?case using rul2
     (*by (meson rtranclp_trans)*) sorry
 qed
 
-
+(*Kann man hier Z' in ein rules stack S' umwandeln, sodass es die gleichen Einträge sind und dann zeigen, dass mit den Einträgen das gleiche passiert, also falls schon I \<Turnstile> C, dann passiert nichts und sonst wird L bzw. -L entfehrnt und das
+richtige L / -L hinzugefügt.?
+Und braucht man hier noch dass I total ist?*)
 lemma equivalence_reconstruction_1:
   assumes  "res_stack\<^sup>*\<^sup>*  (N, []) ({#}, Z')"  and"\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" and "\<forall>C. C\<in># N  \<longrightarrow>  \<not>tautology C"
   shows "\<exists> S S' V  V' R R'. rules\<^sup>*\<^sup>*(N, R, S, V) ({#}, R', S', V') \<and> inter_from_stack Z' I = reconstruction_stack S' I"
@@ -719,7 +695,7 @@ next
   have "res_stack\<^sup>*\<^sup>* (N, [])(N'', Z'')"
     using A1 A2 by auto
   hence rul1:"\<exists>  S''  V''  R''. rules\<^sup>*\<^sup>*(N, R, S, V) (N'', R'', S'', V'')" 
-    using rtranclp_simulation_res_stack_rules dist taut by blast
+    using rtranclp_simulation_res_stack_rules dist taut sorry
 
   then show ?case sorry
 qed
