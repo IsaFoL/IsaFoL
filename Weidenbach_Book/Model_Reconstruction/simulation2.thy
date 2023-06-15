@@ -634,10 +634,19 @@ V \<union> atms_of_mm N \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># r
     by auto
 qed
 
-(*Hier ist das Problem mit V und atms_of_mm N \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S). Ich weiß nicht wie man das lösen könnte, weil mit let... geht es irgendwie nicht*)
+lemma rules_mono_set: 
+  \<open>rules (N, R, S, V) (N', R', S', V') \<Longrightarrow> rules (N, R, S, V \<union> X) (N', R', S', V' \<union> X)\<close>
+  apply (cases rule: rules.cases, assumption)
+  sorry
+
+
+lemma rtranclp_rules_mono_set: 
+  \<open>rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V') \<Longrightarrow> rules\<^sup>*\<^sup>* (N, R, S, V \<union> X) (N', R', S', V' \<union> X)\<close>
+  by (induction rule: rtranclp_induct4)
+   (auto dest: rules_mono_set[of _ _ _ _ _ _ _ _ X])
 lemma rtranclp_simulation_res_stack_rules:
   assumes "res_stack\<^sup>*\<^sup>* (N, Z) (N', Z')" and"\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" and "\<forall>C. C\<in># N  \<longrightarrow>  \<not>tautology C"
-  shows "\<exists>  S'  V'  R'. rules\<^sup>*\<^sup>*(N, R, S, V \<union> atms_of_mm N \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) (N', R', S', V')"
+  shows "\<exists>  S'  V'  R' V. rules\<^sup>*\<^sup>*(N, R, S, V \<union> atms_of_mm N \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) (N', R', S', V')"
   using assms
 proof (induction rule: rtranclp_induct2)
   case refl
@@ -647,9 +656,9 @@ next
   case (step N' Z' N'' Z'') note  A1 = this(1) and A2 = this(2) and A3 = this(3) and dist = this(4) and taut = this(5)
   have rul:"res_stack\<^sup>*\<^sup>* (N, Z) (N', Z')" using assms(1)
     by (simp add: A1) 
-  have rul1:"\<exists> S'  V'  R'. rules\<^sup>*\<^sup>* (N, R, S, V \<union> atms_of_mm N \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) (N', R', S', V')"
+  have rul1:"\<exists> S'  V'  R' V. rules\<^sup>*\<^sup>* (N, R, S, V \<union> atms_of_mm N \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) (N', R', S', V')"
     using dist taut A3 by auto
-  then obtain  S'  V'  R' where rul2:"rules\<^sup>*\<^sup>* (N, R, S, V \<union> atms_of_mm N \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) (N', R', S', V')" by blast
+  then obtain  S'  V'  R' V where rul2:"rules\<^sup>*\<^sup>* (N, R, S, V \<union> atms_of_mm N \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) (N', R', S', V')" by blast
   have dist2: "\<forall>C \<in># N'. distinct_mset C"
     using rtranclp_res_stack_distinct rul dist by blast
   have taut2: "\<forall>C. C\<in># N'  \<longrightarrow>  \<not>tautology C"
@@ -659,45 +668,10 @@ next
   then obtain S'' V'' R'' where rul5:"rules\<^sup>*\<^sup>* (N', R', S', V' \<union> atms_of_mm N' \<union> atms_of_mm R' \<union> atms_of_ms (wit_clause ` set S')) (N'', R'', S'', V'')" 
     by blast
   let ?V'' = "V'' \<union> atms_of_mm N'' \<union> atms_of_mm R'' \<union> atms_of_ms (wit_clause ` set S'')"
-  have "rules\<^sup>*\<^sup>* (N', R', S', V' \<union> atms_of_mm N' \<union> atms_of_mm R' \<union> atms_of_ms (wit_clause ` set S')) (N'', R'', S'', ?V'')" using rul5 apply auto sorry
+  have "rules\<^sup>*\<^sup>* (N', R', S', V' \<union> atms_of_mm N' \<union> atms_of_mm R' \<union> atms_of_ms (wit_clause ` set S')) (N'', R'', S'', V'')" using rul5 by auto
   (*then obtain  S''   V''  R'' where rul3: "rules\<^sup>*\<^sup>* (N', R', S', V') (N'', R'', S'', V'')" by blast*******)
   then show ?case using rul2
-    (*by (meson rtranclp_trans)*) sorry
-qed
-
-(*Kann man hier Z' in ein rules stack S' umwandeln, sodass es die gleichen Einträge sind und dann zeigen, dass mit den Einträgen das gleiche passiert, also falls schon I \<Turnstile> C, dann passiert nichts und sonst wird L bzw. -L entfehrnt und das
-richtige L / -L hinzugefügt.?
-Und braucht man hier noch dass I total ist?*)
-lemma equivalence_reconstruction_1:
-  assumes  "res_stack\<^sup>*\<^sup>*  (N, []) ({#}, Z')"  and"\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" and "\<forall>C. C\<in># N  \<longrightarrow>  \<not>tautology C"
-  shows "\<exists> S S' V  V' R R'. rules\<^sup>*\<^sup>*(N, R, S, V) ({#}, R', S', V') \<and> inter_from_stack Z' I = reconstruction_stack S' I"
-  using assms
-proof (induction rule: rtranclp_induct2)
-  case refl
-  have rul:"\<exists>S S' V V' R R'. rules\<^sup>*\<^sup>*(N, R, S, V) (N, R', [], V')" 
-    using rtranclp_simulation_res_stack_rules[of _ "[]" "{#}"] assms by blast
-  have A:"inter_from_stack [] I = I "
-    by simp 
-  have "reconstruction_stack [] I = I" 
-    by simp
-  hence equal:"inter_from_stack [] I = reconstruction_stack [] I"
-    using A by simp
-  hence "\<exists>S S' V V' R R'. rules\<^sup>*\<^sup>*(N, R, S, V) (N, R', S', V') \<and> inter_from_stack [] I = reconstruction_stack S' I" using rul
-    by meson
-  then show ?case 
-    by auto
-next
-  case (step N' Z' N'' Z'') note  A1 = this(1) and A2 = this(2) and A3 = this(3) and dist = this(4) and taut = this(5)
-  have "\<exists>S S' V  V' R R'. rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V') \<and> inter_from_stack Z' I = reconstruction_stack S' I"
-    using dist taut A3 by auto
-  then obtain S S' V  V' R R' where "rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V') \<and> inter_from_stack Z' I = reconstruction_stack S' I" 
-    by blast
-  have "res_stack\<^sup>*\<^sup>* (N, [])(N'', Z'')"
-    using A1 A2 by auto
-  hence rul1:"\<exists>  S''  V''  R''. rules\<^sup>*\<^sup>*(N, R, S, V) (N'', R'', S'', V'')" 
-    using rtranclp_simulation_res_stack_rules dist taut sorry
-
-  then show ?case sorry
+    by (meson rtranclp_rules_mono_set transitive_closurep_trans'(2))
 qed
 
 end
