@@ -606,9 +606,14 @@ lemma proposition1:
   by (auto simp: interpr_composition_def redundancy_def)
 end
 
+
+lemma interpr_composition_assoc: \<open>a \<^bold>\<circ> (b \<^bold>\<circ> c) = a \<^bold>\<circ> b \<^bold>\<circ> c\<close>
+  by (auto simp: interpr_composition_def)
+
 lemma proposition1: 
   assumes red: "redundancy N C \<omega> N" and \<tau>: "\<tau> \<Turnstile>m N" and "\<not>\<tau> \<Turnstile> C" and cons3:"consistent_interp \<tau>"
-  and "consistent_interp \<omega>" and \<omega>: "\<omega> \<Turnstile> C" and "atm_of ` \<omega> \<subseteq> atms_of C" 
+  and "consistent_interp \<omega>" and \<omega>: "\<omega> \<Turnstile> C" and "atm_of ` \<omega> \<subseteq> atms_of C" and
+    "total_over_set \<tau> (atms_of_mm (add_mset C N))"
   shows "interpr_composition \<tau> \<omega> \<Turnstile>m N+{#C#}" 
   using assms
 proof-
@@ -632,55 +637,14 @@ proof-
 (*have sat:"interpr_composition \<tau> \<omega> \<Turnstile>m N"*)
 (*using cons3 min redundancyD[OF red cons3 min] by blast *)
     using cons3 min redundancyD redundancyD[OF red cons3 min] by blast 
+  have \<open>\<tau> \<^bold>\<circ> ?\<alpha> = \<tau>\<close>
+    using \<open>\<not>\<tau> \<Turnstile> C\<close> \<open>total_over_set \<tau> (atms_of_mm (add_mset C N))\<close>
+    apply (auto simp: interpr_composition_def dest!: multi_member_split)
+    apply (metis atm_of_eq_atm_of literal.sel(1))
+    apply (metis atm_of_eq_atm_of literal.sel(2))
+    done
   have sat2:"interpr_composition \<tau> \<omega> \<Turnstile>m N"
-    unfolding true_cls_mset_def
-  proof (intro impI ballI, rule ccontr)
-    fix D
-    assume \<open>D \<in># N\<close> and \<open>\<not> \<tau> \<^bold>\<circ> \<omega> \<Turnstile> D\<close>
-    then have \<open>\<tau> \<^bold>\<circ> (?\<alpha> \<^bold>\<circ> \<omega>) \<Turnstile> D\<close>
-      using sat by (auto dest!: multi_member_split)
-    have \<open>\<tau> \<Turnstile> D\<close>
-      using \<tau> \<open>D \<in># N\<close> by (auto dest!: multi_member_split)
-    then have \<open>set_mset D \<inter> \<tau> \<subseteq> uminus ` \<omega>\<close>
-      using  \<open>\<not> \<tau> \<^bold>\<circ> \<omega> \<Turnstile> D\<close>
-      by (auto simp: interpr_composition_def true_cls_def add_mset_eq_add_mset in_image_uminus_uminus
-          dest!: multi_member_split)
-
-    from \<open>\<not> \<tau> \<^bold>\<circ> \<omega> \<Turnstile> D\<close> have \<open>\<forall>L\<in>#D. L \<notin> \<tau> \<^bold>\<circ> \<omega>\<close>
-      by (auto simp: true_cls_def)
-    with  \<open>\<tau> \<^bold>\<circ> (?\<alpha> \<^bold>\<circ> \<omega>) \<Turnstile> D\<close> obtain L where \<open>\<forall>L\<in>#D. L \<notin> \<omega>\<close> \<open>L\<in>#D\<close> \<open>L \<in> \<tau> \<^bold>\<circ> ?\<alpha>\<close>
-      by (force simp: true_cls_def interpr_composition_def add_mset_eq_add_mset dest!: multi_member_split)
-    then have \<open>L \<in> ?\<alpha>\<close> and \<open>L \<notin> \<omega>\<close> \<open>-L \<in># C\<close>
-      using \<open>\<not>\<tau> \<Turnstile> C\<close>
-        apply (auto simp: interpr_composition_def true_cls_def)
-      apply (smt (verit, del_insts) Diff_iff Un_iff \<open>\<forall>L\<in>#D. L \<notin> \<tau> \<^bold>\<circ> \<omega>\<close> assms(7) atm_of_notin_atms_of_iff image_eqI in_image_uminus_uminus interpr_composition_def mem_Collect_eq subsetD)
-      apply (smt (verit, del_insts) Diff_iff Un_iff \<open>\<forall>L\<in>#D. L \<notin> \<tau> \<^bold>\<circ> \<omega>\<close> assms(7) atm_of_notin_atms_of_iff image_eqI in_image_uminus_uminus interpr_composition_def mem_Collect_eq subsetD)
-      done
-    then have \<open>L \<in> \<tau> \<or> L \<notin> \<tau>\<close>
-      using \<open>\<not>\<tau> \<Turnstile> C\<close> by auto
-    have \<open>tautology ((C - {#K#})+ (D - {#-K#}))\<close> \<open>-K \<in># D\<close> \<open>K \<in># C\<close> if [simp]: \<open>\<omega> = {K}\<close>
-      for K
-    proof -
-      show \<open>K \<in># C\<close>
-        using that \<omega>
-        by (auto simp: true_cls_def)
-      have \<open>L \<noteq> K\<close> \<open>L \<noteq> -K\<close> \<open>K \<noteq> -L\<close>
-        using \<open>- L \<in># C\<close>\<open>L\<in>#D\<close>  \<open>L \<notin> \<omega>\<close>
-         apply (auto dest!: multi_member_split)
-        by (metis Clausal_Logic.uminus_lit_swap \<omega> \<open>- L \<in># C\<close> \<open>D \<in># N\<close> \<open>\<not> \<tau> \<^bold>\<circ> \<omega> \<Turnstile> D\<close> \<tau> add_mset_add_single assms(3) assms(5) cons3 distinct_mset_singleton distinct_subseteq_iff mset_subset_eq_single proposition1versuch3 red set_mset_single that true_cls_mset_add_mset true_cls_mset_def)+
-
-      then show \<open>tautology ((C - {#K#})+ (D - {#-K#}))\<close>
-        using \<open>- L \<in># C\<close>\<open>L\<in>#D\<close>  \<open>L \<notin> \<omega>\<close>
-        by (auto simp: tautology_add_mset dest!: multi_member_split)
-
-      show \<open>-K \<in># D\<close>
-        using \<open>\<tau> \<Turnstile> D\<close> \<open>set_mset D \<inter> \<tau> \<subseteq> uminus ` \<omega>\<close> disjoint_iff_not_equal unfolding true_cls_def by fastforce
-    qed
-
-    show False
-      
-      sorry
-  qed
+    using sat unfolding interpr_composition_assoc \<open>\<tau> \<^bold>\<circ> ?\<alpha> = \<tau>\<close> .
   then show ?thesis
     using C by auto
 qed
