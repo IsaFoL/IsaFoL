@@ -391,7 +391,7 @@ proof (cases P C rule: ground_eq_resolution.cases)
   show ?thesis
     unfolding G_entails_def true_clss_singleton
   proof (intro allI impI)
-    fix I
+    fix I :: "'f gterm rel"
     assume "refl I" and "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile> P"
     then obtain K where "K \<in># P" and "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>l K"
       by (auto simp: true_cls_def)
@@ -413,10 +413,8 @@ proof (cases P C rule: ground_eq_factoring.cases)
   show ?thesis
     unfolding G_entails_def true_clss_singleton
   proof (intro allI impI)
-    fix I :: "('f gterm \<times> 'f gterm) set"
-
+    fix I :: "'f gterm rel"
     let ?I' = "(\<lambda>(t\<^sub>1, t). t\<^sub>1 \<approx> t) ` I"
-
     assume "trans I" and "sym I" and "?I' \<TTurnstile> P"
     then obtain K :: "'f gterm uprod literal" where
       "K \<in># P" and "?I' \<TTurnstile>l K"
