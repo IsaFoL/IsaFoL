@@ -17,6 +17,8 @@ theory Ground_Superposition
     "Term_Rewrite_System"
     "Transitive_Closure_Extra"
     "Uprod_Extra"
+    "HOL_Extra"
+    "Ground_Ctxt_Extra"
 begin
 
 notation Upair (infix "\<approx>" 60)
@@ -28,74 +30,14 @@ hide_const
   Inference_System.concl_of
   Inference_System.main_prem_of
 
-
-lemma le_size_gctxt: "size t \<le> size (C\<langle>t\<rangle>\<^sub>G)"
-  by (induction C) simp_all
-
-lemma lt_size_gctxt: "ctxt \<noteq> \<box>\<^sub>G \<Longrightarrow> size t < size ctxt\<langle>t\<rangle>\<^sub>G"
-  by (induction ctxt) force+
-
-lemma gctxt_ident_iff_eq_GHole[simp]: "ctxt\<langle>t\<rangle>\<^sub>G = t \<longleftrightarrow> ctxt = \<box>\<^sub>G"
-proof (rule iffI)
-  assume "ctxt\<langle>t\<rangle>\<^sub>G = t"
-  hence "size (ctxt\<langle>t\<rangle>\<^sub>G) = size t"
-    by argo
-  thus "ctxt = \<box>\<^sub>G"
-    using lt_size_gctxt[of ctxt t]
-    by linarith
-next
-  show "ctxt = \<box>\<^sub>G \<Longrightarrow> ctxt\<langle>t\<rangle>\<^sub>G = t"
-    by simp
-qed
-
-
-
 primrec mset_lit :: "'a uprod literal \<Rightarrow> 'a multiset" where
   "mset_lit (Pos A) = mset_uprod A" |
   "mset_lit (Neg A) = mset_uprod A + mset_uprod A"
-
-
-section \<open>HOL_Extra\<close>
-
-lemma UniqI:
-  assumes "\<And>x y. P x \<Longrightarrow> P y \<Longrightarrow> x = y"
-  shows "\<exists>\<^sub>\<le>\<^sub>1x. P x"
-  using assms
-  by (simp add: Uniq_def)
-
-lemma Uniq_prodI:
-  assumes "\<And>x1 y1 x2 y2. P x1 y1 \<Longrightarrow> P x2 y2 \<Longrightarrow> (x1, y1) = (x2, y2)"
-  shows "\<exists>\<^sub>\<le>\<^sub>1(x, y). P x y"
-  using assms
-  by (metis UniqI case_prodE)
-
-lemma Uniq_implies_ex1: "\<exists>\<^sub>\<le>\<^sub>1x. P x \<Longrightarrow> P y \<Longrightarrow> \<exists>!x. P x"
-  by (iprover intro: ex1I dest: Uniq_D)
-
-lemma Uniq_antimono: "Q \<le> P \<Longrightarrow> Uniq Q \<ge> Uniq P"
-  unfolding le_fun_def le_bool_def
-  by (rule impI) (simp only: Uniq_I Uniq_D)
-
-lemma Uniq_antimono': "(\<And>x. Q x \<Longrightarrow> P x) \<Longrightarrow> Uniq P \<Longrightarrow> Uniq Q"
-  by (fact Uniq_antimono[unfolded le_fun_def le_bool_def, rule_format])
-
-lemma Collect_eq_if_Uniq: "(\<exists>\<^sub>\<le>\<^sub>1x. P x) \<Longrightarrow> {x. P x} = {} \<or> (\<exists>x. {x. P x} = {x})"
-  using Uniq_D by fastforce
-
-lemma Collect_eq_if_Uniq_prod: "(\<exists>\<^sub>\<le>\<^sub>1(x, y). P x y) \<Longrightarrow> {(x, y). P x y} = {} \<or> (\<exists>x y. {(x, y). P x y} = {(x, y)})"
-  using Collect_eq_if_Uniq by fastforce
 
 type_synonym 't atom = "'t uprod"
 
 
 section \<open>Superposition Calculus\<close>
-
-(*
-Considérer de séparer en deux locales ground et non-ground afin qu'un utilisateur puisse obtenir
-uniquement les résultats au niveau ground.
-Pertinent si il y a une ou des contraintes supplémentaires pour le lifting.
-Voir papier CADE 2023 de Ahmed Bhayat, Johannes Schoisswohl et Michael Rawson
-*)
 
 locale ground_superposition_calculus =
   fixes
@@ -326,7 +268,7 @@ framework et l'état de l'art.
 *)
 
 definition G_Inf :: "'f gterm atom clause inference set" where
-  "G_Inf \<equiv>
+  "G_Inf =
     {Infer [P\<^sub>2, P\<^sub>1] C | P\<^sub>2 P\<^sub>1 C. ground_superposition P\<^sub>1 P\<^sub>2 C} \<union>
     {Infer [P] C | P C. ground_eq_resolution P C} \<union>
     {Infer [P] C | P C. ground_eq_factoring P C}"
@@ -334,14 +276,12 @@ definition G_Inf :: "'f gterm atom clause inference set" where
 abbreviation G_Bot :: "'f gterm atom clause set" where
   "G_Bot \<equiv> {{#}}"
 
-definition G_entails ::
-  "'f gterm atom clause set \<Rightarrow> 'f gterm atom clause set \<Rightarrow> bool"
-where
+definition G_entails :: "'f gterm atom clause set \<Rightarrow> 'f gterm atom clause set \<Rightarrow> bool" where
   "G_entails N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: 'f gterm rel). refl I \<longrightarrow> trans I \<longrightarrow> sym I \<longrightarrow>
     compatible_with_gctxt I \<longrightarrow> (\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>s N\<^sub>1 \<longrightarrow> (\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>s N\<^sub>2)"
 
 
-subsubsection \<open>Correctness\<close>
+subsection \<open>Correctness\<close>
 
 lemma uprod_mem_image_iff_prod_mem[simp]:
   assumes "sym I"
@@ -554,7 +494,7 @@ next
 qed
 
 
-subsubsection \<open>Redundancy Criterion\<close>
+subsection \<open>Redundancy Criterion\<close>
 
 lemma ground_superposition_smaller_conclusion:
   assumes
@@ -802,51 +742,7 @@ next
 qed
 
 
-subsubsection \<open>Refutational Completeness\<close>
-
-primrec equations_entail_lit where
-  "equations_entail_lit E (Pos A) \<longleftrightarrow> (\<exists>s t. A = s \<approx> t \<and> (s, t) \<in> (rewrite_inside_gctxt E)\<^sup>\<down>)" |
-  "equations_entail_lit E (Neg A) \<longleftrightarrow> (\<exists>s t. A = s \<approx> t \<and> (s, t) \<notin> (rewrite_inside_gctxt E)\<^sup>\<down>)"
-
-definition equations_entail_cls where
-  "equations_entail_cls E C \<longleftrightarrow> (\<exists>L \<in># C. equations_entail_lit E L)"
-
-lemma equations_entail_lit_iff:
-  "equations_entail_lit E L \<longleftrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile>l L"
-proof (rule iffI)
-  assume "equations_entail_lit E L"
-  show "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile>l L"
-  proof (cases L)
-    case (Pos A)
-    thus ?thesis
-      using \<open>equations_entail_lit E L\<close> by auto
-  next
-    case (Neg A)
-    thus ?thesis
-      using \<open>equations_entail_lit E L\<close>
-      by (metis equations_entail_lit.simps(2) sym_join true_lit_simps(2)
-          true_lit_uprod_iff_true_lit_prod(2))
-  qed
-next
-  assume "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile>l L"
-  show "equations_entail_lit E L"
-  proof (cases L)
-    case (Pos A)
-    then show ?thesis
-      using \<open>(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile>l L\<close>
-      by auto
-  next
-    case (Neg A)
-    thus ?thesis
-      using \<open>(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile>l L\<close>
-      by (metis equations_entail_lit.simps(2) pair_imageI true_lit_simps(2) uprod_exhaust)
-  qed
-qed
-
-lemma equations_entail_cls_iff:
-  "equations_entail_cls E C \<longleftrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile> C"
-  using equations_entail_lit_iff
-  by (metis equations_entail_cls_def true_cls_def)
+subsection \<open>Refutational Completeness\<close>
 
 context
   fixes N :: "'f gterm uprod clause set"
@@ -875,7 +771,7 @@ next
     by simp
 qed
 
-declare equation.simps [simp del]
+declare equation.simps[simp del]
 
 end
 
@@ -1686,13 +1582,16 @@ proof -
         by simp
     qed
 
-    moreover have "(t1, t2) \<in> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>" if L_def: "L = Neg (t1 \<approx> t2)"
+    moreover have "(t1, t2) \<in> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>"
+      if L_def: "L = Neg (t1 \<approx> t2)"
     proof -
       from that have "(t1, t2) \<in> (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down>"
         using f \<open>L \<in># C'\<close>
-        by (meson equations_entail_lit.simps(2) equations_entail_lit_iff true_cls_def)
+        by (meson true_lit_uprod_iff_true_lit_prod(2) sym_join true_cls_def true_lit_simps(2))
       thus ?thesis
-        using rewrite_inside_gctxt_Union_equation_eq mem_join_union_iff_mem_lhs[OF \<open>t1 \<preceq>\<^sub>t l\<close> \<open>t2 \<preceq>\<^sub>t l\<close>] by simp
+        using rewrite_inside_gctxt_Union_equation_eq
+          mem_join_union_iff_mem_lhs[OF \<open>t1 \<preceq>\<^sub>t l\<close> \<open>t2 \<preceq>\<^sub>t l\<close>]
+        by simp
     qed
 
     ultimately show "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile>l L"
@@ -1873,10 +1772,6 @@ proof -
     thus ?thesis ..
   qed
 qed
-
-(* lemma assumes "t \<prec>\<^sub>t s" and "t' \<prec>\<^sub>t t"
-  shows "(t, t') \<in> (rewrite_inside_gctxt (insert (s, s') R))\<^sup>\<down> \<longleftrightarrow> (t, t') \<in> (rewrite_inside_gctxt R)\<^sup>\<down>"
-  find_theorems "_ \<in> join _ \<longleftrightarrow> _ \<in> join _" *)
 
 lemma model_construction:
   fixes
