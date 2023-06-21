@@ -19,18 +19,29 @@ existing, given interpretation.
 definition interpr_composition :: "'a literal set \<Rightarrow> 'a literal set \<Rightarrow>'a literal set " where
 "interpr_composition I' I = ((I' - {L \<in> I'. -L \<in> I}) \<union> I) "
 
-notation (output) interpr_composition ("_ \<circ> _ ")
+notation interpr_composition (infixl "\<^bold>\<circ>" 80)
 
 definition redundancy :: "'a clauses \<Rightarrow> 'a clause \<Rightarrow> 'a literal set \<Rightarrow> 'a clauses \<Rightarrow> bool" where
 "redundancy F C \<omega> F' = (\<forall>I. consistent_interp I \<longrightarrow>interpr_composition I (uminus ` set_mset C) \<Turnstile>m F \<longrightarrow>
-     (interpr_composition I \<omega>) \<Turnstile>m F' )"
+     (interpr_composition I (interpr_composition (uminus ` set_mset C) \<omega>)) \<Turnstile>m F' )"
 
 lemma redundancyD:
   assumes "redundancy F C \<omega> F'" and  "consistent_interp I" and "interpr_composition I (uminus ` set_mset C) \<Turnstile>m F"
-  shows "(interpr_composition I \<omega>) \<Turnstile>m F'"
+  shows "(interpr_composition I (interpr_composition (uminus ` set_mset C) \<omega>)) \<Turnstile>m F'"
   using assms unfolding redundancy_def by blast
 
 notation (output) redundancy ("_ \<^bold>\<and> _ \<equiv>\<^sub>s\<^sub>a\<^sub>t\<^bsub>_\<^esub> _")
+
+(*This is the original definition of the paper.*)
+definition redundancy_old :: "'a clauses \<Rightarrow> 'a clause \<Rightarrow> 'a literal set \<Rightarrow> 'a clauses \<Rightarrow> bool" where
+"redundancy_old F C \<omega> F' = (\<forall>I. consistent_interp I \<longrightarrow>interpr_composition I (uminus ` set_mset C) \<Turnstile>m F \<longrightarrow>
+     (interpr_composition I \<omega>) \<Turnstile>m F')"
+
+lemma redundancyD_old:
+  assumes "redundancy_old F C \<omega> F'" and  "consistent_interp I" and "interpr_composition I (uminus ` set_mset C) \<Turnstile>m F"
+  shows "(interpr_composition I  \<omega>) \<Turnstile>m F'"
+  using assms unfolding redundancy_old_def by blast
+
 
 inductive rules :: "'v clauses \<times> 'v clauses \<times>  'v stackWit \<times> 'v set \<Rightarrow> 'v clauses \<times> 'v clauses \<times> 'v stackWit \<times> 'v set \<Rightarrow> bool" where
 drop: 
@@ -102,9 +113,33 @@ of a countermodel.
 Moreover, the proof is not correct for partial models (due to tautologies).
 \<close>
 
+
+experiment begin
+lemma proposition1: 
+  fixes A L
+  defines
+    \<open>L \<equiv> Pos (1::nat)\<close> and
+    \<open>A \<equiv> Pos (2::nat)\<close> and
+    \<open>N \<equiv> {#{#L,A#}#}\<close> and
+    \<open>C \<equiv> {#-L,-A#}\<close> and
+    \<open>\<tau> \<equiv> {L}\<close>and
+    \<open>\<omega> \<equiv> {-L}\<close>
+  shows 
+   red: "redundancy N C \<omega> N" and \<tau>: "\<tau> \<Turnstile>m N" and "\<not>\<tau> \<Turnstile> C" and cons3:"consistent_interp \<tau>"
+    and "consistent_interp \<omega>" and \<omega>: "\<omega> \<Turnstile> C" and "atm_of ` \<omega> \<subseteq> atms_of C"  and
+    "\<not>interpr_composition \<tau> \<omega> \<Turnstile>m N+{#C#}" 
+  unfolding assms
+  by (auto simp: interpr_composition_def redundancy_def)
+end
+
+
+lemma interpr_composition_assoc: \<open>a \<^bold>\<circ> (b \<^bold>\<circ> c) = a \<^bold>\<circ> b \<^bold>\<circ> c\<close>
+  by (auto simp: interpr_composition_def)
+
 lemma proposition1: 
   assumes red: "redundancy N C \<omega> N" and \<tau>: "\<tau> \<Turnstile>m N" and "\<not>\<tau> \<Turnstile> C" and cons3:"consistent_interp \<tau>"
-  and "consistent_interp \<omega>" and \<omega>: "\<omega> \<Turnstile> C" and "atm_of ` \<omega> \<subseteq> atms_of C" 
+  and "consistent_interp \<omega>" and \<omega>: "\<omega> \<Turnstile> C" and "atm_of ` \<omega> \<subseteq> atms_of C" and
+    "total_over_set \<tau> (atms_of_mm (add_mset C N))"
   shows "interpr_composition \<tau> \<omega> \<Turnstile>m N+{#C#}" 
   using assms
 proof-
@@ -124,8 +159,16 @@ proof-
     by (simp add: interpr_composition_def true_cls_mset_def)
   then have min:"interpr_composition \<tau> ?\<alpha> \<Turnstile>m N" 
     by auto
-  have sat:"interpr_composition \<tau> \<omega> \<Turnstile>m N"
-    using cons3 min redundancyD[OF red cons3 min] by blast 
+  have sat:"interpr_composition \<tau> (interpr_composition ?\<alpha> \<omega>) \<Turnstile>m N"
+    using cons3 min redundancyD redundancyD[OF red cons3 min] by blast 
+  have \<open>\<tau> \<^bold>\<circ> ?\<alpha> = \<tau>\<close>
+    using \<open>\<not>\<tau> \<Turnstile> C\<close> \<open>total_over_set \<tau> (atms_of_mm (add_mset C N))\<close>
+    apply (auto simp: interpr_composition_def dest!: multi_member_split)
+    apply (metis atm_of_eq_atm_of literal.sel(1))
+    apply (metis atm_of_eq_atm_of literal.sel(2))
+    done
+  have sat2:"interpr_composition \<tau> \<omega> \<Turnstile>m N"
+    using sat unfolding interpr_composition_assoc \<open>\<tau> \<^bold>\<circ> ?\<alpha> = \<tau>\<close> .
   then show ?thesis
     using C by auto
 qed
@@ -164,9 +207,11 @@ proof (induction rule: rules_induct)
   then show ?case by auto
 next
   case (strenghten N C R S V) note A1 = this(1) and A2 = this(2) and A3 = this(3) and A4 = this(4)
-  have tot:"total_over_m I (set_mset(N + R + {#C#} + (wit_clause `# mset S)))" using A4
+  have tot:"total_over_m I (set_mset(N + R + {#C#} + (wit_clause `# mset S)))" 
+    using A4
     by (simp add: atms_of_s_def total_over_m_alt_def)
-   have "I \<Turnstile> C" using true_clss_cls_def A3 A2 tot A1
+  have "I \<Turnstile> C"
+    using true_clss_cls_def A3 A2 tot A1
      by (metis set_mset_add_mset_insert set_mset_empty set_mset_union total_over_m_union true_cls_mset_true_clss_iff(2) true_clss_clss_insert union_mset_add_mset_left)
   then show ?case using A2
     by fastforce
@@ -189,10 +234,13 @@ lemma proposition3_back:
   using assms
 proof (induction rule: rules_induct)
   case (drop N C R S V) note all = this(1,2, 4, 5) and sub = this(5) and cons = this(4) and A1 = this(1) and A3 = this(3)
-  have sat:"I \<Turnstile>m N" using A3 by auto
-  have "total_over_m I (set_mset(N + R + {#C#}))" using sub
+  have sat:"I \<Turnstile>m N" 
+    using A3 by auto
+  have "total_over_m I (set_mset(N + R + {#C#}))"
+    using sub
     by (simp add: atms_of_s_def total_over_m_alt_def)
-  hence "I \<Turnstile> C" using true_clss_cls_def cons sat
+  hence "I \<Turnstile> C" 
+    using true_clss_cls_def cons sat
     using A1 by auto
   then show ?case using A3 by auto
 next
@@ -329,11 +377,13 @@ next
   case (strenghten N C R S V)
   then show ?case by auto
 next
-  case (weakenp I' C R N S V)
-  then show ?case apply auto
-    apply (simp add: interpr_composition_def) 
-    using proposition1 apply auto
-    using set_mset_add_mset_insert total_over_m_insert true_cls_mset_add_mset by fastforce
+  case (weakenp I' C N R S V) note all = this(1-7) and A8 = this(8)
+  have "total_over_set I (atms_of_mm (add_mset C N))" 
+    using A8 apply auto
+    apply (meson subset_iff total_over_set_atm_of)
+    by (meson subset_iff total_over_set_atm_of)
+  then show ?case 
+    using proposition1[of N C I' I] all by auto
 next
   case (forget N C R S V)
   then show ?case by auto
