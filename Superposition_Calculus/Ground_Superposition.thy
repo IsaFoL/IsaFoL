@@ -19,6 +19,7 @@ theory Ground_Superposition
     "Uprod_Extra"
     "HOL_Extra"
     "Ground_Ctxt_Extra"
+    Relation_Extra
 begin
 
 notation Upair (infix "\<approx>" 60)
@@ -471,7 +472,7 @@ next
   show "G_entails N1 N2"
     unfolding G_entails_def
   proof (intro allI impI)
-    fix I
+    fix I :: "'f gterm rel"
     assume "refl I" and "trans I" and "sym I" and "compatible_with_gctxt I" and
       "(\<lambda>(x, y). x \<approx> y) ` I \<TTurnstile>s N1"
     hence "\<forall>C \<in> N2. (\<lambda>(x, y). x \<approx> y) ` I \<TTurnstile>s {C}"
@@ -1159,23 +1160,6 @@ proof -
     by metis+
 qed
 
-lemma partition_set_around_element:
-  assumes tot: "totalp_on N R" and x_in: "x \<in> N"
-  shows "N = {y \<in> N. R y x} \<union> {x} \<union> {y \<in> N. R x y}"
-proof (intro Set.equalityI Set.subsetI)
-  fix z assume "z \<in> N"
-  hence "R z x \<or> z = x \<or> R x z"
-    using tot[THEN totalp_onD] x_in by auto
-  thus "z \<in> {y \<in> N. R y x} \<union> {x} \<union> {y \<in> N. R x y}" 
-    using \<open>z \<in> N\<close> by auto
-next
-  fix z assume "z \<in> {y \<in> N. R y x} \<union> {x} \<union> {y \<in> N. R x y}"
-  hence "z \<in> N \<or> z = x"
-    by auto
-  thus "z \<in> N"
-    using x_in by auto
-qed
-
 lemma less_trm_const_lhs_if_mem_rewrite_inside_gctxt:
   fixes t t1 t2 r
   assumes
@@ -1636,7 +1620,8 @@ proof -
       from that have "(t1, t2) \<notin> (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down>"
         using f \<open>L \<in># C'\<close> by blast
       thus ?thesis
-        using rewrite_inside_gctxt_Union_equation_eq mem_join_union_iff_mem_lhs[OF \<open>t1 \<preceq>\<^sub>t l\<close> \<open>t2 \<preceq>\<^sub>t l\<close>]
+        using rewrite_inside_gctxt_Union_equation_eq
+        using mem_join_union_iff_mem_lhs[OF \<open>t1 \<preceq>\<^sub>t l\<close> \<open>t2 \<preceq>\<^sub>t l\<close>]
         using \<open>(rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<subseteq> (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down>\<close> by auto
     qed
 

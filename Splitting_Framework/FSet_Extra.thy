@@ -64,6 +64,7 @@ lemma non_zero_fcard_of_non_empty_set: \<open>fcard A > 0 \<longleftrightarrow> 
   by (metis bot.not_eq_extremum fcard_fempty less_numeral_extra(3) pfsubset_fcard_mono)
 
 lemma fimage_of_non_fempty_is_non_fempty: \<open>A \<noteq> {||} \<Longrightarrow> f |`| A \<noteq> {||}\<close>
+  unfolding fimage_is_fempty
   by blast
 
 lemma Union_empty_if_set_empty_or_all_empty:
