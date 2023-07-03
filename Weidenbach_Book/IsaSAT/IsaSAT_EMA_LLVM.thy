@@ -40,7 +40,7 @@ sepref_def ema_bitshifting_impl
 
 lemma ema_reinit_inline[llvm_inline]:
   "ema_reinit = (\<lambda>(value, \<alpha>, \<beta>, wait, period).
-    (value, \<alpha>, ema_bitshifting, 0::_ word, 1:: _ word))"
+    (value, \<alpha>, ema_bitshifting, 0::_ word, 0:: _ word))"
   by (auto simp: ema_bitshifting_def intro!: ext)
 
 sepref_def EMA_MULT_SHIFT_impl
