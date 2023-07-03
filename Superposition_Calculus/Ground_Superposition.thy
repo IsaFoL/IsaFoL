@@ -131,6 +131,23 @@ next
     by simp
 qed
 
+interpretation trm_order: linorder lesseq_trm less_trm
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>t y) = (x \<preceq>\<^sub>t y \<and> \<not> y \<preceq>\<^sub>t x)"
+    by (metis asympD asymp_less_trm reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>t x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>t y \<Longrightarrow> y \<preceq>\<^sub>t z \<Longrightarrow> x \<preceq>\<^sub>t z"
+    by (meson transpE transp_less_trm transp_on_reflclp)
+next
+  show "\<And>x y. x \<preceq>\<^sub>t y \<Longrightarrow> y \<preceq>\<^sub>t x \<Longrightarrow> x = y"
+    by (metis asympD asymp_less_trm reflclp_iff)
+next
+  show "\<And>x y. x \<preceq>\<^sub>t y \<or> y \<preceq>\<^sub>t x"
+    by (metis reflclp_iff totalpD totalp_less_trm)
+qed
 
 subsection \<open>Ground Rules\<close>
 
@@ -1173,13 +1190,8 @@ proof -
     r_def: "t2 = ctxt\<langle>t2'\<rangle>\<^sub>G"
     unfolding rewrite_inside_gctxt_def by fast
 
-  have "t \<prec>\<^sub>t t1'"
-    using ball_lt_lhs[OF rule_in'] by simp
-  moreover have "t1' \<preceq>\<^sub>t ctxt\<langle>t1'\<rangle>\<^sub>G"
-    using lesseq_trm_if_subtermeq .
-  ultimately show ?thesis
-    unfolding l_def r_def
-    by (metis (full_types) sup2E transpD transp_less_trm)
+  show ?thesis
+    using ball_lt_lhs[OF rule_in'] lesseq_trm_if_subtermeq[of t1' ctxt] l_def by order
 qed
 
 lemma split_Union_equation:
