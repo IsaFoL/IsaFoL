@@ -56,10 +56,14 @@ lemma isa_clause_remove_duplicate_clause_wl_clause_remove_duplicate_clause_wl:
   \<langle>twl_st_heur_restart_ana'' r u ns lw\<rangle>nres_rel\<close>
 proof -
   show ?thesis
+    supply [[goals_limit=1]]
     unfolding isa_clause_remove_duplicate_clause_wl_def clause_remove_duplicate_clause_wl_def uncurry_def
       mop_arena_status_def nres_monad3
     apply (intro frefI nres_relI)
-    apply refine_vcg
+    apply (refine_vcg log_del_clause_heur_log_clause[THEN order_trans])
+    apply (solves auto)[]
+    apply (solves auto)[]
+    apply (solves auto)[]
     subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k a b c d e
       unfolding arena_is_valid_clause_vdom_def
       apply (rule exI[of _ \<open>get_clauses_wl x2\<close>], rule exI[of _ \<open>set (get_vdom e)\<close>])
