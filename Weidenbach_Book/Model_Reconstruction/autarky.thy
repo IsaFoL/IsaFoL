@@ -70,87 +70,11 @@ lemma in_unit_clauses_of_modelE:
   shows \<open>(\<And>L. C = {#L#} \<and> L \<in> I \<Longrightarrow> P) \<Longrightarrow> P\<close>
   using assms by (auto simp: unit_clauses_of_model_def)
 
-(*Das Lemma geht wenn unit_clauses_of_model \<omega> dabei ist. Aber wenn es weggellassen wird, dann geht es glaube ich nicht.*)
-lemma autarky_redundancy3:  
-  assumes "autarky \<omega> N (Na + {#x#} + unit_clauses_of_model \<omega>)" and "consistent_interp \<omega>" and  "finite \<omega> "
-  shows "redundancy (N + Na + unit_clauses_of_model \<omega> ) x (\<omega> \<inter> set_mset x) (N + Na + unit_clauses_of_model \<omega>)"
-  using assms 
-proof-
-  have 1: "( \<omega> \<Turnstile>m Na + {#x#} + unit_clauses_of_model \<omega>) \<and> (\<forall>C \<in># N.  \<not> \<omega> \<Turnstile> C \<and> \<not> \<omega> \<Turnstile> mset_set(uminus ` set_mset C))"
-    using autarky_cons assms(1, 2) by auto
-  hence 2:"\<forall>C \<in># N. (set_mset C \<inter>  \<omega> = {})" and 3:"\<forall>C \<in># N. (uminus `(set_mset C) \<inter>  \<omega> = {})" apply auto
-    apply (metis insert_DiffM true_cls_add_mset)
-    by (metis elem_mset_set finite_imageI finite_set_mset imageI multi_member_split true_cls_add_mset)
-  have "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x)) \<Turnstile>m (N + Na + unit_clauses_of_model \<omega>)" if A:"consistent_interp I " 
-and B: "interpr_composition I (uminus ` set_mset x) \<Turnstile>m (N + Na + unit_clauses_of_model \<omega>)" for I
-  proof-
-   have "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x)) \<Turnstile> C" if C: "C \<in># N" for C
-   proof-
-     have "interpr_composition I (uminus ` set_mset x) \<Turnstile> C" 
-       using C B apply auto
-       using true_cls_mset_def by blast
-     hence notempty:"interpr_composition I (uminus ` set_mset x) \<inter> (set_mset C) \<noteq> {}" apply auto
-       by (meson disjoint_iff true_cls_def true_lit_def)
-     have "(set_mset C \<inter>  \<omega> = {}) " and  "(uminus `(set_mset C) \<inter>  \<omega> = {})" 
-       using C 2 apply auto using C 3 apply auto
-       by (metis IntI empty_iff image_eqI)
-     hence "(set_mset C \<inter> (\<omega> \<inter> set_mset x) = {}) " and  "(uminus `(set_mset C) \<inter> (\<omega> \<inter> set_mset x) = {})" 
-       by auto
-     hence "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x))\<inter> (set_mset C) \<noteq> {}"
-       using notempty  unfolding interpr_composition_def by auto
-     then show ?thesis
-       by (meson disjoint_iff true_cls_def true_lit_def)
-   qed note N_sat = this
-   have "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x)) \<Turnstile> C" if C: "C \<in>#  unit_clauses_of_model \<omega>" for C
-   proof-
-     have 1:"interpr_composition I (uminus ` set_mset x) \<Turnstile> C" using B C apply auto
-       using true_cls_mset_def by blast
-     hence notempty:"interpr_composition I (uminus ` set_mset x) \<inter> (set_mset C) \<noteq> {}" apply auto
-       by (meson disjoint_iff true_cls_def true_lit_def)
-     show ?thesis
-     proof(cases "(\<omega> \<inter> set_mset x) \<inter> (set_mset C) \<noteq> {}")
-       case True
-       hence "\<exists>L. L \<in> (\<omega> \<inter> set_mset x) \<and> L \<in># C" 
-         by auto
-       then obtain L where L1:"L \<in> (\<omega> \<inter> set_mset x)" and L2: "L \<in># C" by blast
-       hence "L \<in> interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x))"
-         unfolding interpr_composition_def by auto
-       then show ?thesis using L2 unfolding interpr_composition_def
-         by (meson true_cls_def true_lit_def)
-     next
-       case False
-       have "(uminus `(set_mset C) \<inter> (\<omega> \<inter> set_mset x) = {})" using C unfolding unit_clauses_of_model_def apply auto
-         by (metis assms(2) consistent_interp_def empty_iff in_unit_clauses_of_model_iff mset_set.infinite set_mset_empty that)
-       hence "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x))\<inter> (set_mset C) \<noteq> {}"
-       using notempty False unfolding interpr_composition_def by auto
-     then show ?thesis
-       by (meson disjoint_iff true_cls_def true_lit_def)
-     qed
-   qed note omega_sat = this
-   hence "I \<^bold>\<circ> (uminus ` set_mset x \<^bold>\<circ> (\<omega> \<inter> set_mset x)) \<Turnstile>m unit_clauses_of_model \<omega> " 
-     unfolding interpr_composition_def unit_clauses_of_model_def by auto
-   hence "\<forall>D \<in># unit_clauses_of_model \<omega>. set_mset D \<subseteq> I \<^bold>\<circ> (uminus ` set_mset x \<^bold>\<circ> (\<omega> \<inter> set_mset x)) "
-     unfolding interpr_composition_def unit_clauses_of_model_def by auto
-   hence "\<omega> \<subseteq> I \<^bold>\<circ> (uminus ` set_mset x \<^bold>\<circ> (\<omega> \<inter> set_mset x))" 
-     using assms(3) unfolding interpr_composition_def unit_clauses_of_model_def by auto
-   hence "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x)) \<Turnstile>m Na" using 1  unfolding interpr_composition_def apply auto
-     by (meson true_clss_mono_left true_clss_set_mset)
-   then show ?thesis
-     using N_sat omega_sat unfolding interpr_composition_def 
-     apply auto using true_cls_mset_def apply blast
-      using true_cls_mset_def by blast
-  qed 
-  then show ?thesis
-    using redundancy_def by blast
-qed
 
 
-(*So wie das Lemma jetzt ist gibt es glaube ich ein Gegenbeispiel: 
-C\<in> Na, \<omega> \<Turnstile>m Na, \<omega> \<Turnstile> x, C = (L \<or> A)  (\<omega> \<inter> set_mset x) = {-L}, interpr_composition I (uminus ` set_mset x) = {L}, x = (-L), \<omega> = {-L, A}
-Geht das wenn ich die unit clauses von omega hinzufüge? *)
 lemma autarky_redundancy:  
   assumes "autarky \<omega> N (Na + {#x#})" and "consistent_interp \<omega>"
-  shows "redundancy (N + Na) x (\<omega> \<inter> set_mset x) (N + Na)"
+  shows "redundancy (N + Na) x \<omega> (N + Na)"
   using assms 
 proof-
   have 1: "( \<omega> \<Turnstile>m Na + {#x#}) \<and> (\<forall>C \<in># N.  \<not> \<omega> \<Turnstile> C \<and> \<not> \<omega> \<Turnstile> mset_set(uminus ` set_mset C))"
@@ -158,10 +82,10 @@ proof-
   hence 2:"\<forall>C \<in># N. (set_mset C \<inter>  \<omega> = {})" and 3:"\<forall>C \<in># N. (uminus `(set_mset C) \<inter>  \<omega> = {})" apply auto
     apply (metis insert_DiffM true_cls_add_mset)
     by (metis elem_mset_set finite_imageI finite_set_mset imageI multi_member_split true_cls_add_mset)
-  have "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x)) \<Turnstile>m (N + Na)" if A:"consistent_interp I " 
+  have "interpr_composition I (interpr_composition (uminus ` set_mset x) \<omega> ) \<Turnstile>m (N + Na)" if A:"consistent_interp I " 
 and B: "interpr_composition I (uminus ` set_mset x) \<Turnstile>m (N + Na)" for I
   proof-
-   have "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x)) \<Turnstile> C" if C: "C \<in># N" for C
+   have "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega>)) \<Turnstile> C" if C: "C \<in># N" for C
    proof-
      have "interpr_composition I (uminus ` set_mset x) \<Turnstile> C" 
        using C B apply auto
@@ -171,54 +95,23 @@ and B: "interpr_composition I (uminus ` set_mset x) \<Turnstile>m (N + Na)" for 
      have "(set_mset C \<inter>  \<omega> = {}) " and  "(uminus `(set_mset C) \<inter>  \<omega> = {})" 
        using C 2 apply auto using C 3 apply auto
        by (metis IntI empty_iff image_eqI)
-     hence "(set_mset C \<inter> (\<omega> \<inter> set_mset x) = {}) " and  "(uminus `(set_mset C) \<inter> (\<omega> \<inter> set_mset x) = {})" 
-       by auto
-     hence "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x))\<inter> (set_mset C) \<noteq> {}"
+     hence "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega>))\<inter> (set_mset C) \<noteq> {}"
        using notempty  unfolding interpr_composition_def by auto
      then show ?thesis
        by (meson disjoint_iff true_cls_def true_lit_def)
    qed note N_sat = this
-  have "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x)) \<Turnstile> C" if C: "C \<in># Na" for C
+  have "interpr_composition I (interpr_composition (uminus ` set_mset x) \<omega>) \<Turnstile> C" if C: "C \<in># Na" for C
   proof-
     have C1: "\<omega> \<Turnstile> C" using 1 C apply auto
       using true_cls_mset_def by blast
-    have "interpr_composition I (uminus ` set_mset x) \<Turnstile> C" 
-       using C B apply auto
-       using true_cls_mset_def by blast
-    hence notempty:"interpr_composition I (uminus ` set_mset x) \<inter> (set_mset C) \<noteq> {}" apply auto
-      by (meson disjoint_iff true_cls_def true_lit_def)
-    have notem1:"(set_mset C \<inter>  \<omega> \<noteq> {}) " using C 1 apply auto
-      by (metis disjoint_iff true_cls_def true_cls_mset_def true_lit_def)
-    show ?thesis
-      proof(cases "(set_mset C \<inter> (\<omega> \<inter> set_mset x) = {})")
-        case True note empty = this
-        show ?thesis 
-        proof(cases "(uminus `(set_mset C) \<inter> (\<omega> \<inter> set_mset x) = {})")
-          case True
-          hence "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x))\<inter> (set_mset C) \<noteq> {}" 
-            using empty notempty unfolding interpr_composition_def by auto
-          then show ?thesis 
-            by (meson disjoint_iff true_cls_def true_lit_def)
-        next
-          case False note f = this
-          hence "(\<omega> \<inter> set_mset x) \<noteq> (uminus `(set_mset C))" using C1
-            by (metis Int_emptyI Int_iff assms(2) consistent_interp_def imageI notem1)
-          hence "\<exists>L. L \<in> (uminus `(set_mset C)) \<and> L \<notin> (\<omega> \<inter> set_mset x)" apply auto
-            by (meson C1 assms(2) consistent_CNot_not true_clss_def_iff_negation_in_model)
-          then obtain L where L1: "L \<in> (uminus `(set_mset C))" and L2: "L \<notin> (\<omega> \<inter> set_mset x)"
-            by blast
-          hence "-L \<in># C \<and> -L \<notin> (\<omega> \<inter> set_mset x)" using empty
-            by (simp add: disjoint_iff in_image_uminus_uminus)
-          hence "-L \<in> interpr_composition I (uminus ` set_mset x)" using L2 unfolding interpr_composition_def apply auto sorry
-          then show ?thesis sorry
-        qed
-      next
-        case False
-        hence "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x))\<inter> (set_mset C) \<noteq> {}"
-          unfolding interpr_composition_def by auto
-        then show ?thesis
-          by (meson disjoint_iff true_cls_def true_lit_def)
-      qed
+    hence "\<exists>L. L \<in> \<omega> \<and> L \<in># C"
+      using true_cls_def by auto
+    then obtain L where L1: "L \<in> \<omega> " and L2: "L \<in># C" 
+      by blast
+    hence "L \<in> interpr_composition I (interpr_composition (uminus ` set_mset x) \<omega>)" 
+      unfolding interpr_composition_def by auto
+    then show ?thesis unfolding interpr_composition_def
+      by (simp add: C1)
   qed note Na_sat = this
     then show ?thesis using N_sat unfolding interpr_composition_def apply auto
       using true_cls_mset_def apply blast
@@ -228,100 +121,120 @@ and B: "interpr_composition I (uminus ` set_mset x) \<Turnstile>m (N + Na)" for 
     using redundancy_def by blast
 qed
 
-(*Das Lemma geht aber wenn bei redundancy das Na weggelassen wird.*)
-lemma autarky_redundancy2:  
-  assumes "autarky \<omega> N (Na + {#x#})" and "consistent_interp \<omega>"
-  shows "redundancy (N ) x (\<omega> \<inter> set_mset x) (N )"
-  using assms 
-proof-
-  have 1: "( \<omega> \<Turnstile>m Na + {#x#}) \<and> (\<forall>C \<in># N.  \<not> \<omega> \<Turnstile> C \<and> \<not> \<omega> \<Turnstile> mset_set(uminus ` set_mset C))"
-    using autarky_cons assms(1, 2) by auto
-  hence 2:"\<forall>C \<in># N. (set_mset C \<inter>  \<omega> = {})" and 3:"\<forall>C \<in># N. (uminus `(set_mset C) \<inter>  \<omega> = {})" apply auto
-    apply (metis insert_DiffM true_cls_add_mset)
-    by (metis elem_mset_set finite_imageI finite_set_mset imageI multi_member_split true_cls_add_mset)
-  have "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x)) \<Turnstile>m (N )" if A:"consistent_interp I " 
-and B: "interpr_composition I (uminus ` set_mset x) \<Turnstile>m (N )" for I
-  proof-
-   have "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x)) \<Turnstile> C" if C: "C \<in># N" for C
-   proof-
-     have "interpr_composition I (uminus ` set_mset x) \<Turnstile> C" 
-       using C B apply auto
-       using true_cls_mset_def by blast
-     hence notempty:"interpr_composition I (uminus ` set_mset x) \<inter> (set_mset C) \<noteq> {}" apply auto
-       by (meson disjoint_iff true_cls_def true_lit_def)
-     have "(set_mset C \<inter>  \<omega> = {}) " and  "(uminus `(set_mset C) \<inter>  \<omega> = {})" 
-       using C 2 apply auto using C 3 apply auto
-       by (metis IntI empty_iff image_eqI)
-     hence "(set_mset C \<inter> (\<omega> \<inter> set_mset x) = {}) " and  "(uminus `(set_mset C) \<inter> (\<omega> \<inter> set_mset x) = {})" 
-       by auto
-     hence "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega> \<inter> set_mset x))\<inter> (set_mset C) \<noteq> {}"
-       using notempty  unfolding interpr_composition_def by auto
-     then show ?thesis
-       by (meson disjoint_iff true_cls_def true_lit_def)
-   qed note N_sat = this
-   then show ?thesis 
-     using N_sat unfolding interpr_composition_def apply auto
-      using true_cls_mset_def by blast
-  qed 
-  then show ?thesis
-    using redundancy_def by blast
-qed
 
 
-(*Geht das hier überhaupt? Oder muss man ein I' \<subseteq> I nehmen, wo alle L \<in> I' auch in Na vorkommen? Aber dann müsste man das Lemma mit Redundancy auch ändern.*)
-lemma learn_autarky:
-  assumes "autarky I N Na" and "consistent_interp I" and "C \<in># unit_clauses_of_model I" and "finite I"
-  shows "rules (N+Na, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N+Na, ({#C#}+R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
+lemma autarky_simulation2: 
+  assumes "autarky I N Na" and "consistent_interp I" and " atm_of ` I \<subseteq>  atms_of_mm (Na)"
+  shows "\<exists>S'. rules\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) (N, R, S@S', V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
+\<and> wit_clause `# mset S' = Na \<and> (\<forall>I'\<in># (wit_interp `# mset S'). I' = I)"
   using assms
-proof -
-  have "((I \<Turnstile>m Na) \<and> (\<forall>C \<in># N.  \<not>I \<Turnstile> C \<and> \<not>I \<Turnstile> mset_set(uminus ` set_mset C)))" 
-    using autarky_cons assms(1, 2) by auto
-  hence "(I \<Turnstile>m Na)" by auto
-  hence "(set_mset (Na)) \<Turnstile>p C" using assms(3) unfolding true_clss_cls_def unit_clauses_of_model_def apply auto  sorry
-  show ?thesis sorry
+proof - 
+  obtain LNa where [simp]: \<open>mset LNa = Na\<close> 
+    by (metis list_of_mset_exi)
+  have "I \<Turnstile>m Na" 
+    using assms(1, 2) unfolding autarky_def by auto
+  hence LNa_sat:"I \<Turnstile>m mset LNa"
+    by simp
+  have "rules\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
+(N + mset(drop i LNa), R, S@map (\<lambda>C. Witness I C) (take i LNa), V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
+    for i
+  proof (induction i)
+    case 0
+    then show ?case by auto
+  next
+    case (Suc i) note rul1 = this
+    consider 
+      (1) \<open>Suc i \<le> length LNa\<close> |
+      (boring) \<open>Suc i>length LNa\<close>
+      by linarith
+    then show ?case
+    proof cases
+      case boring
+      then have \<open>take ( i)LNa = LNa\<close> \<open>mset (drop (Suc i) LNa) = {#}\<close>
+        by simp_all
+      then show ?thesis
+        using Suc by (auto simp:  ac_simps)
+    next
+      case 1
+      have [simp]: \<open>mset (drop i LNa) = add_mset (LNa!i) (mset (drop (Suc i) LNa))\<close>
+        by (metis "1" Cons_nth_drop_Suc Suc_le_lessD mset.simps(2))
+      have h1:"mset (drop (Suc i) LNa) =  (remove1_mset (LNa ! i)  (mset (drop i LNa))) "
+        by simp
+      have Ii_sat:"I \<Turnstile> LNa ! i" using LNa_sat
+        by (meson "1" Suc_le_eq nth_mem_mset true_cls_mset_def)
+      have aut:"autarky I N (mset (drop (Suc i) LNa) + {#LNa ! i#})"
+        using assms(1, 2)Ii_sat unfolding autarky_def apply auto
+        by (metis \<open>mset LNa = Na\<close> set_drop_subset set_mset_mset true_cls_mset_mono)
+      have red: "redundancy (mset (drop (Suc i) LNa) + N) (LNa ! i) I (mset (drop (Suc i) LNa) + N)" 
+        using autarky_redundancy[of I N "(mset (drop (Suc i) LNa))" "LNa ! i"] using aut assms(2) apply auto
+        by (simp add: add.commute)
+      have Na1:"({#LNa ! i#} + (mset (drop (Suc i) LNa)) + (mset((take i LNa)))) = Na"
+        by (metis \<open>mset (drop i LNa) = add_mset (LNa ! i) (mset (drop (Suc i) LNa))\<close> \<open>mset LNa = Na\<close> add_mset atd_lem union_code union_commute)
+      hence sub: "atm_of ` I \<subseteq> V \<union> atms_of (LNa ! i) \<union> atms_of_mm (mset (drop (Suc i) LNa) + N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness I) (take i LNa)))"
+        using assms(3) by auto
+      have rul2: "rules (mset (drop (Suc i) LNa) + N + {#LNa ! i#}, R, S @ map (Witness I) (take i LNa),
+ V \<union> atms_of (LNa ! i) \<union> atms_of_mm (mset (drop (Suc i) LNa) + N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness I) (take i LNa))))
+   (mset (drop (Suc i) LNa) + N, R, (S @ map (Witness I) (take i LNa)) @ [Witness I (LNa ! i)], 
+V \<union> atms_of (LNa ! i) \<union> atms_of_mm (mset (drop (Suc i) LNa) + N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness I) (take i LNa))))"
+        using weakenp[of I "(LNa ! i)" " (mset (drop (Suc i) LNa))+ N" V R "S @ map (Witness I) (take i LNa)"]  using Ii_sat red sub assms(2) by auto
+      have h2: "(V \<union> atms_of (LNa ! i) \<union> atms_of_mm (mset (drop (Suc i) LNa) + N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness I) (take i LNa))) 
+               = (V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)))" using Na1 by auto
+      have h3: "map (Witness I) (take i LNa) @ [Witness I (LNa ! i)] = map (Witness I) (take (Suc i) LNa)"
+        by (simp add: "1" Suc_le_lessD take_Suc_conv_app_nth)
+        have rul3:"rules (N + mset (drop i LNa), R, S @ map (Witness I) (take i LNa), V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
+                  (N + mset (drop (Suc i) LNa), R, S @ map (Witness I) (take (Suc i) LNa), V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
+          using h1 h2 h3 rul2 apply auto
+          by (simp add: add.commute)
+        then show ?thesis 
+          using rul1 by auto
+  qed
+qed note ag = this
+  have "mset (drop (length LNa) LNa) = {#}" and "(take (length LNa) LNa) = LNa"
+     apply simp by auto
+  then have 2: "rules\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
+                       (N, R, S@map (\<lambda>C. Witness I C) LNa, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
+    using ag[of "length LNa" ] by auto
+  have wit_Na:"wit_clause `# mset (map (\<lambda>C. Witness I C) LNa) = Na" 
+    by simp
+  have int_Na:"(\<forall>I'\<in># (wit_interp `# mset (map (\<lambda>C. Witness I C) LNa)). I' = I)" 
+    by auto
+  then show ?thesis 
+    using 2 wit_Na by blast
 qed
 
+(*Ist das hier das gleiche Lemma wie das davor? *)
 lemma autarky_simulation: 
-  assumes "autarky I N Na" and "consistent_interp I"
+  assumes "autarky I N Na" and "consistent_interp I" and " atm_of ` I \<subseteq>  atms_of_mm (Na)"
   obtains  S' where "rules\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) (N, R, S@S', V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
-and "wit_clause `# mset S' = Na" and "\<forall>I'\<in># (wit_interp `# mset S'). I' \<subseteq> I"
+and "wit_clause `# mset S' = Na" and "\<forall>I'\<in># (wit_interp `# mset S'). I' = I"
   using assms
+(*Ist das sicher am besten mit induction Na?*)
 proof(induction Na)
   case empty
   then show ?case by auto
 next
-(*Muss hier zuerst Na auf den Stack gemacht werden oder zuerst x? Weil bei beiden kann ich nicht zeigen dass rules\<^sup>*\<^sup>*((N + Na) + {#x#}...(N+ {#x#} )... bzw. rules\<^sup>*\<^sup>*((N + Na)...(N)*)
-  case (add x Na) note A1 = this(1) and A2 = this(2) and aut = this(3) and cons = this(4)
+  case (add x Na) note A1 = this(1) and A2 = this(2) and aut = this(3) and cons = this(4) and sub = this(5)
   have "autarky I N Na" 
     using aut unfolding autarky_def by auto
- (*then obtain S' where ruls:"rules\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) (N, R, S@S',  V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" and "wit_clause `# mset S' = Na" and "\<forall>I'\<in># (wit_interp `# mset S'). I' \<subseteq> I"
-    using A1 cons apply auto sorry *)
-  obtain  S'  where "rules\<^sup>*\<^sup>*((N + Na) + {#x#}, R, S, V \<union> atms_of x \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
-(N + {#x#}, R, S@S',V \<union> atms_of x \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
- and "wit_clause `# mset S' = Na" and "\<forall>I'\<in># (wit_interp `# mset S'). I' \<subseteq> I" using A1 apply auto sorry
-  have  "I \<Turnstile> x"
+ (*Wie kann ich hier A1 bzw A2 verwenden um den nächsten Schritt zu zeigen?*)
+  obtain  S'  where "rules\<^sup>*\<^sup>*((N + Na), R, S, V \<union> atms_of x \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
+(N, R, S@S',V \<union> atms_of x \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
+ and S1:"wit_clause `# mset S' = Na" and S2:"\<forall>I'\<in># (wit_interp `# mset S'). I' = I" using A1 apply auto sorry
+  have 1: "I \<Turnstile> x"
     using aut cons unfolding autarky_def by auto
-  hence 1:" (I \<inter> set_mset x) \<Turnstile> x"
-    by (simp add: true_cls_def) 
-  hence 2: "atm_of ` (I \<inter> set_mset x) \<subseteq> atms_of x" apply auto
-    using atm_of_lit_in_atms_of by blast
-  have cons2:"consistent_interp (I \<inter> set_mset x)" using cons
-    using consistent_interp_subset inf_le1 by blast 
-  have red1: "redundancy (N) x (I \<inter> set_mset x) (N)" using autarky_redundancy2[of I N Na x] cons aut by auto
-have "rules((N + {#x#}, R, S@S', V \<union> atms_of x \<union> atms_of_mm (N ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set (S@S'))))
-(N, R,S@S'@ [Witness (I \<inter> set_mset x) x], V \<union> atms_of x \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set (S@S')) )" using weakenp[of "(I \<inter> set_mset x)" x N R "S@S'" V] using 1 2 cons2 red1 apply auto
-  by (simp add: image_Un)
-
-
-(*Hier geht das mit der Redundancy nicht, vielleicht wenn es N + Na + I ist? aber ich weiß auch nicht wie man die einzelnen Literale von I als Klauses hinzufügen kann, weil dann braucht man die Regel learn_minus und es muss 
-sein dass N + R \<Turnstile>p I. Also wäre es besser wenn man erst Na auf den Stack hinzufügen könnte...*)
-  have red:"redundancy (N + Na) x (I \<inter> set_mset x) (N + Na)" unfolding redundancy_def sorry
-  have "rules((N + Na) + {#x#}, R, S, V \<union> atms_of x \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
-(N + Na, R, S @ [Witness (I \<inter> set_mset x) x], V \<union> atms_of x \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
-    using weakenp[of "(I \<inter> set_mset x)" x "N + Na" R S V] using red 1 2 cons2 by auto
-  have "rules\<^sup>*\<^sup>*(N + Na, R, S @ [Witness (I \<inter> set_mset x) x], V \<union> atms_of x \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) (N, R, S@ [Witness (I \<inter> set_mset x) x]@S',
- V \<union> atms_of x \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set (S@ [Witness (I \<inter> set_mset x) x]@S')))"  apply auto sorry
-  then show ?case sorry
+  have 2: " atm_of ` I \<subseteq> V \<union> atms_of x \<union> atms_of_mm (N+Na) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S))" 
+    using sub by auto
+  have red1: "redundancy (N+Na) x (I) (N+Na)" 
+    using autarky_redundancy[of I N Na x] cons aut by auto
+have rul: "rules((N + Na+ {#x#}, R, S, V \<union> atms_of x \<union> atms_of_mm (N+Na ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set (S))))
+(N + Na, R,S@ [Witness I x], V \<union> atms_of x \<union> atms_of_mm (N+Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set (S)) )"
+  using weakenp[of I x "N+Na" V R "S"] using 1 2 cons red1 by auto
+  have "rules\<^sup>*\<^sup>*(N + Na, R,S@ [Witness I x], V \<union> atms_of x \<union> atms_of_mm (N+Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set (S)) ) 
+(N, R, S@ [Witness I x]@S', V \<union> atms_of x \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S) )" sorry
+  hence "rules\<^sup>*\<^sup>*((N + Na+ {#x#}, R, S, V \<union> atms_of x \<union> atms_of_mm (N+Na ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set (S))))
+(N, R, S@ [Witness I x]@S', V \<union> atms_of x \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S) )" using rul
+    by (meson converse_rtranclp_into_rtranclp)
+  then show ?case using S1 S2 sorry
 qed
 
 
