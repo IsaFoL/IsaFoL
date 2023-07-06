@@ -22,7 +22,7 @@ theory Ground_Superposition
     Relation_Extra
 begin
 
-notation Upair (infix "\<approx>" 60)
+(* notation Upair (infix "\<approx>" 60) *)
 
 hide_type Inference_System.inference
 hide_const
@@ -114,7 +114,7 @@ proof (rule totalpI)
       using transp_less_trm .
   next
     obtain x1 y1 x2 y2 :: "'f gterm" where
-      "atm_of L1 = x1 \<approx> y1" and "atm_of L2 = x2 \<approx> y2"
+      "atm_of L1 = Upair x1 y1" and "atm_of L2 = Upair x2 y2"
       using uprod_exhaust by metis
     thus "mset_lit L1 \<noteq> mset_lit L2"
       using \<open>L1 \<noteq> L2\<close>
@@ -131,7 +131,7 @@ next
     by simp
 qed
 
-interpretation trm_order: linorder lesseq_trm less_trm
+interpretation linorder_trm: linorder lesseq_trm less_trm
 proof unfold_locales
   show "\<And>x y. (x \<prec>\<^sub>t y) = (x \<preceq>\<^sub>t y \<and> \<not> y \<preceq>\<^sub>t x)"
     by (metis asympD asymp_less_trm reflclp_iff)
@@ -149,6 +149,43 @@ next
     by (metis reflclp_iff totalpD totalp_less_trm)
 qed
 
+interpretation linorder_lit: linorder lesseq_lit less_lit
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>l y) = (x \<preceq>\<^sub>l y \<and> \<not> y \<preceq>\<^sub>l x)"
+    by (metis asympD asymp_less_lit reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>l x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>l y \<Longrightarrow> y \<preceq>\<^sub>l z \<Longrightarrow> x \<preceq>\<^sub>l z"
+    by (meson transpE transp_less_lit transp_on_reflclp)
+next
+  show "\<And>x y. x \<preceq>\<^sub>l y \<Longrightarrow> y \<preceq>\<^sub>l x \<Longrightarrow> x = y"
+    by (metis asympD asymp_less_lit reflclp_iff)
+next
+  show "\<And>x y. x \<preceq>\<^sub>l y \<or> y \<preceq>\<^sub>l x"
+    by (metis reflclp_iff totalpD totalp_less_lit)
+qed
+
+interpretation linorder_cls: linorder lesseq_cls less_cls
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>c y) = (x \<preceq>\<^sub>c y \<and> \<not> y \<preceq>\<^sub>c x)"
+    by (metis asympD asymp_less_cls reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>c x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>c y \<Longrightarrow> y \<preceq>\<^sub>c z \<Longrightarrow> x \<preceq>\<^sub>c z"
+    by (meson transpE transp_less_cls transp_on_reflclp)
+next
+  show "\<And>x y. x \<preceq>\<^sub>c y \<Longrightarrow> y \<preceq>\<^sub>c x \<Longrightarrow> x = y"
+    by (metis asympD asymp_less_cls reflclp_iff)
+next
+  show "\<And>x y. x \<preceq>\<^sub>c y \<or> y \<preceq>\<^sub>c x"
+    by (metis reflclp_iff totalpD totalp_less_cls)
+qed
+
+
 subsection \<open>Ground Rules\<close>
 
 abbreviation is_maximal_lit where
@@ -165,22 +202,22 @@ where
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
     P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
     \<P> \<in> {Pos, Neg} \<Longrightarrow>
-    L\<^sub>1 = \<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s') \<Longrightarrow>
-    L\<^sub>2 = Pos (t \<approx> t') \<Longrightarrow>
+    L\<^sub>1 = \<P> (Upair s\<langle>t\<rangle>\<^sub>G s') \<Longrightarrow>
+    L\<^sub>2 = Pos (Upair t t') \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     (\<P> = Pos \<and> select P\<^sub>1 = {#} \<and> is_strictly_maximal_lit L\<^sub>1 P\<^sub>1) \<or>
     (\<P> = Neg \<and> (select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> L\<^sub>1 \<in># select P\<^sub>1)) \<Longrightarrow>
     select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
-    C = add_mset (\<P> (s\<langle>t'\<rangle>\<^sub>G \<approx> s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
+    C = add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_superposition P\<^sub>1 P\<^sub>2 C"
 
 inductive ground_eq_resolution ::
   "'f gterm atom clause \<Rightarrow> 'f gterm atom clause \<Rightarrow> bool" where
   ground_eq_resolutionI: "
     P = add_mset L P' \<Longrightarrow>
-    L = Neg (t \<approx> t) \<Longrightarrow>
+    L = Neg (Upair t t) \<Longrightarrow>
     select P = {#} \<and> is_maximal_lit L P \<or> L \<in># select P \<Longrightarrow>
     ground_eq_resolution P P'"
 
@@ -188,12 +225,12 @@ inductive ground_eq_factoring ::
   "'f gterm atom clause \<Rightarrow> 'f gterm atom clause \<Rightarrow> bool" where
   ground_eq_factoringI: "
     P = add_mset L\<^sub>1 (add_mset L\<^sub>2 P') \<Longrightarrow>
-    L\<^sub>1 = Pos (t \<approx> t') \<Longrightarrow>
-    L\<^sub>2 = Pos (t \<approx> t'') \<Longrightarrow>
+    L\<^sub>1 = Pos (Upair t t') \<Longrightarrow>
+    L\<^sub>2 = Pos (Upair t t'') \<Longrightarrow>
     select P = {#} \<Longrightarrow>
     is_maximal_lit L\<^sub>1 P \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
-    C = add_mset (Neg (t' \<approx> t'')) (add_mset (Pos (t \<approx> t'')) P') \<Longrightarrow>
+    C = add_mset (Neg (Upair t' t'')) (add_mset (Pos (Upair t t'')) P') \<Longrightarrow>
     ground_eq_factoring P C"
 
 
@@ -206,15 +243,15 @@ where
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
     P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
-    L\<^sub>1 = Pos (s\<langle>t\<rangle>\<^sub>G \<approx> s') \<Longrightarrow>
-    L\<^sub>2 = Pos (t \<approx> t') \<Longrightarrow>
+    L\<^sub>1 = Pos (Upair s\<langle>t\<rangle>\<^sub>G s') \<Longrightarrow>
+    L\<^sub>2 = Pos (Upair t t') \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     select P\<^sub>1 = {#} \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>1 P\<^sub>1 \<Longrightarrow>
     select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
-    C = add_mset (Pos (s\<langle>t'\<rangle>\<^sub>G \<approx> s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
+    C = add_mset (Pos (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_pos_superposition P\<^sub>1 P\<^sub>2 C"
 
 lemma ground_superposition_if_ground_pos_superposition:
@@ -235,14 +272,14 @@ where
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
     P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
-    L\<^sub>1 = Neg (s\<langle>t\<rangle>\<^sub>G \<approx> s') \<Longrightarrow>
-    L\<^sub>2 = Pos (t \<approx> t') \<Longrightarrow>
+    L\<^sub>1 = Neg (Upair s\<langle>t\<rangle>\<^sub>G s') \<Longrightarrow>
+    L\<^sub>2 = Pos (Upair t t') \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> L\<^sub>1 \<in># select P\<^sub>1 \<Longrightarrow>
     select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
-    C = add_mset (Neg (s\<langle>t'\<rangle>\<^sub>G \<approx> s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
+    C = add_mset (Neg (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_neg_superposition P\<^sub>1 P\<^sub>2 C"
 
 lemma ground_superposition_if_ground_neg_superposition:
@@ -296,21 +333,25 @@ abbreviation G_Bot :: "'f gterm atom clause set" where
 
 definition G_entails :: "'f gterm atom clause set \<Rightarrow> 'f gterm atom clause set \<Rightarrow> bool" where
   "G_entails N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: 'f gterm rel). refl I \<longrightarrow> trans I \<longrightarrow> sym I \<longrightarrow>
-    compatible_with_gctxt I \<longrightarrow> (\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>s N\<^sub>1 \<longrightarrow> (\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>s N\<^sub>2)"
+    compatible_with_gctxt I \<longrightarrow> (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>s N\<^sub>1 \<longrightarrow>
+    (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>s N\<^sub>2)"
+
+find_consts "_ \<times> _ \<Rightarrow> _ uprod"
+find_theorems "Upair"
 
 
 subsection \<open>Correctness\<close>
 
 lemma uprod_mem_image_iff_prod_mem[simp]:
   assumes "sym I"
-  shows "(t \<approx> t') \<in> (\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<longleftrightarrow> (t, t') \<in> I"
+  shows "(Upair t t') \<in> (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<longleftrightarrow> (t, t') \<in> I"
   using \<open>sym I\<close>[THEN symD] by auto
 
 lemma true_lit_uprod_iff_true_lit_prod[simp]:
   assumes "sym I"
   shows
-    "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>l Pos (t \<approx> t') \<longleftrightarrow> I \<TTurnstile>l Pos (t, t')"
-    "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>l Neg (t \<approx> t') \<longleftrightarrow> I \<TTurnstile>l Neg (t, t')"
+    "(\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>l Pos (Upair t t') \<longleftrightarrow> I \<TTurnstile>l Pos (t, t')"
+    "(\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>l Neg (Upair t t') \<longleftrightarrow> I \<TTurnstile>l Neg (t, t')"
   unfolding true_lit_simps uprod_mem_image_iff_prod_mem[OF \<open>sym I\<close>]
   by simp_all
 
@@ -327,7 +368,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
     unfolding true_clss_insert
   proof (intro allI impI, elim conjE)
     fix I :: "'f gterm rel"
-    let ?I' = "(\<lambda>(t\<^sub>1, t). t\<^sub>1 \<approx> t) ` I"
+    let ?I' = "(\<lambda>(t\<^sub>1, t). Upair t\<^sub>1 t) ` I"
     assume "refl I" and "trans I" and "sym I" and "compatible_with_gctxt I" and
       "?I' \<TTurnstile> P1" and "?I' \<TTurnstile> P2"
     then obtain K1 K2 :: "'f gterm uprod literal" where
@@ -335,13 +376,13 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
       by (auto simp: true_cls_def)
 
     show "?I' \<TTurnstile> C"
-    proof (cases "K1 = \<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s')")
+    proof (cases "K1 = \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')")
       case K1_def: True
-      hence "?I' \<TTurnstile>l \<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s')"
+      hence "?I' \<TTurnstile>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
         using \<open>?I' \<TTurnstile>l K1\<close> by simp
 
       show ?thesis
-      proof (cases "K2 = Pos (t \<approx> t')")
+      proof (cases "K2 = Pos (Upair t t')")
         case K2_def: True
         hence "(t, t') \<in> I"
           using \<open>?I' \<TTurnstile>l K2\<close> true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] by simp
@@ -354,7 +395,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
             using \<open>(t, t') \<in> I\<close>
             using \<open>compatible_with_gctxt I\<close> \<open>refl I\<close> \<open>sym I\<close> \<open>trans I\<close>
             by (meson compatible_with_gctxtD refl_onD1 symD trans_onD)
-          hence "?I' \<TTurnstile>l Pos (s\<langle>t'\<rangle>\<^sub>G \<approx> s')"
+          hence "?I' \<TTurnstile>l Pos (Upair s\<langle>t'\<rangle>\<^sub>G s')"
             by blast
           thus ?thesis
             unfolding ground_superpositionI that
@@ -369,7 +410,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
             using \<open>(t, t') \<in> I\<close>
             using \<open>compatible_with_gctxt I\<close> \<open>trans I\<close>
             by (metis compatible_with_gctxtD transD)
-          hence "?I' \<TTurnstile>l Neg (s\<langle>t'\<rangle>\<^sub>G \<approx> s')"
+          hence "?I' \<TTurnstile>l Neg (Upair s\<langle>t'\<rangle>\<^sub>G s')"
             by (meson \<open>sym I\<close> true_lit_simps(2) true_lit_uprod_iff_true_lit_prod(2))
           thus ?thesis
             unfolding ground_superpositionI that by simp
@@ -410,15 +451,15 @@ proof (cases P C rule: ground_eq_resolution.cases)
     unfolding G_entails_def true_clss_singleton
   proof (intro allI impI)
     fix I :: "'f gterm rel"
-    assume "refl I" and "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile> P"
-    then obtain K where "K \<in># P" and "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>l K"
+    assume "refl I" and "(\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile> P"
+    then obtain K where "K \<in># P" and "(\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>l K"
       by (auto simp: true_cls_def)
     hence "K \<noteq> L"
       by (metis \<open>refl I\<close> ground_eq_resolutionI(2) pair_imageI reflD true_lit_simps(2))
     hence "K \<in># C"
       using \<open>K \<in># P\<close> \<open>P = add_mset L C\<close> by simp
-    thus "(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile> C"
-      using \<open>(\<lambda>(t\<^sub>1, t\<^sub>2). t\<^sub>1 \<approx> t\<^sub>2) ` I \<TTurnstile>l K\<close> by blast
+    thus "(\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile> C"
+      using \<open>(\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>l K\<close> by blast
   qed
 qed
 
@@ -432,7 +473,7 @@ proof (cases P C rule: ground_eq_factoring.cases)
     unfolding G_entails_def true_clss_singleton
   proof (intro allI impI)
     fix I :: "'f gterm rel"
-    let ?I' = "(\<lambda>(t\<^sub>1, t). t\<^sub>1 \<approx> t) ` I"
+    let ?I' = "(\<lambda>(t\<^sub>1, t). Upair t\<^sub>1 t) ` I"
     assume "trans I" and "sym I" and "?I' \<TTurnstile> P"
     then obtain K :: "'f gterm uprod literal" where
       "K \<in># P" and "?I' \<TTurnstile>l K"
@@ -455,7 +496,7 @@ proof (cases P C rule: ground_eq_factoring.cases)
         then show ?thesis
           by simp
       qed
-      hence "?I' \<TTurnstile>l Pos (t \<approx> t'') \<or> ?I' \<TTurnstile>l Neg (t' \<approx> t'')"
+      hence "?I' \<TTurnstile>l Pos (Upair t t'') \<or> ?I' \<TTurnstile>l Neg (Upair t' t'')"
         unfolding true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] .
       thus ?thesis
         unfolding ground_eq_factoringI
@@ -469,7 +510,7 @@ proof (cases P C rule: ground_eq_factoring.cases)
       hence "K \<in># C"
         by (simp add: ground_eq_factoringI(1,2,7))
       thus ?thesis
-        using \<open>(\<lambda>(t\<^sub>1, t). t\<^sub>1 \<approx> t) ` I \<TTurnstile>l K\<close> by blast
+        using \<open>(\<lambda>(t\<^sub>1, t). Upair t\<^sub>1 t) ` I \<TTurnstile>l K\<close> by blast
     qed
   qed
 qed
@@ -491,10 +532,10 @@ next
   proof (intro allI impI)
     fix I :: "'f gterm rel"
     assume "refl I" and "trans I" and "sym I" and "compatible_with_gctxt I" and
-      "(\<lambda>(x, y). x \<approx> y) ` I \<TTurnstile>s N1"
-    hence "\<forall>C \<in> N2. (\<lambda>(x, y). x \<approx> y) ` I \<TTurnstile>s {C}"
+      "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s N1"
+    hence "\<forall>C \<in> N2. (\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s {C}"
       using ball_G_entails by (simp add: G_entails_def)
-    then show "(\<lambda>(x, y). x \<approx> y) ` I \<TTurnstile>s N2"
+    then show "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s N2"
       by (simp add: true_clss_def)
   qed
 next
@@ -520,11 +561,11 @@ lemma ground_superposition_smaller_conclusion:
 proof (cases P1 P2 C rule: ground_superposition.cases)
   case (ground_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
 
-  have "P\<^sub>1' + add_mset (\<P> (s\<langle>t'\<rangle>\<^sub>G \<approx> s')) P\<^sub>2' \<prec>\<^sub>c P\<^sub>1' + {#\<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s')#}"
+  have "P\<^sub>1' + add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) P\<^sub>2' \<prec>\<^sub>c P\<^sub>1' + {#\<P> (Upair s\<langle>t\<rangle>\<^sub>G s')#}"
   proof (intro one_step_implies_multp ballI)
-    fix K assume "K \<in># add_mset (\<P> (s\<langle>t'\<rangle>\<^sub>G \<approx> s')) P\<^sub>2'"
+    fix K assume "K \<in># add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) P\<^sub>2'"
 
-    moreover have "\<P> (s\<langle>t'\<rangle>\<^sub>G \<approx> s') \<prec>\<^sub>l \<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s')"
+    moreover have "\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
     proof -
       have  "s\<langle>t'\<rangle>\<^sub>G \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
         using \<open>t' \<prec>\<^sub>t t\<close> less_trm_compatible_with_gctxt by simp
@@ -545,16 +586,16 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
         using \<open>\<P> \<in> {Pos, Neg}\<close> by auto
     qed
 
-    moreover have "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l \<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s')"
+    moreover have "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
     proof -
       have "is_strictly_maximal_lit L\<^sub>2 P2"
         using ground_superpositionI by argo
-      hence "\<forall>K \<in># P\<^sub>2'. \<not> Pos (t \<approx> t') \<prec>\<^sub>l K \<and> Pos (t \<approx> t') \<noteq> K"
+      hence "\<forall>K \<in># P\<^sub>2'. \<not> Pos (Upair t t') \<prec>\<^sub>l K \<and> Pos (Upair t t') \<noteq> K"
         unfolding is_maximal_wrt_def ground_superpositionI by simp
-      hence "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l Pos (t \<approx> t')"
+      hence "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l Pos (Upair t t')"
         using totalp_less_lit[THEN totalpD] by metis
 
-      moreover have "Pos (t \<approx> t') \<prec>\<^sub>l \<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s')"
+      moreover have "Pos (Upair t t') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
         if "\<P> = Neg"
       proof -
         have "t \<preceq>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
@@ -575,12 +616,12 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
                 one_step_implies_multp set_mset_add_mset_insert set_mset_empty singletonD
                 union_single_eq_member)
         qed
-        thus "Pos (t \<approx> t') \<prec>\<^sub>l \<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s')"
+        thus "Pos (Upair t t') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
           using \<open>\<P> = Neg\<close>
           by (simp add: less_lit_def)
       qed
 
-      moreover have "Pos (t \<approx> t') \<preceq>\<^sub>l \<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s')"
+      moreover have "Pos (Upair t t') \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
         if "\<P> = Pos" and "is_maximal_lit L\<^sub>1 P1"
       proof (cases "s")
         case GHole
@@ -602,22 +643,22 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
           hence "multp (\<prec>\<^sub>t) {#s\<langle>t\<rangle>\<^sub>G, s'#} {#t, t'#}"
             using transp_less_trm
             by (simp add: GHole multp_cancel_add_mset)
-          hence "\<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s') \<prec>\<^sub>l Pos (t \<approx> t')"
+          hence "\<P> (Upair s\<langle>t\<rangle>\<^sub>G s') \<prec>\<^sub>l Pos (Upair t t')"
             using \<open>\<P> = Pos\<close>
             by (simp add: less_lit_def)
-          moreover have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l \<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s')"
+          moreover have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
             using that
             unfolding ground_superpositionI is_maximal_wrt_def
             apply simp
             by (metis totalpD totalp_less_lit)
-          ultimately have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l Pos (t \<approx> t')"
+          ultimately have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l Pos (Upair t t')"
             using transp_less_lit
             by (metis (no_types, lifting) reflclp_iff transpD)
           hence "P1 \<prec>\<^sub>c P2"
-            using \<open>\<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s') \<prec>\<^sub>l Pos (t \<approx> t')\<close>
+            using \<open>\<P> (Upair s\<langle>t\<rangle>\<^sub>G s') \<prec>\<^sub>l Pos (Upair t t')\<close>
               one_step_implies_multp[of P2 P1 "(\<prec>\<^sub>l)" "{#}", simplified]
             unfolding ground_superpositionI
-            by (metis \<open>\<forall>K\<in>#P\<^sub>1'. (\<prec>\<^sub>l)\<^sup>=\<^sup>= K (\<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s'))\<close> empty_not_add_mset insert_iff reflclp_iff
+            by (metis \<open>\<forall>K\<in>#P\<^sub>1'. K \<preceq>\<^sub>l (\<P> (Upair s\<langle>t\<rangle>\<^sub>G s'))\<close> empty_not_add_mset insert_iff reflclp_iff
                 set_mset_add_mset_insert transpD transp_less_lit)
           hence False
             using \<open>P2 \<prec>\<^sub>c P1\<close>
@@ -633,7 +674,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
           by (metis transpD)
         ultimately have "multp (\<prec>\<^sub>t) {#t, t'#} {#s\<langle>t\<rangle>\<^sub>G, s'#}"
           using one_step_implies_multp[of "{#s\<langle>t\<rangle>\<^sub>G, s'#}" "{#t, t'#}" "(\<prec>\<^sub>t)" "{#}"] by simp
-        hence "Pos (t \<approx> t') \<prec>\<^sub>l \<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s')"
+        hence "Pos (Upair t t') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
           using \<open>\<P> = Pos\<close>
           by (simp add: less_lit_def)
         thus ?thesis
@@ -645,14 +686,14 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
         by (metis is_maximal_wrt_def local.transp_less_lit reflclp_iff transpD)
     qed
 
-    ultimately show "\<exists>j \<in># {#\<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s')#}. K \<prec>\<^sub>l j"
+    ultimately show "\<exists>j \<in># {#\<P> (Upair s\<langle>t\<rangle>\<^sub>G s')#}. K \<prec>\<^sub>l j"
       by auto
   qed simp
 
-  moreover have "C = add_mset (\<P> (s\<langle>t'\<rangle>\<^sub>G \<approx> s')) (P\<^sub>1' + P\<^sub>2')"
+  moreover have "C = add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2')"
     unfolding ground_superpositionI ..
 
-  moreover have "P1 = P\<^sub>1' + {#\<P> (s\<langle>t\<rangle>\<^sub>G \<approx> s')#}"
+  moreover have "P1 = P\<^sub>1' + {#\<P> (Upair s\<langle>t\<rangle>\<^sub>G s')#}"
     unfolding ground_superpositionI by simp
 
   ultimately show ?thesis
@@ -679,12 +720,12 @@ proof (cases P C rule: ground_eq_factoring.cases)
   case (ground_eq_factoringI L\<^sub>1 L\<^sub>2 P' t t' t'')
   have "is_maximal_lit L\<^sub>1 P"
     using ground_eq_factoringI by simp
-  hence "\<forall>K \<in># add_mset (Pos (t \<approx> t'')) P'. \<not> Pos (t \<approx> t') \<prec>\<^sub>l K"
+  hence "\<forall>K \<in># add_mset (Pos (Upair t t'')) P'. \<not> Pos (Upair t t') \<prec>\<^sub>l K"
     unfolding ground_eq_factoringI
     by (simp add: is_maximal_wrt_def)
-  hence "\<not> Pos (t \<approx> t') \<prec>\<^sub>l Pos (t \<approx> t'')"
+  hence "\<not> Pos (Upair t t') \<prec>\<^sub>l Pos (Upair t t'')"
     by simp
-  hence "Pos (t \<approx> t'') \<preceq>\<^sub>l Pos (t \<approx> t')"
+  hence "Pos (Upair t t'') \<preceq>\<^sub>l Pos (Upair t t')"
     using totalp_less_lit
     by (metis reflclp_iff totalpD)
   hence "t'' \<preceq>\<^sub>t t'"
@@ -692,20 +733,19 @@ proof (cases P C rule: ground_eq_factoring.cases)
     using transp_less_trm
     by (auto simp: less_lit_def multp_cancel_add_mset)
 
-  have "C = add_mset (Neg (t' \<approx> t'')) (add_mset (Pos (t \<approx> t'')) P')"
+  have "C = add_mset (Neg (Upair t' t'')) (add_mset (Pos (Upair t t'')) P')"
     using ground_eq_factoringI by fastforce
 
-  moreover have "add_mset (Neg (t' \<approx> t'')) (add_mset (Pos (t \<approx> t'')) P') \<prec>\<^sub>c P"
+  moreover have "add_mset (Neg (Upair t' t'')) (add_mset (Pos (Upair t t'')) P') \<prec>\<^sub>c P"
     unfolding ground_eq_factoringI
   proof (intro one_step_implies_multp[of "{#_#}" "{#_#}", simplified])
     have "t'' \<prec>\<^sub>t t"
-      using \<open>t' \<prec>\<^sub>t t\<close> \<open>t'' \<preceq>\<^sub>t t'\<close>
-      by (metis reflclp_iff transpD transp_less_trm)
+      using \<open>t' \<prec>\<^sub>t t\<close> \<open>t'' \<preceq>\<^sub>t t'\<close> by order
     hence "multp (\<prec>\<^sub>t) {#t', t'', t', t''#} {#t, t'#}"
       using one_step_implies_multp[of _ _ _ "{#}", simplified]
       by (metis \<open>t' \<prec>\<^sub>t t\<close> diff_empty id_remove_1_mset_iff_notin insert_iff
           set_mset_add_mset_insert)
-    thus "Neg (t' \<approx> t'') \<prec>\<^sub>l Pos (t \<approx> t')"
+    thus "Neg (Upair t' t'') \<prec>\<^sub>l Pos (Upair t t')"
       by (simp add: less_lit_def)
   qed
 
@@ -767,13 +807,13 @@ begin
 function equation :: "'f gterm uprod clause \<Rightarrow> 'f gterm rel" where
   "equation C = {(s, t)| s t C'.
     C \<in> N \<and>
-    C = add_mset (Pos (s \<approx> t)) C' \<and>
+    C = add_mset (Pos (Upair s t)) C' \<and>
     select C = {#} \<and>
-    is_strictly_maximal_lit (Pos (s \<approx> t)) C \<and>
+    is_strictly_maximal_lit (Pos (Upair s t)) C \<and>
     t \<prec>\<^sub>t s \<and>
     (let R\<^sub>C = (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. equation D) in
-    \<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
-    \<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (insert (s, t) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
+    \<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
+    \<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert (s, t) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
     s \<in> NF (rewrite_inside_gctxt R\<^sub>C))}"
   by simp_all
 
@@ -802,20 +842,20 @@ lemma equation_eq_empty_or_singleton:
   "equation N C = {} \<or> (\<exists>s t. equation N C = {(s, t)})"
 proof -
   have "\<exists>\<^sub>\<le>\<^sub>1 (x, y). \<exists>C'.
-    C = add_mset (Pos (x \<approx> y)) C' \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (x \<approx> y)) C \<and> y \<prec>\<^sub>t x"
+    C = add_mset (Pos (Upair x y)) C' \<and> is_maximal_wrt (\<preceq>\<^sub>l) (Pos (Upair x y)) C \<and> y \<prec>\<^sub>t x"
     apply (rule Uniq_prodI)
     apply (elim exE conjE)
     using Uniq_striclty_maximal_lit_in_ground_cls[THEN Uniq_D,
-        of "Pos (_ \<approx> _)" _ "Pos (_ \<approx> _)", unfolded literal.inject]
+        of "Pos (Upair _ _)" _ "Pos (Upair _ _)", unfolded literal.inject]
     using totalp_less_trm
     by (metis (no_types, opaque_lifting) Upair_inject asympD asymp_less_trm is_maximal_wrt_def)
   hence Uniq_equation: "\<exists>\<^sub>\<le>\<^sub>1 (x, y). \<exists>C'.
     C \<in> N \<and>
-    C = add_mset (Pos (x \<approx> y)) C' \<and> select C = {#} \<and>
-    is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (x \<approx> y)) C \<and> y \<prec>\<^sub>t x \<and>
+    C = add_mset (Pos (Upair x y)) C' \<and> select C = {#} \<and>
+    is_maximal_wrt (\<preceq>\<^sub>l) (Pos (Upair x y)) C \<and> y \<prec>\<^sub>t x \<and>
     (let R\<^sub>C = \<Union> (equation N ` {D \<in> N. D \<prec>\<^sub>c C}) in
-      \<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
-      \<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (insert (x, y) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
+      \<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
+      \<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert (x, y) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
       x \<in> NF (rewrite_inside_gctxt R\<^sub>C))"
     using Uniq_antimono'
     by (smt (verit) Uniq_def Uniq_prodI case_prod_conv)
@@ -834,12 +874,12 @@ lemma mem_equationE:
   obtains l r C' where
     "C \<in> N" and
     "rule = (l, r)" and
-    "C = add_mset (Pos (l \<approx> r)) C'" and
+    "C = add_mset (Pos (Upair l r)) C'" and
     "select C = {#}" and
-    "is_strictly_maximal_lit (Pos (l \<approx> r)) C" and
+    "is_strictly_maximal_lit (Pos (Upair l r)) C" and
     "r \<prec>\<^sub>t l" and
-    "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C" and
-    "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'" and
+    "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C" and
+    "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'" and
     "l \<in> NF (rewrite_inside_gctxt (rewrite_sys N C))"
   using rule_in
   unfolding equation.simps[of N C] mem_Collect_eq Let_def rewrite_sys_def
@@ -878,8 +918,7 @@ next
   from step.hyps have "t3 \<prec>\<^sub>t t2"
     using rhs_less_trm_lhs_if_mem_rewrite_inside_gctxt_rewrite_sys by metis
   with step.IH show ?case
-    using transp_less_trm
-    by (metis reflclp_iff transpD)
+    by order
 qed
 
 lemma singleton_eq_CollectD: "{x} = {y. P y} \<Longrightarrow> P x"
@@ -897,23 +936,23 @@ lemma less_trm_iff_less_cls_if_lhs_equation:
 proof -
   from E\<^sub>C obtain C' where
     "C \<in> N" and
-    C_def: "C = add_mset (Pos (s \<approx> t)) C'" and
-    "is_strictly_maximal_lit (Pos (s \<approx> t)) C" and
+    C_def: "C = add_mset (Pos (Upair s t)) C'" and
+    "is_strictly_maximal_lit (Pos (Upair s t)) C" and
     "t \<prec>\<^sub>t s" and
     s_irreducible: "s \<in> NF (rewrite_inside_gctxt (\<Union>C' \<in> {C' \<in> N. C' \<prec>\<^sub>c C}. equation N C'))"
     by (auto simp:  elim!: equation.elims dest: singleton_eq_CollectD)
-  hence "\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (s \<approx> t)"
+  hence "\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (Upair s t)"
     unfolding is_maximal_wrt_def
     using totalp_less_lit[THEN totalpD]
     by (metis (no_types, opaque_lifting) add_mset_remove_trivial reflclp_iff)
 
   from E\<^sub>D obtain D' where
     "D \<in> N" and
-    D_def: "D = add_mset (Pos (u \<approx> v)) D'" and
-    "is_strictly_maximal_lit (Pos (u \<approx> v)) D" and
+    D_def: "D = add_mset (Pos (Upair u v)) D'" and
+    "is_strictly_maximal_lit (Pos (Upair u v)) D" and
     "v \<prec>\<^sub>t u"
     by (auto simp:  elim: equation.elims dest: singleton_eq_CollectD)
-  hence "\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (u \<approx> v)"
+  hence "\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (Upair u v)"
     unfolding is_maximal_wrt_def
     using totalp_less_lit[THEN totalpD]
     by (metis (no_types, opaque_lifting) add_mset_remove_trivial reflclp_iff)
@@ -926,10 +965,10 @@ proof -
       by (meson transpD transp_less_trm)
     ultimately have "multp (\<prec>\<^sub>t) {#u, v#} {#s, t#}"
       using one_step_implies_multp[of "{#s, t#}" "{#u, v#}" _ "{#}"] by simp
-    hence "Pos (u \<approx> v) \<prec>\<^sub>l Pos (s \<approx> t)"
+    hence "Pos (Upair u v) \<prec>\<^sub>l Pos (Upair s t)"
       by (simp add: less_lit_def)
-    moreover hence "\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (s \<approx> t)"
-      using \<open>\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (u \<approx> v)\<close>
+    moreover hence "\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (Upair s t)"
+      using \<open>\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (Upair u v)\<close>
       by (meson transp_less_lit transpD)
     ultimately show "D \<prec>\<^sub>c C"
       using one_step_implies_multp[of C D _ "{#}"]
@@ -954,21 +993,19 @@ proof -
         by (meson transpD transp_less_trm)
       ultimately have "multp (\<prec>\<^sub>t) {#s, t#} {#u, v#}"
         using one_step_implies_multp[of "{#u, v#}" "{#s, t#}" _ "{#}"] by simp
-      hence "Pos (s \<approx> t) \<prec>\<^sub>l Pos (u \<approx> v)"
+      hence "Pos (Upair s t) \<prec>\<^sub>l Pos (Upair u v)"
         by (simp add: less_lit_def)
-      moreover hence "\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (u \<approx> v)"
-        using \<open>\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (s \<approx> t)\<close>
+      moreover hence "\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (Upair u v)"
+        using \<open>\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (Upair s t)\<close>
         by (meson transp_less_lit transpD)
       ultimately have "C \<prec>\<^sub>c D"
         using one_step_implies_multp[of D C _ "{#}"]
         by (simp add: D_def C_def)
       thus False
-        using \<open>D \<prec>\<^sub>c C\<close>
-        by (meson irreflpD transpD transp_less_cls wfP_imp_irreflp wfP_less_cls)
+        using \<open>D \<prec>\<^sub>c C\<close> by order
     qed
     ultimately show "u \<prec>\<^sub>t s"
-      using totalp_less_trm[THEN totalpD, of s u]
-      using C_def D_def by auto
+      by order
   qed
 qed
 
@@ -1007,7 +1044,7 @@ next
   hence "t \<prec>\<^sub>t s"
     by (auto elim: mem_equationE)
   thus "(t, s) \<in> {(x, y). x \<prec>\<^sub>t y}"
-    by (simp add: ) 
+    by simp 
 qed
 
 lemma no_crit_pairs:
@@ -1028,15 +1065,15 @@ proof (rule ccontr)
     by auto
 
   from rule1_in' obtain C1' where
-    C1_def: "C1 = add_mset (Pos (ctxt\<langle>l\<rangle>\<^sub>G \<approx> r1)) C1'" and
-    C1_max: "is_strictly_maximal_lit (Pos (ctxt\<langle>l\<rangle>\<^sub>G \<approx> r1)) C1" and
+    C1_def: "C1 = add_mset (Pos (Upair ctxt\<langle>l\<rangle>\<^sub>G r1)) C1'" and
+    C1_max: "is_strictly_maximal_lit (Pos (Upair ctxt\<langle>l\<rangle>\<^sub>G r1)) C1" and
     "r1 \<prec>\<^sub>t ctxt\<langle>l\<rangle>\<^sub>G" and
     l1_irreducible: "ctxt\<langle>l\<rangle>\<^sub>G \<in> NF (rewrite_inside_gctxt (rewrite_sys N2 C1))"
     by (auto elim: mem_equationE)
 
   from rule2_in' obtain C2' where
-    C2_def: "C2 = add_mset (Pos (l \<approx> r2)) C2'" and
-    C2_max: "is_strictly_maximal_lit (Pos (l \<approx> r2)) C2" and
+    C2_def: "C2 = add_mset (Pos (Upair l r2)) C2'" and
+    C2_max: "is_strictly_maximal_lit (Pos (Upair l r2)) C2" and
     "r2 \<prec>\<^sub>t l"
     by (auto elim: mem_equationE)
 
@@ -1056,7 +1093,7 @@ proof (rule ccontr)
         less_trm_iff_less_cls_if_lhs_equation
       by simp_all
     hence "C1 = C2"
-      using totalp_less_cls[THEN totalpD] by metis
+      by order
     hence "r1 = r2"
       using \<open>equation N2 C1 = {(ctxt\<langle>l\<rangle>\<^sub>G, r1)}\<close> \<open>equation N2 C2 = {(l, r2)}\<close> by simp
     moreover have "r1 \<noteq> r2"
@@ -1064,11 +1101,11 @@ proof (rule ccontr)
       unfolding \<open>ctxt = \<box>\<^sub>G\<close>
       by simp
     ultimately show ?thesis
-      by argo
+      by contradiction
   next
     case False
     hence "l \<prec>\<^sub>t ctxt\<langle>l\<rangle>\<^sub>G"
-      by (metis ctxt_supt less_trm_if_subterm)
+      by (metis less_trm_if_subterm)
     hence "C2 \<prec>\<^sub>c C1"
       using \<open>equation N2 C1 = {(ctxt\<langle>l\<rangle>\<^sub>G, r1)}\<close> \<open>equation N2 C2 = {(l, r2)}\<close>
         less_trm_iff_less_cls_if_lhs_equation
@@ -1118,15 +1155,15 @@ proof -
   from E\<^sub>C_eq have "(s, t) \<in> equation N C"
     by simp
   then obtain C' where
-    C_def: "C = add_mset (Pos (s \<approx> t)) C'" and
-    C_max_lit: "is_strictly_maximal_lit (Pos (s \<approx> t)) C" and
+    C_def: "C = add_mset (Pos (Upair s t)) C'" and
+    C_max_lit: "is_strictly_maximal_lit (Pos (Upair s t)) C" and
     "t \<prec>\<^sub>t s"
     by (auto elim: mem_equationE)
 
   hence less_lit_tot_on_C_D[simp]: "totalp_on (set_mset C \<union> set_mset D) (\<prec>\<^sub>l)"
     using totalp_less_lit totalp_on_subset by blast
 
-  have "Pos (s \<approx> t) \<prec>\<^sub>l L" if "is_pos L" and "\<not> u \<preceq>\<^sub>t s"
+  have "Pos (Upair s t) \<prec>\<^sub>l L" if "is_pos L" and "\<not> u \<preceq>\<^sub>t s"
   proof -
     from that(2) have "s \<prec>\<^sub>t u"
       using totalp_less_trm[THEN totalpD] by auto
@@ -1134,12 +1171,12 @@ proof -
       using \<open>t \<prec>\<^sub>t s\<close>
       by (smt (verit, del_insts) add.right_neutral empty_iff insert_iff one_step_implies_multp
           set_mset_add_mset_insert set_mset_empty transpD transp_less_trm union_mset_add_mset_right)
-    with that(1) show "Pos (s \<approx> t) \<prec>\<^sub>l L"
+    with that(1) show "Pos (Upair s t) \<prec>\<^sub>l L"
       using topmost_trms_of_L
       by (cases L) (simp_all add: less_lit_def)
   qed
 
-  moreover have "Pos (s \<approx> t) \<prec>\<^sub>l L" if "is_neg L" and "\<not> u \<prec>\<^sub>t s"
+  moreover have "Pos (Upair s t) \<prec>\<^sub>l L" if "is_neg L" and "\<not> u \<prec>\<^sub>t s"
   proof -
     from that(2) have "s \<preceq>\<^sub>t u"
       using totalp_less_trm[THEN totalpD] by auto
@@ -1148,33 +1185,33 @@ proof -
       by (smt (z3) add_mset_add_single add_mset_remove_trivial add_mset_remove_trivial_iff
           empty_not_add_mset insert_DiffM insert_noteq_member one_step_implies_multp reflclp_iff
           transp_def transp_less_trm union_mset_add_mset_left union_mset_add_mset_right)
-    with that(1) show "Pos (s \<approx> t) \<prec>\<^sub>l L"
+    with that(1) show "Pos (Upair s t) \<prec>\<^sub>l L"
       using topmost_trms_of_L
       by (cases L) (simp_all add: less_lit_def)
   qed
 
-  moreover have False if "Pos (s \<approx> t) \<prec>\<^sub>l L"
+  moreover have False if "Pos (Upair s t) \<prec>\<^sub>l L"
   proof -
     have "C \<prec>\<^sub>c D"
     proof (rule multp_if_maximal_less)
-      show "Pos (s \<approx> t) \<in># C"
+      show "Pos (Upair s t) \<in># C"
         by (simp add: C_def)
     next
       show "L \<in># D"
         using L_in by simp
     next
-      show "is_maximal_lit (Pos (s \<approx> t)) C"
+      show "is_maximal_lit (Pos (Upair s t)) C"
         using C_max_lit by simp
     next
-      show "Pos (s \<approx> t) \<prec>\<^sub>l L"
+      show "Pos (Upair s t) \<prec>\<^sub>l L"
         using that by simp
     qed simp_all
     with \<open>D \<preceq>\<^sub>c C\<close> show False
-      by (metis asympD reflclp_iff wfP_imp_asymp wfP_less_cls)
+      by order
   qed
 
   ultimately show "is_pos L \<Longrightarrow> u \<preceq>\<^sub>t s" and "is_neg L \<Longrightarrow> u \<prec>\<^sub>t s"
-    by metis+
+    by argo+
 qed
 
 lemma less_trm_const_lhs_if_mem_rewrite_inside_gctxt:
@@ -1271,7 +1308,7 @@ proof -
   proof (rule mem_join_union_iff_mem_join_lhs)
     fix u assume "(s, u) \<in> R\<^sub>1\<^sup>*"
     hence "u \<preceq>\<^sub>t s"
-      using ball_R\<^sub>1_rhs_lt_lhs' by simp
+      using ball_R\<^sub>1_rhs_lt_lhs' by metis
 
     show "u \<notin> Domain R\<^sub>2"
     proof (rule notI)
@@ -1281,7 +1318,7 @@ proof -
       hence "s \<prec>\<^sub>t u"
         using ball_R\<^sub>2_lt_lhs by simp
       with \<open>u \<preceq>\<^sub>t s\<close> show False
-        by (metis asympD asymp_less_trm reflclp_iff)
+        by order
     qed
   next
     fix u assume "(t, u) \<in> R\<^sub>1\<^sup>*"
@@ -1296,7 +1333,7 @@ proof -
       hence "t \<prec>\<^sub>t u"
         using ball_R\<^sub>2_lt_lhs by simp
       with \<open>u \<preceq>\<^sub>t t\<close> show False
-        by (metis asympD asymp_less_trm reflclp_iff)
+        by order
     qed
   qed
 qed
@@ -1336,24 +1373,24 @@ lemma lift_entailment_to_Union:
   defines "R\<^sub>D \<equiv> rewrite_sys N D"
   assumes
     D_in: "D \<in> N" and
-    R\<^sub>D_entails_D: "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down> \<TTurnstile> D"
+    R\<^sub>D_entails_D: "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down> \<TTurnstile> D"
   shows
-    "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> D" and
-    "C \<in> N \<Longrightarrow> D \<prec>\<^sub>c C \<Longrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D"
+    "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> D" and
+    "C \<in> N \<Longrightarrow> D \<prec>\<^sub>c C \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D"
 proof -
   from R\<^sub>D_entails_D obtain L s t where
     L_in: "L \<in># D" and
-    L_eq_disj_L_eq: "L = Pos (s \<approx> t) \<and> (s, t) \<in> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down> \<or>
-     L = Neg (s \<approx> t) \<and> (s, t) \<notin> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>"
+    L_eq_disj_L_eq: "L = Pos (Upair s t) \<and> (s, t) \<in> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down> \<or>
+     L = Neg (Upair s t) \<and> (s, t) \<notin> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>"
     unfolding true_cls_def true_lit_iff
     by (metis (no_types, opaque_lifting) image_iff prod.case surj_pair uprod_exhaust)
 
   from L_eq_disj_L_eq show
-    "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> D" and
-    "C \<in> N \<Longrightarrow> D \<prec>\<^sub>c C \<Longrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D"
+    "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> D" and
+    "C \<in> N \<Longrightarrow> D \<prec>\<^sub>c C \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D"
     unfolding atomize_conj atomize_imp
   proof (elim disjE conjE)
-    assume L_def: "L = Pos (s \<approx> t)" and "(s, t) \<in> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>"
+    assume L_def: "L = Pos (Upair s t)" and "(s, t) \<in> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>"
     have "R\<^sub>D \<subseteq> (\<Union>D \<in> N. equation N D)" and
       "\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> R\<^sub>D \<subseteq> rewrite_sys N C"
       unfolding R\<^sub>D_def rewrite_sys_def
@@ -1365,8 +1402,8 @@ proof -
     hence "(s, t) \<in> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>" and
       "\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (s, t) \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
       by (auto intro!: join_mono intro: set_mp[OF _ \<open>(s, t) \<in> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>\<close>])
-    thus "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile> D \<and>
-      (C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D)"
+    thus "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile> D \<and>
+      (C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D)"
       unfolding true_cls_def true_lit_iff
       using L_in L_def by blast
   next
@@ -1376,7 +1413,7 @@ proof -
       by (smt (verit, ccfv_SIG) Pair_inject less_trm_compatible_with_gctxt mem_Collect_eq
           rewrite_inside_gctxt_def)
 
-    assume L_def: "L = Neg (s \<approx> t)" and "(s, t) \<notin> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>"
+    assume L_def: "L = Neg (Upair s t)" and "(s, t) \<notin> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>"
 
     have "(s, t) \<in> (rewrite_inside_gctxt R\<^sub>D \<union> rewrite_inside_gctxt (\<Union>C \<in> {C \<in> N. D \<preceq>\<^sub>c C}. equation N C))\<^sup>\<down> \<longleftrightarrow>
       (s, t) \<in> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>"
@@ -1449,12 +1486,12 @@ proof -
       using split_Union_equation'[OF D_in, folded R\<^sub>D_def]
       using split_rewrite_sys[OF _ D_in, folded R\<^sub>D_def]
       by (simp_all add: rewrite_inside_gctxt_union)
-    hence "(s \<approx> t) \<notin> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>" and
-      "\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (s \<approx> t) \<notin> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
+    hence "(Upair s t) \<notin> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>" and
+      "\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (Upair s t) \<notin> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
       unfolding atomize_conj
       by (meson sym_join true_lit_simps(2) true_lit_uprod_iff_true_lit_prod(2))
-    thus "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile> D \<and>
-    (C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D)"
+    thus "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile> D \<and>
+    (C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D)"
       unfolding true_cls_def true_lit_iff
       using L_in L_def by metis
   qed
@@ -1464,28 +1501,28 @@ lemma
   assumes productive: "equation N C = {(l, r)}"
   shows
     true_cls_if_productive_equation:
-      "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C"
-      "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C" and
+      "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C"
+      "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C" and
     false_cls_if_productive_equation:
-      "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (l \<approx> r)#}"
-      "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> \<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (l \<approx> r)#}"
+      "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
+      "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> \<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
 proof -
   from productive have "(l, r) \<in> equation N C"
     by simp
   then obtain C' where
     C_in: "C \<in> N" and
-    C_def: "C = add_mset (Pos (l \<approx> r)) C'" and
+    C_def: "C = add_mset (Pos (Upair l r)) C'" and
     "select C = {#}" and
-    "is_strictly_maximal_lit (Pos (l \<approx> r)) C" and
+    "is_strictly_maximal_lit (Pos (Upair l r)) C" and
     "r \<prec>\<^sub>t l" and
-    e: "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C" and
-    f: "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'" and
+    e: "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C" and
+    f: "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'" and
     "l \<in> NF (rewrite_inside_gctxt (rewrite_sys N C))"
     by (rule mem_equationE) blast
 
   have "(l, r) \<in> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>"
     using C_in \<open>(l, r) \<in> equation N C\<close> mem_rewrite_inside_gctxt_if_mem_rewrite_rules by blast
-  thus "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C"
+  thus "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C"
     using C_def by blast
 
   have "rewrite_inside_gctxt (\<Union>D \<in> N. equation N D) =
@@ -1549,7 +1586,7 @@ proof -
       by presburger
   qed
 
-  have neg_concl1: "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C'"
+  have neg_concl1: "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C'"
     unfolding true_cls_def Set.bex_simps
   proof (intro ballI)
     fix L assume L_in: "L \<in># C'"
@@ -1557,7 +1594,7 @@ proof -
       by (simp add: C_def)
 
     obtain t1 t2 where
-      atm_L_eq: "atm_of L = t1 \<approx> t2"
+      atm_L_eq: "atm_of L = Upair t1 t2"
       by (metis uprod_exhaust)
     hence trms_of_L: "mset_uprod (atm_of L) = {#t1, t2#}"
       by simp
@@ -1567,7 +1604,7 @@ proof -
       using lesseq_trm_if_pos[OF reflclp_refl productive \<open>L \<in># C\<close>]
       by (metis (no_types, opaque_lifting) add_mset_commute sup2CI)
 
-    have "(t1, t2) \<notin> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>" if L_def: "L = Pos (t1 \<approx> t2)"
+    have "(t1, t2) \<notin> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>" if L_def: "L = Pos (Upair t1 t2)"
     proof -
       from that have "(t1, t2) \<notin> (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down>"
         using f \<open>L \<in># C'\<close> by blast
@@ -1577,7 +1614,7 @@ proof -
     qed
 
     moreover have "(t1, t2) \<in> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>"
-      if L_def: "L = Neg (t1 \<approx> t2)"
+      if L_def: "L = Neg (Upair t1 t2)"
     proof -
       from that have "(t1, t2) \<in> (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down>"
         using f \<open>L \<in># C'\<close>
@@ -1588,18 +1625,18 @@ proof -
         by simp
     qed
 
-    ultimately show "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile>l L"
+    ultimately show "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile>l L"
       using atm_L_eq true_lit_uprod_iff_true_lit_prod[OF sym_join] true_lit_simps
       by (smt (verit, ccfv_SIG) literal.exhaust_sel)
   qed
-  then show "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (l \<approx> r)#}"
+  then show "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
     by (simp add: C_def)
 
   assume "D \<in> N" and "C \<prec>\<^sub>c D"
   then have "(l, r) \<in> (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down>"
     by (smt (verit, ccfv_threshold) C_in UN_iff \<open>(l, r) \<in> equation N C\<close> joinI_left mem_Collect_eq
         r_into_rtrancl mem_rewrite_inside_gctxt_if_mem_rewrite_rules rewrite_sys_def)
-  thus "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C"
+  thus "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C"
     using C_def by blast
 
   from \<open>D \<in> N\<close> have "rewrite_sys N D \<subseteq> (\<Union>D \<in> N. equation N D)"
@@ -1609,7 +1646,7 @@ proof -
   hence "(rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<subseteq> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>"
     using join_mono by metis
 
-  have "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C'"
+  have "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C'"
     unfolding true_cls_def Set.bex_simps
   proof (intro ballI)
     fix L assume L_in: "L \<in># C'"
@@ -1617,7 +1654,7 @@ proof -
       by (simp add: C_def)
 
     obtain t1 t2 where
-      atm_L_eq: "atm_of L = t1 \<approx> t2"
+      atm_L_eq: "atm_of L = Upair t1 t2"
       by (metis uprod_exhaust)
     hence trms_of_L: "mset_uprod (atm_of L) = {#t1, t2#}"
       by simp
@@ -1627,7 +1664,7 @@ proof -
       using lesseq_trm_if_pos[OF reflclp_refl productive \<open>L \<in># C\<close>]
       by (metis (no_types, opaque_lifting) add_mset_commute sup2CI)
 
-    have "(t1, t2) \<notin> (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down>" if L_def: "L = Pos (t1 \<approx> t2)"
+    have "(t1, t2) \<notin> (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down>" if L_def: "L = Pos (Upair t1 t2)"
     proof -
       from that have "(t1, t2) \<notin> (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down>"
         using f \<open>L \<in># C'\<close> by blast
@@ -1637,25 +1674,25 @@ proof -
         using \<open>(rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<subseteq> (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down>\<close> by auto
     qed
 
-    moreover have "(t1, t2) \<in> (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down>" if L_def: "L = Neg (t1 \<approx> t2)"
+    moreover have "(t1, t2) \<in> (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down>" if L_def: "L = Neg (Upair t1 t2)"
       using e
     proof (rule contrapos_np)
       assume "(t1, t2) \<notin> (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down>"
       hence "(t1, t2) \<notin> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
         using rewrite_sys_subset_if_less_cls[OF \<open>C \<prec>\<^sub>c D\<close>]
         by (meson join_mono rewrite_inside_gctxt_mono subsetD)
-      thus "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C"
-        using neg_literal_notin_imp_true_cls[of "t1 \<approx> t2" C "(\<lambda>(x, y). x \<approx> y) ` _\<^sup>\<down>"]
+      thus "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C"
+        using neg_literal_notin_imp_true_cls[of "Upair t1 t2" C "(\<lambda>(x, y). Upair x y) ` _\<^sup>\<down>"]
         unfolding uprod_mem_image_iff_prod_mem[OF sym_join]
         using L_def L_in C_def
         by simp
     qed
 
-    ultimately show "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile>l L"
+    ultimately show "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile>l L"
       using atm_L_eq true_lit_uprod_iff_true_lit_prod[OF sym_join] true_lit_simps
       by (smt (verit, ccfv_SIG) literal.exhaust_sel)
   qed
-  thus "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (l \<approx> r)#}"
+  thus "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
     by (simp add: C_def)
 qed
 
@@ -1699,33 +1736,33 @@ qed
 
 lemma true_cls_insert_and_not_true_clsE:
   assumes
-    "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (insert r R))\<^sup>\<down> \<TTurnstile> C" and
-    "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt R)\<^sup>\<down> \<TTurnstile> C"
+    "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert r R))\<^sup>\<down> \<TTurnstile> C" and
+    "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt R)\<^sup>\<down> \<TTurnstile> C"
   obtains t t' where
-    "Pos (t \<approx> t') \<in># C" and
+    "Pos (Upair t t') \<in># C" and
     "t \<prec>\<^sub>t t'" and
     "(t, t') \<in> (rewrite_inside_gctxt (insert r R))\<^sup>\<down>" and
     "(t, t') \<notin> (rewrite_inside_gctxt R)\<^sup>\<down>"
 proof -
-  assume hyp: "\<And>t t'. Pos (t \<approx> t') \<in># C \<Longrightarrow> t \<prec>\<^sub>t t' \<Longrightarrow> (t, t') \<in> (rewrite_inside_gctxt (insert r R))\<^sup>\<down> \<Longrightarrow>
+  assume hyp: "\<And>t t'. Pos (Upair t t') \<in># C \<Longrightarrow> t \<prec>\<^sub>t t' \<Longrightarrow> (t, t') \<in> (rewrite_inside_gctxt (insert r R))\<^sup>\<down> \<Longrightarrow>
     (t, t') \<notin> (rewrite_inside_gctxt R)\<^sup>\<down> \<Longrightarrow> thesis"
 
   from assms obtain L where
     "L \<in># C" and
-    entails_L: "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (insert r R))\<^sup>\<down> \<TTurnstile>l L" and
-    doesnt_entail_L: "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt R)\<^sup>\<down> \<TTurnstile>l L"
+    entails_L: "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert r R))\<^sup>\<down> \<TTurnstile>l L" and
+    doesnt_entail_L: "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt R)\<^sup>\<down> \<TTurnstile>l L"
     by (meson true_cls_def)
 
   have "totalp_on (set_uprod (atm_of L)) (\<prec>\<^sub>t)"
     using totalp_less_trm totalp_on_subset by blast
-  then obtain t t' where "atm_of L = t \<approx> t'" and "t \<preceq>\<^sub>t t'"
+  then obtain t t' where "atm_of L = Upair t t'" and "t \<preceq>\<^sub>t t'"
     using ex_ordered_Upair by metis
 
   show ?thesis
   proof (cases L)
     case (Pos A)
-    hence L_def: "L = Pos (t \<approx> t')"
-      using \<open>atm_of L = t \<approx> t'\<close> by simp
+    hence L_def: "L = Pos (Upair t t')"
+      using \<open>atm_of L = Upair t t'\<close> by simp
 
     moreover have "(t, t') \<in> (rewrite_inside_gctxt (insert r R))\<^sup>\<down>"
       using entails_L
@@ -1743,8 +1780,8 @@ proof -
       using hyp \<open>L \<in># C\<close> \<open>t \<preceq>\<^sub>t t'\<close> by auto
   next
     case (Neg A)
-    hence L_def: "L = Neg (t \<approx> t')"
-      using \<open>atm_of L = t \<approx> t'\<close> by simp
+    hence L_def: "L = Neg (Upair t t')"
+      using \<open>atm_of L = Upair t t'\<close> by simp
 
     have "(t, t') \<notin> (rewrite_inside_gctxt (insert r R))\<^sup>\<down>"
       using entails_L
@@ -1773,7 +1810,7 @@ lemma model_construction:
     N :: "'f gterm uprod clause set" and
     C :: "'f gterm uprod clause"
   defines
-    "entails \<equiv> \<lambda>E C. (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile> C"
+    "entails \<equiv> \<lambda>E C. (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile> C"
   assumes "G.saturated N" and "{#} \<notin> N" and C_in: "C \<in> N"
   shows
     "equation N C = {} \<longleftrightarrow> entails (rewrite_sys N C) C"
@@ -1817,15 +1854,15 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
     proof (cases "\<exists>A. Neg A \<in># C \<and> (Neg A \<in># select C \<or> select C = {#} \<and> is_maximal_lit (Neg A) C)")
       case ex_neg_lit_sel_or_max: True
       then obtain s s' where
-        "Neg (s \<approx> s') \<in># C" and
-        sel_or_max: "Neg (s \<approx> s') \<in># select C \<or> select C = {#} \<and> is_maximal_lit (Neg (s \<approx> s')) C"
+        "Neg (Upair s s') \<in># C" and
+        sel_or_max: "Neg (Upair s s') \<in># select C \<or> select C = {#} \<and> is_maximal_lit (Neg (Upair s s')) C"
         by (metis uprod_exhaust)
       then obtain C' where
-        C_def: "C = add_mset (Neg (s \<approx> s')) C'"
+        C_def: "C = add_mset (Neg (Upair s s')) C'"
         by (metis mset_add)
 
       show ?thesis
-      proof (cases "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile>l Pos (s \<approx> s')")
+      proof (cases "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile>l Pos (Upair s s')")
         case True
         hence "(s, s') \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
           by (meson sym_join true_lit_simps(1) true_lit_uprod_iff_true_lit_prod(1))
@@ -1841,14 +1878,14 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
 
           have "ground_eq_resolution C C'"
           proof (rule ground_eq_resolutionI)
-            show "C = add_mset (Neg (s \<approx> s')) C'"
+            show "C = add_mset (Neg (Upair s s')) C'"
               by (simp only: C_def)
           next
-            show "Neg (s \<approx> s') = Neg (s \<approx> s)"
+            show "Neg (Upair s s') = Neg (Upair s s)"
               by (simp only: \<open>s = s'\<close>)
           next
-            show "select C = {#} \<and> is_maximal_lit (Neg (s \<approx> s')) C \<or> Neg (s \<approx> s') \<in># select C"
-              using sel_or_max by force
+            show "select C = {#} \<and> is_maximal_lit (Neg (Upair s s')) C \<or> Neg (Upair s s') \<in># select C"
+              using sel_or_max by argo
           qed
           hence "\<iota> \<in> G_Inf"
             by (auto simp only: \<iota>_def G_Inf_def)
@@ -1908,44 +1945,44 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             "(t, t') \<in> equation N D" and "D \<in> N" and "D \<prec>\<^sub>c C"
             unfolding rewrite_sys_def by auto
           then obtain D' where
-            D_def: "D = add_mset (Pos (t \<approx> t')) D'" and
+            D_def: "D = add_mset (Pos (Upair t t')) D'" and
             sel_D: "select D = {#}" and
-            max_t_t': "is_strictly_maximal_lit (Pos (t \<approx> t')) D" and
+            max_t_t': "is_strictly_maximal_lit (Pos (Upair t t')) D" and
             "t' \<prec>\<^sub>t t"
             by (elim mem_equationE) fast
 
-          have superI: "ground_neg_superposition C D (add_mset (Neg (s\<^sub>1\<langle>t'\<rangle>\<^sub>G \<approx> s\<^sub>1')) (C' + D'))"
+          have superI: "ground_neg_superposition C D (add_mset (Neg (Upair s\<^sub>1\<langle>t'\<rangle>\<^sub>G s\<^sub>1')) (C' + D'))"
             if "{s, s'} = {s\<^sub>1\<langle>t\<rangle>\<^sub>G, s\<^sub>1'}" and "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1\<langle>t\<rangle>\<^sub>G"
             for s\<^sub>1 s\<^sub>1'
           proof (rule ground_neg_superpositionI)
-            show "C = add_mset (Neg (s \<approx> s')) C'"
-              by (simp add: C_def)
+            show "C = add_mset (Neg (Upair s s')) C'"
+              by (simp only: C_def)
           next
-            show "D = add_mset (Pos (t \<approx> t')) D'"
-              by (simp add: D_def)
+            show "D = add_mset (Pos (Upair t t')) D'"
+              by (simp only: D_def)
           next
             show "D \<prec>\<^sub>c C"
               using \<open>D \<prec>\<^sub>c C\<close> .
           next
-            show "select C = {#} \<and> is_maximal_lit (Neg (s \<approx> s')) C \<or> Neg (s \<approx> s') \<in># select C"
-              using sel_or_max by auto
+            show "select C = {#} \<and> is_maximal_lit (Neg (Upair s s')) C \<or> Neg (Upair s s') \<in># select C"
+              using sel_or_max by argo
           next
             show "select D = {#}"
               using sel_D by blast
           next
-            show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (t \<approx> t')) D"
+            show "is_maximal_wrt (\<preceq>\<^sub>l) (Pos (Upair t t')) D"
               using max_t_t' .
           next
             show "t' \<prec>\<^sub>t t"
               using \<open>t' \<prec>\<^sub>t t\<close> .
           next
-            from that(1) show "Neg (s \<approx> s') = Neg (s\<^sub>1\<langle>t\<rangle>\<^sub>G \<approx> s\<^sub>1')"
+            from that(1) show "Neg (Upair s s') = Neg (Upair s\<^sub>1\<langle>t\<rangle>\<^sub>G s\<^sub>1')"
               by fastforce
           next
             from that(2) show "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1\<langle>t\<rangle>\<^sub>G" .
           qed simp_all
 
-          have "ground_neg_superposition C D (add_mset (Neg (ctxt\<langle>t'\<rangle>\<^sub>G \<approx> s')) (C' + D'))"
+          have "ground_neg_superposition C D (add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')) (C' + D'))"
             if \<open>s' \<prec>\<^sub>t s\<close>
           proof (rule superI)
             from that show "{s, s'} = {ctxt\<langle>t\<rangle>\<^sub>G, s'}"
@@ -1955,7 +1992,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
               using s_eq_if by simp
           qed
 
-          moreover have "ground_neg_superposition C  D (add_mset (Neg (ctxt\<langle>t'\<rangle>\<^sub>G \<approx> s)) (C' + D'))"
+          moreover have "ground_neg_superposition C  D (add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s)) (C' + D'))"
             if \<open>s \<prec>\<^sub>t s'\<close>
           proof (rule superI)
             from that show "{s, s'} = {ctxt\<langle>t\<rangle>\<^sub>G, s}"
@@ -1967,8 +2004,8 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
 
           ultimately obtain CD where
             super: "ground_neg_superposition C  D CD" and
-            CD_eq1: "s' \<prec>\<^sub>t s \<Longrightarrow> CD = add_mset (Neg (ctxt\<langle>t'\<rangle>\<^sub>G \<approx> s')) (C' + D')" and
-            CD_eq2: "s \<prec>\<^sub>t s' \<Longrightarrow> CD = add_mset (Neg (ctxt\<langle>t'\<rangle>\<^sub>G \<approx> s)) (C' + D')"
+            CD_eq1: "s' \<prec>\<^sub>t s \<Longrightarrow> CD = add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')) (C' + D')" and
+            CD_eq2: "s \<prec>\<^sub>t s' \<Longrightarrow> CD = add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s)) (C' + D')"
             using \<open>s \<prec>\<^sub>t s' \<or> s' \<prec>\<^sub>t s\<close> s'_eq_if s_eq_if by metis
 
           define \<iota> :: "'f gterm uprod clause inference" where
@@ -2011,13 +2048,13 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             by (metis D_def \<open>(t, t') \<in> equation N D\<close> add_mset_remove_trivial empty_iff
                  equation_eq_empty_or_singleton singletonD)
 
-          moreover have "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile>l
-            (Neg (ctxt\<langle>t'\<rangle>\<^sub>G \<approx> s'))"
+          moreover have "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile>l
+            (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s'))"
             if "s' \<prec>\<^sub>t s"
             using \<open>(u\<^sub>0, u) \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>*\<close> \<open>u\<^sub>0 = ctxt\<langle>t'\<rangle>\<^sub>G\<close> s'_u by blast
 
-          moreover have "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile>l
-            (Neg (ctxt\<langle>t'\<rangle>\<^sub>G \<approx> s))"
+          moreover have "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile>l
+            (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s))"
             if "s \<prec>\<^sub>t s'"
             using \<open>(u\<^sub>0, u) \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>*\<close> \<open>u\<^sub>0 = ctxt\<langle>t'\<rangle>\<^sub>G\<close> s_u by blast
 
@@ -2028,7 +2065,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
       next
         case False
         thus ?thesis
-          using \<open>Neg (s \<approx> s') \<in># C\<close>
+          using \<open>Neg (Upair s s') \<in># C\<close>
           by (auto simp add: entails_def true_cls_def)
       qed
     next
@@ -2050,11 +2087,11 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
 
       have "totalp_on (set_uprod A) (\<prec>\<^sub>t)"
         using totalp_less_trm totalp_on_subset by blast
-      then obtain s s' where A_def: "A = (s \<approx> s')" and "s' \<preceq>\<^sub>t s"
+      then obtain s s' where A_def: "A = Upair s s'" and "s' \<preceq>\<^sub>t s"
         using ex_ordered_Upair[of A "(\<prec>\<^sub>t)"] by fastforce
 
       show ?thesis
-      proof (cases "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C' \<or> s = s'")
+      proof (cases "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C' \<or> s = s'")
         case True
         then show ?thesis
           using \<open>equation N C = {}\<close>
@@ -2062,7 +2099,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
       next
         case False
 
-        from False have "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C'"
+        from False have "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C'"
           by simp
 
         from False have "s' \<prec>\<^sub>t s"
@@ -2074,25 +2111,25 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
           show ?thesis
           proof (cases "s \<in> NF (rewrite_inside_gctxt (rewrite_sys N C))")
             case s_irreducible: True
-            hence e_or_f_doesnt_hold: "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C \<or>
-              (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (insert (s, s') (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'"
+            hence e_or_f_doesnt_hold: "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C \<or>
+              (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert (s, s') (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'"
               using \<open>equation N C = {}\<close>[unfolded  equation.simps[of N C]]
               using \<open>C \<in> N\<close> C_def \<open>select C = {#}\<close> strictly_maximal \<open>s' \<prec>\<^sub>t s\<close>
               unfolding A_def rewrite_sys_def 
               by (smt (verit, best) Collect_empty_eq)
             show ?thesis
-            proof (cases "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C")
+            proof (cases "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C")
               case e_doesnt_hold: True
               thus ?thesis
                 by (simp add: entails_def)
             next
               case e_holds: False
-              hence R_C_doesnt_entail_C': "\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C'"
+              hence R_C_doesnt_entail_C': "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C'"
                 unfolding C_def by simp
               show ?thesis
-              proof (cases "(\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (insert (s, s') (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'")
+              proof (cases "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert (s, s') (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'")
                 case f_doesnt_hold: True
-                then obtain C'' t t' where C'_def: "C' = add_mset (Pos (t \<approx> t')) C''" and
+                then obtain C'' t t' where C'_def: "C' = add_mset (Pos (Upair t t')) C''" and
                   "t' \<prec>\<^sub>t t" and
                   "(t, t') \<in> (rewrite_inside_gctxt (insert (s, s') (rewrite_sys N C)))\<^sup>\<down>" and
                   "(t, t') \<notin> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
@@ -2100,7 +2137,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
                   using true_cls_insert_and_not_true_clsE
                   by (metis insert_DiffM join_sym Upair_sym)
 
-                have "Pos (t \<approx> t') \<prec>\<^sub>l Pos (s \<approx> s')"
+                have "Pos (Upair t t') \<prec>\<^sub>l Pos (Upair s s')"
                   using strictly_maximal
                   apply (simp add: C_def is_maximal_wrt_def) 
                   using C'_def A_def
@@ -2136,20 +2173,19 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
                     using one_step_implies_multp[of _ _ _ "{#}", simplified]
                     by (metis (mono_tags, opaque_lifting) empty_not_add_mset insert_iff
                         set_mset_add_mset_insert set_mset_empty singletonD transpD transp_less_trm)
-                  hence "Pos (s \<approx> s') \<prec>\<^sub>l Pos (t \<approx> t')"
+                  hence "Pos (Upair s s') \<prec>\<^sub>l Pos (Upair t t')"
                     by (simp add: less_lit_def)
                   thus False
                     using strictly_maximal
-                    by (simp add: A_def C_def \<open>C' = add_mset (Pos (t \<approx> t')) C''\<close>
+                    by (simp add: A_def C_def \<open>C' = add_mset (Pos (Upair t t')) C''\<close>
                         is_maximal_wrt_def)
                 qed
 
                 ultimately have "t = s"
-                  using totalp_less_trm
-                  by (metis totalpD)
+                  by order
                 hence "t' \<prec>\<^sub>t s'"
                   using \<open>t' \<prec>\<^sub>t t\<close> \<open>s' \<prec>\<^sub>t s\<close>
-                  using \<open>Pos (t \<approx> t') \<prec>\<^sub>l Pos (s \<approx> s')\<close>
+                  using \<open>Pos (Upair t t') \<prec>\<^sub>l Pos (Upair s s')\<close>
                   unfolding less_lit_def
                   by (simp add: multp_cancel_add_mset transp_less_trm)
 
@@ -2201,30 +2237,30 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
                 ultimately have "(s', t') \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
                   by simp
 
-                let ?concl = "add_mset (Neg (s' \<approx> t')) (add_mset (Pos (t \<approx> t')) C'')"
+                let ?concl = "add_mset (Neg (Upair s' t')) (add_mset (Pos (Upair t t')) C'')"
 
                 define \<iota> :: "'f gterm uprod clause inference" where
                   "\<iota> = Infer [C] ?concl"
 
                 have eq_fact: "ground_eq_factoring C ?concl"
                 proof (rule ground_eq_factoringI)
-                  show "C = add_mset (Pos (s \<approx> s')) (add_mset (Pos (t \<approx> t')) C'')"
+                  show "C = add_mset (Pos (Upair s s')) (add_mset (Pos (Upair t t')) C'')"
                     by (simp add: C_def C'_def A_def)
                 next
                   show "select C = {#}"
                     using \<open>select C = {#}\<close> .
                 next
-                  show "is_maximal_lit (Pos (s \<approx> s')) C"
+                  show "is_maximal_lit (Pos (Upair s s')) C"
                     by (metis A_def max_Pos_A)
                 next
                   show "s' \<prec>\<^sub>t s"
                     using \<open>s' \<prec>\<^sub>t s\<close> .
                 next
-                  show "Pos (t \<approx> t') = Pos (s \<approx> t')"
-                    by (simp add: \<open>t = s\<close>)
+                  show "Pos (Upair t t') = Pos (Upair s t')"
+                    unfolding \<open>t = s\<close> ..
                 next
-                  show "add_mset (Neg (s' \<approx> t')) (add_mset (Pos (t \<approx> t')) C'') =
-                    add_mset (Neg (s' \<approx> t')) (add_mset (Pos (s \<approx> t')) C'')"
+                  show "add_mset (Neg (Upair s' t')) (add_mset (Pos (Upair t t')) C'') =
+                    add_mset (Neg (Upair s' t')) (add_mset (Pos (Upair s t')) C'')"
                     by (auto simp add: \<open>t = s\<close>)
                 qed simp_all
                 hence "\<iota> \<in> G_Inf"
@@ -2279,23 +2315,25 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
               by (auto simp: rewrite_inside_gctxt_def rewrite_sys_def)
 
             obtain D' where
-              D_def: "D = add_mset (Pos (t \<approx> t')) D'" and
+              D_def: "D = add_mset (Pos (Upair t t')) D'" and
               "select D = {#}" and
-              max_t_t': "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (t \<approx> t')) D" and
+              max_t_t': "is_maximal_wrt (\<preceq>\<^sub>l) (Pos (Upair t t')) D" and
               "t' \<prec>\<^sub>t t"
               using \<open>(t, t') \<in> equation N D\<close>
               by (elim mem_equationE) simp
 
-            define \<iota> :: "'f gterm uprod clause inference" where
-              "\<iota> = Infer [D, C] (add_mset (Pos (ctxt\<langle>t'\<rangle>\<^sub>G \<approx> s')) (C' + D'))"
+            let ?concl = "add_mset (Pos (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')) (C' + D')"
 
-            have super: "ground_pos_superposition C D (add_mset (Pos (ctxt\<langle>t'\<rangle>\<^sub>G \<approx> s')) (C' + D'))"
+            define \<iota> :: "'f gterm uprod clause inference" where
+              "\<iota> = Infer [D, C] ?concl"
+
+            have super: "ground_pos_superposition C D ?concl"
             proof (rule ground_pos_superpositionI)
-              show "C = add_mset (Pos (s \<approx> s')) C'"
-                by (simp add: C_def A_def)
+              show "C = add_mset (Pos (Upair s s')) C'"
+                by (simp only: C_def A_def)
             next
-              show "D = add_mset (Pos (t \<approx> t')) D'"
-                by (simp add: D_def)
+              show "D = add_mset (Pos (Upair t t')) D'"
+                by (simp only: D_def)
             next
               show "D \<prec>\<^sub>c C"
                 using \<open>D \<prec>\<^sub>c C\<close> .
@@ -2306,16 +2344,16 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
               show "select C = {#}"
                 using \<open>select C = {#}\<close> .
             next
-              show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (s \<approx> s')) C"
+              show "is_maximal_wrt (\<preceq>\<^sub>l) (Pos (Upair s s')) C"
                 using A_def strictly_maximal by simp
             next
-              show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos (t \<approx> t')) D"
+              show "is_maximal_wrt (\<preceq>\<^sub>l) (Pos (Upair t t')) D"
                 using max_t_t' .
             next
               show "t' \<prec>\<^sub>t t"
                 using \<open>t' \<prec>\<^sub>t t\<close> .
             next
-              show "Pos (s \<approx> s') = Pos (ctxt\<langle>t\<rangle>\<^sub>G \<approx> s')"
+              show "Pos (Upair s s') = Pos (Upair ctxt\<langle>t\<rangle>\<^sub>G s')"
                 by (simp only: \<open>s = ctxt\<langle>t\<rangle>\<^sub>G\<close>)
             next
               show "s' \<prec>\<^sub>t ctxt\<langle>t\<rangle>\<^sub>G"
@@ -2338,8 +2376,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             then obtain DD where
               DD_subset: "DD \<subseteq> N" and
               "finite DD" and
-              DD_entails_concl: "G_entails (insert D DD)
-                {add_mset (Pos (ctxt\<langle>t'\<rangle>\<^sub>G \<approx> s')) (C' + D')}" and
+              DD_entails_concl: "G_entails (insert D DD) {?concl}" and
               ball_DD_lt_C: "\<forall>D\<in>DD. D \<prec>\<^sub>c C"
               unfolding G.Red_I_def G.redundant_infer_def mem_Collect_eq
               by (auto simp: \<iota>_def)
@@ -2349,7 +2386,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
               using \<open>C \<in> N\<close> \<open>D \<in> N\<close> \<open>D \<prec>\<^sub>c C\<close> DD_subset ball_DD_lt_C
               by (metis in_mono insert_iff)
 
-            ultimately have "entails (rewrite_sys N C) (add_mset (Pos (ctxt\<langle>t'\<rangle>\<^sub>G \<approx> s')) (C' + D'))"
+            ultimately have "entails (rewrite_sys N C) ?concl"
               using I_interp DD_entails_concl
               unfolding entails_def G_entails_def
               by (simp add: I_def true_clss_def)
@@ -2360,16 +2397,16 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
               by (metis D_def \<open>(t, t') \<in> equation N D\<close> add_mset_remove_trivial empty_iff
                    equation_eq_empty_or_singleton singletonD)
 
-            ultimately have "entails (rewrite_sys N C) {#Pos (ctxt\<langle>t'\<rangle>\<^sub>G \<approx> s')#}"
+            ultimately have "entails (rewrite_sys N C) {#Pos (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')#}"
               unfolding entails_def
-              using \<open>\<not> (\<lambda>(x, y). x \<approx> y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C'\<close>
+              using \<open>\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C'\<close>
               by fastforce
 
             moreover have "(ctxt\<langle>t\<rangle>\<^sub>G, ctxt\<langle>t'\<rangle>\<^sub>G) \<in> rewrite_inside_gctxt (rewrite_sys N C)"
               using \<open>(t, t') \<in> equation N D\<close> \<open>D \<in> N\<close> \<open>D \<prec>\<^sub>c C\<close> rewrite_sys_def
               by (auto simp: rewrite_inside_gctxt_def)
 
-            ultimately have "entails (rewrite_sys N C) {#Pos (ctxt\<langle>t\<rangle>\<^sub>G \<approx> s')#}"
+            ultimately have "entails (rewrite_sys N C) {#Pos (Upair ctxt\<langle>t\<rangle>\<^sub>G s')#}"
               unfolding entails_def true_cls_def
               apply simp
               unfolding uprod_mem_image_iff_prod_mem[OF sym_join]
@@ -2384,18 +2421,19 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             by (metis insert_DiffM)
 
           define \<iota> :: "'f gterm uprod clause inference" where
-            "\<iota> = Infer [C] (add_mset (Pos (s \<approx> s')) (add_mset (Neg (s' \<approx> s')) C'))"
+            "\<iota> = Infer [C] (add_mset (Pos (Upair s s')) (add_mset (Neg (Upair s' s')) C'))"
 
-          have eq_fact: "ground_eq_factoring C
-            (add_mset (Pos (s \<approx> s')) (add_mset (Neg (s' \<approx> s')) C'))"
+          let ?concl = "add_mset (Pos (Upair s s')) (add_mset (Neg (Upair s' s')) C')"
+
+          have eq_fact: "ground_eq_factoring C ?concl"
           proof (rule ground_eq_factoringI)
             show "C = add_mset (Pos A) (add_mset (Pos A) C')"
               by (simp add: C_def)
           next
-            show "Pos A = Pos (s \<approx> s')"
+            show "Pos A = Pos (Upair s s')"
               by (simp add: A_def)
           next
-            show "Pos A = Pos (s \<approx> s')"
+            show "Pos A = Pos (Upair s s')"
               by (simp add: A_def)
           next
             show "select C = {#}"
@@ -2422,7 +2460,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
           then obtain DD where
             DD_subset: "DD \<subseteq> N" and
             "finite DD" and
-            DD_entails_concl: "G_entails DD {add_mset (Pos (s \<approx> s')) (add_mset (Neg (s' \<approx> s')) C')}" and
+            DD_entails_concl: "G_entails DD {?concl}" and
             ball_DD_lt_C: "\<forall>D\<in>DD. D \<prec>\<^sub>c C"
             unfolding G.Red_I_def G.redundant_infer_def mem_Collect_eq
             by (auto simp: \<iota>_def)
@@ -2432,8 +2470,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             using \<open>C \<in> N\<close> DD_subset ball_DD_lt_C
             by blast
 
-          ultimately have "entails (rewrite_sys N C)
-            (add_mset (Pos (s \<approx> s')) (add_mset (Neg (s' \<approx> s')) C'))"
+          ultimately have "entails (rewrite_sys N C) ?concl"
             using I_interp DD_entails_concl
             unfolding entails_def G_entails_def
             by (simp add: I_def true_clss_def)
@@ -2528,12 +2565,12 @@ proof unfold_locales
         unfolding I_def
         by (simp only: I_def compatible_with_gctxt_join compatible_with_gctxt_rewrite_inside_gctxt)
     next
-      show "(\<lambda>(x, y). x \<approx> y) ` I \<TTurnstile>s N"
+      show "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s N"
         unfolding I_def
         using model_construction[OF \<open>G.saturated N\<close> \<open>{#} \<notin> N\<close>]
         by (simp add: true_clss_def)
     next
-      show "\<not> (\<lambda>(x, y). x \<approx> y) ` I \<TTurnstile>s G_Bot"
+      show "\<not> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s G_Bot"
         by simp
     qed
   qed
