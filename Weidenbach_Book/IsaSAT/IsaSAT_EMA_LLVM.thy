@@ -40,7 +40,7 @@ sepref_def ema_bitshifting_impl
 
 lemma ema_reinit_inline[llvm_inline]:
   "ema_reinit = (\<lambda>(value, \<alpha>, \<beta>, wait, period).
-    (value, \<alpha>, ema_bitshifting, 0::_ word, 1:: _ word))"
+    (value, \<alpha>, ema_bitshifting, 0::_ word, 0:: _ word))"
   by (auto simp: ema_bitshifting_def intro!: ext)
 
 sepref_def EMA_MULT_SHIFT_impl
@@ -54,10 +54,8 @@ lemmas [llvm_inline] = ema_init_def
 
 sepref_def ema_update_impl is \<open>uncurry (RETURN oo ema_update)\<close>
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a ema_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  unfolding ema_update_def
+  unfolding ema_update_def Let_def[of "_ - 1"]
   apply (rewrite at \<open>let _ = of_nat \<hole> * _ in _\<close> annot_unat_unat_upcast[where 'l = 64])
-  apply (rewrite at \<open>let _= 2 * _; _=\<hole> in _\<close> fold_COPY)
-  (* TODO: The let x=y seems to be inlined, making necessary this COPY! Is this behaviour correct? *)
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   supply [[goals_limit = 1]]
   by sepref

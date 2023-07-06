@@ -51,7 +51,7 @@ strenghten:
   "rules (N, ({#C#}+R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (({#C#}+N), R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))" |
 weakenp:
   "rules (N+{#C#}, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, R, (S @ [Witness I C]), V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
-if "I \<Turnstile> C" and "atm_of ` I \<subseteq> atms_of C" and "redundancy N C I N" and "consistent_interp I " |
+if "I \<Turnstile> C"  and "redundancy N C I N" and "consistent_interp I " and "atm_of ` I \<subseteq> V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)" |
 forget:
    "rules (N, ({#C#}+R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))" |
 learn_minus:
@@ -138,7 +138,7 @@ lemma interpr_composition_assoc: \<open>a \<^bold>\<circ> (b \<^bold>\<circ> c) 
 
 lemma proposition1: 
   assumes red: "redundancy N C \<omega> N" and \<tau>: "\<tau> \<Turnstile>m N" and "\<not>\<tau> \<Turnstile> C" and cons3:"consistent_interp \<tau>"
-  and "consistent_interp \<omega>" and \<omega>: "\<omega> \<Turnstile> C" and "atm_of ` \<omega> \<subseteq> atms_of C" and
+  and "consistent_interp \<omega>" and \<omega>: "\<omega> \<Turnstile> C"  and
     "total_over_set \<tau> (atms_of_mm (add_mset C N))"
   shows "interpr_composition \<tau> \<omega> \<Turnstile>m N+{#C#}" 
   using assms
@@ -341,12 +341,14 @@ next
   case (strenghten N C R S)
   then show ?case by auto
 next
-  case (weakenp I' C N R S) note consI' = this(4) and red = this(1, 2) and sat = this(6) and cons = this(7)
+  case (weakenp I' C N V R S) note consI' = this(3) and red = this(1, 2) and sat = this(6) and cons = this(7)
   have "consistent_interp (interpr_composition I I')" 
     using cons consI' apply (simp add: interpr_composition_def)
-    by (smt (verit, ccfv_threshold) Diff_iff Un_iff consistent_interp_def mem_Collect_eq uminus_of_uminus_id)
+    by (smt (verit, del_insts) Diff_iff Un_iff consistent_interp_def mem_Collect_eq uminus_of_uminus_id)
   then show ?case 
-    using red consI' sat apply auto using weakenp.prems(3) by blast
+    using red unfolding interpr_composition_def apply auto
+    using cons apply blast
+    unfolding interpr_composition_def by auto
 next
   case (forget N C R S)
   then show ?case by auto
@@ -411,9 +413,8 @@ next
   case (weakenp I' C N R S V) note A1 = this(1) and A2 = this(2) and A3 = this(3) and A4= this(4) and A5 = this(5) and A6 = this(6)
   have "atm_of `interpr_composition I I' = atm_of `I" 
     apply (simp add: interpr_composition_def) 
-    apply auto using A6 A2
-    apply blast
-    by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
+    apply auto using A6 A4 apply auto
+    by (metis (no_types, lifting) DiffI UnCI atm_of_uminus image_eqI mem_Collect_eq)    
   then show ?case by auto
 next
   case (forget N C R S V)
@@ -434,8 +435,8 @@ next
   case (strenghten C N R S V)
   then show ?case by auto
 next
-  case (weakenp I' C N R S V) note A1 = this(1) and A2 = this(2) and A3 = this(3) and A4= this(4) and A5 = this(5) and A6 = this(6)
-  have "rules (N+{#C#}, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
+  case (weakenp I' C N V R S) note A1 = this(1) and A2 = this(2) and A3 = this(3) and A4= this(4) and A5 = this(5)  and A6 = this(6)
+   have "rules (N+{#C#}, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
         (N, R, (S @ [Witness I' C]), V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
     using A1 A2 A3 A4 rules.weakenp apply auto by blast
   hence "atm_of ` reconstruction_stack (drop (length S) (S @ [Witness I' C])) I = atm_of ` I"
@@ -484,7 +485,7 @@ next
     using A2 stack add apply auto
     by (smt (verit) add append_self_conv2 cancel_comm_monoid_add_class.diff_cancel diff_is_0_eq drop_all drop_append len stack) 
   have sub2: "V' \<subseteq> atm_of `reconstruction_stack (drop (length S') S'') I" 
-    using atoms_sub_interpretation2 A2 add at apply auto by blast
+    using  atoms_sub_interpretation2 A2 add at apply auto by blast
   then show ?case 
     using cons1 len A2 step(3, 4, 5, 6, 7) by (metis foldr_append sat sep)
 qed
@@ -610,7 +611,7 @@ next
   case (strenghten C N R S V)
   then show ?case by auto
 next
-  case (weakenp I' C N R S V) note A5 = this(5)
+  case (weakenp I' C N V R S) note A5 = this(5)
   have "R + N \<subseteq># {#C#} + R + N" 
     by auto
   then show ?case 

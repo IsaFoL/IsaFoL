@@ -507,14 +507,13 @@ V \<union> atms_of_mm N \<union> atms_of_mm (mset (take i UpL)) \<union> atms_of
 \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness {L}) (take i UpL))) =
  V \<union> atms_of_mm N \<union> atms_of_mm (mset (take (Suc i) UpL)) \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S) "
         using at_in1 at_in2 at_in3 by auto
-      have "rules
+have "rules
      (remove1_mset (UpL !  i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}) + {#UpL ! i#}, R, S @ map (Witness {L}) (take i UpL),
       V \<union> atms_of_mm N \<union> atms_of (UpL ! i) \<union> atms_of_mm (remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness {L}) (take i UpL))))
      (remove1_mset (UpL !  i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}), R, (S @ map (Witness {L}) (take i UpL)) @ [Witness {L} (UpL !i)],
      V \<union> atms_of_mm N \<union> atms_of (UpL ! i) \<union> atms_of_mm (remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness {L}) (take i UpL))))"
-        using weakenp[of "{L}" "(UpL ! i)" "remove1_mset (UpL !  i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})" R "S @ map (Witness {L}) (take i UpL)"
-            "V \<union> atms_of_mm N", OF ]
-          \<open>atm_of L \<in> atms_of (UpL ! i)\<close> \<open>{L} \<Turnstile> (UpL ! i)\<close> cons red by fastforce
+        using weakenp[of "{L}" "(UpL ! i)" "remove1_mset (UpL !  i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})"  "V \<union> atms_of_mm N" R "S @ map (Witness {L}) (take i UpL)", OF]
+          \<open>atm_of L \<in> atms_of (UpL ! i)\<close> \<open>{L} \<Turnstile> (UpL ! i)\<close> cons red  by fastforce
       hence "rules (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S @ map (Witness {L}) (take i UpL),
       V \<union> atms_of_mm N \<union> atms_of_mm (mset (take i UpL)) \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
     (N1 + NuL + mset (drop (Suc i) UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S @ map (Witness {L}) (take (Suc i) UpL),
@@ -608,13 +607,13 @@ V \<union> atms_of_mm N \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># r
         using in_atm1 in_atm2 in_atm3 by auto 
       have g6: "remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}) =  (N1 + mset (drop (Suc i) UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})" 
         by auto
-      have"rules(remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}) + {#UuL ! i#}, R, S @ map (Witness {L}) UpL @ map (Witness {- L}) (take i UuL),
+ have"rules(remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}) + {#UuL ! i#}, R, S @ map (Witness {L}) UpL @ map (Witness {- L}) (take i UuL),
       V \<union> atms_of_mm N \<union> atms_of (UuL ! i) \<union> atms_of_mm (remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})) \<union> atms_of_mm R \<union>
     atms_of_mm (wit_clause `# mset (S @ map (Witness {L}) UpL @ map (Witness {- L}) (take i UuL))))
  (remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}), R, (S @ map (Witness {L}) UpL @ map (Witness {- L}) (take i UuL)) @ [Witness {- L} (UuL ! i)],
       V \<union> atms_of_mm N \<union> atms_of (UuL ! i) \<union> atms_of_mm (remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})) \<union> atms_of_mm R \<union>
     atms_of_mm (wit_clause `# mset (S @ map (Witness {L}) UpL @ map (Witness {- L}) (take i UuL))))"
-        using weakenp[of "{-L}" "(UuL ! i)" "remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})" R "S @ map (Witness {L}) UpL @ map (Witness {- L}) (take i UuL)" "V \<union> atms_of_mm N"]
+        using weakenp[of "{-L}" "(UuL ! i)" "remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})" ]
           cons2 \<open>atm_of L \<in> atms_of (UuL ! i)\<close> \<open>{-L} \<Turnstile> UuL ! i\<close> red by fastforce
       hence "rules (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S @ map (Witness {L}) UpL @ map (Witness {- L}) (take i UuL),
       V \<union> atms_of_mm N \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
@@ -664,10 +663,10 @@ lemma rules_mono_set:
        using rules.strenghten[of N C R S "V \<union> X"] apply auto
        by (simp add: Un_left_commute sup_commute)
    next
-     case (weakenp I C N R S V)
+     case (weakenp I C N V R S)
      then show ?case 
-       using rules.weakenp[of I C N R S  "V \<union> X"] apply auto 
-       by (simp add: Un_left_commute sup_commute)
+       using rules.weakenp[of I C N "V \<union> X" R S] apply auto
+       by (smt (verit) inf_sup_aci(5) inf_sup_aci(6) le_iff_sup) 
    next
      case (forget N C R S V)
      then show ?case 
