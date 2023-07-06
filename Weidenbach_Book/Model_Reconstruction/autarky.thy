@@ -83,7 +83,7 @@ proof-
     apply (metis insert_DiffM true_cls_add_mset)
     by (metis elem_mset_set finite_imageI finite_set_mset imageI multi_member_split true_cls_add_mset)
   have "interpr_composition I (interpr_composition (uminus ` set_mset x) \<omega> ) \<Turnstile>m (N + Na)" if A:"consistent_interp I " 
-and B: "interpr_composition I (uminus ` set_mset x) \<Turnstile>m (N + Na)" for I
+    and B: "interpr_composition I (uminus ` set_mset x) \<Turnstile>m (N + Na)" for I
   proof-
    have "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega>)) \<Turnstile> C" if C: "C \<in># N" for C
    proof-
@@ -125,8 +125,9 @@ qed
 
 lemma autarky_simulation2: 
   assumes "autarky I N Na" and "consistent_interp I" and " atm_of ` I \<subseteq>  atms_of_mm (Na)"
-  shows "\<exists>S'. rules\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) (N, R, S@S', V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
-\<and> wit_clause `# mset S' = Na \<and> (\<forall>I'\<in># (wit_interp `# mset S'). I' = I)"
+  shows "\<exists>S'. rules\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
+          (N, R, S@S', V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) \<and>
+           wit_clause `# mset S' = Na \<and> (\<forall>I'\<in># (wit_interp `# mset S'). I' = I)"
   using assms
 proof - 
   obtain LNa where [simp]: \<open>mset LNa = Na\<close> 
@@ -181,16 +182,16 @@ V \<union> atms_of (LNa ! i) \<union> atms_of_mm (mset (drop (Suc i) LNa) + N) \
                = (V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)))" using Na1 by auto
       have h3: "map (Witness I) (take i LNa) @ [Witness I (LNa ! i)] = map (Witness I) (take (Suc i) LNa)"
         by (simp add: "1" Suc_le_lessD take_Suc_conv_app_nth)
-        have rul3:"rules (N + mset (drop i LNa), R, S @ map (Witness I) (take i LNa), V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
+      have rul3:"rules (N + mset (drop i LNa), R, S @ map (Witness I) (take i LNa), V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
                   (N + mset (drop (Suc i) LNa), R, S @ map (Witness I) (take (Suc i) LNa), V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
-          using h1 h2 h3 rul2 apply auto
-          by (simp add: add.commute)
-        then show ?thesis 
-          using rul1 by auto
-  qed
-qed note ag = this
+        using h1 h2 h3 rul2 apply auto
+        by (simp add: add.commute)
+      then show ?thesis 
+        using rul1 by auto
+    qed
+  qed note ag = this
   have "mset (drop (length LNa) LNa) = {#}" and "(take (length LNa) LNa) = LNa"
-     apply simp by auto
+     by auto
   then have 2: "rules\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
                        (N, R, S@map (\<lambda>C. Witness I C) LNa, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
     using ag[of "length LNa" ] by auto
@@ -201,41 +202,5 @@ qed note ag = this
   then show ?thesis 
     using 2 wit_Na by blast
 qed
-
-(*Ist das hier das gleiche Lemma wie das davor? *)
-lemma autarky_simulation: 
-  assumes "autarky I N Na" and "consistent_interp I" and " atm_of ` I \<subseteq>  atms_of_mm (Na)"
-  obtains  S' where "rules\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) (N, R, S@S', V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
-and "wit_clause `# mset S' = Na" and "\<forall>I'\<in># (wit_interp `# mset S'). I' = I"
-  using assms
-(*Ist das sicher am besten mit induction Na?*)
-proof(induction Na)
-  case empty
-  then show ?case by auto
-next
-  case (add x Na) note A1 = this(1) and A2 = this(2) and aut = this(3) and cons = this(4) and sub = this(5)
-  have "autarky I N Na" 
-    using aut unfolding autarky_def by auto
- (*Wie kann ich hier A1 bzw A2 verwenden um den nächsten Schritt zu zeigen?*)
-  obtain  S'  where "rules\<^sup>*\<^sup>*((N + Na), R, S, V \<union> atms_of x \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
-(N, R, S@S',V \<union> atms_of x \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
- and S1:"wit_clause `# mset S' = Na" and S2:"\<forall>I'\<in># (wit_interp `# mset S'). I' = I" using A1 apply auto sorry
-  have 1: "I \<Turnstile> x"
-    using aut cons unfolding autarky_def by auto
-  have 2: " atm_of ` I \<subseteq> V \<union> atms_of x \<union> atms_of_mm (N+Na) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S))" 
-    using sub by auto
-  have red1: "redundancy (N+Na) x (I) (N+Na)" 
-    using autarky_redundancy[of I N Na x] cons aut by auto
-have rul: "rules((N + Na+ {#x#}, R, S, V \<union> atms_of x \<union> atms_of_mm (N+Na ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set (S))))
-(N + Na, R,S@ [Witness I x], V \<union> atms_of x \<union> atms_of_mm (N+Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set (S)) )"
-  using weakenp[of I x "N+Na" V R "S"] using 1 2 cons red1 by auto
-  have "rules\<^sup>*\<^sup>*(N + Na, R,S@ [Witness I x], V \<union> atms_of x \<union> atms_of_mm (N+Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set (S)) ) 
-(N, R, S@ [Witness I x]@S', V \<union> atms_of x \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S) )" sorry
-  hence "rules\<^sup>*\<^sup>*((N + Na+ {#x#}, R, S, V \<union> atms_of x \<union> atms_of_mm (N+Na ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set (S))))
-(N, R, S@ [Witness I x]@S', V \<union> atms_of x \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S) )" using rul
-    by (meson converse_rtranclp_into_rtranclp)
-  then show ?case using S1 S2 sorry
-qed
-
 
 end
