@@ -36,7 +36,7 @@ primrec mset_lit :: "'a uprod literal \<Rightarrow> 'a multiset" where
   "mset_lit (Pos A) = mset_uprod A" |
   "mset_lit (Neg A) = mset_uprod A + mset_uprod A"
 
-type_synonym 't atom = "'t uprod"
+type_synonym 'f atom = "'f gterm uprod"
 
 
 section \<open>Superposition Calculus\<close>
@@ -44,7 +44,7 @@ section \<open>Superposition Calculus\<close>
 locale ground_superposition_calculus =
   fixes
     less_trm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
-    select :: "'f gterm atom clause \<Rightarrow> 'f gterm atom clause"
+    select :: "'f atom clause \<Rightarrow> 'f atom clause"
   assumes
     transp_less_trm[intro]: "transp (\<prec>\<^sub>t)" and
     asymp_less_trm[intro]: "asymp (\<prec>\<^sub>t)" and
@@ -68,14 +68,14 @@ lemma lesseq_trm_if_subtermeq: "t \<preceq>\<^sub>t ctxt\<langle>t\<rangle>\<^su
   by (metis gctxt_ident_iff_eq_GHole reflclp_iff)
 
 definition less_lit ::
-  "'f gterm atom literal \<Rightarrow> 'f gterm atom literal \<Rightarrow> bool" (infix "\<prec>\<^sub>l" 50) where
+  "'f atom literal \<Rightarrow> 'f atom literal \<Rightarrow> bool" (infix "\<prec>\<^sub>l" 50) where
   "less_lit L1 L2 \<equiv> multp (\<prec>\<^sub>t) (mset_lit L1) (mset_lit L2)"
 
 abbreviation lesseq_lit (infix "\<preceq>\<^sub>l" 50) where
   "lesseq_lit \<equiv> (\<prec>\<^sub>l)\<^sup>=\<^sup>="
 
 abbreviation less_cls ::
-  "'f gterm atom clause \<Rightarrow> 'f gterm atom clause \<Rightarrow> bool" (infix "\<prec>\<^sub>c" 50) where
+  "'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> bool" (infix "\<prec>\<^sub>c" 50) where
   "less_cls \<equiv> multp (\<prec>\<^sub>l)"
 
 abbreviation lesseq_cls (infix "\<preceq>\<^sub>c" 50) where
@@ -102,7 +102,7 @@ lemma wfP_less_cls[simp]: "wfP (\<prec>\<^sub>c)"
 
 lemma totalp_less_lit[simp]: "totalp (\<prec>\<^sub>l)"
 proof (rule totalpI)
-  fix L1 L2 :: "'f gterm atom literal"
+  fix L1 L2 :: "'f atom literal"
   assume "L1 \<noteq> L2"
 
   show "L1 \<prec>\<^sub>l L2 \<or> L2 \<prec>\<^sub>l L1"
@@ -196,7 +196,7 @@ abbreviation is_strictly_maximal_lit where
   "is_strictly_maximal_lit \<equiv> is_maximal_wrt (\<preceq>\<^sub>l)"
 
 inductive ground_superposition ::
-  "'f gterm atom clause \<Rightarrow> 'f gterm atom clause \<Rightarrow> 'f gterm atom clause \<Rightarrow> bool"
+  "'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> bool"
 where
   ground_superpositionI: "
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
@@ -215,7 +215,7 @@ where
     ground_superposition P\<^sub>1 P\<^sub>2 C"
 
 inductive ground_eq_resolution ::
-  "'f gterm atom clause \<Rightarrow> 'f gterm atom clause \<Rightarrow> bool" where
+  "'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> bool" where
   ground_eq_resolutionI: "
     P = add_mset L P' \<Longrightarrow>
     L = Neg (Upair t t) \<Longrightarrow>
@@ -223,7 +223,7 @@ inductive ground_eq_resolution ::
     ground_eq_resolution P P'"
 
 inductive ground_eq_factoring ::
-  "'f gterm atom clause \<Rightarrow> 'f gterm atom clause \<Rightarrow> bool" where
+  "'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> bool" where
   ground_eq_factoringI: "
     P = add_mset L\<^sub>1 (add_mset L\<^sub>2 P') \<Longrightarrow>
     L\<^sub>1 = t \<approx> t' \<Longrightarrow>
@@ -238,7 +238,7 @@ inductive ground_eq_factoring ::
 subsubsection \<open>Alternative Specification of the Superposition Rule\<close>
 
 inductive ground_pos_superposition ::
-  "'f gterm atom clause \<Rightarrow> 'f gterm atom clause \<Rightarrow> 'f gterm atom clause \<Rightarrow> bool"
+  "'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> bool"
 where
   ground_pos_superpositionI: "
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
@@ -267,7 +267,7 @@ proof (cases P\<^sub>1 P\<^sub>2 C rule: ground_pos_superposition.cases)
 qed
 
 inductive ground_neg_superposition ::
-  "'f gterm atom clause \<Rightarrow> 'f gterm atom clause \<Rightarrow> 'f gterm atom clause \<Rightarrow> bool"
+  "'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> bool"
 where
   ground_neg_superpositionI: "
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
@@ -323,22 +323,19 @@ Considérer de changer l'ordre des prémisses des règles afin qu'elles soient c
 framework et l'état de l'art. 
 *)
 
-definition G_Inf :: "'f gterm atom clause inference set" where
+definition G_Inf :: "'f atom clause inference set" where
   "G_Inf =
     {Infer [P\<^sub>2, P\<^sub>1] C | P\<^sub>2 P\<^sub>1 C. ground_superposition P\<^sub>1 P\<^sub>2 C} \<union>
     {Infer [P] C | P C. ground_eq_resolution P C} \<union>
     {Infer [P] C | P C. ground_eq_factoring P C}"
 
-abbreviation G_Bot :: "'f gterm atom clause set" where
+abbreviation G_Bot :: "'f atom clause set" where
   "G_Bot \<equiv> {{#}}"
 
-definition G_entails :: "'f gterm atom clause set \<Rightarrow> 'f gterm atom clause set \<Rightarrow> bool" where
+definition G_entails :: "'f atom clause set \<Rightarrow> 'f atom clause set \<Rightarrow> bool" where
   "G_entails N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: 'f gterm rel). refl I \<longrightarrow> trans I \<longrightarrow> sym I \<longrightarrow>
     compatible_with_gctxt I \<longrightarrow> (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>s N\<^sub>1 \<longrightarrow>
     (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>s N\<^sub>2)"
-
-find_consts "_ \<times> _ \<Rightarrow> _ uprod"
-find_theorems "Upair"
 
 
 subsection \<open>Correctness\<close>
@@ -372,7 +369,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
     let ?I' = "(\<lambda>(t\<^sub>1, t). Upair t\<^sub>1 t) ` I"
     assume "refl I" and "trans I" and "sym I" and "compatible_with_gctxt I" and
       "?I' \<TTurnstile> P1" and "?I' \<TTurnstile> P2"
-    then obtain K1 K2 :: "'f gterm uprod literal" where
+    then obtain K1 K2 :: "'f atom literal" where
       "K1 \<in># P1" and "?I' \<TTurnstile>l K1" and "K2 \<in># P2" and "?I' \<TTurnstile>l K2"
       by (auto simp: true_cls_def)
 
@@ -476,7 +473,7 @@ proof (cases P C rule: ground_eq_factoring.cases)
     fix I :: "'f gterm rel"
     let ?I' = "(\<lambda>(t\<^sub>1, t). Upair t\<^sub>1 t) ` I"
     assume "trans I" and "sym I" and "?I' \<TTurnstile> P"
-    then obtain K :: "'f gterm uprod literal" where
+    then obtain K :: "'f atom literal" where
       "K \<in># P" and "?I' \<TTurnstile>l K"
       by (auto simp: true_cls_def)
 
@@ -802,10 +799,10 @@ qed
 subsection \<open>Refutational Completeness\<close>
 
 context
-  fixes N :: "'f gterm uprod clause set"
+  fixes N :: "'f atom clause set"
 begin
 
-function equation :: "'f gterm uprod clause \<Rightarrow> 'f gterm rel" where
+function equation :: "'f atom clause \<Rightarrow> 'f gterm rel" where
   "equation C = {(s, t)| s t C'.
     C \<in> N \<and>
     C = add_mset (Pos (Upair s t)) C' \<and>
@@ -1808,8 +1805,8 @@ qed
 
 lemma model_construction:
   fixes
-    N :: "'f gterm uprod clause set" and
-    C :: "'f gterm uprod clause"
+    N :: "'f atom clause set" and
+    C :: "'f atom clause"
   defines
     "entails \<equiv> \<lambda>E C. (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile> C"
   assumes "G.saturated N" and "{#} \<notin> N" and C_in: "C \<in> N"
@@ -1874,7 +1871,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
         thus ?thesis
         proof (rule disjE)
           assume "s = s'"
-          define \<iota> :: "'f gterm uprod clause inference" where
+          define \<iota> :: "'f atom clause inference" where
             "\<iota> = Infer [C] C'"
 
           have "ground_eq_resolution C C'"
@@ -2009,7 +2006,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             CD_eq2: "s \<prec>\<^sub>t s' \<Longrightarrow> CD = add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s)) (C' + D')"
             using \<open>s \<prec>\<^sub>t s' \<or> s' \<prec>\<^sub>t s\<close> s'_eq_if s_eq_if by metis
 
-          define \<iota> :: "'f gterm uprod clause inference" where
+          define \<iota> :: "'f atom clause inference" where
             "\<iota> = Infer [D, C] CD"
 
           have "\<iota> \<in> G_Inf"
@@ -2240,7 +2237,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
 
                 let ?concl = "add_mset (Neg (Upair s' t')) (add_mset (Pos (Upair t t')) C'')"
 
-                define \<iota> :: "'f gterm uprod clause inference" where
+                define \<iota> :: "'f atom clause inference" where
                   "\<iota> = Infer [C] ?concl"
 
                 have eq_fact: "ground_eq_factoring C ?concl"
@@ -2325,7 +2322,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
 
             let ?concl = "add_mset (Pos (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')) (C' + D')"
 
-            define \<iota> :: "'f gterm uprod clause inference" where
+            define \<iota> :: "'f atom clause inference" where
               "\<iota> = Infer [D, C] ?concl"
 
             have super: "ground_pos_superposition C D ?concl"
@@ -2421,7 +2418,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             using Pos_A_in max_Pos_A lift_is_maximal_wrt_to_is_maximal_wrt_reflclp
             by (metis insert_DiffM)
 
-          define \<iota> :: "'f gterm uprod clause inference" where
+          define \<iota> :: "'f atom clause inference" where
             "\<iota> = Infer [C] (add_mset (Pos (Upair s s')) (add_mset (Neg (Upair s' s')) C'))"
 
           let ?concl = "add_mset (Pos (Upair s s')) (add_mset (Neg (Upair s' s')) C')"
@@ -2520,7 +2517,7 @@ qed
 
 interpretation G: statically_complete_calculus G_Bot G_Inf G_entails G.Red_I G.Red_F
 proof unfold_locales
-  fix B :: "'f gterm uprod clause" and N :: "'f gterm uprod clause set"
+  fix B :: "'f atom clause" and N :: "'f atom clause set"
   assume "B \<in> G_Bot" and "G.saturated N"
   hence "B = {#}"
     by simp
