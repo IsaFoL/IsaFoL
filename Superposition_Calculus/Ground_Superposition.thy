@@ -22,7 +22,8 @@ theory Ground_Superposition
     Relation_Extra
 begin
 
-(* notation Upair (infix "\<approx>" 60) *)
+abbreviation Pos_Upair (infix "\<approx>" 60) where
+  "Pos_Upair x y \<equiv> Pos (Upair x y)"
 
 hide_type Inference_System.inference
 hide_const
@@ -203,7 +204,7 @@ where
     P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
     \<P> \<in> {Pos, Neg} \<Longrightarrow>
     L\<^sub>1 = \<P> (Upair s\<langle>t\<rangle>\<^sub>G s') \<Longrightarrow>
-    L\<^sub>2 = Pos (Upair t t') \<Longrightarrow>
+    L\<^sub>2 = t \<approx> t' \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     (\<P> = Pos \<and> select P\<^sub>1 = {#} \<and> is_strictly_maximal_lit L\<^sub>1 P\<^sub>1) \<or>
@@ -225,12 +226,12 @@ inductive ground_eq_factoring ::
   "'f gterm atom clause \<Rightarrow> 'f gterm atom clause \<Rightarrow> bool" where
   ground_eq_factoringI: "
     P = add_mset L\<^sub>1 (add_mset L\<^sub>2 P') \<Longrightarrow>
-    L\<^sub>1 = Pos (Upair t t') \<Longrightarrow>
-    L\<^sub>2 = Pos (Upair t t'') \<Longrightarrow>
+    L\<^sub>1 = t \<approx> t' \<Longrightarrow>
+    L\<^sub>2 = t \<approx> t'' \<Longrightarrow>
     select P = {#} \<Longrightarrow>
     is_maximal_lit L\<^sub>1 P \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
-    C = add_mset (Neg (Upair t' t'')) (add_mset (Pos (Upair t t'')) P') \<Longrightarrow>
+    C = add_mset (Neg (Upair t' t'')) (add_mset (t \<approx> t'') P') \<Longrightarrow>
     ground_eq_factoring P C"
 
 
@@ -243,15 +244,15 @@ where
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
     P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
-    L\<^sub>1 = Pos (Upair s\<langle>t\<rangle>\<^sub>G s') \<Longrightarrow>
-    L\<^sub>2 = Pos (Upair t t') \<Longrightarrow>
+    L\<^sub>1 = s\<langle>t\<rangle>\<^sub>G \<approx> s' \<Longrightarrow>
+    L\<^sub>2 =  t \<approx> t' \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     select P\<^sub>1 = {#} \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>1 P\<^sub>1 \<Longrightarrow>
     select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
-    C = add_mset (Pos (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
+    C = add_mset (s\<langle>t'\<rangle>\<^sub>G \<approx> s') (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_pos_superposition P\<^sub>1 P\<^sub>2 C"
 
 lemma ground_superposition_if_ground_pos_superposition:
@@ -273,7 +274,7 @@ where
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
     P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
     L\<^sub>1 = Neg (Upair s\<langle>t\<rangle>\<^sub>G s') \<Longrightarrow>
-    L\<^sub>2 = Pos (Upair t t') \<Longrightarrow>
+    L\<^sub>2 = t \<approx> t' \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> L\<^sub>1 \<in># select P\<^sub>1 \<Longrightarrow>
