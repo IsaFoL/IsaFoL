@@ -391,7 +391,6 @@ sepref_def mark_conflict_to_rescore_impl
 
 lemma set_conflict_wl_heur_alt_def:
   \<open>set_conflict_wl_heur = (\<lambda>C S\<^sub>0. do {
-    S\<^sub>0 \<leftarrow> mark_conflict_to_rescore C S\<^sub>0;
     let n = 0;
     let (M, S) = extract_trail_wl_heur S\<^sub>0;
     let (N, S) = extract_arena_wl_heur S;
