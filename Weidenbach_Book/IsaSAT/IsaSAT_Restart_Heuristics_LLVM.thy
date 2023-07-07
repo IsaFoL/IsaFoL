@@ -162,8 +162,8 @@ sepref_def restart_required_heur_fast_code
     learned_clss_count_def[simp]
   unfolding restart_required_heur_def get_slow_ema_heur_st_def[symmetric]
     get_fast_ema_heur_st_def[symmetric]
-  apply (rewrite in \<open>\<hole> < _\<close> unat_const_fold(3)[where 'a=32])
-  apply (rewrite in \<open>(_ >> 32) < \<hole>\<close> annot_unat_unat_upcast[where 'l=64])
+  apply (rewrite in \<open>\<hole> \<le> _\<close> unat_const_fold(3)[where 'a=32])
+(* apply (rewrite in \<open>(_ >> 32) < \<hole>\<close> annot_unat_unat_upcast[where 'l=64])*)
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
