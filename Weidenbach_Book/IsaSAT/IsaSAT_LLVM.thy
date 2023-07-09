@@ -398,7 +398,7 @@ termination
 
 text \<open>Using this as version number makes our work on the cluster easier and makes the version checking
   slightly easier (because the git hash is never up-to-date).\<close>
-definition internal_version :: \<open>string\<close> where \<open>internal_version = ''0c''\<close>
+definition internal_version :: \<open>string\<close> where \<open>internal_version = ''0d''\<close>
 
 sepref_definition llvm_version
   is \<open>uncurry0 (RETURN (
@@ -448,7 +448,7 @@ export_llvm
      typedef struct {int64_t size; struct {int64_t used; uint32_t *clause;};} CLAUSE;
      typedef struct {int64_t num_clauses; CLAUSE *clauses;} CLAUSES;
      typedef int32_t* STRING_VERSION;
-       \<close>
+  \<close>
   file \<open>code/src/isasat_restart.ll\<close>
 
 end
