@@ -938,20 +938,5 @@ lemma WHILEIT_refine_with_invariant_and_break:
   subgoal by (auto intro: assms)[]
   done
 
-lemma RES_RES11_RETURN_RES:
-   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h, i, j, k, l). RES (f a b c d e g h i j k l)) =
-   RES (\<Union>((\<lambda>(a, b, c, d, e, g, h, i, j, k, l). f a b c d e g h i j k l) ` A))\<close>
-  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
-    split: prod.splits)
-
-lemma RES_RES13_RETURN_RES_bound:
-   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h, i, j, k, l, m, n). RES (f a b c d e g h i j k l m n)) =
-   RES (\<Union>((\<lambda>(a, b, c, d, e, g, h, i, j, k, l, m, n). f a b c d e g h i j k l m n) ` A))\<close>
-  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
-    split: prod.splits)
-
-lemma ref_two_step'': \<open>R \<subseteq> R' \<Longrightarrow> A \<le> B \<Longrightarrow> \<Down> R A \<le>  \<Down> R' B\<close>
-  by (simp add: "weaken_\<Down>" ref_two_step')
-
 end
 

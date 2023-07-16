@@ -1802,6 +1802,9 @@ lemma remdups_mset_singleton_removeAll:
   by (metis dual_order.refl finite_set_mset mset_set.insert_remove remdups_mset_def
     remdups_mset_removeAll set_mset_add_mset_insert set_mset_minus_replicate_mset(1))
 
+lemma mset_remove_filtered: \<open>C - {#x \<in># C. P x#} = {#x \<in># C. \<not>P x#}\<close>
+  by (metis add_implies_diff union_filter_mset_complement)
+
 
 section \<open>Finite maps and multisets\<close>
 
