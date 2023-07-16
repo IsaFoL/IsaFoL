@@ -1,5 +1,5 @@
 theory IsaSAT_Decide_Defs
-  imports IsaSAT_Setup IsaSAT_VMTF IsaSAT_Bump_Heuristics
+  imports IsaSAT_Setup IsaSAT_VMTF IsaSAT_Bump_Heuristics IsaSAT_Phasing
 begin
 
 

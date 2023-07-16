@@ -1,7 +1,7 @@
 theory IsaSAT_Setup
   imports
     Tuple17
-    Watched_Literals_VMTF
+    IsaSAT_Phasing
     Watched_Literals.Watched_Literals_Watch_List_Initialisation
     IsaSAT_Lookup_Conflict
     IsaSAT_Clauses IsaSAT_Arena IsaSAT_Watch_List LBD
