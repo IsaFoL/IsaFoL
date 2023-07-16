@@ -921,5 +921,37 @@ proof -
     by (metis assms card_ge_UNIV distinct_card le_cases)
 qed
 
+lemma WHILEIT_refine_with_invariant_and_break:
+  assumes R0: \<open>I' x' \<Longrightarrow> (x,x')\<in>R\<close>
+  assumes IREF: \<open>\<And>x x'. \<lbrakk> (x,x')\<in>R; I' x' \<rbrakk> \<Longrightarrow> I x\<close>
+  assumes COND_REF: \<open>\<And>x x'. \<lbrakk> (x,x')\<in>R; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'\<close>
+  assumes STEP_REF:
+    \<open>\<And>x x'. \<lbrakk> (x,x')\<in>R; b x; b' x'; I x; I' x' \<rbrakk> \<Longrightarrow> f x \<le> \<Down>R (f' x')\<close>
+  shows \<open>WHILEIT I b f x \<le>\<Down>{(x, x'). (x, x') \<in> R \<and> I x \<and>  I' x' \<and> \<not>b' x'} (WHILEIT I' b' f' x')\<close>
+    (is \<open>_ \<le> \<Down>?R' _\<close>)
+  apply (subst (2)WHILEIT_add_post_condition)
+  apply (refine_vcg WHILEIT_refine_genR[where R'=R and R = ?R'])
+  subgoal by (auto intro: assms)[]
+  subgoal by (auto intro: assms)[]
+  subgoal using COND_REF by (auto)
+  subgoal by (auto intro: assms)[]
+  subgoal by (auto intro: assms)[]
+  done
+
+lemma RES_RES11_RETURN_RES:
+   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h, i, j, k, l). RES (f a b c d e g h i j k l)) =
+   RES (\<Union>((\<lambda>(a, b, c, d, e, g, h, i, j, k, l). f a b c d e g h i j k l) ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
+    split: prod.splits)
+
+lemma RES_RES13_RETURN_RES_bound:
+   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h, i, j, k, l, m, n). RES (f a b c d e g h i j k l m n)) =
+   RES (\<Union>((\<lambda>(a, b, c, d, e, g, h, i, j, k, l, m, n). f a b c d e g h i j k l m n) ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
+    split: prod.splits)
+
+lemma ref_two_step'': \<open>R \<subseteq> R' \<Longrightarrow> A \<le> B \<Longrightarrow> \<Down> R A \<le>  \<Down> R' B\<close>
+  by (simp add: "weaken_\<Down>" ref_two_step')
+
 end
 

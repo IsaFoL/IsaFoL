@@ -11,14 +11,9 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     Word_Lib
     "HOL-Data_Structures"
     Examples
+    Pairing_Heap_LLVM
   theories
-    Ordered_Pairing_Heap_List2
-    Map_Fun_Rel
-    Relational_Pairing_Heaps
-    Pairing_Heaps_Impl
-
-    Heaps_Abs
-    Pairing_Heaps
+    Pairing_Heaps_Impl_LLVM
     IsaSAT_Arena
     IsaSAT_Arena_LLVM
     IsaSAT_Clauses
@@ -66,6 +61,8 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     IsaSAT_Propagate_Conflict
     IsaSAT_Propagate_Conflict_LLVM
 
+    IsaSAT_ACIDS
+    IsaSAT_ACIDS_LLVM
     IsaSAT_Bump_Heuristics_State
     IsaSAT_Bump_Heuristics
     IsaSAT_Decide_Defs

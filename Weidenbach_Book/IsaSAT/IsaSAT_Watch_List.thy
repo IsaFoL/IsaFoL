@@ -1,6 +1,6 @@
 theory IsaSAT_Watch_List
   imports IsaSAT_Literals IsaSAT_Clauses Watched_Literals.Watched_Literals_Watch_List_Initialisation
-    Map_Fun_Rel
+    Pairing_Heap_LLVM.Map_Fun_Rel
 begin
 
 chapter \<open>Refinement of the Watched Function\<close>

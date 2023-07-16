@@ -1,0 +1,26 @@
+chapter Weidenbach_Book
+
+session "Pairing_Heap_LLVM" (Weidenbach_Book) = "Isabelle_LLVM"  +
+  description \<open>We here refine the previous session to generate code.\<close>
+  sessions
+    Isabelle_LLVM
+    Word_Lib
+    "HOL-Data_Structures"
+    Examples
+    Pairing_Heap
+    More_Refinement_Libs
+    More_Sepref
+  theories
+    Map_Fun_Rel
+    Ordered_Pairing_Heap_List2
+    Heaps_Abs
+    Relational_Pairing_Heaps
+    Pairing_Heaps
+    Pairing_Heaps_Impl
+
+
+  document_files
+    "root.tex"
+    "biblio.bib"
+  export_files (in "code") [1]
+    "IsaSAT.IsaSAT:**"

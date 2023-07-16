@@ -2,7 +2,6 @@ theory Pairing_Heaps
   imports Ordered_Pairing_Heap_List2
     Isabelle_LLVM.IICF
     More_Sepref.WB_More_Refinement
-    Watched_Literals_VMTF
     Heaps_Abs
 begin
 

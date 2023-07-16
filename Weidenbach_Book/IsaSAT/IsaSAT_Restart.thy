@@ -1514,23 +1514,6 @@ definition move_is_packed :: \<open>arena \<Rightarrow> _ \<Rightarrow> arena \<
 lemma valid_arena_header_size:
   \<open>valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> arena_header_size arena C = header_size (N \<propto> C)\<close>
   by (auto simp: arena_header_size_def header_size_def arena_lifting)
-(*TODO Move*)
-lemma WHILEIT_refine_with_invariant_and_break:
-  assumes R0: \<open>I' x' \<Longrightarrow> (x,x')\<in>R\<close>
-  assumes IREF: \<open>\<And>x x'. \<lbrakk> (x,x')\<in>R; I' x' \<rbrakk> \<Longrightarrow> I x\<close>
-  assumes COND_REF: \<open>\<And>x x'. \<lbrakk> (x,x')\<in>R; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'\<close>
-  assumes STEP_REF:
-    \<open>\<And>x x'. \<lbrakk> (x,x')\<in>R; b x; b' x'; I x; I' x' \<rbrakk> \<Longrightarrow> f x \<le> \<Down>R (f' x')\<close>
-  shows \<open>WHILEIT I b f x \<le>\<Down>{(x, x'). (x, x') \<in> R \<and> I x \<and>  I' x' \<and> \<not>b' x'} (WHILEIT I' b' f' x')\<close>
-    (is \<open>_ \<le> \<Down>?R' _\<close>)
-  apply (subst (2)WHILEIT_add_post_condition)
-  apply (refine_vcg WHILEIT_refine_genR[where R'=R and R = ?R'])
-  subgoal by (auto intro: assms)[]
-  subgoal by (auto intro: assms)[]
-  subgoal using COND_REF by (auto)
-  subgoal by (auto intro: assms)[]
-  subgoal by (auto intro: assms)[]
-  done
 
 definition rewatch_spec :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
 \<open>rewatch_spec = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, WS).
@@ -1543,21 +1526,6 @@ lemma blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0':
   \<open>literals_are_\<L>\<^sub>i\<^sub>n' (a, aq, ab, ac, ad, NEk, UEk, ae, af, N0, U0, Q, b) \<Longrightarrow>
        literals_are_\<L>\<^sub>i\<^sub>n' (a, aq, ab, ac, ad, NEk, UEk, ae, af, N0, U0, {#}, b)\<close>
   by (auto simp: literals_are_\<L>\<^sub>i\<^sub>n'_empty blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0)
-
-lemma RES_RES11_RETURN_RES:
-   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h, i, j, k, l). RES (f a b c d e g h i j k l)) =
-   RES (\<Union>((\<lambda>(a, b, c, d, e, g, h, i, j, k, l). f a b c d e g h i j k l) ` A))\<close>
-  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
-    split: prod.splits)
-
-lemma RES_RES13_RETURN_RES:
-   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h, i, j, k, l, m, n). RES (f a b c d e g h i j k l m n)) =
-   RES (\<Union>((\<lambda>(a, b, c, d, e, g, h, i, j, k, l, m, n). f a b c d e g h i j k l m n) ` A))\<close>
-  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
-    split: prod.splits)
-
-lemma ref_two_step'': \<open>R \<subseteq> R' \<Longrightarrow> A \<le> B \<Longrightarrow> \<Down> R A \<le>  \<Down> R' B\<close>
-  by (simp add: "weaken_\<Down>" ref_two_step')
 
 abbreviation twl_st_heur_restart'''u where
   \<open>twl_st_heur_restart'''u r u \<equiv>
