@@ -151,10 +151,11 @@ lemma reluctant_tick_alt_def:
     limit = reluctant_limit r in
   (if period = 0 \<or> trigger then RETURN (Reluctant limited trigger u v period (wait) limit)
    else if wait > 1 then RETURN (Reluctant limited trigger u v period (wait - 1) limit)
-   else let b = u AND ((u -u) - u);
+  else let  zero = u-u;
+            b = u AND (zero - u);
             (u, v) = (if b = v then (u+1, 1) else (u, 2 * v));
-                 wait = v * period;
-             (u, v, wait) = (if limited \<and> wait > limit then (1,2, period) else (u, v, wait)) in
+            (u, v) = (if limited \<and> wait > limit then (1,1) else (u, v));
+            wait = v * period in
   RETURN (Reluctant limited True u v period wait limit)))\<close>
   by (auto intro!: ext simp: reluctant_tick_def Let_def)
 
