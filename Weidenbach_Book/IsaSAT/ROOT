@@ -37,6 +37,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     IsaSAT_Mark
     IsaSAT_Mark_LLVM
     IsaSAT_Setup
+    IsaSAT_Show
     IsaSAT_Setup0_LLVM
     IsaSAT_Setup1_LLVM
     IsaSAT_Setup2_LLVM
