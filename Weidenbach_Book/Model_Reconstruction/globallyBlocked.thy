@@ -8,7 +8,7 @@ begin
 
 definition globallyBlocked2 :: "'a literal set \<Rightarrow>'a clause \<Rightarrow> 'a clauses \<Rightarrow> bool " where 
 "globallyBlocked2 I C F = (consistent_interp I \<longrightarrow>((I \<inter> set_mset C \<noteq> {}) \<and> (\<forall>D \<in># {#D \<in># F. (set_mset D \<inter> (uminus `I)\<noteq> {}) \<and> (set_mset D \<inter> I = {})#}. tautology ((D-(mset_set(uminus `I))) + C))))"
-(*Es sind die gleichen Definitionen, aber die zweite hat besser funktioniert*)
+
 definition globallyBlocked :: "'a literal set \<Rightarrow>'a clause \<Rightarrow> 'a clauses \<Rightarrow> bool " where 
 "globallyBlocked I C F = (consistent_interp I \<longrightarrow>((I \<inter> set_mset C \<noteq> {}) \<and> (\<forall>D \<in># {#D \<in># F. (set_mset D \<inter> (uminus `I)\<noteq> {}) \<and> (set_mset D \<inter> I = {})#}. \<exists>K. K \<in># (D-(mset_set(uminus `I))) \<and> -K \<in># C)))"
 
@@ -24,7 +24,8 @@ lemma globallyBlocked_cons:
 
 (*Wenn das "\<not>I \<Turnstile> C" weggelassen wird, dann gibt glaube ich ein Gegenbeispiel: I = {l, -k}, N = (l \<or> k), C = (-l \<or> a \<or> -k), J = {-l}*)
 lemma compose_model_after_globallyBlocked:
-  assumes "I \<Turnstile>m (N-{#C#})" "consistent_interp I" "globallyBlocked J C (N-{#C#})" "consistent_interp J" "\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" " atms_of_mm (N-{#C#}) \<subseteq> atm_of ` I" "\<not>I \<Turnstile> C"
+  assumes "I \<Turnstile>m (N-{#C#})" and "consistent_interp I" and "globallyBlocked J C (N-{#C#})" and "consistent_interp J"
+ and "\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" and " atms_of_mm (N-{#C#}) \<subseteq> atm_of ` I" "\<not>I \<Turnstile> C"  and [simp]: \<open>finite J\<close>
   shows "interpr_composition I J  \<Turnstile>m N + {#C#}"
   using assms 
 proof-
@@ -32,9 +33,15 @@ have 1: "((J \<inter> set_mset C \<noteq> {}) \<and> (\<forall>D \<in># {#D \<in
     using globallyBlocked_cons[of J C "(N-{#C#})"] assms(3, 4) by auto
   hence 2:"J \<Turnstile> C" apply auto
     by (metis insert_DiffM true_cls_add_mset)
-(*Warum geht der nächste Schritt nicht? *)
    have parts: "(N-{#C#}) = ({#D \<in># (N-{#C#}). (set_mset D \<inter> (uminus `I)\<noteq> {}) \<and> (set_mset D \<inter> I = {})#} + {#D \<in># (N-{#C#}). (set_mset D \<inter> (uminus `I)\<noteq> {}) \<and> (set_mset D \<inter> I \<noteq> {})#}
- + {#D \<in># (N-{#C#}). (set_mset D \<inter> (uminus `I) = {}) \<and> (set_mset D \<inter> I = {})#} + {#D \<in># (N-{#C#}). (set_mset D \<inter> (uminus `I) = {}) \<and> (set_mset D \<inter> I \<noteq> {})#})"   sorry
+ + {#D \<in># (N-{#C#}). (set_mset D \<inter> (uminus `I) = {}) \<and> (set_mset D \<inter> I = {})#} + {#D \<in># (N-{#C#}). (set_mset D \<inter> (uminus `I) = {}) \<and> (set_mset D \<inter> I \<noteq> {})#})" 
+     apply (subst filter_mset_disj_eq[symmetric])
+    apply simp
+    apply (subst filter_mset_disj_eq[symmetric])
+    apply auto[]
+    apply (subst filter_mset_disj_eq[symmetric])
+    apply auto[]
+    by (rule filter_mset_id_conv[THEN iffD2, symmetric]; auto)
    have "interpr_composition I J \<Turnstile> D" if D: "D \<in># {#D \<in># (N-{#C#}). (set_mset D \<inter> (uminus `J) = {}) \<and> (set_mset D \<inter> J \<noteq> {})#}" for D
    proof-
      have "J \<Turnstile> D"
@@ -100,8 +107,7 @@ have 1: "((J \<inter> set_mset C \<noteq> {}) \<and> (\<forall>D \<in># {#D \<in
        by (meson in_diffD)
      hence "K \<notin>#  mset_set (uminus ` J)" 
        using K1 dist using distinct_mem_diff_mset[of D K " mset_set (uminus ` J)"] by auto
-(*Warum geht der nächste Schritt nicht? *)
-     hence "K \<notin> (uminus ` J)"  sorry
+     then have "K \<notin> (uminus ` J)"  using K1 D1 by auto
      hence notK:"-K \<notin> J" apply auto
        using in_image_uminus_uminus by blast
      have "-K \<notin> I" using K2 assms(7) apply auto
@@ -126,7 +132,6 @@ have 1: "((J \<inter> set_mset C \<noteq> {}) \<and> (\<forall>D \<in># {#D \<in
     by (metis (no_types, lifting) add_mset_add_single add_mset_remove_trivial_If true_cls_mset_add_mset) 
 qed
 
-(*Hier gibt es auch zwei sorries, aber es sind die genau gleichen Schritte wie oben, die noch fehlen*)
 lemma globallyBlocked_redundancy:
   fixes I :: \<open>'a partial_interp\<close>
   assumes "globallyBlocked I C (N-{#C#})" and "consistent_interp I" and  "\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" and [simp]: \<open>finite I\<close>
@@ -229,11 +234,12 @@ qed
     unfolding redundancy_def by auto
 qed
 
-(*Das ist das gleiche Lemma wie weiter unten, aber mit \<forall> und ich wusste nicht wie ich das richtig formulieren kann, bzw. welche Beweismethode dann am besten ist*)
+
 lemma globallyBlocked_simulation2: 
-  assumes "globallyBlocked I C (N-{#C#})" and "consistent_interp I" and "atm_of ` I \<subseteq> V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)"  and C1:"C \<in># N" and  "\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C"
+  assumes "globallyBlocked I C (N-{#C#})" and "consistent_interp I" and "atm_of ` I \<subseteq> V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)" 
+ and C1:"C \<in># N" and  "\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C"  and [simp]: \<open>finite I\<close>
   shows "rules (N, R, S, V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
-          ((N-{#C#}), R, S@[(Witness I C)], V \<union> atms_of_mm (N ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" (*{#C#} \<subseteq># wit_clause `# mset S' \<and> (I \<in># (wit_interp `# mset S'))*)
+          ((N-{#C#}), R, S@[(Witness I C)], V \<union> atms_of_mm (N ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
   using assms
 proof -
   let ?S' = \<open>[(Witness I C)]\<close>
@@ -243,26 +249,25 @@ proof -
     by (metis insert_DiffM true_cls_add_mset) 
   have red: "redundancy (N-{#C#}) C I (N-{#C#})" 
     using globallyBlocked_redundancy[of I C N] assms(1, 2, 5) by auto
-  have eq1: "atms_of C \<union> atms_of_mm (remove1_mset C N) = atms_of_mm (N)" using C1 by (auto dest!: multi_member_split)
+  have eq1: "atms_of C \<union> atms_of_mm (remove1_mset C N) = atms_of_mm (N)" 
+    using C1 by (auto dest!: multi_member_split)
   have sub: "atm_of ` I \<subseteq> V \<union> atms_of C \<union> atms_of_mm (remove1_mset C N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)" 
     using eq1 assms(3) by auto
-  have eq2: "remove1_mset C N + {#C#} = N" using C1 by (auto dest!: multi_member_split)
-  have "rules (N, R, S, V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
-    ((N-{#C#}), R, S@?S', V \<union> atms_of_mm (N ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" for S'
-  proof-
-    have "rules (remove1_mset C N + {#C#}, R, S, V \<union> atms_of C \<union> atms_of_mm (remove1_mset C N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
+  have eq2: "remove1_mset C N + {#C#} = N" 
+    using C1 by (auto dest!: multi_member_split)
+  have "rules (remove1_mset C N + {#C#}, R, S, V \<union> atms_of C \<union> atms_of_mm (remove1_mset C N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
       (remove1_mset C N, R, S @ [Witness I C], V \<union> atms_of C \<union> atms_of_mm (remove1_mset C N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
-      using weakenp[of I C "(N-{#C#})" V R S] 2 red assms(2) sub by auto
-    then show rul:"rules(N, R, S, V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))((N-{#C#}), R, S@[Witness I C], V \<union> atms_of_mm (N ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
-      using eq1 eq2 by (auto simp add: ac_simps)
-  qed
-then show ?thesis
-  by blast
+    using weakenp[of I C "(N-{#C#})" V R S] 2 red assms(2) sub by auto
+  then have rul:"rules(N, R, S, V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))((N-{#C#}), R, S@[Witness I C], V \<union> atms_of_mm (N ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
+    using eq1 eq2 by (auto simp add: ac_simps)
+  then show ?thesis
+    by blast
 qed
 
 
 lemma globallyBlocked_simulation: 
-  assumes "globallyBlocked I C (N-{#C#})" and "consistent_interp I" and "atm_of ` I \<subseteq> V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)" and C1:"C \<in># N"  and  "\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C"
+  assumes "globallyBlocked I C (N-{#C#})" and "consistent_interp I" and "atm_of ` I \<subseteq> V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)" 
+and C1:"C \<in># N"  and  "\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C"  and [simp]: \<open>finite I\<close>
   shows "\<exists>S'. rules\<^sup>*\<^sup>*(N, R, S, V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
           ((N-{#C#}), R, S@S', V \<union> atms_of_mm (N ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) \<and>
            wit_clause `# mset S' = {#C#} \<and> (\<forall>I'\<in># (wit_interp `# mset S'). I' = I)"
@@ -293,4 +298,6 @@ proof -
   then show ?thesis
     using rul wit1 by auto
 qed
+
+
 end 
