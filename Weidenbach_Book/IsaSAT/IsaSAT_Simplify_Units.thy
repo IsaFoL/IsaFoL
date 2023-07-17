@@ -32,7 +32,7 @@ definition simplify_clause_with_unit2_rel where
     (C \<notin># dom_m N \<longrightarrow> dom_m N = remove1_mset C (dom_m N\<^sub>0)) \<and>
     unc=unc' \<and>
   simplify_clause_with_unit2_rel_simp_wo unc N N\<^sub>0 N'}\<close>
- 
+
 lemma simplify_clause_with_unit2_simplify_clause_with_unit:
   fixes N N\<^sub>0 :: \<open>'v clauses_l\<close> and N' :: \<open>'a\<close>
   assumes \<open>C \<in># dom_m N\<close> \<open>no_dup M\<close> and

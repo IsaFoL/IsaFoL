@@ -398,7 +398,7 @@ termination
 
 text \<open>Using this as version number makes our work on the cluster easier and makes the version checking
   slightly easier (because the git hash is never up-to-date).\<close>
-definition internal_version :: \<open>string\<close> where \<open>internal_version = ''0d''\<close>
+definition internal_version :: \<open>string\<close> where \<open>internal_version = ''0f''\<close>
 
 sepref_definition llvm_version
   is \<open>uncurry0 (RETURN (
@@ -408,8 +408,8 @@ sepref_definition llvm_version
   supply[[goals_limit=1]]
   unfolding Version.version_def String.explode_code internal_version_def
     String.asciis_of_Literal
-  apply (auto simp: String.asciis_of_Literal of_char_of char_of_char nat_of_integer_def
-    simp del: list_update.simps replicate.simps)
+  apply (simp add: String.asciis_of_Literal of_char_of char_of_char nat_of_integer_def
+    del: list_update.simps replicate.simps)
   apply (annot_snat_const \<open>TYPE(32)\<close>)
   unfolding array_fold_custom_replicate
   unfolding hf_pres.simps[symmetric]
