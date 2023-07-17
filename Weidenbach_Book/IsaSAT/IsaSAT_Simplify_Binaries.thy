@@ -710,7 +710,7 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl_alt_def:
   (CS, S) \<leftarrow> iterate_over_VMTFC
     (\<lambda>A (CS, S). do {ASSERT (get_vmtf_heur_array S\<^sub>0 = (get_vmtf_heur_array S));
         skip_lit \<leftarrow> mop_is_marked_added_heur_st S A;
-        if \<not>skip \<or> \<not>skip_lit then RETURN (CS, S)
+        if \<not>skip then RETURN (CS, S)
         else do {
           ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
           (CS, S) \<leftarrow> isa_deduplicate_binary_clauses_wl (Pos A) CS S;
@@ -973,7 +973,7 @@ proof -
    for S skip v
     by (auto simp: should_eliminate_pure_st_def)
   have GC_required_skip: \<open>mop_is_marked_added_heur_st x2d (the x1c)
-     \<le> \<Down> {(a,b). (\<not>skip \<or> \<not>a,b)\<in>bool_rel}
+     \<le> \<Down> {(a,b). (\<not>skip,b)\<in>bool_rel}
         (RES UNIV)\<close>
     if
       \<open>mark_duplicated_binary_clauses_as_garbage_pre_wl S'\<close> and
@@ -1035,8 +1035,8 @@ proof -
       by (auto intro!: RETURN_RES_refine)
   qed
   have skip: \<open>(skip_lit, skip)
-    \<in> {(a, b). (\<not>should_eliminate_pure_st S  \<or> \<not> a, b) \<in> bool_rel} \<Longrightarrow>
-    skip \<in> UNIV \<Longrightarrow> (\<not> should_eliminate_pure_st S \<or> \<not> skip_lit) = skip\<close> for skip_lit skip
+    \<in> {(a, b). (\<not>should_eliminate_pure_st S, b) \<in> bool_rel} \<Longrightarrow>
+    skip \<in> UNIV \<Longrightarrow> (\<not> should_eliminate_pure_st S) = skip\<close> for skip_lit skip
    by auto
   have last_step: \<open>do {
    _ \<leftarrow> ASSERT (mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S);
@@ -1045,8 +1045,8 @@ proof -
     (CS, S) \<leftarrow> iterate_over_VMTFC
     (\<lambda>A (CS, Sa). do {
        _ \<leftarrow> ASSERT (get_vmtf_heur_array S = get_vmtf_heur_array Sa);
-        skip_lit \<leftarrow> mop_is_marked_added_heur_st Sa A;
-       if \<not>skip \<or> \<not>skip_lit then RETURN (CS, Sa)
+       _ \<leftarrow> mop_is_marked_added_heur_st Sa A;
+       if \<not>skip then RETURN (CS, Sa)
        else do {
         ASSERT (length (get_clauses_wl_heur Sa) \<le> length (get_clauses_wl_heur S) \<and> learned_clss_count Sa \<le> learned_clss_count S);
         (CS, Sa) \<leftarrow> isa_deduplicate_binary_clauses_wl (Pos A) CS Sa;

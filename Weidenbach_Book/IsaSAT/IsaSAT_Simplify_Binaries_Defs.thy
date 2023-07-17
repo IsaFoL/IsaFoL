@@ -334,8 +334,8 @@ definition isa_mark_duplicated_binary_clauses_as_garbage_wl :: \<open>isasat \<R
         ASSERT (A < length ns);
         ASSERT (A \<le> unat32_max div 2);
         S \<leftarrow> do {ASSERT (ns = (get_vmtf_heur_array S));
-        skip_lit \<leftarrow> mop_is_marked_added_heur_st S A;
-        if \<not>skip \<or> \<not>skip_lit then RETURN (CS, S)
+        _ \<leftarrow> mop_is_marked_added_heur_st S A;
+        if \<not>skip then RETURN (CS, S)
         else do {
           ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
           (CS, S) \<leftarrow> isa_deduplicate_binary_clauses_wl (Pos A) CS S;
@@ -364,8 +364,8 @@ definition isa_mark_duplicated_binary_clauses_as_garbage_wl2 :: \<open>isasat \<
         ASSERT (A < length (get_vmtf_heur_array S));
         ASSERT (A \<le> unat32_max div 2);
         (CS, S) \<leftarrow> do {
-        added_lit \<leftarrow> mop_is_marked_added_heur_st S A;
-        if \<not>dedup \<or> \<not>added_lit then RETURN (CS, S)
+        _ \<leftarrow> mop_is_marked_added_heur_st S A;
+        if \<not>dedup then RETURN (CS, S)
         else do {
           ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
           (CS, S) \<leftarrow> isa_deduplicate_binary_clauses_wl (Pos A) CS S;
