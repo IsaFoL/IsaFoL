@@ -41,19 +41,19 @@ lemma fmember_fset_mset_iff[simp]: "x |\<in>| fset_mset M \<longleftrightarrow> 
   by (induction M rule: multiset_induct) simp_all
 
 lemma fBall_fset_mset_iff[simp]: "(\<forall>x |\<in>| fset_mset M. P x) \<longleftrightarrow> (\<forall>x \<in># M. P x)"
-  by (simp add: fBall_def)
+  by simp
 
 lemma fBex_fset_mset_iff[simp]: "(\<exists>x |\<in>| fset_mset M. P x) \<longleftrightarrow> (\<exists>x \<in># M. P x)"
-  by (simp add: fBex_def)
+  by simp
 
 lemma fmember_ffUnion_iff: "a |\<in>| ffUnion (f |`| A) \<longleftrightarrow> (\<exists>x |\<in>| A. a |\<in>| f x)"
-  unfolding fmember.rep_eq ffUnion.rep_eq fBex.rep_eq by simp
+  unfolding ffUnion.rep_eq by simp
 
 lemma fBex_ffUnion_iff: "(\<exists>z |\<in>| ffUnion (f |`| A). P z) \<longleftrightarrow> (\<exists>x |\<in>| A. \<exists>z |\<in>| f x. P z)"
-  unfolding fBex.rep_eq ffUnion.rep_eq fimage.rep_eq by blast
+  unfolding ffUnion.rep_eq fimage.rep_eq by simp
 
 lemma fBall_ffUnion_iff: "(\<forall>z |\<in>| ffUnion (f |`| A). P z) \<longleftrightarrow> (\<forall>x |\<in>| A. \<forall>z |\<in>| f x. P z)"
-  unfolding fBall.rep_eq ffUnion.rep_eq fimage.rep_eq by blast
+  unfolding ffUnion.rep_eq fimage.rep_eq by blast
 
 
 abbreviation grounding_lits_of_clss where

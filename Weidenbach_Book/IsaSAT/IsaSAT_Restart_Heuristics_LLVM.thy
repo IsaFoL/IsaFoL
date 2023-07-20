@@ -162,8 +162,8 @@ sepref_def restart_required_heur_fast_code
     learned_clss_count_def[simp]
   unfolding restart_required_heur_def get_slow_ema_heur_st_def[symmetric]
     get_fast_ema_heur_st_def[symmetric]
-  apply (rewrite in \<open>\<hole> < _\<close> unat_const_fold(3)[where 'a=32])
-  apply (rewrite in \<open>(_ >> 32) < \<hole>\<close> annot_unat_unat_upcast[where 'l=64])
+  apply (rewrite in \<open>\<hole> \<le> _\<close> unat_const_fold[where 'a=32])
+(* apply (rewrite in \<open>(_ >> 32) < \<hole>\<close> annot_unat_unat_upcast[where 'l=64])*)
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
@@ -273,8 +273,6 @@ lemma number_clss_to_keep_fast_code_refine[sepref_fr_rules]:
   by auto
 
 (*TODO Move to IsaSAT_Setup2*)
-lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_st_code_def]
-lemmas [llvm_code del] = units_since_last_GC_st_code_def
 experiment
 begin
   export_llvm restart_required_heur_fast_code access_avdom_at_fast_code

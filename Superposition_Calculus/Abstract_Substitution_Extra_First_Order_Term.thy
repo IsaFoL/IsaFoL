@@ -2,6 +2,7 @@ theory Abstract_Substitution_Extra_First_Order_Term
   imports
     Abstract_Substitution_Extra
     "First_Order_Terms.Subsumption"
+    "First_Order_Terms.Unification"
 begin
 
 abbreviation is_ground_trm where

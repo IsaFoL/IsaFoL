@@ -10,6 +10,7 @@ theory Splitting_Without_Backtracking
     (* Saturation_Framework_Extensions.Clausal_Calculus *) 
 begin
 
+
 subsection \<open>Splitting without Backtracking\<close>
 
 text \<open>
@@ -146,11 +147,11 @@ begin
 
 no_notation entails_clss (infix \<open>\<TTurnstile>e\<close> 50)
 no_notation Sema.entailment (\<open>(_ \<TTurnstile>/ _)\<close> [53, 53] 53)
-no_notation Linear_Temporal_Logic_on_Streams.HLD_nxt (infixr "⋅" 65)
+no_notation Linear_Temporal_Logic_on_Streams.HLD_nxt (infixr "\<cdot>" 65)
 (* These two cause ambiguities in a few places. *)
 notation entails_clss (infix \<open>\<TTurnstile>\<inter>e\<close> 50)
 
-(* All this is taken from the file \<open>FO_Ordered_Resolution_Prover_Revisited.thy\<close>.
+(* All this is taken from the file \<^file>\<open>FO_Ordered_Resolution_Prover_Revisited.thy\<close>.
  * I don't like it, but I don't have a choice as I need access to these interpretations. *)
 interpretation gr: ground_resolution_with_selection "S_M S M"
   using selection_axioms by unfold_locales (fact S_M_selects_subseteq S_M_selects_neg_lits)+
@@ -290,7 +291,7 @@ proof
     unfolding F.entails_\<G>_def \<G>_F_def true_Union_grounding_of_cls_iff by auto
 qed
 
-interpretation F: Calculus.statically_complete_calculus "{{#}}" F_Inf "(\<TTurnstile>\<inter>\<G>e)" F.Red_I_\<G>
+sublocale F: Calculus.statically_complete_calculus "{{#}}" F_Inf "(\<TTurnstile>\<inter>\<G>e)" F.Red_I_\<G>
   F.Red_F_\<G>_empty
 proof (rule F.stat_ref_comp_to_non_ground_fam_inter; clarsimp; (intro exI)?)
   show "\<And>M. Calculus.statically_complete_calculus {{#}} (G_Inf M) (\<TTurnstile>\<inter>e) (G.Red_I M) G.Red_F"
@@ -303,11 +304,63 @@ next
     using G_Inf_overapprox_F_Inf unfolding F.ground.Inf_from_q_def \<G>_I_def by fastforce
 qed
 
+interpretation FL: given_clause "{{#}}" F_Inf "{{#}}" UNIV "\<lambda>N. (\<TTurnstile>\<inter>e)" G_Inf G.Red_I
+  "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_I_opt "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Old
+proof (unfold_locales; (intro ballI)?)
+  show "equivp (\<doteq>)" 
+    unfolding equivp_def by (meson generalizes_refl generalizes_trans)
+next
+  show "po_on (\<prec>\<cdot>) UNIV"
+    unfolding po_on_def irreflp_on_def transp_on_def
+    using strictly_generalizes_irrefl strictly_generalizes_trans by auto
+next
+  show "wfp_on (\<prec>\<cdot>) UNIV"
+    unfolding wfp_on_UNIV by (metis wf_strictly_generalizes)
+next
+  show "po_on (\<sqsubset>l) UNIV"
+    unfolding po_on_def irreflp_on_def transp_on_def using irrefl_L_Prec trans_L_Prec by blast
+next
+  show "wfp_on (\<sqsubset>l) UNIV"
+    unfolding wfp_on_UNIV by (rule wf_L_Prec)
+next
+  fix C1 D1 C2 D2
+  assume
+    "C1 \<doteq> D1"
+    "C2 \<doteq> D2"
+    "C1 \<prec>\<cdot> C2"
+  then show "D1 \<prec>\<cdot> D2"
+    by (smt antisym size_mset_mono size_subst strictly_generalizes_def generalizes_def
+        generalizes_trans)
+next
+  fix N C1 C2
+  assume "C1 \<doteq> C2"
+  then show "\<G>_F C1 \<subseteq> \<G>_F C2"
+    unfolding generalizes_def \<G>_F_def by clarsimp (metis is_ground_comp_subst subst_cls_comp_subst)
+next
+  fix N C2 C1
+  assume "C2 \<prec>\<cdot> C1"
+  then show "\<G>_F C1 \<subseteq> \<G>_F C2"
+    unfolding strictly_generalizes_def generalizes_def \<G>_F_def
+    by clarsimp (metis is_ground_comp_subst subst_cls_comp_subst)
+next
+  show "\<exists>l. L_Prec Old l"
+    using L_Prec.simps(1) by blast
+qed (auto simp: F_Inf_have_prems)
+
+notation FL.Prec_FL (infix "\<sqsubset>" 50)
+notation FL.entails_\<G>_L (infix "\<TTurnstile>\<inter>\<G>Le" 50)
+notation FL.derive (infix "\<rhd>L" 50)
+notation FL.step (infix "\<leadsto>GC" 50)
+
 (********************************************************)
 (****************** End of copy pasta *******************)
 (********************************************************)
 
 (*<*)
+interpretation F: Calculus.dynamically_complete_calculus \<open>{{#}}\<close> F_Inf \<open>(\<TTurnstile>\<inter>\<G>e)\<close> F.Red_I_\<G>
+  F.Red_F_\<G>_empty
+  using F.dynamically_complete_calculus_axioms . 
+
 lemma entails_bot_iff_unsatisfiable: \<open>M \<TTurnstile>\<inter>e {{#}} \<longleftrightarrow> \<not> satisfiable M\<close>
   by blast 
 
@@ -323,6 +376,9 @@ lemma entails_\<G>_conj_compactness':
   using entails_conj_compactness'[of \<open>\<G>_Fset M\<close> \<open>\<G>_Fset N\<close>]
   unfolding \<G>_Fset_def \<G>_F_def
   by (meson UNIV_I) 
+
+lemma \<open>finite N \<Longrightarrow> M \<TTurnstile>\<inter>e N \<Longrightarrow> \<exists> M' \<subseteq> M. finite M' \<and> M' \<TTurnstile>\<inter>e N\<close>
+  sorry 
 
 lemma entails_\<G>_iff_unsatisfiable:
   \<open>M \<TTurnstile>\<inter>\<G>e N \<longleftrightarrow> (\<forall> C \<in> \<G>_Fset N. \<not> satisfiable (\<G>_Fset M \<union> {{# -L #} | L. L \<in># C}))\<close>
@@ -444,7 +500,41 @@ proof -
     using F_entails_\<G>_iff grounding_of_clss_def
     by auto
 qed
-      
+
+lemma sat_\<G>_compact: \<open>\<not> M \<TTurnstile>\<inter>\<G>e {{#}} \<Longrightarrow> \<forall> M' \<subseteq> M. finite M' \<longrightarrow> \<not> M' \<TTurnstile>\<inter>\<G>e {{#}}\<close>
+  using unsat_\<G>_compact F.entails_trans F.subset_entailed
+  by blast
+
+(* lemma entails_\<G>_conj_compact: \<open>M \<TTurnstile>\<inter>\<G>e N \<Longrightarrow> \<forall> M' \<subseteq> M. finite M' \<longrightarrow> M' \<TTurnstile>\<inter>\<G>e N\<close>
+proof (intro allI impI)
+  fix M'
+  assume
+    M_entails_N: \<open>M \<TTurnstile>\<inter>\<G>e N\<close> and
+    M'_subset_M: \<open>M' \<subseteq> M\<close> and
+    finite_M': \<open>finite M'\<close> 
+  then show \<open>M' \<TTurnstile>\<inter>\<G>e N\<close>
+  proof (cases \<open>M' \<TTurnstile>\<inter>\<G>e {{#}}\<close>)
+    case True
+    then show ?thesis
+      using F.bot_entails_all F.entails_trans
+      by blast
+  next
+    case False
+    then have \<open>\<forall> M'' \<subseteq> M'. finite M'' \<longrightarrow> \<not> M'' \<TTurnstile>\<inter>\<G>e {{#}}\<close>
+      using unsat_\<G>_compact[of M'] F.entails_trans F.subset_entailed
+      by blast
+    then have \<open>\<not> M' \<TTurnstile>\<inter>\<G>e {{#}}\<close>
+      using finite_M'
+      by blast 
+    then show ?thesis
+       
+       oops *)
+(*       sorry
+  qed
+qed
+*) 
+
+
 lemma neg_of_\<G>_F_lits_is_\<G>_F_of_neg_lits:
   \<open>\<Union> {{{# -L #} | L. L \<in># D' } | D'. D' \<in> \<G>_F D} = \<Union> (\<G>_F ` {{# -L #} | L. L \<in># D})\<close>
 proof -
@@ -468,6 +558,129 @@ proof -
   finally show ?thesis .  
 qed 
 
+(*
+lemma not_model_of_negation_is_model: \<open>\<not> I \<TTurnstile>s {{# -L #} | L. L \<in># C} \<longleftrightarrow> I \<TTurnstile>s {C}\<close>
+  (is \<open>\<not> I \<TTurnstile>s ?negC \<longleftrightarrow> _\<close>)
+proof (intro iffI notI)
+  assume I_not_model_of_neg_C: \<open>\<not> I \<TTurnstile>s ?negC\<close>
+
+  obtain Ls where
+    Ls_def: \<open>Ls \<equiv> \<Union> C' \<in> ?negC. set_mset C'\<close>
+    by blast 
+  then have \<open>\<exists> C' \<in> ?negC. \<forall> L \<in># C'. \<not> I \<TTurnstile>l L\<close>
+    using I_not_model_of_neg_C
+    unfolding true_clss_def
+    by (meson true_cls_def) 
+  then have \<open>\<exists> L \<in> Ls. \<not> I \<TTurnstile>l L\<close> 
+    using Ls_def
+    by auto 
+  then have \<open>\<exists> L \<in># C. \<not> I \<TTurnstile>l -L\<close>
+    using Ls_def
+    by force
+  then have \<open>\<exists> L \<in># C. I \<TTurnstile>l L\<close>
+    by (metis true_lit_def true_lit_iff uminus_literal_def) 
+  then show \<open>I \<TTurnstile>s {C}\<close>
+    unfolding true_clss_singleton true_cls_def
+    by blast 
+next
+  assume
+    I_model_of_C: \<open>I \<TTurnstile>s {C}\<close> and
+    I_model_of_neg_C: \<open>I \<TTurnstile>s ?negC\<close>
+
+  have \<open>\<exists> L \<in># C. I \<TTurnstile>l L\<close>
+    using I_model_of_C true_cls_def
+    by blast
+  moreover have I_model_of_neg_C_def: \<open>\<forall> C' \<in> ?negC. \<exists> L \<in># C'. I \<TTurnstile>l L\<close>
+    using I_model_of_neg_C
+    by (meson true_cls_def true_clss_def)
+  then obtain Ls where
+    Ls_def: \<open>Ls \<equiv> \<Union> C' \<in> ?negC. set_mset C'\<close>
+    by blast 
+  then have \<open>\<forall> L \<in> Ls. I \<TTurnstile>l L\<close>
+    by (smt (verit, ccfv_SIG) UN_iff I_model_of_neg_C_def add_mset_eq_single mem_Collect_eq
+        multi_member_split)
+  ultimately have \<open>\<exists> L \<in># C. I \<TTurnstile>l L \<and> I \<TTurnstile>l -L\<close>
+    using Ls_def
+    by fastforce 
+  then show \<open>False\<close> 
+    by auto 
+qed
+
+lemma Union_distrib_union: \<open>B \<noteq> {} \<Longrightarrow> A \<union> (\<Union> x \<in> B. f x) = (\<Union> x \<in> B. A \<union> f x)\<close>
+  by blast 
+
+lemma \<G>_F_not_empty: \<open>\<G>_F D \<noteq> {}\<close>
+  unfolding \<G>_F_def
+  using ex_ground_subst
+  by blast
+
+lemma interp_of_negation_not_interp: \<open>I \<TTurnstile>s \<G>_Fset {{# -L #} | L. L \<in># D} \<longleftrightarrow> \<not> I \<TTurnstile>s \<G>_F D\<close>
+  unfolding \<G>_Fset_def \<G>_F_def
+proof (intro iffI notI)
+  assume
+    I_model_of_neg_D: \<open>I \<TTurnstile>s (\<Union> C \<in> {{# -L #} | L. L \<in># D}. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>})\<close> and
+    I_model_of_D: \<open>I \<TTurnstile>s {D \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}\<close>
+
+  have \<open>\<forall> C \<in> (\<Union> C \<in> {{# -L #} | L. L \<in># D}. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}). I \<TTurnstile> C\<close>
+    using I_model_of_neg_D
+    unfolding true_clss_def
+    by blast 
+  then have \<open>\<forall> L \<in># D. \<forall> \<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<TTurnstile>l -L \<cdot>l \<sigma>\<close>
+    by fastforce 
+  then have \<open>\<forall> \<sigma>. is_ground_subst \<sigma> \<longrightarrow> (\<forall> L \<in># D. I \<TTurnstile>l -(L \<cdot>l \<sigma>))\<close>
+    by auto 
+  moreover have \<open>\<forall> C \<in> {D \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}. I \<TTurnstile> C\<close>
+    using I_model_of_D
+    unfolding true_clss_def
+    by blast 
+  then have \<open>\<forall> \<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<TTurnstile> D \<cdot> \<sigma>\<close>
+    by blast 
+  then have \<open>\<forall> \<sigma>. is_ground_subst \<sigma> \<longrightarrow> (\<exists> L \<in># D. I \<TTurnstile>l L \<cdot>l \<sigma>)\<close>
+    unfolding true_cls_def
+    by force 
+  then have \<open>\<forall> \<sigma>. is_ground_subst \<sigma> \<longrightarrow> \<not> (\<forall> L \<in># D. I \<TTurnstile>l -(L \<cdot>l \<sigma>))\<close>
+    by fastforce 
+  ultimately show \<open>False\<close>
+    using ex_ground_subst
+    by presburger
+next
+  assume \<open>\<not> I \<TTurnstile>s {D \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}\<close>
+  then have \<open>\<not> (\<forall> C \<in> {D \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}. I \<TTurnstile> C)\<close>
+    unfolding true_clss_def
+    by blast 
+  then have \<open>\<exists> C \<in> {D \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}. \<not> I \<TTurnstile> C\<close>
+    by blast
+  then have \<open>\<exists> \<sigma>. is_ground_subst \<sigma> \<and> \<not> I \<TTurnstile> D \<cdot> \<sigma>\<close>
+    by blast 
+  then have \<open>\<exists> \<sigma>. is_ground_subst \<sigma> \<and> (\<forall> L \<in># D \<cdot> \<sigma>. \<not> I \<TTurnstile>l L)\<close>
+    by blast 
+  then have \<open>\<exists> \<sigma>. is_ground_subst \<sigma> \<and> (\<forall> L \<in># D. \<not> I \<TTurnstile>l L \<cdot>l \<sigma>)\<close>
+    by fastforce 
+  then have I_not_model_of_some_neg_D: \<open>\<forall> L \<in># D. \<exists> \<sigma>. is_ground_subst \<sigma> \<and> \<not> I \<TTurnstile>l L \<cdot>l \<sigma>\<close>
+    by blast 
+
+  show \<open>I \<TTurnstile>s (\<Union> C \<in> {{# -L #} | L. L \<in># D}. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>})\<close>
+  proof (rule ccontr)
+    assume \<open>\<not> I \<TTurnstile>s (\<Union> C \<in> {{# -L #} | L. L \<in># D}. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>})\<close>
+    then have \<open>\<exists> C \<in> (\<Union> C \<in> {{# -L #} | L. L \<in># D}. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}). \<not> I \<TTurnstile> C\<close>
+      unfolding true_clss_def
+      by blast 
+    then have \<open>\<exists> L \<in># D. \<exists> \<sigma>. is_ground_subst \<sigma> \<and> \<not> I \<TTurnstile>l -L \<cdot>l \<sigma>\<close>
+      by force
+    then have \<open>\<exists> L \<in># D. \<exists> \<sigma>. is_ground_subst \<sigma> \<and> \<not> I \<TTurnstile>l -(L \<cdot>l \<sigma>)\<close>
+      by simp 
+    then have \<open>\<exists> L \<in># D. \<exists> \<sigma>. is_ground_subst \<sigma> \<and> I \<TTurnstile>l L \<cdot>l \<sigma>\<close>
+      by (smt (verit, ccfv_SIG) atm_of_uminus is_pos_neg_not_is_pos true_lit_def) 
+    then obtain L where
+      L_in_D: \<open>L \<in># D\<close> and
+      I_model_of_some_neg_D_2: \<open>\<exists> \<sigma>. is_ground_subst \<sigma> \<and> I \<TTurnstile>l L \<cdot>l \<sigma>\<close>
+      by blast
+    then show \<open>False\<close>
+      (* TODO *)
+      sorry
+  qed
+qed
+
 lemma entails_\<G>_iff_entails_bot_single: \<open>M \<TTurnstile>\<inter>\<G>e {D} \<longleftrightarrow> M \<union> {{# -L #} | L. L \<in># D} \<TTurnstile>\<inter>\<G>e {{#}}\<close>
 proof (intro iffI)
   assume \<open>M \<TTurnstile>\<inter>\<G>e {D}\<close>
@@ -489,6 +702,55 @@ proof (intro iffI)
     by force 
 next
   assume \<open>M \<union> {{# -L #} | L. L \<in># D} \<TTurnstile>\<inter>\<G>e {{#}}\<close>
+  then have \<open>\<forall> I. I \<TTurnstile>s \<G>_Fset M \<longrightarrow> I \<TTurnstile>s \<G>_Fset {{# -L #} | L. L \<in># D} \<longrightarrow> I \<TTurnstile>s {{#}}\<close>
+    using F_entails_\<G>_iff grounding_of_clss_def
+    by fastforce
+  then have \<open>\<forall> I. I \<TTurnstile>s \<G>_Fset M \<longrightarrow> \<not> I \<TTurnstile>s \<G>_F D \<longrightarrow> I \<TTurnstile>s {{#}}\<close>
+    using interp_of_negation_not_interp
+    by blast
+  then have \<open>\<forall> I. I \<TTurnstile>s \<G>_Fset M \<longrightarrow> I \<TTurnstile>s \<G>_F D\<close>
+    by blast 
+  then have \<open>\<G>_Fset M \<TTurnstile>\<inter>e \<G>_F D\<close>
+    by blast 
+  then show \<open>M \<TTurnstile>\<inter>\<G>e {D}\<close>
+    unfolding F_entails_\<G>_iff \<G>_Fset_def
+    by blast 
+
+
+
+  (* then have \<open>\<G>_Fset M \<union> \<G>_Fset {{# -L #} | L. L \<in># D} \<TTurnstile>\<inter>e {{#}}\<close>
+   *   unfolding F_entails_\<G>_iff \<G>_Fset_def
+   *   by simp
+   * then have \<open>\<G>_Fset M \<union> (\<Union> {{{# -L #} | L. L \<in># D'} | D'. D' \<in> \<G>_F D}) \<TTurnstile>\<inter>e {{#}}\<close>
+   *   using neg_of_\<G>_F_lits_is_\<G>_F_of_neg_lits \<G>_Fset_def
+   *   by presburger  
+   * then have \<open>\<G>_Fset M \<union> (\<Union> D' \<in> \<G>_F D. {{# -L #} | L. L \<in># D'}) \<TTurnstile>\<inter>e {{#}}\<close>
+   *   by fast
+   * then have \<open>(\<Union> D' \<in> \<G>_F D. \<G>_Fset M \<union> {{# -L #} | L. L \<in># D'}) \<TTurnstile>\<inter>e {{#}}\<close>
+   * proof -
+   *   have \<open>\<G>_Fset M \<union> (\<Union> D' \<in> \<G>_F D. {{# -L #} | L. L \<in># D'}) =
+   *     (\<Union> D' \<in> \<G>_F D. \<G>_Fset M \<union> {{# -L #} | L. L \<in># D'})\<close>
+   *     using \<G>_F_not_empty Union_distrib_union
+   *     by simp 
+   *   then show \<open>\<G>_Fset M \<union> (\<Union> D' \<in> \<G>_F D. {{# -L #} | L. L \<in># D'}) \<TTurnstile>\<inter>e {{#}} \<Longrightarrow>
+   *     ?thesis\<close>
+   *     by presburger 
+   * qed
+   * (\* ... *\)
+   * then have \<open>\<G>_Fset M \<TTurnstile>\<inter>e \<G>_F D\<close>
+   *    
+   *   sorry
+   * then show \<open>M \<TTurnstile>\<inter>\<G>e {D}\<close>
+   *   unfolding F_entails_\<G>_iff \<G>_Fset_def
+   *   by fast  *)
+
+
+  (* obtain D'' where
+    D''_in_\<G>_F_D: \<open>D'' \<in> \<G>_F D\<close>
+    using ex_ground_subst grounding_of_cls_def
+    by fastforce
+
+  assume \<open>M \<union> {{# -L #} | L. L \<in># D} \<TTurnstile>\<inter>\<G>e {{#}}\<close>
   then have \<open>\<G>_Fset M \<union> (\<Union> (\<G>_F ` {{# -L #} | L. L \<in># D})) \<TTurnstile>\<inter>e {{#}}\<close>
     using F_entails_\<G>_iff grounding_of_clss_def
     by fastforce
@@ -497,73 +759,110 @@ next
     by presburger
   then have \<open>\<G>_Fset M \<union> (\<Union> D' \<in> \<G>_F D. {{# -L #} | L. L \<in># D'}) \<TTurnstile>\<inter>e {{#}}\<close>
     by auto
+  then have
+    \<open>\<G>_Fset M \<union> (\<Union> D' \<in> \<G>_F D - {D''}. {{# -L #} | L. L \<in># D'}) \<union>
+      {{# -L #} | L. L \<in># D''} \<TTurnstile>\<inter>e {{#}}\<close>
+    using D''_in_\<G>_F_D
+    by fastforce 
+  then have \<open>\<G>_Fset M \<union> (\<Union> D' \<in> \<G>_F D - {D''}. {{# -L #} | L. L \<in># D'}) \<TTurnstile>\<inter>e {D''}\<close>
+    using entails_iff_unsatisfiable_single[of _ D'']
+    by (meson entails_bot_iff_unsatisfiable) 
+  then have \<open>\<G>_Fset M \<TTurnstile>\<inter>e {D''} \<union> (\<G>_F D - {D''})\<close>
+    using entails_neg_swap
+    by fastforce
   then have \<open>\<G>_Fset M \<TTurnstile>\<inter>e \<G>_F D\<close>
-    sorry (* Is this doable? *)
-  then show \<open>M \<TTurnstile>\<inter>\<G>e {D}\<close>
-    using F_entails_\<G>_iff grounding_of_clss_def
-    by force
+    by simp  *)
+
+  (* then show \<open>M \<TTurnstile>\<inter>\<G>e {D}\<close>
+   *   using F_entails_\<G>_iff grounding_of_clss_def
+   *   sorry *)
 qed
 
-lemma entails_\<G>_iff_entails_bot: \<open>M \<TTurnstile>\<inter>\<G>e N \<longleftrightarrow> (\<forall> D \<in> N. M \<union> {{# -L #} | L. L \<in># D} \<TTurnstile>\<inter>\<G>e {{#}})\<close>
-  by (metis (no_types, lifting) F.entail_set_all_formulas entails_\<G>_iff_entails_bot_single) 
+lemma entails_\<G>_iff_entails_bot:
+  \<open>M \<TTurnstile>\<inter>\<G>e N \<longleftrightarrow> (\<forall> D \<in> N. \<forall> \<sigma>. is_ground_subst \<sigma> \<longrightarrow> M \<union> {{# -L #} | L. L \<in># D \<cdot> \<sigma>} \<TTurnstile>\<inter>\<G>e {{#}})\<close>
+  (* by (metis (no_types, lifting) F.entail_set_all_formulas entails_\<G>_iff_entails_bot_single)  *)
+  sorry 
 
 lemma entails_\<G>_bot_mono: \<open>M \<subseteq> M' \<Longrightarrow> M \<TTurnstile>\<inter>\<G>e {{#}} \<Longrightarrow> M' \<TTurnstile>\<inter>\<G>e {{#}}\<close>
   using F.entails_trans F.subset_entailed
-  by blast
+  by blast *)
+
+lemma entails_bot_neg_if_entails_\<G>_single: \<open>M \<TTurnstile>\<inter>\<G>e {D} \<Longrightarrow> M \<union> {{# -L #} | L. L \<in># D} \<TTurnstile>\<inter>\<G>e {{#}}\<close>
+proof -
+  assume \<open>M \<TTurnstile>\<inter>\<G>e {D}\<close>
+  then have unsat: \<open>\<forall> D' \<in> \<G>_F D. \<not> satisfiable (\<G>_Fset M \<union> {{# -L #} | L. L \<in># D'})\<close> 
+    unfolding entails_\<G>_iff_unsatisfiable
+    by (simp add: grounding_of_clss_def)
+  then have \<open>\<not> satisfiable (\<G>_Fset M \<union> (\<Union> D' \<in> \<G>_F D. {{# -L #} | L. L \<in># D'}))\<close>
+    using ex_ground_subst substitution_ops.grounding_of_cls_def
+    by fastforce
+  then have \<open>\<not> satisfiable (\<G>_Fset M \<union> (\<Union> {{{# -L #} | L. L \<in># D'} | D'. D' \<in> \<G>_F D}))\<close>
+    by fast 
+  then have \<open>\<not> satisfiable (\<G>_Fset M \<union> (\<Union> (\<G>_F ` {{# -L #} | L. L \<in># D})))\<close>
+    using neg_of_\<G>_F_lits_is_\<G>_F_of_neg_lits
+    by auto 
+  then have \<open>\<G>_Fset M \<union> (\<Union> (\<G>_F ` {{# -L #} | L. L \<in># D})) \<TTurnstile>\<inter>e {{#}}\<close>
+    by presburger 
+  then show \<open>M \<union> {{# -L #} | L. L \<in># D} \<TTurnstile>\<inter>\<G>e {{#}}\<close>
+    unfolding F_entails_\<G>_iff \<G>_F_def \<G>_Fset_def
+    by force
+qed
+
+lemma minus_\<G>_Fset_to_\<G>_Fset_minus: \<open>C \<in> \<G>_Fset M - \<G>_Fset N \<Longrightarrow> C \<in> \<G>_Fset (M - N)\<close>
+  unfolding \<G>_Fset_def \<G>_F_def
+  by blast 
+
+lemma entails_\<G>_conj_singleton_compact: \<open>M \<TTurnstile>\<inter>\<G>e {C} \<Longrightarrow> \<exists> M' \<subseteq> M. finite M' \<and> M' \<TTurnstile>\<inter>\<G>e {C}\<close> 
+proof -
+  assume \<open>M \<TTurnstile>\<inter>\<G>e {C}\<close>
+  then have \<open>\<G>_Fset M \<TTurnstile>\<inter>e \<G>_Fset {C}\<close>
+    unfolding F_entails_\<G>_iff \<G>_Fset_def .
+  then have \<open>I \<TTurnstile>s \<G>_Fset M \<Longrightarrow> I \<TTurnstile>s \<G>_Fset {C}\<close> for I
+    by blast
+  then have \<open>I \<TTurnstile>s (\<Union> C \<in> M. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}) \<Longrightarrow>
+    I \<TTurnstile>s (\<Union> D \<in> {C}. {D \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>})\<close>
+    for I
+    unfolding \<G>_Fset_def \<G>_F_def
+    by fast 
+  then have \<open>\<forall> \<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<TTurnstile>s M \<cdot>cs \<sigma> \<Longrightarrow> is_ground_subst \<sigma> \<Longrightarrow> I \<TTurnstile>s {C} \<cdot>cs \<sigma>\<close>
+    for I \<sigma>
+    using true_Union_grounding_of_cls_iff
+    by meson
+  then have \<open>is_ground_subst \<sigma> \<Longrightarrow> \<forall> \<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<TTurnstile>s M \<cdot>cs \<sigma> \<Longrightarrow> I \<TTurnstile>s {C} \<cdot>cs \<sigma>\<close>
+    sorry 
+  then show ?thesis
+    sorry 
+qed
+
 
 interpretation entails_\<G>_compact: concl_compact_consequence_relation
   \<open>{{#}} :: ('a :: wellorder) clause set\<close> \<open>(\<TTurnstile>\<inter>\<G>e)\<close>
-(* This is basically the same proof as for the ground level (see file \<open>Clausal_Calculus.thy\<close>).
- * The only big difference is that instead of using @{const satisfiable}, we use an explicit
- * entailment of bottom. *)
 proof (standard)
   fix M N :: \<open>('a :: wellorder) clause set\<close> 
 
   assume
     N_finite: \<open>finite N\<close> and
     M_entails_N: \<open>M \<TTurnstile>\<inter>\<G>e N\<close>
-  then have \<open>\<forall> D \<in> N. M \<union> {{# -L #} | L. L \<in># D} \<TTurnstile>\<inter>\<G>e {{#}}\<close>
-    using entails_\<G>_iff_entails_bot
+  then have \<open>\<forall> C \<in> N. M \<TTurnstile>\<inter>\<G>e {C}\<close>
+    using F.entail_set_all_formulas
     by blast
-  then have \<open>\<forall> D \<in> N. \<exists> M' \<subseteq> M \<union> {{# -L #} | L. L \<in># D}. finite M' \<and> M' \<TTurnstile>\<inter>\<G>e {{#}}\<close>
-    using unsat_\<G>_compact
+  then have \<open>\<forall> C \<in> N. \<exists> M' \<subseteq> M. finite M' \<and> M' \<TTurnstile>\<inter>\<G>e {C}\<close>
+    using entails_\<G>_conj_singleton_compact
     by blast
   then obtain M'_of where
-    M'_of: \<open>\<forall> D \<in> N. M'_of D \<subseteq> M \<union> {{# -L #} | L. L \<in># D} \<and> finite (M'_of D) \<and> M'_of D \<TTurnstile>\<inter>\<G>e {{#}}\<close>
-    (* \<open>try0\<close> suggests \<open>by meson\<close> but it causes some ugly warnings that I don't understand. *)
-    by moura 
-
-  define M' where
-    \<open>M' \<equiv> \<Union> D \<in> N. M'_of D - {{# -L #} | L. L \<in># D}\<close>
-
-  have \<open>finite M'\<close>
-    unfolding M'_def
-    using N_finite M'_of
+    \<open>\<forall> C \<in> N. M'_of C \<subseteq> M \<and> finite (M'_of C) \<and> M'_of C \<TTurnstile>\<inter>\<G>e {C}\<close>
+    by moura
+  then have
+    Union_M'_subset_M: \<open>(\<Union> C \<in> N. M'_of C) \<subseteq> M\<close> and
+    finite_Union_M': \<open>finite (\<Union> C \<in> N. M'_of C)\<close> and
+    \<open>\<forall> C \<in> N. (\<Union> C \<in> N. M'_of C) \<TTurnstile>\<inter>\<G>e {C}\<close>
+    using N_finite F_entails_\<G>_iff
+    by auto
+  then have \<open>(\<Union> C \<in> N. M'_of C) \<TTurnstile>\<inter>\<G>e N\<close>
+    using F.all_formulas_entailed
     by blast
-  moreover have \<open>M' \<subseteq> M\<close>
-    unfolding M'_def
-    by (simp add: Diff_subset_conv M'_of SUP_least sup_commute) 
-  moreover have \<open>\<forall> D \<in> N. M' \<union> {{# -L #} | L. L \<in># D} \<TTurnstile>\<inter>\<G>e {{#}}\<close>
-  proof (intro ballI)
-    fix D
-    assume D_in_N: \<open>D \<in> N\<close>
-
-    have \<open>M'_of D \<subseteq> M' \<union> {{# -L #} | L. L \<in># D}\<close>
-      unfolding M'_def
-      using D_in_N
-      by blast
-    moreover have \<open>M'_of D \<TTurnstile>\<inter>\<G>e {{#}}\<close>
-      using D_in_N M'_of
-      by blast
-    ultimately show \<open>M' \<union> {{# -L #} | L. L \<in># D} \<TTurnstile>\<inter>\<G>e {{#}}\<close>
-      unfolding M'_def
-      using entails_\<G>_bot_mono[of \<open>M'_of D\<close>]
-      by presburger 
-  qed
-  then have \<open>M' \<TTurnstile>\<inter>\<G>e N\<close>
-    using entails_\<G>_iff_entails_bot[of M' N]
-    by blast 
-  ultimately show \<open>\<exists> M' \<subseteq> M. finite M' \<and> M' \<TTurnstile>\<inter>\<G>e N\<close>
+  then show \<open>\<exists> M' \<subseteq> M. finite M' \<and> M' \<TTurnstile>\<inter>\<G>e N\<close>
+    using Union_M'_subset_M finite_Union_M'
     by blast 
 qed
 
@@ -589,82 +888,204 @@ text \<open>
   Hence \<open>M \<TTurnstile>\<union>\<G>e N\<close> if \<open>M\<close> is unsatisfiable, or there exists some \<open>C \<in> N\<close> such that \<open>M \<TTurnstile>\<inter>\<G>e {C}\<close>.
 \<close>
 definition entails_\<G>_disj :: \<open>'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool\<close> (infix \<open>\<TTurnstile>\<union>\<G>e\<close> 50) where
-  \<open>M \<TTurnstile>\<union>\<G>e N \<longleftrightarrow> M \<TTurnstile>\<inter>\<G>e {{#}} \<or> (\<exists> C \<in> N. M \<TTurnstile>\<inter>\<G>e {C})\<close> 
+  \<open>M \<TTurnstile>\<union>\<G>e N \<longleftrightarrow> M \<TTurnstile>\<inter>\<G>e {{#}} \<or> (\<exists> M' \<subseteq> M. finite M' \<and> (\<exists> C \<in> N. M' \<TTurnstile>\<inter>\<G>e {C}))\<close> 
 
 text \<open>
   This is our own requirement: the two entailments must coincide on singleton sets.
 \<close> 
 
 lemma entails_conj_is_entails_disj_on_singleton: \<open>M \<TTurnstile>\<inter>\<G>e {C} \<longleftrightarrow> M \<TTurnstile>\<union>\<G>e {C}\<close>
-  using F.entails_def entails_\<G>_disj_def
-  by force
+proof (intro iffI)
+  assume M_entails_C: \<open>M \<TTurnstile>\<inter>\<G>e {C}\<close>
+  then have \<open>\<exists> M' \<subseteq> M. finite M' \<and> (\<exists> C' \<in> {C}. M' \<TTurnstile>\<inter>\<G>e {C'})\<close>
+    using entails_\<G>_conj_singleton_compact
+    by fastforce
+  then show \<open>M \<TTurnstile>\<union>\<G>e {C}\<close> 
+    unfolding entails_\<G>_disj_def
+    by (intro disjI2)
+next
+  assume \<open>M \<TTurnstile>\<union>\<G>e {C}\<close>
+  then consider
+    (M_unsat) \<open>M \<TTurnstile>\<inter>\<G>e {{#}}\<close> |
+    (b) \<open>\<exists> M' \<subseteq> M. finite M' \<and> (\<exists> C' \<in> {C}. M' \<TTurnstile>\<inter>\<G>e {C'})\<close>
+    unfolding entails_\<G>_disj_def
+    by blast 
+  then show \<open>M \<TTurnstile>\<inter>\<G>e {C}\<close>
+  proof cases
+    case M_unsat
+    then show ?thesis
+      using F.bot_entails_all F.entails_trans
+      by blast
+  next
+    case b
+    then obtain M' where
+      \<open>M' \<subseteq> M\<close> and
+      \<open>finite M'\<close> and
+      \<open>M' \<TTurnstile>\<inter>\<G>e {C}\<close>
+      by blast 
+    then show ?thesis
+      using F.entails_trans F.subset_entailed
+      by blast
+  qed
+qed
 
 (*<*)
 lemma unsat_supsets: \<open>M \<TTurnstile>\<inter>\<G>e {{#}} \<Longrightarrow> M \<union> M' \<TTurnstile>\<inter>\<G>e {{#}}\<close>
   using F.entails_trans F.subset_entailed
   by blast
 
+(* Property (D3) *) 
 lemma entails_\<G>_disj_subsets: \<open>M' \<subseteq> M \<Longrightarrow> N' \<subseteq> N \<Longrightarrow> M' \<TTurnstile>\<union>\<G>e N' \<Longrightarrow> M \<TTurnstile>\<union>\<G>e N\<close>
-  by (meson F.entails_trans F.subset_entailed entails_\<G>_disj_def subsetD true_clss_mono) 
+  by (smt (verit, del_insts) F.entails_trans F.subset_entailed entails_\<G>_disj_def order_trans subsetD) 
 
+(* Property (D5) *)
+lemma entails_\<G>_disj_compactness:
+  \<open>M \<TTurnstile>\<union>\<G>e N \<Longrightarrow> \<exists> M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<TTurnstile>\<union>\<G>e N'\<close>
+proof -
+  assume \<open>M \<TTurnstile>\<union>\<G>e N\<close>
+  then consider
+    (M_unsat) \<open>M \<TTurnstile>\<inter>\<G>e {{#}}\<close> |
+    (b) \<open>\<exists> M' \<subseteq> M. finite M' \<and> (\<exists> C \<in> N. M' \<TTurnstile>\<inter>\<G>e {C})\<close>
+    unfolding entails_\<G>_disj_def
+    by blast 
+  then show ?thesis
+  proof cases
+    case M_unsat
+    then show ?thesis
+      using unsat_\<G>_compact[of M]
+      unfolding entails_\<G>_disj_def
+      by blast 
+  next
+    case b
+    then show ?thesis
+      unfolding entails_\<G>_disj_def
+      by (meson empty_subsetI finite.emptyI finite.insertI insert_subset subset_refl) 
+  qed
+qed
+
+(* Property (D4) *) 
 lemma entails_\<G>_disj_cut: \<open>M \<TTurnstile>\<union>\<G>e N \<union> {C} \<Longrightarrow> M' \<union> {C} \<TTurnstile>\<union>\<G>e N' \<Longrightarrow> M \<union> M' \<TTurnstile>\<union>\<G>e N \<union> N'\<close>
 proof -
   assume M_entails_N_u_C: \<open>M \<TTurnstile>\<union>\<G>e N \<union> {C}\<close> and
          M'_u_C_entails_N': \<open>M' \<union> {C} \<TTurnstile>\<union>\<G>e N'\<close>
-  then consider
-    (M_unsat) \<open>M \<TTurnstile>\<inter>\<G>e {{#}}\<close> |
-    (M'_u_C_unsat) \<open>M' \<union> {C} \<TTurnstile>\<inter>\<G>e {{#}}\<close> |
-    (c) \<open>(\<exists> C' \<in> N \<union> {C}. M \<TTurnstile>\<inter>\<G>e {C'}) \<and> (\<exists> C' \<in> N'. M' \<union> {C} \<TTurnstile>\<inter>\<G>e {C'})\<close> 
-    using entails_\<G>_disj_def
-    by auto
-  then show \<open>M \<union> M' \<TTurnstile>\<union>\<G>e N \<union> N'\<close>
-  proof cases
-    case M_unsat
-    then show ?thesis
-      using entails_\<G>_disj_def unsat_supsets
-      by blast 
-  next
-    case M'_u_C_unsat
-    then show ?thesis
-      by (smt (z3) F_entails_\<G>_iff M_entails_N_u_C UN_Un Un_insert_right entails_\<G>_disj_def
-          entails_\<G>_disj_subsets insert_iff sup_bot.right_neutral sup_ge1 true_clss_union) 
-  next
-    case c
-    then obtain C1 and C2 where
-      C1_in_N_u_C: \<open>C1 \<in> N \<union> {C}\<close> and
-      M_entails_C1: \<open>M \<TTurnstile>\<inter>\<G>e {C1}\<close> and
-      C2_in_N': \<open>C2 \<in> N'\<close> and
-      M'_u_C_entails_C2: \<open>M' \<union> {C} \<TTurnstile>\<inter>\<G>e {C2}\<close>
-      by blast 
-    then show ?thesis
-    proof (cases \<open>C1 = C\<close>) 
-      case True
-      then have \<open>M \<TTurnstile>\<inter>\<G>e {C}\<close>
-        using M_entails_C1
-        by blast
-      then have \<open>M' \<union> M \<TTurnstile>\<inter>\<G>e M' \<union> {C}\<close>
-        by (metis (no_types, lifting) F.entail_union F.entails_trans F.subset_entailed
-            Un_upper1 Un_upper2)
-      then have \<open>M \<union> M' \<TTurnstile>\<inter>\<G>e {C2}\<close>
-        using F_entails_\<G>_iff M'_u_C_entails_C2
-        by auto
-      then show ?thesis
-        using C2_in_N' entails_\<G>_disj_def
-        by auto
-    next
-      case False
-      then show ?thesis
-        by (meson C1_in_N_u_C M_entails_C1 UnE entails_\<G>_disj_def entails_\<G>_disj_subsets equals0D
-            insertE sup.cobounded1) 
-    qed
-  qed
-qed 
+  then obtain P P' where
+    P_subset_M: \<open>P \<subseteq> M\<close> and
+    finite_P: \<open>finite P\<close> and
+    P_entails_N_u_C: \<open>P \<TTurnstile>\<union>\<G>e N \<union> {C}\<close> and
+    P'_subset_M'_u_C: \<open>P' \<subseteq> M' \<union> {C}\<close> and
+    finite_P': \<open>finite P'\<close> and
+    P'_entails_N': \<open>P' \<TTurnstile>\<union>\<G>e N'\<close>
+    using entails_\<G>_disj_compactness[OF M_entails_N_u_C]
+          entails_\<G>_disj_compactness[OF M'_u_C_entails_N'] entails_\<G>_disj_subsets
+    by blast 
 
-lemma entails_\<G>_disj_compactness:
-  \<open>M \<TTurnstile>\<union>\<G>e N \<Longrightarrow> \<exists> M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<TTurnstile>\<union>\<G>e N'\<close>
-  unfolding entails_\<G>_disj_def 
-  using entails_\<G>_compact.entails_concl_compact
-  by (meson bot.extremum finite.emptyI finite.insertI insertI1 insert_subset) 
+  have P_subset_M_u_M': \<open>P \<subseteq> M \<union> M'\<close>
+    using P_subset_M
+    by blast 
+
+  show ?thesis
+  proof (cases \<open>C \<in> P'\<close>) 
+    case C_in_P': True
+
+    define P'' where
+      \<open>P'' = P' - {C}\<close>
+
+    have P''_subset_M': \<open>P'' \<subseteq> M'\<close>
+      using P'_subset_M'_u_C P''_def
+      by blast
+
+    have finite_P'': \<open>finite P''\<close>
+      using finite_P' P''_def
+      by blast 
+
+    consider
+      (M_unsat) \<open>P \<TTurnstile>\<inter>\<G>e {{#}}\<close>
+    | (M'_u_C_unsat) \<open>P' \<TTurnstile>\<inter>\<G>e {{#}}\<close>
+    | (c) \<open>(\<exists> C' \<in> N \<union> {C}. P \<TTurnstile>\<inter>\<G>e {C'}) \<and> (\<exists> C' \<in> N'. P' \<TTurnstile>\<inter>\<G>e {C'})\<close>
+      using P_entails_N_u_C P'_entails_N' finite_P finite_P'
+      unfolding entails_\<G>_disj_def
+      by (metis (no_types, lifting) F.entails_trans F.subset_entailed) 
+    then show ?thesis
+    proof cases 
+      case M_unsat
+      then have \<open>P \<TTurnstile>\<union>\<G>e N \<union> N'\<close>
+        using entails_\<G>_disj_def
+        by blast 
+      then show ?thesis
+        using entails_\<G>_disj_subsets[of P \<open>M \<union> M'\<close> \<open>N \<union> N'\<close> \<open>N \<union> N'\<close>, OF P_subset_M_u_M']
+        by blast 
+    next
+      case M'_u_C_unsat
+      then show ?thesis 
+        (* /!\ Slow /!\ *)
+        by (smt (z3) F.subset_entailed F_entails_\<G>_iff M_entails_N_u_C P'_subset_M'_u_C UN_Un
+            Un_insert_right entails_\<G>_disj_def entails_\<G>_disj_subsets insert_iff
+            sup_bot.right_neutral sup_ge1 true_clss_union) 
+    next
+      case c
+      then obtain C1 C2 where
+        C1_in_N_u_C: \<open>C1 \<in> N \<union> {C}\<close> and
+        P_entails_C1: \<open>P \<TTurnstile>\<inter>\<G>e {C1}\<close> and
+        C2_in_N': \<open>C2 \<in> N'\<close> and
+        P'_entails_C2: \<open>P' \<TTurnstile>\<inter>\<G>e {C2}\<close>
+        by blast
+      then show ?thesis
+      proof (cases \<open>C1 = C\<close>) 
+        case C1_is_C: True
+
+        show ?thesis   
+        proof (cases \<open>C2 = C\<close>)
+          case True
+          then have \<open>N \<union> {C} \<union> N' = N \<union> N'\<close>
+            using C2_in_N'
+            by blast 
+          moreover have \<open>P \<TTurnstile>\<union>\<G>e N \<union> {C}\<close>
+            using P_entails_C1 C1_in_N_u_C finite_P
+            unfolding entails_\<G>_disj_def
+            by blast 
+          ultimately show ?thesis
+            using entails_\<G>_disj_subsets[OF P_subset_M_u_M', of \<open>N \<union> {C}\<close> \<open>N \<union> N'\<close>]
+            by blast 
+        next
+          case C2_not_C: False
+          then have \<open>P \<union> P'' \<TTurnstile>\<inter>\<G>e {C2}\<close>
+            by (smt (verit, del_insts) C1_is_C F.entail_union F.entails_trans F.subset_entailed
+                P''_def P'_entails_C2 P_entails_C1 Un_commute Un_insert_left insert_Diff_single
+                sup_ge2) 
+          then have \<open>M \<union> M' \<TTurnstile>\<union>\<G>e N'\<close>
+            using C2_in_N' P''_subset_M' P_subset_M finite_UnI[OF finite_P finite_P'']
+            by (smt (verit, ccfv_SIG) P_subset_M_u_M' Un_subset_iff Un_upper2 entails_\<G>_disj_def
+                order_trans)
+          then show ?thesis
+            by (meson entails_\<G>_disj_subsets equalityE sup_ge2)  
+        qed
+      next
+        case False
+        then have \<open>C1 \<in> N\<close>
+          using C1_in_N_u_C
+          by blast 
+        then have \<open>P \<TTurnstile>\<union>\<G>e N\<close>
+          unfolding entails_\<G>_disj_def
+          using P_entails_C1 finite_P
+          by blast 
+        then show ?thesis
+          using entails_\<G>_disj_subsets[OF P_subset_M_u_M']
+          by blast 
+      qed
+    qed
+  next
+    case False
+    then have \<open>P' \<subseteq> M'\<close>
+      using P'_subset_M'_u_C
+      by blast 
+    then have \<open>M' \<TTurnstile>\<union>\<G>e N'\<close>
+      using P'_entails_N' entails_\<G>_disj_subsets
+      by blast 
+    then show ?thesis
+      using entails_\<G>_disj_subsets[of M' \<open>M \<union> M'\<close> N' \<open>N \<union> N'\<close>] 
+      by blast 
+  qed
+qed
 
 lemma entails_\<G>_disj_cons_rel_ext: \<open>consequence_relation {#} (\<TTurnstile>\<union>\<G>e)\<close>
 proof (standard)
@@ -706,11 +1127,84 @@ qed
 
 lemma bottom_never_redundant: \<open>{#} \<notin> F.Red_F_\<G>_empty N\<close>
   unfolding F.Red_F_\<G>_empty_def F.Red_F_\<G>_empty_q_def G.Red_F_def
-  by auto 
+  by auto  
+
+lemma \<open>i < length A \<Longrightarrow> i < length \<rho>s \<Longrightarrow> A ! i = x \<Longrightarrow> (A \<cdot>\<cdot>cl \<rho>s) ! i = x \<cdot> (\<rho>s ! i)\<close>
+  unfolding subst_cls_lists_def 
+  by auto  
+
+lemma \<open>A - {x \<in> A. P x} = {x \<in> A. \<not> P x}\<close>
+  by blast 
+
+lemma \<open>\<not> A \<subseteq> - B \<longleftrightarrow> (\<exists> D \<in> A. D \<in> B)\<close>
+  by blast 
 
 lemma Inf_from_Red_F_subset_Red_I:
   \<open>F.Inf_between UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.Red_I_\<G> N\<close>
-proof (intro subsetI)
+proof -
+  have \<open>\<G>_I M \<iota> \<subseteq> G.Red_I M (\<G>_Fset N)\<close>
+    if
+      D_in_prems_\<iota>: \<open>C \<in> set (prems_of \<iota>)\<close> and
+      grounds_of_D_red_to_grounds_of_N: \<open>\<G>_F C \<subseteq> G.Red_F (\<G>_Fset N)\<close> and
+      C_is_FInf: \<open>\<iota> \<in> F_Inf\<close>
+    for \<iota> C M
+  proof (intro subsetI)
+    fix \<iota>\<^sub>G
+    assume \<open>\<iota>\<^sub>G \<in> \<G>_I M \<iota>\<close>
+    then obtain \<rho> \<rho>s where
+      \<rho>s_groundings: \<open>is_ground_subst \<rho>\<close> \<open>is_ground_subst_list \<rho>s\<close> and
+      \<iota>\<^sub>G_is: \<open>\<iota>\<^sub>G = Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>)\<close> and
+      \<iota>\<^sub>G_is_GInf: \<open>\<iota>\<^sub>G \<in> G_Inf M\<close>
+      unfolding \<G>_I_def
+      by blast 
+
+    have \<open>\<forall> \<sigma>. is_ground_subst \<sigma> \<longrightarrow> C \<cdot> \<sigma> \<in> G.Red_F (\<G>_Fset N)\<close>
+      using grounds_of_D_red_to_grounds_of_N
+      unfolding \<G>_F_def
+      by blast
+    then have C_always_red_to_grounds_N:
+      \<open>\<forall> \<sigma>. is_ground_subst \<sigma> \<longrightarrow> (\<exists> DD \<subseteq> \<G>_Fset N. DD \<TTurnstile>\<inter>e {C \<cdot> \<sigma>} \<and> (\<forall> D \<in> DD. D < C \<cdot> \<sigma>))\<close>
+      unfolding G.Red_F_def
+      by blast 
+
+    have \<open>G.redundant_infer (\<G>_Fset N) \<iota>\<^sub>G\<close>
+      unfolding G.redundant_infer_def 
+    proof (cases \<open>\<exists> \<rho>'. \<rho>' \<in> set \<rho>s \<and> C \<cdot> \<rho>' \<in> set (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)\<close>) 
+      case True
+      then obtain \<rho>' where
+        \<open>is_ground_subst \<rho>'\<close> and
+        \<open>C \<cdot> \<rho>' \<in> set (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)\<close>
+        by (meson \<rho>s_groundings(2) substitution_ops.is_ground_subst_list_def) 
+      then obtain DD where
+        \<open>DD \<subseteq> \<G>_Fset N\<close> and
+        \<open>DD \<TTurnstile>\<inter>e {C \<cdot> \<rho>'}\<close> and
+        \<open>\<forall> D \<in> DD. D < C \<cdot> \<rho>'\<close>
+        using C_always_red_to_grounds_N
+        by metis 
+      then show \<open>\<exists> DD \<subseteq> \<G>_Fset N. DD \<union> set (side_prems_of \<iota>\<^sub>G) \<TTurnstile>\<inter>e {concl_of \<iota>\<^sub>G} \<and>
+        (\<forall>D\<in>DD. D < main_prem_of \<iota>\<^sub>G)\<close>
+        sorry
+    next
+      case False
+      then show \<open>\<exists> DD \<subseteq> \<G>_Fset N. DD \<union> set (side_prems_of \<iota>\<^sub>G) \<TTurnstile>\<inter>e {concl_of \<iota>\<^sub>G} \<and>
+        (\<forall>D\<in>DD. D < main_prem_of \<iota>\<^sub>G)\<close>
+        sorry
+    qed
+    then show \<open>\<iota>\<^sub>G \<in> G.Red_I M (\<G>_Fset N)\<close>
+      unfolding G.Red_I_def
+      using \<iota>\<^sub>G_is_GInf
+      by blast
+  qed
+  then show ?thesis
+    unfolding F.Inf_between_def F.Inf_from_def F.Red_F_\<G>_empty_def F.Red_F_\<G>_empty_q_def \<G>_Fset_def
+      F.Red_I_\<G>_def F.Red_I_\<G>_q_def
+    by auto 
+qed
+
+
+
+
+(* proof (intro subsetI)
   fix \<iota>
   assume \<iota>_in_Inf_between_univ_N: \<open>\<iota> \<in> F.Inf_between UNIV (F.Red_F_\<G>_empty N)\<close>
 
@@ -735,35 +1229,41 @@ proof (intro subsetI)
     \<open>C \<in> set (prems_of \<iota>)\<close> and
     \<open>C \<in> F.Red_F_\<G>_empty N\<close>
     by blast
-  then have \<open>\<forall>D. (\<exists> \<sigma>. D = C \<cdot> \<sigma> \<and> is_ground_subst \<sigma>) \<longrightarrow>
-    (\<exists> DD \<subseteq> \<Union> C \<in> N. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}.
-    (\<forall> I. I \<TTurnstile>s DD \<longrightarrow> I \<TTurnstile> D) \<and> (\<forall> Da \<in> DD. Da < D))\<close>
+  then have \<open>(\<exists> \<sigma>. D = C \<cdot> \<sigma> \<and> is_ground_subst \<sigma>) \<Longrightarrow> (\<exists> DD \<subseteq> \<Union> C \<in> N. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}.
+    (\<forall> I. I \<TTurnstile>s DD \<longrightarrow> I \<TTurnstile> D) \<and> (\<forall> Da \<in> DD. Da < D))\<close> for D
+    unfolding F.Red_F_\<G>_empty_def F.Red_F_\<G>_empty_q_def 
     unfolding F.Red_F_\<G>_empty_def F.Red_F_\<G>_empty_q_def \<G>_F_def G.Red_F_def
-    by auto
-  then have idk: \<open>\<And> D. D = C \<cdot> (SOME \<sigma>. is_ground_subst \<sigma>) \<Longrightarrow>
-    \<exists> DD \<subseteq> \<Union> C \<in> N. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}.
-    (\<forall> I. I \<TTurnstile>s DD \<longrightarrow> I \<TTurnstile> D) \<and> (\<forall> Da \<in> DD. Da < D)\<close>
-    by (metis (no_types, lifting) ex_ground_subst someI_ex)  
-  then have \<open>\<forall> M \<rho> \<rho>s. is_ground_subst_list \<rho>s \<longrightarrow> is_ground_subst \<rho> \<longrightarrow>
-    Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> G_Inf M \<longrightarrow>
-    Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> G.Red_I M (\<Union> C \<in> N. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>})\<close>
-    unfolding G.Red_I_def G.redundant_infer_def
-    unfolding G_Inf_def
-    (* Stop wasting time and learn about the framework. *)
+    by auto 
+
+  then have \<open>\<exists> DD \<subseteq> \<Union> C \<in> N. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}.
+    (\<forall> I. I \<TTurnstile>s DD \<and> I \<TTurnstile>s set (butlast (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)) \<longrightarrow> I \<TTurnstile> concl_of \<iota> \<cdot> \<rho>) \<and>
+    (\<forall> D \<in> DD. D < last (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s))\<close>
+    for \<rho>s \<rho>
+     
     sorry 
-  then have \<open>\<forall> M. \<forall> \<iota>\<^sub>G \<in> \<G>_I M \<iota>. \<iota>\<^sub>G \<in> G.Red_I M (\<Union> (\<G>_F ` N))\<close>
-    unfolding \<G>_F_def \<G>_I_def
+  then have \<open>G.redundant_infer (\<Union> (\<G>_F ` N)) (Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>))\<close> 
+    if
+      \<rho>s_groundings: \<open>is_ground_subst_list \<rho>s\<close> \<open>is_ground_subst \<rho>\<close> and
+      ground_\<iota>_is_Inf: \<open>Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> G_Inf q\<close>
+    for q \<rho> \<rho>s
+    unfolding G.redundant_infer_def \<G>_F_def
+    by auto 
+  then have \<open>\<iota>' \<in> G.Red_I q (\<G>_Fset N)\<close> 
+    if \<iota>'_grounding_of_\<iota>: \<open>\<iota>' \<in> \<G>_I q \<iota>\<close>
+    for \<iota>' q
+    using \<iota>'_grounding_of_\<iota>
+    unfolding \<G>_I_def G.Red_I_def \<G>_Fset_def
     by auto 
   then show \<open>\<iota> \<in> F.Red_I_\<G> N\<close>
-    unfolding F.Red_I_\<G>_def F.Red_I_\<G>_q_def
+    unfolding F.Red_I_\<G>_def F.Red_I_\<G>_q_def \<G>_Fset_def 
     by (auto simp add: \<iota>_is_FInf)
-qed
+qed *) 
 
 end (* locale FO_resolution_prover' *)
 
 
 
-(* Since the set \<open>\<bbbP>\<close> is left unspecified, we cannot define \<open>fml\<close> nor \<open>asn\<close>.
+(* Since the set \<open>\<bbbP>\<close> of nullary predicates is left unspecified, we cannot define \<open>fml\<close> nor \<open>asn\<close>.
  * Therefore, we keep them abstract and leave it to anybody instanciating this locale
  * to specify them. *)
 
@@ -798,8 +1298,7 @@ proof standard
     by blast
 qed
 
-interpretation LA_is_sound_calculus: sound_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
-  F.Red_I_\<G> F.Red_F_\<G>_empty
+interpretation LA_is_calculus: calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> F.Red_I_\<G> F.Red_F_\<G>_empty
 proof standard 
   show \<open>\<And> N. F.Red_I_\<G> N \<subseteq> F_Inf\<close>
     using F.Red_I_to_Inf
@@ -824,8 +1323,65 @@ proof standard
     by blast
 qed
 
-interpretation LA_is_AF_calculus: AF_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close> F.Red_I_\<G>
-  F.Red_F_\<G>_empty fml asn
+interpretation statically_complete_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> F.Red_I_\<G> F.Red_F_\<G>_empty
+proof standard
+  show \<open>\<And> N. LA_is_calculus.saturated N \<Longrightarrow> N \<TTurnstile>\<union>\<G>e {{#}} \<Longrightarrow> {#} \<in> N\<close>
+    unfolding LA_is_calculus.saturated_def
+    using F.saturated_def F.statically_complete entails_conj_is_entails_disj_on_singleton
+    by blast
+qed
+
+(* Taken from file \<^file>\<open>Preliminaries_With_Zorn.thy\<close> and modified accordingly. *)
+interpretation strict_calculus:
+  statically_complete_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> LA_is_calculus.Red_I_strict
+  LA_is_calculus.Red_F_strict
+proof -
+  interpret strict_calc: calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> LA_is_calculus.Red_I_strict
+    LA_is_calculus.Red_F_strict
+  using LA_is_calculus.strict_calc_if_nobot bottom_never_redundant by blast 
+    (* next property is not needed for the proof, but it is one of the claims from Rmk 3
+    that must be verified *)
+  have \<open>LA_is_calculus.saturated N \<Longrightarrow> strict_calc.saturated N\<close>
+    unfolding LA_is_calculus.saturated_def strict_calc.saturated_def
+      LA_is_calculus.Red_I_strict_def by blast
+  have \<open>strict_calc.saturated N \<Longrightarrow> N \<TTurnstile>\<union>\<G>e {{#}} \<Longrightarrow> {#} \<in> N\<close> for N
+  proof -
+    assume
+      strict_sat: "strict_calc.saturated N" and
+      entails_bot: "N \<TTurnstile>\<union>\<G>e {{#}}"
+    have \<open>{#} \<notin> N \<Longrightarrow> LA_is_calculus.Red_I_strict N = F.Red_I_\<G> N\<close>
+      unfolding LA_is_calculus.Red_I_strict_def by simp
+    then have \<open>{#} \<notin> N \<Longrightarrow> LA_is_calculus.saturated N\<close>
+      unfolding LA_is_calculus.saturated_def using strict_sat
+      by (simp add: strict_calc.saturated_def)
+    then have \<open>{#} \<notin> N \<Longrightarrow> {#} \<in> N\<close>
+      using entails_bot statically_complete by blast
+      (* using statically_complete[OF _ entails_bot] by simp *) 
+    then show \<open>{#} \<in> N\<close> by auto 
+  qed
+  then show \<open>statically_complete_calculus {#} F_Inf (\<TTurnstile>\<union>\<G>e) LA_is_calculus.Red_I_strict
+    LA_is_calculus.Red_F_strict\<close>
+    unfolding statically_complete_calculus_def statically_complete_calculus_axioms_def
+    using strict_calc.calculus_axioms by blast
+qed
+
+interpretation LA_is_sound_calculus: sound_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
+  F.Red_I_\<G> F.Red_F_\<G>_empty 
+  using LA_is_calculus.Red_I_to_Inf LA_is_calculus.Red_F_Bot  LA_is_calculus.Red_F_of_subset 
+        LA_is_calculus.Red_I_of_subset  LA_is_calculus.Red_F_of_Red_F_subset
+        LA_is_calculus.Red_I_of_Red_F_subset LA_is_calculus.Red_I_of_Inf_to_N
+  by (unfold_locales, presburger+) 
+
+interpretation sound_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close> LA_is_calculus.Red_I_strict
+  LA_is_calculus.Red_F_strict
+  using strict_calculus.Red_I_to_Inf LA_is_calculus.Red_F_strict_def strict_calculus.Red_F_Bot  
+        strict_calculus.Red_F_of_subset strict_calculus.Red_I_of_subset
+        strict_calculus.Red_F_of_Red_F_subset strict_calculus.Red_I_of_Red_F_subset  
+        strict_calculus.Red_I_of_Inf_to_N
+  by unfold_locales presburger+
+
+interpretation LA_is_AF_calculus: AF_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
+  LA_is_calculus.Red_I_strict LA_is_calculus.Red_F_strict fml asn
 proof standard
   show \<open>\<And> M N. M \<TTurnstile>\<union>\<G>e N \<Longrightarrow> \<exists> M' \<subseteq> M. \<exists> N' \<subseteq> N. finite M' \<and> finite N' \<and> M' \<TTurnstile>\<union>\<G>e N'\<close>
     using entails_\<G>_disj_compactness
@@ -847,21 +1403,44 @@ lemma empty_not_unsat: \<open>\<not> {} \<TTurnstile>\<inter>\<G>e {{#}}\<close>
 (*>*)
 
 sublocale splitting_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
-  F.Red_I_\<G> F.Red_F_\<G>_empty fml asn 
+  LA_is_calculus.Red_I_strict LA_is_calculus.Red_F_strict fml asn 
 proof standard
   show \<open>\<not> {} \<TTurnstile>\<union>\<G>e {}\<close>
     unfolding entails_\<G>_disj_def 
     using empty_not_unsat
-    by blast 
-  show \<open>\<And> N. inference_system.Inf_between F_Inf UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.Red_I_\<G> N\<close>
-    by (rule Inf_from_Red_F_subset_Red_I)
-  show \<open>\<And> N. {#} \<notin> F.Red_F_\<G>_empty N\<close>
-    by (rule bottom_never_redundant)
-  show \<open>\<And> \<C>. \<C> \<noteq> {#} \<Longrightarrow> \<C> \<in> F.Red_F_\<G>_empty {{#}}\<close> 
-    by (rule all_redundant_to_bottom)
+    by blast
+  show \<open>\<And> N. F.Inf_between UNIV (LA_is_calculus.Red_F_strict N) \<subseteq> LA_is_calculus.Red_I_strict N\<close>
+    unfolding LA_is_calculus.Red_F_strict_def LA_is_calculus.Red_I_strict_def 
+    by (smt (verit, del_insts) F.Inf_between_mono Inf_from_Red_F_subset_Red_I
+        inference_system.Inf_if_Inf_between mem_Collect_eq subsetD subsetI)
+  show \<open>\<And> N. {#} \<notin> LA_is_calculus.Red_F_strict N\<close> 
+    by (fact strict_calculus.nobot_in_Red) 
+  show \<open>\<And> \<C>. \<C> \<noteq> {#} \<Longrightarrow> \<C> \<in> LA_is_calculus.Red_F_strict {{#}}\<close>
+    using LA_is_calculus.Red_F_strict_def
+    by blast
 qed
 
-notation LA_is_AF_calculus.AF_entails_sound (infix \<open>\<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F\<close> 50)
+notation LA_is_AF_calculus.AF_entails_sound (infix \<open>\<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F\<close> 50)
+
+
+(* Right. So it is seems that using the lifted entailment \<open>(\<TTurnstile>\<inter>\<G>e)\<close> does not work for our purpose.
+ * We cannot prove compactness of this entailment, which we absolutely need to finish our proofs.
+ * Unfortunately, everything else would have worked.
+ * This means that all the work above needs to be changed somehow.
+ *
+ * First, we have to change the definition of our disjunctive entailment to get rid of the lifted
+ * conjunctive entailment.
+ * Once this is done, maybe we can try and see if any of this can actually be reused.
+ * I certainly hope so, otherwise here goes 3 weeks of work on this.
+ *
+ *
+ * Anything underneath this comment does not depend on the definition of the disjunctive entailment
+ * (as long as the interpretations are correctly defined).
+ * So this should be easy to reuse, if our (potentially new) redundancy criterion is indeed a correct
+ * one.
+ * At most, we'll have to change the names here and there, but that's all. *)
+
+
 
 
 
@@ -984,12 +1563,12 @@ qed
 
 
 (* Report theorem 14 for the case BinSplit *) 
-theorem Simps_are_sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F {\<C>}\<close>
+theorem Simps_are_sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F {\<C>}\<close>
 proof (intro ballI)
   fix \<C>
   assume \<open>\<iota> \<in> Simps\<close> and 
          \<C>_in_concl: \<open>\<C> \<in> S_to \<iota>\<close>
-  then show \<open>S_from \<iota> \<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F {\<C>}\<close>
+  then show \<open>S_from \<iota> \<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F {\<C>}\<close>
   proof (cases \<iota> rule: Simps.cases) 
     case (bin_split C D A B)
     then have C_u_D_splittable: \<open>splittable (C \<union># D) {| C, D |}\<close> and
@@ -1019,7 +1598,7 @@ proof (intro ballI)
         map_sign fml ` total_strip J \<union> sign.Pos ` ({AF.Pair (C \<union># D) A} proj\<^sub>J J) \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos C}\<close>
         unfolding LA_is_AF_calculus.enabled_projection_def LA_is_AF_calculus.enabled_def
         by simp 
-      then show \<open>{AF.Pair (C \<union># D) A} \<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F {AF.Pair C (finsert a A)}\<close>
+      then show \<open>{AF.Pair (C \<union># D) A} \<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F {AF.Pair C (finsert a A)}\<close>
         unfolding LA_is_AF_calculus.AF_entails_sound_def LA_is_AF_calculus.enabled_set_def
                   LA_is_AF_calculus.enabled_def
         using LA_is_AF_calculus.fml_ext_is_mapping
@@ -1046,7 +1625,7 @@ proof (intro ballI)
         ?fml J \<union> sign.Pos ` ({AF.Pair (C \<union># D) A} proj\<^sub>J J) \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {sign.Pos D}\<close>
         unfolding LA_is_AF_calculus.enabled_projection_def LA_is_AF_calculus.enabled_def
         by simp 
-      then show \<open>{AF.Pair (C \<union># D) A} \<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F {AF.Pair D (finsert (neg a) A)}\<close>
+      then show \<open>{AF.Pair (C \<union># D) A} \<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F {AF.Pair D (finsert (neg a) A)}\<close>
         unfolding LA_is_AF_calculus.AF_entails_sound_def LA_is_AF_calculus.enabled_set_def
                   LA_is_AF_calculus.enabled_def 
         using LA_is_AF_calculus.fml_ext_is_mapping
@@ -1058,12 +1637,12 @@ qed
 
 
 interpretation SInf_sound:
-  Preliminaries_With_Zorn.sound_inference_system SInf \<open>to_AF {#}\<close> \<open>(\<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F)\<close>
+  Preliminaries_With_Zorn.sound_inference_system SInf \<open>to_AF {#}\<close> \<open>(\<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F)\<close>
   by (meson LA_is_AF_calculus.AF_ext_sound_cons_rel SInf_sound_wrt_entails_sound
       Preliminaries_With_Zorn.sound_inference_system.intro
       Preliminaries_With_Zorn.sound_inference_system_axioms.intro) 
 
-interpretation Simps_simplifies: sound_simplification_rules \<open>to_AF {#}\<close> SInf \<open>(\<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F)\<close> Simps
+interpretation Simps_simplifies: sound_simplification_rules \<open>to_AF {#}\<close> SInf \<open>(\<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F)\<close> Simps
   by (standard, auto simp add: Simps_are_sound)
 
 
@@ -1123,7 +1702,7 @@ proof -
     qed
     then show ?thesis
       unfolding SRed\<^sub>F_def
-      by simp
+      by (simp add: LA_is_calculus.Red_F_strict_def) 
   qed
 qed
 
@@ -1146,7 +1725,7 @@ end (* locale LA_calculus *)
 
 
 
-(* Ignore everything under this comment, for now *)
+(* Ignore everything under this comment, for now. *)
 
 
 

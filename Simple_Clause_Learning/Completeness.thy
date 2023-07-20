@@ -95,7 +95,7 @@ proof -
         using C_in \<open>gnd_N' \<subseteq> gnd_N\<close>
         unfolding empty gnd_N_def
         by (smt (verit, del_insts) SCL_FOL.grounding_of_clss_def
-            SCL_FOL.subst_cls_empty_iff UN_E mem_Collect_eq notin_fset subset_iff
+            SCL_FOL.subst_cls_empty_iff UN_E mem_Collect_eq subset_iff
             substitution_ops.grounding_of_cls_def)
       hence "{#} \<in> gnd_N"
         using C_in \<open>gnd_N' \<subseteq> gnd_N\<close> local.empty by blast

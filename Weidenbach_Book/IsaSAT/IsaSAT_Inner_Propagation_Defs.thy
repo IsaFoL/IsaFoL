@@ -88,7 +88,6 @@ definition set_conflict_wl_heur
   :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close>
 where
   \<open>set_conflict_wl_heur = (\<lambda>C S. do {
-    S \<leftarrow> mark_conflict_to_rescore C S;
     let n = 0;
     let M = get_trail_wl_heur S;
     let N = get_clauses_wl_heur S;

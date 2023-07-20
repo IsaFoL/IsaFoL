@@ -1802,6 +1802,9 @@ lemma remdups_mset_singleton_removeAll:
   by (metis dual_order.refl finite_set_mset mset_set.insert_remove remdups_mset_def
     remdups_mset_removeAll set_mset_add_mset_insert set_mset_minus_replicate_mset(1))
 
+lemma mset_remove_filtered: \<open>C - {#x \<in># C. P x#} = {#x \<in># C. \<not>P x#}\<close>
+  by (metis add_implies_diff union_filter_mset_complement)
+
 
 section \<open>Finite maps and multisets\<close>
 
@@ -2298,5 +2301,53 @@ lemma Pow_mset_mono: \<open>A \<subseteq># B \<Longrightarrow> Pow_mset A \<subs
      (auto dest!: multi_member_split
       simp add: image_mset_subseteq_mono subset_mset.add_mono)
   done
+
+
+subsubsection \<open>Variants around head and last\<close>
+
+definition option_hd :: \<open>'a list \<Rightarrow> 'a option\<close> where
+  \<open>option_hd xs = (if xs = [] then None else Some (hd xs))\<close>
+
+lemma option_hd_None_iff[iff]: \<open>option_hd zs = None \<longleftrightarrow> zs = []\<close>  \<open>None = option_hd zs \<longleftrightarrow> zs = []\<close>
+  by (auto simp: option_hd_def)
+
+lemma option_hd_Some_iff[iff]: \<open>option_hd zs = Some y \<longleftrightarrow> (zs \<noteq> [] \<and> y = hd zs)\<close>
+  \<open>Some y = option_hd zs \<longleftrightarrow> (zs \<noteq> [] \<and> y = hd zs)\<close>
+  by (auto simp: option_hd_def)
+
+lemma option_hd_Some_hd[simp]: \<open>zs \<noteq> [] \<Longrightarrow> option_hd zs = Some (hd zs)\<close>
+  by (auto simp: option_hd_def)
+
+lemma option_hd_Nil[simp]: \<open>option_hd [] = None\<close>
+  by (auto simp: option_hd_def)
+
+definition option_last where
+  \<open>option_last l = (if l = [] then None else Some (last l))\<close>
+
+lemma
+  option_last_None_iff[iff]: \<open>option_last l = None \<longleftrightarrow> l = []\<close> \<open>None = option_last l \<longleftrightarrow> l = []\<close> and
+  option_last_Some_iff[iff]:
+    \<open>option_last l = Some a \<longleftrightarrow> l \<noteq> [] \<and> a = last l\<close>
+    \<open>Some a = option_last l \<longleftrightarrow> l \<noteq> [] \<and> a = last l\<close>
+  by (auto simp: option_last_def)
+
+lemma option_last_Some[simp]: \<open>l \<noteq> [] \<Longrightarrow> option_last l = Some (last l)\<close>
+  by (auto simp: option_last_def)
+
+lemma option_last_Nil[simp]: \<open>option_last [] = None\<close>
+  by (auto simp: option_last_def)
+
+lemma option_last_remove1_not_last:
+  \<open>x \<noteq> last xs \<Longrightarrow> option_last xs = option_last (remove1 x xs)\<close>
+  by (cases xs rule: rev_cases)
+    (auto simp: option_last_def remove1_Nil_iff remove1_append)
+
+lemma option_hd_rev: \<open>option_hd (rev xs) = option_last xs\<close>
+  by (cases xs rule: rev_cases) auto
+
+lemma map_option_option_last:
+  \<open>map_option f (option_last xs) = option_last (map f xs)\<close>
+  by (cases xs rule: rev_cases) auto
+
 
 end

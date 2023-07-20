@@ -1555,7 +1555,7 @@ inductive decide :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rig
 lemma "add_mset L C |\<in>| N \<Longrightarrow> is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow>
     \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow> atm_of L \<cdot>a \<gamma> \<preceq>\<^sub>B \<beta> \<Longrightarrow>
     decide N \<beta> (\<Gamma>, U, None) (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None)"
-  by (auto simp: fmember_iff_member_fset intro!: decideI)
+  by (auto simp: intro!: decideI)
 
 inductive conflict :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
@@ -1972,8 +1972,7 @@ proof -
   from D_in obtain D' \<gamma>' where
     D'_in: "D' |\<in>| N |\<union>| U" and D_def: "D = D' \<cdot> \<gamma>'" and gr_D_\<gamma>: "is_ground_cls (D' \<cdot> \<gamma>')"
     unfolding grounding_of_clss_def grounding_of_cls_def
-    by (smt (verit, ccfv_threshold) D_in UN_iff grounding_ground mem_Collect_eq notin_fset
-        union_fset)
+    by (smt (verit, ccfv_threshold) D_in UN_iff grounding_ground mem_Collect_eq union_fset)
 
   define \<gamma> where
     "\<gamma> \<equiv> restrict_subst_domain (vars_cls D') \<gamma>'"
@@ -2267,7 +2266,7 @@ proof (induction S S' rule: propagate.induct)
       
       obtain D L\<^sub>D where "D |\<in>| N" and "L\<^sub>D \<in># D" and "generalizes_lit L\<^sub>D K'"
         using K'_in C_in N_generalize[unfolded clss_lits_generalize_clss_lits_def]
-        by (metis (mono_tags, opaque_lifting) UN_iff funion_iff generalizes_lit_refl notin_fset)
+        by (metis (mono_tags, opaque_lifting) UN_iff funion_iff generalizes_lit_refl)
 
       show "\<exists>K'\<in>\<Union> (set_mset ` fset N). generalizes_lit K' K"
       proof (rule bexI)
@@ -2277,7 +2276,7 @@ proof (induction S S' rule: propagate.induct)
       next
         show \<open>L\<^sub>D \<in> \<Union> (set_mset ` fset N)\<close>
           using \<open>D |\<in>| N\<close> \<open>L\<^sub>D \<in># D\<close>
-          by (meson UN_I notin_fset)
+          by (meson UN_I)
       qed
     qed
   next
@@ -2324,7 +2323,7 @@ proof (cases N \<beta> S S' rule: conflict.cases)
       proof (elim disjE)
         show "D |\<in>| N \<Longrightarrow> ?thesis"
           using L_in
-          by (meson UN_I generalizes_lit_refl notin_fset)
+          by (meson UN_I generalizes_lit_refl)
       next
         assume "D |\<in>| U"
         hence "\<exists>K \<in> \<Union> (set_mset ` fset N). generalizes_lit K L"
@@ -2461,7 +2460,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   proof (rule bexI[of _ L])
     show "L \<in> \<Union> (fset (set_mset |`| (N |\<union>| U)))"
       using \<open>C |\<in>| N |\<union>| U\<close> \<open>C = add_mset L C'\<close>
-      by (meson Union_iff fimage_eqI notin_fset union_single_eq_member)
+      by (meson Union_iff fimage_eqI union_single_eq_member)
   next
     show "generalizes_lit L (L \<cdot>l \<mu> \<cdot>l \<gamma>)"
       unfolding generalizes_lit_def by (metis subst_lit_comp_subst)
@@ -4231,7 +4230,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   next
     from C_in N_entails_U have "fset N \<TTurnstile>\<G>e {C}"
       by (metis (no_types, opaque_lifting) empty_subsetI funion_iff grounding_of_clss_mono
-          insert_subset notin_fset true_clss_mono)
+          insert_subset true_clss_mono)
     hence "fset N \<TTurnstile>\<G>e {add_mset L (C\<^sub>0 + C\<^sub>1)}"
       by (simp add: C_def C\<^sub>0_def C\<^sub>1_def)
     hence "fset N \<TTurnstile>\<G>e {add_mset L (C\<^sub>0 + C\<^sub>1) \<cdot> \<mu>}"
@@ -4322,7 +4321,7 @@ proof (cases N \<beta> S S' rule: conflict.cases)
       using D_in
       unfolding grounding_of_clss_singleton
       by (metis (mono_tags, opaque_lifting) N_entails_U UN_I funion_iff grounding_of_clss_def
-          notin_fset true_clss_def)
+          true_clss_def)
   qed
   thus ?thesis
     unfolding conflictI(1,2) sound_state_def

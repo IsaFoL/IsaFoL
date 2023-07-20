@@ -15,6 +15,24 @@ locale renaming_apart =
     renaming_correct: "finite V \<Longrightarrow> renaming V x \<notin> V" and
     inj_renaming: "finite V \<Longrightarrow> inj (renaming V)"
 
+lemma not_renaming_apart_if_finite_UNIV:
+  fixes \<R> :: "'a set \<Rightarrow> 'a \<Rightarrow> 'a"
+  assumes fin: "finite (UNIV :: 'a set)"
+  shows "\<not> renaming_apart \<R>"
+proof (rule notI)
+  assume "renaming_apart \<R>"
+  with fin have "\<R> UNIV undefined \<notin> UNIV"
+    using renaming_apart.renaming_correct by metis
+  then show False
+    by simp
+qed
+
+lemma infinite_UNIV_if_renaming_apart:
+  fixes \<R> :: "'a set \<Rightarrow> 'a \<Rightarrow> 'a"
+  assumes "renaming_apart \<R>"
+  shows "infinite (UNIV :: 'a set)"
+  using assms not_renaming_apart_if_finite_UNIV by metis
+
 
 subsection \<open>Interpretation to Prove That Assumptions Are Consistent\<close>
 

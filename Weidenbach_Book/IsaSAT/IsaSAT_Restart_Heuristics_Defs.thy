@@ -49,9 +49,10 @@ definition restart_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow
       let level = count_decided_st_heur S;
       let should_restart = ((opt_res) \<and>
          limit > fema \<and> min_reached \<and> can_res \<and>
-        level > 2 \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
-           \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
-        of_nat level > (shiftr fema 32));
+        level \<ge> 1  \<^cancel>\<open>This comment from Marijn Heule seems not to help:
+        \<^term>\<open>\<and> level < max_restart_decision_lvl\<close>\<close>
+          \<^cancel>\<open>this was taken from Lingeling IIRC
+           \<^term>\<open>\<and> of_nat level > (shiftr fema 32)\<close>\<close>);
       if should_reduce
         then if should_inprocess
         then RETURN FLAG_Inprocess_restart

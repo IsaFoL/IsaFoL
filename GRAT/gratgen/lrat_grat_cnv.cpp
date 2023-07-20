@@ -111,6 +111,12 @@ template <> inline int32_t Bin_Parser::parse<int32_t>() {
 }
 
 template <> inline lit_t Bin_Parser::parse<lit_t>() { return {parse<int32_t>()}; }
+
+// There are two kind of ids in the proofs:
+//   - the ids to label clauses are written as unsigned because they cannot be
+//   negative
+//   - the ids in justification chains are written as signed integers, because that can be used to
+//   express RAT additions
 template <> inline cid_t Bin_Parser::parse<cid_t>() { return {parse<int32_t>()}; }
 
 cid_t Bin_Parser::parse_unsigned_id() {
@@ -161,7 +167,7 @@ public:
 
     if (opr=='a') {
       addition=true;
-      this_id = {bp.parse_unsigned_id()}; // ids at this position are encoded as unsigned values
+      this_id = {bp.parse_unsigned_id()};
       rd_until_zero(literals);
       rd_until_zero(ids);
     } else if (opr=='d') {

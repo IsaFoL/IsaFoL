@@ -1,6 +1,6 @@
 theory IsaSAT_ACIDS
   imports IsaSAT_Literals
-    Heaps_Abs
+    Pairing_Heap_LLVM.Heaps_Abs
     Watched_Literals_VMTF
 begin
 text \<open>Instead of using VSIDS (which requires float), we use the more stable ACIDS variant
