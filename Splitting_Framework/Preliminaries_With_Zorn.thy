@@ -3676,25 +3676,28 @@ proof -
           then show \<open>False\<close>
             using fml_ext_preserves_val[OF v12_eq] by blast 
         qed
-        then obtain Jinterp where Jinterp_is: \<open>Jinterp = interp_of Jstrip\<close> by simp
+        then obtain Jinterp where Jinterp_is: "strip Jinterp = Jstrip"
+          by (metis Rep_propositional_interpretation_cases mem_Collect_eq)
+          (* \<open>Jinterp = interp_of Jstrip\<close> by simp *)
         have \<open>total Jinterp\<close>
-          unfolding total_def Jinterp_is Jstrip_def
+          unfolding total_def
         proof
           fix v
           define v_p::"'v sign" where "v_p = Pos v"
           define v_n::"'v sign" where "v_n = Neg v"
           have "v_p \<in> Jpos \<or> v_n \<in> Jneg"
             unfolding v_p_def v_n_def Jpos_def Jneg_def by simp
-          then have "v_p \<in> Jpos \<union> Jneg \<or> v_n \<in> Jpos \<union> Jneg" by fast
-          then have \<open>v_p \<in>\<^sub>J interp_of (Jpos \<union> Jneg) \<or> v_n \<in>\<^sub>J interp_of (Jpos \<union> Jneg)\<close>
-
-            sorry
-          show \<open>\<exists>v\<^sub>J. v\<^sub>J \<in>\<^sub>J interp_of (Jpos \<union> Jneg) \<and> to_V v\<^sub>J = v\<close>
-            sorry
+          then have "v_p \<in> Jstrip \<or> v_n \<in> Jstrip"
+            unfolding Jstrip_def by fast
+          then have \<open>v_p \<in>\<^sub>J Jinterp \<or> v_n \<in>\<^sub>J Jinterp\<close>
+            using Jinterp_is unfolding belong_to_def by simp
+          then show \<open>\<exists>v\<^sub>J. v\<^sub>J \<in>\<^sub>J Jinterp \<and> to_V v\<^sub>J = v\<close>
+            using v_p_def v_n_def by auto
         qed
-
-
-        then have \<open>M' \<Turnstile>s N'\<close> sorry
+        then obtain Jtotal where Jtotal_is: "total_strip Jtotal = Jstrip"
+          using Jinterp_is by (metis Rep_total_interpretation_cases mem_Collect_eq)
+        then have \<open>M' \<Turnstile>s N'\<close>
+          sorry
       }
       ultimately show "M' \<Turnstile>s N'" by blast
     qed
