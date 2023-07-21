@@ -3600,6 +3600,11 @@ interpretation ext_cons_rel_std: consequence_relation "Pos (to_AF bot)" AF_cons_
 
 interpretation sound_cons_rel: consequence_relation "Pos bot" sound_cons.entails_neg
   using sound_cons.ext_cons_rel .
+
+lemma [simp]: \<open>{C. Pos C \<in> Pos ` N} = N\<close> by auto
+lemma [simp]: \<open>{C. Neg C \<in> Pos ` N} = {}\<close> by auto
+lemma [simp]: \<open>{C. Neg C \<in> P \<or> Neg C \<in> Pos ` M} = {C. Neg C \<in> P}\<close> by blast
+lemma [simp]: \<open>{C. Pos C \<in> P \<or> Pos C \<in> Pos ` M} = {C. Pos C \<in> P} \<union> M\<close> by auto
     
 (* Splitting report Lemma 6, 2/2 *)
 lemma \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
@@ -3613,26 +3618,18 @@ proof -
       fix J
       have m_in: \<open>M \<subseteq> {to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` M) \<and> is_Pos C}\<close>
         by force
-      have neg_pos_empty: \<open>{C. Neg C \<in> Pos ` N} = {}\<close>
-        by blast
-      have pos_pos: \<open>{C. Pos C \<in> Pos ` N} = N\<close>
-        by blast
-      show \<open> {C. Pos C \<in> fml_ext ` total_strip J \<or> Pos C \<in> Pos ` M} \<union>
-        {C. Neg C \<in> Pos ` N} \<Turnstile>s
-        {C. Pos C \<in> Pos ` N} \<union>
-        {C. Neg C \<in> fml_ext ` total_strip J \<or> Neg C \<in> Pos ` M}\<close>
-        using m_to_n m_in neg_pos_empty pos_pos
-        by (smt (verit, best) image_iff le_iff_sup mem_Collect_eq sound_cons.entails_subsets 
-            subset_iff sup_bot.right_neutral sup_left_idem)
+      show \<open> {C. Pos C \<in> fml_ext ` total_strip J} \<union> M \<Turnstile>s
+        N \<union> {C. Neg C \<in> fml_ext ` total_strip J}\<close>
+        using m_to_n m_in by (meson Un_subset_iff sound_cons.entails_subsets subset_refl)
     qed
   } moreover {
     fix M N
-    assume \<open>to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N\<close>
+    assume m_af_entails_n: \<open>to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N\<close>
     have supsets_entail: \<open>\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile>s N'\<close>
     proof clarsimp 
       fix M' N'
-      assume \<open>M \<subseteq> M'\<close> and
-        \<open>N \<subseteq> N'\<close> and
+      assume m_in: \<open>M \<subseteq> M'\<close> and
+        n_in: \<open>N \<subseteq> N'\<close> and
         union_mnp_is_univ: \<open>M' \<union> N' = UNIV\<close>
       {
         assume \<open>M' \<inter> N' \<noteq> {}\<close>
@@ -3696,8 +3693,49 @@ proof -
         qed
         then obtain Jtotal where Jtotal_is: "total_strip Jtotal = Jstrip"
           using Jinterp_is by (metis Rep_total_interpretation_cases mem_Collect_eq)
-        then have \<open>M' \<Turnstile>s N'\<close>
+        have \<open>enabled_set (to_AF ` N) Jtotal\<close>
+          unfolding enabled_set_def to_AF_def enabled_def using Jtotal_is Jstrip_def Jneg_def
           sorry
+        then have \<open>fml_ext ` total_strip Jtotal \<union> Pos ` M \<Turnstile>s\<^sub>\<sim> Pos ` N\<close>
+          using m_af_entails_n unfolding AF_entails_sound_def by simp
+        then have entails_m_n_jtot: \<open>{C. Pos C \<in> fml_ext ` total_strip Jtotal} \<union> M  \<Turnstile>s
+           N \<union> {C. Neg C \<in> fml_ext ` total_strip Jtotal}\<close>
+          unfolding sound_cons.entails_neg_def by simp
+        have \<open>{C. Pos C \<in> fml_ext ` total_strip Jtotal} \<subseteq> M'\<close>
+          unfolding Jtotal_is Jstrip_def Jpos_def Jneg_def
+          by (smt (verit, ccfv_threshold) UnE fml_ext_preserves_sign imageE is_Pos.simps(1)
+            mem_Collect_eq subsetI to_V.simps(1))
+        then have sub_mp: \<open>{C. Pos C \<in> fml_ext ` total_strip Jtotal} \<union> M \<subseteq> M'\<close>
+          using m_in by simp
+        have \<open>{C. Neg C \<in> fml_ext ` total_strip Jtotal} \<subseteq> N'\<close>
+          unfolding Jtotal_is Jstrip_def Jpos_def Jneg_def
+        proof -
+          have \<open>{C. Neg C \<in> fml_ext ` {v. to_V (fml_ext v) \<in> M' \<and> is_Pos v}} = {}\<close>
+            using fml_ext_preserves_sign is_Pos.simps(1)
+            by (smt (verit, ccfv_SIG) empty_iff imageE is_Pos.simps(2) mem_Collect_eq subsetI
+              subset_antisym)
+          moreover have \<open>{C. Neg C \<in> fml_ext ` {v |v. to_V (fml_ext v) \<notin> M' \<and> \<not> is_Pos v}} \<subseteq> N'\<close>
+            using fml_ext_preserves_sign is_Pos.simps(2)
+          proof -
+            have \<open>{C. Neg C \<in> fml_ext ` {v |v. to_V (fml_ext v) \<notin> M' \<and> \<not> is_Pos v}} =
+              {C. Neg C \<in> fml_ext ` {v |v. to_V (fml_ext v) \<in> N' \<and> \<not> is_Pos v}}\<close>
+              using empty_inter_mp_np union_mnp_is_univ by auto 
+            also have \<open>{C. Neg C \<in> fml_ext ` {v |v. to_V (fml_ext v) \<in> N' \<and> \<not> is_Pos v}} \<subseteq> N'\<close>
+              using fml_ext_preserves_sign is_Pos.simps(2)
+              by (smt (verit, best) imageE mem_Collect_eq subsetI to_V.simps(2))      
+            finally show \<open>{C. Neg C \<in> fml_ext ` {v |v. to_V (fml_ext v) \<notin> M' \<and> \<not> is_Pos v}} \<subseteq> N'\<close> .
+                  (* by (smt (verit) UNIV_I UnE image_iff mem_Collect_eq subsetI to_V.simps(2) union_mnp_is_univ) *) (* proof suggested but fails to terminate *)
+          qed
+          ultimately show \<open>{C. Neg C \<in> fml_ext `
+            ({v. to_V (fml_ext v) \<in> M' \<and> is_Pos v} \<union>
+            {v |v. to_V (fml_ext v) \<notin> M' \<and> \<not> is_Pos v})}
+            \<subseteq> N'\<close>
+            by blast
+        qed
+        then have sub_np: \<open>N \<union> {C. Neg C \<in> fml_ext ` total_strip Jtotal} \<subseteq> N'\<close>
+          using n_in by blast
+        have \<open>M' \<Turnstile>s N'\<close>
+          using sound_cons.entails_subsets[OF sub_mp sub_np entails_m_n_jtot] .
       }
       ultimately show "M' \<Turnstile>s N'" by blast
     qed
