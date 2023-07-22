@@ -89,14 +89,14 @@ definition initialise_VMTF :: \<open>nat list \<Rightarrow> nat \<Rightarrow> vm
       (\<lambda>(i, A, cnext). i < length_uint32_nat N)
       (\<lambda>(i, A, cnext). do {
         ASSERT(i < length_uint32_nat N);
-        let L = (N ! i);
+        let L = (N ! (length N - 1 - i));
         ASSERT(L < length A);
         ASSERT(cnext \<noteq> None \<longrightarrow> the cnext < length A);
         ASSERT(i + 1 \<le> unat32_max);
         RETURN (i + 1, vmtf_cons A L cnext (i), Some L)
       })
       (0, A, None);
-   RETURN ((A, n, cnext, (if N = [] then None else Some ((N!0))), cnext))
+   RETURN ((A, n, cnext, (if N = [] then None else Some ((N!(length N - 1)))), cnext))
   }\<close>
 
 definition init_ACIDS0 :: \<open>_ \<Rightarrow> nat \<Rightarrow>  (nat multiset \<times> nat multiset \<times> (nat \<Rightarrow> nat)) nres\<close> where
@@ -158,6 +158,9 @@ definition initialise_ACIDS :: \<open>nat list \<Rightarrow> nat \<Rightarrow> (
    RETURN A
   }\<close>
 
+definition initialise_ACIDS_rev where
+  \<open>initialise_ACIDS_rev N = initialise_ACIDS (rev N)\<close>
+
 definition (in -) distinct_atms_empty where
   \<open>distinct_atms_empty _ = {}\<close>
 
@@ -189,7 +192,7 @@ proof -
   have W_ref: \<open>WHILE\<^sub>T (\<lambda>(i, A, cnext). i < length_uint32_nat N')
         (\<lambda>(i, A, cnext). do {
               _ \<leftarrow> ASSERT (i < length_uint32_nat N');
-              let L = (N' ! i);
+              let L = (N' ! (length N' - 1 - i));
               _ \<leftarrow> ASSERT (L < length A);
               _ \<leftarrow> ASSERT (cnext \<noteq> None \<longrightarrow> the cnext < length A);
               _ \<leftarrow> ASSERT (i + 1 \<le> unat32_max);
@@ -200,9 +203,9 @@ proof -
         (0, replicate n' (VMTF_Node 0 None None),
          None)
     \<le> SPEC(\<lambda>(i, A', cnext).
-      vmtf_ns (rev ((take i N'))) i A'
-        \<and> cnext = (option_last (take i N')) \<and>  i = length N' \<and>
-          length A' = n \<and> vmtf_ns_notin (rev ((take i N'))) i A'
+      vmtf_ns (rev ((take i (rev N')))) i A'
+        \<and> cnext = (option_last (take i (rev N'))) \<and>  i = length N' \<and>
+          length A' = n \<and> vmtf_ns_notin (rev ((take i (rev N')))) i A'
       )\<close>
     (is \<open>_ \<le> SPEC ?P\<close>)
     if H: \<open>case y of (N, n) \<Rightarrow>(\<forall>L\<in># N. L < n) \<and> distinct_mset N \<and> size N < unat32_max \<and>
@@ -217,13 +220,15 @@ proof -
     using NN' H by (auto simp: list_rel_def br_def list_mset_rel_def list.rel_eq
       list_all2_op_eq_map_right_iff' distinct_image_mset_inj list_rel_mset_rel_def)
 
-  have L_N: \<open>\<forall>L\<in>set N'. L < n\<close>
-    using H ref by (auto simp: list_rel_def br_def list_mset_rel_def
+  have L_N: \<open>L < n\<close> if \<open>L\<in>set N'\<close> for L
+    using H ref that by (auto simp: list_rel_def br_def list_mset_rel_def
       list_all2_op_eq_map_right_iff' list_rel_mset_rel_def list.rel_eq)
   let ?Q = \<open>\<lambda>(i, A', cnext).
-      vmtf_ns (rev ((take i N'))) i A' \<and> i \<le> length N' \<and>
-      cnext = (option_last (take i N')) \<and>
-      length A' = n \<and> vmtf_ns_notin (rev ((take i N'))) i A'\<close>
+      vmtf_ns (rev ((take i (rev N')))) i A' \<and> i \<le> length N' \<and>
+      cnext = (option_last (take i (rev N'))) \<and>
+    length A' = n \<and> vmtf_ns_notin (rev ((take i (rev N')))) i A'\<close>
+  have[simp]: \<open>N' ! (length N' - Suc a) \<notin> set (take a (rev N'))\<close> if \<open>a < length N'\<close> for a
+    by (metis K2 dist distinct_rev length_rev rev_nth that)
   show ?thesis
     apply (refine_vcg WHILET_rule[where R = \<open>measure (\<lambda>(i, _). length N' + 1 - i)\<close> and I = \<open>?Q\<close>])
     subgoal by auto
@@ -237,29 +242,29 @@ proof -
       by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2
           option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
     subgoal by auto
-    subgoal
-      using L_N dist
+    subgoal for s
+      using L_N[of \<open>N' ! (length N' - 1 - fst s)\<close>] dist nth_mem[of \<open>length N' - 1 - fst s\<close> N']
       by (auto simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2
-          option_last_def hd_rev last_map)
+        option_last_def hd_rev last_map simp del: nth_mem)
     subgoal
       using L_N dist
-      by (auto simp: last_take_nth_conv option_last_def)
+      by (auto simp: last_take_nth_conv option_last_def nth_rev)
     subgoal
       using H dist ref
       by (auto simp: last_take_nth_conv option_last_def list_rel_mset_rel_imp_same_length)
     subgoal
       using L_N dist
-      by (auto 5 5 simp: take_Suc_conv_app_nth option_last_def hd_rev last_map intro!: vmtf_cons
+      by (auto 5 5 simp: take_Suc_conv_app_nth option_last_def hd_rev nth_rev last_map intro!: vmtf_cons
           dest: K2)
     subgoal by (auto simp: take_Suc_conv_app_nth)
-    subgoal by (auto simp: take_Suc_conv_app_nth)
+    subgoal by (auto simp: take_Suc_conv_app_nth nth_rev)
     subgoal by auto
     subgoal
       using L_N dist
-      by (auto 5 5 simp: take_Suc_conv_app_nth hd_rev last_map option_last_def
+      by (auto 5 5 simp: take_Suc_conv_app_nth hd_rev last_map option_last_def nth_rev
           intro!: vmtf_notin_vmtf_cons dest: K2 split: if_splits)
     subgoal by auto
-    subgoal by auto
+    subgoal by (auto simp: nth_rev)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -295,12 +300,12 @@ proof -
       apply (rule W_ref[THEN order_trans]; assumption?)
     subgoal for N' N'n' n' Nn
       apply (auto dest: list_rel_mset_rel_imp_same_length simp: vmtf_def)
-      apply (rule exI[of _ \<open>(rev (fst N'))\<close>])
+      apply (rule exI[of _ \<open>((fst N'))\<close>])
       apply (rule_tac exI[of _ \<open>[]\<close>])
       apply (auto dest: list_rel_mset_rel_imp_same_length simp: vmtf_def hd_rev last_conv_nth rev_nth
         atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
       apply (auto dest: list_rel_mset_rel_imp_same_length simp: vmtf_def hd_rev last_conv_nth rev_nth
-        atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n list_rel_mset_rel_def list_mset_rel_def br_def)
+        atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n list_rel_mset_rel_def list_mset_rel_def br_def hd_conv_nth)
       done
     done
 qed
@@ -393,10 +398,21 @@ proof -
     done
 qed
 
+
+lemma initialise_ACIDS_rev:
+  shows  \<open>(uncurry initialise_ACIDS_rev, uncurry (\<lambda>N n. RES (acids N ([]::(nat,nat)ann_lits)))) \<in>
+      [\<lambda>(N,n). (\<forall>L\<in># N. L < n) \<and> (distinct_mset N) \<and> size N < unat32_max \<and> set_mset N = set_mset \<A>]\<^sub>f
+    (\<langle>nat_rel\<rangle>list_rel_mset_rel) \<times>\<^sub>f nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+   unfolding initialise_ACIDS_rev_def
+  apply (intro frefI nres_relI)+
+  unfolding uncurry_def case_prod_beta
+  apply (rule initialise_ACIDS[where \<A>=\<A>, THEN fref_to_Down_curry])
+  by (auto simp: list_mset_rel_def list_rel_mset_rel_def br_def)
+
 definition initialize_Bump_Init :: \<open>nat list \<Rightarrow> nat \<Rightarrow> bump_heuristics_init nres\<close> where
   \<open>initialize_Bump_Init A n = do {
   focused \<leftarrow> initialise_VMTF A n;
-  hstable \<leftarrow> initialise_ACIDS A n;
+  hstable \<leftarrow> initialise_ACIDS_rev A n;
   to_remove \<leftarrow> distinct_atms_int_empty n;
   RETURN (Tuple4 hstable focused True to_remove)
   }\<close>
@@ -418,7 +434,7 @@ lemma initialize_Bump_Init:
   apply hypsubst
   apply (rule specify_left_RES[OF initialise_VMTF[where \<A>=\<A>, THEN fref_to_Down_curry, unfolded conc_fun_RES]])
   apply assumption+
-  apply (rule specify_left_RES[OF initialise_ACIDS[where \<A>=\<A>, THEN fref_to_Down_curry, unfolded conc_fun_RES]])
+  apply (rule specify_left_RES[OF initialise_ACIDS_rev[where \<A>=\<A>, THEN fref_to_Down_curry, unfolded conc_fun_RES]])
   apply assumption+
   apply (auto simp: bump_heur_init_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
     atoms_hash_rel_def intro!: relcompI)
