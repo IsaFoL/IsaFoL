@@ -293,8 +293,8 @@ proof -
       unfolding AF_entails_sound_def sound_cons.entails_neg_def
       using unsat
       by auto
-         (metis (no_types, lifting) empty_subsetI image_eqI insert_subset mem_Collect_eq
-           sound_cons.bot_entails_empty sound_cons.entails_subsets)
+         (smt (verit) Un_insert_right insertI1 insert_absorb sound_cons.bot_entails_empty
+          sound_cons.entails_subsets subsetI sup_bot_right)  
   qed
 qed
 
