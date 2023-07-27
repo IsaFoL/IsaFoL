@@ -70,8 +70,10 @@ sepref_def update_lbd_shrunk_clause_impl
   :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a arena_fast_assn\<close>
   unfolding update_lbd_shrunk_clause_def
   apply (rewrite  at \<open>If (\<hole> \<le> _)\<close> annot_unat_snat_upcast[where 'l=64])
-  apply (rewrite at \<open>If (_ \<le> _) _ \<hole>\<close> annot_snat_unat_conv)
-  apply (rewrite  at \<open>If (_ \<le> _) _ \<hole>\<close> annot_unat_unat_downcast[where 'l=32])
+  apply (rewrite at \<open>If (_ \<le> (_ - \<hole>))\<close> snat_const_fold[where 'a=64])
+  apply (rewrite at \<open>If (_ \<le> _) _ (\<hole> - _)\<close> annot_snat_unat_conv)
+  apply (rewrite  at \<open>If (_ \<le> _) _ (\<hole> - _)\<close> annot_unat_unat_downcast[where 'l=32])
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 end
