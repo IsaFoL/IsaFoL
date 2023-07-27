@@ -9,6 +9,63 @@ begin
 
 hide_fact (open) Sepref_Rules.frefI
 
+(*TODO Move*)
+lemma trail_set_zeroed_until_state_alt_def:
+  \<open>RETURN oo trail_set_zeroed_until_state = (\<lambda>k S. do {
+    let (M, S) = extract_trail_wl_heur S;
+    let M = trail_set_zeroed_until k M;
+    RETURN (update_trail_wl_heur M S)
+  })\<close>
+  unfolding trail_set_zeroed_until_state_def
+  by  (auto simp: state_extractors
+    intro!: ext split: isasat_int_splits)
+
+sepref_def trail_set_zeroed_until_state
+  is \<open>uncurry (RETURN oo trail_set_zeroed_until_state)\<close>
+  ::  \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding trail_set_zeroed_until_state_alt_def
+  by sepref
+
+
+lemma trail_zeroed_until_state_alt_def:
+  \<open>RETURN o trail_zeroed_until_state = read_trail_wl_heur (RETURN \<circ> trail_zeroed_until)\<close>
+  by (auto intro!: ext simp: trail_zeroed_until_state_def trail_zeroed_until_def
+    read_all_st_def split: isasat_int_splits)
+
+definition trail_zeroed_until_state_impl where
+  \<open>trail_zeroed_until_state_impl = read_trail_wl_heur_code count_decided_pol_impl\<close>
+
+sepref_register extract_trail_wl_heur count_decided_pol trail_zeroed_until_state trail_set_zeroed_until_state
+
+
+definition trail_zeroed_until_state_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>trail_zeroed_until_state_fast_code = read_trail_wl_heur_code trail_zeroed_until_impl\<close>
+
+
+global_interpretation trail_zeroed_until: read_trail_param_adder0 where
+  f = \<open>trail_zeroed_until_impl\<close> and
+  f' = \<open>RETURN o trail_zeroed_until\<close> and
+  x_assn = sint64_nat_assn and
+  P = \<open>(\<lambda>S. True)\<close>
+  rewrites \<open>read_trail_wl_heur (RETURN o trail_zeroed_until) = RETURN o trail_zeroed_until_state\<close> and
+  \<open>read_trail_wl_heur_code trail_zeroed_until_impl = trail_zeroed_until_state_fast_code\<close>
+  apply unfold_locales
+  apply (rule trail_zeroed_until_impl.refine)
+  subgoal
+    by (auto simp: read_all_st_def trail_zeroed_until_state_def intro!: ext
+      split: isasat_int_splits)
+  subgoal
+    by (auto simp: trail_zeroed_until_state_fast_code_def)
+  done
+
+lemmas [sepref_fr_rules] = trail_zeroed_until.refine[unfolded lambda_comp_true]
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  trail_zeroed_until_state_fast_code_def[unfolded read_all_st_code_def]
+
+
+  (*End Move*)
+
+
 sepref_def FLAG_restart_impl
   is \<open>uncurry0 (RETURN FLAG_restart)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
@@ -232,7 +289,6 @@ sepref_def remove_one_annot_true_clause_imp_wl_D_heur_code
   supply [[goals_limit=1]] remove_one_annot_true_clause_imp_wl_D_heurI[intro]
   unfolding remove_one_annot_true_clause_imp_wl_D_heur_def
     isasat_length_trail_st_def[symmetric] get_pos_of_level_in_trail_imp_st_def[symmetric]
-  apply (rewrite at \<open>(\<hole>, _)\<close> annot_unat_snat_upcast[where 'l=64])
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
@@ -276,6 +332,7 @@ lemma number_clss_to_keep_fast_code_refine[sepref_fr_rules]:
 experiment
 begin
   export_llvm restart_required_heur_fast_code access_avdom_at_fast_code
+  trail_zeroed_until_state_fast_code
 end
 
 end

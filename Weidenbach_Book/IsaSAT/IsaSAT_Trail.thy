@@ -1296,4 +1296,14 @@ lemma trail_height_before_conflict:
     (auto simp: trail_pol_def control_stack_length_count_dec
       intro!: frefI ASSERT_leI)
 
+definition trail_zeroed_until :: \<open>trail_pol \<Rightarrow> nat\<close> where
+  \<open>trail_zeroed_until = (\<lambda>(M', xs, lvls, reasons, k, cs, zeroed). zeroed)\<close>
+
+definition trail_set_zeroed_until :: \<open>nat \<Rightarrow> trail_pol \<Rightarrow> trail_pol\<close> where
+  \<open>trail_set_zeroed_until = (\<lambda>zeroed (M', xs, lvls, reasons, k, cs, _). (M', xs, lvls, reasons, k, cs, zeroed))\<close>
+
+lemma trail_set_zeroed_until_rel:
+  \<open>(M,M') \<in> trail_pol \<A> \<Longrightarrow>zeroed_trail M' z \<Longrightarrow> (trail_set_zeroed_until z M, M') \<in> (trail_pol \<A>)\<close>
+  by (auto simp: trail_pol_def trail_set_zeroed_until_def)
+
 end

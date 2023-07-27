@@ -1,6 +1,8 @@
 theory IsaSAT_Restart_LLVM
-imports IsaSAT_Restart_Simp_Defs IsaSAT_Propagate_Conflict_LLVM IsaSAT_Restart_Heuristics_LLVM
+  imports IsaSAT_Restart_Simp_Defs IsaSAT_Propagate_Conflict_LLVM IsaSAT_Restart_Heuristics_LLVM
+    (*TODO: why do we need IsaSAT_Propagate_Conflict_LLVM here?*)
 begin
+
 sepref_register update_all_phases
 
 sepref_def update_all_phases_impl
@@ -9,7 +11,6 @@ sepref_def update_all_phases_impl
   unfolding update_all_phases_def
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
-
 
 sepref_register mark_to_delete_clauses_wl_D_heur
 

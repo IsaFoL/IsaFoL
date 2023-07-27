@@ -163,7 +163,11 @@ definition empty_US  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> w
   (M', N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))\<close>
 
 
+definition trail_zeroed_until_state where
+  \<open>trail_zeroed_until_state S = trail_zeroed_until (get_trail_wl_heur S)\<close>
 
+definition trail_set_zeroed_until_state where
+  \<open>trail_set_zeroed_until_state z S = (let M = get_trail_wl_heur S in set_trail_wl_heur (trail_set_zeroed_until z M) S)\<close>
 
 definition remove_one_annot_true_clause_imp_wl_D_heur :: \<open>isasat \<Rightarrow> isasat nres\<close>
 where
@@ -172,12 +176,14 @@ where
     k \<leftarrow> (if count_decided_st_heur S = 0
       then RETURN (isa_length_trail (get_trail_wl_heur S))
       else get_pos_of_level_in_trail_imp (get_trail_wl_heur S) 0);
-    let start = 0;
-    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_D_heur_inv S\<^esup>
+    let start = trail_zeroed_until_state S;
+    (i, T) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_D_heur_inv S\<^esup>
       (\<lambda>(i, S). i < k)
-      (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl_D_heur i S)
+      (\<lambda>(i, S). do { (j, S) \<leftarrow> remove_one_annot_true_clause_one_imp_wl_D_heur i S; RETURN (j, trail_set_zeroed_until_state j S)})
       (start, S);
-    RETURN (empty_US_heur S)
+    ASSERT (remove_one_annot_true_clause_imp_wl_D_heur_inv S (i, T));
+    let T = trail_set_zeroed_until_state i T;
+    RETURN (empty_US_heur T)
   })\<close>
 
 definition GC_units_required :: \<open>isasat \<Rightarrow> bool\<close> where

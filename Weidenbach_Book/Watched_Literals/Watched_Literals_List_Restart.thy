@@ -1947,11 +1947,12 @@ where
         count_decided M1 = 0 \<and> k = length M1)
       \<or> (count_decided (get_trail_l S) = 0 \<and> k = length (get_trail_l S)));
     start \<leftarrow> SPEC (\<lambda>i. i \<le> k \<and> (\<forall>j < i. is_proped (rev (get_trail_l S) ! j) \<and> mark_of (rev (get_trail_l S) ! j) = 0));
-    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_inv S\<^esup>
+    (i, T) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_inv S\<^esup>
       (\<lambda>(i, S). i < k)
       (\<lambda>(i, S). remove_one_annot_true_clause_one_imp i S)
       (start, S);
-    remove_all_learned_subsumed_clauses S
+    ASSERT (remove_one_annot_true_clause_imp_inv S (i, T));
+    remove_all_learned_subsumed_clauses T
   })\<close>
 
 
@@ -2339,6 +2340,7 @@ lemma remove_one_annot_true_clause_imp_spec:
   subgoal
     by (auto dest!: get_all_ann_decomposition_exists_prepend
       simp: count_decided_0_iff rev_nth is_decided_no_proped_iff)
+  subgoal by auto
   apply assumption
   apply assumption
   subgoal for x start s a b xa
@@ -2386,6 +2388,7 @@ proof -
     subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def by auto
     subgoal using assms by (auto simp: count_decided_0_iff is_decided_no_proped_iff
       rev_nth)
+    subgoal by auto
     apply assumption
     apply assumption
     subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def

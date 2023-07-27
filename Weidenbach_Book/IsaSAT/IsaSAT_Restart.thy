@@ -1185,19 +1185,106 @@ lemma remove_one_annot_true_clause_one_imp_wl_D_heur_remove_one_annot_true_claus
   done
   done
 
+lemma remove_one_annot_trail_zeroed_until_state:
+  assumes
+    \<open>(x, y) \<in> twl_st_heur_restart_ana' r u\<close> and
+    \<open>(isa_length_trail_pre \<circ> get_trail_wl_heur) x\<close> and
+    \<open>(k, ka) \<in> nat_rel\<close> and
+    ka: \<open>ka \<in> {k. (\<exists>M1 M2 K.
+         (Decided K # M1, M2)
+         \<in> set (get_all_ann_decomposition (get_trail_wl y)) \<and>
+         count_decided M1 = 0 \<and> k = length M1) \<or>
+        count_decided (get_trail_wl y) = 0 \<and> k = length (get_trail_wl y)}\<close>
+  shows \<open>trail_zeroed_until_state x \<le> ka\<close> (is ?A) and
+    \<open>j < trail_zeroed_until_state x \<Longrightarrow> is_proped (rev (get_trail_wl y) ! j)\<close> (is \<open>?X \<Longrightarrow> ?B\<close>)and
+    \<open>j < trail_zeroed_until_state x \<Longrightarrow> mark_of (rev (get_trail_wl y) ! j) = 0\<close> (is \<open>?X \<Longrightarrow> ?C\<close>)
+proof -
+  define \<A> where \<open>\<A> = (all_init_atms (get_clauses_wl y)
+       (IsaSAT_Setup.get_unkept_unit_init_clss_wl y +
+        IsaSAT_Setup.get_kept_unit_init_clss_wl y +
+        get_subsumed_init_clauses_wl y +
+        get_init_clauses0_wl y))\<close>
+  have \<open>(get_trail_wl_heur x, get_trail_wl y) \<in> trail_pol \<A>\<close>
+    using assms(1) unfolding twl_st_heur_restart_ana_def twl_st_heur_restart_def \<A>_def
+    by fast
+  then show ?A
+    \<open>?X \<Longrightarrow> ?B\<close>
+    \<open>?X \<Longrightarrow> ?C\<close>
+    using ka
+    apply (auto simp: trail_pol_def zeroed_trail_def trail_zeroed_until_state_def
+      trail_zeroed_until_def)
+    by (meson annotated_lit.distinct_disc(1) get_pos_of_level_in_trail_decomp_iff leI)
+qed
+
+lemma remove_one_annot_true_clause_imp_wl_alt_def:
+  \<open>remove_one_annot_true_clause_imp_wl = (\<lambda>S. do {
+    k \<leftarrow> SPEC(\<lambda>k. (\<exists>M1 M2 K. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (get_trail_wl S)) \<and>
+        count_decided M1 = 0 \<and> k = length M1)
+      \<or> (count_decided (get_trail_wl S) = 0 \<and> k = length (get_trail_wl S)));
+    start \<leftarrow> SPEC (\<lambda>i. i \<le> k \<and> (\<forall>j < i. is_proped (rev (get_trail_wl S) ! j) \<and> mark_of (rev (get_trail_wl S) ! j) = 0));
+    (i, T) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_inv S\<^esup>
+      (\<lambda>(i, S). i < k)
+      (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl i S)
+    (start, S);
+    ASSERT (remove_one_annot_true_clause_imp_wl_inv S (i, T));
+    T \<leftarrow> RETURN T;
+    remove_all_learned_subsumed_clauses_wl T
+  })\<close>
+  unfolding remove_one_annot_true_clause_imp_wl_def Let_def by auto
+
+definition remove_one_annot_true_clause_imp_wl_D_heur :: \<open>isasat \<Rightarrow> isasat nres\<close>
+where
+\<open>remove_one_annot_true_clause_imp_wl_D_heur = (\<lambda>S. do {
+    ASSERT((isa_length_trail_pre o get_trail_wl_heur) S);
+    k \<leftarrow> (if count_decided_st_heur S = 0
+      then RETURN (isa_length_trail (get_trail_wl_heur S))
+      else get_pos_of_level_in_trail_imp (get_trail_wl_heur S) 0);
+    let start = trail_zeroed_until_state S;
+    (i, T) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_D_heur_inv S\<^esup>
+      (\<lambda>(i, S). i < k)
+      (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl_D_heur i S)
+      (start, S);
+    ASSERT (remove_one_annot_true_clause_imp_wl_D_heur_inv S (i, T));
+    T \<leftarrow> RETURN (trail_set_zeroed_until_state i T);
+    RETURN (empty_US_heur T)
+  })\<close>
+
+lemma remove_one_annot_true_clause_trail_set_zeroed_until_state:
+    \<open>(x, y) \<in> twl_st_heur_restart_ana' r u \<Longrightarrow>
+    (xa, x') \<in> nat_rel \<times>\<^sub>f twl_st_heur_restart_ana' r (learned_clss_count x) \<Longrightarrow>
+    x' = (x1, x2) \<Longrightarrow>
+    xa = (x1a, x2a) \<Longrightarrow>
+    remove_one_annot_true_clause_imp_wl_inv y (x1, x2) \<Longrightarrow>
+    remove_one_annot_true_clause_imp_wl_D_heur_inv x (x1a, x2a) \<Longrightarrow>
+    (trail_set_zeroed_until_state x1a x2a, x2)
+  \<in> twl_st_heur_restart_ana' r u\<close>
+  supply [[goals_limit=1]]
+  apply (simp add: twl_st_heur_restart_ana_def trail_set_zeroed_until_state_def
+    twl_st_heur_restart_def)
+  apply (rule trail_set_zeroed_until_rel)
+  apply (solves simp)
+  unfolding remove_one_annot_true_clause_imp_wl_D_heur_inv_def
+    remove_one_annot_true_clause_imp_wl_inv_def remove_one_annot_true_clause_imp_inv_def
+    prod.simps
+  apply normalize_goal+
+  apply (simp add: zeroed_trail_def)
+  done
+
+
+find_theorems trail_set_zeroed_until
+
 lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D:
   \<open>(remove_one_annot_true_clause_imp_wl_D_heur, remove_one_annot_true_clause_imp_wl) \<in>
   twl_st_heur_restart_ana' r u \<rightarrow>\<^sub>f
   \<langle>twl_st_heur_restart_ana' r u\<rangle>nres_rel\<close>
   (is \<open>_ \<in> ?A \<rightarrow>\<^sub>f _\<close>)
-  unfolding remove_one_annot_true_clause_imp_wl_def
+  unfolding remove_one_annot_true_clause_imp_wl_alt_def
     remove_one_annot_true_clause_imp_wl_D_heur_def
   apply (intro frefI nres_relI)
   subgoal for x y
   apply (refine_vcg
     WHILEIT_refine[where R = \<open>nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> twl_st_heur_restart_ana r \<and> learned_clss_count S \<le> learned_clss_count x}\<close>]
-    remove_one_annot_true_clause_one_imp_wl_D_heur_remove_one_annot_true_clause_one_imp_wl_D[
-       THEN fref_to_Down_curry])
+    remove_one_annot_true_clause_one_imp_wl_D_heur_remove_one_annot_true_clause_one_imp_wl_D[THEN fref_to_Down_curry])
   subgoal by (auto simp: trail_pol_alt_def isa_length_trail_pre_def
     twl_st_heur_restart_def twl_st_heur_restart_ana_def)
   subgoal by (auto dest: twl_st_heur_restart_isa_length_trail_get_trail_wl
@@ -1217,13 +1304,13 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
         twl_st_heur_restart_count_decided_st_alt_def)
       done
     done
+    subgoal by (rule remove_one_annot_trail_zeroed_until_state)
+    subgoal by (rule remove_one_annot_trail_zeroed_until_state)
+    subgoal by (rule remove_one_annot_trail_zeroed_until_state)
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal for  k k' start T T'
-      apply (subst (asm)(16) surjective_pairing)
-      apply (subst (asm)(14) surjective_pairing)
+    subgoal for k k' start T T'
+      apply (subst (asm)(11) surjective_pairing)
+      apply (subst (asm)(15) surjective_pairing)
       unfolding remove_one_annot_true_clause_imp_wl_D_heur_inv_def
         prod_rel_iff
       apply (subst (8) surjective_pairing, subst prod.case)
@@ -1232,7 +1319,19 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
       by (auto intro: twl_st_heur_restart_anaD simp: prod_rel_fst_snd_iff twl_st_heur_restart_anaD)
     subgoal by auto
     subgoal by auto
-    subgoal by (auto intro!: remove_all_learned_subsumed_clauses_wl_id)
+    subgoal for k k' start T T'
+      apply (subst (asm)(11) surjective_pairing)
+      apply (subst (asm)(15) surjective_pairing)
+      unfolding remove_one_annot_true_clause_imp_wl_D_heur_inv_def
+        prod_rel_iff
+      apply (subst (8) surjective_pairing, subst prod.case)
+      apply (rule_tac x=y in exI)
+      apply (rule_tac x= \<open>snd T'\<close> in exI)
+      by (auto intro: twl_st_heur_restart_anaD simp: prod_rel_fst_snd_iff twl_st_heur_restart_anaD)
+    apply (rule remove_one_annot_true_clause_trail_set_zeroed_until_state)
+    apply assumption+
+    subgoal for k ka start xa x' x1 x2
+      by (auto intro!: remove_all_learned_subsumed_clauses_wl_id)
   done
   done
 
