@@ -1,6 +1,6 @@
 theory IsaSAT_Bump_Heuristics_Init_State
 imports Watched_Literals_VMTF IsaSAT_ACIDS
-  Tuple4 IsaSAT_ACIDS_LLVM
+  Tuple4 IsaSAT_ACIDS Pairing_Heap_LLVM.Relational_Pairing_Heaps Pairing_Heap_LLVM.Pairing_Heaps_Impl
 begin
 
 type_synonym vmtf_remove_int_option_fst_As = \<open>nat_vmtf_node list \<times> nat \<times> nat option \<times> nat option \<times> nat option\<close>
@@ -116,8 +116,8 @@ lemma hp_acids_empty:
    acids_encoded_hmrel\<rangle>nres_rel\<close>
 proof -
   have 1: \<open>((\<A>, (\<lambda>_. None, \<lambda>_. None, \<lambda>_. None, \<lambda>_. None, \<lambda>_. Some 0), None), (\<A>, {#}, \<lambda>_. 0)) \<in> acids_encoded_hmrel\<close>
-    by (auto simp: acids_encoded_hmrel_def bottom_acids0_def pairing_heaps_rel_def map_fun_rel_def
-      ACIDS.hmrel_def encoded_hp_prop_list_conc_def encoded_hp_prop_def empty_outside_def empty_acids0_def
+    by (auto simp: acids_encoded_hmrel_def pairing_heaps_rel_def map_fun_rel_def
+      ACIDS.hmrel_def encoded_hp_prop_list_conc_def encoded_hp_prop_def empty_outside_def
       intro!: relcompI)
   have H: \<open>mset_nodes ya \<noteq> {#}\<close> for ya
     by (cases ya) auto
