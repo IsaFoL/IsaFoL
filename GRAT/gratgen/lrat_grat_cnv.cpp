@@ -577,8 +577,8 @@ int main(int argc, char **argv) {
   } else {
     cerr<<"c Usage: "<<endl;
     cerr<<"c   lrat_grat_cnv <lrat-in-file> <lemma-out-file> <proof-out-file>  -- convert to grat "<<endl;
-    cerr<<"c   lrat_grat_cnv <lrat-in-file> <lrat-out-file>  -- convert to ASCII lrat"<<endl;
-    cerr<<"c   lrat_grat_cnv <lrat-in-file>   -- just read ASCII lrat"<<endl;
+    cerr<<"c   lrat_grat_cnv <lrat-in-file> <lrat-out-file>  -- convert binary to ASCII lrat"<<endl;
+    cerr<<"c   lrat_grat_cnv <lrat-in-file>   -- just read binary lrat"<<endl;
     fail("c Invalid command line arguments");
   }
 
