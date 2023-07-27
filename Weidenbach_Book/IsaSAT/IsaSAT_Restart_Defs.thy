@@ -172,10 +172,11 @@ where
     k \<leftarrow> (if count_decided_st_heur S = 0
       then RETURN (isa_length_trail (get_trail_wl_heur S))
       else get_pos_of_level_in_trail_imp (get_trail_wl_heur S) 0);
+    let start = 0;
     (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_D_heur_inv S\<^esup>
       (\<lambda>(i, S). i < k)
       (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl_D_heur i S)
-      (0, S);
+      (start, S);
     RETURN (empty_US_heur S)
   })\<close>
 

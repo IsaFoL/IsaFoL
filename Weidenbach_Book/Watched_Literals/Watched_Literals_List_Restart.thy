@@ -1940,17 +1940,17 @@ proof -
     by (simp add: twl_st)
 qed
 
-
 definition remove_one_annot_true_clause_imp :: \<open>'v twl_st_l \<Rightarrow> ('v twl_st_l) nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp = (\<lambda>S. do {
     k \<leftarrow> SPEC(\<lambda>k. (\<exists>M1 M2 K. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (get_trail_l S)) \<and>
         count_decided M1 = 0 \<and> k = length M1)
       \<or> (count_decided (get_trail_l S) = 0 \<and> k = length (get_trail_l S)));
+    start \<leftarrow> SPEC (\<lambda>i. i \<le> k \<and> (\<forall>j < i. is_proped (rev (get_trail_l S) ! j) \<and> mark_of (rev (get_trail_l S) ! j) = 0));
     (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_inv S\<^esup>
       (\<lambda>(i, S). i < k)
       (\<lambda>(i, S). remove_one_annot_true_clause_one_imp i S)
-      (0, S);
+      (start, S);
     remove_all_learned_subsumed_clauses S
   })\<close>
 
@@ -2325,7 +2325,11 @@ lemma remove_one_annot_true_clause_imp_spec:
       I=\<open>remove_one_annot_true_clause_imp_inv S\<close>]
     remove_all_learned_subsumed_clauses_cdcl_twl_restart_l[THEN order_trans])
   subgoal by auto
-  subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def by blast
+  subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def prod.simps apply -
+    apply (intro conjI)
+    apply (solves auto)+
+    apply fast+
+    done
   apply (rule remove_one_annot_true_clause_one_imp_spec[of _ _ ])
   subgoal unfolding remove_one_annot_true_clause_imp_inv_def by auto
   subgoal unfolding remove_one_annot_true_clause_imp_inv_def by auto
@@ -2337,7 +2341,7 @@ lemma remove_one_annot_true_clause_imp_spec:
       simp: count_decided_0_iff rev_nth is_decided_no_proped_iff)
   apply assumption
   apply assumption
-  subgoal for x s a b xa
+  subgoal for x start s a b xa
     using tranclp_cdcl_twl_restart_l_cdcl_is_cdcl_twl_restart_l[of S xa]
       rtranclp_into_tranclp1[of cdcl_twl_restart_l S b xa]
       remove_one_annot_true_clause_imp_inv_no_dupD2[of S s \<open>fst s\<close> \<open>snd s\<close>]
@@ -2378,7 +2382,7 @@ proof -
       remove_one_annot_true_clause_one_imp_spec
       remove_all_learned_subsumed_clauses_cdcl_twl_restart_l[THEN order_trans])
     subgoal by auto
-    subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def by blast
+    subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def prod.simps apply - by (intro conjI) ((solves auto)+, fast, (solves auto)+)
     subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def by auto
     subgoal using assms by (auto simp: count_decided_0_iff is_decided_no_proped_iff
       rev_nth)

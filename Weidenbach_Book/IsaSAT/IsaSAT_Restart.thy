@@ -1180,7 +1180,7 @@ lemma remove_one_annot_true_clause_one_imp_wl_D_heur_remove_one_annot_true_claus
     by (cases x, cases y) fastforce
   done
   done
- 
+
 lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D:
   \<open>(remove_one_annot_true_clause_imp_wl_D_heur, remove_one_annot_true_clause_imp_wl) \<in>
   twl_st_heur_restart_ana' r u \<rightarrow>\<^sub>f
@@ -1214,14 +1214,17 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
       done
     done
     subgoal by auto
-    subgoal for  k k' T T'
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for  k k' start T T'
       apply (subst (asm)(16) surjective_pairing)
       apply (subst (asm)(14) surjective_pairing)
       unfolding remove_one_annot_true_clause_imp_wl_D_heur_inv_def
         prod_rel_iff
-      apply (subst (7) surjective_pairing, subst prod.case)
-        apply (rule_tac x=y in exI)
-        apply (rule_tac x= \<open>snd T'\<close> in exI)
+      apply (subst (8) surjective_pairing, subst prod.case)
+      apply (rule_tac x=y in exI)
+      apply (rule_tac x= \<open>snd T'\<close> in exI)
       by (auto intro: twl_st_heur_restart_anaD simp: prod_rel_fst_snd_iff twl_st_heur_restart_anaD)
     subgoal by auto
     subgoal by auto

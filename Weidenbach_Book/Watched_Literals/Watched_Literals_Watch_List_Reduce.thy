@@ -560,10 +560,11 @@ where
     k \<leftarrow> SPEC(\<lambda>k. (\<exists>M1 M2 K. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (get_trail_wl S)) \<and>
         count_decided M1 = 0 \<and> k = length M1)
       \<or> (count_decided (get_trail_wl S) = 0 \<and> k = length (get_trail_wl S)));
+    start \<leftarrow> SPEC (\<lambda>i. i \<le> k \<and> (\<forall>j < i. is_proped (rev (get_trail_wl S) ! j) \<and> mark_of (rev (get_trail_wl S) ! j) = 0));
     (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_inv S\<^esup>
       (\<lambda>(i, S). i < k)
       (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl i S)
-      (0, S);
+      (start, S);
     remove_all_learned_subsumed_clauses_wl S
   })\<close>
 
@@ -596,13 +597,16 @@ proof -
         fref_to_Down])
     subgoal by force
     subgoal by auto
-    subgoal for x y k ka xa x'
+    subgoal by force
+    subgoal by force
+    subgoal by force
+    subgoal for x y k ka xa start start' x'
       unfolding remove_one_annot_true_clause_imp_wl_inv_def
       apply (subst case_prod_beta)
       apply (rule_tac x=\<open>y\<close> in exI)
       apply (rule_tac x=\<open>snd x'\<close> in exI)
-      apply (subst (asm)(18) surjective_pairing)
       apply (subst (asm)(23) surjective_pairing)
+      apply (subst (asm)(28) surjective_pairing)
       unfolding prod_rel_iff by simp
     subgoal by auto
     subgoal by auto
