@@ -1992,7 +1992,7 @@ definition init_trail_D :: \<open>nat list \<Rightarrow> nat \<Rightarrow> nat \
      let M = replicate m UNSET;
      let M' = replicate n 0;
      let M'' = replicate n 1;
-     RETURN ((M0, M, M', M'', 0, cs))
+     RETURN ((M0, M, M', M'', 0, cs, 0))
   }\<close>
 
 definition init_trail_D_fast where
@@ -2075,6 +2075,7 @@ proof -
       by auto
     subgoal
       by (auto simp: control_stack.empty)
+    subgoal by (auto simp: zeroed_trail_def)
     subgoal by auto
     done
 qed

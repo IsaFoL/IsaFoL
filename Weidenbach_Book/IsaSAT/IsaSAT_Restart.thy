@@ -400,9 +400,9 @@ proof -
          \<in> trail_pol (all_init_atms_st ?S)\<close>
     using assms(3) unfolding twl_st_heur_restart_ana_def twl_st_heur_restart_def all_init_atms_st_def
     by (cases x2n') auto
-  obtain x y x1b x1c x1d x1e x2d where
+  obtain x y x1b x1c x1d x1e x2d x2e where
     tr: \<open>get_trail_wl_heur S = (x1b, x1c, x1d, x1e, x2d)\<close> and
-    x2d: \<open>x2d = (count_decided (ys @ Propagated x2 C # zs), y)\<close> and
+    x2d: \<open>x2d = (count_decided (ys @ Propagated x2 C # zs), y, x2e)\<close> and
     reasons: \<open>((map lit_of (rev (ys @ Propagated x2 C # zs)), x1e),
       ys @ Propagated x2 C # zs)
      \<in> ann_lits_split_reasons ?\<A>\<close> and
@@ -422,7 +422,8 @@ proof -
     \<open>length (map lit_of (rev (ys @ Propagated x2 C # zs))) =
      length (ys @ Propagated x2 C # zs)\<close> and
     bounded: \<open>isasat_input_bounded ?\<A>\<close> and
-    x1b: \<open>x1b = map lit_of (rev (ys @ Propagated x2 C # zs))\<close>
+    x1b: \<open>x1b = map lit_of (rev (ys @ Propagated x2 C # zs))\<close> and
+    \<open>zeroed_trail (ys @ Propagated x2 C # zs) x2e\<close>
     using pol unfolding trail_pol_alt_def
     apply (cases \<open>get_trail_wl_heur S\<close>)
     by blast
@@ -469,6 +470,9 @@ proof -
       by (drule_tac x = L in bspec)
         (auto simp: nth_append nth_Cons split: nat.splits)
     done
+  moreover have \<open>zeroed_trail (ys @ Propagated x2 0 # zs) x2e\<close>
+    using \<open>zeroed_trail (ys @ Propagated x2 C # zs) x2e\<close>
+    by (auto simp: zeroed_trail_def nth_append nth_Cons split: if_splits nat.splits)
   ultimately have
     \<open>((x1b, x1c, x1d, x1e[atm_of x2 := 0], x2d), ys @ Propagated x2 0 # zs)
          \<in> trail_pol ?\<A>\<close>

@@ -7,7 +7,7 @@ hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 type_synonym trail_pol_fast_assn =
    \<open>32 word array_list64 \<times> tri_bool_assn larray64 \<times> 32 word larray64 \<times>
      64 word larray64 \<times> 32 word \<times>
-     32 word array_list64\<close>
+     32 word array_list64 \<times> 32 word\<close>
 
 sepref_def DECISION_REASON_impl is \<open>uncurry0 (RETURN DECISION_REASON)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
@@ -19,7 +19,7 @@ definition trail_pol_fast_assn :: \<open>trail_pol \<Rightarrow> trail_pol_fast_
     arl64_assn unat_lit_assn \<times>\<^sub>a larray64_assn (tri_bool_assn) \<times>\<^sub>a
     larray64_assn uint32_nat_assn \<times>\<^sub>a
     larray64_assn sint64_nat_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a
-    arl64_assn uint32_nat_assn\<close>
+    arl64_assn uint32_nat_assn \<times>\<^sub>a uint32_nat_assn\<close>
 
 
 paragraph \<open>Code generation\<close>

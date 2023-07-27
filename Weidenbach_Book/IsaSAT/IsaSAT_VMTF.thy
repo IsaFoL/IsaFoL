@@ -130,7 +130,7 @@ lemma isa_vmtf_en_dequeue:
   unfolding isa_vmtf_en_dequeue_def vmtf_en_dequeue_def uncurry_def
   apply (intro frefI nres_relI)
   apply clarify
-  subgoal for a aa ab ac ad b ba ae af ag ah bb ai bc aj ak al am bd
+  subgoal for a aa ab ac ad b zeroed ba ae af ag ah bb ai bc aj ak al am bd
     by (rule order.trans,
       rule isa_vmtf_enqueue[of \<A>, THEN fref_to_Down_curry2,
         of ai bc \<open>vmtf_dequeue bc (aj, ak, al, am, bd)\<close>])

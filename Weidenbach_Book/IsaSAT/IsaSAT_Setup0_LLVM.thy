@@ -84,7 +84,7 @@ definition bottom_trail :: trail_pol where
      let M = replicate 0 UNSET in
      let M' = replicate 0 0 in
      let M'' = replicate 0 1 in
-    ((M0, M, M', M'', 0, cs))
+    ((M0, M, M', M'', 0, cs, 0))
 }\<close>
 
 definition extract_trail_wl_heur where
@@ -105,6 +105,7 @@ sepref_def bottom_trail_code
   apply (rewrite in \<open>let _ = _ in _\<close> larray_fold_custom_replicate)
   apply (rewrite in \<open>let _ = _ in _\<close> larray_fold_custom_replicate)
   apply (rewrite at \<open>(_, \<hole>, _)\<close> unat_const_fold[where 'a=32])
+  apply (rewrite at \<open>(_, _, _, _ , \<hole>)\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>(op_larray_custom_replicate _ \<hole>)\<close> unat_const_fold[where 'a=32])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   supply [[goals_limit = 1]]

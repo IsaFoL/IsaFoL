@@ -1115,6 +1115,7 @@ sepref_def init_trail_D_fast_code
   apply (rewrite in \<open>let _ = _ in _\<close> larray_fold_custom_replicate)
   apply (rewrite at \<open>(_, \<hole>, _)\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>(op_larray_custom_replicate _ \<hole>)\<close> unat_const_fold[where 'a=32])
+  apply (rewrite at \<open>(_, _, _, _, \<hole>)\<close> unat_const_fold[where 'a=32])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   supply [[goals_limit = 1]]
   by sepref

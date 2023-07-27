@@ -17,7 +17,7 @@ definition find_local_restart_target_level_int
    :: \<open>trail_pol \<Rightarrow> bump_heuristics \<Rightarrow> nat nres\<close>
 where
   \<open>find_local_restart_target_level_int =
-     (\<lambda>(M, xs, lvls, reasons, k, cs) bmp. do {
+     (\<lambda>(M, xs, lvls, reasons, k, cs, zeored) bmp. do {
      let m = current_vmtf_array_nxt_score bmp;
      (brk, i) \<leftarrow> WHILE\<^sub>T\<^bsup>find_local_restart_target_level_int_inv bmp cs\<^esup>
         (\<lambda>(brk, i). \<not>brk \<and> i < length cs)

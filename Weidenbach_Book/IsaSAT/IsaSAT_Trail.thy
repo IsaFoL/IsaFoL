@@ -30,7 +30,7 @@ trail). Remark that the control stack contains is not updated during the backjum
 section \<open>Types\<close>
 
 type_synonym trail_pol =
-   \<open>nat literal list \<times> tri_bool list \<times> nat list \<times> nat list \<times> nat \<times> nat list\<close>
+   \<open>nat literal list \<times> tri_bool list \<times> nat list \<times> nat list \<times> nat \<times> nat list \<times> nat\<close>
 
 definition get_level_atm where
   \<open>get_level_atm M L = get_level M (Pos L)\<close>
@@ -252,15 +252,41 @@ definition ann_lits_split_reasons where
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. atm_of L < length reasons)
   }\<close>
 
+definition zeroed_trail :: \<open>('v, nat) ann_lits \<Rightarrow> _\<close>  where
+  \<open>zeroed_trail M zeroed \<longleftrightarrow> zeroed \<le> length M \<and> (\<forall>z < zeroed. is_proped (rev M ! z) \<and> mark_of (rev M ! z) = 0)\<close>
+
+lemma zeored_trail_cons[simp]:
+  \<open>zeroed_trail M zeroed \<Longrightarrow> zeroed_trail (L # M) zeroed\<close>
+  by (auto simp: zeroed_trail_def nth_append split: if_splits)
+
+lemma zeroed_trail_consD:
+  assumes \<open>zeroed_trail (L # M) zeroed\<close> \<open>count_decided (L # M) > 0\<close> \<open>no_dup (L # M)\<close>
+  shows \<open>zeroed_trail M zeroed\<close>
+proof -
+  obtain M1 M2 K where \<open>L # M = M2 @ Decided K # M1\<close> and
+    \<open>get_level (L # M) K = 1\<close>
+    by (metis One_nat_def assms(2) assms(3) le_count_decided_decomp)
+
+  then have \<open>zeroed \<le> length M\<close>
+    using assms(1) unfolding zeroed_trail_def
+    apply (cases \<open>zeroed = Suc (length M)\<close>)
+    apply (auto elim!: list_Cons_eq_append_cases simp: nth_append split: if_splits)
+    by (metis (no_types, lifting) add.right_neutral add_Suc add_diff_cancel_left' annotated_lit.disc(3) less_add_Suc2 nth_Cons_0 order_less_irrefl)
+  then show \<open>?thesis\<close>
+    using assms(1) unfolding zeroed_trail_def by auto
+qed
+
+
 definition trail_pol :: \<open>nat multiset \<Rightarrow> (trail_pol \<times> (nat, nat) ann_lits) set\<close> where
   \<open>trail_pol \<A> =
-   {((M', xs, lvls, reasons, k, cs), M). ((M', reasons), M) \<in> ann_lits_split_reasons \<A> \<and>
+   {((M', xs, lvls, reasons, k, cs, zeroed), M). ((M', reasons), M) \<in> ann_lits_split_reasons \<A> \<and>
     no_dup M \<and>
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. nat_of_lit L < length xs \<and> xs ! (nat_of_lit L) = polarity M L) \<and>
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. atm_of L < length lvls \<and> lvls ! (atm_of L) = get_level M L) \<and>
     k = count_decided M \<and>
     (\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
     control_stack cs M \<and>
+    zeroed_trail M zeroed \<and>
     isasat_input_bounded \<A>}\<close>
 
 
@@ -268,7 +294,7 @@ section \<open>Definition of the full trail\<close>
 
 
 lemma trail_pol_alt_def:
-  \<open>trail_pol \<A> = {((M', xs, lvls, reasons, k, cs), M).
+  \<open>trail_pol \<A> = {((M', xs, lvls, reasons, k, cs, zeroed), M).
     ((M', reasons), M) \<in> ann_lits_split_reasons \<A> \<and>
     no_dup M \<and>
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. nat_of_lit L < length xs \<and> xs ! (nat_of_lit L) = polarity M L) \<and>
@@ -281,6 +307,7 @@ lemma trail_pol_alt_def:
     count_decided M < unat32_max \<and>
     length M' = length M \<and>
     M' = map lit_of (rev M) \<and>
+    zeroed_trail M zeroed \<and>
     isasat_input_bounded \<A>
    }\<close>
 proof -
@@ -467,10 +494,10 @@ definition cons_trail_Propagated_tr_pre where
     nat_of_lit (-L) < length xs \<and> atm_of L < length lvls \<and> atm_of L < length reasons \<and> length M < unat32_max)\<close>
 
 definition cons_trail_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trail_pol \<Rightarrow> trail_pol nres\<close> where
-  \<open>cons_trail_Propagated_tr = (\<lambda>L C (M', xs, lvls, reasons, k, cs). do {
-     ASSERT(cons_trail_Propagated_tr_pre ((L, C), (M', xs, lvls, reasons, k, cs)));
+  \<open>cons_trail_Propagated_tr = (\<lambda>L C (M', xs, lvls, reasons, k, cs, zeroed). do {
+     ASSERT(cons_trail_Propagated_tr_pre ((L, C), (M', xs, lvls, reasons, k, cs, zeroed)));
      RETURN (M' @ [L], let xs = xs[nat_of_lit L := SET_TRUE] in xs[nat_of_lit (-L) := SET_FALSE],
-      lvls[atm_of L := k], reasons[atm_of L:= C], k, cs)})\<close>
+      lvls[atm_of L := k], reasons[atm_of L:= C], k, cs, zeroed)})\<close>
 
 lemma in_list_pos_neg_notD: \<open>Pos (atm_of (lit_of La)) \<notin> lits_of_l bc \<Longrightarrow>
        Neg (atm_of (lit_of La)) \<notin> lits_of_l bc \<Longrightarrow>
@@ -620,16 +647,16 @@ definition (in -) last_trail_pol :: \<open>trail_pol \<Rightarrow> (nat literal 
 
 
 definition tl_trailt_tr :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
-  \<open>tl_trailt_tr = (\<lambda>(M', xs, lvls, reasons, k, cs).
+  \<open>tl_trailt_tr = (\<lambda>(M', xs, lvls, reasons, k, cs, zeroed).
     let L = last M' in
     (butlast M',
     let xs = xs[nat_of_lit L := None] in xs[nat_of_lit (-L) := None],
     lvls[atm_of L := 0],
     reasons, if reasons ! atm_of L = DECISION_REASON then k-1 else k,
-      if reasons ! atm_of L = DECISION_REASON then butlast cs else cs))\<close>
+      if reasons ! atm_of L = DECISION_REASON then butlast cs else cs, zeroed))\<close>
 
 definition tl_trailt_tr_pre where
-  \<open>tl_trailt_tr_pre = (\<lambda>(M, xs, lvls, reason, k, cs). M \<noteq> [] \<and> nat_of_lit(last M) < length xs \<and>
+  \<open>tl_trailt_tr_pre = (\<lambda>(M, xs, lvls, reason, k, cs, zeroed). M \<noteq> [] \<and> nat_of_lit(last M) < length xs \<and>
         nat_of_lit(-last M) < length xs  \<and> atm_of (last M) < length lvls \<and>
         atm_of (last M) < length reason \<and>
         (reason ! atm_of (last M) = DECISION_REASON \<longrightarrow> k \<ge> 1 \<and> cs \<noteq> []))\<close>
@@ -644,7 +671,7 @@ lemma control_stack_dec_butlast:
 
 lemma tl_trail_tr:
   \<open>((RETURN o tl_trailt_tr), (RETURN o tl)) \<in>
-    [\<lambda>M. M \<noteq> []]\<^sub>f trail_pol \<A> \<rightarrow> \<langle>trail_pol \<A>\<rangle>nres_rel\<close>
+    [\<lambda>M. M \<noteq> [] \<and> count_decided M > 0]\<^sub>f trail_pol \<A> \<rightarrow> \<langle>trail_pol \<A>\<rangle>nres_rel\<close>
 proof -
   show ?thesis
     apply (intro frefI nres_relI, rename_tac x y, case_tac \<open>y\<close>)
@@ -681,6 +708,11 @@ proof -
           (auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff ann_lits_split_reasons_def
             control_stack_dec_butlast
             dest: no_dup_consistentD)
+      subgoal
+        by (cases \<open>L\<close>)
+         (auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff ann_lits_split_reasons_def
+            control_stack_dec_butlast
+            dest: no_dup_consistentD zeroed_trail_consD)
       done
     done
 qed
@@ -766,14 +798,14 @@ definition cons_trail_Decided :: \<open>nat literal \<Rightarrow> (nat, nat) ann
   \<open>cons_trail_Decided L M' = Decided L # M'\<close>
 
 definition cons_trail_Decided_tr :: \<open>nat literal \<Rightarrow> trail_pol \<Rightarrow> trail_pol\<close> where
-  \<open>cons_trail_Decided_tr = (\<lambda>L (M', xs, lvls, reasons, k, cs). do{
+  \<open>cons_trail_Decided_tr = (\<lambda>L (M', xs, lvls, reasons, k, cs, zeroed). do{
     let n = length M' in
     (M' @ [L], let xs = xs[nat_of_lit L := SET_TRUE] in xs[nat_of_lit (-L) := SET_FALSE],
-      lvls[atm_of L := k+1], reasons[atm_of L := DECISION_REASON], k+1, cs @ [n])})\<close>
+      lvls[atm_of L := k+1], reasons[atm_of L := DECISION_REASON], k+1, cs @ [n], zeroed)})\<close>
 
 definition cons_trail_Decided_tr_pre where
   \<open>cons_trail_Decided_tr_pre =
-    (\<lambda>(L, (M, xs, lvls, reason, k, cs)). nat_of_lit L < length xs \<and> nat_of_lit (-L) < length xs \<and>
+    (\<lambda>(L, (M, xs, lvls, reason, k, cs, zeroed)). nat_of_lit L < length xs \<and> nat_of_lit (-L) < length xs \<and>
       atm_of L < length lvls \<and> atm_of L < length reason  \<and> length cs < unat32_max \<and>
       Suc k \<le> unat32_max \<and> length M < unat32_max)\<close>
 
@@ -785,7 +817,7 @@ lemma cons_trail_Decided_tr:
   \<open>(uncurry (RETURN oo cons_trail_Decided_tr), uncurry (RETURN oo cons_trail_Decided)) \<in>
   [\<lambda>(L, M). undefined_lit M L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f Id \<times>\<^sub>f trail_pol \<A> \<rightarrow> \<langle>trail_pol \<A>\<rangle>nres_rel\<close>
   by (intro frefI nres_relI, rename_tac x y, case_tac \<open>fst x\<close>)
-    (auto simp: trail_pol_def polarity_def cons_trail_Decided_def uminus_lit_swap
+   (auto simp: trail_pol_def polarity_def cons_trail_Decided_def uminus_lit_swap
         Decided_Propagated_in_iff_in_lits_of_l
         cons_trail_Decided_tr_def nth_list_update' ann_lits_split_reasons_def
       dest!: in_list_pos_neg_notD multi_member_split
@@ -893,7 +925,7 @@ lemma no_dup_Decided_PropedD:
 
 
 definition get_the_propagation_reason_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> nat option nres\<close> where
-  \<open>get_the_propagation_reason_pol = (\<lambda>(_, xs, _, reasons, _) L. do {
+  \<open>get_the_propagation_reason_pol = (\<lambda>(_, xs, _, reasons, _, _) L. do {
       ASSERT(atm_of L < length reasons);
       ASSERT(nat_of_lit L < length xs);
       let r = reasons ! atm_of L;
@@ -919,7 +951,7 @@ proof -
       by (auto simp: get_the_propagation_reason_def get_the_propagation_reason_pol_def Let_def
         trail_pol_def ann_lits_split_reasons_def assert_bind_spec_conv
         dest!: multi_member_split[of _ \<open>\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>])[]
-    subgoal for a aa ab ac ad b ba ae bb
+    subgoal for a aa ab ac ad zeroed b ba ae bb
       apply (cases \<open>aa ! nat_of_lit ba \<noteq> SET_TRUE\<close>)
       apply (subgoal_tac \<open>ba \<notin> lits_of_l ae\<close>)
       prefer 2
@@ -975,22 +1007,23 @@ text \<open>We here define a variant of the trail representation, where the the 
 definition trail_pol_no_CS :: \<open>nat multiset \<Rightarrow> (trail_pol \<times> (nat, nat) ann_lits) set\<close>
 where
   \<open>trail_pol_no_CS \<A> =
-   {((M', xs, lvls, reasons, k, cs), M). ((M', reasons), M) \<in> ann_lits_split_reasons \<A> \<and>
+   {((M', xs, lvls, reasons, k, cs, zeroed), M). ((M', reasons), M) \<in> ann_lits_split_reasons \<A> \<and>
     no_dup M \<and>
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. nat_of_lit L < length xs \<and> xs ! (nat_of_lit L) = polarity M L) \<and>
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. atm_of L < length lvls \<and> lvls ! (atm_of L) = get_level M L) \<and>
     (\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
     isasat_input_bounded \<A> \<and>
+    zeroed_trail M zeroed \<and>
     control_stack (take (count_decided M) cs) M
   }\<close>
 
 definition tl_trailt_tr_no_CS :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
-  \<open>tl_trailt_tr_no_CS = (\<lambda>(M', xs, lvls, reasons, k, cs).
+  \<open>tl_trailt_tr_no_CS = (\<lambda>(M', xs, lvls, reasons, k, cs, zeroed).
     let L = last M' in
     (butlast M',
     let xs = xs[nat_of_lit L := None] in xs[nat_of_lit (-L) := None],
     lvls[atm_of L := 0],
-    reasons, k, cs))\<close>
+    reasons, k, cs, zeroed))\<close>
 
 definition tl_trailt_tr_no_CS_pre where
   \<open>tl_trailt_tr_no_CS_pre = (\<lambda>(M, xs, lvls, reason, k, cs). M \<noteq> [] \<and> nat_of_lit(last M) < length xs \<and>
@@ -1021,7 +1054,7 @@ qed
 
 lemma tl_trail_tr_no_CS:
   \<open>((RETURN o tl_trailt_tr_no_CS), (RETURN o tl)) \<in>
-    [\<lambda>M. M \<noteq> []]\<^sub>f trail_pol_no_CS \<A> \<rightarrow> \<langle>trail_pol_no_CS \<A>\<rangle>nres_rel\<close>
+    [\<lambda>M. M \<noteq> [] \<and> count_decided M > 0]\<^sub>f trail_pol_no_CS \<A> \<rightarrow> \<langle>trail_pol_no_CS \<A>\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI, rename_tac x y, case_tac \<open>y\<close>)
   subgoal by fast
   subgoal for M M' L M's
@@ -1050,7 +1083,12 @@ lemma tl_trail_tr_no_CS:
       by (cases \<open>L\<close>)
 	(auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff ann_lits_split_reasons_def
 	  control_stack_dec_butlast
-	  dest: no_dup_consistentD)
+	  dest: no_dup_consistentD ann_lits_split_reasons_map_lit_of)
+    subgoal
+      by (cases \<open>L\<close>)
+	(auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff ann_lits_split_reasons_def
+	  control_stack_dec_butlast control_stack_take_Suc_count_dec_unstack
+	  dest: no_dup_consistentD ann_lits_split_reasons_map_lit_of zeroed_trail_consD)
     subgoal
       by (cases \<open>L\<close>)
 	(auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff ann_lits_split_reasons_def
@@ -1076,8 +1114,8 @@ definition trail_conv_back :: \<open>nat \<Rightarrow> (nat, nat) ann_lits \<Rig
   \<open>trail_conv_back j M = M\<close>
 
 definition (in -) trail_conv_back_imp :: \<open>nat \<Rightarrow> trail_pol \<Rightarrow> trail_pol nres\<close> where
-  \<open>trail_conv_back_imp j = (\<lambda>(M, xs, lvls, reason, _, cs). do {
-     ASSERT(j \<le> length cs); RETURN (M, xs, lvls, reason, j, take (j) cs)})\<close>
+  \<open>trail_conv_back_imp j = (\<lambda>(M, xs, lvls, reason, _, cs, zeroed). do {
+     ASSERT(j \<le> length cs); RETURN (M, xs, lvls, reason, j, take (j) cs, zeroed)})\<close>
 
 lemma trail_conv_back:
   \<open>(uncurry trail_conv_back_imp, uncurry (RETURN oo trail_conv_back))
@@ -1102,7 +1140,7 @@ lemma isa_trail_nth_rev_trail_nth_no_CS:
 
 lemma trail_pol_no_CS_alt_def:
   \<open>trail_pol_no_CS \<A> =
-    {((M', xs, lvls, reasons, k, cs), M). ((M', reasons), M) \<in> ann_lits_split_reasons \<A> \<and>
+    {((M', xs, lvls, reasons, k, cs, zeroed), M). ((M', reasons), M) \<in> ann_lits_split_reasons \<A> \<and>
     no_dup M \<and>
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. nat_of_lit L < length xs \<and> xs ! (nat_of_lit L) = polarity M L) \<and>
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. atm_of L < length lvls \<and> lvls ! (atm_of L) = get_level M L) \<and>
@@ -1112,6 +1150,7 @@ lemma trail_pol_no_CS_alt_def:
     length M \<le> unat32_max div 2 + 1 \<and>
     count_decided M < unat32_max \<and>
     length M' = length M \<and>
+     zeroed_trail M zeroed \<and> 
     isasat_input_bounded \<A> \<and>
     M' = map lit_of (rev M)
    }\<close>
@@ -1190,8 +1229,8 @@ definition get_pos_of_level_in_trail where
   \<open>get_pos_of_level_in_trail M\<^sub>0 lev =
      SPEC(\<lambda>i. i < length M\<^sub>0 \<and> is_decided (rev M\<^sub>0!i) \<and> get_level M\<^sub>0 (lit_of (rev M\<^sub>0!i)) = lev+1)\<close>
 
-definition (in -) get_pos_of_level_in_trail_imp where
-  \<open>get_pos_of_level_in_trail_imp = (\<lambda>(M', xs, lvls, reasons, k, cs) lev. do {
+definition (in -) get_pos_of_level_in_trail_imp :: \<open>trail_pol \<Rightarrow> nat \<Rightarrow> _\<close> where
+  \<open>get_pos_of_level_in_trail_imp = (\<lambda>(M', xs, lvls, reasons, k, cs, zeroed) lev. do {
       ASSERT(lev < length cs);
       RETURN (cs ! lev)
    })\<close>
@@ -1238,13 +1277,14 @@ lemma lit_of_last_trail_pol_lit_of_last_trail_no_CS:
       intro!: frefI nres_relI)
 
 definition trail_height_before_conflict :: \<open>trail_pol \<Rightarrow> nat nres\<close> where
-  \<open>trail_height_before_conflict = (\<lambda>(M', xs, lvls, reasons, k, cs).  do{
+  \<open>trail_height_before_conflict = (\<lambda>(M', xs, lvls, reasons, k, cs, zeroed).  do{
      if k = 0 then RETURN 0 else do {
        let k' = k-1;
        ASSERT (k' < length cs);
        RETURN (cs ! k')
      }
    })\<close>
+
 definition trail_height_before_conflict_spec where
   \<open>trail_height_before_conflict_spec _ = RES (UNIV :: nat set)\<close> 
 
