@@ -18,7 +18,7 @@ text \<open>
 \<close>
 
 no_syntax
-  "_MapUpd"  :: "['a ⇀ 'b, maplets] ⇒ 'a ⇀ 'b" ("_/'(_')" [900, 0] 900)
+  "_MapUpd"  :: "['a \<rightharpoonup> 'b, maplets] \<Rightarrow> 'a \<rightharpoonup> 'b" ("_/'(_')" [900, 0] 900)
 
 section \<open>Preliminaries\<close>
 
@@ -684,7 +684,7 @@ lemma eval_fun_upd_if:
   assumes
     \<open>v \<in> FV_fm \<phi>\<close> and
     \<open>v \<noteq> x \<longrightarrow> z \<notin> FV_tm (\<sigma> v)\<close>
-  shows ‹eval_subst \<M> (\<beta>(z := a)) (\<sigma>(x := Var z)) v = ((eval_subst \<M> \<beta> \<sigma>)(x := a)) v\<close>
+  shows \<open>eval_subst \<M> (\<beta>(z := a)) (\<sigma>(x := Var z)) v = ((eval_subst \<M> \<beta> \<sigma>)(x := a)) v\<close>
 proof (cases \<open>v = x\<close>) 
   case True
   then show ?thesis
@@ -734,7 +734,7 @@ proof (intro subset_antisym subsetI)
     by blast   
 next
   fix w 
-  assume \<open>w \<in> ?rhs›
+  assume \<open>w \<in> ?rhs\<close>
   then have \<open>\<exists> y \<in> FV_fm \<phi> - {x}. w \<in> FV_tm (\<sigma> y)\<close>
     by blast 
   then obtain y where
@@ -2028,7 +2028,7 @@ next
    *     by (metis (no_types, lifting) CollectD F_filter filter.in_F_subset_S subsetI) 
    * next
    *   assume \<open>?Pb \<in> F\<close>
-   *   then have \<open>?Pb \<inter> ?A \<in> F›
+   *   then have \<open>?Pb \<inter> ?A \<in> F\<close>
    *     using filter.closed_int[OF F_filter _ dummy_A_in_F]
    *     by blast
    *   moreover have \<open>?Pb \<inter> ?A \<subseteq> ?Pa\<close>
@@ -2231,7 +2231,7 @@ next
     using Fun.IH
     by (smt (verit, ccfv_SIG) map_eq_conv restrict_ext) 
   also have
-    \<open>... = (\<sim>) `` {\<lambda> i \<in> I. interp_fn (\<M> i) f [(\<lambda> i \<in> I. ⟦t\<rbrakk>\<^bsup>\<M> i,\<lambda> v. rep (\<beta> v) i\<^esup>) i. t \<leftarrow> ts]}\<close>
+    \<open>... = (\<sim>) `` {\<lambda> i \<in> I. interp_fn (\<M> i) f [(\<lambda> i \<in> I. \<lbrakk>t\<rbrakk>\<^bsup>\<M> i,\<lambda> v. rep (\<beta> v) i\<^esup>) i. t \<leftarrow> ts]}\<close>
   proof -
     let ?as = \<open>[rep ((\<sim>) `` {\<lambda> i \<in> I. \<lbrakk>t\<rbrakk>\<^bsup>\<M> i,\<lambda> v. rep (\<beta> v) i\<^esup>}). t \<leftarrow> ts]\<close>
     let ?bs = \<open>[(\<lambda> i \<in> I. \<lbrakk>t\<rbrakk>\<^bsup>\<M> i,\<lambda> v. rep (\<beta> v) i\<^esup>). t \<leftarrow> ts]\<close>
