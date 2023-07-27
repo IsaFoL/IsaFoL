@@ -77,7 +77,7 @@ sepref_def split_trail_impl
   :: \<open>trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a arl64_assn unat_lit_assn \<times>\<^sub>a larray64_assn (tri_bool_assn) \<times>\<^sub>a
     larray64_assn uint32_nat_assn \<times>\<^sub>a
     larray64_assn sint64_nat_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a
-  arl64_assn uint32_nat_assn\<close>
+  arl64_assn uint32_nat_assn  \<times>\<^sub>a  sint64_nat_assn\<close>
   unfolding trail_pol_fast_assn_def split_trail_def
   by sepref
 
