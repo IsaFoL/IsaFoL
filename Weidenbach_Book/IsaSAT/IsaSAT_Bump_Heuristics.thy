@@ -353,6 +353,7 @@ lemma isa_vmtf_mark_to_rescore_also_reasons_vmtf_mark_to_rescore_also_reasons:
   apply (intro frefI nres_relI)
   apply (refine_rcg nfoldli_refine[where R = \<open>Id\<close> and S = Id]
     get_the_propagation_reason_pol[of \<A>, THEN fref_to_Down_curry]
+     isa_bump_mark_to_rescore[of _ \<A>]
      isa_bump_mark_to_rescore_clause_vmtf_mark_to_rescore_clause[of \<A>, THEN fref_to_Down_curry2])
   subgoal by auto
   subgoal by auto
@@ -384,7 +385,8 @@ lemma vmtf_mark_to_rescore_also_reasons_spec:
     vmtf_mark_to_rescore_also_reasons \<A> M arena outl L vm \<le> RES (bump_heur \<A> M)\<close>
   unfolding vmtf_mark_to_rescore_also_reasons_def
   apply (subst RES_SPEC_conv)
-  apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ vm. vm \<in> bump_heur \<A> M\<close>])
+  apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ vm. vm \<in> bump_heur \<A> M\<close>]
+    isa_bump_mark_to_rescore[of _ \<A>])
   subgoal by (auto dest: in_list_in_setD)
   subgoal for x l1 l2 \<sigma>
     unfolding all_set_conv_nth

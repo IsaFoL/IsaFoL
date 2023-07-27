@@ -136,6 +136,15 @@ definition log_unit_clause where
      ()
   )\<close>
 
+definition log_del_binary_clause where
+  \<open>log_del_binary_clause L L' =
+    (let _ = log_start_del_clause 0;
+      _ = log_literal L;
+      _ = log_literal L';
+      _ = log_end_clause 0 in
+     ()
+  )\<close>
+
 text \<open>For removing unit literals, we cheat as usual: we signal to the C side which literals are in
 and flush the clause if need be (without effect on the Isabelle side, because we neither want nor care
 about the proofs).\<close>

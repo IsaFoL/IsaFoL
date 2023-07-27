@@ -2,13 +2,29 @@ theory Abstract_Substitution_Extra_First_Order_Term
   imports
     Abstract_Substitution_Extra
     "First_Order_Terms.Subsumption"
+    "First_Order_Terms.Unification"
 begin
 
-global_interpretation term_subst: basic_substitution_ops subst_apply_term Var subst_compose .
+abbreviation is_ground_trm where
+  "is_ground_trm t \<equiv> vars_term t = {}"
 
-lemma is_ground_iff:
+global_interpretation term_subst: basic_substitution_ops subst_apply_term Var subst_compose
+  rewrites "term_subst.is_ground = is_ground_trm"
+proof -
+  have is_ground_iff:
+    "basic_substitution_ops.is_ground (\<cdot>) (t \<cdot> \<gamma>) \<longleftrightarrow>
+      (\<forall>x \<in> vars_term t. basic_substitution_ops.is_ground (\<cdot>) (\<gamma> x))"
+    for t \<gamma>
+    by (induction t) (auto simp add: basic_substitution_ops.is_ground_def)
+
+  thus "basic_substitution_ops.is_ground (\<cdot>) = is_ground_trm"
+    by (metis (mono_tags, opaque_lifting) basic_substitution_ops.subst_ident_if_ground ex_in_conv
+        subst_apply_term_empty subst_def subst_simps(1) subst_term_eqI term.distinct(1))
+qed
+
+(* lemma is_ground_iff:
   "term_subst.is_ground (t \<cdot> \<gamma>) \<longleftrightarrow> (\<forall>x \<in> vars_term t. term_subst.is_ground (\<gamma> x))"
-  by (induction t) (auto simp add: term_subst.is_ground_def)
+  by (induction t) (auto simp add: term_subst.is_ground_def) *)
 
 global_interpretation term_subst: basic_substitution subst_apply_term Var subst_compose
 proof unfold_locales
@@ -19,7 +35,7 @@ next
     by simp
 next
   show "\<And>\<sigma> \<tau>. (\<And>x. x \<cdot> \<sigma> = x \<cdot> \<tau>) \<Longrightarrow> \<sigma> = \<tau>"
-    by (simp add: subst_term_eqI)
+    by (simp add: subst_term_eqI)(* 
 next
   fix T :: "('f, 'v) term set" and \<sigma> :: "'v \<Rightarrow> ('f, 'v) term"
 
@@ -56,7 +72,7 @@ next
   next
     show "\<forall>t\<in>T. t \<cdot> \<gamma> = t \<cdot> \<sigma>"
       using \<gamma>_def term_subst_eq_conv by fastforce
-  qed
+  qed *)
 qed
 
 end

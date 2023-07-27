@@ -1,5 +1,5 @@
 theory Pairing_Heaps_Impl_LLVM
-  imports Pairing_Heaps_Impl IsaSAT_Literals_LLVM
+  imports Pairing_Heap_LLVM.Pairing_Heaps_Impl IsaSAT_Literals_LLVM
 begin
 
 type_synonym hp_assn = \<open>32 word ptr \<times> 32 word ptr \<times> 32 word ptr \<times> 32 word ptr \<times> 64 word ptr \<times> 32 word\<close>

@@ -252,6 +252,87 @@ sepref_def initialise_ACIDS_code
   supply [[goals_limit = 1]]
   by sepref
 
+lemma initialise_ACIDS_rev_alt_def:
+  \<open>initialise_ACIDS_rev N n = do {
+   A \<leftarrow> init_ACIDS (mset N) n;
+   ASSERT(length N \<le> unat32_max);
+   (n, A) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>_. True\<^esup>
+      (\<lambda>(i, A). i < length_uint32_nat N)
+      (\<lambda>(i, A). do {
+        ASSERT(i < length_uint32_nat N);
+        let L = (N ! (length N - 1 - i));
+        ASSERT (snd A = i);
+          ASSERT(i + 1 \<le> unat32_max);
+        A \<leftarrow> acids_heur_import_variable L A;
+        RETURN (i + 1, A)
+      })
+      (0, A);
+   RETURN A
+  }\<close> (is \<open>?A = ?B\<close>)
+proof -
+  have [refine0]: \<open>init_ACIDS (mset (rev N)) n \<le> \<Down> Id (init_ACIDS (mset N) n)\<close>
+     \<open>init_ACIDS (mset (N)) n \<le> \<Down> Id (init_ACIDS (mset (rev N)) n)\<close>
+    by auto
+  have [refine0]: \<open>(A,Aa)\<in>Id \<Longrightarrow> ((0, A), 0, Aa) \<in> Id \<times>\<^sub>r Id\<close> for A Aa
+    by auto
+  have K: \<open>\<And>A Aa x x' x1 x2 x1a x2a.
+    (x, x') \<in> nat_rel \<times>\<^sub>f Id \<Longrightarrow>
+    case x of (i, A) \<Rightarrow> i < length_uint32_nat (rev N) \<Longrightarrow>
+    case x' of (i, A) \<Rightarrow> i < length_uint32_nat N \<Longrightarrow>
+    x' = (x1, x2) \<Longrightarrow>
+    x = (x1a, x2a) \<Longrightarrow>
+    x1 < length_uint32_nat N \<Longrightarrow>
+    x1a < length_uint32_nat (rev N) \<Longrightarrow>
+    snd x2 = x1 \<Longrightarrow>
+    x1 + 1 \<le> unat32_max \<Longrightarrow>
+    snd x2a = x1a \<Longrightarrow>
+    x1a + 1 \<le> unat32_max \<Longrightarrow>
+    acids_heur_import_variable (rev N ! x1a) x2a
+    \<le> \<Down> Id
+      (acids_heur_import_variable (N ! (length N - 1 - x1)) x2)\<close>
+      \<open>\<And>A Aa x x' x1 x2 x1a x2a.
+    (x, x') \<in> nat_rel \<times>\<^sub>f Id \<Longrightarrow>
+    case x of (i, A) \<Rightarrow> i < length_uint32_nat  N \<Longrightarrow>
+    case x' of (i, A) \<Rightarrow> i < length_uint32_nat (rev N) \<Longrightarrow>
+    x' = (x1, x2) \<Longrightarrow>
+    x = (x1a, x2a) \<Longrightarrow>
+    x1 < length_uint32_nat N \<Longrightarrow>
+    x1a < length_uint32_nat (rev N) \<Longrightarrow>
+    snd x2 = x1 \<Longrightarrow>
+    x1 + 1 \<le> unat32_max \<Longrightarrow>
+    snd x2a = x1a \<Longrightarrow>
+    x1a + 1 \<le> unat32_max \<Longrightarrow>
+    acids_heur_import_variable (N ! (length N - 1 - x1a)) x2a
+    \<le> \<Down> Id
+    (acids_heur_import_variable (rev N ! x1) x2)\<close>
+    by (auto simp: nth_rev)
+  have \<open>?A \<le> \<Down>Id ?B\<close>
+    unfolding initialise_ACIDS_rev_def initialise_ACIDS_def
+    apply refine_vcg
+    apply (auto simp: rev_nth; fail)+
+    apply (rule K; assumption)
+    apply (auto simp: rev_nth; fail)+
+    done
+  moreover have \<open>?B \<le> \<Down>Id ?A\<close>
+    unfolding initialise_ACIDS_rev_def initialise_ACIDS_def
+    apply refine_vcg
+    apply (auto simp: rev_nth; fail)+
+    apply (rule K; assumption?)
+    apply (auto simp: rev_nth; fail)+
+    done
+  ultimately show ?thesis
+    by auto
+qed
+
+sepref_def initialise_ACIDS_rev_code
+  is \<open>uncurry initialise_ACIDS_rev\<close>
+  :: \<open>[\<lambda>(N, n). True]\<^sub>a (arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> acids_assn2\<close>
+  unfolding vmtf_cons_def Suc_eq_plus1 atom.fold_option length_uint32_nat_def
+    option.case_eq_if vmtf_init_assn_def init_ACIDS'_alt initialise_ACIDS_rev_alt_def nth_rev
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  supply [[goals_limit = 1]]
+  by sepref
+
 
 sepref_def initialise_VMTF_code
   is \<open>uncurry initialise_VMTF\<close>
@@ -277,6 +358,7 @@ sepref_def initialize_Bump_Init_code
   :: \<open>[\<lambda>(N, n). True]\<^sub>a (arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> heuristic_bump_init_assn\<close>
   unfolding initialize_Bump_Init_def
   by sepref
+
 
 sepref_register cons_trail_Propagated_tr
 

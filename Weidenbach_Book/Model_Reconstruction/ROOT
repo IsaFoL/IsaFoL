@@ -1,0 +1,14 @@
+session "Model_Reconstruction"  = "Entailment_Definition" +
+  description \<open>This session contains various (but still general) definition of entailment used
+  later.\<close>
+  options [document = pdf, document_output = "output"]
+  sessions
+    "HOL-Library"
+    Ordered_Resolution_Prover
+  theories [document = true,quick_and_dirty=true]
+    autarky
+    CompletenessResolution
+    dpAlgorithm
+    inprocessingRulesNeu2
+    modelReconstruction 
+    simulation2

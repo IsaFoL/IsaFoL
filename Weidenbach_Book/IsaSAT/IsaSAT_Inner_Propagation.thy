@@ -968,7 +968,6 @@ proof -
     y = (x1, x2) \<Longrightarrow>
     x = (x1a, x2a) \<Longrightarrow>
     set_conflict_wl'_pre x1 x2 \<Longrightarrow>
-    inres (mark_conflict_to_rescore x1a x2a) S \<Longrightarrow>
     (S, x2) \<in> twl_st_heur_up'' \<D> r s K lcount \<Longrightarrow>
     curry2 (curry2 (curry isa_set_lookup_conflict_aa_pre)) (get_trail_wl_heur S)
     (get_clauses_wl_heur S) x1a (get_conflict_wl_heur S) 0 (get_outlearned_heur S)\<close>
@@ -978,11 +977,28 @@ proof -
     by (auto simp: arena_lifting)
 
 
+  have set_conflict_wl_heur_alt_def: \<open>set_conflict_wl_heur = (\<lambda>C S. do {
+    let S = S;
+    let n = 0;
+    let M = get_trail_wl_heur S;
+    let N = get_clauses_wl_heur S;
+    let D = get_conflict_wl_heur S;
+    let outl = get_outlearned_heur S;
+    ASSERT(curry5 isa_set_lookup_conflict_aa_pre M N C D n outl);
+    (D, clvls, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n outl;
+    j \<leftarrow> mop_isa_length_trail M;
+    let S = IsaSAT_Setup.set_conflict_wl_heur D S;
+    let S = set_outl_wl_heur outl S;
+    let S = set_count_max_wl_heur clvls S;
+    let S = set_literals_to_update_wl_heur j S;
+      RETURN S})\<close>
+    unfolding set_conflict_wl_heur_def by auto
+
   show ?thesis
     supply [[goals_limit=1]]
     apply (intro nres_relI frefI)
     subgoal for x y
-    unfolding uncurry_def RES_RETURN_RES4 set_conflict_wl_alt_def  set_conflict_wl_heur_def
+    unfolding uncurry_def RES_RETURN_RES4 set_conflict_wl_alt_def  set_conflict_wl_heur_alt_def
     apply (rewrite at \<open>let _ = 0 in _\<close> Let_def)
     apply (rewrite at \<open>let _ = get_trail_wl_heur _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ = get_clauses_wl_heur _ in _\<close> Let_def)
@@ -990,11 +1006,10 @@ proof -
     apply (rewrite at \<open>let _ = get_outlearned_heur _ in _\<close> Let_def)
     apply (refine_vcg mop_isa_length_trail_length_u[of \<open>all_atms_st (snd y)\<close>, THEN fref_to_Down_Id_keep, unfolded length_uint32_nat_def
       comp_def] mark_conflict_to_rescore[where \<D> = \<D> and r=r and s=s and K=K and lcount=lcount, unfolded conc_fun_RETURN[symmetric]])
-    subgoal by auto
-    subgoal by auto
-    subgoal for x1 x2 x1a x2a S
+    subgoal for x1 x2 x1a x2a
       by (rule isa_set_lookup_conflict_aa_pre) (auto dest!: set_conflict_wl_pre_set_conflict_wl'_pre)
     apply assumption+
+    subgoal by auto
     subgoal by (auto dest!: set_conflict_wl_pre_set_conflict_wl'_pre)
     subgoal for x y
       unfolding arena_is_valid_clause_idx_def

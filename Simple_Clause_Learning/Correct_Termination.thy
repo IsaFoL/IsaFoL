@@ -206,7 +206,7 @@ proof -
 
       from C_in obtain C' \<gamma> where C'_in: "C' |\<in>| N" and C_def: "C = C' \<cdot> \<gamma>"
         unfolding grounding_of_clss_def grounding_of_cls_def
-        by (smt (verit, ccfv_threshold) UN_iff mem_Collect_eq notin_fset)
+        by (smt (verit, ccfv_threshold) UN_iff mem_Collect_eq)
 
       from no_new_decide have \<Gamma>_defined_C: "trail_defined_cls \<Gamma> C"
       proof (rule contrapos_np)
@@ -220,7 +220,7 @@ proof -
         proof (rule decideI)
           show "L' \<in> \<Union> (set_mset ` fset N)"
             using C'_in L'_in
-            by (meson UN_I fmember.rep_eq)
+            by (meson UN_I)
         next
           show "is_ground_lit (L' \<cdot>l \<gamma>)"
             using L_in \<open>L = L' \<cdot>l \<gamma>\<close> \<open>is_ground_cls C\<close> is_ground_cls_def by blast

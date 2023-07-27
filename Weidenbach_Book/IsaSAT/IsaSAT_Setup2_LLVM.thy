@@ -292,6 +292,9 @@ sepref_def reset_units_since_last_GC_st_code
   unfolding reset_units_since_last_GC_st_alt_def
   by sepref
 
+lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_st_code_def]
+lemmas [llvm_code del] = units_since_last_GC_st_code_def
+
 lemma mop_isasat_length_trail_st_alt_def:
   \<open>mop_isasat_length_trail_st S = do {
     ASSERT(isa_length_trail_pre (get_trail_wl_heur S));
@@ -562,6 +565,7 @@ sepref_def mop_mark_added_heur_st_impl
   :: \<open>atom_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding mop_mark_added_heur_st_alt_def
   by sepref
+
 
 experiment
 begin

@@ -3,6 +3,13 @@ session "Splitting_Framework" = Saturation_Framework +
   sessions
     "HOL-Library"
     Propositional_Proof_Systems
+    Saturation_Framework_Extensions
   theories
-	  Preliminaries_With_Zorn
-      Splitting_Calculi
+    Preliminaries_With_Zorn
+    Splitting_Calculi
+    Splitting_Without_Backtracking
+    FOL_Compactness
+(*commit_ignore_start*)
+  document_files 
+    "root.tex"
+(*commit_ignore_end*)

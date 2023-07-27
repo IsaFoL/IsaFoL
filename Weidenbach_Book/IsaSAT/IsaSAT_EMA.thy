@@ -30,19 +30,20 @@ definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> ema\<
         then value + ((\<beta> >> (EMA_FIXPOINT_SIZE - EMA_MULT_SHIFT)) * ((lbd - value) >> EMA_MULT_SHIFT))
         else value - ((\<beta> >> (EMA_FIXPOINT_SIZE - EMA_MULT_SHIFT)) * ((value - lbd) >> EMA_MULT_SHIFT))
      in
-       if \<beta> \<le> \<alpha> \<or> wait > 0 then (value, \<alpha>, \<beta>, wait - 1, period)
+     let wait = wait - 1 in
+       if \<beta> \<le> \<alpha> \<or> wait > 0 then (value, \<alpha>, \<beta>, wait, period)
      else
-       let wait = 2 * period in
+       let wait = 2 * (period+1)-1 in
        let period = wait in
        let \<beta> = \<beta> >> 1 in
-       let \<beta> = if \<beta> \<le> \<alpha> then \<alpha> else \<beta> in
+       let \<beta> = if \<beta> < \<alpha> then \<alpha> else \<beta> in
        (value, \<alpha>, \<beta>, wait, period))\<close>
 
 definition (in -) ema_init :: \<open>64 word \<Rightarrow> ema\<close> where
-  \<open>ema_init \<alpha> = (0, \<alpha>  >> (EMA_FIXPOINT_SIZE - 32), ema_bitshifting, 0, 1)\<close>
+  \<open>ema_init \<alpha> = (0, \<alpha>  >> (EMA_FIXPOINT_SIZE - 32), ema_bitshifting, 1, 0)\<close>
 
 fun ema_reinit where
-  \<open>ema_reinit (value, \<alpha>, \<beta>, wait, period) = (value, \<alpha>, ema_bitshifting, 0, 1)\<close>
+  \<open>ema_reinit (value, \<alpha>, \<beta>, wait, period) = (value, \<alpha>, ema_bitshifting, 1, 0)\<close>
 
 fun ema_get_value :: \<open>ema \<Rightarrow> 64 word\<close> where
   \<open>ema_get_value (v, _) = v\<close>
@@ -66,7 +67,7 @@ text \<open>Small test below. It was useful once to detect an overflow that lead
   initialisation behaviour.\<close>
 
 value \<open>let \<alpha> = shiftr 128849010 (EMA_FIXPOINT_SIZE - 32);
-        x =  (((ema_update 10)^^ 1) (7 * ema_bitshifting, \<alpha>, \<alpha>, 12, 12))
+        x =  (((ema_update 10)^^ 400) (7 * ema_bitshifting, \<alpha>, ema_bitshifting, 1, 0))
   in (ema_extract_value x, ema_get_value x, x)\<close>
 
 end

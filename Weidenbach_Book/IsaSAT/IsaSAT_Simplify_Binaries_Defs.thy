@@ -220,6 +220,7 @@ qed
 
 definition isa_clause_remove_duplicate_clause_wl :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
   \<open>isa_clause_remove_duplicate_clause_wl C S = (do{
+    _ \<leftarrow> log_del_clause_heur S C;
     let N' = get_clauses_wl_heur S;
     st \<leftarrow> mop_arena_status N' C;
     let st = st = IRRED;
@@ -243,6 +244,7 @@ definition isa_binary_clause_subres_lits_wl_pre :: \<open>_\<close> where
 definition isa_binary_clause_subres_wl :: \<open>_\<close> where
   \<open>isa_binary_clause_subres_wl C L L' S = do {
       ASSERT (isa_binary_clause_subres_lits_wl_pre C L L' S);
+      let _ = log_del_binary_clause L (-L');
       let M = get_trail_wl_heur S;
       M \<leftarrow> cons_trail_Propagated_tr L 0 M;
       let lcount = get_learned_count S;
@@ -332,8 +334,8 @@ definition isa_mark_duplicated_binary_clauses_as_garbage_wl :: \<open>isasat \<R
         ASSERT (A < length ns);
         ASSERT (A \<le> unat32_max div 2);
         S \<leftarrow> do {ASSERT (ns = (get_vmtf_heur_array S));
-        skip_lit \<leftarrow> mop_is_marked_added_heur_st S A;
-        if \<not>skip \<or> \<not>skip_lit then RETURN (CS, S)
+        _ \<leftarrow> mop_is_marked_added_heur_st S A;
+        if \<not>skip then RETURN (CS, S)
         else do {
           ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
           (CS, S) \<leftarrow> isa_deduplicate_binary_clauses_wl (Pos A) CS S;
@@ -362,8 +364,8 @@ definition isa_mark_duplicated_binary_clauses_as_garbage_wl2 :: \<open>isasat \<
         ASSERT (A < length (get_vmtf_heur_array S));
         ASSERT (A \<le> unat32_max div 2);
         (CS, S) \<leftarrow> do {
-        added_lit \<leftarrow> mop_is_marked_added_heur_st S A;
-        if \<not>dedup \<or> \<not>added_lit then RETURN (CS, S)
+        _ \<leftarrow> mop_is_marked_added_heur_st S A;
+        if \<not>dedup then RETURN (CS, S)
         else do {
           ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
           (CS, S) \<leftarrow> isa_deduplicate_binary_clauses_wl (Pos A) CS S;

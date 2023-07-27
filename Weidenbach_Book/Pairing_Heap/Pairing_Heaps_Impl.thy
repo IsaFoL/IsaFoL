@@ -1357,6 +1357,6 @@ lemma mop_hp_read_score_imp_mop_hp_read_score:
   apply (refine_vcg mop_hp_read_score_imp_spec)
   using assms apply  (auto simp: pairing_heaps_rel_def map_fun_rel_def dest!: multi_member_split)
   done
- 
+
 end
 end

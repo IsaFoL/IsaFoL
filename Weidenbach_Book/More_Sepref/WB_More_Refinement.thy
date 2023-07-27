@@ -367,4 +367,54 @@ lemma fref_to_Down_unRET_Id_uncurry:
 lemma (in -) nofail_ASSERT_bind: \<open>nofail (do {ASSERT(P); (\<Phi> :: 'a nres)}) \<longleftrightarrow> P \<and> nofail \<Phi>\<close>
   by (auto simp: nofail_def ASSERT_eq iASSERT_def)
 
+
+lemma RES_RES11_RETURN_RES:
+   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h, i, j, k, l). RES (f a b c d e g h i j k l)) =
+   RES (\<Union>((\<lambda>(a, b, c, d, e, g, h, i, j, k, l). f a b c d e g h i j k l) ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
+    split: prod.splits)
+
+lemma RES_RES13_RETURN_RES_bound:
+   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h, i, j, k, l, m, n). RES (f a b c d e g h i j k l m n)) =
+   RES (\<Union>((\<lambda>(a, b, c, d, e, g, h, i, j, k, l, m, n). f a b c d e g h i j k l m n) ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
+    split: prod.splits)
+
+lemma ref_two_step'': \<open>R \<subseteq> R' \<Longrightarrow> A \<le> B \<Longrightarrow> \<Down> R A \<le>  \<Down> R' B\<close>
+  by (simp add: "weaken_\<Down>" ref_two_step')
+
+lemma RES_RETURN_RES3':
+  \<open>RES \<Phi> \<bind> (\<lambda>(T, T', T''). RETURN (f T T' T'')) = RES ((\<lambda>(a, b, c). f a b c) ` \<Phi>)\<close>
+  apply (subst RES_SPEC_conv)
+  apply (subst RES_RETURN_RES3)
+  by auto
+
+lemma RETURN_le_RES_no_return3:
+  \<open>f \<le> SPEC (\<lambda>(S,T,U). g S T U \<in> \<Phi>) \<Longrightarrow> do {(S, T, U) \<leftarrow> f; RETURN (g S T U)} \<le> RES \<Phi>\<close>
+  by (cases f)
+   (auto simp: RES_RETURN_RES3')
+
+lemma RES_RETURN_RES4':
+  \<open>RES \<Phi> \<bind> (\<lambda>(T, T', T'', T'''). RETURN (f T T' T'' T''')) = RES ((\<lambda>(a, b, c, d). f a b c d) ` \<Phi>)\<close>
+  apply (subst RES_SPEC_conv)
+  apply (subst RES_RETURN_RES4)
+  by auto
+
+lemma RETURN_le_RES_no_return4:
+  \<open>f \<le> SPEC (\<lambda>(S,T,U,V). g S T U V \<in> \<Phi>) \<Longrightarrow> do {(S, T, U, V) \<leftarrow> f; RETURN (g S T U V)} \<le> RES \<Phi>\<close>
+  by (cases f)
+    (auto simp: RES_RETURN_RES4')
+
+lemma RES_RETURN_RES5':
+  \<open>RES \<Phi> \<bind> (\<lambda>(T, T', T'', T''', T''''). RETURN (f T T' T'' T''' T'''')) =
+    RES ((\<lambda>(a, b, c, d, e). f a b c d e) ` \<Phi>)\<close>
+  apply (subst RES_SPEC_conv)
+  apply (subst RES_RETURN_RES5)
+  by auto
+
+lemma RETURN_le_RES_no_return5:
+  \<open>f \<le> SPEC (\<lambda>(S,T,U,V, W). g S T U V W \<in> \<Phi>) \<Longrightarrow> do {(S, T, U, V, W) \<leftarrow> f; RETURN (g S T U V W)} \<le> RES \<Phi>\<close>
+  by (cases f)
+    (auto simp: RES_RETURN_RES5')
+
 end
