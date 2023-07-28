@@ -20,6 +20,48 @@ lemma safe_assign_notv:
   using assms unfolding safe_assign_def by auto
 
 
+lemma safe_assign_rules:
+  assumes safe: \<open>safe_assign v F Fv\<close> and eq: \<open>F+Fv = N + R\<close> and nempty: \<open>Fv \<noteq> {#}\<close>
+    "consistent_interp I" and Fv: "\<forall>C \<in># Fv. -v \<in># C" and "(\<forall>C \<in># F. -v \<notin># C)"
+  shows \<open>
+   rules (N, R, S, V \<union> atms_of {#-v#} \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) 
+       ({#{#-v#}#}+N, (R), S, V \<union> atms_of {#-v#} \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))\<close>
+proof (rule rules.intros(6))
+  show \<open>distinct_mset {#-v#}\<close>
+    by auto
+  show \<open>satisfiable (set_mset (N + R)) \<longrightarrow>  satisfiable (set_mset (add_mset {#-v#} (N + R)))\<close>
+  proof
+    assume \<open>satisfiable (set_mset (N + R))\<close>
+    then obtain I where
+      cons: \<open>consistent_interp I\<close> and
+      I: \<open>I \<Turnstile>sm N+R\<close> and
+      tot: \<open>total_over_m I (set_mset (N+R))\<close>
+      unfolding satisfiable_def by auto
+    consider
+      \<open>v \<in> I\<close> | 
+      \<open>-v \<in> I\<close>
+      using tot Fv nempty unfolding eq[symmetric] by (cases Fv; cases v) (auto dest!: multi_member_split)
+    then show \<open>satisfiable (set_mset (add_mset {#-v#} (N + R)))\<close>
+    proof cases
+      case 2
+      then have \<open>I \<Turnstile>sm add_mset {#-v#} N+R\<close>
+        using I by auto
+      then show ?thesis using cons by simp
+    next
+      case 1
+      then have \<open>interpr_composition I {v} = I\<close>
+        using cons by (auto simp: interpr_composition_def consistent_interp_def)
+        
+      then have \<open>interpr_composition I {-v} \<Turnstile>sm add_mset {#-v#} N+R\<close>
+        using assms I unfolding safe_assign_def unfolding eq
+        by (simp add: cons interpr_composition_def true_cls_mset_def true_clss_def)
+      moreover have \<open>consistent_interp (interpr_composition I {-v})\<close>
+        using cons by (auto simp: interpr_composition_def consistent_interp_def)
+      ultimately show ?thesis using cons by simp
+    qed
+  qed
+qed
+
 lemma compose_model_after_safe_assign:
   assumes "I \<Turnstile>m N" "consistent_interp I" "safe_assign v N Nv" "\<forall>C \<in># Nv. -v \<in># C" "\<forall>C \<in># N. -v \<notin># C"
   shows "interpr_composition I {-v} \<Turnstile>m (N + Nv)"

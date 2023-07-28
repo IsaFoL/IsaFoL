@@ -9,8 +9,8 @@ begin
 
 lemma completeness_resolution:
   assumes "consistent_interp I" and
-          "I \<Turnstile> C + D" and
-       "L \<notin># C" and "-L \<notin># C" and "L \<notin># D" and "-L \<notin># D"
+    "I \<Turnstile> C + D" and
+    "L \<notin># C" and "-L \<notin># C" and "L \<notin># D" and "-L \<notin># D"
   obtains I' where "consistent_interp I'" and "I' \<Turnstile> add_mset L C" and " I' \<Turnstile> add_mset (-L) D"
 proof (cases "I \<Turnstile> C")
   case True

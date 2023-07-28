@@ -60,8 +60,7 @@ if "(set_mset (N) \<union> set_mset(R)) \<Turnstile>p C" and "distinct_mset C" |
   learn_plus:
   "rules (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) 
        ({#C#}+N, (R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
-if "\<forall>I. consistent_interp I  \<longrightarrow> I \<Turnstile>sm  (add_mset C N+R) \<longrightarrow>  I  \<Turnstile>sm  (N+R)" and
-  \<open>satisfiable (set_mset (N+R)) \<longrightarrow> satisfiable (set_mset (add_mset C (N+R)))\<close>
+if \<open>satisfiable (set_mset (N+R)) \<longrightarrow> satisfiable (set_mset (add_mset C (N+R)))\<close>
   "distinct_mset C"
 
 
