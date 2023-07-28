@@ -2,7 +2,7 @@
     Author: Katharina Wagner
 *)
 
-theory CompletenessResolution
+theory Completeness_Resolution
   imports Entailment_Definition.Partial_Herbrand_Interpretation
 begin
 

@@ -1,9 +1,9 @@
-theory autarky
+theory Autarky
   imports Entailment_Definition.Partial_Herbrand_Interpretation
     Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
-    modelReconstruction
-    inprocessingRulesNeu2
-    simulation2
+    Model_Reconstruction
+    Inprocessing_Rules
+    Simulation
 begin
 
 definition autarky :: "'a literal set \<Rightarrow>'a clauses \<Rightarrow> 'a clauses \<Rightarrow> bool " where

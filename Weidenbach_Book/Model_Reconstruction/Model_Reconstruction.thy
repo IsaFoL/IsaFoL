@@ -1,10 +1,10 @@
 (* Title: Model Reconstruction
     Author: Katharina Wagner
 *)
-theory modelReconstruction
+theory Model_Reconstruction
   imports Entailment_Definition.Partial_Herbrand_Interpretation
     Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
-    dpAlgorithm
+    DP_Algorithm
 begin
 
 

@@ -1,10 +1,10 @@
-theory safeAssign
+theory Safe_Assign
   imports Entailment_Definition.Partial_Herbrand_Interpretation
     Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
-    modelReconstruction
-    inprocessingRulesNeu2
-    simulation2
-    autarky
+    Model_Reconstruction
+    Inprocessing_Rules
+    Simulation
+    Autarky
 begin
 
 definition safe_assign :: "'a literal \<Rightarrow>'a clauses \<Rightarrow>'a clauses \<Rightarrow> bool" where

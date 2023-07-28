@@ -1,8 +1,8 @@
-theory simulation2
+theory Simulation
   imports Entailment_Definition.Partial_Herbrand_Interpretation
     Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
-    modelReconstruction
-    inprocessingRulesNeu2
+    Model_Reconstruction
+    Inprocessing_Rules
 begin
 
 lemma sat_N_then_sat_res: 

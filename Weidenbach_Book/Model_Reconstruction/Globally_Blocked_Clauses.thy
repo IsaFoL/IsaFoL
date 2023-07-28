@@ -1,9 +1,9 @@
-theory globallyBlocked
+theory Globally_Blocked_Clauses
   imports Entailment_Definition.Partial_Herbrand_Interpretation
     Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
-    modelReconstruction
-    inprocessingRulesNeu2
-    simulation2
+    Model_Reconstruction
+    Inprocessing_Rules
+    Simulation
 begin
 
 definition globallyBlocked2 :: "'a literal set \<Rightarrow>'a clause \<Rightarrow> 'a clauses \<Rightarrow> bool " where 

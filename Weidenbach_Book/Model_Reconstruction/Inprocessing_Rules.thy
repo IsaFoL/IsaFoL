@@ -1,7 +1,7 @@
 (* Title: Inprocessing Rules
    Author: Katharina Wagner
 *)
-theory inprocessingRulesNeu2
+theory Inprocessing_Rules
   imports Entailment_Definition.Partial_Herbrand_Interpretation
           Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
 

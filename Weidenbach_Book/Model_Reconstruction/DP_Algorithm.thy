@@ -1,7 +1,7 @@
 (* Title: Correctness and Termination of DP Algorithm
     Author: Katharina Wagner
 *)
-theory dpAlgorithm
+theory DP_Algorithm
   imports Entailment_Definition.Partial_Herbrand_Interpretation
 begin
 
