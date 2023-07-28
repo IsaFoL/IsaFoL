@@ -75,18 +75,15 @@ abbreviation unsat_pre :: \<open>('f, 'v) AF list \<Rightarrow> bool\<close> whe
 abbreviation unsat_inf :: \<open>('f, 'v) AF list \<Rightarrow> ('f, 'v) AF inference\<close> where
   \<open>unsat_inf \<N> \<equiv> Infer \<N> (to_AF bot)\<close>
 
-inductive Splitting_rules :: \<open>('f, 'v) AF inference \<Rightarrow> bool\<close> where
-  base: \<open>base_pre \<N> D \<Longrightarrow> Splitting_rules (base_inf \<N> D)\<close>
-| unsat: \<open>unsat_pre \<N> \<Longrightarrow> Splitting_rules (unsat_inf \<N>)\<close>
-
 text \<open>
   We consider first only the inference rules \textsc{Base} and \textsc{Unsat}. The optional 
   inference and simplification rules are handled separately in the locales 
   \<open>splitting_calculus_extensions\<close> and \<open>splitting_calculus_with_simps\<close> respectively.
 \<close>
 
-abbreviation SInf :: \<open>('f, 'v) AF inference set\<close> where
-  \<open>SInf \<equiv> {I. Splitting_rules I}\<close>
+inductive_set SInf :: \<open>('f, 'v) AF inference set\<close> where
+  base: \<open>base_pre \<N> D \<Longrightarrow> base_inf \<N> D \<in> SInf\<close>
+| unsat: \<open>unsat_pre \<N> \<Longrightarrow> unsat_inf \<N> \<in> SInf\<close> 
 
 text \<open>
   The predicates in @{term Splitting_rules} form a valid inference system.
@@ -118,7 +115,7 @@ proof (intro subsetI)
                  \<iota>\<^sub>F_is_enabled: \<open>enabled_inf \<iota>\<^sub>F J\<close>
     using \<iota>\<^sub>S_is_inf enabled_projection_Inf_def
     by auto
-  then have \<iota>\<^sub>F_in_S: \<open>Splitting_rules \<iota>\<^sub>F\<close>
+  then have \<iota>\<^sub>F_in_S: \<open>\<iota>\<^sub>F \<in> SInf\<close>
     by (simp add: inference_system.Inf_from_def)
   moreover have prems_of_\<iota>\<^sub>F_subset_\<N>: \<open>set (prems_of \<iota>\<^sub>F) \<subseteq> \<N>\<close>
     using \<iota>\<^sub>F_is_inf
@@ -126,7 +123,7 @@ proof (intro subsetI)
   moreover have \<open>\<iota>F_of \<iota>\<^sub>F \<in> Inf\<close>
     unfolding \<iota>F_of_def
     using \<iota>\<^sub>F_in_S
-  proof (cases \<iota>\<^sub>F rule: Splitting_rules.cases)
+  proof (cases \<iota>\<^sub>F rule: SInf.cases)
     case (base \<N> D)
     then show \<open>base_pre (prems_of \<iota>\<^sub>F) (F_of (concl_of \<iota>\<^sub>F))\<close>
       by auto
@@ -184,7 +181,7 @@ proof (intro subsetI)
     using length_As_is_length_prems_\<iota>\<^sub>F
     by (auto simp add: \<iota>\<^sub>F_is_Inf)
   then have \<iota>\<^sub>S_is_SInf: \<open>\<iota>\<^sub>S \<in> SInf\<close>
-    using Splitting_rules.base[OF \<iota>\<^sub>F_is_Inf2] length_As_is_length_prems_\<iota>\<^sub>F
+    using SInf.base[OF \<iota>\<^sub>F_is_Inf2] length_As_is_length_prems_\<iota>\<^sub>F
     unfolding \<iota>\<^sub>S_def
     by auto
   moreover have \<open>set (prems_of \<iota>\<^sub>S) \<subseteq> \<N>\<close>
@@ -227,10 +224,8 @@ lemma SInf_commutes_Inf:
 theorem SInf_sound_wrt_entails_sound: \<open>\<iota>\<^sub>S \<in> SInf \<Longrightarrow> set (prems_of \<iota>\<^sub>S) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>\<^sub>S}\<close>
 proof -
   assume \<open>\<iota>\<^sub>S \<in> SInf\<close>
-  then have \<open>Splitting_rules \<iota>\<^sub>S\<close>
-    by simp
   then show \<open>set (prems_of \<iota>\<^sub>S) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>\<^sub>S}\<close>
-  proof (cases \<iota>\<^sub>S rule: Splitting_rules.cases)
+  proof (cases \<iota>\<^sub>S rule: SInf.cases)
     case (base \<N> D)
     assume \<open>base_pre \<N> D\<close>
     then have inf_is_sound: \<open>set (map F_of \<N>) \<Turnstile>s {D}\<close>
@@ -692,7 +687,7 @@ qed
 (* We put here a collection of useful lemmas when deriving facts about SInf, SRed\<^sub>I and SRed\<^sub>F. *)
 
 lemma SRed\<^sub>I_in_SInf: \<open>SRed\<^sub>I N \<subseteq> SInf\<close>
-  using SRed\<^sub>I_def Splitting_rules.simps
+  using SRed\<^sub>I_def SInf.simps
   by force
 
 lemma SRed\<^sub>F_entails_bot: \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> N - SRed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
@@ -815,11 +810,9 @@ proof -
   fix \<iota>\<^sub>S N
   assume \<open>\<iota>\<^sub>S \<in> SInf\<close> and
          concl_\<iota>\<^sub>S_in_N: \<open>concl_of \<iota>\<^sub>S \<in> N\<close>
-  then have \<open>Splitting_rules \<iota>\<^sub>S\<close>
-    by blast
   then show \<open>\<iota>\<^sub>S \<in> SRed\<^sub>I N\<close>
     unfolding SRed\<^sub>I_def
-  proof (cases \<iota>\<^sub>S rule: Splitting_rules.cases)
+  proof (cases \<iota>\<^sub>S rule: SInf.cases)
     case (base \<N> D)
     obtain \<M> \<C> where \<iota>\<^sub>S_is: \<open>\<iota>\<^sub>S = base_inf \<M> \<C>\<close> and
                       Infer_\<M>_\<C>_is_Inf: \<open>base_pre \<M> \<C>\<close>
@@ -992,20 +985,17 @@ abbreviation trim_simp :: \<open>('f, 'v) AF \<Rightarrow> 'v sign fset \<Righta
 
 
 (* Report definition 9 (cont) *)
-inductive Simplification_rules :: \<open>('f, 'v) AF simplification \<Rightarrow> bool\<close> where
-  split: \<open>split_pre \<C> Cs As \<Longrightarrow> Simplification_rules (split_simp \<C> Cs As)\<close> |
-  collect: \<open>collect_pre \<C> \<M> \<Longrightarrow> Simplification_rules (collect_simp \<C> \<M>)\<close> |
-  trim: \<open>trim_pre \<C> A B \<M> \<Longrightarrow> Simplification_rules (trim_simp \<C> A B \<M>)\<close>
-
-abbreviation Simps :: \<open>('f, 'v) AF simplification set\<close> where
-  \<open>Simps \<equiv> { \<iota>. Simplification_rules \<iota> }\<close>
+inductive_set Simps :: \<open>('f, 'v) AF simplification set\<close> where
+  split: \<open>split_pre \<C> Cs As \<Longrightarrow> split_simp \<C> Cs As \<in> Simps\<close>
+| collect: \<open>collect_pre \<C> \<M> \<Longrightarrow> collect_simp \<C> \<M> \<in> Simps\<close>
+| trim: \<open>trim_pre \<C> A B \<M> \<Longrightarrow> trim_simp \<C> A B \<M> \<in> Simps\<close> 
 
 
 
 (*<*)
 lemma no_infinite_simp_set: \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> Simps \<Longrightarrow> finite (S_to \<iota>)\<close>
-  using Simplification_rules.cases
-  by fastforce
+  using Simps.cases
+  by force 
 
 (*! Should we put these in the preliminaries? *)
 lemma strong_entails_bot_cases: \<open>\<N> \<union> {AF.Pair bot A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B} \<Longrightarrow>
@@ -1136,16 +1126,14 @@ qed
 (* Report theorem 14 for the cases Split, Collect and Trim *)
 theorem SInf_with_simps_sound_wrt_entails_sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
 proof -
-  assume \<open>\<iota> \<in> Simps\<close>
-  then have \<iota>_is_simp_rule: \<open>Simplification_rules \<iota>\<close>
-    by simp
+  assume \<iota>_is_simp_rule: \<open>\<iota> \<in> Simps\<close>
   then show \<open>\<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
   proof (intro ballI)
     fix \<C>
     assume \<C>_is_consq_of_\<iota>: \<open>\<C> \<in> S_to \<iota>\<close>
     show \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
       using \<iota>_is_simp_rule
-    proof (cases rule: Simplification_rules.cases)
+    proof (cases rule: Simps.cases)
       case (split \<C>' Cs As)
 
       have pre_cond: \<open>split_pre \<C>' Cs As\<close>
@@ -1570,35 +1558,28 @@ abbreviation approx_inf :: \<open>('f, 'v) AF \<Rightarrow> 'v sign \<Rightarrow
 
 
 
-(* Report definition 9 (cont) *)
-inductive Splitting_rules2 :: \<open>('f, 'v) AF inference \<Rightarrow> bool\<close> where
-  strong_unsat: \<open>strong_unsat_pre \<M> \<Longrightarrow> Splitting_rules2 (strong_unsat_inf \<M>)\<close> |
-  tauto: \<open>tauto_pre \<C> \<Longrightarrow> Splitting_rules2 (tauto_inf \<C>)\<close> |
-  approx: \<open>approx_pre a \<C> \<Longrightarrow> Splitting_rules2 (approx_inf \<C> a)\<close>
-
 text \<open>
   Instead of considering an inference system with only the rules \textsc{StrongUnsat},
   \textsc{Tauto} and \textsc{Approx}, we instead add them to the inference system containing the
   rules \textsc{Base} and \textsc{Unsat} to show how one would extend the basic inference system
   @{const SInf} of @{locale splitting_calculus}.
 \<close> 
+  
+(* Report definition 9 (cont) *)
+inductive_set SInf2 :: \<open>('f, 'v) AF inference set\<close> where
+  strong_unsat: \<open>strong_unsat_pre \<M> \<Longrightarrow> strong_unsat_inf \<M> \<in> SInf2\<close>
+| tauto: \<open>tauto_pre \<C> \<Longrightarrow> tauto_inf \<C> \<in> SInf2\<close>
+| approx: \<open>approx_pre a \<C> \<Longrightarrow> approx_inf \<C> a \<in> SInf2\<close> 
 
-abbreviation SInf2 :: \<open>('f, 'v) AF inference set\<close> where
-  \<open>SInf2 \<equiv> SInf \<union> {\<iota>. Splitting_rules2 \<iota>}\<close>
 
 
 
 (* Report theorem 14 for the cases StrongUnsat, Tauto and Approx *)
 theorem SInf2_sound_wrt_entails_sound: \<open>\<iota> \<in> SInf2 \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
-proof (elim UnE)
-  show \<open>\<iota> \<in> SInf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
-    using SInf_sound_wrt_entails_sound .
-next
-  assume \<open>\<iota> \<in> Collect Splitting_rules2\<close>
-  then have \<open>Splitting_rules2 \<iota>\<close>
-    by simp
-  then show \<open>set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
-  proof (cases \<iota> rule: Splitting_rules2.cases)
+proof -
+  assume \<open>\<iota> \<in> SInf2\<close>
+  then show ?thesis
+  proof (cases \<iota> rule: SInf2.cases)
     case (strong_unsat \<M>)
     then show ?thesis
       by simp
@@ -1752,14 +1733,14 @@ proof -
       using F_of_dummy_prems_is_prems_of_\<iota>\<^sub>F \<iota>F_of_def
       by force
     ultimately have \<iota>\<^sub>F_in_Inf_\<N>_proj_\<J>: \<open>\<iota>\<^sub>F \<in> (S_calculus.Inf_from \<N>) \<iota>proj\<^sub>J \<J>\<close>
-      using Splitting_rules.base[OF pre_holds]
+      using SInf.base[OF pre_holds]
       unfolding enabled_projection_Inf_def S_calculus.Inf_from_def
       by (metis (mono_tags, lifting) inference.sel(1) mem_Collect_eq)
     then have \<open>\<exists> \<M> D. base_inf \<M> D \<in> S_calculus.Inf_from \<N> \<and>
                 \<iota>F_of (base_inf \<M> D) = \<iota>\<^sub>F \<and> enabled_inf (base_inf \<M> D) \<J>\<close>
       using \<iota>F_of_base_inf_is_\<iota>\<^sub>F
       unfolding enabled_projection_Inf_def
-      by (metis (mono_tags, lifting) CollectI S_calculus.Inf_from_def Splitting_rules.base
+      by (metis (mono_tags, lifting) CollectI S_calculus.Inf_from_def SInf.base
           base_inf_enabled inference.sel(1) pre_holds set_prems_As_subset_\<N>)
     then obtain \<M> D where base_inf_in_Inf_\<N>: \<open>base_inf \<M> D \<in> S_calculus.Inf_from \<N>\<close> and
                            \<iota>F_of_base_inf_is_\<iota>\<^sub>F: \<open>\<iota>F_of (base_inf \<M> D) = \<iota>\<^sub>F\<close> and
@@ -1840,10 +1821,8 @@ next
         propositionally_unsatisfiable_def set_empty2 subset_empty subset_trans to_AF_proj_J)
   then have \<open>unsat_inf \<M> \<in> S_calculus.Inf_from N\<close> and
             Infer_\<M>_bot_in_SInf: \<open>unsat_inf \<M> \<in> SInf\<close>
-    using \<M>_not_empty \<M>_subset_prop_proj_N Splitting_rules.unsat S_calculus.Inf_if_Inf_from
-    unfolding S_calculus.Inf_from_def propositionally_unsatisfiable_def propositional_model_def
-      propositional_projection_def
-    by fastforce+
+    using SInf.unsat S_calculus.Inf_from_def propositional_projection_def
+    by fastforce+ 
   then have \<open>unsat_inf \<M> \<in> SRed\<^sub>I N\<close>
     using N_is_S_saturated S_calculus.saturated_def
     by blast
