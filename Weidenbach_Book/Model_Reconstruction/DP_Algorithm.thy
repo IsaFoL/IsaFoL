@@ -38,12 +38,12 @@ qed
 lemma resolve_all_on_distrib_no_lit:
   "atm_of L \<notin> atms_of_ms (set_mset A) \<Longrightarrow> resolve_all_on L (A + B) = remdups_mset `# A + resolve_all_on L B"
   by (subst resolve_all_on_no_lit[of L A, symmetric])
-   (auto simp: resolve_all_on_def atms_of_ms_def filter_mset_empty_conv
+    (auto simp: resolve_all_on_def atms_of_ms_def filter_mset_empty_conv
       dest!: multi_member_split)
 
 lemma Times_mset_swap: \<open>{#(b, a). (a, b) \<in># B \<times># A#} = A \<times># B\<close>
   by (induction A)
-   (auto simp: Times_insert_right Times_insert_left)
+    (auto simp: Times_insert_right Times_insert_left)
 
 (*TODO should be marked as simp*)
 lemma resolve_all_on_neg: \<open>resolve_all_on (-L) N = resolve_all_on L N\<close>
@@ -87,7 +87,7 @@ lemma entails_resolve_all_on[simp]:
 proof -
   have "\<forall>C. C \<in># N \<longrightarrow> I \<Turnstile> C " and "\<forall>L C D. C \<in># N \<and> D \<in># N \<longrightarrow> (I \<Turnstile> C \<and> I \<Turnstile> D) \<longrightarrow> I \<Turnstile> resolve_on L C D"
     using IN
-    apply (simp add: true_cls_mset_def)
+     apply (simp add: true_cls_mset_def)
     by (metis \<open>consistent_interp I\<close> consistent_interp_def diff_zero insert_DiffM minus_notin_trivial resolve_on_def true_cls_add_mset true_cls_union) 
   hence"\<forall>C. C \<in># {#C \<in>#N. L \<notin>#C \<and> -L \<notin># C#} \<longrightarrow> I \<Turnstile> C" and 
     "\<forall>L. atm_of L \<in> atms_of_ms (set_mset N) \<longrightarrow> I \<Turnstile>m  resolve_all_on L N" and
@@ -151,17 +151,17 @@ qed
 
 lemma noch_eine_hilfe[simp]:
   assumes "atm_of L \<in> atms_of_ms (set_mset N)" and "I \<Turnstile>m ({# C\<in>#resolve_all_on L N. \<not>tautology C#})" and "consistent_interp I" and " total_over_m I (set_mset ({# C\<in>#resolve_all_on L N. \<not>tautology C#}))"
- and "(\<forall>C. C \<in>#  N \<longrightarrow> distinct_mset C)"  and "(\<forall>C. C \<in>#  N \<longrightarrow> \<not>tautology C)"
+    and "(\<forall>C. C \<in>#  N \<longrightarrow> distinct_mset C)"  and "(\<forall>C. C \<in>#  N \<longrightarrow> \<not>tautology C)"
   obtains I' where "I' \<Turnstile>m  resolve_all_on L N" and "consistent_interp I'" and " total_over_m I' (set_mset (resolve_all_on L N))"
 proof-
   let ?I' = "I \<union> (Pos ` {A.  A\<in> atms_of_ms (set_mset {# C\<in>#resolve_all_on L N. tautology C#}) \<and>  A\<notin> atm_of ` I})"
   have "\<not>(\<exists>M. M\<in>?I' \<and> -M\<in>?I')"
     apply auto
     using assms(3) consistent_interp_def apply blast
-    apply (metis image_iff literal.sel(2))
+     apply (metis image_iff literal.sel(2))
     by (metis atm_of_uminus image_iff literal.sel(1))
   hence consI': "consistent_interp ?I'" and  "\<forall>C\<in>#resolve_all_on L N. tautology C \<longrightarrow> (\<exists>A. A\<in>#C \<and> -A\<in>#C)" 
-    apply (meson consistent_interp_def) using tautology_decomp' by blast    
+     apply (meson consistent_interp_def) using tautology_decomp' by blast    
   hence "\<forall>C\<in>#resolve_all_on L N. tautology C \<longrightarrow> (\<exists>A. A\<in>#C  \<and>  A\<in>?I')" 
     apply simp
     by (smt (verit, ccfv_threshold) atm_of_in_atm_of_set_in_uminus imageI in_implies_atm_of_on_atms_of_ms literal.sel(1) mem_Collect_eq tautology_decomp')
@@ -170,11 +170,11 @@ proof-
   hence  "\<forall>C\<in>#resolve_all_on L N. tautology C \<longrightarrow>?I' \<Turnstile> C"
     apply simp
     using \<open>\<forall>C\<in>#resolve_all_on L N. tautology C \<longrightarrow> (\<exists>A. A \<in># C \<and> A \<in> ?I') \<longrightarrow>?I' \<Turnstile> C\<close>
- \<open>\<forall>C\<in>#resolve_all_on L N. tautology C \<longrightarrow> (\<exists>A. A \<in># C \<and> A \<in> I \<union> Pos ` {A \<in> atms_of_ms (set_mset (filter_mset tautology (resolve_all_on L N))). A \<notin> atm_of ` I})\<close> by auto
+      \<open>\<forall>C\<in>#resolve_all_on L N. tautology C \<longrightarrow> (\<exists>A. A \<in># C \<and> A \<in> I \<union> Pos ` {A \<in> atms_of_ms (set_mset (filter_mset tautology (resolve_all_on L N))). A \<notin> atm_of ` I})\<close> by auto
   hence "?I' \<Turnstile>m ({# C\<in>#resolve_all_on L N. tautology C#})" and "?I' \<Turnstile>m ({# C\<in>#resolve_all_on L N. \<not>tautology C#})"
     using true_cls_mset_def assms(2) by fastforce+
   hence I'_LN: "?I' \<Turnstile>m  resolve_all_on L N" and tot: "total_over_m ?I' (set_mset ({# C\<in>#resolve_all_on L N. \<not>tautology C#}))"
-    apply (metis (no_types, lifting) mem_Collect_eq set_mset_filter true_cls_mset_def)
+     apply (metis (no_types, lifting) mem_Collect_eq set_mset_filter true_cls_mset_def)
     apply simp using total_union using assms(4)
     by auto
   hence  "(\<forall>l\<in> atms_of_ms (set_mset ({# C\<in>#resolve_all_on L N. tautology C#})). Pos l \<in> ?I' \<or> Neg l \<in> ?I')"
@@ -205,15 +205,15 @@ proof (cases "(I - {L, -L})\<union> {L}\<Turnstile>m {#C \<in>#N. -L \<in># C \<
   hence "\<forall>C. C \<in># remdups_mset `#({#resolve_on L C D. (C, D) \<in># filter_mset (\<lambda>C. L \<in># C) N \<times># filter_mset (\<lambda>C. -L \<in># C) N#}) \<longrightarrow> I \<Turnstile> C" and "\<forall>C. C \<in># {#C \<in>#N. L \<notin>#C \<and> -L \<notin># C#} \<longrightarrow> I \<Turnstile> C"
     by auto
   hence"\<forall>C. C \<in># {#C \<in>#N. L \<notin>#C \<and> -L \<notin># C#} \<longrightarrow> I \<Turnstile> C" and "\<forall>C. C \<in># {#resolve_on L C D. (C, D) \<in># filter_mset (\<lambda>C. L \<in># C) N \<times># filter_mset (\<lambda>C. -L \<in># C) N#} \<longrightarrow> I \<Turnstile> C"
-    apply blast
+     apply blast
     using \<open>\<forall>C. C \<in># remdups_mset `# {#resolve_on L C D. (C, D) \<in># filter_mset ((\<in>#) L) N \<times># filter_mset ((\<in>#) (- L)) N#} \<longrightarrow> I \<Turnstile> C\<close> by fastforce
   hence"\<forall>C. C \<in># {#C \<in>#N. L \<notin>#C \<and> -L \<notin># C#} \<longrightarrow> ?I' \<Turnstile> C" and "\<forall>C. C \<in>#{#C \<in>#N. L \<in># C \<and> -L \<notin>#C#} \<longrightarrow>?I' \<Turnstile> C" and "\<forall>C. C \<in># {#C \<in>#N. L \<notin>#C \<and> -L \<in># C#} \<longrightarrow> ?I' \<Turnstile> C"
-    apply (smt (verit, best) Diff_empty Diff_insert0 Diff_insert2 Un_insert_right insert_Diff insert_commute mem_Collect_eq set_mset_filter sup_bot.right_neutral true_cls.entail_union true_cls_not_in_remove)
+      apply (smt (verit, best) Diff_empty Diff_insert0 Diff_insert2 Un_insert_right insert_Diff insert_commute mem_Collect_eq set_mset_filter sup_bot.right_neutral true_cls.entail_union true_cls_not_in_remove)
     using assms
     using true_cls_def apply fastforce
     by (metis (no_types, lifting) True filter_mset_cong0 true_cls_mset_def)
   hence "?I' \<Turnstile>m N" and  "consistent_interp ?I'"
-    apply (smt (verit, ccfv_threshold) Un_insert_right insertCI mem_Collect_eq set_mset_filter true_cls_def true_cls_mset_def true_lit_def) using assms
+     apply (smt (verit, ccfv_threshold) Un_insert_right insertCI mem_Collect_eq set_mset_filter true_cls_def true_cls_mset_def true_lit_def) using assms
     by (metis Diff_iff Diff_subset Un_insert_right consistent_interp_insert_iff consistent_interp_subset insertCI sup_bot.right_neutral) 
   then show ?thesis
     using that by blast
@@ -228,15 +228,15 @@ next
   hence "\<forall>C. C \<in># remdups_mset `#({#resolve_on L C D. (C, D) \<in># filter_mset (\<lambda>C. L \<in># C) N \<times># filter_mset (\<lambda>C. -L \<in># C) N#}) \<longrightarrow> I \<Turnstile> C" and "\<forall>C. C \<in># {#C \<in>#N. L \<notin>#C \<and> -L \<notin># C#} \<longrightarrow> I \<Turnstile> C"
     by auto
   hence"\<forall>C. C \<in># {#C \<in>#N. L \<notin>#C \<and> -L \<notin># C#} \<longrightarrow> I \<Turnstile> C" and "\<forall>C. C \<in># {#resolve_on L C D. (C, D) \<in># filter_mset (\<lambda>C. L \<in># C) N \<times># filter_mset (\<lambda>C. -L \<in># C) N#} \<longrightarrow> I \<Turnstile> C"
-    apply blast
+     apply blast
     using \<open>\<forall>C. C \<in># remdups_mset `# {#resolve_on L C D. (C, D) \<in># filter_mset ((\<in>#) L) N \<times># filter_mset ((\<in>#) (- L)) N#} \<longrightarrow> I \<Turnstile> C\<close> by fastforce
   hence"\<forall>C. C \<in># {#C \<in>#N. L \<notin>#C \<and> -L \<notin># C#} \<longrightarrow> ?I' \<Turnstile> C"  and "\<forall>C. C \<in># {#C \<in>#N. L \<notin>#C \<and> -L \<in># C#} \<longrightarrow> ?I' \<Turnstile> C"and "\<forall>C. C \<in>#{#C \<in>#N. L \<in># C \<and> -L \<notin>#C#} \<longrightarrow>?I' \<Turnstile> C"
-    apply (smt (verit) Diff_empty Diff_insert0 Un_commute assms(4) consistent_interp_def insert_Diff insert_is_Un mem_Collect_eq set_mset_filter true_cls.entail_union true_cls_not_in_remove)
+      apply (smt (verit) Diff_empty Diff_insert0 Un_commute assms(4) consistent_interp_def insert_Diff insert_is_Un mem_Collect_eq set_mset_filter true_cls.entail_union true_cls_not_in_remove)
     using true_cls_def apply fastforce
     using assms using hilfebackcase2
     by (metis (mono_tags, lifting) False true_cls_mset_def)
   hence "?I' \<Turnstile>m N" and  "consistent_interp ?I'"
-    apply (smt (verit, ccfv_threshold) Un_insert_right insertCI mem_Collect_eq set_mset_filter true_cls_def true_cls_mset_def true_lit_def) using assms
+     apply (smt (verit, ccfv_threshold) Un_insert_right insertCI mem_Collect_eq set_mset_filter true_cls_def true_cls_mset_def true_lit_def) using assms
     by (metis DiffE consistent_interp_def consistent_interp_insert_iff inf_sup_aci(5) insertI1 insert_is_Un uminus_of_uminus_id)
   then show ?thesis
     using that by blast 
@@ -269,7 +269,7 @@ next
   hence  "atm_of L \<in> atms_of_ms (set_mset N) \<longrightarrow> N' = {# C\<in>#resolve_all_on L N. \<not>tautology C#}" and
     "atm_of L \<in> atms_of_ms (set_mset N) \<longrightarrow> I \<Turnstile>s (set_mset ({# C\<in>#resolve_all_on L N. \<not>tautology C#}))  \<and> consistent_interp I \<and> total_over_m I (set_mset ({# C\<in>#resolve_all_on L N. \<not>tautology C#}))"  
     and "atm_of L \<in> atms_of_ms (set_mset N) \<longrightarrow> I \<Turnstile>m ({# C\<in>#resolve_all_on L N. \<not>tautology C#})"
-    apply blast
+      apply blast
     using \<open>I \<Turnstile>s set_mset N' \<and> consistent_interp I \<and> total_over_m I (set_mset N')\<close> \<open>atm_of L \<in> atms_of_ms (set_mset N) \<longrightarrow> N' = {#C \<in># resolve_all_on L N. \<not> tautology C#}\<close> apply blast
     using \<open>I \<Turnstile>m N'\<close> \<open>atm_of L \<in> atms_of_ms (set_mset N) \<longrightarrow> N' = {#C \<in># resolve_all_on L N. \<not> tautology C#}\<close> by blast 
   hence "atm_of L \<in> atms_of_ms (set_mset N) \<longrightarrow> I \<Turnstile>m ({# C\<in>#resolve_all_on L N. \<not>tautology C#})  \<and> consistent_interp I \<and> total_over_m I (set_mset ({# C\<in>#resolve_all_on L N. \<not>tautology C#}))" 
@@ -313,8 +313,8 @@ lemma rtranclp_DP_eins_satisfiable_iff:
     \<open>satisfiable (set_mset N) \<longleftrightarrow> satisfiable (set_mset N')\<close>
   using assms rtranclp_DP_eins_tauto[OF assms(1,3)] rtranclp_DP_eins_distinct[OF assms(1,2)]
   apply (induction rule: rtranclp_induct)
-  apply (auto simp: DP_eins_satisfiable_iff DP_eins_distinct DP_eins_tauto)
-  apply (metis rtranclp_DP_eins_distinct rtranclp_DP_eins_tauto)
+   apply (auto simp: DP_eins_satisfiable_iff DP_eins_distinct DP_eins_tauto)
+   apply (metis rtranclp_DP_eins_distinct rtranclp_DP_eins_tauto)
   by (metis rtranclp_DP_eins_distinct rtranclp_DP_eins_tauto)
 
 theorem DP_eins_empty:
@@ -337,7 +337,7 @@ proof (rule wf_subset[OF wf_measure[of "\<lambda>N. card (atms_of_ms (set_mset N
     by auto
   hence "\<exists>L. atm_of L \<in> atms_of_ms (set_mset N)" and 
     e: "e = (N', N) \<and> DP_eins N N' \<and> (\<forall>C. C\<in># N \<longrightarrow> distinct_mset C \<and> \<not>tautology C)"
-    apply (meson DP_eins.cases)
+     apply (meson DP_eins.cases)
     using \<open>e = (N', N) \<and> DP_eins N N' \<and> (\<forall>C. C \<in># N \<longrightarrow> distinct_mset C \<and> \<not> tautology C)\<close> by blast
   then obtain L where P:"atm_of L \<in> atms_of_ms (set_mset N)" and
     Q:"e = (N', N) \<and> DP_eins N N' \<and> (\<forall>C. C\<in># N \<longrightarrow> distinct_mset C \<and> \<not>tautology C)" and 
@@ -350,7 +350,7 @@ proof (rule wf_subset[OF wf_measure[of "\<lambda>N. card (atms_of_ms (set_mset N
     apply (auto simp: resolve_all_on_def atms_of_ms_def resolve_on_def add_mset_eq_add_mset 
         tautology_add_mset atm_of_notin_atms_of_iff all_conj_distrib
         dest!: multi_member_split[of L] multi_member_split[of "-L"] multi_member_split[of _ N])
-    apply (metis tautology_add_mset uminus_of_uminus_id union_iff union_single_eq_member) 
+     apply (metis tautology_add_mset uminus_of_uminus_id union_iff union_single_eq_member) 
     apply (metis distinct_mset_add_mset union_iff union_single_eq_member)
     done
   hence S: "atm_of L \<notin> atms_of_ms (set_mset N')"

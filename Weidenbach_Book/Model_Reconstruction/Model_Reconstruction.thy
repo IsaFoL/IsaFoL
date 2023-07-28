@@ -17,9 +17,9 @@ lemma stack_step_list_induct:
    (\<And>a b x2. P x2 \<Longrightarrow> P (Tautology a b # x2)) \<Longrightarrow> 
    P list\<close>
   apply (induction list)
-   apply auto
+  apply auto
   apply (case_tac a)
-   apply auto
+  apply auto
   done
 
 type_synonym 'a stack = "'a stack_step list"
@@ -59,7 +59,7 @@ proof (induction rule: DP_eins.induct)
   hence "\<exists>T. tauto_clause `# mset T = {# C\<in>#resolve_all_on L N. tautology C#} \<and> (\<forall>s\<in>set T. is_tauto s \<and> tauto_on s \<in># tauto_clause s \<and> -tauto_on s \<in># tauto_clause s)"
     unfolding NN_def[symmetric]
     apply (induction "NN")
-     apply auto[]
+    apply auto[]
     apply (auto simp add: all_conj_distrib)
     apply (rule_tac x= "Tautology M x # T" in exI)
     apply auto
@@ -93,7 +93,7 @@ lemma resolved_atm_notin_resolved_clauses:
       tautology_add_mset atm_of_notin_atms_of_iff all_conj_distrib
       dest!: multi_member_split[of L] multi_member_split[of "-L"] multi_member_split[of _ N])
   using assms
-   apply (metis Un_iff distinct_mset_add_mset member_add_mset set_mset_union tautology_add_mset uminus_of_uminus_id) 
+  apply (metis Un_iff distinct_mset_add_mset member_add_mset set_mset_union tautology_add_mset uminus_of_uminus_id) 
   using assms by (metis add_mset_add_single is_mset_set_add member_add_mset tautology_add_mset union_iff)
 
 lemma resolved_atm_notin_resolved_clauses2:
@@ -106,13 +106,13 @@ lemma resolved_atm_notin_resolved_clauses2:
       dest!: multi_member_split[of L] multi_member_split[of "-L"] multi_member_split[of _ N])
   using assms apply (meson tautology_add_mset union_single_eq_member)
   using assms(1) apply auto[1]
-         apply (metis Un_iff assms(1) assms(2) distinct_mset_add_mset member_add_mset set_mset_union tautology_add_mset uminus_of_uminus_id)
-        apply (metis assms(2) tautology_add_mset union_single_eq_member)
-       apply (metis Un_iff assms(1) assms(2) distinct_mset_add_mset member_add_mset set_mset_union tautology_add_mset)
-      apply (metis assms(2) tautology_add_mset union_single_eq_member)
-     apply (metis assms(2) member_add_mset tautology_add_mset)
-    apply (metis assms(1) assms(2) distinct_mset_add_mset member_add_mset tautology_add_mset union_iff)
-   apply (metis assms(2) tautology_add_mset union_single_eq_member)
+  apply (metis Un_iff assms(1) assms(2) distinct_mset_add_mset member_add_mset set_mset_union tautology_add_mset uminus_of_uminus_id)
+  apply (metis assms(2) tautology_add_mset union_single_eq_member)
+  apply (metis Un_iff assms(1) assms(2) distinct_mset_add_mset member_add_mset set_mset_union tautology_add_mset)
+  apply (metis assms(2) tautology_add_mset union_single_eq_member)
+  apply (metis assms(2) member_add_mset tautology_add_mset)
+  apply (metis assms(1) assms(2) distinct_mset_add_mset member_add_mset tautology_add_mset union_iff)
+  apply (metis assms(2) tautology_add_mset union_single_eq_member)
   by (metis assms(1) assms(2) distinct_mset_add_mset member_add_mset tautology_add_mset union_iff)
 
 lemma interp_is_cons: 
@@ -178,7 +178,7 @@ lemma rtranclp_res_stack_distinct:
   assumes "res_stack\<^sup>*\<^sup>* (N, S) (N', S')" and "\<forall>C. C\<in># N \<longrightarrow> distinct_mset C"
   shows \<open>\<forall>C. C\<in># N' \<longrightarrow> distinct_mset C\<close>
   using assms apply (induction rule: rtranclp_induct2)
-   apply (auto intro: res_stack_distinct)
+  apply (auto intro: res_stack_distinct)
   by (metis res_stack_distinct)
 
 lemma res_stack_tauto:
@@ -212,8 +212,8 @@ proof (cases)
   then have I_T: \<open>inter_from_stack T I \<Turnstile>m {#C \<in># resolve_all_on L N. \<not> tautology C#}\<close>
     \<open>inter_from_stack T I \<Turnstile>m {#C \<in># resolve_all_on L N. tautology C#}\<close>
     using T assms(4) C
-     apply (auto simp: true_cls_mset_def N' dest!: multi_member_split intro: true_cls_mono_set_mset_l)
-     apply (metis Ex_list_of_length drop0 interpr_is_extension true_cls_mono_set_mset_l)
+    apply (auto simp: true_cls_mset_def N' dest!: multi_member_split intro: true_cls_mono_set_mset_l)
+    apply (metis Ex_list_of_length drop0 interpr_is_extension true_cls_mono_set_mset_l)
     by (metis set_mset_mset true_cls_mset_add_mset true_cls_mset_image_mset)
   have X: \<open>\<And>C. C \<in># N \<longrightarrow> \<not> tautology C\<close>
     using N' assms(1) assms(3) res_stack_tauto by blast
@@ -255,7 +255,7 @@ proof (cases)
       by (metis (mono_tags, lifting) Un_iff image_eqI mem_Collect_eq true_cls_insert_l true_cls_remdups_mset)
     ultimately show ?thesis
       using all_T unfolding S' N' apply auto
-       apply (smt (verit, ccfv_threshold) filter_mset_add_mset insertE mset_add true_cls_def true_cls_insert_l
+      apply (smt (verit, ccfv_threshold) filter_mset_add_mset insertE mset_add true_cls_def true_cls_insert_l
           true_cls_mset_add_mset true_cls_mset_def true_lit_def)+
       done
   qed
@@ -294,14 +294,14 @@ next
     N'': "N'' = {# C\<in>#resolve_all_on L N'. \<not>tautology C#}" and
     L:"atm_of L \<in> atms_of_ms (set_mset N')" and
     T: "tauto_clause `# mset T =  {# C\<in>#resolve_all_on L N'. tautology C#}" 
-      "(\<forall>s\<in>set T. is_tauto s \<and> tauto_on s \<in># tauto_clause s \<and> -tauto_on s \<in># tauto_clause s)" 
+    "(\<forall>s\<in>set T. is_tauto s \<and> tauto_on s \<in># tauto_clause s \<and> -tauto_on s \<in># tauto_clause s)" 
     using step(2)
     by (auto simp: res_stack.simps)
   have "length S' \<ge> length S"
     using A1 by (induction rule: rtranclp_induct2) (auto simp: res_stack.simps)
   have dist:"\<forall>C. C\<in># N'  \<longrightarrow> distinct_mset C" and taut:"\<forall>C. C\<in># N'  \<longrightarrow>  \<not>tautology C" 
     using A1 rtranclp_res_stack_distinct A4
-     apply blast using rtranclp_res_stack_tauto A1 A4 by blast
+    apply blast using rtranclp_res_stack_tauto A1 A4 by blast
   have sat:"(inter_from_stack (drop (length S') S'') I) \<Turnstile>m N'"
     using dist taut A2 A6 interpr_sat_all_2
     by metis

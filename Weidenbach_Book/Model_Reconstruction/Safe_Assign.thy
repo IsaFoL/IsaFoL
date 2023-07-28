@@ -8,7 +8,7 @@ theory Safe_Assign
 begin
 
 definition safe_assign :: "'a literal \<Rightarrow>'a clauses \<Rightarrow>'a clauses \<Rightarrow> bool" where
- "safe_assign v F Fv =
+  "safe_assign v F Fv =
     (\<forall>I. consistent_interp I \<and>
        (\<forall>C \<in># Fv. -v \<in># C) \<and> (\<forall>C \<in># F. -v \<notin># C) \<and>
        interpr_composition I {v} \<Turnstile>m  (F + Fv) \<longrightarrow> interpr_composition I {-v} \<Turnstile>m (F + Fv))"
@@ -29,7 +29,7 @@ proof -
     using safe_assign_notv[of v N Nv I] assms(2, 3, 4, 5) A by auto
   hence 3:"interpr_composition I {-v} \<Turnstile> C" if A:"interpr_composition I {v} \<Turnstile>m  (N + Nv)" and B: "C \<in># (N + Nv)" for C using A B
     using true_cls_mset_def by blast
-(*Der nächste Schritt gilt eher nicht? *)
+      (*Der nächste Schritt gilt eher nicht? *)
   hence 2:"interpr_composition I {-v} \<Turnstile> C" if A:"interpr_composition I {v} \<Turnstile>  C" and B: "C \<in># (N + Nv)" for C using A B apply auto sorry
   have "{-v} \<Turnstile>m Nv" using assms(4)
     by (metis insert_DiffM singletonI true_cls_add_mset true_cls_mset_def)
@@ -40,24 +40,24 @@ proof -
   proof(cases "v \<in># C")
     case True
     show ?thesis
-      proof (rule ccontr)
-        assume ass:"\<not>I \<^bold>\<circ> {- v} \<Turnstile> C"
-        have nSat:"\<not> interpr_composition I {-v} \<Turnstile>m (N + Nv)" 
-          using ass C  unfolding interpr_composition_def apply auto
-          using true_cls_mset_def by blast
-        have T1:"I \<Turnstile> C" using assms(1) C
-          using true_cls_mset_def by blast
-        hence "v \<in> I" using ass True unfolding interpr_composition_def apply auto
-          by (metis (mono_tags, lifting) Collect_empty_eq Diff_empty true_cls_insert_l)
-        hence "I = interpr_composition I {v}" 
-          using assms(2) unfolding interpr_composition_def apply auto
-          using consistent_interp_def by blast
-        hence "interpr_composition I {v} \<Turnstile> C" 
-          using T1 by auto
-        then show "False"
-          using 2[of C] C nSat unfolding interpr_composition_def
-          by (metis ass interpr_composition_def union_iff) 
-      qed
+    proof (rule ccontr)
+      assume ass:"\<not>I \<^bold>\<circ> {- v} \<Turnstile> C"
+      have nSat:"\<not> interpr_composition I {-v} \<Turnstile>m (N + Nv)" 
+        using ass C  unfolding interpr_composition_def apply auto
+        using true_cls_mset_def by blast
+      have T1:"I \<Turnstile> C" using assms(1) C
+        using true_cls_mset_def by blast
+      hence "v \<in> I" using ass True unfolding interpr_composition_def apply auto
+        by (metis (mono_tags, lifting) Collect_empty_eq Diff_empty true_cls_insert_l)
+      hence "I = interpr_composition I {v}" 
+        using assms(2) unfolding interpr_composition_def apply auto
+        using consistent_interp_def by blast
+      hence "interpr_composition I {v} \<Turnstile> C" 
+        using T1 by auto
+      then show "False"
+        using 2[of C] C nSat unfolding interpr_composition_def
+        by (metis ass interpr_composition_def union_iff) 
+    qed
   next
     case False 
     have F1:"I \<Turnstile> C" using assms(1) C
@@ -92,20 +92,20 @@ proof-
       have "interpr_composition I (uminus ` set_mset x) \<Turnstile> C" 
         using B C unfolding interpr_composition_def apply auto
         using true_cls_mset_def by blast
-(*Die nächsten zwei Schritte gehen auch nur wenn es keine Tautologien sind*)
+          (*Die nächsten zwei Schritte gehen auch nur wenn es keine Tautologien sind*)
       have cons: "consistent_interp (I \<^bold>\<circ> uminus ` set_mset x)" sorry
       have eq:"uminus ` set_mset x \<^bold>\<circ> {v} = uminus ` set_mset x" sorry
-(*Das geht eigentlich glaube ich nicht*)
+          (*Das geht eigentlich glaube ich nicht*)
       hence Ixv:  "I \<^bold>\<circ> uminus ` set_mset x \<^bold>\<circ> {v} \<Turnstile>m (Nv + N)"
-         sorry
+        sorry
       have "(interpr_composition I (interpr_composition (uminus ` set_mset x) {-v})) \<Turnstile> C" 
         using 1[of  "interpr_composition I (uminus ` set_mset x)"] C cons Ixv apply auto
         by (simp add: interpr_composition_assoc true_cls_mset_def)
       then show ?thesis
         by auto
-  qed
-  then show ?thesis
-    using 2 unfolding interpr_composition_def  apply auto
+    qed
+    then show ?thesis
+      using 2 unfolding interpr_composition_def  apply auto
       using true_cls_mset_increasing_r apply fastforce
       using true_cls_mset_def by blast
   qed
@@ -128,15 +128,15 @@ proof-
     by (simp add: true_cls_def)
   have "v  \<in> uminus ` set_mset x" using assms(2) apply auto
     using in_image_uminus_uminus by blast
-(*Gilt eigentlich nur wenn x keine Tautologie ist*)
+      (*Gilt eigentlich nur wenn x keine Tautologie ist*)
   hence eq:"uminus ` set_mset x \<^bold>\<circ> {v} = uminus ` set_mset x" unfolding interpr_composition_def  apply auto sorry
   have "(interpr_composition I (interpr_composition (uminus ` set_mset x) {-v})) \<Turnstile>m  (N+Nv)" if A:"consistent_interp I " 
     and B: "interpr_composition I (uminus ` set_mset x) \<Turnstile>m (N + Nv)"  for I
   proof-
-(*Gilt auch nur wenn x keine Tautologie ist*)
+    (*Gilt auch nur wenn x keine Tautologie ist*)
     have cons:" consistent_interp (I \<^bold>\<circ> uminus ` set_mset x)"
       using A unfolding interpr_composition_def  apply auto sorry
-(*Ich weiß nicht ob das so stimmt?*)
+        (*Ich weiß nicht ob das so stimmt?*)
     have safe1: "safe_assign v N Nv" 
       using assms(1)  unfolding safe_assign_def interpr_composition_def  apply auto  sorry
     have in1: "\<forall>C\<in>#Nv. - v \<in># C" using assms(2) by auto
@@ -145,10 +145,10 @@ proof-
       apply (smt (z3) Collect_empty_eq Diff_empty Un_commute Un_insert_left cons consistent_interp_insert_iff insertI1 insert_absorb interpr_composition_def)
       by (smt (z3) Diff_empty Un_insert_right cons consistent_interp_insert_iff empty_Collect_eq insertI1 insert_absorb interpr_composition_def)
     then show ?thesis 
-     using safe_assign_notv[of v N Nv "interpr_composition I (uminus ` set_mset x)"] cons safe1 in1 assms(3) apply auto
-     apply (simp add: interpr_composition_assoc)
-     by (simp add: interpr_composition_assoc)
- qed
+      using safe_assign_notv[of v N Nv "interpr_composition I (uminus ` set_mset x)"] cons safe1 in1 assms(3) apply auto
+      apply (simp add: interpr_composition_assoc)
+      by (simp add: interpr_composition_assoc)
+  qed
   then show ?thesis
     unfolding redundancy_def by auto
 qed
@@ -194,7 +194,7 @@ proof -
         by simp
       have Ii_sat:"{-v} \<Turnstile> LNv ! i" using LNv_sat
         by (meson "1" Suc_le_eq nth_mem_mset true_cls_mset_def)
-(*Der nächste Schritt fehlt, ich weiß aber gar nicht ob der so stimmt*)
+          (*Der nächste Schritt fehlt, ich weiß aber gar nicht ob der so stimmt*)
       have safe1: "safe_assign v N (mset (drop (Suc i) LNv) + {#LNv ! i#})" using assms(1) unfolding safe_assign_def apply auto
         apply (metis (no_types, lifting) Ii_sat interpr_composition_def true_cls_union_increase') sorry
       have red: "redundancy (mset (drop (Suc i) LNv) + N) (LNv ! i) {-v} (mset (drop (Suc i) LNv) + N)" 
@@ -223,7 +223,7 @@ V \<union> atms_of (LNv ! i) \<union> atms_of_mm (mset (drop (Suc i) LNv) + N) \
     qed
   qed note ag = this
   have "mset (drop (length LNv) LNv) = {#}" and "(take (length LNv) LNv) = LNv"
-     by auto
+    by auto
   then have 2: "rules\<^sup>*\<^sup>*(N + Nv, R, S, V \<union> atms_of_mm (N + Nv) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
                        (N, R, S@map (\<lambda>C. Witness {-v} C) LNv, V \<union> atms_of_mm (N + Nv) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
     using ag[of "length LNv" ] by auto

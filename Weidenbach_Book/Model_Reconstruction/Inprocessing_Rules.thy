@@ -3,12 +3,12 @@
 *)
 theory Inprocessing_Rules
   imports Entailment_Definition.Partial_Herbrand_Interpretation
-          Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
+    Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
 
 begin
 
 datatype 'a witness = 
-is_wit: Witness (wit_interp: "'a partial_interp") (wit_clause: "'a clause")
+  is_wit: Witness (wit_interp: "'a partial_interp") (wit_clause: "'a clause")
 
 type_synonym 'a stackWit = "'a witness list"
 
@@ -17,12 +17,12 @@ In the following defintion interpr_composition, I is from a [Witness I C], while
 existing, given interpretation.
 \<close>
 definition interpr_composition :: "'a literal set \<Rightarrow> 'a literal set \<Rightarrow>'a literal set " where
-"interpr_composition I' I = ((I' - {L \<in> I'. -L \<in> I}) \<union> I) "
+  "interpr_composition I' I = ((I' - {L \<in> I'. -L \<in> I}) \<union> I) "
 
 notation interpr_composition (infixl "\<^bold>\<circ>" 80)
 
 definition redundancy :: "'a clauses \<Rightarrow> 'a clause \<Rightarrow> 'a literal set \<Rightarrow> 'a clauses \<Rightarrow> bool" where
-"redundancy F C \<omega> F' = (\<forall>I. consistent_interp I \<longrightarrow>interpr_composition I (uminus ` set_mset C) \<Turnstile>m F \<longrightarrow>
+  "redundancy F C \<omega> F' = (\<forall>I. consistent_interp I \<longrightarrow>interpr_composition I (uminus ` set_mset C) \<Turnstile>m F \<longrightarrow>
      (interpr_composition I (interpr_composition (uminus ` set_mset C) \<omega>)) \<Turnstile>m F' )"
 
 lemma redundancyD:
@@ -34,7 +34,7 @@ notation (output) redundancy ("_ \<^bold>\<and> _ \<equiv>\<^sub>s\<^sub>a\<^sub
 
 (*This is the original definition of the paper.*)
 definition redundancy_old :: "'a clauses \<Rightarrow> 'a clause \<Rightarrow> 'a literal set \<Rightarrow> 'a clauses \<Rightarrow> bool" where
-"redundancy_old F C \<omega> F' = (\<forall>I. consistent_interp I \<longrightarrow>interpr_composition I (uminus ` set_mset C) \<Turnstile>m F \<longrightarrow>
+  "redundancy_old F C \<omega> F' = (\<forall>I. consistent_interp I \<longrightarrow>interpr_composition I (uminus ` set_mset C) \<Turnstile>m F \<longrightarrow>
      (interpr_composition I \<omega>) \<Turnstile>m F')"
 
 lemma redundancyD_old:
@@ -44,59 +44,59 @@ lemma redundancyD_old:
 
 
 inductive rules :: "'v clauses \<times> 'v clauses \<times>  'v stackWit \<times> 'v set \<Rightarrow> 'v clauses \<times> 'v clauses \<times> 'v stackWit \<times> 'v set \<Rightarrow> bool" where
-drop: 
+  drop: 
   "rules (({#C#}+N), R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
 if "set_mset N \<Turnstile>p C"|
-strenghten:
+  strenghten:
   "rules (N, ({#C#}+R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (({#C#}+N), R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))" |
-weakenp:
+  weakenp:
   "rules (N+{#C#}, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, R, (S @ [Witness I C]), V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
 if "I \<Turnstile> C"  and "redundancy N C I N" and "consistent_interp I " and "atm_of ` I \<subseteq> V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)" |
-forget:
-   "rules (N, ({#C#}+R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))" |
-learn_minus:
+  forget:
+  "rules (N, ({#C#}+R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))" |
+  learn_minus:
   "rules (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, ({#C#}+R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
 if "(set_mset (N) \<union> set_mset(R)) \<Turnstile>p C" and "distinct_mset C" |
-learn_plus:
+  learn_plus:
   "rules (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) 
        ({#C#}+N, (R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
 if "\<forall>I. consistent_interp I  \<longrightarrow> I \<Turnstile>sm  (add_mset C N+R) \<longrightarrow>  I  \<Turnstile>sm  (N+R)" and
- \<open>satisfiable (set_mset (N+R)) \<longrightarrow> satisfiable (set_mset (add_mset C (N+R)))\<close>
- "distinct_mset C"
+  \<open>satisfiable (set_mset (N+R)) \<longrightarrow> satisfiable (set_mset (add_mset C (N+R)))\<close>
+  "distinct_mset C"
 
 
 fun reconstruction_step :: "'v witness \<Rightarrow> 'v partial_interp \<Rightarrow> 'v partial_interp " where
-"reconstruction_step (Witness I C) I' = (if I' \<Turnstile> C then I' else  interpr_composition I' I)"
+  "reconstruction_step (Witness I C) I' = (if I' \<Turnstile> C then I' else  interpr_composition I' I)"
 
 abbreviation reconstruction_stack :: "'v witness list \<Rightarrow> 'v partial_interp \<Rightarrow> 'v partial_interp" where
-"reconstruction_stack xs I \<equiv> foldr reconstruction_step xs I"
+  "reconstruction_stack xs I \<equiv> foldr reconstruction_step xs I"
 
 lemmas rules_induct = rules.induct[split_format(complete)]
 
 lemma irredundant_entail_redundant:
- assumes"rules (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R"
- shows "N' + wit_clause `# mset S' \<Turnstile>psm R'"
+  assumes"rules (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R"
+  shows "N' + wit_clause `# mset S' \<Turnstile>psm R'"
   using assms apply (induction rule: rules_induct)
-  apply auto
-  apply (smt (verit, ccfv_SIG) Un_insert_right sup.left_idem sup_bot_right sup_commute true_clss_clss_generalise_true_clss_clss true_clss_clss_true_clss_cls)
+       apply auto
+   apply (smt (verit, ccfv_SIG) Un_insert_right sup.left_idem sup_bot_right sup_commute true_clss_clss_generalise_true_clss_clss true_clss_clss_true_clss_cls)
   using true_clss_clss_generalise_true_clss_clss true_clss_clss_true_clss_cls by force 
 
 lemma irredundant_entail_redundant_before:
   assumes "rules (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R"
   shows "N' + wit_clause `# mset S' \<Turnstile>psm R"
   using assms apply (induction rule: rules_induct)
-  apply auto
+       apply auto
   by (smt (verit) insert_def singleton_conv sup.idem sup_commute sup_left_commute true_clss_clss_generalise_true_clss_clss true_clss_clss_true_clss_cls) 
 
 lemma irredundant_entail_redundant_before2:
   assumes "rules (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R"
   shows "N + wit_clause `# mset S' \<Turnstile>psm R'"
   using assms apply (induction rule: rules_induct)
-  apply auto
+       apply auto
   by (smt (verit, best) sup.idem sup_commute sup_left_commute true_clss_clss_generalise_true_clss_clss true_clss_clss_true_clss_cls)
 
 lemmas rtranclp_induct4 = rtranclp_induct[of r \<open>(_, _, _, _)\<close> \<open>(_, _, _, _)\<close>, split_format(complete),
-  case_names refl step]
+    case_names refl step]
 
 lemma rtranclp_irredundant_entail_redundant:
   assumes "rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R"
@@ -132,7 +132,7 @@ lemma proposition1:
     \<open>\<tau> \<equiv> {L}\<close>and
     \<open>\<omega> \<equiv> {-L}\<close>
   shows 
-   red: "redundancy N C \<omega> N" and \<tau>: "\<tau> \<Turnstile>m N" and "\<not>\<tau> \<Turnstile> C" and cons3:"consistent_interp \<tau>"
+    red: "redundancy N C \<omega> N" and \<tau>: "\<tau> \<Turnstile>m N" and "\<not>\<tau> \<Turnstile> C" and cons3:"consistent_interp \<tau>"
     and "consistent_interp \<omega>" and \<omega>: "\<omega> \<Turnstile> C" and "atm_of ` \<omega> \<subseteq> atms_of C"  and
     "\<not>interpr_composition \<tau> \<omega> \<Turnstile>m N+{#C#}" 
   unfolding assms
@@ -145,7 +145,7 @@ lemma interpr_composition_assoc: \<open>a \<^bold>\<circ> (b \<^bold>\<circ> c) 
 
 lemma proposition1: 
   assumes red: "redundancy N C \<omega> N" and \<tau>: "\<tau> \<Turnstile>m N" and "\<not>\<tau> \<Turnstile> C" and cons3:"consistent_interp \<tau>"
-  and "consistent_interp \<omega>" and \<omega>: "\<omega> \<Turnstile> C"  and
+    and "consistent_interp \<omega>" and \<omega>: "\<omega> \<Turnstile> C"  and
     "total_over_set \<tau> (atms_of_mm (add_mset C N))"
   shows "interpr_composition \<tau> \<omega> \<Turnstile>m N+{#C#}" 
   using assms
@@ -157,12 +157,12 @@ proof-
     by (metis \<omega> atm_of_in_atm_of_set_in_uminus atm_of_lit_in_atms_of atms_of_def atms_of_uminus multi_member_split multiset.set_map true_cls_add_mset true_cls_def) 
   hence "interpr_composition \<tau> ?\<alpha> = interpr_composition ?\<alpha> \<tau>" 
     using cons3 assms(3) apply auto apply(simp add: interpr_composition_def)
-    apply (metis in_image_uminus_uminus insert_DiffM true_cls_add_mset)
+     apply (metis in_image_uminus_uminus insert_DiffM true_cls_add_mset)
     apply(simp add: interpr_composition_def)
     by (metis in_image_uminus_uminus insert_DiffM true_cls_add_mset uminus_of_uminus_id)
   hence sat:"interpr_composition \<tau> ?\<alpha> \<Turnstile>m N + {#uminus `# C#}"
     using notC \<tau> apply auto
-    apply (metis (no_types, lifting) interpr_composition_def true_cls_union_increase')
+     apply (metis (no_types, lifting) interpr_composition_def true_cls_union_increase')
     by (simp add: interpr_composition_def true_cls_mset_def)
   then have min:"interpr_composition \<tau> ?\<alpha> \<Turnstile>m N" 
     by auto
@@ -171,7 +171,7 @@ proof-
   have \<open>\<tau> \<^bold>\<circ> ?\<alpha> = \<tau>\<close>
     using \<open>\<not>\<tau> \<Turnstile> C\<close> \<open>total_over_set \<tau> (atms_of_mm (add_mset C N))\<close>
     apply (auto simp: interpr_composition_def dest!: multi_member_split)
-    apply (metis atm_of_eq_atm_of literal.sel(1))
+     apply (metis atm_of_eq_atm_of literal.sel(1))
     apply (metis atm_of_eq_atm_of literal.sel(2))
     done
   have sat2:"interpr_composition \<tau> \<omega> \<Turnstile>m N"
@@ -182,13 +182,13 @@ qed
 
 lemma atoms_sub_interpretation: 
   assumes "rules (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R" 
-  and "V' \<subseteq> atm_of ` I"
+    and "V' \<subseteq> atm_of ` I"
   shows "V \<subseteq> atm_of ` I"
   using assms apply (induction rule: rules_induct) by auto
 
 lemma rtranclp_atoms_sub_interpretation:
   assumes "rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V')"  and "N + wit_clause `# mset S \<Turnstile>psm R"
-  and "V' \<subseteq> atm_of ` I"
+    and "V' \<subseteq> atm_of ` I"
   shows  "V \<subseteq> atm_of ` I"
   using assms 
 proof (induction arbitrary: I rule: rtranclp_induct4)
@@ -240,8 +240,8 @@ qed
 *)
 lemma proposition3_back: 
   assumes  "rules (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R" and 
-   "I \<Turnstile>m N' + wit_clause `# mset S'" and "consistent_interp I" 
-  and "V' \<subseteq> atm_of ` I"
+    "I \<Turnstile>m N' + wit_clause `# mset S'" and "consistent_interp I" 
+    and "V' \<subseteq> atm_of ` I"
   shows "I \<Turnstile>m N + wit_clause `# mset S"
   using assms
 proof (induction rule: rules_induct)
@@ -271,7 +271,7 @@ next
   case (learn_plus C N R S V)
   then show ?case by auto
 qed
-(*
+  (*
 lemma rtranclp_proposition3:
   assumes "rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V')"  and "N + wit_clause `# mset S \<Turnstile>psm R" and 
    "I \<Turnstile>m N + wit_clause `# mset S" and "consistent_interp I" and "V' \<subseteq> atm_of ` I"
@@ -297,8 +297,8 @@ qed
 *)
 lemma rtranclp_proposition3_back:
   assumes "rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V')"  and "N + wit_clause `# mset S \<Turnstile>psm R" and 
-   "I \<Turnstile>m N' + wit_clause `# mset S'" and "consistent_interp I" 
-  and "V' \<subseteq> atm_of ` I"
+    "I \<Turnstile>m N' + wit_clause `# mset S'" and "consistent_interp I" 
+    and "V' \<subseteq> atm_of ` I"
   shows "I \<Turnstile>m N + wit_clause `# mset S"
   using assms 
 proof (induction arbitrary: I rule: rtranclp_induct4)
@@ -377,7 +377,7 @@ qed
 
 lemma interpr_sat: 
   assumes "rules (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R" and "I \<Turnstile>m N'" 
-  and "consistent_interp I" and "V' \<subseteq> atm_of ` I"
+    and "consistent_interp I" and "V' \<subseteq> atm_of ` I"
   shows "(reconstruction_stack (drop (length S) S') I) \<Turnstile>m N"
   using assms
 proof(induction rule: rules_induct)
@@ -400,7 +400,7 @@ next
   case (weakenp I' C N R S V) note all = this(1-7) and A8 = this(8)
   have "total_over_set I (atms_of_mm (add_mset C N))" 
     using A8 apply auto
-    apply (meson subset_iff total_over_set_atm_of)
+     apply (meson subset_iff total_over_set_atm_of)
     by (meson subset_iff total_over_set_atm_of)
   then show ?case 
     using proposition1[of N C I' I] all by auto
@@ -460,7 +460,7 @@ next
   then show ?case by auto
 next
   case (weakenp I' C N V R S) note A1 = this(1) and A2 = this(2) and A3 = this(3) and A4= this(4) and A5 = this(5)  and A6 = this(6)
-   have "rules (N+{#C#}, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
+  have "rules (N+{#C#}, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
         (N, R, (S @ [Witness I' C]), V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
     using A1 A2 A3 A4 rules.weakenp apply auto by blast
   hence "atm_of ` reconstruction_stack (drop (length S) (S @ [Witness I' C])) I = atm_of ` I"
@@ -479,7 +479,7 @@ qed
 
 lemma interp_is_cons_mult: 
   assumes "rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R" and
-   "I  \<Turnstile>m N'" and "consistent_interp I" and "V' \<subseteq> atm_of ` I"
+    "I  \<Turnstile>m N'" and "consistent_interp I" and "V' \<subseteq> atm_of ` I"
   shows "consistent_interp (reconstruction_stack (drop (length S) S') I)"
   using assms 
 proof (induction arbitrary: I rule: rtranclp_induct4)
@@ -520,14 +520,14 @@ qed
 lemma interpr_sat_all:
   assumes "rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R" and
     "I  \<Turnstile>m N'"  and "consistent_interp I" 
-  and "V' \<subseteq> atm_of ` I"
+    and "V' \<subseteq> atm_of ` I"
   shows "(reconstruction_stack (drop (length S) S') I) \<Turnstile>m N"
   using assms
 proof (induction arbitrary: I rule: rtranclp_induct4)
   case refl
   then show ?case by auto
 next
- case (step N' R' S' V' N'' R'' S'' V'' I)  note  at = this(7) and A1 = this(1) and cons = this(6) and A5 = this(5) and A2 = this(2) and A3 = this(3) and A4 = this(4)
+  case (step N' R' S' V' N'' R'' S'' V'' I)  note  at = this(7) and A1 = this(1) and cons = this(6) and A5 = this(5) and A2 = this(2) and A3 = this(3) and A4 = this(4)
   have ruls2:  "rules\<^sup>*\<^sup>* (N, R, S, V) (N'', R'', S'', V'')" 
     using A1 A2 by auto
   have add:"N' + wit_clause `# mset S' \<Turnstile>psm R'"
@@ -536,7 +536,7 @@ next
     using irredundant_entail_redundant add A2 by blast
   have relS:"wit_clause `# mset S' \<subseteq>#  wit_clause `# mset S''"
     using A2 apply(induction rule: rules_induct) by auto
-   have sub:" V' \<subseteq> atm_of ` I" 
+  have sub:" V' \<subseteq> atm_of ` I" 
     using atoms_sub_interpretation A2 add at apply auto by blast
   have  sat:"(reconstruction_stack (drop (length S') S'') I) \<Turnstile>m N'" 
     using interpr_sat A2 cons add A5 at by blast
@@ -627,8 +627,11 @@ next
   then show ?case using sat add A2 by auto
 qed
 
+
+
+
 lemma unsat: 
-  assumes "rules (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R" 
+  assumes "rules (N, R, S, V) (N', R', S', V')"
   shows "unsatisfiable (set_mset (N'+R')) \<Longrightarrow> unsatisfiable (set_mset (N+R))"
   using assms
 proof(induction rule: rules_induct)
@@ -653,7 +656,7 @@ next
   then show ?case
     using unsatisfiable_mono A1 by (metis set_mset_mono union_commute)
 next
-  case (learn_minus N R C S V) note A1 = this(1) and A2 = this(2) and A3 = this(3) and A4 = this(4)
+  case (learn_minus N R C S V) note A1 = this(1) and A2 = this(2) and A3 = this(3)
   have rul: "rules (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
             (N, ({#C#}+R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
     using A1 A2 rules.learn_minus by blast 
@@ -663,30 +666,28 @@ next
     have "satisfiable (set_mset (N + R))"
       using ass by auto 
     hence "satisfiable (set_mset (N + R)\<union> {C})"
-      using sat rul A4 A3 by blast
+      using sat rul A3 by blast
     then show "False"
-      using A3 A4 ass rul sat by blast
- qed
+      using A3 ass rul sat by blast
+  qed
 next
   case (learn_plus C N R S V)
   then show ?case by auto
 qed
 
 lemma rtranclp_unsat:
-  assumes "rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R"
+  assumes "rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V')"
   shows "unsatisfiable (set_mset( N'+R')) \<Longrightarrow>  unsatisfiable (set_mset( N+R))"
   using assms 
 proof(induction rule: rtranclp_induct4)
   case refl
   then show ?case by auto
 next
-  case (step N' R' S' V' N'' R'' S'' V'') note A3 = this(3) and A5 = this(5) and A2 = this(2) and A4 = this(4)
-  have add:"N' + wit_clause `# mset S' \<Turnstile>psm R'"
-    using rtranclp_irredundant_entail_redundant assms(1) assms(2) step.hyps(1) by blast
+  case (step N' R' S' V' N'' R'' S'' V'') note A3 = this(3) and A2 = this(2) and A4 = this(4)
   have "unsatisfiable (set_mset (N'+R'))"
-    using unsat add A2 A4 by blast 
+    using unsat A2 A4 by blast 
   hence "unsatisfiable (set_mset (N+R))"
-    using A3 A5 by auto
+    using A3 by auto
   then show ?case by auto
 qed
 
