@@ -56,7 +56,14 @@ forget:
    "rules (N, ({#C#}+R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))" |
 learn_minus:
   "rules (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, ({#C#}+R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
-if "(set_mset (N) \<union> set_mset(R)) \<Turnstile>p C" and "distinct_mset C"
+if "(set_mset (N) \<union> set_mset(R)) \<Turnstile>p C" and "distinct_mset C" |
+learn_plus:
+  "rules (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) 
+       ({#C#}+N, (R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
+if "\<forall>I. consistent_interp I  \<longrightarrow> I \<Turnstile>sm  (add_mset C N+R) \<longrightarrow>  I  \<Turnstile>sm  (N+R)" and
+ \<open>satisfiable (set_mset (N+R)) \<longrightarrow> satisfiable (set_mset (add_mset C (N+R)))\<close>
+ "distinct_mset C"
+
 
 fun reconstruction_step :: "'v witness \<Rightarrow> 'v partial_interp \<Rightarrow> 'v partial_interp " where
 "reconstruction_step (Witness I C) I' = (if I' \<Turnstile> C then I' else  interpr_composition I' I)"
@@ -197,6 +204,7 @@ next
     using A3 A4 by auto 
 qed
 
+(*
 lemma proposition3: 
   assumes  "rules (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R" and 
    "I \<Turnstile>m N + wit_clause `# mset S" and "consistent_interp I"  and "V' \<subseteq> atm_of ` I"
@@ -224,8 +232,12 @@ next
 next
   case (learn_minus N R C S V)
   then show ?case by auto
+next
+  case (learn_plus C N R S V)
+  then show ?case by auto
 qed
 
+*)
 lemma proposition3_back: 
   assumes  "rules (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R" and 
    "I \<Turnstile>m N' + wit_clause `# mset S'" and "consistent_interp I" 
@@ -255,8 +267,11 @@ next
 next
   case (learn_minus N R C S V)
   then show ?case by auto
+next
+  case (learn_plus C N R S V)
+  then show ?case by auto
 qed
-
+(*
 lemma rtranclp_proposition3:
   assumes "rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V')"  and "N + wit_clause `# mset S \<Turnstile>psm R" and 
    "I \<Turnstile>m N + wit_clause `# mset S" and "consistent_interp I" and "V' \<subseteq> atm_of ` I"
@@ -279,7 +294,7 @@ next
     using A2 add A6 proposition3 A7 by blast
   then show ?case by auto
 qed
-
+*)
 lemma rtranclp_proposition3_back:
   assumes "rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V')"  and "N + wit_clause `# mset S \<Turnstile>psm R" and 
    "I \<Turnstile>m N' + wit_clause `# mset S'" and "consistent_interp I" 
@@ -355,6 +370,9 @@ next
 next
   case (learn_minus N R C S)
   then show ?case by auto
+next
+  case (learn_plus C N R S V)
+  then show ?case by auto
 qed
 
 lemma interpr_sat: 
@@ -392,6 +410,9 @@ next
 next
   case (learn_minus N R C S V)
   then show ?case by auto
+next
+  case (learn_plus C N R S V)
+  then show ?case by auto
 qed
 
 lemma stack: 
@@ -422,6 +443,9 @@ next
 next
   case (learn_minus N R C S V)
   then show ?case by auto
+next
+  case (learn_plus C N R S V)
+  then show ?case by auto
 qed
 
 lemma atoms_sub_interpretation2: 
@@ -447,6 +471,9 @@ next
   then show ?case by auto
 next
   case (learn_minus N R C S V)
+  then show ?case by auto
+next
+  case (learn_plus C N R S V)
   then show ?case by auto
 qed
 
@@ -540,7 +567,7 @@ lemma interpr_sat_all_final:
   using interpr_sat_all[OF assms(1) _ assms(2-4)] by auto
 
 lemma sat: 
-  assumes "rules (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R" 
+  assumes "rules (N, R, S, V) (N', R', S', V')" 
   shows "satisfiable (set_mset( N+R)) \<Longrightarrow> satisfiable(set_mset( N'+R'))"
   using assms 
 proof(induction rule: rules_induct)
@@ -578,6 +605,9 @@ next
     using I' A by auto
   hence "satisfiable (set_mset(N+R)\<union> {C})"
     using satisfiable_carac by auto
+  then show ?case by auto
+next
+  case (learn_plus C N R S V)
   then show ?case by auto
 qed
 
@@ -637,6 +667,9 @@ next
     then show "False"
       using A3 A4 ass rul sat by blast
  qed
+next
+  case (learn_plus C N R S V)
+  then show ?case by auto
 qed
 
 lemma rtranclp_unsat:

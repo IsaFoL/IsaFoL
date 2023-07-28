@@ -651,33 +651,37 @@ V \<union> atms_of_mm N \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># r
 qed
 
 lemma rules_mono_set: 
-   \<open>rules (N, R, S, V) (N', R', S', V') \<Longrightarrow> rules (N, R, S, V \<union> X) (N', R', S', V' \<union> X)\<close>
-   proof(induction rule: rules_induct)
-     case (drop N C R S V)
-     then show ?case 
-       using rules.drop[of N C R S "V \<union> X"] apply auto
-       by (simp add: Un_left_commute sup_commute)
-   next
-     case (strenghten N C R S V)
-     then show ?case 
-       using rules.strenghten[of N C R S "V \<union> X"] apply auto
-       by (simp add: Un_left_commute sup_commute)
-   next
-     case (weakenp I C N V R S)
-     then show ?case 
-       using rules.weakenp[of I C N "V \<union> X" R S] apply auto
-       by (smt (verit) inf_sup_aci(5) inf_sup_aci(6) le_iff_sup) 
-   next
-     case (forget N C R S V)
-     then show ?case 
-       using rules.forget[of N C R S "V \<union> X"] apply auto
-       by (simp add: Un_left_commute sup_commute)
-   next
-     case (learn_minus N R C S V)
-     then show ?case 
-       using rules.learn_minus[of N R C S "V \<union> X"] apply auto 
-       by (simp add: Un_left_commute sup_commute)
-   qed
+  \<open>rules (N, R, S, V) (N', R', S', V') \<Longrightarrow> rules (N, R, S, V \<union> X) (N', R', S', V' \<union> X)\<close>
+proof(induction rule: rules_induct)
+  case (drop N C R S V)
+  then show ?case 
+    using rules.drop[of N C R S "V \<union> X"] apply auto
+    by (simp add: Un_left_commute sup_commute)
+next
+  case (strenghten N C R S V)
+  then show ?case 
+    using rules.strenghten[of N C R S "V \<union> X"] apply auto
+    by (simp add: Un_left_commute sup_commute)
+next
+  case (weakenp I C N V R S)
+  then show ?case 
+    using rules.weakenp[of I C N "V \<union> X" R S] apply auto
+    by (smt (verit) inf_sup_aci(5) inf_sup_aci(6) le_iff_sup) 
+next
+  case (forget N C R S V)
+  then show ?case 
+    using rules.forget[of N C R S "V \<union> X"] apply auto
+    by (simp add: Un_left_commute sup_commute)
+next
+  case (learn_minus N R C S V)
+  then show ?case 
+    using rules.learn_minus[of N R C S "V \<union> X"] apply auto 
+    by (simp add: Un_left_commute sup_commute)
+next
+  case (learn_plus C N R S V)
+  then show ?case
+    by (smt (verit, del_insts) rules.intros(6) sup_aci(1) sup_aci(3))
+qed
 
 lemma rtranclp_rules_mono_set: 
   \<open>rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V') \<Longrightarrow> rules\<^sup>*\<^sup>* (N, R, S, V \<union> X) (N', R', S', V' \<union> X)\<close>
