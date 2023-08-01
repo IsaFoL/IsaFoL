@@ -24,13 +24,35 @@ lemma schedule_next_reduction_stI: \<open>\<not>a < (10 :: 64 word) \<Longrighta
   apply assumption
   by auto
 
+sepref_def reduceint_impl
+  is \<open>uncurry0 (RETURN reduceint)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding reduceint_def
+  by sepref
+
+lemma schedule_next_reduction_stI2:
+  \<open>1 \<le> a \<Longrightarrow> 0 < a\<close> for a :: \<open>64 word\<close>
+  unfolding word_le_not_less[symmetric]
+  apply (rule order.strict_trans2)
+  prefer 2
+  apply assumption
+  by auto
+
+lemma schedule_next_reduction_stI3: \<open>word_log2 n div 2 < 64\<close> for n :: \<open>64 word\<close>
+  using word_log2_max[of n] unfolding size_word_def
+  by auto
+
 sepref_def schedule_next_reduction_st_impl
   is \<open>RETURN o schedule_next_reduction_st\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  supply [simp] = schedule_next_reduction_stI 
+  supply [simp] = schedule_next_reduction_stI schedule_next_reduction_stI3
+  supply [intro] = schedule_next_reduction_stI2
+  supply [split] = if_splits
   supply of_nat_snat[sepref_import_param]
-  unfolding schedule_next_reduction_st_def
+  unfolding schedule_next_reduction_st_def max_def
+  apply (rewrite in \<open>_ >> \<hole>\<close> snat_const_fold[where 'a=64])
+
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
