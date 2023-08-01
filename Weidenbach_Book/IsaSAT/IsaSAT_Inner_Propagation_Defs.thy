@@ -119,7 +119,7 @@ where
      N' \<leftarrow> mop_arena_swap C i f N;
      ASSERT(nat_of_lit K' < length W);
      ASSERT(length (W ! (nat_of_lit K')) < length N);
-     let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L', b)]];
+     let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L, b)]];
      let S = set_watched_wl_heur W S;
      let S = set_clauses_wl_heur N' S;
      RETURN (j, w+1, S)

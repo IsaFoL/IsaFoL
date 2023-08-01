@@ -190,7 +190,7 @@ lemma update_clause_wl_heur_alt_def:
      N' \<leftarrow> mop_arena_swap C i f N;
      ASSERT(nat_of_lit K' < length W);
      ASSERT(length (W ! (nat_of_lit K')) < length N);
-     let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L', b)]];
+     let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L, b)]];
      let S = update_arena_wl_heur N' S;
      let S = update_watchlist_wl_heur W S;
      RETURN (j, w+1, S)
