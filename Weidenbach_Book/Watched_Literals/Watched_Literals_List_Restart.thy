@@ -3013,10 +3013,6 @@ proof -
     using 5 st by simp
 qed
 
-lemma (in -) fmdom_fmrestrict_set: \<open>fmdrop xa (fmrestrict_set s N) = fmrestrict_set (s - {xa}) N\<close>
-  by (rule fmap_ext_fmdom)
-   (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset)
-
 lemma (in -) GC_clauses_GC_remap:
   \<open>GC_clauses N fmempty \<le> SPEC(\<lambda>(N'', m). GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, m, N'') \<and>
     0 \<notin># dom_m N'')\<close>
@@ -3030,8 +3026,7 @@ proof -
       for a b :: \<open>nat list\<close>
   have I0: \<open>set_mset (dom_m N) \<subseteq> set x \<Longrightarrow> I [] x (N, fmempty, \<lambda>_. None)\<close> for x
     unfolding I_def
-    by (auto intro!: fmap_ext_fmdom simp: fset_fmdom_fmrestrict_set fmember.rep_eq
-      notin_fset dom_m_def)
+    by (auto intro!: fmap_ext_fmdom simp: fset_fmdom_fmrestrict_set dom_m_def)
 
   have I_drop: \<open>I (l1 @ [xa]) l2
        (fmdrop xa a, fmupd xb (a \<propto> xa, irred a xa) aa, ba(xa \<mapsto> xb))\<close>
