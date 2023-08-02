@@ -1386,10 +1386,11 @@ lemma enabled_set_singleton [simp]: \<open>enabled_set {\<C>} J \<longleftrighta
 
 (* Report theorem 19 *)
 theorem simplification_to_redundant:
-  \<open>split_pre \<C> Cs As \<Longrightarrow>
-    \<C> \<in> SRed\<^sub>F ({ AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) } \<union> fset As)\<close>
-  \<open>collect_pre \<C> \<M> \<Longrightarrow> \<C> \<in> SRed\<^sub>F \<M>\<close>
-  \<open>trim_pre \<C> A B \<M> \<Longrightarrow> \<C> \<in> SRed\<^sub>F (\<M> \<union> { AF.Pair (F_of \<C>) B })\<close>
+  shows 
+    split: \<open>split_pre \<C> Cs As \<Longrightarrow>
+      \<C> \<in> SRed\<^sub>F ({ AF.Pair bot (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>) } \<union> fset As)\<close> and
+    collect: \<open>collect_pre \<C> \<M> \<Longrightarrow> \<C> \<in> SRed\<^sub>F \<M>\<close> and
+    trim: \<open>trim_pre \<C> A B \<M> \<Longrightarrow> \<C> \<in> SRed\<^sub>F (\<M> \<union> { AF.Pair (F_of \<C>) B })\<close>
 proof -
   assume pre_cond: \<open>split_pre \<C> Cs As\<close>
   then have F_of_\<C>_not_bot: \<open>F_of \<C> \<noteq> bot\<close> and
@@ -1570,6 +1571,7 @@ inductive_set SInf2 :: \<open>('f, 'v) AF inference set\<close> where
   strong_unsat: \<open>strong_unsat_pre \<M> \<Longrightarrow> strong_unsat_inf \<M> \<in> SInf2\<close>
 | tauto: \<open>tauto_pre \<C> \<Longrightarrow> tauto_inf \<C> \<in> SInf2\<close>
 | approx: \<open>approx_pre a \<C> \<Longrightarrow> approx_inf \<C> a \<in> SInf2\<close> 
+| from_SInf: \<open>\<iota> \<in> SInf \<Longrightarrow> \<iota> \<in> SInf2\<close> 
 
 
 
@@ -1631,6 +1633,11 @@ proof -
       unfolding AF_entails_sound_def
       using approx
       by auto
+  next
+    case from_SInf
+    then show ?thesis
+      using SInf_sound_wrt_entails_sound[of \<iota>]
+      by blast 
   qed
 qed
 

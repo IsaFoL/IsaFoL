@@ -1,3 +1,6 @@
+(* Title:        Proof of compactness of first-order logic using ultraproducts
+ * Author:       Ghilain Bergeron <ghilain.bergeron at inria.fr>, 2023 *)
+
 theory FOL_Compactness
   imports
     Main
@@ -272,10 +275,6 @@ locale struct =
 
 definition is_vars :: \<open>'m set \<Rightarrow> ('v \<Rightarrow> 'm) \<Rightarrow> bool\<close> where
   [simp]: \<open>is_vars M \<beta> \<longleftrightarrow> (\<forall> v. \<beta> v \<in> M)\<close> 
-
-text \<open>
-  We are only interested in domains which are countable.
-\<close> 
 
 typedef ('f, 'p, 'm) model =
   \<open>{ (M :: 'm set, FN :: 'f \<Rightarrow> 'm list \<Rightarrow> 'm, REL :: 'p \<Rightarrow> 'm list set). struct M FN REL }\<close>
