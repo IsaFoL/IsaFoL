@@ -2002,6 +2002,9 @@ lemma mset_fset_fset_mset[simp]:
   \<open>mset_fset (fset_mset N) = remdups_mset N\<close>
   by (auto simp: fset.fset_inverse fset_mset_def Abs_fset_inverse remdups_mset_def)
 
+lemma in_fset_mset_mset[simp]: \<open>x |\<in>| fset_mset N \<longleftrightarrow> x \<in># N\<close>
+  by (auto simp: fset_mset_def Abs_fset_inverse)
+
 
 subsubsection \<open>Compact domain for finite maps\<close>
 

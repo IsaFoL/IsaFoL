@@ -1355,8 +1355,7 @@ lemma mop_hp_read_score_imp_mop_hp_read_score:
   shows \<open>mop_hp_read_score_imp h xs \<le> \<Down>nat_rel (mop_hp_read_score i ys)\<close>
   unfolding mop_hp_read_score_def case_prod_beta mop_hp_read_score_imp_def
   apply (refine_vcg mop_hp_read_score_imp_spec)
-  using assms apply  (auto simp: pairing_heaps_rel_def map_fun_rel_def dest!: multi_member_split)
-  done
+  using assms by (auto simp: pairing_heaps_rel_def map_fun_rel_def dest!: multi_member_split)
 
 end
 end

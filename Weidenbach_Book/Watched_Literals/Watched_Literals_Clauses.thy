@@ -67,6 +67,9 @@ abbreviation irred :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> bool\<
 
 definition irred' where \<open>irred' = irred\<close>
 
+lemma in_fset_mset_mset[simp]: \<open>x |\<in>| fset_mset N \<longleftrightarrow> x \<in># N\<close>
+  by (auto simp: fset_mset_def Abs_fset_inverse)
+
 lemma ran_m_ran: \<open>fset_mset (ran_m N) = fmran N\<close>
   unfolding ran_m_def ran_def
   apply (auto simp: fmlookup_ran_iff dom_m_def elim!: fmdomE)
