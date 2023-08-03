@@ -74,11 +74,8 @@ Weidenbach_Book:
 PAC:
 	$(RUN_ISABELLE2023) build -d '$$AFP' -d '$$ISABELLE_LLVM' -d 'Weidenbach_Book' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D PAC_Checker2
 
-Functional_Ordered_Resolution_Prover:
-	$(RUN_ISABELLE2023) build -d '$$ISAFOR' -o browser_info -o "document=pdf" -v -b -D Functional_Ordered_Resolution_Prover
-
 GRAT: HOL
-	$(RUN_ISABELLE2017) build -d '$$AFP' -o browser_info -o "document=pdf" -v -b -D GRAT/gratchk
+	$(RUN_ISABELLE2023) build -d '$$AFP' -o browser_info -o "document=pdf" -v -b -D GRAT/gratchk
 
 FOL_Berghofer: HOL
 	$(RUN_ISABELLE2023) build -j 4 -v -b -D FOL_Berghofer -D FOL_Monk -D Sequent_Calculus -D Simple_Prover
@@ -86,7 +83,7 @@ FOL_Berghofer: HOL
 Unordered_Resolution: HOL
 	$(RUN_ISABELLE2023) build -j 4 -v -d '$$AFP' -d '$$ISAFOR' -b -D Unordered_Resolution
 
-all: Weidenbach_Book GRAT FOL_Berghofer Saturation_Framework
+all: Weidenbach_Book GRAT FOL_Berghofer Unordered_Resolution
 
 # build the documentation and the files
 current: Ordered_Resolution_Prover Functional_Ordered_Resolution_Prover
@@ -110,4 +107,4 @@ clean:
 	rm -rf $(DESTINATION)/current
 
 
-.PHONY: Weidenbach_Book Ordered_Resolution_Prover Unordered_Resolution Functional_Ordered_Resolution_Prover Saturation_Framework PAC
+.PHONY: Weidenbach_Book Ordered_Resolution_Prover Unordered_Resolution Functional_Ordered_Resolution_Prover PAC
