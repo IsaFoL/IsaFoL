@@ -67,11 +67,14 @@ abbreviation irred :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> bool\<
 
 definition irred' where \<open>irred' = irred\<close>
 
+lemma in_fset_mset_mset[simp]: \<open>x |\<in>| fset_mset N \<longleftrightarrow> x \<in># N\<close>
+  by (auto simp: fset_mset_def Abs_fset_inverse)
+
 lemma ran_m_ran: \<open>fset_mset (ran_m N) = fmran N\<close>
   unfolding ran_m_def ran_def
   apply (auto simp: fmlookup_ran_iff dom_m_def elim!: fmdomE)
-   apply (metis fmdomE notin_fset option.sel)
-  by (metis (no_types, lifting) fmdomI fmember.rep_eq image_iff option.sel)
+   apply (metis fmdomE option.sel)
+  by (metis (no_types, lifting) fmdomI image_iff option.sel)
 
 lemma ran_m_clause_upd:
   assumes
@@ -170,7 +173,7 @@ lemma ran_mf_lf_fmdrop_notin[simp]:
 
 lemma lookup_None_notin_dom_m[simp]:
   \<open>fmlookup N i = None \<longleftrightarrow> i \<notin># dom_m N\<close>
-  by (auto simp: dom_m_def fmlookup_dom_iff fmember.rep_eq[symmetric])
+  by (auto simp: dom_m_def fmlookup_dom_iff)
 
 text \<open>While it is tempting to mark the two following theorems as [simp], this would break more
   simplifications since \<^term>\<open>ran_mf\<close> is only an abbreviation for \<^term>\<open>ran_m\<close>.

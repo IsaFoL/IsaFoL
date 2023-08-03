@@ -8,6 +8,7 @@ ISABELLE2020=/home/mathias/Documents/isabelle/Isabelle2020
 ISABELLE2021=/home/mathias/Documents/isabelle/Isabelle2021
 ISABELLE20211=/home/mathias/Documents/isabelle/Isabelle2021-1
 ISABELLE2022=/home/mathias/Documents/isabelle/Isabelle2022
+ISABELLE2023=/home/mathias/Documents/isabelle/Isabelle2023
 ISABELLE=/home/mathias/Documents/isabelle/isabelle
 
 # the concrete path to the isabelle executable
@@ -18,6 +19,7 @@ RUN_ISABELLE2020="$(ISABELLE2020)/bin/isabelle"
 RUN_ISABELLE2021="$(ISABELLE2021)/bin/isabelle"
 RUN_ISABELLE20211="$(ISABELLE20211)/bin/isabelle"
 RUN_ISABELLE2022="$(ISABELLE2022)/bin/isabelle"
+RUN_ISABELLE2023="$(ISABELLE2023)/bin/isabelle"
 RUN_ISABELLE="$(ISABELLE)/bin/isabelle"
 
 # destination of the documentation
@@ -27,6 +29,7 @@ ISABELLE2020_HOME=/home/mathias/.isabelle/Isabelle2020/browser_info
 ISABELLE2021_HOME=/home/mathias/.isabelle/Isabelle2021/browser_info
 ISABELLE20211_HOME=/home/mathias/.isabelle/Isabelle2021-1/browser_info
 ISABELLE2022_HOME=/home/mathias/.isabelle/Isabelle2022/browser_info
+ISABELLE2023_HOME=/home/mathias/.isabelle/Isabelle2023-RC2/browser_info
 ISABELLE_HOME=/home/mathias/.isabelle/browser_info
 
 # some more paths to extract the version
@@ -62,28 +65,25 @@ test_vars:
 	echo "IsaFoL: $(ISAFOL_version)"
 
 HOL:
-	$(RUN_ISABELLE2022) build -b HOL
+	$(RUN_ISABELLE2023) build -b HOL
 
 Weidenbach_Book:
-	$(RUN_ISABELLE2022) build -d '$$AFP' -b Sepref_IICF
-	$(RUN_ISABELLE2022) build -d '$$AFP' -d '$$ISABELLE_LLVM' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
+	$(RUN_ISABELLE2023) build -d '$$AFP' -b Sepref_IICF
+	$(RUN_ISABELLE2023) build -d '$$AFP' -d '$$ISABELLE_LLVM' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
 
 PAC:
-	$(RUN_ISABELLE2022) build -d '$$AFP' -d '$$ISABELLE_LLVM' -d 'Weidenbach_Book' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D PAC_Checker2
-
-Functional_Ordered_Resolution_Prover:
-	$(RUN_ISABELLE2022) build -d '$$ISAFOR' -o browser_info -o "document=pdf" -v -b -D Functional_Ordered_Resolution_Prover
+	$(RUN_ISABELLE2023) build -d '$$AFP' -d '$$ISABELLE_LLVM' -d 'Weidenbach_Book' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D PAC_Checker2
 
 GRAT: HOL
-	$(RUN_ISABELLE2017) build -d '$$AFP' -o browser_info -o "document=pdf" -v -b -D GRAT/gratchk
+	$(RUN_ISABELLE2023) build -d '$$AFP' -o browser_info -o "document=pdf" -v -b -D GRAT/gratchk
 
 FOL_Berghofer: HOL
-	$(RUN_ISABELLE2022) build -j 4 -v -b -D FOL_Berghofer -D FOL_Monk -D Sequent_Calculus -D Simple_Prover
+	$(RUN_ISABELLE2023) build -j 4 -v -b -D FOL_Berghofer -D FOL_Monk -D Sequent_Calculus -D Simple_Prover
 
 Unordered_Resolution: HOL
-	$(RUN_ISABELLE2022) build -j 4 -v -d '$$AFP' -d '$$ISAFOR' -b -D Unordered_Resolution
+	$(RUN_ISABELLE2023) build -j 4 -v -d '$$AFP' -d '$$ISAFOR' -b -D Unordered_Resolution
 
-all: Weidenbach_Book GRAT FOL_Berghofer Saturation_Framework
+all: Weidenbach_Book GRAT FOL_Berghofer Unordered_Resolution
 
 # build the documentation and the files
 current: Ordered_Resolution_Prover Functional_Ordered_Resolution_Prover
@@ -107,4 +107,4 @@ clean:
 	rm -rf $(DESTINATION)/current
 
 
-.PHONY: Weidenbach_Book Ordered_Resolution_Prover Unordered_Resolution Functional_Ordered_Resolution_Prover Saturation_Framework PAC
+.PHONY: Weidenbach_Book Ordered_Resolution_Prover Unordered_Resolution Functional_Ordered_Resolution_Prover PAC

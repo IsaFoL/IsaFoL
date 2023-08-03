@@ -144,14 +144,18 @@ end (*struct Uint64*)
 
 
 
-structure Bits_Integer : sig
+structure Integer_Bit : sig
+  val test_bit : IntInf.int -> IntInf.int -> bool
   val set_bit : IntInf.int -> IntInf.int -> bool -> IntInf.int
   val shiftl : IntInf.int -> IntInf.int -> IntInf.int
   val shiftr : IntInf.int -> IntInf.int -> IntInf.int
-  val test_bit : IntInf.int -> IntInf.int -> bool
 end = struct
 
 val maxWord = IntInf.pow (2, Word.wordSize);
+
+fun test_bit x n =
+  if n < maxWord then IntInf.andb (x, IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n))) <> 0
+  else raise (Fail ("Bit index too large: " ^ IntInf.toString n));
 
 fun set_bit x n b =
   if n < maxWord then
@@ -167,11 +171,28 @@ fun shiftr x n =
   if n < maxWord then IntInf.~>> (x, Word.fromLargeInt (IntInf.toLarge n))
   else raise (Fail ("Shift operand too large: " ^ IntInf.toString n));
 
-fun test_bit x n =
-  if n < maxWord then IntInf.andb (x, IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n))) <> 0
-  else raise (Fail ("Bit index too large: " ^ IntInf.toString n));
+end; (*struct Integer_Bit*)
 
-end; (*struct Bits_Integer*)
+structure Str_Literal =
+struct
+
+fun map f [] = []
+  | map f (x :: xs) = f x :: map f xs; (* deliberate clone not relying on List._ module *)
+
+fun check_ascii (k : IntInf.int) =
+  if 0 <= k andalso k < 128
+  then k
+  else raise Fail "Non-ASCII character in literal";
+
+val char_of_ascii = Char.chr o IntInf.toInt o check_ascii;
+
+val ascii_of_char = check_ascii o IntInf.fromInt o Char.ord;
+
+val literal_of_asciis = String.implode o map char_of_ascii;
+
+val asciis_of_literal = map ascii_of_char o String.explode;
+
+end;
 
 structure PAC_Checker : sig
   datatype int = Int_of_integer of IntInf.int
@@ -575,10 +596,7 @@ fun integer_of_char (Chara (b0, b1, b2, b3, b4, b5, b6, b7)) =
 fun map f [] = []
   | map f (x21 :: x22) = f x21 :: map f x22;
 
-fun implode cs =
-  (String.implode
-    o List.map (fn k => if 0 <= k andalso k < 128 then (Char.chr o IntInf.toInt) k else raise Fail "Non-ASCII character in literal"))
-    (map integer_of_char cs);
+fun implode cs = Str_Literal.literal_of_asciis (map integer_of_char cs);
 
 val default_literala : string = implode [];
 
@@ -1011,17 +1029,12 @@ fun char_of_integer k = let
                           val (q4, b4) = bit_cut_integer q3;
                           val (q5, b5) = bit_cut_integer q4;
                           val (q6, b6) = bit_cut_integer q5;
-                          val a = bit_cut_integer q6;
-                          val (_, aa) = a;
+                          val (_, a) = bit_cut_integer q6;
                         in
-                          Chara (b0, b1, b2, b3, b4, b5, b6, aa)
+                          Chara (b0, b1, b2, b3, b4, b5, b6, a)
                         end;
 
-fun explode s =
-  map char_of_integer
-    ((List.map (fn c => let val k = Char.ord c in if k < 128 then IntInf.fromInt k else raise Fail "Non-ASCII character in literal" end) 
-       o String.explode)
-      s);
+fun explode s = map char_of_integer (Str_Literal.asciis_of_literal s);
 
 fun msort2 f (v :: vb :: va :: vd) =
   merge f
@@ -1205,7 +1218,7 @@ fun sort_all_coeffs_impl x =
 fun pAC_update_impl x =
   iam_update (heap_list (heap_prod (heap_list heap_literal) heap_int)) x;
 
-val version : string = "5d9f5c24";
+val version : string = "ba04de96";
 
 fun is_CL (CL (x11, x12, x13)) = true
   | is_CL (Extension (x21, x22, x23)) = false
