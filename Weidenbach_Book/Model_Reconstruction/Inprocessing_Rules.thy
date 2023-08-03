@@ -45,21 +45,23 @@ lemma redundancyD_old:
 
 inductive rules :: "'v clauses \<times> 'v clauses \<times>  'v stackWit \<times> 'v set \<Rightarrow> 'v clauses \<times> 'v clauses \<times> 'v stackWit \<times> 'v set \<Rightarrow> bool" where
   drop: 
-  "rules (({#C#}+N), R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
+  "rules (add_mset C N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
+        (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
 if "set_mset N \<Turnstile>p C"|
   strenghten:
-  "rules (N, ({#C#}+R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (({#C#}+N), R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))" |
+  "rules (N, add_mset C R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (add_mset C N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))" |
   weakenp:
-  "rules (N+{#C#}, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, R, (S @ [Witness I C]), V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
+  "rules (add_mset C N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
+        (N, R, (S @ [Witness I C]), V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
 if "I \<Turnstile> C"  and "redundancy N C I N" and "consistent_interp I " and "atm_of ` I \<subseteq> V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)" |
   forget:
-  "rules (N, ({#C#}+R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))" |
+  "rules (N, add_mset C R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))" |
   learn_minus:
-  "rules (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, ({#C#}+R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
+  "rules (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) (N, add_mset C R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
 if "(set_mset (N) \<union> set_mset(R)) \<Turnstile>p C" and "distinct_mset C" |
   learn_plus:
   "rules (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) 
-       ({#C#}+N, (R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
+       (add_mset C N, (R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
 if \<open>satisfiable (set_mset (N+R)) \<longrightarrow> satisfiable (set_mset (add_mset C (N+R)))\<close>
   "distinct_mset C"
 
@@ -381,11 +383,8 @@ lemma interpr_sat:
   using assms
 proof(induction rule: rules_induct)
   case (drop N C R S V) note N = this(3) and cons = this(4) and all = this(3, 4) and sub = this(5)
-  have rul:"rules (({#C#}+N), R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
-            (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
-    using drop.hyps rules.drop by blast
   have cons:"consistent_interp I" 
-    using interp_is_cons rul all assms(4) sub by blast
+    using interp_is_cons all assms(4) sub by blast
   have "total_over_m I (set_mset(N + R + {#C#}))" 
     using sub by (simp add: atms_of_s_def total_over_m_alt_def)
   hence "I \<Turnstile> C" 
@@ -459,11 +458,8 @@ next
   then show ?case by auto
 next
   case (weakenp I' C N V R S) note A1 = this(1) and A2 = this(2) and A3 = this(3) and A4= this(4) and A5 = this(5)  and A6 = this(6)
-  have "rules (N+{#C#}, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
-        (N, R, (S @ [Witness I' C]), V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
-    using A1 A2 A3 A4 rules.weakenp apply auto by blast
-  hence "atm_of ` reconstruction_stack (drop (length S) (S @ [Witness I' C])) I = atm_of ` I"
-    using atms_equal A5 A6 by blast
+  then have "atm_of ` reconstruction_stack (drop (length S) (S @ [Witness I' C])) I = atm_of ` I"
+    using atms_equal A5 A6 by  (auto simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set interpr_composition_def)
   then show ?case using A6 by auto
 next
   case (forget N C R S V)
@@ -518,8 +514,8 @@ qed
 
 lemma interpr_sat_all:
   assumes "rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V')" and "N + wit_clause `# mset S \<Turnstile>psm R" and
-    "I  \<Turnstile>m N'"  and "consistent_interp I" 
-    and "V' \<subseteq> atm_of ` I"
+    "I  \<Turnstile>m N'"  and "consistent_interp I" and
+    "V' \<subseteq> atm_of ` I"
   shows "(reconstruction_stack (drop (length S) S') I) \<Turnstile>m N"
   using assms
 proof (induction arbitrary: I rule: rtranclp_induct4)
@@ -527,8 +523,6 @@ proof (induction arbitrary: I rule: rtranclp_induct4)
   then show ?case by auto
 next
   case (step N' R' S' V' N'' R'' S'' V'' I)  note  at = this(7) and A1 = this(1) and cons = this(6) and A5 = this(5) and A2 = this(2) and A3 = this(3) and A4 = this(4)
-  have ruls2:  "rules\<^sup>*\<^sup>* (N, R, S, V) (N'', R'', S'', V'')" 
-    using A1 A2 by auto
   have add:"N' + wit_clause `# mset S' \<Turnstile>psm R'"
     using rtranclp_irredundant_entail_redundant assms(1) assms(2) using  step.hyps(1) by blast 
   have add2: "N'' + wit_clause `# mset S'' \<Turnstile>psm R''" 
@@ -572,18 +566,18 @@ lemma sat:
 proof(induction rule: rules_induct)
   case (drop N C R S V) note A2 = this(2)
   then show ?case
-    by (metis mset_subset_eq_add_right set_mset_mono subset_mset.add_right_mono unsatisfiable_mono)
+    by (metis add.commute add.right_neutral satisfiable_decreasing set_mset_union union_mset_add_mset_right)
 next
   case (strenghten N C R S V)
   then show ?case by auto
 next
   case (weakenp I C N R S V) note A5 = this(5)
   then show ?case
-    by (metis mset_subset_eq_add_left set_mset_mono subset_mset.add_right_mono unsatisfiable_mono)
+    by (metis add.commute add.right_neutral satisfiable_decreasing set_mset_union union_mset_add_mset_right)
 next
   case (forget N C R S V)
   then show ?case using satisfiable_decreasing
-    by (smt (verit) set_mset_union union_commute union_lcomm) 
+    by (metis set_mset_mono subset_mset.order_refl subset_mset_trans_add_mset union_mset_add_mset_right unsatisfiable_mono)
 next
   case (learn_minus N R C S V) note A1 = this(1) and A3 = this(3)
   have ent: "(\<forall>I. total_over_m I (set_mset N \<union> set_mset R \<union> {C}) \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile>s set_mset(N+R) \<longrightarrow> I \<Turnstile> C)" 
@@ -635,29 +629,29 @@ lemma unsat:
   using assms
 proof(induction rule: rules_induct)
   case (drop N C R S V) note A2 = this(2)
-  have "R + N \<subseteq># {#C#} + R + N" 
+  have "R + N \<subseteq># R + add_mset C N" 
     by auto
   then show ?case
-    using unsatisfiable_mono A2 by (metis set_mset_mono union_assoc union_commute) 
+    using unsatisfiable_mono A2 by (metis set_mset_mono union_commute) 
 next
   case (strenghten C N R S V)
   then show ?case by auto
 next
   case (weakenp I' C N V R S) note A5 = this(5)
-  have "R + N \<subseteq># {#C#} + R + N" 
+  have "R + N \<subseteq># R + add_mset C N" 
     by auto
   then show ?case 
-    using unsatisfiable_mono A5 by (metis set_mset_mono union_assoc union_commute)
+    using unsatisfiable_mono A5 by (metis set_mset_mono union_commute)
 next
   case (forget N C R S V) note A1 = this(1)
-  have "R + N \<subseteq># {#C#} + R + N"
+  have "R + N \<subseteq># add_mset C R + N"
     by auto
   then show ?case
     using unsatisfiable_mono A1 by (metis set_mset_mono union_commute)
 next
   case (learn_minus N R C S V) note A1 = this(1) and A2 = this(2) and A3 = this(3)
   have rul: "rules (N, R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
-            (N, ({#C#}+R), S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
+            (N, add_mset C R, S, V \<union> atms_of C \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
     using A1 A2 rules.learn_minus by blast 
   show "unsatisfiable (set_mset (N + R))"
   proof (rule ccontr)
