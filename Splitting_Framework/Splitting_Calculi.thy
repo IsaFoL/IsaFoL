@@ -2027,21 +2027,19 @@ text \<open>
 \<close>
 
 (* Report definition 23 *)
-definition locally_saturated :: \<open>('f, 'v) AF inference set \<Rightarrow> (('f, 'v) AF set \<Rightarrow>
-  ('f, 'v) AF inference set) \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> where
-  \<open>locally_saturated S_Inf SRed_I \<N> \<equiv>
+definition locally_saturated :: \<open>('f, 'v) AF set \<Rightarrow> bool\<close> where
+  \<open>locally_saturated \<N> \<equiv>
     to_AF bot \<in> \<N> \<or>
     (\<exists> J :: 'v total_interpretation. J \<Turnstile>\<^sub>p \<N> \<and> saturated (\<N> proj\<^sub>J J))\<close>
     (* NOTE: in the paper, the propositional projection is explicit.
      * In our case, it is hidden within the definition for @{const propositional_model}. *)
-(* NOTE: what's the point of S_Inf and SRed_I if we are not using them in our definition? *)
 
 
 
 (* Report theorem 24 *)
 theorem S_calculus_strong_statically_complete:
   assumes F_statically_complete: \<open>statically_complete_calculus bot Inf (\<Turnstile>) Red_I Red_F\<close> and
-          \<N>_locally_saturated: \<open>locally_saturated SInf SRed\<^sub>I \<N>\<close> and
+          \<N>_locally_saturated: \<open>locally_saturated \<N>\<close> and
           \<N>_entails_bot: \<open>\<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
   shows \<open>to_AF bot \<in> \<N>\<close>
   using \<N>_locally_saturated
@@ -2069,14 +2067,11 @@ qed
 
 
 (* Report definition 26 *)
-definition locally_fair :: \<open>('f, 'v) AF set infinite_llist \<Rightarrow> ('f, 'v) AF inference set \<Rightarrow>
-  (('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set) \<Rightarrow> bool\<close> where
-  \<open>locally_fair \<N>i S_Inf SRed_I \<equiv>
+definition locally_fair :: \<open>('f, 'v) AF set infinite_llist \<Rightarrow> bool\<close> where
+  \<open>locally_fair \<N>i \<equiv>
      (\<exists> i. to_AF bot \<in> llnth \<N>i i)
    \<or> (\<exists> J :: 'v total_interpretation. J \<Turnstile>\<^sub>p lim_inf \<N>i \<and>
         Inf_from (lim_inf \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red_I (llnth \<N>i i proj\<^sub>J J)))\<close>
-(* NOTE: same as for the definition of @{const locally_saturated}, we are not using \<open>S_inf\<close> nor
- * \<open>SRed_I\<close> so should we really keep them? :*)
 
 (*<*)
 lemma SRed_of_lim_inf:
@@ -2165,12 +2160,11 @@ qed
 
 (* Report lemma 27 *)
 lemma locally_fair_derivation_is_saturated_at_liminf:
-  \<open>is_derivation S_calculus.derive \<N>i \<Longrightarrow> locally_fair \<N>i SInf SRed\<^sub>I \<Longrightarrow>
-   locally_saturated SInf SRed\<^sub>I (lim_inf \<N>i)\<close>
+  \<open>is_derivation S_calculus.derive \<N>i \<Longrightarrow> locally_fair \<N>i \<Longrightarrow> locally_saturated (lim_inf \<N>i)\<close>
 proof -
   assume \<N>i_is_derivation: \<open>is_derivation S_calculus.derive \<N>i\<close> and
-         \<open>locally_fair \<N>i SInf SRed\<^sub>I\<close>
-  then show \<open>locally_saturated SInf SRed\<^sub>I (lim_inf \<N>i)\<close>
+         \<open>locally_fair \<N>i\<close>
+  then show \<open>locally_saturated (lim_inf \<N>i)\<close>
     unfolding locally_fair_def
   proof (elim disjE)
     assume \<open>\<exists> i. to_AF bot \<in> llnth \<N>i i\<close>
@@ -2221,7 +2215,7 @@ lemma llhd_is_llnth_0: \<open>llhd S = llnth S 0\<close>
 theorem S_calculus_strong_dynamically_complete1:
   assumes F_statically_complete: \<open>statically_complete_calculus bot Inf (\<Turnstile>) Red_I Red_F\<close> and
           \<N>i_is_derivation: \<open>is_derivation S_calculus.derive \<N>i\<close> and
-          \<N>i_is_locally_fair: \<open>locally_fair \<N>i SInf SRed\<^sub>I\<close> and
+          \<N>i_is_locally_fair: \<open>locally_fair \<N>i\<close> and
           \<N>i0_entails_bot: \<open>llhd \<N>i \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
   shows \<open>\<exists> i. to_AF bot \<in> llnth \<N>i i\<close>
 proof -
@@ -2244,7 +2238,7 @@ proof -
     by (transfer fixing: Red_F, unfold Sup_llist_def Liminf_llist_def, auto)
   ultimately have \<N>i_inf_entails_bot: \<open>lim_inf \<N>i \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
     by (meson AF_cons_rel.entails_subsets subset_iff)
-  then have \<N>i_inf_locally_saturated: \<open>locally_saturated SInf SRed\<^sub>I (lim_inf \<N>i)\<close>
+  then have \<N>i_inf_locally_saturated: \<open>locally_saturated (lim_inf \<N>i)\<close>
     using \<N>i_is_derivation \<N>i_is_locally_fair
     using locally_fair_derivation_is_saturated_at_liminf
     by blast
