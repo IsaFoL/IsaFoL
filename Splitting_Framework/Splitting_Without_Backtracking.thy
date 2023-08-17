@@ -933,6 +933,7 @@ qed
 lemma unsat_supsets: \<open>M \<TTurnstile>\<inter>\<G>e {{#}} \<Longrightarrow> M \<union> M' \<TTurnstile>\<inter>\<G>e {{#}}\<close>
   using F.entails_trans F.subset_entailed
   by blast
+(*>*)
 
 (* Property (D3) *) 
 lemma entails_\<G>_disj_subsets: \<open>M' \<subseteq> M \<Longrightarrow> N' \<subseteq> N \<Longrightarrow> M' \<TTurnstile>\<union>\<G>e N' \<Longrightarrow> M \<TTurnstile>\<union>\<G>e N\<close>
@@ -1127,18 +1128,9 @@ qed
 
 lemma bottom_never_redundant: \<open>{#} \<notin> F.Red_F_\<G>_empty N\<close>
   unfolding F.Red_F_\<G>_empty_def F.Red_F_\<G>_empty_q_def G.Red_F_def
-  by auto  
+  by auto
 
-lemma \<open>i < length A \<Longrightarrow> i < length \<rho>s \<Longrightarrow> A ! i = x \<Longrightarrow> (A \<cdot>\<cdot>cl \<rho>s) ! i = x \<cdot> (\<rho>s ! i)\<close>
-  unfolding subst_cls_lists_def 
-  by auto  
-
-lemma \<open>A - {x \<in> A. P x} = {x \<in> A. \<not> P x}\<close>
-  by blast 
-
-lemma \<open>\<not> A \<subseteq> - B \<longleftrightarrow> (\<exists> D \<in> A. D \<in> B)\<close>
-  by blast 
-
+(* TODO: finish that proof!!! *)
 lemma Inf_from_Red_F_subset_Red_I:
   \<open>F.Inf_between UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.Red_I_\<G> N\<close>
 proof -
@@ -1331,40 +1323,6 @@ proof standard
     by blast
 qed
 
-(* Taken from file \<^file>\<open>Preliminaries_With_Zorn.thy\<close> and modified accordingly. *)
-interpretation strict_calculus:
-  statically_complete_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> LA_is_calculus.Red_I_strict
-  LA_is_calculus.Red_F_strict
-proof -
-  interpret strict_calc: calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> LA_is_calculus.Red_I_strict
-    LA_is_calculus.Red_F_strict
-  using LA_is_calculus.strict_calc_if_nobot bottom_never_redundant by blast 
-    (* next property is not needed for the proof, but it is one of the claims from Rmk 3
-    that must be verified *)
-  have \<open>LA_is_calculus.saturated N \<Longrightarrow> strict_calc.saturated N\<close>
-    unfolding LA_is_calculus.saturated_def strict_calc.saturated_def
-      LA_is_calculus.Red_I_strict_def by blast
-  have \<open>strict_calc.saturated N \<Longrightarrow> N \<TTurnstile>\<union>\<G>e {{#}} \<Longrightarrow> {#} \<in> N\<close> for N
-  proof -
-    assume
-      strict_sat: "strict_calc.saturated N" and
-      entails_bot: "N \<TTurnstile>\<union>\<G>e {{#}}"
-    have \<open>{#} \<notin> N \<Longrightarrow> LA_is_calculus.Red_I_strict N = F.Red_I_\<G> N\<close>
-      unfolding LA_is_calculus.Red_I_strict_def by simp
-    then have \<open>{#} \<notin> N \<Longrightarrow> LA_is_calculus.saturated N\<close>
-      unfolding LA_is_calculus.saturated_def using strict_sat
-      by (simp add: strict_calc.saturated_def)
-    then have \<open>{#} \<notin> N \<Longrightarrow> {#} \<in> N\<close>
-      using entails_bot statically_complete by blast
-      (* using statically_complete[OF _ entails_bot] by simp *) 
-    then show \<open>{#} \<in> N\<close> by auto 
-  qed
-  then show \<open>statically_complete_calculus {#} F_Inf (\<TTurnstile>\<union>\<G>e) LA_is_calculus.Red_I_strict
-    LA_is_calculus.Red_F_strict\<close>
-    unfolding statically_complete_calculus_def statically_complete_calculus_axioms_def
-    using strict_calc.calculus_axioms by blast
-qed
-
 interpretation LA_is_sound_calculus: sound_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
   F.Red_I_\<G> F.Red_F_\<G>_empty 
   using LA_is_calculus.Red_I_to_Inf LA_is_calculus.Red_F_Bot  LA_is_calculus.Red_F_of_subset 
@@ -1372,16 +1330,8 @@ interpretation LA_is_sound_calculus: sound_calculus \<open>{#}\<close> F_Inf \<o
         LA_is_calculus.Red_I_of_Red_F_subset LA_is_calculus.Red_I_of_Inf_to_N
   by (unfold_locales, presburger+) 
 
-interpretation sound_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close> LA_is_calculus.Red_I_strict
-  LA_is_calculus.Red_F_strict
-  using strict_calculus.Red_I_to_Inf LA_is_calculus.Red_F_strict_def strict_calculus.Red_F_Bot  
-        strict_calculus.Red_F_of_subset strict_calculus.Red_I_of_subset
-        strict_calculus.Red_F_of_Red_F_subset strict_calculus.Red_I_of_Red_F_subset  
-        strict_calculus.Red_I_of_Inf_to_N
-  by unfold_locales presburger+
-
 interpretation LA_is_AF_calculus: AF_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
-  LA_is_calculus.Red_I_strict LA_is_calculus.Red_F_strict fml asn
+  F.Red_I_\<G> F.Red_F_\<G>_empty fml asn
 proof standard
   show \<open>\<And> M N. M \<TTurnstile>\<union>\<G>e N \<Longrightarrow> \<exists> M' \<subseteq> M. \<exists> N' \<subseteq> N. finite M' \<and> finite N' \<and> M' \<TTurnstile>\<union>\<G>e N'\<close>
     using entails_\<G>_disj_compactness
@@ -1403,20 +1353,23 @@ lemma empty_not_unsat: \<open>\<not> {} \<TTurnstile>\<inter>\<G>e {{#}}\<close>
 (*>*)
 
 sublocale splitting_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
-  LA_is_calculus.Red_I_strict LA_is_calculus.Red_F_strict fml asn 
+  F.Red_I_\<G> F.Red_F_\<G>_empty fml asn 
 proof standard
   show \<open>\<not> {} \<TTurnstile>\<union>\<G>e {}\<close>
     unfolding entails_\<G>_disj_def 
     using empty_not_unsat
     by blast
-  show \<open>\<And> N. F.Inf_between UNIV (LA_is_calculus.Red_F_strict N) \<subseteq> LA_is_calculus.Red_I_strict N\<close>
-    unfolding LA_is_calculus.Red_F_strict_def LA_is_calculus.Red_I_strict_def 
+  show \<open>\<And> N. F.Inf_between UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.Red_I_\<G> N\<close>
+    using Inf_from_Red_F_subset_Red_I
+    by blast
+    (* unfolding LA_is_calculus.Red_F_strict_def LA_is_calculus.Red_I_strict_def 
     by (smt (verit, del_insts) F.Inf_between_mono Inf_from_Red_F_subset_Red_I
-        inference_system.Inf_if_Inf_between mem_Collect_eq subsetD subsetI)
-  show \<open>\<And> N. {#} \<notin> LA_is_calculus.Red_F_strict N\<close> 
-    by (fact strict_calculus.nobot_in_Red) 
-  show \<open>\<And> \<C>. \<C> \<noteq> {#} \<Longrightarrow> \<C> \<in> LA_is_calculus.Red_F_strict {{#}}\<close>
-    using LA_is_calculus.Red_F_strict_def
+        inference_system.Inf_if_Inf_between mem_Collect_eq subsetD subsetI) *) 
+  show \<open>\<And> N. {#} \<notin> F.Red_F_\<G>_empty N\<close>
+    using nobot_in_Red
+    by blast 
+  show \<open>\<And> \<C>. \<C> \<noteq> {#} \<Longrightarrow> \<C> \<in> F.Red_F_\<G>_empty {{#}}\<close>
+    using all_redundant_to_bottom
     by blast
 qed
 
@@ -1702,7 +1655,7 @@ proof -
     qed
     then show ?thesis
       unfolding SRed\<^sub>F_def
-      by (simp add: LA_is_calculus.Red_F_strict_def) 
+      by simp 
   qed
 qed
 
