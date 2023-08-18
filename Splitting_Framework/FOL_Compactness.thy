@@ -2822,5 +2822,8 @@ qed
 theorem sat_compactness: \<open>satisfiable T \<longleftrightarrow> (\<forall> T' \<subseteq> T. finite T' \<longrightarrow> satisfiable T')\<close>
   using sat_compactness1 sat_compactness2
   by blast 
+
+corollary unsat_compactness: \<open>unsatisfiable T \<longleftrightarrow> (\<exists> T' \<subseteq> T. finite T' \<and> unsatisfiable T')\<close>
+  by (meson sat_compactness)
    
 end (* theory *) 

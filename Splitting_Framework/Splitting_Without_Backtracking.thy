@@ -10,6 +10,9 @@ theory Splitting_Without_Backtracking
     (* Saturation_Framework_Extensions.Clausal_Calculus *) 
 begin
 
+(*commit_ignore_start*)
+sledgehammer_params[provers="cvc4 cvc5 verit z3 e iprover leo2 leo3 satallax spass vampire zipperposition"]
+(*commit_ignore_end*)
 
 subsection \<open>Splitting without Backtracking\<close>
 
@@ -1131,8 +1134,7 @@ lemma bottom_never_redundant: \<open>{#} \<notin> F.Red_F_\<G>_empty N\<close>
   by auto
 
 (* TODO: finish that proof!!! *)
-lemma Inf_from_Red_F_subset_Red_I:
-  \<open>F.Inf_between UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.Red_I_\<G> N\<close>
+lemma Inf_from_Red_F_subset_Red_I: \<open>F.Inf_between UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.Red_I_\<G> N\<close> 
 proof -
   have \<open>\<G>_I M \<iota> \<subseteq> G.Red_I M (\<G>_Fset N)\<close>
     if
@@ -1362,9 +1364,6 @@ proof standard
   show \<open>\<And> N. F.Inf_between UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.Red_I_\<G> N\<close>
     using Inf_from_Red_F_subset_Red_I
     by blast
-    (* unfolding LA_is_calculus.Red_F_strict_def LA_is_calculus.Red_I_strict_def 
-    by (smt (verit, del_insts) F.Inf_between_mono Inf_from_Red_F_subset_Red_I
-        inference_system.Inf_if_Inf_between mem_Collect_eq subsetD subsetI) *) 
   show \<open>\<And> N. {#} \<notin> F.Red_F_\<G>_empty N\<close>
     using nobot_in_Red
     by blast 
