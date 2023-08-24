@@ -61,16 +61,20 @@ proof (rule rules.intros(6))
 qed
 
 lemma compose_model_after_safe_assign:
-  assumes "I \<Turnstile>m N" "consistent_interp I" "safe_assign v N Nv" "\<forall>C \<in># Nv. -v \<in># C" "\<forall>C \<in># N. -v \<notin># C"
+  assumes "I \<Turnstile>m N + {#{#-v#}#}" "consistent_interp I" "safe_assign v N Nv" and
+    Nv: "\<forall>C \<in># Nv. -v \<in># C" "\<forall>C \<in># N. -v \<notin># C"
   shows "interpr_composition I {-v} \<Turnstile>m (N + Nv)"
   using assms
 proof -
+  have [intro]: \<open>-v \<in> I\<close> and [simp]: \<open>I \<^bold>\<circ> {- v} = I\<close>
+    using assms(1,2) by (auto simp: interpr_composition_def consistent_interp_def)
   have 1:"interpr_composition I {-v} \<Turnstile>m (N + Nv)" if A:"interpr_composition I {v} \<Turnstile>m  (N + Nv)"
     using safe_assign_notv[of v N Nv I] assms(2, 3, 4, 5) A by auto
   hence 3:"interpr_composition I {-v} \<Turnstile> C" if A:"interpr_composition I {v} \<Turnstile>m  (N + Nv)" and B: "C \<in># (N + Nv)" for C using A B
     using true_cls_mset_def by blast
       (*Der nächste Schritt gilt eher nicht? *)
-  hence 2:"interpr_composition I {-v} \<Turnstile> C" if A:"interpr_composition I {v} \<Turnstile>  C" and B: "C \<in># (N + Nv)" for C using A B apply auto sorry
+  hence 2:"interpr_composition I {-v} \<Turnstile> C" if A:"interpr_composition I {v} \<Turnstile>  C" and B: "C \<in># (N + Nv)" for C
+    using assms(1) A B Nv by (auto dest!: multi_member_split)
   have "{-v} \<Turnstile>m Nv" using assms(4)
     by (metis insert_DiffM singletonI true_cls_add_mset true_cls_mset_def)
   hence Nv: "interpr_composition I {-v} \<Turnstile>m  Nv"

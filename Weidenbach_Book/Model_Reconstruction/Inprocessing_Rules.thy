@@ -13,7 +13,7 @@ datatype 'a witness =
 type_synonym 'a stackWit = "'a witness list"
 
 text \<open>
-In the following defintion interpr_composition, I is from a [Witness I C], while I' is the 
+In the following defintion \<^term>\<open>interpr_composition\<close>, \<^term>\<open>I\<close> is from a  \<^term>\<open>[Witness I C]\<close>, while  \<^term>\<open>I'\<close> is the 
 existing, given interpretation.
 \<close>
 definition interpr_composition :: "'a literal set \<Rightarrow> 'a literal set \<Rightarrow>'a literal set " where
