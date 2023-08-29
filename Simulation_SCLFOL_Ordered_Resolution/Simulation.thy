@@ -559,7 +559,7 @@ inductive scl_reso1_step1 :: "_ \<Rightarrow> ('f, 'v) scl_fol_sim_state \<Right
   \<Gamma>' = foldl trail_decide \<Gamma> (map lit_of_glit Ks) \<Longrightarrow>
   scl_reso1_step1 N\<^sub>0 ((\<Gamma>, U, None), i, C, \<F>) ((\<Gamma>', U, None), i, D, \<F>)"
 
-lemma
+lemma correctness_scl_reso1_step1:
   fixes N\<^sub>0 :: "'f gterm clause fset"
   assumes
     \<beta>\<^sub>G_greatest: "is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N\<^sub>0)) \<beta>\<^sub>G" and
