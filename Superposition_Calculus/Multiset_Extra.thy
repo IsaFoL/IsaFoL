@@ -17,7 +17,7 @@ next
   show "\<And>y. count B y < count A y \<Longrightarrow> \<exists>x. R y x \<and> count A x < count B x"
     using assms by (metis in_diff_count)
 qed
-  
+
 definition is_maximal_wrt where
   "is_maximal_wrt R x M \<longleftrightarrow> x \<in># M \<and> (\<forall>y \<in># M - {#x#}. \<not> (R x y))"
 
@@ -25,9 +25,21 @@ lemma is_maximal_wrt_if_is_maximal_wrt_reflclp[simp]:
   "is_maximal_wrt R\<^sup>=\<^sup>= L C \<Longrightarrow> is_maximal_wrt R L C"
   unfolding is_maximal_wrt_def by simp
 
+lemma Uniq_antimono: "Q \<le> P \<Longrightarrow> Uniq Q \<ge> Uniq P"
+  unfolding le_fun_def le_bool_def
+  by (rule impI) (simp only: Uniq_I Uniq_D)
+
+lemma Uniq_antimono': "(\<And>x. Q x \<Longrightarrow> P x) \<Longrightarrow> Uniq P \<Longrightarrow> Uniq Q"
+  by (fact Uniq_antimono[unfolded le_fun_def le_bool_def, rule_format])
+
+lemma Uniq_is_maximal_wrt:
+  "totalp_on (set_mset C) R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1L. is_maximal_wrt R L C"
+  by (rule Uniq_I) (metis insert_DiffM insert_noteq_member is_maximal_wrt_def totalp_onD)
+
 lemma Uniq_is_maximal_wrt_reflclp:
-  shows "totalp_on (set_mset C) R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1L. L \<in># C \<and> is_maximal_wrt R\<^sup>=\<^sup>= L C"
-  by (rule Uniq_I) (metis insert_DiffM insert_noteq_member is_maximal_wrt_def sup2CI totalp_onD)
+  shows "totalp_on (set_mset C) R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1L. is_maximal_wrt R\<^sup>=\<^sup>= L C"
+  using Uniq_is_maximal_wrt is_maximal_wrt_if_is_maximal_wrt_reflclp
+  by (metis (no_types, lifting) Uniq_antimono')
 
 lemma ex_is_maximal_wrt_if_not_empty:
   assumes "transp_on (set_mset M) R" and "asymp_on (set_mset M) R" and "M \<noteq> {#}"
@@ -69,6 +81,11 @@ lemma
   obtains M' where "M - {#x#} = add_mset x M'"
   using assms lift_is_maximal_wrt_to_is_maximal_wrt_reflclp
   by (meson mset_add)
+
+lemma count_eq_1_if_is_strictly_maximal: "is_maximal_wrt R\<^sup>=\<^sup>= x M \<Longrightarrow> count M x = 1"
+  by (metis One_nat_def antisym count_add_mset count_empty count_greater_eq_one_iff in_diff_count
+      is_maximal_wrt_def is_maximal_wrt_if_is_maximal_wrt_reflclp
+      lift_is_maximal_wrt_to_is_maximal_wrt_reflclp linorder_le_less_linear)
 
 lemma multp_singleton_singleton[simp]: "transp R \<Longrightarrow> multp R {#x#} {#y#} \<longleftrightarrow> R x y"
   using one_step_implies_multp[of "{#y#}" "{#x#}" R "{#}", simplified]
