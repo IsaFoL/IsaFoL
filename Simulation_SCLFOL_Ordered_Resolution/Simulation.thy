@@ -94,6 +94,15 @@ lemma is_greatest_in_set_wrt_iff:
   by blast
 
 
+section \<open>Move to HOL-Library\<close>
+
+syntax
+  "_FFilter" :: "pttrn \<Rightarrow> 'a fset \<Rightarrow> bool \<Rightarrow> 'a fset" ("(1{|_ |\<in>| _./ _|})")
+
+translations
+  "{|x |\<in>| X. P|}" == "CONST ffilter (\<lambda>x. P) X"
+
+
 section \<open>Move to Superposition_Calculus\<close>
 
 lemma (in ground_ordered_resolution_calculus) unique_ground_resolution:
@@ -184,8 +193,22 @@ lemma Max_mset_wrt_eq_Some[simp]:
   using assms Max_mset_wrt_eq_Some_if_is_maximal_wrt is_maximal_wrt_if_Max_mset_wrt_eq_Some
   by metis
 
-term gterm_of_term
-term term_of_gterm
+
+lemma ground_iff_vars_term_empty: "ground t \<longleftrightarrow> vars_term t = {}"
+proof (rule iffI)
+  show "ground t \<Longrightarrow> vars_term t = {}"
+    by (rule ground_vars_term_empty)
+next
+  show "vars_term t = {} \<Longrightarrow> ground t"
+    by (induction t) simp_all
+qed
+
+lemma is_ground_atm_eq_ground[iff]: "is_ground_atm = ground"
+proof (rule ext)
+  fix t :: "('v, 'f) Term.term"
+  show "is_ground_atm t = ground t"
+    by (simp only: is_ground_atm_iff_vars_empty ground_iff_vars_term_empty)
+qed
 
 definition lit_of_glit where
   "lit_of_glit = map_literal term_of_gterm"
@@ -534,10 +557,7 @@ inductive scl_reso1_step1 :: "_ \<Rightarrow> ('f, 'v) scl_fol_sim_state \<Right
     \<not> trail_defined_lit \<Gamma> (lit_of_glit K) \<and>
     lit_occures_in_clss K N\<^sub>0) \<Longrightarrow>
   \<Gamma>' = foldl trail_decide \<Gamma> (map lit_of_glit Ks) \<Longrightarrow>
-  scl_reso1_step1 N\<^sub>0 ((\<Gamma>, U, None), i, C, \<F>) ((\<Gamma>', U, None), i, C, \<F>)"
-
-lemma FOO: "x \<noteq> y \<Longrightarrow> term_of_gterm x \<noteq> term_of_gterm y"
-  by (metis term_of_gterm_inv)
+  scl_reso1_step1 N\<^sub>0 ((\<Gamma>, U, None), i, C, \<F>) ((\<Gamma>', U, None), i, D, \<F>)"
 
 lemma
   fixes N\<^sub>0 :: "'f gterm clause fset"
@@ -548,7 +568,7 @@ lemma
   shows "(scl_fol.decide (fimage cls_of_gcls N\<^sub>0) \<beta>)\<^sup>*\<^sup>* S S'"
   using step
 proof (cases N\<^sub>0 "(S, i, C, \<F>)" "(S', i', C', \<F>')" rule: scl_reso1_step1.cases)
-  case hyps: (scl_reso1_step1I D U L Ks \<Gamma> \<Gamma>')
+  case hyps: (scl_reso1_step1I U L Ks \<Gamma> \<Gamma>')
   then show ?thesis
   proof (induction Ks arbitrary: S \<Gamma>)
     case Nil
@@ -584,16 +604,11 @@ proof (cases N\<^sub>0 "(S, i, C, \<F>)" "(S', i', C', \<F>')" rule: scl_reso1_s
       hence "atm_of K \<noteq> atm_of Ka"
         using \<open>distinct (K # Ks)\<close>
         by (metis \<open>Ka \<in> set Ks\<close> distinct.simps(2) literal.expand)
+      hence "term_of_gterm (atm_of Ka) \<noteq> term_of_gterm (atm_of K)"
+        using inj_term_of_gterm[of UNIV, THEN injD] by metis
       hence "\<not> trail_defined_lit (trail_decide \<Gamma> (lit_of_glit K)) (lit_of_glit Ka)"
         using \<open>\<not> trail_defined_lit \<Gamma> (lit_of_glit K)\<close> \<open>\<not> trail_defined_lit \<Gamma> (lit_of_glit Ka)\<close>
-        unfolding trail_defined_lit_def
-        apply simp
-        apply (cases K; cases Ka)
-        apply (simp_all add: lit_of_glit_def decide_lit_def)
-        apply (metis \<open>is_neg K\<close> literal.disc(1))
-        apply (metis \<open>is_neg K\<close> literal.disc(1))
-        apply (metis \<open>is_neg Ka\<close> literal.disc(1))
-        by (simp add: FOO)
+        by (simp add: trail_defined_lit_iff decide_lit_def atm_of_lit_of_glit_conv)
       thus "is_neg Ka \<and> Ka \<prec>\<^sub>l L \<and>
         \<not> trail_defined_lit (trail_decide \<Gamma> (lit_of_glit K)) (lit_of_glit Ka) \<and>
         lit_occures_in_clss Ka N\<^sub>0"
@@ -602,11 +617,12 @@ proof (cases N\<^sub>0 "(S, i, C, \<F>)" "(S', i', C', \<F>')" rule: scl_reso1_s
     qed
 
     moreover have "scl_fol.decide (fimage cls_of_gcls N\<^sub>0) \<beta> (\<Gamma>, U, None) (trail_decide \<Gamma> (lit_of_glit K), U, None)"
-      using \<open>\<not> trail_defined_lit \<Gamma> (lit_of_glit K)\<close>
     proof (intro scl_fol.decideI[of _ _ Var, simplified])
+      show "\<not> trail_defined_lit \<Gamma> (lit_of_glit K)"
+        using \<open>\<not> trail_defined_lit \<Gamma> (lit_of_glit K)\<close> .
+    next
       show "is_ground_lit (lit_of_glit K)"
-        apply (cases K; cases "atm_of K")
-        by (simp_all add: lit_of_glit_def is_ground_lit_iff_vars_empty)
+        by (cases K) (simp_all add: is_ground_lit_def atm_of_lit_of_glit_conv)
     next
       show "fBex (cls_of_gcls |`| N\<^sub>0) ((\<in>#) (lit_of_glit K))"
         using \<open>lit_occures_in_clss K N\<^sub>0\<close>
@@ -615,8 +631,8 @@ proof (cases N\<^sub>0 "(S, i, C, \<F>)" "(S', i', C', \<F>')" rule: scl_reso1_s
     next
       have "atm_of K \<in> atms_of_clss (fset N\<^sub>0)"
         using \<open>lit_occures_in_clss K N\<^sub>0\<close>
-        unfolding lit_occures_in_clss_def
-        by (smt (verit) Union_iff atms_of_def image_eqI atms_of_clss_def)
+        unfolding lit_occures_in_clss_def atms_of_clss_def
+        by (metis Union_iff atms_of_def image_eqI)
       thus "ground (atm_of (lit_of_glit K)) \<and> ground \<beta> \<and>
         gterm_of_term (atm_of (lit_of_glit K)) \<prec>\<^sub>t gterm_of_term \<beta> \<or> atm_of (lit_of_glit K) = \<beta>"
         using \<beta>\<^sub>G_greatest
