@@ -26,7 +26,7 @@ type_synonym 't atom = "'t"
 
 section \<open>Ground Resolution Calculus\<close>
 
-locale ground_superposition_calculus =
+locale ground_ordered_resolution_calculus =
   fixes
     less_trm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
     select :: "'f gterm atom clause \<Rightarrow> 'f gterm atom clause"
