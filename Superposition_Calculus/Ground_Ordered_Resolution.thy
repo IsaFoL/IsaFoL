@@ -123,6 +123,61 @@ next
     by simp
 qed
 
+interpretation linorder_trm: linorder lesseq_trm less_trm
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>t y) = (x \<preceq>\<^sub>t y \<and> \<not> y \<preceq>\<^sub>t x)"
+    by (metis asympD asymp_less_trm reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>t x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>t y \<Longrightarrow> y \<preceq>\<^sub>t z \<Longrightarrow> x \<preceq>\<^sub>t z"
+    by (meson transpE transp_less_trm transp_on_reflclp)
+next
+  show "\<And>x y. x \<preceq>\<^sub>t y \<Longrightarrow> y \<preceq>\<^sub>t x \<Longrightarrow> x = y"
+    by (metis asympD asymp_less_trm reflclp_iff)
+next
+  show "\<And>x y. x \<preceq>\<^sub>t y \<or> y \<preceq>\<^sub>t x"
+    by (metis reflclp_iff totalpD totalp_less_trm)
+qed
+
+interpretation linorder_lit: linorder lesseq_lit less_lit
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>l y) = (x \<preceq>\<^sub>l y \<and> \<not> y \<preceq>\<^sub>l x)"
+    by (metis asympD asymp_less_lit reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>l x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>l y \<Longrightarrow> y \<preceq>\<^sub>l z \<Longrightarrow> x \<preceq>\<^sub>l z"
+    by (meson transpE transp_less_lit transp_on_reflclp)
+next
+  show "\<And>x y. x \<preceq>\<^sub>l y \<Longrightarrow> y \<preceq>\<^sub>l x \<Longrightarrow> x = y"
+    by (metis asympD asymp_less_lit reflclp_iff)
+next
+  show "\<And>x y. x \<preceq>\<^sub>l y \<or> y \<preceq>\<^sub>l x"
+    by (metis reflclp_iff totalpD totalp_less_lit)
+qed
+
+interpretation linorder_cls: linorder lesseq_cls less_cls
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>c y) = (x \<preceq>\<^sub>c y \<and> \<not> y \<preceq>\<^sub>c x)"
+    by (metis asympD asymp_less_cls reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>c x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>c y \<Longrightarrow> y \<preceq>\<^sub>c z \<Longrightarrow> x \<preceq>\<^sub>c z"
+    by (meson transpE transp_less_cls transp_on_reflclp)
+next
+  show "\<And>x y. x \<preceq>\<^sub>c y \<Longrightarrow> y \<preceq>\<^sub>c x \<Longrightarrow> x = y"
+    by (metis asympD asymp_less_cls reflclp_iff)
+next
+  show "\<And>x y. x \<preceq>\<^sub>c y \<or> y \<preceq>\<^sub>c x"
+    by (metis reflclp_iff totalpD totalp_less_cls)
+qed
+
+
 
 subsection \<open>Ground Rules\<close>
 
