@@ -202,6 +202,12 @@ definition gcls_of_cls where
 lemma atm_of_lit_of_glit_conv: "atm_of (lit_of_glit L) = term_of_gterm (atm_of L)"
   by (cases L) (simp_all add: lit_of_glit_def)
 
+definition atms_of_clss where
+  "atms_of_clss N = (\<Union>C \<in> N. atms_of C)"
+
+definition lit_occures_in_clss where
+  "lit_occures_in_clss L N \<longleftrightarrow> fBex N (\<lambda>C. L \<in># C)"
+
 
 section \<open>Simulation\<close>
 
@@ -521,27 +527,12 @@ proof -
     using \<open>ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')\<close> by blast
 qed
 
-
-typ "('f, 'v) scl_fol_sim_state"
-
-find_consts name: "List" "'a list \<Rightarrow> bool"
-find_consts "_ clause \<Rightarrow> _ set"
-term atms_of
-
-definition lit_occures_in_clss where
-  "lit_occures_in_clss L N \<longleftrightarrow> fBex N (\<lambda>C. L \<in># C)"
-
-term "trail_decide \<Gamma> L"
-
-term fold
-term "foldl trail_decide \<Gamma> Ks"
-
 inductive scl_reso1_step1 :: "_ \<Rightarrow> ('f, 'v) scl_fol_sim_state \<Rightarrow> ('f, 'v) scl_fol_sim_state \<Rightarrow> bool" for N\<^sub>0 where
   scl_reso1_step1I: "\<F> C \<prec>\<^sub>c \<F> D \<Longrightarrow> \<not> fBex (N\<^sub>0 |\<union>| fimage gcls_of_cls U) (\<lambda>D'. \<F> C \<prec>\<^sub>c \<F> D' \<and> \<F> D' \<prec>\<^sub>c \<F> D) \<Longrightarrow>
   ord_res.is_maximal_lit L D \<Longrightarrow>
   sorted_wrt (\<prec>\<^sub>l) Ks \<Longrightarrow> (\<forall>K \<in> set Ks. is_neg K \<and> K \<prec>\<^sub>l L \<and>
     \<not> trail_defined_lit \<Gamma> (lit_of_glit K) \<and>
-    lit_occures_in_clss K (N\<^sub>0 |\<union>| fimage gcls_of_cls U)) \<Longrightarrow>
+    lit_occures_in_clss K N\<^sub>0) \<Longrightarrow>
   \<Gamma>' = foldl trail_decide \<Gamma> (map lit_of_glit Ks) \<Longrightarrow>
   scl_reso1_step1 N\<^sub>0 ((\<Gamma>, U, None), i, C, \<F>) ((\<Gamma>', U, None), i, C, \<F>)"
 
@@ -549,9 +540,13 @@ lemma FOO: "x \<noteq> y \<Longrightarrow> term_of_gterm x \<noteq> term_of_gter
   by (metis term_of_gterm_inv)
 
 lemma
-  assumes "scl_reso1_step1 N\<^sub>0 (S, i, C, \<F>) (S', i', C', \<F>')"
+  fixes N\<^sub>0 :: "'f gterm clause fset"
+  assumes
+    \<beta>\<^sub>G_greatest: "is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N\<^sub>0)) \<beta>\<^sub>G" and
+    step: "scl_reso1_step1 N\<^sub>0 (S, i, C, \<F>) (S', i', C', \<F>')"
+  defines "\<beta> \<equiv> term_of_gterm \<beta>\<^sub>G"
   shows "(scl_fol.decide (fimage cls_of_gcls N\<^sub>0) \<beta>)\<^sup>*\<^sup>* S S'"
-  using assms
+  using step
 proof (cases N\<^sub>0 "(S, i, C, \<F>)" "(S', i', C', \<F>')" rule: scl_reso1_step1.cases)
   case hyps: (scl_reso1_step1I D U L Ks \<Gamma> \<Gamma>')
   then show ?thesis
@@ -564,10 +559,10 @@ proof (cases N\<^sub>0 "(S, i, C, \<F>)" "(S', i', C', \<F>')" rule: scl_reso1_s
   next
     case (Cons K Ks)
     note ball_K_Ks = \<open>\<forall>K\<in>set (K # Ks). is_neg K \<and> K \<prec>\<^sub>l L \<and>
-        \<not> trail_defined_lit \<Gamma> (lit_of_glit K) \<and> lit_occures_in_clss K (N\<^sub>0 |\<union>| gcls_of_cls |`| U)\<close>
+        \<not> trail_defined_lit \<Gamma> (lit_of_glit K) \<and> lit_occures_in_clss K N\<^sub>0\<close>
 
-    hence "\<not> trail_defined_lit \<Gamma> (lit_of_glit K)"
-      by fastforce
+    from ball_K_Ks have "\<not> trail_defined_lit \<Gamma> (lit_of_glit K)" "lit_occures_in_clss K N\<^sub>0"
+      by simp_all
 
     from Cons have "(scl_fol.decide (fimage cls_of_gcls N\<^sub>0) \<beta>)\<^sup>*\<^sup>* (trail_decide \<Gamma> (lit_of_glit K), U, None) S'"
     proof (intro Cons.IH[OF refl] ballI)
@@ -601,7 +596,7 @@ proof (cases N\<^sub>0 "(S, i, C, \<F>)" "(S', i', C', \<F>')" rule: scl_reso1_s
         by (simp add: FOO)
       thus "is_neg Ka \<and> Ka \<prec>\<^sub>l L \<and>
         \<not> trail_defined_lit (trail_decide \<Gamma> (lit_of_glit K)) (lit_of_glit Ka) \<and>
-        lit_occures_in_clss Ka (N\<^sub>0 |\<union>| gcls_of_cls |`| U)"
+        lit_occures_in_clss Ka N\<^sub>0"
         using ball_K_Ks \<open>Ka \<in> set Ks\<close>
         by simp
     qed
@@ -614,16 +609,23 @@ proof (cases N\<^sub>0 "(S, i, C, \<F>)" "(S', i', C', \<F>')" rule: scl_reso1_s
         by (simp_all add: lit_of_glit_def is_ground_lit_iff_vars_empty)
     next
       show "fBex (cls_of_gcls |`| N\<^sub>0) ((\<in>#) (lit_of_glit K))"
-        sorry
+        using \<open>lit_occures_in_clss K N\<^sub>0\<close>
+        unfolding lit_occures_in_clss_def
+        by (metis cls_of_gcls_def finsertI1 finsert_fimage imageI multiset.set_map)
     next
-      show "ground (atm_of (lit_of_glit K)) \<and> ground \<beta> \<and> gterm_of_term (atm_of (lit_of_glit K)) \<prec>\<^sub>t gterm_of_term \<beta> \<or> atm_of (lit_of_glit K) = \<beta>"
-        sorry
+      have "atm_of K \<in> atms_of_clss (fset N\<^sub>0)"
+        using \<open>lit_occures_in_clss K N\<^sub>0\<close>
+        unfolding lit_occures_in_clss_def
+        by (smt (verit) Union_iff atms_of_def image_eqI atms_of_clss_def)
+      thus "ground (atm_of (lit_of_glit K)) \<and> ground \<beta> \<and>
+        gterm_of_term (atm_of (lit_of_glit K)) \<prec>\<^sub>t gterm_of_term \<beta> \<or> atm_of (lit_of_glit K) = \<beta>"
+        using \<beta>\<^sub>G_greatest
+        by (auto simp add: atm_of_lit_of_glit_conv \<beta>_def is_greatest_in_set_wrt_iff)
     qed
 
     ultimately show ?case
       unfolding \<open>S = (\<Gamma>, U, None)\<close> \<open>S' = (\<Gamma>', U, None)\<close>
         \<open>\<Gamma>' = foldl trail_decide \<Gamma> (map lit_of_glit (K # Ks))\<close>
-      (* unfolding list.map foldl_Cons *)
       by simp
   qed
 qed
