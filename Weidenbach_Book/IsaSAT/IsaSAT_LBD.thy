@@ -268,9 +268,10 @@ definition update_lbd_shrunk_clause where
      old_glue \<leftarrow> mop_arena_lbd N C;
      st \<leftarrow> mop_arena_status N C;
      le \<leftarrow> mop_arena_length N C;
+     ASSERT (le \<ge> 2);
      if st = IRRED then RETURN N
      else do {
-       let new_glue = (if le \<ge> old_glue then old_glue else le);
+       let new_glue = (if le - 1 \<ge> old_glue then old_glue else le - 1);
        ASSERT (update_lbd_pre ((C, new_glue), N));
        RETURN (update_lbd_and_mark_used C new_glue N)
     }
@@ -293,6 +294,8 @@ lemma update_lbd_shrunk_clause_valid:
   subgoal
     unfolding arena_is_valid_clause_idx_def
     by auto
+  subgoal
+    by (rule arena_lifting(18))
   subgoal by auto
   subgoal by (auto simp: update_lbd_pre_def)
   subgoal by (auto simp: Let_def intro!: valid_arena_mark_used2 valid_arena_mark_used

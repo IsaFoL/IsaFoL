@@ -325,7 +325,7 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def:
         ASSERT (A < length (get_vmtf_heur_array S));
         ASSERT (A \<le> unat32_max div 2);
         added \<leftarrow> mop_is_marked_added_heur_st S A;
-        if \<not>skip \<or> \<not>added then RETURN (get_next (get_vmtf_heur_array S ! A), CS, S)
+        if \<not>skip then RETURN (get_next (get_vmtf_heur_array S ! A), CS, S)
         else do {
           ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
           (CS, S) \<leftarrow> isa_deduplicate_binary_clauses_wl (Pos A) CS S;

@@ -1,5 +1,5 @@
 theory IsaSAT_Rephase
-  imports IsaSAT_Literals Watched_Literals_VMTF
+  imports IsaSAT_Phasing
 begin
 
 chapter \<open>Phase Saving\<close>
@@ -175,14 +175,19 @@ definition current_phase_letter :: \<open>64 word \<Rightarrow> 64 word\<close> 
       else 70)
      \<close>
 
+text \<open>
+The phases are: BOBIBF independantly of the mode of the solver unlike CaDiCaL where this is
+independent and kissat where no flipping is used in unsat mode. We schedule in log interval.
+In the last phase, we increase the length of the phase in \<^term>\<open>\<Theta>(log 10 n*log 10 n)\<close>.
+\<close>
 definition phase_rephase :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
-\<open>phase_rephase = (\<lambda>end_of_phase lrephase b (\<phi>, target_assigned, target, best_assigned, best, _, curr_phase,
+\<open>phase_rephase = (\<lambda>end_of_phase lrephase (b::64 word) (\<phi>, target_assigned, target, best_assigned, best, _, curr_phase,
      length_phase).
   do {
       let rephaselength = (500 :: 64 word);
-      let target_assigned = 0;
+      let target_assigned = (0::64 word);
       target \<leftarrow> copy_phase \<phi> target;
-      if curr_phase = 0 \<or> curr_phase = 2 \<or> curr_phase = 4 \<or> curr_phase = 6
+      if curr_phase = 0 \<or> curr_phase = 2 \<or> curr_phase = 4 \<or> curr_phase = 6 \<comment>\<open>reset the best best phase\<close>
       then do {
          \<phi> \<leftarrow> copy_phase best \<phi>;
          RETURN (\<phi>, target_assigned, target, 0, best, length_phase*rephaselength+end_of_phase, curr_phase + 1, length_phase)
@@ -210,6 +215,7 @@ definition phase_rephase :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> 6
             new_length)
       }
     })\<close>
+
 
 lemma phase_rephase_spec:
   assumes \<open>phase_save_heur_rel \<A> \<phi>\<close>
@@ -280,15 +286,15 @@ proof -
 qed
 
 definition get_next_phase_pre :: \<open>bool \<Rightarrow> nat \<Rightarrow> phase_save_heur \<Rightarrow> bool\<close> where
-  \<open>get_next_phase_pre = (\<lambda>b L (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
+  \<open>get_next_phase_pre = (\<lambda>use_target_phasing L (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
     L < length \<phi> \<and> L < length target)\<close>
 
 definition get_next_phase_stats :: \<open>bool \<Rightarrow> nat \<Rightarrow> phase_save_heur \<Rightarrow> bool nres\<close>  where
-  \<open>get_next_phase_stats = (\<lambda>b L (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
-  if \<not>b then do {
+  \<open>get_next_phase_stats = (\<lambda>use_target_phasing L (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
+  if \<not>use_target_phasing then do {
     ASSERT(L < length \<phi>);
     RETURN(\<phi> ! L)
-  } else  do {
+  } else do {
     ASSERT(L < length target);
     RETURN(target ! L)
   })\<close>

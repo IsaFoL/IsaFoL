@@ -1,13 +1,13 @@
-theory autarky
+theory Autarky
   imports Entailment_Definition.Partial_Herbrand_Interpretation
     Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
-    modelReconstruction
-    inprocessingRulesNeu2
-    simulation2
+    Model_Reconstruction
+    Inprocessing_Rules
+    Simulation
 begin
 
 definition autarky :: "'a literal set \<Rightarrow>'a clauses \<Rightarrow> 'a clauses \<Rightarrow> bool " where
-"autarky I F Fa = (consistent_interp I \<longrightarrow> ((I \<Turnstile>m Fa) \<and> (\<forall>C \<in># F.  \<not>I \<Turnstile> C \<and> \<not>I \<Turnstile> mset_set(uminus ` set_mset C))))"
+  "autarky I F Fa = (consistent_interp I \<longrightarrow> ((I \<Turnstile>m Fa) \<and> (\<forall>C \<in># F.  \<not>I \<Turnstile> C \<and> \<not>I \<Turnstile> mset_set(uminus ` set_mset C))))"
 
 lemma autarky_cons:
   assumes "autarky I F Fa" and "consistent_interp I"
@@ -24,7 +24,7 @@ proof-
   hence "\<forall>C \<in># N.  \<not>J \<Turnstile> C \<and> \<not>J \<Turnstile> mset_set(uminus ` set_mset C)"
     by auto
   hence 2:"\<forall>C \<in># N. (set_mset C \<inter> J = {})" and 3:"\<forall>C \<in># N. (uminus `(set_mset C) \<inter> J = {})"
-     apply auto
+    apply auto
     apply (metis insert_DiffM true_cls_add_mset)
     by (metis elem_mset_set finite_imageI finite_set_mset imageI multi_member_split true_cls_add_mset)
   have "interpr_composition I J \<Turnstile> C" if C: "C \<in># N" for C
@@ -57,7 +57,7 @@ proof-
 qed
 
 definition unit_clauses_of_model :: \<open>'a partial_interp \<Rightarrow> 'a clauses\<close> where
- \<open>unit_clauses_of_model I = (\<lambda>L. {#L#}) `# mset_set I\<close>
+  \<open>unit_clauses_of_model I = (\<lambda>L. {#L#}) `# mset_set I\<close>
 
 lemma in_unit_clauses_of_model_iff[iff]:
   assumes \<open>finite I\<close>
@@ -85,34 +85,34 @@ proof-
   have "interpr_composition I (interpr_composition (uminus ` set_mset x) \<omega> ) \<Turnstile>m (N + Na)" if A:"consistent_interp I " 
     and B: "interpr_composition I (uminus ` set_mset x) \<Turnstile>m (N + Na)" for I
   proof-
-   have "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega>)) \<Turnstile> C" if C: "C \<in># N" for C
-   proof-
-     have "interpr_composition I (uminus ` set_mset x) \<Turnstile> C" 
-       using C B apply auto
-       using true_cls_mset_def by blast
-     hence notempty:"interpr_composition I (uminus ` set_mset x) \<inter> (set_mset C) \<noteq> {}" apply auto
-       by (meson disjoint_iff true_cls_def true_lit_def)
-     have "(set_mset C \<inter>  \<omega> = {}) " and  "(uminus `(set_mset C) \<inter>  \<omega> = {})" 
-       using C 2 apply auto using C 3 apply auto
-       by (metis IntI empty_iff image_eqI)
-     hence "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega>))\<inter> (set_mset C) \<noteq> {}"
-       using notempty  unfolding interpr_composition_def by auto
-     then show ?thesis
-       by (meson disjoint_iff true_cls_def true_lit_def)
-   qed note N_sat = this
-  have "interpr_composition I (interpr_composition (uminus ` set_mset x) \<omega>) \<Turnstile> C" if C: "C \<in># Na" for C
-  proof-
-    have C1: "\<omega> \<Turnstile> C" using 1 C apply auto
-      using true_cls_mset_def by blast
-    hence "\<exists>L. L \<in> \<omega> \<and> L \<in># C"
-      using true_cls_def by auto
-    then obtain L where L1: "L \<in> \<omega> " and L2: "L \<in># C" 
-      by blast
-    hence "L \<in> interpr_composition I (interpr_composition (uminus ` set_mset x) \<omega>)" 
-      unfolding interpr_composition_def by auto
-    then show ?thesis unfolding interpr_composition_def
-      by (simp add: C1)
-  qed note Na_sat = this
+    have "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega>)) \<Turnstile> C" if C: "C \<in># N" for C
+    proof-
+      have "interpr_composition I (uminus ` set_mset x) \<Turnstile> C" 
+        using C B apply auto
+        using true_cls_mset_def by blast
+      hence notempty:"interpr_composition I (uminus ` set_mset x) \<inter> (set_mset C) \<noteq> {}" apply auto
+        by (meson disjoint_iff true_cls_def true_lit_def)
+      have "(set_mset C \<inter>  \<omega> = {}) " and  "(uminus `(set_mset C) \<inter>  \<omega> = {})" 
+        using C 2 apply auto using C 3 apply auto
+        by (metis IntI empty_iff image_eqI)
+      hence "interpr_composition I (interpr_composition (uminus ` set_mset x) (\<omega>))\<inter> (set_mset C) \<noteq> {}"
+        using notempty  unfolding interpr_composition_def by auto
+      then show ?thesis
+        by (meson disjoint_iff true_cls_def true_lit_def)
+    qed note N_sat = this
+    have "interpr_composition I (interpr_composition (uminus ` set_mset x) \<omega>) \<Turnstile> C" if C: "C \<in># Na" for C
+    proof-
+      have C1: "\<omega> \<Turnstile> C" using 1 C apply auto
+        using true_cls_mset_def by blast
+      hence "\<exists>L. L \<in> \<omega> \<and> L \<in># C"
+        using true_cls_def by auto
+      then obtain L where L1: "L \<in> \<omega> " and L2: "L \<in># C" 
+        by blast
+      hence "L \<in> interpr_composition I (interpr_composition (uminus ` set_mset x) \<omega>)" 
+        unfolding interpr_composition_def by auto
+      then show ?thesis unfolding interpr_composition_def
+        by (simp add: C1)
+    qed note Na_sat = this
     then show ?thesis using N_sat unfolding interpr_composition_def apply auto
       using true_cls_mset_def apply blast
       using true_cls_mset_def by blast
@@ -191,7 +191,7 @@ V \<union> atms_of (LNa ! i) \<union> atms_of_mm (mset (drop (Suc i) LNa) + N) \
     qed
   qed note ag = this
   have "mset (drop (length LNa) LNa) = {#}" and "(take (length LNa) LNa) = LNa"
-     by auto
+    by auto
   then have 2: "rules\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
                        (N, R, S@map (\<lambda>C. Witness I C) LNa, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
     using ag[of "length LNa" ] by auto

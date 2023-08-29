@@ -4,15 +4,10 @@ session "Unordered_Resolution" = HOL +
    sessions
      "HOL-Library"
      Resolution_FOL
-     QTRS
-   theories [document = false]
-     "HOL-Library.Countable_Set"
-     "Rewriting.Unification"
-     "Resolution_FOL.Resolution"
-     "Resolution_FOL.Completeness"
+     TRS
    theories [document = true]
-     Unify
-     Complete
+     Unification_Theorem
+     Completeness_Instance
    document_files
      "root.bib"
      "root.tex"

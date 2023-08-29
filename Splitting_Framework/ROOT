@@ -8,3 +8,8 @@ session "Splitting_Framework" = Saturation_Framework +
     Preliminaries_With_Zorn
     Splitting_Calculi
     Splitting_Without_Backtracking
+    FOL_Compactness
+(*commit_ignore_start*)
+  document_files 
+    "root.tex"
+(*commit_ignore_end*)

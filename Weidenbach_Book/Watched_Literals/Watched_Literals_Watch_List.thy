@@ -1031,7 +1031,7 @@ definition update_clause_wl :: \<open>'v literal \<Rightarrow> 'v literal \<Righ
      K' \<leftarrow> mop_clauses_at N C f;
      ASSERT(K' \<in># all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<and> L \<noteq> K');
      N' \<leftarrow> mop_clauses_swap N C i f;
-     RETURN (j, w+1, (M, N', D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(K' := W K' @ [(C, other_watched, b)])))
+     RETURN (j, w+1, (M, N', D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(K' := W K' @ [(C, L, b)])))
   })\<close>
 
 

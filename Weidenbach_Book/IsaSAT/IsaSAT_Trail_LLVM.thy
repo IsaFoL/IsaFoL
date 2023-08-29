@@ -7,7 +7,7 @@ hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 type_synonym trail_pol_fast_assn =
    \<open>32 word array_list64 \<times> tri_bool_assn larray64 \<times> 32 word larray64 \<times>
      64 word larray64 \<times> 32 word \<times>
-     32 word array_list64\<close>
+     32 word array_list64 \<times> 64 word\<close>
 
 sepref_def DECISION_REASON_impl is \<open>uncurry0 (RETURN DECISION_REASON)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
@@ -19,7 +19,7 @@ definition trail_pol_fast_assn :: \<open>trail_pol \<Rightarrow> trail_pol_fast_
     arl64_assn unat_lit_assn \<times>\<^sub>a larray64_assn (tri_bool_assn) \<times>\<^sub>a
     larray64_assn uint32_nat_assn \<times>\<^sub>a
     larray64_assn sint64_nat_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a
-    arl64_assn uint32_nat_assn\<close>
+    arl64_assn uint32_nat_assn \<times>\<^sub>a sint64_nat_assn\<close>
 
 
 paragraph \<open>Code generation\<close>
@@ -260,6 +260,19 @@ sepref_def trail_height_before_conflict_impl
   supply [[goals_limit = 1]]
   by sepref
 
+sepref_def trail_zeroed_until_impl
+  is \<open>RETURN o trail_zeroed_until\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding trail_zeroed_until_def trail_pol_fast_assn_def
+  by sepref
+
+sepref_def trail_set_zeroed_until_impl
+  is \<open>uncurry (RETURN oo trail_set_zeroed_until)\<close>
+  :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
+  unfolding trail_set_zeroed_until_def trail_pol_fast_assn_def
+  by sepref
+
+
 schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: \<open>MK_FREE trail_pol_fast_assn ?fr\<close>
   unfolding trail_pol_fast_assn_def
   by synthesize_free
@@ -290,7 +303,8 @@ export_llvm
   get_pos_of_level_in_trail_imp_fast_code
   get_the_propagation_reason_fast_code
   trail_height_before_conflict_impl
-
+  trail_set_zeroed_until_impl
+  trail_zeroed_until_impl
 end
 
 end

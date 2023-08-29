@@ -4,46 +4,6 @@ theory IsaSAT_Simplify_Units
     IsaSAT_Restart (*line 691 in auto TODO: which simp rule should be moved?*)
 begin
 
-(*TODO Move*)
-lemma RES_RETURN_RES3':
-  \<open>RES \<Phi> \<bind> (\<lambda>(T, T', T''). RETURN (f T T' T'')) = RES ((\<lambda>(a, b, c). f a b c) ` \<Phi>)\<close>
-  apply (subst RES_SPEC_conv)
-  apply (subst RES_RETURN_RES3)
-  by auto
-
-lemma RETURN_le_RES_no_return3:
-  \<open>f \<le> SPEC (\<lambda>(S,T,U). g S T U \<in> \<Phi>) \<Longrightarrow> do {(S, T, U) \<leftarrow> f; RETURN (g S T U)} \<le> RES \<Phi>\<close>
-  by (cases f)
-   (auto simp: RES_RETURN_RES3')
-
-lemma RES_RETURN_RES4':
-  \<open>RES \<Phi> \<bind> (\<lambda>(T, T', T'', T'''). RETURN (f T T' T'' T''')) = RES ((\<lambda>(a, b, c, d). f a b c d) ` \<Phi>)\<close>
-  apply (subst RES_SPEC_conv)
-  apply (subst RES_RETURN_RES4)
-  by auto
-
-lemma RETURN_le_RES_no_return4:
-  \<open>f \<le> SPEC (\<lambda>(S,T,U,V). g S T U V \<in> \<Phi>) \<Longrightarrow> do {(S, T, U, V) \<leftarrow> f; RETURN (g S T U V)} \<le> RES \<Phi>\<close>
-  by (cases f)
-    (auto simp: RES_RETURN_RES4')
-
-lemma RES_RETURN_RES5':
-  \<open>RES \<Phi> \<bind> (\<lambda>(T, T', T'', T''', T''''). RETURN (f T T' T'' T''' T'''')) =
-    RES ((\<lambda>(a, b, c, d, e). f a b c d e) ` \<Phi>)\<close>
-  apply (subst RES_SPEC_conv)
-  apply (subst RES_RETURN_RES5)
-  by auto
-
-lemma RETURN_le_RES_no_return5:
-  \<open>f \<le> SPEC (\<lambda>(S,T,U,V, W). g S T U V W \<in> \<Phi>) \<Longrightarrow> do {(S, T, U, V, W) \<leftarrow> f; RETURN (g S T U V W)} \<le> RES \<Phi>\<close>
-  by (cases f)
-    (auto simp: RES_RETURN_RES5')
-
-
-lemma mset_remove_filtered: \<open>C - {#x \<in># C. P x#} = {#x \<in># C. \<not>P x#}\<close>
-  by (metis add_implies_diff union_filter_mset_complement)
-(*end move*)
-
 text \<open>Makes the simplifier loop...\<close>
 definition simplify_clause_with_unit2_rel_simp_wo where
   \<open>simplify_clause_with_unit2_rel_simp_wo unc N N\<^sub>0 N' \<longleftrightarrow>
@@ -72,7 +32,7 @@ definition simplify_clause_with_unit2_rel where
     (C \<notin># dom_m N \<longrightarrow> dom_m N = remove1_mset C (dom_m N\<^sub>0)) \<and>
     unc=unc' \<and>
   simplify_clause_with_unit2_rel_simp_wo unc N N\<^sub>0 N'}\<close>
- 
+
 lemma simplify_clause_with_unit2_simplify_clause_with_unit:
   fixes N N\<^sub>0 :: \<open>'v clauses_l\<close> and N' :: \<open>'a\<close>
   assumes \<open>C \<in># dom_m N\<close> \<open>no_dup M\<close> and

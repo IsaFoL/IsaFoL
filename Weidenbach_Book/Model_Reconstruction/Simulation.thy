@@ -1,8 +1,8 @@
-theory simulation2
+theory Simulation
   imports Entailment_Definition.Partial_Herbrand_Interpretation
     Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
-    modelReconstruction
-    inprocessingRulesNeu2
+    Model_Reconstruction
+    Inprocessing_Rules
 begin
 
 lemma sat_N_then_sat_res: 
@@ -21,7 +21,7 @@ proof(induction rule: res_stack_induct)
   hence "atms_of_mm {# C\<in>#resolve_all_on L N. \<not>tautology C#} \<subseteq> atms_of_mm N" 
     apply (auto simp: atms_of_ms_def resolve_all_on_def resolve_on_def atms_of_def
         dest: multi_member_split)
-     apply (meson imageI in_diffD)
+    apply (meson imageI in_diffD)
     by (meson imageI in_diffD)
   then show ?case
     by auto
@@ -94,7 +94,7 @@ proof (induction rule: res_stack_induct)
     have R: \<open>Relim \<subseteq># {#C \<in># resolve_all_on L N. \<not> tautology C#}\<close> and
       C: "C \<in># resolve_all_on L N" "\<not> tautology C"
       using incl
-        apply (meson subset_mset.dual_order.refl subset_mset.order_trans subset_mset_imp_subset_add_mset)
+      apply (meson subset_mset.dual_order.refl subset_mset.order_trans subset_mset_imp_subset_add_mset)
       using incl by auto
     have \<open>rules (N, R+Relim, S, V \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#} \<union> atms_of_mm N \<union> atms_of C \<union> atms_of_mm (R+Relim) \<union> atms_of_ms (wit_clause ` set S))
        (N, add_mset C (R+Relim), S,  V \<union> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#} \<union> atms_of_mm N \<union> atms_of C \<union> atms_of_mm (R+Relim)\<union> atms_of_ms (wit_clause ` set S))\<close>
@@ -133,7 +133,7 @@ lemma minus_L_not_in_resolve_on:
 lemma filter_mset_disj_eq: \<open>(\<And>x. P x \<Longrightarrow> \<not>Q x) \<Longrightarrow> 
   filter_mset (\<lambda>x. P x \<or> Q x) C = filter_mset P C + filter_mset Q C\<close>
   by (subst filter_union_or_split)
-   (auto intro: filter_mset_cong)
+    (auto intro: filter_mset_cong)
 
 (*TODO Move*)
 lemma filter_mset_id_conv: \<open>filter_mset P N = N \<longleftrightarrow> (\<forall>L\<in>#N. P L)\<close>
@@ -149,182 +149,182 @@ proof -
   have \<open>L \<in># D\<close> 
     using D by auto
   have "interpr_composition I (interpr_composition (uminus ` set_mset D) {L})  \<Turnstile>m ((N' - {#D#}) + {#C \<in># resolve_all_on L N. \<not> tautology C#})" if A:"consistent_interp I " 
-and B: "interpr_composition I (uminus ` set_mset D) \<Turnstile>m ((N' - {#D#}) + {#C \<in># resolve_all_on L N. \<not> tautology C#})" for I
+    and B: "interpr_composition I (uminus ` set_mset D) \<Turnstile>m ((N' - {#D#}) + {#C \<in># resolve_all_on L N. \<not> tautology C#})" for I
   proof-
     have "interpr_composition I (interpr_composition (uminus ` set_mset D) {L}) \<Turnstile> C" if C: "C \<in># {#D \<in># N'. (-L \<in># D \<and> L \<notin># D)#}" for C
     proof-
       have "-L \<in># C" 
         using C by auto
       then show ?thesis
-        proof(cases "tautology (resolve_on L D C)")
-          case True note taut = this
-          have T1:"L \<notin># (resolve_on L D C)"
-            using L_not_in_resolve_on[of L D C]
-              using \<open>-L \<in># C\<close> \<open>L \<in># D\<close> assms(2, 4) C D apply auto
-              using assms(3) by blast
-          have T11:"-L \<notin># (resolve_on L D C)" 
-              using minus_L_not_in_resolve_on[of "L" D C]
-              using \<open>-L \<in># C\<close> \<open>L \<in># D\<close> assms(2, 4) C D apply auto
-              using assms(3) by blast
-            have "\<exists>K. K \<in># (resolve_on L D C) \<and> -K \<in># (resolve_on L D C)" 
-              using True
-              by (simp add: tautology_decomp') 
-            hence T2: "\<exists>K. -K \<in># (remove1_mset (-L) C) \<and> K \<in># (remove1_mset L D) \<and> K \<noteq> L" 
-            using T1 T11 assms(2) unfolding resolve_on_def apply auto
-            apply (metis D assms(3) in_diffD mem_Collect_eq mset_subset_eq_add_left set_mset_filter subset_mset.le_imp_diff_is_add tautology_decomp' union_commute)
-            apply (metis uminus_of_uminus_id)
-            by (metis (no_types, lifting) assms(3) in_diffD mem_Collect_eq mset_subset_eqD set_mset_filter tautology_minus that)
-          then obtain K where K1:"-K \<in># (remove1_mset (-L) C)" and K2:"K \<in># (remove1_mset L D)" and K3:"K \<noteq> L" 
-            by blast 
-          have K5:"-K \<in>#C" 
-            using K1 K3 by auto
-          have "K \<in>#D"
-            using K2 K3 by auto
-          hence "K \<in># (resolve_on L D C)" 
-            using K1 K2 K3  unfolding resolve_on_def by auto
-          hence K4: "K \<noteq> -L" 
-            using T11 by auto 
-          have T3:"-K \<in> (uminus ` set_mset D)"
-            using K2 K3 by auto
-          have T4: "-K \<in> (interpr_composition (uminus ` set_mset D) {L})" 
-            using T3 K3 K4 unfolding interpr_composition_def by auto
-          have "(uminus ` set_mset D) \<Turnstile> C" 
-            using K1 K3 T3 apply auto
-            using true_cls_def by auto
-          have "(interpr_composition (uminus ` set_mset D) {L}) \<Turnstile> C"
-            using T4 K1 K5 unfolding interpr_composition_def
-            by (meson true_cls_def true_lit_def)
-          then show ?thesis 
-            unfolding interpr_composition_def apply auto
-            using true_cls_union_increase' by fastforce
-        next
-          case False note taut = this
-          have \<open>C\<in>#N\<close> and \<open>D\<in>#N\<close>
-            using C D assms(3) by auto
-          moreover have \<open>L \<notin># C\<close> \<open>-L \<notin># D\<close>
-            using taut C D by (auto dest!: multi_member_split 
-                simp: add_mset_eq_add_mset resolve_on_def)
-          ultimately have F1: "remdups_mset (resolve_on L D C) \<in># {#C \<in># resolve_all_on L N. \<not> tautology C#}" 
-            using taut assms(3) \<open>-L \<in># C\<close> \<open>L \<in># D\<close>
-            unfolding resolve_all_on_def 
-            by (auto simp: add_mset_eq_add_mset image_Un Times_insert_right
-                conj_disj_distribR Times_insert_left Collect_disj_eq Collect_conv_if
-                dest!: multi_member_split[of C]  multi_member_split[of D]) 
-          have F2:"L \<notin># (resolve_on L D C)" 
-              using L_not_in_resolve_on[of L D C]
-              using \<open>-L \<in># C\<close> \<open>L \<in># D\<close> assms(2, 4) C D apply auto
-              using assms(3) by blast
-         have F22:"-L \<notin># (resolve_on L D C)" 
-              using minus_L_not_in_resolve_on[of "L" D C]
-              using \<open>-L \<in># C\<close> \<open>L \<in># D\<close> assms(2, 4) C D apply auto
-              using assms(3) by blast
-          have F3: "interpr_composition I (uminus ` set_mset D) \<Turnstile> (resolve_on L D C)" 
-            using B F1 apply auto unfolding interpr_composition_def apply auto
-            using F1 true_cls_mset_def by blast
-          hence "\<exists>J. J \<in> interpr_composition I (uminus ` set_mset D) \<and> J \<in># (resolve_on L D C)"
-            apply auto
-            by (meson true_cls_def true_lit_def)
-          then obtain J where J1:"J \<in> interpr_composition I (uminus ` set_mset D)" and J2:"J \<in># (resolve_on L D C)"
-            by blast
-          have J3:"J \<noteq> L "
-            using F2 J2 by  auto
-          have J33:"J \<noteq> -L "
-            using F22 J2 by  auto
-          have J4:"J \<in> interpr_composition I (interpr_composition (uminus ` set_mset D) {L})" 
-            using J1 J3 J33 unfolding interpr_composition_def by auto
-          have F4:" interpr_composition I (interpr_composition (uminus ` set_mset D) {L})  \<Turnstile> (resolve_on L D C)" 
-            using J4 J2  apply auto
-            using true_cls_def by auto
-          have "\<not>((interpr_composition I (uminus ` set_mset D)) \<Turnstile> D)"
-            unfolding interpr_composition_def using assms(2, 3) apply auto
-            by (metis D interpr_composition_def interpr_composition_neg_itself_iff mem_Collect_eq mset_subset_eqD set_mset_filter)
-          hence F5: "\<not>((interpr_composition I (uminus ` set_mset D)) \<Turnstile> (remove1_mset L D))" 
-            unfolding interpr_composition_def using assms(2, 3) apply auto
-            using diff_subset_eq_self by blast
-          have F7:"-L \<notin># (remove1_mset (-L) C)"
-            by (metis F22 resolve_on_def union_iff) 
-          have F8:"L \<notin># (remove1_mset (-L) C)" 
-            using assms(2, 3) C by  auto
-          have F6: "interpr_composition I (uminus ` set_mset D) \<Turnstile> (remove1_mset (-L) C)" 
-            using F3 F5 unfolding interpr_composition_def apply auto
-            by (simp add: resolve_on_def)
-          hence "\<exists>H. H \<in> interpr_composition I (uminus ` set_mset D) \<and> H \<in># (remove1_mset (-L) C)" 
-            apply auto
-            by (meson true_cls_def true_lit_def)
-          then obtain H where H1: "H \<in> interpr_composition I (uminus ` set_mset D)" and H2: "H \<in># (remove1_mset (-L) C)" 
-            by blast
-          have H3:"H \<noteq> L" 
-            using F8 H2 by auto
-          have H4:"H \<noteq> -L" 
-            using F7 H2 by auto
-          have "H \<in>  interpr_composition I (interpr_composition (uminus ` set_mset D) {L})" 
-            using H1 H3 H4 unfolding interpr_composition_def by auto
-          hence " interpr_composition I (interpr_composition (uminus ` set_mset D) {L})  \<Turnstile> (remove1_mset (-L) C)" 
-            using H2 unfolding interpr_composition_def using true_cls_def by auto
-          then show ?thesis
-            unfolding interpr_composition_def apply auto
-            using diff_subset_eq_self by blast
-              qed
-            qed note part1 = this
-        have part2: "interpr_composition I (interpr_composition (uminus ` set_mset D) {L}) \<Turnstile> C" if C2: "C \<in># {#D \<in># N'. (L \<in># D \<and> -L \<notin># D)#}" for C
-            unfolding interpr_composition_def apply auto
-            by (smt (verit, del_insts) filter_mset_eq_conv insertI1 that true_cls_def true_lit_def)
-          have "interpr_composition I (interpr_composition (uminus ` set_mset D) {L}) \<Turnstile> C" if C3: "C \<in># {#D \<in># N'. (L \<notin># D \<and> -L \<notin># D)#}" for C
-          proof-
-            have p1:"L \<notin># C \<and> -L \<notin># C" 
-              using C3 by auto
-            have "interpr_composition I (uminus ` set_mset D) \<Turnstile> C" 
-              using B unfolding interpr_composition_def apply auto
-              by (metis (no_types, lifting) p1 \<open>{L} \<Turnstile> D\<close> atm_of_notin_atms_of_iff in_remove1_msetI mset_subset_eqD multiset_filter_subset sup_bot.right_neutral
-                  that true_cls_mset_def true_cls_remove_hd_if_notin_vars true_cls_union_increase')
-            hence "\<exists>G. G \<in> interpr_composition I (uminus ` set_mset D) \<and> G \<in># C"
-              apply auto
-              by (meson true_cls_def true_lit_def)
-            then obtain G where G1: "G \<in> interpr_composition I (uminus ` set_mset D)" and G2: "G \<in># C" 
-              by blast
-            have G3: "G \<noteq> L"
-              using G2 p1 by auto
-            have G4: "G \<noteq> -L"
-              using G2 p1 by auto
-            have "G \<in>  interpr_composition I (interpr_composition (uminus ` set_mset D) {L})"
-              using G1 G3 G4 unfolding interpr_composition_def by auto
-            then show ?thesis 
-              using G2 unfolding interpr_composition_def using true_cls_def by auto
-          qed note part3 = this
-          have "interpr_composition I (interpr_composition (uminus ` set_mset D) {L}) \<Turnstile> C" if C4: "C \<in># {#C \<in># resolve_all_on L N. \<not> tautology C#}" for C 
-          proof-
-            have " atm_of L \<notin> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#}" 
-              using assms(2, 4) resolved_atm_notin_resolved_clauses by blast
-            hence q1:"L \<notin># C \<and> -L \<notin># C" 
-              using C4  apply auto
-              apply (simp add: in_implies_atm_of_on_atms_of_ms)
-              using in_implies_atm_of_on_atms_of_ms by fastforce
-            have "interpr_composition I (uminus ` set_mset D) \<Turnstile> C" 
-              using B unfolding interpr_composition_def apply auto
-              using that true_cls_mset_def by blast
-            hence "\<exists>G. G \<in> interpr_composition I (uminus ` set_mset D) \<and> G \<in># C" 
-              apply auto
-              by (meson true_cls_def true_lit_def)
-            then obtain G where G1: "G \<in> interpr_composition I (uminus ` set_mset D)" and G2: "G \<in># C" 
-              by blast
-            have G3: "G \<noteq> L"
-              using G2 q1 by auto
-            have G4: "G \<noteq> -L"
-              using G2 q1 by auto
-            have "G \<in>  interpr_composition I (interpr_composition (uminus ` set_mset D) {L})"
-              using G1 G3 G4 unfolding interpr_composition_def by auto
-            then show ?thesis 
-              using G2 unfolding interpr_composition_def using true_cls_def by auto
-          qed note part4 = this
-          have N':"N' =  {#D \<in># N'. (L \<in># D \<and> -L \<notin># D)#} + {#D \<in># N'. (L \<notin># D \<and> -L \<notin># D)#} + 
+      proof(cases "tautology (resolve_on L D C)")
+        case True note taut = this
+        have T1:"L \<notin># (resolve_on L D C)"
+          using L_not_in_resolve_on[of L D C]
+          using \<open>-L \<in># C\<close> \<open>L \<in># D\<close> assms(2, 4) C D apply auto
+          using assms(3) by blast
+        have T11:"-L \<notin># (resolve_on L D C)" 
+          using minus_L_not_in_resolve_on[of "L" D C]
+          using \<open>-L \<in># C\<close> \<open>L \<in># D\<close> assms(2, 4) C D apply auto
+          using assms(3) by blast
+        have "\<exists>K. K \<in># (resolve_on L D C) \<and> -K \<in># (resolve_on L D C)" 
+          using True
+          by (simp add: tautology_decomp') 
+        hence T2: "\<exists>K. -K \<in># (remove1_mset (-L) C) \<and> K \<in># (remove1_mset L D) \<and> K \<noteq> L" 
+          using T1 T11 assms(2) unfolding resolve_on_def apply auto
+          apply (metis D assms(3) in_diffD mem_Collect_eq mset_subset_eq_add_left set_mset_filter subset_mset.le_imp_diff_is_add tautology_decomp' union_commute)
+          apply (metis uminus_of_uminus_id)
+          by (metis (no_types, lifting) assms(3) in_diffD mem_Collect_eq mset_subset_eqD set_mset_filter tautology_minus that)
+        then obtain K where K1:"-K \<in># (remove1_mset (-L) C)" and K2:"K \<in># (remove1_mset L D)" and K3:"K \<noteq> L" 
+          by blast 
+        have K5:"-K \<in>#C" 
+          using K1 K3 by auto
+        have "K \<in>#D"
+          using K2 K3 by auto
+        hence "K \<in># (resolve_on L D C)" 
+          using K1 K2 K3  unfolding resolve_on_def by auto
+        hence K4: "K \<noteq> -L" 
+          using T11 by auto 
+        have T3:"-K \<in> (uminus ` set_mset D)"
+          using K2 K3 by auto
+        have T4: "-K \<in> (interpr_composition (uminus ` set_mset D) {L})" 
+          using T3 K3 K4 unfolding interpr_composition_def by auto
+        have "(uminus ` set_mset D) \<Turnstile> C" 
+          using K1 K3 T3 apply auto
+          using true_cls_def by auto
+        have "(interpr_composition (uminus ` set_mset D) {L}) \<Turnstile> C"
+          using T4 K1 K5 unfolding interpr_composition_def
+          by (meson true_cls_def true_lit_def)
+        then show ?thesis 
+          unfolding interpr_composition_def apply auto
+          using true_cls_union_increase' by fastforce
+      next
+        case False note taut = this
+        have \<open>C\<in>#N\<close> and \<open>D\<in>#N\<close>
+          using C D assms(3) by auto
+        moreover have \<open>L \<notin># C\<close> \<open>-L \<notin># D\<close>
+          using taut C D by (auto dest!: multi_member_split 
+              simp: add_mset_eq_add_mset resolve_on_def)
+        ultimately have F1: "remdups_mset (resolve_on L D C) \<in># {#C \<in># resolve_all_on L N. \<not> tautology C#}" 
+          using taut assms(3) \<open>-L \<in># C\<close> \<open>L \<in># D\<close>
+          unfolding resolve_all_on_def 
+          by (auto simp: add_mset_eq_add_mset image_Un Times_insert_right
+              conj_disj_distribR Times_insert_left Collect_disj_eq Collect_conv_if
+              dest!: multi_member_split[of C]  multi_member_split[of D]) 
+        have F2:"L \<notin># (resolve_on L D C)" 
+          using L_not_in_resolve_on[of L D C]
+          using \<open>-L \<in># C\<close> \<open>L \<in># D\<close> assms(2, 4) C D apply auto
+          using assms(3) by blast
+        have F22:"-L \<notin># (resolve_on L D C)" 
+          using minus_L_not_in_resolve_on[of "L" D C]
+          using \<open>-L \<in># C\<close> \<open>L \<in># D\<close> assms(2, 4) C D apply auto
+          using assms(3) by blast
+        have F3: "interpr_composition I (uminus ` set_mset D) \<Turnstile> (resolve_on L D C)" 
+          using B F1 apply auto unfolding interpr_composition_def apply auto
+          using F1 true_cls_mset_def by blast
+        hence "\<exists>J. J \<in> interpr_composition I (uminus ` set_mset D) \<and> J \<in># (resolve_on L D C)"
+          apply auto
+          by (meson true_cls_def true_lit_def)
+        then obtain J where J1:"J \<in> interpr_composition I (uminus ` set_mset D)" and J2:"J \<in># (resolve_on L D C)"
+          by blast
+        have J3:"J \<noteq> L "
+          using F2 J2 by  auto
+        have J33:"J \<noteq> -L "
+          using F22 J2 by  auto
+        have J4:"J \<in> interpr_composition I (interpr_composition (uminus ` set_mset D) {L})" 
+          using J1 J3 J33 unfolding interpr_composition_def by auto
+        have F4:" interpr_composition I (interpr_composition (uminus ` set_mset D) {L})  \<Turnstile> (resolve_on L D C)" 
+          using J4 J2  apply auto
+          using true_cls_def by auto
+        have "\<not>((interpr_composition I (uminus ` set_mset D)) \<Turnstile> D)"
+          unfolding interpr_composition_def using assms(2, 3) apply auto
+          by (metis D interpr_composition_def interpr_composition_neg_itself_iff mem_Collect_eq mset_subset_eqD set_mset_filter)
+        hence F5: "\<not>((interpr_composition I (uminus ` set_mset D)) \<Turnstile> (remove1_mset L D))" 
+          unfolding interpr_composition_def using assms(2, 3) apply auto
+          using diff_subset_eq_self by blast
+        have F7:"-L \<notin># (remove1_mset (-L) C)"
+          by (metis F22 resolve_on_def union_iff) 
+        have F8:"L \<notin># (remove1_mset (-L) C)" 
+          using assms(2, 3) C by  auto
+        have F6: "interpr_composition I (uminus ` set_mset D) \<Turnstile> (remove1_mset (-L) C)" 
+          using F3 F5 unfolding interpr_composition_def apply auto
+          by (simp add: resolve_on_def)
+        hence "\<exists>H. H \<in> interpr_composition I (uminus ` set_mset D) \<and> H \<in># (remove1_mset (-L) C)" 
+          apply auto
+          by (meson true_cls_def true_lit_def)
+        then obtain H where H1: "H \<in> interpr_composition I (uminus ` set_mset D)" and H2: "H \<in># (remove1_mset (-L) C)" 
+          by blast
+        have H3:"H \<noteq> L" 
+          using F8 H2 by auto
+        have H4:"H \<noteq> -L" 
+          using F7 H2 by auto
+        have "H \<in>  interpr_composition I (interpr_composition (uminus ` set_mset D) {L})" 
+          using H1 H3 H4 unfolding interpr_composition_def by auto
+        hence " interpr_composition I (interpr_composition (uminus ` set_mset D) {L})  \<Turnstile> (remove1_mset (-L) C)" 
+          using H2 unfolding interpr_composition_def using true_cls_def by auto
+        then show ?thesis
+          unfolding interpr_composition_def apply auto
+          using diff_subset_eq_self by blast
+      qed
+    qed note part1 = this
+    have part2: "interpr_composition I (interpr_composition (uminus ` set_mset D) {L}) \<Turnstile> C" if C2: "C \<in># {#D \<in># N'. (L \<in># D \<and> -L \<notin># D)#}" for C
+      unfolding interpr_composition_def apply auto
+      by (smt (verit, del_insts) filter_mset_eq_conv insertI1 that true_cls_def true_lit_def)
+    have "interpr_composition I (interpr_composition (uminus ` set_mset D) {L}) \<Turnstile> C" if C3: "C \<in># {#D \<in># N'. (L \<notin># D \<and> -L \<notin># D)#}" for C
+    proof-
+      have p1:"L \<notin># C \<and> -L \<notin># C" 
+        using C3 by auto
+      have "interpr_composition I (uminus ` set_mset D) \<Turnstile> C" 
+        using B unfolding interpr_composition_def apply auto
+        by (metis (no_types, lifting) p1 \<open>{L} \<Turnstile> D\<close> atm_of_notin_atms_of_iff in_remove1_msetI mset_subset_eqD multiset_filter_subset sup_bot.right_neutral
+            that true_cls_mset_def true_cls_remove_hd_if_notin_vars true_cls_union_increase')
+      hence "\<exists>G. G \<in> interpr_composition I (uminus ` set_mset D) \<and> G \<in># C"
+        apply auto
+        by (meson true_cls_def true_lit_def)
+      then obtain G where G1: "G \<in> interpr_composition I (uminus ` set_mset D)" and G2: "G \<in># C" 
+        by blast
+      have G3: "G \<noteq> L"
+        using G2 p1 by auto
+      have G4: "G \<noteq> -L"
+        using G2 p1 by auto
+      have "G \<in>  interpr_composition I (interpr_composition (uminus ` set_mset D) {L})"
+        using G1 G3 G4 unfolding interpr_composition_def by auto
+      then show ?thesis 
+        using G2 unfolding interpr_composition_def using true_cls_def by auto
+    qed note part3 = this
+    have "interpr_composition I (interpr_composition (uminus ` set_mset D) {L}) \<Turnstile> C" if C4: "C \<in># {#C \<in># resolve_all_on L N. \<not> tautology C#}" for C 
+    proof-
+      have " atm_of L \<notin> atms_of_mm {#C \<in># resolve_all_on L N. \<not> tautology C#}" 
+        using assms(2, 4) resolved_atm_notin_resolved_clauses by blast
+      hence q1:"L \<notin># C \<and> -L \<notin># C" 
+        using C4  apply auto
+        apply (simp add: in_implies_atm_of_on_atms_of_ms)
+        using in_implies_atm_of_on_atms_of_ms by fastforce
+      have "interpr_composition I (uminus ` set_mset D) \<Turnstile> C" 
+        using B unfolding interpr_composition_def apply auto
+        using that true_cls_mset_def by blast
+      hence "\<exists>G. G \<in> interpr_composition I (uminus ` set_mset D) \<and> G \<in># C" 
+        apply auto
+        by (meson true_cls_def true_lit_def)
+      then obtain G where G1: "G \<in> interpr_composition I (uminus ` set_mset D)" and G2: "G \<in># C" 
+        by blast
+      have G3: "G \<noteq> L"
+        using G2 q1 by auto
+      have G4: "G \<noteq> -L"
+        using G2 q1 by auto
+      have "G \<in>  interpr_composition I (interpr_composition (uminus ` set_mset D) {L})"
+        using G1 G3 G4 unfolding interpr_composition_def by auto
+      then show ?thesis 
+        using G2 unfolding interpr_composition_def using true_cls_def by auto
+    qed note part4 = this
+    have N':"N' =  {#D \<in># N'. (L \<in># D \<and> -L \<notin># D)#} + {#D \<in># N'. (L \<notin># D \<and> -L \<notin># D)#} + 
                          {#D \<in># N'. (-L \<in># D \<and> L \<notin># D)#} + {#D \<in># N'. (-L \<in># D \<and> L \<in># D)#}" 
-            by (subst filter_mset_disj_eq[symmetric], auto)+
-             (auto intro!: filter_mset_id_conv[THEN iffD2, symmetric])
-          hence "interpr_composition I (interpr_composition (uminus ` set_mset D) {L}) \<Turnstile>m (N' - {#D#})" 
-            using part1 part2 part3 unfolding interpr_composition_def apply auto
-            by (smt (verit, best) D Un_iff insertI1 insert_DiffM2 set_mset_union true_cls_def true_cls_mset_def true_lit_def) 
-          then show ?thesis 
-            using part4 unfolding interpr_composition_def apply auto
+      by (subst filter_mset_disj_eq[symmetric], auto)+
+        (auto intro!: filter_mset_id_conv[THEN iffD2, symmetric])
+    hence "interpr_composition I (interpr_composition (uminus ` set_mset D) {L}) \<Turnstile>m (N' - {#D#})" 
+      using part1 part2 part3 unfolding interpr_composition_def apply auto
+      by (smt (verit, best) D Un_iff insertI1 insert_DiffM2 set_mset_union true_cls_def true_cls_mset_def true_lit_def) 
+    then show ?thesis 
+      using part4 unfolding interpr_composition_def apply auto
       by (simp add: true_cls_mset_def)
   qed
   then show ?thesis
@@ -497,7 +497,7 @@ proof (induction rule: res_stack_induct)
         by (metis \<open>mset UpL = NpL\<close> atms_of_ms_mono set_mset_mset set_take_subset subsetD)
       have at_in2:"atms_of (UpL ! i) \<union> atms_of_mm (remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL))) \<subseteq> atms_of_mm N" 
         unfolding NN using NNL NN \<open>mset UpL = NpL\<close> apply auto
-         apply (metis "1" Suc_le_lessD UN_I \<open>mset UpL = NpL\<close> atms_of_ms_def nth_mem_mset)
+        apply (metis "1" Suc_le_lessD UN_I \<open>mset UpL = NpL\<close> atms_of_ms_def nth_mem_mset)
         by (metis \<open>mset UpL = NpL\<close> atms_of_ms_mono set_drop_subset set_mset_mset subsetD)
       hence h5: "V \<union> atms_of_mm N \<union> atms_of (UpL ! i) \<union> atms_of_mm (remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}))
  \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness {L}) (take i UpL))) = 
@@ -507,7 +507,7 @@ V \<union> atms_of_mm N \<union> atms_of_mm (mset (take i UpL)) \<union> atms_of
 \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness {L}) (take i UpL))) =
  V \<union> atms_of_mm N \<union> atms_of_mm (mset (take (Suc i) UpL)) \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S) "
         using at_in1 at_in2 at_in3 by auto
-have "rules
+      have "rules
      (remove1_mset (UpL !  i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}) + {#UpL ! i#}, R, S @ map (Witness {L}) (take i UpL),
       V \<union> atms_of_mm N \<union> atms_of (UpL ! i) \<union> atms_of_mm (remove1_mset (UpL ! i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness {L}) (take i UpL))))
      (remove1_mset (UpL !  i) (N1 + NuL + mset (drop i UpL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}), R, (S @ map (Witness {L}) (take i UpL)) @ [Witness {L} (UpL !i)],
@@ -525,7 +525,7 @@ have "rules
     qed
   qed note ag = this
   have "mset (drop (length UpL) UpL) = {#}" and "(take (length UpL) UpL) = UpL"
-     apply simp by auto
+    apply simp by auto
   then have 2: \<open>rules\<^sup>*\<^sup>* ?st1
      (N1 + NuL + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S @ map (\<lambda>C. Witness {L} C) UpL, 
       V  \<union> atms_of_mm N \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#}\<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))\<close> (is \<open>rules\<^sup>*\<^sup>* _ ?st2\<close>)
@@ -590,7 +590,7 @@ V  \<union> atms_of_mm N \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># 
         by auto
       have in_atm1: "atms_of (UuL ! i) \<union> atms_of_mm (remove1_mset (UuL ! i) (N1 + mset (drop i UuL))) \<subseteq> atms_of_mm N" 
         using NNL NN  \<open>mset UuL = NuL\<close> apply auto
-         apply (metis "1" Suc_le_lessD UN_I \<open>mset UuL = NuL\<close> atms_of_ms_def nth_mem_mset)
+        apply (metis "1" Suc_le_lessD UN_I \<open>mset UuL = NuL\<close> atms_of_ms_def nth_mem_mset)
         by (metis \<open>mset UuL = NuL\<close> atms_of_ms_mono set_drop_subset set_mset_mset subsetD)
       have in_atm2: "atms_of_mm (wit_clause `# mset ( map (Witness {L}) UpL @ map (Witness {- L}) (take i UuL))) \<subseteq> atms_of_mm N" 
         using NNL NN  \<open>mset UuL = NuL\<close> apply auto
@@ -607,10 +607,11 @@ V \<union> atms_of_mm N \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># r
         using in_atm1 in_atm2 in_atm3 by auto 
       have g6: "remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}) =  (N1 + mset (drop (Suc i) UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})" 
         by auto
- have"rules(remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}) + {#UuL ! i#}, R, S @ map (Witness {L}) UpL @ map (Witness {- L}) (take i UuL),
-      V \<union> atms_of_mm N \<union> atms_of (UuL ! i) \<union> atms_of_mm (remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})) \<union> atms_of_mm R \<union>
+      have"rules(add_mset (UuL ! i) (remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})),
+        R, S @ map (Witness {L}) UpL @ map (Witness {- L}) (take i UuL),
+        V \<union> atms_of_mm N \<union> atms_of (UuL ! i) \<union> atms_of_mm (remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})) \<union> atms_of_mm R \<union>
     atms_of_mm (wit_clause `# mset (S @ map (Witness {L}) UpL @ map (Witness {- L}) (take i UuL))))
- (remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}), R, (S @ map (Witness {L}) UpL @ map (Witness {- L}) (take i UuL)) @ [Witness {- L} (UuL ! i)],
+          (remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}), R, (S @ map (Witness {L}) UpL @ map (Witness {- L}) (take i UuL)) @ [Witness {- L} (UuL ! i)],
       V \<union> atms_of_mm N \<union> atms_of (UuL ! i) \<union> atms_of_mm (remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})) \<union> atms_of_mm R \<union>
     atms_of_mm (wit_clause `# mset (S @ map (Witness {L}) UpL @ map (Witness {- L}) (take i UuL))))"
         using weakenp[of "{-L}" "(UuL ! i)" "remove1_mset (UuL ! i) (N1 + mset (drop i UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#})" ]
@@ -619,13 +620,13 @@ V \<union> atms_of_mm N \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># r
       V \<union> atms_of_mm N \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
 (N1 + mset (drop (Suc i) UuL) + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S @ map (Witness {L}) UpL @ map (Witness {- L}) (take (Suc i) UuL),
       V \<union> atms_of_mm N \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#} \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))" 
-        using g1 g2 g3 g4 g5 g6 by (metis append.assoc) 
+        using g1 g2 g3 g4 g5 g6 by (metis add_mset_add_single append.assoc)
       then show ?thesis
         using Suc by auto
     qed
   qed note last_rul = this
   have " mset (drop (length UuL) UuL) = {#}" and "(take (length UuL) UuL) = UuL"
-     apply simp by auto
+    apply simp by auto
   hence 3: \<open>rules\<^sup>*\<^sup>* ?st2
      (N1 + {#C \<in># resolve_all_on L NL. \<not> tautology C#}, R, S @ map (\<lambda>C. Witness {L} C) UpL@ map (\<lambda>C. Witness {-L} C) UuL, 
       V  \<union> atms_of_mm N \<union>atms_of_mm NpL \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#}\<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))\<close> 
@@ -640,7 +641,7 @@ V \<union> atms_of_mm N \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># r
       atms_of_ms (wit_clause ` set S))
      ({#C \<in># resolve_all_on L N. \<not> tautology C#}, R, S @ map (\<lambda>C. Witness {L} C) UpL@ map (\<lambda>C. Witness {-L} C) UuL, 
       V  \<union> atms_of_mm N \<union>atms_of_mm NpL \<union> atms_of_mm {#C \<in># resolve_all_on L NL. \<not> tautology C#}\<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
-  (is \<open>rules\<^sup>*\<^sup>* (N, R, S, ?V) _\<close>)
+    (is \<open>rules\<^sup>*\<^sup>* (N, R, S, ?V) _\<close>)
     using 2 1
     by (meson rtranclp_trans) 
   moreover have \<open>?V = V \<union> atms_of_mm N \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)\<close>
@@ -651,38 +652,42 @@ V \<union> atms_of_mm N \<union> atms_of_mm NpL \<union> atms_of_mm {#C \<in># r
 qed
 
 lemma rules_mono_set: 
-   \<open>rules (N, R, S, V) (N', R', S', V') \<Longrightarrow> rules (N, R, S, V \<union> X) (N', R', S', V' \<union> X)\<close>
-   proof(induction rule: rules_induct)
-     case (drop N C R S V)
-     then show ?case 
-       using rules.drop[of N C R S "V \<union> X"] apply auto
-       by (simp add: Un_left_commute sup_commute)
-   next
-     case (strenghten N C R S V)
-     then show ?case 
-       using rules.strenghten[of N C R S "V \<union> X"] apply auto
-       by (simp add: Un_left_commute sup_commute)
-   next
-     case (weakenp I C N V R S)
-     then show ?case 
-       using rules.weakenp[of I C N "V \<union> X" R S] apply auto
-       by (smt (verit) inf_sup_aci(5) inf_sup_aci(6) le_iff_sup) 
-   next
-     case (forget N C R S V)
-     then show ?case 
-       using rules.forget[of N C R S "V \<union> X"] apply auto
-       by (simp add: Un_left_commute sup_commute)
-   next
-     case (learn_minus N R C S V)
-     then show ?case 
-       using rules.learn_minus[of N R C S "V \<union> X"] apply auto 
-       by (simp add: Un_left_commute sup_commute)
-   qed
+  \<open>rules (N, R, S, V) (N', R', S', V') \<Longrightarrow> rules (N, R, S, V \<union> X) (N', R', S', V' \<union> X)\<close>
+proof(induction rule: rules_induct)
+  case (drop N C R S V)
+  then show ?case 
+    using rules.drop[of N C R S "V \<union> X"] apply auto
+    by (simp add: Un_left_commute sup_commute)
+next
+  case (strenghten N C R S V)
+  then show ?case 
+    using rules.strenghten[of N C R S "V \<union> X"] apply auto
+    by (simp add: Un_left_commute sup_commute)
+next
+  case (weakenp I C N V R S)
+  then show ?case 
+    using rules.weakenp[of I C N "V \<union> X" R S] apply auto
+    by (smt (verit) inf_sup_aci(5) inf_sup_aci(6) le_iff_sup) 
+next
+  case (forget N C R S V)
+  then show ?case 
+    using rules.forget[of N C R S "V \<union> X"] apply auto
+    by (simp add: Un_left_commute sup_commute)
+next
+  case (learn_minus N R C S V)
+  then show ?case 
+    using rules.learn_minus[of N R C S "V \<union> X"] apply auto 
+    by (simp add: Un_left_commute sup_commute)
+next
+  case (learn_plus C N R S V)
+  then show ?case
+    by (smt (verit, del_insts) rules.intros(6) sup_aci(1) sup_aci(3))
+qed
 
 lemma rtranclp_rules_mono_set: 
   \<open>rules\<^sup>*\<^sup>* (N, R, S, V) (N', R', S', V') \<Longrightarrow> rules\<^sup>*\<^sup>* (N, R, S, V \<union> X) (N', R', S', V' \<union> X)\<close>
   by (induction rule: rtranclp_induct4)
-   (auto dest: rules_mono_set[of _ _ _ _ _ _ _ _ X])
+    (auto dest: rules_mono_set[of _ _ _ _ _ _ _ _ X])
 
 lemma rtranclp_simulation_res_stack_rules:
   assumes "res_stack\<^sup>*\<^sup>* (N, Z) (N', Z')" and"\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C" and "\<forall>C. C\<in># N  \<longrightarrow>  \<not>tautology C"

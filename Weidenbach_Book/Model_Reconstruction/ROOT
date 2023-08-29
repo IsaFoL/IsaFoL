@@ -1,14 +1,19 @@
 session "Model_Reconstruction"  = "Entailment_Definition" +
-  description \<open>This session contains various (but still general) definition of entailment used
-  later.\<close>
+  description \<open>This session contains the definition of model reconstruction, with various
+   instanciations for the abstract redundancy criteria.\<close>
   options [document = pdf, document_output = "output"]
   sessions
     "HOL-Library"
     Ordered_Resolution_Prover
-  theories [document = true,quick_and_dirty=true]
-    autarky
-    CompletenessResolution
-    dpAlgorithm
-    inprocessingRulesNeu2
-    modelReconstruction 
-    simulation2
+  theories [document = true,quick_and_dirty=false]
+    Autarky
+    Completeness_Resolution
+    DP_Algorithm
+    Inprocessing_Rules
+    Model_Reconstruction 
+    Simulation
+    Globally_Blocked_Clauses
+    Safe_Assign
+  document_files
+    "root.tex"
+    "biblio.bib"

@@ -258,7 +258,7 @@ proof -
       apply (frule H(2))
       apply (frule H(3))
 	apply (clarsimp simp: twl_st_heur_def)
-	apply (rule_tac x=aea in exI)
+	apply (rule_tac x=afa in exI)
 	apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id] learned_clss_count_def
           all_atms_st_def
 	  intro: trail_pol_no_dup)
@@ -2796,7 +2796,7 @@ lemma cdcl_GC_clauses_wl_D_alt_def:
     else remove_all_learned_subsumed_clauses_wl S})\<close>
   supply [[goals_limit=1]]
   unfolding cdcl_GC_clauses_wl_def
-  by (fastforce intro!: ext simp: RES_RES_RETURN_RES2 cdcl_remap_st_def RES_RES13_RETURN_RES
+  by (fastforce intro!: ext simp: RES_RES_RETURN_RES2 cdcl_remap_st_def RES_RES13_RETURN_RES_bound
       RES_RES11_RETURN_RES uncurry_def image_iff
       RES_RETURN_RES_RES2 RES_RETURN_RES RES_RES2_RETURN_RES rewatch_spec_def
       rewatch_spec_def remove_all_learned_subsumed_clauses_wl_def

@@ -61,8 +61,8 @@ definition reluctant_tick :: \<open>reluctant \<Rightarrow> reluctant\<close> wh
   (if period = 0 \<or> trigger then Reluctant limited trigger u v period (wait) limit
    else if wait > 1 then Reluctant limited trigger u v period (wait - 1) limit
    else let (u, v) = (if u AND (0-u) = v then (u+1, 1) else (u, 2 * v));
-              wait = v * period;
-      (u, v, wait) = (if limited \<and> wait > limit then (1,2, period) else (u, v, wait)) in
+      (u, v) = (if limited \<and> wait > limit then (1,1) else (u, v));
+      wait = v * period in
     Reluctant limited True u v period wait limit))\<close>
 
 definition reluctant_enable :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> reluctant\<close> where
