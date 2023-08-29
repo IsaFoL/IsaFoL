@@ -337,6 +337,297 @@ proof unfold_locales
     using not_finite_existsD by force
 qed
 
-end
 
+subsection \<open>Strategy for ground ordered resolution\<close>
+
+lemma true_cls_if_true_lit_in: "L \<in># C \<Longrightarrow> I \<TTurnstile>l L \<Longrightarrow> I \<TTurnstile> C"
+  by auto
+
+definition is_minimal_wrt where
+  "is_minimal_wrt R x X \<longleftrightarrow> x |\<in>| X \<and> fBall X (\<lambda>y. y \<noteq> x \<longrightarrow> \<not> (R y x))"
+
+lemma obtains_minimal_wrt_fset:
+  assumes "asymp_on (fset X) R" and "transp_on (fset X) R" and "X \<noteq> {||}"
+  obtains x where "is_minimal_wrt R x X"
+  using Finite_Set.bex_min_element[OF finite_fset assms(1,2)]
+  unfolding is_minimal_wrt_def
+  using assms(3) by auto
+
+definition is_min_false_clause :: "'f gterm clause fset \<Rightarrow> 'f gterm clause \<Rightarrow> bool" where
+  "is_min_false_clause N C \<longleftrightarrow>
+    is_minimal_wrt (\<prec>\<^sub>c) C
+      {|C |\<in>| N. \<not> (\<Union>D \<in> {D \<in> fset N. D \<preceq>\<^sub>c C}. ord_res.production (fset N) D) \<TTurnstile> C|}"
+
+definition ord_res_mod_op_strategy :: "'f gterm clause fset \<Rightarrow> 'f gterm clause fset \<Rightarrow> bool" where
+  "ord_res_mod_op_strategy N N' \<longleftrightarrow> (\<exists>C L.
+    is_min_false_clause N C \<and> ord_res.is_maximal_lit L C \<and>
+      (case L of
+        Neg A \<Rightarrow> \<comment> \<open>Case 3\<close>
+        fBex N (\<lambda>D. D \<prec>\<^sub>c C \<and> ord_res.is_strictly_maximal_lit (Pos A) D \<and>
+          (\<exists>CD. ord_res.ground_resolution C D CD \<and> N' = finsert CD N))
+      | Pos A \<Rightarrow> \<comment> \<open>Case 4\<close>
+        \<not> ord_res.is_strictly_maximal_lit (Pos A) C \<and>
+          (\<exists>C'. ord_res.ground_factoring C C')))"
+
+lemma
+  assumes
+    C_min_false: "is_min_false_clause N C" and
+    Neg_A_max: "ord_res.is_maximal_lit (Neg A) C"
+  shows "fBex N (\<lambda>D. D \<prec>\<^sub>c C \<and> ord_res.is_strictly_maximal_lit (Pos A) D)"
+proof -
+  from C_min_false have
+    C_in: "C |\<in>| N" and
+    C_false: "\<not> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> D \<preceq>\<^sub>c C}) \<TTurnstile> C" and
+    C_min: "fBall {|C |\<in>| N. \<not> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> D \<preceq>\<^sub>c C}) \<TTurnstile> C|}
+      (\<lambda>y. C \<noteq> y \<longrightarrow> C \<prec>\<^sub>c y)"
+    unfolding atomize_conj is_min_false_clause_def
+    by (metis (mono_tags, lifting) ffmember_filter is_minimal_wrt_def linorder_cls.not_less
+        reflclp_iff)
+
+  from C_false have "\<nexists>A. A \<in> ord_res.production (fset N) C"
+    apply (intro notI)
+    apply (elim exE)
+    by (metis (no_types, lifting) SUP_absorb UnI1 is_maximal_wrt_def linorder_cls.order_eq_iff
+        mem_Collect_eq ord_res.mem_productionE pos_literal_in_imp_true_cls)
+  hence C_unproductive: "ord_res.production (fset N) C = {}"
+    using ord_res.production_eq_empty_or_singleton[of "fset N" C] by simp
+
+  from Neg_A_max have "Neg A \<in># C"
+    by (simp add: is_maximal_wrt_def)
+
+  from C_false have "\<not> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> D \<preceq>\<^sub>c C}) \<TTurnstile>l Neg A"
+    using true_cls_if_true_lit_in[OF \<open>Neg A \<in># C\<close>]
+    by meson
+  hence "A \<in> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> D \<preceq>\<^sub>c C})"
+    by simp
+  with C_unproductive have "A \<in> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> D \<prec>\<^sub>c C})"
+    by blast
+  then obtain D where
+    D_in: "D |\<in>| N" and D_lt_C: "D \<prec>\<^sub>c C" and D_productive: "A \<in> ord_res.production (fset N) D"
+    by auto
+
+  from D_productive have "ord_res.is_strictly_maximal_lit (Pos A) D"
+    using ord_res.mem_productionE by metis
+  thus ?thesis
+    using D_in D_lt_C by metis
+qed
+
+lemma
+  assumes
+    C_max_lit: "ord_res.is_maximal_lit (Neg A) C" and
+    D_in: "D |\<in>| N" and
+    D_lt: "D \<prec>\<^sub>c C" and
+    D_max_lit: "ord_res.is_strictly_maximal_lit (Pos A) D"
+  shows "\<exists>CD. ord_res.ground_resolution C D CD"
+proof -
+  from C_max_lit obtain C' where C_def: "C = add_mset (Neg A) C'"
+    by (meson is_maximal_wrt_def mset_add)
+
+  from D_max_lit obtain D' where D_def: "D = add_mset (Pos A) D'"
+    by (meson is_maximal_wrt_def mset_add)
+
+  show ?thesis
+  proof (rule exI)
+    show "ord_res.ground_resolution C D (C' + D')"
+      using ord_res.ground_resolutionI[of C A C' D D']
+      using C_def D_def D_lt C_max_lit D_max_lit by metis
+  qed
+qed
+
+lemma
+  assumes
+    C_min_false: "is_min_false_clause N C" and
+    C_max_lit: "ord_res.is_maximal_lit (Pos A) C"
+  shows "\<not> ord_res.is_strictly_maximal_lit (Pos A) C"
+proof -
+  from C_max_lit obtain C' where C_def: "C = add_mset (Pos A) C'"
+    by (meson is_maximal_wrt_def mset_add)
+
+  from C_min_false have
+    C_in: "C |\<in>| N" and
+    C_false: "\<not> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> D \<preceq>\<^sub>c C}) \<TTurnstile> C" and
+    C_min: "fBall {|C |\<in>| N. \<not> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> D \<preceq>\<^sub>c C}) \<TTurnstile> C|}
+      (\<lambda>y. C \<noteq> y \<longrightarrow> C \<prec>\<^sub>c y)"
+    unfolding atomize_conj is_min_false_clause_def
+    by (metis (mono_tags, lifting) ffmember_filter is_minimal_wrt_def linorder_cls.not_less
+        reflclp_iff)
+
+  from C_false have "\<nexists>A. A \<in> ord_res.production (fset N) C"
+    apply (intro notI)
+    apply (elim exE)
+    by (metis (no_types, lifting) SUP_absorb UnI1 is_maximal_wrt_def linorder_cls.order_eq_iff
+        mem_Collect_eq ord_res.mem_productionE pos_literal_in_imp_true_cls)
+  hence C_unproductive: "ord_res.production (fset N) C = {}"
+    using ord_res.production_eq_empty_or_singleton[of "fset N" C] by simp
+
+  have "{D \<in> fset N. D \<preceq>\<^sub>c C} = {D \<in> fset N. D \<prec>\<^sub>c C} \<union> {D \<in> fset N. D = C}"
+    by fastforce
+  with C_unproductive have
+    "\<Union> (ord_res.production (fset N) ` {D \<in> fset N. D \<preceq>\<^sub>c C}) =
+     \<Union> (ord_res.production (fset N) ` {D \<in> fset N. D \<prec>\<^sub>c C})"
+    by simp
+  with C_false have C_false': "\<not> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> D \<prec>\<^sub>c C}) \<TTurnstile> C"
+    by simp
+
+  from C_unproductive have "A \<notin> ord_res.production (fset N) C"
+    by simp
+  thus ?thesis
+  proof (rule contrapos_nn)
+    assume "ord_res.is_strictly_maximal_lit (Pos A) C"
+    then show "A \<in> ord_res.production (fset N) C"
+      unfolding ord_res.production.simps[of "fset N" C] mem_Collect_eq
+      using C_in C_def C_false' by metis
+  qed
+qed
+
+lemma
+  assumes
+    C_max_lit: "ord_res.is_maximal_lit (Pos A) C" and
+    C_not_max_lit: "\<not> ord_res.is_strictly_maximal_lit (Pos A) C"
+  shows "\<exists>C'. ord_res.ground_factoring C C'"
+proof -
+  from C_max_lit C_not_max_lit have "count C (Pos A) > 1"
+    by (simp add: in_diff_count is_maximal_wrt_def)
+  then obtain C' where C_def: "C = add_mset (Pos A) (add_mset (Pos A) C')"
+    by (metis C_max_lit C_not_max_lit count_greater_zero_iff dual_order.strict_trans insert_DiffM
+        less_numeral_extra(1) lift_is_maximal_wrt_to_is_maximal_wrt_reflclp)
+  
+  show ?thesis
+  proof (rule exI)
+    show "ord_res.ground_factoring C (add_mset (Pos A) C')"
+      using ord_res.ground_factoringI[of C A C']
+      using C_def C_max_lit by metis
+  qed
+qed
+
+definition sfac :: "'f gterm clause \<Rightarrow> 'f gterm clause" where
+  "sfac C = (THE C'. ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C''))"
+
+lemma
+  shows "sfac C = C \<or> (\<exists>!C'. sfac C = C' \<and> ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C''))"
+proof -
+  have "right_unique (\<lambda>x y. ord_res.ground_factoring\<^sup>*\<^sup>* x y \<and> (\<nexists>z. ord_res.ground_factoring y z))"
+    using ord_res.unique_ground_factoring right_unique_terminating_rtranclp right_unique_iff
+    by blast
+
+  moreover obtain C' where "ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')"
+    using ex_terminating_rtranclp[OF ord_res.termination_ground_factoring]
+    by metis
+
+  ultimately have "sfac C = C'"
+    by (simp add: sfac_def right_unique_def the_equality)
+
+  then show ?thesis
+    using \<open>ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')\<close> by blast
+qed
+
+
+typ "('f, 'v) scl_fol_sim_state"
+
+find_consts name: "List" "'a list \<Rightarrow> bool"
+find_consts "_ clause \<Rightarrow> _ set"
+term atms_of
+
+definition lit_occures_in_clss where
+  "lit_occures_in_clss L N \<longleftrightarrow> fBex N (\<lambda>C. L \<in># C)"
+
+term "trail_decide \<Gamma> L"
+
+term fold
+term "foldl trail_decide \<Gamma> Ks"
+
+inductive scl_reso1_step1 :: "_ \<Rightarrow> ('f, 'v) scl_fol_sim_state \<Rightarrow> ('f, 'v) scl_fol_sim_state \<Rightarrow> bool" for N\<^sub>0 where
+  scl_reso1_step1I: "\<F> C \<prec>\<^sub>c \<F> D \<Longrightarrow> \<not> fBex (N\<^sub>0 |\<union>| fimage gcls_of_cls U) (\<lambda>D'. \<F> C \<prec>\<^sub>c \<F> D' \<and> \<F> D' \<prec>\<^sub>c \<F> D) \<Longrightarrow>
+  ord_res.is_maximal_lit L D \<Longrightarrow>
+  sorted_wrt (\<prec>\<^sub>l) Ks \<Longrightarrow> (\<forall>K \<in> set Ks. is_neg K \<and> K \<prec>\<^sub>l L \<and>
+    \<not> trail_defined_lit \<Gamma> (lit_of_glit K) \<and>
+    lit_occures_in_clss K (N\<^sub>0 |\<union>| fimage gcls_of_cls U)) \<Longrightarrow>
+  \<Gamma>' = foldl trail_decide \<Gamma> (map lit_of_glit Ks) \<Longrightarrow>
+  scl_reso1_step1 N\<^sub>0 ((\<Gamma>, U, None), i, C, \<F>) ((\<Gamma>', U, None), i, C, \<F>)"
+
+lemma FOO: "x \<noteq> y \<Longrightarrow> term_of_gterm x \<noteq> term_of_gterm y"
+  by (metis term_of_gterm_inv)
+
+lemma
+  assumes "scl_reso1_step1 N\<^sub>0 (S, i, C, \<F>) (S', i', C', \<F>')"
+  shows "(scl_fol.decide (fimage cls_of_gcls N\<^sub>0) \<beta>)\<^sup>*\<^sup>* S S'"
+  using assms
+proof (cases N\<^sub>0 "(S, i, C, \<F>)" "(S', i', C', \<F>')" rule: scl_reso1_step1.cases)
+  case hyps: (scl_reso1_step1I D U L Ks \<Gamma> \<Gamma>')
+  then show ?thesis
+  proof (induction Ks arbitrary: S \<Gamma>)
+    case Nil
+    hence "S' = S"
+      by simp
+    thus ?case
+      by simp
+  next
+    case (Cons K Ks)
+    note ball_K_Ks = \<open>\<forall>K\<in>set (K # Ks). is_neg K \<and> K \<prec>\<^sub>l L \<and>
+        \<not> trail_defined_lit \<Gamma> (lit_of_glit K) \<and> lit_occures_in_clss K (N\<^sub>0 |\<union>| gcls_of_cls |`| U)\<close>
+
+    hence "\<not> trail_defined_lit \<Gamma> (lit_of_glit K)"
+      by fastforce
+
+    from Cons have "(scl_fol.decide (fimage cls_of_gcls N\<^sub>0) \<beta>)\<^sup>*\<^sup>* (trail_decide \<Gamma> (lit_of_glit K), U, None) S'"
+    proof (intro Cons.IH[OF refl] ballI)
+      show "\<Gamma>' = foldl trail_decide (trail_decide \<Gamma> (lit_of_glit K)) (map lit_of_glit Ks)"
+        by (simp add: \<open>\<Gamma>' = foldl trail_decide \<Gamma> (map lit_of_glit (K # Ks))\<close>)
+    next
+      show "sorted_wrt (\<prec>\<^sub>l) Ks"
+        using \<open>sorted_wrt (\<prec>\<^sub>l) (K # Ks)\<close> by simp
+    next
+      from \<open>sorted_wrt (\<prec>\<^sub>l) (K # Ks)\<close> have "distinct (K # Ks)"
+        using linorder_lit.strict_sorted_iff by blast
+
+      fix Ka assume "Ka \<in> set Ks"
+      hence "\<not> trail_defined_lit \<Gamma> (lit_of_glit Ka)"
+        using ball_K_Ks by simp
+
+      from \<open>Ka \<in> set Ks\<close> have "is_neg K" and "is_neg Ka"
+        using ball_K_Ks by simp_all
+      hence "atm_of K \<noteq> atm_of Ka"
+        using \<open>distinct (K # Ks)\<close>
+        by (metis \<open>Ka \<in> set Ks\<close> distinct.simps(2) literal.expand)
+      hence "\<not> trail_defined_lit (trail_decide \<Gamma> (lit_of_glit K)) (lit_of_glit Ka)"
+        using \<open>\<not> trail_defined_lit \<Gamma> (lit_of_glit K)\<close> \<open>\<not> trail_defined_lit \<Gamma> (lit_of_glit Ka)\<close>
+        unfolding trail_defined_lit_def
+        apply simp
+        apply (cases K; cases Ka)
+        apply (simp_all add: lit_of_glit_def decide_lit_def)
+        apply (metis \<open>is_neg K\<close> literal.disc(1))
+        apply (metis \<open>is_neg K\<close> literal.disc(1))
+        apply (metis \<open>is_neg Ka\<close> literal.disc(1))
+        by (simp add: FOO)
+      thus "is_neg Ka \<and> Ka \<prec>\<^sub>l L \<and>
+        \<not> trail_defined_lit (trail_decide \<Gamma> (lit_of_glit K)) (lit_of_glit Ka) \<and>
+        lit_occures_in_clss Ka (N\<^sub>0 |\<union>| gcls_of_cls |`| U)"
+        using ball_K_Ks \<open>Ka \<in> set Ks\<close>
+        by simp
+    qed
+
+    moreover have "scl_fol.decide (fimage cls_of_gcls N\<^sub>0) \<beta> (\<Gamma>, U, None) (trail_decide \<Gamma> (lit_of_glit K), U, None)"
+      using \<open>\<not> trail_defined_lit \<Gamma> (lit_of_glit K)\<close>
+    proof (intro scl_fol.decideI[of _ _ Var, simplified])
+      show "is_ground_lit (lit_of_glit K)"
+        apply (cases K; cases "atm_of K")
+        by (simp_all add: lit_of_glit_def is_ground_lit_iff_vars_empty)
+    next
+      show "fBex (cls_of_gcls |`| N\<^sub>0) ((\<in>#) (lit_of_glit K))"
+        sorry
+    next
+      show "ground (atm_of (lit_of_glit K)) \<and> ground \<beta> \<and> gterm_of_term (atm_of (lit_of_glit K)) \<prec>\<^sub>t gterm_of_term \<beta> \<or> atm_of (lit_of_glit K) = \<beta>"
+        sorry
+    qed
+
+    ultimately show ?case
+      unfolding \<open>S = (\<Gamma>, U, None)\<close> \<open>S' = (\<Gamma>', U, None)\<close>
+        \<open>\<Gamma>' = foldl trail_decide \<Gamma> (map lit_of_glit (K # Ks))\<close>
+      (* unfolding list.map foldl_Cons *)
+      by simp
+  qed
+qed
+
+end
+ 
 end
