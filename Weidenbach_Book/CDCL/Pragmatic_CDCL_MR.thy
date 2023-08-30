@@ -5,6 +5,11 @@ begin
 fun to_mr_state :: \<open>'v prag_st \<times> 'v stackWit \<Rightarrow> 'v clauses \<times> 'v clauses \<times> 'v stackWit \<times> 'v set\<close> where
   \<open>to_mr_state ((M, N, U, D, NE, UE, NS, US, N0, U0), S) = (N + NE + NS + N0, U + UE + US + U0, S, atms_of_mm (N + NE + NS + N0 + U + UE + US + U0) \<union> atms_of_ms (wit_clause ` set S))\<close>
 
+lemma to_mr_state_alt_def:
+  \<open>to_mr_state ( (S,T)) = (pget_all_init_clss S, pget_all_learned_clss S, T,
+  atms_of_mm (pget_all_init_clss S) \<union>  atms_of_mm (pget_all_learned_clss S) \<union> atms_of_ms (wit_clause ` set T))\<close>
+  by (cases S) auto
+
 lemma cdcl_backtrack_rules:
   assumes \<open>cdcl_backtrack V W\<close> and \<open>pcdcl_all_struct_invs V\<close>
   shows \<open>rules (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
@@ -147,6 +152,105 @@ next
   then show ?thesis by blast
 qed
 
+lemma consistent_interp_diffI: "consistent_interp I \<Longrightarrow> consistent_interp (I - A)"
+  by (metis Diff_iff consistent_interp_def)
+lemma
+  assumes \<open>cdcl_pure_literal_remove V W\<close> \<open>pcdcl_all_struct_invs V\<close>
+  shows \<open>rules (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
+  using assms(1)
+proof (cases)
+  case (cdcl_pure_literal_remove L N NE NS N0 M U UE US U0) note S = this(1) and T = this(2) and
+    L = this(3,4) and undef = this(5) and lev0 = this(6)
+  have
+    ent: \<open>entailed_clss_inv V\<close> and
+    sub: \<open>psubsumed_invs V\<close> and
+    clss0: \<open>clauses0_inv V\<close> and
+    struct_invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of V)\<close>
+    using assms(2) unfolding pcdcl_all_struct_invs_def by fast+
+      
+  have \<open>satisfiable (insert {#L#} (set_mset (pget_all_init_clss V) \<union> set_mset (pget_all_learned_clss V)))\<close>
+    if sat: \<open>satisfiable (set_mset (pget_all_init_clss V) \<union> set_mset (pget_all_learned_clss V))\<close>
+  proof -
+    obtain I where
+      cons: \<open>consistent_interp I\<close> and
+      IS: \<open>I \<Turnstile>sm pget_all_init_clss V + pget_all_learned_clss V\<close> and
+      tot: \<open>total_over_m I (set_mset (pget_all_init_clss V) \<union> set_mset (pget_all_learned_clss V))\<close>
+      using sat unfolding satisfiable_def by blast
+    let ?J = \<open>insert L (I - {-L})\<close>
+    have cons2: \<open>consistent_interp ?J\<close>
+      using cons
+      by (metis Diff_empty Diff_iff Diff_insert0 consistent_interp_insert_iff insert_Diff singletonI)
+
+    have \<open>all_decomposition_implies_m (cdcl\<^sub>W_restart_mset.clauses (state_of V))
+      (get_all_ann_decomposition (trail (state_of V)))\<close> and
+      alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of V)\<close>
+      using struct_invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
+    then have \<open>set_mset (pget_all_init_clss V + pget_all_learned_clss V) \<Turnstile>ps unmark_l M\<close>
+      using tot lev0 by (auto simp: S clauses_def count_decided_0_iff
+        no_decision_get_all_ann_decomposition)
+    moreover have \<open>total_over_m I (unmark_l M)\<close>
+      using alien tot by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def S
+        total_over_m_def total_over_set_def)
+    ultimately have \<open>I \<Turnstile>s unmark_l M\<close>
+      using IS tot cons by (auto simp: S true_clss_clss_def)
+    then have \<open>lits_of_l M \<subseteq> I\<close>
+      by (auto simp: true_clss_def lits_of_def)
+    have IN: \<open>I \<Turnstile>m N\<close> and \<open>I \<Turnstile>m NS\<close> \<open>I \<Turnstile>m N0\<close> \<open>I \<Turnstile>m NE\<close>
+      using IS by (auto simp: S)
+    have totJ: \<open>total_over_m ?J (set_mset (pget_all_init_clss W)\<union> set_mset (pget_all_learned_clss W))\<close>
+      using tot apply (auto simp: total_over_m_def S T total_over_set_alt_def
+        uminus_lit_swap)
+      apply (metis atm_of_uminus literal.sel)+
+      done
+    have \<open>?J \<Turnstile>m N\<close>
+      using IN L by (clarsimp simp: true_cls_mset_def add_mset_eq_add_mset true_cls_def
+        dest!: multi_member_split)
+    moreover have \<open>?J \<Turnstile>m NE\<close>
+      using \<open>I \<Turnstile>m NS\<close> ent \<open>I \<Turnstile>m N0\<close> \<open>I \<Turnstile>m NE\<close> totJ L(1) undef \<open>lits_of_l M \<subseteq> I\<close>
+      apply (auto simp: entailed_clss_inv_def S true_cls_mset_def T Decided_Propagated_in_iff_in_lits_of_l
+        dest!: multi_member_split[of \<open>_ :: _ clause\<close>])
+      unfolding true_cls_def[of ]
+      apply clarsimp
+      apply (rule_tac x=La in bexI)
+      by auto
+    moreover have \<open>?J \<Turnstile>m N0\<close>
+      using \<open>I \<Turnstile>m NS\<close> ent \<open>I \<Turnstile>m N0\<close> \<open>I \<Turnstile>m NE\<close> totJ L undef clss0
+      by (auto simp: entailed_clss_inv_def S true_cls_mset_def T Decided_Propagated_in_iff_in_lits_of_l
+        clauses0_inv_def
+        dest!: multi_member_split)
+    moreover have \<open>?J \<Turnstile>m NS\<close>
+      using \<open>I \<Turnstile>m NS\<close> sub \<open>I \<Turnstile>m N0\<close> \<open>I \<Turnstile>m N\<close> totJ calculation
+      apply (auto simp: psubsumed_invs_def S true_cls_mset_def T
+        dest!: multi_member_split dest: true_cls_mono_leD)
+      apply (simp add: tautology_def)
+      apply (metis calculation true_cls_mono_leD true_cls_mset_add_mset)+
+      done
+    moreover have \<open>?J \<Turnstile>m U\<close>
+      using IS apply auto
+      sorry
+    moreover have \<open>?J \<Turnstile>m UE\<close> \<open>?J \<Turnstile>m US\<close> \<open>?J \<Turnstile>m U0\<close>
+      sledgehammer
+      sorry
+    ultimately have \<open>?J \<Turnstile>sm pget_all_init_clss W + pget_all_learned_clss W\<close>
+      using ent by (auto simp: S T)
+
+    then show ?thesis
+      using cons2 unfolding S T  by auto
+  qed
+  moreover have \<open>insert (atm_of L)
+          (atms_of_mm N \<union> atms_of_mm NE \<union> atms_of_mm NS \<union> atms_of_mm N0 \<union>
+        (atms_of_mm U \<union> atms_of_mm UE \<union> atms_of_mm US \<union> atms_of_mm U0) \<union>
+        atms_of_ms (wit_clause ` set S)) = 
+          (atms_of_mm N \<union> atms_of_mm NE \<union> atms_of_mm NS \<union> atms_of_mm N0 \<union>
+        (atms_of_mm U \<union> atms_of_mm UE \<union> atms_of_mm US \<union> atms_of_mm U0) \<union>
+        atms_of_ms (wit_clause ` set S))\<close>
+    using L by auto
+  ultimately show \<open>?thesis\<close>
+    using rules.learn_plus[of \<open>pget_all_init_clss V\<close> \<open>pget_all_learned_clss V\<close> \<open>{#L#}\<close> S \<open>{}\<close>]
+    by (auto intro: consistent_interp_diffI simp: S T to_mr_state_alt_def)
+qed
+
+
 lemma pcdcl_rules:
   \<open>pcdcl V W \<Longrightarrow> pcdcl_all_struct_invs V \<Longrightarrow> rules\<^sup>*\<^sup>* (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
   apply (cases rule: pcdcl.cases, assumption)
@@ -176,6 +280,9 @@ lemma pcdcl_rules:
   subgoal by (auto simp: cdcl_inp_conflict.simps)
   subgoal by (auto simp: cdcl_unitres_true.simps)
   subgoal by (auto simp: cdcl_promote_false.simps)
+  subgoal
+    
+    sorry
 (*does not hold without the Ns \<Turnstile> Us which we do not really want to add as assumptiom*)
     oops
 
