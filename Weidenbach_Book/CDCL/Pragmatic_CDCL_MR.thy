@@ -154,6 +154,18 @@ qed
 
 lemma consistent_interp_diffI: "consistent_interp I \<Longrightarrow> consistent_interp (I - A)"
   by (metis Diff_iff consistent_interp_def)
+
+
+text \<open>
+Learning a pure literal as we did in the CADE'29 paper is sadly not compatible with our
+transition system. In essence, we could force it to make it compatible by enforcing that in
+every step \<^term>\<open>N  \<Turnstile>psm U\<close>, but this would not be compatible with the invariants. Only the invariant
+\<^term>\<open>(N + wit_clause `# mset S) \<Turnstile>psm U\<close> holds\<dots> but if we do that, we also need to check for conflicts
+in the witness.
+
+The counter-example is easy: Learn the clause \<^term>\<open>L\<close> where  \<^term>\<open>L\<close> is a fresh literal, put  \<^term>\<open>L\<close> in the
+set of learned clauses. Then put  \<^term>\<open>L\<close> to the reconstruction stack\<dots> and you can learn  \<^term>\<open>-L\<close> again.>&
+\<close>
 lemma
   assumes \<open>cdcl_pure_literal_remove V W\<close> \<open>pcdcl_all_struct_invs V\<close>
   shows \<open>rules (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
