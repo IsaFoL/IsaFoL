@@ -164,7 +164,7 @@ every step \<^term>\<open>N  \<Turnstile>psm U\<close>, but this would not be co
 in the witness.
 
 The counter-example is easy: Learn the clause \<^term>\<open>L\<close> where  \<^term>\<open>L\<close> is a fresh literal, put  \<^term>\<open>L\<close> in the
-set of learned clauses. Then put  \<^term>\<open>L\<close> to the reconstruction stack\<dots> and you can learn  \<^term>\<open>-L\<close> again.>&
+set of learned clauses. Then put  \<^term>\<open>L\<close> to the reconstruction stack\<dots> and you can learn  \<^term>\<open>-L\<close> again.
 \<close>
 lemma
   assumes \<open>cdcl_pure_literal_remove V W\<close> \<open>pcdcl_all_struct_invs V\<close>
