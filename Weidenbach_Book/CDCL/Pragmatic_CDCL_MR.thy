@@ -309,15 +309,71 @@ weaken:
   \<open>cdcl_weaken ((M, add_mset C N, U, None, NE, UE, NS, US, N0, U0), S)
     ((M, N, U, None, add_mset (add_mset (-L) C) NE, UE, NS, US, N0, U0), S @ [Witness I C])\<close>
   if
-    "I \<Turnstile> C"  and "redundancy N C I N" and "consistent_interp I " and
-    "atm_of ` I \<subseteq> atms_of_mm (N+NE+NS+N0) \<union> atms_of_mm (wit_clause `# mset S)" and
-    \<open>L \<in># C\<close>
+    "I \<Turnstile> C"  and "redundancy (N+NE+NS+N0) C I (N+NE+NS+N0)" and "consistent_interp I " and
+    "atm_of ` I \<subseteq> atms_of_mm (add_mset C N+NE+NS+N0) \<union> atms_of_mm (U+UE+US+U0) \<union> atms_of_mm (wit_clause `# mset S)" and
+    \<open>L \<in># C\<close>and
+    \<open>-L \<notin># C\<close>
 
 lemma
   assumes \<open>cdcl_weaken (V, S) (W, T)\<close> \<open>pcdcl_all_struct_invs V\<close>
   shows
     \<open>pcdcl_all_struct_invs W\<close> and
     \<open>rules\<^sup>*\<^sup>*  (to_mr_state (V, S)) (to_mr_state (W, T))\<close>
-oops
+  using assms
+proof (induct rule: cdcl_weaken.cases)
+  case (weaken I C N NE NS N0 U UE US U0 S' L M)
+  have
+    V: \<open>V = (M, add_mset C N, U, None, NE, UE, NS, US, N0, U0)\<close> and
+    S': \<open>S' = S\<close> and
+    W: \<open>W = (M, N, U, None, add_mset (add_mset (-L) C) NE, UE, NS, US, N0, U0)\<close> and
+    T: \<open>T = S @ [Witness I C]\<close> and
+    LC: \<open>L \<in># C\<close> \<open>-L \<notin># C\<close>
+    using weaken by auto
+  let ?D = \<open>add_mset (-L) C\<close>
+  have tauto_D: \<open>tautology ?D\<close>
+    using weaken by (auto dest!: multi_member_split[of L C] simp: tautology_add_mset)
+  have dist: \<open>distinct_mset C\<close>
+    sorry
+  case 1
+  then show ?case using weaken apply auto sorry
+
+  case 2
+  let ?T = \<open>(M, add_mset C N, U, None, NE, add_mset (add_mset (-L) C) UE, NS, US, N0, U0)\<close>
+  have \<open>set_mset N \<union> set_mset NE \<union> set_mset NS \<union> set_mset N0 \<union> (set_mset U \<union> set_mset UE \<union> set_mset US \<union> set_mset U0) \<Turnstile>p add_mset (- L) C\<close>
+    by (meson consistent_CNot_not_tautology tauto_D total_not_CNot total_over_m_union true_clss_cls_def)
+  moreover have [simp]: \<open>insert (atm_of L) (atms_of C \<union> \<V>) =
+    (atms_of C \<union> \<V>)\<close> for \<V>
+    using LC by (auto dest!: multi_member_split)
+  ultimately have 1: \<open>rules (to_mr_state (V, S)) (to_mr_state (?T, S))\<close>
+    using tauto_D learn_minus[of \<open>(add_mset C N+NE+NS+N0)\<close> \<open>U+UE+US+U0\<close> \<open>add_mset (-L) C\<close> S \<open>{}\<close>] LC dist
+    by (auto simp: V T add_mset_commute ac_simps)
+
+  let ?U = \<open>(M, add_mset C N, U, None, add_mset (add_mset (-L) C) NE, UE, NS, US, N0, U0)\<close>
+  have 2: \<open>rules (to_mr_state (?T, S)) (to_mr_state (?U, S))\<close>
+    using strenghten[of \<open>(add_mset C N+NE+NS+N0)\<close>  \<open>add_mset (-L) C\<close>  \<open>U+UE+US+U0\<close>  S \<open>{}\<close>]
+    by (auto simp: rules.simps)
+
+  have \<open>redundancy (add_mset (add_mset (-L) C) N+NE+NS+N0) C I (add_mset (add_mset (-L) C) N+NE+NS+N0)\<close>
+    using weaken apply auto unfolding redundancy_def apply auto
+    sorry
+  then have H: \<open>rules
+  (add_mset C (add_mset (add_mset (- L) C) N + NE + NS + N0), U + UE + US + U0, S,
+   {} \<union> atms_of C \<union> atms_of_mm (add_mset (add_mset (- L) C) N + NE + NS + N0) \<union> atms_of_mm (U + UE + US + U0) \<union>
+   atms_of_mm (wit_clause `# mset S))
+  (add_mset (add_mset (- L) C) N + NE + NS + N0, U + UE + US + U0, S @ [Witness I C],
+   {} \<union> atms_of C \<union> atms_of_mm (add_mset (add_mset (- L) C) N + NE + NS + N0) \<union> atms_of_mm (U + UE + US + U0) \<union>
+    atms_of_mm (wit_clause `# mset S))\<close>
+   apply -
+   apply (rule rules.weakenp[of I C  \<open>(add_mset (add_mset (-L) C) N+NE+NS+N0)\<close> \<open>{}\<close> \<open>U+UE+US+U0\<close> S])
+   using weaken by auto
+  have 3: \<open>rules (to_mr_state (?U, S)) (to_mr_state (W, T))\<close>
+    by (rule arg_cong2[of _ _ _ _ rules, THEN iffD1, OF _ _ H])
+      (auto simp: V S' W T ac_simps)
+    
+  then show ?case
+    using weaken apply auto 
+    sorry
+qed
+  oops
 (*this will get tricky here*)
 end
