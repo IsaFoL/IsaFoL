@@ -61,46 +61,232 @@ lemma Collect_eq_image_filter_Collect_if_bij_betw:
   using ex1_subset_eq_image_if_bij_betw[OF bij sub]
   by (smt (verit, best) Collect_cong image_def in_mono mem_Collect_eq)
 
+subsection \<open>Minimal, maximal, least, and greatest element of a set\<close>
+
+definition is_minimal_in_set_wrt where
+  "is_minimal_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. \<not> (R y x))"
+
 definition is_maximal_in_set_wrt where
   "is_maximal_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. \<not> (R x y))"
+
+definition is_least_in_set_wrt where
+  "is_least_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. R x y)"
 
 definition is_greatest_in_set_wrt where
   "is_greatest_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. R y x)"
 
-lemma Uniq_is_maximal_set_wrt:
-  "totalp_on X R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1x. is_maximal_in_set_wrt R X x"
-  by (rule Uniq_I) (metis insert_Diff insert_iff is_maximal_in_set_wrt_def totalp_onD)
 
-lemma "finite A \<Longrightarrow> asymp_on A R \<Longrightarrow> transp_on A R \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>m. is_maximal_in_set_wrt R A m"
-  using Finite_Set.bex_max_element[of A R]
-  by (metis DiffE insert_iff is_maximal_in_set_wrt_def)
+subsubsection \<open>Conversions\<close>
 
-lemma is_maximal_in_set_wrt_iff_is_greatest_in_set_wrt:
-  assumes asym: "asymp_on X R" and tot: "totalp_on X R"
-  shows "is_maximal_in_set_wrt R X x \<longleftrightarrow> is_greatest_in_set_wrt R X x"
-proof (rule iffI)
-  from tot show "is_maximal_in_set_wrt R X x \<Longrightarrow> is_greatest_in_set_wrt R X x"
-    unfolding is_maximal_in_set_wrt_def is_greatest_in_set_wrt_def
-    by (metis Diff_iff insertCI totalp_onD)
-next
-  from asym show "is_greatest_in_set_wrt R X x \<Longrightarrow> is_maximal_in_set_wrt R X x"
-    unfolding is_maximal_in_set_wrt_def is_greatest_in_set_wrt_def
-    by (metis Diff_iff asymp_onD)
-qed
+lemma is_minimal_in_set_wrt_conversep[simp]:
+  "is_minimal_in_set_wrt R\<inverse>\<inverse> = is_maximal_in_set_wrt R"
+  unfolding is_maximal_in_set_wrt_def is_minimal_in_set_wrt_def by simp
+
+lemma is_maximal_in_set_wrt_conversep[simp]:
+  "is_maximal_in_set_wrt R\<inverse>\<inverse> = is_minimal_in_set_wrt R"
+  unfolding is_maximal_in_set_wrt_def is_minimal_in_set_wrt_def by simp
+
+lemma is_least_set_wrt_conversep[simp]:
+  "is_least_in_set_wrt R\<inverse>\<inverse> = is_greatest_in_set_wrt R"
+  unfolding is_least_in_set_wrt_def is_greatest_in_set_wrt_def by simp
+
+lemma is_greatest_in_set_wrt_conversep[simp]:
+  "is_greatest_in_set_wrt R\<inverse>\<inverse> = is_least_in_set_wrt R"
+  unfolding is_least_in_set_wrt_def is_greatest_in_set_wrt_def by simp
+
+lemma is_minimal_in_set_wrt_iff:
+  "is_minimal_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> \<not> R y x)"
+  unfolding is_minimal_in_set_wrt_def by blast
+
+lemma is_maximal_in_set_wrt_iff:
+  "is_maximal_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> \<not> R x y)"
+  unfolding is_maximal_in_set_wrt_def by blast
+
+lemma is_least_in_set_wrt_iff:
+  "is_least_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> R x y)"
+  unfolding is_least_in_set_wrt_def by blast
 
 lemma is_greatest_in_set_wrt_iff:
   "is_greatest_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> R y x)"
   unfolding is_greatest_in_set_wrt_def
   by blast
 
+lemma is_minimal_in_set_wrt_eq_is_least_in_set_wrt:
+  assumes asym: "asymp_on X R" and tot: "totalp_on X R"
+  shows "is_minimal_in_set_wrt R X = is_least_in_set_wrt R X"
+proof (intro ext iffI)
+  fix x
+  from tot show "is_minimal_in_set_wrt R X x \<Longrightarrow> is_least_in_set_wrt R X x"
+    unfolding is_minimal_in_set_wrt_def is_least_in_set_wrt_def
+    by (metis Diff_iff insertCI totalp_onD)
+next
+  fix x
+  from asym show "is_least_in_set_wrt R X x \<Longrightarrow> is_minimal_in_set_wrt R X x"
+    unfolding is_least_in_set_wrt_def is_minimal_in_set_wrt_def
+    by (metis Diff_iff asymp_onD)
+qed
 
-section \<open>Move to HOL-Library\<close>
+lemma is_maximal_in_set_wrt_eq_is_greatest_in_set_wrt:
+  assumes asym: "asymp_on X R" and tot: "totalp_on X R"
+  shows "is_maximal_in_set_wrt R X = is_greatest_in_set_wrt R X"
+proof (intro ext iffI)
+  fix x
+  from tot show "is_maximal_in_set_wrt R X x \<Longrightarrow> is_greatest_in_set_wrt R X x"
+    unfolding is_maximal_in_set_wrt_def is_greatest_in_set_wrt_def
+    by (metis Diff_iff insertCI totalp_onD)
+next
+  fix x
+  from asym show "is_greatest_in_set_wrt R X x \<Longrightarrow> is_maximal_in_set_wrt R X x"
+    unfolding is_maximal_in_set_wrt_def is_greatest_in_set_wrt_def
+    by (metis Diff_iff asymp_onD)
+qed
+
+lemma is_minimal_in_set_wrt_filter_iff:
+  "is_minimal_in_set_wrt R {y \<in> X. P y} x \<longleftrightarrow> x \<in> X \<and> P x \<and> (\<forall>y \<in> X - {x}. P y \<longrightarrow> \<not> R y x)"
+  by (auto simp: is_minimal_in_set_wrt_def)
+
+
+subsubsection \<open>Existence\<close>
+
+lemma bex_minimal_element:
+  "asymp_on A R \<Longrightarrow> transp_on A R \<Longrightarrow> finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>m. is_minimal_in_set_wrt R A m"
+  using Finite_Set.bex_min_element
+  by (metis is_minimal_in_set_wrt_iff)
+
+lemma bex_maximal_element:
+  "asymp_on A R \<Longrightarrow> transp_on A R \<Longrightarrow> finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>m. is_maximal_in_set_wrt R A m"
+  using Finite_Set.bex_max_element
+  by (metis is_maximal_in_set_wrt_iff)
+
+lemma bex_greatest_element:
+  "transp_on A R \<Longrightarrow> totalp_on A R \<Longrightarrow> finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>g. is_greatest_in_set_wrt R A g"
+  using Finite_Set.bex_greatest_element[of A R]
+  by (metis is_greatest_in_set_wrt_iff)
+
+lemma bex_least_element:
+  "transp_on A R \<Longrightarrow> totalp_on A R \<Longrightarrow> finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>g. is_least_in_set_wrt R A g"
+  using Finite_Set.bex_least_element[of A R]
+  by (metis is_least_in_set_wrt_iff)
+
+lemma not_bex_greatest_element_doubleton:
+  assumes "x \<noteq> y" and "\<not> R x y" and "\<not> R y x"
+  shows "\<nexists>g. is_greatest_in_set_wrt R {x, y} g"
+proof (rule notI)
+  assume "\<exists>g. is_greatest_in_set_wrt R {x, y} g"
+  then obtain g where "is_greatest_in_set_wrt R {x, y} g" ..
+  then show False
+    unfolding is_greatest_in_set_wrt_def
+    using assms(1) assms(2) assms(3) by blast
+qed
+
+
+subsubsection \<open>Uniqueness\<close>
+
+lemma Uniq_is_minimal_in_set_wrt:
+  "totalp_on X R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1x. is_minimal_in_set_wrt R X x"
+  by (rule Uniq_I) (metis insert_Diff insert_iff is_minimal_in_set_wrt_def totalp_onD)
+
+lemma Uniq_is_maximal_in_set_wrt:
+  "totalp_on X R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1x. is_maximal_in_set_wrt R X x"
+  by (rule Uniq_I) (metis insert_Diff insert_iff is_maximal_in_set_wrt_def totalp_onD)
+
+lemma Uniq_is_least_in_set_wrt:
+  "asymp_on X R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1x. is_least_in_set_wrt R X x"
+  by (rule Uniq_I)
+    (metis antisymp_onD antisymp_on_if_asymp_on insertE insert_Diff is_least_in_set_wrt_def)
+
+lemma Uniq_is_greatest_in_set_wrt:
+  "asymp_on X R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1x. is_greatest_in_set_wrt R X x"
+  by (rule Uniq_I)
+    (metis antisymp_onD antisymp_on_if_asymp_on insertE insert_Diff is_greatest_in_set_wrt_def)
+
+
+subsubsection \<open>Function\<close>
+
+definition Greatest_in_set_wrt :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a set \<Rightarrow> 'a option" where
+  "Greatest_in_set_wrt R X = (if X = {} then None else Some (THE x. is_greatest_in_set_wrt R X x))"
+
+lemma Greatest_in_set_wrt_empty[simp]: "Greatest_in_set_wrt R {} = None"
+  by (simp add: Greatest_in_set_wrt_def)
+
+lemma Greatest_in_set_wrt_singleton[simp]: "Greatest_in_set_wrt R {x} = Some x"
+  by (metis (mono_tags, opaque_lifting) Greatest_in_set_wrt_def Uniq_I empty_iff
+      is_greatest_in_set_wrt_iff singletonD singletonI the1_equality')
+
+lemma Greatest_in_set_wrt_eq_None[simp]: "Greatest_in_set_wrt R X = None \<longleftrightarrow> X = {}"
+  by (simp add: Greatest_in_set_wrt_def)
+
+lemma Greatest_in_set_wrt_eq_Some_if_is_greatest_in_set_wrt:
+  assumes asymp: "asymp_on X R"
+  shows "is_greatest_in_set_wrt R X x \<Longrightarrow> Greatest_in_set_wrt R X = Some x"
+  using the1_equality'[OF Uniq_is_greatest_in_set_wrt[OF asymp]]
+  by (metis Greatest_in_set_wrt_def empty_iff is_greatest_in_set_wrt_iff)
+
+lemma is_greatest_in_set_wrt_if_Greatest_in_set_wrt_eq_Some:
+  assumes
+    trans: "transp_on X R" and
+    asym: "asymp_on X R" and
+    tot: "totalp_on X R" and
+    fin: "finite X" and
+    greatest: "Greatest_in_set_wrt R X = Some x"
+  shows "is_greatest_in_set_wrt R X x"
+proof -
+  from greatest have "X \<noteq> {}" and "(THE x. is_greatest_in_set_wrt R X x) = x"
+    unfolding atomize_conj Greatest_in_set_wrt_def
+    by (metis option.discI option.inject)
+
+  obtain y where "is_greatest_in_set_wrt R X y"
+    using bex_greatest_element[OF trans tot fin \<open>X \<noteq> {}\<close>] ..
+
+  moreover have "\<exists>\<^sub>\<le>\<^sub>1x. is_greatest_in_set_wrt R X x"
+    using Uniq_is_greatest_in_set_wrt[OF asym] .
+
+  ultimately have "\<exists>!x. is_greatest_in_set_wrt R X x"
+    by (intro Uniq_implies_ex1)
+  hence "is_greatest_in_set_wrt R X (THE x. is_greatest_in_set_wrt R X x)"
+    by (rule theI')
+  thus ?thesis
+    unfolding \<open>(THE x. is_greatest_in_set_wrt R X x) = x\<close> .
+qed
+
+lemma Greatest_in_set_wrt_eq_Some[simp]:
+  assumes
+    trans: "transp_on X R" and
+    asym: "asymp_on X R" and
+    tot: "totalp_on X R" and
+    fin: "finite X"
+  shows "Greatest_in_set_wrt R X = Some x \<longleftrightarrow> is_greatest_in_set_wrt R X x"
+  using assms is_greatest_in_set_wrt_if_Greatest_in_set_wrt_eq_Some
+    Greatest_in_set_wrt_eq_Some_if_is_greatest_in_set_wrt
+  by metis
+
+
+section \<open>Move to @{theory "HOL-Library.FSet"}\<close>
 
 syntax
   "_FFilter" :: "pttrn \<Rightarrow> 'a fset \<Rightarrow> bool \<Rightarrow> 'a fset" ("(1{|_ |\<in>| _./ _|})")
 
 translations
   "{|x |\<in>| X. P|}" == "CONST ffilter (\<lambda>x. P) X"
+
+abbreviation is_minimal_in_fset_wrt where
+  "is_minimal_in_fset_wrt R X \<equiv> is_minimal_in_set_wrt R (fset X)"
+
+abbreviation is_maximal_in_fset_wrt where
+  "is_maximal_in_fset_wrt R X \<equiv> is_maximal_in_set_wrt R (fset X)"
+
+abbreviation is_least_in_fset_wrt where
+  "is_least_in_fset_wrt R X \<equiv> is_least_in_set_wrt R (fset X)"
+
+abbreviation is_greatest_in_fset_wrt where
+  "is_greatest_in_fset_wrt R X \<equiv> is_greatest_in_set_wrt R (fset X)"
+
+lemma is_minimal_in_fset_wrt_ffilter_iff:
+  "is_minimal_in_fset_wrt R {|y |\<in>| X. P y|} x \<longleftrightarrow>
+    (x |\<in>| X \<and> P x \<and> (\<forall>y|\<in>| X - {|x|}. P y \<longrightarrow> \<not> R y x))"
+  using is_minimal_in_set_wrt_filter_iff[of _ "fset _"]
+  by (smt (verit, best) bot_fset.rep_eq empty_iff ffmember_filter finsert_iff fminus_iff
+      is_minimal_in_set_wrt_iff)
 
 
 section \<open>Move to Superposition_Calculus\<close>
@@ -372,20 +558,10 @@ subsection \<open>Strategy for ground ordered resolution\<close>
 lemma true_cls_if_true_lit_in: "L \<in># C \<Longrightarrow> I \<TTurnstile>l L \<Longrightarrow> I \<TTurnstile> C"
   by auto
 
-definition is_minimal_wrt where
-  "is_minimal_wrt R x X \<longleftrightarrow> x |\<in>| X \<and> fBall X (\<lambda>y. y \<noteq> x \<longrightarrow> \<not> (R y x))"
-
-lemma obtains_minimal_wrt_fset:
-  assumes "asymp_on (fset X) R" and "transp_on (fset X) R" and "X \<noteq> {||}"
-  obtains x where "is_minimal_wrt R x X"
-  using Finite_Set.bex_min_element[OF finite_fset assms(1,2)]
-  unfolding is_minimal_wrt_def
-  using assms(3) by auto
-
 definition is_min_false_clause :: "'f gterm clause fset \<Rightarrow> 'f gterm clause \<Rightarrow> bool" where
   "is_min_false_clause N C \<longleftrightarrow>
-    is_minimal_wrt (\<prec>\<^sub>c) C
-      {|C |\<in>| N. \<not> (\<Union>D \<in> {D \<in> fset N. D \<preceq>\<^sub>c C}. ord_res.production (fset N) D) \<TTurnstile> C|}"
+    is_minimal_in_fset_wrt (\<prec>\<^sub>c)
+      {|C |\<in>| N. \<not> (\<Union>D \<in> {D \<in> fset N. D \<preceq>\<^sub>c C}. ord_res.production (fset N) D) \<TTurnstile> C|} C"
 
 definition ord_res_mod_op_strategy :: "'f gterm clause fset \<Rightarrow> 'f gterm clause fset \<Rightarrow> bool" where
   "ord_res_mod_op_strategy N N' \<longleftrightarrow> (\<exists>C L.
@@ -410,8 +586,8 @@ proof -
     C_min: "fBall {|C |\<in>| N. \<not> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> D \<preceq>\<^sub>c C}) \<TTurnstile> C|}
       (\<lambda>y. C \<noteq> y \<longrightarrow> C \<prec>\<^sub>c y)"
     unfolding atomize_conj is_min_false_clause_def
-    by (metis (mono_tags, lifting) ffmember_filter is_minimal_wrt_def linorder_cls.not_less
-        reflclp_iff)
+    unfolding is_minimal_in_fset_wrt_ffilter_iff
+    by (simp add: linorder_cls.not_less_iff_gr_or_eq)
 
   from C_false have "\<nexists>A. A \<in> ord_res.production (fset N) C"
     apply (intro notI)
@@ -478,8 +654,8 @@ proof -
     C_min: "fBall {|C |\<in>| N. \<not> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> D \<preceq>\<^sub>c C}) \<TTurnstile> C|}
       (\<lambda>y. C \<noteq> y \<longrightarrow> C \<prec>\<^sub>c y)"
     unfolding atomize_conj is_min_false_clause_def
-    by (metis (mono_tags, lifting) ffmember_filter is_minimal_wrt_def linorder_cls.not_less
-        reflclp_iff)
+    unfolding is_minimal_in_fset_wrt_ffilter_iff
+    by (simp add: linorder_cls.not_less_iff_gr_or_eq)
 
   from C_false have "\<nexists>A. A \<in> ord_res.production (fset N) C"
     apply (intro notI)
