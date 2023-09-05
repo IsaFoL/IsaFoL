@@ -288,6 +288,10 @@ lemma is_minimal_in_fset_wrt_ffilter_iff:
   by (smt (verit, best) bot_fset.rep_eq empty_iff ffmember_filter finsert_iff fminus_iff
       is_minimal_in_set_wrt_iff)
 
+lemma bex_minimal_element_in_fset_wrt:
+  "asymp_on (fset X) R \<Longrightarrow> transp_on (fset X) R \<Longrightarrow> X \<noteq> {||} \<Longrightarrow> \<exists>m. is_minimal_in_fset_wrt R X m"
+  using bex_minimal_element[of "fset X" R] by auto
+
 
 section \<open>Move to Superposition_Calculus\<close>
 
@@ -746,8 +750,8 @@ inductive scl_reso1 for N\<^sub>0 \<beta> where
     (let
       \<Gamma>\<^sub>2\<^sub>a = trail_decide \<Gamma>\<^sub>1 (lit_of_glit L);
       \<Gamma>\<^sub>2\<^sub>b = trail_propagate \<Gamma>\<^sub>1 (lit_of_glit L) (cls_of_gcls D') Var;
-      E = (THE E. is_minimal_wrt (\<prec>\<^sub>c) E
-        {|C |\<in>| N\<^sub>0 |\<union>| fimage gcls_of_cls U. trail_false_cls \<Gamma>\<^sub>2\<^sub>b (cls_of_gcls C)|});
+      E = (THE x. is_least_in_fset_wrt (\<prec>\<^sub>c)
+        {|C |\<in>| N\<^sub>0 |\<union>| fimage gcls_of_cls U. trail_false_cls \<Gamma>\<^sub>2\<^sub>b (cls_of_gcls C)|} x);
       j\<^sub>0 = count D' L;
       j = i + j\<^sub>0
     in
