@@ -87,11 +87,40 @@ lemma count_eq_1_if_is_strictly_maximal: "is_maximal_wrt R\<^sup>=\<^sup>= x M \
       is_maximal_wrt_def is_maximal_wrt_if_is_maximal_wrt_reflclp
       lift_is_maximal_wrt_to_is_maximal_wrt_reflclp linorder_le_less_linear)
 
+lemma multp_singleton_right[simp]:
+  assumes "transp R"
+  shows "multp R M {#x#} \<longleftrightarrow> (\<forall>y \<in># M. R y x)"
+proof (rule iffI)
+  show "\<forall>y \<in># M. R y x \<Longrightarrow> multp R M {#x#}"
+    using one_step_implies_multp[of "{#x#}" _ R "{#}", simplified] .
+next
+  show "multp R M {#x#} \<Longrightarrow> \<forall>y\<in>#M. R y x"
+    using multp_implies_one_step[OF \<open>transp R\<close>]
+    by (smt (verit, del_insts) add_0 set_mset_add_mset_insert set_mset_empty single_is_union
+        singletonD)
+qed
+
+lemma multp_singleton_left[simp]:
+  assumes "transp R"
+  shows "multp R {#x#} M \<longleftrightarrow> ({#x#} \<subset># M \<or> (\<exists>y \<in># M. R x y))"
+proof (rule iffI)
+  show "{#x#} \<subset># M \<or> (\<exists>y\<in>#M. R x y) \<Longrightarrow> multp R {#x#} M"
+  proof (elim disjE bexE)
+    show "{#x#} \<subset># M \<Longrightarrow> multp R {#x#} M"
+      by (simp add: subset_implies_multp)
+  next
+    show "\<And>y. y \<in># M \<Longrightarrow> R x y \<Longrightarrow> multp R {#x#} M"
+      using one_step_implies_multp[of M "{#x#}" R "{#}", simplified] by force
+  qed
+next
+  show "multp R {#x#} M \<Longrightarrow> {#x#} \<subset># M \<or> (\<exists>y\<in>#M. R x y)"
+    using multp_implies_one_step[OF \<open>transp R\<close>, of "{#x#}" M]
+    by (metis (no_types, opaque_lifting) add_cancel_right_left subset_mset.gr_zeroI
+        subset_mset.less_add_same_cancel2 union_commute union_is_single union_single_eq_member)
+qed
+
 lemma multp_singleton_singleton[simp]: "transp R \<Longrightarrow> multp R {#x#} {#y#} \<longleftrightarrow> R x y"
-  using one_step_implies_multp[of "{#y#}" "{#x#}" R "{#}", simplified]
-  using multp_implies_one_step[of R "{#x#}" "{#y#}", simplified]
-  by (metis (no_types, opaque_lifting) add_mset_eq_single multi_member_split union_is_single
-      union_single_eq_member)
+  using multp_singleton_right[of R "{#x#}" y] by simp
 
 lemma multp_subset_supersetI: "transp R \<Longrightarrow> multp R A B \<Longrightarrow> C \<subseteq># A \<Longrightarrow> B \<subseteq># D \<Longrightarrow> multp R C D"
   by (metis subset_implies_multp subset_mset.antisym_conv2 transpE transp_multp)
@@ -156,6 +185,10 @@ qed
 lemma multp_double_double:
   "transp R \<Longrightarrow> asymp R \<Longrightarrow> multp R (A + A) (B + B) \<longleftrightarrow> multp R A B"
   using multp_double_doubleD multp_double_doubleI by metis
+
+lemma multp_doubleton_doubleton[simp]:
+  "transp R \<Longrightarrow> asymp R \<Longrightarrow> multp R {#x, x#} {#y, y#} \<longleftrightarrow> R x y"
+  using multp_double_double[of R "{#x#}" "{#y#}", simplified] by simp
 
 lemma multp_single_doubleI: "M \<noteq> {#} \<Longrightarrow> multp R M (M + M)"
   using one_step_implies_multp[of M "{#}" _ M, simplified] by simp

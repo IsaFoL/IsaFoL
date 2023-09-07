@@ -1,6 +1,6 @@
 theory Simulation
   imports
-    Simple_Clause_Learning.SCL_FOL
+    (* Simple_Clause_Learning.SCL_FOL *)
     Simple_Clause_Learning.Initial_Literals_Generalize_Learned_Literals
     Superposition_Calculus.Ground_Ordered_Resolution
 begin
@@ -412,8 +412,25 @@ definition cls_of_gcls where
 definition gcls_of_cls where
   "gcls_of_cls = image_mset glit_of_lit"
 
+lemma inj_lit_of_glit: "inj lit_of_glit"
+proof (rule injI)
+  fix L K
+  show "lit_of_glit L = lit_of_glit K \<Longrightarrow> L = K"
+    by (metis lit_of_glit_def literal.expand literal.map_disc_iff literal.map_sel term_of_gterm_inv)
+qed
+
 lemma atm_of_lit_of_glit_conv: "atm_of (lit_of_glit L) = term_of_gterm (atm_of L)"
   by (cases L) (simp_all add: lit_of_glit_def)
+
+lemma is_ground_lit_lit_of_glit[simp]: "is_ground_lit (lit_of_glit L)"
+  by (simp add: is_ground_lit_def atm_of_lit_of_glit_conv)
+
+lemma lit_of_glit_glit_of_lit_ident[simp]: "is_ground_lit L \<Longrightarrow> lit_of_glit (glit_of_lit L) = L"
+  by (simp add: is_ground_lit_def lit_of_glit_def glit_of_lit_def literal.map_comp literal.expand
+      literal.map_sel)
+
+lemma cls_of_gcls_gcls_of_cls_ident[simp]: "is_ground_cls D \<Longrightarrow> cls_of_gcls (gcls_of_cls D) = D"
+  by (simp add: is_ground_cls_def cls_of_gcls_def gcls_of_cls_def)
 
 definition atms_of_clss where
   "atms_of_clss N = (\<Union>C \<in> N. atms_of C)"
@@ -709,6 +726,8 @@ proof -
   qed
 qed
 
+subsection \<open>Strategy for SCL(FOL)\<close>
+
 definition sfac :: "'f gterm clause \<Rightarrow> 'f gterm clause" where
   "sfac C = (THE C'. ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C''))"
 
@@ -733,69 +752,126 @@ qed
 term "propagate_lit L D Var"
 term "trail_propagate \<Gamma> L D' Var"
 
-find_theorems "?P (is_minimal_wrt _ _ _)"
+term "{#K \<in># D. K \<noteq> L#}"
+term "ord_res_mod_op_strategy ^^ 2"
 
 inductive scl_reso1 for N\<^sub>0 \<beta> where
-  scl_reso1I: "\<F> C \<prec>\<^sub>c \<F> D \<Longrightarrow> \<not> fBex (N\<^sub>0 |\<union>| fimage gcls_of_cls U) (\<lambda>D'. \<F> C \<prec>\<^sub>c \<F> D' \<and> \<F> D' \<prec>\<^sub>c \<F> D) \<Longrightarrow>
+  scl_reso1I: "\<F> C \<prec>\<^sub>c \<F> D \<Longrightarrow>
+  \<not> fBex (N\<^sub>0 |\<union>| fimage gcls_of_cls U) (\<lambda>D'. \<F> C \<prec>\<^sub>c \<F> D' \<and> \<F> D' \<prec>\<^sub>c \<F> D) \<Longrightarrow>
+  D |\<in>| N\<^sub>0 |\<union>| fimage gcls_of_cls U \<Longrightarrow>
   ord_res.is_maximal_lit L D \<Longrightarrow>
   sorted_wrt (\<prec>\<^sub>l) Ks \<Longrightarrow> (\<forall>K \<in> set Ks. is_neg K \<and> K \<prec>\<^sub>l L \<and>
     \<not> trail_defined_lit \<Gamma> (lit_of_glit K) \<and>
     lit_occures_in_clss K N\<^sub>0) \<Longrightarrow>
   \<Gamma>\<^sub>1 = foldl trail_decide \<Gamma> (map lit_of_glit Ks) \<Longrightarrow>
   S1 = ((\<Gamma>\<^sub>1, U, None :: ('f, 'v) closure option), i, D, \<F>) \<Longrightarrow>
-  \<F> D |\<in>| N\<^sub>0 \<Longrightarrow>
+  (ord_res_mod_op_strategy ^^ i) N\<^sub>0 N\<^sub>i \<Longrightarrow>
+  \<F> D |\<in>| N\<^sub>i \<Longrightarrow>
   sfac D = sfac (\<F> D) \<Longrightarrow>
   \<F> D = add_mset L D' \<Longrightarrow>
   S2 =
     (let
       \<Gamma>\<^sub>2\<^sub>a = trail_decide \<Gamma>\<^sub>1 (lit_of_glit L);
-      \<Gamma>\<^sub>2\<^sub>b = trail_propagate \<Gamma>\<^sub>1 (lit_of_glit L) (cls_of_gcls D') Var;
+      \<Gamma>\<^sub>2\<^sub>b = trail_propagate \<Gamma>\<^sub>1 (lit_of_glit L) (cls_of_gcls (sfac D - {#L#})) Var;
       E = (THE x. is_least_in_fset_wrt (\<prec>\<^sub>c)
         {|C |\<in>| N\<^sub>0 |\<union>| fimage gcls_of_cls U. trail_false_cls \<Gamma>\<^sub>2\<^sub>b (cls_of_gcls C)|} x);
       j\<^sub>0 = count D' L;
-      j = i + j\<^sub>0
+      j = i + j\<^sub>0;
+      \<F>' = \<F>(D := sfac D)
     in
-      (if is_pos L \<and> trail_false_cls \<Gamma>\<^sub>1 (cls_of_gcls D) then
+      (if is_pos L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit L) \<and> \<not> trail_true_cls \<Gamma>\<^sub>1 (cls_of_gcls D) then
         (if (\<nexists>S'. scl_fol.conflict (cls_of_gcls |`| N\<^sub>0) (term_of_gterm \<beta>) (\<Gamma>\<^sub>2\<^sub>a, U, None) S') then
           \<comment> \<open>2a\<close>
-          ((\<Gamma>\<^sub>2\<^sub>a, U, None :: ('f, 'v) closure option), j, D, \<F>(D := sfac D))
+          ((\<Gamma>\<^sub>2\<^sub>a, U, None :: ('f, 'v) closure option), j, D, \<F>')
         else
           \<comment> \<open>2b\<close>
-          ((\<Gamma>\<^sub>2\<^sub>b, U, Some (cls_of_gcls E, Var)), j, D, \<F>(D := sfac D)))
+          ((\<Gamma>\<^sub>2\<^sub>b, U, Some (cls_of_gcls E, Var)), j, D, \<F>'))
       else
         \<comment> \<open>2c\<close>
         S1)) \<Longrightarrow>
   scl_reso1 N\<^sub>0 \<beta> ((\<Gamma>, U, None :: ('f, 'v) closure option), i, C, \<F>) S1 S2"
 
+
+lemma grounding_lits_of_clss_fset_fimage_cls_of_gcls[simp]:
+  fixes N :: "'f gterm clause fset"
+  defines "N' \<equiv> fimage cls_of_gcls N"
+  shows "grounding_lits_of_clss (fset N') = \<Union>(set_mset ` fset N')"
+proof (intro Set.subset_antisym Set.subsetI)
+  fix L
+  assume "L \<in> grounding_lits_of_clss (fset N')"
+  then obtain L' \<gamma> where
+    "L = L' \<cdot>l \<gamma>" and L'_in: "L' \<in> \<Union> (set_mset ` fset N')" and "is_ground_lit (L' \<cdot>l \<gamma>)"
+    by blast
+  moreover have "is_ground_lit L'"
+    using L'_in by (auto simp: N'_def cls_of_gcls_def)
+  ultimately show "L \<in> \<Union>(set_mset ` fset N')"
+    by simp
+next
+  fix L
+  assume L_in: "L \<in> \<Union>(set_mset ` fset N')"
+  hence "is_ground_lit L"
+    by (auto simp: N'_def cls_of_gcls_def)
+  thus "L \<in> grounding_lits_of_clss (fset N')"
+    using L_in is_ground_subst_lit_iff by fastforce
+qed
+
+lemma undefined_in_trail_decide_if_undefined_in_trail_and_less_lit_pos:
+  assumes "is_pos L" and "K \<prec>\<^sub>l L" and undef: "\<not> trail_defined_lit \<Gamma> (lit_of_glit L)"
+  shows "\<not> trail_defined_lit (trail_decide \<Gamma> (lit_of_glit K)) (lit_of_glit L)"
+proof -
+  from \<open>is_pos L\<close> \<open>K \<prec>\<^sub>l L\<close> have "atm_of L \<noteq> atm_of K"
+    by (cases L; cases K) simp_all
+
+  with undef show ?thesis
+    using inj_term_of_gterm[of UNIV, THEN inj_onD, simplified]
+    by (auto simp add: trail_defined_lit_iff atm_of_lit_of_glit_conv decide_lit_def)
+qed
+
+lemma trail_undefined_if_trail_undefined_trail_decide:
+  assumes "\<not> trail_defined_lit (trail_decide \<Gamma> K) L"
+  shows "\<not> trail_defined_lit \<Gamma> L"
+  using assms
+  by (simp add: trail_defined_lit_iff)
+
 lemma correctness_scl_reso1:
-  fixes N\<^sub>0 :: "'f gterm clause fset"
+  fixes N :: "'f gterm clause fset" and \<beta> :: "'f gterm"
+  defines "N' \<equiv> fimage cls_of_gcls N" and "\<beta>' \<equiv> term_of_gterm \<beta>"
   assumes
-    \<beta>_greatest: "is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N\<^sub>0)) \<beta>" and
-    step: "scl_reso1 N\<^sub>0 \<beta> (S, i, C, \<F>) (S', i', C', \<F>') S2"
-  shows "(scl_fol.decide (fimage cls_of_gcls N\<^sub>0) (term_of_gterm \<beta>))\<^sup>*\<^sup>* S S'"
+    \<beta>_greatest: "is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta>" and
+    step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
+    invars:
+      "scl_fol.trail_lits_from_clauses N' S\<^sub>0"
+      "scl_fol.initial_lits_generalize_learned_trail_conflict N' S\<^sub>0"
+  shows
+    "(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1"
+    "scl_fol.decide N' \<beta>' S\<^sub>1 S\<^sub>2 \<or>
+      (scl_fol.propagate N' \<beta>' OO scl_fol.conflict N' \<beta>') S\<^sub>1 S\<^sub>2 \<or>
+      S\<^sub>1 = S\<^sub>2"
   using step
-proof (cases N\<^sub>0 \<beta> "(S, i, C, \<F>)" "(S', i', C', \<F>')" rule: scl_reso1.cases)
-  case hyps: (scl_reso1I D U L Ks \<Gamma> \<Gamma>')
-  then show ?thesis
-  proof (induction Ks arbitrary: S \<Gamma>)
+  unfolding atomize_conj
+proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" rule: scl_reso1.cases)
+  case hyps: (scl_reso1I D U L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
+
+  from hyps have "(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1"
+  proof (induction Ks arbitrary: S\<^sub>0 \<Gamma>)
     case Nil
-    hence "S' = S"
+    hence "S\<^sub>1 = S\<^sub>0"
       by simp
     thus ?case
       by simp
   next
     case (Cons K Ks)
     note ball_K_Ks = \<open>\<forall>K\<in>set (K # Ks). is_neg K \<and> K \<prec>\<^sub>l L \<and>
-        \<not> trail_defined_lit \<Gamma> (lit_of_glit K) \<and> lit_occures_in_clss K N\<^sub>0\<close>
+        \<not> trail_defined_lit \<Gamma> (lit_of_glit K) \<and> lit_occures_in_clss K N\<close>
 
-    from ball_K_Ks have "\<not> trail_defined_lit \<Gamma> (lit_of_glit K)" "lit_occures_in_clss K N\<^sub>0"
+    from ball_K_Ks have
+      "K \<prec>\<^sub>l L" "\<not> trail_defined_lit \<Gamma> (lit_of_glit K)" "lit_occures_in_clss K N"
       by simp_all
 
-    from Cons have "(scl_fol.decide (fimage cls_of_gcls N\<^sub>0) (term_of_gterm \<beta>))\<^sup>*\<^sup>*
-      (trail_decide \<Gamma> (lit_of_glit K), U, None) S'"
+    from Cons have "(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* (trail_decide \<Gamma> (lit_of_glit K), U, None) S\<^sub>1"
     proof (intro Cons.IH[OF refl] ballI)
-      show "\<Gamma>' = foldl trail_decide (trail_decide \<Gamma> (lit_of_glit K)) (map lit_of_glit Ks)"
-        by (simp add: \<open>\<Gamma>' = foldl trail_decide \<Gamma> (map lit_of_glit (K # Ks))\<close>)
+      show "\<Gamma>\<^sub>1 = foldl trail_decide (trail_decide \<Gamma> (lit_of_glit K)) (map lit_of_glit Ks)"
+        by (simp add: \<open>\<Gamma>\<^sub>1 = foldl trail_decide \<Gamma> (map lit_of_glit (K # Ks))\<close>)
     next
       show "sorted_wrt (\<prec>\<^sub>l) Ks"
         using \<open>sorted_wrt (\<prec>\<^sub>l) (K # Ks)\<close> by simp
@@ -819,13 +895,63 @@ proof (cases N\<^sub>0 \<beta> "(S, i, C, \<F>)" "(S', i', C', \<F>')" rule: scl
         by (simp add: trail_defined_lit_iff decide_lit_def atm_of_lit_of_glit_conv)
       thus "is_neg Ka \<and> Ka \<prec>\<^sub>l L \<and>
         \<not> trail_defined_lit (trail_decide \<Gamma> (lit_of_glit K)) (lit_of_glit Ka) \<and>
-        lit_occures_in_clss Ka N\<^sub>0"
+        lit_occures_in_clss Ka N"
         using ball_K_Ks \<open>Ka \<in> set Ks\<close>
         by simp
+    next
+      assume hyp: "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) =
+        (let
+          \<Gamma>\<^sub>2\<^sub>a = trail_decide \<Gamma>\<^sub>1 (lit_of_glit L);
+          \<Gamma>\<^sub>2\<^sub>b = trail_propagate \<Gamma>\<^sub>1 (lit_of_glit L) (cls_of_gcls (remove1_mset L (sfac D))) Var;
+          E = The (is_least_in_fset_wrt (\<prec>\<^sub>c) {|C |\<in>| N |\<union>| gcls_of_cls |`| U.
+            trail_false_cls \<Gamma>\<^sub>2\<^sub>b (cls_of_gcls C)|});
+          j\<^sub>0 = count D' L;
+          j = i\<^sub>0 + j\<^sub>0;
+          \<F>' = \<F>\<^sub>0(D := sfac D)
+        in
+          if is_pos L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit L) \<and> \<not> trail_true_cls \<Gamma>\<^sub>1 (cls_of_gcls D) then
+            if \<nexists>a. scl_fol.conflict (cls_of_gcls |`| N) (term_of_gterm \<beta>) (\<Gamma>\<^sub>2\<^sub>a, U, None) a then
+              ((\<Gamma>\<^sub>2\<^sub>a, U, None), j, D, \<F>')
+            else
+              ((\<Gamma>\<^sub>2\<^sub>b, U, Some (cls_of_gcls E, Var)), j, D, \<F>')
+          else
+            (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1))"
+      show "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) =
+        (let
+          \<Gamma>\<^sub>2\<^sub>a = trail_decide \<Gamma>\<^sub>1 (lit_of_glit L);
+          \<Gamma>\<^sub>2\<^sub>b = trail_propagate \<Gamma>\<^sub>1 (lit_of_glit L) (cls_of_gcls (remove1_mset L (sfac D))) Var;
+          E = The (is_least_in_fset_wrt (\<prec>\<^sub>c) {|C |\<in>| N |\<union>| gcls_of_cls |`| U.
+            trail_false_cls \<Gamma>\<^sub>2\<^sub>b (cls_of_gcls C)|});
+          j\<^sub>0 = count D' L;
+          j = i\<^sub>0 + j\<^sub>0;
+          \<F>' = \<F>\<^sub>0(D := sfac D)
+        in
+          if is_pos L \<and> \<not> trail_defined_lit (trail_decide \<Gamma> (lit_of_glit K)) (lit_of_glit L) \<and>
+            \<not> trail_true_cls \<Gamma>\<^sub>1 (cls_of_gcls D) then
+            if \<nexists>a. scl_fol.conflict (cls_of_gcls |`| N) (term_of_gterm \<beta>) (\<Gamma>\<^sub>2\<^sub>a, U, None) a then
+              ((\<Gamma>\<^sub>2\<^sub>a, U, None), j, D, \<F>')
+            else
+              ((\<Gamma>\<^sub>2\<^sub>b, U, Some (cls_of_gcls E, Var)), j, D, \<F>')
+         else
+          (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1))"
+        unfolding hyp
+        unfolding Let_def
+      proof (intro if_weak_cong iffI)
+        assume "is_pos L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit L) \<and> \<not> trail_true_cls \<Gamma>\<^sub>1 (cls_of_gcls D)"
+        thus "is_pos L \<and> \<not> trail_defined_lit (trail_decide \<Gamma> (lit_of_glit K)) (lit_of_glit L) \<and>
+          \<not> trail_true_cls \<Gamma>\<^sub>1 (cls_of_gcls D)"
+          using undefined_in_trail_decide_if_undefined_in_trail_and_less_lit_pos[OF _ \<open>K \<prec>\<^sub>l L\<close>]
+          by metis
+      next
+        assume "is_pos L \<and> \<not> trail_defined_lit (trail_decide \<Gamma> (lit_of_glit K)) (lit_of_glit L) \<and>
+          \<not> trail_true_cls \<Gamma>\<^sub>1 (cls_of_gcls D)"
+        thus "is_pos L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit L) \<and> \<not> trail_true_cls \<Gamma>\<^sub>1 (cls_of_gcls D)"
+          using trail_undefined_if_trail_undefined_trail_decide
+          by metis
+      qed
     qed
 
-    moreover have "scl_fol.decide (fimage cls_of_gcls N\<^sub>0) (term_of_gterm \<beta>)
-      (\<Gamma>, U, None) (trail_decide \<Gamma> (lit_of_glit K), U, None)"
+    moreover have "scl_fol.decide N' \<beta>' (\<Gamma>, U, None) (trail_decide \<Gamma> (lit_of_glit K), U, None)"
     proof (intro scl_fol.decideI[of _ _ Var, simplified])
       show "\<not> trail_defined_lit \<Gamma> (lit_of_glit K)"
         using \<open>\<not> trail_defined_lit \<Gamma> (lit_of_glit K)\<close> .
@@ -833,26 +959,209 @@ proof (cases N\<^sub>0 \<beta> "(S, i, C, \<F>)" "(S', i', C', \<F>')" rule: scl
       show "is_ground_lit (lit_of_glit K)"
         by (cases K) (simp_all add: is_ground_lit_def atm_of_lit_of_glit_conv)
     next
-      show "fBex (cls_of_gcls |`| N\<^sub>0) ((\<in>#) (lit_of_glit K))"
-        using \<open>lit_occures_in_clss K N\<^sub>0\<close>
-        unfolding lit_occures_in_clss_def
+      show "fBex N' ((\<in>#) (lit_of_glit K))"
+        using \<open>lit_occures_in_clss K N\<close>
+        unfolding lit_occures_in_clss_def N'_def
         by (metis cls_of_gcls_def finsertI1 finsert_fimage imageI multiset.set_map)
     next
-      have "atm_of K \<in> atms_of_clss (fset N\<^sub>0)"
-        using \<open>lit_occures_in_clss K N\<^sub>0\<close>
+      have "atm_of K \<in> atms_of_clss (fset N)"
+        using \<open>lit_occures_in_clss K N\<close>
         unfolding lit_occures_in_clss_def atms_of_clss_def
         by (metis Union_iff atms_of_def image_eqI)
-      thus "ground (atm_of (lit_of_glit K)) \<and> ground (term_of_gterm \<beta>) \<and>
-        gterm_of_term (atm_of (lit_of_glit K)) \<prec>\<^sub>t gterm_of_term (term_of_gterm \<beta>) \<or>
-        atm_of (lit_of_glit K) = (term_of_gterm \<beta>)"
-        using \<beta>_greatest
+      thus "ground (atm_of (lit_of_glit K)) \<and> ground \<beta>' \<and>
+        gterm_of_term (atm_of (lit_of_glit K)) \<prec>\<^sub>t gterm_of_term \<beta>' \<or>
+        atm_of (lit_of_glit K) = \<beta>'"
+        using \<beta>_greatest \<beta>'_def
         by (auto simp add: atm_of_lit_of_glit_conv is_greatest_in_set_wrt_iff)
     qed
 
     ultimately show ?case
-      unfolding \<open>S = (\<Gamma>, U, None)\<close> \<open>(S', i', C', \<F>') = ((\<Gamma>', U, None), i, D, \<F>)\<close>
-        \<open>\<Gamma>' = foldl trail_decide \<Gamma> (map lit_of_glit (K # Ks))\<close>
+      unfolding \<open>S\<^sub>0 = (\<Gamma>, U, None)\<close> \<open>(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) = ((\<Gamma>\<^sub>1, U, None), i\<^sub>0, D, \<F>\<^sub>0)\<close>
+        \<open>\<Gamma>\<^sub>1 = foldl trail_decide \<Gamma> (map lit_of_glit (K # Ks))\<close>
       by simp
+  qed
+
+  from hyps have S\<^sub>1_def: "S\<^sub>1 = (\<Gamma>\<^sub>1, U, None)"
+    by simp
+
+  from hyps(6,7) have "distinct (map atm_of Ks)"
+  proof (induction Ks)
+    case Nil
+    show ?case
+      by simp
+  next
+    case (Cons Ka Ks)
+    have "atm_of Ka \<notin> set (map atm_of Ks)"
+      using Cons.prems literal.expand by fastforce
+    moreover have "distinct (map atm_of Ks)"
+      using Cons.prems by (intro Cons.IH) simp_all
+    ultimately show ?case
+      by simp
+  qed
+
+  show "(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1 \<and>
+    (scl_fol.decide N' \<beta>' S\<^sub>1 S\<^sub>2 \<or>
+      (scl_fol.propagate N' \<beta>' OO scl_fol.conflict N' \<beta>') S\<^sub>1 S\<^sub>2 \<or>
+      S\<^sub>1 = S\<^sub>2)"
+  proof (rule conjI)
+    show "(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1"
+      using \<open>(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1\<close> .
+  next
+    let ?\<Gamma>\<^sub>2\<^sub>a = "trail_decide \<Gamma>\<^sub>1 (lit_of_glit L)"
+
+    have
+      (* "scl_fol.trail_lits_from_clauses N' S\<^sub>1" *)
+      "scl_fol.initial_lits_generalize_learned_trail_conflict N' S\<^sub>1"
+      unfolding atomize_conj
+      using \<open>(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1\<close> invars
+      by (induction S\<^sub>1 rule: rtranclp_induct)
+        (simp_all add: scl_fol.decide_preserves_trail_lits_from_clauses
+          scl_fol.decide_preserves_initial_lits_generalize_learned_trail_conflict)
+
+    have "\<Union>(set_mset ` fset U) \<subseteq> \<Union>(set_mset ` fset N')"
+    proof (intro Set.subsetI)
+      fix L assume "L \<in> \<Union>(set_mset ` fset U)"
+      moreover have "\<forall>L \<in> \<Union> (set_mset ` fset U). \<exists>K \<in> \<Union> (set_mset ` fset N'). generalizes_lit K L"
+        using \<open>scl_fol.initial_lits_generalize_learned_trail_conflict N' S\<^sub>1\<close>
+        by (simp add: S\<^sub>1_def scl_fol.initial_lits_generalize_learned_trail_conflict_def
+            scl_fol.clss_lits_generalize_clss_lits_def)
+      ultimately obtain K where K_in: "K \<in> \<Union> (set_mset ` fset N')" and "generalizes_lit K L"
+        by metis
+
+      from K_in have "is_ground_lit K"
+        by (auto simp: N'_def cls_of_gcls_def)
+
+      with \<open>generalizes_lit K L\<close> have "K = L"
+        by (simp add: generalizes_lit_def)
+
+      with K_in show "L \<in> \<Union>(set_mset ` fset N')"
+        by argo
+    qed
+
+    have ground_cls_if_in_U: "is_ground_cls C" if C_in: "C |\<in>| U" for C
+      unfolding is_ground_cls_def
+    proof (intro allI impI)
+      fix L assume "L \<in># C"
+      with C_in obtain D where D_in: "D |\<in>| N'" "L \<in># D"
+        using \<open>\<Union>(set_mset ` fset U) \<subseteq> \<Union>(set_mset ` fset N')\<close> by auto
+      then show "is_ground_lit L"
+        by (auto simp add: N'_def cls_of_gcls_def)
+    qed
+
+    have "L \<in># D"
+      using \<open>ord_res.is_maximal_lit L D\<close>
+      by (simp add: is_maximal_wrt_def)
+    hence "lit_of_glit L \<in># cls_of_gcls D"
+      by (simp add: cls_of_gcls_def)
+
+    moreover have "cls_of_gcls D |\<in>| N' |\<union>| U"
+      using \<open>D |\<in>| N |\<union>| gcls_of_cls |`| U\<close>[unfolded funion_iff]
+    proof (elim disjE)
+      assume "D |\<in>| N"
+      then show ?thesis
+        by (simp add: N'_def)
+    next
+      assume "D |\<in>| gcls_of_cls |`| U"
+      then obtain D' where "D' |\<in>| U" and "D = gcls_of_cls D'"
+        unfolding fimage_iff by metis
+      then show ?thesis
+        using ground_cls_if_in_U[OF \<open>D' |\<in>| U\<close>] by simp
+    qed
+
+    ultimately have "lit_of_glit L \<in> \<Union> (set_mset ` fset (N' |\<union>| U))"
+      by blast
+    hence "lit_of_glit L \<in> \<Union> (set_mset ` fset N')"
+      using \<open>\<Union>(set_mset ` fset U) \<subseteq> \<Union>(set_mset ` fset N')\<close> by blast
+    hence "L \<in> \<Union> (set_mset ` fset N)"
+      unfolding N'_def
+      by (simp add: cls_of_gcls_def inj_image_mem_iff[OF inj_lit_of_glit])
+
+    show "scl_fol.decide N' \<beta>' S\<^sub>1 S\<^sub>2 \<or>
+      (scl_fol.propagate N' \<beta>' OO scl_fol.conflict N' \<beta>') S\<^sub>1 S\<^sub>2 \<or>
+      S\<^sub>1 = S\<^sub>2"
+    proof (cases "is_pos L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit L) \<and>
+      \<not> trail_true_cls \<Gamma>\<^sub>1 (cls_of_gcls D)")
+      case pos_L_and_undef_L_and_false_D: True
+      show ?thesis
+      proof (cases "Ex (scl_fol.conflict (cls_of_gcls |`| N) (term_of_gterm \<beta>) (?\<Gamma>\<^sub>2\<^sub>a, U, None))")
+        case ex_conflict: True
+        hence "(scl_fol.propagate N' \<beta>' OO scl_fol.conflict N' \<beta>') S\<^sub>1 S\<^sub>2"
+          sorry
+        thus ?thesis
+          by simp
+      next
+        case False
+        hence " (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) = ((?\<Gamma>\<^sub>2\<^sub>a, U, None), i\<^sub>0 + count D' L, D, \<F>\<^sub>0(D := sfac D))"
+          using hyps(14) pos_L_and_undef_L_and_false_D by simp
+        moreover have "scl_fol.decide N' \<beta>' (\<Gamma>\<^sub>1, U, None) (trail_decide \<Gamma>\<^sub>1 (lit_of_glit L \<cdot>l Var), U, None)"
+        proof (rule scl_fol.decideI)
+          show "lit_of_glit L \<in> \<Union> (set_mset ` fset N')"
+            using \<open>lit_of_glit L \<in> \<Union> (set_mset ` fset N')\<close> .
+        next
+          show "is_ground_lit (lit_of_glit L \<cdot>l Var)"
+            by simp
+        next
+          have "\<not> trail_defined_lit \<Gamma> (lit_of_glit L)"
+            using pos_L_and_undef_L_and_false_D by argo
+          have "\<not> trail_defined_lit \<Gamma>\<^sub>1 (lit_of_glit L)"
+            unfolding \<open>\<Gamma>\<^sub>1 = foldl trail_decide \<Gamma> (map lit_of_glit Ks)\<close>
+            using hyps(7) pos_L_and_undef_L_and_false_D \<open>distinct (map atm_of Ks)\<close>
+          proof (induction Ks arbitrary: \<Gamma>)
+            case Nil
+            thus ?case
+              by simp
+          next
+            case (Cons K Ks)
+            show ?case
+              unfolding list.map foldl_Cons
+            proof (intro Cons.IH ballI conjI)
+              show "is_pos L"
+                "\<not> trail_defined_lit (trail_decide \<Gamma> (lit_of_glit K)) (lit_of_glit L)"
+                "\<not> trail_true_cls \<Gamma>\<^sub>1 (cls_of_gcls D)"
+                using Cons.prems undefined_in_trail_decide_if_undefined_in_trail_and_less_lit_pos
+                by auto
+            next
+              show "distinct (map atm_of Ks)"
+                using Cons.prems by simp
+            next
+              fix Ka assume Ka_in: "Ka \<in> set Ks"
+
+              from Ka_in show "is_neg Ka" "Ka \<prec>\<^sub>l L" "lit_occures_in_clss Ka N"
+                using Cons.prems(1) by simp_all
+
+              from Ka_in have "atm_of K \<noteq> atm_of Ka"
+                using Cons.prems(3) by auto
+              hence "term_of_gterm (atm_of Ka) \<noteq> term_of_gterm (atm_of K)"
+                using inj_term_of_gterm[of UNIV, THEN inj_onD, simplified] by metis
+              moreover from Ka_in have "\<not> trail_defined_lit \<Gamma> (lit_of_glit Ka)"
+                using Cons.prems(1) by simp
+              ultimately show "\<not> trail_defined_lit (trail_decide \<Gamma> (lit_of_glit K)) (lit_of_glit Ka)"
+                unfolding trail_defined_lit_iff
+                by (simp add: decide_lit_def atm_of_lit_of_glit_conv)
+            qed
+          qed
+          thus "\<not> trail_defined_lit \<Gamma>\<^sub>1 (lit_of_glit L \<cdot>l Var)"
+            by simp
+        next
+          have "atm_of L \<in> atms_of_clss (fset N)"
+            using \<open>L \<in> \<Union> (set_mset ` fset N)\<close>
+            by (auto simp: atms_of_clss_def intro: atm_of_lit_in_atms_of)
+          with \<beta>_greatest show "scl_fol.lesseq_B (atm_of (lit_of_glit L) \<cdot>a Var) \<beta>'"
+            by (auto simp add: atm_of_lit_of_glit_conv \<beta>'_def is_greatest_in_set_wrt_iff)
+        qed
+
+        ultimately have "scl_fol.decide N' \<beta>' S\<^sub>1 S\<^sub>2"
+          using hyps(9) by fastforce
+        thus ?thesis
+          by simp
+      qed
+    next
+      case False
+      hence "S\<^sub>1 = S\<^sub>2"
+        using hyps(14) by auto
+      thus ?thesis
+        by simp
+    qed
   qed
 qed
 

@@ -177,6 +177,12 @@ next
     by (metis reflclp_iff totalpD totalp_less_cls)
 qed
 
+lemma less_lit_simps[simp]:
+  "Pos A\<^sub>1 \<prec>\<^sub>l Pos A\<^sub>2 \<longleftrightarrow> A\<^sub>1 \<prec>\<^sub>t A\<^sub>2"
+  "Pos A\<^sub>1 \<prec>\<^sub>l Neg A\<^sub>2 \<longleftrightarrow> A\<^sub>1 \<preceq>\<^sub>t A\<^sub>2"
+  "Neg A\<^sub>1 \<prec>\<^sub>l Neg A\<^sub>2 \<longleftrightarrow> A\<^sub>1 \<prec>\<^sub>t A\<^sub>2"
+  "Neg A\<^sub>1 \<prec>\<^sub>l Pos A\<^sub>2 \<longleftrightarrow> A\<^sub>1 \<prec>\<^sub>t A\<^sub>2"
+  by (auto simp add: less_lit_def)
 
 
 subsection \<open>Ground Rules\<close>
