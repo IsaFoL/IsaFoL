@@ -23,10 +23,13 @@ notation interpr_composition (infixl "\<^bold>\<circ>" 80)
 
 definition redundancy :: "'a clauses \<Rightarrow> 'a clause \<Rightarrow> 'a literal set \<Rightarrow> 'a clauses \<Rightarrow> bool" where
   "redundancy F C \<omega> F' = (\<forall>I. consistent_interp I \<longrightarrow>interpr_composition I (uminus ` set_mset C) \<Turnstile>m F \<longrightarrow>
+  total_over_set I (atms_of_mm F \<union> atms_of_mm F' \<union> atms_of C) \<longrightarrow>
      (interpr_composition I (interpr_composition (uminus ` set_mset C) \<omega>)) \<Turnstile>m F' )"
 
 lemma redundancyD:
-  assumes "redundancy F C \<omega> F'" and  "consistent_interp I" and "interpr_composition I (uminus ` set_mset C) \<Turnstile>m F"
+  assumes "redundancy F C \<omega> F'" and  "consistent_interp I" and
+    "interpr_composition I (uminus ` set_mset C) \<Turnstile>m F" and
+    \<open>total_over_set I (atms_of_mm F \<union> atms_of_mm F' \<union> atms_of C)\<close>
   shows "(interpr_composition I (interpr_composition (uminus ` set_mset C) \<omega>)) \<Turnstile>m F'"
   using assms unfolding redundancy_def by blast
 
@@ -147,7 +150,7 @@ lemma interpr_composition_assoc: \<open>a \<^bold>\<circ> (b \<^bold>\<circ> c) 
 lemma proposition1: 
   assumes red: "redundancy N C \<omega> N" and \<tau>: "\<tau> \<Turnstile>m N" and "\<not>\<tau> \<Turnstile> C" and cons3:"consistent_interp \<tau>"
     and "consistent_interp \<omega>" and \<omega>: "\<omega> \<Turnstile> C"  and
-    "total_over_set \<tau> (atms_of_mm (add_mset C N))"
+    tot: "total_over_set \<tau> (atms_of_mm (add_mset C N))"
   shows "interpr_composition \<tau> \<omega> \<Turnstile>m N+{#C#}" 
   using assms
 proof-
@@ -168,7 +171,7 @@ proof-
   then have min:"interpr_composition \<tau> ?\<alpha> \<Turnstile>m N" 
     by auto
   have sat:"interpr_composition \<tau> (interpr_composition ?\<alpha> \<omega>) \<Turnstile>m N"
-    using cons3 min redundancyD redundancyD[OF red cons3 min] by blast 
+    using cons3 min redundancyD redundancyD[OF red cons3 min] tot by auto
   have \<open>\<tau> \<^bold>\<circ> ?\<alpha> = \<tau>\<close>
     using \<open>\<not>\<tau> \<Turnstile> C\<close> \<open>total_over_set \<tau> (atms_of_mm (add_mset C N))\<close>
     apply (auto simp: interpr_composition_def dest!: multi_member_split)
