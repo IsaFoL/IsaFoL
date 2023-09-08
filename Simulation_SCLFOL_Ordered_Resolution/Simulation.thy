@@ -853,7 +853,6 @@ lemma correctness_scl_reso1:
     \<beta>_greatest: "is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta>" and
     step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
     invars:
-      "scl_fol.trail_lits_from_clauses N' S\<^sub>0"
       "scl_fol.initial_lits_generalize_learned_trail_conflict N' S\<^sub>0"
   shows
     "(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1"
@@ -1023,7 +1022,6 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
       using \<open>(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1\<close> .
   next
     have
-      (* "scl_fol.trail_lits_from_clauses N' S\<^sub>1" *)
       "scl_fol.initial_lits_generalize_learned_trail_conflict N' S\<^sub>1"
       unfolding atomize_conj
       using \<open>(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1\<close> invars
