@@ -830,7 +830,7 @@ declare equation.simps[simp del]
 end
 
 lemma Uniq_striclty_maximal_lit_in_ground_cls:
-  "\<exists>\<^sub>\<le>\<^sub>1L. L \<in># C \<and> is_strictly_maximal_lit L C"
+  "\<exists>\<^sub>\<le>\<^sub>1L. is_strictly_maximal_lit L C"
 proof (rule Uniq_is_maximal_wrt_reflclp)
   show "totalp_on (set_mset C) (\<prec>\<^sub>l)"
     by (auto intro: totalp_on_subset totalp_less_lit)

@@ -371,15 +371,13 @@ proof (cases P1 P2 C rule: ground_resolution.cases)
     by (metis (no_types, opaque_lifting) add_mset_remove_trivial is_maximal_wrt_def
         lift_is_maximal_wrt_to_is_maximal_wrt_reflclp sup2I1 totalpD totalp_less_lit)
   moreover have "\<And>A. Pos A \<prec>\<^sub>l Neg A"
-    apply (simp add: less_lit_def)
-    by (metis add.right_neutral empty_not_add_mset mset_add one_step_implies_multp
-        union_mset_add_mset_right)
+    by (simp add: less_lit_def)
   ultimately have "\<forall>k\<in>#P\<^sub>2'. k \<prec>\<^sub>l Neg t"
     by (metis transp_def transp_less_lit)
   hence "P\<^sub>2' \<prec>\<^sub>c {#Neg t#}"
-    using one_step_implies_multp[of "{#Neg t#}" P\<^sub>2' "(\<prec>\<^sub>l)" "{#}", simplified] by argo
+    using one_step_implies_multp[of "{#Neg t#}" P\<^sub>2' "(\<prec>\<^sub>l)" "{#}"] by simp
   hence "P\<^sub>2' + P\<^sub>1' \<prec>\<^sub>c add_mset (Neg t) P\<^sub>1'"
-    by (simp only: multp_cancel[of "(\<prec>\<^sub>l)" P\<^sub>1' P\<^sub>2' "{#Neg t#}", simplified])
+    using multp_cancel[of "(\<prec>\<^sub>l)" P\<^sub>1' P\<^sub>2' "{#Neg t#}"] by simp
   thus ?thesis
     unfolding ground_resolutionI
     by (simp only: add.commute)
