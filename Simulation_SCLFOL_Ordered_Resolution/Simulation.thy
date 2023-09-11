@@ -1,8 +1,9 @@
 theory Simulation
   imports
-    (* Simple_Clause_Learning.SCL_FOL *)
+    Simple_Clause_Learning.SCL_FOL
     Simple_Clause_Learning.Initial_Literals_Generalize_Learned_Literals
     Superposition_Calculus.Ground_Ordered_Resolution
+    VeriComp.Simulation
 begin
 
 section \<open>Move to HOL\<close>
@@ -586,7 +587,7 @@ proof unfold_locales
 qed
 
 
-subsection \<open>Strategy for ground ordered resolution\<close>
+subsection \<open>Strategy for model-driven ground ordered resolution\<close>
 
 lemma true_cls_if_true_lit_in: "L \<in># C \<Longrightarrow> I \<TTurnstile>l L \<Longrightarrow> I \<TTurnstile> C"
   by auto
@@ -738,7 +739,7 @@ proof -
   qed
 qed
 
-subsection \<open>Strategy for SCL(FOL)\<close>
+subsection \<open>Strategy for resolution-driven SCL(FOL)\<close>
 
 definition sfac :: "'f gterm clause \<Rightarrow> 'f gterm clause" where
   "sfac C = (THE C'. ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C''))"
@@ -1297,6 +1298,132 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
     qed
   qed
 qed
+
+
+subsection \<open>Backward simulation between SCL(FOL) and resolution-driven SCL(FOL)\<close>
+
+interpretation scl_reso_semantics: semantics where
+  step = "\<lambda>S\<^sub>0 S\<^sub>2. \<exists>S\<^sub>1. scl_reso1 N \<beta> S\<^sub>0 S\<^sub>1 S\<^sub>2" and
+  final = "\<lambda>S. \<exists>\<gamma>. state_trail (fst S) = [] \<and> state_conflict (fst S) = Some ({#}, \<gamma>)"
+proof unfold_locales
+  show "\<And>S. \<exists>\<gamma>. state_trail (fst S) = [] \<and> state_conflict (fst S) = Some ({#}, \<gamma>) \<Longrightarrow>
+    finished (\<lambda>S\<^sub>0 S\<^sub>2. \<exists>S\<^sub>1. scl_reso1 N \<beta> S\<^sub>0 S\<^sub>1 S\<^sub>2) S"
+    unfolding finished_def scl_reso1.simps
+    by force
+qed
+
+lemma "(R OO R) x y \<Longrightarrow> R\<^sup>+\<^sup>+ x y"
+  by auto
+
+interpretation scl_fol_semantics: semantics where
+  step = "scl_fol.scl N \<beta>" and
+  final = "\<lambda>S. \<exists>\<gamma>. state_trail S = [] \<and> state_conflict S = Some ({#}, \<gamma>)"
+proof unfold_locales
+  show "\<And>S. \<exists>\<gamma>. state_trail S = [] \<and> state_conflict S = Some ({#}, \<gamma>) \<Longrightarrow>
+    finished (scl_fol.scl N \<beta>) S"
+    using scl_fol.no_more_step_if_conflict_mempty
+    by (auto simp: finished_def)
+qed
+
+interpretation forward_simulation where
+  step1 = "\<lambda>S\<^sub>0 S\<^sub>2. \<exists>S\<^sub>1. scl_reso1 N \<beta> S\<^sub>0 S\<^sub>1 S\<^sub>2" and
+  step2 = "scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>)" and
+  final1 = "\<lambda>S. \<exists>\<gamma>. state_trail (fst S) = [] \<and> state_conflict (fst S) = Some ({#}, \<gamma>)" and
+  final2 = "\<lambda>S. \<exists>\<gamma>. state_trail S = [] \<and> state_conflict S = Some ({#}, \<gamma>)" and
+  order = "\<lambda>_ _. False" and
+  match = "\<lambda>_ S1 S2. fst S1 = S2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
+    scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2"
+proof unfold_locales
+  show "\<And>i s1 s2. fst s1 = s2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
+    scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) s2 \<Longrightarrow>
+    \<exists>\<gamma>. state_trail (fst s1) = [] \<and> state_conflict (fst s1) = Some ({#}, \<gamma>) \<Longrightarrow>
+    \<exists>\<gamma>. state_trail s2 = [] \<and> state_conflict s2 = Some ({#}, \<gamma>)"
+    by simp
+next
+  fix i S1 S2 S1'
+  assume
+    match: "fst S1 = S2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
+      scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2" and
+    step: "\<exists>S1''. scl_reso1 N \<beta> S1 S1'' S1'"
+  from match have
+    "fst S1 = S2" and
+    \<beta>_greatest: "is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta>" and
+    init_geneneralize: "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2"
+    by simp_all
+  from step obtain S\<^sub>0 i\<^sub>0 C\<^sub>0 \<F>\<^sub>0 S\<^sub>1 i\<^sub>1 C\<^sub>1 \<F>\<^sub>1 S\<^sub>2 i\<^sub>2 C\<^sub>2 \<F>\<^sub>2 where
+    "S1 = (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" and
+    "S1' = (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
+    step': "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)"
+    by (metis prod_cases3)
+
+  have init_geneneralize': "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S\<^sub>0"
+    using init_geneneralize
+    unfolding \<open>fst S1 = S2\<close>[symmetric] \<open>S1 = (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)\<close> prod.sel .
+
+
+  have 1: "(scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1"
+    using correctness_scl_reso1(1)[OF \<beta>_greatest step' init_geneneralize']
+    by (metis mono_rtranclp scl_fol.scl_def)
+
+  show "
+    (\<exists>i' S2'. (scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>+\<^sup>+ S2 S2' \<and>
+      fst S1' = S2' \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
+      scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2') \<or>
+    (\<exists>i'. (fst S1' = S2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
+      scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2) \<and> False)"
+    using correctness_scl_reso1(2)[OF \<beta>_greatest step' init_geneneralize']
+  proof (elim disjE)
+    assume "scl_fol.decide (cls_of_gcls |`| N) (term_of_gterm \<beta>) S\<^sub>1 S\<^sub>2"
+    hence 2: "scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>) S\<^sub>1 S\<^sub>2"
+      by (simp add: scl_fol.scl_def)
+
+    from 1 2 have "(scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>+\<^sup>+ S\<^sub>0 S\<^sub>2"
+      by simp
+    moreover hence "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S\<^sub>2"
+      using init_geneneralize'
+      by (induction S\<^sub>2 rule: tranclp_induct)
+        (simp_all add: scl_fol.scl_preserves_initial_lits_generalize_learned_trail_conflict)
+    ultimately show ?thesis
+      unfolding \<open>fst S1 = S2\<close>[symmetric] \<open>S1 = (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)\<close> \<open>S1' = (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)\<close> prod.sel
+      using \<beta>_greatest by metis
+  next
+    assume "(scl_fol.propagate (cls_of_gcls |`| N) (term_of_gterm \<beta>) OO
+      scl_fol.conflict (cls_of_gcls |`| N) (term_of_gterm \<beta>)) S\<^sub>1 S\<^sub>2"
+    hence "(scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>) OO
+      scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>)) S\<^sub>1 S\<^sub>2"
+      using relcompp_mono[of "scl_fol.propagate _ _" "scl_fol.scl _ _" "scl_fol.conflict _ _"
+          "scl_fol.scl _ _"]
+      by (smt (verit) relcompp.simps scl_fol.scl_def)
+    hence 2: "(scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>+\<^sup>+ S\<^sub>1 S\<^sub>2"
+      by auto
+
+    from 1 2 have "(scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>+\<^sup>+ S\<^sub>0 S\<^sub>2"
+      by simp
+    moreover hence "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S\<^sub>2"
+      using init_geneneralize'
+      by (induction S\<^sub>2 rule: tranclp_induct)
+        (simp_all add: scl_fol.scl_preserves_initial_lits_generalize_learned_trail_conflict)
+    ultimately show ?thesis
+      unfolding \<open>fst S1 = S2\<close>[symmetric] \<open>S1 = (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)\<close> \<open>S1' = (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)\<close> prod.sel
+      using \<beta>_greatest by metis
+  next
+    assume "S\<^sub>1 = S\<^sub>2"
+    with 1 show ?thesis
+      unfolding \<open>fst S1 = S2\<close>[symmetric] \<open>S1 = (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)\<close> \<open>S1' = (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)\<close> prod.sel
+      using init_geneneralize'
+    proof (induction S\<^sub>1 rule: rtranclp_induct)
+      case base
+      then show ?case
+        sorry
+    next
+      case (step y z)
+      then show ?case
+        using \<beta>_greatest
+        by (smt (verit, best) rtranclp_induct rtranclp_into_tranclp1
+            scl_fol.scl_preserves_initial_lits_generalize_learned_trail_conflict)
+    qed
+  qed
+qed simp_all
 
 end
  
