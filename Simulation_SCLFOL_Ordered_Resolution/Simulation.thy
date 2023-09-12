@@ -62,6 +62,7 @@ lemma Collect_eq_image_filter_Collect_if_bij_betw:
   using ex1_subset_eq_image_if_bij_betw[OF bij sub]
   by (smt (verit, best) Collect_cong image_def in_mono mem_Collect_eq)
 
+
 subsection \<open>Minimal, maximal, least, and greatest element of a set\<close>
 
 definition is_minimal_in_set_wrt where
@@ -202,6 +203,44 @@ lemma Uniq_is_greatest_in_set_wrt:
     (metis antisymp_onD antisymp_on_if_asymp_on insertE insert_Diff is_greatest_in_set_wrt_def)
 
 
+subsubsection \<open>Transformations\<close>
+
+lemma is_minimal_in_insert_wrtI:
+  assumes
+    trans: "transp_on (insert y X) R" and
+    asym: "asymp_on (insert y X) R" and
+    "R y x" and
+    x_min: "is_minimal_in_set_wrt R X x"
+  shows "is_minimal_in_set_wrt R (insert y X) y"
+proof -
+  from x_min have x_in: "x \<in> X" and x_min': "\<forall>y\<in>X - {x}. \<not> R y x"
+    by (simp_all add: is_minimal_in_set_wrt_iff)
+
+  have "\<not> R z y" if "z \<in> insert y X - {y}" for z
+  proof -
+    from that have "z \<in> X" and "z \<noteq> y"
+      by simp_all
+
+    show "\<not> R z y"
+    proof (cases "z = x")
+      case True
+      thus ?thesis
+        using \<open>R y x\<close> asym x_in
+        by (metis asymp_onD insertI1 insertI2)
+    next
+      case False
+      hence "\<not> R z x"
+        using x_min'[rule_format, of z, simplified] \<open>z \<in> X\<close> by metis
+      then show ?thesis
+        using \<open>R y x\<close> trans \<open>z \<in> X\<close> x_in
+        by (meson insertCI transp_onD)
+    qed
+  qed
+  thus ?thesis
+    by (simp add: is_minimal_in_set_wrt_def)
+qed
+
+
 subsubsection \<open>Function\<close>
 
 definition Greatest_in_set_wrt :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a set \<Rightarrow> 'a option" where
@@ -293,6 +332,11 @@ lemma bex_minimal_element_in_fset_wrt:
   "asymp_on (fset X) R \<Longrightarrow> transp_on (fset X) R \<Longrightarrow> X \<noteq> {||} \<Longrightarrow> \<exists>m. is_minimal_in_fset_wrt R X m"
   using bex_minimal_element[of "fset X" R] by auto
 
+lemma is_minimal_in_finsert_wrtI:
+  "transp_on (fset (finsert y X)) R \<Longrightarrow> asymp_on (fset (finsert y X)) R \<Longrightarrow> R y x \<Longrightarrow>
+  is_minimal_in_fset_wrt R X x \<Longrightarrow> is_minimal_in_fset_wrt R (finsert y X) y"
+  using is_minimal_in_insert_wrtI[of _ "fset _", folded fset_simps] .
+
 
 section \<open>Move to Superposition_Calculus\<close>
 
@@ -324,7 +368,7 @@ proof (intro Uniq_I)
 qed
 
 lemma (in ground_ordered_resolution_calculus) termination_ground_factoring:
-  "wfP ground_factoring\<inverse>\<inverse>"
+  shows "wfP ground_factoring\<inverse>\<inverse>"
 proof (rule wfP_if_convertible_to_wfP)
   show "\<And>x y. ground_factoring\<inverse>\<inverse> x y \<Longrightarrow> x \<prec>\<^sub>c y"
     using ground_factoring_smaller_conclusion by simp
@@ -332,6 +376,21 @@ next
   show "wfP (\<prec>\<^sub>c)"
     by simp
 qed
+
+lemma (in ground_ordered_resolution_calculus) atms_of_concl_subset_if_ground_resolution:
+  assumes "ground_resolution P\<^sub>1 P\<^sub>2 C"
+  shows "atms_of C \<subseteq> atms_of P\<^sub>1 \<union> atms_of P\<^sub>2"
+  using assms by (cases P\<^sub>1 P\<^sub>2 C rule: ground_resolution.cases) (auto simp add: atms_of_def)
+
+lemma (in ground_ordered_resolution_calculus) strict_subset_mset_if_ground_factoring:
+  assumes "ground_factoring P C"
+  shows "C \<subset># P"
+  using assms by (cases P C rule: ground_factoring.cases) simp
+
+lemma (in ground_ordered_resolution_calculus) atms_of_concl_eq_if_ground_factoring:
+  assumes "ground_factoring P C"
+  shows "atms_of C = atms_of P"
+  using assms by (cases P C rule: ground_factoring.cases) simp
 
 
 section \<open>Move somewhere?\<close>
@@ -597,6 +656,10 @@ definition is_min_false_clause :: "'f gterm clause fset \<Rightarrow> 'f gterm c
     is_minimal_in_fset_wrt (\<prec>\<^sub>c)
       {|C |\<in>| N. \<not> (\<Union>D \<in> {D \<in> fset N. D \<preceq>\<^sub>c C}. ord_res.production (fset N) D) \<TTurnstile> C|} C"
 
+lemma Uniq_is_min_false_clause: "\<exists>\<^sub>\<le>\<^sub>1C. is_min_false_clause N C"
+  unfolding is_min_false_clause_def
+  by (simp add: Uniq_is_minimal_in_set_wrt)
+
 definition ord_res_mod_op_strategy :: "'f gterm clause fset \<Rightarrow> 'f gterm clause fset \<Rightarrow> bool" where
   "ord_res_mod_op_strategy N N' \<longleftrightarrow> (\<exists>C L.
     is_min_false_clause N C \<and> ord_res.is_maximal_lit L C \<and>
@@ -606,7 +669,7 @@ definition ord_res_mod_op_strategy :: "'f gterm clause fset \<Rightarrow> 'f gte
           (\<exists>CD. ord_res.ground_resolution C D CD \<and> N' = finsert CD N))
       | Pos A \<Rightarrow> \<comment> \<open>Case 4\<close>
         \<not> ord_res.is_strictly_maximal_lit (Pos A) C \<and>
-          (\<exists>C'. ord_res.ground_factoring C C')))"
+          (\<exists>C'. ord_res.ground_factoring C C' \<and> N' = finsert C' N)))"
 
 lemma
   assumes
@@ -1297,6 +1360,120 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
         by simp
     qed
   qed
+qed
+
+
+subsection \<open>Simulation invariants\<close>
+
+lemma ord_res_mod_op_strategy_preserves_atms_of_clss:
+  assumes step: "ord_res_mod_op_strategy N N'"
+  shows "atms_of_clss (fset N) = atms_of_clss (fset N')"
+proof -
+  from step obtain L C where
+    C_min: "is_min_false_clause N C" and
+    L_max: "ord_res.is_maximal_lit L C" and
+    case_L: "case L of
+       Pos A \<Rightarrow> \<not> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) C \<and> (\<exists>C'. ord_res.ground_factoring C C' \<and> N' = finsert C' N)
+     | Neg A \<Rightarrow> \<exists>D|\<in>|N. D \<prec>\<^sub>c C \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) D \<and>
+       (\<exists>CD. ord_res.ground_resolution C D CD \<and> N' = finsert CD N)"
+    unfolding ord_res_mod_op_strategy_def
+    by auto
+
+  from C_min have "C |\<in>| N"
+    by (simp add: is_min_false_clause_def is_minimal_in_set_wrt_iff)
+
+  show ?thesis
+  proof (cases L)
+    case (Pos A)
+    with case_L obtain C' where
+      "ord_res.ground_factoring C C'" and
+      "N' = finsert C' N"
+      by auto
+    then show ?thesis
+      using \<open>C |\<in>| N\<close> atms_of_concl_eq_if_ground_factoring[OF \<open>ord_res.ground_factoring C C'\<close>]
+      by (simp add: atms_of_clss_def)
+  next
+    case (Neg A)
+    with case_L obtain D CD where
+      "D |\<in>| N" and
+      "ord_res.ground_resolution C D CD" and
+      "N' = finsert CD N"
+      by auto
+
+    have "atms_of_clss (fset N') = atms_of_clss (fset (finsert CD N))"
+      unfolding \<open>N' = finsert CD N\<close> ..
+    also have "\<dots> = atms_of CD \<union> atms_of_clss (fset N)"
+      by (simp add: atms_of_clss_def)
+    also have "\<dots> \<subseteq> atms_of C \<union> atms_of D \<union> atms_of_clss (fset N)"
+      using \<open>ord_res.ground_resolution C D CD\<close> atms_of_concl_subset_if_ground_resolution by auto
+    also have "\<dots> = atms_of_clss (fset N)"
+      using \<open>C |\<in>| N\<close> \<open>D |\<in>| N\<close>
+      by (auto simp add: atms_of_clss_def)
+    finally show "atms_of_clss (fset N) = atms_of_clss (fset N')"
+      unfolding \<open>N' = finsert CD N\<close>
+      using \<open>atms_of_clss (fset (finsert CD N)) = atms_of CD \<union> atms_of_clss (fset N)\<close> by blast
+  qed
+qed
+
+lemma compower_ord_res_mod_op_strategy_preserves_atms_of_clss:
+  "(ord_res_mod_op_strategy ^^ i) N N\<^sub>i \<Longrightarrow> atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>i)"
+proof (induction i arbitrary: N\<^sub>i)
+  case 0
+  then show ?case
+    by simp
+next
+  case (Suc i')
+  from Suc.prems obtain N\<^sub>i\<^sub>' where
+    "(ord_res_mod_op_strategy ^^ i') N N\<^sub>i\<^sub>'" and "ord_res_mod_op_strategy N\<^sub>i\<^sub>' N\<^sub>i"
+    by auto
+
+  have "atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>i\<^sub>')"
+    using Suc.IH[OF \<open>(ord_res_mod_op_strategy ^^ i') N N\<^sub>i\<^sub>'\<close>] .
+  also have "\<dots> = atms_of_clss (fset N\<^sub>i)"
+    using ord_res_mod_op_strategy_preserves_atms_of_clss[OF \<open>ord_res_mod_op_strategy N\<^sub>i\<^sub>' N\<^sub>i\<close>] .
+  finally show ?case .
+qed
+
+context
+  fixes N :: "'f gterm clause fset" and \<beta> :: "'f gterm" and
+    N' :: "('f, 'v) term clause fset" and \<beta>' :: "('f, 'v) term"
+  defines "N' \<equiv> fimage cls_of_gcls N" and "\<beta>' \<equiv> term_of_gterm \<beta>"
+begin
+
+lemma constant_atom_set:
+  assumes
+    step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
+    "(ord_res_mod_op_strategy ^^ i\<^sub>0) N N\<^sub>0" and
+    "(ord_res_mod_op_strategy ^^ i\<^sub>1) N N\<^sub>1" and
+    "(ord_res_mod_op_strategy ^^ i\<^sub>2) N N\<^sub>2" and
+    invars:
+      "atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>0)"
+      "atms_of_clss (fset N\<^sub>0) = atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>0))"
+  shows
+    "atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>1)" and
+    "atms_of_clss (fset N\<^sub>1) = atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>1))" and
+    "atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>2)" and
+    "atms_of_clss (fset N\<^sub>2) = atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>2))"
+  using step
+  unfolding atomize_conj
+proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" rule: scl_reso1.cases)
+  case (scl_reso1I D U L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
+  have "atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>1)"
+    using invars(1)
+    using \<open>(ord_res_mod_op_strategy ^^ i\<^sub>0) N N\<^sub>0\<close>
+    sorry
+  moreover have "atms_of_clss (fset N\<^sub>1) = atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>1))"
+    sorry
+  moreover have "atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>2)"
+    sorry
+  moreover have "atms_of_clss (fset N\<^sub>2) = atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>2))"
+    sorry
+  ultimately show "
+    (atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>1) \<and>
+    atms_of_clss (fset N\<^sub>1) = atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>1))) \<and>
+    atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>2) \<and>
+    atms_of_clss (fset N\<^sub>2) = atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>2))"
+    by (intro conjI)
 qed
 
 
