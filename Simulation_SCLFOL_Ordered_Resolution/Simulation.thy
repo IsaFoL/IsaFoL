@@ -1416,7 +1416,7 @@ proof -
       "N' = finsert C' N"
       by auto
     then show ?thesis
-      using \<open>C |\<in>| N\<close> atms_of_concl_eq_if_ground_factoring[OF \<open>ord_res.ground_factoring C C'\<close>]
+      using \<open>C |\<in>| N\<close> ord_res.atms_of_concl_eq_if_ground_factoring[OF \<open>ord_res.ground_factoring C C'\<close>]
       by (simp add: atms_of_clss_def)
   next
     case (Neg A)
@@ -1431,7 +1431,8 @@ proof -
     also have "\<dots> = atms_of CD \<union> atms_of_clss (fset N)"
       by (simp add: atms_of_clss_def)
     also have "\<dots> \<subseteq> atms_of C \<union> atms_of D \<union> atms_of_clss (fset N)"
-      using \<open>ord_res.ground_resolution C D CD\<close> atms_of_concl_subset_if_ground_resolution by auto
+      using \<open>ord_res.ground_resolution C D CD\<close> ord_res.atms_of_concl_subset_if_ground_resolution
+      by auto
     also have "\<dots> = atms_of_clss (fset N)"
       using \<open>C |\<in>| N\<close> \<open>D |\<in>| N\<close>
       by (auto simp add: atms_of_clss_def)
@@ -1502,6 +1503,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
     by (intro conjI)
 qed
 
+end
 
 subsection \<open>Backward simulation between SCL(FOL) and resolution-driven SCL(FOL)\<close>
 
