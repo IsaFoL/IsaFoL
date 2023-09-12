@@ -65,17 +65,40 @@ lemma Collect_eq_image_filter_Collect_if_bij_betw:
 
 subsection \<open>Minimal, maximal, least, and greatest element of a set\<close>
 
-definition is_minimal_in_set_wrt where
-  "is_minimal_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. \<not> (R y x))"
+(* Sophie raised the important point of naming these definitions. The current names are only "valid"
+w.r.t. a proper ordering relation but the definitions are for any binary relation. What do they even
+mean for non-ordering relation. This could be very counterintuitive for unexperienced users who
+could just see the name, assume \<open>is_least_in_set_wrt R X x\<close> and be surprized when it turns out that
+they have two least elements because their relation was not proven asymmetric. *)
 
+(* There is similarity with graph theory where they have definitions of initial/terminal vertices
+and some more stuff (e.g. heads/tails, successors/predecessors). *)
+
+(* corresponds to "has no predecessor" from graph theory *)
+(* corresponds to "not forward-reachable" from graph theory *)
+definition is_not_forward_reachable_wrt where
+  "is_not_forward_reachable_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. \<not> (R y x))"
+
+(* corresponds to "has no successor" from graph theory *)
+(* corresponds to "not backward-reachable" from graph theory *)
 definition is_maximal_in_set_wrt where
   "is_maximal_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. \<not> (R x y))"
 
+(* corresponds to "reaches_all" from graph theory *)
 definition is_least_in_set_wrt where
   "is_least_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. R x y)"
 
 definition is_greatest_in_set_wrt where
   "is_greatest_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. R y x)"
+
+definition is_min where
+  "transp R \<Longrightarrow> asymp R \<Longrightarrow> is_min R X x \<longleftrightarrow> is_not_forward_reachable_wrt R X x"
+
+thm is_min_def
+
+lemma
+  assumes "transp R" and "asymp R" and "is_not_forward_reachable_wrt R X x"
+  shows Something
 
 
 subsubsection \<open>Conversions\<close>
@@ -146,6 +169,9 @@ qed
 lemma is_minimal_in_set_wrt_filter_iff:
   "is_minimal_in_set_wrt R {y \<in> X. P y} x \<longleftrightarrow> x \<in> X \<and> P x \<and> (\<forall>y \<in> X - {x}. P y \<longrightarrow> \<not> R y x)"
   by (auto simp: is_minimal_in_set_wrt_def)
+
+(* TODO: See theory file IsaFOL/Splitting_Framework.FOL_Compactness for lemmas about
+Set.filter and co. *)
 
 
 subsubsection \<open>Existence\<close>
