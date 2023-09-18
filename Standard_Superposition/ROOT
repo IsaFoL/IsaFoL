@@ -1,0 +1,11 @@
+chapter Standard_Superposition
+
+session "Standard_Superposition" = "HOL" +
+  options [document = false]
+  sessions
+    Saturation_Framework
+    "HOL-Library"
+    First_Order_Terms
+    Saturation_Framework_Extensions
+  theories
+    Superposition_Lifting

@@ -3,7 +3,7 @@ BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x
 
 [CMake]
 Build Directory Count=2
-Current Build Directory Index-Host System=0
+Current Build Directory Index-Host System=1
 
 [CMake][CMake Build Directory 0]
 Build Directory Path=/home/peter/devel/isabelle/isafol/GRAT/gratgen/release
@@ -239,7 +239,7 @@ pattern=.prettierrc*
 targets=1
 
 [Launch]
-Launch Configurations=Launch Configuration 0
+Launch Configurations=Launch Configuration 0,Launch Configuration 1
 
 [Launch][Launch Configuration 0]
 Configured Launch Modes=execute
@@ -263,6 +263,24 @@ Remote GDB Config Script=
 Remote GDB Run Script=
 Remote GDB Shell Script=
 Start With=ApplicationOutput
+Use External Terminal=false
+Working Directory=
+isExecutable=false
+
+[Launch][Launch Configuration 1]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=lrat_grat_cnv
+Type=Native Application
+
+[Launch][Launch Configuration 1][Data]
+Arguments=~/tmp/gratgenbug/gratregressiontest/full2.lrat
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00g\x00e\x00n\x00\x00\x00\x1a\x00l\x00r\x00a\x00t\x00_\x00g\x00r\x00a\x00t\x00_\x00c\x00n\x00v)
+Dependency Action=Build
+EnvironmentGroup=
+Executable=file:///home/peter/devel/isabelle/isafol/GRAT/gratgen
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Project Target=gratgen,lrat_grat_cnv
 Use External Terminal=false
 Working Directory=
 isExecutable=false

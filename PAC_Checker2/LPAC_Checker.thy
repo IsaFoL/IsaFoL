@@ -706,7 +706,7 @@ lemma (in -)set_insort_wrt [simp]: \<open>set (insort_wrt P f a xs) = insert a (
 
 
 lemma (in -)sorted_insort_wrt:
-  \<open>transp P \<Longrightarrow> total (p2rel P) \<Longrightarrow> sorted_wrt (\<lambda>a b. P (f a) (f b)) xs \<Longrightarrow> reflp_on P (f ` set (a # xs)) \<Longrightarrow>
+  \<open>transp P \<Longrightarrow> total (p2rel P) \<Longrightarrow> sorted_wrt (\<lambda>a b. P (f a) (f b)) xs \<Longrightarrow> reflp_on (f ` set (a # xs)) P \<Longrightarrow>
   sorted_wrt (\<lambda>a b. P (f a) (f b)) (insort_wrt f P a xs)\<close>
   apply (induction f P a xs rule: insort_wrt.induct)
   subgoal by auto

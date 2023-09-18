@@ -1805,10 +1805,9 @@ lemma remdups_mset_singleton_removeAll:
 lemma mset_remove_filtered: \<open>C - {#x \<in># C. P x#} = {#x \<in># C. \<not>P x#}\<close>
   by (metis add_implies_diff union_filter_mset_complement)
 
-
 section \<open>Finite maps and multisets\<close>
 
-subsubsection \<open>Finite sets and multisets\<close>
+subsubsection \<open>Finite sets to multisets\<close>
 
 abbreviation mset_fset :: \<open>'a fset \<Rightarrow> 'a multiset\<close> where
   \<open>mset_fset N \<equiv> mset_set (fset N)\<close>
@@ -1819,18 +1818,7 @@ definition fset_mset :: \<open>'a multiset \<Rightarrow> 'a fset\<close> where
 lemma fset_mset_mset_fset: \<open>fset_mset (mset_fset N) = N\<close>
   by (auto simp: fset.fset_inverse fset_mset_def)
 
-lemma mset_fset_fset_mset[simp]:
-  \<open>mset_fset (fset_mset N) = remdups_mset N\<close>
-  by (auto simp: fset.fset_inverse fset_mset_def Abs_fset_inverse remdups_mset_def)
-
-lemma in_mset_fset_fmember[simp]: \<open>x \<in># mset_fset N \<longleftrightarrow> x |\<in>| N\<close>
-  by (auto simp: fmember.rep_eq)
-
-lemma in_fset_mset_mset[simp]: \<open>x |\<in>| fset_mset N \<longleftrightarrow> x \<in># N\<close>
-  by (auto simp: fmember.rep_eq fset_mset_def Abs_fset_inverse)
-
-
-subsubsection \<open>Finite map and multisets\<close>
+subsubsection \<open>Multiset operations for domain/codomain for finite maps\<close>
 
 text \<open>Roughly the same as \<^term>\<open>ran\<close> and \<^term>\<open>dom\<close>, but with duplication in the content (unlike their
   finite sets counterpart) while still working on finite domains (unlike a function mapping).
@@ -1846,17 +1834,17 @@ definition ran_m where
 lemma dom_m_fmdrop[simp]: \<open>dom_m (fmdrop C N) = remove1_mset C (dom_m N)\<close>
   unfolding dom_m_def
   by (cases \<open>C |\<in>| fmdom N\<close>)
-    (auto simp: mset_set.remove fmember.rep_eq)
+    (auto simp: mset_set.remove)
 
 lemma dom_m_fmdrop_All: \<open>dom_m (fmdrop C N) = removeAll_mset C (dom_m N)\<close>
   unfolding dom_m_def
   by (cases \<open>C |\<in>| fmdom N\<close>)
-    (auto simp: mset_set.remove fmember.rep_eq)
+    (auto simp: mset_set.remove)
 
 lemma dom_m_fmupd[simp]: \<open>dom_m (fmupd k C N) = add_mset k (remove1_mset k (dom_m N))\<close>
   unfolding dom_m_def
   by (cases \<open>k |\<in>| fmdom N\<close>)
-    (auto simp: mset_set.remove fmember.rep_eq mset_set.insert_remove)
+    (auto simp: mset_set.remove mset_set.insert_remove)
 
 lemma distinct_mset_dom: \<open>distinct_mset (dom_m N)\<close>
   by (simp add: distinct_mset_mset_set dom_m_def)
@@ -1896,7 +1884,7 @@ lemma dom_m_fmrestrict_set': \<open>dom_m (fmrestrict_set xs N) = mset_set (xs \
     remdups_mset_def)
 
 lemma indom_mI: \<open>fmlookup m x = Some y \<Longrightarrow> x \<in># dom_m m\<close>
-  by (drule fmdomI)  (auto simp: dom_m_def fmember.rep_eq)
+  by (drule fmdomI)  (auto simp: dom_m_def)
 
 lemma fmupd_fmdrop_id:
   assumes \<open>k |\<in>| fmdom N'\<close>
@@ -1937,7 +1925,7 @@ lemma fmrestrict_set_insert_in:
   \<open>xa  \<in> fset (fmdom N) \<Longrightarrow>
     fmrestrict_set (insert xa l1) N = fmupd xa (the (fmlookup N xa)) (fmrestrict_set l1 N)\<close>
   apply (rule fmap_ext_fmdom)
-   apply (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset; fail)[]
+   apply (auto simp: fset_fmdom_fmrestrict_set; fail)[]
   apply (auto simp: fmlookup_dom_iff; fail)
   done
 
@@ -1945,7 +1933,7 @@ lemma fmrestrict_set_insert_notin:
   \<open>xa  \<notin> fset (fmdom N) \<Longrightarrow>
     fmrestrict_set (insert xa l1) N = fmrestrict_set l1 N\<close>
   by (rule fmap_ext_fmdom)
-     (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset)
+     (auto simp: fset_fmdom_fmrestrict_set)
 
 lemma fmrestrict_set_insert_in_dom_m[simp]:
   \<open>xa  \<in># dom_m N \<Longrightarrow>
@@ -2009,6 +1997,13 @@ lemma ran_m_fmdrop_If:
   by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>]
     dest!: multi_member_split
     intro!: filter_mset_cong2 image_mset_cong2)
+
+lemma mset_fset_fset_mset[simp]:
+  \<open>mset_fset (fset_mset N) = remdups_mset N\<close>
+  by (auto simp: fset.fset_inverse fset_mset_def Abs_fset_inverse remdups_mset_def)
+
+lemma in_fset_mset_mset[simp]: \<open>x |\<in>| fset_mset N \<longleftrightarrow> x \<in># N\<close>
+  by (auto simp: fset_mset_def Abs_fset_inverse)
 
 
 subsubsection \<open>Compact domain for finite maps\<close>

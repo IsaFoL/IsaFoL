@@ -1940,18 +1940,19 @@ proof -
     by (simp add: twl_st)
 qed
 
-
 definition remove_one_annot_true_clause_imp :: \<open>'v twl_st_l \<Rightarrow> ('v twl_st_l) nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp = (\<lambda>S. do {
     k \<leftarrow> SPEC(\<lambda>k. (\<exists>M1 M2 K. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (get_trail_l S)) \<and>
         count_decided M1 = 0 \<and> k = length M1)
       \<or> (count_decided (get_trail_l S) = 0 \<and> k = length (get_trail_l S)));
-    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_inv S\<^esup>
+    start \<leftarrow> SPEC (\<lambda>i. i \<le> k \<and> (\<forall>j < i. is_proped (rev (get_trail_l S) ! j) \<and> mark_of (rev (get_trail_l S) ! j) = 0));
+    (i, T) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_inv S\<^esup>
       (\<lambda>(i, S). i < k)
       (\<lambda>(i, S). remove_one_annot_true_clause_one_imp i S)
-      (0, S);
-    remove_all_learned_subsumed_clauses S
+      (start, S);
+    ASSERT (remove_one_annot_true_clause_imp_inv S (i, T));
+    remove_all_learned_subsumed_clauses T
   })\<close>
 
 
@@ -2325,7 +2326,11 @@ lemma remove_one_annot_true_clause_imp_spec:
       I=\<open>remove_one_annot_true_clause_imp_inv S\<close>]
     remove_all_learned_subsumed_clauses_cdcl_twl_restart_l[THEN order_trans])
   subgoal by auto
-  subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def by blast
+  subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def prod.simps apply -
+    apply (intro conjI)
+    apply (solves auto)+
+    apply fast+
+    done
   apply (rule remove_one_annot_true_clause_one_imp_spec[of _ _ ])
   subgoal unfolding remove_one_annot_true_clause_imp_inv_def by auto
   subgoal unfolding remove_one_annot_true_clause_imp_inv_def by auto
@@ -2335,9 +2340,10 @@ lemma remove_one_annot_true_clause_imp_spec:
   subgoal
     by (auto dest!: get_all_ann_decomposition_exists_prepend
       simp: count_decided_0_iff rev_nth is_decided_no_proped_iff)
+  subgoal by auto
   apply assumption
   apply assumption
-  subgoal for x s a b xa
+  subgoal for x start s a b xa
     using tranclp_cdcl_twl_restart_l_cdcl_is_cdcl_twl_restart_l[of S xa]
       rtranclp_into_tranclp1[of cdcl_twl_restart_l S b xa]
       remove_one_annot_true_clause_imp_inv_no_dupD2[of S s \<open>fst s\<close> \<open>snd s\<close>]
@@ -2378,10 +2384,11 @@ proof -
       remove_one_annot_true_clause_one_imp_spec
       remove_all_learned_subsumed_clauses_cdcl_twl_restart_l[THEN order_trans])
     subgoal by auto
-    subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def by blast
+    subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def prod.simps apply - by (intro conjI) ((solves auto)+, fast, (solves auto)+)
     subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def by auto
     subgoal using assms by (auto simp: count_decided_0_iff is_decided_no_proped_iff
       rev_nth)
+    subgoal by auto
     apply assumption
     apply assumption
     subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def
@@ -3006,10 +3013,6 @@ proof -
     using 5 st by simp
 qed
 
-lemma (in -) fmdom_fmrestrict_set: \<open>fmdrop xa (fmrestrict_set s N) = fmrestrict_set (s - {xa}) N\<close>
-  by (rule fmap_ext_fmdom)
-   (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset)
-
 lemma (in -) GC_clauses_GC_remap:
   \<open>GC_clauses N fmempty \<le> SPEC(\<lambda>(N'', m). GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, m, N'') \<and>
     0 \<notin># dom_m N'')\<close>
@@ -3023,8 +3026,7 @@ proof -
       for a b :: \<open>nat list\<close>
   have I0: \<open>set_mset (dom_m N) \<subseteq> set x \<Longrightarrow> I [] x (N, fmempty, \<lambda>_. None)\<close> for x
     unfolding I_def
-    by (auto intro!: fmap_ext_fmdom simp: fset_fmdom_fmrestrict_set fmember.rep_eq
-      notin_fset dom_m_def)
+    by (auto intro!: fmap_ext_fmdom simp: fset_fmdom_fmrestrict_set dom_m_def)
 
   have I_drop: \<open>I (l1 @ [xa]) l2
        (fmdrop xa a, fmupd xb (a \<propto> xa, irred a xa) aa, ba(xa \<mapsto> xb))\<close>

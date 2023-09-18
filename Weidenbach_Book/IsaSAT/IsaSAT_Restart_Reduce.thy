@@ -258,7 +258,7 @@ proof -
       apply (frule H(2))
       apply (frule H(3))
 	apply (clarsimp simp: twl_st_heur_def)
-	apply (rule_tac x=aea in exI)
+	apply (rule_tac x=afa in exI)
 	apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id] learned_clss_count_def
           all_atms_st_def
 	  intro: trail_pol_no_dup)

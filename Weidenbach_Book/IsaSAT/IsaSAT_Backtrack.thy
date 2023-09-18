@@ -1406,7 +1406,6 @@ proof -
           simp flip: all_atms_def n2
           intro!: RETURN_RES_refine
           intro: )
-      apply (rule_tac x=al in exI)
       by (auto dest: no_dup_appendD intro:  simp: T' all_atms_st_def)
   qed
 

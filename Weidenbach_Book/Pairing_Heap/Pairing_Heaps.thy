@@ -524,7 +524,7 @@ lemma hp_parent_children_itself[simp]:
 lemma hp_parent_in_nodes: \<open>hp_parent n x \<noteq> None \<Longrightarrow> node (the (hp_parent n x)) \<in># mset_nodes x\<close>
   apply (induction n x rule: hp_parent.induct)
   subgoal premises p for n a sc x children
-    using p p(1)[of xa]
+    using p
     apply (auto simp: hp_parent.simps)
     apply (cases \<open>filter (\<lambda>y. \<exists>ya. y = Some ya) (map (hp_parent n) children)\<close>)
     apply (fastforce simp: filter_empty_conv filter_eq_Cons_iff map_eq_append_conv)+

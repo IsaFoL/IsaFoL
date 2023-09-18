@@ -77,7 +77,7 @@ sepref_def split_trail_impl
   :: \<open>trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a arl64_assn unat_lit_assn \<times>\<^sub>a larray64_assn (tri_bool_assn) \<times>\<^sub>a
     larray64_assn uint32_nat_assn \<times>\<^sub>a
     larray64_assn sint64_nat_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a
-  arl64_assn uint32_nat_assn\<close>
+  arl64_assn uint32_nat_assn  \<times>\<^sub>a  sint64_nat_assn\<close>
   unfolding trail_pol_fast_assn_def split_trail_def
   by sepref
 
@@ -399,7 +399,7 @@ termination
 text \<open>Using this as version number makes our work on the cluster easier and makes the version checking
   slightly easier (because the git hash is never up-to-date).\<close>
 
-definition internal_version :: \<open>string\<close> where \<open>internal_version = ''0f''\<close>
+definition internal_version :: \<open>string\<close> where \<open>internal_version = ''0i''\<close>
 
 sepref_definition llvm_version
   is \<open>uncurry0 (RETURN (

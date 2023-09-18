@@ -11,7 +11,7 @@ definition lit_and_ann_of_propagated_st_heur
    :: \<open>isasat \<Rightarrow> (nat literal \<times> nat) nres\<close>
 where
   \<open>lit_and_ann_of_propagated_st_heur = (\<lambda>S. do {
-     let (M, _, _, reasons, _) = get_trail_wl_heur S;
+     let (M, _, _, reasons, _, _) = get_trail_wl_heur S;
      ASSERT(M \<noteq> [] \<and> atm_of (last M) < length reasons);
      RETURN (last M, reasons ! (atm_of (last M)))})\<close>
 

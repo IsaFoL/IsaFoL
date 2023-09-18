@@ -801,7 +801,7 @@ proof -
     enc2: \<open>encoded_hp_prop \<V> {#Hp (node (the ?h)) (score (the ?h)) (Hp i w [] # hps (the ?h))#}
    (if hps (the ?h) = [] then prevs else prevs(node (hd (hps (the ?h))) \<mapsto> node (Hp i w [])),
     nxts  (i := None,  node (Hp i w []) := if hps (the ?h) = [] then None else Some (node (hd (hps (the ?h))))),
-    childs(i := None)(node (the ?h) \<mapsto> node (Hp i w [])),
+    (childs(i := None))(node (the ?h) \<mapsto> node (Hp i w [])),
     (if hps (the ?h) = [] then parents else parents(node (hd (hps (the ?h))) := None))(node (Hp i w []) \<mapsto> node (the ?h)),
     scores(i \<mapsto> w, node (the ?h) \<mapsto> score (the ?h)))\<close> (is ?G)
     if \<open>?h \<noteq> None\<close>
@@ -1130,7 +1130,7 @@ proof -
             apply (subst fun_upd_twist[of _ _ parents])
             apply force
             apply (simp (no_asm_simp))
-            apply (subst fun_upd_idem[of \<open>nxts(parent := None)(ch \<mapsto> node (hd ch\<^sub>x))\<close>])
+            apply (subst fun_upd_idem[of \<open>(nxts(parent := None))(ch \<mapsto> node (hd ch\<^sub>x))\<close>])
             apply (simp (no_asm_simp))
             apply force
             apply force
@@ -1314,7 +1314,7 @@ proof -
           subgoal
             apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist
               hp_update_prev_def hp_update_parents_def)
-            apply (subst fun_upd_idem[of \<open>(prevs(parent \<mapsto> node (last xs)))(ch := None)(node (hd ch\<^sub>y) \<mapsto> ch)\<close>])
+            apply (subst fun_upd_idem[of \<open>((prevs(parent \<mapsto> node (last xs)))(ch := None))(node (hd ch\<^sub>y) \<mapsto> ch)\<close>])
             apply (simp (no_asm_simp))
             apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
             apply (subst fun_upd_twist2)
@@ -3304,7 +3304,7 @@ lemma hp_is_in_mop_prio_is_in2:
 lemma vsids_pop_min2_mop_prio_pop_min:
   fixes arr :: \<open>'a::linorder multiset \<times> ('a, nat) hp_fun \<times> 'a option\<close>
   assumes \<open>(arr, h) \<in> acids_encoded_hmrel\<close>
-  shows \<open>vsids_pop_min2 arr \<le> \<Down>(Id\<times>\<^sub>racids_encoded_hmrel)(ACIDS.mop_prio_pop_min h)\<close>
+  shows \<open>vsids_pop_min2 arr \<le> \<Down>(Id\<times>\<^sub>racids_encoded_hmrel) (ACIDS.mop_prio_pop_min h)\<close>
 proof -
   obtain j where
     i: \<open>encoded_hp_prop_list_conc arr j\<close>  \<open>encoded_hp_prop_list_conc arr (fst j, snd j)\<close>
@@ -3388,7 +3388,7 @@ qed
 lemma mop_hp_read_score_mop_prio_old_weight:
   fixes arr :: \<open>'a::linorder multiset \<times> ('a, nat) hp_fun \<times> 'a option\<close>
   assumes \<open>(arr, h) \<in> acids_encoded_hmrel\<close>
-  shows \<open>mop_hp_read_score w arr \<le> \<Down>(Id)(ACIDS.mop_prio_old_weight w h)\<close>
+  shows \<open>mop_hp_read_score w arr \<le> \<Down>Id (ACIDS.mop_prio_old_weight w h)\<close>
 proof -
   obtain j where
     i: \<open>encoded_hp_prop_list_conc arr j\<close>  \<open>encoded_hp_prop_list_conc arr (fst j, snd j)\<close>
@@ -3409,8 +3409,8 @@ lemma mop_hp_read_score_mop_prio_old_weight2:
 
 thm ACIDS.mop_prio_insert_raw_unchanged_def
 thm ACIDS.mop_prio_insert_maybe_def (*covered by ACIDS.mop_prio_change_weight and ACIDS.mop_prio_insert *)
-  term ACIDS.prio_peek_min (*TODO remove: unused as acids_get_min*)
-  thm ACIDS.mop_prio_old_weight_def
-  thm ACIDS.mop_prio_insert_raw_unchanged_def
-  term ACIDS.mop_prio_insert_unchanged(*covered by the two previous ones*)
+term ACIDS.prio_peek_min (*TODO remove: unused as acids_get_min*)
+thm ACIDS.mop_prio_old_weight_def
+thm ACIDS.mop_prio_insert_raw_unchanged_def
+term ACIDS.mop_prio_insert_unchanged(*covered by the two previous ones*)
 end

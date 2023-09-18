@@ -26,7 +26,7 @@ type_synonym 't atom = "'t"
 
 section \<open>Ground Resolution Calculus\<close>
 
-locale ground_superposition_calculus =
+locale ground_ordered_resolution_calculus =
   fixes
     less_trm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
     select :: "'f gterm atom clause \<Rightarrow> 'f gterm atom clause"
@@ -122,6 +122,67 @@ next
   show "transp (\<prec>\<^sub>l)"
     by simp
 qed
+
+interpretation linorder_trm: linorder lesseq_trm less_trm
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>t y) = (x \<preceq>\<^sub>t y \<and> \<not> y \<preceq>\<^sub>t x)"
+    by (metis asympD asymp_less_trm reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>t x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>t y \<Longrightarrow> y \<preceq>\<^sub>t z \<Longrightarrow> x \<preceq>\<^sub>t z"
+    by (meson transpE transp_less_trm transp_on_reflclp)
+next
+  show "\<And>x y. x \<preceq>\<^sub>t y \<Longrightarrow> y \<preceq>\<^sub>t x \<Longrightarrow> x = y"
+    by (metis asympD asymp_less_trm reflclp_iff)
+next
+  show "\<And>x y. x \<preceq>\<^sub>t y \<or> y \<preceq>\<^sub>t x"
+    by (metis reflclp_iff totalpD totalp_less_trm)
+qed
+
+interpretation linorder_lit: linorder lesseq_lit less_lit
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>l y) = (x \<preceq>\<^sub>l y \<and> \<not> y \<preceq>\<^sub>l x)"
+    by (metis asympD asymp_less_lit reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>l x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>l y \<Longrightarrow> y \<preceq>\<^sub>l z \<Longrightarrow> x \<preceq>\<^sub>l z"
+    by (meson transpE transp_less_lit transp_on_reflclp)
+next
+  show "\<And>x y. x \<preceq>\<^sub>l y \<Longrightarrow> y \<preceq>\<^sub>l x \<Longrightarrow> x = y"
+    by (metis asympD asymp_less_lit reflclp_iff)
+next
+  show "\<And>x y. x \<preceq>\<^sub>l y \<or> y \<preceq>\<^sub>l x"
+    by (metis reflclp_iff totalpD totalp_less_lit)
+qed
+
+interpretation linorder_cls: linorder lesseq_cls less_cls
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>c y) = (x \<preceq>\<^sub>c y \<and> \<not> y \<preceq>\<^sub>c x)"
+    by (metis asympD asymp_less_cls reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>c x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>c y \<Longrightarrow> y \<preceq>\<^sub>c z \<Longrightarrow> x \<preceq>\<^sub>c z"
+    by (meson transpE transp_less_cls transp_on_reflclp)
+next
+  show "\<And>x y. x \<preceq>\<^sub>c y \<Longrightarrow> y \<preceq>\<^sub>c x \<Longrightarrow> x = y"
+    by (metis asympD asymp_less_cls reflclp_iff)
+next
+  show "\<And>x y. x \<preceq>\<^sub>c y \<or> y \<preceq>\<^sub>c x"
+    by (metis reflclp_iff totalpD totalp_less_cls)
+qed
+
+lemma less_lit_simps[simp]:
+  "Pos A\<^sub>1 \<prec>\<^sub>l Pos A\<^sub>2 \<longleftrightarrow> A\<^sub>1 \<prec>\<^sub>t A\<^sub>2"
+  "Pos A\<^sub>1 \<prec>\<^sub>l Neg A\<^sub>2 \<longleftrightarrow> A\<^sub>1 \<preceq>\<^sub>t A\<^sub>2"
+  "Neg A\<^sub>1 \<prec>\<^sub>l Neg A\<^sub>2 \<longleftrightarrow> A\<^sub>1 \<prec>\<^sub>t A\<^sub>2"
+  "Neg A\<^sub>1 \<prec>\<^sub>l Pos A\<^sub>2 \<longleftrightarrow> A\<^sub>1 \<prec>\<^sub>t A\<^sub>2"
+  by (auto simp add: less_lit_def)
 
 
 subsection \<open>Ground Rules\<close>
@@ -310,15 +371,13 @@ proof (cases P1 P2 C rule: ground_resolution.cases)
     by (metis (no_types, opaque_lifting) add_mset_remove_trivial is_maximal_wrt_def
         lift_is_maximal_wrt_to_is_maximal_wrt_reflclp sup2I1 totalpD totalp_less_lit)
   moreover have "\<And>A. Pos A \<prec>\<^sub>l Neg A"
-    apply (simp add: less_lit_def)
-    by (metis add.right_neutral empty_not_add_mset mset_add one_step_implies_multp
-        union_mset_add_mset_right)
+    by (simp add: less_lit_def)
   ultimately have "\<forall>k\<in>#P\<^sub>2'. k \<prec>\<^sub>l Neg t"
     by (metis transp_def transp_less_lit)
   hence "P\<^sub>2' \<prec>\<^sub>c {#Neg t#}"
-    using one_step_implies_multp[of "{#Neg t#}" P\<^sub>2' "(\<prec>\<^sub>l)" "{#}", simplified] by argo
+    using one_step_implies_multp[of "{#Neg t#}" P\<^sub>2' "(\<prec>\<^sub>l)" "{#}"] by simp
   hence "P\<^sub>2' + P\<^sub>1' \<prec>\<^sub>c add_mset (Neg t) P\<^sub>1'"
-    by (simp only: multp_cancel[of "(\<prec>\<^sub>l)" P\<^sub>1' P\<^sub>2' "{#Neg t#}", simplified])
+    using multp_cancel[of "(\<prec>\<^sub>l)" P\<^sub>1' P\<^sub>2' "{#Neg t#}"] by simp
   thus ?thesis
     unfolding ground_resolutionI
     by (simp only: add.commute)
@@ -401,7 +460,7 @@ declare production.simps[simp del]
 end
 
 lemma Uniq_striclty_maximal_lit_in_ground_cls:
-  "\<exists>\<^sub>\<le>\<^sub>1L. L \<in># C \<and> is_strictly_maximal_lit L C"
+  "\<exists>\<^sub>\<le>\<^sub>1L. is_strictly_maximal_lit L C"
 proof (rule Uniq_is_maximal_wrt_reflclp)
   show "totalp_on (set_mset C) (\<prec>\<^sub>l)"
     by (auto intro: totalp_on_subset totalp_less_lit)

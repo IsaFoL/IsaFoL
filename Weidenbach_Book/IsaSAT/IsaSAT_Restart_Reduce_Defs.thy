@@ -17,7 +17,7 @@ definition find_local_restart_target_level_int
    :: \<open>trail_pol \<Rightarrow> bump_heuristics \<Rightarrow> nat nres\<close>
 where
   \<open>find_local_restart_target_level_int =
-     (\<lambda>(M, xs, lvls, reasons, k, cs) bmp. do {
+     (\<lambda>(M, xs, lvls, reasons, k, cs, zeored) bmp. do {
      let m = current_vmtf_array_nxt_score bmp;
      (brk, i) \<leftarrow> WHILE\<^sub>T\<^bsup>find_local_restart_target_level_int_inv bmp cs\<^esup>
         (\<lambda>(brk, i). \<not>brk \<and> i < length cs)
@@ -312,13 +312,18 @@ where
   })\<close>
 
 
+definition reduceint :: \<open>64 word\<close> where
+  \<open>reduceint = 1000\<close>
+
+text \<open>Approximatively @{term \<open>sqrt(p)\<close>} is @{term \<open>2^((word_log2 p) >> 1)\<close>}\<close>
 definition schedule_next_reduction_st :: \<open>isasat \<Rightarrow> isasat\<close> where
   \<open>schedule_next_reduction_st S =
-   (let delta = get_reductions_count S * 300;
+   (let (delta :: 64 word) = 1 + 2 << (word_log2 (max 1 (get_reductions_count S)) >> 1);
+      delta = delta * reduceint;
       irred = (get_irredundant_count_st S) >> 10;
       extra = if irred < 10 then 1 else of_nat (word_log2 (irred)) >> 1;
       delta = extra * delta in
-    schedule_next_reduce_st delta S)\<close>
+  schedule_next_reduce_st delta S)\<close>
 
 definition cdcl_twl_mark_clauses_to_delete where
   \<open>cdcl_twl_mark_clauses_to_delete S = do {
