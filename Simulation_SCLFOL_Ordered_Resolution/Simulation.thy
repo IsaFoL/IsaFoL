@@ -8,6 +8,9 @@ begin
 
 section \<open>Move to HOL\<close>
 
+lemma transp_on_singleton[simp]: "transp_on {x} R"
+  by (simp add: transp_on_def)
+
 syntax
   "_FFilter" :: "pttrn \<Rightarrow> 'a fset \<Rightarrow> bool \<Rightarrow> 'a fset" ("(1{|_ |\<in>| _./ _|})")
 translations
@@ -65,108 +68,143 @@ lemma Collect_eq_image_filter_Collect_if_bij_betw:
 
 subsection \<open>Minimal, maximal, least, and greatest element of a set\<close>
 
-(* Sophie raised the important point of naming these definitions. The current names are only "valid"
-w.r.t. a proper ordering relation but the definitions are for any binary relation. What do they even
-mean for non-ordering relation. This could be very counterintuitive for unexperienced users who
-could just see the name, assume \<open>is_least_in_set_wrt R X x\<close> and be surprized when it turns out that
-they have two least elements because their relation was not proven asymmetric. *)
+text \<open>When a binary relation hold for two values, i.e., \<^term>\<open>R x y\<close>, we say that \<^term>\<open>x\<close> reaches
+\<^term>\<open>y\<close> and, conversely, that \<^term>\<open>y\<close> is reachable by \<^term>\<open>x\<close>.\<close>
 
-(* There is similarity with graph theory where they have definitions of initial/terminal vertices
-and some more stuff (e.g. heads/tails, successors/predecessors). *)
+definition non_reachable_wrt where
+  "non_reachable_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. \<not> (R y x))"
 
-(* corresponds to "has no predecessor" from graph theory *)
-(* corresponds to "not forward-reachable" from graph theory *)
-definition not_forward_reachable_wrt where
-  "not_forward_reachable_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. \<not> (R y x))"
+definition non_reaching_wrt where
+  "non_reaching_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. \<not> (R x y))"
 
-(* corresponds to "has no successor" from graph theory *)
-(* corresponds to "not backward-reachable" from graph theory *)
-definition not_backward_reachable_wrt where
-  "not_backward_reachable_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. \<not> (R x y))"
+definition reaching_all_wrt where
+  "reaching_all_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. R x y)"
 
-(* corresponds to "reaches_all" from graph theory *)
-definition is_least_in_set_wrt where
-  "is_least_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. R x y)"
+definition reachable_by_all_wrt where
+  "reachable_by_all_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. R y x)"
 
-definition is_greatest_in_set_wrt where
-  "is_greatest_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. R y x)"
-
+text \<open>If the binary relation is a strict partial order, then non-reachability corresponds to
+minimality and non-reaching correspond to maximality.\<close>
 
 definition is_minimal_in_set_wrt where
-  "transp_on X R \<Longrightarrow> asymp_on X R \<Longrightarrow> is_minimal_in_set_wrt R X = not_forward_reachable_wrt R X"
+  "transp_on X R \<Longrightarrow> asymp_on X R \<Longrightarrow> is_minimal_in_set_wrt R X = non_reachable_wrt R X"
 
 definition is_maximal_in_set_wrt where
-  "transp_on X R \<Longrightarrow> asymp_on X R \<Longrightarrow> is_maximal_in_set_wrt R X = not_backward_reachable_wrt R X"
+  "transp_on X R \<Longrightarrow> asymp_on X R \<Longrightarrow> is_maximal_in_set_wrt R X = non_reaching_wrt R X"
+
+text \<open>If the binary relation is a strict total ordering, then an element reaching all others is a
+least element and an element reachable by all others is a greatest element.\<close>
+
+definition is_least_in_set_wrt where
+  "transp_on X R \<Longrightarrow> asymp_on X R \<Longrightarrow> totalp_on X R \<Longrightarrow>
+    is_least_in_set_wrt R X = reaching_all_wrt R X"
+
+definition is_greatest_in_set_wrt where
+  "transp_on X R \<Longrightarrow> asymp_on X R \<Longrightarrow> totalp_on X R \<Longrightarrow>
+    is_greatest_in_set_wrt R X = reachable_by_all_wrt R X"
 
 
 subsubsection \<open>Conversions\<close>
 
-lemma not_forward_reachable_wrt_conversep[simp]:
-  "not_forward_reachable_wrt R\<inverse>\<inverse> = not_backward_reachable_wrt R"
-  unfolding not_backward_reachable_wrt_def not_forward_reachable_wrt_def by simp
+lemma non_reachable_wrt_conversep[simp]:
+  "non_reachable_wrt R\<inverse>\<inverse> = non_reaching_wrt R"
+  unfolding non_reaching_wrt_def non_reachable_wrt_def by simp
 
-lemma not_backward_reachable_wrt_conversep[simp]:
-  "not_backward_reachable_wrt R\<inverse>\<inverse> = not_forward_reachable_wrt R"
-  unfolding not_backward_reachable_wrt_def not_forward_reachable_wrt_def by simp
+lemma non_reaching_wrt_conversep[simp]:
+  "non_reaching_wrt R\<inverse>\<inverse> = non_reachable_wrt R"
+  unfolding non_reaching_wrt_def non_reachable_wrt_def by simp
 
-lemma is_least_set_wrt_conversep[simp]:
-  "is_least_in_set_wrt R\<inverse>\<inverse> = is_greatest_in_set_wrt R"
-  unfolding is_least_in_set_wrt_def is_greatest_in_set_wrt_def by simp
+lemma reaching_all_wrt_conversep[simp]:
+  "reaching_all_wrt R\<inverse>\<inverse> = reachable_by_all_wrt R"
+  unfolding reaching_all_wrt_def reachable_by_all_wrt_def by simp
 
-lemma is_greatest_in_set_wrt_conversep[simp]:
-  "is_greatest_in_set_wrt R\<inverse>\<inverse> = is_least_in_set_wrt R"
-  unfolding is_least_in_set_wrt_def is_greatest_in_set_wrt_def by simp
+lemma reachable_by_all_wrt_conversep[simp]:
+  "reachable_by_all_wrt R\<inverse>\<inverse> = reaching_all_wrt R"
+  unfolding reaching_all_wrt_def reachable_by_all_wrt_def by simp
 
-lemma not_forward_reachable_wrt_iff:
-  "not_forward_reachable_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> \<not> R y x)"
-  unfolding not_forward_reachable_wrt_def by blast
+lemma non_reachable_wrt_iff:
+  "non_reachable_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> \<not> R y x)"
+  unfolding non_reachable_wrt_def by blast
 
-lemma not_backward_reachable_wrt_iff:
-  "not_backward_reachable_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> \<not> R x y)"
-  unfolding not_backward_reachable_wrt_def by blast
+lemma non_reaching_wrt_iff:
+  "non_reaching_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> \<not> R x y)"
+  unfolding non_reaching_wrt_def by blast
 
-lemma is_least_in_set_wrt_iff:
-  "is_least_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> R x y)"
-  unfolding is_least_in_set_wrt_def by blast
+lemma reaching_all_wrt_iff:
+  "reaching_all_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> R x y)"
+  unfolding reaching_all_wrt_def by blast
 
-lemma is_greatest_in_set_wrt_iff:
-  "is_greatest_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> R y x)"
-  unfolding is_greatest_in_set_wrt_def
-  by blast
+lemma reachable_by_all_wrt_iff:
+  "reachable_by_all_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> R y x)"
+  unfolding reachable_by_all_wrt_def by blast
 
-lemma not_forward_reachable_wrt_eq_is_least_in_set_wrt:
+corollary is_minimal_in_set_wrt_iff:
+  assumes trans: "transp_on X R" and asym: "asymp_on X R"
+  shows "is_minimal_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> \<not> R y x)"
+  using assms is_minimal_in_set_wrt_def[unfolded non_reachable_wrt_iff] by metis
+
+corollary is_maximal_in_set_wrt_iff:
+  assumes trans: "transp_on X R" and asym: "asymp_on X R"
+  shows "is_maximal_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> \<not> R x y)"
+  using assms is_maximal_in_set_wrt_def[unfolded non_reaching_wrt_iff] by metis
+
+corollary is_least_in_set_wrt_iff:
+  assumes trans: "transp_on X R" and asym: "asymp_on X R" and tot: "totalp_on X R"
+  shows "is_least_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> R x y)"
+  using assms is_least_in_set_wrt_def[unfolded reaching_all_wrt_iff] by metis
+
+corollary is_greatest_in_set_wrt_iff:
+  assumes trans: "transp_on X R" and asym: "asymp_on X R" and tot: "totalp_on X R"
+  shows "is_greatest_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> R y x)"
+  using assms is_greatest_in_set_wrt_def[unfolded reachable_by_all_wrt_iff] by metis
+
+lemma non_reachable_wrt_eq_reaching_all_wrt:
   assumes asym: "asymp_on X R" and tot: "totalp_on X R"
-  shows "not_forward_reachable_wrt R X = is_least_in_set_wrt R X"
+  shows "non_reachable_wrt R X = reaching_all_wrt R X"
 proof (intro ext iffI)
   fix x
-  from tot show "not_forward_reachable_wrt R X x \<Longrightarrow> is_least_in_set_wrt R X x"
-    unfolding not_forward_reachable_wrt_def is_least_in_set_wrt_def
+  from tot show "non_reachable_wrt R X x \<Longrightarrow> reaching_all_wrt R X x"
+    unfolding non_reachable_wrt_def reaching_all_wrt_def
     by (metis Diff_iff insertCI totalp_onD)
 next
   fix x
-  from asym show "is_least_in_set_wrt R X x \<Longrightarrow> not_forward_reachable_wrt R X x"
-    unfolding is_least_in_set_wrt_def not_forward_reachable_wrt_def
+  from asym show "reaching_all_wrt R X x \<Longrightarrow> non_reachable_wrt R X x"
+    unfolding reaching_all_wrt_def non_reachable_wrt_def
     by (metis Diff_iff asymp_onD)
 qed
 
-lemma not_backward_reachable_wrt_eq_is_greatest_in_set_wrt:
+lemma non_reaching_wrt_eq_reachable_by_all_wrt:
   assumes asym: "asymp_on X R" and tot: "totalp_on X R"
-  shows "not_backward_reachable_wrt R X = is_greatest_in_set_wrt R X"
+  shows "non_reaching_wrt R X = reachable_by_all_wrt R X"
 proof (intro ext iffI)
   fix x
-  from tot show "not_backward_reachable_wrt R X x \<Longrightarrow> is_greatest_in_set_wrt R X x"
-    unfolding not_backward_reachable_wrt_def is_greatest_in_set_wrt_def
+  from tot show "non_reaching_wrt R X x \<Longrightarrow> reachable_by_all_wrt R X x"
+    unfolding non_reaching_wrt_def reachable_by_all_wrt_def
     by (metis Diff_iff insertCI totalp_onD)
 next
   fix x
-  from asym show "is_greatest_in_set_wrt R X x \<Longrightarrow> not_backward_reachable_wrt R X x"
-    unfolding not_backward_reachable_wrt_def is_greatest_in_set_wrt_def
+  from asym show "reachable_by_all_wrt R X x \<Longrightarrow> non_reaching_wrt R X x"
+    unfolding reachable_by_all_wrt_def non_reaching_wrt_def
     by (metis Diff_iff asymp_onD)
 qed
 
-lemma not_forward_reachable_wrt_filter_iff:
-  "not_forward_reachable_wrt R {y \<in> X. P y} x \<longleftrightarrow> x \<in> X \<and> P x \<and> (\<forall>y \<in> X - {x}. P y \<longrightarrow> \<not> R y x)"
-  by (auto simp: not_forward_reachable_wrt_def)
+lemma is_minimal_in_set_wrt_eq_is_least_in_set_wrt:
+  assumes trans: "transp_on X R" and asym: "asymp_on X R" and tot: "totalp_on X R"
+  shows "is_minimal_in_set_wrt R X = is_least_in_set_wrt R X"
+  using assms non_reachable_wrt_eq_reaching_all_wrt
+    is_minimal_in_set_wrt_def is_least_in_set_wrt_def
+  by metis
+
+lemma is_maximal_in_set_wrt_eq_is_greatest_in_set_wrt:
+  assumes trans: "transp_on X R" and asym: "asymp_on X R" and tot: "totalp_on X R"
+  shows "is_maximal_in_set_wrt R X = is_greatest_in_set_wrt R X"
+  using assms non_reaching_wrt_eq_reachable_by_all_wrt
+    is_maximal_in_set_wrt_def is_greatest_in_set_wrt_def
+  by metis
+
+lemma non_reachable_wrt_filter_iff:
+  "non_reachable_wrt R {y \<in> X. P y} x \<longleftrightarrow> x \<in> X \<and> P x \<and> (\<forall>y \<in> X - {x}. P y \<longrightarrow> \<not> R y x)"
+  by (auto simp: non_reachable_wrt_def)
 
 (* TODO: See theory file IsaFOL/Splitting_Framework.FOL_Compactness for lemmas about
 Set.filter and co. *)
@@ -174,65 +212,107 @@ Set.filter and co. *)
 
 subsubsection \<open>Existence\<close>
 
-lemma bex_not_forward_reachable_wrt:
-  "asymp_on A R \<Longrightarrow> transp_on A R \<Longrightarrow> finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>m. not_forward_reachable_wrt R A m"
+lemma ex_non_reachable_wrt:
+  "transp_on A R \<Longrightarrow> asymp_on A R \<Longrightarrow> finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>m. non_reachable_wrt R A m"
   using Finite_Set.bex_min_element
-  by (metis not_forward_reachable_wrt_iff)
+  by (metis non_reachable_wrt_iff)
 
-corollary bex_minimal_element:
-  "asymp_on A R \<Longrightarrow> transp_on A R \<Longrightarrow> finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>m. is_minimal_in_set_wrt R A m"
-  using bex_not_forward_reachable_wrt is_minimal_in_set_wrt_def by metis
-
-lemma bex_not_backward_reachable_wrt:
-  "asymp_on A R \<Longrightarrow> transp_on A R \<Longrightarrow> finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>m. not_backward_reachable_wrt R A m"
+lemma ex_non_reaching_wrt:
+  "transp_on A R \<Longrightarrow> asymp_on A R \<Longrightarrow> finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>m. non_reaching_wrt R A m"
   using Finite_Set.bex_max_element
-  by (metis not_backward_reachable_wrt_iff)
+  by (metis non_reaching_wrt_iff)
 
-corollary bex_maximal_element:
-  "asymp_on A R \<Longrightarrow> transp_on A R \<Longrightarrow> finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>m. is_maximal_in_set_wrt R A m"
-  using bex_not_backward_reachable_wrt is_maximal_in_set_wrt_def by metis
-
-lemma bex_greatest_element:
-  "transp_on A R \<Longrightarrow> totalp_on A R \<Longrightarrow> finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>g. is_greatest_in_set_wrt R A g"
-  using Finite_Set.bex_greatest_element[of A R]
-  by (metis is_greatest_in_set_wrt_iff)
-
-lemma bex_least_element:
-  "transp_on A R \<Longrightarrow> totalp_on A R \<Longrightarrow> finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>g. is_least_in_set_wrt R A g"
+lemma ex_reaching_all_wrt:
+  "transp_on A R \<Longrightarrow> totalp_on A R \<Longrightarrow> finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>g. reaching_all_wrt R A g"
   using Finite_Set.bex_least_element[of A R]
-  by (metis is_least_in_set_wrt_iff)
+  by (metis reaching_all_wrt_iff)
+
+lemma ex_reachable_by_all_wrt:
+  "transp_on A R \<Longrightarrow> totalp_on A R \<Longrightarrow> finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> \<exists>g. reachable_by_all_wrt R A g"
+  using Finite_Set.bex_greatest_element[of A R]
+  by (metis reachable_by_all_wrt_iff)
+
+corollary ex_minimal_element:
+  assumes trans: "transp_on X R" and asym: "asymp_on X R"
+  shows "finite X \<Longrightarrow> X \<noteq> {} \<Longrightarrow> \<exists>x. is_minimal_in_set_wrt R X x"
+  using assms ex_non_reachable_wrt is_minimal_in_set_wrt_def by metis
+
+corollary ex_maximal_element:
+  assumes trans: "transp_on X R" and asym: "asymp_on X R"
+  shows "finite X \<Longrightarrow> X \<noteq> {} \<Longrightarrow> \<exists>m. is_maximal_in_set_wrt R X m"
+  using assms is_maximal_in_set_wrt_def ex_non_reaching_wrt by metis
+
+corollary ex_least_element:
+  assumes trans: "transp_on X R" and asym: "asymp_on X R" and tot: "totalp_on X R"
+  shows "finite X \<Longrightarrow> X \<noteq> {} \<Longrightarrow> \<exists>x. is_least_in_set_wrt R X x"
+  using assms is_least_in_set_wrt_def ex_reaching_all_wrt by metis
+
+corollary ex_greatest_element:
+  assumes trans: "transp_on X R" and asym: "asymp_on X R" and tot: "totalp_on X R"
+  shows "finite X \<Longrightarrow> X \<noteq> {} \<Longrightarrow> \<exists>x. is_greatest_in_set_wrt R X x"
+  using assms is_greatest_in_set_wrt_def ex_reachable_by_all_wrt by metis
 
 lemma not_bex_greatest_element_doubleton:
   assumes "x \<noteq> y" and "\<not> R x y" and "\<not> R y x"
-  shows "\<nexists>g. is_greatest_in_set_wrt R {x, y} g"
+  shows "\<nexists>g. reachable_by_all_wrt R {x, y} g"
 proof (rule notI)
-  assume "\<exists>g. is_greatest_in_set_wrt R {x, y} g"
-  then obtain g where "is_greatest_in_set_wrt R {x, y} g" ..
+  assume "\<exists>g. reachable_by_all_wrt R {x, y} g"
+  then obtain g where "reachable_by_all_wrt R {x, y} g" ..
   then show False
-    unfolding is_greatest_in_set_wrt_def
+    unfolding reachable_by_all_wrt_def
     using assms(1) assms(2) assms(3) by blast
 qed
 
 
 subsubsection \<open>Uniqueness\<close>
 
-lemma Uniq_not_forward_reachable_wrt:
-  "totalp_on X R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1x. not_forward_reachable_wrt R X x"
-  by (rule Uniq_I) (metis insert_Diff insert_iff not_forward_reachable_wrt_def totalp_onD)
+lemma Uniq_non_reachable_wrt:
+  "totalp_on X R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1x. non_reachable_wrt R X x"
+  by (rule Uniq_I) (metis insert_Diff insert_iff non_reachable_wrt_def totalp_onD)
 
-lemma Uniq_not_backward_reachable_wrt:
-  "totalp_on X R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1x. not_backward_reachable_wrt R X x"
-  by (rule Uniq_I) (metis insert_Diff insert_iff not_backward_reachable_wrt_def totalp_onD)
+lemma Uniq_non_reaching_wrt:
+  "totalp_on X R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1x. non_reaching_wrt R X x"
+  by (rule Uniq_I) (metis insert_Diff insert_iff non_reaching_wrt_def totalp_onD)
 
-lemma Uniq_is_least_in_set_wrt:
-  "asymp_on X R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1x. is_least_in_set_wrt R X x"
+lemma Uniq_reaching_all_wrt:
+  "asymp_on X R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1x. reaching_all_wrt R X x"
   by (rule Uniq_I)
-    (metis antisymp_onD antisymp_on_if_asymp_on insertE insert_Diff is_least_in_set_wrt_def)
+    (metis antisymp_onD antisymp_on_if_asymp_on insertE insert_Diff reaching_all_wrt_def)
 
-lemma Uniq_is_greatest_in_set_wrt:
-  "asymp_on X R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1x. is_greatest_in_set_wrt R X x"
+lemma Uniq_reachable_by_all_wrt:
+  "asymp_on X R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1x. reachable_by_all_wrt R X x"
   by (rule Uniq_I)
-    (metis antisymp_onD antisymp_on_if_asymp_on insertE insert_Diff is_greatest_in_set_wrt_def)
+    (metis antisymp_onD antisymp_on_if_asymp_on insertE insert_Diff reachable_by_all_wrt_def)
+
+context
+  fixes X R
+  assumes trans: "transp_on X R" and asym: "asymp_on X R" and tot: "totalp_on X R"
+begin
+
+corollary Uniq_is_least_in_set_wrt:
+  "\<exists>\<^sub>\<le>\<^sub>1x. is_least_in_set_wrt R X x"
+  using trans asym tot is_least_in_set_wrt_def Uniq_reaching_all_wrt by metis
+
+corollary Uniq_is_greatest_in_set_wrt:
+  "\<exists>\<^sub>\<le>\<^sub>1x. is_greatest_in_set_wrt R X x"
+  using trans asym tot is_greatest_in_set_wrt_def Uniq_reachable_by_all_wrt by metis
+
+end
+
+
+subsubsection \<open>Existence of unique element\<close>
+
+lemma ex1_least_in_set_wrt:
+  "transp_on X R \<Longrightarrow> asymp_on X R \<Longrightarrow> totalp_on X R \<Longrightarrow> finite X \<Longrightarrow> X \<noteq> {} \<Longrightarrow>
+    \<exists>!x. is_least_in_set_wrt R X x"
+  using is_least_in_set_wrt_def ex1_iff_ex_Uniq
+  using ex_reaching_all_wrt Uniq_reaching_all_wrt by metis
+
+lemma ex1_greatest_in_set_wrt:
+  "transp_on X R \<Longrightarrow> asymp_on X R \<Longrightarrow> totalp_on X R \<Longrightarrow> finite X \<Longrightarrow> X \<noteq> {} \<Longrightarrow>
+    \<exists>!x. is_greatest_in_set_wrt R X x"
+  using is_greatest_in_set_wrt_def ex1_iff_ex_Uniq
+  using ex_reachable_by_all_wrt Uniq_reachable_by_all_wrt by metis
 
 
 subsubsection \<open>Transformations\<close>
@@ -242,11 +322,11 @@ lemma is_minimal_in_insert_wrtI:
     trans: "transp_on (insert y X) R" and
     asym: "asymp_on (insert y X) R" and
     "R y x" and
-    x_min: "not_forward_reachable_wrt R X x"
-  shows "not_forward_reachable_wrt R (insert y X) y"
+    x_min: "non_reachable_wrt R X x"
+  shows "non_reachable_wrt R (insert y X) y"
 proof -
   from x_min have x_in: "x \<in> X" and x_min': "\<forall>y\<in>X - {x}. \<not> R y x"
-    by (simp_all add: not_forward_reachable_wrt_iff)
+    by (simp_all add: non_reachable_wrt_iff)
 
   have "\<not> R z y" if "z \<in> insert y X - {y}" for z
   proof -
@@ -269,7 +349,7 @@ proof -
     qed
   qed
   thus ?thesis
-    by (simp add: not_forward_reachable_wrt_def)
+    by (simp add: non_reachable_wrt_def)
 qed
 
 
@@ -281,18 +361,26 @@ definition Greatest_in_set_wrt :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Ri
 lemma Greatest_in_set_wrt_empty[simp]: "Greatest_in_set_wrt R {} = None"
   by (simp add: Greatest_in_set_wrt_def)
 
-lemma Greatest_in_set_wrt_singleton[simp]: "Greatest_in_set_wrt R {x} = Some x"
-  by (metis (mono_tags, opaque_lifting) Greatest_in_set_wrt_def Uniq_I empty_iff
-      is_greatest_in_set_wrt_iff singletonD singletonI the1_equality')
+lemma Greatest_in_set_wrt_singleton[simp]:
+  "asymp_on {x} R \<Longrightarrow> Greatest_in_set_wrt R {x} = Some x"
+  unfolding Greatest_in_set_wrt_def
+  using is_greatest_in_set_wrt_def[of "{x}" R, simplified]
+    ex_reachable_by_all_wrt[of "{x}" R, simplified]
+    Uniq_reachable_by_all_wrt[of "{x}" R]
+  by (simp add:  the1_equality' reachable_by_all_wrt_iff)
 
 lemma Greatest_in_set_wrt_eq_None[simp]: "Greatest_in_set_wrt R X = None \<longleftrightarrow> X = {}"
   by (simp add: Greatest_in_set_wrt_def)
 
 lemma Greatest_in_set_wrt_eq_Some_if_is_greatest_in_set_wrt:
-  assumes asymp: "asymp_on X R"
+  assumes
+    trans: "transp_on X R" and
+    asym: "asymp_on X R" and
+    tot: "totalp_on X R"
   shows "is_greatest_in_set_wrt R X x \<Longrightarrow> Greatest_in_set_wrt R X = Some x"
-  using the1_equality'[OF Uniq_is_greatest_in_set_wrt[OF asymp]]
-  by (metis Greatest_in_set_wrt_def empty_iff is_greatest_in_set_wrt_iff)
+  unfolding Greatest_in_set_wrt_def is_greatest_in_set_wrt_def[OF trans asym tot]
+  using Uniq_reachable_by_all_wrt[OF asym] the1_equality'
+  by (metis empty_iff reachable_by_all_wrt_iff)
 
 lemma is_greatest_in_set_wrt_if_Greatest_in_set_wrt_eq_Some:
   assumes
@@ -307,16 +395,8 @@ proof -
     unfolding atomize_conj Greatest_in_set_wrt_def
     by (metis option.discI option.inject)
 
-  obtain y where "is_greatest_in_set_wrt R X y"
-    using bex_greatest_element[OF trans tot fin \<open>X \<noteq> {}\<close>] ..
-
-  moreover have "\<exists>\<^sub>\<le>\<^sub>1x. is_greatest_in_set_wrt R X x"
-    using Uniq_is_greatest_in_set_wrt[OF asym] .
-
-  ultimately have "\<exists>!x. is_greatest_in_set_wrt R X x"
-    by (intro Uniq_implies_ex1)
-  hence "is_greatest_in_set_wrt R X (THE x. is_greatest_in_set_wrt R X x)"
-    by (rule theI')
+  have "is_greatest_in_set_wrt R X (THE x. is_greatest_in_set_wrt R X x)"
+    using ex1_greatest_in_set_wrt trans asym tot fin \<open>X \<noteq> {}\<close> by (metis theI')
   thus ?thesis
     unfolding \<open>(THE x. is_greatest_in_set_wrt R X x) = x\<close> .
 qed
@@ -360,13 +440,13 @@ lemma is_minimal_in_fset_wrt_ffilter_iff:
   shows "is_minimal_in_fset_wrt R {|y |\<in>| X. P y|} x \<longleftrightarrow>
     (x |\<in>| X \<and> P x \<and> (\<forall>y|\<in>| X - {|x|}. P y \<longrightarrow> \<not> R y x))"
   unfolding is_minimal_in_set_wrt_def[OF tran asym]
-  using not_forward_reachable_wrt_filter_iff[of _ "fset _"]
+  using non_reachable_wrt_filter_iff[of _ "fset _"]
   by (smt (verit, best) bot_fset.rep_eq empty_iff ffmember_filter finsert_iff fminus_iff
-      not_forward_reachable_wrt_iff)
+      non_reachable_wrt_iff)
 
 lemma bex_minimal_element_in_fset_wrt:
   "asymp_on (fset X) R \<Longrightarrow> transp_on (fset X) R \<Longrightarrow> X \<noteq> {||} \<Longrightarrow> \<exists>m. is_minimal_in_fset_wrt R X m"
-  using bex_minimal_element[of "fset X" R] by auto
+  using ex_minimal_element[of "fset X" R] by auto
 
 lemma is_minimal_in_finsert_wrtI:
   "transp_on (fset (finsert y X)) R \<Longrightarrow> asymp_on (fset (finsert y X)) R \<Longrightarrow> R y x \<Longrightarrow>
@@ -696,7 +776,7 @@ definition is_min_false_clause :: "'f gterm clause fset \<Rightarrow> 'f gterm c
 
 lemma Uniq_is_min_false_clause: "\<exists>\<^sub>\<le>\<^sub>1C. is_min_false_clause N C"
   unfolding is_min_false_clause_def
-  using Uniq_not_forward_reachable_wrt
+  using Uniq_non_reachable_wrt
   by (smt (verit, ccfv_SIG) is_minimal_in_set_wrt_def linorder_cls.asymp_on_less
       linorder_cls.totalp_on_less linorder_cls.transp_on_less)
 
@@ -1319,7 +1399,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
         proof -
           have "\<exists>E. is_least_in_fset_wrt (\<prec>\<^sub>c) {|C |\<in>| N |\<union>| gcls_of_cls |`| U.
             trail_false_cls ?\<Gamma>\<^sub>2\<^sub>b (cls_of_gcls C)|} E"
-          proof (rule bex_least_element)
+          proof (rule ex_least_element)
             from ex_conflict obtain E \<gamma> where
               E_in: "E |\<in>| (cls_of_gcls |`| N) |\<union>| U" and
               "is_ground_cls (E \<cdot> \<gamma>)" and
@@ -1422,7 +1502,7 @@ proof -
     by auto
 
   from C_min have "C |\<in>| N"
-    by (simp add: is_min_false_clause_def is_minimal_in_set_wrt_def not_forward_reachable_wrt_iff)
+    by (simp add: is_min_false_clause_def is_minimal_in_set_wrt_def non_reachable_wrt_iff)
 
   show ?thesis
   proof (cases L)
