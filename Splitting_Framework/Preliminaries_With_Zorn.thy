@@ -2091,9 +2091,9 @@ proof
   show \<open>f ` fset A \<subseteq> set (map f (list_of_fset A))\<close>
   proof
     fix v
-    assume \<open>v \<in> f ` fset A\<close>
+    assume v_in: \<open>v \<in> f ` fset A\<close>
     then obtain a where "a |\<in>| A" "f a = v"
-      by (metis image_iff notin_fset)
+     by blast 
     then show \<open>v \<in> set (map f (list_of_fset A))\<close>
       unfolding list_of_fset_def
       by (smt (verit, del_insts) exists_fset_of_list fset_of_list.rep_eq imageI list.set_map
