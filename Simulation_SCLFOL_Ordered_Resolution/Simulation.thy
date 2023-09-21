@@ -456,6 +456,44 @@ lemma is_minimal_in_finsert_wrtI:
       less_eq_fset.rep_eq transp_on_subset)
 
 
+section \<open>Move to \<^theory>\<open>VeriComp.Simulation\<close>\<close>
+
+locale forward_simulation_with_measuring_function =
+  L1: semantics step1 final1 +
+  L2: semantics step2 final2 +
+  well_founded "(\<sqsubset>)"
+  for
+    step1 :: "'state1 \<Rightarrow> 'state1 \<Rightarrow> bool" and
+    step2 :: "'state2 \<Rightarrow> 'state2 \<Rightarrow> bool" and
+    final1 :: "'state1 \<Rightarrow> bool" and
+    final2 :: "'state2 \<Rightarrow> bool" and
+    order :: "'index \<Rightarrow> 'index \<Rightarrow> bool" (infix "\<sqsubset>" 70) +
+  fixes
+    match :: "'state1 \<Rightarrow> 'state2 \<Rightarrow> bool" and
+    measure :: "'state1 \<Rightarrow> 'index"
+  assumes
+    match_final:
+      "match s1 s2 \<Longrightarrow> final1 s1 \<Longrightarrow> final2 s2" and
+    simulation:
+      "match s1 s2 \<Longrightarrow> step1 s1 s1' \<Longrightarrow>
+        (\<exists>s2'. step2\<^sup>+\<^sup>+ s2 s2' \<and> match s1' s2') \<or> (match s1' s2 \<and> measure s1' \<sqsubset> measure s1)"
+begin
+
+sublocale forward_simulation where
+  step1 = step1 and step2 = step2 and final1 = final1 and final2 = final2 and order = order and
+  match = "\<lambda>i x y. i = measure x \<and> match x y"
+proof unfold_locales
+  show "\<And>i s1 s2. i = measure s1 \<and> match s1 s2 \<Longrightarrow> final1 s1 \<Longrightarrow> final2 s2"
+    using match_final by metis
+next
+  show "\<And>i s1 s2 s1'. i = measure s1 \<and> match s1 s2 \<Longrightarrow> step1 s1 s1' \<Longrightarrow>
+    (\<exists>i' s2'. step2\<^sup>+\<^sup>+ s2 s2' \<and> i' = measure s1' \<and> match s1' s2') \<or>
+    (\<exists>i'. (i' = measure s1' \<and> match s1' s2) \<and> i' \<sqsubset> i)"
+    using simulation by metis
+qed
+
+end
+
 section \<open>Move to Superposition_Calculus\<close>
 
 lemma (in ground_ordered_resolution_calculus) unique_ground_resolution:
@@ -953,7 +991,11 @@ term "trail_propagate \<Gamma> L D' Var"
 term "{#K \<in># D. K \<noteq> L#}"
 term "ord_res_mod_op_strategy ^^ 2"
 
-inductive scl_reso1 for N\<^sub>0 \<beta> where
+inductive scl_reso1
+  :: "_ \<Rightarrow> _ \<Rightarrow>
+    ('f, 'v) state \<times> _ \<Rightarrow>
+    ('f, 'v) state \<times> _ \<Rightarrow>
+    ('f, 'v) state \<times> _ \<Rightarrow> bool" for N\<^sub>0 \<beta> where
   scl_reso1I: "\<F> C \<prec>\<^sub>c \<F> D \<Longrightarrow>
   \<not> fBex (N\<^sub>0 |\<union>| fimage gcls_of_cls U) (\<lambda>D'. \<F> C \<prec>\<^sub>c \<F> D' \<and> \<F> D' \<prec>\<^sub>c \<F> D) \<Longrightarrow>
   D |\<in>| N\<^sub>0 |\<union>| fimage gcls_of_cls U \<Longrightarrow>
@@ -975,7 +1017,7 @@ inductive scl_reso1 for N\<^sub>0 \<beta> where
         {|C |\<in>| N\<^sub>0 |\<union>| fimage gcls_of_cls U. trail_false_cls \<Gamma>\<^sub>2\<^sub>b (cls_of_gcls C)|} x);
       j\<^sub>0 = count D' L;
       j = i + j\<^sub>0;
-      \<F>' = \<F>(D := sfac D)
+      \<F>' = \<F>(D := add_mset L {#K \<in># D. K \<noteq> L#})
     in
       (if is_pos L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit L) \<and>
         trail_false_cls \<Gamma>\<^sub>1 (cls_of_gcls {#K \<in># D. K \<noteq> L#}) then
@@ -990,6 +1032,102 @@ inductive scl_reso1 for N\<^sub>0 \<beta> where
         S1)) \<Longrightarrow>
   scl_reso1 N\<^sub>0 \<beta> ((\<Gamma>, U, None :: ('f, 'v) closure option), i, C, \<F>) S1 S2"
 
+lemma scl_reso1_clause2_eq_clause_3:
+  assumes "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)"
+  shows "C\<^sub>1 = C\<^sub>2"
+  using assms
+proof (cases rule: scl_reso1.cases)
+  case hyps: (scl_reso1I D U L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
+  have "C\<^sub>1 = D"
+    using \<open>(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) = ((\<Gamma>\<^sub>1, U, None), i\<^sub>0, D, \<F>\<^sub>0)\<close> by simp
+  also have "D = C\<^sub>2"
+  proof (cases "is_pos L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit L) \<and>
+    trail_false_cls \<Gamma>\<^sub>1 (cls_of_gcls {#K \<in># D. K \<noteq> L#})")
+    case True1: True
+    show ?thesis
+    proof (cases "Ex (scl_fol.conflict (cls_of_gcls |`| N) (term_of_gterm \<beta>)
+      (trail_decide \<Gamma>\<^sub>1 (lit_of_glit L), U, None))")
+      case True2: True
+      show ?thesis 
+        using hyps(14)
+        unfolding Let_def
+        unfolding HOL.if_P[OF True1]
+        unfolding if_not_P[of "\<not> _", simplified, OF True2]
+        by simp
+    next
+      case False
+      show ?thesis
+        using hyps(14)
+        unfolding Let_def
+        unfolding HOL.if_P[OF True1]
+        unfolding if_P[of "\<not> _", simplified, OF False]
+        by simp
+    qed
+  next
+    case False
+    show ?thesis
+      using hyps(14)
+      unfolding Let_def
+      unfolding HOL.if_not_P[OF False]
+      by (simp add: \<open>C\<^sub>1 = D\<close>)
+  qed
+  finally show ?thesis .
+qed
+
+lemma scl_reso1_\<F>_eq:
+  assumes "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)"
+  shows
+    "\<F>\<^sub>1 = \<F>\<^sub>0"
+    "\<F>\<^sub>2 = \<F>\<^sub>1 \<or> (\<exists>L. ord_res.is_maximal_lit L C\<^sub>1 \<and> \<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := add_mset L {#K \<in># C\<^sub>1. K \<noteq> L#}))"
+  unfolding atomize_conj
+  using assms
+proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" rule: scl_reso1.cases)
+  case hyps: (scl_reso1I D U L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
+
+  have "C\<^sub>1 = D"
+    using \<open>(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) = ((\<Gamma>\<^sub>1, U, None), i\<^sub>0, D, \<F>\<^sub>0)\<close> by simp
+
+  have "\<F>\<^sub>1 = \<F>\<^sub>0"
+    using hyps(9) by simp
+  thus "\<F>\<^sub>1 = \<F>\<^sub>0 \<and>
+    (\<F>\<^sub>2 = \<F>\<^sub>1 \<or> (\<exists>L. ord_res.is_maximal_lit L C\<^sub>1 \<and> \<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := add_mset L {#K \<in># C\<^sub>1. K \<noteq> L#})))"
+  proof (intro conjI)
+    show "\<F>\<^sub>2 = \<F>\<^sub>1 \<or>
+      (\<exists>L. ord_res.is_maximal_lit L C\<^sub>1 \<and> \<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := add_mset L {#K \<in># C\<^sub>1. K \<noteq> L#}))"
+    proof (cases "is_pos L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit L) \<and>
+    trail_false_cls \<Gamma>\<^sub>1 (cls_of_gcls {#K \<in># D. K \<noteq> L#})")
+      case True1: True
+      show ?thesis
+      proof (cases "Ex (scl_fol.conflict (cls_of_gcls |`| N) (term_of_gterm \<beta>)
+      (trail_decide \<Gamma>\<^sub>1 (lit_of_glit L), U, None))")
+        case True2: True
+        show ?thesis
+          using hyps(5,14)
+          unfolding Let_def
+          unfolding HOL.if_P[OF True1]
+          unfolding if_not_P[of "\<not> _", simplified, OF True2]
+          unfolding \<open>\<F>\<^sub>1 = \<F>\<^sub>0\<close> \<open>C\<^sub>1 = D\<close>
+          by blast
+      next
+        case False
+        then show ?thesis
+          using hyps(5,14)
+          unfolding Let_def
+          unfolding HOL.if_P[OF True1]
+          unfolding if_P[of "\<not> _", simplified, OF False]
+          unfolding \<open>\<F>\<^sub>1 = \<F>\<^sub>0\<close> \<open>C\<^sub>1 = D\<close>
+          by blast
+      qed
+    next
+      case False
+      show ?thesis
+        using hyps(14)
+        unfolding Let_def
+        unfolding HOL.if_not_P[OF False]
+        by simp
+    qed
+  qed
+qed
 
 lemma grounding_lits_of_clss_fset_fimage_cls_of_gcls[simp]:
   fixes N :: "'f gterm clause fset"
@@ -1044,7 +1182,7 @@ lemma correctness_scl_reso1:
     "(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1"
     "scl_fol.decide N' \<beta>' S\<^sub>1 S\<^sub>2 \<or>
       (scl_fol.propagate N' \<beta>' OO scl_fol.conflict N' \<beta>') S\<^sub>1 S\<^sub>2 \<or>
-      S\<^sub>1 = S\<^sub>2"
+      (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) = (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)"
   using step
   unfolding atomize_conj
 proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" rule: scl_reso1.cases)
@@ -1105,7 +1243,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
             trail_false_cls \<Gamma>\<^sub>2\<^sub>b (cls_of_gcls C)|});
           j\<^sub>0 = count D' L;
           j = i\<^sub>0 + j\<^sub>0;
-          \<F>' = \<F>\<^sub>0(D := sfac D)
+          \<F>' = \<F>\<^sub>0(D := add_mset L {#K \<in># D. K \<noteq> L#})
         in
           if is_pos L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit L) \<and>
             trail_false_cls \<Gamma>\<^sub>1 (cls_of_gcls {#K \<in># D. K \<noteq> L#}) then
@@ -1123,7 +1261,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
             trail_false_cls \<Gamma>\<^sub>2\<^sub>b (cls_of_gcls C)|});
           j\<^sub>0 = count D' L;
           j = i\<^sub>0 + j\<^sub>0;
-          \<F>' = \<F>\<^sub>0(D := sfac D)
+          \<F>' = \<F>\<^sub>0(D := add_mset L {#K \<in># D. K \<noteq> L#})
         in
           if is_pos L \<and> \<not> trail_defined_lit (trail_decide \<Gamma> (lit_of_glit K)) (lit_of_glit L) \<and>
             trail_false_cls \<Gamma>\<^sub>1 (cls_of_gcls {#K \<in># D. K \<noteq> L#}) then
@@ -1202,7 +1340,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
   show "(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1 \<and>
     (scl_fol.decide N' \<beta>' S\<^sub>1 S\<^sub>2 \<or>
       (scl_fol.propagate N' \<beta>' OO scl_fol.conflict N' \<beta>') S\<^sub>1 S\<^sub>2 \<or>
-      S\<^sub>1 = S\<^sub>2)"
+      (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) = (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1))"
   proof (rule conjI)
     show "(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1"
       using \<open>(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1\<close> .
@@ -1278,7 +1416,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
 
     show "scl_fol.decide N' \<beta>' S\<^sub>1 S\<^sub>2 \<or>
       (scl_fol.propagate N' \<beta>' OO scl_fol.conflict N' \<beta>') S\<^sub>1 S\<^sub>2 \<or>
-      S\<^sub>1 = S\<^sub>2"
+      (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) = (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)"
     proof (cases "is_pos L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit L) \<and>
       trail_false_cls \<Gamma>\<^sub>1 (cls_of_gcls {#K \<in># D. K \<noteq> L#})")
       case pos_L_and_undef_L_and_false_D: True
@@ -1287,7 +1425,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
       let ?\<Gamma>\<^sub>2\<^sub>b = "trail_propagate \<Gamma>\<^sub>1 (lit_of_glit L) (cls_of_gcls {#K \<in># D. K \<noteq> L#}) Var"
       let ?E = "The (is_least_in_fset_wrt (\<prec>\<^sub>c)
         {|C |\<in>| N |\<union>| gcls_of_cls |`| U. trail_false_cls ?\<Gamma>\<^sub>2\<^sub>b (cls_of_gcls C)|})"
-      let ?\<F>' = "\<F>\<^sub>0(D := sfac D)"
+      let ?\<F>' = "\<F>\<^sub>0(D := add_mset L {#K \<in># D. K \<noteq> L#})"
       let ?j = "i\<^sub>0 + count D' L"
 
       obtain D' :: "('f, 'v) term clause" where
@@ -1476,7 +1614,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
       qed
     next
       case False
-      hence "S\<^sub>1 = S\<^sub>2"
+      hence "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) = (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)"
         using hyps(14) by auto
       thus ?thesis
         by simp
@@ -1626,22 +1764,31 @@ proof unfold_locales
     by (auto simp: finished_def)
 qed
 
-interpretation forward_simulation where
+fun \<M> :: "'f gterm clause fset \<Rightarrow>
+  ('f, 'v) state \<times> nat \<times> 'f gterm clause \<times> ('f gterm clause \<Rightarrow> 'f gterm clause) \<Rightarrow>
+  'f gterm clause fset" where
+  "\<M> N (S, _, C, \<F>) = {|D |\<in>| N |\<union>| gcls_of_cls |`| state_learned S. \<F> C \<prec>\<^sub>c \<F> D|}"
+
+interpretation forward_simulation_with_measuring_function where
   step1 = "\<lambda>S\<^sub>0 S\<^sub>2. \<exists>S\<^sub>1. scl_reso1 N \<beta> S\<^sub>0 S\<^sub>1 S\<^sub>2" and
   step2 = "scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>)" and
   final1 = "\<lambda>S. \<exists>\<gamma>. state_trail (fst S) = [] \<and> state_conflict (fst S) = Some ({#}, \<gamma>)" and
   final2 = "\<lambda>S. \<exists>\<gamma>. state_trail S = [] \<and> state_conflict S = Some ({#}, \<gamma>)" and
-  order = "\<lambda>_ _. False" and
-  match = "\<lambda>_ S1 S2. fst S1 = S2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
-    scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2"
+  order = "(|\<subset>|)" and
+  match = "\<lambda>S1 S2. fst S1 = S2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
+    scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2" and
+  measure = "\<M> N"
 proof unfold_locales
-  show "\<And>i s1 s2. fst s1 = s2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
+  show "wfP (|\<subset>|)"
+    using wfP_pfsubset .
+next
+  show "\<And>n s1 s2. fst s1 = s2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
     scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) s2 \<Longrightarrow>
     \<exists>\<gamma>. state_trail (fst s1) = [] \<and> state_conflict (fst s1) = Some ({#}, \<gamma>) \<Longrightarrow>
     \<exists>\<gamma>. state_trail s2 = [] \<and> state_conflict s2 = Some ({#}, \<gamma>)"
     by simp
 next
-  fix i S1 S2 S1'
+  fix S1 S2 S1'
   assume
     match: "fst S1 = S2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
       scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2" and
@@ -1661,17 +1808,17 @@ next
     using init_geneneralize
     unfolding \<open>fst S1 = S2\<close>[symmetric] \<open>S1 = (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)\<close> prod.sel .
 
-
   have 1: "(scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1"
     using correctness_scl_reso1(1)[OF \<beta>_greatest step' init_geneneralize']
     by (metis mono_rtranclp scl_fol.scl_def)
 
   show "
-    (\<exists>i' S2'. (scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>+\<^sup>+ S2 S2' \<and>
+    (\<exists>S2'. (scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>+\<^sup>+ S2 S2' \<and>
       fst S1' = S2' \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
       scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2') \<or>
-    (\<exists>i'. (fst S1' = S2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
-      scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2) \<and> False)"
+    ((fst S1' = S2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
+      scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2) \<and>
+      \<M> N S1' |\<subset>| \<M> N S1)"
     using correctness_scl_reso1(2)[OF \<beta>_greatest step' init_geneneralize']
   proof (elim disjE)
     assume "scl_fol.decide (cls_of_gcls |`| N) (term_of_gterm \<beta>) S\<^sub>1 S\<^sub>2"
@@ -1708,23 +1855,114 @@ next
       unfolding \<open>fst S1 = S2\<close>[symmetric] \<open>S1 = (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)\<close> \<open>S1' = (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)\<close> prod.sel
       using \<beta>_greatest by metis
   next
-    assume "S\<^sub>1 = S\<^sub>2"
+    assume "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) = (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)"
+    hence "S\<^sub>1 = S\<^sub>2" "i\<^sub>2 = i\<^sub>1" "C\<^sub>2 = C\<^sub>1" "\<F>\<^sub>2 = \<F>\<^sub>1"
+      by simp_all
     with 1 show ?thesis
+      unfolding prod.inject
       unfolding \<open>fst S1 = S2\<close>[symmetric] \<open>S1 = (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)\<close> \<open>S1' = (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)\<close> prod.sel
       using init_geneneralize'
     proof (induction S\<^sub>1 rule: rtranclp_induct)
       case base
-      then show ?case
-        sorry
+      moreover have "\<M> N (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) |\<subset>| \<M> N (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)"
+        unfolding \<open>S\<^sub>0 = S\<^sub>2\<close>[symmetric] \<M>.simps
+      proof (rule pfsubset_ffilter)
+        have "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1"
+          using step' by (auto elim: scl_reso1.cases)
+        moreover have "C\<^sub>1 = C\<^sub>2"
+          using step'[THEN scl_reso1_clause2_eq_clause_3] .
+        ultimately have "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1"
+          by metis
+        show "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 x"
+          if x_in: "x |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0" and
+            "\<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>2 x"
+          for x
+        proof (cases "x = C\<^sub>1")
+          case True
+          hence False
+            using \<open>\<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>2 x\<close>
+            unfolding True \<open>C\<^sub>1 = C\<^sub>2\<close>
+            by order
+          thus ?thesis ..
+        next
+          case False
+          show ?thesis
+            using scl_reso1_\<F>_eq(2)[OF step']
+          proof (elim disjE exE conjE)
+            assume "\<F>\<^sub>2 = \<F>\<^sub>1"
+            have "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>2"
+              using \<open>\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1\<close>
+              by (simp only: \<open>C\<^sub>1 = C\<^sub>2\<close>)
+            also have "\<dots> \<prec>\<^sub>c \<F>\<^sub>0 x"
+              using \<open>\<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>2 x\<close>
+              by (simp only: \<open>\<F>\<^sub>2 = \<F>\<^sub>1\<close> scl_reso1_\<F>_eq(1)[OF step'])
+            finally show "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 x" .
+          next
+            fix L'
+            assume
+              L'_max: "ord_res.is_maximal_lit L' C\<^sub>1" and
+              \<F>\<^sub>2_eq: "\<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := add_mset L' {#K \<in># C\<^sub>1. K \<noteq> L'#})"
+
+            define sfac where
+              "sfac = (\<lambda>C.
+                (case Greatest_in_set_wrt (\<prec>\<^sub>l) (set_mset C) of
+                  None \<Rightarrow> C
+                | Some L \<Rightarrow> add_mset L {#K \<in># C. K \<noteq> L#}))"
+
+            have "\<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>0 x"
+              using \<open>\<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>2 x\<close>
+              unfolding \<F>\<^sub>2_eq fun_upd_other[OF False] scl_reso1_\<F>_eq(1)[OF step'] .
+
+            have "\<F>\<^sub>2 C\<^sub>2 = add_mset L' {#K \<in># C\<^sub>1. K \<noteq> L'#}"
+              unfolding \<open>C\<^sub>1 = C\<^sub>2\<close> \<F>\<^sub>2_eq fun_upd_same by metis
+
+            have "\<not> (\<exists>D'|\<in>|N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0.
+                \<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 D' \<and> \<F>\<^sub>0 D' \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1)"
+              using step' by (auto elim: scl_reso1.cases)
+            hence "\<not> (\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 x \<and> \<F>\<^sub>0 x \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1)"
+              using x_in by metis
+            hence "\<F>\<^sub>0 x \<preceq>\<^sub>c \<F>\<^sub>0 C\<^sub>0 \<or> \<F>\<^sub>0 C\<^sub>1 \<preceq>\<^sub>c \<F>\<^sub>0 x"
+              using \<open>\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1\<close> by auto
+            then show "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 x"
+              using \<open>\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1\<close>[unfolded \<open>C\<^sub>1 = C\<^sub>2\<close>] \<open>\<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>0 x\<close>
+              unfolding \<open>\<F>\<^sub>2 = \<F>\<^sub>1\<close> scl_reso1_\<F>_eq(1)[OF step']
+              by order
+          qed
+        qed
+        let ?x = "C\<^sub>1"
+        show "?x |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0 \<and> \<not> \<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>2 ?x \<and> \<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 ?x"
+        proof (intro conjI)
+          show "?x |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0"
+            using step' by (auto elim: scl_reso1.cases)
+        next
+          show "\<not> \<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>2 C\<^sub>1"
+            unfolding \<open>C\<^sub>1 = C\<^sub>2\<close> by order
+        next
+          show "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1"
+            using \<open>\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1\<close> .
+        qed
+      qed
+      ultimately show ?case
+        apply -
+        apply (rule disjI2)
+        using \<beta>_greatest
+        by simp
     next
       case (step y z)
-      then show ?case
+      have "(scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>+\<^sup>+ S\<^sub>0 S\<^sub>2"
+        using step.hyps step.prems(1) by simp
+      moreover hence "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S\<^sub>2"
+        apply (induction S\<^sub>2 rule: tranclp_induct)
+        apply (simp add: scl_fol.scl_preserves_initial_lits_generalize_learned_trail_conflict step.prems(5))
+        using scl_fol.scl_preserves_initial_lits_generalize_learned_trail_conflict by blast
+      ultimately show ?case
+        apply -
+        apply (rule disjI1)
         using \<beta>_greatest
-        by (smt (verit, best) rtranclp_induct rtranclp_into_tranclp1
-            scl_fol.scl_preserves_initial_lits_generalize_learned_trail_conflict)
+        by fastforce
     qed
   qed
-qed simp_all
+qed
 
 end
  
