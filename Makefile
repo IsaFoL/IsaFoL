@@ -11,7 +11,7 @@ RUN_ISABELLE="$(ISABELLE)/bin/isabelle"
 
 # destination of the documentation
 ISABELLE2022_HOME=/home/mathias/.isabelle/Isabelle2022/browser_info
-ISABELLE2023_HOME=/home/mathias/.isabelle/Isabelle2023-RC2/browser_info
+ISABELLE2023_HOME=/home/mathias/.isabelle/Isabelle2023/browser_info
 ISABELLE_HOME=/home/mathias/.isabelle/browser_info
 
 # some more paths to extract the version
