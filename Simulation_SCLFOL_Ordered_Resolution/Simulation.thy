@@ -415,6 +415,8 @@ lemma Greatest_in_set_wrt_eq_Some[simp]:
 
 section \<open>Move to @{theory "HOL-Library.FSet"}\<close>
 
+declare wfP_pfsubset[intro]
+
 syntax
   "_FFilter" :: "pttrn \<Rightarrow> 'a fset \<Rightarrow> bool \<Rightarrow> 'a fset" ("(1{|_ |\<in>| _./ _|})")
 
@@ -1780,7 +1782,7 @@ interpretation forward_simulation_with_measuring_function where
   measure = "\<M> N"
 proof unfold_locales
   show "wfP (|\<subset>|)"
-    using wfP_pfsubset .
+    by auto
 next
   show "\<And>n s1 s2. fst s1 = s2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
     scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) s2 \<Longrightarrow>
