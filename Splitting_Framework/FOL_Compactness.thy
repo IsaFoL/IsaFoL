@@ -181,9 +181,8 @@ next
     by auto 
   ultimately have \<open>(\<forall> \<sigma>. Fun f [t \<cdot> \<sigma>. t \<leftarrow> ts] = Fun f ts) \<longleftrightarrow> FV_tm (Fun f ts) = {}\<close>
     unfolding is_ground_tm_def
-    (* Slow-ish *)
-    by (smt (z3) empty_iff equals0I subst_apply_term.simps(2) subst_apply_term_empty subst_ident
-        subst_simps(1) term.distinct(1) term.inject(2) term_subst_eq term_subst_eq_rev) 
+    by (smt (verit, ccfv_threshold) Int_empty_left ground.elims(3) ground_vars_term_empty subsetI
+        subst_apply_term_empty subst_apply_term_ident term.distinct(1) term.inject(2) term.set_intros(4) vars_term_subset_subst_eq)
   then show ?case
     unfolding is_ground_tm_def
     by auto 

@@ -250,7 +250,8 @@ proof -
         using fset_ffUnion_subset_iff_all_fsets_subset
         by fast
       then have \<open>\<forall> As \<in> set (map A_of \<N>). fset As \<subseteq> total_strip J\<close>
-        by (meson fBall_fset_of_list_iff_Ball_set)
+        sledgehammer
+        by (meson fset_of_list_elem)
       then have \<open>\<forall> \<C> \<in> set \<N>. enabled \<C> J\<close>
         unfolding enabled_def
         by simp
@@ -829,7 +830,7 @@ proof -
       moreover have \<open>fBall (fset_of_list \<M>) (\<lambda> x. fset (A_of x) \<subseteq> total_strip J)\<close>
         using all_enabled_in_\<M>
         unfolding enabled_def
-        by (meson fBall_fset_of_list_iff_Ball_set)
+        by (simp add: fset_of_list_elem)
       then have \<open>fBall (A_of |`| fset_of_list \<M>) (\<lambda> x. fset x \<subseteq> total_strip J)\<close>
         by auto
       then have \<open>enabled (AF.Pair \<C> (ffUnion (A_of |`| fset_of_list \<M>))) J\<close>
@@ -1231,7 +1232,7 @@ proof -
         qed
         then show \<open>(fml_ext ` total_strip J) \<union> {Pos (F_of \<C>')} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
           using entails_of_entails_iff[OF F_of_\<C>_entails_Cs finite_image_Pos_Cs card_fset_Cs_ge_1]
-          by (metis (no_types, opaque_lifting) image_iff notin_fset)
+          by blast
       qed
       then have
         \<open>fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
@@ -1266,7 +1267,7 @@ proof -
         \<open>C'' \<in> fset As \<Longrightarrow> fset (A_of C'') \<subseteq> total_strip J \<Longrightarrow>
          (fml_ext ` total_strip J) \<union> Pos ` ({\<C>'} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of C'')}\<close>
         for J C''
-        by (meson notin_fset)
+        by fast
       then have \<open>\<forall> \<C>'' \<in> fset As. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>''}\<close>
         unfolding AF_entails_sound_def enabled_set_def enabled_def
         using split(1)
@@ -1416,28 +1417,26 @@ proof -
         using enabled_def split_creates_singleton_assertion_sets pre_cond
         by fastforce
       then have \<open>\<exists> C. C \<in> fset As proj\<^sub>J J\<close>
-        by (simp add: enabled_projection_def fmember.rep_eq)
+        by (simp add: enabled_projection_def)
       then show ?thesis
         using \<C>_red_to_splitted_\<C>s split_to_As Red_F_of_subset[of \<open>fset As proj\<^sub>J J\<close>]
         unfolding mk_split_def[OF splittable_pre]
         by (smt (verit, del_insts) AF.sel(1) CollectI Red_F_of_subset Un_subset_iff
-            ex_C_enabled_in_As enabled_projection_def fimageE fmember.rep_eq insert_subset
+            ex_C_enabled_in_As enabled_projection_def fimageE insert_subset
             subset_iff sup_bot_right)
     next
       case False
       then have \<open>fset As proj\<^sub>J J = {}\<close>
         using split_creates_singleton_assertion_sets[OF pre_cond]
         by (smt (verit, del_insts) Collect_empty_eq enabled_def enabled_projection_def
-            fimage_finsert finsert.rep_eq finsertCI insert_subset mk_disjoint_finsert notin_fset)
+            fimage_finsert finsert.rep_eq finsertCI insert_subset mk_disjoint_finsert)
       moreover have \<open>\<forall> A. A |\<in>| A_of |`| As \<longrightarrow> (\<forall> a. a |\<in>| A \<longrightarrow> \<not> a \<in> total_strip J)\<close>
         using False
         by blast
       then have \<open>\<forall> A. A |\<in>| A_of |`| As \<longrightarrow> (\<forall> a. a |\<in>| A \<longrightarrow> neg a \<in> total_strip J)\<close>
         by auto
       then have \<open>fset (ffUnion ((fimage neg \<circ> A_of) |`| As)) \<subseteq> total_strip J\<close>
-        (* /!\ Slow enough to be noticed /!\ *)
-        by (smt (verit, ccfv_threshold) fimageE fset.map_comp if_in_ffUnion_then_in_subset
-            notin_fset subsetI)
+        by (smt (verit, best) fimage_iff fset.map_comp fset_ffUnion_subset_iff_all_fsets_subset subsetI)
       then have \<open>fset (ffUnion ((fimage neg \<circ> A_of) |`| As) |\<union>| A_of \<C>) \<subseteq> total_strip J\<close>
         using \<C>_enabled
         by (simp add: enabled_def)
@@ -1865,7 +1864,7 @@ next
         by simp
       then have \<open>\<forall> x \<in> set \<M>. A_of x = {||}\<close>
         using fBall_fset_of_list_iff_Ball_set
-        by meson
+        by fast
       then have \<open>to_AF bot \<in> set \<M>\<close>
         using \<M>_subset_prop_proj_N \<M>_not_empty
         unfolding propositional_projection_def to_AF_def

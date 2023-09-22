@@ -2096,8 +2096,7 @@ proof
      by blast 
     then show \<open>v \<in> set (map f (list_of_fset A))\<close>
       unfolding list_of_fset_def
-      by (smt (verit, del_insts) exists_fset_of_list fset_of_list.rep_eq imageI list.set_map
-          notin_fset someI_ex)
+      by (metis fset_map2 list_of_fset_def map_ident)
   qed
 next
   show \<open>set (map f (list_of_fset A)) \<subseteq> f ` fset A\<close>
@@ -2106,10 +2105,10 @@ next
     assume \<open>v \<in> set (map f (list_of_fset A))\<close>
     then obtain a where "a |\<in>| A" "f a = v"
       unfolding list_of_fset_def
-      by (smt (verit, best) exists_fset_of_list fset_of_list.rep_eq imageE list.set_map notin_fset 
-          someI_ex)
+      by (metis (mono_tags, lifting) exists_fset_of_list fimage.rep_eq fimageE fset_of_list.rep_eq 
+          set_map someI_ex)
     then show \<open>v \<in> f ` fset A\<close>
-      by (simp add: fmember.rep_eq rev_image_eqI)
+      by blast
   qed
 qed
 
