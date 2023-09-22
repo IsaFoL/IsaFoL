@@ -496,6 +496,42 @@ qed
 
 end
 
+locale backward_simulation_with_measuring_function =
+  L1: semantics step1 final1 +
+  L2: semantics step2 final2 +
+  well_founded "(\<sqsubset>)"
+  for
+    step1 :: "'state1 \<Rightarrow> 'state1 \<Rightarrow> bool" and
+    step2 :: "'state2 \<Rightarrow> 'state2 \<Rightarrow> bool" and
+    final1 :: "'state1 \<Rightarrow> bool" and
+    final2 :: "'state2 \<Rightarrow> bool" and
+    order :: "'index \<Rightarrow> 'index \<Rightarrow> bool" (infix "\<sqsubset>" 70) +
+  fixes
+    match :: "'state1 \<Rightarrow> 'state2 \<Rightarrow> bool" and
+    measure :: "'state2 \<Rightarrow> 'index"
+  assumes
+    match_final:
+      "match s1 s2 \<Longrightarrow> final2 s2 \<Longrightarrow> final1 s1" and
+    simulation:
+      "match s1 s2 \<Longrightarrow> step2 s2 s2' \<Longrightarrow>
+        (\<exists>s1'. step1\<^sup>+\<^sup>+ s1 s1' \<and> match s1' s2') \<or> (match s1 s2' \<and> measure s2' \<sqsubset> measure s2)"
+begin
+
+sublocale backward_simulation where
+  step1 = step1 and step2 = step2 and final1 = final1 and final2 = final2 and order = order and
+  match = "\<lambda>i x y. i = measure y \<and> match x y"
+proof unfold_locales
+  show "\<And>i s1 s2. i = measure s2 \<and> match s1 s2 \<Longrightarrow> final2 s2 \<Longrightarrow> final1 s1"
+    using match_final by metis
+next
+  show "\<And>i1 s1 s2 s2'. i1 = measure s2 \<and> match s1 s2 \<Longrightarrow> step2 s2 s2' \<Longrightarrow>
+    (\<exists>i2 s1'. step1\<^sup>+\<^sup>+ s1 s1' \<and> i2 = measure s2' \<and> match s1' s2') \<or>
+    (\<exists>i2. (i2 = measure s2' \<and> match s1 s2') \<and> i2 \<sqsubset> i1)"
+    using simulation by metis
+qed
+
+end
+
 section \<open>Move to Superposition_Calculus\<close>
 
 lemma (in ground_ordered_resolution_calculus) unique_ground_resolution:
@@ -1652,7 +1688,136 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
 qed
 
 
-subsection \<open>Simulation invariants\<close>
+subsection \<open>Sematincs of ORD-RES, ORD-RES++, SCL(FOL)++, and SCL(FOL)\<close>
+
+inductive ord_reso_step where
+  factoring: "{#} |\<notin>| N \<Longrightarrow> P |\<in>| N \<Longrightarrow> ord_res.ground_factoring P C \<Longrightarrow>
+    ord_reso_step N (finsert C N)" |
+  resolution: "{#} |\<notin>| N \<Longrightarrow> P1 |\<in>| N \<Longrightarrow> P2 |\<in>| N \<Longrightarrow> ord_res.ground_resolution P1 P2 C \<Longrightarrow>
+    ord_reso_step N (finsert C N)"
+
+interpretation ord_reso_semantics: semantics where
+  step = ord_reso_step and
+  final = "\<lambda>N. {#} |\<in>| N"
+proof unfold_locales
+  show "\<And>N. {#} |\<in>| N \<Longrightarrow> finished ord_reso_step N"
+    by (simp add: finished_def ord_reso_step.simps)
+qed
+
+interpretation ord_reso_extended_semantics: semantics where
+  step = ord_res_mod_op_strategy and
+  final = "\<lambda>N. {#} |\<in>| N"
+proof unfold_locales
+  fix N :: "'f gterm clause fset" assume "{#} |\<in>| N"
+  show "finished ord_res_mod_op_strategy N"
+    unfolding finished_def
+  proof (intro notI, elim exE)
+    fix N' assume "ord_res_mod_op_strategy N N'"
+    then obtain L C where C_min: "is_min_false_clause N C" and L_max: "ord_res.is_maximal_lit L C"
+      unfolding ord_res_mod_op_strategy_def by metis
+
+    have "is_min_false_clause N {#}"
+      unfolding is_min_false_clause_def
+      unfolding is_minimal_in_set_wrt_def[OF linorder_cls.transp_on_less linorder_cls.asymp_on_less]
+      unfolding non_reachable_wrt_def
+    proof (intro conjI ballI)
+      show "{#} |\<in>| {|C |\<in>| N. \<not> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> D \<preceq>\<^sub>c C}) \<TTurnstile> C|}"
+        using \<open>{#} |\<in>| N\<close> by auto
+    next
+      show "\<And>y. \<not> y \<prec>\<^sub>c {#}"
+        by (metis add.left_neutral empty_iff linorder_cls.less_irrefl
+            linorder_cls.order.strict_trans one_step_implies_multp set_mset_empty)
+    qed
+    with C_min have "C = {#}"
+      using Uniq_is_min_false_clause by (metis Uniq_D)
+    with L_max show False
+      by (simp add: is_maximal_wrt_def)
+  qed
+qed
+
+interpretation scl_reso_semantics: semantics where
+  step = "\<lambda>S\<^sub>0 S\<^sub>2. \<exists>S\<^sub>1. scl_reso1 N \<beta> S\<^sub>0 S\<^sub>1 S\<^sub>2" and
+  final = "\<lambda>S. \<exists>\<gamma>. state_trail (fst S) = [] \<and> state_conflict (fst S) = Some ({#}, \<gamma>)"
+proof unfold_locales
+  show "\<And>S. \<exists>\<gamma>. state_trail (fst S) = [] \<and> state_conflict (fst S) = Some ({#}, \<gamma>) \<Longrightarrow>
+    finished (\<lambda>S\<^sub>0 S\<^sub>2. \<exists>S\<^sub>1. scl_reso1 N \<beta> S\<^sub>0 S\<^sub>1 S\<^sub>2) S"
+    unfolding finished_def scl_reso1.simps
+    by force
+qed
+
+interpretation scl_fol_semantics: semantics where
+  step = "scl_fol.scl N \<beta>" and
+  final = "\<lambda>S. \<exists>\<gamma>. state_trail S = [] \<and> state_conflict S = Some ({#}, \<gamma>)"
+proof unfold_locales
+  show "\<And>S. \<exists>\<gamma>. state_trail S = [] \<and> state_conflict S = Some ({#}, \<gamma>) \<Longrightarrow>
+    finished (scl_fol.scl N \<beta>) S"
+    using scl_fol.no_more_step_if_conflict_mempty
+    by (auto simp: finished_def)
+qed
+
+
+subsection \<open>Backward simulation between ORD-RES and ORD-RES++\<close>
+
+interpretation backward_simulation_with_measuring_function where
+  step1 = ord_reso_step and
+  step2 = ord_res_mod_op_strategy and
+  final1 = "\<lambda>N. {#} |\<in>| N" and
+  final2 = "\<lambda>N. {#} |\<in>| N" and
+  order = "\<lambda>_ _. False" and
+  match = "(=)" and
+  measure = "\<lambda>_. ()"
+proof unfold_locales
+  show "wfP (\<lambda>_ _. False)"
+    by auto
+next
+  show "\<And>N1 N2. N1 = N2 \<Longrightarrow> {#} |\<in>| N2 \<Longrightarrow> {#} |\<in>| N1"
+    by metis
+next
+  fix N1 N2 N2' assume "N1 = N2" and "ord_res_mod_op_strategy N2 N2'"
+  then obtain L C where
+    C_min: "is_min_false_clause N2 C" and
+    L_max: "ord_res.is_maximal_lit L C" and
+    fact_or_reso: "(case L of
+       Pos A \<Rightarrow> \<not> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) C \<and>
+       (\<exists>C'. ord_res.ground_factoring C C' \<and> N2' = finsert C' N2)
+     | Neg A \<Rightarrow> \<exists>D|\<in>|N2. D \<prec>\<^sub>c C \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) D \<and>
+       (\<exists>CD. ord_res.ground_resolution C D CD \<and> N2' = finsert CD N2))"
+    unfolding ord_res_mod_op_strategy_def by blast
+
+  from C_min have "C |\<in>| N2"
+    by (simp add: is_min_false_clause_def is_minimal_in_set_wrt_iff)
+
+  from C_min L_max have "{#} |\<notin>| N2"
+    using Uniq_is_min_false_clause
+    by (meson \<open>ord_res_mod_op_strategy N2 N2'\<close> ord_reso_extended_semantics.final_finished
+        ord_reso_extended_semantics.semantics_axioms semantics.finished_step)
+
+  have "\<exists>N1'. ord_reso_step\<^sup>+\<^sup>+ N1 N1' \<and> N1' = N2'"
+  proof (cases L)
+    case (Pos A)
+    with fact_or_reso obtain C' where "ord_res.ground_factoring C C'" and "N2' = finsert C' N2"
+      by auto
+    hence "ord_reso_step N1 N2'"
+      using ord_reso_step.factoring \<open>{#} |\<notin>| N2\<close> \<open>C |\<in>| N2\<close> \<open>N1 = N2\<close> by metis
+    thus ?thesis
+      by simp
+  next
+    case (Neg A)
+    with fact_or_reso obtain D CD where
+      "D |\<in>| N2" and
+      "ord_res.ground_resolution C D CD" and
+      "N2' = finsert CD N2"
+      by auto
+    hence "ord_reso_step N1 N2'"
+      using ord_reso_step.resolution \<open>{#} |\<notin>| N2\<close> \<open>C |\<in>| N2\<close> \<open>N1 = N2\<close> by metis
+    thus ?thesis
+      by simp
+  qed
+  thus "(\<exists>N1'. ord_reso_step\<^sup>+\<^sup>+ N1 N1' \<and> N1' = N2') \<or> N1 = N2' \<and> False"
+    by metis
+qed
+
+subsection \<open>Backward simulation between ORD-RES++ and SCL(FOL)++\<close>
 
 lemma ord_res_mod_op_strategy_preserves_atms_of_clss:
   assumes step: "ord_res_mod_op_strategy N N'"
@@ -1724,7 +1889,7 @@ next
   finally show ?case .
 qed
 
-lemma constant_atom_set:
+lemma atoms_of_learn_clauses_already_in_initial_clauses:
   assumes
     \<beta>_greatest: "is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta>" and
     step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
@@ -1791,29 +1956,6 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
 qed
 
 subsection \<open>Forward simulation between SCL(FOL)++ and SCL(FOL)\<close>
-
-interpretation scl_reso_semantics: semantics where
-  step = "\<lambda>S\<^sub>0 S\<^sub>2. \<exists>S\<^sub>1. scl_reso1 N \<beta> S\<^sub>0 S\<^sub>1 S\<^sub>2" and
-  final = "\<lambda>S. \<exists>\<gamma>. state_trail (fst S) = [] \<and> state_conflict (fst S) = Some ({#}, \<gamma>)"
-proof unfold_locales
-  show "\<And>S. \<exists>\<gamma>. state_trail (fst S) = [] \<and> state_conflict (fst S) = Some ({#}, \<gamma>) \<Longrightarrow>
-    finished (\<lambda>S\<^sub>0 S\<^sub>2. \<exists>S\<^sub>1. scl_reso1 N \<beta> S\<^sub>0 S\<^sub>1 S\<^sub>2) S"
-    unfolding finished_def scl_reso1.simps
-    by force
-qed
-
-lemma "(R OO R) x y \<Longrightarrow> R\<^sup>+\<^sup>+ x y"
-  by auto
-
-interpretation scl_fol_semantics: semantics where
-  step = "scl_fol.scl N \<beta>" and
-  final = "\<lambda>S. \<exists>\<gamma>. state_trail S = [] \<and> state_conflict S = Some ({#}, \<gamma>)"
-proof unfold_locales
-  show "\<And>S. \<exists>\<gamma>. state_trail S = [] \<and> state_conflict S = Some ({#}, \<gamma>) \<Longrightarrow>
-    finished (scl_fol.scl N \<beta>) S"
-    using scl_fol.no_more_step_if_conflict_mempty
-    by (auto simp: finished_def)
-qed
 
 fun \<M> :: "'f gterm clause fset \<Rightarrow>
   ('f, 'v) state \<times> nat \<times> 'f gterm clause \<times> ('f gterm clause \<Rightarrow> 'f gterm clause) \<Rightarrow>
