@@ -1741,7 +1741,7 @@ qed
 
 end
 
-subsection \<open>Backward simulation between SCL(FOL) and resolution-driven SCL(FOL)\<close>
+subsection \<open>Forward simulation between SCL(FOL)++ and SCL(FOL)\<close>
 
 interpretation scl_reso_semantics: semantics where
   step = "\<lambda>S\<^sub>0 S\<^sub>2. \<exists>S\<^sub>1. scl_reso1 N \<beta> S\<^sub>0 S\<^sub>1 S\<^sub>2" and
@@ -1905,18 +1905,9 @@ next
               L'_max: "ord_res.is_maximal_lit L' C\<^sub>1" and
               \<F>\<^sub>2_eq: "\<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := add_mset L' {#K \<in># C\<^sub>1. K \<noteq> L'#})"
 
-            define sfac where
-              "sfac = (\<lambda>C.
-                (case Greatest_in_set_wrt (\<prec>\<^sub>l) (set_mset C) of
-                  None \<Rightarrow> C
-                | Some L \<Rightarrow> add_mset L {#K \<in># C. K \<noteq> L#}))"
-
             have "\<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>0 x"
               using \<open>\<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>2 x\<close>
               unfolding \<F>\<^sub>2_eq fun_upd_other[OF False] scl_reso1_\<F>_eq(1)[OF step'] .
-
-            have "\<F>\<^sub>2 C\<^sub>2 = add_mset L' {#K \<in># C\<^sub>1. K \<noteq> L'#}"
-              unfolding \<open>C\<^sub>1 = C\<^sub>2\<close> \<F>\<^sub>2_eq fun_upd_same by metis
 
             have "\<not> (\<exists>D'|\<in>|N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0.
                 \<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 D' \<and> \<F>\<^sub>0 D' \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1)"
