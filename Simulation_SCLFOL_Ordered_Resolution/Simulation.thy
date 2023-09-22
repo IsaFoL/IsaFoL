@@ -1172,6 +1172,51 @@ lemma trail_undefined_if_trail_undefined_trail_decide:
   using assms
   by (simp add: trail_defined_lit_iff)
 
+lemma lits_of_learned_subset_lits_of_initial:
+  fixes N :: "'f gterm clause fset" and \<beta> :: "'f gterm"
+  defines "N' \<equiv> fimage cls_of_gcls N" and "\<beta>' \<equiv> term_of_gterm \<beta>"
+  assumes N'_generalizes: "scl_fol.initial_lits_generalize_learned_trail_conflict N' S"
+  shows "\<Union>(set_mset ` fset (state_learned S)) \<subseteq> \<Union>(set_mset ` fset N')"
+proof (intro Set.subsetI)
+  fix L assume "L \<in> \<Union>(set_mset ` fset (state_learned S))"
+  moreover have "\<forall>L \<in> \<Union> (set_mset ` fset (state_learned S)). \<exists>K \<in> \<Union> (set_mset ` fset N'). generalizes_lit K L"
+    using N'_generalizes
+    by (simp add: scl_fol.initial_lits_generalize_learned_trail_conflict_def
+        scl_fol.clss_lits_generalize_clss_lits_def)
+  ultimately obtain K where K_in: "K \<in> \<Union> (set_mset ` fset N')" and "generalizes_lit K L"
+    by metis
+
+  from K_in have "is_ground_lit K"
+    by (auto simp: N'_def cls_of_gcls_def)
+
+  with \<open>generalizes_lit K L\<close> have "K = L"
+    by (simp add: generalizes_lit_def)
+
+  with K_in show "L \<in> \<Union>(set_mset ` fset N')"
+    by argo
+qed
+
+lemma glits_subset_if_lits_subset:
+  assumes "\<Union> (set_mset ` fset U) \<subseteq> \<Union> (set_mset ` fset (cls_of_gcls |`| N))"
+  shows "\<Union> (set_mset ` fset (gcls_of_cls |`| U)) \<subseteq> \<Union> (set_mset ` fset N)"
+proof (intro Set.subsetI)
+  fix L\<^sub>G assume "L\<^sub>G \<in> \<Union> (set_mset ` fset (gcls_of_cls |`| U))"
+  then obtain C\<^sub>G where "L\<^sub>G \<in># C\<^sub>G" and "C\<^sub>G |\<in>| gcls_of_cls |`| U"
+    by blast
+  then obtain C where "C\<^sub>G = gcls_of_cls C" and "C |\<in>| U"
+    by blast
+  then obtain L where "L\<^sub>G = glit_of_lit L" and "L \<in># C"
+    using \<open>L\<^sub>G \<in># C\<^sub>G\<close> by (metis gcls_of_cls_def image_iff multiset.set_map)
+  hence "L \<in> \<Union> (set_mset ` fset U)"
+    using \<open>C |\<in>| U\<close> by blast
+  hence "L \<in> \<Union> (set_mset ` fset (cls_of_gcls |`| N))"
+    using assms by fast
+  hence "L \<in> \<Union> (image lit_of_glit ` set_mset ` fset N)"
+    by (simp add: cls_of_gcls_def)
+  then show "L\<^sub>G \<in> \<Union> (set_mset ` fset N)"
+    by (auto simp: \<open>L\<^sub>G = glit_of_lit L\<close>)
+qed
+
 lemma correctness_scl_reso1:
   fixes N :: "'f gterm clause fset" and \<beta> :: "'f gterm"
   defines "N' \<equiv> fimage cls_of_gcls N" and "\<beta>' \<equiv> term_of_gterm \<beta>"
@@ -1354,26 +1399,9 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
       by (induction S\<^sub>1 rule: rtranclp_induct)
         (simp_all add: scl_fol.decide_preserves_trail_lits_from_clauses
           scl_fol.decide_preserves_initial_lits_generalize_learned_trail_conflict)
-
-    have "\<Union>(set_mset ` fset U) \<subseteq> \<Union>(set_mset ` fset N')"
-    proof (intro Set.subsetI)
-      fix L assume "L \<in> \<Union>(set_mset ` fset U)"
-      moreover have "\<forall>L \<in> \<Union> (set_mset ` fset U). \<exists>K \<in> \<Union> (set_mset ` fset N'). generalizes_lit K L"
-        using \<open>scl_fol.initial_lits_generalize_learned_trail_conflict N' S\<^sub>1\<close>
-        by (simp add: S\<^sub>1_def scl_fol.initial_lits_generalize_learned_trail_conflict_def
-            scl_fol.clss_lits_generalize_clss_lits_def)
-      ultimately obtain K where K_in: "K \<in> \<Union> (set_mset ` fset N')" and "generalizes_lit K L"
-        by metis
-
-      from K_in have "is_ground_lit K"
-        by (auto simp: N'_def cls_of_gcls_def)
-
-      with \<open>generalizes_lit K L\<close> have "K = L"
-        by (simp add: generalizes_lit_def)
-
-      with K_in show "L \<in> \<Union>(set_mset ` fset N')"
-        by argo
-    qed
+    hence "\<Union>(set_mset ` fset U) \<subseteq> \<Union>(set_mset ` fset N')"
+      using lits_of_learned_subset_lits_of_initial
+      by (metis N'_def S\<^sub>1_def state_proj_simp(2))
 
     have ground_cls_if_in_U: "is_ground_cls C" if C_in: "C |\<in>| U" for C
       unfolding is_ground_cls_def
@@ -1384,7 +1412,6 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
       then show "is_ground_lit L"
         by (auto simp add: N'_def cls_of_gcls_def)
     qed
-
 
     have "cls_of_gcls D |\<in>| N' |\<union>| U"
       using \<open>D |\<in>| N |\<union>| gcls_of_cls |`| U\<close>[unfolded funion_iff]
@@ -1697,49 +1724,71 @@ next
   finally show ?case .
 qed
 
-context
-  fixes N :: "'f gterm clause fset" and \<beta> :: "'f gterm" and
-    N' :: "('f, 'v) term clause fset" and \<beta>' :: "('f, 'v) term"
-  defines "N' \<equiv> fimage cls_of_gcls N" and "\<beta>' \<equiv> term_of_gterm \<beta>"
-begin
-
 lemma constant_atom_set:
   assumes
+    \<beta>_greatest: "is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta>" and
     step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
+    N_generalizes: "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S\<^sub>0" and
     "(ord_res_mod_op_strategy ^^ i\<^sub>0) N N\<^sub>0" and
     "(ord_res_mod_op_strategy ^^ i\<^sub>1) N N\<^sub>1" and
     "(ord_res_mod_op_strategy ^^ i\<^sub>2) N N\<^sub>2" and
-    invars:
-      "atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>0)"
-      "atms_of_clss (fset N\<^sub>0) = atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>0))"
+    "atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>0)) \<subseteq> atms_of_clss (fset N)"
   shows
-    "atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>1)" and
-    "atms_of_clss (fset N\<^sub>1) = atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>1))" and
-    "atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>2)" and
-    "atms_of_clss (fset N\<^sub>2) = atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>2))"
+    "atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>1)) \<subseteq> atms_of_clss (fset N)"
+    "atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>2)) \<subseteq> atms_of_clss (fset N)"
   using step
   unfolding atomize_conj
 proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" rule: scl_reso1.cases)
   case (scl_reso1I D U L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
-  have "atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>1)"
-    using invars(1)
-    using \<open>(ord_res_mod_op_strategy ^^ i\<^sub>0) N N\<^sub>0\<close>
-    sorry
-  moreover have "atms_of_clss (fset N\<^sub>1) = atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>1))"
-    sorry
-  moreover have "atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>2)"
-    sorry
-  moreover have "atms_of_clss (fset N\<^sub>2) = atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>2))"
-    sorry
+  have "(scl_fol.decide (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1"
+    using \<beta>_greatest step N_generalizes correctness_scl_reso1(1) by metis
+  hence N_generalizes_S\<^sub>1:
+    "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S\<^sub>1"
+    using N_generalizes
+    by (induction S\<^sub>1 rule: rtranclp_induct)
+      (simp_all add: scl_fol.decide_preserves_initial_lits_generalize_learned_trail_conflict)
+
+  have "atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>1)) \<subseteq> atms_of_clss (fset N)"
+  proof -
+    have "\<Union> (set_mset ` fset (state_learned S\<^sub>1)) \<subseteq> \<Union> (set_mset ` fset (cls_of_gcls |`| N))"
+      using N_generalizes_S\<^sub>1 lits_of_learned_subset_lits_of_initial by metis
+    hence "\<Union> (set_mset ` fset (gcls_of_cls |`| state_learned S\<^sub>1)) \<subseteq> \<Union> (set_mset ` fset N)"
+      using glits_subset_if_lits_subset by metis
+    thus ?thesis
+      unfolding atms_of_clss_def atms_of_def by auto
+  qed
+
+  moreover have "atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>2)) \<subseteq> atms_of_clss (fset N)"
+  proof -
+    have "scl_fol.decide (cls_of_gcls |`| N) (term_of_gterm \<beta>) S\<^sub>1 S\<^sub>2 \<or>
+      (scl_fol.propagate (cls_of_gcls |`| N) (term_of_gterm \<beta>) OO
+        scl_fol.conflict (cls_of_gcls |`| N) (term_of_gterm \<beta>)) S\<^sub>1 S\<^sub>2 \<or>
+      S\<^sub>2 = S\<^sub>1"
+      using \<beta>_greatest step N_generalizes correctness_scl_reso1(2) by blast
+    hence "scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>) S\<^sub>1 S\<^sub>2 \<or>
+      (scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>) OO
+        scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>)) S\<^sub>1 S\<^sub>2 \<or>
+      S\<^sub>2 = S\<^sub>1"
+      by (auto simp add: scl_fol.scl_def)
+    hence "(scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>*\<^sup>* S\<^sub>1 S\<^sub>2"
+      by auto
+    hence "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S\<^sub>2"
+      using N_generalizes_S\<^sub>1
+      by (induction S\<^sub>2 rule: rtranclp_induct)
+        (simp_all add: scl_fol.scl_preserves_initial_lits_generalize_learned_trail_conflict)
+    hence "\<Union> (set_mset ` fset (state_learned S\<^sub>2)) \<subseteq> \<Union> (set_mset ` fset (cls_of_gcls |`| N))"
+      using N_generalizes_S\<^sub>1 lits_of_learned_subset_lits_of_initial by metis
+    hence "\<Union> (set_mset ` fset (gcls_of_cls |`| state_learned S\<^sub>2)) \<subseteq> \<Union> (set_mset ` fset N)"
+      using glits_subset_if_lits_subset by metis
+    thus ?thesis
+      unfolding atms_of_clss_def atms_of_def by auto
+  qed
+
   ultimately show "
-    (atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>1) \<and>
-    atms_of_clss (fset N\<^sub>1) = atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>1))) \<and>
-    atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>2) \<and>
-    atms_of_clss (fset N\<^sub>2) = atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>2))"
+    atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>1)) \<subseteq> atms_of_clss (fset N) \<and>
+    atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>2)) \<subseteq> atms_of_clss (fset N)"
     by (intro conjI)
 qed
-
-end
 
 subsection \<open>Forward simulation between SCL(FOL)++ and SCL(FOL)\<close>
 
