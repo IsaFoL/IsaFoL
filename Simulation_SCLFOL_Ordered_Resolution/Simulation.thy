@@ -1091,13 +1091,15 @@ inductive scl_reso1
 
 lemma scl_reso1_clause2_eq_clause_3:
   assumes "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)"
-  shows "C\<^sub>1 = C\<^sub>2"
+  shows "state_learned S\<^sub>2 = state_learned S\<^sub>1" and "C\<^sub>2 = C\<^sub>1"
+  unfolding atomize_conj
   using assms
 proof (cases rule: scl_reso1.cases)
   case hyps: (scl_reso1I D U L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
-  have "C\<^sub>1 = D"
-    using \<open>(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) = ((\<Gamma>\<^sub>1, U, None), i\<^sub>0, D, \<F>\<^sub>0)\<close> by simp
-  also have "D = C\<^sub>2"
+  have "state_learned S\<^sub>1 = U" and "C\<^sub>1 = D"
+    using \<open>(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) = ((\<Gamma>\<^sub>1, U, None), i\<^sub>0, D, \<F>\<^sub>0)\<close> by simp_all
+
+  moreover have "state_learned S\<^sub>2 = U \<and> C\<^sub>2 = D"
   proof (cases "is_pos L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit L) \<and>
     trail_false_cls \<Gamma>\<^sub>1 (cls_of_gcls {#K \<in># D. K \<noteq> L#})")
     case True1: True
@@ -1126,9 +1128,11 @@ proof (cases rule: scl_reso1.cases)
       using hyps(14)
       unfolding Let_def
       unfolding HOL.if_not_P[OF False]
-      by (simp add: \<open>C\<^sub>1 = D\<close>)
+      by (simp add: \<open>state_learned S\<^sub>1 = U\<close> \<open>C\<^sub>1 = D\<close>)
   qed
-  finally show ?thesis .
+
+  ultimately show "state_learned S\<^sub>2 = state_learned S\<^sub>1 \<and> C\<^sub>2 = C\<^sub>1"
+    by metis
 qed
 
 lemma scl_reso1_\<F>_eq:
@@ -1918,8 +1922,8 @@ qed
 
 lemma atoms_of_learn_clauses_already_in_initial_clauses:
   assumes
-    \<beta>_greatereq: "\<forall>A |\<in>| atms_of_clss N. A \<preceq>\<^sub>t \<beta>" and
     step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
+    \<beta>_greatereq: "\<forall>A |\<in>| atms_of_clss N. A \<preceq>\<^sub>t \<beta>" and
     N_generalizes: "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S\<^sub>0" and
     "atms_of_clss (gcls_of_cls |`| state_learned S\<^sub>0) |\<subseteq>| atms_of_clss N"
   shows
@@ -1986,6 +1990,72 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
     atms_of_clss (gcls_of_cls |`| state_learned S\<^sub>2) |\<subseteq>| atms_of_clss N"
     by (intro conjI)
 qed
+
+lemma clause_anotation_in_initial_or_learned:
+  assumes
+    step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
+    invar: "C\<^sub>0 |\<in>| finsert {#} (N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0)"
+  shows
+    "C\<^sub>1 |\<in>| finsert {#} (N |\<union>| gcls_of_cls |`| state_learned S\<^sub>1)"
+    "C\<^sub>2 |\<in>| finsert {#} (N |\<union>| gcls_of_cls |`| state_learned S\<^sub>2)"
+  using step
+  unfolding atomize_conj
+proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" rule: scl_reso1.cases)
+  case hyps: (scl_reso1I D U L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
+
+  have "C\<^sub>1 |\<in>| finsert {#} (N |\<union>| gcls_of_cls |`| state_learned S\<^sub>1)"
+    unfolding \<open>S\<^sub>0 = (\<Gamma>, U, None)\<close>
+    using \<open>D |\<in>| N |\<union>| gcls_of_cls |`| U\<close> \<open>(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) = ((\<Gamma>\<^sub>1, U, None), i\<^sub>0, D, \<F>\<^sub>0)\<close>
+    by simp
+
+  moreover have "C\<^sub>2 |\<in>| finsert {#} (N |\<union>| gcls_of_cls |`| state_learned S\<^sub>2)"
+    using calculation scl_reso1_clause2_eq_clause_3[OF step] by metis
+
+  ultimately show "
+    C\<^sub>1 |\<in>| finsert {#} (N |\<union>| gcls_of_cls |`| state_learned S\<^sub>1) \<and>
+    C\<^sub>2 |\<in>| finsert {#} (N |\<union>| gcls_of_cls |`| state_learned S\<^sub>2)"
+    by (intro conjI)
+qed
+
+
+definition simulation ::
+  "'f gterm literal multiset fset \<Rightarrow>
+  ('f, 'v) state \<times> nat \<times> 'f gterm clause \<times> ('f gterm clause \<Rightarrow> 'f gterm clause) \<Rightarrow>
+  bool" where
+  "simulation _ _ = False"
+
+interpretation backward_simulation_with_measuring_function where
+  step1 = ord_res_mod_op_strategy and
+  step2 = "\<lambda>S\<^sub>0 S\<^sub>2. \<exists>S\<^sub>1. scl_reso1 N \<beta> S\<^sub>0 S\<^sub>1 S\<^sub>2" and
+  final1 = "\<lambda>N. {#} |\<in>| N" and
+  final2 = "\<lambda>S. \<exists>\<gamma>. state_trail (fst S) = [] \<and> state_conflict (fst S) = Some ({#}, \<gamma>)" and
+  order = "\<lambda>_ _. False" and
+  match = "simulation" and
+  measure = "\<lambda>_. ()"
+proof unfold_locales
+  fix s1 s2
+  assume
+    match: "simulation s1 s2" and
+    final2: "\<exists>\<gamma>. state_trail (fst s2) = [] \<and> state_conflict (fst s2) = Some ({#}, \<gamma>)"
+  show "{#} |\<in>| s1"
+    sorry
+next
+  fix s1 s2a s2c
+  assume
+    match: "simulation s1 s2a" and
+    step2: "\<exists>s2b. scl_reso1 N \<beta> s2a s2b s2c"
+  then obtain s2b where "scl_reso1 N \<beta> s2a s2b s2c"
+    by metis
+
+  thus "(\<exists>s1'. ord_res_mod_op_strategy\<^sup>+\<^sup>+ s1 s1' \<and> simulation s1' s2c) \<or>
+    simulation s1 s2c \<and> False"
+  proof (cases N \<beta> s2a s2b s2c rule: scl_reso1.cases)
+    case (scl_reso1I \<F> C D U L Ks \<Gamma> \<Gamma>\<^sub>1 i N\<^sub>i D')
+    then show ?thesis
+      sorry
+  qed
+qed
+
 
 subsection \<open>Forward simulation between SCL(FOL)++ and SCL(FOL)\<close>
 
