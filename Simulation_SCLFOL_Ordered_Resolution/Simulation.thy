@@ -1894,9 +1894,6 @@ lemma atoms_of_learn_clauses_already_in_initial_clauses:
     \<beta>_greatest: "is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta>" and
     step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
     N_generalizes: "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S\<^sub>0" and
-    "(ord_res_mod_op_strategy ^^ i\<^sub>0) N N\<^sub>0" and
-    "(ord_res_mod_op_strategy ^^ i\<^sub>1) N N\<^sub>1" and
-    "(ord_res_mod_op_strategy ^^ i\<^sub>2) N N\<^sub>2" and
     "atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>0)) \<subseteq> atms_of_clss (fset N)"
   shows
     "atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>1)) \<subseteq> atms_of_clss (fset N)"
