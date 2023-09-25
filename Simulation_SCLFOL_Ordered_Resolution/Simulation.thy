@@ -1276,7 +1276,7 @@ lemma correctness_scl_reso1:
   fixes N :: "'f gterm clause fset" and \<beta> :: "'f gterm"
   defines "N' \<equiv> fimage cls_of_gcls N" and "\<beta>' \<equiv> term_of_gterm \<beta>"
   assumes
-    \<beta>_greatest: "is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta>" and
+    \<beta>_greatereq: "\<forall>A |\<in>| atms_of_clss N. A \<preceq>\<^sub>t \<beta>" and
     step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
     invars:
       "scl_fol.initial_lits_generalize_learned_trail_conflict N' S\<^sub>0"
@@ -1411,8 +1411,8 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
         by (metis atms_of_cls_def fimage_eqI fmember_ffUnion_iff fmember_fset_mset_iff)
       thus "less_B (atm_of (lit_of_glit K)) \<beta>' \<or> atm_of (lit_of_glit K) = \<beta>'"
         unfolding less_B_def
-        using \<beta>_greatest \<beta>'_def
-        by (auto simp add: atm_of_lit_of_glit_conv is_greatest_in_set_wrt_iff)
+        using \<beta>_greatereq \<beta>'_def
+        by (auto simp add: atm_of_lit_of_glit_conv)
     qed
 
     ultimately show ?case
@@ -1586,8 +1586,8 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
                   fmember_ffUnion_iff fset.set_map fset_fset_mset)
             thus "less_B\<^sup>=\<^sup>= (atm_of K) \<beta>'"
               unfolding N'_def \<beta>'_def reflclp_iff less_B_def
-              using \<beta>_greatest
-              by (auto simp add: \<open>K = lit_of_glit K'\<close> atm_of_lit_of_glit_conv is_greatest_in_set_wrt_iff)
+              using \<beta>_greatereq
+              by (auto simp add: \<open>K = lit_of_glit K'\<close> atm_of_lit_of_glit_conv)
           qed
         next
           show "cls_of_gcls D = add_mset (lit_of_glit L) D'"
@@ -1689,8 +1689,8 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
             using \<open>L \<in> \<Union> (set_mset ` fset N)\<close>
             by (smt (verit, del_insts) UN_E atms_of_cls_def atms_of_clss_def fimage_eqI
                 fmember_ffUnion_iff fset_fset_mset)
-          with \<beta>_greatest show "scl_fol.lesseq_B (atm_of (lit_of_glit L) \<cdot>a Var) \<beta>'"
-            by (auto simp add: less_B_def atm_of_lit_of_glit_conv \<beta>'_def is_greatest_in_set_wrt_iff)
+          with \<beta>_greatereq show "scl_fol.lesseq_B (atm_of (lit_of_glit L) \<cdot>a Var) \<beta>'"
+            by (auto simp add: less_B_def atm_of_lit_of_glit_conv \<beta>'_def)
         qed
 
         ultimately have "scl_fol.decide N' \<beta>' S\<^sub>1 S\<^sub>2"
@@ -1918,7 +1918,7 @@ qed
 
 lemma atoms_of_learn_clauses_already_in_initial_clauses:
   assumes
-    \<beta>_greatest: "is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta>" and
+    \<beta>_greatereq: "\<forall>A |\<in>| atms_of_clss N. A \<preceq>\<^sub>t \<beta>" and
     step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
     N_generalizes: "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S\<^sub>0" and
     "atms_of_clss (gcls_of_cls |`| state_learned S\<^sub>0) |\<subseteq>| atms_of_clss N"
@@ -1930,7 +1930,7 @@ lemma atoms_of_learn_clauses_already_in_initial_clauses:
 proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" rule: scl_reso1.cases)
   case (scl_reso1I D U L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
   have "(scl_fol.decide (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1"
-    using \<beta>_greatest step N_generalizes correctness_scl_reso1(1) by metis
+    using \<beta>_greatereq step N_generalizes correctness_scl_reso1(1) by metis
   hence N_generalizes_S\<^sub>1:
     "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S\<^sub>1"
     using N_generalizes
@@ -1957,7 +1957,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
       (scl_fol.propagate (cls_of_gcls |`| N) (term_of_gterm \<beta>) OO
         scl_fol.conflict (cls_of_gcls |`| N) (term_of_gterm \<beta>)) S\<^sub>1 S\<^sub>2 \<or>
       S\<^sub>2 = S\<^sub>1"
-      using \<beta>_greatest step N_generalizes correctness_scl_reso1(2) by blast
+      using \<beta>_greatereq step N_generalizes correctness_scl_reso1(2) by blast
     hence "scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>) S\<^sub>1 S\<^sub>2 \<or>
       (scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>) OO
         scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>)) S\<^sub>1 S\<^sub>2 \<or>
@@ -2000,14 +2000,14 @@ interpretation forward_simulation_with_measuring_function where
   final1 = "\<lambda>S. \<exists>\<gamma>. state_trail (fst S) = [] \<and> state_conflict (fst S) = Some ({#}, \<gamma>)" and
   final2 = "\<lambda>S. \<exists>\<gamma>. state_trail S = [] \<and> state_conflict S = Some ({#}, \<gamma>)" and
   order = "(|\<subset>|)" and
-  match = "\<lambda>S1 S2. fst S1 = S2 \<and> is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta> \<and>
+  match = "\<lambda>S1 S2. fst S1 = S2 \<and> (\<forall>A |\<in>| atms_of_clss N. A \<preceq>\<^sub>t \<beta>) \<and>
     scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2" and
   measure = "\<M> N"
 proof unfold_locales
   show "wfP (|\<subset>|)"
     by auto
 next
-  show "\<And>n s1 s2. fst s1 = s2 \<and> is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta> \<and>
+  show "\<And>n s1 s2. fst s1 = s2 \<and> (\<forall>A |\<in>| atms_of_clss N. A \<preceq>\<^sub>t \<beta>) \<and>
     scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) s2 \<Longrightarrow>
     \<exists>\<gamma>. state_trail (fst s1) = [] \<and> state_conflict (fst s1) = Some ({#}, \<gamma>) \<Longrightarrow>
     \<exists>\<gamma>. state_trail s2 = [] \<and> state_conflict s2 = Some ({#}, \<gamma>)"
@@ -2015,12 +2015,12 @@ next
 next
   fix S1 S2 S1'
   assume
-    match: "fst S1 = S2 \<and> is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta> \<and>
+    match: "fst S1 = S2 \<and> (\<forall>A |\<in>| atms_of_clss N. A \<preceq>\<^sub>t \<beta>) \<and>
       scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2" and
     step: "\<exists>S1''. scl_reso1 N \<beta> S1 S1'' S1'"
   from match have
     "fst S1 = S2" and
-    \<beta>_greatest: "is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta>" and
+    \<beta>_greatereq: "\<forall>A |\<in>| atms_of_clss N. A \<preceq>\<^sub>t \<beta>" and
     init_geneneralize: "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2"
     by simp_all
   from step obtain S\<^sub>0 i\<^sub>0 C\<^sub>0 \<F>\<^sub>0 S\<^sub>1 i\<^sub>1 C\<^sub>1 \<F>\<^sub>1 S\<^sub>2 i\<^sub>2 C\<^sub>2 \<F>\<^sub>2 where
@@ -2034,17 +2034,17 @@ next
     unfolding \<open>fst S1 = S2\<close>[symmetric] \<open>S1 = (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)\<close> prod.sel .
 
   have 1: "(scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1"
-    using correctness_scl_reso1(1)[OF \<beta>_greatest step' init_geneneralize']
+    using correctness_scl_reso1(1)[OF \<beta>_greatereq step' init_geneneralize']
     by (metis mono_rtranclp scl_fol.scl_def)
 
   show "
     (\<exists>S2'. (scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>+\<^sup>+ S2 S2' \<and>
-      fst S1' = S2' \<and> is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta> \<and>
+      fst S1' = S2' \<and> (\<forall>A |\<in>| atms_of_clss N. A \<preceq>\<^sub>t \<beta>) \<and>
       scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2') \<or>
-    ((fst S1' = S2 \<and> is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta> \<and>
+    ((fst S1' = S2 \<and> (\<forall>A |\<in>| atms_of_clss N. A \<preceq>\<^sub>t \<beta>) \<and>
       scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2) \<and>
       \<M> N S1' |\<subset>| \<M> N S1)"
-    using correctness_scl_reso1(2)[OF \<beta>_greatest step' init_geneneralize']
+    using correctness_scl_reso1(2)[OF \<beta>_greatereq step' init_geneneralize']
   proof (elim disjE)
     assume "scl_fol.decide (cls_of_gcls |`| N) (term_of_gterm \<beta>) S\<^sub>1 S\<^sub>2"
     hence 2: "scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>) S\<^sub>1 S\<^sub>2"
@@ -2058,7 +2058,7 @@ next
         (simp_all add: scl_fol.scl_preserves_initial_lits_generalize_learned_trail_conflict)
     ultimately show ?thesis
       unfolding \<open>fst S1 = S2\<close>[symmetric] \<open>S1 = (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)\<close> \<open>S1' = (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)\<close> prod.sel
-      using \<beta>_greatest by metis
+      using \<beta>_greatereq by metis
   next
     assume "(scl_fol.propagate (cls_of_gcls |`| N) (term_of_gterm \<beta>) OO
       scl_fol.conflict (cls_of_gcls |`| N) (term_of_gterm \<beta>)) S\<^sub>1 S\<^sub>2"
@@ -2078,7 +2078,7 @@ next
         (simp_all add: scl_fol.scl_preserves_initial_lits_generalize_learned_trail_conflict)
     ultimately show ?thesis
       unfolding \<open>fst S1 = S2\<close>[symmetric] \<open>S1 = (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)\<close> \<open>S1' = (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)\<close> prod.sel
-      using \<beta>_greatest by metis
+      using \<beta>_greatereq by metis
   next
     assume "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) = (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)"
     hence "S\<^sub>1 = S\<^sub>2" "i\<^sub>2 = i\<^sub>1" "C\<^sub>2 = C\<^sub>1" "\<F>\<^sub>2 = \<F>\<^sub>1"
@@ -2161,7 +2161,7 @@ next
       ultimately show ?case
         apply -
         apply (rule disjI2)
-        using \<beta>_greatest
+        using \<beta>_greatereq
         by simp
     next
       case (step y z)
@@ -2174,7 +2174,7 @@ next
       ultimately show ?case
         apply -
         apply (rule disjI1)
-        using \<beta>_greatest
+        using \<beta>_greatereq
         by fastforce
     qed
   qed
