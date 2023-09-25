@@ -1042,11 +1042,233 @@ proof -
     using \<open>ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')\<close> by blast
 qed
 
-term "propagate_lit L D Var"
-term "trail_propagate \<Gamma> L D' Var"
+lemma member_mset_if_count_eq_Suc: "count X x = Suc n \<Longrightarrow> x \<in># X"
+  by (simp add: count_inI)
 
-term "{#K \<in># D. K \<noteq> L#}"
-term "ord_res_mod_op_strategy ^^ 2"
+lemmas member_fsetE = mset_add
+
+lemma ord_res_ground_factoring_iff: "ord_res.ground_factoring C C' \<longleftrightarrow>
+  (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> (\<exists>n. count C (Pos A) = Suc (Suc n) \<and> C' = C - {#Pos A#}))"
+proof (rule iffI)
+  assume "ord_res.ground_factoring C C'"
+  thus "\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> (\<exists>n. count C (Pos A) = Suc (Suc n) \<and> C' = C - {#Pos A#})"
+  proof (cases C C' rule: ord_res.ground_factoring.cases)
+    case (ground_factoringI A P')
+    show ?thesis
+    proof (intro exI conjI)
+      show "ord_res.is_maximal_lit (Pos A) C"
+        using \<open>ord_res.is_maximal_lit (Pos A) C\<close> .
+    next
+      show "count C (Pos A) = Suc (Suc (count P' (Pos A)))"
+        unfolding \<open>C = add_mset (Pos A) (add_mset (Pos A) P')\<close> by simp
+    next
+      show "C' = remove1_mset (Pos A) C"
+        unfolding \<open>C = add_mset (Pos A) (add_mset (Pos A) P')\<close> \<open>C' = add_mset (Pos A) P'\<close> by simp
+    qed
+  qed
+next
+  assume "\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and>
+    (\<exists>n. count C (Pos A) = Suc (Suc n) \<and> C' = C - {#Pos A#})"
+  then obtain A n where
+    "ord_res.is_maximal_lit (Pos A) C" and
+    "count C (Pos A) = Suc (Suc n)" and
+    "C' = C - {#Pos A#}"
+    by metis
+
+  have "Pos A \<in># C"
+    using \<open>count C (Pos A) = Suc (Suc n)\<close> member_mset_if_count_eq_Suc by metis
+  then obtain C'' where "C = add_mset (Pos A) C''"
+    by (auto elim: member_fsetE)
+  with \<open>count C (Pos A) = Suc (Suc n)\<close> have "count C'' (Pos A) = Suc n"
+    by simp
+  hence "Pos A \<in># C''"
+    using member_mset_if_count_eq_Suc by metis
+  then obtain C''' where "C'' = add_mset (Pos A) C'''"
+    by (auto elim: member_fsetE)
+
+  show "ord_res.ground_factoring C C'"
+  proof (rule ord_res.ground_factoringI)
+    show "C = add_mset (Pos A) (add_mset (Pos A) C''')"
+      using \<open>C = add_mset (Pos A) C''\<close> \<open>C'' = add_mset (Pos A) C'''\<close> by metis
+  next
+    show "ord_res.is_maximal_lit (Pos A) C"
+      using \<open>ord_res.is_maximal_lit (Pos A) C\<close> .
+  next
+    show "C' = add_mset (Pos A) C'''"
+      using \<open>C' = C - {#Pos A#}\<close> \<open>C = add_mset (Pos A) C''\<close> \<open>C'' = add_mset (Pos A) C'''\<close> by simp
+  qed simp_all
+qed
+
+lemma tranclp_ord_res_ground_factoring_iff:
+  "ord_res.ground_factoring\<^sup>+\<^sup>+ C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'') \<longleftrightarrow>
+  (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> (\<exists>n. count C (Pos A) = Suc (Suc n) \<and>
+    C' = C - replicate_mset (Suc n) (Pos A)))"
+proof (intro iffI; elim exE conjE)
+  assume "ord_res.ground_factoring\<^sup>+\<^sup>+ C C'" and "(\<nexists>C''. ord_res.ground_factoring C' C'')"
+  then show "\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> (\<exists>n. count C (Pos A) = Suc (Suc n) \<and>
+    C' = C - replicate_mset (Suc n) (Pos A))"
+  proof (induction C rule: converse_tranclp_induct)
+    case (base C)
+    then obtain A where
+      "ord_res.is_maximal_lit (Pos A) C \<and>
+        (count C (Pos A) = Suc (Suc 0)) \<and>
+        C' = remove1_mset (Pos A) C"
+      unfolding ord_res_ground_factoring_iff
+      by (smt (verit) Zero_not_Suc count_add_mset count_inI insert_DiffM is_maximal_wrt_def
+          nat.inject)
+    thus ?case
+      by (metis replicate_mset_0 replicate_mset_Suc)
+  next
+    case (step C C'')
+    from step.IH step.prems obtain A n where
+      "ord_res.is_maximal_lit (Pos A) C''" and
+      "count C'' (Pos A) = Suc (Suc n)" and
+      "C' = C'' - replicate_mset (Suc n) (Pos A)"
+      by metis
+
+    from step.hyps(1) obtain A' m where
+      "ord_res.is_maximal_lit (Pos A') C" and
+      "count C (Pos A') = Suc (Suc m)" and
+      "C'' = remove1_mset (Pos A') C"
+      unfolding ord_res_ground_factoring_iff by metis
+
+    have "A' = A"
+      using \<open>ord_res.is_maximal_lit (Pos A) C''\<close> \<open>ord_res.is_maximal_lit (Pos A') C\<close>
+      by (metis \<open>C'' = remove1_mset (Pos A') C\<close> insert_DiffM insert_noteq_member is_maximal_wrt_def
+          linorder_lit.antisym_conv3 literal.inject(1) ord_res.ground_factoring.cases step.hyps(1))
+
+    have "m = Suc n"
+      using \<open>count C'' (Pos A) = Suc (Suc n)\<close> \<open>count C (Pos A') = Suc (Suc m)\<close>
+      unfolding \<open>C'' = remove1_mset (Pos A') C\<close> \<open>A' = A\<close>
+      by simp
+
+    show ?case
+    proof (intro exI conjI)
+      show "ord_res.is_maximal_lit (Pos A) C"
+        using \<open>ord_res.is_maximal_lit (Pos A') C\<close> \<open>A' = A\<close> by metis
+    next
+      show "count C (Pos A) = Suc (Suc m)"
+        using \<open>count C (Pos A') = Suc (Suc m)\<close> \<open>A' = A\<close> by metis
+    next
+      show "C' = C - replicate_mset (Suc m) (Pos A)"
+        unfolding \<open>C' = C'' - replicate_mset (Suc n) (Pos A)\<close> \<open>C'' = remove1_mset (Pos A') C\<close>
+          \<open>A' = A\<close> \<open>m = Suc n\<close>
+        by simp
+    qed
+  qed
+next
+  fix A n assume "ord_res.is_maximal_lit (Pos A) C"
+  thus "count C (Pos A) = Suc (Suc n) \<Longrightarrow> C' = C - replicate_mset (Suc n) (Pos A) \<Longrightarrow>
+    ord_res.ground_factoring\<^sup>+\<^sup>+ C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')"
+  proof (induction n arbitrary: C)
+    case 0
+    hence "(ord_res.is_maximal_lit (Pos A) C \<and>
+         (count C (Pos A) = Suc (Suc 0) \<and>
+              C' = remove1_mset (Pos A) C))"
+      by (metis replicate_mset_0 replicate_mset_Suc)
+    hence "ord_res.ground_factoring C C' \<and> (\<nexists>a. ord_res.ground_factoring C' a)"
+      unfolding ord_res_ground_factoring_iff
+      by (smt (verit) Zero_not_Suc add_diff_cancel_left' count_add_mset count_inI insert_DiffM
+          is_maximal_wrt_def linorder_lit.antisym_conv3 plus_1_eq_Suc)
+    thus ?case
+      by blast
+  next
+    case (Suc n)
+    have "ord_res.ground_factoring\<^sup>+\<^sup>+ (C - {#Pos A#}) C' \<and> (\<nexists>a. ord_res.ground_factoring C' a)"
+    proof (rule Suc.IH)
+      show "count (remove1_mset (Pos A) C) (Pos A) = Suc (Suc n)"
+        using Suc.prems by (simp add: is_maximal_wrt_def)
+    next
+      show "C' = remove1_mset (Pos A) C - replicate_mset (Suc n) (Pos A)"
+        using Suc.prems by simp
+    next
+      show "ord_res.is_maximal_lit (Pos A) (remove1_mset (Pos A) C)"
+        using Suc.prems
+        by (smt (verit, ccfv_threshold) Zero_not_Suc add_mset_remove_trivial_eq count_add_mset
+            count_inI is_maximal_wrt_def nat.inject)
+    qed
+
+    moreover have "ord_res.ground_factoring C (C - {#Pos A#})"
+      unfolding ord_res_ground_factoring_iff
+    proof (intro exI conjI)
+      show "ord_res.is_maximal_lit (Pos A) C"
+        using Suc.prems by metis
+    next
+      show "count C (Pos A) = Suc (Suc (Suc n))"
+        using Suc.prems by metis
+    next
+      show "remove1_mset (Pos A) C = remove1_mset (Pos A) C" ..
+    qed
+
+    ultimately show ?case
+      by auto
+  qed
+qed
+
+lemma minus_mset_replicate_mset_eq_add_mset_filter_mset:
+  assumes "count X x = Suc n"
+  shows "X - replicate_mset n x = add_mset x {#y \<in># X. y \<noteq> x#}"
+  using assms
+  by (metis add_diff_cancel_left' add_mset_diff_bothsides filter_mset_eq filter_mset_neq
+      multiset_partition replicate_mset_Suc union_mset_add_mset_right)
+
+lemma shows "ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'') \<longleftrightarrow>
+  ((\<nexists>A. ord_res.is_maximal_lit (Pos A) C \<and> count C (Pos A) \<ge> 2) \<and> C = C' \<or>
+   (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> C' = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#}))"
+proof (intro iffI; elim exE conjE disjE)
+  show "ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<Longrightarrow> \<nexists>C''. ord_res.ground_factoring C' C'' \<Longrightarrow>
+    (\<nexists>A. ord_res.is_maximal_lit (Pos A) C \<and> 2 \<le> count C (Pos A)) \<and> C = C' \<or>
+    (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> C' = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#})"
+  proof (induction C rule: converse_rtranclp_induct)
+    case base
+    thus ?case
+      by (metis add_2_eq_Suc le_Suc_ex ord_res_ground_factoring_iff)
+  next
+    case (step y z)
+    hence "ord_res.ground_factoring\<^sup>+\<^sup>+ y C' \<and> (\<nexists>x. ord_res.ground_factoring C' x)"
+      by simp
+    thus ?case
+      unfolding tranclp_ord_res_ground_factoring_iff
+      by (metis minus_mset_replicate_mset_eq_add_mset_filter_mset)
+  qed
+next
+  assume "\<nexists>A. ord_res.is_maximal_lit (Pos A) C \<and> 2 \<le> count C (Pos A)" and "C = C'"
+  thus "ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')"
+    by (metis One_nat_def Suc_1 Suc_le_eq Suc_le_mono ord_res_ground_factoring_iff
+        rtranclp.rtrancl_refl zero_less_Suc)
+next
+  fix A assume "ord_res.is_maximal_lit (Pos A) C"
+  then obtain n where "count C (Pos A) = Suc n"
+    by (metis count_add_mset insert_DiffM is_maximal_wrt_def)
+  with \<open>ord_res.is_maximal_lit (Pos A) C\<close> show "C' = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#} \<Longrightarrow>
+    ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')"
+  proof (induction n arbitrary: C)
+    case 0
+
+    have "(\<nexists>a. ord_res.ground_factoring C a)"
+    proof (intro notI, elim exE)
+      fix D assume "ord_res.ground_factoring C D"
+      thus False
+      proof (cases rule: ord_res.ground_factoring.cases)
+        case (ground_factoringI A' P')
+        hence "A' = A"
+          using \<open>ord_res.is_maximal_lit (Pos A) C\<close>
+          by (metis insert_DiffM insert_iff is_maximal_wrt_def linorder_lit.antisym_conv3
+              literal.inject(1) set_mset_add_mset_insert)
+        thus False
+          using \<open>count C (Pos A) = Suc 0\<close> \<open>C = add_mset (Pos A') (add_mset (Pos A') P')\<close> by simp
+      qed
+    qed
+    thus ?case
+      by (metis "0.prems"(1) "0.prems"(3) diff_zero
+          minus_mset_replicate_mset_eq_add_mset_filter_mset replicate_mset_0 rtranclp.rtrancl_refl)
+  next
+    case (Suc x)
+    then show ?case
+      by (metis minus_mset_replicate_mset_eq_add_mset_filter_mset tranclp_into_rtranclp
+          tranclp_ord_res_ground_factoring_iff)
+  qed
+qed
 
 inductive scl_reso1
   :: "_ \<Rightarrow> _ \<Rightarrow>
@@ -2017,7 +2239,6 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
     by (intro conjI)
 qed
 
-
 definition simulation ::
   "'f gterm literal multiset fset \<Rightarrow>
   ('f, 'v) state \<times> nat \<times> 'f gterm clause \<times> ('f gterm clause \<Rightarrow> 'f gterm clause) \<Rightarrow>
@@ -2165,7 +2386,7 @@ next
         have "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1"
           using step' by (auto elim: scl_reso1.cases)
         moreover have "C\<^sub>1 = C\<^sub>2"
-          using step'[THEN scl_reso1_clause2_eq_clause_3] .
+          using scl_reso1_clause2_eq_clause_3[OF step'] by metis
         ultimately have "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1"
           by metis
         show "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 x"
