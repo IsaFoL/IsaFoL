@@ -1019,12 +1019,13 @@ proof -
   qed
 qed
 
+
 subsection \<open>Strategy for resolution-driven SCL(FOL)\<close>
 
 definition sfac :: "'f gterm clause \<Rightarrow> 'f gterm clause" where
   "sfac C = (THE C'. ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C''))"
 
-lemma
+lemma sfac_eq_disj:
   shows "sfac C = C \<or> (\<exists>!C'. sfac C = C' \<and> ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C''))"
 proof -
   have "right_unique (\<lambda>x y. ord_res.ground_factoring\<^sup>*\<^sup>* x y \<and> (\<nexists>z. ord_res.ground_factoring y z))"
@@ -1212,7 +1213,8 @@ lemma minus_mset_replicate_mset_eq_add_mset_filter_mset:
   by (metis add_diff_cancel_left' add_mset_diff_bothsides filter_mset_eq filter_mset_neq
       multiset_partition replicate_mset_Suc union_mset_add_mset_right)
 
-lemma shows "ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'') \<longleftrightarrow>
+lemma rtrancl_ground_factoring_iff:
+  shows "ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'') \<longleftrightarrow>
   ((\<nexists>A. ord_res.is_maximal_lit (Pos A) C \<and> count C (Pos A) \<ge> 2) \<and> C = C' \<or>
    (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> C' = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#}))"
 proof (intro iffI; elim exE conjE disjE)
@@ -1268,6 +1270,27 @@ next
       by (metis minus_mset_replicate_mset_eq_add_mset_filter_mset tranclp_into_rtranclp
           tranclp_ord_res_ground_factoring_iff)
   qed
+qed
+
+lemma sfac_spec: "sfac C = C \<or>
+  (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> sfac C = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#})"
+  using sfac_eq_disj[of C]
+proof (elim disjE)
+  assume "sfac C = C"
+  thus "sfac C = C \<or>
+    (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> sfac C = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#})"
+    by metis
+next
+  assume "\<exists>!C'. sfac C = C' \<and> ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and>
+    (\<nexists>C''. ord_res.ground_factoring C' C'')"
+  then obtain C' where
+    "sfac C = C'" and
+    "ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')"
+    by metis
+  thus "sfac C = C \<or>
+    (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> sfac C = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#})"
+    unfolding rtrancl_ground_factoring_iff
+    by metis
 qed
 
 inductive scl_reso1
