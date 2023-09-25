@@ -423,6 +423,22 @@ syntax
 translations
   "{|x |\<in>| X. P|}" == "CONST ffilter (\<lambda>x. P) X"
 
+lemma fimage_ffUnion: "f |`| ffUnion SS = ffUnion ((|`|) f |`| SS)"
+proof (intro fsubset_antisym fsubsetI)
+  fix x assume "x |\<in>| f |`| ffUnion SS"
+  then obtain y where "y |\<in>| ffUnion SS" and "x = f y"
+    by auto
+  thus "x |\<in>| ffUnion ((|`|) f |`| SS)"
+    unfolding fmember_ffUnion_iff
+    by (metis UN_E ffUnion.rep_eq fimage_eqI)
+next
+  fix x assume "x |\<in>| ffUnion ((|`|) f |`| SS)"
+  then obtain S where "S |\<in>| SS" and "x |\<in>| f |`| S"
+    unfolding fmember_ffUnion_iff by auto
+  then show "x |\<in>| f |`| ffUnion SS"
+    by (metis ffUnion_fsubset_iff fimage_mono fin_mono fsubsetI)
+qed
+
 abbreviation is_minimal_in_fset_wrt where
   "is_minimal_in_fset_wrt R X \<equiv> is_minimal_in_set_wrt R (fset X)"
 
@@ -695,8 +711,11 @@ lemma lit_of_glit_glit_of_lit_ident[simp]: "is_ground_lit L \<Longrightarrow> li
 lemma cls_of_gcls_gcls_of_cls_ident[simp]: "is_ground_cls D \<Longrightarrow> cls_of_gcls (gcls_of_cls D) = D"
   by (simp add: is_ground_cls_def cls_of_gcls_def gcls_of_cls_def)
 
-definition atms_of_clss where
-  "atms_of_clss N = (\<Union>C \<in> N. atms_of C)"
+definition atms_of_cls :: "'a clause \<Rightarrow> 'a fset" where
+  "atms_of_cls C = atm_of |`| fset_mset C"
+
+definition atms_of_clss :: "'a clause fset \<Rightarrow> 'a fset" where
+  "atms_of_clss N = ffUnion (atms_of_cls |`| N)"
 
 definition lit_occures_in_clss where
   "lit_occures_in_clss L N \<longleftrightarrow> fBex N (\<lambda>C. L \<in># C)"
@@ -1257,7 +1276,7 @@ lemma correctness_scl_reso1:
   fixes N :: "'f gterm clause fset" and \<beta> :: "'f gterm"
   defines "N' \<equiv> fimage cls_of_gcls N" and "\<beta>' \<equiv> term_of_gterm \<beta>"
   assumes
-    \<beta>_greatest: "is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta>" and
+    \<beta>_greatest: "is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta>" and
     step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
     invars:
       "scl_fol.initial_lits_generalize_learned_trail_conflict N' S\<^sub>0"
@@ -1386,10 +1405,10 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
         unfolding lit_occures_in_clss_def N'_def
         by (metis cls_of_gcls_def finsertI1 finsert_fimage imageI multiset.set_map)
     next
-      have "atm_of K \<in> atms_of_clss (fset N)"
+      have "atm_of K |\<in>| atms_of_clss N"
         using \<open>lit_occures_in_clss K N\<close>
         unfolding lit_occures_in_clss_def atms_of_clss_def
-        by (metis Union_iff atms_of_def image_eqI)
+        by (metis atms_of_cls_def fimage_eqI fmember_ffUnion_iff fmember_fset_mset_iff)
       thus "less_B (atm_of (lit_of_glit K)) \<beta>' \<or> atm_of (lit_of_glit K) = \<beta>'"
         unfolding less_B_def
         using \<beta>_greatest \<beta>'_def
@@ -1560,10 +1579,11 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
             then obtain K' where "K = lit_of_glit K'" and "K' \<in># D"
               by (metis cls_of_gcls_def image_iff multiset.set_map)
 
-            have "atm_of K' \<in> atms_of_clss (fset N)"
+            have "atm_of K' |\<in>| atms_of_clss N"
               using lit_in_N_if_in_D[OF \<open>K' \<in># D\<close>]
               using atm_of_lit_in_atms_of
-              by (auto simp add: atms_of_clss_def)
+              by (smt (verit, del_insts) UN_E atms_of_cls_def atms_of_clss_def atms_of_def
+                  fmember_ffUnion_iff fset.set_map fset_fset_mset)
             thus "less_B\<^sup>=\<^sup>= (atm_of K) \<beta>'"
               unfolding N'_def \<beta>'_def reflclp_iff less_B_def
               using \<beta>_greatest
@@ -1665,9 +1685,10 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
           show "\<not> trail_defined_lit \<Gamma>\<^sub>1 (lit_of_glit L \<cdot>l Var)"
             using \<open>\<not> trail_defined_lit \<Gamma>\<^sub>1 (lit_of_glit L)\<close> by simp
         next
-          have "atm_of L \<in> atms_of_clss (fset N)"
+          have "atm_of L |\<in>| atms_of_clss N"
             using \<open>L \<in> \<Union> (set_mset ` fset N)\<close>
-            by (auto simp: atms_of_clss_def intro: atm_of_lit_in_atms_of)
+            by (smt (verit, del_insts) UN_E atms_of_cls_def atms_of_clss_def fimage_eqI
+                fmember_ffUnion_iff fset_fset_mset)
           with \<beta>_greatest show "scl_fol.lesseq_B (atm_of (lit_of_glit L) \<cdot>a Var) \<beta>'"
             by (auto simp add: less_B_def atm_of_lit_of_glit_conv \<beta>'_def is_greatest_in_set_wrt_iff)
         qed
@@ -1819,9 +1840,12 @@ qed
 
 subsection \<open>Backward simulation between ORD-RES++ and SCL(FOL)++\<close>
 
+lemma atms_of_eq_fset_atms_of_cls: "atms_of C = fset (atms_of_cls C)"
+  by (simp add: atms_of_cls_def atms_of_def)
+
 lemma ord_res_mod_op_strategy_preserves_atms_of_clss:
   assumes step: "ord_res_mod_op_strategy N N'"
-  shows "atms_of_clss (fset N) = atms_of_clss (fset N')"
+  shows "atms_of_clss N = atms_of_clss N'"
 proof -
   from step obtain L C where
     C_min: "is_min_false_clause N C" and
@@ -1843,8 +1867,11 @@ proof -
       "ord_res.ground_factoring C C'" and
       "N' = finsert C' N"
       by auto
-    then show ?thesis
-      using \<open>C |\<in>| N\<close> ord_res.atms_of_concl_eq_if_ground_factoring[OF \<open>ord_res.ground_factoring C C'\<close>]
+    moreover have "atms_of_cls C' = atms_of_cls C"
+      using ord_res.atms_of_concl_eq_if_ground_factoring[OF \<open>ord_res.ground_factoring C C'\<close>]
+      by (simp add: atms_of_eq_fset_atms_of_cls fset_cong)
+    ultimately show ?thesis
+      using \<open>C |\<in>| N\<close>
       by (simp add: atms_of_clss_def)
   next
     case (Neg A)
@@ -1854,24 +1881,24 @@ proof -
       "N' = finsert CD N"
       by auto
 
-    have "atms_of_clss (fset N') = atms_of_clss (fset (finsert CD N))"
+    have "atms_of_clss N' = atms_of_clss (finsert CD N)"
       unfolding \<open>N' = finsert CD N\<close> ..
-    also have "\<dots> = atms_of CD \<union> atms_of_clss (fset N)"
+    also have "\<dots> = atms_of_cls CD |\<union>| atms_of_clss N"
       by (simp add: atms_of_clss_def)
-    also have "\<dots> \<subseteq> atms_of C \<union> atms_of D \<union> atms_of_clss (fset N)"
+    also have "\<dots> |\<subseteq>| atms_of_cls C |\<union>| atms_of_cls D |\<union>| atms_of_clss N"
       using \<open>ord_res.ground_resolution C D CD\<close> ord_res.atms_of_concl_subset_if_ground_resolution
-      by auto
-    also have "\<dots> = atms_of_clss (fset N)"
+      by (metis atms_of_eq_fset_atms_of_cls fsubsetI less_eq_fset.rep_eq sup_mono union_fset)
+    also have "\<dots> = atms_of_clss N"
       using \<open>C |\<in>| N\<close> \<open>D |\<in>| N\<close>
-      by (auto simp add: atms_of_clss_def)
-    finally show "atms_of_clss (fset N) = atms_of_clss (fset N')"
+      by (auto simp: atms_of_clss_def fmember_ffUnion_iff)
+    finally show "atms_of_clss N = atms_of_clss N'"
       unfolding \<open>N' = finsert CD N\<close>
-      using \<open>atms_of_clss (fset (finsert CD N)) = atms_of CD \<union> atms_of_clss (fset N)\<close> by blast
+      using \<open>atms_of_clss (finsert CD N) = atms_of_cls CD |\<union>| atms_of_clss N\<close> by blast
   qed
 qed
 
 lemma compower_ord_res_mod_op_strategy_preserves_atms_of_clss:
-  "(ord_res_mod_op_strategy ^^ i) N N\<^sub>i \<Longrightarrow> atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>i)"
+  "(ord_res_mod_op_strategy ^^ i) N N\<^sub>i \<Longrightarrow> atms_of_clss N = atms_of_clss N\<^sub>i"
 proof (induction i arbitrary: N\<^sub>i)
   case 0
   then show ?case
@@ -1882,22 +1909,22 @@ next
     "(ord_res_mod_op_strategy ^^ i') N N\<^sub>i\<^sub>'" and "ord_res_mod_op_strategy N\<^sub>i\<^sub>' N\<^sub>i"
     by auto
 
-  have "atms_of_clss (fset N) = atms_of_clss (fset N\<^sub>i\<^sub>')"
+  have "atms_of_clss N = atms_of_clss N\<^sub>i\<^sub>'"
     using Suc.IH[OF \<open>(ord_res_mod_op_strategy ^^ i') N N\<^sub>i\<^sub>'\<close>] .
-  also have "\<dots> = atms_of_clss (fset N\<^sub>i)"
+  also have "\<dots> = atms_of_clss N\<^sub>i"
     using ord_res_mod_op_strategy_preserves_atms_of_clss[OF \<open>ord_res_mod_op_strategy N\<^sub>i\<^sub>' N\<^sub>i\<close>] .
   finally show ?case .
 qed
 
 lemma atoms_of_learn_clauses_already_in_initial_clauses:
   assumes
-    \<beta>_greatest: "is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta>" and
+    \<beta>_greatest: "is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta>" and
     step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
     N_generalizes: "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S\<^sub>0" and
-    "atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>0)) \<subseteq> atms_of_clss (fset N)"
+    "atms_of_clss (gcls_of_cls |`| state_learned S\<^sub>0) |\<subseteq>| atms_of_clss N"
   shows
-    "atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>1)) \<subseteq> atms_of_clss (fset N)"
-    "atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>2)) \<subseteq> atms_of_clss (fset N)"
+    "atms_of_clss (gcls_of_cls |`| state_learned S\<^sub>1) |\<subseteq>| atms_of_clss N"
+    "atms_of_clss (gcls_of_cls |`| state_learned S\<^sub>2) |\<subseteq>| atms_of_clss N"
   using step
   unfolding atomize_conj
 proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" rule: scl_reso1.cases)
@@ -1910,17 +1937,21 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
     by (induction S\<^sub>1 rule: rtranclp_induct)
       (simp_all add: scl_fol.decide_preserves_initial_lits_generalize_learned_trail_conflict)
 
-  have "atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>1)) \<subseteq> atms_of_clss (fset N)"
+  have "atms_of_clss (gcls_of_cls |`| state_learned S\<^sub>1) |\<subseteq>| atms_of_clss N"
   proof -
     have "\<Union> (set_mset ` fset (state_learned S\<^sub>1)) \<subseteq> \<Union> (set_mset ` fset (cls_of_gcls |`| N))"
-      using N_generalizes_S\<^sub>1 lits_of_learned_subset_lits_of_initial by metis
+      using N_generalizes_S\<^sub>1[THEN lits_of_learned_subset_lits_of_initial] by metis
     hence "\<Union> (set_mset ` fset (gcls_of_cls |`| state_learned S\<^sub>1)) \<subseteq> \<Union> (set_mset ` fset N)"
       using glits_subset_if_lits_subset by metis
+    hence "ffUnion (fset_mset |`| gcls_of_cls |`| state_learned S\<^sub>1) |\<subseteq>| ffUnion (fset_mset |`| N)"
+      by (smt (verit, best) UN_E UN_I basic_trans_rules(31) fmember_ffUnion_iff fset_fset_mset
+          fsubsetI)
     thus ?thesis
-      unfolding atms_of_clss_def atms_of_def by auto
+      unfolding atms_of_clss_def atms_of_cls_def
+      by (metis fimage_ffUnion fimage_fimage fimage_mono)
   qed
 
-  moreover have "atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>2)) \<subseteq> atms_of_clss (fset N)"
+  moreover have "atms_of_clss (gcls_of_cls |`| state_learned S\<^sub>2) |\<subseteq>| atms_of_clss N"
   proof -
     have "scl_fol.decide (cls_of_gcls |`| N) (term_of_gterm \<beta>) S\<^sub>1 S\<^sub>2 \<or>
       (scl_fol.propagate (cls_of_gcls |`| N) (term_of_gterm \<beta>) OO
@@ -1942,13 +1973,17 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
       using N_generalizes_S\<^sub>1 lits_of_learned_subset_lits_of_initial by metis
     hence "\<Union> (set_mset ` fset (gcls_of_cls |`| state_learned S\<^sub>2)) \<subseteq> \<Union> (set_mset ` fset N)"
       using glits_subset_if_lits_subset by metis
+    hence "ffUnion (fset_mset |`| gcls_of_cls |`| state_learned S\<^sub>2) |\<subseteq>| ffUnion (fset_mset |`| N)"
+      by (smt (verit, del_insts) UN_E UN_I fmember_ffUnion_iff fmember_fset_mset_iff fsubsetI
+          subsetD)
     thus ?thesis
-      unfolding atms_of_clss_def atms_of_def by auto
+      unfolding atms_of_clss_def atms_of_cls_def
+      by (metis fimage_ffUnion fimage_fimage fimage_mono)
   qed
 
   ultimately show "
-    atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>1)) \<subseteq> atms_of_clss (fset N) \<and>
-    atms_of_clss (fset (gcls_of_cls |`| state_learned S\<^sub>2)) \<subseteq> atms_of_clss (fset N)"
+    atms_of_clss (gcls_of_cls |`| state_learned S\<^sub>1) |\<subseteq>| atms_of_clss N \<and>
+    atms_of_clss (gcls_of_cls |`| state_learned S\<^sub>2) |\<subseteq>| atms_of_clss N"
     by (intro conjI)
 qed
 
@@ -1965,14 +2000,14 @@ interpretation forward_simulation_with_measuring_function where
   final1 = "\<lambda>S. \<exists>\<gamma>. state_trail (fst S) = [] \<and> state_conflict (fst S) = Some ({#}, \<gamma>)" and
   final2 = "\<lambda>S. \<exists>\<gamma>. state_trail S = [] \<and> state_conflict S = Some ({#}, \<gamma>)" and
   order = "(|\<subset>|)" and
-  match = "\<lambda>S1 S2. fst S1 = S2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
+  match = "\<lambda>S1 S2. fst S1 = S2 \<and> is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta> \<and>
     scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2" and
   measure = "\<M> N"
 proof unfold_locales
   show "wfP (|\<subset>|)"
     by auto
 next
-  show "\<And>n s1 s2. fst s1 = s2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
+  show "\<And>n s1 s2. fst s1 = s2 \<and> is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta> \<and>
     scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) s2 \<Longrightarrow>
     \<exists>\<gamma>. state_trail (fst s1) = [] \<and> state_conflict (fst s1) = Some ({#}, \<gamma>) \<Longrightarrow>
     \<exists>\<gamma>. state_trail s2 = [] \<and> state_conflict s2 = Some ({#}, \<gamma>)"
@@ -1980,12 +2015,12 @@ next
 next
   fix S1 S2 S1'
   assume
-    match: "fst S1 = S2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
+    match: "fst S1 = S2 \<and> is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta> \<and>
       scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2" and
     step: "\<exists>S1''. scl_reso1 N \<beta> S1 S1'' S1'"
   from match have
     "fst S1 = S2" and
-    \<beta>_greatest: "is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta>" and
+    \<beta>_greatest: "is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta>" and
     init_geneneralize: "scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2"
     by simp_all
   from step obtain S\<^sub>0 i\<^sub>0 C\<^sub>0 \<F>\<^sub>0 S\<^sub>1 i\<^sub>1 C\<^sub>1 \<F>\<^sub>1 S\<^sub>2 i\<^sub>2 C\<^sub>2 \<F>\<^sub>2 where
@@ -2004,9 +2039,9 @@ next
 
   show "
     (\<exists>S2'. (scl_fol.scl (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>+\<^sup>+ S2 S2' \<and>
-      fst S1' = S2' \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
+      fst S1' = S2' \<and> is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta> \<and>
       scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2') \<or>
-    ((fst S1' = S2 \<and> is_greatest_in_set_wrt (\<prec>\<^sub>t) (atms_of_clss (fset N)) \<beta> \<and>
+    ((fst S1' = S2 \<and> is_greatest_in_fset_wrt (\<prec>\<^sub>t) (atms_of_clss N) \<beta> \<and>
       scl_fol.initial_lits_generalize_learned_trail_conflict (cls_of_gcls |`| N) S2) \<and>
       \<M> N S1' |\<subset>| \<M> N S1)"
     using correctness_scl_reso1(2)[OF \<beta>_greatest step' init_geneneralize']
