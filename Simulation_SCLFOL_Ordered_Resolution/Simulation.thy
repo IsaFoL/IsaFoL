@@ -881,16 +881,78 @@ definition ord_res_mod_op_strategy :: "'f gterm clause fset \<Rightarrow> 'f gte
       (case L of
         Neg A \<Rightarrow> \<comment> \<open>Case 3\<close>
         fBex N (\<lambda>D. D \<prec>\<^sub>c C \<and> ord_res.is_strictly_maximal_lit (Pos A) D \<and>
+          ord_res.production (fset N) D = {A} \<and>
           (\<exists>CD. ord_res.ground_resolution C D CD \<and> N' = finsert CD N))
       | Pos A \<Rightarrow> \<comment> \<open>Case 4\<close>
         \<not> ord_res.is_strictly_maximal_lit (Pos A) C \<and>
           (\<exists>C'. ord_res.ground_factoring C C' \<and> N' = finsert C' N)))"
 
+lemma Unique_is_maximal_lit: "\<exists>\<^sub>\<le>\<^sub>1L. ord_res.is_maximal_lit L C"
+  by (metis Uniq_is_maximal_wrt ord_res.totalp_on_less_lit)
+
+lemma right_unique_ord_res_mod_op_strategy: "right_unique ord_res_mod_op_strategy"
+proof (rule right_uniqueI)
+  fix N1 N2 N3
+  assume "ord_res_mod_op_strategy N1 N2" and "ord_res_mod_op_strategy N1 N3"
+  then obtain C L where
+    C_min: "is_min_false_clause N1 C" and
+    L_max: "ord_res.is_maximal_lit L C" and
+    fact_or_res2: "(case L of
+           Pos A \<Rightarrow>
+             \<not> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) C \<and>
+             (\<exists>C'. ord_res.ground_factoring C C' \<and> N2 = finsert C' N1)
+           | Neg A \<Rightarrow>
+               \<exists>D|\<in>|N1.
+                  D \<prec>\<^sub>c C \<and>
+                  is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) D \<and> ord_res.production (fset N1) D = {A} \<and>
+                  (\<exists>CD. ord_res.ground_resolution C D CD \<and>
+                        N2 = finsert CD N1))" and
+    fact_or_res3: "(case L of
+           Pos A \<Rightarrow>
+             \<not> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) C \<and>
+             (\<exists>C'. ord_res.ground_factoring C C' \<and> N3 = finsert C' N1)
+           | Neg A \<Rightarrow>
+               \<exists>D|\<in>|N1.
+                  D \<prec>\<^sub>c C \<and>
+                  is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) D \<and> ord_res.production (fset N1) D = {A} \<and>
+                  (\<exists>CD. ord_res.ground_resolution C D CD \<and>
+                        N3 = finsert CD N1))"
+    unfolding atomize_conj ord_res_mod_op_strategy_def
+    using Uniq_is_min_false_clause[of N1] Unique_is_maximal_lit
+    by (smt (verit, best) Uniq_D)
+  show "N2 = N3"
+  proof (cases L)
+    case (Pos A)
+    then show ?thesis
+      using fact_or_res2 fact_or_res3
+      apply simp
+      by (metis Uniq_D ord_res.unique_ground_factoring)
+  next
+    case (Neg A)
+
+    from fact_or_res2 Neg obtain D2 where
+      D2_prod: "ord_res.production (fset N1) D2 = {A}" and
+      D2_reso: "(\<exists>CD. ord_res.ground_resolution C D2 CD \<and> N2 = finsert CD N1)"
+      by auto
+
+    from fact_or_res3 Neg obtain D3 where
+      D3_prod: "ord_res.production (fset N1) D3 = {A}" and
+      D3_reso: "(\<exists>CD. ord_res.ground_resolution C D3 CD \<and> N3 = finsert CD N1)"
+      by auto
+
+    from D2_prod D3_prod have "D2 = D3"
+      using ord_res.Uniq_production_eq_singleton by (meson Uniq_D)
+    with D2_reso D3_reso show ?thesis
+      using ord_res.unique_ground_resolution by (metis Uniq_D)
+  qed
+qed
+
 lemma
   assumes
     C_min_false: "is_min_false_clause N C" and
     Neg_A_max: "ord_res.is_maximal_lit (Neg A) C"
-  shows "fBex N (\<lambda>D. D \<prec>\<^sub>c C \<and> ord_res.is_strictly_maximal_lit (Pos A) D)"
+  shows "fBex N (\<lambda>D. D \<prec>\<^sub>c C \<and> ord_res.is_strictly_maximal_lit (Pos A) D \<and>
+    ord_res.production (fset N) D = {A})"
 proof -
   from C_min_false have
     C_in: "C |\<in>| N" and
@@ -926,7 +988,11 @@ proof -
 
   from D_productive have "ord_res.is_strictly_maximal_lit (Pos A) D"
     using ord_res.mem_productionE by metis
-  thus ?thesis
+
+  moreover have "ord_res.production (fset N) D = {A}"
+    using D_productive ord_res.production_eq_empty_or_singleton by fastforce
+
+  ultimately show ?thesis
     using D_in D_lt_C by metis
 qed
 
@@ -2051,6 +2117,7 @@ next
        Pos A \<Rightarrow> \<not> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) C \<and>
        (\<exists>C'. ord_res.ground_factoring C C' \<and> N2' = finsert C' N2)
      | Neg A \<Rightarrow> \<exists>D|\<in>|N2. D \<prec>\<^sub>c C \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) D \<and>
+       ord_res.production (fset N2) D = {A} \<and>
        (\<exists>CD. ord_res.ground_resolution C D CD \<and> N2' = finsert CD N2))"
     unfolding ord_res_mod_op_strategy_def by blast
 
@@ -2087,6 +2154,7 @@ next
     by metis
 qed
 
+
 subsection \<open>Backward simulation between ORD-RES++ and SCL(FOL)++\<close>
 
 lemma atms_of_eq_fset_atms_of_cls: "atms_of C = fset (atms_of_cls C)"
@@ -2102,7 +2170,8 @@ proof -
     case_L: "case L of
        Pos A \<Rightarrow> \<not> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) C \<and> (\<exists>C'. ord_res.ground_factoring C C' \<and> N' = finsert C' N)
      | Neg A \<Rightarrow> \<exists>D|\<in>|N. D \<prec>\<^sub>c C \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) D \<and>
-       (\<exists>CD. ord_res.ground_resolution C D CD \<and> N' = finsert CD N)"
+        ord_res.production (fset N) D = {A} \<and>
+        (\<exists>CD. ord_res.ground_resolution C D CD \<and> N' = finsert CD N)"
     unfolding ord_res_mod_op_strategy_def
     by auto
 
