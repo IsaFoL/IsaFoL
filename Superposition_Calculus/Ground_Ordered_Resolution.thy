@@ -514,6 +514,63 @@ lemma mem_productionE:
   unfolding production.simps[of N C] mem_Collect_eq Let_def interp_def
   by (metis (no_types, lifting))
 
+lemma production_subset_if_less_cls: "C \<prec>\<^sub>c D \<Longrightarrow> production N C \<subseteq> interp N D"
+  unfolding interp_def
+  using production_unfold by blast
+
+lemma Uniq_production_eq_singleton: "\<exists>\<^sub>\<le>\<^sub>1 C. production N C = {A}"
+proof (rule Uniq_I)
+  fix C D
+  assume "production N C = {A}"
+  hence "A \<in> production N C"
+    by simp
+  then obtain C' where
+    "C \<in> N"
+    "C = add_mset (Pos A) C'"
+    "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) C"
+    "\<not> interp N C \<TTurnstile> C"
+    by (auto elim!: mem_productionE)
+
+  assume "production N D = {A}"
+  hence "A \<in> production N D"
+    by simp
+  then obtain D' where
+    "D \<in> N"
+    "D = add_mset (Pos A) D'"
+    "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) D"
+    "\<not> interp N D \<TTurnstile> D"
+    by (auto elim!: mem_productionE)
+
+  have "\<not> (C \<prec>\<^sub>c D)"
+  proof (rule notI)
+    assume "C \<prec>\<^sub>c D"
+    hence "production N C \<subseteq> interp N D"
+      using production_subset_if_less_cls by metis
+    hence "A \<in> interp N D"
+      unfolding \<open>production N C = {A}\<close> by simp
+    hence "interp N D \<TTurnstile> D"
+      unfolding \<open>D = add_mset (Pos A) D'\<close> by simp
+    with \<open>\<not> interp N D \<TTurnstile> D\<close> show False
+      by metis
+  qed
+
+  moreover have "\<not> (D \<prec>\<^sub>c C)"
+  proof (rule notI)
+    assume "D \<prec>\<^sub>c C"
+    hence "production N D \<subseteq> interp N C"
+      using production_subset_if_less_cls by metis
+    hence "A \<in> interp N C"
+      unfolding \<open>production N D = {A}\<close> by simp
+    hence "interp N C \<TTurnstile> C"
+      unfolding \<open>C = add_mset (Pos A) C'\<close> by simp
+    with \<open>\<not> interp N C \<TTurnstile> C\<close> show False
+      by metis
+  qed
+
+  ultimately show "C = D"
+    by order
+qed
+
 lemma singleton_eq_CollectD: "{x} = {y. P y} \<Longrightarrow> P x"
   by blast
 
@@ -580,10 +637,6 @@ proof -
   finally show "interp N C = interp N D \<union> \<Union> (production N ` {C' \<in> N. D \<preceq>\<^sub>c C' \<and> C' \<prec>\<^sub>c C})"
     unfolding interp_def by simp
 qed
-
-lemma production_subset_if_less_cls: "C \<prec>\<^sub>c D \<Longrightarrow> production N C \<subseteq> interp N D"
-  unfolding interp_def
-  using production_unfold by blast
 
 lemma less_imp_Interp_subseteq_interp: "C \<prec>\<^sub>c D \<Longrightarrow> interp N C \<union> production N C \<subseteq> interp N D"
   using interp_subset_if_less_cls production_subset_if_less_cls
