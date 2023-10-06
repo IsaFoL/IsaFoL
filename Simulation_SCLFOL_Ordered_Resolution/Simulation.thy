@@ -65,6 +65,15 @@ lemma Collect_eq_image_filter_Collect_if_bij_betw:
   using ex1_subset_eq_image_if_bij_betw[OF bij sub]
   by (smt (verit, best) Collect_cong image_def in_mono mem_Collect_eq)
 
+lemma (in linorder) ex1_sorted_list_for_set_if_finite:
+  "finite X \<Longrightarrow> \<exists>!xs. sorted_wrt (<) xs \<and> set xs = X"
+  by (metis local.sorted_list_of_set.finite_set_strict_sorted local.strict_sorted_equal)
+
+lemma (in linorder) ex1_sorted_list_for_fset:
+  "\<exists>!xs. sorted_wrt (<) xs \<and> fset_of_list xs = X"
+  using ex1_sorted_list_for_set_if_finite
+  by (metis finite_fset fset_cong fset_of_list.rep_eq)
+
 
 subsection \<open>Minimal, maximal, least, and greatest element of a set\<close>
 
@@ -413,6 +422,22 @@ lemma Greatest_in_set_wrt_eq_Some[simp]:
   by metis
 
 
+subsubsection \<open>Integration in type classes\<close>
+
+abbreviation (in linorder) is_least_in_set where
+  "is_least_in_set \<equiv> is_least_in_set_wrt (<)"
+
+lemma (in linorder) is_least_in_set_def: "is_least_in_set X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. x < y)"
+  unfolding is_least_in_set_wrt_def[OF transp_on_less asymp_on_less totalp_on_less]
+  by (simp only: reaching_all_wrt_def)
+
+lemma (in linorder) is_least_in_set_fset_ffilterD:
+  assumes "is_least_in_set_wrt (<) (fset (ffilter P X)) x"
+  shows "x |\<in>| X" "P x"
+  using assms
+  by (simp_all add: is_least_in_set_def)
+
+
 subsection \<open>Move to \<^theory>\<open>HOL.Transitive_Closure\<close>\<close>
 
 lemma Uniq_relpowp:
@@ -735,6 +760,9 @@ definition atms_of_cls :: "'a clause \<Rightarrow> 'a fset" where
 
 definition atms_of_clss :: "'a clause fset \<Rightarrow> 'a fset" where
   "atms_of_clss N = ffUnion (atms_of_cls |`| N)"
+
+definition lits_of_clss :: "'a clause fset \<Rightarrow> 'a literal fset" where
+  "lits_of_clss N = ffUnion (fset_mset |`| N)"
 
 definition lit_occures_in_clss where
   "lit_occures_in_clss L N \<longleftrightarrow> fBex N (\<lambda>C. L \<in># C)"
@@ -1378,14 +1406,128 @@ next
     by metis
 qed
 
+
+definition less_cls_sfac where
+  "less_cls_sfac \<F> C D \<longleftrightarrow> \<F> C \<prec>\<^sub>c \<F> D \<or> (\<F> C = \<F> D \<and> C \<prec>\<^sub>c D)"
+
+lemma transp_on_apply_closed_function:
+  assumes trans: "transp_on X R" and closed: "\<And>x. x \<in> X \<Longrightarrow> \<F> x \<in> X"
+  shows "transp_on X (\<lambda>x y. R (\<F> x) (\<F> y) \<or> (\<F> x = \<F> y \<and> R x y))"
+proof (rule transp_onI)
+  fix x y z
+  assume "x \<in> X" "y \<in> X" "z \<in> X"
+  then show "R (\<F> x) (\<F> y) \<or> \<F> x = \<F> y \<and> R x y \<Longrightarrow>
+       R (\<F> y) (\<F> z) \<or> \<F> y = \<F> z \<and> R y z \<Longrightarrow>
+       R (\<F> x) (\<F> z) \<or> \<F> x = \<F> z \<and> R x z"
+    using trans[THEN transp_onD] closed by metis
+qed
+
+lemma asymp_on_apply_closed_function:
+  assumes asym: "asymp_on X R" and closed: "\<And>x. x \<in> X \<Longrightarrow> \<F> x \<in> X"
+  shows "asymp_on X (\<lambda>x y. R (\<F> x) (\<F> y) \<or> (\<F> x = \<F> y \<and> R x y))"
+proof (rule asymp_onI)
+  fix x y
+  assume "x \<in> X" "y \<in> X"
+  then show "R (\<F> x) (\<F> y) \<or> \<F> x = \<F> y \<and> R x y \<Longrightarrow> \<not> (R (\<F> y) (\<F> x) \<or> \<F> y = \<F> x \<and> R y x)"
+    using asym[THEN asymp_onD] closed by metis
+qed
+
+lemma totalp_on_iff: "totalp_on X R \<longleftrightarrow> (\<forall>x y. x \<in> X \<longrightarrow> y \<in> X \<longrightarrow> R x y \<or> x = y \<or> R y x)"
+proof (intro iffI allI impI)
+  assume total: "totalp_on X R"
+  show "\<And>x y. x \<in> X \<Longrightarrow> y \<in> X \<Longrightarrow> R x y \<or> x = y \<or> R y x"
+    using total[THEN totalp_onD] by metis
+next
+  assume "\<forall>x y. x \<in> X \<longrightarrow> y \<in> X \<longrightarrow> R x y \<or> x = y \<or> R y x"
+  thus "totalp_on X R"
+    by (metis totalp_onI)
+qed
+
+lemma totalp_on_apply_closed_function:
+  assumes total: "totalp_on X R" and closed: "\<And>x. x \<in> X \<Longrightarrow> \<F> x \<in> X"
+  shows "totalp_on X (\<lambda>x y. R (\<F> x) (\<F> y) \<or> (\<F> x = \<F> y \<and> R x y))"
+  using assms
+  unfolding totalp_on_iff
+  by metis
+
+lemma less_cls_sfac_total_order:
+  fixes \<F> :: "'f gterm clause \<Rightarrow> 'f gterm clause"
+  shows
+    "transp_on X (less_cls_sfac \<F>)" and
+    "asymp_on X (less_cls_sfac \<F>)" and
+    "totalp_on X (less_cls_sfac \<F>)"
+  using transp_on_apply_closed_function[of UNIV "(\<prec>\<^sub>c)" \<F>, THEN transp_on_subset, of X, simplified]
+  using asymp_on_apply_closed_function[of UNIV "(\<prec>\<^sub>c)" \<F>, THEN asymp_on_subset, of X, simplified]
+  using totalp_on_apply_closed_function[of UNIV "(\<prec>\<^sub>c)" \<F>, THEN totalp_on_subset, of X, simplified]
+  unfolding less_cls_sfac_def
+  by argo+
+
+interpretation linorder_cls_sfac: linorder "(less_cls_sfac \<F>)\<^sup>=\<^sup>=" "less_cls_sfac \<F>"
+proof unfold_locales
+  show "\<And>x y. less_cls_sfac \<F> x y = ((less_cls_sfac \<F>)\<^sup>=\<^sup>= x y \<and> \<not> (less_cls_sfac \<F>)\<^sup>=\<^sup>= y x)"
+    by (metis asympD less_cls_sfac_total_order(2) reflclp_iff)
+next
+  show "\<And>x. (less_cls_sfac \<F>)\<^sup>=\<^sup>= x x"
+    by simp
+next
+  show "\<And>x y z. (less_cls_sfac \<F>)\<^sup>=\<^sup>= x y \<Longrightarrow> (less_cls_sfac \<F>)\<^sup>=\<^sup>= y z \<Longrightarrow> (less_cls_sfac \<F>)\<^sup>=\<^sup>= x z"
+    by (meson transpE less_cls_sfac_total_order(1) transp_on_reflclp)
+next
+  show "\<And>x y. (less_cls_sfac \<F>)\<^sup>=\<^sup>= x y \<Longrightarrow> (less_cls_sfac \<F>)\<^sup>=\<^sup>= y x \<Longrightarrow> x = y"
+    by (metis asympD less_cls_sfac_total_order(2) reflclp_iff)
+next
+  show "\<And>x y. (less_cls_sfac \<F>)\<^sup>=\<^sup>= x y \<or> (less_cls_sfac \<F>)\<^sup>=\<^sup>= y x"
+    by (metis less_cls_sfac_total_order(3) reflclp_iff totalpD)
+qed
+
+lemma
+  fixes \<F> :: "'f gterm clause \<Rightarrow> 'f gterm clause"
+  shows "less_cls_sfac \<F> C D \<and> \<not> fBex N (\<lambda>D'. less_cls_sfac \<F> C D' \<and> less_cls_sfac \<F> D' D) \<and>
+    D |\<in>| N \<longleftrightarrow> is_least_in_fset_wrt (less_cls_sfac \<F>) {|D |\<in>| N. less_cls_sfac \<F> C D|} D"
+proof (intro iffI; (elim conjE)?)
+  assume C_lt_D: "less_cls_sfac \<F> C D" and
+    no_middle: "\<not> (\<exists>D' |\<in>| N. less_cls_sfac \<F> C D' \<and> less_cls_sfac \<F> D' D)" and
+    D_in: "D |\<in>| N"
+
+  have "D |\<in>| {|D |\<in>| N. less_cls_sfac \<F> C D|}"
+    using C_lt_D D_in by simp
+
+  moreover have "\<forall>y |\<in>| {|D |\<in>| N. less_cls_sfac \<F> C D|}. y \<noteq> D \<longrightarrow> less_cls_sfac \<F> D y"
+  proof (intro ballI impI)
+    fix D' assume "D' |\<in>| {|D |\<in>| N. less_cls_sfac \<F> C D|}"
+    hence "D' |\<in>| N" "less_cls_sfac \<F> C D'"
+      by simp_all
+    hence "\<not> less_cls_sfac \<F> D' D"
+      using no_middle by metis
+    then show "D' \<noteq> D \<Longrightarrow> less_cls_sfac \<F> D D'"
+      using less_cls_sfac_def by order
+  qed
+
+  ultimately show "is_least_in_fset_wrt (less_cls_sfac \<F>) {|D |\<in>| N. less_cls_sfac \<F> C D|} D"
+    using is_least_in_set_wrt_iff[OF less_cls_sfac_total_order] by metis
+next
+  assume "is_least_in_fset_wrt (less_cls_sfac \<F>) {|D |\<in>| N. less_cls_sfac \<F> C D|} D"
+  thus "less_cls_sfac \<F> C D \<and> \<not> (\<exists>D'|\<in>|N. less_cls_sfac \<F> C D' \<and> less_cls_sfac \<F> D' D) \<and> D |\<in>| N"
+    using is_least_in_set_wrt_iff[OF less_cls_sfac_total_order]
+    by (metis ffmember_filter linorder_cls_sfac.dual_order.asym)
+qed
+
+thm linorder_lit.ex1_sorted_list_for_set_if_finite
+  linorder_lit.ex1_sorted_list_for_fset
+find_theorems "(The ?P) = _"
+find_theorems "Ex1 ?P \<longleftrightarrow> _ (Uniq ?P)"
+
+term "THE xs. sorted_wrt (\<prec>\<^sub>l) xs \<and> fset_of_list xs =
+  {|K |\<in>| lits_of_clss N. is_neg K \<and> K \<prec>\<^sub>l L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit K)|}"
+
 inductive scl_reso1
   :: "_ \<Rightarrow> _ \<Rightarrow>
     ('f, 'v) state \<times> _ \<Rightarrow>
     ('f, 'v) state \<times> _ \<Rightarrow>
     ('f, 'v) state \<times> _ \<Rightarrow> bool" for N\<^sub>0 \<beta> where
-  scl_reso1I: "\<F> C \<prec>\<^sub>c \<F> D \<Longrightarrow>
-  \<not> fBex (N\<^sub>0 |\<union>| fimage gcls_of_cls U) (\<lambda>D'. \<F> C \<prec>\<^sub>c \<F> D' \<and> \<F> D' \<prec>\<^sub>c \<F> D) \<Longrightarrow>
-  D |\<in>| N\<^sub>0 |\<union>| fimage gcls_of_cls U \<Longrightarrow>
+  scl_reso1I: "
+  is_least_in_fset_wrt (less_cls_sfac \<F>)
+    {|D |\<in>| N\<^sub>0 |\<union>| fimage gcls_of_cls U. less_cls_sfac \<F> C D|} D \<Longrightarrow>
   ord_res.is_maximal_lit L D \<Longrightarrow>
   sorted_wrt (\<prec>\<^sub>l) Ks \<Longrightarrow> (\<forall>K \<in> set Ks. is_neg K \<and> K \<prec>\<^sub>l L \<and>
     \<not> trail_defined_lit \<Gamma> (lit_of_glit K) \<and>
@@ -1422,6 +1564,7 @@ inductive scl_reso1
 lemma scl_reso1_simple_destroy:
   assumes "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)"
   shows
+    "state_learned S\<^sub>1 = state_learned S\<^sub>0"
     "state_learned S\<^sub>2 = state_learned S\<^sub>1" and
     "i\<^sub>1 = i\<^sub>0" and
     "i\<^sub>2 \<ge> i\<^sub>1" and
@@ -1429,8 +1572,11 @@ lemma scl_reso1_simple_destroy:
   unfolding atomize_conj conj_assoc
   using assms
 proof (cases rule: scl_reso1.cases)
-  case hyps: (scl_reso1I D U L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
-  have "state_learned S\<^sub>1 = U" and "i\<^sub>1 = i\<^sub>0" and "C\<^sub>1 = D"
+  case hyps: (scl_reso1I U D L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
+  have "state_learned S\<^sub>0 = U"
+    using \<open>S\<^sub>0 = (\<Gamma>, U, None)\<close> by simp
+
+  moreover have "state_learned S\<^sub>1 = U" and "i\<^sub>1 = i\<^sub>0" and "C\<^sub>1 = D"
     using \<open>(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) = ((\<Gamma>\<^sub>1, U, None), i\<^sub>0, D, \<F>\<^sub>0)\<close> by simp_all
 
   moreover have "state_learned S\<^sub>2 = U \<and> i\<^sub>0 \<le> i\<^sub>2 \<and> C\<^sub>2 = D"
@@ -1442,7 +1588,7 @@ proof (cases rule: scl_reso1.cases)
       (trail_decide \<Gamma>\<^sub>1 (lit_of_glit L), U, None))")
       case True2: True
       show ?thesis 
-        using hyps(14)
+        using hyps(12)
         unfolding Let_def
         unfolding HOL.if_P[OF True1]
         unfolding if_not_P[of "\<not> _", simplified, OF True2]
@@ -1450,7 +1596,7 @@ proof (cases rule: scl_reso1.cases)
     next
       case False
       show ?thesis
-        using hyps(14)
+        using hyps(12)
         unfolding Let_def
         unfolding HOL.if_P[OF True1]
         unfolding if_P[of "\<not> _", simplified, OF False]
@@ -1459,13 +1605,14 @@ proof (cases rule: scl_reso1.cases)
   next
     case False
     show ?thesis
-      using hyps(14)
+      using hyps(12)
       unfolding Let_def
       unfolding HOL.if_not_P[OF False]
       by (simp add: \<open>state_learned S\<^sub>1 = U\<close> \<open>i\<^sub>1 = i\<^sub>0\<close> \<open>C\<^sub>1 = D\<close>)
   qed
 
-  ultimately show "state_learned S\<^sub>2 = state_learned S\<^sub>1 \<and> i\<^sub>1 = i\<^sub>0 \<and> i\<^sub>2 \<ge> i\<^sub>1 \<and> C\<^sub>2 = C\<^sub>1"
+  ultimately show "state_learned S\<^sub>1 = state_learned S\<^sub>0 \<and> state_learned S\<^sub>2 = state_learned S\<^sub>1 \<and>
+    i\<^sub>1 = i\<^sub>0 \<and> i\<^sub>2 \<ge> i\<^sub>1 \<and> C\<^sub>2 = C\<^sub>1"
     by metis
 qed
 
@@ -1477,13 +1624,13 @@ lemma scl_reso1_\<F>_eq:
   unfolding atomize_conj
   using assms
 proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" rule: scl_reso1.cases)
-  case hyps: (scl_reso1I D U L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
+  case hyps: (scl_reso1I U D L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
 
   have "C\<^sub>1 = D"
     using \<open>(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) = ((\<Gamma>\<^sub>1, U, None), i\<^sub>0, D, \<F>\<^sub>0)\<close> by simp
 
   have "\<F>\<^sub>1 = \<F>\<^sub>0"
-    using hyps(9) by simp
+    using hyps(7) by simp
   thus "\<F>\<^sub>1 = \<F>\<^sub>0 \<and>
     (\<F>\<^sub>2 = \<F>\<^sub>1 \<or> (\<exists>L. ord_res.is_maximal_lit L C\<^sub>1 \<and> \<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := add_mset L {#K \<in># C\<^sub>1. K \<noteq> L#})))"
   proof (intro conjI)
@@ -1497,7 +1644,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
       (trail_decide \<Gamma>\<^sub>1 (lit_of_glit L), U, None))")
         case True2: True
         show ?thesis
-          using hyps(5,14)
+          using hyps
           unfolding Let_def
           unfolding HOL.if_P[OF True1]
           unfolding if_not_P[of "\<not> _", simplified, OF True2]
@@ -1506,7 +1653,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
       next
         case False
         then show ?thesis
-          using hyps(5,14)
+          using hyps
           unfolding Let_def
           unfolding HOL.if_P[OF True1]
           unfolding if_P[of "\<not> _", simplified, OF False]
@@ -1516,7 +1663,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
     next
       case False
       show ?thesis
-        using hyps(14)
+        using hyps
         unfolding Let_def
         unfolding HOL.if_not_P[OF False]
         by simp
@@ -1626,7 +1773,11 @@ lemma correctness_scl_reso1:
   using step
   unfolding atomize_conj
 proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" rule: scl_reso1.cases)
-  case hyps: (scl_reso1I D U L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
+  case hyps: (scl_reso1I U D L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
+
+  from hyps have D_least: "is_least_in_fset_wrt (less_cls_sfac \<F>\<^sub>0)
+    (ffilter (less_cls_sfac \<F>\<^sub>0 C\<^sub>0) (N |\<union>| gcls_of_cls |`| U)) D"
+    by argo
 
   from hyps have "(scl_fol.decide N' \<beta>')\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1"
   proof (induction Ks arbitrary: S\<^sub>0 \<Gamma>)
@@ -1762,7 +1913,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
   from hyps have S\<^sub>1_def: "S\<^sub>1 = (\<Gamma>\<^sub>1, U, None)"
     by simp
 
-  from hyps(6,7) have "distinct (map atm_of Ks)"
+  from hyps(4,5) have "distinct (map atm_of Ks)"
   proof (induction Ks)
     case Nil
     show ?case
@@ -1806,8 +1957,9 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
         by (auto simp add: N'_def cls_of_gcls_def)
     qed
 
-    have "cls_of_gcls D |\<in>| N' |\<union>| U"
-      using \<open>D |\<in>| N |\<union>| gcls_of_cls |`| U\<close>[unfolded funion_iff]
+    from D_least have "D |\<in>| N \<or> D |\<in>| gcls_of_cls |`| U"
+      by (metis funion_iff linorder_cls_sfac.is_least_in_set_fset_ffilterD(1))
+    hence "cls_of_gcls D |\<in>| N' |\<union>| U"
     proof (elim disjE)
       assume "D |\<in>| N"
       then show ?thesis
@@ -1852,13 +2004,13 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
 
       obtain D' :: "('f, 'v) term clause" where
         "cls_of_gcls D = add_mset (lit_of_glit L) D'"
-        by (metis cls_of_gcls_def hyps(5) image_mset_add_mset is_maximal_wrt_def multi_member_split)
+        by (metis cls_of_gcls_def hyps(3) image_mset_add_mset is_maximal_wrt_def multi_member_split)
 
       have "\<not> trail_defined_lit \<Gamma> (lit_of_glit L)"
         using pos_L_and_undef_L_and_false_D by argo
       have "\<not> trail_defined_lit \<Gamma>\<^sub>1 (lit_of_glit L)"
         unfolding \<open>\<Gamma>\<^sub>1 = foldl trail_decide \<Gamma> (map lit_of_glit Ks)\<close>
-        using hyps(7) pos_L_and_undef_L_and_false_D \<open>distinct (map atm_of Ks)\<close>
+        using hyps(5) pos_L_and_undef_L_and_false_D \<open>distinct (map atm_of Ks)\<close>
       proof (induction Ks arbitrary: \<Gamma>)
         case Nil
         thus ?case
@@ -1898,7 +2050,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
       proof (cases "Ex (scl_fol.conflict (cls_of_gcls |`| N) (term_of_gterm \<beta>) (?\<Gamma>\<^sub>2\<^sub>a, U, None))")
         case ex_conflict: True
         have "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) = ((?\<Gamma>\<^sub>2\<^sub>b, U, Some (cls_of_gcls ?E, Var)), ?j, D, ?\<F>')"
-          using hyps(14)
+          using hyps(12)
           unfolding Let_def
           unfolding if_P[OF pos_L_and_undef_L_and_false_D]
           unfolding if_not_P[of "\<not> _", unfolded not_not, OF ex_conflict]
@@ -2009,7 +2161,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
       next
         case False
         hence "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) = ((?\<Gamma>\<^sub>2\<^sub>a, U, None), ?j, D, ?\<F>')"
-          using hyps(14) pos_L_and_undef_L_and_false_D by simp
+          using hyps(12) pos_L_and_undef_L_and_false_D by simp
         moreover have "scl_fol.decide N' \<beta>'
           (\<Gamma>\<^sub>1, U, None) (trail_decide \<Gamma>\<^sub>1 (lit_of_glit L \<cdot>l Var), U, None)"
         proof (rule scl_fol.decideI)
@@ -2032,14 +2184,14 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
         qed
 
         ultimately have "scl_fol.decide N' \<beta>' S\<^sub>1 S\<^sub>2"
-          using hyps(9) by fastforce
+          using hyps(7) by fastforce
         thus ?thesis
           by simp
       qed
     next
       case False
       hence "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) = (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)"
-        using hyps(14) by auto
+        using hyps(12) by auto
       thus ?thesis
         by simp
     qed
@@ -2269,7 +2421,7 @@ lemma atoms_of_learn_clauses_already_in_initial_clauses:
   using step
   unfolding atomize_conj
 proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" rule: scl_reso1.cases)
-  case (scl_reso1I D U L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
+  case (scl_reso1I U D L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
   have "(scl_fol.decide (cls_of_gcls |`| N) (term_of_gterm \<beta>))\<^sup>*\<^sup>* S\<^sub>0 S\<^sub>1"
     using \<beta>_greatereq step N_generalizes correctness_scl_reso1(1) by metis
   hence N_generalizes_S\<^sub>1:
@@ -2338,11 +2490,12 @@ lemma clause_anotation_in_initial_or_learned:
   using step
   unfolding atomize_conj
 proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" rule: scl_reso1.cases)
-  case hyps: (scl_reso1I D U L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
-
-  have "C\<^sub>1 |\<in>| finsert {#} (N |\<union>| gcls_of_cls |`| state_learned S\<^sub>1)"
+  case hyps: (scl_reso1I U D L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
+  hence "D |\<in>| N |\<union>| gcls_of_cls |`| U"
+    using linorder_cls_sfac.is_least_in_set_fset_ffilterD by metis
+  hence "C\<^sub>1 |\<in>| finsert {#} (N |\<union>| gcls_of_cls |`| state_learned S\<^sub>1)"
     unfolding \<open>S\<^sub>0 = (\<Gamma>, U, None)\<close>
-    using \<open>D |\<in>| N |\<union>| gcls_of_cls |`| U\<close> \<open>(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) = ((\<Gamma>\<^sub>1, U, None), i\<^sub>0, D, \<F>\<^sub>0)\<close>
+    using \<open>(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) = ((\<Gamma>\<^sub>1, U, None), i\<^sub>0, D, \<F>\<^sub>0)\<close>
     by simp
 
   moreover have "C\<^sub>2 |\<in>| finsert {#} (N |\<union>| gcls_of_cls |`| state_learned S\<^sub>2)"
@@ -2354,11 +2507,6 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
     by (intro conjI)
 qed
 
-term Nat.funpow
-term compow
-term "(f ^^ n) x"
-find_consts "nat \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a"
-
 lemma fsubset_if_res_mo_strategy:
   assumes "res_mo_strategy N N'"
   shows "N |\<subseteq>| N'"
@@ -2369,6 +2517,27 @@ lemma fsubset_if_res_mo_strategy:
     apply (cases L)
     by (auto simp add: fsubset_finsertI)
   done
+
+lemma fsubset_if_relpow_le_relpow:
+  fixes i j :: nat
+  assumes "i \<le> j" and
+    N_to_N\<^sub>i: "(res_mo_strategy ^^ i) N N\<^sub>i" and
+    N_to_N\<^sub>j: "(res_mo_strategy ^^ j) N N\<^sub>j"
+  shows "N\<^sub>i |\<subseteq>| N\<^sub>j"
+proof -
+  from \<open>i \<le> j\<close> obtain k where "j = i + k"
+    using le_Suc_ex by metis
+  hence "(res_mo_strategy ^^ (i + k)) N N\<^sub>j"
+    using N_to_N\<^sub>j by argo
+  hence "(res_mo_strategy ^^ i OO res_mo_strategy ^^ k) N N\<^sub>j"
+    by (metis relpowp_add)
+  hence "(res_mo_strategy ^^ k) N\<^sub>i N\<^sub>j"
+    using right_unique_res_mo_strategy N_to_N\<^sub>i
+    by (metis Uniq_relpowp relcomppE right_unique_iff)
+  thus "N\<^sub>i |\<subseteq>| N\<^sub>j"
+    using fsubset_if_res_mo_strategy
+    by (metis mono_rtranclp relpowp_imp_rtranclp rtranclp_less_eq)
+qed
 
 lemma sfac_initial_and_learned_clauses_subset:
   assumes
@@ -2383,12 +2552,12 @@ lemma sfac_initial_and_learned_clauses_subset:
   unfolding atomize_conj
   using step
 proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" rule: scl_reso1.cases)
-  case hyps: (scl_reso1I D U L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
+  case hyps: (scl_reso1I U D L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
 
   from hyps have "state_learned S\<^sub>0 = U" and "state_learned S\<^sub>1 = U"
     by simp_all
-  with step have "state_learned S\<^sub>2 = U"
-    using scl_reso1_simple_destroy(1) by metis
+  hence "state_learned S\<^sub>2 = U"
+    using scl_reso1_simple_destroy[OF step] by metis
 
   have "i\<^sub>0 = i\<^sub>1"
     using scl_reso1_simple_destroy[OF step] by metis
@@ -2398,18 +2567,8 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
 
   from step have "i\<^sub>1 \<le> i\<^sub>2"
     using scl_reso1_simple_destroy[OF step] by metis
-  then obtain j where "i\<^sub>2 = i\<^sub>1 + j"
-    using le_Suc_ex by metis
-  hence "(res_mo_strategy ^^ (i\<^sub>1 + j)) N N\<^sub>i\<^sub>2"
-    using N_to_N\<^sub>i\<^sub>2 by argo
-  hence "(res_mo_strategy ^^ i\<^sub>1 OO res_mo_strategy ^^ j) N N\<^sub>i\<^sub>2"
-    by (metis relpowp_add)
-  hence "(res_mo_strategy ^^ j) N\<^sub>i\<^sub>1 N\<^sub>i\<^sub>2"
-    using right_unique_res_mo_strategy N_to_N\<^sub>i\<^sub>1
-    by (metis Uniq_relpowp relcomppE right_unique_iff)
-  hence "N\<^sub>i\<^sub>1 |\<subseteq>| N\<^sub>i\<^sub>2"
-    using fsubset_if_res_mo_strategy
-    by (metis mono_rtranclp relpowp_imp_rtranclp rtranclp_less_eq)
+  with N_to_N\<^sub>i\<^sub>1 N_to_N\<^sub>i\<^sub>2 have "N\<^sub>i\<^sub>1 |\<subseteq>| N\<^sub>i\<^sub>2"
+    by (metis fsubset_if_relpow_le_relpow)
 
   from invar have "sfac |`| (N |\<union>| gcls_of_cls |`| state_learned S\<^sub>1) |\<subseteq>| sfac |`| N\<^sub>i\<^sub>1"
     unfolding \<open>state_learned S\<^sub>0 = U\<close> \<open>state_learned S\<^sub>1 = U\<close>
@@ -2422,6 +2581,68 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
   ultimately show "sfac |`| (N |\<union>| gcls_of_cls |`| state_learned S\<^sub>1) |\<subseteq>| sfac |`| N\<^sub>i\<^sub>1 \<and>
        sfac |`| (N |\<union>| gcls_of_cls |`| state_learned S\<^sub>2) |\<subseteq>| sfac |`| N\<^sub>i\<^sub>2"
     by (intro conjI)
+qed
+
+lemma
+  assumes
+    step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
+    N_to_N\<^sub>i\<^sub>0: "(res_mo_strategy ^^ i\<^sub>0) N N\<^sub>i\<^sub>0" and
+    N_to_N\<^sub>i\<^sub>1: "(res_mo_strategy ^^ i\<^sub>1) N N\<^sub>i\<^sub>1" and
+    N_to_N\<^sub>i\<^sub>2: "(res_mo_strategy ^^ i\<^sub>2) N N\<^sub>i\<^sub>2" and
+    invar: "\<forall>C |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0. \<F>\<^sub>0 C |\<in>| N\<^sub>i\<^sub>0"
+  shows
+    "\<forall>C |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>1. \<F>\<^sub>1 C |\<in>| N\<^sub>i\<^sub>1"
+    "\<forall>C |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>2. \<F>\<^sub>2 C |\<in>| N\<^sub>i\<^sub>2"
+  unfolding atomize_conj
+  using step
+proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" rule: scl_reso1.cases)
+  case hyps: (scl_reso1I U D L Ks \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i D')
+
+  have "state_learned S\<^sub>1 = state_learned S\<^sub>0" and "i\<^sub>1 = i\<^sub>0" and "\<F>\<^sub>1 = \<F>\<^sub>0"
+    using scl_reso1_simple_destroy[OF step] scl_reso1_\<F>_eq[OF step] by simp_all
+
+  have "N\<^sub>i\<^sub>1 = N\<^sub>i\<^sub>0"
+    using N_to_N\<^sub>i\<^sub>0 N_to_N\<^sub>i\<^sub>1 \<open>i\<^sub>1 = i\<^sub>0\<close>
+    by (metis Uniq_relpowp right_unique_iff right_unique_res_mo_strategy)
+
+  have "state_learned S\<^sub>2 = state_learned S\<^sub>1" and
+    \<F>\<^sub>2_eq_disj: "\<F>\<^sub>2 = \<F>\<^sub>1 \<or>
+      (\<exists>L. ord_res.is_maximal_lit L C\<^sub>1 \<and> \<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := add_mset L {#K \<in># C\<^sub>1. K \<noteq> L#}))"
+    using scl_reso1_simple_destroy[OF step] scl_reso1_\<F>_eq[OF step] by simp_all
+
+  from step have "i\<^sub>1 \<le> i\<^sub>2"
+    using scl_reso1_simple_destroy[OF step] by metis
+  with N_to_N\<^sub>i\<^sub>1 N_to_N\<^sub>i\<^sub>2 have "N\<^sub>i\<^sub>1 |\<subseteq>| N\<^sub>i\<^sub>2"
+    by (metis fsubset_if_relpow_le_relpow)
+
+  have 1: "\<F>\<^sub>1 C |\<in>| N\<^sub>i\<^sub>1"
+    if "C |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>1"
+    for C
+    using invar that
+    unfolding \<open>state_learned S\<^sub>1 = state_learned S\<^sub>0\<close> \<open>\<F>\<^sub>1 = \<F>\<^sub>0\<close> \<open>N\<^sub>i\<^sub>1 = N\<^sub>i\<^sub>0\<close> by metis
+
+  moreover have "\<F>\<^sub>2 C |\<in>| N\<^sub>i\<^sub>2"
+    if "C |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>2"
+    for C
+  proof (cases "C = C\<^sub>1")
+    case True
+    then show ?thesis
+      using \<F>\<^sub>2_eq_disj
+      sorry
+  next
+    case False
+    with \<F>\<^sub>2_eq_disj have "\<F>\<^sub>2 C = \<F>\<^sub>1 C"
+      by force
+    then show ?thesis
+      using that \<open>N\<^sub>i\<^sub>1 |\<subseteq>| N\<^sub>i\<^sub>2\<close> 1
+      unfolding \<open>state_learned S\<^sub>2 = state_learned S\<^sub>1\<close>
+      by auto
+  qed
+
+  ultimately show "
+    (\<forall>C|\<in>|N |\<union>| gcls_of_cls |`| state_learned S\<^sub>1. \<F>\<^sub>1 C |\<in>| N\<^sub>i\<^sub>1) \<and>
+    (\<forall>C|\<in>|N |\<union>| gcls_of_cls |`| state_learned S\<^sub>2. \<F>\<^sub>2 C |\<in>| N\<^sub>i\<^sub>2)"
+    by metis
 qed
 
 definition simulation ::
@@ -2468,7 +2689,7 @@ subsection \<open>Forward simulation between SCL(FOL)++ and SCL(FOL)\<close>
 fun \<M> :: "'f gterm clause fset \<Rightarrow>
   ('f, 'v) state \<times> nat \<times> 'f gterm clause \<times> ('f gterm clause \<Rightarrow> 'f gterm clause) \<Rightarrow>
   'f gterm clause fset" where
-  "\<M> N (S, _, C, \<F>) = {|D |\<in>| N |\<union>| gcls_of_cls |`| state_learned S. \<F> C \<prec>\<^sub>c \<F> D|}"
+  "\<M> N (S, _, C, \<F>) = {|D |\<in>| N |\<union>| gcls_of_cls |`| state_learned S. less_cls_sfac \<F> C D|}"
 
 interpretation forward_simulation_with_measuring_function where
   step1 = "\<lambda>S\<^sub>0 S\<^sub>2. \<exists>S\<^sub>1. scl_reso1 N \<beta> S\<^sub>0 S\<^sub>1 S\<^sub>2" and
@@ -2560,7 +2781,6 @@ next
     hence "S\<^sub>1 = S\<^sub>2" "i\<^sub>2 = i\<^sub>1" "C\<^sub>2 = C\<^sub>1" "\<F>\<^sub>2 = \<F>\<^sub>1"
       by simp_all
     with 1 show ?thesis
-      unfolding prod.inject
       unfolding \<open>fst S1 = S2\<close>[symmetric] \<open>S1 = (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)\<close> \<open>S1' = (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)\<close> prod.sel
       using init_geneneralize'
     proof (induction S\<^sub>1 rule: rtranclp_induct)
@@ -2568,70 +2788,31 @@ next
       moreover have "\<M> N (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) |\<subset>| \<M> N (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)"
         unfolding \<open>S\<^sub>0 = S\<^sub>2\<close>[symmetric] \<M>.simps
       proof (rule pfsubset_ffilter)
-        have "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1"
-          using step' by (auto elim: scl_reso1.cases)
-        moreover have "C\<^sub>1 = C\<^sub>2"
+        have C\<^sub>0_lt_C\<^sub>1: "less_cls_sfac \<F>\<^sub>0 C\<^sub>0 C\<^sub>1"
+          using step'
+          by (auto elim!: scl_reso1.cases dest: linorder_cls_sfac.is_least_in_set_fset_ffilterD)
+
+        have "C\<^sub>1 = C\<^sub>2"
           using scl_reso1_simple_destroy[OF step'] by metis
-        ultimately have "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1"
-          by metis
-        show "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 x"
-          if x_in: "x |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0" and
-            "\<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>2 x"
-          for x
-        proof (cases "x = C\<^sub>1")
-          case True
-          hence False
-            using \<open>\<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>2 x\<close>
-            unfolding True \<open>C\<^sub>1 = C\<^sub>2\<close>
-            by order
-          thus ?thesis ..
-        next
-          case False
-          show ?thesis
-            using scl_reso1_\<F>_eq(2)[OF step']
-          proof (elim disjE exE conjE)
-            assume "\<F>\<^sub>2 = \<F>\<^sub>1"
-            have "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>2"
-              using \<open>\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1\<close>
-              by (simp only: \<open>C\<^sub>1 = C\<^sub>2\<close>)
-            also have "\<dots> \<prec>\<^sub>c \<F>\<^sub>0 x"
-              using \<open>\<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>2 x\<close>
-              by (simp only: \<open>\<F>\<^sub>2 = \<F>\<^sub>1\<close> scl_reso1_\<F>_eq(1)[OF step'])
-            finally show "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 x" .
-          next
-            fix L'
-            assume
-              L'_max: "ord_res.is_maximal_lit L' C\<^sub>1" and
-              \<F>\<^sub>2_eq: "\<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := add_mset L' {#K \<in># C\<^sub>1. K \<noteq> L'#})"
 
-            have "\<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>0 x"
-              using \<open>\<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>2 x\<close>
-              unfolding \<F>\<^sub>2_eq fun_upd_other[OF False] scl_reso1_\<F>_eq(1)[OF step'] .
+        show "less_cls_sfac \<F>\<^sub>2 C\<^sub>2 x \<Longrightarrow> less_cls_sfac \<F>\<^sub>0 C\<^sub>0 x" for x
+          using C\<^sub>0_lt_C\<^sub>1
+          unfolding \<open>\<F>\<^sub>2 = \<F>\<^sub>1\<close> base.prems(3) scl_reso1_\<F>_eq(1)[OF step']
+          by order
 
-            have "\<not> (\<exists>D'|\<in>|N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0.
-                \<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 D' \<and> \<F>\<^sub>0 D' \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1)"
-              using step' by (auto elim: scl_reso1.cases)
-            hence "\<not> (\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 x \<and> \<F>\<^sub>0 x \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1)"
-              using x_in by metis
-            hence "\<F>\<^sub>0 x \<preceq>\<^sub>c \<F>\<^sub>0 C\<^sub>0 \<or> \<F>\<^sub>0 C\<^sub>1 \<preceq>\<^sub>c \<F>\<^sub>0 x"
-              using \<open>\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1\<close> by auto
-            then show "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 x"
-              using \<open>\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1\<close>[unfolded \<open>C\<^sub>1 = C\<^sub>2\<close>] \<open>\<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>0 x\<close>
-              unfolding \<open>\<F>\<^sub>2 = \<F>\<^sub>1\<close> scl_reso1_\<F>_eq(1)[OF step']
-              by order
-          qed
-        qed
         let ?x = "C\<^sub>1"
-        show "?x |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0 \<and> \<not> \<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>2 ?x \<and> \<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 ?x"
+        show "C\<^sub>1 |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0 \<and> \<not> less_cls_sfac \<F>\<^sub>2 C\<^sub>2 C\<^sub>1 \<and>
+          less_cls_sfac \<F>\<^sub>0 C\<^sub>0 C\<^sub>1"
         proof (intro conjI)
-          show "?x |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0"
-            using step' by (auto elim: scl_reso1.cases)
+          show "C\<^sub>1 |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0"
+            using step' by (auto elim!: scl_reso1.cases
+                dest: linorder_cls_sfac.is_least_in_set_fset_ffilterD)
         next
-          show "\<not> \<F>\<^sub>2 C\<^sub>2 \<prec>\<^sub>c \<F>\<^sub>2 C\<^sub>1"
-            unfolding \<open>C\<^sub>1 = C\<^sub>2\<close> by order
+          show "\<not> less_cls_sfac \<F>\<^sub>2 C\<^sub>2 C\<^sub>1"
+            unfolding \<open>C\<^sub>1 = C\<^sub>2\<close> by simp
         next
-          show "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1"
-            using \<open>\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 C\<^sub>1\<close> .
+          show "less_cls_sfac \<F>\<^sub>0 C\<^sub>0 C\<^sub>1"
+            using C\<^sub>0_lt_C\<^sub>1 .
         qed
       qed
       ultimately show ?case
