@@ -28,6 +28,8 @@ datatype form =
 | Implies form form (infixl \<open>\<^bold>\<longrightarrow>\<close> 85)
 | Forall nat form (\<open>\<^bold>\<forall> _\<^bold>. _\<close> [0, 70] 70)
 
+thm form.induct
+
 fun functions_form :: \<open>form \<Rightarrow> (nat \<times> nat) set\<close> where
   \<open>functions_form \<^bold>\<bottom> = {}\<close>
 | \<open>functions_form (Atom p ts) = (\<Union> t \<in> set ts. functions_term t)\<close> 
@@ -117,7 +119,7 @@ lemma termsetsubst_valuation: \<open>\<forall>y \<in> T. \<forall>x\<in>FVT y. \
   using termsubst_valuation by fast
 
 lemma formsubst_valuation: \<open>\<forall>x\<in>(FV \<phi>). (Var x) \<cdot> \<sigma> = (Var x) \<cdot> \<sigma>' \<Longrightarrow> \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>'\<close>
-proof (induction \<phi> rule:form.induct)
+proof (induction \<phi> arbitrary: \<sigma> \<sigma>' rule:form.induct)
   case Bot
   then show ?case by simp
 next
@@ -132,24 +134,118 @@ next
   case (Forall x \<phi>)
   define \<sigma>'' where "\<sigma>'' = \<sigma>(x := Var x)"
   define \<sigma>''' where "\<sigma>''' = \<sigma>'(x := Var x)"
-  have \<open>\<exists> y. y \<in> FV (\<^bold>\<forall> x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>'' y) \<equiv> \<exists> y. y \<in> FV (\<^bold>\<forall> x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>''' y)\<close>
+  have ex_var_equiv: \<open>\<exists> y. y \<in> FV (\<^bold>\<forall> x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>'' y) \<equiv> \<exists> y. y \<in> FV (\<^bold>\<forall> x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>''' y)\<close>
     using \<sigma>''_def \<sigma>'''_def Forall(2)
     by (smt (verit, ccfv_threshold) eval_term.simps(1) fun_upd_other fun_upd_same)
-  then show ?case
+  have sig_x_subst: \<open>\<forall>y\<in>FV \<phi>. Var y \<cdot> \<sigma>(x := Var z) = Var y \<cdot> \<sigma>'(x := Var z)\<close> for z
+    using Forall(2) by simp
+  show ?case
   proof (cases \<open>\<exists> y. y \<in> FV (\<^bold>\<forall> x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>'' y)\<close>)
     case True
+    then have \<open>(\<^bold>\<forall> x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma> = (let z = variant (FV (\<^bold>\<forall> x\<^bold>. \<phi>)) in \<^bold>\<forall> z\<^bold>. (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(x := Var z)))\<close>
+      by (simp add: \<sigma>''_def)
+    also have \<open>... = (let z = variant (FV (\<^bold>\<forall> x\<^bold>. \<phi>)) in \<^bold>\<forall> z\<^bold>. (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>'(x := Var z)))\<close>
+      using sig_x_subst by (metis Forall.IH)
+    also have \<open>... = (\<^bold>\<forall> x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma>'\<close>
+      using True \<sigma>'''_def ex_var_equiv formsubst.simps(4) by presburger
+    finally show ?thesis .
+  next
+    case False
     then show ?thesis
-      apply auto
+      using Forall.IH \<sigma>'''_def \<sigma>''_def ex_var_equiv sig_x_subst by auto
+  qed
+qed
+
+(* needed in HOL-Light but seems trivial in modern Isabelle/HOL *)
+lemma \<open>{x. \<exists>y. y \<in> (s \<union> t) \<and> P x y} = {x. \<exists>y. y \<in> s \<and> P x y} \<union> {x. \<exists>y. y \<in> t \<and> P x y}\<close>
+  by blast
+
+
+lemma \<open>FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) = {x. \<exists>y. y \<in> (FV \<phi>) \<and> x \<in> FVT ((Var y) \<cdot> \<sigma>)}\<close>
+proof (induction \<phi> arbitrary: \<sigma> rule:form.induct)
+  case Bot
+  then show ?case by simp
+next
+  case (Atom x1 x2)
+  have \<open>FV (Atom x1 x2 \<cdot>\<^sub>f\<^sub>m \<sigma>) = (\<Union>a \<in> set x2. FVT (a  \<cdot> \<sigma>))\<close>
+    by auto
+  also have \<open>... = {x. \<exists>y. y \<in> (\<Union>a \<in> set x2. FVT a) \<and> x \<in> FVT ((Var y) \<cdot> \<sigma>)}\<close>
+  proof 
+    show \<open>(\<Union>a\<in>set x2. FVT (a \<cdot> \<sigma>)) \<subseteq> {x. \<exists>y. y \<in> (\<Union>a\<in>set x2. FVT a) \<and> x \<in> FVT (Var y \<cdot> \<sigma>)}\<close>
+    proof
+      fix v
+      assume \<open>v \<in> (\<Union>a\<in>set x2. FVT (a \<cdot> \<sigma>))\<close>
+      then obtain a where a_is: \<open>a \<in> set x2\<close> \<open>v \<in> FVT (a \<cdot> \<sigma>)\<close>
+        by auto
+      then obtain ya where \<open>ya \<in> FVT a\<close> \<open>v \<in> FVT (Var ya \<cdot> \<sigma>)\<close>
+        using eval_term.simps(1) vars_term_subst_apply_term by force
+      then show \<open>v \<in> {x. \<exists>y. y \<in> (\<Union>a\<in>set x2. FVT a) \<and> x \<in> FVT (Var y \<cdot> \<sigma>)}\<close>
+        using a_is by auto
+    qed
+  next
+    show \<open>{x. \<exists>y. y \<in> (\<Union>a\<in>set x2. FVT a) \<and> x \<in> FVT (Var y \<cdot> \<sigma>)} \<subseteq> (\<Union>a\<in>set x2. FVT (a \<cdot> \<sigma>))\<close>
+    proof
+      fix v
+      assume \<open>v \<in> {x. \<exists>y. y \<in> (\<Union>a\<in>set x2. FVT a) \<and> x \<in> FVT (Var y \<cdot> \<sigma>)}\<close>
+      then obtain yv where \<open>yv \<in> (\<Union>a\<in>set x2. FVT a)\<close> \<open>v \<in> FVT (Var yv \<cdot> \<sigma>)\<close>
+        by auto
+      then show \<open>v \<in> (\<Union>a\<in>set x2. FVT (a \<cdot> \<sigma>))\<close>
+        using vars_term_subst_apply_term by fastforce
+    qed
+  qed
+  also have \<open>... = {x. \<exists>y. y \<in> (FV (Atom x1 x2)) \<and> x \<in> FVT ((Var y) \<cdot> \<sigma>)}\<close>
+    by auto
+  finally show ?case .
+next
+  case (Implies \<phi>1 \<phi>2)
+  then show ?case by auto
+next
+  case (Forall x \<phi>)
+  define \<sigma>' where "\<sigma>' = \<sigma>(x := Var x)"
+  have \<open>FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(y := Var z)) - {z} = FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) - {y}\<close> for y z
+  proof
+    have \<open>y \<notin> FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(y := Var z)) - {z}\<close>
+    proof (rule ccontr)
+      assume \<open>\<not> y \<notin> FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(y := Var z)) - {z}\<close>
+      then have \<open>y \<in> FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(y := Var z))\<close>
+        by auto
+      then have \<open>Var y \<in> \<sigma>(y := Var z) ` (UNIV::nat set)\<close>
+        sorry
+      then show False
+        sorry
+    qed
+    show \<open>FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(y := Var z)) - {z} \<subseteq> FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) - {y}\<close>
+    proof
+      fix x
+      assume \<open>x \<in> FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(y := Var z)) - {z}\<close>
+      show \<open>x \<in> FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) - {y}\<close>
+        sorry 
+    qed
+  next
+    show \<open>FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) - {y} \<subseteq> FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(y := Var z)) - {z}\<close>
+    proof
+      fix x
+      assume \<open>x \<in> FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) - {y}\<close>
+      show \<open>x \<in> FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(y := Var z)) - {z}\<close>
+        sorry
+    qed
+  qed
+  show ?case
+  proof (cases \<open>\<exists> y. y \<in> FV (\<^bold>\<forall> x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>' y)\<close>)
+    case True
+    then have \<open>FV ((\<^bold>\<forall> x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma>) =
+      FV ((let z = variant (FV (\<^bold>\<forall> x\<^bold>. \<phi>)) in \<^bold>\<forall> z\<^bold>. (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(x := Var z))))\<close>
+      by (simp add: \<sigma>'_def)
+    also have \<open>... = (let z = variant (FV (\<^bold>\<forall> x\<^bold>. \<phi>)) in FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(x := Var z)) - {z})\<close>
+      by (meson FV.simps(4))
+    also have \<open>... = FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) - {x}\<close>
       sorry
+    then show ?thesis sorry
   next
     case False
     then show ?thesis sorry
   qed
 qed
-
-
-lemma \<open>FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) = {x |x. \<exists>y. y \<in> (FV \<phi>) \<and> x \<in> FVT ((Var y) \<cdot> \<sigma>)}\<close>
-  sorry
 
 
 end
