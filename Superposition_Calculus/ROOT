@@ -8,3 +8,4 @@ session Superposition_Calculus = Saturation_Framework_Extensions +
   theories
     Ground_Superposition
     Ground_Ordered_Resolution
+    Min_Max_Least_Greatest_FSet

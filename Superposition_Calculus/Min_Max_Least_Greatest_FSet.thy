@@ -4,11 +4,13 @@ theory Min_Max_Least_Greatest_FSet
     "HOL-Library.FSet"
 begin
 
-definition is_minimal_in_fset_wrt where
+section \<open>Minimal and maximal elements\<close>
+
+definition is_minimal_in_fset_wrt :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a fset \<Rightarrow> 'a \<Rightarrow> bool" where
   "transp_on (fset X) R \<Longrightarrow> asymp_on (fset X) R \<Longrightarrow>
     is_minimal_in_fset_wrt R X = is_minimal_in_set_wrt R (fset X)"
 
-definition is_maximal_in_fset_wrt where
+definition is_maximal_in_fset_wrt :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a fset \<Rightarrow> 'a \<Rightarrow> bool" where
   "transp_on (fset X) R \<Longrightarrow> asymp_on (fset X) R \<Longrightarrow>
     is_maximal_in_fset_wrt R X = is_maximal_in_set_wrt R (fset X)"
 
@@ -44,11 +46,13 @@ lemma bex_maximal_element_in_fset_wrt:
 end
 
 
-definition is_least_in_fset_wrt where
+section \<open>Least and greatest elements\<close>
+
+definition is_least_in_fset_wrt :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a fset \<Rightarrow> 'a \<Rightarrow> bool" where
   "transp_on (fset X) R \<Longrightarrow> asymp_on (fset X) R \<Longrightarrow> totalp_on (fset X) R \<Longrightarrow>
     is_least_in_fset_wrt R X = is_least_in_set_wrt R (fset X)"
 
-definition is_greatest_in_fset_wrt where
+definition is_greatest_in_fset_wrt :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a fset \<Rightarrow> 'a \<Rightarrow> bool" where
   "transp_on (fset X) R \<Longrightarrow> asymp_on (fset X) R \<Longrightarrow> totalp_on (fset X) R \<Longrightarrow>
     is_greatest_in_fset_wrt R X = is_greatest_in_set_wrt R (fset X)"
 
