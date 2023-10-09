@@ -1,6 +1,6 @@
 theory Min_Max_Least_Greatest_FSet
   imports
-    Relation_Reachability
+    Min_Max_Least_Greatest_Set
     "HOL-Library.FSet"
 begin
 
@@ -21,6 +21,9 @@ context
     asym: "asymp_on (fset X) R"
 begin
 
+
+subsection \<open>Conversions\<close>
+
 lemma is_minimal_in_fset_wrt_iff:
   "is_minimal_in_fset_wrt R X x \<longleftrightarrow> x |\<in>| X \<and> fBall X (\<lambda>y. y \<noteq> x \<longrightarrow> \<not> R y x)"
   using is_minimal_in_set_wrt_iff[OF trans asym]
@@ -32,6 +35,9 @@ lemma is_maximal_in_fset_wrt_iff:
   using is_maximal_in_set_wrt_iff[OF trans asym]
   using is_maximal_in_fset_wrt_def[OF trans asym]
   by simp
+
+
+subsection \<open>Existence\<close>
 
 lemma bex_minimal_element_in_fset_wrt:
   "X \<noteq> {||} \<Longrightarrow> \<exists>m. is_minimal_in_fset_wrt R X m"
@@ -64,6 +70,8 @@ context
     tot: "totalp_on (fset X) R"
 begin
 
+subsection \<open>Conversions\<close>
+
 lemma is_least_in_fset_wrt_iff:
   "is_least_in_fset_wrt R X x \<longleftrightarrow> x |\<in>| X \<and> fBall X (\<lambda>y. y \<noteq> x \<longrightarrow> R x y)"
   using is_least_in_set_wrt_iff[OF trans asym tot]
@@ -86,6 +94,9 @@ lemma is_maximal_in_fset_wrt_eq_is_greatest_in_fset_wrt:
   using trans asym tot is_maximal_in_set_wrt_eq_is_greatest_in_set_wrt
   by (metis is_greatest_in_fset_wrt_def is_maximal_in_fset_wrt_def)
 
+
+subsection \<open>Uniqueness\<close>
+
 lemma Uniq_is_least_in_fset_wrt:
   "\<exists>\<^sub>\<le>\<^sub>1x. is_least_in_fset_wrt R X x"
   using trans asym tot Uniq_is_least_in_set_wrt
@@ -95,6 +106,9 @@ lemma Uniq_is_greatest_in_fset_wrt:
   "\<exists>\<^sub>\<le>\<^sub>1x. is_greatest_in_fset_wrt R X x"
   using trans asym tot Uniq_is_greatest_in_set_wrt
   by (metis is_greatest_in_fset_wrt_def)
+
+
+subsection \<open>Existence\<close>
 
 lemma ex_least_in_fset_wrt:
   "X \<noteq> {||} \<Longrightarrow> \<exists>x. is_least_in_fset_wrt R X x"

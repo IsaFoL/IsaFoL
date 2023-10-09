@@ -6,6 +6,7 @@ session Superposition_Calculus = Saturation_Framework_Extensions +
     Saturation_Framework_Extensions
     Regular_Tree_Relations
   theories
-    Ground_Superposition
     Ground_Ordered_Resolution
+    Ground_Superposition
     Min_Max_Least_Greatest_FSet
+    Min_Max_Least_Greatest_Set
