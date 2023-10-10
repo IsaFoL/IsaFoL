@@ -78,7 +78,7 @@ lemma is_least_in_fset_wrt_iff:
   using is_least_in_fset_wrt_def[OF trans asym tot]
   by simp
 
-lemma is_greatest_in_fset_wrt:
+lemma is_greatest_in_fset_wrt_iff:
   "is_greatest_in_fset_wrt R X x \<longleftrightarrow> x |\<in>| X \<and> fBall X (\<lambda>y. y \<noteq> x \<longrightarrow> R y x)"
   using is_greatest_in_set_wrt_iff[OF trans asym tot]
   using is_greatest_in_fset_wrt_def[OF trans asym tot]
@@ -97,12 +97,12 @@ lemma is_maximal_in_fset_wrt_eq_is_greatest_in_fset_wrt:
 
 subsection \<open>Uniqueness\<close>
 
-lemma Uniq_is_least_in_fset_wrt:
+lemma Uniq_is_least_in_fset_wrt[intro]:
   "\<exists>\<^sub>\<le>\<^sub>1x. is_least_in_fset_wrt R X x"
   using trans asym tot Uniq_is_least_in_set_wrt
   by (metis is_least_in_fset_wrt_def)
 
-lemma Uniq_is_greatest_in_fset_wrt:
+lemma Uniq_is_greatest_in_fset_wrt[intro]:
   "\<exists>\<^sub>\<le>\<^sub>1x. is_greatest_in_fset_wrt R X x"
   using trans asym tot Uniq_is_greatest_in_set_wrt
   by (metis is_greatest_in_fset_wrt_def)
@@ -131,5 +131,71 @@ lemma ex1_greatest_in_fset_wrt:
   by (metis Uniq_def)
 
 end
+
+
+section \<open>Hide stuff\<close>
+
+text \<open>We restrict the public interface to ease future internal changes.\<close>
+
+hide_fact is_minimal_in_fset_wrt_def is_maximal_in_fset_wrt_def
+hide_fact is_least_in_fset_wrt_def is_greatest_in_fset_wrt_def
+
+
+section \<open>Integration in type classes\<close>
+
+abbreviation (in order) is_minimal_in_fset where
+  "is_minimal_in_fset \<equiv> is_minimal_in_fset_wrt (<)"
+
+abbreviation (in order) is_maximal_in_fset where
+  "is_maximal_in_fset \<equiv> is_maximal_in_fset_wrt (<)"
+
+lemmas (in order) is_minimal_in_fset_iff =
+  is_minimal_in_fset_wrt_iff[OF transp_on_less asymp_on_less]
+
+lemmas (in order) is_maximal_in_fset_iff =
+  is_maximal_in_fset_wrt_iff[OF transp_on_less asymp_on_less]
+
+lemmas (in order) ex_minimal_in_fset =
+  ex_minimal_in_fset_wrt[OF transp_on_less asymp_on_less]
+
+lemmas (in order) ex_maximal_in_fset =
+  ex_maximal_in_fset_wrt[OF transp_on_less asymp_on_less]
+
+
+abbreviation (in linorder) is_least_in_fset where
+  "is_least_in_fset \<equiv> is_least_in_fset_wrt (<)"
+
+abbreviation (in linorder) is_greatest_in_fset where
+  "is_greatest_in_fset \<equiv> is_greatest_in_fset_wrt (<)"
+
+lemmas (in linorder) is_least_in_fset_iff =
+  is_least_in_fset_wrt_iff[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) is_greatest_in_fset_iff =
+  is_greatest_in_fset_wrt_iff[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) is_minimal_in_fset_eq_is_least_in_fset =
+  is_minimal_in_fset_wrt_eq_is_least_in_fset_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) is_maximal_in_fset_eq_is_greatest_in_fset =
+  is_maximal_in_fset_wrt_eq_is_greatest_in_fset_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) Uniq_is_least_in_fset[intro] =
+  Uniq_is_least_in_fset_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) Uniq_is_greatest_in_fset[intro] =
+  Uniq_is_greatest_in_fset_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) ex_least_in_fset =
+  ex_least_in_fset_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) ex_greatest_in_fset =
+  ex_greatest_in_fset_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) ex1_least_in_fset =
+  ex1_least_in_fset_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) ex1_greatest_in_fset =
+  ex1_greatest_in_fset_wrt[OF transp_on_less asymp_on_less totalp_on_less]
 
 end

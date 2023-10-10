@@ -143,4 +143,73 @@ lemma ex1_greatest_in_set_wrt:
 
 end
 
+
+section \<open>Hide stuff\<close>
+
+text \<open>We restrict the public interface to ease future internal changes.\<close>
+
+hide_fact is_minimal_in_set_wrt_def is_maximal_in_set_wrt_def
+hide_fact is_least_in_set_wrt_def is_greatest_in_set_wrt_def
+
+
+section \<open>Integration in type classes\<close>
+
+abbreviation (in order) is_minimal_in_set where
+  "is_minimal_in_set \<equiv> is_minimal_in_set_wrt (<)"
+
+abbreviation (in order) is_maximal_in_set where
+  "is_maximal_in_set \<equiv> is_maximal_in_set_wrt (<)"
+
+lemmas (in order) is_minimal_in_set_iff =
+  is_minimal_in_set_wrt_iff[OF transp_on_less asymp_on_less]
+
+lemmas (in order) is_maximal_in_set_iff =
+  is_maximal_in_set_wrt_iff[OF transp_on_less asymp_on_less]
+
+lemmas (in order) ex_minimal_in_set =
+  ex_minimal_in_set_wrt[OF transp_on_less asymp_on_less]
+
+lemmas (in order) ex_maximal_in_set =
+  ex_maximal_in_set_wrt[OF transp_on_less asymp_on_less]
+
+lemmas (in order) is_minimal_in_set_filter_iff =
+  is_minimal_in_set_wrt_filter_iff[OF transp_on_less asymp_on_less]
+
+
+abbreviation (in linorder) is_least_in_set where
+  "is_least_in_set \<equiv> is_least_in_set_wrt (<)"
+
+abbreviation (in linorder) is_greatest_in_set where
+  "is_greatest_in_set \<equiv> is_greatest_in_set_wrt (<)"
+
+lemmas (in linorder) is_least_in_set_iff =
+  is_least_in_set_wrt_iff[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) is_greatest_in_set_iff =
+  is_greatest_in_set_wrt_iff[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) is_minimal_in_set_eq_is_least_in_set =
+  is_minimal_in_set_wrt_eq_is_least_in_set_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) is_maximal_in_set_eq_is_greatest_in_set =
+  is_maximal_in_set_wrt_eq_is_greatest_in_set_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) Uniq_is_least_in_set[intro] =
+  Uniq_is_least_in_set_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) Uniq_is_greatest_in_set[intro] =
+  Uniq_is_greatest_in_set_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) ex_least_in_set =
+  ex_least_in_set_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) ex_greatest_in_set =
+  ex_greatest_in_set_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) ex1_least_in_set =
+  ex1_least_in_set_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) ex1_greatest_in_set =
+  ex1_greatest_in_set_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
 end

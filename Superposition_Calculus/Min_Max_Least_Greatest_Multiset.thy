@@ -260,7 +260,7 @@ abbreviation (in linorder) is_least_in_mset where
 abbreviation (in linorder) is_greatest_in_mset where
   "is_greatest_in_mset \<equiv> is_greatest_in_mset_wrt (<)"
 
-lemmas (in linorder) is_least_in_set_iff =
+lemmas (in linorder) is_least_in_mset_iff =
   is_least_in_mset_wrt_iff[OF transp_on_less asymp_on_less totalp_on_less]
 
 lemmas (in linorder) is_greatest_in_mset_iff =
