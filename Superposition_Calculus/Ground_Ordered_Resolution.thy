@@ -6,6 +6,7 @@ theory Ground_Ordered_Resolution
     Ground_Ctxt_Extra
     HOL_Extra
     Transitive_Closure_Extra
+    Min_Max_Least_Greatest_Multiset
     Multiset_Extra
     Relation_Extra
 begin
@@ -65,8 +66,11 @@ abbreviation less_cls ::
 abbreviation lesseq_cls (infix "\<preceq>\<^sub>c" 50) where
   "lesseq_cls \<equiv> (\<prec>\<^sub>c)\<^sup>=\<^sup>="
 
-lemma transp_less_lit[simp]: "transp (\<prec>\<^sub>l)"
-  by (metis (no_types, lifting) less_lit_def transpD transpI transp_less_trm transp_multp)
+lemma transp_on_less_lit[simp]: "transp_on A (\<prec>\<^sub>l)"
+  by (smt (verit, best) less_lit_def transpE transp_less_trm transp_multp transp_onI)
+
+corollary transp_less_lit: "transp (\<prec>\<^sub>l)"
+  by simp
 
 lemma transp_less_cls[simp]: "transp (\<prec>\<^sub>c)"
   by (simp add: transp_multp)
@@ -75,14 +79,14 @@ lemma asymp_on_less_lit[simp]: "asymp_on A (\<prec>\<^sub>l)"
   by (metis asympD asymp_less_trm asymp_multp\<^sub>H\<^sub>O asymp_onI less_lit_def multp_eq_multp\<^sub>H\<^sub>O
       transp_less_trm)
 
-lemma irreflp_on_less_lit[simp]: "irreflp_on A (\<prec>\<^sub>l)"
-  by (simp only: asymp_on_less_lit irreflp_on_if_asymp_on)
-
-lemma asymp_less_lit[simp]: "asymp (\<prec>\<^sub>l)"
-  by (metis asympD asympI asymp_less_trm asymp_multp\<^sub>H\<^sub>O less_lit_def multp_eq_multp\<^sub>H\<^sub>O transp_less_trm)
+corollary asymp_less_lit[simp]: "asymp (\<prec>\<^sub>l)"
+  by simp
 
 lemma asymp_less_cls[simp]: "asymp (\<prec>\<^sub>c)"
   by (simp add: asymp_multp\<^sub>H\<^sub>O multp_eq_multp\<^sub>H\<^sub>O)
+
+lemma irreflp_on_less_lit[simp]: "irreflp_on A (\<prec>\<^sub>l)"
+  by (simp only: asymp_on_less_lit irreflp_on_if_asymp_on)
 
 lemma wfP_less_lit[simp]: "wfP (\<prec>\<^sub>l)"
   unfolding less_lit_def
@@ -91,8 +95,8 @@ lemma wfP_less_lit[simp]: "wfP (\<prec>\<^sub>l)"
 lemma wfP_less_cls[simp]: "wfP (\<prec>\<^sub>c)"
   using wfP_less_lit wfP_multp by blast
 
-lemma totalp_less_lit: "totalp (\<prec>\<^sub>l)"
-proof (rule totalpI)
+lemma totalp_on_less_lit[simp]: "totalp_on A (\<prec>\<^sub>l)"
+proof (rule totalp_onI)
   fix L1 L2 :: "'f gterm atom literal"
   assume "L1 \<noteq> L2"
 
@@ -111,8 +115,8 @@ proof (rule totalpI)
   qed
 qed
 
-lemma totalp_on_less_lit[simp]: "totalp_on A (\<prec>\<^sub>l)"
-  using totalp_less_lit totalp_on_subset by auto
+corollary totalp_less_lit: "totalp (\<prec>\<^sub>l)"
+  by simp
 
 lemma totalp_less_cls[simp]: "totalp (\<prec>\<^sub>c)"
 proof (rule totalp_multp)
@@ -187,11 +191,11 @@ lemma less_lit_simps[simp]:
 
 subsection \<open>Ground Rules\<close>
 
-abbreviation is_maximal_lit where
-  "is_maximal_lit \<equiv> is_maximal_wrt (\<prec>\<^sub>l)"
+abbreviation is_maximal_lit :: "'f gterm literal \<Rightarrow> 'f gterm clause \<Rightarrow> bool" where
+  "is_maximal_lit L M \<equiv> is_maximal_in_mset_wrt (\<prec>\<^sub>l) M L"
 
-abbreviation is_strictly_maximal_lit where
-  "is_strictly_maximal_lit \<equiv> is_maximal_wrt (\<preceq>\<^sub>l)"
+abbreviation is_strictly_maximal_lit :: "'f gterm literal \<Rightarrow> 'f gterm clause \<Rightarrow> bool" where
+  "is_strictly_maximal_lit L M \<equiv> is_greatest_in_mset_wrt (\<prec>\<^sub>l) M L"
 
 inductive ground_resolution ::
   "'f gterm atom clause \<Rightarrow> 'f gterm atom clause \<Rightarrow> 'f gterm atom clause \<Rightarrow> bool"
@@ -367,9 +371,9 @@ lemma ground_resolution_smaller_conclusion:
   using step
 proof (cases P1 P2 C rule: ground_resolution.cases)
   case (ground_resolutionI t P\<^sub>1' P\<^sub>2')
-  hence "\<forall>k\<in>#P\<^sub>2'. k \<prec>\<^sub>l Pos t"
-    by (metis (no_types, opaque_lifting) add_mset_remove_trivial is_maximal_wrt_def
-        lift_is_maximal_wrt_to_is_maximal_wrt_reflclp sup2I1 totalpD totalp_less_lit)
+  have "\<forall>k\<in>#P\<^sub>2'. k \<prec>\<^sub>l Pos t"
+    using \<open>is_strictly_maximal_lit (Pos t) P2\<close> \<open>P2 = add_mset (Pos t) P\<^sub>2'\<close>
+    by (simp add: linorder_lit.is_greatest_in_mset_iff)
   moreover have "\<And>A. Pos A \<prec>\<^sub>l Neg A"
     by (simp add: less_lit_def)
   ultimately have "\<forall>k\<in>#P\<^sub>2'. k \<prec>\<^sub>l Neg t"
@@ -461,7 +465,13 @@ end
 
 lemma Uniq_striclty_maximal_lit_in_ground_cls:
   "\<exists>\<^sub>\<le>\<^sub>1L. is_strictly_maximal_lit L C"
-proof (rule Uniq_is_maximal_wrt_reflclp)
+proof (rule Uniq_is_greatest_in_mset_wrt)
+  show "transp_on (set_mset C) (\<prec>\<^sub>l)"
+    by (auto intro: transp_on_subset transp_less_lit)
+next
+  show "asymp_on (set_mset C) (\<prec>\<^sub>l)"
+    by (auto intro: asymp_on_subset asymp_less_lit)
+next
   show "totalp_on (set_mset C) (\<prec>\<^sub>l)"
     by (auto intro: totalp_on_subset totalp_less_lit)
 qed
@@ -473,9 +483,8 @@ proof -
     apply (rule UniqI)
     apply (elim exE conjE)
     using Uniq_striclty_maximal_lit_in_ground_cls[THEN Uniq_D,
-        of "Pos _" _ "Pos _", unfolded literal.inject]
-    using totalp_less_trm
-    by (metis union_single_eq_member)
+        of _ "Pos _" "Pos _", unfolded literal.inject]
+    by (metis )
   hence Uniq_production: "\<exists>\<^sub>\<le>\<^sub>1A. \<exists>C'.
     C \<in> N \<and>
     C = add_mset (Pos A) C' \<and>
@@ -527,7 +536,7 @@ proof (rule Uniq_I)
   then obtain C' where
     "C \<in> N"
     "C = add_mset (Pos A) C'"
-    "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) C"
+    "is_strictly_maximal_lit (Pos A) C"
     "\<not> interp N C \<TTurnstile> C"
     by (auto elim!: mem_productionE)
 
@@ -537,7 +546,7 @@ proof (rule Uniq_I)
   then obtain D' where
     "D \<in> N"
     "D = add_mset (Pos A) D'"
-    "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) D"
+    "is_strictly_maximal_lit (Pos A) D"
     "\<not> interp N D \<TTurnstile> D"
     by (auto elim!: mem_productionE)
 
@@ -654,7 +663,7 @@ proof -
     by (auto elim: mem_productionE)
 
   have "D \<prec>\<^sub>c C"
-  proof (rule multp_if_maximal_less)
+  proof (rule multp_if_maximal_of_lhs_is_less)
     show "Pos A \<in># D"
       using \<open>Pos A \<in># D\<close> .
   next
@@ -665,8 +674,7 @@ proof -
       by (simp add: less_lit_def subset_implies_multp)
   next
     show "is_maximal_lit (Pos A) D"
-      using \<open>is_strictly_maximal_lit (Pos A) D\<close>
-      by (meson is_maximal_wrt_if_is_maximal_wrt_reflclp)
+      using \<open>is_strictly_maximal_lit (Pos A) D\<close> by auto
   qed simp_all
   hence "\<not> (\<prec>\<^sub>c)\<^sup>=\<^sup>= C D"
     by (metis asympD asymp_less_cls reflclp_iff)
@@ -765,7 +773,7 @@ proof -
   moreover have False if "Pos A \<prec>\<^sub>l L"
   proof -
     have "C \<prec>\<^sub>c D"
-    proof (rule multp_if_maximal_less)
+    proof (rule multp_if_maximal_of_lhs_is_less)
       show "Pos A \<in># C"
         by (simp add: C_def)
     next
@@ -773,7 +781,7 @@ proof -
         using L_in by simp
     next
       show "is_maximal_lit (Pos A) C"
-        using C_max_lit by simp
+        using C_max_lit by auto
     next
       show "Pos A \<prec>\<^sub>l L"
         using that by simp
@@ -796,9 +804,7 @@ proof -
     "is_strictly_maximal_lit (Pos A\<^sub>C) C"
     by (elim mem_productionE) simp
   hence "\<forall>L \<in># C'. L \<prec>\<^sub>l Pos A\<^sub>C"
-    unfolding is_maximal_wrt_def
-    using totalp_less_lit[THEN totalpD]
-    by (metis (no_types, opaque_lifting) add_mset_remove_trivial reflclp_iff)
+    by (simp add: linorder_lit.is_greatest_in_mset_iff)
 
   from D_prod obtain D' where
     "D \<in> N" and
@@ -806,9 +812,7 @@ proof -
     "is_strictly_maximal_lit (Pos A\<^sub>D) D"
     by (elim mem_productionE) simp
   hence "\<forall>L \<in># D'. L \<prec>\<^sub>l Pos A\<^sub>D"
-    unfolding is_maximal_wrt_def
-    using totalp_less_lit[THEN totalpD]
-    by (metis (no_types, opaque_lifting) add_mset_remove_trivial reflclp_iff)
+    by (simp add: linorder_lit.is_greatest_in_mset_iff)
 
   show ?thesis
   proof (rule iffI)
@@ -846,7 +850,7 @@ proof -
     C_in: "C \<in> N" and
     C_def: "C = add_mset (Pos A) C'" and
     "select C = {#}" and
-    "is_strictly_maximal_lit (Pos A) C" and
+    Pox_A_max: "is_strictly_maximal_lit (Pos A) C" and
     "\<not> interp N C \<TTurnstile> C"
     by (rule mem_productionE) blast
 
@@ -875,10 +879,12 @@ proof -
       case (Pos A\<^sub>L)
       moreover have "A\<^sub>L \<notin> interp N D"
       proof -
-        from Pos have "A\<^sub>L \<notin> insert A (interp N C)"
-          by (metis C_def L_in \<open>L \<in># C\<close> \<open>\<not> interp N C \<TTurnstile> C\<close> \<open>is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) C\<close>
-              add_mset_remove_trivial insertE lift_is_maximal_wrt_to_is_maximal_wrt_reflclp
-              pos_literal_in_imp_true_cls sup.right_idem)
+        have "\<forall>y\<in>#C'. y \<prec>\<^sub>l Pos A"
+          using Pox_A_max
+          by (simp add: C_def linorder_lit.is_greatest_in_mset_iff)
+        with Pos have "A\<^sub>L \<notin> insert A (interp N C)"
+          using L_in \<open>\<not> interp N C \<TTurnstile> C\<close> C_def
+          by blast
 
         moreover have "A\<^sub>L \<notin> (\<Union>D' \<in> {D' \<in> N. C \<prec>\<^sub>c D' \<and> D' \<prec>\<^sub>c D}. production N D')"
         proof -
@@ -1005,7 +1011,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
           show "select D = {#}"
             using sel_D by blast
         next
-          show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) D"
+          show "is_strictly_maximal_lit (Pos A) D"
             using max_t_t' .
         qed simp_all
 
@@ -1070,13 +1076,9 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
         by (metis (no_types, opaque_lifting) Neg_atm_of_iff mset_subset_eqD multiset_nonemptyE)
         
       from False obtain A where Pos_A_in: "Pos A \<in># C" and max_Pos_A: "is_maximal_lit (Pos A) C"
-        using ex_is_maximal_wrt_if_not_empty[OF
-            transp_less_lit[THEN transp_on_subset, OF subset_UNIV]
-            asymp_less_lit[THEN asymp_on_subset, OF subset_UNIV]
-            \<open>C \<noteq> {#}\<close>]
-        using select_subset select_negative_lits
-        by (metis (no_types, opaque_lifting) literal.disc(1) literal.exhaust mset_subset_eqD
-            multiset_nonemptyE)
+        using ex_maximal_in_mset_wrt[OF transp_on_less_lit asymp_on_less_lit \<open>C \<noteq> {#}\<close>]
+        using is_maximal_in_mset_wrt_iff[OF transp_on_less_lit asymp_on_less_lit]
+        by (metis Neg_atm_of_iff \<open>select C = {#}\<close> is_pos_def)
       then obtain C' where C_def: "C = add_mset (Pos A) C'"
         by (meson mset_add)
 
@@ -1096,11 +1098,11 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             using C_def by blast
         next
           case False
+          hence "count C (Pos A) \<ge> 2"
+            using max_Pos_A
+            by (simp add: linorder_lit.count_ge_2_if_maximal_in_mset_and_not_greatest_in_mset)
           then obtain C' where C_def: "C = add_mset (Pos A) (add_mset (Pos A) C')"
-            using Pos_A_in max_Pos_A lift_is_maximal_wrt_to_is_maximal_wrt_reflclp
-            by (metis insert_DiffM)
-
-          thm ground_factoringI
+            by (metis two_le_countE)
 
           define \<iota> :: "'f gterm clause inference" where
             "\<iota> = Infer [C] (add_mset (Pos A) C')"

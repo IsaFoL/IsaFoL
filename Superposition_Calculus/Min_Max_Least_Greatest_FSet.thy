@@ -39,12 +39,12 @@ lemma is_maximal_in_fset_wrt_iff:
 
 subsection \<open>Existence\<close>
 
-lemma bex_minimal_element_in_fset_wrt:
+lemma ex_minimal_in_fset_wrt:
   "X \<noteq> {||} \<Longrightarrow> \<exists>m. is_minimal_in_fset_wrt R X m"
   using trans asym ex_minimal_in_set_wrt[of "fset X" R] is_minimal_in_fset_wrt_def
   by (metis all_not_fin_conv empty_iff finite_fset)
 
-lemma bex_maximal_element_in_fset_wrt:
+lemma ex_maximal_in_fset_wrt:
   "X \<noteq> {||} \<Longrightarrow> \<exists>m. is_maximal_in_fset_wrt R X m"
   using trans asym ex_maximal_in_set_wrt[of "fset X" R] is_maximal_in_fset_wrt_def
   by (metis all_not_fin_conv empty_iff finite_fset)

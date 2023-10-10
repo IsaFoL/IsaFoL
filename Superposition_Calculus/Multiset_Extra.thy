@@ -4,6 +4,25 @@ theory Multiset_Extra
     "HOL-Library.Multiset_Order"
 begin
 
+lemma one_le_countE:
+  assumes "1 \<le> count M x"
+  obtains M' where "M = add_mset x M'"
+  using assms by (meson count_greater_eq_one_iff multi_member_split)
+
+lemma two_le_countE:
+  assumes "2 \<le> count M x"
+  obtains M' where "M = add_mset x (add_mset x M')"
+  using assms
+  by (metis Suc_1 Suc_eq_plus1_left Suc_leD add.right_neutral count_add_mset multi_member_split
+      not_in_iff not_less_eq_eq)
+
+lemma three_le_countE:
+  assumes "3 \<le> count M x"
+  obtains M' where "M = add_mset x (add_mset x (add_mset x M'))"
+  using assms
+  by (metis One_nat_def Suc_1 Suc_leD add_le_cancel_left count_add_mset numeral_3_eq_3 plus_1_eq_Suc
+      two_le_countE)
+
 lemma one_step_implies_multp\<^sub>H\<^sub>O_strong:
   fixes A B J K :: "_ multiset"
   defines "J \<equiv> B - A" and "K \<equiv> A - B"
@@ -18,74 +37,12 @@ next
     using assms by (metis in_diff_count)
 qed
 
-definition is_maximal_wrt where
-  "is_maximal_wrt R x M \<longleftrightarrow> x \<in># M \<and> (\<forall>y \<in># M - {#x#}. \<not> (R x y))"
-
-lemma is_maximal_wrt_if_is_maximal_wrt_reflclp[simp]:
-  "is_maximal_wrt R\<^sup>=\<^sup>= L C \<Longrightarrow> is_maximal_wrt R L C"
-  unfolding is_maximal_wrt_def by simp
-
 lemma Uniq_antimono: "Q \<le> P \<Longrightarrow> Uniq Q \<ge> Uniq P"
   unfolding le_fun_def le_bool_def
   by (rule impI) (simp only: Uniq_I Uniq_D)
 
 lemma Uniq_antimono': "(\<And>x. Q x \<Longrightarrow> P x) \<Longrightarrow> Uniq P \<Longrightarrow> Uniq Q"
   by (fact Uniq_antimono[unfolded le_fun_def le_bool_def, rule_format])
-
-lemma Uniq_is_maximal_wrt:
-  "totalp_on (set_mset C) R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1L. is_maximal_wrt R L C"
-  by (rule Uniq_I) (metis insert_DiffM insert_noteq_member is_maximal_wrt_def totalp_onD)
-
-lemma Uniq_is_maximal_wrt_reflclp:
-  shows "totalp_on (set_mset C) R \<Longrightarrow> \<exists>\<^sub>\<le>\<^sub>1L. is_maximal_wrt R\<^sup>=\<^sup>= L C"
-  using Uniq_is_maximal_wrt is_maximal_wrt_if_is_maximal_wrt_reflclp
-  by (metis (no_types, lifting) Uniq_antimono')
-
-lemma ex_is_maximal_wrt_if_not_empty:
-  assumes "transp_on (set_mset M) R" and "asymp_on (set_mset M) R" and "M \<noteq> {#}"
-  shows "\<exists>x \<in># M. is_maximal_wrt R x M"
-  using assms
-proof (induction M rule: multiset_induct)
-  case empty
-  hence False
-    by simp
-  thus ?case ..
-next
-  case (add x M)
-  show ?case
-  proof (cases "M = {#}")
-    case True
-    then show ?thesis
-      by (simp add: is_maximal_wrt_def)
-  next
-    case False
-    with add.prems add.IH obtain m where "m \<in># M" and "is_maximal_wrt R m M"
-      using asymp_on_subset transp_on_subset
-      by (metis diff_subset_eq_self set_mset_mono union_single_eq_diff)
-    then show ?thesis
-      unfolding is_maximal_wrt_def
-      by (smt (verit, ccfv_SIG) add.prems(1) add.prems(2) add_mset_commute add_mset_remove_trivial
-          asymp_onD at_most_one_mset_mset_diff insertE insert_Diff more_than_one_mset_mset_diff
-          multi_member_split transp_onD union_single_eq_member)
-  qed
-qed
-
-lemma lift_is_maximal_wrt_to_is_maximal_wrt_reflclp:
-  assumes "is_maximal_wrt R x M"
-  shows "is_maximal_wrt R\<^sup>=\<^sup>= x M \<longleftrightarrow> x \<notin># M - {#x#}"
-  using assms
-  by (metis (mono_tags, lifting) is_maximal_wrt_def reflp_onD reflp_on_reflclp sup2E)
-
-lemma
-  assumes "is_maximal_wrt R x M" and "\<not> is_maximal_wrt R\<^sup>=\<^sup>= x M"
-  obtains M' where "M - {#x#} = add_mset x M'"
-  using assms lift_is_maximal_wrt_to_is_maximal_wrt_reflclp
-  by (meson mset_add)
-
-lemma count_eq_1_if_is_strictly_maximal: "is_maximal_wrt R\<^sup>=\<^sup>= x M \<Longrightarrow> count M x = 1"
-  by (metis One_nat_def antisym count_add_mset count_empty count_greater_eq_one_iff in_diff_count
-      is_maximal_wrt_def is_maximal_wrt_if_is_maximal_wrt_reflclp
-      lift_is_maximal_wrt_to_is_maximal_wrt_reflclp linorder_le_less_linear)
 
 lemma multp_singleton_right[simp]:
   assumes "transp R"
@@ -213,24 +170,6 @@ proof -
   show "\<forall>k \<in># A - B. \<exists>j \<in># B - A. (k, j) \<in> r"
     by (metis A_def B_def \<open>\<forall>a. a \<in># A' \<longrightarrow> (a, b) \<in> r\<close> \<open>b \<in># B - A\<close> \<open>b \<notin># A'\<close> add_diff_cancel_left'
         add_mset_add_single diff_diff_add_mset diff_single_trivial)
-qed
-
-
-lemma multp_if_maximal_less:
-  assumes
-    "transp R" and
-    "totalp_on (set_mset M1 \<union> set_mset M2) R" and
-    "x1 \<in># M1" and "x2 \<in># M2" and
-    "is_maximal_wrt R x1 M1" and "R x1 x2"
-  shows "multp R M1 M2"
-proof (rule one_step_implies_multp[of _ _ _ "{#}", simplified])
-  show "M2 \<noteq> {#}"
-    using \<open>x2 \<in># M2\<close> by auto
-next
-  show "\<forall>k\<in>#M1. \<exists>j\<in>#M2. R k j"
-    using assms
-    by (smt (verit, ccfv_threshold) UnI1 at_most_one_mset_mset_diff insertE insert_Diff
-        is_maximal_wrt_def iso_tuple_UNIV_I more_than_one_mset_mset_diff totalp_onD transp_onD)
 qed
 
 end

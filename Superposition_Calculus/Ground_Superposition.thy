@@ -13,6 +13,7 @@ theory Ground_Superposition
     (* Theories from this formalization *)
     "Abstract_Rewriting_Extra"
     "Ground_Critical_Pairs"
+    Min_Max_Least_Greatest_Multiset
     "Multiset_Extra"
     "Term_Rewrite_System"
     "Transitive_Closure_Extra"
@@ -81,14 +82,21 @@ abbreviation less_cls ::
 abbreviation lesseq_cls (infix "\<preceq>\<^sub>c" 50) where
   "lesseq_cls \<equiv> (\<prec>\<^sub>c)\<^sup>=\<^sup>="
 
-lemma transp_less_lit[simp]: "transp (\<prec>\<^sub>l)"
-  by (metis (no_types, lifting) less_lit_def transpD transpI transp_less_trm transp_multp)
+lemma transp_on_less_lit[simp]: "transp_on A (\<prec>\<^sub>l)"
+  by (smt (verit, ccfv_SIG) less_lit_def transpE transp_less_trm transp_multp transp_onI)
+
+corollary transp_less_lit: "transp (\<prec>\<^sub>l)"
+  by simp
 
 lemma transp_less_cls[simp]: "transp (\<prec>\<^sub>c)"
   by (simp add: transp_multp)
 
-lemma asymp_less_lit[simp]: "asymp (\<prec>\<^sub>l)"
-  by (metis asympD asympI asymp_less_trm asymp_multp\<^sub>H\<^sub>O less_lit_def multp_eq_multp\<^sub>H\<^sub>O transp_less_trm)
+lemma asymp_on_less_lit[simp]: "asymp_on A (\<prec>\<^sub>l)"
+  by (metis asympD asymp_less_trm asymp_multp\<^sub>H\<^sub>O asymp_onI less_lit_def multp_eq_multp\<^sub>H\<^sub>O
+      transp_less_trm)
+
+corollary asymp_less_lit: "asymp (\<prec>\<^sub>l)"
+  by simp
 
 lemma asymp_less_cls[simp]: "asymp (\<prec>\<^sub>c)"
   by (simp add: asymp_multp\<^sub>H\<^sub>O multp_eq_multp\<^sub>H\<^sub>O)
@@ -100,8 +108,8 @@ lemma wfP_less_lit[simp]: "wfP (\<prec>\<^sub>l)"
 lemma wfP_less_cls[simp]: "wfP (\<prec>\<^sub>c)"
   using wfP_less_lit wfP_multp by blast
 
-lemma totalp_less_lit[simp]: "totalp (\<prec>\<^sub>l)"
-proof (rule totalpI)
+lemma totalp_on_less_lit[simp]: "totalp_on A (\<prec>\<^sub>l)"
+proof (rule totalp_onI)
   fix L1 L2 :: "'f atom literal"
   assume "L1 \<noteq> L2"
 
@@ -122,6 +130,9 @@ proof (rule totalpI)
       by (cases L1; cases L2) (auto simp add: add_eq_conv_ex)
   qed
 qed
+
+corollary totalp_less_lit: "totalp (\<prec>\<^sub>l)"
+  by simp
 
 lemma totalp_less_cls[simp]: "totalp (\<prec>\<^sub>c)"
 proof (rule totalp_multp)
@@ -189,11 +200,11 @@ qed
 
 subsection \<open>Ground Rules\<close>
 
-abbreviation is_maximal_lit where
-  "is_maximal_lit \<equiv> is_maximal_wrt (\<prec>\<^sub>l)"
+abbreviation is_maximal_lit :: "'f atom literal \<Rightarrow> 'f atom clause \<Rightarrow> bool" where
+  "is_maximal_lit L M \<equiv> is_maximal_in_mset_wrt (\<prec>\<^sub>l) M L"
 
-abbreviation is_strictly_maximal_lit where
-  "is_strictly_maximal_lit \<equiv> is_maximal_wrt (\<preceq>\<^sub>l)"
+abbreviation is_strictly_maximal_lit :: "'f atom literal \<Rightarrow> 'f atom clause \<Rightarrow> bool" where
+  "is_strictly_maximal_lit L M \<equiv> is_greatest_in_mset_wrt (\<prec>\<^sub>l) M L"
 
 inductive ground_superposition ::
   "'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> bool"
@@ -589,11 +600,13 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
       have "is_strictly_maximal_lit L\<^sub>2 P2"
         using ground_superpositionI by argo
       hence "\<forall>K \<in># P\<^sub>2'. \<not> Pos (Upair t t') \<prec>\<^sub>l K \<and> Pos (Upair t t') \<noteq> K"
-        unfolding is_maximal_wrt_def ground_superpositionI by simp
+        unfolding linorder_lit.is_greatest_in_mset_iff
+        unfolding \<open>P2 = add_mset L\<^sub>2 P\<^sub>2'\<close> \<open>L\<^sub>2 = t \<approx> t'\<close>
+        by auto
       hence "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l Pos (Upair t t')"
         using totalp_less_lit[THEN totalpD] by metis
 
-      moreover have "Pos (Upair t t') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
+      have thesis_if_Neg: "Pos (Upair t t') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
         if "\<P> = Neg"
       proof -
         have "t \<preceq>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
@@ -619,7 +632,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
           by (simp add: less_lit_def)
       qed
 
-      moreover have "Pos (Upair t t') \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
+      have thesis_if_Pos: "Pos (Upair t t') \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
         if "\<P> = Pos" and "is_maximal_lit L\<^sub>1 P1"
       proof (cases "s")
         case GHole
@@ -646,9 +659,9 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
             by (simp add: less_lit_def)
           moreover have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
             using that
-            unfolding ground_superpositionI is_maximal_wrt_def
-            apply simp
-            by (metis totalpD totalp_less_lit)
+            unfolding ground_superpositionI
+            unfolding linorder_lit.is_maximal_in_mset_iff
+            by auto
           ultimately have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l Pos (Upair t t')"
             using transp_less_lit
             by (metis (no_types, lifting) reflclp_iff transpD)
@@ -679,9 +692,30 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
           by simp
       qed
 
-      ultimately show ?thesis
-        using ground_superpositionI
-        by (metis is_maximal_wrt_def local.transp_less_lit reflclp_iff transpD)
+      have "\<P> = Pos \<or> \<P> = Neg"
+        using \<open>\<P> \<in> {Pos, Neg}\<close> by simp
+      thus ?thesis
+      proof (elim disjE; intro ballI)
+        fix K assume "\<P> = Pos" "K \<in># P\<^sub>2'"
+        have "K \<prec>\<^sub>l t \<approx> t'"
+          using \<open>\<forall>K\<in>#P\<^sub>2'. K \<prec>\<^sub>l t \<approx> t'\<close> \<open>K \<in># P\<^sub>2'\<close> by metis
+        also have "t \<approx> t' \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
+        proof (rule thesis_if_Pos[OF \<open>\<P> = Pos\<close>])
+          have "is_strictly_maximal_lit L\<^sub>1 P1"
+            using \<open>\<P> = Pos\<close> ground_superpositionI literal.simps(4)
+            by (metis literal.simps(4))
+          thus "is_maximal_lit L\<^sub>1 P1"
+            using linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset by metis
+        qed
+        finally show "K \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')" .
+      next
+        fix K assume "\<P> = Neg" "K \<in># P\<^sub>2'"
+        have "K \<prec>\<^sub>l t \<approx> t'"
+          using \<open>\<forall>K\<in>#P\<^sub>2'. K \<prec>\<^sub>l t \<approx> t'\<close> \<open>K \<in># P\<^sub>2'\<close> by metis
+        also have "t \<approx> t' \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
+          using thesis_if_Neg[OF \<open>\<P> = Neg\<close>] .
+        finally show "K \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')" .
+      qed
     qed
 
     ultimately show "\<exists>j \<in># {#\<P> (Upair s\<langle>t\<rangle>\<^sub>G s')#}. K \<prec>\<^sub>l j"
@@ -720,7 +754,7 @@ proof (cases P C rule: ground_eq_factoring.cases)
     using ground_eq_factoringI by simp
   hence "\<forall>K \<in># add_mset (Pos (Upair t t'')) P'. \<not> Pos (Upair t t') \<prec>\<^sub>l K"
     unfolding ground_eq_factoringI
-    by (simp add: is_maximal_wrt_def)
+    by (simp add: linorder_lit.is_maximal_in_mset_iff linorder_lit.neq_iff)
   hence "\<not> Pos (Upair t t') \<prec>\<^sub>l Pos (Upair t t'')"
     by simp
   hence "Pos (Upair t t'') \<preceq>\<^sub>l Pos (Upair t t')"
@@ -831,26 +865,20 @@ end
 
 lemma Uniq_striclty_maximal_lit_in_ground_cls:
   "\<exists>\<^sub>\<le>\<^sub>1L. is_strictly_maximal_lit L C"
-proof (rule Uniq_is_maximal_wrt_reflclp)
-  show "totalp_on (set_mset C) (\<prec>\<^sub>l)"
-    by (auto intro: totalp_on_subset totalp_less_lit)
-qed
+  using linorder_lit.Uniq_is_greatest_in_mset .
 
 lemma equation_eq_empty_or_singleton:
   "equation N C = {} \<or> (\<exists>s t. equation N C = {(s, t)})"
 proof -
   have "\<exists>\<^sub>\<le>\<^sub>1 (x, y). \<exists>C'.
-    C = add_mset (Pos (Upair x y)) C' \<and> is_maximal_wrt (\<preceq>\<^sub>l) (Pos (Upair x y)) C \<and> y \<prec>\<^sub>t x"
-    apply (rule Uniq_prodI)
-    apply (elim exE conjE)
-    using Uniq_striclty_maximal_lit_in_ground_cls[THEN Uniq_D,
-        of "Pos (Upair _ _)" _ "Pos (Upair _ _)", unfolded literal.inject]
-    using totalp_less_trm
-    by (metis (no_types, opaque_lifting) Upair_inject asympD asymp_less_trm is_maximal_wrt_def)
+    C = add_mset (Pos (Upair x y)) C' \<and> is_strictly_maximal_lit (Pos (Upair x y)) C \<and> y \<prec>\<^sub>t x"
+    by (rule Uniq_prodI)
+      (metis Uniq_D Upair_inject linorder_lit.Uniq_is_greatest_in_mset linorder_trm.min.absorb3
+        linorder_trm.min.absorb4 literal.inject(1))
   hence Uniq_equation: "\<exists>\<^sub>\<le>\<^sub>1 (x, y). \<exists>C'.
     C \<in> N \<and>
     C = add_mset (Pos (Upair x y)) C' \<and> select C = {#} \<and>
-    is_maximal_wrt (\<preceq>\<^sub>l) (Pos (Upair x y)) C \<and> y \<prec>\<^sub>t x \<and>
+    is_strictly_maximal_lit (Pos (Upair x y)) C \<and> y \<prec>\<^sub>t x \<and>
     (let R\<^sub>C = \<Union> (equation N ` {D \<in> N. D \<prec>\<^sub>c C}) in
       \<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
       \<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert (x, y) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
@@ -940,9 +968,7 @@ proof -
     s_irreducible: "s \<in> NF (rewrite_inside_gctxt (\<Union>C' \<in> {C' \<in> N. C' \<prec>\<^sub>c C}. equation N C'))"
     by (auto simp:  elim!: equation.elims dest: singleton_eq_CollectD)
   hence "\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (Upair s t)"
-    unfolding is_maximal_wrt_def
-    using totalp_less_lit[THEN totalpD]
-    by (metis (no_types, opaque_lifting) add_mset_remove_trivial reflclp_iff)
+    by (simp add: linorder_lit.is_greatest_in_mset_iff)
 
   from E\<^sub>D obtain D' where
     "D \<in> N" and
@@ -951,9 +977,7 @@ proof -
     "v \<prec>\<^sub>t u"
     by (auto simp:  elim: equation.elims dest: singleton_eq_CollectD)
   hence "\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (Upair u v)"
-    unfolding is_maximal_wrt_def
-    using totalp_less_lit[THEN totalpD]
-    by (metis (no_types, opaque_lifting) add_mset_remove_trivial reflclp_iff)
+    by (simp add: linorder_lit.is_greatest_in_mset_iff)
 
   show ?thesis
   proof (rule iffI)
@@ -1191,7 +1215,7 @@ proof -
   moreover have False if "Pos (Upair s t) \<prec>\<^sub>l L"
   proof -
     have "C \<prec>\<^sub>c D"
-    proof (rule multp_if_maximal_less)
+    proof (rule multp_if_maximal_of_lhs_is_less)
       show "Pos (Upair s t) \<in># C"
         by (simp add: C_def)
     next
@@ -1199,7 +1223,7 @@ proof -
         using L_in by simp
     next
       show "is_maximal_lit (Pos (Upair s t)) C"
-        using C_max_lit by simp
+        using C_max_lit by auto
     next
       show "Pos (Upair s t) \<prec>\<^sub>l L"
         using that by simp
@@ -1845,7 +1869,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
   proof (rule iffI)
     show "entails (rewrite_sys N C) C \<Longrightarrow> equation N C = {}"
       unfolding entails_def rewrite_sys_def
-      by (smt (z3) Collect_cong Collect_empty_eq  equation.elims)
+      by (metis (no_types) empty_iff equalityI mem_equationE rewrite_sys_def subsetI)
   next
     assume "equation N C = {}"
     show "entails (rewrite_sys N C) C"
@@ -1968,7 +1992,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             show "select D = {#}"
               using sel_D by blast
           next
-            show "is_maximal_wrt (\<preceq>\<^sub>l) (Pos (Upair t t')) D"
+            show "is_strictly_maximal_lit (Pos (Upair t t')) D"
               using max_t_t' .
           next
             show "t' \<prec>\<^sub>t t"
@@ -2073,13 +2097,8 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
         by (metis (no_types, opaque_lifting) Neg_atm_of_iff mset_subset_eqD multiset_nonemptyE)
         
       from False obtain A where Pos_A_in: "Pos A \<in># C" and max_Pos_A: "is_maximal_lit (Pos A) C"
-        using ex_is_maximal_wrt_if_not_empty[OF
-            transp_less_lit[THEN transp_on_subset, OF subset_UNIV]
-            asymp_less_lit[THEN asymp_on_subset, OF subset_UNIV]
-            \<open>C \<noteq> {#}\<close>]
-        using select_subset select_negative_lits
-        by (metis (no_types, opaque_lifting) literal.disc(1) literal.exhaust mset_subset_eqD
-            multiset_nonemptyE)
+        using \<open>select C = {#}\<close> linorder_lit.ex_maximal_in_mset[OF \<open>C \<noteq> {#}\<close>]
+        by (metis linorder_lit.is_maximal_in_mset_iff literal.exhaust)
       then obtain C' where C_def: "C = add_mset (Pos A) C'"
         by (meson mset_add)
 
@@ -2137,9 +2156,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
 
                 have "Pos (Upair t t') \<prec>\<^sub>l Pos (Upair s s')"
                   using strictly_maximal
-                  apply (simp add: C_def is_maximal_wrt_def) 
-                  using C'_def A_def
-                  by (metis totalpD totalp_less_lit union_single_eq_member)
+                  by (simp add: A_def C'_def C_def linorder_lit.is_greatest_in_mset_iff)
 
                 have "\<not> (t \<prec>\<^sub>t s)"
                 proof (rule notI)
@@ -2174,9 +2191,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
                   hence "Pos (Upair s s') \<prec>\<^sub>l Pos (Upair t t')"
                     by (simp add: less_lit_def)
                   thus False
-                    using strictly_maximal
-                    by (simp add: A_def C_def \<open>C' = add_mset (Pos (Upair t t')) C''\<close>
-                        is_maximal_wrt_def)
+                    using strictly_maximal \<open>t \<approx> t' \<prec>\<^sub>l s \<approx> s'\<close> by force
                 qed
 
                 ultimately have "t = s"
@@ -2315,7 +2330,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             obtain D' where
               D_def: "D = add_mset (Pos (Upair t t')) D'" and
               "select D = {#}" and
-              max_t_t': "is_maximal_wrt (\<preceq>\<^sub>l) (Pos (Upair t t')) D" and
+              max_t_t': "is_strictly_maximal_lit (t \<approx> t') D" and
               "t' \<prec>\<^sub>t t"
               using \<open>(t, t') \<in> equation N D\<close>
               by (elim mem_equationE) simp
@@ -2342,10 +2357,10 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
               show "select C = {#}"
                 using \<open>select C = {#}\<close> .
             next
-              show "is_maximal_wrt (\<preceq>\<^sub>l) (Pos (Upair s s')) C"
+              show "is_strictly_maximal_lit (s \<approx> s') C"
                 using A_def strictly_maximal by simp
             next
-              show "is_maximal_wrt (\<preceq>\<^sub>l) (Pos (Upair t t')) D"
+              show "is_strictly_maximal_lit (t \<approx> t') D"
                 using max_t_t' .
             next
               show "t' \<prec>\<^sub>t t"
@@ -2414,9 +2429,11 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
           qed
         next
           case False
+          hence "2 \<le> count C (Pos A)"
+            using max_Pos_A
+            by (metis linorder_lit.count_ge_2_if_maximal_in_mset_and_not_greatest_in_mset)
           then obtain C' where C_def: "C = add_mset (Pos A) (add_mset (Pos A) C')"
-            using Pos_A_in max_Pos_A lift_is_maximal_wrt_to_is_maximal_wrt_reflclp
-            by (metis insert_DiffM)
+            using two_le_countE by metis
 
           define \<iota> :: "'f atom clause inference" where
             "\<iota> = Infer [C] (add_mset (Pos (Upair s s')) (add_mset (Neg (Upair s' s')) C'))"
