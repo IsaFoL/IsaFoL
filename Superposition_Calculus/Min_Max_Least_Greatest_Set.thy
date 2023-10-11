@@ -45,6 +45,9 @@ lemma ex_maximal_in_set_wrt:
 
 end
 
+
+subsection \<open>Miscellaneous\<close>
+
 lemma is_minimal_in_set_wrt_filter_iff:
   fixes X R
   assumes trans: "transp_on {y \<in> X. P y} R" and asym: "asymp_on {y \<in> X. P y} R"

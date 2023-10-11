@@ -89,7 +89,7 @@ lemma Greatest_in_set_wrt_empty[simp]: "Greatest_in_set_wrt R {} = None"
 lemma Greatest_in_set_wrt_singleton[simp]:
   "asymp_on {x} R \<Longrightarrow> Greatest_in_set_wrt R {x} = Some x"
   unfolding Greatest_in_set_wrt_def
-  using is_greatest_in_set_wrt_def[of "{x}" R, simplified]
+  using is_greatest_in_set_wrt_iff[of "{x}" R, simplified]
     ex_reachable_by_all_wrt[of "{x}" R, simplified]
     Uniq_reachable_by_all_wrt[of "{x}" R]
   by (simp add:  the1_equality' reachable_by_all_wrt_iff)
@@ -103,9 +103,9 @@ lemma Greatest_in_set_wrt_eq_Some_if_is_greatest_in_set_wrt:
     asym: "asymp_on X R" and
     tot: "totalp_on X R"
   shows "is_greatest_in_set_wrt R X x \<Longrightarrow> Greatest_in_set_wrt R X = Some x"
-  unfolding Greatest_in_set_wrt_def is_greatest_in_set_wrt_def[OF trans asym tot]
-  using Uniq_reachable_by_all_wrt[OF asym] the1_equality'
-  by (metis empty_iff reachable_by_all_wrt_iff)
+  unfolding Greatest_in_set_wrt_def (* is_greatest_in_set_wrt_iff[OF trans asym tot] *)
+  using Uniq_is_greatest_in_set_wrt[OF trans asym tot] the1_equality'
+  by (metis asym bex_empty is_greatest_in_set_wrt_iff trans tot)
 
 lemma is_greatest_in_set_wrt_if_Greatest_in_set_wrt_eq_Some:
   assumes
@@ -139,16 +139,6 @@ lemma Greatest_in_set_wrt_eq_Some[simp]:
 
 
 subsubsection \<open>Integration in type classes\<close>
-
-abbreviation (in linorder) is_least_in_set where
-  "is_least_in_set \<equiv> is_least_in_set_wrt (<)"
-
-abbreviation (in linorder) is_least_in_fset where
-  "is_least_in_fset \<equiv> is_least_in_fset_wrt (<)"
-
-lemma (in linorder) is_least_in_set_def: "is_least_in_set X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. x < y)"
-  unfolding is_least_in_set_wrt_def[OF transp_on_less asymp_on_less totalp_on_less]
-  by (simp only: reaching_all_wrt_def)
 
 lemma (in linorder) is_least_in_fset_ffilterD:
   assumes "is_least_in_fset_wrt (<) (ffilter P X) x"
@@ -205,34 +195,6 @@ next
   then show "x |\<in>| f |`| ffUnion SS"
     by (metis ffUnion_fsubset_iff fimage_mono fin_mono fsubsetI)
 qed
-
-lemma is_minimal_in_fset_wrt_ffilter_iff:
-  assumes
-    tran: "transp_on (fset {|y |\<in>| X. P y|}) R" and
-    asym: "asymp_on (fset {|y |\<in>| X. P y|}) R"
-  shows "is_minimal_in_fset_wrt R {|y |\<in>| X. P y|} x \<longleftrightarrow>
-    (x |\<in>| X \<and> P x \<and> (\<forall>y|\<in>| X - {|x|}. P y \<longrightarrow> \<not> R y x))"
-proof -
-  have "is_minimal_in_fset_wrt R {|y |\<in>| X. P y|} x \<longleftrightarrow> is_minimal_in_set_wrt R ({y \<in> fset X. P y}) x"
-    using is_minimal_in_fset_wrt_def[OF tran asym, unfolded ffilter.rep_eq Set.filter_def] by metis
-  also have "\<dots> \<longleftrightarrow> x |\<in>| X \<and> P x \<and> (\<forall>y\<in>fset X - {x}. P y \<longrightarrow> \<not> R y x)"
-  proof (rule is_minimal_in_set_wrt_filter_iff)
-    show "transp_on {y. y |\<in>| X \<and> P y} R"
-      using tran ffilter.rep_eq Set.filter_def by metis
-  next
-    show "asymp_on {y. y |\<in>| X \<and> P y} R"
-      using asym ffilter.rep_eq Set.filter_def by metis
-  qed
-  finally show ?thesis
-    by simp
-qed
-
-lemma is_minimal_in_finsert_wrtI:
-  "transp_on (fset (finsert y X)) R \<Longrightarrow> asymp_on (fset (finsert y X)) R \<Longrightarrow> R y x \<Longrightarrow>
-  is_minimal_in_fset_wrt R X x \<Longrightarrow> is_minimal_in_fset_wrt R (finsert y X) y"
-  using is_minimal_in_set_wrt_insertI[of _ "fset _", folded fset_simps]
-  by (smt (verit, ccfv_SIG) asymp_on_subset fsubset_finsertI is_minimal_in_fset_wrt_def
-      less_eq_fset.rep_eq transp_on_subset)
 
 
 section \<open>Move to \<^theory>\<open>VeriComp.Simulation\<close>\<close>
@@ -320,9 +282,9 @@ proof (intro Uniq_I)
     unfolding ground_resolution.simps
     apply (elim exE conjE)
     apply simp
-    using Uniq_is_maximal_wrt[OF totalp_on_less_lit]
-    using Uniq_is_maximal_wrt_reflclp[OF totalp_on_less_lit]
-    by (metis Uniq_D add_mset_add_mset_same_iff literal.inject(1))
+    by (metis asymp_on_less_lit is_maximal_in_mset_wrt_if_is_greatest_in_mset_wrt
+        is_maximal_in_mset_wrt_iff literal.inject(1) totalpD totalp_on_less_lit transp_on_less_lit
+        union_single_eq_diff)
 qed
 
 lemma (in ground_ordered_resolution_calculus) unique_ground_factoring:
@@ -332,10 +294,8 @@ proof (intro Uniq_I)
   assume "ground_factoring P C" and "ground_factoring P C'"
   thus "C = C'"
     unfolding ground_factoring.simps
-    apply (elim exE conjE)
-    apply simp
-    using Uniq_is_maximal_wrt[OF totalp_on_less_lit]
-    by (metis Uniq_D add_mset_add_mset_same_iff)
+    by (metis asymp_on_less_lit is_maximal_in_mset_wrt_iff totalpD totalp_less_lit
+        transp_on_less_lit union_single_eq_diff)
 qed
 
 lemma (in ground_ordered_resolution_calculus) termination_ground_factoring:
@@ -365,55 +325,6 @@ lemma (in ground_ordered_resolution_calculus) atms_of_concl_eq_if_ground_factori
 
 
 section \<open>Move somewhere?\<close>
-
-definition Max_mset_wrt :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a multiset \<Rightarrow> 'a option" where
-  "Max_mset_wrt R M = (if M = {#} then None else Some (THE x. is_maximal_wrt R x M))"
-
-lemma Max_mset_wrt_eq_None[simp]: "Max_mset_wrt R M = None \<longleftrightarrow> M = {#}"
-  by (simp add: Max_mset_wrt_def)
-
-lemma Max_mset_wrt_eq_Some_if_is_maximal_wrt:
-  assumes tot: "totalp_on (set_mset M) R"
-  shows "is_maximal_wrt R x M \<Longrightarrow> Max_mset_wrt R M = Some x"
-  using the1_equality'[OF Uniq_is_maximal_wrt[OF tot]]
-  by (metis Max_mset_wrt_def empty_iff is_maximal_wrt_def set_mset_empty)
-
-lemma is_maximal_wrt_if_Max_mset_wrt_eq_Some:
-  assumes
-    trans: "transp_on (set_mset M) R" and
-    asym: "asymp_on (set_mset M) R" and
-    tot: "totalp_on (set_mset M) R" and
-    max: "Max_mset_wrt R M = Some x"
-  shows "is_maximal_wrt R x M"
-proof -
-  from max have "M \<noteq> {#}" and "(THE x. is_maximal_wrt R x M) = x"
-    unfolding atomize_conj Max_mset_wrt_def
-    by (metis option.discI option.inject)
-
-  obtain y where "is_maximal_wrt R y M"
-    using ex_is_maximal_wrt_if_not_empty[OF trans asym \<open>M \<noteq> {#}\<close>] by metis
-
-  moreover have "\<exists>\<^sub>\<le>\<^sub>1L. is_maximal_wrt R L M"
-    using Uniq_is_maximal_wrt[OF tot] by assumption
-
-  ultimately have "\<exists>!L. is_maximal_wrt R L M"
-    by (intro Uniq_implies_ex1)
-  hence "is_maximal_wrt R (THE x. is_maximal_wrt R x M) M"
-    by (rule theI')
-  thus ?thesis
-    unfolding \<open>(THE x. is_maximal_wrt R x M) = x\<close>
-    by assumption
-qed
-
-lemma Max_mset_wrt_eq_Some[simp]:
-  assumes
-    trans: "transp_on (set_mset M) R" and
-    asym: "asymp_on (set_mset M) R" and
-    tot: "totalp_on (set_mset M) R"
-  shows "Max_mset_wrt R M = Some x \<longleftrightarrow> is_maximal_wrt R x M"
-  using assms Max_mset_wrt_eq_Some_if_is_maximal_wrt is_maximal_wrt_if_Max_mset_wrt_eq_Some
-  by metis
-
 
 lemma ground_iff_vars_term_empty: "ground t \<longleftrightarrow> vars_term t = {}"
 proof (rule iffI)
@@ -652,7 +563,7 @@ definition res_mo_strategy :: "'f gterm clause fset \<Rightarrow> 'f gterm claus
           (\<exists>C'. ord_res.ground_factoring C C' \<and> N' = finsert C' N)))"
 
 lemma Unique_is_maximal_lit: "\<exists>\<^sub>\<le>\<^sub>1L. ord_res.is_maximal_lit L C"
-  by (metis Uniq_is_maximal_wrt ord_res.totalp_on_less_lit)
+  using linorder_lit.Uniq_is_maximal_in_mset .
 
 lemma right_unique_res_mo_strategy: "right_unique res_mo_strategy"
 proof (rule right_uniqueI)
@@ -663,22 +574,22 @@ proof (rule right_uniqueI)
     L_max: "ord_res.is_maximal_lit L C" and
     fact_or_res2: "(case L of
            Pos A \<Rightarrow>
-             \<not> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) C \<and>
+             \<not> ord_res.is_strictly_maximal_lit (Pos A) C \<and>
              (\<exists>C'. ord_res.ground_factoring C C' \<and> N2 = finsert C' N1)
            | Neg A \<Rightarrow>
                \<exists>D|\<in>|N1.
                   D \<prec>\<^sub>c C \<and>
-                  is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) D \<and> ord_res.production (fset N1) D = {A} \<and>
+                  ord_res.is_strictly_maximal_lit (Pos A) D \<and> ord_res.production (fset N1) D = {A} \<and>
                   (\<exists>CD. ord_res.ground_resolution C D CD \<and>
                         N2 = finsert CD N1))" and
     fact_or_res3: "(case L of
            Pos A \<Rightarrow>
-             \<not> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) C \<and>
+             \<not> ord_res.is_strictly_maximal_lit (Pos A) C \<and>
              (\<exists>C'. ord_res.ground_factoring C C' \<and> N3 = finsert C' N1)
            | Neg A \<Rightarrow>
                \<exists>D|\<in>|N1.
                   D \<prec>\<^sub>c C \<and>
-                  is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) D \<and> ord_res.production (fset N1) D = {A} \<and>
+                  ord_res.is_strictly_maximal_lit (Pos A) D \<and> ord_res.production (fset N1) D = {A} \<and>
                   (\<exists>CD. ord_res.ground_resolution C D CD \<and>
                         N3 = finsert CD N1))"
     unfolding atomize_conj res_mo_strategy_def
@@ -728,16 +639,21 @@ proof -
         linorder_cls.asymp_on_less]
     by (simp add: linorder_cls.not_less_iff_gr_or_eq)
 
-  from C_false have "\<nexists>A. A \<in> ord_res.production (fset N) C"
-    apply (intro notI)
-    apply (elim exE)
-    by (metis (no_types, lifting) SUP_absorb UnI1 is_maximal_wrt_def linorder_cls.order_eq_iff
-        mem_Collect_eq ord_res.mem_productionE pos_literal_in_imp_true_cls)
+  have "\<nexists>A. A \<in> ord_res.production (fset N) C"
+  proof (rule notI, elim exE)
+    fix A assume A_in: "A \<in> ord_res.production (fset N) C"
+    have "Pos A \<in># C"
+      using A_in by (auto elim: ord_res.mem_productionE)
+    moreover have "A \<in> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C})"
+      using A_in C_in by blast
+    ultimately show False
+      using C_false by auto
+  qed
   hence C_unproductive: "ord_res.production (fset N) C = {}"
     using ord_res.production_eq_empty_or_singleton[of "fset N" C] by simp
 
   from Neg_A_max have "Neg A \<in># C"
-    by (simp add: is_maximal_wrt_def)
+    by (simp add: linorder_lit.is_maximal_in_mset_iff)
 
   from C_false have "\<not> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> D \<preceq>\<^sub>c C}) \<TTurnstile>l Neg A"
     using true_cls_if_true_lit_in[OF \<open>Neg A \<in># C\<close>]
@@ -769,10 +685,10 @@ lemma
   shows "\<exists>CD. ord_res.ground_resolution C D CD"
 proof -
   from C_max_lit obtain C' where C_def: "C = add_mset (Neg A) C'"
-    by (meson is_maximal_wrt_def mset_add)
+    by (meson linorder_lit.is_maximal_in_mset_iff mset_add)
 
   from D_max_lit obtain D' where D_def: "D = add_mset (Pos A) D'"
-    by (meson is_maximal_wrt_def mset_add)
+    by (meson linorder_lit.is_greatest_in_mset_iff mset_add)
 
   show ?thesis
   proof (rule exI)
@@ -789,7 +705,7 @@ lemma
   shows "\<not> ord_res.is_strictly_maximal_lit (Pos A) C"
 proof -
   from C_max_lit obtain C' where C_def: "C = add_mset (Pos A) C'"
-    by (meson is_maximal_wrt_def mset_add)
+    by (meson linorder_lit.is_maximal_in_mset_iff mset_add)
 
   from C_min_false have
     C_in: "C |\<in>| N" and
@@ -801,11 +717,16 @@ proof -
         linorder_cls.asymp_on_less]
     by (simp add: linorder_cls.not_less_iff_gr_or_eq)
 
-  from C_false have "\<nexists>A. A \<in> ord_res.production (fset N) C"
-    apply (intro notI)
-    apply (elim exE)
-    by (metis (no_types, lifting) SUP_absorb UnI1 is_maximal_wrt_def linorder_cls.order_eq_iff
-        mem_Collect_eq ord_res.mem_productionE pos_literal_in_imp_true_cls)
+  have "\<nexists>A. A \<in> ord_res.production (fset N) C"
+  proof (rule notI, elim exE)
+    fix A assume A_in: "A \<in> ord_res.production (fset N) C"
+    have "Pos A \<in># C"
+      using A_in by (auto elim: ord_res.mem_productionE)
+    moreover have "A \<in> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C})"
+      using A_in C_in by blast
+    ultimately show False
+      using C_false by auto
+  qed
   hence C_unproductive: "ord_res.production (fset N) C = {}"
     using ord_res.production_eq_empty_or_singleton[of "fset N" C] by simp
 
@@ -835,11 +756,10 @@ lemma
     C_not_max_lit: "\<not> ord_res.is_strictly_maximal_lit (Pos A) C"
   shows "\<exists>C'. ord_res.ground_factoring C C'"
 proof -
-  from C_max_lit C_not_max_lit have "count C (Pos A) > 1"
-    by (simp add: in_diff_count is_maximal_wrt_def)
+  from C_max_lit C_not_max_lit have "count C (Pos A) \<ge> 2"
+    using linorder_lit.count_ge_2_if_maximal_in_mset_and_not_greatest_in_mset by metis
   then obtain C' where C_def: "C = add_mset (Pos A) (add_mset (Pos A) C')"
-    by (metis C_max_lit C_not_max_lit count_greater_zero_iff dual_order.strict_trans insert_DiffM
-        less_numeral_extra(1) lift_is_maximal_wrt_to_is_maximal_wrt_reflclp)
+    by (metis two_le_countE)
   
   show ?thesis
   proof (rule exI)
@@ -940,14 +860,27 @@ proof (intro iffI; elim exE conjE)
     C' = C - replicate_mset (Suc n) (Pos A))"
   proof (induction C rule: converse_tranclp_induct)
     case (base C)
-    then obtain A where
-      "ord_res.is_maximal_lit (Pos A) C \<and>
-        (count C (Pos A) = Suc (Suc 0)) \<and>
-        C' = remove1_mset (Pos A) C"
-      unfolding ord_res_ground_factoring_iff
-      by (smt (verit) Zero_not_Suc count_add_mset count_inI insert_DiffM is_maximal_wrt_def
-          nat.inject)
-    thus ?case
+    from base.hyps obtain A n where
+      "ord_res.is_maximal_lit (Pos A) C" and
+      "count C (Pos A) = Suc (Suc n)" and
+      "C' = remove1_mset (Pos A) C"
+      unfolding ord_res_ground_factoring_iff by auto
+
+    moreover have "n = 0"
+    proof (rule ccontr)
+      assume "n \<noteq> 0"
+      then obtain C'' where "C' = add_mset (Pos A) (add_mset (Pos A) C'')"
+        by (metis (no_types, lifting) Zero_not_Suc calculation(2,3) count_add_mset count_inI
+            diff_Suc_1 insert_DiffM)
+      hence "ord_res.ground_factoring C' (add_mset (Pos A) C'')"
+        using ord_res.ground_factoringI
+        by (metis calculation(1,3) linorder_lit.is_maximal_in_mset_iff more_than_one_mset_mset_diff
+            union_single_eq_member)
+      with base.prems show False
+        by metis
+    qed
+
+    ultimately show ?case
       by (metis replicate_mset_0 replicate_mset_Suc)
   next
     case (step C C'')
@@ -965,8 +898,10 @@ proof (intro iffI; elim exE conjE)
 
     have "A' = A"
       using \<open>ord_res.is_maximal_lit (Pos A) C''\<close> \<open>ord_res.is_maximal_lit (Pos A') C\<close>
-      by (metis \<open>C'' = remove1_mset (Pos A') C\<close> insert_DiffM insert_noteq_member is_maximal_wrt_def
-          linorder_lit.antisym_conv3 literal.inject(1) ord_res.ground_factoring.cases step.hyps(1))
+      by (metis \<open>C'' = remove1_mset (Pos A') C\<close> \<open>count C (Pos A') = Suc (Suc m)\<close>
+          add_mset_remove_trivial_eq count_add_mset count_greater_zero_iff diff_Suc_1
+          linorder_lit.antisym_conv3 linorder_lit.is_maximal_in_mset_iff literal.inject(1)
+          zero_less_Suc)
 
     have "m = Suc n"
       using \<open>count C'' (Pos A) = Suc (Suc n)\<close> \<open>count C (Pos A') = Suc (Suc m)\<close>
@@ -999,8 +934,8 @@ next
       by (metis replicate_mset_0 replicate_mset_Suc)
     hence "ord_res.ground_factoring C C' \<and> (\<nexists>a. ord_res.ground_factoring C' a)"
       unfolding ord_res_ground_factoring_iff
-      by (smt (verit) Zero_not_Suc add_diff_cancel_left' count_add_mset count_inI insert_DiffM
-          is_maximal_wrt_def linorder_lit.antisym_conv3 plus_1_eq_Suc)
+      by (metis Zero_not_Suc add_mset_remove_trivial_eq count_add_mset count_inI
+          linorder_lit.antisym_conv3 linorder_lit.is_maximal_in_mset_iff nat.inject)
     thus ?case
       by blast
   next
@@ -1008,15 +943,15 @@ next
     have "ord_res.ground_factoring\<^sup>+\<^sup>+ (C - {#Pos A#}) C' \<and> (\<nexists>a. ord_res.ground_factoring C' a)"
     proof (rule Suc.IH)
       show "count (remove1_mset (Pos A) C) (Pos A) = Suc (Suc n)"
-        using Suc.prems by (simp add: is_maximal_wrt_def)
+        using Suc.prems by simp
     next
       show "C' = remove1_mset (Pos A) C - replicate_mset (Suc n) (Pos A)"
         using Suc.prems by simp
     next
       show "ord_res.is_maximal_lit (Pos A) (remove1_mset (Pos A) C)"
         using Suc.prems
-        by (smt (verit, ccfv_threshold) Zero_not_Suc add_mset_remove_trivial_eq count_add_mset
-            count_inI is_maximal_wrt_def nat.inject)
+        by (smt (verit, ccfv_SIG) Zero_not_Suc add_diff_cancel_left' add_mset_remove_trivial_eq
+            count_add_mset count_inI linorder_lit.is_maximal_in_mset_iff plus_1_eq_Suc)
     qed
 
     moreover have "ord_res.ground_factoring C (C - {#Pos A#})"
@@ -1071,7 +1006,7 @@ next
 next
   fix A assume "ord_res.is_maximal_lit (Pos A) C"
   then obtain n where "count C (Pos A) = Suc n"
-    by (metis count_add_mset insert_DiffM is_maximal_wrt_def)
+    by (meson in_countE linorder_lit.is_maximal_in_mset_iff)
   with \<open>ord_res.is_maximal_lit (Pos A) C\<close> show "C' = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#} \<Longrightarrow>
     ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')"
   proof (induction n arbitrary: C)
@@ -1085,8 +1020,8 @@ next
         case (ground_factoringI A' P')
         hence "A' = A"
           using \<open>ord_res.is_maximal_lit (Pos A) C\<close>
-          by (metis insert_DiffM insert_iff is_maximal_wrt_def linorder_lit.antisym_conv3
-              literal.inject(1) set_mset_add_mset_insert)
+          using linorder_lit.Uniq_is_maximal_in_mset
+          by (metis Uniq_D literal.inject(1))
         thus False
           using \<open>count C (Pos A) = Suc 0\<close> \<open>C = add_mset (Pos A') (add_mset (Pos A') P')\<close> by simp
       qed
@@ -1277,6 +1212,18 @@ inductive scl_reso1
         \<comment> \<open>2c\<close>
         S1)) \<Longrightarrow>
   scl_reso1 N\<^sub>0 \<beta> ((\<Gamma>, U, None :: ('f, 'v) closure option), i, C, \<F>) S1 S2"
+
+lemma
+  assumes "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
+    scl_reso1_2a: "\<And>\<Gamma> U D L Ks. S\<^sub>0 = (\<Gamma>, U, None) \<Longrightarrow>
+      is_least_in_fset_wrt (less_cls_sfac \<F>\<^sub>0) {|D |\<in>| N |\<union>| gcls_of_cls |`| U. less_cls_sfac \<F>\<^sub>0 C\<^sub>0 D|} D \<Longrightarrow>
+      ord_res.is_maximal_lit L D \<Longrightarrow>
+      sorted_wrt (\<prec>\<^sub>l) Ks \<Longrightarrow>
+      (\<forall>K \<in> set Ks. is_neg K \<and> K \<prec>\<^sub>l L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit K) \<and> lit_occures_in_clss K N\<^sub>0) \<Longrightarrow>
+      
+      thesis"
+  shows thesis
+  oops
 
 lemma scl_reso1_simple_destroy:
   assumes "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)"
@@ -1703,7 +1650,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
     qed
     hence "L \<in> \<Union> (set_mset ` fset N)"
       using \<open>ord_res.is_maximal_lit L D\<close>
-      by (simp add: is_maximal_wrt_def)
+      by (simp only: linorder_lit.is_maximal_in_mset_iff)
 
     show "scl_fol.decide N' \<beta>' S\<^sub>1 S\<^sub>2 \<or>
       (scl_fol.propagate N' \<beta>' OO scl_fol.conflict N' \<beta>') S\<^sub>1 S\<^sub>2 \<or>
@@ -1721,7 +1668,8 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
 
       obtain D' :: "('f, 'v) term clause" where
         "cls_of_gcls D = add_mset (lit_of_glit L) D'"
-        by (metis cls_of_gcls_def hyps(3) image_mset_add_mset is_maximal_wrt_def multi_member_split)
+        by (metis cls_of_gcls_def hyps(3) image_mset_add_mset insert_DiffM
+            linorder_lit.is_maximal_in_mset_iff)
 
       have "\<not> trail_defined_lit \<Gamma> (lit_of_glit L)"
         using pos_L_and_undef_L_and_false_D by argo
@@ -1946,10 +1894,8 @@ proof unfold_locales
 
     have "is_min_false_clause N {#}"
       unfolding is_min_false_clause_def
-      unfolding is_minimal_in_fset_wrt_def[OF linorder_cls.transp_on_less linorder_cls.asymp_on_less]
-      unfolding is_minimal_in_set_wrt_def[OF linorder_cls.transp_on_less linorder_cls.asymp_on_less]
-      unfolding non_reachable_wrt_def
-    proof (intro conjI ballI)
+      unfolding linorder_cls.is_minimal_in_fset_iff
+    proof (intro conjI ballI impI)
       show "{#} |\<in>| {|C |\<in>| N. \<not> \<Union> (ord_res.production (fset N) ` {D. D |\<in>| N \<and> D \<preceq>\<^sub>c C}) \<TTurnstile> C|}"
         using \<open>{#} |\<in>| N\<close> by auto
     next
@@ -1960,7 +1906,7 @@ proof unfold_locales
     with C_min have "C = {#}"
       using Uniq_is_min_false_clause by (metis Uniq_D)
     with L_max show False
-      by (simp add: is_maximal_wrt_def)
+      by (simp add: linorder_lit.is_maximal_in_mset_iff)
   qed
 qed
 
@@ -2007,9 +1953,9 @@ next
     C_min: "is_min_false_clause N2 C" and
     L_max: "ord_res.is_maximal_lit L C" and
     fact_or_reso: "(case L of
-       Pos A \<Rightarrow> \<not> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) C \<and>
+       Pos A \<Rightarrow> \<not> ord_res.is_strictly_maximal_lit (Pos A) C \<and>
        (\<exists>C'. ord_res.ground_factoring C C' \<and> N2' = finsert C' N2)
-     | Neg A \<Rightarrow> \<exists>D|\<in>|N2. D \<prec>\<^sub>c C \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) D \<and>
+     | Neg A \<Rightarrow> \<exists>D|\<in>|N2. D \<prec>\<^sub>c C \<and> ord_res.is_strictly_maximal_lit (Pos A) D \<and>
        ord_res.production (fset N2) D = {A} \<and>
        (\<exists>CD. ord_res.ground_resolution C D CD \<and> N2' = finsert CD N2))"
     unfolding res_mo_strategy_def by blast
@@ -2061,8 +2007,8 @@ proof -
     C_min: "is_min_false_clause N C" and
     L_max: "ord_res.is_maximal_lit L C" and
     case_L: "case L of
-       Pos A \<Rightarrow> \<not> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) C \<and> (\<exists>C'. ord_res.ground_factoring C C' \<and> N' = finsert C' N)
-     | Neg A \<Rightarrow> \<exists>D|\<in>|N. D \<prec>\<^sub>c C \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (Pos A) D \<and>
+       Pos A \<Rightarrow> \<not> ord_res.is_strictly_maximal_lit (Pos A) C \<and> (\<exists>C'. ord_res.ground_factoring C C' \<and> N' = finsert C' N)
+     | Neg A \<Rightarrow> \<exists>D|\<in>|N. D \<prec>\<^sub>c C \<and> ord_res.is_strictly_maximal_lit (Pos A) D \<and>
         ord_res.production (fset N) D = {A} \<and>
         (\<exists>CD. ord_res.ground_resolution C D CD \<and> N' = finsert CD N)"
     unfolding res_mo_strategy_def

@@ -52,6 +52,38 @@ lemma ex_maximal_in_fset_wrt:
 end
 
 
+subsection \<open>Miscellaneous\<close>
+
+lemma is_minimal_in_fset_wrt_ffilter_iff:
+  assumes
+    tran: "transp_on (fset (ffilter P X)) R" and
+    asym: "asymp_on (fset (ffilter P X)) R"
+  shows "is_minimal_in_fset_wrt R (ffilter P X) x \<longleftrightarrow>
+    (x |\<in>| X \<and> P x \<and> fBall (X - {|x|}) (\<lambda>y. P y \<longrightarrow> \<not> R y x))"
+proof -
+  have "is_minimal_in_fset_wrt R (ffilter P X) x \<longleftrightarrow> is_minimal_in_set_wrt R ({y \<in> fset X. P y}) x"
+    using is_minimal_in_fset_wrt_iff[OF tran asym]
+    using is_minimal_in_set_wrt_iff[OF tran asym]
+    by (simp only: ffilter.rep_eq Set.filter_def)
+  also have "\<dots> \<longleftrightarrow> x |\<in>| X \<and> P x \<and> (\<forall>y\<in>fset X - {x}. P y \<longrightarrow> \<not> R y x)"
+  proof (rule is_minimal_in_set_wrt_filter_iff)
+    show "transp_on {y. y |\<in>| X \<and> P y} R"
+      using tran ffilter.rep_eq Set.filter_def by metis
+  next
+    show "asymp_on {y. y |\<in>| X \<and> P y} R"
+      using asym ffilter.rep_eq Set.filter_def by metis
+  qed
+  finally show ?thesis
+    by simp
+qed
+
+lemma is_minimal_in_fset_wrt_finsertI:
+  assumes trans: "transp_on (fset (finsert y X)) R" and asym: "asymp_on (fset (finsert y X)) R"
+  shows "R y x \<Longrightarrow> is_minimal_in_fset_wrt R X x \<Longrightarrow> is_minimal_in_fset_wrt R (finsert y X) y"
+  using trans asym is_minimal_in_set_wrt_insertI[of _ "fset _", folded fset_simps]
+  by (smt (verit) asymp_on_def finsertCI finsertE is_minimal_in_fset_wrt_iff transp_on_def)
+
+
 section \<open>Least and greatest elements\<close>
 
 definition is_least_in_fset_wrt :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a fset \<Rightarrow> 'a \<Rightarrow> bool" where
@@ -160,6 +192,12 @@ lemmas (in order) ex_minimal_in_fset =
 
 lemmas (in order) ex_maximal_in_fset =
   ex_maximal_in_fset_wrt[OF transp_on_less asymp_on_less]
+
+lemmas (in order) is_minimal_in_fset_ffilter_iff =
+  is_minimal_in_fset_wrt_ffilter_iff[OF transp_on_less asymp_on_less]
+
+lemmas (in order) is_minimal_in_fset_finsertI =
+  is_minimal_in_fset_wrt_finsertI[OF transp_on_less asymp_on_less]
 
 
 abbreviation (in linorder) is_least_in_fset where

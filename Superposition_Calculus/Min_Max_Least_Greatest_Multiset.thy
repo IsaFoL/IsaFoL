@@ -180,14 +180,24 @@ lemma is_maximal_in_mset_wrt_if_is_greatest_in_mset_wrt[intro]:
 
 subsection \<open>Uniqueness\<close>
 
+lemma Uniq_is_minimal_in_mset_wrt[intro]:
+  "\<exists>\<^sub>\<le>\<^sub>1x. is_minimal_in_mset_wrt R X x"
+  unfolding is_minimal_in_mset_wrt_iff[OF trans asym]
+  by (smt (verit, best) Uniq_I tot totalp_onD)
+
+lemma Uniq_is_maximal_in_mset_wrt[intro]:
+  "\<exists>\<^sub>\<le>\<^sub>1x. is_maximal_in_mset_wrt R X x"
+  unfolding is_maximal_in_mset_wrt_iff[OF trans asym]
+  by (smt (verit, best) Uniq_I tot totalp_onD)
+
 lemma Uniq_is_least_in_mset_wrt[intro]:
   "\<exists>\<^sub>\<le>\<^sub>1x. is_least_in_mset_wrt R X x"
-  unfolding is_least_in_mset_wrt_def[OF trans asym tot]
+  using is_least_in_mset_wrt_iff
   by (smt (verit, best) Uniq_I asym asymp_onD insert_DiffM insert_noteq_member)
 
 lemma Uniq_is_greatest_in_mset_wrt[intro]:
   "\<exists>\<^sub>\<le>\<^sub>1x. is_greatest_in_mset_wrt R X x"
-  unfolding is_greatest_in_mset_wrt_def[OF trans asym tot]
+  unfolding is_greatest_in_mset_wrt_iff
   by (smt (verit, best) Uniq_I asym asymp_onD insert_DiffM insert_noteq_member)
 
 
@@ -271,6 +281,12 @@ lemmas (in linorder) is_minimal_in_mset_if_is_least_in_mset[intro] =
 
 lemmas (in linorder) is_maximal_in_mset_if_is_greatest_in_mset[intro] =
   is_maximal_in_mset_wrt_if_is_greatest_in_mset_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) Uniq_is_minimal_in_mset[intro] =
+  Uniq_is_minimal_in_mset_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) Uniq_is_maximal_in_mset[intro] =
+  Uniq_is_maximal_in_mset_wrt[OF transp_on_less asymp_on_less totalp_on_less]
 
 lemmas (in linorder) Uniq_is_least_in_mset[intro] =
   Uniq_is_least_in_mset_wrt[OF transp_on_less asymp_on_less totalp_on_less]
