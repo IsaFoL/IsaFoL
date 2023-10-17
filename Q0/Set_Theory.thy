@@ -437,8 +437,7 @@ qed
 definition subs :: "'s \<Rightarrow> 's \<Rightarrow> bool" (infix "\<subseteq>:" 67) where
   "x \<subseteq>: y \<longleftrightarrow> x \<in>: pow y"
 
-(* defines the identity function on its argument (definition from CakeML paper)*)
-(* which paper? ...*)
+(* defines the identity function on its argument (definition from CakeML) *)
 definition iden :: "'s \<Rightarrow> 's" where
   "iden = (\<lambda>D. abstract D (funspace D boolset) (\<lambda>x. abstract D boolset (\<lambda>y. boolean (x = y))))"
 
