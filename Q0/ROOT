@@ -6,9 +6,6 @@ session "Q0" = "HOL-ZF" +
     ZFC_in_HOL
   theories
     HOLZF_Set_Theory
-    Proof_Assistant
     Q0
     Set_Theory
     ZFC_in_HOL_Set_Theory
-  theories[quick_and_dirty=true]
-    Set_Theory_HOLZF
