@@ -26,6 +26,18 @@ qed
   "term_subst.is_ground (t \<cdot> \<gamma>) \<longleftrightarrow> (\<forall>x \<in> vars_term t. term_subst.is_ground (\<gamma> x))"
   by (induction t) (auto simp add: term_subst.is_ground_def) *)
 
+lemma term_subst_is_renaming_iff:
+  "term_subst.is_renaming \<rho> \<longleftrightarrow> inj \<rho> \<and> (\<forall>x. is_Var (\<rho> x))"
+proof (rule iffI)
+  show "term_subst.is_renaming \<rho> \<Longrightarrow> inj \<rho> \<and> (\<forall>x. is_Var (\<rho> x))"
+    unfolding term_subst.is_renaming_def
+    by (metis injI subst_apply_eq_Var subst_compose_def term.disc(1) term.inject(1))
+next
+  show "inj \<rho> \<and> (\<forall>x. is_Var (\<rho> x)) \<Longrightarrow> term_subst.is_renaming \<rho>"
+    unfolding term_subst.is_renaming_def
+    using ex_inverse_of_renaming by metis
+qed
+
 global_interpretation term_subst: basic_substitution subst_apply_term Var subst_compose
 proof unfold_locales
   show "\<And>x. x \<cdot> Var = x"
