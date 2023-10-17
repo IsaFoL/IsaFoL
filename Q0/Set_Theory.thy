@@ -3,7 +3,7 @@ theory Set_Theory imports Main begin
 (*
   This is the set theory from 
   https://github.com/CakeML/cakeml/blob/master/candle/set-theory/setSpecScript.sml
-  ported to Isabelle/HOL.
+  ported to Isabelle/HOL and extended.
 *)
 
 (* Corresponds to CakeML's constant is_set_theory_def *)
@@ -24,8 +24,11 @@ begin
 lemma seperation_unique:
   assumes "\<forall>x P a. a \<in>: (sub2 x P) \<longleftrightarrow> a \<in>: x \<and> P a"
   shows "sub2 = sub"
-  apply rule
-  using assms extensional by auto
+proof
+  fix x
+  show "sub2 x = (suchthat) x"
+    using assms extensional by auto
+qed
 
 (* Corresponds to CakeML's theorem power_unique *)
 lemma pow_unique:
@@ -43,8 +46,11 @@ lemma uni_unique:
 lemma upair_unique:
   assumes "\<forall>x y a. a \<in>: upair2 x y \<longleftrightarrow> a = x \<or> a = y"
   shows "upair2 = upair"
-  apply rule
-  using assms extensional by auto
+proof 
+  fix x 
+  show "upair2 x = (+:) x"
+    using assms extensional by auto
+qed
 
 (* Corresponds to CakeML's Ø *)
 definition empt :: 's ("Ø") where
@@ -226,7 +232,7 @@ proof (rule iffD2[OF extensional], rule)
     unfolding abstract_def using pair_inj by auto
 qed
 
-lemma abstract_eq_7891244237890417890:
+lemma abstract_extensional:
   assumes "\<forall>x. x \<in>: s \<longrightarrow> f x \<in>: t \<and> f x = g x"
   shows "abstract s t f = abstract s t g"
 proof (rule iffD2[OF extensional], rule)
@@ -235,7 +241,7 @@ proof (rule iffD2[OF extensional], rule)
     unfolding abstract_def using pair_inj by auto
 qed
 
-lemma abstract_eq_789124423789041789012367813:
+lemma abstract_extensional':
   assumes "\<And>x. x \<in>: s \<Longrightarrow> f x \<in>: t"
   assumes "\<And>x. x \<in>: s \<Longrightarrow> f x = g x"
   shows "abstract s t f = abstract s t g"
@@ -245,7 +251,7 @@ proof (rule iffD2[OF extensional], rule)
     unfolding abstract_def using pair_inj by auto
 qed
 
-lemma abstract_eq_789124423789041394239843487329487890:
+lemma abstract_cong:
   assumes "\<forall>x. x \<in>: s \<longrightarrow> f x \<in>: t \<and> g x \<in>: t"
   assumes "abstract s t f = abstract s t g"
   assumes "x \<in>: s"
@@ -253,11 +259,30 @@ lemma abstract_eq_789124423789041394239843487329487890:
   using assms
   by (metis apply_abstract_matchable)
 
-lemma abstract_eq_78912442378904178901289321783617:
+lemma abstract_cong_specific:
+  assumes "x \<in>: s"
+  assumes "f x \<in>: t"
+  assumes "abstract s t f = abstract s t g"
+  assumes "g x \<in>: t"
+  shows "f x = g x"
+proof -
+  have "f x = (abstract s t f)\<langle>x\<rangle>"
+    using apply_abstract[of x s f t]
+    using assms by auto
+  also have "... = abstract s t g\<langle>x\<rangle>"
+    using assms by auto
+  also have "... = g x"
+    using apply_abstract[of x s g t]
+    using assms by auto
+  finally show ?thesis 
+    by auto
+qed
+
+lemma abstract_cong_extensional:
   assumes "\<forall>x. x \<in>: s \<longrightarrow> f x \<in>: t \<and> g x \<in>: t"
   shows "(abstract s t f = abstract s t g) \<longleftrightarrow> (\<forall>x. x \<in>: s \<longrightarrow> f x \<in>: t \<and> f x = g x)"
-  using assms abstract_eq_789124423789041394239843487329487890
-    abstract_eq_7891244237890417890 by meson
+  using assms abstract_cong
+    abstract_extensional by meson
 
 (* Corresponds to CakeML's theorem in_funspace_abstract *)
 lemma in_funspace_abstract[simp]:
@@ -265,27 +290,43 @@ lemma in_funspace_abstract[simp]:
   shows "\<exists>f. z = abstract s t f \<and> (\<forall>x. x \<in>: s \<longrightarrow> f x \<in>: t)"
 proof -
   define f where "f = (\<lambda>x. SOME y. (x,:y) \<in>: z)"
-  then have "\<forall>x. x \<in>: z \<longleftrightarrow> x \<in>: (abstract s t f)"
-    using assms apply clarify
-    unfolding funspace_def
-    apply auto unfolding relspace_def
-    unfolding mem_pow
-     apply auto
-    unfolding abstract_def apply auto
-     apply (metis pair_inj someI_ex)+
-    done
+  have "\<forall>x. x \<in>: z \<longleftrightarrow> x \<in>: (abstract s t f)"
+  proof (rule, rule)
+    fix x
+    assume xz: "x \<in>: z"
+    moreover
+    have "\<forall>b. b \<in>: z \<longrightarrow> (\<exists>ba c. b = (ba ,: c) \<and> ba \<in>: s \<and> c \<in>: t)"
+      using xz assms
+      unfolding funspace_def relspace_def by (auto)
+    moreover
+    have "\<forall>a. a \<in>: s \<longrightarrow> (\<exists>!b. (a ,: b) \<in>: z)"
+      using xz using assms
+      unfolding funspace_def relspace_def by auto
+    ultimately
+    have "\<exists>a. x = (a ,: f a)"
+      using assms f_def someI_ex unfolding funspace_def relspace_def by (metis (no_types, lifting))
+    then show "x \<in>: abstract s t f"
+      using xz assms unfolding funspace_def relspace_def abstract_def by auto
+  next
+    fix x 
+    assume xf: "x \<in>: abstract s t f"
+    then have "(\<exists>b c. x = (b ,: c) \<and> b \<in>: s \<and> c \<in>: t)"
+      unfolding abstract_def by simp
+    moreover
+    have "(\<exists>a. x = (a ,: (SOME y. (a ,: y) \<in>: z)))"
+      using xf f_def unfolding abstract_def by simp
+    moreover
+    have "(\<forall>a. a \<in>: s \<longrightarrow> (\<exists>!b. (a ,: b) \<in>: z))"
+      using assms unfolding funspace_def by simp
+    ultimately
+    show "x \<in>: z"
+      using f_def by (metis pair_inj someI_ex)
+  qed
   then have "z = abstract s t f"
     using extensional by auto
   moreover
   from f_def have "\<forall>x. x \<in>: s \<longrightarrow> f x \<in>: t"
-    using assms apply auto
-    unfolding funspace_def
-    apply auto
-    unfolding relspace_def
-    unfolding mem_pow
-    apply auto
-    apply (metis pair_inj someI_ex)+
-    done
+    using apply_in_rng assms local.apply_def by force
   ultimately
   show ?thesis
     by auto   
@@ -347,11 +388,15 @@ lemma tuple_empty:
 (* Corresponds to CakeML's theorem tuple_inj *)
 lemma tuple_inj:
   "tuple l1 = tuple l2 \<longleftrightarrow> l1 = l2"
-  apply (induction l1 arbitrary: l2)
-  using tuple_empty pair_not_empty pair_inj
-   apply metis
-  using tuple_empty pair_not_empty pair_inj
-  by (metis tuple.elims tuple.simps(2))
+proof (induction l1 arbitrary: l2)
+  case Nil
+  then show ?case 
+    using tuple_empty by metis
+next
+  case (Cons a l1)
+  then show ?case
+    using pair_not_empty pair_inj by (metis tuple.elims tuple.simps(2))
+qed
 
 (* Corresponds to CakeML's constant bigcross *)
 fun bigcross where
@@ -385,8 +430,7 @@ next
     then obtain xs where "x = tuple xs \<and> list_all2 (\<in>:) xs (l # ls)"
       by auto
     then show "x \<in>: bigcross (l # ls)"
-      using Cons
-      by (smt list_all2_Cons2 set_theory.bigcross.simps(2) set_theory.mem_product set_theory_axioms tuple.simps(2))
+      using Cons list.distinct(1) list.rel_cases mem_product by fastforce
   qed
 qed
 
@@ -411,7 +455,9 @@ proof -
     using apply_abstract[of B D "\<lambda>y. boolean (A = y)" two] B_in_D bool_in_two by auto
   also
   have "... = (abstract D (funspace D boolset) (\<lambda>x. abstract D boolset (\<lambda>y. boolean (x = y))))\<langle>A\<rangle>\<langle>B\<rangle>" 
-    using A_in_D abstract_D apply_abstract[of A D "(\<lambda>x. abstract D boolset (\<lambda>y. boolean (x = y)))" "(funspace D boolset)"] by auto 
+    using A_in_D abstract_D 
+      apply_abstract[of A D "(\<lambda>x. abstract D boolset (\<lambda>y. boolean (x = y)))" "(funspace D boolset)"]
+    by auto 
   also
   have "... = (iden D)\<langle>A\<rangle>\<langle>B\<rangle> "
     unfolding iden_def ..
@@ -429,46 +475,22 @@ lemma apply_id_true[simp]:
 definition one_elem_fun :: "'s \<Rightarrow> 's \<Rightarrow> 's" where
   "one_elem_fun x d = abstract d boolset (\<lambda>y. boolean (x=y))"
 
-lemma new_lemma12345667:
-  assumes "x \<in>: s"
-  assumes "f x \<in>: t"
-  assumes "abstract s t f = abstract s t g"
-  assumes "g x \<in>: t"
-  shows "f x = g x"
-proof -
-  from assms(2) have fx_in_t: "f x \<in>: t"
-    by auto (* add to shows? Or seperate lemma. *)
-
-  from assms have gx_in_t: "g x \<in>: t"
-    by auto (* add to shows? Or seperate lemma. *)
-
-  have "f x = (abstract s t f)\<langle>x\<rangle>"
-    using apply_abstract[of x s f t]
-    using fx_in_t assms by auto
-  also have "... = abstract s t g\<langle>x\<rangle>"
-    using assms by auto
-  also have "... = g x"
-    using apply_abstract[of x s g t]
-    using gx_in_t assms by auto
-  finally show ?thesis 
-    by auto
-qed
-
-lemma pair_in_apply_jfljalkfdjlkfja:
+lemma apply_if_pair_in:
   assumes "(a1,: a2) \<in>: f"
   assumes "f \<in>: funspace s t"
   shows "f\<langle>a1\<rangle> = a2"
   using assms
-  by (smt abstract_def apply_abstract mem_product pair_inj set_theory.in_funspace_abstract set_theory.mem_sub set_theory_axioms) 
+  by (smt abstract_def apply_abstract mem_product pair_inj set_theory.in_funspace_abstract 
+      set_theory.mem_sub set_theory_axioms)
 
-lemma two_pairs_same_jakldajfdlkf:
+lemma funspace_app_unique:
   assumes "f \<in>: funspace s t"
   assumes "(a1,: a2) \<in>: f"
   assumes "(a1,: a3) \<in>: f"
   shows "a3 = a2"
-  using assms pair_in_apply_jfljalkfdjlkfja by blast
+  using assms apply_if_pair_in by blast
 
-lemma new_lemma_57623741902839035487410245298:
+lemma funspace_extensional:
   assumes "f \<in>: funspace s t"
   assumes "g \<in>: funspace s t"
   assumes "\<forall>x. x \<in>: s \<longrightarrow> f\<langle>x\<rangle> = g\<langle>x\<rangle>"
@@ -477,39 +499,39 @@ proof -
   have "\<And>a. a \<in>: f \<Longrightarrow> a \<in>: g"
   proof -
     fix a
-    assume a: "a \<in>: f"
-    from a have b: "\<exists>a1 a2. a1 \<in>:s \<and> a2 \<in>: t \<and> (a1 ,: a2) = a"
+    assume af: "a \<in>: f"
+    from af have "\<exists>a1 a2. a1 \<in>:s \<and> a2 \<in>: t \<and> (a1 ,: a2) = a"
       using assms unfolding funspace_def apply_def using relspace_def by force
-    then obtain a1 a2 where as:
+    then obtain a1 a2 where a12:
       "a1 \<in>:s \<and> a2 \<in>: t \<and> (a1 ,: a2) = a"
       by blast
     then have "\<exists>a3. a2 \<in>: t \<and> (a1 ,: a3) \<in>: g"
       using assms(2) funspace_def by auto
-    then obtain a3 where as2: "a2 \<in>: t \<and> (a1 ,: a3) \<in>: g"
+    then obtain a3 where a3: "a2 \<in>: t \<and> (a1 ,: a3) \<in>: g"
       by auto
     then have "a3 = a2"
-      using as a assms(1) assms(2) assms(3) pair_in_apply_jfljalkfdjlkfja by auto
+      using a12 af assms(1,2,3) apply_if_pair_in by auto
     then show "a \<in>: g"
-      using as as2 by blast
+      using a12 a3 by blast
   qed
   moreover
   have "\<And>a. a \<in>: g \<Longrightarrow> a \<in>: f"
   proof -
     fix a
-    assume a: "a \<in>: g"
-    from a have b: "\<exists>a1 a2. a1 \<in>:s \<and> a2 \<in>: t \<and> (a1 ,: a2) = a"
+    assume ag: "a \<in>: g"
+    then have "\<exists>a1 a2. a1 \<in>:s \<and> a2 \<in>: t \<and> (a1 ,: a2) = a"
       using assms unfolding funspace_def apply_def using relspace_def by force
-    then obtain a1 a2 where as:
+    then obtain a1 a2 where a12:
       "a1 \<in>:s \<and> a2 \<in>: t \<and> (a1 ,: a2) = a"
       by blast
     then have "\<exists>a3. a2 \<in>: t \<and> (a1 ,: a3) \<in>: f"
       using assms(1) funspace_def by auto
-    then obtain a3 where as2: "a2 \<in>: t \<and> (a1 ,: a3) \<in>: f"
+    then obtain a3 where a3: "a2 \<in>: t \<and> (a1 ,: a3) \<in>: f"
       by auto
     then have "a3 = a2"
-      using as a assms(1) assms(2) assms(3) pair_in_apply_jfljalkfdjlkfja by auto
+      using a12 ag assms(1,2,3) apply_if_pair_in by auto
     then show "a \<in>: f"
-      using as as2 by blast
+      using a3 a12 by blast
   qed
   ultimately
   show ?thesis 
