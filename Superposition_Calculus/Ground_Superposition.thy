@@ -39,7 +39,6 @@ primrec mset_lit :: "'a uprod literal \<Rightarrow> 'a multiset" where
 
 type_synonym 'f atom = "'f gterm uprod"
 
-
 section \<open>Superposition Calculus\<close>
 
 locale ground_superposition_calculus =
@@ -2582,7 +2581,7 @@ proof unfold_locales
     next
       show "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s N"
         unfolding I_def
-        using model_construction[OF \<open>G.saturated N\<close> \<open>{#} \<notin> N\<close>]
+        using model_construction(2)[OF \<open>G.saturated N\<close> \<open>{#} \<notin> N\<close>]
         by (simp add: true_clss_def)
     next
       show "\<not> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s G_Bot"

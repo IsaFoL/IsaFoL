@@ -22,9 +22,9 @@ proof -
         subst_apply_term_empty subst_def subst_simps(1) subst_term_eqI term.distinct(1))
 qed
 
-(* lemma is_ground_iff:
+lemma is_ground_iff:
   "term_subst.is_ground (t \<cdot> \<gamma>) \<longleftrightarrow> (\<forall>x \<in> vars_term t. term_subst.is_ground (\<gamma> x))"
-  by (induction t) (auto simp add: term_subst.is_ground_def) *)
+  by (induction t) (auto simp add: term_subst.is_ground_def)
 
 lemma term_subst_is_renaming_iff:
   "term_subst.is_renaming \<rho> \<longleftrightarrow> inj \<rho> \<and> (\<forall>x. is_Var (\<rho> x))"
