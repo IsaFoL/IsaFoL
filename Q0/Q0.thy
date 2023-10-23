@@ -559,7 +559,7 @@ inductive wf_interp :: "'s frame \<Rightarrow> 's denotation \<Rightarrow> bool"
    \<forall>c \<alpha>. I c \<alpha> \<in>: D \<alpha> \<Longrightarrow>
    \<forall>\<alpha>. I ''Q'' (Fun (Fun Tv \<alpha>) \<alpha>) = iden (D \<alpha>) \<Longrightarrow>
    (I ''i'' (Fun Ind (Fun Tv Ind))) \<in>: funspace (D (Fun Tv Ind)) (D Ind) \<Longrightarrow>
-   \<forall>\<alpha> x. x \<in>: D \<alpha> \<longrightarrow> (I ''i'' (Fun Ind (Fun Tv Ind)))\<langle>one_elem_fun x (D \<alpha>)\<rangle> = x \<Longrightarrow>
+   \<forall>\<alpha> x. x \<in>: D \<alpha> \<longrightarrow> (I ''i'' (Fun Ind (Fun Tv Ind))) \<cdot> one_elem_fun x (D \<alpha>) = x \<Longrightarrow>
    wf_interp D I"
 
 definition asg_into_frame :: "'s asg \<Rightarrow> 's frame \<Rightarrow> bool" where
@@ -572,7 +572,7 @@ abbreviation(input) asg_into_interp :: "'s asg \<Rightarrow> 's frame \<Rightarr
 fun val :: "'s frame \<Rightarrow> 's denotation \<Rightarrow> 's asg \<Rightarrow> form \<Rightarrow> 's" where
   "val D I \<phi> (Var x \<alpha>) = \<phi> (x,\<alpha>)"
 | "val D I \<phi> (Cst c \<alpha>) = I c \<alpha>"
-| "val D I \<phi> (A \<^bold>\<cdot> B) = (val D I \<phi> A)\<langle>val D I \<phi> B\<rangle>"
+| "val D I \<phi> (A \<^bold>\<cdot> B) = (val D I \<phi> A) \<cdot> val D I \<phi> B"
 | "val D I \<phi> \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] = (abstract (D \<alpha>) (D (type_of B)) (\<lambda>z. val D I (\<phi>((x,\<alpha>):=z)) B))"
 
 fun general_model :: "'s frame \<Rightarrow> 's denotation \<Rightarrow> bool" where
@@ -709,7 +709,7 @@ proof -
     using assms by simp
 
   have "val D I \<phi> (\<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A) =
-          (abstract (D \<alpha>) (D \<beta>) (\<lambda>z. val D I (\<phi>((x, \<alpha>) := z)) B))\<langle>val D I \<phi> A\<rangle>"
+          (abstract (D \<alpha>) (D \<beta>) (\<lambda>z. val D I (\<phi>((x, \<alpha>) := z)) B)) \<cdot> val D I \<phi> A"
     using assms by auto
   also
   have "... = val D I (\<phi>((x, \<alpha>) := val D I \<phi> A)) B"
@@ -726,9 +726,9 @@ lemma lemma_5401_b_variant_1: (* new_lemma *)
   assumes "wff \<alpha> A" "wff \<alpha> B"
   shows "val D I \<phi> (\<^bold>[A \<^bold>=\<alpha>\<^bold>= B\<^bold>]) = (boolean (val D I \<phi> A = val D I \<phi> B))"
 proof -
-  have "val D I \<phi> (\<^bold>[A \<^bold>=\<alpha>\<^bold>= B\<^bold>]) = (I ''Q'' (Fun (Fun Tv \<alpha>) \<alpha>))\<langle>val D I \<phi> A\<rangle>\<langle>val D I \<phi> B\<rangle>"
+  have "val D I \<phi> (\<^bold>[A \<^bold>=\<alpha>\<^bold>= B\<^bold>]) = (I ''Q'' (Fun (Fun Tv \<alpha>) \<alpha>)) \<cdot> val D I \<phi> A \<cdot> val D I \<phi> B"
     unfolding Eql_def by auto
-  have "... = (iden (D \<alpha>))\<langle>val D I \<phi> A\<rangle>\<langle>val D I \<phi> B\<rangle>"
+  have "... = (iden (D \<alpha>)) \<cdot> val D I \<phi> A \<cdot> val D I \<phi> B"
     using assms general_model.simps wf_interp.simps by auto 
   also
   have "... = boolean (val D I \<phi> A = val D I \<phi> B)"
@@ -778,7 +778,7 @@ lemma lemma_5401_d:
 proof -
   have "iden boolset \<in>: D (Fun (Fun Tv Tv) Tv)"
     using assms general_model.simps wf_interp.simps wf_frame_def by metis
-  then have "(val D I \<phi> \<^bold>[\<^bold>\<lambda>''x'':Tv. T\<^bold>])\<langle>false\<rangle> \<noteq> (val D I \<phi> \<^bold>[\<^bold>\<lambda>''x'':Tv. Var ''x'' Tv\<^bold>])\<langle>false\<rangle>" 
+  then have "(val D I \<phi> \<^bold>[\<^bold>\<lambda>''x'':Tv. T\<^bold>]) \<cdot> false \<noteq> (val D I \<phi> \<^bold>[\<^bold>\<lambda>''x'':Tv. Var ''x'' Tv\<^bold>]) \<cdot> false" 
     using assms wf_interp.simps wf_frame_def true_neq_false 
       apply_id[of "iden boolset" "(D (Fun (Fun Tv Tv) Tv))" "iden boolset"]
     unfolding boolean_def Eql_def T_def by auto
@@ -818,7 +818,7 @@ lemma arg_cong3: "a = b \<Longrightarrow> c = d \<Longrightarrow> e = f \<Longri
 lemma lemma_5401_e_1:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
-  shows "(val D I \<phi> Con_sym)\<langle>true\<rangle>\<langle>true\<rangle> = true"
+  shows "(val D I \<phi> Con_sym) \<cdot> true \<cdot> true = true"
 proof -               
   define \<phi>' where "\<phi>' \<equiv> \<phi>((''x'',Tv) := val D I \<phi> T)"
   define \<phi>'' where "\<phi>'' \<equiv> \<phi>'((''y'',Tv) :=  val D I \<phi>' T)"
@@ -828,22 +828,22 @@ proof -
   have \<phi>''_asg_into: "asg_into_interp \<phi>'' D I"
     unfolding \<phi>''_def using asg_into_interp_fun_upd[OF assms(1) \<phi>'_asg_into wff_T] by blast
 
-  have "(val D I \<phi> Con_sym)\<langle>true\<rangle>\<langle>true\<rangle> = val D I \<phi> ((Con_sym \<^bold>\<cdot> T) \<^bold>\<cdot> T)"
+  have "(val D I \<phi> Con_sym) \<cdot> true \<cdot> true = val D I \<phi> ((Con_sym \<^bold>\<cdot> T) \<^bold>\<cdot> T)"
     using lemma_5401_c[OF assms(1,2)] by auto
   also
   have "... = val D I \<phi> ((\<^bold>[\<^bold>\<lambda>''x'':Tv. \<^bold>[\<^bold>\<lambda>''y'':Tv. Con_Aux1\<^bold>]\<^bold>] \<^bold>\<cdot> T) \<^bold>\<cdot> T)"
     unfolding Con_sym_def Con_Aux2_def ..
   also
-  have "... = (val D I \<phi> ((\<^bold>[\<^bold>\<lambda>''x'':Tv. \<^bold>[\<^bold>\<lambda>''y'':Tv. Con_Aux1\<^bold>]\<^bold>] \<^bold>\<cdot> T)))\<langle>val D I \<phi> T\<rangle>"
+  have "... = (val D I \<phi> ((\<^bold>[\<^bold>\<lambda>''x'':Tv. \<^bold>[\<^bold>\<lambda>''y'':Tv. Con_Aux1\<^bold>]\<^bold>] \<^bold>\<cdot> T))) \<cdot> val D I \<phi> T"
     by simp
   also
-  have "... = (val D I (\<phi>((''x'',Tv) := val D I \<phi> T)) ((\<^bold>[\<^bold>\<lambda>''y'':Tv. Con_Aux1\<^bold>])))\<langle>val D I \<phi> T\<rangle>"
+  have "... = (val D I (\<phi>((''x'',Tv) := val D I \<phi> T)) ((\<^bold>[\<^bold>\<lambda>''y'':Tv. Con_Aux1\<^bold>]))) \<cdot> val D I \<phi> T"
     by (metis Con_Aux2_def lemma_5401_a[OF assms(1,2)] wff_Con_Aux2 wff_T)
   also
-  have "... = (val D I \<phi>' ((\<^bold>[\<^bold>\<lambda>''y'':Tv. Con_Aux1\<^bold>])))\<langle>val D I \<phi> T\<rangle>"
+  have "... = (val D I \<phi>' ((\<^bold>[\<^bold>\<lambda>''y'':Tv. Con_Aux1\<^bold>]))) \<cdot> val D I \<phi> T"
     unfolding \<phi>'_def ..
   also
-  have "... = (val D I \<phi>' ((\<^bold>[\<^bold>\<lambda>''y'':Tv. Con_Aux1\<^bold>])))\<langle>val D I \<phi>' T\<rangle>"
+  have "... = (val D I \<phi>' ((\<^bold>[\<^bold>\<lambda>''y'':Tv. Con_Aux1\<^bold>]))) \<cdot> val D I \<phi>' T"
     using \<phi>'_asg_into assms(2) lemma_5401_c[OF assms(1)] by auto
   also
   have "... = (val D I \<phi>' (\<^bold>[\<^bold>\<lambda>''y'':Tv. Con_Aux1\<^bold>] \<^bold>\<cdot> T))"
@@ -884,12 +884,12 @@ proof -
       unfolding \<phi>'''_def ..
     also
     have "... = abstract (D (Fun (Fun Tv Tv) Tv)) (D Tv) 
-                  (\<lambda>z. val D I (\<phi>''' z) (Var ''g'' (Fun (Fun Tv Tv) Tv))\<langle>val D I (\<phi>''' z) T\<rangle>
-                     \<langle>val D I (\<phi>''' z) T\<rangle>)"
+                  (\<lambda>z. val D I (\<phi>''' z) (Var ''g'' (Fun (Fun Tv Tv) Tv)) \<cdot> val D I (\<phi>''' z) T
+                     \<cdot> val D I (\<phi>''' z) T)"
       unfolding val.simps(3) ..
     also
     have "... = abstract (D (Fun (Fun Tv Tv) Tv)) (D Tv) 
-                  (\<lambda>z. val D I (\<phi>''' z) (Var ''g'' (Fun (Fun Tv Tv) Tv))\<langle>true\<rangle>\<langle>true\<rangle>)"
+                  (\<lambda>z. val D I (\<phi>''' z) (Var ''g'' (Fun (Fun Tv Tv) Tv)) \<cdot> true \<cdot> true)"
     proof (rule abstract_extensional')
       fix x
       assume "x \<in>: D (Fun (Fun Tv Tv) Tv)"
@@ -897,8 +897,8 @@ proof -
         using Con_Aux0_def \<phi>'''_def \<phi>''_asg_into asg_into_frame_fun_upd assms(1) 
           general_model.elims(2) type_sym.inject wff_Abs_type_of wff_Con_Aux0 wff_T 
         by (metis wff_App wff_Var)
-      then show "val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv))\<langle>val D I (\<phi>''' x) T\<rangle>
-                   \<langle>val D I (\<phi>''' x) T\<rangle> 
+      then show "val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv)) \<cdot> val D I (\<phi>''' x) T \<cdot>
+                   val D I (\<phi>''' x) T
                  \<in>: D Tv"
         by simp
     next
@@ -907,14 +907,14 @@ proof -
       then have "val D I (\<phi>''' x) T = true"
         unfolding \<phi>'''_def using  \<phi>''_asg_into asg_into_frame_fun_upd 
           lemma_5401_c[OF assms(1)] by blast
-      then show "val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv))\<langle>val D I (\<phi>''' x) T\<rangle>
-                   \<langle>val D I (\<phi>''' x) T\<rangle> =
-                 val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv))\<langle>true\<rangle>\<langle>true\<rangle>" by auto
+      then show "val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv)) \<cdot> val D I (\<phi>''' x) T \<cdot>
+                   val D I (\<phi>''' x) T =
+                 val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv)) \<cdot> true \<cdot> true" by auto
     qed
     also
     have "... = abstract (D (Fun (Fun Tv Tv) Tv)) (D Tv) 
-                  (\<lambda>z. val D I (\<phi>''' z) (Var ''g'' (Fun (Fun Tv Tv) Tv))
-                     \<langle>val D I (\<phi>''' z) (Var ''x'' Tv)\<rangle>\<langle>val D I (\<phi>''' z) (Var ''y'' Tv)\<rangle>)"
+                  (\<lambda>z. val D I (\<phi>''' z) (Var ''g'' (Fun (Fun Tv Tv) Tv)) \<cdot>
+                         val D I (\<phi>''' z) (Var ''x'' Tv) \<cdot> val D I (\<phi>''' z) (Var ''y'' Tv))"
     proof (rule abstract_extensional')
       fix x
       assume x_in_D: "x \<in>: D (Fun (Fun Tv Tv) Tv)"
@@ -922,10 +922,10 @@ proof -
         using Con_Aux0_def \<phi>'''_def \<phi>''_asg_into asg_into_frame_fun_upd assms(1) 
           general_model.elims(2) type_sym.inject wff_Abs_type_of wff_Con_Aux0 wff_T 
         by (metis wff_App wff_Var)
-      then have "val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv))\<langle>val D I (\<phi>''' x) T\<rangle>
-                   \<langle>val D I (\<phi>''' x) T\<rangle> \<in>: D Tv"
+      then have "val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv)) \<cdot> val D I (\<phi>''' x) T \<cdot>
+                   val D I (\<phi>''' x) T \<in>: D Tv"
         by simp
-      then show "val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv))\<langle>true\<rangle>\<langle>true\<rangle> \<in>: D Tv"
+      then show "val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv)) \<cdot> true \<cdot> true \<in>: D Tv"
         by (metis \<phi>'''_def \<phi>''_asg_into lemma_5401_c[OF assms(1)] asg_into_frame_fun_upd x_in_D)
     next
       fix x
@@ -936,10 +936,10 @@ proof -
       from x_in_D have "val D I (\<phi>''' x) (Var ''y'' Tv) = true"
         unfolding \<phi>'''_def \<phi>''_def using \<phi>'_asg_into lemma_5401_c[OF assms(1)] by auto
       ultimately
-      show "val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv))\<langle>true\<rangle>\<langle>true\<rangle> =
+      show "val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv)) \<cdot> true \<cdot> true =
         val D I (\<phi>''' x)
-          (Var ''g'' (Fun (Fun Tv Tv) Tv))
-            \<langle>val D I (\<phi>''' x) (Var ''x'' Tv)\<rangle>\<langle>val D I (\<phi>''' x) (Var ''y'' Tv)\<rangle>" 
+          (Var ''g'' (Fun (Fun Tv Tv) Tv)) \<cdot>
+            val D I (\<phi>''' x) (Var ''x'' Tv) \<cdot> val D I (\<phi>''' x) (Var ''y'' Tv)" 
         by auto
     qed
     also
@@ -970,7 +970,7 @@ lemma lemma_5401_e_2:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
   assumes "y = true \<or> y = false"
-  shows "(val D I \<phi> Con_sym)\<langle>false\<rangle>\<langle>y\<rangle> = false"
+  shows "(val D I \<phi> Con_sym) \<cdot> false \<cdot> y = false"
 proof -
   (* x is gonna be the function of the type specified in z0 that returns its first argument.
      In order to prove z0 I need to express the function in the syntax of Q0 *)
@@ -985,15 +985,15 @@ proof -
                val D I (\<phi>((''x'', Tv) := a)) give_x \<in>: D (type_of give_x)"
     using wff_give_x asg_into_frame_def assms(1,2) by auto
   moreover
-  have "\<And>a b. a \<in>: D Tv \<Longrightarrow> b \<in>: D Tv \<Longrightarrow> val D I (\<phi>((''x'', Tv) := a)) give_x\<langle>b\<rangle> = a"
+  have "\<And>a b. a \<in>: D Tv \<Longrightarrow> b \<in>: D Tv \<Longrightarrow> val D I (\<phi>((''x'', Tv) := a)) give_x \<cdot> b = a"
     unfolding give_x_def by auto
   ultimately
   have "\<And>a b. a \<in>: D Tv \<Longrightarrow>
                b \<in>: D Tv \<Longrightarrow> 
-               abstract (D Tv) (D (type_of give_x)) (\<lambda>z. val D I (\<phi>((''x'', Tv) := z)) give_x)\<langle>a\<rangle>\<langle>b\<rangle>
+               abstract (D Tv) (D (type_of give_x)) (\<lambda>z. val D I (\<phi>((''x'', Tv) := z)) give_x) \<cdot> a \<cdot> b
                = a"
     by auto
-  then have val_give_fst_simp: "\<And>a b. a \<in>: D Tv \<Longrightarrow> b \<in>: D Tv \<Longrightarrow> val_give_fst\<langle>a\<rangle>\<langle>b\<rangle> = a"
+  then have val_give_fst_simp: "\<And>a b. a \<in>: D Tv \<Longrightarrow> b \<in>: D Tv \<Longrightarrow> val_give_fst \<cdot> a \<cdot> b = a"
     unfolding val_give_fst_def give_fst_def by auto
 
   have wff_give_fst: "wff (Fun (Fun Tv Tv) Tv) give_fst"
@@ -1008,12 +1008,12 @@ proof -
         asg_into_interp_fun_upd[OF assms(1,2)] asg_into_interp_fun_upd_true[OF assms(1)] 
         asg_into_interp_fun_upd_false[OF assms(1)] type_sym.distinct(5) val_give_fst_def wff_T)
   then have val_give_fst_D:
-      "val_give_fst\<langle>val D I (\<phi>((''x'', Tv) := false, 
+      "val_give_fst \<cdot> val D I (\<phi>((''x'', Tv) := false, 
                                (''y'', Tv) := y, 
-                               (''g'', Fun (Fun Tv Tv) Tv) := val_give_fst)) T\<rangle>
-                   \<langle>val D I (\<phi>((''x'', Tv) := false, 
+                               (''g'', Fun (Fun Tv Tv) Tv) := val_give_fst)) T \<cdot>
+                      val D I (\<phi>((''x'', Tv) := false, 
                                (''y'', Tv) := y, 
-                               (''g'', Fun (Fun Tv Tv) Tv) := val_give_fst)) T\<rangle>
+                               (''g'', Fun (Fun Tv Tv) Tv) := val_give_fst)) T
        \<in>: D Tv"
     using val_give_fst_simp[of
         "val D I (\<phi>((''x'', Tv) := false, 
@@ -1026,21 +1026,21 @@ proof -
 
   have false_y_TV: "false \<in>: D Tv \<and> y \<in>: D Tv"
     using assms(1) assms(3) wf_frame_def wf_interp.simps by auto
-  then have val_give_fst_in_D: "val_give_fst\<langle>false\<rangle>\<langle>y\<rangle> \<in>: D Tv"
+  then have val_give_fst_in_D: "val_give_fst \<cdot> false \<cdot> y \<in>: D Tv"
     using val_give_fst_simp by auto
 
   have "true \<in>: D Tv"
     by (metis assms(1) assms(2) general_model.simps lemma_5401_c[OF assms(1,2)] wff_T)
-  from this val_give_fst_in_D false_y_TV have "val_give_fst\<langle>true\<rangle>\<langle>true\<rangle> \<noteq> val_give_fst\<langle>false\<rangle>\<langle>y\<rangle>"
+  from this val_give_fst_in_D false_y_TV have "val_give_fst \<cdot> true \<cdot> true \<noteq> val_give_fst \<cdot> false \<cdot> y"
     using val_give_fst_simp true_neq_false by auto
   then have val_give_fst_not_false: 
-    "val_give_fst\<langle>val D I (\<phi>((''x'', Tv) := false, 
+    "val_give_fst \<cdot> val D I (\<phi>((''x'', Tv) := false, 
                              (''y'', Tv) := y, 
-                             (''g'', Fun (Fun Tv Tv) Tv) := val_give_fst)) T\<rangle>
-                 \<langle>val D I (\<phi>((''x'', Tv) := false, 
+                             (''g'', Fun (Fun Tv Tv) Tv) := val_give_fst)) T
+                  \<cdot> val D I (\<phi>((''x'', Tv) := false, 
                              (''y'', Tv) := y, 
-                             (''g'', Fun (Fun Tv Tv) Tv) := val_give_fst)) T\<rangle> 
-     \<noteq> val_give_fst\<langle>false\<rangle>\<langle>y\<rangle>"
+                             (''g'', Fun (Fun Tv Tv) Tv) := val_give_fst)) T 
+     \<noteq> val_give_fst \<cdot> false \<cdot> y"
     using asg_into_frame_fun_upd assms(1) assms(2) lemma_5401_c false_y_TV val_give_fst_fun by auto
   have Con_Aux0TT_neq_Con_Aux0xy: 
     "val D I (\<phi>((''x'', Tv) := false, (''y'', Tv) := y)) (Con_Aux0 T T) \<noteq> 
@@ -1048,14 +1048,14 @@ proof -
     unfolding Con_Aux0_def using abstract_cong_specific[of
         val_give_fst
         "(D (Fun (Fun Tv Tv) Tv))" 
-        "(\<lambda>z. z\<langle>val D I (\<phi>((''x'', Tv) := false, 
+        "(\<lambda>z. z \<cdot> val D I (\<phi>((''x'', Tv) := false, 
                            (''y'', Tv) := y, 
-                           (''g'', Fun (Fun Tv Tv) Tv) := z)) T\<rangle>
-                \<langle>val D I (\<phi>((''x'', Tv) := false, 
+                           (''g'', Fun (Fun Tv Tv) Tv) := z)) T
+                 \<cdot> val D I (\<phi>((''x'', Tv) := false, 
                             (''y'', Tv) := y, 
-                            (''g'', Fun (Fun Tv Tv) Tv) := z)) T\<rangle>)" 
+                            (''g'', Fun (Fun Tv Tv) Tv) := z)) T)" 
         "(D Tv)"
-        "(\<lambda>z. z\<langle>false\<rangle>\<langle>y\<rangle>)"]
+        "(\<lambda>z. z \<cdot> false \<cdot> y)"]
     using val_give_fst_fun val_give_fst_D val_give_fst_in_D val_give_fst_not_false by auto
 
   have "asg_into_frame (\<phi>((''x'', Tv) := false, (''y'', Tv) := y)) D"
@@ -1076,19 +1076,19 @@ proof -
   have "val D I (\<phi>((''x'', Tv) := false, (''y'', Tv) := y)) Con_Aux1 = false"
     using val_Con_Aux1 by auto
   ultimately
-  have val_y: "(val D I (\<phi>((''x'', Tv) := false)) Con_Aux2)\<langle>y\<rangle> = false"
+  have val_y: "(val D I (\<phi>((''x'', Tv) := false)) Con_Aux2) \<cdot> y = false"
     unfolding Con_Aux2_def by simp
 
   have 11: "val D I (\<phi>((''x'', Tv) := false)) Con_Aux2 \<in>: D (Fun Tv Tv)"
     using asg_into_interp_fun_upd_false[OF assms(1,2)] general_model.simps[of D I] assms
       wff_Con_Aux2 by blast 
   moreover
-  have "val D I (\<phi>((''x'', Tv) := false)) Con_Aux2\<langle>y\<rangle> = false"
+  have "val D I (\<phi>((''x'', Tv) := false)) Con_Aux2 \<cdot> y = false"
     using val_y by auto
   ultimately
-  have "(val D I \<phi> \<^bold>[\<^bold>\<lambda>''x'':Tv. Con_Aux2\<^bold>])\<langle>false\<rangle>\<langle>y\<rangle> = false"
+  have "(val D I \<phi> \<^bold>[\<^bold>\<lambda>''x'':Tv. Con_Aux2\<^bold>]) \<cdot> false \<cdot> y = false"
     using false_y_TV by simp
-  then show "(val D I \<phi> Con_sym)\<langle>false\<rangle>\<langle>y\<rangle> = false"
+  then show "(val D I \<phi> Con_sym) \<cdot> false \<cdot> y = false"
     unfolding Con_sym_def by auto
 qed
 
@@ -1097,7 +1097,7 @@ lemma lemma_5401_e_3:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
   assumes "x = true \<or> x = false"
-  shows "(val D I \<phi> Con_sym)\<langle>x\<rangle>\<langle>false\<rangle> = false"
+  shows "(val D I \<phi> Con_sym) \<cdot> x \<cdot> false = false"
 proof -
   (* proof adapted from lemma_5401_e_2 *)
   define give_y :: form where "give_y = (\<^bold>[\<^bold>\<lambda> ''y'':Tv. (Var ''y'' Tv)\<^bold>])"
@@ -1112,10 +1112,10 @@ proof -
   have "\<And>a b. a \<in>: D Tv \<Longrightarrow> b \<in>: D Tv \<Longrightarrow> val D I (\<phi>((''x'', Tv) := a)) give_y \<in>: D (type_of give_y)"
     using wff_give_y asg_into_frame_def assms(1) assms(2) by auto
   moreover
-  have "\<And>a b. a \<in>: D Tv \<Longrightarrow> b \<in>: D Tv \<Longrightarrow> val D I (\<phi>((''x'', Tv) := a)) give_y\<langle>b\<rangle> = b"
+  have "\<And>a b. a \<in>: D Tv \<Longrightarrow> b \<in>: D Tv \<Longrightarrow> val D I (\<phi>((''x'', Tv) := a)) give_y \<cdot> b = b"
     unfolding give_y_def by auto
   ultimately
-  have val_give_snd_simp: "\<And>a b. a \<in>: D Tv \<Longrightarrow> b \<in>: D Tv \<Longrightarrow> val_give_snd\<langle>a\<rangle>\<langle>b\<rangle> = b"
+  have val_give_snd_simp: "\<And>a b. a \<in>: D Tv \<Longrightarrow> b \<in>: D Tv \<Longrightarrow> val_give_snd \<cdot> a \<cdot> b = b"
     unfolding val_give_snd_def give_snd_def by auto
 
   have wff_give_snd: "wff (Fun (Fun Tv Tv) Tv) give_snd"
@@ -1132,12 +1132,12 @@ proof -
         asg_into_interp_fun_upd_false[OF assms(1)] asg_into_interp_fun_upd_true[OF assms(1)] 
         type_sym.distinct(5) val_give_snd_def wff_T)
   then have val_give_snd_app_in_D: 
-    "val_give_snd\<langle>val D I (\<phi>((''x'', Tv) := x, 
+    "val_give_snd \<cdot> val D I (\<phi>((''x'', Tv) := x, 
                              (''y'', Tv) := false, 
-                             (''g'', Fun (Fun Tv Tv) Tv) := val_give_snd)) T\<rangle>
-                 \<langle>val D I (\<phi>((''x'', Tv) := x, 
+                             (''g'', Fun (Fun Tv Tv) Tv) := val_give_snd)) T
+                  \<cdot> val D I (\<phi>((''x'', Tv) := x, 
                              (''y'', Tv) := false, 
-                             (''g'', Fun (Fun Tv Tv) Tv) := val_give_snd)) T\<rangle>
+                             (''g'', Fun (Fun Tv Tv) Tv) := val_give_snd)) T
      \<in>: D Tv"
     using val_give_snd_simp[of
         "val D I (\<phi>((''x'', Tv) := x, 
@@ -1150,21 +1150,21 @@ proof -
 
   have false_and_x_in_D: "false \<in>: D Tv \<and> x \<in>: D Tv"
     using assms(1,3) wf_frame_def wf_interp.simps by auto
-  then have val_give_snd_app_x_false_in_D: "val_give_snd\<langle>x\<rangle>\<langle>false\<rangle> \<in>: D Tv"
+  then have val_give_snd_app_x_false_in_D: "val_give_snd \<cdot> x \<cdot> false \<in>: D Tv"
     using val_give_snd_simp by auto
 
   have "true \<in>: D Tv"
     by (metis assms(1) assms(2) general_model.simps lemma_5401_c[OF assms(1,2)] wff_T)
-  then have "val_give_snd\<langle>true\<rangle>\<langle>true\<rangle> \<noteq> val_give_snd\<langle>x\<rangle>\<langle>false\<rangle>"
+  then have "val_give_snd \<cdot> true \<cdot> true \<noteq> val_give_snd \<cdot> x \<cdot> false"
     using val_give_snd_simp true_neq_false val_give_snd_app_in_D false_and_x_in_D by auto
   then have
-    "val_give_snd\<langle>val D I (\<phi>((''x'', Tv) := x, 
+    "val_give_snd \<cdot> val D I (\<phi>((''x'', Tv) := x, 
                              (''y'', Tv) := false, 
-                             (''g'', Fun (Fun Tv Tv) Tv) := val_give_snd)) T\<rangle>
-                 \<langle>val D I (\<phi>((''x'', Tv) := x, 
+                             (''g'', Fun (Fun Tv Tv) Tv) := val_give_snd)) T
+                  \<cdot> val D I (\<phi>((''x'', Tv) := x, 
                              (''y'', Tv) := false, 
-                             (''g'', Fun (Fun Tv Tv) Tv) := val_give_snd)) T\<rangle> \<noteq>
-     val_give_snd\<langle>x\<rangle>\<langle>false\<rangle>"
+                             (''g'', Fun (Fun Tv Tv) Tv) := val_give_snd)) T \<noteq>
+     val_give_snd \<cdot> x \<cdot> false"
     using asg_into_frame_fun_upd assms(1) assms(2) lemma_5401_c false_and_x_in_D val_give_snd_in_D
     by auto
   then have "val D I (\<phi>((''x'', Tv) := x, (''y'', Tv) := false)) (Con_Aux0 T T) \<noteq> 
@@ -1174,16 +1174,16 @@ proof -
     using abstract_cong_specific[of 
         val_give_snd 
         "(D (Fun (Fun Tv Tv) Tv))" 
-        "(\<lambda>z. z\<langle>val D I (\<phi>((''x'', Tv) := x, (''y'', Tv) := false, (''g'', Fun (Fun Tv Tv) Tv) := z))
-             T\<rangle>\<langle>val D I (\<phi>((''x'', Tv) := x, (''y'', Tv) := false, (''g'', Fun (Fun Tv Tv) Tv) := z)) T\<rangle>)" 
+        "(\<lambda>z. z \<cdot> val D I (\<phi>((''x'', Tv) := x, (''y'', Tv) := false, (''g'', Fun (Fun Tv Tv) Tv) := z))
+             T \<cdot> val D I (\<phi>((''x'', Tv) := x, (''y'', Tv) := false, (''g'', Fun (Fun Tv Tv) Tv) := z)) T)" 
         "(D Tv)"
-        "(\<lambda>z. z\<langle>x\<rangle>\<langle>false\<rangle>)"
+        "(\<lambda>z. z \<cdot> x \<cdot> false)"
         ]
     using val_give_snd_in_D val_give_snd_app_x_false_in_D val_give_snd_app_in_D by auto
   then have "val D I (\<phi>((''x'', Tv) := x, (''y'', Tv) := false)) Con_Aux1 = false"
     using asg_into_frame_fun_upd assms(1,2) lemma_5401_b_variant_3 false_and_x_in_D
     unfolding Con_Aux1_def by auto
-  then have val_Con_Aux2_false: "(val D I (\<phi>((''x'', Tv) := x)) Con_Aux2)\<langle>false\<rangle> = false"
+  then have val_Con_Aux2_false: "(val D I (\<phi>((''x'', Tv) := x)) Con_Aux2) \<cdot> false = false"
     unfolding Con_Aux2_def using false_and_x_in_D by simp
 
   have "x \<in>: D Tv"
@@ -1194,12 +1194,12 @@ proof -
         asg_into_interp_fun_upd[OF assms(1,2)] asg_into_interp_fun_upd_false[OF assms(1,2)] 
         wff_Con_Aux2 wff_T)
   moreover
-  have "val D I (\<phi>((''x'', Tv) := x)) Con_Aux2\<langle>false\<rangle> = false"
+  have "val D I (\<phi>((''x'', Tv) := x)) Con_Aux2 \<cdot> false = false"
     using val_Con_Aux2_false by auto
   ultimately
-  have "(val D I \<phi> \<^bold>[\<^bold>\<lambda>''x'':Tv. Con_Aux2\<^bold>])\<langle>x\<rangle>\<langle>false\<rangle> = false"
+  have "(val D I \<phi> \<^bold>[\<^bold>\<lambda>''x'':Tv. Con_Aux2\<^bold>]) \<cdot> x \<cdot> false = false"
     by auto
-  then show "(val D I \<phi> Con_sym)\<langle>x\<rangle>\<langle>false\<rangle> = false"
+  then show "(val D I \<phi> Con_sym) \<cdot> x \<cdot> false = false"
     unfolding Con_sym_def by auto
 qed
 
@@ -1209,7 +1209,7 @@ lemma lemma_5401_e_variant_1: (* new_lemma *)
   assumes "general_model D I"
   assumes "y = true \<or> y = false"
   assumes "x = true \<or> x = false"
-  shows "(val D I \<phi> Con_sym)\<langle>x\<rangle>\<langle>y\<rangle> = boolean (x = true \<and> y = true)"
+  shows "(val D I \<phi> Con_sym) \<cdot> x \<cdot> y = boolean (x = true \<and> y = true)"
 proof (cases "y = true")
   case True
   note True_outer = this
@@ -1281,7 +1281,7 @@ lemma lemma_5401_f_1:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
   assumes "y = true \<or> y = false"
-  shows "(val D I \<phi> Imp_sym)\<langle>false\<rangle>\<langle>y\<rangle> = true"
+  shows "(val D I \<phi> Imp_sym) \<cdot> false \<cdot> y = true"
 proof -
   have val_Imp_Aux1_false: "val D I (\<phi>((''x'', Tv) := false, (''y'', Tv) := y)) Imp_Aux1 = false"
     using assms asg_into_interp_fun_upd_false[OF assms(1)] asg_into_interp_fun_upd_true[OF assms(1)] 
@@ -1293,19 +1293,19 @@ proof -
   then have "val D I (\<phi>((''x'', Tv) := false, (''y'', Tv) := y)) Imp_Aux2 = true"
     using lemma_5401_b_variant_1[OF assms(1)] val_Imp_Aux1_false unfolding boolean_def Imp_Aux2_def 
     by auto
-  then have val_Imp_Aux3_true: "(val D I (\<phi>((''x'', Tv) := false)) Imp_Aux3)\<langle>y\<rangle> = true"
+  then have val_Imp_Aux3_true: "(val D I (\<phi>((''x'', Tv) := false)) Imp_Aux3) \<cdot> y = true"
     unfolding Imp_Aux3_def using assms(1,3) wf_frame_def wf_interp.simps by auto 
 
-  have "val D I \<phi> \<^bold>[\<^bold>\<lambda> ''x'':Tv. Imp_Aux3\<^bold>]\<langle>false\<rangle>\<langle>y\<rangle> = true"
+  have "val D I \<phi> \<^bold>[\<^bold>\<lambda> ''x'':Tv. Imp_Aux3\<^bold>] \<cdot> false \<cdot> y = true"
   proof -
     have "false \<in>: D Tv"
       by (metis asg_into_frame_def asg_into_interp_fun_upd_false assms(1) assms(2) fun_upd_same)
-    then have "val D I (\<phi>((''x'', Tv) := false)) Imp_Aux3 = val D I \<phi> \<^bold>[\<^bold>\<lambda>''x'':Tv. Imp_Aux3\<^bold>]\<langle>false\<rangle>"
+    then have "val D I (\<phi>((''x'', Tv) := false)) Imp_Aux3 = val D I \<phi> \<^bold>[\<^bold>\<lambda>''x'':Tv. Imp_Aux3\<^bold>] \<cdot> false"
       using asg_into_interp_fun_upd_false assms(1,2) by force
     then show ?thesis
       by (metis val_Imp_Aux3_true)
   qed
-  then show "(val D I \<phi> Imp_sym)\<langle>false\<rangle>\<langle>y\<rangle> = true"
+  then show "(val D I \<phi> Imp_sym) \<cdot> false \<cdot> y = true"
     unfolding Imp_sym_def by auto
 qed
 
@@ -1314,7 +1314,7 @@ lemma lemma_5401_f_2:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
   assumes "x = true \<or> x = false"
-  shows "(val D I \<phi> Imp_sym)\<langle>x\<rangle>\<langle>true\<rangle> = true"
+  shows "(val D I \<phi> Imp_sym) \<cdot> x \<cdot> true = true"
 proof -
   have asg: "asg_into_frame (\<phi>((''x'', Tv) := x, (''y'', Tv) := true)) D"
     using assms(1) assms(2) assms(3) asg_into_interp_fun_upd_false asg_into_interp_fun_upd_true[OF assms(1)] by blast
@@ -1323,7 +1323,7 @@ proof -
   then have val_Imp_Aux2_true: "val D I (\<phi>((''x'', Tv) := x, (''y'', Tv) := true)) Imp_Aux2 = true"
     using asg lemma_5401_b_variant_1[OF assms(1)] boolean_eq_true unfolding Imp_Aux2_def by auto 
 
-  have val_Imp_Aux3_true: "val D I (\<phi>((''x'', Tv) := x)) Imp_Aux3\<langle>true\<rangle> = true"
+  have val_Imp_Aux3_true: "val D I (\<phi>((''x'', Tv) := x)) Imp_Aux3 \<cdot> true = true"
     unfolding Imp_Aux3_def using val_Imp_Aux2_true assms(1) wf_frame_def wf_interp.simps by auto 
 
   have "x \<in>: D Tv"
@@ -1335,9 +1335,9 @@ proof -
     by (metis assms(1,2,3) general_model.simps lemma_5401_c[OF assms(1,2)]
         asg_into_interp_fun_upd[OF assms(1,2)] asg_into_interp_fun_upd_false wff_T)
   ultimately
-  have "(val D I \<phi> \<^bold>[\<^bold>\<lambda>''x'':Tv. Imp_Aux3\<^bold>])\<langle>x\<rangle>\<langle>true\<rangle> = true"
+  have "(val D I \<phi> \<^bold>[\<^bold>\<lambda>''x'':Tv. Imp_Aux3\<^bold>]) \<cdot> x \<cdot> true = true"
     using val_Imp_Aux3_true by auto
-  then show "(val D I \<phi> Imp_sym)\<langle>x\<rangle>\<langle>true\<rangle> = true"
+  then show "(val D I \<phi> Imp_sym) \<cdot> x \<cdot> true = true"
     unfolding Imp_sym_def by auto
 qed
 
@@ -1345,7 +1345,7 @@ qed
 lemma lemma_5401_f_3:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
-  shows "(val D I \<phi> Imp_sym)\<langle>true\<rangle>\<langle>false\<rangle> = false"
+  shows "(val D I \<phi> Imp_sym) \<cdot> true \<cdot> false = false"
 proof -
   have asg: "asg_into_frame (\<phi>((''x'', Tv) := true, (''y'', Tv) := false)) D"
     by (meson assms(1) assms(2) asg_into_interp_fun_upd_false set_theory_axioms asg_into_interp_fun_upd_true[OF assms(1,2)])
@@ -1373,14 +1373,14 @@ proof -
   have "val D I (\<phi>((''x'', Tv) := true, (''y'', Tv) := false)) Imp_Aux2 = false"
     using Imp_Aux2_false by auto
   ultimately 
-  have Imp_Aux3_app_false: "val D I (\<phi>((''x'', Tv) := true)) Imp_Aux3\<langle>false\<rangle> = false"
+  have Imp_Aux3_app_false: "val D I (\<phi>((''x'', Tv) := true)) Imp_Aux3 \<cdot> false = false"
     unfolding Imp_Aux3_def
     by auto
 
   have wff_Imp_Aux3: "wff (Fun Tv Tv) Imp_Aux3"
     by auto
 
-  have "(val D I \<phi> \<^bold>[\<^bold>\<lambda> ''x'':Tv. Imp_Aux3\<^bold>])\<langle>true\<rangle>\<langle>false\<rangle> = false"
+  have "(val D I \<phi> \<^bold>[\<^bold>\<lambda> ''x'':Tv. Imp_Aux3\<^bold>]) \<cdot> true \<cdot> false = false"
   proof -
     have "true \<in>: D Tv"
       by (metis assms(1) assms(2) general_model.simps lemma_5401_c[OF assms(1,2)] wff_T)
@@ -1389,13 +1389,13 @@ proof -
       using wff_Imp_Aux3 
       by (metis assms(1) general_model.simps asg_into_interp_fun_upd_true[OF assms(1,2)])
     moreover
-    have "val D I (\<phi>((''x'', Tv) := true)) Imp_Aux3\<langle>false\<rangle> = false"
+    have "val D I (\<phi>((''x'', Tv) := true)) Imp_Aux3 \<cdot> false = false"
       using Imp_Aux3_app_false by auto
     ultimately
     show ?thesis
       by auto
   qed
-  then show "(val D I \<phi> Imp_sym)\<langle>true\<rangle>\<langle>false\<rangle> = false"
+  then show "(val D I \<phi> Imp_sym) \<cdot> true \<cdot> false = false"
     unfolding Imp_sym_def by auto
 qed
 
@@ -1405,7 +1405,7 @@ lemma lemma_5401_f_variant_1: (* new_lemma *)
   assumes "general_model D I"
   assumes "x = true \<or> x = false"
   assumes "y = true \<or> y = false"
-  shows "(val D I \<phi> Imp_sym)\<langle>x\<rangle>\<langle>y\<rangle> = boolean (x = true \<longrightarrow> y = true)"
+  shows "(val D I \<phi> Imp_sym) \<cdot> x \<cdot> y = boolean (x = true \<longrightarrow> y = true)"
 proof (cases "y = true")
   case True
   note True_outer = this
@@ -1474,13 +1474,13 @@ proof -
 
   have "satisfies D I \<phi> \<^bold>[\<^bold>\<forall> x: \<alpha>. A\<^bold>] \<longleftrightarrow> val D I \<phi> \<^bold>[\<^bold>\<forall>x: \<alpha>. A\<^bold>] = true"
     by auto
-  moreover have "... \<longleftrightarrow> val D I \<phi> (PI \<alpha>)\<langle>val D I \<phi> \<^bold>[\<^bold>\<lambda>x:\<alpha>. A\<^bold>]\<rangle> = true"
+  moreover have "... \<longleftrightarrow> val D I \<phi> (PI \<alpha>) \<cdot> val D I \<phi> \<^bold>[\<^bold>\<lambda>x:\<alpha>. A\<^bold>] = true"
     unfolding Forall_def by simp
   moreover have "... \<longleftrightarrow> I ''Q'' (Fun (Fun Tv (Fun Tv \<alpha>)) (Fun Tv \<alpha>))
-                           \<langle>val D I \<phi> (PI_Aux \<alpha>)\<rangle>\<langle>val D I \<phi> \<^bold>[\<^bold>\<lambda>x:\<alpha>. A\<^bold>]\<rangle> =
+                            \<cdot> val D I \<phi> (PI_Aux \<alpha>) \<cdot> val D I \<phi> \<^bold>[\<^bold>\<lambda>x:\<alpha>. A\<^bold>] =
                          true"
     unfolding PI_def by simp
-  moreover have "... \<longleftrightarrow> (iden (D (Fun Tv \<alpha>)))\<langle>val D I \<phi> (PI_Aux \<alpha>)\<rangle>\<langle>val D I \<phi> \<^bold>[\<^bold>\<lambda>x:\<alpha>. A\<^bold>]\<rangle> =
+  moreover have "... \<longleftrightarrow> (iden (D (Fun Tv \<alpha>))) \<cdot> val D I \<phi> (PI_Aux \<alpha>) \<cdot> val D I \<phi> \<^bold>[\<^bold>\<lambda>x:\<alpha>. A\<^bold>] =
                          true"
     unfolding PI_def using wf_interp.simps assms by simp
   moreover have "... \<longleftrightarrow> val D I \<phi> (PI_Aux \<alpha>) = val D I \<phi> \<^bold>[\<^bold>\<lambda>x:\<alpha>. A\<^bold>]"
@@ -1713,7 +1713,7 @@ theorem theorem_5402_a_axiom_1_variant: (* new_lemma *)
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
   shows "satisfies D I \<phi> axiom_1"
-proof (cases "(\<phi> (''g'',Fun Tv Tv))\<langle>true\<rangle> = true \<and> (\<phi> (''g'',Fun Tv Tv))\<langle>false\<rangle> = true")
+proof (cases "(\<phi> (''g'',Fun Tv Tv)) \<cdot> true = true \<and> (\<phi> (''g'',Fun Tv Tv)) \<cdot> false = true")
   (* Proof following Peter Andrew's proof of lemma_5402 *)
   case True
   then have val: "val D I \<phi> (((Var ''g'' (Fun Tv Tv)) \<^bold>\<cdot> T) \<^bold>\<and> ((Var ''g'' (Fun Tv Tv)) \<^bold>\<cdot> F)) = true"
@@ -1745,29 +1745,29 @@ next
   then have 0: "\<phi> (''g'', Fun Tv Tv) \<in>: funspace (D Tv) (D Tv)"
     using assms(1) assms(2) fun_sym_asg_to_funspace by blast
 
-  from False have "(\<phi> (''g'', Fun Tv Tv)\<langle>true\<rangle> \<noteq> true \<or> \<phi> (''g'', Fun Tv Tv)\<langle>false\<rangle> \<noteq> true)"
+  from False have "(\<phi> (''g'', Fun Tv Tv) \<cdot> true \<noteq> true \<or> \<phi> (''g'', Fun Tv Tv) \<cdot> false \<noteq> true)"
     by auto
-  then have "\<exists>z. \<phi> (''g'', Fun Tv Tv)\<langle>z\<rangle> = false \<and> z \<in>: D Tv"
+  then have "\<exists>z. \<phi> (''g'', Fun Tv Tv) \<cdot> z = false \<and> z \<in>: D Tv"
   proof
-    assume a: "\<phi> (''g'', Fun Tv Tv)\<langle>true\<rangle> \<noteq> true"
-    have "\<phi> (''g'', Fun Tv Tv)\<langle>true\<rangle> \<in>: boolset"
+    assume a: "\<phi> (''g'', Fun Tv Tv) \<cdot> true \<noteq> true"
+    have "\<phi> (''g'', Fun Tv Tv) \<cdot> true \<in>: boolset"
       by (metis "0" apply_abstract assms(1) boolset_def general_model.elims(2) in_funspace_abstract 
           mem_two true_def wf_frame_def wf_interp.simps)
-    from this a have "\<phi> (''g'', Fun Tv Tv)\<langle>true\<rangle> = false \<and> true \<in>: D Tv"
+    from this a have "\<phi> (''g'', Fun Tv Tv) \<cdot> true = false \<and> true \<in>: D Tv"
       using assms(1) wf_frame_def wf_interp.simps by auto  
-    then show "\<exists>z. \<phi> (''g'', Fun Tv Tv)\<langle>z\<rangle> = false \<and> z \<in>: D Tv"
+    then show "\<exists>z. \<phi> (''g'', Fun Tv Tv) \<cdot> z = false \<and> z \<in>: D Tv"
       by auto
   next
-    assume a: "\<phi> (''g'', Fun Tv Tv)\<langle>false\<rangle> \<noteq> true"
-    have "\<phi> (''g'', Fun Tv Tv)\<langle>false\<rangle> \<in>: boolset"
+    assume a: "\<phi> (''g'', Fun Tv Tv) \<cdot> false \<noteq> true"
+    have "\<phi> (''g'', Fun Tv Tv) \<cdot> false \<in>: boolset"
       by (metis "0" apply_abstract assms(1) boolset_def general_model.elims(2) in_funspace_abstract 
           mem_two false_def wf_frame_def wf_interp.simps)
-    from this a have "\<phi> (''g'', Fun Tv Tv)\<langle>false\<rangle> = false \<and> false \<in>: D Tv" 
+    from this a have "\<phi> (''g'', Fun Tv Tv) \<cdot> false = false \<and> false \<in>: D Tv" 
       using assms(1) wf_frame_def wf_interp.simps by auto
-    then show "\<exists>z. \<phi> (''g'', Fun Tv Tv)\<langle>z\<rangle> = false \<and> z \<in>: D Tv"
+    then show "\<exists>z. \<phi> (''g'', Fun Tv Tv) \<cdot> z = false \<and> z \<in>: D Tv"
       by auto
   qed
-  then obtain z where z_p: "\<phi> (''g'', Fun Tv Tv)\<langle>z\<rangle> = false \<and> z \<in>: D Tv"
+  then obtain z where z_p: "\<phi> (''g'', Fun Tv Tv) \<cdot> z = false \<and> z \<in>: D Tv"
     by auto
   have "boolean (satisfies D I \<phi> (Var ''g'' (Fun Tv Tv) \<^bold>\<cdot> T)
           \<and> satisfies D I \<phi> (Var ''g'' (Fun Tv Tv) \<^bold>\<cdot> F)) = false"
@@ -1780,7 +1780,7 @@ next
     using lemma_5401_e_variant_2 assms by auto
   have 3: "asg_into_frame (\<phi>((''x'', Tv) := z)) D \<and>
     agree_off_asg (\<phi>((''x'', Tv) := z)) \<phi> ''x'' Tv \<and>
-    \<phi> (''g'', Fun Tv Tv)\<langle>(\<phi>((''x'', Tv) := z)) (''x'', Tv)\<rangle> \<noteq> true"
+    \<phi> (''g'', Fun Tv Tv) \<cdot> (\<phi>((''x'', Tv) := z)) (''x'', Tv) \<noteq> true"
     using z_p Pair_inject agree_off_asg_def2 asg_into_frame_fun_upd assms(2) true_neq_false by fastforce
   then have 2: "val D I \<phi> (\<^bold>[\<^bold>\<forall>''x'':Tv. ((Var ''g'' (Fun Tv Tv)) \<^bold>\<cdot> (Var ''x'' Tv))\<^bold>]) = false"
     using  lemma_5401_g_variant_1 assms boolean_def by auto
@@ -1801,10 +1801,10 @@ proof (cases "\<phi>(''x'',\<alpha>) = \<phi>(''y'',\<alpha>)")
   (* Proof following Peter Andrew's proof of lemma_5402 *)
   case True
   have "val D I \<phi> ((Var ''h'' (Fun Tv \<alpha>)) \<^bold>\<cdot> (Var ''x'' \<alpha>)) = 
-           (\<phi> (''h'', (Fun Tv \<alpha>)))\<langle>\<phi> (''x'', \<alpha>)\<rangle>"
+           (\<phi> (''h'', (Fun Tv \<alpha>))) \<cdot> \<phi> (''x'', \<alpha>)"
     using assms by auto
   also
-  have "... = \<phi> (''h'', (Fun Tv \<alpha>))\<langle>\<phi> (''y'', \<alpha>)\<rangle>"
+  have "... = \<phi> (''h'', (Fun Tv \<alpha>)) \<cdot> \<phi> (''y'', \<alpha>)"
     using True by auto
   also
   have "... = val D I \<phi> ((Var ''h'' (Fun Tv \<alpha>)) \<^bold>\<cdot> (Var ''y'' \<alpha>))"
@@ -1868,16 +1868,16 @@ proof (cases "\<phi> (''f'',Fun \<alpha> \<beta>) = \<phi> (''g'',Fun \<alpha> \
     fix \<psi>
     assume agree: "agree_off_asg \<psi> \<phi> ''x'' \<beta>"
     assume asg: "asg_into_interp \<psi> D I"
-    have "val D I \<psi> ((Var ''f'' (Fun \<alpha> \<beta>)) \<^bold>\<cdot> (Var ''x'' \<beta>)) = \<psi> (''f'',Fun \<alpha> \<beta>)\<langle>\<psi> (''x'', \<beta>)\<rangle>"
+    have "val D I \<psi> ((Var ''f'' (Fun \<alpha> \<beta>)) \<^bold>\<cdot> (Var ''x'' \<beta>)) = \<psi> (''f'',Fun \<alpha> \<beta>) \<cdot> \<psi> (''x'', \<beta>)"
       by auto
     also
-    have "... = \<phi> (''f'',Fun \<alpha> \<beta>)\<langle>\<psi> (''x'', \<beta>)\<rangle>"
+    have "... = \<phi> (''f'',Fun \<alpha> \<beta>) \<cdot> \<psi> (''x'', \<beta>)"
       using agree by auto
     also
-    have "... = \<phi> (''g'',Fun \<alpha> \<beta>)\<langle>\<psi> (''x'', \<beta>)\<rangle>"
+    have "... = \<phi> (''g'',Fun \<alpha> \<beta>) \<cdot> \<psi> (''x'', \<beta>)"
       using True by auto
     also
-    have "... = \<psi> (''g'',Fun \<alpha> \<beta>)\<langle>\<psi> (''x'', \<beta>)\<rangle>"
+    have "... = \<psi> (''g'',Fun \<alpha> \<beta>) \<cdot> \<psi> (''x'', \<beta>)"
       using agree by auto
     also
     have "... = val D I \<psi> ((Var ''g'' (Fun \<alpha> \<beta>)) \<^bold>\<cdot> (Var ''x'' \<beta>))"
@@ -2010,10 +2010,10 @@ proof -
   have "... = val D I ?\<psi> (B \<^bold>\<cdot> C)"
     by simp
   moreover
-  have "... = (val D I ?\<psi> B)\<langle>val D I ?\<psi> C\<rangle>"
+  have "... = (val D I ?\<psi> B) \<cdot> val D I ?\<psi> C"
     by simp
   moreover
-  have "... = (val D I \<phi> (\<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A))\<langle>val D I \<phi> (App \<^bold>[\<^bold>\<lambda>x :\<alpha>. C\<^bold>] A)\<rangle>"
+  have "... = (val D I \<phi> (\<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A)) \<cdot> val D I \<phi> (App \<^bold>[\<^bold>\<lambda>x :\<alpha>. C\<^bold>] A)"
     by (metis assms(3) assms(4) assms(5) lemma_5401_a[OF assms(1,2)])
   moreover
   have "... = val D I \<phi> (RHS (axiom_4_3 x \<alpha> B \<beta> \<gamma> C A))"
@@ -2036,7 +2036,7 @@ qed
 
 lemma lemma_to_help_with_theorem_5402_a_axiom_4_4:
   assumes lambda_eql_lambda_lambda: 
-    "\<And>z. z \<in>: D \<gamma> \<Longrightarrow> val D I \<psi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. B\<^bold>]\<langle>z\<rangle> = val D I \<phi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A\<^bold>]\<langle>z\<rangle>" 
+    "\<And>z. z \<in>: D \<gamma> \<Longrightarrow> val D I \<psi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. B\<^bold>] \<cdot> z = val D I \<phi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A\<^bold>] \<cdot> z" 
   assumes \<psi>_eql: "\<psi> = \<phi>((x, \<alpha>) := val D I \<phi> A)" 
   assumes "asg_into_frame \<phi> D" 
   assumes "general_model D I" 
@@ -2050,16 +2050,16 @@ proof -
     assume e_in_D: "e \<in>: D \<gamma>"
     then have "val D I (\<psi>((y, \<gamma>) := e)) B \<in>: D (type_of B)"
       using asg_into_frame_fun_upd assms(3,4,6,7) \<psi>_eql by auto
-    then have val_lambda_B: "val D I \<psi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. B\<^bold>]\<langle>e\<rangle> = val D I (\<psi>((y, \<gamma>) := e)) B"
+    then have val_lambda_B: "val D I \<psi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. B\<^bold>] \<cdot> e = val D I (\<psi>((y, \<gamma>) := e)) B"
       using e_in_D by auto
     have
-      "val D I \<phi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A\<^bold>]\<langle>e\<rangle> = 
+      "val D I \<phi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A\<^bold>] \<cdot> e = 
        abstract (D \<alpha>) (D (type_of B))
-         (\<lambda>z. val D I (\<phi>((y, \<gamma>) := e, (x, \<alpha>) := z)) B)\<langle>val D I (\<phi>((y, \<gamma>) := e)) A\<rangle>"
+         (\<lambda>z. val D I (\<phi>((y, \<gamma>) := e, (x, \<alpha>) := z)) B) \<cdot> val D I (\<phi>((y, \<gamma>) := e)) A"
       using apply_abstract e_in_D asg_into_frame_fun_upd assms(3,4,6,7) by auto
     then have "val D I (\<psi>((y, \<gamma>) := e)) B =
         abstract (D \<alpha>) (D (type_of B))
-         (\<lambda>z. val D I (\<phi>((y, \<gamma>) := e, (x, \<alpha>) := z)) B)\<langle>val D I (\<phi>((y, \<gamma>) := e)) A\<rangle>" 
+         (\<lambda>z. val D I (\<phi>((y, \<gamma>) := e, (x, \<alpha>) := z)) B) \<cdot> val D I (\<phi>((y, \<gamma>) := e)) A" 
       using val_lambda_B lambda_eql_lambda_lambda e_in_D by metis
   }
   note val_eql_abstract = this
@@ -2069,13 +2069,13 @@ proof -
             val D I (\<psi>((y, \<gamma>) := e)) B \<in>: D (type_of B) \<and>
             val D I (\<psi>((y, \<gamma>) := e)) B =
             abstract (D \<alpha>) (D (type_of B))
-              (\<lambda>za. val D I (\<phi>((y, \<gamma>) := e, (x, \<alpha>) := za)) B)\<langle>val D I (\<phi>((y, \<gamma>) := e)) A\<rangle>"
+              (\<lambda>za. val D I (\<phi>((y, \<gamma>) := e, (x, \<alpha>) := za)) B) \<cdot> val D I (\<phi>((y, \<gamma>) := e)) A"
     using asg_into_frame_fun_upd assms(3,4,6,7) \<psi>_eql val_eql_abstract by auto
   then have 
     "abstract (D \<gamma>) (D (type_of B)) (\<lambda>z. val D I (\<psi>((y, \<gamma>) := z)) B) =
      abstract (D \<gamma>) (D (type_of B))
        (\<lambda>z. abstract (D \<alpha>) (D (type_of B))
-         (\<lambda>za. val D I (\<phi>((y, \<gamma>) := z, (x, \<alpha>) := za)) B)\<langle>val D I (\<phi>((y, \<gamma>) := z)) A\<rangle>)"
+         (\<lambda>za. val D I (\<phi>((y, \<gamma>) := z, (x, \<alpha>) := za)) B) \<cdot> val D I (\<phi>((y, \<gamma>) := z)) A)"
     by (rule abstract_extensional)
   then show ?thesis 
     by auto
@@ -2109,18 +2109,18 @@ proof -
     then have Az: "\<phi>'((x,\<alpha>):=(val D I \<phi>' A)) = \<psi>((y,\<gamma>):=z)"
       using assms(3) unfolding axiom_4_4_side_condition_def
       by (simp add: fun_upd_twist \<phi>'_def \<psi>_def) 
-    then have "abstract (D \<gamma>) (D (type_of B)) (\<lambda>z. val D I (\<psi>((y, \<gamma>) := z)) B)\<langle>z\<rangle> = 
+    then have "abstract (D \<gamma>) (D (type_of B)) (\<lambda>z. val D I (\<psi>((y, \<gamma>) := z)) B) \<cdot> z = 
                val D I (\<psi>((y, \<gamma>) := z)) B"
       using apply_abstract_matchable assms(1,2,4,5) type_of asg_into_frame_fun_upd 
         general_model.elims(2) set_theory_axioms z_in_D by (metis \<phi>'_def)
-    then have "(val D I \<psi> ?E)\<langle>z\<rangle> = (val D I (\<psi>((y,\<gamma>):=z)) B)"
+    then have "(val D I \<psi> ?E) \<cdot> z = (val D I (\<psi>((y,\<gamma>):=z)) B)"
       by auto
     moreover
     have "... = val D I \<phi>' (\<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A)"
       using assms(1,2,4,5) asg_into_frame_fun_upd lemma_5401_a set_theory_axioms z_in_D
       by (metis Az \<phi>'_def) 
     moreover
-    have "... = val D I \<phi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A\<^bold>]\<langle>z\<rangle>"
+    have "... = val D I \<phi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A\<^bold>] \<cdot> z"
     proof -
       have valA: "val D I \<phi>' A \<in>: D \<alpha>"
         using \<phi>'_def asg_into_frame_fun_upd z_in_D assms by simp
@@ -2140,23 +2140,23 @@ proof -
       then have valB_eql_abs: 
         "val D I (\<phi>'((x, \<alpha>) := val D I \<phi>' A)) B =
          abstract (D \<alpha>) (D (type_of B))
-           (\<lambda>za. val D I (\<phi>((y, \<gamma>) := z, (x, \<alpha>) := za)) B)\<langle>val D I (\<phi>((y, \<gamma>) := z)) A\<rangle>"
+           (\<lambda>za. val D I (\<phi>((y, \<gamma>) := z, (x, \<alpha>) := za)) B) \<cdot> val D I (\<phi>((y, \<gamma>) := z)) A"
         using valA' valB' by auto
       then have "abstract (D \<alpha>) (D (type_of B))
-              (\<lambda>za. val D I (\<phi>((y, \<gamma>) := z, (x, \<alpha>) := za)) B)\<langle>val D I (\<phi>((y, \<gamma>) := z)) A\<rangle> 
+              (\<lambda>za. val D I (\<phi>((y, \<gamma>) := z, (x, \<alpha>) := za)) B) \<cdot> val D I (\<phi>((y, \<gamma>) := z)) A 
             \<in>: D (type_of B)"
         using valB assms z_in_D by auto
       then have 
         "val D I (\<phi>'((x, \<alpha>) := val D I \<phi>' A)) B =
          abstract (D \<gamma>) (D (type_of B))
            (\<lambda>z. abstract (D \<alpha>) (D (type_of B))
-             (\<lambda>za. val D I (\<phi>((y, \<gamma>) := z, (x, \<alpha>) := za)) B)\<langle>val D I (\<phi>((y, \<gamma>) := z)) A\<rangle>)\<langle>z\<rangle>"
+             (\<lambda>za. val D I (\<phi>((y, \<gamma>) := z, (x, \<alpha>) := za)) B) \<cdot> val D I (\<phi>((y, \<gamma>) := z)) A) \<cdot> z"
         using z_in_D valB_eql_abs by auto
-      then show "val D I \<phi>' (\<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A) = val D I \<phi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A\<^bold>]\<langle>z\<rangle>"
+      then show "val D I \<phi>' (\<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A) = val D I \<phi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A\<^bold>] \<cdot> z"
         using valA valB by auto
     qed
     ultimately
-    have "val D I \<psi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. B\<^bold>]\<langle>z\<rangle> = val D I \<phi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A\<^bold>]\<langle>z\<rangle>"
+    have "val D I \<psi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. B\<^bold>] \<cdot> z = val D I \<phi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A\<^bold>] \<cdot> z"
       by simp
   }
   note lambda_eql_lambda_lambda = this
@@ -2190,7 +2190,7 @@ proof -
       using val asg wffA by blast
     have "\<forall>t cs. val D I \<phi> \<^bold>[\<^bold>\<lambda>cs:t. B\<^bold>] \<in>: D (Fun \<delta> t)"
       using val asg wffB wff_Abs by blast
-    then have "abstract (D \<alpha>) (D (Fun \<delta> \<alpha>)) (\<lambda>u. abstract (D \<alpha>) (D \<delta>) (\<lambda>u. val D I (\<phi>((x, \<alpha>) := u)) B))\<langle>val D I \<phi> A\<rangle> 
+    then have "abstract (D \<alpha>) (D (Fun \<delta> \<alpha>)) (\<lambda>u. abstract (D \<alpha>) (D \<delta>) (\<lambda>u. val D I (\<phi>((x, \<alpha>) := u)) B)) \<cdot> val D I \<phi> A 
              = abstract (D \<alpha>) (D \<delta>) (\<lambda>u. val D I (\<phi>((x, \<alpha>) := u)) B)"
       using valA wffB by simp
   }
@@ -2208,7 +2208,7 @@ theorem theorem_5402_a_axiom_5:
   assumes "asg_into_interp \<phi> D I"
   shows "satisfies D I \<phi> (axiom_5)"
 proof -
-  have iden_eql: "iden (D Ind)\<langle>I ''y'' Ind\<rangle> = one_elem_fun (I ''y'' Ind) (D Ind)" (* This should maybe be a lemma *)
+  have iden_eql: "iden (D Ind) \<cdot> I ''y'' Ind = one_elem_fun (I ''y'' Ind) (D Ind)" (* This should maybe be a lemma *)
   proof -
     have "I ''y'' Ind \<in>: D Ind"
       using assms unfolding  general_model.simps wf_interp.simps[simplified] iden_def one_elem_fun_def
@@ -2222,7 +2222,7 @@ proof -
   qed
 
   have "val D I \<phi> (\<iota> \<^bold>\<cdot> ((\<^bold>Q Ind) \<^bold>\<cdot> Cst ''y'' Ind)) = 
-          val D I \<phi> \<iota>\<langle>val D I \<phi> ((\<^bold>Q Ind) \<^bold>\<cdot> Cst ''y'' Ind)\<rangle>"
+          val D I \<phi> \<iota> \<cdot> val D I \<phi> ((\<^bold>Q Ind) \<^bold>\<cdot> Cst ''y'' Ind)"
     by auto
   moreover
   have "... = val D I \<phi> (Cst ''y'' Ind)"
