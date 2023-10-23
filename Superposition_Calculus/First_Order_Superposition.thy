@@ -189,25 +189,49 @@ lemma is_ground_cls_gcls: "is_ground_cls (cls_gcls C)"
 lemma lit_glit_cls_gcls: "L \<in># C \<longleftrightarrow> (lit_glit L) \<in># cls_gcls C" 
   by (metis cls_gcls_def cls_gcls_inverse gcls_cls_def image_eqI lit_glit_inverse multiset.set_map)
 
-
 section \<open>First-Order Layer\<close>
 
 locale first_order_superposition_calculus =
   fixes
-    (* less_term *)
+    less_term :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
     less_gterm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t\<^sub>G" 50) and
     select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
-  assumes
-    transp_less_gterm[intro]: "transp (\<prec>\<^sub>t\<^sub>G)" and
-    asymp_less_gterm[intro]: "asymp (\<prec>\<^sub>t\<^sub>G)" and
+  assumes 
+    less_gterm_less_term: "\<And>t1 t2.  t1 \<prec>\<^sub>t\<^sub>G t2 \<longleftrightarrow> term_of_gterm t1 \<prec>\<^sub>t term_of_gterm t2" and
+    
+    transp_less_term[intro]: "transp (\<prec>\<^sub>t)" and
+    asymp_less_term[intro]: "asymp (\<prec>\<^sub>t)" and
+
     wfP_less_gterm[intro]: "wfP (\<prec>\<^sub>t\<^sub>G)" and
     totalp_less_gterm[intro]: "totalp (\<prec>\<^sub>t\<^sub>G)" and
+    
     less_gterm_compatible_with_gctxt[simp]: "\<And>ctxt t t'. t \<prec>\<^sub>t\<^sub>G t' \<Longrightarrow> ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t\<^sub>G ctxt\<langle>t'\<rangle>\<^sub>G" and
     less_gterm_if_subterm[simp]: "\<And>t ctxt. ctxt \<noteq> \<box>\<^sub>G \<Longrightarrow> t \<prec>\<^sub>t\<^sub>G ctxt\<langle>t\<rangle>\<^sub>G" and
+
+    less_term_grounding_substitution: 
+      "\<And>t1 t2 (\<theta> :: 'v \<Rightarrow> ('f, 'v) Term.term). 
+        is_ground_trm (t1 \<cdot>t \<theta>) \<Longrightarrow> 
+        is_ground_trm (t2 \<cdot>t \<theta>) \<Longrightarrow> 
+        t1 \<prec>\<^sub>t t2 \<Longrightarrow> 
+        gterm_of_term (t1 \<cdot>t \<theta>) \<prec>\<^sub>t\<^sub>G gterm_of_term (t2 \<cdot>t \<theta>)" and
+    
     select_subset: "\<And>C. select C \<subseteq># C" and
     select_negative_lits: "\<And>C L. L \<in># select C \<Longrightarrow> is_neg L" and
+
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
+
+lemma transp_less_gterm [intro]: "transp (\<prec>\<^sub>t\<^sub>G)"
+  using less_gterm_less_term transp_less_term transpE transpI
+  by metis
+
+lemma asymp_less_gterm [intro]: "asymp (\<prec>\<^sub>t\<^sub>G)"
+  by (simp add: wfP_imp_asymp wfP_less_gterm)
+
+lemma less_term_less_gterm: 
+  assumes "is_ground_trm t1" and "is_ground_trm t2"
+  shows "t1 \<prec>\<^sub>t t2 \<longleftrightarrow> gterm_of_term t1 \<prec>\<^sub>t\<^sub>G gterm_of_term t2"
+  by (simp add: assms gterm_of_term_ident_if_ground less_gterm_less_term)
 
 (* Look in Waldmann proof *)
 definition select\<^sub>G :: 
@@ -223,9 +247,6 @@ lemma select\<^sub>G_negative_lits: "L \<in># select\<^sub>G C \<Longrightarrow>
   unfolding select\<^sub>G_def
   by (metis cls_gcls_def gcls_cls_inverse image_mset_of_subset is_ground_cls_gcls lit_glit_def 
       literal.map_disc_iff select_subset lit_glit_cls_gcls)
-
-definition less_term :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) where
-  "less_term t1 t2 \<equiv> is_ground_trm t1 \<and> is_ground_trm t2 \<and> gterm_of_term t1 \<prec>\<^sub>t\<^sub>G gterm_of_term t2"
 
 abbreviation lesseq_term (infix "\<preceq>\<^sub>t" 50) where
   "lesseq_term \<equiv> (\<prec>\<^sub>t)\<^sup>=\<^sup>="
@@ -250,61 +271,19 @@ abbreviation is_maximal_lit :: "('f, 'v) atom literal \<Rightarrow> ('f, 'v) ato
 abbreviation is_strictly_maximal_lit :: "('f, 'v) atom literal \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
   "is_strictly_maximal_lit L M \<equiv> is_greatest_in_mset_wrt (\<prec>\<^sub>l) M L"
 
-lemma transp_less_term: "transp (\<prec>\<^sub>t)"
-  unfolding less_term_def
-  by (smt (verit, del_insts) transp_def transp_less_gterm)
-
-lemma asymp_less_term: "asymp (\<prec>\<^sub>t)"
-  unfolding less_term_def
-  using asympD by fastforce
-
-lemma wfP_less_term: "wfP (\<prec>\<^sub>t)"
-  unfolding less_term_def
-  by (metis (no_types, lifting) wfP_if_convertible_to_wfP wfP_less_gterm)
-
-lemma not_totalp_term: "\<not> totalp (\<prec>\<^sub>t)"
-  unfolding less_term_def 
-  using totalpD by fastforce
-
 lemma transp_less_lit: "transp (\<prec>\<^sub>l)"
   by (metis less_lit_def transp_def transp_less_term transp_multp)
 
 lemma asymp_less_lit: "asymp (\<prec>\<^sub>l)"
-  by (metis asympD asympI asymp_less_term asymp_multp\<^sub>H\<^sub>O less_lit_def multp_eq_multp\<^sub>H\<^sub>O transp_less_term)
-
-lemma wfP_less_lit: "wfP (\<prec>\<^sub>l)"
-  unfolding less_lit_def
-  using wfP_less_term wfP_multp wfP_if_convertible_to_wfP by meson
-
-lemma test: "totalp (multp R) \<Longrightarrow> transp R \<Longrightarrow> totalp R"
-  by (smt (verit, ccfv_SIG) multp_singleton_singleton totalpD totalp_on_def transp_equality)
-
-(*lemma test2: "totalp (\<lambda>a b. multp R (f a) (f a)) \<Longrightarrow> transp R \<Longrightarrow> totalp R"
-  sorry*)
-
-lemma totalp_multp2: "\<not> totalp R \<Longrightarrow> transp R \<Longrightarrow> \<not> totalp (multp R)"
-  using test by blast
-
-lemma not_totalp_lit: "\<not> totalp (\<prec>\<^sub>l)"
-  unfolding less_lit_def
-  using totalp_multp2[OF not_totalp_term transp_less_term]
-  using totalpD totalp_multp
-  apply auto
-  sorry
+  by (metis asympD asympI asymp_less_term asymp_multp\<^sub>H\<^sub>O less_lit_def multp_eq_multp\<^sub>H\<^sub>O 
+      transp_less_term
+      )
 
 lemma transp_less_cls: "transp (\<prec>\<^sub>c)"
   by (metis less_lit_def transp_def transp_less_term transp_multp)
 
 lemma asymp_less_cls: "asymp (\<prec>\<^sub>c)"
-  by (simp add: wfP_imp_asymp wfP_less_lit wfP_multp)
-
-lemma wfP_less_cls: "wfP (\<prec>\<^sub>c)"
-  by (simp add: wfP_less_lit wfP_multp)
-
-lemma not_totalp_cls: "\<not> totalp (\<prec>\<^sub>c)"
-  by (metis ball_empty insert_noteq_member multp_singleton_singleton not_totalp_lit set_mset_empty 
-        totalpD totalpI transp_less_lit
-  )
+  by (simp add: asymp_less_lit asymp_multp\<^sub>H\<^sub>O multp_eq_multp\<^sub>H\<^sub>O transp_less_lit)
 
 interpretation G: ground_superposition_calculus "(\<prec>\<^sub>t\<^sub>G)" select\<^sub>G
   apply(unfold_locales)
@@ -317,60 +296,7 @@ notation G.lesseq_trm (infix "\<preceq>\<^sub>t\<^sub>G" 50)
 notation G.lesseq_lit (infix "\<preceq>\<^sub>l\<^sub>G" 50)
 notation G.lesseq_cls (infix "\<preceq>\<^sub>c\<^sub>G" 50)
 
-lemma less_gterm_iff_less_term: "t1 \<prec>\<^sub>t\<^sub>G t2 \<longleftrightarrow> term_of_gterm t1 \<prec>\<^sub>t term_of_gterm t2"
-  unfolding less_term_def
-  by auto
-
-find_theorems mset_lit
-
-find_consts "('a \<Rightarrow> 'a \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> 'c)"
-
-
-(* 
- multp (\<prec>\<^sub>t\<^sub>G) (mset_uprod t1) (mset_uprod t2) \<Longrightarrow>
-    multp (\<lambda>t1 t2. is_ground_trm t1 \<and> is_ground_trm t2 \<and> gterm_of_term t1 \<prec>\<^sub>t\<^sub>G gterm_of_term t2) (mset_uprod (map_uprod term_of_gterm t1))
-     (mset_uprod (map_uprod term_of_gterm t2))
-*)
-
-(*lemma test: "multp rel A B \<Longrightarrow> rel = (\<lambda>a b. rel (f (g a)) (f (g b))) \<Longrightarrow> multp (\<lambda>a b. rel (f a) (f b)) (image_mset g A) (image_mset g B)"
-  unfolding multp_def mult_def  
-  apply auto
-  sorry
-
-lemma less_glit_less_lit: 
-  assumes "l1 \<prec>\<^sub>l\<^sub>G l2" 
-  shows "lit_glit l1 \<prec>\<^sub>l lit_glit l2"
-  using assms
-proof(induction l1)
-  case (Pos t1)
-  then show ?case 
-  proof(induction l2)
-    case (Pos t2)
-    then show ?case 
-      unfolding less_lit_def G.less_lit_def lit_glit_def less_term_def
-      apply auto
-      sorry
-  next
-    case (Neg x)
-    then show ?case sorry
-  qed
-next
-  case (Neg t1)
-  then show ?thesis
-    apply auto
-    sorry
-qed
-  
-
-lemma less_glit_iff_less_lit: "G.less_lit l1 l2 \<longleftrightarrow> lit_glit l1 \<prec>\<^sub>l lit_glit l2"
-  unfolding lit_glit_def less_lit_def G.less_lit_def
-  apply(cases l1; cases l2)
-     apply auto
-  sorry
-*)
-term transp
-
-lemma 
+lemma
   assumes
     (* TODO: replace X by explicit set based on M *)
     trans: "\<And>X. transp_on X R"  and
@@ -401,74 +327,44 @@ next
     using \<open>x \<in># M \<and> (\<forall>y\<in>#M. y \<noteq> x \<longrightarrow> \<not> R x y)\<close> by blast
 qed
 
-find_consts "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> bool)"
-find_theorems "bij"
 
-(* 
-proof (prove)
-using this:
-    bij f
-    (image_mset f X, image_mset f Y) \<in> mult {(x, y). R (inv f x) (inv f y)}
+lemma is_maximal_glit_is_maximal_lit: "G.is_maximal_lit L P \<Longrightarrow> 
+  is_maximal_lit (lit_glit L) (cls_gcls P)"
+  unfolding lit_glit_def cls_gcls_def
+  (*using less_glit_iff_less_lit*)
+  sorry
 
-goal (1 subgoal):
- 1. (X, Y) \<in> mult {(x, y). R x y}
-*)
-
-find_theorems multp
-thm subset_implies_multp
-
-(*lemma 
-  assumes 
-    bij: "bij f" and
-    a: "multp (\<lambda>x y. R ((inv f) x) ((inv f) y)) (image_mset f X) (image_mset f Y)"
-  shows
-    "multp R X Y"
-  using a[rule_format]
-  apply(rule subset_implies_multp)
-  apply(auto simp add: subset_implies_multp)
+lemma test: "multp R (image_mset f A) (image_mset f B) \<Longrightarrow> multp (\<lambda>a b. R (f a) (f b)) A B"
+  unfolding multp_def mult_def mult1_def
   apply auto
-  sorry*)
-
-thm multp_singleton_singleton
-
-find_theorems case_uprod
-term rep_uprod
+  sorry
 
 lemma 
   assumes "lit_glit x \<prec>\<^sub>l lit_glit y" 
   shows "x \<prec>\<^sub>l\<^sub>G y"
   using assms
-  unfolding less_lit_def G.less_lit_def
+  unfolding less_lit_def G.less_lit_def less_gterm_less_term
 proof(induction x)
   case (Pos x)
   then show ?case 
   proof(induction y)
     case (Pos y)
     then show ?case 
-      unfolding lit_glit_def 
-      apply auto
-      unfolding mset_uprod_def case_uprod_def
-      apply(auto split: prod.splits)
-      (* multp_doubleton_doubleton *)
-      sorry
+      unfolding lit_glit_def
+      sledgehammer
+      by(simp add: test)
   next
     case (Neg y)
-    then show ?case sorry
+    then show ?case 
+      unfolding lit_glit_def 
+      apply auto
+      sorry
   qed
 next
   case (Neg x)
   then show ?case 
     sorry
 qed
-
- 
-  using multp_singleton_singleton[of "(\<prec>\<^sub>t)" ]
-  sorry
-
-lemma is_maximal_glit_is_maximal_lit: "G.is_maximal_lit L P \<Longrightarrow> 
-  is_maximal_lit (lit_glit L) (cls_gcls P)"
-  (*using less_glit_iff_less_lit*)
-  sorry
 
 inductive superposition ::
   "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
@@ -550,7 +446,7 @@ proof(cases P C rule: G.ground_eq_resolution.cases)
       show "cls_gcls C = cls_gcls C \<cdot> Var"
         by simp
     qed
-  qed
+qed
 
 lemma ground_superposition_superposition:
   assumes "G.ground_superposition P1 P2 C"  
