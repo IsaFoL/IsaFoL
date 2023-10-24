@@ -329,7 +329,7 @@ next
     using \<open>x \<in># M \<and> (\<forall>y\<in>#M. y \<noteq> x \<longrightarrow> \<not> R x y)\<close> by blast
 qed
 
-(* TODO: Name + abstract? *)
+(* TODO: Name + abstract? + simplify *)
 lemma lit_glit_sth: "mset_lit (lit_glit l) = image_mset term_of_gterm (mset_lit l)"
   unfolding lit_glit_def
 proof(induction l)
@@ -346,35 +346,25 @@ next
         )
 qed
 
-(* TODO: Name *)
-lemma transp_transp_on: "transp R \<Longrightarrow> transp_on X R"
-  using transp_on_subset by auto
-
-(* TODO: Name *)
-lemma asymp_asymp_on: "asymp R \<Longrightarrow> asymp_on X R"
-  using asymp_on_subset by auto  
-
 lemma less_lit_implies_less_glit:
   assumes "lit_glit x \<prec>\<^sub>l lit_glit y" 
   shows "x \<prec>\<^sub>l\<^sub>G y"
   using 
      assms
-     multp_image_mset_image_msetD[OF _ transp_less_term[THEN transp_transp_on] inj_term_of_gterm]
+     multp_image_mset_image_msetD[OF _ transp_less_term[THEN transp_on_subset] inj_term_of_gterm]
   unfolding less_lit_def G.less_lit_def less_gterm_less_term lit_glit_sth
   by simp
 
 lemma is_maximal_glit_is_maximal_lit: "G.is_maximal_lit L P \<Longrightarrow> 
   is_maximal_lit (lit_glit L) (cls_gcls P)"
-  unfolding 
+  using 
+    is_maximal_in_mset_wrt_iff[of P "(\<prec>\<^sub>l\<^sub>G)" L]
     is_maximal_in_mset_wrt_iff[
-      of P "(\<prec>\<^sub>l\<^sub>G)" L, 
-      OF G.transp_less_lit[THEN transp_transp_on] G.asymp_less_lit[THEN asymp_asymp_on]
+      OF transp_less_lit[THEN transp_on_subset] asymp_less_lit[THEN asymp_on_subset]
     ]
-    is_maximal_in_mset_wrt_iff[
-      of "cls_gcls P" "(\<prec>\<^sub>l)" "lit_glit L", 
-      OF transp_less_lit[THEN transp_transp_on] asymp_less_lit[THEN asymp_asymp_on]
-    ]
-  by (auto simp: less_lit_implies_less_glit lit_glit_def cls_gcls_def)
+    less_lit_implies_less_glit
+  unfolding lit_glit_def cls_gcls_def
+  by auto
 
 inductive superposition ::
   "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
@@ -428,34 +418,44 @@ lemma ground_eq_resolution_eq_resolution:
   using assms
 proof(cases P C rule: G.ground_eq_resolution.cases)
   case (ground_eq_resolutionI L t)
-    show ?thesis
-    proof (rule eq_resolutionI)
-      show "cls_gcls P = add_mset (lit_glit L) (cls_gcls C)"
-        using \<open>P = add_mset L C\<close> 
-        unfolding cls_gcls_def
-        by simp
-    next
-      show "lit_glit L = Neg (Upair (term_of_gterm t) (term_of_gterm t))"
-        using \<open>L = Neg (Upair t t)\<close>
-        unfolding lit_glit_def
-        by simp
-    next
-      show "term_subst.is_imgu Var {{term_of_gterm t, term_of_gterm t}}"
-        by simp
-    next
-      show "select (cls_gcls P) = {#} 
-              \<and> is_maximal_lit (lit_glit L \<cdot>l Var) (cls_gcls P \<cdot> Var) 
-              \<or> lit_glit L \<in># select (cls_gcls P)"
-        using \<open>select\<^sub>G P = {#} \<and> G.is_maximal_lit L P \<or> L \<in># select\<^sub>G P\<close>
-        unfolding select\<^sub>G_def gcls_cls_def 
-        by (metis cls_gcls_def gcls_cls_def gcls_cls_inverse image_mset_is_empty_iff 
-              image_mset_of_subset is_ground_cls_gcls lit_glit_cls_gcls select_subset 
-              subst_cls_Var_ident subst_lit_Var_ident is_maximal_glit_is_maximal_lit
-           )
-    next
-      show "cls_gcls C = cls_gcls C \<cdot> Var"
-        by simp
-    qed
+  show ?thesis
+  proof (rule eq_resolutionI)
+    show "cls_gcls P = add_mset (lit_glit L) (cls_gcls C)"
+      using \<open>P = add_mset L C\<close> 
+      unfolding cls_gcls_def
+      by simp
+  next
+    show "lit_glit L = Neg (Upair (term_of_gterm t) (term_of_gterm t))"
+      using \<open>L = Neg (Upair t t)\<close>
+      unfolding lit_glit_def
+      by simp
+  next
+    show "term_subst.is_imgu Var {{term_of_gterm t, term_of_gterm t}}"
+      by simp
+  next
+    show "select (cls_gcls P) = {#} 
+            \<and> is_maximal_lit (lit_glit L \<cdot>l Var) (cls_gcls P \<cdot> Var) 
+            \<or> lit_glit L \<in># select (cls_gcls P)"
+      using \<open>select\<^sub>G P = {#} \<and> G.is_maximal_lit L P \<or> L \<in># select\<^sub>G P\<close>
+      unfolding select\<^sub>G_def gcls_cls_def 
+      by (metis cls_gcls_def gcls_cls_def gcls_cls_inverse image_mset_is_empty_iff 
+            image_mset_of_subset is_ground_cls_gcls lit_glit_cls_gcls select_subset 
+            subst_cls_Var_ident subst_lit_Var_ident is_maximal_glit_is_maximal_lit
+         )
+  next
+    show "cls_gcls C = cls_gcls C \<cdot> Var"
+      by simp
+  qed
+qed
+
+lemma eq_resolution_ground_eq_resolution:
+  assumes "eq_resolution (cls_gcls P) (cls_gcls C)"
+  shows "G.ground_eq_resolution P C"  
+  using assms eq_resolution.cases[of "cls_gcls P" "cls_gcls C"]
+proof(cases rule: eq_resolution.cases[of "cls_gcls P" "cls_gcls C"])
+  case (eq_resolutionI L P' s\<^sub>1 s\<^sub>2 \<mu>)
+  then show ?thesis 
+    sorry
 qed
 
 lemma ground_superposition_superposition:
