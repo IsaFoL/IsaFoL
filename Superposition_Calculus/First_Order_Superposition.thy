@@ -197,6 +197,7 @@ locale first_order_superposition_calculus =
     less_gterm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t\<^sub>G" 50) and
     select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
   assumes 
+    (* TODO: This can be derived from `less_term_grounding_substitution` *)
     less_gterm_less_term: "\<And>t1 t2.  t1 \<prec>\<^sub>t\<^sub>G t2 \<longleftrightarrow> term_of_gterm t1 \<prec>\<^sub>t term_of_gterm t2" and
     
     transp_less_term[intro]: "transp (\<prec>\<^sub>t)" and
@@ -233,7 +234,7 @@ lemma less_term_less_gterm:
   shows "t1 \<prec>\<^sub>t t2 \<longleftrightarrow> gterm_of_term t1 \<prec>\<^sub>t\<^sub>G gterm_of_term t2"
   by (simp add: assms gterm_of_term_ident_if_ground less_gterm_less_term)
 
-(* Look in Waldmann proof *)
+(* Look in Waldmann proof \<rightarrow> Probably needs to be done similar as less_term *)
 definition select\<^sub>G :: 
   "'f Ground_Superposition.atom clause \<Rightarrow> 'f Ground_Superposition.atom clause" 
 where
@@ -296,6 +297,7 @@ notation G.lesseq_trm (infix "\<preceq>\<^sub>t\<^sub>G" 50)
 notation G.lesseq_lit (infix "\<preceq>\<^sub>l\<^sub>G" 50)
 notation G.lesseq_cls (infix "\<preceq>\<^sub>c\<^sub>G" 50)
 
+(* TODO: Delete if not needed! *)
 lemma
   assumes
     (* TODO: replace X by explicit set based on M *)
@@ -327,44 +329,52 @@ next
     using \<open>x \<in># M \<and> (\<forall>y\<in>#M. y \<noteq> x \<longrightarrow> \<not> R x y)\<close> by blast
 qed
 
+(* TODO: Name + abstract? *)
+lemma lit_glit_sth: "mset_lit (lit_glit l) = image_mset term_of_gterm (mset_lit l)"
+  unfolding lit_glit_def
+proof(induction l)
+  case Pos
+  then show ?case 
+    by (metis image_mset_add_mset image_mset_single literal.simps(9) map_uprod_simps 
+        mset_lit.simps(1) mset_uprod_Upair uprod_exhaust
+        )
+next
+  case Neg
+  then show ?case 
+    by (smt (verit, del_insts) image_mset_add_mset image_mset_single image_mset_union 
+        literal.simps(10) map_uprod_simps mset_lit.simps(2) mset_uprod_Upair uprod_exhaust
+        )
+qed
+
+(* TODO: Name *)
+lemma transp_transp_on: "transp R \<Longrightarrow> transp_on X R"
+  using transp_on_subset by auto
+
+(* TODO: Name *)
+lemma asymp_asymp_on: "asymp R \<Longrightarrow> asymp_on X R"
+  using asymp_on_subset by auto  
+
+lemma less_lit_implies_less_glit:
+  assumes "lit_glit x \<prec>\<^sub>l lit_glit y" 
+  shows "x \<prec>\<^sub>l\<^sub>G y"
+  using 
+     assms
+     multp_image_mset_image_msetD[OF _ transp_less_term[THEN transp_transp_on] inj_term_of_gterm]
+  unfolding less_lit_def G.less_lit_def less_gterm_less_term lit_glit_sth
+  by simp
 
 lemma is_maximal_glit_is_maximal_lit: "G.is_maximal_lit L P \<Longrightarrow> 
   is_maximal_lit (lit_glit L) (cls_gcls P)"
-  unfolding lit_glit_def cls_gcls_def
-  (*using less_glit_iff_less_lit*)
-  sorry
-
-lemma test: "multp R (image_mset f A) (image_mset f B) \<Longrightarrow> multp (\<lambda>a b. R (f a) (f b)) A B"
-  unfolding multp_def mult_def mult1_def
-  apply auto
-  sorry
-
-lemma 
-  assumes "lit_glit x \<prec>\<^sub>l lit_glit y" 
-  shows "x \<prec>\<^sub>l\<^sub>G y"
-  using assms
-  unfolding less_lit_def G.less_lit_def less_gterm_less_term
-proof(induction x)
-  case (Pos x)
-  then show ?case 
-  proof(induction y)
-    case (Pos y)
-    then show ?case 
-      unfolding lit_glit_def
-      sledgehammer
-      by(simp add: test)
-  next
-    case (Neg y)
-    then show ?case 
-      unfolding lit_glit_def 
-      apply auto
-      sorry
-  qed
-next
-  case (Neg x)
-  then show ?case 
-    sorry
-qed
+  unfolding 
+    is_maximal_in_mset_wrt_iff[
+      of P "(\<prec>\<^sub>l\<^sub>G)" L, 
+      OF G.transp_less_lit[THEN transp_transp_on] G.asymp_less_lit[THEN asymp_asymp_on]
+    ]
+    is_maximal_in_mset_wrt_iff[
+      of "cls_gcls P" "(\<prec>\<^sub>l)" "lit_glit L", 
+      OF transp_less_lit[THEN transp_transp_on] asymp_less_lit[THEN asymp_asymp_on]
+    ]
+  by (auto simp: less_lit_implies_less_glit lit_glit_def cls_gcls_def)
 
 inductive superposition ::
   "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
