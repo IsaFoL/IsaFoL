@@ -360,7 +360,10 @@ lemma less_glit_implies_less_lit:
   shows "lit_glit x \<prec>\<^sub>l lit_glit y" 
   using 
     assms
-    multp_image_mset_image_msetI[of "(\<prec>\<^sub>t)" term_of_gterm  "mset_lit x" "mset_lit y", OF _ transp_less_term]
+    multp_image_mset_image_msetI[
+      of "(\<prec>\<^sub>t)" term_of_gterm  "mset_lit x" "mset_lit y", 
+      OF _ transp_less_term
+    ]
   unfolding less_lit_def G.less_lit_def less_gterm_less_term lit_glit_sth    
   by simp
 
@@ -485,17 +488,15 @@ proof(cases rule: eq_resolution.cases[of "cls_gcls P" "cls_gcls C"])
 
   then have P'_C: "P' = cls_gcls C"
     by (metis add_mset_add_single bot_eq_sup_iff is_ground_cls_gcls subst_cls_ident_if_is_ground_cls 
-        vars_cls_plus
-        )
+        vars_cls_plus)
 
   have "t\<^sub>1 = t\<^sub>2"
     (* TODO: *)
     by (smt (verit, del_insts) P'_C basic_substitution_ops.is_imgu_def finite.emptyI finite_insert 
-        insertCI is_ground_cls_gcls is_ground_term_if_in_ground_atm local.eq_resolutionI(1) 
-        local.eq_resolutionI(2) local.eq_resolutionI(3) set_uprod_simps sup_bot.right_neutral 
-        term_subst.ball_eq_constant_if_unifier term_subst.is_ground_set_def 
-        term_subst.is_unifiers_def vars_cls_add_mset vars_lit_Neg
-        )
+          insertCI is_ground_cls_gcls is_ground_term_if_in_ground_atm local.eq_resolutionI(1) 
+          local.eq_resolutionI(2) local.eq_resolutionI(3) set_uprod_simps sup_bot.right_neutral 
+          term_subst.ball_eq_constant_if_unifier term_subst.is_ground_set_def 
+          term_subst.is_unifiers_def vars_cls_add_mset vars_lit_Neg)
 
   show ?thesis 
   proof (rule G.ground_eq_resolutionI)
@@ -510,11 +511,10 @@ proof(cases rule: eq_resolution.cases[of "cls_gcls P" "cls_gcls C"])
     show "(select\<^sub>G P = {#} \<and> G.is_maximal_lit (glit_lit L) P) \<or> glit_lit L \<in># select\<^sub>G P"
        (* TODO: *)
       by (smt (verit, best) cls_gcls_empty_mset cls_gcls_inverse gcls_cls_def glit_lit_inverse 
-          image_mset_single image_mset_subseteq_mono is_ground_cls_gcls 
-          is_ground_lit_if_in_ground_cls is_maximal_lit_is_maximal_glit local.eq_resolutionI(1) 
-          local.eq_resolutionI(4) select\<^sub>G_def single_subset_iff subst_cls_ident_if_is_ground_cls 
-          subst_lit_ident_if_is_ground_lit union_single_eq_member
-          )
+            image_mset_single image_mset_subseteq_mono is_ground_cls_gcls 
+            is_ground_lit_if_in_ground_cls is_maximal_lit_is_maximal_glit local.eq_resolutionI(1) 
+            local.eq_resolutionI(4) select\<^sub>G_def single_subset_iff subst_cls_ident_if_is_ground_cls 
+            subst_lit_ident_if_is_ground_lit union_single_eq_member)
   qed
 qed
 
@@ -522,6 +522,7 @@ lemma eq_resolution_iff_ground_eq_resolution:
   "eq_resolution (cls_gcls P) (cls_gcls C) = G.ground_eq_resolution P C"  
   using eq_resolution_ground_eq_resolution ground_eq_resolution_eq_resolution by blast
 
+(* TODO: Make nice *)
 lemma eq_factoring_iff_ground_eq_factoring:
   "eq_factoring (cls_gcls P) (cls_gcls C) \<longleftrightarrow> G.ground_eq_factoring P C"
 proof (rule iffI)
@@ -529,16 +530,13 @@ proof (rule iffI)
   thus "G.ground_eq_factoring P C"
   proof(cases rule:  eq_factoring.cases[of "cls_gcls P" "cls_gcls C"])
     case (eq_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
-
-    then have  "term_subst.is_unifier \<mu> {s\<^sub>1, t\<^sub>2}"
-      sorry
-    then have "s\<^sub>1 = t\<^sub>2"
+    moreover then have  "term_subst.is_unifier \<mu> {s\<^sub>1, t\<^sub>2}"
+      by (meson insertI1 term_subst.is_imgu_def term_subst.is_unifiers_def)
+    ultimately have "s\<^sub>1 = t\<^sub>2"
       using term_subst.ball_eq_constant_if_unifier[of "{s\<^sub>1, t\<^sub>2}" _ \<mu>]
-      by (metis (mono_tags, lifting) finite.emptyI finite.insertI insertCI is_ground_cls_gcls 
-          local.eq_factoringI(1) local.eq_factoringI(2) local.eq_factoringI(3) sup_eq_bot_iff 
-          term_subst.is_unifier_iff_if_finite term_subst.subst_ident_if_ground vars_atm_make_uprod 
-          vars_cls_add_mset
-          )
+      by (metis finite.emptyI finite_insert insert_iff is_ground_cls_gcls 
+            is_ground_term_if_in_ground_atm set_uprod_simps sup_eq_bot_iff 
+            term_subst.is_ground_set_def vars_atm_make_uprod vars_cls_add_mset vars_lit_Pos)
 
     show ?thesis 
     proof (rule G.ground_eq_factoringI)
@@ -552,102 +550,63 @@ proof (rule iffI)
         by (simp add: \<open>s\<^sub>1 = t\<^sub>2\<close> glit_lit_def local.eq_factoringI(3))
     next
       show "select\<^sub>G P = {#}"
-        sorry
+        by (simp add: gcls_cls_def local.eq_factoringI(4) select\<^sub>G_def)
     next 
       show "G.is_maximal_lit (glit_lit L\<^sub>1) P"
-        sorry
+        by (metis glit_lit_inverse is_ground_cls_gcls is_ground_lit_if_in_ground_cls 
+              is_maximal_lit_is_maximal_glit local.eq_factoringI(1) local.eq_factoringI(4) 
+              subst_cls_ident_if_is_ground_cls subst_lit_ident_if_is_ground_lit 
+              union_single_eq_member)
     next
       show "gterm_of_term s\<^sub>1' \<prec>\<^sub>t\<^sub>G gterm_of_term s\<^sub>1"
-        sorry
+        by (metis gterm_of_term_ident_if_ground is_ground_cls_gcls less_term_less_gterm 
+              local.eq_factoringI(1) local.eq_factoringI(2) local.eq_factoringI(5) reflclp_iff 
+              sup_eq_bot_iff term_subst.subst_ident_if_ground totalpD totalp_less_gterm 
+              vars_atm_make_uprod vars_cls_add_mset)
     next
-      show "C = add_mset (Neg (Upair (gterm_of_term s\<^sub>1') (gterm_of_term t\<^sub>2'))) (add_mset (gterm_of_term s\<^sub>1 \<approx> gterm_of_term t\<^sub>2') (gcls_cls P'))"
-        sorry
+      show "C = add_mset (Neg (Upair (gterm_of_term s\<^sub>1') (gterm_of_term t\<^sub>2'))) 
+                  (add_mset (gterm_of_term s\<^sub>1 \<approx> gterm_of_term t\<^sub>2') (gcls_cls P'))"
+        by (metis add_mset_commute cls_gcls_inverse gcls_cls_def glit_lit_def image_mset_add_mset 
+              is_ground_cls_gcls literal.simps(10) literal.simps(9) local.eq_factoringI(1) 
+              local.eq_factoringI(2) local.eq_factoringI(3) local.eq_factoringI(7) map_uprod_simps 
+              subst_cls_ident_if_is_ground_cls sup_eq_bot_iff vars_atm_make_uprod vars_cls_add_mset 
+              vars_lit_Neg vars_lit_Pos)
     qed
   qed
 next
   assume "G.ground_eq_factoring P C"
   thus "eq_factoring (cls_gcls P) (cls_gcls C)"
-    sorry
-qed
-
-proof (rule iffI)
-  assume "eq_factoring P C"
-  thus "ground_eq_factoring P C"
-  proof (cases P C rule: eq_factoring.cases)
-    case (eq_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
-    with ground_P have "is_ground_lit L\<^sub>1" and "is_ground_lit L\<^sub>2" and "is_ground_cls P'"
-      by simp_all
-    hence "is_ground_atm (s\<^sub>1 \<approx> s\<^sub>1')" and "is_ground_atm (t\<^sub>2 \<approx> t\<^sub>2')"
-      using eq_factoringI(2,3) by simp_all
-    hence "is_ground_trm s\<^sub>1" and "is_ground_trm s\<^sub>1'" and "is_ground_trm t\<^sub>2" and "is_ground_trm t\<^sub>2'"
-      by simp_all
-    hence "term_subst.is_ground_set {s\<^sub>1, t\<^sub>2}"
-      by (simp add: term_subst.is_ground_set_def)
-    moreover from \<open>term_subst.is_imgu \<mu> {{s\<^sub>1, t\<^sub>2}}\<close> have "term_subst.is_unifier \<mu> {s\<^sub>1, t\<^sub>2}"
-      by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
-    ultimately have "s\<^sub>1 = t\<^sub>2"
-      using term_subst.ball_eq_constant_if_unifier[of "{s\<^sub>1, t\<^sub>2}" _ \<mu>] by simp
-
-    show ?thesis
-    proof (rule ground_eq_factoringI)
-      show "P = add_mset (Pos (s\<^sub>1 \<approx> s\<^sub>1')) (add_mset (Pos (t\<^sub>2 \<approx> t\<^sub>2')) P')"
-        using eq_factoringI(1-3) by argo
-    next
-      show "Pos (s\<^sub>1 \<approx> s\<^sub>1') = Pos (s\<^sub>1 \<approx> s\<^sub>1')" ..
-    next
-      show "Pos (t\<^sub>2 \<approx> t\<^sub>2') = Pos (s\<^sub>1 \<approx> t\<^sub>2')"
-        unfolding \<open>s\<^sub>1 = t\<^sub>2\<close> ..
-    next
-      show "select P = {#}"
-        using \<open>select P = {#} \<and> is_maximal_lit (L\<^sub>1 \<cdot>l \<mu>) (P \<cdot> \<mu>)\<close> ..
-    next
-      from ground_P show "is_maximal_lit (Pos (s\<^sub>1 \<approx> s\<^sub>1')) P"
-        using \<open>select P = {#} \<and> is_maximal_lit (L\<^sub>1 \<cdot>l \<mu>) (P \<cdot> \<mu>)\<close> \<open>is_ground_lit L\<^sub>1\<close>
-          \<open>L\<^sub>1 = Pos (s\<^sub>1 \<approx> s\<^sub>1')\<close> by simp
-    next
-      have "\<not> s\<^sub>1 \<preceq>\<^sub>t s\<^sub>1'"
-        using \<open>is_ground_trm s\<^sub>1\<close> \<open>is_ground_trm s\<^sub>1'\<close> \<open>\<not> s\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<mu>\<close> by simp
-      thus "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1"
-        using \<open>is_ground_trm s\<^sub>1\<close> \<open>is_ground_trm s\<^sub>1'\<close> totalp_less_trm
-        by (metis (mono_tags, lifting) mem_Collect_eq sup2I1 sup2I2 totalp_onD)
-    next
-      show "C = add_mset (Neg (s\<^sub>1' \<approx> t\<^sub>2')) (add_mset (Pos (s\<^sub>1 \<approx> t\<^sub>2')) P')"
-        using \<open>C = add_mset (Pos (s\<^sub>1 \<approx> t\<^sub>2')) (add_mset (Neg (s\<^sub>1' \<approx> t\<^sub>2')) P') \<cdot> \<mu>\<close> \<open>s\<^sub>1 = t\<^sub>2\<close>
-          \<open>is_ground_cls P'\<close> \<open>is_ground_trm s\<^sub>1'\<close> \<open>is_ground_trm t\<^sub>2'\<close> \<open>is_ground_trm t\<^sub>2\<close>
-        by simp
-    qed
-  qed
-next
-  assume "ground_eq_factoring P C"
-  thus "eq_factoring P C"
-  proof (cases P C rule: ground_eq_factoring.cases)
+  proof(cases P C rule: G.ground_eq_factoring.cases)
     case (ground_eq_factoringI L\<^sub>1 L\<^sub>2 P' t t' t'')
-    show ?thesis
-    proof (rule eq_factoringI)
-      show "P = add_mset L\<^sub>1 (add_mset L\<^sub>2 P')"
-        using \<open>P = add_mset L\<^sub>1 (add_mset L\<^sub>2 P')\<close> .
+    show ?thesis 
+    proof(rule eq_factoringI)
+      show "cls_gcls P = add_mset (lit_glit L\<^sub>1) (add_mset (lit_glit L\<^sub>2) (cls_gcls P'))"
+        by (simp add: cls_gcls_def ground_eq_factoringI(1))
     next
-      show "L\<^sub>1 = Pos (t \<approx> t')"
-        using \<open>L\<^sub>1 = Pos (t \<approx> t')\<close> .
+      show "lit_glit L\<^sub>1 = term_of_gterm t \<approx> term_of_gterm t'"
+        by (simp add: ground_eq_factoringI(2) lit_glit_def)
     next
-      show "L\<^sub>2 = Pos (t \<approx> t'')"
-        using \<open>L\<^sub>2 = Pos (t \<approx> t'')\<close> .
+      show "lit_glit L\<^sub>2 =  term_of_gterm t \<approx> term_of_gterm t''"
+        by (simp add: ground_eq_factoringI(3) lit_glit_def)
     next
-      show "term_subst.is_imgu Var {{t, t}}"
+      show "select (cls_gcls P) = {#} \<and> is_maximal_lit (lit_glit L\<^sub>1 \<cdot>l Var) (cls_gcls P \<cdot> Var)"
+        by (metis gcls_cls_def ground_eq_factoringI(4) ground_eq_factoringI(5) 
+              image_mset_is_empty_iff is_maximal_glit_is_maximal_lit select\<^sub>G_def subst_cls_Var_ident 
+              subst_lit_Var_ident)
+    next
+      show "\<not> term_of_gterm t \<cdot>t Var \<preceq>\<^sub>t term_of_gterm t' \<cdot>t Var" 
+        by (metis asympD asymp_less_gterm ground_eq_factoringI(6) less_gterm_less_term reflclp_iff 
+              term_subst.subst_id_subst)
+    next
+      show "term_subst.is_imgu Var {{term_of_gterm t, term_of_gterm t}}"
         by simp
     next
-      show "select P = {#} \<and> is_maximal_lit (L\<^sub>1 \<cdot>l Var) (P \<cdot> Var)"
-        using \<open>select P = {#}\<close> \<open>is_maximal_lit L\<^sub>1 P\<close> by simp
-    next
-      show "\<not> t \<cdot>t Var \<preceq>\<^sub>t t' \<cdot>t Var"
-        using \<open>t' \<prec>\<^sub>t t\<close>
-        using asympD by fastforce
-    next
-      show "C = add_mset (Pos (t \<approx> t'')) (add_mset (Neg (t' \<approx> t'')) P') \<cdot> Var"
-        using \<open>C = add_mset (Neg (t' \<approx> t'')) (add_mset (Pos (t \<approx> t'')) P')\<close> by simp
+      show "cls_gcls C = add_mset (term_of_gterm t \<approx> term_of_gterm t'') 
+                (add_mset (Neg (Upair (term_of_gterm t') (term_of_gterm t''))) (cls_gcls P')) \<cdot> Var"
+        by (simp add: cls_gcls_def ground_eq_factoringI(7) lit_glit_def)
     qed
   qed
-qed 
+qed
 
 lemma ground_superposition_superposition:
   assumes "G.ground_superposition P1 P2 C"  
@@ -829,69 +788,6 @@ next
       show "C = add_mset (\<P> ((s \<cdot>t\<^sub>c Var)\<langle>t' \<cdot>t Var\<rangle> \<approx> s' \<cdot>t Var)) (P\<^sub>1' \<cdot> Var + P\<^sub>2' \<cdot> Var) \<cdot> Var"
         using \<open>C = add_mset (\<P> (s\<langle>t'\<rangle> \<approx> s')) (P\<^sub>1' + P\<^sub>2')\<close> by simp
     qed simp_all
-  qed
-qed
-
-lemma eq_resolution_iff_ground_eq_resolution:
-  assumes ground_P: "is_ground_cls P"
-  shows "eq_resolution P C \<longleftrightarrow> ground_eq_resolution P C"
-proof (rule iffI)
-  assume "eq_resolution P C"
-  thus "ground_eq_resolution P C"
-  proof (cases P C rule: eq_resolution.cases)
-    case (eq_resolutionI L P' t\<^sub>1 t\<^sub>2 \<mu>)
-    with ground_P have "is_ground_lit L" and "is_ground_cls P'"
-      by simp_all
-    hence "is_ground_atm (t\<^sub>1 \<approx> t\<^sub>2)"
-      using \<open>L = Neg (t\<^sub>1 \<approx> t\<^sub>2)\<close> by simp
-    hence "is_ground_trm t\<^sub>1" and "is_ground_trm t\<^sub>2"
-      by simp_all
-    hence "term_subst.is_ground_set {t\<^sub>1, t\<^sub>2}"
-      by (simp add: term_subst.is_ground_set_def)
-    moreover from \<open>term_subst.is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}}\<close> have "term_subst.is_unifier \<mu> {t\<^sub>1, t\<^sub>2}"
-      by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
-    ultimately have "t\<^sub>1 = t\<^sub>2"
-      using term_subst.ball_eq_constant_if_unifier[of "{t\<^sub>1, t\<^sub>2}" _ \<mu>] by simp
-
-    have "P' = C"
-      using \<open>C = P' \<cdot> \<mu>\<close>
-      by (simp add: \<open>is_ground_cls P'\<close>)
-
-    show ?thesis
-    proof (rule ground_eq_resolutionI)
-      show "P = add_mset L C"
-        using \<open>P = add_mset L P'\<close> \<open>P' = C\<close> by argo
-    next
-      show "L = Neg (t\<^sub>1 \<approx> t\<^sub>1)"
-        using \<open>L = Neg (t\<^sub>1 \<approx> t\<^sub>2)\<close> \<open>t\<^sub>1 = t\<^sub>2\<close> by argo
-    next
-      from ground_P show "select P = {#} \<and> is_maximal_lit L P \<or> L \<in># select P"
-        using \<open>select P = {#} \<and> is_maximal_lit (L \<cdot>l \<mu>) (P \<cdot> \<mu>) \<or> L \<in># select P\<close> \<open>is_ground_lit L\<close>
-        by simp
-    qed
-  qed
-next
-  assume "ground_eq_resolution P C"
-  thus "eq_resolution P C"
-  proof (cases P C rule: ground_eq_resolution.cases)
-    case (ground_eq_resolutionI L t)
-    show ?thesis
-    proof (rule eq_resolutionI)
-      show "P = add_mset L C"
-        using \<open>P = add_mset L C\<close> .
-    next
-      show "L = Neg (t \<approx> t)"
-        using \<open>L = Neg (t \<approx> t)\<close> .
-    next
-      show "term_subst.is_imgu Var {{t, t}}"
-        by simp
-    next
-      show "select P = {#} \<and> is_maximal_lit (L \<cdot>l Var) (P \<cdot> Var) \<or> L \<in># select P"
-        using \<open>select P = {#} \<and> is_maximal_lit L P \<or> L \<in># select P\<close> by simp
-    next
-      show "C = C \<cdot> Var"
-        by simp
-    qed
   qed
 qed
 
