@@ -14,6 +14,12 @@ no_notation subst_apply_term (infixl "\<cdot>" 67)
 text \<open>Prefer @{thm [source] term_subst.subst_id_subst} to @{thm [source] subst_apply_term_empty}.\<close>
 declare subst_apply_term_empty[no_atp]
 
+lemma map_uprod_inverse: "(\<And>x. f (g x) = x) \<Longrightarrow> (\<And>y. map_uprod f (map_uprod g y) = y)"
+  by (simp add: uprod.map_comp uprod.map_ident_strong)
+
+lemma gterm_is_fun: "is_Fun (term_of_gterm t)"
+  by(cases t) simp 
+
 section \<open>First_Order_Terms And Abstract_Substitution\<close>
 
 notation subst_apply_term (infixl "\<cdot>t" 67)
@@ -151,6 +157,12 @@ lemma cls_gcls_inverse[simp]: "gcls_cls (cls_gcls C) = C"
   unfolding gcls_cls_def cls_gcls_def
   by simp
 
+lemma inj_lit_glit: "inj_on lit_glit X"
+  by (metis inj_on_def lit_glit_inverse)
+
+lemma inj_cls_gcls: "inj_on cls_gcls X"
+  by (metis inj_on_def cls_gcls_inverse)
+
 lemma vars_lit_glit[simp]: "vars_lit (lit_glit L) = {}"
   unfolding lit_glit_def vars_lit_def
   by (smt (verit, ccfv_SIG) empty_iff equals0I imageE literal.map_sel(1) literal.map_sel(2)
@@ -197,7 +209,7 @@ locale first_order_superposition_calculus =
     less_gterm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t\<^sub>G" 50) and
     select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
   assumes 
-    (* TODO: This can be derived from `less_term_grounding_substitution` *)
+    (* TODO: This can be probably derived from `less_term_grounding_substitution` *)
     less_gterm_less_term: "\<And>t1 t2.  t1 \<prec>\<^sub>t\<^sub>G t2 \<longleftrightarrow> term_of_gterm t1 \<prec>\<^sub>t term_of_gterm t2" and
     
     transp_less_term[intro]: "transp (\<prec>\<^sub>t)" and
@@ -269,21 +281,25 @@ abbreviation lesseq_cls (infix "\<preceq>\<^sub>c" 50) where
 abbreviation is_maximal_lit :: "('f, 'v) atom literal \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
   "is_maximal_lit L M \<equiv> is_maximal_in_mset_wrt (\<prec>\<^sub>l) M L"
 
-abbreviation is_strictly_maximal_lit :: "('f, 'v) atom literal \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
+abbreviation is_strictly_maximal_lit :: 
+  "('f, 'v) atom literal \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
   "is_strictly_maximal_lit L M \<equiv> is_greatest_in_mset_wrt (\<prec>\<^sub>l) M L"
 
-lemma transp_less_lit: "transp (\<prec>\<^sub>l)"
-  by (metis less_lit_def transp_def transp_less_term transp_multp)
+lemma totalp_less_term[intro]: "totalp_on (term_of_gterm ` terms) (\<prec>\<^sub>t)"
+  by (smt (verit, best) image_iff less_gterm_less_term totalpD totalp_less_gterm totalp_on_def)
 
-lemma asymp_less_lit: "asymp (\<prec>\<^sub>l)"
+lemma transp_less_lit [intro]: "transp (\<prec>\<^sub>l)"
+  by (metis less_lit_def transp_def transp_less_term transp_multp)
+                                                            
+lemma asymp_less_lit [intro]: "asymp (\<prec>\<^sub>l)"
   by (metis asympD asympI asymp_less_term asymp_multp\<^sub>H\<^sub>O less_lit_def multp_eq_multp\<^sub>H\<^sub>O 
       transp_less_term
       )
 
-lemma transp_less_cls: "transp (\<prec>\<^sub>c)"
+lemma transp_less_cls [intro]: "transp (\<prec>\<^sub>c)"
   by (metis less_lit_def transp_def transp_less_term transp_multp)
 
-lemma asymp_less_cls: "asymp (\<prec>\<^sub>c)"
+lemma asymp_less_cls [intro]: "asymp (\<prec>\<^sub>c)"
   by (simp add: asymp_less_lit asymp_multp\<^sub>H\<^sub>O multp_eq_multp\<^sub>H\<^sub>O transp_less_lit)
 
 interpretation G: ground_superposition_calculus "(\<prec>\<^sub>t\<^sub>G)" select\<^sub>G
@@ -296,6 +312,7 @@ notation G.less_cls (infix "\<prec>\<^sub>c\<^sub>G" 50)
 notation G.lesseq_trm (infix "\<preceq>\<^sub>t\<^sub>G" 50)
 notation G.lesseq_lit (infix "\<preceq>\<^sub>l\<^sub>G" 50)
 notation G.lesseq_cls (infix "\<preceq>\<^sub>c\<^sub>G" 50)
+
 
 (* TODO: Delete if not needed! *)
 lemma
@@ -378,14 +395,10 @@ lemma is_maximal_glit_is_maximal_lit: "G.is_maximal_lit L P \<Longrightarrow>
   unfolding lit_glit_def cls_gcls_def
   by auto
 
-
 lemma is_maximal_lit_is_maximal_glit: 
   "is_maximal_lit (lit_glit L) (cls_gcls P) \<Longrightarrow> G.is_maximal_lit L P"
   using 
-    is_maximal_in_mset_wrt_iff[
-      of P "(\<prec>\<^sub>l\<^sub>G)" L,
-      OF
-    ]
+    is_maximal_in_mset_wrt_iff[of P "(\<prec>\<^sub>l\<^sub>G)" L]
     is_maximal_in_mset_wrt_iff[
       of "cls_gcls P",
       OF transp_less_lit[THEN transp_on_subset] asymp_less_lit[THEN asymp_on_subset]
@@ -396,6 +409,76 @@ lemma is_maximal_lit_is_maximal_glit:
   by (metis G.asymp_on_less_lit G.transp_on_less_lit cls_gcls_def lit_glit_cls_gcls lit_glit_def 
       lit_glit_inverse subset_UNIV
       )
+
+lemma totalp_less_lit[intro]: "totalp_on (lit_glit ` literals) (\<prec>\<^sub>l)"
+proof-
+  have "totalp_on literals (\<lambda>L1 L2. multp (\<prec>\<^sub>t\<^sub>G) (mset_lit L1) (mset_lit L2))"
+    using totalp_less_gterm G.less_lit_def G.totalp_on_less_lit by presburger
+
+  then have "totalp_on literals 
+    (\<lambda>L1 L2. multp (\<lambda>a b. term_of_gterm a \<prec>\<^sub>t term_of_gterm b) (mset_lit L1) (mset_lit L2))"
+    using less_gterm_less_term
+    by (metis (mono_tags, lifting) transp_less_gterm multp_mono_strong totalp_on_def)
+
+  then show "totalp_on (lit_glit ` literals) (\<prec>\<^sub>l)"
+    by (smt (verit, best) G.totalp_on_less_lit imageE less_glit_implies_less_lit totalpD totalp_onI)
+qed
+
+lemma less_cls_implies_less_gcls:
+  assumes "cls_gcls c1 \<prec>\<^sub>c cls_gcls c2" 
+  shows "c1 \<prec>\<^sub>c\<^sub>G c2"
+  using 
+    assms 
+    less_lit_implies_less_glit 
+    multp_image_mset_image_msetD[OF _ transp_less_lit[THEN transp_on_subset] inj_lit_glit]
+  by (metis (no_types, lifting) cls_gcls_def multp_mono_strong top_greatest transpE transp_less_lit 
+        transp_onI)
+
+lemma less_gcls_implies_less_cls:
+  assumes "c1 \<prec>\<^sub>c\<^sub>G c2"
+  shows "cls_gcls c1 \<prec>\<^sub>c cls_gcls c2"
+  using 
+    assms 
+    less_lit_implies_less_glit 
+    multp_image_mset_image_msetI[OF _  transp_less_lit[THEN transp_on_subset]]
+  by (smt (verit, best) G.transp_less_lit cls_gcls_def less_glit_implies_less_lit multp_mono_strong 
+        top_greatest)
+
+lemma totalp_less_cls[intro]: "totalp_on (cls_gcls ` clauses) (\<prec>\<^sub>c)"
+  by (smt (verit) G.totalp_less_cls image_iff less_gcls_implies_less_cls totalpD totalp_onI) 
+
+lemma is_strictly_maximal_glit_is_strictly_maximal_lit:
+  "G.is_strictly_maximal_lit L P \<Longrightarrow> is_strictly_maximal_lit (lit_glit L) (cls_gcls P)"
+  using 
+    is_greatest_in_mset_wrt_iff[of P "(\<prec>\<^sub>l\<^sub>G)" L]
+    is_greatest_in_mset_wrt_iff[
+      of "cls_gcls P",
+      OF transp_less_lit[THEN transp_on_subset] asymp_less_lit[THEN asymp_on_subset] totalp_less_lit[THEN totalp_on_subset]
+    ]
+     less_glit_implies_less_lit
+  by (smt (verit) G.asymp_on_less_lit G.totalp_on_less_lit G.transp_on_less_lit 
+        add_mset_remove_trivial asymp_less_lit asymp_on_subset cls_gcls_def image_mset_add_mset 
+        in_diffD insert_DiffM is_greatest_in_mset_wrt_iff is_maximal_glit_is_maximal_lit 
+        is_maximal_in_mset_wrt_if_is_greatest_in_mset_wrt is_maximal_in_mset_wrt_iff 
+        lit_glit_cls_gcls multiset.set_map subset_UNIV totalp_less_lit totalp_onD transp_less_lit 
+        transp_on_subset)
+
+lemma is_strictly_maximal_lit_is_strictly_maximal_glit:
+  " is_strictly_maximal_lit (lit_glit L) (cls_gcls P) \<Longrightarrow> G.is_strictly_maximal_lit L P"
+  using 
+    is_greatest_in_mset_wrt_iff[of P "(\<prec>\<^sub>l\<^sub>G)" L]
+    is_greatest_in_mset_wrt_iff[
+      of "cls_gcls P",
+      OF transp_less_lit[THEN transp_on_subset] 
+         asymp_less_lit[THEN asymp_on_subset] 
+         totalp_less_lit[THEN totalp_on_subset]
+    ]
+     less_glit_implies_less_lit
+  by (smt (verit, best) G.asymp_on_less_lit G.totalp_on_less_lit G.transp_on_less_lit 
+        add_mset_remove_trivial add_mset_remove_trivial_If asymp_less_lit asymp_on_subset 
+        cls_gcls_def image_mset_add_mset is_greatest_in_mset_wrt_iff less_lit_implies_less_glit 
+        lit_glit_cls_gcls multiset.set_map subset_UNIV totalp_less_lit transp_less_lit 
+        transp_on_subset)
 
 inductive superposition ::
   "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
@@ -441,86 +524,82 @@ inductive eq_factoring :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clau
     C = add_mset (s\<^sub>1 \<approx> t\<^sub>2') (add_mset (Neg (Upair s\<^sub>1' t\<^sub>2')) P') \<cdot> \<mu> \<Longrightarrow>
     eq_factoring P C"
 
-(* Then prove these *)
+(* Santiy checks *)
 
-lemma ground_eq_resolution_eq_resolution:
-  assumes "G.ground_eq_resolution P C"  
-  shows "eq_resolution (cls_gcls P) (cls_gcls C)"
-  using assms
-proof(cases P C rule: G.ground_eq_resolution.cases)
-  case (ground_eq_resolutionI L t)
-  show ?thesis
-  proof (rule eq_resolutionI)
-    show "cls_gcls P = add_mset (lit_glit L) (cls_gcls C)"
-      using \<open>P = add_mset L C\<close> 
-      unfolding cls_gcls_def
-      by simp
-  next
-    show "lit_glit L = Neg (Upair (term_of_gterm t) (term_of_gterm t))"
-      using \<open>L = Neg (Upair t t)\<close>
-      unfolding lit_glit_def
-      by simp
-  next
-    show "term_subst.is_imgu Var {{term_of_gterm t, term_of_gterm t}}"
-      by simp
-  next
-    show "select (cls_gcls P) = {#} 
-            \<and> is_maximal_lit (lit_glit L \<cdot>l Var) (cls_gcls P \<cdot> Var) 
-            \<or> lit_glit L \<in># select (cls_gcls P)"
-      using \<open>select\<^sub>G P = {#} \<and> G.is_maximal_lit L P \<or> L \<in># select\<^sub>G P\<close>
-      unfolding select\<^sub>G_def gcls_cls_def 
-      by (metis cls_gcls_def gcls_cls_def gcls_cls_inverse image_mset_is_empty_iff 
-            image_mset_of_subset is_ground_cls_gcls lit_glit_cls_gcls select_subset 
-            subst_cls_Var_ident subst_lit_Var_ident is_maximal_glit_is_maximal_lit
-         )
-  next
-    show "cls_gcls C = cls_gcls C \<cdot> Var"
-      by simp
-  qed
-qed
-
-lemma eq_resolution_ground_eq_resolution:
-  assumes "eq_resolution (cls_gcls P) (cls_gcls C)"
-  shows "G.ground_eq_resolution P C"  
-  using assms
-proof(cases rule: eq_resolution.cases[of "cls_gcls P" "cls_gcls C"])
-  case (eq_resolutionI L P' t\<^sub>1 t\<^sub>2 \<mu>)
-
-  then have P'_C: "P' = cls_gcls C"
-    by (metis add_mset_add_single bot_eq_sup_iff is_ground_cls_gcls subst_cls_ident_if_is_ground_cls 
-        vars_cls_plus)
-
-  have "t\<^sub>1 = t\<^sub>2"
-    (* TODO: *)
-    by (smt (verit, del_insts) P'_C basic_substitution_ops.is_imgu_def finite.emptyI finite_insert 
-          insertCI is_ground_cls_gcls is_ground_term_if_in_ground_atm local.eq_resolutionI(1) 
-          local.eq_resolutionI(2) local.eq_resolutionI(3) set_uprod_simps sup_bot.right_neutral 
-          term_subst.ball_eq_constant_if_unifier term_subst.is_ground_set_def 
-          term_subst.is_unifiers_def vars_cls_add_mset vars_lit_Neg)
-
-  show ?thesis 
-  proof (rule G.ground_eq_resolutionI)
-    show "P = add_mset (glit_lit L) C"
-      by (metis P'_C cls_gcls_inverse gcls_cls_def image_mset_add_mset local.eq_resolutionI(1))
-  next
-    show "glit_lit L = Neg (Upair (gterm_of_term t\<^sub>1) (gterm_of_term t\<^sub>1))"
-      using \<open>t\<^sub>1 = t\<^sub>2\<close>
-      by (simp add: glit_lit_def local.eq_resolutionI(2))
-  next
-
-    show "(select\<^sub>G P = {#} \<and> G.is_maximal_lit (glit_lit L) P) \<or> glit_lit L \<in># select\<^sub>G P"
-       (* TODO: *)
-      by (smt (verit, best) cls_gcls_empty_mset cls_gcls_inverse gcls_cls_def glit_lit_inverse 
-            image_mset_single image_mset_subseteq_mono is_ground_cls_gcls 
-            is_ground_lit_if_in_ground_cls is_maximal_lit_is_maximal_glit local.eq_resolutionI(1) 
-            local.eq_resolutionI(4) select\<^sub>G_def single_subset_iff subst_cls_ident_if_is_ground_cls 
-            subst_lit_ident_if_is_ground_lit union_single_eq_member)
-  qed
-qed
-
+(* TODO: Make nice *)
 lemma eq_resolution_iff_ground_eq_resolution:
-  "eq_resolution (cls_gcls P) (cls_gcls C) = G.ground_eq_resolution P C"  
-  using eq_resolution_ground_eq_resolution ground_eq_resolution_eq_resolution by blast
+  "eq_resolution (cls_gcls P) (cls_gcls C) \<longleftrightarrow> G.ground_eq_resolution P C" 
+proof (rule iffI)
+  assume "eq_resolution (cls_gcls P) (cls_gcls C)"
+  thus "G.ground_eq_resolution P C"
+  proof(cases rule: eq_resolution.cases)
+  case (eq_resolutionI L P' t\<^sub>1 t\<^sub>2 \<mu>)
+    then have P'_C: "P' = cls_gcls C"
+      by (metis add_mset_add_single bot_eq_sup_iff is_ground_cls_gcls subst_cls_ident_if_is_ground_cls 
+          vars_cls_plus)
+  
+    have "t\<^sub>1 = t\<^sub>2"
+      (* TODO: *)
+      by (smt (verit, del_insts) P'_C basic_substitution_ops.is_imgu_def finite.emptyI finite_insert 
+            insertCI is_ground_cls_gcls is_ground_term_if_in_ground_atm local.eq_resolutionI(1) 
+            local.eq_resolutionI(2) local.eq_resolutionI(3) set_uprod_simps sup_bot.right_neutral 
+            term_subst.ball_eq_constant_if_unifier term_subst.is_ground_set_def 
+            term_subst.is_unifiers_def vars_cls_add_mset vars_lit_Neg)
+  
+    show ?thesis 
+    proof (rule G.ground_eq_resolutionI)
+      show "P = add_mset (glit_lit L) C"
+        by (metis P'_C cls_gcls_inverse gcls_cls_def image_mset_add_mset local.eq_resolutionI(1))
+    next
+      show "glit_lit L = Neg (Upair (gterm_of_term t\<^sub>1) (gterm_of_term t\<^sub>1))"
+        using \<open>t\<^sub>1 = t\<^sub>2\<close>
+        by (simp add: glit_lit_def local.eq_resolutionI(2))
+    next
+  
+      show "(select\<^sub>G P = {#} \<and> G.is_maximal_lit (glit_lit L) P) \<or> glit_lit L \<in># select\<^sub>G P"
+         (* TODO: *)
+        by (smt (verit, best) cls_gcls_empty_mset cls_gcls_inverse gcls_cls_def glit_lit_inverse 
+              image_mset_single image_mset_subseteq_mono is_ground_cls_gcls 
+              is_ground_lit_if_in_ground_cls is_maximal_lit_is_maximal_glit local.eq_resolutionI(1) 
+              local.eq_resolutionI(4) select\<^sub>G_def single_subset_iff subst_cls_ident_if_is_ground_cls 
+              subst_lit_ident_if_is_ground_lit union_single_eq_member)
+    qed
+  qed
+next
+  assume "G.ground_eq_resolution P C"
+  thus "eq_resolution (cls_gcls P) (cls_gcls C)"
+   proof(cases P C rule: G.ground_eq_resolution.cases)
+   case (ground_eq_resolutionI L t)
+    show ?thesis
+    proof (rule eq_resolutionI)
+      show "cls_gcls P = add_mset (lit_glit L) (cls_gcls C)"
+        using \<open>P = add_mset L C\<close> 
+        unfolding cls_gcls_def
+        by simp
+    next
+      show "lit_glit L = Neg (Upair (term_of_gterm t) (term_of_gterm t))"
+        using \<open>L = Neg (Upair t t)\<close>
+        unfolding lit_glit_def
+        by simp
+    next
+      show "term_subst.is_imgu Var {{term_of_gterm t, term_of_gterm t}}"
+        by simp
+    next
+      show "select (cls_gcls P) = {#} 
+              \<and> is_maximal_lit (lit_glit L \<cdot>l Var) (cls_gcls P \<cdot> Var) 
+              \<or> lit_glit L \<in># select (cls_gcls P)"
+        using \<open>select\<^sub>G P = {#} \<and> G.is_maximal_lit L P \<or> L \<in># select\<^sub>G P\<close>
+        unfolding select\<^sub>G_def gcls_cls_def 
+        by (metis cls_gcls_def gcls_cls_def gcls_cls_inverse image_mset_is_empty_iff 
+              image_mset_of_subset is_ground_cls_gcls lit_glit_cls_gcls select_subset 
+              subst_cls_Var_ident subst_lit_Var_ident is_maximal_glit_is_maximal_lit
+           )
+    next
+      show "cls_gcls C = cls_gcls C \<cdot> Var"
+        by simp
+    qed
+  qed
+qed
 
 (* TODO: Make nice *)
 lemma eq_factoring_iff_ground_eq_factoring:
@@ -528,7 +607,7 @@ lemma eq_factoring_iff_ground_eq_factoring:
 proof (rule iffI)
   assume "eq_factoring (cls_gcls P) (cls_gcls C)"
   thus "G.ground_eq_factoring P C"
-  proof(cases rule:  eq_factoring.cases[of "cls_gcls P" "cls_gcls C"])
+  proof(cases rule: eq_factoring.cases)
     case (eq_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
     moreover then have  "term_subst.is_unifier \<mu> {s\<^sub>1, t\<^sub>2}"
       by (meson insertI1 term_subst.is_imgu_def term_subst.is_unifiers_def)
@@ -608,186 +687,230 @@ next
   qed
 qed
 
-lemma ground_superposition_superposition:
-  assumes "G.ground_superposition P1 P2 C"  
-  shows "superposition (cls_gcls P1) (cls_gcls P2) (cls_gcls C)"
-  using assms
-proof(cases P1 P2 C rule: G.ground_superposition.cases)
-  case (ground_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
-  then show ?thesis 
-    sorry
-qed
-
-lemma superposition_ground_superposition:
-  assumes "superposition (cls_gcls P1) (cls_gcls P2) (cls_gcls C)" 
-  shows "G.ground_superposition P1 P2 C"
-  using assms
-(* proof(cases "cls_gcls P1" "cls_gcls P2" "cls_gcls C" rule: superposition.cases) *)
-  sorry
-
+(* TODO: Make nice *)
 lemma superposition_iff_ground_superposition:
    "superposition (cls_gcls P1) (cls_gcls P2) (cls_gcls C) \<longleftrightarrow> G.ground_superposition P1 P2 C"
-  using superposition_ground_superposition ground_superposition_superposition
-  by blast
-
-lemma superposition_iff_ground_superposition_2:
-  assumes ground_P1: "is_ground_cls P1" and ground_P2: "is_ground_cls P2"
-  shows "superposition P1 P2 C \<longleftrightarrow> G.ground_superposition (gcls_cls P1) (gcls_cls P2) (gcls_cls C)"
-  using superposition_iff_ground_superposition
-  using assms gcls_cls_inverse[of P1] gcls_cls_inverse[of P2]
-  apply auto
-  sorry
-
-
-proof (rule iffI)
-  assume "superposition P1 P2 C"
-  thus "G.ground_superposition (gcls_cls P1) (gcls_cls P2) (gcls_cls C)"
-  proof (cases P1 P2 C rule: superposition.cases)
+proof(rule iffI)
+  assume "superposition (cls_gcls P1) (cls_gcls P2) (cls_gcls C)"
+  thus " G.ground_superposition P1 P2 C"
+  proof(cases rule: superposition.cases)
     case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
-    from ground_P1 ground_P2 have
-      "is_ground_lit L\<^sub>1" and "is_ground_cls P\<^sub>1'" and
-      "is_ground_lit L\<^sub>2" and "is_ground_cls P\<^sub>2'"
-      using \<open>P1 = add_mset L\<^sub>1 P\<^sub>1'\<close> \<open>P2 = add_mset L\<^sub>2 P\<^sub>2'\<close> by simp_all
-    hence
-      "is_ground_atm (Upair s\<^sub>1\<langle>u\<^sub>1\<rangle>  s\<^sub>1')" and
-      "is_ground_atm (Upair t\<^sub>2 t\<^sub>2')"
-      using \<open>\<P> \<in> {Pos, Neg}\<close> \<open>L\<^sub>1 = \<P> (Upair s\<^sub>1\<langle>u\<^sub>1\<rangle> s\<^sub>1')\<close> \<open>L\<^sub>2 = Pos (Upair t\<^sub>2 t\<^sub>2')\<close> by auto
-    hence
-      "is_ground_trm s\<^sub>1\<langle>u\<^sub>1\<rangle>" and "is_ground_trm_ctxt s\<^sub>1" and "is_ground_trm u\<^sub>1" and
-      "is_ground_trm s\<^sub>1'" and "is_ground_trm t\<^sub>2" and "is_ground_trm t\<^sub>2'"
-      (* TODO: *)
-      apply (metis sup_eq_bot_iff vars_atm_make_uprod vars_lit_Pos)
-      apply (metis \<open>is_ground_atm (Upair s\<^sub>1\<langle>u\<^sub>1\<rangle> s\<^sub>1')\<close> sup_eq_bot_iff vars_atm_make_uprod vars_lit_Pos vars_term_ctxt_apply)
-      using \<open>is_ground_atm (Upair s\<^sub>1\<langle>u\<^sub>1\<rangle> s\<^sub>1')\<close> vars_atm_make_uprod apply fastforce
-      apply (metis \<open>is_ground_atm (Upair s\<^sub>1\<langle>u\<^sub>1\<rangle> s\<^sub>1')\<close> sup_bot.neutr_eq_iff vars_atm_make_uprod vars_lit_Pos)
-      using \<open>is_ground_atm (Upair t\<^sub>2 t\<^sub>2')\<close> vars_atm_make_uprod apply fastforce
-      using \<open>is_ground_atm (Upair t\<^sub>2 t\<^sub>2')\<close> vars_atm_make_uprod by fastforce
-    hence "term_subst.is_ground_set {u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}"
-      by (simp add: term_subst.is_ground_set_def)
-    moreover have "term_subst.is_unifier \<mu> {u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}"
-      using \<open>term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}}\<close>
-      by (simp add: term_subst.is_imgu_def term_subst.is_unifiers_def)
-    ultimately have "u\<^sub>1 = t\<^sub>2"
-      using term_subst.ball_eq_constant_if_unifier[of "{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}" _ \<mu>]
-      using \<open>is_ground_trm t\<^sub>2\<close> \<open>is_ground_trm u\<^sub>1\<close> by auto
 
+    then have "term_subst.is_ground_set {u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}" 
+      by (metis (no_types, opaque_lifting) bot_eq_sup_iff empty_iff insert_iff is_ground_cls_gcls 
+            term_subst.is_ground_def term_subst.is_ground_set_def vars_atm_make_uprod 
+            vars_cls_add_mset vars_lit_Neg vars_lit_Pos vars_term_ctxt_apply)
+    moreover have "term_subst.is_unifier \<mu> {u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}"
+      by (meson local.superpositionI(10) singletonI term_subst.is_imgu_def 
+            term_subst.is_unifiers_def)
+    ultimately have "u\<^sub>1 = t\<^sub>2"
+      by (metis basic_substitution_ops.ball_eq_constant_if_unifier finite.simps insertI1 
+            insert_subset local.superpositionI(1) local.superpositionI(2) subset_insertI 
+            term_subst.is_ground_set_def term_subst.is_renaming_def term_subst.subst_comp_subst 
+            term_subst.subst_id_subst term_subst.subst_ident_if_ground)
+
+    obtain \<P>' where \<P>': "\<P>' = (\<lambda>x. glit_lit (\<P> (map_uprod term_of_gterm x)))"
+      by simp
+
+    have \<P>'_pos_or_neg:  "\<P>' = Neg \<or> \<P>' = Pos"
+      using superpositionI(6)
+      unfolding \<P>' glit_lit_def
+      by(auto simp: map_uprod_inverse)
+                              
     show ?thesis
     proof (rule G.ground_superpositionI)
-      show "gcls_cls P1 = add_mset (glit_lit L\<^sub>1) (gcls_cls P\<^sub>1')"
-        using \<open>P1 = add_mset L\<^sub>1 P\<^sub>1'\<close>
-        by (simp add: gcls_cls_def)
+      show "P1 = add_mset (glit_lit L\<^sub>1) (gcls_cls P\<^sub>1')"
+        by (metis cls_gcls_inverse gcls_cls_def image_mset_add_mset local.superpositionI(4))
     next
-      show "gcls_cls P2 = add_mset (glit_lit L\<^sub>2) (gcls_cls P\<^sub>2')"
-        using \<open>P2 = add_mset L\<^sub>2 P\<^sub>2'\<close> 
-        by (simp add: gcls_cls_def)
+      show "P2 = add_mset (glit_lit L\<^sub>2) (gcls_cls P\<^sub>2')"
+        by (metis cls_gcls_inverse gcls_cls_def image_mset_add_mset local.superpositionI(5))
     next
-      show "G.less_cls (gcls_cls P2) (gcls_cls P1)"
-        sorry
+      show "P2 \<prec>\<^sub>c\<^sub>G P1"
+        using superpositionI(11)
+        by (metis G.totalp_less_cls is_ground_cls_gcls less_gcls_implies_less_cls reflclp_iff 
+              subst_cls_ident_if_is_ground_cls totalpD)
+    next
+      show "\<P>' \<in> {Pos, Neg}"
+        using superpositionI(6) \<P>'_pos_or_neg
+        by blast
     next 
-      show "\<P> \<in> {Pos, Neg}" sorry
-        (* using \<open>\<P> \<in> {Pos, Neg}\<close> *)
+      show "glit_lit L\<^sub>1 = \<P>' (Upair (gctxt_of_ctxt s\<^sub>1)\<langle>gterm_of_term u\<^sub>1\<rangle>\<^sub>G (gterm_of_term s\<^sub>1'))"
+        unfolding \<P>'
+        by (metis ground_ctxt_apply ground_gctxt_of_ctxt_apply ground_term_of_gterm 
+              gterm_of_term_ident_if_ground is_ground_cls_gcls local.superpositionI(12) 
+              local.superpositionI(4) local.superpositionI(7) map_uprod_simps sup_eq_bot_iff 
+              vars_atm_make_uprod vars_cls_add_mset vars_lit_Neg vars_lit_Pos)
     next
-      show "L\<^sub>1 = \<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')"
-        using \<open>L\<^sub>1 = \<P> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1')\<close> .
+      show "glit_lit L\<^sub>2 = gterm_of_term u\<^sub>1 \<approx> gterm_of_term t\<^sub>2'"
+        by (simp add: \<open>u\<^sub>1 = t\<^sub>2\<close> glit_lit_def local.superpositionI(8))
     next
-      show "L\<^sub>2 = Pos (u\<^sub>1 \<approx> t\<^sub>2')"
-        using \<open>L\<^sub>2 = Pos (t\<^sub>2 \<approx> t\<^sub>2')\<close> \<open>u\<^sub>1 = t\<^sub>2\<close> by argo
+      show "gterm_of_term s\<^sub>1' \<prec>\<^sub>t\<^sub>G (gctxt_of_ctxt s\<^sub>1)\<langle>gterm_of_term u\<^sub>1\<rangle>\<^sub>G"
+        by (smt (verit, ccfv_threshold) bot_eq_sup_iff ctxt_of_gctxt_apply_gterm gctxt_of_ctxt_inv 
+              ground_ctxt_apply ground_term_of_gterm gterm_of_term_ident_if_ground 
+              is_ground_cls_gcls is_ground_lit_if_in_ground_cls less_term_less_gterm literal.sel(1) 
+              local.superpositionI(12) local.superpositionI(15) local.superpositionI(4) 
+              local.superpositionI(7) sup2CI term_subst.is_ground_def totalpD totalp_less_gterm 
+              union_single_eq_member vars_atm_make_uprod vars_lit_Neg vars_lit_def)
     next
-      from ground_P1 ground_P2 have "\<not> (P1 \<preceq>\<^sub>c P2)"
-        using \<open>\<not> (P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)\<close> by simp
-      with ground_P1 ground_P2 show "P2 \<prec>\<^sub>c P1"
-        by (metis (mono_tags, lifting) mem_Collect_eq reflclp_iff totalp_on_def totalp_on_less_cls)
-    next
-      from ground_P1 show "\<P> = Pos \<and> select P1 = {#} \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= L\<^sub>1 P1 \<or>
-        \<P> = Neg \<and> (select P1 = {#} \<and> is_maximal_lit L\<^sub>1 P1 \<or> L\<^sub>1 \<in># select P1)"
-        using \<open>\<P> = Pos \<and> select P1 = {#} \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or>
-          \<P> = Neg \<and> (select P1 = {#} \<and> is_maximal_lit (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or>
-            L\<^sub>1 \<in># select P1)\<close>
-        using \<open>is_ground_lit L\<^sub>1\<close> by simp
-    next
-      show "select P2 = {#}"
-        using \<open>select P2 = {#}\<close> .
-    next
-      from ground_P2 show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= L\<^sub>2 P2"
-        using \<open>is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)\<close> \<open>is_ground_lit L\<^sub>2\<close> by simp
-    next
-      have "\<not> s\<^sub>1\<langle>u\<^sub>1\<rangle> \<preceq>\<^sub>t s\<^sub>1'"
-        using \<open>is_ground_trm s\<^sub>1\<langle>u\<^sub>1\<rangle>\<close> \<open>is_ground_trm s\<^sub>1'\<close> \<open>\<not> s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>\<close> by simp
-      thus "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1\<langle>u\<^sub>1\<rangle>"
-        using \<open>is_ground_trm s\<^sub>1\<langle>u\<^sub>1\<rangle>\<close> \<open>is_ground_trm s\<^sub>1'\<close> totalp_less_trm
-        by (metis (mono_tags, lifting) mem_Collect_eq sup2CI totalp_onD)
-    next
-      have "\<not> t\<^sub>2 \<preceq>\<^sub>t t\<^sub>2'"
-        using \<open>is_ground_trm t\<^sub>2\<close> \<open>is_ground_trm t\<^sub>2'\<close> \<open>\<not> t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>\<close> by simp
-      thus "t\<^sub>2' \<prec>\<^sub>t u\<^sub>1"
-        using \<open>is_ground_trm t\<^sub>2\<close> \<open>is_ground_trm t\<^sub>2'\<close> \<open>u\<^sub>1 = t\<^sub>2\<close> totalp_less_trm
-        by (metis (mono_tags, lifting) CollectI reflclp_iff totalp_onD)
-    next
-      show "C = add_mset (\<P> (s\<^sub>1\<langle>t\<^sub>2'\<rangle> \<approx> s\<^sub>1')) (P\<^sub>1' + P\<^sub>2')"
-        using \<open>C = add_mset (\<P> ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> \<approx> s\<^sub>1' \<cdot>t \<rho>\<^sub>1)) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu>\<close>
-          \<open>is_ground_trm_ctxt s\<^sub>1\<close> \<open>is_ground_trm t\<^sub>2'\<close> \<open>is_ground_trm s\<^sub>1'\<close> \<open>is_ground_cls P\<^sub>1'\<close>
-          \<open>is_ground_cls P\<^sub>2'\<close> \<open>\<P> \<in> {Pos, Neg}\<close>
-        by auto
+      show "gterm_of_term t\<^sub>2' \<prec>\<^sub>t\<^sub>G gterm_of_term u\<^sub>1"
+        by (metis \<open>u\<^sub>1 = t\<^sub>2\<close> gterm_of_term_ident_if_ground is_ground_cls_gcls less_gterm_less_term 
+              local.superpositionI(16) local.superpositionI(5) local.superpositionI(8) 
+              reflclp_iff sup_eq_bot_iff term_subst.subst_ident_if_ground totalpD totalp_less_gterm 
+              vars_atm_make_uprod vars_cls_add_mset)
+    next 
+      have totalp_ground: "totalp_on (set_mset (cls_gcls P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)) (\<prec>\<^sub>l)"
+        using totalp_less_cls
+        by (metis cls_gcls_def is_ground_cls_gcls multiset.set_map subst_cls_ident_if_is_ground_cls totalp_less_lit)
+
+      show "\<P>' = Pos \<and> select\<^sub>G P1 = {#} \<and> G.is_strictly_maximal_lit (glit_lit L\<^sub>1) P1 
+          \<or> \<P>' = Neg 
+              \<and> (select\<^sub>G P1 = {#} \<and> G.is_maximal_lit (glit_lit L\<^sub>1) P1 \<or> glit_lit L\<^sub>1 \<in># select\<^sub>G P1)"
+        using \<P>'_pos_or_neg is_strictly_maximal_lit_is_strictly_maximal_glit local.superpositionI(12)
+        unfolding glit_lit_def select\<^sub>G_def
+        by (smt (z3) \<P>' cls_gcls_empty_mset cls_gcls_inverse gcls_cls_def glit_lit_def 
+              glit_lit_inverse image_mset_single image_mset_subseteq_mono is_ground_cls_gcls 
+              is_ground_lit_if_in_ground_cls is_maximal_lit_is_maximal_glit literal.distinct(1) 
+              literal.simps(10) literal.simps(9) local.superpositionI(4) single_subset_iff 
+              subst_cls_ident_if_is_ground_cls subst_lit_ident_if_is_ground_lit 
+              union_single_eq_member)
+    next 
+      show "select\<^sub>G P2 = {#}"
+        by (simp add: gcls_cls_def local.superpositionI(13) select\<^sub>G_def)
+    next 
+      have totalp: "totalp_on (set_mset (cls_gcls P2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)) (\<prec>\<^sub>l)"
+        unfolding totalp_on_def cls_gcls_def less_lit_def
+        by (metis G.totalp_on_less_lit cls_gcls_def glit_lit_inverse is_ground_cls_gcls 
+              is_ground_lit_if_in_ground_cls less_glit_implies_less_lit less_lit_def 
+              subst_cls_ident_if_is_ground_cls totalpD)
+
+      show "G.is_strictly_maximal_lit (glit_lit L\<^sub>2) P2"
+        using superpositionI(14)
+        using 
+            is_greatest_in_mset_wrt_iff[
+              of "cls_gcls P2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>" "(\<prec>\<^sub>l)" "L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>",
+              OF transp_less_lit[THEN transp_on_subset] asymp_less_lit[THEN asymp_on_subset] totalp
+            ]
+            is_maximal_in_mset_wrt_iff[of P2 "(\<prec>\<^sub>l\<^sub>G)" "glit_lit L\<^sub>2"]
+             less_lit_implies_less_glit
+        by (smt (verit, del_insts) G.asymp_on_less_lit G.totalp_on_less_lit G.transp_on_less_lit 
+              add_mset_remove_trivial add_mset_remove_trivial_If asymp_less_lit asymp_on_subset 
+              cls_gcls_def glit_lit_inverse image_mset_add_mset is_greatest_in_mset_wrt_iff 
+              is_ground_cls_gcls is_ground_lit_if_in_ground_cls 
+              is_maximal_in_mset_wrt_if_is_greatest_in_mset_wrt is_maximal_lit_is_maximal_glit 
+              local.superpositionI(5) subset_UNIV subst_cls_ident_if_is_ground_cls 
+              subst_lit_ident_if_is_ground_lit totalp transp_less_lit transp_on_subset 
+              union_single_eq_member)
+    next 
+      show "C = add_mset 
+                  (\<P>' (Upair (gctxt_of_ctxt s\<^sub>1)\<langle>gterm_of_term t\<^sub>2'\<rangle>\<^sub>G (gterm_of_term s\<^sub>1'))) 
+                  (gcls_cls P\<^sub>1' + gcls_cls P\<^sub>2')"
+        unfolding \<P>'
+        by (smt (verit) cls_gcls_inverse gcls_cls_def ground_ctxt_apply ground_gctxt_of_ctxt_apply 
+              ground_term_of_gterm gterm_of_term_ident_if_ground image_mset_add_mset 
+              image_mset_union is_ground_cls_gcls local.superpositionI(12) local.superpositionI(17) 
+              local.superpositionI(4) local.superpositionI(5) local.superpositionI(7) 
+              local.superpositionI(8) map_uprod_simps subst_cls_ident_if_is_ground_cls 
+              subst_trm_ctxt_ident_if_is_ground_trm_ctxt sup_eq_bot_iff 
+              term_subst.subst_ident_if_ground vars_atm_make_uprod vars_cls_add_mset 
+              vars_cls_plus vars_lit_Neg vars_lit_Pos vars_term_ctxt_apply)
     qed
   qed
 next
-  assume "ground_superposition P1 P2 C"
-  thus "superposition P1 P2 C"
-  proof (cases P1 P2 C rule: ground_superposition.cases)
+  assume "G.ground_superposition P1 P2 C"
+  thus "superposition (cls_gcls P1) (cls_gcls P2) (cls_gcls C)"
+  proof(cases rule: G.ground_superposition.cases)
     case (ground_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
-    with ground_P2 have "is_ground_trm t"
-      by force
+
+    obtain \<P>' :: "('f, 'v) term uprod \<Rightarrow> ('f, 'v) term uprod literal" 
+      where  \<P>': "\<P>' = (if \<P> = Pos then Pos else Neg)"
+      by simp
+
+    have \<P>'_pos_or_neg: "\<P>' = Neg \<or> \<P>' = Pos"
+      using ground_superpositionI(4)
+      unfolding \<P>' lit_glit_def
+      by simp
+
     show ?thesis
-    proof (rule superpositionI)
-      from ground_P1 ground_P2 show "vars_cls (P1 \<cdot> Var) \<inter> vars_cls (P2 \<cdot> Var) = {}"
+    proof(rule superpositionI)
+      show "term_subst.is_renaming Var"
         by simp
     next
-      show "P1 = add_mset L\<^sub>1 P\<^sub>1'"
-        using \<open>P1 = add_mset L\<^sub>1 P\<^sub>1'\<close> .
-    next
-      show "P2 = add_mset L\<^sub>2 P\<^sub>2'"
-        using \<open>P2 = add_mset L\<^sub>2 P\<^sub>2'\<close> .
-    next
-      show "\<P> \<in> {Pos, Neg}"
-        using \<open>\<P> \<in> {Pos, Neg}\<close> .
-    next
-      show "L\<^sub>1 = \<P> (s\<langle>t\<rangle> \<approx> s')"
-        using \<open>L\<^sub>1 = \<P> (s\<langle>t\<rangle> \<approx> s')\<close> .
-    next
-      show "L\<^sub>2 = Pos (t \<approx> t')"
-        using \<open>L\<^sub>2 = Pos (t \<approx> t')\<close> .
-    next
-      show "is_Fun t"
-        using \<open>is_ground_trm t\<close> by auto
-    next
-      show "\<not> (P1 \<cdot> Var \<cdot> Var \<preceq>\<^sub>c P2 \<cdot> Var \<cdot> Var)"
-        using \<open>P2 \<prec>\<^sub>c P1\<close>
-        by (metis asympD asymp_less_cls strict_reflclp_conv subst_cls_Var_ident)
-    next
-      show "\<P> = Pos \<and> select P1 = {#} \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (L\<^sub>1 \<cdot>l Var \<cdot>l Var) (P1 \<cdot> Var \<cdot> Var) \<or>
-        \<P> = Neg \<and> (select P1 = {#} \<and> is_maximal_lit (L\<^sub>1 \<cdot>l Var \<cdot>l Var) (P1 \<cdot> Var \<cdot> Var) \<or>
-          L\<^sub>1 \<in># select P1)"
-        using \<open>\<P> = Pos \<and> select P1 = {#} \<and> is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= L\<^sub>1 P1 \<or>
-          \<P> = Neg \<and> (select P1 = {#} \<and> is_maximal_lit L\<^sub>1 P1 \<or> L\<^sub>1 \<in># select P1)\<close>
+      show "term_subst.is_renaming Var"
         by simp
     next
-      show "select P2 = {#}"
-        using \<open>select P2 = {#}\<close> .
+      show "vars_cls (cls_gcls P1 \<cdot> Var) \<inter> vars_cls (cls_gcls P2 \<cdot> Var) = {}"
+        by simp
     next
-      show "is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= (L\<^sub>2 \<cdot>l Var \<cdot>l Var) (P2 \<cdot> Var \<cdot> Var)"
-        using \<open>is_maximal_wrt (\<prec>\<^sub>l)\<^sup>=\<^sup>= L\<^sub>2 P2\<close> by simp
+      show "cls_gcls P1 = add_mset (lit_glit L\<^sub>1) (cls_gcls P\<^sub>1')"
+        by (simp add: cls_gcls_def ground_superpositionI(1))
     next
-      show "\<not> s\<langle>t\<rangle> \<cdot>t Var \<cdot>t Var \<preceq>\<^sub>t s' \<cdot>t Var \<cdot>t Var"
-        using \<open>s' \<prec>\<^sub>t s\<langle>t\<rangle>\<close>
-        by (metis asympD asymp_less_trm strict_reflclp_conv term_subst.subst_id_subst)
+      show "cls_gcls P2 = add_mset (lit_glit L\<^sub>2) (cls_gcls P\<^sub>2')"
+        by (simp add: cls_gcls_def ground_superpositionI(2))
     next
-      show "\<not> t \<cdot>t Var \<cdot>t Var \<preceq>\<^sub>t t' \<cdot>t Var \<cdot>t Var"
-        using \<open>t' \<prec>\<^sub>t t\<close>
-        by (metis asympD asymp_less_trm strict_reflclp_conv term_subst.subst_id_subst)
+      show "\<P>' \<in> {Pos, Neg}"
+        using \<P>'_pos_or_neg by auto
     next
-      show "C = add_mset (\<P> ((s \<cdot>t\<^sub>c Var)\<langle>t' \<cdot>t Var\<rangle> \<approx> s' \<cdot>t Var)) (P\<^sub>1' \<cdot> Var + P\<^sub>2' \<cdot> Var) \<cdot> Var"
-        using \<open>C = add_mset (\<P> (s\<langle>t'\<rangle> \<approx> s')) (P\<^sub>1' + P\<^sub>2')\<close> by simp
-    qed simp_all
+      show "lit_glit L\<^sub>1 = \<P>' (Upair (ctxt_of_gctxt s) \<langle>term_of_gterm t\<rangle> (term_of_gterm s'))"
+        using ground_superpositionI(5)
+        by (metis (mono_tags, lifting) \<P>' ctxt_of_gctxt_inv ground_ctxt_of_gctxt 
+              ground_gctxt_of_ctxt_apply_gterm ground_superpositionI(9) lit_glit_def 
+              literal.simps(10) literal.simps(9) map_uprod_simps)
+    next
+      show "lit_glit L\<^sub>2 = (term_of_gterm t) \<approx> (term_of_gterm t')"
+        by (simp add: ground_superpositionI(6) lit_glit_def)
+    next 
+      show "is_Fun (term_of_gterm t)"
+        by(rule gterm_is_fun)
+    next
+      show "term_subst.is_imgu Var {{term_of_gterm t \<cdot>t Var, term_of_gterm t \<cdot>t Var}}"
+        by simp
+    next
+      show " \<not> (\<prec>\<^sub>c)\<^sup>=\<^sup>= (cls_gcls P1 \<cdot> Var \<cdot> Var) (cls_gcls P2 \<cdot> Var \<cdot> Var)"
+        by (metis asympD asymp_less_cls ground_superpositionI(3) less_gcls_implies_less_cls 
+              reflclp_iff subst_cls_Var_ident)
+    next 
+      show 
+          "\<P>' = Pos 
+            \<and> select (cls_gcls P1) = {#} 
+            \<and> is_strictly_maximal_lit (lit_glit L\<^sub>1 \<cdot>l Var \<cdot>l Var) (cls_gcls P1 \<cdot> Var \<cdot> Var) 
+         \<or> \<P>' = Neg 
+            \<and> (select (cls_gcls P1) = {#} 
+            \<and> is_maximal_lit (lit_glit L\<^sub>1 \<cdot>l Var \<cdot>l Var) (cls_gcls P1 \<cdot> Var \<cdot> Var) 
+            \<or> lit_glit L\<^sub>1 \<in># select (cls_gcls P1))"
+        using is_strictly_maximal_glit_is_strictly_maximal_lit
+        by (metis \<P>' cls_gcls_def cls_gcls_empty_mset gcls_cls_inverse ground_superpositionI(9) 
+              image_mset_of_subset is_ground_cls_gcls is_maximal_glit_is_maximal_lit 
+              lit_glit_cls_gcls literal.distinct(1) select\<^sub>G_def select_subset subst_cls_Var_ident 
+              subst_lit_Var_ident)
+    next
+      show "select (cls_gcls P2) = {#}"
+        by (metis gcls_cls_def ground_superpositionI(10) image_mset_is_empty_iff select\<^sub>G_def)
+    next
+      show "is_strictly_maximal_lit (lit_glit L\<^sub>2 \<cdot>l Var \<cdot>l Var) (cls_gcls P2 \<cdot> Var \<cdot> Var)"
+        by (smt (verit) G.totalp_on_less_lit G.transp_on_less_lit add_mset_remove_trivial asympD 
+              asymp_less_lit asymp_on_def cls_gcls_def ground_superpositionI(11) 
+              ground_superpositionI(2) image_iff image_mset_add_mset is_greatest_in_mset_wrt_iff 
+              less_glit_implies_less_lit multiset.set_map subst_cls_Var_ident subst_lit_Var_ident 
+              totalp_less_lit transpE transp_less_lit transp_onI)
+    next
+      show "\<not> (ctxt_of_gctxt s)\<langle>term_of_gterm t\<rangle> \<cdot>t Var \<cdot>t Var \<preceq>\<^sub>t term_of_gterm s' \<cdot>t Var \<cdot>t Var"
+        by (metis asympD asymp_less_gterm ctxt_of_gctxt_inv ground_ctxt_of_gctxt 
+              ground_gctxt_of_ctxt_apply_gterm ground_superpositionI(7) less_gterm_less_term 
+              reflclp_iff term_subst.subst_id_subst)
+    next
+      show "\<not> term_of_gterm t \<cdot>t Var \<cdot>t Var \<preceq>\<^sub>t term_of_gterm t' \<cdot>t Var \<cdot>t Var"
+        by (metis asympD asymp_less_term ground_superpositionI(8) less_gterm_less_term reflclp_iff 
+              term_subst.subst_id_subst)
+    next
+      show "cls_gcls C = add_mset 
+            (\<P>' (Upair (ctxt_of_gctxt s \<cdot>t\<^sub>c Var)\<langle>term_of_gterm t' \<cdot>t Var\<rangle> (term_of_gterm s' \<cdot>t Var))) 
+              (cls_gcls P\<^sub>1' \<cdot> Var + cls_gcls P\<^sub>2' \<cdot> Var) \<cdot> Var"
+        by (smt (verit) \<P>' cls_gcls_def ctxt_of_gctxt_apply ground_ctxt_of_gctxt 
+              ground_gctxt_of_ctxt_apply_gterm ground_superpositionI(12) ground_superpositionI(9) 
+              image_mset_add_mset image_mset_union lit_glit_def literal.simps(10) literal.simps(9) 
+              map_uprod_simps subst_apply_term_ctxt_apply_distrib subst_cls_Var_ident 
+              term_of_gterm_inv term_subst.subst_id_subst)
+    qed  
   qed
 qed
 
