@@ -1,4 +1,4 @@
-theory Proof_Assistant imports Q0 begin
+theory Proof_Assistant imports "../Q0" begin
 
 (* Experiment:
    Can we make a proof assistant in the style of FOL_Harrison/SPA?

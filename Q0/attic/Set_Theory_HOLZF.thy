@@ -1,4 +1,4 @@
-theory Set_Theory_HOLZF imports Set_Theory begin
+theory Set_Theory_HOLZF imports "../Set_Theory" begin
 
 (* We prove that our specification lives up to the axioms in MainZF.
    The axioms are copied here.

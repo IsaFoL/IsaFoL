@@ -1,7 +1,44 @@
 theory Set_Theory imports Main begin
+(*
+
+CakeML Copyright Notice, License, and Disclaimer.
+
+Copyright 2013-2023 by Anthony Fox, Google LLC, Ramana Kumar, Magnus Myreen,
+Michael Norrish, Scott Owens, Yong Kiam Tan, and other contributors listed
+at https://cakeml.org
+
+All rights reserved.
+
+CakeML is free software. Redistribution and use in source and binary forms,
+with or without modification, are permitted provided that the following
+conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+
+    * The names of the copyright holders and contributors may not be
+      used to endorse or promote products derived from this software without
+      specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*)
 
 (*
-  This is the set theory from 
+  This formal document is the set theory from 
   https://github.com/CakeML/cakeml/blob/master/candle/set-theory/setSpecScript.sml
   ported to Isabelle/HOL and extended.
 *)
@@ -136,8 +173,8 @@ definition funspace where
      (\<lambda>f. \<forall>a. a \<in>: x \<longrightarrow> (\<exists>!b. (a,:b) \<in>: f)))"
 
 (* Corresponds to CakeML's constant apply *)
-definition "apply" :: "'s \<Rightarrow> 's \<Rightarrow> 's" ("_\<langle>_\<rangle>" [68,68] 68) where
-  "(x\<langle>y\<rangle>) = (SOME a. (y,:a) \<in>: x)"
+definition "apply" :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<cdot>" 68) where
+  "(x\<cdot>y) = (SOME a. (y,:a) \<in>: x)"
 
 (* Corresponds to CakeML's overloading of boolset *)
 definition boolset where
@@ -176,7 +213,7 @@ lemma boolean_eq_true:
   using boolean_def true_neq_false by auto
 
 (* Corresponds to CakeML's constant holds *)
-definition "holds s x \<longleftrightarrow> s\<langle>x\<rangle> = true"
+definition "holds s x \<longleftrightarrow> s \<cdot> x = true"
 
 (* Corresponds to CakeML's constant abstract *)
 definition abstract where
@@ -184,29 +221,29 @@ definition abstract where
 
 (* Corresponds to CakeML's theorem apply_abstract *)
 lemma apply_abstract[simp]:
-  "x \<in>: s \<Longrightarrow> f x \<in>: t \<Longrightarrow> (abstract s t f)\<langle>x\<rangle> = f x"
+  "x \<in>: s \<Longrightarrow> f x \<in>: t \<Longrightarrow> abstract s t f \<cdot> x = f x"
   using apply_def abstract_def pair_inj by auto
 
 (* Corresponds to CakeML's theorem apply_abstract_matchable *)
 lemma apply_abstract_matchable:
-  "x \<in>: s \<Longrightarrow> f x \<in>: t \<Longrightarrow> f x = u \<Longrightarrow> (abstract s t f)\<langle>x\<rangle> = u"
+  "x \<in>: s \<Longrightarrow> f x \<in>: t \<Longrightarrow> f x = u \<Longrightarrow> abstract s t f \<cdot> x = u"
   using apply_abstract by auto
 
 (* Corresponds to CakeML's theorem apply_in_rng *)
 lemma apply_in_rng:
   assumes "x \<in>: s"
   assumes "f \<in>: funspace s t"
-  shows "f\<langle>x\<rangle> \<in>: t"
+  shows "f \<cdot> x \<in>: t"
 proof -
   from assms have "f \<in>: (relspace s t suchthat (\<lambda>f. \<forall>a. a \<in>: s \<longrightarrow> (\<exists>!b. (a ,: b) \<in>: f)))"
     unfolding funspace_def by auto
   then have f_p: "f \<in>: relspace s t \<and> (\<forall>a. a \<in>: s \<longrightarrow> (\<exists>!b. (a ,: b) \<in>: f))"
     by auto
-  then have fxf: "(x ,: f\<langle>x\<rangle>) \<in>: f"
+  then have fxf: "(x ,: f \<cdot> x) \<in>: f"
     using someI assms apply_def by metis
   from f_p have "f \<in>: pow (s \<times>: t)"
     unfolding relspace_def by auto
-  then have "(x ,: f\<langle>x\<rangle>) \<in>: (s \<times>: t)"
+  then have "(x ,: f \<cdot> x) \<in>: (s \<times>: t)"
     using fxf by auto
   then show ?thesis
     using pair_inj by auto
@@ -266,10 +303,10 @@ lemma abstract_cong_specific:
   assumes "g x \<in>: t"
   shows "f x = g x"
 proof -
-  have "f x = (abstract s t f)\<langle>x\<rangle>"
+  have "f x = abstract s t f \<cdot> x"
     using apply_abstract[of x s f t]
     using assms by auto
-  also have "... = abstract s t g\<langle>x\<rangle>"
+  also have "... = abstract s t g \<cdot> x"
     using assms by auto
   also have "... = g x"
     using apply_abstract[of x s g t]
@@ -335,12 +372,12 @@ qed
 (* Corresponds to CakeML's theorem axiom_of_choice *)
 theorem axiom_of_choice:
   assumes "\<forall>a. a \<in>: x \<longrightarrow> (\<exists>b. b \<in>: a)"
-  shows "\<exists>f. \<forall>a. a \<in>: x \<longrightarrow> (f\<langle>a\<rangle>) \<in>: a"
+  shows "\<exists>f. \<forall>a. a \<in>: x \<longrightarrow> f \<cdot> a \<in>: a"
 proof -
   define f where "f = (\<lambda>a. SOME b. mem b a)"
   define fa where "fa = abstract x (uni x) f"
 
-  have "\<forall>a. a \<in>: x \<longrightarrow> (fa\<langle>a\<rangle>) \<in>: a"
+  have "\<forall>a. a \<in>: x \<longrightarrow> fa \<cdot> a \<in>: a"
   proof (rule, rule)
     fix a
     assume "a \<in>: x"
@@ -351,7 +388,7 @@ proof -
     have "f a \<in>: a"
       using assms calculation(1) f_def someI_ex by force
     ultimately
-    show "(fa\<langle>a\<rangle>) \<in>: a"
+    show "fa \<cdot> a \<in>: a"
       unfolding fa_def using apply_abstract by auto
   qed
   then show ?thesis
@@ -444,21 +481,21 @@ definition iden :: "'s \<Rightarrow> 's" where
 lemma apply_id[simp]:
   assumes A_in_D: "A \<in>: D"
   assumes B_in_D: "B \<in>: D"
-  shows "(iden D)\<langle>A\<rangle>\<langle>B\<rangle> = boolean (A = B)"
+  shows "iden D \<cdot> A \<cdot> B = boolean (A = B)"
 proof -
   have abstract_D: "abstract D boolset (\<lambda>y. boolean (A = y)) \<in>: funspace D boolset"
     using boolean_in_boolset by auto
   have bool_in_two: "boolean (A = B) \<in>: boolset"
     using boolean_in_boolset by blast
-  have "(boolean (A = B)) = (abstract D boolset (\<lambda>y. boolean (A = y))\<langle>B\<rangle>)"
+  have "(boolean (A = B)) = (abstract D boolset (\<lambda>y. boolean (A = y)) \<cdot> B)"
     using apply_abstract[of B D "\<lambda>y. boolean (A = y)" two] B_in_D bool_in_two by auto
   also
-  have "... = (abstract D (funspace D boolset) (\<lambda>x. abstract D boolset (\<lambda>y. boolean (x = y))))\<langle>A\<rangle>\<langle>B\<rangle>" 
+  have "... = (abstract D (funspace D boolset) (\<lambda>x. abstract D boolset (\<lambda>y. boolean (x = y))) \<cdot> A) \<cdot> B" 
     using A_in_D abstract_D 
       apply_abstract[of A D "(\<lambda>x. abstract D boolset (\<lambda>y. boolean (x = y)))" "(funspace D boolset)"]
     by auto 
   also
-  have "... = (iden D)\<langle>A\<rangle>\<langle>B\<rangle> "
+  have "... = iden D \<cdot> A \<cdot> B"
     unfolding iden_def ..
   finally
   show ?thesis
@@ -468,7 +505,7 @@ qed
 lemma apply_id_true[simp]:
   assumes A_in_D: "A \<in>: D"
   assumes B_in_D: "B \<in>: D"
-  shows "(iden D)\<langle>A\<rangle>\<langle>B\<rangle> = true \<longleftrightarrow> A = B"
+  shows "iden D \<cdot> A \<cdot> B = true \<longleftrightarrow> A = B"
   using assms using boolean_def using true_neq_false by auto
 
 definition one_elem_fun :: "'s \<Rightarrow> 's \<Rightarrow> 's" where
@@ -477,7 +514,7 @@ definition one_elem_fun :: "'s \<Rightarrow> 's \<Rightarrow> 's" where
 lemma apply_if_pair_in:
   assumes "(a1,: a2) \<in>: f"
   assumes "f \<in>: funspace s t"
-  shows "f\<langle>a1\<rangle> = a2"
+  shows "f \<cdot> a1 = a2"
   using assms
   by (smt abstract_def apply_abstract mem_product pair_inj set_theory.in_funspace_abstract 
       set_theory.mem_sub set_theory_axioms)
@@ -492,7 +529,7 @@ lemma funspace_app_unique:
 lemma funspace_extensional:
   assumes "f \<in>: funspace s t"
   assumes "g \<in>: funspace s t"
-  assumes "\<forall>x. x \<in>: s \<longrightarrow> f\<langle>x\<rangle> = g\<langle>x\<rangle>"
+  assumes "\<forall>x. x \<in>: s \<longrightarrow> f \<cdot> x = g \<cdot> x"
   shows "f = g"
 proof -
   have "\<And>a. a \<in>: f \<Longrightarrow> a \<in>: g"
