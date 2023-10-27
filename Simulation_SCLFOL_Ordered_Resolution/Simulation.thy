@@ -770,6 +770,436 @@ proof -
 qed
 
 
+subsection \<open>More explicit strategy for model-driven ground ordered resolution\<close>
+
+
+lemma mempty_lesseq_cls[simp]: "{#} \<preceq>\<^sub>c C" for C
+  by (cases C) (simp_all add: subset_implies_multp)
+
+fun learned where
+  "learned (U, \<I>, C) = U"
+
+fun interp where
+  "interp (U, \<I>, C) = \<I>"
+
+fun interp_upto where
+  "interp_upto (U, \<I>, C) = C"
+
+inductive ord_res_strategy for N where
+  expand_modelI: "
+    fset \<I> \<union> ord_res.production (fset (N |\<union>| U)) C \<TTurnstile> C \<Longrightarrow>
+    linorder_cls.is_least_in_fset {|D |\<in>| N |\<union>| U. C \<prec>\<^sub>c D|} D \<Longrightarrow>
+    ord_res_strategy N (U, \<I>, C) (U, \<I> |\<union>| Abs_fset (ord_res.production (fset (N |\<union>| U)) C), D)" |
+
+  factoringI: "
+    \<not> fset \<I> \<union> ord_res.production (fset (N |\<union>| U)) C \<TTurnstile> C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    is_pos L \<Longrightarrow>
+    ord_res.ground_factoring C C' \<Longrightarrow>
+    linorder_cls.is_least_in_fset (N |\<union>| finsert C' U) D \<Longrightarrow>
+    ord_res_strategy N (U, \<I>, C) (finsert C' U, {||}, D)" |
+
+  resolution: "
+    \<not> fset \<I> \<union> ord_res.production (fset (N |\<union>| U)) C \<TTurnstile> C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    is_neg L \<Longrightarrow>
+    E |\<in>| N \<Longrightarrow>
+    E \<prec>\<^sub>c C \<Longrightarrow>
+    ord_res.production (fset (N |\<union>| U)) E = {atm_of L} \<Longrightarrow>
+    ord_res.ground_resolution C E CE \<Longrightarrow>
+    linorder_cls.is_least_in_fset (N |\<union>| finsert CE U) D \<Longrightarrow>
+    ord_res_strategy N (U, \<I>, C) (finsert CE U, {||}, D)"
+
+lemma right_unique_sup_iff:
+  assumes disj: "\<And>x. \<not> ((\<exists>y. R1 x y) \<and> (\<exists>y. R2 x y))"
+  shows "right_unique (R1 \<squnion> R2) \<longleftrightarrow> right_unique R1 \<and> right_unique R2"
+proof (rule iffI)
+  show "right_unique (R1 \<squnion> R2) \<Longrightarrow> right_unique R1 \<and> right_unique R2"
+    by (simp add: right_unique_def)
+next
+  from disj show "right_unique R1 \<and> right_unique R2 \<Longrightarrow> right_unique (R1 \<squnion> R2)"
+    by (metis right_unique_def sup2E)
+qed
+
+lemma right_unique_ord_res_strategy: "right_unique (ord_res_strategy N)"
+proof (rule right_uniqueI)
+  fix S S' S''
+  assume step1: "ord_res_strategy N S S'" and step2: "ord_res_strategy N S S''"
+  from step1 show "S' = S''"
+  proof (cases N S S' rule: ord_res_strategy.cases)
+    case hyps1: (expand_modelI \<I> U C D1)
+    from step2 show ?thesis
+      unfolding \<open>S = (U, \<I>, C)\<close>
+    proof (cases N "(U, \<I>, C)" S'' rule: ord_res_strategy.cases)
+      case (expand_modelI D2)
+      with hyps1 show ?thesis
+        by (metis Uniq_D linorder_cls.Uniq_is_least_in_fset)
+    next
+      case (factoringI L2 C2' D2)
+      with hyps1 show ?thesis
+        by argo
+    next
+      case (resolution L2 E2 CE2 D2)
+      with hyps1 show ?thesis
+        by argo
+    qed
+  next
+    case hyps1: (factoringI \<I> U C L1 C1' D1)
+    from step2 show ?thesis
+      unfolding \<open>S = (U, \<I>, C)\<close>
+    proof (cases N "(U, \<I>, C)" S'' rule: ord_res_strategy.cases)
+      case (expand_modelI D2)
+      with hyps1 show ?thesis
+        by argo
+    next
+      case (factoringI L2 C2' D2)
+      with hyps1 show ?thesis
+        by (metis Uniq_D linorder_cls.Uniq_is_least_in_fset ord_res.unique_ground_factoring)
+    next
+      case (resolution L2 E2 CE2 D2)
+      with hyps1 show ?thesis
+        by (metis linorder_lit.antisym_conv3 linorder_lit.is_maximal_in_mset_iff)
+    qed
+  next
+    case hyps1: (resolution \<I> U C L1 E1 CE1 D1)
+    from step2 show ?thesis
+      unfolding \<open>S = (U, \<I>, C)\<close>
+    proof (cases N "(U, \<I>, C)" S'' rule: ord_res_strategy.cases)
+      case (expand_modelI D2)
+      with hyps1 show ?thesis
+        by argo
+    next
+      case (factoringI L2 C2' D2)
+      with hyps1 show ?thesis
+        by (metis Uniq_D linorder_lit.Uniq_is_maximal_in_mset)
+    next
+      case (resolution L2 E2 CE2 D2)
+      with hyps1 show ?thesis
+        by (metis (mono_tags, lifting) linorder_cls.Uniq_is_least_in_fset
+            linorder_lit.Uniq_is_maximal_in_mset ord_res.Uniq_production_eq_singleton
+            ord_res.unique_ground_resolution the1_equality')
+    qed
+  qed
+qed
+
+definition ord_res_strategy_init where
+  "N \<noteq> {||} \<Longrightarrow> ord_res_strategy_init N = ({||}, {||}, The (linorder_cls.is_least_in_fset N))"
+
+lemma initial_state_interp_upto_fmember_clauses:
+  assumes "N \<noteq> {||}" 
+  shows "interp_upto (ord_res_strategy_init N) |\<in>| N |\<union>| learned (ord_res_strategy_init N)"
+proof -
+  from \<open>N \<noteq> {||}\<close> have "\<exists>!D. linorder_cls.is_least_in_fset N D"
+    using linorder_cls.ex1_least_in_fset by metis
+  thus ?thesis
+    unfolding ord_res_strategy_init_def[OF \<open>N \<noteq> {||}\<close>]
+    apply simp
+    by (metis linorder_cls.is_least_in_fset_iff theI')
+qed
+
+lemma ord_res_strategy_preserves_interp_upto_fmember_clauses:
+  assumes step: "ord_res_strategy N S S'"
+  shows "interp_upto S' |\<in>| N |\<union>| learned S'"
+  using step
+proof (cases N S S' rule: ord_res_strategy.cases)
+  case hyps: (expand_modelI \<I> U C D)
+  hence "D |\<in>| N |\<union>| U"
+    using linorder_cls.is_least_in_fset_ffilterD(1) by metis
+  thus ?thesis
+    unfolding hyps by simp
+next
+  case hyps: (factoringI \<I> U C L C' D)
+  hence "D |\<in>| N |\<union>| finsert C' U"
+    using linorder_cls.is_least_in_fset_iff by metis
+  thus ?thesis
+    unfolding hyps by simp
+next
+  case hyps: (resolution \<I> U C L E CE D)
+  hence "D |\<in>| N |\<union>| finsert CE U"
+    using linorder_cls.is_least_in_fset_iff by metis
+  thus ?thesis
+    unfolding hyps by simp
+qed
+
+lemma initial_state_interp_upto_eq_fempty_iff_fempty_in_clauses:
+  assumes "N \<noteq> {||}" 
+  shows "interp_upto (ord_res_strategy_init N) = {#} \<longleftrightarrow>
+    {#} |\<in>| N |\<union>| learned (ord_res_strategy_init N)"
+proof -
+  from \<open>N \<noteq> {||}\<close> obtain D where D_least: "linorder_cls.is_least_in_fset N D"
+    using linorder_cls.ex_least_in_fset by metis
+  moreover have "The (linorder_cls.is_least_in_fset N) = D"
+    using D_least linorder_cls.Uniq_is_least_in_fset
+    by (simp add: the1_equality')
+  ultimately show ?thesis
+    unfolding ord_res_strategy_init_def[OF \<open>N \<noteq> {||}\<close>]
+    apply simp
+    by (metis linorder_cls.is_least_in_fset_iff linorder_cls.less_le_not_le mempty_lesseq_cls)
+qed
+
+lemma ord_res_strategy_preserves_interp_upto_eq_fempty_iff_fempty_in_clauses:
+  assumes
+    step: "ord_res_strategy N S S'" and
+    invar: "interp_upto S = {#} \<longleftrightarrow> {#} |\<in>| N |\<union>| learned S"
+  shows "interp_upto S' = {#} \<longleftrightarrow> {#} |\<in>| N |\<union>| learned S'"
+  using step
+proof (cases N S S' rule: ord_res_strategy.cases)
+  case (expand_modelI \<I> C U D)
+  with invar show ?thesis
+    using linorder_cls.is_least_in_fset_iff by auto
+next
+  case (factoringI \<I> U C L C' D)
+  with invar show ?thesis
+    by (metis empty_iff fset_simps(2) funionE funionI1 funionI2 insertE interp_upto.simps
+        learned.simps linorder_cls.is_minimal_in_fset_eq_is_least_in_fset
+        linorder_cls.is_minimal_in_fset_iff ord_res.ground_factoring.simps set_mset_empty
+        union_single_eq_member)
+next
+  case hyps: (resolution \<I> U C L E CE D)
+  hence "C \<noteq> {#}"
+    using linorder_lit.is_maximal_in_mset_iff by force
+  with invar have "{#} |\<notin>| N |\<union>| U"
+    unfolding hyps by simp
+  then show ?thesis
+    unfolding hyps interp_upto.simps learned.simps
+    using mempty_lesseq_cls
+    apply simp
+    using \<open>linorder_cls.is_least_in_fset (N |\<union>| finsert CE U) D\<close>
+    by (metis finsert_iff funion_iff linorder_cls.dual_order.strict_trans
+        linorder_cls.is_least_in_fset_iff linorder_cls.less_irrefl)
+qed
+
+lemma initial_state_interp_correct:
+  assumes "N \<noteq> {||}" 
+  defines "init \<equiv> ord_res_strategy_init N"
+  shows "fset (interp init) = ord_res.interp (fset N) (interp_upto init)"
+proof -
+  from \<open>N \<noteq> {||}\<close> obtain D where D_least: "linorder_cls.is_least_in_fset N D"
+    using linorder_cls.ex_least_in_fset by metis
+  moreover have "The (linorder_cls.is_least_in_fset N) = D"
+    using D_least linorder_cls.Uniq_is_least_in_fset
+    by (simp add: the1_equality')
+  ultimately show ?thesis
+    unfolding init_def
+    unfolding ord_res_strategy_init_def[OF \<open>N \<noteq> {||}\<close>]
+    apply simp
+    using linorder_cls.is_minimal_in_fset_eq_is_least_in_fset linorder_cls.is_minimal_in_fset_iff
+      ord_res.interp_def by force
+qed
+
+lemma finite_ord_res_production[simp]: "finite (ord_res.production N C)"
+  by (metis finite.emptyI finite_insert ord_res.production_eq_empty_or_singleton)
+
+lemma ord_res_interp_eq_empty_if_least:
+  "linorder_cls.is_least_in_fset N C \<Longrightarrow> ord_res.interp (fset N) C = {}"
+  using linorder_cls.is_least_in_fset_iff ord_res.interp_def by auto
+
+lemma ord_res_strategy_preserves_interp_correct:
+  assumes
+    step: "ord_res_strategy N S S'" and
+    invars: "fset (interp S) = ord_res.interp (fset (N |\<union>| learned S)) (interp_upto S)"
+      "interp_upto S |\<in>| N |\<union>| learned S"
+  shows "fset (interp S') = ord_res.interp (fset (N |\<union>| learned S')) (interp_upto S')"
+  using step
+proof (cases N S S' rule: ord_res_strategy.cases)
+  case (expand_modelI \<I> U C D)
+
+  from invars(2-) have C_in: "C |\<in>| N |\<union>| U"
+    unfolding expand_modelI by simp
+
+  have "C \<prec>\<^sub>c D"
+    using linorder_cls.is_least_in_fset_ffilterD(2) expand_modelI(4) by blast
+
+  have "{E \<in> fset (N |\<union>| U). E \<prec>\<^sub>c D} = insert C {D \<in> fset (N |\<union>| U). D \<prec>\<^sub>c C}"
+  proof (intro subset_antisym subsetI)
+    show "\<And>x. x \<in> {E. E |\<in>| N |\<union>| U \<and> E \<prec>\<^sub>c D} \<Longrightarrow> x \<in> insert C {D. D |\<in>| N |\<union>| U \<and> D \<prec>\<^sub>c C}"
+      using \<open>C \<prec>\<^sub>c D\<close>
+      using linorder_cls.is_minimal_in_fset_eq_is_least_in_fset linorder_cls.is_minimal_in_fset_iff
+        linorder_cls.neq_iff local.expand_modelI(4) by force
+  next
+    fix x
+    assume "x \<in> insert C {D. D |\<in>| N |\<union>| U \<and> D \<prec>\<^sub>c C}"
+    hence "x = C \<or> x |\<in>| N |\<union>| U \<and> x \<prec>\<^sub>c C"
+      by simp
+    thus "x \<in> {E. E |\<in>| N |\<union>| U \<and> E \<prec>\<^sub>c D}"
+    proof (elim disjE)
+      assume "x = C"
+      thus ?thesis
+        using \<open>C \<prec>\<^sub>c D\<close> C_in by simp
+    next
+      assume "x |\<in>| N |\<union>| U \<and> x \<prec>\<^sub>c C"
+      then show ?thesis
+        using \<open>C \<prec>\<^sub>c D\<close> linorder_cls.less_trans by blast
+    qed
+  qed
+  hence "ord_res.interp (fset (N |\<union>| U)) C \<union> ord_res.production (fset (N |\<union>| U)) C =
+    ord_res.interp (fset (N |\<union>| U)) D"
+    unfolding ord_res.interp_def by auto
+  with invars(1) show ?thesis
+    unfolding expand_modelI by (simp add: Abs_fset_inverse)
+next
+  case (factoringI \<I> U C L C' D)
+  with invars(1) show ?thesis
+    unfolding factoringI using ord_res_interp_eq_empty_if_least by fastforce
+next
+  case (resolution \<I> U C L E CE D)
+  with invars(1) show ?thesis
+    unfolding factoringI using ord_res_interp_eq_empty_if_least by fastforce
+qed
+
+lemma interp_entails_clauses_lt_interp_upto:
+  assumes
+    step: "ord_res_strategy N S S'" and
+    invars:
+      "\<forall>C |\<in>| N |\<union>| learned S. C \<prec>\<^sub>c interp_upto S \<longrightarrow> fset (interp S) \<TTurnstile> C"
+      "fset (interp S) = ord_res.interp (fset (N |\<union>| learned S)) (interp_upto S)"
+      "interp_upto S |\<in>| N |\<union>| learned S"
+  shows "\<forall>C |\<in>| N |\<union>| learned S'. C \<prec>\<^sub>c interp_upto S' \<longrightarrow> fset (interp S') \<TTurnstile> C"
+  using step
+proof (cases N S S' rule: ord_res_strategy.cases)
+  case (expand_modelI \<I> U C D)
+
+  from invars(3) have C_in: "C |\<in>| N |\<union>| U"
+    unfolding expand_modelI by simp
+
+  show ?thesis
+  proof (intro ballI impI)
+    fix E
+    assume "E |\<in>| N |\<union>| local.learned S'" and "E \<prec>\<^sub>c interp_upto S'"
+    hence "E |\<in>| N |\<union>| U" and "E \<prec>\<^sub>c D"
+      unfolding expand_modelI by simp_all
+
+    have "ord_res.interp (fset (N |\<union>| U)) C \<union> ord_res.production (fset (N |\<union>| U)) C \<TTurnstile> E"
+      using invars(1)[unfolded expand_modelI interp.simps learned.simps interp_upto.simps,
+          rule_format, OF \<open>E |\<in>| N |\<union>| U\<close>]
+      unfolding invars(2)[unfolded expand_modelI interp.simps learned.simps interp_upto.simps]
+      using ord_res.lift_interp_entails_to_interp_production_entails[OF \<open>C |\<in>| N |\<union>| U\<close>
+          \<open>E |\<in>| N |\<union>| U\<close>]
+      by (metis \<open>E \<prec>\<^sub>c D\<close> \<open>E |\<in>| N |\<union>| U\<close> \<open>fset \<I> = ord_res.interp (fset (N |\<union>| U)) C\<close>
+          ffmember_filter linorder_cls.is_least_in_fset_iff linorder_cls.less_imp_triv
+          linorder_cls.neq_iff local.expand_modelI(3) local.expand_modelI(4))
+    thus "fset (interp S') \<TTurnstile> E"
+      unfolding expand_modelI interp.simps learned.simps interp_upto.simps union_fset
+      unfolding invars(2)[unfolded expand_modelI interp.simps learned.simps interp_upto.simps]
+      by (simp add: Abs_fset_inverse)
+  qed
+next
+  case (factoringI \<I> U C L C' D)
+  thus ?thesis
+    by (metis interp_upto.simps learned.simps linorder_cls.is_least_in_fset_iff
+        linorder_cls.less_asym')
+next
+  case (resolution \<I> U C L E CE D)
+  then show ?thesis
+    by (metis interp_upto.simps learned.simps linorder_cls.is_least_in_fset_iff
+        linorder_cls.less_asym')
+qed
+
+lemma interp_entails_clauses_lt_interp_upto':
+  assumes
+    step: "ord_res_strategy N S S'" and
+    invars:
+      "\<forall>C |\<in>| N |\<union>| learned S. C \<prec>\<^sub>c interp_upto S \<longrightarrow>
+        ord_res.interp (fset (N |\<union>| learned S)) C \<union>
+        ord_res.production (fset (N |\<union>| learned S)) C \<TTurnstile> C"
+      "fset (interp S) = ord_res.interp (fset (N |\<union>| learned S)) (interp_upto S)"
+  shows "\<forall>C |\<in>| N |\<union>| learned S'. C \<prec>\<^sub>c interp_upto S' \<longrightarrow>
+    ord_res.interp (fset (N |\<union>| learned S')) C \<union>
+    ord_res.production (fset (N |\<union>| learned S')) C \<TTurnstile> C"
+  using step
+proof (cases N S S' rule: ord_res_strategy.cases)
+  case (expand_modelI \<I> U C D)
+  then show ?thesis
+    by (metis (no_types, lifting) asympD ffmember_filter interp.simps invars(1) invars(2)
+        linorder_cls.antisym_conv3 linorder_cls.is_least_in_fset_iff ord_res.asymp_less_cls
+        interp_upto.simps learned.simps)
+next
+  case (factoringI \<I> U C L C' D)
+  then show ?thesis
+    by (metis interp_upto.simps learned.simps linorder_cls.is_least_in_fset_iff
+        linorder_cls.less_imp_triv)
+next
+  case (resolution \<I> U C L E CE D)
+  then show ?thesis
+    by (metis interp_upto.simps learned.simps linorder_cls.is_least_in_fset_iff
+        linorder_cls.less_imp_triv)
+qed
+
+lemma
+  assumes
+    step: "ord_res_strategy N S S'" and
+    invars:
+      "\<forall>C |\<in>| N |\<union>| learned S. C \<prec>\<^sub>c interp_upto S \<longrightarrow>
+        fset (interp S) \<union> ord_res.production (fset (N |\<union>| learned S)) (interp_upto S) \<TTurnstile> C"
+      "fset (interp S) = ord_res.interp (fset (N |\<union>| learned S)) (interp_upto S)"
+      "interp_upto S |\<in>| N |\<union>| learned S"
+  shows "\<forall>C |\<in>| N |\<union>| learned S'. C \<prec>\<^sub>c interp_upto S' \<longrightarrow>
+      fset (interp S') \<union> ord_res.production (fset (N |\<union>| learned S')) (interp_upto S') \<TTurnstile> C"
+  using step
+proof (cases N S S' rule: ord_res_strategy.cases)
+  case (expand_modelI \<I> U C D)
+
+  from invars(3) have C_in: "C |\<in>| N |\<union>| U"
+    unfolding expand_modelI by simp
+
+  show ?thesis
+  proof (intro ballI impI)
+    fix E
+    assume "E |\<in>| N |\<union>| local.learned S'" and "E \<prec>\<^sub>c interp_upto S'"
+    hence "E |\<in>| N |\<union>| U" and "E \<prec>\<^sub>c D"
+      unfolding expand_modelI by simp_all
+
+    have "ord_res.interp (fset (N |\<union>| U)) C \<union> ord_res.production (fset (N |\<union>| U)) C =
+      \<Union> (ord_res.production (fset (N |\<union>| U)) ` {D. D |\<in>| N |\<union>| U \<and> D \<prec>\<^sub>c C}) \<union>
+      ord_res.production (fset (N |\<union>| U)) C"
+      unfolding ord_res.interp_def ..
+    also have "\<dots> = \<Union> (ord_res.production (fset (N |\<union>| U)) ` insert C {D. D |\<in>| N |\<union>| U \<and> D \<prec>\<^sub>c C})"
+      by blast
+    also have "\<dots> = \<Union> (ord_res.production (fset (N |\<union>| U)) ` {x. x |\<in>| N |\<union>| U \<and> x \<prec>\<^sub>c D})"
+    proof -
+      have "insert C {D. D |\<in>| N |\<union>| U \<and> D \<prec>\<^sub>c C} = {D. D |\<in>| N |\<union>| U \<and> D \<preceq>\<^sub>c C}"
+        using C_in by blast
+      also have "\<dots> = {x. x |\<in>| N |\<union>| U \<and> x \<prec>\<^sub>c D}"
+        using \<open>linorder_cls.is_least_in_fset (ffilter ((\<prec>\<^sub>c) C) (N |\<union>| U)) D\<close>
+        by (metis (mono_tags, lifting) ffmember_filter linorder_cls.dual_order.strict_trans2
+            linorder_cls.is_minimal_in_fset_eq_is_least_in_fset linorder_cls.is_minimal_in_fset_iff
+            linorder_cls.leI linorder_cls.neq_iff)
+      finally show ?thesis
+        by argo
+    qed
+    also have "\<dots> = ord_res.interp (fset (N |\<union>| U)) D"
+      unfolding ord_res.interp_def ..
+    finally have AAA: "ord_res.interp (fset (N |\<union>| U)) C \<union> ord_res.production (fset (N |\<union>| U)) C =
+      ord_res.interp (fset (N |\<union>| U)) D " .
+
+    have "ord_res.interp (fset (N |\<union>| U)) C \<union> ord_res.production (fset (N |\<union>| U)) C \<union>
+      ord_res.production (fset (N |\<union>| U)) D \<TTurnstile> E"
+      using invars(1)[unfolded expand_modelI interp.simps learned.simps interp_upto.simps,
+          rule_format, OF \<open>E |\<in>| N |\<union>| U\<close>]
+      unfolding invars(2)[unfolded expand_modelI interp.simps learned.simps interp_upto.simps]
+      unfolding AAA
+      using ord_res.lift_interp_entails_to_interp_production_entails
+      by (metis AAA \<open>E \<prec>\<^sub>c D\<close> \<open>E |\<in>| N |\<union>| U\<close> \<open>fset \<I> = ord_res.interp (fset (N |\<union>| U)) C\<close>
+          ffmember_filter linorder_cls.is_least_in_fset_iff linorder_cls.less_imp_triv
+          linorder_cls.neq_iff local.expand_modelI(3) local.expand_modelI(4))
+    thus "fset (interp S') \<union> ord_res.production (fset (N |\<union>| local.learned S')) (interp_upto S') \<TTurnstile> E"
+      unfolding expand_modelI interp.simps learned.simps interp_upto.simps union_fset
+      unfolding invars(2)[unfolded expand_modelI interp.simps learned.simps interp_upto.simps]
+      by (simp add: Abs_fset_inverse)
+  qed
+next
+  case (factoringI \<I> U C L C' D)
+  thus ?thesis
+    by (metis interp_upto.simps learned.simps linorder_cls.is_least_in_fset_iff
+        linorder_cls.less_asym')
+next
+  case (resolution \<I> U C L E CE D)
+  then show ?thesis
+    by (metis interp_upto.simps learned.simps linorder_cls.is_least_in_fset_iff
+        linorder_cls.less_asym')
+qed
+
+
 subsection \<open>Strategy for resolution-driven SCL(FOL)\<close>
 
 definition sfac :: "'f gterm clause \<Rightarrow> 'f gterm clause" where
@@ -1922,20 +2352,214 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
 qed
 
 
+subsection \<open>Alternative strategy for resolution-driven SCL(FOL)\<close>
+
+inductive scl_reso_1 :: "'f gterm clause fset \<Rightarrow> ('f, 'v) SCL_FOL.state \<Rightarrow>
+  ('f, 'v) SCL_FOL.state \<Rightarrow> bool" for N where
+  scl_reso_1I: "
+    linorder_cls.is_least_in_fset {|C |\<in>| N. \<not> trail_true_cls \<Gamma> (cls_of_gcls C)|} C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    linorder_lit.is_minimal_in_mset {#K \<in># C. K \<noteq> L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit K\<^sub>g)#} K \<Longrightarrow>
+    scl_reso_1 N (\<Gamma>, U, None) (trail_decide \<Gamma> (lit_of_glit (- K)), U, None)"
+
+inductive scl_reso_2 :: "'f gterm clause fset \<Rightarrow> ('f, 'v) SCL_FOL.state \<Rightarrow>
+  ('f, 'v) SCL_FOL.state \<Rightarrow> bool" for N where
+  scl_reso_2I: "
+    linorder_cls.is_least_in_fset {|C |\<in>| N. \<not> trail_true_cls \<Gamma> (cls_of_gcls C)|} C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    scl_reso_2 N (\<Gamma>, U, None) (trail_decide \<Gamma> (lit_of_glit (- K)), U, None)"
+
+definition terminating_run where
+  "terminating_run R x y \<longleftrightarrow> R\<^sup>*\<^sup>* x y \<and> (\<nexists>z. R y z)"
+
+find_consts "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool"
+
+thm scl_fol.regular_scl_def
+
+definition scl_reso where
+  "scl_reso N S S' \<longleftrightarrow> terminating_run (scl_reso_1 N) S S'"
+
+(* inductive scl_strategy :: "'f gterm clause fset \<Rightarrow> 'f gterm \<Rightarrow> ('f, 'v) SCL_FOL.state \<Rightarrow>
+  ('f, 'v) SCL_FOL.state \<Rightarrow> bool" for N\<^sub>g \<beta>\<^sub>g where
+  scl_strategyI: "
+    S\<^sub>0 = (\<Gamma>, U, None) \<Longrightarrow>
+    linorder_cls.is_least_in_fset N\<^sub>g C\<^sub>g \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C\<^sub>g L\<^sub>g \<Longrightarrow>
+    sorted_wrt (\<prec>\<^sub>l) Ks\<^sub>g \<Longrightarrow>
+    set Ks\<^sub>g = {-K\<^sub>g | K\<^sub>g. K\<^sub>g \<in># C\<^sub>g \<and> K\<^sub>g \<noteq> L\<^sub>g \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit K\<^sub>g)} \<Longrightarrow>
+    \<Gamma>' = map (decide_lit \<circ> lit_of_glit) Ks\<^sub>g \<Longrightarrow>
+    let
+      N = fimage cls_of_gcls N\<^sub>g;
+      \<beta> = term_of_gterm \<beta>\<^sub>g;
+      \<Gamma>'' = trail_decide (\<Gamma> @ \<Gamma>') (lit_of_glit L\<^sub>g)
+    in
+      S\<^sub>1 =
+        (if \<exists>D\<^sub>g |\<in>| N\<^sub>g |\<union>| gcls_of_cls |`| U. trail_false_cls \<Gamma>'' (cls_of_gcls D\<^sub>g) then
+          let
+            D = THE D. linorder_cls.is_least_in_fset {|D\<^sub>g |\<in>| N\<^sub>g |\<union>| gcls_of_cls |`| U. trail_false_cls \<Gamma>'' (cls_of_gcls D\<^sub>g)|}
+          in
+            (trail_propagate  (\<Gamma> @ \<Gamma>') (lit_of_glit L\<^sub>g) (cls_of_gcls {#K\<^sub>g \<in># C\<^sub>g. K\<^sub>g \<noteq> L\<^sub>g#}) Var, U, None)
+        else
+          (trail_decide (\<Gamma> @ \<Gamma>') (lit_of_glit L\<^sub>g), U, None)) \<Longrightarrow>
+    scl_strategy N\<^sub>g \<beta>\<^sub>g S\<^sub>0 S\<^sub>1" *)
+
+
 subsection \<open>Sematincs of ORD-RES, ORD-RES++, SCL(FOL)++, and SCL(FOL)\<close>
 
+definition ord_res_model where
+  "ord_res_model N = (\<Union>D \<in> N. ord_res.production N D)"
+
+definition ex_false_clause where
+  "ex_false_clause N = (\<exists>C \<in> N. \<not> ord_res.interp N C \<union> ord_res.production N C \<TTurnstile> C)"
+
+(* lemma FOO:
+  assumes "finite N" and "\<not> ex_false_clause N"
+  shows "ord_res_model N \<TTurnstile>s N"
+proof -
+  obtain Cs' where "sorted_wrt (\<prec>\<^sub>c) Cs'" and "N = set Cs'"
+    using assms(1) linorder_cls.sorted_list_of_set.set_sorted_key_list_of_set
+      linorder_cls.strict_sorted_list_of_set
+    by blast
+
+  define Cs where
+    "Cs = rev Cs'"
+
+  have Cs_sorted: "sorted_wrt (\<lambda>x y. y \<prec>\<^sub>c x) Cs" and N_eq: "N = set Cs"
+    using \<open>sorted_wrt (\<prec>\<^sub>c) Cs'\<close> \<open>N = set Cs'\<close>
+    by (simp_all add: Cs_def sorted_wrt_rev)
+
+  from assms show "ord_res_model N \<TTurnstile>s N"
+    using Cs_sorted
+    unfolding N_eq
+  proof (induction Cs)
+    case Nil
+    show ?case
+      by simp
+  next
+    case (Cons C Cs')
+    have IH: "ord_res_model (set Cs') \<TTurnstile>s set Cs'"
+    proof (rule Cons.IH)
+      show "finite (set Cs')"
+        by simp
+    next
+      have "ord_res.interp (set Cs') D \<union> ord_res.production (set Cs') D \<TTurnstile> D"
+        if "D \<in> set Cs'"
+        for D
+      proof -
+        have "\<And>x. x \<in> set Cs' \<Longrightarrow> x \<prec>\<^sub>c C"
+          using that \<open>sorted_wrt (\<lambda>x y. y \<prec>\<^sub>c x) (C # Cs')\<close>[simplified] by simp
+        hence "D \<prec>\<^sub>c C"
+          using that by simp
+        hence "{Da \<in> insert C (set Cs'). Da \<prec>\<^sub>c D} = {Da \<in> set Cs'. Da \<prec>\<^sub>c D}"
+          by auto
+
+        have FOO: "\<And>D. D \<in> set (C # Cs') \<Longrightarrow>
+          ord_res.interp (set (C # Cs')) D \<union> ord_res.production (set (C # Cs')) D \<TTurnstile> D"
+          using \<open>\<not> ex_false_clause (set (C # Cs'))\<close>
+          unfolding ex_false_clause_def by auto
+        hence "ord_res.interp (insert C (set Cs')) D \<union> ord_res.production (insert C (set Cs')) D \<TTurnstile> D"
+          by (simp add: that)
+
+        moreover have "ord_res.interp (insert C (set Cs')) D = ord_res.interp (set Cs') D"
+          unfolding ord_res.interp_def
+          unfolding \<open>{Da \<in> insert C (set Cs'). Da \<prec>\<^sub>c D} = {Da \<in> set Cs'. Da \<prec>\<^sub>c D}\<close>
+          using \<open>D \<prec>\<^sub>c C\<close>
+          sorry
+
+        moreover have "ord_res.production (insert C (set Cs')) D = ord_res.production (set Cs') D"
+          sorry
+
+        ultimately show ?thesis
+          by simp
+      qed
+      thus "\<not> ex_false_clause (set Cs')"
+        unfolding ex_false_clause_def by simp
+    next
+      show "sorted_wrt (\<lambda>x y. y \<prec>\<^sub>c x) Cs'"
+        using \<open>sorted_wrt (\<lambda>x y. y \<prec>\<^sub>c x) (C # Cs')\<close> by simp
+    qed
+
+    show ?case
+      using IH
+      apply (simp add: ord_res_model_def)
+      sorry
+  qed
+qed *)
+
 inductive ord_reso_step where
-  factoring: "{#} |\<notin>| N \<Longrightarrow> P |\<in>| N \<Longrightarrow> ord_res.ground_factoring P C \<Longrightarrow>
+  factoring: "{#} |\<notin>| N \<Longrightarrow> ex_false_clause (fset N) \<Longrightarrow>
+    P |\<in>| N \<Longrightarrow> ord_res.ground_factoring P C \<Longrightarrow>
     ord_reso_step N (finsert C N)" |
-  resolution: "{#} |\<notin>| N \<Longrightarrow> P1 |\<in>| N \<Longrightarrow> P2 |\<in>| N \<Longrightarrow> ord_res.ground_resolution P1 P2 C \<Longrightarrow>
+
+  resolution: "{#} |\<notin>| N \<Longrightarrow> ex_false_clause (fset N) \<Longrightarrow>
+    P1 |\<in>| N \<Longrightarrow> P2 |\<in>| N \<Longrightarrow> ord_res.ground_resolution P1 P2 C \<Longrightarrow>
     ord_reso_step N (finsert C N)"
+
+definition ord_reso_final where
+  "ord_reso_final N \<longleftrightarrow> {#} |\<in>| N \<or> \<not> ex_false_clause (fset N)"
 
 interpretation ord_reso_semantics: semantics where
   step = ord_reso_step and
-  final = "\<lambda>N. {#} |\<in>| N"
+  final = ord_reso_final
 proof unfold_locales
-  show "\<And>N. {#} |\<in>| N \<Longrightarrow> finished ord_reso_step N"
-    by (simp add: finished_def ord_reso_step.simps)
+  fix N
+  assume "ord_reso_final N"
+  thus "finished ord_reso_step N"
+    unfolding ord_reso_final_def
+  proof (elim disjE)
+    show "{#} |\<in>| N \<Longrightarrow> finished ord_reso_step N"
+      by (simp add: finished_def ord_reso_step.simps)
+  next
+    show "\<not> ex_false_clause (fset N) \<Longrightarrow> finished ord_reso_step N"
+      by (simp add: finished_def ord_reso_step.simps)
+  qed
+qed
+
+definition ord_reso_strategy_step where
+  "ord_reso_strategy_step = (\<lambda>(N, s) (N', s').
+    N = N' \<and> ord_res_strategy N s s')"
+
+definition ord_reso_strategy_final where
+  "ord_reso_strategy_final = (\<lambda>(N, (U, \<I>, C)).
+    C = {#} \<or> fset \<I> \<union> ord_res.production (fset (N |\<union>| U)) C \<TTurnstile> C \<and> \<not> (\<exists>D |\<in>| N |\<union>| U. C \<prec>\<^sub>c D))"
+
+interpretation ord_reso_strategy_semantics: semantics where
+  step = ord_reso_strategy_step and
+  final = ord_reso_strategy_final
+proof unfold_locales
+  fix S :: "'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm fset \<times> 'f gterm clause"
+  obtain N U \<I> C where S_def: "S = (N, U, \<I>, C)"
+    by (metis surj_pair)
+  assume final: "ord_reso_strategy_final S"
+  hence "C = {#} \<or> fset \<I> \<union> ord_res.production (fset (N |\<union>| U)) C \<TTurnstile> C \<and> \<not> fBex (N |\<union>| U) ((\<prec>\<^sub>c) C)"
+    unfolding ord_reso_strategy_final_def by (simp add: S_def)
+  thus "finished ord_reso_strategy_step S"
+  proof (elim disjE conjE)
+    assume "C = {#}"
+    hence "\<nexists>s'. ord_res_strategy N (U, \<I>, C) s'"
+      by (auto simp: linorder_lit.is_maximal_in_mset_iff elim: ord_res_strategy.cases)
+    hence "\<nexists>S'. ord_reso_strategy_step S S'"
+      unfolding ord_reso_strategy_step_def by (simp add: S_def)
+    thus "finished ord_reso_strategy_step S"
+      unfolding finished_def by simp
+  next
+    assume "fset \<I> \<union> ord_res.production (fset (N |\<union>| U)) C \<TTurnstile> C" and "\<not> fBex (N |\<union>| U) ((\<prec>\<^sub>c) C)"
+    hence "\<nexists>s'. ord_res_strategy N (U, \<I>, C) s'"
+      apply (intro notI)
+      apply (elim exE ord_res_strategy.cases)
+      subgoal for s' U' \<I>' C' D
+        using linorder_cls.is_least_in_fset_ffilterD(1) linorder_cls.is_least_in_fset_ffilterD(2)
+        by blast
+      subgoal
+        by simp
+      subgoal
+        by simp
+      done
+    hence "\<nexists>S'. ord_reso_strategy_step S S'"
+      unfolding ord_reso_strategy_step_def by (simp add: S_def)
+    thus "finished ord_reso_strategy_step S"
+      unfolding finished_def by simp
+  qed
 qed
 
 interpretation ord_reso_extended_semantics: semantics where
@@ -1986,6 +2610,279 @@ proof unfold_locales
     finished (scl_fol.scl N \<beta>) S"
     using scl_fol.no_more_step_if_conflict_mempty
     by (auto simp: finished_def)
+qed
+
+
+subsection \<open>Backward simulation between ORD-RES and ORD-RES strategy\<close>
+
+definition ord_reso_invars where
+  "ord_reso_invars S \<longleftrightarrow> True"
+
+lemma ord_reso_step_preserves_invars[intro]:
+  "ord_reso_step S S' \<Longrightarrow> ord_reso_invars S \<Longrightarrow> ord_reso_invars S'"
+  unfolding ord_reso_invars_def .
+
+definition ord_reso_strategy_invars where
+  "ord_reso_strategy_invars = (\<lambda>(N, s).
+    (interp_upto s |\<in>| N |\<union>| learned s) \<and>
+    (interp_upto s = {#} \<longleftrightarrow> {#} |\<in>| N |\<union>| learned s) \<and>
+    (fset (interp s) = ord_res.interp (fset (N |\<union>| learned s)) (interp_upto s)) \<and>
+    (\<forall>C|\<in>|N |\<union>| learned s. C \<prec>\<^sub>c interp_upto s \<longrightarrow>
+      ord_res.interp (fset (N |\<union>| learned s)) C \<union>
+      ord_res.production (fset (N |\<union>| learned s)) C \<TTurnstile> C))"
+
+lemma ord_reso_strategy_step_preserves_invars[intro]:
+  "ord_reso_strategy_step S S' \<Longrightarrow> ord_reso_strategy_invars S \<Longrightarrow> ord_reso_strategy_invars S'"
+  unfolding ord_reso_strategy_invars_def ord_reso_strategy_step_def
+  using ord_res_strategy_preserves_interp_upto_fmember_clauses
+  using ord_res_strategy_preserves_interp_upto_eq_fempty_iff_fempty_in_clauses
+  using ord_res_strategy_preserves_interp_correct
+  using interp_entails_clauses_lt_interp_upto'
+  by force
+
+definition match_ord_reso_and_ord_reso_strategy where
+  "match_ord_reso_and_ord_reso_strategy = (\<lambda>N1 (N2, (U, \<I>, C)). N1 = N2 |\<union>| U)"
+
+interpretation backward_simulation_with_measuring_function where
+  step1 = ord_reso_step and
+  step2 = ord_reso_strategy_step and
+  final1 = ord_reso_final and
+  final2 = ord_reso_strategy_final and
+  order = "(|\<subset>|)" and
+  match = "\<lambda>S S'. ord_reso_invars S \<and> ord_reso_strategy_invars S' \<and>
+    match_ord_reso_and_ord_reso_strategy S S'" and
+  measure = "\<lambda>(N, (U, \<I>, C)). {|D |\<in>| N |\<union>| U. C \<prec>\<^sub>c D|}"
+proof unfold_locales
+  show "wfP (|\<subset>|)"
+    by auto
+next
+  let ?final1 = ord_reso_final
+  let ?final2 = ord_reso_strategy_final
+  let ?match = "\<lambda>S S'. ord_reso_invars S \<and> ord_reso_strategy_invars S' \<and>
+    match_ord_reso_and_ord_reso_strategy S S'"
+  fix
+    S1 :: "'f gterm clause fset" and
+    S2 :: "'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm fset \<times> 'f gterm clause"
+
+  obtain N U \<I> C where
+    S2_def: "S2 = (N, U, \<I>, C)"
+    by (metis prod.exhaust)
+
+  assume "?match S1 S2"
+  hence
+    invars1: "ord_reso_invars S1" and
+    invars2: "ord_reso_strategy_invars S2" and
+    match: "match_ord_reso_and_ord_reso_strategy S1 S2"
+    by simp_all
+
+  from invars2 have
+    C_in: "C |\<in>| N |\<union>| U" and
+    \<I>_eq_interp: "fset \<I> = ord_res.interp (fset (N |\<union>| U)) C" and
+    ball_interp_prod_entails: "\<forall>x |\<in>| N |\<union>| U. x \<prec>\<^sub>c C \<longrightarrow>
+      ord_res.interp (fset (N |\<union>| U)) x \<union> ord_res.production (fset (N |\<union>| U)) x \<TTurnstile> x"
+    unfolding ord_reso_strategy_invars_def
+    by (auto simp: S2_def)
+
+  from match have S1_def: "S1 = N |\<union>| U"
+    unfolding S2_def match_ord_reso_and_ord_reso_strategy_def by auto
+
+  assume "?final2 S2"
+  hence "C = {#} \<or> fset \<I> \<union> ord_res.production (fset (N |\<union>| U)) C \<TTurnstile> C \<and> \<not> fBex (N |\<union>| U) ((\<prec>\<^sub>c) C)"
+    unfolding ord_reso_strategy_final_def by (simp add: S2_def)
+  thus "?final1 S1"
+  proof (elim disjE conjE)
+    assume "C = {#}"
+    hence "{#} |\<in>| S1"
+      unfolding S1_def
+      using C_in by argo
+    thus ?thesis
+      unfolding ord_reso_final_def by simp
+  next
+    assume
+      "fset \<I> \<union> ord_res.production (fset (N |\<union>| U)) C \<TTurnstile> C" and
+      "\<not> fBex (N |\<union>| U) ((\<prec>\<^sub>c) C)"
+    hence "\<not> ex_false_clause (fset (N |\<union>| U))"
+      unfolding ex_false_clause_def
+      using ball_interp_prod_entails
+      by (metis \<I>_eq_interp linorder_cls.linorder_cases)
+    thus ?thesis
+      unfolding ord_reso_final_def by (simp add: S1_def)
+  qed
+next
+  let ?step1 = ord_reso_step
+  let ?step2 = ord_reso_strategy_step
+  let ?less = "(|\<subset>|)"
+  let ?match = "\<lambda>S S'. ord_reso_invars S \<and> ord_reso_strategy_invars S' \<and>
+    match_ord_reso_and_ord_reso_strategy S S'"
+  let ?measure = "\<lambda>(N, (U, \<I>, C)). {|D |\<in>| N |\<union>| U. C \<prec>\<^sub>c D|}"
+  fix
+    S1 :: "'f gterm clause fset" and
+    S2 S2' :: "'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm fset \<times> 'f gterm clause"
+  assume "?match S1 S2"
+  hence
+    invars1: "ord_reso_invars S1" and
+    invars2: "ord_reso_strategy_invars S2" and
+    match: "match_ord_reso_and_ord_reso_strategy S1 S2"
+    by simp_all
+
+  assume step2: "?step2 S2 S2'"
+  then obtain N s2 s2' where
+    S2_def: "S2 = (N, s2)" and S2'_def: "S2' = (N, s2')" and step2': "ord_res_strategy N s2 s2'"
+    unfolding ord_reso_strategy_step_def by blast
+
+
+  from match have S1_eq: "S1 = N |\<union>| learned s2"
+    unfolding S2_def match_ord_reso_and_ord_reso_strategy_def by auto
+
+  from invars2 step2 have invars2': "ord_reso_strategy_invars S2'"
+    by auto
+
+  from step2' show "(\<exists>S1'. ?step1\<^sup>+\<^sup>+ S1 S1' \<and> ?match S1' S2') \<or>
+    (?match S1 S2' \<and> ?less (?measure S2') (?measure S2))"
+  proof (cases N s2 s2' rule: ord_res_strategy.cases)
+    case (expand_modelI \<I> U C D)
+    hence "C \<prec>\<^sub>c D"
+      using linorder_cls.is_least_in_fset_ffilterD(2) by metis
+    have "?match S1 S2'"
+    proof -
+      have "match_ord_reso_and_ord_reso_strategy S1 S2'"
+        unfolding match_ord_reso_and_ord_reso_strategy_def
+        unfolding S2'_def \<open>s2' = (U, \<I> |\<union>| Abs_fset (ord_res.production (fset (N |\<union>| U)) C), D)\<close>
+        using S1_eq[unfolded \<open>s2 = (U, \<I>, C)\<close>]
+        by simp
+      with invars1 invars2' show ?thesis
+        by simp
+    qed
+    moreover have "?less (?measure S2') (?measure S2)"
+      unfolding S2_def S2'_def expand_modelI
+      apply simp
+      using \<open>C \<prec>\<^sub>c D\<close>
+      by (smt (verit, best) linorder_cls.is_least_in_fset_ffilterD(1) linorder_cls.less_irrefl
+          linorder_cls.order.strict_trans local.expand_modelI(4) pfsubset_ffilter)
+    ultimately show ?thesis
+      by argo
+  next
+    case (factoringI \<I> U C L C' D)
+    
+    from invars2 have "interp_upto s2 |\<in>| N |\<union>| learned s2"
+      unfolding ord_reso_strategy_invars_def
+      by (simp add: S2_def)
+    hence "C |\<in>| S1"
+      using S1_eq by (simp add: S2_def \<open>s2 = (U, \<I>, C)\<close>)
+
+    let ?S1' = "finsert C' S1"
+    have "?step1 S1 ?S1'"
+    proof (rule ord_reso_step.factoring)
+      from invars2 have "interp_upto s2 = {#} \<longleftrightarrow> {#} |\<in>| N |\<union>| learned s2"
+        unfolding ord_reso_strategy_invars_def
+        by (simp add: S2_def)
+      moreover have "interp_upto s2 \<noteq> {#}"
+        unfolding \<open>s2 = (U, \<I>, C)\<close>
+        using \<open>ord_res.is_maximal_lit L C\<close> linorder_lit.is_maximal_in_mset_iff by fastforce
+      ultimately show "{#} |\<notin>| S1"
+        using S1_eq
+        unfolding \<open>s2 = (U, \<I>, C)\<close>
+        by argo
+    next
+      from invars2 have
+        "fset \<I> = ord_res.interp (fset N \<union> fset U) C"
+        unfolding ord_reso_strategy_invars_def
+        by (simp add: S2_def \<open>s2 = (U, \<I>, C)\<close>)
+      then show "ex_false_clause (fset S1)"
+        unfolding ex_false_clause_def
+        using \<open>C |\<in>| S1\<close> \<open>\<not> fset \<I> \<union> ord_res.production (fset (N |\<union>| U)) C \<TTurnstile> C\<close>
+        unfolding S1_eq \<open>s2 = (U, \<I>, C)\<close> learned.simps
+        by auto
+    next
+      show "C |\<in>| S1"
+        using \<open>C |\<in>| S1\<close> .
+    next
+      show "ord_res.ground_factoring C C'"
+        using \<open>ord_res.ground_factoring C C'\<close> .
+    qed
+    hence "?step1\<^sup>+\<^sup>+ S1 ?S1'"
+      by simp
+    moreover have "?match ?S1' S2'"
+    proof -
+      have "ord_reso_invars S1'" if \<open>?step1\<^sup>+\<^sup>+ S1 S1'\<close> for S1'
+        using that invars1
+        by (induction S1' rule: tranclp_induct) auto
+      hence "ord_reso_invars ?S1'"
+        using \<open>?step1\<^sup>+\<^sup>+ S1 ?S1'\<close> by metis
+      moreover have "match_ord_reso_and_ord_reso_strategy ?S1' S2'"
+        unfolding match_ord_reso_and_ord_reso_strategy_def
+        using S1_eq[unfolded \<open>s2 = (U, \<I>, C)\<close>]
+        unfolding S2'_def \<open>s2' = (finsert C' U, {||}, D)\<close>
+        by simp
+      ultimately show ?thesis
+        using invars2' by simp
+    qed
+    ultimately show ?thesis
+      by metis
+  next
+    case (resolution \<I> U C L E CE D)
+    
+    from invars2 have "interp_upto s2 |\<in>| N |\<union>| learned s2"
+      unfolding ord_reso_strategy_invars_def
+      by (simp add: S2_def)
+    hence "C |\<in>| S1"
+      using S1_eq by (simp add: S2_def \<open>s2 = (U, \<I>, C)\<close>)
+
+    let ?S1' = "finsert CE S1"
+    have "?step1 S1 ?S1'"
+    proof (rule ord_reso_step.resolution)
+      from invars2 have "interp_upto s2 = {#} \<longleftrightarrow> {#} |\<in>| N |\<union>| learned s2"
+        unfolding ord_reso_strategy_invars_def
+        by (simp add: S2_def)
+      moreover have "interp_upto s2 \<noteq> {#}"
+        unfolding \<open>s2 = (U, \<I>, C)\<close>
+        using \<open>ord_res.is_maximal_lit L C\<close> linorder_lit.is_maximal_in_mset_iff by fastforce
+      ultimately show "{#} |\<notin>| S1"
+        using S1_eq
+        unfolding \<open>s2 = (U, \<I>, C)\<close>
+        by argo
+    next
+      from invars2 have
+        "fset \<I> = ord_res.interp (fset N \<union> fset U) C"
+        unfolding ord_reso_strategy_invars_def
+        by (simp add: S2_def \<open>s2 = (U, \<I>, C)\<close>)
+      then show "ex_false_clause (fset S1)"
+        unfolding ex_false_clause_def
+        using \<open>C |\<in>| S1\<close> \<open>\<not> fset \<I> \<union> ord_res.production (fset (N |\<union>| U)) C \<TTurnstile> C\<close>
+        unfolding S1_eq \<open>s2 = (U, \<I>, C)\<close> learned.simps
+        by auto
+    next
+      show "C |\<in>| S1"
+        using \<open>C |\<in>| S1\<close> .
+    next
+      show "E |\<in>| S1"
+        using S1_eq[unfolded \<open>s2 = (U, \<I>, C)\<close>]
+        using \<open>E |\<in>| N\<close>
+        by simp
+    next
+      show "ord_res.ground_resolution C E CE"
+        using \<open>ord_res.ground_resolution C E CE\<close> .
+    qed
+    hence "?step1\<^sup>+\<^sup>+ S1 ?S1'"
+      by simp
+    moreover have "?match ?S1' S2'"
+    proof -
+      have "ord_reso_invars S1'" if \<open>?step1\<^sup>+\<^sup>+ S1 S1'\<close> for S1'
+        using that invars1
+        by (induction S1' rule: tranclp_induct) auto
+      hence "ord_reso_invars ?S1'"
+        using \<open>?step1\<^sup>+\<^sup>+ S1 ?S1'\<close> by metis
+      moreover have "match_ord_reso_and_ord_reso_strategy ?S1' S2'"
+        unfolding match_ord_reso_and_ord_reso_strategy_def
+        using S1_eq[unfolded \<open>s2 = (U, \<I>, C)\<close>]
+        unfolding S2'_def \<open>s2' = (finsert CE U, {||}, D)\<close>
+        by simp
+      ultimately show ?thesis
+        using invars2' by simp
+    qed
+    ultimately show ?thesis
+      by metis
+  qed
 qed
 
 
