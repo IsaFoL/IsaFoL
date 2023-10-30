@@ -651,6 +651,17 @@ next
   qed
 qed
 
+lemma glit_lit_with_context: 
+  assumes "ground_ctxt s" and "is_ground_trm u" and "is_ground_trm t" 
+  shows 
+    "glit_lit (s\<langle>u\<rangle> \<approx> t) = (gctxt_of_ctxt s)\<langle>gterm_of_term u\<rangle>\<^sub>G \<approx> gterm_of_term t"
+    "glit_lit (Neg (Upair s\<langle>u\<rangle> t)) =  Neg (Upair (gctxt_of_ctxt s)\<langle>gterm_of_term u\<rangle>\<^sub>G (gterm_of_term t))"
+  using assms literal.simps
+  by (metis ctxt_of_gctxt_apply_gterm gctxt_of_ctxt_inv glit_lit_def map_uprod_simps)+
+
+lemma not_less_eq_term: "is_ground_trm t\<^sub>1 \<Longrightarrow> is_ground_trm t\<^sub>2 \<Longrightarrow> \<not> t\<^sub>2 \<preceq>\<^sub>t t\<^sub>1 \<longleftrightarrow> t\<^sub>1 \<prec>\<^sub>t t\<^sub>2"
+  by (metis asympD asymp_less_term gterm_of_term_ident_if_ground less_term_less_gterm reflclp_iff totalpD totalp_less_gterm)
+
 (* TODO: Make nice *)
 lemma superposition_iff_ground_superposition:
    "superposition (cls_gcls P1) (cls_gcls P2) (cls_gcls C) \<longleftrightarrow> G.ground_superposition P1 P2 C"
@@ -673,21 +684,32 @@ proof(rule iffI)
             term_subst.is_ground_set_def term_subst.is_renaming_def term_subst.subst_comp_subst 
             term_subst.subst_id_subst term_subst.subst_ident_if_ground)
 
-    obtain \<P>' where \<P>': "\<P>' = (\<lambda>x. glit_lit (\<P> (map_uprod term_of_gterm x)))"
-      by simp
+    have is_ground_s\<^sub>1: "ground_ctxt s\<^sub>1"
+      by (metis gterm_of_term_ident_if_ground is_ground_cls_gcls is_ground_lit_if_in_ground_cls local.superpositionI(12) local.superpositionI(4) local.superpositionI(7) sup_eq_bot_iff term_of_gterm_ctxt_apply_ground(1) union_single_eq_member vars_atm_make_uprod vars_lit_Neg vars_lit_Pos)
+    have is_ground_s\<^sub>1': "is_ground_trm s\<^sub>1'"
+      by (metis is_ground_cls_gcls local.superpositionI(12) local.superpositionI(4) local.superpositionI(7) sup_eq_bot_iff vars_atm_make_uprod vars_cls_add_mset vars_lit_Neg vars_lit_Pos)
 
-    have \<P>'_pos_or_neg:  "\<P>' = Neg \<or> \<P>' = Pos"
-      using superpositionI(6)
-      unfolding \<P>' glit_lit_def
-      by(auto simp: map_uprod_inverse)
+    have is_ground_t\<^sub>2: "is_ground_trm t\<^sub>2" 
+      by (metis is_ground_cls_gcls local.superpositionI(5) local.superpositionI(8) sup_eq_bot_iff vars_atm_make_uprod vars_cls_add_mset)
+
+    have is_ground_t\<^sub>2': "is_ground_trm t\<^sub>2'"
+      by (metis is_ground_cls_gcls local.superpositionI(5) local.superpositionI(8) sup_eq_bot_iff vars_atm_make_uprod vars_cls_add_mset)
+
+    have is_ground_u\<^sub>1: "is_ground_trm u\<^sub>1"
+      unfolding \<open>u\<^sub>1 = t\<^sub>2\<close> 
+      by(rule is_ground_t\<^sub>2)
+    
+    obtain \<P>' :: "'f gterm uprod \<Rightarrow> 'f gterm uprod literal"
+      where \<P>': "\<P>' = (if \<P> = Pos then Pos else Neg)"
+      by simp
                               
     show ?thesis
     proof (rule G.ground_superpositionI)
       show "P1 = add_mset (glit_lit L\<^sub>1) (gcls_cls P\<^sub>1')"
-        by (metis cls_gcls_inverse gcls_cls_def image_mset_add_mset local.superpositionI(4))
+        by (metis cls_gcls_inverse gcls_cls_def image_mset_add_mset superpositionI(4))
     next
       show "P2 = add_mset (glit_lit L\<^sub>2) (gcls_cls P\<^sub>2')"
-        by (metis cls_gcls_inverse gcls_cls_def image_mset_add_mset local.superpositionI(5))
+        by (metis cls_gcls_inverse gcls_cls_def image_mset_add_mset superpositionI(5))
     next
       show "P2 \<prec>\<^sub>c\<^sub>G P1"
         using superpositionI(11)
@@ -695,32 +717,29 @@ proof(rule iffI)
               subst_cls_ident_if_is_ground_cls totalpD)
     next
       show "\<P>' \<in> {Pos, Neg}"
-        using superpositionI(6) \<P>'_pos_or_neg
-        by blast
+        using superpositionI(6) 
+        by (simp add: \<P>')
     next 
       show "glit_lit L\<^sub>1 = \<P>' (Upair (gctxt_of_ctxt s\<^sub>1)\<langle>gterm_of_term u\<^sub>1\<rangle>\<^sub>G (gterm_of_term s\<^sub>1'))"
+        using glit_lit_with_context[OF is_ground_s\<^sub>1 is_ground_u\<^sub>1 is_ground_s\<^sub>1'] superpositionI(7, 12)
         unfolding \<P>'
-        by (metis ground_ctxt_apply ground_gctxt_of_ctxt_apply ground_term_of_gterm 
-              gterm_of_term_ident_if_ground is_ground_cls_gcls local.superpositionI(12) 
-              local.superpositionI(4) local.superpositionI(7) map_uprod_simps sup_eq_bot_iff 
-              vars_atm_make_uprod vars_cls_add_mset vars_lit_Neg vars_lit_Pos)
+        by presburger
     next
       show "glit_lit L\<^sub>2 = gterm_of_term u\<^sub>1 \<approx> gterm_of_term t\<^sub>2'"
-        by (simp add: \<open>u\<^sub>1 = t\<^sub>2\<close> glit_lit_def local.superpositionI(8))
+        by (simp add: \<open>u\<^sub>1 = t\<^sub>2\<close> glit_lit_def superpositionI(8))
     next
       show "gterm_of_term s\<^sub>1' \<prec>\<^sub>t\<^sub>G (gctxt_of_ctxt s\<^sub>1)\<langle>gterm_of_term u\<^sub>1\<rangle>\<^sub>G"
-        by (smt (verit, ccfv_threshold) bot_eq_sup_iff ctxt_of_gctxt_apply_gterm gctxt_of_ctxt_inv 
-              ground_ctxt_apply ground_term_of_gterm gterm_of_term_ident_if_ground 
-              is_ground_cls_gcls is_ground_lit_if_in_ground_cls less_term_less_gterm literal.sel(1) 
-              local.superpositionI(12) local.superpositionI(15) local.superpositionI(4) 
-              local.superpositionI(7) sup2CI term_subst.is_ground_def totalpD totalp_less_gterm 
-              union_single_eq_member vars_atm_make_uprod vars_lit_Neg vars_lit_def)
+        using superpositionI(15)  gterm_of_term_ident_if_ground less_gterm_less_term
+        by (metis ground_gctxt_of_ctxt_apply_gterm is_ground_s\<^sub>1 is_ground_s\<^sub>1' is_ground_u\<^sub>1 not_less_eq_term term_subst.subst_ident_if_ground vars_term_of_gterm)
     next
       show "gterm_of_term t\<^sub>2' \<prec>\<^sub>t\<^sub>G gterm_of_term u\<^sub>1"
-        by (metis \<open>u\<^sub>1 = t\<^sub>2\<close> gterm_of_term_ident_if_ground is_ground_cls_gcls less_gterm_less_term 
-              local.superpositionI(16) local.superpositionI(5) local.superpositionI(8) 
-              reflclp_iff sup_eq_bot_iff term_subst.subst_ident_if_ground totalpD totalp_less_gterm 
-              vars_atm_make_uprod vars_cls_add_mset)
+        using superpositionI(16)
+        unfolding 
+          \<open>u\<^sub>1 = t\<^sub>2\<close>
+          term_subst.subst_ident_if_ground[OF is_ground_t\<^sub>2] 
+          term_subst.subst_ident_if_ground[OF is_ground_t\<^sub>2']
+          not_less_eq_term[OF is_ground_t\<^sub>2' is_ground_t\<^sub>2] 
+          less_term_less_gterm[OF is_ground_t\<^sub>2' is_ground_t\<^sub>2].
     next 
       have totalp_ground: "totalp_on (set_mset (cls_gcls P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)) (\<prec>\<^sub>l)"
         using totalp_less_cls
@@ -729,9 +748,9 @@ proof(rule iffI)
       show "\<P>' = Pos \<and> select\<^sub>G P1 = {#} \<and> G.is_strictly_maximal_lit (glit_lit L\<^sub>1) P1 
           \<or> \<P>' = Neg 
               \<and> (select\<^sub>G P1 = {#} \<and> G.is_maximal_lit (glit_lit L\<^sub>1) P1 \<or> glit_lit L\<^sub>1 \<in># select\<^sub>G P1)"
-        using \<P>'_pos_or_neg is_strictly_maximal_lit_iff_is_strictly_maximal_glit local.superpositionI(12)
+        using \<P>' is_strictly_maximal_lit_iff_is_strictly_maximal_glit local.superpositionI(12)
         unfolding glit_lit_def select\<^sub>G_def
-        by (metis (mono_tags, lifting) \<P>' cls_gcls_empty_mset cls_gcls_inverse gcls_cls_def glit_lit_def glit_lit_inverse image_eqI is_ground_cls_gcls is_ground_lit_if_in_ground_cls is_maximal_glit_iff_maximal_lit literal.distinct(1) literal.simps(10) literal.simps(9) local.superpositionI(4) multiset.set_map subst_cls_ident_if_is_ground_cls subst_lit_ident_if_is_ground_lit union_single_eq_member)
+        by (smt (z3) bot_eq_sup_iff cls_gcls_def cls_gcls_empty_mset cls_gcls_inverse glit_lit_def glit_lit_inverse image_mset_of_subset is_ground_cls_gcls is_maximal_glit_iff_maximal_lit lit_glit_cls_gcls literal.distinct(1) local.superpositionI(4) select_subset subst_cls_ident_if_is_ground_cls subst_lit_ident_if_is_ground_lit vars_cls_add_mset)
     next 
       show "select\<^sub>G P2 = {#}"
         by (simp add: gcls_cls_def local.superpositionI(13) select\<^sub>G_def)
@@ -764,14 +783,7 @@ proof(rule iffI)
                   (\<P>' (Upair (gctxt_of_ctxt s\<^sub>1)\<langle>gterm_of_term t\<^sub>2'\<rangle>\<^sub>G (gterm_of_term s\<^sub>1'))) 
                   (gcls_cls P\<^sub>1' + gcls_cls P\<^sub>2')"
         unfolding \<P>'
-        by (smt (verit) cls_gcls_inverse gcls_cls_def ground_ctxt_apply ground_gctxt_of_ctxt_apply 
-              ground_term_of_gterm gterm_of_term_ident_if_ground image_mset_add_mset 
-              image_mset_union is_ground_cls_gcls local.superpositionI(12) local.superpositionI(17) 
-              local.superpositionI(4) local.superpositionI(5) local.superpositionI(7) 
-              local.superpositionI(8) map_uprod_simps subst_cls_ident_if_is_ground_cls 
-              subst_trm_ctxt_ident_if_is_ground_trm_ctxt sup_eq_bot_iff 
-              term_subst.subst_ident_if_ground vars_atm_make_uprod vars_cls_add_mset 
-              vars_cls_plus vars_lit_Neg vars_lit_Pos vars_term_ctxt_apply)
+        by (smt (verit, ccfv_SIG) cls_gcls_def cls_gcls_inverse gcls_cls_def glit_lit_with_context(1) glit_lit_with_context(2) image_mset_add_mset image_mset_union is_ground_cls_gcls is_ground_s\<^sub>1 is_ground_t\<^sub>2' local.superpositionI(12) local.superpositionI(17) local.superpositionI(4) local.superpositionI(5) local.superpositionI(7) msed_map_invR subst_cls_ident_if_is_ground_cls subst_trm_ctxt_ident_if_is_ground_trm_ctxt sup_eq_bot_iff term_subst.subst_ident_if_ground vars_atm_make_uprod vars_cls_add_mset vars_lit_Neg vars_lit_Pos vars_term_ctxt_apply)
     qed
   qed
 next
@@ -781,7 +793,7 @@ next
     case (ground_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
 
     obtain \<P>' :: "('f, 'v) term uprod \<Rightarrow> ('f, 'v) term uprod literal" 
-      where  \<P>': "\<P>' = (if \<P> = Pos then Pos else Neg)"
+      where \<P>': "\<P>' = (if \<P> = Pos then Pos else Neg)"
       by simp
 
     have \<P>'_pos_or_neg: "\<P>' = Neg \<or> \<P>' = Pos"
