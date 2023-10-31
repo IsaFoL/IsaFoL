@@ -125,7 +125,7 @@ qed
 
 lemma autarky_simulation2: 
   assumes "autarky I N Na" and "consistent_interp I" and " atm_of ` I \<subseteq>  atms_of_mm (Na)"
-  shows "\<exists>S'. rules\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
+  shows "\<exists>S'. inp_mr\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
           (N, R, S@S', V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) \<and>
            wit_clause `# mset S' = Na \<and> (\<forall>I'\<in># (wit_interp `# mset S'). I' = I)"
   using assms
@@ -136,7 +136,7 @@ proof -
     using assms(1, 2) unfolding autarky_def by auto
   hence LNa_sat:"I \<Turnstile>m mset LNa"
     by simp
-  have "rules\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
+  have "inp_mr\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
 (N + mset(drop i LNa), R, S@map (\<lambda>C. Witness I C) (take i LNa), V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
     for i
   proof (induction i)
@@ -173,7 +173,7 @@ proof -
         by (metis \<open>mset (drop i LNa) = add_mset (LNa ! i) (mset (drop (Suc i) LNa))\<close> \<open>mset LNa = Na\<close> add_mset atd_lem union_code union_commute)
       hence sub: "atm_of ` I \<subseteq> V \<union> atms_of (LNa ! i) \<union> atms_of_mm (mset (drop (Suc i) LNa) + N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness I) (take i LNa)))"
         using assms(3) by auto
-      have rul2: "rules (mset (drop (Suc i) LNa) + N + {#LNa ! i#}, R, S @ map (Witness I) (take i LNa),
+      have rul2: "inp_mr (mset (drop (Suc i) LNa) + N + {#LNa ! i#}, R, S @ map (Witness I) (take i LNa),
  V \<union> atms_of (LNa ! i) \<union> atms_of_mm (mset (drop (Suc i) LNa) + N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness I) (take i LNa))))
    (mset (drop (Suc i) LNa) + N, R, (S @ map (Witness I) (take i LNa)) @ [Witness I (LNa ! i)], 
 V \<union> atms_of (LNa ! i) \<union> atms_of_mm (mset (drop (Suc i) LNa) + N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset (S @ map (Witness I) (take i LNa))))"
@@ -182,7 +182,7 @@ V \<union> atms_of (LNa ! i) \<union> atms_of_mm (mset (drop (Suc i) LNa) + N) \
                = (V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)))" using Na1 by auto
       have h3: "map (Witness I) (take i LNa) @ [Witness I (LNa ! i)] = map (Witness I) (take (Suc i) LNa)"
         by (simp add: "1" Suc_le_lessD take_Suc_conv_app_nth)
-      have rul3:"rules (N + mset (drop i LNa), R, S @ map (Witness I) (take i LNa), V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
+      have rul3:"inp_mr (N + mset (drop i LNa), R, S @ map (Witness I) (take i LNa), V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
                   (N + mset (drop (Suc i) LNa), R, S @ map (Witness I) (take (Suc i) LNa), V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
         using h1 h2 h3 rul2 apply auto
         by (simp add: add.commute)
@@ -192,7 +192,7 @@ V \<union> atms_of (LNa ! i) \<union> atms_of_mm (mset (drop (Suc i) LNa) + N) \
   qed note ag = this
   have "mset (drop (length LNa) LNa) = {#}" and "(take (length LNa) LNa) = LNa"
     by auto
-  then have 2: "rules\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
+  then have 2: "inp_mr\<^sup>*\<^sup>*(N + Na, R, S, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))
                        (N, R, S@map (\<lambda>C. Witness I C) LNa, V \<union> atms_of_mm (N + Na) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
     using ag[of "length LNa" ] by auto
   have wit_Na:"wit_clause `# mset (map (\<lambda>C. Witness I C) LNa) = Na" 

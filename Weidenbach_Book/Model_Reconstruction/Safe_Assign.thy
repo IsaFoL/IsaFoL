@@ -20,12 +20,12 @@ lemma safe_assign_notv:
   using assms unfolding safe_assign_def by auto
 
 
-lemma safe_assign_rules:
+lemma safe_assign_inp_mr:
   assumes safe: \<open>safe_assign v F Fv\<close> and eq: \<open>F+Fv = N + R\<close> and nempty: \<open>Fv \<noteq> {#}\<close>
     "consistent_interp I" and Fv: "\<forall>C \<in># Fv. -v \<in># C" and "(\<forall>C \<in># F. -v \<notin># C)"
-  shows \<open>rules (N, R, S, V \<union> atms_of {#-v#} \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) 
+  shows \<open>inp_mr (N, R, S, V \<union> atms_of {#-v#} \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)) 
        (add_mset {#-v#} N, (R), S, V \<union> atms_of {#-v#} \<union> atms_of_mm N \<union>  atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))\<close>
-proof (rule rules.intros(6))
+proof (rule inp_mr.intros(6))
   show \<open>distinct_mset {#-v#}\<close>
     by auto
   show \<open>satisfiable (set_mset (N + R)) \<longrightarrow>  satisfiable (set_mset (add_mset {#-v#} (N + R)))\<close>

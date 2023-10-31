@@ -238,7 +238,7 @@ qed
 lemma globallyBlocked_simulation2: 
   assumes "globallyBlocked I C (N-{#C#})" and "consistent_interp I" and "atm_of ` I \<subseteq> V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)" 
     and C1:"C \<in># N" and  "\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C"  and [simp]: \<open>finite I\<close>
-  shows "rules (N, R, S, V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
+  shows "inp_mr (N, R, S, V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
           ((N-{#C#}), R, S@[(Witness I C)], V \<union> atms_of_mm (N ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
   using assms
 proof -
@@ -255,10 +255,10 @@ proof -
     using eq1 assms(3) by auto
   have eq2: "remove1_mset C N + {#C#} = N" 
     using C1 by (auto dest!: multi_member_split)
-  have "rules (remove1_mset C N + {#C#}, R, S, V \<union> atms_of C \<union> atms_of_mm (remove1_mset C N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
+  have "inp_mr (remove1_mset C N + {#C#}, R, S, V \<union> atms_of C \<union> atms_of_mm (remove1_mset C N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
       (remove1_mset C N, R, S @ [Witness I C], V \<union> atms_of C \<union> atms_of_mm (remove1_mset C N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
     using weakenp[of I C "(N-{#C#})" V R S] 2 red assms(2) sub by auto
-  then have rul:"rules(N, R, S, V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))((N-{#C#}), R, S@[Witness I C], V \<union> atms_of_mm (N ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
+  then have rul:"inp_mr(N, R, S, V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))((N-{#C#}), R, S@[Witness I C], V \<union> atms_of_mm (N ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))"
     using eq1 eq2 by (auto simp add: ac_simps)
   then show ?thesis
     by blast
@@ -268,7 +268,7 @@ qed
 lemma globallyBlocked_simulation: 
   assumes "globallyBlocked I C (N-{#C#})" and "consistent_interp I" and "atm_of ` I \<subseteq> V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S)" 
     and C1:"C \<in># N"  and  "\<forall>C. C\<in># N  \<longrightarrow> distinct_mset C"  and [simp]: \<open>finite I\<close>
-  shows "\<exists>S'. rules\<^sup>*\<^sup>*(N, R, S, V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
+  shows "\<exists>S'. inp_mr\<^sup>*\<^sup>*(N, R, S, V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) 
           ((N-{#C#}), R, S@S', V \<union> atms_of_mm (N ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S)) \<and>
            wit_clause `# mset S' = {#C#} \<and> (\<forall>I'\<in># (wit_interp `# mset S'). I' = I)"
   using assms
@@ -285,10 +285,10 @@ proof -
     using eq1 assms(3) by auto
   have eq2: "(remove1_mset C N) + {#C#} = N" 
     using C1 by auto
-  have "rules (remove1_mset C N + {#C#}, R, S, V \<union> atms_of C \<union> atms_of_mm (remove1_mset C N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
+  have "inp_mr (remove1_mset C N + {#C#}, R, S, V \<union> atms_of C \<union> atms_of_mm (remove1_mset C N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))
      (remove1_mset C N, R, S @ [Witness I C], V \<union> atms_of C \<union> atms_of_mm (remove1_mset C N) \<union> atms_of_mm R \<union> atms_of_mm (wit_clause `# mset S))"
     using weakenp[of I C "(N-{#C#})" V R S] 2 red assms(2) sub by auto
-  hence rul:"rules(N, R, S, V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))((N-{#C#}), R, S@[Witness I C], V \<union> atms_of_mm (N ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
+  hence rul:"inp_mr(N, R, S, V \<union> atms_of_mm (N) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))((N-{#C#}), R, S@[Witness I C], V \<union> atms_of_mm (N ) \<union> atms_of_mm R \<union> atms_of_ms (wit_clause ` set S))" 
     using eq1 eq2 apply auto
     by (simp add: sup.assoc)
   have wit1:" wit_clause `# mset[Witness I C] = {#C#}"
