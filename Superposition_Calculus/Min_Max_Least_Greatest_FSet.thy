@@ -165,6 +165,18 @@ lemma ex1_greatest_in_fset_wrt:
 end
 
 
+subsection \<open>Miscellaneous\<close>
+
+lemma is_least_in_ffilter_wrt_iff:
+  assumes
+    trans: "transp_on (fset (ffilter P X)) R" and
+    asym: "asymp_on (fset (ffilter P X)) R" and
+    tot: "totalp_on (fset (ffilter P X)) R"
+  shows "is_least_in_fset_wrt R (ffilter P X) x \<longleftrightarrow>
+    (x |\<in>| X \<and> P x \<and> fBall X (\<lambda>y. y \<noteq> x \<longrightarrow> P y \<longrightarrow> R x y))"
+  unfolding is_least_in_fset_wrt_iff[OF trans asym tot] by auto
+
+
 section \<open>Hide stuff\<close>
 
 text \<open>We restrict the public interface to ease future internal changes.\<close>
@@ -235,5 +247,8 @@ lemmas (in linorder) ex1_least_in_fset =
 
 lemmas (in linorder) ex1_greatest_in_fset =
   ex1_greatest_in_fset_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) is_least_in_ffilter_iff =
+  is_least_in_ffilter_wrt_iff[OF transp_on_less asymp_on_less totalp_on_less]
 
 end
