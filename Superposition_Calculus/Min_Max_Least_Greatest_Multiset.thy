@@ -3,6 +3,7 @@ theory Min_Max_Least_Greatest_Multiset
     Relation_Reachability
     Min_Max_Least_Greatest_Set
     "HOL-Library.Multiset"
+    "HOL-Library.Multiset_Order"
 begin
 
 section \<open>Minimal and maximal elements\<close>
@@ -221,6 +222,44 @@ lemma count_ge_2_if_maximal_in_mset_wrt_and_not_greatest_in_mset_wrt:
 end
 
 
+lemma multp\<^sub>H\<^sub>O_if_maximal_wrt_less_that_maximal_wrt:
+  assumes
+    trans: "transp_on (set_mset X1 \<union> set_mset X2) R" and
+    asym: "asymp_on (set_mset X1 \<union> set_mset X2) R" and
+    tot: "totalp_on (set_mset X1 \<union> set_mset X2) R" and
+    x1_maximal: "is_maximal_in_mset_wrt R X1 x1" and
+    x2_maximal: "is_maximal_in_mset_wrt R X2 x2" and
+    "R x1 x2"
+  shows "multp\<^sub>H\<^sub>O R X1 X2"
+proof -
+  have
+    trans1: "transp_on (set_mset X1) R" and trans2: "transp_on (set_mset X2) R" and
+    asym1: "asymp_on (set_mset X1) R" and asym2: "asymp_on (set_mset X2) R" and
+    tot1: "totalp_on (set_mset X1) R" and tot2: "totalp_on (set_mset X2) R"
+    using trans[THEN transp_on_subset] asym[THEN asymp_on_subset] tot[THEN totalp_on_subset]
+    by simp_all
+
+  have x1_in: "x1 \<in># X1" and x1_gr: "\<forall>y\<in>#X1. y \<noteq> x1 \<longrightarrow> \<not> R x1 y"
+    using x1_maximal[unfolded is_maximal_in_mset_wrt_iff[OF trans1 asym1]] by argo+
+
+  have x2_in: "x2 \<in># X2" and x2_gr: "\<forall>y\<in>#X2. y \<noteq> x2 \<longrightarrow> \<not> R x2 y"
+    using x2_maximal[unfolded is_maximal_in_mset_wrt_iff[OF trans2 asym2]] by argo+
+
+  show "multp\<^sub>H\<^sub>O R X1 X2"
+    unfolding multp\<^sub>H\<^sub>O_def
+  proof (intro conjI)
+    show "X1 \<noteq> X2"
+      using x1_in x2_in x1_gr
+      by (metis \<open>R x1 x2\<close> asym2 asymp_onD)
+  next
+    show "\<forall>y. count X2 y < count X1 y \<longrightarrow> (\<exists>x. R y x \<and> count X1 x < count X2 x)"
+      using x1_in x2_in x1_gr x2_gr
+      by (smt (verit, best) assms(6) asym1 asymp_onD count_greater_zero_iff count_inI
+          dual_order.strict_trans local.trans subsetD sup_ge1 sup_ge2 tot1 totalp_onD transp_onD)
+  qed
+qed
+
+
 section \<open>Examples of duplicate handling in set and multiset definitions\<close>
 
 lemma
@@ -300,6 +339,10 @@ lemmas (in linorder) count_ge_2_if_minimal_in_mset_and_not_least_in_mset =
 
 lemmas (in linorder) count_ge_2_if_maximal_in_mset_and_not_greatest_in_mset =
   count_ge_2_if_maximal_in_mset_wrt_and_not_greatest_in_mset_wrt[OF transp_on_less asymp_on_less
+    totalp_on_less]
+
+lemmas (in linorder) multp\<^sub>H\<^sub>O_if_maximal_less_that_maximal =
+  multp\<^sub>H\<^sub>O_if_maximal_wrt_less_that_maximal_wrt[OF transp_on_less asymp_on_less
     totalp_on_less]
 
 end

@@ -1428,14 +1428,14 @@ proof -
     by argo
 qed
 
-lemma production_add_unrelevant_clause_to_set0:
+lemma production_add_irrelevant_clause_to_set0:
   assumes
     fin: "finite N" and
-    D_unrelevant: "E \<in> N" "E \<subset># D" "set_mset E = set_mset D" and
+    D_irrelevant: "E \<in> N" "E \<subset># D" "set_mset D = set_mset E" and
     no_select: "select E = {#}"
   shows "production (insert D N) D = {}"
 proof -
-  from D_unrelevant have "E \<prec>\<^sub>c D"
+  from D_irrelevant have "E \<prec>\<^sub>c D"
     using subset_implies_multp by metis
   hence prod_E_subset: "production (insert D N) E \<subseteq> interp (insert D N) D"
     using production_subset_if_less_cls by metis
@@ -1454,7 +1454,7 @@ proof -
       hence "\<nexists>A. is_strictly_maximal_lit (Pos A) D"
       proof (rule contrapos_nn)
         show "\<exists>A. is_strictly_maximal_lit (Pos A) D \<Longrightarrow> \<exists>A. is_strictly_maximal_lit (Pos A) E"
-          using \<open>E \<subset># D\<close> \<open>set_mset E = set_mset D\<close>
+          using \<open>E \<subset># D\<close> \<open>set_mset D = set_mset E\<close>
           unfolding linorder_lit.is_greatest_in_mset_iff
           by (metis (no_types, opaque_lifting) add_mset_remove_trivial_eq
               insert_union_subset_iff)
@@ -1464,7 +1464,7 @@ proof -
       assume "interp (insert D N) E \<TTurnstile> E"
       hence "interp (insert D N) D \<TTurnstile> D"
         using lift_interp_entails \<open>E \<in> N\<close> \<open>E \<prec>\<^sub>c D\<close>
-        by (metis \<open>set_mset E = set_mset D\<close> insert_iff true_cls_def)
+        by (metis \<open>set_mset D = set_mset E\<close> insert_iff true_cls_def)
       thus ?thesis ..
     qed
     thus ?thesis
@@ -1473,7 +1473,7 @@ proof -
     case False
     hence "interp (insert D N) D \<TTurnstile> D"
       using prod_E_subset
-      by (metis \<open>set_mset E = set_mset D\<close> mem_productionE production_eq_empty_or_singleton
+      by (metis \<open>set_mset D = set_mset E\<close> mem_productionE production_eq_empty_or_singleton
           insertCI insert_subset linorder_lit.is_greatest_in_mset_iff
           pos_literal_in_imp_true_cls)
     thus ?thesis
@@ -1481,11 +1481,11 @@ proof -
   qed
 qed
 
-lemma production_add_unrelevant_clause_to_set:
+lemma production_add_irrelevant_clause_to_set:
   assumes
     fin: "finite N" and
     C_in: "C \<in> N" and
-    D_unrelevant: "\<exists>E \<in> N. E \<subset># D \<and> set_mset E = set_mset D" and
+    D_irrelevant: "\<exists>E \<in> N. E \<subset># D \<and> set_mset D = set_mset E" and
     no_select: "\<And>C. select C = {#}"
   shows "production (insert D N) C = production N C"
     using wfP_less_cls C_in
@@ -1503,8 +1503,8 @@ proof (induction C rule: wfP_induct_rule)
       production (insert D N) D \<union> \<Union> (production (insert D N) ` {D \<in> N. D \<prec>\<^sub>c C})"
       by simp
     also have "\<dots> = \<Union> (production (insert D N) ` {D \<in> N. D \<prec>\<^sub>c C})"
-      using production_add_unrelevant_clause_to_set0
-      using D_unrelevant fin no_select by force
+      using production_add_irrelevant_clause_to_set0
+      using D_irrelevant fin no_select by force
     also have "\<dots> = \<Union> (production N ` {D \<in> N. D \<prec>\<^sub>c C})"
       using less.IH by simp
     finally show ?thesis
@@ -1520,24 +1520,14 @@ proof (induction C rule: wfP_induct_rule)
     unfolding production_unfold C_in_iff interp_insert_eq by argo
 qed
 
-lemma production_add_unrelevant_clause_to_set':
-  assumes
-    fin: "finite N" and
-    C_in: "C \<in> N" and
-    D_unrelevant: "\<exists>E \<in> N. E \<subseteq># D \<and> set_mset E = set_mset D" and
-    no_select: "\<And>C. select C = {#}"
-  shows "production (insert D N) C = production N C"
-  using assms production_add_unrelevant_clause_to_set
-  by (metis insert_absorb subset_mset.le_less)
-
-lemma production_add_unrelevant_clauses_to_set0:
+lemma production_add_irrelevant_clauses_to_set0:
   assumes
     fin: "finite N" "finite N'" and
     D_in: "D \<in> N'" and
-    unrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subset># D \<and> set_mset E = set_mset D" and
+    irrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subset># D \<and> set_mset D = set_mset E" and
     no_select: "\<And>C. select C = {#}"
   shows "production (N \<union> N') D = {}"
-  using \<open>finite N'\<close> D_in unrelevant
+  using \<open>finite N'\<close> D_in irrelevant
 proof (induction N' rule: finite_induct)
   case empty
   hence False
@@ -1546,18 +1536,18 @@ proof (induction N' rule: finite_induct)
 next
   case (insert x F)
   then show ?case
-    using production_add_unrelevant_clause_to_set0
-    by (metis UnCI fin(1) finite_Un finite_insert production_add_unrelevant_clause_to_set no_select)
+    using production_add_irrelevant_clause_to_set0
+    by (metis UnCI fin(1) finite_Un finite_insert production_add_irrelevant_clause_to_set no_select)
 qed
 
-lemma production_add_unrelevant_clauses_to_set:
+lemma production_add_irrelevant_clauses_to_set:
   assumes
     fin: "finite N" "finite N'" and
     C_in: "C \<in> N" and
-    unrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subset># D \<and> set_mset E = set_mset D" and
+    irrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subset># D \<and> set_mset D = set_mset E" and
     no_select: "\<And>C. select C = {#}"
   shows "production (N \<union> N') C = production N C"
-  using \<open>finite N'\<close> unrelevant
+  using \<open>finite N'\<close> irrelevant
 proof (induction N' rule: finite_induct)
   case empty
   show ?case
@@ -1565,15 +1555,15 @@ proof (induction N' rule: finite_induct)
 next
   case (insert x F)
   then show ?case
-    using production_add_unrelevant_clause_to_set
+    using production_add_irrelevant_clause_to_set
     by (metis C_in UnI1 Un_insert_right fin(1) finite_Un insertCI no_select)
 qed
 
-lemma interp_add_unrelevant_clauses_to_set:
+lemma interp_add_irrelevant_clauses_to_set:
   assumes
     fin: "finite N" "finite N'" and
     C_in: "C \<in> N" and
-    unrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subset># D \<and> set_mset E = set_mset D" and
+    irrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subset># D \<and> set_mset D = set_mset E" and
     no_select: "\<And>C. select C = {#}"
   shows "interp (N \<union> N') C = interp N C"
 proof -
@@ -1583,20 +1573,20 @@ proof -
     production (N \<union> N') ` {D \<in> N'. D \<prec>\<^sub>c C})"
     by auto
   also have "\<dots> = \<Union> (production (N \<union> N') ` {D \<in> N. D \<prec>\<^sub>c C})"
-    using production_add_unrelevant_clauses_to_set0[OF fin _ unrelevant no_select] by simp
+    using production_add_irrelevant_clauses_to_set0[OF fin _ irrelevant no_select] by simp
   also have "\<dots> = \<Union> (production N ` {D \<in> N. D \<prec>\<^sub>c C})"
-    using production_add_unrelevant_clauses_to_set[OF fin _ _ no_select] unrelevant
+    using production_add_irrelevant_clauses_to_set[OF fin _ _ no_select] irrelevant
     using subset_mset.less_le by fastforce
   also have "\<dots> = interp N C"
     unfolding interp_def ..
   finally show ?thesis .
 qed
 
-lemma interp_add_unrelevant_clauses_to_set':
+lemma interp_add_irrelevant_clauses_to_set':
   assumes
     fin: "finite N" "finite N'" and
     C_in: "C \<in> N" and
-    unrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subseteq># D \<and> set_mset E = set_mset D" and
+    irrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subseteq># D \<and> set_mset D = set_mset E" and
     no_select: "\<And>C. select C = {#}"
   shows "interp (N \<union> N') C = interp N C"
 proof -
@@ -1606,7 +1596,7 @@ proof -
   from fin(2) have "finite N''"
     unfolding N''_def by simp
 
-  moreover from unrelevant have "\<forall>D \<in> N''. \<exists>E \<in> N. E \<subset># D \<and> set_mset E = set_mset D"
+  moreover from irrelevant have "\<forall>D \<in> N''. \<exists>E \<in> N. E \<subset># D \<and> set_mset E = set_mset D"
     unfolding N''_def
     by (metis Diff_iff subset_mset.le_less)
 
@@ -1614,7 +1604,7 @@ proof -
     unfolding N''_def by simp
 
   ultimately show ?thesis
-    using assms interp_add_unrelevant_clauses_to_set by metis
+    using assms interp_add_irrelevant_clauses_to_set by metis
 qed
 
 lemma entailed_clause_stays_entailed:
