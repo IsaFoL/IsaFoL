@@ -45,19 +45,19 @@ The goal is to develop lemma libraries and methodology for formalizing modern re
 
 ### First-Order Logic According to Berghofer (ongoing) ###
 
-* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/FOL_Berghofer/)
+* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/FOL_Berghofer/)
 
 
 ### First-Order Logic According to Harrison ###
 
 * Latest version (compatible with latest Isabelle repository): [AFP entry](https://devel.isa-afp.org/entries/FOL_Harrison.shtml)
 * Recent version (compatible with latest Isabelle release): [AFP entry](https://www.isa-afp.org/entries/FOL_Harrison.shtml)
-* Variants (compatible with latest Isabelle release): [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/FOL_Harrison/)
+* Variants (compatible with latest Isabelle release): [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/FOL_Harrison/)
 
 
 ### First-Order Logic According to Monk (ongoing) ###
 
-* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/FOL_Monk/)
+* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/FOL_Monk/)
 
 
 ### Given Clause Loops ###
@@ -68,14 +68,14 @@ The goal is to develop lemma libraries and methodology for formalizing modern re
 
 ### GRAT Checker ###
 
-* Latest version (compatible with Isabelle2016-1): [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/GRAT/)
+* Latest version (compatible with Isabelle2016-1): [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/GRAT/)
 
 
 ### Hybrid Logic ###
 
 * Latest version (compatible with latest Isabelle repository): [AFP entry](https://devel.isa-afp.org/entries/Hybrid_Logic.shtml)
 * Recent version (compatible with latest Isabelle release): [AFP entry](https://www.isa-afp.org/entries/Hybrid_Logic.shtml)
-* Variants (compatible with latest Isabelle release): [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/Hybrid_Logic/)
+* Variants (compatible with latest Isabelle release): [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/Hybrid_Logic/)
 
 
 ### Lambda-Free Higher-Order Embedding Path Order ###
@@ -104,12 +104,12 @@ The goal is to develop lemma libraries and methodology for formalizing modern re
 
 ### Ordered Resolution Prover According to Bachmair and Ganzinger ###
 
-* Latest version (compatible with Isabelle2017): [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/Ordered_Resolution_Prover/), [documentation](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Ordered_Resolution_Prover/index.html)
+* Latest version (compatible with Isabelle2017): [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/Ordered_Resolution_Prover/), [documentation](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Ordered_Resolution_Prover/index.html)
 
 
 ### Paraconsistency ###
 
-* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/Paraconsistency/)
+* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/Paraconsistency/)
 * Recent version (compatible with latest Isabelle repository): [AFP entry](https://devel.isa-afp.org/entries/Paraconsistency.shtml)
 * Recent version (compatible with latest Isabelle release): [AFP entry](https://www.isa-afp.org/entries/Paraconsistency.shtml)
 
@@ -121,14 +121,13 @@ The initial formalisation of PAC was moved to the AFP:
 * Latest version (compatible with latest Isabelle release): [AFP entry](https://devel.isa-afp.org/entries/PAC_Checker.html)
 * AFP entry (compatible with latest Isabelle release): [AFP entry](https://www.isa-afp.org/entries/PAC_Checker.html)
 
-But we continued working on it in [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/PAC_Checker2)
+But we continued working on it in [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/PAC_Checker2)
 
 
 ### Proof Systems for Propositional Logic ###
 
 * Latest version (compatible with latest Isabelle repository): [AFP entry](https://devel.isa-afp.org/entries/Propositional_Proof_Systems.html)
 * Recent version (compatible with latest Isabelle release): [AFP entry](https://www.isa-afp.org/entries/Propositional_Proof_Systems.html)
-* Isabelle2016-1-compatible version: [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/PPS/Propositional_Proof_Systems/), [documentation](https://liftm.de/permanent/propositional_proof_systems/)
 
 
 ### Propositional Resolution and Prime Implicates Generation ###
@@ -139,12 +138,12 @@ But we continued working on it in [IsaFoL entry](https://bitbucket.org/isafol/is
 
 ### Sequent Calculus ###
 
-* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/Sequent_Calculus/)
+* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/Sequent_Calculus/)
 
 
 ### Simple Prover ###
 
-* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/Simple_Prover/)
+* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/Simple_Prover/)
 
 
 ### Sound and Complete Sort Encodings for First-Order Logic ###
@@ -154,31 +153,30 @@ But we continued working on it in [IsaFoL entry](https://bitbucket.org/isafol/is
 
 ### Splitting Framework ###
 
-* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/Splitting_Framework/)
+* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/Splitting_Framework/)
 
 ### Standard Superposition (ongoing) ###
 
-* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/Standard_Superposition/)
+* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/Standard_Superposition/)
 
 
 ### Unordered Resolution ###
 
-* Latest version (compatible with latest Isabelle release): [AFP entry](https://www.isa-afp.org/entries/Resolution_FOL.shtml), [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/Unordered_Resolution/), [documentation](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Unordered_Resolution/index.html)
+* Latest version (compatible with latest Isabelle release): [AFP entry](https://www.isa-afp.org/entries/Resolution_FOL.shtml), [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/Unordered_Resolution/), [documentation](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Unordered_Resolution/index.html)
 * Recent version (compatible with latest Isabelle repository): [AFP entry](https://devel.isa-afp.org/entries/Resolution_FOL.shtml)
-* Isabelle2016-compatible version described at ITP 2016: [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/ITP2016/Unordered_Resolution/), [documentation](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/ITP2016/Unordered_Resolution/index.html)
 
 
 ### Weidenbach's Book (ongoing) ###
 
 * The relevant parts of Weidenbach's book can be found [online](http://people.mpi-inf.mpg.de/~mfleury/paper/Weidenback_Book_CDCL.pdf)
-* Latest version (compatible with Isabelle version 2017): [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/Weidenbach_Book/), [documentation](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Weidenbach_Book/index.html)
-* Isabelle2016-compatible version described at IJCAR 2016: [IsaFoL entry](https://bitbucket.org/isafol/isafol/src/IJCAR2016/Weidenbach_Book/), [documentation](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/IJCAR2016/Weidenbach_Book/index.html)
+* Latest version: [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/Weidenbach_Book/), [documentation](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Weidenbach_Book/index.html)
 
 
 ## Authors ##
 
 * [Heiko Becker](mailto:hbecker shtrudel mpi-sws.org)
 * [Alexander Bentkamp](mailto:a.bentkamp shtrudel vu.nl)
+* [Ghilain Bergeron](mailto:ghilain.bergeron shtrudel inria.fr)
 * [Jasmin Christian Blanchette](mailto:j.c.blanchette shtrudel vu.nl)
 * [Mathias Fleury](mailto:mathias.fleury shtrudel mpi-inf.mpg.de)
 * [Asta Halkjær From (formerly Andreas)](mailto:ahfrom shtrudel dtu.dk)
