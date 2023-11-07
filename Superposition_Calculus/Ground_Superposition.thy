@@ -350,6 +350,7 @@ definition G_entails :: "'f atom clause set \<Rightarrow> 'f atom clause set \<R
 
 subsection \<open>Correctness\<close>
 
+(* TODO: Move these out*)
 lemma uprod_mem_image_iff_prod_mem[simp]:
   assumes "sym I"
   shows "(Upair t t') \<in> (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<longleftrightarrow> (t, t') \<in> I"
@@ -2592,7 +2593,7 @@ proof unfold_locales
     by auto
 qed
 
-(* How to access this stuff differently? *)
+(* TODO: How to access this stuff differently? *)
 abbreviation Red_I where "Red_I \<equiv> G.Red_I"
 abbreviation Red_F where "Red_F \<equiv> G.Red_F"
 

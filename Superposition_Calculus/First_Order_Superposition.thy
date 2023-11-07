@@ -50,6 +50,10 @@ qed
 lemma mset_lit_image_mset: "mset_lit (map_literal (map_uprod f) l) = image_mset f (mset_lit l)"
   by(induction l) (simp_all add: mset_uprod_image_mset)
 
+lemma gterm_of_term_gctxt_of_ctxt: 
+  "ground_ctxt c \<Longrightarrow> is_ground_trm t \<Longrightarrow> (gctxt_of_ctxt c)\<langle>gterm_of_term t\<rangle>\<^sub>G = gterm_of_term c\<langle>t\<rangle>"
+  by (metis ctxt_of_gctxt_apply_gterm gctxt_of_ctxt_inv)
+
 section \<open>First_Order_Terms And Abstract_Substitution\<close>
 
 notation subst_apply_term (infixl "\<cdot>t" 67)
@@ -200,6 +204,11 @@ lemma ground_subst_ground_clause: "term_subst.is_ground_subst \<theta> \<Longrig
   unfolding subst_cls_def vars_cls_def
   using ground_subst_ground_literal
   by blast
+
+lemma ground_subst_ground_context: "term_subst.is_ground_subst \<theta> \<Longrightarrow> ground_ctxt (c \<cdot>t\<^sub>c \<theta>)"
+  unfolding term_subst.is_ground_subst_def
+  by (metis empty_iff ground_ctxt_apply ground_substI subst_apply_term_ctxt_apply_distrib 
+        term_subst.is_ground_def)
 
 lemma is_imgu_equals: "term_subst.is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}} \<Longrightarrow> t\<^sub>1 \<cdot>t \<mu> = t\<^sub>2 \<cdot>t \<mu>"
   unfolding term_subst.is_imgu_def term_subst.is_unifiers_def  
@@ -1277,14 +1286,11 @@ proof (cases P C rule: eq_resolution.cases)
      have [simp]: "?L = (Neg (Upair ?s\<^sub>1 ?s\<^sub>2))"
        unfolding glit_lit_def eq_resolutionI(2)
        by (simp add: subst_atm_def subst_lit_Neg)
-
-     have [simp]: "s\<^sub>1 \<cdot>t \<mu> = s\<^sub>2 \<cdot>t \<mu>"
-       using is_imgu_equals[OF eq_resolutionI(3)].
-    
-     then have [simp]: "?s\<^sub>1 = ?s\<^sub>2"
-       by presburger
+       
+     have [simp]: "?s\<^sub>1 = ?s\<^sub>2"
+       using is_imgu_equals[OF eq_resolutionI(3)] by simp
       
-     have [intro]: "is_neg ?L"
+     have "is_neg ?L"
        by (simp add: glit_lit_def eq_resolutionI(2) subst_lit_Neg)
 
      show "?I \<TTurnstile> gcls_cls (C \<cdot> \<theta>)"
@@ -1358,15 +1364,15 @@ proof (cases P C rule: eq_factoring.cases)
     then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
       by (auto simp: true_cls_def)
 
-    then have s\<^sub>1_equals_t\<^sub>2 [simp]: "?t\<^sub>2 = ?s\<^sub>1"
+    then have s\<^sub>1_equals_t\<^sub>2: "?t\<^sub>2 = ?s\<^sub>1"
       using is_imgu_equals[OF eq_factoringI(6)]
       by simp
 
-    have L\<^sub>1 [simp]: "?L\<^sub>1 = ?s\<^sub>1 \<approx> ?s\<^sub>1'"
+    have L\<^sub>1: "?L\<^sub>1 = ?s\<^sub>1 \<approx> ?s\<^sub>1'"
       unfolding glit_lit_def eq_factoringI(2)
       by (simp add: subst_atm_def subst_lit_Pos)
 
-    have L\<^sub>2 [simp]: "?L\<^sub>2 = ?t\<^sub>2 \<approx> ?t\<^sub>2'"
+    have L\<^sub>2: "?L\<^sub>2 = ?t\<^sub>2 \<approx> ?t\<^sub>2'"
       unfolding glit_lit_def eq_factoringI(3)
       by (simp add: subst_atm_def subst_lit_Pos)
 
@@ -1381,10 +1387,13 @@ proof (cases P C rule: eq_factoring.cases)
       then have "I \<TTurnstile>l Pos (?s\<^sub>1, ?s\<^sub>1') \<or> I \<TTurnstile>l Pos (?s\<^sub>1, ?t\<^sub>2')"
         using G.true_lit_uprod_iff_true_lit_prod[OF sym_I] I_models_L'
         by (metis L\<^sub>1 L\<^sub>2 s\<^sub>1_equals_t\<^sub>2)
+
       then have "I \<TTurnstile>l Pos (?s\<^sub>1, ?t\<^sub>2') \<or> I \<TTurnstile>l Neg (?s\<^sub>1', ?t\<^sub>2')"
         by (meson transD trans_I true_lit_simps(1) true_lit_simps(2))
+
       then have "?I \<TTurnstile>l ?s\<^sub>1 \<approx> ?t\<^sub>2' \<or> ?I \<TTurnstile>l Neg (Upair ?s\<^sub>1' ?t\<^sub>2')"
         unfolding G.true_lit_uprod_iff_true_lit_prod[OF sym_I].
+
       then show ?thesis
         unfolding C
         by (metis true_cls_add_mset)
@@ -1415,42 +1424,189 @@ lemma correctness_superposition:
   using step
 proof (cases P1 P2 C rule: superposition.cases)
   case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
-   show ?thesis 
-     unfolding true_clss_singleton true_clss_insert
-     sorry
-     (*apply auto
-  proof-
-    fix I :: "('f, 'v) atom set"
 
-    assume "I \<TTurnstile> P1" and "I \<TTurnstile> P2"
-    then obtain K1 K2 :: "('f, 'v) atom literal" where
-      "K1 \<in># P1" and "I \<TTurnstile>l K1" and "K2 \<in># P2" and "I \<TTurnstile>l K2"
+  have 
+    "\<And>I \<theta>. \<lbrakk>
+        refl I;
+        trans I; 
+        sym I;
+        compatible_with_gctxt I;
+        \<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> gcls_cls (P1 \<cdot> \<sigma>);
+        \<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> gcls_cls (P2 \<cdot> \<sigma>); 
+        term_subst.is_ground_subst \<theta>
+     \<rbrakk> \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> gcls_cls (C \<cdot> \<theta>)"
+  proof -
+    fix I :: "'f gterm rel" and \<theta> :: "'v \<Rightarrow> ('f, 'v) Term.term"
+
+    let ?I = "(\<lambda>(x, y). Upair x y) ` I"
+
+    let ?P1 = "gcls_cls (P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<theta>)"
+    let ?P2 = "gcls_cls (P2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu> \<cdot> \<theta>)"
+
+    let ?L\<^sub>1 = "glit_lit (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu> \<cdot>l \<theta>)"
+    let ?L\<^sub>2 = "glit_lit (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu> \<cdot>l \<theta>)"
+
+    let ?P\<^sub>1' = "gcls_cls (P\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<theta>)"
+    let ?P\<^sub>2' = "gcls_cls (P\<^sub>2' \<cdot> \<rho>\<^sub>2 \<cdot> \<mu> \<cdot> \<theta>)"
+
+    let ?s\<^sub>1 = "gctxt_of_ctxt (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<theta>)"
+    let ?s\<^sub>1' = "gterm_of_term (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<theta>)"
+    let ?t\<^sub>2 = "gterm_of_term (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<theta>)"
+    let ?t\<^sub>2' = "gterm_of_term (t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<theta>)"
+    let ?u\<^sub>1 = "gterm_of_term (u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<theta>)"
+
+    let ?\<P> = "if \<P> = Pos then Pos else Neg"
+
+    let ?C = "gcls_cls (C \<cdot> \<theta>)"
+
+    assume 
+      ground_subst: "term_subst.is_ground_subst \<theta>" and 
+      refl_I: "refl I" and 
+      trans_I: "trans I" and 
+      sym_I: "sym I" and 
+      compatible_with_ground_context_I: "compatible_with_gctxt I" and
+      premise1: "\<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> ?I \<TTurnstile> gcls_cls (P1 \<cdot> \<sigma>)" and
+      premise2: "\<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> ?I \<TTurnstile> gcls_cls (P2 \<cdot> \<sigma>)"
+
+    have "?I \<TTurnstile> ?P1"
+      using 
+         premise1[rule_format, of "\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<theta>", OF ground_subst_composition[OF ground_subst]]
+         clause_subst_compose
+      by metis
+
+    moreover have "?I \<TTurnstile> ?P2"
+      using 
+         premise2[rule_format, of "\<rho>\<^sub>2 \<odot> \<mu> \<odot> \<theta>", OF ground_subst_composition[OF ground_subst]]
+         clause_subst_compose
+      by metis
+
+    ultimately obtain L\<^sub>1' L\<^sub>2' 
+      where
+        L\<^sub>1'_in_P1: "L\<^sub>1' \<in># ?P1" and 
+        I_models_L\<^sub>1': "?I \<TTurnstile>l L\<^sub>1'" and
+        L\<^sub>2'_in_P2: "L\<^sub>2' \<in># ?P2" and 
+        I_models_L\<^sub>2': "?I \<TTurnstile>l L\<^sub>2'"
       by (auto simp: true_cls_def)
 
-    then show "I \<TTurnstile> C"
+    have u\<^sub>1_equals_t\<^sub>2: "?t\<^sub>2 = ?u\<^sub>1"
+      using is_imgu_equals[OF superpositionI(10)]
+      by simp
+
+    have s\<^sub>1_u\<^sub>1: "?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G = gterm_of_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<theta>)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<theta>\<rangle>"
+      using gterm_of_term_gctxt_of_ctxt[OF 
+              ground_subst_ground_context[OF ground_subst] 
+              ground_subst_ground_term[OF ground_subst]
+            ]
+      by simp
+
+    have s\<^sub>1_t\<^sub>2': "(?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G  = gterm_of_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<theta>)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<theta>\<rangle>"
+      using gterm_of_term_gctxt_of_ctxt[OF 
+              ground_subst_ground_context[OF ground_subst] 
+              ground_subst_ground_term[OF ground_subst]
+            ]
+      by simp
+      
+    have \<P>_pos_or_neg: "\<P> = Pos \<or> \<P> = Neg"
+      using superpositionI(6) by blast
+
+    then have L\<^sub>1: "?L\<^sub>1 = ?\<P> (Upair ?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G ?s\<^sub>1')"
+      unfolding superpositionI glit_lit_def 
+      by(auto simp: subst_atm_def subst_lit_Pos subst_lit_Neg s\<^sub>1_u\<^sub>1)
     
-    proof(cases "K1 = \<P> (Upair s\<^sub>1\<langle>u\<^sub>1\<rangle> s\<^sub>1')")
-      case True
-      then show ?thesis 
-        sorry
+    have C: "?C = add_mset (?\<P> (Upair (?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G (?s\<^sub>1'))) (?P\<^sub>1' + ?P\<^sub>2')"
+      using \<P>_pos_or_neg
+      unfolding s\<^sub>1_t\<^sub>2' superpositionI
+      apply(cases "\<P> = Pos")
+      by (simp_all add: gcls_cls_def glit_lit_def subst_atm_def subst_cls_add_mset subst_cls_plus 
+              subst_lit_Pos subst_lit_Neg)
+
+    show "?I \<TTurnstile> ?C"
+    proof (cases "L\<^sub>1' = ?L\<^sub>1")
+      case L\<^sub>1'_def: True
+      then have "?I \<TTurnstile>l ?L\<^sub>1"
+        using superpositionI
+        using I_models_L\<^sub>1' by blast
+
+      show ?thesis
+      proof (cases "L\<^sub>2' = ?L\<^sub>2")
+        case L\<^sub>2'_def: True
+        then have ts_in_I: "(?t\<^sub>2, ?t\<^sub>2') \<in> I"
+          using I_models_L\<^sub>2' G.true_lit_uprod_iff_true_lit_prod[OF sym_I] superpositionI(8)
+          by (simp add: glit_lit_def subst_atm_def subst_lit_Pos)
+
+        have ?thesis if "\<P> = Pos"
+        proof -
+          from that have "(?s\<^sub>1\<langle>?t\<^sub>2\<rangle>\<^sub>G, ?s\<^sub>1') \<in> I"
+            using I_models_L\<^sub>1' L\<^sub>1'_def L\<^sub>1 G.true_lit_uprod_iff_true_lit_prod[OF sym_I] u\<^sub>1_equals_t\<^sub>2
+            unfolding superpositionI 
+            by (smt (verit, best) true_lit_simps(1))
+
+          then have "(?s\<^sub>1\<langle>?t\<^sub>2'\<rangle>\<^sub>G, ?s\<^sub>1') \<in> I"
+            using ts_in_I compatible_with_ground_context_I refl_I sym_I trans_I
+            by (meson compatible_with_gctxtD refl_onD1 symD trans_onD)
+          
+          then have "?I \<TTurnstile>l ?s\<^sub>1\<langle>?t\<^sub>2'\<rangle>\<^sub>G  \<approx> ?s\<^sub>1'"
+            by blast
+
+          then show ?thesis 
+            unfolding C that
+            by (smt (verit) true_cls_add_mset)
+        qed
+
+        moreover have ?thesis if "\<P> = Neg"
+        proof -
+          from that have "(?s\<^sub>1\<langle>?t\<^sub>2\<rangle>\<^sub>G, ?s\<^sub>1') \<notin> I"
+            using I_models_L\<^sub>1' L\<^sub>1'_def L\<^sub>1 G.true_lit_uprod_iff_true_lit_prod[OF sym_I] u\<^sub>1_equals_t\<^sub>2
+            unfolding superpositionI 
+            by (smt (verit, ccfv_threshold) literals_distinct(2) true_lit_simps(2))
+        
+          then have "(?s\<^sub>1\<langle>?t\<^sub>2'\<rangle>\<^sub>G, ?s\<^sub>1') \<notin> I"
+            using ts_in_I compatible_with_ground_context_I trans_I
+            by (meson compatible_with_gctxtD transD)
+
+          then have "?I \<TTurnstile>l Neg (Upair ?s\<^sub>1\<langle>?t\<^sub>2'\<rangle>\<^sub>G  ?s\<^sub>1')"
+            by (meson G.true_lit_uprod_iff_true_lit_prod(2) sym_I true_lit_simps(2))
+
+          then show ?thesis 
+            unfolding C that
+            by (smt (verit, best) literals_distinct(1) true_cls_add_mset)
+        qed
+
+        ultimately show ?thesis
+          using \<P>_pos_or_neg by blast
+      next
+        case False
+        then have "L\<^sub>2' \<in># ?P\<^sub>2'"
+          using L\<^sub>2'_in_P2
+          unfolding superpositionI
+          by (simp add: gcls_cls_def subst_cls_add_mset)
+
+        then have "?I \<TTurnstile> ?P\<^sub>2'"
+          using I_models_L\<^sub>2' by blast
+
+        then show ?thesis
+          unfolding superpositionI
+          by (simp add: gcls_cls_def subst_cls_add_mset subst_cls_plus)
+      qed
     next
       case False
-      hence "K1 \<in># P\<^sub>1'"
-        using \<open>K1 \<in># P1\<close>
-        unfolding superpositionI by simp
-      hence "I \<TTurnstile> P\<^sub>1'"
-        using \<open>I \<TTurnstile>l K1\<close>
-        by blast
+      then have "L\<^sub>1' \<in># ?P\<^sub>1'"
+        using L\<^sub>1'_in_P1
+        unfolding superpositionI 
+        by (simp add: gcls_cls_def subst_cls_add_mset)
 
-      then have "I \<TTurnstile> P\<^sub>1' \<cdot> \<rho>\<^sub>1"
-        using superpositionI
-        sorry
+      then have "?I \<TTurnstile> ?P\<^sub>1'"
+        using I_models_L\<^sub>1' by blast
 
-      then show ?thesis
+      then show ?thesis 
         unfolding superpositionI
-        sorry
+        by (simp add: gcls_cls_def subst_cls_add_mset subst_cls_plus)
     qed
-   qed*)
+  qed
+
+  then show ?thesis 
+    unfolding true_clss_singleton true_clss_insert F_entails_def
+    by simp
 qed
 
 definition ginfer_infer :: 
