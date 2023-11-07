@@ -1619,8 +1619,6 @@ definition infer_ginfer ::
   where
   "infer_ginfer infer = Infer (map cls_gcls (prems_of infer)) (cls_gcls (concl_of infer))"
 
-(* typedecl Q *)
-
 definition is_ground_subst_list :: "('f, 'v) subst list \<Rightarrow> bool" where
   "is_ground_subst_list \<sigma>s \<longleftrightarrow> (\<forall>\<sigma> \<in> set \<sigma>s. term_subst.is_ground_subst \<sigma>)"
 
@@ -1656,10 +1654,15 @@ next
   show "F_Bot \<noteq> {}"
     by simp
 next 
-  show "\<And>B N1. B \<in> F_Bot \<Longrightarrow> F_entails {B} N1"
-    unfolding F_entails_def
-    apply(auto)
-    sorry
+  have "\<And>\<theta> I. 
+    term_subst.is_ground_subst \<theta> \<Longrightarrow> 
+    (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> gcls_cls ({#} \<cdot> \<theta>) \<Longrightarrow> False"
+    by (metis cls_gcls_empty_mset cls_gcls_inverse image_mset_is_empty_iff subst_cls_def 
+          true_cls_empty)
+
+  then show "\<And>B N1. B \<in> F_Bot \<Longrightarrow> F_entails {B} N1"
+    unfolding true_clss_singleton F_entails_def
+    by fastforce
 next
   show "\<And>N2 N1. N2 \<subseteq> N1 \<Longrightarrow> F_entails N1 N2"
     by (auto simp: F_entails_def elim!: true_clss_mono[rotated])
@@ -1673,7 +1676,6 @@ next
     by (smt (verit, best))
 qed
   
-
 (* Q = gs(S) 
   q = T
 *)
