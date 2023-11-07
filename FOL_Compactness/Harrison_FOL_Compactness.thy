@@ -511,38 +511,6 @@ qed
 
 lemma concat_map: \<open>[f t. t \<leftarrow> [g t. t \<leftarrow> ts]] = [f (g t). t \<leftarrow> ts]\<close> by simp
 
-find_theorems "_(_ := _)" name: Term
-
-lemma \<open>\<nexists>y. x \<in> FVT (\<sigma> y) \<Longrightarrow> \<sigma> x = Var x \<Longrightarrow> (\<lambda>v. \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup>) = (\<lambda>v. \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a)\<close>
-proof
-  fix v
-  assume x_idem: \<open>\<sigma> x = Var x\<close> and
-    case_false: \<open>\<nexists>y. x \<in> FVT (\<sigma> y)\<close>
-  show \<open>\<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup> = ((\<lambda>v. \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a)) v\<close>
-  proof (induction "\<sigma> v")
-    case (Var y)
-    then show ?case
-      proof (cases "y=x")
-        case True
-        then have \<open>\<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup> = a\<close>
-          using Var by simp
-        have \<open>((\<lambda>v. \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a)) v = (if v = x then a else \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)\<close>
-          by simp
-        then have \<open>((\<lambda>v. \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a)) v = a\<close>
-          using True Var x_idem
-          sorry
-        then show ?thesis sorry
-      next
-        case False
-        then show ?thesis sorry
-      qed
-  next
-    case (Fun x1a x2)
-    then show ?case sorry
-  qed
-qed
-
-
 lemma swap_subst_eval: \<open>\<M>,\<beta> \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<longleftrightarrow> \<M>,(\<lambda>v. eval_subst \<M> \<beta> \<sigma> v) \<Turnstile> \<phi>\<close>
 proof (induction \<phi> arbitrary: \<sigma> \<beta>)
   case (Atom p ts)
@@ -619,9 +587,37 @@ next
     finally show ?thesis .
   next
     case True
+    then have x_in: \<open>\<exists>y. y \<in> FV \<phi> - {x} \<and> x \<in> FVT (\<sigma>' y)\<close>
+      by simp
+    then have \<open>x \<in> FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>')\<close>
+    proof (induction \<phi>)
+      case Bot
+      then show ?case using x_in by simp 
+    next
+      case (Atom p ts)
+      then have \<open>\<exists>y. y \<in> (\<Union> t \<in> set ts. FVT t) \<and> x \<in> FVT (\<sigma>' y)\<close>
+        by auto
+      then have \<open>x \<in> (\<Union> t \<in> set ts. FVT (t \<cdot> \<sigma>'))\<close>
+        using vars_term_subst_apply_term by fastforce
+      then have \<open>x \<in> (\<Union> t \<in> set [t \<cdot> \<sigma>' . t \<leftarrow> ts]. FVT t)\<close>
+        by simp
+      then show ?case
+        by simp
+    next
+      case (Implies \<phi> \<psi>)
+      then show ?case by auto
+    next
+      case (Forall x1 \<phi>)
+      then have \<open>x \<in> FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>')\<close>
+        by auto
+      then show ?case  sorry
+    qed
     define z where \<open>z = variant (FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>'))\<close>
-    then have \<open>(\<^bold>\<forall> x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma> =  \<^bold>\<forall> z\<^bold>. (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(x := Var z))\<close>
-      using True formsubst_def_switch \<sigma>'_def by (smt (verit, best) formsubst.simps(4))
+    then have \<open>z \<noteq> x\<close>
+      using x_in 
+      sorry
+    have \<open>(\<^bold>\<forall> x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma> =  \<^bold>\<forall> z\<^bold>. (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(x := Var z))\<close>
+      using z_def True formsubst_def_switch \<sigma>'_def by (smt (verit, best) formsubst.simps(4))
     then have \<open>\<M>,\<beta> \<Turnstile> ((\<^bold>\<forall>x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma>) = (\<forall>a \<in> dom \<M>. \<M>,\<beta>(z := a) \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(x := Var z)))\<close>
       by auto
     also have \<open>... = (\<forall>a \<in> dom \<M>. \<M>,(\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>(z := a)\<^esup>) \<Turnstile> \<phi>)\<close>
@@ -635,8 +631,31 @@ next
         assume \<open>a \<in> dom \<M>\<close>
         then have \<open>\<M>,(\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>(z := a)\<^esup>) \<Turnstile> \<phi>\<close>
           using forward by blast
-        moreover have \<open>\<forall>v\<in>FV \<phi>. (\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>(z := a)\<^esup>) v = ((\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(z := a)) v\<close>
-          sorry
+        moreover have \<open>\<forall>v\<in>FV \<phi>. (\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>(z := a)\<^esup>) v = 
+          ((\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(z := a)) v\<close>
+        proof
+          fix v
+          assume v_in: \<open>v \<in> FV \<phi>\<close>
+          have \<open>v \<noteq> z\<close>
+          proof (rule ccontr)
+            assume \<open>\<not> v \<noteq> z\<close>
+            then have \<open>z \<in> FV \<phi>\<close>
+              using v_in by blast
+            then have \<open>z \<in> FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>')\<close>
+              using \<sigma>'_def 
+              sorry
+            then show False
+              using z_def \<sigma>'_def 
+              sorry
+          qed
+          have \<open>v \<noteq> z \<Longrightarrow> v \<noteq> x \<Longrightarrow> \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>(z := a)\<^esup> = ((\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(z := a)) v\<close>
+            using DiffI FV.simps(4) True eval_indep_\<beta>_if fun_upd_other singletonD
+            sorry
+          have \<open>v = z \<Longrightarrow> \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>(z := a)\<^esup> = ((\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(z := a)) v\<close>
+            sorry
+          show \<open>\<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>(z := a)\<^esup> = ((\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(z := a)) v\<close>
+            sorry
+        qed
         ultimately show \<open>\<M>,(\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(z := a) \<Turnstile> \<phi>\<close>
           using holds_indep_\<beta>_if by fast
       qed
