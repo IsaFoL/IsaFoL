@@ -528,7 +528,6 @@ proof
           using Var by simp
         have \<open>((\<lambda>v. \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a)) v = (if v = x then a else \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)\<close>
           by simp
-        have 
         then have \<open>((\<lambda>v. \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a)) v = a\<close>
           using True Var x_idem
           sorry
@@ -563,9 +562,9 @@ next
   show ?case
   proof (cases "\<exists> y. y \<in> FV (\<^bold>\<forall> x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>' y)")
     case False
-    then have \<open>(\<^bold>\<forall> x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<forall> x\<^bold>. (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>')\<close>
+    then have \<open>(\<^bold>\<forall>x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<forall>x\<^bold>. (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>')\<close>
       using formsubst_def_switch \<sigma>'_def by fastforce
-    then have \<open>\<M>,\<beta> \<Turnstile> ((\<^bold>\<forall> x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma>) = (\<forall>a \<in> dom \<M>. \<M>,\<beta>(x := a) \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>'))\<close>
+    then have \<open>\<M>,\<beta> \<Turnstile> ((\<^bold>\<forall>x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma>) = (\<forall>a \<in> dom \<M>. \<M>,\<beta>(x := a) \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>'))\<close>
       by auto
     also have \<open>... = (\<forall>a \<in> dom \<M>. \<M>,(\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup>) \<Turnstile> \<phi>)\<close>
       using Forall by blast
@@ -578,18 +577,74 @@ next
         assume \<open>a \<in> dom \<M>\<close>
         then have \<open>\<M>,(\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup>) \<Turnstile> \<phi>\<close>
           using forward by blast
-        show \<open>\<M>,(\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a) \<Turnstile> \<phi>\<close>
-          using subst_lemma_terms
-          sorry
+        moreover have \<open>\<forall>v\<in>FV \<phi>. (\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup>) v = ((\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a)) v\<close>
+        proof
+          fix v
+          assume \<open>v \<in> FV \<phi>\<close>
+          then have \<open>v \<noteq> x \<Longrightarrow> \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup> = ((\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a)) v\<close>
+            by (metis (mono_tags, lifting) DiffI FV.simps(4) False eval_indep_\<beta>_if fun_upd_other singletonD)
+          moreover have \<open>v = x \<Longrightarrow> \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup> = ((\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a)) v\<close>
+            using \<sigma>'_def by auto
+          ultimately show \<open>\<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup> = ((\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a)) v\<close>
+            by simp
+        qed
+        ultimately show \<open>\<M>,(\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a) \<Turnstile> \<phi>\<close>
+          using holds_indep_\<beta>_if by fast
       qed
     next
-      assume \<open>\<forall>a \<in> dom \<M>. \<M>,(\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a) \<Turnstile> \<phi>\<close>
+      assume backward: \<open>\<forall>a \<in> dom \<M>. \<M>,(\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a) \<Turnstile> \<phi>\<close>
       show \<open>\<forall>a \<in> dom \<M>. \<M>,(\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup>) \<Turnstile> \<phi>\<close>
-        sorry 
+      proof
+        fix a
+        assume \<open>a \<in> dom \<M>\<close>
+        then have \<open>\<M>,(\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a) \<Turnstile> \<phi>\<close>
+          using backward by blast
+        moreover have \<open>\<forall>v\<in>FV \<phi>. (\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup>) v = ((\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a)) v\<close>
+        proof
+          fix v
+          assume \<open>v \<in> FV \<phi>\<close>
+          then have \<open>v \<noteq> x \<Longrightarrow> \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup> = ((\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a)) v\<close>
+            by (metis (mono_tags, lifting) DiffI FV.simps(4) False eval_indep_\<beta>_if fun_upd_other singletonD)
+          moreover have \<open>v = x \<Longrightarrow> \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup> = ((\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a)) v\<close>
+            using \<sigma>'_def by auto
+          ultimately show \<open>\<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup> = ((\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(x := a)) v\<close>
+            by simp
+        qed
+        ultimately show \<open>\<M>,(\<lambda>v. \<lbrakk>\<sigma>' v\<rbrakk>\<^bsup>\<M>,\<beta>(x := a)\<^esup>) \<Turnstile> \<phi>\<close>
+          using holds_indep_\<beta>_if by fast
+      qed
     qed
-    then show ?thesis sorry
+    also have \<open>... = (\<M>,(\<lambda>v. \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>) \<Turnstile> (\<^bold>\<forall> x\<^bold>. \<phi>))\<close>
+      by (smt (verit, ccfv_SIG) \<sigma>'_def fun_upd_apply holds.simps(4) holds_indep_\<beta>_if)
+    finally show ?thesis .
   next
     case True
+    define z where \<open>z = variant (FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>'))\<close>
+    then have \<open>(\<^bold>\<forall> x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma> =  \<^bold>\<forall> z\<^bold>. (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(x := Var z))\<close>
+      using True formsubst_def_switch \<sigma>'_def by (smt (verit, best) formsubst.simps(4))
+    then have \<open>\<M>,\<beta> \<Turnstile> ((\<^bold>\<forall>x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma>) = (\<forall>a \<in> dom \<M>. \<M>,\<beta>(z := a) \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(x := Var z)))\<close>
+      by auto
+    also have \<open>... = (\<forall>a \<in> dom \<M>. \<M>,(\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>(z := a)\<^esup>) \<Turnstile> \<phi>)\<close>
+      using Forall by blast
+    also have \<open>... = (\<forall>a \<in> dom \<M>. \<M>,(\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(z := a) \<Turnstile> \<phi>)\<close>
+    proof
+      assume forward: \<open>\<forall>a\<in>dom \<M>. \<M>,(\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>(z := a)\<^esup>) \<Turnstile> \<phi>\<close>
+      show \<open>\<forall>a\<in>dom \<M>. \<M>,(\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(z := a) \<Turnstile> \<phi>\<close>
+      proof
+        fix a
+        assume \<open>a \<in> dom \<M>\<close>
+        then have \<open>\<M>,(\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>(z := a)\<^esup>) \<Turnstile> \<phi>\<close>
+          using forward by blast
+        moreover have \<open>\<forall>v\<in>FV \<phi>. (\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>(z := a)\<^esup>) v = ((\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(z := a)) v\<close>
+          sorry
+        ultimately show \<open>\<M>,(\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(z := a) \<Turnstile> \<phi>\<close>
+          using holds_indep_\<beta>_if by fast
+      qed
+    next
+      assume backward: \<open>\<forall>a\<in>dom \<M>. \<M>,(\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>)(z := a) \<Turnstile> \<phi>\<close>
+      show \<open>\<forall>a\<in>dom \<M>. \<M>,(\<lambda>v. \<lbrakk>(\<sigma>(x := Var z)) v\<rbrakk>\<^bsup>\<M>,\<beta>(z := a)\<^esup>) \<Turnstile> \<phi>\<close>
+        sorry
+    qed
     then show ?thesis sorry
   qed
 
