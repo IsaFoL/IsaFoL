@@ -1259,7 +1259,7 @@ proof (cases P C rule: eq_resolution.cases)
 
      assume 
        ground_subst: "term_subst.is_ground_subst \<theta>" and 
-       reflI: "refl I" and 
+       refl_I: "refl I" and 
        premise: "\<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> ?I \<TTurnstile> gcls_cls (P \<cdot> \<sigma>)"
 
      have "?I \<TTurnstile> ?P"
@@ -1295,7 +1295,7 @@ proof (cases P C rule: eq_resolution.cases)
          using I_models_L' by simp
   
        moreover have "atm_of L' \<in> ?I"
-         using True reflD[OF reflI, of ?s\<^sub>1] by auto
+         using True reflD[OF refl_I, of ?s\<^sub>1] by auto
   
        ultimately show ?thesis
          using True by blast
@@ -1318,10 +1318,95 @@ proof (cases P C rule: eq_resolution.cases)
 qed
 
 lemma correctness_eq_factoring:
-  assumes
-    step: "eq_factoring P C"
+  assumes step: "eq_factoring P C"
   shows "F_entails {P} {C}"
-  sorry
+  using step
+proof (cases P C rule: eq_factoring.cases)
+  case (eq_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
+  have 
+    "\<And>I \<theta>. \<lbrakk>
+        trans I; 
+        sym I;
+        \<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> gcls_cls (P \<cdot> \<sigma>); 
+        term_subst.is_ground_subst \<theta>
+     \<rbrakk> \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> gcls_cls (C \<cdot> \<theta>)"
+  proof-
+    fix I :: "'f gterm rel" and \<theta> :: "'v \<Rightarrow> ('f, 'v) Term.term"
+    let ?I = "(\<lambda>(x, y). Upair x y) ` I"
+    let ?P = "gcls_cls (P \<cdot> \<mu> \<cdot> \<theta>)"
+    let ?P' = "gcls_cls (P' \<cdot> \<mu> \<cdot> \<theta>)"
+    let ?L\<^sub>1 = "glit_lit (L\<^sub>1 \<cdot>l \<mu> \<cdot>l \<theta>)"
+    let ?L\<^sub>2 = "glit_lit (L\<^sub>2 \<cdot>l \<mu> \<cdot>l \<theta>)"
+    let ?s\<^sub>1 = "gterm_of_term (s\<^sub>1 \<cdot>t \<mu> \<cdot>t \<theta>)"
+    let ?s\<^sub>1' = "gterm_of_term (s\<^sub>1' \<cdot>t \<mu> \<cdot>t \<theta>)"
+    let ?t\<^sub>2 = "gterm_of_term (t\<^sub>2 \<cdot>t \<mu> \<cdot>t \<theta>)"
+    let ?t\<^sub>2' = "gterm_of_term (t\<^sub>2' \<cdot>t \<mu> \<cdot>t \<theta>)"
+    let ?C = "gcls_cls (C \<cdot> \<theta>)"
+
+    assume 
+      ground_subst: "term_subst.is_ground_subst \<theta>" and 
+      trans_I: "trans I" and 
+      sym_I: "sym I" and 
+      premise: "\<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> ?I \<TTurnstile> gcls_cls (P \<cdot> \<sigma>)"
+
+    have "?I \<TTurnstile> ?P"
+       using 
+         premise[rule_format, of "\<mu> \<odot> \<theta>", OF ground_subst_composition[OF ground_subst]]
+         clause_subst_compose
+       by metis
+
+    then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
+      by (auto simp: true_cls_def)
+
+    then have s\<^sub>1_equals_t\<^sub>2 [simp]: "?t\<^sub>2 = ?s\<^sub>1"
+      using is_imgu_equals[OF eq_factoringI(6)]
+      by simp
+
+    have L\<^sub>1 [simp]: "?L\<^sub>1 = ?s\<^sub>1 \<approx> ?s\<^sub>1'"
+      unfolding glit_lit_def eq_factoringI(2)
+      by (simp add: subst_atm_def subst_lit_Pos)
+
+    have L\<^sub>2 [simp]: "?L\<^sub>2 = ?t\<^sub>2 \<approx> ?t\<^sub>2'"
+      unfolding glit_lit_def eq_factoringI(3)
+      by (simp add: subst_atm_def subst_lit_Pos)
+
+    have C: "?C = add_mset (?s\<^sub>1 \<approx> ?t\<^sub>2') (add_mset (Neg (Upair ?s\<^sub>1' ?t\<^sub>2')) ?P')"
+      unfolding eq_factoringI
+      by (simp add: gcls_cls_def glit_lit_def subst_atm_def subst_cls_add_mset subst_lit_Neg 
+            subst_lit_Pos)
+
+    show "?I \<TTurnstile> ?C"
+    proof(cases "L' = ?L\<^sub>1 \<or> L' = ?L\<^sub>2")
+      case True
+      then have "I \<TTurnstile>l Pos (?s\<^sub>1, ?s\<^sub>1') \<or> I \<TTurnstile>l Pos (?s\<^sub>1, ?t\<^sub>2')"
+        using G.true_lit_uprod_iff_true_lit_prod[OF sym_I] I_models_L'
+        by (metis L\<^sub>1 L\<^sub>2 s\<^sub>1_equals_t\<^sub>2)
+      then have "I \<TTurnstile>l Pos (?s\<^sub>1, ?t\<^sub>2') \<or> I \<TTurnstile>l Neg (?s\<^sub>1', ?t\<^sub>2')"
+        by (meson transD trans_I true_lit_simps(1) true_lit_simps(2))
+      then have "?I \<TTurnstile>l ?s\<^sub>1 \<approx> ?t\<^sub>2' \<or> ?I \<TTurnstile>l Neg (Upair ?s\<^sub>1' ?t\<^sub>2')"
+        unfolding G.true_lit_uprod_iff_true_lit_prod[OF sym_I].
+      then show ?thesis
+        unfolding C
+        by (metis true_cls_add_mset)
+    next
+      case False
+      then have "L' \<in># ?P'"
+        using L'_in_P
+        unfolding eq_factoringI
+        by (simp add: gcls_cls_def subst_cls_add_mset)
+
+      then have "L' \<in># gcls_cls (C \<cdot> \<theta>)"
+        by (simp add: gcls_cls_def eq_factoringI(7) subst_cls_add_mset)
+
+      then show ?thesis
+        using I_models_L' by blast
+    qed
+  qed
+
+  then show ?thesis
+    unfolding true_clss_singleton F_entails_def 
+    by simp
+qed
 
 lemma correctness_superposition:
   assumes
@@ -1332,7 +1417,8 @@ proof (cases P1 P2 C rule: superposition.cases)
   case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
    show ?thesis 
      unfolding true_clss_singleton true_clss_insert
-     apply auto
+     sorry
+     (*apply auto
   proof-
     fix I :: "('f, 'v) atom set"
 
@@ -1364,8 +1450,8 @@ proof (cases P1 P2 C rule: superposition.cases)
         unfolding superpositionI
         sorry
     qed
-   qed
- qed
+   qed*)
+qed
 
 definition ginfer_infer :: 
   "('f, 'v) atom clause inference \<Rightarrow> 'f Ground_Superposition.atom clause inference" 
@@ -1408,8 +1494,29 @@ proof unfold_locales
       correctness_eq_factoring 
       correctness_eq_resolution 
       correctness_superposition
+      F_entails_def
     by auto
+next 
+  show "F_Bot \<noteq> {}"
+    by simp
+next 
+  show "\<And>B N1. B \<in> F_Bot \<Longrightarrow> F_entails {B} N1"
+    unfolding F_entails_def
+    apply(auto)
+    sorry
+next
+  show "\<And>N2 N1. N2 \<subseteq> N1 \<Longrightarrow> F_entails N1 N2"
+    by (auto simp: F_entails_def elim!: true_clss_mono[rotated])
+next
+  show "\<And>N2 N1. \<forall>C\<in>N2. F_entails N1 {C} \<Longrightarrow> F_entails N1 N2"
+    unfolding F_entails_def
+    by blast
+next
+  show "\<And>N1 N2 N3. \<lbrakk>F_entails N1 N2; F_entails N2 N3\<rbrakk> \<Longrightarrow> F_entails N1 N3 "
+    using F_entails_def 
+    by (smt (verit, best))
 qed
+  
 
 (* Q = gs(S) 
   q = T
