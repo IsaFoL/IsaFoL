@@ -3219,16 +3219,17 @@ next
         next
           fix y assume "y |\<in>| s1" and "y \<noteq> C" and y_false: "\<not> ord_res_Interp (fset s1) y \<TTurnstile> y"
 
-          hence "y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f \<or> y |\<in>| U\<^sub>f"
-            by (simp add: s1_def)
+          have y_false': "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> y"
+            using y_false unfolding s1_def Interp_eq .
+
+          have "y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f \<or> y |\<in>| U\<^sub>f"
+            using \<open>y |\<in>| s1\<close> by (simp add: s1_def)
 
           thus "C \<prec>\<^sub>c y"
           proof (elim disjE)
             assume "y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
-            then show "C \<prec>\<^sub>c y"
-              using \<open>y \<noteq> C\<close> y_false C_least
-              unfolding s1_def Interp_eq
-              by metis
+            thus "C \<prec>\<^sub>c y"
+              using \<open>y \<noteq> C\<close> y_false' C_least by metis
           next
             assume "y |\<in>| U\<^sub>f"
             then obtain y' where
@@ -3241,9 +3242,40 @@ next
             show "C \<prec>\<^sub>c y"
               using \<open>sfac y |\<in>| U\<^sub>f\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) y'\<close>
             proof (elim disjE)
-              show "sfac y |\<in>| U\<^sub>f\<^sub>f \<Longrightarrow> C \<prec>\<^sub>c y"
-                
-                sorry
+              assume "sfac y |\<in>| U\<^sub>f\<^sub>f"
+              hence "sfac y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
+                by simp
+
+              have "sfac y \<prec>\<^sub>c y"
+                using \<open>y \<noteq> sfac y\<close> sfac_subset[of y]
+                by (simp add: strict_subset_implies_multp)
+
+              moreover have "C \<preceq>\<^sub>c sfac y"
+              proof (cases "sfac y = C")
+                case True
+                thus ?thesis
+                  by simp
+              next
+                case False
+
+                have sfac_y_false: "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) (sfac y) \<TTurnstile> sfac y"
+                proof (rule notI)
+                  assume "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) (sfac y) \<TTurnstile> sfac y"
+                  hence "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> sfac y"
+                    using \<open>sfac y \<prec>\<^sub>c y\<close> ord_res.entailed_clause_stays_entailed by metis
+                  hence "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> y"
+                    by (simp add: true_cls_def)
+                  with y_false' show False
+                    by contradiction
+                qed
+
+                show ?thesis
+                  using C_least[rule_format, OF \<open>sfac y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f\<close> False sfac_y_false]
+                  by order
+              qed
+
+              ultimately show "C \<prec>\<^sub>c y"
+                by order
             next
               assume "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) y'"
               hence "y' = C"
