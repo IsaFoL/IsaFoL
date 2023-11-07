@@ -2592,6 +2592,10 @@ proof unfold_locales
     by auto
 qed
 
+(* How to access this stuff differently? *)
+abbreviation Red_I where "Red_I \<equiv> G.Red_I"
+abbreviation Red_F where "Red_F \<equiv> G.Red_F"
+
 end
 
 end
