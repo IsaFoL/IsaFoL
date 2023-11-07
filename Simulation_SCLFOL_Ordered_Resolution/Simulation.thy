@@ -653,12 +653,27 @@ next
 qed
 
 lemma (in ground_ordered_resolution_calculus) full_ground_factorings_reduces_maximal_pos_lit:
-  assumes "(ground_factoring ^^ Suc n) P C" and "is_pos L" and
-    "is_maximal_lit L P" and "count P L = Suc (Suc n)"
+  assumes steps: "(ground_factoring ^^ Suc n) P C" and L_pos: "is_pos L" and
+    L_max: "is_maximal_lit L P" and L_count: "count P L = Suc (Suc n)"
   shows "is_maximal_lit L C" and "count C L = Suc 0"
-  using assms ground_factorings_reduces_maximal_pos_lit[of "Suc n"]
-  apply blast
-  oops
+  unfolding atomize_conj
+  using steps L_max L_count
+proof (induction n arbitrary: P)
+  case 0
+  then show ?case
+    using L_pos ground_factorings_reduces_maximal_pos_lit[of "Suc 0" P C 0] by simp
+next
+  case (Suc n)
+  from Suc.prems obtain P' where
+    "ground_factoring P P'" and "(ground_factoring ^^ Suc n) P' C"
+    by (metis relpowp_Suc_D2)
+
+  from Suc.prems have "is_maximal_lit L P'" and "count P' L = Suc (Suc n)"
+    using ground_factoring_reduces_maximal_pos_lit[OF \<open>ground_factoring P P'\<close> L_pos] by simp_all
+
+  thus ?case
+    using Suc.IH[OF \<open>(ground_factoring ^^ Suc n) P' C\<close>] by metis
+qed
 
 
 section \<open>Move somewhere?\<close>
@@ -2984,8 +2999,13 @@ next
   proof (cases N "(U\<^sub>r, U\<^sub>f\<^sub>f)" s2' rule: ord_res_2.cases)
     case (factoring NN C L U\<^sub>f\<^sub>f')
 
-    have C_in: "C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
-      using factoring linorder_cls.is_least_in_ffilter_iff by simp
+    have C_least_false: "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) C"
+      using factoring unfolding is_least_false_clause_def by metis
+
+    hence
+      C_in: "C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f" and
+      C_false: "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) C \<TTurnstile> C"
+      unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff by simp_all
 
     obtain A :: "'f gterm" where
       L_def: "L = Pos A"
@@ -3140,16 +3160,15 @@ next
       hence "(ord_res.ground_factoring ^^ Suc n) C C\<^sub>f"
         using \<open>(ord_res.ground_factoring ^^ m) C C\<^sub>f\<close> by argo
 
-      hence "count C\<^sub>f L = Suc 0"
-        using \<open>ord_res.is_maximal_lit L C\<close> \<open>is_pos L\<close> \<open>count C L = Suc (Suc n)\<close>
-        sorry
+      hence "ord_res.is_maximal_lit L C\<^sub>f" and "count C\<^sub>f L = Suc 0"
+        using ord_res.full_ground_factorings_reduces_maximal_pos_lit[
+            OF _ \<open>is_pos L\<close> \<open>ord_res.is_maximal_lit L C\<close> \<open>count C L = Suc (Suc n)\<close>]
+        by simp_all
 
       hence "\<nexists>C\<^sub>f'. ord_res.ground_factoring C\<^sub>f C\<^sub>f'"
         using \<open>ord_res.is_maximal_lit L C\<close> \<open>is_pos L\<close>
-        by (metis Suc_n_not_le_n \<open>(ord_res.ground_factoring ^^ Suc n) C C\<^sub>f\<close>
-            linorder_lit.count_ge_2_if_maximal_in_mset_and_not_greatest_in_mset 
-            nex_strictly_maximal_pos_lit_if_factorizable numeral_2_eq_2
-            ord_res.ground_factorings_preserves_maximal_literal relpowp_imp_rtranclp)
+        by (metis Suc_n_not_le_n linorder_lit.count_ge_2_if_maximal_in_mset_and_not_greatest_in_mset
+            nex_strictly_maximal_pos_lit_if_factorizable numeral_2_eq_2)
 
       hence "C\<^sub>f = sfac C\<^sub>f"
         using factorizable_if_neq_sfac by metis
@@ -3159,8 +3178,34 @@ next
       thus False
       proof (elim disjE)
         assume "C\<^sub>f |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
-        then show False
-          sorry
+
+        have "C\<^sub>f \<noteq> C"
+          using \<open>count C L = Suc (Suc n)\<close> \<open>count C\<^sub>f L = Suc 0\<close> by auto
+
+        have "multp\<^sub>H\<^sub>O (\<prec>\<^sub>l) C\<^sub>f C"
+          using \<open>ord_res.is_maximal_lit L C\<^sub>f\<close> \<open>count C\<^sub>f L = Suc 0\<close>
+          using \<open>ord_res.is_maximal_lit L C\<close> \<open>count C L = Suc (Suc n)\<close>
+          using linorder_lit.multp\<^sub>H\<^sub>O_if_same_maximal_and_count_lt
+          by simp
+        hence "C\<^sub>f \<prec>\<^sub>c C"
+          by (simp add: multp_eq_multp\<^sub>H\<^sub>O)
+
+        hence "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) C\<^sub>f \<TTurnstile> C\<^sub>f"
+          using C_least_false \<open>C\<^sub>f |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f\<close> \<open>C\<^sub>f \<noteq> C\<close>
+          by (auto simp: is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff)
+
+        hence "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) C \<TTurnstile> C\<^sub>f"
+          using \<open>C\<^sub>f \<prec>\<^sub>c C\<close> ord_res.entailed_clause_stays_entailed by metis
+
+        moreover have "set_mset C\<^sub>f = set_mset C"
+          using \<open>(ord_res.ground_factoring ^^ m) C C\<^sub>f\<close>
+          by (metis ground_factorings_preserves_sfac relpowp_imp_rtranclp set_mset_sfac)
+
+        ultimately have "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) C \<TTurnstile> C"
+          by (simp add: true_cls_def)
+
+        with C_false show False
+          by contradiction
       next
         assume "C\<^sub>f |\<in>| U\<^sub>f"
         hence "C\<^sub>f \<noteq> sfac C\<^sub>f"
