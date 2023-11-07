@@ -179,7 +179,7 @@ But we continued working on it in [IsaFoL entry](https://github.com/IsaFoL/IsaFo
 * [Ghilain Bergeron](mailto:ghilain.bergeron_shtrudel_inria.fr)
 * [Jasmin Christian Blanchette](mailto:j.c.blanchette_shtrudel_vu.nl)
 * [Mathias Fleury](mailto:mathias.fleury_shtrudel_mpi-inf.mpg.de)
-* [Asta Halkjær From (formerly Andreas)](mailto:ahfrom_shtrudel_dtu.dk)
+* [Asta Halkjær From](mailto:ahfrom_shtrudel_dtu.dk)
 * [Alexander Birch Jensen](mailto:aleje_shtrudel_dtu.dk)
 * [Peter Lammich](mailto:lammich_shtrudel_in.tum.de)
 * [John Bruntse Larsen](mailto:jobla_shtrudel_dtu.dk)
