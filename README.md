@@ -190,6 +190,7 @@ But we continued working on it in [IsaFoL entry](https://github.com/IsaFoL/IsaFo
 * [Qi Qiu](mailto:qi.qiu shtrudel univ-lyon1.fr)
 * [Simon Robillard](mailto:simon.robillard shtrudel chalmers.se)
 * [Anders Schlichtkrull](mailto:andschl shtrudel dtu.dk)
+* [Balazs Toth](mailto:balazs.toth@ifi.lmu.de)
 * [Sophie Tourret](mailto:stourret shtrudel mpi-inf.mpg.de)
 * [Dmitriy Traytel](mailto:traytel shtrudel inf.ethz.ch)
 * [Jørgen Villadsen](mailto:jovi shtrudel dtu.dk)
