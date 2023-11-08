@@ -1221,6 +1221,28 @@ next
         linorder_lit.is_maximal_in_mset_iff multiset_filter_subset)
 qed
 
+lemma obtains_positive_greatest_lit_if_sfac_not_ident:
+  assumes "sfac C \<noteq> C"
+  obtains L where "is_pos L" and "linorder_lit.is_greatest_in_mset (sfac C) L"
+proof -
+  from \<open>sfac C \<noteq> C\<close> obtain A where
+    Pos_A_maximal: "linorder_lit.is_maximal_in_mset C (Pos A)" and
+    sfac_C_eq: "sfac C = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#}"
+    using sfac_spec by metis
+
+  assume hyp: "\<And>L. is_pos L \<Longrightarrow> linorder_lit.is_greatest_in_mset (sfac C) L \<Longrightarrow> thesis"
+  show thesis
+  proof (rule hyp)
+    show "is_pos (Pos A)"
+      by simp
+  next
+    show "linorder_lit.is_greatest_in_mset(sfac C) (Pos A)"
+      unfolding sfac_C_eq linorder_lit.is_greatest_in_mset_iff
+      using Pos_A_maximal[unfolded linorder_lit.is_maximal_in_mset_iff]
+      by auto
+  qed
+qed
+
 
 subsection \<open>Lemmas about going between ground and first-order terms\<close>
 
@@ -1335,19 +1357,6 @@ proof (intro ballI)
   thus "ord_res_model N \<TTurnstile> C"
     using ord_res_model_eq_interp_union_production_of_greatest_clause[OF D_greatest] by argo
 qed
-
-lemma
-  assumes "finite N" and "N \<noteq> {}" and "ord_res_model N \<TTurnstile>s N"
-  shows "\<not> ex_false_clause N"
-  unfolding ex_false_clause_def Set.bex_simps HOL.not_not
-proof (intro ballI)
-  have "\<forall>C \<in> N. ord_res_model N \<TTurnstile> C"
-    sorry
-  fix C assume "C \<in> N"
-  show "ord_res.interp N C \<union> ord_res.production N C \<TTurnstile> C"
-    using \<open>ord_res_model N \<TTurnstile>s N\<close>[unfolded true_clss_def]
-    sorry
-  oops
 
 definition ord_res_final where
   "ord_res_final N \<longleftrightarrow> {#} |\<in>| N \<or> \<not> ex_false_clause (fset N)"
@@ -2424,6 +2433,79 @@ lemma bex_smaller_productive_clause_if_least_false_clause_has_negative_max_lit':
   using bex_smaller_productive_clause_if_least_false_clause_has_negative_max_lit[OF C_least_false]
   by (simp add: L_max L_neg uminus_literal_def)
 
+
+lemma ground_factoring_replicate_max_pos_lit:
+  "ord_res.ground_factoring
+    (C\<^sub>0 + replicate_mset (Suc (Suc n)) (Pos A))
+    (C\<^sub>0 + replicate_mset (Suc n) (Pos A))"
+  if "ord_res.is_maximal_lit (Pos A) (C\<^sub>0 + replicate_mset (Suc (Suc n)) (Pos A))"
+  for A C\<^sub>0 n
+proof (rule ord_res.ground_factoringI)
+  show "C\<^sub>0 + replicate_mset (Suc (Suc n)) (Pos A) =
+            add_mset (Pos A) (add_mset (Pos A) (C\<^sub>0 + replicate_mset n (Pos A)))"
+    by simp
+next
+  show "ord_res.is_maximal_lit (Pos A) (C\<^sub>0 + replicate_mset (Suc (Suc n)) (Pos A))"
+    using that .
+next
+  show "C\<^sub>0 + replicate_mset (Suc n) (Pos A) =
+            add_mset (Pos A) (C\<^sub>0 + replicate_mset n (Pos A))"
+    by simp
+qed simp
+
+(*
+  m \<le> Suc n
+*)
+
+thm ord_res.ground_factorings_reduces_maximal_pos_lit[no_vars]
+
+lemma ground_factorings_replicate_max_pos_lit:
+  assumes
+    "ord_res.is_maximal_lit (Pos A) (C\<^sub>0 + replicate_mset (Suc (Suc n)) (Pos A))"
+  shows "m \<le> Suc n \<Longrightarrow> (ord_res.ground_factoring ^^ m)
+    (C\<^sub>0 + replicate_mset (Suc (Suc n)) (Pos A))
+    (C\<^sub>0 + replicate_mset (Suc (Suc n - m)) (Pos A))"
+proof (induction m)
+  case 0
+  show ?case
+    by simp
+next
+  case (Suc m')
+  then show ?case
+    apply (cases m')
+    using assms ground_factoring_replicate_max_pos_lit apply auto[1]
+    by (metis (no_types, lifting) Suc_diff_le Suc_leD assms diff_Suc_Suc
+        ground_factoring_replicate_max_pos_lit ord_res.ground_factorings_preserves_maximal_literal
+        relpowp_Suc_I relpowp_imp_rtranclp)
+qed
+
+lemma ord_res_Interp_entails_if_greatest_lit_is_pos:
+  assumes C_in: "C \<in> N" and L_greatest: "linorder_lit.is_greatest_in_mset C L" and L_pos: "is_pos L"
+  shows "ord_res_Interp N C \<TTurnstile> C"
+proof (cases "ord_res.interp N C \<TTurnstile> C")
+  case True
+  hence "ord_res.production N C = {}"
+    by (simp add: ord_res.production_unfold)
+  with True show ?thesis
+    by simp
+next
+  case False
+
+  from L_pos obtain A where L_def: "L = Pos A"
+    by (cases L) simp_all
+
+  from L_greatest obtain C' where C_def: "C = add_mset L C'"
+    unfolding linorder_lit.is_greatest_in_mset_iff
+    by (metis insert_DiffM)
+
+  with C_in L_greatest have "A \<in> ord_res.production N C"
+    unfolding L_def ord_res.production_unfold
+    using False
+    by (simp add: linorder_lit.is_greatest_in_mset_iff multi_member_split)
+  thus ?thesis
+    by (simp add: true_cls_def C_def L_def)
+qed
+
 interpretation bisimulation_with_measuring_function' where
   step1 = "\<lambda>_. ord_res_1" and final1 = "\<lambda>_. ord_res_1_final" and
   step2 = ord_res_2 and final2 = ord_res_2_final and
@@ -3004,8 +3086,14 @@ next
 
     hence
       C_in: "C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f" and
-      C_false: "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) C \<TTurnstile> C"
+      C_false: "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) C \<TTurnstile> C" and
+      C_least: "\<forall>y|\<in>|N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f. y \<noteq> C \<longrightarrow>
+        \<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> y \<longrightarrow> C \<prec>\<^sub>c y"
       unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff by simp_all
+
+    have C_false_in_s1: "\<not> ord_res_Interp (fset s1) C \<TTurnstile> C"
+      unfolding s1_def Interp_eq
+      using C_false .
 
     obtain A :: "'f gterm" where
       L_def: "L = Pos A"
@@ -3074,7 +3162,7 @@ next
     qed
 
     then obtain m :: nat where
-      "is_greatest_in_set
+      m_greatest: "is_greatest_in_set
         {m. \<exists>C\<^sub>f |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f. (ord_res.ground_factoring ^^ m) C C\<^sub>f} m"
       by blast
 
@@ -3091,50 +3179,10 @@ next
 
       moreover have "(ord_res.ground_factoring ^^ Suc n) C (add_mset L C\<^sub>0)"
       proof -
-        have ground_factoring_replicate_max_pos_lit: "ord_res.ground_factoring
-          (C\<^sub>0 + replicate_mset (Suc (Suc n)) (Pos A))
-          (C\<^sub>0 + replicate_mset (Suc n) (Pos A))"
-          if "ord_res.is_maximal_lit (Pos A) (C\<^sub>0 + replicate_mset (Suc (Suc n)) (Pos A))"
-          for A C\<^sub>0 n
-        proof (rule ord_res.ground_factoringI)
-          show "C\<^sub>0 + replicate_mset (Suc (Suc n)) (Pos A) =
-            add_mset (Pos A) (add_mset (Pos A) (C\<^sub>0 + replicate_mset n (Pos A)))"
-            by (simp add: L_def)
-        next
-          show "ord_res.is_maximal_lit (Pos A) (C\<^sub>0 + replicate_mset (Suc (Suc n)) (Pos A))"
-            using that .
-        next
-          show "C\<^sub>0 + replicate_mset (Suc n) (Pos A) =
-            add_mset (Pos A) (C\<^sub>0 + replicate_mset n (Pos A))"
-            by simp
-        qed simp
-
         have "(ord_res.ground_factoring ^^ Suc n) C (C\<^sub>0 + replicate_mset (Suc 0) L)"
           using \<open>ord_res.is_maximal_lit L C\<close>
           unfolding C_eq L_def
-        proof (induction n)
-          case 0
-          hence "ord_res.ground_factoring
-            (C\<^sub>0 + replicate_mset (Suc (Suc 0)) (Pos A))
-            (C\<^sub>0 + replicate_mset (Suc 0) (Pos A))"
-            using ground_factoring_replicate_max_pos_lit[of C\<^sub>0 0 A] by argo
-          thus ?case
-            by auto
-        next
-          case (Suc n)
-          from Suc.prems have "ord_res.ground_factoring
-            (C\<^sub>0 + replicate_mset (Suc (Suc (Suc n))) (Pos A))
-            (C\<^sub>0 + replicate_mset (Suc (Suc n)) (Pos A))"
-            using ground_factoring_replicate_max_pos_lit by metis
-
-          moreover hence "(ord_res.ground_factoring ^^ Suc n)
-            (C\<^sub>0 + replicate_mset (Suc (Suc n)) (Pos A))
-            (C\<^sub>0 + replicate_mset (Suc 0) (Pos A))"
-            using Suc ord_res.ground_factoring_preserves_maximal_literal by metis
-
-          ultimately show ?case
-            by (meson relpowp_Suc_I2)
-        qed
+          using ground_factorings_replicate_max_pos_lit by fastforce
         thus ?thesis
           by simp
       qed
@@ -3218,20 +3266,391 @@ next
     ultimately have "m \<le> n"
       by presburger
 
-    then obtain k where "n = m + k"
+    then obtain k where n_def: "n = m + k"
       using le_Suc_ex by blast
 
-    have "\<exists>s1'. (ord_res_1 ^^ k) s1 s1' \<and> ord_res_1_matches_ord_res_2 s1' N s2"
-      sorry
+    thm ord_res_1.factoring[of s1 C\<^sub>f L]
 
-    hence "\<exists>s1'. (ord_res_1 ^^ Suc k) s1 s1' \<and> ord_res_1_matches_ord_res_2 s1' N s2'"
-      sorry
+    thm ground_factorings_replicate_max_pos_lit[of C\<^sub>0 n A m, simplified, unfolded n_def, simplified]
 
-    hence "\<exists>s1'. ord_res_1\<^sup>+\<^sup>+ s1 s1' \<and> ord_res_1_matches_ord_res_2 s1' N s2'"
-      by (metis tranclp_power zero_less_Suc)
+    have "C\<^sub>f = C\<^sub>0 + replicate_mset (Suc (Suc k)) (Pos A)"
+    proof -
+      have  "(ord_res.ground_factoring ^^ m) C (C\<^sub>0 + replicate_mset (Suc (Suc k)) (Pos A))"
+        using \<open>ord_res.is_maximal_lit L C\<close> ground_factorings_replicate_max_pos_lit[of C\<^sub>0 n A m]
+        by (simp add: C_eq L_def n_def)
+      thus ?thesis
+        using \<open>(ord_res.ground_factoring ^^ m) C C\<^sub>f\<close>
+        by (metis ord_res.unique_ground_factoring Uniq_relpowp)
+    qed
 
-    thus ?thesis
-      by argo
+    hence "C\<^sub>0 + replicate_mset (Suc (Suc k)) (Pos A) |\<in>| s1"
+      using \<open>C\<^sub>f |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f\<close> s1_def by argo
+
+    define factorized_C where
+      "factorized_C = (\<lambda>m. C\<^sub>0 + replicate_mset (Suc (Suc n - m)) (Pos A))"
+
+    have factorized_C_spec: "\<And>m. m \<le> Suc n \<Longrightarrow> (ord_res.ground_factoring ^^ m) C (factorized_C m)"
+      using \<open>ord_res.is_maximal_lit L C\<close> ground_factorings_replicate_max_pos_lit[of C\<^sub>0 n A]
+      by (simp add: C_eq L_def n_def factorized_C_def)
+
+    have set_mset_factorized_C: "\<And>i. set_mset (factorized_C i) = set_mset C"
+      by (simp add: factorized_C_def C_eq L_def)
+
+    have factorized_C_strict_subset:
+      "\<And>i1 i2. i1 \<le> Suc n \<Longrightarrow> i2 \<le> Suc n \<Longrightarrow> factorized_C i1 \<subset># factorized_C i2 \<longleftrightarrow> i1 > i2"
+      unfolding factorized_C_def by auto
+    hence factorized_C_less_cls:
+      "\<And>i1 i2. i1 \<le> Suc n \<Longrightarrow> i2 \<le> Suc n \<Longrightarrow> factorized_C i1 \<prec>\<^sub>c factorized_C i2 \<longleftrightarrow> i1 > i2"
+      by (metis linorder_cls.not_less_iff_gr_or_eq linorder_neqE_nat strict_subset_implies_multp)
+
+    have factorized_C_0: "factorized_C 0 = C"
+      unfolding factorized_C_def C_eq L_def by simp
+
+    have factorized_C_Suc_lt_C: "\<And>i. factorized_C (Suc i) \<prec>\<^sub>c C"
+      unfolding factorized_C_def C_eq L_def
+      by (metis add_diff_cancel_right' diff_diff_left not_less_eq replicate_mset_subset_iff_lt
+          strict_subset_implies_multp subset_mset.add_strict_left_mono zero_less_Suc zero_less_diff)
+
+    have factorized_C_true_iff_C_true: "\<And>I i. I \<TTurnstile> factorized_C i \<longleftrightarrow> I \<TTurnstile> C"
+      by (simp add: set_mset_factorized_C true_cls_def)
+
+    have factorized_C_le_C: "\<And>i. factorized_C i \<preceq>\<^sub>c C"
+      by (metis factorized_C_0 factorized_C_Suc_lt_C linorder_cls.le_less_linear
+          linorder_cls.not_less_iff_gr_or_eq not0_implies_Suc)
+
+    have factorized_C_Suc_not_in: "factorized_C (Suc i) |\<notin>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f" for i
+    proof (rule notI)
+      assume "factorized_C (Suc i) |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
+      thus False
+        by (metis (no_types, lifting) factorized_C_Suc_lt_C linorder_cls.is_least_in_ffilter_iff
+            linorder_cls.not_less_iff_gr_or_eq local.factoring(2) local.factoring(3)
+            ord_res.entailed_clause_stays_entailed set_mset_factorized_C true_cls_def)
+    qed
+
+    have "factorized_C m = C\<^sub>f"
+    proof -
+      have  "(ord_res.ground_factoring ^^ m) C (C\<^sub>0 + replicate_mset (Suc (Suc k)) (Pos A))"
+        using \<open>ord_res.is_maximal_lit L C\<close> ground_factorings_replicate_max_pos_lit[of C\<^sub>0 n A m]
+        by (simp add: C_eq L_def n_def)
+      moreover have "C\<^sub>0 + replicate_mset (Suc (Suc k)) (Pos A) = factorized_C m"
+        unfolding factorized_C_def n_def by simp
+      ultimately show ?thesis
+        using \<open>(ord_res.ground_factoring ^^ m) C C\<^sub>f\<close>
+        by (metis ord_res.unique_ground_factoring Uniq_relpowp)
+    qed
+
+    hence "factorized_C m |\<in>| s1"
+      using \<open>C\<^sub>f |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f\<close> s1_def by argo
+
+    define factorized_Cs where
+      "factorized_Cs = (\<lambda>k. (\<lambda>i. factorized_C (m + i)) |`| fset_upto 0 k)"
+
+    have steps1: "kk \<le> Suc k \<Longrightarrow> (ord_res_1 ^^ kk) s1 (s1 |\<union>| factorized_Cs kk)" for kk
+    proof (induction kk)
+      case 0
+      show ?case
+        using \<open>factorized_C m |\<in>| s1\<close> by (auto simp: factorized_Cs_def)
+    next
+      case (Suc kk')
+      hence "kk' \<le> k"
+        by presburger
+      hence "m + kk' \<le> Suc n"
+        using n_def by presburger
+
+      have "factorized_C (m + kk') |\<in>| (\<lambda>i. factorized_C (m + i)) |`| fset_upto 0 kk'"
+        by simp
+
+      have "ord_res.is_maximal_lit L (factorized_C (m + kk'))"
+        by (metis \<open>count C L = Suc (Suc n)\<close> diff_is_0_eq factorized_C_def factorized_C_spec
+            local.factoring(4) local.factoring(5) nat_le_linear
+            ord_res.ground_factorings_reduces_maximal_pos_lit(1))
+
+      have factorized_Cs_unproductive:
+        "ord_res.production (fset (s1 |\<union>| factorized_Cs kk')) x = {}"
+        if "x |\<in>| factorized_Cs kk'" for x
+      proof -
+        from that obtain i where "i \<le> kk'" and x_def: "x = factorized_C (m + i)"
+          unfolding factorized_Cs_def by force
+        with \<open>kk' \<le> k\<close> have "i \<le> k"
+          by presburger
+        hence x_eq: "x = C\<^sub>0 + replicate_mset (Suc (Suc (k - i))) (Pos A)"
+          unfolding factorized_C_def n_def x_def
+          apply simp
+          by (simp add: Suc_diff_le)
+
+        moreover have "ord_res.is_maximal_lit (Pos A) x"
+          by (smt (verit, ccfv_SIG) L_def Suc_diff_le Suc_leD Suc_le_mono
+              \<open>(ord_res.ground_factoring ^^ m) C C\<^sub>f\<close>
+              \<open>C\<^sub>f = C\<^sub>0 + replicate_mset (Suc (Suc k)) (Pos A)\<close>
+              \<open>count C L = Suc (Suc n)\<close> \<open>i \<le> k\<close> \<open>m \<le> n\<close> add_diff_cancel_left'
+              local.factoring(4) local.factoring(5) n_def
+              ord_res.ground_factorings_reduces_maximal_pos_lit(1)
+              ord_res.ground_factorings_reduces_maximal_pos_lit(2)
+              ground_factorings_replicate_max_pos_lit x_eq)
+
+        ultimately have "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L x"
+          using ground_factoring_replicate_max_pos_lit
+            nex_strictly_maximal_pos_lit_if_factorizable
+          by metis
+
+        then show ?thesis
+          using unproductive_if_nex_strictly_maximal_pos_lit by metis
+      qed
+
+      have "ord_res_1 (s1 |\<union>| factorized_Cs kk') (s1 |\<union>| factorized_Cs (Suc kk'))"
+      proof (rule ord_res_1.factoring)
+        show "linorder_cls.is_least_in_fset {|C |\<in>| s1 |\<union>| factorized_Cs kk'.
+            \<not> ord_res_Interp (fset (s1 |\<union>| factorized_Cs kk')) C \<TTurnstile> C|} (factorized_C (m + kk'))"
+          unfolding linorder_cls.is_least_in_ffilter_iff
+        proof (intro conjI ballI impI)
+          show "factorized_C (m + kk') |\<in>| s1 |\<union>| factorized_Cs kk'"
+            unfolding factorized_Cs_def by simp
+        next
+          show "\<not> ord_res_Interp (fset (s1 |\<union>| factorized_Cs kk')) (factorized_C (m + kk')) \<TTurnstile>
+            factorized_C (m + kk')"
+          proof (rule notI)
+            assume "ord_res_Interp (fset (s1 |\<union>| factorized_Cs kk')) (factorized_C (m + kk')) \<TTurnstile>
+              factorized_C (m + kk')"
+            hence "ord_res_Interp (fset s1) (factorized_C (m + kk')) \<TTurnstile> factorized_C (m + kk')"
+              using Interp_union_unproductive factorized_Cs_unproductive by simp
+
+            moreover have "\<not> ord_res_Interp (fset s1) (factorized_C (m + kk')) \<TTurnstile>
+              factorized_C (m + kk')"
+              unfolding factorized_C_true_iff_C_true
+              by (metis C_false_in_s1 factorized_C_le_C factorized_C_true_iff_C_true
+                  ord_res.entailed_clause_stays_entailed
+                  linorder_cls.dual_order.not_eq_order_implies_strict)
+
+            ultimately show False
+              by contradiction
+          qed
+        next
+          fix y
+          assume
+            y_in: "y |\<in>| s1 |\<union>| factorized_Cs kk'" and
+            y_neq: "y \<noteq> factorized_C (m + kk')" and
+            y_false: "\<not> ord_res_Interp (fset (s1 |\<union>| factorized_Cs kk')) y \<TTurnstile> y"
+
+          from y_false have y_false': "\<not> ord_res_Interp (fset s1) y \<TTurnstile> y"
+            using Interp_union_unproductive factorized_Cs_unproductive by simp
+          hence y_false'': "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> y"
+            using Interp_union_unproductive U\<^sub>f_unproductive s1_def by simp
+
+          from y_in have "y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f \<or> y |\<in>| U\<^sub>f \<or> y |\<in>| factorized_Cs kk'"
+            unfolding s1_def by simp
+          thus "factorized_C (m + kk') \<prec>\<^sub>c y"
+          proof (elim disjE)
+            assume "y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
+            have "C \<preceq>\<^sub>c y"
+              using C_least \<open>y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f\<close> y_false'' by force
+
+            moreover have "factorized_C (m + kk') \<preceq>\<^sub>c C"
+              using factorized_C_le_C by metis
+
+            ultimately show ?thesis
+              using y_neq by order
+          next
+            assume "y |\<in>| U\<^sub>f"
+            then obtain y' where "y' |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f" and
+              "ord_res.ground_factoring\<^sup>+\<^sup>+ y' y" and
+              "y \<noteq> sfac y" and
+              "sfac y |\<in>| U\<^sub>f\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) y'"
+              using U\<^sub>f_spec[rule_format, of y] by metis
+
+            have "y \<prec>\<^sub>c y'"
+              using \<open>ord_res.ground_factoring\<^sup>+\<^sup>+ y' y\<close>
+              by (smt (verit, ccfv_SIG) converse_tranclp_induct linorder_cls.dual_order.strict_trans
+                  ord_res.ground_factoring_smaller_conclusion)
+
+            show ?thesis
+              using \<open>sfac y |\<in>| U\<^sub>f\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) y'\<close>
+            proof (elim disjE)
+              assume "sfac y |\<in>| U\<^sub>f\<^sub>f"
+
+              hence "sfac y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
+                by simp
+
+              moreover obtain L where "is_pos L" and "ord_res.is_strictly_maximal_lit L (sfac y)"
+                using \<open>y \<noteq> sfac y\<close> obtains_positive_greatest_lit_if_sfac_not_ident by metis
+
+              ultimately have "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) (sfac y) \<TTurnstile> sfac y"
+                using ord_res_Interp_entails_if_greatest_lit_is_pos by metis
+                
+              hence "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> sfac y"
+                by (metis ord_res.entailed_clause_stays_entailed sfac_subset
+                    strict_subset_implies_multp subset_mset.less_le)
+
+              hence "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> y"
+                by (simp add: true_cls_def)
+
+              with y_false'' have False
+                by contradiction
+
+              thus ?thesis ..
+            next
+              assume "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) y'"
+              hence "y' = C"
+                using C_least_false by (metis Uniq_D Uniq_is_least_false_clause)
+
+              then obtain i where "(ord_res.ground_factoring ^^ Suc i) C y"
+                using \<open>ord_res.ground_factoring\<^sup>+\<^sup>+ y' y\<close>
+                by (metis not0_implies_Suc not_gr_zero tranclp_power)
+
+              hence "Suc i \<le> m"
+                using m_greatest[unfolded is_greatest_in_set_iff, THEN conjunct2, simplified,
+                    rule_format, of "Suc i"]
+                using \<open>y |\<in>| U\<^sub>f\<close> le_eq_less_or_eq
+                by auto
+
+              hence "Suc i \<le> Suc n"
+                using \<open>m \<le> Suc n\<close> by presburger
+
+              hence "(ord_res.ground_factoring ^^ Suc i) C (factorized_C (Suc i))"
+                using factorized_C_spec[of "Suc i"] by argo
+
+              hence "y = factorized_C (Suc i)"
+                using \<open>(ord_res.ground_factoring ^^ Suc i) C y\<close>
+                by (metis Uniq_relpowp ord_res.unique_ground_factoring)
+
+              thus ?thesis
+                using factorized_C_less_cls[OF \<open>m + kk' \<le> Suc n\<close> \<open>Suc i \<le> Suc n\<close>] 
+                by (metis \<open>Suc i \<le> m\<close> nless_le trans_le_add1 y_neq)
+            qed
+          next
+            assume "y |\<in>| factorized_Cs kk'"
+            then obtain i where
+              "i \<le> kk'" and
+              y_def: "y = factorized_C (m + i)"
+              unfolding factorized_Cs_def by force
+            hence "factorized_C (m + kk') \<subset># y"
+              using \<open>i \<le> kk'\<close> y_neq
+              by (simp add: factorized_C_def)
+            thus ?thesis
+              by (rule strict_subset_implies_multp)
+          qed
+        qed
+      next
+        show "ord_res.is_maximal_lit L (factorized_C (m + kk'))"
+          using \<open>ord_res.is_maximal_lit L (factorized_C (m + kk'))\<close> .
+      next
+        show "is_pos L"
+          using \<open>is_pos L\<close> .
+      next
+        show "ord_res.ground_factoring (factorized_C (m + kk')) (factorized_C (m + Suc kk'))"
+          using ord_res.ground_factoringI[
+              of "factorized_C (m + kk')" A _ "factorized_C (m + Suc kk')",
+              OF _ _ \<open>ord_res.is_maximal_lit L (factorized_C (m + kk'))\<close>[unfolded L_def],
+              simplified]
+          unfolding factorized_C_def
+          using \<open>kk' \<le> k\<close>
+          by (simp add: Suc_diff_le n_def)
+      next
+        show "s1 |\<union>| factorized_Cs (Suc kk') =
+          finsert (factorized_C (m + Suc kk')) (s1 |\<union>| factorized_Cs kk')"
+          by (simp add: factorized_Cs_def)
+      qed
+        
+      with Suc.IH show ?case
+        using \<open>kk' \<le> k\<close> by auto
+    qed
+
+    define s1' where
+      "s1' = s1 |\<union>| factorized_Cs (Suc k)"
+
+    have "ord_res_1\<^sup>+\<^sup>+ s1 s1'"
+      using steps1[of "Suc k", unfolded n_def, OF le_refl]
+      by (metis s1'_def tranclp_power zero_less_Suc)
+
+    moreover have "ord_res_1_matches_ord_res_2 s1' N s2'"
+    proof -
+      let ?U\<^sub>f' = "U\<^sub>f |\<union>| (\<lambda>i. factorized_C (m + i)) |`| fset_upto 1 k"
+
+      have "sfac C = add_mset L C\<^sub>0"
+        unfolding C\<^sub>0_def
+        using sfac_spec_if_pos_lit_is_maximal \<open>is_pos L\<close> \<open>ord_res.is_maximal_lit L C\<close> by metis
+
+      also have "\<dots> = factorized_C (m + Suc k)"
+        unfolding factorized_C_def L_def n_def by simp
+
+      finally have "sfac C = factorized_C (m + Suc k)" .
+
+      moreover have "fset_upto 0 (Suc k) = finsert 0 (fset_upto 1 (Suc k))"
+        by (induction k) auto
+
+      ultimately have "s1' = N |\<union>| U\<^sub>r |\<union>| finsert (sfac C) U\<^sub>f\<^sub>f |\<union>| ?U\<^sub>f'"
+        using \<open>factorized_C m |\<in>| s1\<close>
+        unfolding s1'_def s1_def factorized_Cs_def
+        by auto
+
+      moreover have "\<exists>Ca |\<in>| N |\<union>| U\<^sub>r |\<union>| finsert (sfac C) U\<^sub>f\<^sub>f.
+        ord_res.ground_factoring\<^sup>+\<^sup>+ Ca C\<^sub>f \<and>
+        C\<^sub>f \<noteq> sfac C\<^sub>f \<and>
+        (sfac C\<^sub>f |\<in>| finsert (sfac C) U\<^sub>f\<^sub>f \<or>
+          is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| finsert (sfac C) U\<^sub>f\<^sub>f) Ca)"
+        if "C\<^sub>f |\<in>| ?U\<^sub>f'" for C\<^sub>f
+      proof -
+        from \<open>C\<^sub>f |\<in>| ?U\<^sub>f'\<close> have "C\<^sub>f |\<in>| U\<^sub>f \<or> C\<^sub>f |\<in>| (\<lambda>i. factorized_C (m + i)) |`| fset_upto 1 k"
+          by simp
+        thus ?thesis
+        proof (elim disjE)
+          assume "C\<^sub>f |\<in>| U\<^sub>f"
+          thus ?thesis
+            using U\<^sub>f_spec
+            by (metis (mono_tags, lifting) C_least_false Uniq_D Uniq_is_least_false_clause
+                finsert_iff funion_finsert_right ground_factorings_preserves_sfac
+                tranclp_into_rtranclp)
+        next
+          assume "C\<^sub>f |\<in>| (\<lambda>i. factorized_C (m + i)) |`| fset_upto 1 k"
+          then obtain i where i_in: "i |\<in>| fset_upto 1 k" and C\<^sub>f_def: "C\<^sub>f = factorized_C (m + i)"
+            by auto
+
+          from i_in have "1 \<le> i" and "i \<le> k"
+            unfolding atomize_conj
+            by (induction k) auto
+
+          have "m + i \<le> Suc n"
+            using \<open>i \<le> k\<close> n_def by presburger
+          hence "(ord_res.ground_factoring ^^ (m + i)) C C\<^sub>f"
+            using factorized_C_spec C\<^sub>f_def by metis
+
+          show ?thesis
+          proof (intro bexI conjI)
+            show "C |\<in>| N |\<union>| U\<^sub>r |\<union>| finsert (sfac C) U\<^sub>f\<^sub>f"
+              using C_in by simp
+          next
+            show "ord_res.ground_factoring\<^sup>+\<^sup>+ C C\<^sub>f"
+              using \<open>1 \<le> i\<close> \<open>(ord_res.ground_factoring ^^ (m + i)) C C\<^sub>f\<close>
+              by (metis One_nat_def Suc_le_eq add_gr_0 tranclp_power)
+          next
+            show "C\<^sub>f \<noteq> sfac C\<^sub>f"
+              using \<open>(ord_res.ground_factoring ^^ (m + i)) C C\<^sub>f\<close>
+              by (smt (z3) Suc_mono \<open>add_mset L C\<^sub>0 = factorized_C (m + Suc k)\<close>
+                  \<open>count C L = Suc (Suc n)\<close> \<open>i \<le> k\<close> \<open>m + i \<le> Suc n\<close> \<open>sfac C = add_mset L C\<^sub>0\<close>
+                  add_Suc_right add_diff_cancel_left' diff_is_0_eq factorized_C_spec
+                  ground_factorings_preserves_sfac group_cancel.add1 le_antisym local.factoring(4)
+                  local.factoring(5) mono_nat_linear_lb n_def not_less_eq_eq
+                  ord_res.ground_factorings_reduces_maximal_pos_lit(2) plus_1_eq_Suc
+                  relpowp_imp_rtranclp)
+          next
+            have "ord_res.ground_factoring\<^sup>*\<^sup>* C C\<^sub>f"
+              using \<open>(ord_res.ground_factoring ^^ (m + i)) C C\<^sub>f\<close>
+              by (metis relpowp_imp_rtranclp)
+            hence "sfac C = sfac C\<^sub>f"
+              using ground_factorings_preserves_sfac by metis
+            hence "sfac C\<^sub>f |\<in>| finsert (sfac C) U\<^sub>f\<^sub>f"
+              by simp
+            thus "sfac C\<^sub>f |\<in>| finsert (sfac C) U\<^sub>f\<^sub>f \<or>
+              is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| finsert (sfac C) U\<^sub>f\<^sub>f) C" ..
+          qed
+        qed
+      qed
+
+      ultimately show ?thesis
+        unfolding factoring ord_res_1_matches_ord_res_2.simps by metis
+    qed
+
+    ultimately show ?thesis
+      by metis
   next
     case (resolution NN C L D CD U\<^sub>r')
 
