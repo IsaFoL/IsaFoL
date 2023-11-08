@@ -37,6 +37,11 @@ The goal is to develop lemma libraries and methodology for formalizing modern re
 * Recent version (compatible with latest Isabelle release): [AFP entry](https://www.isa-afp.org/entries/Abstract_Soundness.shtml)
 
 
+### Compactness of First-order Logic (ongoing) ###
+
+* Latest version (compatible with latest Isabelle release): [IsaFoL entry](https://github.com/IsaFoL/IsaFoL/tree/master/FOL_Compactness/)
+
+
 ### Epistemic Logic ###
 
 * Latest version (compatible with latest Isabelle repository): [AFP entry](https://devel.isa-afp.org/entries/Epistemic_Logic.shtml)
