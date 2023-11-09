@@ -14,7 +14,6 @@ no_notation subst_apply_term (infixl "\<cdot>" 67)
 text \<open>Prefer @{thm [source] term_subst.subst_id_subst} to @{thm [source] subst_apply_term_empty}.\<close>
 declare subst_apply_term_empty[no_atp]
 
-(* TODO: Generalize *)
 lemma map_uprod_inverse: "(\<And>x. f (g x) = x) \<Longrightarrow> (\<And>y. map_uprod f (map_uprod g y) = y)"
   by (simp add: uprod.map_comp uprod.map_ident_strong)
 
@@ -25,7 +24,7 @@ lemma gterm_is_fun: "is_Fun (term_of_gterm t)"
   by(cases t) simp
 
 lemma ground_imgu_equal: 
-  assumes "is_ground_trm t\<^sub>1" and  "is_ground_trm t\<^sub>2" and "term_subst.is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}}"
+  assumes "is_ground_trm t\<^sub>1" and "is_ground_trm t\<^sub>2" and "term_subst.is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}}"
   shows "t\<^sub>1 = t\<^sub>2"
   using assms
   unfolding basic_substitution_ops.is_imgu_def term_subst.is_ground_def term_subst.is_unifiers_def
@@ -50,10 +49,6 @@ qed
 lemma mset_lit_image_mset: "mset_lit (map_literal (map_uprod f) l) = image_mset f (mset_lit l)"
   by(induction l) (simp_all add: mset_uprod_image_mset)
 
-lemma gterm_of_term_gctxt_of_ctxt: 
-  "ground_ctxt c \<Longrightarrow> is_ground_trm t \<Longrightarrow> (gctxt_of_ctxt c)\<langle>gterm_of_term t\<rangle>\<^sub>G = gterm_of_term c\<langle>t\<rangle>"
-  by (metis ctxt_of_gctxt_apply_gterm gctxt_of_ctxt_inv)
-
 section \<open>First_Order_Terms And Abstract_Substitution\<close>
 
 notation subst_apply_term (infixl "\<cdot>t" 67)
@@ -61,6 +56,8 @@ notation subst_apply_ctxt (infixl "\<cdot>t\<^sub>c" 67)
 notation subst_compose (infixl "\<odot>" 75)
 
 type_synonym ('f, 'v) atom = "('f, 'v) term uprod"
+
+type_synonym 'f ground_atom = "'f Ground_Superposition.atom"
 
 definition subst_atm ::
   "('f, 'v) atom \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom" (infixl "\<cdot>a" 67)
@@ -139,8 +136,8 @@ lemma ground_subst_composition:
   "term_subst.is_ground_subst \<theta> \<Longrightarrow> term_subst.is_ground_subst (\<mu> \<odot> \<theta>)"
   by (simp add: term_subst.is_ground_subst_def)
 
-abbreviation is_ground_trm_ctxt where
-  "is_ground_trm_ctxt c \<equiv> vars_ctxt c = {}"
+abbreviation is_ground_ctxt where
+  "is_ground_ctxt c \<equiv> vars_ctxt c = {}"
 
 abbreviation is_ground_atm where
   "is_ground_atm A \<equiv> vars_atm A = {}"
@@ -158,11 +155,18 @@ lemma is_ground_cls_if_in_ground_cls_set:
   "is_ground_cls_set N \<Longrightarrow> C \<in> N \<Longrightarrow> is_ground_cls C"
   by (simp add: vars_cls_set_def)
 
-(* TODO: Just have one!!*)
-lemma subst_trm_ctxt_ident_if_is_ground_trm_ctxt[simp]: "is_ground_trm_ctxt c \<Longrightarrow> c \<cdot>t\<^sub>c \<sigma> = c"
-  by (induction c) (simp_all add: list.map_ident_strong)
+lemma is_ground_trm_iff_term_context_ground: "Term_Context.ground t = is_ground_trm t "
+  by(induction t) auto
 
-lemma subst_trm_ctxt_ident_if_ground_ctxt[simp]: "ground_ctxt c \<Longrightarrow> c \<cdot>t\<^sub>c \<sigma> = c"
+lemma is_ground_trm_ctxt_iff_ground_ctxt [simp]: "ground_ctxt c = is_ground_ctxt c"
+  by (induction c) (auto simp: is_ground_trm_iff_term_context_ground)
+
+lemma gterm_of_term_gctxt_of_ctxt:
+  "is_ground_ctxt c \<Longrightarrow> is_ground_trm t \<Longrightarrow> (gctxt_of_ctxt c)\<langle>gterm_of_term t\<rangle>\<^sub>G = gterm_of_term c\<langle>t\<rangle>"
+  using is_ground_trm_ctxt_iff_ground_ctxt
+  by (metis ctxt_of_gctxt_apply_gterm gctxt_of_ctxt_inv)
+
+lemma subst_trm_ctxt_ident_if_is_ground_ctxt[simp]: "is_ground_ctxt c \<Longrightarrow> c \<cdot>t\<^sub>c \<sigma> = c"
   by (induction c) (simp_all add: list.map_ident_strong)
 
 lemma subst_atm_ident_if_is_ground_atm[simp]: "is_ground_atm A \<Longrightarrow> A \<cdot>a \<sigma> = A"
@@ -186,29 +190,29 @@ lemma subst_cls_add_mset: "add_mset L C \<cdot> \<sigma> = add_mset (L \<cdot>l 
 lemma subst_cls_plus: "(C\<^sub>1 + C\<^sub>2) \<cdot> \<sigma> = (C\<^sub>1 \<cdot> \<sigma>) + (C\<^sub>2 \<cdot> \<sigma>)"
   by (simp add: subst_cls_def)
 
-lemma ground_subst_ground_term: "term_subst.is_ground_subst \<theta> \<Longrightarrow> is_ground_trm (t \<cdot>t \<theta>)"
+lemma is_ground_subst_is_ground_term: "term_subst.is_ground_subst \<theta> \<Longrightarrow> is_ground_trm (t \<cdot>t \<theta>)"
   unfolding term_subst.is_ground_subst_def
   by simp
 
-lemma ground_subst_ground_atom: "term_subst.is_ground_subst \<theta> \<Longrightarrow> is_ground_atm (a \<cdot>a \<theta>)"
+lemma is_ground_subst_is_ground_atom: "term_subst.is_ground_subst \<theta> \<Longrightarrow> is_ground_atm (a \<cdot>a \<theta>)"
   unfolding vars_atm_def subst_atm_def
-  using ground_subst_ground_term
+  using is_ground_subst_is_ground_term
   by (smt (verit, ccfv_threshold) Sup_bot_conv(1) imageE uprod.set_map)
 
-lemma ground_subst_ground_literal: "term_subst.is_ground_subst \<theta> \<Longrightarrow> is_ground_lit (l \<cdot>l \<theta>)"
+lemma is_ground_subst_is_ground_literal: "term_subst.is_ground_subst \<theta> \<Longrightarrow> is_ground_lit (l \<cdot>l \<theta>)"
   unfolding subst_lit_def vars_lit_def
-  using ground_subst_ground_atom
+  using is_ground_subst_is_ground_atom
   by (metis literal.map_sel(1) literal.map_sel(2))
 
-lemma ground_subst_ground_clause: "term_subst.is_ground_subst \<theta> \<Longrightarrow> is_ground_cls (P \<cdot> \<theta>)"
+lemma is_ground_subst_is_ground_clause: "term_subst.is_ground_subst \<theta> \<Longrightarrow> is_ground_cls (P \<cdot> \<theta>)"
   unfolding subst_cls_def vars_cls_def
-  using ground_subst_ground_literal
+  using is_ground_subst_is_ground_literal
   by blast
 
-lemma ground_subst_ground_context: "term_subst.is_ground_subst \<theta> \<Longrightarrow> ground_ctxt (c \<cdot>t\<^sub>c \<theta>)"
+lemma is_ground_subst_is_ground_context: 
+  "term_subst.is_ground_subst \<theta> \<Longrightarrow> is_ground_ctxt (c \<cdot>t\<^sub>c \<theta>)"
   unfolding term_subst.is_ground_subst_def
-  by (metis empty_iff ground_ctxt_apply ground_substI subst_apply_term_ctxt_apply_distrib 
-        term_subst.is_ground_def)
+  by (metis subst_apply_term_ctxt_apply_distrib sup_bot.right_neutral vars_term_ctxt_apply)
 
 lemma is_imgu_equals: "term_subst.is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}} \<Longrightarrow> t\<^sub>1 \<cdot>t \<mu> = t\<^sub>2 \<cdot>t \<mu>"
   unfolding term_subst.is_imgu_def term_subst.is_unifiers_def  
@@ -236,7 +240,9 @@ lemma gterm_of_term_ident_if_ground:
 
 lemma context_ground_context: 
   "(ctxt_of_gctxt context)\<langle>term_of_gterm term\<rangle> = term_of_gterm context\<langle>term\<rangle>\<^sub>G"
-  by (metis ctxt_of_gctxt_inv ground_ctxt_of_gctxt ground_gctxt_of_ctxt_apply_gterm)
+  "is_ground_ctxt c \<Longrightarrow> term_of_gterm (gctxt_of_ctxt c)\<langle>t\<rangle>\<^sub>G = c\<langle>term_of_gterm t\<rangle>"
+   apply (metis ctxt_of_gctxt_inv ground_ctxt_of_gctxt ground_gctxt_of_ctxt_apply_gterm)
+   by (simp add: ground_gctxt_of_ctxt_apply_gterm)
 
 lemma ground_term_with_ground_context: "is_ground_trm ((ctxt_of_gctxt context)\<langle>term_of_gterm term\<rangle>)"
   by simp
@@ -253,8 +259,8 @@ proof-
     using assms by auto
 qed
 
-lemma ground_term_in_ground_context: "ground_ctxt c \<Longrightarrow> is_ground_trm t \<Longrightarrow> is_ground_trm c\<langle>t\<rangle>"
-  by (metis ground_gctxt_of_ctxt_apply_gterm gterm_of_term_ident_if_ground vars_term_of_gterm)
+lemma ground_term_in_ground_context: "is_ground_ctxt c \<Longrightarrow> is_ground_trm t \<Longrightarrow> is_ground_trm c\<langle>t\<rangle>"
+  by simp
 
 lemma lit_glit_inverse[simp]: "glit_lit (lit_glit L) = L"
   unfolding lit_glit_def glit_lit_def
@@ -298,8 +304,8 @@ lemma is_ground_term_if_in_ground_atm[intro]:
 
 lemma glit_lit_inverse[simp]: "is_ground_lit L \<Longrightarrow> lit_glit (glit_lit L) = L"
   using gterm_of_term_ident_if_ground is_ground_atm_if_in_ground_lit is_ground_term_if_in_ground_atm
-  by (smt (verit, best) glit_lit_def lit_glit_def lit_glit_inverse literal.inj_map_strong 
-        uprod.inj_map_strong vars_lit_glit)
+  by (smt (verit, best) glit_lit_def lit_glit_inverse literal.inj_map_strong uprod.inj_map_strong 
+        vars_lit_glit)
   
 lemma gcls_cls_inverse[simp]: "is_ground_cls C \<Longrightarrow> cls_gcls (gcls_cls C) = C"
   unfolding cls_gcls_def gcls_cls_def
@@ -312,29 +318,26 @@ lemma lit_glit_cls_gcls: "L \<in># C \<longleftrightarrow> (lit_glit L) \<in># c
   by (metis cls_gcls_def cls_gcls_inverse gcls_cls_def image_eqI lit_glit_inverse multiset.set_map)
 
 lemma glit_lit_with_context: 
-  assumes "ground_ctxt s" and "is_ground_trm u" and "is_ground_trm t" 
+  assumes "is_ground_ctxt s" and "is_ground_trm u" and "is_ground_trm t" 
   shows 
     "glit_lit (s\<langle>u\<rangle> \<approx> t) = (gctxt_of_ctxt s)\<langle>gterm_of_term u\<rangle>\<^sub>G \<approx> gterm_of_term t" (is "?Pos")
     "glit_lit (Neg (Upair s\<langle>u\<rangle> t)) 
       = Neg (Upair (gctxt_of_ctxt s)\<langle>gterm_of_term u\<rangle>\<^sub>G (gterm_of_term t))"  (is "?Neg")
 proof-
   show ?Pos 
-    using assms ctxt_of_gctxt_apply_gterm gctxt_of_ctxt_inv
+    using assms ctxt_of_gctxt_apply_gterm gctxt_of_ctxt_inv is_ground_trm_ctxt_iff_ground_ctxt
     by (metis glit_lit_def literal.simps(9) map_uprod_simps)
 next
   show ?Neg
-  using assms ctxt_of_gctxt_apply_gterm gctxt_of_ctxt_inv
-  by (metis glit_lit_def literal.simps(10) map_uprod_simps)
+    using assms ctxt_of_gctxt_apply_gterm gctxt_of_ctxt_inv is_ground_trm_ctxt_iff_ground_ctxt
+    by (metis glit_lit_def literal.simps(10) map_uprod_simps)
 qed
 
 lemma lit_glit_with_context: 
   "lit_glit (s\<langle>t\<rangle>\<^sub>G \<approx> s') =  (ctxt_of_gctxt s)\<langle>term_of_gterm t\<rangle> \<approx> (term_of_gterm s')"
   "lit_glit (Neg (Upair s\<langle>t\<rangle>\<^sub>G s')) =
      Neg (Upair (ctxt_of_gctxt s)\<langle>term_of_gterm t\<rangle> (term_of_gterm s'))"
-  apply (metis ctxt_of_gctxt_inv ground_ctxt_of_gctxt ground_gctxt_of_ctxt_apply_gterm lit_glit_def 
-            literal.simps(9) map_uprod_simps)
-  by (metis ctxt_of_gctxt_inv ground_ctxt_of_gctxt ground_gctxt_of_ctxt_apply_gterm lit_glit_def 
-            literal.simps(10) map_uprod_simps)
+  by (auto simp add: context_ground_context lit_glit_def)
 
 lemma gcls_cls_plus [simp]: "gcls_cls (P\<^sub>1 + P\<^sub>2) = gcls_cls P\<^sub>1 + gcls_cls P\<^sub>2"
   by (simp add: gcls_cls_def)
@@ -404,7 +407,7 @@ lemma less_term_less_gterm:
 
 (* TODO: This probably does not work out \<rightarrow> p.9 *)
 definition select\<^sub>G :: 
-  "'f Ground_Superposition.atom clause \<Rightarrow> 'f Ground_Superposition.atom clause" 
+  "'f ground_atom clause \<Rightarrow> 'f ground_atom clause" 
 where
   "select\<^sub>G clause \<equiv> gcls_cls (select (cls_gcls clause))"
 
@@ -842,9 +845,9 @@ proof(rule iffI)
       using is_ground_L\<^sub>1 superpositionI(7) ground_terms_in_ground_atom[of "s\<^sub>1\<langle>u\<^sub>1\<rangle>" s\<^sub>1'] \<P>_ground
       by blast
 
-    then have is_ground_s\<^sub>1 [intro]: "ground_ctxt s\<^sub>1"
-      using ground_term_with_context(1) by blast
-
+    then have is_ground_s\<^sub>1 [intro]: "is_ground_ctxt s\<^sub>1"
+      by simp
+      
     have is_ground_u\<^sub>1 [intro]: "is_ground_trm u\<^sub>1"
       using is_ground_s\<^sub>1_u\<^sub>1 by auto
    
@@ -906,7 +909,7 @@ proof(rule iffI)
           not_less_eq_term[OF is_ground_s\<^sub>1' is_ground_s\<^sub>1_u\<^sub>1]
           less_gterm_less_term
           gterm_of_term_ident_if_ground[OF is_ground_s\<^sub>1']
-          ground_gctxt_of_ctxt_apply_gterm[OF is_ground_s\<^sub>1]
+          context_ground_context(2)[OF is_ground_s\<^sub>1]
           gterm_of_term_ident_if_ground[OF is_ground_u\<^sub>1].
     next
       show "gterm_of_term t\<^sub>2' \<prec>\<^sub>t\<^sub>G gterm_of_term u\<^sub>1"
@@ -993,9 +996,9 @@ proof(rule iffI)
           subst_cls_ident_if_is_ground_cls[OF is_ground_P\<^sub>2']
           term_subst.subst_ident_if_ground[OF is_ground_t\<^sub>2'] 
           term_subst.subst_ident_if_ground[OF is_ground_s\<^sub>1'] 
-          subst_trm_ctxt_ident_if_ground_ctxt[OF is_ground_s\<^sub>1]
+          subst_trm_ctxt_ident_if_is_ground_ctxt[OF is_ground_s\<^sub>1]
           subst_cls_ident_if_is_ground_cls[OF ground_cls]
-        by(auto split: if_splits)
+        by auto
       qed
     qed
 next
@@ -1224,19 +1227,13 @@ definition F_Inf :: "('f, 'v) atom clause inference set" where
 abbreviation F_Bot :: "('f, 'v) atom clause set" where
   "F_Bot \<equiv> {{#}}"
 
-(*abbreviation F_entails :: "('f, 'v) atom clause set \<Rightarrow> ('f, 'v) atom clause set \<Rightarrow> bool" where
-  "F_entails \<equiv> (\<TTurnstile>e)"*)
-
 abbreviation true_cls_thick :: 
-  "'f Ground_Superposition.atom interp \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" (infix "\<TTurnstile>n" 50) where
+  "'f ground_atom interp \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" (infix "\<TTurnstile>n" 50) where
   "I \<TTurnstile>n C \<equiv> \<forall>\<theta>. term_subst.is_ground_subst \<theta> \<longrightarrow> I \<TTurnstile> gcls_cls (C \<cdot> \<theta>)"
 
 abbreviation true_clss_thick :: 
-  "'f Ground_Superposition.atom interp \<Rightarrow> ('f, 'v) atom clause set \<Rightarrow> bool" (infix "\<TTurnstile>sn" 50) where
+  "'f ground_atom interp \<Rightarrow> ('f, 'v) atom clause set \<Rightarrow> bool" (infix "\<TTurnstile>sn" 50) where
   "I \<TTurnstile>sn \<C> \<equiv> \<forall>C\<in> \<C>. I \<TTurnstile>n C"
-
-(*abbreviation true_cls_mset_thick :: "'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool" (infix "\<TTurnstile>m" 50) where
-  "I \<TTurnstile>m \<C> \<equiv> I \<Turnstile>m \<C>"*)
 
 definition F_entails :: "('f, 'v) atom clause set \<Rightarrow> ('f, 'v) atom clause set \<Rightarrow> bool" where
   "F_entails N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: 'f gterm rel). 
@@ -1494,15 +1491,15 @@ proof (cases P1 P2 C rule: superposition.cases)
 
     have s\<^sub>1_u\<^sub>1: "?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G = gterm_of_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<theta>)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<theta>\<rangle>"
       using gterm_of_term_gctxt_of_ctxt[OF 
-              ground_subst_ground_context[OF ground_subst] 
-              ground_subst_ground_term[OF ground_subst]
+              is_ground_subst_is_ground_context[OF ground_subst] 
+              is_ground_subst_is_ground_term[OF ground_subst]
             ]
       by simp
 
     have s\<^sub>1_t\<^sub>2': "(?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G  = gterm_of_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<theta>)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<theta>\<rangle>"
       using gterm_of_term_gctxt_of_ctxt[OF 
-              ground_subst_ground_context[OF ground_subst] 
-              ground_subst_ground_term[OF ground_subst]
+              is_ground_subst_is_ground_context[OF ground_subst] 
+              is_ground_subst_is_ground_term[OF ground_subst]
             ]
       by simp
       
@@ -1610,12 +1607,12 @@ proof (cases P1 P2 C rule: superposition.cases)
 qed
 
 definition ginfer_infer :: 
-  "('f, 'v) atom clause inference \<Rightarrow> 'f Ground_Superposition.atom clause inference" 
+  "('f, 'v) atom clause inference \<Rightarrow> 'f ground_atom clause inference" 
   where
   "ginfer_infer infer = Infer (map gcls_cls (prems_of infer)) (gcls_cls (concl_of infer))"
 
 definition infer_ginfer :: 
-  "'f Ground_Superposition.atom clause inference \<Rightarrow> ('f, 'v) atom clause inference" 
+  "'f ground_atom clause inference \<Rightarrow> ('f, 'v) atom clause inference" 
   where
   "infer_ginfer infer = Infer (map cls_gcls (prems_of infer)) (cls_gcls (concl_of infer))"
 
@@ -1623,12 +1620,12 @@ definition is_ground_subst_list :: "('f, 'v) subst list \<Rightarrow> bool" wher
   "is_ground_subst_list \<sigma>s \<longleftrightarrow> (\<forall>\<sigma> \<in> set \<sigma>s. term_subst.is_ground_subst \<sigma>)"
 
 definition \<G>_F :: 
-  "('f, 'v) atom clause \<Rightarrow> 'f Ground_Superposition.atom clause set" 
+  "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" 
   where
   "\<G>_F C \<equiv> { gcls_cls (C \<cdot> \<sigma>) | \<sigma>. term_subst.is_ground_subst \<sigma> }"
 
 definition \<G>_I :: 
-  "('f, 'v) atom clause inference \<Rightarrow> 'f Ground_Superposition.atom clause inference set option" 
+  "('f, 'v) atom clause inference \<Rightarrow> 'f ground_atom clause inference set option" 
   where
   "\<G>_I \<iota> = Some ({ginfer_infer (Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>)) |\<rho> \<rho>s.
      is_ground_subst_list \<rho>s \<and> term_subst.is_ground_subst \<rho>
@@ -1636,7 +1633,7 @@ definition \<G>_I ::
 
 
 definition Prec_F :: 
-  "'f Ground_Superposition.atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" 
+  "'f ground_atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" 
   where
   "Prec_F \<equiv> \<lambda>_ _ _. False"
 
