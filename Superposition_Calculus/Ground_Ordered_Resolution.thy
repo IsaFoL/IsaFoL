@@ -1607,21 +1607,21 @@ proof -
     using assms interp_add_irrelevant_clauses_to_set by metis
 qed
 
-lemma entailed_clause_stays_entailed:
-  assumes C_lt: "C \<prec>\<^sub>c D" and C_entailed: "interp N C \<union> production N C \<TTurnstile> C"
-  shows "interp N D \<union> production N D \<TTurnstile> C"
+lemma lesser_entailed_clause_stays_entailed:
+  assumes C_le: "C \<preceq>\<^sub>c D" and D_lt: "D \<prec>\<^sub>c E" and C_entailed: "interp N D \<union> production N D \<TTurnstile> C"
+  shows "interp N E \<union> production N E \<TTurnstile> C"
 proof -
-  from C_entailed obtain L where "L \<in># C" and "interp N C \<union> production N C \<TTurnstile>l L"
+  from C_entailed obtain L where "L \<in># C" and "interp N D \<union> production N D \<TTurnstile>l L"
     by (auto simp: true_cls_def)
 
   show ?thesis
   proof (cases L)
     case (Pos A)
-    hence "A \<in> interp N C \<union> production N C"
-      using \<open>interp N C \<union> production N C \<TTurnstile>l L\<close> by simp
-    moreover from C_lt have "interp N C \<union> production N C \<subseteq> interp N D \<union> production N D"
+    hence "A \<in> interp N D \<union> production N D"
+      using \<open>interp N D \<union> production N D \<TTurnstile>l L\<close> by simp
+    moreover from D_lt have "interp N D \<union> production N D \<subseteq> interp N E \<union> production N E"
       using less_imp_Interp_subseteq_interp by blast
-    ultimately have "A \<in> interp N D \<union> production N D"
+    ultimately have "A \<in> interp N E \<union> production N E"
       by auto
     thus ?thesis
       using Pos \<open>L \<in># C\<close> by auto
@@ -1629,10 +1629,16 @@ proof -
     case (Neg A)
     then show ?thesis
       using neg_lits_not_in_model_stay_out_of_model
-      by (metis (no_types, lifting) UN_E Un_iff \<open>L \<in># C\<close> \<open>interp N C \<union> production N C \<TTurnstile>l L\<close>
-          interp_def neg_literal_notin_imp_true_cls produces_imp_in_interp true_lit_simps(2))
+      by (smt (verit, best) UN_E Un_iff \<open>L \<in># C\<close> \<open>interp N D \<union> production N D \<TTurnstile>l L\<close> assms(1)
+          interp_def linorder_cls.antisym_conv neg_literal_notin_imp_true_cls
+          not_interp_to_Interp_imp_le produces_imp_in_interp true_lit_simps(2))
   qed
 qed
+
+lemma entailed_clause_stays_entailed:
+  assumes C_lt: "C \<prec>\<^sub>c D" and C_entailed: "interp N C \<union> production N C \<TTurnstile> C"
+  shows "interp N D \<union> production N D \<TTurnstile> C"
+  using lesser_entailed_clause_stays_entailed[OF linorder_cls.order_refl assms] .
 
 lemma multp_if_all_left_smaller: "M2 \<noteq> {#} \<Longrightarrow> \<forall>k\<in>#M1. \<exists>j\<in>#M2. R k j \<Longrightarrow> multp R M1 M2"
   using one_step_implies_multp
