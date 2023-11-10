@@ -4404,7 +4404,7 @@ fun ord_res_2_matches_ord_res_3 where
   "ord_res_2_matches_ord_res_3 N\<^sub>2 (U\<^sub>r\<^sub>2, U\<^sub>e\<^sub>f\<^sub>2) N\<^sub>3 (U\<^sub>e\<^sub>r\<^sub>3, U\<^sub>e\<^sub>f\<^sub>3) \<longleftrightarrow>
     N\<^sub>2 = N\<^sub>3 \<and> U\<^sub>e\<^sub>f\<^sub>2 = U\<^sub>e\<^sub>f\<^sub>3 \<and> (\<exists>U\<^sub>p\<^sub>r\<^sub>3. U\<^sub>r\<^sub>2 = U\<^sub>p\<^sub>r\<^sub>3 |\<union>| U\<^sub>e\<^sub>r\<^sub>3 \<and>
     (\<forall>C\<^sub>r\<^sub>r |\<in>| U\<^sub>e\<^sub>r\<^sub>3. \<exists>C |\<in>| N\<^sub>3 |\<union>| U\<^sub>e\<^sub>r\<^sub>3 |\<union>| U\<^sub>e\<^sub>f\<^sub>3. \<exists>D |\<in>| N\<^sub>3 |\<union>| U\<^sub>e\<^sub>r\<^sub>3 |\<union>| U\<^sub>e\<^sub>f\<^sub>3.
-      eres D C = C\<^sub>r\<^sub>r) \<and>
+      eres D C = C\<^sub>r\<^sub>r) \<comment> \<open>Is this specification of \<^term>\<open>C\<^sub>r\<^sub>r\<close> really necessary?\<close> \<and>
     (\<forall>C\<^sub>r |\<in>| U\<^sub>p\<^sub>r\<^sub>3. \<exists>C |\<in>| N\<^sub>3 |\<union>| U\<^sub>e\<^sub>r\<^sub>3 |\<union>| U\<^sub>e\<^sub>f\<^sub>3. \<exists>D |\<in>| N\<^sub>3 |\<union>| U\<^sub>e\<^sub>r\<^sub>3 |\<union>| U\<^sub>e\<^sub>f\<^sub>3.
       (ground_resolution D)\<^sup>+\<^sup>+ C C\<^sub>r \<and> C\<^sub>r \<noteq> eres D C\<^sub>r \<and>
       (eres D C\<^sub>r |\<in>| U\<^sub>e\<^sub>r\<^sub>3 \<longleftrightarrow> \<not> is_least_false_clause (N\<^sub>3 |\<union>| U\<^sub>e\<^sub>r\<^sub>3 |\<union>| U\<^sub>e\<^sub>f\<^sub>3) C)))"
@@ -4416,7 +4416,6 @@ proof -
   from match obtain N U\<^sub>r U\<^sub>p\<^sub>r U\<^sub>e\<^sub>r U\<^sub>e\<^sub>f where
     state_simps: "\<C>\<^sub>2 = N" "\<C>\<^sub>3 = N" "S\<^sub>2 = (U\<^sub>r, U\<^sub>e\<^sub>f)" "S\<^sub>3 = (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)" and
     U\<^sub>r_def: "U\<^sub>r = U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r" and
-    U\<^sub>e\<^sub>r_spec: "\<forall>C\<^sub>r\<^sub>r |\<in>| U\<^sub>e\<^sub>r. \<exists>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. eres D C = C\<^sub>r\<^sub>r" and
     U\<^sub>p\<^sub>r_spec: "\<forall>C\<^sub>r |\<in>| U\<^sub>p\<^sub>r. \<exists>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
       (ground_resolution D)\<^sup>+\<^sup>+ C C\<^sub>r \<and> C\<^sub>r \<noteq> eres D C\<^sub>r \<and>
       (eres D C\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<longleftrightarrow> \<not> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C)"
@@ -4445,15 +4444,9 @@ proof -
   proof (rule iffI)
     assume "ex_false_clause (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f))"
     then obtain C where
-      "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C"
-      using ex_false_clause_iff by metis
-    hence
       C_in: "C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
-      C_false: "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) C \<TTurnstile> C" and
-      C_least: "\<forall>y|\<in>|N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f. y \<noteq> C \<longrightarrow>
-        \<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) y \<TTurnstile> y \<longrightarrow> C \<prec>\<^sub>c y"
-      unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
-      by argo+
+      C_false: "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) C \<TTurnstile> C"
+      unfolding ex_false_clause_def by metis
 
     have "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f \<or> C |\<in>| U\<^sub>p\<^sub>r"
       using C_in U\<^sub>r_def by auto
