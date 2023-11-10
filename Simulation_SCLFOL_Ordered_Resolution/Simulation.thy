@@ -4045,6 +4045,13 @@ proof -
   qed
 qed
 
+lemma eres_eq_after_ground_resolution:
+  assumes "ground_resolution D C DC"
+  shows "eres D C = eres D DC"
+  using assms
+  by (metis (no_types, opaque_lifting) Uniq_def Uniq_full_run Uniq_ground_resolution
+      converse_rtranclpE ex1_eres_eq_full_run_ground_resolution full_run_def)
+
 lemma resolvable_if_neq_eres:
   assumes "C \<noteq> eres D C"
   shows "\<exists>!DC. ground_resolution D C DC"
@@ -4707,12 +4714,19 @@ next
       using unproductive_if_nex_strictly_maximal_pos_lit by metis
   qed
 
-  hence Interp_N_U\<^sub>r_U\<^sub>e\<^sub>f_eq_Interp_N_U\<^sub>e\<^sub>r_U\<^sub>e\<^sub>f: "\<And>C.
-    ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) C =
-    ord_res_Interp (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) C"
+  hence Interp_N_U\<^sub>r_U\<^sub>e\<^sub>f_eq_Interp_N_U\<^sub>e\<^sub>r_U\<^sub>e\<^sub>f:
+    "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) = ord_res_Interp (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f))"
     using Interp_union_unproductive[OF finite_fset finite_fset, folded union_fset,
         of U\<^sub>p\<^sub>r "N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"]
     by (simp add: U\<^sub>r_def funion_left_commute sup_commute)
+
+  have production_N_U\<^sub>r_U\<^sub>e\<^sub>f_production_Interp_N_U\<^sub>e\<^sub>r_U\<^sub>e\<^sub>f:
+    "ord_res.production (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) = ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f))"
+    apply (rule ext)
+    using production_union_unproductive[OF finite_fset finite_fset, folded union_fset,
+        of U\<^sub>p\<^sub>r "N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f", OF U\<^sub>p\<^sub>r_unproductive]
+    by (smt (z3) Collect_empty_eq U\<^sub>p\<^sub>r_unproductive U\<^sub>r_def Un_iff ord_res.production_unfold
+        sup_commute sup_fset.rep_eq sup_left_commute)
 
   have "N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f |\<union>| U\<^sub>p\<^sub>r = N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
     unfolding U\<^sub>r_def by auto
@@ -4825,6 +4839,20 @@ next
       by metis
   next
     case (resolution C L D DC U\<^sub>r')
+
+    have C_least_false: "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C"
+      using resolution by argo
+
+    hence C_in: "C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
+      unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff by argo
+
+    have "ground_resolution D C DC"
+      using resolution by (simp add: ground_resolution_def)
+
+    obtain A :: "'f gterm" where
+      L_def: "L = Neg A"
+      using \<open>is_neg L\<close> by (cases L) simp_all
+
     show ?thesis
     proof (cases "eres D C = DC")
       case True
@@ -4868,6 +4896,7 @@ next
         by metis
     next
       case False
+
       have "?match N2 s2' N3 s3"
         unfolding Ns_def \<open>s2' = (U\<^sub>r', U\<^sub>e\<^sub>f)\<close> s3_def ord_res_2_matches_ord_res_3.simps
       proof (intro conjI exI ballI)
@@ -4881,10 +4910,92 @@ next
       next
         fix C\<^sub>p\<^sub>r
         assume "C\<^sub>p\<^sub>r |\<in>| finsert DC U\<^sub>p\<^sub>r"
-        show "\<exists>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
+        hence "C\<^sub>p\<^sub>r = DC \<or> C\<^sub>p\<^sub>r |\<in>| U\<^sub>p\<^sub>r"
+          by simp
+        thus "\<exists>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
           (ground_resolution D)\<^sup>+\<^sup>+ C C\<^sub>p\<^sub>r \<and> C\<^sub>p\<^sub>r \<noteq> eres D C\<^sub>p\<^sub>r \<and>
           (eres D C\<^sub>p\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<longleftrightarrow> \<not> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C)"
-          sorry
+        proof (elim disjE)
+          assume "C\<^sub>p\<^sub>r = DC"
+
+          from C_in have "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f \<or> C |\<in>| U\<^sub>p\<^sub>r"
+            using U\<^sub>r_def by auto
+          thus ?thesis
+          proof (elim disjE)
+            assume "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
+            then show ?thesis
+              apply (rule bexI[rotated])
+              unfolding \<open>C\<^sub>p\<^sub>r = DC\<close>
+              using \<open>eres D C \<noteq> DC\<close>
+              unfolding eres_eq_after_ground_resolution[OF \<open>ground_resolution D C DC\<close>]
+              sorry
+          next
+            assume "C |\<in>| U\<^sub>p\<^sub>r"
+            then obtain D1 D2 where
+              "D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
+              "D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
+              "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C" and
+              "C \<noteq> eres D1 C" and
+              "eres D1 C |\<in>| U\<^sub>e\<^sub>r \<longleftrightarrow> \<not> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) D2"
+              using U\<^sub>p\<^sub>r_spec by metis
+
+            have "ord_res.is_maximal_lit L D2"
+              using \<open>(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<close> \<open>C \<noteq> eres D1 C\<close> \<open>ord_res.is_maximal_lit L C\<close>
+              by (smt (verit, ccfv_threshold) ground_resolutionD
+                  linorder_lit.Uniq_is_greatest_in_mset linorder_lit.Uniq_is_maximal_in_mset
+                  literal.sel(1) resolvable_if_neq_eres tranclp_ground_resolutionD the1_equality')
+
+            hence "linorder_lit.is_greatest_in_mset D1 (- L)"
+              using \<open>(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<close>
+              by (smt (verit, ccfv_threshold) linorder_lit.Uniq_is_maximal_in_mset
+                  tranclp_ground_resolutionD the1_equality' uminus_Neg)
+
+            have "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 \<noteq> {}"
+              \<comment> \<open>This will need to be added to @{thm U\<^sub>p\<^sub>r_spec}\<close>
+              sorry
+
+            hence "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 = {atm_of L}"
+              using \<open>linorder_lit.is_greatest_in_mset D1 (- L)\<close>
+              unfolding L_def uminus_Neg literal.sel
+              using ord_res.production_eq_empty_or_singleton
+              by (metis (mono_tags, lifting) Uniq_D insert_iff linorder_lit.Uniq_is_greatest_in_mset
+                  literal.inject(1) mem_Collect_eq ord_res.production_unfold)
+
+            hence "D1 = D"
+              using \<open>ord_res.production (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D = {atm_of L}\<close>
+              unfolding production_N_U\<^sub>r_U\<^sub>e\<^sub>f_production_Interp_N_U\<^sub>e\<^sub>r_U\<^sub>e\<^sub>f
+              by (metis (mono_tags, lifting) Uniq_D ord_res.Uniq_production_eq_singleton)
+
+            show ?thesis
+            proof (intro bexI conjI)
+              show "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>p\<^sub>r"
+                using \<open>ground_resolution D C DC\<close> \<open>(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<close>
+                unfolding \<open>D1 = D\<close> \<open>C\<^sub>p\<^sub>r = DC\<close>
+                by simp
+            next
+              show "C\<^sub>p\<^sub>r \<noteq> eres D1 C\<^sub>p\<^sub>r"
+                using \<open>eres D C \<noteq> DC\<close>
+                unfolding \<open>D1 = D\<close> \<open>C\<^sub>p\<^sub>r = DC\<close>
+                  eres_eq_after_ground_resolution[OF \<open>ground_resolution D C DC\<close>]
+                by argo
+            next
+              show "eres D1 C\<^sub>p\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<longleftrightarrow> \<not> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) D2"
+                using \<open>eres D1 C |\<in>| U\<^sub>e\<^sub>r \<longleftrightarrow> \<not> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) D2\<close>
+                unfolding \<open>D1 = D\<close> \<open>C\<^sub>p\<^sub>r = DC\<close>
+                  eres_eq_after_ground_resolution[OF \<open>ground_resolution D C DC\<close>] .
+            next
+              show "D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
+                using \<open>D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close> .
+            next
+              show "D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
+                using \<open>D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close> .
+            qed
+          qed
+        next
+          assume "C\<^sub>p\<^sub>r |\<in>| U\<^sub>p\<^sub>r"
+          then show ?thesis
+            using U\<^sub>p\<^sub>r_spec by metis
+        qed
       qed simp_all
 
       moreover have "?order (?measure N2 s2') (?measure N2 s2)"
@@ -4895,8 +5006,55 @@ next
           by (meson Uniq_is_least_false_clause the1_equality')
 
         moreover have "?measure N2 s2' = DC"
-          unfolding Ns_def \<open>s2' = (U\<^sub>r', U\<^sub>e\<^sub>f)\<close> ord_res_2_measure_def Let_def prod.case
-          sorry
+        proof -
+          have "is_least_false_clause (N |\<union>| U\<^sub>r' |\<union>| U\<^sub>e\<^sub>f) DC"
+            unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+          proof (intro conjI ballI impI)
+            show "DC |\<in>| N |\<union>| U\<^sub>r' |\<union>| U\<^sub>e\<^sub>f"
+              unfolding \<open>U\<^sub>r' = finsert DC U\<^sub>r\<close> by simp
+          next
+            have "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) C \<TTurnstile> C"
+              using C_least_false
+              unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+              by argo
+
+            moreover have "ord_res_Interp (fset (N |\<union>| U\<^sub>r' |\<union>| U\<^sub>e\<^sub>f)) x =
+              ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) x" for x
+            proof -
+              have "ord_res.production (insert DC (fset N \<union> fset U\<^sub>r \<union> fset U\<^sub>e\<^sub>f)) DC = {}"
+                by (metis False \<open>ground_resolution D C DC\<close> eres_eq_after_ground_resolution
+                    nex_strictly_maximal_pos_lit_if_neq_eres
+                    unproductive_if_nex_strictly_maximal_pos_lit)
+              thus ?thesis
+                unfolding \<open>U\<^sub>r' = finsert DC U\<^sub>r\<close>
+                using Interp_union_unproductive[OF finite_fset finite_fset, folded union_fset,
+                    of "{|DC|}" "N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f", simplified]
+                by simp
+            qed
+
+            ultimately have "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r' |\<union>| U\<^sub>e\<^sub>f)) C \<TTurnstile> C"
+              by metis
+
+            thus "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r' |\<union>| U\<^sub>e\<^sub>f)) DC \<TTurnstile> DC"
+            proof (rule contrapos_nn)
+              assume "ord_res_Interp (fset (N |\<union>| U\<^sub>r' |\<union>| U\<^sub>e\<^sub>f)) DC \<TTurnstile> DC"
+              then show "ord_res_Interp (fset (N |\<union>| U\<^sub>r' |\<union>| U\<^sub>e\<^sub>f)) C \<TTurnstile> C"
+                sorry
+            qed
+          next
+            fix y
+            assume
+              y_in: "y |\<in>| N |\<union>| U\<^sub>r' |\<union>| U\<^sub>e\<^sub>f" and
+              y_neq: "y \<noteq> DC" and
+              y_false: "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r' |\<union>| U\<^sub>e\<^sub>f)) y \<TTurnstile> y"
+            then show "DC \<prec>\<^sub>c y"
+              sorry
+          qed
+
+          thus ?thesis
+            unfolding Ns_def \<open>s2' = (U\<^sub>r', U\<^sub>e\<^sub>f)\<close> ord_res_2_measure_def Let_def prod.case
+            by (metis Uniq_is_least_false_clause the1_equality')
+        qed
 
         moreover have "DC \<prec>\<^sub>c C"
           using \<open>ord_res.ground_resolution C D DC\<close>
