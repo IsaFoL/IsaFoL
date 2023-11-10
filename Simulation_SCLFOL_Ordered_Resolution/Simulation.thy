@@ -4648,6 +4648,9 @@ definition ord_res_2_measure where
     else
       {#}))"
 
+lemma tranclp_if_relpowp: "n \<noteq> 0 \<Longrightarrow> (R ^^ n) x y \<Longrightarrow> R\<^sup>+\<^sup>+ x y"
+  by (meson bot_nat_0.not_eq_extremum tranclp_power)
+
 interpretation bisimulation_with_measuring_function' where
   step1 = ord_res_2 and final1 = ord_res_2_final and
   step2 = ord_res_3 and final2 = ord_res_3_final and
@@ -4837,7 +4840,7 @@ next
           sorry
       qed
 
-      moreover have "ord_res_2_matches_ord_res_3 N2 s2' N3 s3'"
+      moreover have "?match N2 s2' N3 s3'"
         unfolding Ns_def \<open>s2' = (U\<^sub>r', U\<^sub>e\<^sub>f)\<close> s3'_def ord_res_2_matches_ord_res_3.simps
       proof (intro conjI exI ballI)
         show "U\<^sub>r' = U\<^sub>p\<^sub>r |\<union>| finsert (eres D C) U\<^sub>e\<^sub>r"
@@ -4918,18 +4921,129 @@ next
 
   assume "?match N2 s2 N3 s3"
   then obtain N U\<^sub>r U\<^sub>p\<^sub>r U\<^sub>e\<^sub>r U\<^sub>e\<^sub>f where
-    state_simps: "N2 = N" "N3 = N" "s2 = (U\<^sub>r, U\<^sub>e\<^sub>f)" "s3 = (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)" and
+    Ns_def: "N2 = N" "N3 = N" and s2_def: "s2 = (U\<^sub>r, U\<^sub>e\<^sub>f)" and s3_def: "s3 = (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)" and
     U\<^sub>r_def: "U\<^sub>r = U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r" and
+    U\<^sub>e\<^sub>r_spec: "\<forall>C\<^sub>e\<^sub>r |\<in>| U\<^sub>e\<^sub>r. \<exists>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. eres D C = C\<^sub>e\<^sub>r" and
     U\<^sub>p\<^sub>r_spec: "\<forall>C\<^sub>r |\<in>| U\<^sub>p\<^sub>r. \<exists>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
       (ground_resolution D)\<^sup>+\<^sup>+ C C\<^sub>r \<and> C\<^sub>r \<noteq> eres D C\<^sub>r \<and>
       (eres D C\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<longleftrightarrow> \<not> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C)"
     by (elim ord_res_2_matches_ord_res_3.elims(2)) blast
 
   assume "ord_res_3 N3 s3 s3'"
-
-  show "(\<exists>s2'. (ord_res_2 N2)\<^sup>+\<^sup>+ s2 s2' \<and> ?match N2 s2' N3 s3') \<or>
+  hence "ord_res_3 N (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f) s3'"
+    unfolding Ns_def s3_def .
+  thus "(\<exists>s2'. (ord_res_2 N2)\<^sup>+\<^sup>+ s2 s2' \<and> ?match N2 s2' N3 s3') \<or>
     ?match N2 s2 N3 s3' \<and> ?order (?measure N3 s3') (?measure N3 s3)"
-    sorry
+  proof (cases N "(U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)" s3' rule: ord_res_3.cases)
+    case (factoring C L U\<^sub>e\<^sub>f')
+
+    define s2' where
+      "s2' = (U\<^sub>r, finsert (sfac C) U\<^sub>e\<^sub>f)"
+
+    have "(ord_res_2 N2)\<^sup>+\<^sup>+ s2 s2'"
+    proof (rule tranclp.r_into_trancl)
+      show "ord_res_2 N2 s2 s2'"
+        unfolding Ns_def s2_def s2'_def
+      proof (rule ord_res_2.factoring)
+        show "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C"
+          sorry
+      next
+        show "ord_res.is_maximal_lit L C"
+          using \<open>ord_res.is_maximal_lit L C\<close> .
+      next
+        show "is_pos L"
+          using \<open>is_pos L\<close> .
+      next
+        show "finsert (sfac C) U\<^sub>e\<^sub>f = finsert (sfac C) U\<^sub>e\<^sub>f" ..
+      qed
+    qed
+
+    moreover have "?match N2 s2' N3 s3'"
+    proof -
+      have "
+        \<exists>Ca|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f. \<exists>D|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f.
+          eres D Ca = C\<^sub>r\<^sub>r"
+        if "C\<^sub>r\<^sub>r |\<in>| U\<^sub>e\<^sub>r" for C\<^sub>r\<^sub>r
+        using U\<^sub>e\<^sub>r_spec[rule_format, OF that] by blast
+
+      moreover have "
+        \<exists>Ca|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f. \<exists>D|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f.
+          (ground_resolution D)\<^sup>+\<^sup>+ Ca C\<^sub>r \<and> C\<^sub>r \<noteq> eres D C\<^sub>r \<and>
+          (eres D C\<^sub>r |\<in>| U\<^sub>e\<^sub>r) = (\<not> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f) Ca)"
+        if "C\<^sub>r |\<in>| U\<^sub>p\<^sub>r" for C\<^sub>r
+      proof -
+        from that obtain D1 D2 where
+          "D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
+          "D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
+          "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>r" and
+          "C\<^sub>r \<noteq> eres D1 C\<^sub>r" and
+          "eres D1 C\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<longleftrightarrow> (\<not> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) D2)"
+          using U\<^sub>p\<^sub>r_spec by metis
+
+        show ?thesis
+        proof (intro bexI conjI)
+          show "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>r"
+            using \<open>(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>r\<close> .
+        next
+          show "C\<^sub>r \<noteq> eres D1 C\<^sub>r"
+            using \<open>C\<^sub>r \<noteq> eres D1 C\<^sub>r\<close> .
+        next
+          show "eres D1 C\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<longleftrightarrow> \<not> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f) D2"
+            \<comment> \<open>This should be provable using the same argument as for
+              \<^term>\<open>is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C\<close> above.\<close>
+            sorry
+        next
+          show "D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f"
+            using \<open>D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close> by simp
+        next
+          show "D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f"
+            using \<open>D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close> by simp
+        qed
+      qed
+
+      ultimately show ?thesis
+        unfolding Ns_def s2'_def U\<^sub>r_def \<open>U\<^sub>e\<^sub>f' = finsert (sfac C) U\<^sub>e\<^sub>f\<close> \<open>s3' = (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f')\<close>
+        unfolding ord_res_2_matches_ord_res_3.simps
+        by blast
+    qed
+
+    ultimately show ?thesis
+      by metis
+  next
+    case (resolution C L D DC U\<^sub>e\<^sub>r')
+
+    obtain m where
+      "(ground_resolution D ^^ Suc m) C DC"
+      sorry
+
+    obtain n m' DnC where
+      "(ground_resolution D ^^ Suc n) C DnC" and "(ground_resolution D ^^ Suc m') DnC DC"
+      sorry
+
+    have "Suc m = Suc n + Suc m'"
+      sorry
+
+    define stuff where
+      "stuff = {|DC|}" \<comment> \<open>and more...\<close>
+
+    define s2' where
+      "s2' = (U\<^sub>r |\<union>| stuff, U\<^sub>e\<^sub>f)"
+
+    have "(ord_res_2 N2)\<^sup>+\<^sup>+ s2 s2'"
+    proof (rule tranclp_if_relpowp)
+      show "Suc m' \<noteq> 0"
+        by presburger
+    next
+      show "(ord_res_2 N2 ^^ Suc m') s2 s2'"
+        sorry
+    qed
+
+    moreover have "?match N2 s2' N3 s3'"
+      sorry
+
+    ultimately show ?thesis
+      by metis
+  qed
 qed
 
 subsubsection \<open>ORD-RES-4 (full resolve)\<close>
