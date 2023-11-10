@@ -4409,7 +4409,7 @@ fun ord_res_2_matches_ord_res_3 where
       (ground_resolution D)\<^sup>+\<^sup>+ C C\<^sub>r \<and> C\<^sub>r \<noteq> eres D C\<^sub>r \<and>
       (eres D C\<^sub>r |\<in>| U\<^sub>e\<^sub>r\<^sub>3 \<longleftrightarrow> \<not> is_least_false_clause (N\<^sub>3 |\<union>| U\<^sub>e\<^sub>r\<^sub>3 |\<union>| U\<^sub>e\<^sub>f\<^sub>3) C)))"
 
-lemma ord_res_2_final_iff_ord_res_2_final:
+lemma ord_res_2_final_iff_ord_res_3_final:
   assumes match: "ord_res_2_matches_ord_res_3 \<C>\<^sub>2 S\<^sub>2 \<C>\<^sub>3 S\<^sub>3"
   shows "ord_res_2_final \<C>\<^sub>2 S\<^sub>2 \<longleftrightarrow> ord_res_3_final \<C>\<^sub>3 S\<^sub>3"
 proof -
@@ -4631,6 +4631,83 @@ proof -
     unfolding state_simps by simp
 qed
 
+definition ord_res_2_measure where
+  "ord_res_2_measure N s1 =
+    (let (U\<^sub>r, U\<^sub>e\<^sub>f) = s1 in
+    (if \<exists>C. is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C then
+      The (is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f))
+    else
+      {#}))"
+
+interpretation bisimulation_with_measuring_function' where
+  step1 = ord_res_2 and final1 = ord_res_2_final and
+  step2 = ord_res_3 and final2 = ord_res_3_final and
+  match = ord_res_2_matches_ord_res_3 and
+  measure1 = ord_res_2_measure and order1 = "(\<subset>#)" and
+  measure2 = "\<lambda>_ _. ()" and order2 = "\<lambda>_ _. False"
+proof unfold_locales
+  fix
+    N2 N3 :: "'f gterm clause fset" and
+    s2 s3 :: "'f gterm clause fset \<times> 'f gterm clause fset"
+
+  assume "ord_res_2_matches_ord_res_3 N2 s2 N3 s3" and "ord_res_2_final N2 s2"
+  thus "ord_res_3_final N3 s3"
+    using ord_res_2_final_iff_ord_res_3_final by metis
+next
+  fix
+    N2 N3 :: "'f gterm clause fset" and
+    s2 s3 :: "'f gterm clause fset \<times> 'f gterm clause fset"
+
+  assume "ord_res_2_matches_ord_res_3 N2 s2 N3 s3" and "ord_res_3_final N3 s3"
+  thus "ord_res_2_final N2 s2"
+    using ord_res_2_final_iff_ord_res_3_final by metis
+next
+  let
+    ?match = ord_res_2_matches_ord_res_3 and
+    ?measure = ord_res_2_measure and ?order = "(\<subset>#)"
+
+  fix
+    N2 N3 :: "'f gterm clause fset" and
+    s2 s2' s3 :: "'f gterm clause fset \<times> 'f gterm clause fset"
+
+  assume "?match N2 s2 N3 s3"
+  then obtain N U\<^sub>r U\<^sub>p\<^sub>r U\<^sub>e\<^sub>r U\<^sub>e\<^sub>f where
+    state_simps: "N2 = N" "N3 = N" "s2 = (U\<^sub>r, U\<^sub>e\<^sub>f)" "s3 = (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)" and
+    U\<^sub>r_def: "U\<^sub>r = U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r" and
+    U\<^sub>p\<^sub>r_spec: "\<forall>C\<^sub>r |\<in>| U\<^sub>p\<^sub>r. \<exists>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
+      (ground_resolution D)\<^sup>+\<^sup>+ C C\<^sub>r \<and> C\<^sub>r \<noteq> eres D C\<^sub>r \<and>
+      (eres D C\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<longleftrightarrow> \<not> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C)"
+    by (elim ord_res_2_matches_ord_res_3.elims(2)) blast
+
+  assume "ord_res_2 N2 s2 s2'"
+
+  show "(\<exists>s3'. (ord_res_3 N3)\<^sup>+\<^sup>+ s3 s3' \<and> ?match N2 s2' N3 s3') \<or>
+    ?match N2 s2' N3 s3 \<and> ?order (?measure N2 s2') (?measure N2 s2)"
+    sorry
+next
+  let
+    ?match = ord_res_2_matches_ord_res_3 and
+    ?measure = "\<lambda>_ _. ()" and ?order = "\<lambda>_ _. False"
+
+  fix
+    N2 N3 :: "'f gterm clause fset" and
+    s2 s3 s3' :: "'f gterm clause fset \<times> 'f gterm clause fset"
+
+  assume "?match N2 s2 N3 s3"
+  then obtain N U\<^sub>r U\<^sub>p\<^sub>r U\<^sub>e\<^sub>r U\<^sub>e\<^sub>f where
+    state_simps: "N2 = N" "N3 = N" "s2 = (U\<^sub>r, U\<^sub>e\<^sub>f)" "s3 = (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)" and
+    U\<^sub>r_def: "U\<^sub>r = U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r" and
+    U\<^sub>p\<^sub>r_spec: "\<forall>C\<^sub>r |\<in>| U\<^sub>p\<^sub>r. \<exists>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
+      (ground_resolution D)\<^sup>+\<^sup>+ C C\<^sub>r \<and> C\<^sub>r \<noteq> eres D C\<^sub>r \<and>
+      (eres D C\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<longleftrightarrow> \<not> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C)"
+    by (elim ord_res_2_matches_ord_res_3.elims(2)) blast
+
+  assume "ord_res_3 N3 s3 s3'"
+
+  show "(\<exists>s2'. (ord_res_2 N2)\<^sup>+\<^sup>+ s2 s2' \<and> ?match N2 s2' N3 s3') \<or>
+    ?match N2 s2 N3 s3' \<and> ?order (?measure N3 s3') (?measure N3 s3)"
+    sorry
+qed
 
 subsubsection \<open>ORD-RES-4 (full resolve)\<close>
 
