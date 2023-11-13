@@ -1,6 +1,11 @@
-theory Set_Theory imports Main begin
-(*
+section \<open>Set Theory\<close>
 
+theory Set_Theory imports Main begin
+
+
+subsection \<open>CakeML License\<close>
+
+text \<open>
 CakeML Copyright Notice, License, and Disclaimer.
 
 Copyright 2013-2023 by Anthony Fox, Google LLC, Ramana Kumar, Magnus Myreen,
@@ -34,14 +39,16 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+\<close>
 
-*)
 
-(*
+subsection \<open>Set theory specification\<close>
+
+text \<open>
   This formal document is the set theory from 
   https://github.com/CakeML/cakeml/blob/master/candle/set-theory/setSpecScript.sml
   ported to Isabelle/HOL and extended.
-*)
+\<close>
 
 (* Corresponds to CakeML's constant is_set_theory_def *)
 locale set_theory =
@@ -314,8 +321,9 @@ proof -
   finally show ?thesis 
     by auto
 qed
-
-lemma abstract_cong_extensional:
+thm set_eq_iff
+thm fun_cong
+lemma abstract_iff_extensional:
   assumes "\<forall>x. x \<in>: s \<longrightarrow> f x \<in>: t \<and> g x \<in>: t"
   shows "(abstract s t f = abstract s t g) \<longleftrightarrow> (\<forall>x. x \<in>: s \<longrightarrow> f x \<in>: t \<and> f x = g x)"
   using assms abstract_cong
@@ -474,9 +482,12 @@ qed
 definition subs :: "'s \<Rightarrow> 's \<Rightarrow> bool" (infix "\<subseteq>:" 67) where
   "x \<subseteq>: y \<longleftrightarrow> x \<in>: pow y"
 
-(* defines the identity function on its argument (definition from CakeML) *)
+
+definition one_elem_fun :: "'s \<Rightarrow> 's \<Rightarrow> 's" where
+  "one_elem_fun x d = abstract d boolset (\<lambda>y. boolean (x=y))"
+
 definition iden :: "'s \<Rightarrow> 's" where
-  "iden = (\<lambda>D. abstract D (funspace D boolset) (\<lambda>x. abstract D boolset (\<lambda>y. boolean (x = y))))"
+  "iden D = abstract D (funspace D boolset) (\<lambda>x. one_elem_fun x D)"
 
 lemma apply_id[simp]:
   assumes A_in_D: "A \<in>: D"
@@ -492,11 +503,11 @@ proof -
   also
   have "... = (abstract D (funspace D boolset) (\<lambda>x. abstract D boolset (\<lambda>y. boolean (x = y))) \<cdot> A) \<cdot> B" 
     using A_in_D abstract_D 
-      apply_abstract[of A D "(\<lambda>x. abstract D boolset (\<lambda>y. boolean (x = y)))" "(funspace D boolset)"]
+      apply_abstract[of A D "\<lambda>x. abstract D boolset (\<lambda>y. boolean (x = y))" "funspace D boolset"]
     by auto 
   also
   have "... = iden D \<cdot> A \<cdot> B"
-    unfolding iden_def ..
+    unfolding iden_def one_elem_fun_def ..
   finally
   show ?thesis
     by auto
@@ -507,9 +518,6 @@ lemma apply_id_true[simp]:
   assumes B_in_D: "B \<in>: D"
   shows "iden D \<cdot> A \<cdot> B = true \<longleftrightarrow> A = B"
   using assms using boolean_def using true_neq_false by auto
-
-definition one_elem_fun :: "'s \<Rightarrow> 's \<Rightarrow> 's" where
-  "one_elem_fun x d = abstract d boolset (\<lambda>y. boolean (x=y))"
 
 lemma apply_if_pair_in:
   assumes "(a1,: a2) \<in>: f"
@@ -574,21 +582,13 @@ proof -
     using iffD2[OF extensional] by metis
 qed
 
-end
+lemma funspace_difference_witness:
+  assumes "f \<in>: funspace s t"
+  assumes "g \<in>: funspace s t"
+  assumes "f \<noteq> g"
+  shows "\<exists>z. z \<in>: s \<and> f \<cdot> z \<noteq> g \<cdot> z"
+  using assms(1,2,3) funspace_extensional by blast
 
-(* Corresponds to CakeML's constant is_model *)
-locale model = set_theory _ _ pow
-  for pow :: "'u \<Rightarrow> 'u" +
-  fixes ch :: "'u \<Rightarrow> 'u"
-  fixes indset :: "'u"
-  assumes infinite: "is_infinite indset"
-  assumes is_choice: "\<forall>x. (\<exists>a. a \<in>: x) \<longrightarrow> ch x \<in>: x"
-begin
-
-(* Corresponds to CakeML's theorem indset_inhabited *)
-lemma indset_inhabited:
-  "\<exists>i. i \<in>: indset"
-  using infinite unfolding is_infinite_def using infinite_imp_nonempty by auto
 
 end
 
