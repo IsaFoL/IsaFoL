@@ -55,6 +55,31 @@ end
 
 subsection \<open>Miscellaneous\<close>
 
+lemma is_minimal_in_filter_mset_wrt_iff:
+  assumes
+    tran: "transp_on (set_mset (filter_mset P X)) R" and
+    asym: "asymp_on (set_mset (filter_mset P X)) R"
+  shows "is_minimal_in_mset_wrt R (filter_mset P X) x \<longleftrightarrow>
+    (x \<in># X \<and> P x \<and> (\<forall>y \<in># X - {#x#}. P y \<longrightarrow> \<not> R y x))"
+proof -
+  have "is_minimal_in_mset_wrt R (filter_mset P X) x \<longleftrightarrow>
+    is_minimal_in_set_wrt R ({y \<in> set_mset X. P y}) x"
+    using is_minimal_in_mset_wrt_iff[OF tran asym]
+    using is_minimal_in_set_wrt_iff[OF tran asym]
+    by auto
+  also have "\<dots> \<longleftrightarrow> x \<in># X \<and> P x \<and> (\<forall>y \<in> set_mset X - {x}. P y \<longrightarrow> \<not> R y x)"
+  proof (rule is_minimal_in_set_wrt_filter_iff)
+    show "transp_on {y. y \<in># X \<and> P y} R"
+      using tran by simp
+  next
+    show "asymp_on {y. y \<in># X \<and> P y} R"
+      using asym by simp
+  qed
+  finally show ?thesis
+    by (metis (no_types, lifting) DiffD1 asym asymp_onD at_most_one_mset_mset_diff insertE
+        insert_Diff is_minimal_in_mset_wrt_iff more_than_one_mset_mset_diff tran)
+qed
+
 lemma not_Uniq_is_minimal_in_mset_wrt:
   "\<not> (\<forall>R (X :: nat multiset). transp_on (set_mset X) R \<longrightarrow> asymp_on (set_mset X) R \<longrightarrow>
     (\<exists>\<^sub>\<le>\<^sub>1x. is_minimal_in_mset_wrt R X x))"
@@ -316,6 +341,9 @@ lemmas (in order) ex_minimal_in_mset =
 
 lemmas (in order) ex_maximal_in_mset =
   ex_maximal_in_mset_wrt[OF transp_on_less asymp_on_less]
+
+lemmas (in order) is_minimal_in_filter_mset_iff =
+  is_minimal_in_filter_mset_wrt_iff[OF transp_on_less asymp_on_less]
 
 
 abbreviation (in linorder) is_least_in_mset where
