@@ -245,6 +245,15 @@ section \<open>Defined wffs\<close>
 
 subsection \<open>Common expressions\<close>
 
+abbreviation (input) Var_yi ("y\<^sub>i") where
+  "y\<^sub>i == Cst ''y'' Ind"
+
+abbreviation (input) Var_xo ("x\<^sub>o") where
+  "x\<^sub>o == Var ''x'' Tv"
+
+abbreviation (input) Var_yo ("y\<^sub>o") where
+  "y\<^sub>o == Var ''y'' Tv"
+
 abbreviation (input) Fun_oo ("oo") where
   "oo == Tv \<^bold>\<Leftarrow> Tv"
 
@@ -256,12 +265,6 @@ abbreviation (input) Var_goo ("g\<^sub>o\<^sub>o") where
 
 abbreviation (input) Var_gooo ("g\<^sub>o\<^sub>o\<^sub>o") where
   "g\<^sub>o\<^sub>o\<^sub>o == Var ''g'' ooo"
-
-abbreviation (input) Var_xo ("x\<^sub>o") where
-  "x\<^sub>o == Var ''x'' Tv"
-
-abbreviation (input) Var_yo ("y\<^sub>o") where
-  "y\<^sub>o == Var ''y'' Tv"
 
 
 subsection \<open>Equality symbol\<close>
@@ -522,7 +525,7 @@ definition axiom_4_5 :: "var_sym \<Rightarrow> type_sym \<Rightarrow> trm \<Righ
   "axiom_4_5 x \<alpha> B \<delta> A = \<^bold>[(\<^bold>[\<^bold>\<lambda>x:\<alpha>. \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>]\<^bold>] \<^bold>\<cdot> A) \<^bold>=\<delta> \<^bold>\<Leftarrow> \<alpha> \<^bold>= \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>]\<^bold>]"
 
 definition axiom_5 where
-  "axiom_5 = \<^bold>[(\<^bold>\<iota> \<^bold>\<cdot> ((\<^bold>Q (Tv \<^bold>\<Leftarrow> Ind \<^bold>\<Leftarrow> Ind)) \<^bold>\<cdot> Cst ''y'' Ind)) \<^bold>=Ind\<^bold>= Cst ''y'' Ind\<^bold>]"
+  "axiom_5 = \<^bold>[(\<^bold>\<iota> \<^bold>\<cdot> ((\<^bold>Q (Tv \<^bold>\<Leftarrow> Ind \<^bold>\<Leftarrow> Ind)) \<^bold>\<cdot> y\<^sub>i)) \<^bold>=Ind\<^bold>= y\<^sub>i\<^bold>]"
 
 inductive axiom :: "trm \<Rightarrow> bool" where
   by_axiom_1: 
@@ -2271,11 +2274,11 @@ proof -
       unfolding iden_def one_elem_fun_def by auto
   qed
 
-  have "val D I \<phi> (\<^bold>\<iota> \<^bold>\<cdot> ((\<^bold>Q (Tv \<^bold>\<Leftarrow> Ind \<^bold>\<Leftarrow> Ind)) \<^bold>\<cdot> Cst ''y'' Ind)) = 
-          val D I \<phi> \<^bold>\<iota> \<cdot> val D I \<phi> ((\<^bold>Q (Tv \<^bold>\<Leftarrow> Ind \<^bold>\<Leftarrow> Ind)) \<^bold>\<cdot> Cst ''y'' Ind)"
+  have "val D I \<phi> (\<^bold>\<iota> \<^bold>\<cdot> ((\<^bold>Q (Tv \<^bold>\<Leftarrow> Ind \<^bold>\<Leftarrow> Ind)) \<^bold>\<cdot> y\<^sub>i)) = 
+          val D I \<phi> \<^bold>\<iota> \<cdot> val D I \<phi> ((\<^bold>Q (Tv \<^bold>\<Leftarrow> Ind \<^bold>\<Leftarrow> Ind)) \<^bold>\<cdot> y\<^sub>i)"
     by auto
   moreover
-  have "... = val D I \<phi> (Cst ''y'' Ind)"
+  have "... = val D I \<phi> y\<^sub>i"
     using assms iden_eql unfolding general_model.simps wf_interp.simps[simplified] by auto
   ultimately
   show ?thesis
