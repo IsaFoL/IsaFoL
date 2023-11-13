@@ -4849,6 +4849,15 @@ next
     have "ground_resolution D C DC"
       using resolution by (simp add: ground_resolution_def)
 
+    have "D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
+    proof -
+      have "D |\<notin>| U\<^sub>p\<^sub>r"
+        using resolution U\<^sub>p\<^sub>r_unproductive \<open>N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f |\<union>| U\<^sub>p\<^sub>r = N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close> by fastforce
+      thus ?thesis
+        using \<open>D |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close>
+        unfolding U\<^sub>r_def by simp
+    qed
+
     obtain A :: "'f gterm" where
       L_def: "L = Neg A"
       using \<open>is_neg L\<close> by (cases L) simp_all
@@ -4862,10 +4871,51 @@ next
 
       have "(ord_res_3 N3)\<^sup>+\<^sup>+ s3 s3'"
       proof (rule tranclp.r_into_trancl)
-        show "ord_res_3 N3 s3 s3'"
-          unfolding Ns_def s3_def s3'_def
-          apply (rule ord_res_3.resolution)
-          sorry
+        from C_in have "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f \<or> C |\<in>| U\<^sub>p\<^sub>r"
+          using U\<^sub>r_def by auto
+        thus "ord_res_3 N3 s3 s3'"
+        proof (elim disjE)
+          assume "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
+          show ?thesis
+            unfolding Ns_def s3_def s3'_def
+          proof (rule ord_res_3.resolution)
+            show "is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C"
+              using C_least_false U\<^sub>p\<^sub>r_unproductive \<open>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close>
+                \<open>N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f |\<union>| U\<^sub>p\<^sub>r = N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close>
+                is_least_false_clause_if_is_least_false_clause_in_union_unproductive
+              by metis
+          next
+            show "ord_res.is_maximal_lit L C"
+              using \<open>ord_res.is_maximal_lit L C\<close> .
+          next
+            show "is_neg L"
+              using \<open>is_neg L\<close> .
+          next
+            show "D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
+              using \<open>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close> .
+          next
+            show "D \<prec>\<^sub>c C"
+              using \<open>D \<prec>\<^sub>c C\<close> .
+          next
+            show "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D = {atm_of L}"
+              using \<open>ord_res.production (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D = {atm_of L}\<close>
+              unfolding production_N_U\<^sub>r_U\<^sub>e\<^sub>f_production_Interp_N_U\<^sub>e\<^sub>r_U\<^sub>e\<^sub>f .
+          next
+            show "full_run (ground_resolution D) C (eres D C)"
+              using ex1_eres_eq_full_run_ground_resolution by blast
+          next
+            show "finsert (eres D C) U\<^sub>e\<^sub>r = finsert (eres D C) U\<^sub>e\<^sub>r"
+              by argo
+          qed
+        next
+          assume "C |\<in>| U\<^sub>p\<^sub>r"
+          show ?thesis
+            unfolding Ns_def s3_def s3'_def
+            apply (rule ord_res_3.resolution)
+            \<comment> \<open>Find original resolvants using @{thm U\<^sub>p\<^sub>r_spec} as done under and prove assumptions
+              w.r.t. to said resolvants.\<close>
+            sorry
+        qed
       qed
 
       moreover have "?match N2 s2' N3 s3'"
