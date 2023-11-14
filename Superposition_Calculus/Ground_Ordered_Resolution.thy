@@ -1284,24 +1284,59 @@ lemma lesser_atoms_in_previous_interp_are_in_final_interp:
   assumes
     L_max: "linorder_lit.is_maximal_in_mset C L" and
     A_less: "A \<prec>\<^sub>t atm_of L" and
-    A_in: "A \<in> interp (fset N) C"
-  shows "A \<in> (\<Union>D \<in> fset N. production (fset N) D)"
+    A_in: "A \<in> interp N C"
+  shows "A \<in> (\<Union>D \<in> N. production N D)"
   using A_in interp_def by fastforce
+
+lemma interp_fixed_for_smaller_literals:
+  fixes A
+  assumes
+    L_max: "linorder_lit.is_maximal_in_mset C L" and
+    A_less: "A \<prec>\<^sub>t atm_of L" and
+    "C \<prec>\<^sub>c D"
+  shows "A \<in> interp N C \<longleftrightarrow> A \<in> interp N D"
+proof (rule iffI)
+  show "A \<in> interp N C \<Longrightarrow> A \<in> interp N D"
+    using assms(3) interp_subset_if_less_cls by auto
+next
+  assume "A \<in> interp N D"
+
+  then obtain E where "A \<in> production N E" and "E \<in> N" and "E \<prec>\<^sub>c D"
+    unfolding interp_def by auto
+
+  hence "linorder_lit.is_greatest_in_mset E (Pos A)"
+    by (auto elim: mem_productionE)
+
+  moreover have "Pos A \<prec>\<^sub>l L"
+    by (metis A_less Neg_atm_of_iff less_lit_simps(1) less_lit_simps(2)
+        linorder_lit.dual_order.strict_trans linorder_trm.order_eq_iff literal.collapse(1))
+
+  ultimately have "E \<prec>\<^sub>c C"
+    using L_max
+    using linorder_lit.multp\<^sub>H\<^sub>O_if_maximal_less_that_maximal multp\<^sub>D\<^sub>M_imp_multp multp\<^sub>H\<^sub>O_imp_multp\<^sub>D\<^sub>M
+    by blast
+
+  hence "production N E \<subseteq> interp N C"
+    by (simp add: production_subset_if_less_cls)
+
+  thus "A \<in> interp N C"
+    using \<open>A \<in> production N E\<close> by auto
+qed
 
 lemma neg_lits_not_in_model_stay_out_of_model:
   assumes
     L_in: "L \<in># C" and
     L_neg: "is_neg L" and
-    atm_L_not_in: "atm_of L \<notin> interp (fset N) C"
-  shows "atm_of L \<notin> (\<Union>D \<in> fset N. production (fset N) D)"
+    atm_L_not_in: "atm_of L \<notin> interp N C"
+  shows "atm_of L \<notin> (\<Union>D \<in> N. production N D)"
   using assms produces_imp_in_interp by force
 
 lemma neg_lits_already_in_model_stay_in_model:
   assumes
     L_in: "L \<in># C" and
     L_neg: "is_neg L" and
-    atm_L_not_in: "atm_of L \<in> interp (fset N) C"
-  shows "atm_of L \<in> (\<Union>D \<in> fset N. production (fset N) D)"
+    atm_L_not_in: "atm_of L \<in> interp N C"
+  shows "atm_of L \<in> (\<Union>D \<in> N. production N D)"
   using atm_L_not_in interp_def by auto
 
 (* lemma
