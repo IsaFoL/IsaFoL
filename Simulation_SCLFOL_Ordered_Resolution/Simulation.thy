@@ -5969,20 +5969,20 @@ inductive scl_reso1
       trail_false_cls \<Gamma>\<^sub>1 (cls_of_gcls {#K \<in># D. K \<noteq> L#}) then
       (let
         \<Gamma>\<^sub>2\<^sub>a = trail_decide \<Gamma>\<^sub>1 (lit_of_glit L);
-        \<F>' = \<F>(D := add_mset L {#K \<in># D. K \<noteq> L#});
+        \<F>' = \<F>(D := sfac D);
         j = i + count (\<F> D - {#L#}) L
       in
-        if (\<nexists>S'. scl_fol.conflict (cls_of_gcls |`| N\<^sub>0) (term_of_gterm \<beta>) (\<Gamma>\<^sub>2\<^sub>a, U, None) S') then
-          \<comment> \<open>2a\<close>
-          ((\<Gamma>\<^sub>2\<^sub>a, U, None :: ('f, 'v) closure option), j, D, \<F>')
-        else
+        if (\<exists>S'. scl_fol.conflict (cls_of_gcls |`| N\<^sub>0) (term_of_gterm \<beta>) (\<Gamma>\<^sub>2\<^sub>a, U, None) S') then
           \<comment> \<open>2b\<close>
           (let
             \<Gamma>\<^sub>2\<^sub>b = trail_propagate \<Gamma>\<^sub>1 (lit_of_glit L) (cls_of_gcls {#K \<in># D. K \<noteq> L#}) Var;
             E = (THE E. is_least_in_fset_wrt (\<prec>\<^sub>c)
               {|C |\<in>| N\<^sub>0 |\<union>| fimage gcls_of_cls U. trail_false_cls \<Gamma>\<^sub>2\<^sub>b (cls_of_gcls C)|} E)
           in
-            ((\<Gamma>\<^sub>2\<^sub>b, U, Some (cls_of_gcls E, Var)), j, D, \<F>')))
+            ((\<Gamma>\<^sub>2\<^sub>b, U, Some (cls_of_gcls E, Var)), j, D, \<F>'))
+        else
+          \<comment> \<open>2a\<close>
+          ((\<Gamma>\<^sub>2\<^sub>a, U, None :: ('f, 'v) closure option), j, D, \<F>'))
     else
       \<comment> \<open>2c\<close>
       S1) \<Longrightarrow>
@@ -6095,7 +6095,7 @@ lemma scl_reso1_\<F>_eq:
   assumes "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)"
   shows
     "\<F>\<^sub>1 = \<F>\<^sub>0"
-    "\<F>\<^sub>2 = \<F>\<^sub>1 \<or> (\<exists>L. ord_res.is_maximal_lit L C\<^sub>1 \<and> \<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := add_mset L {#K \<in># C\<^sub>1. K \<noteq> L#}))"
+    "\<F>\<^sub>2 = \<F>\<^sub>1 \<or> (\<exists>L. ord_res.is_maximal_lit L C\<^sub>1 \<and> \<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := sfac C\<^sub>1))"
   unfolding atomize_conj
   using assms
 proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" rule: scl_reso1.cases)
@@ -6109,10 +6109,10 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
   have "\<F>\<^sub>1 = \<F>\<^sub>0"
     using hyps(7) by simp
   thus "\<F>\<^sub>1 = \<F>\<^sub>0 \<and>
-    (\<F>\<^sub>2 = \<F>\<^sub>1 \<or> (\<exists>L. ord_res.is_maximal_lit L C\<^sub>1 \<and> \<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := add_mset L {#K \<in># C\<^sub>1. K \<noteq> L#})))"
+    (\<F>\<^sub>2 = \<F>\<^sub>1 \<or> (\<exists>L. ord_res.is_maximal_lit L C\<^sub>1 \<and> \<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := sfac C\<^sub>1)))"
   proof (intro conjI)
     show "\<F>\<^sub>2 = \<F>\<^sub>1 \<or>
-      (\<exists>L. ord_res.is_maximal_lit L C\<^sub>1 \<and> \<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := add_mset L {#K \<in># C\<^sub>1. K \<noteq> L#}))"
+      (\<exists>L. ord_res.is_maximal_lit L C\<^sub>1 \<and> \<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := sfac C\<^sub>1))"
     proof (cases rule: scl_reso1_step2_cases[of L \<Gamma> As D N \<beta> U])
       case case2a
       then show ?thesis
@@ -6365,34 +6365,34 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
       assume hyp: "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) =
         (if is_pos L \<and> \<not> trail_defined_lit \<Gamma> (lit_of_glit L) \<and> trail_false_cls \<Gamma>\<^sub>1 (cls_of_gcls {#K \<in># D. K \<noteq> L#}) then
           let \<Gamma>\<^sub>2\<^sub>a = trail_decide \<Gamma>\<^sub>1 (lit_of_glit L);
-              \<F>' = \<F>\<^sub>0(D := add_mset L {#K \<in># D. K \<noteq> L#});
+              \<F>' = \<F>\<^sub>0(D := sfac D);
               j = i\<^sub>0 + count (remove1_mset L (\<F>\<^sub>0 D)) L
           in
-            if \<nexists>a. scl_fol.conflict (cls_of_gcls |`| N) (term_of_gterm \<beta>) (\<Gamma>\<^sub>2\<^sub>a, U, None) a then
-              ((\<Gamma>\<^sub>2\<^sub>a, U, None), j, D, \<F>')
-            else
+            if \<exists>a. scl_fol.conflict (cls_of_gcls |`| N) (term_of_gterm \<beta>) (\<Gamma>\<^sub>2\<^sub>a, U, None) a then
               let
                 \<Gamma>\<^sub>2\<^sub>b = trail_propagate \<Gamma>\<^sub>1 (lit_of_glit L) (cls_of_gcls {#K \<in># D. K \<noteq> L#}) Var;
                 E = THE a. linorder_cls.is_least_in_fset {|C |\<in>| N |\<union>| gcls_of_cls |`| U. trail_false_cls \<Gamma>\<^sub>2\<^sub>b (cls_of_gcls C)|} a
               in
                 ((\<Gamma>\<^sub>2\<^sub>b, U, Some (cls_of_gcls E, Var)), j, D, \<F>')
+            else
+              ((\<Gamma>\<^sub>2\<^sub>a, U, None), j, D, \<F>')
         else
           (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1))"
       show "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2) =
         (if is_pos L \<and> \<not> trail_defined_lit (trail_decide \<Gamma> (Neg (term_of_gterm A))) (lit_of_glit L) \<and> trail_false_cls \<Gamma>\<^sub>1 (cls_of_gcls {#K \<in># D. K \<noteq> L#}) then
           let
             \<Gamma>\<^sub>2\<^sub>a = trail_decide \<Gamma>\<^sub>1 (lit_of_glit L);
-            \<F>' = \<F>\<^sub>0(D := add_mset L {#K \<in># D. K \<noteq> L#});
+            \<F>' = \<F>\<^sub>0(D := sfac D);
             j = i\<^sub>0 + count (remove1_mset L (\<F>\<^sub>0 D)) L
           in
-            if \<nexists>a. scl_fol.conflict (cls_of_gcls |`| N) (term_of_gterm \<beta>) (\<Gamma>\<^sub>2\<^sub>a, U, None) a then
-              ((\<Gamma>\<^sub>2\<^sub>a, U, None), j, D, \<F>')
-            else
+            if \<exists>a. scl_fol.conflict (cls_of_gcls |`| N) (term_of_gterm \<beta>) (\<Gamma>\<^sub>2\<^sub>a, U, None) a then
               let
                 \<Gamma>\<^sub>2\<^sub>b = trail_propagate \<Gamma>\<^sub>1 (lit_of_glit L) (cls_of_gcls {#K \<in># D. K \<noteq> L#}) Var;
                 E = THE a. linorder_cls.is_least_in_fset {|C |\<in>| N |\<union>| gcls_of_cls |`| U. trail_false_cls \<Gamma>\<^sub>2\<^sub>b (cls_of_gcls C)|} a
               in
                 ((\<Gamma>\<^sub>2\<^sub>b, U, Some (cls_of_gcls E, Var)), j, D, \<F>')
+            else
+              ((\<Gamma>\<^sub>2\<^sub>a, U, None), j, D, \<F>')
         else
           (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1))"
         unfolding hyp
@@ -6507,7 +6507,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
       let ?\<Gamma>\<^sub>2\<^sub>b = "trail_propagate \<Gamma>\<^sub>1 (lit_of_glit L) (cls_of_gcls {#K \<in># D. K \<noteq> L#}) Var"
       let ?E = "The (is_least_in_fset_wrt (\<prec>\<^sub>c)
         {|C |\<in>| N |\<union>| gcls_of_cls |`| U. trail_false_cls ?\<Gamma>\<^sub>2\<^sub>b (cls_of_gcls C)|})"
-      let ?\<F>' = "\<F>\<^sub>0(D := add_mset L {#K \<in># D. K \<noteq> L#})"
+      let ?\<F>' = "\<F>\<^sub>0(D := sfac D)"
       let ?j = "i\<^sub>0 + count (\<F>\<^sub>0 D - {#L#}) L"
 
       obtain D' :: "('f, 'v) term clause" where
@@ -6591,7 +6591,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
           using hyps(11)
           unfolding Let_def
           unfolding if_P[OF pos_L_and_undef_L_and_false_D]
-          unfolding if_not_P[of "\<not> _", unfolded not_not, OF ex_conflict]
+          unfolding if_P[OF ex_conflict]
           by simp
 
         moreover have "scl_fol.propagate N' \<beta>' (\<Gamma>\<^sub>1, U, None) (?\<Gamma>\<^sub>2\<^sub>b, U, None)"
@@ -6964,10 +6964,48 @@ qed
 lemma
   assumes
     step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
+    invar: "\<forall>C. \<F>\<^sub>0 C = C \<or> \<F>\<^sub>0 C = sfac C"
+  shows
+    "\<forall>C. \<F>\<^sub>1 C = C \<or> \<F>\<^sub>1 C = sfac C"
+    "\<forall>C. \<F>\<^sub>2 C = C \<or> \<F>\<^sub>2 C = sfac C"
+  unfolding atomize_conj
+  using step
+proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1)" "(S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" rule: scl_reso1.cases)
+  case hyps: (scl_reso1I U D L As \<Gamma> \<Gamma>\<^sub>1 N\<^sub>i)
+  show "(\<forall>C. \<F>\<^sub>1 C = C \<or> \<F>\<^sub>1 C = sfac C) \<and> (\<forall>C. \<F>\<^sub>2 C = C \<or> \<F>\<^sub>2 C = sfac C)"
+  proof (cases rule: scl_reso1_step2_cases[of L \<Gamma> As D N \<beta> U])
+    case case2a
+    thus ?thesis
+      using hyps invar by simp
+  next
+    case case2b
+    thus ?thesis
+      using hyps invar by (simp add: Let_def)
+  next
+    case case2c
+    thus ?thesis
+      using hyps invar by auto
+  qed
+qed
+
+(* lemma
+  assumes "finite N"
+  shows "ord_res.interp N = ord_res.interp (sfac ` N)"
+proof (intro ext Set.subset_antisym Set.subsetI)
+  fix C A
+  assume "A \<in> ord_res.interp N C"
+  then show "A \<in> ord_res.interp (sfac ` N) C"
+    find_theorems  *)
+
+lemma
+  assumes
+    step: "scl_reso1 N \<beta> (S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0) (S\<^sub>1, i\<^sub>1, C\<^sub>1, \<F>\<^sub>1) (S\<^sub>2, i\<^sub>2, C\<^sub>2, \<F>\<^sub>2)" and
     N_to_N\<^sub>i\<^sub>0: "(ord_res_1 ^^ i\<^sub>0) N N\<^sub>i\<^sub>0" and
     N_to_N\<^sub>i\<^sub>1: "(ord_res_1 ^^ i\<^sub>1) N N\<^sub>i\<^sub>1" and
     N_to_N\<^sub>i\<^sub>2: "(ord_res_1 ^^ i\<^sub>2) N N\<^sub>i\<^sub>2" and
-    invar: "\<forall>C |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0. \<F>\<^sub>0 C |\<in>| N\<^sub>i\<^sub>0"
+    invars:
+      "\<forall>C |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>0. \<F>\<^sub>0 C |\<in>| N\<^sub>i\<^sub>0"
+      "\<forall>C. \<F>\<^sub>0 C = C \<or> \<F>\<^sub>0 C = sfac C"
   shows
     "\<forall>C |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>1. \<F>\<^sub>1 C |\<in>| N\<^sub>i\<^sub>1"
     "\<forall>C |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>2. \<F>\<^sub>2 C |\<in>| N\<^sub>i\<^sub>2"
@@ -6986,8 +7024,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
     by (metis Uniq_relpowp right_unique_iff right_unique_ord_res_1)
 
   have "state_learned S\<^sub>2 = state_learned S\<^sub>1" and
-    \<F>\<^sub>2_eq_disj: "\<F>\<^sub>2 = \<F>\<^sub>1 \<or>
-      (\<exists>L. ord_res.is_maximal_lit L C\<^sub>1 \<and> \<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := add_mset L {#K \<in># C\<^sub>1. K \<noteq> L#}))"
+    \<F>\<^sub>2_eq_disj: "\<F>\<^sub>2 = \<F>\<^sub>1 \<or> (\<exists>L. ord_res.is_maximal_lit L C\<^sub>1 \<and> \<F>\<^sub>2 = \<F>\<^sub>1(C\<^sub>1 := sfac C\<^sub>1))"
     using scl_reso1_simple_destroy[OF step] scl_reso1_\<F>_eq[OF step] by simp_all
 
   from step have "i\<^sub>1 \<le> i\<^sub>2"
@@ -6995,31 +7032,109 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
   with N_to_N\<^sub>i\<^sub>1 N_to_N\<^sub>i\<^sub>2 have "N\<^sub>i\<^sub>1 |\<subseteq>| N\<^sub>i\<^sub>2"
     by (metis fsubset_if_relpow_le_relpow)
 
-  let ?D\<^sub>0 = "{#K \<in># D. K \<noteq> L#}"
   let ?\<Gamma>\<^sub>2\<^sub>a = "trail_decide \<Gamma>\<^sub>1 (lit_of_glit L)"
   let ?\<F>' = "\<F>\<^sub>0(D := add_mset L {#K \<in># D. K \<noteq> L#})"
   let ?j = "count (\<F>\<^sub>0 D - {#L#}) L"
 
   thm ord_res.production_unfold
 
-  have "D = ?D\<^sub>0 + replicate_mset (count D L) L"
-    by (metis add.commute filter_mset_eq filter_mset_neq multiset_partition
-        removeAll_mset_filter_mset)
+  define D\<^sub>0 where
+    "D\<^sub>0 = {#K \<in># D. K \<noteq> L#}"
 
-  have "D - replicate_mset n L |\<in>| N\<^sub>n"
-    if "(ord_res_1 ^^ (i\<^sub>0 + n)) N N\<^sub>n"
-    for n N\<^sub>n
-    using that
-  proof (induction n)
-    case 0
-    with N_to_N\<^sub>i\<^sub>0 have "N\<^sub>i\<^sub>0 = N\<^sub>n"
-      by (metis Nat.add_0_right Uniq_relpowp right_unique_iff right_unique_ord_res_1)
-    then show ?case
-      apply simp
-      sorry
-  next
-    case (Suc n)
-    then show ?case sorry
+  have "\<forall>K \<in># D. K \<preceq>\<^sub>l L"
+    using \<open>ord_res.is_maximal_lit L D\<close>
+    unfolding linorder_lit.is_maximal_in_mset_iff by fastforce
+  hence "\<forall>K \<in># D\<^sub>0. K \<prec>\<^sub>l L"
+    unfolding D\<^sub>0_def by auto
+
+  obtain j\<^sub>0 where
+    "\<F>\<^sub>0 D = D\<^sub>0 + replicate_mset (Suc j\<^sub>0) L"
+    using invars(2)[rule_format, of D]
+  proof -
+    assume a1: "\<And>j\<^sub>0. \<F>\<^sub>0 D = D\<^sub>0 + replicate_mset (Suc j\<^sub>0) L \<Longrightarrow> thesis"
+    have f2: "add_mset L (remove1_mset L D) = D"
+      by (metis (no_types) hyps(3) insert_DiffM linorder_lit.is_maximal_in_mset_iff)
+    obtain gg :: "'f gterm literal multiset \<Rightarrow> 'f gterm" where
+      f3: "sfac D = D \<or> ord_res.is_maximal_lit (Pos (gg D)) D \<and> sfac D = add_mset (Pos (gg D)) {#l \<in># D. l \<noteq> Pos (gg D)#}"
+      using sfac_spec by moura
+    { assume "replicate_mset (Suc (count (remove1_mset L D) (Pos (gg D)))) (Pos (gg D)) = add_mset (Pos (gg D)) (replicate_mset (count (remove1_mset L D) (Pos (gg D))) (Pos (gg D))) \<and> \<F>\<^sub>0 D \<noteq> D\<^sub>0 + replicate_mset (Suc 0) L"
+      { assume "replicate_mset (Suc (count (remove1_mset L D) (Pos (gg D)))) (Pos (gg D)) = add_mset (Pos (gg D)) (replicate_mset (count (remove1_mset L D) (Pos (gg D))) (Pos (gg D))) \<and> \<F>\<^sub>0 D \<noteq> {#l \<in># D. l \<noteq> L#} + {#Pos (gg D)#}"
+        moreover
+        { assume "replicate_mset (Suc (count (remove1_mset L D) (Pos (gg D)))) (Pos (gg D)) = add_mset (Pos (gg D)) (replicate_mset (count (remove1_mset L D) (Pos (gg D))) (Pos (gg D))) \<and> \<F>\<^sub>0 D \<noteq> add_mset L {#l \<in># D. l \<noteq> L#}"
+          moreover
+          { assume "replicate_mset (Suc (count (remove1_mset L D) (Pos (gg D)))) (Pos (gg D)) = add_mset (Pos (gg D)) (replicate_mset (count (remove1_mset L D) (Pos (gg D))) (Pos (gg D))) \<and> \<F>\<^sub>0 D \<noteq> add_mset (Pos (gg D)) ({#l \<in># D. l \<noteq> L#} + replicate_mset (count (remove1_mset L D) (Pos (gg D))) (Pos (gg D))) - replicate_mset (count (remove1_mset L D) (Pos (gg D))) (Pos (gg D))"
+            { assume "\<F>\<^sub>0 D \<noteq> add_mset (Pos (gg D)) {#l \<in># D. l \<noteq> Pos (gg D)#}"
+              then have "(\<not> ord_res.is_maximal_lit (Pos (gg D)) D \<or> sfac D \<noteq> add_mset (Pos (gg D)) {#l \<in># D. l \<noteq> Pos (gg D)#}) \<or> filter_mset ((=) L) D = replicate_mset (count D L) L \<and> \<F>\<^sub>0 D = D"
+                by (metis (no_types) \<open>\<F>\<^sub>0 D = D \<or> \<F>\<^sub>0 D = sfac D\<close> filter_mset_eq) }
+            then have "L = Pos (gg D) \<and> add_mset L {#l \<in># D. l \<noteq> L#} + replicate_mset (count (remove1_mset L D) (Pos (gg D))) (Pos (gg D)) = add_mset (Pos (gg D)) ({#l \<in># D. l \<noteq> L#} + replicate_mset (count (remove1_mset L D) (Pos (gg D))) (Pos (gg D))) \<and> add_mset (Pos (gg D)) ({#l \<in># D. l \<noteq> L#} + {#}) = add_mset L {#l \<in># D. l \<noteq> L#} \<and> D\<^sub>0 + replicate_mset (Suc 0) L = {#l \<in># D. l \<noteq> L#} + {#Pos (gg D)#} \<longrightarrow> (\<exists>n. \<F>\<^sub>0 D = D\<^sub>0 + replicate_mset (Suc n) L) \<or> filter_mset ((=) L) D = replicate_mset (count D L) L \<and> \<F>\<^sub>0 D = D \<or> \<not> ord_res.is_maximal_lit (Pos (gg D)) D \<or> sfac D \<noteq> add_mset (Pos (gg D)) {#l \<in># D. l \<noteq> Pos (gg D)#}"
+              by (metis (no_types) union_mset_add_mset_right) }
+          ultimately have "L = Pos (gg D) \<and> add_mset (Pos (gg D)) ({#l \<in># D. l \<noteq> L#} + {#}) = add_mset L {#l \<in># D. l \<noteq> L#} \<and> D\<^sub>0 + replicate_mset (Suc 0) L = {#l \<in># D. l \<noteq> L#} + {#Pos (gg D)#} \<longrightarrow> (\<exists>n. \<F>\<^sub>0 D = D\<^sub>0 + replicate_mset (Suc n) L) \<or> filter_mset ((=) L) D = replicate_mset (count D L) L \<and> \<F>\<^sub>0 D = D \<or> \<not> ord_res.is_maximal_lit (Pos (gg D)) D \<or> sfac D \<noteq> add_mset (Pos (gg D)) {#l \<in># D. l \<noteq> Pos (gg D)#}"
+            by (smt (z3) add_diff_cancel_right' union_mset_add_mset_left) }
+        ultimately have "L = Pos (gg D) \<and> D\<^sub>0 + replicate_mset (Suc 0) L = {#l \<in># D. l \<noteq> L#} + {#Pos (gg D)#} \<longrightarrow> (\<exists>n. \<F>\<^sub>0 D = D\<^sub>0 + replicate_mset (Suc n) L) \<or> filter_mset ((=) L) D = replicate_mset (count D L) L \<and> \<F>\<^sub>0 D = D \<or> \<not> ord_res.is_maximal_lit (Pos (gg D)) D \<or> sfac D \<noteq> add_mset (Pos (gg D)) {#l \<in># D. l \<noteq> Pos (gg D)#}"
+          by (metis (no_types) add.right_neutral union_mset_add_mset_right) }
+      then have "\<exists>n. \<F>\<^sub>0 D = D\<^sub>0 + replicate_mset (Suc n) L"
+        using f3 f2 by (smt (z3) D\<^sub>0_def Uniq_D \<open>\<F>\<^sub>0 D = D \<or> \<F>\<^sub>0 D = sfac D\<close> count_add_mset filter_mset_eq hyps(3) linorder_lit.Uniq_is_maximal_in_mset replicate_mset_0 replicate_mset_Suc union_filter_mset_complement) }
+    then show ?thesis
+      using a1 by (meson replicate_mset_Suc)
+  qed
+
+  define D\<^sub>m where
+    "D\<^sub>m \<equiv> \<lambda>m :: nat. D\<^sub>0 + replicate_mset (Suc j\<^sub>0 - m) L"
+
+  have "D\<^sub>m 0 = \<F>\<^sub>0 D"
+    by (simp add: D\<^sub>m_def \<open>\<F>\<^sub>0 D = D\<^sub>0 + replicate_mset (Suc j\<^sub>0) L\<close>)
+
+  have "D\<^sub>m j\<^sub>0 = add_mset L D\<^sub>0"
+    by (simp add: D\<^sub>m_def)
+
+  have "\<forall>m \<le> j\<^sub>0. D\<^sub>m (Suc m) \<subset># D\<^sub>m m"
+    by (auto simp: D\<^sub>m_def)
+  hence a: "\<forall>m \<le> j\<^sub>0. D\<^sub>m (Suc m) \<prec>\<^sub>c D\<^sub>m m"
+    using strict_subset_implies_multp by metis
+
+  have "less_cls_sfac \<F>\<^sub>0 C\<^sub>0 D"
+    using hyps(2) linorder_cls_sfac.is_least_in_fset_ffilterD(2) by blast
+  hence "\<F>\<^sub>0 C\<^sub>0 \<preceq>\<^sub>c \<F>\<^sub>0 D"
+    unfolding less_cls_sfac_def by auto
+
+  moreover have "\<F>\<^sub>0 C\<^sub>0 \<noteq> \<F>\<^sub>0 D"
+    \<comment> \<open>Should this be an assumption?\<close>
+    sorry
+
+  ultimately have "\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 D"
+    by order
+
+  have "\<forall>m < j\<^sub>0. linorder_lit.is_maximal_in_mset (D\<^sub>m m) L \<and> count (D\<^sub>m m) L > 1"
+    unfolding linorder_lit.is_maximal_in_mset_iff
+    using \<open>\<forall>K \<in># D\<^sub>0. K \<prec>\<^sub>l L\<close> by (auto simp: D\<^sub>m_def D\<^sub>0_def)
+  hence "\<forall>m < j\<^sub>0. \<nexists>L. linorder_lit.is_greatest_in_mset (D\<^sub>m m) L"
+    unfolding linorder_lit.is_greatest_in_mset_iff_is_maximal_and_count_eq_one
+    by (metis Uniq_D linorder_lit.Uniq_is_maximal_in_mset nat_less_le)
+  hence b: "\<forall>m < j\<^sub>0. ord_res.production N (D\<^sub>m m) = {}" for N
+    by (simp add: unproductive_if_nex_strictly_maximal_pos_lit)
+
+  have "\<forall>m < j\<^sub>0. \<forall>N\<^sub>m. (ord_res_1 ^^ m) N\<^sub>i\<^sub>0 N\<^sub>m \<longrightarrow> ord_res.interp (fset N\<^sub>m) (D\<^sub>m m) =
+    ord_res.interp (fset N\<^sub>i\<^sub>0) (\<F>\<^sub>0 C\<^sub>0) \<union> ord_res.production (fset N\<^sub>i\<^sub>0) (\<F>\<^sub>0 C\<^sub>0)"
+  proof (intro allI impI)
+    fix m N\<^sub>m
+    assume "m < j\<^sub>0" and N_to_N\<^sub>m: "(ord_res_1 ^^ m) N\<^sub>i\<^sub>0 N\<^sub>m"
+    thus "ord_res.interp (fset N\<^sub>m) (D\<^sub>m m) =
+      ord_res.interp (fset N\<^sub>i\<^sub>0) (\<F>\<^sub>0 C\<^sub>0) \<union> ord_res.production (fset N\<^sub>i\<^sub>0) (\<F>\<^sub>0 C\<^sub>0)"
+    proof (induction m arbitrary: N\<^sub>m)
+      case 0
+      then show ?case
+        unfolding \<open>D\<^sub>m 0 = \<F>\<^sub>0 D\<close>
+        apply simp
+        using \<open>\<F>\<^sub>0 C\<^sub>0 \<preceq>\<^sub>c \<F>\<^sub>0 D\<close> \<open>\<F>\<^sub>0 C\<^sub>0 \<noteq> \<F>\<^sub>0 D\<close> \<open>\<F>\<^sub>0 C\<^sub>0 \<prec>\<^sub>c \<F>\<^sub>0 D\<close>
+        sorry
+    next
+      case (Suc m')
+      then show ?case
+        using a[rule_format]
+        using b[rule_format]
+        using N_to_N\<^sub>m
+        sorry
+    qed
   qed
 
   have "sfac D |\<in>| N\<^sub>i\<^sub>2"
@@ -7028,7 +7143,7 @@ proof (cases N \<beta> "(S\<^sub>0, i\<^sub>0, C\<^sub>0, \<F>\<^sub>0)" "(S\<^s
   have 1: "\<F>\<^sub>1 C |\<in>| N\<^sub>i\<^sub>1"
     if "C |\<in>| N |\<union>| gcls_of_cls |`| state_learned S\<^sub>1"
     for C
-    using invar that
+    using invars that
     unfolding \<open>state_learned S\<^sub>1 = state_learned S\<^sub>0\<close> \<open>\<F>\<^sub>1 = \<F>\<^sub>0\<close> \<open>N\<^sub>i\<^sub>1 = N\<^sub>i\<^sub>0\<close> by metis
 
   moreover have "\<F>\<^sub>2 C |\<in>| N\<^sub>i\<^sub>2"
