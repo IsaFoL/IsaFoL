@@ -229,20 +229,49 @@ lemma Uniq_is_greatest_in_mset_wrt[intro]:
 
 subsection \<open>Miscellaneous\<close>
 
+lemma is_least_in_mset_wrt_iff_is_minimal_and_count_eq_one:
+  "is_least_in_mset_wrt R X x \<longleftrightarrow> is_minimal_in_mset_wrt R X x \<and> count X x = 1"
+proof (rule iffI)
+  assume "is_least_in_mset_wrt R X x"
+  thus "is_minimal_in_mset_wrt R X x \<and> count X x = 1"
+    unfolding is_least_in_mset_wrt_iff is_minimal_in_mset_wrt_iff[OF trans asym]
+    by (metis One_nat_def add_mset_remove_trivial_eq asym asymp_onD count_add_mset not_in_iff)
+next
+  assume "is_minimal_in_mset_wrt R X x \<and> count X x = 1"
+  then show "is_least_in_mset_wrt R X x"
+    unfolding is_least_in_mset_wrt_iff is_minimal_in_mset_wrt_iff[OF trans asym]
+    by (metis count_single in_diffD in_diff_count nat_less_le tot totalp_onD)
+qed
+
+lemma is_greatest_in_mset_wrt_iff_is_maximal_and_count_eq_one:
+  "is_greatest_in_mset_wrt R X x \<longleftrightarrow> is_maximal_in_mset_wrt R X x \<and> count X x = 1"
+proof (rule iffI)
+  assume "is_greatest_in_mset_wrt R X x"
+  thus "is_maximal_in_mset_wrt R X x \<and> count X x = 1"
+    unfolding is_greatest_in_mset_wrt_iff is_maximal_in_mset_wrt_iff[OF trans asym]
+    by (metis One_nat_def add_mset_remove_trivial_eq asym asymp_onD count_add_mset not_in_iff)
+next
+  assume "is_maximal_in_mset_wrt R X x \<and> count X x = 1"
+  then show "is_greatest_in_mset_wrt R X x"
+    unfolding is_greatest_in_mset_wrt_iff is_maximal_in_mset_wrt_iff[OF trans asym]
+    by (metis count_single in_diffD in_diff_count nat_less_le tot totalp_onD)
+qed
+
 lemma count_ge_2_if_minimal_in_mset_wrt_and_not_least_in_mset_wrt:
   assumes "is_minimal_in_mset_wrt R X x" and "\<not> is_least_in_mset_wrt R X x"
   shows "count X x \<ge> 2"
   using assms
-  by (smt (verit) is_least_in_mset_wrt_iff asym count_add_mset count_greater_eq_one_iff insert_DiffM
-      is_minimal_in_mset_wrt_iff le_numeral_Suc local.trans numerals(1) pred_numeral_simps(2)
-      semiring_norm(26) tot totalp_on_def)
+  unfolding is_least_in_mset_wrt_iff_is_minimal_and_count_eq_one
+  by (metis Suc_1 Suc_le_eq antisym_conv1 asym count_greater_eq_one_iff is_minimal_in_mset_wrt_iff
+      trans)
 
 lemma count_ge_2_if_maximal_in_mset_wrt_and_not_greatest_in_mset_wrt:
   assumes "is_maximal_in_mset_wrt R X x" and "\<not> is_greatest_in_mset_wrt R X x"
   shows "count X x \<ge> 2"
   using assms
-  by (metis Suc_1 asym count_greater_eq_one_iff in_diffD in_diff_count is_greatest_in_mset_wrt_iff
-      is_maximal_in_mset_wrt_iff less_Suc_eq trans not_less tot totalp_onD union_single_eq_member)
+  unfolding is_greatest_in_mset_wrt_iff_is_maximal_and_count_eq_one
+  by (metis Suc_1 Suc_le_eq antisym_conv1 asym count_greater_eq_one_iff is_maximal_in_mset_wrt_iff
+      trans)
 
 end
 
@@ -375,6 +404,14 @@ lemmas (in linorder) Uniq_is_least_in_mset[intro] =
 
 lemmas (in linorder) Uniq_is_greatest_in_mset[intro] =
   Uniq_is_greatest_in_mset_wrt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) is_least_in_mset_iff_is_minimal_and_count_eq_one =
+  is_least_in_mset_wrt_iff_is_minimal_and_count_eq_one[OF transp_on_less asymp_on_less
+    totalp_on_less]
+
+lemmas (in linorder) is_greatest_in_mset_iff_is_maximal_and_count_eq_one =
+  is_greatest_in_mset_wrt_iff_is_maximal_and_count_eq_one[OF transp_on_less asymp_on_less
+    totalp_on_less]
 
 lemmas (in linorder) count_ge_2_if_minimal_in_mset_and_not_least_in_mset =
   count_ge_2_if_minimal_in_mset_wrt_and_not_least_in_mset_wrt[OF transp_on_less asymp_on_less
