@@ -5,14 +5,14 @@ theory Forward_To_Backward_Simulation
 begin
 
 inductive match_bisim for step1 final1 step2 match order where
-  bisim_final: "final1 s1 \<Longrightarrow> match i s1 s2\<^sub>0 \<Longrightarrow> s2\<^sub>0 = s2 \<Longrightarrow> n\<^sub>1 = 0 \<Longrightarrow> n\<^sub>2 = 0 \<Longrightarrow>
-    match_bisim step1 final1 step2 match order (i, s2\<^sub>0, n\<^sub>1, n\<^sub>2) s1 s2" |
+  bisim_final: "final1 s1 \<Longrightarrow> match i s1 s2 \<Longrightarrow> n\<^sub>2 = 0 \<Longrightarrow>
+    match_bisim step1 final1 step2 match order (i, n\<^sub>2) s1 s2" |
 
   bisim_steps: "(step1 ^^ Suc m) s1 s1' \<Longrightarrow> match i s1 s2\<^sub>0 \<Longrightarrow>
     (\<forall>k < m. \<forall>s1\<^sub>k s1\<^sub>k\<^sub>1. (step1 ^^ k) s1 s1\<^sub>k \<longrightarrow> step1 s1\<^sub>k s1\<^sub>k\<^sub>1 \<longrightarrow>
       (\<exists>i\<^sub>k i\<^sub>k\<^sub>1. match i\<^sub>k s1\<^sub>k s2\<^sub>0 \<and> match i\<^sub>k\<^sub>1 s1\<^sub>k\<^sub>1 s2\<^sub>0 \<and> order i\<^sub>k\<^sub>1 i\<^sub>k)) \<Longrightarrow>
     (step2 ^^ n\<^sub>1) s2\<^sub>0 s2 \<Longrightarrow> (step2 ^^ Suc n\<^sub>2) s2 s2' \<Longrightarrow> match i' s1' s2' \<Longrightarrow>
-    match_bisim step1 final1 step2 match order (i, s2\<^sub>0, n\<^sub>1, n\<^sub>2) s1 s2"
+    match_bisim step1 final1 step2 match order (i, n\<^sub>2) s1 s2"
 
 definition simulation where
   "simulation step1 step2 match order \<longleftrightarrow>
@@ -37,8 +37,8 @@ theorem
     wfP_order: "wfP order" and
     sim: "simulation step1 step2 match order"
   obtains
-    MATCH :: "'i \<times> 's2 \<times> nat \<times> nat \<Rightarrow> 's1 \<Rightarrow> 's2 \<Rightarrow> bool" and
-    ORDER :: "'i \<times> 's2 \<times> nat \<times> nat \<Rightarrow> 'i \<times> 's2 \<times> nat \<times> nat \<Rightarrow> bool"
+    MATCH :: "'i \<times> nat \<Rightarrow> 's1 \<Rightarrow> 's2 \<Rightarrow> bool" and
+    ORDER :: "'i \<times> nat \<Rightarrow> 'i \<times> nat \<Rightarrow> bool"
   where
     "simulation step1 step2 (\<lambda>i s1 s2. MATCH i s1 s2) ORDER" and
     "simulation step2 step1 (\<lambda>i s2 s1. MATCH i s1 s2) ORDER" and
@@ -49,11 +49,8 @@ proof -
   define MATCH where
     "MATCH = match_bisim step1 final1 step2 match order"
 
-  define ORDER :: "'i \<times> 's2 \<times> nat \<times> nat \<Rightarrow> 'i \<times> 's2 \<times> nat \<times> nat \<Rightarrow> bool" where
-    "ORDER = (\<lambda>(i, _, _, n\<^sub>2) (i', _, _, n\<^sub>2').
-      lex_prodp order ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool) (i, n\<^sub>2) (i', n\<^sub>2'))"
-
-  term "lex_prodp order ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool)"
+  define ORDER :: "'i \<times> nat \<Rightarrow> 'i \<times> nat \<Rightarrow> bool" where
+    "ORDER = lex_prodp order ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool)"
 
   have MATCH_if_match: "\<And>i s1 s2. match i s1 s2 \<Longrightarrow> \<exists>j. MATCH j s1 s2"
   proof -
@@ -136,7 +133,7 @@ proof -
 
       show "\<exists>j. MATCH j s1 s2"
       proof (intro exI)
-        show "MATCH (i, s2, 0, n) s1 s2"
+        show "MATCH (i, n) s1 s2"
           unfolding MATCH_def
         proof (rule bisim_steps)
           show "(step1 ^^ Suc m) s1 s1''"
@@ -167,13 +164,13 @@ proof -
     show "simulation step1 step2 MATCH ORDER"
       unfolding simulation_def
     proof (intro allI impI)
-      fix j s1 s2 s1'
+      fix j :: "'i \<times> nat" and s1 s1' :: 's1 and s2 :: 's2
       assume "MATCH j s1 s2" and "step1 s1 s1'"
       hence "match_bisim step1 final1 step2 match order j s1 s2"
         unfolding MATCH_def by metis
       thus "(\<exists>s2' j'. step2\<^sup>+\<^sup>+ s2 s2' \<and> MATCH j' s1' s2') \<or> (\<exists>j'. MATCH j' s1' s2 \<and> ORDER j' j)"
       proof (cases step1 final1 step2 match order j s1 s2 rule: match_bisim.cases)
-        case (bisim_final i s2\<^sub>0 n\<^sub>1 n\<^sub>2)
+        case (bisim_final i n\<^sub>2)
         hence False
           using \<open>step1 s1 s1'\<close> final1_stuck by metis
         thus ?thesis ..
@@ -208,7 +205,7 @@ proof -
             by fastforce
 
           define j' where
-            "j' = (i\<^sub>k\<^sub>1, s2\<^sub>0, n\<^sub>1, n\<^sub>2)"
+            "j' = (i\<^sub>k\<^sub>1, n\<^sub>2)"
 
           have "MATCH j' s1' s2"
             unfolding MATCH_def j'_def
@@ -240,7 +237,7 @@ proof -
               by (metis \<open>match i\<^sub>k s1 s2\<^sub>0\<close> local.bisim_steps(3) the1_equality')
 
             thus ?thesis
-              unfolding ORDER_def j'_def \<open>j = (i, s2\<^sub>0, n\<^sub>1, n\<^sub>2)\<close> prod.case
+              unfolding ORDER_def j'_def \<open>j = (i, n\<^sub>2)\<close> prod.case
               using \<open>order i\<^sub>k\<^sub>1 i\<^sub>k\<close> by (simp add: lex_prodp_def)
           qed
 
@@ -253,13 +250,13 @@ proof -
     show "simulation step2 step1 (\<lambda>i s2 s1. MATCH i s1 s2) ORDER"
       unfolding simulation_def
     proof (intro allI impI)
-      fix j s1 s2 s2'
+      fix j :: "'i \<times> nat" and s1 :: 's1 and s2 s2' :: 's2
       assume "MATCH j s1 s2" and "step2 s2 s2'"
       hence "match_bisim step1 final1 step2 match order j s1 s2"
         unfolding MATCH_def by metis
       thus "(\<exists>s1' j'. step1\<^sup>+\<^sup>+ s1 s1' \<and> MATCH j' s1' s2') \<or> (\<exists>j'. MATCH j' s1 s2' \<and> ORDER j' j)"
       proof (cases step1 final1 step2 match order j s1 s2 rule: match_bisim.cases)
-        case (bisim_final i s2\<^sub>0 n\<^sub>1 n\<^sub>2)
+        case (bisim_final i n\<^sub>2)
         hence "final2 s2"
           using agree_on_final by metis
         hence False
@@ -287,7 +284,7 @@ proof -
           case (Suc n\<^sub>2')
 
           define j' where
-            "j' = (i, s2\<^sub>0, Suc n\<^sub>1, n\<^sub>2')"
+            "j' = (i, n\<^sub>2')"
 
           have "MATCH j' s1 s2'"
             unfolding MATCH_def j'_def
@@ -315,7 +312,7 @@ proof -
           qed
 
           moreover have "ORDER j' j"
-            unfolding ORDER_def j'_def \<open>j = (i, s2\<^sub>0, n\<^sub>1, n\<^sub>2)\<close> \<open>n\<^sub>2 = Suc n\<^sub>2'\<close> prod.case
+            unfolding ORDER_def j'_def \<open>j = (i, n\<^sub>2)\<close> \<open>n\<^sub>2 = Suc n\<^sub>2'\<close>
             by (simp add: lex_prodp_def)
 
           ultimately show ?thesis
@@ -324,12 +321,12 @@ proof -
       qed
     qed
   next
-    fix j :: "'i \<times> 's2 \<times> nat \<times> nat" and s1 :: 's1 and s2 :: 's2
+    fix j :: "'i \<times> nat" and s1 :: 's1 and s2 :: 's2
     assume "MATCH j s1 s2"
     thus "final1 s1 \<longleftrightarrow> final2 s2"
       unfolding MATCH_def
     proof (cases step1 final1 step2 match order j s1 s2 rule: match_bisim.cases)
-      case (bisim_final i s2\<^sub>0 n\<^sub>1 n\<^sub>2)
+      case (bisim_final i n\<^sub>2)
       thus ?thesis
         using agree_on_final by metis
     next
@@ -342,16 +339,9 @@ proof -
         by argo
     qed
   next
-    let ?f = "\<lambda>(i, _, _, n\<^sub>2). (i, n\<^sub>2)"
-
     show "wfP ORDER"
-    proof (rule wfP_if_convertible_to_wfP)
-      show "\<And>x y. ORDER x y \<Longrightarrow> lex_prodp order ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool) (?f x) (?f y)"
-        by (auto simp: ORDER_def)
-    next
-      show "wfP (lex_prodp order ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool))"
-        using lex_prodp_wfP wfP_less wfP_order by metis
-    qed
+      unfolding ORDER_def
+      using lex_prodp_wfP wfP_less wfP_order by metis
   next
     show "\<And>i s1 s2. match i s1 s2 \<Longrightarrow> \<exists>j. MATCH j s1 s2"
       using MATCH_if_match .
