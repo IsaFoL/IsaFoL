@@ -4,20 +4,20 @@ theory Forward_To_Backward_Simulation
     "VeriComp.Well_founded"
 begin
 
-inductive match_bisim for step1 final1 step2 match order where
-  bisim_final: "final1 s1 \<Longrightarrow> match i s1 s2 \<Longrightarrow> n\<^sub>2 = 0 \<Longrightarrow>
-    match_bisim step1 final1 step2 match order (i, n\<^sub>2) s1 s2" |
+inductive match_bisim for \<R>\<^sub>1 \<F>\<^sub>1 \<R>\<^sub>2 match order where
+  bisim_final: "\<F>\<^sub>1 s1 \<Longrightarrow> match i s1 s2 \<Longrightarrow> n\<^sub>2 = 0 \<Longrightarrow>
+    match_bisim \<R>\<^sub>1 \<F>\<^sub>1 \<R>\<^sub>2 match order (i, n\<^sub>2) s1 s2" |
 
-  bisim_steps: "(step1 ^^ Suc m) s1 s1' \<Longrightarrow> match i s1 s2\<^sub>0 \<Longrightarrow>
-    (\<forall>k < m. \<forall>s1\<^sub>k s1\<^sub>k\<^sub>1. (step1 ^^ k) s1 s1\<^sub>k \<longrightarrow> step1 s1\<^sub>k s1\<^sub>k\<^sub>1 \<longrightarrow>
+  bisim_steps: "(\<R>\<^sub>1 ^^ Suc m) s1 s1' \<Longrightarrow> match i s1 s2\<^sub>0 \<Longrightarrow>
+    (\<forall>k < m. \<forall>s1\<^sub>k s1\<^sub>k\<^sub>1. (\<R>\<^sub>1 ^^ k) s1 s1\<^sub>k \<longrightarrow> \<R>\<^sub>1 s1\<^sub>k s1\<^sub>k\<^sub>1 \<longrightarrow>
       (\<exists>i\<^sub>k i\<^sub>k\<^sub>1. match i\<^sub>k s1\<^sub>k s2\<^sub>0 \<and> match i\<^sub>k\<^sub>1 s1\<^sub>k\<^sub>1 s2\<^sub>0 \<and> order i\<^sub>k\<^sub>1 i\<^sub>k)) \<Longrightarrow>
-    (step2 ^^ n\<^sub>1) s2\<^sub>0 s2 \<Longrightarrow> (step2 ^^ Suc n\<^sub>2) s2 s2' \<Longrightarrow> match i' s1' s2' \<Longrightarrow>
-    match_bisim step1 final1 step2 match order (i, n\<^sub>2) s1 s2"
+    (\<R>\<^sub>2 ^^ n\<^sub>1) s2\<^sub>0 s2 \<Longrightarrow> (\<R>\<^sub>2 ^^ Suc n\<^sub>2) s2 s2' \<Longrightarrow> match i' s1' s2' \<Longrightarrow>
+    match_bisim \<R>\<^sub>1 \<F>\<^sub>1 \<R>\<^sub>2 match order (i, n\<^sub>2) s1 s2"
 
 definition simulation where
-  "simulation step1 step2 match order \<longleftrightarrow>
-    (\<forall>i s1 s2 s1'. match i s1 s2 \<longrightarrow> step1 s1 s1' \<longrightarrow>
-      (\<exists>s2' i'. step2\<^sup>+\<^sup>+ s2 s2' \<and> match i' s1' s2') \<or> (\<exists>i'. match i' s1' s2 \<and> order i' i))"
+  "simulation \<R>\<^sub>1 \<R>\<^sub>2 match order \<longleftrightarrow>
+    (\<forall>i s1 s2 s1'. match i s1 s2 \<longrightarrow> \<R>\<^sub>1 s1 s1' \<longrightarrow>
+      (\<exists>s2' i'. \<R>\<^sub>2\<^sup>+\<^sup>+ s2 s2' \<and> match i' s1' s2') \<or> (\<exists>i'. match i' s1' s2 \<and> order i' i))"
 
 definition safe_state where
   "safe_state \<R> \<F> s \<longleftrightarrow> (\<forall>s'. \<R>\<^sup>*\<^sup>* s s' \<longrightarrow> \<F> s' \<or> (\<exists>s''. \<R> s' s''))"
