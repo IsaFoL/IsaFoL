@@ -4,42 +4,25 @@ theory Forward_To_Backward_Simulation
     "VeriComp.Well_founded"
 begin
 
-inductive match_bisim for \<R>\<^sub>1 \<F>\<^sub>1 \<R>\<^sub>2 match order where
-  bisim_final: "\<F>\<^sub>1 s1 \<Longrightarrow> match i s1 s2 \<Longrightarrow> n\<^sub>2 = 0 \<Longrightarrow>
-    match_bisim \<R>\<^sub>1 \<F>\<^sub>1 \<R>\<^sub>2 match order (i, n\<^sub>2) s1 s2" |
+definition stuck_state where
+  "stuck_state \<R> s \<longleftrightarrow> (\<nexists>s'. \<R> s s')"
+
+inductive match_bisim for \<R>\<^sub>1 \<R>\<^sub>2 match order where
+  bisim_stuck: "stuck_state \<R>\<^sub>1 s1 \<Longrightarrow> stuck_state \<R>\<^sub>2 s2 \<Longrightarrow> match i s1 s2 \<Longrightarrow> n\<^sub>2 = 0 \<Longrightarrow>
+    match_bisim \<R>\<^sub>1 \<R>\<^sub>2 match order (i, n\<^sub>2) s1 s2" |
 
   bisim_steps: "(\<R>\<^sub>1 ^^ Suc m) s1 s1' \<Longrightarrow> match i s1 s2\<^sub>0 \<Longrightarrow>
     (\<forall>k < m. \<forall>s1\<^sub>k s1\<^sub>k\<^sub>1. (\<R>\<^sub>1 ^^ k) s1 s1\<^sub>k \<longrightarrow> \<R>\<^sub>1 s1\<^sub>k s1\<^sub>k\<^sub>1 \<longrightarrow>
       (\<exists>i\<^sub>k i\<^sub>k\<^sub>1. match i\<^sub>k s1\<^sub>k s2\<^sub>0 \<and> match i\<^sub>k\<^sub>1 s1\<^sub>k\<^sub>1 s2\<^sub>0 \<and> order i\<^sub>k\<^sub>1 i\<^sub>k)) \<Longrightarrow>
     (\<R>\<^sub>2 ^^ n\<^sub>1) s2\<^sub>0 s2 \<Longrightarrow> (\<R>\<^sub>2 ^^ Suc n\<^sub>2) s2 s2' \<Longrightarrow> match i' s1' s2' \<Longrightarrow>
-    match_bisim \<R>\<^sub>1 \<F>\<^sub>1 \<R>\<^sub>2 match order (i, n\<^sub>2) s1 s2"
+    match_bisim \<R>\<^sub>1 \<R>\<^sub>2 match order (i, n\<^sub>2) s1 s2"
 
 definition simulation where
   "simulation \<R>\<^sub>1 \<R>\<^sub>2 match order \<longleftrightarrow>
     (\<forall>i s1 s2 s1'. match i s1 s2 \<longrightarrow> \<R>\<^sub>1 s1 s1' \<longrightarrow>
       (\<exists>s2' i'. \<R>\<^sub>2\<^sup>+\<^sup>+ s2 s2' \<and> match i' s1' s2') \<or> (\<exists>i'. match i' s1' s2 \<and> order i' i))"
 
-definition safe_state where
-  "safe_state \<R> \<F> s \<longleftrightarrow> (\<forall>s'. \<R>\<^sup>*\<^sup>* s s' \<longrightarrow> \<F> s' \<or> (\<exists>s''. \<R> s' s''))"
-
-lemma step_preserves_safe_state:
-  "\<R> s s' \<Longrightarrow> safe_state \<R> \<F> s \<Longrightarrow> safe_state \<R> \<F> s'"
-  by (simp add: converse_rtranclp_into_rtranclp safe_state_def)
-
-lemma rtranclp_step_preserves_safe_state:
-  "\<R>\<^sup>*\<^sup>* s s' \<Longrightarrow> safe_state \<R> \<F> s \<Longrightarrow> safe_state \<R> \<F> s'"
-  by (simp add: rtranclp_induct step_preserves_safe_state)
-
-lemma tranclp_step_preserves_safe_state:
-  "\<R>\<^sup>+\<^sup>+ s s' \<Longrightarrow> safe_state \<R> \<F> s \<Longrightarrow> safe_state \<R> \<F> s'"
-  by (simp add: step_preserves_safe_state tranclp_induct)
-
-lemma safe_state_if_all_states_safe:
-  assumes "\<And>s. \<F> s \<or> (\<exists>s'. \<R> s s')"
-  shows "safe_state \<R> \<F> s"
-  using assms by (simp add: safe_state_def)
-
-theorem
+theorem lift_strong_simulation_to_bisimulation:
   fixes
     step1 :: "'s1 \<Rightarrow> 's1 \<Rightarrow> bool" and
     step2 :: "'s2 \<Rightarrow> 's2 \<Rightarrow> bool" and
@@ -48,13 +31,9 @@ theorem
   assumes
     "right_unique step1" and
     "right_unique step2" and
-    final1_stuck: "\<And>s1. final1 s1 \<Longrightarrow> \<nexists>s1'. step1 s1 s1'" and
-    final2_stuck: "\<And>s2. final2 s2 \<Longrightarrow> \<nexists>s2'. step2 s2 s2'" and
     Uniq_match_index: "\<forall>s1 s2. \<exists>\<^sub>\<le>\<^sub>1i. match i s1 s2" and
-    matching_states_agree_on_final:
-      "\<And>i s1 s2. match i s1 s2 \<Longrightarrow> final1 s1 \<longleftrightarrow> final2 s2" and
-    matching_states_are_safe:
-      "\<And>i s1 s2. match i s1 s2 \<Longrightarrow> safe_state step1 final1 s1 \<and> safe_state step2 final2 s2" and
+    matching_states_agree_on_stuck:
+      "\<forall>i s1 s2. match i s1 s2 \<longrightarrow> stuck_state step1 s1 \<longleftrightarrow> stuck_state step2 s2" and
     order_well_founded: "wfP order" and
     sim: "simulation step1 step2 match order"
   obtains
@@ -62,8 +41,9 @@ theorem
     ORDER :: "'i \<times> nat \<Rightarrow> 'i \<times> nat \<Rightarrow> bool"
   where
     "\<And>i s1 s2. match i s1 s2 \<Longrightarrow> (\<exists>j. MATCH j s1 s2)"
-    "\<And>j s1 s2. MATCH j s1 s2 \<Longrightarrow> final1 s1 \<longleftrightarrow> final2 s2" and
-    "\<And>j s1 s2. MATCH j s1 s2 \<Longrightarrow> safe_state step1 final1 s1 \<and> safe_state step2 final2 s2" and
+    "\<And>j s1 s2. MATCH j s1 s2 \<Longrightarrow>
+      (\<exists>i. stuck_state step1 s1 \<and> stuck_state step2 s2 \<and> match i s1 s2) \<or>
+      (\<exists>i s1' s2'. step1\<^sup>+\<^sup>+ s1 s1' \<and> step2\<^sup>+\<^sup>+ s2 s2' \<and> match i s1' s2')" and
     "wfP ORDER" and
     "simulation step1 step2 (\<lambda>i s1 s2. MATCH i s1 s2) ORDER" and
     "simulation step2 step1 (\<lambda>i s2 s1. MATCH i s1 s2) ORDER"
@@ -75,7 +55,7 @@ proof -
     by (simp add: right_unique_iff)
 
   define MATCH where
-    "MATCH = match_bisim step1 final1 step2 match order"
+    "MATCH = match_bisim step1 step2 match order"
 
   define ORDER :: "'i \<times> nat \<Rightarrow> 'i \<times> nat \<Rightarrow> bool" where
     "ORDER = lex_prodp order ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool)"
@@ -85,16 +65,14 @@ proof -
     fix i s1 s2
     assume "match i s1 s2"
 
-    have "final1 s1 \<longleftrightarrow> final2 s2"
-      using \<open>match i s1 s2\<close> matching_states_agree_on_final by metis
-    moreover have "safe_state step1 final1 s1" and "safe_state step2 final2 s2"
-      using \<open>match i s1 s2\<close> matching_states_are_safe by simp_all
-    ultimately have "(final1 s1 \<and> final2 s2) \<or> (\<exists>s1' s2'. step1 s1 s1' \<and> step2 s2 s2')"
-      by (metis rtranclp.rtrancl_refl safe_state_def)
+    have "stuck_state step1 s1 \<longleftrightarrow> stuck_state step2 s2"
+      using \<open>match i s1 s2\<close> matching_states_agree_on_stuck by metis
+    hence "(stuck_state step1 s1 \<and> stuck_state step2 s2) \<or> (\<exists>s1' s2'. step1 s1 s1' \<and> step2 s2 s2')"
+      by (metis stuck_state_def)
     thus "\<exists>j. MATCH j s1 s2"
     proof (elim disjE conjE exE)
-      show "final1 s1 \<Longrightarrow> final2 s2 \<Longrightarrow> \<exists>j. MATCH j s1 s2"
-        by (metis MATCH_def \<open>match i s1 s2\<close> bisim_final)
+      show "stuck_state step1 s1 \<Longrightarrow> stuck_state step2 s2 \<Longrightarrow> \<exists>j. MATCH j s1 s2"
+        by (metis MATCH_def \<open>match i s1 s2\<close> bisim_stuck)
     next
       fix s1' s2'
       assume "step1 s1 s1'" and "step2 s2 s2'"
@@ -115,17 +93,14 @@ proof -
           fix i'
           assume "match i' s1' s2" and "order i' i"
 
-          have "\<not> final2 s2"
-            using \<open>step2 s2 s2'\<close> final2_stuck by metis
+          have "\<not> stuck_state step2 s2"
+            using \<open>step2 s2 s2'\<close> stuck_state_def by metis
 
-          hence "\<not> final1 s1'"
-            using \<open>match i' s1' s2\<close> matching_states_agree_on_final by metis
+          hence "\<not> stuck_state step1 s1'"
+            using \<open>match i' s1' s2\<close> matching_states_agree_on_stuck by metis
 
-          moreover have "safe_state step1 final1 s1'"
-            using \<open>match i' s1' s2\<close> matching_states_are_safe by metis
-
-          ultimately obtain s1'' where "step1 s1' s1''"
-            by (metis rtranclp.rtrancl_refl safe_state_def)
+          then obtain s1'' where "step1 s1' s1''"
+            by (metis stuck_state_def)
 
           obtain m s1''' s2' i'' where
             "(step1 ^^ m) s1'' s1'''" and
@@ -200,34 +175,18 @@ proof -
   next
     fix j :: "'i \<times> nat" and s1 :: 's1 and s2 :: 's2
     assume "MATCH j s1 s2"
-    thus "final1 s1 \<longleftrightarrow> final2 s2"
+    thus "(\<exists>i. stuck_state step1 s1 \<and> stuck_state step2 s2 \<and> match i s1 s2) \<or>
+      (\<exists>i s1' s2'. step1\<^sup>+\<^sup>+ s1 s1' \<and> step2\<^sup>+\<^sup>+ s2 s2' \<and> match i s1' s2')"
       unfolding MATCH_def
-    proof (cases step1 final1 step2 match order j s1 s2 rule: match_bisim.cases)
-      case (bisim_final i n\<^sub>2)
+    proof (cases step1 step2 match order j s1 s2 rule: match_bisim.cases)
+      case (bisim_stuck i n\<^sub>2)
       thus ?thesis
-        using matching_states_agree_on_final by metis
+        by blast
     next
       case (bisim_steps m s1' i s2\<^sub>0 n\<^sub>1 n\<^sub>2 s2' i')
-      have "\<not> final1 s1"
-        by (metis final1_stuck local.bisim_steps(2) relpowp_Suc_D2)
-      moreover have "\<not> final2 s2"
-        by (metis final2_stuck local.bisim_steps(6) relpowp_Suc_D2)
-      ultimately show ?thesis
-        by argo
-    qed
-  next
-    fix j :: "'i \<times> nat" and s1 :: 's1 and s2 :: 's2
-    assume "MATCH j s1 s2"
-    thus "safe_state step1 final1 s1 \<and> safe_state step2 final2 s2"
-      unfolding MATCH_def
-    proof (cases step1 final1 step2 match order j s1 s2 rule: match_bisim.cases)
-      case (bisim_final i n\<^sub>2)
-      thus ?thesis
-        using matching_states_are_safe by metis
-    next
-      case (bisim_steps m s1' i s2\<^sub>0 n\<^sub>1 n\<^sub>2 s2' i')
-      thus ?thesis
-        by (metis matching_states_are_safe relpowp_imp_rtranclp rtranclp_step_preserves_safe_state)
+      hence "\<exists>i s1' s2'. step1\<^sup>+\<^sup>+ s1 s1' \<and> step2\<^sup>+\<^sup>+ s2 s2' \<and> match i s1' s2'"
+        by (metis tranclp_power zero_less_Suc)
+      thus ?thesis ..
     qed
   next
     show "wfP ORDER"
@@ -239,13 +198,13 @@ proof -
     proof (intro allI impI)
       fix j :: "'i \<times> nat" and s1 s1' :: 's1 and s2 :: 's2
       assume "MATCH j s1 s2" and "step1 s1 s1'"
-      hence "match_bisim step1 final1 step2 match order j s1 s2"
+      hence "match_bisim step1 step2 match order j s1 s2"
         unfolding MATCH_def by metis
       thus "(\<exists>s2' j'. step2\<^sup>+\<^sup>+ s2 s2' \<and> MATCH j' s1' s2') \<or> (\<exists>j'. MATCH j' s1' s2 \<and> ORDER j' j)"
-      proof (cases step1 final1 step2 match order j s1 s2 rule: match_bisim.cases)
-        case (bisim_final i n\<^sub>2)
+      proof (cases step1 step2 match order j s1 s2 rule: match_bisim.cases)
+        case (bisim_stuck i n\<^sub>2)
         hence False
-          using \<open>step1 s1 s1'\<close> final1_stuck by metis
+          using \<open>step1 s1 s1'\<close> stuck_state_def by metis
         thus ?thesis ..
       next
         case (bisim_steps m s1'' i s2\<^sub>0 n\<^sub>1 n\<^sub>2 s2' i')
@@ -325,15 +284,15 @@ proof -
     proof (intro allI impI)
       fix j :: "'i \<times> nat" and s1 :: 's1 and s2 s2' :: 's2
       assume "MATCH j s1 s2" and "step2 s2 s2'"
-      hence "match_bisim step1 final1 step2 match order j s1 s2"
+      hence "match_bisim step1 step2 match order j s1 s2"
         unfolding MATCH_def by metis
       thus "(\<exists>s1' j'. step1\<^sup>+\<^sup>+ s1 s1' \<and> MATCH j' s1' s2') \<or> (\<exists>j'. MATCH j' s1 s2' \<and> ORDER j' j)"
-      proof (cases step1 final1 step2 match order j s1 s2 rule: match_bisim.cases)
-        case (bisim_final i n\<^sub>2)
-        hence "final2 s2"
-          using matching_states_agree_on_final by metis
+      proof (cases step1 step2 match order j s1 s2 rule: match_bisim.cases)
+        case (bisim_stuck i n\<^sub>2)
+        hence "stuck_state step2 s2"
+          by argo
         hence False
-          using \<open>step2 s2 s2'\<close> final2_stuck by metis
+          using \<open>step2 s2 s2'\<close> stuck_state_def by metis
         thus ?thesis ..
       next
         case (bisim_steps m s1' i s2\<^sub>0 n\<^sub>1 n\<^sub>2 s2'' i')
@@ -393,6 +352,125 @@ proof -
         qed
       qed
     qed
+  qed
+qed
+
+definition safe_state where
+  "safe_state \<R> \<F> s \<longleftrightarrow> (\<forall>s'. \<R>\<^sup>*\<^sup>* s s' \<longrightarrow> \<F> s' \<or> (\<exists>s''. \<R> s' s''))"
+
+lemma step_preserves_safe_state:
+  "\<R> s s' \<Longrightarrow> safe_state \<R> \<F> s \<Longrightarrow> safe_state \<R> \<F> s'"
+  by (simp add: converse_rtranclp_into_rtranclp safe_state_def)
+
+lemma rtranclp_step_preserves_safe_state:
+  "\<R>\<^sup>*\<^sup>* s s' \<Longrightarrow> safe_state \<R> \<F> s \<Longrightarrow> safe_state \<R> \<F> s'"
+  by (simp add: rtranclp_induct step_preserves_safe_state)
+
+lemma tranclp_step_preserves_safe_state:
+  "\<R>\<^sup>+\<^sup>+ s s' \<Longrightarrow> safe_state \<R> \<F> s \<Longrightarrow> safe_state \<R> \<F> s'"
+  by (simp add: step_preserves_safe_state tranclp_induct)
+
+lemma safe_state_before_step_if_safe_state_after:
+  assumes "right_unique \<R>"
+  shows "\<R> s s' \<Longrightarrow> safe_state \<R> \<F> s' \<Longrightarrow> safe_state \<R> \<F> s"
+  by (metis (full_types) assms converse_rtranclpE right_uniqueD safe_state_def)
+
+lemma safe_state_before_rtranclp_step_if_safe_state_after:
+  assumes "right_unique \<R>"
+  shows "\<R>\<^sup>*\<^sup>* s s' \<Longrightarrow> safe_state \<R> \<F> s' \<Longrightarrow> safe_state \<R> \<F> s"
+  by (smt (verit, best) assms converse_rtranclp_induct safe_state_before_step_if_safe_state_after)
+
+lemma safe_state_before_tranclp_step_if_safe_state_after:
+  assumes "right_unique \<R>"
+  shows "\<R>\<^sup>+\<^sup>+ s s' \<Longrightarrow> safe_state \<R> \<F> s' \<Longrightarrow> safe_state \<R> \<F> s"
+  by (meson assms safe_state_before_rtranclp_step_if_safe_state_after tranclp_into_rtranclp)
+
+lemma safe_state_if_all_states_safe:
+  assumes "\<And>s. \<F> s \<or> (\<exists>s'. \<R> s s')"
+  shows "safe_state \<R> \<F> s"
+  using assms by (simp add: safe_state_def)
+
+corollary
+  fixes
+    step1 :: "'s1 \<Rightarrow> 's1 \<Rightarrow> bool" and
+    step2 :: "'s2 \<Rightarrow> 's2 \<Rightarrow> bool" and
+    match :: "'i \<Rightarrow> 's1 \<Rightarrow> 's2 \<Rightarrow> bool" and
+    order :: "'i \<Rightarrow> 'i \<Rightarrow> bool"
+  assumes
+    "right_unique step1" and
+    "right_unique step2" and
+    final1_stuck: "\<And>s1. final1 s1 \<Longrightarrow> \<nexists>s1'. step1 s1 s1'" and
+    final2_stuck: "\<And>s2. final2 s2 \<Longrightarrow> \<nexists>s2'. step2 s2 s2'" and
+    Uniq_match_index: "\<forall>s1 s2. \<exists>\<^sub>\<le>\<^sub>1i. match i s1 s2" and
+    matching_states_agree_on_final:
+      "\<And>i s1 s2. match i s1 s2 \<Longrightarrow> final1 s1 \<longleftrightarrow> final2 s2" and
+    matching_states_are_safe:
+      "\<And>i s1 s2. match i s1 s2 \<Longrightarrow> safe_state step1 final1 s1 \<and> safe_state step2 final2 s2" and
+    order_well_founded: "wfP order" and
+    sim: "simulation step1 step2 match order"
+  obtains
+    MATCH :: "'i \<times> nat \<Rightarrow> 's1 \<Rightarrow> 's2 \<Rightarrow> bool" and
+    ORDER :: "'i \<times> nat \<Rightarrow> 'i \<times> nat \<Rightarrow> bool"
+  where
+    "\<And>i s1 s2. match i s1 s2 \<Longrightarrow> (\<exists>j. MATCH j s1 s2)"
+    "\<And>j s1 s2. MATCH j s1 s2 \<Longrightarrow> final1 s1 \<longleftrightarrow> final2 s2" and
+    "\<And>j s1 s2. MATCH j s1 s2 \<Longrightarrow> stuck_state step1 s1 \<longleftrightarrow> stuck_state step2 s2" and
+    "\<And>j s1 s2. MATCH j s1 s2 \<Longrightarrow> safe_state step1 final1 s1 \<and> safe_state step2 final2 s2" and
+    "wfP ORDER" and
+    "simulation step1 step2 (\<lambda>i s1 s2. MATCH i s1 s2) ORDER" and
+    "simulation step2 step1 (\<lambda>i s2 s1. MATCH i s1 s2) ORDER"
+proof -
+  have matching_states_agree_on_stuck:
+    "\<forall>i s1 s2. match i s1 s2 \<longrightarrow> stuck_state step1 s1 \<longleftrightarrow> stuck_state step2 s2"
+    using matching_states_agree_on_final final1_stuck final2_stuck
+    by (metis matching_states_are_safe rtranclp.rtrancl_refl safe_state_def stuck_state_def)
+
+  obtain
+    MATCH :: "'i \<times> nat \<Rightarrow> 's1 \<Rightarrow> 's2 \<Rightarrow> bool" and
+    ORDER :: "'i \<times> nat \<Rightarrow> 'i \<times> nat \<Rightarrow> bool"
+  where
+    MATCH_if_match: "(\<And>i s1 s2. match i s1 s2 \<Longrightarrow> \<exists>j. MATCH j s1 s2)" and
+    MATCH_spec: "(\<And>j s1 s2. MATCH j s1 s2 \<Longrightarrow>
+      (\<exists>i. stuck_state step1 s1 \<and> stuck_state step2 s2 \<and> match i s1 s2) \<or>
+      (\<exists>i s1' s2'. step1\<^sup>+\<^sup>+ s1 s1' \<and> step2\<^sup>+\<^sup>+ s2 s2' \<and> match i s1' s2'))" and
+    "wfP ORDER" and
+    "simulation step1 step2 MATCH ORDER" and
+    "simulation step2 step1 (\<lambda>i s2 s1. MATCH i s1 s2) ORDER"
+    by (elim lift_strong_simulation_to_bisimulation[
+        OF \<open>right_unique step1\<close> \<open>right_unique step2\<close> Uniq_match_index matching_states_agree_on_stuck
+        order_well_founded sim])
+
+  show thesis
+  proof (rule that)
+    show "\<And>i s1 s2. match i s1 s2 \<Longrightarrow> \<exists>j. MATCH j s1 s2"
+      using MATCH_if_match .
+  next
+    show "\<And>j s1 s2. MATCH j s1 s2 \<Longrightarrow> final1 s1 = final2 s2"
+      using MATCH_spec
+      by (metis converse_tranclpE final1_stuck final2_stuck matching_states_agree_on_final)
+  next
+    show "\<And>j s1 s2. MATCH j s1 s2 \<Longrightarrow> stuck_state step1 s1 = stuck_state step2 s2"
+      using MATCH_spec
+      by (metis stuck_state_def tranclpD)
+  next
+    fix j s1 s2
+    assume "MATCH j s1 s2"
+    then show "safe_state step1 final1 s1 \<and> safe_state step2 final2 s2"
+      apply -
+      apply (drule MATCH_spec)
+      apply (elim disjE exE conjE)
+      using matching_states_are_safe apply metis
+      using safe_state_before_tranclp_step_if_safe_state_after
+      by (metis assms(1) assms(2) matching_states_are_safe)
+  next
+    show "wfP ORDER"
+      using \<open>wfP ORDER\<close> .
+  next
+    show "simulation step1 step2 (\<lambda>i s1 s2. MATCH i s1 s2) ORDER"
+      using \<open>simulation step1 step2 (\<lambda>i s1 s2. MATCH i s1 s2) ORDER\<close> .
+  next
+    show "simulation step2 step1 (\<lambda>i s2 s1. MATCH i s1 s2) ORDER"
+      using \<open>simulation step2 step1 (\<lambda>i s2 s1. MATCH i s1 s2) ORDER\<close> .
   qed
 qed
 
