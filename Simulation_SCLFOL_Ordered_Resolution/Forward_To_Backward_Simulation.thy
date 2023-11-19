@@ -26,15 +26,15 @@ theorem
     match :: "'i \<Rightarrow> 's1 \<Rightarrow> 's2 \<Rightarrow> bool" and
     order :: "'i \<Rightarrow> 'i \<Rightarrow> bool"
   assumes
-    determ1: "\<And>s1. \<exists>\<^sub>\<le>\<^sub>1s1'. step1 s1 s1'" and
-    determ2: "\<And>s2. \<exists>\<^sub>\<le>\<^sub>1s2'. step2 s2 s2'" and
+    "right_unique step1" and
+    "right_unique step2" and
     safe1: "\<And>s1. final1 s1 \<or> (\<exists>s1'. step1 s1 s1')" and
     safe2: "\<And>s2. final2 s2 \<or> (\<exists>s2'. step2 s2 s2')" and
     final1_stuck: "\<And>s1. final1 s1 \<Longrightarrow> \<nexists>s1'. step1 s1 s1'" and
     final2_stuck: "\<And>s2. final2 s2 \<Longrightarrow> \<nexists>s2'. step2 s2 s2'" and
     agree_on_final: "\<And>i s1 s2. match i s1 s2 \<Longrightarrow> final1 s1 \<longleftrightarrow> final2 s2" and
     Uniq_match_index: "\<forall>s1 s2. \<exists>\<^sub>\<le>\<^sub>1i. match i s1 s2" and
-    wfP_order: "wfP order" and
+    order_well_founded: "wfP order" and
     sim: "simulation step1 step2 match order"
   obtains
     MATCH :: "'i \<times> nat \<Rightarrow> 's1 \<Rightarrow> 's2 \<Rightarrow> bool" and
@@ -46,6 +46,12 @@ theorem
     "wfP ORDER"
     "\<And>i s1 s2. match i s1 s2 \<Longrightarrow> (\<exists>j. MATCH j s1 s2)"
 proof -
+  from \<open>right_unique step1\<close> have determ1: "\<And>s1. \<exists>\<^sub>\<le>\<^sub>1s1'. step1 s1 s1'"
+    by (simp add: right_unique_iff)
+
+  from \<open>right_unique step2\<close> have determ2: "\<And>s2. \<exists>\<^sub>\<le>\<^sub>1s2'. step2 s2 s2'"
+    by (simp add: right_unique_iff)
+
   define MATCH where
     "MATCH = match_bisim step1 final1 step2 match order"
 
@@ -72,7 +78,7 @@ proof -
         (\<forall>k < m. \<forall>s1\<^sub>k s1\<^sub>k\<^sub>1. (step1 ^^ k) s1 s1\<^sub>k \<longrightarrow> step1 s1\<^sub>k s1\<^sub>k\<^sub>1 \<longrightarrow>
           (\<exists>i\<^sub>k i\<^sub>k\<^sub>1. match i\<^sub>k s1\<^sub>k s2 \<and> match i\<^sub>k\<^sub>1 s1\<^sub>k\<^sub>1 s2 \<and> order i\<^sub>k\<^sub>1 i\<^sub>k)) \<and>
         (\<exists>s2' i'. step2\<^sup>+\<^sup>+ s2 s2' \<and> match i' s1'' s2')"
-        using wfP_order \<open>match i s1 s2\<close> \<open>step1 s1 s1'\<close>
+        using order_well_founded \<open>match i s1 s2\<close> \<open>step1 s1 s1'\<close>
       proof (induction i arbitrary: s1 s1' rule: wfP_induct_rule)
         case (less i)
         show ?case
@@ -341,7 +347,7 @@ proof -
   next
     show "wfP ORDER"
       unfolding ORDER_def
-      using lex_prodp_wfP wfP_less wfP_order by metis
+      using lex_prodp_wfP wfP_less order_well_founded by metis
   next
     show "\<And>i s1 s2. match i s1 s2 \<Longrightarrow> \<exists>j. MATCH j s1 s2"
       using MATCH_if_match .
