@@ -48,12 +48,6 @@ theorem lift_strong_simulation_to_bisimulation:
     "simulation step1 step2 (\<lambda>i s1 s2. MATCH i s1 s2) ORDER" and
     "simulation step2 step1 (\<lambda>i s2 s1. MATCH i s1 s2) ORDER"
 proof -
-  from \<open>right_unique step1\<close> have determ1: "\<And>s1. \<exists>\<^sub>\<le>\<^sub>1s1'. step1 s1 s1'"
-    by (simp add: right_unique_iff)
-
-  from \<open>right_unique step2\<close> have determ2: "\<And>s2. \<exists>\<^sub>\<le>\<^sub>1s2'. step2 s2 s2'"
-    by (simp add: right_unique_iff)
-
   define MATCH where
     "MATCH = match_bisim step1 step2 match order"
 
@@ -119,7 +113,8 @@ proof -
               (\<exists>i\<^sub>k i\<^sub>k\<^sub>1. match i\<^sub>k s1\<^sub>k s2 \<and> match i\<^sub>k\<^sub>1 s1\<^sub>k\<^sub>1 s2 \<and> order i\<^sub>k\<^sub>1 i\<^sub>k)"
               using inbetween_match
               using \<open>step1 s1 s1'\<close> \<open>match i s1 s2\<close> \<open>match i' s1' s2\<close> \<open>order i' i\<close>
-              by (smt (verit, best) Suc_less_eq Uniq_D determ1 relpowp_E2)
+              using \<open>right_unique step1\<close>
+              by (smt (verit, best) Suc_less_eq right_uniqueD relpowp_E2)
           next
             show "step2\<^sup>+\<^sup>+ s2 s2'"
               using \<open>step2\<^sup>+\<^sup>+ s2 s2'\<close> .
@@ -210,8 +205,8 @@ proof -
         case (bisim_steps m s1'' i s2\<^sub>0 n\<^sub>1 n\<^sub>2 s2' i')
 
         have "(step1 ^^ m) s1' s1''"
-          using \<open>step1 s1 s1'\<close> \<open>(step1 ^^ Suc m) s1 s1''\<close>
-          by (metis Uniq_D determ1 relpowp_Suc_D2)
+          using \<open>step1 s1 s1'\<close> \<open>(step1 ^^ Suc m) s1 s1''\<close> \<open>right_unique step1\<close>
+          by (metis relpowp_Suc_D2 right_uniqueD)
 
         show ?thesis
         proof (cases m)
@@ -300,8 +295,8 @@ proof -
         proof (cases n\<^sub>2)
           case 0
           hence "s2'' = s2'"
-            using \<open>step2 s2 s2'\<close> \<open>(step2 ^^ Suc n\<^sub>2) s2 s2''\<close>
-            by (metis One_nat_def Uniq_D determ2 relpowp_1)
+            using \<open>step2 s2 s2'\<close> \<open>(step2 ^^ Suc n\<^sub>2) s2 s2''\<close> \<open>right_unique step2\<close>
+            by (metis One_nat_def relpowp_1 right_uniqueD)
 
           have "step1\<^sup>+\<^sup>+ s1 s1'"
             using \<open>(step1 ^^ Suc m) s1 s1'\<close>
@@ -336,8 +331,8 @@ proof -
               using \<open>(step2 ^^ n\<^sub>1) s2\<^sub>0 s2\<close> \<open>step2 s2 s2'\<close> by auto
           next
             show "(step2 ^^ Suc n\<^sub>2') s2' s2''"
-              using \<open>step2 s2 s2'\<close> \<open>(step2 ^^ Suc n\<^sub>2) s2 s2''\<close>
-              by (metis Suc Uniq_D determ2 relpowp_Suc_D2)
+              using \<open>step2 s2 s2'\<close> \<open>(step2 ^^ Suc n\<^sub>2) s2 s2''\<close> \<open>right_unique step2\<close>
+              by (metis Suc relpowp_Suc_D2 right_uniqueD)
           next
             show "match i' s1' s2''"
               using \<open>match i' s1' s2''\<close> .
