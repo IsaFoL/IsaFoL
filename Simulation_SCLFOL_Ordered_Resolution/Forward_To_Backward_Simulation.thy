@@ -7,7 +7,14 @@ begin
 definition stuck_state where
   "stuck_state \<R> s \<longleftrightarrow> (\<nexists>s'. \<R> s s')"
 
-inductive match_bisim for \<R>\<^sub>1 \<R>\<^sub>2 match order where
+definition simulation where
+  "simulation \<R>\<^sub>1 \<R>\<^sub>2 match order \<longleftrightarrow>
+    (\<forall>i s1 s2 s1'. match i s1 s2 \<longrightarrow> \<R>\<^sub>1 s1 s1' \<longrightarrow>
+      (\<exists>s2' i'. \<R>\<^sub>2\<^sup>+\<^sup>+ s2 s2' \<and> match i' s1' s2') \<or> (\<exists>i'. match i' s1' s2 \<and> order i' i))"
+
+context begin
+
+private inductive match_bisim for \<R>\<^sub>1 \<R>\<^sub>2 match order where
   bisim_stuck: "stuck_state \<R>\<^sub>1 s1 \<Longrightarrow> stuck_state \<R>\<^sub>2 s2 \<Longrightarrow> match i s1 s2 \<Longrightarrow> n\<^sub>2 = 0 \<Longrightarrow>
     match_bisim \<R>\<^sub>1 \<R>\<^sub>2 match order (i, n\<^sub>2) s1 s2" |
 
@@ -16,11 +23,6 @@ inductive match_bisim for \<R>\<^sub>1 \<R>\<^sub>2 match order where
       (\<exists>i\<^sub>k i\<^sub>k\<^sub>1. match i\<^sub>k s1\<^sub>k s2\<^sub>0 \<and> match i\<^sub>k\<^sub>1 s1\<^sub>k\<^sub>1 s2\<^sub>0 \<and> order i\<^sub>k\<^sub>1 i\<^sub>k)) \<Longrightarrow>
     (\<R>\<^sub>2 ^^ n\<^sub>1) s2\<^sub>0 s2 \<Longrightarrow> (\<R>\<^sub>2 ^^ Suc n\<^sub>2) s2 s2' \<Longrightarrow> match i' s1' s2' \<Longrightarrow>
     match_bisim \<R>\<^sub>1 \<R>\<^sub>2 match order (i, n\<^sub>2) s1 s2"
-
-definition simulation where
-  "simulation \<R>\<^sub>1 \<R>\<^sub>2 match order \<longleftrightarrow>
-    (\<forall>i s1 s2 s1'. match i s1 s2 \<longrightarrow> \<R>\<^sub>1 s1 s1' \<longrightarrow>
-      (\<exists>s2' i'. \<R>\<^sub>2\<^sup>+\<^sup>+ s2 s2' \<and> match i' s1' s2') \<or> (\<exists>i'. match i' s1' s2 \<and> order i' i))"
 
 theorem lift_strong_simulation_to_bisimulation:
   fixes
@@ -34,7 +36,7 @@ theorem lift_strong_simulation_to_bisimulation:
     Uniq_match_index: "\<forall>s1 s2. \<exists>\<^sub>\<le>\<^sub>1i. match i s1 s2" and
     matching_states_agree_on_stuck:
       "\<forall>i s1 s2. match i s1 s2 \<longrightarrow> stuck_state step1 s1 \<longleftrightarrow> stuck_state step2 s2" and
-    order_well_founded: "wfP order" and
+    well_founded_order: "wfP order" and
     sim: "simulation step1 step2 match order"
   obtains
     MATCH :: "'i \<times> nat \<Rightarrow> 's1 \<Rightarrow> 's2 \<Rightarrow> bool" and
@@ -349,6 +351,8 @@ proof -
     qed
   qed
 qed
+
+end
 
 definition safe_state where
   "safe_state \<R> \<F> s \<longleftrightarrow> (\<forall>s'. \<R>\<^sup>*\<^sup>* s s' \<longrightarrow> \<F> s' \<or> (\<exists>s''. \<R> s' s''))"
