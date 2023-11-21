@@ -50,7 +50,7 @@ theorem lift_strong_simulation_to_bisimulation:
     "simulation step1 step2 (\<lambda>i s1 s2. MATCH i s1 s2) ORDER" and
     "simulation step2 step1 (\<lambda>i s2 s1. MATCH i s1 s2) ORDER"
 proof -
-  define MATCH where
+  define MATCH :: "'i \<times> nat \<Rightarrow> 's1 \<Rightarrow> 's2 \<Rightarrow> bool" where
     "MATCH = match_bisim step1 step2 match order"
 
   define ORDER :: "'i \<times> nat \<Rightarrow> 'i \<times> nat \<Rightarrow> bool" where
@@ -77,7 +77,7 @@ proof -
         (\<forall>k < m. \<forall>s1\<^sub>k s1\<^sub>k\<^sub>1. (step1 ^^ k) s1 s1\<^sub>k \<longrightarrow> step1 s1\<^sub>k s1\<^sub>k\<^sub>1 \<longrightarrow>
           (\<exists>i\<^sub>k i\<^sub>k\<^sub>1. match i\<^sub>k s1\<^sub>k s2 \<and> match i\<^sub>k\<^sub>1 s1\<^sub>k\<^sub>1 s2 \<and> order i\<^sub>k\<^sub>1 i\<^sub>k)) \<and>
         (\<exists>s2' i'. step2\<^sup>+\<^sup>+ s2 s2' \<and> match i' s1'' s2')"
-        using order_well_founded \<open>match i s1 s2\<close> \<open>step1 s1 s1'\<close>
+        using well_founded_order \<open>match i s1 s2\<close> \<open>step1 s1 s1'\<close>
       proof (induction i arbitrary: s1 s1' rule: wfP_induct_rule)
         case (less i)
         show ?case
@@ -188,7 +188,7 @@ proof -
   next
     show "wfP ORDER"
       unfolding ORDER_def
-      using lex_prodp_wfP wfP_less order_well_founded by metis
+      using lex_prodp_wfP wfP_less well_founded_order by metis
   next
     show "simulation step1 step2 MATCH ORDER"
       unfolding simulation_def
