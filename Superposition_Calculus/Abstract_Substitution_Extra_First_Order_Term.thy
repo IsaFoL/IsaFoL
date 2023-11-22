@@ -87,4 +87,11 @@ next
   qed *)
 qed
 
+lemma ground_imgu_equals: 
+  assumes "is_ground_trm t\<^sub>1" and "is_ground_trm t\<^sub>2" and "term_subst.is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}}"
+  shows "t\<^sub>1 = t\<^sub>2"
+  using assms
+  unfolding basic_substitution_ops.is_imgu_def term_subst.is_ground_def term_subst.is_unifiers_def
+  by (metis finite.emptyI finite.insertI insertCI term_subst.is_unifier_iff_if_finite)
+
 end

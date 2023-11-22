@@ -21,6 +21,7 @@ theory Ground_Superposition
     "HOL_Extra"
     "Ground_Ctxt_Extra"
     Relation_Extra
+    Clausal_Calculus_Extra
 begin
 
 abbreviation Pos_Upair (infix "\<approx>" 60) where
@@ -32,10 +33,6 @@ hide_const
   Inference_System.prems_of
   Inference_System.concl_of
   Inference_System.main_prem_of
-
-primrec mset_lit :: "'a uprod literal \<Rightarrow> 'a multiset" where
-  "mset_lit (Pos A) = mset_uprod A" |
-  "mset_lit (Neg A) = mset_uprod A + mset_uprod A"
 
 type_synonym 'f atom = "'f gterm uprod"
 
