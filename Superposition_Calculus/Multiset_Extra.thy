@@ -151,7 +151,7 @@ lemma multp_single_doubleI: "M \<noteq> {#} \<Longrightarrow> multp R M (M + M)"
   using one_step_implies_multp[of M "{#}" _ M, simplified] by simp
 
 lemma mult1_implies_one_step_strong:
-  assumes "trans r" and \<open>asym r\<close> and "(A, B) \<in> mult1 r"
+  assumes "trans r" and "asym r" and "(A, B) \<in> mult1 r"
   shows "B - A \<noteq> {#}" and "\<forall>k \<in># A - B. \<exists>j \<in># B - A. (k, j) \<in> r"
 proof -
   from \<open>(A, B) \<in> mult1 r\<close> obtain b B' A' where
@@ -171,5 +171,14 @@ proof -
     by (metis A_def B_def \<open>\<forall>a. a \<in># A' \<longrightarrow> (a, b) \<in> r\<close> \<open>b \<in># B - A\<close> \<open>b \<notin># A'\<close> add_diff_cancel_left'
         add_mset_add_single diff_diff_add_mset diff_single_trivial)
 qed
+
+lemma asymp_multp:
+  assumes "asymp R" and "transp R"
+  shows "asymp (multp R)"
+  using asymp_multp\<^sub>H\<^sub>O[OF assms]
+  unfolding multp_eq_multp\<^sub>H\<^sub>O[OF assms].
+
+lemma multp_doubleton_singleton: "transp R \<Longrightarrow> multp R {# x, x #} {# y #} \<longleftrightarrow> R x y"
+  by (cases "x = y") auto
 
 end
