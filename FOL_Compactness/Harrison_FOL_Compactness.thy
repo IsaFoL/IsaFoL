@@ -6,6 +6,7 @@ theory Harrison_FOL_Compactness
   imports
     Main
     HOL.Zorn
+    Propositional_Proof_Systems.Compactness
     First_Order_Terms.Term
 begin
 
@@ -679,6 +680,99 @@ next
     finally show ?thesis .
   qed
 qed auto
+
+definition satisfies :: "'m intrp \<Rightarrow> form set \<Rightarrow> bool" where
+  \<open>satisfies \<M> S \<equiv> (\<forall>\<beta> \<phi>. is_vars (dom \<M>) \<beta> \<and> \<phi> \<in> S \<longrightarrow> \<M>,\<beta> \<Turnstile> \<phi>)\<close>
+
+fun qfree :: \<open>form \<Rightarrow> bool\<close> where
+  \<open>qfree \<^bold>\<bottom> = True\<close>
+| \<open>qfree (Atom p ts) = True\<close>
+| \<open>qfree (\<phi> \<^bold>\<longrightarrow> \<psi>) = (qfree \<phi> \<and> qfree \<psi>)\<close>
+| \<open>qfree (\<^bold>\<forall> x\<^bold>. \<phi>) = False\<close>
+
+(* typedef qfree_form = \<open>{\<phi>::form. qfree \<phi>}\<close>
+  using qfree.simps(1) by blast 
+
+setup_lifting type_definition_qfree_form *)
+
+fun form_to_formula :: "form \<Rightarrow> (nat\<times>nterm list) formula" where
+  \<open>form_to_formula \<^bold>\<bottom> = \<bottom>\<close>
+| \<open>form_to_formula (Atom p ts) = formula.Atom (p,ts)\<close>
+| \<open>form_to_formula (\<phi> \<^bold>\<longrightarrow> \<psi>) = Imp (form_to_formula \<phi>) (form_to_formula \<psi>)\<close>
+| \<open>form_to_formula (\<^bold>\<forall> x\<^bold>. \<phi>) = \<bottom>\<close>
+
+fun pholds :: \<open>(form \<Rightarrow> bool) \<Rightarrow> form \<Rightarrow> bool\<close> (\<open>_ \<Turnstile>\<^sub>p _\<close> [30, 80] 80) where
+  \<open>I \<Turnstile>\<^sub>p \<^bold>\<bottom> \<longleftrightarrow> False\<close>
+| \<open>I \<Turnstile>\<^sub>p Atom p ts \<longleftrightarrow> I (Atom p ts)\<close>
+| \<open>I \<Turnstile>\<^sub>p \<phi> \<^bold>\<longrightarrow> \<psi> \<longleftrightarrow> ((I \<Turnstile>\<^sub>p \<phi>) \<longrightarrow> (I \<Turnstile>\<^sub>p \<psi>))\<close>
+| \<open>I \<Turnstile>\<^sub>p (\<^bold>\<forall> x\<^bold>. \<phi>) \<longleftrightarrow> I (\<^bold>\<forall> x\<^bold>. \<phi>)\<close>
+
+definition psatisfiable :: "form set \<Rightarrow> bool" where
+  \<open>psatisfiable S \<equiv> \<exists>I. \<forall>\<phi>\<in>S. I \<Turnstile>\<^sub>p \<phi>\<close>
+
+lemma 
+  assumes all_qfree: \<open>\<forall>\<phi>\<in>S. qfree \<phi>\<close>
+  shows \<open>psatisfiable S \<equiv> sat (form_to_formula ` S)\<close>
+proof -
+  {
+    assume psat_s: \<open>psatisfiable S\<close>
+    then obtain I where I_is: \<open>\<forall>\<phi>\<in>S. I \<Turnstile>\<^sub>p \<phi>\<close>
+      unfolding psatisfiable_def by blast
+    define \<A> where \<open>\<A> = (\<lambda>x. I (Atom (fst x) (snd x)))\<close>
+    have \<open>\<forall>\<phi>\<in>S. \<A> \<Turnstile> (form_to_formula \<phi>)\<close>
+    proof
+      fix \<phi>
+      assume phi_in: \<open>\<phi> \<in> S\<close>
+      then show \<open>\<A> \<Turnstile> (form_to_formula \<phi>)\<close>
+      proof (induction \<phi>)
+        case Bot
+        then show ?case
+          using psat_s unfolding psatisfiable_def by auto
+      next
+        case (Atom x1 x2)
+        then show ?case
+          using psat_s I_is \<A>_def unfolding psatisfiable_def
+          by auto
+      next
+        case (Implies \<phi>1 \<phi>2)
+        then show ?case sorry
+      next
+        case (Forall x1 \<phi>)
+        then show ?case sorry
+      qed
+    qed
+  have \<open>sat (form_to_formula ` S)\<close>
+    sorry
+  }
+  moreover {
+    assume \<open>sat (form_to_formula ` S)\<close>
+    have \<open>psatisfiable S\<close>
+      sorry
+  }
+  ultimately show \<open>psatisfiable S \<equiv> sat (form_to_formula ` S)\<close>
+    by argo
+qed
+
+definition finsat :: "form set \<Rightarrow> bool" where
+  \<open>finsat S \<equiv> \<forall>T\<subseteq>S. finite T \<longrightarrow> psatisfiable T\<close>
+
+lemma psatisfiable_mono: \<open>psatisfiable S  \<Longrightarrow> T \<subseteq> S \<Longrightarrow> psatisfiable T\<close>
+  unfolding psatisfiable_def by blast
+
+lemma finsat_mono: \<open>finsat S \<Longrightarrow> T \<subseteq> S \<Longrightarrow> finsat T\<close>
+  unfolding finsat_def by blast
+
+lemma finsat_satisfiable: \<open>psatisfiable S \<Longrightarrow> finsat S\<close>
+  unfolding psatisfiable_def finsat_def by blast
+
+fun qfree_to_prop :: \<open>form\<close>
+
+lemma prop_compactness: \<open>(\<forall>\<phi> \<in> S. qfree \<phi>) \<Longrightarrow> finsat S \<Longrightarrow> psatisfiable S\<close>
+  unfolding finsat_def psatisfiable_def using compactness
+  sorry
+
+lemma finsat_max: \<open>finsat T \<Longrightarrow> (\<exists>S. T \<subseteq> S \<and> finsat S \<and> (\<forall>P. S \<subseteq> P \<and> finsat P \<longrightarrow> (P = S)))\<close>
+  unfolding finsat_def sorry
 
 
 end
