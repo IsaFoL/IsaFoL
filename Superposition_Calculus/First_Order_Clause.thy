@@ -21,11 +21,7 @@ notation subst_compose (infixl "\<odot>" 75)
 
 type_synonym ('f, 'v) atom = "('f, 'v) term uprod"
 
-(* 
-  TODO:
-  What would be the problem to simply restrict first order terms to get ground_terms?
-  We could use a quotient_type?
-*)
+(* Is there a way to define ground terms directly as a subset/subtype of non-ground terms? *)
 type_synonym 'f ground_atom = "'f Ground_Superposition.atom"
 
 (* This is an example where type-classes would be nice, but the Isabelle ones are shitty...*)
@@ -87,7 +83,8 @@ lemma vars_literal[simp]:
   "vars_literal (Neg atom) = vars_atom atom"
   by (simp_all add: vars_literal_def)
 
-lemma vars_literal_split[simp]: "vars_literal (term\<^sub>1 \<approx> term\<^sub>2) = vars_term term\<^sub>1 \<union> vars_term term\<^sub>2"
+lemma vars_literal_split[simp]: 
+  "vars_literal (term\<^sub>1 \<approx> term\<^sub>2) = vars_term term\<^sub>1 \<union> vars_term term\<^sub>2"
   unfolding vars_literal_def vars_atom_def
   by simp
 
@@ -112,8 +109,11 @@ lemma clause_subst_compose [simp]: "clause \<cdot> \<mu> \<odot> \<theta> = clau
   by simp
 
 lemma ground_subst_compose: 
-  "term_subst.is_ground_subst \<theta> \<Longrightarrow> term_subst.is_ground_subst (\<mu> \<odot> \<theta>)"
-  by (simp add: term_subst.is_ground_subst_def)
+  assumes "term_subst.is_ground_subst \<theta>"
+  shows "term_subst.is_ground_subst (\<mu> \<odot> \<theta>)"
+  using assms 
+  unfolding term_subst.is_ground_subst_def
+  by simp
 
 abbreviation is_ground_term where 
   "is_ground_term \<equiv> is_ground_trm"
@@ -152,68 +152,96 @@ lemma is_ground_term_ctxt_iff_ground_ctxt [simp]:
   by (induction "context") simp_all
 
 lemma gterm_of_term_gctxt_of_ctxt:
-  assumes  "is_ground_context context" "is_ground_term term"
+  assumes "is_ground_context context" "is_ground_term term"
   shows "(gctxt_of_ctxt context)\<langle>gterm_of_term term\<rangle>\<^sub>G = gterm_of_term context\<langle>term\<rangle>"
   using assms
   by simp
 
-lemma subst_ground_context_ident[simp]: "is_ground_context context \<Longrightarrow> context \<cdot>t\<^sub>c \<sigma> = context"
+lemma subst_ground_context_ident[simp]: 
+  assumes "is_ground_context context" 
+  shows "context \<cdot>t\<^sub>c \<sigma> = context"
+  using assms
   by (induction "context") (simp_all add: list.map_ident_strong)
 
-lemma subst_ground_atom_ident[simp]: "is_ground_atom atom \<Longrightarrow> atom \<cdot>a \<sigma> = atom"
-  by (simp add: subst_atom_def uprod.map_ident_strong vars_atom_def)
+lemma subst_ground_atom_ident[simp]: 
+  assumes "is_ground_atom atom" 
+  shows "atom \<cdot>a \<sigma> = atom"
+  using assms
+  unfolding subst_atom_def vars_atom_def
+  by (simp add: uprod.map_ident_strong)
 
-lemma subst_ground_literal_ident[simp]: "is_ground_literal literal \<Longrightarrow> literal \<cdot>l \<sigma> = literal"
+lemma subst_ground_literal_ident[simp]: 
+  assumes "is_ground_literal literal" 
+  shows "literal \<cdot>l \<sigma> = literal"
+  using assms
   unfolding subst_literal_def vars_literal_def 
   by (simp add: literal.expand literal.map_sel)
 
-lemma subst_ground_clause_ident[simp]: "is_ground_clause clause \<Longrightarrow> clause \<cdot> \<sigma> = clause"
+lemma subst_ground_clause_ident[simp]: 
+  assumes "is_ground_clause clause"  
+  shows "clause \<cdot> \<sigma> = clause"
+  using assms
   unfolding subst_clause_def vars_clause_def
   by simp
 
 lemma subst_literal: 
-  "Pos A \<cdot>l \<sigma> = Pos (A \<cdot>a \<sigma>)"
-  "Neg A \<cdot>l \<sigma> = Neg (A \<cdot>a \<sigma>)"
+  "Pos atom \<cdot>l \<sigma> = Pos (atom \<cdot>a \<sigma>)"
+  "Neg atom \<cdot>l \<sigma> = Neg (atom \<cdot>a \<sigma>)"
   unfolding subst_literal_def
   by simp_all
 
-lemma subst_cls_add_mset: "add_mset L C \<cdot> \<sigma> = add_mset (L \<cdot>l \<sigma>) (C \<cdot> \<sigma>)"
+lemma subst_clause_add_mset: 
+  "add_mset literal clause \<cdot> \<sigma> = add_mset (literal \<cdot>l \<sigma>) (clause \<cdot> \<sigma>)"
   unfolding subst_clause_def
   by simp
 
-lemma subst_cls_plus: "(C\<^sub>1 + C\<^sub>2) \<cdot> \<sigma> = (C\<^sub>1 \<cdot> \<sigma>) + (C\<^sub>2 \<cdot> \<sigma>)"
+lemma subst_clause_plus: 
+  "(clause\<^sub>1 + clause\<^sub>2) \<cdot> \<sigma> = (clause\<^sub>1 \<cdot> \<sigma>) + (clause\<^sub>2 \<cdot> \<sigma>)"
   unfolding subst_clause_def
   by simp
 
-lemma is_ground_subst_is_ground_term: "term_subst.is_ground_subst \<theta> \<Longrightarrow> is_ground_term (t \<cdot>t \<theta>)"
+lemma is_ground_subst_is_ground_term: 
+  assumes "term_subst.is_ground_subst \<theta>" 
+  shows "is_ground_term (term \<cdot>t \<theta>)"
+  using assms
   unfolding term_subst.is_ground_subst_def
   by simp
 
-lemma is_ground_subst_is_ground_atom: "term_subst.is_ground_subst \<theta> \<Longrightarrow> is_ground_atom (a \<cdot>a \<theta>)"
-  unfolding vars_atom_def subst_atom_def
-  using is_ground_subst_is_ground_term
-  by (smt (verit, ccfv_threshold) Sup_bot_conv(1) imageE uprod.set_map)
+lemma is_ground_subst_is_ground_atom: 
+  assumes "term_subst.is_ground_subst \<theta>"  
+  shows "is_ground_atom (a \<cdot>a \<theta>)"
+  unfolding vars_atom_def subst_atom_def uprod.set_map
+  using is_ground_subst_is_ground_term[OF assms]
+  by simp 
 
-lemma is_ground_subst_is_ground_literal: "term_subst.is_ground_subst \<theta> \<Longrightarrow> is_ground_literal (l \<cdot>l \<theta>)"
+lemma is_ground_subst_is_ground_literal: 
+  assumes "term_subst.is_ground_subst \<theta>"  
+  shows "is_ground_literal (literal \<cdot>l \<theta>)"
   unfolding subst_literal_def vars_literal_def
-  using is_ground_subst_is_ground_atom
-  by (metis literal.map_sel(1) literal.map_sel(2))
-
-lemma is_ground_subst_is_ground_clause: "term_subst.is_ground_subst \<theta> \<Longrightarrow> is_ground_clause (P \<cdot> \<theta>)"
+  using is_ground_subst_is_ground_atom[OF assms]
+  by (cases literal) simp_all
+ 
+lemma is_ground_subst_is_ground_clause: 
+  assumes "term_subst.is_ground_subst \<theta>"  
+  shows "is_ground_clause (P \<cdot> \<theta>)"
   unfolding subst_clause_def vars_clause_def
-  using is_ground_subst_is_ground_literal
-  by blast
+  using is_ground_subst_is_ground_literal[OF assms]
+  by simp
 
 lemma is_ground_subst_is_ground_context: 
-  "term_subst.is_ground_subst \<theta> \<Longrightarrow> is_ground_context (c \<cdot>t\<^sub>c \<theta>)"
-  unfolding term_subst.is_ground_subst_def
+  assumes "term_subst.is_ground_subst \<theta>" 
+  shows "is_ground_context (context \<cdot>t\<^sub>c \<theta>)"
+  using assms unfolding term_subst.is_ground_subst_def
   by (metis subst_apply_term_ctxt_apply_distrib sup_bot.right_neutral vars_term_ctxt_apply)
 
-lemma is_imgu_equals: "term_subst.is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}} \<Longrightarrow> t\<^sub>1 \<cdot>t \<mu> = t\<^sub>2 \<cdot>t \<mu>"
-  unfolding term_subst.is_imgu_def term_subst.is_unifiers_def  
-  using term_subst.is_unifier_iff_if_finite[of "{t\<^sub>1, t\<^sub>2}"  \<mu>]
+lemma is_imgu_equals: 
+  assumes "term_subst.is_imgu \<mu> {{term\<^sub>1, term\<^sub>2}}" 
+  shows "term\<^sub>1 \<cdot>t \<mu> = term\<^sub>2 \<cdot>t \<mu>"
+  using assms term_subst.is_unifier_iff_if_finite[of "{term\<^sub>1, term\<^sub>2}"]
+  unfolding term_subst.is_imgu_def term_subst.is_unifiers_def
   by blast
-
+  
+(* TODO: Could these be made less explicit somehow? *)
 definition atom_gatom where
   "atom_gatom = map_uprod term_of_gterm"
 
