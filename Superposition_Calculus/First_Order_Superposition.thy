@@ -92,7 +92,7 @@ lemma is_neg_is_subst_neg: "is_neg L \<Longrightarrow>  is_neg (L \<cdot>l \<the
   by (simp add: subst_literal_def)
 
 lemma test3: "is_ground_clause (clause \<cdot> \<theta>) \<Longrightarrow> is_ground_clause (select clause \<cdot> \<theta>)" 
-  by (metis Un_iff all_not_in_conv select_subset subset_mset.le_iff_add subst_cls_plus 
+  by (metis Un_iff all_not_in_conv select_subset subset_mset.le_iff_add subst_clause_plus 
         vars_clause_plus)
 
 lemma test4: "L \<in># select clause \<cdot> \<theta> \<Longrightarrow> is_neg L"
@@ -316,7 +316,7 @@ lemma is_renaming_var: "is_renaming Var"
   by simp
 
 lemma test1: "add_mset (L \<cdot>l \<theta>) (C \<cdot> \<theta>) = (add_mset L C) \<cdot> \<theta>"
-  by (simp add: subst_cls_add_mset)
+  by (simp add: subst_clause_add_mset)
 
 lemma test7: 
    fixes 
@@ -471,7 +471,7 @@ lemma sure2: "is_ground_literal (l \<cdot>l \<theta>) \<Longrightarrow> t \<in>#
   by(auto simp add: subst_atom_def subst_literal uprod.set_map vars_atom_def)
 
 lemma sure3: "is_ground_clause (c \<cdot> \<theta>) \<Longrightarrow> l \<in># c \<Longrightarrow> is_ground_literal (l \<cdot>l \<theta>)"
-  by (metis is_ground_add_mset multi_member_split subst_cls_add_mset)
+  by (metis is_ground_add_mset multi_member_split subst_clause_add_mset)
 
 lemma test:
   assumes "is_ground_term (t1 \<cdot>t \<theta>)" "is_ground_term (t2 \<cdot>t \<theta>)"  "t1 \<prec>\<^sub>t t2"
@@ -554,10 +554,10 @@ proof(cases "gcls_cls (P \<cdot> \<theta>)" "gcls_cls (C \<cdot> \<theta>)" rule
 
   have P_\<theta>: "P \<cdot> \<theta> = add_mset (lit_glit L) (C \<cdot> \<theta>)"
     using ground_eq_resolutionI(1)
-    by (metis P P_is_ground cls_gcls_def gcls_cls_inverse image_mset_add_mset is_ground_add_mset subst_cls_add_mset)
+    by (metis P P_is_ground cls_gcls_def gcls_cls_inverse image_mset_add_mset is_ground_add_mset subst_clause_add_mset)
 
   then have P_\<theta>': "P \<cdot> \<theta> = add_mset (Neg (Upair s s') \<cdot>l \<theta>) (C \<cdot> \<theta>)"
-    using P subst_cls_add_mset by blast
+    using P subst_clause_add_mset by blast
 
   then have "is_ground_literal (Neg (Upair s s') \<cdot>l \<theta>)" "is_ground_clause (C \<cdot> \<theta>)"
     using P_is_ground
@@ -1346,7 +1346,7 @@ proof (cases P C rule: eq_resolution.cases)
        by (auto simp: true_cls_def)
 
      have [simp]: "?P = add_mset ?L ?P'"
-       by (simp add: gcls_cls_def local.eq_resolutionI(1) subst_cls_add_mset)
+       by (simp add: gcls_cls_def local.eq_resolutionI(1) subst_clause_add_mset)
 
      have [simp]: "?L = (Neg (Upair ?s\<^sub>1 ?s\<^sub>2))"
        unfolding glit_lit_def eq_resolutionI(2) gatom_atom_def
@@ -1443,7 +1443,7 @@ proof (cases P C rule: eq_factoring.cases)
 
     have C: "?C = add_mset (?s\<^sub>1 \<approx> ?t\<^sub>2') (add_mset (Neg (Upair ?s\<^sub>1' ?t\<^sub>2')) ?P')"
       unfolding eq_factoringI 
-      by (simp add: gcls_cls_def glit_lit_def subst_atom_def subst_cls_add_mset subst_literal
+      by (simp add: gcls_cls_def glit_lit_def subst_atom_def subst_clause_add_mset subst_literal
             gatom_atom_def)
 
     show "?I \<TTurnstile> ?C"
@@ -1467,10 +1467,10 @@ proof (cases P C rule: eq_factoring.cases)
       then have "L' \<in># ?P'"
         using L'_in_P
         unfolding eq_factoringI
-        by (simp add: gcls_cls_def subst_cls_add_mset)
+        by (simp add: gcls_cls_def subst_clause_add_mset)
 
       then have "L' \<in># gcls_cls (C \<cdot> \<theta>)"
-        by (simp add: gcls_cls_def eq_factoringI(7) subst_cls_add_mset)
+        by (simp add: gcls_cls_def eq_factoringI(7) subst_clause_add_mset)
 
       then show ?thesis
         using I_models_L' by blast
@@ -1581,7 +1581,7 @@ proof (cases P1 P2 C rule: superposition.cases)
       using \<P>_pos_or_neg
       unfolding s\<^sub>1_t\<^sub>2' superpositionI
       apply(cases "\<P> = Pos")
-      by (simp_all add: gcls_cls_def glit_lit_def subst_atom_def subst_cls_add_mset subst_cls_plus 
+      by (simp_all add: gcls_cls_def glit_lit_def subst_atom_def subst_clause_add_mset subst_clause_plus 
               subst_literal gatom_atom_def)
 
     show "?I \<TTurnstile> ?C"
@@ -1644,28 +1644,28 @@ proof (cases P1 P2 C rule: superposition.cases)
         then have "L\<^sub>2' \<in># ?P\<^sub>2'"
           using L\<^sub>2'_in_P2
           unfolding superpositionI
-          by (simp add: gcls_cls_def subst_cls_add_mset)
+          by (simp add: gcls_cls_def subst_clause_add_mset)
 
         then have "?I \<TTurnstile> ?P\<^sub>2'"
           using I_models_L\<^sub>2' by blast
 
         then show ?thesis
           unfolding superpositionI
-          by (simp add: gcls_cls_def subst_cls_add_mset subst_cls_plus)
+          by (simp add: gcls_cls_def subst_clause_add_mset subst_clause_plus)
       qed
     next
       case False
       then have "L\<^sub>1' \<in># ?P\<^sub>1'"
         using L\<^sub>1'_in_P1
         unfolding superpositionI 
-        by (simp add: gcls_cls_def subst_cls_add_mset)
+        by (simp add: gcls_cls_def subst_clause_add_mset)
 
       then have "?I \<TTurnstile> ?P\<^sub>1'"
         using I_models_L\<^sub>1' by blast
 
       then show ?thesis 
         unfolding superpositionI
-        by (simp add: gcls_cls_def subst_cls_add_mset subst_cls_plus)
+        by (simp add: gcls_cls_def subst_clause_add_mset subst_clause_plus)
     qed
   qed
 
