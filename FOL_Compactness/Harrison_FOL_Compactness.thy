@@ -863,8 +863,6 @@ proof -
     . 
 qed
 
-lemma finsat_max: \<open>finsat T \<Longrightarrow> (\<exists>S. T \<subseteq> S \<and> finsat S \<and> (\<forall>P. S \<subseteq> P \<and> finsat P \<longrightarrow> (P = S)))\<close>
-  unfolding finsat_def sorry
 
 
 end
