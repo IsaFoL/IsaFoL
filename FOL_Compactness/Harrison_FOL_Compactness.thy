@@ -910,12 +910,16 @@ inductive to_prenex to_prenex_left to_prenex_right where
                    !!y (Prenex_right p (formsubst (valmod (x,V y) V) q)))  *)
 
 
-lemma prenex_right_eq: \<open>\<exists>prenex_right. (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = 
-  (let y = variant(FV(\<phi>)\<union>FV(\<^bold>\<forall>x\<^bold>. \<psi>)) in (\<^bold>\<forall>x\<^bold>. prenex_right \<phi> (\<psi>))))\<close>  (* wrong, missing substitution *)
+abbreviation prenex_right_forall :: "(form \<Rightarrow> form \<Rightarrow> form) \<Rightarrow> form \<Rightarrow> nat \<Rightarrow> form \<Rightarrow> form" where 
+  \<open>prenex_right_forall \<equiv> 
+    (\<lambda>p \<phi> x \<psi>. (let y = variant(FV(\<phi>) \<union> FV(\<^bold>\<forall>x\<^bold>. \<psi>)) in (\<^bold>\<forall>x\<^bold>. p \<phi> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))))\<close>
+
+lemma prenex_right_eq: 
+  \<open>\<exists>prenex_right. (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall prenex_right \<phi> x \<psi>)\<close>
   sorry
 
 definition prenex_right where "prenex_right = (THE prenex_right. (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = 
-  (let y = variant(FV(\<phi>)\<union>FV(\<^bold>\<forall>x\<^bold>. \<psi>)) in (\<^bold>\<forall>x\<^bold>. prenex_right \<phi> (\<psi>)))))"
+  prenex_right_forall prenex_right \<phi> x \<psi>))"
 
 
 (*
