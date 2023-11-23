@@ -863,6 +863,67 @@ proof -
     . 
 qed
 
+inductive prenex :: "form \<Rightarrow> bool" where
+  \<open>qfree \<phi> \<Longrightarrow> prenex \<phi>\<close> 
+| \<open>prenex \<phi> \<Longrightarrow> prenex (\<^bold>\<forall>x\<^bold>. \<phi>)\<close>
+| \<open>prenex \<phi> \<Longrightarrow> prenex (\<^bold>\<exists>x\<^bold>. \<phi>)\<close>
+
+inductive universal :: "form \<Rightarrow> bool" where
+  \<open>qfree \<phi> \<Longrightarrow> universal \<phi>\<close>
+| \<open>universal \<phi> \<Longrightarrow> universal (\<^bold>\<forall>x\<^bold>. \<phi>)\<close>
+
+fun size :: "form \<Rightarrow> nat" where
+  \<open>size \<^bold>\<bottom> = 1\<close>
+| \<open>size (Atom p ts) = 1\<close>
+| \<open>size (\<phi> \<^bold>\<longrightarrow> \<psi>) = size \<phi> + size \<psi>\<close>
+| \<open>size (\<^bold>\<forall> x\<^bold>. \<phi>) = 1 + size \<phi>\<close>
+
+lemma \<open>size (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) = size \<phi>\<close>
+proof (induction \<phi> arbitrary: \<sigma>)
+  case (Forall x \<phi>)
+  have \<open>\<exists>z \<sigma>'.(\<^bold>\<forall>x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<forall>z\<^bold>. (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>')\<close>
+    by (meson formsubst.simps(4))
+  then obtain z \<sigma>' where \<open>(\<^bold>\<forall>x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<forall>z\<^bold>. (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>')\<close>
+    by blast
+  then have \<open>size ((\<^bold>\<forall>x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma>) = size (\<^bold>\<forall>z\<^bold>. (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>'))\<close>
+    by argo
+  also have \<open>... = size (\<^bold>\<forall>x\<^bold>. \<phi>)\<close>
+    using Forall by auto
+  finally show ?case .
+qed auto
+
+lemma prenex_distinct: \<open>(\<^bold>\<forall>x\<^bold>. \<phi>) \<noteq> (\<^bold>\<exists>y\<^bold>. \<psi>)\<close>
+  by auto
+
+(*
+inductive to_prenex to_prenex_left to_prenex_right where
+  \<open>to_prenex \<^bold>\<bottom> = \<^bold>\<bottom>\<close>
+| \<open>to_prenex (Atom p ts) = Atom p ts\<close>
+| \<open>to_prenex (\<phi> \<^bold>\<longrightarrow> \<psi>) = to_prenex_left (to_prenex \<phi>) (to_prenex \<psi>)\<close>
+| \<open>to_prenex (\<^bold>\<forall>x\<^bold>. \<phi>) = \<^bold>\<forall>x\<^bold>. (to_prenex \<phi>)\<close>
+| \<open>to_prenex_left (\<^bold>\<forall>x\<^bold>. \<phi>) \<psi> = \<^bold>\<forall>x\<^bold>. (to_prenex_left \<phi> \<psi>)\<close> (*TODO: just a test, to correct *)
+| \<open>to_prenex_left (\<^bold>\<exists>x\<^bold>. \<phi>) \<psi> = \<^bold>\<exists>x\<^bold>. (to_prenex_right \<phi> \<psi>)\<close>
+| \<open>qfree \<phi> \<Longrightarrow> to_prenex_left \<phi> \<psi> = \<phi> \<^bold>\<longrightarrow> \<psi>\<close>
+| \<open>to_prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = \<^bold>\<forall>x\<^bold>. (to_prenex_right \<phi> \<psi>)\<close>
+*)
+(*   let y = VARIANT(FV(p) UNION FV(!!x q)) in
+                   !!y (Prenex_right p (formsubst (valmod (x,V y) V) q)))  *)
+
+
+lemma prenex_right_eq: \<open>\<exists>prenex_right. (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = 
+  (let y = variant(FV(\<phi>)\<union>FV(\<^bold>\<forall>x\<^bold>. \<psi>)) in (\<^bold>\<forall>x\<^bold>. prenex_right \<phi> (\<psi>))))\<close>  (* wrong, missing substitution *)
+  sorry
+
+definition prenex_right where "prenex_right = (THE prenex_right. (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = 
+  (let y = variant(FV(\<phi>)\<union>FV(\<^bold>\<forall>x\<^bold>. \<psi>)) in (\<^bold>\<forall>x\<^bold>. prenex_right \<phi> (\<psi>)))))"
+
+
+(*
+inductive to_prenex_right :: "form \<Rightarrow> form \<Rightarrow> form \<Rightarrow> bool" where
+   \<open>qfree \<psi> \<Longrightarrow> to_prenex_right \<phi> \<psi> (\<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
+|  \<open>to_prenex_right \<phi> (\<^bold>\<forall> x\<^bold>. \<psi>) (let y = variant(FV \<psi> \<union> FV (\<^bold>\<forall> x\<^bold>. \<psi>)) in
+     \<^bold>\<forall>y\<^bold>. (to_prenex_right \<phi> (\<psi>)))\<close>
+*)
 
 
 end
