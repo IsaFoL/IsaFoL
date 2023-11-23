@@ -15,8 +15,28 @@ begin
 
 (* Comments starting with != indicate discrepancies with Harrison's formalisation *)
 
+no_notation Not ("\<^bold>\<not>")
+no_notation And (infix "\<^bold>\<and>" 68)
+no_notation Or  (infix "\<^bold>\<or>" 68)
+
+lemma count_terms: "OFCLASS(('f::countable, 'v::countable) term,countable_class)"
+  by countable_datatype
 
 type_synonym nterm = \<open>(nat, nat) term\<close>
+
+lemma count_nterms: "OFCLASS(nterm,countable_class)"
+  using count_terms by simp
+
+instance "term" :: (countable, countable) countable
+  using count_terms by simp
+
+definition test :: "'a::countable \<Rightarrow> bool" where
+  \<open>test x = True\<close>
+
+instance formula :: (countable) countable
+  by countable_datatype
+
+term "test (0, [Var 0])"
 
 fun functions_term :: \<open>nterm \<Rightarrow> (nat \<times> nat) set\<close> where
   \<open>functions_term (Var _) = {}\<close>
@@ -28,7 +48,22 @@ datatype form =
 | Implies form form (infixl \<open>\<^bold>\<longrightarrow>\<close> 85)
 | Forall nat form (\<open>\<^bold>\<forall> _\<^bold>. _\<close> [0, 70] 70)
 
-thm form.induct
+thm countable_classI [of "list_encode o map to_nat"]
+thm list_encode_eq countable_classI[of "list_encode o map to_nat"]
+
+lemma "OFCLASS(nterm list, countable_class)"
+  using count_nterms countable_classI[of "list_encode o map to_nat"] list_encode_eq 
+  
+  sorry
+
+lemma "OFCLASS((nat\<times>nterm list), countable_class)"
+  using count_nterms
+  sorry
+
+lemma count_formula: "OFCLASS((nat\<times>nterm list)formula,countable_class)"
+  sorry
+
+  
 
 fun functions_form :: \<open>form \<Rightarrow> (nat \<times> nat) set\<close> where
   \<open>functions_form \<^bold>\<bottom> = {}\<close>
@@ -820,9 +855,8 @@ proof -
   have \<open>finsat S = fin_sat (form_to_formula ` S)\<close>
     using finsat_fin_sat_eq[OF all_qfree] by simp
   also have \<open>... = sat (form_to_formula ` S)\<close>
-    (* using compactness[of "form_to_formula ` S"] *) 
-    (* must prove that the type is countable to invoque compactness *)
-    sorry
+    using compactness[of "form_to_formula ` S"] by argo
+      (* for this step, countability of formula and term was critical!!!*)
   also have \<open>... = psatisfiable S\<close>
     using pentails_equiv_set[OF all_qfree] by simp
   finally show \<open>finsat S = psatisfiable S\<close>
