@@ -19,4 +19,11 @@ next
     using x_in by auto
 qed
 
+lemma totalp_on_image:
+ assumes "inj f"
+ shows "totalp_on (f ` domain) R \<longleftrightarrow> totalp_on domain (\<lambda>a b. R (f a) (f b))"
+  using assms
+  unfolding totalp_on_def inj_def
+  by auto
+
 end
