@@ -2,6 +2,7 @@ theory Multiset_Extra
   imports
     "HOL-Library.Multiset"
     "HOL-Library.Multiset_Order"
+    Nested_Multisets_Ordinals.Multiset_More
 begin
 
 lemma one_le_countE:
@@ -180,5 +181,12 @@ lemma asymp_multp:
 
 lemma multp_doubleton_singleton: "transp R \<Longrightarrow> multp R {# x, x #} {# y #} \<longleftrightarrow> R x y"
   by (cases "x = y") auto
+
+lemma image_mset_remove1_mset: 
+  assumes "inj f"  
+  shows "remove1_mset (f a) (image_mset f X) = image_mset f (remove1_mset a X)"
+  using image_mset_remove1_mset_if
+  unfolding image_mset_remove1_mset_if inj_image_mem_iff[OF assms, symmetric]
+  by simp
 
 end

@@ -24,8 +24,11 @@ theory Ground_Superposition
     Clausal_Calculus_Extra
 begin
 
-abbreviation Pos_Upair (infix "\<approx>" 60) where
+abbreviation Pos_Upair (infix "\<approx>" 66) where
   "Pos_Upair x y \<equiv> Pos (Upair x y)"
+
+abbreviation Neg_Upair (infix "!\<approx>" 66) where
+  "Neg_Upair x y \<equiv> Neg (Upair x y)"
 
 hide_type Inference_System.inference
 hide_const
