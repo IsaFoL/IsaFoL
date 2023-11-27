@@ -48,23 +48,6 @@ datatype form =
 | Implies form form (infixl \<open>\<^bold>\<longrightarrow>\<close> 85)
 | Forall nat form (\<open>\<^bold>\<forall> _\<^bold>. _\<close> [0, 70] 70)
 
-thm countable_classI [of "list_encode o map to_nat"]
-thm list_encode_eq countable_classI[of "list_encode o map to_nat"]
-
-lemma "OFCLASS(nterm list, countable_class)"
-  using count_nterms countable_classI[of "list_encode o map to_nat"] list_encode_eq 
-  
-  sorry
-
-lemma "OFCLASS((nat\<times>nterm list), countable_class)"
-  using count_nterms
-  sorry
-
-lemma count_formula: "OFCLASS((nat\<times>nterm list)formula,countable_class)"
-  sorry
-
-  
-
 fun functions_form :: \<open>form \<Rightarrow> (nat \<times> nat) set\<close> where
   \<open>functions_form \<^bold>\<bottom> = {}\<close>
 | \<open>functions_form (Atom p ts) = (\<Union> t \<in> set ts. functions_term t)\<close> 
@@ -878,6 +861,25 @@ fun size :: "form \<Rightarrow> nat" where
 | \<open>size (\<phi> \<^bold>\<longrightarrow> \<psi>) = size \<phi> + size \<psi>\<close>
 | \<open>size (\<^bold>\<forall> x\<^bold>. \<phi>) = 1 + size \<phi>\<close>
 
+(*
+function to_prenex_right :: \<open>form \<Rightarrow> form \<Rightarrow> form\<close> where
+  \<open>to_prenex_right \<phi> \<^bold>\<bottom> =\<close>
+
+function to_prenex :: \<open>form \<Rightarrow> form\<close> where
+  \<open>to_prenex \<^bold>\<bottom> = \<^bold>\<bottom>\<close>
+| \<open>to_prenex (Atom p ts) = Atom p ts\<close>
+| \<open>to_prenex (\<^bold>\<forall>x\<^bold>. \<phi>) = \<^bold>\<forall>x\<^bold>. (to_prenex \<phi>)\<close>
+| \<open>to_prenex (\<^bold>\<exists>x\<^bold>. \<phi>) = \<^bold>\<exists>x\<^bold>. (to_prenex \<phi>)\<close>
+| \<open>to_prenex (\<phi> \<^bold>\<longrightarrow> \<psi>) =\<close>
+ *)
+
+(* 
+
+    (if (\<exists>x \<phi>'. (\<phi> \<^bold>\<longrightarrow> \<psi>) = ((\<^bold>\<forall>x\<^bold>. \<phi>' \<^bold>\<longrightarrow> \<^bold>\<bottom>) \<^bold>\<longrightarrow> \<^bold>\<bottom>)) then ((\<^bold>\<forall>x\<^bold>. (to_prenex \<phi>') \<^bold>\<longrightarrow> \<^bold>\<bottom>) \<^bold>\<longrightarrow> \<^bold>\<bottom>)
+    else (let \<phi>' = to_prenex \<phi> in let \<psi>' = to_prenex \<psi> in
+      \<phi>' \<^bold>\<longrightarrow> \<psi>'))
+*)
+
 lemma \<open>size (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) = size \<phi>\<close>
 proof (induction \<phi> arbitrary: \<sigma>)
   case (Forall x \<phi>)
@@ -909,10 +911,33 @@ inductive to_prenex to_prenex_left to_prenex_right where
 (*   let y = VARIANT(FV(p) UNION FV(!!x q)) in
                    !!y (Prenex_right p (formsubst (valmod (x,V y) V) q)))  *)
 
+definition ppat where
+  \<open>ppat A B C r = (if (\<exists>x p. r = \<^bold>\<forall>x\<^bold>. p) then
+    A (SOME x. \<exists>p. r = \<^bold>\<forall>x\<^bold>. p) (SOME p. r = \<^bold>\<forall>(SOME x. \<exists>p. r = \<^bold>\<forall>x\<^bold>. p)\<^bold>. p)
+  else (if \<exists>x p. r = \<^bold>\<exists>x\<^bold>. p then
+    B (SOME x. \<exists>p. r = \<^bold>\<forall>x\<^bold>. p) (SOME p. r = \<^bold>\<forall>(SOME x. \<exists>p. r = \<^bold>\<exists>x\<^bold>. p)\<^bold>. p) 
+   else C r))\<close>
+
+lemma ppat_last: \<open>(\<forall>x p. ppat A B C (\<^bold>\<forall>x\<^bold>. p) = A x p) \<Longrightarrow> (\<forall>x p. ppat A B C (\<^bold>\<exists>x\<^bold>. p) = B x p) \<Longrightarrow>
+  (\<forall>r. \<not>(\<exists>x p. r = \<^bold>\<forall>x\<^bold>. p) \<and> \<not>(\<exists>x p. r = \<^bold>\<exists>x\<^bold>. p)) \<Longrightarrow> ppat A B C r = C r\<close>
+  by blast
+
+lemma size_rec: 
+  \<open>\<forall>f g x. (\<forall>z. size z < size x \<longrightarrow> (f z = g z)) \<longrightarrow> (H f x = H g x) \<Longrightarrow> (\<exists>f. \<forall>x. f x = H f x)\<close>
+proof (rule ccontr)
+  assume 
+    \<open>\<forall>f g x. (\<forall> z. size z < size x \<longrightarrow> f z = g z) \<longrightarrow> H f x = H g x\<close> and
+    \<open>\<not> (\<exists>f. \<forall>x. f x = H f x)\<close>
+  show False
+  sorry
+qed
 
 abbreviation prenex_right_forall :: "(form \<Rightarrow> form \<Rightarrow> form) \<Rightarrow> form \<Rightarrow> nat \<Rightarrow> form \<Rightarrow> form" where 
   \<open>prenex_right_forall \<equiv> 
     (\<lambda>p \<phi> x \<psi>. (let y = variant(FV(\<phi>) \<union> FV(\<^bold>\<forall>x\<^bold>. \<psi>)) in (\<^bold>\<forall>x\<^bold>. p \<phi> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))))\<close>
+
+
+
 
 abbreviation prenex_right_exists :: "(form \<Rightarrow> form \<Rightarrow> form) \<Rightarrow> form \<Rightarrow> nat \<Rightarrow> form \<Rightarrow> form" where 
   \<open>prenex_right_exists \<equiv> 
@@ -924,7 +949,8 @@ lemma prenex_right_eq:
     \<and> (\<forall>\<phi> \<psi>. qfree \<phi> \<longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
   sorry
 
-definition prenex_right where "prenex_right = (THE prenex_right. 
+ (* is it really unique? otherwise use SOME *)
+definition prenex_right where "prenex_right = (THE prenex_right.
   (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall prenex_right \<phi> x \<psi>) \<and>
   (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists prenex_right \<phi> x \<psi>) \<and>
   (\<forall>\<phi> \<psi>. qfree \<phi> \<longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>)))"
