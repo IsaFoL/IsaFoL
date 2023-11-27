@@ -189,4 +189,61 @@ lemma image_mset_remove1_mset:
   unfolding image_mset_remove1_mset_if inj_image_mem_iff[OF assms, symmetric]
   by simp
 
+(* TODO: Make nicer *)
+lemma multp\<^sub>D\<^sub>M_map_strong:
+  assumes
+    compat_f: "\<forall>x \<in># xs. \<forall> y \<in># ys. R x y \<longrightarrow> R (f x) (f y)" and
+    ys_gt_xs: "multp\<^sub>D\<^sub>M R xs ys"
+  shows "multp\<^sub>D\<^sub>M R (image_mset f xs) (image_mset f ys)"
+proof -
+  obtain Y X where
+    y_nemp: "Y \<noteq> {#}" and y_sub_ys: "Y \<subseteq># ys" and xs_eq: "xs = ys - Y + X" and
+    ex_y: "\<forall>x. x \<in># X \<longrightarrow> (\<exists>y. y \<in># Y \<and> R x y)"
+    using ys_gt_xs[unfolded multp\<^sub>D\<^sub>M_def Let_def mset_map] by blast
+
+  have x_sub_xs: "X \<subseteq># xs"
+    using xs_eq by simp
+
+  let ?fY = "image_mset f Y"
+  let ?fX = "image_mset f X"
+
+  show ?thesis
+    unfolding multp\<^sub>D\<^sub>M_def 
+  proof (intro exI conjI)
+    show "image_mset f xs = image_mset f ys - ?fY + ?fX"
+      using xs_eq[THEN arg_cong, of "image_mset f"] y_sub_ys 
+      by (metis image_mset_Diff image_mset_union)
+  next
+    obtain y where y: "\<forall>x. x \<in># X \<longrightarrow> y x \<in># Y \<and> R x (y x)"
+      using ex_y by moura
+
+    show "\<forall>fx. fx \<in># ?fX \<longrightarrow> (\<exists>fy. fy \<in># ?fY \<and> R fx fy)"
+    proof (intro allI impI)
+      fix fx
+      assume "fx \<in># ?fX"
+      then obtain x where fx: "fx = f x" and x_in: "x \<in># X"
+        by auto
+      hence y_in: "y x \<in># Y" and y_gt: "R x (y x)"
+        using y[rule_format, OF x_in] by blast+
+      hence "f (y x) \<in># ?fY \<and> R (f x)(f (y x)) "
+        using compat_f y_sub_ys x_sub_xs x_in
+        by (metis image_eqI in_image_mset mset_subset_eqD)
+      thus "\<exists>fy. fy \<in># ?fY \<and> R fx fy"
+        unfolding fx by auto
+    qed
+  qed (auto simp: y_nemp y_sub_ys image_mset_subseteq_mono)
+qed
+
+lemma multp_map_strong:
+  assumes
+     "asymp R"
+     "transp R"
+     "\<forall>x \<in># xs. \<forall> y \<in># ys. R x y \<longrightarrow> R (f x) (f y)" and
+     "multp R xs ys"
+   shows "multp R (image_mset f xs) (image_mset f ys)"
+  using assms(3, 4)
+  unfolding multp_eq_multp\<^sub>D\<^sub>M[OF assms(1, 2)] 
+  using multp\<^sub>D\<^sub>M_map_strong 
+  by blast
+
 end

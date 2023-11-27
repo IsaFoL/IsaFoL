@@ -76,8 +76,6 @@ where
 abbreviation vars_context :: "('f, 'v) context \<Rightarrow> 'v set" where
   "vars_context \<equiv> vars_ctxt"
 
-hide_const vars_ctxt
-
 definition vars_atom :: "('f, 'v) atom \<Rightarrow> 'v set" where
   "vars_atom atom = (\<Union>term \<in> set_uprod atom. vars_term term)"
 
@@ -212,6 +210,11 @@ lemma sub_ground_clause:
   using assms
   by (simp add: mset_subset_eqD vars_clause_def)
 
+lemma mset_mset_lit_subst: 
+  "{# term \<cdot>t \<theta>. term \<in># mset_lit literal #} = mset_lit (literal \<cdot>l \<theta>)"
+  unfolding subst_literal_def subst_atom_def
+  by (cases literal) (auto simp: mset_uprod_image_mset)
+
 lemma is_ground_subst_is_ground_term: 
   assumes "term_subst.is_ground_subst \<theta>" 
   shows "is_ground_term (term \<cdot>t \<theta>)"
@@ -245,6 +248,13 @@ lemma is_ground_subst_is_ground_context:
   shows "is_ground_context (context \<cdot>t\<^sub>c \<theta>)"
   using assms unfolding term_subst.is_ground_subst_def
   by (metis subst_apply_term_ctxt_apply_distrib sup_bot.right_neutral vars_term_ctxt_apply)
+
+lemma term_in_literal_subst: 
+  assumes "term \<in># mset_lit literal" 
+  shows "term \<cdot>t \<theta> \<in># mset_lit (literal \<cdot>l \<theta>)"
+  using assms
+  unfolding subst_literal_def subst_atom_def
+  by (cases literal) (auto simp: uprod.set_map)
 
 lemma subst_polarity_stable: 
   shows 
@@ -433,6 +443,17 @@ lemmas ground_atom_in_ground_literal =
   ground_atom_in_ground_literal1
   ground_atom_in_ground_literal2
 
+lemma ground_term_in_ground_literal:
+  assumes "is_ground_literal literal"  "term \<in># mset_lit literal"  
+  shows "is_ground_term term"
+  using assms
+  by(cases literal) (auto simp: ground_term_in_ground_atom)
+
+lemma ground_term_in_ground_literal_subst:
+  assumes "is_ground_literal (literal \<cdot>l \<theta>)" "term \<in># mset_lit literal"  
+  shows "is_ground_term (term \<cdot>t \<theta>)"
+  using ground_term_in_ground_literal[OF assms(1) term_in_literal_subst[OF assms(2)]].
+
 lemma ground_literal_in_ground_clause1:
   assumes "literal \<in># clause" "is_ground_clause clause" 
   shows "is_ground_literal literal"
@@ -452,6 +473,13 @@ lemmas ground_literal_in_ground_clause [intro] =
   ground_literal_in_ground_clause1
   ground_literal_in_ground_clause2
   ground_literal_in_ground_clause3
+
+lemma ground_literal_in_ground_clause_subst:
+  assumes "is_ground_clause (clause \<cdot> \<theta>)"  "literal \<in># clause"  
+  shows "is_ground_literal (literal \<cdot>l \<theta>)"
+  using assms
+  unfolding subst_clause_def vars_clause_def
+  by simp
 
 lemma to_ground_term_inverse [simp]:
   assumes "is_ground_term term"  
@@ -506,7 +534,6 @@ lemma set_mset_to_clause_to_literal:
 lemma remove1_mset_to_literal: 
   "remove1_mset (to_literal literal\<^sub>G) (to_clause clause\<^sub>G) 
    = to_clause (remove1_mset literal\<^sub>G clause\<^sub>G)"
-  unfolding to_clause_def image_mset_remove1_mset[OF to_literal_inj]
-  by(rule refl)
+  unfolding to_clause_def image_mset_remove1_mset[OF to_literal_inj]..
 
 end
