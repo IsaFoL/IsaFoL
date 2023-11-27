@@ -93,6 +93,15 @@ lemma less\<^sub>t_less\<^sub>t\<^sub>G:
 lemma less\<^sub>t_total_on [intro]: "totalp_on (to_term ` terms\<^sub>G) (\<prec>\<^sub>t)"
   by (smt (verit, best) image_iff less\<^sub>t\<^sub>G_less\<^sub>t totalpD less\<^sub>t\<^sub>G_total_on totalp_on_def)
 
+lemma less\<^sub>t_ground_subst_stability':
+  assumes "is_ground_term (t1 \<cdot>t \<theta>)" "is_ground_term (t2 \<cdot>t \<theta>)"  "t1 \<prec>\<^sub>t t2"
+  shows "t1 \<cdot>t \<theta> \<prec>\<^sub>t t2 \<cdot>t \<theta>"
+  using less\<^sub>t_ground_subst_stability[OF assms]
+  unfolding 
+    less\<^sub>t\<^sub>G_less\<^sub>t 
+    to_ground_term_inverse[OF assms(1)]
+    to_ground_term_inverse[OF assms(2)].
+
 lemma select\<^sub>G_subset: "select\<^sub>G C \<subseteq># C"
   using select\<^sub>G_select
   by (metis select_subset to_ground_clause_def image_mset_subseteq_mono subst_clause_def)
@@ -136,8 +145,8 @@ lemma select_subst2:
 lemmas select_subst = select_subst1 select_subst2
 
 lemma select\<^sub>G_negative:
-  assumes "literal \<in># select\<^sub>G clause\<^sub>G"
-  shows "is_neg literal"
+  assumes "literal\<^sub>G \<in># select\<^sub>G clause\<^sub>G"
+  shows "is_neg literal\<^sub>G"
 proof -
   obtain clause \<theta> where 
     is_ground: "is_ground_clause (clause \<cdot> \<theta>)" and
@@ -172,13 +181,16 @@ abbreviation less\<^sub>c ::
 abbreviation less_eq\<^sub>c (infix "\<preceq>\<^sub>c" 50) where
   "less_eq\<^sub>c \<equiv> (\<prec>\<^sub>c)\<^sup>=\<^sup>="
 
-abbreviation is_maximal\<^sub>l :: "('f, 'v) atom literal \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
+abbreviation is_maximal\<^sub>l :: 
+  "('f, 'v) atom literal \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
   "is_maximal\<^sub>l literal clause \<equiv> is_maximal_in_mset_wrt (\<prec>\<^sub>l) clause literal"
 
 abbreviation is_strictly_maximal\<^sub>l :: 
   "('f, 'v) atom literal \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
   "is_strictly_maximal\<^sub>l literal clause \<equiv> is_greatest_in_mset_wrt (\<prec>\<^sub>l) clause literal"
 
+
+(* TODO: Is there a more concise way to write all these proofs? *)
 lemma less\<^sub>l_transitive [intro]: "transp (\<prec>\<^sub>l)"
   unfolding less\<^sub>l_def 
   using transp_multp[OF less\<^sub>t_transitive]
@@ -248,10 +260,10 @@ lemma not_less_eq\<^sub>t:
   by (rule refl)
 
 lemma less\<^sub>l\<^sub>G_less\<^sub>l: "literal\<^sub>G\<^sub>1 \<prec>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> to_literal literal\<^sub>G\<^sub>1 \<prec>\<^sub>l to_literal literal\<^sub>G\<^sub>2"
-   using
+  unfolding less\<^sub>l_def ground.less_lit_def less\<^sub>t\<^sub>G_less\<^sub>t mset_to_literal
+  using
      multp_image_mset_image_msetI[OF _ less\<^sub>t_transitive]
      multp_image_mset_image_msetD[OF _ less\<^sub>t_transitive_on to_term_inj]
-   unfolding less\<^sub>l_def ground.less_lit_def less\<^sub>t\<^sub>G_less\<^sub>t mset_to_literal
    by blast
 
 lemma less\<^sub>l_less\<^sub>l\<^sub>G: 
@@ -272,7 +284,9 @@ lemma less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G:
 
 lemma less_eq\<^sub>l\<^sub>G_less_eq\<^sub>l:
    "literal\<^sub>G\<^sub>1 \<preceq>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> to_literal literal\<^sub>G\<^sub>1 \<preceq>\<^sub>l to_literal literal\<^sub>G\<^sub>2"
-  unfolding less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G[OF ground_literal_is_ground ground_literal_is_ground] to_literal_inverse
+  unfolding 
+    less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G[OF ground_literal_is_ground ground_literal_is_ground] 
+    to_literal_inverse
   by(rule refl)
 
 lemma maximal_lit_in_clause:
@@ -280,14 +294,14 @@ lemma maximal_lit_in_clause:
   shows "literal\<^sub>G \<in># clause\<^sub>G"
   using assms 
   unfolding is_maximal_in_mset_wrt_iff[OF less\<^sub>l\<^sub>G_transitive_on less\<^sub>l\<^sub>G_asymmetric_on]
-  by simp
+  by(rule conjunct1)
 
 lemma maximal\<^sub>l_in_clause:
   assumes "is_maximal\<^sub>l literal clause"
   shows "literal \<in># clause"
   using assms 
   unfolding is_maximal_in_mset_wrt_iff[OF less\<^sub>l_transitive_on less\<^sub>l_asymmetric_on]
-  by simp
+  by(rule conjunct1)
 
 lemma is_maximal\<^sub>G\<^sub>l_iff_is_maximal\<^sub>l: 
   "ground.is_maximal_lit literal\<^sub>G clause\<^sub>G \<longleftrightarrow> is_maximal\<^sub>l (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
@@ -363,298 +377,273 @@ lemma not_less_eq\<^sub>c:
   unfolding less\<^sub>c_less\<^sub>c\<^sub>G[OF assms] less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>c\<^sub>G
   by(rule refl)
 
+inductive equality_resolution :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
+  equality_resolutionI: 
+   "premise = add_mset literal premise' \<Longrightarrow>
+    literal = term !\<approx> term' \<Longrightarrow>
+    term_subst.is_imgu \<mu> {{ term, term' }} \<Longrightarrow>
+    select premise = {#} \<and> is_maximal\<^sub>l (literal \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<or> literal \<in># select premise \<Longrightarrow>
+    conclusion = premise' \<cdot> \<mu> \<Longrightarrow>
+    equality_resolution premise conclusion"
+
+inductive equality_factoring :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
+  equality_factoringI: "
+    premise = add_mset literal\<^sub>1 (add_mset literal\<^sub>2 premise') \<Longrightarrow>
+    literal\<^sub>1 = term\<^sub>1 \<approx> term\<^sub>1' \<Longrightarrow>
+    literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2' \<Longrightarrow>
+    select premise = {#} \<and> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<Longrightarrow>
+    \<not> (term\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<mu>) \<Longrightarrow>
+    term_subst.is_imgu \<mu> {{ term\<^sub>1, term\<^sub>2 }} \<Longrightarrow>
+    conclusion = add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise') \<cdot> \<mu> \<Longrightarrow>
+    equality_factoring premise conclusion"
+
 inductive superposition ::
   "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
 where
   superpositionI: 
    "term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
     term_subst.is_renaming \<rho>\<^sub>2 \<Longrightarrow>
-    vars_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (P\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
-    P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
-    P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
+    vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
+    premise\<^sub>1 = add_mset literal\<^sub>1 premise\<^sub>1' \<Longrightarrow>
+    premise\<^sub>2 = add_mset literal\<^sub>2 premise\<^sub>2' \<Longrightarrow>
     \<P> \<in> {Pos, Neg} \<Longrightarrow>
-    L\<^sub>1 = \<P> (Upair s\<^sub>1\<langle>u\<^sub>1\<rangle> s\<^sub>1') \<Longrightarrow>
-    L\<^sub>2 = t\<^sub>2 \<approx> t\<^sub>2' \<Longrightarrow>
-    \<not> is_Var u\<^sub>1 \<Longrightarrow>
-    term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
-    \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
-    (\<P> = Pos \<and> select P\<^sub>1 = {#} \<and> is_strictly_maximal\<^sub>l  (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)) \<or>
-    (\<P> = Neg \<and> (select P\<^sub>1 = {#} \<and> is_maximal\<^sub>l (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or> L\<^sub>1 \<in># select P\<^sub>1)) \<Longrightarrow>
-    select P\<^sub>2 = {#} \<Longrightarrow>
-    is_strictly_maximal\<^sub>l  (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
-    \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
-    \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
-    C = add_mset (\<P> (Upair (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (s\<^sub>1' \<cdot>t \<rho>\<^sub>1))) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
-    superposition P\<^sub>1 P\<^sub>2 C"
+    literal\<^sub>1 = \<P> (Upair context\<^sub>1\<langle>term\<^sub>1\<rangle> term\<^sub>1') \<Longrightarrow>
+    literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2' \<Longrightarrow>
+    \<not> is_Var term\<^sub>1 \<Longrightarrow>
+    term_subst.is_imgu \<mu> {{term\<^sub>1 \<cdot>t \<rho>\<^sub>1, term\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
+    \<not> (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    (\<P> = Pos 
+      \<and> select premise\<^sub>1 = {#} 
+      \<and> is_strictly_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)) \<or>
+    (\<P> = Neg 
+      \<and> (select premise\<^sub>1 = {#} \<and> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) 
+          \<or> literal\<^sub>1 \<in># select premise\<^sub>1)) \<Longrightarrow>
+    select premise\<^sub>2 = {#} \<Longrightarrow>
+    is_strictly_maximal\<^sub>l  (literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    \<not> (context\<^sub>1\<langle>term\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
+    \<not> (term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
+    conclusion = add_mset (\<P> (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) 
+          (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
+    superposition premise\<^sub>1 premise\<^sub>2 conclusion"
 
-inductive eq_resolution :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
-  eq_resolutionI: "
-    P = add_mset L P' \<Longrightarrow>
-    L = s\<^sub>1 !\<approx> s\<^sub>2 \<Longrightarrow>
-    term_subst.is_imgu \<mu> {{s\<^sub>1, s\<^sub>2}} \<Longrightarrow>
-    select P = {#} \<and> is_maximal\<^sub>l (L \<cdot>l \<mu>) (P \<cdot> \<mu>) \<or> L \<in># select P \<Longrightarrow>
-    C = P' \<cdot> \<mu> \<Longrightarrow>
-    eq_resolution P C"
+lemma less\<^sub>l_ground_subst_stability: 
+  assumes 
+    "is_ground_literal (literal \<cdot>l \<theta>)" 
+    "is_ground_literal (literal' \<cdot>l \<theta>)" 
+    "literal \<prec>\<^sub>l literal'"
+  shows
+    "literal \<cdot>l \<theta> \<prec>\<^sub>l literal' \<cdot>l \<theta>"
+  using 
+      less\<^sub>t_ground_subst_stability'[OF assms(1, 2)[THEN ground_term_in_ground_literal_subst]]
+      multp_map_strong[OF less\<^sub>t_asymmetric less\<^sub>t_transitive]  
+      assms(3)
+      mset_mset_lit_subst
+  unfolding less\<^sub>l_def
+  by metis
 
-inductive eq_factoring :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
-  eq_factoringI: "
-    P = add_mset L\<^sub>1 (add_mset L\<^sub>2 P') \<Longrightarrow>
-    L\<^sub>1 = (s\<^sub>1 \<approx> s\<^sub>1') \<Longrightarrow>
-    L\<^sub>2 = (t\<^sub>2 \<approx> t\<^sub>2') \<Longrightarrow>
-    select P = {#} \<and> is_maximal\<^sub>l (L\<^sub>1 \<cdot>l \<mu>) (P \<cdot> \<mu>) \<Longrightarrow>
-    \<not> (s\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<mu>) \<Longrightarrow>
-    term_subst.is_imgu \<mu> {{s\<^sub>1, t\<^sub>2}} \<Longrightarrow>
-    C = add_mset (s\<^sub>1 \<approx> t\<^sub>2') (add_mset (s\<^sub>1' !\<approx> t\<^sub>2') P') \<cdot> \<mu> \<Longrightarrow>
-    eq_factoring P C"
-
-lemma is_renaming_var: "is_renaming Var"
-  unfolding is_renaming_def
+lemma less\<^sub>c_ground_subst_stability: 
+  assumes 
+    "is_ground_clause (clause \<cdot> \<theta>)" 
+    "is_ground_clause (clause' \<cdot> \<theta>)" 
+    "clause \<prec>\<^sub>c clause'"
+  shows
+    "clause \<cdot> \<theta> \<prec>\<^sub>c clause' \<cdot> \<theta>"
+  using 
+      less\<^sub>l_ground_subst_stability[OF assms(1, 2)[THEN ground_literal_in_ground_clause_subst]]
+      multp_map_strong[OF less\<^sub>l_asymmetric less\<^sub>l_transitive]  
+      assms(3)
+  unfolding subst_clause_def
   by simp
-
-lemma test1: "add_mset (L \<cdot>l \<theta>) (C \<cdot> \<theta>) = (add_mset L C) \<cdot> \<theta>"
-  by (simp add: subst_clause_add_mset)
-
-lemma test7: 
-   fixes 
-    s :: "('f, 'v) term" and
-    s' :: "('f, 'v) term" and
-    \<theta> :: "('f, 'v) subst"
-  assumes
-    "s \<cdot>t \<theta> = s' \<cdot>t \<theta>"
-  shows
-    "\<exists>(\<sigma> :: ('f, 'v) subst) \<tau>.  \<theta> = \<sigma> \<odot> \<tau> \<and> (\<forall>\<upsilon>. term_subst.is_unifiers \<upsilon> {{s, s'}} \<longrightarrow> (\<exists>\<sigma>'. \<upsilon> = \<sigma> \<odot> \<sigma>'))"
-  using the_mgu[OF assms]
-  by (metis subst_monoid_mult.mult.left_neutral)
-
-lemma test8: 
-   fixes 
-    s :: "('f, 'v) term" and
-    s' :: "('f, 'v) term" and
-    \<theta> :: "('f, 'v) subst"
-  assumes
-    "s \<cdot>t \<theta> = s' \<cdot>t \<theta>"
-  shows
-    "\<exists>(\<sigma> :: ('f, 'v) subst) \<tau>.  \<theta> = \<sigma> \<odot> \<tau> \<and> term_subst.is_mgu \<sigma> {{s, s'}}"
-  using assms
-  unfolding term_subst.is_mgu_def term_subst.is_unifier_def term_subst.is_unifiers_def
-  apply auto
-proof -
-  obtain tt :: "('f, 'v) Term.term set \<Rightarrow> ('f, 'v) Term.term" where
-    f1: "\<forall>T. (card T \<noteq> Suc 0 \<or> T = {tt T}) \<and> (card T = Suc 0 \<or> (\<forall>t. T \<noteq> {t}))"
-    by (metis card_1_singleton_iff)
-  have "s' \<cdot>t the_mgu s' s = s \<cdot>t the_mgu s' s \<and> \<theta> = the_mgu s' s \<odot> \<theta>"
-    by (metis (no_types) assms the_mgu)
-  then show "\<exists>f. (\<exists>fa. \<theta> = f \<odot> fa) \<and> card {s \<cdot>t f::('f, 'v) Term.term, s' \<cdot>t f} \<le> Suc 0 \<and> (\<forall>fa. card {s \<cdot>t fa::('f, 'v) Term.term, s' \<cdot>t fa} \<le> Suc 0 \<longrightarrow> (\<exists>fb. fa = f \<odot> fb))"
-    using f1 by (metis (no_types) card_Suc_eq insert_absorb2 insert_iff le_Suc_eq the_mgu)
-qed
-
-(* TODO: *)
-lemma test9: 
-   fixes 
-    s :: "('f, 'v) term" and
-    s' :: "('f, 'v) term" and
-    \<theta> :: "('f, 'v) subst"
-  assumes
-    "s \<cdot>t \<theta> = s' \<cdot>t \<theta>"
-  shows
-    "\<exists>(\<sigma> :: ('f, 'v) subst) \<tau>.  \<theta> = \<sigma> \<odot> \<tau> \<and> term_subst.is_imgu \<sigma> {{s, s'}}"
-  using assms
-  unfolding term_subst.is_imgu_def term_subst.is_unifier_def term_subst.is_unifiers_def
-  apply auto
-proof-
-  obtain tt :: "('f, 'v) Term.term set \<Rightarrow> ('f, 'v) Term.term" where
-    f1: "\<forall>T. (card T \<noteq> Suc 0 \<or> T = {tt T}) \<and> (card T = Suc 0 \<or> (\<forall>t. T \<noteq> {t}))"
-    by (metis card_1_singleton_iff)
-
-  have "s' \<cdot>t the_mgu s' s = s \<cdot>t the_mgu s' s \<and> \<theta> = the_mgu s' s \<odot> \<theta>"
-    by (metis (no_types) assms the_mgu)
-
-  then show "\<exists>\<sigma>. (\<exists>\<tau>. \<theta> = \<sigma> \<odot> \<tau>) \<and> card {s \<cdot>t \<sigma>, s' \<cdot>t \<sigma>} \<le> Suc 0 \<and> (\<forall>\<tau>. card {s \<cdot>t \<tau> ::('f, 'v) Term.term, s' \<cdot>t \<tau>} \<le> Suc 0 \<longrightarrow> \<tau> = \<sigma> \<odot> \<tau>)"
-    using f1
-    by (smt (z3) card_insert_if finite.emptyI finite.insertI insert_absorb2 le_Suc_numeral le_antisym le_numeral_Suc le_numeral_extra(3) pred_numeral_simps(1) singletonD the_mgu)
-qed
-
-
-(* TODO: *)
-lemma x: "a  \<noteq> a' \<Longrightarrow> mset_uprod a \<noteq> mset_uprod a'"
-  apply(cases a; cases a')
-  by (auto simp: add_eq_conv_ex)
-
-lemma y: "a  \<noteq> a' \<Longrightarrow> mset_uprod a + mset_uprod a \<noteq> mset_uprod a' + mset_uprod a'"
-  apply(cases a; cases a')
-  by (auto simp: add_eq_conv_ex)
-
-lemma x1: "a  \<noteq> a' \<Longrightarrow> mset_uprod a \<noteq> mset_uprod a' + mset_uprod a'"
-  apply(cases a; cases a')
-  by(auto simp: add_eq_conv_ex)
-
-lemma x2: "mset_uprod a \<noteq> mset_uprod a' + mset_uprod a'"
-  apply(cases a; cases a')
-  by (metis add_cancel_right_left empty_not_add_mset mset_uprod_Upair x1)
-
-
-lemma uneq_lit_uneq_mset_lit: "l \<noteq> l' \<Longrightarrow> mset_lit l \<noteq> mset_lit l'"
-  apply(cases l; cases l')
-     apply(auto simp: x x1 x2 y)
-  by (metis x2)
-
-lemma "multp (<) {# (1::nat), 2 #} {# 1, 3 #}"
-  by (metis eval_nat_numeral(3) lessI less_multiset_def less_multiset_doubletons not_less_eq not_numeral_less_one)
-
-lemma "multp (<) {# (2::nat), 3 #} {# 1, 4 #}"
-  by (meson less_multiset_def less_multiset_doubletons numeral_less_iff semiring_norm(76) semiring_norm(78) semiring_norm(81))
-
-lemma jasmin: 
-  assumes "transp R"  "asymp R" "A = {# a1, a2 #}" "B = {# b1, b2 #}" "multp R A B"
-  shows "count B a1 < count A a1 \<and> (R a1 b1 \<or> R a1 b2) \<and> (count B a2 < count A a2 \<and> (R a2 b1 \<or> R a2 b2) \<or> count A a2 \<le> count B a2)
-       \<or> count B a2 < count A a2 \<and> (R a2 b1 \<or> R a2 b2) \<and> count A a1 \<le> count B a1"
-  using assms
-  unfolding multp_eq_multp\<^sub>H\<^sub>O[OF assms(2, 1)] multp\<^sub>H\<^sub>O_def
-  by (smt (verit, del_insts) add_eq_conv_ex add_mset_remove_trivial count_add_mset count_eq_zero_iff
-        count_greater_zero_iff in_diff_count linorder_le_less_linear order_less_imp_not_less 
-        union_single_eq_member)
-
-lemma multp\<^sub>D\<^sub>M_map_strong:
-  assumes
-    compat_f: "\<forall>x \<in># xs. \<forall>y \<in># ys. R x y \<longrightarrow> R (f x) (f y)" and
-    ys_gt_xs: "multp\<^sub>D\<^sub>M R xs ys"
-  shows "multp\<^sub>D\<^sub>M R (image_mset f xs) (image_mset f ys)"
-proof -
-  obtain Y X where
-    y_nemp: "Y \<noteq> {#}" and y_sub_ys: "Y \<subseteq># ys" and xs_eq: "xs = ys - Y + X" and
-    ex_y: "\<forall>x. x \<in># X \<longrightarrow> (\<exists>y. y \<in># Y \<and> R x y)"
-    using ys_gt_xs[unfolded multp\<^sub>D\<^sub>M_def Let_def mset_map] by blast
-
-  have x_sub_xs: "X \<subseteq># xs"
-    using xs_eq by simp
-
-  let ?fY = "image_mset f Y"
-  let ?fX = "image_mset f X"
-
-  show ?thesis
-    unfolding multp\<^sub>D\<^sub>M_def 
-  proof (intro exI conjI)
-    show "image_mset f xs = image_mset f ys - ?fY + ?fX"
-      using xs_eq[THEN arg_cong, of "image_mset f"] y_sub_ys 
-      by (metis image_mset_Diff image_mset_union)
-  next
-    obtain y where y: "\<forall>x. x \<in># X \<longrightarrow> y x \<in># Y \<and> R x (y x)"
-      using ex_y by moura
-
-    show "\<forall>fx. fx \<in># ?fX \<longrightarrow> (\<exists>fy. fy \<in># ?fY \<and> R fx fy)"
-    proof (intro allI impI)
-      fix fx
-      assume "fx \<in># ?fX"
-      then obtain x where fx: "fx = f x" and x_in: "x \<in># X"
-        by auto
-      hence y_in: "y x \<in># Y" and y_gt: "R x (y x)"
-        using y[rule_format, OF x_in] by blast+
-      hence "f (y x) \<in># ?fY \<and> R (f x)(f (y x)) "
-        using compat_f y_sub_ys x_sub_xs x_in
-        by (metis image_eqI in_image_mset mset_subset_eqD)
-      thus "\<exists>fy. fy \<in># ?fY \<and> R fx fy"
-        unfolding fx by auto
-    qed
-  qed (auto simp: y_nemp y_sub_ys image_mset_subseteq_mono)
-qed
-
-lemma sure: "{#x \<cdot>t \<theta>. x \<in># mset_lit l#} = mset_lit (l \<cdot>l \<theta>)"
-  unfolding subst_literal_def subst_atom_def
-  by (cases l) (auto simp: mset_uprod_image_mset)
-
-lemma sure2: "is_ground_literal (l \<cdot>l \<theta>) \<Longrightarrow> t \<in># mset_lit l \<Longrightarrow> is_ground_term (t \<cdot>t \<theta>)"
-  apply(cases l) 
-  by(auto simp add: subst_atom_def subst_literal uprod.set_map vars_atom_def)
-
-lemma sure3: "is_ground_clause (c \<cdot> \<theta>) \<Longrightarrow> l \<in># c \<Longrightarrow> is_ground_literal (l \<cdot>l \<theta>)"
-  by (metis is_ground_clause_add_mset multi_member_split subst_clause_add_mset)
-
-lemma test:
-  assumes "is_ground_term (t1 \<cdot>t \<theta>)" "is_ground_term (t2 \<cdot>t \<theta>)"  "t1 \<prec>\<^sub>t t2"
-  shows "(t1 \<cdot>t \<theta>) \<prec>\<^sub>t (t2 \<cdot>t \<theta>)"
-  using less\<^sub>t_ground_subst_stability[OF assms]
-  unfolding 
-    less\<^sub>t\<^sub>G_less\<^sub>t 
-    to_ground_term_inverse[OF assms(1)]
-    to_ground_term_inverse[OF assms(2)].
-
-lemma less\<^sub>l_grounding_substitution: 
-  assumes 
-    "is_ground_literal (l \<cdot>l \<theta>)" 
-    "is_ground_literal (l' \<cdot>l \<theta>)" 
-    "l \<prec>\<^sub>l l'"
-  shows
-    "l \<cdot>l \<theta> \<prec>\<^sub>l l' \<cdot>l \<theta>"
-proof-
-  have base: "multp\<^sub>D\<^sub>M (\<prec>\<^sub>t) (mset_lit l) (mset_lit l')"
-    using assms(3) less\<^sub>l_def multp_eq_multp\<^sub>D\<^sub>M by force
-
-  have ground: 
-    "\<And>t. t \<in># mset_lit l \<Longrightarrow> is_ground_term (t \<cdot>t \<theta>)" 
-    "\<And>t'. t' \<in># mset_lit l' \<Longrightarrow> is_ground_term (t' \<cdot>t \<theta>)"
-    unfolding sure2[OF assms(1)] sure2[OF assms(2)]
-    by auto
-
-  have "\<And>x y. x \<in># mset_lit l \<Longrightarrow> y \<in># mset_lit l' \<Longrightarrow> x \<prec>\<^sub>t y \<Longrightarrow> x \<cdot>t \<theta> \<prec>\<^sub>t y \<cdot>t \<theta>"
-    using test[OF ground]
-    by auto
-
-  then have xy: "\<forall>x\<in>#  mset_lit l. \<forall>y\<in>#  mset_lit l'.  x \<prec>\<^sub>t y \<longrightarrow> x \<cdot>t \<theta> \<prec>\<^sub>t y \<cdot>t \<theta>" 
-    by blast
-
-  show ?thesis
-    using multp\<^sub>D\<^sub>M_map_strong[OF xy base]
-    unfolding less\<^sub>l_def multp_eq_multp\<^sub>D\<^sub>M[OF less\<^sub>t_asymmetric less\<^sub>t_transitive] sure.
-qed
-
-lemma less\<^sub>c_grounding_substitution: 
-  assumes 
-    "is_ground_clause (c \<cdot> \<theta>)" 
-    "is_ground_clause (c' \<cdot> \<theta>)" 
-    "c \<prec>\<^sub>c c'"
-  shows
-    "c \<cdot> \<theta> \<prec>\<^sub>c c' \<cdot> \<theta>"
-proof-
-  have ground: 
-    "\<And>l. l \<in># c \<Longrightarrow> is_ground_literal (l \<cdot>l \<theta>)" 
-    "\<And>l'. l' \<in># c' \<Longrightarrow> is_ground_literal (l' \<cdot>l \<theta>)"
-    unfolding sure3[OF assms(1)] sure3[OF assms(2)]
-    by auto
-
-  have "\<And>x y. x \<in># c \<Longrightarrow> y \<in># c' \<Longrightarrow> x \<prec>\<^sub>l y \<Longrightarrow> x \<cdot>l \<theta> \<prec>\<^sub>l y \<cdot>l \<theta>"
-    using less\<^sub>l_grounding_substitution[OF ground]
-    by auto
-
-  then have xy: "\<forall>x\<in>#  c. \<forall>y\<in># c'.  x \<prec>\<^sub>l y \<longrightarrow> x \<cdot>l \<theta> \<prec>\<^sub>l y \<cdot>l \<theta>" 
-    by blast
-
-  from assms(3) show ?thesis
-    using multp\<^sub>D\<^sub>M_map_strong[OF xy] 
-    unfolding multp_eq_multp\<^sub>D\<^sub>M[OF less\<^sub>l_asymmetric
- less\<^sub>l_transitive] 
-    by (simp add: subst_clause_def)
-qed
 
 definition G_T :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) subst \<Rightarrow> 'f ground_atom clause set" where
   "G_T clause \<theta> = { ground_clause. ground_clause = to_ground_clause (clause \<cdot> \<theta>) }"
 
-lemma ground_eq_resolution_implies_eq_resolution:
+lemma ground_eq_resolution_implies_equality_resolution:
   assumes 
-    P: "P = add_mset (s !\<approx> s') C" and
+    premise: "P \<cdot> \<theta> = add_mset (u !\<approx> u) (C \<cdot> \<theta>)" and
     P_is_ground: "is_ground_clause (P \<cdot> \<theta>)" and
     select: "to_clause (select\<^sub>G (to_ground_clause (P \<cdot> \<theta>))) = (select P) \<cdot> \<theta>" and
-    ground_eq_resolution: "ground.ground_eq_resolution (to_ground_clause (P \<cdot> \<theta>)) (to_ground_clause (C \<cdot> \<theta>))"
-  shows "\<exists>\<sigma>. eq_resolution P (C \<cdot> \<sigma>) \<and> to_ground_clause (P \<cdot> \<theta>) \<in> G_T P \<theta> \<and> to_ground_clause (C \<cdot> \<theta>) \<in> G_T (C \<cdot> \<sigma>) \<theta>"
+    ground_eq_resolution: 
+      "ground.ground_eq_resolution (to_ground_clause (P \<cdot> \<theta>)) (to_ground_clause (C \<cdot> \<theta>))"
+  shows "\<exists>\<sigma> C'. equality_resolution P (C' \<cdot> \<sigma>) \<and> 
+            to_ground_clause (P \<cdot> \<theta>) \<in> G_T P \<theta> \<and> 
+            to_ground_clause (C \<cdot> \<theta>) \<in> G_T (C' \<cdot> \<sigma>) \<theta>"
   using ground_eq_resolution
-proof(cases "to_ground_clause (P \<cdot> \<theta>)" "to_ground_clause (C \<cdot> \<theta>)" rule: ground.ground_eq_resolution.cases)
+proof(cases "to_ground_clause (P \<cdot> \<theta>)" "to_ground_clause (C \<cdot> \<theta>)" 
+      rule: ground.ground_eq_resolution.cases)
+  case (ground_eq_resolutionI L t)
+
+  have "P \<cdot> \<theta> = to_clause (add_mset L (to_ground_clause (C \<cdot> \<theta>)))"
+    using 
+        ground_eq_resolutionI(1)[THEN arg_cong, of to_clause]
+       to_ground_clause_inverse[OF P_is_ground]
+    by metis
+
+  also have "... = add_mset (to_literal L) (C \<cdot> \<theta>)"
+    by (metis P_is_ground image_mset_add_mset is_ground_clause_add_mset premise to_clause_def to_ground_clause_inverse)
+
+  finally have "P \<cdot> \<theta> = add_mset (to_literal L) (C \<cdot> \<theta>)".
+
+  then have u_t: "u !\<approx> u = to_literal (t !\<approx> t)"
+    unfolding ground_eq_resolutionI(2)
+    using premise
+    by simp
+
+  then have a: "select\<^sub>G (to_ground_clause (P \<cdot> \<theta>)) \<noteq> {#} \<Longrightarrow> 
+              \<exists>L'. L' \<cdot>l \<theta> = u !\<approx> u \<and> L' \<in># P \<and> L' \<in># select P"
+    using ground_eq_resolutionI
+    apply auto
+    using select
+    by (smt (verit, del_insts) ground_literal_in_ground_clause3 imageE mset_subset_eqD multiset.set_map select_subset subst_clause_def)
+
+  have b: "select\<^sub>G (to_ground_clause (P \<cdot> \<theta>)) = {#} \<Longrightarrow> 
+        \<exists>L'. L' \<cdot>l \<theta> = u !\<approx> u \<and> L' \<in># P \<and> is_maximal\<^sub>l L' P"
+  proof
+    fix L' (* Replace with max element of P + with less\<^sub>l_ground_subst_stability it needs to be L' \<cdot>l \<theta> = u !\<approx> u  *)
+    assume "select\<^sub>G (to_ground_clause (P \<cdot> \<theta>)) = {#}"
+    
+    then show "L' \<cdot>l \<theta> = u !\<approx> u \<and> L' \<in># P \<and> is_maximal\<^sub>l L' P"
+      using ground_eq_resolutionI apply auto
+      using less\<^sub>l_ground_subst_stability
+      sorry
+  qed
+
+  have "\<exists>L'. 
+      L' \<cdot>l \<theta> = u !\<approx> u 
+    \<and> L' \<in># P 
+    \<and> (select\<^sub>G (to_ground_clause (P \<cdot> \<theta>)) \<noteq> {#} \<longrightarrow> L' \<in># select P)
+    \<and> (select\<^sub>G (to_ground_clause (P \<cdot> \<theta>)) = {#} \<longrightarrow> is_maximal\<^sub>l L' P)"
+    apply(cases "select\<^sub>G (to_ground_clause (P \<cdot> \<theta>)) = {#}")
+    by(auto simp: a b)
+
+  then obtain L' where 
+    x: "L' \<cdot>l \<theta> = u !\<approx> u" and
+    y: "L' \<in># P" and
+    z: "select\<^sub>G (to_ground_clause (P \<cdot> \<theta>)) \<noteq> {#} \<Longrightarrow> L' \<in># select P" and
+    z': "select\<^sub>G (to_ground_clause (P \<cdot> \<theta>)) = {#} \<Longrightarrow> is_maximal\<^sub>l L' P"
+    apply(cases "select\<^sub>G (to_ground_clause (P \<cdot> \<theta>)) = {#}")
+    using a b
+    by blast+
+
+  then obtain s s' where L': "L' = s !\<approx> s'"
+    by (metis literal.collapse(2) literal.disc(2) subst_pos_stable uprod_exhaust)
+
+  then have "s \<cdot>t \<theta> = s' \<cdot>t \<theta>"
+    using x
+    by (simp add: subst_atom_def subst_literal(2))
+
+  then obtain \<sigma> \<tau> where \<sigma>: "term_subst.is_imgu \<sigma> {{s, s'}}" "\<theta> = \<sigma> \<odot> \<tau>"
+    using imgu_exists
+    by blast
+
+  have L: "to_literal L = (s !\<approx> s') \<cdot>l \<theta>" "L = to_ground_literal ((s !\<approx> s') \<cdot>l \<theta>)"
+    using L' ground_eq_resolutionI(2) u_t x by auto
+
+  have "is_ground_literal (Neg (Upair s s') \<cdot>l \<theta>)"
+    by (metis L(1) ground_literal_is_ground)
+
+  obtain C' where C': "P = add_mset L' C'"
+    by (meson multi_member_split y)
+
+  have eq: "equality_resolution P (C' \<cdot> \<sigma>)"
+  proof (rule equality_resolutionI)
+     show "P = add_mset L' C'"
+       using C'.
+  next 
+    show "L' = s !\<approx> s'"
+      using L'.     
+  next
+    show "term_subst.is_imgu \<sigma> {{s, s'}}"
+      using \<sigma>(1).
+  next
+    show "select P = {#} \<and> is_maximal\<^sub>l (L' \<cdot>l \<sigma>) (P \<cdot> \<sigma>) \<or> L' \<in># select P"
+    proof(cases "select\<^sub>G (to_ground_clause (P \<cdot> \<theta>)) = {#}")
+      case True
+       then have empty: "select P = {#}"
+        by (metis to_clause_empty_mset image_mset_is_empty_iff local.select subst_clause_def)
+
+      then have y: "is_maximal\<^sub>l ((s !\<approx> s') \<cdot>l \<theta>) (P \<cdot> \<theta>)"
+        using ground_eq_resolutionI(3) True
+        using L' \<open>P \<cdot> \<theta> = to_clause (add_mset L (to_ground_clause (C \<cdot> \<theta>)))\<close> ground_eq_resolutionI(2) is_maximal\<^sub>G\<^sub>l_iff_is_maximal\<^sub>l u_t x by auto
+
+      (* TODO: *)
+      have max_lit: "is_maximal\<^sub>l (Neg (Upair s s') \<cdot>l \<sigma>) (P \<cdot> \<sigma>)"
+      proof(rule ccontr)  
+        assume a: "\<not> is_maximal\<^sub>l (Neg (Upair s s') \<cdot>l \<sigma>) (P \<cdot> \<sigma>)"
+
+        then obtain L'' where "(s !\<approx> s') \<cdot>l \<sigma> \<prec>\<^sub>l L'' \<cdot>l \<sigma>" "is_ground_literal (L'' \<cdot>l \<theta>)" "L'' \<in># P \<cdot> \<theta>"
+          unfolding is_maximal_in_mset_wrt_iff[OF less\<^sub>l_transitive_on less\<^sub>l_asymmetric_on]
+          apply auto
+           apply (metis L' True maximal\<^sub>l_in_clause mset_add subst_clause_add_mset union_single_eq_member z')
+          by (smt (verit) L' P_is_ground True \<open>\<And>x X. is_maximal\<^sub>l x X = (x \<in># X \<and> (\<forall>y\<in>#X. y \<noteq> x \<longrightarrow> \<not> x \<prec>\<^sub>l y))\<close> \<sigma>(2) b clause_subst_compose first_order_superposition_calculus.less\<^sub>l_ground_subst_stability first_order_superposition_calculus_axioms ground_literal_in_ground_clause_subst literal_subst_compose mset_add not_less_eq\<^sub>l subst_clause_add_mset sup2CI union_single_eq_member x y)
+          
+        then have a: "is_ground_literal ((s !\<approx> s') \<cdot>l \<sigma> \<cdot>l \<tau>)"
+          by (metis L(1) \<sigma>(2) literal_subst_compose ground_literal_is_ground)
+      
+        then have "Neg (Upair s s') \<cdot>l \<sigma> \<cdot>l \<tau> \<prec>\<^sub>l L'' \<cdot>l \<sigma> \<cdot>l \<tau>"
+          using less\<^sub>l_ground_subst_stability
+          by (metis \<open>Neg (Upair s s') \<cdot>l \<sigma> \<prec>\<^sub>l L'' \<cdot>l \<sigma>\<close> \<open>is_ground_literal (L'' \<cdot>l \<theta>)\<close> \<sigma>(2) literal_subst_compose)
+
+        then have "\<not> is_maximal\<^sub>l (Neg (Upair s s') \<cdot>l \<sigma> \<cdot>l \<tau>) (P \<cdot> \<sigma> \<cdot> \<tau>)"
+          using is_maximal_in_mset_wrt_iff[OF less\<^sub>l_transitive[THEN transp_on_subset] less\<^sub>l_asymmetric[THEN asymp_on_subset]]
+          by (metis P_is_ground \<open>L'' \<in># P \<cdot> \<theta>\<close> \<sigma>(2) asympD less\<^sub>l_asymmetric clause_subst_compose ground_literal_in_ground_clause(1) subset_UNIV subst_ground_literal)
+          
+        with y show False 
+          by (simp add: \<sigma>(2))
+      qed
+
+      from empty max_lit show ?thesis
+        using L' by blast
+    next
+      case False
+      then show ?thesis
+        using z
+        by auto
+    qed
+  next 
+    show "C' \<cdot> \<sigma> = C' \<cdot> \<sigma>"
+      by (rule refl)
+  qed
+
+  have "term_subst.is_idem \<sigma>"
+    using \<sigma>(1)
+    by (simp add: term_subst.is_imgu_iff_is_idem_and_is_mgu)  
+
+  then have \<sigma>_\<theta>: "\<sigma> \<odot> \<theta> = \<theta>"
+    unfolding \<sigma>(2) term_subst.is_idem_def
+    by simp
+
+  have "to_ground_clause (C \<cdot> \<theta>) \<in> G_T (C' \<cdot> \<sigma>) \<theta>"
+    unfolding G_T_def clause_subst_compose[symmetric] \<sigma>_\<theta>
+    by (metis (mono_tags, lifting) C' add_mset_add_mset_same_iff mem_Collect_eq premise subst_clause_add_mset x)
+   
+  with eq show ?thesis
+    unfolding G_T_def
+    by blast
+qed
+
+lemma ground_eq_resolution_implies_equality_resolution':
+  assumes 
+    premise: "P \<cdot> \<theta> = add_mset (s !\<approx> s') (C \<cdot> \<theta>)" and
+    P_is_ground: "is_ground_clause (P \<cdot> \<theta>)" and
+    select: "to_clause (select\<^sub>G (to_ground_clause (P \<cdot> \<theta>))) = (select P) \<cdot> \<theta>" and
+    ground_eq_resolution: 
+      "ground.ground_eq_resolution (to_ground_clause (P \<cdot> \<theta>)) (to_ground_clause (C \<cdot> \<theta>))"
+  shows "\<exists>\<sigma>. equality_resolution P (C \<cdot> \<sigma>) \<and> 
+            to_ground_clause (P \<cdot> \<theta>) \<in> G_T P \<theta> \<and> 
+            to_ground_clause (C \<cdot> \<theta>) \<in> G_T (C \<cdot> \<sigma>) \<theta>"
+  using ground_eq_resolution
+proof(cases "to_ground_clause (P \<cdot> \<theta>)" "to_ground_clause (C \<cdot> \<theta>)" 
+      rule: ground.ground_eq_resolution.cases)
   case (ground_eq_resolutionI L t)
 
   have P_\<theta>: "P \<cdot> \<theta> = add_mset (to_literal L) (C \<cdot> \<theta>)"
     using ground_eq_resolutionI(1)
-    by (metis P P_is_ground to_clause_def to_ground_clause_inverse image_mset_add_mset is_ground_clause_add_mset subst_clause_add_mset)
+    by (metis premise P_is_ground to_clause_def to_ground_clause_inverse image_mset_add_mset 
+          is_ground_clause_add_mset subst_clause_add_mset)
 
   then have P_\<theta>': "P \<cdot> \<theta> = add_mset ((s !\<approx> s') \<cdot>l \<theta>) (C \<cdot> \<theta>)"
-    using P subst_clause_add_mset by blast
+    using premise subst_clause_add_mset by blast
 
   then have "is_ground_literal ((s !\<approx> s') \<cdot>l \<theta>)" "is_ground_clause (C \<cdot> \<theta>)"
     using P_is_ground
@@ -674,13 +663,62 @@ proof(cases "to_ground_clause (P \<cdot> \<theta>)" "to_ground_clause (C \<cdot>
     by simp
 
   then obtain \<sigma> \<tau> where \<sigma>: "term_subst.is_imgu \<sigma> {{s, s'}}" "\<theta> = \<sigma> \<odot> \<tau>"
-    using test9
+    using imgu_exists
     by blast
 
-  have eq: "eq_resolution P (C \<cdot> \<sigma>)"
-  proof (rule eq_resolutionI)
+  have "\<exists>L'. select P = {#} \<and> is_maximal\<^sub>l (L' \<cdot>l \<sigma>) (P \<cdot> \<sigma>) \<or> L' \<in># select P"
+   proof(cases "select\<^sub>G (to_ground_clause (P \<cdot> \<theta>)) = {#}")
+     case True
+      then have empty: "select P = {#}"
+        by (metis to_clause_empty_mset image_mset_is_empty_iff local.select subst_clause_def)
+
+      obtain L' where y: "is_maximal\<^sub>l (L' \<cdot>l \<theta>) (P \<cdot> \<theta>)"
+        using L(1) P_is_ground True ground_eq_resolutionI(3) is_maximal\<^sub>G\<^sub>l_iff_is_maximal\<^sub>l by force
+
+      then have "is_ground_literal (L' \<cdot>l \<theta>)"
+        using P_is_ground ground_literal_in_ground_clause1 maximal\<^sub>l_in_clause by blast
+
+      have max_lit: "is_maximal\<^sub>l (L' \<cdot>l \<sigma>) (P \<cdot> \<sigma>)"
+      proof(rule ccontr)  
+        assume a: "\<not> is_maximal\<^sub>l (L' \<cdot>l \<sigma>) (P \<cdot> \<sigma>)"
+
+        then obtain L'' where "L' \<cdot>l \<sigma> \<prec>\<^sub>l L' \<cdot>l \<sigma>" "is_ground_literal (L'' \<cdot>l \<theta>)" "L'' \<in># P \<cdot> \<theta>"
+          unfolding is_maximal_in_mset_wrt_iff[OF less\<^sub>l_transitive_on less\<^sub>l_asymmetric_on]
+          apply auto
+          sorry
+          by (smt (verit) L(1) L(2) premise P_is_ground \<open>is_ground_literal (L' \<cdot>l \<theta>)\<close> \<sigma>(2) less\<^sub>l_asymmetric asymp_on_subset clause_subst_compose to_ground_literal_inverse is_ground_clause_add_mset less\<^sub>l\<^sub>G_less\<^sub>l less\<^sub>l_ground_subst_stability literal_subst_compose multi_member_split not_less_eq\<^sub>l sup2CI subst_clause_add_mset[symmetric] top_greatest less\<^sub>l_transitive transp_on_subset union_single_eq_member y)
+
+        then have a: "is_ground_literal ((s !\<approx> s') \<cdot>l \<sigma> \<cdot>l \<tau>)"
+          by (metis L(1) \<sigma>(2) literal_subst_compose ground_literal_is_ground)
+      
+        then have "Neg (Upair s s') \<cdot>l \<sigma> \<cdot>l \<tau> \<prec>\<^sub>l L' \<cdot>l \<sigma> \<cdot>l \<tau>"
+          using less\<^sub>l_ground_subst_stability
+          by (metis \<open>Neg (Upair s s') \<cdot>l \<sigma> \<prec>\<^sub>l L' \<cdot>l \<sigma>\<close> \<open>is_ground_literal (L' \<cdot>l \<theta>)\<close> \<sigma>(2) literal_subst_compose)
+
+        then have "\<not> is_maximal\<^sub>l (Neg (Upair s s') \<cdot>l \<sigma> \<cdot>l \<tau>) (P \<cdot> \<sigma> \<cdot> \<tau>)"
+          using is_maximal_in_mset_wrt_iff[OF less\<^sub>l_transitive[THEN transp_on_subset] less\<^sub>l_asymmetric[THEN asymp_on_subset]]
+          by (metis P_is_ground \<open>L' \<in># P \<cdot> \<theta>\<close> \<sigma>(2) asympD less\<^sub>l_asymmetric clause_subst_compose ground_literal_in_ground_clause(1) subset_UNIV subst_ground_literal)
+          
+        with y show False 
+          by (simp add: \<sigma>(2))
+      qed
+      
+      with empty show ?thesis
+        apply auto
+       sorry
+   next
+     case False
+     then show ?thesis sorry
+   qed
+
+  then obtain L' where "select P = {#} \<and> is_maximal\<^sub>l (L' \<cdot>l \<sigma>) (P \<cdot> \<sigma>) \<or> L' \<in># select P"
+    sorry
+   
+
+  have eq: "equality_resolution P (C \<cdot> \<sigma>)"
+  proof (rule equality_resolutionI)
     show "P = add_mset (s !\<approx> s') C"
-      using P.
+      using premise.
   next 
     show "s !\<approx> s' = s !\<approx> s'"
       by (rule refl)
@@ -707,26 +745,23 @@ proof(cases "to_ground_clause (P \<cdot> \<theta>)" "to_ground_clause (C \<cdot>
         assume a: "\<not> is_maximal\<^sub>l (Neg (Upair s s') \<cdot>l \<sigma>) (P \<cdot> \<sigma>)"
 
         then obtain L' where "(s !\<approx> s') \<cdot>l \<sigma> \<prec>\<^sub>l L' \<cdot>l \<sigma>" "is_ground_literal (L' \<cdot>l \<theta>)" "L' \<in># P \<cdot> \<theta>"
-          using is_maximal_in_mset_wrt_iff[OF less\<^sub>l_transitive[THEN transp_on_subset] less\<^sub>l_asymmetric
-[THEN asymp_on_subset]]
-          by (smt (verit) L(1) L(2) P P_is_ground \<open>is_ground_literal (Neg (Upair s s') \<cdot>l \<theta>)\<close> \<sigma>(2) less\<^sub>l_asymmetric
- asymp_on_subset clause_subst_compose to_ground_literal_inverse is_ground_clause_add_mset less\<^sub>l\<^sub>G_less\<^sub>l less\<^sub>l_grounding_substitution literal_subst_compose multi_member_split not_less_eq\<^sub>l sup2CI test1 top_greatest less\<^sub>l_transitive transp_on_subset union_single_eq_member y)
+          using is_maximal_in_mset_wrt_iff[OF less\<^sub>l_transitive[THEN transp_on_subset] less\<^sub>l_asymmetric[THEN asymp_on_subset]]
+          sprry
+          by (smt (verit) L(1) L(2) premise P_is_ground \<open>is_ground_literal (Neg (Upair s s') \<cdot>l \<theta>)\<close> \<sigma>(2) less\<^sub>l_asymmetric asymp_on_subset clause_subst_compose to_ground_literal_inverse is_ground_clause_add_mset less\<^sub>l\<^sub>G_less\<^sub>l less\<^sub>l_ground_subst_stability literal_subst_compose multi_member_split not_less_eq\<^sub>l sup2CI subst_clause_add_mset[symmetric] top_greatest less\<^sub>l_transitive transp_on_subset union_single_eq_member y)
 
         then have a: "is_ground_literal ((s !\<approx> s') \<cdot>l \<sigma> \<cdot>l \<tau>)"
           by (metis L(1) \<sigma>(2) literal_subst_compose ground_literal_is_ground)
       
         then have "Neg (Upair s s') \<cdot>l \<sigma> \<cdot>l \<tau> \<prec>\<^sub>l L' \<cdot>l \<sigma> \<cdot>l \<tau>"
-          using less\<^sub>l_grounding_substitution
+          using less\<^sub>l_ground_subst_stability
           by (metis \<open>Neg (Upair s s') \<cdot>l \<sigma> \<prec>\<^sub>l L' \<cdot>l \<sigma>\<close> \<open>is_ground_literal (L' \<cdot>l \<theta>)\<close> \<sigma>(2) literal_subst_compose)
 
         then have "\<not> is_maximal\<^sub>l (Neg (Upair s s') \<cdot>l \<sigma> \<cdot>l \<tau>) (P \<cdot> \<sigma> \<cdot> \<tau>)"
-          using is_maximal_in_mset_wrt_iff[OF less\<^sub>l_transitive[THEN transp_on_subset] less\<^sub>l_asymmetric
-[THEN asymp_on_subset]]
-          by (metis P_is_ground \<open>L' \<in># P \<cdot> \<theta>\<close> \<sigma>(2) asympD less\<^sub>l_asymmetric
- clause_subst_compose ground_literal_in_ground_clause(1) subset_UNIV subst_ground_literal)
+          using is_maximal_in_mset_wrt_iff[OF less\<^sub>l_transitive[THEN transp_on_subset] less\<^sub>l_asymmetric[THEN asymp_on_subset]]
+          by (metis P_is_ground \<open>L' \<in># P \<cdot> \<theta>\<close> \<sigma>(2) asympD less\<^sub>l_asymmetric clause_subst_compose ground_literal_in_ground_clause(1) subset_UNIV subst_ground_literal)
           
         with y show False 
-          by (simp add: \<sigma>(2) clause_subst_compose literal_subst_compose)
+          by (simp add: \<sigma>(2))
       qed
 
       from empty max_lit show ?thesis
@@ -771,72 +806,72 @@ proof(cases "to_ground_clause (P \<cdot> \<theta>)" "to_ground_clause (C \<cdot>
     by blast
 qed
 
-lemma eq_resolution_iff_ground_eq_resolution:
-  "eq_resolution (to_clause P) (to_clause C) \<longleftrightarrow> ground.ground_eq_resolution P C" 
+lemma equality_resolution_iff_ground_eq_resolution:
+  "equality_resolution (to_clause P) (to_clause C) \<longleftrightarrow> ground.ground_eq_resolution P C" 
 proof (rule iffI)
-  assume "eq_resolution (to_clause P) (to_clause C)"
+  assume "equality_resolution (to_clause P) (to_clause C)"
   thus "ground.ground_eq_resolution P C"
-  proof(cases rule: eq_resolution.cases)
-    case (eq_resolutionI L P' t\<^sub>1 t\<^sub>2 \<mu>)
+  proof(cases rule: equality_resolution.cases)
+    case (equality_resolutionI L P' t\<^sub>1 t\<^sub>2 \<mu>)
     
     then have "is_ground_clause P'"
       using ground_clause_is_ground[of P]
       by fastforce
   
     then have P'_is_C: "P' = to_clause C"
-      using subst_ground_clause eq_resolutionI(5) by simp
+      using subst_ground_clause equality_resolutionI(5) by simp
 
     have [intro]: "is_ground_literal L" "is_ground_term t\<^sub>1" "is_ground_term t\<^sub>2" 
-      using eq_resolutionI ground_literal_in_ground_clause(2)[of L P] vars_literal_split
+      using equality_resolutionI ground_literal_in_ground_clause(2)[of L P] vars_literal_split
       by fastforce+
 
     then have "t\<^sub>1 = t\<^sub>2"
-      using eq_resolutionI ground_imgu_equals[of t\<^sub>1  t\<^sub>2]
+      using equality_resolutionI ground_imgu_equals[of t\<^sub>1  t\<^sub>2]
       by simp
 
     then have [simp]: "L \<cdot>l \<mu> = L"
-      using eq_resolutionI ground_literal_in_ground_clause(1)
+      using equality_resolutionI ground_literal_in_ground_clause(1)
       by (metis ground_clause_is_ground subst_ground_literal union_single_eq_member)
      
     show ?thesis 
     proof (rule ground.ground_eq_resolutionI)
-      from eq_resolutionI show "P = add_mset (to_ground_literal L) C"
+      from equality_resolutionI show "P = add_mset (to_ground_literal L) C"
         by (metis P'_is_C to_clause_inverse to_ground_clause_def image_mset_add_mset)
     next
       show "to_ground_literal L = Neg (Upair (to_ground_term t\<^sub>1) (to_ground_term t\<^sub>1))"
         using \<open>t\<^sub>1 = t\<^sub>2\<close>
-        by (simp add: to_ground_literal_def to_ground_atom_def eq_resolutionI)
+        by (simp add: to_ground_literal_def to_ground_atom_def equality_resolutionI)
     next
       show "(select\<^sub>G P = {#} \<and> ground.is_maximal_lit (to_ground_literal L) P) \<or> to_ground_literal L \<in># select\<^sub>G P"
       proof(cases "select\<^sub>G P")
         case empty
         then show ?thesis 
           using 
-            eq_resolutionI(4) 
+            equality_resolutionI(4) 
             to_ground_literal_inverse[OF \<open>is_ground_literal L\<close>]
             is_maximal\<^sub>G\<^sub>l_iff_is_maximal\<^sub>l[of P "to_ground_literal L"]
             
           unfolding to_ground_clause_def
           apply auto
-          using eq_resolutionI(4) 
+          using equality_resolutionI(4) 
           sorry
           (*by simp*)
       next
         case add
         then show ?thesis
           sorry
-          (*using eq_resolutionI(4) select\<^sub>G_empty_iff_select_empty
+          (*using equality_resolutionI(4) select\<^sub>G_empty_iff_select_empty
           by (metis empty_not_add_mset test)*)
       qed
     qed
   qed
 next
   assume "ground.ground_eq_resolution P C"
-  thus "eq_resolution (to_clause P) (to_clause C)"
+  thus "equality_resolution (to_clause P) (to_clause C)"
    proof(cases P C rule: ground.ground_eq_resolution.cases)
    case (ground_eq_resolutionI L t)
     show ?thesis
-    proof (rule eq_resolutionI)
+    proof (rule equality_resolutionI)
       show "to_clause P = add_mset (to_literal L) (to_clause C)"
         using \<open>P = add_mset L C\<close> 
         unfolding to_clause_def
@@ -870,55 +905,55 @@ next
   qed
 qed
 
-lemma eq_factoring_iff_ground_eq_factoring:
-  "eq_factoring (to_clause P) (to_clause C) \<longleftrightarrow> ground.ground_eq_factoring P C"
+lemma equality_factoring_iff_ground_eq_factoring:
+  "equality_factoring (to_clause P) (to_clause C) \<longleftrightarrow> ground.ground_eq_factoring P C"
 proof (rule iffI)
-  assume "eq_factoring (to_clause P) (to_clause C)"
+  assume "equality_factoring (to_clause P) (to_clause C)"
   thus "ground.ground_eq_factoring P C"
-  proof(cases rule: eq_factoring.cases)
-    case (eq_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
+  proof(cases rule: equality_factoring.cases)
+    case (equality_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
 
     have is_ground_literal [intro]: "is_ground_literal L\<^sub>1"
-      using eq_factoringI ground_clause_is_ground vars_clause_add_mset 
+      using equality_factoringI ground_clause_is_ground vars_clause_add_mset 
       by (metis sup_eq_bot_iff)
 
     have is_ground_trm [intro]: 
       "is_ground_term s\<^sub>1" 
       "is_ground_term s\<^sub>1'" 
       "is_ground_term t\<^sub>2"
-      using eq_factoringI ground_clause_is_ground vars_literal_split vars_clause_add_mset
+      using equality_factoringI ground_clause_is_ground vars_literal_split vars_clause_add_mset
       by (metis sup_eq_bot_iff)+
 
     then have "s\<^sub>1 = t\<^sub>2"
-      using ground_imgu_equals local.eq_factoringI(6) by blast
+      using ground_imgu_equals local.equality_factoringI(6) by blast
 
     have ground_substs [simp]: "L\<^sub>1 \<cdot>l \<mu> = L\<^sub>1" "s\<^sub>1 \<cdot>t \<mu> = s\<^sub>1" "s\<^sub>1' \<cdot>t \<mu> = s\<^sub>1'"
-      using eq_factoringI is_ground_trm is_ground_literal
+      using equality_factoringI is_ground_trm is_ground_literal
       by simp_all
 
     show ?thesis 
     proof (rule ground.ground_eq_factoringI)
       show "P = add_mset (to_ground_literal L\<^sub>1) (add_mset (to_ground_literal L\<^sub>2) (to_ground_clause P'))"
-        by (metis to_clause_inverse to_ground_clause_def image_mset_add_mset eq_factoringI(1))
+        by (metis to_clause_inverse to_ground_clause_def image_mset_add_mset equality_factoringI(1))
     next 
       show "to_ground_literal L\<^sub>1 = (to_ground_term s\<^sub>1 \<approx> to_ground_term s\<^sub>1')"
-        by (simp add: to_ground_literal_def to_ground_atom_def eq_factoringI(2))
+        by (simp add: to_ground_literal_def to_ground_atom_def equality_factoringI(2))
     next
       show "to_ground_literal L\<^sub>2 = (to_ground_term s\<^sub>1 \<approx> to_ground_term t\<^sub>2')"
-        by (simp add: \<open>s\<^sub>1 = t\<^sub>2\<close> to_ground_literal_def to_ground_atom_def eq_factoringI(3))
+        by (simp add: \<open>s\<^sub>1 = t\<^sub>2\<close> to_ground_literal_def to_ground_atom_def equality_factoringI(3))
     next
       show "select\<^sub>G P = {#}"
-        sorry (*by (simp add: to_ground_clause_def eq_factoringI(4) wtf)*)
+        sorry (*by (simp add: to_ground_clause_def equality_factoringI(4) wtf)*)
     next 
       show "ground.is_maximal_lit (to_ground_literal L\<^sub>1) P"
         using   
-          eq_factoringI(4) 
+          equality_factoringI(4) 
           is_maximal\<^sub>G\<^sub>l_iff_is_maximal\<^sub>l 
           to_ground_literal_inverse[OF \<open>is_ground_literal L\<^sub>1\<close>]
         by simp
     next
       show "to_ground_term s\<^sub>1' \<prec>\<^sub>t\<^sub>G to_ground_term s\<^sub>1"
-        using eq_factoringI(5)  
+        using equality_factoringI(5)  
           less\<^sub>t\<^sub>G_total 
           to_ground_term_inverse[OF \<open>is_ground_term s\<^sub>1'\<close>]
           to_ground_term_inverse[OF \<open>is_ground_term s\<^sub>1\<close>]
@@ -928,7 +963,7 @@ proof (rule iffI)
     next
       have [simp]: "add_mset (s\<^sub>1 \<approx> t\<^sub>2') (add_mset (Neg (Upair s\<^sub>1' t\<^sub>2')) P') \<cdot> \<mu>
           = add_mset (s\<^sub>1 \<approx> t\<^sub>2') (add_mset (Neg (Upair s\<^sub>1' t\<^sub>2')) P')"
-        using is_ground_trm ground_clause_is_ground eq_factoringI subst_ground_clause
+        using is_ground_trm ground_clause_is_ground equality_factoringI subst_ground_clause
         by (metis to_clause_def msed_map_invR vars_literal_split vars_clause_add_mset vars_literal)
 
       then show "C = 
@@ -937,18 +972,18 @@ proof (rule iffI)
                (add_mset (to_ground_term s\<^sub>1 \<approx> to_ground_term t\<^sub>2') 
                (to_ground_clause P'))"
         unfolding to_clause_def 
-        using eq_factoringI(7) to_ground_atom_def to_ground_literal_def 
+        using equality_factoringI(7) to_ground_atom_def to_ground_literal_def 
               to_ground_clause_def to_clause_inverse add_mset_commute
         by (metis image_mset_add_mset literal.simps(9, 10) map_uprod_simps)
     qed
   qed
 next
   assume "ground.ground_eq_factoring P C"
-  thus "eq_factoring (to_clause P) (to_clause C)"
+  thus "equality_factoring (to_clause P) (to_clause C)"
   proof(cases P C rule: ground.ground_eq_factoring.cases)
     case (ground_eq_factoringI L\<^sub>1 L\<^sub>2 P' t t' t'')
     show ?thesis 
-    proof(rule eq_factoringI)
+    proof(rule equality_factoringI)
       show "to_clause P = add_mset (to_literal L\<^sub>1) (add_mset (to_literal L\<^sub>2) (to_clause P'))"
         by (simp add: to_clause_def ground_eq_factoringI(1))
     next
@@ -1403,8 +1438,8 @@ subsection \<open>First-Order Layer\<close>
 definition F_Inf :: "('f, 'v) atom clause inference set" where
   "F_Inf \<equiv> 
     {Infer [P\<^sub>2, P\<^sub>1] C | P\<^sub>2 P\<^sub>1 C. superposition P\<^sub>1 P\<^sub>2 C} \<union>
-    {Infer [P] C | P C. eq_resolution P C} \<union>
-    {Infer [P] C | P C. eq_factoring P C}"
+    {Infer [P] C | P C. equality_resolution P C} \<union>
+    {Infer [P] C | P C. equality_factoring P C}"
 
 abbreviation F_Bot :: "('f, 'v) atom clause set" where
   "F_Bot \<equiv> {{#}}"
@@ -1423,12 +1458,12 @@ definition F_entails :: "('f, 'v) atom clause set \<Rightarrow> ('f, 'v) atom cl
     (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>\<^sub>C\<^sub>s N\<^sub>1 \<longrightarrow>
     (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>\<^sub>C\<^sub>s N\<^sub>2)"
  
-lemma eq_resolution_sound:
-  assumes step: "eq_resolution P C"
+lemma equality_resolution_sound:
+  assumes step: "equality_resolution P C"
   shows "F_entails {P} {C}"
   using step
-proof (cases P C rule: eq_resolution.cases)
-  case (eq_resolutionI L P' s\<^sub>1 s\<^sub>2 \<mu>)
+proof (cases P C rule: equality_resolution.cases)
+  case (equality_resolutionI L P' s\<^sub>1 s\<^sub>2 \<mu>)
   have 
     "\<And>I \<theta>. \<lbrakk>
         refl I; 
@@ -1459,17 +1494,17 @@ proof (cases P C rule: eq_resolution.cases)
        by (auto simp: true_cls_def)
 
      have [simp]: "?P = add_mset ?L ?P'"
-       by (simp add: to_ground_clause_def local.eq_resolutionI(1) subst_clause_add_mset)
+       by (simp add: to_ground_clause_def local.equality_resolutionI(1) subst_clause_add_mset)
 
      have [simp]: "?L = (Neg (Upair ?s\<^sub>1 ?s\<^sub>2))"
-       unfolding to_ground_literal_def eq_resolutionI(2) to_ground_atom_def
+       unfolding to_ground_literal_def equality_resolutionI(2) to_ground_atom_def
        by (simp add: subst_atom_def subst_literal)
        
      have [simp]: "?s\<^sub>1 = ?s\<^sub>2"
-       using is_imgu_equals[OF eq_resolutionI(3)] by simp
+       using is_imgu_equals[OF equality_resolutionI(3)] by simp
       
      have "is_neg ?L"
-       by (simp add: to_ground_literal_def eq_resolutionI(2) subst_literal)
+       by (simp add: to_ground_literal_def equality_resolutionI(2) subst_literal)
 
      show "?I \<TTurnstile> to_ground_clause (C \<cdot> \<theta>)"
       proof(cases "L' = ?L")
@@ -1489,7 +1524,7 @@ proof (cases P C rule: eq_resolution.cases)
          using L'_in_P by force
   
        then have "L' \<in># to_ground_clause (C \<cdot> \<theta>)"
-         unfolding eq_resolutionI.
+         unfolding equality_resolutionI.
   
        then show ?thesis
          using I_models_L' by blast
@@ -1501,12 +1536,12 @@ proof (cases P C rule: eq_resolution.cases)
     by simp
 qed
 
-lemma eq_factoring_sound:
-  assumes step: "eq_factoring P C"
+lemma equality_factoring_sound:
+  assumes step: "equality_factoring P C"
   shows "F_entails {P} {C}"
   using step
-proof (cases P C rule: eq_factoring.cases)
-  case (eq_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
+proof (cases P C rule: equality_factoring.cases)
+  case (equality_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
   have 
     "\<And>I \<theta>. \<lbrakk>
         trans I; 
@@ -1543,19 +1578,19 @@ proof (cases P C rule: eq_factoring.cases)
       by (auto simp: true_cls_def)
 
     then have s\<^sub>1_equals_t\<^sub>2: "?t\<^sub>2 = ?s\<^sub>1"
-      using is_imgu_equals[OF eq_factoringI(6)]
+      using is_imgu_equals[OF equality_factoringI(6)]
       by simp
 
     have L\<^sub>1: "?L\<^sub>1 = ?s\<^sub>1 \<approx> ?s\<^sub>1'"
-      unfolding to_ground_literal_def eq_factoringI(2) to_ground_atom_def
+      unfolding to_ground_literal_def equality_factoringI(2) to_ground_atom_def
       by (simp add: subst_atom_def subst_literal)
 
     have L\<^sub>2: "?L\<^sub>2 = ?t\<^sub>2 \<approx> ?t\<^sub>2'"
-      unfolding to_ground_literal_def eq_factoringI(3) to_ground_atom_def
+      unfolding to_ground_literal_def equality_factoringI(3) to_ground_atom_def
       by (simp add: subst_atom_def subst_literal)
 
     have C: "?C = add_mset (?s\<^sub>1 \<approx> ?t\<^sub>2') (add_mset (Neg (Upair ?s\<^sub>1' ?t\<^sub>2')) ?P')"
-      unfolding eq_factoringI 
+      unfolding equality_factoringI 
       by (simp add: to_ground_clause_def to_ground_literal_def subst_atom_def subst_clause_add_mset subst_literal
             to_ground_atom_def)
 
@@ -1579,11 +1614,11 @@ proof (cases P C rule: eq_factoring.cases)
       case False
       then have "L' \<in># ?P'"
         using L'_in_P
-        unfolding eq_factoringI
+        unfolding equality_factoringI
         by (simp add: to_ground_clause_def subst_clause_add_mset)
 
       then have "L' \<in># to_ground_clause (C \<cdot> \<theta>)"
-        by (simp add: to_ground_clause_def eq_factoringI(7) subst_clause_add_mset)
+        by (simp add: to_ground_clause_def equality_factoringI(7) subst_clause_add_mset)
 
       then show ?thesis
         using I_models_L' by blast
@@ -1823,8 +1858,8 @@ proof unfold_locales
   show "\<And>\<iota>. \<iota> \<in> F_Inf \<Longrightarrow> F_entails (set (prems_of \<iota>)) {concl_of \<iota>}"
     using 
       F_Inf_def 
-      eq_factoring_sound
-      eq_resolution_sound
+      equality_factoring_sound
+      equality_resolution_sound
       superposition_sound
       F_entails_def
     by auto
