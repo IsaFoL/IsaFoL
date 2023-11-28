@@ -985,12 +985,27 @@ lemma wfP_ind: \<open>wfP ((<) :: ('a::ord \<Rightarrow> 'a \<Rightarrow> bool))
                       ==> (H f x = H g x) /\ S x (H f x))
              ==> ?f:A->B. !x. (f x = H f x)`
 *)
-lemma wf_rec_invariant: \<open>wfP ((<) :: (('a::ord) \<Rightarrow> 'a \<Rightarrow> bool)) \<Longrightarrow>
-  (\<forall>(f:: 'a \<Rightarrow> 'b) g x. (\<forall>(z::'a). z < x \<longrightarrow> ((f z = g z) \<and> (S z (f z))) \<longrightarrow> 
-    ((H f x = H g x) \<and> S x (H f x)))) \<Longrightarrow>
-  \<exists>f. \<forall>x. (f x = H f x)\<close>
-  nitpick
+
+lemma ex_rel: \<open>\<exists>R. \<forall>f x. (\<forall>z. z < x \<longrightarrow> R z (f z)) \<longrightarrow> R x (H f x)\<close>
+  by blast
+
+lemma wf_rec_invariant: \<open>wfP ((<) :: (nat \<Rightarrow> nat \<Rightarrow> bool)) \<Longrightarrow>
+  (\<forall>f g x. (\<forall>(z::nat). z < x \<longrightarrow> ((f z = g z) \<and> (S z (f z))) \<longrightarrow> 
+    ((H f x = H g x) \<and> S x (H f x)))) \<Longrightarrow> (\<exists>f. \<forall>x. (f x = H f x))\<close>
+proof
+  assume 
+    wf_prec: \<open>wfP (<)\<close> and
+    eq_until: \<open>\<forall>f g x z. z < x \<longrightarrow> f z = g z \<and> S z (f z) \<longrightarrow> H f x = H g x \<and> S x (H f x)\<close>
+  obtain R where \<open>\<forall>f x. (\<forall>z. z < x \<longrightarrow> R z (f z)) \<longrightarrow> R x (H f x)\<close> by blast
+  then have \<open>\<forall>x y. R x y \<longrightarrow> S x y\<close>
+    using eq_until wf_prec 
+    sorry
+  then have \<open>\<forall>x. \<exists>! y. R x y\<close>
+    sorry
+  show \<open>\<forall>x. f x = H f x\<close>
+  using wfP_ind ex_rel 
   sorry
+qed
 
 lemma wf_rec: \<open>wfP ((<) :: (('a::ord) \<Rightarrow> 'a \<Rightarrow> bool)) \<Longrightarrow>
   (\<forall>f g x. (\<forall>(z::'a). z < x \<longrightarrow> (f z = g z)) \<longrightarrow> (H f x = H g x)) \<Longrightarrow> (\<exists>f. \<forall>x. f x = H f x)\<close>
