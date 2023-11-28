@@ -19,16 +19,23 @@ no_notation Not ("\<^bold>\<not>")
 no_notation And (infix "\<^bold>\<and>" 68)
 no_notation Or  (infix "\<^bold>\<or>" 68)
 
-lemma count_terms: "OFCLASS(('f::countable, 'v::countable) term,countable_class)"
+(* ---------------------------------------------------------------------------------------*)
+(* To remove once the following have been integrated to the AFP in First_Order_Terms.Term *)
+lemma count_terms: \<^marker>\<open>contributor \<open>Sophie Tourret\<close>\<close>
+  "OFCLASS(('f::countable, 'v::countable) term,countable_class)" 
   by countable_datatype
+
+instance "term" :: (countable, countable) countable
+  \<^marker>\<open>contributor \<open>Sophie Tourret\<close>\<close>
+  using count_terms by simp
+(* ---------------------------------------------------------------------------------------*)
 
 type_synonym nterm = \<open>(nat, nat) term\<close>
 
 lemma count_nterms: "OFCLASS(nterm,countable_class)"
   using count_terms by simp
 
-instance "term" :: (countable, countable) countable
-  using count_terms by simp
+
 
 definition test :: "'a::countable \<Rightarrow> bool" where
   \<open>test x = True\<close>
@@ -212,7 +219,7 @@ next
   qed
 qed
 
-(* needed in HOL-Light but seems trivial in modern Isabelle/HOL *)
+(* != needed in HOL-Light but seems trivial in modern Isabelle/HOL *)
 lemma \<open>{x. \<exists>y. y \<in> (s \<union> t) \<and> P x y} = {x. \<exists>y. y \<in> s \<and> P x y} \<union> {x. \<exists>y. y \<in> t \<and> P x y}\<close>
   by blast
 
@@ -712,6 +719,9 @@ fun qfree :: \<open>form \<Rightarrow> bool\<close> where
 
 setup_lifting type_definition_qfree_form *)
 
+(* != propositional compactness is not proved as in Harrison.
+      Instead the existing AFP entry is reused *)
+
 fun form_to_formula :: "form \<Rightarrow> (nat\<times>nterm list) formula" where
   \<open>form_to_formula \<^bold>\<bottom> = \<bottom>\<close>
 | \<open>form_to_formula (Atom p ts) = formula.Atom (p,ts)\<close>
@@ -861,6 +871,9 @@ fun size :: "form \<Rightarrow> nat" where
 | \<open>size (\<phi> \<^bold>\<longrightarrow> \<psi>) = size \<phi> + size \<psi>\<close>
 | \<open>size (\<^bold>\<forall> x\<^bold>. \<phi>) = 1 + size \<phi>\<close>
 
+lemma wf_size: \<open>wfP (\<lambda>\<phi> \<psi>. size \<phi> < size \<psi>)\<close>
+  by (simp add: wfP_if_convertible_to_nat)
+
 (*
 function to_prenex_right :: \<open>form \<Rightarrow> form \<Rightarrow> form\<close> where
   \<open>to_prenex_right \<phi> \<^bold>\<bottom> =\<close>
@@ -894,6 +907,7 @@ proof (induction \<phi> arbitrary: \<sigma>)
   finally show ?case .
 qed auto
 
+
 lemma prenex_distinct: \<open>(\<^bold>\<forall>x\<^bold>. \<phi>) \<noteq> (\<^bold>\<exists>y\<^bold>. \<psi>)\<close>
   by auto
 
@@ -911,16 +925,77 @@ inductive to_prenex to_prenex_left to_prenex_right where
 (*   let y = VARIANT(FV(p) UNION FV(!!x q)) in
                    !!y (Prenex_right p (formsubst (valmod (x,V y) V) q)))  *)
 
+lemma uniq_all_x: "Uniq (\<lambda>x. \<exists>p. r = \<^bold>\<forall>x\<^bold>. p)" (* necessaire pour décharger le "THE" *)
+  using Uniq_def by blast
+
+lemma uniq_all_p: \<open>Uniq ((\<lambda>p. r = \<^bold>\<forall>(THE x. \<exists>p. r = \<^bold>\<forall>x\<^bold>. p)\<^bold>. p))\<close>
+  using uniq_all_x Uniq_def
+  by (smt (verit, ccfv_threshold) form.inject(3))
+
+lemma uniq_ex_x: "Uniq (\<lambda>x. \<exists>p. r = \<^bold>\<exists>x\<^bold>. p)" (* necessaire pour décharger le "THE" *)
+  using Uniq_def by blast
+
+lemma uniq_ex_p: \<open>Uniq ((\<lambda>p. r = \<^bold>\<exists>(THE x. \<exists>p. r = \<^bold>\<exists>x\<^bold>. p)\<^bold>. p))\<close>
+  using uniq_ex_x Uniq_def
+  by (smt (verit, best) form.inject(2) form.inject(3))
+
 definition ppat where
   \<open>ppat A B C r = (if (\<exists>x p. r = \<^bold>\<forall>x\<^bold>. p) then
-    A (SOME x. \<exists>p. r = \<^bold>\<forall>x\<^bold>. p) (SOME p. r = \<^bold>\<forall>(SOME x. \<exists>p. r = \<^bold>\<forall>x\<^bold>. p)\<^bold>. p)
+    A (THE x. \<exists>p. r = \<^bold>\<forall>x\<^bold>. p) (THE p. r = \<^bold>\<forall>(THE x. \<exists>p. r = \<^bold>\<forall>x\<^bold>. p)\<^bold>. p)
   else (if \<exists>x p. r = \<^bold>\<exists>x\<^bold>. p then
-    B (SOME x. \<exists>p. r = \<^bold>\<forall>x\<^bold>. p) (SOME p. r = \<^bold>\<forall>(SOME x. \<exists>p. r = \<^bold>\<exists>x\<^bold>. p)\<^bold>. p) 
+    B (THE x. \<exists>p. r = \<^bold>\<exists>x\<^bold>. p) (THE p. r = \<^bold>\<exists>(THE x. \<exists>p. r = \<^bold>\<exists>x\<^bold>. p)\<^bold>. p) 
    else C r))\<close>
 
 lemma ppat_last: \<open>(\<forall>x p. ppat A B C (\<^bold>\<forall>x\<^bold>. p) = A x p) \<Longrightarrow> (\<forall>x p. ppat A B C (\<^bold>\<exists>x\<^bold>. p) = B x p) \<Longrightarrow>
   (\<forall>r. \<not>(\<exists>x p. r = \<^bold>\<forall>x\<^bold>. p) \<and> \<not>(\<exists>x p. r = \<^bold>\<exists>x\<^bold>. p)) \<Longrightarrow> ppat A B C r = C r\<close>
   by blast
+
+(* lemma wf_size: \<open>wfP size\<close> *)
+
+thm wf_induct
+
+lemma "wfP ((<) :: (nat \<Rightarrow> nat \<Rightarrow> bool))"
+  using wfP_less .
+
+thm wfP_less
+
+(*(!f g x. (!z. z << x ==> (f z = g z) /\ S z (f z))
+                      ==> (H f x = H g x) /\ S x (H f x))
+             ==> ?f:A->B. !x. (f x = H f x)`, *)
+
+(*
+WF_EQ = prove
+ (`WF(<<) <=> !P:A->bool. (?x. P(x)) <=> (?x. P(x) /\ !y. y << x ==> ~P(y))`
+*)
+
+lemma wfP_eq: \<open>wfP ((<) :: ('a::ord \<Rightarrow> 'a \<Rightarrow> bool)) \<Longrightarrow> ((\<exists>(x::'a). P x) \<equiv> (\<exists>x. P x \<and> (\<forall>y. y < x \<longrightarrow> \<not>P y)))\<close>
+  by (smt (verit) mem_Collect_eq wfP_eq_minimal)
+
+(*
+WF_IND = prove
+ (`WF(<<) <=> !P:A->bool. (!x. (!y. y << x ==> P(y)) ==> P(x)) ==> !x. P(x)`,
+*)
+
+lemma wfP_ind: \<open>wfP ((<) :: ('a::ord \<Rightarrow> 'a \<Rightarrow> bool)) \<Longrightarrow>
+  (\<forall>(x::'a). (\<forall>y. y <  x \<longrightarrow> P y) \<longrightarrow> P x) \<longrightarrow> (\<forall>x. P x)\<close>
+  by (metis wfP_induct)
+
+(*
+!H S. (!f g x. (!z. z << x ==> (f z = g z) /\ S z (f z))
+                      ==> (H f x = H g x) /\ S x (H f x))
+             ==> ?f:A->B. !x. (f x = H f x)`
+*)
+lemma wf_rec_invariant: \<open>wfP ((<) :: (('a::ord) \<Rightarrow> 'a \<Rightarrow> bool)) \<Longrightarrow>
+  (\<forall>(f:: 'a \<Rightarrow> 'b) g x. (\<forall>(z::'a). z < x \<longrightarrow> ((f z = g z) \<and> (S z (f z))) \<longrightarrow> 
+    ((H f x = H g x) \<and> S x (H f x)))) \<Longrightarrow>
+  \<exists>f. \<forall>x. (f x = H f x)\<close>
+  nitpick
+  sorry
+
+lemma wf_rec: \<open>wfP ((<) :: (('a::ord) \<Rightarrow> 'a \<Rightarrow> bool)) \<Longrightarrow>
+  (\<forall>f g x. (\<forall>(z::'a). z < x \<longrightarrow> (f z = g z)) \<longrightarrow> (H f x = H g x)) \<Longrightarrow> (\<exists>f. \<forall>x. f x = H f x)\<close>
+  (* sledgehammer[timeout=60,slices=6,verbose] *)
+  sorry
 
 lemma size_rec: 
   \<open>\<forall>f g x. (\<forall>z. size z < size x \<longrightarrow> (f z = g z)) \<longrightarrow> (H f x = H g x) \<Longrightarrow> (\<exists>f. \<forall>x. f x = H f x)\<close>
