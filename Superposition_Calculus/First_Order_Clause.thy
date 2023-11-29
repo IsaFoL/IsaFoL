@@ -59,6 +59,9 @@ lemma subst_clause_Var_ident[simp]: "clause \<cdot> Var = clause"
   unfolding subst_clause_def
   by simp
 
+lemma clause_subst_empty: "clause = {#} \<longleftrightarrow> clause \<cdot> \<theta> = {#}"
+  by (simp add: subst_clause_def)
+
 (*
 TODO: Needed?
 
@@ -256,10 +259,17 @@ lemma term_in_literal_subst:
   unfolding subst_literal_def subst_atom_def
   by (cases literal) (auto simp: uprod.set_map)
 
+lemma literal_in_clause_subst: 
+  assumes "literal \<in># clause"  
+  shows "literal \<cdot>l \<theta> \<in># clause \<cdot> \<theta>"
+  using assms
+  unfolding subst_clause_def
+  by simp
+
 lemma subst_polarity_stable: 
   shows 
-    subst_neg_stable: "is_neg literal \<Longrightarrow> is_neg (literal \<cdot>l \<theta>)" and
-    subst_pos_stable: "is_pos literal \<Longrightarrow> is_pos (literal \<cdot>l \<theta>)"
+    subst_neg_stable: "is_neg literal \<longleftrightarrow> is_neg (literal \<cdot>l \<theta>)" and
+    subst_pos_stable: "is_pos literal \<longleftrightarrow> is_pos (literal \<cdot>l \<theta>)"
   by (simp_all add: subst_literal_def)
 
 lemma is_imgu_equals: 
@@ -525,6 +535,10 @@ lemma to_ground_clause_add_mset:
   shows "clause = add_mset (to_ground_literal literal) (to_ground_clause clause')"
   using assms
   by (metis to_clause_inverse to_ground_clause_def image_mset_add_mset)
+
+lemma to_clause_add_mset: 
+  "to_clause (add_mset literal\<^sub>G clause\<^sub>G) = add_mset (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
+  by (simp add: to_clause_def)
 
 lemma set_mset_to_clause_to_literal: 
   "set_mset (to_clause clause) = to_literal ` (set_mset clause)"
