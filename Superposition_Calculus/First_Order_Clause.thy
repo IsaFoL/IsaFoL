@@ -75,6 +75,8 @@ where
   "Cs \<cdot>\<cdot>cl \<sigma>s = map2 (\<cdot>) Cs \<sigma>s"
 *)
 
+lemmas upair_in_literal = literal.sel
+
 (* This is an example where type-classes would be nice, but the Isabelle ones are shitty...*)
 abbreviation vars_context :: "('f, 'v) context \<Rightarrow> 'v set" where
   "vars_context \<equiv> vars_ctxt"
@@ -271,7 +273,7 @@ lemma subst_polarity_stable:
     subst_neg_stable: "is_neg literal \<longleftrightarrow> is_neg (literal \<cdot>l \<theta>)" and
     subst_pos_stable: "is_pos literal \<longleftrightarrow> is_pos (literal \<cdot>l \<theta>)"
   by (simp_all add: subst_literal_def)
-
+                                        
 lemma is_imgu_equals: 
   assumes "term_subst.is_imgu \<mu> {{term\<^sub>1, term\<^sub>2}}" 
   shows "term\<^sub>1 \<cdot>t \<mu> = term\<^sub>2 \<cdot>t \<mu>"
@@ -430,7 +432,7 @@ lemma ground_terms_in_ground_atom1:
   using assms
   by (simp add: to_ground_atom_def)
 
-lemma ground_terms_in_ground_atom2: 
+lemma ground_terms_in_ground_atom2 [intro]: 
   "is_ground_atom (Upair term\<^sub>1 term\<^sub>2) \<longleftrightarrow> is_ground_term term\<^sub>1 \<and> is_ground_term term\<^sub>2"
   using vars_literal_split by fastforce
 
@@ -452,6 +454,10 @@ lemma ground_atom_in_ground_literal2:
 lemmas ground_atom_in_ground_literal = 
   ground_atom_in_ground_literal1
   ground_atom_in_ground_literal2
+
+lemma is_ground_atom_in_ground_literal [intro]:
+  "is_ground_literal literal \<longleftrightarrow> is_ground_atom (atm_of literal)"
+  by (simp add: vars_literal_def)  
 
 lemma ground_term_in_ground_literal:
   assumes "is_ground_literal literal"  "term \<in># mset_lit literal"  
@@ -526,7 +532,7 @@ lemma mset_to_literal: "mset_lit (to_literal l) = image_mset to_term (mset_lit l
   unfolding to_literal_def
   by (simp add: to_atom_def mset_lit_image_mset)
 
-lemma is_ground_clause_add_mset: "is_ground_clause (add_mset literal clause) \<longleftrightarrow> 
+lemma is_ground_clause_add_mset [intro]: "is_ground_clause (add_mset literal clause) \<longleftrightarrow> 
   is_ground_literal literal \<and> is_ground_clause clause"
   by simp
 
