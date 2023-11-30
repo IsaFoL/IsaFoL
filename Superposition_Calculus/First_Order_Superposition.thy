@@ -515,7 +515,7 @@ proof-
 qed
 
 lemma unique_maximal_in_ground_clause:
-  assumes 
+  assumes
     "is_ground_clause clause" 
     "is_maximal\<^sub>l literal clause"
     "is_maximal\<^sub>l literal' clause"
@@ -548,7 +548,7 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
 
   have premise_not_empty: "premise \<noteq> {#}"
     using 
-      premise empty_not_add_mset[of "term\<^sub>G !\<approx> term\<^sub>G" "conclusion \<cdot> \<theta>"]
+      premise empty_not_add_mset
       clause_subst_empty
     by metis
 
@@ -726,6 +726,50 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
   with equality_resolution show ?thesis
     unfolding clause_groundings_def
     by blast
+qed  
+
+lemma equality_factoring_ground_instance:
+  assumes 
+    premise_grounding [intro]: "is_ground_clause (premise \<cdot> \<theta>)" and
+    conclusion_grounding [intro]: "is_ground_clause (conclusion \<cdot> \<theta>)" and
+    select: "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>" and
+    ground_eq_factoring: 
+      "ground.ground_eq_factoring
+          (to_ground_clause (premise \<cdot> \<theta>)) 
+          (to_ground_clause (conclusion \<cdot> \<theta>))"
+  shows "\<exists>conclusion'. equality_factoring premise (conclusion') \<and> 
+            to_ground_clause (premise \<cdot> \<theta>) \<in> clause_groundings premise \<theta> \<and> 
+            to_ground_clause (conclusion \<cdot> \<theta>) \<in> clause_groundings conclusion' \<theta>"
+   using ground_eq_factoring
+proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (conclusion \<cdot> \<theta>)" 
+      rule: ground.ground_eq_factoring.cases)
+  case (ground_eq_factoringI literal\<^sub>G\<^sub>1 literal\<^sub>G\<^sub>2 clause\<^sub>G term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>3 term\<^sub>G\<^sub>2)
+
+  have premise_not_empty: "premise \<noteq> {#}"
+    using ground_eq_factoringI(1) empty_not_add_mset clause_subst_empty
+    by (metis to_clause_empty_mset to_clause_inverse)
+
+  have select_empty: "select premise = {#}"
+    using ground_eq_factoringI(4) select clause_subst_empty
+    by auto
+
+   obtain max_literal where max_literal: 
+      "is_maximal\<^sub>l max_literal premise" 
+      "is_maximal\<^sub>l (max_literal \<cdot>l \<theta>) (premise \<cdot> \<theta>)"
+    using is_maximal\<^sub>l_ground_subst_stability[OF premise_not_empty premise_grounding]
+    by blast
+
+  note max_ground_literal = is_maximal\<^sub>G\<^sub>l_iff_is_maximal\<^sub>l[
+      THEN iffD1, 
+      OF ground_eq_factoringI(5), 
+      unfolded ground_eq_factoringI(2) to_ground_clause_inverse[OF premise_grounding]
+    ]
+
+  have "max_literal \<cdot>l \<theta> = to_literal (term\<^sub>G\<^sub>1 \<approx> term\<^sub>G\<^sub>3)"
+    using unique_maximal_in_ground_clause[OF premise_grounding max_literal(2) max_ground_literal].
+
+  then show ?thesis
+    sorry
 qed
 
 subsubsection \<open>Alternative Specification of the Superposition Rule\<close>
@@ -757,8 +801,8 @@ lemma superposition_if_pos_superposition:
   assumes "pos_superposition P\<^sub>1 P\<^sub>2 C"
   shows "superposition P\<^sub>1 P\<^sub>2 C"
   using assms
-proof (cases P\<^sub>1 P\<^sub>2 C rule: pos_superposition.cases)
-  case (pos_superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
+proof (cases rule: pos_superposition.cases)
+  case pos_superpositionI
   then show ?thesis
     using superpositionI
     by fast
@@ -804,10 +848,10 @@ proof (rule iffI)
   thus "pos_superposition P\<^sub>1 P\<^sub>2 C \<or> neg_superposition P\<^sub>1 P\<^sub>2 C"
   proof (cases P\<^sub>1 P\<^sub>2 C rule: superposition.cases)
     case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
-    then show ?thesis
+    then show ?thesis      
       using pos_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>]
       using neg_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>]
-      by metis
+      by blast
   qed
 next
   assume "pos_superposition P\<^sub>1 P\<^sub>2 C \<or> neg_superposition P\<^sub>1 P\<^sub>2 C"
@@ -815,8 +859,6 @@ next
     using superposition_if_neg_superposition superposition_if_pos_superposition by metis
 qed
 
-
-subsection \<open>First-Order Layer\<close>
 
 definition F_Inf :: "('f, 'v) atom clause inference set" where
   "F_Inf \<equiv> 
