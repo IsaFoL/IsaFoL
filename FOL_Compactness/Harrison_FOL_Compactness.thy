@@ -875,22 +875,32 @@ lemma wf_size: \<open>wfP (\<lambda>\<phi> \<psi>. size \<phi> < size \<psi>)\<c
   by (simp add: wfP_if_convertible_to_nat)
 
 (*
-function to_prenex_right :: \<open>form \<Rightarrow> form \<Rightarrow> form\<close> where
-  \<open>to_prenex_right \<phi> \<^bold>\<bottom> =\<close>
+instantiation form :: wellorder
+begin
 
-function to_prenex :: \<open>form \<Rightarrow> form\<close> where
-  \<open>to_prenex \<^bold>\<bottom> = \<^bold>\<bottom>\<close>
-| \<open>to_prenex (Atom p ts) = Atom p ts\<close>
-| \<open>to_prenex (\<^bold>\<forall>x\<^bold>. \<phi>) = \<^bold>\<forall>x\<^bold>. (to_prenex \<phi>)\<close>
-| \<open>to_prenex (\<^bold>\<exists>x\<^bold>. \<phi>) = \<^bold>\<exists>x\<^bold>. (to_prenex \<phi>)\<close>
-| \<open>to_prenex (\<phi> \<^bold>\<longrightarrow> \<psi>) =\<close>
- *)
+definition less_eq_form where less_eq_size: \<open>\<phi> \<le> \<psi> \<longleftrightarrow> (size \<phi> = size \<psi>) \<or> (size \<phi> < size \<psi>)\<close>
 
-(* 
+definition less_form where less_size: \<open>\<phi> < \<psi> \<longleftrightarrow> size \<phi> < size \<psi>\<close>
 
-    (if (\<exists>x \<phi>'. (\<phi> \<^bold>\<longrightarrow> \<psi>) = ((\<^bold>\<forall>x\<^bold>. \<phi>' \<^bold>\<longrightarrow> \<^bold>\<bottom>) \<^bold>\<longrightarrow> \<^bold>\<bottom>)) then ((\<^bold>\<forall>x\<^bold>. (to_prenex \<phi>') \<^bold>\<longrightarrow> \<^bold>\<bottom>) \<^bold>\<longrightarrow> \<^bold>\<bottom>)
-    else (let \<phi>' = to_prenex \<phi> in let \<psi>' = to_prenex \<psi> in
-      \<phi>' \<^bold>\<longrightarrow> \<psi>'))
+instance
+proof
+  fix \<phi> \<psi>::form
+  show \<open>(\<phi> < \<psi>) = (\<phi> \<le> \<psi> \<and> \<not> \<psi> \<le> \<phi>)\<close>
+    using less_eq_size less_size by presburger
+next
+  fix \<phi>::form
+  show \<open>\<phi> \<le> \<phi>\<close> 
+    using less_eq_size by simp
+next
+  fix \<phi> \<psi> \<xi>::form
+  show \<open>\<phi> \<le> \<psi> \<Longrightarrow> \<psi> \<le> \<xi> \<Longrightarrow> \<phi> \<le> \<xi>\<close>
+    using less_eq_size by auto
+next
+  fix \<phi> \<psi>::form
+  show \<open>\<phi> \<le> \<psi> \<Longrightarrow> \<psi> \<le> \<phi> \<Longrightarrow> \<phi> = \<psi>\<close>
+(* not true! ! ! *)
+    oops
+end
 *)
 
 lemma \<open>size (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) = size \<phi>\<close>
@@ -932,7 +942,7 @@ lemma uniq_all_p: \<open>Uniq ((\<lambda>p. r = \<^bold>\<forall>(THE x. \<exist
   using uniq_all_x Uniq_def
   by (smt (verit, ccfv_threshold) form.inject(3))
 
-lemma uniq_ex_x: "Uniq (\<lambda>x. \<exists>p. r = \<^bold>\<exists>x\<^bold>. p)" (* necessaire pour décharger le "THE" *)
+lemma uniq_ex_x: "Uniq (\<lambda>x. \<exists>p. r = \<^bold>\<exists>x\<^bold>. p)"
   using Uniq_def by blast
 
 lemma uniq_ex_p: \<open>Uniq ((\<lambda>p. r = \<^bold>\<exists>(THE x. \<exists>p. r = \<^bold>\<exists>x\<^bold>. p)\<^bold>. p))\<close>
@@ -949,8 +959,6 @@ definition ppat where
 lemma ppat_last: \<open>(\<forall>x p. ppat A B C (\<^bold>\<forall>x\<^bold>. p) = A x p) \<Longrightarrow> (\<forall>x p. ppat A B C (\<^bold>\<exists>x\<^bold>. p) = B x p) \<Longrightarrow>
   (\<forall>r. \<not>(\<exists>x p. r = \<^bold>\<forall>x\<^bold>. p) \<and> \<not>(\<exists>x p. r = \<^bold>\<exists>x\<^bold>. p)) \<Longrightarrow> ppat A B C r = C r\<close>
   by blast
-
-(* lemma wf_size: \<open>wfP size\<close> *)
 
 thm wf_induct
 
@@ -975,69 +983,64 @@ lemma wfP_eq: \<open>wfP ((<) :: ('a::ord \<Rightarrow> 'a \<Rightarrow> bool)) 
 WF_IND = prove
  (`WF(<<) <=> !P:A->bool. (!x. (!y. y << x ==> P(y)) ==> P(x)) ==> !x. P(x)`,
 *)
-
 lemma wfP_ind: \<open>wfP ((<) :: ('a::ord \<Rightarrow> 'a \<Rightarrow> bool)) \<Longrightarrow>
   (\<forall>(x::'a). (\<forall>y. y <  x \<longrightarrow> P y) \<longrightarrow> P x) \<longrightarrow> (\<forall>x. P x)\<close>
   by (metis wfP_induct)
 
-(*
-!H S. (!f g x. (!z. z << x ==> (f z = g z) /\ S z (f z))
-                      ==> (H f x = H g x) /\ S x (H f x))
-             ==> ?f:A->B. !x. (f x = H f x)`
-*)
 
-lemma ex_rel: \<open>\<exists>R. \<forall>f x. (\<forall>z. z < x \<longrightarrow> R z (f z)) \<longrightarrow> R x (H f x)\<close>
-  by blast
-
-lemma wf_rec_invariant: \<open>wfP ((<) :: (nat \<Rightarrow> nat \<Rightarrow> bool)) \<Longrightarrow>
-  (\<forall>f g x. (\<forall>(z::nat). z < x \<longrightarrow> ((f z = g z) \<and> (S z (f z))) \<longrightarrow> 
-    ((H f x = H g x) \<and> S x (H f x)))) \<Longrightarrow> (\<exists>f. \<forall>x. (f x = H f x))\<close>
-proof
-  assume 
-    wf_prec: \<open>wfP (<)\<close> and
-    eq_until: \<open>\<forall>f g x z. z < x \<longrightarrow> f z = g z \<and> S z (f z) \<longrightarrow> H f x = H g x \<and> S x (H f x)\<close>
-  obtain R where \<open>\<forall>f x. (\<forall>z. z < x \<longrightarrow> R z (f z)) \<longrightarrow> R x (H f x)\<close> by blast
-  then have \<open>\<forall>x y. R x y \<longrightarrow> S x y\<close>
-    using eq_until wf_prec 
-    sorry
-  then have \<open>\<forall>x. \<exists>! y. R x y\<close>
-    sorry
-  show \<open>\<forall>x. f x = H f x\<close>
-  using wfP_ind ex_rel 
-  sorry
+lemma dependent_wfP_choice:
+  fixes P :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> bool"
+  assumes "wfP R"
+    and adm: "\<And>f g x r. (\<And>z. R z x \<Longrightarrow> f z = g z) \<Longrightarrow> P f x r = P g x r"
+    and P: "\<And>x f. (\<And>y. R y x \<Longrightarrow> P f y (f y)) \<Longrightarrow> \<exists>r. P f x r"
+  shows "\<exists>f. \<forall>x. P f x (f x)"
+proof -
+  have wf_R: \<open>wf {(x,y). R x y}\<close> using assms(1) unfolding wfP_def .
+  have eq_P: \<open>(\<forall>z. (z, x) \<in> {(x, y). R x y} \<longrightarrow> f z = g z) \<Longrightarrow> P f x r = P g x r\<close> for f g x r
+    using assms(2) by blast
+  have ex_P: \<open>(\<forall>y. (y, x) \<in> {(x, y). R x y} \<longrightarrow> P f y (f y)) \<Longrightarrow> \<exists>r. P f x r\<close> for x f
+    using assms(3) by blast
+  show \<open>\<exists>f. \<forall>x. P f x (f x)\<close>
+    using dependent_wf_choice[of "{(x,y). R x y}" P, OF wf_R] eq_P ex_P by blast
 qed
 
-lemma wf_rec: \<open>wfP ((<) :: (('a::ord) \<Rightarrow> 'a \<Rightarrow> bool)) \<Longrightarrow>
-  (\<forall>f g x. (\<forall>(z::'a). z < x \<longrightarrow> (f z = g z)) \<longrightarrow> (H f x = H g x)) \<Longrightarrow> (\<exists>f. \<forall>x. f x = H f x)\<close>
-  (* sledgehammer[timeout=60,slices=6,verbose] *)
-  sorry
+lemma dependent_wfP_choice2:
+  fixes P :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b"
+  assumes "wfP R"
+    and adm: "\<And>f g x r. (\<And>z. R z x \<Longrightarrow> f z = g z) \<Longrightarrow> P f x = P g x"
+  shows "\<exists>f. \<forall>x. P f x = (f x)"
+proof -
+  have adm_rel: \<open>(\<forall>z. R z x \<longrightarrow> f z = g z) \<Longrightarrow> (P f x = r) = (P g x = r)\<close> for f g x r
+    using adm by fastforce
+  have P_rel: \<open>(\<forall>y. R y x \<longrightarrow> P f y = (f y)) \<Longrightarrow> \<exists>r. P f x = r\<close> for x f
+    by simp
+  show "\<exists>f. \<forall>x. P f x = (f x)"
+    using dependent_wfP_choice[of R \<open>\<lambda>f x r. P f x = r\<close>] assms(1) adm_rel P_rel by blast
+qed
 
 lemma size_rec: 
-  \<open>\<forall>f g x. (\<forall>z. size z < size x \<longrightarrow> (f z = g z)) \<longrightarrow> (H f x = H g x) \<Longrightarrow> (\<exists>f. \<forall>x. f x = H f x)\<close>
-proof (rule ccontr)
-  assume 
-    \<open>\<forall>f g x. (\<forall> z. size z < size x \<longrightarrow> f z = g z) \<longrightarrow> H f x = H g x\<close> and
-    \<open>\<not> (\<exists>f. \<forall>x. f x = H f x)\<close>
-  show False
-  sorry
-qed
+  \<open>\<forall>f g x. (\<forall>(z::form). size z < size x \<longrightarrow> (f z = g z)) \<longrightarrow> (H f x = H g x) \<Longrightarrow> (\<exists>f. \<forall>x. f x = H f x)\<close>
+  using dependent_wfP_choice2[OF wf_size] by metis
 
 abbreviation prenex_right_forall :: "(form \<Rightarrow> form \<Rightarrow> form) \<Rightarrow> form \<Rightarrow> nat \<Rightarrow> form \<Rightarrow> form" where 
   \<open>prenex_right_forall \<equiv> 
-    (\<lambda>p \<phi> x \<psi>. (let y = variant(FV(\<phi>) \<union> FV(\<^bold>\<forall>x\<^bold>. \<psi>)) in (\<^bold>\<forall>x\<^bold>. p \<phi> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))))\<close>
-
-
-
+    (\<lambda>p \<phi> x \<psi>. (let y = variant(FV(\<phi>) \<union> FV(\<^bold>\<forall>x\<^bold>. \<psi>)) in (\<^bold>\<forall>y\<^bold>. p \<phi> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))))\<close>
 
 abbreviation prenex_right_exists :: "(form \<Rightarrow> form \<Rightarrow> form) \<Rightarrow> form \<Rightarrow> nat \<Rightarrow> form \<Rightarrow> form" where 
   \<open>prenex_right_exists \<equiv> 
-    (\<lambda>p \<phi> x \<psi>. (let y = variant(FV(\<phi>) \<union> FV(\<^bold>\<forall>x\<^bold>. \<psi>)) in (\<^bold>\<exists>x\<^bold>. p \<phi> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))))\<close>
+    (\<lambda>p \<phi> x \<psi>. (let y = variant(FV(\<phi>) \<union> FV(\<^bold>\<forall>x\<^bold>. \<psi>)) in (\<^bold>\<exists>y\<^bold>. p \<phi> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))))\<close>
 
-lemma prenex_right_eq: 
+lemma prenex_right_ex: 
   \<open>\<exists>prenex_right. (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall prenex_right \<phi> x \<psi>)
     \<and> (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists prenex_right \<phi> x \<psi>)
     \<and> (\<forall>\<phi> \<psi>. qfree \<phi> \<longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
-  sorry
+proof -
+  have \<open>\<forall>\<phi>. \<exists>prenex_right. \<forall>r. prenex_right r =
+    ppat (prenex_right_forall prenex_right \<phi>) (prenex_right_exists prenex_right \<phi>) (\<lambda>\<psi>. \<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
+    sorry
+  show ?thesis
+    sorry
+qed
 
  (* is it really unique? otherwise use SOME *)
 definition prenex_right where "prenex_right = (THE prenex_right.
