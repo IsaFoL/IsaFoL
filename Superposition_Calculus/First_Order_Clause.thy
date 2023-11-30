@@ -354,6 +354,12 @@ lemma ground_clause_is_ground [simp]: "is_ground_clause (to_clause clause\<^sub>
   unfolding to_clause_def vars_clause_def
   by simp
 
+lemma to_literal_polarity_stable: 
+  shows 
+    to_literal_neg_stable: "is_neg literal\<^sub>G \<longleftrightarrow> is_neg (to_literal literal\<^sub>G)" and
+    to_literal_stable: "is_pos literal\<^sub>G \<longleftrightarrow> is_pos (to_literal literal\<^sub>G)"
+  by (simp_all add: to_literal_def)
+
 lemmas to_term_inverse = term_of_gterm_inv
 
 lemmas to_context_inverse = ctxt_of_gctxt_inv

@@ -531,8 +531,8 @@ definition clause_groundings ::
 
 lemma equality_resolution_ground_instance:
   assumes 
-    premise: "premise \<cdot> \<theta> = add_mset (term\<^sub>G !\<approx> term\<^sub>G) (conclusion \<cdot> \<theta>)" and
-    premise_grounding [simp]: "is_ground_clause (premise \<cdot> \<theta>)" and
+    premise_grounding [simp]: "is_ground_clause (premise \<cdot> \<theta>)" and    
+    conclusion_grounding [simp]: "is_ground_clause (conclusion \<cdot> \<theta>)" and
     select: "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>" and
     ground_eq_resolution: 
       "ground.ground_eq_resolution 
@@ -544,17 +544,14 @@ lemma equality_resolution_ground_instance:
   using ground_eq_resolution
 proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (conclusion \<cdot> \<theta>)" 
       rule: ground.ground_eq_resolution.cases)
-  case (ground_eq_resolutionI literal\<^sub>G term\<^sub>G')
+  case (ground_eq_resolutionI literal\<^sub>G term\<^sub>G)
 
   have premise_not_empty: "premise \<noteq> {#}"
     using 
-      premise empty_not_add_mset
+      ground_eq_resolutionI(1)
+      empty_not_add_mset
       clause_subst_empty
-    by metis
-
-  have conclusion_grounding [simp]: "is_ground_clause (conclusion \<cdot> \<theta>)"
-    using premise_grounding premise
-    by simp
+    by (metis to_clause_empty_mset to_clause_inverse)
 
   have "premise \<cdot> \<theta> = to_clause (add_mset literal\<^sub>G (to_ground_clause (conclusion \<cdot> \<theta>)))"
     using 
@@ -567,11 +564,6 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
     by simp
 
   finally have premise': "premise \<cdot> \<theta> = add_mset (to_literal literal\<^sub>G) (conclusion \<cdot> \<theta>)".
-
-  then have term_term\<^sub>G: "term\<^sub>G !\<approx> term\<^sub>G = to_literal (term\<^sub>G' !\<approx> term\<^sub>G')"
-    unfolding ground_eq_resolutionI(2)
-    using premise
-    by simp
 
   have select\<^sub>G: "select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>)) = to_ground_clause ((select premise) \<cdot> \<theta>)"
     using select
@@ -589,38 +581,40 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
   moreover then have "max_literal \<in># premise"
     using maximal\<^sub>l_in_clause by fastforce
 
-  moreover have max_literal_literal\<^sub>G: "?select\<^sub>G_empty \<Longrightarrow> max_literal \<cdot>l \<theta> = term\<^sub>G !\<approx> term\<^sub>G"
+  moreover have max_literal_literal\<^sub>G: 
+      "?select\<^sub>G_empty \<Longrightarrow> max_literal \<cdot>l \<theta> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)"
     using ground_eq_resolutionI(3) max_literal unique_maximal_in_ground_clause
-    unfolding ground_eq_resolutionI(2) term_term\<^sub>G is_maximal\<^sub>G\<^sub>l_iff_is_maximal\<^sub>l
+    unfolding ground_eq_resolutionI(2) is_maximal\<^sub>G\<^sub>l_iff_is_maximal\<^sub>l
     by (metis empty_not_add_mset mset_add premise_grounding to_ground_clause_inverse)
 
   moreover obtain selected_literal where 
-    "?select\<^sub>G_not_empty \<Longrightarrow> selected_literal \<cdot>l \<theta> = term\<^sub>G !\<approx> term\<^sub>G" and
+    "?select\<^sub>G_not_empty \<Longrightarrow> selected_literal \<cdot>l \<theta> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)" and
     "?select\<^sub>G_not_empty \<Longrightarrow> selected_literal \<in># select premise"
     using ground_eq_resolutionI(3) select
-    unfolding ground_eq_resolutionI(2) term_term\<^sub>G
+    unfolding ground_eq_resolutionI(2)
     by (smt image_iff multiset.set_map subst_clause_def ground_literal_in_ground_clause(3))
    
   moreover then have "?select\<^sub>G_not_empty \<Longrightarrow> selected_literal \<in># premise"
     by (meson mset_subset_eqD select_subset)
 
   ultimately obtain literal where
-    literal: "literal \<cdot>l \<theta> = term\<^sub>G !\<approx> term\<^sub>G" and
+    literal: "literal \<cdot>l \<theta> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)" and
     literal_in_premise: "literal \<in># premise" and
     literal_selected: "?select\<^sub>G_not_empty \<Longrightarrow> literal \<in># select premise" and
     literal_max: "?select\<^sub>G_empty \<Longrightarrow> is_maximal\<^sub>l literal premise"
     by blast    
 
   have literal_grounding: "is_ground_literal (literal \<cdot>l \<theta>)"
-    using literal ground_literal_is_ground term_term\<^sub>G
+    using literal ground_literal_is_ground
     by simp
 
   from literal obtain "term" term' where terms: "literal = term !\<approx> term'"
-    by (metis literal.collapse(2) literal.disc(2) subst_pos_stable uprod_exhaust)
+    using subst_polarity_stable to_literal_polarity_stable
+    by (metis literal.collapse(2) literal.disc(2) uprod_exhaust)
 
   have term_term': "term \<cdot>t \<theta> = term' \<cdot>t \<theta>"
     using literal
-    unfolding terms subst_literal(2) subst_atom_def
+    unfolding terms subst_literal(2) subst_atom_def to_literal_def to_atom_def
     by simp
 
   then obtain \<sigma> \<tau> where \<sigma>: "term_subst.is_imgu \<sigma> {{term, term'}}" "\<theta> = \<sigma> \<odot> \<tau>"
@@ -630,7 +624,7 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
   have literal\<^sub>G: 
     "to_literal literal\<^sub>G = (term !\<approx> term') \<cdot>l \<theta>" 
     "literal\<^sub>G = to_ground_literal ((term !\<approx> term') \<cdot>l \<theta>)"
-    using literal ground_eq_resolutionI(2) term_term\<^sub>G terms 
+    using literal ground_eq_resolutionI(2)  terms 
     by simp_all
 
   obtain conclusion' where conclusion': "premise = add_mset literal conclusion'"
@@ -720,8 +714,16 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
     by simp
 
   have "to_ground_clause (conclusion \<cdot> \<theta>) \<in> clause_groundings (conclusion' \<cdot> \<sigma>) \<theta>"
-    unfolding clause_groundings_def clause_subst_compose[symmetric] \<sigma>_\<theta> singleton_conv singleton_iff
-    by (metis add_mset_add_mset_same_iff conclusion' literal premise subst_clause_add_mset)
+    using premise' conclusion'
+    unfolding 
+      clause_groundings_def
+      clause_subst_compose[symmetric] 
+      \<sigma>_\<theta>
+      singleton_conv 
+      singleton_iff
+      ground_eq_resolutionI(2)
+      literal[symmetric]
+    by (simp add: subst_clause_add_mset)
    
   with equality_resolution show ?thesis
     unfolding clause_groundings_def
