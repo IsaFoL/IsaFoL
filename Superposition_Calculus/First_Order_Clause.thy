@@ -62,6 +62,10 @@ lemma subst_clause_Var_ident[simp]: "clause \<cdot> Var = clause"
 lemma clause_subst_empty: "clause = {#} \<longleftrightarrow> clause \<cdot> \<theta> = {#}"
   by (simp add: subst_clause_def)
 
+lemma term_subst_atom_subst: "Upair (term\<^sub>1 \<cdot>t \<theta>) (term\<^sub>2 \<cdot>t \<theta>) = (Upair term\<^sub>1 term\<^sub>2) \<cdot>a \<theta>"
+  unfolding subst_atom_def
+  by simp
+
 (*
 TODO: Needed?
 

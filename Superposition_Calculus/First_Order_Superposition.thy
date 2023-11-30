@@ -728,7 +728,7 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
   with equality_resolution show ?thesis
     unfolding clause_groundings_def
     by blast
-qed  
+qed
 
 lemma equality_factoring_ground_instance:
   assumes 
@@ -745,7 +745,7 @@ lemma equality_factoring_ground_instance:
    using ground_eq_factoring
 proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (conclusion \<cdot> \<theta>)" 
       rule: ground.ground_eq_factoring.cases)
-  case (ground_eq_factoringI literal\<^sub>G\<^sub>1 literal\<^sub>G\<^sub>2 clause\<^sub>G term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>3 term\<^sub>G\<^sub>2)
+  case (ground_eq_factoringI literal\<^sub>G\<^sub>1 literal\<^sub>G\<^sub>2 premise'\<^sub>G term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2 term\<^sub>G\<^sub>3)
 
   have premise_not_empty: "premise \<noteq> {#}"
     using ground_eq_factoringI(1) empty_not_add_mset clause_subst_empty
@@ -755,9 +755,9 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
     using ground_eq_factoringI(4) select clause_subst_empty
     by auto
 
-   obtain max_literal where max_literal: 
-      "is_maximal\<^sub>l max_literal premise" 
-      "is_maximal\<^sub>l (max_literal \<cdot>l \<theta>) (premise \<cdot> \<theta>)"
+   obtain literal\<^sub>1 where literal\<^sub>1_maximal: 
+      "is_maximal\<^sub>l literal\<^sub>1 premise" 
+      "is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<theta>) (premise \<cdot> \<theta>)"
     using is_maximal\<^sub>l_ground_subst_stability[OF premise_not_empty premise_grounding]
     by blast
 
@@ -767,11 +767,124 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
       unfolded ground_eq_factoringI(2) to_ground_clause_inverse[OF premise_grounding]
     ]
 
-  have "max_literal \<cdot>l \<theta> = to_literal (term\<^sub>G\<^sub>1 \<approx> term\<^sub>G\<^sub>3)"
-    using unique_maximal_in_ground_clause[OF premise_grounding max_literal(2) max_ground_literal].
+  have literal\<^sub>1: "literal\<^sub>1 \<cdot>l \<theta> = to_literal literal\<^sub>G\<^sub>1"
+    using 
+      unique_maximal_in_ground_clause[OF premise_grounding literal\<^sub>1_maximal(2) max_ground_literal]
+      ground_eq_factoringI(2)
+    by blast
 
-  then show ?thesis
-    sorry
+  then obtain term\<^sub>1 term\<^sub>1' where 
+    literal\<^sub>1_terms: "literal\<^sub>1 = term\<^sub>1 \<approx> term\<^sub>1'" and
+    term\<^sub>G\<^sub>1_term\<^sub>1: "to_term term\<^sub>G\<^sub>1 = term\<^sub>1 \<cdot>t \<theta>"
+    (* TODO: *)
+    unfolding ground_eq_factoringI(2) subst_literal_def subst_atom_def to_literal_def to_atom_def
+    by (smt (z3) Upair_inject is_pos_def literal.map_disc_iff literal.map_sel(1) literal.sel(1) map_uprod_simps uprod_exhaust)
+
+  obtain premise'' where premise'': "premise = add_mset literal\<^sub>1 premise''"
+    using maximal\<^sub>l_in_clause[OF literal\<^sub>1_maximal(1)]
+    by (meson multi_member_split)
+
+  then obtain literal\<^sub>2 where literal\<^sub>2:
+    "literal\<^sub>2 \<cdot>l \<theta> = to_literal literal\<^sub>G\<^sub>2"
+    "literal\<^sub>2 \<in># premise''"
+    using ground_eq_factoringI(1)
+     (* TODO: *)
+    by (smt (verit) add_mset_add_mset_same_iff image_iff literal\<^sub>1 multiset.set_map premise_grounding subst_clause_add_mset subst_clause_def to_clause_add_mset to_ground_clause_inverse union_single_eq_member)
+   
+  obtain term\<^sub>2 term\<^sub>2' where 
+    literal\<^sub>2_terms: "literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'" and
+    term\<^sub>G\<^sub>1_term\<^sub>2: "to_term term\<^sub>G\<^sub>1 = term\<^sub>2 \<cdot>t \<theta>"
+     (* TODO: *)
+    using literal\<^sub>2(1)
+    unfolding ground_eq_factoringI(3)  subst_literal_def subst_atom_def to_literal_def to_atom_def
+    by (smt (z3) Upair_inject is_pos_def literal.map_disc_iff literal.map_sel(1) literal.sel(1) map_uprod_simps uprod_exhaust)
+
+  have term\<^sub>1_term\<^sub>2: "term\<^sub>1 \<cdot>t \<theta> = term\<^sub>2 \<cdot>t \<theta>"
+    using term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>1_term\<^sub>2
+    by argo
+
+  then obtain \<sigma> \<tau> where \<sigma>: "term_subst.is_imgu \<sigma> {{term\<^sub>1, term\<^sub>2}}" "\<theta> = \<sigma> \<odot> \<tau>"
+    using imgu_exists
+    by blast
+
+  have term\<^sub>G\<^sub>2_term\<^sub>1': "to_term term\<^sub>G\<^sub>2 = term\<^sub>1' \<cdot>t \<theta>"
+    by (smt (verit, ccfv_threshold) Upair_inject ground_eq_factoringI(2) literal.simps(9) literal\<^sub>1 literal\<^sub>1_terms term\<^sub>G\<^sub>1_term\<^sub>1 map_uprod_simps subst_atom_def subst_literal_def to_atom_def to_literal_def upair_in_literal(1))
+
+  have term\<^sub>G\<^sub>3_term\<^sub>2': "to_term term\<^sub>G\<^sub>3 = term\<^sub>2' \<cdot>t \<theta>"
+    by (smt (verit, ccfv_threshold) Upair_inject ground_eq_factoringI(3) literal.simps(9) literal\<^sub>2(1) literal\<^sub>2_terms term\<^sub>G\<^sub>1_term\<^sub>2 map_uprod_simps subst_atom_def subst_literal_def to_atom_def to_literal_def upair_in_literal(1))
+
+  obtain premise' where premise: "premise = add_mset literal\<^sub>1 (add_mset literal\<^sub>2 premise')" 
+    using literal\<^sub>2(2) maximal\<^sub>l_in_clause[OF  literal\<^sub>1_maximal(1)] premise''
+    by (metis multi_member_split)
+
+  then have premise'\<^sub>G_premise': "to_clause premise'\<^sub>G = premise' \<cdot> \<theta>"
+    by (metis add_mset_add_mset_same_iff ground_eq_factoringI(1) literal\<^sub>1 literal\<^sub>2(1) premise_grounding subst_clause_add_mset to_clause_add_mset to_ground_clause_inverse)
+
+  let ?conclusion = "add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise')"
+
+  have equality_factoring: "equality_factoring premise (?conclusion \<cdot> \<sigma>)"
+  proof (rule equality_factoringI)
+    show "premise = add_mset literal\<^sub>1 (add_mset literal\<^sub>2 premise')"
+      using premise.
+  next
+    show "literal\<^sub>1 = term\<^sub>1 \<approx> term\<^sub>1'"
+      using literal\<^sub>1_terms(1).
+  next 
+    show "literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'"
+      using literal\<^sub>2_terms(1).
+  next
+    show "select premise = {#} \<and> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<sigma>) (premise \<cdot> \<sigma>)"
+      using select_empty
+      (* TODO: *)
+      by (smt (verit, ccfv_SIG) \<sigma>(2) asymp_onD clause_subst_compose ground_literal_in_ground_clause_subst is_maximal\<^sub>l_def less\<^sub>l_asymmetric_on less\<^sub>l_ground_subst_stability literal\<^sub>1_maximal(2) literal_subst_compose mset_add premise'' premise_grounding subst_clause_add_mset union_single_eq_member)
+  next
+    show "\<not> term\<^sub>1 \<cdot>t \<sigma> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<sigma>"
+      using ground_eq_factoringI(6)
+      unfolding less\<^sub>t\<^sub>G_less\<^sub>t term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>2_term\<^sub>1'
+      (* TODO: *)
+      by (metis (no_types, lifting) \<sigma>(2) asympD ground_term_is_ground less\<^sub>t_asymmetric less\<^sub>t_ground_subst_stability' term\<^sub>G\<^sub>1_term\<^sub>1 reflclp_iff subst_subst_compose term\<^sub>G\<^sub>2_term\<^sub>1')
+  next 
+    show "term_subst.is_imgu \<sigma> {{term\<^sub>1, term\<^sub>2}}"
+      using \<sigma>(1).
+  next 
+    show "?conclusion \<cdot> \<sigma> = ?conclusion \<cdot> \<sigma>"
+      by(rule refl)
+  qed
+
+  have "term_subst.is_idem \<sigma>"
+    using \<sigma>(1)
+    by (simp add: term_subst.is_imgu_iff_is_idem_and_is_mgu)  
+
+  then have \<sigma>_\<theta>: "\<sigma> \<odot> \<theta> = \<theta>"
+    unfolding \<sigma>(2) term_subst.is_idem_def
+    by simp
+
+  have "add_mset (to_term term\<^sub>G\<^sub>2 !\<approx> to_term term\<^sub>G\<^sub>3) 
+          (add_mset (to_term term\<^sub>G\<^sub>1 \<approx> to_term term\<^sub>G\<^sub>3) (to_clause premise'\<^sub>G)) 
+      = ?conclusion \<cdot> \<theta>"
+    unfolding 
+      term\<^sub>G\<^sub>2_term\<^sub>1' 
+      term\<^sub>G\<^sub>3_term\<^sub>2' 
+      term\<^sub>G\<^sub>1_term\<^sub>1 
+      premise'\<^sub>G_premise' 
+      term_subst_atom_subst 
+      subst_literal[symmetric]
+      subst_clause_add_mset
+    by simp
+
+  then have "to_ground_clause (conclusion \<cdot> \<theta>) \<in> clause_groundings (?conclusion \<cdot> \<sigma>) \<theta>"
+    unfolding
+      clause_groundings_def
+      clause_subst_compose[symmetric] 
+      \<sigma>_\<theta>
+      singleton_conv 
+      singleton_iff
+      ground_eq_factoringI(7) 
+    by (metis (no_types, lifting) literal.simps(10) literal.simps(9) map_uprod_simps to_atom_def to_clause_add_mset to_clause_inverse to_literal_def)
+
+  with equality_factoring show ?thesis
+    unfolding clause_groundings_def
+    by blast
 qed
 
 subsubsection \<open>Alternative Specification of the Superposition Rule\<close>
