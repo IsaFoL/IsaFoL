@@ -115,6 +115,8 @@ lemma vars_clause_plus[simp]:
   "vars_clause (clause\<^sub>1 + clause\<^sub>2) = vars_clause clause\<^sub>1 \<union> vars_clause clause\<^sub>2"
   by (simp add: vars_clause_def)
 
+lemmas term_subst_compose = subst_subst_compose
+  
 lemma atom_subst_compose [simp]: "atom \<cdot>a \<mu> \<odot> \<theta> = atom \<cdot>a \<mu> \<cdot>a \<theta>"
   unfolding subst_atom_def subst_subst_compose
   by (metis (no_types, lifting) map_uprod_simps uprod_exhaust)
@@ -315,6 +317,14 @@ definition to_clause where
 
 definition to_ground_clause where
   "to_ground_clause \<equiv> image_mset to_ground_literal"
+
+lemma to_term_to_atom: "Upair (to_term term\<^sub>G\<^sub>1) (to_term term\<^sub>G\<^sub>2) = to_atom (Upair term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2)"
+  by (simp add: to_atom_def)
+
+lemma to_atom_to_literal: 
+  "Neg (to_atom atom\<^sub>G) = to_literal (Neg atom\<^sub>G)"
+  "Pos (to_atom atom\<^sub>G) = to_literal (Pos atom\<^sub>G)"  
+  by (simp_all add: to_literal_def)
 
 lemma to_clause_empty_mset [simp]: "to_clause {#} = {#}"
   by (simp add: to_clause_def)
