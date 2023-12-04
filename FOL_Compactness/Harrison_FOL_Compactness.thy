@@ -967,6 +967,9 @@ definition ppat :: "(nat \<Rightarrow> form \<Rightarrow> form) \<Rightarrow> (n
     B (THE x. \<exists>p. r = \<^bold>\<exists>x\<^bold>. p) (THE p. r = \<^bold>\<exists>(THE x. \<exists>p. r = \<^bold>\<exists>x\<^bold>. p)\<^bold>. p) 
    else C r))\<close>
 
+lemma ppat_simpA: \<open>\<forall>x p. ppat A B C (\<^bold>\<forall>x\<^bold>. p) = A x p\<close>
+  unfolding ppat_def by simp
+
 (* simplified unneeded hypotheses: (\<forall>x p. ppat A B C (\<^bold>\<forall>x\<^bold>. p) = A x p) \<Longrightarrow> (\<forall>x p. ppat A B C (\<^bold>\<exists>x\<^bold>. p) = B x p) *)
 lemma ppat_last: \<open>(\<forall>r. \<not>(\<exists>x p. r = \<^bold>\<forall>x\<^bold>. p) \<and> \<not>(\<exists>x p. r = \<^bold>\<exists>x\<^bold>. p)) \<Longrightarrow> ppat A B C r = C r\<close>
   by blast
@@ -996,7 +999,7 @@ term \<open>\<exists>f. \<forall>\<phi> \<psi>. f \<phi> \<psi> = ppat (prenex_r
 term \<open>A g \<phi> = (\<lambda>x \<psi>. (let y = variant(FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>)) in (\<^bold>\<forall>y\<^bold>. g (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))))\<close>
 term \<open>A = (\<lambda>g \<phi> x \<psi>. (let y = variant(FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>)) in (\<^bold>\<forall>y\<^bold>. g (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))))\<close>
 
-
+(*
 lemma ppat_to_ex_qfree_rec:
   assumes
     \<open>\<exists>(g :: form \<Rightarrow> form). \<forall>p q. g q = ppat (A g p) (B g p) (C p) q\<close>
@@ -1015,11 +1018,8 @@ lemma ppat_to_ex_qfree_rec2:
     \<open>(\<exists>f. (\<forall>x p q. f p (\<^bold>\<forall>x\<^bold>. q) = (A p (f p) x q)) \<and>
       (\<forall>x p q. f p (\<^bold>\<exists>x\<^bold>. q) = B p (f p) x q) \<and> 
       (\<forall>p q. qfree q \<longrightarrow> f p q = C p q))\<close>
-proof -
-  obtain f where \<open>\<forall>p. \<exists>g. A p (f p) = (A p g) \<and> B p (f p) = (B p g) \<and> (g = ppat (A p g) (B p g) (C p))\<close>
-
 sorry
-
+*)
 
 thm wf_induct
 
@@ -1161,16 +1161,21 @@ proof -
                ppat (\<lambda>x \<psi>. let y = variant (FV \<phi> \<union> FV (\<^bold>\<forall> x\<^bold>. \<psi>)) in \<^bold>\<forall>y\<^bold>. p (\<psi> \<cdot>\<^sub>f\<^sub>m subst x (Var y)))
                 (\<lambda>x \<psi>. let y = variant (FV \<phi> \<union> FV (\<^bold>\<exists>x\<^bold>. \<psi>)) in (\<^bold>\<exists>y\<^bold>. p (\<psi> \<cdot>\<^sub>f\<^sub>m subst x (Var y))))
                 ((\<^bold>\<longrightarrow>) \<phi>) \<psi>"] by blast
-  then obtain prenex_right where \<open>\<forall>\<phi> \<psi>. prenex_right \<phi> \<psi> = ppat (prenex_right_forall prenex_right \<phi>)
-                (prenex_right_exists prenex_right \<phi>) ((\<^bold>\<longrightarrow>) \<phi>) \<psi>\<close> by blast
+  then obtain prenex_right where prenex_right_is: \<open>\<forall>\<phi> \<psi>. prenex_right \<phi> \<psi> = 
+    ppat (prenex_right_forall prenex_right \<phi>) (prenex_right_exists prenex_right \<phi>) ((\<^bold>\<longrightarrow>) \<phi>) \<psi>\<close>
+    by blast
 (* then show each property separately *)
-
-  then show ?thesis
-     (* sledgehammer[timeout=180,slices=6,verbose] *)
-    sorry
+  have \<open>\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall prenex_right \<phi> x \<psi>\<close>
+    using prenex_right_is unfolding ppat_def by simp
+  moreover have \<open>\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists prenex_right \<phi> x \<psi>\<close>
+    using prenex_right_is unfolding ppat_def by simp
+  moreover have \<open>\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
+    using prenex_right_is by (metis (no_types, lifting) ppat_last_qfree)
+  ultimately show ?thesis
+    by blast
 qed
 
- (* is it unique? otherwise use SOME \<rightarrow> No, it is undefined in the last case if \<not>qfree \<phi> *)
+ (* is it unique? \<rightarrow> No, it is undefined in the last case if \<not>qfree \<phi>. Use SOME  *)
 definition prenex_right where "prenex_right = (SOME prenex_right.
   (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall prenex_right \<phi> x \<psi>) \<and>
   (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists prenex_right \<phi> x \<psi>) \<and>
@@ -1178,11 +1183,29 @@ definition prenex_right where "prenex_right = (SOME prenex_right.
 
 
 (*
-inductive to_prenex_right :: "form \<Rightarrow> form \<Rightarrow> form \<Rightarrow> bool" where
-   \<open>qfree \<psi> \<Longrightarrow> to_prenex_right \<phi> \<psi> (\<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
-|  \<open>to_prenex_right \<phi> (\<^bold>\<forall> x\<^bold>. \<psi>) (let y = variant(FV \<psi> \<union> FV (\<^bold>\<forall> x\<^bold>. \<psi>)) in
-     \<^bold>\<forall>y\<^bold>. (to_prenex_right \<phi> (\<psi>)))\<close>
+(\<forall>p x q. Prenex_left (!!x q) p =
+let y = VARIANT(FV(!!x q) UNION FV(p)) in
+??y (Prenex_left (formsubs% (valmod (x,V y) V) q) p)) \<and>
+(\<forall>p x q. Prenex_left (??x q) p =
+let y = VARIANT(FV(??x q) UNION FV(p)) in
+!!y (Prenex_left (formsubst (valmod (x,V y) V) q) p)) \<and>
+(\<forall>p q. qfree q ~ (Prenex_left q p = Prenex_right q p))
 *)
+
+abbreviation prenex_left_forall :: "(form \<Rightarrow> form \<Rightarrow> form) \<Rightarrow> form \<Rightarrow> nat \<Rightarrow> form \<Rightarrow> form" where 
+  \<open>prenex_left_forall \<equiv> 
+    (\<lambda>p \<phi> x \<psi>. (let y = variant(FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<union> FV \<psi>) in (\<^bold>\<forall>y\<^bold>. p (\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))) \<psi>)))\<close>
+
+abbreviation prenex_left_exists :: "(form \<Rightarrow> form \<Rightarrow> form) \<Rightarrow> form \<Rightarrow> nat \<Rightarrow> form \<Rightarrow> form" where 
+  \<open>prenex_left_exists \<equiv> 
+    (\<lambda>p \<phi> x \<psi>. (let y = variant(FV (\<^bold>\<exists>x\<^bold>. \<phi>) \<union> FV \<psi>) in (\<^bold>\<exists>y\<^bold>. p (\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))) \<psi>)))\<close>
+
+
+lemma prenex_left_ex:
+  \<open>\<exists>prenex_left. (\<forall>\<phi> x \<psi>. prenex_left (\<^bold>\<forall>x\<^bold>. \<phi>) \<psi> = prenex_left_forall prenex_left \<phi> x \<psi>)
+    \<and> (\<forall>\<phi> x \<psi>. prenex_left \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_left_exists prenex_left \<phi> x \<psi>)
+    \<and> (\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> prenex_left \<phi> \<psi> = prenex_right \<phi> \<psi>)\<close>
+  sorry
 
 
 end
