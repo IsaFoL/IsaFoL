@@ -71,7 +71,7 @@ definition predicates :: \<open>form set \<Rightarrow> (nat \<times> nat) set\<c
 definition language :: \<open>form set \<Rightarrow> ((nat \<times> nat) set \<times> (nat \<times> nat) set)\<close> where
   \<open>language fms = (functions_forms fms, predicates fms)\<close>
 
-lemma \<open>language {p} = (functions_form p, predicates_form p)\<close>
+lemma lang_singleton: \<open>language {p} = (functions_form p, predicates_form p)\<close>
   unfolding language_def functions_forms_def predicates_def by simp
 
 abbreviation (input) Not :: \<open>form \<Rightarrow> form\<close> (\<open>\<^bold>\<not> _\<close> [90] 90) where

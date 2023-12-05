@@ -426,34 +426,58 @@ fun prenex where
 | \<open>prenex (\<phi> \<^bold>\<longrightarrow> \<psi>) = prenex_left (prenex \<phi>) (prenex \<psi>)\<close>
 | \<open>prenex (\<^bold>\<forall>x\<^bold>. \<phi>) = \<^bold>\<forall>x\<^bold>. (prenex \<phi>)\<close>
 
-theorem \<open>is_prenex (prenex \<phi>) \<and> (FV (prenex \<phi>) = FV \<phi>) \<and> (language {prenex \<phi>} = language {\<phi>}) \<and>
-  (\<forall>I \<beta>. \<not>(dom I = {}) \<longrightarrow> (I, \<beta> \<Turnstile> (prenex \<phi>)) \<longleftrightarrow> (I, \<beta> \<Turnstile> \<phi>))\<close>
+
+(* 
+(`!p q. prenex p /\ prenex q
+         ==> prenex (Prenex_left p q) /\
+             (FV(Prenex_left p q) = FV(p --> q)) /\
+             (language {(Prenex_left p q)} = language {(p --> q)}) /\
+             (!M v. ~(Dom M :A->bool = EMPTY)
+                    ==> (holds M v (Prenex_left p q) <=> holds M v (p --> q)))`,
+*)
+lemma prenex_left_props: \<open>is_prenex \<phi> \<and> is_prenex \<psi> \<Longrightarrow> 
+        is_prenex (prenex_left \<phi> \<psi>) \<and>
+        FV (prenex_left \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
+        (language {(prenex_left \<phi> \<psi>)} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)}) \<and>
+        (\<forall>I \<beta>. \<not>(dom I = {}) \<longrightarrow> (I,\<beta> \<Turnstile> prenex_left \<phi> \<psi> \<longleftrightarrow> I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
+  sorry
+
+theorem prenex_props: \<open>is_prenex (prenex \<phi>) \<and> (FV (prenex \<phi>) = FV \<phi>) \<and> 
+  (language {prenex \<phi>} = language {\<phi>}) \<and>
+  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I, \<beta> \<Turnstile> (prenex \<phi>)) \<longleftrightarrow> (I, \<beta> \<Turnstile> \<phi>))\<close>
 proof (induction \<phi> rule: form.induct)
   case Bot
   then show ?case
     by (metis is_prenex.simps prenex.simps(1) qfree.simps(1))
 next
-  case (Atom x1 x2)
+  case (Atom p ts)
   then show ?case
     using is_prenex.intros(1) prenex.simps(2) qfree.simps(2) by presburger
 next
-  case (Implies x1 x2)
-  then show ?case sorry
+  case (Implies \<phi> \<psi>)
+  have \<open>is_prenex (prenex (\<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
+    using Implies prenex_left_props prenex.simps(3) by presburger
+  moreover have \<open>FV (prenex (\<phi> \<^bold>\<longrightarrow> \<psi>)) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
+    using Implies prenex_left_props prenex.simps(3) FV.simps(3) by presburger
+  moreover have \<open>language {prenex (\<phi> \<^bold>\<longrightarrow> \<psi>)} = language {\<phi> \<^bold>\<longrightarrow> \<psi>}\<close>
+    using Implies prenex_left_props prenex.simps(3) lang_singleton 
+      functions_form.simps(3) predicates_form.simps(3) by (metis prod.inject)
+  moreover have \<open>\<forall>(I::'a intrp) \<beta>. FOL_Semantics.dom I \<noteq> {} \<longrightarrow>
+    I,\<beta> \<Turnstile> prenex (\<phi> \<^bold>\<longrightarrow> \<psi>) = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>\<close>
+    using Implies prenex_left_props holds.simps(3) prenex.simps(3) by metis
+  ultimately show ?case by blast
 next
-  case (Forall x1 x2)
-  have \<open>is_prenex (prenex (\<^bold>\<forall> x1\<^bold>. x2))\<close>
+  case (Forall x \<phi>)
+  have \<open>is_prenex (prenex (\<^bold>\<forall>x\<^bold>. \<phi>))\<close>
     using Forall using is_prenex.intros(2) prenex.simps(4) by presburger
-  moreover have \<open>FV (prenex (\<^bold>\<forall> x1\<^bold>. x2)) = FV (\<^bold>\<forall> x1\<^bold>. x2)\<close>
+  moreover have fv_indep_prenex: \<open>FV (prenex (\<^bold>\<forall>x\<^bold>. \<phi>)) = FV (\<^bold>\<forall>x\<^bold>. \<phi>)\<close>
     using Forall FV.simps(4) prenex.simps(4) by presburger
-  moreover have \<open>language {prenex (\<^bold>\<forall> x1\<^bold>. x2)} = language {\<^bold>\<forall> x1\<^bold>. x2}\<close>
-    using Forall
-    sorry
-  moreover have \<open>(\<forall>I \<beta>. Harrison_FOL_Compactness.dom I \<noteq> {} \<longrightarrow>
-    I,\<beta> \<Turnstile> prenex (\<^bold>\<forall> x1\<^bold>. x2) = I,\<beta> \<Turnstile> (\<^bold>\<forall> x1\<^bold>. x2))\<close>
-    using Forall
-    sorry
-  then show ?case
-    sorry
+  moreover have \<open>language {prenex (\<^bold>\<forall>x\<^bold>. \<phi>)} = language {\<^bold>\<forall>x\<^bold>. \<phi>}\<close>
+    using Forall prenex.simps(4) functions_form.simps(4) predicates_form.simps(4)
+    unfolding language_def functions_forms_def predicates_def by simp
+  moreover have \<open>(\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> I,\<beta> \<Turnstile> prenex (\<^bold>\<forall>x\<^bold>. \<phi>) = I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>))\<close>
+    using Forall holds.simps(4) by simp
+  ultimately show ?case by blast
 qed
 
 
