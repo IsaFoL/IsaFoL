@@ -58,7 +58,10 @@ fun holds
   \<open>\<M>,\<beta> \<Turnstile> \<^bold>\<bottom> \<longleftrightarrow> False\<close>
 | \<open>\<M>,\<beta> \<Turnstile> Atom p ts \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts] \<in> interp_rel \<M> p\<close>
 | \<open>\<M>,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi> \<longleftrightarrow> ((\<M>,\<beta> \<Turnstile> \<phi>) \<longrightarrow> (\<M>,\<beta> \<Turnstile> \<psi>))\<close>
-| \<open>\<M>,\<beta> \<Turnstile> (\<^bold>\<forall> x\<^bold>. \<phi>) \<longleftrightarrow> (\<forall>a \<in> dom \<M>. \<M>,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
+| \<open>\<M>,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<longleftrightarrow> (\<forall>a \<in> dom \<M>. \<M>,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
+
+lemma holds_exists: \<open>\<M>,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>) \<longleftrightarrow> (\<exists>a \<in> dom \<M>. \<M>,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
+  by simp
 
 lemma holds_indep_\<beta>_if:
   \<open>\<forall> v \<in> FV \<phi>. \<beta>\<^sub>1 v = \<beta>\<^sub>2 v \<Longrightarrow> \<M>,\<beta>\<^sub>1 \<Turnstile> \<phi> \<longleftrightarrow> \<M>,\<beta>\<^sub>2 \<Turnstile> \<phi>\<close>
