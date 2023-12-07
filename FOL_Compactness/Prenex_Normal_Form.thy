@@ -421,8 +421,7 @@ definition prenex_left where \<open>prenex_left = (SOME prenex_left.
   (\<forall>\<phi> \<psi>. qfree \<phi> \<longrightarrow> prenex_left \<phi> \<psi> = prenex_right \<phi> \<psi>))\<close>
 
 lemma \<open>prenex_left (\<^bold>\<forall>x\<^bold>. \<phi>) \<psi> = prenex_left_forall prenex_left \<phi> x \<psi>\<close>
-  unfolding prenex_left_def sledgehammer
-  sorry
+  unfolding prenex_left_def by (smt (verit, del_insts) prenex_left_ex some_eq_ex)
 
 fun prenex where
   \<open>prenex \<^bold>\<bottom> = \<^bold>\<bottom>\<close>
@@ -504,7 +503,16 @@ qed
 
 lemma exists_imp_forall: \<open>y \<notin> FV \<psi> \<Longrightarrow>
   ((I :: 'a intrp), \<beta> \<Turnstile> ((\<^bold>\<exists>y\<^bold>.\<phi>) \<^bold>\<longrightarrow>  \<psi>) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. (\<phi> \<^bold>\<longrightarrow> \<psi>)))\<close>
-  sorry
+proof -
+  assume y_notin: \<open>y \<notin> FV \<psi>\<close>
+  have \<open>(\<exists>a \<in> dom I. I,\<beta>(y := a) \<Turnstile> \<phi>) \<longrightarrow> (I, \<beta> \<Turnstile> \<psi>) \<equiv>
+    (\<forall>a \<in> dom I. (I,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I,\<beta> \<Turnstile> \<psi>))\<close>
+    using FN_dom_to_dom empty_iff list.set(1) by (smt (verit, ccfv_threshold))
+  also have \<open>... \<equiv> (\<forall>a \<in> dom I. (I,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
+    using holds_indep_\<beta>_if by (smt (verit, del_insts) fun_upd_other y_notin)
+  finally show \<open>(I, \<beta> \<Turnstile> ((\<^bold>\<exists>y\<^bold>.\<phi>) \<^bold>\<longrightarrow>  \<psi>) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. (\<phi> \<^bold>\<longrightarrow> \<psi>)))\<close>
+    by simp
+qed
 
 lemma exists_imp_commute: \<open>y \<notin> FV \<phi> \<Longrightarrow> ((I :: 'a intrp), \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>y\<^bold>. \<psi>)) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
 proof -
@@ -519,43 +527,10 @@ qed
 
 lemma holds_indep_exists: \<open>y \<notin> FV (\<^bold>\<exists>x\<^bold>. \<phi>) \<Longrightarrow> 
   (I,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>) \<equiv> I,\<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
-(*proof -
-  assume y_notin: \<open>y \<notin> FV (\<^bold>\<forall>x\<^bold>. \<phi>)\<close>
-  {
-    assume \<open>y \<noteq> x\<close>
-    then have y_notin_phi: \<open>y \<notin> FV \<phi>\<close> using y_notin by simp
-    have beta_equiv: \<open>\<forall>w \<in> FV \<phi>. (\<lambda>v. eval_subst I (\<beta>(y := a)) (subst x (Var y)) v) w = (\<beta>(x := a)) w\<close> for a
-    proof
-      fix w
-      assume w_in: \<open>w \<in> FV \<phi>\<close>
-      have \<open>w = x \<Longrightarrow> (\<lambda>v. eval_subst I (\<beta>(y := a)) (subst x (Var y)) v) w = (\<beta>(x := a)) w\<close>
-        by simp
-      moreover have \<open>w \<noteq> x \<Longrightarrow> (\<lambda>v. eval_subst I (\<beta>(y := a)) (subst x (Var y)) v) w = (\<beta>(x := a)) w\<close>
-        using y_notin_phi by (metis w_in eval.simps(1) fun_upd_other subst_def)
-      ultimately show \<open>(\<lambda>v. eval_subst I (\<beta>(y := a)) (subst x (Var y)) v) w = (\<beta>(x := a)) w\<close>
-        by argo
-    qed
-    have \<open>I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<equiv> (\<forall>a \<in> dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
-      by simp
-    also have \<open>... \<equiv> (\<forall>a \<in> dom I. I,(\<lambda>v. eval_subst I (\<beta>(y := a)) (subst x (Var y)) v) \<Turnstile> \<phi>)\<close>
-      using holds_indep_\<beta>_if[OF beta_equiv] by presburger
-    also have \<open>... \<equiv> (\<forall>a \<in> dom I. I,\<beta>(y := a) \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
-      using swap_subst_eval[of I _ \<phi> "subst x (Var y)"] by presburger
-    also have \<open>... \<equiv> (I,\<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
-      by simp
-    finally have \<open>(I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<equiv> I,\<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
-      by argo
-  }
-  moreover {
-    assume y_is_x: \<open>y = x\<close>
-    then have \<open>(I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<equiv> I,\<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
-      using id_subst by presburger
-  }
- ultimately show \<open>(I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<equiv> I,\<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
-    by argo
-qed *)
-  sorry
+  using holds_indep_forall by (smt (verit, ccfv_threshold) FV.simps(1) FV.simps(3)
+    formsubst.simps(1) formsubst.simps(3) holds.simps(3) sup_bot.right_neutral) 
 
+(* sublemmas for is_prenex(prenex _)*)
 
 (* holds M (v:num->A) (p --> !!y (formsubst (valmod (x,V y) V) q)) *)
 lemma prenex_right_forall_is:
@@ -591,32 +566,51 @@ proof -
   then have y_notin1: \<open>y \<notin> FV \<phi>\<close> and y_notin2: \<open>y \<notin> FV (\<^bold>\<exists>x\<^bold>. \<psi>)\<close>
   using variant_finite finite_FV by (meson UnCI finite_UnI)+
   have \<open>?lhs \<equiv> I, \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>y\<^bold>. \<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
-    using holds_indep_exists y_notin2 holds_exists
-    sorry
+    using holds_indep_exists y_notin2 holds_exists by (smt (verit) holds.simps(3))
   also have \<open>... \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. \<phi> \<^bold>\<longrightarrow> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
     using exists_imp_commute[OF y_notin1, of I \<beta> "\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))"] .
-  show \<open>?lhs \<equiv> ?rhs\<close>
-    sorry
+  finally show \<open>?lhs \<equiv> ?rhs\<close>
+    unfolding y_def .
 qed
 
-lemma prenex_right_forall_is:
+lemma prenex_left_forall_is:
   assumes \<open>\<not>(dom (I :: 'a intrp) = {})\<close> 
-  shows \<open>((I, \<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> (\<^bold>\<forall>x\<^bold>. \<psi>)) \<equiv>
-  (I, \<beta> \<Turnstile> (\<^bold>\<forall>(variant (FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>)))\<^bold>. 
-             (\<phi> \<^bold>\<longrightarrow> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>))))))))))\<close> (is "?lhs \<equiv> ?rhs")
-proof -
-  have \<open>?lhs \<Longrightarrow> ?rhs\<close>
-  proof -
-    assume ?lhs
-    then have \<open>\<forall>a \<in> dom I. (I,\<beta> \<Turnstile> \<phi>) \<longrightarrow> I,\<beta>(x := a) \<Turnstile> \<psi>\<close>
-      by simp
-    show ?rhs
-      sorry
-  qed
-  moreover have \<open>?rhs \<Longrightarrow> ?lhs\<close>
-    sorry
-  ultimately show \<open>?lhs \<equiv> ?rhs\<close> by argo
-qed
+  shows \<open>(I, \<beta> \<Turnstile> ((\<^bold>\<forall>x\<^bold>. \<phi>) \<^bold>\<longrightarrow> \<psi>)) \<equiv> (I, \<beta> \<Turnstile> (\<^bold>\<exists>(variant (FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<union> FV \<psi>))\<^bold>.
+               ((\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<union> FV \<psi>))))) \<^bold>\<longrightarrow> \<psi>)))\<close>
+  using forall_imp_exists holds_indep_forall holds.simps(3)
+  by (smt (verit, del_insts) FV.simps(3) UnI2 sup.commute variant_form)
+
+lemma prenex_left_exists_is:
+  assumes \<open>\<not>(dom (I :: 'a intrp) = {})\<close> 
+  shows \<open>(I, \<beta> \<Turnstile> ((\<^bold>\<exists>x\<^bold>. \<phi>) \<^bold>\<longrightarrow> \<psi>)) \<equiv> (I, \<beta> \<Turnstile> (\<^bold>\<forall>(variant (FV (\<^bold>\<exists>x\<^bold>. \<phi>) \<union> FV \<psi>))\<^bold>.
+               ((\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV (\<^bold>\<exists>x\<^bold>. \<phi>) \<union> FV \<psi>))))) \<^bold>\<longrightarrow> \<psi>)))\<close>
+  using exists_imp_forall holds_indep_exists holds.simps(3)
+  by (smt (verit, ccfv_SIG) FV.simps(3) UnCI finite_FV variant_finite)
+
+(* sublemmas for prenex prop on FV *)
+lemma prenex_right_forall_FV: \<open>FV (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<forall>x\<^bold>. \<psi>)) =
+  FV (\<^bold>\<forall>(variant (FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>)))\<^bold>. (\<phi> \<^bold>\<longrightarrow> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>))))))))\<close>
+  using formsubst_rename
+  by (metis Diff_empty Diff_insert0 FV.simps(3) FV.simps(4) Un_Diff finite_FV variant_finite)
+
+lemma prenex_right_exists_FV: \<open>FV (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>x\<^bold>. \<psi>)) =
+  FV (\<^bold>\<forall>(variant (FV \<phi> \<union> FV (\<^bold>\<exists>x\<^bold>. \<psi>)))\<^bold>. (\<phi> \<^bold>\<longrightarrow> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV \<phi> \<union> FV (\<^bold>\<exists>x\<^bold>. \<psi>))))))))\<close>
+  using formsubst_rename prenex_right_forall_FV by force
+
+lemma prenex_left_forall_FV: \<open>FV ((\<^bold>\<forall>x\<^bold>. \<phi>) \<^bold>\<longrightarrow> \<psi>) =
+  FV (\<^bold>\<exists>(variant (FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<union> FV \<psi>))\<^bold>. ((\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<union> FV \<psi>))))) \<^bold>\<longrightarrow> \<psi>))\<close>
+  using formsubst_rename
+  by (metis Diff_idemp Diff_insert_absorb FV.simps(3) FV.simps(4) Un_Diff finite_FV variant_finite FV_exists)
+
+lemma prenex_left_exists_FV: \<open>FV ((\<^bold>\<exists>x\<^bold>. \<phi>) \<^bold>\<longrightarrow> \<psi>) =
+  FV (\<^bold>\<forall>(variant (FV (\<^bold>\<exists>x\<^bold>. \<phi>) \<union> FV \<psi>))\<^bold>. ((\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV (\<^bold>\<exists>x\<^bold>. \<phi>) \<union> FV \<psi>))))) \<^bold>\<longrightarrow> \<psi>))\<close>
+  using formsubst_rename FV_exists prenex_left_forall_FV by auto
+
+(* sublemmas for prenex prop on language *)
+lemma prenex_right_forall_language: \<open>language {\<phi> \<^bold>\<longrightarrow> (\<^bold>\<forall>x\<^bold>. \<psi>)} =
+  language {\<^bold>\<forall>(variant (FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>)))\<^bold>. (\<phi> \<^bold>\<longrightarrow> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>)))))))}\<close>
+  using lang_singleton
+
 
 (* 
 (`!p q. prenex p /\ prenex q

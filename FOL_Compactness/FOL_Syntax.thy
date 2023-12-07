@@ -108,6 +108,9 @@ fun FV :: \<open>form \<Rightarrow> nat set\<close> where
 lemma FV_all_subs: \<open>FV \<phi> \<subseteq> FV (\<^bold>\<forall> x\<^bold>. \<phi>) \<union> {x}\<close>
   by fastforce
 
+lemma FV_exists: \<open>FV (\<^bold>\<exists>x\<^bold>. \<phi>) = FV \<phi> - {x}\<close>
+  by simp
+
 lemma finite_FV: \<open>finite (FV \<phi>)\<close>
   by (induction \<phi>, auto)
 
@@ -322,5 +325,75 @@ next
     finally show ?thesis .
   qed
 qed auto
+
+thm formsubst_fv
+
+lemma subst_var: \<open>\<phi> \<cdot>\<^sub>f\<^sub>m Var = \<phi>\<close>
+  by (induction \<phi>) auto
+
+lemma formsubst_rename: \<open>FV (\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))) - {y} = FV \<phi> - {x} - {y}\<close>
+proof (cases "y = x")
+  case True
+  then have \<open>subst x (Var y) = Var\<close>
+    by simp
+  then have \<open>FV (\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))) = FV \<phi>\<close>
+    using subst_var by metis
+  then show ?thesis
+    using True by simp
+next
+  case False
+  show ?thesis
+  proof
+    show \<open>FV (\<phi> \<cdot>\<^sub>f\<^sub>m subst x (Var y)) - {y} \<subseteq> FV \<phi> - {x} - {y}\<close>
+    proof
+      fix v
+      assume v_in: \<open>v \<in> FV (\<phi> \<cdot>\<^sub>f\<^sub>m subst x (Var y)) - {y}\<close>
+      moreover have \<open>v \<noteq> x\<close>
+        using v_in
+        by (smt (verit, ccfv_threshold) DiffE Term.term.simps(17) eval_term.simps(1)
+            formsubst_fv fun_upd_other insert_iff mem_Collect_eq subst_def subst_simps(1))
+      moreover have \<open>v \<in> FV \<phi>\<close>
+        by (smt (verit, del_insts) DiffE Term.term.simps(17) eval_term.simps(1) formsubst_fv 
+            fun_upd_other mem_Collect_eq subst_def subst_simps(1) subst_var v_in)
+      ultimately show \<open>v \<in> FV \<phi> - {x} - {y}\<close>
+        by blast
+    qed
+  next
+    show \<open>FV \<phi> - {x} - {y} \<subseteq> FV (\<phi> \<cdot>\<^sub>f\<^sub>m subst x (Var y)) - {y}\<close>
+      using formsubst_fv False by (smt (verit, del_insts) Diff_iff Term.term.simps(17) 
+          mem_Collect_eq singleton_iff subsetI subst_ident)
+  qed
+qed
+
+lemma termsubst_functions_term:
+  \<open>functions_term (t \<cdot> \<sigma>) = functions_term t \<union> {x. \<exists>y. y \<in> FVT t \<and> x \<in> functions_term ((Var y) \<cdot> \<sigma>)}\<close>
+  by (induction t arbitrary: \<sigma>) auto
+
+lemma formsubst_functions_form: 
+  \<open>functions_form (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) = functions_form \<phi> \<union> {x. \<exists>y. y \<in> FV \<phi> \<and> x \<in> functions_term ((Var y) \<cdot> \<sigma>)}\<close>
+proof (induction \<phi> arbitrary: \<sigma>)
+  case Bot
+  then show ?case by simp
+next
+  case (Atom p ts)
+  show ?case
+    using termsubst_functions_term by auto
+next
+  case (Implies \<phi>1 \<phi>2)
+  then show ?case by auto
+next
+  case (Forall x1 \<phi>)
+  then show ?case sorry
+qed
+
+lemma formsubst_predicates: \<open>predicates_form (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) = predicates_form \<phi>\<close>
+proof (induction \<phi> arbitrary: \<sigma> rule: predicates_form.induct)
+  case (4 x \<phi>)
+  then show ?case
+    by (metis (no_types, lifting) formsubst.simps(4) predicates_form.simps(4))
+qed auto
+
+lemma formsubst_language_rename: \<open>language {\<phi> \<cdot>\<^sub>f\<^sub>m subst x (Var y)} = language {\<phi>}\<close>
+  using lang_singleton formsubst_predicates formsubst_functions_form by (simp add: subst_def)
 
 end
