@@ -32,7 +32,6 @@ lemma is_maximal_in_set_wrt_iff:
   "is_maximal_in_set_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> \<not> R x y)"
   using trans asym is_maximal_in_set_wrt_def[unfolded non_reaching_wrt_iff] by metis
 
-
 subsection \<open>Existence\<close>
 
 lemma ex_minimal_in_set_wrt:
@@ -92,6 +91,7 @@ context
     tot: "totalp_on X R"
 begin
 
+
 subsection \<open>Conversions\<close>
 
 lemma is_least_in_set_wrt_iff:
@@ -113,7 +113,6 @@ lemma is_maximal_in_set_wrt_eq_is_greatest_in_set_wrt:
   using trans asym tot non_reaching_wrt_eq_reachable_by_all_wrt
     is_maximal_in_set_wrt_def is_greatest_in_set_wrt_def
   by metis
-
 
 subsection \<open>Uniqueness\<close>
 

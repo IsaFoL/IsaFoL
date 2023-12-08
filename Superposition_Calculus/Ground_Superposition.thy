@@ -255,7 +255,7 @@ where
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
     P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
     L\<^sub>1 = s\<langle>t\<rangle>\<^sub>G \<approx> s' \<Longrightarrow>
-    L\<^sub>2 =  t \<approx> t' \<Longrightarrow>
+    L\<^sub>2 = t \<approx> t' \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     select P\<^sub>1 = {#} \<Longrightarrow>
