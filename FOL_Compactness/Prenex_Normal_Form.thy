@@ -40,7 +40,7 @@ proof -
   assume prenex_formsubst: \<open>is_prenex (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>)\<close>
   have \<open>qfree (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<Longrightarrow> is_prenex \<phi>\<close>
     using qfree_formsubst is_prenex.intros(1) by simp
-  moreover have \<open>\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<forall>x\<^bold>. \<psi> \<and> is_prenex \<psi> \<Longrightarrow> is_prenex \<phi>\<close>
+  moreover have \<open>\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<forall>x\<^bold>. \<psi> \<and> is_prenex \<psi> \<Longrightarrow> is_prenex \<phi>\<close> sorry
   show \<open>is_prenex \<phi>\<close>
     sorry
 qed
