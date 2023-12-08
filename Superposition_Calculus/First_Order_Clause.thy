@@ -47,6 +47,9 @@ definition subst_clause ::
 where
   "subst_clause clause \<sigma> = image_mset (\<lambda>literal. literal \<cdot>l \<sigma>) clause"
 
+lemma subst_context_Var_ident[simp]: "context \<cdot>t\<^sub>c Var = context"
+  by(induction "context") auto
+
 lemma subst_atom_Var_ident[simp]: "atom \<cdot>a Var = atom"
   unfolding subst_atom_def
   by (simp add: uprod.map_ident)
@@ -575,5 +578,28 @@ lemma remove1_mset_to_literal:
   "remove1_mset (to_literal literal\<^sub>G) (to_clause clause\<^sub>G) 
    = to_clause (remove1_mset literal\<^sub>G clause\<^sub>G)"
   unfolding to_clause_def image_mset_remove1_mset[OF to_literal_inj]..
+
+lemma obtain_from_atom_subst: 
+  assumes "atom \<cdot>a \<theta> = Upair term\<^sub>1' term\<^sub>2'"
+  obtains term\<^sub>1 term\<^sub>2 
+  where "atom = Upair term\<^sub>1 term\<^sub>2" "term\<^sub>1 \<cdot>t \<theta> = term\<^sub>1'" "term\<^sub>2 \<cdot>t \<theta> = term\<^sub>2'"
+  using assms term_subst_atom_subst
+  by (smt (z3) Upair_inject uprod_exhaust)
+
+lemma obtain_from_pos_literal_subst: 
+  assumes "literal \<cdot>l \<theta> = term\<^sub>1' \<approx> term\<^sub>2'"
+  obtains term\<^sub>1 term\<^sub>2 
+  where "literal = term\<^sub>1 \<approx> term\<^sub>2" "term\<^sub>1 \<cdot>t \<theta> = term\<^sub>1'" "term\<^sub>2 \<cdot>t \<theta> = term\<^sub>2'"
+  using assms obtain_from_atom_subst subst_pos_stable
+  by (metis is_pos_def literal.sel(1) subst_literal(1))
+
+lemma obtain_from_neg_literal_subst: 
+  assumes "literal \<cdot>l \<theta> = term\<^sub>1' !\<approx> term\<^sub>2'"
+  obtains term\<^sub>1 term\<^sub>2 
+  where "literal = term\<^sub>1 !\<approx> term\<^sub>2" "term\<^sub>1 \<cdot>t \<theta> = term\<^sub>1'" "term\<^sub>2 \<cdot>t \<theta> = term\<^sub>2'"
+  using assms obtain_from_atom_subst subst_neg_stable
+  by (metis literal.collapse(2) literal.disc(2) subst_literal(2) upair_in_literal(2))
+
+lemmas obtain_from_literal_subst = obtain_from_pos_literal_subst obtain_from_neg_literal_subst
 
 end
