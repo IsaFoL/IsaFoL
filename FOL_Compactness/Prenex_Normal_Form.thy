@@ -13,7 +13,39 @@ inductive is_prenex :: "form \<Rightarrow> bool" where
 | \<open>is_prenex \<phi> \<Longrightarrow> is_prenex (\<^bold>\<forall>x\<^bold>. \<phi>)\<close>
 | \<open>is_prenex \<phi> \<Longrightarrow> is_prenex (\<^bold>\<exists>x\<^bold>. \<phi>)\<close>
 
+
+lemma prenex_formsubst1: \<open>is_prenex \<phi> \<Longrightarrow> is_prenex (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>)\<close>
+proof (induction \<phi> arbitrary: \<sigma> rule: is_prenex.induct)
+  case 1
+  then show ?case using is_prenex.intros(1) qfree_formsubst
+    by blast
+next
+  case (2 \<phi> x)
+  then show ?case
+    using formsubst_def_switch by (metis (no_types, lifting) formsubst.simps(4) is_prenex.intros(2))
+next
+  case (3 \<phi> x)
+  then show ?case
+    using formsubst_def_switch is_prenex.intros(3)
+    by (smt (verit, del_insts) formsubst.simps(1) formsubst.simps(3) formsubst.simps(4))
+qed
+
+
+thm is_prenex.induct
 find_theorems is_prenex
+thm is_prenex.cases
+
+lemma prenex_formsubst2: \<open>is_prenex (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<Longrightarrow> is_prenex \<phi>\<close>
+proof -
+  assume prenex_formsubst: \<open>is_prenex (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>)\<close>
+  have \<open>qfree (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<Longrightarrow> is_prenex \<phi>\<close>
+    using qfree_formsubst is_prenex.intros(1) by simp
+  moreover have \<open>\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<forall>x\<^bold>. \<psi> \<and> is_prenex \<psi> \<Longrightarrow> is_prenex \<phi>\<close>
+  show \<open>is_prenex \<phi>\<close>
+    sorry
+qed
+
+
 
 inductive universal :: "form \<Rightarrow> bool" where
   \<open>qfree \<phi> \<Longrightarrow> universal \<phi>\<close>
@@ -663,6 +695,11 @@ lemma prenex_props_exists: \<open>P \<and> FV \<phi> = FV \<psi> \<and> language
 
 thm is_prenex.induct
 
+thm prenex_right_forall_is 
+prenex_right_forall_FV
+prenex_right_forall_language
+prenex_props_forall
+
 lemma prenex_right_props_imp: 
   assumes prenex_psi: \<open>is_prenex \<psi>\<close>
   shows \<open>qfree \<phi> \<Longrightarrow> is_prenex (prenex_right \<phi> \<psi>) \<and>
@@ -677,7 +714,10 @@ next
   case (2 \<psi> x)
   have \<open>is_prenex (prenex_right \<phi> \<psi>) \<and> FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and> language {prenex_right \<phi> \<psi>} = language {\<phi> \<^bold>\<longrightarrow> \<psi>} \<and> (\<forall>(I :: 'a intrp) \<beta>. FOL_Semantics.dom I \<noteq> {} \<longrightarrow> I,\<beta> \<Turnstile> prenex_right \<phi> \<psi> = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
     using 2(2)[OF 2(3)] .
-  then show ?case sorry
+  then show ?case
+    using prenex_props_forall
+    prenex_right_forall_FV
+    sorry
 next
   case (3 \<phi> x)
   then show ?case sorry
@@ -745,7 +785,6 @@ proof (induction \<phi> arbitrary: \<psi> rule: wfP_induct_rule[OF wf_size])
         sorry
       ultimately show ?case by blast
     qed
-  qed
 qed
 
 theorem prenex_props: \<open>is_prenex (prenex \<phi>) \<and> (FV (prenex \<phi>) = FV \<phi>) \<and> 
