@@ -50,6 +50,8 @@ datatype form =
 | Implies form form (infixl \<open>\<^bold>\<longrightarrow>\<close> 85)
 | Forall nat form (\<open>\<^bold>\<forall> _\<^bold>. _\<close> [0, 70] 70)
 
+find_theorems \<open>_ \<or> _ \<close>name: FOL_Syntax.form
+
 fun functions_form :: \<open>form \<Rightarrow> (nat \<times> nat) set\<close> where
   \<open>functions_form \<^bold>\<bottom> = {}\<close>
 | \<open>functions_form (Atom p ts) = (\<Union> t \<in> set ts. functions_term t)\<close> 
@@ -221,6 +223,48 @@ qed
 lemma \<open>{x. \<exists>y. y \<in> (s \<union> t) \<and> P x y} = {x. \<exists>y. y \<in> s \<and> P x y} \<union> {x. \<exists>y. y \<in> t \<and> P x y}\<close>
   by blast
 
+lemma formsubst_structure_bot: \<open>\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<bottom> \<longleftrightarrow> \<phi> = \<^bold>\<bottom>\<close>
+  by (smt (verit) form.distinct(5) form.simps(5) form.simps(7) formsubst.elims)
+
+find_theorems formsubst
+thm form.distinct
+find_theorems name: FOL_Syntax.form
+
+lemma formsubst_structure_pred: \<open>(\<exists>p ts. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = Atom p ts) \<longleftrightarrow> (\<exists>p ts. \<phi> = Atom p ts)\<close>
+proof (cases \<phi>)
+  case (Forall x \<psi>)
+  then show ?thesis
+    using formsubst_def_switch by (metis (no_types, lifting) form.distinct(10) formsubst.simps(4))
+qed auto
+
+lemma formsubst_structure_imp: \<open>(\<exists>\<phi>1 \<phi>2. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<longleftrightarrow> (\<exists>\<psi>1 \<psi>2. \<phi> = \<psi>1 \<^bold>\<longrightarrow> \<psi>2)\<close>
+proof (cases \<phi>)
+  case (Forall x \<psi>)
+  then show ?thesis
+    using formsubst_def_switch
+    by (metis (no_types, lifting) form.distinct(11) formsubst.simps(4))
+qed auto
+
+lemma formsubst_structure_all: \<open>(\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<forall>x\<^bold>. \<psi>)) \<longleftrightarrow> (\<exists>x \<psi>. \<phi> = (\<^bold>\<forall>x\<^bold>. \<psi>))\<close>
+proof (cases \<phi>)
+  case (Forall x \<psi>)
+  then show ?thesis
+    using formsubst_def_switch
+    by (metis (no_types, lifting) formsubst.simps(4))
+qed auto
+
+lemma formsubst_structure_not: \<open>(\<exists>\<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = Not \<psi>) \<longleftrightarrow> (\<exists>\<psi>. \<phi> = Not \<psi>)\<close>
+  using formsubst_structure_imp formsubst_structure_bot
+  by (metis form.sel(4) formsubst.simps(3))
+
+lemma formsubsts_structure_ex: \<open>(\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<exists>x\<^bold>. \<psi>)) \<longleftrightarrow> (\<exists>x \<psi>. \<phi> = (\<^bold>\<exists>x\<^bold>. \<psi>))\<close>
+  using formsubst_structure_not formsubst_structure_all formsubst_structure_imp sorry
+
+lemma formsubst_structure: \<open>(\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<bottom> \<longleftrightarrow> \<phi> = \<^bold>\<bottom>) \<and> ((\<exists>p ts. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = Atom p ts) \<longleftrightarrow> (\<exists>p ts. \<phi> = Atom p ts)) \<and>
+  ((\<exists>\<phi>1 \<phi>2. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<longleftrightarrow> (\<exists>\<psi>1 \<psi>2. \<phi> = \<psi>1 \<^bold>\<longrightarrow> \<psi>2)) \<and> ((\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<forall>x\<^bold>. \<psi>)) \<longleftrightarrow> (\<exists>x \<psi>. \<phi> = (\<^bold>\<forall>x\<^bold>. \<psi>)))\<close>
+  using formsubst_structure_bot formsubst_structure_pred formsubst_structure_imp formsubst_structure_all
+  by auto
+
 lemma formsubst_fv: \<open>FV (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) = {x. \<exists>y. y \<in> (FV \<phi>) \<and> x \<in> FVT ((Var y) \<cdot> \<sigma>)}\<close>
 proof (induction \<phi> arbitrary: \<sigma> rule:form.induct)
   case (Atom x1 x2)
@@ -379,11 +423,61 @@ next
   show ?case
     using termsubst_functions_term by auto
 next
-  case (Implies \<phi>1 \<phi>2)
+  case (Implies \<phi> \<psi>)
   then show ?case by auto
 next
-  case (Forall x1 \<phi>)
-  then show ?case sorry
+  case (Forall x \<phi>)
+  define \<sigma>' where \<open>\<sigma>' = \<sigma>(x := Var x)\<close>
+  define z where \<open>z = variant (FV (\<phi> \<cdot>\<^sub>f\<^sub>m2 \<sigma>'))\<close>
+  have fun_terms_set_eq: \<open>{xa. \<exists>y. y \<in> FV (\<^bold>\<forall> x\<^bold>. \<phi>) \<and> xa \<in> functions_term (Var y \<cdot> \<sigma>)} =
+    (if (\<exists>y. y \<in> FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>' y))
+    then {xa. \<exists>y. y \<in> FV \<phi> \<and> xa \<in> functions_term ((Var y) \<cdot> \<sigma>(x := Var z))}
+    else {x. \<exists>y. y \<in> FV \<phi> \<and> x \<in> functions_term ((Var y) \<cdot> \<sigma>')})\<close> (is "?lhs = ?rhs")
+  proof
+    show \<open>?lhs \<subseteq> ?rhs\<close>
+    proof
+      fix v
+      assume v_in: "v \<in> ?lhs"
+      have \<open>\<exists>y. y \<in> FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>' y) \<Longrightarrow> v \<in> {xa. \<exists>y. y \<in> FV \<phi> \<and> xa \<in> functions_term ((Var y) \<cdot> \<sigma>(x := Var z))}\<close>
+        using v_in by auto
+      moreover have \<open>\<nexists>y. y \<in> FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>' y) \<Longrightarrow> v \<in> {x. \<exists>y. y \<in> FV \<phi> \<and> x \<in> functions_term ((Var y) \<cdot> \<sigma>')}\<close>
+        using v_in \<sigma>'_def by auto
+      ultimately show "v \<in> ?rhs"
+        by argo
+    qed
+  next
+    show \<open>?rhs \<subseteq> ?lhs\<close>
+    proof
+      fix v
+      assume v_in: \<open>v \<in> ?rhs\<close>
+      have \<open>\<exists>y. y \<in> FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>' y) \<Longrightarrow> v \<in> ?lhs\<close>
+        using v_in by (smt (verit, del_insts) Diff_empty Diff_insert0 FV.simps(4)
+            Term.term.simps(17) empty_iff eval_term.simps(1) eval_with_fresh_var fun_upd_same
+            functions_term.simps(1) insertE insert_Diff mem_Collect_eq)
+      moreover have \<open>\<nexists>y. y \<in> FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>' y) \<Longrightarrow> v \<in> ?lhs\<close>
+        using v_in by (smt (verit, ccfv_threshold) Diff_iff FV.simps(4) \<sigma>'_def empty_iff
+            eval_term.simps(1) fun_upd_other fun_upd_same functions_term.simps(1) insertE
+            mem_Collect_eq)
+      ultimately show \<open>v \<in> ?lhs\<close>
+        by argo
+    qed
+  qed
+  have \<open>functions_form ((\<^bold>\<forall>x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m \<sigma>) = functions_form ((\<^bold>\<forall> x\<^bold>. \<phi>) \<cdot>\<^sub>f\<^sub>m2 \<sigma>)\<close>
+    using formsubst_def_switch by simp
+  also have \<open>... = (if (\<exists>y. y \<in> FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>' y))
+    then functions_form (\<^bold>\<forall> z\<^bold>. (\<phi> \<cdot>\<^sub>f\<^sub>m2 \<sigma>(x := Var z)))
+    else functions_form (\<^bold>\<forall> x\<^bold>. (\<phi> \<cdot>\<^sub>f\<^sub>m2 \<sigma>')))\<close>
+    using \<sigma>'_def z_def by (smt (verit) formsubst2.simps(4))
+  also have \<open>... = (if (\<exists>y. y \<in> FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>' y))
+    then functions_form \<phi> \<union> {xa. \<exists>y. y \<in> FV \<phi> \<and> xa \<in> functions_term ((Var y) \<cdot> \<sigma>(x := Var z))}
+    else functions_form \<phi> \<union> {x. \<exists>y. y \<in> FV \<phi> \<and> x \<in> functions_term ((Var y) \<cdot> \<sigma>')})\<close>
+    using formsubst_def_switch Forall by auto
+  also have \<open>... = functions_form \<phi> \<union> (if (\<exists>y. y \<in> FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>' y))
+    then {xa. \<exists>y. y \<in> FV \<phi> \<and> xa \<in> functions_term ((Var y) \<cdot> \<sigma>(x := Var z))}
+    else {x. \<exists>y. y \<in> FV \<phi> \<and> x \<in> functions_term ((Var y) \<cdot> \<sigma>')})\<close>
+    by auto
+  finally show ?case
+    using fun_terms_set_eq by auto
 qed
 
 lemma formsubst_predicates: \<open>predicates_form (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) = predicates_form \<phi>\<close>

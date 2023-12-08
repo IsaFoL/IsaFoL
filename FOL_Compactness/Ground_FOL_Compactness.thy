@@ -18,7 +18,12 @@ fun qfree :: \<open>form \<Rightarrow> bool\<close> where
 lemma qfree_no_quantif: \<open>qfree r \<Longrightarrow> \<not>(\<exists>x p. r = \<^bold>\<forall>x\<^bold>. p) \<and> \<not>(\<exists>x p. r = \<^bold>\<exists>x\<^bold>. p)\<close>
   using qfree.simps(3) qfree.simps(4) by blast
 
-
+lemma qfree_formsubst: \<open>qfree \<phi> \<equiv> qfree (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>)\<close>
+proof (induction \<phi>)
+  case (Forall x \<phi>)
+  then show ?case 
+    using formsubst_def_switch by (metis (no_types, lifting) formsubst.simps(4) qfree_no_quantif)
+qed simp+
 
 (* typedef qfree_form = \<open>{\<phi>::form. qfree \<phi>}\<close>
   using qfree.simps(1) by blast 

@@ -13,6 +13,8 @@ inductive is_prenex :: "form \<Rightarrow> bool" where
 | \<open>is_prenex \<phi> \<Longrightarrow> is_prenex (\<^bold>\<forall>x\<^bold>. \<phi>)\<close>
 | \<open>is_prenex \<phi> \<Longrightarrow> is_prenex (\<^bold>\<exists>x\<^bold>. \<phi>)\<close>
 
+find_theorems is_prenex
+
 inductive universal :: "form \<Rightarrow> bool" where
   \<open>qfree \<phi> \<Longrightarrow> universal \<phi>\<close>
 | \<open>universal \<phi> \<Longrightarrow> universal (\<^bold>\<forall>x\<^bold>. \<phi>)\<close>
@@ -313,11 +315,31 @@ proof -
     by blast
 qed
 
- (* is it unique? \<rightarrow> No, it is undefined in the last case if \<not>qfree \<phi>. Use SOME  *)
+ (* is it unique? \<rightarrow> No, it is undefined in the last case if \<not>qfree \<phi>. Use SOME, not THE  *)
 definition prenex_right where "prenex_right = (SOME prenex_right.
   (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall prenex_right \<phi> x \<psi>) \<and>
   (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists prenex_right \<phi> x \<psi>) \<and>
-  (\<forall>\<phi> \<psi>. qfree \<phi> \<longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>)))"
+  (\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>)))"
+
+find_theorems "SOME _. _ \<Longrightarrow> _"
+thm some_eq_imp verit_sko_ex
+
+thm someI2_ex
+
+lemma prenex_right_qfree_case: \<open>qfree \<psi> \<Longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
+  (* \<open>qfree \<phi> \<Longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>)\<close> *)
+proof -
+  assume qfree_psi: "qfree \<psi>"
+  have all_cases_imp_qfree_case: \<open>((\<forall>\<phi> x \<psi>. p \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall p \<phi> x \<psi>) \<and>
+  (\<forall>\<phi> x \<psi>. p \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists p \<phi> x \<psi>) \<and>
+  (\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> p \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>))) \<Longrightarrow> (\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> p \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>))\<close> (is "?P p \<Longrightarrow> ?Q p") for p 
+    by argo
+  have \<open>(\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
+    using someI2_ex [of ?P ?Q] all_cases_imp_qfree_case prenex_right_def
+    using prenex_right_ex by presburger
+  then show ?thesis
+    using qfree_psi by blast
+qed
 
 abbreviation prenex_left_forall :: "(form \<Rightarrow> form \<Rightarrow> form) \<Rightarrow> form \<Rightarrow> nat \<Rightarrow> form \<Rightarrow> form" where 
   \<open>prenex_left_forall \<equiv> 
@@ -609,9 +631,66 @@ lemma prenex_left_exists_FV: \<open>FV ((\<^bold>\<exists>x\<^bold>. \<phi>) \<^
 (* sublemmas for prenex prop on language *)
 lemma prenex_right_forall_language: \<open>language {\<phi> \<^bold>\<longrightarrow> (\<^bold>\<forall>x\<^bold>. \<psi>)} =
   language {\<^bold>\<forall>(variant (FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>)))\<^bold>. (\<phi> \<^bold>\<longrightarrow> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>)))))))}\<close>
-  using lang_singleton
+  using lang_singleton formsubst_functions_form formsubst_predicates formsubst_language_rename by auto
+
+lemma prenex_right_exists_language: \<open>language {\<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>x\<^bold>. \<psi>)} =
+  language {\<^bold>\<exists>(variant (FV \<phi> \<union> FV (\<^bold>\<exists>x\<^bold>. \<psi>)))\<^bold>. (\<phi> \<^bold>\<longrightarrow> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV \<phi> \<union> FV (\<^bold>\<exists>x\<^bold>. \<psi>)))))))}\<close>
+  using lang_singleton formsubst_functions_form formsubst_predicates formsubst_language_rename by auto
+
+lemma prenex_left_forall_language: \<open>language {(\<^bold>\<forall>x\<^bold>. \<phi>) \<^bold>\<longrightarrow> \<psi>} =
+  language {\<^bold>\<exists>(variant (FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<union> FV \<psi>))\<^bold>. ((\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<union> FV \<psi>))))) \<^bold>\<longrightarrow> \<psi>)}\<close>
+  using lang_singleton formsubst_functions_form formsubst_predicates formsubst_language_rename by auto
+
+lemma prenex_left_exists_language: \<open>language {(\<^bold>\<exists>x\<^bold>. \<phi>) \<^bold>\<longrightarrow> \<psi>} =
+  language {\<^bold>\<forall>(variant (FV (\<^bold>\<exists>x\<^bold>. \<phi>) \<union> FV \<psi>))\<^bold>. ((\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV (\<^bold>\<exists>x\<^bold>. \<phi>) \<union> FV \<psi>))))) \<^bold>\<longrightarrow> \<psi>)}\<close>
+  using lang_singleton formsubst_functions_form formsubst_predicates formsubst_language_rename by auto
+
+(* prenex properties lemmas *)
+lemma prenex_props_forall: \<open>P \<and> FV \<phi> = FV \<psi> \<and> language {\<phi>} = language {\<psi>} \<and>
+  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I,\<beta> \<Turnstile> \<psi>)) \<Longrightarrow>
+  P \<and> FV (\<^bold>\<forall>x\<^bold>. \<phi>) = FV (\<^bold>\<forall>x\<^bold>. \<psi>) \<and> language {(\<^bold>\<forall>x\<^bold>. \<phi>)} = language {(\<^bold>\<forall>x\<^bold>. \<psi>)} \<and>
+  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<longleftrightarrow> I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<psi>)))
+\<close>
+  using lang_singleton by simp
 
 
+lemma prenex_props_exists: \<open>P \<and> FV \<phi> = FV \<psi> \<and> language {\<phi>} = language {\<psi>} \<and>
+  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I,\<beta> \<Turnstile> \<psi>)) \<Longrightarrow>
+  P \<and> FV (\<^bold>\<exists>x\<^bold>. \<phi>) = FV (\<^bold>\<exists>x\<^bold>. \<psi>) \<and> language {(\<^bold>\<exists>x\<^bold>. \<phi>)} = language {(\<^bold>\<exists>x\<^bold>. \<psi>)} \<and>
+  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>) \<longleftrightarrow> I,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<psi>)))
+\<close>
+  using lang_singleton by simp
+
+thm is_prenex.induct
+
+lemma prenex_right_props_imp: 
+  assumes prenex_psi: \<open>is_prenex \<psi>\<close>
+  shows \<open>qfree \<phi> \<Longrightarrow> is_prenex (prenex_right \<phi> \<psi>) \<and>
+    FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
+    language {prenex_right \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
+    (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>))))\<close>
+proof (induction rule: is_prenex.induct[OF prenex_psi])
+  case (1 \<psi>)
+  then show ?case 
+    using prenex_right_qfree_case[OF 1(1)] is_prenex.intros(1) qfree.simps(3) by presburger
+next
+  case (2 \<psi> x)
+  have \<open>is_prenex (prenex_right \<phi> \<psi>) \<and> FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and> language {prenex_right \<phi> \<psi>} = language {\<phi> \<^bold>\<longrightarrow> \<psi>} \<and> (\<forall>(I :: 'a intrp) \<beta>. FOL_Semantics.dom I \<noteq> {} \<longrightarrow> I,\<beta> \<Turnstile> prenex_right \<phi> \<psi> = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
+    using 2(2)[OF 2(3)] .
+  then show ?case sorry
+next
+  case (3 \<phi> x)
+  then show ?case sorry
+qed
+
+
+lemma prenex_right_props: \<open>qfree \<phi> \<and> is_prenex \<psi> \<Longrightarrow>
+  is_prenex (prenex_right \<phi> \<psi>) \<and>
+  FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
+  language {prenex_right \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
+  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>))))\<close>
+
+  sorry
 (* 
 (`!p q. prenex p /\ prenex q
          ==> prenex (Prenex_left p q) /\
