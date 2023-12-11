@@ -32,19 +32,43 @@ qed
 
 
 thm is_prenex.induct
-find_theorems is_prenex
+find_theorems is_prenex name: induct
 thm is_prenex.cases
 
 lemma prenex_formsubst2: \<open>is_prenex (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<Longrightarrow> is_prenex \<phi>\<close>
-proof -
-  assume prenex_formsubst: \<open>is_prenex (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>)\<close>
-  have \<open>qfree (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<Longrightarrow> is_prenex \<phi>\<close>
-    using qfree_formsubst is_prenex.intros(1) by simp
-  moreover have \<open>\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<forall>x\<^bold>. \<psi> \<and> is_prenex \<psi> \<Longrightarrow> is_prenex \<phi>\<close> sorry
-  show \<open>is_prenex \<phi>\<close>
-    sorry
+proof (induction \<open>\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>\<close> arbitrary: \<phi> \<sigma> rule: is_prenex.induct)
+  case 1
+  then show ?case
+    using is_prenex.intros(1) qfree_formsubst by auto
+next
+  case (2 \<psi> x \<phi>)
+  then obtain y \<phi>' where phi_is: \<open>\<phi> = \<^bold>\<forall>y\<^bold>. \<phi>'\<close>
+    using formsubst_structure_all by metis
+  then have \<open>\<exists>\<sigma>'. \<psi> = \<phi>'\<cdot>\<^sub>f\<^sub>m \<sigma>'\<close>
+    using 2(3) by (metis (no_types, lifting) form.sel(6) formsubst.simps(4))
+  then obtain \<sigma>' where \<open>\<psi> = \<phi>'\<cdot>\<^sub>f\<^sub>m \<sigma>'\<close>
+    by blast
+  then have \<open>is_prenex \<phi>'\<close>
+    using 2(2) by blast
+  then show ?case
+    using phi_is by (simp add: is_prenex.intros(2))
+next
+  case (3 \<psi> x \<phi>)
+  then obtain y \<phi>' where phi_is: \<open>\<phi> = \<^bold>\<exists>y\<^bold>. \<phi>'\<close>
+    using formsubst_structure_ex by metis
+  then have \<open>\<exists>\<sigma>'. \<psi> = \<phi>'\<cdot>\<^sub>f\<^sub>m \<sigma>'\<close>
+    using 3(3) by (smt (verit, ccfv_threshold) form.inject(2) form.inject(3) formsubst.simps(3)
+        formsubst.simps(4))
+  then obtain \<sigma>' where \<open>\<psi> = \<phi>'\<cdot>\<^sub>f\<^sub>m \<sigma>'\<close>
+    by blast
+  then have \<open>is_prenex \<phi>'\<close>
+    using 3(2) by blast
+  then show ?case
+    using phi_is by (simp add: is_prenex.intros(3))
 qed
 
+lemma prenex_formsubst: \<open>is_prenex (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<equiv> is_prenex \<phi>\<close>
+  using prenex_formsubst1 prenex_formsubst2 by (smt (verit, ccfv_threshold))
 
 
 inductive universal :: "form \<Rightarrow> bool" where
@@ -712,11 +736,15 @@ proof (induction rule: is_prenex.induct[OF prenex_psi])
     using prenex_right_qfree_case[OF 1(1)] is_prenex.intros(1) qfree.simps(3) by presburger
 next
   case (2 \<psi> x)
-  have \<open>is_prenex (prenex_right \<phi> \<psi>) \<and> FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and> language {prenex_right \<phi> \<psi>} = language {\<phi> \<^bold>\<longrightarrow> \<psi>} \<and> (\<forall>(I :: 'a intrp) \<beta>. FOL_Semantics.dom I \<noteq> {} \<longrightarrow> I,\<beta> \<Turnstile> prenex_right \<phi> \<psi> = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
+  have \<open>is_prenex (prenex_right \<phi> \<psi>) \<and> FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
+    language {prenex_right \<phi> \<psi>} = language {\<phi> \<^bold>\<longrightarrow> \<psi>} \<and>
+    (\<forall>(I :: 'a intrp) \<beta>. FOL_Semantics.dom I \<noteq> {} \<longrightarrow> I,\<beta> \<Turnstile> prenex_right \<phi> \<psi> = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
     using 2(2)[OF 2(3)] .
   then show ?case
     using prenex_props_forall
     prenex_right_forall_FV
+    prenex_formsubst
+
     sorry
 next
   case (3 \<phi> x)

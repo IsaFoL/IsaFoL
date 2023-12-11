@@ -257,11 +257,91 @@ lemma formsubst_structure_not: \<open>(\<exists>\<psi>. \<phi> \<cdot>\<^sub>f\<
   using formsubst_structure_imp formsubst_structure_bot
   by (metis form.sel(4) formsubst.simps(3))
 
-lemma formsubsts_structure_ex: \<open>(\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<exists>x\<^bold>. \<psi>)) \<longleftrightarrow> (\<exists>x \<psi>. \<phi> = (\<^bold>\<exists>x\<^bold>. \<psi>))\<close>
-  using formsubst_structure_not formsubst_structure_all formsubst_structure_imp sorry
+lemma formsubst_structure_not_all_imp: 
+  \<open>(\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<forall>x\<^bold>. \<psi>) \<^bold>\<longrightarrow> \<^bold>\<bottom>) \<longleftrightarrow> (\<exists>x \<psi>. \<phi> = (\<^bold>\<forall>x\<^bold>. \<psi>) \<^bold>\<longrightarrow> \<^bold>\<bottom>)\<close>
+proof (cases \<phi>)
+  case Bot
+  then show ?thesis by simp
+next
+  case (Atom p ts)
+  then show ?thesis by simp
+next
+  case (Implies \<phi>1 \<phi>2)
+  then show ?thesis
+    by (metis form.inject(2) formsubst.simps(3) formsubst_structure_all formsubst_structure_not)
+next
+  case (Forall y \<psi>)
+  then show ?thesis
+    by (metis form.distinct(11) formsubst_structure_not)
+qed
 
-lemma formsubst_structure: \<open>(\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<bottom> \<longleftrightarrow> \<phi> = \<^bold>\<bottom>) \<and> ((\<exists>p ts. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = Atom p ts) \<longleftrightarrow> (\<exists>p ts. \<phi> = Atom p ts)) \<and>
-  ((\<exists>\<phi>1 \<phi>2. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<longleftrightarrow> (\<exists>\<psi>1 \<psi>2. \<phi> = \<psi>1 \<^bold>\<longrightarrow> \<psi>2)) \<and> ((\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<forall>x\<^bold>. \<psi>)) \<longleftrightarrow> (\<exists>x \<psi>. \<phi> = (\<^bold>\<forall>x\<^bold>. \<psi>)))\<close>
+lemma formsubst_structure_all_not: 
+  \<open>(\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<forall>x\<^bold>. \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>)) \<longleftrightarrow> (\<exists>x \<psi>. \<phi> = (\<^bold>\<forall>x\<^bold>. \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>))\<close>
+proof
+  show \<open>\<exists>x \<psi>. \<phi> = \<^bold>\<forall> x\<^bold>. \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom> \<Longrightarrow> \<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<forall> x\<^bold>. \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>\<close>
+    by (smt (verit, ccfv_threshold) formsubst.simps(1) formsubst.simps(3) formsubst.simps(4))
+next
+  assume \<open>\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<forall>x\<^bold>. \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>\<close>
+  then obtain z \<psi>' where phi_sub_is: \<open>\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<forall>z\<^bold>. \<psi>' \<^bold>\<longrightarrow> \<^bold>\<bottom>\<close>
+    by blast
+  then obtain x \<phi>' where phi_is: \<open>\<phi> = \<^bold>\<forall>x\<^bold>. \<phi>'\<close>
+    using formsubst_structure_all by blast
+  then have \<open>\<exists>\<sigma>'. \<phi>' \<cdot>\<^sub>f\<^sub>m \<sigma>' = \<psi>' \<^bold>\<longrightarrow> \<^bold>\<bottom>\<close>
+    using phi_sub_is
+    by (metis (no_types, lifting) form.sel(6) formsubst.simps(4))
+  then obtain \<sigma>' where \<open>\<phi>' \<cdot>\<^sub>f\<^sub>m \<sigma>' = \<psi>' \<^bold>\<longrightarrow> \<^bold>\<bottom>\<close>
+    by blast
+  then have \<open>\<exists>\<psi>. \<phi>' = \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>\<close>
+    using formsubst_structure_imp formsubst_structure_not by blast
+  then show \<open>\<exists>x \<psi>. \<phi> = \<^bold>\<forall>x\<^bold>. \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>\<close>
+    using phi_is by blast
+qed
+
+lemma formsubst_structure_ex: \<open>(\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<exists>x\<^bold>. \<psi>)) \<longleftrightarrow> (\<exists>x \<psi>. \<phi> = (\<^bold>\<exists>x\<^bold>. \<psi>))\<close>
+proof
+  assume \<open>\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<exists>x\<^bold>. \<psi>)\<close>
+  (*have \<open>(\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<forall>x\<^bold>. \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>) \<^bold>\<longrightarrow> \<^bold>\<bottom>) \<longleftrightarrow> (\<exists>x \<psi>. \<phi> = (\<^bold>\<forall>x\<^bold>. \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>) \<^bold>\<longrightarrow> \<^bold>\<bottom>)\<close>
+    (* sledgehammer (veriT) segfalts on this one ! *)
+    sorry*)
+  then show \<open>\<exists>x \<psi>. \<phi> = (\<^bold>\<exists>x\<^bold>. \<psi>)\<close>
+  proof (induction \<phi>)
+    case Bot
+    then have False by auto
+    then show ?case by auto
+  next
+    case (Atom p ts)
+    then have False by auto
+    then show ?case by auto
+  next
+    case (Implies \<phi>1 \<phi>2)
+    then obtain x \<psi> where imp_def: \<open>\<phi>1 \<^bold>\<longrightarrow> \<phi>2 \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<forall>x\<^bold>. \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>) \<^bold>\<longrightarrow> \<^bold>\<bottom>\<close>
+      by blast
+    then have bot_right: \<open>\<phi>2 = \<^bold>\<bottom>\<close>
+      by (simp add: formsubst_structure_bot)
+    have \<open>\<phi>1  \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<forall>x\<^bold>. \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>)\<close>
+      using imp_def by simp
+    then have ex_eq: \<open>\<exists>x2 \<psi>2. \<phi>1  \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<forall>x2\<^bold>. \<psi>2 \<^bold>\<longrightarrow> \<^bold>\<bottom>)\<close>
+      by blast
+    then have \<open>\<exists>x2 \<psi>2. \<phi>1 = (\<^bold>\<forall>x2\<^bold>. \<psi>2 \<^bold>\<longrightarrow> \<^bold>\<bottom>)\<close>
+      using formsubst_structure_all_not by blast
+    then show ?case
+      using bot_right by auto
+  next
+    case (Forall x1 \<phi>)
+    have False
+      using Forall(2) formsubst_def_switch by (metis form.distinct(11) formsubst_structure_all)
+    then show ?case by auto
+  qed
+next
+  assume \<open>(\<exists>x \<psi>. \<phi> = (\<^bold>\<exists>x\<^bold>. \<psi>))\<close>
+  then show \<open>\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<exists>x\<^bold>. \<psi>)\<close>
+    by (smt (verit, ccfv_threshold) formsubst.simps(1) formsubst.simps(3) formsubst.simps(4))
+qed 
+
+lemma formsubst_structure: \<open>(\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<bottom> \<longleftrightarrow> \<phi> = \<^bold>\<bottom>) \<and> 
+  ((\<exists>p ts. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = Atom p ts) \<longleftrightarrow> (\<exists>p ts. \<phi> = Atom p ts)) \<and>
+  ((\<exists>\<phi>1 \<phi>2. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<longleftrightarrow> (\<exists>\<psi>1 \<psi>2. \<phi> = \<psi>1 \<^bold>\<longrightarrow> \<psi>2)) \<and> 
+  ((\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<forall>x\<^bold>. \<psi>)) \<longleftrightarrow> (\<exists>x \<psi>. \<phi> = (\<^bold>\<forall>x\<^bold>. \<psi>)))\<close>
   using formsubst_structure_bot formsubst_structure_pred formsubst_structure_imp formsubst_structure_all
   by auto
 
