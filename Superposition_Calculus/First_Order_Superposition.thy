@@ -1126,6 +1126,25 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
     by blast
 qed
 
+definition non_redundant_superposition where
+  "non_redundant_superposition premise\<^sub>1 \<rho>\<^sub>1 \<theta> \<longleftrightarrow> 
+    (\<forall>term\<^sub>G\<^sub>1 context\<^sub>G term\<^sub>G\<^sub>2 \<P>\<^sub>G literal\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>1 term\<^sub>1_with_context.  
+        \<P>\<^sub>G \<in> {Pos, Neg} \<longrightarrow> 
+        literal\<^sub>G\<^sub>1 = \<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>1\<rangle>\<^sub>G term\<^sub>G\<^sub>2)\<longrightarrow> 
+        term\<^sub>G\<^sub>2 \<prec>\<^sub>t\<^sub>G context\<^sub>G\<langle>term\<^sub>G\<^sub>1\<rangle>\<^sub>G \<longrightarrow> 
+        premise\<^sub>G\<^sub>1 = to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>) \<longrightarrow> 
+        \<P>\<^sub>G = Pos \<and> select\<^sub>G premise\<^sub>G\<^sub>1  = {#} \<and> ground.is_strictly_maximal_lit literal\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>1 
+         \<or> \<P>\<^sub>G = Neg \<and> (select\<^sub>G premise\<^sub>G\<^sub>1 = {#} \<and> ground.is_maximal_lit literal\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>1 
+                        \<or> literal\<^sub>G\<^sub>1 \<in># select\<^sub>G premise\<^sub>G\<^sub>1) \<longrightarrow> 
+        term\<^sub>1_with_context \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>1\<rangle> \<longrightarrow>
+
+    (\<exists>context term\<^sub>1.
+          term\<^sub>1_with_context = context\<langle>term\<^sub>1\<rangle>
+        \<and> term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1 
+        \<and> context \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G 
+        \<and> is_Fun term\<^sub>1)
+    )"
+
 lemma superposition_ground_instance:
   assumes 
     renaming: 
@@ -1142,7 +1161,8 @@ lemma superposition_ground_instance:
       "ground.ground_superposition
           (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>))
           (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>))
-          (to_ground_clause (conclusion \<cdot> \<theta>))"
+          (to_ground_clause (conclusion \<cdot> \<theta>))" and
+    not_redundant: "non_redundant_superposition premise\<^sub>1 \<rho>\<^sub>1 \<theta>"
   shows "\<exists>conclusion'. superposition premise\<^sub>1 premise\<^sub>2 (conclusion') \<and>
             to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>) \<in> clause_groundings premise\<^sub>1 \<and>
             to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>) \<in> clause_groundings premise\<^sub>2 \<and>
@@ -1297,21 +1317,24 @@ proof(cases
           ground_term_with_context(3)[symmetric]
         )
 
-  then obtain term\<^sub>1_x term\<^sub>1' where 
-    literal\<^sub>1: "literal\<^sub>1 = \<P> (Upair term\<^sub>1_x term\<^sub>1')" and
+  then obtain term\<^sub>1_with_context term\<^sub>1' where 
+    literal\<^sub>1: "literal\<^sub>1 = \<P> (Upair term\<^sub>1_with_context term\<^sub>1')" and
     term\<^sub>1'_\<theta>: "term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>2" and
-    term\<^sub>1_x_\<theta>: "term\<^sub>1_x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>1\<rangle>"
+    term\<^sub>1_with_context_\<theta>: "term\<^sub>1_with_context \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>1\<rangle>"
     using ground_superpositionI(4) 
     unfolding \<P>
     by(cases "\<P>\<^sub>G = Pos") (smt (verit, ccfv_SIG) obtain_from_literal_subst)+
 
-  (* from mysterious_assumption *)
   obtain context\<^sub>1 term\<^sub>1 where
     term\<^sub>1_\<theta> : "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1" and
     context\<^sub>1_\<theta>: "context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G" and
-    term\<^sub>1_x: "term\<^sub>1_x = context\<^sub>1\<langle>term\<^sub>1\<rangle>" and
+    term\<^sub>1_with_context: "term\<^sub>1_with_context = context\<^sub>1\<langle>term\<^sub>1\<rangle>" and
     term\<^sub>1_not_Var: "\<not> is_Var term\<^sub>1"
-    sorry
+    using 
+      not_redundant[unfolded non_redundant_superposition_def]
+      ground_superpositionI(4, 5, 7, 9)
+      term\<^sub>1_with_context_\<theta>
+    by blast
 
   from literal\<^sub>2_\<theta> have literal\<^sub>2_\<theta>': 
     "literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<theta> = to_term term\<^sub>G\<^sub>1 \<approx> to_term term\<^sub>G\<^sub>3"
@@ -1357,7 +1380,7 @@ proof(cases
       by simp
   next
     show "literal\<^sub>1 = \<P> (Upair context\<^sub>1\<langle>term\<^sub>1\<rangle> term\<^sub>1')"
-      unfolding literal\<^sub>1 context\<^sub>1_\<theta> term\<^sub>1_x..
+      unfolding literal\<^sub>1 context\<^sub>1_\<theta> term\<^sub>1_with_context..
   next
     show "literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'"
       using literal\<^sub>2.
@@ -1478,8 +1501,8 @@ proof(cases
       "is_ground_term (term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<sigma> \<cdot>t \<tau>)" 
       "is_ground_term (context\<^sub>1\<langle>term\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<sigma> \<cdot>t \<tau>)" 
       unfolding 
-        term\<^sub>1_x[symmetric]  
-        term\<^sub>1_x_\<theta>[unfolded \<sigma>(2) term_subst_compose]
+        term\<^sub>1_with_context[symmetric]  
+        term\<^sub>1_with_context_\<theta>[unfolded \<sigma>(2) term_subst_compose]
         term\<^sub>1'_\<theta>[unfolded \<sigma>(2) term_subst_compose]
       using ground_term_with_context_is_ground(1)
       by simp_all
@@ -1488,8 +1511,8 @@ proof(cases
       using ground_superpositionI(7) 
       unfolding 
         term\<^sub>1'_\<theta>[unfolded \<sigma>(2) term_subst_compose]
-        term\<^sub>1_x[symmetric]
-        term\<^sub>1_x_\<theta>[unfolded \<sigma>(2) term_subst_compose]
+        term\<^sub>1_with_context[symmetric]
+        term\<^sub>1_with_context_\<theta>[unfolded \<sigma>(2) term_subst_compose]
         less\<^sub>t\<^sub>G_less\<^sub>t
         ground_term_with_context(3).
      
