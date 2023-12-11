@@ -202,6 +202,11 @@ lemma subst_ground_clause [simp]:
   unfolding subst_clause_def vars_clause_def
   by simp
 
+lemma subst_atom: 
+  "Upair term\<^sub>1 term\<^sub>2 \<cdot>a \<sigma> = Upair (term\<^sub>1 \<cdot>t \<sigma>) (term\<^sub>2 \<cdot>t \<sigma>)"
+  unfolding subst_atom_def
+  by simp_all
+
 lemma subst_literal: 
   "Pos atom \<cdot>l \<sigma> = Pos (atom \<cdot>a \<sigma>)"
   "Neg atom \<cdot>l \<sigma> = Neg (atom \<cdot>a \<sigma>)"
@@ -213,6 +218,13 @@ lemma subst_clause_add_mset:
   unfolding subst_clause_def
   by simp
 
+lemma subst_clause_remove1_mset: 
+  assumes "literal \<in># clause" 
+  shows "remove1_mset literal clause \<cdot> \<sigma> = remove1_mset (literal \<cdot>l \<sigma>) (clause \<cdot> \<sigma>)"
+  unfolding subst_clause_def image_mset_remove1_mset_if
+  using assms
+  by simp
+  
 lemma subst_clause_plus: 
   "(clause\<^sub>1 + clause\<^sub>2) \<cdot> \<sigma> = clause\<^sub>1 \<cdot> \<sigma> + clause\<^sub>2 \<cdot> \<sigma>"
   unfolding subst_clause_def
@@ -443,6 +455,20 @@ lemma to_clause_inj: "inj_on to_clause domain"
 lemma to_ground_clause_inj: "inj_on to_ground_clause (to_clause ` domain\<^sub>G)"
   by (simp add: inj_on_def)
 
+lemma to_clause_add_mset: 
+  "to_clause (add_mset literal\<^sub>G clause\<^sub>G) = add_mset (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
+  by (simp add: to_clause_def)
+
+lemma set_mset_to_clause_to_literal: 
+  "set_mset (to_clause clause) = to_literal ` (set_mset clause)"
+  unfolding to_clause_def
+  by simp
+
+lemma remove1_mset_to_literal: 
+  "remove1_mset (to_literal literal\<^sub>G) (to_clause clause\<^sub>G) 
+   = to_clause (remove1_mset literal\<^sub>G clause\<^sub>G)"
+  unfolding to_clause_def image_mset_remove1_mset[OF to_literal_inj]..
+
 lemma ground_term_in_ground_atom [intro]:
   assumes "term \<in> set_uprod atom" "is_ground_atom atom"
   shows "is_ground_term term"
@@ -508,10 +534,16 @@ lemma ground_literal_in_ground_clause3:
   using to_clause_inverse to_literal_inverse
   by (metis image_eqI multiset.set_map to_clause_def to_ground_clause_def)
 
-lemmas ground_literal_in_ground_clause [intro] = 
+lemma ground_literal_in_ground_clause4: 
+  "(\<forall>literal \<in># to_clause clause\<^sub>G. P literal) \<longleftrightarrow> (\<forall>literal\<^sub>G \<in># clause\<^sub>G. P (to_literal literal\<^sub>G))"
+  using ground_literal_in_ground_clause3 set_mset_to_clause_to_literal image_iff
+  by metis
+
+lemmas ground_literal_in_ground_clause = 
   ground_literal_in_ground_clause1
   ground_literal_in_ground_clause2
   ground_literal_in_ground_clause3
+  ground_literal_in_ground_clause4
 
 lemma ground_literal_in_ground_clause_subst:
   assumes "is_ground_clause (clause \<cdot> \<theta>)"  "literal \<in># clause"  
@@ -551,6 +583,10 @@ lemma to_ground_clause_plus [simp]:
   "to_ground_clause (clause\<^sub>1 + clause\<^sub>2) = to_ground_clause clause\<^sub>1 + to_ground_clause clause\<^sub>2"
   by (simp add: to_ground_clause_def)
 
+lemma to_clause_plus [simp]: 
+  "to_clause (clause\<^sub>G\<^sub>1 + clause\<^sub>G\<^sub>2) = to_clause clause\<^sub>G\<^sub>1 + to_clause clause\<^sub>G\<^sub>2"
+  by (simp add: to_clause_def)
+
 lemma mset_to_literal: "mset_lit (to_literal l) = image_mset to_term (mset_lit l)"
   unfolding to_literal_def
   by (simp add: to_atom_def mset_lit_image_mset)
@@ -564,20 +600,6 @@ lemma to_ground_clause_add_mset:
   shows "clause = add_mset (to_ground_literal literal) (to_ground_clause clause')"
   using assms
   by (metis to_clause_inverse to_ground_clause_def image_mset_add_mset)
-
-lemma to_clause_add_mset: 
-  "to_clause (add_mset literal\<^sub>G clause\<^sub>G) = add_mset (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
-  by (simp add: to_clause_def)
-
-lemma set_mset_to_clause_to_literal: 
-  "set_mset (to_clause clause) = to_literal ` (set_mset clause)"
-  unfolding to_clause_def
-  by simp
-
-lemma remove1_mset_to_literal: 
-  "remove1_mset (to_literal literal\<^sub>G) (to_clause clause\<^sub>G) 
-   = to_clause (remove1_mset literal\<^sub>G clause\<^sub>G)"
-  unfolding to_clause_def image_mset_remove1_mset[OF to_literal_inj]..
 
 lemma obtain_from_atom_subst: 
   assumes "atom \<cdot>a \<theta> = Upair term\<^sub>1' term\<^sub>2'"
