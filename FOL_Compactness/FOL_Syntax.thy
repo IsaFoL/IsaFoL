@@ -98,6 +98,9 @@ abbreviation (input) Exists :: \<open>nat \<Rightarrow> form \<Rightarrow> form\
   (\<open>\<^bold>\<exists> _\<^bold>. _\<close> [0, 70] 70) where
   \<open>\<^bold>\<exists> x\<^bold>. \<phi> \<equiv> \<^bold>\<not> (\<^bold>\<forall> x\<^bold>. \<^bold>\<not> \<phi>)\<close>
 
+lemma ex_all_distinct: \<open>\<^bold>\<forall>x\<^bold>. \<phi> \<noteq> \<^bold>\<exists>y\<^bold>. \<psi>\<close>
+  by simp
+
 abbreviation FVT :: \<open>nterm \<Rightarrow> nat set\<close> where
   \<open>FVT \<equiv> vars_term\<close>
 

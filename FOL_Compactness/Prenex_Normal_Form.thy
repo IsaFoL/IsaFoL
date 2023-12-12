@@ -70,6 +70,14 @@ qed
 lemma prenex_formsubst: \<open>is_prenex (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<equiv> is_prenex \<phi>\<close>
   using prenex_formsubst1 prenex_formsubst2 by (smt (verit, ccfv_threshold))
 
+lemma prenex_qfree: \<open>is_prenex (\<phi> \<^bold>\<longrightarrow> \<psi>) \<Longrightarrow> qfree (\<phi> \<^bold>\<longrightarrow> \<psi>)\<close>  (* wrong, could be \<exists>, to make more specific *)
+proof -
+  assume "is_prenex (\<phi> \<^bold>\<longrightarrow> \<psi>)"
+  have \<open>\<not> (\<exists>x \<phi>'. (\<phi> \<^bold>\<longrightarrow> \<psi>) = (\<^bold>\<exists>x\<^bold>. \<phi>'))\<close>
+    using ex_all_distinct
+
+  sorry
+
 
 inductive universal :: "form \<Rightarrow> bool" where
   \<open>qfree \<phi> \<Longrightarrow> universal \<phi>\<close>
@@ -386,16 +394,28 @@ lemma prenex_right_qfree_case: \<open>qfree \<psi> \<Longrightarrow> prenex_righ
   (* \<open>qfree \<phi> \<Longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>)\<close> *)
 proof -
   assume qfree_psi: "qfree \<psi>"
-  have all_cases_imp_qfree_case: \<open>((\<forall>\<phi> x \<psi>. p \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall p \<phi> x \<psi>) \<and>
+  have \<open>((\<forall>\<phi> x \<psi>. p \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall p \<phi> x \<psi>) \<and>
   (\<forall>\<phi> x \<psi>. p \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists p \<phi> x \<psi>) \<and>
   (\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> p \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>))) \<Longrightarrow> (\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> p \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>))\<close> (is "?P p \<Longrightarrow> ?Q p") for p 
     by argo
-  have \<open>(\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
-    using someI2_ex [of ?P ?Q] all_cases_imp_qfree_case prenex_right_def
-    using prenex_right_ex by presburger
+  then have \<open>(\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
+    using someI2_ex[of ?P ?Q] prenex_right_def prenex_right_ex by presburger
   then show ?thesis
     using qfree_psi by blast
 qed
+
+lemma prenex_right_all_case: \<open>\<exists>x2 \<psi>2. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = \<^bold>\<forall>x2\<^bold>. prenex_right \<phi> \<psi>2\<close>
+proof -
+  have all_cases_imp_all_case: \<open>((\<forall>\<phi> x \<psi>. p \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall p \<phi> x \<psi>) \<and>
+   (\<forall>\<phi> x \<psi>. p \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists p \<phi> x \<psi>) \<and>
+   (\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> p \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>))) \<Longrightarrow>
+   (\<exists>x2 \<psi>2. p \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = \<^bold>\<forall>x2\<^bold>. p \<phi> \<psi>2)\<close> (is "?P p \<Longrightarrow> ?Q p") for p
+    by meson
+  then have \<open>\<exists>x2 \<psi>2. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = \<^bold>\<forall>x2\<^bold>. prenex_right \<phi> \<psi>2\<close>
+    using someI2_ex[of ?P ?Q] prenex_right_def prenex_right_ex by presburger
+  then show ?thesis .
+qed
+
 
 abbreviation prenex_left_forall :: "(form \<Rightarrow> form \<Rightarrow> form) \<Rightarrow> form \<Rightarrow> nat \<Rightarrow> form \<Rightarrow> form" where 
   \<open>prenex_left_forall \<equiv> 
@@ -724,30 +744,45 @@ prenex_right_forall_FV
 prenex_right_forall_language
 prenex_props_forall
 
-lemma prenex_right_props_imp: 
-  assumes prenex_psi: \<open>is_prenex \<psi>\<close>
-  shows \<open>qfree \<phi> \<Longrightarrow> is_prenex (prenex_right \<phi> \<psi>) \<and>
+lemma prenex_right_props_imp0:
+  shows \<open>is_prenex \<psi> \<Longrightarrow> qfree \<phi> \<Longrightarrow> is_prenex (prenex_right \<phi> \<psi>)\<close>
+proof (induction \<psi> rule: size.induct)
+  case 1
+  then show ?case sorry
+next
+  case (2 p ts)
+  then show ?case sorry
+next
+  case (3 \<phi> \<psi>)
+  then show ?case sorry
+next
+  case (4 x \<phi>)
+  then show ?case sorry
+qed
+
+lemma prenex_right_props_imp:
+  shows \<open>is_prenex \<psi> \<Longrightarrow> qfree \<phi> \<Longrightarrow> is_prenex (prenex_right \<phi> \<psi>) \<and>
     FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
     language {prenex_right \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
     (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>))))\<close>
-proof (induction rule: is_prenex.induct[OF prenex_psi])
+proof (induction \<psi> arbitrary: \<phi> rule: is_prenex.induct)
   case (1 \<psi>)
   then show ?case 
     using prenex_right_qfree_case[OF 1(1)] is_prenex.intros(1) qfree.simps(3) by presburger
 next
   case (2 \<psi> x)
+  then have \<open>is_prenex (prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>))\<close>
+    using 2(1) prenex_right_all_case
+    sorry
   have \<open>is_prenex (prenex_right \<phi> \<psi>) \<and> FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
     language {prenex_right \<phi> \<psi>} = language {\<phi> \<^bold>\<longrightarrow> \<psi>} \<and>
     (\<forall>(I :: 'a intrp) \<beta>. FOL_Semantics.dom I \<noteq> {} \<longrightarrow> I,\<beta> \<Turnstile> prenex_right \<phi> \<psi> = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
     using 2(2)[OF 2(3)] .
   then show ?case
-    using prenex_props_forall
-    prenex_right_forall_FV
-    prenex_formsubst
-
+    using prenex_props_forall prenex_right_forall_is prenex_right_forall_FV prenex_formsubst
     sorry
 next
-  case (3 \<phi> x)
+  case (3 \<psi> x)
   then show ?case sorry
 qed
 
