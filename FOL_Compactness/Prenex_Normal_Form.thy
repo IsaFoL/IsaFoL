@@ -70,14 +70,9 @@ qed
 lemma prenex_formsubst: \<open>is_prenex (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<equiv> is_prenex \<phi>\<close>
   using prenex_formsubst1 prenex_formsubst2 by (smt (verit, ccfv_threshold))
 
-lemma prenex_qfree: \<open>is_prenex (\<phi> \<^bold>\<longrightarrow> \<psi>) \<Longrightarrow> qfree (\<phi> \<^bold>\<longrightarrow> \<psi>)\<close>  (* wrong, could be \<exists>, to make more specific *)
-proof -
-  assume "is_prenex (\<phi> \<^bold>\<longrightarrow> \<psi>)"
-  have \<open>\<not> (\<exists>x \<phi>'. (\<phi> \<^bold>\<longrightarrow> \<psi>) = (\<^bold>\<exists>x\<^bold>. \<phi>'))\<close>
-    using ex_all_distinct
-
-  sorry
-
+lemma prenex_imp: \<open>is_prenex (\<phi> \<^bold>\<longrightarrow> \<psi>) \<Longrightarrow> 
+  qfree (\<phi> \<^bold>\<longrightarrow> \<psi>) \<or> (\<psi> = \<^bold>\<bottom> \<and> (\<exists>x \<phi>'. is_prenex \<phi>' \<and> \<phi> = (\<^bold>\<forall>x\<^bold>. \<phi>' \<^bold>\<longrightarrow> \<^bold>\<bottom>)))\<close>
+  by (metis form.distinct(11) form.inject(2) is_prenex.cases)
 
 inductive universal :: "form \<Rightarrow> bool" where
   \<open>qfree \<phi> \<Longrightarrow> universal \<phi>\<close>
@@ -255,6 +250,9 @@ lemma wfP_ind: \<open>wfP ((<) :: ('a::ord \<Rightarrow> 'a \<Rightarrow> bool))
   (\<forall>(x::'a). (\<forall>y. y <  x \<longrightarrow> P y) \<longrightarrow> P x) \<longrightarrow> (\<forall>x. P x)\<close>
   by (metis wfP_induct)
 
+lemma size_wf_ind: \<open>(\<forall>x. (\<forall>y. size y <  size x \<longrightarrow> P y) \<longrightarrow> P x) \<longrightarrow> (\<forall>x. P x)\<close>
+  using wf_size by (smt (verit, best) wfP_induct)
+
 lemma dependent_wfP_choice:
   fixes P :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> bool"
   assumes "wfP R"
@@ -389,6 +387,7 @@ find_theorems "SOME _. _ \<Longrightarrow> _"
 thm some_eq_imp verit_sko_ex
 
 thm someI2_ex
+find_theorems is_prenex prenex_right
 
 lemma prenex_right_qfree_case: \<open>qfree \<psi> \<Longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
   (* \<open>qfree \<phi> \<Longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>)\<close> *)
@@ -404,14 +403,39 @@ proof -
     using qfree_psi by blast
 qed
 
-lemma prenex_right_all_case: \<open>\<exists>x2 \<psi>2. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = \<^bold>\<forall>x2\<^bold>. prenex_right \<phi> \<psi>2\<close>
+lemma prenex_right_all_case: \<open>prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall prenex_right \<phi> x \<psi>\<close>
 proof -
   have all_cases_imp_all_case: \<open>((\<forall>\<phi> x \<psi>. p \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall p \<phi> x \<psi>) \<and>
    (\<forall>\<phi> x \<psi>. p \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists p \<phi> x \<psi>) \<and>
    (\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> p \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>))) \<Longrightarrow>
-   (\<exists>x2 \<psi>2. p \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = \<^bold>\<forall>x2\<^bold>. p \<phi> \<psi>2)\<close> (is "?P p \<Longrightarrow> ?Q p") for p
+   (p \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall p \<phi> x \<psi>)\<close> (is "?P p \<Longrightarrow> ?Q p") for p
     by meson
-  then have \<open>\<exists>x2 \<psi>2. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = \<^bold>\<forall>x2\<^bold>. prenex_right \<phi> \<psi>2\<close>
+  then have \<open>prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall prenex_right \<phi> x \<psi>\<close>
+    using someI2_ex[of ?P ?Q] prenex_right_def prenex_right_ex by presburger
+  then show ?thesis .
+qed
+
+lemma prenex_right_exist_case: \<open>prenex_right \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists prenex_right \<phi> x \<psi>\<close>
+proof -
+  have ex_cases_imp_ex_case: \<open>((\<forall>\<phi> x \<psi>. p \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall p \<phi> x \<psi>) \<and>
+   (\<forall>\<phi> x \<psi>. p \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists p \<phi> x \<psi>) \<and>
+   (\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> p \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>))) \<Longrightarrow>
+   (p \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists p \<phi> x \<psi>)\<close> (is "?P p \<Longrightarrow> ?Q p") for p
+    by meson
+  then have \<open>prenex_right \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists prenex_right \<phi> x \<psi>\<close>
+    using someI2_ex[of ?P ?Q] prenex_right_def prenex_right_ex by presburger
+  then show ?thesis .
+qed
+
+lemma prenex_right_exists_shape_case: 
+  \<open>\<exists>x2 \<sigma>. prenex_right \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = \<^bold>\<exists>x2\<^bold>. prenex_right \<phi> (\<psi> \<cdot>\<^sub>f\<^sub>m \<sigma>)\<close>
+proof -
+  have all_cases_imp_all_case: \<open>((\<forall>\<phi> x \<psi>. p \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall p \<phi> x \<psi>) \<and>
+   (\<forall>\<phi> x \<psi>. p \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists p \<phi> x \<psi>) \<and>
+   (\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> p \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>))) \<Longrightarrow>
+   (\<exists>x2 \<sigma>. p \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = \<^bold>\<exists>x2\<^bold>. p \<phi> (\<psi> \<cdot>\<^sub>f\<^sub>m \<sigma>))\<close> (is "?P p \<Longrightarrow> ?Q p") for p
+    by meson
+  then have \<open>\<exists>x2 \<sigma>. prenex_right \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = \<^bold>\<exists>x2\<^bold>. prenex_right \<phi> (\<psi> \<cdot>\<^sub>f\<^sub>m \<sigma>)\<close>
     using someI2_ex[of ?P ?Q] prenex_right_def prenex_right_ex by presburger
   then show ?thesis .
 qed
@@ -518,8 +542,19 @@ definition prenex_left where \<open>prenex_left = (SOME prenex_left.
   (\<forall>\<phi> x \<psi>. prenex_left (\<^bold>\<exists>x\<^bold>. \<phi>) \<psi> = prenex_left_exists prenex_left \<phi> x \<psi>) \<and>
   (\<forall>\<phi> \<psi>. qfree \<phi> \<longrightarrow> prenex_left \<phi> \<psi> = prenex_right \<phi> \<psi>))\<close>
 
-lemma \<open>prenex_left (\<^bold>\<forall>x\<^bold>. \<phi>) \<psi> = prenex_left_forall prenex_left \<phi> x \<psi>\<close>
+lemma prenex_left_forall_case: \<open>prenex_left (\<^bold>\<forall>x\<^bold>. \<phi>) \<psi> = prenex_left_forall prenex_left \<phi> x \<psi>\<close>
   unfolding prenex_left_def by (smt (verit, del_insts) prenex_left_ex some_eq_ex)
+
+lemma prenex_left_qfree_case: \<open>qfree \<phi> \<Longrightarrow> prenex_left \<phi> \<psi> = prenex_right \<phi> \<psi>\<close>
+  unfolding prenex_left_def by (smt (verit, del_insts) prenex_left_ex some_eq_ex)
+
+lemma prenex_left_exists_case: \<open>prenex_left (\<^bold>\<exists>x\<^bold>. \<phi>) \<psi> = prenex_left_exists prenex_left \<phi> x \<psi>\<close>
+  unfolding prenex_left_def by (smt (verit, del_insts) prenex_left_ex some_eq_ex)
+
+lemma prenex_left_exists_shape_case: 
+  \<open>\<exists>x2 \<sigma>. prenex_left (\<^bold>\<exists>x\<^bold>. \<phi>) \<psi> = \<^bold>\<forall>x2\<^bold>. prenex_left (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<psi>\<close>
+  using prenex_left_exists_case by metis
+
 
 fun prenex where
   \<open>prenex \<^bold>\<bottom> = \<^bold>\<bottom>\<close>
@@ -729,7 +764,6 @@ lemma prenex_props_forall: \<open>P \<and> FV \<phi> = FV \<psi> \<and> language
 \<close>
   using lang_singleton by simp
 
-
 lemma prenex_props_exists: \<open>P \<and> FV \<phi> = FV \<psi> \<and> language {\<phi>} = language {\<psi>} \<and>
   (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I,\<beta> \<Turnstile> \<psi>)) \<Longrightarrow>
   P \<and> FV (\<^bold>\<exists>x\<^bold>. \<phi>) = FV (\<^bold>\<exists>x\<^bold>. \<psi>) \<and> language {(\<^bold>\<exists>x\<^bold>. \<phi>)} = language {(\<^bold>\<exists>x\<^bold>. \<psi>)} \<and>
@@ -739,61 +773,296 @@ lemma prenex_props_exists: \<open>P \<and> FV \<phi> = FV \<psi> \<and> language
 
 thm is_prenex.induct
 
+(* val num_WF : thm = |- !P. (!n. (!m. m < n ==> P m) ==> P n) ==> (!n. P n) *)
+find_theorems " _ < _ " "_::nat" name: ind
+
 thm prenex_right_forall_is 
 prenex_right_forall_FV
 prenex_right_forall_language
 prenex_props_forall
 
+find_theorems wfP name: induct 
+find_theorems wfP "(<)"
+thm wfP_ind
+find_theorems prenex_right name: "case"
+
 lemma prenex_right_props_imp0:
-  shows \<open>is_prenex \<psi> \<Longrightarrow> qfree \<phi> \<Longrightarrow> is_prenex (prenex_right \<phi> \<psi>)\<close>
-proof (induction \<psi> rule: size.induct)
-  case 1
-  then show ?case sorry
-next
-  case (2 p ts)
-  then show ?case sorry
-next
-  case (3 \<phi> \<psi>)
-  then show ?case sorry
-next
-  case (4 x \<phi>)
-  then show ?case sorry
+  \<open>qfree \<phi> \<Longrightarrow> is_prenex \<psi> \<longrightarrow> is_prenex (prenex_right \<phi> \<psi>)\<close>
+proof -
+  (* Is it possible to use the induction tactic here instead? *)
+  assume qfree_phi: \<open>qfree \<phi>\<close>
+  have \<open>(\<forall>\<psi>. (\<forall>\<psi>'. size \<psi>' < size \<psi> \<longrightarrow> 
+    (is_prenex \<psi>'  \<longrightarrow> is_prenex (prenex_right \<phi> \<psi>'))) \<longrightarrow> 
+    (is_prenex \<psi> \<longrightarrow> is_prenex (prenex_right \<phi> \<psi>)))\<close>
+  proof clarsimp
+    fix \<xi>
+    assume IH: \<open>\<forall>\<psi>'. size \<psi>' < size \<xi> \<longrightarrow> is_prenex \<psi>' \<longrightarrow> is_prenex (prenex_right \<phi> \<psi>')\<close> and
+      prenex_xi: \<open>is_prenex \<xi>\<close>
+    show \<open>is_prenex (prenex_right \<phi> \<xi>)\<close>
+    proof (cases rule: is_prenex.cases[OF prenex_xi])
+      case (1 \<xi>')
+      then show ?thesis
+        using prenex_right_qfree_case qfree_phi is_prenex.intros(1) qfree.simps(3) by presburger
+    next
+      case (2 \<xi>' x)
+      then have \<open>prenex_right \<phi> \<xi> = prenex_right_forall prenex_right \<phi> x \<xi>'\<close>
+        using prenex_right_all_case by blast
+      then show \<open>is_prenex (prenex_right \<phi> \<xi>)\<close>
+        using IH 2 by (metis One_nat_def bot_nat_0.extremum is_prenex.intros(2) le_add_same_cancel2
+            le_imp_less_Suc plus_nat.simps(2) prenex_formsubst1 size.simps(4) size_indep_subst)
+    next
+      case (3 \<xi>' x)
+      then have \<open>\<exists>y \<sigma>. prenex_right \<phi> \<xi> = \<^bold>\<exists>y\<^bold>. prenex_right \<phi> (\<xi>' \<cdot>\<^sub>f\<^sub>m \<sigma>)\<close>
+        using prenex_right_exists_shape_case by presburger
+      then obtain y \<sigma> where pr_is: \<open>prenex_right \<phi> \<xi> = \<^bold>\<exists>y\<^bold>. prenex_right \<phi> (\<xi>' \<cdot>\<^sub>f\<^sub>m \<sigma>)\<close>
+        by blast
+      have size_xp: \<open>size (\<xi>' \<cdot>\<^sub>f\<^sub>m \<sigma>) < size \<xi>\<close> 
+        using 3(1) size_indep_subst by auto
+      have \<open>is_prenex (\<xi>' \<cdot>\<^sub>f\<^sub>m \<sigma>)\<close>
+        using 3(2) prenex_formsubst1 by blast
+      then have \<open>is_prenex (prenex_right \<phi> (\<xi>' \<cdot>\<^sub>f\<^sub>m \<sigma>))\<close>
+        using IH size_xp by blast
+      then show ?thesis
+        using is_prenex.intros(3) pr_is by presburger
+    qed
+  qed
+  then show ?thesis
+    using size_wf_ind[of "\<lambda>\<psi>. is_prenex \<psi> \<longrightarrow> is_prenex (prenex_right \<phi> \<psi>)"]
+    by blast
 qed
 
-lemma prenex_right_props_imp:
-  shows \<open>is_prenex \<psi> \<Longrightarrow> qfree \<phi> \<Longrightarrow> is_prenex (prenex_right \<phi> \<psi>) \<and>
+lemma prenex_right_props_imp:  \<open>qfree \<phi> \<Longrightarrow> is_prenex \<psi> \<longrightarrow> is_prenex (prenex_right \<phi> \<psi>) \<and> 
+  FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
+  language {prenex_right \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
+  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>))))\<close>
+proof -
+  (* Is it possible to use the induction tactic here instead? *)
+  define P where \<open>P = (\<lambda>\<psi>. is_prenex (prenex_right \<phi> \<psi>)  \<and> 
     FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
     language {prenex_right \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
-    (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>))))\<close>
-proof (induction \<psi> arbitrary: \<phi> rule: is_prenex.induct)
-  case (1 \<psi>)
-  then show ?case 
-    using prenex_right_qfree_case[OF 1(1)] is_prenex.intros(1) qfree.simps(3) by presburger
-next
-  case (2 \<psi> x)
-  then have \<open>is_prenex (prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>))\<close>
-    using 2(1) prenex_right_all_case
-    sorry
-  have \<open>is_prenex (prenex_right \<phi> \<psi>) \<and> FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
-    language {prenex_right \<phi> \<psi>} = language {\<phi> \<^bold>\<longrightarrow> \<psi>} \<and>
-    (\<forall>(I :: 'a intrp) \<beta>. FOL_Semantics.dom I \<noteq> {} \<longrightarrow> I,\<beta> \<Turnstile> prenex_right \<phi> \<psi> = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
-    using 2(2)[OF 2(3)] .
-  then show ?case
-    using prenex_props_forall prenex_right_forall_is prenex_right_forall_FV prenex_formsubst
-    sorry
-next
-  case (3 \<psi> x)
-  then show ?case sorry
+    (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>)))))\<close>
+  assume qfree_phi: \<open>qfree \<phi>\<close>
+  have \<open>(\<forall>\<psi>. (\<forall>\<psi>'. size \<psi>' < size \<psi> \<longrightarrow> 
+    (is_prenex \<psi>'  \<longrightarrow> P \<psi>')) \<longrightarrow> 
+    (is_prenex \<psi> \<longrightarrow> P \<psi>))\<close>
+  proof clarsimp
+    fix \<xi>
+    assume IH: \<open>\<forall>\<psi>'. size \<psi>' < size \<xi> \<longrightarrow> is_prenex \<psi>' \<longrightarrow> P \<psi>'\<close> and
+      prenex_xi: \<open>is_prenex \<xi>\<close>
+    show \<open>P \<xi>\<close>
+    proof (cases rule: is_prenex.cases[OF prenex_xi])
+      case (1 \<xi>')
+      then show ?thesis
+        unfolding P_def
+        using prenex_right_qfree_case qfree_phi is_prenex.intros(1) qfree.simps(3) by presburger
+    next
+      case (2 \<xi>' x)
+      have pr_is1:\<open>prenex_right \<phi> \<xi> = prenex_right_forall prenex_right \<phi> x \<xi>'\<close>
+        using 2 prenex_right_all_case by blast
+      define y where \<open>y = variant (FV \<phi> \<union> FV (\<^bold>\<forall> x\<^bold>. \<xi>'))\<close>
+      then have pr_is2: \<open>prenex_right \<phi> \<xi> = \<^bold>\<forall>y\<^bold>. prenex_right \<phi> (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y))\<close>
+        using qfree_phi 2(2) pr_is1  unfolding y_def by meson
+      have \<open>is_prenex (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y))\<close>
+        using prenex_formsubst1 2(2) by presburger
+      then have p_xps: \<open>P (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y))\<close>
+        using IH 2(1) less_Suc_eq plus_1_eq_Suc size.simps(4) size_indep_subst by presburger
+      have \<open>is_prenex (prenex_right \<phi> \<xi>)\<close>
+        using prenex_right_props_imp0 prenex_xi qfree_phi by blast
+      moreover have \<open>FV (prenex_right \<phi> \<xi>) = FV (\<phi> \<^bold>\<longrightarrow> \<xi>)\<close>
+        using prenex_right_forall_FV[of \<phi> x \<xi>'] by (metis 2(1) FV.simps(4) P_def p_xps pr_is1 y_def)
+      moreover have \<open>language {prenex_right \<phi> \<xi>} = language {\<phi> \<^bold>\<longrightarrow> \<xi>}\<close>
+        using prenex_right_forall_language by (smt (verit, ccfv_threshold) 2(1) P_def p_xps pr_is1
+            prenex_props_forall y_def)
+      moreover have \<open>(\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> 
+        I,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<xi>)\<close>
+      proof clarsimp
+        fix I :: "'a intrp" and \<beta>
+        assume \<open>dom I \<noteq> {}\<close>
+        then show \<open>I,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = (I,\<beta> \<Turnstile> \<phi> \<longrightarrow> I,\<beta> \<Turnstile> \<xi>)\<close>
+          using prenex_right_forall_is by (smt (verit, del_insts) 2(1) P_def holds.simps(3) p_xps
+              pr_is1 prenex_props_forall y_def)
+      qed
+      ultimately show \<open>P \<xi>\<close>
+        unfolding P_def by blast
+    next
+      case (3 \<xi>' x)
+      have pr_is1:\<open>prenex_right \<phi> \<xi> = prenex_right_exists prenex_right \<phi> x \<xi>'\<close>
+        using 3 prenex_right_exist_case by blast
+      define y where \<open>y = variant (FV \<phi> \<union> FV (\<^bold>\<exists> x\<^bold>. \<xi>'))\<close>
+      then have pr_is2: \<open>prenex_right \<phi> \<xi> = \<^bold>\<exists>y\<^bold>. prenex_right \<phi> (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y))\<close>
+        using qfree_phi 3(2) pr_is1  unfolding y_def by meson
+      have \<open>is_prenex (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y))\<close>
+        using prenex_formsubst1 3(2) by presburger
+      then have p_xps: \<open>P (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y))\<close>
+        using IH 3(1) less_Suc_eq plus_1_eq_Suc size.simps size_indep_subst by simp
+      have \<open>is_prenex (prenex_right \<phi> \<xi>)\<close>
+        using prenex_right_props_imp0 prenex_xi qfree_phi by blast
+      moreover have \<open>FV (prenex_right \<phi> \<xi>) = FV (\<phi> \<^bold>\<longrightarrow> \<xi>)\<close>
+        using prenex_right_exists_FV[of \<phi> x \<xi>'] by (metis 3(1) FV.simps(4) FV_exists P_def p_xps
+            pr_is1 y_def)
+      moreover have \<open>language {prenex_right \<phi> \<xi>} = language {\<phi> \<^bold>\<longrightarrow> \<xi>}\<close>
+        using prenex_right_forall_language by (smt (verit) "3"(1) P_def p_xps pr_is1 
+            prenex_props_exists prenex_right_exists_language y_def)
+      moreover have \<open>(\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> 
+        I,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<xi>)\<close>
+      proof clarsimp
+        fix I :: "'a intrp" and \<beta>
+        assume \<open>dom I \<noteq> {}\<close>
+        then show \<open>I,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = (I,\<beta> \<Turnstile> \<phi> \<longrightarrow> I,\<beta> \<Turnstile> \<xi>)\<close>
+          using prenex_right_exists_is by (smt (verit) 3(1) P_def holds.simps(3) p_xps pr_is1
+              prenex_props_exists y_def)
+      qed
+      ultimately show \<open>P \<xi>\<close>
+        unfolding P_def by blast
+    qed
+  qed
+  then show ?thesis
+    using size_wf_ind[of "\<lambda>\<psi>. is_prenex \<psi> \<longrightarrow> P \<psi>"]
+    unfolding P_def by blast
 qed
-
 
 lemma prenex_right_props: \<open>qfree \<phi> \<and> is_prenex \<psi> \<Longrightarrow>
   is_prenex (prenex_right \<phi> \<psi>) \<and>
   FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
   language {prenex_right \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
   (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>))))\<close>
+  using prenex_right_props_imp by meson
 
-  sorry
+
+lemma prenex_left_props_imp0: \<open>is_prenex \<psi> \<Longrightarrow> is_prenex \<phi> \<longrightarrow> is_prenex (prenex_left \<phi> \<psi>)\<close>
+proof -
+  assume prenex_psi: \<open>is_prenex \<psi>\<close>
+  have \<open>(\<forall>\<phi>. (\<forall>\<phi>'. size \<phi>' < size \<phi> \<longrightarrow> 
+    (is_prenex \<phi>'  \<longrightarrow> is_prenex (prenex_left \<phi>' \<psi>))) \<longrightarrow> 
+    (is_prenex \<phi> \<longrightarrow> is_prenex (prenex_left \<phi> \<psi>)))\<close>
+  proof clarsimp
+    fix \<xi>
+    assume IH: \<open>\<forall>\<phi>'. size \<phi>' < size \<xi> \<longrightarrow> is_prenex \<phi>' \<longrightarrow> is_prenex (prenex_left \<phi>' \<psi>)\<close> and
+      prenex_xi: \<open>is_prenex \<xi>\<close>
+    show \<open>is_prenex (prenex_left \<xi> \<psi>)\<close>
+    proof (cases rule: is_prenex.cases[OF prenex_xi])
+      case (1 \<xi>')
+      then show ?thesis
+         using prenex_xi prenex_right_props prenex_left_qfree_case prenex_psi by presburger
+    next
+      case (2 \<xi>' x)
+      then have \<open>prenex_left \<xi> \<psi> = prenex_left_forall prenex_left \<xi>' x \<psi>\<close>
+        using prenex_left_forall_case by blast
+      then show \<open>is_prenex (prenex_left \<xi> \<psi>)\<close>
+        using IH 2 by (metis is_prenex.intros(3) lessI plus_1_eq_Suc prenex_formsubst1 size.simps(4)
+            size_indep_subst)
+    next
+      case (3 \<xi>' x)
+      then have \<open>\<exists>y \<sigma>. prenex_left \<xi> \<psi> = \<^bold>\<forall>y\<^bold>. prenex_left (\<xi>' \<cdot>\<^sub>f\<^sub>m \<sigma>) \<psi>\<close>
+        using prenex_left_exists_shape_case by presburger
+      then obtain y \<sigma> where pr_is: \<open>prenex_left \<xi> \<psi> = \<^bold>\<forall>y\<^bold>. prenex_left (\<xi>' \<cdot>\<^sub>f\<^sub>m \<sigma>) \<psi>\<close>
+        by blast
+      have size_xp: \<open>size (\<xi>' \<cdot>\<^sub>f\<^sub>m \<sigma>) < size \<xi>\<close> 
+        using 3(1) size_indep_subst by auto
+      have \<open>is_prenex (\<xi>' \<cdot>\<^sub>f\<^sub>m \<sigma>)\<close>
+        using 3(2) prenex_formsubst1 by blast
+      then have \<open>is_prenex (prenex_left (\<xi>' \<cdot>\<^sub>f\<^sub>m \<sigma>) \<psi>)\<close>
+        using IH size_xp by blast
+      then show ?thesis
+        using is_prenex.intros pr_is by presburger
+    qed
+  qed
+  then show ?thesis
+    using size_wf_ind[of "\<lambda>\<phi>. is_prenex \<phi> \<longrightarrow> is_prenex (prenex_left \<phi> \<psi>)"]
+    by blast
+qed
+
+
+lemma prenex_left_props_imp: \<open>is_prenex \<psi> \<Longrightarrow> is_prenex \<phi> \<longrightarrow> 
+        is_prenex (prenex_left \<phi> \<psi>) \<and>
+        FV (prenex_left \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
+        (language {(prenex_left \<phi> \<psi>)} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)}) \<and>
+        (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I,\<beta> \<Turnstile> prenex_left \<phi> \<psi> \<longleftrightarrow> I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
+proof -
+  (* Is it possible to use the induction tactic here instead? *)
+  define P where \<open>P = (\<lambda>\<phi>. is_prenex (prenex_left \<phi> \<psi>)  \<and> 
+    FV (prenex_left \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
+    language {prenex_left \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
+    (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I,\<beta> \<Turnstile> (prenex_left \<phi> \<psi>)) \<longleftrightarrow> (I,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>)))))\<close>
+  assume is_prenex_psi: \<open>is_prenex \<psi>\<close>
+  have \<open>(\<forall>\<phi>. (\<forall>\<phi>'. size \<phi>' < size \<phi> \<longrightarrow> (is_prenex \<phi>'  \<longrightarrow> P \<phi>')) \<longrightarrow> (is_prenex \<phi> \<longrightarrow> P \<phi>))\<close>
+  proof clarsimp
+    fix \<xi>
+    assume IH: \<open>\<forall>\<phi>'. size \<phi>' < size \<xi> \<longrightarrow> is_prenex \<phi>' \<longrightarrow> P \<phi>'\<close> and
+      prenex_xi: \<open>is_prenex \<xi>\<close>
+    show \<open>P \<xi>\<close>
+    proof (cases rule: is_prenex.cases[OF prenex_xi])
+      case (1 \<xi>')
+      then show ?thesis
+        unfolding P_def
+        using prenex_right_qfree_case is_prenex_psi 
+        by (simp add: prenex_left_qfree_case prenex_right_props)
+    next
+      case (2 \<xi>' x)
+      have pr_is1:\<open>prenex_left \<xi> \<psi> = prenex_left_forall prenex_left \<xi>' x \<psi>\<close>
+        using 2 prenex_left_forall_case by blast
+      define y where \<open>y = variant (FV (\<^bold>\<forall>x\<^bold>. \<xi>') \<union> FV \<psi>)\<close>
+      then have pr_is2: \<open>prenex_left \<xi> \<psi> = \<^bold>\<exists>y\<^bold>. prenex_left (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y)) \<psi>\<close>
+        using is_prenex_psi 2(2) pr_is1  unfolding y_def by meson
+      have \<open>is_prenex (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y))\<close>
+        using prenex_formsubst1 2(2) by presburger
+      then have p_xps: \<open>P (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y))\<close>
+        using IH 2(1) less_Suc_eq plus_1_eq_Suc size.simps(4) size_indep_subst by presburger
+      have \<open>is_prenex (prenex_left \<xi> \<psi>)\<close>
+        using prenex_left_props_imp0 prenex_xi is_prenex_psi by blast
+      moreover have \<open>FV (prenex_left \<xi> \<psi>) = FV (\<xi> \<^bold>\<longrightarrow> \<psi>)\<close>
+        using prenex_left_forall_FV[of x \<xi>' \<psi>] by (metis 2(1) FV_exists P_def p_xps pr_is1 y_def)
+      moreover have \<open>language {prenex_left \<xi> \<psi>} = language {\<xi> \<^bold>\<longrightarrow> \<psi>}\<close>
+        using prenex_left_forall_language 
+        by (smt (verit, ccfv_threshold) 2(1) P_def p_xps pr_is1 prenex_props_exists y_def)
+      moreover have \<open>(\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> 
+        I,\<beta> \<Turnstile> prenex_left \<xi> \<psi> = I,\<beta> \<Turnstile> \<xi> \<^bold>\<longrightarrow> \<psi>)\<close>
+      proof clarsimp
+        fix I :: "'a intrp" and \<beta>
+        assume \<open>dom I \<noteq> {}\<close>
+        then show \<open>I,\<beta> \<Turnstile> prenex_left \<xi> \<psi> = (I,\<beta> \<Turnstile> \<xi> \<longrightarrow> I,\<beta> \<Turnstile> \<psi>)\<close>
+          using prenex_left_forall_is
+          by (smt (verit) "2"(1) P_def holds.simps(3) p_xps pr_is1 prenex_props_exists y_def)
+      qed
+      ultimately show \<open>P \<xi>\<close>
+        unfolding P_def by blast
+    next
+      case (3 \<xi>' x)
+      have pr_is1:\<open>prenex_right \<phi> \<xi> = prenex_right_exists prenex_right \<phi> x \<xi>'\<close>
+        using 3 prenex_right_exist_case by blast
+      define y where \<open>y = variant (FV \<phi> \<union> FV (\<^bold>\<exists> x\<^bold>. \<xi>'))\<close>
+      then have pr_is2: \<open>prenex_right \<phi> \<xi> = \<^bold>\<exists>y\<^bold>. prenex_right \<phi> (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y))\<close>
+        using qfree_phi 3(2) pr_is1  unfolding y_def by meson
+      have \<open>is_prenex (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y))\<close>
+        using prenex_formsubst1 3(2) by presburger
+      then have p_xps: \<open>P (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y))\<close>
+        using IH 3(1) less_Suc_eq plus_1_eq_Suc size.simps size_indep_subst by simp
+      have \<open>is_prenex (prenex_right \<phi> \<xi>)\<close>
+        using prenex_right_props_imp0 prenex_xi qfree_phi by blast
+      moreover have \<open>FV (prenex_right \<phi> \<xi>) = FV (\<phi> \<^bold>\<longrightarrow> \<xi>)\<close>
+        using prenex_right_exists_FV[of \<phi> x \<xi>'] by (metis 3(1) FV.simps(4) FV_exists P_def p_xps
+            pr_is1 y_def)
+      moreover have \<open>language {prenex_right \<phi> \<xi>} = language {\<phi> \<^bold>\<longrightarrow> \<xi>}\<close>
+        using prenex_right_forall_language by (smt (verit) "3"(1) P_def p_xps pr_is1 
+            prenex_props_exists prenex_right_exists_language y_def)
+      moreover have \<open>(\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> 
+        I,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<xi>)\<close>
+      proof clarsimp
+        fix I :: "'a intrp" and \<beta>
+        assume \<open>dom I \<noteq> {}\<close>
+        then show \<open>I,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = (I,\<beta> \<Turnstile> \<phi> \<longrightarrow> I,\<beta> \<Turnstile> \<xi>)\<close>
+          using prenex_right_exists_is by (smt (verit) 3(1) P_def holds.simps(3) p_xps pr_is1
+              prenex_props_exists y_def)
+      qed
+      ultimately show \<open>P \<xi>\<close>
+        unfolding P_def by blast
+    qed
+  qed
+  then show ?thesis
+    using size_wf_ind[of "\<lambda>\<psi>. is_prenex \<psi> \<longrightarrow> P \<psi>"]
+    unfolding P_def by blast
+qed
+
 (* 
 (`!p q. prenex p /\ prenex q
          ==> prenex (Prenex_left p q) /\
@@ -807,48 +1076,7 @@ lemma prenex_left_props: \<open>is_prenex \<phi> \<and> is_prenex \<psi> \<Longr
         FV (prenex_left \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
         (language {(prenex_left \<phi> \<psi>)} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)}) \<and>
         (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I,\<beta> \<Turnstile> prenex_left \<phi> \<psi> \<longleftrightarrow> I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
-proof (induction \<phi> arbitrary: \<psi> rule: wfP_induct_rule[OF wf_size])
-(*  assume is_pre: \<open>is_prenex \<phi> \<and> is_prenex \<psi>\<close>
-(* `!q. prenex(q)
-        ==> !n p. prenex(p) /\ (size(p) = n)
-                  ==> prenex (Prenex_left p q) /\
-                      (FV(Prenex_left p q) = FV(p --> q)) /\
-                      (language {(Prenex_left p q)} = language {(p --> q)}) /\
-                      (!M v. ~(Dom M :A->bool = EMPTY)
-                              ==> (holds M v (Prenex_left p q) <=>
-                                   holds M v (p --> q)))` *)
-  show ?thesis
-  proof (induction \<phi> arbitrary: \<psi> rule: wfP_induct_rule[OF wf_size])*)
-    case (1 \<phi>)
-    then show ?case
-    proof -
-      consider (All) \<open>\<exists>x \<phi>'. \<phi> = \<^bold>\<forall>x\<^bold>. \<phi>'\<close> | (Ex) \<open>\<exists>x \<phi>'. \<phi> = \<^bold>\<exists>x\<^bold>. \<phi>'\<close> | (Qfree) \<open>qfree \<phi>\<close>
-        using 1(2) by (meson is_prenex.cases)
-      then have \<open>is_prenex (prenex_left \<phi> \<psi>)\<close>
-      proof cases
-        case All
-        then obtain x \<phi>' where phi_is: \<open>\<phi> = \<^bold>\<forall> x\<^bold>. \<phi>'\<close>
-          by blast
-        then show ?thesis (* unlikely to succeed because of how prenex_left is defined *)
-          apply simp
-          sorry
-      next
-        case Ex
-        then show ?thesis sorry
-      next
-        case Qfree
-        then show ?thesis sorry
-      qed 
-      moreover have \<open>FV (prenex_left \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
-        sorry
-      moreover have \<open>language {prenex_left \<phi> \<psi>} = language {\<phi> \<^bold>\<longrightarrow> \<psi>}\<close>
-        sorry
-      moreover have \<open>(\<forall>(I :: 'a intrp) \<beta>. FOL_Semantics.dom I \<noteq> {} \<longrightarrow>
-        I,\<beta> \<Turnstile> prenex_left \<phi> \<psi> = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
-        sorry
-      ultimately show ?case by blast
-    qed
-qed
+  using prenex_left_props_imp by meson
 
 theorem prenex_props: \<open>is_prenex (prenex \<phi>) \<and> (FV (prenex \<phi>) = FV \<phi>) \<and> 
   (language {prenex \<phi>} = language {\<phi>}) \<and>
