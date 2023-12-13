@@ -1028,31 +1028,31 @@ proof -
         unfolding P_def by blast
     next
       case (3 \<xi>' x)
-      have pr_is1:\<open>prenex_right \<phi> \<xi> = prenex_right_exists prenex_right \<phi> x \<xi>'\<close>
-        using 3 prenex_right_exist_case by blast
-      define y where \<open>y = variant (FV \<phi> \<union> FV (\<^bold>\<exists> x\<^bold>. \<xi>'))\<close>
-      then have pr_is2: \<open>prenex_right \<phi> \<xi> = \<^bold>\<exists>y\<^bold>. prenex_right \<phi> (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y))\<close>
-        using qfree_phi 3(2) pr_is1  unfolding y_def by meson
+      have pr_is1:\<open>prenex_left \<xi> \<psi> = prenex_left_exists prenex_left \<xi>' x \<psi>\<close>
+        using 3 prenex_left_exists_case by blast
+      define y where \<open>y = variant (FV (\<^bold>\<exists> x\<^bold>. \<xi>') \<union> FV \<psi>)\<close>
+      then have pr_is2: \<open>prenex_left \<xi> \<psi> = \<^bold>\<forall>y\<^bold>. prenex_left (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y)) \<psi>\<close>
+        using is_prenex_psi 3(2) pr_is1  unfolding y_def by meson
       have \<open>is_prenex (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y))\<close>
         using prenex_formsubst1 3(2) by presburger
       then have p_xps: \<open>P (\<xi>' \<cdot>\<^sub>f\<^sub>m subst x (Var y))\<close>
         using IH 3(1) less_Suc_eq plus_1_eq_Suc size.simps size_indep_subst by simp
-      have \<open>is_prenex (prenex_right \<phi> \<xi>)\<close>
-        using prenex_right_props_imp0 prenex_xi qfree_phi by blast
-      moreover have \<open>FV (prenex_right \<phi> \<xi>) = FV (\<phi> \<^bold>\<longrightarrow> \<xi>)\<close>
-        using prenex_right_exists_FV[of \<phi> x \<xi>'] by (metis 3(1) FV.simps(4) FV_exists P_def p_xps
+      have \<open>is_prenex (prenex_left \<xi> \<psi>)\<close>
+        using prenex_left_props_imp0 prenex_xi is_prenex_psi by blast
+      moreover have \<open>FV (prenex_left \<xi> \<psi>) = FV (\<xi> \<^bold>\<longrightarrow> \<psi>)\<close>
+        using prenex_left_exists_FV[of x \<xi>' \<psi>] by (metis 3(1) FV.simps(4) P_def p_xps
             pr_is1 y_def)
-      moreover have \<open>language {prenex_right \<phi> \<xi>} = language {\<phi> \<^bold>\<longrightarrow> \<xi>}\<close>
-        using prenex_right_forall_language by (smt (verit) "3"(1) P_def p_xps pr_is1 
-            prenex_props_exists prenex_right_exists_language y_def)
+      moreover have \<open>language {prenex_left \<xi> \<psi>} = language {\<xi> \<^bold>\<longrightarrow> \<psi>}\<close>
+        using prenex_left_exists_language[of x \<xi>' \<psi>] 
+        by (smt (verit) 3(1) P_def p_xps pr_is2 prenex_props_forall y_def)
       moreover have \<open>(\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> 
-        I,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<xi>)\<close>
+        I,\<beta> \<Turnstile> prenex_left \<xi> \<psi> = I,\<beta> \<Turnstile> \<xi> \<^bold>\<longrightarrow> \<psi>)\<close>
       proof clarsimp
         fix I :: "'a intrp" and \<beta>
         assume \<open>dom I \<noteq> {}\<close>
-        then show \<open>I,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = (I,\<beta> \<Turnstile> \<phi> \<longrightarrow> I,\<beta> \<Turnstile> \<xi>)\<close>
-          using prenex_right_exists_is by (smt (verit) 3(1) P_def holds.simps(3) p_xps pr_is1
-              prenex_props_exists y_def)
+        then show \<open>I,\<beta> \<Turnstile> prenex_left \<xi> \<psi> = (I,\<beta> \<Turnstile> \<xi> \<longrightarrow> I,\<beta> \<Turnstile> \<psi>)\<close>
+          using prenex_left_exists_is by (smt (verit, del_insts) 3(1) P_def holds.simps(3) p_xps
+              pr_is1 prenex_props_forall y_def)
       qed
       ultimately show \<open>P \<xi>\<close>
         unfolding P_def by blast
