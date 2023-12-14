@@ -524,7 +524,7 @@ proof (cases P C rule: ground_eq_factoring.cases)
   qed
 qed
 
-interpretation G: sound_inference_system G_Inf G_Bot G_entails
+sublocale sound_inference_system G_Inf G_Bot G_entails
 proof unfold_locales
   show "G_Bot \<noteq> {}"
     by simp
@@ -785,7 +785,7 @@ proof (cases P C rule: ground_eq_factoring.cases)
     by simp
 qed
 
-interpretation G: calculus_with_finitary_standard_redundancy G_Inf G_Bot G_entails "(\<prec>\<^sub>c)"
+sublocale calculus_with_finitary_standard_redundancy G_Inf G_Bot G_entails "(\<prec>\<^sub>c)"
 proof unfold_locales
   show "transp (\<prec>\<^sub>c)"
     using transp_less_cls .
@@ -1833,7 +1833,7 @@ lemma model_construction:
     C :: "'f atom clause"
   defines
     "entails \<equiv> \<lambda>E C. (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile> C"
-  assumes "G.saturated N" and "{#} \<notin> N" and C_in: "C \<in> N"
+  assumes "saturated N" and "{#} \<notin> N" and C_in: "C \<in> N"
   shows
     "equation N C = {} \<longleftrightarrow> entails (rewrite_sys N C) C"
     "entails (\<Union>D \<in> N. equation N D) C"
@@ -1916,17 +1916,17 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             using \<open>C \<in> N\<close>
             by (simp add: \<iota>_def)
 
-          ultimately have "\<iota> \<in> G.Inf_from N"
-            by (auto simp: G.Inf_from_def)
-          hence "\<iota> \<in> G.Red_I N"
-            using \<open>G.saturated N\<close>
-            by (auto simp: G.saturated_def)
+          ultimately have "\<iota> \<in> Inf_from N"
+            by (auto simp: Inf_from_def)
+          hence "\<iota> \<in> Red_I N"
+            using \<open>saturated N\<close>
+            by (auto simp: saturated_def)
           then obtain DD where
             DD_subset: "DD \<subseteq> N" and
             "finite DD" and
             DD_entails_C': "G_entails DD {C'}" and
             ball_DD_lt_C: "\<forall>D \<in> DD. D \<prec>\<^sub>c C"
-            unfolding G.Red_I_def G.redundant_infer_def
+            unfolding Red_I_def redundant_infer_def
             by (auto simp: \<iota>_def)
 
           moreover have "\<forall>D\<in>DD. entails (rewrite_sys N C) D"
@@ -2041,17 +2041,17 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             using \<open>C \<in> N\<close> \<open>D \<in> N\<close>
             by (auto simp add: \<iota>_def)
 
-          ultimately have "\<iota> \<in> G.Inf_from N"
-            by (auto simp: G.Inf_from_def)
-          hence "\<iota> \<in> G.Red_I N"
-            using \<open>G.saturated N\<close>
-            by (auto simp: G.saturated_def)
+          ultimately have "\<iota> \<in> Inf_from N"
+            by (auto simp: Inf_from_def)
+          hence "\<iota> \<in> Red_I N"
+            using \<open>saturated N\<close>
+            by (auto simp: saturated_def)
           then obtain DD where
             DD_subset: "DD \<subseteq> N" and
             "finite DD" and
             DD_entails_CD: "G_entails (insert D DD) {CD}" and
             ball_DD_lt_C: "\<forall>D\<in>DD. D \<prec>\<^sub>c C"
-            unfolding G.Red_I_def G.redundant_infer_def mem_Collect_eq
+            unfolding Red_I_def redundant_infer_def mem_Collect_eq
             by (auto simp: \<iota>_def)
 
           moreover have "\<forall>D\<in> insert D DD. entails (rewrite_sys N C) D"
@@ -2283,17 +2283,17 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
                   using \<open>C \<in> N\<close>
                   by (auto simp add: \<iota>_def)
 
-                ultimately have "\<iota> \<in> G.Inf_from N"
-                  by (auto simp: G.Inf_from_def)
-                hence "\<iota> \<in> G.Red_I N"
-                  using \<open>G.saturated N\<close>
-                  by (auto simp: G.saturated_def)
+                ultimately have "\<iota> \<in> Inf_from N"
+                  by (auto simp: Inf_from_def)
+                hence "\<iota> \<in> Red_I N"
+                  using \<open>saturated N\<close>
+                  by (auto simp: saturated_def)
                 then obtain DD where
                   DD_subset: "DD \<subseteq> N" and
                   "finite DD" and
                   DD_entails_C': "G_entails DD {?concl}" and
                   ball_DD_lt_C: "\<forall>D\<in>DD. D \<prec>\<^sub>c C"
-                  unfolding G.Red_I_def G.redundant_infer_def
+                  unfolding Red_I_def redundant_infer_def
                   by (auto simp: \<iota>_def)
 
                 have "\<forall>D\<in>DD. entails (rewrite_sys N C) D"
@@ -2381,17 +2381,17 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
               using \<open>C \<in> N\<close> \<open>D \<in> N\<close>
               by (auto simp add: \<iota>_def)
 
-            ultimately have "\<iota> \<in> G.Inf_from N"
-              by (auto simp only: G.Inf_from_def)
-            hence "\<iota> \<in> G.Red_I N"
-              using \<open>G.saturated N\<close>
-              by (auto simp only: G.saturated_def)
+            ultimately have "\<iota> \<in> Inf_from N"
+              by (auto simp only: Inf_from_def)
+            hence "\<iota> \<in> Red_I N"
+              using \<open>saturated N\<close>
+              by (auto simp only: saturated_def)
             then obtain DD where
               DD_subset: "DD \<subseteq> N" and
               "finite DD" and
               DD_entails_concl: "G_entails (insert D DD) {?concl}" and
               ball_DD_lt_C: "\<forall>D\<in>DD. D \<prec>\<^sub>c C"
-              unfolding G.Red_I_def G.redundant_infer_def mem_Collect_eq
+              unfolding Red_I_def redundant_infer_def mem_Collect_eq
               by (auto simp: \<iota>_def)
 
             moreover have "\<forall>D\<in> insert D DD. entails (rewrite_sys N C) D"
@@ -2467,17 +2467,17 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             using \<open>C \<in> N\<close>
             by (auto simp add: \<iota>_def)
 
-          ultimately have "\<iota> \<in> G.Inf_from N"
-            by (auto simp: G.Inf_from_def)
-          hence "\<iota> \<in> G.Red_I N"
-            using \<open>G.saturated N\<close>
-            by (auto simp: G.saturated_def)
+          ultimately have "\<iota> \<in> Inf_from N"
+            by (auto simp: Inf_from_def)
+          hence "\<iota> \<in> Red_I N"
+            using \<open>saturated N\<close>
+            by (auto simp: saturated_def)
           then obtain DD where
             DD_subset: "DD \<subseteq> N" and
             "finite DD" and
             DD_entails_concl: "G_entails DD {?concl}" and
             ball_DD_lt_C: "\<forall>D\<in>DD. D \<prec>\<^sub>c C"
-            unfolding G.Red_I_def G.redundant_infer_def mem_Collect_eq
+            unfolding Red_I_def redundant_infer_def mem_Collect_eq
             by (auto simp: \<iota>_def)
 
           moreover have "\<forall>D\<in>DD. entails (rewrite_sys N C) D"
@@ -2532,10 +2532,10 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
     by argo
 qed
 
-interpretation G: statically_complete_calculus G_Bot G_Inf G_entails G.Red_I G.Red_F
+sublocale statically_complete_calculus G_Bot G_Inf G_entails Red_I Red_F
 proof unfold_locales
   fix B :: "'f atom clause" and N :: "'f atom clause set"
-  assume "B \<in> G_Bot" and "G.saturated N"
+  assume "B \<in> G_Bot" and "saturated N"
   hence "B = {#}"
     by simp
 
@@ -2582,7 +2582,7 @@ proof unfold_locales
     next
       show "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s N"
         unfolding I_def
-        using model_construction(2)[OF \<open>G.saturated N\<close> \<open>{#} \<notin> N\<close>]
+        using model_construction(2)[OF \<open>saturated N\<close> \<open>{#} \<notin> N\<close>]
         by (simp add: true_clss_def)
     next
       show "\<not> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s G_Bot"
@@ -2593,9 +2593,11 @@ proof unfold_locales
     by auto
 qed
 
-(* TODO: How to access this stuff differently? *)
+(* TODO: How to access this stuff differently?
 abbreviation Red_I where "Red_I \<equiv> G.Red_I"
 abbreviation Red_F where "Red_F \<equiv> G.Red_F"
+lemmas Red_I_def = G.Red_I_def
+lemmas Red_F_def = G.Red_F_def *)
 
 end
 
