@@ -685,7 +685,7 @@ lemma is_strictly_maximal\<^sub>l_ground_subst_stability':
 
 definition clause_groundings ::
   "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" where
-  "clause_groundings clause = { ground_clause. \<exists>\<theta>. ground_clause = to_ground_clause (clause \<cdot> \<theta>) }"
+  "clause_groundings clause = { to_ground_clause (clause \<cdot> \<theta>) | \<theta>. is_ground_clause (clause \<cdot> \<theta>) }"
 
 (* TODO: new section *)
 
@@ -737,6 +737,18 @@ where
     conclusion = add_mset (\<P> (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) 
           (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
     superposition premise\<^sub>1 premise\<^sub>2 conclusion"
+
+abbreviation equality_factoring_inferences where
+  "equality_factoring_inferences \<equiv> {Infer [P] C | P C. equality_factoring P C}"
+
+definition inferences :: "('f, 'v) atom clause inference set" where
+  "inferences \<equiv> 
+    {Infer [P\<^sub>2, P\<^sub>1] C | P\<^sub>2 P\<^sub>1 C. superposition P\<^sub>1 P\<^sub>2 C} \<union>
+    {Infer [P] C | P C. equality_resolution P C} \<union>
+    {Infer [P] C | P C. equality_factoring P C}"
+
+abbreviation bottom\<^sub>F :: "('f, 'v) atom clause set" ("\<bottom>\<^sub>F") where
+  "bottom\<^sub>F \<equiv> {{#}}"
 
 lemma equality_resolution_ground_instance:
   assumes 
@@ -905,11 +917,11 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
     
   have "to_ground_clause (conclusion \<cdot> \<theta>) \<in> clause_groundings (conclusion' \<cdot> \<sigma>)"
     unfolding clause_groundings_def conclusion'_\<sigma>_\<theta>
-    by (metis (mono_tags, lifting) \<sigma>(2) clause_subst_compose conclusion'_\<theta> mem_Collect_eq)
+    by (smt (verit, ccfv_threshold) conclusion'_\<sigma>_\<theta> conclusion_grounding mem_Collect_eq)
    
   with equality_resolution show ?thesis
     unfolding clause_groundings_def
-    by blast
+    using premise_grounding by blast
 qed
 
 lemma equality_factoring_ground_instance:
@@ -1117,13 +1129,13 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
       subst_atom[symmetric]
     by (simp add: add_mset_commute)
 
-  have "to_ground_clause (conclusion \<cdot> \<theta>) \<in> clause_groundings (?conclusion' \<cdot> \<sigma>)"
-    unfolding conclusion_\<theta> clause_groundings_def 
-    using \<sigma>(2) by auto
+  then have "to_ground_clause (conclusion \<cdot> \<theta>) \<in> clause_groundings (?conclusion' \<cdot> \<sigma>)"
+    unfolding clause_groundings_def 
+    using \<sigma>(2) conclusion_\<theta> conclusion_grounding by auto
    
   with equality_factoring show ?thesis
     unfolding clause_groundings_def
-    by blast
+    using premise_grounding by blast
 qed
 
 definition non_redundant_superposition where
@@ -1552,12 +1564,12 @@ proof(cases
     by simp
 
   have "to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>) \<in> clause_groundings premise\<^sub>1"
-    unfolding clause_groundings_def clause_subst_compose[symmetric]
-    by blast
+    unfolding clause_groundings_def
+    by (smt (verit, del_insts) clause_subst_compose mem_Collect_eq premise\<^sub>1_grounding)
 
   moreover have "to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>) \<in> clause_groundings premise\<^sub>2"
-    unfolding clause_groundings_def clause_subst_compose[symmetric]
-    by blast
+    unfolding clause_groundings_def
+    by (smt (verit, del_insts) clause_subst_compose mem_Collect_eq premise\<^sub>2_grounding)
 
   moreover have "conclusion \<cdot> \<theta> = 
     add_mset (\<P> (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> (to_term term\<^sub>G\<^sub>2))) 
@@ -1582,8 +1594,8 @@ proof(cases
     by (smt (verit))+
     
   have "to_ground_clause (conclusion \<cdot> \<theta>) \<in> clause_groundings ?conclusion'"
-    unfolding clause_groundings_def conclusion_\<theta>
-    by blast
+    unfolding clause_groundings_def
+    by (metis (mono_tags, lifting) conclusion_\<theta> conclusion_grounding mem_Collect_eq)
    
   ultimately show ?thesis 
     using superposition
@@ -1678,15 +1690,6 @@ next
 qed
 
 
-definition F_Inf :: "('f, 'v) atom clause inference set" where
-  "F_Inf \<equiv> 
-    {Infer [P\<^sub>2, P\<^sub>1] C | P\<^sub>2 P\<^sub>1 C. superposition P\<^sub>1 P\<^sub>2 C} \<union>
-    {Infer [P] C | P C. equality_resolution P C} \<union>
-    {Infer [P] C | P C. equality_factoring P C}"
-
-abbreviation F_Bot :: "('f, 'v) atom clause set" where
-  "F_Bot \<equiv> {{#}}"
-
 abbreviation true_clause :: 
   "'f ground_atom interp \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" (infix "\<TTurnstile>\<^sub>C" 50)  where
   "I \<TTurnstile>\<^sub>C C \<equiv> \<forall>\<theta>. term_subst.is_ground_subst \<theta> \<longrightarrow> I \<TTurnstile> to_ground_clause (C \<cdot> \<theta>)"
@@ -1695,8 +1698,9 @@ abbreviation true_clauses ::
   "'f ground_atom interp \<Rightarrow> ('f, 'v) atom clause set \<Rightarrow> bool" (infix "\<TTurnstile>\<^sub>C\<^sub>s" 50) where
   "I \<TTurnstile>\<^sub>C\<^sub>s \<C> \<equiv> \<forall>C\<in> \<C>. I \<TTurnstile>\<^sub>C C"
 
-definition F_entails :: "('f, 'v) atom clause set \<Rightarrow> ('f, 'v) atom clause set \<Rightarrow> bool" where
-  "F_entails N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: 'f gterm rel). 
+definition entails\<^sub>F :: 
+  "('f, 'v) atom clause set \<Rightarrow> ('f, 'v) atom clause set \<Rightarrow> bool" (infix "\<TTurnstile>\<^sub>F" 50) where
+  "entails\<^sub>F N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: 'f gterm rel). 
     refl I \<longrightarrow> trans I \<longrightarrow> sym I \<longrightarrow> compatible_with_gctxt I \<longrightarrow>
     (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>\<^sub>C\<^sub>s N\<^sub>1 \<longrightarrow>
     (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>\<^sub>C\<^sub>s N\<^sub>2)"
@@ -1705,7 +1709,7 @@ subsection \<open>Soundness\<close>
  
 lemma equality_resolution_sound:
   assumes step: "equality_resolution P C"
-  shows "F_entails {P} {C}"
+  shows "{P} \<TTurnstile>\<^sub>F {C}"
   using step
 proof (cases P C rule: equality_resolution.cases)
   case (equality_resolutionI L P' s\<^sub>1 s\<^sub>2 \<mu>)
@@ -1777,13 +1781,13 @@ proof (cases P C rule: equality_resolution.cases)
    qed
 
   then show ?thesis 
-    unfolding true_clss_singleton F_entails_def 
+    unfolding true_clss_singleton entails\<^sub>F_def 
     by simp
 qed
 
 lemma equality_factoring_sound:
   assumes step: "equality_factoring P C"
-  shows "F_entails {P} {C}"
+  shows "{P} \<TTurnstile>\<^sub>F {C}"
   using step
 proof (cases P C rule: equality_factoring.cases)
   case (equality_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
@@ -1871,13 +1875,13 @@ proof (cases P C rule: equality_factoring.cases)
   qed
 
   then show ?thesis
-    unfolding true_clss_singleton F_entails_def 
+    unfolding true_clss_singleton entails\<^sub>F_def 
     by simp
 qed
 
 lemma superposition_sound:
   assumes step: "superposition P1 P2 C"
-  shows "F_entails {P1, P2} {C}"
+  shows "{P1, P2} \<TTurnstile>\<^sub>F {C}"
   using step
 proof (cases P1 P2 C rule: superposition.cases)
   case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
@@ -2063,22 +2067,9 @@ proof (cases P1 P2 C rule: superposition.cases)
   qed
 
   then show ?thesis 
-    unfolding true_clss_singleton true_clss_insert F_entails_def
+    unfolding true_clss_singleton true_clss_insert entails\<^sub>F_def
     by simp
 qed
-
-definition ginfer_infer :: 
-  "('f, 'v) atom clause inference \<Rightarrow> 'f ground_atom clause inference" 
-  where
-  "ginfer_infer infer = Infer (map to_ground_clause (prems_of infer)) (to_ground_clause (concl_of infer))"
-
-definition infer_ginfer :: 
-  "'f ground_atom clause inference \<Rightarrow> ('f, 'v) atom clause inference" 
-  where
-  "infer_ginfer infer = Infer (map to_clause (prems_of infer)) (to_clause (concl_of infer))"
-
-definition is_ground_subst_list :: "('f, 'v) subst list \<Rightarrow> bool" where
-  "is_ground_subst_list \<sigma>s \<longleftrightarrow> (\<forall>\<sigma> \<in> set \<sigma>s. term_subst.is_ground_subst \<sigma>)"
 
 (*definition \<G>_F :: 
   "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" 
@@ -2098,18 +2089,18 @@ definition Prec_F ::
   where
   "Prec_F \<equiv> \<lambda>_ _ _. False"
 
-interpretation F: sound_inference_system F_Inf F_Bot F_entails
+sublocale sound_inference_system inferences "\<bottom>\<^sub>F" "(\<TTurnstile>\<^sub>F)"
 proof unfold_locales
-  show "\<And>\<iota>. \<iota> \<in> F_Inf \<Longrightarrow> F_entails (set (prems_of \<iota>)) {concl_of \<iota>}"
+  show "\<And>\<iota>. \<iota> \<in> inferences \<Longrightarrow> set (prems_of \<iota>) \<TTurnstile>\<^sub>F {concl_of \<iota>}"
     using 
-      F_Inf_def 
+      inferences_def 
       equality_factoring_sound
       equality_resolution_sound
       superposition_sound
-      F_entails_def
+      entails\<^sub>F_def
     by auto
 next 
-  show "F_Bot \<noteq> {}"
+  show "\<bottom>\<^sub>F \<noteq> {}"
     by simp
 next 
   have "\<And>\<theta> I. 
@@ -2118,55 +2109,222 @@ next
     by (metis to_clause_empty_mset to_clause_inverse image_mset_is_empty_iff subst_clause_def 
           true_cls_empty)
 
-  then show "\<And>B N1. B \<in> F_Bot \<Longrightarrow> F_entails {B} N1"
-    unfolding true_clss_singleton F_entails_def
+  then show "\<And>B N1. B \<in> \<bottom>\<^sub>F \<Longrightarrow> {B} \<TTurnstile>\<^sub>F N1"
+    unfolding true_clss_singleton entails\<^sub>F_def
     by fastforce
 next
-  show "\<And>N2 N1. N2 \<subseteq> N1 \<Longrightarrow> F_entails N1 N2"
-    by (auto simp: F_entails_def elim!: true_clss_mono[rotated])
+  show "\<And>N2 N1. N2 \<subseteq> N1 \<Longrightarrow> N1 \<TTurnstile>\<^sub>F N2"
+    by (auto simp: entails\<^sub>F_def elim!: true_clss_mono[rotated])
 next
-  show "\<And>N2 N1. \<forall>C\<in>N2. F_entails N1 {C} \<Longrightarrow> F_entails N1 N2"
-    unfolding F_entails_def
+  show "\<And>N2 N1. \<forall>C\<in>N2. N1 \<TTurnstile>\<^sub>F {C} \<Longrightarrow> N1 \<TTurnstile>\<^sub>F N2"
+    unfolding entails\<^sub>F_def
     by blast
 next
-  show "\<And>N1 N2 N3. \<lbrakk>F_entails N1 N2; F_entails N2 N3\<rbrakk> \<Longrightarrow> F_entails N1 N3 "
-    using F_entails_def 
+  show "\<And>N1 N2 N3. \<lbrakk>N1 \<TTurnstile>\<^sub>F N2; N2 \<TTurnstile>\<^sub>F N3\<rbrakk> \<Longrightarrow> N1 \<TTurnstile>\<^sub>F N3 "
+    using entails\<^sub>F_def 
     by (smt (verit, best))
 qed
 
+(*definition to_ground_inference :: 
+  "('f, 'v) atom clause inference \<Rightarrow> 'f ground_atom clause inference" 
+where
+  "to_ground_inference inference = 
+    Infer (map to_ground_clause (prems_of inference)) (to_ground_clause (concl_of inference))"
 
-  
+definition to_inference :: 
+  "'f ground_atom clause inference \<Rightarrow> ('f, 'v) atom clause inference" 
+where
+  "to_inference inference = 
+    Infer (map to_clause (prems_of inference)) (to_clause (concl_of inference))"
+
+definition subst_clauses ::
+  "('f, 'v) atom clause list \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom clause list" (infixl "\<cdot>cl" 67) where
+  "Cs \<cdot>cl \<sigma> = map (\<lambda>A. A \<cdot> \<sigma>) Cs"
+
+definition subst_inference ::
+  "('f, 'v) atom clause inference \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom clause inference" (infixl "\<cdot>i" 67)
+where
+   "(
+     case inference of 
+        Infer [premise\<^sub>1, premise\<^sub>2] conclusion \<Rightarrow> 
+            term_subst.is_renaming \<rho>\<^sub>1 
+          \<and> term_subst.is_renaming \<rho>\<^sub>2 
+          \<and> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} 
+      | _ \<Rightarrow> True
+    ) \<Longrightarrow> subst_inference inference \<sigma> \<rho>\<^sub>1 \<rho>\<^sub>2 = Infer (prems_of inference \<cdot>cl \<sigma>) (concl_of inference \<cdot> \<sigma>)"
+
+abbreviation is_ground_inference :: "('f, 'v) atom clause inference \<Rightarrow> bool" where
+  "is_ground_inference inference \<equiv> vars_clause_set (insert (concl_of inference) (set (prems_of inference))) = {}"
+
+(* 
+   "term_subst.is_renaming \<rho>\<^sub>1" 
+      "term_subst.is_renaming \<rho>\<^sub>1" 
+      "vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}"
+*)*)
+
+definition inference_groundings :: "('f, 'v) atom clause inference \<Rightarrow> 'f ground_atom clause inference set"
+  where "inference_groundings inference = { ground_inference | ground_inference \<theta> \<rho>\<^sub>1 \<rho>\<^sub>2.
+    (case inference of 
+        Infer [premise] conclusion \<Rightarrow>
+          is_ground_clause (premise \<cdot> \<theta>) 
+        \<and> is_ground_clause (conclusion \<cdot> \<theta>)
+        \<and> ground_inference = 
+            Infer [to_ground_clause (premise \<cdot> \<theta>)] (to_ground_clause (conclusion \<cdot> \<theta>))
+      | Infer [premise\<^sub>1, premise\<^sub>2] conclusion \<Rightarrow> 
+          term_subst.is_renaming \<rho>\<^sub>1
+        \<and> term_subst.is_renaming \<rho>\<^sub>1
+        \<and> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}
+        \<and> is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>) 
+        \<and> is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>) 
+        \<and> is_ground_clause (conclusion \<cdot> \<theta>)
+        \<and> ground_inference = 
+            Infer 
+              [to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>), to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>)] 
+              (to_ground_clause (conclusion \<cdot> \<theta>))
+      | _ \<Rightarrow> False
+     )
+  \<and> ground_inference \<in> ground.G_Inf 
+}"
+
+
+
+abbreviation some where
+  "some f \<equiv> Some \<circ> f"
+
+lemma "\<iota> \<in> ground.G_Inf \<Longrightarrow>  \<iota> \<in> ground.Red_I { concl_of \<iota> }"
+  using ground.Red_I_of_Inf_to_N by blast
+
+(*lemma test': "is_ground_inference \<iota> \<Longrightarrow> is_ground_clause (concl_of \<iota>)"
+  unfolding vars_clause_set_def
+  by blast
+
+lemma test'': "concl_of (to_ground_inference (\<iota> \<cdot>i \<theta>)) = to_ground_clause (concl_of \<iota> \<cdot> \<theta>)"
+  unfolding subst_inference_def to_ground_inference_def
+  by auto  *)
+
+lemma test: 
+  assumes "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
+  shows "concl_of \<iota>\<^sub>G \<in> clause_groundings (concl_of \<iota>)"
+proof-
+  obtain premises\<^sub>G conlcusion\<^sub>G where
+    \<iota>\<^sub>G: "\<iota>\<^sub>G = Infer premises\<^sub>G conlcusion\<^sub>G"
+    using Calculus.inference.exhaust by blast
+
+  obtain "premises" conlcusion where
+    \<iota>: "\<iota> = Infer premises conlcusion"
+    using Calculus.inference.exhaust by blast
+
+  obtain \<theta> where 
+    "is_ground_clause (conlcusion \<cdot> \<theta>)"
+    "conlcusion\<^sub>G = to_ground_clause (conlcusion \<cdot> \<theta>)"
+    using assms
+    unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case 
+    by (smt (z3) Calculus.inference.inject list.simps(4, 5) list_4_cases mem_Collect_eq)
+
+  then show ?thesis
+    unfolding \<iota> \<iota>\<^sub>G clause_groundings_def
+    by auto
+qed  
+
+lemma test_u: "\<iota>' \<in> inference_groundings \<iota> \<Longrightarrow>  \<iota>' \<in> ground.Red_I (clause_groundings (concl_of \<iota>))"
+proof-
+  assume a2: "\<iota>' \<in> inference_groundings \<iota>"
+
+
+  moreover then have "\<iota>' \<in> ground.G_Inf"
+    unfolding inference_groundings_def
+    by blast
+
+  moreover have "concl_of \<iota>' \<in> clause_groundings (concl_of \<iota>)"
+    using a2 test
+    by auto
+
+  ultimately show "\<iota>' \<in> ground.Red_I (clause_groundings (concl_of \<iota>))"
+    using  ground.Red_I_of_Inf_to_N
+    by blast
+qed
+
+(*lemma "ground.ground_eq_resolution 
+          (to_ground_clause (premise \<cdot> \<theta>))
+          (to_ground_clause (conclusion \<cdot> \<theta>))"
+
+ \<iota>' \<in> inference_groundings \<iota> \<Longrightarrow> \<iota>' \<in> ground.Red_I (clause_groundings (concl_of \<iota>))*)
+
 (* Q = gs(S) 
   q = T
 *)
 
-interpretation F: lifting_intersection F_Inf ground.G_Bot "UNIV" "\<lambda> _. ground.G_Inf"
-  "\<lambda>_. ground.G_entails" "\<lambda>_. ground.Red_I" "\<lambda>_. ground.Red_F" F_Bot "\<lambda>_.  \<G>_F" "\<lambda>_. \<G>_I" Prec_F
-proof unfold_locales
+sublocale
+  lifting_intersection 
+    inferences 
+    ground.G_Bot 
+    (* TODO: *)
+    "UNIV :: nat set"
+    "\<lambda>_. ground.G_Inf"               
+    "\<lambda>_. ground.G_entails" 
+    "\<lambda>_. ground.Red_I" 
+    "\<lambda>_. ground.Red_F" 
+    "\<bottom>\<^sub>F"
+    "\<lambda>_. clause_groundings" 
+    "\<lambda>_. some inference_groundings"
+    Prec_F
+proof(unfold_locales; (intro ballI)?)
   show "UNIV \<noteq> {}"
     by simp
 next 
-  have "consequence_relation ground.G_Bot ground.G_entails"
-    apply unfold_locales
-    apply auto
-    using ground.G_entails_def apply blast
-    unfolding ground.G_entails_def
-    using subset_entailed apply auto
-    by (simp add: true_clss_def)
-
-  then show "\<forall>q\<in>UNIV. consequence_relation ground.G_Bot ground.G_entails"
-    ..
+  show "consequence_relation ground.G_Bot ground.G_entails"..
 next
-  show  "\<forall>q\<in>UNIV. tiebreaker_lifting F_Bot F_Inf ground.G_Bot ground.G_entails ground.G_Inf ground.Red_I ground.Red_F \<G>_F \<G>_I Prec_F"
-    sorry
+  show "tiebreaker_lifting \<bottom>\<^sub>F inferences ground.G_Bot ground.G_entails ground.G_Inf ground.Red_I ground.Red_F clause_groundings (some inference_groundings) Prec_F"
+  proof
+    show "\<bottom>\<^sub>F \<noteq> {}"
+      by simp
+  next
+    fix bottom
+    assume "bottom \<in> \<bottom>\<^sub>F"
+    then show "clause_groundings bottom \<noteq> {}"
+      unfolding clause_groundings_def
+      by (metis (mono_tags, lifting) clause_subst_empty empty_iff ground_clause_is_ground mem_Collect_eq singletonD to_clause_empty_mset)
+  next
+    fix bottom
+    assume "bottom \<in> \<bottom>\<^sub>F"
+    then show "clause_groundings bottom \<subseteq> ground.G_Bot"
+      unfolding clause_groundings_def
+      by (smt (verit, ccfv_threshold) ground_clause_is_ground mem_Collect_eq singleton_iff subsetI subst_ground_clause to_clause_empty_mset to_clause_inverse)
+  next
+    fix clause
+    show "clause_groundings clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"
+      unfolding clause_groundings_def
+      using clause_subst_empty to_ground_clause_inverse by force
+  next
+    fix \<iota>
+    assume f: "\<iota> \<in> inferences"
+
+    have "\<And>\<iota>'. \<iota>' \<in> inference_groundings \<iota> \<Longrightarrow> \<iota>' \<in> ground.Red_I (clause_groundings (concl_of \<iota>))"
+      using test_u
+      by blast
+   
+    then show "the (some inference_groundings \<iota>) \<subseteq> ground.Red_I (clause_groundings (concl_of \<iota>))"
+      by auto
+  next
+    show "\<And>g. po_on (Prec_F g) UNIV"
+      by (simp add: Prec_F_def irreflp_on_def po_on_def)
+  next
+    show "\<And>g. wfp_on (Prec_F g) UNIV"
+      by (simp add: Prec_F_def)
+  qed
 qed
 
-(*
-interpretation F: statically_complete_calculus F_Bot F_Inf "F.entails_\<G>" F.Red_I_\<G> F.Red_F_\<G>
-proof unfold_locales
-  show "\<And>B N. B \<in> F_Bot \<Longrightarrow> F.saturated N \<Longrightarrow> F.entails_\<G> N {B} \<Longrightarrow> \<exists>B' \<in> F_Bot. B' \<in> N"
+lemma x: "P \<Longrightarrow>\<forall>q\<in>UNIV.  P"
+  by simp
+
+
+sublocale statically_complete_calculus "\<bottom>\<^sub>F" inferences entails_\<G> Red_I_\<G> Red_F_\<G>
+  unfolding static_empty_ord_inter_equiv_static_inter
+proof(rule stat_ref_comp_to_non_ground_fam_inter[OF x[OF ground.statically_complete_calculus_axioms]])
+  show "\<And>N. saturated N \<Longrightarrow> \<exists>q \<in> UNIV. ground_Inf_overapproximated q N"
+    apply auto
     sorry
-qed *)
+qed 
 
 end
 
