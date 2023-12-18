@@ -4,7 +4,7 @@
 
 theory FOL_Semantics
   imports
-    FOL_Syntax
+    Main FOL_Syntax
 begin
 
 locale struct =
@@ -17,9 +17,6 @@ locale struct =
     FN_dom_to_dom: \<open>\<forall> f es. (\<forall> e \<in> set es. e \<in> M) \<longrightarrow> FN f es \<in> M\<close> and
     REL_to_dom: \<open>\<forall> p. \<forall> es \<in> REL p. \<forall> e \<in> set es. e \<in> M\<close> 
 
-definition is_vars :: \<open>'m set \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> bool\<close> where
-  [simp]: \<open>is_vars M \<beta> \<longleftrightarrow> (\<forall> v. \<beta> v \<in> M)\<close> 
-
 typedef 'm intrp =
   \<open>{ (M :: 'm set, FN :: nat \<Rightarrow> 'm list \<Rightarrow> 'm, REL :: nat \<Rightarrow> 'm list set). struct M FN REL }\<close>
   using struct.intro
@@ -28,35 +25,75 @@ typedef 'm intrp =
 setup_lifting type_definition_intrp
 
 lift_definition dom :: \<open>'m intrp \<Rightarrow> 'm set\<close> is fst .
-lift_definition interp_fn :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm list \<Rightarrow> 'm)\<close> is \<open>fst \<circ> snd\<close> .
-lift_definition interp_rel :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm list set)\<close> is \<open>snd \<circ> snd\<close> .
+lift_definition intrp_fn :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm list \<Rightarrow> 'm)\<close> is \<open>fst \<circ> snd\<close> .
+lift_definition intrp_rel :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm list set)\<close> is \<open>snd \<circ> snd\<close> .
 
-lemma intrp_is_struct: \<open>struct (dom \<M>) (interp_fn \<M>) (interp_rel \<M>)\<close>
+lemma intrp_is_struct: \<open>struct (dom \<M>) (intrp_fn \<M>) (intrp_rel \<M>)\<close>
   by transfer auto 
 
 lemma dom_Abs_is_fst [simp]: \<open>struct M FN REL \<Longrightarrow> dom (Abs_intrp (M, FN, REL)) = M\<close>
   by (simp add: Abs_intrp_inverse dom.rep_eq) 
 
-lemma interp_fn_Abs_is_fst_snd [simp]: \<open>struct M FN REL \<Longrightarrow> interp_fn (Abs_intrp (M, FN, REL)) = FN\<close>
-  by (simp add: Abs_intrp_inverse interp_fn.rep_eq) 
+lemma intrp_fn_Abs_is_fst_snd [simp]: \<open>struct M FN REL \<Longrightarrow> intrp_fn (Abs_intrp (M, FN, REL)) = FN\<close>
+  by (simp add: Abs_intrp_inverse intrp_fn.rep_eq) 
 
-lemma interp_rel_Abs_is_snd_snd [simp]: 
-  \<open>struct M FN REL \<Longrightarrow> interp_rel (Abs_intrp (M, FN, REL)) = REL\<close>
-  by (simp add: Abs_intrp_inverse interp_rel.rep_eq) 
+lemma intrp_rel_Abs_is_snd_snd [simp]: 
+  \<open>struct M FN REL \<Longrightarrow> intrp_rel (Abs_intrp (M, FN, REL)) = REL\<close>
+  by (simp add: Abs_intrp_inverse intrp_rel.rep_eq) 
 
-lemma FN_dom_to_dom: \<open>\<forall> t \<in> set ts. t \<in> dom \<M> \<Longrightarrow> interp_fn \<M> f ts \<in> dom \<M>\<close>
+lemma FN_dom_to_dom: \<open>\<forall> t \<in> set ts. t \<in> dom \<M> \<Longrightarrow> intrp_fn \<M> f ts \<in> dom \<M>\<close>
   by (meson intrp_is_struct struct.FN_dom_to_dom) 
+
+(* in hol-ligh: valuation *)
+definition is_valuation :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> bool\<close> where
+  [simp]: \<open>is_valuation \<M> \<beta> \<longleftrightarrow> (\<forall> v. \<beta> v \<in> dom \<M>)\<close> 
+
+lemma valuation_valmod: \<open>is_valuation \<M> \<beta> \<and> a \<in> dom \<M> \<Longrightarrow> is_valuation \<M> (\<beta>(x := a))\<close>
+  by simp
 
 fun eval (* HOL-Light: termval *)
   :: \<open>nterm \<Rightarrow> 'm intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> 'm\<close>
   (\<open>\<lbrakk>_\<rbrakk>\<^bsup>_,_\<^esup>\<close> [50, 0, 0] 70) where
   \<open>\<lbrakk>Var v\<rbrakk>\<^bsup>_,\<beta>\<^esup> = \<beta> v\<close>
-| \<open>\<lbrakk>Fun f ts\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> = interp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts]\<close> 
+| \<open>\<lbrakk>Fun f ts\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> = intrp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts]\<close> 
+
+definition list_all :: \<open>('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
+  [simp]: \<open>list_all P ls \<longleftrightarrow> (fold (\<lambda>l b. b \<and> P l) ls True)\<close>
+
+definition is_interpretation where
+  \<open>is_interpretation fns preds \<M> \<longleftrightarrow> 
+    ((\<forall>f l. (f, length(l)) \<in> fns \<and> list_all (\<lambda>x. x \<in> dom \<M>) l \<longrightarrow> intrp_fn \<M> f l \<in> dom \<M>))\<close>
+
+lemma interpretation_termval: 
+  \<open>is_interpretation (functions_term t) preds (\<M> :: (nat,nat) term intrp) \<Longrightarrow> is_valuation \<M> \<beta>
+  \<Longrightarrow> \<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> \<in> dom \<M>\<close>
+proof (induction t)
+  case (Var x)
+  then show ?case by simp
+next
+  case (Fun f ts)
+  have \<open>u \<in> set ts \<Longrightarrow> is_interpretation (functions_term u) preds \<M>\<close> for u
+  proof -
+    fix u
+    assume \<open>u \<in> set ts\<close>
+    then have \<open>functions_term u \<subseteq> functions_term (Fun f ts)\<close> by auto
+    then show \<open>is_interpretation (functions_term u) preds \<M>\<close>
+      using Fun(2) unfolding is_interpretation_def by blast
+  qed
+  then have \<open>u \<in> set ts \<Longrightarrow> \<lbrakk>u\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> \<in> dom \<M>\<close> for u
+    using Fun(1) Fun(3) by presburger
+  then show ?case
+    by (simp add: FN_dom_to_dom)
+qed
+
+lemma interpretation_sublanguage: \<open>funs2 \<subseteq> funs1 \<Longrightarrow> is_interpretation funs1 pred1 \<M>
+  \<Longrightarrow> is_interpretation funs2 preds2 \<M>\<close>
+  unfolding is_interpretation_def by blast
 
 fun holds
   :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> form \<Rightarrow> bool\<close> (\<open>_,_ \<Turnstile> _\<close> [30, 30, 80] 80) where
   \<open>\<M>,\<beta> \<Turnstile> \<^bold>\<bottom> \<longleftrightarrow> False\<close>
-| \<open>\<M>,\<beta> \<Turnstile> Atom p ts \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts] \<in> interp_rel \<M> p\<close>
+| \<open>\<M>,\<beta> \<Turnstile> Atom p ts \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts] \<in> intrp_rel \<M> p\<close>
 | \<open>\<M>,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi> \<longleftrightarrow> ((\<M>,\<beta> \<Turnstile> \<phi>) \<longrightarrow> (\<M>,\<beta> \<Turnstile> \<psi>))\<close>
 | \<open>\<M>,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<longleftrightarrow> (\<forall>a \<in> dom \<M>. \<M>,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
 
@@ -92,14 +129,14 @@ next
       then have \<open>[\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^sub>1\<^esup>. t \<leftarrow> ts'] = [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^sub>2\<^esup>. t \<leftarrow> ts']\<close>
         using Cons.IH Fun.IH Fun.prems(2)
         by force
-      then have \<open>interp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^sub>1\<^esup>. t \<leftarrow> ts'] = interp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^sub>2\<^esup>. t \<leftarrow> ts']\<close>
+      then have \<open>intrp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^sub>1\<^esup>. t \<leftarrow> ts'] = intrp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^sub>2\<^esup>. t \<leftarrow> ts']\<close>
         by argo 
       then show ?case
         using Cons.IH Fun.prems(2)
         by force 
     qed
   qed
-  then have \<open>[\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^sub>1\<^esup>. t \<leftarrow> ts] \<in> interp_rel \<M> p \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^sub>2\<^esup>. t \<leftarrow> ts] \<in> interp_rel \<M> p\<close>
+  then have \<open>[\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^sub>1\<^esup>. t \<leftarrow> ts] \<in> intrp_rel \<M> p \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^sub>2\<^esup>. t \<leftarrow> ts] \<in> intrp_rel \<M> p\<close>
     by argo
   then show ?case
     by simp
@@ -129,8 +166,8 @@ lemma holds_indep_intrp_if:
     \<M> \<M>' :: \<open>'m intrp\<close> 
   assumes
     dom_eq: \<open>dom \<M> = dom \<M>'\<close> and
-    rel_eq: \<open>\<forall> p. interp_rel \<M> p = interp_rel \<M>' p\<close> and
-    fn_eq: \<open>\<forall> f ts. (f, length ts) \<in> functions_form \<phi> \<longrightarrow> interp_fn \<M> f ts = interp_fn \<M>' f ts\<close>
+    rel_eq: \<open>\<forall> p. intrp_rel \<M> p = intrp_rel \<M>' p\<close> and
+    fn_eq: \<open>\<forall> f ts. (f, length ts) \<in> functions_form \<phi> \<longrightarrow> intrp_fn \<M> f ts = intrp_fn \<M>' f ts\<close>
   shows
     \<open>\<forall>\<beta>.  \<M>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> \<M>',\<beta> \<Turnstile> \<phi>\<close>
   using fn_eq
@@ -158,11 +195,11 @@ proof (intro allI impI, induction \<phi>)
       by (smt (verit, del_insts) eval.simps(2) map_eq_conv)
   qed auto 
 
-  have \<open>\<M>,\<beta> \<Turnstile> Atom p ts \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts] \<in> interp_rel \<M> p\<close>
+  have \<open>\<M>,\<beta> \<Turnstile> Atom p ts \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts] \<in> intrp_rel \<M> p\<close>
     by simp
-  also have \<open>... \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts] \<in> interp_rel \<M>' p\<close>
+  also have \<open>... \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts] \<in> intrp_rel \<M>' p\<close>
     by (simp add: rel_eq)
-  also have \<open>... \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>',\<beta>\<^esup>. t \<leftarrow> ts] \<in> interp_rel \<M>' p\<close>
+  also have \<open>... \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>',\<beta>\<^esup>. t \<leftarrow> ts] \<in> intrp_rel \<M>' p\<close>
     using eval_tm_eq all_fn_sym_in
     by (metis (mono_tags, lifting) UN_subset_iff map_eq_conv)
   also have \<open>... \<longleftrightarrow> \<M>',\<beta> \<Turnstile> Atom p ts\<close>
@@ -195,12 +232,12 @@ next
 
   have \<open>\<lbrakk>Fun f ts \<cdot> \<sigma>\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> = \<lbrakk>Fun f [t \<cdot> \<sigma>. t \<leftarrow> ts]\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>\<close>
     by auto
-  also have \<open>... = interp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> [t \<cdot> \<sigma>. t \<leftarrow> ts]]\<close>
+  also have \<open>... = intrp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> [t \<cdot> \<sigma>. t \<leftarrow> ts]]\<close>
     by auto 
-  also have \<open>... = interp_fn \<M> f [\<lbrakk>t \<cdot> \<sigma>\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts]\<close>
+  also have \<open>... = intrp_fn \<M> f [\<lbrakk>t \<cdot> \<sigma>\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts]\<close>
     unfolding map_map
     by (meson comp_apply)
-  also have \<open>... = interp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,eval_subst \<M> \<beta> \<sigma>\<^esup>. t \<leftarrow> ts]\<close>
+  also have \<open>... = intrp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,eval_subst \<M> \<beta> \<sigma>\<^esup>. t \<leftarrow> ts]\<close>
     using Fun.IH
     by (smt (verit, best) map_eq_conv) 
   also have \<open>... = \<lbrakk>Fun f ts\<rbrakk>\<^bsup>\<M>,eval_subst \<M> \<beta> \<sigma>\<^esup>\<close>
@@ -224,16 +261,17 @@ qed
 
 lemma concat_map: \<open>[f t. t \<leftarrow> [g t. t \<leftarrow> ts]] = [f (g t). t \<leftarrow> ts]\<close> by simp
 
+(* more general than hol-light: holds_formsubst1 holds_rename *)
 lemma swap_subst_eval: \<open>\<M>,\<beta> \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<longleftrightarrow> \<M>,(\<lambda>v. eval_subst \<M> \<beta> \<sigma> v) \<Turnstile> \<phi>\<close>
 proof (induction \<phi> arbitrary: \<sigma> \<beta>)
   case (Atom p ts)
   have \<open>\<M>,\<beta> \<Turnstile> (Atom p ts \<cdot>\<^sub>f\<^sub>m \<sigma>) \<longleftrightarrow> \<M>,\<beta> \<Turnstile> (Atom p [t \<cdot> \<sigma>. t \<leftarrow> ts])\<close>
     by auto
-  also have \<open>... \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> [t \<cdot> \<sigma>. t \<leftarrow> ts]] \<in> interp_rel \<M> p\<close>
+  also have \<open>... \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> [t \<cdot> \<sigma>. t \<leftarrow> ts]] \<in> intrp_rel \<M> p\<close>
     by auto
-  also have \<open>... \<longleftrightarrow> [\<lbrakk>t \<cdot> \<sigma>\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts] \<in> interp_rel \<M> p\<close>
+  also have \<open>... \<longleftrightarrow> [\<lbrakk>t \<cdot> \<sigma>\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts] \<in> intrp_rel \<M> p\<close>
     using concat_map[of "\<lambda>t. \<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>" "\<lambda>t. t \<cdot> \<sigma>"] by presburger
-  also have \<open>... \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,eval_subst \<M> \<beta> \<sigma>\<^esup>. t \<leftarrow> ts] \<in> interp_rel \<M> p\<close>
+  also have \<open>... \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,eval_subst \<M> \<beta> \<sigma>\<^esup>. t \<leftarrow> ts] \<in> intrp_rel \<M> p\<close>
     using subst_lemma_terms[of _ \<sigma> \<M> \<beta>] by auto
   finally show ?case
     by simp
@@ -387,7 +425,7 @@ next
 qed auto
 
 definition satisfies :: "'m intrp \<Rightarrow> form set \<Rightarrow> bool" where
-  \<open>satisfies \<M> S \<equiv> (\<forall>\<beta> \<phi>. is_vars (dom \<M>) \<beta> \<and> \<phi> \<in> S \<longrightarrow> \<M>,\<beta> \<Turnstile> \<phi>)\<close>
+  \<open>satisfies \<M> S \<equiv> (\<forall>\<beta> \<phi>. is_valuation \<M> \<beta> \<and> \<phi> \<in> S \<longrightarrow> \<M>,\<beta> \<Turnstile> \<phi>)\<close>
 
 
 end
