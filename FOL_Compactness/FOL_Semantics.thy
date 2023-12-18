@@ -11,7 +11,7 @@ locale struct =
   fixes
     M :: \<open>'m set\<close> and
     FN :: \<open>nat \<Rightarrow> 'm list \<Rightarrow> 'm\<close> and
-    REL :: \<open>nat \<Rightarrow> 'm list set\<close> 
+    REL :: \<open>nat \<Rightarrow> 'm list set\<close> (* in hol-ligh a boolean is returned instead *)
   assumes
     M_nonempty: \<open>M \<noteq> {}\<close> and 
     FN_dom_to_dom: \<open>\<forall> f es. (\<forall> e \<in> set es. e \<in> M) \<longrightarrow> FN f es \<in> M\<close> and
@@ -61,24 +61,24 @@ definition list_all :: \<open>('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Ri
   [simp]: \<open>list_all P ls \<longleftrightarrow> (fold (\<lambda>l b. b \<and> P l) ls True)\<close>
 
 definition is_interpretation where
-  \<open>is_interpretation fns preds \<M> \<longleftrightarrow> 
-    ((\<forall>f l. (f, length(l)) \<in> fns \<and> list_all (\<lambda>x. x \<in> dom \<M>) l \<longrightarrow> intrp_fn \<M> f l \<in> dom \<M>))\<close>
+  \<open>is_interpretation lang \<M> \<longleftrightarrow> 
+    ((\<forall>f l. (f, length(l)) \<in> fst lang \<and> list_all (\<lambda>x. x \<in> dom \<M>) l \<longrightarrow> intrp_fn \<M> f l \<in> dom \<M>))\<close>
 
 lemma interpretation_termval: 
-  \<open>is_interpretation (functions_term t) preds (\<M> :: (nat,nat) term intrp) \<Longrightarrow> is_valuation \<M> \<beta>
+  \<open>is_interpretation (functions_term t, preds) (\<M> :: (nat,nat) term intrp) \<Longrightarrow> is_valuation \<M> \<beta>
   \<Longrightarrow> \<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> \<in> dom \<M>\<close>
 proof (induction t)
   case (Var x)
   then show ?case by simp
 next
   case (Fun f ts)
-  have \<open>u \<in> set ts \<Longrightarrow> is_interpretation (functions_term u) preds \<M>\<close> for u
+  have \<open>u \<in> set ts \<Longrightarrow> is_interpretation (functions_term u, preds) \<M>\<close> for u
   proof -
     fix u
     assume \<open>u \<in> set ts\<close>
     then have \<open>functions_term u \<subseteq> functions_term (Fun f ts)\<close> by auto
-    then show \<open>is_interpretation (functions_term u) preds \<M>\<close>
-      using Fun(2) unfolding is_interpretation_def by blast
+    then show \<open>is_interpretation ((functions_term u), preds) \<M>\<close>
+      using Fun(2) unfolding is_interpretation_def by auto
   qed
   then have \<open>u \<in> set ts \<Longrightarrow> \<lbrakk>u\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> \<in> dom \<M>\<close> for u
     using Fun(1) Fun(3) by presburger
@@ -86,9 +86,9 @@ next
     by (simp add: FN_dom_to_dom)
 qed
 
-lemma interpretation_sublanguage: \<open>funs2 \<subseteq> funs1 \<Longrightarrow> is_interpretation funs1 pred1 \<M>
-  \<Longrightarrow> is_interpretation funs2 preds2 \<M>\<close>
-  unfolding is_interpretation_def by blast
+lemma interpretation_sublanguage: \<open>funs2 \<subseteq> funs1 \<Longrightarrow> is_interpretation (funs1, pred1) \<M>
+  \<Longrightarrow> is_interpretation (funs2, preds2) \<M>\<close>
+  unfolding is_interpretation_def by auto
 
 fun holds
   :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> form \<Rightarrow> bool\<close> (\<open>_,_ \<Turnstile> _\<close> [30, 30, 80] 80) where
