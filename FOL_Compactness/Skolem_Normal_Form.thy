@@ -33,6 +33,26 @@ find_consts "_ set \<Rightarrow> _ list"
 definition skolem1 :: "nat \<Rightarrow> nat \<Rightarrow> form \<Rightarrow> form" where
   \<open>skolem1 f x \<phi> = \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Fun f (map (\<lambda>x. Var x) (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))))\<close>
 
+
+lemma fvt_var_x_simp: 
+  \<open>FVT (Var x \<cdot> subst x (Fun f (map Var (sorted_list_of_set (FV \<phi> - {x}))))) = FV \<phi> - {x}\<close>
+proof -
+  have remove_list: 
+    \<open>set (map Var (sorted_list_of_set (FV \<phi> - {x}))) = Var ` (FV \<phi> - {x})\<close>
+    using set_map set_sorted_list_of_set using finite_FV by auto
+  have \<open>FVT (Var x \<cdot> subst x (Fun f (map Var (sorted_list_of_set (FV \<phi> - {x}))))) =
+    FVT (Fun f (map Var (sorted_list_of_set (FV \<phi> - {x}))))\<close> 
+    by simp
+  also have \<open>... = \<Union> (FVT ` set (map Var (sorted_list_of_set (FV \<phi> - {x}))))\<close>
+    using term.set(4) by metis
+  also have \<open>... = \<Union> (FVT ` Var ` (FV \<phi> - {x}))\<close>
+    using remove_list by auto
+  also have \<open>... = FV \<phi> - {x}\<close>
+    by force
+  finally show ?thesis .
+qed
+
+
 (* holds M v p /\
      (Dom M = Dom M') /\
      (!P zs. Pred M P zs = Pred M' P zs) /\
@@ -71,16 +91,51 @@ proof (clarsimp)
   have \<open>is_prenex (skolem1 f x \<phi>)\<close>
     using prenex_ex_phi prenex_formsubst1
     by (metis form.sel(3) form.sel(6) prenex_imp qfree_no_quantif skolem1_def)
+
   moreover have \<open>FV (skolem1 f x \<phi>) = FV \<phi> - {x}\<close>
-    unfolding skolem1_def using formsubst_fv sorry
+  proof
+    show \<open>FV (skolem1 f x \<phi>) \<subseteq> FV \<phi> - {x}\<close>
+    proof
+      fix z
+      assume \<open>z \<in> FV (skolem1 f x \<phi>)\<close>
+      then obtain y where y_in: \<open>y \<in> FV \<phi>\<close> and 
+        z_in: \<open>z \<in> FVT (Var y \<cdot> subst x (Fun f (map Var (sorted_list_of_set (FV \<phi> - {x})))))\<close>
+        unfolding skolem1_def using formsubst_fv FV_exists by auto
+
+      have \<open>y \<noteq> x \<Longrightarrow> z = y\<close>
+        using z_in subst_def by (metis Term.term.simps(17) eval_term.simps(1) fun_upd_other singletonD)
+      then have neq_x: \<open>y \<noteq> x \<Longrightarrow> z \<in> FV \<phi> - {x}\<close>
+        using y_in by blast
+
+      have eq_x: \<open>y = x \<Longrightarrow> z \<in> FV \<phi> - {x}\<close>
+        using fvt_var_x_simp z_in by blast
+      show \<open>z \<in> FV \<phi> - {x}\<close>
+        using neq_x eq_x by blast
+    qed
+  next
+    show \<open>FV \<phi> - {x} \<subseteq> FV (skolem1 f x \<phi>)\<close>
+    proof
+      fix z
+      assume z_in: \<open>z \<in> FV \<phi> - {x}\<close>
+      then have \<open>FVT (Var z \<cdot> subst x (Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>)))))) = {z}\<close>
+        by (simp add: subst_def)
+      then show \<open>z \<in> FV (skolem1 f x \<phi>)\<close>
+        unfolding skolem1_def using z_in formsubst_fv by blast
+    qed
+  qed
+
   moreover have \<open>size (skolem1 f x \<phi>) < Suc (Suc (Suc (size \<phi>)))\<close>
     unfolding skolem1_def by (simp add: size_indep_subst)
+
   moreover have \<open>predicates_form (skolem1 f x \<phi>) = predicates_form \<phi>\<close>
     unfolding skolem1_def using formsubst_predicates by blast
+
   moreover have \<open>functions_form \<phi> \<subseteq> functions_form (skolem1 f x \<phi>)\<close>
     unfolding skolem1_def by (simp add: formsubst_functions_form)
+
   moreover have \<open>functions_form (skolem1 f x \<phi>) \<subseteq> (f, card (FV \<phi> - {x})) \<triangleright> functions_form \<phi>\<close>
     unfolding skolem1_def sorry
+
   moreover have \<open>\<forall>I. is_interpretation (language {\<phi>}) I \<and> dom I \<noteq> {} \<and>
          (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)) \<longrightarrow>
          (\<exists>M. dom M = dom I \<and>
@@ -90,11 +145,13 @@ proof (clarsimp)
               is_interpretation (language {skolem1 f x \<phi>}) M \<and>
               (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M,\<beta> \<Turnstile> skolem1 f x \<phi>))\<close>
     unfolding skolem1_def using holds_indep_intrp_if sorry
+
   moreover have \<open>\<forall>N. is_interpretation (language {skolem1 f x \<phi>}) N \<and> dom N \<noteq> {} \<longrightarrow>
          (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom N) \<and>
          N,\<beta> \<Turnstile> skolem1 f x \<phi> \<longrightarrow> (\<exists>a\<in>dom N. N,\<beta>(x := a) \<Turnstile> \<phi>))\<close>
     unfolding skolem1_def using holds_exists 
     sorry
+
   ultimately show \<open>is_prenex (skolem1 f x \<phi>) \<and>
     FV (skolem1 f x \<phi>) = FV \<phi> - {x} \<and>
     size (skolem1 f x \<phi>) < Suc (Suc (Suc (size \<phi>))) \<and>
