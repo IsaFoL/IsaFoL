@@ -134,9 +134,53 @@ proof (clarsimp)
     unfolding skolem1_def by (simp add: formsubst_functions_form)
 
   moreover have \<open>functions_form (skolem1 f x \<phi>) \<subseteq> (f, card (FV \<phi> - {x})) \<triangleright> functions_form \<phi>\<close>
-    unfolding skolem1_def sorry
+  proof
+    fix g
+    assume g_in: \<open>g \<in> functions_form (skolem1 f x \<phi>)\<close>
+    then have \<open>g \<in> functions_form \<phi> \<union> {g. \<exists>y. y \<in> FV \<phi> \<and> 
+      g \<in> functions_term (Var y \<cdot> subst x (Fun f (map Var (sorted_list_of_set (FV ((\<^bold>\<exists>x\<^bold>. \<phi>)))))))}\<close>
+      unfolding skolem1_def using formsubst_functions_form
+      by blast
+    moreover have \<open>{g. \<exists>y. y \<in> FV \<phi> \<and> g \<in> functions_term (Var y \<cdot> subst x (Fun f (map Var 
+      (sorted_list_of_set (FV ((\<^bold>\<exists>x\<^bold>. \<phi>)))))))} \<subseteq> (f, card (FV \<phi> - {x})) \<triangleright> functions_form \<phi>\<close>
+    proof
+      fix h
+      assume \<open>h \<in> {g. \<exists>y. y \<in> FV \<phi> \<and> g \<in> functions_term (Var y \<cdot> subst x (Fun f (map Var 
+      (sorted_list_of_set (FV ((\<^bold>\<exists>x\<^bold>. \<phi>)))))))}\<close>
+      then obtain y where y_in: \<open>y \<in> FV \<phi>\<close> and h_in: 
+        \<open>h \<in> functions_term (Var y \<cdot> subst x (Fun f (map Var (sorted_list_of_set (FV ((\<^bold>\<exists>x\<^bold>. \<phi>)))))))\<close>
+        by blast
+      have \<open>y \<noteq> x \<Longrightarrow> h \<in> functions_term (Var y)\<close>
+        using h_in by (simp add: subst_def)
+      then have y_neq_x_case: \<open>y \<noteq> x \<Longrightarrow> h \<in> functions_form \<phi>\<close>
+        using y_in by simp
+      have \<open>functions_term (Var x \<cdot> subst x (Fun f (map Var (sorted_list_of_set (FV ((\<^bold>\<exists>x\<^bold>. \<phi>))))))) =
+        functions_term (Fun f (map Var (sorted_list_of_set (FV ((\<^bold>\<exists>x\<^bold>. \<phi>))))))\<close>
+        by (simp add: subst_def)
+      have len_card: \<open>length (map Var (sorted_list_of_set (FV ((\<^bold>\<exists>x\<^bold>. \<phi>))))) = card (FV \<phi> - {x})\<close>
+        by simp
+      have \<open>\<forall>t \<in> set (map Var (sorted_list_of_set (FV ((\<^bold>\<exists>x\<^bold>. \<phi>))))). functions_term t = {}\<close>
+      proof
+        fix t :: "(nat, nat) term"
+        assume \<open>t \<in> set (map Var (sorted_list_of_set (FV ((\<^bold>\<exists>x\<^bold>. \<phi>)))))\<close>
+        then have \<open>t \<in> Var ` set (sorted_list_of_set (FV \<phi> - {x}))\<close>
+          using FV_exists set_sorted_list_of_set finite_FV by auto
+        then show \<open>functions_term t = {}\<close>
+          by auto
+      qed
+      then have \<open>functions_term (Fun f (map Var (sorted_list_of_set (FV ((\<^bold>\<exists>x\<^bold>. \<phi>)))))) = 
+        {(f, card (FV \<phi> - {x}))}\<close>
+        using len_card by simp
+      then have y_eq_x_case: \<open>y = x \<Longrightarrow> h = (f, card (FV \<phi> - {x}))\<close>
+        using y_in h_in by auto
+      show \<open>h \<in> (f, card (FV \<phi> - {x})) \<triangleright> functions_form \<phi>\<close>
+        using y_neq_x_case y_eq_x_case by blast
+    qed
+    ultimately show \<open>g \<in> (f, card (FV \<phi> - {x})) \<triangleright> functions_form \<phi>\<close>
+      by blast
+  qed
 
-  moreover have \<open>\<forall>I. is_interpretation (language {\<phi>}) I \<and> dom I \<noteq> {} \<and>
+  moreover have \<open>\<forall>(I :: 'a intrp). is_interpretation (language {\<phi>}) I \<and> dom I \<noteq> {} \<and>
          (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)) \<longrightarrow>
          (\<exists>M. dom M = dom I \<and>
               intrp_rel M = intrp_rel I \<and>
