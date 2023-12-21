@@ -62,8 +62,8 @@ lemma subst_clause_Var_ident[simp]: "clause \<cdot> Var = clause"
   unfolding subst_clause_def
   by simp
 
-lemma clause_subst_empty: "clause = {#} \<longleftrightarrow> clause \<cdot> \<theta> = {#}"
-  by (simp add: subst_clause_def)
+lemma clause_subst_empty [simp]: "{#} \<cdot> \<theta> = {#}"  "clause \<cdot> \<theta> = {#} \<longleftrightarrow> clause = {#}"
+  by (simp_all add: subst_clause_def)
 
 lemma term_subst_atom_subst: "Upair (term\<^sub>1 \<cdot>t \<theta>) (term\<^sub>2 \<cdot>t \<theta>) = (Upair term\<^sub>1 term\<^sub>2) \<cdot>a \<theta>"
   unfolding subst_atom_def
@@ -166,6 +166,10 @@ lemma is_ground_clause_if_in_ground_clause_set:
   "is_ground_clause_set N \<Longrightarrow> C \<in> N \<Longrightarrow> is_ground_clause C"
   by (simp add: vars_clause_set_def)
  *)
+
+lemma is_ground_clause_empty [simp]: "is_ground_clause {#}"
+  unfolding vars_clause_def
+  by simp 
 
 lemma is_ground_term_iff_term_context_ground [simp]: 
   "Term_Context.ground term = is_ground_term term"
@@ -343,6 +347,9 @@ lemma to_atom_to_literal:
 
 lemma to_clause_empty_mset [simp]: "to_clause {#} = {#}"
   by (simp add: to_clause_def)
+
+lemma to_ground_clause_empty_mset [simp]: "to_ground_clause {#} = {#}"
+  by (simp add: to_ground_clause_def)
 
 lemmas ground_term_is_ground = vars_term_of_gterm
 

@@ -7,13 +7,29 @@ begin
 
 section \<open>First-Order Layer\<close>
 
+context ground_superposition_calculus
+begin
+
+lemmas less\<^sub>l\<^sub>G_transitive_on = transp_less_lit[THEN transp_on_subset, OF subset_UNIV]
+lemmas less\<^sub>l\<^sub>G_asymmetric_on = asymp_less_lit[THEN asymp_on_subset, OF subset_UNIV]
+lemmas less\<^sub>l\<^sub>G_total_on = totalp_less_lit[THEN totalp_on_subset, OF subset_UNIV]
+
+lemmas less\<^sub>c\<^sub>G_transitive_on = transp_less_cls[THEN transp_on_subset, OF subset_UNIV]
+lemmas less\<^sub>c\<^sub>G_asymmetric_on = asymp_less_cls[THEN asymp_on_subset, OF subset_UNIV]
+lemmas less\<^sub>c\<^sub>G_total_on = totalp_less_cls[THEN totalp_on_subset, OF subset_UNIV]
+
+lemmas is_maximal_lit_def = is_maximal_in_mset_wrt_iff[OF less\<^sub>l\<^sub>G_transitive_on less\<^sub>l\<^sub>G_asymmetric_on]
+lemmas is_strictly_maximal_lit_def = 
+  is_strictly_maximal_in_mset_wrt_iff[OF less\<^sub>l\<^sub>G_transitive_on less\<^sub>l\<^sub>G_asymmetric_on]
+
+end
+
 locale first_order_superposition_calculus =
   fixes
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
     less\<^sub>t\<^sub>G :: "'f ground_term \<Rightarrow> 'f ground_term \<Rightarrow> bool" (infix "\<prec>\<^sub>t\<^sub>G" 50) and
-    select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause" and
-    select\<^sub>G :: "'f ground_atom clause \<Rightarrow> 'f ground_atom clause"
-  assumes 
+    select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
+  assumes
     less\<^sub>t\<^sub>G_less\<^sub>t: 
       "\<And>term\<^sub>1 term\<^sub>2. term\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>2 \<longleftrightarrow> to_term term\<^sub>1 \<prec>\<^sub>t to_term term\<^sub>2" and
     
@@ -42,32 +58,25 @@ locale first_order_superposition_calculus =
     select_renaming_stability: 
       "\<And>clause \<rho>. is_renaming \<rho> \<Longrightarrow> select (clause \<cdot> \<rho>) = (select clause) \<cdot> \<rho>" and
 
-    select\<^sub>G_select: "\<And>clause\<^sub>G. \<exists>clause \<theta>.
-        is_ground_clause (clause \<cdot> \<theta>) \<and> 
-        clause\<^sub>G = to_ground_clause (clause \<cdot> \<theta>) \<and> 
-        select\<^sub>G clause\<^sub>G = to_ground_clause ((select clause) \<cdot> \<theta>)" and
-
     (* TODO: Use theorem from CeTA *)
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
 
-(* TODO: Move this to example instantiation *)
 definition is_ground_select :: "('f ground_atom clause \<Rightarrow> 'f ground_atom clause) \<Rightarrow> bool" where
-  "is_ground_select ground_select = (\<forall>clause\<^sub>G. \<exists>clause \<theta>. 
+  "is_ground_select select\<^sub>G = (\<forall>clause\<^sub>G. \<exists>clause \<theta>. 
         is_ground_clause (clause \<cdot> \<theta>)  \<and> 
         clause\<^sub>G = to_ground_clause (clause \<cdot> \<theta>) \<and> 
-        ground_select clause\<^sub>G = to_ground_clause ((select clause) \<cdot> \<theta>))"
+        select\<^sub>G clause\<^sub>G = to_ground_clause ((select clause) \<cdot> \<theta>))"
 
-definition ground_selects where
-  "ground_selects = { ground_select. is_ground_select ground_select }"
+definition select\<^sub>G\<^sub>s where
+  "select\<^sub>G\<^sub>s = { ground_select. is_ground_select ground_select }"
 
 definition select\<^sub>G_simple where
   "select\<^sub>G_simple clause = to_ground_clause (select (to_clause clause))"
 
-lemma "is_ground_select select\<^sub>G_simple"
+lemma select\<^sub>G_simple: "is_ground_select select\<^sub>G_simple"
   unfolding is_ground_select_def is_ground_select_def select\<^sub>G_simple_def
   by (metis to_clause_inverse ground_clause_is_ground subst_clause_Var_ident)
-(* ----------- *)
 
 lemmas less\<^sub>t_transitive_on = less\<^sub>t_transitive[THEN transp_on_subset, OF subset_UNIV]
 lemmas less\<^sub>t_asymmetric_on = less\<^sub>t_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
@@ -101,10 +110,6 @@ lemma less\<^sub>t_ground_subst_stability':
     less\<^sub>t\<^sub>G_less\<^sub>t 
     to_ground_term_inverse[OF assms(1)]
     to_ground_term_inverse[OF assms(2)].
-
-lemma select\<^sub>G_subset: "select\<^sub>G clause \<subseteq># clause"
-  using select\<^sub>G_select
-  by (metis select_subset to_ground_clause_def image_mset_subseteq_mono subst_clause_def)
 
 lemma select_from_ground_clause1: 
   assumes "is_ground_clause clause" 
@@ -143,26 +148,6 @@ lemma select_subst2:
   by auto
 
 lemmas select_subst = select_subst1 select_subst2
-
-lemma select\<^sub>G_negative:
-  assumes "literal\<^sub>G \<in># select\<^sub>G clause\<^sub>G"
-  shows "is_neg literal\<^sub>G"
-proof -
-  obtain clause \<theta> where 
-    is_ground: "is_ground_clause (clause \<cdot> \<theta>)" and
-    select\<^sub>G: "select\<^sub>G clause\<^sub>G = to_ground_clause (select clause \<cdot> \<theta>)"
-    using select\<^sub>G_select
-    by blast
-
-  show ?thesis
-    using 
-      select_from_ground_clause(3)[
-          OF select_subst(1)[OF is_ground] assms[unfolded select\<^sub>G], 
-          THEN select_subst(2)
-      ]
-    unfolding to_literal_def
-    by simp
-qed
 
 abbreviation less_eq\<^sub>t (infix "\<preceq>\<^sub>t" 50) where
   "less_eq\<^sub>t \<equiv> (\<prec>\<^sub>t)\<^sup>=\<^sup>="
@@ -224,183 +209,6 @@ lemma less\<^sub>c_asymmetric [intro]: "asymp (\<prec>\<^sub>c)"
 
 lemmas less\<^sub>c_asymmetric_on = less\<^sub>c_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
 
-(* 
-TODO: Rename stuff in ground superposition
-*)
-interpretation ground: ground_superposition_calculus "(\<prec>\<^sub>t\<^sub>G)" select\<^sub>G
-  apply(unfold_locales)
-  by(auto simp: select\<^sub>G_subset select\<^sub>G_negative ground_critical_pair_theorem)
-
-notation ground.less_lit (infix "\<prec>\<^sub>l\<^sub>G" 50)
-notation ground.less_cls (infix "\<prec>\<^sub>c\<^sub>G" 50)
-
-notation ground.lesseq_trm (infix "\<preceq>\<^sub>t\<^sub>G" 50)
-notation ground.lesseq_lit (infix "\<preceq>\<^sub>l\<^sub>G" 50)
-notation ground.lesseq_cls (infix "\<preceq>\<^sub>c\<^sub>G" 50)
-
-lemmas less\<^sub>l\<^sub>G_transitive_on = ground.transp_less_lit[THEN transp_on_subset, OF subset_UNIV]
-lemmas less\<^sub>l\<^sub>G_asymmetric_on = ground.asymp_less_lit[THEN asymp_on_subset, OF subset_UNIV]
-lemmas less\<^sub>l\<^sub>G_total_on = ground.totalp_less_lit[THEN totalp_on_subset, OF subset_UNIV]
-
-lemmas less\<^sub>c\<^sub>G_transitive_on = ground.transp_less_cls[THEN transp_on_subset, OF subset_UNIV]
-lemmas less\<^sub>c\<^sub>G_asymmetric_on = ground.asymp_less_cls[THEN asymp_on_subset, OF subset_UNIV]
-lemmas less\<^sub>c\<^sub>G_total_on = ground.totalp_less_cls[THEN totalp_on_subset, OF subset_UNIV]
-
-lemmas is_maximal_lit_def = is_maximal_in_mset_wrt_iff[OF less\<^sub>l\<^sub>G_transitive_on less\<^sub>l\<^sub>G_asymmetric_on]
-lemmas is_strictly_maximal_lit_def = 
-  is_strictly_maximal_in_mset_wrt_iff[OF less\<^sub>l\<^sub>G_transitive_on less\<^sub>l\<^sub>G_asymmetric_on]
-
-lemma not_less_eq\<^sub>t\<^sub>G: "\<not> term\<^sub>G\<^sub>2 \<preceq>\<^sub>t\<^sub>G term\<^sub>G\<^sub>1 \<longleftrightarrow> term\<^sub>G\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2"
-  using asympD[OF less\<^sub>t\<^sub>G_asymmetric] totalpD[OF less\<^sub>t\<^sub>G_total]
-  by blast
-
-lemma less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G:
-  assumes "is_ground_term term\<^sub>1" and "is_ground_term term\<^sub>2" 
-  shows "term\<^sub>1 \<preceq>\<^sub>t term\<^sub>2 \<longleftrightarrow> to_ground_term term\<^sub>1 \<preceq>\<^sub>t\<^sub>G to_ground_term term\<^sub>2"
-  unfolding reflclp_iff less\<^sub>t_less\<^sub>t\<^sub>G[OF assms]
-  using assms[THEN to_ground_term_inverse]
-  by auto
-
-lemma less_eq\<^sub>t\<^sub>G_less_eq\<^sub>t:
-   "term\<^sub>G\<^sub>1 \<preceq>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2 \<longleftrightarrow> to_term term\<^sub>G\<^sub>1 \<preceq>\<^sub>t to_term term\<^sub>G\<^sub>2"
-  unfolding less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G[OF ground_term_is_ground ground_term_is_ground] to_term_inverse
-  by(rule refl)
-
-lemma not_less_eq\<^sub>t: 
-  assumes "is_ground_term term\<^sub>1" and "is_ground_term term\<^sub>2"
-  shows "\<not> term\<^sub>2 \<preceq>\<^sub>t term\<^sub>1 \<longleftrightarrow> term\<^sub>1 \<prec>\<^sub>t term\<^sub>2"
-  unfolding less\<^sub>t_less\<^sub>t\<^sub>G[OF assms] less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>t\<^sub>G
-  by (rule refl)
-
-lemma less\<^sub>l\<^sub>G_less\<^sub>l: "literal\<^sub>G\<^sub>1 \<prec>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> to_literal literal\<^sub>G\<^sub>1 \<prec>\<^sub>l to_literal literal\<^sub>G\<^sub>2"
-  unfolding less\<^sub>l_def ground.less_lit_def less\<^sub>t\<^sub>G_less\<^sub>t mset_to_literal
-  using
-     multp_image_mset_image_msetI[OF _ less\<^sub>t_transitive]
-     multp_image_mset_image_msetD[OF _ less\<^sub>t_transitive_on to_term_inj]
-   by blast
-
-lemma less\<^sub>l_less\<^sub>l\<^sub>G: 
-  assumes "is_ground_literal literal\<^sub>1" "is_ground_literal literal\<^sub>2" 
-  shows "literal\<^sub>1 \<prec>\<^sub>l literal\<^sub>2 \<longleftrightarrow> to_ground_literal literal\<^sub>1 \<prec>\<^sub>l\<^sub>G to_ground_literal literal\<^sub>2"
-  using assms
-  by (simp add: less\<^sub>l\<^sub>G_less\<^sub>l)
-
-lemma less\<^sub>l_total_on [intro]: "totalp_on (to_literal ` literals\<^sub>G) (\<prec>\<^sub>l)"
-  by (smt (verit, best) image_iff less\<^sub>l\<^sub>G_less\<^sub>l totalpD less\<^sub>l\<^sub>G_total_on totalp_on_def)
-
-lemma less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G:
-  assumes "is_ground_literal literal\<^sub>1" and "is_ground_literal literal\<^sub>2" 
-  shows "literal\<^sub>1 \<preceq>\<^sub>l literal\<^sub>2 \<longleftrightarrow> to_ground_literal literal\<^sub>1 \<preceq>\<^sub>l\<^sub>G to_ground_literal literal\<^sub>2"
-  unfolding reflclp_iff less\<^sub>l_less\<^sub>l\<^sub>G[OF assms]
-  using assms[THEN to_ground_literal_inverse]
-  by auto
-
-lemma less_eq\<^sub>l\<^sub>G_less_eq\<^sub>l:
-   "literal\<^sub>G\<^sub>1 \<preceq>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> to_literal literal\<^sub>G\<^sub>1 \<preceq>\<^sub>l to_literal literal\<^sub>G\<^sub>2"
-  unfolding 
-    less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G[OF ground_literal_is_ground ground_literal_is_ground] 
-    to_literal_inverse
-  by(rule refl)
-
-lemma maximal_lit_in_clause:
-  assumes "ground.is_maximal_lit literal\<^sub>G clause\<^sub>G"
-  shows "literal\<^sub>G \<in># clause\<^sub>G"
-  using assms 
-  unfolding is_maximal_lit_def
-  by(rule conjunct1)
-
-lemma maximal\<^sub>l_in_clause:
-  assumes "is_maximal\<^sub>l literal clause"
-  shows "literal \<in># clause"
-  using assms 
-  unfolding is_maximal\<^sub>l_def
-  by(rule conjunct1)
-
-lemma strictly_maximal\<^sub>l_in_clause:
-  assumes "is_strictly_maximal\<^sub>l literal clause"
-  shows "literal \<in># clause"
-  using assms 
-  unfolding is_strictly_maximal\<^sub>l_def
-  by(rule conjunct1)
-
-lemma is_maximal\<^sub>G\<^sub>l_iff_is_maximal\<^sub>l: 
-  "ground.is_maximal_lit literal\<^sub>G clause\<^sub>G \<longleftrightarrow> is_maximal\<^sub>l (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
-   unfolding 
-    is_maximal\<^sub>l_def
-    is_maximal_lit_def
-    ground_literal_in_ground_clause(3)[symmetric]
-   using 
-     less\<^sub>l_less\<^sub>l\<^sub>G[OF ground_literal_is_ground ground_literal_in_ground_clause(2)] 
-     ground_literal_in_ground_clause(2, 3)
-   by (metis to_ground_literal_inverse to_literal_inverse)
-
-lemmas less\<^sub>l_total_on_set_mset =
-  less\<^sub>l_total_on[THEN totalp_on_subset, OF set_mset_to_clause_to_literal[THEN equalityD1]]
-
-lemma is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l:
-  "ground.is_strictly_maximal_lit literal\<^sub>G clause\<^sub>G 
-    \<longleftrightarrow> is_strictly_maximal\<^sub>l (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
-  unfolding 
-    is_strictly_maximal_in_mset_wrt_iff_is_greatest_in_mset_wrt[OF 
-      less\<^sub>l\<^sub>G_transitive_on less\<^sub>l\<^sub>G_asymmetric_on less\<^sub>l\<^sub>G_total_on, symmetric
-    ]
-    is_strictly_maximal_lit_def
-    is_strictly_maximal\<^sub>l_def
-    ground_literal_in_ground_clause(3)[symmetric]
-    remove1_mset_to_literal
-    ground_literal_in_ground_clause(4)
-    less_eq\<^sub>l\<^sub>G_less_eq\<^sub>l
-  ..
- 
-lemma not_less_eq\<^sub>l\<^sub>G: "\<not> literal\<^sub>G\<^sub>2 \<preceq>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>1 \<longleftrightarrow> literal\<^sub>G\<^sub>1 \<prec>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2"
-  using asympD[OF less\<^sub>l\<^sub>G_asymmetric_on] totalpD[OF less\<^sub>l\<^sub>G_total_on]
-  by blast
-
-lemma not_less_eq\<^sub>l: 
-  assumes "is_ground_literal literal\<^sub>1" and "is_ground_literal literal\<^sub>2"
-  shows "\<not> literal\<^sub>2 \<preceq>\<^sub>l literal\<^sub>1 \<longleftrightarrow> literal\<^sub>1 \<prec>\<^sub>l literal\<^sub>2"
-  unfolding less\<^sub>l_less\<^sub>l\<^sub>G[OF assms] less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>l\<^sub>G
-  ..
-
-lemma less\<^sub>c\<^sub>G_less\<^sub>c: 
-  "clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<longleftrightarrow> to_clause clause\<^sub>G\<^sub>1 \<prec>\<^sub>c to_clause clause\<^sub>G\<^sub>2"
-  using
-     multp_image_mset_image_msetI[OF _ less\<^sub>l_transitive]
-     multp_image_mset_image_msetD[OF _ less\<^sub>l_transitive to_literal_inj]
-  unfolding less\<^sub>l\<^sub>G_less\<^sub>l to_clause_def
-  by blast
-
-lemma less\<^sub>c_less\<^sub>c\<^sub>G: 
-  assumes "is_ground_clause clause\<^sub>1" "is_ground_clause clause\<^sub>2"
-  shows "clause\<^sub>1 \<prec>\<^sub>c clause\<^sub>2 \<longleftrightarrow> to_ground_clause clause\<^sub>1 \<prec>\<^sub>c\<^sub>G  to_ground_clause clause\<^sub>2"
-  using assms
-  by (simp add: less\<^sub>c\<^sub>G_less\<^sub>c)
-
-lemma less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G:
-  assumes "is_ground_clause clause\<^sub>1" and "is_ground_clause clause\<^sub>2" 
-  shows "clause\<^sub>1 \<preceq>\<^sub>c clause\<^sub>2 \<longleftrightarrow> to_ground_clause clause\<^sub>1 \<preceq>\<^sub>c\<^sub>G to_ground_clause clause\<^sub>2"
-  unfolding reflclp_iff less\<^sub>c_less\<^sub>c\<^sub>G[OF assms]
-  using assms[THEN to_ground_clause_inverse]
-  by auto
-
-lemma less_eq\<^sub>c\<^sub>G_less_eq\<^sub>c:
-   "clause\<^sub>G\<^sub>1 \<preceq>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<longleftrightarrow> to_clause clause\<^sub>G\<^sub>1 \<preceq>\<^sub>c to_clause clause\<^sub>G\<^sub>2"
-  unfolding less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF ground_clause_is_ground ground_clause_is_ground] to_clause_inverse
-  ..
-
-lemma less\<^sub>c_total_on: "totalp_on (to_clause ` clauses) (\<prec>\<^sub>c)"
-  by (smt ground.totalp_less_cls image_iff less\<^sub>c\<^sub>G_less\<^sub>c totalpD totalp_onI) 
-
-lemma not_less_eq\<^sub>c\<^sub>G: "\<not> clause\<^sub>G\<^sub>2 \<preceq>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>1 \<longleftrightarrow> clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2"
-  using asympD[OF less\<^sub>c\<^sub>G_asymmetric_on] totalpD[OF less\<^sub>c\<^sub>G_total_on]
-  by blast
-
-lemma not_less_eq\<^sub>c: 
-  assumes "is_ground_clause clause\<^sub>1" and "is_ground_clause clause\<^sub>2"
-  shows "\<not> clause\<^sub>2 \<preceq>\<^sub>c clause\<^sub>1 \<longleftrightarrow> clause\<^sub>1 \<prec>\<^sub>c clause\<^sub>2"
-  unfolding less\<^sub>c_less\<^sub>c\<^sub>G[OF assms] less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>c\<^sub>G
-  ..
-
 lemma less\<^sub>l_ground_subst_stability: 
   assumes 
     "is_ground_literal (literal \<cdot>l \<theta>)" 
@@ -435,6 +243,399 @@ lemma less_eq\<^sub>t_ground_subst_stability:
   shows "term\<^sub>1 \<cdot>t \<theta> \<preceq>\<^sub>t term\<^sub>2 \<cdot>t \<theta>"
   using less\<^sub>t_ground_subst_stability'[OF assms(1, 2)] assms(3)
   by auto
+
+definition clause_groundings ::
+  "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" where
+  "clause_groundings clause = { to_ground_clause (clause \<cdot> \<theta>) | \<theta>. is_ground_clause (clause \<cdot> \<theta>) }"
+
+definition clause_liftings where
+   "clause_liftings clause\<^sub>G = { (clause, \<theta>)  | clause \<theta>. clause \<cdot> \<theta> = to_clause clause\<^sub>G }"
+
+(* 
+ "\<forall>premise\<^sub>G \<in> \<Union> (clause_groundings ` premises). \<exists>\<theta> premise. 
+        premise \<cdot> \<theta> = to_clause premise\<^sub>G 
+      \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>
+      \<and> premise \<in> premises"
+*)
+
+find_consts "'a set \<Rightarrow> 'a option"
+
+definition select\<^sub>G_simple2 where
+  "select\<^sub>G_simple2 clause\<^sub>G clauses = 
+    (if clause\<^sub>G \<in> \<Union> (clause_groundings ` clauses) 
+     then to_ground_clause (select (to_clause clause\<^sub>G))
+     else to_ground_clause (select (to_clause clause\<^sub>G)))" 
+
+(* TODO: new section *)
+
+inductive equality_resolution :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
+  equality_resolutionI: 
+   "premise = add_mset literal premise' \<Longrightarrow>
+    literal = term !\<approx> term' \<Longrightarrow>
+    term_subst.is_imgu \<mu> {{ term, term' }} \<Longrightarrow>
+    select premise = {#} \<and> is_maximal\<^sub>l (literal \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<or> literal \<in># select premise \<Longrightarrow>
+    conclusion = premise' \<cdot> \<mu> \<Longrightarrow>
+    equality_resolution premise conclusion"
+
+inductive equality_factoring :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
+  equality_factoringI: "
+    premise = add_mset literal\<^sub>1 (add_mset literal\<^sub>2 premise') \<Longrightarrow>
+    literal\<^sub>1 = term\<^sub>1 \<approx> term\<^sub>1' \<Longrightarrow>
+    literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2' \<Longrightarrow>
+    select premise = {#} \<and> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<Longrightarrow>
+    \<not> (term\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<mu>) \<Longrightarrow>
+    term_subst.is_imgu \<mu> {{ term\<^sub>1, term\<^sub>2 }} \<Longrightarrow>
+    conclusion = add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise') \<cdot> \<mu> \<Longrightarrow>
+    equality_factoring premise conclusion"
+
+inductive superposition ::
+  "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
+where
+  superpositionI: 
+   "term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
+    term_subst.is_renaming \<rho>\<^sub>2 \<Longrightarrow>
+    vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
+    premise\<^sub>1 = add_mset literal\<^sub>1 premise\<^sub>1' \<Longrightarrow>
+    premise\<^sub>2 = add_mset literal\<^sub>2 premise\<^sub>2' \<Longrightarrow>
+    \<P> \<in> {Pos, Neg} \<Longrightarrow>
+    literal\<^sub>1 = \<P> (Upair context\<^sub>1\<langle>term\<^sub>1\<rangle> term\<^sub>1') \<Longrightarrow>
+    literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2' \<Longrightarrow>
+    \<not> is_Var term\<^sub>1 \<Longrightarrow>
+    term_subst.is_imgu \<mu> {{term\<^sub>1 \<cdot>t \<rho>\<^sub>1, term\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
+    \<not> (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    (\<P> = Pos 
+      \<and> select premise\<^sub>1 = {#} 
+      \<and> is_strictly_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)) \<or>
+    (\<P> = Neg 
+      \<and> (select premise\<^sub>1 = {#} \<and> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) 
+          \<or> literal\<^sub>1 \<in># select premise\<^sub>1)) \<Longrightarrow>
+    select premise\<^sub>2 = {#} \<Longrightarrow>
+    is_strictly_maximal\<^sub>l  (literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    \<not> (context\<^sub>1\<langle>term\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
+    \<not> (term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
+    conclusion = add_mset (\<P> (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) 
+          (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
+    superposition premise\<^sub>1 premise\<^sub>2 conclusion"
+
+abbreviation equality_factoring_inferences where
+  "equality_factoring_inferences \<equiv> 
+    { Infer [premise] conclusion | premise conclusion. equality_factoring premise conclusion }"
+
+abbreviation equality_resolution_inferences where
+  "equality_resolution_inferences \<equiv> 
+    { Infer [premise] conclusion | premise conclusion. equality_resolution premise conclusion }"
+
+abbreviation superposition_inferences where
+  "superposition_inferences \<equiv> { Infer [premise\<^sub>1, premise\<^sub>2] conclusion 
+    | premise\<^sub>1 premise\<^sub>2 conclusion. superposition premise\<^sub>1 premise\<^sub>2 conclusion }"
+
+definition inferences :: "('f, 'v) atom clause inference set" where
+  "inferences \<equiv> 
+    superposition_inferences \<union> equality_resolution_inferences \<union> equality_factoring_inferences"
+
+abbreviation bottom\<^sub>F :: "('f, 'v) atom clause set" ("\<bottom>\<^sub>F") where
+  "bottom\<^sub>F \<equiv> {{#}}"
+
+subsubsection \<open>Alternative Specification of the Superposition Rule\<close>
+
+inductive pos_superposition ::
+  "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
+where
+  pos_superpositionI: "
+    term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
+    term_subst.is_renaming \<rho>\<^sub>2 \<Longrightarrow>
+    vars_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (P\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
+    P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
+    P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
+    L\<^sub>1 = (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1') \<Longrightarrow>
+    L\<^sub>2 = (t\<^sub>2 \<approx> t\<^sub>2') \<Longrightarrow>
+    \<not> is_Var u\<^sub>1 \<Longrightarrow>
+    term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
+    \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    select P\<^sub>1 = {#} \<Longrightarrow>
+    is_strictly_maximal\<^sub>l  (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<Longrightarrow>
+    select P\<^sub>2 = {#} \<Longrightarrow>
+    is_strictly_maximal\<^sub>l  (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
+    \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
+    C = add_mset ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> \<approx> (s\<^sub>1' \<cdot>t \<rho>\<^sub>1)) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
+    pos_superposition P\<^sub>1 P\<^sub>2 C"
+
+lemma superposition_if_pos_superposition:
+  assumes "pos_superposition P\<^sub>1 P\<^sub>2 C"
+  shows "superposition P\<^sub>1 P\<^sub>2 C"
+  using assms
+proof (cases rule: pos_superposition.cases)
+  case pos_superpositionI
+  then show ?thesis
+    using superpositionI
+    by fast
+qed
+
+inductive neg_superposition ::
+  "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
+where
+  neg_superpositionI: "
+    term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
+    term_subst.is_renaming \<rho>\<^sub>2 \<Longrightarrow>
+    vars_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (P\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
+    P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
+    P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
+    L\<^sub>1 = Neg (Upair s\<^sub>1\<langle>u\<^sub>1\<rangle> s\<^sub>1') \<Longrightarrow>
+    L\<^sub>2 = (t\<^sub>2 \<approx> t\<^sub>2') \<Longrightarrow>
+    \<not> is_Var u\<^sub>1 \<Longrightarrow>
+    term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
+    \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    select P\<^sub>1 = {#} \<and> is_maximal\<^sub>l (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or> L\<^sub>1 \<in># select P\<^sub>1 \<Longrightarrow>
+    select P\<^sub>2 = {#} \<Longrightarrow>
+    is_strictly_maximal\<^sub>l  (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
+    \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
+    C = add_mset (Neg (Upair (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle>  (s\<^sub>1' \<cdot>t \<rho>\<^sub>1))) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
+    neg_superposition P\<^sub>1 P\<^sub>2 C"
+
+lemma superposition_if_neg_superposition:
+  assumes "neg_superposition P\<^sub>1 P\<^sub>2 C"
+  shows "superposition P\<^sub>1 P\<^sub>2 C"
+  using assms
+proof (cases P\<^sub>1 P\<^sub>2 C rule: neg_superposition.cases)
+  case (neg_superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
+  then show ?thesis
+    using superpositionI
+    by fast
+qed
+
+lemma superposition_iff_pos_or_neg:
+  "superposition P\<^sub>1 P\<^sub>2 C \<longleftrightarrow> pos_superposition P\<^sub>1 P\<^sub>2 C \<or> neg_superposition P\<^sub>1 P\<^sub>2 C"
+proof (rule iffI)
+  assume "superposition P\<^sub>1 P\<^sub>2 C"
+  thus "pos_superposition P\<^sub>1 P\<^sub>2 C \<or> neg_superposition P\<^sub>1 P\<^sub>2 C"
+  proof (cases P\<^sub>1 P\<^sub>2 C rule: superposition.cases)
+    case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
+    then show ?thesis      
+      using pos_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>]
+      using neg_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>]
+      by blast
+  qed
+next
+  assume "pos_superposition P\<^sub>1 P\<^sub>2 C \<or> neg_superposition P\<^sub>1 P\<^sub>2 C"
+  thus "superposition P\<^sub>1 P\<^sub>2 C"
+    using superposition_if_neg_superposition superposition_if_pos_superposition by metis
+qed
+
+abbreviation true_clause :: 
+  "'f ground_atom interp \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" (infix "\<TTurnstile>\<^sub>C" 50)  where
+  "I \<TTurnstile>\<^sub>C C \<equiv> \<forall>\<theta>. term_subst.is_ground_subst \<theta> \<longrightarrow> I \<TTurnstile> to_ground_clause (C \<cdot> \<theta>)"
+
+abbreviation true_clauses :: 
+  "'f ground_atom interp \<Rightarrow> ('f, 'v) atom clause set \<Rightarrow> bool" (infix "\<TTurnstile>\<^sub>C\<^sub>s" 50) where
+  "I \<TTurnstile>\<^sub>C\<^sub>s \<C> \<equiv> \<forall>C\<in> \<C>. I \<TTurnstile>\<^sub>C C"
+
+definition entails\<^sub>F :: 
+  "('f, 'v) atom clause set \<Rightarrow> ('f, 'v) atom clause set \<Rightarrow> bool" (infix "\<TTurnstile>\<^sub>F" 50) where
+  "entails\<^sub>F N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: 'f gterm rel). 
+    refl I \<longrightarrow> trans I \<longrightarrow> sym I \<longrightarrow> compatible_with_gctxt I \<longrightarrow>
+    (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>\<^sub>C\<^sub>s N\<^sub>1 \<longrightarrow>
+    (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>\<^sub>C\<^sub>s N\<^sub>2)"
+
+end
+
+locale first_order_superposition_calculus_with_grounding =
+  first_order_superposition_calculus +
+  fixes select\<^sub>G 
+  assumes select\<^sub>G: "is_ground_select select\<^sub>G"
+begin
+
+lemma select\<^sub>G_subset: "select\<^sub>G clause \<subseteq># clause"
+  using select\<^sub>G 
+  unfolding is_ground_select_def
+  by (metis select_subset to_ground_clause_def image_mset_subseteq_mono subst_clause_def)
+
+lemma select\<^sub>G_negative:
+  assumes "literal\<^sub>G \<in># select\<^sub>G clause\<^sub>G"
+  shows "is_neg literal\<^sub>G"
+proof -
+  obtain clause \<theta> where 
+    is_ground: "is_ground_clause (clause \<cdot> \<theta>)" and
+    select\<^sub>G: "select\<^sub>G clause\<^sub>G = to_ground_clause (select clause \<cdot> \<theta>)"
+    using select\<^sub>G
+    unfolding is_ground_select_def
+    by blast
+
+  show ?thesis
+    using 
+      select_from_ground_clause(3)[
+          OF select_subst(1)[OF is_ground] assms[unfolded select\<^sub>G], 
+          THEN select_subst(2)
+      ]
+    unfolding to_literal_def
+    by simp
+qed
+
+lemma ground: "ground_superposition_calculus (\<prec>\<^sub>t\<^sub>G) select\<^sub>G"
+  apply(unfold_locales)
+  by(auto simp: select\<^sub>G_subset select\<^sub>G_negative ground_critical_pair_theorem)
+
+sublocale ground: ground_superposition_calculus "(\<prec>\<^sub>t\<^sub>G)" select\<^sub>G
+  by(rule ground)
+
+notation ground.less_lit (infix "\<prec>\<^sub>l\<^sub>G" 50)
+notation ground.less_cls (infix "\<prec>\<^sub>c\<^sub>G" 50)
+
+notation ground.lesseq_trm (infix "\<preceq>\<^sub>t\<^sub>G" 50)
+notation ground.lesseq_lit (infix "\<preceq>\<^sub>l\<^sub>G" 50)
+notation ground.lesseq_cls (infix "\<preceq>\<^sub>c\<^sub>G" 50)
+
+lemma not_less_eq\<^sub>t\<^sub>G: "\<not> term\<^sub>G\<^sub>2 \<preceq>\<^sub>t\<^sub>G term\<^sub>G\<^sub>1 \<longleftrightarrow> term\<^sub>G\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2"
+  using asympD[OF less\<^sub>t\<^sub>G_asymmetric] totalpD[OF less\<^sub>t\<^sub>G_total]
+  by blast
+
+lemma less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G:
+  assumes "is_ground_term term\<^sub>1" and "is_ground_term term\<^sub>2" 
+  shows "term\<^sub>1 \<preceq>\<^sub>t term\<^sub>2 \<longleftrightarrow> to_ground_term term\<^sub>1 \<preceq>\<^sub>t\<^sub>G to_ground_term term\<^sub>2"
+  unfolding reflclp_iff less\<^sub>t_less\<^sub>t\<^sub>G[OF assms]
+  using assms[THEN to_ground_term_inverse]
+  by auto
+
+lemma less_eq\<^sub>t\<^sub>G_less_eq\<^sub>t:
+   "term\<^sub>G\<^sub>1 \<preceq>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2 \<longleftrightarrow> to_term term\<^sub>G\<^sub>1 \<preceq>\<^sub>t to_term term\<^sub>G\<^sub>2"
+  unfolding less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G[OF ground_term_is_ground ground_term_is_ground] to_term_inverse
+  ..
+
+lemma not_less_eq\<^sub>t: 
+  assumes "is_ground_term term\<^sub>1" and "is_ground_term term\<^sub>2"
+  shows "\<not> term\<^sub>2 \<preceq>\<^sub>t term\<^sub>1 \<longleftrightarrow> term\<^sub>1 \<prec>\<^sub>t term\<^sub>2"
+  unfolding less\<^sub>t_less\<^sub>t\<^sub>G[OF assms] less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>t\<^sub>G
+  ..
+
+lemma less\<^sub>l\<^sub>G_less\<^sub>l: "literal\<^sub>G\<^sub>1 \<prec>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> to_literal literal\<^sub>G\<^sub>1 \<prec>\<^sub>l to_literal literal\<^sub>G\<^sub>2"
+  unfolding less\<^sub>l_def ground.less_lit_def less\<^sub>t\<^sub>G_less\<^sub>t mset_to_literal
+  using
+     multp_image_mset_image_msetI[OF _ less\<^sub>t_transitive]
+     multp_image_mset_image_msetD[OF _ less\<^sub>t_transitive_on to_term_inj]
+   by blast
+
+lemma less\<^sub>l_less\<^sub>l\<^sub>G: 
+  assumes "is_ground_literal literal\<^sub>1" "is_ground_literal literal\<^sub>2" 
+  shows "literal\<^sub>1 \<prec>\<^sub>l literal\<^sub>2 \<longleftrightarrow> to_ground_literal literal\<^sub>1 \<prec>\<^sub>l\<^sub>G to_ground_literal literal\<^sub>2"
+  using assms
+  by (simp add: less\<^sub>l\<^sub>G_less\<^sub>l)
+
+lemma less\<^sub>l_total_on [intro]: "totalp_on (to_literal ` literals\<^sub>G) (\<prec>\<^sub>l)"
+  by (smt (verit, best) image_iff less\<^sub>l\<^sub>G_less\<^sub>l totalpD ground.less\<^sub>l\<^sub>G_total_on totalp_on_def)
+
+lemma less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G:
+  assumes "is_ground_literal literal\<^sub>1" and "is_ground_literal literal\<^sub>2" 
+  shows "literal\<^sub>1 \<preceq>\<^sub>l literal\<^sub>2 \<longleftrightarrow> to_ground_literal literal\<^sub>1 \<preceq>\<^sub>l\<^sub>G to_ground_literal literal\<^sub>2"
+  unfolding reflclp_iff less\<^sub>l_less\<^sub>l\<^sub>G[OF assms]
+  using assms[THEN to_ground_literal_inverse]
+  by auto
+
+lemma less_eq\<^sub>l\<^sub>G_less_eq\<^sub>l:
+   "literal\<^sub>G\<^sub>1 \<preceq>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> to_literal literal\<^sub>G\<^sub>1 \<preceq>\<^sub>l to_literal literal\<^sub>G\<^sub>2"
+  unfolding 
+    less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G[OF ground_literal_is_ground ground_literal_is_ground] 
+    to_literal_inverse
+  ..
+
+lemma maximal_lit_in_clause:
+  assumes "ground.is_maximal_lit literal\<^sub>G clause\<^sub>G"
+  shows "literal\<^sub>G \<in># clause\<^sub>G"
+  using assms 
+  unfolding ground.is_maximal_lit_def
+  by(rule conjunct1)
+
+lemma maximal\<^sub>l_in_clause:
+  assumes "is_maximal\<^sub>l literal clause"
+  shows "literal \<in># clause"
+  using assms 
+  unfolding is_maximal\<^sub>l_def
+  by(rule conjunct1)
+
+lemma strictly_maximal\<^sub>l_in_clause:
+  assumes "is_strictly_maximal\<^sub>l literal clause"
+  shows "literal \<in># clause"
+  using assms 
+  unfolding is_strictly_maximal\<^sub>l_def
+  by(rule conjunct1)
+
+lemma is_maximal_lit_iff_is_maximal\<^sub>l: 
+  "ground.is_maximal_lit literal\<^sub>G clause\<^sub>G \<longleftrightarrow> is_maximal\<^sub>l (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
+   unfolding 
+    is_maximal\<^sub>l_def
+    ground.is_maximal_lit_def
+    ground_literal_in_ground_clause(3)[symmetric]
+   using 
+     less\<^sub>l_less\<^sub>l\<^sub>G[OF ground_literal_is_ground ground_literal_in_ground_clause(2)] 
+     ground_literal_in_ground_clause(2, 3)
+   by (metis to_ground_literal_inverse to_literal_inverse)
+
+lemmas less\<^sub>l_total_on_set_mset =
+  less\<^sub>l_total_on[THEN totalp_on_subset, OF set_mset_to_clause_to_literal[THEN equalityD1]]
+
+lemma is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l:
+  "ground.is_strictly_maximal_lit literal\<^sub>G clause\<^sub>G 
+    \<longleftrightarrow> is_strictly_maximal\<^sub>l (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
+  unfolding 
+    is_strictly_maximal_in_mset_wrt_iff_is_greatest_in_mset_wrt[OF 
+      ground.less\<^sub>l\<^sub>G_transitive_on ground.less\<^sub>l\<^sub>G_asymmetric_on ground.less\<^sub>l\<^sub>G_total_on, symmetric
+    ]
+    ground.is_strictly_maximal_lit_def
+    is_strictly_maximal\<^sub>l_def
+    ground_literal_in_ground_clause(3)[symmetric]
+    remove1_mset_to_literal
+    ground_literal_in_ground_clause(4)
+    less_eq\<^sub>l\<^sub>G_less_eq\<^sub>l
+  ..
+ 
+lemma not_less_eq\<^sub>l\<^sub>G: "\<not> literal\<^sub>G\<^sub>2 \<preceq>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>1 \<longleftrightarrow> literal\<^sub>G\<^sub>1 \<prec>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2"
+  using asympD[OF ground.less\<^sub>l\<^sub>G_asymmetric_on] totalpD[OF ground.less\<^sub>l\<^sub>G_total_on]
+  by blast
+
+lemma not_less_eq\<^sub>l: 
+  assumes "is_ground_literal literal\<^sub>1" and "is_ground_literal literal\<^sub>2"
+  shows "\<not> literal\<^sub>2 \<preceq>\<^sub>l literal\<^sub>1 \<longleftrightarrow> literal\<^sub>1 \<prec>\<^sub>l literal\<^sub>2"
+  unfolding less\<^sub>l_less\<^sub>l\<^sub>G[OF assms] less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>l\<^sub>G
+  ..
+
+lemma less\<^sub>c\<^sub>G_less\<^sub>c: 
+  "clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<longleftrightarrow> to_clause clause\<^sub>G\<^sub>1 \<prec>\<^sub>c to_clause clause\<^sub>G\<^sub>2"
+  using
+     multp_image_mset_image_msetI[OF _ less\<^sub>l_transitive]
+     multp_image_mset_image_msetD[OF _ less\<^sub>l_transitive to_literal_inj]
+  unfolding less\<^sub>l\<^sub>G_less\<^sub>l to_clause_def
+  by blast
+
+lemma less\<^sub>c_less\<^sub>c\<^sub>G: 
+  assumes "is_ground_clause clause\<^sub>1" "is_ground_clause clause\<^sub>2"
+  shows "clause\<^sub>1 \<prec>\<^sub>c clause\<^sub>2 \<longleftrightarrow> to_ground_clause clause\<^sub>1 \<prec>\<^sub>c\<^sub>G  to_ground_clause clause\<^sub>2"
+  using assms
+  by (simp add: less\<^sub>c\<^sub>G_less\<^sub>c)
+
+lemma less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G:
+  assumes "is_ground_clause clause\<^sub>1" and "is_ground_clause clause\<^sub>2" 
+  shows "clause\<^sub>1 \<preceq>\<^sub>c clause\<^sub>2 \<longleftrightarrow> to_ground_clause clause\<^sub>1 \<preceq>\<^sub>c\<^sub>G to_ground_clause clause\<^sub>2"
+  unfolding reflclp_iff less\<^sub>c_less\<^sub>c\<^sub>G[OF assms]
+  using assms[THEN to_ground_clause_inverse]
+  by fastforce
+
+lemma less_eq\<^sub>c\<^sub>G_less_eq\<^sub>c:
+   "clause\<^sub>G\<^sub>1 \<preceq>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<longleftrightarrow> to_clause clause\<^sub>G\<^sub>1 \<preceq>\<^sub>c to_clause clause\<^sub>G\<^sub>2"
+  unfolding less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF ground_clause_is_ground ground_clause_is_ground] to_clause_inverse
+  ..
+
+lemma less\<^sub>c_total_on: "totalp_on (to_clause ` clauses) (\<prec>\<^sub>c)"
+  by (smt ground.totalp_less_cls image_iff less\<^sub>c\<^sub>G_less\<^sub>c totalpD totalp_onI) 
+
+lemma not_less_eq\<^sub>c\<^sub>G: "\<not> clause\<^sub>G\<^sub>2 \<preceq>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>1 \<longleftrightarrow> clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2"
+  using asympD[OF ground.less\<^sub>c\<^sub>G_asymmetric_on] totalpD[OF ground.less\<^sub>c\<^sub>G_total_on]
+  by blast
+
+lemma not_less_eq\<^sub>c: 
+  assumes "is_ground_clause clause\<^sub>1" and "is_ground_clause clause\<^sub>2"
+  shows "\<not> clause\<^sub>2 \<preceq>\<^sub>c clause\<^sub>1 \<longleftrightarrow> clause\<^sub>1 \<prec>\<^sub>c clause\<^sub>2"
+  unfolding less\<^sub>c_less\<^sub>c\<^sub>G[OF assms] less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>c\<^sub>G
+  ..
 
 lemma less\<^sub>t_less_eq\<^sub>t_ground_subst_stability: assumes 
   "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)"
@@ -681,87 +882,206 @@ lemma is_strictly_maximal\<^sub>l_ground_subst_stability':
  shows 
    "is_strictly_maximal\<^sub>l literal clause"
   (* TODO: *)
-  by (smt (verit, ccfv_SIG) add_mset_remove_trivial assms(1) assms(2) assms(3) first_order_superposition_calculus.less_eq\<^sub>l_ground_subst_stability first_order_superposition_calculus_axioms ground_literal_in_ground_clause_subst in_diffD insert_DiffM is_strictly_maximal\<^sub>l_def literal_in_clause_subst subst_clause_add_mset)
+  by (metis (no_types, lifting) assms(1) assms(2) assms(3) in_diffD is_maximal\<^sub>l_def is_maximal\<^sub>l_ground_subst_stability' is_maximal\<^sub>l_if_is_strictly_maximal\<^sub>l is_strictly_maximal\<^sub>l_def literal_in_clause_subst reflclp_iff subst_clause_remove1_mset)
 
-definition clause_groundings ::
-  "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" where
-  "clause_groundings clause = { to_ground_clause (clause \<cdot> \<theta>) | \<theta>. is_ground_clause (clause \<cdot> \<theta>) }"
+end
 
-(* TODO: new section *)
+definition (in first_order_superposition_calculus) inference_groundings
+  where "is_ground_select select\<^sub>G \<Longrightarrow> inference_groundings select\<^sub>G inference = 
+  { ground_inference | ground_inference \<theta> \<rho>\<^sub>1 \<rho>\<^sub>2.
+    (case inference of 
+        Infer [premise] conclusion \<Rightarrow>
+          is_ground_clause (premise \<cdot> \<theta>) 
+        \<and> is_ground_clause (conclusion \<cdot> \<theta>)
+        \<and> ground_inference = 
+            Infer [to_ground_clause (premise \<cdot> \<theta>)] (to_ground_clause (conclusion \<cdot> \<theta>))
+      | Infer [premise\<^sub>1, premise\<^sub>2] conclusion \<Rightarrow> 
+          term_subst.is_renaming \<rho>\<^sub>1
+        \<and> term_subst.is_renaming \<rho>\<^sub>1
+        \<and> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}
+        \<and> is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>) 
+        \<and> is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>) 
+        \<and> is_ground_clause (conclusion \<cdot> \<theta>)
+        \<and> ground_inference = 
+            Infer 
+              [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] 
+              (to_ground_clause (conclusion \<cdot> \<theta>))
+      | _ \<Rightarrow> False
+     )
+  \<and> ground_inference \<in> ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G) select\<^sub>G
+  \<and> inference \<in> inferences
+}" 
 
-inductive equality_resolution :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
-  equality_resolutionI: 
-   "premise = add_mset literal premise' \<Longrightarrow>
-    literal = term !\<approx> term' \<Longrightarrow>
-    term_subst.is_imgu \<mu> {{ term, term' }} \<Longrightarrow>
-    select premise = {#} \<and> is_maximal\<^sub>l (literal \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<or> literal \<in># select premise \<Longrightarrow>
-    conclusion = premise' \<cdot> \<mu> \<Longrightarrow>
-    equality_resolution premise conclusion"
+abbreviation some where
+  "some f \<equiv> Some \<circ> f"
 
-inductive equality_factoring :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
-  equality_factoringI: "
-    premise = add_mset literal\<^sub>1 (add_mset literal\<^sub>2 premise') \<Longrightarrow>
-    literal\<^sub>1 = term\<^sub>1 \<approx> term\<^sub>1' \<Longrightarrow>
-    literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2' \<Longrightarrow>
-    select premise = {#} \<and> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<Longrightarrow>
-    \<not> (term\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<mu>) \<Longrightarrow>
-    term_subst.is_imgu \<mu> {{ term\<^sub>1, term\<^sub>2 }} \<Longrightarrow>
-    conclusion = add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise') \<cdot> \<mu> \<Longrightarrow>
-    equality_factoring premise conclusion"
+definition Prec_F :: 
+  "'f ground_atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" 
+  where
+  "Prec_F \<equiv> \<lambda>_ _ _. False"
 
-inductive superposition ::
-  "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
-where
-  superpositionI: 
-   "term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
-    term_subst.is_renaming \<rho>\<^sub>2 \<Longrightarrow>
-    vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
-    premise\<^sub>1 = add_mset literal\<^sub>1 premise\<^sub>1' \<Longrightarrow>
-    premise\<^sub>2 = add_mset literal\<^sub>2 premise\<^sub>2' \<Longrightarrow>
-    \<P> \<in> {Pos, Neg} \<Longrightarrow>
-    literal\<^sub>1 = \<P> (Upair context\<^sub>1\<langle>term\<^sub>1\<rangle> term\<^sub>1') \<Longrightarrow>
-    literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2' \<Longrightarrow>
-    \<not> is_Var term\<^sub>1 \<Longrightarrow>
-    term_subst.is_imgu \<mu> {{term\<^sub>1 \<cdot>t \<rho>\<^sub>1, term\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
-    \<not> (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
-    (\<P> = Pos 
-      \<and> select premise\<^sub>1 = {#} 
-      \<and> is_strictly_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)) \<or>
-    (\<P> = Neg 
-      \<and> (select premise\<^sub>1 = {#} \<and> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) 
-          \<or> literal\<^sub>1 \<in># select premise\<^sub>1)) \<Longrightarrow>
-    select premise\<^sub>2 = {#} \<Longrightarrow>
-    is_strictly_maximal\<^sub>l  (literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
-    \<not> (context\<^sub>1\<langle>term\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
-    \<not> (term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
-    conclusion = add_mset (\<P> (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) 
-          (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
-    superposition premise\<^sub>1 premise\<^sub>2 conclusion"
+lemma (in first_order_superposition_calculus_with_grounding) test: 
+  assumes "\<iota>\<^sub>G \<in> inference_groundings select\<^sub>G \<iota>"
+  shows "concl_of \<iota>\<^sub>G \<in> clause_groundings (concl_of \<iota>)"
+proof-
+  obtain premises\<^sub>G conlcusion\<^sub>G where
+    \<iota>\<^sub>G: "\<iota>\<^sub>G = Infer premises\<^sub>G conlcusion\<^sub>G"
+    using Calculus.inference.exhaust by blast
 
-abbreviation equality_factoring_inferences where
-  "equality_factoring_inferences \<equiv> {Infer [P] C | P C. equality_factoring P C}"
+  obtain "premises" conlcusion where
+    \<iota>: "\<iota> = Infer premises conlcusion"
+    using Calculus.inference.exhaust by blast
 
-definition inferences :: "('f, 'v) atom clause inference set" where
-  "inferences \<equiv> 
-    {Infer [P\<^sub>2, P\<^sub>1] C | P\<^sub>2 P\<^sub>1 C. superposition P\<^sub>1 P\<^sub>2 C} \<union>
-    {Infer [P] C | P C. equality_resolution P C} \<union>
-    {Infer [P] C | P C. equality_factoring P C}"
+  obtain \<theta> where 
+    "is_ground_clause (conlcusion \<cdot> \<theta>)"
+    "conlcusion\<^sub>G = to_ground_clause (conlcusion \<cdot> \<theta>)"
+    using assms
+    unfolding inference_groundings_def[OF select\<^sub>G] \<iota> \<iota>\<^sub>G Calculus.inference.case
+    (* TODO: *)
+    apply auto
+    by (smt (z3) Calculus.inference.inject list.simps(4) list.simps(5) list_4_cases)
 
-abbreviation bottom\<^sub>F :: "('f, 'v) atom clause set" ("\<bottom>\<^sub>F") where
-  "bottom\<^sub>F \<equiv> {{#}}"
+  then show ?thesis
+    unfolding \<iota> \<iota>\<^sub>G clause_groundings_def
+    by auto
+qed  
 
-lemma equality_resolution_ground_instance:
+lemma (in first_order_superposition_calculus_with_grounding) test_u: 
+  "\<iota>' \<in> inference_groundings select\<^sub>G \<iota> \<Longrightarrow>  \<iota>' \<in> ground.Red_I (clause_groundings (concl_of \<iota>))"
+proof-
+  assume a2: "\<iota>' \<in> inference_groundings select\<^sub>G \<iota>"
+
+
+  moreover then have "\<iota>' \<in> ground.G_Inf"
+    unfolding inference_groundings_def[OF select\<^sub>G]
+    by blast
+
+  moreover have "concl_of \<iota>' \<in> clause_groundings (concl_of \<iota>)"
+    using a2 test
+    by auto
+
+  ultimately show "\<iota>' \<in> ground.Red_I (clause_groundings (concl_of \<iota>))"
+    using  ground.Red_I_of_Inf_to_N
+    by blast
+qed
+
+sublocale first_order_superposition_calculus \<subseteq>
+  lifting_intersection
+    inferences      
+    "{{#}}"
+    select\<^sub>G\<^sub>s
+    "ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G)"               
+    "\<lambda>_. ground_superposition_calculus.G_entails" 
+    "ground_superposition_calculus.Red_I' (\<prec>\<^sub>t\<^sub>G)" 
+    "\<lambda>_. ground_superposition_calculus.Red_F'(\<prec>\<^sub>t\<^sub>G)" 
+    "\<bottom>\<^sub>F"
+    "\<lambda>_. clause_groundings" 
+    "\<lambda>select\<^sub>G. some (inference_groundings select\<^sub>G)"
+    Prec_F
+proof(unfold_locales; (intro ballI)?)
+  show "select\<^sub>G\<^sub>s \<noteq> {}"
+    using select\<^sub>G_simple
+    unfolding select\<^sub>G\<^sub>s_def 
+    by blast
+next 
+  fix select\<^sub>G
+  assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
+ 
+  then interpret first_order_superposition_calculus_with_grounding _ _ _ select\<^sub>G
+    apply unfold_locales
+    by(simp add: select\<^sub>G\<^sub>s_def)
+
+  show "consequence_relation ground.G_Bot ground.G_entails"
+    using ground.consequence_relation_axioms.
+next
+   fix select\<^sub>G
+   assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
+ 
+  then interpret first_order_superposition_calculus_with_grounding _ _ _ select\<^sub>G
+    apply unfold_locales
+    by(simp add: select\<^sub>G\<^sub>s_def)
+
+  show "tiebreaker_lifting
+          \<bottom>\<^sub>F inferences
+          ground.G_Bot
+          ground.G_entails
+          ground.G_Inf
+          ground.Red_I
+          ground.Red_F
+          clause_groundings (some (inference_groundings select\<^sub>G))
+          Prec_F"
+  proof
+    show "\<bottom>\<^sub>F \<noteq> {}"
+      by simp
+  next
+    fix bottom
+    assume "bottom \<in> \<bottom>\<^sub>F"
+
+    then show "clause_groundings bottom \<noteq> {}"
+      unfolding clause_groundings_def 
+      by simp
+  next
+    fix bottom
+    assume "bottom \<in> \<bottom>\<^sub>F"
+    then show "clause_groundings bottom \<subseteq> ground.G_Bot"
+      unfolding clause_groundings_def
+      by simp
+  next
+    fix clause
+    show "clause_groundings clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"
+      unfolding clause_groundings_def to_ground_clause_def subst_clause_def
+      by simp
+  next
+    fix \<iota>   
+    show "the (some (inference_groundings select\<^sub>G) \<iota>) 
+                \<subseteq> ground.Red_I' (clause_groundings (concl_of \<iota>))"
+      using test_u
+      by auto
+  next
+    show "\<And>g. po_on (Prec_F g) UNIV"
+      unfolding Prec_F_def po_on_def irreflp_on_def
+      by simp
+  next
+    show "\<And>g. wfp_on (Prec_F g) UNIV"
+      unfolding Prec_F_def
+      by simp
+  qed
+qed
+
+abbreviation (in ground_superposition_calculus) equality_resolution_inferences where
+  "equality_resolution_inferences \<equiv>  {Infer [P] C | P C. ground_eq_resolution P C}"
+
+abbreviation (in ground_superposition_calculus) equality_factoring_inferences where
+  "equality_factoring_inferences \<equiv>  {Infer [P] C | P C.  ground_eq_factoring P C}"
+
+(* TODO: fix P2 P1 order *)
+abbreviation (in ground_superposition_calculus) superposition_inferences where
+  "superposition_inferences \<equiv>  {Infer [P2, P1] C | P1 P2 C. ground_superposition P1 P2 C}"
+
+abbreviation (in lifting_intersection) ground_instances ::
+  "'q \<Rightarrow> 'f inference set \<Rightarrow> 'g inference set" where
+  "ground_instances q inferences \<equiv> { ground_inference. 
+    ground_inference \<in> Inf_G_q q \<and> ground_inference \<in>  \<Union> (Option.these (\<G>_I_q q ` inferences))
+  }"
+
+(* TODO: correct? *)
+abbreviation (in lifting_intersection) redundant_inferences where
+  "redundant_inferences q N \<equiv>  ground_instances q (Red_I_\<G>_q q (concl_of ` N))"
+
+
+lemma (in first_order_superposition_calculus_with_grounding) equality_resolution_ground_instance:
   assumes 
-    premise_grounding [simp]: "is_ground_clause (premise \<cdot> \<theta>)" and    
-    conclusion_grounding [simp]: "is_ground_clause (conclusion \<cdot> \<theta>)" and
+    premise_grounding [intro]: "is_ground_clause (premise \<cdot> \<theta>)" and
+    conclusion_grounding [intro]: "is_ground_clause (conclusion \<cdot> \<theta>)" and
     select: "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>" and
     ground_eq_resolution: 
-      "ground.ground_eq_resolution 
-          (to_ground_clause (premise \<cdot> \<theta>))
+      "ground.ground_eq_resolution
+          (to_ground_clause (premise \<cdot> \<theta>)) 
           (to_ground_clause (conclusion \<cdot> \<theta>))"
-  shows "\<exists>conclusion'. equality_resolution premise (conclusion') \<and> 
-            to_ground_clause (premise \<cdot> \<theta>) \<in> clause_groundings premise \<and> 
-            to_ground_clause (conclusion \<cdot> \<theta>) \<in> clause_groundings conclusion'"
+  (* TODO: *)
+  shows " \<exists>conclusion'. equality_resolution premise conclusion'
+            \<and> Infer [to_ground_clause (premise \<cdot> \<theta>)]  (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> inference_groundings select\<^sub>G (Infer [premise] conclusion')
+            \<and> conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
   using ground_eq_resolution
 proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (conclusion \<cdot> \<theta>)" 
       rule: ground.ground_eq_resolution.cases)
@@ -782,13 +1102,9 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
 
   also have "... = add_mset (to_literal literal\<^sub>G) (conclusion \<cdot> \<theta>)"
     unfolding to_clause_add_mset
-    by simp
+    by (simp add: conclusion_grounding)
 
   finally have premise': "premise \<cdot> \<theta> = add_mset (to_literal literal\<^sub>G) (conclusion \<cdot> \<theta>)".
-
-  have select\<^sub>G: "select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>)) = to_ground_clause ((select premise) \<cdot> \<theta>)"
-    using select
-    by (metis to_clause_inverse)
 
   let ?select\<^sub>G_empty = "select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>)) = {#}"
   let ?select\<^sub>G_not_empty = "select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>)) \<noteq> {#}"
@@ -806,7 +1122,7 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
       "max_literal \<cdot>l \<theta> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)"
   if ?select\<^sub>G_empty
     using ground_eq_resolutionI(3) max_literal unique_maximal_in_ground_clause
-    unfolding ground_eq_resolutionI(2) is_maximal\<^sub>G\<^sub>l_iff_is_maximal\<^sub>l
+    unfolding ground_eq_resolutionI(2) is_maximal_lit_iff_is_maximal\<^sub>l
     by (metis empty_not_add_mset multi_member_split premise_grounding that to_ground_clause_inverse)
 
   moreover obtain selected_literal where 
@@ -892,15 +1208,15 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
               ].
 
      then show ?thesis
-       using clause_subst_empty select select\<^sub>G_empty by auto
-
+       using select select\<^sub>G_empty
+       by simp
     next
       case False
       then show ?thesis
         using literal_selected by blast
     qed
   next 
-    show "conclusion' \<cdot> \<sigma> = conclusion' \<cdot> \<sigma> " ..
+    show "conclusion' \<cdot> \<sigma> = conclusion' \<cdot> \<sigma>" ..
   qed
 
   have "term_subst.is_idem \<sigma>"
@@ -914,17 +1230,69 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
   have conclusion'_\<sigma>_\<theta> : "conclusion' \<cdot> \<sigma> \<cdot> \<theta> = conclusion \<cdot> \<theta>"
     using conclusion'_\<theta>  
     unfolding clause_subst_compose[symmetric] \<sigma>_\<theta>.
-    
+ 
   have "to_ground_clause (conclusion \<cdot> \<theta>) \<in> clause_groundings (conclusion' \<cdot> \<sigma>)"
     unfolding clause_groundings_def conclusion'_\<sigma>_\<theta>
     by (smt (verit, ccfv_threshold) conclusion'_\<sigma>_\<theta> conclusion_grounding mem_Collect_eq)
-   
+
+  (* TODO *)
   with equality_resolution show ?thesis
-    unfolding clause_groundings_def
-    using premise_grounding by blast
+    unfolding clause_groundings_def inference_groundings_def[OF select\<^sub>G] ground.G_Inf_def inferences_def
+    using premise_grounding
+    apply auto
+    by (metis conclusion'_\<sigma>_\<theta> conclusion_grounding ground_eq_resolution)
 qed
 
-lemma equality_factoring_ground_instance:
+(* TODO: *)
+lemma (in first_order_superposition_calculus) equality_resolution_ground_instance':
+  obtains select\<^sub>G where "ground_superposition_calculus.equality_resolution_inferences (\<prec>\<^sub>t\<^sub>G) select\<^sub>G 
+          \<subseteq> ground_instances select\<^sub>G equality_resolution_inferences"
+proof-
+  assume assumption: 
+    "\<And>select\<^sub>G. ground_superposition_calculus.equality_resolution_inferences (\<prec>\<^sub>t\<^sub>G) select\<^sub>G 
+         \<subseteq> ground_instances select\<^sub>G equality_resolution_inferences \<Longrightarrow> thesis"
+  
+  obtain select\<^sub>G where "is_ground_select select\<^sub>G"
+    using select\<^sub>G_simple by blast
+
+  then interpret first_order_superposition_calculus_with_grounding _ _ _ select\<^sub>G
+    apply unfold_locales.
+
+  have "\<And>premise\<^sub>G conclusion\<^sub>G. ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G \<Longrightarrow>
+           \<exists>premise conclusion. equality_resolution premise conclusion \<and>
+               Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings select\<^sub>G (Infer [premise] conclusion)"
+  proof-
+    fix premise\<^sub>G conclusion\<^sub>G
+    assume a: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G"
+
+    obtain premise \<theta> conclusion where y:
+      "premise\<^sub>G = to_ground_clause ((premise :: ('f, 'v) atom clause) \<cdot> \<theta>)" 
+      "is_ground_clause (premise \<cdot> \<theta>)"
+      "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<theta>)"
+      "is_ground_clause (conclusion \<cdot> \<theta>)"
+      "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = select premise \<cdot> \<theta>"
+      using select\<^sub>G
+      unfolding is_ground_select_def
+      by (metis select_subst1 subst_ground_clause to_ground_clause_inverse)
+      
+    show "\<exists>premise conclusion. equality_resolution premise conclusion 
+            \<and> Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings select\<^sub>G (Infer [premise] conclusion)"
+      using equality_resolution_ground_instance[OF y(2) y(4) y(5) a[unfolded y(1, 3)]] 
+      using y(1) y(3) by fastforce
+  qed
+
+  (* TODO *)
+  then have "ground.equality_resolution_inferences \<subseteq> ground_instances select\<^sub>G equality_resolution_inferences"
+    apply auto
+    using inference_groundings_def select\<^sub>G apply blast
+    by (smt (verit, del_insts) image_iff in_these_eq mem_Collect_eq)
+
+  then show ?thesis
+    using assumption
+    by blast
+qed
+
+lemma (in first_order_superposition_calculus_with_grounding) equality_factoring_ground_instance:
   assumes 
     premise_grounding [intro]: "is_ground_clause (premise \<cdot> \<theta>)" and
     conclusion_grounding [intro]: "is_ground_clause (conclusion \<cdot> \<theta>)" and
@@ -933,9 +1301,9 @@ lemma equality_factoring_ground_instance:
       "ground.ground_eq_factoring
           (to_ground_clause (premise \<cdot> \<theta>)) 
           (to_ground_clause (conclusion \<cdot> \<theta>))"
-  shows "\<exists>conclusion'. equality_factoring premise (conclusion') \<and> 
-            to_ground_clause (premise \<cdot> \<theta>) \<in> clause_groundings premise \<and> 
-            to_ground_clause (conclusion \<cdot> \<theta>) \<in> clause_groundings conclusion'"
+    shows "\<exists>conclusion'. equality_factoring premise (conclusion') 
+            \<and> Infer [to_ground_clause (premise \<cdot> \<theta>)]  (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> inference_groundings select\<^sub>G (Infer [premise] conclusion')
+            \<and> conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
    using ground_eq_factoring
 proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (conclusion \<cdot> \<theta>)" 
       rule: ground.ground_eq_factoring.cases)
@@ -959,7 +1327,7 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
     using is_maximal\<^sub>l_ground_subst_stability[OF premise_not_empty premise_grounding]
     by blast
 
-  note max_ground_literal = is_maximal\<^sub>G\<^sub>l_iff_is_maximal\<^sub>l[
+  note max_ground_literal = is_maximal_lit_iff_is_maximal\<^sub>l[
       THEN iffD1,
       OF ground_eq_factoringI(5), 
       unfolded ground_eq_factoringI(2) to_ground_clause_inverse[OF premise_grounding]
@@ -1132,13 +1500,67 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
   then have "to_ground_clause (conclusion \<cdot> \<theta>) \<in> clause_groundings (?conclusion' \<cdot> \<sigma>)"
     unfolding clause_groundings_def 
     using \<sigma>(2) conclusion_\<theta> conclusion_grounding by auto
-   
+
+  (* TODO *)
   with equality_factoring show ?thesis
-    unfolding clause_groundings_def
-    using premise_grounding by blast
+    unfolding clause_groundings_def inference_groundings_def[OF select\<^sub>G] ground.G_Inf_def inferences_def
+    using premise_grounding
+    apply auto
+    by (metis (no_types, lifting) \<sigma>_\<theta> clause_subst_compose conclusion_\<theta> conclusion_grounding ground_eq_factoring)
 qed
 
-definition non_redundant_superposition where
+(* TODO: *)
+lemma (in first_order_superposition_calculus) equality_factoring_ground_instance':
+  obtains select\<^sub>G where "ground_superposition_calculus.equality_factoring_inferences (\<prec>\<^sub>t\<^sub>G) select\<^sub>G 
+          \<subseteq> ground_instances select\<^sub>G equality_factoring_inferences"
+      "is_ground_select select\<^sub>G"
+proof-
+  assume assumption: 
+    "\<And>select\<^sub>G. ground_superposition_calculus.equality_factoring_inferences (\<prec>\<^sub>t\<^sub>G) select\<^sub>G 
+         \<subseteq> ground_instances select\<^sub>G equality_factoring_inferences \<Longrightarrow>  is_ground_select select\<^sub>G \<Longrightarrow> thesis"
+  
+  obtain select\<^sub>G where "is_ground_select select\<^sub>G"
+    using select\<^sub>G_simple by blast
+
+  then interpret first_order_superposition_calculus_with_grounding _ _ _ select\<^sub>G
+    apply unfold_locales.
+
+  have "\<And>premise\<^sub>G conclusion\<^sub>G. ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G \<Longrightarrow>
+           \<exists>premise conclusion. equality_factoring premise conclusion \<and>
+               Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings select\<^sub>G (Infer [premise] conclusion)"
+  proof-
+    fix premise\<^sub>G conclusion\<^sub>G
+    assume a: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G"
+
+    obtain premise \<theta> conclusion where y:
+      "premise\<^sub>G = to_ground_clause ((premise :: ('f, 'v) atom clause) \<cdot> \<theta>)" 
+      "is_ground_clause (premise \<cdot> \<theta>)"
+      "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<theta>)"
+      "is_ground_clause (conclusion \<cdot> \<theta>)"
+      "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = select premise \<cdot> \<theta>"
+      using select\<^sub>G
+      unfolding is_ground_select_def
+      by (metis select_subst1 subst_ground_clause to_ground_clause_inverse)
+      
+    show "\<exists>premise conclusion. equality_factoring premise conclusion 
+            \<and> Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings select\<^sub>G (Infer [premise] conclusion)"
+      using equality_factoring_ground_instance[OF y(2) y(4) y(5) a[unfolded y(1, 3)]] 
+      using y(1) y(3) by fastforce
+  qed
+
+  (* TODO *)
+  then have "ground.equality_factoring_inferences \<subseteq> ground_instances select\<^sub>G equality_factoring_inferences"
+    apply auto
+    using inference_groundings_def select\<^sub>G apply blast
+    by (smt (verit, del_insts) image_iff in_these_eq mem_Collect_eq)
+
+  then show ?thesis
+    using assumption select\<^sub>G
+    by blast
+qed
+
+
+definition (in first_order_superposition_calculus_with_grounding) non_redundant_superposition where
   "non_redundant_superposition premise\<^sub>1 \<rho>\<^sub>1 \<theta> \<longleftrightarrow> 
     (\<forall>term\<^sub>G\<^sub>1 context\<^sub>G term\<^sub>G\<^sub>2 \<P>\<^sub>G literal\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>1 term\<^sub>1_with_context.  
         \<P>\<^sub>G \<in> {Pos, Neg} \<longrightarrow> 
@@ -1157,7 +1579,7 @@ definition non_redundant_superposition where
         \<and> is_Fun term\<^sub>1)
     )"
 
-lemma superposition_ground_instance:
+lemma (in first_order_superposition_calculus_with_grounding) superposition_ground_instance:
   assumes 
     renaming: 
       "term_subst.is_renaming \<rho>\<^sub>1" 
@@ -1175,10 +1597,10 @@ lemma superposition_ground_instance:
           (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>))
           (to_ground_clause (conclusion \<cdot> \<theta>))" and
     not_redundant: "non_redundant_superposition premise\<^sub>1 \<rho>\<^sub>1 \<theta>"
-  shows "\<exists>conclusion'. superposition premise\<^sub>1 premise\<^sub>2 (conclusion') \<and>
-            to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>) \<in> clause_groundings premise\<^sub>1 \<and>
-            to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>) \<in> clause_groundings premise\<^sub>2 \<and>
-            to_ground_clause (conclusion \<cdot> \<theta>) \<in> clause_groundings conclusion'" 
+ (* TODO: (Premise order!)  *)
+  shows "\<exists>conclusion'. superposition premise\<^sub>1 premise\<^sub>2 (conclusion')
+            \<and> Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> inference_groundings select\<^sub>G (Infer [premise\<^sub>1, premise\<^sub>2] conclusion')
+            \<and> conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
    using ground_superposition
 proof(cases 
       "to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)" 
@@ -1225,7 +1647,7 @@ proof(cases
   have neg_literal\<^sub>G\<^sub>1_is_maximal\<^sub>l: 
     "\<P>\<^sub>G = Neg \<Longrightarrow> ?select\<^sub>G_empty \<Longrightarrow> is_maximal\<^sub>l (to_literal literal\<^sub>G\<^sub>1) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<odot> \<theta>)"
     using ground_superpositionI(9)
-    unfolding is_maximal\<^sub>G\<^sub>l_iff_is_maximal\<^sub>l
+    unfolding is_maximal_lit_iff_is_maximal\<^sub>l
     by(simp add: premise\<^sub>1_grounding)
 
   obtain pos_literal\<^sub>1 where
@@ -1314,14 +1736,12 @@ proof(cases
     unfolding to_clause_add_mset literal\<^sub>2_\<theta>[symmetric]
     by (simp add: subst_clause_add_mset)
 
-  obtain \<P> :: "('f, 'v) atom \<Rightarrow> ('f, 'v) atom literal" where 
-    \<P>: "\<P> = (if \<P>\<^sub>G = Pos then Pos else Neg)"
-    by simp
+  let ?\<P> = "if \<P>\<^sub>G = Pos then Pos else Neg"
 
   from literal\<^sub>1_\<theta> have literal\<^sub>1_\<theta>': 
-    "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<theta> = \<P> (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>1\<rangle> (to_term term\<^sub>G\<^sub>2))"
+    "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<theta> = ?\<P> (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>1\<rangle> (to_term term\<^sub>G\<^sub>2))"
     using ground_superpositionI(4)
-    unfolding ground_superpositionI(5) \<P>
+    unfolding ground_superpositionI(5)
     by (cases "\<P>\<^sub>G = Pos") 
        (simp_all add: 
           to_atom_to_literal[symmetric] 
@@ -1330,11 +1750,10 @@ proof(cases
         )
 
   then obtain term\<^sub>1_with_context term\<^sub>1' where 
-    literal\<^sub>1: "literal\<^sub>1 = \<P> (Upair term\<^sub>1_with_context term\<^sub>1')" and
+    literal\<^sub>1: "literal\<^sub>1 = ?\<P> (Upair term\<^sub>1_with_context term\<^sub>1')" and
     term\<^sub>1'_\<theta>: "term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>2" and
     term\<^sub>1_with_context_\<theta>: "term\<^sub>1_with_context \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>1\<rangle>"
     using ground_superpositionI(4) 
-    unfolding \<P>
     by(cases "\<P>\<^sub>G = Pos") (smt (verit, ccfv_SIG) obtain_from_literal_subst)+
 
   obtain context\<^sub>1 term\<^sub>1 where
@@ -1367,7 +1786,7 @@ proof(cases
     using imgu_exists
     by blast
   
-  let ?conclusion' = "add_mset (\<P> (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) 
+  let ?conclusion' = "add_mset (?\<P> (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) 
           (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<sigma>"
 
   have superposition: "superposition premise\<^sub>1 premise\<^sub>2 ?conclusion'"
@@ -1387,11 +1806,10 @@ proof(cases
     show "premise\<^sub>2 = add_mset literal\<^sub>2 premise\<^sub>2'"
       using premise\<^sub>2.
   next
-    show  "\<P> \<in> {Pos, Neg}"
-      unfolding \<P>
+    show  "?\<P> \<in> {Pos, Neg}"
       by simp
   next
-    show "literal\<^sub>1 = \<P> (Upair context\<^sub>1\<langle>term\<^sub>1\<rangle> term\<^sub>1')"
+    show "literal\<^sub>1 = ?\<P> (Upair context\<^sub>1\<langle>term\<^sub>1\<rangle> term\<^sub>1')"
       unfolding literal\<^sub>1 context\<^sub>1_\<theta> term\<^sub>1_with_context..
   next
     show "literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'"
@@ -1416,22 +1834,21 @@ proof(cases
       using less\<^sub>c_less_eq\<^sub>c_ground_subst_stability[OF premise_groundings]
       by blast
   next
-    show "\<P> = Pos 
+    show "?\<P> = Pos 
             \<and> select premise\<^sub>1 = {#} 
             \<and> is_strictly_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<sigma>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<sigma>) 
-       \<or> \<P> = Neg 
+       \<or> ?\<P> = Neg 
             \<and> (select premise\<^sub>1 = {#} \<and> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<sigma>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<sigma>) 
                \<or> literal\<^sub>1 \<in># select premise\<^sub>1)"
-    proof(cases "\<P> = Pos")
+    proof(cases "?\<P> = Pos")
       case True
       moreover then have select_empty: "select premise\<^sub>1 = {#}"
         using clause_subst_empty select(1) ground_superpositionI(9) 
-        unfolding \<P>
         by(auto simp: subst_clause_def)
 
       moreover have "is_strictly_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<sigma> \<cdot>l \<tau>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<sigma> \<cdot> \<tau>)"
         using True pos_literal\<^sub>G\<^sub>1_is_strictly_maximal\<^sub>l
-        unfolding \<P> literal\<^sub>1_\<theta>[symmetric] \<sigma>(2)
+        unfolding literal\<^sub>1_\<theta>[symmetric] \<sigma>(2)
         by force
 
       moreover then have "is_strictly_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<sigma>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<sigma>)"
@@ -1445,11 +1862,10 @@ proof(cases
         by blast
         
       ultimately show ?thesis
-        by simp
+        by auto
     next
       case \<P>_not_Pos: False
       then have \<P>\<^sub>G_Neg: "\<P>\<^sub>G = Neg"
-        unfolding \<P> 
         using ground_superpositionI(4)
         by fastforce
 
@@ -1475,10 +1891,9 @@ proof(cases
             literal_in_clause_subst
             literal\<^sub>1_in_premise\<^sub>1
           by blast
-          
 
         ultimately show ?thesis
-          using \<P>\<^sub>G_Neg unfolding \<P>
+          using \<P>\<^sub>G_Neg
           by simp
       next
         case select\<^sub>G_not_empty: False
@@ -1486,7 +1901,6 @@ proof(cases
           using literal\<^sub>1_selected[OF \<P>\<^sub>G_Neg select\<^sub>G_not_empty].
   
         with select\<^sub>G_not_empty \<P>\<^sub>G_Neg show ?thesis 
-          unfolding \<P>
           by simp
       qed
     qed
@@ -1546,7 +1960,6 @@ proof(cases
         term\<^sub>2_\<theta>[unfolded \<sigma>(2) term_subst_compose]             
         term\<^sub>2'_\<theta>[unfolded \<sigma>(2) term_subst_compose]
         less\<^sub>t\<^sub>G_less\<^sub>t.
-     
 
     then show "\<not> term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<sigma> \<preceq>\<^sub>t term\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<sigma>"
       using less\<^sub>t_less_eq\<^sub>t_ground_subst_stability[OF term_groundings]
@@ -1572,10 +1985,10 @@ proof(cases
     by (smt (verit, del_insts) clause_subst_compose mem_Collect_eq premise\<^sub>2_grounding)
 
   moreover have "conclusion \<cdot> \<theta> = 
-    add_mset (\<P> (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> (to_term term\<^sub>G\<^sub>2))) 
+    add_mset (?\<P> (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> (to_term term\<^sub>G\<^sub>2))) 
       (to_clause premise\<^sub>G\<^sub>1' + to_clause premise\<^sub>G\<^sub>2')"
     using ground_superpositionI(4, 12) to_ground_clause_inverse[OF conclusion_grounding] 
-    unfolding \<P> ground_term_with_context(3) to_term_to_atom
+    unfolding ground_term_with_context(3) to_term_to_atom
     by(cases "\<P>\<^sub>G = Pos")(simp_all add: to_atom_to_literal to_clause_add_mset)
 
   then have conclusion_\<theta>: "conclusion \<cdot> \<theta> =  ?conclusion' \<cdot> \<theta>"
@@ -1585,7 +1998,6 @@ proof(cases
       premise\<^sub>2'_\<theta>[symmetric] 
       term\<^sub>1'_\<theta>[symmetric]
       term\<^sub>2'_\<theta>[symmetric] 
-      \<P> 
       subst_clause_plus[symmetric] 
       subst_apply_term_ctxt_apply_distrib[symmetric]
       term_subst_atom_subst
@@ -1595,119 +2007,305 @@ proof(cases
     
   have "to_ground_clause (conclusion \<cdot> \<theta>) \<in> clause_groundings ?conclusion'"
     unfolding clause_groundings_def
-    by (metis (mono_tags, lifting) conclusion_\<theta> conclusion_grounding mem_Collect_eq)
-   
-  ultimately show ?thesis 
+    by (smt (verit, best) conclusion_\<theta> conclusion_grounding mem_Collect_eq)
+
+  (* TODO: *)
+  ultimately show ?thesis
+    unfolding clause_groundings_def inference_groundings_def[OF select\<^sub>G] ground.G_Inf_def inferences_def
     using superposition
+    apply simp
+    by (metis conclusion_\<theta> conclusion_grounding ground_superposition premise\<^sub>1_grounding premise\<^sub>2_grounding renaming(1) renaming(3))
+qed  
+
+(* TODO: Probably it is easier to combine these with the above ones or have a generic way for 
+    converting the formats
+*)
+lemma (in first_order_superposition_calculus_with_grounding) equality_resolution_ground_instance': 
+  assumes 
+    "\<iota>\<^sub>G \<in> ground.equality_resolution_inferences"
+    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))"
+    (* TODO: Create definition or abbreviation for this *)
+    "\<forall>premise\<^sub>G \<in> \<Union> (clause_groundings ` premises). \<exists>\<theta> premise. 
+          premise \<cdot> \<theta> = to_clause premise\<^sub>G 
+        \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>
+        \<and> premise \<in> premises"
+  shows "\<exists>\<iota> \<in> Inf_from premises. \<iota>\<^sub>G \<in> inference_groundings select\<^sub>G \<iota>"
+proof-
+  obtain premise\<^sub>G conclusion\<^sub>G where 
+    \<iota>\<^sub>G : "\<iota>\<^sub>G = Infer [premise\<^sub>G] conclusion\<^sub>G" and
+    ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G"
+    using assms(1)
+    by blast
+
+  have premise\<^sub>G_in_groundings: "premise\<^sub>G \<in>  \<Union> (clause_groundings ` premises)"
+    using assms(2)
+    unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
+    by simp
+  
+  obtain premise conclusion \<theta> where
+    "to_clause premise\<^sub>G = premise \<cdot> \<theta>" and
+    "to_clause conclusion\<^sub>G = conclusion \<cdot> \<theta>" and
+    select: "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = select premise \<cdot> \<theta>" and
+    premise_in_premises: "premise \<in> premises"
+    using assms(2, 3) premise\<^sub>G_in_groundings
+    unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
+    by (metis (no_types, opaque_lifting) ground_clause_is_ground subst_ground_clause)
+    
+  then have 
+    premise_grounding: "is_ground_clause (premise \<cdot> \<theta>)" and 
+    premise\<^sub>G: "premise\<^sub>G = to_ground_clause (premise \<cdot> \<theta>)" and 
+    conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<theta>)" and
+    conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<theta>)"
+    by (smt ground_clause_is_ground to_clause_inverse)+
+   
+  obtain conclusion' where 
+    equality_resolution: "equality_resolution premise conclusion'" and
+    inference_groundings: 
+      "Infer [to_ground_clause (premise \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> 
+        inference_groundings select\<^sub>G (Infer [premise] conclusion')" and  
+    conclusion'_conclusion: "conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
+    using 
+      equality_resolution_ground_instance[OF 
+        premise_grounding 
+        conclusion_grounding 
+        select 
+        ground_eq_resolution[unfolded premise\<^sub>G conclusion\<^sub>G]
+      ]
+    by blast
+
+  let ?\<iota> = "Infer [premise] conclusion'"
+
+  have "?\<iota> \<in> Inf_from premises"
+    using premise_in_premises  equality_resolution
+    unfolding Inf_from_def inferences_def inference_system.Inf_from_def
+    by simp
+
+  moreover have "\<iota>\<^sub>G \<in> inference_groundings select\<^sub>G ?\<iota>"
+    unfolding \<iota>\<^sub>G premise\<^sub>G conclusion\<^sub>G conclusion'_conclusion[symmetric]
+    by(rule inference_groundings)
+
+  ultimately show ?thesis
+    by blast
+qed 
+
+(* 
+    "\<iota>\<^sub>G \<in> ground.equality_resolution_inferences"
+    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))"
+    "\<forall>premise\<^sub>G \<in> \<Union> (clause_groundings ` premises). \<exists>\<theta> premise. 
+          premise \<cdot> \<theta> = to_clause premise\<^sub>G 
+        \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>
+        \<and> premise \<in> premises"
+*)
+
+lemma (in first_order_superposition_calculus_with_grounding) equality_factoring_ground_instance': 
+  assumes 
+    "\<iota>\<^sub>G \<in> ground.equality_factoring_inferences"
+    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))" 
+    "\<forall>premise\<^sub>G \<in> \<Union> (clause_groundings ` premises). \<exists>\<theta> premise. 
+          premise \<cdot> \<theta> = to_clause premise\<^sub>G 
+        \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>
+        \<and> premise \<in> premises"
+  shows  "\<exists>\<iota> \<in> Inf_from premises. \<iota>\<^sub>G \<in> inference_groundings select\<^sub>G \<iota>"
+proof-
+  obtain premise\<^sub>G conclusion\<^sub>G where 
+    \<iota>\<^sub>G : "\<iota>\<^sub>G = Infer [premise\<^sub>G] conclusion\<^sub>G" and
+    ground_eq_factoring: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G"
+    using assms(1)
+    by blast
+
+  have premise\<^sub>G_in_groundings: "premise\<^sub>G \<in>  \<Union> (clause_groundings ` premises)"
+    using assms(2)
+    unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
+    by simp
+  
+  obtain premise conclusion \<theta> where
+    "to_clause premise\<^sub>G = premise \<cdot> \<theta>" and
+    "to_clause conclusion\<^sub>G = conclusion \<cdot> \<theta>" and
+    select: "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = select premise \<cdot> \<theta>" and
+    premise_in_premises: "premise \<in> premises"
+    using assms(2, 3) premise\<^sub>G_in_groundings
+    unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
+    by (metis (no_types, opaque_lifting) ground_clause_is_ground subst_ground_clause)
+    
+  then have 
+    premise_grounding: "is_ground_clause (premise \<cdot> \<theta>)" and 
+    premise\<^sub>G: "premise\<^sub>G = to_ground_clause (premise \<cdot> \<theta>)" and 
+    conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<theta>)" and
+    conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<theta>)"
+    by (smt ground_clause_is_ground to_clause_inverse)+
+   
+  obtain conclusion' where 
+    equality_factoring: "equality_factoring premise conclusion'" and
+    inference_groundings: 
+      "Infer [to_ground_clause (premise \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> 
+        inference_groundings select\<^sub>G (Infer [premise] conclusion')" and  
+    conclusion'_conclusion: "conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
+    using 
+      equality_factoring_ground_instance[OF 
+        premise_grounding 
+        conclusion_grounding 
+        select 
+        ground_eq_factoring[unfolded premise\<^sub>G conclusion\<^sub>G]
+      ]
+    by blast
+
+  let ?\<iota> = "Infer [premise] conclusion'"
+
+  have "?\<iota> \<in> Inf_from premises"
+    using premise_in_premises  equality_factoring
+    unfolding Inf_from_def inferences_def inference_system.Inf_from_def
+    by simp
+
+  moreover have "\<iota>\<^sub>G \<in> inference_groundings select\<^sub>G ?\<iota>"
+    unfolding \<iota>\<^sub>G premise\<^sub>G conclusion\<^sub>G conclusion'_conclusion[symmetric]
+    by(rule inference_groundings)
+
+  ultimately show ?thesis
     by blast
 qed
 
-subsubsection \<open>Alternative Specification of the Superposition Rule\<close>
+lemma (in first_order_superposition_calculus_with_grounding) xx_superposition: 
+  assumes 
+    "\<iota>\<^sub>G \<in> ground.superposition_inferences"
+    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))" 
+    "\<iota>\<^sub>G \<notin> ground.Red_I' (\<Union> (clause_groundings ` premises))"
+    "\<forall>premise\<^sub>G \<in> \<Union> (clause_groundings ` premises). \<exists>\<theta> premise. 
+        premise \<cdot> \<theta> = to_clause premise\<^sub>G 
+      \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>
+      \<and> premise \<in> premises"
+   shows  "\<exists>\<iota> \<in> Inf_from premises. \<iota>\<^sub>G \<in> inference_groundings select\<^sub>G \<iota>"
+proof-
+  obtain premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 conclusion\<^sub>G where 
+    \<iota>\<^sub>G : "\<iota>\<^sub>G = Infer [premise\<^sub>G\<^sub>2, premise\<^sub>G\<^sub>1] conclusion\<^sub>G" and
+    ground_superposition: "ground.ground_superposition premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 conclusion\<^sub>G"
+    using assms(1)
+    by blast
 
-inductive pos_superposition ::
-  "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
-where
-  pos_superpositionI: "
-    term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
-    term_subst.is_renaming \<rho>\<^sub>2 \<Longrightarrow>
-    vars_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (P\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
-    P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
-    P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
-    L\<^sub>1 = (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1') \<Longrightarrow>
-    L\<^sub>2 = (t\<^sub>2 \<approx> t\<^sub>2') \<Longrightarrow>
-    \<not> is_Var u\<^sub>1 \<Longrightarrow>
-    term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
-    \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
-    select P\<^sub>1 = {#} \<Longrightarrow>
-    is_strictly_maximal\<^sub>l  (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<Longrightarrow>
-    select P\<^sub>2 = {#} \<Longrightarrow>
-    is_strictly_maximal\<^sub>l  (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
-    \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
-    \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
-    C = add_mset ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> \<approx> (s\<^sub>1' \<cdot>t \<rho>\<^sub>1)) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
-    pos_superposition P\<^sub>1 P\<^sub>2 C"
+  have 
+    premise\<^sub>G\<^sub>1_in_groundings: "premise\<^sub>G\<^sub>1 \<in> \<Union> (clause_groundings ` premises)" and  
+    premise\<^sub>G\<^sub>2_in_groundings: "premise\<^sub>G\<^sub>2 \<in> \<Union> (clause_groundings ` premises)"
+    using assms(2)
+    unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
+    by simp_all
 
-lemma superposition_if_pos_superposition:
-  assumes "pos_superposition P\<^sub>1 P\<^sub>2 C"
-  shows "superposition P\<^sub>1 P\<^sub>2 C"
-  using assms
-proof (cases rule: pos_superposition.cases)
-  case pos_superpositionI
+  obtain premise\<^sub>1 \<rho>\<^sub>1 premise\<^sub>2 \<rho>\<^sub>2 conclusion \<theta> where
+    "to_clause premise\<^sub>G\<^sub>1 = premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>" and
+    "to_clause premise\<^sub>G\<^sub>2 = premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>" and
+    "to_clause conclusion\<^sub>G = conclusion \<cdot> \<theta>" and
+    select: 
+      "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>))) = select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>"
+      "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>))) = select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>" and
+    premise\<^sub>1_in_premises: "premise\<^sub>1 \<in> premises" and
+    premise\<^sub>2_in_premises: "premise\<^sub>2 \<in> premises"
+    using assms(2, 4) premise\<^sub>G\<^sub>1_in_groundings premise\<^sub>G\<^sub>2_in_groundings
+    unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
+    by (smt (z3) ground_clause_is_ground subst_ground_clause)
+
+  then have "non_redundant_superposition premise\<^sub>1 \<rho>\<^sub>1 \<theta>"
+    using assms(3)
+    unfolding non_redundant_superposition_def ground.Red_I_def
+    sorry
+    
+  thm superposition_ground_instance
+
+  show ?thesis
+    sorry
+qed
+
+lemma (in first_order_superposition_calculus_with_grounding) ground_instances: 
+  assumes 
+    "\<iota> \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))" 
+    "\<iota> \<notin> ground.Red_I (\<Union> (clause_groundings ` premises))"
+    "\<forall>premise\<^sub>G \<in> \<Union> (clause_groundings ` premises). \<exists>\<theta> premise. 
+        premise \<cdot> \<theta> = to_clause premise\<^sub>G 
+      \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>
+      \<and> premise \<in> premises"
+  shows "\<exists>\<iota>'\<in>Inf_from premises. \<iota> \<in> inference_groundings select\<^sub>G \<iota>'"
+proof-
+  have "\<iota> \<in> ground.superposition_inferences \<or>
+        \<iota> \<in> ground.equality_resolution_inferences \<or>
+        \<iota> \<in> ground.equality_factoring_inferences"
+    using assms(1)
+    unfolding 
+      ground.Inf_from_q_def 
+      ground.Inf_from_def 
+      ground.G_Inf_def 
+      inference_system.Inf_from_def
+    by auto
+
   then show ?thesis
-    using superpositionI
-    by fast
+    using 
+      assms
+      equality_resolution_ground_instance'
+      equality_factoring_ground_instance'
+      xx_superposition
+    by presburger
 qed
 
-inductive neg_superposition ::
-  "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
-where
-  neg_superpositionI: "
-    term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
-    term_subst.is_renaming \<rho>\<^sub>2 \<Longrightarrow>
-    vars_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (P\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
-    P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
-    P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
-    L\<^sub>1 = Neg (Upair s\<^sub>1\<langle>u\<^sub>1\<rangle> s\<^sub>1') \<Longrightarrow>
-    L\<^sub>2 = (t\<^sub>2 \<approx> t\<^sub>2') \<Longrightarrow>
-    \<not> is_Var u\<^sub>1 \<Longrightarrow>
-    term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
-    \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
-    select P\<^sub>1 = {#} \<and> is_maximal\<^sub>l (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or> L\<^sub>1 \<in># select P\<^sub>1 \<Longrightarrow>
-    select P\<^sub>2 = {#} \<Longrightarrow>
-    is_strictly_maximal\<^sub>l  (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
-    \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
-    \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
-    C = add_mset (Neg (Upair (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle>  (s\<^sub>1' \<cdot>t \<rho>\<^sub>1))) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
-    neg_superposition P\<^sub>1 P\<^sub>2 C"
+lemma for_all_elements_exists_f_implies_f_exists_for_all_elements: 
+  "\<forall>x \<in> X. \<exists>f. P (f x) x \<Longrightarrow> \<exists>f. \<forall>x\<in> X. P (f x) x"
+  by meson
 
-lemma superposition_if_neg_superposition:
-  assumes "neg_superposition P\<^sub>1 P\<^sub>2 C"
-  shows "superposition P\<^sub>1 P\<^sub>2 C"
-  using assms
-proof (cases P\<^sub>1 P\<^sub>2 C rule: neg_superposition.cases)
-  case (neg_superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
-  then show ?thesis
-    using superpositionI
-    by fast
+lemma (in first_order_superposition_calculus) ground_instances:
+  obtains select\<^sub>G where 
+    "ground_Inf_overapproximated select\<^sub>G premises"
+    "is_ground_select select\<^sub>G"
+proof-
+  assume assumption: 
+    "\<And>select\<^sub>G. ground_Inf_overapproximated select\<^sub>G premises \<Longrightarrow> is_ground_select select\<^sub>G \<Longrightarrow> thesis"
+
+  let ?premise_groundings = "\<Union>(clause_groundings ` premises)"
+
+  have select\<^sub>G_exists_for_premises: "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G premise \<theta>. 
+          premise \<cdot> \<theta> = to_clause premise\<^sub>G 
+        \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<theta>)
+        \<and> premise \<in> premises"
+    unfolding clause_groundings_def   
+    by fastforce
+
+  obtain select\<^sub>G_on_premise_groundings where 
+    select\<^sub>G_on_premise_groundings: "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>\<theta> premise. 
+        premise \<cdot> \<theta> = to_clause premise\<^sub>G 
+      \<and> select\<^sub>G_on_premise_groundings (to_ground_clause (premise \<cdot> \<theta>)) = 
+          to_ground_clause ((select premise) \<cdot> \<theta>)
+      \<and> premise \<in> premises"
+    using 
+      for_all_elements_exists_f_implies_f_exists_for_all_elements[OF select\<^sub>G_exists_for_premises]
+    by (metis (mono_tags, opaque_lifting) to_clause_inverse)
+ 
+  obtain select\<^sub>G where
+    select\<^sub>G_def: "\<And>clause\<^sub>G. select\<^sub>G clause\<^sub>G = (
+        if clause\<^sub>G  \<in> ?premise_groundings 
+        then select\<^sub>G_on_premise_groundings clause\<^sub>G 
+        else select\<^sub>G_simple clause\<^sub>G
+    )"
+    by simp 
+
+  have "is_ground_select select\<^sub>G" 
+    unfolding is_ground_select_def select\<^sub>G_def select\<^sub>G_simple_def
+    using select\<^sub>G_on_premise_groundings
+    by (metis ground_clause_is_ground subst_clause_Var_ident to_clause_inverse)
+
+  then interpret first_order_superposition_calculus_with_grounding _ _ _ select\<^sub>G
+    apply unfold_locales.
+
+  have "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>\<theta> premise. 
+        premise \<cdot> \<theta> = to_clause premise\<^sub>G 
+      \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>
+      \<and> premise \<in> premises"
+    using select\<^sub>G_def select\<^sub>G_on_premise_groundings
+    by (metis ground_clause_is_ground select_subst1 to_clause_inverse to_ground_clause_inverse)
+
+  then have "ground_Inf_overapproximated select\<^sub>G premises"
+    using ground_instances by auto
+
+  with assumption select\<^sub>G show thesis
+    by blast
 qed
-
-lemma superposition_iff_pos_or_neg:
-  "superposition P\<^sub>1 P\<^sub>2 C \<longleftrightarrow> pos_superposition P\<^sub>1 P\<^sub>2 C \<or> neg_superposition P\<^sub>1 P\<^sub>2 C"
-proof (rule iffI)
-  assume "superposition P\<^sub>1 P\<^sub>2 C"
-  thus "pos_superposition P\<^sub>1 P\<^sub>2 C \<or> neg_superposition P\<^sub>1 P\<^sub>2 C"
-  proof (cases P\<^sub>1 P\<^sub>2 C rule: superposition.cases)
-    case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
-    then show ?thesis      
-      using pos_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>]
-      using neg_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>]
-      by blast
-  qed
-next
-  assume "pos_superposition P\<^sub>1 P\<^sub>2 C \<or> neg_superposition P\<^sub>1 P\<^sub>2 C"
-  thus "superposition P\<^sub>1 P\<^sub>2 C"
-    using superposition_if_neg_superposition superposition_if_pos_superposition by metis
-qed
-
-
-abbreviation true_clause :: 
-  "'f ground_atom interp \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" (infix "\<TTurnstile>\<^sub>C" 50)  where
-  "I \<TTurnstile>\<^sub>C C \<equiv> \<forall>\<theta>. term_subst.is_ground_subst \<theta> \<longrightarrow> I \<TTurnstile> to_ground_clause (C \<cdot> \<theta>)"
-
-abbreviation true_clauses :: 
-  "'f ground_atom interp \<Rightarrow> ('f, 'v) atom clause set \<Rightarrow> bool" (infix "\<TTurnstile>\<^sub>C\<^sub>s" 50) where
-  "I \<TTurnstile>\<^sub>C\<^sub>s \<C> \<equiv> \<forall>C\<in> \<C>. I \<TTurnstile>\<^sub>C C"
-
-definition entails\<^sub>F :: 
-  "('f, 'v) atom clause set \<Rightarrow> ('f, 'v) atom clause set \<Rightarrow> bool" (infix "\<TTurnstile>\<^sub>F" 50) where
-  "entails\<^sub>F N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: 'f gterm rel). 
-    refl I \<longrightarrow> trans I \<longrightarrow> sym I \<longrightarrow> compatible_with_gctxt I \<longrightarrow>
-    (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>\<^sub>C\<^sub>s N\<^sub>1 \<longrightarrow>
-    (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>\<^sub>C\<^sub>s N\<^sub>2)"
 
 subsection \<open>Soundness\<close>
  
-lemma equality_resolution_sound:
+lemma (in first_order_superposition_calculus) equality_resolution_sound:
   assumes step: "equality_resolution P C"
   shows "{P} \<TTurnstile>\<^sub>F {C}"
   using step
@@ -1785,7 +2383,7 @@ proof (cases P C rule: equality_resolution.cases)
     by simp
 qed
 
-lemma equality_factoring_sound:
+lemma (in first_order_superposition_calculus) equality_factoring_sound:
   assumes step: "equality_factoring P C"
   shows "{P} \<TTurnstile>\<^sub>F {C}"
   using step
@@ -1846,7 +2444,11 @@ proof (cases P C rule: equality_factoring.cases)
     show "?I \<TTurnstile> ?C"
     proof(cases "L' = ?L\<^sub>1 \<or> L' = ?L\<^sub>2")
       case True
-      then have "I \<TTurnstile>l Pos (?s\<^sub>1, ?s\<^sub>1') \<or> I \<TTurnstile>l Pos (?s\<^sub>1, ?t\<^sub>2')"
+      interpret first_order_superposition_calculus_with_grounding _ _ _ select\<^sub>G_simple
+        apply unfold_locales
+        using select\<^sub>G_simple by blast
+
+      from True have "I \<TTurnstile>l Pos (?s\<^sub>1, ?s\<^sub>1') \<or> I \<TTurnstile>l Pos (?s\<^sub>1, ?t\<^sub>2')"
         using ground.true_lit_uprod_iff_true_lit_prod[OF sym_I] I_models_L'
         by (metis L\<^sub>1 L\<^sub>2 s\<^sub>1_equals_t\<^sub>2)
 
@@ -1879,7 +2481,7 @@ proof (cases P C rule: equality_factoring.cases)
     by simp
 qed
 
-lemma superposition_sound:
+lemma (in first_order_superposition_calculus) superposition_sound:
   assumes step: "superposition P1 P2 C"
   shows "{P1, P2} \<TTurnstile>\<^sub>F {C}"
   using step
@@ -1972,7 +2574,8 @@ proof (cases P1 P2 C rule: superposition.cases)
 
     then have L\<^sub>1: "?L\<^sub>1 = ?\<P> (Upair ?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G ?s\<^sub>1')"
       unfolding superpositionI to_ground_literal_def to_ground_atom_def
-      by(auto simp: subst_atom_def subst_literal s\<^sub>1_u\<^sub>1)
+      by (smt (verit, ccfv_threshold) ground_atom_in_ground_literal2(1) literal.simps(10) map_uprod_simps s\<^sub>1_u\<^sub>1 subst_apply_term_ctxt_apply_distrib subst_atom subst_literal(1) subst_literal(2) to_ground_atom_def to_ground_literal_def)
+      (* Slow:  by(auto simp: subst_atom_def subst_literal s\<^sub>1_u\<^sub>1) *)
     
     have C: "?C = add_mset (?\<P> (Upair (?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G (?s\<^sub>1'))) (?P\<^sub>1' + ?P\<^sub>2')"
       using \<P>_pos_or_neg
@@ -1991,10 +2594,14 @@ proof (cases P1 P2 C rule: superposition.cases)
       show ?thesis
       proof (cases "L\<^sub>2' = ?L\<^sub>2")
         case L\<^sub>2'_def: True
-        then have ts_in_I: "(?t\<^sub>2, ?t\<^sub>2') \<in> I"
+        interpret first_order_superposition_calculus_with_grounding _ _ _ select\<^sub>G_simple
+        apply unfold_locales
+        using select\<^sub>G_simple by blast
+
+        from L\<^sub>2'_def have ts_in_I: "(?t\<^sub>2, ?t\<^sub>2') \<in> I"
           using I_models_L\<^sub>2' ground.true_lit_uprod_iff_true_lit_prod[OF sym_I] superpositionI(8)
           unfolding to_ground_literal_def to_ground_atom_def 
-          by (smt (verit) literal.simps(9) map_uprod_simps subst_atom_def subst_literal true_lit_simps(1))
+          by (smt (verit) literal.simps(9) map_uprod_simps subst_atom_def subst_literal true_lit_simps(1)) 
 
         have ?thesis if "\<P> = Pos"
         proof -
@@ -2071,25 +2678,8 @@ proof (cases P1 P2 C rule: superposition.cases)
     by simp
 qed
 
-(*definition \<G>_F :: 
-  "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" 
-  where
-  "\<G>_F C \<equiv> { to_ground_clause (C \<cdot> \<sigma>) | \<sigma>. term_subst.is_ground_subst \<sigma> }"
 
-definition \<G>_I :: 
-  "('f, 'v) atom clause inference \<Rightarrow> 'f ground_atom clause inference set option" 
-  where
-  "\<G>_I \<iota> = Some ({ginfer_infer (Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>)) |\<rho> \<rho>s.
-     is_ground_subst_list \<rho>s \<and> term_subst.is_ground_subst \<rho>
-     \<and> ginfer_infer (Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>)) \<in> G.G_Inf})"*)
-
-
-definition Prec_F :: 
-  "'f ground_atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" 
-  where
-  "Prec_F \<equiv> \<lambda>_ _ _. False"
-
-sublocale sound_inference_system inferences "\<bottom>\<^sub>F" "(\<TTurnstile>\<^sub>F)"
+sublocale first_order_superposition_calculus \<subseteq> sound_inference_system inferences "{{#}}" "(\<TTurnstile>\<^sub>F)"
 proof unfold_locales
   show "\<And>\<iota>. \<iota> \<in> inferences \<Longrightarrow> set (prems_of \<iota>) \<TTurnstile>\<^sub>F {concl_of \<iota>}"
     using 
@@ -2125,207 +2715,36 @@ next
     by (smt (verit, best))
 qed
 
-(*definition to_ground_inference :: 
-  "('f, 'v) atom clause inference \<Rightarrow> 'f ground_atom clause inference" 
-where
-  "to_ground_inference inference = 
-    Infer (map to_ground_clause (prems_of inference)) (to_ground_clause (concl_of inference))"
-
-definition to_inference :: 
-  "'f ground_atom clause inference \<Rightarrow> ('f, 'v) atom clause inference" 
-where
-  "to_inference inference = 
-    Infer (map to_clause (prems_of inference)) (to_clause (concl_of inference))"
-
-definition subst_clauses ::
-  "('f, 'v) atom clause list \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom clause list" (infixl "\<cdot>cl" 67) where
-  "Cs \<cdot>cl \<sigma> = map (\<lambda>A. A \<cdot> \<sigma>) Cs"
-
-definition subst_inference ::
-  "('f, 'v) atom clause inference \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom clause inference" (infixl "\<cdot>i" 67)
-where
-   "(
-     case inference of 
-        Infer [premise\<^sub>1, premise\<^sub>2] conclusion \<Rightarrow> 
-            term_subst.is_renaming \<rho>\<^sub>1 
-          \<and> term_subst.is_renaming \<rho>\<^sub>2 
-          \<and> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} 
-      | _ \<Rightarrow> True
-    ) \<Longrightarrow> subst_inference inference \<sigma> \<rho>\<^sub>1 \<rho>\<^sub>2 = Infer (prems_of inference \<cdot>cl \<sigma>) (concl_of inference \<cdot> \<sigma>)"
-
-abbreviation is_ground_inference :: "('f, 'v) atom clause inference \<Rightarrow> bool" where
-  "is_ground_inference inference \<equiv> vars_clause_set (insert (concl_of inference) (set (prems_of inference))) = {}"
-
-(* 
-   "term_subst.is_renaming \<rho>\<^sub>1" 
-      "term_subst.is_renaming \<rho>\<^sub>1" 
-      "vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}"
-*)*)
-
-definition inference_groundings :: "('f, 'v) atom clause inference \<Rightarrow> 'f ground_atom clause inference set"
-  where "inference_groundings inference = { ground_inference | ground_inference \<theta> \<rho>\<^sub>1 \<rho>\<^sub>2.
-    (case inference of 
-        Infer [premise] conclusion \<Rightarrow>
-          is_ground_clause (premise \<cdot> \<theta>) 
-        \<and> is_ground_clause (conclusion \<cdot> \<theta>)
-        \<and> ground_inference = 
-            Infer [to_ground_clause (premise \<cdot> \<theta>)] (to_ground_clause (conclusion \<cdot> \<theta>))
-      | Infer [premise\<^sub>1, premise\<^sub>2] conclusion \<Rightarrow> 
-          term_subst.is_renaming \<rho>\<^sub>1
-        \<and> term_subst.is_renaming \<rho>\<^sub>1
-        \<and> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}
-        \<and> is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>) 
-        \<and> is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>) 
-        \<and> is_ground_clause (conclusion \<cdot> \<theta>)
-        \<and> ground_inference = 
-            Infer 
-              [to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>), to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>)] 
-              (to_ground_clause (conclusion \<cdot> \<theta>))
-      | _ \<Rightarrow> False
-     )
-  \<and> ground_inference \<in> ground.G_Inf 
-}"
-
-
-
-abbreviation some where
-  "some f \<equiv> Some \<circ> f"
-
-lemma "\<iota> \<in> ground.G_Inf \<Longrightarrow>  \<iota> \<in> ground.Red_I { concl_of \<iota> }"
-  using ground.Red_I_of_Inf_to_N by blast
-
-(*lemma test': "is_ground_inference \<iota> \<Longrightarrow> is_ground_clause (concl_of \<iota>)"
-  unfolding vars_clause_set_def
-  by blast
-
-lemma test'': "concl_of (to_ground_inference (\<iota> \<cdot>i \<theta>)) = to_ground_clause (concl_of \<iota> \<cdot> \<theta>)"
-  unfolding subst_inference_def to_ground_inference_def
-  by auto  *)
-
-lemma test: 
-  assumes "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
-  shows "concl_of \<iota>\<^sub>G \<in> clause_groundings (concl_of \<iota>)"
-proof-
-  obtain premises\<^sub>G conlcusion\<^sub>G where
-    \<iota>\<^sub>G: "\<iota>\<^sub>G = Infer premises\<^sub>G conlcusion\<^sub>G"
-    using Calculus.inference.exhaust by blast
-
-  obtain "premises" conlcusion where
-    \<iota>: "\<iota> = Infer premises conlcusion"
-    using Calculus.inference.exhaust by blast
-
-  obtain \<theta> where 
-    "is_ground_clause (conlcusion \<cdot> \<theta>)"
-    "conlcusion\<^sub>G = to_ground_clause (conlcusion \<cdot> \<theta>)"
-    using assms
-    unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case 
-    by (smt (z3) Calculus.inference.inject list.simps(4, 5) list_4_cases mem_Collect_eq)
-
-  then show ?thesis
-    unfolding \<iota> \<iota>\<^sub>G clause_groundings_def
-    by auto
-qed  
-
-lemma test_u: "\<iota>' \<in> inference_groundings \<iota> \<Longrightarrow>  \<iota>' \<in> ground.Red_I (clause_groundings (concl_of \<iota>))"
-proof-
-  assume a2: "\<iota>' \<in> inference_groundings \<iota>"
-
-
-  moreover then have "\<iota>' \<in> ground.G_Inf"
-    unfolding inference_groundings_def
-    by blast
-
-  moreover have "concl_of \<iota>' \<in> clause_groundings (concl_of \<iota>)"
-    using a2 test
-    by auto
-
-  ultimately show "\<iota>' \<in> ground.Red_I (clause_groundings (concl_of \<iota>))"
-    using  ground.Red_I_of_Inf_to_N
-    by blast
-qed
-
-(*lemma "ground.ground_eq_resolution 
-          (to_ground_clause (premise \<cdot> \<theta>))
-          (to_ground_clause (conclusion \<cdot> \<theta>))"
-
- \<iota>' \<in> inference_groundings \<iota> \<Longrightarrow> \<iota>' \<in> ground.Red_I (clause_groundings (concl_of \<iota>))*)
-
-(* Q = gs(S) 
-  q = T
-*)
-
-sublocale
-  lifting_intersection 
-    inferences 
-    ground.G_Bot 
-    (* TODO: *)
-    "UNIV :: nat set"
-    "\<lambda>_. ground.G_Inf"               
-    "\<lambda>_. ground.G_entails" 
-    "\<lambda>_. ground.Red_I" 
-    "\<lambda>_. ground.Red_F" 
-    "\<bottom>\<^sub>F"
-    "\<lambda>_. clause_groundings" 
-    "\<lambda>_. some inference_groundings"
-    Prec_F
-proof(unfold_locales; (intro ballI)?)
-  show "UNIV \<noteq> {}"
-    by simp
-next 
-  show "consequence_relation ground.G_Bot ground.G_entails"..
-next
-  show "tiebreaker_lifting \<bottom>\<^sub>F inferences ground.G_Bot ground.G_entails ground.G_Inf ground.Red_I ground.Red_F clause_groundings (some inference_groundings) Prec_F"
-  proof
-    show "\<bottom>\<^sub>F \<noteq> {}"
-      by simp
-  next
-    fix bottom
-    assume "bottom \<in> \<bottom>\<^sub>F"
-    then show "clause_groundings bottom \<noteq> {}"
-      unfolding clause_groundings_def
-      by (metis (mono_tags, lifting) clause_subst_empty empty_iff ground_clause_is_ground mem_Collect_eq singletonD to_clause_empty_mset)
-  next
-    fix bottom
-    assume "bottom \<in> \<bottom>\<^sub>F"
-    then show "clause_groundings bottom \<subseteq> ground.G_Bot"
-      unfolding clause_groundings_def
-      by (smt (verit, ccfv_threshold) ground_clause_is_ground mem_Collect_eq singleton_iff subsetI subst_ground_clause to_clause_empty_mset to_clause_inverse)
-  next
-    fix clause
-    show "clause_groundings clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"
-      unfolding clause_groundings_def
-      using clause_subst_empty to_ground_clause_inverse by force
-  next
-    fix \<iota>
-    assume f: "\<iota> \<in> inferences"
-
-    have "\<And>\<iota>'. \<iota>' \<in> inference_groundings \<iota> \<Longrightarrow> \<iota>' \<in> ground.Red_I (clause_groundings (concl_of \<iota>))"
-      using test_u
-      by blast
-   
-    then show "the (some inference_groundings \<iota>) \<subseteq> ground.Red_I (clause_groundings (concl_of \<iota>))"
-      by auto
-  next
-    show "\<And>g. po_on (Prec_F g) UNIV"
-      by (simp add: Prec_F_def irreflp_on_def po_on_def)
-  next
-    show "\<And>g. wfp_on (Prec_F g) UNIV"
-      by (simp add: Prec_F_def)
-  qed
-qed
-
-lemma x: "P \<Longrightarrow>\<forall>q\<in>UNIV.  P"
-  by simp
-
-
-sublocale statically_complete_calculus "\<bottom>\<^sub>F" inferences entails_\<G> Red_I_\<G> Red_F_\<G>
+sublocale first_order_superposition_calculus \<subseteq> statically_complete_calculus "\<bottom>\<^sub>F" inferences entails_\<G> Red_I_\<G> Red_F_\<G>
   unfolding static_empty_ord_inter_equiv_static_inter
-proof(rule stat_ref_comp_to_non_ground_fam_inter[OF x[OF ground.statically_complete_calculus_axioms]])
-  show "\<And>N. saturated N \<Longrightarrow> \<exists>q \<in> UNIV. ground_Inf_overapproximated q N"
-    apply auto
-    sorry
-qed 
+proof(rule stat_ref_comp_to_non_ground_fam_inter)
+  (* TODO *)
+  show "\<forall>q\<in>select\<^sub>G\<^sub>s.
+       statically_complete_calculus {{#}} (ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G) q) ground_superposition_calculus.G_entails
+        (calculus_with_finitary_standard_redundancy.Red_I (ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G) q)
+          ground_superposition_calculus.G_entails (multp (ground_superposition_calculus.less_lit (\<prec>\<^sub>t\<^sub>G))))
+        (finitary_standard_formula_redundancy.Red_F ground_superposition_calculus.G_entails
+          (multp (ground_superposition_calculus.less_lit (\<prec>\<^sub>t\<^sub>G))))"
+  proof
+    fix select\<^sub>G
+    assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
+    then interpret first_order_superposition_calculus_with_grounding _ _ _ select\<^sub>G
+      apply unfold_locales
+      unfolding select\<^sub>G\<^sub>s_def
+      by simp
 
-end
+    show "statically_complete_calculus 
+            ground.G_Bot 
+            ground.G_Inf 
+            ground.G_entails 
+            ground.Red_I 
+            ground.Red_F"
+      using ground.statically_complete_calculus_axioms by blast
+  qed
+next
+  show "\<And>N. empty_ord.saturated N \<Longrightarrow> \<exists>q \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated q N"
+    using ground_instances
+    by (smt (verit, ccfv_threshold) mem_Collect_eq select\<^sub>G\<^sub>s_def)
+qed 
 
 end
