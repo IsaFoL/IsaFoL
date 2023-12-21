@@ -2593,11 +2593,12 @@ proof unfold_locales
     by auto
 qed
 
-(* TODO: How to access this stuff differently?
-abbreviation Red_I where "Red_I \<equiv> G.Red_I"
-abbreviation Red_F where "Red_F \<equiv> G.Red_F"
-lemmas Red_I_def = G.Red_I_def
-lemmas Red_F_def = G.Red_F_def *)
+
+(* TODO: How to access this stuff differently? *)
+abbreviation Red_I' where "Red_I' \<equiv> Red_I"
+abbreviation Red_F' where "Red_F' \<equiv> Red_F"
+lemmas Red_I_def = Red_I_def
+lemmas Red_F_def = Red_F_def 
 
 end
 
