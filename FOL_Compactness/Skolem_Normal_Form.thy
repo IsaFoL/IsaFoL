@@ -79,10 +79,10 @@ lemma holds_skolem1:
     \<not> (dom I = {}) \<and>
     (\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> I, \<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>)) \<longrightarrow>
     (\<exists>(M :: 'a intrp). dom M = dom I \<and>
-    intrp_rel M = intrp_rel I \<and>
-    (\<forall>g zs. \<not>(g = f) \<or> \<not>(length zs = card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) \<longrightarrow> intrp_fn M g zs = intrp_fn I g zs) \<and>
-    is_interpretation (language {skolem1 f x \<phi>}) M \<and>
-    (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M, \<beta> \<Turnstile> (skolem1 f x \<phi>)))) \<and>
+      intrp_rel M = intrp_rel I \<and>
+      (\<forall>g zs. \<not>(g = f) \<or> \<not>(length zs = card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) \<longrightarrow> intrp_fn M g zs = intrp_fn I g zs) \<and>
+      is_interpretation (language {skolem1 f x \<phi>}) M \<and>
+      (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M, \<beta> \<Turnstile> (skolem1 f x \<phi>)))) \<and>
   (\<forall>(N :: 'a intrp). is_interpretation (language {skolem1 f x \<phi>}) N \<and>
     \<not> (dom N = {}) \<longrightarrow>
     (\<forall>\<beta>. is_valuation N \<beta> \<and> N, \<beta> \<Turnstile> (skolem1 f x \<phi>) \<longrightarrow> N, \<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>)))
@@ -188,7 +188,42 @@ proof (clarsimp)
                  intrp_fn M g zs = intrp_fn I g zs) \<and>
               is_interpretation (language {skolem1 f x \<phi>}) M \<and>
               (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M,\<beta> \<Turnstile> skolem1 f x \<phi>))\<close>
-    unfolding skolem1_def using holds_indep_intrp_if sorry
+  proof clarsimp
+    fix I :: "'a intrp"
+    assume interp_I: \<open>is_interpretation (language {\<phi>}) I\<close> and
+      \<open>dom I \<noteq> {}\<close> and
+      \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
+    have M_is_struct: \<open>struct (dom I) (\<lambda>g zs. if ((g = f) \<and> (length zs = card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))
+                      then (SOME a. a \<in> dom I \<and>
+                        (I, (fold (\<lambda>kv f. fun_upd f (fst kv) (snd kv))
+                        (zip (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) zs) (\<lambda>z. SOME c. c \<in> dom I)) \<Turnstile> \<phi>))
+                      else intrp_fn I g zs) (intrp_rel I)\<close>
+      sorry
+    define M :: "'a intrp" where \<open>M =  Abs_intrp
+                    ((dom I), 
+                    (\<lambda>g zs. if ((g = f) \<and> (length zs = card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))
+                      then (SOME a. a \<in> dom I \<and>
+                        (I, (fold (\<lambda>kv f. fun_upd f (fst kv) (snd kv))
+                        (zip (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) zs) (\<lambda>z. SOME c. c \<in> dom I)) \<Turnstile> \<phi>))
+                      else intrp_fn I g zs),
+                    (intrp_rel I))\<close>
+    have \<open>dom M = dom I\<close>
+      using M_is_struct unfolding M_def by simp
+    have \<open>intrp_rel M = intrp_rel I\<close>
+      using M_is_struct unfolding M_def by simp
+    have \<open>(\<forall>g zs. (g = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})) \<longrightarrow>
+                 intrp_fn M g zs = intrp_fn I g zs)\<close>
+      using M_is_struct unfolding M_def by simp
+    have \<open>is_interpretation (language {skolem1 f x \<phi>}) M\<close>
+      unfolding skolem1_def using holds_indep_intrp_if
+      sorry
+    show \<open>\<exists>M. dom M = dom I \<and>
+      intrp_rel M = intrp_rel I \<and>
+      (\<forall>g zs. (g = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})) \<longrightarrow> intrp_fn M g zs = intrp_fn I g zs) \<and>
+      is_interpretation (language {skolem1 f x \<phi>}) M \<and>
+      (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M,\<beta> \<Turnstile> skolem1 f x \<phi>)\<close>
+       sorry
+  qed
 
   moreover have \<open>\<forall>N. is_interpretation (language {skolem1 f x \<phi>}) N \<and> dom N \<noteq> {} \<longrightarrow>
          (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom N) \<and>
@@ -202,7 +237,7 @@ proof (clarsimp)
     predicates_form (skolem1 f x \<phi>) = predicates_form \<phi> \<and>
     functions_form \<phi> \<subseteq> functions_form (skolem1 f x \<phi>) \<and>
     functions_form (skolem1 f x \<phi>) \<subseteq> (f, card (FV \<phi> - {x})) \<triangleright> functions_form \<phi> \<and>
-    (\<forall>I. is_interpretation (language {\<phi>}) I \<and> dom I \<noteq> {} \<and>
+    (\<forall>(I :: 'a intrp). is_interpretation (language {\<phi>}) I \<and> dom I \<noteq> {} \<and>
          (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)) \<longrightarrow>
          (\<exists>M. dom M = dom I \<and>
               intrp_rel M = intrp_rel I \<and>
