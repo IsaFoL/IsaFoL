@@ -66,6 +66,31 @@ lemma \<open>(I :: 'a intrp), \<beta> \<Turnstile> \<phi> \<Longrightarrow> dom 
   I', \<beta> \<Turnstile> \<phi>\<close>
   using holds_indep_intrp_if by blast
 
+lemma fun_upds_prop: \<open>length xs = length zs \<Longrightarrow> \<forall>z\<in>set zs. P z \<Longrightarrow> \<forall>v. P (g v) \<Longrightarrow> \<forall>v. P ((fold (\<lambda>kv f. fun_upd f (fst kv) (snd kv)) (zip xs zs) g) v)\<close>
+proof (induction zs arbitrary: xs g)
+  case Nil
+  then show ?case
+    by simp
+next
+  case (Cons a zs)
+  obtain x xsp where xs_is: \<open>xs = x # xsp\<close>
+    using Cons(2) by (metis length_Suc_conv)
+  then have fold_simp: \<open>fold (\<lambda>kv f. f(fst kv := snd kv)) (zip xs (a # zs)) g = fold (\<lambda>kv f. f(fst kv := snd kv)) (zip xsp zs) (g(x := a))\<close>
+    by simp
+  have \<open>length xsp = length zs\<close>
+    using xs_is Cons(2) by simp
+  moreover have \<open>\<forall>a\<in>set zs. P a\<close>
+    using Cons(3) by simp
+  moreover have \<open>\<forall>v. P ((g(x := a)) v)\<close>
+    using Cons(4) Cons(3) by simp
+  ultimately have \<open>\<forall>v. P (fold (\<lambda>kv f. f(fst kv := snd kv)) (zip xsp zs) (g(x := a)) v)\<close>
+    using Cons(1) by blast
+  then show ?case
+    using fold_simp by presburger
+qed
+
+(*lemma \<open>(\<forall>kv \<in> set zs. P (f (fst kv) (snd kv))) \<Longrightarrow> (\<forall>v. P (x v)) \<Longrightarrow> (\<forall>v. P (\<lambda>zs (fold (\<lambda>kv f. fun_upd f (fst kv) (snd kv)) zs x)))\<close>*)
+
 lemma holds_skolem1: 
   assumes prenex_ex_phi: \<open>is_prenex (\<^bold>\<exists>x\<^bold>. \<phi>)\<close> and
     \<open>\<not> (f, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) \<in> functions_form (\<^bold>\<exists>x\<^bold>. \<phi>)\<close>
@@ -191,20 +216,66 @@ proof (clarsimp)
   proof clarsimp
     fix I :: "'a intrp"
     assume interp_I: \<open>is_interpretation (language {\<phi>}) I\<close> and
-      \<open>dom I \<noteq> {}\<close> and
-      \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
+      nempty_I: \<open>dom I \<noteq> {}\<close> and
+      ex_a_mod_phi: \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
+    define intrp_f where \<open>intrp_f = (\<lambda>zs. (fold (\<lambda>kv f. fun_upd f (fst kv) (snd kv))
+                        (zip (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) zs) (\<lambda>z. SOME c. c \<in> dom I)))\<close>
+    (*have \<open>(\<forall>e \<in> set zs. e \<in> dom I) \<Longrightarrow> (intrp_f zs) v \<in> dom I\<close> for zs v
+      using valuation_valmod fun_upds_prop unfolding is_valuation_def
+    proof -
+      assume \<open>\<forall>e \<in> set zs. e \<in> dom I\<close>
+      have \<open>v \<notin> (FV \<phi> - {x}) \<Longrightarrow> (intrp_f zs) v = (SOME c. c \<in> dom I)\<close>
+        unfolding intrp_f_def
+        sorry
+      have \<open>v \<notin> (FV \<phi> - {x}) \<Longrightarrow> (intrp_f zs) v \<in> dom I\<close>
+        using nempty_I unfolding intrp_f_def 
+        sorry
+      show \<open>(intrp_f zs) v \<in> dom I\<close>
+        unfolding intrp_f_def 
+      proof clarsimp
+        show \<open>fold (\<lambda>kv f. f(fst kv := snd kv))
+          (zip (sorted_list_of_set (FV \<phi> - {x})) zs) (\<lambda>z. SOME c. c \<in> dom I) v \<in> dom I\<close>
+          sorry
+      qed
+    qed *)
     have M_is_struct: \<open>struct (dom I) (\<lambda>g zs. if ((g = f) \<and> (length zs = card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))
-                      then (SOME a. a \<in> dom I \<and>
-                        (I, (fold (\<lambda>kv f. fun_upd f (fst kv) (snd kv))
-                        (zip (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) zs) (\<lambda>z. SOME c. c \<in> dom I)) \<Turnstile> \<phi>))
+                      then (SOME a. a \<in> dom I \<and> (I, (intrp_f zs)(x := a) \<Turnstile> \<phi>))
                       else intrp_fn I g zs) (intrp_rel I)\<close>
-      sorry
+    proof
+      show \<open>dom I \<noteq> {}\<close>
+        using nempty_I .
+    next
+      show  \<open>\<forall>fa zs. (\<forall>e\<in>set zs. e \<in> dom I) \<longrightarrow> (if fa = f \<and> length zs = card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))
+        then SOME a. a \<in> dom I \<and> I, (intrp_f zs)(x := a) \<Turnstile> \<phi>
+        else intrp_fn I fa zs) \<in> dom I\<close>
+      proof (clarsimp, rule conjI, (rule impI)+)
+        fix fa and zs :: "'a list"
+        assume len_zs: \<open>fa = f \<and> length zs = card (FV \<phi> - {x})\<close> and
+          zs_in: \<open>\<forall>e\<in>set zs. e \<in> dom I\<close>
+          (* TODO here! *)
+        then have \<open>\<exists>a. a \<in> dom I \<and> I, (intrp_f zs)(x := a) \<Turnstile> \<phi>\<close>
+          using ex_a_mod_phi valuation_valmod fun_upds_prop unfolding is_valuation_def
+          sorry
+        then show \<open>(SOME a. a \<in> dom I \<and> I,(intrp_f zs)(x := a) \<Turnstile> \<phi>) \<in> dom I\<close>
+          by (metis (no_types, lifting) someI_ex)
+      next
+        fix fa and zs :: "'a list"
+        show \<open>(fa = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})) \<longrightarrow> (\<forall>e\<in>set zs. e \<in> dom I) \<longrightarrow> intrp_fn I fa zs \<in> dom I\<close>
+        proof clarsimp
+          assume \<open>fa = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})\<close> and
+            zs_in: \<open>\<forall>e\<in>set zs. e \<in> dom I\<close>
+          then show \<open>intrp_fn I fa zs \<in> dom I\<close>
+            using FN_dom_to_dom by blast
+        qed
+      qed
+    next
+      show \<open>\<forall>p. \<forall>es\<in>intrp_rel I p. \<forall>e\<in>set es. e \<in> dom I\<close>
+        sorry
+    qed
     define M :: "'a intrp" where \<open>M =  Abs_intrp
                     ((dom I), 
                     (\<lambda>g zs. if ((g = f) \<and> (length zs = card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))
-                      then (SOME a. a \<in> dom I \<and>
-                        (I, (fold (\<lambda>kv f. fun_upd f (fst kv) (snd kv))
-                        (zip (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) zs) (\<lambda>z. SOME c. c \<in> dom I)) \<Turnstile> \<phi>))
+                      then (SOME a. a \<in> dom I \<and> (I, (intrp_f zs)(x := a) \<Turnstile> \<phi>))
                       else intrp_fn I g zs),
                     (intrp_rel I))\<close>
     have \<open>dom M = dom I\<close>
