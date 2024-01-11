@@ -91,6 +91,18 @@ qed
 
 (*lemma \<open>(\<forall>kv \<in> set zs. P (f (fst kv) (snd kv))) \<Longrightarrow> (\<forall>v. P (x v)) \<Longrightarrow> (\<forall>v. P (\<lambda>zs (fold (\<lambda>kv f. fun_upd f (fst kv) (snd kv)) zs x)))\<close>*)
 
+lemma \<open>{z. \<exists>y. y \<in> FV \<phi> \<and> z \<in> functions_term (Var y \<cdot> subst x t)} = functions_term t \<or>
+   {z. \<exists>y. y \<in> FV \<phi> \<and> z \<in> functions_term (Var y \<cdot> subst x t)} = {}\<close>
+proof -
+  have \<open>y \<noteq> x \<Longrightarrow> functions_term (Var y \<cdot> subst x t) = {}\<close> for y
+    by (simp add: subst_def)
+  moreover have \<open>y = x \<Longrightarrow> functions_term (Var y \<cdot> subst x t) = functions_term t\<close> for y
+    by simp
+  ultimately show ?thesis
+    by blast
+qed
+
+
 lemma holds_skolem1: 
   assumes prenex_ex_phi: \<open>is_prenex (\<^bold>\<exists>x\<^bold>. \<phi>)\<close> and
     \<open>\<not> (f, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) \<in> functions_form (\<^bold>\<exists>x\<^bold>. \<phi>)\<close>
@@ -152,13 +164,14 @@ proof (clarsimp)
   moreover have \<open>size (skolem1 f x \<phi>) < Suc (Suc (Suc (size \<phi>)))\<close>
     unfolding skolem1_def by (simp add: size_indep_subst)
 
-  moreover have \<open>predicates_form (skolem1 f x \<phi>) = predicates_form \<phi>\<close>
+  moreover have pred_form_eq: \<open>predicates_form (skolem1 f x \<phi>) = predicates_form \<phi>\<close>
     unfolding skolem1_def using formsubst_predicates by blast
 
-  moreover have \<open>functions_form \<phi> \<subseteq> functions_form (skolem1 f x \<phi>)\<close>
+  moreover have func_form_low: \<open>functions_form \<phi> \<subseteq> functions_form (skolem1 f x \<phi>)\<close>
     unfolding skolem1_def by (simp add: formsubst_functions_form)
 
-  moreover have \<open>functions_form (skolem1 f x \<phi>) \<subseteq> (f, card (FV \<phi> - {x})) \<triangleright> functions_form \<phi>\<close>
+  moreover have func_form_up: \<open>functions_form (skolem1 f x \<phi>) \<subseteq> 
+    (f, card (FV \<phi> - {x})) \<triangleright> functions_form \<phi>\<close>
   proof
     fix g
     assume g_in: \<open>g \<in> functions_form (skolem1 f x \<phi>)\<close>
@@ -220,24 +233,6 @@ proof (clarsimp)
       ex_a_mod_phi: \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
     define intrp_f where \<open>intrp_f = (\<lambda>zs. (fold (\<lambda>kv f. fun_upd f (fst kv) (snd kv))
                         (zip (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) zs) (\<lambda>z. SOME c. c \<in> dom I)))\<close>
-    (*have \<open>(\<forall>e \<in> set zs. e \<in> dom I) \<Longrightarrow> (intrp_f zs) v \<in> dom I\<close> for zs v
-      using valuation_valmod fun_upds_prop unfolding is_valuation_def
-    proof -
-      assume \<open>\<forall>e \<in> set zs. e \<in> dom I\<close>
-      have \<open>v \<notin> (FV \<phi> - {x}) \<Longrightarrow> (intrp_f zs) v = (SOME c. c \<in> dom I)\<close>
-        unfolding intrp_f_def
-        sorry
-      have \<open>v \<notin> (FV \<phi> - {x}) \<Longrightarrow> (intrp_f zs) v \<in> dom I\<close>
-        using nempty_I unfolding intrp_f_def 
-        sorry
-      show \<open>(intrp_f zs) v \<in> dom I\<close>
-        unfolding intrp_f_def 
-      proof clarsimp
-        show \<open>fold (\<lambda>kv f. f(fst kv := snd kv))
-          (zip (sorted_list_of_set (FV \<phi> - {x})) zs) (\<lambda>z. SOME c. c \<in> dom I) v \<in> dom I\<close>
-          sorry
-      qed
-    qed *)
     have M_is_struct: \<open>struct (dom I) (\<lambda>g zs. if ((g = f) \<and> (length zs = card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))
                       then (SOME a. a \<in> dom I \<and> (I, (intrp_f zs)(x := a) \<Turnstile> \<phi>))
                       else intrp_fn I g zs) (intrp_rel I)\<close>
@@ -252,15 +247,19 @@ proof (clarsimp)
         fix fa and zs :: "'a list"
         assume len_zs: \<open>fa = f \<and> length zs = card (FV \<phi> - {x})\<close> and
           zs_in: \<open>\<forall>e\<in>set zs. e \<in> dom I\<close>
-          (* TODO here! *)
+        have len_eq: \<open>length (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) = length zs\<close>
+          using len_zs by simp
+        have \<open>\<forall>v. (intrp_f zs) v \<in> dom I\<close>
+          using fun_upds_prop[OF len_eq zs_in] unfolding intrp_f_def
+          by (simp add: nempty_I some_in_eq)
         then have \<open>\<exists>a. a \<in> dom I \<and> I, (intrp_f zs)(x := a) \<Turnstile> \<phi>\<close>
-          using ex_a_mod_phi valuation_valmod fun_upds_prop unfolding is_valuation_def
-          sorry
+          using ex_a_mod_phi by blast
         then show \<open>(SOME a. a \<in> dom I \<and> I,(intrp_f zs)(x := a) \<Turnstile> \<phi>) \<in> dom I\<close>
           by (metis (no_types, lifting) someI_ex)
       next
         fix fa and zs :: "'a list"
-        show \<open>(fa = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})) \<longrightarrow> (\<forall>e\<in>set zs. e \<in> dom I) \<longrightarrow> intrp_fn I fa zs \<in> dom I\<close>
+        show \<open>(fa = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})) \<longrightarrow> (\<forall>e\<in>set zs. e \<in> dom I) \<longrightarrow>
+          intrp_fn I fa zs \<in> dom I\<close>
         proof clarsimp
           assume \<open>fa = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})\<close> and
             zs_in: \<open>\<forall>e\<in>set zs. e \<in> dom I\<close>
@@ -270,7 +269,7 @@ proof (clarsimp)
       qed
     next
       show \<open>\<forall>p. \<forall>es\<in>intrp_rel I p. \<forall>e\<in>set es. e \<in> dom I\<close>
-        sorry
+        by (meson intrp_is_struct struct_def)
     qed
     define M :: "'a intrp" where \<open>M =  Abs_intrp
                     ((dom I), 
@@ -278,22 +277,75 @@ proof (clarsimp)
                       then (SOME a. a \<in> dom I \<and> (I, (intrp_f zs)(x := a) \<Turnstile> \<phi>))
                       else intrp_fn I g zs),
                     (intrp_rel I))\<close>
-    have \<open>dom M = dom I\<close>
+    have dom_M_I_eq: \<open>dom M = dom I\<close>
       using M_is_struct unfolding M_def by simp
-    have \<open>intrp_rel M = intrp_rel I\<close>
+    have intrp_rel_eq: \<open>intrp_rel M = intrp_rel I\<close>
       using M_is_struct unfolding M_def by simp
-    have \<open>(\<forall>g zs. (g = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})) \<longrightarrow>
+    have intrp_fn_eq: \<open>(\<forall>g zs. (g = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})) \<longrightarrow>
                  intrp_fn M g zs = intrp_fn I g zs)\<close>
       using M_is_struct unfolding M_def by simp
-    have \<open>is_interpretation (language {skolem1 f x \<phi>}) M\<close>
-      unfolding skolem1_def using holds_indep_intrp_if
-      sorry
+    have in_dom_I: \<open>fold (\<lambda>l b. b \<and> l \<in> dom M) zs True \<Longrightarrow> length zs = card (FV \<phi> - {x}) \<Longrightarrow> intrp_fn M f zs \<in> dom I\<close> for zs
+    proof -
+      assume len_eq: \<open>length zs = card (FV \<phi> - {x})\<close> and
+        zs_in: \<open>fold (\<lambda>l b. b \<and> l \<in> dom M) zs True\<close>
+      have len_eq2: \<open>length (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) = length zs\<close>
+        using len_eq by simp
+      have \<open>fold (\<lambda>l b. b \<and> l \<in> dom M) zs B = (B \<and> (\<forall>z \<in> set zs. z \<in> dom M))\<close> for B
+      proof (induction zs arbitrary: B)
+        case Nil
+        then show ?case by simp
+      next
+        case (Cons a zs)
+        then have \<open>fold (\<lambda>l b. b \<and> l \<in> dom M) (a # zs) B = fold (\<lambda>l b. b \<and> l \<in> dom M) zs (B \<and> a \<in> dom M)\<close>
+          using fold.simps(2) by simp
+        also have \<open>... = (B \<and> a \<in> dom M \<and> (\<forall>z \<in> set zs. z \<in> dom M))\<close>
+          using Cons[of "B \<and> a \<in> dom M"] by presburger
+        finally show ?case 
+          by simp
+      qed
+      then have zs_in2: \<open>\<forall>z\<in>set zs. z \<in> dom I\<close>
+        using zs_in dom_M_I_eq by simp
+      have \<open>(intrp_fn M) f zs = (SOME a. a \<in> dom I \<and> I, (intrp_f zs)(x := a) \<Turnstile> \<phi>)\<close>
+        unfolding M_def using len_eq M_is_struct by auto
+      have \<open>\<forall>v. (intrp_f zs) v \<in> dom I\<close>
+          using fun_upds_prop[OF len_eq2 zs_in2] nempty_I some_in_eq unfolding intrp_f_def
+          by (metis (no_types, lifting) Eps_cong)
+      then show \<open>intrp_fn M f zs \<in> dom I\<close>
+        using nempty_I ex_a_mod_phi by (metis FN_dom_to_dom dom_M_I_eq zs_in2)
+    qed
+    have is_interp_M: \<open>is_interpretation (language {skolem1 f x \<phi>}) M\<close>
+      unfolding is_interpretation_def
+    proof clarsimp
+      fix fa l
+      assume in_skol: \<open>(fa, length l) \<in> fst (language {skolem1 f x \<phi>})\<close> and
+        in_dom_M: \<open>fold (\<lambda>l b. b \<and> l \<in> dom M) l True\<close>
+      have l_in_dom_I: \<open>list_all (\<lambda>x. x \<in> dom I) l\<close>
+        using in_dom_M dom_M_I_eq by simp
+      have \<open>(fa, length l) \<in> fst (language {\<phi>}) \<or> (fa, length l) = (f, card (FV \<phi> - {x}))\<close>
+        using in_skol pred_form_eq func_form_low func_form_up lang_singleton by auto
+      then show \<open>intrp_fn M fa l \<in> dom M\<close>
+        using interp_I dom_M_I_eq intrp_fn_eq in_dom_I[OF in_dom_M]
+        unfolding language_def is_interpretation_def
+        by (metis l_in_dom_I prod.inject)
+    qed
+    find_theorems " _, _ \<Turnstile> _" name: subs
+    thm holds_indep_intrp_if swap_subst_eval subst_lemma_terms
+    have holds_M_phi: \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
+    proof clarsimp
+      fix \<beta> :: "nat \<Rightarrow> 'a"
+      assume \<open>\<forall>v. \<beta> v \<in> dom M\<close>
+      then have \<open>\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>\<close>
+        using ex_a_mod_phi dom_M_I_eq by blast
+      then show \<open>M,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
+        unfolding skolem1_def using swap_subst_eval subst_lemma_terms sledgehammer
+        sorry
+    qed
     show \<open>\<exists>M. dom M = dom I \<and>
       intrp_rel M = intrp_rel I \<and>
       (\<forall>g zs. (g = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})) \<longrightarrow> intrp_fn M g zs = intrp_fn I g zs) \<and>
       is_interpretation (language {skolem1 f x \<phi>}) M \<and>
       (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M,\<beta> \<Turnstile> skolem1 f x \<phi>)\<close>
-       sorry
+      using dom_M_I_eq intrp_rel_eq intrp_fn_eq is_interp_M holds_M_phi by blast
   qed
 
   moreover have \<open>\<forall>N. is_interpretation (language {skolem1 f x \<phi>}) N \<and> dom N \<noteq> {} \<longrightarrow>

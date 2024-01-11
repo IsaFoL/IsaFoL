@@ -384,7 +384,7 @@ definition prenex_right where "prenex_right = (SOME prenex_right.
   (\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>)))"
 
 find_theorems "SOME _. _ \<Longrightarrow> _"
-thm some_eq_imp verit_sko_ex
+thm some_eq_imp verit_sko_ex someI2_ex
 
 thm someI2_ex
 find_theorems is_prenex prenex_right
