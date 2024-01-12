@@ -119,6 +119,8 @@ lemma vars_clause_plus[simp]:
   by (simp add: vars_clause_def)
 
 lemmas term_subst_compose = subst_subst_compose
+
+lemmas context_subst_compose = ctxt_compose_subst_compose_distrib  
   
 lemma atom_subst_compose [simp]: "atom \<cdot>a \<mu> \<odot> \<theta> = atom \<cdot>a \<mu> \<cdot>a \<theta>"
   unfolding subst_atom_def subst_subst_compose

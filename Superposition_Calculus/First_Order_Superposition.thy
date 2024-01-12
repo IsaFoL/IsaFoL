@@ -58,6 +58,8 @@ locale first_order_superposition_calculus =
     select_renaming_stability: 
       "\<And>clause \<rho>. is_renaming \<rho> \<Longrightarrow> select (clause \<cdot> \<rho>) = (select clause) \<cdot> \<rho>" and
 
+    infinite_variable_universe: "infinite (UNIV :: 'v set)" and
+
     (* TODO: Use theorem from CeTA *)
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
@@ -1579,6 +1581,19 @@ definition (in first_order_superposition_calculus_with_grounding) non_redundant_
         \<and> is_Fun term\<^sub>1)
     )"
 
+lemma testing2:  "context\<langle>term\<rangle> \<cdot>t \<theta> = (context \<cdot>t\<^sub>c \<theta>)\<langle>term  \<cdot>t \<theta>\<rangle>"
+  by auto
+
+lemma not_Var:  "\<not> is_Var term \<Longrightarrow> \<not> is_Var (context\<langle>term\<rangle>)"
+  using ctxt_apply_term.elims by blast
+
+lemma x: "\<not> is_Var (to_term term\<^sub>G)"
+  using gterm_is_fun.
+
+lemma sth: "term \<cdot>t \<theta> = term' \<Longrightarrow> is_Var term' \<Longrightarrow> is_Var term"
+  apply auto
+  by (metis is_Var_def subst_apply_eq_Var)
+ 
 lemma (in first_order_superposition_calculus_with_grounding) superposition_ground_instance:
   assumes 
     renaming: 
@@ -1596,7 +1611,8 @@ lemma (in first_order_superposition_calculus_with_grounding) superposition_groun
           (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>))
           (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>))
           (to_ground_clause (conclusion \<cdot> \<theta>))" and
-    not_redundant: "non_redundant_superposition premise\<^sub>1 \<rho>\<^sub>1 \<theta>"
+    not_redundant: (*"non_redundant_superposition premise\<^sub>1 \<rho>\<^sub>1 \<theta>"*)
+    "Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion \<cdot> \<theta>))  \<notin> ground.Red_I' (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
  (* TODO: (Premise order!)  *)
   shows "\<exists>conclusion'. superposition premise\<^sub>1 premise\<^sub>2 (conclusion')
             \<and> Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> inference_groundings select\<^sub>G (Infer [premise\<^sub>1, premise\<^sub>2] conclusion')
@@ -1753,30 +1769,91 @@ proof(cases
     literal\<^sub>1: "literal\<^sub>1 = ?\<P> (Upair term\<^sub>1_with_context term\<^sub>1')" and
     term\<^sub>1'_\<theta>: "term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>2" and
     term\<^sub>1_with_context_\<theta>: "term\<^sub>1_with_context \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>1\<rangle>"
-    using ground_superpositionI(4) 
-    by(cases "\<P>\<^sub>G = Pos") (smt (verit, ccfv_SIG) obtain_from_literal_subst)+
+    by (smt (verit, ccfv_SIG) obtain_from_literal_subst)
 
-  obtain context\<^sub>1 term\<^sub>1 where
-    term\<^sub>1_\<theta> : "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1" and
-    context\<^sub>1_\<theta>: "context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G" and
-    term\<^sub>1_with_context: "term\<^sub>1_with_context = context\<^sub>1\<langle>term\<^sub>1\<rangle>" and
-    term\<^sub>1_not_Var: "\<not> is_Var term\<^sub>1"
-    using 
-      not_redundant[unfolded non_redundant_superposition_def]
-      ground_superpositionI(4, 5, 7, 9)
-      term\<^sub>1_with_context_\<theta>
-    by blast
+   have "to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>) \<in> clause_groundings premise\<^sub>1"
+    unfolding clause_groundings_def
+    by (smt (verit, del_insts) clause_subst_compose mem_Collect_eq premise\<^sub>1_grounding)
+
+  moreover have "to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>) \<in> clause_groundings premise\<^sub>2"
+    unfolding clause_groundings_def
+    by (smt (verit, del_insts) clause_subst_compose mem_Collect_eq premise\<^sub>2_grounding)
+
+  moreover have conclusion_\<theta>\<^sub>G: "conclusion \<cdot> \<theta> = 
+    add_mset (?\<P> (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> (to_term term\<^sub>G\<^sub>2))) 
+      (to_clause premise\<^sub>G\<^sub>1' + to_clause premise\<^sub>G\<^sub>2')"
+    using ground_superpositionI(4, 12) to_ground_clause_inverse[OF conclusion_grounding] 
+    unfolding ground_term_with_context(3) to_term_to_atom
+    by(cases "\<P>\<^sub>G = Pos")(simp_all add: to_atom_to_literal to_clause_add_mset)
 
   from literal\<^sub>2_\<theta> have literal\<^sub>2_\<theta>': 
     "literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<theta> = to_term term\<^sub>G\<^sub>1 \<approx> to_term term\<^sub>G\<^sub>3"
     unfolding ground_superpositionI(6) to_term_to_atom to_atom_to_literal(2) literal_subst_compose.
 
-   then obtain term\<^sub>2 term\<^sub>2' where 
+  then obtain term\<^sub>2 term\<^sub>2' where 
     literal\<^sub>2: "literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'" and
     term\<^sub>2_\<theta>: "term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1" and     
     term\<^sub>2'_\<theta>: "term\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>3"
    using obtain_from_pos_literal_subst
    by metis
+
+  have y: "\<nexists>context\<^sub>1 term\<^sub>1. 
+    term\<^sub>1_with_context = context\<^sub>1\<langle>term\<^sub>1\<rangle> \<and> 
+    term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1 \<and> 
+    context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G  \<and> 
+    is_Fun term\<^sub>1 \<Longrightarrow>
+      ground.redundant_infer
+         (clause_groundings (add_mset literal\<^sub>1 premise\<^sub>1') \<union> clause_groundings (add_mset literal\<^sub>2 premise\<^sub>2'))
+         (Infer [add_mset literal\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>2', add_mset literal\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>1'] 
+                (add_mset  (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G  term\<^sub>G\<^sub>2)) (premise\<^sub>G\<^sub>1' + premise\<^sub>G\<^sub>2')))"
+  proof-
+    assume "\<nexists>context\<^sub>1 term\<^sub>1. term\<^sub>1_with_context = context\<^sub>1\<langle>term\<^sub>1\<rangle> \<and> term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1 \<and> context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G \<and> is_Fun term\<^sub>1"
+    show ?thesis
+      unfolding ground.redundant_infer_def
+      sorry
+  qed
+
+  have z: "(to_ground_clause
+             (add_mset ((if \<P>\<^sub>G = Pos then Pos else Neg) (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> (to_term term\<^sub>G\<^sub>2))) (to_clause premise\<^sub>G\<^sub>1' + to_clause premise\<^sub>G\<^sub>2'))) = 
+             (add_mset  (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G  term\<^sub>G\<^sub>2))) (premise\<^sub>G\<^sub>1' + premise\<^sub>G\<^sub>2')"
+    by (smt (verit) ground_superpositionI(9) ground_term_with_context3 to_atom_to_literal(1) to_atom_to_literal(2) to_clause_add_mset to_clause_inverse to_clause_plus to_term_to_atom)  
+
+  have x: "\<lbrakk>
+     ground.ground_superposition (add_mset literal\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>1') (add_mset literal\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>2')
+      (to_ground_clause
+        (add_mset ((if \<P>\<^sub>G = Pos then Pos else Neg) (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> (to_term term\<^sub>G\<^sub>2))) (to_clause premise\<^sub>G\<^sub>1' + to_clause premise\<^sub>G\<^sub>2')));
+
+     \<not> ground.redundant_infer (clause_groundings (add_mset literal\<^sub>1 premise\<^sub>1') \<union> clause_groundings (add_mset literal\<^sub>2 premise\<^sub>2'))
+         (Infer [add_mset literal\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>2', add_mset literal\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>1']
+           (to_ground_clause
+             (add_mset ((if \<P>\<^sub>G = Pos then Pos else Neg) (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> (to_term term\<^sub>G\<^sub>2))) (to_clause premise\<^sub>G\<^sub>1' + to_clause premise\<^sub>G\<^sub>2'))))\<rbrakk>
+    \<Longrightarrow> \<exists>context\<^sub>1 term\<^sub>1. term\<^sub>1_with_context = context\<^sub>1\<langle>term\<^sub>1\<rangle> \<and> context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G \<and> term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1 \<and> is_Fun term\<^sub>1"
+    unfolding z
+    using y
+    by blast
+
+  obtain context\<^sub>1 term\<^sub>1 where 
+    term\<^sub>1_with_context: "term\<^sub>1_with_context = context\<^sub>1\<langle>term\<^sub>1\<rangle>" and
+    term\<^sub>1_\<theta> : "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1" and
+    context\<^sub>1_\<theta> : "context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G" and
+    term\<^sub>1_not_Var: "\<not> is_Var term\<^sub>1"
+    using not_redundant ground_superposition
+    unfolding premise\<^sub>1_\<theta> premise\<^sub>2_\<theta> conclusion_\<theta>\<^sub>G
+    unfolding premise\<^sub>1 premise\<^sub>2
+    apply auto
+    unfolding ground.Red_I_def
+    apply auto
+    unfolding ground.G_Inf_def
+     apply blast
+    using x
+    by blast
+ 
+  obtain term\<^sub>2'_with_context where
+    term\<^sub>2'_with_context: 
+      "term\<^sub>2'_with_context \<cdot>t \<theta> = (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>3\<rangle>"
+      "term\<^sub>2'_with_context = (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle>" 
+    unfolding term\<^sub>2'_\<theta>[symmetric]  context\<^sub>1_\<theta>[symmetric]
+    by force
 
   have term_term': "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<theta>"
     unfolding term\<^sub>1_\<theta> term\<^sub>2_\<theta>
@@ -1785,9 +1862,30 @@ proof(cases
   then obtain \<sigma> \<tau> where \<sigma>: "term_subst.is_imgu \<sigma> {{term\<^sub>1 \<cdot>t \<rho>\<^sub>1, term\<^sub>2 \<cdot>t \<rho>\<^sub>2}}" "\<theta> = \<sigma> \<odot> \<tau>"
     using imgu_exists
     by blast
-  
-  let ?conclusion' = "add_mset (?\<P> (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) 
-          (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<sigma>"
+
+  let ?conclusion' = "add_mset (?\<P> (Upair (term\<^sub>2'_with_context) (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) 
+        (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<sigma>"
+
+  have "term_subst.is_idem \<sigma>"
+    using \<sigma>(1)
+    by (simp add: term_subst.is_imgu_iff_is_idem_and_is_mgu)  
+
+  then have \<sigma>_\<theta>: "\<sigma> \<odot> \<theta> = \<theta>"
+    unfolding \<sigma>(2) term_subst.is_idem_def
+    by simp
+
+  from conclusion_\<theta>\<^sub>G have conclusion_\<theta>: "conclusion \<cdot> \<theta> =  ?conclusion' \<cdot> \<theta>"
+    unfolding 
+      term\<^sub>2'_with_context[symmetric]
+      premise\<^sub>1'_\<theta>[symmetric] 
+      premise\<^sub>2'_\<theta>[symmetric] 
+      term\<^sub>1'_\<theta>[symmetric]
+      subst_clause_plus[symmetric] 
+      subst_apply_term_ctxt_apply_distrib[symmetric]
+      term_subst_atom_subst
+    apply(cases "\<P>\<^sub>G = Pos")
+    using subst_clause_add_mset subst_literal \<sigma>_\<theta> clause_subst_compose
+    by (smt (verit))+
 
   have superposition: "superposition premise\<^sub>1 premise\<^sub>2 ?conclusion'"
   proof(rule superpositionI)
@@ -1810,7 +1908,7 @@ proof(cases
       by simp
   next
     show "literal\<^sub>1 = ?\<P> (Upair context\<^sub>1\<langle>term\<^sub>1\<rangle> term\<^sub>1')"
-      unfolding literal\<^sub>1 context\<^sub>1_\<theta> term\<^sub>1_with_context..
+      unfolding literal\<^sub>1 term\<^sub>1_with_context..
   next
     show "literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'"
       using literal\<^sub>2.
@@ -1965,7 +2063,10 @@ proof(cases
       using less\<^sub>t_less_eq\<^sub>t_ground_subst_stability[OF term_groundings]
       by blast
   next
-    show "?conclusion' = ?conclusion'"..
+    show "?conclusion' =  add_mset
+     ((if \<P>\<^sub>G = Pos then Pos else Neg) (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1)))
+     (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<sigma>"
+      using term\<^sub>2'_with_context(2) by blast
   qed
 
   have "term_subst.is_idem \<sigma>"
@@ -1993,11 +2094,10 @@ proof(cases
 
   then have conclusion_\<theta>: "conclusion \<cdot> \<theta> =  ?conclusion' \<cdot> \<theta>"
     unfolding 
-      context\<^sub>1_\<theta>[symmetric] 
+      term\<^sub>2'_with_context[symmetric]
       premise\<^sub>1'_\<theta>[symmetric] 
       premise\<^sub>2'_\<theta>[symmetric] 
       term\<^sub>1'_\<theta>[symmetric]
-      term\<^sub>2'_\<theta>[symmetric] 
       subst_clause_plus[symmetric] 
       subst_apply_term_ctxt_apply_distrib[symmetric]
       term_subst_atom_subst
@@ -2088,15 +2188,6 @@ proof-
     by blast
 qed 
 
-(* 
-    "\<iota>\<^sub>G \<in> ground.equality_resolution_inferences"
-    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))"
-    "\<forall>premise\<^sub>G \<in> \<Union> (clause_groundings ` premises). \<exists>\<theta> premise. 
-          premise \<cdot> \<theta> = to_clause premise\<^sub>G 
-        \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>
-        \<and> premise \<in> premises"
-*)
-
 lemma (in first_order_superposition_calculus_with_grounding) equality_factoring_ground_instance': 
   assumes 
     "\<iota>\<^sub>G \<in> ground.equality_factoring_inferences"
@@ -2164,7 +2255,573 @@ proof-
     by blast
 qed
 
-lemma (in first_order_superposition_calculus_with_grounding) xx_superposition: 
+lemma inj: assumes "finite (UNIV :: 'a set)" "infinite (UNIV :: 'b set)"
+  obtains f where "inj (f :: 'a \<Rightarrow> 'b)"
+proof-
+  let ?domain = "UNIV :: 'a set"
+  let ?image = "UNIV :: 'b set"
+
+  let ?domain_size = "card ?domain"
+
+  obtain image_subset where "image_subset \<subseteq> ?image" and "card image_subset = ?domain_size"
+    by (meson assms(2) infinite_arbitrarily_large)
+
+  then obtain f where "bij_betw f ?domain image_subset" 
+    apply auto
+    by (metis UNIV_I assms(1) card.empty card.infinite card_eq_UNIV_imp_eq_UNIV empty_iff finite_same_card_bij)
+
+  then have "inj f"
+    using bij_betw_def by auto
+
+  then show ?thesis
+    by (simp add: that)
+qed
+
+
+lemma bij_betw: assumes "finite domain" "finite img" "card img = card domain" 
+  obtains f where "bij_betw f domain img" 
+proof-
+  show ?thesis
+    by (metis assms(1) assms(2) assms(3) bij_betw_iff_card that)
+qed
+
+lemma bij_betw': assumes "finite domain" "finite img" "card img = card domain" 
+  obtains f where "bij_betw f domain img" "\<And>x. x \<notin> domain \<Longrightarrow> f x = x"
+proof-
+  obtain f' where bij_f': "bij_betw f' domain img"
+    using assms bij_betw
+    by blast
+
+  let ?f = "\<lambda>x. if x \<in> domain then f' x else  x"
+
+  have "bij_betw ?f domain img"
+    using bij_f'
+    unfolding bij_betw_def
+    apply auto
+    by (simp add: inj_on_def)
+
+  moreover have "\<And>x. x \<notin> domain \<Longrightarrow> ?f x = x"
+    by simp
+
+  ultimately show ?thesis
+    using that
+    by blast
+qed
+
+lemma bij_betw'': assumes "finite domain" "finite img" "card img = card domain" "domain \<inter> img = {}"
+  obtains f where "bij_betw f domain img" "bij_betw f img domain" "\<And>x. x \<notin> domain \<Longrightarrow> x \<notin> img  \<Longrightarrow> f x = x"
+proof-
+  obtain f' where bij_f': "bij_betw f' domain img"
+    using assms bij_betw
+    by blast
+
+  obtain f'' where bij_f'': "bij_betw f'' img domain"
+    using assms bij_betw
+    by metis
+
+  let ?f = "\<lambda>x. if x \<in> domain then f' x else if x \<in> img then f'' x  else  x"
+
+  have "bij_betw ?f domain img"
+    using bij_f' bij_f''
+    unfolding bij_betw_def inj_on_def
+    by auto
+
+  moreover have "bij_betw ?f img domain"
+    using bij_f' bij_f''
+    unfolding bij_betw_def 
+    apply auto
+    apply (smt (verit, del_insts) assms(4) disjoint_iff inj_on_cong)
+    using assms(4) apply blast
+    by (smt (verit) IntI assms(4) disjoint_iff image_iff mem_Collect_eq)
+
+  moreover have "\<And>x. x \<notin> domain \<Longrightarrow> x \<notin> img  \<Longrightarrow> ?f x = x"
+    by simp
+
+  ultimately show ?thesis
+    using that
+    by blast
+qed
+
+lemma inj_on: assumes "finite domain" "infinite (UNIV :: 'b set)"
+  obtains f where "inj_on (f :: 'a \<Rightarrow> 'b) domain"
+proof- 
+  let ?image = "UNIV :: 'b set"
+  let ?domain_size = "card domain"
+
+  obtain image_subset where 
+    "image_subset \<subseteq> ?image" and 
+    "card image_subset = ?domain_size" and
+    "finite image_subset"
+    by (meson assms(2) infinite_arbitrarily_large)
+
+  then obtain f where "bij_betw f domain image_subset" 
+    using bij_betw assms(1)
+    by blast
+
+  then have "inj_on f domain"
+    using bij_betw_def by auto
+
+  then show ?thesis
+    by (simp add: that)
+qed
+
+lemma inj_on': assumes "finite domain" "infinite image_subset"
+  obtains f where 
+    "inj_on (f :: 'a \<Rightarrow> 'b) domain"
+    "f ` domain \<subseteq> image_subset"
+proof- 
+  let ?image = "UNIV :: 'b set"
+  let ?domain_size = "card domain"
+
+  have "image_subset \<subseteq> ?image"
+    by simp
+
+  obtain image_subset' where 
+    "image_subset' \<subseteq> image_subset" and 
+    "card image_subset' = ?domain_size" and
+    "finite image_subset'"
+    by (meson assms(2) infinite_arbitrarily_large)
+
+  then obtain f where bij: "bij_betw f domain image_subset'" 
+    using bij_betw assms(1)
+    by blast
+
+  then have inj: "inj_on f domain"
+    using bij_betw_def by auto
+
+  with bij have "f ` domain \<subseteq> image_subset"
+    by (simp add: \<open>image_subset' \<subseteq> image_subset\<close> bij_betw_def)
+
+  with inj show ?thesis 
+    using that
+    by blast
+qed
+
+lemma inj': assumes "finite domain" "infinite image_subset"
+  obtains f where 
+    "inj (f :: 'a \<Rightarrow> 'a)"
+    "f ` domain \<subseteq> image_subset"
+proof- 
+  let ?image = "UNIV :: 'b set"
+  let ?domain_size = "card domain"
+
+  have "image_subset \<subseteq> ?image"
+    by simp
+
+  obtain image_subset' where 
+    image_subset': "image_subset' \<subseteq> image_subset - domain" 
+    "card image_subset' = ?domain_size"
+    "finite image_subset'"
+    by (meson assms(1) assms(2) finite_Diff2 infinite_arbitrarily_large)
+
+  then have domain_image_subset'_distinct: "domain \<inter> image_subset' = {}"
+    by blast
+
+  obtain image_subset'_inv domain_inv where xy:
+    "image_subset'_inv = UNIV - image_subset'"
+    "domain_inv = UNIV - domain"
+    by blast
+
+   then have "infinite image_subset'_inv" "infinite domain_inv"
+     using assms(1, 2)
+      apply (metis Diff_UNIV Diff_infinite_finite finite.emptyI image_subset'(3))
+     by (metis \<open>domain_inv = UNIV - domain\<close> assms(1) assms(2) finite_Diff2 finite_Int inf_top.right_neutral)
+
+  obtain f where 
+    f: 
+      "bij_betw f domain image_subset'"
+      "bij_betw f image_subset' domain"
+      "\<And>x. x \<notin> domain \<Longrightarrow> x \<notin> image_subset' \<Longrightarrow> f x = x"
+    using bij_betw''[OF assms(1) image_subset'(3) image_subset'(2) domain_image_subset'_distinct]
+    by blast
+
+  have domain_univ: "domain_inv \<union> domain = UNIV"
+    using xy
+    by simp
+
+  have domainx: "domain_inv \<inter> domain = {}"
+    using xy
+    by blast
+
+  from f have inj_on: "inj_on f domain"
+    using bij_betw_def by auto
+
+  have "\<And>x y. f x = f y \<Longrightarrow> x = y"
+    by (metis bij_betw_apply bij_betw_inv_into_left disjoint_iff domain_image_subset'_distinct f)
+
+  then have inj: "inj f"
+    using inj_def by blast
+
+  from inj_on f(1) have "f ` domain \<subseteq> image_subset"
+    by (metis Diff_subset bij_betw_def image_subset'(1) order_trans)
+
+  with inj show ?thesis 
+    using that
+    by blast
+qed
+
+lemma test: " (\<forall>x. is_Var (\<rho> x)) \<Longrightarrow> Var ` vars_term (term \<cdot>t \<rho>) = \<rho> ` (vars_term term)" 
+  apply(cases "term")
+   apply auto
+     apply (metis term.disc(2) term.set_cases(2))
+    apply (metis image_iff term.collapse(1) term.set_sel(3))
+  apply (smt (verit, ccfv_SIG) UN_iff image_the_Var_image_subst_renaming_eq member_image_the_Var_image_subst vars_term_subst_apply_term)
+  by (metis (no_types, lifting) UN_iff image_eqI term.collapse(1) term.set_sel(3) vars_term_subst)
+
+lemma  (in first_order_superposition_calculus) test_atom: 
+  assumes "(\<forall>x. is_Var (\<rho> x))"
+  shows "Var ` vars_atom (atom \<cdot>a \<rho>) = \<rho> ` vars_atom atom"
+  using test[OF assms]
+  unfolding vars_atom_def subst_atom_def
+  apply auto
+   apply (smt (verit, del_insts) UN_iff image_iff uprod.set_map)
+  by (smt (verit, ccfv_threshold) UN_I image_iff uprod.set_map)
+
+lemma (in first_order_superposition_calculus) test_literal: 
+  assumes "(\<forall>x. is_Var (\<rho> x))"
+  shows "Var ` vars_literal (literal \<cdot>l \<rho>) = \<rho> ` vars_literal literal"
+  using test_atom[OF assms]
+  unfolding vars_literal_def subst_literal_def
+  by (metis literal.map_sel(1) literal.map_sel(2))
+
+lemma (in first_order_superposition_calculus) test_clause: 
+  assumes "(\<forall>x. is_Var (\<rho> x))"
+  shows "Var ` vars_clause (clause \<cdot> \<rho>) = \<rho> ` vars_clause clause"
+  using test_literal[OF assms]
+  unfolding vars_clause_def subst_clause_def
+  apply auto
+   apply (smt (verit, ccfv_threshold) UN_iff image_iff)
+  using image_iff by fastforce 
+
+lemma renaming_exists: 
+  assumes  
+    "infinite (UNIV :: 'v set)"
+    "finite (X :: 'v set)"
+    "finite Y"
+  obtains \<rho>\<^sub>1 \<rho>\<^sub>2 where
+    "term_subst.is_renaming \<rho>\<^sub>1" 
+    "term_subst.is_renaming \<rho>\<^sub>2"
+    "\<rho>\<^sub>1 ` X \<inter> \<rho>\<^sub>2 ` Y = {}"
+proof-
+  let ?newVars = "{ var | var . var \<notin> Y }"
+
+  have "infinite ?newVars"
+    using assms(1, 3)
+    by simp
+
+  obtain renaming where 
+    renaming: "inj renaming" "renaming ` X \<subseteq> ?newVars"
+    using inj'
+    by (metis \<open>infinite {var |var. var \<notin> Y}\<close> assms(2))
+
+  from renaming obtain \<rho>\<^sub>1 where 
+    \<rho>\<^sub>1: "(\<rho>\<^sub>1 :: 'v \<Rightarrow> ('a, 'v) term)  = (\<lambda>var. Var (renaming var))"
+    by blast
+
+  have "inj \<rho>\<^sub>1" "(\<forall>x. is_Var (\<rho>\<^sub>1 x))"
+    unfolding \<rho>\<^sub>1
+    using renaming(1)
+    by (simp_all add: inj_on_def)
+    
+  then have "term_subst.is_renaming \<rho>\<^sub>1"
+    by (simp add: term_subst_is_renaming_iff)
+
+  moreover have "term_subst.is_renaming Var"
+    by simp
+
+  moreover have "\<rho>\<^sub>1 ` X \<inter>  Var ` Y = {}"
+    using \<rho>\<^sub>1 renaming(2) by auto
+
+  ultimately show ?thesis  
+    using that
+    by blast
+qed
+
+lemma finite_vars_atom [simp]:
+  "finite (vars_atom atom)"
+  unfolding vars_atom_def
+  by simp
+
+lemma finite_vars_literal [simp]:
+  "finite (vars_literal literal)"
+  unfolding vars_literal_def
+  by simp
+
+lemma finite_vars_clause [simp]:
+  "finite (vars_clause clause)"
+  unfolding vars_clause_def
+  by auto
+
+context first_order_superposition_calculus
+begin
+
+lemmas term_renaming_exists = 
+  renaming_exists[OF infinite_variable_universe finite_vars_term finite_vars_term]
+
+lemmas atom_renaming_exists = 
+  renaming_exists[OF infinite_variable_universe finite_vars_atom finite_vars_atom]
+
+lemmas literal_renaming_exists = 
+  renaming_exists[OF infinite_variable_universe finite_vars_literal finite_vars_literal]
+
+lemmas clause_renaming_exists = 
+  renaming_exists[OF infinite_variable_universe finite_vars_clause finite_vars_clause]
+
+end
+
+(* TODO: *)
+
+lemma term_subst_if: "term \<cdot>t (\<lambda>var. if var \<in> vars_term term then x var else y var) = term \<cdot>t (\<lambda>var. x var)"
+  by (smt (verit, ccfv_threshold) term_subst_eq)
+
+lemma atom_subst_if: "atom \<cdot>a (\<lambda>var. if var \<in> vars_atom atom then x var else y var) = atom \<cdot>a (\<lambda>var. x var)"
+  using term_subst_if
+  unfolding subst_atom_def vars_atom_def
+  by (smt (verit, ccfv_SIG) UN_I term_subst_eq uprod.map_cong0)
+
+lemma literal_subst_if: "literal \<cdot>l (\<lambda>var. if var \<in> vars_literal literal then x var else y var) = literal \<cdot>l (\<lambda>var. x var)"
+  using atom_subst_if
+  unfolding subst_literal_def vars_literal_def
+  by(cases "literal") auto
+
+lemma literal_subst_if': "literal \<in># clause
+   \<Longrightarrow> literal \<cdot>l (\<lambda>var. if  \<exists>x\<in>#clause. var \<in> vars_literal x then x var else y var) = literal \<cdot>l (\<lambda>var. x var)"
+  unfolding vars_literal_def subst_literal_def
+  apply(cases literal)
+   apply auto
+  by (smt (verit) UN_I literal.sel subst_atom_def term_subst_eq uprod.map_cong0 vars_atom_def)+
+  
+(* TODO: generalize? *)
+lemma clause_subst_if: "clause \<cdot> (\<lambda>var. if var \<in> vars_clause clause then x var else y var) = clause \<cdot> (\<lambda>var. x var)"
+  unfolding subst_clause_def vars_clause_def 
+  using literal_subst_if'[of _ clause x y]
+  by simp
+
+lemma term_subst_if'': "vars_term term\<^sub>1 \<subseteq> vars_term term\<^sub>2 \<Longrightarrow> term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) = term\<^sub>1 \<cdot>t (\<lambda>var. x var)"
+  apply(cases term\<^sub>1; cases term\<^sub>2)
+     apply auto
+   apply (smt (verit, ccfv_SIG) SUP_le_iff empty_iff singletonD subset_singletonD term_subst_eq)
+  by (smt (verit, del_insts) Term.term.simps(18) subsetD term.distinct(1) term.inject(2) term.set_cases(2) term.set_intros(4) term_subst_eq)
+
+lemma atom_subst_if'': "vars_atom atom\<^sub>1 \<subseteq> vars_atom atom\<^sub>2 \<Longrightarrow> atom\<^sub>1 \<cdot>a (\<lambda>var. if var \<in> vars_atom atom\<^sub>2 then x var else y var) = atom\<^sub>1 \<cdot>a (\<lambda>var. x var)"
+  using term_subst_if''
+  unfolding subst_atom_def vars_atom_def
+  by (smt (verit, del_insts) SUP_le_iff eval_same_vars_cong in_mono uprod.map_cong0)
+
+lemma literal_subst_if'': "vars_literal literal\<^sub>1 \<subseteq> vars_literal literal\<^sub>2 \<Longrightarrow> literal\<^sub>1 \<cdot>l (\<lambda>var. if var \<in> vars_literal literal\<^sub>2 then x var else y var) = literal\<^sub>1 \<cdot>l (\<lambda>var. x var)"
+  using atom_subst_if''
+  unfolding subst_literal_def vars_literal_def
+  by(cases literal\<^sub>1) auto
+
+lemma clause_subst_if''': "literal \<in># clause \<Longrightarrow> literal \<cdot>l (\<lambda>var. if var \<in> vars_clause clause then x var else y var) = literal \<cdot>l (\<lambda>var. x var)"
+  unfolding vars_literal_def subst_literal_def vars_clause_def
+    apply(cases literal)
+   apply auto
+  apply (smt (verit, ccfv_SIG) UN_I subst_atom_def term_subst_eq upair_in_literal(1) uprod.map_cong0 vars_atom_def)
+   by (smt (verit) UN_I subst_atom_def term_subst_eq upair_in_literal(2) uprod.map_cong0 vars_atom_def)
+
+(* TODO: *)
+lemma clause_subst_if': "clause\<^sub>1 \<subseteq># clause\<^sub>2 \<Longrightarrow> clause\<^sub>1 \<cdot> (\<lambda>var. if var \<in> vars_clause clause\<^sub>2 then x var else y var) = clause\<^sub>1 \<cdot> (\<lambda>var. x var)"
+  unfolding subst_clause_def vars_clause_def 
+  using clause_subst_if'''[of _ clause\<^sub>2 x y]
+  by (metis (no_types, lifting) ext image_mset_cong2 mset_subsetD subset_mset.antisym_conv2 vars_clause_def)
+
+lemma term_subst_if_2: "vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<Longrightarrow> term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) = term\<^sub>1 \<cdot>t (\<lambda>var. y var)"
+  apply(cases term\<^sub>1; cases term\<^sub>2)
+     apply auto
+   apply (smt (verit, ccfv_SIG) term_subst_eq)
+  by (smt (verit, ccfv_SIG) UN_I disjoint_iff term_subst_eq)
+
+lemma atom_subst_if_2: "vars_atom atom\<^sub>1 \<inter> vars_atom atom\<^sub>2 = {} \<Longrightarrow> atom\<^sub>1 \<cdot>a (\<lambda>var. if var \<in> vars_atom atom\<^sub>2 then x var else y var) = atom\<^sub>1 \<cdot>a (\<lambda>var. y var)"
+  apply(cases atom\<^sub>1; cases atom\<^sub>2)
+  using term_subst_if_2
+  by (smt (verit, ccfv_SIG) IntI UN_I empty_iff subst_atom_def term_subst_eq uprod.map_cong0 vars_atom_def)
+
+lemma literal_subst_if_2: "vars_literal literal\<^sub>1 \<inter> vars_literal literal\<^sub>2 = {} \<Longrightarrow> literal\<^sub>1 \<cdot>l (\<lambda>var. if var \<in> vars_literal literal\<^sub>2 then x var else y var) = literal\<^sub>1 \<cdot>l (\<lambda>var. y var)"
+   unfolding subst_literal_def vars_literal_def
+   apply(cases literal\<^sub>1; cases literal\<^sub>2)
+   apply auto
+   using atom_subst_if_2 by blast+
+
+abbreviation lift_to_atom 
+  where "lift_to_atom P \<equiv> \<lambda>atom. \<forall>term \<in> set_uprod atom. P term"
+
+abbreviation lift_to_literal 
+  where "lift_to_literal P \<equiv> \<lambda>literal. P (atm_of literal)"
+
+abbreviation lift_to_clause 
+  where "lift_to_clause P \<equiv> \<lambda>clause.  \<forall>literal \<in># clause. P literal"
+
+abbreviation lift_term_predicate_to_clause 
+  where "lift_term_predicate_to_clause P \<equiv> lift_to_clause (lift_to_literal (lift_to_atom P))"
+
+abbreviation lift_to_atom2 
+  where "lift_to_atom2 P \<equiv> \<lambda>atom\<^sub>1 atom\<^sub>2. \<forall>term\<^sub>1 \<in> set_uprod atom\<^sub>1. \<forall>term\<^sub>2 \<in> set_uprod atom\<^sub>2. P term\<^sub>1 term\<^sub>2"
+
+abbreviation lift_to_literal2
+  where "lift_to_literal2 P \<equiv> \<lambda>literal\<^sub>1 literal\<^sub>2. P (atm_of literal\<^sub>1) (atm_of literal\<^sub>2)"
+
+abbreviation lift_to_clause2 
+  where "lift_to_clause2 P \<equiv> \<lambda>clause\<^sub>1 clause\<^sub>2.  \<forall>literal\<^sub>1 \<in># clause\<^sub>1. \<forall>literal\<^sub>2 \<in># clause\<^sub>2. P literal\<^sub>1 literal\<^sub>2"
+
+abbreviation lift_term_predicate_to_clause2 
+  where "lift_term_predicate_to_clause2 P \<equiv> lift_to_clause2 (lift_to_literal2 (lift_to_atom2 P))"
+
+
+lemma clause_if_term: "\<forall>term. P term \<Longrightarrow> P' = lift_term_predicate_to_clause P \<Longrightarrow> P' clause"
+  by auto
+
+lemma clause2_if_term: "\<forall>term\<^sub>1 term\<^sub>2. P term\<^sub>1 term\<^sub>2 \<Longrightarrow> P' = lift_term_predicate_to_clause2 P \<Longrightarrow> P' clause\<^sub>1 clause\<^sub>2"
+  by auto
+
+lemma test': "\<forall> term\<^sub>1 term\<^sub>2. vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<longrightarrow> term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) = term\<^sub>1 \<cdot>t (\<lambda>var. y var)"
+  using term_subst_if_2 by blast
+
+lemma test_atom': "(lift_to_atom2
+                    (\<lambda>term\<^sub>1 term\<^sub>2.
+                        vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<longrightarrow>
+                        term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) =
+                        term\<^sub>1 \<cdot>t y)) atom\<^sub>1 atom\<^sub>2 =
+                        (vars_atom atom\<^sub>1 \<inter> vars_atom atom\<^sub>2 = {} \<longrightarrow>
+                        atom\<^sub>1 \<cdot>a (\<lambda>var. if var \<in> vars_atom atom\<^sub>2 then x var else y var) =
+                        atom\<^sub>1 \<cdot>a y)"
+  apply auto
+  using atom_subst_if_2 apply blast
+  using test' by blast+
+
+lemma test_atom: "lift_to_atom2
+                    (\<lambda>term\<^sub>1 term\<^sub>2.
+                        vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<longrightarrow>
+                        term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) =
+                        term\<^sub>1 \<cdot>t y) = (\<lambda>atom\<^sub>1 atom\<^sub>2.
+                        vars_atom atom\<^sub>1 \<inter> vars_atom atom\<^sub>2 = {} \<longrightarrow>
+                        atom\<^sub>1 \<cdot>a (\<lambda>var. if var \<in> vars_atom atom\<^sub>2 then x var else y var) =
+                        atom\<^sub>1 \<cdot>a y)"
+  using test_atom' 
+  by fast
+
+lemma test_literal': "(lift_to_literal2 (lift_to_atom2
+                    (\<lambda>term\<^sub>1 term\<^sub>2.
+                        vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<longrightarrow>
+                        term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) =
+                        term\<^sub>1 \<cdot>t y))) literal\<^sub>1 literal\<^sub>2 = (
+                        vars_literal literal\<^sub>1 \<inter> vars_literal literal\<^sub>2 = {} \<longrightarrow>
+                        literal\<^sub>1 \<cdot>l (\<lambda>var. if var \<in> vars_literal literal\<^sub>2 then x var else y var) =
+                        literal\<^sub>1 \<cdot>l y)"
+  apply auto
+  using literal_subst_if_2 apply blast
+  using test' by blast+
+
+lemma test_literal: "lift_to_literal2 (lift_to_atom2
+                    (\<lambda>term\<^sub>1 term\<^sub>2.
+                        vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<longrightarrow>
+                        term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) =
+                        term\<^sub>1 \<cdot>t y)) = (\<lambda>literal\<^sub>1 literal\<^sub>2.
+                        vars_literal literal\<^sub>1 \<inter> vars_literal literal\<^sub>2 = {} \<longrightarrow>
+                        literal\<^sub>1 \<cdot>l (\<lambda>var. if var \<in> vars_literal literal\<^sub>2 then x var else y var) =
+                        literal\<^sub>1 \<cdot>l y)"
+  using test_literal'
+  by fast
+
+lemma test_clause': 
+  "(lift_to_clause2 (lift_to_literal2 (lift_to_atom2
+                    (\<lambda>term\<^sub>1 term\<^sub>2.
+                        vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<longrightarrow>
+                        term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) =
+                        term\<^sub>1 \<cdot>t y)))) (clause\<^sub>1 :: ('f, 'v) atom clause) (clause\<^sub>2 :: ('f, 'v) atom clause) = (
+                        vars_clause clause\<^sub>1 \<inter> vars_clause clause\<^sub>2 = {} \<longrightarrow>
+                        clause\<^sub>1 \<cdot> (\<lambda>var. if var \<in> vars_clause clause\<^sub>2 then x var else y var) =
+                        clause\<^sub>1 \<cdot> y)"
+  apply(auto simp: test_literal')
+  subgoal 
+  proof-
+    assume a: "lift_to_clause
+      (\<lambda>literal\<^sub>1.
+          lift_to_clause
+           (\<lambda>literal\<^sub>2.
+               vars_literal literal\<^sub>1 \<inter> vars_literal literal\<^sub>2 = {} \<longrightarrow>
+               literal\<^sub>1 \<cdot>l (\<lambda>var. if var \<in> vars_literal literal\<^sub>2 then x var else y var) =
+               literal\<^sub>1 \<cdot>l y)
+           clause\<^sub>2)
+      clause\<^sub>1" 
+      "vars_clause clause\<^sub>1 \<inter> vars_clause clause\<^sub>2 = {}"
+
+    then have "lift_to_clause
+      (\<lambda>literal\<^sub>1.
+          lift_to_clause
+           (\<lambda>literal\<^sub>2.
+               literal\<^sub>1 \<cdot>l (\<lambda>var. if var \<in> vars_literal literal\<^sub>2 then x var else y var) =
+               literal\<^sub>1 \<cdot>l y)
+           clause\<^sub>2)
+      clause\<^sub>1"
+      apply auto
+      by (smt (verit, ccfv_threshold) inf_assoc inf_bot_left inf_commute inf_sup_absorb multi_member_split vars_clause_add_mset)
+
+    then have "lift_to_clause
+     (\<lambda>literal.
+              literal \<cdot>l (\<lambda>var. if var \<in> vars_clause clause\<^sub>2 then x var else y var) =
+              literal \<cdot>l y)
+     clause\<^sub>1"
+      unfolding vars_clause_def
+      apply auto
+    proof-
+      fix literal
+      assume a': "lift_to_clause
+         (\<lambda>literal.
+             lift_to_clause
+              (\<lambda>literala.
+                  literal \<cdot>l (\<lambda>var. if var \<in> vars_literal literala then x var else y var) =
+                  literal \<cdot>l y)
+              clause\<^sub>2)
+         clause\<^sub>1"
+      "literal \<in># clause\<^sub>1"
+
+      have "\<And>var. var \<in> vars_literal literal \<Longrightarrow> \<not>literal \<in># clause\<^sub>2"
+        using a'(2) a(2)
+        unfolding vars_clause_def
+        by auto
+
+      then have "\<And>var. var \<in> vars_literal literal \<Longrightarrow>  \<not> var \<in> \<Union> (vars_literal ` set_mset clause\<^sub>2)"
+        apply auto
+        by (metis IntI UN_I a'(2) a(2) emptyE vars_clause_def)
+
+      then have "literal \<cdot>l (\<lambda>var. if var \<in> \<Union> (vars_literal ` set_mset clause\<^sub>2) then x var else y var) =
+           literal \<cdot>l y "
+        unfolding  subst_literal_def vars_literal_def
+        apply auto
+        by (smt (verit, ccfv_SIG) UN_I literal.expand literal.map_disc_iff literal.map_sel(1) literal.map_sel(2) subst_atom_def term_subst_eq uprod.map_cong0 vars_atom_def)
+
+      then show "literal \<cdot>l (\<lambda>var. if \<exists>x\<in>#clause\<^sub>2. var \<in> vars_literal x then x var else y var) =
+           literal \<cdot>l y " 
+        by auto
+    qed  
+    
+
+    then show ?thesis
+      unfolding vars_clause_def subst_clause_def
+      by auto
+  qed
+  using literal_subst_if_2 by blast+
+
+lemma test_clause: "lift_to_clause2 (lift_to_literal2 (lift_to_atom2
+                    (\<lambda>term\<^sub>1 term\<^sub>2.
+                        vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<longrightarrow>
+                        term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) =
+                        term\<^sub>1 \<cdot>t y))) = (\<lambda>(clause\<^sub>1 :: ('f, 'v) atom clause) (clause\<^sub>2 :: ('f, 'v) atom clause).
+                        vars_clause clause\<^sub>1 \<inter> vars_clause clause\<^sub>2 = {} \<longrightarrow>
+                        clause\<^sub>1 \<cdot> (\<lambda>var. if var \<in> vars_clause clause\<^sub>2 then x var else y var) =
+                        clause\<^sub>1 \<cdot> y)"
+  using test_clause' 
+  by fast
+ 
+lemma clause_subst_if_2: "vars_clause (clause\<^sub>1 :: ('f, 'v) atom clause)  \<inter> vars_clause (clause\<^sub>2 :: ('f, 'v) atom clause) = {} \<longrightarrow> clause\<^sub>1 \<cdot> (\<lambda>var. if var \<in> vars_clause clause\<^sub>2 then x var else y var) = clause\<^sub>1 \<cdot> (\<lambda>var. y var)"
+  apply(rule clause2_if_term[OF test', of "\<lambda>clause\<^sub>1 clause\<^sub>2. vars_clause clause\<^sub>1 \<inter> vars_clause clause\<^sub>2 = {} \<longrightarrow> clause\<^sub>1 \<cdot> (\<lambda>var. if var \<in> vars_clause clause\<^sub>2 then x var else y var) = clause\<^sub>1 \<cdot> (\<lambda>var. y var)", of x y])
+  by (simp add: test_clause)
+
+lemma vars_clause_subset: "clause\<^sub>1 \<subseteq># clause\<^sub>2 \<Longrightarrow> vars_clause clause\<^sub>1 \<subseteq> vars_clause clause\<^sub>2"
+  by (metis Un_subset_iff order_refl subset_mset.add_diff_inverse vars_clause_plus)
+
+lemma (in first_order_superposition_calculus_with_grounding) superposition_ground_instance': 
   assumes 
     "\<iota>\<^sub>G \<in> ground.superposition_inferences"
     "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))" 
@@ -2188,28 +2845,133 @@ proof-
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
     by simp_all
 
-  obtain premise\<^sub>1 \<rho>\<^sub>1 premise\<^sub>2 \<rho>\<^sub>2 conclusion \<theta> where
-    "to_clause premise\<^sub>G\<^sub>1 = premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>" and
-    "to_clause premise\<^sub>G\<^sub>2 = premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>" and
-    "to_clause conclusion\<^sub>G = conclusion \<cdot> \<theta>" and
-    select: 
-      "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>))) = select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>"
-      "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>))) = select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>" and
+  obtain premise\<^sub>1 premise\<^sub>2 \<theta>\<^sub>1 \<theta>\<^sub>2 where
+    premise\<^sub>1_\<theta>\<^sub>1: "premise\<^sub>1 \<cdot> \<theta>\<^sub>1 = to_clause premise\<^sub>G\<^sub>1" and
+    premise\<^sub>2_\<theta>\<^sub>2: "premise\<^sub>2 \<cdot> \<theta>\<^sub>2 = to_clause premise\<^sub>G\<^sub>2" and
+    select': 
+      "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<theta>\<^sub>1))) = select premise\<^sub>1 \<cdot> \<theta>\<^sub>1"
+      "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<theta>\<^sub>2))) = select premise\<^sub>2 \<cdot> \<theta>\<^sub>2" and
     premise\<^sub>1_in_premises: "premise\<^sub>1 \<in> premises" and
     premise\<^sub>2_in_premises: "premise\<^sub>2 \<in> premises"
-    using assms(2, 4) premise\<^sub>G\<^sub>1_in_groundings premise\<^sub>G\<^sub>2_in_groundings
-    unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
-    by (smt (z3) ground_clause_is_ground subst_ground_clause)
+     using assms(2, 4) premise\<^sub>G\<^sub>1_in_groundings premise\<^sub>G\<^sub>2_in_groundings
+     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
+     by (metis (no_types, lifting))
 
-  then have "non_redundant_superposition premise\<^sub>1 \<rho>\<^sub>1 \<theta>"
-    using assms(3)
-    unfolding non_redundant_superposition_def ground.Red_I_def
-    sorry
-    
-  thm superposition_ground_instance
+  obtain \<rho>\<^sub>1 \<rho>\<^sub>2 where
+    renaming: 
+      "term_subst.is_renaming (\<rho>\<^sub>1 :: ('a, 'b) subst)" 
+      "term_subst.is_renaming \<rho>\<^sub>2" 
+      "\<rho>\<^sub>1 ` vars_clause premise\<^sub>1 \<inter> \<rho>\<^sub>2 ` vars_clause premise\<^sub>2 = {}"
+    using clause_renaming_exists[of premise\<^sub>1 premise\<^sub>2]. 
 
-  show ?thesis
-    sorry
+  (* TODO: *)
+  then have vars_distinct: "vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}"
+    using test_clause[symmetric] term_subst_is_renaming_iff[of \<rho>\<^sub>1]  term_subst_is_renaming_iff[of \<rho>\<^sub>2]  
+    by (smt (verit, del_insts) disjoint_iff imageI)
+
+  from renaming obtain \<rho>\<^sub>1_inv \<rho>\<^sub>2_inv where
+     \<rho>\<^sub>1_inv: "\<rho>\<^sub>1 \<odot> \<rho>\<^sub>1_inv = Var" and
+     \<rho>\<^sub>2_inv: "\<rho>\<^sub>2 \<odot> \<rho>\<^sub>2_inv = Var"
+    unfolding term_subst.is_renaming_def
+    by blast
+
+  have select_subset: "select premise\<^sub>1 \<subseteq># premise\<^sub>1" "select premise\<^sub>2 \<subseteq># premise\<^sub>2"
+    by (simp_all add: select_subset)
+
+  then have a: "select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<subseteq># premise\<^sub>1 \<cdot> \<rho>\<^sub>1"  "select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<subseteq># premise\<^sub>2 \<cdot> \<rho>\<^sub>2"
+    by (simp_all add: image_mset_subseteq_mono subst_clause_def)
+
+  have "vars_clause (select premise\<^sub>2 \<cdot> \<rho>\<^sub>2) \<subseteq> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2)"
+    using vars_clause_subset[OF a(2)].
+
+  then have b: "vars_clause (select premise\<^sub>2 \<cdot> \<rho>\<^sub>2) \<inter> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) = {}"
+    using vars_distinct
+    by blast
+
+  obtain \<theta> where "\<theta> = (\<lambda>var. 
+      if var \<in> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) 
+      then (\<rho>\<^sub>1_inv \<odot> \<theta>\<^sub>1) var 
+      else (\<rho>\<^sub>2_inv \<odot> \<theta>\<^sub>2) var
+    )"
+    by simp
+
+  then have 
+    premise\<^sub>1_\<theta>: "premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta> = to_clause premise\<^sub>G\<^sub>1" and
+    premise\<^sub>2_\<theta>: "premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta> = to_clause premise\<^sub>G\<^sub>2" and
+    select: 
+      "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>))) = select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>"
+      "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>))) = select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>"
+    using premise\<^sub>1_\<theta>\<^sub>1 premise\<^sub>2_\<theta>\<^sub>2 select' 
+       apply auto
+
+    unfolding clause_subst_if clause_subst_if_2[rule_format, OF vars_distinct]  clause_subst_if_2[rule_format, OF vars_distinct]
+    using \<rho>\<^sub>1_inv \<rho>\<^sub>2_inv clause_subst_if_2[of "premise\<^sub>2 \<cdot> \<rho>\<^sub>2" "premise\<^sub>1 \<cdot> \<rho>\<^sub>2"]
+       apply (metis (mono_tags, lifting) clause_subst_compose subst_clause_Var_ident)
+      apply (metis (no_types) \<rho>\<^sub>2_inv clause_subst_compose clause_subst_if_2 inf_commute vars_distinct subst_clause_Var_ident)
+    unfolding clause_subst_if'[OF a(1)]  clause_subst_if_2[rule_format, OF b]
+    apply (metis (no_types, lifting) \<rho>\<^sub>1_inv clause_subst_compose select'(1) subst_clause_Var_ident)
+  proof -
+    assume a1: "premise\<^sub>2 \<cdot> \<theta>\<^sub>2 = to_clause premise\<^sub>G\<^sub>2"
+    assume a2: "to_clause (select\<^sub>G premise\<^sub>G\<^sub>2) = select premise\<^sub>2 \<cdot> \<theta>\<^sub>2"
+    have "\<forall>m f. m \<cdot> f = m \<cdot> \<rho>\<^sub>2 \<odot> (\<rho>\<^sub>2_inv \<odot> f)"
+      by (simp add: \<rho>\<^sub>2_inv)
+    then show "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> (\<lambda>b. if b \<in> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) then (\<rho>\<^sub>1_inv \<odot> \<theta>\<^sub>1) b else (\<rho>\<^sub>2_inv \<odot> \<theta>\<^sub>2) b)))) = select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<rho>\<^sub>2_inv \<odot> \<theta>\<^sub>2"
+      using a2 a1 by (simp add: clause_subst_if_2 inf_commute vars_distinct)
+  qed
+
+  obtain conclusion where conclusion_\<theta>: "to_clause conclusion\<^sub>G = conclusion \<cdot> \<theta>"
+    by (metis ground_clause_is_ground subst_ground_clause)
+   
+  then have 
+    premise\<^sub>1_grounding: "is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)" and 
+    premise\<^sub>2_grounding: "is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>)" and 
+    premise\<^sub>G\<^sub>1: "premise\<^sub>G\<^sub>1 = to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)" and 
+    premise\<^sub>G\<^sub>2: "premise\<^sub>G\<^sub>2 = to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>)" and 
+    conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<theta>)" and
+    conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<theta>)"
+    apply (simp_all add: premise\<^sub>1_\<theta> premise\<^sub>2_\<theta>)
+    by (smt ground_clause_is_ground to_clause_inverse)+
+
+  have "clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2 \<subseteq> \<Union> (clause_groundings ` premises)"
+    using premise\<^sub>1_in_premises premise\<^sub>2_in_premises by blast
+
+  then have " Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion \<cdot> \<theta>))
+  \<notin> ground.Red_I' (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
+    using assms(3) ground.Red_I_of_subset
+    unfolding \<iota>\<^sub>G  premise\<^sub>G\<^sub>1[symmetric] premise\<^sub>G\<^sub>2[symmetric] conclusion\<^sub>G[symmetric]
+    by blast
+
+ then obtain conclusion' where 
+    superposition: "superposition premise\<^sub>1 premise\<^sub>2 conclusion'" and
+    inference_groundings: 
+      "Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> 
+        inference_groundings select\<^sub>G (Infer [premise\<^sub>1, premise\<^sub>2] conclusion')" and  
+    conclusion'_conclusion: "conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
+     using superposition_ground_instance[OF 
+        renaming(1, 2)
+        vars_distinct
+        premise\<^sub>1_grounding
+        premise\<^sub>2_grounding
+        conclusion_grounding 
+        select 
+        ground_superposition[unfolded premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 conclusion\<^sub>G]
+      ]
+     by blast
+
+   let ?\<iota> = "Infer [premise\<^sub>1, premise\<^sub>2] conclusion'"
+
+   have "?\<iota> \<in> Inf_from premises"
+    using premise\<^sub>1_in_premises premise\<^sub>2_in_premises superposition
+    unfolding Inf_from_def inferences_def inference_system.Inf_from_def
+    by simp
+
+  moreover have "\<iota>\<^sub>G \<in> inference_groundings select\<^sub>G ?\<iota>"
+    unfolding \<iota>\<^sub>G premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 conclusion\<^sub>G conclusion'_conclusion[symmetric]
+    by(rule inference_groundings)
+
+
+  ultimately  show ?thesis
+    by blast
 qed
 
 lemma (in first_order_superposition_calculus_with_grounding) ground_instances: 
@@ -2238,7 +3000,7 @@ proof-
       assms
       equality_resolution_ground_instance'
       equality_factoring_ground_instance'
-      xx_superposition
+      superposition_ground_instance'
     by presburger
 qed
 
