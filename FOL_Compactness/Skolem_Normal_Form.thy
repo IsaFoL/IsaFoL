@@ -328,7 +328,7 @@ proof (clarsimp)
         unfolding language_def is_interpretation_def
         by (metis l_in_dom_I prod.inject)
     qed
-    find_theorems " _, _ \<Turnstile> _" name: subs
+    find_theorems " _, _ \<Turnstile> _" name: indep
     thm holds_indep_intrp_if swap_subst_eval subst_lemma_terms
     have holds_M_phi: \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
     proof clarsimp
@@ -336,8 +336,29 @@ proof (clarsimp)
       assume \<open>\<forall>v. \<beta> v \<in> dom M\<close>
       then have \<open>\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>\<close>
         using ex_a_mod_phi dom_M_I_eq by blast
+      then have \<open>x \<notin> FV \<phi> \<Longrightarrow> I,\<beta> \<Turnstile> \<phi>\<close>
+        using holds_indep_\<beta>_if by (metis fun_upd_other)
+      thm holds.induct
+      have \<open>\<forall>v. \<beta> v \<in> dom M \<Longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>) \<Longrightarrow> M,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
+      proof (induction \<phi> arbitrary: \<beta>)
+        case Bot
+        then show ?case by auto
+      next
+        case (Atom p ts)
+        then show ?case  sorry
+      next
+        case (Implies \<phi>1 \<phi>2)
+        then show ?case sorry
+      next
+        case (Forall x1 \<phi>)
+        then show ?case sorry
+      qed
+      thm subst_lemma_terms
+      have \<open>M,(\<lambda>v. \<lbrakk>subst x (Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))) v\<rbrakk>\<^bsup>M,\<beta>\<^esup>) \<Turnstile> \<phi>\<close>
+        sorry
       then show \<open>M,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
-        unfolding skolem1_def using swap_subst_eval subst_lemma_terms sledgehammer
+        unfolding skolem1_def using swap_subst_eval by blast
+
         sorry
     qed
     show \<open>\<exists>M. dom M = dom I \<and>
