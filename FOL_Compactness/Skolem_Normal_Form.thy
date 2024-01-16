@@ -60,7 +60,7 @@ qed
           f,LENGTH zs IN functions_form p ==> (Fun M f zs = Fun M' f zs))
      ==> holds M' v p` *)
 (* essentially a repeat of holds_indep_intrp_if... needed? *)
-lemma \<open>(I :: 'a intrp), \<beta> \<Turnstile> \<phi> \<Longrightarrow> dom I = dom (I' :: 'a intrp) \<Longrightarrow>
+lemma holds_indep_intrp_if2: \<open>(I :: 'a intrp), \<beta> \<Turnstile> \<phi> \<Longrightarrow> dom I = dom (I' :: 'a intrp) \<Longrightarrow>
   (\<forall>p. intrp_rel I p  = intrp_rel I' p) \<Longrightarrow>
   (\<forall>f zs. (f, length zs) \<in> functions_form \<phi> \<longrightarrow> (intrp_fn I f zs = intrp_fn I' f zs)) \<Longrightarrow>
   I', \<beta> \<Turnstile> \<phi>\<close>
@@ -102,6 +102,26 @@ proof -
     by blast
 qed
 
+lemma func_form_subst: \<open>x \<in> FV \<phi> \<Longrightarrow> (f, length ts) \<in> functions_form (\<phi>  \<cdot>\<^sub>f\<^sub>m subst x (Fun f ts))\<close>
+proof (induction \<phi> rule: functions_form.induct)
+  case 1
+  then show ?case by simp
+next
+  case (2 p ts)
+  then show ?case
+    by (metis (no_types, lifting) UnCI eval_term.simps(1) formsubst_functions_form 
+        functions_term.simps(2) mem_Collect_eq singletonI subst_simps(1))
+next
+  case (3 \<phi> \<psi>)
+  then show ?case
+    by auto
+next
+  case (4 y \<phi>)
+  then show ?case
+    by (metis (no_types, lifting) UnI2 Un_commute eval_term.simps(1) formsubst_functions_form 
+        functions_term.simps(2) mem_Collect_eq singletonI subst_simps(1))
+qed
+  
 
 lemma holds_skolem1: 
   assumes prenex_ex_phi: \<open>is_prenex (\<^bold>\<exists>x\<^bold>. \<phi>)\<close> and
@@ -329,23 +349,59 @@ proof (clarsimp)
         by (metis l_in_dom_I prod.inject)
     qed
     find_theorems " _, _ \<Turnstile> _" name: indep
-    thm holds_indep_intrp_if swap_subst_eval subst_lemma_terms
+    thm holds_indep_intrp_if swap_subst_eval subst_lemma_terms holds.induct
     have holds_M_phi: \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
     proof clarsimp
       fix \<beta> :: "nat \<Rightarrow> 'a"
-      assume \<open>\<forall>v. \<beta> v \<in> dom M\<close>
+      assume eval_in_dom: \<open>\<forall>v. \<beta> v \<in> dom M\<close>
       then have \<open>\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>\<close>
         using ex_a_mod_phi dom_M_I_eq by blast
       then have \<open>x \<notin> FV \<phi> \<Longrightarrow> I,\<beta> \<Turnstile> \<phi>\<close>
         using holds_indep_\<beta>_if by (metis fun_upd_other)
-      thm holds.induct
+      thm holds.induct size_wf_ind
+      have \<open>M,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
+        using ex_a_mod_phi
+      proof (induction \<phi> rule: size_wf_induct)
+        case (1 \<psi>)
+        assume ex_a_mod_psi: \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<psi>)\<close> and
+          IH: \<open>size y < size \<psi> \<Longrightarrow>
+            \<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> y) \<Longrightarrow>
+            M,\<beta> \<Turnstile> skolem1 f x y\<close> for y
+        have holds_psi: \<open>\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<psi>\<close>
+          using ex_a_mod_psi eval_in_dom dom_M_I_eq by blast
+        then show ?case
+        proof (cases \<psi>)
+          case Bot
+          then show ?thesis 
+            unfolding skolem1_def using holds_psi by simp
+        next
+          case (Atom p ts)
+          then have \<open>\<exists>a\<in>dom I. map (\<lambda>t. \<lbrakk>t\<rbrakk>\<^bsup>I,\<beta>(x := a)\<^esup>) ts \<in> intrp_rel I p\<close>
+            using holds_psi by auto
+            
+          then have \<open>map ((\<lambda>t. \<lbrakk>t\<rbrakk>\<^bsup>M,\<beta>\<^esup>) \<circ> (\<lambda>t. t \<cdot> 
+            subst x (Fun f (map Var (sorted_list_of_set (\<Union> (FVT ` set ts) - {x})))))) ts \<in> intrp_rel M p\<close>
+            using intrp_rel_eq
+            sorry
+          then show ?thesis
+            using Atom unfolding skolem1_def by auto
+        next
+          case (Implies x31 x32)
+          then show ?thesis sorry
+        next
+          case (Forall x41 x42)
+          then show ?thesis sorry
+        qed
+      qed
+
       have \<open>\<forall>v. \<beta> v \<in> dom M \<Longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>) \<Longrightarrow> M,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
       proof (induction \<phi> arbitrary: \<beta>)
         case Bot
         then show ?case by auto
       next
         case (Atom p ts)
-        then show ?case  sorry
+        then show ?case
+          sorry
       next
         case (Implies \<phi>1 \<phi>2)
         then show ?case sorry
@@ -354,12 +410,11 @@ proof (clarsimp)
         then show ?case sorry
       qed
       thm subst_lemma_terms
-      have \<open>M,(\<lambda>v. \<lbrakk>subst x (Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))) v\<rbrakk>\<^bsup>M,\<beta>\<^esup>) \<Turnstile> \<phi>\<close>
+      find_theorems subst holds
+      then have \<open>M,(\<lambda>v. \<lbrakk>subst x (Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))) v\<rbrakk>\<^bsup>M,\<beta>\<^esup>) \<Turnstile> \<phi>\<close>
         sorry
       then show \<open>M,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
         unfolding skolem1_def using swap_subst_eval by blast
-
-        sorry
     qed
     show \<open>\<exists>M. dom M = dom I \<and>
       intrp_rel M = intrp_rel I \<and>
@@ -369,11 +424,52 @@ proof (clarsimp)
       using dom_M_I_eq intrp_rel_eq intrp_fn_eq is_interp_M holds_M_phi by blast
   qed
 
-  moreover have \<open>\<forall>N. is_interpretation (language {skolem1 f x \<phi>}) N \<and> dom N \<noteq> {} \<longrightarrow>
+  moreover have \<open>\<forall>(N :: 'a intrp). is_interpretation (language {skolem1 f x \<phi>}) N \<and> dom N \<noteq> {} \<longrightarrow>
          (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom N) \<and>
-         N,\<beta> \<Turnstile> skolem1 f x \<phi> \<longrightarrow> (\<exists>a\<in>dom N. N,\<beta>(x := a) \<Turnstile> \<phi>))\<close>
-    unfolding skolem1_def using holds_exists 
-    sorry
+           N,\<beta> \<Turnstile> skolem1 f x \<phi> \<longrightarrow> (\<exists>a\<in>dom N. N,\<beta>(x := a) \<Turnstile> \<phi>))\<close>
+  proof clarsimp
+    fix N :: "'a intrp" and \<beta>
+    assume is_intrp: \<open>is_interpretation (language {skolem1 f x \<phi>}) N\<close> and
+      nempty_N: \<open>dom N \<noteq> {}\<close> and
+      is_val: \<open>\<forall>v. \<beta> v \<in> dom N\<close> and
+      skol_holds: \<open>N,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
+    then have \<open>N,(\<lambda>v. \<lbrakk>subst x (Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))) v\<rbrakk>\<^bsup>N,\<beta>\<^esup>) \<Turnstile> \<phi>\<close>
+      unfolding skolem1_def using swap_subst_eval by blast
+    then have holds_eval_f: \<open>N,\<beta>(x := \<lbrakk>Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))\<rbrakk>\<^bsup>N,\<beta>\<^esup>) \<Turnstile> \<phi>\<close>
+      by (smt (verit, best) eval.simps(1) fun_upd_other fun_upd_same holds_indep_\<beta>_if subst_def)
+    show \<open>\<exists>a\<in>dom N. N,\<beta>(x := a) \<Turnstile> \<phi>\<close>
+    proof (cases \<open>x \<in> FV \<phi>\<close>)
+      case True
+      have eval_to_intrp: \<open>\<lbrakk>Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))\<rbrakk>\<^bsup>N,\<beta>\<^esup> =
+        intrp_fn N f [\<lbrakk>t\<rbrakk>\<^bsup>N,\<beta>\<^esup>. t \<leftarrow> map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>)))]\<close>
+        by simp
+
+      have \<open>[\<lbrakk>t\<rbrakk>\<^bsup>N,\<beta>\<^esup>. t \<leftarrow> map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>)))] =
+        [\<beta> t. t \<leftarrow> (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>)))]\<close>
+        by auto
+      then have all_in_dom: \<open>list_all (\<lambda>x. x \<in> FOL_Semantics.dom N)
+        [\<lbrakk>t\<rbrakk>\<^bsup>N,\<beta>\<^esup>. t \<leftarrow> map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>)))]\<close>
+        using is_val list_all_set by (smt (verit, ccfv_SIG) ex_map_conv)
+
+      have \<open>(f, length [\<lbrakk>t\<rbrakk>\<^bsup>N,\<beta>\<^esup>. t \<leftarrow> map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>)))]) \<in>
+        functions_form (\<phi> \<cdot>\<^sub>f\<^sub>m subst x (Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))))\<close>
+        using func_form_subst[OF True] is_intrp lang_singleton 
+        unfolding skolem1_def is_interpretation_def by (metis length_map)
+      then have \<open>\<lbrakk>Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))\<rbrakk>\<^bsup>N,\<beta>\<^esup> \<in> dom N\<close>
+        using is_intrp eval_to_intrp  all_in_dom unfolding is_interpretation_def skolem1_def
+        by (metis fst_conv lang_singleton)
+      then show ?thesis 
+        using holds_eval_f by blast
+    next
+      case False
+      obtain a where a_in: \<open>a \<in> dom N\<close>
+        using nempty_N by blast
+      then have \<open>N,\<beta>(x := a) \<Turnstile> \<phi>\<close>
+        using holds_eval_f False by (metis fun_upd_other holds_indep_\<beta>_if)
+      then show ?thesis
+        using a_in by blast
+    qed
+  qed
 
   ultimately show \<open>is_prenex (skolem1 f x \<phi>) \<and>
     FV (skolem1 f x \<phi>) = FV \<phi> - {x} \<and>
@@ -392,7 +488,7 @@ proof (clarsimp)
     (\<forall>N. is_interpretation (language {skolem1 f x \<phi>}) N \<and> dom N \<noteq> {} \<longrightarrow>
          (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom N) \<and>
          N,\<beta> \<Turnstile> skolem1 f x \<phi> \<longrightarrow> (\<exists>a\<in>dom N. N,\<beta>(x := a) \<Turnstile> \<phi>)))\<close>
-    by blast
+    sorry
 qed
 
 end

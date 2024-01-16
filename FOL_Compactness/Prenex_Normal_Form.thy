@@ -253,6 +253,9 @@ lemma wfP_ind: \<open>wfP ((<) :: ('a::ord \<Rightarrow> 'a \<Rightarrow> bool))
 lemma size_wf_ind: \<open>(\<forall>x. (\<forall>y. size y <  size x \<longrightarrow> P y) \<longrightarrow> P x) \<longrightarrow> (\<forall>x. P x)\<close>
   using wf_size by (smt (verit, best) wfP_induct)
 
+lemma size_wf_induct: \<open>(\<And>x. (\<And>y. size y <  size x \<Longrightarrow> P y) \<Longrightarrow> P x) \<Longrightarrow> P x\<close>
+  using wf_size size_wf_ind by metis
+
 lemma dependent_wfP_choice:
   fixes P :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> bool"
   assumes "wfP R"
