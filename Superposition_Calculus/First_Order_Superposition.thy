@@ -260,8 +260,6 @@ definition clause_liftings where
       \<and> premise \<in> premises"
 *)
 
-find_consts "'a set \<Rightarrow> 'a option"
-
 definition select\<^sub>G_simple2 where
   "select\<^sub>G_simple2 clause\<^sub>G clauses = 
     (if clause\<^sub>G \<in> \<Union> (clause_groundings ` clauses) 
@@ -1794,21 +1792,309 @@ lemma clause_subst_eq:
   unfolding vars_clause_def subst_clause_def
   by (metis (mono_tags, lifting) UN_I multiset.map_cong0)
 
-lemma (in first_order_superposition_calculus) term_subst_less:
+lemma (in ground_superposition_calculus) less_trm_compatible_with_gctxt':
+  assumes "ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t ctxt\<langle>t'\<rangle>\<^sub>G"
+  shows "t \<prec>\<^sub>t t'"
+proof(rule ccontr)
+  assume "\<not> t \<prec>\<^sub>t t'"
+  then have "t' \<preceq>\<^sub>t t"
+    using totalpD by fastforce    
+
+  show False
+  proof(cases "t' = t")
+    case True
+    then have "ctxt\<langle>t\<rangle>\<^sub>G = ctxt\<langle>t'\<rangle>\<^sub>G"
+      by blast
+    then show False
+      using assms
+      by (metis insert_iff irreflp_on_def irreflp_on_less_trm)
+  next
+    case False
+    then have "t' \<prec>\<^sub>t t"
+      using \<open>t' \<preceq>\<^sub>t t\<close> by fastforce
+
+    then have "ctxt\<langle>t'\<rangle>\<^sub>G \<prec>\<^sub>t ctxt\<langle>t\<rangle>\<^sub>G"
+      using less_trm_compatible_with_gctxt
+      by force
+      
+    then show ?thesis
+      using assms
+      by (meson asympD asymp_less_trm)
+  qed
+qed
+
+lemma (in ground_superposition_calculus) context_less:
+  assumes 
+    "\<And>t. ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t ctxt'\<langle>t\<rangle>\<^sub>G"
+    "t \<preceq>\<^sub>t t'"
+  shows "ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t ctxt'\<langle>t'\<rangle>\<^sub>G"
+  using assms
+  by (metis less_trm_compatible_with_gctxt reflclp_iff transpE transp_less_trm)
+
+lemma (in ground_superposition_calculus) context_less':
+  assumes 
+    "\<And>t. ctxt\<langle>t\<rangle>\<^sub>G \<preceq>\<^sub>t ctxt'\<langle>t\<rangle>\<^sub>G"
+    "t \<prec>\<^sub>t t'"
+  shows "ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t ctxt'\<langle>t'\<rangle>\<^sub>G"
+  using assms
+  by (meson less_trm_compatible_with_gctxt transpD_strict_non_strict transp_less_trm)
+
+lemma (in ground_superposition_calculus) fun_less:
+  assumes 
+    "\<forall>term \<in> set terms. g term \<preceq>\<^sub>t term"
+    "\<exists>term \<in> set terms. g term \<prec>\<^sub>t term"
+    "\<And>term. g (g term) = g term"
+  shows "GFun f (map g terms) \<prec>\<^sub>t GFun f terms"
+  using assms
+proof(induction "filter (\<lambda>term. g term \<prec>\<^sub>t term) terms" arbitrary: terms)
+  case Nil
+  then show ?case
+    unfolding empty_filter_conv
+    by blast
+next
+  case first: (Cons t ts)
+  
+  show ?case
+  proof(cases ts)
+    case Nil
+    then obtain ss1 ss2 where
+      terms: "terms = ss1 @ t # ss2"
+      using filter_eq_ConsD[OF  first.hyps(2)[symmetric]]
+      by blast
+
+    then have a: "\<forall>term \<in> set ss1. g term = term"
+      using first.hyps(2) first.prems(1) Nil
+      by (metis (no_types, lifting) Un_iff append_Cons_eq_iff filter_empty_conv filter_eq_ConsD reflclp_iff set_append)
+
+    from terms have b: "\<forall>term \<in> set ss2. g term = term"
+      using first.hyps(2) first.prems(1)
+      by (metis (no_types, lifting) Un_iff append_Cons_eq_iff filter_empty_conv filter_eq_ConsD list.set_intros(2) local.Nil reflclp_iff set_append)
+    
+    from a b have g_terms: "map g terms = ss1 @ g t # ss2"
+      by (simp add: map_idI terms)
+
+    have less: "g t \<prec>\<^sub>t t" 
+      using first.hyps(2)
+      by (metis filter_eq_ConsD)
+
+    have "(GMore f ss1 \<box>\<^sub>G ss2)\<langle>g t\<rangle>\<^sub>G \<prec>\<^sub>t (GMore f ss1 \<box>\<^sub>G ss2)\<langle>t\<rangle>\<^sub>G"
+      using less_trm_compatible_with_gctxt[OF less]
+      by blast
+
+    then show ?thesis
+      unfolding g_terms
+      unfolding terms
+      by simp
+  next
+    case (Cons t' ts')
+    from first(2) obtain ss1 ss2 where
+      terms: "terms = ss1 @ t # ss2" and
+      "(\<forall>s\<in>set ss1. \<not>  g s \<prec>\<^sub>t s)" and
+      less: "g t \<prec>\<^sub>t t" and 
+      "ts = filter (\<lambda>term. g term \<prec>\<^sub>t term) ss2"
+      using Cons_eq_filter_iff[of t ts "(\<lambda>term. g term \<prec>\<^sub>t term)"]
+      by blast
+
+    let ?terms' = "ss1 @ g t # ss2"
+
+    have "ts = filter (\<lambda>term. g term \<prec>\<^sub>t term) ?terms'"
+      by (simp add: \<open>\<forall>s\<in>set ss1. \<not> g s \<prec>\<^sub>t s\<close> \<open>ts = filter (\<lambda>term. g term \<prec>\<^sub>t term) ss2\<close> first.prems(3) irreflpD)
+
+    moreover have "\<forall>term\<in>set ?terms'. g term \<preceq>\<^sub>t term"
+      using first.prems(1) first.prems(3) terms by auto
+
+    moreover have "\<exists>term\<in>set ?terms'. g term \<prec>\<^sub>t term"
+      using calculation(1) local.Cons neq_Nil_conv by force
+
+    ultimately have terms': "GFun f (map g ?terms') \<prec>\<^sub>t GFun f ?terms'"
+      using first.hyps(1) first.prems(3) by blast
+
+    have x: "GFun f (map g (ss1 @ g t # ss2)) =  GFun f (map g (ss1 @ t # ss2))"
+      by (simp add: first.prems(3))
+
+    have "(GMore f ss1 \<box>\<^sub>G ss2)\<langle>g t\<rangle>\<^sub>G \<prec>\<^sub>t (GMore f ss1 \<box>\<^sub>G ss2)\<langle>t\<rangle>\<^sub>G"
+      using less_trm_compatible_with_gctxt[OF less].
+
+    then have "GFun f (ss1 @ g t # ss2) \<prec>\<^sub>t GFun f (ss1 @ t # ss2)"
+      by simp
+
+    with terms' show ?thesis
+      unfolding terms x
+      by (meson transpE transp_less_trm)
+  qed
+qed
+
+lemma yeah:
+  assumes
+    "var \<in> vars_term term"  
+    "is_ground_term (term \<cdot>t \<theta>)"
+  shows "\<exists>context. to_ground_term (term \<cdot>t \<theta>) = context \<langle>to_ground_term (\<theta> var)\<rangle>\<^sub>G"
+  using assms
+proof(induction "term")
+  case (Var x)
+  then show ?case
+    apply auto
+    by (metis ctxt_apply_term.simps(1) term_of_gterm_ctxt_apply term_of_gterm_inv)
+next
+  case (Fun f terms)
+  then show ?case
+    by (smt (verit, best) eval_term.simps(1) term_of_gterm_ctxt_apply testing2 to_ground_term_inverse var_in_term')
+qed
+
+(*lemma 
+  assumes "term \<in> set terms" "var \<in> vars_term term"  
+  shows "to_ground_term (\<theta> var) \<in> (\<lambda>t. to_ground_term (t \<cdot>t \<theta>)) ` set terms"
+  using yeah
+  sorry*)
+
+fun replace :: "'a gterm \<Rightarrow> 'a gterm \<Rightarrow> 'a gterm \<Rightarrow> 'a gterm" where
+  "replace t t' (GFun f terms) = 
+    (if (GFun f terms) = t
+     then t'
+     else GFun f (map (replace t t') terms))"
+
+fun subterms :: "'a gterm \<Rightarrow> 'a gterm list" where
+  "subterms (GFun f ts) = ts @ concat (map subterms ts)"
+
+lemma subterms_empty: "[] = subterms term \<longleftrightarrow> gargs term = []"
+  by(induction rule: subterms.induct) auto
+
+(* TODO: Other direction *)
+lemma subterm_context: "t \<in> set (subterms term) \<Longrightarrow> (\<exists>context. term = context\<langle>t\<rangle>\<^sub>G)"
+proof(induction "term" rule: subterms.induct)
+  case (1 f ts)
+  then show ?case
+  proof(cases "t \<in> set ts")
+    case True
+    then obtain ts1 ts2 where "ts = ts1 @ t # ts2"
+      by (meson split_list)
+
+    then have "GFun f ts = (GMore f ts1 \<box>\<^sub>G ts2)\<langle>t\<rangle>\<^sub>G"
+      by auto
+
+    then show ?thesis 
+      by blast
+  next
+    case False
+    then have "t \<in> set (concat (map subterms ts))"
+      using "1.prems" by fastforce
+
+    then obtain t' where "t' \<in> set ts" "t \<in> set (subterms t')"
+      by auto
+
+    then obtain "context" ts1 ts2 where "t' = context\<langle>t\<rangle>\<^sub>G" "ts = ts1 @ t' # ts2"
+      using 1 
+      by (meson split_list)
+
+    then have "GFun f ts = (GMore f ts1 \<box>\<^sub>G ts2)\<langle>context\<langle>t\<rangle>\<^sub>G\<rangle>\<^sub>G"
+      by simp
+
+    then show ?thesis
+      by (metis Ground_Ctxt.ctxt_ctxt)
+  qed
+qed
+
+lemma (in ground_superposition_calculus) replace_less:
+  assumes "t' \<prec>\<^sub>t t" "t \<in> set (subterms term)"
+  shows "replace t t' term \<prec>\<^sub>t term"
+  using assms
+proof(induction "filter (\<lambda>s. s = t) (subterms term)" arbitrary: "term")
+  case Nil
+  then show ?case 
+    unfolding empty_filter_conv
+    by blast
+next
+  case first: (Cons s ss)
+  show ?case
+  proof(cases ss)
+    case Nil
+
+    with first obtain c where
+      "term": "term = c\<langle>t\<rangle>\<^sub>G"
+      using subterm_context
+      by blast
+
+    then have term': "replace t t' term = c\<langle>t'\<rangle>\<^sub>G"
+      sorry
+
+    show ?thesis
+      unfolding term'
+      unfolding "term"
+      using less_trm_compatible_with_gctxt[OF assms(1)]
+      by auto
+  next
+    case (Cons s' ss')
+    
+    with first show ?thesis sorry
+  qed
+qed
+
+lemma (in first_order_superposition_calculus_with_grounding) term_subst_less:
+  fixes \<theta> :: "('a, 'b) subst"
   assumes 
     \<theta>': "\<theta>' = (\<lambda>var'. if var' = var then term else \<theta> var')" and
+    "is_ground_term term" and
+    "is_ground_term (term' \<cdot>t \<theta>)" and
     "term \<prec>\<^sub>t \<theta> var" and
     "var \<in> vars_term term'"
   shows "term' \<cdot>t \<theta>' \<prec>\<^sub>t term' \<cdot>t \<theta>"
-  unfolding \<theta>'
-  apply(cases term')
-  using assms(2) assms(3)
-  apply auto
-  sorry
+  using assms
+proof(induction term')
+  case Var
+  then show ?case 
+    by simp
+next
+  case (Fun f terms)
+  then obtain gterms where
+    f_\<theta>: "to_ground_term (Fun f terms \<cdot>t \<theta>) = GFun f gterms"
+    by fastforce
 
-lemma (in first_order_superposition_calculus) literal_subst_less:
+  let ?g = "replace (to_ground_term (\<theta> var)) (to_ground_term term)"
+
+  have "to_ground_term term \<prec>\<^sub>t\<^sub>G to_ground_term (\<theta> var)"
+    by (meson assms(2-5) is_ground_iff less\<^sub>t_less\<^sub>t\<^sub>G)
+
+  have a': "\<And>term. term \<in> set gterms \<Longrightarrow> ?g term \<preceq>\<^sub>t\<^sub>G term"
+  proof
+    fix gterm
+    assume 
+      "gterm \<in> set gterms" 
+      "?g gterm \<noteq> gterm"
+    then show "?g gterm \<prec>\<^sub>t\<^sub>G gterm"
+      sorry
+  qed
+
+  then have a: "\<forall>term \<in> set gterms. ?g term \<preceq>\<^sub>t\<^sub>G term"
+    by blast
+
+  have b: "\<exists>term\<in>set gterms. ?g term \<prec>\<^sub>t\<^sub>G term"
+    using \<open>to_ground_term term \<prec>\<^sub>t\<^sub>G to_ground_term (\<theta> var)\<close>
+    sorry
+
+  have c: "\<And>term. ?g (?g term) = ?g term"
+    subgoal for term'
+      apply(cases term')
+      apply auto
+      sorry
+    done
+
+  from f_\<theta> have f_\<theta>': "to_ground_term (Fun f terms \<cdot>t \<theta>') = GFun f (map ?g gterms)"
+    unfolding \<theta>'
+    apply auto
+    sorry
+
+  show ?case 
+    using f_\<theta> f_\<theta>' a b c
+    using ground.fun_less
+    by (smt (verit) Fun.prems(3) \<theta>' assms(2) is_ground_iff less\<^sub>t_less\<^sub>t\<^sub>G)
+qed
+
+
+lemma (in first_order_superposition_calculus_with_grounding) literal_subst_less:
   assumes 
     \<theta>': "\<theta>' = (\<lambda>var'. if var' = var then term else \<theta> var')" and
+    "is_ground_term term" and
+    "is_ground_literal (literal \<cdot>l \<theta>)" and
     "term \<prec>\<^sub>t \<theta> var" and
     "var \<in> vars_literal literal"
   shows "literal \<cdot>l \<theta>' \<prec>\<^sub>l literal \<cdot>l \<theta>"
@@ -1819,9 +2105,11 @@ lemma (in first_order_superposition_calculus) literal_subst_less:
    apply auto
   sorry
 
-lemma (in first_order_superposition_calculus) clause_subst_less:
+lemma (in first_order_superposition_calculus_with_grounding) clause_subst_less:
   assumes 
     \<theta>': "\<theta>' = (\<lambda>var'. if var' = var then term else \<theta> var')" and
+    "is_ground_term term" and
+    "is_ground_clause (clause \<cdot> \<theta>)" and
     "term \<prec>\<^sub>t \<theta> var" and
     "var \<in> vars_clause clause"
   shows "clause \<cdot> \<theta>' \<prec>\<^sub>c clause \<cdot> \<theta>"
@@ -2221,6 +2509,26 @@ proof(cases
     let ?D = "to_ground_clause ((add_mset literal\<^sub>1 premise\<^sub>1') \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>')"
     let ?DD = "{ ?D }"
 
+    have entails: "\<And>I. refl I \<Longrightarrow>
+         trans I \<Longrightarrow>
+         sym I \<Longrightarrow>
+         compatible_with_gctxt I \<Longrightarrow>
+         (\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s {add_mset literal\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>2', ?D} \<Longrightarrow>
+         (\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s {add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) (premise\<^sub>G\<^sub>1' + premise\<^sub>G\<^sub>2')}"
+    proof-
+      fix I
+      assume 
+        refl: "refl I" and 
+        trans: "trans I" and 
+        sym: "sym I" and
+        compatible_with_gctxt: "compatible_with_gctxt I" and
+        "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s {add_mset literal\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>2', ?D}"
+    
+      then show "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s {add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) (premise\<^sub>G\<^sub>1' + premise\<^sub>G\<^sub>2')}"
+        
+        sorry
+    qed
+  
     have var\<^sub>x_\<theta>: "\<theta> var\<^sub>x = term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta>"
       using var\<^sub>x
       by simp
@@ -2239,13 +2547,21 @@ proof(cases
       unfolding literal\<^sub>1 context\<^sub>x vars_literal_def vars_atom_def 
       using var\<^sub>x
       by(auto simp: subst_literal subst_atom)
+
+    have "is_ground_literal (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<theta>)"
+      using literal\<^sub>1_grounding by force
     
-    have smaller: "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<theta>' \<prec>\<^sub>l literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<theta>"
-      using literal_subst_less[of _ _ _  \<theta>, OF  \<theta>'(1) xx xy].
+    then have smaller: "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<theta>' \<prec>\<^sub>l literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<theta>"
+      using literal_subst_less[of _ _ _  \<theta>, OF  \<theta>' replacement_grounding _  xx xy]
+      by blast
+
+    have premise\<^sub>1'_\<theta>_grounding: "is_ground_clause (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)"
+      using premise\<^sub>1'_\<theta>
+      by simp
 
     have smaller_premise\<^sub>1': "premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>' \<preceq>\<^sub>c premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>"
-      using
-        clause_subst_less[of _ _ _ \<theta>, OF \<theta>'(1) xx] 
+      using 
+        clause_subst_less[of _ _ _ \<theta>, OF \<theta>' replacement_grounding premise\<^sub>1'_\<theta>_grounding xx]
         clause_subst_if_sth[of var\<^sub>x "premise\<^sub>1' \<cdot> \<rho>\<^sub>1"]
       unfolding \<theta>'
       by auto
@@ -2262,7 +2578,8 @@ proof(cases
 
     moreover have "ground.G_entails (insert (add_mset literal\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>2') ?DD) {add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) (premise\<^sub>G\<^sub>1' + premise\<^sub>G\<^sub>2')}"
       unfolding ground.G_entails_def
-      sorry
+      using entails
+      by blast
 
     ultimately show ?thesis
       unfolding ground.redundant_infer_def

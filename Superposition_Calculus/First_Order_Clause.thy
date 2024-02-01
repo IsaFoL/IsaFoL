@@ -173,13 +173,13 @@ lemma is_ground_clause_empty [simp]: "is_ground_clause {#}"
   unfolding vars_clause_def
   by simp 
 
-lemma is_ground_term_iff_term_context_ground [simp]: 
+lemma is_ground_term_iff_term_context_ground: 
   "Term_Context.ground term = is_ground_term term"
   by(induction "term") auto
 
-lemma is_ground_term_ctxt_iff_ground_ctxt [simp]: 
+lemma is_ground_term_ctxt_iff_ground_ctxt: 
   "ground_ctxt context = is_ground_context context"
-  by (induction "context") simp_all
+  by (induction "context") (simp_all add: is_ground_term_iff_term_context_ground)
 
 lemma subst_ground_context [simp]: 
   assumes "is_ground_context context" 
@@ -421,13 +421,13 @@ lemma ground_term_with_context1:
   assumes "is_ground_context context" "is_ground_term term"
   shows "(to_ground_context context)\<langle>to_ground_term term\<rangle>\<^sub>G = to_ground_term context\<langle>term\<rangle>"
   using assms
-  by simp
-
+  by (simp add: is_ground_term_iff_term_context_ground)
+ 
 lemma ground_term_with_context2:
   assumes "is_ground_context context"  
   shows "to_term (to_ground_context context)\<langle>term\<^sub>G\<rangle>\<^sub>G = context\<langle>to_term term\<^sub>G\<rangle>"
   using assms
-  by (simp add: ground_gctxt_of_ctxt_apply_gterm)
+  by (simp add: ground_gctxt_of_ctxt_apply_gterm is_ground_term_ctxt_iff_ground_ctxt)
 
 lemma ground_term_with_context3: 
   "(to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<rangle> = to_term context\<^sub>G\<langle>term\<^sub>G\<rangle>\<^sub>G"
@@ -565,7 +565,7 @@ lemma to_ground_term_inverse [simp]:
   assumes "is_ground_term term"  
   shows "to_term (to_ground_term term) = term"
   using assms
-  by (cases "term") (simp_all add: map_idI)
+  by (cases "term") (simp_all add: map_idI is_ground_term_iff_term_context_ground)
 
 lemma to_ground_atom_inverse [simp]: 
   assumes "is_ground_atom atom"  
