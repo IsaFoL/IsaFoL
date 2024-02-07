@@ -65,7 +65,9 @@ public:
   template<typename R> R parse();
 
   // Parse unsigned encoding of id (apparently used in binary lrat at certain positions)
-  cid_t parse_unsigned_id();
+  // update: binary lrat switched to only signed ids
+
+  cid_t parse_unsigned_id(); //[[deprecated]]
 
 //   char parse_char();
 //   unsigned parse_uint();
@@ -167,7 +169,7 @@ public:
 
     if (opr=='a') {
       addition=true;
-      this_id = {bp.parse_unsigned_id()};
+      this_id = bp.parse<cid_t>(); // {bp.parse_unsigned_id()};
       rd_until_zero(literals);
       rd_until_zero(ids);
     } else if (opr=='d') {
