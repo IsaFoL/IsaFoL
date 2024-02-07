@@ -1913,30 +1913,34 @@ inductive ord_res_2 where
     U\<^sub>r' = finsert CD U\<^sub>r \<Longrightarrow>
     ord_res_2 N (U\<^sub>r, U\<^sub>f\<^sub>f) (U\<^sub>r', U\<^sub>f\<^sub>f)"
 
-fun ord_res_2_final where
-  "ord_res_2_final N (U\<^sub>r, U\<^sub>e\<^sub>f) \<longleftrightarrow> ord_res_final (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)"
+inductive ord_res_2_step where
+  "ord_res_2 N S S' \<Longrightarrow> ord_res_2_step (N, S) (N, S')"
+
+inductive ord_res_2_final where
+  "ord_res_final (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f) \<Longrightarrow> ord_res_2_final (N, (U\<^sub>r, U\<^sub>e\<^sub>f))"
 
 inductive ord_res_2_load where
-  "N \<noteq> {||} \<Longrightarrow> ord_res_2_load N N ({||}, {||})"
+  "N \<noteq> {||} \<Longrightarrow> ord_res_2_load N (N, ({||}, {||}))"
 
-interpretation ord_res_2_semantics: semantics' where
-  step = ord_res_2 and
+interpretation ord_res_2_semantics: semantics where
+  step = ord_res_2_step and
   final = ord_res_2_final
 proof unfold_locales
-  fix N :: "'f gterm clause fset" and S :: "'f gterm clause fset \<times> 'f gterm clause fset"
+  fix S :: "'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset"
 
-  obtain U\<^sub>r U\<^sub>f\<^sub>f where S_def: "S = (U\<^sub>r, U\<^sub>f\<^sub>f)"
-    by fastforce
+  obtain N U\<^sub>r U\<^sub>f\<^sub>f :: "'f gterm clause fset" where
+    S_def: "S = (N, (U\<^sub>r, U\<^sub>f\<^sub>f))"
+    by (metis prod.exhaust)
 
-  assume "ord_res_2_final N S"
+  assume "ord_res_2_final S"
   hence "{#} |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f \<or> \<not> ex_false_clause (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f))"
-    by (simp add: S_def ord_res_final_def)
-  thus "finished (ord_res_2 N) S"
+    by (simp add: S_def ord_res_2_final.simps ord_res_final_def)
+  thus "finished ord_res_2_step S"
   proof (elim disjE)
     assume "{#} |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
-    have False if "ord_res_2 N S S'" for S'
+    have False if "ord_res_2 N (U\<^sub>r, U\<^sub>f\<^sub>f) x" for x
       using that[unfolded S_def]
-    proof (cases N "(U\<^sub>r, U\<^sub>f\<^sub>f)" S' rule: ord_res_2.cases)
+    proof (cases N "(U\<^sub>r, U\<^sub>f\<^sub>f)" x rule: ord_res_2.cases)
       case hyps: (factoring C L U\<^sub>f\<^sub>f')
       from hyps have "C = {#}"
         using is_least_false_clause_mempty[OF \<open>{#} |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f\<close>]
@@ -1955,13 +1959,14 @@ proof unfold_locales
       ultimately show False
         by simp
     qed
-    thus "finished (ord_res_2 N) S"
-      unfolding finished_def by metis
+    thus "finished ord_res_2_step S"
+      unfolding finished_def ord_res_2_step.simps S_def
+      by (metis prod.inject)
   next
     assume no_false_cls: "\<not> ex_false_clause (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f))"
-    have False if "ord_res_2 N S S'" for S'
+    have False if "ord_res_2 N (U\<^sub>r, U\<^sub>f\<^sub>f) x" for x
       using that[unfolded S_def]
-    proof (cases N "(U\<^sub>r, U\<^sub>f\<^sub>f)" S' rule: ord_res_2.cases)
+    proof (cases N "(U\<^sub>r, U\<^sub>f\<^sub>f)" x rule: ord_res_2.cases)
       case hyps: (factoring C L U\<^sub>f\<^sub>f')
       thus False
         using no_false_cls[unfolded ex_false_clause_def]
@@ -1972,19 +1977,20 @@ proof unfold_locales
         using no_false_cls[unfolded ex_false_clause_def]
         using is_least_false_clause_def linorder_cls.is_least_in_fset_iff by auto
     qed
-    thus "finished (ord_res_2 N) S"
-      unfolding finished_def by metis
+    thus "finished ord_res_2_step S"
+      unfolding finished_def ord_res_2_step.simps S_def
+      by (metis prod.inject)
   qed
 qed
 
-interpretation ord_res_2_language: language' where
-  step = ord_res_2 and
+interpretation ord_res_2_language: language where
+  step = ord_res_2_step and
   final = ord_res_2_final and
   load = ord_res_2_load
   by unfold_locales
 
 fun ord_res_1_matches_ord_res_2 where
-  "ord_res_1_matches_ord_res_2 S1 N (U\<^sub>r, U\<^sub>f\<^sub>f) \<longleftrightarrow> (\<exists>U\<^sub>f.
+  "ord_res_1_matches_ord_res_2 S1 (N, (U\<^sub>r, U\<^sub>f\<^sub>f)) \<longleftrightarrow> (\<exists>U\<^sub>f.
       S1 = N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f \<and>
       (\<forall>C\<^sub>f |\<in>| U\<^sub>f. \<exists>C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f. ord_res.ground_factoring\<^sup>+\<^sup>+ C C\<^sub>f \<and> C\<^sub>f \<noteq> sfac C\<^sub>f \<and>
         (sfac C\<^sub>f |\<in>| U\<^sub>f\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) C)))"
@@ -2373,11 +2379,11 @@ lemma ground_factorings_preserves_sfac:
     (simp_all add: ground_factoring_preserves_sfac)
 
 lemma ord_res_1_final_iff_ord_res_2_final:
-  assumes match: "ord_res_1_matches_ord_res_2 S\<^sub>1 N S\<^sub>2"
-  shows "ord_res_1_final S\<^sub>1 \<longleftrightarrow> ord_res_2_final N S\<^sub>2"
+  assumes match: "ord_res_1_matches_ord_res_2 S\<^sub>1 S\<^sub>2"
+  shows "ord_res_1_final S\<^sub>1 \<longleftrightarrow> ord_res_2_final S\<^sub>2"
 proof -
-  obtain U\<^sub>r U\<^sub>f\<^sub>f where "S\<^sub>2 = (U\<^sub>r, U\<^sub>f\<^sub>f)"
-    by force
+  obtain N U\<^sub>r U\<^sub>f\<^sub>f where "S\<^sub>2 = (N, (U\<^sub>r, U\<^sub>f\<^sub>f))"
+    by (metis prod.exhaust)
   with match obtain U\<^sub>f where
     S\<^sub>1_def: "S\<^sub>1 = N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f" and
     U\<^sub>f_spec: "\<forall>C\<^sub>f |\<in>| U\<^sub>f. \<exists>C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f. ord_res.ground_factoring\<^sup>+\<^sup>+ C C\<^sub>f \<and> C\<^sub>f \<noteq> sfac C\<^sub>f \<and>
@@ -2489,19 +2495,20 @@ proof -
   qed
 
   ultimately show ?thesis
-    by (simp add: S\<^sub>1_def \<open>S\<^sub>2 = (U\<^sub>r, U\<^sub>f\<^sub>f)\<close> ord_res_1_final_def ord_res_final_def)
+    by (simp add: S\<^sub>1_def \<open>S\<^sub>2 = (N, U\<^sub>r, U\<^sub>f\<^sub>f)\<close> ord_res_1_final_def ord_res_2_final.simps
+        ord_res_final_def)
 qed
 
 
 lemma ex_ord_res_2_if_not_final:
-  assumes "\<not> ord_res_2_final N S"
-  shows "\<exists>S'. ord_res_2 N S S'"
+  assumes "\<not> ord_res_2_final S"
+  shows "\<exists>S'. ord_res_2_step S S'"
 proof -
-  from assms obtain U\<^sub>r U\<^sub>e\<^sub>f where
-    S_def: "S = (U\<^sub>r, U\<^sub>e\<^sub>f)" and
+  from assms obtain N U\<^sub>r U\<^sub>e\<^sub>f where
+    S_def: "S = (N, (U\<^sub>r, U\<^sub>e\<^sub>f))" and
     "{#} |\<notin>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
     "ex_false_clause (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f))"
-    by (meson ord_res_2_final.elims(3) ord_res_final_def)
+    by (metis ord_res_2_final.intros ord_res_final_def surj_pair)
 
   obtain C where C_least_false: "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C"
     using \<open>ex_false_clause (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f))\<close> obtains_least_false_clause_if_ex_false_clause
@@ -2519,7 +2526,8 @@ proof -
   proof (cases L)
     case (Pos A)
     thus ?thesis
-      using ord_res_2.factoring[OF C_least_false C_max] S_def is_pos_def by metis
+      using ord_res_2.factoring[OF C_least_false C_max] S_def is_pos_def
+      by (metis ord_res_2_step.intros)
   next
     case (Neg A)
     then obtain D where
@@ -2536,21 +2544,21 @@ proof -
 
     ultimately show ?thesis
       using ord_res_2.resolution[OF C_least_false C_max]
-      by (metis S_def literal.disc(2) literal.sel(2) Neg)
+      by (metis Neg S_def literal.disc(2) literal.sel(2) ord_res_2_step.intros)
   qed
 qed
 
-corollary ord_res_2_safe: "ord_res_2_final N S \<or> (\<exists>S'. ord_res_2 N S S')"
+corollary ord_res_2_safe: "ord_res_2_final S \<or> (\<exists>S'. ord_res_2_step S S')"
   using ex_ord_res_2_if_not_final by metis
 
 lemma safe_states_if_ord_res_1_matches_ord_res_2:
-  assumes match: "ord_res_1_matches_ord_res_2 S\<^sub>1 N S\<^sub>2"
-  shows "safe_state ord_res_1 ord_res_1_final S\<^sub>1 \<and> safe_state (ord_res_2 N) (ord_res_2_final N) S\<^sub>2"
+  assumes match: "ord_res_1_matches_ord_res_2 S\<^sub>1 S\<^sub>2"
+  shows "safe_state ord_res_1 ord_res_1_final S\<^sub>1 \<and> safe_state ord_res_2_step ord_res_2_final S\<^sub>2"
 proof -
   have "safe_state ord_res_1 ord_res_1_final S\<^sub>1"
     using safe_state_if_all_states_safe ord_res_1_safe by metis
 
-  moreover have "safe_state (ord_res_2 N) (ord_res_2_final N) S\<^sub>2"
+  moreover have "safe_state ord_res_2_step ord_res_2_final S\<^sub>2"
     using safe_state_if_all_states_safe ord_res_2_safe by metis
 
   ultimately show ?thesis
@@ -2613,12 +2621,6 @@ next
             add_mset (Pos A) (C\<^sub>0 + replicate_mset n (Pos A))"
     by simp
 qed simp
-
-(*
-  m \<le> Suc n
-*)
-
-thm ord_res.ground_factorings_reduces_maximal_pos_lit[no_vars]
 
 lemma ground_factorings_replicate_max_pos_lit:
   assumes
@@ -2708,27 +2710,32 @@ proof (rule right_uniqueI)
   qed
 qed
 
-lemma forward_simulation: "\<And>\<C>1 s1 \<C>2 s2 s1'.
-  ord_res_1_matches_ord_res_2 s1 \<C>2 s2 \<Longrightarrow> ord_res_1 s1 s1' \<Longrightarrow>
-  (\<exists>s2'. (ord_res_2 \<C>2)\<^sup>+\<^sup>+ s2 s2' \<and> ord_res_1_matches_ord_res_2 s1' \<C>2 s2') \<or>
-  ord_res_1_matches_ord_res_2 s1' \<C>2 s2 \<and> ord_res_1_measure s1' \<subset># ord_res_1_measure s1"
+lemma right_unique_ord_res_2_step: "right_unique ord_res_2_step"
+proof (rule right_uniqueI)
+  fix x y z
+  show "ord_res_2_step x y \<Longrightarrow> ord_res_2_step x z \<Longrightarrow> y = z"
+    apply (cases x; cases y; cases z)
+    apply (simp add: ord_res_2_step.simps)
+    using right_unique_ord_res_2[THEN right_uniqueD]
+    by blast
+qed
+
+lemma forward_simulation:
+  assumes match: "ord_res_1_matches_ord_res_2 s1 s2" and
+    step1: "ord_res_1 s1 s1'"
+  shows "(\<exists>s2'. ord_res_2_step\<^sup>+\<^sup>+ s2 s2' \<and> ord_res_1_matches_ord_res_2 s1' s2') \<or>
+    ord_res_1_matches_ord_res_2 s1' s2 \<and> ord_res_1_measure s1' \<subset># ord_res_1_measure s1"
 proof -
   let
-    ?match = "\<lambda>_. ord_res_1_matches_ord_res_2" and
-    ?measure1 = "\<lambda>_. ord_res_1_measure" and ?order1 = "(\<subset>#)"
+    ?match = "ord_res_1_matches_ord_res_2" and
+    ?measure = "ord_res_1_measure" and
+    ?order = "(\<subset>#)"
 
-  fix
-    \<C>1 :: unit and
-    s1 s1' :: "'f gterm clause fset" and
-    N :: "'f gterm clause fset" and
-    s2 :: "'f gterm clause fset \<times> 'f gterm clause fset"
+  obtain N U\<^sub>r U\<^sub>f\<^sub>f :: "'f gterm clause fset" where
+    s2_def: "s2 = (N, (U\<^sub>r, U\<^sub>f\<^sub>f))"
+    by (metis prod.exhaust)
 
-  obtain U\<^sub>r U\<^sub>f\<^sub>f :: "'f gterm clause fset" where
-    s2_def: "s2 = (U\<^sub>r, U\<^sub>f\<^sub>f)"
-    by fastforce
-
-  assume "?match \<C>1 s1 N s2"
-  then obtain U\<^sub>f where
+  from match obtain U\<^sub>f where
     s1_def: "s1 = N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f" and
     U\<^sub>f_spec: "\<forall>C\<^sub>f |\<in>| U\<^sub>f. \<exists>C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f. ord_res.ground_factoring\<^sup>+\<^sup>+ C C\<^sub>f \<and> C\<^sub>f \<noteq> sfac C\<^sub>f \<and>
       (sfac C\<^sub>f |\<in>| U\<^sub>f\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) C)"
@@ -2751,9 +2758,9 @@ proof -
     using Interp_union_unproductive[of "fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)" "fset U\<^sub>f", folded union_fset,
         OF finite_fset finite_fset U\<^sub>f_unproductive] .
 
-  assume step1: "ord_res_1 s1 s1'"
-  thus "(\<exists>s2'. (ord_res_2 N)\<^sup>+\<^sup>+ s2 s2' \<and> ?match \<C>1 s1' N s2') \<or>
-       ?match \<C>1 s1' N s2 \<and> ?order1 (?measure1 \<C>1 s1') (?measure1 \<C>1 s1)"
+  show "(\<exists>s2'. ord_res_2_step\<^sup>+\<^sup>+ s2 s2' \<and> ?match s1' s2') \<or>
+    ?match s1' s2 \<and> ?order (?measure s1') (?measure s1)"
+    using step1
   proof (cases s1 s1' rule: ord_res_1.cases)
     case (factoring C L C')
 
@@ -2769,17 +2776,17 @@ proof -
     show ?thesis
     proof (cases "C' = sfac C'")
       case True
-      let ?s2' = "(U\<^sub>r, finsert C' U\<^sub>f\<^sub>f)"
+      let ?s2' = "(N, (U\<^sub>r, finsert C' U\<^sub>f\<^sub>f))"
 
-      have "(ord_res_2 N)\<^sup>+\<^sup>+ s2 ?s2'"
+      have "ord_res_2_step\<^sup>+\<^sup>+ s2 ?s2'"
       proof (rule tranclp.r_into_trancl)
-        show "ord_res_2 N s2 (U\<^sub>r, finsert C' U\<^sub>f\<^sub>f)"
+        show "ord_res_2_step s2 (N, U\<^sub>r, finsert C' U\<^sub>f\<^sub>f)"
           using C_in_disj
         proof (elim disjE)
           assume "C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
           show ?thesis
             unfolding s2_def
-          proof (rule ord_res_2.factoring)
+          proof (intro ord_res_2_step.intros ord_res_2.factoring)
             show "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) C"
               using is_least_false_clause_if_is_least_false_clause_in_union_unproductive[
                   OF U\<^sub>f_unproductive \<open>C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f\<close> C_least_false]
@@ -2805,7 +2812,7 @@ proof -
 
           show ?thesis
             unfolding s2_def
-          proof (rule ord_res_2.factoring)
+          proof (intro ord_res_2_step.intros ord_res_2.factoring)
             have \<open>sfac C |\<notin>| U\<^sub>f\<^sub>f\<close>
             proof (rule notI)
               have "sfac C \<preceq>\<^sub>c C"
@@ -2840,7 +2847,7 @@ proof -
         qed
       qed
 
-      moreover have "?match \<C>1 s1' N ?s2'"
+      moreover have "?match s1' ?s2'"
       proof -
         have "s1' = N |\<union>| U\<^sub>r |\<union>| finsert C' U\<^sub>f\<^sub>f |\<union>| U\<^sub>f"
           unfolding \<open>s1' = finsert C' s1\<close> s1_def by simp
@@ -2925,7 +2932,7 @@ proof -
       case False
       let ?U\<^sub>f' = "finsert C' U\<^sub>f"
 
-      have "?match \<C>1 s1' N s2"
+      have "?match s1' s2"
       proof -
         have "finsert C' s1 = N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| ?U\<^sub>f'"
           unfolding s1_def by simp
@@ -3007,21 +3014,21 @@ proof -
           qed
         qed
 
-        ultimately have "ord_res_1_matches_ord_res_2 (finsert C' s1) N (U\<^sub>r, U\<^sub>f\<^sub>f)"
+        ultimately have "ord_res_1_matches_ord_res_2 (finsert C' s1) (N, (U\<^sub>r, U\<^sub>f\<^sub>f))"
           unfolding ord_res_1_matches_ord_res_2.simps by metis
         thus ?thesis
           unfolding s2_def \<open>s1' = finsert C' s1\<close> by simp
       qed
 
-      moreover have "?order1 (?measure1 \<C>1 s1') (?measure1 \<C>1 s1)"
+      moreover have "?order (?measure s1') (?measure s1)"
       proof -
-        have "?measure1 \<C>1 s1 = C"
+        have "?measure s1 = C"
           unfolding ord_res_1_measure_def
           using C_least_false[folded s1_def]
           by (metis (mono_tags, lifting) linorder_cls.Uniq_is_least_in_fset
               is_least_false_clause_def the1_equality' the_equality)
 
-        moreover have "?measure1 \<C>1 s1' = C'"
+        moreover have "?measure s1' = C'"
         proof -
           have "C' \<prec>\<^sub>c C"
             using factoring ord_res.ground_factoring_smaller_conclusion by metis
@@ -3108,9 +3115,9 @@ proof -
           OF U\<^sub>f_unproductive \<open>C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f\<close>] by argo
 
     define s2' where
-      "s2' = (finsert CD U\<^sub>r, U\<^sub>f\<^sub>f)"
+      "s2' = (N, (finsert CD U\<^sub>r, U\<^sub>f\<^sub>f))"
 
-    have "(ord_res_2 N)\<^sup>+\<^sup>+ s2 s2'"
+    have "ord_res_2_step\<^sup>+\<^sup>+ s2 s2'"
     proof -
       have "D |\<notin>| U\<^sub>f"
       proof (rule notI)
@@ -3149,10 +3156,10 @@ proof -
           using resolution by argo
       qed simp_all
       thus ?thesis
-        by (simp add: s2_def s2'_def)
+        by (auto simp: s2_def s2'_def ord_res_2_step.simps)
     qed
 
-    moreover have "?match \<C>1 s1' N s2'"
+    moreover have "?match s1' s2'"
     proof -
       have "finsert CD (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f) = N |\<union>| finsert CD U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f"
         by simp
@@ -3202,47 +3209,32 @@ lemma lift_tranclp_to_pairs_with_constant_fst:
   by (induction z arbitrary: rule: tranclp_induct) (auto simp: tranclp.trancl_into_trancl)
 
 theorem bisimulation_ord_res_1_ord_res_2:
-  defines "match \<equiv> \<lambda>i s1 (N, s2). i = ord_res_1_measure s1 \<and> ord_res_1_matches_ord_res_2 s1 N s2"
-  shows "\<exists>(MATCH :: 'f gterm literal multiset \<times> nat \<Rightarrow> 'f gterm clause fset \<Rightarrow>
+  defines "match \<equiv> \<lambda>i s1 s2. i = ord_res_1_measure s1 \<and> ord_res_1_matches_ord_res_2 s1 s2"
+  shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow> 'f gterm clause fset \<Rightarrow>
     'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow> bool) ORDER.
-    bisimulation ord_res_1 (\<lambda>(N, s) (N', s'). N = N' \<and> ord_res_2 N s s')
-      ord_res_1_final (\<lambda>(x, y). ord_res_2_final x y) ORDER MATCH"
+    bisimulation ord_res_1 ord_res_2_step ord_res_1_final ord_res_2_final ORDER MATCH"
 proof (rule ex_bisimulation_from_forward_simulation)
   show "right_unique ord_res_1"
     using right_unique_ord_res_1 .
 next
-  show "right_unique (\<lambda>(N, s) (N', s'). N = N' \<and> ord_res_2 N s s')"
-  proof (rule right_uniqueI)
-    fix x y z
-    show "(case x of (N, s) \<Rightarrow> \<lambda>(N', s'). N = N' \<and> ord_res_2 N s s') y \<Longrightarrow>
-       (case x of (N, s) \<Rightarrow> \<lambda>(N', s'). N = N' \<and> ord_res_2 N s s') z \<Longrightarrow> y = z"
-      apply (cases x; cases y; cases z)
-      apply simp
-      using right_unique_ord_res_2[THEN right_uniqueD]
-      by blast
-  qed
+  show "right_unique ord_res_2_step"
+    using right_unique_ord_res_2_step .
 next
   show "\<forall>s1. ord_res_1_final s1 \<longrightarrow> (\<nexists>s1'. ord_res_1 s1 s1')"
     using ord_res_1_semantics.final_finished
     by (simp add: finished_def)
 next
-  show "\<forall>s2. (case s2 of (x, xa) \<Rightarrow> ord_res_2_final x xa) \<longrightarrow>
-    (\<nexists>s2'. (case s2 of (N, s) \<Rightarrow> \<lambda>(N', s'). N = N' \<and> ord_res_2 N s s') s2')"
+  show "\<forall>s2. ord_res_2_final s2 \<longrightarrow> (\<nexists>s2'. ord_res_2_step s2 s2')"
     using ord_res_2_semantics.final_finished
     by (simp add: finished_def)
 next
-  show "\<forall>s1 s2. \<exists>\<^sub>\<le>\<^sub>1 i. match i s1 s2"
-    by (simp add: match_def Uniq_def)
-next
-  show "\<forall>i s1 s2. match i s1 s2 \<longrightarrow>
-    ord_res_1_final s1 = (case s2 of (x, xa) \<Rightarrow> ord_res_2_final x xa)"
+  show "\<forall>i s1 s2. match i s1 s2 \<longrightarrow> ord_res_1_final s1 = ord_res_2_final s2"
     using ord_res_1_final_iff_ord_res_2_final
     by (simp add: match_def)
 next
   show "\<forall>i s1 s2. match i s1 s2 \<longrightarrow>
-       safe_state ord_res_1 ord_res_1_final s1 \<and>
-       safe_state (\<lambda>(N, s) (N', s'). N = N' \<and> ord_res_2 N s s')
-        (\<lambda>(x, y). ord_res_2_final x y) s2"
+    safe_state ord_res_1 ord_res_1_final s1 \<and>
+    safe_state ord_res_2_step ord_res_2_final s2"
   proof (intro allI impI)
     fix i s1 S2
     assume "match i s1 S2"
@@ -3250,912 +3242,37 @@ next
     then obtain N s2 where
       S2_def: "S2 = (N, s2)" and
       "i = ord_res_1_measure s1" and
-      match: "ord_res_1_matches_ord_res_2 s1 N s2"
-      unfolding match_def by blast
+      match: "ord_res_1_matches_ord_res_2 s1 S2"
+      unfolding match_def
+      by (metis prod.exhaust)
 
-    have
-      s1_safe: "safe_state ord_res_1 ord_res_1_final s1" and
-      s2_safe: "safe_state (ord_res_2 N) (ord_res_2_final N) s2"
-      using safe_states_if_ord_res_1_matches_ord_res_2[OF match] by argo+
-
-    show "safe_state ord_res_1 ord_res_1_final s1 \<and>
-    safe_state (\<lambda>(N, s) (N', s'). N = N' \<and> ord_res_2 N s s') (\<lambda>(x, y). ord_res_2_final x y) S2"
-    proof (rule conjI)
-      show "safe_state ord_res_1 ord_res_1_final s1"
-        using s1_safe .
-    next
-      show "safe_state (\<lambda>(N, s) (N', s'). N = N' \<and> ord_res_2 N s s') (\<lambda>(x, y). ord_res_2_final x y) S2"
-        unfolding S2_def safe_state_def
-        using ord_res_2_safe by auto
-    qed
+    show "safe_state ord_res_1 ord_res_1_final s1 \<and> safe_state ord_res_2_step ord_res_2_final S2"
+      using safe_states_if_ord_res_1_matches_ord_res_2[OF match] .
   qed
 next
   show "wfP (\<subset>#)"
     using wfP_subset_mset .
 next
   show "\<forall>i s1 s2 s1'. match i s1 s2 \<longrightarrow> ord_res_1 s1 s1' \<longrightarrow>
-    (\<exists>i' s2'. (\<lambda>(N, s) (N', s'). N = N' \<and> ord_res_2 N s s')\<^sup>+\<^sup>+ s2 s2' \<and> match i' s1' s2') \<or>
-    (\<exists>i'. match i' s1' s2 \<and> i' \<subset># i)"
+    (\<exists>i' s2'. ord_res_2_step\<^sup>+\<^sup>+ s2 s2' \<and> match i' s1' s2') \<or> (\<exists>i'. match i' s1' s2 \<and> i' \<subset># i)"
   proof (intro allI impI)
     fix i s1 S2 s1'
     assume "match i s1 S2"
     then obtain N s2 where
-      S2_def: "S2 = (N, s2)" and "i = ord_res_1_measure s1" and "ord_res_1_matches_ord_res_2 s1 N s2"
-      unfolding match_def by blast
+      S2_def: "S2 = (N, s2)" and "i = ord_res_1_measure s1" and "ord_res_1_matches_ord_res_2 s1 S2"
+      unfolding match_def
+      by (metis prod.exhaust)
 
     moreover assume "ord_res_1 s1 s1'"
 
-    ultimately have "(\<exists>s2'. (ord_res_2 N)\<^sup>+\<^sup>+ s2 s2' \<and> ord_res_1_matches_ord_res_2 s1' N s2') \<or>
-    ord_res_1_matches_ord_res_2 s1' N s2 \<and> ord_res_1_measure s1' \<subset># ord_res_1_measure s1"
-      using forward_simulation[of s1 N s2 s1'] by argo
+    ultimately have "(\<exists>S2'. ord_res_2_step\<^sup>+\<^sup>+ S2 S2' \<and> ord_res_1_matches_ord_res_2 s1' S2') \<or>
+    ord_res_1_matches_ord_res_2 s1' S2 \<and> ord_res_1_measure s1' \<subset># ord_res_1_measure s1"
+      using forward_simulation by metis
 
-    thus "(\<exists>i' s2'. (\<lambda>(N, s) (N', s'). N = N' \<and> ord_res_2 N s s')\<^sup>+\<^sup>+ S2 s2' \<and> match i' s1' s2') \<or>
-    (\<exists>i'. match i' s1' S2 \<and> i' \<subset># i)"
+    thus "(\<exists>i' S2'. ord_res_2_step\<^sup>+\<^sup>+ S2 S2' \<and> match i' s1' S2') \<or> (\<exists>i'. match i' s1' S2 \<and> i' \<subset># i)"
       unfolding S2_def prod.case
       using lift_tranclp_to_pairs_with_constant_fst[of ord_res_2 N s2]
-      by (metis (mono_tags, lifting) \<open>i = ord_res_1_measure s1\<close> case_prodI match_def)
-  qed
-qed
-
-interpretation bisimulation_with_measuring_function' where
-  step1 = "\<lambda>_. ord_res_1" and final1 = "\<lambda>_. ord_res_1_final" and
-  step2 = ord_res_2 and final2 = ord_res_2_final and
-  match = "\<lambda>_. ord_res_1_matches_ord_res_2" and
-  measure1 = "\<lambda>_. ord_res_1_measure" and order1 = "(\<subset>#)" and
-  measure2 = "\<lambda>_ _. ()" and order2 = "\<lambda>_ _. False"
-proof unfold_locales
-  show "\<And>\<C> s. ord_res_1_final s \<Longrightarrow> finished ord_res_1 s"
-    using ord_res_1_semantics.final_finished by force
-next
-  show "wfP (\<subset>#)"
-    by simp
-next
-  fix
-    s1 :: "'f gterm clause fset" and
-    N :: "'f gterm clause fset" and
-    s2 :: "'f gterm clause fset \<times> 'f gterm clause fset"
-
-  assume "ord_res_1_matches_ord_res_2 s1 N s2" and "ord_res_2_final N s2"
-  thus "ord_res_1_final s1"
-    using ord_res_1_final_iff_ord_res_2_final by metis
-next
-  fix
-    s1 :: "'f gterm clause fset" and
-    N :: "'f gterm clause fset" and
-    s2 :: "'f gterm clause fset \<times> 'f gterm clause fset"
-
-  assume "ord_res_1_matches_ord_res_2 s1 N s2" and "ord_res_1_final s1"
-  thus "ord_res_2_final N s2"
-    using ord_res_1_final_iff_ord_res_2_final by metis
-next
-  let
-    ?match = "\<lambda>_. ord_res_1_matches_ord_res_2" and
-    ?measure1 = "\<lambda>_. ord_res_1_measure" and ?order1 = "(\<subset>#)"
-
-  fix
-    \<C>1 :: unit and
-    s1 s1' :: "'f gterm clause fset" and
-    N :: "'f gterm clause fset" and
-    s2 :: "'f gterm clause fset \<times> 'f gterm clause fset"
-
-  assume "?match \<C>1 s1 N s2" and "ord_res_1 s1 s1'"
-  thus "(\<exists>s2'. (ord_res_2 N)\<^sup>+\<^sup>+ s2 s2' \<and> ?match \<C>1 s1' N s2') \<or>
-       ?match \<C>1 s1' N s2 \<and> ?order1 (?measure1 \<C>1 s1') (?measure1 \<C>1 s1)"
-    using forward_simulation by metis
-next
-  let
-    ?match = "\<lambda>_. ord_res_1_matches_ord_res_2" and
-    ?measure2 = "\<lambda>_ _. ()" and ?order2 = "\<lambda>_ _. False"
-
-  fix
-    \<C>1 :: unit and
-    s1 :: "'f gterm clause fset" and
-    N :: "'f gterm clause fset" and
-    s2 s2' :: "'f gterm clause fset \<times> 'f gterm clause fset"
-
-  obtain U\<^sub>r U\<^sub>f\<^sub>f :: "'f gterm clause fset" where
-    s2_def: "s2 = (U\<^sub>r, U\<^sub>f\<^sub>f)"
-    by fastforce
-
-  assume "?match \<C>1 s1 N s2"
-  then obtain U\<^sub>f where
-    s1_def: "s1 = N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f" and
-    U\<^sub>f_spec: "\<forall>C\<^sub>f |\<in>| U\<^sub>f. \<exists>C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f. ord_res.ground_factoring\<^sup>+\<^sup>+ C C\<^sub>f \<and> C\<^sub>f \<noteq> sfac C\<^sub>f \<and>
-      (sfac C\<^sub>f |\<in>| U\<^sub>f\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) C)"
-    unfolding s2_def ord_res_1_matches_ord_res_2.simps by metis
-
-  have U\<^sub>f_unproductive: "\<forall>C\<^sub>f |\<in>| U\<^sub>f. ord_res.production (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f)) C\<^sub>f = {}"
-  proof (intro ballI)
-    fix C\<^sub>f
-    assume "C\<^sub>f |\<in>| U\<^sub>f"
-    hence "C\<^sub>f \<noteq> sfac C\<^sub>f"
-      using U\<^sub>f_spec by metis
-    hence "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C\<^sub>f"
-      using nex_strictly_maximal_pos_lit_if_neq_sfac by metis
-    thus "ord_res.production (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f)) C\<^sub>f = {}"
-      using unproductive_if_nex_strictly_maximal_pos_lit by metis
-  qed
-
-  have Interp_eq: "\<And>C. ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f)) C =
-    ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) C"
-    using Interp_union_unproductive[of "fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)" "fset U\<^sub>f", folded union_fset,
-        OF finite_fset finite_fset U\<^sub>f_unproductive] .
-
-  assume step2: "ord_res_2 N s2 s2'"
-
-  show "(\<exists>s1'. ord_res_1\<^sup>+\<^sup>+ s1 s1' \<and> ?match \<C>1 s1' N s2') \<or>
-       ?match \<C>1 s1 N s2' \<and> ?order2 (?measure2 N s2') (?measure2 N s2)"
-    using step2[unfolded s2_def]
-  proof (cases N "(U\<^sub>r, U\<^sub>f\<^sub>f)" s2' rule: ord_res_2.cases)
-    case (factoring C L U\<^sub>f\<^sub>f')
-
-    have C_least_false: "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) C"
-      using factoring by metis
-
-    hence
-      C_in: "C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f" and
-      C_false: "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) C \<TTurnstile> C" and
-      C_least: "\<forall>y|\<in>|N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f. y \<noteq> C \<longrightarrow>
-        \<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> y \<longrightarrow> C \<prec>\<^sub>c y"
-      unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff by simp_all
-
-    have C_false_in_s1: "\<not> ord_res_Interp (fset s1) C \<TTurnstile> C"
-      unfolding s1_def Interp_eq
-      using C_false .
-
-    obtain A :: "'f gterm" where
-      L_def: "L = Pos A"
-      using \<open>is_pos L\<close> by (metis Pos_atm_of_iff)
-
-    define C\<^sub>0 where
-      "C\<^sub>0 = {#K \<in># C. K \<noteq> L#}"
-
-    obtain n where "count C L = Suc (Suc n)"
-      using pos_lit_not_greatest_if_maximal_in_least_false_clause[of "N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f" C]
-      using C_least_false[unfolded is_least_false_clause_def]
-      using \<open>is_pos L\<close> \<open>ord_res.is_maximal_lit L C\<close>
-      by (metis Suc_n_not_le_n count_eq_zero_iff is_pos_def
-          linorder_lit.count_ge_2_if_maximal_in_mset_and_not_greatest_in_mset
-          linorder_lit.is_maximal_in_mset_iff not0_implies_Suc numeral_2_eq_2)
-
-    hence C_eq: "C = C\<^sub>0 + replicate_mset (Suc (Suc n)) L"
-      by (metis C\<^sub>0_def add.commute filter_mset_eq filter_mset_neq multiset_partition
-          removeAll_mset_filter_mset)
-
-    have "\<exists>!m. is_greatest_in_set
-      {m. \<exists>C\<^sub>f |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f. (ord_res.ground_factoring ^^ m) C C\<^sub>f} m"
-    proof (rule ex1_greatest_in_set)
-      have "finite {m. m \<le> n \<and> (\<exists>C\<^sub>f|\<in>|N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f. (ord_res.ground_factoring ^^ m) C C\<^sub>f)}"
-        by simp
-      
-      have "(ord_res.ground_factoring ^^ m) C C'' \<Longrightarrow> m \<le> size C" for m C C''
-      proof (induction "size C" arbitrary: m C C'')
-        case 0
-        then show ?case
-          apply (cases m)
-          apply simp_all
-          by (metis ex1_sfac_eq_factoring_chain relpowp.simps(2) relpowp_Suc_D2 sfac_mempty)
-      next
-        case (Suc x)
-        note prems = Suc.prems
-
-        obtain L C' where C_def: "C = add_mset L C'"
-          using \<open>Suc x = size C\<close> by (metis size_eq_Suc_imp_eq_union)
-        hence "x = size C'"
-          using \<open>Suc x = size C\<close> by simp
-
-        show ?case
-        proof (cases m)
-          case 0
-          then show ?thesis
-            by simp
-        next
-          case (Suc nat)
-          show ?thesis
-            using Suc
-            by (smt (verit, ccfv_SIG) Suc.hyps(1) Suc.hyps(2) Suc_leI \<open>x = size C'\<close> diff_Suc_1
-                le_imp_less_Suc ord_res.ground_factoring.cases prems relpowp_Suc_D2 size_add_mset)
-        qed
-      qed
-      hence "
-        {m. \<exists>C\<^sub>f|\<in>|N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f. (ord_res.ground_factoring ^^ m) C C\<^sub>f} =
-        {m. \<exists>C\<^sub>f|\<in>|N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f. (ord_res.ground_factoring ^^ m) C C\<^sub>f \<and> m \<le> size C}"
-        by blast
-      thus "finite {m. \<exists>C\<^sub>f|\<in>|N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f. (ord_res.ground_factoring ^^ m) C C\<^sub>f}"
-        using finite_nat_set_iff_bounded_le by auto
-    next
-      have "C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f \<and> (ord_res.ground_factoring ^^ 0) C C"
-        using C_in by simp
-      thus "{m. \<exists>C\<^sub>f|\<in>|N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f. (ord_res.ground_factoring ^^ m) C C\<^sub>f} \<noteq> {}"
-        by blast
-    qed
-
-    then obtain m :: nat where
-      m_greatest: "is_greatest_in_set
-        {m. \<exists>C\<^sub>f |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f. (ord_res.ground_factoring ^^ m) C C\<^sub>f} m"
-      by blast
-
-    then obtain C\<^sub>f where
-      "C\<^sub>f |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f" and
-      "(ord_res.ground_factoring ^^ m) C C\<^sub>f"
-      by (smt (verit, best) is_greatest_in_set_iff mem_Collect_eq)
-
-    have "\<not> (Suc n < m)"
-    proof (rule notI)
-      assume "Suc n < m"
-      then obtain m' :: nat where m_def: "m = Suc n + Suc m'"
-        using less_natE by (metis add_Suc_right)
-
-      moreover have "(ord_res.ground_factoring ^^ Suc n) C (add_mset L C\<^sub>0)"
-      proof -
-        have "(ord_res.ground_factoring ^^ Suc n) C (C\<^sub>0 + replicate_mset (Suc 0) L)"
-          using \<open>ord_res.is_maximal_lit L C\<close>
-          unfolding C_eq L_def
-          using ground_factorings_replicate_max_pos_lit by fastforce
-        thus ?thesis
-          by simp
-      qed
-
-      ultimately have "(ord_res.ground_factoring ^^ Suc m') (add_mset L C\<^sub>0) C\<^sub>f"
-        using \<open>(ord_res.ground_factoring ^^ m) C C\<^sub>f\<close>
-        using relpowp_plus_of_right_unique
-        by (metis ord_res.unique_ground_factoring right_unique_iff)
-
-      hence "\<exists>x. ord_res.ground_factoring (add_mset L C\<^sub>0) x"
-        by (metis relpowp_Suc_D2)
-
-      thus False
-        using \<open>ord_res.is_maximal_lit L C\<close> \<open>is_pos L\<close>
-        by (metis C\<^sub>0_def ex1_sfac_eq_factoring_chain sfac_spec_if_pos_lit_is_maximal)
-    qed
-    hence "m \<le> Suc n"
-      by presburger
-
-    moreover have "m \<noteq> Suc n"
-    proof (rule notI)
-      assume "m = Suc n"
-      hence "(ord_res.ground_factoring ^^ Suc n) C C\<^sub>f"
-        using \<open>(ord_res.ground_factoring ^^ m) C C\<^sub>f\<close> by argo
-
-      hence "ord_res.is_maximal_lit L C\<^sub>f" and "count C\<^sub>f L = Suc 0"
-        using ord_res.full_ground_factorings_reduces_maximal_pos_lit[
-            OF _ \<open>is_pos L\<close> \<open>ord_res.is_maximal_lit L C\<close> \<open>count C L = Suc (Suc n)\<close>]
-        by simp_all
-
-      hence "\<nexists>C\<^sub>f'. ord_res.ground_factoring C\<^sub>f C\<^sub>f'"
-        using \<open>ord_res.is_maximal_lit L C\<close> \<open>is_pos L\<close>
-        by (metis Suc_n_not_le_n linorder_lit.count_ge_2_if_maximal_in_mset_and_not_greatest_in_mset
-            nex_strictly_maximal_pos_lit_if_factorizable numeral_2_eq_2)
-
-      hence "C\<^sub>f = sfac C\<^sub>f"
-        using factorizable_if_neq_sfac by metis
-
-      have "C\<^sub>f |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f \<or> C\<^sub>f |\<in>| U\<^sub>f"
-        using \<open>C\<^sub>f |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f\<close> by simp
-      thus False
-      proof (elim disjE)
-        assume "C\<^sub>f |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
-
-        have "C\<^sub>f \<noteq> C"
-          using \<open>count C L = Suc (Suc n)\<close> \<open>count C\<^sub>f L = Suc 0\<close> by auto
-
-        have "multp\<^sub>H\<^sub>O (\<prec>\<^sub>l) C\<^sub>f C"
-          using \<open>ord_res.is_maximal_lit L C\<^sub>f\<close> \<open>count C\<^sub>f L = Suc 0\<close>
-          using \<open>ord_res.is_maximal_lit L C\<close> \<open>count C L = Suc (Suc n)\<close>
-          using linorder_lit.multp\<^sub>H\<^sub>O_if_same_maximal_and_count_lt
-          by simp
-        hence "C\<^sub>f \<prec>\<^sub>c C"
-          by (simp add: multp_eq_multp\<^sub>H\<^sub>O)
-
-        hence "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) C\<^sub>f \<TTurnstile> C\<^sub>f"
-          using C_least_false \<open>C\<^sub>f |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f\<close> \<open>C\<^sub>f \<noteq> C\<close>
-          by (auto simp: is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff)
-
-        hence "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) C \<TTurnstile> C\<^sub>f"
-          using \<open>C\<^sub>f \<prec>\<^sub>c C\<close> ord_res.entailed_clause_stays_entailed by metis
-
-        moreover have "set_mset C\<^sub>f = set_mset C"
-          using \<open>(ord_res.ground_factoring ^^ m) C C\<^sub>f\<close>
-          by (metis ground_factorings_preserves_sfac relpowp_imp_rtranclp set_mset_sfac)
-
-        ultimately have "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) C \<TTurnstile> C"
-          by (simp add: true_cls_def)
-
-        with C_false show False
-          by contradiction
-      next
-        assume "C\<^sub>f |\<in>| U\<^sub>f"
-        hence "C\<^sub>f \<noteq> sfac C\<^sub>f"
-          using U\<^sub>f_spec by metis
-        thus False
-          using \<open>C\<^sub>f = sfac C\<^sub>f\<close> by contradiction
-      qed
-    qed
-
-    ultimately have "m \<le> n"
-      by presburger
-
-    then obtain k where n_def: "n = m + k"
-      using le_Suc_ex by blast
-
-    thm ord_res_1.factoring[of s1 C\<^sub>f L]
-
-    thm ground_factorings_replicate_max_pos_lit[of C\<^sub>0 n A m, simplified, unfolded n_def, simplified]
-
-    have "C\<^sub>f = C\<^sub>0 + replicate_mset (Suc (Suc k)) (Pos A)"
-    proof -
-      have  "(ord_res.ground_factoring ^^ m) C (C\<^sub>0 + replicate_mset (Suc (Suc k)) (Pos A))"
-        using \<open>ord_res.is_maximal_lit L C\<close> ground_factorings_replicate_max_pos_lit[of C\<^sub>0 n A m]
-        by (simp add: C_eq L_def n_def)
-      thus ?thesis
-        using \<open>(ord_res.ground_factoring ^^ m) C C\<^sub>f\<close>
-        by (metis ord_res.unique_ground_factoring Uniq_relpowp)
-    qed
-
-    hence "C\<^sub>0 + replicate_mset (Suc (Suc k)) (Pos A) |\<in>| s1"
-      using \<open>C\<^sub>f |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f\<close> s1_def by argo
-
-    define factorized_C where
-      "factorized_C = (\<lambda>m. C\<^sub>0 + replicate_mset (Suc (Suc n - m)) (Pos A))"
-
-    have factorized_C_spec: "\<And>m. m \<le> Suc n \<Longrightarrow> (ord_res.ground_factoring ^^ m) C (factorized_C m)"
-      using \<open>ord_res.is_maximal_lit L C\<close> ground_factorings_replicate_max_pos_lit[of C\<^sub>0 n A]
-      by (simp add: C_eq L_def n_def factorized_C_def)
-
-    have set_mset_factorized_C: "\<And>i. set_mset (factorized_C i) = set_mset C"
-      by (simp add: factorized_C_def C_eq L_def)
-
-    have factorized_C_strict_subset:
-      "\<And>i1 i2. i1 \<le> Suc n \<Longrightarrow> i2 \<le> Suc n \<Longrightarrow> factorized_C i1 \<subset># factorized_C i2 \<longleftrightarrow> i1 > i2"
-      unfolding factorized_C_def by auto
-    hence factorized_C_less_cls:
-      "\<And>i1 i2. i1 \<le> Suc n \<Longrightarrow> i2 \<le> Suc n \<Longrightarrow> factorized_C i1 \<prec>\<^sub>c factorized_C i2 \<longleftrightarrow> i1 > i2"
-      by (metis linorder_cls.not_less_iff_gr_or_eq linorder_neqE_nat strict_subset_implies_multp)
-
-    have factorized_C_0: "factorized_C 0 = C"
-      unfolding factorized_C_def C_eq L_def by simp
-
-    have factorized_C_Suc_lt_C: "\<And>i. factorized_C (Suc i) \<prec>\<^sub>c C"
-      unfolding factorized_C_def C_eq L_def
-      by (metis add_diff_cancel_right' diff_diff_left not_less_eq replicate_mset_subset_iff_lt
-          strict_subset_implies_multp subset_mset.add_strict_left_mono zero_less_Suc zero_less_diff)
-
-    have factorized_C_true_iff_C_true: "\<And>I i. I \<TTurnstile> factorized_C i \<longleftrightarrow> I \<TTurnstile> C"
-      by (simp add: set_mset_factorized_C true_cls_def)
-
-    have factorized_C_le_C: "\<And>i. factorized_C i \<preceq>\<^sub>c C"
-      by (metis factorized_C_0 factorized_C_Suc_lt_C linorder_cls.le_less_linear
-          linorder_cls.not_less_iff_gr_or_eq not0_implies_Suc)
-
-    have factorized_C_Suc_not_in: "factorized_C (Suc i) |\<notin>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f" for i
-    proof (rule notI)
-      assume "factorized_C (Suc i) |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
-      thus False
-        using C_least_false
-        by (metis (no_types, lifting) factorized_C_Suc_lt_C is_least_false_clause_def
-            linorder_cls.is_least_in_ffilter_iff linorder_cls.not_less_iff_gr_or_eq
-            ord_res.entailed_clause_stays_entailed set_mset_factorized_C true_cls_def)
-    qed
-
-    have "factorized_C m = C\<^sub>f"
-    proof -
-      have  "(ord_res.ground_factoring ^^ m) C (C\<^sub>0 + replicate_mset (Suc (Suc k)) (Pos A))"
-        using \<open>ord_res.is_maximal_lit L C\<close> ground_factorings_replicate_max_pos_lit[of C\<^sub>0 n A m]
-        by (simp add: C_eq L_def n_def)
-      moreover have "C\<^sub>0 + replicate_mset (Suc (Suc k)) (Pos A) = factorized_C m"
-        unfolding factorized_C_def n_def by simp
-      ultimately show ?thesis
-        using \<open>(ord_res.ground_factoring ^^ m) C C\<^sub>f\<close>
-        by (metis ord_res.unique_ground_factoring Uniq_relpowp)
-    qed
-
-    hence "factorized_C m |\<in>| s1"
-      using \<open>C\<^sub>f |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f\<close> s1_def by argo
-
-    define factorized_Cs where
-      "factorized_Cs = (\<lambda>k. (\<lambda>i. factorized_C (m + i)) |`| fset_upto 0 k)"
-
-    have steps1: "kk \<le> Suc k \<Longrightarrow> (ord_res_1 ^^ kk) s1 (s1 |\<union>| factorized_Cs kk)" for kk
-    proof (induction kk)
-      case 0
-      show ?case
-        using \<open>factorized_C m |\<in>| s1\<close> by (auto simp: factorized_Cs_def)
-    next
-      case (Suc kk')
-      hence "kk' \<le> k"
-        by presburger
-      hence "m + kk' \<le> Suc n"
-        using n_def by presburger
-
-      have "factorized_C (m + kk') |\<in>| (\<lambda>i. factorized_C (m + i)) |`| fset_upto 0 kk'"
-        by simp
-
-      have "ord_res.is_maximal_lit L (factorized_C (m + kk'))"
-        using \<open>ord_res.is_maximal_lit L C\<close> \<open>is_pos L\<close>
-        by (metis \<open>count C L = Suc (Suc n)\<close> diff_is_0_eq factorized_C_def factorized_C_spec
-             nat_le_linear
-            ord_res.ground_factorings_reduces_maximal_pos_lit(1))
-
-      have factorized_Cs_unproductive:
-        "ord_res.production (fset (s1 |\<union>| factorized_Cs kk')) x = {}"
-        if "x |\<in>| factorized_Cs kk'" for x
-      proof -
-        from that obtain i where "i \<le> kk'" and x_def: "x = factorized_C (m + i)"
-          unfolding factorized_Cs_def by force
-        with \<open>kk' \<le> k\<close> have "i \<le> k"
-          by presburger
-        hence x_eq: "x = C\<^sub>0 + replicate_mset (Suc (Suc (k - i))) (Pos A)"
-          unfolding factorized_C_def n_def x_def
-          apply simp
-          by (simp add: Suc_diff_le)
-
-        moreover have "ord_res.is_maximal_lit (Pos A) x"
-          using \<open>ord_res.is_maximal_lit L C\<close> \<open>is_pos L\<close>
-          by (smt (verit, ccfv_SIG) L_def Suc_diff_le Suc_leD Suc_le_mono
-              \<open>(ord_res.ground_factoring ^^ m) C C\<^sub>f\<close>
-              \<open>C\<^sub>f = C\<^sub>0 + replicate_mset (Suc (Suc k)) (Pos A)\<close>
-              \<open>count C L = Suc (Suc n)\<close> \<open>i \<le> k\<close> \<open>m \<le> n\<close> add_diff_cancel_left' n_def
-              ord_res.ground_factorings_reduces_maximal_pos_lit(1)
-              ord_res.ground_factorings_reduces_maximal_pos_lit(2)
-              ground_factorings_replicate_max_pos_lit x_eq)
-
-        ultimately have "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L x"
-          using ground_factoring_replicate_max_pos_lit
-            nex_strictly_maximal_pos_lit_if_factorizable
-          by metis
-
-        then show ?thesis
-          using unproductive_if_nex_strictly_maximal_pos_lit by metis
-      qed
-
-      have "ord_res_1 (s1 |\<union>| factorized_Cs kk') (s1 |\<union>| factorized_Cs (Suc kk'))"
-      proof (rule ord_res_1.factoring)
-        show "is_least_false_clause (s1 |\<union>| factorized_Cs kk') (factorized_C (m + kk'))"
-          unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
-        proof (intro conjI ballI impI)
-          show "factorized_C (m + kk') |\<in>| s1 |\<union>| factorized_Cs kk'"
-            unfolding factorized_Cs_def by simp
-        next
-          show "\<not> ord_res_Interp (fset (s1 |\<union>| factorized_Cs kk')) (factorized_C (m + kk')) \<TTurnstile>
-            factorized_C (m + kk')"
-          proof (rule notI)
-            assume "ord_res_Interp (fset (s1 |\<union>| factorized_Cs kk')) (factorized_C (m + kk')) \<TTurnstile>
-              factorized_C (m + kk')"
-            hence "ord_res_Interp (fset s1) (factorized_C (m + kk')) \<TTurnstile> factorized_C (m + kk')"
-              using Interp_union_unproductive factorized_Cs_unproductive by simp
-
-            moreover have "\<not> ord_res_Interp (fset s1) (factorized_C (m + kk')) \<TTurnstile>
-              factorized_C (m + kk')"
-              unfolding factorized_C_true_iff_C_true
-              by (metis C_false_in_s1 factorized_C_le_C factorized_C_true_iff_C_true
-                  ord_res.entailed_clause_stays_entailed
-                  linorder_cls.dual_order.not_eq_order_implies_strict)
-
-            ultimately show False
-              by contradiction
-          qed
-        next
-          fix y
-          assume
-            y_in: "y |\<in>| s1 |\<union>| factorized_Cs kk'" and
-            y_neq: "y \<noteq> factorized_C (m + kk')" and
-            y_false: "\<not> ord_res_Interp (fset (s1 |\<union>| factorized_Cs kk')) y \<TTurnstile> y"
-
-          from y_false have y_false': "\<not> ord_res_Interp (fset s1) y \<TTurnstile> y"
-            using Interp_union_unproductive factorized_Cs_unproductive by simp
-          hence y_false'': "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> y"
-            using Interp_union_unproductive U\<^sub>f_unproductive s1_def by simp
-
-          from y_in have "y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f \<or> y |\<in>| U\<^sub>f \<or> y |\<in>| factorized_Cs kk'"
-            unfolding s1_def by simp
-          thus "factorized_C (m + kk') \<prec>\<^sub>c y"
-          proof (elim disjE)
-            assume "y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
-            have "C \<preceq>\<^sub>c y"
-              using C_least \<open>y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f\<close> y_false'' by force
-
-            moreover have "factorized_C (m + kk') \<preceq>\<^sub>c C"
-              using factorized_C_le_C by metis
-
-            ultimately show ?thesis
-              using y_neq by order
-          next
-            assume "y |\<in>| U\<^sub>f"
-            then obtain y' where "y' |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f" and
-              "ord_res.ground_factoring\<^sup>+\<^sup>+ y' y" and
-              "y \<noteq> sfac y" and
-              "sfac y |\<in>| U\<^sub>f\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) y'"
-              using U\<^sub>f_spec[rule_format, of y] by metis
-
-            have "y \<prec>\<^sub>c y'"
-              using \<open>ord_res.ground_factoring\<^sup>+\<^sup>+ y' y\<close>
-              by (smt (verit, ccfv_SIG) converse_tranclp_induct linorder_cls.dual_order.strict_trans
-                  ord_res.ground_factoring_smaller_conclusion)
-
-            show ?thesis
-              using \<open>sfac y |\<in>| U\<^sub>f\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) y'\<close>
-            proof (elim disjE)
-              assume "sfac y |\<in>| U\<^sub>f\<^sub>f"
-
-              hence "sfac y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
-                by simp
-
-              moreover obtain L where "is_pos L" and "ord_res.is_strictly_maximal_lit L (sfac y)"
-                using \<open>y \<noteq> sfac y\<close> obtains_positive_greatest_lit_if_sfac_not_ident by metis
-
-              ultimately have "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) (sfac y) \<TTurnstile> sfac y"
-                using ord_res_Interp_entails_if_greatest_lit_is_pos by metis
-                
-              hence "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> sfac y"
-                by (metis ord_res.entailed_clause_stays_entailed sfac_subset
-                    strict_subset_implies_multp subset_mset.less_le)
-
-              hence "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> y"
-                by (simp add: true_cls_def)
-
-              with y_false'' have False
-                by contradiction
-
-              thus ?thesis ..
-            next
-              assume "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) y'"
-              hence "y' = C"
-                using C_least_false by (metis Uniq_D Uniq_is_least_false_clause)
-
-              then obtain i where "(ord_res.ground_factoring ^^ Suc i) C y"
-                using \<open>ord_res.ground_factoring\<^sup>+\<^sup>+ y' y\<close>
-                by (metis not0_implies_Suc not_gr_zero tranclp_power)
-
-              hence "Suc i \<le> m"
-                using m_greatest[unfolded is_greatest_in_set_iff, THEN conjunct2, simplified,
-                    rule_format, of "Suc i"]
-                using \<open>y |\<in>| U\<^sub>f\<close> le_eq_less_or_eq
-                by auto
-
-              hence "Suc i \<le> Suc n"
-                using \<open>m \<le> Suc n\<close> by presburger
-
-              hence "(ord_res.ground_factoring ^^ Suc i) C (factorized_C (Suc i))"
-                using factorized_C_spec[of "Suc i"] by argo
-
-              hence "y = factorized_C (Suc i)"
-                using \<open>(ord_res.ground_factoring ^^ Suc i) C y\<close>
-                by (metis Uniq_relpowp ord_res.unique_ground_factoring)
-
-              thus ?thesis
-                using factorized_C_less_cls[OF \<open>m + kk' \<le> Suc n\<close> \<open>Suc i \<le> Suc n\<close>] 
-                by (metis \<open>Suc i \<le> m\<close> nless_le trans_le_add1 y_neq)
-            qed
-          next
-            assume "y |\<in>| factorized_Cs kk'"
-            then obtain i where
-              "i \<le> kk'" and
-              y_def: "y = factorized_C (m + i)"
-              unfolding factorized_Cs_def by force
-            hence "factorized_C (m + kk') \<subset># y"
-              using \<open>i \<le> kk'\<close> y_neq
-              by (simp add: factorized_C_def)
-            thus ?thesis
-              by (rule strict_subset_implies_multp)
-          qed
-        qed
-      next
-        show "ord_res.is_maximal_lit L (factorized_C (m + kk'))"
-          using \<open>ord_res.is_maximal_lit L (factorized_C (m + kk'))\<close> .
-      next
-        show "is_pos L"
-          using \<open>is_pos L\<close> .
-      next
-        show "ord_res.ground_factoring (factorized_C (m + kk')) (factorized_C (m + Suc kk'))"
-          using ord_res.ground_factoringI[
-              of "factorized_C (m + kk')" A _ "factorized_C (m + Suc kk')",
-              OF _ _ \<open>ord_res.is_maximal_lit L (factorized_C (m + kk'))\<close>[unfolded L_def],
-              simplified]
-          unfolding factorized_C_def
-          using \<open>kk' \<le> k\<close>
-          by (simp add: Suc_diff_le n_def)
-      next
-        show "s1 |\<union>| factorized_Cs (Suc kk') =
-          finsert (factorized_C (m + Suc kk')) (s1 |\<union>| factorized_Cs kk')"
-          by (simp add: factorized_Cs_def)
-      qed
-        
-      with Suc.IH show ?case
-        using \<open>kk' \<le> k\<close> by auto
-    qed
-
-    define s1' where
-      "s1' = s1 |\<union>| factorized_Cs (Suc k)"
-
-    have "ord_res_1\<^sup>+\<^sup>+ s1 s1'"
-      using steps1[of "Suc k", unfolded n_def, OF le_refl]
-      by (metis s1'_def tranclp_power zero_less_Suc)
-
-    moreover have "ord_res_1_matches_ord_res_2 s1' N s2'"
-    proof -
-      let ?U\<^sub>f' = "U\<^sub>f |\<union>| (\<lambda>i. factorized_C (m + i)) |`| fset_upto 1 k"
-
-      have "sfac C = add_mset L C\<^sub>0"
-        unfolding C\<^sub>0_def
-        using sfac_spec_if_pos_lit_is_maximal \<open>is_pos L\<close> \<open>ord_res.is_maximal_lit L C\<close> by metis
-
-      also have "\<dots> = factorized_C (m + Suc k)"
-        unfolding factorized_C_def L_def n_def by simp
-
-      finally have "sfac C = factorized_C (m + Suc k)" .
-
-      moreover have "fset_upto 0 (Suc k) = finsert 0 (fset_upto 1 (Suc k))"
-        by (induction k) auto
-
-      ultimately have "s1' = N |\<union>| U\<^sub>r |\<union>| finsert (sfac C) U\<^sub>f\<^sub>f |\<union>| ?U\<^sub>f'"
-        using \<open>factorized_C m |\<in>| s1\<close>
-        unfolding s1'_def s1_def factorized_Cs_def
-        by auto
-
-      moreover have "\<exists>Ca |\<in>| N |\<union>| U\<^sub>r |\<union>| finsert (sfac C) U\<^sub>f\<^sub>f.
-        ord_res.ground_factoring\<^sup>+\<^sup>+ Ca C\<^sub>f \<and>
-        C\<^sub>f \<noteq> sfac C\<^sub>f \<and>
-        (sfac C\<^sub>f |\<in>| finsert (sfac C) U\<^sub>f\<^sub>f \<or>
-          is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| finsert (sfac C) U\<^sub>f\<^sub>f) Ca)"
-        if "C\<^sub>f |\<in>| ?U\<^sub>f'" for C\<^sub>f
-      proof -
-        from \<open>C\<^sub>f |\<in>| ?U\<^sub>f'\<close> have "C\<^sub>f |\<in>| U\<^sub>f \<or> C\<^sub>f |\<in>| (\<lambda>i. factorized_C (m + i)) |`| fset_upto 1 k"
-          by simp
-        thus ?thesis
-        proof (elim disjE)
-          assume "C\<^sub>f |\<in>| U\<^sub>f"
-          thus ?thesis
-            using U\<^sub>f_spec
-            by (metis (mono_tags, lifting) C_least_false Uniq_D Uniq_is_least_false_clause
-                finsert_iff funion_finsert_right ground_factorings_preserves_sfac
-                tranclp_into_rtranclp)
-        next
-          assume "C\<^sub>f |\<in>| (\<lambda>i. factorized_C (m + i)) |`| fset_upto 1 k"
-          then obtain i where i_in: "i |\<in>| fset_upto 1 k" and C\<^sub>f_def: "C\<^sub>f = factorized_C (m + i)"
-            by auto
-
-          from i_in have "1 \<le> i" and "i \<le> k"
-            unfolding atomize_conj
-            by (induction k) auto
-
-          have "m + i \<le> Suc n"
-            using \<open>i \<le> k\<close> n_def by presburger
-          hence "(ord_res.ground_factoring ^^ (m + i)) C C\<^sub>f"
-            using factorized_C_spec C\<^sub>f_def by metis
-
-          show ?thesis
-          proof (intro bexI conjI)
-            show "C |\<in>| N |\<union>| U\<^sub>r |\<union>| finsert (sfac C) U\<^sub>f\<^sub>f"
-              using C_in by simp
-          next
-            show "ord_res.ground_factoring\<^sup>+\<^sup>+ C C\<^sub>f"
-              using \<open>1 \<le> i\<close> \<open>(ord_res.ground_factoring ^^ (m + i)) C C\<^sub>f\<close>
-              by (metis One_nat_def Suc_le_eq add_gr_0 tranclp_power)
-          next
-            show "C\<^sub>f \<noteq> sfac C\<^sub>f"
-              using \<open>(ord_res.ground_factoring ^^ (m + i)) C C\<^sub>f\<close>
-              using \<open>ord_res.is_maximal_lit L C\<close> \<open>is_pos L\<close>
-              by (smt (z3) Suc_mono \<open>add_mset L C\<^sub>0 = factorized_C (m + Suc k)\<close>
-                  \<open>count C L = Suc (Suc n)\<close> \<open>i \<le> k\<close> \<open>m + i \<le> Suc n\<close> \<open>sfac C = add_mset L C\<^sub>0\<close>
-                  add_Suc_right add_diff_cancel_left' diff_is_0_eq factorized_C_spec
-                  ground_factorings_preserves_sfac group_cancel.add1 le_antisym
-                  mono_nat_linear_lb n_def not_less_eq_eq
-                  ord_res.ground_factorings_reduces_maximal_pos_lit(2) plus_1_eq_Suc
-                  relpowp_imp_rtranclp)
-          next
-            have "ord_res.ground_factoring\<^sup>*\<^sup>* C C\<^sub>f"
-              using \<open>(ord_res.ground_factoring ^^ (m + i)) C C\<^sub>f\<close>
-              by (metis relpowp_imp_rtranclp)
-            hence "sfac C = sfac C\<^sub>f"
-              using ground_factorings_preserves_sfac by metis
-            hence "sfac C\<^sub>f |\<in>| finsert (sfac C) U\<^sub>f\<^sub>f"
-              by simp
-            thus "sfac C\<^sub>f |\<in>| finsert (sfac C) U\<^sub>f\<^sub>f \<or>
-              is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| finsert (sfac C) U\<^sub>f\<^sub>f) C" ..
-          qed
-        qed
-      qed
-
-      ultimately show ?thesis
-        unfolding factoring ord_res_1_matches_ord_res_2.simps by metis
-    qed
-
-    ultimately show ?thesis
-      by metis
-  next
-    case (resolution C L D CD U\<^sub>r')
-
-    have C_least_false: "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) C"
-      using resolution by argo
-    hence
-      C_in: "C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f" and
-      C_false: "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) C \<TTurnstile> C" and
-      C_least: "\<forall>y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f. y \<noteq> C \<longrightarrow>
-        \<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> y \<longrightarrow> C \<prec>\<^sub>c y"
-      unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff by simp_all
-
-    define s1' where
-      "s1' = finsert CD s1"
-
-    have "ord_res_1\<^sup>+\<^sup>+ s1 s1'"
-    proof (rule tranclp.r_into_trancl)
-      show "ord_res_1 s1 s1'"
-      proof (rule ord_res_1.resolution)
-        show "is_least_false_clause s1 C"
-          unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
-        proof (intro conjI ballI impI)
-          show "C |\<in>| s1"
-            using C_in by (simp add: s1_def)
-        next
-          show "\<not> ord_res_Interp (fset s1) C \<TTurnstile> C"
-            unfolding s1_def Interp_eq
-            using C_false .
-        next
-          fix y assume "y |\<in>| s1" and "y \<noteq> C" and y_false: "\<not> ord_res_Interp (fset s1) y \<TTurnstile> y"
-
-          have y_false': "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> y"
-            using y_false unfolding s1_def Interp_eq .
-
-          have "y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f \<or> y |\<in>| U\<^sub>f"
-            using \<open>y |\<in>| s1\<close> by (simp add: s1_def)
-
-          thus "C \<prec>\<^sub>c y"
-          proof (elim disjE)
-            assume "y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
-            thus "C \<prec>\<^sub>c y"
-              using \<open>y \<noteq> C\<close> y_false' C_least by metis
-          next
-            assume "y |\<in>| U\<^sub>f"
-            then obtain y' where
-              "y' |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f" and
-              "ord_res.ground_factoring\<^sup>+\<^sup>+ y' y" and
-              "y \<noteq> sfac y" and
-              "sfac y |\<in>| U\<^sub>f\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) y'"
-              using U\<^sub>f_spec by metis
-
-            show "C \<prec>\<^sub>c y"
-              using \<open>sfac y |\<in>| U\<^sub>f\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) y'\<close>
-            proof (elim disjE)
-              assume "sfac y |\<in>| U\<^sub>f\<^sub>f"
-              hence "sfac y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
-                by simp
-
-              have "sfac y \<prec>\<^sub>c y"
-                using \<open>y \<noteq> sfac y\<close> sfac_subset[of y]
-                by (simp add: strict_subset_implies_multp)
-
-              moreover have "C \<preceq>\<^sub>c sfac y"
-              proof (cases "sfac y = C")
-                case True
-                thus ?thesis
-                  by simp
-              next
-                case False
-
-                have sfac_y_false: "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) (sfac y) \<TTurnstile> sfac y"
-                proof (rule notI)
-                  assume "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) (sfac y) \<TTurnstile> sfac y"
-                  hence "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> sfac y"
-                    using \<open>sfac y \<prec>\<^sub>c y\<close> ord_res.entailed_clause_stays_entailed by metis
-                  hence "ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) y \<TTurnstile> y"
-                    by (simp add: true_cls_def)
-                  with y_false' show False
-                    by contradiction
-                qed
-
-                show ?thesis
-                  using C_least[rule_format, OF \<open>sfac y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f\<close> False sfac_y_false]
-                  by order
-              qed
-
-              ultimately show "C \<prec>\<^sub>c y"
-                by order
-            next
-              assume "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) y'"
-              hence "y' = C"
-                using C_least_false by (metis Uniq_is_least_false_clause Uniq_D)
-
-              moreover have "\<exists>L. ord_res.is_maximal_lit L y' \<and> is_pos L"
-                using \<open>ord_res.ground_factoring\<^sup>+\<^sup>+ y' y\<close>
-                by (metis is_pos_def ord_res.ground_factoring.cases tranclpD)
-
-              moreover have "\<nexists>L. ord_res.is_maximal_lit L C \<and> is_pos L"
-                using \<open>ord_res.is_maximal_lit L C\<close> \<open>is_neg L\<close>
-                by (metis Uniq_D linorder_lit.Uniq_is_maximal_in_mset)
-
-              ultimately have False
-                by metis
-
-              thus "C \<prec>\<^sub>c y" ..
-            qed
-          qed
-        qed
-      next
-        show "ord_res.is_maximal_lit L C"
-          using resolution by argo
-      next
-        show "is_neg L"
-          using resolution by argo
-      next
-        show "D |\<in>| s1"
-          using resolution s1_def by simp
-      next
-        show "D \<prec>\<^sub>c C"
-          using resolution by argo
-      next
-        have "ord_res.production (fset s1) D = ord_res.production (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) D"
-          unfolding s1_def
-          using production_union_unproductive[of "fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f)" "fset U\<^sub>f"]
-          using U\<^sub>f_unproductive \<open>D |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f\<close>
-          by (metis finite_fset sup_fset.rep_eq)
-        thus "ord_res.production (fset s1) D = {atm_of L}"
-          using resolution by argo
-      next
-        show "ord_res.ground_resolution C D CD"
-          using resolution by argo
-      next
-        show "s1' = finsert CD s1"
-          unfolding s1'_def ..
-      qed
-    qed
-
-    moreover have "ord_res_1_matches_ord_res_2 s1' N s2'"
-    proof -
-      have "finsert CD (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f) = N |\<union>| finsert CD U\<^sub>r |\<union>| U\<^sub>f\<^sub>f |\<union>| U\<^sub>f"
-        by simp
-
-      moreover have "\<exists>C |\<in>| N |\<union>| finsert CD U\<^sub>r |\<union>| U\<^sub>f\<^sub>f.
-        ord_res.ground_factoring\<^sup>+\<^sup>+ C C\<^sub>f \<and> C\<^sub>f \<noteq> sfac C\<^sub>f \<and>
-        (sfac C\<^sub>f |\<in>| U\<^sub>f\<^sub>f \<or> is_least_false_clause (N |\<union>| finsert CD U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) C)"
-        if "C\<^sub>f |\<in>| U\<^sub>f" for C\<^sub>f
-      proof -
-        from that obtain x where
-          "x |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f" and
-          "ord_res.ground_factoring\<^sup>+\<^sup>+ x C\<^sub>f" and
-          "C\<^sub>f \<noteq> sfac C\<^sub>f" and
-          "sfac C\<^sub>f |\<in>| U\<^sub>f\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) x"
-          using U\<^sub>f_spec by metis
-
-        show ?thesis
-        proof (intro bexI conjI)
-          show "x |\<in>| N |\<union>| finsert CD U\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
-            using \<open>x |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f\<close> by simp
-        next
-          show "ord_res.ground_factoring\<^sup>+\<^sup>+ x C\<^sub>f"
-            using \<open>ord_res.ground_factoring\<^sup>+\<^sup>+ x C\<^sub>f\<close> .
-        next
-          show "C\<^sub>f \<noteq> sfac C\<^sub>f"
-            using \<open>C\<^sub>f \<noteq> sfac C\<^sub>f\<close> .
-        next
-          show "sfac C\<^sub>f |\<in>| U\<^sub>f\<^sub>f \<or> is_least_false_clause (N |\<union>| finsert CD U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) x"
-            using \<open>sfac C\<^sub>f |\<in>| U\<^sub>f\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) x\<close>
-          proof (elim disjE)
-            assume "sfac C\<^sub>f |\<in>| U\<^sub>f\<^sub>f"
-            thus ?thesis
-              by argo
-          next
-            assume "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>f\<^sub>f) x"
-            hence "x = C"
-              using C_least_false
-              by (metis Uniq_D Uniq_is_least_false_clause)
-            hence False
-              by (metis \<open>C\<^sub>f \<noteq> sfac C\<^sub>f\<close> \<open>ord_res.ground_factoring\<^sup>+\<^sup>+ x C\<^sub>f\<close> is_pos_def
-                  linorder_lit.Uniq_is_maximal_in_mset local.resolution(3) local.resolution(4)
-                  ord_res.ground_factorings_preserves_maximal_literal sfac_spec the1_equality'
-                  tranclp_into_rtranclp)
-            thus ?thesis ..
-          qed
-        qed
-      qed
-
-      ultimately show ?thesis
-        unfolding s1'_def s1_def resolution
-        unfolding ord_res_1_matches_ord_res_2.simps
-        by metis
-    qed
-
-    ultimately show ?thesis
-      by metis
+      by (metis (mono_tags, lifting) \<open>i = ord_res_1_measure s1\<close> match_def)
   qed
 qed
 
@@ -4687,25 +3804,29 @@ inductive ord_res_3 where
     U\<^sub>r\<^sub>r' = finsert DC U\<^sub>r\<^sub>r \<Longrightarrow>
     ord_res_3 N (U\<^sub>r\<^sub>r, U\<^sub>f\<^sub>f) (U\<^sub>r\<^sub>r', U\<^sub>f\<^sub>f)"
 
-fun ord_res_3_final where
-  "ord_res_3_final N (U\<^sub>r\<^sub>r, U\<^sub>f\<^sub>f) \<longleftrightarrow> ord_res_final (N |\<union>| U\<^sub>r\<^sub>r |\<union>| U\<^sub>f\<^sub>f)"
+inductive ord_res_3_step where
+  "ord_res_3 N s s' \<Longrightarrow> ord_res_3_step (N, s) (N, s')"
+
+inductive ord_res_3_final where
+  "ord_res_final (N |\<union>| U\<^sub>r\<^sub>r |\<union>| U\<^sub>f\<^sub>f) \<Longrightarrow> ord_res_3_final (N, (U\<^sub>r\<^sub>r, U\<^sub>f\<^sub>f))"
 
 inductive ord_res_3_load where
-  "N \<noteq> {||} \<Longrightarrow> ord_res_3_load N N ({||}, {||})"
+  "N \<noteq> {||} \<Longrightarrow> ord_res_3_load N (N, ({||}, {||}))"
 
-interpretation ord_res_3_semantics: semantics' where
-  step = ord_res_3 and
+interpretation ord_res_3_semantics: semantics where
+  step = ord_res_3_step and
   final = ord_res_3_final
 proof unfold_locales
-  fix N :: "'f gterm clause fset" and S3 :: "'f gterm clause fset \<times> 'f gterm clause fset"
+  fix S3 :: "'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset"
 
-  obtain U\<^sub>r\<^sub>r U\<^sub>f\<^sub>f where S3_def: "S3 = (U\<^sub>r\<^sub>r, U\<^sub>f\<^sub>f)"
-    by force
+  obtain N U\<^sub>r\<^sub>r U\<^sub>f\<^sub>f :: "'f gterm clause fset" where
+    S3_def: "S3 = (N, (U\<^sub>r\<^sub>r, U\<^sub>f\<^sub>f))"
+    by (metis prod.exhaust)
 
-  assume "ord_res_3_final N S3"
+  assume "ord_res_3_final S3"
   hence "{#} |\<in>| N |\<union>| U\<^sub>r\<^sub>r |\<union>| U\<^sub>f\<^sub>f \<or> \<not> ex_false_clause (fset (N |\<union>| U\<^sub>r\<^sub>r |\<union>| U\<^sub>f\<^sub>f))"
-    by (simp add: S3_def ord_res_final_def)
-  thus "finished (ord_res_3 N) S3"
+    by (simp add: S3_def ord_res_3_final.simps ord_res_final_def)
+  thus "finished ord_res_3_step S3"
   proof (elim disjE)
     assume "{#} |\<in>| N |\<union>| U\<^sub>r\<^sub>r |\<union>| U\<^sub>f\<^sub>f"
     hence "is_least_false_clause (N |\<union>| U\<^sub>r\<^sub>r |\<union>| U\<^sub>f\<^sub>f) {#}"
@@ -4713,44 +3834,46 @@ proof unfold_locales
     hence "\<nexists>C L. is_least_false_clause (N |\<union>| U\<^sub>r\<^sub>r |\<union>| U\<^sub>f\<^sub>f) C \<and> linorder_lit.is_maximal_in_mset C L"
       by (metis Uniq_D Uniq_is_least_false_clause bot_fset.rep_eq fBex_fempty
           linorder_lit.is_maximal_in_mset_iff set_mset_empty)
-    hence "\<nexists>S3'. ord_res_3 N S3 S3'"
+    hence "\<nexists>x. ord_res_3 N (U\<^sub>r\<^sub>r, U\<^sub>f\<^sub>f) x"
       by (auto simp: S3_def elim: ord_res_3.cases)
     thus ?thesis
-      by (simp add: finished_def)
+      by (simp add: finished_def ord_res_3_step.simps S3_def)
   next
     assume "\<not> ex_false_clause (fset (N |\<union>| U\<^sub>r\<^sub>r |\<union>| U\<^sub>f\<^sub>f))"
     hence "\<nexists>C. is_least_false_clause (N |\<union>| U\<^sub>r\<^sub>r |\<union>| U\<^sub>f\<^sub>f) C"
       unfolding ex_false_clause_def is_least_false_clause_def
       by (metis (no_types, lifting) linorder_cls.is_least_in_fset_ffilterD(1)
           linorder_cls.is_least_in_fset_ffilterD(2))
-    hence "\<nexists>S3'. ord_res_3 N S3 S3'"
+    hence "\<nexists>x. ord_res_3 N (U\<^sub>r\<^sub>r, U\<^sub>f\<^sub>f) x"
       by (auto simp: S3_def elim: ord_res_3.cases)
     thus ?thesis
-      by (simp add: finished_def)
+      by (simp add: finished_def ord_res_3_step.simps S3_def)
   qed
 qed
 
-interpretation ord_res_3_language: language' where
-  step = ord_res_3 and
+interpretation ord_res_3_language: language where
+  step = ord_res_3_step and
   final = ord_res_3_final and
   load = ord_res_3_load
   by unfold_locales
 
 fun ord_res_2_matches_ord_res_3 where
-  "ord_res_2_matches_ord_res_3 N\<^sub>2 (U\<^sub>r\<^sub>2, U\<^sub>e\<^sub>f\<^sub>2) N\<^sub>3 (U\<^sub>e\<^sub>r\<^sub>3, U\<^sub>e\<^sub>f\<^sub>3) \<longleftrightarrow>
+  "ord_res_2_matches_ord_res_3 (N\<^sub>2, (U\<^sub>r\<^sub>2, U\<^sub>e\<^sub>f\<^sub>2)) (N\<^sub>3, (U\<^sub>e\<^sub>r\<^sub>3, U\<^sub>e\<^sub>f\<^sub>3)) \<longleftrightarrow>
     N\<^sub>2 = N\<^sub>3 \<and> U\<^sub>e\<^sub>f\<^sub>2 = U\<^sub>e\<^sub>f\<^sub>3 \<and> (\<exists>U\<^sub>p\<^sub>r\<^sub>3. U\<^sub>r\<^sub>2 = U\<^sub>p\<^sub>r\<^sub>3 |\<union>| U\<^sub>e\<^sub>r\<^sub>3 \<and>
     (\<forall>C\<^sub>r |\<in>| U\<^sub>p\<^sub>r\<^sub>3. \<exists>C |\<in>| N\<^sub>3 |\<union>| U\<^sub>e\<^sub>r\<^sub>3 |\<union>| U\<^sub>e\<^sub>f\<^sub>3. \<exists>D |\<in>| N\<^sub>3 |\<union>| U\<^sub>e\<^sub>r\<^sub>3 |\<union>| U\<^sub>e\<^sub>f\<^sub>3.
+      ord_res.production (fset (N\<^sub>3 |\<union>| U\<^sub>e\<^sub>r\<^sub>3 |\<union>| U\<^sub>e\<^sub>f\<^sub>3)) D \<noteq> {} \<and>
       (ground_resolution D)\<^sup>+\<^sup>+ C C\<^sub>r \<and> C\<^sub>r \<noteq> eres D C\<^sub>r \<and>
       (eres D C\<^sub>r |\<in>| U\<^sub>e\<^sub>r\<^sub>3 \<or> is_least_false_clause (N\<^sub>3 |\<union>| U\<^sub>e\<^sub>r\<^sub>3 |\<union>| U\<^sub>e\<^sub>f\<^sub>3) C)))"
 
 lemma ord_res_2_final_iff_ord_res_3_final:
-  assumes match: "ord_res_2_matches_ord_res_3 \<C>\<^sub>2 S\<^sub>2 \<C>\<^sub>3 S\<^sub>3"
-  shows "ord_res_2_final \<C>\<^sub>2 S\<^sub>2 \<longleftrightarrow> ord_res_3_final \<C>\<^sub>3 S\<^sub>3"
+  assumes match: "ord_res_2_matches_ord_res_3 S\<^sub>2 S\<^sub>3"
+  shows "ord_res_2_final S\<^sub>2 \<longleftrightarrow> ord_res_3_final S\<^sub>3"
 proof -
   from match obtain N U\<^sub>r U\<^sub>p\<^sub>r U\<^sub>e\<^sub>r U\<^sub>e\<^sub>f where
-    state_simps: "\<C>\<^sub>2 = N" "\<C>\<^sub>3 = N" "S\<^sub>2 = (U\<^sub>r, U\<^sub>e\<^sub>f)" "S\<^sub>3 = (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)" and
+    state_simps: "S\<^sub>2 = (N, (U\<^sub>r, U\<^sub>e\<^sub>f))" "S\<^sub>3 = (N, (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f))" and
     U\<^sub>r_def: "U\<^sub>r = U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r" and
     U\<^sub>p\<^sub>r_spec: "\<forall>C\<^sub>r |\<in>| U\<^sub>p\<^sub>r. \<exists>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
+      ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D \<noteq> {} \<and>
       (ground_resolution D)\<^sup>+\<^sup>+ C C\<^sub>r \<and> C\<^sub>r \<noteq> eres D C\<^sub>r \<and>
       (eres D C\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<or> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C)"
     by (elim ord_res_2_matches_ord_res_3.elims(2)) blast
@@ -4960,13 +4083,13 @@ proof -
   ultimately have "ord_res_final (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f) = ord_res_final (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)"
     unfolding ord_res_final_def by argo
 
-  thus "ord_res_2_final \<C>\<^sub>2 S\<^sub>2 \<longleftrightarrow> ord_res_3_final \<C>\<^sub>3 S\<^sub>3"
-    unfolding state_simps by simp
+  thus "ord_res_2_final S\<^sub>2 \<longleftrightarrow> ord_res_3_final S\<^sub>3"
+    by (simp add: state_simps ord_res_2_final.simps ord_res_3_final.simps)
 qed
 
 definition ord_res_2_measure where
-  "ord_res_2_measure N s1 =
-    (let (U\<^sub>r, U\<^sub>e\<^sub>f) = s1 in
+  "ord_res_2_measure S1 =
+    (let (N, (U\<^sub>r, U\<^sub>e\<^sub>f)) = S1 in
     (if \<exists>C. is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C then
       The (is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f))
     else
@@ -5266,45 +4389,23 @@ proof -
   qed
 qed
 
-interpretation bisimulation_with_measuring_function' where
-  step1 = ord_res_2 and final1 = ord_res_2_final and
-  step2 = ord_res_3 and final2 = ord_res_3_final and
-  match = ord_res_2_matches_ord_res_3 and
-  measure1 = ord_res_2_measure and order1 = "(\<prec>\<^sub>c)" and
-  measure2 = "\<lambda>_ _. ()" and order2 = "\<lambda>_ _. False"
-proof unfold_locales
-  show "wfP (\<prec>\<^sub>c)"
-    using ord_res.wfP_less_cls .
-next
-  fix
-    N2 N3 :: "'f gterm clause fset" and
-    s2 s3 :: "'f gterm clause fset \<times> 'f gterm clause fset"
-
-  assume "ord_res_2_matches_ord_res_3 N2 s2 N3 s3" and "ord_res_2_final N2 s2"
-  thus "ord_res_3_final N3 s3"
-    using ord_res_2_final_iff_ord_res_3_final by metis
-next
-  fix
-    N2 N3 :: "'f gterm clause fset" and
-    s2 s3 :: "'f gterm clause fset \<times> 'f gterm clause fset"
-
-  assume "ord_res_2_matches_ord_res_3 N2 s2 N3 s3" and "ord_res_3_final N3 s3"
-  thus "ord_res_2_final N2 s2"
-    using ord_res_2_final_iff_ord_res_3_final by metis
-next
+lemma forward_simulation_2_to_3:
+  assumes
+    match: "ord_res_2_matches_ord_res_3 S2 S3" and
+    step2: "ord_res_2_step S2 S2'"
+  shows "(\<exists>S3'. ord_res_3_step\<^sup>+\<^sup>+ S3 S3' \<and> ord_res_2_matches_ord_res_3 S2' S3') \<or>
+    ord_res_2_matches_ord_res_3 S2' S3 \<and> ord_res_2_measure S2' \<prec>\<^sub>c ord_res_2_measure S2"
+proof -
   let
     ?match = ord_res_2_matches_ord_res_3 and
-    ?measure = ord_res_2_measure and ?order = "(\<prec>\<^sub>c)"
-
-  fix
-    N2 N3 :: "'f gterm clause fset" and
-    s2 s2' s3 :: "'f gterm clause fset \<times> 'f gterm clause fset"
-
-  assume "?match N2 s2 N3 s3"
-  then obtain N U\<^sub>r U\<^sub>p\<^sub>r U\<^sub>e\<^sub>r U\<^sub>e\<^sub>f where
-    Ns_def: "N2 = N" "N3 = N" and s2_def: "s2 = (U\<^sub>r, U\<^sub>e\<^sub>f)" and s3_def: "s3 = (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)" and
+    ?measure = ord_res_2_measure and
+    ?order = "(\<prec>\<^sub>c)"
+  
+  from match obtain N U\<^sub>r U\<^sub>p\<^sub>r U\<^sub>e\<^sub>r U\<^sub>e\<^sub>f where
+    S2_def: "S2 = (N, (U\<^sub>r, U\<^sub>e\<^sub>f))" and S3_def: "S3 = (N, (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f))" and
     U\<^sub>r_def: "U\<^sub>r = U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r" and
     U\<^sub>p\<^sub>r_spec: "\<forall>C\<^sub>p\<^sub>r |\<in>| U\<^sub>p\<^sub>r. \<exists>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
+      ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D \<noteq> {} \<and>
       (ground_resolution D)\<^sup>+\<^sup>+ C C\<^sub>p\<^sub>r \<and> C\<^sub>p\<^sub>r \<noteq> eres D C\<^sub>p\<^sub>r \<and>
       (eres D C\<^sub>p\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<or> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C)"
     by (elim ord_res_2_matches_ord_res_3.elims(2)) blast
@@ -5338,16 +4439,18 @@ next
   have "N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f |\<union>| U\<^sub>p\<^sub>r = N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
     unfolding U\<^sub>r_def by auto
 
-  assume "ord_res_2 N2 s2 s2'"
-  hence "ord_res_2 N (U\<^sub>r, U\<^sub>e\<^sub>f) s2'"
-    unfolding Ns_def s2_def .
-  thus "(\<exists>s3'. (ord_res_3 N3)\<^sup>+\<^sup>+ s3 s3' \<and> ?match N2 s2' N3 s3') \<or>
-    ?match N2 s2' N3 s3 \<and> ?order (?measure N2 s2') (?measure N2 s2)"
+  from step2 obtain s2' where
+    S2'_def: "S2' = (N, s2')" and "ord_res_2 N (U\<^sub>r, U\<^sub>e\<^sub>f) s2'"
+    unfolding S2_def by (metis Pair_inject ord_res_2_step.cases)
+
+  show "(\<exists>S3'. ord_res_3_step\<^sup>+\<^sup>+ S3 S3' \<and> ?match S2' S3') \<or>
+    ?match S2' S3 \<and> ?order (?measure S2') (?measure S2)"
+    using \<open>ord_res_2 N (U\<^sub>r, U\<^sub>e\<^sub>f) s2'\<close>
   proof (cases N "(U\<^sub>r, U\<^sub>e\<^sub>f)" s2' rule: ord_res_2.cases)
     case (factoring C L U\<^sub>e\<^sub>f')
 
-    define s3' where
-      "s3' = (U\<^sub>e\<^sub>r, finsert (sfac C) U\<^sub>e\<^sub>f)"
+    define S3' where
+      "S3' = (N, (U\<^sub>e\<^sub>r, finsert (sfac C) U\<^sub>e\<^sub>f))"
 
     have "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
     proof -
@@ -5385,11 +4488,11 @@ next
         using \<open>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close> .
     qed
 
-    have "(ord_res_3 N3)\<^sup>+\<^sup>+ s3 s3'"
+    have "ord_res_3_step\<^sup>+\<^sup>+ S3 S3'"
     proof (rule tranclp.r_into_trancl)
-      show "ord_res_3 N3 s3 s3'"
-        unfolding Ns_def s3_def s3'_def
-      proof (rule ord_res_3.factoring)
+      show "ord_res_3_step S3 S3'"
+        unfolding S3_def S3'_def
+      proof (intro ord_res_3_step.intros ord_res_3.factoring)
         show "is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C"
           using \<open>is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C\<close> .
       next
@@ -5403,10 +4506,11 @@ next
       qed
     qed
 
-    moreover have "?match N2 s2' N3 s3'"
+    moreover have "?match S2' S3'"
     proof -
       have "
         \<exists>Ca|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f. \<exists>D|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f.
+          ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f)) D \<noteq> {} \<and>
           (ground_resolution D)\<^sup>+\<^sup>+ Ca C\<^sub>r \<and> C\<^sub>r \<noteq> eres D C\<^sub>r \<and>
           (eres D C\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<or> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f) Ca)"
         if "C\<^sub>r |\<in>| U\<^sub>p\<^sub>r" for C\<^sub>r
@@ -5414,6 +4518,7 @@ next
         from that obtain D1 D2 where
           "D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
           "D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
+          D1_productive: "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 \<noteq> {}" and
           "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>r" and
           "C\<^sub>r \<noteq> eres D1 C\<^sub>r" and
           "eres D1 C\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<or> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) D2"
@@ -5421,6 +4526,10 @@ next
 
         show ?thesis
         proof (intro bexI conjI)
+          show "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f)) D1 \<noteq> {}"
+            using D1_productive
+            sorry
+        next
           show "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>r"
             using \<open>(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>r\<close> .
         next
@@ -5460,9 +4569,11 @@ next
       qed
 
       thus ?thesis
-        unfolding Ns_def \<open>s2' = (U\<^sub>r, U\<^sub>e\<^sub>f')\<close> U\<^sub>r_def \<open>U\<^sub>e\<^sub>f' = finsert (sfac C) U\<^sub>e\<^sub>f\<close> s3'_def
+        unfolding S2'_def S3'_def \<open>s2' = (U\<^sub>r, U\<^sub>e\<^sub>f')\<close>
         unfolding ord_res_2_matches_ord_res_3.simps
-        by blast
+        unfolding \<open>U\<^sub>e\<^sub>f' = finsert (sfac C) U\<^sub>e\<^sub>f\<close>
+        unfolding U\<^sub>r_def
+        by metis
     qed
 
     ultimately show ?thesis
@@ -5511,6 +4622,7 @@ next
       then obtain D1 D2 where
         "D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
         "D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
+        D1_productive: "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 \<noteq> {}" and
         "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C" and
         "C \<noteq> eres D1 C" and
         "eres D1 C |\<in>| U\<^sub>e\<^sub>r \<or> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) D2"
@@ -5528,8 +4640,7 @@ next
             tranclp_ground_resolutionD the1_equality' uminus_Neg)
 
       have "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 \<noteq> {}"
-        \<comment> \<open>This will need to be added to @{thm U\<^sub>p\<^sub>r_spec}\<close>
-        sorry
+        using D1_productive .
 
       hence "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 = {atm_of L}"
         using \<open>linorder_lit.is_greatest_in_mset D1 (- L)\<close>
@@ -5598,14 +4709,14 @@ next
     proof (cases "eres D C = DC")
       case True
 
-      define s3' where
-        "s3' = (finsert (eres D C) U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)"
+      define S3' where
+        "S3' = (N, (finsert (eres D C) U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f))"
 
-      have "(ord_res_3 N3)\<^sup>+\<^sup>+ s3 s3'"
+      have "ord_res_3_step\<^sup>+\<^sup>+ S3 S3'"
       proof (rule tranclp.r_into_trancl)
-        show "ord_res_3 N3 s3 s3'"
-          unfolding Ns_def s3_def s3'_def
-        proof (rule ord_res_3.resolution)
+        show "ord_res_3_step S3 S3'"
+          unfolding S3_def S3'_def
+        proof (intro ord_res_3_step.intros ord_res_3.resolution)
           show "is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C\<^sub>0"
             using \<open>is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C\<^sub>0\<close> .
         next
@@ -5636,8 +4747,8 @@ next
         qed
       qed
 
-      moreover have "?match N2 s2' N3 s3'"
-        unfolding Ns_def \<open>s2' = (U\<^sub>r', U\<^sub>e\<^sub>f)\<close> s3'_def ord_res_2_matches_ord_res_3.simps
+      moreover have "?match S2' S3'"
+        unfolding S2'_def \<open>s2' = (U\<^sub>r', U\<^sub>e\<^sub>f)\<close> S3'_def ord_res_2_matches_ord_res_3.simps
       proof (intro conjI exI ballI)
         show "U\<^sub>r' = U\<^sub>p\<^sub>r |\<union>| finsert (eres D C) U\<^sub>e\<^sub>r"
           unfolding \<open>U\<^sub>r' = finsert DC U\<^sub>r\<close> U\<^sub>r_def \<open>eres D C = DC\<close> by simp
@@ -5647,6 +4758,7 @@ next
         then obtain D1 D2 where
           "D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
           "D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
+          D1_productive: "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 \<noteq> {}" and
           "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>p\<^sub>r" and
           "C\<^sub>p\<^sub>r \<noteq> eres D1 C\<^sub>p\<^sub>r" and
           "eres D1 C\<^sub>p\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<or> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) D2"
@@ -5654,10 +4766,15 @@ next
 
         show "\<exists>D2 |\<in>| N |\<union>| finsert (eres D C) U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
           \<exists>D1 |\<in>| N |\<union>| finsert (eres D C) U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
+            ord_res.production (fset (N |\<union>| finsert (eres D C) U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 \<noteq> {} \<and>
             (ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>p\<^sub>r \<and> C\<^sub>p\<^sub>r \<noteq> eres D1 C\<^sub>p\<^sub>r \<and>
             (eres D1 C\<^sub>p\<^sub>r |\<in>| finsert (eres D C) U\<^sub>e\<^sub>r \<or>
               is_least_false_clause (N |\<union>| finsert (eres D C) U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) D2)"
         proof (intro bexI conjI)
+          show "ord_res.production (fset (N |\<union>| finsert (eres D C) U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 \<noteq> {}"
+            using D1_productive
+            sorry
+        next
           show "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>p\<^sub>r"
             using \<open>(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>p\<^sub>r\<close> .
         next
@@ -5693,8 +4810,7 @@ next
                   tranclp_ground_resolutionD the1_equality' uminus_Neg)
 
             have "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 \<noteq> {}"
-              \<comment> \<open>This will need to be added to @{thm U\<^sub>p\<^sub>r_spec}\<close>
-              sorry
+              using D1_productive .
 
             hence "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 = {atm_of L}"
               using \<open>linorder_lit.is_greatest_in_mset D1 (- L)\<close>
@@ -5737,8 +4853,8 @@ next
     next
       case False
 
-      have "?match N2 s2' N3 s3"
-        unfolding Ns_def \<open>s2' = (U\<^sub>r', U\<^sub>e\<^sub>f)\<close> s3_def ord_res_2_matches_ord_res_3.simps
+      have "?match S2' S3"
+        unfolding S2'_def \<open>s2' = (U\<^sub>r', U\<^sub>e\<^sub>f)\<close> S3_def ord_res_2_matches_ord_res_3.simps
       proof (intro conjI exI ballI)
         show "U\<^sub>r' = finsert DC U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r"
           unfolding \<open>U\<^sub>r' = finsert DC U\<^sub>r\<close> U\<^sub>r_def by simp
@@ -5748,6 +4864,7 @@ next
         hence "C\<^sub>p\<^sub>r = DC \<or> C\<^sub>p\<^sub>r |\<in>| U\<^sub>p\<^sub>r"
           by simp
         thus "\<exists>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
+          ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D \<noteq> {} \<and>
           (ground_resolution D)\<^sup>+\<^sup>+ C C\<^sub>p\<^sub>r \<and> C\<^sub>p\<^sub>r \<noteq> eres D C\<^sub>p\<^sub>r \<and>
           (eres D C\<^sub>p\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<or> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C)"
         proof (elim disjE)
@@ -5770,6 +4887,8 @@ next
               apply (rule bexI[OF _ \<open>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close>])
               apply (intro conjI)
               subgoal
+                using local.resolution(7) production_N_U\<^sub>r_U\<^sub>e\<^sub>f_production_Interp_N_U\<^sub>e\<^sub>r_U\<^sub>e\<^sub>f by auto
+              subgoal
                 using \<open>ground_resolution D C DC\<close>
                 unfolding \<open>C\<^sub>p\<^sub>r = DC\<close>
                 by simp
@@ -5786,6 +4905,7 @@ next
             then obtain D1 D2 where
               "D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
               "D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
+              D1_productive: "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 \<noteq> {}" and
               "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C" and
               "C \<noteq> eres D1 C" and
               "eres D1 C |\<in>| U\<^sub>e\<^sub>r \<or> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) D2"
@@ -5803,8 +4923,7 @@ next
                   tranclp_ground_resolutionD the1_equality' uminus_Neg)
 
             have "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 \<noteq> {}"
-              \<comment> \<open>This will need to be added to @{thm U\<^sub>p\<^sub>r_spec}\<close>
-              sorry
+              using D1_productive .
 
             hence "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 = {atm_of L}"
               using \<open>linorder_lit.is_greatest_in_mset D1 (- L)\<close>
@@ -5820,6 +4939,9 @@ next
 
             show ?thesis
             proof (intro bexI conjI)
+              show "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D1 \<noteq> {}"
+                using D1_productive .
+            next
               show "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>p\<^sub>r"
                 using \<open>ground_resolution D C DC\<close> \<open>(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<close>
                 unfolding \<open>D1 = D\<close> \<open>C\<^sub>p\<^sub>r = DC\<close>
@@ -5850,14 +4972,14 @@ next
         qed
       qed simp_all
 
-      moreover have "?order (?measure N2 s2') (?measure N2 s2)"
+      moreover have "?order (?measure S2') (?measure S2)"
       proof -
-        have "?measure N2 s2 = C"
-          unfolding Ns_def s2_def ord_res_2_measure_def Let_def prod.case
+        have "?measure S2 = C"
+          unfolding S2_def ord_res_2_measure_def Let_def prod.case
           using \<open>is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C\<close>
           by (meson Uniq_is_least_false_clause the1_equality')
 
-        moreover have "?measure N2 s2' = DC"
+        moreover have "?measure S2' = DC"
         proof -
           have "is_least_false_clause (N |\<union>| U\<^sub>r' |\<union>| U\<^sub>e\<^sub>f) DC"
             unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
@@ -5940,7 +5062,7 @@ next
           qed
 
           thus ?thesis
-            unfolding Ns_def \<open>s2' = (U\<^sub>r', U\<^sub>e\<^sub>f)\<close> ord_res_2_measure_def Let_def prod.case
+            unfolding S2'_def \<open>s2' = (U\<^sub>r', U\<^sub>e\<^sub>f)\<close> ord_res_2_measure_def Let_def prod.case
             by (metis Uniq_is_least_false_clause the1_equality')
         qed
 
@@ -5956,195 +5078,211 @@ next
         by metis
     qed
   qed
-next
-  let
-    ?match = ord_res_2_matches_ord_res_3 and
-    ?measure = "\<lambda>_ _. ()" and ?order = "\<lambda>_ _. False"
+qed
 
-  fix
-    N2 N3 :: "'f gterm clause fset" and
-    s2 s3 s3' :: "'f gterm clause fset \<times> 'f gterm clause fset"
 
-  assume "?match N2 s2 N3 s3"
-  then obtain N U\<^sub>r U\<^sub>p\<^sub>r U\<^sub>e\<^sub>r U\<^sub>e\<^sub>f where
-    Ns_def: "N2 = N" "N3 = N" and s2_def: "s2 = (U\<^sub>r, U\<^sub>e\<^sub>f)" and s3_def: "s3 = (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)" and
-    U\<^sub>r_def: "U\<^sub>r = U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r" and
-    U\<^sub>p\<^sub>r_spec: "\<forall>C\<^sub>r |\<in>| U\<^sub>p\<^sub>r. \<exists>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
-      (ground_resolution D)\<^sup>+\<^sup>+ C C\<^sub>r \<and> C\<^sub>r \<noteq> eres D C\<^sub>r \<and>
-      (eres D C\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<or> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C)"
-    by (elim ord_res_2_matches_ord_res_3.elims(2)) blast
-
-  have U\<^sub>p\<^sub>r_unproductive: "\<forall>C |\<in>| U\<^sub>p\<^sub>r. ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f |\<union>| U\<^sub>p\<^sub>r)) C = {}"
-  proof (intro ballI)
-    fix C\<^sub>p\<^sub>r
-    assume "C\<^sub>p\<^sub>r |\<in>| U\<^sub>p\<^sub>r"
-    hence "\<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. C\<^sub>p\<^sub>r \<noteq> eres D C\<^sub>p\<^sub>r"
-      using U\<^sub>p\<^sub>r_spec by metis
-    hence "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C\<^sub>p\<^sub>r"
-      using nex_strictly_maximal_pos_lit_if_neq_eres by metis
-    thus "ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f |\<union>| U\<^sub>p\<^sub>r)) C\<^sub>p\<^sub>r = {}"
-      using unproductive_if_nex_strictly_maximal_pos_lit by metis
-  qed
-
-  hence Interp_N_U\<^sub>r_U\<^sub>e\<^sub>f_eq_Interp_N_U\<^sub>e\<^sub>r_U\<^sub>e\<^sub>f:
-    "\<And>C. ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) C = ord_res_Interp (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) C"
-    using Interp_union_unproductive[OF finite_fset finite_fset, folded union_fset,
-        of U\<^sub>p\<^sub>r "N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"]
-    by (simp add: U\<^sub>r_def funion_left_commute sup_commute)
-
-  have production_N_U\<^sub>r_U\<^sub>e\<^sub>f_production_Interp_N_U\<^sub>e\<^sub>r_U\<^sub>e\<^sub>f:
-    "ord_res.production (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) = ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f))"
-    apply (rule ext)
-    using production_union_unproductive[OF finite_fset finite_fset, folded union_fset,
-        of U\<^sub>p\<^sub>r "N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f", OF U\<^sub>p\<^sub>r_unproductive]
-    by (smt (z3) Collect_empty_eq U\<^sub>p\<^sub>r_unproductive U\<^sub>r_def Un_iff ord_res.production_unfold
-        sup_commute sup_fset.rep_eq sup_left_commute)
-
-  have "N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f |\<union>| U\<^sub>p\<^sub>r = N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
-    unfolding U\<^sub>r_def by auto
-
-  assume "ord_res_3 N3 s3 s3'"
-  hence "ord_res_3 N (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f) s3'"
-    unfolding Ns_def s3_def .
-  thus "(\<exists>s2'. (ord_res_2 N2)\<^sup>+\<^sup>+ s2 s2' \<and> ?match N2 s2' N3 s3') \<or>
-    ?match N2 s2 N3 s3' \<and> ?order (?measure N3 s3') (?measure N3 s3)"
-  proof (cases N "(U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)" s3' rule: ord_res_3.cases)
-    case (factoring C L U\<^sub>e\<^sub>f')
-
-    note C_least_false = \<open>is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C\<close>
-
-    define s2' where
-      "s2' = (U\<^sub>r, finsert (sfac C) U\<^sub>e\<^sub>f)"
-
-    have "(ord_res_2 N2)\<^sup>+\<^sup>+ s2 s2'"
-    proof (rule tranclp.r_into_trancl)
-      show "ord_res_2 N2 s2 s2'"
-        unfolding Ns_def s2_def s2'_def
-      proof (rule ord_res_2.factoring)
-        show "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C"
-          unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
-        proof (intro conjI ballI impI)
-          show "C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
-            using C_least_false
-            unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
-            using U\<^sub>r_def by blast
-        next
-          show "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) C \<TTurnstile> C"
-            using C_least_false
-            unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
-            using Interp_N_U\<^sub>r_U\<^sub>e\<^sub>f_eq_Interp_N_U\<^sub>e\<^sub>r_U\<^sub>e\<^sub>f by metis
-        next
-          fix y
-          assume
-            y_in: "y |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
-            y_neq: "y \<noteq> C" and
-            y_false: "\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) y \<TTurnstile> y"
-
-          from y_in have "y |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f \<or> y |\<in>| U\<^sub>p\<^sub>r"
-            unfolding U\<^sub>r_def by auto
-          thus "C \<prec>\<^sub>c y"
-          proof (elim disjE)
-            assume "y |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
-            thus ?thesis
-              using C_least_false[unfolded is_least_false_clause_def
-                  linorder_cls.is_least_in_ffilter_iff, THEN conjunct2, THEN conjunct2,
-                  rule_format, of y, OF _ y_neq]
-              using Interp_N_U\<^sub>r_U\<^sub>e\<^sub>f_eq_Interp_N_U\<^sub>e\<^sub>r_U\<^sub>e\<^sub>f y_false by metis
-          next
-            assume "y |\<in>| U\<^sub>p\<^sub>r"
-            thus ?thesis
-              sorry
-          qed
-        qed
-      next
-        show "ord_res.is_maximal_lit L C"
-          using \<open>ord_res.is_maximal_lit L C\<close> .
-      next
-        show "is_pos L"
-          using \<open>is_pos L\<close> .
-      next
-        show "finsert (sfac C) U\<^sub>e\<^sub>f = finsert (sfac C) U\<^sub>e\<^sub>f" ..
-      qed
-    qed
-
-    moreover have "?match N2 s2' N3 s3'"
-      unfolding Ns_def s2'_def U\<^sub>r_def \<open>U\<^sub>e\<^sub>f' = finsert (sfac C) U\<^sub>e\<^sub>f\<close> \<open>s3' = (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f')\<close>
-      unfolding ord_res_2_matches_ord_res_3.simps
-    proof (intro conjI exI ballI)
-      fix C\<^sub>r
-      assume "C\<^sub>r |\<in>| U\<^sub>p\<^sub>r"
-      then obtain D1 D2 where
-        "D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
-        "D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
-        "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>r" and
-        "C\<^sub>r \<noteq> eres D1 C\<^sub>r" and
-        "eres D1 C\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<or> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) D2"
-        using U\<^sub>p\<^sub>r_spec by metis
-      show "\<exists>Ca|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f.
-              \<exists>D|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f.
-                 (ground_resolution D)\<^sup>+\<^sup>+ Ca C\<^sub>r \<and>
-                 C\<^sub>r \<noteq> eres D C\<^sub>r \<and>
-                 (eres D C\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<or>
-                  is_least_false_clause
-                   (N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f) Ca)"
-      proof (intro bexI conjI)
-        show "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>r"
-          using \<open>(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<^sub>r\<close> .
-      next
-        show "C\<^sub>r \<noteq> eres D1 C\<^sub>r"
-          using \<open>C\<^sub>r \<noteq> eres D1 C\<^sub>r\<close> .
-      next
-        show "eres D1 C\<^sub>r |\<in>| U\<^sub>e\<^sub>r \<or> is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f) D2"
-          \<comment> \<open>This should be provable using the same argument as for
-              \<^term>\<open>is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C\<close> above.\<close>
-          sorry
-      next
-        show "D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f"
-          using \<open>D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close> by simp
-      next
-        show "D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f"
-          using \<open>D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close> by simp
-      qed
-    qed simp_all
-
-    ultimately show ?thesis
-      by metis
-  next
-    case (resolution C L D DC U\<^sub>e\<^sub>r')
-
-    obtain m where
-      "(ground_resolution D ^^ Suc m) C DC"
-      sorry
-
-    obtain n m' DnC where
-      "(ground_resolution D ^^ Suc n) C DnC" and "(ground_resolution D ^^ Suc m') DnC DC"
-      sorry
-
-    have "Suc m = Suc n + Suc m'"
-      sorry
-
-    define stuff where
-      "stuff = {|DC|}" \<comment> \<open>and more...\<close>
-
-    define s2' where
-      "s2' = (U\<^sub>r |\<union>| stuff, U\<^sub>e\<^sub>f)"
-
-    have "(ord_res_2 N2)\<^sup>+\<^sup>+ s2 s2'"
-    proof (rule tranclp_if_relpowp)
-      show "Suc m' \<noteq> 0"
-        by presburger
+lemma right_unique_ord_res_3: "right_unique (ord_res_3 N)"
+proof (rule right_uniqueI)
+  fix s s' s'' :: "'f gterm clause fset \<times> 'f gterm clause fset"
+  assume step1: "ord_res_3 N s s'" and step2: "ord_res_3 N s s''"
+  show "s' = s''"
+    using step1
+  proof (cases N s s' rule: ord_res_3.cases)
+    case hyps1: (factoring U\<^sub>r\<^sub>r1 U\<^sub>f\<^sub>f1 C1 L1 U\<^sub>f\<^sub>f1')
+    show ?thesis
+      using step2
+    proof (cases N s s'' rule: ord_res_3.cases)
+      case (factoring U\<^sub>r\<^sub>r2 U\<^sub>f\<^sub>f2 C2 L2 U\<^sub>f\<^sub>f2')
+      with hyps1 show ?thesis
+        by (metis Uniq_D Uniq_is_least_false_clause prod.inject)
     next
-      show "(ord_res_2 N2 ^^ Suc m') s2 s2'"
-        sorry
+      case (resolution U\<^sub>r\<^sub>r2 U\<^sub>f\<^sub>f2 C2 L2 D2 DC2 U\<^sub>r\<^sub>r2')
+      with hyps1 have False
+        by (metis Pair_inject Uniq_is_least_false_clause linorder_lit.Uniq_is_maximal_in_mset
+            the1_equality')
+      thus ?thesis ..
     qed
+  next
+    case hyps1: (resolution U\<^sub>r\<^sub>r1 U\<^sub>f\<^sub>f1 C1 L1 D1 DC1 U\<^sub>r\<^sub>r1')
+    show ?thesis
+      using step2
+    proof (cases N s s'' rule: ord_res_3.cases)
+      case (factoring U\<^sub>r\<^sub>r2 U\<^sub>f\<^sub>f2 C2 L2 U\<^sub>f\<^sub>f2')
+      with hyps1 have False
+        by (metis Uniq_is_least_false_clause linorder_lit.Uniq_is_maximal_in_mset prod.inject the1_equality')
+      thus ?thesis ..
+    next
+      case hyps2: (resolution U\<^sub>r\<^sub>r2 U\<^sub>f\<^sub>f2 C2 L2 D2 DC2 U\<^sub>r\<^sub>r2')
 
-    moreover have "?match N2 s2' N3 s3'"
-      sorry
+      have *: "U\<^sub>r\<^sub>r1 = U\<^sub>r\<^sub>r2" "U\<^sub>f\<^sub>f1 = U\<^sub>f\<^sub>f2"
+        using hyps1 hyps2 by  simp_all
 
-    ultimately show ?thesis
-      by metis
+      have **: "C1 = C2"
+        using hyps1 hyps2
+        unfolding *
+        by (metis Uniq_is_least_false_clause the1_equality')
+
+      have ***: "L1 = L2"
+        using hyps1 hyps2
+        unfolding * **
+        by (metis linorder_lit.Uniq_is_maximal_in_mset the1_equality')
+
+      have ****: "D1 = D2"
+        using hyps1 hyps2
+        unfolding * ** ***
+        by (metis linorder_cls.less_irrefl linorder_cls.linorder_cases
+            ord_res.less_trm_iff_less_cls_if_mem_production singletonI)
+
+      have *****: "DC1 = DC2"
+        using hyps1 hyps2
+        unfolding * ** *** ****
+        by (metis (no_types, opaque_lifting) Uniq_full_run Uniq_ground_resolution the1_equality')
+
+      show ?thesis
+        using hyps1 hyps2
+        unfolding * ** *** **** *****
+        by argo
+    qed
   qed
 qed
+
+lemma right_unique_ord_res_3_step: "right_unique ord_res_3_step"
+proof (rule right_uniqueI)
+  fix x y z
+  show "ord_res_3_step x y \<Longrightarrow> ord_res_3_step x z \<Longrightarrow> y = z"
+    apply (cases x; cases y; cases z)
+    apply (simp add: ord_res_3_step.simps)
+    using right_unique_ord_res_3[THEN right_uniqueD]
+    by blast
+qed
+
+lemma ex_ord_res_3_if_not_final:
+  assumes "\<not> ord_res_3_final S"
+  shows "\<exists>S'. ord_res_3_step S S'"
+proof -
+  from assms obtain N U\<^sub>r U\<^sub>e\<^sub>f where
+    S_def: "S = (N, (U\<^sub>r, U\<^sub>e\<^sub>f))" and
+    "{#} |\<notin>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
+    "ex_false_clause (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f))"
+    by (metis ord_res_3_final.intros ord_res_final_def surj_pair)
+
+  obtain C where C_least_false: "is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C"
+    using \<open>ex_false_clause (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f))\<close> obtains_least_false_clause_if_ex_false_clause
+    by metis
+
+  hence "C \<noteq> {#}"
+    using \<open>{#} |\<notin>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close>
+    unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+    by metis
+
+  then obtain L where C_max: "linorder_lit.is_maximal_in_mset C L"
+    using linorder_lit.ex_maximal_in_mset by metis
+
+  show ?thesis
+  proof (cases L)
+    case (Pos A)
+    thus ?thesis
+      using ord_res_3.factoring[OF C_least_false C_max] S_def is_pos_def
+      by (metis ord_res_3_step.intros)
+  next
+    case (Neg A)
+    then obtain D where
+      "D |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
+      "D \<prec>\<^sub>c C" and
+      "ord_res.is_strictly_maximal_lit (Pos A) D" and
+      "ord_res.production (fset (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) D = {A}"
+      using bex_smaller_productive_clause_if_least_false_clause_has_negative_max_lit
+      using C_least_false C_max by metis
+
+    moreover then obtain DC where
+      "full_run (ground_resolution D) C DC"
+      using ex_ground_resolutionI C_max Neg
+      using ex1_eres_eq_full_run_ground_resolution by blast
+
+    ultimately show ?thesis
+      using ord_res_3.resolution[OF C_least_false C_max]
+      by (metis Neg S_def literal.disc(2) literal.sel(2) ord_res_3_step.intros)
+  qed
+qed
+
+corollary ord_res_3_step_safe: "ord_res_3_final S \<or> (\<exists>S'. ord_res_3_step S S')"
+  using ex_ord_res_3_if_not_final by metis
+
+lemma safe_states_if_ord_res_2_matches_ord_res_3:
+  assumes match: "ord_res_2_matches_ord_res_3 S\<^sub>2 S\<^sub>3"
+  shows
+    "safe_state ord_res_2_step ord_res_2_final S\<^sub>2"
+    "safe_state ord_res_3_step ord_res_3_final S\<^sub>3"
+proof -
+  show "safe_state ord_res_2_step ord_res_2_final S\<^sub>2"
+    using safe_state_if_all_states_safe ord_res_2_safe by metis
+
+  show "safe_state ord_res_3_step ord_res_3_final S\<^sub>3"
+    using safe_state_if_all_states_safe ord_res_3_step_safe by metis
+qed
+
+theorem bisimulation_ord_res_2_ord_res_3:
+  defines "match \<equiv> \<lambda>i S2 S3. i = ord_res_2_measure S2 \<and> ord_res_2_matches_ord_res_3 S2 S3"
+  shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
+    'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow>
+    'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow> bool) ORDER.
+    bisimulation ord_res_2_step ord_res_3_step ord_res_2_final ord_res_3_final ORDER MATCH"
+proof (rule ex_bisimulation_from_forward_simulation)
+  show "right_unique ord_res_2_step"
+    using right_unique_ord_res_2_step .
+next
+  show "right_unique ord_res_3_step"
+    using right_unique_ord_res_3_step .
+next
+  show "\<forall>s1. ord_res_2_final s1 \<longrightarrow> (\<nexists>s1'. ord_res_2_step s1 s1')"
+    by (metis finished_def ord_res_2_semantics.final_finished)
+next
+  show "\<forall>s2. ord_res_3_final s2 \<longrightarrow> (\<nexists>s2'. ord_res_3_step s2 s2')"
+    by (metis finished_def ord_res_3_semantics.final_finished)
+next
+  show "\<forall>i s1 s2. match i s1 s2 \<longrightarrow> ord_res_2_final s1 = ord_res_3_final s2"
+    unfolding match_def
+    using ord_res_2_final_iff_ord_res_3_final by metis
+next
+  show "\<forall>i s1 s2. match i s1 s2 \<longrightarrow>
+    safe_state ord_res_2_step ord_res_2_final s1 \<and> safe_state ord_res_3_step ord_res_3_final s2"
+    unfolding match_def
+    using safe_states_if_ord_res_2_matches_ord_res_3 by metis
+next
+  show "wfP (\<prec>\<^sub>c)"
+    using ord_res.wfP_less_cls .
+next
+  show "\<forall>i s1 s2 s1'. match i s1 s2 \<longrightarrow> ord_res_2_step s1 s1' \<longrightarrow>
+    (\<exists>i' s2'. ord_res_3_step\<^sup>+\<^sup>+ s2 s2' \<and> match i' s1' s2') \<or> (\<exists>i'. match i' s1' s2 \<and> i' \<prec>\<^sub>c i)"
+    unfolding match_def
+    using forward_simulation_2_to_3
+    by metis
+qed
+
+corollary backward_simulation_ord_res_1_ord_res_3:
+  shows "\<exists>MATCH (ORDER :: (nat \<times> nat) \<times> (nat \<times> nat) \<Rightarrow> (nat \<times> nat) \<times> (nat \<times> nat) \<Rightarrow> bool).
+    backward_simulation ord_res_1 ord_res_3_step ord_res_1_final ord_res_3_final ORDER MATCH"
+proof -
+  obtain
+    MATCH12 :: "nat \<times> nat \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> bool" and
+    ORDER12 :: "nat \<times> nat \<Rightarrow> nat \<times> nat \<Rightarrow> bool" where
+    "bisimulation ord_res_1 ord_res_2_step ord_res_1_final ord_res_2_final ORDER12 MATCH12"
+    using bisimulation_ord_res_1_ord_res_2 by metis
+  hence bsim12: "backward_simulation ord_res_1 ord_res_2_step ord_res_1_final ord_res_2_final ORDER12 MATCH12"
+    by (simp add: bisimulation_def)
+
+  obtain
+    MATCH23 :: "nat \<times> nat \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> bool" and
+    ORDER23 :: "nat \<times> nat \<Rightarrow> nat \<times> nat \<Rightarrow> bool" where
+    "bisimulation ord_res_2_step ord_res_3_step ord_res_2_final ord_res_3_final ORDER23 MATCH23"
+    using bisimulation_ord_res_2_ord_res_3 by metis
+  hence bsim23: "backward_simulation ord_res_2_step ord_res_3_step ord_res_2_final ord_res_3_final ORDER23 MATCH23"
+    by (simp add: bisimulation_def)
+
+  show ?thesis
+    using backward_simulation_composition[OF bsim12 bsim23] by metis
+qed
+
 
 subsection \<open>ORD-RES-4 (full resolve)\<close>
 
