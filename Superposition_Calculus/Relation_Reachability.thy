@@ -93,6 +93,22 @@ next
     by (metis Diff_iff asymp_onD)
 qed
 
+lemma non_reachable_wrt_reflclp[simp]:
+  "non_reachable_wrt R\<^sup>=\<^sup>= = non_reachable_wrt R"
+  by (intro ext iffI) (simp_all add: non_reachable_wrt_iff)
+
+lemma non_reaching_wrt_reflclp[simp]:
+  "non_reaching_wrt R\<^sup>=\<^sup>= = non_reaching_wrt R"
+  by (intro ext iffI) (simp_all add: non_reaching_wrt_iff)
+
+lemma reaching_all_wrt_reflclp[simp]:
+  "reaching_all_wrt R\<^sup>=\<^sup>= = reaching_all_wrt R"
+  by (intro ext iffI) (simp_all add: reaching_all_wrt_iff)
+
+lemma reachable_by_all_wrt_reflclp[simp]:
+  "reachable_by_all_wrt R\<^sup>=\<^sup>= = reachable_by_all_wrt R"
+  by (intro ext iffI) (simp_all add: reachable_by_all_wrt_iff)
+
 
 section \<open>Existence\<close>
 

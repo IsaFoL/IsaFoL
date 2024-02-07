@@ -1284,24 +1284,59 @@ lemma lesser_atoms_in_previous_interp_are_in_final_interp:
   assumes
     L_max: "linorder_lit.is_maximal_in_mset C L" and
     A_less: "A \<prec>\<^sub>t atm_of L" and
-    A_in: "A \<in> interp (fset N) C"
-  shows "A \<in> (\<Union>D \<in> fset N. production (fset N) D)"
+    A_in: "A \<in> interp N C"
+  shows "A \<in> (\<Union>D \<in> N. production N D)"
   using A_in interp_def by fastforce
+
+lemma interp_fixed_for_smaller_literals:
+  fixes A
+  assumes
+    L_max: "linorder_lit.is_maximal_in_mset C L" and
+    A_less: "A \<prec>\<^sub>t atm_of L" and
+    "C \<prec>\<^sub>c D"
+  shows "A \<in> interp N C \<longleftrightarrow> A \<in> interp N D"
+proof (rule iffI)
+  show "A \<in> interp N C \<Longrightarrow> A \<in> interp N D"
+    using assms(3) interp_subset_if_less_cls by auto
+next
+  assume "A \<in> interp N D"
+
+  then obtain E where "A \<in> production N E" and "E \<in> N" and "E \<prec>\<^sub>c D"
+    unfolding interp_def by auto
+
+  hence "linorder_lit.is_greatest_in_mset E (Pos A)"
+    by (auto elim: mem_productionE)
+
+  moreover have "Pos A \<prec>\<^sub>l L"
+    by (metis A_less Neg_atm_of_iff less_lit_simps(1) less_lit_simps(2)
+        linorder_lit.dual_order.strict_trans linorder_trm.order_eq_iff literal.collapse(1))
+
+  ultimately have "E \<prec>\<^sub>c C"
+    using L_max
+    using linorder_lit.multp\<^sub>H\<^sub>O_if_maximal_less_that_maximal multp\<^sub>D\<^sub>M_imp_multp multp\<^sub>H\<^sub>O_imp_multp\<^sub>D\<^sub>M
+    by blast
+
+  hence "production N E \<subseteq> interp N C"
+    by (simp add: production_subset_if_less_cls)
+
+  thus "A \<in> interp N C"
+    using \<open>A \<in> production N E\<close> by auto
+qed
 
 lemma neg_lits_not_in_model_stay_out_of_model:
   assumes
     L_in: "L \<in># C" and
     L_neg: "is_neg L" and
-    atm_L_not_in: "atm_of L \<notin> interp (fset N) C"
-  shows "atm_of L \<notin> (\<Union>D \<in> fset N. production (fset N) D)"
+    atm_L_not_in: "atm_of L \<notin> interp N C"
+  shows "atm_of L \<notin> (\<Union>D \<in> N. production N D)"
   using assms produces_imp_in_interp by force
 
 lemma neg_lits_already_in_model_stay_in_model:
   assumes
     L_in: "L \<in># C" and
     L_neg: "is_neg L" and
-    atm_L_not_in: "atm_of L \<in> interp (fset N) C"
-  shows "atm_of L \<in> (\<Union>D \<in> fset N. production (fset N) D)"
+    atm_L_not_in: "atm_of L \<in> interp N C"
+  shows "atm_of L \<in> (\<Union>D \<in> N. production N D)"
   using atm_L_not_in interp_def by auto
 
 (* lemma
@@ -1428,6 +1463,218 @@ proof -
     by argo
 qed
 
+lemma production_add_irrelevant_clause_to_set0:
+  assumes
+    fin: "finite N" and
+    D_irrelevant: "E \<in> N" "E \<subset># D" "set_mset D = set_mset E" and
+    no_select: "select E = {#}"
+  shows "production (insert D N) D = {}"
+proof -
+  from D_irrelevant have "E \<prec>\<^sub>c D"
+    using subset_implies_multp by metis
+  hence prod_E_subset: "production (insert D N) E \<subseteq> interp (insert D N) D"
+    using production_subset_if_less_cls by metis
+
+  show ?thesis
+  proof (cases "production (insert D N) E = {}")
+    case True
+    hence "(\<nexists>A. is_strictly_maximal_lit (Pos A) E) \<or> interp (insert D N) E \<TTurnstile> E"
+      unfolding production_unfold
+      using no_select
+      by (smt (verit, del_insts) Collect_empty_eq \<open>E \<in> N\<close> diff_single_eq_union insertI2
+          linorder_lit.is_greatest_in_mset_iff)
+    hence "(\<nexists>A. is_strictly_maximal_lit (Pos A) D) \<or> interp (insert D N) D \<TTurnstile> D"
+    proof (elim disjE)
+      assume "\<nexists>A. is_strictly_maximal_lit (Pos A) E"
+      hence "\<nexists>A. is_strictly_maximal_lit (Pos A) D"
+      proof (rule contrapos_nn)
+        show "\<exists>A. is_strictly_maximal_lit (Pos A) D \<Longrightarrow> \<exists>A. is_strictly_maximal_lit (Pos A) E"
+          using \<open>E \<subset># D\<close> \<open>set_mset D = set_mset E\<close>
+          unfolding linorder_lit.is_greatest_in_mset_iff
+          by (metis (no_types, opaque_lifting) add_mset_remove_trivial_eq
+              insert_union_subset_iff)
+      qed
+      thus ?thesis ..
+    next
+      assume "interp (insert D N) E \<TTurnstile> E"
+      hence "interp (insert D N) D \<TTurnstile> D"
+        using lift_interp_entails \<open>E \<in> N\<close> \<open>E \<prec>\<^sub>c D\<close>
+        by (metis \<open>set_mset D = set_mset E\<close> insert_iff true_cls_def)
+      thus ?thesis ..
+    qed
+    thus ?thesis
+      unfolding production_unfold by auto
+  next
+    case False
+    hence "interp (insert D N) D \<TTurnstile> D"
+      using prod_E_subset
+      by (metis \<open>set_mset D = set_mset E\<close> mem_productionE production_eq_empty_or_singleton
+          insertCI insert_subset linorder_lit.is_greatest_in_mset_iff
+          pos_literal_in_imp_true_cls)
+    thus ?thesis
+      unfolding production_unfold by simp
+  qed
+qed
+
+lemma production_add_irrelevant_clause_to_set:
+  assumes
+    fin: "finite N" and
+    C_in: "C \<in> N" and
+    D_irrelevant: "\<exists>E \<in> N. E \<subset># D \<and> set_mset D = set_mset E" and
+    no_select: "\<And>C. select C = {#}"
+  shows "production (insert D N) C = production N C"
+    using wfP_less_cls C_in
+proof (induction C rule: wfP_induct_rule)
+  case (less C)
+  hence C_in_iff: "C \<in> insert D N \<longleftrightarrow> C \<in> N"
+    by simp
+  
+  have interp_insert_eq: "interp (insert D N) C = interp N C"
+  proof (cases "D \<prec>\<^sub>c C")
+    case True
+    hence "{x \<in> insert D N. x \<prec>\<^sub>c C} = insert D {x \<in> N. x \<prec>\<^sub>c C}"
+      by auto
+    hence "\<Union> (production (insert D N) ` {x \<in> insert D N. x \<prec>\<^sub>c C}) =
+      production (insert D N) D \<union> \<Union> (production (insert D N) ` {D \<in> N. D \<prec>\<^sub>c C})"
+      by simp
+    also have "\<dots> = \<Union> (production (insert D N) ` {D \<in> N. D \<prec>\<^sub>c C})"
+      using production_add_irrelevant_clause_to_set0
+      using D_irrelevant fin no_select by force
+    also have "\<dots> = \<Union> (production N ` {D \<in> N. D \<prec>\<^sub>c C})"
+      using less.IH by simp
+    finally show ?thesis
+      unfolding interp_def .
+  next
+    case False
+    then show ?thesis
+      unfolding interp_def
+      by (smt (verit, best) Collect_cong image_eq_imageI insert_iff less.IH mem_Collect_eq)
+  qed
+
+  show ?case
+    unfolding production_unfold C_in_iff interp_insert_eq by argo
+qed
+
+lemma production_add_irrelevant_clauses_to_set0:
+  assumes
+    fin: "finite N" "finite N'" and
+    D_in: "D \<in> N'" and
+    irrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subset># D \<and> set_mset D = set_mset E" and
+    no_select: "\<And>C. select C = {#}"
+  shows "production (N \<union> N') D = {}"
+  using \<open>finite N'\<close> D_in irrelevant
+proof (induction N' rule: finite_induct)
+  case empty
+  hence False
+    by simp
+  thus ?case ..
+next
+  case (insert x F)
+  then show ?case
+    using production_add_irrelevant_clause_to_set0
+    by (metis UnCI fin(1) finite_Un finite_insert production_add_irrelevant_clause_to_set no_select)
+qed
+
+lemma production_add_irrelevant_clauses_to_set:
+  assumes
+    fin: "finite N" "finite N'" and
+    C_in: "C \<in> N" and
+    irrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subset># D \<and> set_mset D = set_mset E" and
+    no_select: "\<And>C. select C = {#}"
+  shows "production (N \<union> N') C = production N C"
+  using \<open>finite N'\<close> irrelevant
+proof (induction N' rule: finite_induct)
+  case empty
+  show ?case
+    by simp
+next
+  case (insert x F)
+  then show ?case
+    using production_add_irrelevant_clause_to_set
+    by (metis C_in UnI1 Un_insert_right fin(1) finite_Un insertCI no_select)
+qed
+
+lemma interp_add_irrelevant_clauses_to_set:
+  assumes
+    fin: "finite N" "finite N'" and
+    C_in: "C \<in> N" and
+    irrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subset># D \<and> set_mset D = set_mset E" and
+    no_select: "\<And>C. select C = {#}"
+  shows "interp (N \<union> N') C = interp N C"
+proof -
+  have "interp (N \<union> N') C = \<Union> (production (N \<union> N') ` {D \<in> N \<union> N'. D \<prec>\<^sub>c C})"
+    unfolding interp_def ..
+  also have "\<dots> = \<Union> (production (N \<union> N') ` {D \<in> N. D \<prec>\<^sub>c C} \<union>
+    production (N \<union> N') ` {D \<in> N'. D \<prec>\<^sub>c C})"
+    by auto
+  also have "\<dots> = \<Union> (production (N \<union> N') ` {D \<in> N. D \<prec>\<^sub>c C})"
+    using production_add_irrelevant_clauses_to_set0[OF fin _ irrelevant no_select] by simp
+  also have "\<dots> = \<Union> (production N ` {D \<in> N. D \<prec>\<^sub>c C})"
+    using production_add_irrelevant_clauses_to_set[OF fin _ _ no_select] irrelevant
+    using subset_mset.less_le by fastforce
+  also have "\<dots> = interp N C"
+    unfolding interp_def ..
+  finally show ?thesis .
+qed
+
+lemma interp_add_irrelevant_clauses_to_set':
+  assumes
+    fin: "finite N" "finite N'" and
+    C_in: "C \<in> N" and
+    irrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subseteq># D \<and> set_mset D = set_mset E" and
+    no_select: "\<And>C. select C = {#}"
+  shows "interp (N \<union> N') C = interp N C"
+proof -
+  define N'' where
+    "N'' = N' - N"
+
+  from fin(2) have "finite N''"
+    unfolding N''_def by simp
+
+  moreover from irrelevant have "\<forall>D \<in> N''. \<exists>E \<in> N. E \<subset># D \<and> set_mset E = set_mset D"
+    unfolding N''_def
+    by (metis Diff_iff subset_mset.le_less)
+
+  moreover have "N \<union> N' = N \<union> N''"
+    unfolding N''_def by simp
+
+  ultimately show ?thesis
+    using assms interp_add_irrelevant_clauses_to_set by metis
+qed
+
+lemma lesser_entailed_clause_stays_entailed:
+  assumes C_le: "C \<preceq>\<^sub>c D" and D_lt: "D \<prec>\<^sub>c E" and C_entailed: "interp N D \<union> production N D \<TTurnstile> C"
+  shows "interp N E \<union> production N E \<TTurnstile> C"
+proof -
+  from C_entailed obtain L where "L \<in># C" and "interp N D \<union> production N D \<TTurnstile>l L"
+    by (auto simp: true_cls_def)
+
+  show ?thesis
+  proof (cases L)
+    case (Pos A)
+    hence "A \<in> interp N D \<union> production N D"
+      using \<open>interp N D \<union> production N D \<TTurnstile>l L\<close> by simp
+    moreover from D_lt have "interp N D \<union> production N D \<subseteq> interp N E \<union> production N E"
+      using less_imp_Interp_subseteq_interp by blast
+    ultimately have "A \<in> interp N E \<union> production N E"
+      by auto
+    thus ?thesis
+      using Pos \<open>L \<in># C\<close> by auto
+  next
+    case (Neg A)
+    then show ?thesis
+      using neg_lits_not_in_model_stay_out_of_model
+      by (smt (verit, best) UN_E Un_iff \<open>L \<in># C\<close> \<open>interp N D \<union> production N D \<TTurnstile>l L\<close> assms(1)
+          interp_def linorder_cls.antisym_conv neg_literal_notin_imp_true_cls
+          not_interp_to_Interp_imp_le produces_imp_in_interp true_lit_simps(2))
+  qed
+qed
+
+lemma entailed_clause_stays_entailed:
+  assumes C_lt: "C \<prec>\<^sub>c D" and C_entailed: "interp N C \<union> production N C \<TTurnstile> C"
+  shows "interp N D \<union> production N D \<TTurnstile> C"
+  using lesser_entailed_clause_stays_entailed[OF linorder_cls.order_refl assms] .
+
 lemma multp_if_all_left_smaller: "M2 \<noteq> {#} \<Longrightarrow> \<forall>k\<in>#M1. \<exists>j\<in>#M2. R k j \<Longrightarrow> multp R M1 M2"
   using one_step_implies_multp
   by (metis add_0)
@@ -1449,7 +1696,37 @@ proof -
     unfolding interp_def N_def by simp
   have "production N C1 = {}"
     unfolding production_unfold \<open>interp N C1 = {}\<close> C1_def by simp
+  hence "interp N C1 \<union> production N C1 \<TTurnstile> C1"
+    unfolding \<open>interp N C1 = {}\<close> \<open>production N C1 = {}\<close>
+    by (simp add: C1_def)
   oops
+
+lemma
+  fixes
+    P1 P2 :: "'f gterm" and
+    C1 :: "'f gterm clause" and
+    N :: "'f gterm clause set"
+  defines
+    "C1 \<equiv> {#Pos P1, Neg P2#}" and
+    "N \<equiv> {C1}"
+  assumes
+    term_order: "P1 \<prec>\<^sub>t P2" and
+    no_select: "\<And>C. select C = {#}"
+  shows False
+proof -
+  have lit_order: "Pos P1 \<prec>\<^sub>l Neg P1" "Neg P1 \<prec>\<^sub>l Pos P2" "Pos P2 \<prec>\<^sub>l Neg P2"
+    using term_order by simp_all
+  have "interp N C1 = {}"
+    unfolding interp_def N_def by simp
+  have "production N C1 = {}"
+    unfolding production_unfold
+    using C1_def \<open>interp N C1 = {}\<close> by simp
+  hence "interp N C1 \<union> production N C1 \<TTurnstile> C1"
+    unfolding \<open>interp N C1 = {}\<close> \<open>production N C1 = {}\<close>
+    by (simp add: C1_def)
+  oops
+
+  
 
 
 lemma
