@@ -222,7 +222,7 @@ lemma relpowp_Suc_of_right_unique:
   using assms
   by (metis relpowp_Suc_D2 right_uniqueD)
 
-lemma relpowp_plusI:
+lemma relpowp_trans[trans]:
   "(R ^^ i) x y \<Longrightarrow> (R ^^ j) y z \<Longrightarrow> (R ^^ (i + j)) x z"
 proof (induction i arbitrary: x)
   case 0
@@ -4441,7 +4441,7 @@ proof -
   have "(ground_resolution C ^^ j) D CD\<^sub>j"
     unfolding \<open>j = i + Suc j'\<close>
     using \<open>(ground_resolution C ^^ i) D CD\<^sub>i\<close> \<open>(ground_resolution C ^^ Suc j') CD\<^sub>i CD\<^sub>j\<close>
-    by (metis relpowp_plusI)
+    by (metis relpowp_trans)
   hence **: "resolvent_at C D j = CD\<^sub>j"
     unfolding resolvent_at_def
     by (metis Uniq_ground_resolution Uniq_relpowp theI')
