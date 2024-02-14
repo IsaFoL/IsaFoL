@@ -2415,6 +2415,14 @@ next
     by auto
 qed
 
+(* TODO: Use to make other lemmas simpler *) 
+lemma 
+  assumes "sym I"
+  shows "Upair a b \<in> (\<lambda>x. case x of (x, xa) \<Rightarrow> Upair x xa) ` I \<longleftrightarrow> (a, b) \<in> I"
+  using assms
+  unfolding sym_def
+  by auto
+
 lemma name:
   fixes \<theta> :: "('a, 'b) subst"
   assumes 
@@ -2928,18 +2936,104 @@ proof(cases
         by blast
     qed
 
-    with a have "\<exists>term\<^sub>x context\<^sub>x context\<^sub>x'. 
+    with a term\<^sub>1_with_context_\<theta> have "\<exists>term\<^sub>x context\<^sub>x context\<^sub>x'. 
       term\<^sub>1_with_context = context\<^sub>x\<langle>term\<^sub>x\<rangle> \<and> 
       is_Var term\<^sub>x \<and> 
       (context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>) \<circ>\<^sub>c context\<^sub>x' = to_context context\<^sub>G"
-     proof(induction term\<^sub>1_with_context)
+     proof(induction term\<^sub>1_with_context arbitrary: context\<^sub>G)
        case (Var x)
-       then show ?case
-         by (metis ctxt_apply_term.simps(1) ctxt_compose.simps(1) subst_apply_ctxt.simps(1) term.disc(1))
-     next
+       show ?case
+         apply(rule exI[of _ "Var x"], rule exI[of _ Hole], rule exI[of _ "to_context context\<^sub>G"])
+         by simp
+      next
        case (Fun f terms)
-       then show ?case
-         sorry
+       then have "context\<^sub>G \<noteq> GHole"
+         by (metis ctxt_apply_term.simps(1) ctxt_of_gctxt.simps(1) subst_apply_ctxt.simps(1) term.disc(2))
+
+       then obtain ss1 context\<^sub>G' ss2 where
+        context\<^sub>G: "context\<^sub>G = GMore f ss1 context\<^sub>G' ss2"
+         using Fun(3)
+         by (smt (verit) ctxt_apply_term.simps(2) ctxt_of_gctxt.elims eval_term.simps(2) term.sel(2))
+
+       have xx: "map ((\<lambda>s. s \<cdot>t \<theta>) \<circ> (\<lambda>s. s \<cdot>t \<rho>\<^sub>1)) terms = map to_term ss1 @ (to_context context\<^sub>G')\<langle>to_term term\<^sub>G\<^sub>1\<rangle> # map to_term ss2"
+         using Fun(3)
+         unfolding context\<^sub>G
+         by auto
+
+       then obtain ts1 "term" ts2 where 
+          terms: "terms = ts1 @ term # ts2" and
+          "map ((\<lambda>s. s \<cdot>t \<theta>) \<circ> (\<lambda>s. s \<cdot>t \<rho>\<^sub>1)) ts1 = map to_term ss1"
+          "map ((\<lambda>s. s \<cdot>t \<theta>) \<circ> (\<lambda>s. s \<cdot>t \<rho>\<^sub>1)) ts2 = map to_term ss2"
+         by (smt (z3) append_eq_map_conv map_eq_Cons_conv)
+          
+       with xx have yy: "term \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = (to_context context\<^sub>G')\<langle>to_term term\<^sub>G\<^sub>1\<rangle>"
+         by simp
+
+       show ?case
+       proof(cases "is_ground_term term")
+         case True
+         with yy obtain term\<^sub>1 context\<^sub>1 where zz: 
+            "term = context\<^sub>1\<langle>term\<^sub>1\<rangle>"
+            "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1" "context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G'" "is_Fun term\<^sub>1"
+           by (metis Term.ground_vars_term_empty ground_context_is_ground ground_subst_apply ground_term_is_ground subst_ground_context x)
+
+         then have zzz: "Fun f terms = (More f ts1 context\<^sub>1 ts2)\<langle>term\<^sub>1\<rangle>"
+           unfolding terms
+           by auto
+
+         have "\<exists>context\<^sub>1 term\<^sub>1. Fun f terms = context\<^sub>1\<langle>term\<^sub>1\<rangle> \<and> term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1 \<and> context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G \<and> is_Fun term\<^sub>1"
+           apply(rule exI[of _ "(More f ts1 context\<^sub>1 ts2)"])
+           apply(rule exI[of _ term\<^sub>1])
+           using zz zzz
+           by (auto simp add: \<open>map ((\<lambda>s. s \<cdot>t \<theta>) \<circ> (\<lambda>s. s \<cdot>t \<rho>\<^sub>1)) ts1 = map to_term ss1\<close> \<open>map ((\<lambda>s. s \<cdot>t \<theta>) \<circ> (\<lambda>s. s \<cdot>t \<rho>\<^sub>1)) ts2 = map to_term ss2\<close> context\<^sub>G)
+
+         then show ?thesis
+           using Fun(2)
+           by blast
+       next
+         case False
+         have zz: "term \<in> set terms"
+           using terms by auto
+
+         have zzz: "\<nexists>context\<^sub>1 term\<^sub>1. term = context\<^sub>1\<langle>term\<^sub>1\<rangle> \<and> term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1 \<and> context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G' \<and> is_Fun term\<^sub>1"
+         proof
+           assume "\<exists>context\<^sub>1 term\<^sub>1. term = context\<^sub>1\<langle>term\<^sub>1\<rangle> \<and> term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1 \<and> context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G' \<and> is_Fun term\<^sub>1"
+  
+           then obtain context\<^sub>1 term\<^sub>1 where
+              "term": "term = context\<^sub>1\<langle>term\<^sub>1\<rangle>"
+              "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1"
+              "context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G'"
+              "is_Fun term\<^sub>1"
+             by blast
+
+          then have zzzz: "Fun f terms = (More f ts1 context\<^sub>1 ts2)\<langle>term\<^sub>1\<rangle>"
+           unfolding terms
+           by auto
+
+         have "\<exists>context\<^sub>1 term\<^sub>1. Fun f terms = context\<^sub>1\<langle>term\<^sub>1\<rangle> \<and> term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1 \<and> context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G \<and> is_Fun term\<^sub>1"
+           apply(rule exI[of _ "(More f ts1 context\<^sub>1 ts2)"])
+           apply(rule exI[of _ term\<^sub>1])
+           by(auto simp: "term" terms \<open>map ((\<lambda>s. s \<cdot>t \<theta>) \<circ> (\<lambda>s. s \<cdot>t \<rho>\<^sub>1)) ts1 = map to_term ss1\<close> \<open>map ((\<lambda>s. s \<cdot>t \<theta>) \<circ> (\<lambda>s. s \<cdot>t \<rho>\<^sub>1)) ts2 = map to_term ss2\<close> context\<^sub>G)
+           
+
+          then show False
+            using Fun(2)
+            by blast
+        qed
+
+        obtain term\<^sub>x context\<^sub>x context\<^sub>x' where 
+          term\<^sub>x: 
+          "term = context\<^sub>x\<langle>term\<^sub>x\<rangle>"  
+          "is_Var term\<^sub>x" 
+          "(context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>) \<circ>\<^sub>c context\<^sub>x' = to_context context\<^sub>G'"
+         using Fun(1)[OF zz zzz yy False] by blast
+
+         show ?thesis
+           apply(rule exI[of _ term\<^sub>x]) 
+           apply(rule exI[of _ "(More f ts1 context\<^sub>x ts2)"])
+           apply(rule exI[of _ context\<^sub>x'])
+           by(auto simp: term\<^sub>x terms \<open>map ((\<lambda>s. s \<cdot>t \<theta>) \<circ> (\<lambda>s. s \<cdot>t \<rho>\<^sub>1)) ts1 = map to_term ss1\<close> \<open>map ((\<lambda>s. s \<cdot>t \<theta>) \<circ> (\<lambda>s. s \<cdot>t \<rho>\<^sub>1)) ts2 = map to_term ss2\<close> context\<^sub>G)
+       qed
      qed
   
     then obtain term\<^sub>x context\<^sub>x context\<^sub>x' where
