@@ -273,7 +273,7 @@ definition update_lbd_shrunk_clause where
      else do {
        let new_glue = (if le - 1 \<ge> old_glue then old_glue else le - 1);
        ASSERT (update_lbd_pre ((C, new_glue), N));
-       RETURN (update_lbd_and_mark_used C new_glue N)
+       RETURN (update_lbd C new_glue N)
     }
 }\<close>
 
@@ -283,7 +283,7 @@ lemma update_lbd_shrunk_clause_valid:
      update_lbd_shrunk_clause C arena \<le> SPEC(\<lambda>c. (c, N) \<in> {(c, N'). N'=N \<and> valid_arena c N vdom \<and>
        length c = length arena})\<close>
   unfolding update_lbd_shrunk_clause_def mop_arena_lbd_def nres_monad3 mop_arena_status_def
-    mop_arena_length_def update_lbd_and_mark_used_def
+    mop_arena_length_def update_lbd_def
   apply refine_vcg
   subgoal
     unfolding get_clause_LBD_pre_def arena_is_valid_clause_idx_def
