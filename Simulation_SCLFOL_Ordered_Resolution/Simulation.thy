@@ -242,6 +242,9 @@ hide_fact subset_implies_multp
 lemma subset_implies_reflclp_multp: "A \<subseteq># B \<Longrightarrow> (multp R)\<^sup>=\<^sup>= A B"
   by (metis reflclp_iff strict_subset_implies_multp subset_mset.le_imp_less_or_eq)
 
+lemma member_mset_repeat_msetD: "L \<in># repeat_mset n M \<Longrightarrow> L \<in># M"
+  by (induction n) auto
+
 section \<open>Move to \<^theory>\<open>HOL-Library.FSet\<close>\<close>
 
 declare wfP_pfsubset[intro]
@@ -3770,9 +3773,6 @@ proof -
     by (meson nat.discI)
 qed
 
-lemma member_mset_repeat_msetD: "L \<in># repeat_mset n M \<Longrightarrow> L \<in># M"
-  by (induction n) auto
-
 lemma eres_not_identD:
   assumes "eres D C \<noteq> C"
   shows "\<exists>m A D' C'.
@@ -4000,8 +4000,175 @@ interpretation ord_res_3_language: language where
 inductive ord_res_2_matches_ord_res_3 where
   "(\<forall>C |\<in>| U\<^sub>p\<^sub>r. \<exists>D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
       (ground_resolution D1)\<^sup>+\<^sup>+ D2 C \<and> C \<noteq> eres D1 D2 \<and> eres D1 D2 |\<in>| U\<^sub>e\<^sub>r) \<Longrightarrow>
-   is_least_false_clause (N |\<union>| U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) = is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) \<Longrightarrow>
   ord_res_2_matches_ord_res_3 (N, (U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)) (N, (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f))"
+
+lemma is_least_false_clause_finsert_cancel:
+  assumes
+    C_unproductive: "ord_res.production (fset (finsert C N)) C = {}" and
+    C_entailed_by_smaller: "\<exists>D |\<in>| N. D \<prec>\<^sub>c C \<and> {D} \<TTurnstile>e {C}"
+  shows "is_least_false_clause (finsert C N) = is_least_false_clause N"
+proof (intro ext iffI)
+  fix E
+  assume E_least: "is_least_false_clause (finsert C N) E"
+  hence
+    E_in: "E |\<in>| finsert C N" and
+    E_false: "\<not> ord_res_Interp (fset (finsert C N)) E \<TTurnstile> E" and
+    E_least: "(\<forall>y |\<in>| finsert C N. y \<noteq> E \<longrightarrow> \<not> ord_res_Interp (fset (finsert C N)) y \<TTurnstile> y \<longrightarrow> E \<prec>\<^sub>c y)"
+    unfolding atomize_conj is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+    by metis
+
+  obtain D where
+    "D |\<in>| N" and "D \<prec>\<^sub>c C" and "{D} \<TTurnstile>e {C}"
+    using C_entailed_by_smaller by metis
+
+  show "is_least_false_clause N E"
+  proof (cases "C = E")
+    case True
+
+    have "E \<prec>\<^sub>c D"
+    proof (rule E_least[rule_format])
+      show "D |\<in>| finsert C N"
+        using \<open>D |\<in>| N\<close> by simp
+    next
+      show "D \<noteq> E"
+        using \<open>D \<prec>\<^sub>c C\<close> \<open>C = E\<close> by order
+    next
+      show "\<not> ord_res_Interp (fset (finsert C N)) D \<TTurnstile> D"
+        using E_false
+      proof (rule contrapos_nn)
+        assume "ord_res_Interp (fset (finsert C N)) D \<TTurnstile> D"
+        thus "ord_res_Interp (fset (finsert C N)) E \<TTurnstile> E"
+          using \<open>D \<prec>\<^sub>c C\<close> \<open>C = E\<close> \<open>{D} \<TTurnstile>e {C}\<close> ord_res.entailed_clause_stays_entailed by auto
+      qed
+    qed
+    hence False
+      using \<open>D \<prec>\<^sub>c C\<close> \<open>C = E\<close> by order
+    thus ?thesis ..
+  next
+    case False
+    show ?thesis
+      unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+    proof (intro conjI ballI impI)
+      show "E |\<in>| N"
+        using E_in \<open>C \<noteq> E\<close> by simp 
+    next
+      have "ord_res_Interp (fset (finsert C N)) E = ord_res_Interp (fset N) E"
+        using C_unproductive Interp_insert_unproductive by simp
+      thus "\<not> ord_res_Interp (fset N) E \<TTurnstile> E"
+        using E_false by argo
+    next
+      show "\<And>y. y |\<in>| N \<Longrightarrow> y \<noteq> E \<Longrightarrow> \<not> ord_res_Interp (fset N) y \<TTurnstile> y \<Longrightarrow> E \<prec>\<^sub>c y"
+        using E_least C_unproductive Interp_insert_unproductive by auto
+    qed
+  qed
+next
+  fix E
+  assume "is_least_false_clause N E"
+  hence
+    E_in: "E |\<in>| N" and
+    E_false: "\<not> ord_res_Interp (fset N) E \<TTurnstile> E" and
+    E_least: "(\<forall>y |\<in>| N. y \<noteq> E \<longrightarrow> \<not> ord_res_Interp (fset N) y \<TTurnstile> y \<longrightarrow> E \<prec>\<^sub>c y)"
+    unfolding atomize_conj is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+    by metis
+
+  show "is_least_false_clause (finsert C N) E"
+    unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+  proof (intro conjI ballI impI)
+    show "E |\<in>| finsert C N"
+      using E_in by simp
+  next
+    show "\<not> ord_res_Interp (fset (finsert C N)) E \<TTurnstile> E"
+      using E_least E_false C_unproductive Interp_insert_unproductive by simp
+  next
+    fix y
+    assume "y |\<in>| finsert C N" and "y \<noteq> E" and "\<not> ord_res_Interp (fset (finsert C N)) y \<TTurnstile> y"
+    show "E \<prec>\<^sub>c y"
+    proof (cases "y = C")
+      case True
+      thus ?thesis
+      using E_least \<open>\<not> ord_res_Interp (fset (finsert C N)) y \<TTurnstile> y\<close>
+      by (metis (no_types, lifting) C_entailed_by_smaller C_unproductive Interp_insert_unproductive
+          finite_fset fset_simps(2) linorder_cls.dual_order.strict_trans
+          ord_res.entailed_clause_stays_entailed true_clss_singleton)
+    next
+      case False
+      thus ?thesis
+        using E_least \<open>y |\<in>| finsert C N\<close> \<open>y \<noteq> E\<close> \<open>\<not> ord_res_Interp (fset (finsert C N)) y \<TTurnstile> y\<close>
+        using C_unproductive Interp_insert_unproductive by auto
+    qed
+  qed
+qed
+
+lemma is_least_false_clause_funion_cancel_right:
+  assumes
+    "\<forall>C |\<in>| N2. \<forall>U. ord_res.production U C = {}" and
+    "\<forall>C |\<in>| N2. \<exists>D |\<in>| N1. D \<prec>\<^sub>c C \<and> {D} \<TTurnstile>e {C}"
+  shows "is_least_false_clause (N1 |\<union>| N2) = is_least_false_clause N1"
+  using assms
+proof (induction N2)
+  case empty
+  thus ?case
+    by simp
+next
+  case (insert x N2)
+  thus ?case
+    using is_least_false_clause_finsert_cancel
+    by (metis finsertCI funionI1 funion_finsert_right)
+qed
+
+lemma is_least_false_clause_conv_if_partial_resolution_invariant:
+  assumes "\<forall>C |\<in>| U\<^sub>p\<^sub>r. \<exists>D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
+    (ground_resolution D1)\<^sup>+\<^sup>+ D2 C \<and> C \<noteq> eres D1 D2 \<and> eres D1 D2 |\<in>| U\<^sub>e\<^sub>r"
+  shows "is_least_false_clause (N |\<union>| U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) = is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)"
+proof -
+  have "is_least_false_clause (N |\<union>| U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) = is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f |\<union>| U\<^sub>p\<^sub>r)"
+    by (simp add: sup_commute sup_left_commute)
+  also have "\<dots> = is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)"
+  proof (rule is_least_false_clause_funion_cancel_right)
+    show "\<forall>C |\<in>| U\<^sub>p\<^sub>r. \<forall>U. ord_res.production U C = {}"
+    proof (intro ballI)
+      fix C
+      assume "C |\<in>| U\<^sub>p\<^sub>r"
+      hence "\<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. (\<exists>C'. ground_resolution D C C')"
+        using assms by (metis eres_eq_after_tranclp_ground_resolution resolvable_if_neq_eres)
+      hence "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C"
+        using nex_strictly_maximal_pos_lit_if_resolvable by metis
+      thus "\<forall>U. ord_res.production U C = {}"
+        using unproductive_if_nex_strictly_maximal_pos_lit by metis
+    qed
+  next
+    show "\<forall>C |\<in>| U\<^sub>p\<^sub>r. \<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. D \<prec>\<^sub>c C \<and> {D} \<TTurnstile>e {C}"
+    proof (intro ballI)
+      fix C
+      assume "C |\<in>| U\<^sub>p\<^sub>r"
+      then obtain D1 D2 where
+        "D1|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
+        "D2|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f" and
+        "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C" and
+        "C \<noteq> eres D1 D2" and
+        "eres D1 D2 |\<in>| U\<^sub>e\<^sub>r"
+        using assms by metis
+  
+      have "eres D1 D2 = eres D1 C"
+        using \<open>(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<close> eres_eq_after_tranclp_ground_resolution by metis
+  
+      show "\<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. D \<prec>\<^sub>c C \<and> {D} \<TTurnstile>e {C}"
+      proof (intro bexI conjI)
+        have "eres D1 C \<preceq>\<^sub>c C"
+          using eres_le .
+        thus "eres D1 D2 \<prec>\<^sub>c C"
+          using \<open>C \<noteq> eres D1 D2\<close> \<open>eres D1 D2 = eres D1 C\<close> by order
+      next
+        show "{eres D1 D2} \<TTurnstile>e {C}"
+          using \<open>(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<close> eres_entails_resolvent by metis
+      next
+        show "eres D1 D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
+          using \<open>eres D1 D2 |\<in>| U\<^sub>e\<^sub>r\<close> by simp
+      qed
+    qed
+  qed
+  finally show ?thesis .
+qed
 
 lemma ord_res_2_final_iff_ord_res_3_final:
   assumes match: "ord_res_2_matches_ord_res_3 S\<^sub>2 S\<^sub>3"
@@ -4018,7 +4185,7 @@ proof (cases S\<^sub>2 S\<^sub>3 rule: ord_res_2_matches_ord_res_3.cases)
 
   have least_false_spec: "is_least_false_clause (N |\<union>| U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) =
     is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)"
-    using invars by argo
+    using invars is_least_false_clause_conv_if_partial_resolution_invariant by metis
 
   have U\<^sub>p\<^sub>r_unproductive: "\<forall>C |\<in>| U\<^sub>p\<^sub>r. ord_res.production (fset (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f |\<union>| U\<^sub>p\<^sub>r)) C = {}"
   proof (intro ballI)
@@ -4540,120 +4707,6 @@ proof (rule fimageI)
     using assms by simp
 qed
 
-lemma is_least_false_clause_finsert_cancel:
-  assumes
-    C_unproductive: "ord_res.production (fset (finsert C N)) C = {}" and
-    C_entailed_by_smaller: "\<exists>D |\<in>| N. D \<prec>\<^sub>c C \<and> {D} \<TTurnstile>e {C}"
-  shows "is_least_false_clause (finsert C N) = is_least_false_clause N"
-proof (intro ext iffI)
-  fix E
-  assume E_least: "is_least_false_clause (finsert C N) E"
-  hence
-    E_in: "E |\<in>| finsert C N" and
-    E_false: "\<not> ord_res_Interp (fset (finsert C N)) E \<TTurnstile> E" and
-    E_least: "(\<forall>y |\<in>| finsert C N. y \<noteq> E \<longrightarrow> \<not> ord_res_Interp (fset (finsert C N)) y \<TTurnstile> y \<longrightarrow> E \<prec>\<^sub>c y)"
-    unfolding atomize_conj is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
-    by metis
-
-  obtain D where
-    "D |\<in>| N" and "D \<prec>\<^sub>c C" and "{D} \<TTurnstile>e {C}"
-    using C_entailed_by_smaller by metis
-
-  show "is_least_false_clause N E"
-  proof (cases "C = E")
-    case True
-
-    have "E \<prec>\<^sub>c D"
-    proof (rule E_least[rule_format])
-      show "D |\<in>| finsert C N"
-        using \<open>D |\<in>| N\<close> by simp
-    next
-      show "D \<noteq> E"
-        using \<open>D \<prec>\<^sub>c C\<close> \<open>C = E\<close> by order
-    next
-      show "\<not> ord_res_Interp (fset (finsert C N)) D \<TTurnstile> D"
-        using E_false
-      proof (rule contrapos_nn)
-        assume "ord_res_Interp (fset (finsert C N)) D \<TTurnstile> D"
-        thus "ord_res_Interp (fset (finsert C N)) E \<TTurnstile> E"
-          using \<open>D \<prec>\<^sub>c C\<close> \<open>C = E\<close> \<open>{D} \<TTurnstile>e {C}\<close> ord_res.entailed_clause_stays_entailed by auto
-      qed
-    qed
-    hence False
-      using \<open>D \<prec>\<^sub>c C\<close> \<open>C = E\<close> by order
-    thus ?thesis ..
-  next
-    case False
-    show ?thesis
-      unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
-    proof (intro conjI ballI impI)
-      show "E |\<in>| N"
-        using E_in \<open>C \<noteq> E\<close> by simp 
-    next
-      have "ord_res_Interp (fset (finsert C N)) E = ord_res_Interp (fset N) E"
-        using C_unproductive Interp_insert_unproductive by simp
-      thus "\<not> ord_res_Interp (fset N) E \<TTurnstile> E"
-        using E_false by argo
-    next
-      show "\<And>y. y |\<in>| N \<Longrightarrow> y \<noteq> E \<Longrightarrow> \<not> ord_res_Interp (fset N) y \<TTurnstile> y \<Longrightarrow> E \<prec>\<^sub>c y"
-        using E_least C_unproductive Interp_insert_unproductive by auto
-    qed
-  qed
-next
-  fix E
-  assume "is_least_false_clause N E"
-  hence
-    E_in: "E |\<in>| N" and
-    E_false: "\<not> ord_res_Interp (fset N) E \<TTurnstile> E" and
-    E_least: "(\<forall>y |\<in>| N. y \<noteq> E \<longrightarrow> \<not> ord_res_Interp (fset N) y \<TTurnstile> y \<longrightarrow> E \<prec>\<^sub>c y)"
-    unfolding atomize_conj is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
-    by metis
-
-  show "is_least_false_clause (finsert C N) E"
-    unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
-  proof (intro conjI ballI impI)
-    show "E |\<in>| finsert C N"
-      using E_in by simp
-  next
-    show "\<not> ord_res_Interp (fset (finsert C N)) E \<TTurnstile> E"
-      using E_least E_false C_unproductive Interp_insert_unproductive by simp
-  next
-    fix y
-    assume "y |\<in>| finsert C N" and "y \<noteq> E" and "\<not> ord_res_Interp (fset (finsert C N)) y \<TTurnstile> y"
-    show "E \<prec>\<^sub>c y"
-    proof (cases "y = C")
-      case True
-      thus ?thesis
-      using E_least \<open>\<not> ord_res_Interp (fset (finsert C N)) y \<TTurnstile> y\<close>
-      by (metis (no_types, lifting) C_entailed_by_smaller C_unproductive Interp_insert_unproductive
-          finite_fset fset_simps(2) linorder_cls.dual_order.strict_trans
-          ord_res.entailed_clause_stays_entailed true_clss_singleton)
-    next
-      case False
-      thus ?thesis
-        using E_least \<open>y |\<in>| finsert C N\<close> \<open>y \<noteq> E\<close> \<open>\<not> ord_res_Interp (fset (finsert C N)) y \<TTurnstile> y\<close>
-        using C_unproductive Interp_insert_unproductive by auto
-    qed
-  qed
-qed
-
-lemma is_least_false_clause_funion_cancel_right:
-  assumes
-    "\<forall>C |\<in>| N2. \<forall>U. ord_res.production U C = {}" and
-    "\<forall>C |\<in>| N2. \<exists>D |\<in>| N1. D \<prec>\<^sub>c C \<and> {D} \<TTurnstile>e {C}"
-  shows "is_least_false_clause (N1 |\<union>| N2) = is_least_false_clause N1"
-  using assms
-proof (induction N2)
-  case empty
-  thus ?case
-    by simp
-next
-  case (insert x N2)
-  thus ?case
-    using is_least_false_clause_finsert_cancel
-    by (metis finsertCI funionI1 funion_finsert_right)
-qed
-
 lemma backward_simulation_2_to_3:
   fixes match measure less
   defines "match \<equiv> ord_res_2_matches_ord_res_3"
@@ -4664,9 +4717,6 @@ lemma backward_simulation_2_to_3:
   using match[unfolded match_def]
 proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
   case match_hyps: (1 U\<^sub>p\<^sub>r N U\<^sub>e\<^sub>r U\<^sub>e\<^sub>f)
-
-  thm is_least_false_clause_funion_cancel_right
-
   note invars = match_hyps(3-)
 
   have U\<^sub>p\<^sub>r_spec: "\<forall>C|\<in>|U\<^sub>p\<^sub>r. \<exists>D1|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D2|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
@@ -4705,9 +4755,9 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
     qed
   qed
 
-  have least_false_spec: "is_least_false_clause (N |\<union>| U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) =
+  have least_false_conv: "is_least_false_clause (N |\<union>| U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) =
     is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)"
-    using invars by argo
+    using invars is_least_false_clause_conv_if_partial_resolution_invariant by metis
 
   have U\<^sub>p\<^sub>r_unproductive: "\<And>N. \<forall>C |\<in>| U\<^sub>p\<^sub>r. ord_res.production N C = {}"
   proof (intro ballI)
@@ -4773,7 +4823,7 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
     proof (intro tranclp.r_into_trancl ord_res_2_step.intros ord_res_2.factoring)
       show "is_least_false_clause (N |\<union>| (U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r) |\<union>| U\<^sub>e\<^sub>f) C"
         using \<open>is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C\<close>
-        using least_false_spec
+        using least_false_conv
         by (metis sup_assoc)
     next
       show "ord_res.is_maximal_lit L C"
@@ -4795,19 +4845,6 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
         \<exists>D1|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f. \<exists>D2|\<in>|N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f.
         (ground_resolution D1)\<^sup>+\<^sup>+ D2 Ca \<and> Ca \<noteq> eres D1 D2 \<and> eres D1 D2 |\<in>| U\<^sub>e\<^sub>r"
         using U\<^sub>p\<^sub>r_spec by auto
-    next
-      have "is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f |\<union>| U\<^sub>p\<^sub>r) =
-        is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f)"
-      proof (rule is_least_false_clause_funion_cancel_right)
-        show "\<forall>C|\<in>|U\<^sub>p\<^sub>r. \<forall>U. ord_res.production U C = {}"
-          using U\<^sub>p\<^sub>r_unproductive by metis
-      next
-        show "\<forall>Ca |\<in>| U\<^sub>p\<^sub>r. \<exists>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f. D \<prec>\<^sub>c Ca \<and> {D} \<TTurnstile>e {Ca}"
-          using U\<^sub>p\<^sub>r_have_generalization by (metis funion_iff)
-      qed
-      thus "is_least_false_clause (N |\<union>| U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f) =
-        is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| finsert (sfac C) U\<^sub>e\<^sub>f)"
-        by (simp add: funion_commute funion_left_commute)
     qed
 
     ultimately show ?thesis
@@ -4862,11 +4899,9 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
           using \<open>k < Suc n\<close>
         proof (induction k)
           case 0
-
           have "is_least_false_clause (N |\<union>| U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C"
             using \<open>is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C\<close>
-            unfolding least_false_spec .
-
+            unfolding least_false_conv .
           thus ?case
             unfolding funion_fempty_right funion_assoc[symmetric]
             by simp
@@ -4955,7 +4990,7 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
                   using \<open>y |\<in>| N |\<union>| U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f\<close>
                   using \<open>\<not> ord_res_Interp (fset (N |\<union>| U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)) y \<TTurnstile> y\<close>
                   using \<open>is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C\<close>
-                  unfolding least_false_spec[symmetric]
+                  unfolding least_false_conv[symmetric]
                   unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
                   by simp
               qed
@@ -5153,73 +5188,6 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
             qed
           qed
         qed
-      next
-        have "is_least_false_clause (N |\<union>| finsert DC U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f |\<union>| (U\<^sub>p\<^sub>r |\<union>| resolvents_upto D C n)) =
-          is_least_false_clause (N |\<union>| finsert DC U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)"
-        proof (rule is_least_false_clause_funion_cancel_right)
-          have "\<forall>U. ord_res.production U Ca = {}" if "Ca |\<in>| resolvents_upto D C n" for Ca
-          proof -
-            from that obtain i where
-              i_in: "i |\<in>| fset_upto (Suc 0) n" and "Ca = resolvent_at D C i"
-              unfolding resolvents_upto_def by blast
-
-            have "0 < i" and "i < Suc n"
-              using i_in by simp_all
-
-            show ?thesis
-              unfolding \<open>Ca = resolvent_at D C i\<close>
-              by (metis \<open>(ground_resolution D ^^ Suc n) C DC\<close> \<open>i < Suc n\<close>
-                nex_pos_strictly_max_lit_in_resolvent_at
-                unproductive_if_nex_strictly_maximal_pos_lit)
-          qed
-          thus "\<forall>C |\<in>| U\<^sub>p\<^sub>r |\<union>| resolvents_upto D C n. \<forall>U. ord_res.production U C = {}"
-            using U\<^sub>p\<^sub>r_unproductive by blast
-        next
-          have "DC \<prec>\<^sub>c Ca \<and> {DC} \<TTurnstile>e {Ca}" if "Ca |\<in>| resolvents_upto D C n" for Ca
-          proof (intro conjI)
-            from that obtain i where
-              i_in: "i |\<in>| fset_upto (Suc 0) n" and "Ca = resolvent_at D C i"
-              unfolding resolvents_upto_def by blast
-
-            have "0 < i" and "i < Suc n"
-              using i_in by simp_all
-
-            show "DC \<prec>\<^sub>c Ca"
-              unfolding \<open>resolvent_at D C (Suc n) = DC\<close>[symmetric] \<open>Ca = resolvent_at D C i\<close>
-            proof (rule resolvent_at_less_cls_resolvent_at)
-              show "(ground_resolution D ^^ Suc n) C DC"
-                using \<open>(ground_resolution D ^^ Suc n) C DC\<close> .
-            next
-              show "i < Suc n"
-                using \<open>i < Suc n\<close> .
-            next
-              show "Suc n \<le> Suc n"
-                by presburger
-            qed
-
-            show "{DC} \<TTurnstile>e {Ca}"
-              unfolding \<open>eres D C = DC\<close>[symmetric]
-            proof (rule eres_entails_resolvent)
-              have "(ground_resolution D ^^ i) C (resolvent_at D C i)"
-              proof (rule relpowp_to_resolvent_at)
-                show "(ground_resolution D ^^ Suc n) C DC"
-                  using \<open>(ground_resolution D ^^ Suc n) C DC\<close> .
-              next
-                show "i < Suc n"
-                  using \<open>i < Suc n\<close> .
-              qed
-              then show "(ground_resolution D)\<^sup>+\<^sup>+ C Ca"
-                using \<open>Ca = resolvent_at D C i\<close> \<open>0 < i\<close>
-                by (simp add: tranclp_if_relpowp)
-            qed
-          qed
-          thus "\<forall>C|\<in>|U\<^sub>p\<^sub>r |\<union>| resolvents_upto D C n. \<exists>D|\<in>|N |\<union>| finsert DC U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. D \<prec>\<^sub>c C \<and> {D} \<TTurnstile>e {C}"
-            using U\<^sub>p\<^sub>r_have_generalization
-            by (metis finsertCI funion_iff)
-        qed
-        thus "is_least_false_clause (N |\<union>| (U\<^sub>p\<^sub>r |\<union>| resolvents_upto D C n) |\<union>| finsert DC U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) =
-          is_least_false_clause (N |\<union>| finsert DC U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f)"
-          by (simp add: funion_assoc funion_commute funion_left_commute)
       qed
     qed
 
