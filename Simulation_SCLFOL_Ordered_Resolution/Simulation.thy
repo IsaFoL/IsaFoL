@@ -897,6 +897,8 @@ subsection \<open>Function for full factorization\<close>
 definition efac :: "'f gterm clause \<Rightarrow> 'f gterm clause" where
   "efac C = (THE C'. ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C''))"
 
+text \<open>The function \<^const>\<open>efac\<close> performs exhaustive factorization of its input clause.\<close>
+
 lemma ex1_efac_eq_factoring_chain:
   "\<exists>!C'. efac C = C' \<and> ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')"
 proof -
@@ -3435,6 +3437,10 @@ text \<open>Exhaustive resolution\<close>
 definition eres where
   "eres D C = (THE DC. full_run (ground_resolution D) C DC)"
 
+text \<open>The function \<^const>\<open>eres\<close> performs exhaustive resolution between its two input clauses. The
+  first clause is repeatedly used, while the second clause is only use to start the resolution
+  chain.\<close>
+
 lemma
   assumes
     stuck: "\<nexists>DC. ground_resolution D C DC"
@@ -5391,7 +5397,7 @@ proof -
 qed
 
 
-subsection \<open>ORD-RES-4 (full resolve)\<close>
+subsection \<open>ORD-RES-4 (implicit efac)\<close>
 
 
 subsection \<open>ORD-RES-5 (explicit model construction)\<close>
