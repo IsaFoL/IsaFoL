@@ -3940,8 +3940,7 @@ inductive ord_res_3 where
     D |\<in>| N |\<union>| U\<^sub>r\<^sub>r |\<union>| U\<^sub>f\<^sub>f \<Longrightarrow>
     D \<prec>\<^sub>c C \<Longrightarrow>
     ord_res.production (fset (N |\<union>| U\<^sub>r\<^sub>r |\<union>| U\<^sub>f\<^sub>f)) D = {atm_of L} \<Longrightarrow>
-    full_run (ground_resolution D) C DC \<Longrightarrow>
-    U\<^sub>r\<^sub>r' = finsert DC U\<^sub>r\<^sub>r \<Longrightarrow>
+    U\<^sub>r\<^sub>r' = finsert (eres D C) U\<^sub>r\<^sub>r \<Longrightarrow>
     ord_res_3 N (U\<^sub>r\<^sub>r, U\<^sub>f\<^sub>f) (U\<^sub>r\<^sub>r', U\<^sub>f\<^sub>f)"
 
 inductive ord_res_3_step where
@@ -4850,28 +4849,25 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
     ultimately show ?thesis
       by metis
   next
-    case (resolution C L D DC U\<^sub>r\<^sub>r')
+    case (resolution C L D U\<^sub>r\<^sub>r')
 
-    have "(ground_resolution D)\<^sup>*\<^sup>* C DC" "\<nexists>x. ground_resolution D DC x"
-      using resolution by (simp_all add: full_run_def)
+    have "(ground_resolution D)\<^sup>*\<^sup>* C (eres D C)" "\<nexists>x. ground_resolution D (eres D C) x"
+      unfolding atomize_conj
+      by (metis ex1_eres_eq_full_run_ground_resolution full_run_def)
 
     moreover have "\<exists>x. ground_resolution D C x"
       unfolding ground_resolution_def
       using resolution
       by (metis Neg_atm_of_iff ex_ground_resolutionI ord_res.mem_productionE singletonI)
 
-    ultimately have "(ground_resolution D)\<^sup>+\<^sup>+ C DC"
+    ultimately have "(ground_resolution D)\<^sup>+\<^sup>+ C (eres D C)"
       by (metis rtranclpD)
 
-    then obtain n where "(ground_resolution D ^^ Suc n) C DC"
+    then obtain n where "(ground_resolution D ^^ Suc n) C (eres D C)"
       by (metis not0_implies_Suc not_gr_zero tranclp_power)
 
-    hence "resolvent_at D C (Suc n) = DC"
+    hence "resolvent_at D C (Suc n) = eres D C"
       by (metis Uniq_ground_resolution Uniq_relpowp resolvent_at_def the_equality)
-
-    have "eres D C = DC"
-      by (metis \<open>(ground_resolution D)\<^sup>*\<^sup>* C DC\<close> \<open>\<nexists>x. ground_resolution D DC x\<close>
-        eres_eq_after_rtranclp_ground_resolution resolvable_if_neq_eres)
 
     have steps: "k \<le> Suc n \<Longrightarrow> (ord_res_2_step ^^ k)
       (N, U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f) (N, U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r |\<union>| resolvents_upto D C k, U\<^sub>e\<^sub>f)" for k
@@ -4929,8 +4925,8 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
 
               have "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L (resolvent_at D C i)"
               proof (rule nex_pos_strictly_max_lit_in_resolvent_at)
-                show "(ground_resolution D ^^ Suc n) C DC"
-                  using \<open>(ground_resolution D ^^ Suc n) C DC\<close> .
+                show "(ground_resolution D ^^ Suc n) C (eres D C)"
+                  using \<open>(ground_resolution D ^^ Suc n) C (eres D C)\<close> .
               next
                 have "i \<le> Suc k'"
                   using \<open>i |\<in>| fset_upto (Suc 0) (Suc k')\<close> by auto
@@ -4960,7 +4956,7 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
               (resolvent_at D C (Suc k')) \<TTurnstile> resolvent_at D C (Suc k')"
               unfolding Interp_simp
               by (metis (no_types, lifting) Suc.prems Zero_not_Suc
-                  \<open>(ground_resolution D ^^ Suc n) C DC\<close> clause_true_if_resolved_true
+                  \<open>(ground_resolution D ^^ Suc n) C (eres D C)\<close> clause_true_if_resolved_true
                   insert_not_empty is_least_false_clause_def
                   linorder_cls.is_least_in_fset_ffilterD(2) local.resolution(2) local.resolution(7)
                   relpowp_to_resolvent_at tranclp_if_relpowp)
@@ -4996,7 +4992,7 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
               qed
 
               moreover have "resolvent_at D C (Suc k') \<prec>\<^sub>c C"
-                by (metis Suc.prems \<open>(ground_resolution D ^^ Suc n) C DC\<close> less_or_eq_imp_le
+                by (metis Suc.prems \<open>(ground_resolution D ^^ Suc n) C (eres D C)\<close> less_or_eq_imp_le
                     resolvent_at_less_cls_resolvent_at resolvent_at_0 zero_less_Suc)
 
               ultimately show "resolvent_at D C (Suc k') \<prec>\<^sub>c y"
@@ -5014,8 +5010,8 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
               show "resolvent_at D C (Suc k') \<prec>\<^sub>c y"
                 unfolding y_def
               proof (rule resolvent_at_less_cls_resolvent_at)
-                show "(ground_resolution D ^^ Suc n) C DC"
-                  using \<open>(ground_resolution D ^^ Suc n) C DC\<close> .
+                show "(ground_resolution D ^^ Suc n) C (eres D C)"
+                  using \<open>(ground_resolution D ^^ Suc n) C (eres D C)\<close> .
               next
                 show "i < Suc k'"
                   using \<open>y \<noteq> resolvent_at D C (Suc k')\<close> i_in y_def by auto
@@ -5029,8 +5025,8 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
       next
         show "ord_res.is_maximal_lit L (resolvent_at D C k)"
         proof (rule max_lit_resolvent_at)
-          show "(ground_resolution D ^^ Suc n) C DC"
-            using \<open>(ground_resolution D ^^ Suc n) C DC\<close> .
+          show "(ground_resolution D ^^ Suc n) C (eres D C)"
+            using \<open>(ground_resolution D ^^ Suc n) C (eres D C)\<close> .
         next
           show "k < Suc n"
             using \<open>k < Suc n\<close> .
@@ -5047,8 +5043,8 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
       next
         show "D \<prec>\<^sub>c resolvent_at D C k"
         proof (rule left_premisse_lt_resolvent_at)
-          show "(ground_resolution D ^^ Suc n) C DC"
-            using \<open>(ground_resolution D ^^ Suc n) C DC\<close> .
+          show "(ground_resolution D ^^ Suc n) C (eres D C)"
+            using \<open>(ground_resolution D ^^ Suc n) C (eres D C)\<close> .
         next
           show "k < Suc n"
             using \<open>k < Suc n\<close> .
@@ -5079,8 +5075,8 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
             show ?thesis
               unfolding x_def
             proof (rule nex_pos_strictly_max_lit_in_resolvent_at)
-              show "(ground_resolution D ^^ Suc n) C DC"
-                using \<open>(ground_resolution D ^^ Suc n) C DC\<close> .
+              show "(ground_resolution D ^^ Suc n) C (eres D C)"
+                using \<open>(ground_resolution D ^^ Suc n) C (eres D C)\<close> .
             next
               show "i < Suc n"
                 using \<open>i \<le> k\<close> \<open>k < Suc n\<close> by presburger
@@ -5100,8 +5096,8 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
         show "ord_res.ground_resolution (resolvent_at D C k) D (resolvent_at D C (Suc k))"
           unfolding ground_resolution_def[symmetric]
         proof (rule ground_resolution_resolvent_at_resolvent_at_Suc)
-          show "(ground_resolution D ^^ Suc n) C DC"
-            using \<open>(ground_resolution D ^^ Suc n) C DC\<close> .
+          show "(ground_resolution D ^^ Suc n) C (eres D C)"
+            using \<open>(ground_resolution D ^^ Suc n) C (eres D C)\<close> .
         next
           show "k < Suc n"
             using \<open>k < Suc n\<close> .
@@ -5121,26 +5117,26 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
 
     moreover have "match (N, U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r |\<union>| resolvents_upto D C (Suc n), U\<^sub>e\<^sub>f) S3'"
     proof -
-      have 1: "S3' = (N, finsert DC U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)"
-        unfolding S3'_def \<open>s3' = (U\<^sub>r\<^sub>r', U\<^sub>e\<^sub>f)\<close> \<open>U\<^sub>r\<^sub>r' = finsert DC U\<^sub>e\<^sub>r\<close> ..
+      have 1: "S3' = (N, finsert (eres D C) U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)"
+        unfolding S3'_def \<open>s3' = (U\<^sub>r\<^sub>r', U\<^sub>e\<^sub>f)\<close> \<open>U\<^sub>r\<^sub>r' = finsert (eres D C) U\<^sub>e\<^sub>r\<close> ..
 
       have 2: "U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r |\<union>| resolvents_upto D C (Suc n) =
-        U\<^sub>p\<^sub>r |\<union>| resolvents_upto D C n |\<union>| finsert DC U\<^sub>e\<^sub>r"
-        by (auto simp: \<open>resolvent_at D C (Suc n) = DC\<close>)
+        U\<^sub>p\<^sub>r |\<union>| resolvents_upto D C n |\<union>| finsert (eres D C) U\<^sub>e\<^sub>r"
+        by (auto simp: \<open>resolvent_at D C (Suc n) = eres D C\<close>)
 
       show ?thesis
         unfolding match_def 1 2
       proof (rule ord_res_2_matches_ord_res_3.intros)
-        show "\<forall>C|\<in>|U\<^sub>p\<^sub>r |\<union>| resolvents_upto D C n.
-          \<exists>D1|\<in>|N |\<union>| finsert DC U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D2|\<in>|N |\<union>| finsert DC U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
-          (ground_resolution D1)\<^sup>+\<^sup>+ D2 C \<and> C \<noteq> eres D1 D2 \<and> eres D1 D2 |\<in>| finsert DC U\<^sub>e\<^sub>r"
+        show "\<forall>E|\<in>|U\<^sub>p\<^sub>r |\<union>| resolvents_upto D C n.
+          \<exists>D1|\<in>|N |\<union>| finsert (eres D C) U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D2|\<in>|N |\<union>| finsert (eres D C) U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
+          (ground_resolution D1)\<^sup>+\<^sup>+ D2 E \<and> E \<noteq> eres D1 D2 \<and> eres D1 D2 |\<in>| finsert (eres D C) U\<^sub>e\<^sub>r"
         proof (intro ballI)
           fix Ca
           assume "Ca |\<in>| U\<^sub>p\<^sub>r |\<union>| resolvents_upto D C n"
           hence "Ca |\<in>| U\<^sub>p\<^sub>r \<or> Ca |\<in>| resolvents_upto D C n"
             by simp
-          thus "\<exists>D1|\<in>|N |\<union>| finsert DC U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D2|\<in>|N |\<union>| finsert DC U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
-            (ground_resolution D1)\<^sup>+\<^sup>+ D2 Ca \<and> Ca \<noteq> eres D1 D2 \<and> eres D1 D2 |\<in>| finsert DC U\<^sub>e\<^sub>r"
+          thus "\<exists>D1|\<in>|N |\<union>| finsert (eres D C) U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D2|\<in>|N |\<union>| finsert (eres D C) U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
+            (ground_resolution D1)\<^sup>+\<^sup>+ D2 Ca \<and> Ca \<noteq> eres D1 D2 \<and> eres D1 D2 |\<in>| finsert (eres D C) U\<^sub>e\<^sub>r"
           proof (elim disjE)
             show "Ca |\<in>| U\<^sub>p\<^sub>r \<Longrightarrow> ?thesis"
               using U\<^sub>p\<^sub>r_spec by auto
@@ -5157,8 +5153,8 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
               have "(ground_resolution D ^^ i) C Ca"
                 unfolding \<open>Ca = resolvent_at D C i\<close>
               proof (rule relpowp_to_resolvent_at)
-                show "(ground_resolution D ^^ Suc n) C DC"
-                  using \<open>(ground_resolution D ^^ Suc n) C DC\<close> .
+                show "(ground_resolution D ^^ Suc n) C (eres D C)"
+                  using \<open>(ground_resolution D ^^ Suc n) C (eres D C)\<close> .
               next
                 show "i < Suc n"
                   using \<open>i \<le> n\<close> by presburger
@@ -5167,23 +5163,20 @@ proof (cases S2 S3 rule: ord_res_2_matches_ord_res_3.cases)
                 using \<open>0 < i\<close> by (simp add: tranclp_if_relpowp)
             next
               show "Ca \<noteq> eres D C"
-                by (metis Ca_def \<open>(ground_resolution D ^^ Suc n) C DC\<close>
-                  \<open>(ground_resolution D)\<^sup>*\<^sup>* C DC\<close> \<open>\<nexists>x. ground_resolution D DC x\<close> \<open>i \<le> n\<close>
-                  eres_eq_after_rtranclp_ground_resolution
-                  ground_resolution_resolvent_at_resolvent_at_Suc less_Suc_eq_le
-                  resolvable_if_neq_eres)
+                by (metis Ca_def \<open>(ground_resolution D ^^ Suc n) C (eres D C)\<close>
+                  \<open>\<nexists>x. ground_resolution D (eres D C) x\<close> \<open>i \<le> n\<close>
+                  ground_resolution_resolvent_at_resolvent_at_Suc less_Suc_eq_le)
             next
-              show "eres D C |\<in>| finsert DC U\<^sub>e\<^sub>r"
-                by (metis Uniq_full_run finsertCI local.resolution(8) Uniq_ground_resolution
-                  eres_def the1_equality')
+              show "eres D C |\<in>| finsert (eres D C) U\<^sub>e\<^sub>r"
+                by simp
             next
-              show "D |\<in>| N |\<union>| finsert DC U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
+              show "D |\<in>| N |\<union>| finsert (eres D C) U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
                 using resolution by simp
             next
               have "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
                 using resolution
                 by (simp add: is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff)
-              thus "C |\<in>| N |\<union>| finsert DC U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
+              thus "C |\<in>| N |\<union>| finsert (eres D C) U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
                 by simp
             qed
           qed
@@ -5214,14 +5207,14 @@ proof (rule right_uniqueI)
       with hyps1 show ?thesis
         by (metis Uniq_D Uniq_is_least_false_clause prod.inject)
     next
-      case (resolution U\<^sub>r\<^sub>r2 U\<^sub>f\<^sub>f2 C2 L2 D2 DC2 U\<^sub>r\<^sub>r2')
+      case (resolution U\<^sub>r\<^sub>r2 U\<^sub>f\<^sub>f2 C2 L2 D2 U\<^sub>r\<^sub>r2')
       with hyps1 have False
         by (metis Pair_inject Uniq_is_least_false_clause linorder_lit.Uniq_is_maximal_in_mset
             the1_equality')
       thus ?thesis ..
     qed
   next
-    case hyps1: (resolution U\<^sub>r\<^sub>r1 U\<^sub>f\<^sub>f1 C1 L1 D1 DC1 U\<^sub>r\<^sub>r1')
+    case hyps1: (resolution U\<^sub>r\<^sub>r1 U\<^sub>f\<^sub>f1 C1 L1 D1 U\<^sub>r\<^sub>r1')
     show ?thesis
       using step2
     proof (cases N s s'' rule: ord_res_3.cases)
@@ -5230,7 +5223,7 @@ proof (rule right_uniqueI)
         by (metis Uniq_is_least_false_clause linorder_lit.Uniq_is_maximal_in_mset prod.inject the1_equality')
       thus ?thesis ..
     next
-      case hyps2: (resolution U\<^sub>r\<^sub>r2 U\<^sub>f\<^sub>f2 C2 L2 D2 DC2 U\<^sub>r\<^sub>r2')
+      case hyps2: (resolution U\<^sub>r\<^sub>r2 U\<^sub>f\<^sub>f2 C2 L2 D2 U\<^sub>r\<^sub>r2')
 
       have *: "U\<^sub>r\<^sub>r1 = U\<^sub>r\<^sub>r2" "U\<^sub>f\<^sub>f1 = U\<^sub>f\<^sub>f2"
         using hyps1 hyps2 by  simp_all
@@ -5251,14 +5244,9 @@ proof (rule right_uniqueI)
         by (metis linorder_cls.less_irrefl linorder_cls.linorder_cases
             ord_res.less_trm_iff_less_cls_if_mem_production singletonI)
 
-      have *****: "DC1 = DC2"
-        using hyps1 hyps2
-        unfolding * ** *** ****
-        by (metis (no_types, opaque_lifting) Uniq_full_run Uniq_ground_resolution the1_equality')
-
       show ?thesis
         using hyps1 hyps2
-        unfolding * ** *** **** *****
+        unfolding * ** *** ****
         by argo
     qed
   qed
