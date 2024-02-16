@@ -1851,15 +1851,35 @@ lemmas end_of_restart_phase_impl_refine[sepref_fr_rules] =
 
 lemma incr_restart_phase_end_stats_alt_def:
   \<open>incr_restart_phase_end_stats = (\<lambda>end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, length_phase), wasted).
-  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, (length_phase * 3) >> 1), wasted))\<close>
+  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, length_phase), wasted))\<close>
   by (auto intro!: ext)
 
+sepref_register incr_restart_phase_end_stats incr_restart_phase_and_length_end_stats
 sepref_def incr_restart_phase_end_stats_impl [llvm_inline]
   is \<open>uncurry (RETURN oo incr_restart_phase_end_stats)\<close>
   :: \<open>word64_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
   supply[[goals_limit=1]]
   unfolding heuristic_int_assn_def incr_restart_phase_end_stats_alt_def
+  by sepref
+
+lemma incr_restart_phase_and_length_end_stats_alt_def:
+  \<open>incr_restart_phase_and_length_end_stats = (\<lambda>end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, length_phase), wasted).
+  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, (length_phase * 3) >> 1), wasted))\<close>
+  by (auto intro!: ext)
+
+sepref_def incr_restart_phase_and_length_end_stats_impl [llvm_inline]
+  is \<open>uncurry (RETURN oo incr_restart_phase_and_length_end_stats)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
+  supply[[goals_limit=1]]
+  unfolding heuristic_int_assn_def incr_restart_phase_and_length_end_stats_alt_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def incr_restart_phase_and_length_end_impl
+  is \<open>uncurry (RETURN oo incr_restart_phase_and_length_end)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  supply[[goals_limit=1]]
+  unfolding incr_restart_phase_and_length_end_def
   by sepref
 
 sepref_def incr_restart_phase_end_impl
@@ -1868,6 +1888,7 @@ sepref_def incr_restart_phase_end_impl
   supply[[goals_limit=1]]
   unfolding incr_restart_phase_end_def
   by sepref
+
 
 lemma incr_restart_phase_stats_alt_def:
   \<open>incr_restart_phase_stats =
