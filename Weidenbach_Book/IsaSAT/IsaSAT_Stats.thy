@@ -913,7 +913,19 @@ lemma save_phase_heur_preI:
 text \<open>Using \<^term>\<open>a + 1\<close> ensures that we do not get stuck with 0.\<close>
 fun incr_restart_phase_end_stats :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
   \<open>incr_restart_phase_end_stats end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, length_phase), wasted) =
+  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, length_phase), wasted)\<close>
+
+fun incr_restart_phase_and_length_end_stats :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>incr_restart_phase_and_length_end_stats end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, length_phase), wasted) =
   (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, (length_phase * 3) >> 1), wasted)\<close>
+
+
+definition incr_restart_phase_and_length_end :: \<open>64 word \<Rightarrow> isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
+  \<open>incr_restart_phase_and_length_end end_of_phase = Restart_Heuristics o (incr_restart_phase_and_length_end_stats end_of_phase) o get_content\<close>
+
+lemma heuristic_rel_incr_restart_lengthI[intro!]:
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase_and_length_end lcount heur)\<close>
+  by (auto simp: heuristic_rel_def heuristic_rel_stats_def incr_restart_phase_and_length_end_def)
 
 definition incr_restart_phase_end :: \<open>64 word \<Rightarrow> isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
   \<open>incr_restart_phase_end end_of_phase = Restart_Heuristics o (incr_restart_phase_end_stats end_of_phase) o get_content\<close>
@@ -921,6 +933,7 @@ definition incr_restart_phase_end :: \<open>64 word \<Rightarrow> isasat_restart
 lemma heuristic_rel_incr_restartI[intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase_end lcount heur)\<close>
   by (auto simp: heuristic_rel_def heuristic_rel_stats_def incr_restart_phase_end_def)
+
 
 lemma [intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (heuristic_reluctant_disable heur)\<close>

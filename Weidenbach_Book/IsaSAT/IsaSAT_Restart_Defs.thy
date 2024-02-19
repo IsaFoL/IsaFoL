@@ -267,7 +267,7 @@ definition update_restart_phases :: \<open>isasat \<Rightarrow> isasat nres\<clo
      let vm = get_vmtf_heur S;
      let vm = switch_bump_heur vm;
      heur \<leftarrow> RETURN (incr_restart_phase heur);
-     heur \<leftarrow> RETURN (incr_restart_phase_end lcount heur);
+     heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then incr_restart_phase_and_length_end lcount heur else incr_restart_phase_end lcount heur);
      heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
      heur \<leftarrow> RETURN (swap_emas heur);
      RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
