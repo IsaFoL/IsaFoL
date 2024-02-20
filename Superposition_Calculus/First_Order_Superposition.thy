@@ -181,6 +181,7 @@ next
     using superposition_if_neg_superposition superposition_if_pos_superposition by metis
 qed
 
+(* TODO: Move these? *)
 abbreviation true_clause :: 
   "'f ground_atom interp \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" (infix "\<TTurnstile>\<^sub>C" 50)  where
   "I \<TTurnstile>\<^sub>C C \<equiv> \<forall>\<theta>. term_subst.is_ground_subst \<theta> \<longrightarrow> I \<TTurnstile> to_ground_clause (C \<cdot> \<theta>)"
