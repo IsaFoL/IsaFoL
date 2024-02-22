@@ -5489,17 +5489,11 @@ inductive ord_res_4 where
     U\<^sub>e\<^sub>r' = finsert (eres D C) U\<^sub>e\<^sub>r \<Longrightarrow>
     ord_res_4 N (U\<^sub>e\<^sub>r, \<F>) (U\<^sub>e\<^sub>r', \<F>)"
 
-term ord_res
-term ord_res_1
-term ord_res_2
-term ord_res_3
-
 inductive ord_res_4_step where
   "ord_res_4 N s s' \<Longrightarrow> ord_res_4_step (N, s) (N, s')"
 
 inductive ord_res_4_final where
   "ord_res_final (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) \<Longrightarrow> ord_res_4_final (N, U\<^sub>e\<^sub>r, \<F>)"
-
 
 interpretation ord_res_4_semantics: semantics where
   step = ord_res_4_step and
@@ -5725,73 +5719,6 @@ proof -
   show "{efac C} \<TTurnstile>e {C}"
     using \<open>efac C \<subseteq># C\<close> true_clss_subclause by metis
 qed
-
-(*
-\<forall>C |\<in>| \<F>. \<exists>C' |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).
-  C' = efac C \<and> C' \<prec>\<^sub>c C \<and> {C'} entails {C} 
-*)
-(* lemma
-  assumes C_in: "C |\<in>| (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) - (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))"
-  shows "\<exists>C' |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C' = efac C \<and> C' \<prec>\<^sub>c C \<and> {C'} \<TTurnstile>e {C} "
-proof -
-  show ?thesis
-    using C_in is_least_false_clause_funion_cancel_right
-    oops *)
-
-term "\<forall>C \<in> N \<union> U\<^sub>e\<^sub>r. iefac \<F> C \<preceq>\<^sub>c C \<and> {C} \<TTurnstile>e {iefac \<F> C} \<and> {iefac \<F> C} \<TTurnstile>e {C}"
-
-(* lemma FOO:
-  assumes
-    "\<forall>C |\<in>| N. iefac \<F> C \<preceq>\<^sub>c C \<and> {C} \<TTurnstile>e {iefac \<F> C} \<and> {iefac \<F> C} \<TTurnstile>e {C}"
-  shows
-    "C |\<in>| iefac \<F> |`| N \<Longrightarrow>
-      ord_res.production (fset (N |\<union>| (iefac \<F> |`| N))) C =
-      ord_res.production (fset (iefac \<F> |`| N)) C" and
-    "C |\<notin>| iefac \<F> |`| N \<Longrightarrow>
-      ord_res.production (fset (N |\<union>| (iefac \<F> |`| N))) C = {}"
-  unfolding atomize_imp atomize_conj
-  using ord_res.wfP_less_cls
-proof (induction C arbitrary: N rule: wfP_induct_rule)
-  case (less C)
-  then show ?case
-    sorry
-qed *)
-    
-    
-(* lemma
-  assumes
-    "\<forall>C |\<in>| N. iefac \<F> C \<preceq>\<^sub>c C \<and> {C} \<TTurnstile>e {iefac \<F> C} \<and> {iefac \<F> C} \<TTurnstile>e {C}"
-  shows
-    "ord_res.production (fset (N |\<union>| (iefac \<F> |`| N))) = ord_res.production (fset (iefac \<F> |`| N))"
-proof (rule ext)
-  fix C
-  show "ord_res.production (fset (N |\<union>| iefac \<F> |`| N)) C =
-    ord_res.production (fset (iefac \<F> |`| N)) C"
-  proof (cases "C |\<in>| iefac \<F> |`| N")
-    case True
-    then show ?thesis
-      using FOO[OF assms] by metis
-  next
-    case False
-    then show ?thesis
-      using FOO[OF assms] ord_res.production_unfold by auto
-  qed
-qed *)
-    
-(* lemma BAZ:
-  assumes
-    "\<forall>C |\<in>| N. iefac \<F> C \<preceq>\<^sub>c C \<and> {C} \<TTurnstile>e {iefac \<F> C} \<and> {iefac \<F> C} \<TTurnstile>e {C}"
-  shows "is_least_false_clause (N |\<union>| (iefac \<F> |`| N)) = is_least_false_clause (iefac \<F> |`| N)"
-proof (intro ext iffI)
-  fix C
-  show "is_least_false_clause (N |\<union>| iefac \<F> |`| N) C \<Longrightarrow> is_least_false_clause (iefac \<F> |`| N) C"
-    using BAR[OF assms]
-    sorry
-next
-  fix C
-  show "is_least_false_clause (iefac \<F> |`| N) C \<Longrightarrow> is_least_false_clause (N |\<union>| iefac \<F> |`| N) C"
-    sorry
-qed *)
 
 lemma clauses_for_iefac_are_unproductive:
   "\<forall>C |\<in>| N |-| iefac \<F> |`| N. \<forall>U. ord_res.production U C = {}"
@@ -6093,7 +6020,57 @@ qed
 
 
 subsection \<open>ORD-RES-5 (explicit model construction)\<close>
+  
+(* lemma "((\<C> = Some C) \<longleftrightarrow> P C) \<Longrightarrow> (\<C> = Some C \<and> P C \<or> \<C> = None)"
+ *)
 
+definition The_optional :: "('a \<Rightarrow> bool) \<Rightarrow> 'a option" where
+  "\<exists>\<^sub>\<le>\<^sub>1x. P x \<Longrightarrow> The_optional P = (if \<exists>x. P x then Some (THE x. P x) else None)"
+
+term The
+find_consts "('a \<Rightarrow> bool) \<Rightarrow> 'a option"
+    
+inductive ord_res_5 where
+  skip: "
+    (dom \<M>) \<TTurnstile> C \<Longrightarrow>
+    \<C>' = The_optional (linorder_cls.is_least_in_fset {|D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D|}) \<Longrightarrow>
+    ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>')" |
+    
+  production: "
+    \<not> (dom \<M>) \<TTurnstile> C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    is_pos L \<Longrightarrow>
+    linorder_lit.is_greatest_in_mset C L \<Longrightarrow>
+    \<M>' = \<M>(atm_of L := Some C) \<Longrightarrow>
+    \<C>' = The_optional (linorder_cls.is_least_in_fset {|D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D|}) \<Longrightarrow>
+    ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<M>', \<C>')" |
+
+  factoring: "
+    \<not> (dom \<M>) \<TTurnstile> C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    is_pos L \<Longrightarrow>
+    \<not> linorder_lit.is_greatest_in_mset C L \<Longrightarrow>
+    C |\<notin>| \<F> \<Longrightarrow>
+    \<F>' = finsert C \<F> \<Longrightarrow>
+    \<M>' = (\<lambda>_. None) \<Longrightarrow>
+    linorder_cls.is_least_in_fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r)) C' \<Longrightarrow>
+    ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r, \<F>', \<M>', Some C')" |
+
+  resolution: "
+    \<not> (dom \<M>) \<TTurnstile> C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    is_neg L \<Longrightarrow>
+    \<M> (atm_of L) = Some D \<Longrightarrow>
+    U\<^sub>e\<^sub>r' = finsert (eres D C) U\<^sub>e\<^sub>r \<Longrightarrow>
+    \<M>' = (\<lambda>_. None) \<Longrightarrow>
+    linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) C' \<Longrightarrow>
+    ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C')"
+
+text \<open>
+Some invariants for a state \<^term>\<open>(U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close> at any given point.
+ - \<^term>\<open>finite (dom \<M>)\<close> 
+ - \<^term>\<open>\<forall>C. \<C> = Some C \<longrightarrow> C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close>
+\<close>
 
 subsection \<open>ORD-RES-6 (model backjump)\<close>
 
