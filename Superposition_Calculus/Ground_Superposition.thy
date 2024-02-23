@@ -68,8 +68,7 @@ lemma lesseq_trm_if_subtermeq: "t \<preceq>\<^sub>t ctxt\<langle>t\<rangle>\<^su
   using less_trm_if_subterm
   by (metis gctxt_ident_iff_eq_GHole reflclp_iff)
 
-definition less_lit ::
-  "'f atom literal \<Rightarrow> 'f atom literal \<Rightarrow> bool" (infix "\<prec>\<^sub>l" 50) where
+definition less_lit :: "'f atom literal \<Rightarrow> 'f atom literal \<Rightarrow> bool" (infix "\<prec>\<^sub>l" 50) where
   "less_lit L1 L2 \<equiv> multp (\<prec>\<^sub>t) (mset_lit L1) (mset_lit L2)"
 
 abbreviation lesseq_lit (infix "\<preceq>\<^sub>l" 50) where
@@ -524,7 +523,10 @@ proof (cases P C rule: ground_eq_factoring.cases)
   qed
 qed
 
-interpretation G: sound_inference_system G_Inf G_Bot G_entails
+interpretation G: sound_inference_system where
+  Inf = G_Inf and
+  Bot = G_Bot and
+  entails = G_entails
 proof unfold_locales
   show "G_Bot \<noteq> {}"
     by simp
@@ -785,7 +787,11 @@ proof (cases P C rule: ground_eq_factoring.cases)
     by simp
 qed
 
-interpretation G: calculus_with_finitary_standard_redundancy G_Inf G_Bot G_entails "(\<prec>\<^sub>c)"
+interpretation G: calculus_with_finitary_standard_redundancy where
+  Inf = G_Inf and
+  Bot = G_Bot and
+  entails = G_entails and
+  less = "(\<prec>\<^sub>c)"
 proof unfold_locales
   show "transp (\<prec>\<^sub>c)"
     using transp_less_cls .
@@ -2227,8 +2233,9 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
                   using \<open>(t, t'') \<in> rewrite_inside_gctxt (insert (s, s') (rewrite_sys N C))\<close>
                   using \<open>t = s\<close> s_irreducible mem_rewrite_step_union_NF
                   using rewrite_inside_gctxt_insert by blast
+                hence "\<exists>ctxt. s = ctxt\<langle>s\<rangle>\<^sub>G \<and> t'' = ctxt\<langle>s'\<rangle>\<^sub>G"
+                  by (simp add: \<open>t = s\<close> rewrite_inside_gctxt_def)
                 hence "t'' = s'"
-                  apply (simp add: \<open>t = s\<close> rewrite_inside_gctxt_def)
                   by (metis gctxt_ident_iff_eq_GHole)
 
                 moreover have "(t'', t') \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
@@ -2415,15 +2422,19 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
               using \<open>\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C'\<close>
               by fastforce
 
+            hence "(ctxt\<langle>t'\<rangle>\<^sub>G, s') \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
+              by (simp add: entails_def true_cls_def uprod_mem_image_iff_prod_mem[OF sym_join])
+
             moreover have "(ctxt\<langle>t\<rangle>\<^sub>G, ctxt\<langle>t'\<rangle>\<^sub>G) \<in> rewrite_inside_gctxt (rewrite_sys N C)"
               using \<open>(t, t') \<in> equation N D\<close> \<open>D \<in> N\<close> \<open>D \<prec>\<^sub>c C\<close> rewrite_sys_def
               by (auto simp: rewrite_inside_gctxt_def)
 
-            ultimately have "entails (rewrite_sys N C) {#Pos (Upair ctxt\<langle>t\<rangle>\<^sub>G s')#}"
-              unfolding entails_def true_cls_def
-              apply simp
-              unfolding uprod_mem_image_iff_prod_mem[OF sym_join]
-              by (meson r_into_rtrancl rtrancl_join_join)
+            ultimately have "(ctxt\<langle>t\<rangle>\<^sub>G, s') \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
+              using r_into_rtrancl rtrancl_join_join by metis
+
+            hence "entails (rewrite_sys N C) {#Pos (Upair ctxt\<langle>t\<rangle>\<^sub>G s')#}"
+              unfolding entails_def true_cls_def by auto
+
             thus ?thesis
               using A_def C_def \<open>s = ctxt\<langle>t\<rangle>\<^sub>G\<close> entails_def by fastforce
           qed
@@ -2532,7 +2543,12 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
     by argo
 qed
 
-interpretation G: statically_complete_calculus G_Bot G_Inf G_entails G.Red_I G.Red_F
+interpretation G: statically_complete_calculus where
+  Bot = G_Bot and
+  Inf = G_Inf and
+  entails = G_entails and
+  Red_I = G.Red_I and
+  Red_F = G.Red_F
 proof unfold_locales
   fix B :: "'f atom clause" and N :: "'f atom clause set"
   assume "B \<in> G_Bot" and "G.saturated N"
@@ -2582,7 +2598,7 @@ proof unfold_locales
     next
       show "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s N"
         unfolding I_def
-        using model_construction[OF \<open>G.saturated N\<close> \<open>{#} \<notin> N\<close>]
+        using model_construction(2)[OF \<open>G.saturated N\<close> \<open>{#} \<notin> N\<close>]
         by (simp add: true_clss_def)
     next
       show "\<not> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s G_Bot"

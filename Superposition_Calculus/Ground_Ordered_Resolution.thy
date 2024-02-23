@@ -480,12 +480,11 @@ qed
 lemma production_eq_empty_or_singleton:
   "production N C = {} \<or> (\<exists>A. production N C = {A})"
 proof -
-  have "\<exists>\<^sub>\<le>\<^sub>1A. \<exists>C'. C = add_mset (Pos A) C' \<and> is_strictly_maximal_lit (Pos A) C"
-    apply (rule UniqI)
-    apply (elim exE conjE)
-    using Uniq_striclty_maximal_lit_in_ground_cls[THEN Uniq_D,
-        of _ "Pos _" "Pos _", unfolded literal.inject]
-    by (metis )
+  have "\<exists>\<^sub>\<le>\<^sub>1A. is_strictly_maximal_lit (Pos A) C"
+    using Uniq_striclty_maximal_lit_in_ground_cls
+    by (metis (mono_tags, lifting) Uniq_def literal.inject(1))
+  hence "\<exists>\<^sub>\<le>\<^sub>1A. \<exists>C'. C = add_mset (Pos A) C' \<and> is_strictly_maximal_lit (Pos A) C"
+    by (simp add: Uniq_def)
   hence Uniq_production: "\<exists>\<^sub>\<le>\<^sub>1A. \<exists>C'.
     C \<in> N \<and>
     C = add_mset (Pos A) C' \<and>
@@ -900,9 +899,7 @@ proof -
     have "C' \<prec>\<^sub>c C"
       by (simp add: C_def subset_implies_multp)
     hence "C' \<preceq>\<^sub>c C"
-      by simp
-
-    thm lesseq_trm_if_pos[OF \<open>C' \<preceq>\<^sub>c C\<close> C_prod \<open>L \<in># C'\<close>]
+      by order
 
     show "\<not> interp N D \<TTurnstile>l L"
     proof (cases L)
@@ -1452,10 +1449,15 @@ proof -
     using agree by blast
 
   have BBB: "production N1 ` {D \<in> N2. D \<prec>\<^sub>c C} = production N2 ` {D \<in> N2. D \<prec>\<^sub>c C}"
-    apply (rule image_eq_imageI)
-    apply (rule production_swap_clause_set)
-    using fin apply simp
-    using agree linorder_cls.less_le_trans by blast
+  proof (intro image_eq_imageI production_swap_clause_set)
+    show "finite N1"
+      using \<open>finite N1\<close> .
+  next
+    fix x
+    assume "x \<in> {D \<in> N2. D \<prec>\<^sub>c C}"
+    thus "{D \<in> N1. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D x} = {D \<in> N2. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D x}"
+      using agree linorder_cls.le_less_trans by blast
+  qed
 
   show ?thesis
     unfolding interp_def
