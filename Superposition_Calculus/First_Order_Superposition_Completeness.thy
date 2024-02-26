@@ -3332,9 +3332,9 @@ proof(rule stat_ref_comp_to_non_ground_fam_inter)
   show "\<forall>q\<in>select\<^sub>G\<^sub>s.
        statically_complete_calculus {{#}} (ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G) q) ground_superposition_calculus.G_entails
         (calculus_with_finitary_standard_redundancy.Red_I (ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G) q)
-          ground_superposition_calculus.G_entails (multp (ground_superposition_calculus.less_lit (\<prec>\<^sub>t\<^sub>G))))
+          ground_superposition_calculus.G_entails (multp (ground_ordering.less_lit (\<prec>\<^sub>t\<^sub>G))))
         (finitary_standard_formula_redundancy.Red_F ground_superposition_calculus.G_entails
-          (multp (ground_superposition_calculus.less_lit (\<prec>\<^sub>t\<^sub>G))))"
+          (multp (ground_ordering.less_lit (\<prec>\<^sub>t\<^sub>G))))"
   proof
     fix select\<^sub>G
     assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
