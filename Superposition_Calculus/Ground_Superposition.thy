@@ -22,13 +22,8 @@ theory Ground_Superposition
     "Ground_Ctxt_Extra"
     Relation_Extra
     Clausal_Calculus_Extra
+    Ground_Select
 begin
-
-abbreviation Pos_Upair (infix "\<approx>" 66) where
-  "Pos_Upair x y \<equiv> Pos (Upair x y)"
-
-abbreviation Neg_Upair (infix "!\<approx>" 66) where
-  "Neg_Upair x y \<equiv> Neg (Upair x y)"
 
 hide_type Inference_System.inference
 hide_const
@@ -37,14 +32,12 @@ hide_const
   Inference_System.concl_of
   Inference_System.main_prem_of
 
-type_synonym 'f atom = "'f gterm uprod"
-
 section \<open>Superposition Calculus\<close>
 
-locale ground_superposition_calculus =
-  fixes
+locale ground_superposition_calculus = ground_select select
+  for
     less_trm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
-    select :: "'f atom clause \<Rightarrow> 'f atom clause"
+    select :: "'f atom clause \<Rightarrow> 'f atom clause" +
   assumes
     transp_less_trm[intro]: "transp (\<prec>\<^sub>t)" and
     asymp_less_trm[intro]: "asymp (\<prec>\<^sub>t)" and
@@ -52,8 +45,6 @@ locale ground_superposition_calculus =
     totalp_less_trm[intro]: "totalp (\<prec>\<^sub>t)" and
     less_trm_compatible_with_gctxt[simp]: "\<And>ctxt t t'. t \<prec>\<^sub>t t' \<Longrightarrow> ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t ctxt\<langle>t'\<rangle>\<^sub>G" and
     less_trm_if_subterm[simp]: "\<And>t ctxt. ctxt \<noteq> \<box>\<^sub>G \<Longrightarrow> t \<prec>\<^sub>t ctxt\<langle>t\<rangle>\<^sub>G" and
-    select_subset: "\<And>C. select C \<subseteq># C" and
-    select_negative_lits: "\<And>C L. L \<in># select C \<Longrightarrow> is_neg L" and
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
 

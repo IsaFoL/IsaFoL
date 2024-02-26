@@ -28,7 +28,7 @@ type_synonym 'f ground_term = "'f gterm"
 type_synonym 'f ground_context = "'f gctxt"
 type_synonym ('f, 'v) "context" = "('f, 'v) ctxt"
 
-type_synonym 'f ground_atom = "'f Ground_Superposition.atom"
+type_synonym 'f ground_atom = "'f Ground_Clause.atom"
 type_synonym ('f, 'v) atom = "('f, 'v) term uprod"
 
 (* This is an example where type-classes would be nice, but the Isabelle ones are shitty...*)
