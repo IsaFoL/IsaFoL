@@ -2332,7 +2332,7 @@ proof(cases
       context\<^sub>x: "term\<^sub>1_with_context = context\<^sub>x\<langle>term\<^sub>x\<rangle>"
       "is_Var term\<^sub>x"
       "(context\<^sub>x \<circ>\<^sub>c context\<^sub>x') \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G"
-      by (metis compose_ground_contexts(2) ground_context_is_ground subst_compose_ctxt_compose_distrib subst_ground_context)
+      by (metis Subterm_and_Context.ctxt_ctxt_compose ground_context_is_ground ground_term_is_ground ground_term_with_context_is_ground2(2) subst_compose_ctxt_compose_distrib subst_ground_context sup_bot.right_neutral vars_term_ctxt_apply)
 
     then obtain var\<^sub>x where var\<^sub>x: "Var var\<^sub>x = term\<^sub>x \<cdot>t \<rho>\<^sub>1"
       by (metis eval_term.simps(1) is_Var_def renaming(1) subst_cannot_add_var subst_compose_def term_subst.is_renaming_def)
@@ -2342,7 +2342,7 @@ proof(cases
       by simp
 
     have replacement_grounding: "is_ground_term (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle>"
-      by (metis context\<^sub>x(3) compose_ground_contexts(2) ground_context_is_ground ground_term_is_ground ground_term_with_context_is_ground3 subst_compose_ctxt_compose_distrib)
+      by (metis Subterm_and_Context.ctxt_ctxt_compose context\<^sub>x(3) ground_term_with_context_is_ground1 ground_term_with_context_is_ground2(2) subst_compose_ctxt_compose_distrib)
 
     have premise\<^sub>1_grounding': "is_ground_clause (add_mset literal\<^sub>1 premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)"
       using premise\<^sub>1 premise\<^sub>1_grounding by blast
