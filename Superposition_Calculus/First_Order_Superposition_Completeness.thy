@@ -3,110 +3,6 @@ theory First_Order_Superposition_Completeness
 begin
 
 (* --MISC-- *)
-lemma testing2:  "context\<langle>term\<rangle> \<cdot>t \<theta> = (context \<cdot>t\<^sub>c \<theta>)\<langle>term  \<cdot>t \<theta>\<rangle>"
-  by auto
-
-lemma not_Var:  "\<not> is_Var term \<Longrightarrow> \<not> is_Var (context\<langle>term\<rangle>)"
-  using ctxt_apply_term.elims by blast
-
-lemma x: "\<not> is_Var (to_term term\<^sub>G)"
-  using gterm_is_fun.
-
-lemma sth: "term \<cdot>t \<theta> = term' \<Longrightarrow> is_Var term' \<Longrightarrow> is_Var term"
-  apply auto
-  by (metis is_Var_def subst_apply_eq_Var)
-
-lemma var_in_term':
-  assumes "var \<in> vars_term term"
-  obtains "context" where "term = context\<langle>Var var\<rangle>"
-  using assms
-proof(induction "term")
-  case Var
-  then show ?case
-    by (metis Term.term.simps(17) ctxt_apply_term.simps(1) singletonD)
-next
-  case (Fun f args)
-  then obtain term' where "term' \<in> set args " "var \<in> vars_term term'"
-    by (metis term.distinct(1) term.sel(4) term.set_cases(2))
-
-  moreover then obtain args1 args2 where
-    "args1 @ [term'] @ args2 = args"
-    by (metis append_Cons append_Nil split_list)
-
-  moreover then have "(More f args1 \<box> args2)\<langle>term'\<rangle> = Fun f args"
-    by simp
-
-  ultimately show ?case 
-    using Fun(1)[of term']
-    by (metis Fun.prems(1) append_Cons ctxt_apply_term.simps(2))
-qed
- 
-lemma var_in_term: 
-  assumes "\<not> is_ground_term term"
-  obtains "context" var where "term = context\<langle>var\<rangle>" "is_Var var"
-proof-
-  obtain var where "var \<in> vars_term term"
-    using assms
-    by blast
-
-  moreover then obtain "context" where "term = context\<langle>Var var\<rangle>"
-    using var_in_term'
-    by metis
-
-  ultimately show ?thesis
-    using that
-    by blast
-qed  
-
-lemma something':  
-  assumes 
-    not_ground: "\<not> is_ground_term (Fun f terms)" and
-    grounding: "is_ground_term ((Fun f terms) \<cdot>t \<theta>)" 
-  obtains "term" context\<^sub>G term\<^sub>G
-  where
-    "term \<in> set terms"
-    "\<not> is_ground_term term" 
-  by (meson Term.ground.simps(2) Term.ground_vars_term_empty not_ground)
-
-lemma something:  
-  assumes 
-    not_ground: "\<not> is_ground_term (Fun f terms)" and
-    grounding: "is_ground_term ((Fun f terms) \<cdot>t \<theta>)" 
-  obtains "term" context\<^sub>G term\<^sub>G
-  where
-    "term \<in> set terms"
-    "\<not> is_ground_term term" 
-    "term \<cdot>t \<theta> = (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<rangle>"
-proof-
-  obtain "term" where
-    "term \<in> set terms"
-    "\<not> is_ground_term term" 
-    using something'[OF not_ground grounding].
-
-  moreover then have "is_ground_term (term \<cdot>t \<theta>)"
-    using grounding
-    by (meson is_ground_iff term.set_intros(4))
-
-  moreover then obtain context\<^sub>G term\<^sub>G where "term \<cdot>t \<theta> = (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<rangle>"
-    by (metis ctxt_apply_term.simps(1) ctxt_of_gctxt.simps(1) to_ground_term_inverse)
-
-  ultimately show ?thesis 
-    using that
-    by blast
-qed
-
-lemma testis: 
-  assumes "\<not> is_ground_term (Fun f terms)" 
-  obtains "term" where
-    "term \<in> set terms"
-    "\<not> is_ground_term term"
-  by (meson Term_Context.ground.simps(2) assms is_ground_term_iff_term_context_ground)
-
-lemma context_compose_is_ground:
-  assumes "is_ground_context (context \<circ>\<^sub>c context')"
-  shows "is_ground_context context" "is_ground_context context'"
-  using assms
-  by (metis Subterm_and_Context.ctxt_ctxt assms ground_ctxt_apply ground_term_of_gterm is_ground_term_ctxt_iff_ground_ctxt)+
 
 lemma mustbe': 
   assumes "\<not> is_ground_term (Fun f terms)"
@@ -362,7 +258,7 @@ proof(induction "term")
 next
   case (Fun f terms)
   then show ?case
-    by (smt (verit, best) eval_term.simps(1) term_of_gterm_ctxt_apply testing2 to_ground_term_inverse var_in_term')
+    by (smt (verit, best) eval_term.simps(1) term_of_gterm_ctxt_apply subst_apply_term_ctxt_apply_distrib to_ground_term_inverse var_in_term)
 qed
 
 lemma (in first_order_superposition_calculus_with_grounding) term_subst_less:
@@ -876,7 +772,7 @@ next
 
   then obtain c where 
     "term": "term = c\<langle>Var var\<rangle>"
-    by (meson var_in_term')
+    by (meson var_in_term)
 
   let ?term = "c\<langle>replacement\<rangle>"
 
@@ -945,7 +841,7 @@ next
 
   then obtain c where 
     "term": "term = c\<langle>Var var\<rangle>"
-    by (meson var_in_term')
+    by (meson var_in_term)
 
   let ?term = "c\<langle>replacement\<rangle>"
 
@@ -2326,7 +2222,7 @@ proof(cases
         "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1" 
         "context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G"
         "is_Fun term\<^sub>1"
-        by (metis ground_context_is_ground ground_term_is_ground subst_ground_context term\<^sub>1_with_context_\<theta> term_subst.subst_ident_if_ground x)
+        by (metis ground_context_is_ground ground_term_is_ground subst_ground_context term\<^sub>1_with_context_\<theta> term_subst.subst_ident_if_ground gterm_is_fun)
     
       with a show False
         by blast
@@ -2371,7 +2267,7 @@ proof(cases
          with yy obtain term\<^sub>1 context\<^sub>1 where zz: 
             "term = context\<^sub>1\<langle>term\<^sub>1\<rangle>"
             "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1" "context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G'" "is_Fun term\<^sub>1"
-           by (metis Term.ground_vars_term_empty ground_context_is_ground ground_subst_apply ground_term_is_ground subst_ground_context x)
+           by (metis Term.ground_vars_term_empty ground_context_is_ground ground_subst_apply ground_term_is_ground subst_ground_context gterm_is_fun)
 
          then have zzz: "Fun f terms = (More f ts1 context\<^sub>1 ts2)\<langle>term\<^sub>1\<rangle>"
            unfolding terms
@@ -2436,17 +2332,17 @@ proof(cases
       context\<^sub>x: "term\<^sub>1_with_context = context\<^sub>x\<langle>term\<^sub>x\<rangle>"
       "is_Var term\<^sub>x"
       "(context\<^sub>x \<circ>\<^sub>c context\<^sub>x') \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G"
-      by (metis context_compose_is_ground(2) ground_context_is_ground subst_compose_ctxt_compose_distrib subst_ground_context)
+      by (metis compose_ground_contexts(2) ground_context_is_ground subst_compose_ctxt_compose_distrib subst_ground_context)
 
     then obtain var\<^sub>x where var\<^sub>x: "Var var\<^sub>x = term\<^sub>x \<cdot>t \<rho>\<^sub>1"
-      by (metis eval_term.simps(1) is_Var_def renaming(1) sth subst_compose_def term_subst.is_renaming_def)
+      by (metis eval_term.simps(1) is_Var_def renaming(1) subst_cannot_add_var subst_compose_def term_subst.is_renaming_def)
 
     obtain \<theta>' where \<theta>':
       "\<theta>' = \<theta>(var\<^sub>x := (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle>)"
       by simp
 
     have replacement_grounding: "is_ground_term (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle>"
-      by (metis context\<^sub>x(3) context_compose_is_ground(2) ground_context_is_ground ground_term_is_ground ground_term_with_context_is_ground3 subst_compose_ctxt_compose_distrib)
+      by (metis context\<^sub>x(3) compose_ground_contexts(2) ground_context_is_ground ground_term_is_ground ground_term_with_context_is_ground3 subst_compose_ctxt_compose_distrib)
 
     have premise\<^sub>1_grounding': "is_ground_clause (add_mset literal\<^sub>1 premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)"
       using premise\<^sub>1 premise\<^sub>1_grounding by blast
@@ -2547,7 +2443,7 @@ proof(cases
     then have xx: "(context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> \<prec>\<^sub>t \<theta> var\<^sub>x"
       unfolding var\<^sub>x_\<theta>
       using context_less[of "context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>" "(context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle>" "term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta>"]
-      by (metis Subterm_and_Context.ctxt_ctxt_compose context\<^sub>x(1) ground_term_with_context_is_ground1 ground_term_with_context_is_ground2(1) ground_term_with_context_is_ground2(2) replacement_grounding subst_compose_ctxt_compose_distrib term\<^sub>1_with_context_\<theta> testing2)
+      by (metis Subterm_and_Context.ctxt_ctxt_compose context\<^sub>x(1) ground_term_with_context_is_ground1 ground_term_with_context_is_ground2(1) ground_term_with_context_is_ground2(2) replacement_grounding subst_compose_ctxt_compose_distrib term\<^sub>1_with_context_\<theta> subst_apply_term_ctxt_apply_distrib)
 
     have xy: "var\<^sub>x \<in> vars_literal (literal\<^sub>1  \<cdot>l \<rho>\<^sub>1)"
       unfolding literal\<^sub>1 context\<^sub>x vars_literal_def vars_atom_def 

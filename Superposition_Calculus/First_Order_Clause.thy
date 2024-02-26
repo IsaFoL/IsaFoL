@@ -69,19 +69,6 @@ lemma term_subst_atom_subst: "Upair (term\<^sub>1 \<cdot>t \<theta>) (term\<^sub
   unfolding subst_atom_def
   by simp
 
-(*
-TODO: Needed?
-
-definition subst_clauses ::
-  "('f, 'v) atom clause list \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom clause list" (infixl "\<cdot>cl" 67) where
-  "Cs \<cdot>cl \<sigma> = map (\<lambda>A. A \<cdot> \<sigma>) Cs"
-
-definition subst_cls_lists :: 
-  "('f, 'v) atom clause list \<Rightarrow> ('f, 'v) subst list \<Rightarrow>('f, 'v) atom clause list" (infixl "\<cdot>\<cdot>cl" 67) 
-where
-  "Cs \<cdot>\<cdot>cl \<sigma>s = map2 (\<cdot>) Cs \<sigma>s"
-*)
-
 lemmas upair_in_literal = literal.sel
 
 (* This is an example where type-classes would be nice, but the Isabelle ones are shitty...*)
@@ -632,5 +619,54 @@ lemma obtain_from_neg_literal_subst:
   by (metis literal.collapse(2) literal.disc(2) subst_literal(2) upair_in_literal(2))
 
 lemmas obtain_from_literal_subst = obtain_from_pos_literal_subst obtain_from_neg_literal_subst
+
+lemma subst_cannot_add_var:
+  assumes "is_Var (term \<cdot>t \<theta>)"  
+  shows "is_Var term"
+  using assms
+  unfolding is_Var_def
+  by (meson subst_apply_eq_Var)
+
+lemma var_in_term:
+  assumes "var \<in> vars_term term"
+  obtains "context" where "term = context\<langle>Var var\<rangle>"
+  using assms
+proof(induction "term")
+  case Var
+  then show ?case
+    by (metis Term.term.simps(17) ctxt_apply_term.simps(1) singletonD)
+next
+  case (Fun f args)
+  then obtain term' where "term' \<in> set args " "var \<in> vars_term term'"
+    by (metis term.distinct(1) term.sel(4) term.set_cases(2))
+
+  moreover then obtain args1 args2 where
+    "args1 @ [term'] @ args2 = args"
+    by (metis append_Cons append_Nil split_list)
+
+  moreover then have "(More f args1 \<box> args2)\<langle>term'\<rangle> = Fun f args"
+    by simp
+
+  ultimately show ?case 
+    using Fun(1)[of term']
+    by (metis Fun.prems(1) append_Cons ctxt_apply_term.simps(2))
+qed
+ 
+lemma var_in_non_ground_term: 
+  assumes "\<not> is_ground_term term"
+  obtains "context" var where "term = context\<langle>var\<rangle>" "is_Var var"
+proof-
+  obtain var where "var \<in> vars_term term"
+    using assms
+    by blast
+
+  moreover then obtain "context" where "term = context\<langle>Var var\<rangle>"
+    using var_in_term
+    by metis
+
+  ultimately show ?thesis
+    using that
+    by blast
+qed  
 
 end
