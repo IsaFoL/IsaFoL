@@ -22,9 +22,9 @@ proof -
         subst_apply_term_empty subst_def subst_simps(1) subst_term_eqI term.distinct(1))
 qed
 
-(* lemma is_ground_iff:
+lemma is_ground_iff:
   "term_subst.is_ground (t \<cdot> \<gamma>) \<longleftrightarrow> (\<forall>x \<in> vars_term t. term_subst.is_ground (\<gamma> x))"
-  by (induction t) (auto simp add: term_subst.is_ground_def) *)
+  by (induction t) (auto simp add: term_subst.is_ground_def)
 
 lemma term_subst_is_renaming_iff:
   "term_subst.is_renaming \<rho> \<longleftrightarrow> inj \<rho> \<and> (\<forall>x. is_Var (\<rho> x))"
@@ -86,5 +86,53 @@ next
       using \<gamma>_def term_subst_eq_conv by fastforce
   qed *)
 qed
+
+lemma ground_imgu_equals: 
+  assumes "is_ground_trm t\<^sub>1" and "is_ground_trm t\<^sub>2" and "term_subst.is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}}"
+  shows "t\<^sub>1 = t\<^sub>2"
+  using assms
+  unfolding basic_substitution_ops.is_imgu_def term_subst.is_ground_def term_subst.is_unifiers_def
+  by (metis finite.emptyI finite.insertI insertCI term_subst.is_unifier_iff_if_finite)
+
+lemma the_mgu_is_unifier: 
+  assumes "term \<cdot> the_mgu term term' = term' \<cdot> the_mgu term term'" 
+  shows "term_subst.is_unifier (the_mgu term term') {term, term'}"
+  using assms
+  unfolding term_subst.is_unifier_def the_mgu_def
+  by simp
+
+lemma imgu_exists: 
+   fixes  
+    \<theta> :: "('f, 'v) subst"
+  assumes
+    "term \<cdot> \<theta> = term' \<cdot> \<theta>"
+  shows
+    "\<exists>(\<sigma> :: ('f, 'v) subst) \<tau>.  \<theta> = \<sigma> \<circ>\<^sub>s \<tau> \<and> term_subst.is_imgu \<sigma> {{term, term'}}"
+proof(rule exI, rule exI)
+  have finite_terms: "finite {term, term'}"
+    by simp
+
+  have "term_subst.is_unifiers (the_mgu term term') {{term, term'}}"
+    unfolding term_subst.is_unifiers_def
+    using the_mgu_is_unifier[OF the_mgu[OF assms, THEN conjunct1]] 
+    by simp
+
+  moreover have
+    "\<And>\<tau>. term_subst.is_unifiers \<tau> {{term, term'}} \<Longrightarrow> \<tau> = the_mgu term term' \<circ>\<^sub>s \<tau>"
+    unfolding term_subst.is_unifiers_def
+    using 
+      term_subst.is_unifier_iff_if_finite[OF finite_terms] 
+      the_mgu[of "term" _ term']
+    by blast
+    
+  ultimately have is_imgu: "term_subst.is_imgu (the_mgu term term') {{term, term'}}"
+    unfolding term_subst.is_imgu_def 
+    by blast
+  
+  show "\<theta> = (the_mgu term term') \<circ>\<^sub>s \<theta> \<and> term_subst.is_imgu (the_mgu term term') {{term, term'}}"
+    using is_imgu the_mgu[OF assms]
+    by blast
+qed
+
 
 end

@@ -21,10 +21,14 @@ theory Ground_Superposition
     "HOL_Extra"
     "Ground_Ctxt_Extra"
     Relation_Extra
+    Clausal_Calculus_Extra
 begin
 
-abbreviation Pos_Upair (infix "\<approx>" 60) where
+abbreviation Pos_Upair (infix "\<approx>" 66) where
   "Pos_Upair x y \<equiv> Pos (Upair x y)"
+
+abbreviation Neg_Upair (infix "!\<approx>" 66) where
+  "Neg_Upair x y \<equiv> Neg (Upair x y)"
 
 hide_type Inference_System.inference
 hide_const
@@ -33,12 +37,7 @@ hide_const
   Inference_System.concl_of
   Inference_System.main_prem_of
 
-primrec mset_lit :: "'a uprod literal \<Rightarrow> 'a multiset" where
-  "mset_lit (Pos A) = mset_uprod A" |
-  "mset_lit (Neg A) = mset_uprod A + mset_uprod A"
-
 type_synonym 'f atom = "'f gterm uprod"
-
 
 section \<open>Superposition Calculus\<close>
 
@@ -255,7 +254,7 @@ where
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
     P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
     L\<^sub>1 = s\<langle>t\<rangle>\<^sub>G \<approx> s' \<Longrightarrow>
-    L\<^sub>2 =  t \<approx> t' \<Longrightarrow>
+    L\<^sub>2 = t \<approx> t' \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     select P\<^sub>1 = {#} \<Longrightarrow>
@@ -350,6 +349,7 @@ definition G_entails :: "'f atom clause set \<Rightarrow> 'f atom clause set \<R
 
 subsection \<open>Correctness\<close>
 
+(* TODO: Move these out*)
 lemma uprod_mem_image_iff_prod_mem[simp]:
   assumes "sym I"
   shows "(Upair t t') \<in> (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<longleftrightarrow> (t, t') \<in> I"
@@ -523,7 +523,7 @@ proof (cases P C rule: ground_eq_factoring.cases)
   qed
 qed
 
-interpretation G: sound_inference_system where
+sublocale sound_inference_system where
   Inf = G_Inf and
   Bot = G_Bot and
   entails = G_entails
@@ -787,7 +787,7 @@ proof (cases P C rule: ground_eq_factoring.cases)
     by simp
 qed
 
-interpretation G: calculus_with_finitary_standard_redundancy where
+sublocale calculus_with_finitary_standard_redundancy where
   Inf = G_Inf and
   Bot = G_Bot and
   entails = G_entails and
@@ -1839,7 +1839,7 @@ lemma model_construction:
     C :: "'f atom clause"
   defines
     "entails \<equiv> \<lambda>E C. (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile> C"
-  assumes "G.saturated N" and "{#} \<notin> N" and C_in: "C \<in> N"
+  assumes "saturated N" and "{#} \<notin> N" and C_in: "C \<in> N"
   shows
     "equation N C = {} \<longleftrightarrow> entails (rewrite_sys N C) C"
     "entails (\<Union>D \<in> N. equation N D) C"
@@ -1922,17 +1922,17 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             using \<open>C \<in> N\<close>
             by (simp add: \<iota>_def)
 
-          ultimately have "\<iota> \<in> G.Inf_from N"
-            by (auto simp: G.Inf_from_def)
-          hence "\<iota> \<in> G.Red_I N"
-            using \<open>G.saturated N\<close>
-            by (auto simp: G.saturated_def)
+          ultimately have "\<iota> \<in> Inf_from N"
+            by (auto simp: Inf_from_def)
+          hence "\<iota> \<in> Red_I N"
+            using \<open>saturated N\<close>
+            by (auto simp: saturated_def)
           then obtain DD where
             DD_subset: "DD \<subseteq> N" and
             "finite DD" and
             DD_entails_C': "G_entails DD {C'}" and
             ball_DD_lt_C: "\<forall>D \<in> DD. D \<prec>\<^sub>c C"
-            unfolding G.Red_I_def G.redundant_infer_def
+            unfolding Red_I_def redundant_infer_def
             by (auto simp: \<iota>_def)
 
           moreover have "\<forall>D\<in>DD. entails (rewrite_sys N C) D"
@@ -2047,17 +2047,17 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             using \<open>C \<in> N\<close> \<open>D \<in> N\<close>
             by (auto simp add: \<iota>_def)
 
-          ultimately have "\<iota> \<in> G.Inf_from N"
-            by (auto simp: G.Inf_from_def)
-          hence "\<iota> \<in> G.Red_I N"
-            using \<open>G.saturated N\<close>
-            by (auto simp: G.saturated_def)
+          ultimately have "\<iota> \<in> Inf_from N"
+            by (auto simp: Inf_from_def)
+          hence "\<iota> \<in> Red_I N"
+            using \<open>saturated N\<close>
+            by (auto simp: saturated_def)
           then obtain DD where
             DD_subset: "DD \<subseteq> N" and
             "finite DD" and
             DD_entails_CD: "G_entails (insert D DD) {CD}" and
             ball_DD_lt_C: "\<forall>D\<in>DD. D \<prec>\<^sub>c C"
-            unfolding G.Red_I_def G.redundant_infer_def mem_Collect_eq
+            unfolding Red_I_def redundant_infer_def mem_Collect_eq
             by (auto simp: \<iota>_def)
 
           moreover have "\<forall>D\<in> insert D DD. entails (rewrite_sys N C) D"
@@ -2290,17 +2290,17 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
                   using \<open>C \<in> N\<close>
                   by (auto simp add: \<iota>_def)
 
-                ultimately have "\<iota> \<in> G.Inf_from N"
-                  by (auto simp: G.Inf_from_def)
-                hence "\<iota> \<in> G.Red_I N"
-                  using \<open>G.saturated N\<close>
-                  by (auto simp: G.saturated_def)
+                ultimately have "\<iota> \<in> Inf_from N"
+                  by (auto simp: Inf_from_def)
+                hence "\<iota> \<in> Red_I N"
+                  using \<open>saturated N\<close>
+                  by (auto simp: saturated_def)
                 then obtain DD where
                   DD_subset: "DD \<subseteq> N" and
                   "finite DD" and
                   DD_entails_C': "G_entails DD {?concl}" and
                   ball_DD_lt_C: "\<forall>D\<in>DD. D \<prec>\<^sub>c C"
-                  unfolding G.Red_I_def G.redundant_infer_def
+                  unfolding Red_I_def redundant_infer_def
                   by (auto simp: \<iota>_def)
 
                 have "\<forall>D\<in>DD. entails (rewrite_sys N C) D"
@@ -2388,17 +2388,17 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
               using \<open>C \<in> N\<close> \<open>D \<in> N\<close>
               by (auto simp add: \<iota>_def)
 
-            ultimately have "\<iota> \<in> G.Inf_from N"
-              by (auto simp only: G.Inf_from_def)
-            hence "\<iota> \<in> G.Red_I N"
-              using \<open>G.saturated N\<close>
-              by (auto simp only: G.saturated_def)
+            ultimately have "\<iota> \<in> Inf_from N"
+              by (auto simp only: Inf_from_def)
+            hence "\<iota> \<in> Red_I N"
+              using \<open>saturated N\<close>
+              by (auto simp only: saturated_def)
             then obtain DD where
               DD_subset: "DD \<subseteq> N" and
               "finite DD" and
               DD_entails_concl: "G_entails (insert D DD) {?concl}" and
               ball_DD_lt_C: "\<forall>D\<in>DD. D \<prec>\<^sub>c C"
-              unfolding G.Red_I_def G.redundant_infer_def mem_Collect_eq
+              unfolding Red_I_def redundant_infer_def mem_Collect_eq
               by (auto simp: \<iota>_def)
 
             moreover have "\<forall>D\<in> insert D DD. entails (rewrite_sys N C) D"
@@ -2478,17 +2478,17 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             using \<open>C \<in> N\<close>
             by (auto simp add: \<iota>_def)
 
-          ultimately have "\<iota> \<in> G.Inf_from N"
-            by (auto simp: G.Inf_from_def)
-          hence "\<iota> \<in> G.Red_I N"
-            using \<open>G.saturated N\<close>
-            by (auto simp: G.saturated_def)
+          ultimately have "\<iota> \<in> Inf_from N"
+            by (auto simp: Inf_from_def)
+          hence "\<iota> \<in> Red_I N"
+            using \<open>saturated N\<close>
+            by (auto simp: saturated_def)
           then obtain DD where
             DD_subset: "DD \<subseteq> N" and
             "finite DD" and
             DD_entails_concl: "G_entails DD {?concl}" and
             ball_DD_lt_C: "\<forall>D\<in>DD. D \<prec>\<^sub>c C"
-            unfolding G.Red_I_def G.redundant_infer_def mem_Collect_eq
+            unfolding Red_I_def redundant_infer_def mem_Collect_eq
             by (auto simp: \<iota>_def)
 
           moreover have "\<forall>D\<in>DD. entails (rewrite_sys N C) D"
@@ -2543,15 +2543,15 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
     by argo
 qed
 
-interpretation G: statically_complete_calculus where
+sublocale statically_complete_calculus where
   Bot = G_Bot and
   Inf = G_Inf and
   entails = G_entails and
-  Red_I = G.Red_I and
-  Red_F = G.Red_F
+  Red_I = Red_I and
+  Red_F = Red_F
 proof unfold_locales
   fix B :: "'f atom clause" and N :: "'f atom clause set"
-  assume "B \<in> G_Bot" and "G.saturated N"
+  assume "B \<in> G_Bot" and "saturated N"
   hence "B = {#}"
     by simp
 
@@ -2598,7 +2598,7 @@ proof unfold_locales
     next
       show "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s N"
         unfolding I_def
-        using model_construction(2)[OF \<open>G.saturated N\<close> \<open>{#} \<notin> N\<close>]
+        using model_construction(2)[OF \<open>saturated N\<close> \<open>{#} \<notin> N\<close>]
         by (simp add: true_clss_def)
     next
       show "\<not> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s G_Bot"
@@ -2608,6 +2608,13 @@ proof unfold_locales
   thus "\<exists>B'\<in>G_Bot. B' \<in> N"
     by auto
 qed
+
+
+(* TODO: How to access this stuff differently? *)
+abbreviation Red_I' where "Red_I' \<equiv> Red_I"
+abbreviation Red_F' where "Red_F' \<equiv> Red_F"
+lemmas Red_I_def = Red_I_def
+lemmas Red_F_def = Red_F_def 
 
 end
 

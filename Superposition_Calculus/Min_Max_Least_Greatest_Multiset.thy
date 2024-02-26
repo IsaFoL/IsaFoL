@@ -16,6 +16,14 @@ definition is_maximal_in_mset_wrt :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \
   "transp_on (set_mset X) R \<Longrightarrow> asymp_on (set_mset X) R \<Longrightarrow>
     is_maximal_in_mset_wrt R X = is_maximal_in_set_wrt R (set_mset X)"
 
+definition is_strictly_minimal_in_mset_wrt :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a multiset \<Rightarrow> 'a \<Rightarrow> bool" where
+  "transp_on (set_mset X) R \<Longrightarrow> asymp_on (set_mset X) R \<Longrightarrow>
+    is_strictly_minimal_in_mset_wrt R X x \<longleftrightarrow> x \<in># X \<and> (\<forall>y \<in># X - {# x #}. \<not> (R\<^sup>=\<^sup>= y x))"
+
+definition is_strictly_maximal_in_mset_wrt :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a multiset \<Rightarrow> 'a \<Rightarrow> bool" where
+  "transp_on (set_mset X) R \<Longrightarrow> asymp_on (set_mset X) R \<Longrightarrow>
+    is_strictly_maximal_in_mset_wrt R X x \<longleftrightarrow> x \<in># X \<and> (\<forall>y \<in># X - {# x #}. \<not> (R\<^sup>=\<^sup>= x y))"
+
 context
   fixes X R
   assumes
@@ -37,6 +45,25 @@ lemma is_maximal_in_mset_wrt_iff:
   using is_maximal_in_mset_wrt_def[OF trans asym]
   by simp
 
+lemma is_strictly_minimal_in_mset_wrt_iff:
+  "is_strictly_minimal_in_mset_wrt R X x \<longleftrightarrow> x \<in># X \<and> (\<forall>y \<in># X- {# x #}. \<not> R\<^sup>=\<^sup>= y x)"
+  unfolding is_strictly_minimal_in_mset_wrt_def[OF trans asym]
+  by(rule refl)
+
+lemma is_strictly_maximal_in_mset_wrt_iff:
+  "is_strictly_maximal_in_mset_wrt R X x \<longleftrightarrow> x \<in># X \<and> (\<forall>y \<in># X- {# x #}. \<not> R\<^sup>=\<^sup>= x y)"
+  unfolding is_strictly_maximal_in_mset_wrt_def[OF trans asym]
+  by(rule refl)
+
+lemma is_minimal_in_mset_wrt_if_is_strictly_minimal_in_mset_wrt: 
+  "is_strictly_minimal_in_mset_wrt R X x \<Longrightarrow> is_minimal_in_mset_wrt R X x"
+  unfolding is_minimal_in_mset_wrt_iff is_strictly_minimal_in_mset_wrt_iff
+  using multi_member_split by fastforce 
+
+lemma is_maximal_in_mset_wrt_if_is_strictly_maximal_in_mset_wrt:
+  "is_strictly_maximal_in_mset_wrt R X x \<Longrightarrow> is_maximal_in_mset_wrt R X x"
+  unfolding is_maximal_in_mset_wrt_iff is_strictly_maximal_in_mset_wrt_iff
+  using multi_member_split by fastforce
 
 subsection \<open>Existence\<close>
 
@@ -203,6 +230,31 @@ lemma is_maximal_in_mset_wrt_if_is_greatest_in_mset_wrt[intro]:
   unfolding is_greatest_in_mset_wrt_def[OF trans asym tot]
   by (metis add_mset_remove_trivial_eq asym asymp_onD insert_noteq_member)
 
+lemma is_strictly_minimal_in_mset_wrt_iff_is_least_in_mset_wrt: 
+  "is_strictly_minimal_in_mset_wrt R X = is_least_in_mset_wrt R X"
+  unfolding is_strictly_minimal_in_mset_wrt_iff[OF trans asym] is_least_in_mset_wrt_iff 
+proof(intro ext iffI)
+  fix x
+  show "x \<in># X \<and> (\<forall>y\<in>#X - {#x#}. \<not> R\<^sup>=\<^sup>= y x) \<Longrightarrow> x \<in># X \<and> (\<forall>y \<in># X - {#x#}. R x y)"
+    by (metis (mono_tags, lifting) in_diffD sup2CI tot totalp_onD)
+next 
+  fix x
+  show "x \<in># X \<and> (\<forall>y \<in># X - {#x#}. R x y) \<Longrightarrow> x \<in># X \<and> (\<forall>y\<in>#X - {#x#}. \<not> R\<^sup>=\<^sup>= y x)"
+    by (metis (full_types) asym asymp_onD in_diffD sup2E)
+qed
+
+lemma is_strictly_maximal_in_mset_wrt_iff_is_greatest_in_mset_wrt: 
+  "is_strictly_maximal_in_mset_wrt R X = is_greatest_in_mset_wrt R X"
+  unfolding is_strictly_maximal_in_mset_wrt_iff[OF trans asym] is_greatest_in_mset_wrt_iff 
+proof(intro ext iffI)
+  fix x
+  show "x \<in># X \<and> (\<forall>y\<in>#X - {#x#}. \<not> R\<^sup>=\<^sup>= x y) \<Longrightarrow> x \<in># X \<and> (\<forall>y\<in>#X - {#x#}. R y x)"
+    by (metis (mono_tags, lifting) in_diffD sup2CI tot totalp_onD)
+next 
+  fix x
+  show "x \<in># X \<and> (\<forall>y\<in>#X - {#x#}. R y x) \<Longrightarrow> x \<in># X \<and> (\<forall>y\<in>#X - {#x#}. \<not> R\<^sup>=\<^sup>= x y)"
+    by (metis (full_types) asym asymp_onD in_diffD sup2E)
+qed
 
 subsection \<open>Uniqueness\<close>
 

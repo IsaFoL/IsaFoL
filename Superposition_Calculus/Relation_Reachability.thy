@@ -8,6 +8,9 @@ section \<open>Definitions\<close>
 text \<open>When a binary relation hold for two values, i.e., \<^term>\<open>R x y\<close>, we say that \<^term>\<open>x\<close> reaches
 \<^term>\<open>y\<close> and, conversely, that \<^term>\<open>y\<close> is reachable by \<^term>\<open>x\<close>.\<close>
 
+(* We say that a literal L is maximal (strictly maximal) in a clause C, if there is no other
+   literal in C that is greater (greater or equal) than L w.r.t. \<succ>L. *)
+
 definition non_reachable_wrt where
   "non_reachable_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. \<not> (R y x))"
 
