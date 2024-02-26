@@ -10,3 +10,4 @@ session Superposition_Calculus = Saturation_Framework_Extensions +
     Ground_Superposition
     First_Order_Superposition_Soundness
     First_Order_Superposition_Completeness
+    LGPL_Ground_Critical_Pairs_Adapted_From_CeTA
