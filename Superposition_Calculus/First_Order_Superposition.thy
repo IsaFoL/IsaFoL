@@ -11,11 +11,10 @@ section \<open>First-Order Layer\<close>
 
 locale first_order_superposition_calculus =
   first_order_select select +
-  first_order_ordering less\<^sub>t less\<^sub>t\<^sub>G
+  first_order_ordering less\<^sub>t
   for 
     select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause" and
-    less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
-    less\<^sub>t\<^sub>G :: "'f ground_term \<Rightarrow> 'f ground_term \<Rightarrow> bool" (infix "\<prec>\<^sub>t\<^sub>G" 50) +
+    less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   assumes
     infinite_variable_universe: "infinite (UNIV :: 'v set)" and
     (* TODO: Use theorem from CeTA *)
