@@ -69,7 +69,7 @@ lemma not_less_eq\<^sub>t:
   ..
 
 lemma less\<^sub>l\<^sub>G_less\<^sub>l: "literal\<^sub>G\<^sub>1 \<prec>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> to_literal literal\<^sub>G\<^sub>1 \<prec>\<^sub>l to_literal literal\<^sub>G\<^sub>2"
-  unfolding less\<^sub>l_def ground.less_lit_def less\<^sub>t\<^sub>G_less\<^sub>t mset_to_literal
+  unfolding less\<^sub>l_def ground.less_lit_def less\<^sub>t\<^sub>G_def mset_to_literal
   using
      multp_image_mset_image_msetI[OF _ less\<^sub>t_transitive]
      multp_image_mset_image_msetD[OF _ less\<^sub>t_transitive_on to_term_inj]

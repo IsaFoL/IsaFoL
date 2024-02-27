@@ -1,5 +1,5 @@
 theory Relation_Extra
-  imports "HOL.Relation"
+  imports "HOL.Relation"  "Open_Induction.Restricted_Predicates"
 begin
 
 lemma partition_set_around_element:
@@ -25,5 +25,14 @@ lemma totalp_on_image:
   using assms
   unfolding totalp_on_def inj_def
   by auto
+
+(* TODO: Other direction? *)
+lemma wfp_on_image:
+ assumes "inj f"
+ shows "wfp_on R (f ` domain) \<Longrightarrow> wfp_on (\<lambda>a b. R (f a) (f b)) domain"
+  using assms
+  unfolding wfp_on_def inj_def
+  apply(auto)
+  by (meson image_eqI)
 
 end

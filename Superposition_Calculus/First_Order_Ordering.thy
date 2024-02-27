@@ -1,5 +1,7 @@
 theory First_Order_Ordering
-  imports First_Order_Clause
+  imports 
+    First_Order_Clause 
+    "Open_Induction.Restricted_Predicates"
 begin
 
 (* TODO: Move *)
@@ -20,39 +22,76 @@ lemmas is_strictly_maximal_lit_def =
 
 end
 
+(* TODO: 
+   - to_term ` terms\<^sub>G as set of all ground_terms 
+   - less\<^sub>t-prefixes actually not needed
+*)
 locale first_order_ordering =
   fixes
-    less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
-    less\<^sub>t\<^sub>G :: "'f ground_term \<Rightarrow> 'f ground_term \<Rightarrow> bool" (infix "\<prec>\<^sub>t\<^sub>G" 50)
+    less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50)
   assumes
-    less\<^sub>t\<^sub>G_less\<^sub>t:
-      "\<And>term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2. term\<^sub>G\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2 \<longleftrightarrow> to_term term\<^sub>G\<^sub>1 \<prec>\<^sub>t to_term term\<^sub>G\<^sub>2" and
-    
     less\<^sub>t_transitive [intro]: "transp (\<prec>\<^sub>t)" and
-    less\<^sub>t_asymmetric [intro]: "asymp (\<prec>\<^sub>t)" and
+    less\<^sub>t_asymmetric [intro]: "asymp (\<prec>\<^sub>t)" and 
 
-    less\<^sub>t\<^sub>G_wellfounded [intro]: "wfP (\<prec>\<^sub>t\<^sub>G)" and
-    less\<^sub>t\<^sub>G_total [intro]: "totalp (\<prec>\<^sub>t\<^sub>G)" and
+    less\<^sub>t_wellfounded_on [intro]: "\<And>terms\<^sub>G. wfp_on (\<prec>\<^sub>t) (to_term ` terms\<^sub>G)" and
+    less\<^sub>t_total_on [intro]: "\<And>terms\<^sub>G. totalp_on (to_term ` terms\<^sub>G) (\<prec>\<^sub>t)" and
     
-    less\<^sub>t\<^sub>G_context_compatible [simp]:
-      "\<And>context term\<^sub>1 term\<^sub>2. term\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>2 \<Longrightarrow> context\<langle>term\<^sub>1\<rangle>\<^sub>G \<prec>\<^sub>t\<^sub>G context\<langle>term\<^sub>2\<rangle>\<^sub>G" and
-    less\<^sub>t\<^sub>G_subterm_property [simp]: 
-      "\<And>term context. context \<noteq> \<box>\<^sub>G \<Longrightarrow> term \<prec>\<^sub>t\<^sub>G context\<langle>term\<rangle>\<^sub>G" and
-
+    less\<^sub>t_ground_context_compatible [simp]:
+      "\<And>context term\<^sub>1 term\<^sub>2. 
+        term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<Longrightarrow>
+        is_ground_term term\<^sub>1 \<Longrightarrow> 
+        is_ground_term term\<^sub>2 \<Longrightarrow> 
+        is_ground_context context \<Longrightarrow>
+        context\<langle>term\<^sub>1\<rangle> \<prec>\<^sub>t context\<langle>term\<^sub>2\<rangle>" and
     less\<^sub>t_ground_subst_stability: 
       "\<And>term\<^sub>1 term\<^sub>2 (\<theta> :: 'v \<Rightarrow> ('f, 'v) term). 
         is_ground_term (term\<^sub>1 \<cdot>t \<theta>) \<Longrightarrow>
         is_ground_term (term\<^sub>2 \<cdot>t \<theta>) \<Longrightarrow>
         term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<Longrightarrow>
-        to_ground_term (term\<^sub>1 \<cdot>t \<theta>) \<prec>\<^sub>t\<^sub>G to_ground_term (term\<^sub>2 \<cdot>t \<theta>)"
+        term\<^sub>1 \<cdot>t \<theta> \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<theta>" and
+    less\<^sub>t_ground_subterm_property [simp]: 
+      "\<And>term\<^sub>G context\<^sub>G.
+         is_ground_term term\<^sub>G \<Longrightarrow>
+         is_ground_context context\<^sub>G \<Longrightarrow> 
+         context\<^sub>G \<noteq> \<box> \<Longrightarrow> 
+         term\<^sub>G \<prec>\<^sub>t context\<^sub>G\<langle>term\<^sub>G\<rangle>"
 begin
+
+definition less\<^sub>t\<^sub>G :: "'f ground_term \<Rightarrow> 'f ground_term \<Rightarrow> bool" (infix "\<prec>\<^sub>t\<^sub>G" 50) where
+  "term\<^sub>G\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2 \<equiv> to_term term\<^sub>G\<^sub>1 \<prec>\<^sub>t to_term term\<^sub>G\<^sub>2"
+
+lemma less\<^sub>t\<^sub>G_wellfounded [intro]: "wfP (\<prec>\<^sub>t\<^sub>G)"
+  unfolding less\<^sub>t\<^sub>G_def
+  using 
+    wfp_on_image[OF inj_term_of_gterm less\<^sub>t_wellfounded_on]
+    wfp_on_UNIV
+  by blast
+
+lemma less\<^sub>t\<^sub>G_total [intro]: "totalp (\<prec>\<^sub>t\<^sub>G)"
+  unfolding less\<^sub>t\<^sub>G_def
+  using less\<^sub>t_total_on
+  by (auto simp: inj_term_of_gterm totalp_on_image)
+
+lemma less\<^sub>t\<^sub>G_context_compatible [simp]: 
+  assumes "term\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>2"  
+  shows "context\<langle>term\<^sub>1\<rangle>\<^sub>G \<prec>\<^sub>t\<^sub>G context\<langle>term\<^sub>2\<rangle>\<^sub>G"
+  using assms less\<^sub>t_ground_context_compatible
+  unfolding less\<^sub>t\<^sub>G_def
+  by (metis ground_context_is_ground ground_term_is_ground ground_term_with_context(3)) 
+
+lemma less\<^sub>t\<^sub>G_subterm_property [simp]: 
+  assumes "context \<noteq> \<box>\<^sub>G" 
+  shows "term \<prec>\<^sub>t\<^sub>G context\<langle>term\<rangle>\<^sub>G"
+  using assms less\<^sub>t_ground_subterm_property
+  unfolding less\<^sub>t\<^sub>G_def
+  by (metis gctxt_of_ctxt.simps(1) ground_context_is_ground ground_term_is_ground ground_term_with_context3 to_context_inverse)
 
 lemmas less\<^sub>t_transitive_on = less\<^sub>t_transitive[THEN transp_on_subset, OF subset_UNIV]
 lemmas less\<^sub>t_asymmetric_on = less\<^sub>t_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
 
 lemma less\<^sub>t\<^sub>G_transitive [intro]: "transp (\<prec>\<^sub>t\<^sub>G)"
-  using less\<^sub>t\<^sub>G_less\<^sub>t less\<^sub>t_transitive transpE transpI
-  by metis
+  using less\<^sub>t\<^sub>G_def less\<^sub>t_transitive transpE transpI
+  by (metis (full_types))
 
 lemmas less\<^sub>t\<^sub>G_transitive_on = less\<^sub>t\<^sub>G_transitive[THEN transp_on_subset, OF subset_UNIV]
 
@@ -66,42 +105,7 @@ lemmas less\<^sub>t\<^sub>G_total_on = less\<^sub>t\<^sub>G_total[THEN totalp_on
 lemma less\<^sub>t_less\<^sub>t\<^sub>G: 
   assumes "is_ground_term term\<^sub>1" and "is_ground_term term\<^sub>2"
   shows "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<longleftrightarrow> to_ground_term term\<^sub>1 \<prec>\<^sub>t\<^sub>G to_ground_term term\<^sub>2"
-  by (simp add: assms less\<^sub>t\<^sub>G_less\<^sub>t)
-
-lemma less\<^sub>t_total_on [intro]: "totalp_on (to_term ` terms\<^sub>G) (\<prec>\<^sub>t)"
-  by (smt (verit, best) image_iff less\<^sub>t\<^sub>G_less\<^sub>t totalpD less\<^sub>t\<^sub>G_total_on totalp_on_def)
-
-lemma less\<^sub>t_ground_subst_stability':
-  assumes "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)" "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)"  "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2"
-  shows "term\<^sub>1 \<cdot>t \<theta> \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<theta>"
-  using less\<^sub>t_ground_subst_stability[OF assms]
-  unfolding 
-    less\<^sub>t\<^sub>G_less\<^sub>t 
-    to_ground_term_inverse[OF assms(1)]
-    to_ground_term_inverse[OF assms(2)].
-
-lemma less\<^sub>t_context_compatible [simp]:
-  assumes 
-    "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2"
-    "is_ground_term term\<^sub>1"
-    "is_ground_term term\<^sub>2"
-    "is_ground_context context"
-  shows 
-    "context\<langle>term\<^sub>1\<rangle> \<prec>\<^sub>t context\<langle>term\<^sub>2\<rangle>"
-proof-
-  have term\<^sub>1\<^sub>G_less_term\<^sub>2\<^sub>G: 
-    "to_ground_term term\<^sub>1 \<prec>\<^sub>t\<^sub>G to_ground_term term\<^sub>2"
-    using assms(1) less\<^sub>t_less\<^sub>t\<^sub>G[OF assms(2, 3)]
-    by simp
-
-  then have "(to_ground_context context)\<langle>to_ground_term term\<^sub>1\<rangle>\<^sub>G \<prec>\<^sub>t\<^sub>G 
-                (to_ground_context context)\<langle>to_ground_term term\<^sub>2\<rangle>\<^sub>G"
-    using less\<^sub>t\<^sub>G_context_compatible
-    by fast
-
-  then show ?thesis
-    by (simp add: assms ground_term_with_context(1) less\<^sub>t_less\<^sub>t\<^sub>G)
-qed
+  by (simp add: assms less\<^sub>t\<^sub>G_def)
 
 abbreviation less_eq\<^sub>t (infix "\<preceq>\<^sub>t" 50) where
   "less_eq\<^sub>t \<equiv> (\<prec>\<^sub>t)\<^sup>=\<^sup>="
@@ -169,7 +173,7 @@ lemma less\<^sub>l_ground_subst_stability:
   shows
     "literal \<cdot>l \<theta> \<prec>\<^sub>l literal' \<cdot>l \<theta>"
   using 
-      less\<^sub>t_ground_subst_stability'[OF assms(1, 2)[THEN ground_term_in_ground_literal_subst]]
+      less\<^sub>t_ground_subst_stability[OF assms(1, 2)[THEN ground_term_in_ground_literal_subst]]
       multp_map_strong[OF less\<^sub>t_asymmetric less\<^sub>t_transitive]  
       assms(3)
   unfolding less\<^sub>l_def mset_mset_lit_subst[symmetric]
@@ -192,7 +196,7 @@ lemma less\<^sub>c_ground_subst_stability:
 lemma less_eq\<^sub>t_ground_subst_stability:
   assumes "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)" "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)"  "term\<^sub>1 \<preceq>\<^sub>t term\<^sub>2"
   shows "term\<^sub>1 \<cdot>t \<theta> \<preceq>\<^sub>t term\<^sub>2 \<cdot>t \<theta>"
-  using less\<^sub>t_ground_subst_stability'[OF assms(1, 2)] assms(3)
+  using less\<^sub>t_ground_subst_stability[OF assms(1, 2)] assms(3)
   by auto
 
 end

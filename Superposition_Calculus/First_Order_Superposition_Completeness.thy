@@ -339,7 +339,7 @@ next
         by (metis gctxt_of_ctxt_inv is_ground_term_ctxt_iff_ground_ctxt to_ground_term_inverse)
 
       from less have less\<^sub>G: "t'\<^sub>G \<prec>\<^sub>t\<^sub>G t\<^sub>G" 
-        unfolding less\<^sub>t\<^sub>G_less\<^sub>t t'\<^sub>G t\<^sub>G.
+        unfolding less\<^sub>t\<^sub>G_def t'\<^sub>G t\<^sub>G.
 
       have less': "context\<^sub>G\<langle>t'\<^sub>G\<rangle>\<^sub>G \<prec>\<^sub>t\<^sub>G context\<^sub>G\<langle>t\<^sub>G\<rangle>\<^sub>G"
         using less\<^sub>t\<^sub>G_context_compatible[OF less\<^sub>G].
@@ -354,7 +354,7 @@ next
         by auto
 
       from less' show ?thesis
-        unfolding x x' less\<^sub>t\<^sub>G_less\<^sub>t ground_term_with_context(3).
+        unfolding x x' less\<^sub>t\<^sub>G_def ground_term_with_context(3).
     next
       case (Cons t' ts')
       from first(2) 
@@ -413,7 +413,7 @@ next
 
       have "Fun f (ss1 @ t \<cdot>t \<theta>(var := replacement) # ss2) \<cdot>t \<theta> \<prec>\<^sub>t Fun f terms \<cdot>t \<theta>"
         unfolding terms
-        using less\<^sub>t_context_compatible[OF less t_groundings context_grounding] x1
+        using less\<^sub>t_ground_context_compatible[OF less t_groundings context_grounding] x1
         by auto
 
       with terms' show ?thesis 
@@ -1936,7 +1936,7 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
 
     have "term\<^sub>1' \<cdot>t \<sigma> \<cdot>t \<tau> \<prec>\<^sub>t term\<^sub>1 \<cdot>t \<sigma> \<cdot>t \<tau>"
       using ground_eq_factoringI(6)[unfolded 
-          less\<^sub>t\<^sub>G_less\<^sub>t 
+          less\<^sub>t\<^sub>G_def 
           term\<^sub>G\<^sub>1_term\<^sub>1 
           term\<^sub>G\<^sub>2_term\<^sub>1'
           \<sigma>(2) 
@@ -2713,7 +2713,7 @@ proof(cases
         term\<^sub>1'_\<theta>[unfolded \<sigma>(2) term_subst_compose]
         term\<^sub>1_with_context[symmetric]
         term\<^sub>1_with_context_\<theta>[unfolded \<sigma>(2) term_subst_compose]
-        less\<^sub>t\<^sub>G_less\<^sub>t
+        less\<^sub>t\<^sub>G_def
         ground_term_with_context(3).
      
     then show "\<not> context\<^sub>1\<langle>term\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<sigma> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<sigma>"
@@ -2733,7 +2733,7 @@ proof(cases
       unfolding 
         term\<^sub>2_\<theta>[unfolded \<sigma>(2) term_subst_compose]             
         term\<^sub>2'_\<theta>[unfolded \<sigma>(2) term_subst_compose]
-        less\<^sub>t\<^sub>G_less\<^sub>t.
+        less\<^sub>t\<^sub>G_def.
 
     then show "\<not> term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<sigma> \<preceq>\<^sub>t term\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<sigma>"
       using less\<^sub>t_less_eq\<^sub>t_ground_subst_stability[OF term_groundings]
@@ -2869,7 +2869,7 @@ next
   fix select\<^sub>G
   assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
  
-  then interpret first_order_superposition_calculus_with_grounding _ _ _ select\<^sub>G
+  then interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G
     apply unfold_locales
     by(simp add: select\<^sub>G\<^sub>s_def)
 
@@ -2879,7 +2879,7 @@ next
    fix select\<^sub>G
    assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
  
-  then interpret first_order_superposition_calculus_with_grounding _ _ _ select\<^sub>G
+  then interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G
     apply unfold_locales
     by(simp add: select\<^sub>G\<^sub>s_def)
 
@@ -3305,7 +3305,7 @@ proof-
     using select\<^sub>G_on_premise_groundings
     by (metis ground_clause_is_ground subst_clause_Var_ident to_clause_inverse)
 
-  then interpret first_order_superposition_calculus_with_grounding _ _ _ select\<^sub>G
+  then interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G
     apply unfold_locales.
 
   have "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>\<theta> premise. 
@@ -3338,7 +3338,7 @@ proof(rule stat_ref_comp_to_non_ground_fam_inter)
   proof
     fix select\<^sub>G
     assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
-    then interpret first_order_superposition_calculus_with_grounding _ _ _ select\<^sub>G
+    then interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G
       apply unfold_locales
       unfolding select\<^sub>G\<^sub>s_def
       by simp
@@ -3393,7 +3393,7 @@ proof-
   obtain select\<^sub>G where "is_ground_select select\<^sub>G"
     using select\<^sub>G_simple by blast
 
-  then interpret first_order_superposition_calculus_with_grounding _ _ _ select\<^sub>G
+  then interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G
     apply unfold_locales.
 
   have "\<And>premise\<^sub>G conclusion\<^sub>G. ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G \<Longrightarrow>
@@ -3443,7 +3443,7 @@ proof-
   obtain select\<^sub>G where "is_ground_select select\<^sub>G"
     using select\<^sub>G_simple by blast
 
-  then interpret first_order_superposition_calculus_with_grounding _ _ _ select\<^sub>G
+  then interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G
     apply unfold_locales.
 
   have "\<And>premise\<^sub>G conclusion\<^sub>G. ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G \<Longrightarrow>
