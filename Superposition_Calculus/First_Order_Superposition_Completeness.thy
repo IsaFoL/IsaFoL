@@ -2425,7 +2425,7 @@ proof(cases
          using literal\<^sub>G\<^sub>2
          unfolding ground_superpositionI(6)
          by (smt (verit) False compatible_with_gctxt ground.G_entails_def
-             ground.correctness_ground_superposition ground_superposition ground_superpositionI(1)
+             ground.soundness_ground_superposition ground_superposition ground_superpositionI(1)
              ground_superpositionI(12) ground_superpositionI(2) ground_superpositionI(5) local.refl
              local.sym local.trans premise true_cls_union true_clss_insert union_commute
              union_mset_add_mset_right)

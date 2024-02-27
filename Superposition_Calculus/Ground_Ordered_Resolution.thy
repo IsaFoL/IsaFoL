@@ -236,7 +236,7 @@ definition G_entails :: "'f gterm atom clause set \<Rightarrow> 'f gterm atom cl
 
 subsection \<open>Correctness\<close>
 
-lemma correctness_ground_resolution:
+lemma soundness_ground_resolution:
   assumes
     step: "ground_resolution P1 P2 C"
   shows "G_entails {P1, P2} {C}"
@@ -291,7 +291,7 @@ proof (cases P1 P2 C rule: ground_resolution.cases)
   qed
 qed
 
-lemma correctness_ground_factoring:
+lemma soundness_ground_factoring:
   assumes step: "ground_factoring P C"
   shows "G_entails {P} {C}"
   using step
@@ -357,8 +357,8 @@ next
 next
   show "\<And>\<iota>. \<iota> \<in> G_Inf \<Longrightarrow> G_entails (set (prems_of \<iota>)) {concl_of \<iota>}"
     unfolding G_Inf_def
-    using correctness_ground_resolution
-    using correctness_ground_factoring
+    using soundness_ground_resolution
+    using soundness_ground_factoring
     by (auto simp: G_entails_def)
 qed
 

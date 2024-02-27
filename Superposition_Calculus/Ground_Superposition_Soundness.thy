@@ -2,7 +2,7 @@ theory Ground_Superposition_Soundness
   imports Ground_Superposition
 begin
 
-lemma (in ground_superposition_calculus) correctness_ground_superposition:
+lemma (in ground_superposition_calculus) soundness_ground_superposition:
   assumes
     step: "ground_superposition P1 P2 C"
   shows "G_entails {P1, P2} {C}"
@@ -88,7 +88,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
   qed
 qed
 
-lemma (in ground_superposition_calculus) correctness_ground_eq_resolution:
+lemma (in ground_superposition_calculus) soundness_ground_eq_resolution:
   assumes step: "ground_eq_resolution P C"
   shows "G_entails {P} {C}"
   using step
@@ -110,7 +110,7 @@ proof (cases P C rule: ground_eq_resolution.cases)
   qed
 qed
 
-lemma (in ground_superposition_calculus) correctness_ground_eq_factoring:
+lemma (in ground_superposition_calculus) soundness_ground_eq_factoring:
   assumes step: "ground_eq_factoring P C"
   shows "G_entails {P} {C}"
   using step
@@ -169,9 +169,9 @@ sublocale ground_superposition_calculus \<subseteq> sound_inference_system where
 proof unfold_locales
   show "\<And>\<iota>. \<iota> \<in> G_Inf \<Longrightarrow> G_entails (set (prems_of \<iota>)) {concl_of \<iota>}"
     unfolding G_Inf_def
-    using correctness_ground_superposition
-    using correctness_ground_eq_resolution
-    using correctness_ground_eq_factoring
+    using soundness_ground_superposition
+    using soundness_ground_eq_resolution
+    using soundness_ground_eq_factoring
     by (auto simp: G_entails_def)
 qed
 
