@@ -6,6 +6,7 @@ theory First_Order_Superposition
     First_Order_Ordering
 begin
 
+
 section \<open>First-Order Layer\<close>
 
 locale first_order_superposition_calculus =

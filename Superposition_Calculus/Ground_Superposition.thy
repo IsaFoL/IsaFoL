@@ -7,8 +7,6 @@ theory Ground_Superposition
     "Saturation_Framework.Calculus"
     "Saturation_Framework_Extensions.Clausal_Calculus"
     "Abstract-Rewriting.Abstract_Rewriting"
-    "Regular_Tree_Relations.Ground_Terms"
-    "Regular_Tree_Relations.Ground_Ctxt"
 
     (* Theories from this formalization *)
     "Abstract_Rewriting_Extra"
@@ -19,7 +17,6 @@ theory Ground_Superposition
     "Transitive_Closure_Extra"
     "Uprod_Extra"
     "HOL_Extra"
-    "Ground_Ctxt_Extra"
     Relation_Extra
     Clausal_Calculus_Extra
     Ground_Select

@@ -1,4 +1,4 @@
-theory Term_Extra
+theory Ground_Term_Extra
   imports "Regular_Tree_Relations.Ground_Terms"
 begin
 
