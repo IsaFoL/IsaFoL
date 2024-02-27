@@ -6,6 +6,12 @@ theory First_Order_Superposition
     First_Order_Ordering
 begin
 
+hide_type Inference_System.inference
+hide_const
+  Inference_System.Infer
+  Inference_System.prems_of
+  Inference_System.concl_of
+  Inference_System.main_prem_of
 
 section \<open>First-Order Layer\<close>
 
