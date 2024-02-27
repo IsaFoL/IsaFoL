@@ -6,8 +6,9 @@ session Superposition_Calculus = Saturation_Framework_Extensions +
     Saturation_Framework_Extensions
     Regular_Tree_Relations
   theories
+    First_Order_Superposition_Completeness
+    First_Order_Superposition_Soundness
     Ground_Ordered_Resolution
     Ground_Superposition
-    First_Order_Superposition_Soundness
-    First_Order_Superposition_Completeness
+    Ground_Superposition_Soundness
     LGPL_Ground_Critical_Pairs_Adapted_From_CeTA
