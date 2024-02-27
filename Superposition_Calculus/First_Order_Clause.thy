@@ -1,11 +1,12 @@
 theory First_Order_Clause
   imports 
-    (* TODO: Factor out Ground_Clause *)
-    Ground_Superposition
+    Ground_Clause
     Abstract_Substitution_Extra_First_Order_Term
     Clausal_Calculus_Extra
-    Term_Extra
+    Multiset_Extra
 begin
+
+
 
 (* TODO: Maybe split up file*)
 (* TODO: Maybe rename subst to substitution*)
@@ -30,6 +31,7 @@ type_synonym ('f, 'v) "context" = "('f, 'v) ctxt"
 
 type_synonym 'f ground_atom = "'f Ground_Clause.atom"
 type_synonym ('f, 'v) atom = "('f, 'v) term uprod"
+
 
 (* This is an example where type-classes would be nice, but the Isabelle ones are shitty...*)
 definition subst_atom ::
@@ -668,5 +670,6 @@ proof-
     using that
     by blast
 qed
+
 
 end

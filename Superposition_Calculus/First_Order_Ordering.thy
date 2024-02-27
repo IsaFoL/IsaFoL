@@ -1,8 +1,12 @@
 theory First_Order_Ordering
   imports 
-    First_Order_Clause 
+    First_Order_Clause
+    Ground_Ordering
+    Relation_Extra
     "Open_Induction.Restricted_Predicates"
 begin
+
+
 
 (* TODO: Move *)
 context ground_ordering

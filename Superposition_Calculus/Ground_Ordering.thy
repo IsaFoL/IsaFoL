@@ -1,10 +1,6 @@
 theory Ground_Ordering
   imports
-    Regular_Tree_Relations.Ground_Ctxt
-    Regular_Tree_Relations.Ground_Terms
-
     Ground_Clause
-    Ground_Ctxt_Extra
     Transitive_Closure_Extra
     Clausal_Calculus_Extra
     Min_Max_Least_Greatest_Multiset
@@ -167,5 +163,7 @@ abbreviation is_strictly_maximal_lit :: "'f atom literal \<Rightarrow> 'f atom c
   "is_strictly_maximal_lit L M \<equiv> is_greatest_in_mset_wrt (\<prec>\<^sub>l) M L"
 
 end
+
+
 
 end
