@@ -1,5 +1,7 @@
 theory Clausal_Calculus_Extra
-  imports "Saturation_Framework_Extensions.Clausal_Calculus" "Uprod_Extra"
+  imports
+    "Saturation_Framework_Extensions.Clausal_Calculus"
+    "Uprod_Extra"
 begin
 
 lemma map_literal_inverse: 

@@ -1,8 +1,7 @@
 theory First_Order_Superposition
   imports
     Saturation_Framework.Lifting_to_Non_Ground_Calculi
-    Ground_Superposition
-    First_Order_Clause
+    Ground_Superposition_Soundness
     First_Order_Select
     First_Order_Ordering
 begin

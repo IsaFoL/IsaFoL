@@ -1,5 +1,6 @@
 theory First_Order_Superposition_Completeness
-  imports First_Order_Superposition_With_Grounding
+  imports
+    First_Order_Superposition_With_Grounding
 begin
 
 (* --MISC-- *)
@@ -2423,7 +2424,11 @@ proof(cases
        then have "?I \<TTurnstile> add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) premise\<^sub>G\<^sub>1'"
          using literal\<^sub>G\<^sub>2
          unfolding ground_superpositionI(6)
-         by (smt (verit) False compatible_with_gctxt ground.G_entails_def ground.correctness_ground_superposition ground_superposition ground_superpositionI(1) ground_superpositionI(12) ground_superpositionI(2) ground_superpositionI(5) local.refl local.sym local.trans premise true_cls_union true_clss_insert union_commute union_mset_add_mset_right)
+         by (smt (verit) False compatible_with_gctxt ground.G_entails_def
+             ground.correctness_ground_superposition ground_superposition ground_superpositionI(1)
+             ground_superpositionI(12) ground_superpositionI(2) ground_superpositionI(5) local.refl
+             local.sym local.trans premise true_cls_union true_clss_insert union_commute
+             union_mset_add_mset_right)
   
         then show ?thesis 
           by blast

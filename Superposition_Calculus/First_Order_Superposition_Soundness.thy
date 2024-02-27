@@ -152,14 +152,14 @@ proof (cases P C rule: equality_factoring.cases)
         using select\<^sub>G_simple by blast
 
       from True have "I \<TTurnstile>l Pos (?s\<^sub>1, ?s\<^sub>1') \<or> I \<TTurnstile>l Pos (?s\<^sub>1, ?t\<^sub>2')"
-        using ground.true_lit_uprod_iff_true_lit_prod[OF sym_I] I_models_L'
+        using true_lit_uprod_iff_true_lit_prod[OF sym_I] I_models_L'
         by (metis L\<^sub>1 L\<^sub>2 s\<^sub>1_equals_t\<^sub>2)
 
       then have "I \<TTurnstile>l Pos (?s\<^sub>1, ?t\<^sub>2') \<or> I \<TTurnstile>l Neg (?s\<^sub>1', ?t\<^sub>2')"
         by (meson transD trans_I true_lit_simps(1) true_lit_simps(2))
 
       then have "?I \<TTurnstile>l ?s\<^sub>1 \<approx> ?t\<^sub>2' \<or> ?I \<TTurnstile>l Neg (Upair ?s\<^sub>1' ?t\<^sub>2')"
-        unfolding ground.true_lit_uprod_iff_true_lit_prod[OF sym_I].
+        unfolding true_lit_uprod_iff_true_lit_prod[OF sym_I].
 
       then show ?thesis
         unfolding C
@@ -302,14 +302,14 @@ proof (cases P1 P2 C rule: superposition.cases)
         using select\<^sub>G_simple by blast
 
         from L\<^sub>2'_def have ts_in_I: "(?t\<^sub>2, ?t\<^sub>2') \<in> I"
-          using I_models_L\<^sub>2' ground.true_lit_uprod_iff_true_lit_prod[OF sym_I] superpositionI(8)
+          using I_models_L\<^sub>2' true_lit_uprod_iff_true_lit_prod[OF sym_I] superpositionI(8)
           unfolding to_ground_literal_def to_ground_atom_def 
           by (smt (verit) literal.simps(9) map_uprod_simps subst_atom_def subst_literal true_lit_simps(1)) 
 
         have ?thesis if "\<P> = Pos"
         proof -
           from that have "(?s\<^sub>1\<langle>?t\<^sub>2\<rangle>\<^sub>G, ?s\<^sub>1') \<in> I"
-            using I_models_L\<^sub>1' L\<^sub>1'_def L\<^sub>1 ground.true_lit_uprod_iff_true_lit_prod[OF sym_I] u\<^sub>1_equals_t\<^sub>2
+            using I_models_L\<^sub>1' L\<^sub>1'_def L\<^sub>1 true_lit_uprod_iff_true_lit_prod[OF sym_I] u\<^sub>1_equals_t\<^sub>2
             unfolding superpositionI 
             by (smt (verit, best) true_lit_simps(1))
 
@@ -328,7 +328,7 @@ proof (cases P1 P2 C rule: superposition.cases)
         moreover have ?thesis if "\<P> = Neg"
         proof -
           from that have "(?s\<^sub>1\<langle>?t\<^sub>2\<rangle>\<^sub>G, ?s\<^sub>1') \<notin> I"
-            using I_models_L\<^sub>1' L\<^sub>1'_def L\<^sub>1 ground.true_lit_uprod_iff_true_lit_prod[OF sym_I] u\<^sub>1_equals_t\<^sub>2
+            using I_models_L\<^sub>1' L\<^sub>1'_def L\<^sub>1 true_lit_uprod_iff_true_lit_prod[OF sym_I] u\<^sub>1_equals_t\<^sub>2
             unfolding superpositionI 
             by (smt (verit, ccfv_threshold) literals_distinct(2) true_lit_simps(2))
         
@@ -337,7 +337,7 @@ proof (cases P1 P2 C rule: superposition.cases)
             by (meson compatible_with_gctxtD transD)
 
           then have "?I \<TTurnstile>l Neg (Upair ?s\<^sub>1\<langle>?t\<^sub>2'\<rangle>\<^sub>G  ?s\<^sub>1')"
-            by (meson ground.true_lit_uprod_iff_true_lit_prod(2) sym_I true_lit_simps(2))
+            by (meson true_lit_uprod_iff_true_lit_prod(2) sym_I true_lit_simps(2))
 
           then show ?thesis 
             unfolding C that
