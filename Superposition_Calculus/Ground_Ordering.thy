@@ -7,6 +7,7 @@ theory Ground_Ordering
     Ground_Ctxt_Extra
     Transitive_Closure_Extra
     Clausal_Calculus_Extra
+    Min_Max_Least_Greatest_Multiset
 begin
 
 locale ground_ordering =
@@ -158,6 +159,12 @@ next
   show "\<And>x y. x \<preceq>\<^sub>c y \<or> y \<preceq>\<^sub>c x"
     by (metis reflclp_iff totalpD totalp_less_cls)
 qed
+
+abbreviation is_maximal_lit :: "'f atom literal \<Rightarrow> 'f atom clause \<Rightarrow> bool" where
+  "is_maximal_lit L M \<equiv> is_maximal_in_mset_wrt (\<prec>\<^sub>l) M L"
+
+abbreviation is_strictly_maximal_lit :: "'f atom literal \<Rightarrow> 'f atom clause \<Rightarrow> bool" where
+  "is_strictly_maximal_lit L M \<equiv> is_greatest_in_mset_wrt (\<prec>\<^sub>l) M L"
 
 end
 

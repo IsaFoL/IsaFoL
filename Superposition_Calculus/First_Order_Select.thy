@@ -68,4 +68,37 @@ lemmas select_subst = select_subst1 select_subst2
 
 end
 
+locale first_order_select_with_grounding = first_order_select +
+  fixes select\<^sub>G 
+  assumes select\<^sub>G: "is_ground_select select\<^sub>G"
+begin
+  
+lemma select\<^sub>G_subset: "select\<^sub>G clause \<subseteq># clause"
+  using select\<^sub>G 
+  unfolding is_ground_select_def
+  by (metis select_subset to_ground_clause_def image_mset_subseteq_mono subst_clause_def)
+
+lemma select\<^sub>G_negative:
+  assumes "literal\<^sub>G \<in># select\<^sub>G clause\<^sub>G"
+  shows "is_neg literal\<^sub>G"
+proof -
+  obtain clause \<theta> where 
+    is_ground: "is_ground_clause (clause \<cdot> \<theta>)" and
+    select\<^sub>G: "select\<^sub>G clause\<^sub>G = to_ground_clause (select clause \<cdot> \<theta>)"
+    using select\<^sub>G
+    unfolding is_ground_select_def
+    by blast
+
+  show ?thesis
+    using 
+      select_from_ground_clause(3)[
+          OF select_subst(1)[OF is_ground] assms[unfolded select\<^sub>G], 
+          THEN select_subst(2)
+      ]
+    unfolding to_literal_def
+    by simp
+qed
+
+end
+
 end

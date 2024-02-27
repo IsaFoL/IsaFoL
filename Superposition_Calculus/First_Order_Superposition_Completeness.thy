@@ -2929,8 +2929,6 @@ next
   qed
 qed
 
-
-
 context first_order_superposition_calculus_with_grounding
 begin
 

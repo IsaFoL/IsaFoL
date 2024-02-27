@@ -667,6 +667,6 @@ proof-
   ultimately show ?thesis
     using that
     by blast
-qed  
+qed
 
 end
