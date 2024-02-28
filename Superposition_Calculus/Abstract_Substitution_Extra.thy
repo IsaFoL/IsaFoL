@@ -287,5 +287,5 @@ lemma ground_instances_of_set_subst_set_ident_if_renaming[simp]:
   by (simp add: ground_instances_of_set_def)
 
 end
-  
+
 end

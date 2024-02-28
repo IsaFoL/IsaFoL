@@ -124,35 +124,32 @@ lemma the_mgu_is_unifier:
   unfolding term_subst.is_unifier_def the_mgu_def
   by simp
 
-lemma imgu_exists: 
-   fixes  
-    \<theta> :: "('f, 'v) subst"
-  assumes
-    "term \<cdot> \<theta> = term' \<cdot> \<theta>"
-  shows
-    "\<exists>(\<sigma> :: ('f, 'v) subst) \<tau>.  \<theta> = \<sigma> \<circ>\<^sub>s \<tau> \<and> term_subst.is_imgu \<sigma> {{term, term'}}"
-proof(rule exI, rule exI)
+lemma imgu_exists:
+  fixes \<upsilon> :: "('f, 'v) subst"
+  assumes "term \<cdot> \<upsilon> = term' \<cdot> \<upsilon>"
+  shows "\<exists>(\<mu> :: ('f, 'v) subst).  \<upsilon> = \<mu> \<circ>\<^sub>s \<upsilon> \<and> term_subst.is_imgu \<mu> {{term, term'}}"
+proof (intro exI)
   have finite_terms: "finite {term, term'}"
     by simp
 
   have "term_subst.is_unifiers (the_mgu term term') {{term, term'}}"
     unfolding term_subst.is_unifiers_def
-    using the_mgu_is_unifier[OF the_mgu[OF assms, THEN conjunct1]] 
+    using the_mgu_is_unifier[OF the_mgu[OF assms, THEN conjunct1]]
     by simp
 
   moreover have
-    "\<And>\<tau>. term_subst.is_unifiers \<tau> {{term, term'}} \<Longrightarrow> \<tau> = the_mgu term term' \<circ>\<^sub>s \<tau>"
+    "\<And>\<sigma>. term_subst.is_unifiers \<sigma> {{term, term'}} \<Longrightarrow> \<sigma> = the_mgu term term' \<circ>\<^sub>s \<sigma>"
     unfolding term_subst.is_unifiers_def
-    using 
-      term_subst.is_unifier_iff_if_finite[OF finite_terms] 
+    using
+      term_subst.is_unifier_iff_if_finite[OF finite_terms]
       the_mgu[of "term" _ term']
     by blast
-    
+
   ultimately have is_imgu: "term_subst.is_imgu (the_mgu term term') {{term, term'}}"
-    unfolding term_subst.is_imgu_def 
+    unfolding term_subst.is_imgu_def
     by blast
-  
-  show "\<theta> = (the_mgu term term') \<circ>\<^sub>s \<theta> \<and> term_subst.is_imgu (the_mgu term term') {{term, term'}}"
+
+  show "\<upsilon> = (the_mgu term term') \<circ>\<^sub>s \<upsilon> \<and> term_subst.is_imgu (the_mgu term term') {{term, term'}}"
     using is_imgu the_mgu[OF assms]
     by blast
 qed
