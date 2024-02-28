@@ -6,6 +6,7 @@ theory First_Order_Superposition
     First_Order_Ordering
 begin
 
+
 hide_type Inference_System.inference
 hide_const
   Inference_System.Infer

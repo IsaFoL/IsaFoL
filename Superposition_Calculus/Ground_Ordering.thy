@@ -162,6 +162,8 @@ abbreviation is_maximal_lit :: "'f atom literal \<Rightarrow> 'f atom clause \<R
 abbreviation is_strictly_maximal_lit :: "'f atom literal \<Rightarrow> 'f atom clause \<Rightarrow> bool" where
   "is_strictly_maximal_lit L M \<equiv> is_greatest_in_mset_wrt (\<prec>\<^sub>l) M L"
 
+
+
 end
 
 
