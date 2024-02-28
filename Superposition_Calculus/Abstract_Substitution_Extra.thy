@@ -53,7 +53,7 @@ definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<rho> \<longleftrightarrow> (\<exists>\<sigma>. \<rho> \<odot> \<sigma> = id_subst)"
 
 definition is_unifier :: "'s \<Rightarrow> 'x set \<Rightarrow> bool" where
-  "is_unifier \<sigma> X \<longleftrightarrow> card (X \<cdot>s \<sigma>) \<le> 1"
+  "is_unifier \<upsilon> X \<longleftrightarrow> card (X \<cdot>s \<upsilon>) \<le> 1"
 
 definition is_unifiers :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
   "is_unifiers \<upsilon> XX \<longleftrightarrow> (\<forall>X \<in> XX. is_unifier \<upsilon> X)"
