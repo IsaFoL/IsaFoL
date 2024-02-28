@@ -56,13 +56,13 @@ definition is_unifier :: "'s \<Rightarrow> 'x set \<Rightarrow> bool" where
   "is_unifier \<sigma> X \<longleftrightarrow> card (X \<cdot>s \<sigma>) \<le> 1"
 
 definition is_unifiers :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
-  "is_unifiers \<sigma> XX \<longleftrightarrow> (\<forall>X \<in> XX. is_unifier \<sigma> X)"
+  "is_unifiers \<upsilon> XX \<longleftrightarrow> (\<forall>X \<in> XX. is_unifier \<upsilon> X)"
 
 definition is_mgu :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
   "is_mgu \<mu> XX \<longleftrightarrow> is_unifiers \<mu> XX \<and> (\<forall>\<upsilon>. is_unifiers \<upsilon> XX \<longrightarrow> (\<exists>\<sigma>. \<upsilon> = \<mu> \<odot> \<sigma>))"
 
 definition is_imgu :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
-  "is_imgu \<sigma> XX \<longleftrightarrow> is_unifiers \<sigma> XX \<and> (\<forall>\<tau>. is_unifiers \<tau> XX \<longrightarrow> \<tau> = \<sigma> \<odot> \<tau>)"
+  "is_imgu \<mu> XX \<longleftrightarrow> is_unifiers \<mu> XX \<and> (\<forall>\<tau>. is_unifiers \<tau> XX \<longrightarrow> \<tau> = \<mu> \<odot> \<tau>)"
 
 definition is_idem :: "'s \<Rightarrow> bool" where
   "is_idem \<sigma> \<longleftrightarrow> (\<sigma> \<odot> \<sigma>) = \<sigma>"
