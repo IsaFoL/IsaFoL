@@ -7,9 +7,9 @@ locale first_order_select =
   assumes select_subset: 
       "\<And>clause. select clause \<subseteq># clause" and
     select_negative: 
-      "\<And>clause literal. literal \<in># select clause \<Longrightarrow> is_neg literal" and
+      "\<And>clause literal. literal \<in># select clause \<Longrightarrow> is_neg literal" (* and
     select_renaming_stability: 
-      "\<And>clause \<rho>. is_renaming \<rho> \<Longrightarrow> select (clause \<cdot> \<rho>) = (select clause) \<cdot> \<rho>" 
+      "\<And>clause \<rho>. is_renaming \<rho> \<Longrightarrow> select (clause \<cdot> \<rho>) = (select clause) \<cdot> \<rho>" *) 
 begin
 
 definition is_ground_select :: "('f ground_atom clause \<Rightarrow> 'f ground_atom clause) \<Rightarrow> bool" where

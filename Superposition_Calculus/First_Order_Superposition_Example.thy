@@ -19,10 +19,10 @@ next
   show "\<And>clause literal. literal \<in># select_example clause \<Longrightarrow> is_neg literal"
     unfolding select_example_def
     by simp
-next
+(* next
   show "\<And>clause \<rho>. Term.is_renaming \<rho> \<Longrightarrow> select_example (clause \<cdot> \<rho>) = select_example clause \<cdot> \<rho>"
     unfolding select_example_def
-    by simp
+    by simp *)
 next
   show "transp less_kbo"
     by (metis (mono_tags, opaque_lifting) KBO.S_trans less_kbo_def transpI)
