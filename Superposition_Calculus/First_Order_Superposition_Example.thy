@@ -1,6 +1,6 @@
 theory First_Order_Superposition_Example
   imports 
-    IsaFor_Term_Copy
+    IsaFoR_Term_Copy
               
     First_Order_Superposition
 begin
