@@ -1763,7 +1763,7 @@ lemma superposition_ground_instance:
           (to_ground_clause (conclusion \<cdot> \<theta>))" and
     not_redundant:
     "Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion \<cdot> \<theta>)) 
-      \<notin> ground.Red_I' (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
+      \<notin> ground.GRed_I (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
  (* TODO: (Premise order!)  *)
   shows "\<exists>conclusion'. superposition premise\<^sub>1 premise\<^sub>2 (conclusion')
             \<and> Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> inference_groundings select\<^sub>G (Infer [premise\<^sub>1, premise\<^sub>2] conclusion')
@@ -2609,8 +2609,8 @@ sublocale first_order_superposition_calculus \<subseteq>
     select\<^sub>G\<^sub>s
     "ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G)"               
     "\<lambda>_. ground_superposition_calculus.G_entails" 
-    "ground_superposition_calculus.Red_I' (\<prec>\<^sub>t\<^sub>G)" 
-    "\<lambda>_. ground_superposition_calculus.Red_F'(\<prec>\<^sub>t\<^sub>G)" 
+    "ground_superposition_calculus.GRed_I (\<prec>\<^sub>t\<^sub>G)" 
+    "\<lambda>_. ground_superposition_calculus.GRed_F(\<prec>\<^sub>t\<^sub>G)" 
     "\<bottom>\<^sub>F"
     "\<lambda>_. clause_groundings" 
     "\<lambda>select\<^sub>G. some (inference_groundings select\<^sub>G)"
@@ -2671,7 +2671,7 @@ next
   next
     fix \<iota>   
     show "the (some (inference_groundings select\<^sub>G) \<iota>) 
-                \<subseteq> ground.Red_I' (clause_groundings (concl_of \<iota>))"
+                \<subseteq> ground.GRed_I (clause_groundings (concl_of \<iota>))"
       using inference\<^sub>G_red_in_clause_grounding_of_concl
       by auto
   next
@@ -2830,7 +2830,7 @@ lemma superposition_ground_instance':
   assumes 
     "\<iota>\<^sub>G \<in> ground.superposition_inferences"
     "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))" 
-    "\<iota>\<^sub>G \<notin> ground.Red_I' (\<Union> (clause_groundings ` premises))"
+    "\<iota>\<^sub>G \<notin> ground.GRed_I (\<Union> (clause_groundings ` premises))"
     "\<forall>premise\<^sub>G \<in> \<Union> (clause_groundings ` premises). \<exists>\<theta> premise. 
         premise \<cdot> \<theta> = to_clause premise\<^sub>G 
       \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>
@@ -2941,7 +2941,7 @@ proof-
     using premise\<^sub>1_in_premises premise\<^sub>2_in_premises by blast
 
   then have " Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion \<cdot> \<theta>))
-  \<notin> ground.Red_I' (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
+  \<notin> ground.GRed_I (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
     using assms(3) ground.Red_I_of_subset
     unfolding \<iota>\<^sub>G  premise\<^sub>G\<^sub>1[symmetric] premise\<^sub>G\<^sub>2[symmetric] conclusion\<^sub>G[symmetric]
     by blast
@@ -3083,11 +3083,9 @@ sublocale first_order_superposition_calculus \<subseteq>
 proof(rule stat_ref_comp_to_non_ground_fam_inter)
   (* TODO *)
   show "\<forall>q\<in>select\<^sub>G\<^sub>s.
-       statically_complete_calculus {{#}} (ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G) q) ground_superposition_calculus.G_entails
-        (calculus_with_finitary_standard_redundancy.Red_I (ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G) q)
-          ground_superposition_calculus.G_entails (multp (ground_ordering.less_lit (\<prec>\<^sub>t\<^sub>G))))
-        (finitary_standard_formula_redundancy.Red_F ground_superposition_calculus.G_entails
-          (multp (ground_ordering.less_lit (\<prec>\<^sub>t\<^sub>G))))"
+    statically_complete_calculus {{#}} (ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G) q)
+      ground_superposition_calculus.G_entails (ground_superposition_calculus.GRed_I (\<prec>\<^sub>t\<^sub>G) q)
+      (ground_superposition_calculus.GRed_F (\<prec>\<^sub>t\<^sub>G))"
   proof
     fix select\<^sub>G
     assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
@@ -3235,6 +3233,4 @@ qed
 
 end
 
-
 end
-  

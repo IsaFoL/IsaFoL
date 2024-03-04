@@ -506,6 +506,7 @@ sublocale calculus_with_finitary_standard_redundancy where
   Bot = G_Bot and
   entails = G_entails and
   less = "(\<prec>\<^sub>c)"
+  defines GRed_I = Red_I and GRed_F = Red_F
 proof unfold_locales
   show "transp (\<prec>\<^sub>c)"
     using transp_less_cls .
@@ -548,10 +549,6 @@ next
     unfolding G_Inf_def
     by fast
 qed
-
-(* TODO: How to access this stuff differently? *)
-abbreviation Red_I' where "Red_I' \<equiv> Red_I"
-abbreviation Red_F' where "Red_F' \<equiv> Red_F"
 
 end
 
