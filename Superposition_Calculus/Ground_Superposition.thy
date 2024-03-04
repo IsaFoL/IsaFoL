@@ -50,7 +50,7 @@ lemma true_lit_uprod_iff_true_lit_prod[simp]:
 
 section \<open>Superposition Calculus\<close>
 
-locale ground_superposition_calculus = ground_ordering less_trm + ground_select select
+locale ground_superposition_calculus = ground_ordering less_trm + generic_select select
   for
     less_trm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
     select :: "'f gatom clause \<Rightarrow> 'f gatom clause" +

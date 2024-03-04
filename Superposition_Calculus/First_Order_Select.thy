@@ -1,15 +1,9 @@
 theory First_Order_Select
-  imports First_Order_Clause
+  imports Ground_Select First_Order_Clause
 begin
 
-locale first_order_select =
-  fixes select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
-  assumes select_subset: 
-      "\<And>clause. select clause \<subseteq># clause" and
-    select_negative: 
-      "\<And>clause literal. literal \<in># select clause \<Longrightarrow> is_neg literal" (* and
-    select_renaming_stability: 
-      "\<And>clause \<rho>. is_renaming \<rho> \<Longrightarrow> select (clause \<cdot> \<rho>) = (select clause) \<cdot> \<rho>" *) 
+locale first_order_select = generic_select select
+  for select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
 begin
 
 definition is_ground_select :: "('f ground_atom clause \<Rightarrow> 'f ground_atom clause) \<Rightarrow> bool" where
@@ -60,7 +54,7 @@ lemma select_subst1:
 lemma select_subst2: 
   assumes "literal \<in># select clause \<cdot> \<theta>"  
   shows "is_neg literal"
-  using assms subst_neg_stable select_negative
+  using assms subst_neg_stable select_negative_lits
   unfolding subst_clause_def
   by auto
 

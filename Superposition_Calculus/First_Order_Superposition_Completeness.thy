@@ -3015,9 +3015,6 @@ lemma for_all_elements_exists_f_implies_f_exists_for_all_elements:
   "\<forall>x \<in> X. \<exists>f. P (f x) x \<Longrightarrow> \<exists>f. \<forall>x\<in> X. P (f x) x"
   by meson
 
-context first_order_superposition_calculus
-begin
-
 lemma (in first_order_superposition_calculus) ground_instances:
   obtains select\<^sub>G where 
     "ground_Inf_overapproximated select\<^sub>G premises"
@@ -3074,8 +3071,6 @@ proof-
   with assumption select\<^sub>G show thesis
     by blast
 qed
-
-end
 
 sublocale first_order_superposition_calculus \<subseteq> 
   statically_complete_calculus "\<bottom>\<^sub>F" inferences entails_\<G> Red_I_\<G> Red_F_\<G>
