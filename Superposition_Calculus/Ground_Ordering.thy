@@ -161,10 +161,6 @@ abbreviation is_maximal_lit :: "'f gatom literal \<Rightarrow> 'f gatom clause \
 abbreviation is_strictly_maximal_lit :: "'f gatom literal \<Rightarrow> 'f gatom clause \<Rightarrow> bool" where
   "is_strictly_maximal_lit L M \<equiv> is_greatest_in_mset_wrt (\<prec>\<^sub>l) M L"
 
-
-
 end
-
-
 
 end

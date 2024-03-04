@@ -2,6 +2,60 @@ theory Ground_Superposition_Completeness
   imports Ground_Superposition
 begin
 
+subsection \<open>Redundancy Criterion\<close>
+
+sublocale ground_superposition_calculus \<subseteq> calculus_with_finitary_standard_redundancy where
+  Inf = G_Inf and
+  Bot = G_Bot and
+  entails = G_entails and
+  less = "(\<prec>\<^sub>c)"
+  defines GRed_I = Red_I and GRed_F = Red_F
+proof unfold_locales
+  show "transp (\<prec>\<^sub>c)"
+    using transp_less_cls .
+next
+  show "wfP (\<prec>\<^sub>c)"
+    using wfP_less_cls .
+next
+  show "\<And>\<iota>. \<iota> \<in> G_Inf \<Longrightarrow> prems_of \<iota> \<noteq> []"
+    by (auto simp: G_Inf_def)
+next
+  fix \<iota>
+  have "concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
+    if \<iota>_def: "\<iota> = Infer [P\<^sub>2, P\<^sub>1] C" and
+      infer: "ground_superposition P\<^sub>1 P\<^sub>2 C"
+    for P\<^sub>2 P\<^sub>1 C
+    unfolding \<iota>_def
+    using infer
+    using ground_superposition_smaller_conclusion
+    by simp
+
+  moreover have "concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
+    if \<iota>_def: "\<iota> = Infer [P] C" and
+      infer: "ground_eq_resolution P C"
+    for P C
+    unfolding \<iota>_def
+    using infer
+    using ground_eq_resolution_smaller_conclusion
+    by simp
+
+  moreover have "concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
+    if \<iota>_def: "\<iota> = Infer [P] C" and
+      infer: "ground_eq_factoring P C"
+    for P C
+    unfolding \<iota>_def
+    using infer
+    using ground_eq_factoring_smaller_conclusion
+    by simp
+
+  ultimately show "\<iota> \<in> G_Inf \<Longrightarrow> concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
+    unfolding G_Inf_def
+    by fast
+qed
+
+
+subsection \<open>Mode Construction\<close>
+
 context ground_superposition_calculus begin
 
 context
@@ -1711,6 +1765,9 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
   ultimately show ?case
     by argo
 qed
+
+
+subsection \<open>Static Refutational Completeness\<close>
 
 sublocale ground_superposition_calculus \<subseteq> statically_complete_calculus where
   Bot = G_Bot and

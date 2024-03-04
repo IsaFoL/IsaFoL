@@ -245,9 +245,6 @@ definition G_entails :: "'f gatom clause set \<Rightarrow> 'f gatom clause set \
   "G_entails N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: 'f gterm rel). refl I \<longrightarrow> trans I \<longrightarrow> sym I \<longrightarrow>
     compatible_with_gctxt I \<longrightarrow> upair ` I \<TTurnstile>s N\<^sub>1 \<longrightarrow> upair ` I \<TTurnstile>s N\<^sub>2)"
 
-
-subsection \<open>Redundancy Criterion\<close>
-
 lemma ground_superposition_smaller_conclusion:
   assumes
     step: "ground_superposition P1 P2 C"
@@ -471,7 +468,9 @@ proof (cases P C rule: ground_eq_factoring.cases)
     by simp
 qed
 
-sublocale consequence_relation where
+end
+
+sublocale ground_superposition_calculus \<subseteq> consequence_relation where
   Bot = G_Bot and
   entails = G_entails
 proof unfold_locales
@@ -500,56 +499,5 @@ next
   show "\<And>N1 N2 N3. G_entails N1 N2 \<Longrightarrow> G_entails N2 N3 \<Longrightarrow> G_entails N1 N3"
     using G_entails_def by simp
 qed
-
-sublocale calculus_with_finitary_standard_redundancy where
-  Inf = G_Inf and
-  Bot = G_Bot and
-  entails = G_entails and
-  less = "(\<prec>\<^sub>c)"
-  defines GRed_I = Red_I and GRed_F = Red_F
-proof unfold_locales
-  show "transp (\<prec>\<^sub>c)"
-    using transp_less_cls .
-next
-  show "wfP (\<prec>\<^sub>c)"
-    using wfP_less_cls .
-next
-  show "\<And>\<iota>. \<iota> \<in> G_Inf \<Longrightarrow> prems_of \<iota> \<noteq> []"
-    by (auto simp: G_Inf_def)
-next
-  fix \<iota>
-  have "concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
-    if \<iota>_def: "\<iota> = Infer [P\<^sub>2, P\<^sub>1] C" and
-      infer: "ground_superposition P\<^sub>1 P\<^sub>2 C"
-    for P\<^sub>2 P\<^sub>1 C
-    unfolding \<iota>_def
-    using infer
-    using ground_superposition_smaller_conclusion
-    by simp
-
-  moreover have "concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
-    if \<iota>_def: "\<iota> = Infer [P] C" and
-      infer: "ground_eq_resolution P C"
-    for P C
-    unfolding \<iota>_def
-    using infer
-    using ground_eq_resolution_smaller_conclusion
-    by simp
-
-  moreover have "concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
-    if \<iota>_def: "\<iota> = Infer [P] C" and
-      infer: "ground_eq_factoring P C"
-    for P C
-    unfolding \<iota>_def
-    using infer
-    using ground_eq_factoring_smaller_conclusion
-    by simp
-
-  ultimately show "\<iota> \<in> G_Inf \<Longrightarrow> concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
-    unfolding G_Inf_def
-    by fast
-qed
-
-end
 
 end
