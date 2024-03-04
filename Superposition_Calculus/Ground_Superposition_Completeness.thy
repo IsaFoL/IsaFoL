@@ -5,10 +5,10 @@ begin
 context ground_superposition_calculus begin
 
 context
-  fixes N :: "'f atom clause set"
+  fixes N :: "'f gatom clause set"
 begin
 
-function equation :: "'f atom clause \<Rightarrow> 'f gterm rel" where
+function equation :: "'f gatom clause \<Rightarrow> 'f gterm rel" where
   "equation C = {(s, t)| s t C'.
     C \<in> N \<and>
     C = add_mset (Pos (Upair s t)) C' \<and>
@@ -1004,8 +1004,8 @@ qed
 
 lemma (in ground_superposition_calculus) model_construction:
   fixes
-    N :: "'f atom clause set" and
-    C :: "'f atom clause"
+    N :: "'f gatom clause set" and
+    C :: "'f gatom clause"
   defines
     "entails \<equiv> \<lambda>E C. (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile> C"
   assumes "saturated N" and "{#} \<notin> N" and C_in: "C \<in> N"
@@ -1070,7 +1070,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
         thus ?thesis
         proof (rule disjE)
           assume "s = s'"
-          define \<iota> :: "'f atom clause inference" where
+          define \<iota> :: "'f gatom clause inference" where
             "\<iota> = Infer [C] C'"
 
           have "ground_eq_resolution C C'"
@@ -1205,7 +1205,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             CD_eq2: "s \<prec>\<^sub>t s' \<Longrightarrow> CD = add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s)) (C' + D')"
             using \<open>s \<prec>\<^sub>t s' \<or> s' \<prec>\<^sub>t s\<close> s'_eq_if s_eq_if by metis
 
-          define \<iota> :: "'f atom clause inference" where
+          define \<iota> :: "'f gatom clause inference" where
             "\<iota> = Infer [D, C] CD"
 
           have "\<iota> \<in> G_Inf"
@@ -1428,7 +1428,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
 
                 let ?concl = "add_mset (Neg (Upair s' t')) (add_mset (Pos (Upair t t')) C'')"
 
-                define \<iota> :: "'f atom clause inference" where
+                define \<iota> :: "'f gatom clause inference" where
                   "\<iota> = Infer [C] ?concl"
 
                 have eq_fact: "ground_eq_factoring C ?concl"
@@ -1513,7 +1513,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
 
             let ?concl = "add_mset (Pos (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')) (C' + D')"
 
-            define \<iota> :: "'f atom clause inference" where
+            define \<iota> :: "'f gatom clause inference" where
               "\<iota> = Infer [D, C] ?concl"
 
             have super: "ground_pos_superposition C D ?concl"
@@ -1615,7 +1615,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
           then obtain C' where C_def: "C = add_mset (Pos A) (add_mset (Pos A) C')"
             using two_le_countE by metis
 
-          define \<iota> :: "'f atom clause inference" where
+          define \<iota> :: "'f gatom clause inference" where
             "\<iota> = Infer [C] (add_mset (Pos (Upair s s')) (add_mset (Neg (Upair s' s')) C'))"
 
           let ?concl = "add_mset (Pos (Upair s s')) (add_mset (Neg (Upair s' s')) C')"
@@ -1719,7 +1719,7 @@ sublocale ground_superposition_calculus \<subseteq> statically_complete_calculus
   Red_I = Red_I and
   Red_F = Red_F
 proof unfold_locales
-  fix B :: "'f atom clause" and N :: "'f atom clause set"
+  fix B :: "'f gatom clause" and N :: "'f gatom clause set"
   assume "B \<in> G_Bot" and "saturated N"
   hence "B = {#}"
     by simp

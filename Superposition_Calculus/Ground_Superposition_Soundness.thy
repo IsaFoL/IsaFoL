@@ -18,7 +18,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
     let ?I' = "(\<lambda>(t\<^sub>1, t). Upair t\<^sub>1 t) ` I"
     assume "refl I" and "trans I" and "sym I" and "compatible_with_gctxt I" and
       "?I' \<TTurnstile> P1" and "?I' \<TTurnstile> P2"
-    then obtain K1 K2 :: "'f atom literal" where
+    then obtain K1 K2 :: "'f gatom literal" where
       "K1 \<in># P1" and "?I' \<TTurnstile>l K1" and "K2 \<in># P2" and "?I' \<TTurnstile>l K2"
       by (auto simp: true_cls_def)
 
@@ -122,7 +122,7 @@ proof (cases P C rule: ground_eq_factoring.cases)
     fix I :: "'f gterm rel"
     let ?I' = "(\<lambda>(t\<^sub>1, t). Upair t\<^sub>1 t) ` I"
     assume "trans I" and "sym I" and "?I' \<TTurnstile> P"
-    then obtain K :: "'f atom literal" where
+    then obtain K :: "'f gatom literal" where
       "K \<in># P" and "?I' \<TTurnstile>l K"
       by (auto simp: true_cls_def)
 

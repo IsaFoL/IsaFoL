@@ -53,7 +53,7 @@ section \<open>Superposition Calculus\<close>
 locale ground_superposition_calculus = ground_ordering less_trm + ground_select select
   for
     less_trm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
-    select :: "'f atom clause \<Rightarrow> 'f atom clause" +
+    select :: "'f gatom clause \<Rightarrow> 'f gatom clause" +
   assumes
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
@@ -61,7 +61,7 @@ begin
 subsection \<open>Ground Rules\<close>
 
 inductive ground_superposition ::
-  "'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> bool"
+  "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool"
 where
   ground_superpositionI: "
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
@@ -80,7 +80,7 @@ where
     ground_superposition P\<^sub>1 P\<^sub>2 C"
 
 inductive ground_eq_resolution ::
-  "'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> bool" where
+  "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool" where
   ground_eq_resolutionI: "
     P = add_mset L P' \<Longrightarrow>
     L = Neg (Upair t t) \<Longrightarrow>
@@ -88,7 +88,7 @@ inductive ground_eq_resolution ::
     ground_eq_resolution P P'"
 
 inductive ground_eq_factoring ::
-  "'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> bool" where
+  "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool" where
   ground_eq_factoringI: "
     P = add_mset L\<^sub>1 (add_mset L\<^sub>2 P') \<Longrightarrow>
     L\<^sub>1 = t \<approx> t' \<Longrightarrow>
@@ -102,8 +102,49 @@ inductive ground_eq_factoring ::
 
 subsubsection \<open>Alternative Specification of the Superposition Rule\<close>
 
+inductive ground_superposition' ::
+  "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool"
+where
+  ground_superposition'I: "
+    P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
+    P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
+    P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
+    \<P> \<in> {Pos, Neg} \<Longrightarrow>
+    L\<^sub>1 = \<P> (Upair s\<langle>t\<rangle>\<^sub>G s') \<Longrightarrow>
+    L\<^sub>2 = t \<approx> t' \<Longrightarrow>
+    s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
+    t' \<prec>\<^sub>t t \<Longrightarrow>
+    (\<P> = Pos \<longrightarrow> select P\<^sub>1 = {#} \<and> is_strictly_maximal_lit L\<^sub>1 P\<^sub>1) \<Longrightarrow>
+    (\<P> = Neg \<longrightarrow> (select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> L\<^sub>1 \<in># select P\<^sub>1)) \<Longrightarrow>
+    select P\<^sub>2 = {#} \<Longrightarrow>
+    is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
+    C = add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
+    ground_superposition' P\<^sub>1 P\<^sub>2 C"
+
+lemma "ground_superposition' = ground_superposition"
+proof (intro ext iffI)
+  fix P1 P2 C
+  assume "ground_superposition' P1 P2 C"
+  thus "ground_superposition P1 P2 C"
+  proof (cases P1 P2 C rule: ground_superposition'.cases)
+    case (ground_superposition'I L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
+    thus ?thesis
+      using ground_superpositionI by blast
+  qed
+next
+  fix P1 P2 C
+  assume "ground_superposition P1 P2 C"
+  thus "ground_superposition' P1 P2 C"
+  proof (cases P1 P2 C rule: ground_superposition.cases)
+    case (ground_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
+    thus ?thesis
+      using ground_superposition'I
+      by (metis literals_distinct(2))
+  qed
+qed
+
 inductive ground_pos_superposition ::
-  "'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> bool"
+  "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool"
 where
   ground_pos_superpositionI: "
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
@@ -132,7 +173,7 @@ proof (cases P\<^sub>1 P\<^sub>2 C rule: ground_pos_superposition.cases)
 qed
 
 inductive ground_neg_superposition ::
-  "'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> bool"
+  "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool"
 where
   ground_neg_superpositionI: "
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
@@ -188,19 +229,19 @@ Considérer de changer l'ordre des prémisses des règles afin qu'elles soient c
 framework et l'état de l'art. 
 *)
 
-definition G_Inf :: "'f atom clause inference set" where
+definition G_Inf :: "'f gatom clause inference set" where
   "G_Inf =
     {Infer [P\<^sub>2, P\<^sub>1] C | P\<^sub>2 P\<^sub>1 C. ground_superposition P\<^sub>1 P\<^sub>2 C} \<union>
     {Infer [P] C | P C. ground_eq_resolution P C} \<union>
     {Infer [P] C | P C. ground_eq_factoring P C}"
 
-abbreviation G_Bot :: "'f atom clause set" where
+abbreviation G_Bot :: "'f gatom clause set" where
   "G_Bot \<equiv> {{#}}"
 
 abbreviation upair where
   "upair \<equiv> \<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2"
 
-definition G_entails :: "'f atom clause set \<Rightarrow> 'f atom clause set \<Rightarrow> bool" where
+definition G_entails :: "'f gatom clause set \<Rightarrow> 'f gatom clause set \<Rightarrow> bool" where
   "G_entails N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: 'f gterm rel). refl I \<longrightarrow> trans I \<longrightarrow> sym I \<longrightarrow>
     compatible_with_gctxt I \<longrightarrow> upair ` I \<TTurnstile>s N\<^sub>1 \<longrightarrow> upair ` I \<TTurnstile>s N\<^sub>2)"
 

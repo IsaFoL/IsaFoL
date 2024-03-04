@@ -28,14 +28,13 @@ lemma lesseq_trm_if_subtermeq: "t \<preceq>\<^sub>t ctxt\<langle>t\<rangle>\<^su
   using less_trm_if_subterm
   by (metis gctxt_ident_iff_eq_GHole reflclp_iff)
 
-definition less_lit :: "'f atom literal \<Rightarrow> 'f atom literal \<Rightarrow> bool" (infix "\<prec>\<^sub>l" 50) where
+definition less_lit :: "'f gatom literal \<Rightarrow> 'f gatom literal \<Rightarrow> bool" (infix "\<prec>\<^sub>l" 50) where
   "less_lit L1 L2 \<equiv> multp (\<prec>\<^sub>t) (mset_lit L1) (mset_lit L2)"
 
 abbreviation lesseq_lit (infix "\<preceq>\<^sub>l" 50) where
   "lesseq_lit \<equiv> (\<prec>\<^sub>l)\<^sup>=\<^sup>="
 
-abbreviation less_cls ::
-  "'f atom clause \<Rightarrow> 'f atom clause \<Rightarrow> bool" (infix "\<prec>\<^sub>c" 50) where
+abbreviation less_cls :: "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool" (infix "\<prec>\<^sub>c" 50) where
   "less_cls \<equiv> multp (\<prec>\<^sub>l)"
 
 abbreviation lesseq_cls (infix "\<preceq>\<^sub>c" 50) where
@@ -69,7 +68,7 @@ lemma wfP_less_cls[simp]: "wfP (\<prec>\<^sub>c)"
 
 lemma totalp_on_less_lit[simp]: "totalp_on A (\<prec>\<^sub>l)"
 proof (rule totalp_onI)
-  fix L1 L2 :: "'f atom literal"
+  fix L1 L2 :: "'f gatom literal"
   assume "L1 \<noteq> L2"
 
   show "L1 \<prec>\<^sub>l L2 \<or> L2 \<prec>\<^sub>l L1"
@@ -156,10 +155,10 @@ next
     by (metis reflclp_iff totalpD totalp_less_cls)
 qed
 
-abbreviation is_maximal_lit :: "'f atom literal \<Rightarrow> 'f atom clause \<Rightarrow> bool" where
+abbreviation is_maximal_lit :: "'f gatom literal \<Rightarrow> 'f gatom clause \<Rightarrow> bool" where
   "is_maximal_lit L M \<equiv> is_maximal_in_mset_wrt (\<prec>\<^sub>l) M L"
 
-abbreviation is_strictly_maximal_lit :: "'f atom literal \<Rightarrow> 'f atom clause \<Rightarrow> bool" where
+abbreviation is_strictly_maximal_lit :: "'f gatom literal \<Rightarrow> 'f gatom clause \<Rightarrow> bool" where
   "is_strictly_maximal_lit L M \<equiv> is_greatest_in_mset_wrt (\<prec>\<^sub>l) M L"
 
 
