@@ -1361,7 +1361,7 @@ lemma equality_resolution_ground_instance:
           (to_ground_clause (premise \<cdot> \<theta>)) 
           (to_ground_clause (conclusion \<cdot> \<theta>))"
   (* TODO: *)
-  shows " \<exists>conclusion'. equality_resolution premise conclusion'
+  shows "\<exists>conclusion'. equality_resolution premise conclusion'
             \<and> Infer [to_ground_clause (premise \<cdot> \<theta>)]  (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> 
                 inference_groundings select\<^sub>G (Infer [premise] conclusion')
             \<and> conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"

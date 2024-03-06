@@ -93,6 +93,9 @@ proof -
     by simp
 qed
 
+sublocale ground: generic_select select\<^sub>G
+  by unfold_locales (simp_all add: select\<^sub>G_subset select\<^sub>G_negative)
+
 end
 
 end
