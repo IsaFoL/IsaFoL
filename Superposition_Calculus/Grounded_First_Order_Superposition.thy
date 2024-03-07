@@ -1,4 +1,4 @@
-theory First_Order_Superposition_With_Grounding
+theory Grounded_First_Order_Superposition
   imports First_Order_Superposition
 begin
 
