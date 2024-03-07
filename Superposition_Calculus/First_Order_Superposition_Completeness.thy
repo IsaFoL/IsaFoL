@@ -1,7 +1,7 @@
 theory First_Order_Superposition_Completeness
   imports
     Ground_Superposition_Completeness
-    First_Order_Superposition_With_Grounding
+    Grounded_First_Order_Superposition
 begin
 
 (* --MISC-- *)

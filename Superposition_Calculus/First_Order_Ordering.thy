@@ -6,8 +6,6 @@ theory First_Order_Ordering
     "Open_Induction.Restricted_Predicates"
 begin
 
-
-
 (* TODO: Move *)
 context ground_ordering
 begin

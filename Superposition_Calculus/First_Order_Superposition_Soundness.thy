@@ -1,5 +1,5 @@
 theory First_Order_Superposition_Soundness
-  imports First_Order_Superposition_With_Grounding
+  imports Grounded_First_Order_Superposition
 begin
 
 subsection \<open>Soundness\<close>
