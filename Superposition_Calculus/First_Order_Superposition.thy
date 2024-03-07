@@ -20,7 +20,7 @@ locale first_order_superposition_calculus =
   first_order_select select +
   first_order_ordering less\<^sub>t
   for 
-    select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause" and
+    select :: "('f, 'v) select" and
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   assumes
     infinite_variable_universe: "infinite (UNIV :: 'v set)" and

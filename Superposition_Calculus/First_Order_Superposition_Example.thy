@@ -4,19 +4,17 @@ theory First_Order_Superposition_Example
     First_Order_Superposition
 begin
 
-definition select_example  :: "('f, ('v :: infinite)) atom clause \<Rightarrow> ('f, 'v) atom clause" where
-  "select_example _ \<equiv> {#}"
+abbreviation trivial_select :: "('f, 'v) select" where
+  "trivial_select _ \<equiv> {#}"
                                     
 interpretation first_order_superposition_calculus 
-  "select_example ::  ('f :: weighted, ('v :: infinite)) atom clause \<Rightarrow> ('f, 'v) atom clause" 
+  "trivial_select :: ('f :: weighted, 'v :: infinite) select" 
   less_kbo
 proof(unfold_locales)
-  show "\<And>clause. select_example clause \<subseteq># clause"
-    unfolding select_example_def
+  show "\<And>clause. trivial_select clause \<subseteq># clause"
     by simp
 next
-  show "\<And>clause literal. literal \<in># select_example clause \<Longrightarrow> is_neg literal"
-    unfolding select_example_def
+  show "\<And>clause literal. literal \<in># trivial_select clause \<Longrightarrow> is_neg literal"
     by simp
 next
   show "transp less_kbo"
@@ -37,18 +35,42 @@ next
     unfolding totalp_on_def Term.ground_vars_term_empty
     by blast
 next
-  show "\<And>context term\<^sub>1 term\<^sub>2. \<lbrakk>less_kbo term\<^sub>1 term\<^sub>2; is_ground_term term\<^sub>1; is_ground_term term\<^sub>2; is_ground_context context\<rbrakk> \<Longrightarrow> less_kbo context\<langle>term\<^sub>1\<rangle> context\<langle>term\<^sub>2\<rangle>"
+  fix 
+    context\<^sub>G :: "('f, 'v) context" and
+    term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2 :: "('f, 'v) term" 
+  assume 
+    "less_kbo term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2" 
+    "is_ground_term term\<^sub>G\<^sub>1" 
+    "is_ground_term term\<^sub>G\<^sub>2" 
+    "is_ground_context context\<^sub>G"
+
+  then show "less_kbo context\<^sub>G\<langle>term\<^sub>G\<^sub>1\<rangle> context\<^sub>G\<langle>term\<^sub>G\<^sub>2\<rangle>"
     using KBO.S_ctxt less_kbo_def by blast
 next
-  show "\<And>term\<^sub>1 term\<^sub>2 \<theta>. \<lbrakk>is_ground_term (subst_atm_abbrev term\<^sub>1 \<theta>); is_ground_term (subst_atm_abbrev term\<^sub>2 \<theta>); less_kbo term\<^sub>1 term\<^sub>2\<rbrakk> \<Longrightarrow> less_kbo (subst_atm_abbrev term\<^sub>1 \<theta>) (subst_atm_abbrev term\<^sub>2 \<theta>)"
+  fix term\<^sub>1 term\<^sub>2 :: "('f, 'v) term" and 
+      \<theta> :: "('f, 'v) subst"
+  assume 
+    "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)" 
+    "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)" 
+    "less_kbo term\<^sub>1 term\<^sub>2
+"
+  then show "less_kbo (term\<^sub>1 \<cdot>t \<theta>) (term\<^sub>2 \<cdot>t \<theta>)"
     using less_kbo_subst by blast
 next
-  show "\<And>term\<^sub>G context\<^sub>G. \<lbrakk>is_ground_term term\<^sub>G; is_ground_context context\<^sub>G; context\<^sub>G \<noteq> \<box>\<rbrakk> \<Longrightarrow> less_kbo term\<^sub>G context\<^sub>G\<langle>term\<^sub>G\<rangle>"
+  fix 
+    term\<^sub>G :: "('f, 'v) term" and
+    context\<^sub>G :: "('f, 'v) context"
+  assume 
+    "is_ground_term term\<^sub>G" 
+    "is_ground_context context\<^sub>G" 
+    "context\<^sub>G \<noteq> \<box>"
+  
+  then show "less_kbo term\<^sub>G context\<^sub>G\<langle>term\<^sub>G\<rangle>"
     by (simp add: KBO.S_supt less_kbo_def nectxt_imp_supt_ctxt)
 next
   show "infinite (UNIV :: 'v set)"
     by (simp add: infinite_UNIV)
-next
+next                      
   (* TODO: *)
   show "\<And>R. ground_critical_pair_theorem R"
     sorry
