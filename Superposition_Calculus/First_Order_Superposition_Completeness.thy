@@ -3018,10 +3018,10 @@ lemma for_all_elements_exists_f_implies_f_exists_for_all_elements:
 lemma (in first_order_superposition_calculus) ground_instances:
   obtains select\<^sub>G where 
     "ground_Inf_overapproximated select\<^sub>G premises"
-    "is_ground_select select\<^sub>G"
+    "is_grounding select\<^sub>G"
 proof-
   assume assumption: 
-    "\<And>select\<^sub>G. ground_Inf_overapproximated select\<^sub>G premises \<Longrightarrow> is_ground_select select\<^sub>G \<Longrightarrow> thesis"
+    "\<And>select\<^sub>G. ground_Inf_overapproximated select\<^sub>G premises \<Longrightarrow> is_grounding select\<^sub>G \<Longrightarrow> thesis"
 
   let ?premise_groundings = "\<Union>(clause_groundings ` premises)"
 
@@ -3050,8 +3050,8 @@ proof-
     )"
     by simp 
 
-  have "is_ground_select select\<^sub>G" 
-    unfolding is_ground_select_def select\<^sub>G_def select\<^sub>G_simple_def
+  have "is_grounding select\<^sub>G" 
+    unfolding is_select_grounding_def select\<^sub>G_def select\<^sub>G_simple_def
     using select\<^sub>G_on_premise_groundings
     by (metis ground_clause_is_ground subst_clause_Var_ident to_clause_inverse)
 
@@ -3136,7 +3136,7 @@ proof-
     "\<And>select\<^sub>G. ground_superposition_calculus.equality_resolution_inferences (\<prec>\<^sub>t\<^sub>G) select\<^sub>G 
          \<subseteq> ground_instances select\<^sub>G equality_resolution_inferences \<Longrightarrow> thesis"
   
-  obtain select\<^sub>G where "is_ground_select select\<^sub>G"
+  obtain select\<^sub>G where "is_grounding select\<^sub>G"
     using select\<^sub>G_simple by blast
 
   then interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G
@@ -3156,7 +3156,7 @@ proof-
       "is_ground_clause (conclusion \<cdot> \<theta>)"
       "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = select premise \<cdot> \<theta>"
       using select\<^sub>G
-      unfolding is_ground_select_def
+      unfolding is_select_grounding_def
       by (metis select_subst1 subst_ground_clause to_ground_clause_inverse)
       
     show "\<exists>premise conclusion. equality_resolution premise conclusion 
@@ -3180,13 +3180,13 @@ qed
 lemma equality_factoring_ground_instance_TODO:
   obtains select\<^sub>G where "ground_superposition_calculus.equality_factoring_inferences (\<prec>\<^sub>t\<^sub>G) select\<^sub>G 
           \<subseteq> ground_instances select\<^sub>G equality_factoring_inferences"
-      "is_ground_select select\<^sub>G"
+      "is_grounding select\<^sub>G"
 proof-
   assume assumption: 
     "\<And>select\<^sub>G. ground_superposition_calculus.equality_factoring_inferences (\<prec>\<^sub>t\<^sub>G) select\<^sub>G 
-         \<subseteq> ground_instances select\<^sub>G equality_factoring_inferences \<Longrightarrow>  is_ground_select select\<^sub>G \<Longrightarrow> thesis"
+         \<subseteq> ground_instances select\<^sub>G equality_factoring_inferences \<Longrightarrow> is_grounding select\<^sub>G \<Longrightarrow> thesis"
   
-  obtain select\<^sub>G where "is_ground_select select\<^sub>G"
+  obtain select\<^sub>G where "is_grounding select\<^sub>G"
     using select\<^sub>G_simple by blast
 
   then interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G
@@ -3206,7 +3206,7 @@ proof-
       "is_ground_clause (conclusion \<cdot> \<theta>)"
       "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = select premise \<cdot> \<theta>"
       using select\<^sub>G
-      unfolding is_ground_select_def
+      unfolding is_select_grounding_def
       by (metis select_subst1 subst_ground_clause to_ground_clause_inverse)
       
     show "\<exists>premise conclusion. equality_factoring premise conclusion 

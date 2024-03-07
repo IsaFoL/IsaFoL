@@ -9,7 +9,7 @@ begin
 
 sublocale ground: ground_superposition_calculus "(\<prec>\<^sub>t\<^sub>G)" select\<^sub>G
   apply(unfold_locales)
-  by(auto simp: select\<^sub>G_subset select\<^sub>G_negative ground_critical_pair_theorem)
+  by(auto simp: ground_critical_pair_theorem)
 
 end
 

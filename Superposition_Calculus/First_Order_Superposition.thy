@@ -204,7 +204,7 @@ definition entails\<^sub>F ::
     (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>\<^sub>C\<^sub>s N\<^sub>2)"
 
 definition inference_groundings
-  where "is_ground_select select\<^sub>G \<Longrightarrow> inference_groundings select\<^sub>G inference = 
+  where "is_grounding select\<^sub>G \<Longrightarrow> inference_groundings select\<^sub>G inference = 
   { ground_inference | ground_inference \<theta> \<rho>\<^sub>1 \<rho>\<^sub>2.
     (case inference of 
         Infer [premise] conclusion \<Rightarrow>
