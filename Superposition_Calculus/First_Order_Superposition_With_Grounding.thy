@@ -2,9 +2,9 @@ theory First_Order_Superposition_With_Grounding
   imports First_Order_Superposition
 begin
 
-locale first_order_superposition_calculus_with_grounding =
+locale grounded_first_order_superposition_calculus =
   first_order_superposition_calculus +
-  first_order_select_with_grounding
+  grounded_first_order_select
 begin
 
 sublocale ground: ground_superposition_calculus "(\<prec>\<^sub>t\<^sub>G)" select\<^sub>G

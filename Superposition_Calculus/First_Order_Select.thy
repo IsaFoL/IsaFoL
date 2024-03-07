@@ -68,7 +68,7 @@ lemmas select_subst = select_subst1 select_subst2
 
 end
 
-locale first_order_select_with_grounding = 
+locale grounded_first_order_select = 
   first_order_select select for select +
   fixes select\<^sub>G 
   assumes select\<^sub>G: "is_select_grounding select select\<^sub>G"
