@@ -6020,15 +6020,9 @@ qed
 
 
 subsection \<open>ORD-RES-5 (explicit model construction)\<close>
-  
-(* lemma "((\<C> = Some C) \<longleftrightarrow> P C) \<Longrightarrow> (\<C> = Some C \<and> P C \<or> \<C> = None)"
- *)
 
 definition The_optional :: "('a \<Rightarrow> bool) \<Rightarrow> 'a option" where
-  "\<exists>\<^sub>\<le>\<^sub>1x. P x \<Longrightarrow> The_optional P = (if \<exists>x. P x then Some (THE x. P x) else None)"
-
-term The
-find_consts "('a \<Rightarrow> bool) \<Rightarrow> 'a option"
+  "The_optional P = (if \<exists>!x. P x then Some (THE x. P x) else None)"
     
 inductive ord_res_5 where
   skip: "
