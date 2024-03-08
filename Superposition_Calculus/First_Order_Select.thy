@@ -2,24 +2,30 @@ theory First_Order_Select
   imports Ground_Select First_Order_Clause
 begin
 
-locale first_order_select = generic_select select
-  for select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
-begin
+type_synonym 'f ground_select = "'f ground_atom clause \<Rightarrow> 'f ground_atom clause"
+type_synonym ('f, 'v) select = "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
 
-definition is_ground_select :: "('f ground_atom clause \<Rightarrow> 'f ground_atom clause) \<Rightarrow> bool" where
-  "is_ground_select select\<^sub>G = (\<forall>clause\<^sub>G. \<exists>clause \<theta>. 
+definition is_select_grounding :: "('f, 'v) select \<Rightarrow> 'f ground_select \<Rightarrow> bool" where
+  "is_select_grounding select select\<^sub>G = (\<forall>clause\<^sub>G. \<exists>clause \<theta>. 
         is_ground_clause (clause \<cdot> \<theta>)  \<and> 
         clause\<^sub>G = to_ground_clause (clause \<cdot> \<theta>) \<and> 
         select\<^sub>G clause\<^sub>G = to_ground_clause ((select clause) \<cdot> \<theta>))"
 
+locale first_order_select = generic_select select
+  for select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
+begin
+
+abbreviation is_grounding :: "'f ground_select \<Rightarrow> bool" where
+  "is_grounding select\<^sub>G \<equiv> is_select_grounding select select\<^sub>G"
+
 definition select\<^sub>G\<^sub>s where
-  "select\<^sub>G\<^sub>s = { ground_select. is_ground_select ground_select }"
+  "select\<^sub>G\<^sub>s = { ground_select. is_grounding ground_select }"
 
 definition select\<^sub>G_simple where
   "select\<^sub>G_simple clause = to_ground_clause (select (to_clause clause))"
 
-lemma select\<^sub>G_simple: "is_ground_select select\<^sub>G_simple"
-  unfolding is_ground_select_def is_ground_select_def select\<^sub>G_simple_def
+lemma select\<^sub>G_simple: "is_grounding select\<^sub>G_simple"
+  unfolding is_select_grounding_def select\<^sub>G_simple_def
   by (metis to_clause_inverse ground_clause_is_ground subst_clause_Var_ident)
 
 lemma select_from_ground_clause1: 
@@ -62,14 +68,15 @@ lemmas select_subst = select_subst1 select_subst2
 
 end
 
-locale first_order_select_with_grounding = first_order_select +
+locale grounded_first_order_select = 
+  first_order_select select for select +
   fixes select\<^sub>G 
-  assumes select\<^sub>G: "is_ground_select select\<^sub>G"
+  assumes select\<^sub>G: "is_select_grounding select select\<^sub>G"
 begin
   
 lemma select\<^sub>G_subset: "select\<^sub>G clause \<subseteq># clause"
   using select\<^sub>G 
-  unfolding is_ground_select_def
+  unfolding is_select_grounding_def
   by (metis select_subset to_ground_clause_def image_mset_subseteq_mono subst_clause_def)
 
 lemma select\<^sub>G_negative:
@@ -80,7 +87,7 @@ proof -
     is_ground: "is_ground_clause (clause \<cdot> \<theta>)" and
     select\<^sub>G: "select\<^sub>G clause\<^sub>G = to_ground_clause (select clause \<cdot> \<theta>)"
     using select\<^sub>G
-    unfolding is_ground_select_def
+    unfolding is_select_grounding_def
     by blast
 
   show ?thesis
@@ -92,6 +99,9 @@ proof -
     unfolding to_literal_def
     by simp
 qed
+
+sublocale ground: generic_select select\<^sub>G
+  by unfold_locales (simp_all add: select\<^sub>G_subset select\<^sub>G_negative)
 
 end
 

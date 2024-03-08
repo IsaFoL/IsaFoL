@@ -1,5 +1,5 @@
 theory First_Order_Superposition_Soundness
-  imports First_Order_Superposition_With_Grounding
+  imports Grounded_First_Order_Superposition
 begin
 
 subsection \<open>Soundness\<close>
@@ -147,7 +147,7 @@ proof (cases P C rule: equality_factoring.cases)
     show "?I \<TTurnstile> ?C"
     proof(cases "L' = ?L\<^sub>1 \<or> L' = ?L\<^sub>2")
       case True
-      interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G_simple
+      interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G_simple
         apply unfold_locales
         using select\<^sub>G_simple by blast
 
@@ -297,7 +297,7 @@ proof (cases P1 P2 C rule: superposition.cases)
       show ?thesis
       proof (cases "L\<^sub>2' = ?L\<^sub>2")
         case L\<^sub>2'_def: True
-        interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G_simple
+        interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G_simple
         apply unfold_locales
         using select\<^sub>G_simple by blast
 

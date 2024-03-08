@@ -6,8 +6,6 @@ theory First_Order_Ordering
     "Open_Induction.Restricted_Predicates"
 begin
 
-
-
 (* TODO: Move *)
 context ground_ordering
 begin
@@ -34,13 +32,14 @@ locale first_order_ordering =
   fixes
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50)
   assumes
+    (* TODO: It should be enough to have these on ground terms*)
     less\<^sub>t_transitive [intro]: "transp (\<prec>\<^sub>t)" and
     less\<^sub>t_asymmetric [intro]: "asymp (\<prec>\<^sub>t)" and 
 
     less\<^sub>t_wellfounded_on [intro]: "wfp_on (\<prec>\<^sub>t) {term. is_ground_term term}" and
     less\<^sub>t_total_on [intro]: "totalp_on {term. is_ground_term term} (\<prec>\<^sub>t)" and
     
-    less\<^sub>t_ground_context_compatible [simp]:
+    less\<^sub>t_ground_context_compatible:
       "\<And>context term\<^sub>1 term\<^sub>2. 
         term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<Longrightarrow>
         is_ground_term term\<^sub>1 \<Longrightarrow> 
@@ -53,7 +52,7 @@ locale first_order_ordering =
         is_ground_term (term\<^sub>2 \<cdot>t \<theta>) \<Longrightarrow>
         term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<Longrightarrow>
         term\<^sub>1 \<cdot>t \<theta> \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<theta>" and
-    less\<^sub>t_ground_subterm_property [simp]: 
+    less\<^sub>t_ground_subterm_property: 
       "\<And>term\<^sub>G context\<^sub>G.
          is_ground_term term\<^sub>G \<Longrightarrow>
          is_ground_context context\<^sub>G \<Longrightarrow> 
@@ -375,12 +374,13 @@ lemma not_less_eq\<^sub>c:
   unfolding less\<^sub>c_less\<^sub>c\<^sub>G[OF assms] less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>c\<^sub>G
   ..
 
-lemma less\<^sub>t_less_eq\<^sub>t_ground_subst_stability: assumes 
-  "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)"
-  "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)"
-  "term\<^sub>1 \<cdot>t \<theta> \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<theta>"
-shows
-  "\<not> term\<^sub>2 \<preceq>\<^sub>t term\<^sub>1"
+lemma less\<^sub>t_less_eq\<^sub>t_ground_subst_stability:
+  assumes 
+    "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)"
+    "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)"
+    "term\<^sub>1 \<cdot>t \<theta> \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<theta>"
+  shows
+    "\<not> term\<^sub>2 \<preceq>\<^sub>t term\<^sub>1"
 proof
   assume assumption: "term\<^sub>2 \<preceq>\<^sub>t term\<^sub>1"
 

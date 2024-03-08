@@ -1,7 +1,7 @@
 theory First_Order_Superposition_Completeness
   imports
     Ground_Superposition_Completeness
-    First_Order_Superposition_With_Grounding
+    Grounded_First_Order_Superposition
 begin
 
 (* --MISC-- *)
@@ -263,7 +263,7 @@ next
     by (smt (verit, best) eval_term.simps(1) term_of_gterm_ctxt_apply subst_apply_term_ctxt_apply_distrib to_ground_term_inverse var_in_term)
 qed
 
-lemma (in first_order_superposition_calculus_with_grounding) term_subst_less:
+lemma (in grounded_first_order_superposition_calculus) term_subst_less:
   fixes \<theta> :: "('a, 'b) subst"
   assumes 
     "is_ground_term replacement" and
@@ -426,7 +426,7 @@ next
 qed
 
 (* TODO !! *)
-lemma (in first_order_superposition_calculus_with_grounding) less\<^sub>t_less\<^sub>l:
+lemma (in grounded_first_order_superposition_calculus) less\<^sub>t_less\<^sub>l:
   assumes 
     "\<forall>term \<in> set_uprod (atm_of literal). term \<cdot>t \<theta>' \<preceq>\<^sub>t term \<cdot>t \<theta>"
     "\<exists>term \<in> set_uprod (atm_of literal). term \<cdot>t \<theta>' \<prec>\<^sub>t term \<cdot>t \<theta>"
@@ -469,7 +469,7 @@ next
   by (meson asympD less\<^sub>t_asymmetric)
 qed
 
-lemma (in first_order_superposition_calculus_with_grounding) literal_subst_less:
+lemma (in grounded_first_order_superposition_calculus) literal_subst_less:
   fixes \<theta> :: "('a, 'b) subst"
   assumes 
     "is_ground_term replacement" and
@@ -511,10 +511,10 @@ lemma multp_add_same:
   by (meson assms asymp_on_subset irreflp_on_if_asymp_on multp_cancel_add_mset top_greatest)
 
 
-lemmas (in first_order_superposition_calculus_with_grounding) less\<^sub>c_add_same =  
+lemmas (in grounded_first_order_superposition_calculus) less\<^sub>c_add_same =  
   multp_add_same[OF less\<^sub>l_asymmetric less\<^sub>l_transitive]
 
-lemma (in first_order_superposition_calculus_with_grounding) less_eq\<^sub>l_less_eq\<^sub>c:
+lemma (in grounded_first_order_superposition_calculus) less_eq\<^sub>l_less_eq\<^sub>c:
   assumes "\<forall>literal \<in># clause. literal \<cdot>l \<theta>' \<preceq>\<^sub>l literal \<cdot>l \<theta>"
   shows "clause \<cdot> \<theta>' \<preceq>\<^sub>c clause \<cdot> \<theta>"
   using assms 
@@ -525,7 +525,7 @@ lemma (in first_order_superposition_calculus_with_grounding) less_eq\<^sub>l_les
    apply (simp add: smaller_literal subst_clause_add_mset)
   by (simp add: subst_clause_add_mset)
   
-lemma (in first_order_superposition_calculus_with_grounding) less\<^sub>l_less\<^sub>c:
+lemma (in grounded_first_order_superposition_calculus) less\<^sub>l_less\<^sub>c:
   assumes 
     "\<forall>literal \<in># clause. literal \<cdot>l \<theta>' \<preceq>\<^sub>l literal \<cdot>l \<theta>"
     "\<exists>literal \<in># clause. literal \<cdot>l \<theta>' \<prec>\<^sub>l literal \<cdot>l \<theta>"
@@ -565,7 +565,7 @@ next
   qed
 qed
 
-lemma (in first_order_superposition_calculus_with_grounding) clause_subst_less:
+lemma (in grounded_first_order_superposition_calculus) clause_subst_less:
   assumes 
     "is_ground_term replacement" and
     "replacement \<prec>\<^sub>t \<theta> var" and
@@ -594,7 +594,7 @@ proof-
     using less\<^sub>l_less\<^sub>c[OF a b].
 qed
 
-lemma (in first_order_superposition_calculus_with_grounding) context_less:
+lemma (in grounded_first_order_superposition_calculus) context_less:
   assumes 
     "is_ground_context context" 
     "is_ground_term term" 
@@ -1348,7 +1348,7 @@ abbreviation superposition_inferences where
 
 end
 
-context first_order_superposition_calculus_with_grounding
+context grounded_first_order_superposition_calculus
 begin
 
 lemma equality_resolution_ground_instance:
@@ -1361,7 +1361,7 @@ lemma equality_resolution_ground_instance:
           (to_ground_clause (premise \<cdot> \<theta>)) 
           (to_ground_clause (conclusion \<cdot> \<theta>))"
   (* TODO: *)
-  shows " \<exists>conclusion'. equality_resolution premise conclusion'
+  shows "\<exists>conclusion'. equality_resolution premise conclusion'
             \<and> Infer [to_ground_clause (premise \<cdot> \<theta>)]  (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> 
                 inference_groundings select\<^sub>G (Infer [premise] conclusion')
             \<and> conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
@@ -2553,7 +2553,7 @@ end
 
 
 
-context first_order_superposition_calculus_with_grounding
+context grounded_first_order_superposition_calculus
 begin
 
 lemma inference\<^sub>G_concl_in_clause_grounding: 
@@ -2624,7 +2624,7 @@ next
   fix select\<^sub>G
   assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
  
-  then interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
     apply unfold_locales
     by(simp add: select\<^sub>G\<^sub>s_def)
 
@@ -2634,7 +2634,7 @@ next
    fix select\<^sub>G
    assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
  
-  then interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
     apply unfold_locales
     by(simp add: select\<^sub>G\<^sub>s_def)
 
@@ -2684,7 +2684,7 @@ next
   qed
 qed
 
-context first_order_superposition_calculus_with_grounding
+context grounded_first_order_superposition_calculus
 begin
 
 
@@ -3018,10 +3018,10 @@ lemma for_all_elements_exists_f_implies_f_exists_for_all_elements:
 lemma (in first_order_superposition_calculus) ground_instances:
   obtains select\<^sub>G where 
     "ground_Inf_overapproximated select\<^sub>G premises"
-    "is_ground_select select\<^sub>G"
+    "is_grounding select\<^sub>G"
 proof-
   assume assumption: 
-    "\<And>select\<^sub>G. ground_Inf_overapproximated select\<^sub>G premises \<Longrightarrow> is_ground_select select\<^sub>G \<Longrightarrow> thesis"
+    "\<And>select\<^sub>G. ground_Inf_overapproximated select\<^sub>G premises \<Longrightarrow> is_grounding select\<^sub>G \<Longrightarrow> thesis"
 
   let ?premise_groundings = "\<Union>(clause_groundings ` premises)"
 
@@ -3050,12 +3050,12 @@ proof-
     )"
     by simp 
 
-  have "is_ground_select select\<^sub>G" 
-    unfolding is_ground_select_def select\<^sub>G_def select\<^sub>G_simple_def
+  have "is_grounding select\<^sub>G" 
+    unfolding is_select_grounding_def select\<^sub>G_def select\<^sub>G_simple_def
     using select\<^sub>G_on_premise_groundings
     by (metis ground_clause_is_ground subst_clause_Var_ident to_clause_inverse)
 
-  then interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
     apply unfold_locales.
 
   have "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>\<theta> premise. 
@@ -3084,7 +3084,7 @@ proof(rule stat_ref_comp_to_non_ground_fam_inter)
   proof
     fix select\<^sub>G
     assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
-    then interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G
+    then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
       apply unfold_locales
       unfolding select\<^sub>G\<^sub>s_def
       by simp
@@ -3136,10 +3136,10 @@ proof-
     "\<And>select\<^sub>G. ground_superposition_calculus.equality_resolution_inferences (\<prec>\<^sub>t\<^sub>G) select\<^sub>G 
          \<subseteq> ground_instances select\<^sub>G equality_resolution_inferences \<Longrightarrow> thesis"
   
-  obtain select\<^sub>G where "is_ground_select select\<^sub>G"
+  obtain select\<^sub>G where "is_grounding select\<^sub>G"
     using select\<^sub>G_simple by blast
 
-  then interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
     apply unfold_locales.
 
   have "\<And>premise\<^sub>G conclusion\<^sub>G. ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G \<Longrightarrow>
@@ -3156,7 +3156,7 @@ proof-
       "is_ground_clause (conclusion \<cdot> \<theta>)"
       "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = select premise \<cdot> \<theta>"
       using select\<^sub>G
-      unfolding is_ground_select_def
+      unfolding is_select_grounding_def
       by (metis select_subst1 subst_ground_clause to_ground_clause_inverse)
       
     show "\<exists>premise conclusion. equality_resolution premise conclusion 
@@ -3180,16 +3180,16 @@ qed
 lemma equality_factoring_ground_instance_TODO:
   obtains select\<^sub>G where "ground_superposition_calculus.equality_factoring_inferences (\<prec>\<^sub>t\<^sub>G) select\<^sub>G 
           \<subseteq> ground_instances select\<^sub>G equality_factoring_inferences"
-      "is_ground_select select\<^sub>G"
+      "is_grounding select\<^sub>G"
 proof-
   assume assumption: 
     "\<And>select\<^sub>G. ground_superposition_calculus.equality_factoring_inferences (\<prec>\<^sub>t\<^sub>G) select\<^sub>G 
-         \<subseteq> ground_instances select\<^sub>G equality_factoring_inferences \<Longrightarrow>  is_ground_select select\<^sub>G \<Longrightarrow> thesis"
+         \<subseteq> ground_instances select\<^sub>G equality_factoring_inferences \<Longrightarrow> is_grounding select\<^sub>G \<Longrightarrow> thesis"
   
-  obtain select\<^sub>G where "is_ground_select select\<^sub>G"
+  obtain select\<^sub>G where "is_grounding select\<^sub>G"
     using select\<^sub>G_simple by blast
 
-  then interpret first_order_superposition_calculus_with_grounding _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
     apply unfold_locales.
 
   have "\<And>premise\<^sub>G conclusion\<^sub>G. ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G \<Longrightarrow>
@@ -3206,7 +3206,7 @@ proof-
       "is_ground_clause (conclusion \<cdot> \<theta>)"
       "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = select premise \<cdot> \<theta>"
       using select\<^sub>G
-      unfolding is_ground_select_def
+      unfolding is_select_grounding_def
       by (metis select_subst1 subst_ground_clause to_ground_clause_inverse)
       
     show "\<exists>premise conclusion. equality_factoring premise conclusion 
