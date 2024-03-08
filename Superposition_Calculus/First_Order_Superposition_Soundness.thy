@@ -1,10 +1,9 @@
 theory First_Order_Superposition_Soundness
-  imports Grounded_First_Order_Superposition
+  imports First_Order_Superposition
 begin
 
 subsection \<open>Soundness\<close>
 
-(* TODO: What do I use from the grounding and why? *)
 context first_order_superposition_calculus
 begin
 
@@ -147,11 +146,8 @@ proof (cases P C rule: equality_factoring.cases)
     show "?I \<TTurnstile> ?C"
     proof(cases "L' = ?L\<^sub>1 \<or> L' = ?L\<^sub>2")
       case True
-      interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G_simple
-        apply unfold_locales
-        using select\<^sub>G_simple by blast
 
-      from True have "I \<TTurnstile>l Pos (?s\<^sub>1, ?s\<^sub>1') \<or> I \<TTurnstile>l Pos (?s\<^sub>1, ?t\<^sub>2')"
+      then have "I \<TTurnstile>l Pos (?s\<^sub>1, ?s\<^sub>1') \<or> I \<TTurnstile>l Pos (?s\<^sub>1, ?t\<^sub>2')"
         using true_lit_uprod_iff_true_lit_prod[OF sym_I] I_models_L'
         by (metis L\<^sub>1 L\<^sub>2 s\<^sub>1_equals_t\<^sub>2)
 
@@ -297,11 +293,8 @@ proof (cases P1 P2 C rule: superposition.cases)
       show ?thesis
       proof (cases "L\<^sub>2' = ?L\<^sub>2")
         case L\<^sub>2'_def: True
-        interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G_simple
-        apply unfold_locales
-        using select\<^sub>G_simple by blast
 
-        from L\<^sub>2'_def have ts_in_I: "(?t\<^sub>2, ?t\<^sub>2') \<in> I"
+        then have ts_in_I: "(?t\<^sub>2, ?t\<^sub>2') \<in> I"
           using I_models_L\<^sub>2' true_lit_uprod_iff_true_lit_prod[OF sym_I] superpositionI(8)
           unfolding to_ground_literal_def to_ground_atom_def 
           by (smt (verit) literal.simps(9) map_uprod_simps subst_atom_def subst_literal true_lit_simps(1)) 

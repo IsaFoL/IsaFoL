@@ -1,6 +1,7 @@
 theory First_Order_Superposition_Completeness
   imports
     Ground_Superposition_Completeness
+    Ground_Superposition_Soundness
     Grounded_First_Order_Superposition
 begin
 
@@ -2174,6 +2175,7 @@ proof(cases
        then have "?I \<TTurnstile> add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) premise\<^sub>G\<^sub>1'"
          using literal\<^sub>G\<^sub>2
          unfolding ground_superpositionI(6)
+         (* TODO: Only place where ground soundness is used *)
          by (smt (verit) False compatible_with_gctxt ground.G_entails_def
              ground.soundness_ground_superposition ground_superposition ground_superpositionI(1)
              ground_superpositionI(12) ground_superpositionI(2) ground_superpositionI(5) local.refl

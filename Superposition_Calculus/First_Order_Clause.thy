@@ -297,7 +297,16 @@ lemma is_imgu_equals:
   unfolding term_subst.is_imgu_def term_subst.is_unifiers_def
   by blast
   
-(* TODO: Could these be made less explicit somehow? *)
+(* TODO: Could these be made less explicit somehow?
+Something like:
+locale conversion =
+  fixes to :: "'a \<Rightarrow> 'b" and "from" :: "'b \<Rightarrow> 'a"
+  assumes 
+    inv: "\<And>x. from (to x) = x" and
+    inj_to: "\<And>X. inj_on to X" and
+    inj_from: "\<And>domain. inj_on from (to ` domain)"
+?
+ *)
 abbreviation to_term where
   "to_term \<equiv> term_of_gterm"
 

@@ -622,9 +622,16 @@ lemma is_strictly_maximal\<^sub>l_ground_subst_stability':
    "is_strictly_maximal\<^sub>l (literal \<cdot>l \<theta>) (clause \<cdot> \<theta>)"
  shows 
    "is_strictly_maximal\<^sub>l literal clause"
-  (* TODO: *)
-  by (metis (no_types, lifting) assms(1) assms(2) assms(3) in_diffD is_maximal\<^sub>l_def is_maximal\<^sub>l_ground_subst_stability' is_maximal\<^sub>l_if_is_strictly_maximal\<^sub>l is_strictly_maximal\<^sub>l_def literal_in_clause_subst reflclp_iff subst_clause_remove1_mset)
-
+  using 
+    is_maximal\<^sub>l_ground_subst_stability'[OF 
+      assms(1,2) 
+      is_maximal\<^sub>l_if_is_strictly_maximal\<^sub>l[OF assms(3)]
+    ]
+    assms(3)
+  unfolding 
+    is_strictly_maximal\<^sub>l_def is_maximal\<^sub>l_def
+    subst_clause_remove1_mset[OF assms(1), symmetric]
+  by (metis in_diffD literal_in_clause_subst reflclp_iff)
 
 end
 

@@ -1,11 +1,10 @@
 theory First_Order_Superposition
   imports
     Saturation_Framework.Lifting_to_Non_Ground_Calculi
-    Ground_Superposition_Soundness
+    Ground_Superposition
     First_Order_Select
     First_Order_Ordering
 begin
-
 
 hide_type Inference_System.inference
 hide_const

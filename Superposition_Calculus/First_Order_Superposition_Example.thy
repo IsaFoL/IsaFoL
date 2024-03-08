@@ -2,6 +2,7 @@ theory First_Order_Superposition_Example
   imports 
     IsaFoR_Term_Copy             
     First_Order_Superposition
+    LGPL_Ground_Critical_Pairs_Adapted_From_CeTA
 begin
 
 abbreviation trivial_select :: "('f, 'v) select" where
@@ -11,10 +12,16 @@ interpretation first_order_superposition_calculus
   "trivial_select :: ('f :: weighted, 'v :: infinite) select" 
   less_kbo
 proof(unfold_locales)
-  show "\<And>clause. trivial_select clause \<subseteq># clause"
+  fix clause :: "('f, 'v) atom clause"
+
+  show "trivial_select clause \<subseteq># clause"
     by simp
 next
-  show "\<And>clause literal. literal \<in># trivial_select clause \<Longrightarrow> is_neg literal"
+  fix clause :: "('f, 'v) atom clause" and literal
+
+  assume "literal \<in># trivial_select clause"
+
+  then show "is_neg literal"
     by simp
 next
   show "transp less_kbo"
@@ -38,6 +45,7 @@ next
   fix 
     context\<^sub>G :: "('f, 'v) context" and
     term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2 :: "('f, 'v) term" 
+
   assume 
     "less_kbo term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2" 
     "is_ground_term term\<^sub>G\<^sub>1" 
@@ -47,13 +55,15 @@ next
   then show "less_kbo context\<^sub>G\<langle>term\<^sub>G\<^sub>1\<rangle> context\<^sub>G\<langle>term\<^sub>G\<^sub>2\<rangle>"
     using KBO.S_ctxt less_kbo_def by blast
 next
-  fix term\<^sub>1 term\<^sub>2 :: "('f, 'v) term" and 
-      \<theta> :: "('f, 'v) subst"
+  fix 
+    term\<^sub>1 term\<^sub>2 :: "('f, 'v) term" and 
+    \<theta> :: "('f, 'v) subst"
+
   assume 
     "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)" 
     "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)" 
-    "less_kbo term\<^sub>1 term\<^sub>2
-"
+    "less_kbo term\<^sub>1 term\<^sub>2"
+
   then show "less_kbo (term\<^sub>1 \<cdot>t \<theta>) (term\<^sub>2 \<cdot>t \<theta>)"
     using less_kbo_subst by blast
 next
@@ -69,11 +79,10 @@ next
     by (simp add: KBO.S_supt less_kbo_def nectxt_imp_supt_ctxt)
 next
   show "infinite (UNIV :: 'v set)"
-    by (simp add: infinite_UNIV)
+    using infinite_UNIV.
 next                      
-  (* TODO: *)
   show "\<And>R. ground_critical_pair_theorem R"
-    sorry
+    using ground_critical_pair_theorem.
 qed
 
 end
