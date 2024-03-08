@@ -70,8 +70,8 @@ function equation :: "'f gatom clause \<Rightarrow> 'f gterm rel" where
     is_strictly_maximal_lit (Pos (Upair s t)) C \<and>
     t \<prec>\<^sub>t s \<and>
     (let R\<^sub>C = (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. equation D) in
-    \<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
-    \<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert (s, t) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
+    \<not> upair ` (rewrite_inside_gctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
+    \<not> upair ` (rewrite_inside_gctxt (insert (s, t) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
     s \<in> NF (rewrite_inside_gctxt R\<^sub>C))}"
   by simp_all
 
@@ -108,8 +108,8 @@ proof -
     C = add_mset (Pos (Upair x y)) C' \<and> select C = {#} \<and>
     is_strictly_maximal_lit (Pos (Upair x y)) C \<and> y \<prec>\<^sub>t x \<and>
     (let R\<^sub>C = \<Union> (equation N ` {D \<in> N. D \<prec>\<^sub>c C}) in
-      \<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
-      \<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert (x, y) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
+      \<not> upair ` (rewrite_inside_gctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
+      \<not> upair ` (rewrite_inside_gctxt (insert (x, y) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
       x \<in> NF (rewrite_inside_gctxt R\<^sub>C))"
     using Uniq_antimono'
     by (smt (verit) Uniq_def Uniq_prodI case_prod_conv)
@@ -132,8 +132,8 @@ lemma (in ground_superposition_calculus) mem_equationE:
     "select C = {#}" and
     "is_strictly_maximal_lit (Pos (Upair l r)) C" and
     "r \<prec>\<^sub>t l" and
-    "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C" and
-    "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'" and
+    "\<not> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C" and
+    "\<not> upair ` (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'" and
     "l \<in> NF (rewrite_inside_gctxt (rewrite_sys N C))"
   using rule_in
   unfolding equation.simps[of N C] mem_Collect_eq Let_def rewrite_sys_def
@@ -625,10 +625,10 @@ lemma (in ground_superposition_calculus) lift_entailment_to_Union:
   defines "R\<^sub>D \<equiv> rewrite_sys N D"
   assumes
     D_in: "D \<in> N" and
-    R\<^sub>D_entails_D: "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down> \<TTurnstile> D"
+    R\<^sub>D_entails_D: "upair ` (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down> \<TTurnstile> D"
   shows
-    "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> D" and
-    "C \<in> N \<Longrightarrow> D \<prec>\<^sub>c C \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D"
+    "upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> D" and
+    "\<And>C. C \<in> N \<Longrightarrow> D \<prec>\<^sub>c C \<Longrightarrow> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D"
 proof -
   from R\<^sub>D_entails_D obtain L s t where
     L_in: "L \<in># D" and
@@ -638,9 +638,9 @@ proof -
     by (metis (no_types, opaque_lifting) image_iff prod.case surj_pair uprod_exhaust)
 
   from L_eq_disj_L_eq show
-    "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> D" and
-    "C \<in> N \<Longrightarrow> D \<prec>\<^sub>c C \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D"
-    unfolding atomize_conj atomize_imp
+    "upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> D" and
+    "\<And>C. C \<in> N \<Longrightarrow> D \<prec>\<^sub>c C \<Longrightarrow> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D"
+    unfolding atomize_all atomize_conj atomize_imp
   proof (elim disjE conjE)
     assume L_def: "L = Pos (Upair s t)" and "(s, t) \<in> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>"
     have "R\<^sub>D \<subseteq> (\<Union>D \<in> N. equation N D)" and
@@ -654,8 +654,8 @@ proof -
     hence "(s, t) \<in> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>" and
       "\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (s, t) \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
       by (auto intro!: join_mono intro: set_mp[OF _ \<open>(s, t) \<in> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>\<close>])
-    thus "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile> D \<and>
-      (C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D)"
+    thus "upair ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile> D \<and>
+      (\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D)"
       unfolding true_cls_def true_lit_iff
       using L_in L_def by blast
   next
@@ -738,12 +738,12 @@ proof -
       using split_Union_equation'[OF D_in, folded R\<^sub>D_def]
       using split_rewrite_sys[OF _ D_in, folded R\<^sub>D_def]
       by (simp_all add: rewrite_inside_gctxt_union)
-    hence "(Upair s t) \<notin> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>" and
-      "\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (Upair s t) \<notin> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
+    hence "(Upair s t) \<notin> upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>" and
+      "\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (Upair s t) \<notin> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
       unfolding atomize_conj
       by (meson sym_join true_lit_simps(2) true_lit_uprod_iff_true_lit_prod(2))
-    thus "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile> D \<and>
-    (C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D)"
+    thus "upair ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile> D \<and>
+    (\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D)"
       unfolding true_cls_def true_lit_iff
       using L_in L_def by metis
   qed
@@ -753,11 +753,11 @@ lemma (in ground_superposition_calculus)
   assumes productive: "equation N C = {(l, r)}"
   shows
     true_cls_if_productive_equation:
-      "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C"
-      "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C" and
+      "upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C"
+      "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> upair ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C" and
     false_cls_if_productive_equation:
-      "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
-      "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> \<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
+      "\<not> upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
+      "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> \<not> upair ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
 proof -
   from productive have "(l, r) \<in> equation N C"
     by simp
@@ -767,14 +767,14 @@ proof -
     "select C = {#}" and
     "is_strictly_maximal_lit (Pos (Upair l r)) C" and
     "r \<prec>\<^sub>t l" and
-    e: "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C" and
-    f: "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'" and
+    e: "\<not> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C" and
+    f: "\<not> upair ` (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'" and
     "l \<in> NF (rewrite_inside_gctxt (rewrite_sys N C))"
     by (rule mem_equationE) blast
 
   have "(l, r) \<in> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>"
     using C_in \<open>(l, r) \<in> equation N C\<close> mem_rewrite_inside_gctxt_if_mem_rewrite_rules by blast
-  thus "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C"
+  thus "upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C"
     using C_def by blast
 
   have "rewrite_inside_gctxt (\<Union>D \<in> N. equation N D) =
@@ -838,7 +838,7 @@ proof -
       by presburger
   qed
 
-  have neg_concl1: "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C'"
+  have neg_concl1: "\<not> upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C'"
     unfolding true_cls_def Set.bex_simps
   proof (intro ballI)
     fix L assume L_in: "L \<in># C'"
@@ -877,18 +877,18 @@ proof -
         by simp
     qed
 
-    ultimately show "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile>l L"
+    ultimately show "\<not> upair ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile>l L"
       using atm_L_eq true_lit_uprod_iff_true_lit_prod[OF sym_join] true_lit_simps
       by (smt (verit, ccfv_SIG) literal.exhaust_sel)
   qed
-  then show "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
+  then show "\<not> upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
     by (simp add: C_def)
 
   assume "D \<in> N" and "C \<prec>\<^sub>c D"
   then have "(l, r) \<in> (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down>"
     by (smt (verit, ccfv_threshold) C_in UN_iff \<open>(l, r) \<in> equation N C\<close> joinI_left mem_Collect_eq
         r_into_rtrancl mem_rewrite_inside_gctxt_if_mem_rewrite_rules rewrite_sys_def)
-  thus "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C"
+  thus "upair ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C"
     using C_def by blast
 
   from \<open>D \<in> N\<close> have "rewrite_sys N D \<subseteq> (\<Union>D \<in> N. equation N D)"
@@ -898,7 +898,7 @@ proof -
   hence "(rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<subseteq> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>"
     using join_mono by metis
 
-  have "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C'"
+  have "\<not> upair ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C'"
     unfolding true_cls_def Set.bex_simps
   proof (intro ballI)
     fix L assume L_in: "L \<in># C'"
@@ -933,18 +933,18 @@ proof -
       hence "(t1, t2) \<notin> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
         using rewrite_sys_subset_if_less_cls[OF \<open>C \<prec>\<^sub>c D\<close>]
         by (meson join_mono rewrite_inside_gctxt_mono subsetD)
-      thus "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C"
-        using neg_literal_notin_imp_true_cls[of "Upair t1 t2" C "(\<lambda>(x, y). Upair x y) ` _\<^sup>\<down>"]
+      thus "upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C"
+        using neg_literal_notin_imp_true_cls[of "Upair t1 t2" C "upair ` _\<^sup>\<down>"]
         unfolding uprod_mem_image_iff_prod_mem[OF sym_join]
         using L_def L_in C_def
         by simp
     qed
 
-    ultimately show "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile>l L"
+    ultimately show "\<not> upair ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile>l L"
       using atm_L_eq true_lit_uprod_iff_true_lit_prod[OF sym_join] true_lit_simps
       by (smt (verit, ccfv_SIG) literal.exhaust_sel)
   qed
-  thus "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
+  thus "\<not> upair ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
     by (simp add: C_def)
 qed
 
@@ -987,8 +987,8 @@ qed
 
 lemma (in ground_ordering) true_cls_insert_and_not_true_clsE:
   assumes
-    "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert r R))\<^sup>\<down> \<TTurnstile> C" and
-    "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt R)\<^sup>\<down> \<TTurnstile> C"
+    "upair ` (rewrite_inside_gctxt (insert r R))\<^sup>\<down> \<TTurnstile> C" and
+    "\<not> upair ` (rewrite_inside_gctxt R)\<^sup>\<down> \<TTurnstile> C"
   obtains t t' where
     "Pos (Upair t t') \<in># C" and
     "t \<prec>\<^sub>t t'" and
@@ -1000,8 +1000,8 @@ proof -
 
   from assms obtain L where
     "L \<in># C" and
-    entails_L: "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert r R))\<^sup>\<down> \<TTurnstile>l L" and
-    doesnt_entail_L: "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt R)\<^sup>\<down> \<TTurnstile>l L"
+    entails_L: "upair ` (rewrite_inside_gctxt (insert r R))\<^sup>\<down> \<TTurnstile>l L" and
+    doesnt_entail_L: "\<not> upair ` (rewrite_inside_gctxt R)\<^sup>\<down> \<TTurnstile>l L"
     by (meson true_cls_def)
 
   have "totalp_on (set_uprod (atm_of L)) (\<prec>\<^sub>t)"
@@ -1056,20 +1056,19 @@ proof -
   qed
 qed
 
-lemma (in ground_superposition_calculus) model_construction:
+lemma (in ground_superposition_calculus) model_preconstruction:
   fixes
     N :: "'f gatom clause set" and
     C :: "'f gatom clause"
   defines
-    "entails \<equiv> \<lambda>E C. (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile> C"
+    "entails \<equiv> \<lambda>E C. upair ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile> C"
   assumes "saturated N" and "{#} \<notin> N" and C_in: "C \<in> N"
   shows
     "equation N C = {} \<longleftrightarrow> entails (rewrite_sys N C) C"
-    "entails (\<Union>D \<in> N. equation N D) C"
-    "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> entails (rewrite_sys N D) C"
-  unfolding atomize_conj atomize_imp
+    "\<And>D. D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> entails (rewrite_sys N D) C"
+  unfolding atomize_all atomize_conj atomize_imp
   using wfP_less_cls C_in
-proof (induction C arbitrary: D rule: wfP_induct_rule)
+proof (induction C rule: wfP_induct_rule)
   case (less C)
   note IH = less.IH
 
@@ -1113,7 +1112,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
         by (metis mset_add)
 
       show ?thesis
-      proof (cases "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile>l Pos (Upair s s')")
+      proof (cases "upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile>l Pos (Upair s s')")
         case True
         hence "(s, s') \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
           by (meson sym_join true_lit_simps(1) true_lit_uprod_iff_true_lit_prod(1))
@@ -1159,7 +1158,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             by (auto simp: \<iota>_def)
 
           moreover have "\<forall>D\<in>DD. entails (rewrite_sys N C) D"
-            using IH[THEN conjunct2, THEN conjunct2, rule_format, of _ C]
+            using IH[THEN conjunct2, rule_format, of _ C]
             using \<open>C \<in> N\<close> DD_subset ball_DD_lt_C
             by blast
 
@@ -1284,7 +1283,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             by (auto simp: \<iota>_def)
 
           moreover have "\<forall>D\<in> insert D DD. entails (rewrite_sys N C) D"
-            using IH[THEN conjunct2, THEN conjunct2, rule_format, of _ C]
+            using IH[THEN conjunct2, rule_format, of _ C]
             using \<open>C \<in> N\<close> \<open>D \<in> N\<close> \<open>D \<prec>\<^sub>c C\<close> DD_subset ball_DD_lt_C
             by (metis in_mono insert_iff)
 
@@ -1299,12 +1298,12 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             by (metis D_def \<open>(t, t') \<in> equation N D\<close> add_mset_remove_trivial empty_iff
                  equation_eq_empty_or_singleton singletonD)
 
-          moreover have "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile>l
+          moreover have "\<not> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile>l
             (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s'))"
             if "s' \<prec>\<^sub>t s"
             using \<open>(u\<^sub>0, u) \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>*\<close> \<open>u\<^sub>0 = ctxt\<langle>t'\<rangle>\<^sub>G\<close> s'_u by blast
 
-          moreover have "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile>l
+          moreover have "\<not> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile>l
             (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s))"
             if "s \<prec>\<^sub>t s'"
             using \<open>(u\<^sub>0, u) \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>*\<close> \<open>u\<^sub>0 = ctxt\<langle>t'\<rangle>\<^sub>G\<close> s_u by blast
@@ -1337,7 +1336,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
         using ex_ordered_Upair[of A "(\<prec>\<^sub>t)"] by fastforce
 
       show ?thesis
-      proof (cases "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C' \<or> s = s'")
+      proof (cases "upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C' \<or> s = s'")
         case True
         then show ?thesis
           using \<open>equation N C = {}\<close>
@@ -1345,7 +1344,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
       next
         case False
 
-        from False have "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C'"
+        from False have "\<not> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C'"
           by simp
 
         from False have "s' \<prec>\<^sub>t s"
@@ -1357,23 +1356,23 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
           show ?thesis
           proof (cases "s \<in> NF (rewrite_inside_gctxt (rewrite_sys N C))")
             case s_irreducible: True
-            hence e_or_f_doesnt_hold: "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C \<or>
-              (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert (s, s') (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'"
+            hence e_or_f_doesnt_hold: "upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C \<or>
+              upair ` (rewrite_inside_gctxt (insert (s, s') (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'"
               using \<open>equation N C = {}\<close>[unfolded  equation.simps[of N C]]
               using \<open>C \<in> N\<close> C_def \<open>select C = {#}\<close> strictly_maximal \<open>s' \<prec>\<^sub>t s\<close>
               unfolding A_def rewrite_sys_def 
               by (smt (verit, best) Collect_empty_eq)
             show ?thesis
-            proof (cases "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C")
+            proof (cases "upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C")
               case e_doesnt_hold: True
               thus ?thesis
                 by (simp add: entails_def)
             next
               case e_holds: False
-              hence R_C_doesnt_entail_C': "\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C'"
+              hence R_C_doesnt_entail_C': "\<not> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C'"
                 unfolding C_def by simp
               show ?thesis
-              proof (cases "(\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (insert (s, s') (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'")
+              proof (cases "upair ` (rewrite_inside_gctxt (insert (s, s') (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'")
                 case f_doesnt_hold: True
                 then obtain C'' t t' where C'_def: "C' = add_mset (Pos (Upair t t')) C''" and
                   "t' \<prec>\<^sub>t t" and
@@ -1527,7 +1526,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
                   by (auto simp: \<iota>_def)
 
                 have "\<forall>D\<in>DD. entails (rewrite_sys N C) D"
-                  using IH[THEN conjunct2, THEN conjunct2, rule_format, of _ C]
+                  using IH[THEN conjunct2, rule_format, of _ C]
                   using \<open>C \<in> N\<close> DD_subset ball_DD_lt_C
                   by blast
                 hence "entails (rewrite_sys N C) ?concl"
@@ -1625,7 +1624,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
               by (auto simp: \<iota>_def)
 
             moreover have "\<forall>D\<in> insert D DD. entails (rewrite_sys N C) D"
-              using IH[THEN conjunct2, THEN conjunct2, rule_format, of _ C]
+              using IH[THEN conjunct2, rule_format, of _ C]
               using \<open>C \<in> N\<close> \<open>D \<in> N\<close> \<open>D \<prec>\<^sub>c C\<close> DD_subset ball_DD_lt_C
               by (metis in_mono insert_iff)
 
@@ -1642,7 +1641,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
 
             ultimately have "entails (rewrite_sys N C) {#Pos (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')#}"
               unfolding entails_def
-              using \<open>\<not> (\<lambda>(x, y). Upair x y) ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C'\<close>
+              using \<open>\<not> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C'\<close>
               by fastforce
 
             hence "(ctxt\<langle>t'\<rangle>\<^sub>G, s') \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
@@ -1715,7 +1714,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
             by (auto simp: \<iota>_def)
 
           moreover have "\<forall>D\<in>DD. entails (rewrite_sys N C) D"
-            using IH[THEN conjunct2, THEN conjunct2, rule_format, of _ C]
+            using IH[THEN conjunct2, rule_format, of _ C]
             using \<open>C \<in> N\<close> DD_subset ball_DD_lt_C
             by blast
 
@@ -1730,23 +1729,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
     qed
   qed
 
-  moreover have iia: "entails (\<Union> (equation N ` N)) C"
-    using equation_eq_empty_or_singleton[of N C, folded ]
-  proof (elim disjE exE)
-    assume "equation N C = {}"
-    hence "entails (rewrite_sys N C) C"
-      unfolding i by simp
-    thus ?thesis
-      using lift_entailment_to_Union(1)[OF \<open>C \<in> N\<close>]
-      by (simp only: entails_def)
-  next
-    fix l r assume "equation N C = {(l, r)}"
-    thus ?thesis
-      using true_cls_if_productive_equation(1)[OF \<open>equation N C = {(l, r)}\<close>]
-      by (simp only: entails_def)
-  qed
-
-  moreover have iib: "entails (rewrite_sys N D) C" if "D \<in> N" and "C \<prec>\<^sub>c D"
+  moreover have iib: "entails (rewrite_sys N D) C" if "D \<in> N" and "C \<prec>\<^sub>c D" for D
     using equation_eq_empty_or_singleton[of N C, folded ]
   proof (elim disjE exE)
     assume "equation N C = {}"
@@ -1763,9 +1746,31 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
   qed
 
   ultimately show ?case
-    by argo
+    by metis
 qed
 
+lemma (in ground_superposition_calculus) model_construction:
+  fixes
+    N :: "'f gatom clause set" and
+    C :: "'f gatom clause"
+  defines
+    "entails \<equiv> \<lambda>E C. upair ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile> C"
+  assumes "saturated N" and "{#} \<notin> N" and C_in: "C \<in> N"
+  shows "entails (\<Union>D \<in> N. equation N D) C"
+  using equation_eq_empty_or_singleton[of N C]
+proof (elim disjE exE)
+  assume "equation N C = {}"
+  hence "entails (rewrite_sys N C) C"
+    using model_preconstruction(1)[OF assms(2,3,4)] by (metis entails_def)
+  thus ?thesis
+    using lift_entailment_to_Union(1)[OF \<open>C \<in> N\<close>]
+    by (simp only: entails_def)
+next
+  fix l r assume "equation N C = {(l, r)}"
+  thus ?thesis
+    using true_cls_if_productive_equation(1)[OF \<open>equation N C = {(l, r)}\<close>]
+    by (simp only: entails_def)
+qed
 
 subsection \<open>Static Refutational Completeness\<close>
 
@@ -1812,12 +1817,12 @@ proof (rule contrapos_pp)
       unfolding I_def
       by (simp only: I_def compatible_with_gctxt_join compatible_with_gctxt_rewrite_inside_gctxt)
   next
-    show "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s N"
+    show "upair ` I \<TTurnstile>s N"
       unfolding I_def
-      using model_construction(2)[OF \<open>saturated N\<close> \<open>{#} \<notin> N\<close>]
+      using model_construction[OF \<open>saturated N\<close> \<open>{#} \<notin> N\<close>]
       by (simp add: true_clss_def)
   next
-    show "\<not> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s G_Bot"
+    show "\<not> upair ` I \<TTurnstile>s G_Bot"
       by simp
   qed
 qed

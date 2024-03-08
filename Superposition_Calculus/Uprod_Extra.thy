@@ -4,6 +4,9 @@ theory Uprod_Extra
     "HOL-Library.Uprod"
 begin
 
+abbreviation upair where
+  "upair \<equiv> \<lambda>(x, y). Upair x y"
+
 lemma Upair_sym: "Upair x y = Upair y x"
   by (metis Upair_inject)
 

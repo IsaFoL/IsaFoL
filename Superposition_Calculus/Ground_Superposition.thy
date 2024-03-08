@@ -238,9 +238,6 @@ definition G_Inf :: "'f gatom clause inference set" where
 abbreviation G_Bot :: "'f gatom clause set" where
   "G_Bot \<equiv> {{#}}"
 
-abbreviation upair where
-  "upair \<equiv> \<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2"
-
 definition G_entails :: "'f gatom clause set \<Rightarrow> 'f gatom clause set \<Rightarrow> bool" where
   "G_entails N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: 'f gterm rel). refl I \<longrightarrow> trans I \<longrightarrow> sym I \<longrightarrow>
     compatible_with_gctxt I \<longrightarrow> upair ` I \<TTurnstile>s N\<^sub>1 \<longrightarrow> upair ` I \<TTurnstile>s N\<^sub>2)"
