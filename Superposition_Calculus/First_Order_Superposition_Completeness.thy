@@ -1764,7 +1764,7 @@ lemma superposition_ground_instance:
           (to_ground_clause (conclusion \<cdot> \<theta>))" and
     not_redundant:
     "Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion \<cdot> \<theta>)) 
-      \<notin> ground.GRed_I (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
+      \<notin> ground.Red_I (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
  (* TODO: (Premise order!)  *)
   shows "\<exists>conclusion'. superposition premise\<^sub>1 premise\<^sub>2 (conclusion')
             \<and> Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> inference_groundings select\<^sub>G (Infer [premise\<^sub>1, premise\<^sub>2] conclusion')
@@ -1952,7 +1952,7 @@ proof(cases
   have special_case: "\<nexists>context\<^sub>1 term\<^sub>1. 
     term\<^sub>1_with_context = context\<^sub>1\<langle>term\<^sub>1\<rangle> \<and> 
     term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta> = to_term term\<^sub>G\<^sub>1 \<and> 
-    context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G  \<and> 
+    context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G \<and> 
     is_Fun term\<^sub>1 \<Longrightarrow>
       ground.redundant_infer
          (clause_groundings (add_mset literal\<^sub>1 premise\<^sub>1') \<union> clause_groundings (add_mset literal\<^sub>2 premise\<^sub>2'))
@@ -2552,9 +2552,6 @@ qed
 
 end
 
-
-
-
 context grounded_first_order_superposition_calculus
 begin
 
@@ -3018,7 +3015,7 @@ lemma for_all_elements_exists_f_implies_f_exists_for_all_elements:
   by meson
 
 lemma (in first_order_superposition_calculus) ground_instances:
-  obtains select\<^sub>G where 
+  obtains select\<^sub>G where
     "ground_Inf_overapproximated select\<^sub>G premises"
     "is_grounding select\<^sub>G"
 proof-
@@ -3044,13 +3041,12 @@ proof-
       for_all_elements_exists_f_implies_f_exists_for_all_elements[OF select\<^sub>G_exists_for_premises]
     by (metis (mono_tags, opaque_lifting) to_clause_inverse)
  
-  obtain select\<^sub>G where
+  define select\<^sub>G where
     select\<^sub>G_def: "\<And>clause\<^sub>G. select\<^sub>G clause\<^sub>G = (
         if clause\<^sub>G  \<in> ?premise_groundings 
         then select\<^sub>G_on_premise_groundings clause\<^sub>G 
         else select\<^sub>G_simple clause\<^sub>G
     )"
-    by simp 
 
   have "is_grounding select\<^sub>G" 
     unfolding is_select_grounding_def select\<^sub>G_def select\<^sub>G_simple_def
@@ -3058,9 +3054,9 @@ proof-
     by (metis ground_clause_is_ground subst_clause_Var_ident to_clause_inverse)
 
   then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
-    apply unfold_locales.
+    apply unfold_locales .
 
-  have "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>\<theta> premise. 
+  have "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>\<theta> premise. 
         premise \<cdot> \<theta> = to_clause premise\<^sub>G 
       \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>
       \<and> premise \<in> premises"
@@ -3080,8 +3076,11 @@ sublocale first_order_superposition_calculus \<subseteq>
 proof(rule stat_ref_comp_to_non_ground_fam_inter)
   (* TODO *)
   show "\<forall>q\<in>select\<^sub>G\<^sub>s.
-    statically_complete_calculus {{#}} (ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G) q)
-      ground_superposition_calculus.G_entails (ground_superposition_calculus.GRed_I (\<prec>\<^sub>t\<^sub>G) q)
+    statically_complete_calculus 
+      {{#}}                           
+      (ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G) q)
+      ground_superposition_calculus.G_entails 
+      (ground_superposition_calculus.GRed_I (\<prec>\<^sub>t\<^sub>G) q)
       (ground_superposition_calculus.GRed_F (\<prec>\<^sub>t\<^sub>G))"
   proof
     fix select\<^sub>G
@@ -3125,7 +3124,7 @@ abbreviation ground_instances ::
 
 end
 
-(* TODO: These are actually not needed? *)
+(* TODO: These are actually not needed *)
 context first_order_superposition_calculus
 begin
 

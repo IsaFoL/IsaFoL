@@ -8,8 +8,7 @@ locale grounded_first_order_superposition_calculus =
 begin
 
 sublocale ground: ground_superposition_calculus "(\<prec>\<^sub>t\<^sub>G)" select\<^sub>G
-  apply(unfold_locales)
-  by(auto simp: ground_critical_pair_theorem)
+  by unfold_locales (rule ground_critical_pair_theorem)
 
 end
 

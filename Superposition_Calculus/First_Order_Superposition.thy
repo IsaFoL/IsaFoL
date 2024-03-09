@@ -88,6 +88,7 @@ abbreviation equality_resolution_inferences where
   "equality_resolution_inferences \<equiv> 
     { Infer [premise] conclusion | premise conclusion. equality_resolution premise conclusion }"
 
+(* TODO: premise order! *)
 abbreviation superposition_inferences where
   "superposition_inferences \<equiv> { Infer [premise\<^sub>1, premise\<^sub>2] conclusion 
     | premise\<^sub>1 premise\<^sub>2 conclusion. superposition premise\<^sub>1 premise\<^sub>2 conclusion }"
@@ -195,9 +196,10 @@ abbreviation true_clauses ::
   "'f ground_atom interp \<Rightarrow> ('f, 'v) atom clause set \<Rightarrow> bool" (infix "\<TTurnstile>\<^sub>C\<^sub>s" 50) where
   "I \<TTurnstile>\<^sub>C\<^sub>s \<C> \<equiv> \<forall>C\<in> \<C>. I \<TTurnstile>\<^sub>C C"
 
+(* TODO: Is it possible to base this on G_entails?*)
 definition entails\<^sub>F :: 
   "('f, 'v) atom clause set \<Rightarrow> ('f, 'v) atom clause set \<Rightarrow> bool" (infix "\<TTurnstile>\<^sub>F" 50) where
-  "entails\<^sub>F N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: 'f gterm rel). 
+  "entails\<^sub>F N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: 'f gterm rel).
     refl I \<longrightarrow> trans I \<longrightarrow> sym I \<longrightarrow> compatible_with_gctxt I \<longrightarrow>
     (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>\<^sub>C\<^sub>s N\<^sub>1 \<longrightarrow>
     (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>\<^sub>C\<^sub>s N\<^sub>2)"
