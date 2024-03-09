@@ -204,31 +204,6 @@ definition entails\<^sub>F ::
     (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>\<^sub>C\<^sub>s N\<^sub>1 \<longrightarrow>
     (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>\<^sub>C\<^sub>s N\<^sub>2)"
 
-definition inference_groundings
-  where "is_grounding select\<^sub>G \<Longrightarrow> inference_groundings select\<^sub>G inference = 
-  { ground_inference | ground_inference \<theta> \<rho>\<^sub>1 \<rho>\<^sub>2.
-    (case inference of 
-        Infer [premise] conclusion \<Rightarrow>
-          is_ground_clause (premise \<cdot> \<theta>) 
-        \<and> is_ground_clause (conclusion \<cdot> \<theta>)
-        \<and> ground_inference = 
-            Infer [to_ground_clause (premise \<cdot> \<theta>)] (to_ground_clause (conclusion \<cdot> \<theta>))
-      | Infer [premise\<^sub>1, premise\<^sub>2] conclusion \<Rightarrow> 
-          term_subst.is_renaming \<rho>\<^sub>1
-        \<and> term_subst.is_renaming \<rho>\<^sub>2
-        \<and> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}
-        \<and> is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>) 
-        \<and> is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>) 
-        \<and> is_ground_clause (conclusion \<cdot> \<theta>)
-        \<and> ground_inference = 
-            Infer 
-              [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] 
-              (to_ground_clause (conclusion \<cdot> \<theta>))
-      | _ \<Rightarrow> False
-     )
-  \<and> ground_inference \<in> ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G) select\<^sub>G
-}"
-
 end
 
 end
