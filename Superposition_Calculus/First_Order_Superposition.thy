@@ -227,7 +227,6 @@ definition inference_groundings
       | _ \<Rightarrow> False
      )
   \<and> ground_inference \<in> ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G) select\<^sub>G
-  \<and> inference \<in> inferences
 }"
 
 end
