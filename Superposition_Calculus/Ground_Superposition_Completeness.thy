@@ -139,6 +139,28 @@ lemma (in ground_superposition_calculus) mem_equationE:
   unfolding equation.simps[of N C] mem_Collect_eq Let_def rewrite_sys_def
   by (metis (no_types, lifting))
 
+lemma (in ground_superposition_calculus) mem_equation_iff:
+  "(l, r) \<in> equation N C \<longleftrightarrow>
+    (\<exists>C'. C \<in> N \<and> C = add_mset (Pos (Upair l r)) C' \<and> select C = {#} \<and>
+      is_strictly_maximal_lit (Pos (Upair l r)) C \<and> r \<prec>\<^sub>t l \<and>
+      \<not> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C \<and>
+      \<not> upair ` (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C' \<and>
+      l \<in> NF (rewrite_inside_gctxt (rewrite_sys N C)))"
+  (is "?LHS \<longleftrightarrow> ?RHS")
+proof (rule iffI)
+  assume ?LHS
+  thus ?RHS
+    by (auto elim: mem_equationE)
+next
+  assume ?RHS
+  thus ?LHS
+    unfolding equation.simps[of N C] mem_Collect_eq rewrite_sys_def
+    by simp
+qed
+
+definition (in ground_superposition_calculus) rewrite_sys' where
+  "rewrite_sys' N \<equiv> (\<Union>D \<in> N. equation N D)"
+
 lemma (in ground_superposition_calculus) rhs_lt_lhs_if_mem_rewrite_sys:
   assumes "(t1, t2) \<in> rewrite_sys N C"
   shows "t2 \<prec>\<^sub>t t1"
