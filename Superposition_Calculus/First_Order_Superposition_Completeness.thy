@@ -3015,17 +3015,17 @@ lemma for_all_elements_exists_f_implies_f_exists_for_all_elements:
   "\<forall>x \<in> X. \<exists>f. P (f x) x \<Longrightarrow> \<exists>f. \<forall>x\<in> X. P (f x) x"
   by meson
 
-lemma (in first_order_superposition_calculus) ground_instances:
-  obtains select\<^sub>G where
-    "ground_Inf_overapproximated select\<^sub>G premises"
-    "is_grounding select\<^sub>G"
+lemma (in first_order_superposition_calculus) necessary_select\<^sub>G_exists:
+  obtains select\<^sub>G where 
+      "\<forall>premise\<^sub>G \<in> \<Union>(clause_groundings ` premises). \<exists>premise \<theta>. 
+          premise \<cdot> \<theta> = to_clause premise\<^sub>G 
+        \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<theta>)
+        \<and> premise \<in> premises" 
+      "is_grounding select\<^sub>G" 
 proof-
-  assume assumption: 
-    "\<And>select\<^sub>G. ground_Inf_overapproximated select\<^sub>G premises \<Longrightarrow> is_grounding select\<^sub>G \<Longrightarrow> thesis"
-
   let ?premise_groundings = "\<Union>(clause_groundings ` premises)"
-
-  have select\<^sub>G_exists_for_premises: "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G premise \<theta>. 
+  
+  have select\<^sub>G_exists_for_premises: "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G premise \<theta>.
           premise \<cdot> \<theta> = to_clause premise\<^sub>G 
         \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<theta>)
         \<and> premise \<in> premises"
@@ -3053,19 +3053,35 @@ proof-
     unfolding is_select_grounding_def select\<^sub>G_def select\<^sub>G_simple_def
     using select\<^sub>G_on_premise_groundings
     by (metis ground_clause_is_ground subst_clause_Var_ident to_clause_inverse)
+  
+  then show ?thesis
+    using select\<^sub>G_def select\<^sub>G_on_premise_groundings that 
+    by (metis to_clause_inverse)
+qed
+
+lemma (in first_order_superposition_calculus) ground_instances:
+  obtains select\<^sub>G where
+    "ground_Inf_overapproximated select\<^sub>G premises"
+    "is_grounding select\<^sub>G"
+proof-
+  assume assumption: 
+    "\<And>select\<^sub>G. ground_Inf_overapproximated select\<^sub>G premises \<Longrightarrow> is_grounding select\<^sub>G \<Longrightarrow> thesis"
+
+  obtain select\<^sub>G where   
+      select\<^sub>G': "\<forall>premise\<^sub>G \<in> \<Union>(clause_groundings ` premises). \<exists>\<theta> premise. 
+          premise \<cdot> \<theta> = to_clause premise\<^sub>G 
+        \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>
+        \<and> premise \<in> premises" and
+       "is_grounding select\<^sub>G" 
+    using necessary_select\<^sub>G_exists
+    by (metis (mono_tags, opaque_lifting) ground_clause_is_ground select_subst1 to_clause_inverse to_ground_clause_inverse)
 
   then interpret grounded_first_order_superposition_calculus _ _ _ select\<^sub>G
-    apply unfold_locales .
+    apply unfold_locales.
 
-  have "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>\<theta> premise. 
-        premise \<cdot> \<theta> = to_clause premise\<^sub>G 
-      \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>
-      \<and> premise \<in> premises"
-    using select\<^sub>G_def select\<^sub>G_on_premise_groundings
-    by (metis ground_clause_is_ground select_subst1 to_clause_inverse to_ground_clause_inverse)
-
-  then have "ground_Inf_overapproximated select\<^sub>G premises"
-    using ground_instances by auto
+  from select\<^sub>G'(1) have "ground_Inf_overapproximated select\<^sub>G premises"
+    using ground_instances  
+    by auto
 
   with assumption select\<^sub>G show thesis
     by blast
@@ -3100,9 +3116,12 @@ proof(rule stat_ref_comp_to_non_ground_fam_inter)
       using ground.statically_complete_calculus_axioms by blast
   qed
 next
-  show "\<And>N. empty_ord.saturated N \<Longrightarrow> \<exists>q \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated q N"
+  (* TODO: Why don't we need the saturated precondition? *)
+  have "\<And>N. \<exists>q \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated q N" 
     using ground_instances
     by (smt (verit, ccfv_threshold) mem_Collect_eq select\<^sub>G\<^sub>s_def)
+    
+  then show "\<And>N. empty_ord.saturated N \<Longrightarrow> \<exists>q \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated q N".
 qed 
 
 
