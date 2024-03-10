@@ -1,4 +1,4 @@
-theory Ground_Select
+theory Generic_Select
   imports
     Ground_Clause
 begin
