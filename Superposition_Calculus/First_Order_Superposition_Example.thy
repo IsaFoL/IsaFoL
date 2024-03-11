@@ -7,10 +7,14 @@ begin
 
 abbreviation trivial_select :: "('f, 'v) select" where
   "trivial_select _ \<equiv> {#}"
+
+abbreviation trivial_tiebreakers where
+  "trivial_tiebreakers _ _ _ \<equiv> False"
                                     
 interpretation first_order_superposition_calculus 
   "trivial_select :: ('f :: weighted, 'v :: infinite) select" 
   less_kbo
+  trivial_tiebreakers
 proof(unfold_locales)
   fix clause :: "('f, 'v) atom clause"
 
@@ -34,7 +38,7 @@ next
     by blast
 next
   show "wfp_on less_kbo {term. is_ground_term term}"
-    using wfp_on_subset[OF _ wfP_less_kbo[unfolded  wfp_on_UNIV[symmetric]]]
+    using wfp_on_subset[OF _ wfP_less_kbo[unfolded wfp_on_UNIV[symmetric]]]
     by auto
 next
   show "totalp_on {term. is_ground_term term} less_kbo"
@@ -83,6 +87,12 @@ next
 next                      
   show "\<And>R. ground_critical_pair_theorem R"
     using ground_critical_pair_theorem.
+next
+  show "\<And>term\<^sub>G. po_on (\<lambda>_ _. False) UNIV"
+    by (simp add: minimal_element.po wf_empty_rel)
+next 
+  show "\<And>term\<^sub>G. wfp_on (\<lambda>_ _. False) UNIV "
+    by simp
 qed
 
 end

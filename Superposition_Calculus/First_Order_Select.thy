@@ -1,5 +1,7 @@
 theory First_Order_Select
-  imports Ground_Select First_Order_Clause
+  imports 
+    Generic_Select 
+    First_Order_Clause
 begin
 
 type_synonym 'f ground_select = "'f ground_atom clause \<Rightarrow> 'f ground_atom clause"

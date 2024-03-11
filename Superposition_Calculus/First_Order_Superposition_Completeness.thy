@@ -2574,8 +2574,8 @@ proof-
     using assms 
     unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
     (* TODO: *)
-    apply auto
-    by (smt (z3) Calculus.inference.inject list.simps(4) list.simps(5) list_4_cases)
+    apply(auto split: list.splits)
+    by (metis list_4_cases)
 
   then show ?thesis
     unfolding \<iota> \<iota>\<^sub>G clause_groundings_def
@@ -2614,7 +2614,7 @@ sublocale first_order_superposition_calculus \<subseteq>
     "\<bottom>\<^sub>F"
     "\<lambda>_. clause_groundings" 
     "\<lambda>select\<^sub>G. some (grounded_first_order_superposition_calculus.inference_groundings (\<prec>\<^sub>t) select\<^sub>G)"
-    "\<lambda>_ _ _. False"
+    tiebreakers
 proof(unfold_locales; (intro ballI)?)
   show "select\<^sub>G\<^sub>s \<noteq> {}"
     using select\<^sub>G_simple
@@ -2624,7 +2624,7 @@ next
   fix select\<^sub>G
   assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
  
-  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus _ _ _ select\<^sub>G
     apply unfold_locales
     by(simp add: select\<^sub>G\<^sub>s_def)
 
@@ -2634,20 +2634,21 @@ next
    fix select\<^sub>G
    assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
  
-  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus _ _ _ select\<^sub>G
     apply unfold_locales
     by(simp add: select\<^sub>G\<^sub>s_def)
 
   show "tiebreaker_lifting
-          \<bottom>\<^sub>F inferences
+          \<bottom>\<^sub>F
+          inferences 
           ground.G_Bot
           ground.G_entails
-          ground.G_Inf
-          ground.Red_I
-          ground.Red_F
-          clause_groundings 
+          ground.G_Inf 
+          ground.GRed_I
+          ground.GRed_F 
+          clause_groundings
           (some inference_groundings)
-          (\<lambda>_ _ _. False)"
+          tiebreakers"
   proof unfold_locales
     show "\<bottom>\<^sub>F \<noteq> {}"
       by simp
@@ -2676,18 +2677,16 @@ next
       using inference\<^sub>G_red_in_clause_grounding_of_concl
       by auto
   next
-    show "\<And>g. po_on (\<lambda>_ _. False) UNIV"
-      unfolding po_on_def irreflp_on_def
-      by simp
+    show "\<And>g. po_on (tiebreakers g) UNIV"
+      using minimal_element.po wellfounded_tiebreakers by blast
   next
-    show "\<And>g. wfp_on (\<lambda>_ _. False) UNIV "
-      by simp
+    show "\<And>g. wfp_on (tiebreakers g) UNIV"
+      using minimal_element.wf wellfounded_tiebreakers by blast
   qed
 qed
 
 context grounded_first_order_superposition_calculus
 begin
-
 
 (* TODO: Probably it is easier to combine these with the above ones or have a generic way for 
     converting the formats
@@ -3016,17 +3015,17 @@ lemma for_all_elements_exists_f_implies_f_exists_for_all_elements:
   "\<forall>x \<in> X. \<exists>f. P (f x) x \<Longrightarrow> \<exists>f. \<forall>x\<in> X. P (f x) x"
   by meson
 
-lemma (in first_order_superposition_calculus) ground_instances:
-  obtains select\<^sub>G where
-    "ground_Inf_overapproximated select\<^sub>G premises"
-    "is_grounding select\<^sub>G"
+lemma (in first_order_superposition_calculus) necessary_select\<^sub>G_exists:
+  obtains select\<^sub>G where 
+      "\<forall>premise\<^sub>G \<in> \<Union>(clause_groundings ` premises). \<exists>premise \<theta>. 
+          premise \<cdot> \<theta> = to_clause premise\<^sub>G 
+        \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<theta>)
+        \<and> premise \<in> premises" 
+      "is_grounding select\<^sub>G" 
 proof-
-  assume assumption: 
-    "\<And>select\<^sub>G. ground_Inf_overapproximated select\<^sub>G premises \<Longrightarrow> is_grounding select\<^sub>G \<Longrightarrow> thesis"
-
   let ?premise_groundings = "\<Union>(clause_groundings ` premises)"
-
-  have select\<^sub>G_exists_for_premises: "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G premise \<theta>. 
+  
+  have select\<^sub>G_exists_for_premises: "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G premise \<theta>.
           premise \<cdot> \<theta> = to_clause premise\<^sub>G 
         \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<theta>)
         \<and> premise \<in> premises"
@@ -3054,19 +3053,35 @@ proof-
     unfolding is_select_grounding_def select\<^sub>G_def select\<^sub>G_simple_def
     using select\<^sub>G_on_premise_groundings
     by (metis ground_clause_is_ground subst_clause_Var_ident to_clause_inverse)
+  
+  then show ?thesis
+    using select\<^sub>G_def select\<^sub>G_on_premise_groundings that 
+    by (metis to_clause_inverse)
+qed
 
-  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
-    apply unfold_locales .
+lemma (in first_order_superposition_calculus) ground_instances:
+  obtains select\<^sub>G where
+    "ground_Inf_overapproximated select\<^sub>G premises"
+    "is_grounding select\<^sub>G"
+proof-
+  assume assumption: 
+    "\<And>select\<^sub>G. ground_Inf_overapproximated select\<^sub>G premises \<Longrightarrow> is_grounding select\<^sub>G \<Longrightarrow> thesis"
 
-  have "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>\<theta> premise. 
-        premise \<cdot> \<theta> = to_clause premise\<^sub>G 
-      \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>
-      \<and> premise \<in> premises"
-    using select\<^sub>G_def select\<^sub>G_on_premise_groundings
-    by (metis ground_clause_is_ground select_subst1 to_clause_inverse to_ground_clause_inverse)
+  obtain select\<^sub>G where   
+      select\<^sub>G': "\<forall>premise\<^sub>G \<in> \<Union>(clause_groundings ` premises). \<exists>\<theta> premise. 
+          premise \<cdot> \<theta> = to_clause premise\<^sub>G 
+        \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>
+        \<and> premise \<in> premises" and
+       "is_grounding select\<^sub>G" 
+    using necessary_select\<^sub>G_exists
+    by (metis (mono_tags, opaque_lifting) ground_clause_is_ground select_subst1 to_clause_inverse to_ground_clause_inverse)
 
-  then have "ground_Inf_overapproximated select\<^sub>G premises"
-    using ground_instances by auto
+  then interpret grounded_first_order_superposition_calculus _ _ _ select\<^sub>G
+    apply unfold_locales.
+
+  from select\<^sub>G'(1) have "ground_Inf_overapproximated select\<^sub>G premises"
+    using ground_instances  
+    by auto
 
   with assumption select\<^sub>G show thesis
     by blast
@@ -3087,7 +3102,7 @@ proof(rule stat_ref_comp_to_non_ground_fam_inter)
   proof
     fix select\<^sub>G
     assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
-    then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
+    then interpret grounded_first_order_superposition_calculus _ _ _ select\<^sub>G
       apply unfold_locales
       unfolding select\<^sub>G\<^sub>s_def
       by simp
@@ -3101,9 +3116,12 @@ proof(rule stat_ref_comp_to_non_ground_fam_inter)
       using ground.statically_complete_calculus_axioms by blast
   qed
 next
-  show "\<And>N. empty_ord.saturated N \<Longrightarrow> \<exists>q \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated q N"
+  (* TODO: Why don't we need the saturated precondition? *)
+  have "\<And>N. \<exists>q \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated q N" 
     using ground_instances
     by (smt (verit, ccfv_threshold) mem_Collect_eq select\<^sub>G\<^sub>s_def)
+    
+  then show "\<And>N. empty_ord.saturated N \<Longrightarrow> \<exists>q \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated q N".
 qed 
 
 
@@ -3142,7 +3160,7 @@ proof-
   obtain select\<^sub>G where "is_grounding select\<^sub>G"
     using select\<^sub>G_simple by blast
 
-  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus _ _ _ select\<^sub>G
     apply unfold_locales.
 
   have "\<And>premise\<^sub>G conclusion\<^sub>G. ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G \<Longrightarrow>
@@ -3192,7 +3210,7 @@ proof-
   obtain select\<^sub>G where "is_grounding select\<^sub>G"
     using select\<^sub>G_simple by blast
 
-  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus _ _ _ select\<^sub>G
     apply unfold_locales.
 
   have "\<And>premise\<^sub>G conclusion\<^sub>G. ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G \<Longrightarrow>

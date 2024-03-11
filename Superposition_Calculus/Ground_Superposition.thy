@@ -19,7 +19,7 @@ theory Ground_Superposition
     "HOL_Extra"
     Relation_Extra
     Clausal_Calculus_Extra
-    Ground_Select
+    Generic_Select
     Ground_Ordering
 begin
 
