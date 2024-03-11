@@ -183,6 +183,19 @@ qed
 definition (in ground_superposition_calculus) rewrite_sys where
   "rewrite_sys N C \<equiv> (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. equation {E \<in> N. E \<preceq>\<^sub>c D} D)"
 
+definition (in ground_superposition_calculus) rewrite_sys' where
+  "rewrite_sys' N \<equiv> (\<Union>C \<in> N. equation N C)"
+
+lemma (in ground_superposition_calculus) rewrite_sys_alt: "rewrite_sys' {D \<in> N. D \<prec>\<^sub>c C} = rewrite_sys N C"
+  unfolding rewrite_sys'_def rewrite_sys_def
+proof (rule SUP_cong)
+  show "{D \<in> N. D \<prec>\<^sub>c C} = {D \<in> N. D \<prec>\<^sub>c C}" ..
+next
+  show "\<And>x. x \<in> {D \<in> N. D \<prec>\<^sub>c C} \<Longrightarrow> equation {D \<in> N. D \<prec>\<^sub>c C} x = equation {E \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= E x} x"
+    using equation_filter_le_conv
+    by (smt (verit, best) Collect_cong linorder_cls.le_less_trans mem_Collect_eq)
+qed
+
 lemma (in ground_superposition_calculus) mem_equationE:
   assumes rule_in: "rule \<in> equation N C"
   obtains l r C' where
@@ -203,19 +216,20 @@ lemma (in ground_superposition_calculus) mem_equation_iff:
   "(l, r) \<in> equation N C \<longleftrightarrow>
     (\<exists>C'. C \<in> N \<and> C = add_mset (Pos (Upair l r)) C' \<and> select C = {#} \<and>
       is_strictly_maximal_lit (Pos (Upair l r)) C \<and> r \<prec>\<^sub>t l \<and>
-      \<not> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C \<and>
-      \<not> upair ` (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C' \<and>
-      l \<in> NF (rewrite_inside_gctxt (rewrite_sys N C)))"
+      \<not> upair ` (rewrite_inside_gctxt (rewrite_sys' {D \<in> N. D \<prec>\<^sub>c C}))\<^sup>\<down> \<TTurnstile> C \<and>
+      \<not> upair ` (rewrite_inside_gctxt (insert (l, r) (rewrite_sys' {D \<in> N. D \<prec>\<^sub>c C})))\<^sup>\<down> \<TTurnstile> C' \<and>
+      l \<in> NF (rewrite_inside_gctxt (rewrite_sys' {D \<in> N. D \<prec>\<^sub>c C})))"
   (is "?LHS \<longleftrightarrow> ?RHS")
 proof (rule iffI)
   assume ?LHS
   thus ?RHS
+    using rewrite_sys_alt
     by (auto elim: mem_equationE)
 next
   assume ?RHS
   thus ?LHS
-    unfolding equation.simps[of N C] mem_Collect_eq rewrite_sys_def
-    by auto
+    unfolding equation.simps[of N C] mem_Collect_eq
+    unfolding rewrite_sys_alt rewrite_sys_def by auto
 qed
 
 lemma (in ground_superposition_calculus) rhs_lt_lhs_if_mem_rewrite_sys:
