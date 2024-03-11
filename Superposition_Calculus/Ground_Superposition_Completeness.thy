@@ -180,6 +180,11 @@ proof -
         insertCI mem_Collect_eq)
 qed
 
+lemma (in ground_superposition_calculus) card_equation_le_one:
+  "card (equation N C) \<le> 1"
+  using equation_eq_empty_or_singleton[of N C]
+  by auto
+
 definition (in ground_superposition_calculus) rewrite_sys where
   "rewrite_sys N C \<equiv> (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. equation {E \<in> N. E \<preceq>\<^sub>c D} D)"
 
