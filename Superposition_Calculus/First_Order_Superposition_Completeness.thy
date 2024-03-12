@@ -2678,10 +2678,13 @@ next
       by auto
   next
     show "\<And>g. po_on (tiebreakers g) UNIV"
-      using minimal_element.po wellfounded_tiebreakers by blast
+      unfolding po_on_def
+      using wellfounded_tiebreakers
+      by simp
   next
     show "\<And>g. wfp_on (tiebreakers g) UNIV"
-      using minimal_element.wf wellfounded_tiebreakers by blast
+      using wellfounded_tiebreakers
+      by simp
   qed
 qed
 
