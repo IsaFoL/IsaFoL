@@ -25,14 +25,14 @@ locale first_order_superposition_calculus =
     tiebreakers :: "'f gatom clause  \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
   assumes
     infinite_variable_universe: "infinite (UNIV :: 'v set)" and
-    wellfounded_tiebreakers:  
-      "\<And>term\<^sub>G. wfP (tiebreakers term\<^sub>G)" 
-      "\<And>term\<^sub>G. transp (tiebreakers term\<^sub>G)" 
-      "\<And>term\<^sub>G. asymp (tiebreakers term\<^sub>G)" and
+    wellfounded_tiebreakers: 
+      "\<And>term\<^sub>G. wfP (tiebreakers term\<^sub>G) \<and> 
+               transp (tiebreakers term\<^sub>G) \<and> 
+               asymp (tiebreakers term\<^sub>G)" and
     (* TODO: Use theorem from CeTA *)
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
-
+  
 definition clause_groundings ::
   "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" where
   "clause_groundings clause = { to_ground_clause (clause \<cdot> \<theta>) | \<theta>. is_ground_clause (clause \<cdot> \<theta>) }"
