@@ -127,7 +127,7 @@ proof (cases P C rule: equality_factoring.cases)
       by (auto simp: true_cls_def)
 
     then have s\<^sub>1_equals_t\<^sub>2: "?t\<^sub>2 = ?s\<^sub>1"
-      using is_imgu_equals[OF equality_factoringI(6)]
+      using is_imgu_equals[OF equality_factoringI(7)]
       by simp
 
     have L\<^sub>1: "?L\<^sub>1 = ?s\<^sub>1 \<approx> ?s\<^sub>1'"
@@ -168,7 +168,7 @@ proof (cases P C rule: equality_factoring.cases)
         by (simp add: to_ground_clause_def subst_clause_add_mset)
 
       then have "L' \<in># to_ground_clause (C \<cdot> \<theta>)"
-        by (simp add: to_ground_clause_def equality_factoringI(7) subst_clause_add_mset)
+        by (simp add: to_ground_clause_def equality_factoringI(8) subst_clause_add_mset)
 
       then show ?thesis
         using I_models_L' by blast

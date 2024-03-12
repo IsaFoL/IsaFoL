@@ -1663,7 +1663,10 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
   next 
     show "literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'"
       using literal\<^sub>2_terms.
-  next  
+  next 
+    show  "select premise = {#}"
+      using select_empty.
+  next
     have literal\<^sub>1_\<sigma>_in_premise: "literal\<^sub>1 \<cdot>l \<sigma> \<in># premise \<cdot> \<sigma>"
       using literal\<^sub>1_maximal(1) literal_in_clause_subst maximal\<^sub>l_in_clause by blast
 
@@ -1674,8 +1677,8 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
               literal\<^sub>1_maximal(2)[unfolded \<sigma>(2) clause_subst_compose literal_subst_compose]
             ].
 
-    then show "select premise = {#} \<and> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<sigma>) (premise \<cdot> \<sigma>)"
-      using select_empty by blast
+    then show "is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<sigma>) (premise \<cdot> \<sigma>)"
+      by blast
   next
     have term_groundings: "is_ground_term (term\<^sub>1' \<cdot>t \<sigma> \<cdot>t \<tau>)" "is_ground_term (term\<^sub>1 \<cdot>t \<sigma> \<cdot>t \<tau>)" 
       unfolding 
