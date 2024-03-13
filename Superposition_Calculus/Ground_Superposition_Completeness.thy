@@ -865,10 +865,10 @@ lemma (in ground_superposition_calculus)
   shows
     true_cls_if_productive_equation:
       "upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C"
-      "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> upair ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C" and
+      "\<And>D. D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> upair ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C" and
     false_cls_if_productive_equation:
       "\<not> upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
-      "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> \<not> upair ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
+      "\<And>D. D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> \<not> upair ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
 proof -
   from productive have "(l, r) \<in> equation N C"
     by simp
@@ -994,7 +994,7 @@ proof -
   qed
   then show "\<not> upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
     by (simp add: C_def)
-
+  fix D
   assume "D \<in> N" and "C \<prec>\<^sub>c D"
   have "(l, r) \<in> rewrite_sys N D"
     using C_in \<open>(l, r) \<in> equation N C\<close> \<open>C \<prec>\<^sub>c D\<close> mem_rewrite_sys_if_less_cls by metis
@@ -1206,16 +1206,24 @@ proof (induction C rule: wfP_induct_rule)
 
   note I_interp = \<open>refl I\<close> \<open>trans I\<close> \<open>sym I\<close> \<open>compatible_with_gctxt I\<close>
 
-  have i: "entails (rewrite_sys N C) C \<longleftrightarrow> (equation N C = {})"
+  have i: "(equation N C = {}) \<longleftrightarrow> entails (rewrite_sys N C) C"
   proof (rule iffI)
     show "entails (rewrite_sys N C) C \<Longrightarrow> equation N C = {}"
       unfolding entails_def rewrite_sys_def
       by (metis (no_types) empty_iff equalityI mem_equationE rewrite_sys_def subsetI)
   next
     assume "equation N C = {}"
+
+    have cond_conv: "(\<exists>L. L \<in># select C \<or> (select C = {#} \<and> is_maximal_lit L C \<and> is_neg L)) \<longleftrightarrow>
+      (\<exists>A. Neg A \<in># C \<and> (Neg A \<in># select C \<or> select C = {#} \<and> is_maximal_lit (Neg A) C))"
+      by (metis (no_types, opaque_lifting) is_pos_def linorder_lit.is_maximal_in_mset_iff
+          literal.disc(2) literal.exhaust mset_subset_eqD select_negative_lits select_subset)
+
     show "entails (rewrite_sys N C) C"
-    proof (cases "\<exists>A. Neg A \<in># C \<and> (Neg A \<in># select C \<or> select C = {#} \<and> is_maximal_lit (Neg A) C)")
+    proof (cases "\<exists>L. L \<in># select C \<or> (select C = {#} \<and> is_maximal_lit L C \<and> is_neg L)")
       case ex_neg_lit_sel_or_max: True
+      hence "\<exists>A. Neg A \<in># C \<and> (Neg A \<in># select C \<or> select C = {#} \<and> is_maximal_lit (Neg A) C)"
+        unfolding cond_conv .
       then obtain s s' where
         "Neg (Upair s s') \<in># C" and
         sel_or_max: "Neg (Upair s s') \<in># select C \<or> select C = {#} \<and> is_maximal_lit (Neg (Upair s s')) C"
@@ -1434,12 +1442,11 @@ proof (induction C rule: wfP_induct_rule)
     next
       case False
       hence "select C = {#}"
-        using select_subset select_negative_lits
-        by (metis (no_types, opaque_lifting) Neg_atm_of_iff mset_subset_eqD multiset_nonemptyE)
+        by (metis (no_types, opaque_lifting) multiset_nonemptyE)
         
       from False obtain A where Pos_A_in: "Pos A \<in># C" and max_Pos_A: "is_maximal_lit (Pos A) C"
         using \<open>select C = {#}\<close> linorder_lit.ex_maximal_in_mset[OF \<open>C \<noteq> {#}\<close>]
-        by (metis linorder_lit.is_maximal_in_mset_iff literal.exhaust)
+        by (metis is_pos_def linorder_lit.is_maximal_in_mset_iff)
       then obtain C' where C_def: "C = add_mset (Pos A) C'"
         by (meson mset_add)
 
