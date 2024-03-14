@@ -97,7 +97,7 @@ abbreviation equality_resolution_inferences where
 
 (* TODO: premise order! *)
 abbreviation superposition_inferences where
-  "superposition_inferences \<equiv> { Infer [premise\<^sub>1, premise\<^sub>2] conclusion 
+  "superposition_inferences \<equiv> { Infer [premise\<^sub>2, premise\<^sub>1] conclusion 
     | premise\<^sub>1 premise\<^sub>2 conclusion. superposition premise\<^sub>1 premise\<^sub>2 conclusion }"
 
 definition inferences :: "('f, 'v) atom clause inference set" where
