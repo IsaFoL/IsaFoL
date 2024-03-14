@@ -88,11 +88,8 @@ next
   show "\<And>R. ground_critical_pair_theorem R"
     using ground_critical_pair_theorem.
 next
-  show "\<And>term\<^sub>G. po_on (\<lambda>_ _. False) UNIV"
-    by (simp add: minimal_element.po wf_empty_rel)
-next 
-  show "\<And>term\<^sub>G. wfp_on (\<lambda>_ _. False) UNIV "
-    by simp
+  show "\<And>term\<^sub>G. wfP (\<lambda>_ _. False) \<and> transp (\<lambda>_ _. False) \<and> asymp (\<lambda>_ _. False)"
+    by (simp add: asympI)
 qed
 
 end

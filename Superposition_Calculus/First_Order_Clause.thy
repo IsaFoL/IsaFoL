@@ -680,5 +680,4 @@ proof-
     by blast
 qed
 
-
 end
