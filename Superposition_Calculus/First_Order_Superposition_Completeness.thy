@@ -1771,7 +1771,7 @@ lemma superposition_ground_instance:
  (* TODO: (Premise order!)  *)
   shows "\<exists>conclusion'. superposition premise\<^sub>1 premise\<^sub>2 (conclusion')
             \<and> Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) 
-                \<in> inference_groundings (Infer [premise\<^sub>1, premise\<^sub>2] conclusion')
+                \<in> inference_groundings (Infer [premise\<^sub>2, premise\<^sub>1] conclusion')
             \<and> conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
    using ground_superposition
 proof(cases 
@@ -2956,7 +2956,7 @@ proof-
     superposition: "superposition premise\<^sub>1 premise\<^sub>2 conclusion'" and
     inference_groundings: 
       "Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> 
-        inference_groundings (Infer [premise\<^sub>1, premise\<^sub>2] conclusion')" and  
+        inference_groundings (Infer [premise\<^sub>2, premise\<^sub>1] conclusion')" and  
     conclusion'_conclusion: "conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
      using superposition_ground_instance[OF 
         renaming(1, 2)
@@ -2969,7 +2969,7 @@ proof-
       ]
      by blast
 
-   let ?\<iota> = "Infer [premise\<^sub>1, premise\<^sub>2] conclusion'"
+   let ?\<iota> = "Infer [premise\<^sub>2, premise\<^sub>1] conclusion'"
 
    have "?\<iota> \<in> Inf_from premises"
     using premise\<^sub>1_in_premises premise\<^sub>2_in_premises superposition
@@ -3035,7 +3035,7 @@ proof-
           premise \<cdot> \<theta> = to_clause premise\<^sub>G 
         \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<theta>)
         \<and> premise \<in> premises"
-    unfolding clause_groundings_def   
+    unfolding clause_groundings_def
     by fastforce
 
   obtain select\<^sub>G_on_premise_groundings where 
