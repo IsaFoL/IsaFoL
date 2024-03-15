@@ -192,9 +192,9 @@ lemma image_mset_remove1_mset:
 (* TODO: Make nicer *)
 lemma multp\<^sub>D\<^sub>M_map_strong:
   assumes
-    mono_f: "monotone_on (set_mset (M1 + M2)) R R f" and
+    f_mono: "monotone_on (set_mset (M1 + M2)) R S f" and
     M1_lt_M2: "multp\<^sub>D\<^sub>M R M1 M2"
-  shows "multp\<^sub>D\<^sub>M R (image_mset f M1) (image_mset f M2)"
+  shows "multp\<^sub>D\<^sub>M S (image_mset f M1) (image_mset f M2)"
 proof -
   obtain Y X where
     "Y \<noteq> {#}" and "Y \<subseteq># M2" and M1_eq: "M1 = M2 - Y + X" and
@@ -221,7 +221,7 @@ proof -
     obtain g where y: "\<forall>x. x \<in># X \<longrightarrow> g x \<in># Y \<and> R x (g x)"
       using ex_y by moura
 
-    show "\<forall>fx. fx \<in># ?fX \<longrightarrow> (\<exists>fy. fy \<in># ?fY \<and> R fx fy)"
+    show "\<forall>fx. fx \<in># ?fX \<longrightarrow> (\<exists>fy. fy \<in># ?fY \<and> S fx fy)"
     proof (intro allI impI)
       fix x' assume "x' \<in># ?fX"
       then obtain x where x': "x' = f x" and x_in: "x \<in># X"
@@ -232,10 +232,10 @@ proof -
       moreover have "X \<subseteq># M1"
         using M1_eq by simp
 
-      ultimately have "f (g x) \<in># ?fY \<and> R (f x)(f (g x)) "
-        using mono_f[THEN monotone_onD, of x "g x"] \<open>Y \<subseteq># M2\<close> \<open>X \<subseteq># M1\<close> x_in
+      ultimately have "f (g x) \<in># ?fY \<and> S (f x)(f (g x)) "
+        using f_mono[THEN monotone_onD, of x "g x"] \<open>Y \<subseteq># M2\<close> \<open>X \<subseteq># M1\<close> x_in
         by (metis imageI in_image_mset mset_subset_eqD union_iff)
-      thus "\<exists>fy. fy \<in># ?fY \<and> R x' fy"
+      thus "\<exists>fy. fy \<in># ?fY \<and> S x' fy"
         unfolding x' by auto
     qed
   qed
@@ -243,13 +243,14 @@ qed
 
 lemma multp_map_strong:
   assumes
-     "asymp R"
-     "transp R"
-     "monotone_on (set_mset (M1 + M2)) R R f" and
-     "multp R M1 M2"
-   shows "multp R (image_mset f M1) (image_mset f M2)"
-  using assms(3, 4)
-  unfolding multp_eq_multp\<^sub>D\<^sub>M[OF assms(1, 2)] 
-  using multp\<^sub>D\<^sub>M_map_strong by metis
+    "asymp R" and "transp R" and
+    "asymp S" and "transp S" and
+    f_mono: "monotone_on (set_mset (M1 + M2)) R S f" and
+    M1_lt_M2: "multp R M1 M2"
+  shows "multp S (image_mset f M1) (image_mset f M2)"
+  using M1_lt_M2 multp\<^sub>D\<^sub>M_map_strong[OF f_mono]
+  unfolding multp_eq_multp\<^sub>D\<^sub>M[OF assms(1, 2)]
+  unfolding multp_eq_multp\<^sub>D\<^sub>M[OF assms(3, 4)]
+  by argo
 
 end

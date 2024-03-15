@@ -189,16 +189,10 @@ lemma less\<^sub>l_ground_subst_stability:
   shows "literal \<prec>\<^sub>l literal' \<Longrightarrow> literal \<cdot>l \<theta> \<prec>\<^sub>l literal' \<cdot>l \<theta>"
   unfolding less\<^sub>l_def mset_mset_lit_subst[symmetric]
 proof (elim multp_map_strong[rotated -1])
-  show "asymp (\<prec>\<^sub>t)"
-    using less\<^sub>t_asymmetric .
-next
-  show "transp (\<prec>\<^sub>t)"
-    using less\<^sub>t_transitive .
-next
   show "monotone_on (set_mset (mset_lit literal + mset_lit literal')) (\<prec>\<^sub>t) (\<prec>\<^sub>t) (\<lambda>term. term \<cdot>t \<theta>)"
     by (rule monotone_onI)
       (metis assms(1,2) less\<^sub>t_ground_subst_stability ground_term_in_ground_literal_subst union_iff)
-qed
+qed (use less\<^sub>t_asymmetric less\<^sub>t_transitive in simp_all)
 
 lemma less\<^sub>c_ground_subst_stability: 
   assumes 
@@ -207,16 +201,10 @@ lemma less\<^sub>c_ground_subst_stability:
   shows "clause \<prec>\<^sub>c clause' \<Longrightarrow> clause \<cdot> \<theta> \<prec>\<^sub>c clause' \<cdot> \<theta>"
   unfolding subst_clause_def
 proof (elim multp_map_strong[rotated -1])
-  show "asymp (\<prec>\<^sub>l)"
-    using less\<^sub>l_asymmetric .
-next
-  show "transp (\<prec>\<^sub>l)"
-    using less\<^sub>l_transitive .
-next
   show "monotone_on (set_mset (clause + clause')) (\<prec>\<^sub>l) (\<prec>\<^sub>l) (\<lambda>literal. literal \<cdot>l \<theta>)"
     by (rule monotone_onI)
       (metis assms(1,2) ground_literal_in_ground_clause_subst less\<^sub>l_ground_subst_stability union_iff)
-qed
+qed (use less\<^sub>l_asymmetric less\<^sub>l_transitive in simp_all)
 
 lemma less_eq\<^sub>t_ground_subst_stability:
   assumes "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)" "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)"  "term\<^sub>1 \<preceq>\<^sub>t term\<^sub>2"
