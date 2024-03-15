@@ -19,11 +19,30 @@ next
     using x_in by auto
 qed
 
+lemma reflp_on_image: "reflp_on (f ` A) R \<longleftrightarrow> reflp_on A (\<lambda>a b. R (f a) (f b))"
+  by (simp add: reflp_on_def)
+
+lemma irreflp_on_image: "irreflp_on (f ` A) R \<longleftrightarrow> irreflp_on A (\<lambda>a b. R (f a) (f b))"
+  by (simp add: irreflp_on_def)
+
+lemma symp_on_image: "symp_on (f ` A) R \<longleftrightarrow> symp_on A (\<lambda>a b. R (f a) (f b))"
+  by (simp add: symp_on_def)
+
+lemma asymp_on_image: "asymp_on (f ` A) R \<longleftrightarrow> asymp_on A (\<lambda>a b. R (f a) (f b))"
+  by (simp add: asymp_on_def)
+
+lemma antisymp_on_image:
+  assumes "inj_on f A"
+  shows "antisymp_on (f ` A) R \<longleftrightarrow> antisymp_on A (\<lambda>a b. R (f a) (f b))"
+  using assms by (auto simp: antisymp_on_def inj_on_def)
+
+lemma transp_on_image: "transp_on (f ` A) R \<longleftrightarrow> transp_on A (\<lambda>a b. R (f a) (f b))"
+  by (simp add: transp_on_def)
+
 lemma totalp_on_image:
   assumes "inj_on f A"
   shows "totalp_on (f ` A) R \<longleftrightarrow> totalp_on A (\<lambda>a b. R (f a) (f b))"
-  using assms
-  unfolding totalp_on_def inj_on_def by auto
+  using assms by (auto simp: totalp_on_def inj_on_def)
 
 lemma wfp_on_image: "wfp_on R (f ` A) \<longleftrightarrow> wfp_on (\<lambda>a b. R (f a) (f b)) A"
 proof (rule iffI)
