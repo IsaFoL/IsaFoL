@@ -1345,7 +1345,7 @@ abbreviation equality_factoring_inferences where
 
 (* TODO: fix P2 P1 order *)
 abbreviation superposition_inferences where
-  "superposition_inferences \<equiv>  {Infer [P2, P1] C | P1 P2 C. ground_superposition P1 P2 C}"
+  "superposition_inferences \<equiv>  {Infer [P2, P1] C | P1 P2 C. ground_superposition P2 P1 C}"
 
 end
 
@@ -1762,21 +1762,21 @@ lemma superposition_ground_instance:
       "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>))) = (select premise\<^sub>2) \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>" and
     ground_superposition: 
       "ground.ground_superposition
-          (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>))
           (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>))
+          (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>))
           (to_ground_clause (conclusion \<cdot> \<theta>))" and
     not_redundant:
     "Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion \<cdot> \<theta>)) 
       \<notin> ground.Red_I (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
  (* TODO: (Premise order!)  *)
-  shows "\<exists>conclusion'. superposition premise\<^sub>1 premise\<^sub>2 (conclusion')
+  shows "\<exists>conclusion'. superposition premise\<^sub>2 premise\<^sub>1 conclusion'
             \<and> Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) 
                 \<in> inference_groundings (Infer [premise\<^sub>2, premise\<^sub>1] conclusion')
             \<and> conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
    using ground_superposition
 proof(cases 
-      "to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)" 
-      "to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>)" 
+      "to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>)"
+      "to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)"
       "to_ground_clause (conclusion \<cdot> \<theta>)"
       rule: ground.ground_superposition.cases)
   case (ground_superpositionI 
@@ -2275,15 +2275,16 @@ proof(cases
     context\<^sub>1_\<theta> : "context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta> = to_context context\<^sub>G" and
     term\<^sub>1_not_Var: "\<not> is_Var term\<^sub>1"
     using not_redundant ground_superposition
-    unfolding premise\<^sub>1_\<theta> premise\<^sub>2_\<theta> conclusion_\<theta>\<^sub>G
+    unfolding premise\<^sub>1_\<theta>
+    unfolding premise\<^sub>2_\<theta>
+    unfolding conclusion_\<theta>\<^sub>G
     unfolding premise\<^sub>1 premise\<^sub>2
     apply auto
     unfolding ground.Red_I_def
     apply auto
     unfolding ground.G_Inf_def
      apply blast
-    using x
-    by blast
+    by (metis special_case z)
  
   obtain term\<^sub>2'_with_context where
     term\<^sub>2'_with_context: 
@@ -2324,7 +2325,7 @@ proof(cases
     using subst_clause_add_mset subst_literal \<sigma>_\<theta> clause_subst_compose
     by (smt (verit))+
 
-  have superposition: "superposition premise\<^sub>1 premise\<^sub>2 ?conclusion'"
+  have superposition: "superposition premise\<^sub>2 premise\<^sub>1 ?conclusion'"
   proof(rule superpositionI)
     show "term_subst.is_renaming \<rho>\<^sub>1"
       using renaming(1).
@@ -2845,7 +2846,7 @@ lemma superposition_ground_instance':
 proof-
   obtain premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 conclusion\<^sub>G where 
     \<iota>\<^sub>G : "\<iota>\<^sub>G = Infer [premise\<^sub>G\<^sub>2, premise\<^sub>G\<^sub>1] conclusion\<^sub>G" and
-    ground_superposition: "ground.ground_superposition premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 conclusion\<^sub>G"
+    ground_superposition: "ground.ground_superposition premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G"
     using assms(1)
     by blast
 
@@ -2946,28 +2947,63 @@ proof-
   have "clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2 \<subseteq> \<Union> (clause_groundings ` premises)"
     using premise\<^sub>1_in_premises premise\<^sub>2_in_premises by blast
 
-  then have " Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion \<cdot> \<theta>))
-  \<notin> ground.GRed_I (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
+  then have Infer_not_GRed_I:
+    "Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)]
+      (to_ground_clause (conclusion \<cdot> \<theta>)) \<notin>
+      ground.GRed_I (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
     using assms(3) ground.Red_I_of_subset
     unfolding \<iota>\<^sub>G  premise\<^sub>G\<^sub>1[symmetric] premise\<^sub>G\<^sub>2[symmetric] conclusion\<^sub>G[symmetric]
     by blast
 
+  have "\<exists>conclusion'. superposition premise\<^sub>2 premise\<^sub>1 conclusion' \<and>
+    Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)]
+      (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> inference_groundings (Infer [premise\<^sub>2, premise\<^sub>1] conclusion') \<and>
+    conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
+  proof (rule superposition_ground_instance)
+    show "term_subst.is_renaming \<rho>\<^sub>1"
+      using renaming by argo
+  next
+    show "term_subst.is_renaming \<rho>\<^sub>2"
+      using renaming by argo
+  next
+    show "vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}"
+      using vars_distinct .
+  next
+    show "is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)"
+      using premise\<^sub>1_grounding .
+  next
+    show "is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>)"
+      using premise\<^sub>2_grounding .
+  next
+    show "is_ground_clause (conclusion \<cdot> \<theta>)"
+      using conclusion_grounding .
+  next
+    show "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>))) = select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>"
+      using select by argo
+  next
+    show "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>))) = select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>"
+      using select by argo
+  next
+    show "ground.ground_superposition
+      (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>))
+      (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>))
+      (to_ground_clause (conclusion \<cdot> \<theta>))"
+      using ground_superposition unfolding premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G .
+  next
+    show "Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)]
+     (to_ground_clause (conclusion \<cdot> \<theta>))
+    \<notin> ground.GRed_I (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
+      using Infer_not_GRed_I .
+  qed
+
  then obtain conclusion' where 
-    superposition: "superposition premise\<^sub>1 premise\<^sub>2 conclusion'" and
+    superposition: "superposition premise\<^sub>2 premise\<^sub>1 conclusion'" and
     inference_groundings: 
-      "Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> 
+      "Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)]
+        (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> 
         inference_groundings (Infer [premise\<^sub>2, premise\<^sub>1] conclusion')" and  
     conclusion'_conclusion: "conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
-     using superposition_ground_instance[OF 
-        renaming(1, 2)
-        vars_distinct
-        premise\<^sub>1_grounding
-        premise\<^sub>2_grounding
-        conclusion_grounding 
-        select 
-        ground_superposition[unfolded premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 conclusion\<^sub>G]
-      ]
-     by blast
+   by metis
 
    let ?\<iota> = "Infer [premise\<^sub>2, premise\<^sub>1] conclusion'"
 

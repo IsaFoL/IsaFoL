@@ -85,7 +85,7 @@ where
     \<not> (term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
     conclusion = add_mset (\<P> (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) 
           (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
-    superposition premise\<^sub>1 premise\<^sub>2 conclusion"
+    superposition premise\<^sub>2 premise\<^sub>1 conclusion"
 
 abbreviation equality_factoring_inferences where
   "equality_factoring_inferences \<equiv> 
@@ -95,10 +95,9 @@ abbreviation equality_resolution_inferences where
   "equality_resolution_inferences \<equiv> 
     { Infer [premise] conclusion | premise conclusion. equality_resolution premise conclusion }"
 
-(* TODO: premise order! *)
 abbreviation superposition_inferences where
   "superposition_inferences \<equiv> { Infer [premise\<^sub>2, premise\<^sub>1] conclusion 
-    | premise\<^sub>1 premise\<^sub>2 conclusion. superposition premise\<^sub>1 premise\<^sub>2 conclusion }"
+    | premise\<^sub>1 premise\<^sub>2 conclusion. superposition premise\<^sub>2 premise\<^sub>1 conclusion }"
 
 definition inferences :: "('f, 'v) atom clause inference set" where
   "inferences \<equiv> 
@@ -130,11 +129,11 @@ where
     \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
     \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
     C = add_mset ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> \<approx> (s\<^sub>1' \<cdot>t \<rho>\<^sub>1)) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
-    pos_superposition P\<^sub>1 P\<^sub>2 C"
+    pos_superposition P\<^sub>2 P\<^sub>1 C"
 
 lemma superposition_if_pos_superposition:
-  assumes "pos_superposition P\<^sub>1 P\<^sub>2 C"
-  shows "superposition P\<^sub>1 P\<^sub>2 C"
+  assumes "pos_superposition P\<^sub>2 P\<^sub>1 C"
+  shows "superposition P\<^sub>2 P\<^sub>1 C"
   using assms
 proof (cases rule: pos_superposition.cases)
   case pos_superpositionI
@@ -163,13 +162,13 @@ where
     \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
     \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
     C = add_mset (Neg (Upair (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle>  (s\<^sub>1' \<cdot>t \<rho>\<^sub>1))) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
-    neg_superposition P\<^sub>1 P\<^sub>2 C"
+    neg_superposition P\<^sub>2 P\<^sub>1 C"
 
 lemma superposition_if_neg_superposition:
-  assumes "neg_superposition P\<^sub>1 P\<^sub>2 C"
-  shows "superposition P\<^sub>1 P\<^sub>2 C"
+  assumes "neg_superposition P\<^sub>2 P\<^sub>1 C"
+  shows "superposition P\<^sub>2 P\<^sub>1 C"
   using assms
-proof (cases P\<^sub>1 P\<^sub>2 C rule: neg_superposition.cases)
+proof (cases P\<^sub>2 P\<^sub>1 C rule: neg_superposition.cases)
   case (neg_superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
   then show ?thesis
     using superpositionI
@@ -177,11 +176,11 @@ proof (cases P\<^sub>1 P\<^sub>2 C rule: neg_superposition.cases)
 qed
 
 lemma superposition_iff_pos_or_neg:
-  "superposition P\<^sub>1 P\<^sub>2 C \<longleftrightarrow> pos_superposition P\<^sub>1 P\<^sub>2 C \<or> neg_superposition P\<^sub>1 P\<^sub>2 C"
+  "superposition P\<^sub>2 P\<^sub>1 C \<longleftrightarrow> pos_superposition P\<^sub>2 P\<^sub>1 C \<or> neg_superposition P\<^sub>2 P\<^sub>1 C"
 proof (rule iffI)
-  assume "superposition P\<^sub>1 P\<^sub>2 C"
-  thus "pos_superposition P\<^sub>1 P\<^sub>2 C \<or> neg_superposition P\<^sub>1 P\<^sub>2 C"
-  proof (cases P\<^sub>1 P\<^sub>2 C rule: superposition.cases)
+  assume "superposition P\<^sub>2 P\<^sub>1 C"
+  thus "pos_superposition P\<^sub>2 P\<^sub>1 C \<or> neg_superposition P\<^sub>2 P\<^sub>1 C"
+  proof (cases P\<^sub>2 P\<^sub>1 C rule: superposition.cases)
     case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
     then show ?thesis      
       using pos_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>]
@@ -189,8 +188,8 @@ proof (rule iffI)
       by blast
   qed
 next
-  assume "pos_superposition P\<^sub>1 P\<^sub>2 C \<or> neg_superposition P\<^sub>1 P\<^sub>2 C"
-  thus "superposition P\<^sub>1 P\<^sub>2 C"
+  assume "pos_superposition P\<^sub>2 P\<^sub>1 C \<or> neg_superposition P\<^sub>2 P\<^sub>1 C"
+  thus "superposition P\<^sub>2 P\<^sub>1 C"
     using superposition_if_neg_superposition superposition_if_pos_superposition by metis
 qed
 

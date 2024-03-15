@@ -77,7 +77,7 @@ where
     select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
-    ground_superposition P\<^sub>1 P\<^sub>2 C"
+    ground_superposition P\<^sub>2 P\<^sub>1 C"
 
 inductive ground_eq_resolution ::
   "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool" where
@@ -119,14 +119,14 @@ where
     select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
-    ground_superposition' P\<^sub>1 P\<^sub>2 C"
+    ground_superposition' P\<^sub>2 P\<^sub>1 C"
 
 lemma "ground_superposition' = ground_superposition"
 proof (intro ext iffI)
   fix P1 P2 C
-  assume "ground_superposition' P1 P2 C"
-  thus "ground_superposition P1 P2 C"
-  proof (cases P1 P2 C rule: ground_superposition'.cases)
+  assume "ground_superposition' P2 P1 C"
+  thus "ground_superposition P2 P1 C"
+  proof (cases P2 P1 C rule: ground_superposition'.cases)
     case (ground_superposition'I L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
     thus ?thesis
       using ground_superpositionI by blast
@@ -159,13 +159,13 @@ where
     select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (s\<langle>t'\<rangle>\<^sub>G \<approx> s') (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
-    ground_pos_superposition P\<^sub>1 P\<^sub>2 C"
+    ground_pos_superposition P\<^sub>2 P\<^sub>1 C"
 
 lemma ground_superposition_if_ground_pos_superposition:
-  assumes step: "ground_pos_superposition P\<^sub>1 P\<^sub>2 C"
-  shows "ground_superposition P\<^sub>1 P\<^sub>2 C"
+  assumes step: "ground_pos_superposition P\<^sub>2 P\<^sub>1 C"
+  shows "ground_superposition P\<^sub>2 P\<^sub>1 C"
   using step
-proof (cases P\<^sub>1 P\<^sub>2 C rule: ground_pos_superposition.cases)
+proof (cases P\<^sub>2 P\<^sub>1 C rule: ground_pos_superposition.cases)
   case (ground_pos_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s t s' t')
   thus ?thesis
     using ground_superpositionI
@@ -187,13 +187,13 @@ where
     select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (Neg (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
-    ground_neg_superposition P\<^sub>1 P\<^sub>2 C"
+    ground_neg_superposition P\<^sub>2 P\<^sub>1 C"
 
 lemma ground_superposition_if_ground_neg_superposition:
-  assumes "ground_neg_superposition P\<^sub>1 P\<^sub>2 C"
-  shows "ground_superposition P\<^sub>1 P\<^sub>2 C"
+  assumes "ground_neg_superposition P\<^sub>2 P\<^sub>1 C"
+  shows "ground_superposition P\<^sub>2 P\<^sub>1 C"
   using assms
-proof (cases P\<^sub>1 P\<^sub>2 C rule: ground_neg_superposition.cases)
+proof (cases P\<^sub>2 P\<^sub>1 C rule: ground_neg_superposition.cases)
   case (ground_neg_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s t s' t')
   then show ?thesis
     using ground_superpositionI
@@ -201,12 +201,12 @@ proof (cases P\<^sub>1 P\<^sub>2 C rule: ground_neg_superposition.cases)
 qed
 
 lemma ground_superposition_iff_pos_or_neg:
-  "ground_superposition P\<^sub>1 P\<^sub>2 C \<longleftrightarrow>
-    ground_pos_superposition P\<^sub>1 P\<^sub>2 C \<or> ground_neg_superposition P\<^sub>1 P\<^sub>2 C"
+  "ground_superposition P\<^sub>2 P\<^sub>1 C \<longleftrightarrow>
+    ground_pos_superposition P\<^sub>2 P\<^sub>1 C \<or> ground_neg_superposition P\<^sub>2 P\<^sub>1 C"
 proof (rule iffI)
-  assume "ground_superposition P\<^sub>1 P\<^sub>2 C"
-  thus "ground_pos_superposition P\<^sub>1 P\<^sub>2 C \<or> ground_neg_superposition P\<^sub>1 P\<^sub>2 C"
-  proof (cases P\<^sub>1 P\<^sub>2 C rule: ground_superposition.cases)
+  assume "ground_superposition P\<^sub>2 P\<^sub>1 C"
+  thus "ground_pos_superposition P\<^sub>2 P\<^sub>1 C \<or> ground_neg_superposition P\<^sub>2 P\<^sub>1 C"
+  proof (cases P\<^sub>2 P\<^sub>1 C rule: ground_superposition.cases)
     case (ground_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
     then show ?thesis
       using ground_pos_superpositionI[of P\<^sub>1 L\<^sub>1 P\<^sub>1' P\<^sub>2 L\<^sub>2 P\<^sub>2' s t s' t']
@@ -214,8 +214,8 @@ proof (rule iffI)
       by metis
   qed
 next
-  assume "ground_pos_superposition P\<^sub>1 P\<^sub>2 C \<or> ground_neg_superposition P\<^sub>1 P\<^sub>2 C"
-  thus "ground_superposition P\<^sub>1 P\<^sub>2 C"
+  assume "ground_pos_superposition P\<^sub>2 P\<^sub>1 C \<or> ground_neg_superposition P\<^sub>2 P\<^sub>1 C"
+  thus "ground_superposition P\<^sub>2 P\<^sub>1 C"
     using ground_superposition_if_ground_neg_superposition
       ground_superposition_if_ground_pos_superposition
     by metis
@@ -231,7 +231,7 @@ framework et l'état de l'art.
 
 definition G_Inf :: "'f gatom clause inference set" where
   "G_Inf =
-    {Infer [P\<^sub>2, P\<^sub>1] C | P\<^sub>2 P\<^sub>1 C. ground_superposition P\<^sub>1 P\<^sub>2 C} \<union>
+    {Infer [P\<^sub>2, P\<^sub>1] C | P\<^sub>2 P\<^sub>1 C. ground_superposition P\<^sub>2 P\<^sub>1 C} \<union>
     {Infer [P] C | P C. ground_eq_resolution P C} \<union>
     {Infer [P] C | P C. ground_eq_factoring P C}"
 
@@ -245,7 +245,7 @@ definition G_entails :: "'f gatom clause set \<Rightarrow> 'f gatom clause set \
 lemma ground_superposition_smaller_conclusion:
   assumes
     step: "ground_superposition P1 P2 C"
-  shows "C \<prec>\<^sub>c P1"
+  shows "C \<prec>\<^sub>c P2"
   using step
 proof (cases P1 P2 C rule: ground_superposition.cases)
   case (ground_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
@@ -277,11 +277,11 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
 
     moreover have "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
     proof -
-      have "is_strictly_maximal_lit L\<^sub>2 P2"
+      have "is_strictly_maximal_lit L\<^sub>2 P1"
         using ground_superpositionI by argo
       hence "\<forall>K \<in># P\<^sub>2'. \<not> Pos (Upair t t') \<prec>\<^sub>l K \<and> Pos (Upair t t') \<noteq> K"
         unfolding linorder_lit.is_greatest_in_mset_iff
-        unfolding \<open>P2 = add_mset L\<^sub>2 P\<^sub>2'\<close> \<open>L\<^sub>2 = t \<approx> t'\<close>
+        unfolding \<open>P1 = add_mset L\<^sub>2 P\<^sub>2'\<close> \<open>L\<^sub>2 = t \<approx> t'\<close>
         by auto
       hence "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l Pos (Upair t t')"
         using totalp_less_lit[THEN totalpD] by metis
@@ -313,7 +313,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
       qed
 
       have thesis_if_Pos: "Pos (Upair t t') \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
-        if "\<P> = Pos" and "is_maximal_lit L\<^sub>1 P1"
+        if "\<P> = Pos" and "is_maximal_lit L\<^sub>1 P2"
       proof (cases "s")
         case GHole
         show ?thesis
@@ -345,14 +345,14 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
           ultimately have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l Pos (Upair t t')"
             using transp_less_lit
             by (metis (no_types, lifting) reflclp_iff transpD)
-          hence "P1 \<prec>\<^sub>c P2"
+          hence "P2 \<prec>\<^sub>c P1"
             using \<open>\<P> (Upair s\<langle>t\<rangle>\<^sub>G s') \<prec>\<^sub>l Pos (Upair t t')\<close>
-              one_step_implies_multp[of P2 P1 "(\<prec>\<^sub>l)" "{#}", simplified]
+              one_step_implies_multp[of P1 P2 "(\<prec>\<^sub>l)" "{#}", simplified]
             unfolding ground_superpositionI
             by (metis \<open>\<forall>K\<in>#P\<^sub>1'. K \<preceq>\<^sub>l (\<P> (Upair s\<langle>t\<rangle>\<^sub>G s'))\<close> empty_not_add_mset insert_iff reflclp_iff
                 set_mset_add_mset_insert transpD transp_less_lit)
           hence False
-            using \<open>P2 \<prec>\<^sub>c P1\<close>
+            using \<open>P1 \<prec>\<^sub>c P2\<close>
             by (meson asympD asymp_less_cls)
           thus ?thesis ..
         qed
@@ -381,10 +381,10 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
           using \<open>\<forall>K\<in>#P\<^sub>2'. K \<prec>\<^sub>l t \<approx> t'\<close> \<open>K \<in># P\<^sub>2'\<close> by metis
         also have "t \<approx> t' \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
         proof (rule thesis_if_Pos[OF \<open>\<P> = Pos\<close>])
-          have "is_strictly_maximal_lit L\<^sub>1 P1"
+          have "is_strictly_maximal_lit L\<^sub>1 P2"
             using \<open>\<P> = Pos\<close> ground_superpositionI literal.simps(4)
             by (metis literal.simps(4))
-          thus "is_maximal_lit L\<^sub>1 P1"
+          thus "is_maximal_lit L\<^sub>1 P2"
             using linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset by metis
         qed
         finally show "K \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')" .
@@ -405,7 +405,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
   moreover have "C = add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2')"
     unfolding ground_superpositionI ..
 
-  moreover have "P1 = P\<^sub>1' + {#\<P> (Upair s\<langle>t\<rangle>\<^sub>G s')#}"
+  moreover have "P2 = P\<^sub>1' + {#\<P> (Upair s\<langle>t\<rangle>\<^sub>G s')#}"
     unfolding ground_superpositionI by simp
 
   ultimately show ?thesis

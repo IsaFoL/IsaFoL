@@ -23,7 +23,7 @@ next
   fix \<iota>
   have "concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
     if \<iota>_def: "\<iota> = Infer [P\<^sub>2, P\<^sub>1] C" and
-      infer: "ground_superposition P\<^sub>1 P\<^sub>2 C"
+      infer: "ground_superposition P\<^sub>2 P\<^sub>1 C"
     for P\<^sub>2 P\<^sub>1 C
     unfolding \<iota>_def
     using infer
@@ -1322,7 +1322,7 @@ proof (induction C rule: wfP_induct_rule)
             "t' \<prec>\<^sub>t t"
             by (elim mem_equationE) fast
 
-          have superI: "ground_neg_superposition C D (add_mset (Neg (Upair s\<^sub>1\<langle>t'\<rangle>\<^sub>G s\<^sub>1')) (C' + D'))"
+          have superI: "ground_neg_superposition D C (add_mset (Neg (Upair s\<^sub>1\<langle>t'\<rangle>\<^sub>G s\<^sub>1')) (C' + D'))"
             if "{s, s'} = {s\<^sub>1\<langle>t\<rangle>\<^sub>G, s\<^sub>1'}" and "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1\<langle>t\<rangle>\<^sub>G"
             for s\<^sub>1 s\<^sub>1'
           proof (rule ground_neg_superpositionI)
@@ -1353,7 +1353,7 @@ proof (induction C rule: wfP_induct_rule)
             from that(2) show "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1\<langle>t\<rangle>\<^sub>G" .
           qed simp_all
 
-          have "ground_neg_superposition C D (add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')) (C' + D'))"
+          have "ground_neg_superposition D C (add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')) (C' + D'))"
             if \<open>s' \<prec>\<^sub>t s\<close>
           proof (rule superI)
             from that show "{s, s'} = {ctxt\<langle>t\<rangle>\<^sub>G, s'}"
@@ -1363,7 +1363,7 @@ proof (induction C rule: wfP_induct_rule)
               using s_eq_if by simp
           qed
 
-          moreover have "ground_neg_superposition C  D (add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s)) (C' + D'))"
+          moreover have "ground_neg_superposition D C (add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s)) (C' + D'))"
             if \<open>s \<prec>\<^sub>t s'\<close>
           proof (rule superI)
             from that show "{s, s'} = {ctxt\<langle>t\<rangle>\<^sub>G, s}"
@@ -1374,7 +1374,7 @@ proof (induction C rule: wfP_induct_rule)
           qed
 
           ultimately obtain CD where
-            super: "ground_neg_superposition C  D CD" and
+            super: "ground_neg_superposition D C CD" and
             CD_eq1: "s' \<prec>\<^sub>t s \<Longrightarrow> CD = add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')) (C' + D')" and
             CD_eq2: "s \<prec>\<^sub>t s' \<Longrightarrow> CD = add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s)) (C' + D')"
             using \<open>s \<prec>\<^sub>t s' \<or> s' \<prec>\<^sub>t s\<close> s'_eq_if s_eq_if by metis
@@ -1690,7 +1690,7 @@ proof (induction C rule: wfP_induct_rule)
             define \<iota> :: "'f gatom clause inference" where
               "\<iota> = Infer [D, C] ?concl"
 
-            have super: "ground_pos_superposition C D ?concl"
+            have super: "ground_pos_superposition D C ?concl"
             proof (rule ground_pos_superpositionI)
               show "C = add_mset (Pos (Upair s s')) C'"
                 by (simp only: C_def A_def)

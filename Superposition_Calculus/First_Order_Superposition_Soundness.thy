@@ -181,10 +181,10 @@ proof (cases P C rule: equality_factoring.cases)
 qed
 
 lemma superposition_sound:
-  assumes step: "superposition P1 P2 C"
+  assumes step: "superposition P2 P1 C"
   shows "{P1, P2} \<TTurnstile>\<^sub>F {C}"
   using step
-proof (cases P1 P2 C rule: superposition.cases)
+proof (cases P2 P1 C rule: superposition.cases)
   case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
 
   have 

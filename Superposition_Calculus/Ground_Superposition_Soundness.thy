@@ -23,21 +23,21 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
       by (auto simp: true_cls_def)
 
     show "?I' \<TTurnstile> C"
-    proof (cases "K1 = \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')")
+    proof (cases "K2 = \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')")
       case K1_def: True
       hence "?I' \<TTurnstile>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
-        using \<open>?I' \<TTurnstile>l K1\<close> by simp
+        using \<open>?I' \<TTurnstile>l K2\<close> by simp
 
       show ?thesis
-      proof (cases "K2 = Pos (Upair t t')")
+      proof (cases "K1 = Pos (Upair t t')")
         case K2_def: True
         hence "(t, t') \<in> I"
-          using \<open>?I' \<TTurnstile>l K2\<close> true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] by simp
+          using \<open>?I' \<TTurnstile>l K1\<close> true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] by simp
 
         have ?thesis if "\<P> = Pos"
         proof -
           from that have "(s\<langle>t\<rangle>\<^sub>G, s') \<in> I"
-            using \<open>?I' \<TTurnstile>l K1\<close> K1_def true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] by simp
+            using \<open>?I' \<TTurnstile>l K2\<close> K1_def true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] by simp
           hence "(s\<langle>t'\<rangle>\<^sub>G, s') \<in> I"
             using \<open>(t, t') \<in> I\<close>
             using \<open>compatible_with_gctxt I\<close> \<open>refl I\<close> \<open>sym I\<close> \<open>trans I\<close>
@@ -52,7 +52,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
         moreover have ?thesis if "\<P> = Neg"
         proof -
           from that have "(s\<langle>t\<rangle>\<^sub>G, s') \<notin> I"
-            using \<open>?I' \<TTurnstile>l K1\<close> K1_def true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] by simp
+            using \<open>?I' \<TTurnstile>l K2\<close> K1_def true_lit_uprod_iff_true_lit_prod[OF \<open>sym I\<close>] by simp
           hence "(s\<langle>t'\<rangle>\<^sub>G, s') \<notin> I"
             using \<open>(t, t') \<in> I\<close>
             using \<open>compatible_with_gctxt I\<close> \<open>trans I\<close>
@@ -67,21 +67,21 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
           using \<open>\<P> \<in> {Pos, Neg}\<close> by auto
       next
         case False
-        hence "K2 \<in># P\<^sub>2'"
-          using \<open>K2 \<in># P2\<close>
+        hence "K1 \<in># P\<^sub>2'"
+          using \<open>K1 \<in># P1\<close>
           unfolding ground_superpositionI by simp
         hence "?I' \<TTurnstile> P\<^sub>2'"
-          using \<open>?I' \<TTurnstile>l K2\<close> by blast
+          using \<open>?I' \<TTurnstile>l K1\<close> by blast
         thus ?thesis
           unfolding ground_superpositionI by simp
       qed
     next
       case False
-      hence "K1 \<in># P\<^sub>1'"
-        using \<open>K1 \<in># P1\<close>
+      hence "K2 \<in># P\<^sub>1'"
+        using \<open>K2 \<in># P2\<close>
         unfolding ground_superpositionI by simp
       hence "?I' \<TTurnstile> P\<^sub>1'"
-        using \<open>?I' \<TTurnstile>l K1\<close> by blast
+        using \<open>?I' \<TTurnstile>l K2\<close> by blast
       thus ?thesis
         unfolding ground_superpositionI by simp
     qed
