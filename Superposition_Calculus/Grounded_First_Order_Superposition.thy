@@ -79,9 +79,58 @@ proof-
     by blast
 qed
 
+sublocale lifting: 
+    tiebreaker_lifting
+          "\<bottom>\<^sub>F"
+          inferences 
+          ground.G_Bot
+          ground.G_entails
+          ground.G_Inf 
+          ground.GRed_I
+          ground.GRed_F 
+          clause_groundings
+          "(Some \<circ> inference_groundings)"
+          tiebreakers
+proof unfold_locales
+  show "\<bottom>\<^sub>F \<noteq> {}"
+    by simp
+next
+  fix bottom
+  assume "bottom \<in> \<bottom>\<^sub>F"
+
+  then show "clause_groundings bottom \<noteq> {}"
+    unfolding clause_groundings_def 
+    by simp
+next
+  fix bottom
+  assume "bottom \<in> \<bottom>\<^sub>F"
+  then show "clause_groundings bottom \<subseteq> ground.G_Bot"
+    unfolding clause_groundings_def
+    by simp
+next
+  fix clause
+  show "clause_groundings clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"
+    unfolding clause_groundings_def to_ground_clause_def subst_clause_def
+    by simp
+next
+  fix \<iota>   
+  show "the ((Some \<circ> inference_groundings) \<iota>) 
+              \<subseteq> ground.GRed_I (clause_groundings (concl_of \<iota>))"
+    using inference\<^sub>G_red_in_clause_grounding_of_concl
+    by auto
+next
+  show "\<And>g. po_on (tiebreakers g) UNIV"
+    unfolding po_on_def
+    using wellfounded_tiebreakers
+    by simp
+next
+  show "\<And>g. wfp_on (tiebreakers g) UNIV"
+    using wellfounded_tiebreakers
+    by simp
+qed
+
 end
 
-(* TODO: some *)
 sublocale first_order_superposition_calculus \<subseteq>
   lifting_intersection
     inferences      
@@ -129,43 +178,7 @@ next
           clause_groundings
           (Some \<circ> inference_groundings)
           tiebreakers"
-  proof unfold_locales
-    show "\<bottom>\<^sub>F \<noteq> {}"
-      by simp
-  next
-    fix bottom
-    assume "bottom \<in> \<bottom>\<^sub>F"
-
-    then show "clause_groundings bottom \<noteq> {}"
-      unfolding clause_groundings_def 
-      by simp
-  next
-    fix bottom
-    assume "bottom \<in> \<bottom>\<^sub>F"
-    then show "clause_groundings bottom \<subseteq> ground.G_Bot"
-      unfolding clause_groundings_def
-      by simp
-  next
-    fix clause
-    show "clause_groundings clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"
-      unfolding clause_groundings_def to_ground_clause_def subst_clause_def
-      by simp
-  next
-    fix \<iota>   
-    show "the ((Some \<circ> inference_groundings) \<iota>) 
-                \<subseteq> ground.GRed_I (clause_groundings (concl_of \<iota>))"
-      using inference\<^sub>G_red_in_clause_grounding_of_concl
-      by auto
-  next
-    show "\<And>g. po_on (tiebreakers g) UNIV"
-      unfolding po_on_def
-      using wellfounded_tiebreakers
-      by simp
-  next
-    show "\<And>g. wfp_on (tiebreakers g) UNIV"
-      using wellfounded_tiebreakers
-      by simp
-  qed
+    by unfold_locales
 qed
 
 end

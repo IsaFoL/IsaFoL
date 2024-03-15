@@ -5,16 +5,11 @@ begin
 
 subsection \<open>Soundness\<close>
 
-context first_order_superposition_calculus
+context grounded_first_order_superposition_calculus
 begin
 
 abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
-  "entails\<^sub>F \<equiv> entails_\<G>_q (SOME _. True)"
-
-end
-
-context grounded_first_order_superposition_calculus
-begin
+  "entails\<^sub>F \<equiv> lifting.entails_\<G>"
 
 lemma equality_resolution_sound:
   assumes step: "equality_resolution P C"
@@ -413,27 +408,11 @@ proof unfold_locales
       superposition_sound
       ground.G_entails_def
     by auto
-next 
-  show "\<bottom>\<^sub>F \<noteq> {}"
-    by simp
-next 
-  show "\<And>B N1. B \<in> \<bottom>\<^sub>F \<Longrightarrow> {B} \<TTurnstile>\<^sub>F N1"
-    unfolding ground.G_entails_def clause_groundings_def
-    by fastforce   
-next
-  show "\<And>N2 N1. N2 \<subseteq> N1 \<Longrightarrow> N1 \<TTurnstile>\<^sub>F N2"
-    by (auto simp: ground.G_entails_def elim!: true_clss_mono[rotated])
-next
-  show "\<And>N2 N1. \<forall>C\<in>N2. N1 \<TTurnstile>\<^sub>F {C} \<Longrightarrow> N1 \<TTurnstile>\<^sub>F N2"
-    unfolding ground.G_entails_def
-    by fast
-next
-  show "\<And>N1 N2 N3. \<lbrakk>N1 \<TTurnstile>\<^sub>F N2; N2 \<TTurnstile>\<^sub>F N3\<rbrakk> \<Longrightarrow> N1 \<TTurnstile>\<^sub>F N3 "
-    using ground.G_entails_def
-    by meson
 qed
 
-sublocale first_order_superposition_calculus \<subseteq> sound_inference_system inferences "{{#}}" "(\<TTurnstile>\<^sub>F)"
+(* TODO: How can I write (SOME q. True) nicer? *)
+sublocale first_order_superposition_calculus \<subseteq> 
+  sound_inference_system inferences "{{#}}" "entails_\<G>_q (SOME q. True)"
 proof-
   interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G_simple
     by unfold_locales (rule select\<^sub>G_simple)
