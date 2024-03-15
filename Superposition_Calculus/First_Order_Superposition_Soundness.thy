@@ -1,10 +1,19 @@
 theory First_Order_Superposition_Soundness
-  imports First_Order_Superposition
+  imports Grounded_First_Order_Superposition
+    
 begin
 
 subsection \<open>Soundness\<close>
 
 context first_order_superposition_calculus
+begin
+
+abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
+  "entails\<^sub>F \<equiv> entails_\<G>_q (SOME _. True)"
+
+end
+
+context grounded_first_order_superposition_calculus
 begin
 
 lemma equality_resolution_sound:
@@ -13,33 +22,39 @@ lemma equality_resolution_sound:
   using step
 proof (cases P C rule: equality_resolution.cases)
   case (equality_resolutionI L P' s\<^sub>1 s\<^sub>2 \<mu>)
+
   have 
     "\<And>I \<theta>. \<lbrakk>
         refl I; 
-        \<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause (P \<cdot> \<sigma>); 
-        term_subst.is_ground_subst \<theta>
-     \<rbrakk> \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause (C \<cdot> \<theta>)"
-  proof-
-    fix I :: "'f gterm rel" and \<theta> :: "'v \<Rightarrow> ('f, 'v) Term.term"
-    let ?I = "(\<lambda>(x, y). Upair x y) ` I"
-    let ?P = "to_ground_clause (P \<cdot> \<mu> \<cdot> \<theta>)"
-    let ?L = "to_ground_literal (L \<cdot>l \<mu> \<cdot>l \<theta>)"
-    let ?P' = "to_ground_clause (P' \<cdot> \<mu> \<cdot> \<theta>)"
-    let ?s\<^sub>1 = "to_ground_term (s\<^sub>1 \<cdot>t \<mu> \<cdot>t \<theta>)"
-    let ?s\<^sub>2 = "to_ground_term (s\<^sub>2 \<cdot>t \<mu> \<cdot>t \<theta>)"
+        \<forall>P\<^sub>G. (\<exists>\<theta>. P\<^sub>G = to_ground_clause (P \<cdot> \<theta>) \<and> is_ground_clause (P \<cdot> \<theta>)) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
+        is_ground_clause (C \<cdot> \<theta>)
+     \<rbrakk> \<Longrightarrow> upair  ` I \<TTurnstile> to_ground_clause (C \<cdot> \<theta>)"
+   proof-
+    fix I :: "'f gterm rel" and \<theta> :: "('f, 'v) subst"
+    
+    let ?I = "upair ` I"
+    
+    assume
+     refl_I: "refl I" and 
+     premise: "\<forall>P\<^sub>G. (\<exists>\<theta>. P\<^sub>G = to_ground_clause (P \<cdot> \<theta>) \<and> is_ground_clause (P \<cdot> \<theta>)) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
+     grounding: "is_ground_clause (C \<cdot> \<theta>)"
 
-     assume 
-       ground_subst: "term_subst.is_ground_subst \<theta>" and 
-       refl_I: "refl I" and 
-       premise: "\<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> ?I \<TTurnstile> to_ground_clause (P \<cdot> \<sigma>)"
+    obtain \<gamma> :: "'v \<Rightarrow> ('f, 'v) Term.term" where 
+      \<gamma>: "term_subst.is_ground_subst \<gamma>" "C \<cdot> \<theta> = C \<cdot> \<gamma>"
+      using ground_subst_exstension_clause[OF grounding]
+      by blast
 
-     have "?I \<TTurnstile> ?P"
-       using 
-         premise[rule_format, of "\<mu> \<odot> \<theta>", OF ground_subst_compose[OF ground_subst]]
-         clause_subst_compose
-       by metis
-      
-     then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
+    let ?P = "to_ground_clause (P \<cdot> \<mu> \<cdot> \<gamma>)"
+    let ?L = "to_ground_literal (L \<cdot>l \<mu> \<cdot>l \<gamma>)"
+    let ?P' = "to_ground_clause (P' \<cdot> \<mu> \<cdot> \<gamma>)"
+    let ?s\<^sub>1 = "to_ground_term (s\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>)"
+    let ?s\<^sub>2 = "to_ground_term (s\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>)"
+
+    have "?I \<TTurnstile> ?P"
+      using premise[rule_format, of ?P, OF exI, of "\<mu> \<odot> \<gamma>"] \<gamma>
+      by (simp add: is_ground_subst_is_ground_clause)
+
+    then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
        by (auto simp: true_cls_def)
 
      have [simp]: "?P = add_mset ?L ?P'"
@@ -69,20 +84,22 @@ proof (cases P C rule: equality_resolution.cases)
          using True by blast
      next
        case False
-       then have "L' \<in># to_ground_clause (P' \<cdot> \<mu> \<cdot> \<theta>)"
+       then have "L' \<in># to_ground_clause (P' \<cdot> \<mu> \<cdot> \<gamma>)"
          using L'_in_P by force
   
-       then have "L' \<in># to_ground_clause (C \<cdot> \<theta>)"
+       then have "L' \<in># to_ground_clause (C \<cdot> \<gamma>)"
          unfolding equality_resolutionI.
   
        then show ?thesis
-         using I_models_L' by blast
+         using I_models_L' 
+         unfolding \<gamma>
+         by blast
      qed
    qed
-
-  then show ?thesis 
-    unfolding true_clss_singleton entails\<^sub>F_def 
-    by simp
+    
+   then show ?thesis 
+    unfolding ground.G_entails_def true_clss_def clause_groundings_def
+    by auto
 qed
 
 lemma equality_factoring_sound:
@@ -91,37 +108,43 @@ lemma equality_factoring_sound:
   using step
 proof (cases P C rule: equality_factoring.cases)
   case (equality_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
+
   have 
     "\<And>I \<theta>. \<lbrakk>
-        trans I; 
+        trans I;
         sym I;
-        \<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause (P \<cdot> \<sigma>); 
-        term_subst.is_ground_subst \<theta>
-     \<rbrakk> \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause (C \<cdot> \<theta>)"
+        \<forall>P\<^sub>G. (\<exists>\<theta>. P\<^sub>G = to_ground_clause (P \<cdot> \<theta>) \<and> is_ground_clause (P \<cdot> \<theta>)) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
+        is_ground_clause (C \<cdot> \<theta>)
+     \<rbrakk> \<Longrightarrow> upair  ` I \<TTurnstile> to_ground_clause (C \<cdot> \<theta>)"
   proof-
     fix I :: "'f gterm rel" and \<theta> :: "'v \<Rightarrow> ('f, 'v) Term.term"
-    let ?I = "(\<lambda>(x, y). Upair x y) ` I"
-    let ?P = "to_ground_clause (P \<cdot> \<mu> \<cdot> \<theta>)"
-    let ?P' = "to_ground_clause (P' \<cdot> \<mu> \<cdot> \<theta>)"
-    let ?L\<^sub>1 = "to_ground_literal (L\<^sub>1 \<cdot>l \<mu> \<cdot>l \<theta>)"
-    let ?L\<^sub>2 = "to_ground_literal (L\<^sub>2 \<cdot>l \<mu> \<cdot>l \<theta>)"
-    let ?s\<^sub>1 = "to_ground_term (s\<^sub>1 \<cdot>t \<mu> \<cdot>t \<theta>)"
-    let ?s\<^sub>1' = "to_ground_term (s\<^sub>1' \<cdot>t \<mu> \<cdot>t \<theta>)"
-    let ?t\<^sub>2 = "to_ground_term (t\<^sub>2 \<cdot>t \<mu> \<cdot>t \<theta>)"
-    let ?t\<^sub>2' = "to_ground_term (t\<^sub>2' \<cdot>t \<mu> \<cdot>t \<theta>)"
-    let ?C = "to_ground_clause (C \<cdot> \<theta>)"
 
-    assume 
-      ground_subst: "term_subst.is_ground_subst \<theta>" and 
-      trans_I: "trans I" and 
-      sym_I: "sym I" and 
-      premise: "\<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> ?I \<TTurnstile> to_ground_clause (P \<cdot> \<sigma>)"
+    let ?I = "upair ` I"
+    
+    assume
+     trans_I: "trans I" and 
+     sym_I: "sym I" and 
+     premise: "\<forall>P\<^sub>G. (\<exists>\<theta>. P\<^sub>G = to_ground_clause (P \<cdot> \<theta>) \<and> is_ground_clause (P \<cdot> \<theta>)) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
+     grounding: "is_ground_clause (C \<cdot> \<theta>)"
+
+    obtain \<gamma> :: "'v \<Rightarrow> ('f, 'v) Term.term" where 
+      \<gamma>: "term_subst.is_ground_subst \<gamma>" "C \<cdot> \<theta> = C \<cdot> \<gamma>"
+      using ground_subst_exstension_clause[OF grounding]
+      by blast
+
+    let ?P = "to_ground_clause (P \<cdot> \<mu> \<cdot> \<gamma>)"
+    let ?P' = "to_ground_clause (P' \<cdot> \<mu> \<cdot> \<gamma>)"
+    let ?L\<^sub>1 = "to_ground_literal (L\<^sub>1 \<cdot>l \<mu> \<cdot>l \<gamma>)"
+    let ?L\<^sub>2 = "to_ground_literal (L\<^sub>2 \<cdot>l \<mu> \<cdot>l \<gamma>)"
+    let ?s\<^sub>1 = "to_ground_term (s\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>)"
+    let ?s\<^sub>1' = "to_ground_term (s\<^sub>1' \<cdot>t \<mu> \<cdot>t \<gamma>)"
+    let ?t\<^sub>2 = "to_ground_term (t\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>)"
+    let ?t\<^sub>2' = "to_ground_term (t\<^sub>2' \<cdot>t \<mu> \<cdot>t \<gamma>)"
+    let ?C = "to_ground_clause (C \<cdot> \<gamma>)"
 
     have "?I \<TTurnstile> ?P"
-       using 
-         premise[rule_format, of "\<mu> \<odot> \<theta>", OF ground_subst_compose[OF ground_subst]]
-         clause_subst_compose
-       by metis
+      using premise[rule_format, of ?P, OF exI, of "\<mu> \<odot> \<gamma>"] \<gamma>
+      by (simp add: is_ground_subst_is_ground_clause)
 
     then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
       by (auto simp: true_cls_def)
@@ -143,7 +166,7 @@ proof (cases P C rule: equality_factoring.cases)
       by (simp add: to_ground_clause_def to_ground_literal_def subst_atom_def subst_clause_add_mset subst_literal
             to_ground_atom_def)
 
-    show "?I \<TTurnstile> ?C"
+    show "?I \<TTurnstile> to_ground_clause (C \<cdot> \<theta>)"
     proof(cases "L' = ?L\<^sub>1 \<or> L' = ?L\<^sub>2")
       case True
 
@@ -158,7 +181,7 @@ proof (cases P C rule: equality_factoring.cases)
         unfolding true_lit_uprod_iff_true_lit_prod[OF sym_I].
 
       then show ?thesis
-        unfolding C
+        unfolding C \<gamma>(2)
         by (metis true_cls_add_mset)
     next
       case False
@@ -167,17 +190,18 @@ proof (cases P C rule: equality_factoring.cases)
         unfolding equality_factoringI
         by (simp add: to_ground_clause_def subst_clause_add_mset)
 
-      then have "L' \<in># to_ground_clause (C \<cdot> \<theta>)"
+      then have "L' \<in># to_ground_clause (C \<cdot> \<gamma>)"
         by (simp add: to_ground_clause_def equality_factoringI(8) subst_clause_add_mset)
 
       then show ?thesis
+        unfolding \<gamma>(2)
         using I_models_L' by blast
     qed
   qed
 
-  then show ?thesis
-    unfolding true_clss_singleton entails\<^sub>F_def 
-    by simp
+ then show ?thesis 
+    unfolding ground.G_entails_def true_clss_def clause_groundings_def
+    by auto
 qed
 
 lemma superposition_sound:
@@ -193,78 +217,79 @@ proof (cases P2 P1 C rule: superposition.cases)
         trans I; 
         sym I;
         compatible_with_gctxt I;
-        \<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause (P1 \<cdot> \<sigma>);
-        \<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause (P2 \<cdot> \<sigma>); 
-        term_subst.is_ground_subst \<theta>
+        \<forall>P\<^sub>G. (\<exists>\<theta>. P\<^sub>G = to_ground_clause (P1 \<cdot> \<theta>) \<and> is_ground_clause (P1 \<cdot> \<theta>)) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
+        \<forall>P\<^sub>G. (\<exists>\<theta>. P\<^sub>G = to_ground_clause (P2 \<cdot> \<theta>) \<and> is_ground_clause (P2 \<cdot> \<theta>)) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
+        is_ground_clause (C \<cdot> \<theta>)
      \<rbrakk> \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause (C \<cdot> \<theta>)"
   proof -
     fix I :: "'f gterm rel" and \<theta> :: "'v \<Rightarrow> ('f, 'v) Term.term"
 
     let ?I = "(\<lambda>(x, y). Upair x y) ` I"
 
-    let ?P1 = "to_ground_clause (P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<theta>)"
-    let ?P2 = "to_ground_clause (P2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu> \<cdot> \<theta>)"
-
-    let ?L\<^sub>1 = "to_ground_literal (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu> \<cdot>l \<theta>)"
-    let ?L\<^sub>2 = "to_ground_literal (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu> \<cdot>l \<theta>)"
-
-    let ?P\<^sub>1' = "to_ground_clause (P\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<theta>)"
-    let ?P\<^sub>2' = "to_ground_clause (P\<^sub>2' \<cdot> \<rho>\<^sub>2 \<cdot> \<mu> \<cdot> \<theta>)"
-
-    let ?s\<^sub>1 = "to_ground_context (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<theta>)"
-    let ?s\<^sub>1' = "to_ground_term (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<theta>)"
-    let ?t\<^sub>2 = "to_ground_term (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<theta>)"
-    let ?t\<^sub>2' = "to_ground_term (t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<theta>)"
-    let ?u\<^sub>1 = "to_ground_term (u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<theta>)"
-
-    let ?\<P> = "if \<P> = Pos then Pos else Neg"
-
-    let ?C = "to_ground_clause (C \<cdot> \<theta>)"
-
     assume 
-      ground_subst: "term_subst.is_ground_subst \<theta>" and 
       refl_I: "refl I" and 
       trans_I: "trans I" and 
       sym_I: "sym I" and 
       compatible_with_ground_context_I: "compatible_with_gctxt I" and
-      premise1: "\<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> ?I \<TTurnstile> to_ground_clause (P1 \<cdot> \<sigma>)" and
-      premise2: "\<forall>\<sigma>. term_subst.is_ground_subst \<sigma> \<longrightarrow> ?I \<TTurnstile> to_ground_clause (P2 \<cdot> \<sigma>)"
+      premise1: "\<forall>P\<^sub>G. (\<exists>\<theta>. P\<^sub>G = to_ground_clause (P1 \<cdot> \<theta>) \<and> is_ground_clause (P1 \<cdot> \<theta>)) \<longrightarrow>?I \<TTurnstile> P\<^sub>G" and
+      premise2: "\<forall>P\<^sub>G. (\<exists>\<theta>. P\<^sub>G = to_ground_clause (P2 \<cdot> \<theta>) \<and> is_ground_clause (P2 \<cdot> \<theta>)) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and 
+      conclusion_grounding: "is_ground_clause (C \<cdot> \<theta>)"
 
-    have "?I \<TTurnstile> ?P1"
-      using 
-         premise1[rule_format, of "\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<theta>", OF ground_subst_compose[OF ground_subst]]
-         clause_subst_compose
-      by metis
+     obtain \<gamma> :: "'v \<Rightarrow> ('f, 'v) Term.term" where 
+       \<gamma>: "term_subst.is_ground_subst \<gamma>" "C \<cdot> \<theta> = C \<cdot> \<gamma>"
+       using ground_subst_exstension_clause[OF conclusion_grounding]
+       by blast
+      
+     let ?P1 = "to_ground_clause (P1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<gamma>)"
+     let ?P2 = "to_ground_clause (P2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu> \<cdot> \<gamma>)"
+  
+     let ?L\<^sub>1 = "to_ground_literal (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu> \<cdot>l \<gamma>)"
+     let ?L\<^sub>2 = "to_ground_literal (L\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu> \<cdot>l \<gamma>)"
+  
+     let ?P\<^sub>1' = "to_ground_clause (P\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<gamma>)"
+     let ?P\<^sub>2' = "to_ground_clause (P\<^sub>2' \<cdot> \<rho>\<^sub>2 \<cdot> \<mu> \<cdot> \<gamma>)"
+  
+     let ?s\<^sub>1 = "to_ground_context (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>)"
+     let ?s\<^sub>1' = "to_ground_term (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>)"
+     let ?t\<^sub>2 = "to_ground_term (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>)"
+     let ?t\<^sub>2' = "to_ground_term (t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>)"
+     let ?u\<^sub>1 = "to_ground_term (u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>)"
+  
+     let ?\<P> = "if \<P> = Pos then Pos else Neg"
+  
+     let ?C = "to_ground_clause (C \<cdot> \<gamma>)"
 
-    moreover have "?I \<TTurnstile> ?P2"
-      using 
-         premise2[rule_format, of "\<rho>\<^sub>2 \<odot> \<mu> \<odot> \<theta>", OF ground_subst_compose[OF ground_subst]]
-         clause_subst_compose
-      by metis
+     have "?I \<TTurnstile> ?P1"
+       using premise1[rule_format, of ?P1, OF exI, of "\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<gamma>"] \<gamma>
+       by (simp add: is_ground_subst_is_ground_clause)
 
-    ultimately obtain L\<^sub>1' L\<^sub>2' 
-      where
-        L\<^sub>1'_in_P1: "L\<^sub>1' \<in># ?P1" and 
-        I_models_L\<^sub>1': "?I \<TTurnstile>l L\<^sub>1'" and
-        L\<^sub>2'_in_P2: "L\<^sub>2' \<in># ?P2" and 
-        I_models_L\<^sub>2': "?I \<TTurnstile>l L\<^sub>2'"
-      by (auto simp: true_cls_def)
+     moreover have "?I \<TTurnstile> ?P2"
+       using premise2[rule_format, of ?P2, OF exI, of "\<rho>\<^sub>2 \<odot> \<mu> \<odot> \<gamma>"] \<gamma>
+       by (simp add: is_ground_subst_is_ground_clause)
 
-    have u\<^sub>1_equals_t\<^sub>2: "?t\<^sub>2 = ?u\<^sub>1"
-      using is_imgu_equals[OF superpositionI(10)]
-      by simp
+     ultimately obtain L\<^sub>1' L\<^sub>2' 
+       where
+         L\<^sub>1'_in_P1: "L\<^sub>1' \<in># ?P1" and 
+         I_models_L\<^sub>1': "?I \<TTurnstile>l L\<^sub>1'" and
+         L\<^sub>2'_in_P2: "L\<^sub>2' \<in># ?P2" and 
+         I_models_L\<^sub>2': "?I \<TTurnstile>l L\<^sub>2'"
+       by (auto simp: true_cls_def)
 
-    have s\<^sub>1_u\<^sub>1: "?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G = to_ground_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<theta>)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<theta>\<rangle>"
-      using ground_term_with_context(1)[OF 
-              is_ground_subst_is_ground_context[OF ground_subst] 
-              is_ground_subst_is_ground_term[OF ground_subst]
+     have u\<^sub>1_equals_t\<^sub>2: "?t\<^sub>2 = ?u\<^sub>1"
+       using is_imgu_equals[OF superpositionI(10)]
+       by simp
+
+     have s\<^sub>1_u\<^sub>1: "?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G = to_ground_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>\<rangle>"
+       using ground_term_with_context(1)[OF 
+              is_ground_subst_is_ground_context[OF \<gamma>(1)] 
+              is_ground_subst_is_ground_term[OF \<gamma>(1)]
             ]
-      by blast
+       by blast
 
-    have s\<^sub>1_t\<^sub>2': "(?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G  = to_ground_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<theta>)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<theta>\<rangle>"
+    have s\<^sub>1_t\<^sub>2': "(?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G  = to_ground_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>\<rangle>"
       using ground_term_with_context(1)[OF 
-              is_ground_subst_is_ground_context[OF ground_subst] 
-              is_ground_subst_is_ground_term[OF ground_subst]
+              is_ground_subst_is_ground_context[OF \<gamma>(1)] 
+              is_ground_subst_is_ground_term[OF \<gamma>(1)]
             ]
       by blast
       
@@ -273,8 +298,8 @@ proof (cases P2 P1 C rule: superposition.cases)
 
     then have L\<^sub>1: "?L\<^sub>1 = ?\<P> (Upair ?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G ?s\<^sub>1')"
       unfolding superpositionI to_ground_literal_def to_ground_atom_def
+      (* TODO *)
       by (smt (verit, ccfv_threshold) ground_atom_in_ground_literal2(1) literal.simps(10) map_uprod_simps s\<^sub>1_u\<^sub>1 subst_apply_term_ctxt_apply_distrib subst_atom subst_literal(1) subst_literal(2) to_ground_atom_def to_ground_literal_def)
-      (* Slow:  by(auto simp: subst_atom_def subst_literal s\<^sub>1_u\<^sub>1) *)
     
     have C: "?C = add_mset (?\<P> (Upair (?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G (?s\<^sub>1'))) (?P\<^sub>1' + ?P\<^sub>2')"
       using \<P>_pos_or_neg
@@ -283,7 +308,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       by (simp_all add: to_ground_clause_def to_ground_literal_def subst_atom_def subst_clause_add_mset subst_clause_plus 
               subst_literal to_ground_atom_def)
 
-    show "?I \<TTurnstile> ?C"
+    show "?I \<TTurnstile> to_ground_clause (C \<cdot> \<theta>)"
     proof (cases "L\<^sub>1' = ?L\<^sub>1")
       case L\<^sub>1'_def: True
       then have "?I \<TTurnstile>l ?L\<^sub>1"
@@ -314,7 +339,7 @@ proof (cases P2 P1 C rule: superposition.cases)
             by blast
 
           then show ?thesis 
-            unfolding C that
+            unfolding C that \<gamma>
             by (smt (verit) true_cls_add_mset)
         qed
 
@@ -333,7 +358,7 @@ proof (cases P2 P1 C rule: superposition.cases)
             by (meson true_lit_uprod_iff_true_lit_prod(2) sym_I true_lit_simps(2))
 
           then show ?thesis 
-            unfolding C that
+            unfolding C that \<gamma>
             by (smt (verit, best) literals_distinct(1) true_cls_add_mset)
         qed
 
@@ -350,8 +375,8 @@ proof (cases P2 P1 C rule: superposition.cases)
           using I_models_L\<^sub>2' by blast
 
         then show ?thesis
-          unfolding superpositionI
-          by (simp add: to_ground_clause_def subst_clause_add_mset subst_clause_plus)
+          unfolding superpositionI 
+          by (metis C \<gamma>(2) local.superpositionI(17) true_cls_union union_mset_add_mset_left)
       qed
     next
       case False
@@ -364,19 +389,21 @@ proof (cases P2 P1 C rule: superposition.cases)
         using I_models_L\<^sub>1' by blast
 
       then show ?thesis 
+        unfolding \<gamma>(2)
         unfolding superpositionI
         by (simp add: to_ground_clause_def subst_clause_add_mset subst_clause_plus)
     qed
   qed
 
   then show ?thesis 
-    unfolding true_clss_singleton true_clss_insert entails\<^sub>F_def
-    by simp
+    unfolding ground.G_entails_def clause_groundings_def true_clss_def
+    by auto
 qed
 
 end
 
-sublocale first_order_superposition_calculus \<subseteq> sound_inference_system inferences "{{#}}" "(\<TTurnstile>\<^sub>F)"
+sublocale grounded_first_order_superposition_calculus \<subseteq> 
+  sound_inference_system inferences "{{#}}" "(\<TTurnstile>\<^sub>F)"
 proof unfold_locales
   show "\<And>\<iota>. \<iota> \<in> inferences \<Longrightarrow> set (prems_of \<iota>) \<TTurnstile>\<^sub>F {concl_of \<iota>}"
     using 
@@ -384,32 +411,35 @@ proof unfold_locales
       equality_factoring_sound
       equality_resolution_sound
       superposition_sound
-      entails\<^sub>F_def
+      ground.G_entails_def
     by auto
 next 
   show "\<bottom>\<^sub>F \<noteq> {}"
     by simp
 next 
-  have "\<And>\<theta> I. 
-    term_subst.is_ground_subst \<theta> \<Longrightarrow> 
-    (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause ({#} \<cdot> \<theta>) \<Longrightarrow> False"
-    by (metis to_clause_empty_mset to_clause_inverse image_mset_is_empty_iff subst_clause_def 
-          true_cls_empty)
-
-  then show "\<And>B N1. B \<in> \<bottom>\<^sub>F \<Longrightarrow> {B} \<TTurnstile>\<^sub>F N1"
-    unfolding true_clss_singleton entails\<^sub>F_def
-    by fastforce
+  show "\<And>B N1. B \<in> \<bottom>\<^sub>F \<Longrightarrow> {B} \<TTurnstile>\<^sub>F N1"
+    unfolding ground.G_entails_def clause_groundings_def
+    by fastforce   
 next
   show "\<And>N2 N1. N2 \<subseteq> N1 \<Longrightarrow> N1 \<TTurnstile>\<^sub>F N2"
-    by (auto simp: entails\<^sub>F_def elim!: true_clss_mono[rotated])
+    by (auto simp: ground.G_entails_def elim!: true_clss_mono[rotated])
 next
   show "\<And>N2 N1. \<forall>C\<in>N2. N1 \<TTurnstile>\<^sub>F {C} \<Longrightarrow> N1 \<TTurnstile>\<^sub>F N2"
-    unfolding entails\<^sub>F_def
-    by blast
+    unfolding ground.G_entails_def
+    by fast
 next
   show "\<And>N1 N2 N3. \<lbrakk>N1 \<TTurnstile>\<^sub>F N2; N2 \<TTurnstile>\<^sub>F N3\<rbrakk> \<Longrightarrow> N1 \<TTurnstile>\<^sub>F N3 "
-    using entails\<^sub>F_def 
-    by (smt (verit, best))
+    using ground.G_entails_def
+    by meson
+qed
+
+sublocale first_order_superposition_calculus \<subseteq> sound_inference_system inferences "{{#}}" "(\<TTurnstile>\<^sub>F)"
+proof-
+  interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G_simple
+    by unfold_locales (rule select\<^sub>G_simple)
+
+  show "sound_inference_system inferences {{#}} (\<TTurnstile>\<^sub>F)"
+    using sound_inference_system_axioms by blast
 qed
 
 end

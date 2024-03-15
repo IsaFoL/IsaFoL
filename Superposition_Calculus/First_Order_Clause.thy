@@ -680,4 +680,77 @@ proof-
     by blast
 qed
 
+lemma ground_subst_exists:
+  obtains \<gamma> 
+  where "term_subst.is_ground_subst \<gamma>"
+proof-
+  obtain t\<^sub>G :: "('b, 'a) Term.term" where "is_ground_term t\<^sub>G"
+    by (meson ground_term_is_ground)
+
+  then have "term_subst.is_ground_subst  (\<lambda>_. t\<^sub>G)"
+    by (simp add: is_ground_iff term_subst.is_ground_subst_def)
+
+  with that show ?thesis
+    by blast
+qed
+
+lemma ground_subst_exstension_term:
+  assumes "is_ground_term (term \<cdot>t \<theta>)"
+  obtains \<gamma>  :: "('f, 'v) subst"
+  where "term \<cdot>t \<theta> = term \<cdot>t \<gamma>" and "term_subst.is_ground_subst \<gamma>"
+  using assms
+proof-
+  obtain \<gamma>' :: "'v \<Rightarrow> ('f, 'v) Term.term" where 
+    \<gamma>': "term_subst.is_ground_subst \<gamma>'"
+      using ground_subst_exists
+      by blast
+
+  define \<gamma> where 
+    \<gamma>:  "\<gamma> = (\<lambda>var. if var \<in> vars_term term then \<theta> var else \<gamma>' var)"
+  
+  have "term_subst.is_ground_subst \<gamma>"
+    using assms \<gamma>' 
+    unfolding \<gamma> term_subst.is_ground_subst_def
+     by (simp add: is_ground_iff)
+
+  moreover have "term \<cdot>t \<theta> = term \<cdot>t \<gamma>"
+    unfolding \<gamma>
+    by (smt (verit, best) term_subst_eq)
+    
+  ultimately show ?thesis
+    using that
+    by blast
+qed
+
+lemma ground_subst_exstension_atom:
+  assumes "is_ground_atom (atom \<cdot>a \<theta>)"
+  obtains \<gamma>
+  where "atom \<cdot>a \<theta> = atom \<cdot>a \<gamma>" and "term_subst.is_ground_subst \<gamma>"
+  by (metis assms atom_subst_compose ground_subst_compose ground_subst_exists subst_ground_atom)
+
+lemma ground_subst_exstension_literal:
+  assumes "is_ground_literal (literal \<cdot>l \<theta>)"
+  obtains \<gamma>
+  where "literal \<cdot>l \<theta> = literal \<cdot>l \<gamma>" and "term_subst.is_ground_subst \<gamma>"
+proof(cases literal)
+  case (Pos a)
+  then show ?thesis
+    using assms that ground_subst_exstension_atom[of a  \<theta>]
+    unfolding vars_literal_def subst_literal_def
+    by auto
+next
+  case (Neg a)
+  then show ?thesis 
+    using assms that ground_subst_exstension_atom[of a  \<theta>]
+    unfolding vars_literal_def subst_literal_def
+    by auto
+qed
+
+lemma ground_subst_exstension_clause:
+  assumes "is_ground_clause (clause \<cdot> \<theta>)"
+  obtains \<gamma>
+  where "clause \<cdot> \<theta> = clause \<cdot> \<gamma>" and "term_subst.is_ground_subst \<gamma>"
+  by (metis assms clause_subst_compose ground_subst_compose ground_subst_exists subst_ground_clause)
+
+
 end
