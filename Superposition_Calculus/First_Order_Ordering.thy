@@ -69,11 +69,16 @@ lemma less\<^sub>t_wellfounded_on': "wfp_on (\<prec>\<^sub>t) (to_term ` terms\<
   by (metis (mono_tags) ground_term_is_ground imageE mem_Collect_eq)
 
 lemma less\<^sub>t\<^sub>G_wellfounded [intro]: "wfP (\<prec>\<^sub>t\<^sub>G)"
-  unfolding less\<^sub>t\<^sub>G_def
-  using 
-    wfp_on_image[OF inj_term_of_gterm less\<^sub>t_wellfounded_on']
-    wfp_on_UNIV
-  by blast
+proof -
+  have "wfp_on (\<prec>\<^sub>t) (range to_term)"
+    using less\<^sub>t_wellfounded_on' by metis
+  hence "wfp_on (\<lambda>term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2. to_term term\<^sub>G\<^sub>1 \<prec>\<^sub>t to_term term\<^sub>G\<^sub>2) UNIV"
+    unfolding wfp_on_image[symmetric] .
+  hence "wfp_on (\<prec>\<^sub>t\<^sub>G) UNIV"
+    unfolding less\<^sub>t\<^sub>G_def .
+  thus "wfP (\<prec>\<^sub>t\<^sub>G)"
+    unfolding wfp_on_UNIV .
+qed
 
 lemma less\<^sub>t_total_on': "totalp_on (to_term ` terms\<^sub>G) (\<prec>\<^sub>t)"
   using less\<^sub>t_total_on

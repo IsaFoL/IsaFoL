@@ -20,8 +20,8 @@ next
 qed
 
 lemma totalp_on_image:
- assumes "inj_on f A"
- shows "totalp_on (f ` A) R \<longleftrightarrow> totalp_on A (\<lambda>a b. R (f a) (f b))"
+  assumes "inj_on f A"
+  shows "totalp_on (f ` A) R \<longleftrightarrow> totalp_on A (\<lambda>a b. R (f a) (f b))"
   using assms
   unfolding totalp_on_def inj_on_def by auto
 
