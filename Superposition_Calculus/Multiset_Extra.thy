@@ -192,17 +192,15 @@ lemma image_mset_remove1_mset:
 (* TODO: Make nicer *)
 lemma multp\<^sub>D\<^sub>M_map_strong:
   assumes
-    compat_f: "\<forall>x \<in># xs. \<forall> y \<in># ys. R x y \<longrightarrow> R (f x) (f y)" and
-    ys_gt_xs: "multp\<^sub>D\<^sub>M R xs ys"
-  shows "multp\<^sub>D\<^sub>M R (image_mset f xs) (image_mset f ys)"
+    mono_f: "monotone_on (set_mset (M1 + M2)) R R f" and
+    M1_lt_M2: "multp\<^sub>D\<^sub>M R M1 M2"
+  shows "multp\<^sub>D\<^sub>M R (image_mset f M1) (image_mset f M2)"
 proof -
   obtain Y X where
-    y_nemp: "Y \<noteq> {#}" and y_sub_ys: "Y \<subseteq># ys" and xs_eq: "xs = ys - Y + X" and
+    "Y \<noteq> {#}" and "Y \<subseteq># M2" and M1_eq: "M1 = M2 - Y + X" and
     ex_y: "\<forall>x. x \<in># X \<longrightarrow> (\<exists>y. y \<in># Y \<and> R x y)"
-    using ys_gt_xs[unfolded multp\<^sub>D\<^sub>M_def Let_def mset_map] by blast
+    using M1_lt_M2[unfolded multp\<^sub>D\<^sub>M_def Let_def mset_map] by blast
 
-  have x_sub_xs: "X \<subseteq># xs"
-    using xs_eq by simp
 
   let ?fY = "image_mset f Y"
   let ?fX = "image_mset f X"
@@ -210,40 +208,48 @@ proof -
   show ?thesis
     unfolding multp\<^sub>D\<^sub>M_def 
   proof (intro exI conjI)
-    show "image_mset f xs = image_mset f ys - ?fY + ?fX"
-      using xs_eq[THEN arg_cong, of "image_mset f"] y_sub_ys 
+    show "image_mset f Y \<noteq> {#}"
+      using \<open>Y \<noteq> {#}\<close> unfolding image_mset_is_empty_iff .
+  next
+    show "image_mset f Y \<subseteq># image_mset f M2"
+      using \<open>Y \<subseteq># M2\<close> image_mset_subseteq_mono by metis
+  next
+    show "image_mset f M1 = image_mset f M2 - ?fY + ?fX"
+      using M1_eq[THEN arg_cong, of "image_mset f"] \<open>Y \<subseteq># M2\<close>
       by (metis image_mset_Diff image_mset_union)
   next
-    obtain y where y: "\<forall>x. x \<in># X \<longrightarrow> y x \<in># Y \<and> R x (y x)"
+    obtain g where y: "\<forall>x. x \<in># X \<longrightarrow> g x \<in># Y \<and> R x (g x)"
       using ex_y by moura
 
     show "\<forall>fx. fx \<in># ?fX \<longrightarrow> (\<exists>fy. fy \<in># ?fY \<and> R fx fy)"
     proof (intro allI impI)
-      fix fx
-      assume "fx \<in># ?fX"
-      then obtain x where fx: "fx = f x" and x_in: "x \<in># X"
+      fix x' assume "x' \<in># ?fX"
+      then obtain x where x': "x' = f x" and x_in: "x \<in># X"
         by auto
-      hence y_in: "y x \<in># Y" and y_gt: "R x (y x)"
+      hence y_in: "g x \<in># Y" and y_gt: "R x (g x)"
         using y[rule_format, OF x_in] by blast+
-      hence "f (y x) \<in># ?fY \<and> R (f x)(f (y x)) "
-        using compat_f y_sub_ys x_sub_xs x_in
-        by (metis image_eqI in_image_mset mset_subset_eqD)
-      thus "\<exists>fy. fy \<in># ?fY \<and> R fx fy"
-        unfolding fx by auto
+
+      moreover have "X \<subseteq># M1"
+        using M1_eq by simp
+
+      ultimately have "f (g x) \<in># ?fY \<and> R (f x)(f (g x)) "
+        using mono_f[THEN monotone_onD, of x "g x"] \<open>Y \<subseteq># M2\<close> \<open>X \<subseteq># M1\<close> x_in
+        by (metis imageI in_image_mset mset_subset_eqD union_iff)
+      thus "\<exists>fy. fy \<in># ?fY \<and> R x' fy"
+        unfolding x' by auto
     qed
-  qed (auto simp: y_nemp y_sub_ys image_mset_subseteq_mono)
+  qed
 qed
 
 lemma multp_map_strong:
   assumes
      "asymp R"
      "transp R"
-     "\<forall>x \<in># xs. \<forall> y \<in># ys. R x y \<longrightarrow> R (f x) (f y)" and
-     "multp R xs ys"
-   shows "multp R (image_mset f xs) (image_mset f ys)"
+     "monotone_on (set_mset (M1 + M2)) R R f" and
+     "multp R M1 M2"
+   shows "multp R (image_mset f M1) (image_mset f M2)"
   using assms(3, 4)
   unfolding multp_eq_multp\<^sub>D\<^sub>M[OF assms(1, 2)] 
-  using multp\<^sub>D\<^sub>M_map_strong 
-  by blast
+  using multp\<^sub>D\<^sub>M_map_strong by metis
 
 end
