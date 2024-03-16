@@ -410,9 +410,9 @@ proof unfold_locales
     by auto
 qed
 
-(* TODO: How can I write (SOME q. True) nicer? *)
+(* TODO: How can I write (SOME _. True) nicer? *)
 sublocale first_order_superposition_calculus \<subseteq> 
-  sound_inference_system inferences "{{#}}" "entails_\<G>_q (SOME q. True)"
+  sound_inference_system inferences "{{#}}" "entails_\<G>_q (SOME _. True)"
 proof-
   interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G_simple
     by unfold_locales (rule select\<^sub>G_simple)

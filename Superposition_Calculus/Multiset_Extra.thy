@@ -253,4 +253,49 @@ lemma multp_map_strong:
   unfolding multp_eq_multp\<^sub>D\<^sub>M[OF assms(3, 4)]
   by argo
 
+lemma multp\<^sub>H\<^sub>O_add_mset:
+  assumes "asymp R" "transp R" "R x y" "multp\<^sub>H\<^sub>O R X Y"
+  shows "multp\<^sub>H\<^sub>O R (add_mset x X) (add_mset y Y)"
+  unfolding multp\<^sub>H\<^sub>O_def
+proof(intro allI conjI impI)
+  show "add_mset x X \<noteq> add_mset y Y"
+    using assms(1, 3, 4)
+    unfolding multp\<^sub>H\<^sub>O_def
+    by (metis asympD count_add_mset lessI less_not_refl)
+next
+  fix x' 
+  assume count_x': "count (add_mset y Y) x' < count (add_mset x X) x'"
+  show "\<exists>y'. R x' y' \<and> count (add_mset x X) y' < count (add_mset y Y) y'"
+  proof(cases "x' = x")
+      case True
+      then show ?thesis 
+        using assms
+        unfolding multp\<^sub>H\<^sub>O_def
+        by (metis count_add_mset irreflpD irreflp_on_if_asymp_on not_less_eq transpE)
+    next
+      case x'_neq_x: False
+      show ?thesis
+      proof(cases "y = x'")
+        case True
+        then show ?thesis 
+          using assms(1, 3, 4) count_x' x'_neq_x
+          unfolding multp\<^sub>H\<^sub>O_def count_add_mset
+          by (smt (verit) Suc_lessD asympD)
+      next
+        case False
+        then show ?thesis
+          using assms count_x' x'_neq_x
+          unfolding multp\<^sub>H\<^sub>O_def count_add_mset
+          by (smt (verit, del_insts) irreflpD irreflp_on_if_asymp_on not_less_eq transpE)
+      qed     
+    qed
+qed
+
+lemma multp_add_mset:
+  assumes "asymp R" "transp R" "R x y" "multp R X Y"
+  shows "multp R (add_mset x X) (add_mset y Y)"
+  using multp\<^sub>H\<^sub>O_add_mset[OF assms(1-3)] assms(4)
+  unfolding multp_eq_multp\<^sub>H\<^sub>O[OF assms(1, 2)] 
+  by simp
+
 end

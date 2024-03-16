@@ -142,7 +142,8 @@ sublocale first_order_superposition_calculus \<subseteq>
     "\<lambda>_. ground_superposition_calculus.GRed_F(\<prec>\<^sub>t\<^sub>G)" 
     "\<bottom>\<^sub>F"
     "\<lambda>_. clause_groundings" 
-    "\<lambda>select\<^sub>G.  Some \<circ> (grounded_first_order_superposition_calculus.inference_groundings (\<prec>\<^sub>t) select\<^sub>G)"
+    "\<lambda>select\<^sub>G.  Some \<circ> 
+      (grounded_first_order_superposition_calculus.inference_groundings (\<prec>\<^sub>t) select\<^sub>G)"
     tiebreakers
 proof(unfold_locales; (intro ballI)?)
   show "select\<^sub>G\<^sub>s \<noteq> {}"

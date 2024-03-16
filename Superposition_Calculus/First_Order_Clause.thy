@@ -147,17 +147,6 @@ abbreviation is_ground_literal where
 abbreviation is_ground_clause where
   "is_ground_clause clause \<equiv> vars_clause clause = {}"
 
-(*
-TODO: Needed?
-
-abbreviation is_ground_clause_set where
-  "is_ground_clause_set N \<equiv> vars_clause_set N = {}"
-
-lemma is_ground_clause_if_in_ground_clause_set:
-  "is_ground_clause_set N \<Longrightarrow> C \<in> N \<Longrightarrow> is_ground_clause C"
-  by (simp add: vars_clause_set_def)
- *)
-
 lemma is_ground_clause_empty [simp]: "is_ground_clause {#}"
   unfolding vars_clause_def
   by simp 
@@ -344,6 +333,9 @@ lemma to_atom_to_literal:
   "Neg (to_atom atom\<^sub>G) = to_literal (Neg atom\<^sub>G)"
   "Pos (to_atom atom\<^sub>G) = to_literal (Pos atom\<^sub>G)"  
   by (simp_all add: to_literal_def)
+
+lemma to_context_hole: "context\<^sub>G = \<box>\<^sub>G \<longleftrightarrow> to_context context\<^sub>G = \<box>"
+  by(cases context\<^sub>G) simp_all
 
 lemma to_clause_empty_mset [simp]: "to_clause {#} = {#}"
   by (simp add: to_clause_def)
@@ -612,8 +604,9 @@ lemma obtain_from_atom_subst:
   assumes "atom \<cdot>a \<theta> = Upair term\<^sub>1' term\<^sub>2'"
   obtains term\<^sub>1 term\<^sub>2 
   where "atom = Upair term\<^sub>1 term\<^sub>2" "term\<^sub>1 \<cdot>t \<theta> = term\<^sub>1'" "term\<^sub>2 \<cdot>t \<theta> = term\<^sub>2'"
-  using assms term_subst_atom_subst
-  by (smt (z3) Upair_inject uprod_exhaust)
+  using assms
+  unfolding subst_atom_def
+  by(cases atom) auto
 
 lemma obtain_from_pos_literal_subst: 
   assumes "literal \<cdot>l \<theta> = term\<^sub>1' \<approx> term\<^sub>2'"
@@ -752,5 +745,17 @@ lemma ground_subst_exstension_clause:
   where "clause \<cdot> \<theta> = clause \<cdot> \<gamma>" and "term_subst.is_ground_subst \<gamma>"
   by (metis assms clause_subst_compose ground_subst_compose ground_subst_exists subst_ground_clause)
 
+lemma non_ground_arg: 
+  assumes "\<not> is_ground_term (Fun f terms)"
+  obtains "term"
+  where "term \<in> set terms" "\<not> is_ground_term term"
+  using assms that by fastforce
+
+lemma non_ground_arg': 
+  assumes "\<not> is_ground_term (Fun f terms)"
+  obtains ts1 var ts2 
+  where "terms = ts1 @ [var] @ ts2" "\<not> is_ground_term var"
+  using non_ground_arg
+  by (metis append.left_neutral append_Cons assms split_list)
 
 end

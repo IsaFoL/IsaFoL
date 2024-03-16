@@ -24,10 +24,10 @@ lemmas is_strictly_maximal_lit_def =
 
 end
 
-(* TODO: 
-   - to_term ` terms\<^sub>G as set of all ground_terms 
-   - less\<^sub>t-prefixes actually not needed
-*)
+(* TODO: rename to not have "first order" in name*)
+section \<open>First order ordering\<close>
+
+(* TODO: less\<^sub>t-prefixes actually not needed *)
 locale first_order_ordering =
   fixes
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50)
@@ -60,72 +60,13 @@ locale first_order_ordering =
          term\<^sub>G \<prec>\<^sub>t context\<^sub>G\<langle>term\<^sub>G\<rangle>"
 begin
 
-definition less\<^sub>t\<^sub>G :: "'f ground_term \<Rightarrow> 'f ground_term \<Rightarrow> bool" (infix "\<prec>\<^sub>t\<^sub>G" 50) where
-  "term\<^sub>G\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2 \<equiv> to_term term\<^sub>G\<^sub>1 \<prec>\<^sub>t to_term term\<^sub>G\<^sub>2"
-
-lemma less\<^sub>t_wellfounded_on': "wfp_on (\<prec>\<^sub>t) (to_term ` terms\<^sub>G)"
-  using less\<^sub>t_wellfounded_on
-  unfolding wfp_on_def
-  by (metis (mono_tags) ground_term_is_ground imageE mem_Collect_eq)
-
-lemma less\<^sub>t\<^sub>G_wellfounded [intro]: "wfP (\<prec>\<^sub>t\<^sub>G)"
-proof -
-  have "wfp_on (\<prec>\<^sub>t) (range to_term)"
-    using less\<^sub>t_wellfounded_on' by metis
-  hence "wfp_on (\<lambda>term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2. to_term term\<^sub>G\<^sub>1 \<prec>\<^sub>t to_term term\<^sub>G\<^sub>2) UNIV"
-    unfolding wfp_on_image[symmetric] .
-  hence "wfp_on (\<prec>\<^sub>t\<^sub>G) UNIV"
-    unfolding less\<^sub>t\<^sub>G_def .
-  thus "wfP (\<prec>\<^sub>t\<^sub>G)"
-    unfolding wfp_on_UNIV .
-qed
-
-lemma less\<^sub>t_total_on': "totalp_on (to_term ` terms\<^sub>G) (\<prec>\<^sub>t)"
-  using less\<^sub>t_total_on
-  by (simp add: totalp_on_def)
-
-lemma less\<^sub>t\<^sub>G_total [intro]: "totalp (\<prec>\<^sub>t\<^sub>G)"
-  unfolding less\<^sub>t\<^sub>G_def
-  using totalp_on_image[OF inj_term_of_gterm] less\<^sub>t_total_on'
-  by blast
-
-lemma less\<^sub>t\<^sub>G_context_compatible [simp]: 
-  assumes "term\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>2"  
-  shows "context\<langle>term\<^sub>1\<rangle>\<^sub>G \<prec>\<^sub>t\<^sub>G context\<langle>term\<^sub>2\<rangle>\<^sub>G"
-  using assms less\<^sub>t_ground_context_compatible
-  unfolding less\<^sub>t\<^sub>G_def
-  by (metis ground_context_is_ground ground_term_is_ground ground_term_with_context(3)) 
-
-lemma less\<^sub>t\<^sub>G_subterm_property [simp]: 
-  assumes "context \<noteq> \<box>\<^sub>G" 
-  shows "term \<prec>\<^sub>t\<^sub>G context\<langle>term\<rangle>\<^sub>G"
-  using assms less\<^sub>t_ground_subterm_property
-  unfolding less\<^sub>t\<^sub>G_def
-  by (metis gctxt_of_ctxt.simps(1) ground_context_is_ground ground_term_is_ground ground_term_with_context3 to_context_inverse)
-
-lemmas less\<^sub>t_transitive_on = less\<^sub>t_transitive[THEN transp_on_subset, OF subset_UNIV]
-lemmas less\<^sub>t_asymmetric_on = less\<^sub>t_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
-
-lemma less\<^sub>t\<^sub>G_transitive [intro]: "transp (\<prec>\<^sub>t\<^sub>G)"
-  using less\<^sub>t\<^sub>G_def less\<^sub>t_transitive transpE transpI
-  by (metis (full_types))
-
-lemmas less\<^sub>t\<^sub>G_transitive_on = less\<^sub>t\<^sub>G_transitive[THEN transp_on_subset, OF subset_UNIV]
-
-lemma less\<^sub>t\<^sub>G_asymmetric [intro]: "asymp (\<prec>\<^sub>t\<^sub>G)"
-  by (simp add: wfP_imp_asymp less\<^sub>t\<^sub>G_wellfounded)
-
-lemmas less\<^sub>t\<^sub>G_asymmetric_on = less\<^sub>t\<^sub>G_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
-
-lemmas less\<^sub>t\<^sub>G_total_on = less\<^sub>t\<^sub>G_total[THEN totalp_on_subset, OF subset_UNIV]
-
-lemma less\<^sub>t_less\<^sub>t\<^sub>G: 
-  assumes "is_ground_term term\<^sub>1" and "is_ground_term term\<^sub>2"
-  shows "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<longleftrightarrow> to_ground_term term\<^sub>1 \<prec>\<^sub>t\<^sub>G to_ground_term term\<^sub>2"
-  by (simp add: assms less\<^sub>t\<^sub>G_def)
+subsection \<open>Definitions\<close>
 
 abbreviation less_eq\<^sub>t (infix "\<preceq>\<^sub>t" 50) where
   "less_eq\<^sub>t \<equiv> (\<prec>\<^sub>t)\<^sup>=\<^sup>="
+
+definition less\<^sub>t\<^sub>G :: "'f ground_term \<Rightarrow> 'f ground_term \<Rightarrow> bool" (infix "\<prec>\<^sub>t\<^sub>G" 50) where
+  "term\<^sub>G\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2 \<equiv> to_term term\<^sub>G\<^sub>1 \<prec>\<^sub>t to_term term\<^sub>G\<^sub>2"
 
 definition less\<^sub>l ::
   "('f, 'v) atom literal \<Rightarrow> ('f, 'v) atom literal \<Rightarrow> bool" (infix "\<prec>\<^sub>l" 50) where
@@ -149,14 +90,102 @@ abbreviation is_strictly_maximal\<^sub>l ::
   "('f, 'v) atom literal \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
   "is_strictly_maximal\<^sub>l literal clause \<equiv> is_strictly_maximal_in_mset_wrt (\<prec>\<^sub>l) clause literal"
 
-(* TODO: Is there a more concise way to write all these proofs? *)
-lemma less\<^sub>l_transitive [intro]: "transp (\<prec>\<^sub>l)"
-  unfolding less\<^sub>l_def 
-  using transp_multp[OF less\<^sub>t_transitive]
-  by (metis (no_types, lifting) transpE transpI)
+(* TODO: Try factoring out a locale for the sections *)
+subsection \<open>Term ordering\<close>
 
-lemmas less\<^sub>l_transitive_on = less\<^sub>l_transitive[THEN transp_on_subset, OF subset_UNIV]
-                                                            
+lemmas less\<^sub>t_asymmetric_on = less\<^sub>t_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
+
+lemmas less\<^sub>t_transitive_on = less\<^sub>t_transitive[THEN transp_on_subset, OF subset_UNIV]
+
+lemma less\<^sub>t_wellfounded_on': "wfp_on (\<prec>\<^sub>t) (to_term ` terms\<^sub>G)"
+  using less\<^sub>t_wellfounded_on
+  unfolding wfp_on_def
+  by (metis (mono_tags) ground_term_is_ground imageE mem_Collect_eq)
+
+lemma less\<^sub>t_total_on': "totalp_on (to_term ` terms\<^sub>G) (\<prec>\<^sub>t)"
+  using less\<^sub>t_total_on
+  by (simp add: totalp_on_def)
+
+lemma less\<^sub>t_irreflexive_on: "irreflp_on X (\<prec>\<^sub>t)"
+  by (simp add: less\<^sub>t_asymmetric_on)
+
+lemma less\<^sub>t\<^sub>G_wellfounded: "wfP (\<prec>\<^sub>t\<^sub>G)"
+proof -
+  have "wfp_on (\<prec>\<^sub>t) (range to_term)"
+    using less\<^sub>t_wellfounded_on' by metis
+  hence "wfp_on (\<lambda>term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2. to_term term\<^sub>G\<^sub>1 \<prec>\<^sub>t to_term term\<^sub>G\<^sub>2) UNIV"
+    unfolding wfp_on_image[symmetric] .
+  hence "wfp_on (\<prec>\<^sub>t\<^sub>G) UNIV"
+    unfolding less\<^sub>t\<^sub>G_def .
+  thus "wfP (\<prec>\<^sub>t\<^sub>G)"
+    unfolding wfp_on_UNIV .
+qed
+
+sublocale term_order: order less_eq\<^sub>t less\<^sub>t
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>t y) = (x \<preceq>\<^sub>t y \<and> \<not> y \<preceq>\<^sub>t x)"
+    by (metis asympD less\<^sub>t_asymmetric_on reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>t x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>t y \<Longrightarrow> y \<preceq>\<^sub>t z \<Longrightarrow> x \<preceq>\<^sub>t z"
+    by (metis less\<^sub>t_transitive reflclp_iff transpD_strict_non_strict)
+next
+  show "\<And>x y. x \<preceq>\<^sub>t y \<Longrightarrow> y \<preceq>\<^sub>t x \<Longrightarrow> x = y"
+    by (metis asympD less\<^sub>t_asymmetric_on reflclp_iff)
+qed
+
+subsection \<open>Ground term ordering\<close>
+
+lemma less\<^sub>t\<^sub>G_asymmetric [intro]: "asymp (\<prec>\<^sub>t\<^sub>G)"
+  by (simp add: wfP_imp_asymp less\<^sub>t\<^sub>G_wellfounded)
+
+lemmas less\<^sub>t\<^sub>G_asymmetric_on = less\<^sub>t\<^sub>G_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
+
+lemma less\<^sub>t\<^sub>G_transitive [intro]: "transp (\<prec>\<^sub>t\<^sub>G)"
+  using less\<^sub>t\<^sub>G_def less\<^sub>t_transitive transpE transpI
+  by (metis (full_types))
+
+lemmas less\<^sub>t\<^sub>G_transitive_on = less\<^sub>t\<^sub>G_transitive[THEN transp_on_subset, OF subset_UNIV]
+
+lemma less\<^sub>t\<^sub>G_total [intro]: "totalp (\<prec>\<^sub>t\<^sub>G)"
+  unfolding less\<^sub>t\<^sub>G_def
+  using totalp_on_image[OF inj_term_of_gterm] less\<^sub>t_total_on'
+  by blast
+
+lemmas less\<^sub>t\<^sub>G_total_on = less\<^sub>t\<^sub>G_total[THEN totalp_on_subset, OF subset_UNIV]
+
+lemma less\<^sub>t\<^sub>G_context_compatible [simp]: 
+  assumes "term\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>2"  
+  shows "context\<langle>term\<^sub>1\<rangle>\<^sub>G \<prec>\<^sub>t\<^sub>G context\<langle>term\<^sub>2\<rangle>\<^sub>G"
+  using assms less\<^sub>t_ground_context_compatible
+  unfolding less\<^sub>t\<^sub>G_def
+  by (metis ground_context_is_ground ground_term_is_ground ground_term_with_context(3)) 
+
+lemma less\<^sub>t\<^sub>G_subterm_property [simp]: 
+  assumes "context \<noteq> \<box>\<^sub>G" 
+  shows "term \<prec>\<^sub>t\<^sub>G context\<langle>term\<rangle>\<^sub>G"
+  using 
+    assms 
+    less\<^sub>t_ground_subterm_property[OF ground_term_is_ground ground_context_is_ground] 
+    to_context_hole
+  unfolding less\<^sub>t\<^sub>G_def ground_term_with_context(3)  
+  by blast
+
+lemma less\<^sub>t_less\<^sub>t\<^sub>G: 
+  assumes "is_ground_term term\<^sub>1" and "is_ground_term term\<^sub>2"
+  shows "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<longleftrightarrow> to_ground_term term\<^sub>1 \<prec>\<^sub>t\<^sub>G to_ground_term term\<^sub>2"
+  by (simp add: assms less\<^sub>t\<^sub>G_def)
+
+lemma less_eq\<^sub>t_ground_subst_stability:
+  assumes "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)" "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)"  "term\<^sub>1 \<preceq>\<^sub>t term\<^sub>2"
+  shows "term\<^sub>1 \<cdot>t \<theta> \<preceq>\<^sub>t term\<^sub>2 \<cdot>t \<theta>"
+  using less\<^sub>t_ground_subst_stability[OF assms(1, 2)] assms(3)
+  by auto
+
+subsection \<open>Literal ordering\<close>
+
 lemma less\<^sub>l_asymmetric [intro]: "asymp (\<prec>\<^sub>l)"
   unfolding less\<^sub>l_def  multp_eq_multp\<^sub>H\<^sub>O[OF less\<^sub>t_asymmetric less\<^sub>t_transitive]
   using asymp_multp\<^sub>H\<^sub>O[OF less\<^sub>t_asymmetric less\<^sub>t_transitive]
@@ -164,6 +193,13 @@ lemma less\<^sub>l_asymmetric [intro]: "asymp (\<prec>\<^sub>l)"
 
 lemmas less\<^sub>l_asymmetric_on [intro] = less\<^sub>l_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
 
+lemma less\<^sub>l_transitive [intro]: "transp (\<prec>\<^sub>l)"
+  unfolding less\<^sub>l_def 
+  using transp_multp[OF less\<^sub>t_transitive]
+  by (metis (no_types, lifting) transpE transpI)
+
+lemmas less\<^sub>l_transitive_on = less\<^sub>l_transitive[THEN transp_on_subset, OF subset_UNIV]
+                                                            
 lemmas is_maximal\<^sub>l_def = is_maximal_in_mset_wrt_iff[OF less\<^sub>l_transitive_on less\<^sub>l_asymmetric_on]
 
 lemmas is_strictly_maximal\<^sub>l_def =
@@ -173,14 +209,6 @@ lemmas is_maximal\<^sub>l_if_is_strictly_maximal\<^sub>l =
   is_maximal_in_mset_wrt_if_is_strictly_maximal_in_mset_wrt[OF 
     less\<^sub>l_transitive_on less\<^sub>l_asymmetric_on
   ]
-
-lemmas less\<^sub>c_transitive [intro] = transp_multp[OF less\<^sub>l_transitive]
-
-lemmas less\<^sub>c_transitive_on [intro] = less\<^sub>c_transitive[THEN transp_on_subset, OF subset_UNIV]
-
-lemmas less\<^sub>c_asymmetric [intro] = asymp_multp[OF less\<^sub>l_asymmetric less\<^sub>l_transitive]
-
-lemmas less\<^sub>c_asymmetric_on [intro] = less\<^sub>c_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
 
 lemma less\<^sub>l_ground_subst_stability: 
   assumes 
@@ -194,6 +222,60 @@ proof (elim multp_map_strong[rotated -1])
       (metis assms(1,2) less\<^sub>t_ground_subst_stability ground_term_in_ground_literal_subst union_iff)
 qed (use less\<^sub>t_asymmetric less\<^sub>t_transitive in simp_all)
 
+lemma maximal\<^sub>l_in_clause:
+  assumes "is_maximal\<^sub>l literal clause"
+  shows "literal \<in># clause"
+  using assms 
+  unfolding is_maximal\<^sub>l_def
+  by(rule conjunct1)
+
+lemma strictly_maximal\<^sub>l_in_clause:
+  assumes "is_strictly_maximal\<^sub>l literal clause"
+  shows "literal \<in># clause"
+  using assms 
+  unfolding is_strictly_maximal\<^sub>l_def
+  by(rule conjunct1)
+
+sublocale literal_order: order "(\<prec>\<^sub>l)\<^sup>=\<^sup>=" "(\<prec>\<^sub>l)"
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>l y) = (x \<preceq>\<^sub>l y \<and> \<not> y \<preceq>\<^sub>l x)"
+    by (metis asympD less\<^sub>l_asymmetric_on reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>l x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>l y \<Longrightarrow> y \<preceq>\<^sub>l z \<Longrightarrow> x \<preceq>\<^sub>l z"
+    by (metis less\<^sub>l_transitive reflclp_iff transpD_strict_non_strict)
+next
+  show "\<And>x y. x \<preceq>\<^sub>l y \<Longrightarrow> y \<preceq>\<^sub>l x \<Longrightarrow> x = y"
+    by (metis asympD less\<^sub>l_asymmetric_on reflclp_iff)
+qed
+
+subsection \<open>Clause ordering\<close>
+
+lemmas less\<^sub>c_asymmetric [intro] = asymp_multp[OF less\<^sub>l_asymmetric less\<^sub>l_transitive]
+
+lemmas less\<^sub>c_asymmetric_on [intro] = less\<^sub>c_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
+
+lemmas less\<^sub>c_transitive [intro] = transp_multp[OF less\<^sub>l_transitive]
+
+lemmas less\<^sub>c_transitive_on [intro] = less\<^sub>c_transitive[THEN transp_on_subset, OF subset_UNIV]
+
+sublocale clause_order: order "(\<prec>\<^sub>c)\<^sup>=\<^sup>=" "(\<prec>\<^sub>c)"
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>c y) = (x \<preceq>\<^sub>c y \<and> \<not> y \<preceq>\<^sub>c x)"
+    by (metis asympD less\<^sub>c_asymmetric_on reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>c x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>c y \<Longrightarrow> y \<preceq>\<^sub>c z \<Longrightarrow> x \<preceq>\<^sub>c z"
+    by (metis less\<^sub>c_transitive reflclp_iff transpD_strict_non_strict)
+next
+  show "\<And>x y. x \<preceq>\<^sub>c y \<Longrightarrow> y \<preceq>\<^sub>c x \<Longrightarrow> x = y"
+    by (metis asympD less\<^sub>c_asymmetric_on reflclp_iff)
+qed
+
 lemma less\<^sub>c_ground_subst_stability: 
   assumes 
     "is_ground_clause (clause \<cdot> \<theta>)" 
@@ -206,11 +288,7 @@ proof (elim multp_map_strong[rotated -1])
       (metis assms(1,2) ground_literal_in_ground_clause_subst less\<^sub>l_ground_subst_stability union_iff)
 qed (use less\<^sub>l_asymmetric less\<^sub>l_transitive in simp_all)
 
-lemma less_eq\<^sub>t_ground_subst_stability:
-  assumes "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)" "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)"  "term\<^sub>1 \<preceq>\<^sub>t term\<^sub>2"
-  shows "term\<^sub>1 \<cdot>t \<theta> \<preceq>\<^sub>t term\<^sub>2 \<cdot>t \<theta>"
-  using less\<^sub>t_ground_subst_stability[OF assms(1, 2)] assms(3)
-  by auto
+subsection \<open>Grounding\<close>
 
 sublocale ground: ground_ordering "(\<prec>\<^sub>t\<^sub>G)" 
   apply unfold_locales
@@ -223,10 +301,8 @@ notation ground.lesseq_trm (infix "\<preceq>\<^sub>t\<^sub>G" 50)
 notation ground.lesseq_lit (infix "\<preceq>\<^sub>l\<^sub>G" 50)
 notation ground.lesseq_cls (infix "\<preceq>\<^sub>c\<^sub>G" 50)
 
-(* TODO: Move these similarly to first_order_ordering *)
 lemma not_less_eq\<^sub>t\<^sub>G: "\<not> term\<^sub>G\<^sub>2 \<preceq>\<^sub>t\<^sub>G term\<^sub>G\<^sub>1 \<longleftrightarrow> term\<^sub>G\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2"
-  using asympD[OF less\<^sub>t\<^sub>G_asymmetric] totalpD[OF less\<^sub>t\<^sub>G_total]
-  by blast
+  by auto  
 
 lemma less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G:
   assumes "is_ground_term term\<^sub>1" and "is_ground_term term\<^sub>2" 
@@ -259,9 +335,6 @@ lemma less\<^sub>l_less\<^sub>l\<^sub>G:
   using assms
   by (simp add: less\<^sub>l\<^sub>G_less\<^sub>l)
 
-lemma less\<^sub>l_total_on [intro]: "totalp_on (to_literal ` literals\<^sub>G) (\<prec>\<^sub>l)"
-  by (smt (verit, best) image_iff less\<^sub>l\<^sub>G_less\<^sub>l totalpD ground.less\<^sub>l\<^sub>G_total_on totalp_on_def)
-
 lemma less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G:
   assumes "is_ground_literal literal\<^sub>1" and "is_ground_literal literal\<^sub>2" 
   shows "literal\<^sub>1 \<preceq>\<^sub>l literal\<^sub>2 \<longleftrightarrow> to_ground_literal literal\<^sub>1 \<preceq>\<^sub>l\<^sub>G to_ground_literal literal\<^sub>2"
@@ -283,20 +356,6 @@ lemma maximal_lit_in_clause:
   unfolding ground.is_maximal_lit_def
   by(rule conjunct1)
 
-lemma maximal\<^sub>l_in_clause:
-  assumes "is_maximal\<^sub>l literal clause"
-  shows "literal \<in># clause"
-  using assms 
-  unfolding is_maximal\<^sub>l_def
-  by(rule conjunct1)
-
-lemma strictly_maximal\<^sub>l_in_clause:
-  assumes "is_strictly_maximal\<^sub>l literal clause"
-  shows "literal \<in># clause"
-  using assms 
-  unfolding is_strictly_maximal\<^sub>l_def
-  by(rule conjunct1)
-
 lemma is_maximal_lit_iff_is_maximal\<^sub>l: 
   "ground.is_maximal_lit literal\<^sub>G clause\<^sub>G \<longleftrightarrow> is_maximal\<^sub>l (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
    unfolding 
@@ -307,9 +366,6 @@ lemma is_maximal_lit_iff_is_maximal\<^sub>l:
      less\<^sub>l_less\<^sub>l\<^sub>G[OF ground_literal_is_ground ground_literal_in_ground_clause(2)] 
      ground_literal_in_ground_clause(2, 3)
    by (metis to_ground_literal_inverse to_literal_inverse)
-
-lemmas less\<^sub>l_total_on_set_mset =
-  less\<^sub>l_total_on[THEN totalp_on_subset, OF set_mset_to_clause_to_literal[THEN equalityD1]]
 
 lemma is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l:
   "ground.is_strictly_maximal_lit literal\<^sub>G clause\<^sub>G 
@@ -362,9 +418,6 @@ lemma less_eq\<^sub>c\<^sub>G_less_eq\<^sub>c:
   unfolding less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF ground_clause_is_ground ground_clause_is_ground] to_clause_inverse
   ..
 
-lemma less\<^sub>c_total_on: "totalp_on (to_clause ` clauses) (\<prec>\<^sub>c)"
-  by (smt ground.totalp_less_cls image_iff less\<^sub>c\<^sub>G_less\<^sub>c totalpD totalp_onI) 
-
 lemma not_less_eq\<^sub>c\<^sub>G: "\<not> clause\<^sub>G\<^sub>2 \<preceq>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>1 \<longleftrightarrow> clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2"
   using asympD[OF ground.less\<^sub>c\<^sub>G_asymmetric_on] totalpD[OF ground.less\<^sub>c\<^sub>G_total_on]
   by blast
@@ -374,6 +427,8 @@ lemma not_less_eq\<^sub>c:
   shows "\<not> clause\<^sub>2 \<preceq>\<^sub>c clause\<^sub>1 \<longleftrightarrow> clause\<^sub>1 \<prec>\<^sub>c clause\<^sub>2"
   unfolding less\<^sub>c_less\<^sub>c\<^sub>G[OF assms] less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>c\<^sub>G
   ..
+
+subsection \<open>Stability under ground substitution\<close>
 
 lemma less\<^sub>t_less_eq\<^sub>t_ground_subst_stability:
   assumes 
@@ -532,6 +587,16 @@ proof(rule ccontr)
     by blast
 qed
 
+(* TODO: Try to move these to the fitting others *)
+lemma less\<^sub>l_total_on [intro]: "totalp_on (to_literal ` literals\<^sub>G) (\<prec>\<^sub>l)"
+  by (smt (verit, best) image_iff less\<^sub>l\<^sub>G_less\<^sub>l totalpD ground.less\<^sub>l\<^sub>G_total_on totalp_on_def)
+
+lemmas less\<^sub>l_total_on_set_mset =
+  less\<^sub>l_total_on[THEN totalp_on_subset, OF set_mset_to_clause_to_literal[THEN equalityD1]]
+
+lemma less\<^sub>c_total_on: "totalp_on (to_clause ` clauses) (\<prec>\<^sub>c)"
+  by (smt ground.totalp_less_cls image_iff less\<^sub>c\<^sub>G_less\<^sub>c totalpD totalp_onI) 
+
 lemma unique_maximal_in_ground_clause:
   assumes
     "is_ground_clause clause" 
@@ -633,6 +698,15 @@ lemma is_strictly_maximal\<^sub>l_ground_subst_stability':
     is_strictly_maximal\<^sub>l_def is_maximal\<^sub>l_def
     subst_clause_remove1_mset[OF assms(1), symmetric]
   by (metis in_diffD literal_in_clause_subst reflclp_iff)
+
+lemma smaller_term: 
+  assumes "term \<prec>\<^sub>t term'"
+  shows 
+    "term \<approx> term\<^sub>2 \<prec>\<^sub>l term' \<approx> term\<^sub>2"
+    "term !\<approx> term\<^sub>2 \<prec>\<^sub>l term' !\<approx> term\<^sub>2"
+  using assms
+  unfolding less\<^sub>l_def multp_eq_multp\<^sub>H\<^sub>O[OF less\<^sub>t_asymmetric less\<^sub>t_transitive] multp\<^sub>H\<^sub>O_def 
+  by (auto simp: add_mset_eq_add_mset)
 
 end
 

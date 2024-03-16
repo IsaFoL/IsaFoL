@@ -6,86 +6,11 @@ theory First_Order_Superposition_Completeness
 begin
 
 (* --MISC-- *)
-
-lemma mustbe': 
-  assumes "\<not> is_ground_term (Fun f terms)"
-  shows "\<exists>term \<in> set terms. \<not> is_ground_term term"
-proof(rule ccontr)
-  assume "\<not> (\<exists>term\<in>set terms. \<not>  is_ground_term term)"
-  then have "\<forall>term \<in>set terms. is_ground_term term"
-    by blast
-
-  then have "is_ground_term (Fun f terms)"
-    by auto
-
-  then show False 
-    using assms
-    by blast
-qed
-
-lemma mustbe: 
-  assumes "\<not> is_ground_term (Fun f terms)"
-  obtains ts1 var ts2 where "terms = ts1 @ [var] @ ts2"  "\<not> is_ground_term var"
-  using mustbe'
-  by (metis append.left_neutral append_Cons assms split_list)
-
-lemma  (in first_order_superposition_calculus) smaller_term: 
-  assumes "term \<prec>\<^sub>t term'"
-  shows 
-    "term \<approx> term\<^sub>2 \<prec>\<^sub>l term' \<approx> term\<^sub>2"
-    "term !\<approx> term\<^sub>2 \<prec>\<^sub>l term' !\<approx> term\<^sub>2"
-  unfolding less\<^sub>l_def
-   apply auto
-  using assms
-  apply (metis add_mset_add_single multi_member_last multi_self_add_other_not_self one_step_implies_multp set_mset_add_mset_insert set_mset_empty singletonD)
-  by (smt (verit) add_mset_add_single add_mset_commute assms asymp_on_subset irreflp_on_if_asymp_on less\<^sub>t_asymmetric less\<^sub>t_transitive multp_cancel_add_mset multp_double_doubleI multp_singleton_singleton top_greatest)
-
-(* TODO: ! *)
-lemma trickle:
-  assumes "asymp R" "transp R" "R x y" "multp R X Y"
-  shows "multp R (add_mset x X) (add_mset y Y)"
-  using assms(3, 4)
-  unfolding multp_eq_multp\<^sub>H\<^sub>O[OF assms(1, 2)]
-  unfolding multp\<^sub>H\<^sub>O_def
-proof-
-  assume a: "R x y" "X \<noteq> Y \<and> (\<forall>y. count Y y < count X y \<longrightarrow> (\<exists>x. R y x \<and> count X x < count Y x))"
-
-  then have "x \<noteq> y"
-    using assms(1) unfolding asymp_on_def
-    by blast
-
-  with a have "add_mset x X \<noteq> add_mset y Y"
-    by (metis assms(1) asympD count_add_mset lessI less_not_refl)
-
-  moreover have "\<And>y'. count (add_mset y Y) y' < count (add_mset x X) y' \<Longrightarrow> \<exists>x'. R y' x' \<and> count (add_mset x X) x' < count (add_mset y Y) x'"
-  proof-
-    fix x'
-    assume "count (add_mset y Y) x' < count (add_mset x X) x'"
-
-    show "\<exists>x''. R x' x'' \<and> count (add_mset x X) x'' < count (add_mset y Y) x''"
-    proof(cases "x' = x")
-      case True
-      
-      then show ?thesis 
-        apply auto
-        by (metis a(2) assms(1) assms(2) assms(3) asympD not_less_eq transpE)
-    next
-      case False
-     
-      then show ?thesis
-        apply auto
-        by (metis \<open>count (add_mset y Y) x' < count (add_mset x X) x'\<close> a(2) assms(1) assms(2) assms(3) asympD count_add_mset less_Suc_eq not_less_eq transpE)
-    qed
-  qed
-  
-  ultimately show "add_mset x X \<noteq> add_mset y Y \<and> (\<forall>ya. count (add_mset y Y) ya < count (add_mset x X) ya \<longrightarrow> (\<exists>xa. R ya xa \<and> count (add_mset x X) xa < count (add_mset y Y) xa))"
-    by blast
-qed
-
+ 
 lemma  (in first_order_superposition_calculus) smaller_literal': 
   assumes "literal \<prec>\<^sub>l literal'" "clause \<preceq>\<^sub>c clause'"
   shows "add_mset literal clause \<prec>\<^sub>c add_mset literal' clause'"
-  using assms trickle
+  using assms multp_add_mset
   by (metis add_mset_add_single less\<^sub>l_asymmetric less\<^sub>l_transitive multp\<^sub>H\<^sub>O_plus_plus multp_eq_multp\<^sub>H\<^sub>O multp_singleton_singleton reflclp_iff)
   
 lemma  (in first_order_superposition_calculus) smaller_literal: 
@@ -443,14 +368,10 @@ proof(induction literal)
     apply auto
     unfolding subst_atom
     apply auto
-    apply (metis less\<^sub>t_asymmetric less\<^sub>t_transitive multp_singleton_singleton trickle)
+    apply (metis less\<^sub>t_asymmetric less\<^sub>t_transitive multp_singleton_singleton multp_add_mset)
     apply (metis add_mset_add_single multi_self_add_other_not_self one_step_implies_multp set_mset_add_mset_insert set_mset_empty singletonD union_single_eq_member)
-    apply (meson asympD less\<^sub>t_asymmetric)
-    apply (meson asympD less\<^sub>t_asymmetric)
-    apply (simp add: less\<^sub>t_asymmetric less\<^sub>t_transitive trickle)
-    apply (meson asympD less\<^sub>t_asymmetric)
-    apply (metis irreflp_on_if_asymp_on less\<^sub>t_asymmetric_on less\<^sub>t_transitive multp_cancel_add_mset multp_singleton_singleton)
-    by (metis asympD less\<^sub>t_asymmetric_on)
+    apply (simp add: less\<^sub>t_asymmetric less\<^sub>t_transitive multp_add_mset)
+    by (metis irreflp_on_if_asymp_on less\<^sub>t_asymmetric_on less\<^sub>t_transitive multp_cancel_add_mset multp_singleton_singleton)
 next
   case (Neg x)
   then show ?case
@@ -460,14 +381,10 @@ next
   apply auto
   unfolding subst_atom
   apply auto
-  apply (simp add: less\<^sub>t_asymmetric less\<^sub>t_transitive trickle)
+  apply (simp add:  multp_add_mset)
   apply (smt (verit) add_mset_add_single add_mset_commute irreflp_on_if_asymp_on less\<^sub>t_asymmetric_on less\<^sub>t_transitive multp_cancel_add_mset multp_double_doubleI multp_singleton_singleton)
-  apply (meson asympD less\<^sub>t_asymmetric)
-  apply (meson asympD less\<^sub>t_asymmetric)
-  apply (simp add: less\<^sub>t_asymmetric less\<^sub>t_transitive trickle)
-  apply (meson asympD less\<^sub>t_asymmetric)
-  apply (smt (verit) add_mset_add_single add_mset_commute irreflp_on_if_asymp_on less\<^sub>t_asymmetric_on less\<^sub>t_transitive multp_cancel_add_mset multp_double_doubleI multp_singleton_singleton)
-  by (meson asympD less\<^sub>t_asymmetric)
+  apply (simp add:  multp_add_mset)
+  by (smt (verit) add_mset_add_single add_mset_commute irreflp_on_if_asymp_on less\<^sub>t_asymmetric_on less\<^sub>t_transitive multp_cancel_add_mset multp_double_doubleI multp_singleton_singleton)
 qed
 
 lemma (in grounded_first_order_superposition_calculus) literal_subst_less:
@@ -523,7 +440,7 @@ lemma (in grounded_first_order_superposition_calculus) less_eq\<^sub>l_less_eq\<
   using assms 
   apply(induction clause)
    apply auto
-     apply (metis less\<^sub>l_asymmetric less\<^sub>l_transitive subst_clause_add_mset trickle)
+     apply (metis less\<^sub>l_asymmetric less\<^sub>l_transitive subst_clause_add_mset multp_add_mset)
     apply (simp add: less\<^sub>c_add_same subst_clause_add_mset)
    apply (simp add: smaller_literal subst_clause_add_mset)
   by (simp add: subst_clause_add_mset)
