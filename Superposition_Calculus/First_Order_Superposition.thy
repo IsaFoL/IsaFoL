@@ -4,6 +4,7 @@ theory First_Order_Superposition
     Ground_Superposition
     First_Order_Select
     First_Order_Ordering
+    Renaming
 begin
 
 hide_type Inference_System.inference
@@ -17,14 +18,14 @@ section \<open>First-Order Layer\<close>
 
 locale first_order_superposition_calculus =
   first_order_select select +
-  first_order_ordering less\<^sub>t
+  first_order_ordering less\<^sub>t +
+  renaming "UNIV :: 'v set"
   for 
     select :: "('f, 'v) select" and
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   fixes
     tiebreakers :: "'f gatom clause  \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
   assumes
-    infinite_variable_universe: "infinite (UNIV :: 'v set)" and
     wellfounded_tiebreakers: 
       "\<And>term\<^sub>G. wfP (tiebreakers term\<^sub>G) \<and> 
                transp (tiebreakers term\<^sub>G) \<and> 

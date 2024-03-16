@@ -161,6 +161,57 @@ abbreviation is_maximal_lit :: "'f gatom literal \<Rightarrow> 'f gatom clause \
 abbreviation is_strictly_maximal_lit :: "'f gatom literal \<Rightarrow> 'f gatom clause \<Rightarrow> bool" where
   "is_strictly_maximal_lit L M \<equiv> is_greatest_in_mset_wrt (\<prec>\<^sub>l) M L"
 
+lemma less_trm_compatible_with_gctxt':
+  assumes "ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t ctxt\<langle>t'\<rangle>\<^sub>G"
+  shows "t \<prec>\<^sub>t t'"
+proof(rule ccontr)
+  assume "\<not> t \<prec>\<^sub>t t'"
+  then have "t' \<preceq>\<^sub>t t"
+    using totalpD by fastforce    
+
+  show False
+  proof(cases "t' = t")
+    case True
+    then have "ctxt\<langle>t\<rangle>\<^sub>G = ctxt\<langle>t'\<rangle>\<^sub>G"
+      by blast
+    then show False
+      using assms
+      by (metis insert_iff irreflp_on_def irreflp_on_less_trm)
+  next
+    case False
+    then have "t' \<prec>\<^sub>t t"
+      using \<open>t' \<preceq>\<^sub>t t\<close> by fastforce
+
+    then have "ctxt\<langle>t'\<rangle>\<^sub>G \<prec>\<^sub>t ctxt\<langle>t\<rangle>\<^sub>G"
+      using less_trm_compatible_with_gctxt
+      by force
+      
+    then show ?thesis
+      using assms
+      by (meson asympD asymp_less_trm)
+  qed
+qed
+
+lemma less_trm_compatible_with_gctxt_iff: "ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t ctxt\<langle>t'\<rangle>\<^sub>G \<longleftrightarrow> t \<prec>\<^sub>t t'"
+  using less_trm_compatible_with_gctxt less_trm_compatible_with_gctxt' 
+  by blast
+
+lemma context_less_term_lesseq:
+  assumes 
+    "\<And>t. ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t ctxt'\<langle>t\<rangle>\<^sub>G"
+    "t \<preceq>\<^sub>t t'"
+  shows "ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t ctxt'\<langle>t'\<rangle>\<^sub>G"
+  using assms less_trm_compatible_with_gctxt linorder_trm.dual_order.strict_trans 
+  by blast
+
+lemma context_lesseq_term_less:
+  assumes 
+    "\<And>t. ctxt\<langle>t\<rangle>\<^sub>G \<preceq>\<^sub>t ctxt'\<langle>t\<rangle>\<^sub>G"
+    "t \<prec>\<^sub>t t'"
+  shows "ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t ctxt'\<langle>t'\<rangle>\<^sub>G"
+  using assms less_trm_compatible_with_gctxt linorder_trm.dual_order.strict_trans1 
+  by blast
+
 end
 
 end

@@ -261,6 +261,18 @@ lemmas less\<^sub>c_transitive [intro] = transp_multp[OF less\<^sub>l_transitive
 
 lemmas less\<^sub>c_transitive_on [intro] = less\<^sub>c_transitive[THEN transp_on_subset, OF subset_UNIV]
 
+lemma less\<^sub>c_ground_subst_stability: 
+  assumes 
+    "is_ground_clause (clause \<cdot> \<theta>)" 
+    "is_ground_clause (clause' \<cdot> \<theta>)" 
+  shows "clause \<prec>\<^sub>c clause' \<Longrightarrow> clause \<cdot> \<theta> \<prec>\<^sub>c clause' \<cdot> \<theta>"
+  unfolding subst_clause_def
+proof (elim multp_map_strong[rotated -1])
+  show "monotone_on (set_mset (clause + clause')) (\<prec>\<^sub>l) (\<prec>\<^sub>l) (\<lambda>literal. literal \<cdot>l \<theta>)"
+    by (rule monotone_onI)
+      (metis assms(1,2) ground_literal_in_ground_clause_subst less\<^sub>l_ground_subst_stability union_iff)
+qed (use less\<^sub>l_asymmetric less\<^sub>l_transitive in simp_all)
+
 sublocale clause_order: order "(\<prec>\<^sub>c)\<^sup>=\<^sup>=" "(\<prec>\<^sub>c)"
 proof unfold_locales
   show "\<And>x y. (x \<prec>\<^sub>c y) = (x \<preceq>\<^sub>c y \<and> \<not> y \<preceq>\<^sub>c x)"
@@ -275,18 +287,6 @@ next
   show "\<And>x y. x \<preceq>\<^sub>c y \<Longrightarrow> y \<preceq>\<^sub>c x \<Longrightarrow> x = y"
     by (metis asympD less\<^sub>c_asymmetric_on reflclp_iff)
 qed
-
-lemma less\<^sub>c_ground_subst_stability: 
-  assumes 
-    "is_ground_clause (clause \<cdot> \<theta>)" 
-    "is_ground_clause (clause' \<cdot> \<theta>)" 
-  shows "clause \<prec>\<^sub>c clause' \<Longrightarrow> clause \<cdot> \<theta> \<prec>\<^sub>c clause' \<cdot> \<theta>"
-  unfolding subst_clause_def
-proof (elim multp_map_strong[rotated -1])
-  show "monotone_on (set_mset (clause + clause')) (\<prec>\<^sub>l) (\<prec>\<^sub>l) (\<lambda>literal. literal \<cdot>l \<theta>)"
-    by (rule monotone_onI)
-      (metis assms(1,2) ground_literal_in_ground_clause_subst less\<^sub>l_ground_subst_stability union_iff)
-qed (use less\<^sub>l_asymmetric less\<^sub>l_transitive in simp_all)
 
 subsection \<open>Grounding\<close>
 
@@ -427,6 +427,25 @@ lemma not_less_eq\<^sub>c:
   shows "\<not> clause\<^sub>2 \<preceq>\<^sub>c clause\<^sub>1 \<longleftrightarrow> clause\<^sub>1 \<prec>\<^sub>c clause\<^sub>2"
   unfolding less\<^sub>c_less\<^sub>c\<^sub>G[OF assms] less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>c\<^sub>G
   ..
+
+lemma less\<^sub>t_ground_context_compatible':
+  assumes 
+    "is_ground_context context" 
+    "is_ground_term term" 
+    "is_ground_term term'" 
+    "context\<langle>term\<rangle> \<prec>\<^sub>t context\<langle>term'\<rangle>"
+  shows "term \<prec>\<^sub>t term'"
+  using ground.less_trm_compatible_with_gctxt'
+  by (metis assms ground_term_with_context(1) ground_term_with_context_is_ground(4) less\<^sub>t_less\<^sub>t\<^sub>G)
+
+lemma less\<^sub>t_ground_context_compatible_iff:
+   assumes 
+    "is_ground_context context" 
+    "is_ground_term term" 
+    "is_ground_term term'" 
+  shows "context\<langle>term\<rangle> \<prec>\<^sub>t context\<langle>term'\<rangle> \<longleftrightarrow> term \<prec>\<^sub>t term'"
+  using assms less\<^sub>t_ground_context_compatible less\<^sub>t_ground_context_compatible'
+  by blast
 
 subsection \<open>Stability under ground substitution\<close>
 
@@ -699,14 +718,104 @@ lemma is_strictly_maximal\<^sub>l_ground_subst_stability':
     subst_clause_remove1_mset[OF assms(1), symmetric]
   by (metis in_diffD literal_in_clause_subst reflclp_iff)
 
-lemma smaller_term: 
-  assumes "term \<prec>\<^sub>t term'"
+(* TODO: Put in right sections + naming *)
+
+lemma less\<^sub>t_less\<^sub>l: 
+  assumes "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2"
   shows 
-    "term \<approx> term\<^sub>2 \<prec>\<^sub>l term' \<approx> term\<^sub>2"
-    "term !\<approx> term\<^sub>2 \<prec>\<^sub>l term' !\<approx> term\<^sub>2"
+    "term\<^sub>1 \<approx> term\<^sub>3 \<prec>\<^sub>l term\<^sub>2 \<approx> term\<^sub>3"
+    "term\<^sub>1 !\<approx> term\<^sub>3 \<prec>\<^sub>l term\<^sub>2 !\<approx> term\<^sub>3"
   using assms
   unfolding less\<^sub>l_def multp_eq_multp\<^sub>H\<^sub>O[OF less\<^sub>t_asymmetric less\<^sub>t_transitive] multp\<^sub>H\<^sub>O_def 
   by (auto simp: add_mset_eq_add_mset)
+
+lemma less\<^sub>t_less\<^sub>l':
+  assumes 
+    "\<forall>term \<in> set_uprod (atm_of literal). term \<cdot>t \<theta>' \<preceq>\<^sub>t term \<cdot>t \<theta>"
+    "\<exists>term \<in> set_uprod (atm_of literal). term \<cdot>t \<theta>' \<prec>\<^sub>t term \<cdot>t \<theta>"
+  shows "literal \<cdot>l \<theta>' \<prec>\<^sub>l literal \<cdot>l \<theta>"
+proof(cases literal)
+  case (Pos atom)
+  show ?thesis
+  proof(cases atom)
+    case (Upair term\<^sub>1 term\<^sub>2)
+    have "term\<^sub>2 \<cdot>t \<theta>' \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<theta> \<Longrightarrow> 
+          multp (\<prec>\<^sub>t) {#term\<^sub>1 \<cdot>t \<theta>, term\<^sub>2 \<cdot>t \<theta>'#} {#term\<^sub>1 \<cdot>t \<theta>, term\<^sub>2 \<cdot>t \<theta>#}"
+      using multp_add_mset'[of "(\<prec>\<^sub>t)" "term\<^sub>2 \<cdot>t \<theta>'"  "term\<^sub>2 \<cdot>t \<theta>" "{#term\<^sub>1 \<cdot>t \<theta>#}"] add_mset_commute
+      by metis
+
+    then show ?thesis 
+      using assms
+      unfolding less\<^sub>l_def Pos subst_literal(1) Upair subst_atom
+      by (auto simp: multp_add_mset multp_add_mset')
+  qed
+next
+  case (Neg atom)
+  show ?thesis
+   proof(cases atom)
+     case (Upair term\<^sub>1 term\<^sub>2)
+     have "term\<^sub>2 \<cdot>t \<theta>' \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<theta> \<Longrightarrow> 
+            multp (\<prec>\<^sub>t) 
+              {#term\<^sub>1 \<cdot>t \<theta>, term\<^sub>1 \<cdot>t \<theta>, term\<^sub>2 \<cdot>t \<theta>', term\<^sub>2 \<cdot>t \<theta>'#} 
+              {#term\<^sub>1 \<cdot>t \<theta>, term\<^sub>1 \<cdot>t \<theta>, term\<^sub>2 \<cdot>t \<theta>, term\<^sub>2 \<cdot>t \<theta>#}"
+       using multp_add_mset' multp_add_same[OF less\<^sub>t_asymmetric less\<^sub>t_transitive]
+       by simp
+
+     then show ?thesis 
+      using assms
+      unfolding less\<^sub>l_def Neg subst_literal(2) Upair subst_atom
+      by (auto simp: multp_add_mset multp_add_mset' add_mset_commute)
+  qed
+qed
+
+lemmas less\<^sub>c_add_mset = multp_add_mset_refl[OF less\<^sub>l_asymmetric less\<^sub>l_transitive] 
+
+lemmas less\<^sub>c_add_same = multp_add_same[OF less\<^sub>l_asymmetric less\<^sub>l_transitive]
+
+lemma less_eq\<^sub>l_less_eq\<^sub>c:
+  assumes "\<forall>literal \<in># clause. literal \<cdot>l \<theta>' \<preceq>\<^sub>l literal \<cdot>l \<theta>"
+  shows "clause \<cdot> \<theta>' \<preceq>\<^sub>c clause \<cdot> \<theta>"
+  using assms 
+  by(induction clause)(auto simp: less\<^sub>c_add_same less\<^sub>c_add_mset subst_clause_add_mset)
+   
+lemma less\<^sub>l_less\<^sub>c:
+  assumes 
+    "\<forall>literal \<in># clause. literal \<cdot>l \<theta>' \<preceq>\<^sub>l literal \<cdot>l \<theta>"
+    "\<exists>literal \<in># clause. literal \<cdot>l \<theta>' \<prec>\<^sub>l literal \<cdot>l \<theta>"
+  shows "clause \<cdot> \<theta>' \<prec>\<^sub>c clause \<cdot> \<theta>"
+  using assms
+proof(induction clause)
+  case empty
+  then show ?case by auto
+next
+  case (add literal clause)
+  then have less_eq: "\<forall>literal \<in># clause. literal \<cdot>l \<theta>' \<preceq>\<^sub>l literal \<cdot>l \<theta>"
+    by (metis add_mset_remove_trivial in_diffD)
+
+  show ?case 
+  proof(cases "literal \<cdot>l \<theta>' \<prec>\<^sub>l literal \<cdot>l \<theta>")
+    case True
+    moreover have "clause \<cdot> \<theta>' \<preceq>\<^sub>c clause \<cdot> \<theta>"
+      using less_eq\<^sub>l_less_eq\<^sub>c[OF less_eq].
+
+    ultimately show ?thesis
+      using less\<^sub>c_add_mset
+      unfolding subst_clause_add_mset
+      by blast
+  next
+    case False
+    then have less: "\<exists>literal \<in># clause. literal \<cdot>l \<theta>' \<prec>\<^sub>l literal \<cdot>l \<theta>"
+      using add.prems(2) by auto
+
+   from False have eq: "literal \<cdot>l \<theta>' = literal \<cdot>l \<theta>"
+      using add.prems(1) by force
+
+   show ?thesis
+     using add(1)[OF less_eq less] less\<^sub>c_add_same
+     unfolding subst_clause_add_mset eq
+     by blast
+  qed
+qed
 
 end
 

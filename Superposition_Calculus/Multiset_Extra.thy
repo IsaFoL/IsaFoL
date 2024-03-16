@@ -291,11 +291,33 @@ next
     qed
 qed
 
+(* TODO: Better names? *)
 lemma multp_add_mset:
   assumes "asymp R" "transp R" "R x y" "multp R X Y"
   shows "multp R (add_mset x X) (add_mset y Y)"
   using multp\<^sub>H\<^sub>O_add_mset[OF assms(1-3)] assms(4)
   unfolding multp_eq_multp\<^sub>H\<^sub>O[OF assms(1, 2)] 
   by simp
+
+lemma multp_add_mset':
+  assumes "R x y"  
+  shows "multp R (add_mset x X) (add_mset y X)"
+  using assms
+  by (metis add_mset_add_single empty_iff insert_iff one_step_implies_multp set_mset_add_mset_insert 
+        set_mset_empty)
+
+lemma multp_add_mset_refl:
+  assumes "asymp R" "transp R" "R x y" "(multp R)\<^sup>=\<^sup>= X Y"
+  shows "multp R (add_mset x X) (add_mset y Y)"
+  using 
+    assms(4)
+    multp_add_mset'[of R, OF assms(3)]
+    multp_add_mset[OF assms(1-3)]
+  by blast
+
+lemma multp_add_same:
+  assumes "asymp R" "transp R" "multp R X Y"
+  shows "multp R (add_mset x X) (add_mset x Y)"
+  by (meson assms asymp_on_subset irreflp_on_if_asymp_on multp_cancel_add_mset top_greatest)
 
 end

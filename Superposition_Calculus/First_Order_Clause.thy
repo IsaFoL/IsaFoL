@@ -107,6 +107,27 @@ lemma vars_clause_plus[simp]:
   "vars_clause (clause\<^sub>1 + clause\<^sub>2) = vars_clause clause\<^sub>1 \<union> vars_clause clause\<^sub>2"
   by (simp add: vars_clause_def)
 
+lemma atom_subst_eq:
+  assumes "\<And>x. x \<in> vars_atom atom \<Longrightarrow> \<sigma> x = \<tau> x"
+  shows "atom \<cdot>a \<sigma> = atom \<cdot>a \<tau>"
+  using term_subst_eq assms
+  unfolding vars_atom_def subst_atom_def
+  by (metis (no_types, lifting) UN_I uprod.map_cong0)
+
+lemma literal_subst_eq:
+  assumes "\<And>x. x \<in> vars_literal literal \<Longrightarrow> \<sigma> x = \<tau> x"
+  shows "literal \<cdot>l \<sigma> = literal \<cdot>l \<tau>"
+  using atom_subst_eq assms
+  unfolding vars_literal_def subst_literal_def
+  by (metis literal.map_cong set_literal_atm_of singletonD)
+
+lemma clause_subst_eq:
+  assumes "\<And>x. x \<in> vars_clause clause \<Longrightarrow> \<sigma> x = \<tau> x"
+  shows "clause \<cdot> \<sigma> = clause \<cdot> \<tau>"
+  using literal_subst_eq assms
+  unfolding vars_clause_def subst_clause_def
+  by (metis (mono_tags, lifting) UN_I multiset.map_cong0)
+
 lemmas term_subst_compose = subst_subst_compose
 
 lemmas context_subst_compose = ctxt_compose_subst_compose_distrib  
