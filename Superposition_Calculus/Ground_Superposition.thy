@@ -33,21 +33,6 @@ hide_const
 no_notation subst_compose (infixl "\<circ>\<^sub>s" 75)
 no_notation subst_apply_term (infixl "\<cdot>" 67)
 
-(* TODO: Move these out*)
-lemma uprod_mem_image_iff_prod_mem[simp]:
-  assumes "sym I"
-  shows "(Upair t t') \<in> (\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<longleftrightarrow> (t, t') \<in> I"
-  using \<open>sym I\<close>[THEN symD] by auto
-
-lemma true_lit_uprod_iff_true_lit_prod[simp]:
-  assumes "sym I"
-  shows
-    "(\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>l Pos (Upair t t') \<longleftrightarrow> I \<TTurnstile>l Pos (t, t')"
-    "(\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>l Neg (Upair t t') \<longleftrightarrow> I \<TTurnstile>l Neg (t, t')"
-  unfolding true_lit_simps uprod_mem_image_iff_prod_mem[OF \<open>sym I\<close>]
-  by simp_all
-
-
 section \<open>Superposition Calculus\<close>
 
 locale ground_superposition_calculus = ground_ordering less_trm + generic_select select

@@ -991,7 +991,7 @@ proof-
 
   have all_ground_terms: "\<forall>term \<in> set_uprod (atm_of literal). is_ground_term (term \<cdot>t \<theta>)"
     using assms(3) 
-    by(cases literal)(simp_all add: ground_term_in_ground_literal_subst)
+    by(cases literal)(auto simp: ground_term_in_ground_literal_subst)
    
   then have 
     "\<forall>term \<in> set_uprod (atm_of literal). 
