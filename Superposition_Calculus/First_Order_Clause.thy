@@ -299,14 +299,34 @@ lemma subst_polarity_stable:
     subst_neg_stable: "is_neg literal \<longleftrightarrow> is_neg (literal \<cdot>l \<theta>)" and
     subst_pos_stable: "is_pos literal \<longleftrightarrow> is_pos (literal \<cdot>l \<theta>)"
   by (simp_all add: subst_literal_def)
-                                        
-lemma is_imgu_equals: 
-  assumes "term_subst.is_imgu \<mu> {{term\<^sub>1, term\<^sub>2}}" 
-  shows "term\<^sub>1 \<cdot>t \<mu> = term\<^sub>2 \<cdot>t \<mu>"
-  using assms term_subst.is_unifier_iff_if_finite[of "{term\<^sub>1, term\<^sub>2}"]
-  unfolding term_subst.is_imgu_def term_subst.is_unifiers_def
-  by blast
-  
+
+lemma term_subst_reduntant_upd [simp]:
+  assumes "var \<notin> vars_term term"
+  shows "term \<cdot>t \<theta>(var := update) = term \<cdot>t \<theta>"
+  using eval_with_fresh_var[OF assms] 
+  by fast
+ 
+lemma atom_subst_reduntant_upd [simp]:
+  assumes "var \<notin> vars_atom atom"
+  shows "atom \<cdot>a \<theta>(var := update) = atom \<cdot>a \<theta>"
+  using assms 
+  unfolding vars_atom_def subst_atom_def
+  by(cases atom) simp
+ 
+lemma literal_subst_reduntant_upd [simp]:
+  assumes "var \<notin> vars_literal literal"
+  shows "literal \<cdot>l \<theta>(var := update) = literal \<cdot>l \<theta>"
+  using assms 
+  unfolding vars_literal_def subst_literal_def
+  by(cases literal) simp_all
+
+lemma clause_subst_reduntant_upd [simp]:
+  assumes "var \<notin> vars_clause clause"
+  shows "clause \<cdot> \<theta>(var := update) = clause \<cdot> \<theta>"
+  using assms
+  unfolding vars_clause_def subst_clause_def
+  by auto
+                                      
 (* TODO: Could these be made less explicit somehow?
 Something like:
 locale conversion =
@@ -449,6 +469,33 @@ lemmas ground_term_with_context =
   ground_term_with_context1
   ground_term_with_context2
   ground_term_with_context3
+
+lemma ground_term_subst_upd [simp]:
+  assumes "is_ground_term update" "is_ground_term (term \<cdot>t \<theta>)" 
+  shows "is_ground_term (term \<cdot>t \<theta>(var := update))"
+  using assms
+  by (simp add: is_ground_iff)
+
+lemma ground_atom_subst_upd [simp]:
+  assumes "is_ground_term update" "is_ground_atom (atom \<cdot>a \<theta>)" 
+  shows "is_ground_atom (atom \<cdot>a \<theta>(var := update))"
+  using assms
+  unfolding subst_atom_def vars_atom_def
+  by(cases atom) simp
+  
+lemma ground_literal_subst_upd [simp]:
+  assumes "is_ground_term update" "is_ground_literal (literal \<cdot>l \<theta>)" 
+  shows "is_ground_literal (literal \<cdot>l \<theta>(var := update))"
+  using assms
+  unfolding subst_literal_def vars_literal_def
+  by(cases literal) simp_all
+
+lemma ground_clause_subst_upd [simp]:
+  assumes "is_ground_term update" "is_ground_clause (clause \<cdot> \<theta>)" 
+  shows "is_ground_clause (clause \<cdot> \<theta>(var := update))"
+  using assms
+  unfolding subst_clause_def vars_clause_def
+  by auto
 
 lemmas to_term_inj = inj_term_of_gterm
 

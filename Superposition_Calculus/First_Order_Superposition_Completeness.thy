@@ -5,36 +5,6 @@ theory First_Order_Superposition_Completeness
     Grounded_First_Order_Superposition
 begin
 
-lemma term_subst_if_sth:
-  assumes "var \<notin> vars_term term"
-  shows "term \<cdot>t (\<lambda>var'. if var' = var then term' else \<theta> var') = term \<cdot>t \<theta>"
-  using assms
-  by(induction "term") simp_all
-
-lemma atom_subst_if_sth:
-  assumes "var \<notin> vars_atom atom"
-  shows "atom \<cdot>a (\<lambda>var'. if var' = var then term else \<theta> var') = atom \<cdot>a \<theta>"
-  using assms term_subst_if_sth
-  unfolding vars_atom_def subst_atom_def
-  by (metis (no_types, lifting) UN_I term_subst_eq uprod.map_cong0)
-
-lemma literal_subst_if_sth:
-  assumes "var \<notin> vars_literal literal"
-  shows "literal \<cdot>l (\<lambda>var'. if var' = var then term else \<theta> var') = literal \<cdot>l \<theta>"
-   using assms atom_subst_if_sth
-   unfolding vars_literal_def subst_literal_def
-   apply(cases literal)
-   by fastforce+
-
-lemma clause_subst_if_sth:
-  assumes "var \<notin> vars_clause clause"
-  shows "clause \<cdot> (\<lambda>var'. if var' = var then term else \<theta> var') = clause \<cdot> \<theta>"
-   using assms literal_subst_if_sth
-   unfolding vars_clause_def subst_clause_def
-   apply auto
-   by (smt (verit) image_mset_cong literal_subst_eq)
-
-
 lemma term_subst_if_sth':
   assumes "is_ground_term term'" "is_ground_term (term \<cdot>t \<theta>)" 
   shows "is_ground_term (term \<cdot>t (\<lambda>var'. if var' = var then term' else \<theta> var'))"
@@ -71,17 +41,17 @@ lemma clause_subst_if_sth':
 
 lemma ahh:
   assumes 
-    "is_ground_term replacement"                
+    "is_ground_term update"                
     "is_ground_term (t \<cdot>t \<theta>)" 
-  shows "var \<notin> vars_term (t \<cdot>t \<theta>(var := replacement))"
+  shows "var \<notin> vars_term (t \<cdot>t \<theta>(var := update))"
   using assms
   by(induction t) auto
 
 lemma ahh2:
   assumes 
-    "is_ground_term replacement"                
+    "is_ground_term update"                
     "is_ground_term (t \<cdot>t \<theta>)" 
-  shows "x \<notin> vars_term (t \<cdot>t \<theta>(var := replacement) \<cdot>t \<theta>)"
+  shows "x \<notin> vars_term (t \<cdot>t \<theta>(var := update) \<cdot>t \<theta>)"
   using assms
   by(induction t) auto
 
@@ -140,17 +110,17 @@ lemma name:
     "trans I"
     "sym I"
     "compatible_with_gctxt I"
-    "is_ground_term replacement" 
+    "is_ground_term update" 
     "is_ground_term (Var var \<cdot>t \<theta>)" 
     "is_ground_term (term \<cdot>t \<theta>)" 
-    "(to_ground_term (term \<cdot>t \<theta>(var := replacement)), term') \<in> I" 
-    "(to_ground_term (\<theta> var), to_ground_term replacement) \<in> I"
+    "(to_ground_term (term \<cdot>t \<theta>(var := update)), term') \<in> I" 
+    "(to_ground_term (\<theta> var), to_ground_term update) \<in> I"
   shows
     "Upair (to_ground_term (term \<cdot>t \<theta>)) term' \<in> (\<lambda>x. case x of (x, xa) \<Rightarrow> Upair x xa) ` I"
   using assms(7,8)
 proof(induction "size (filter_mset (\<lambda>var'. var' = var) (vars_term_ms term))" arbitrary: "term")
   case 0
-  from 0(1) have "term \<cdot>t \<theta>(var := replacement) = term \<cdot>t \<theta>"
+  from 0(1) have "term \<cdot>t \<theta>(var := update) = term \<cdot>t \<theta>"
   proof(induction "term" rule: vars_term_ms.induct)
     case 1
     then show ?case 
@@ -177,7 +147,7 @@ next
     "term": "term = c\<langle>Var var\<rangle>"
     by (meson var_in_term)
 
-  let ?term = "c\<langle>replacement\<rangle>"
+  let ?term = "c\<langle>update\<rangle>"
 
 
   have 1: "n = size {#var' \<in># vars_term_ms ?term. var' = var#}"
@@ -185,13 +155,13 @@ next
     unfolding "term"
     by auto
 
-  have 2: "is_ground_term (c\<langle>replacement\<rangle> \<cdot>t \<theta>)" 
+  have 2: "is_ground_term (c\<langle>update\<rangle> \<cdot>t \<theta>)" 
     using "term" Suc.prems(1) assms(5) by auto
     
-  have 3:  "(to_ground_term (c\<langle>replacement\<rangle> \<cdot>t \<theta>(var := replacement)), term') \<in> I"
+  have 3:  "(to_ground_term (c\<langle>update\<rangle> \<cdot>t \<theta>(var := update)), term') \<in> I"
     using "term" Suc.prems(2) assms(5) by auto
 
-  have 4: "(to_ground_term replacement, to_ground_term (\<theta> var)) \<in> I"
+  have 4: "(to_ground_term update, to_ground_term (\<theta> var)) \<in> I"
     using assms(9)
     by (meson assms(3) symE)
 
@@ -209,17 +179,17 @@ lemma name':
     "trans I"
     "sym I"
     "compatible_with_gctxt I"
-    "is_ground_term replacement" 
+    "is_ground_term update" 
     "is_ground_term (Var var \<cdot>t \<theta>)" 
     "is_ground_term (term \<cdot>t \<theta>)" 
-    "(to_ground_term (term \<cdot>t \<theta>(var := replacement)), term') \<notin> I" 
-    "(to_ground_term (\<theta> var), to_ground_term replacement) \<in> I"
+    "(to_ground_term (term \<cdot>t \<theta>(var := update)), term') \<notin> I" 
+    "(to_ground_term (\<theta> var), to_ground_term update) \<in> I"
   shows
     "Upair (to_ground_term (term \<cdot>t \<theta>)) term' \<notin> (\<lambda>x. case x of (x, xa) \<Rightarrow> Upair x xa) ` I"
   using assms(7,8)
 proof(induction "size (filter_mset (\<lambda>var'. var' = var) (vars_term_ms term))" arbitrary: "term")
   case 0
-  from 0(1) have "term \<cdot>t \<theta>(var := replacement) = term \<cdot>t \<theta>"
+  from 0(1) have "term \<cdot>t \<theta>(var := update) = term \<cdot>t \<theta>"
   proof(induction "term" rule: vars_term_ms.induct)
     case 1
     then show ?case 
@@ -246,7 +216,7 @@ next
     "term": "term = c\<langle>Var var\<rangle>"
     by (meson var_in_term)
 
-  let ?term = "c\<langle>replacement\<rangle>"
+  let ?term = "c\<langle>update\<rangle>"
 
 
   have 1: "n = size {#var' \<in># vars_term_ms ?term. var' = var#}"
@@ -254,13 +224,13 @@ next
     unfolding "term"
     by auto
 
-  have 2: "is_ground_term (c\<langle>replacement\<rangle> \<cdot>t \<theta>)" 
+  have 2: "is_ground_term (c\<langle>update\<rangle> \<cdot>t \<theta>)" 
     using "term" Suc.prems(1) assms(5) by auto
     
-  have 3:  "(to_ground_term (c\<langle>replacement\<rangle> \<cdot>t \<theta>(var := replacement)), term') \<notin> I"
+  have 3:  "(to_ground_term (c\<langle>update\<rangle> \<cdot>t \<theta>(var := update)), term') \<notin> I"
     using "term" Suc.prems(2) assms(5) by auto
 
-  have 4: "(to_ground_term replacement, to_ground_term (\<theta> var)) \<in> I"
+  have 4: "(to_ground_term update, to_ground_term (\<theta> var)) \<in> I"
     using assms(9)
     by (meson assms(3) symE)
 
@@ -278,17 +248,17 @@ lemma congruence\<^sub>a:
     "trans I "
     "sym I"
     "compatible_with_gctxt I"
-    "is_ground_term replacement" 
+    "is_ground_term update" 
     "is_ground_term (Var var \<cdot>t \<theta>)" 
     "is_ground_term (a \<cdot>t \<theta>)" 
     "is_ground_term (b \<cdot>t \<theta>)" 
-    "(to_ground_term (a \<cdot>t \<theta>(var := replacement)), to_ground_term (b \<cdot>t \<theta>(var := replacement))) \<in> I" 
-    "(to_ground_term (\<theta> var), to_ground_term replacement) \<in> I"
+    "(to_ground_term (a \<cdot>t \<theta>(var := update)), to_ground_term (b \<cdot>t \<theta>(var := update))) \<in> I" 
+    "(to_ground_term (\<theta> var), to_ground_term update) \<in> I"
   shows
     "Upair (to_ground_term (a \<cdot>t \<theta>)) (to_ground_term (b \<cdot>t \<theta>)) \<in> (\<lambda>x. case x of (x, xa) \<Rightarrow> Upair x xa) ` I"
   using assms
 proof-
-  have x: "Upair (to_ground_term (a \<cdot>t \<theta>)) (to_ground_term (b \<cdot>t \<theta>(var := replacement))) \<in> (\<lambda>x. case x of (x, xa) \<Rightarrow> Upair x xa) ` I"
+  have x: "Upair (to_ground_term (a \<cdot>t \<theta>)) (to_ground_term (b \<cdot>t \<theta>(var := update))) \<in> (\<lambda>x. case x of (x, xa) \<Rightarrow> Upair x xa) ` I"
     using name[OF assms(1, 2, 3, 4, 5, 6, 7, 9, 10)].
 
   then show ?thesis
@@ -303,17 +273,17 @@ lemma congruence\<^sub>a':
     "trans I "
     "sym I"
     "compatible_with_gctxt I"
-    "is_ground_term replacement" 
+    "is_ground_term update" 
     "is_ground_term (Var var \<cdot>t \<theta>)" 
     "is_ground_term (a \<cdot>t \<theta>)" 
     "is_ground_term (b \<cdot>t \<theta>)" 
-    "(to_ground_term (a \<cdot>t \<theta>(var := replacement)), to_ground_term (b \<cdot>t \<theta>(var := replacement)))\<notin> I" 
-    "(to_ground_term (\<theta> var), to_ground_term replacement) \<in> I"
+    "(to_ground_term (a \<cdot>t \<theta>(var := update)), to_ground_term (b \<cdot>t \<theta>(var := update)))\<notin> I" 
+    "(to_ground_term (\<theta> var), to_ground_term update) \<in> I"
   shows
     "Upair (to_ground_term (a \<cdot>t \<theta>)) (to_ground_term (b \<cdot>t \<theta>)) \<notin>(\<lambda>x. case x of (x, xa) \<Rightarrow> Upair x xa) ` I"
   using assms
 proof-
-  have x: "Upair (to_ground_term (a \<cdot>t \<theta>)) (to_ground_term (b \<cdot>t \<theta>(var := replacement))) \<notin>(\<lambda>x. case x of (x, xa) \<Rightarrow> Upair x xa) ` I"
+  have x: "Upair (to_ground_term (a \<cdot>t \<theta>)) (to_ground_term (b \<cdot>t \<theta>(var := update))) \<notin>(\<lambda>x. case x of (x, xa) \<Rightarrow> Upair x xa) ` I"
     using name'[OF assms(1, 2, 3, 4, 5, 6, 7, 9, 10)].
 
   then show ?thesis
@@ -327,16 +297,16 @@ lemma congruence\<^sub>L:
     "trans I "
     "sym I"
     "compatible_with_gctxt I"
-    "is_ground_term replacement" 
+    "is_ground_term update" 
     "is_ground_term (Var var \<cdot>t \<theta>)" 
     "is_ground_literal (literal \<cdot>l \<theta>)" 
-    "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<theta>(var := replacement))"
-    "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>l to_ground_term (Var var \<cdot>t \<theta>) \<approx> to_ground_term replacement"
+    "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<theta>(var := update))"
+    "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>l to_ground_term (Var var \<cdot>t \<theta>) \<approx> to_ground_term update"
   shows
     "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<theta>)"
 proof(cases literal)
   case (Pos atom)
-  then have "to_ground_atom (atom \<cdot>a \<theta>(var := replacement)) \<in> (\<lambda>x. case x of (x, xa) \<Rightarrow> Upair x xa) ` I"
+  then have "to_ground_atom (atom \<cdot>a \<theta>(var := update)) \<in> (\<lambda>x. case x of (x, xa) \<Rightarrow> Upair x xa) ` I"
     using assms(8)
     by (metis ground_atom_in_ground_literal2(1) subst_literal(1) true_lit_simps(1))
 
@@ -351,7 +321,7 @@ proof(cases literal)
     by (metis ground_atom_in_ground_literal2(1) subst_literal(1) true_lit_simps(1))
 next
   case (Neg atom)
-  then have "to_ground_atom (atom \<cdot>a \<theta>(var := replacement)) \<notin> (\<lambda>x. case x of (x, xa) \<Rightarrow> Upair x xa) ` I"
+  then have "to_ground_atom (atom \<cdot>a \<theta>(var := update)) \<notin> (\<lambda>x. case x of (x, xa) \<Rightarrow> Upair x xa) ` I"
     using assms(8)
     by (metis ground_atom_in_ground_literal2(2) subst_literal(2) true_lit_simps(2))
 
@@ -373,11 +343,11 @@ lemma congruence:
     "trans I "
     "sym I"
     "compatible_with_gctxt I"
-    "is_ground_term replacement" 
+    "is_ground_term update" 
     "is_ground_term (Var var \<cdot>t \<theta>)" 
     "is_ground_clause (clause \<cdot> \<theta>)" 
-    "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause (clause \<cdot> \<theta>(var := replacement))"
-    "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>l to_ground_term (Var var \<cdot>t \<theta>) \<approx> to_ground_term replacement"
+    "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause (clause \<cdot> \<theta>(var := update))"
+    "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>l to_ground_term (Var var \<cdot>t \<theta>) \<approx> to_ground_term update"
   shows
     "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause (clause \<cdot> \<theta>)"
   using assms
@@ -392,14 +362,14 @@ next
     by (metis add.prems(7) is_ground_clause_add_mset subst_clause_add_mset)
   
   show ?case
-  proof(cases "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause (clause' \<cdot> \<theta>(var := replacement))")
+  proof(cases "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause (clause' \<cdot> \<theta>(var := update))")
     case True
     show ?thesis 
       using add(1)[OF assms(1 - 6) clause'_grounding True assms(9)]
       by (simp add: subst_clause_add_mset to_ground_clause_def)
   next
     case False
-    then have "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<theta>(var := replacement))"
+    then have "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<theta>(var := update))"
       using add(9)
       by (metis image_mset_add_mset subst_clause_add_mset to_ground_clause_def true_cls_add_mset)
 
@@ -1493,14 +1463,14 @@ proof(cases
       "\<theta>' = \<theta>(var\<^sub>x := (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle>)"
       by simp
 
-    have replacement_grounding: "is_ground_term (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle>"
+    have update_grounding: "is_ground_term (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle>"
       by (metis Subterm_and_Context.ctxt_ctxt_compose context\<^sub>x(3) ground_term_with_context_is_ground1 ground_term_with_context_is_ground2(2) subst_compose_ctxt_compose_distrib)
 
     have premise\<^sub>1_grounding': "is_ground_clause (add_mset literal\<^sub>1 premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)"
       using premise\<^sub>1 premise\<^sub>1_grounding by blast
 
     have \<theta>'_grounding: "is_ground_clause (add_mset literal\<^sub>1 premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>')"
-      using clause_subst_if_sth'[OF replacement_grounding premise\<^sub>1_grounding']
+      using clause_subst_if_sth'[OF update_grounding premise\<^sub>1_grounding']
       unfolding \<theta>'
       by (smt (verit, ccfv_SIG) clause_subst_eq fun_upd_apply)
  
@@ -1511,11 +1481,11 @@ proof(cases
       using term\<^sub>1_with_context_\<theta>
       unfolding context\<^sub>x(1)context\<^sub>x(3)[symmetric]
       apply auto
-      by (metis ground_term_is_ground ground_term_with_context1 ground_term_with_context_is_ground2(1) replacement_grounding to_term_inverse)
+      by (metis ground_term_is_ground ground_term_with_context1 ground_term_with_context_is_ground2(1) update_grounding to_term_inverse)
 
     have term\<^sub>x_\<theta>': "to_ground_term (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta>') = (to_ground_context (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>))\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G"
       unfolding \<theta>'
-      by (metis eval_term.simps(1) fun_upd_same ground_term_is_ground ground_term_with_context1 ground_term_with_context_is_ground2(1) replacement_grounding to_term_inverse var\<^sub>x)
+      by (metis eval_term.simps(1) fun_upd_same ground_term_is_ground ground_term_with_context1 ground_term_with_context_is_ground2(1) update_grounding to_term_inverse var\<^sub>x)
 
     have premise\<^sub>1_\<theta>_x: "add_mset literal\<^sub>1 premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<theta> =  add_mset (to_literal literal\<^sub>G\<^sub>1) (to_clause premise\<^sub>G\<^sub>1')"
       using premise\<^sub>1 premise\<^sub>1_\<theta> to_clause_add_mset by auto
@@ -1565,7 +1535,7 @@ proof(cases
         then have "?I \<TTurnstile> to_ground_clause (add_mset literal\<^sub>1 premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)"
           using \<theta>'_grounding
           unfolding \<theta>'
-          using congruence[OF refl trans sym compatible_with_gctxt replacement_grounding var\<^sub>x_\<theta>_ground]
+          using congruence[OF refl trans sym compatible_with_gctxt update_grounding var\<^sub>x_\<theta>_ground]
           using \<open>(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>l to_ground_term (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta>) \<approx> to_ground_term (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta>')\<close> \<theta>' premise\<^sub>1_grounding' var\<^sub>x by auto
 
        then have "?I \<TTurnstile> add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>1\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) premise\<^sub>G\<^sub>1'"
@@ -1599,7 +1569,7 @@ proof(cases
     then have xx: "(context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> \<prec>\<^sub>t \<theta> var\<^sub>x"
       unfolding var\<^sub>x_\<theta>
       using less\<^sub>t_ground_context_compatible'[of "context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>" "(context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<theta>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle>" "term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<theta>"]
-      by (metis Subterm_and_Context.ctxt_ctxt_compose context\<^sub>x(1) ground_term_with_context_is_ground1 ground_term_with_context_is_ground2(1) ground_term_with_context_is_ground2(2) replacement_grounding subst_compose_ctxt_compose_distrib term\<^sub>1_with_context_\<theta> subst_apply_term_ctxt_apply_distrib)
+      by (metis Subterm_and_Context.ctxt_ctxt_compose context\<^sub>x(1) ground_term_with_context_is_ground1 ground_term_with_context_is_ground2(1) ground_term_with_context_is_ground2(2) update_grounding subst_compose_ctxt_compose_distrib term\<^sub>1_with_context_\<theta> subst_apply_term_ctxt_apply_distrib)
 
     have xy: "var\<^sub>x \<in> vars_literal (literal\<^sub>1  \<cdot>l \<rho>\<^sub>1)"
       unfolding literal\<^sub>1 context\<^sub>x vars_literal_def vars_atom_def 
@@ -1611,7 +1581,7 @@ proof(cases
     
     then have smaller: "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<theta>' \<prec>\<^sub>l literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<theta>"
       unfolding \<theta>'
-      using less\<^sub>l_subst_update[of _ \<theta>, OF replacement_grounding xx _ xy]
+      using less\<^sub>l_subst_upd[of _ \<theta>, OF update_grounding xx _ xy]
       by blast
 
     have premise\<^sub>1'_\<theta>_grounding: "is_ground_clause (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)"
@@ -1621,8 +1591,7 @@ proof(cases
     have smaller_premise\<^sub>1': "premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>' \<preceq>\<^sub>c premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>"
       unfolding \<theta>'
       using 
-        less\<^sub>c_subst_update[of _ \<theta>, OF replacement_grounding xx premise\<^sub>1'_\<theta>_grounding]
-        clause_subst_if_sth[of var\<^sub>x "premise\<^sub>1' \<cdot> \<rho>\<^sub>1"]
+        less\<^sub>c_subst_upd[of _ \<theta>, OF update_grounding xx premise\<^sub>1'_\<theta>_grounding]
       by (metis (no_types, lifting) clause_subst_eq fun_upd_other reflclp_iff)
 
     from \<theta>'_grounding have "?D \<in> clause_groundings (add_mset literal\<^sub>1 premise\<^sub>1')"

@@ -819,34 +819,34 @@ qed
 
 subsection \<open>Substitution update\<close>
 
-lemma less\<^sub>t_subst_update:
+lemma less\<^sub>t_subst_upd:
   fixes \<theta> :: "('f, 'v) subst"
   assumes 
-    replacement_is_ground: "is_ground_term replacement" and
-    replacement_less: "replacement \<prec>\<^sub>t \<theta> var" and
+    update_is_ground: "is_ground_term update" and
+    update_less: "update \<prec>\<^sub>t \<theta> var" and
     term_grounding: "is_ground_term (term \<cdot>t \<theta>)" and
     var: "var \<in> vars_term term"
-  shows "term \<cdot>t \<theta>(var := replacement) \<prec>\<^sub>t term \<cdot>t \<theta>"
+  shows "term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>"
   using assms(3, 4)
 proof(induction "term")
   case Var
   then show ?case 
-    using replacement_is_ground replacement_less
+    using update_is_ground update_less
     by simp
 next
   case (Fun f terms)
 
-  then have "\<forall>term \<in> set terms. term \<cdot>t \<theta>(var := replacement) \<preceq>\<^sub>t term \<cdot>t \<theta>"
+  then have "\<forall>term \<in> set terms. term \<cdot>t \<theta>(var := update) \<preceq>\<^sub>t term \<cdot>t \<theta>"
     by (metis eval_with_fresh_var is_ground_iff reflclp_iff term.set_intros(4))
 
-  moreover then have "\<exists>term \<in> set terms. term \<cdot>t \<theta>(var := replacement) \<prec>\<^sub>t term \<cdot>t \<theta>"
+  moreover then have "\<exists>term \<in> set terms. term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>"
     using Fun assms(2)
     by (metis (full_types) fun_upd_same  term.distinct(1) term.sel(4) term.set_cases(2) 
           term_order.dual_order.strict_iff_order term_subst_eq_rev)
 
   ultimately show ?case
     using Fun(2, 3)
-  proof(induction "filter (\<lambda>term. term \<cdot>t \<theta>(var := replacement) \<prec>\<^sub>t term \<cdot>t \<theta>) terms" 
+  proof(induction "filter (\<lambda>term. term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>) terms" 
           arbitrary: terms)
     case Nil
     then show ?case
@@ -855,13 +855,13 @@ next
   next
     case first: (Cons t ts)
 
-    have replacement_grounding [simp]: "is_ground_term (t \<cdot>t \<theta>(var := replacement))"
-      using first.prems(3) replacement_is_ground first.hyps(2)
+    have update_grounding [simp]: "is_ground_term (t \<cdot>t \<theta>(var := update))"
+      using first.prems(3) update_is_ground first.hyps(2)
       by (metis (no_types, lifting) filter_eq_ConsD fun_upd_other fun_upd_same in_set_conv_decomp 
             is_ground_iff term.set_intros(4))
 
     then have t_grounding [simp]: "is_ground_term (t \<cdot>t \<theta>)"
-      using replacement_grounding Fun.prems(1,2)
+      using update_grounding Fun.prems(1,2)
       by (metis fun_upd_other is_ground_iff)
     
     show ?case
@@ -871,13 +871,13 @@ next
         using filter_eq_ConsD[OF first.hyps(2)[symmetric]]
         by blast
 
-      have ss1: "\<forall>term \<in> set ss1. term \<cdot>t \<theta>(var := replacement) = term \<cdot>t \<theta>"
+      have ss1: "\<forall>term \<in> set ss1. term \<cdot>t \<theta>(var := update) = term \<cdot>t \<theta>"
         using first.hyps(2) first.prems(1) 
         unfolding Nil terms
         by (smt (verit, del_insts) Un_iff append_Cons_eq_iff filter_empty_conv filter_eq_ConsD 
               set_append term_order.antisym_conv2)
 
-      have ss2: "\<forall>term \<in> set ss2. term \<cdot>t \<theta>(var := replacement) = term \<cdot>t \<theta>"
+      have ss2: "\<forall>term \<in> set ss2. term \<cdot>t \<theta>(var := update) = term \<cdot>t \<theta>"
         using first.hyps(2) first.prems(1) 
         unfolding Nil terms
         by (smt (verit, ccfv_SIG) Un_iff append_Cons_eq_iff filter_empty_conv filter_eq_ConsD 
@@ -889,22 +889,22 @@ next
         using terms first(5)
         by auto
 
-      moreover then have "is_ground_term (t \<cdot>t \<theta>(var := replacement))"
+      moreover then have "is_ground_term (t \<cdot>t \<theta>(var := update))"
         by (metis assms(1) fun_upd_other fun_upd_same is_ground_iff)
 
       moreover have "is_ground_context ?context"
         using terms first(5)
         by auto
 
-      moreover have "t \<cdot>t \<theta>(var := replacement) \<prec>\<^sub>t t \<cdot>t \<theta>" 
+      moreover have "t \<cdot>t \<theta>(var := update) \<prec>\<^sub>t t \<cdot>t \<theta>" 
         using first.hyps(2)
         by (meson Cons_eq_filterD)
 
-      ultimately have "?context\<langle>t \<cdot>t \<theta>(var := replacement)\<rangle> \<prec>\<^sub>t ?context\<langle>t \<cdot>t \<theta>\<rangle>"
+      ultimately have "?context\<langle>t \<cdot>t \<theta>(var := update)\<rangle> \<prec>\<^sub>t ?context\<langle>t \<cdot>t \<theta>\<rangle>"
         using less\<^sub>t_ground_context_compatible
         by blast
 
-      moreover have "Fun f terms \<cdot>t \<theta>(var := replacement) = ?context\<langle>t \<cdot>t \<theta>(var := replacement)\<rangle>"
+      moreover have "Fun f terms \<cdot>t \<theta>(var := update) = ?context\<langle>t \<cdot>t \<theta>(var := update)\<rangle>"
         unfolding terms
         using ss1 ss2
         by simp
@@ -921,34 +921,34 @@ next
       from first(2) 
       obtain ss1 ss2 where
         terms: "terms = ss1 @ t # ss2" and
-        ss1: "\<forall>s\<in>set ss1. \<not> s \<cdot>t \<theta>(var := replacement) \<prec>\<^sub>t s \<cdot>t \<theta>" and
-        less: "t \<cdot>t \<theta>(var := replacement) \<prec>\<^sub>t t \<cdot>t \<theta>" and 
-        ts: "ts = filter (\<lambda>term. term \<cdot>t \<theta>(var := replacement)\<prec>\<^sub>t term \<cdot>t \<theta>) ss2"
-        using Cons_eq_filter_iff[of t ts "(\<lambda>term. term \<cdot>t \<theta>(var := replacement) \<prec>\<^sub>t term \<cdot>t \<theta>)"]
+        ss1: "\<forall>s\<in>set ss1. \<not> s \<cdot>t \<theta>(var := update) \<prec>\<^sub>t s \<cdot>t \<theta>" and
+        less: "t \<cdot>t \<theta>(var := update) \<prec>\<^sub>t t \<cdot>t \<theta>" and 
+        ts: "ts = filter (\<lambda>term. term \<cdot>t \<theta>(var := update)\<prec>\<^sub>t term \<cdot>t \<theta>) ss2"
+        using Cons_eq_filter_iff[of t ts "(\<lambda>term. term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>)"]
         by blast
 
-      let ?terms' = "ss1 @ (t \<cdot>t \<theta>(var := replacement))  # ss2"
+      let ?terms' = "ss1 @ (t \<cdot>t \<theta>(var := update))  # ss2"
 
-      have [simp]: "t \<cdot>t \<theta>(var := replacement) \<cdot>t \<theta> = t \<cdot>t \<theta>(var := replacement)"
-        using first.prems(3) replacement_is_ground
+      have [simp]: "t \<cdot>t \<theta>(var := update) \<cdot>t \<theta> = t \<cdot>t \<theta>(var := update)"
+        using first.prems(3) update_is_ground
         unfolding terms
         by (simp add: is_ground_iff)
 
-      have [simp]: "t \<cdot>t \<theta>(var := replacement) \<cdot>t \<theta>(var := replacement) = t \<cdot>t \<theta>(var := replacement)"
-        using first.prems(3) replacement_is_ground
+      have [simp]: "t \<cdot>t \<theta>(var := update) \<cdot>t \<theta>(var := update) = t \<cdot>t \<theta>(var := update)"
+        using first.prems(3) update_is_ground
         unfolding terms
         by (simp add: is_ground_iff)
 
-      have "ts = filter (\<lambda>term. term \<cdot>t \<theta>(var := replacement) \<prec>\<^sub>t term \<cdot>t \<theta>) ?terms'" 
+      have "ts = filter (\<lambda>term. term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>) ?terms'" 
         using ss1 ts
         by auto
     
-      moreover have "\<forall>term \<in> set ?terms'. term \<cdot>t \<theta>(var := replacement) \<preceq>\<^sub>t term \<cdot>t \<theta>"
+      moreover have "\<forall>term \<in> set ?terms'. term \<cdot>t \<theta>(var := update) \<preceq>\<^sub>t term \<cdot>t \<theta>"
         using first.prems(1)
         unfolding terms
         by simp
     
-      moreover have "\<exists>term \<in> set ?terms'. term \<cdot>t \<theta>(var := replacement) \<prec>\<^sub>t term \<cdot>t \<theta>"
+      moreover have "\<exists>term \<in> set ?terms'. term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>"
         using calculation(1) Cons neq_Nil_conv by force
 
       moreover have terms'_grounding: "is_ground_term (Fun f ?terms' \<cdot>t \<theta>)"
@@ -959,14 +959,14 @@ next
       moreover have "var \<in> vars_term (Fun f ?terms')"
         by (metis calculation(3) eval_with_fresh_var term.set_intros(4) term_order.less_irrefl)
 
-      ultimately have less_terms': "Fun f ?terms' \<cdot>t \<theta>(var := replacement) \<prec>\<^sub>t Fun f ?terms' \<cdot>t \<theta>"
+      ultimately have less_terms': "Fun f ?terms' \<cdot>t \<theta>(var := update) \<prec>\<^sub>t Fun f ?terms' \<cdot>t \<theta>"
         using first.hyps(1) first.prems(3) by blast
 
       have context_grounding: "is_ground_context (More f ss1 \<box> ss2 \<cdot>t\<^sub>c \<theta>)"
         using terms'_grounding
         by auto
 
-      have "Fun f (ss1 @ t \<cdot>t \<theta>(var := replacement) # ss2) \<cdot>t \<theta> \<prec>\<^sub>t Fun f terms \<cdot>t \<theta>"
+      have "Fun f (ss1 @ t \<cdot>t \<theta>(var := update) # ss2) \<cdot>t \<theta> \<prec>\<^sub>t Fun f terms \<cdot>t \<theta>"
         unfolding terms
         using less\<^sub>t_ground_context_compatible[OF less _ _ context_grounding]
         by simp
@@ -978,16 +978,16 @@ next
   qed
 qed
 
-lemma less\<^sub>l_subst_update:
+lemma less\<^sub>l_subst_upd:
   fixes \<theta> :: "('f, 'v) subst"
   assumes 
-    replacement_is_ground: "is_ground_term replacement" and
-    replacement_less: "replacement \<prec>\<^sub>t \<theta> var" and
+    update_is_ground: "is_ground_term update" and
+    update_less: "update \<prec>\<^sub>t \<theta> var" and
     literal_grounding: "is_ground_literal (literal \<cdot>l \<theta>)" and
     var: "var \<in> vars_literal literal"
-  shows "literal \<cdot>l \<theta>(var := replacement) \<prec>\<^sub>l literal \<cdot>l \<theta>"
+  shows "literal \<cdot>l \<theta>(var := update) \<prec>\<^sub>l literal \<cdot>l \<theta>"
 proof-
-  note less\<^sub>t_subst_update = less\<^sub>t_subst_update[of _ \<theta>, OF replacement_is_ground replacement_less] 
+  note less\<^sub>t_subst_upd = less\<^sub>t_subst_upd[of _ \<theta>, OF update_is_ground update_less] 
 
   have all_ground_terms: "\<forall>term \<in> set_uprod (atm_of literal). is_ground_term (term \<cdot>t \<theta>)"
     using assms(3) 
@@ -995,20 +995,20 @@ proof-
    
   then have 
     "\<forall>term \<in> set_uprod (atm_of literal). 
-       var \<in> vars_term term \<longrightarrow> term \<cdot>t \<theta>(var := replacement) \<prec>\<^sub>t term \<cdot>t \<theta>"
-    using less\<^sub>t_subst_update
+       var \<in> vars_term term \<longrightarrow> term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>"
+    using less\<^sub>t_subst_upd
     by blast
 
   moreover have
     "\<forall>term \<in> set_uprod (atm_of literal). 
-       var \<notin> vars_term term \<longrightarrow> term \<cdot>t \<theta>(var := replacement) = term \<cdot>t \<theta>"
+       var \<notin> vars_term term \<longrightarrow> term \<cdot>t \<theta>(var := update) = term \<cdot>t \<theta>"
     by (meson eval_with_fresh_var)  
 
-  ultimately have "\<forall>term \<in> set_uprod (atm_of literal). term \<cdot>t \<theta>(var := replacement) \<preceq>\<^sub>t term \<cdot>t \<theta>" 
+  ultimately have "\<forall>term \<in> set_uprod (atm_of literal). term \<cdot>t \<theta>(var := update) \<preceq>\<^sub>t term \<cdot>t \<theta>" 
     by blast
 
-  moreover have "\<exists>term \<in> set_uprod (atm_of literal). term \<cdot>t \<theta>(var := replacement) \<prec>\<^sub>t term \<cdot>t \<theta>"
-    using replacement_less var less\<^sub>t_subst_update all_ground_terms
+  moreover have "\<exists>term \<in> set_uprod (atm_of literal). term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>"
+    using update_less var less\<^sub>t_subst_upd all_ground_terms
     unfolding vars_literal_def vars_atom_def 
     by blast
 
@@ -1017,29 +1017,30 @@ proof-
     by blast
 qed
 
-
-lemma less\<^sub>c_subst_update:
+lemma less\<^sub>c_subst_upd:
   assumes 
-    replacement_is_ground: "is_ground_term replacement" and
-    replacement_less: "replacement \<prec>\<^sub>t \<theta> var" and
+    update_is_ground: "is_ground_term update" and
+    update_less: "update \<prec>\<^sub>t \<theta> var" and
     literal_grounding: "is_ground_clause (clause \<cdot> \<theta>)" and
     var: "var \<in> vars_clause clause"
-  shows "clause \<cdot> \<theta>(var := replacement) \<prec>\<^sub>c clause \<cdot> \<theta>"
+  shows "clause \<cdot> \<theta>(var := update) \<prec>\<^sub>c clause \<cdot> \<theta>"
 proof-
-  note less\<^sub>l_subst_update = less\<^sub>l_subst_update[of _ \<theta>, OF replacement_is_ground replacement_less] 
+  note less\<^sub>l_subst_upd = less\<^sub>l_subst_upd[of _ \<theta>, OF update_is_ground update_less] 
 
   have all_ground_literals: "\<forall>literal \<in># clause. is_ground_literal (literal \<cdot>l \<theta>)"
     using ground_literal_in_ground_clause_subst[OF literal_grounding] by blast
 
-  then have "\<forall>literal \<in># clause. var \<in> vars_literal literal \<longrightarrow> literal \<cdot>l \<theta>(var := replacement) \<prec>\<^sub>l literal \<cdot>l \<theta>"
-    using less\<^sub>l_subst_update
+  then have 
+    "\<forall>literal \<in># clause. 
+      var \<in> vars_literal literal \<longrightarrow> literal \<cdot>l \<theta>(var := update) \<prec>\<^sub>l literal \<cdot>l \<theta>"
+    using less\<^sub>l_subst_upd
     by blast
 
-  then have "\<forall>literal \<in># clause. literal \<cdot>l \<theta>(var := replacement) \<preceq>\<^sub>l literal \<cdot>l \<theta>"
+  then have "\<forall>literal \<in># clause. literal \<cdot>l \<theta>(var := update) \<preceq>\<^sub>l literal \<cdot>l \<theta>"
     by (metis fun_upd_other literal_subst_eq reflclp_iff)
 
-  moreover have "\<exists>literal \<in># clause. literal \<cdot>l \<theta>(var := replacement) \<prec>\<^sub>l literal \<cdot>l \<theta>"
-    using replacement_less var less\<^sub>l_subst_update all_ground_literals
+  moreover have "\<exists>literal \<in># clause. literal \<cdot>l \<theta>(var := update) \<prec>\<^sub>l literal \<cdot>l \<theta>"
+    using update_less var less\<^sub>l_subst_upd all_ground_literals
     unfolding vars_clause_def
     by blast
 
@@ -1047,7 +1048,6 @@ proof-
     using less\<^sub>l_less\<^sub>c
     by blast
 qed
-
 
 end
 
