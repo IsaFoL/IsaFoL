@@ -18,7 +18,7 @@ lemma renaming_exists:
     "Y \<subseteq> variables"
     "finite X"
     "finite Y"
-  obtains \<rho>\<^sub>1 \<rho>\<^sub>2 where
+  obtains \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v) subst" where
     "term_subst.is_renaming \<rho>\<^sub>1" 
     "term_subst.is_renaming \<rho>\<^sub>2"
     "\<rho>\<^sub>1 ` X \<inter> \<rho>\<^sub>2 ` Y = {}"
@@ -30,12 +30,11 @@ proof-
 
   then obtain renaming where 
     renaming: "inj renaming" "renaming ` X \<subseteq> ?newVars"
-    using inj'
-    by (metis assms(3))
-
-  from renaming obtain \<rho>\<^sub>1 where 
-    \<rho>\<^sub>1: "(\<rho>\<^sub>1 :: 'v \<Rightarrow> ('a, 'v) term)  = (\<lambda>var. Var (renaming var))"
+    using obtain_inj_endo[OF assms(3)]
     by blast
+
+   define \<rho>\<^sub>1 :: "('f, 'v) subst" where 
+    \<rho>\<^sub>1: "\<rho>\<^sub>1  = (\<lambda>var. Var (renaming var))"
 
   have "inj \<rho>\<^sub>1" "(\<forall>x. is_Var (\<rho>\<^sub>1 x))"
     unfolding \<rho>\<^sub>1

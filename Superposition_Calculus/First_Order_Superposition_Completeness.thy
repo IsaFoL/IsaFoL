@@ -972,7 +972,6 @@ abbreviation equality_resolution_inferences where
 abbreviation equality_factoring_inferences where
   "equality_factoring_inferences \<equiv>  {Infer [P] C | P C.  ground_eq_factoring P C}"
 
-(* TODO: fix P2 P1 order *)
 abbreviation superposition_inferences where
   "superposition_inferences \<equiv>  {Infer [P2, P1] C | P1 P2 C. ground_superposition P2 P1 C}"
 
