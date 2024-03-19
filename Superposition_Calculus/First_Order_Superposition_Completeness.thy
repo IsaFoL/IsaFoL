@@ -498,7 +498,7 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
 
   then have \<sigma>_\<theta>: "\<sigma> \<odot> \<theta> = \<theta>"
     unfolding \<sigma>(2) term_subst.is_idem_def
-    by simp
+    by (metis subst_compose_assoc)
 
   have conclusion'_\<sigma>_\<theta> : "conclusion' \<cdot> \<sigma> \<cdot> \<theta> = conclusion \<cdot> \<theta>"
     using conclusion'_\<theta>  
@@ -704,7 +704,7 @@ proof(cases "to_ground_clause (premise \<cdot> \<theta>)" "to_ground_clause (con
 
   then have \<sigma>_\<theta>: "\<sigma> \<odot> \<theta> = \<theta>"
     unfolding \<sigma>(2) term_subst.is_idem_def
-    by simp
+    by (metis subst_compose_assoc)
 
   have "conclusion \<cdot> \<theta> = 
       add_mset (to_term term\<^sub>G\<^sub>2 !\<approx> to_term term\<^sub>G\<^sub>3) 
@@ -1297,7 +1297,7 @@ proof(cases
 
   then have \<sigma>_\<theta>: "\<sigma> \<odot> \<theta> = \<theta>"
     unfolding \<sigma>(2) term_subst.is_idem_def
-    by simp
+    by (metis subst_compose_assoc)
 
   from conclusion_\<theta>\<^sub>G have conclusion_\<theta>: "conclusion \<cdot> \<theta> =  ?conclusion' \<cdot> \<theta>"
     unfolding 
@@ -1500,7 +1500,7 @@ proof(cases
 
   then have \<sigma>_\<theta>: "\<sigma> \<odot> \<theta> = \<theta>"
     unfolding \<sigma>(2) term_subst.is_idem_def
-    by simp
+    by (metis subst_compose_assoc)
 
   have "to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>) \<in> clause_groundings premise\<^sub>1"
     unfolding clause_groundings_def
@@ -1778,7 +1778,8 @@ proof-
     assume a1: "premise\<^sub>2 \<cdot> \<theta>\<^sub>2 = to_clause premise\<^sub>G\<^sub>2"
     assume a2: "to_clause (select\<^sub>G premise\<^sub>G\<^sub>2) = select premise\<^sub>2 \<cdot> \<theta>\<^sub>2"
     have "\<forall>m f. m \<cdot> f = m \<cdot> \<rho>\<^sub>2 \<odot> (\<rho>\<^sub>2_inv \<odot> f)"
-      by (simp add: \<rho>\<^sub>2_inv)
+      using \<rho>\<^sub>2_inv
+      by (metis subst_monoid_mult.mult.left_neutral subst_monoid_mult.mult.assoc)
     then show "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> (\<lambda>b. if b \<in> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) then (\<rho>\<^sub>1_inv \<odot> \<theta>\<^sub>1) b else (\<rho>\<^sub>2_inv \<odot> \<theta>\<^sub>2) b)))) = select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<rho>\<^sub>2_inv \<odot> \<theta>\<^sub>2"
       using a2 a1 by (simp add: clause_subst_if_2 inf_commute vars_distinct)
   qed

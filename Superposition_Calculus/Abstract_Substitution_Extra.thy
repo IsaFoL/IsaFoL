@@ -149,27 +149,22 @@ qed
 end
 
 
-locale basic_substitution = basic_substitution_ops subst id_subst comp_subst for
+locale basic_substitution =
+  basic_substitution_ops subst id_subst comp_subst +
+  comp_subst: monoid comp_subst id_subst
+  for
     subst :: "'x \<Rightarrow> 's \<Rightarrow> 'x" (infixl "\<cdot>" 67) and
     id_subst :: 's and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) +
   assumes
     subst_id_subst[simp]: "x \<cdot> id_subst = x" and
-    subst_comp_subst[simp]: "x \<cdot> (\<sigma> \<odot> \<tau>) = (x \<cdot> \<sigma>) \<cdot> \<tau>" and
-    subst_ext: "(\<And>x. x \<cdot> \<sigma> = x \<cdot> \<tau>) \<Longrightarrow> \<sigma> = \<tau>" (* and
-    make_ground_subst: "is_ground_set (X \<cdot>s \<sigma>) \<Longrightarrow> \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>x \<in> X. x \<cdot> \<tau> = x \<cdot> \<sigma>)" *)
+    subst_comp_subst[simp]: "x \<cdot> (\<sigma> \<odot> \<tau>) = (x \<cdot> \<sigma>) \<cdot> \<tau>"
 begin
 
 subsection \<open>Identity Substitution\<close>
 
 lemma subst_set_id_subst[simp]: "X \<cdot>s id_subst = X"
   by (simp add: subst_set_def)
-
-lemma id_subst_comp_subst[simp]: "id_subst \<odot> \<sigma> = \<sigma>"
-  by (rule subst_ext) simp
-
-lemma comp_subst_id_subst[simp]: "\<sigma> \<odot> id_subst = \<sigma>"
-  by (rule subst_ext) simp
 
 lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
   by (simp add: is_renaming_def)
@@ -214,16 +209,10 @@ lemma is_imgu_id_subst_insert_singleton[simp]:
   by (simp add: is_imgu_id_subst)
 
 
-subsection \<open>Associativity of Composition\<close>
-
-lemma comp_subst_assoc[simp]: "\<sigma> \<odot> (\<tau> \<odot> \<gamma>) = \<sigma> \<odot> \<tau> \<odot> \<gamma>"
-  by (rule subst_ext) simp
-
-
 subsection \<open>IMGU is Idempotent and an MGU\<close>
 
 lemma is_imgu_iff_is_idem_and_is_mgu: "is_imgu \<mu> XX \<longleftrightarrow> is_idem \<mu> \<and> is_mgu \<mu> XX"
-  by (auto simp: is_imgu_def is_idem_def is_mgu_def)
+  by (auto simp add: is_imgu_def is_idem_def is_mgu_def simp flip: comp_subst.assoc)
 
 
 subsection \<open>Groundings Idempotence\<close>
