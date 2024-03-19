@@ -115,7 +115,7 @@ proof (intro subset_antisym subrelI)
       by metis
   next
     show "\<And>x. x \<in> {D \<in> N. D \<prec>\<^sub>c C} \<Longrightarrow> epsilon {E \<in> N. (E \<prec>\<^sub>c C \<or> E = C) \<and> E \<preceq>\<^sub>c x} x = epsilon {E \<in> N. E \<preceq>\<^sub>c x} x"
-      by (metis (mono_tags, lifting) linorder_cls.order.strict_trans1 mem_Collect_eq)
+      by (metis (mono_tags, lifting) clause_order.order.strict_trans1 mem_Collect_eq)
   qed
 
   ultimately show "(x, y) \<in> epsilon N C"
@@ -142,7 +142,7 @@ next
       by metis
   next
     show "\<And>x. x \<in> {D \<in> N. D \<prec>\<^sub>c C} \<Longrightarrow> epsilon {E \<in> N. (E \<prec>\<^sub>c C \<or> E = C) \<and> E \<preceq>\<^sub>c x} x = epsilon {E \<in> N. E \<preceq>\<^sub>c x} x"
-      by (metis (mono_tags, lifting) linorder_cls.order.strict_trans1 mem_Collect_eq)
+      by (metis (mono_tags, lifting) clause_order.order.strict_trans1 mem_Collect_eq)
   qed
 
   ultimately show "(x, y) \<in> epsilon {D \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C} C"
@@ -153,7 +153,7 @@ end
 
 lemma (in ground_ordering) Uniq_striclty_maximal_lit_in_ground_cls:
   "\<exists>\<^sub>\<le>\<^sub>1L. is_strictly_maximal_lit L C"
-  using linorder_lit.Uniq_is_greatest_in_mset .
+  using literal_order.Uniq_is_greatest_in_mset .
 
 lemma (in ground_superposition_calculus) epsilon_eq_empty_or_singleton:
   "epsilon N C = {} \<or> (\<exists>s t. epsilon N C = {(s, t)})"
@@ -161,8 +161,8 @@ proof -
   have "\<exists>\<^sub>\<le>\<^sub>1 (x, y). \<exists>C'.
     C = add_mset (Pos (Upair x y)) C' \<and> is_strictly_maximal_lit (Pos (Upair x y)) C \<and> y \<prec>\<^sub>t x"
     by (rule Uniq_prodI)
-      (metis Uniq_D Upair_inject linorder_lit.Uniq_is_greatest_in_mset linorder_trm.min.absorb3
-        linorder_trm.min.absorb4 literal.inject(1))
+      (metis Uniq_D Upair_inject literal_order.Uniq_is_greatest_in_mset term_order.min.absorb3
+        term_order.min.absorb4 literal.inject(1))
   hence Uniq_epsilon: "\<exists>\<^sub>\<le>\<^sub>1 (x, y). \<exists>C'.
     C \<in> N \<and>
     C = add_mset (Pos (Upair x y)) C' \<and> select C = {#} \<and>
@@ -198,7 +198,7 @@ proof (rule SUP_cong)
 next
   show "\<And>x. x \<in> {D \<in> N. D \<prec>\<^sub>c C} \<Longrightarrow> epsilon {D \<in> N. D \<prec>\<^sub>c C} x = epsilon {E \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= E x} x"
     using epsilon_filter_le_conv
-    by (smt (verit, best) Collect_cong linorder_cls.le_less_trans mem_Collect_eq)
+    by (smt (verit, best) Collect_cong clause_order.le_less_trans mem_Collect_eq)
 qed
 
 lemma (in ground_superposition_calculus) mem_epsilonE:
@@ -283,7 +283,7 @@ lemma (in ground_superposition_calculus) rewrite_sys_subset_if_less_cls:
   "C \<prec>\<^sub>c D \<Longrightarrow> rewrite_sys N C \<subseteq> rewrite_sys N D"
   unfolding rewrite_sys_def
   unfolding epsilon_filter_le_conv
-  by (smt (verit, del_insts) SUP_mono linorder_cls.dual_order.strict_trans mem_Collect_eq subset_eq)
+  by (smt (verit, del_insts) SUP_mono clause_order.dual_order.strict_trans mem_Collect_eq subset_eq)
 
 lemma (in ground_superposition_calculus) mem_rewrite_sys_if_less_cls:
   assumes "D \<in> N" and "D \<prec>\<^sub>c C" and "(u, v) \<in> epsilon N D"
@@ -311,7 +311,7 @@ proof -
     s_irreducible: "s \<in> NF (rewrite_inside_gctxt (rewrite_sys N C))"
     by (auto elim!: mem_epsilonE)
   hence "\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (Upair s t)"
-    by (simp add: linorder_lit.is_greatest_in_mset_iff)
+    by (simp add: literal_order.is_greatest_in_mset_iff)
 
   from E\<^sub>D obtain D' where
     "D \<in> N" and
@@ -320,7 +320,7 @@ proof -
     "v \<prec>\<^sub>t u"
     by (auto simp:  elim: epsilon.elims dest: singleton_eq_CollectD)
   hence "\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (Upair u v)"
-    by (simp add: linorder_lit.is_greatest_in_mset_iff)
+    by (simp add: literal_order.is_greatest_in_mset_iff)
 
   show ?thesis
   proof (rule iffI)
@@ -334,9 +334,9 @@ proof -
       by (simp add: less_lit_def)
     moreover hence "\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (Upair s t)"
       using \<open>\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (Upair u v)\<close>
-      by (meson transp_less_lit transpD)
+      by (meson transp_on_less_lit transpD)
     ultimately show "D \<prec>\<^sub>c C"
-      using one_step_implies_multp[of C D _ "{#}"]
+      using one_step_implies_multp[of C D _ "{#}"] less_cls_def
       by (simp add: D_def C_def)
   next
     assume "D \<prec>\<^sub>c C"
@@ -359,9 +359,9 @@ proof -
         by (simp add: less_lit_def)
       moreover hence "\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (Upair u v)"
         using \<open>\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (Upair s t)\<close>
-        by (meson transp_less_lit transpD)
+        by (meson transp_on_less_lit transpD)
       ultimately have "C \<prec>\<^sub>c D"
-        using one_step_implies_multp[of D C _ "{#}"]
+        using one_step_implies_multp[of D C _ "{#}"] less_cls_def
         by (simp add: D_def C_def)
       thus False
         using \<open>D \<prec>\<^sub>c C\<close> by order
@@ -521,7 +521,7 @@ proof -
     by (auto elim: mem_epsilonE)
 
   hence less_lit_tot_on_C_D[simp]: "totalp_on (set_mset C \<union> set_mset D) (\<prec>\<^sub>l)"
-    using totalp_less_lit totalp_on_subset by blast
+    using totalp_on_less_lit totalp_on_subset by blast
 
   have "Pos (Upair s t) \<prec>\<^sub>l L" if "is_pos L" and "\<not> u \<preceq>\<^sub>t s"
   proof -
@@ -553,6 +553,7 @@ proof -
   moreover have False if "Pos (Upair s t) \<prec>\<^sub>l L"
   proof -
     have "C \<prec>\<^sub>c D"
+      unfolding less_cls_def
     proof (rule multp_if_maximal_of_lhs_is_less)
       show "Pos (Upair s t) \<in># C"
         by (simp add: C_def)
@@ -1216,7 +1217,7 @@ proof (induction C rule: wfP_induct_rule)
 
     have cond_conv: "(\<exists>L. L \<in># select C \<or> (select C = {#} \<and> is_maximal_lit L C \<and> is_neg L)) \<longleftrightarrow>
       (\<exists>A. Neg A \<in># C \<and> (Neg A \<in># select C \<or> select C = {#} \<and> is_maximal_lit (Neg A) C))"
-      by (metis (no_types, opaque_lifting) is_pos_def linorder_lit.is_maximal_in_mset_iff
+      by (metis (no_types, opaque_lifting) is_pos_def literal_order.is_maximal_in_mset_iff
           literal.disc(2) literal.exhaust mset_subset_eqD select_negative_lits select_subset)
 
     show "entails (rewrite_sys N C) C"
@@ -1445,8 +1446,8 @@ proof (induction C rule: wfP_induct_rule)
         by (metis (no_types, opaque_lifting) multiset_nonemptyE)
         
       from False obtain A where Pos_A_in: "Pos A \<in># C" and max_Pos_A: "is_maximal_lit (Pos A) C"
-        using \<open>select C = {#}\<close> linorder_lit.ex_maximal_in_mset[OF \<open>C \<noteq> {#}\<close>]
-        by (metis is_pos_def linorder_lit.is_maximal_in_mset_iff)
+        using \<open>select C = {#}\<close> literal_order.ex_maximal_in_mset[OF \<open>C \<noteq> {#}\<close>]
+        by (metis is_pos_def literal_order.is_maximal_in_mset_iff)
       then obtain C' where C_def: "C = add_mset (Pos A) C'"
         by (meson mset_add)
 
@@ -1504,7 +1505,7 @@ proof (induction C rule: wfP_induct_rule)
 
                 have "Pos (Upair t t') \<prec>\<^sub>l Pos (Upair s s')"
                   using strictly_maximal
-                  by (simp add: A_def C'_def C_def linorder_lit.is_greatest_in_mset_iff)
+                  by (simp add: A_def C'_def C_def literal_order.is_greatest_in_mset_iff)
 
                 have "\<not> (t \<prec>\<^sub>t s)"
                 proof (rule notI)
@@ -1785,7 +1786,7 @@ proof (induction C rule: wfP_induct_rule)
           case False
           hence "2 \<le> count C (Pos A)"
             using max_Pos_A
-            by (metis linorder_lit.count_ge_2_if_maximal_in_mset_and_not_greatest_in_mset)
+            by (metis literal_order.count_ge_2_if_maximal_in_mset_and_not_greatest_in_mset)
           then obtain C' where C_def: "C = add_mset (Pos A) (add_mset (Pos A) C')"
             using two_le_countE by metis
 

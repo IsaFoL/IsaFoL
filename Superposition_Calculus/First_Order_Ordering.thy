@@ -10,9 +10,9 @@ begin
 context ground_ordering
 begin
 
-lemmas less\<^sub>l\<^sub>G_transitive_on = transp_less_lit[THEN transp_on_subset, OF subset_UNIV]
-lemmas less\<^sub>l\<^sub>G_asymmetric_on = asymp_less_lit[THEN asymp_on_subset, OF subset_UNIV]
-lemmas less\<^sub>l\<^sub>G_total_on = totalp_less_lit[THEN totalp_on_subset, OF subset_UNIV]
+lemmas less\<^sub>l\<^sub>G_transitive_on = transp_on_less_lit
+lemmas less\<^sub>l\<^sub>G_asymmetric_on = asymp_on_less_lit
+lemmas less\<^sub>l\<^sub>G_total_on = totalp_on_less_lit
 
 lemmas less\<^sub>c\<^sub>G_transitive_on = transp_less_cls[THEN transp_on_subset, OF subset_UNIV]
 lemmas less\<^sub>c\<^sub>G_asymmetric_on = asymp_less_cls[THEN asymp_on_subset, OF subset_UNIV]
@@ -28,13 +28,13 @@ end
 section \<open>First order ordering\<close>
 
 (* TODO: less\<^sub>t-prefixes actually not needed *)
-locale first_order_ordering =
-  fixes
-    less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50)
+locale first_order_ordering = clause_ordering less\<^sub>t
+  for
+    less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   assumes
     (* TODO: It should be enough to have these on ground terms*)
-    less\<^sub>t_transitive [intro]: "transp (\<prec>\<^sub>t)" and
-    less\<^sub>t_asymmetric [intro]: "asymp (\<prec>\<^sub>t)" and 
+    (* less\<^sub>t_transitive [intro]: "transp (\<prec>\<^sub>t)" and *)
+    (* less\<^sub>t_asymmetric [intro]: "asymp (\<prec>\<^sub>t)" and  *)
 
     less\<^sub>t_total_on [intro]: "totalp_on {term. is_ground_term term} (\<prec>\<^sub>t)" and
     less\<^sub>t_wellfounded_on [intro]: "wfp_on (\<prec>\<^sub>t) {term. is_ground_term term}" and
@@ -60,6 +60,9 @@ locale first_order_ordering =
          term\<^sub>G \<prec>\<^sub>t context\<^sub>G\<langle>term\<^sub>G\<rangle>"
 begin
 
+lemmas less\<^sub>t_transitive = transp_less_trm
+lemmas less\<^sub>t_asymmetric = asymp_less_trm
+
 subsection \<open>Definitions\<close>
 
 abbreviation less_eq\<^sub>t (infix "\<preceq>\<^sub>t" 50) where
@@ -68,16 +71,14 @@ abbreviation less_eq\<^sub>t (infix "\<preceq>\<^sub>t" 50) where
 definition less\<^sub>t\<^sub>G :: "'f ground_term \<Rightarrow> 'f ground_term \<Rightarrow> bool" (infix "\<prec>\<^sub>t\<^sub>G" 50) where
   "term\<^sub>G\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2 \<equiv> to_term term\<^sub>G\<^sub>1 \<prec>\<^sub>t to_term term\<^sub>G\<^sub>2"
 
-definition less\<^sub>l ::
-  "('f, 'v) atom literal \<Rightarrow> ('f, 'v) atom literal \<Rightarrow> bool" (infix "\<prec>\<^sub>l" 50) where
-  "less\<^sub>l literal\<^sub>1 literal\<^sub>2 \<equiv> multp (\<prec>\<^sub>t) (mset_lit literal\<^sub>1) (mset_lit literal\<^sub>2)"
+notation less_lit (infix "\<prec>\<^sub>l" 50)
+notation less_cls (infix "\<prec>\<^sub>c" 50)
+
+lemmas less\<^sub>l_def = less_lit_def
+lemmas less\<^sub>c_def = less_cls_def
 
 abbreviation less_eq\<^sub>l (infix "\<preceq>\<^sub>l" 50) where
   "less_eq\<^sub>l \<equiv> (\<prec>\<^sub>l)\<^sup>=\<^sup>="
-
-abbreviation less\<^sub>c ::
-  "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" (infix "\<prec>\<^sub>c" 50) where
-  "less\<^sub>c \<equiv> multp (\<prec>\<^sub>l)"
 
 abbreviation less_eq\<^sub>c (infix "\<preceq>\<^sub>c" 50) where
   "less_eq\<^sub>c \<equiv> (\<prec>\<^sub>c)\<^sup>=\<^sup>="
@@ -106,8 +107,7 @@ lemma less\<^sub>t_total_on': "totalp_on (to_term ` terms\<^sub>G) (\<prec>\<^su
   using less\<^sub>t_total_on
   by (simp add: totalp_on_def)
 
-lemma less\<^sub>t_irreflexive_on: "irreflp_on X (\<prec>\<^sub>t)"
-  by (simp add: less\<^sub>t_asymmetric_on)
+lemmas less\<^sub>t_irreflexive_on = irreflp_on_less_trm
 
 lemma less\<^sub>t\<^sub>G_wellfounded: "wfP (\<prec>\<^sub>t\<^sub>G)"
 proof -
@@ -119,21 +119,6 @@ proof -
     unfolding less\<^sub>t\<^sub>G_def .
   thus "wfP (\<prec>\<^sub>t\<^sub>G)"
     unfolding wfp_on_UNIV .
-qed
-
-sublocale term_order: order less_eq\<^sub>t less\<^sub>t
-proof unfold_locales
-  show "\<And>x y. (x \<prec>\<^sub>t y) = (x \<preceq>\<^sub>t y \<and> \<not> y \<preceq>\<^sub>t x)"
-    by (metis asympD less\<^sub>t_asymmetric_on reflclp_iff)
-next
-  show "\<And>x. x \<preceq>\<^sub>t x"
-    by simp
-next
-  show "\<And>x y z. x \<preceq>\<^sub>t y \<Longrightarrow> y \<preceq>\<^sub>t z \<Longrightarrow> x \<preceq>\<^sub>t z"
-    by (metis less\<^sub>t_transitive reflclp_iff transpD_strict_non_strict)
-next
-  show "\<And>x y. x \<preceq>\<^sub>t y \<Longrightarrow> y \<preceq>\<^sub>t x \<Longrightarrow> x = y"
-    by (metis asympD less\<^sub>t_asymmetric_on reflclp_iff)
 qed
 
 subsection \<open>Ground term ordering\<close>
@@ -186,19 +171,11 @@ lemma less_eq\<^sub>t_ground_subst_stability:
 
 subsection \<open>Literal ordering\<close>
 
-lemma less\<^sub>l_asymmetric [intro]: "asymp (\<prec>\<^sub>l)"
-  unfolding less\<^sub>l_def  multp_eq_multp\<^sub>H\<^sub>O[OF less\<^sub>t_asymmetric less\<^sub>t_transitive]
-  using asymp_multp\<^sub>H\<^sub>O[OF less\<^sub>t_asymmetric less\<^sub>t_transitive]
-  by (meson asympD asympI)
+lemmas less\<^sub>l_asymmetric [intro] = asymp_on_less_lit[of UNIV]
+lemmas less\<^sub>l_asymmetric_on [intro] = asymp_on_less_lit
 
-lemmas less\<^sub>l_asymmetric_on [intro] = less\<^sub>l_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
-
-lemma less\<^sub>l_transitive [intro]: "transp (\<prec>\<^sub>l)"
-  unfolding less\<^sub>l_def 
-  using transp_multp[OF less\<^sub>t_transitive]
-  by (metis (no_types, lifting) transpE transpI)
-
-lemmas less\<^sub>l_transitive_on = less\<^sub>l_transitive[THEN transp_on_subset, OF subset_UNIV]
+lemmas less\<^sub>l_transitive [intro] = transp_on_less_lit[of UNIV]
+lemmas less\<^sub>l_transitive_on = transp_on_less_lit
                                                             
 lemmas is_maximal\<^sub>l_def = is_maximal_in_mset_wrt_iff[OF less\<^sub>l_transitive_on less\<^sub>l_asymmetric_on]
 
@@ -236,57 +213,24 @@ lemma strictly_maximal\<^sub>l_in_clause:
   unfolding is_strictly_maximal\<^sub>l_def
   by(rule conjunct1)
 
-sublocale literal_order: order "(\<prec>\<^sub>l)\<^sup>=\<^sup>=" "(\<prec>\<^sub>l)"
-proof unfold_locales
-  show "\<And>x y. (x \<prec>\<^sub>l y) = (x \<preceq>\<^sub>l y \<and> \<not> y \<preceq>\<^sub>l x)"
-    by (metis asympD less\<^sub>l_asymmetric_on reflclp_iff)
-next
-  show "\<And>x. x \<preceq>\<^sub>l x"
-    by simp
-next
-  show "\<And>x y z. x \<preceq>\<^sub>l y \<Longrightarrow> y \<preceq>\<^sub>l z \<Longrightarrow> x \<preceq>\<^sub>l z"
-    by (metis less\<^sub>l_transitive reflclp_iff transpD_strict_non_strict)
-next
-  show "\<And>x y. x \<preceq>\<^sub>l y \<Longrightarrow> y \<preceq>\<^sub>l x \<Longrightarrow> x = y"
-    by (metis asympD less\<^sub>l_asymmetric_on reflclp_iff)
-qed
-
 subsection \<open>Clause ordering\<close>
 
-lemmas less\<^sub>c_asymmetric [intro] = asymp_multp[OF less\<^sub>l_asymmetric less\<^sub>l_transitive]
-
-lemmas less\<^sub>c_asymmetric_on [intro] = less\<^sub>c_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
-
-lemmas less\<^sub>c_transitive [intro] = transp_multp[OF less\<^sub>l_transitive]
-
-lemmas less\<^sub>c_transitive_on [intro] = less\<^sub>c_transitive[THEN transp_on_subset, OF subset_UNIV]
+lemmas less\<^sub>c_asymmetric [intro] = asymp_less_cls
+lemmas less\<^sub>c_asymmetric_on [intro] = asymp_less_cls[THEN asymp_on_subset, OF subset_UNIV]
+lemmas less\<^sub>c_transitive [intro] = transp_less_cls
+lemmas less\<^sub>c_transitive_on [intro] = transp_less_cls[THEN transp_on_subset, OF subset_UNIV]
 
 lemma less\<^sub>c_ground_subst_stability: 
   assumes 
     "is_ground_clause (clause \<cdot> \<theta>)" 
     "is_ground_clause (clause' \<cdot> \<theta>)" 
   shows "clause \<prec>\<^sub>c clause' \<Longrightarrow> clause \<cdot> \<theta> \<prec>\<^sub>c clause' \<cdot> \<theta>"
-  unfolding subst_clause_def
+  unfolding subst_clause_def less\<^sub>c_def
 proof (elim multp_map_strong[rotated -1])
   show "monotone_on (set_mset (clause + clause')) (\<prec>\<^sub>l) (\<prec>\<^sub>l) (\<lambda>literal. literal \<cdot>l \<theta>)"
     by (rule monotone_onI)
       (metis assms(1,2) ground_literal_in_ground_clause_subst less\<^sub>l_ground_subst_stability union_iff)
 qed (use less\<^sub>l_asymmetric less\<^sub>l_transitive in simp_all)
-
-sublocale clause_order: order "(\<prec>\<^sub>c)\<^sup>=\<^sup>=" "(\<prec>\<^sub>c)"
-proof unfold_locales
-  show "\<And>x y. (x \<prec>\<^sub>c y) = (x \<preceq>\<^sub>c y \<and> \<not> y \<preceq>\<^sub>c x)"
-    by (metis asympD less\<^sub>c_asymmetric_on reflclp_iff)
-next
-  show "\<And>x. x \<preceq>\<^sub>c x"
-    by simp
-next
-  show "\<And>x y z. x \<preceq>\<^sub>c y \<Longrightarrow> y \<preceq>\<^sub>c z \<Longrightarrow> x \<preceq>\<^sub>c z"
-    by (metis less\<^sub>c_transitive reflclp_iff transpD_strict_non_strict)
-next
-  show "\<And>x y. x \<preceq>\<^sub>c y \<Longrightarrow> y \<preceq>\<^sub>c x \<Longrightarrow> x = y"
-    by (metis asympD less\<^sub>c_asymmetric_on reflclp_iff)
-qed
 
 subsection \<open>Grounding\<close>
 
@@ -394,11 +338,20 @@ lemma not_less_eq\<^sub>l:
 
 lemma less\<^sub>c\<^sub>G_less\<^sub>c: 
   "clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<longleftrightarrow> to_clause clause\<^sub>G\<^sub>1 \<prec>\<^sub>c to_clause clause\<^sub>G\<^sub>2"
-  using
-     multp_image_mset_image_msetI[OF _ less\<^sub>l_transitive]
-     multp_image_mset_image_msetD[OF _ less\<^sub>l_transitive to_literal_inj]
-  unfolding less\<^sub>l\<^sub>G_less\<^sub>l to_clause_def
-  by blast
+proof (rule iffI)
+  show "clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<Longrightarrow> to_clause clause\<^sub>G\<^sub>1 \<prec>\<^sub>c to_clause clause\<^sub>G\<^sub>2"
+    unfolding less\<^sub>c_def
+    by (auto simp: to_clause_def ground.less_cls_def less\<^sub>l\<^sub>G_less\<^sub>l
+        intro!: multp_image_mset_image_msetI elim: multp_mono_strong)
+next
+  have "transp (\<lambda>x y. to_literal x \<prec>\<^sub>l to_literal y)"
+    by (metis (no_types, lifting) literal_order.less_trans transpI)
+  thus "to_clause clause\<^sub>G\<^sub>1 \<prec>\<^sub>c to_clause clause\<^sub>G\<^sub>2 \<Longrightarrow> clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2"
+    unfolding ground.less_cls_def to_clause_def less\<^sub>c_def
+    by (auto simp: less\<^sub>l\<^sub>G_less\<^sub>l
+        dest!: multp_image_mset_image_msetD[OF _ less\<^sub>l_transitive to_literal_inj]
+        elim!: multp_mono_strong)
+qed
 
 lemma less\<^sub>c_less\<^sub>c\<^sub>G: 
   assumes "is_ground_clause clause\<^sub>1" "is_ground_clause clause\<^sub>2"
@@ -768,9 +721,9 @@ next
   qed
 qed
 
-lemmas less\<^sub>c_add_mset = multp_add_mset_reflclp[OF less\<^sub>l_asymmetric less\<^sub>l_transitive] 
+lemmas less\<^sub>c_add_mset = multp_add_mset_reflclp[OF less\<^sub>l_asymmetric less\<^sub>l_transitive, folded less\<^sub>c_def] 
 
-lemmas less\<^sub>c_add_same = multp_add_same[OF less\<^sub>l_asymmetric less\<^sub>l_transitive]
+lemmas less\<^sub>c_add_same = multp_add_same[OF less\<^sub>l_asymmetric less\<^sub>l_transitive, folded less\<^sub>c_def]
 
 lemma less_eq\<^sub>l_less_eq\<^sub>c:
   assumes "\<forall>literal \<in># clause. literal \<cdot>l \<theta>' \<preceq>\<^sub>l literal \<cdot>l \<theta>"
@@ -800,7 +753,7 @@ next
 
     ultimately show ?thesis
       using less\<^sub>c_add_mset
-      unfolding subst_clause_add_mset
+      unfolding subst_clause_add_mset less\<^sub>c_def
       by blast
   next
     case False
@@ -812,7 +765,7 @@ next
 
    show ?thesis
      using add(1)[OF less_eq less] less\<^sub>c_add_same
-     unfolding subst_clause_add_mset eq
+     unfolding subst_clause_add_mset eq less\<^sub>c_def
      by blast
   qed
 qed
