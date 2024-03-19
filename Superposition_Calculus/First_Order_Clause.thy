@@ -199,6 +199,10 @@ lemma vars_clause_plus [simp]:
   "vars_clause (clause\<^sub>1 + clause\<^sub>2) = vars_clause clause\<^sub>1 \<union> vars_clause clause\<^sub>2"
   by (simp add: vars_clause_def)
 
+lemma clause_submset_vars_clause_subset: 
+  "clause\<^sub>1 \<subseteq># clause\<^sub>2 \<Longrightarrow> vars_clause clause\<^sub>1 \<subseteq> vars_clause clause\<^sub>2"
+  by (metis subset_mset.add_diff_inverse sup_ge1 vars_clause_plus)
+
 lemma atom_subst_eq:
   assumes "\<And>x. x \<in> vars_atom atom \<Longrightarrow> \<sigma> x = \<tau> x"
   shows "atom \<cdot>a \<sigma> = atom \<cdot>a \<tau>"
@@ -355,23 +359,58 @@ lemma clause_subst_reduntant_upd [simp]:
   by auto
 
 lemma term_subst_reduntant_if [simp]: 
-  "term \<cdot>t (\<lambda>var. if var \<in> vars_term term then \<theta> var else \<theta>' var) = term \<cdot>t \<theta>"
-  by (smt (verit, ccfv_threshold) term_subst_eq)
+  assumes "vars_term term \<subseteq> vars"
+  shows "term \<cdot>t (\<lambda>var. if var \<in> vars then \<theta> var else \<theta>' var) = term \<cdot>t \<theta>"
+  using assms
+  by(induction "term") auto
 
-lemma atom_subst_reduntant_if [simp]: 
-  "atom \<cdot>a (\<lambda>var. if var \<in> vars_atom atom then \<theta> var else \<theta>' var) = atom \<cdot>a \<theta>"
+lemma term_subst_reduntant_if' [simp]: 
+  assumes "vars_term term \<inter> vars = {}"  
+  shows "term \<cdot>t (\<lambda>var. if var \<in> vars then \<theta>' var else \<theta> var) = term \<cdot>t \<theta>"
+  using assms
+  by(induction "term") auto
+ 
+lemma atom_subst_reduntant_if [simp]:
+  assumes "vars_atom atom \<subseteq> vars"
+  shows "atom \<cdot>a (\<lambda>var. if var \<in> vars then \<theta> var else \<theta>' var) = atom \<cdot>a \<theta>"
+  using assms
   unfolding subst_atom_def vars_atom_def
-  by (smt (verit, ccfv_SIG) UN_I term_subst_eq uprod.map_cong0)
+  by(cases atom) simp
+
+lemma atom_subst_reduntant_if' [simp]:
+  assumes "vars_atom atom \<inter> vars = {}"  
+  shows "atom \<cdot>a (\<lambda>var. if var \<in> vars then \<theta>' var else \<theta> var) = atom \<cdot>a \<theta>"
+  using assms
+  unfolding subst_atom_def vars_atom_def
+  by(cases atom)(simp add: disjoint_iff)  
  
 lemma literal_subst_reduntant_if [simp]: 
-  "literal \<cdot>l (\<lambda>var. if var \<in> vars_literal literal then \<theta> var else \<theta>' var) = literal \<cdot>l \<theta>"
+  assumes "vars_literal literal \<subseteq> vars"
+  shows "literal \<cdot>l (\<lambda>var. if var \<in> vars then \<theta> var else \<theta>' var) = literal \<cdot>l \<theta>"
+  using assms
   unfolding subst_literal_def vars_literal_def
-  by(cases "literal") auto
+  by(cases literal) simp_all
 
-lemma clause_subst_reduntant_if: 
-  "clause \<cdot> (\<lambda>var. if var \<in> vars_clause clause then \<theta> var else \<theta>' var) = clause \<cdot> \<theta>"
+lemma literal_subst_reduntant_if' [simp]:
+  assumes "vars_literal literal \<inter> vars = {}"  
+  shows "literal \<cdot>l (\<lambda>var. if var \<in> vars then \<theta>' var else \<theta> var) = literal \<cdot>l \<theta>"
+  using assms
+  unfolding subst_literal_def vars_literal_def
+  by(cases literal) simp_all
+
+lemma clause_subst_reduntant_if [simp]: 
+  assumes "vars_clause clause \<subseteq> vars"
+  shows "clause \<cdot> (\<lambda>var. if var \<in> vars then \<theta> var else \<theta>' var) = clause \<cdot> \<theta>"
+  using assms
   unfolding subst_clause_def vars_clause_def 
-  by (smt (verit, best) UN_I literal_subst_eq multiset.map_cong0)
+  by(induction clause) simp_all
+
+lemma clause_subst_reduntant_if' [simp]:
+  assumes "vars_clause clause \<inter> vars = {}"  
+  shows "clause \<cdot> (\<lambda>var. if var \<in> vars then \<theta>' var else \<theta> var) = clause \<cdot> \<theta>"
+  using assms
+  unfolding subst_clause_def vars_clause_def 
+  by(induction clause) (simp_all add: disjoint_iff)
                                       
 (* TODO: Could these be made less explicit somehow?
 Something like:

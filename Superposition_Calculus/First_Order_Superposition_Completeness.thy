@@ -5,235 +5,6 @@ theory First_Order_Superposition_Completeness
     Grounded_First_Order_Superposition
 begin
 
-(* TODO: *)
-
-
-lemma term_subst_if'': "vars_term term\<^sub>1 \<subseteq> vars_term term\<^sub>2 \<Longrightarrow> term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) = term\<^sub>1 \<cdot>t (\<lambda>var. x var)"
-  apply(cases term\<^sub>1; cases term\<^sub>2)
-     apply auto
-   apply (smt (verit, ccfv_SIG) SUP_le_iff empty_iff singletonD subset_singletonD term_subst_eq)
-  by (smt (verit, del_insts) Term.term.simps(18) subsetD term.distinct(1) term.inject(2) term.set_cases(2) term.set_intros(4) term_subst_eq)
-
-lemma atom_subst_if'': "vars_atom atom\<^sub>1 \<subseteq> vars_atom atom\<^sub>2 \<Longrightarrow> atom\<^sub>1 \<cdot>a (\<lambda>var. if var \<in> vars_atom atom\<^sub>2 then x var else y var) = atom\<^sub>1 \<cdot>a (\<lambda>var. x var)"
-  using term_subst_if''
-  unfolding subst_atom_def vars_atom_def
-  by (smt (verit, del_insts) SUP_le_iff eval_same_vars_cong in_mono uprod.map_cong0)
-
-lemma literal_subst_if'': "vars_literal literal\<^sub>1 \<subseteq> vars_literal literal\<^sub>2 \<Longrightarrow> literal\<^sub>1 \<cdot>l (\<lambda>var. if var \<in> vars_literal literal\<^sub>2 then x var else y var) = literal\<^sub>1 \<cdot>l (\<lambda>var. x var)"
-  using atom_subst_if''
-  unfolding subst_literal_def vars_literal_def
-  by(cases literal\<^sub>1) auto
-
-lemma clause_subst_if''': "literal \<in># clause \<Longrightarrow> literal \<cdot>l (\<lambda>var. if var \<in> vars_clause clause then x var else y var) = literal \<cdot>l (\<lambda>var. x var)"
-  unfolding vars_literal_def subst_literal_def vars_clause_def
-    apply(cases literal)
-   apply auto
-  apply (smt (verit, ccfv_SIG) UN_I subst_atom_def term_subst_eq upair_in_literal(1) uprod.map_cong0 vars_atom_def)
-   by (smt (verit) UN_I subst_atom_def term_subst_eq upair_in_literal(2) uprod.map_cong0 vars_atom_def)
-
-(* TODO: *)
-lemma clause_subst_if': "clause\<^sub>1 \<subseteq># clause\<^sub>2 \<Longrightarrow> clause\<^sub>1 \<cdot> (\<lambda>var. if var \<in> vars_clause clause\<^sub>2 then x var else y var) = clause\<^sub>1 \<cdot> (\<lambda>var. x var)"
-  unfolding subst_clause_def vars_clause_def 
-  using clause_subst_if'''[of _ clause\<^sub>2 x y]
-  by (metis (no_types, lifting) ext image_mset_cong2 mset_subsetD subset_mset.antisym_conv2 vars_clause_def)
-
-lemma term_subst_if_2: "vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<Longrightarrow> term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) = term\<^sub>1 \<cdot>t (\<lambda>var. y var)"
-  apply(cases term\<^sub>1; cases term\<^sub>2)
-     apply auto
-   apply (smt (verit, ccfv_SIG) term_subst_eq)
-  by (smt (verit, ccfv_SIG) UN_I disjoint_iff term_subst_eq)
-
-lemma atom_subst_if_2: "vars_atom atom\<^sub>1 \<inter> vars_atom atom\<^sub>2 = {} \<Longrightarrow> atom\<^sub>1 \<cdot>a (\<lambda>var. if var \<in> vars_atom atom\<^sub>2 then x var else y var) = atom\<^sub>1 \<cdot>a (\<lambda>var. y var)"
-  apply(cases atom\<^sub>1; cases atom\<^sub>2)
-  using term_subst_if_2
-  by (smt (verit, ccfv_SIG) IntI UN_I empty_iff subst_atom_def term_subst_eq uprod.map_cong0 vars_atom_def)
-
-lemma literal_subst_if_2: "vars_literal literal\<^sub>1 \<inter> vars_literal literal\<^sub>2 = {} \<Longrightarrow> literal\<^sub>1 \<cdot>l (\<lambda>var. if var \<in> vars_literal literal\<^sub>2 then x var else y var) = literal\<^sub>1 \<cdot>l (\<lambda>var. y var)"
-   unfolding subst_literal_def vars_literal_def
-   apply(cases literal\<^sub>1; cases literal\<^sub>2)
-   apply auto
-   using atom_subst_if_2 by blast+
-
-abbreviation lift_to_atom 
-  where "lift_to_atom P \<equiv> \<lambda>atom. \<forall>term \<in> set_uprod atom. P term"
-
-abbreviation lift_to_literal 
-  where "lift_to_literal P \<equiv> \<lambda>literal. P (atm_of literal)"
-
-abbreviation lift_to_clause 
-  where "lift_to_clause P \<equiv> \<lambda>clause.  \<forall>literal \<in># clause. P literal"
-
-abbreviation lift_term_predicate_to_clause 
-  where "lift_term_predicate_to_clause P \<equiv> lift_to_clause (lift_to_literal (lift_to_atom P))"
-
-abbreviation lift_to_atom2 
-  where "lift_to_atom2 P \<equiv> \<lambda>atom\<^sub>1 atom\<^sub>2. \<forall>term\<^sub>1 \<in> set_uprod atom\<^sub>1. \<forall>term\<^sub>2 \<in> set_uprod atom\<^sub>2. P term\<^sub>1 term\<^sub>2"
-
-abbreviation lift_to_literal2
-  where "lift_to_literal2 P \<equiv> \<lambda>literal\<^sub>1 literal\<^sub>2. P (atm_of literal\<^sub>1) (atm_of literal\<^sub>2)"
-
-abbreviation lift_to_clause2 
-  where "lift_to_clause2 P \<equiv> \<lambda>clause\<^sub>1 clause\<^sub>2.  \<forall>literal\<^sub>1 \<in># clause\<^sub>1. \<forall>literal\<^sub>2 \<in># clause\<^sub>2. P literal\<^sub>1 literal\<^sub>2"
-
-abbreviation lift_term_predicate_to_clause2 
-  where "lift_term_predicate_to_clause2 P \<equiv> lift_to_clause2 (lift_to_literal2 (lift_to_atom2 P))"
-
-
-lemma clause_if_term: "\<forall>term. P term \<Longrightarrow> P' = lift_term_predicate_to_clause P \<Longrightarrow> P' clause"
-  by auto
-
-lemma clause2_if_term: "\<forall>term\<^sub>1 term\<^sub>2. P term\<^sub>1 term\<^sub>2 \<Longrightarrow> P' = lift_term_predicate_to_clause2 P \<Longrightarrow> P' clause\<^sub>1 clause\<^sub>2"
-  by auto
-
-lemma test': "\<forall> term\<^sub>1 term\<^sub>2. vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<longrightarrow> term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) = term\<^sub>1 \<cdot>t (\<lambda>var. y var)"
-  using term_subst_if_2 by blast
-
-lemma test_atom': "(lift_to_atom2
-                    (\<lambda>term\<^sub>1 term\<^sub>2.
-                        vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<longrightarrow>
-                        term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) =
-                        term\<^sub>1 \<cdot>t y)) atom\<^sub>1 atom\<^sub>2 =
-                        (vars_atom atom\<^sub>1 \<inter> vars_atom atom\<^sub>2 = {} \<longrightarrow>
-                        atom\<^sub>1 \<cdot>a (\<lambda>var. if var \<in> vars_atom atom\<^sub>2 then x var else y var) =
-                        atom\<^sub>1 \<cdot>a y)"
-  apply auto
-  using atom_subst_if_2 apply blast
-  using test' by blast+
-
-lemma test_atom'': "lift_to_atom2
-                    (\<lambda>term\<^sub>1 term\<^sub>2.
-                        vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<longrightarrow>
-                        term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) =
-                        term\<^sub>1 \<cdot>t y) = (\<lambda>atom\<^sub>1 atom\<^sub>2.
-                        vars_atom atom\<^sub>1 \<inter> vars_atom atom\<^sub>2 = {} \<longrightarrow>
-                        atom\<^sub>1 \<cdot>a (\<lambda>var. if var \<in> vars_atom atom\<^sub>2 then x var else y var) =
-                        atom\<^sub>1 \<cdot>a y)"
-  using test_atom' 
-  by fast
-
-lemma test_literal': "(lift_to_literal2 (lift_to_atom2
-                    (\<lambda>term\<^sub>1 term\<^sub>2.
-                        vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<longrightarrow>
-                        term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) =
-                        term\<^sub>1 \<cdot>t y))) literal\<^sub>1 literal\<^sub>2 = (
-                        vars_literal literal\<^sub>1 \<inter> vars_literal literal\<^sub>2 = {} \<longrightarrow>
-                        literal\<^sub>1 \<cdot>l (\<lambda>var. if var \<in> vars_literal literal\<^sub>2 then x var else y var) =
-                        literal\<^sub>1 \<cdot>l y)"
-  apply auto
-  using literal_subst_if_2 apply blast
-  using test' by blast+
-
-lemma test_literal'': "lift_to_literal2 (lift_to_atom2
-                    (\<lambda>term\<^sub>1 term\<^sub>2.
-                        vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<longrightarrow>
-                        term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) =
-                        term\<^sub>1 \<cdot>t y)) = (\<lambda>literal\<^sub>1 literal\<^sub>2.
-                        vars_literal literal\<^sub>1 \<inter> vars_literal literal\<^sub>2 = {} \<longrightarrow>
-                        literal\<^sub>1 \<cdot>l (\<lambda>var. if var \<in> vars_literal literal\<^sub>2 then x var else y var) =
-                        literal\<^sub>1 \<cdot>l y)"
-  using test_literal'
-  by fast
-
-lemma test_clause': 
-  "(lift_to_clause2 (lift_to_literal2 (lift_to_atom2
-                    (\<lambda>term\<^sub>1 term\<^sub>2.
-                        vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<longrightarrow>
-                        term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) =
-                        term\<^sub>1 \<cdot>t y)))) (clause\<^sub>1 :: ('f, 'v) atom clause) (clause\<^sub>2 :: ('f, 'v) atom clause) = (
-                        vars_clause clause\<^sub>1 \<inter> vars_clause clause\<^sub>2 = {} \<longrightarrow>
-                        clause\<^sub>1 \<cdot> (\<lambda>var. if var \<in> vars_clause clause\<^sub>2 then x var else y var) =
-                        clause\<^sub>1 \<cdot> y)"
-  apply(auto simp: test_literal')
-  subgoal 
-  proof-
-    assume a: "lift_to_clause
-      (\<lambda>literal\<^sub>1.
-          lift_to_clause
-           (\<lambda>literal\<^sub>2.
-               vars_literal literal\<^sub>1 \<inter> vars_literal literal\<^sub>2 = {} \<longrightarrow>
-               literal\<^sub>1 \<cdot>l (\<lambda>var. if var \<in> vars_literal literal\<^sub>2 then x var else y var) =
-               literal\<^sub>1 \<cdot>l y)
-           clause\<^sub>2)
-      clause\<^sub>1" 
-      "vars_clause clause\<^sub>1 \<inter> vars_clause clause\<^sub>2 = {}"
-
-    then have "lift_to_clause
-      (\<lambda>literal\<^sub>1.
-          lift_to_clause
-           (\<lambda>literal\<^sub>2.
-               literal\<^sub>1 \<cdot>l (\<lambda>var. if var \<in> vars_literal literal\<^sub>2 then x var else y var) =
-               literal\<^sub>1 \<cdot>l y)
-           clause\<^sub>2)
-      clause\<^sub>1"
-      apply auto
-      by (smt (verit, ccfv_threshold) inf_assoc inf_bot_left inf_commute inf_sup_absorb multi_member_split vars_clause_add_mset)
-
-    then have "lift_to_clause
-     (\<lambda>literal.
-              literal \<cdot>l (\<lambda>var. if var \<in> vars_clause clause\<^sub>2 then x var else y var) =
-              literal \<cdot>l y)
-     clause\<^sub>1"
-      unfolding vars_clause_def
-      apply auto
-    proof-
-      fix literal
-      assume a': "lift_to_clause
-         (\<lambda>literal.
-             lift_to_clause
-              (\<lambda>literala.
-                  literal \<cdot>l (\<lambda>var. if var \<in> vars_literal literala then x var else y var) =
-                  literal \<cdot>l y)
-              clause\<^sub>2)
-         clause\<^sub>1"
-      "literal \<in># clause\<^sub>1"
-
-      have "\<And>var. var \<in> vars_literal literal \<Longrightarrow> \<not>literal \<in># clause\<^sub>2"
-        using a'(2) a(2)
-        unfolding vars_clause_def
-        by auto
-
-      then have "\<And>var. var \<in> vars_literal literal \<Longrightarrow>  \<not> var \<in> \<Union> (vars_literal ` set_mset clause\<^sub>2)"
-        apply auto
-        by (metis IntI UN_I a'(2) a(2) emptyE vars_clause_def)
-
-      then have "literal \<cdot>l (\<lambda>var. if var \<in> \<Union> (vars_literal ` set_mset clause\<^sub>2) then x var else y var) =
-           literal \<cdot>l y "
-        unfolding  subst_literal_def vars_literal_def
-        apply auto
-        by (smt (verit, ccfv_SIG) UN_I literal.expand literal.map_disc_iff literal.map_sel(1) literal.map_sel(2) subst_atom_def term_subst_eq uprod.map_cong0 vars_atom_def)
-
-      then show "literal \<cdot>l (\<lambda>var. if \<exists>x\<in>#clause\<^sub>2. var \<in> vars_literal x then x var else y var) =
-           literal \<cdot>l y " 
-        by auto
-    qed  
-    
-
-    then show ?thesis
-      unfolding vars_clause_def subst_clause_def
-      by auto
-  qed
-  using literal_subst_if_2 by blast+
-
-lemma test_clause'': "lift_to_clause2 (lift_to_literal2 (lift_to_atom2
-                    (\<lambda>term\<^sub>1 term\<^sub>2.
-                        vars_term term\<^sub>1 \<inter> vars_term term\<^sub>2 = {} \<longrightarrow>
-                        term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) =
-                        term\<^sub>1 \<cdot>t y))) = (\<lambda>(clause\<^sub>1 :: ('f, 'v) atom clause) (clause\<^sub>2 :: ('f, 'v) atom clause).
-                        vars_clause clause\<^sub>1 \<inter> vars_clause clause\<^sub>2 = {} \<longrightarrow>
-                        clause\<^sub>1 \<cdot> (\<lambda>var. if var \<in> vars_clause clause\<^sub>2 then x var else y var) =
-                        clause\<^sub>1 \<cdot> y)"
-  using test_clause' 
-  by fast
- 
-lemma clause_subst_if_2: "vars_clause (clause\<^sub>1 :: ('f, 'v) atom clause)  \<inter> vars_clause (clause\<^sub>2 :: ('f, 'v) atom clause) = {} \<longrightarrow> clause\<^sub>1 \<cdot> (\<lambda>var. if var \<in> vars_clause clause\<^sub>2 then x var else y var) = clause\<^sub>1 \<cdot> (\<lambda>var. y var)"
-  apply(rule clause2_if_term[OF test', of "\<lambda>clause\<^sub>1 clause\<^sub>2. vars_clause clause\<^sub>1 \<inter> vars_clause clause\<^sub>2 = {} \<longrightarrow> clause\<^sub>1 \<cdot> (\<lambda>var. if var \<in> vars_clause clause\<^sub>2 then x var else y var) = clause\<^sub>1 \<cdot> (\<lambda>var. y var)", of x y])
-  by (simp add: test_clause'')
-
-lemma vars_clause_subset: "clause\<^sub>1 \<subseteq># clause\<^sub>2 \<Longrightarrow> vars_clause clause\<^sub>1 \<subseteq> vars_clause clause\<^sub>2"
-  by (metis Un_subset_iff order_refl subset_mset.add_diff_inverse vars_clause_plus)
-
-(* --MISC-- *)
-
 context ground_superposition_calculus
 begin
 
@@ -1656,7 +1427,7 @@ proof-
     by (simp_all add: image_mset_subseteq_mono subst_clause_def)
 
   have "vars_clause (select premise\<^sub>2 \<cdot> \<rho>\<^sub>2) \<subseteq> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2)"
-    using vars_clause_subset[OF a(2)].
+    using clause_submset_vars_clause_subset[OF a(2)].
 
   then have b: "vars_clause (select premise\<^sub>2 \<cdot> \<rho>\<^sub>2) \<inter> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) = {}"
     using vars_distinct
@@ -1678,22 +1449,12 @@ proof-
     using premise\<^sub>1_\<theta>\<^sub>1 premise\<^sub>2_\<theta>\<^sub>2 select' 
        apply auto
 
-    unfolding clause_subst_reduntant_if clause_subst_if_2[rule_format, OF vars_distinct]  clause_subst_if_2[rule_format, OF vars_distinct]
-    using \<rho>\<^sub>1_inv \<rho>\<^sub>2_inv clause_subst_if_2[of "premise\<^sub>2 \<cdot> \<rho>\<^sub>2" "premise\<^sub>1 \<cdot> \<rho>\<^sub>2"]
+    using \<rho>\<^sub>1_inv \<rho>\<^sub>2_inv 
        apply (metis (mono_tags, lifting) clause_subst_compose subst_clause_Var_ident)
-      apply (metis (no_types) \<rho>\<^sub>2_inv clause_subst_compose clause_subst_if_2 inf_commute vars_distinct subst_clause_Var_ident)
-    unfolding clause_subst_if'[OF a(1)]  clause_subst_if_2[rule_format, OF b]
-    apply (metis (no_types, lifting) \<rho>\<^sub>1_inv clause_subst_compose select'(1) subst_clause_Var_ident)
-  proof -
-    assume a1: "premise\<^sub>2 \<cdot> \<theta>\<^sub>2 = to_clause premise\<^sub>G\<^sub>2"
-    assume a2: "to_clause (select\<^sub>G premise\<^sub>G\<^sub>2) = select premise\<^sub>2 \<cdot> \<theta>\<^sub>2"
-    have "\<forall>m f. m \<cdot> f = m \<cdot> \<rho>\<^sub>2 \<odot> (\<rho>\<^sub>2_inv \<odot> f)"
-      using \<rho>\<^sub>2_inv
-      by (metis subst_monoid_mult.mult.left_neutral subst_monoid_mult.mult.assoc)
-    then show "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> (\<lambda>b. if b \<in> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) then (\<rho>\<^sub>1_inv \<odot> \<theta>\<^sub>1) b else (\<rho>\<^sub>2_inv \<odot> \<theta>\<^sub>2) b)))) = select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<rho>\<^sub>2_inv \<odot> \<theta>\<^sub>2"
-      using a2 a1 by (simp add: clause_subst_if_2 inf_commute vars_distinct)
-  qed
-
+      apply (metis \<rho>\<^sub>2_inv clause_subst_compose clause_subst_reduntant_if' inf_commute subst_clause_Var_ident vars_distinct)
+    apply (metis (no_types, lifting) \<rho>\<^sub>1_inv a(1) clause_submset_vars_clause_subset clause_subst_compose clause_subst_eq select'(1) subset_eq subst_clause_Var_ident)
+    by (metis Int_iff \<rho>\<^sub>2_inv all_not_in_conv b clause_subst_compose clause_subst_reduntant_if' subst_clause_Var_ident to_clause_inverse vars_distinct)
+   
   obtain conclusion where conclusion_\<theta>: "to_clause conclusion\<^sub>G = conclusion \<cdot> \<theta>"
     by (metis ground_clause_is_ground subst_ground_clause)
    
