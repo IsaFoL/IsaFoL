@@ -24,12 +24,6 @@ lemma schedule_next_reduction_stI: \<open>\<not>a < (10 :: 64 word) \<Longrighta
   apply assumption
   by auto
 
-sepref_def reduceint_impl
-  is \<open>uncurry0 (RETURN reduceint)\<close>
-  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
-  unfolding reduceint_def
-  by sepref
-
 lemma schedule_next_reduction_stI2:
   \<open>1 \<le> a \<Longrightarrow> 0 < a\<close> for a :: \<open>64 word\<close>
   unfolding word_le_not_less[symmetric]

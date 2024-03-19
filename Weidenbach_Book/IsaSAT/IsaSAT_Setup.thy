@@ -1220,6 +1220,9 @@ definition opts_restart_st :: \<open>isasat \<Rightarrow> bool\<close> where
 definition opts_reduction_st :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>opts_reduction_st S = opts_reduce (get_opts S)\<close>
 
+definition opts_reduceint_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
+  \<open>opts_reduceint_st S = opts_reduceint (get_opts S)\<close>
+
 definition opts_unbounded_mode_st :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>opts_unbounded_mode_st S = opts_unbounded_mode (get_opts S)\<close>
 

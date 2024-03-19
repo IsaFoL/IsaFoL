@@ -308,7 +308,7 @@ sepref_def bottom_lcount_code
   by sepref
 
 definition bottom_opts :: \<open>opts\<close> where
-  \<open>bottom_opts = IsaOptions False False False 0 0 0 0 0 0 0 True\<close>
+  \<open>bottom_opts = IsaOptions False False False True 0 0 0 0 0 0 0 0\<close>
 
 definition extract_opts_wl_heur where
   \<open>extract_opts_wl_heur = isasat_state_ops.remove_o bottom_opts\<close>

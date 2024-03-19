@@ -38,6 +38,23 @@ global_interpretation opts_reduce: read_opts_param_adder0 where
   subgoal by (auto simp: opts_reduction_st_fast_code_def)
   done
 
+definition opts_reduceint_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>opts_reduceint_st_fast_code = read_opts_wl_heur_code opts_rel_reduceint_code\<close>
+
+global_interpretation opts_reduceint: read_opts_param_adder0 where
+  f' = \<open>RETURN o opts_reduceint\<close> and
+  f = opts_rel_reduceint_code and
+  x_assn = word64_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_opts_wl_heur (RETURN o opts_reduceint) = RETURN o opts_reduceint_st\<close> and
+    \<open>read_opts_wl_heur_code opts_rel_reduceint_code = opts_reduceint_st_fast_code\<close>
+  apply unfold_locales
+  apply (rule opts_refine; assumption)
+  subgoal by (auto simp: opts_reduceint_st_fast_code_def read_all_st_def opts_reduceint_st_def intro!: ext
+    split: isasat_int_splits)
+  subgoal by (auto simp: opts_reduceint_st_fast_code_def)
+  done
+
 definition opts_unbounded_mode_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
    \<open>opts_unbounded_mode_st_fast_code = read_opts_wl_heur_code opts_rel_unbounded_mode_code\<close>
 
@@ -241,8 +258,9 @@ global_interpretation stats_conflict: read_stats_param_adder0 where
   done
 
 lemmas [unfolded lambda_comp_true, sepref_fr_rules] =
-  opts_restart.refine[unfolded]
-  opts_reduce.refine[unfolded]
+  opts_restart.refine
+  opts_reduce.refine
+  opts_reduceint.refine
   opts_unbounded_mode.refine
   opts_minimum_between_restart.refine
   opts_restart_coeff1.refine
@@ -257,11 +275,12 @@ lemmas [unfolded lambda_comp_true, sepref_fr_rules] =
 
 sepref_register opts_reduction_st opts_restart_st opts_restart_coeff2_st opts_restart_coeff1_st
     opts_minimum_between_restart_st opts_unbounded_mode_st get_GC_units_opt units_since_last_GC_st
-    isasat_length_trail_st get_pos_of_level_in_trail_imp_st units_since_beginning
+    isasat_length_trail_st get_pos_of_level_in_trail_imp_st units_since_beginning opts_reduceint_st
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   opts_restart_st_fast_code_def[unfolded read_all_st_code_def]
   opts_reduction_st_fast_code_def[unfolded read_all_st_code_def]
+  opts_reduceint_st_fast_code_def[unfolded read_all_st_code_def]
   opts_unbounded_mode_st_fast_code_def[unfolded read_all_st_code_def]
   opts_minimum_between_restart_st_fast_code_def[unfolded read_all_st_code_def]
   opts_restart_coeff1_st_fast_code_def[unfolded read_all_st_code_def]
@@ -573,6 +592,7 @@ begin
 export_llvm opts_reduction_st_fast_code opts_restart_st_fast_code opts_unbounded_mode_st_fast_code
   opts_minimum_between_restart_st_fast_code mop_arena_status_st_impl full_arena_length_st_impl
   get_global_conflict_count_impl get_count_max_lvls_heur_impl clss_size_resetUS0_st
+  opts_reduceint_st_fast_code
 end
 
 end
