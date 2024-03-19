@@ -8,18 +8,17 @@ begin
 abbreviation is_ground_trm where
   "is_ground_trm t \<equiv> vars_term t = {}"
 
+lemma is_ground_trm_iff_ident_forall_subst: "is_ground_trm t \<longleftrightarrow> (\<forall>\<sigma>. t = t \<cdot> \<sigma>)"
+  by (metis (full_types) Int_empty_left ex_in_conv fun_upd_same subst_apply_term_ident
+      term.disc(1) term.disc(2) term_subst_eq_conv)
+
 global_interpretation term_subst: basic_substitution_ops subst_apply_term Var subst_compose
   rewrites "term_subst.is_ground = is_ground_trm"
 proof -
-  have is_ground_iff:
-    "basic_substitution_ops.is_ground (\<cdot>) (t \<cdot> \<gamma>) \<longleftrightarrow>
-      (\<forall>x \<in> vars_term t. basic_substitution_ops.is_ground (\<cdot>) (\<gamma> x))"
-    for t \<gamma>
-    by (induction t) (auto simp add: basic_substitution_ops.is_ground_def)
-
-  thus "basic_substitution_ops.is_ground (\<cdot>) = is_ground_trm"
-    by (metis (mono_tags, opaque_lifting) basic_substitution_ops.subst_ident_if_ground ex_in_conv
-        subst_apply_term_empty subst_def subst_simps(1) subst_term_eqI term.distinct(1))
+  interpret basic_substitution_ops subst_apply_term Var subst_compose .
+  show "is_ground = is_ground_trm"
+    using is_ground_trm_iff_ident_forall_subst
+    by (metis is_ground_def)
 qed
 
 lemma is_ground_iff:
