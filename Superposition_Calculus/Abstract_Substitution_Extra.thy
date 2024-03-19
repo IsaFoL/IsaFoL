@@ -106,9 +106,9 @@ locale basic_substitution =
   basic_substitution_ops subst id_subst comp_subst is_ground +
   comp_subst: monoid comp_subst id_subst
   for
-    subst :: "'x \<Rightarrow> 's \<Rightarrow> 'x" (infixl "\<cdot>" 67) and
-    id_subst :: 's and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) and
+    id_subst :: 's and
+    subst :: "'x \<Rightarrow> 's \<Rightarrow> 'x" (infixl "\<cdot>" 67) and
     is_ground :: "'x \<Rightarrow> bool" +
   assumes
     subst_id_subst[simp]: "x \<cdot> id_subst = x" and
