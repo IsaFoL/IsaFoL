@@ -118,24 +118,36 @@ definition vars_literal :: "('f, 'v) atom literal \<Rightarrow> 'v set" where
 definition vars_clause :: "('f, 'v) atom clause \<Rightarrow> 'v set" where
   "vars_clause clause = (\<Union>literal \<in> set_mset clause. vars_literal literal)"
 
-definition vars_clause_set :: "('f, 'v) atom clause set \<Rightarrow> 'v set" where
-  "vars_clause_set clauses = (\<Union>clause \<in> clauses. vars_clause clause)"
+lemma finite_vars_atom [simp]:
+  "finite (vars_atom atom)"
+  unfolding vars_atom_def
+  by simp
+
+lemma finite_vars_literal [simp]:
+  "finite (vars_literal literal)"
+  unfolding vars_literal_def
+  by simp
+
+lemma finite_vars_clause [simp]:
+  "finite (vars_clause clause)"
+  unfolding vars_clause_def
+  by auto
   
-lemma vars_literal[simp]: 
+lemma vars_literal [simp]: 
   "vars_literal (Pos atom) = vars_atom atom"
   "vars_literal (Neg atom) = vars_atom atom"
   by (simp_all add: vars_literal_def)
 
-lemma vars_literal_split[simp]: 
+lemma vars_literal_split [simp]: 
   "vars_literal (term\<^sub>1 \<approx> term\<^sub>2) = vars_term term\<^sub>1 \<union> vars_term term\<^sub>2"
   unfolding vars_literal_def vars_atom_def
   by simp
 
-lemma vars_clause_add_mset[simp]: 
+lemma vars_clause_add_mset [simp]: 
   "vars_clause (add_mset literal clause) = vars_literal literal \<union> vars_clause clause"
   by (simp add: vars_clause_def)
                                               
-lemma vars_clause_plus[simp]: 
+lemma vars_clause_plus [simp]: 
   "vars_clause (clause\<^sub>1 + clause\<^sub>2) = vars_clause clause\<^sub>1 \<union> vars_clause clause\<^sub>2"
   by (simp add: vars_clause_def)
 
@@ -337,6 +349,25 @@ lemma clause_subst_reduntant_upd [simp]:
   using assms
   unfolding vars_clause_def subst_clause_def
   by auto
+
+lemma term_subst_reduntant_if [simp]: 
+  "term \<cdot>t (\<lambda>var. if var \<in> vars_term term then \<theta> var else \<theta>' var) = term \<cdot>t \<theta>"
+  by (smt (verit, ccfv_threshold) term_subst_eq)
+
+lemma atom_subst_reduntant_if [simp]: 
+  "atom \<cdot>a (\<lambda>var. if var \<in> vars_atom atom then \<theta> var else \<theta>' var) = atom \<cdot>a \<theta>"
+  unfolding subst_atom_def vars_atom_def
+  by (smt (verit, ccfv_SIG) UN_I term_subst_eq uprod.map_cong0)
+ 
+lemma literal_subst_reduntant_if [simp]: 
+  "literal \<cdot>l (\<lambda>var. if var \<in> vars_literal literal then \<theta> var else \<theta>' var) = literal \<cdot>l \<theta>"
+  unfolding subst_literal_def vars_literal_def
+  by(cases "literal") auto
+
+lemma clause_subst_reduntant_if: 
+  "clause \<cdot> (\<lambda>var. if var \<in> vars_clause clause then \<theta> var else \<theta>' var) = clause \<cdot> \<theta>"
+  unfolding subst_clause_def vars_clause_def 
+  by (smt (verit, best) UN_I literal_subst_eq multiset.map_cong0)
                                       
 (* TODO: Could these be made less explicit somehow?
 Something like:
@@ -752,7 +783,7 @@ proof-
     by blast
 qed
 
-lemma ground_subst_exists:
+lemma obtain_ground_subst:
   obtains \<gamma> 
   where "term_subst.is_ground_subst \<gamma>"
 proof-
@@ -774,7 +805,7 @@ lemma ground_subst_exstension_term:
 proof-
   obtain \<gamma>' :: "'v \<Rightarrow> ('f, 'v) Term.term" where 
     \<gamma>': "term_subst.is_ground_subst \<gamma>'"
-      using ground_subst_exists
+      using obtain_ground_subst
       by blast
 
   define \<gamma> where 
@@ -798,7 +829,7 @@ lemma ground_subst_exstension_atom:
   assumes "is_ground_atom (atom \<cdot>a \<theta>)"
   obtains \<gamma>
   where "atom \<cdot>a \<theta> = atom \<cdot>a \<gamma>" and "term_subst.is_ground_subst \<gamma>"
-  by (metis assms atom_subst_compose ground_subst_compose ground_subst_exists subst_ground_atom)
+  by (metis assms atom_subst_compose ground_subst_compose obtain_ground_subst subst_ground_atom)
 
 lemma ground_subst_exstension_literal:
   assumes "is_ground_literal (literal \<cdot>l \<theta>)"
@@ -822,7 +853,7 @@ lemma ground_subst_exstension_clause:
   assumes "is_ground_clause (clause \<cdot> \<theta>)"
   obtains \<gamma>
   where "clause \<cdot> \<theta> = clause \<cdot> \<gamma>" and "term_subst.is_ground_subst \<gamma>"
-  by (metis assms clause_subst_compose ground_subst_compose ground_subst_exists subst_ground_clause)
+  by (metis assms clause_subst_compose ground_subst_compose obtain_ground_subst subst_ground_clause)
 
 lemma non_ground_arg: 
   assumes "\<not> is_ground_term (Fun f terms)"
@@ -854,44 +885,52 @@ next
     by auto
 qed
 
+context
+  fixes I :: "('f gterm \<times> 'f gterm) set"
+  assumes 
+    trans: "trans I" and
+    sym: "sym I" and
+    compatible_with_gctxt: "compatible_with_gctxt I"
+begin
+
 lemma interpretation_context_congruence:
   assumes 
-    "trans I"
-    "sym I"
-    "compatible_with_gctxt I"
     "(t, t') \<in> I"
     "(ctxt\<langle>t\<rangle>\<^sub>G, t'') \<in> I"
   shows
     "(ctxt\<langle>t'\<rangle>\<^sub>G, t'') \<in> I"
-  using assms compatible_with_gctxtD[OF assms(3, 4)]
-  by (meson symE transD)
+  using 
+    assms sym trans compatible_with_gctxt
+    compatible_with_gctxtD symE transE 
+  by meson
 
 lemma interpretation_context_congruence':
   assumes 
-    "trans I"
-    "sym I"
-    "compatible_with_gctxt I"
     "(t, t') \<in> I"
     "(ctxt\<langle>t\<rangle>\<^sub>G, t'') \<notin> I"
   shows
     "(ctxt\<langle>t'\<rangle>\<^sub>G, t'') \<notin> I"
-  using assms
+  using assms sym trans compatible_with_gctxt
   by (metis interpretation_context_congruence symD)
 
+context
+  fixes 
+     \<theta> :: "('f, 'v) subst" and
+     update :: "('f, 'v) Term.term" and
+     var :: 'v
+   assumes
+    update_is_ground: "is_ground_term update" and
+    var_grounding: "is_ground_term (Var var \<cdot>t \<theta>)" 
+begin
+
 lemma interpretation_term_congruence:
-  fixes \<theta> :: "('a, 'b) subst"
   assumes 
-    "trans I"
-    "sym I"
-    "compatible_with_gctxt I"
-    "is_ground_term update" 
-    "is_ground_term (Var var \<cdot>t \<theta>)" 
-    "is_ground_term (term \<cdot>t \<theta>)" 
-    "(to_ground_term (\<theta> var), to_ground_term update) \<in> I"
-    "(to_ground_term (term \<cdot>t \<theta>(var := update)), term') \<in> I" 
-  shows
+    term_grounding: "is_ground_term (term \<cdot>t \<theta>)" and
+    var_update: "(to_ground_term (\<theta> var), to_ground_term update) \<in> I" and
+    updated_term: "(to_ground_term (term \<cdot>t \<theta>(var := update)), term') \<in> I" 
+  shows 
     "(to_ground_term (term \<cdot>t \<theta>), term') \<in> I"
-  using assms(6, 8)
+  using assms
 proof(induction "size (filter_mset (\<lambda>var'. var' = var) (vars_term_ms term))" arbitrary: "term")
   case 0
 
@@ -917,72 +956,68 @@ next
 
   have [simp]: "(to_ground_context (context \<cdot>t\<^sub>c \<theta>))\<langle>to_ground_term (\<theta> var)\<rangle>\<^sub>G = 
     to_ground_term (context\<langle>Var var\<rangle> \<cdot>t \<theta>)"
-    using Suc.prems(1) by fastforce
+    using Suc by fastforce
 
   have context_update [simp]: 
     "(to_ground_context (context \<cdot>t\<^sub>c \<theta>))\<langle>to_ground_term update\<rangle>\<^sub>G = 
       to_ground_term (context\<langle>update\<rangle> \<cdot>t \<theta>)"
-    using Suc.prems(1) assms(4)
+    using Suc update_is_ground
     unfolding "term"
     by auto
 
   have "n = size {#var' \<in># vars_term_ms context\<langle>update\<rangle>. var' = var#}"
-    using Suc(2) vars_term_ms_count[OF assms(4), of var "context"]
+    using Suc vars_term_ms_count[OF update_is_ground, of var "context"]
     by auto
 
   moreover have "is_ground_term (context\<langle>update\<rangle> \<cdot>t \<theta>)"
-    using Suc.prems assms(4) by auto
+    using Suc.prems update_is_ground 
+    by auto
     
   moreover have  "(to_ground_term (context\<langle>update\<rangle> \<cdot>t \<theta>(var := update)), term') \<in> I"
-    using  Suc.prems(2) assms(4) by auto
+    using Suc.prems update_is_ground
+    by auto
 
   moreover have update: "(to_ground_term update, to_ground_term (\<theta> var)) \<in> I"
-    using assms(7)
-    by (meson assms(2) symE)
+    using var_update sym
+    by (metis symD)
 
   moreover have "(to_ground_term (context\<langle>update\<rangle> \<cdot>t \<theta>), term') \<in> I"
-    using Suc(1) calculation
+    using Suc calculation
     by blast
 
   ultimately have "((to_ground_context (context \<cdot>t\<^sub>c \<theta>))\<langle>to_ground_term (\<theta> var)\<rangle>\<^sub>G, term') \<in> I"
-    using interpretation_context_congruence[OF assms(1, 2, 3)] context_update
+    using interpretation_context_congruence context_update
     by presburger
 
   then show ?case 
     unfolding "term"
     by simp
 qed
-               
+
 lemma interpretation_term_congruence':
-  fixes \<theta> :: "('a, 'b) subst"
   assumes 
-    "trans I"
-    "sym I"
-    "compatible_with_gctxt I"
-    "is_ground_term update" 
-    "is_ground_term (Var var \<cdot>t \<theta>)" 
-    "is_ground_term (term \<cdot>t \<theta>)" 
-    "(to_ground_term (\<theta> var), to_ground_term update) \<in> I"
-    "(to_ground_term (term \<cdot>t \<theta>(var := update)), term') \<notin> I" 
+    term_grounding: "is_ground_term (term \<cdot>t \<theta>)" and
+    var_update: "(to_ground_term (\<theta> var), to_ground_term update) \<in> I" and
+    updated_term: "(to_ground_term (term \<cdot>t \<theta>(var := update)), term') \<notin> I" 
   shows
     "(to_ground_term (term \<cdot>t \<theta>), term') \<notin> I"
 proof
   assume "(to_ground_term (term \<cdot>t \<theta>), term') \<in> I"
 
   then show False
-    using assms interpretation_term_congruence
-    by (smt (verit, ccfv_SIG) eval_term.simps(1) fun_upd_same fun_upd_triv fun_upd_upd 
-         ground_term_subst_upd symE)
+    using 
+      First_Order_Clause.interpretation_term_congruence[OF 
+        trans sym compatible_with_gctxt var_grounding
+        ]
+     assms 
+     sym 
+     update_is_ground 
+    by (smt (verit) eval_term.simps fun_upd_same fun_upd_triv fun_upd_upd ground_term_subst_upd 
+         symD)
 qed
 
 lemma interpretation_atom_congruence:
-  fixes \<theta> :: "('a, 'b) subst"
   assumes 
-    "trans I"
-    "sym I"
-    "compatible_with_gctxt I"
-    "is_ground_term update" 
-    "is_ground_term (Var var \<cdot>t \<theta>)" 
     "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)" 
     "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)" 
     "(to_ground_term (\<theta> var), to_ground_term update) \<in> I"
@@ -990,32 +1025,21 @@ lemma interpretation_atom_congruence:
   shows
     "(to_ground_term (term\<^sub>1 \<cdot>t \<theta>), to_ground_term (term\<^sub>2 \<cdot>t \<theta>)) \<in> I"
   using assms
-  by (metis interpretation_term_congruence symE)
- 
+  by (metis interpretation_term_congruence sym symE)
+
 lemma interpretation_atom_congruence':
-  fixes \<theta> :: "('a, 'b) subst"
   assumes 
-    "trans I "
-    "sym I"
-    "compatible_with_gctxt I"
-    "is_ground_term update" 
-    "is_ground_term (Var var \<cdot>t \<theta>)" 
-    "is_ground_term (a \<cdot>t \<theta>)" 
-    "is_ground_term (b \<cdot>t \<theta>)" 
+    "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)" 
+    "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)" 
     "(to_ground_term (\<theta> var), to_ground_term update) \<in> I"
-    "(to_ground_term (a \<cdot>t \<theta>(var := update)), to_ground_term (b \<cdot>t \<theta>(var := update)))\<notin> I" 
+    "(to_ground_term (term\<^sub>1 \<cdot>t \<theta>(var := update)), to_ground_term (term\<^sub>2 \<cdot>t \<theta>(var := update))) \<notin> I" 
   shows
-    "(to_ground_term (a \<cdot>t \<theta>), to_ground_term (b \<cdot>t \<theta>)) \<notin> I"
+    "(to_ground_term (term\<^sub>1 \<cdot>t \<theta>), to_ground_term (term\<^sub>2 \<cdot>t \<theta>)) \<notin> I"
    using assms
-   by (metis interpretation_term_congruence' symE)
+   by (metis interpretation_term_congruence' sym symE)
 
 lemma interpretation_literal_congruence:
-  assumes 
-    "trans I"
-    "sym I"
-    "compatible_with_gctxt I"
-    "is_ground_term update" 
-    "is_ground_term (Var var \<cdot>t \<theta>)" 
+  assumes
     "is_ground_literal (literal \<cdot>l \<theta>)"
     "upair ` I \<TTurnstile>l to_ground_term (Var var \<cdot>t \<theta>) \<approx> to_ground_term update"
     "upair ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<theta>(var := update))"
@@ -1028,21 +1052,21 @@ proof(cases literal)
   proof(cases atom)
     case (Upair term\<^sub>1 term\<^sub>2)  
     then have term_groundings: "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)" "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)"
-      using Pos assms(6)
+      using Pos assms
       by(auto simp: subst_atom ground_terms_in_ground_atom2 subst_literal)
     
     have "(to_ground_term (\<theta> var), to_ground_term update) \<in> I"
-      using assms(2) assms(7) by auto
+      using sym assms by auto
 
     moreover have 
       "(to_ground_term (term\<^sub>1 \<cdot>t \<theta>(var := update)), to_ground_term (term\<^sub>2 \<cdot>t \<theta>(var := update))) \<in> I"
-      using assms(8) Pos Upair
+      using assms Pos Upair
       unfolding to_ground_literal_def to_ground_atom_def
-      by(auto simp: subst_atom assms(2) subst_literal)
+      by(auto simp: subst_atom sym subst_literal)
    
     ultimately show ?thesis
-      using interpretation_atom_congruence[OF assms(1-5) term_groundings]
-      by (simp add: Upair assms(2) subst_atom to_ground_atom_def)
+      using interpretation_atom_congruence[OF term_groundings]
+      by (simp add: Upair sym subst_atom to_ground_atom_def)
   qed
 
   with Pos show ?thesis
@@ -1054,21 +1078,21 @@ next
   proof(cases atom)
     case (Upair term\<^sub>1 term\<^sub>2)  
     then have term_groundings: "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)" "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)"
-      using Neg assms(6)
+      using Neg assms
       by(auto simp: subst_atom ground_terms_in_ground_atom2 subst_literal(2))
     
     have "(to_ground_term (\<theta> var), to_ground_term update) \<in> I"
-      using assms(2) assms(7) by auto
+      using sym assms by auto
 
     moreover have 
       "(to_ground_term (term\<^sub>1 \<cdot>t \<theta>(var := update)), to_ground_term (term\<^sub>2 \<cdot>t \<theta>(var := update))) \<notin> I"
-      using assms(8) Neg Upair
+      using assms Neg Upair
       unfolding to_ground_literal_def to_ground_atom_def
-      by (simp add: assms(2) subst_literal(2) subst_atom)
+      by (simp add: sym subst_literal(2) subst_atom)
    
     ultimately show ?thesis
-      using interpretation_atom_congruence'[OF assms(1-5) term_groundings]
-      by (simp add: Upair assms(2) subst_atom to_ground_atom_def)
+      using interpretation_atom_congruence'[OF term_groundings]
+      by (simp add: Upair sym subst_atom to_ground_atom_def)
   qed
 
   then show ?thesis
@@ -1076,12 +1100,7 @@ next
 qed
 
 lemma interpretation_clause_congruence:
-  assumes 
-    "trans I"
-    "sym I"
-    "compatible_with_gctxt I"
-    "is_ground_term update" 
-    "is_ground_term (Var var \<cdot>t \<theta>)" 
+  assumes
     "is_ground_clause (clause \<cdot> \<theta>)" 
     "upair ` I \<TTurnstile>l to_ground_term (Var var \<cdot>t \<theta>) \<approx> to_ground_term update"
     "upair ` I \<TTurnstile> to_ground_clause (clause \<cdot> \<theta>(var := update))"
@@ -1096,22 +1115,23 @@ next
   case (add literal clause')
 
   have clause'_grounding: "is_ground_clause (clause' \<cdot> \<theta>)"
-    by (metis add.prems(6) is_ground_clause_add_mset subst_clause_add_mset)
+    by (metis add.prems(1) is_ground_clause_add_mset subst_clause_add_mset)
   
   show ?case
   proof(cases "upair ` I \<TTurnstile> to_ground_clause (clause' \<cdot> \<theta>(var := update))")
     case True
     show ?thesis 
-      using add(1)[OF assms(1 - 5) clause'_grounding assms(7) True]
-      by (simp add: subst_clause_add_mset to_ground_clause_def)
+      using add(1)[OF clause'_grounding assms(2) True]
+      unfolding subst_clause_add_mset to_ground_clause_def
+      by simp
   next
     case False
     then have "upair ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<theta>(var := update))"
-      using add(9)
+      using add.prems
       by (metis image_mset_add_mset subst_clause_add_mset to_ground_clause_def true_cls_add_mset)
 
     then have "upair ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<theta>)"
-      using interpretation_literal_congruence[OF assms(1-5)] add.prems
+      using interpretation_literal_congruence add.prems
       by (metis is_ground_clause_add_mset subst_clause_add_mset)
 
     then show ?thesis 
@@ -1119,4 +1139,55 @@ next
   qed
 qed
 
+end
+end
+
+subsection \<open>Renaming\<close>
+
+(* TODO: these work also without inj *)
+
+context 
+  fixes \<rho> :: "('f, 'v) subst"
+  assumes renaming: "term_subst.is_renaming \<rho>"
+begin
+
+lemma renaming_vars_term:  "Var ` vars_term (term \<cdot>t \<rho>) = \<rho> ` (vars_term term)" 
+proof(induction "term")
+  case Var
+  with renaming show ?case
+    unfolding term_subst_is_renaming_iff
+    by (metis Term.term.simps(17) eval_term.simps(1) image_empty image_insert is_VarE)
+next
+  case (Fun f terms)
+
+  have 
+    "\<And>term x. \<lbrakk>term \<in> set terms; x \<in> vars_term (term \<cdot>t \<rho>)\<rbrakk> 
+       \<Longrightarrow> Var x \<in> \<rho> ` \<Union> (vars_term ` set terms)"
+    using Fun
+    by (smt (verit, del_insts) UN_iff image_UN image_eqI)
+
+  moreover have 
+    "\<And>term x. \<lbrakk>term \<in> set terms; x \<in> vars_term term\<rbrakk>
+       \<Longrightarrow> \<rho> x \<in> Var ` (\<Union>x' \<in> set terms. vars_term (x' \<cdot>t \<rho>))"
+    using Fun
+    by (smt (verit, del_insts) UN_iff image_UN image_eqI)
+ 
+  ultimately show ?case
+    by auto
+qed
+
+lemma renaming_vars_atom: "Var ` vars_atom (atom \<cdot>a \<rho>) = \<rho> ` vars_atom atom"
+  unfolding vars_atom_def subst_atom_def 
+  by(cases atom)(auto simp: image_Un renaming_vars_term)
+
+lemma renaming_vars_literal: "Var ` vars_literal (literal \<cdot>l \<rho>) = \<rho> ` vars_literal literal"
+  unfolding vars_literal_def subst_literal_def
+  by(cases literal)(auto simp: renaming_vars_atom)
+
+lemma renaming_vars_clause: "Var ` vars_clause (clause \<cdot> \<rho>) = \<rho> ` vars_clause clause"
+  using renaming_vars_literal
+  by(induction clause)(simp_all add: image_Un subst_clause_add_mset)
+
+end
+ 
 end

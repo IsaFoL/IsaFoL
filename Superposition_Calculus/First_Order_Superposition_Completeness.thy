@@ -5,98 +5,8 @@ theory First_Order_Superposition_Completeness
     Grounded_First_Order_Superposition
 begin
 
-lemma test: " (\<forall>x. is_Var (\<rho> x)) \<Longrightarrow> Var ` vars_term (term \<cdot>t \<rho>) = \<rho> ` (vars_term term)" 
-  apply(cases "term")
-   apply auto
-     apply (metis term.disc(2) term.set_cases(2))
-    apply (metis image_iff term.collapse(1) term.set_sel(3))
-  apply (smt (verit, ccfv_SIG) UN_iff image_the_Var_image_subst_renaming_eq member_image_the_Var_image_subst vars_term_subst_apply_term)
-  by (metis (no_types, lifting) UN_iff image_eqI term.collapse(1) term.set_sel(3) vars_term_subst)
-
-lemma  test_atom: 
-  assumes "(\<forall>x. is_Var (\<rho> x))"
-  shows "Var ` vars_atom (atom \<cdot>a \<rho>) = \<rho> ` vars_atom atom"
-  using test[OF assms]
-  unfolding vars_atom_def subst_atom_def
-  apply auto
-   apply (smt (verit, del_insts) UN_iff image_iff uprod.set_map)
-  by (smt (verit, ccfv_threshold) UN_I image_iff uprod.set_map)
-
-lemma  test_literal: 
-  assumes "(\<forall>x. is_Var (\<rho> x))"
-  shows "Var ` vars_literal (literal \<cdot>l \<rho>) = \<rho> ` vars_literal literal"
-  using test_atom[OF assms]
-  unfolding vars_literal_def subst_literal_def
-  by (metis literal.map_sel(1) literal.map_sel(2))
-
-lemma  test_clause: 
-  assumes "(\<forall>x. is_Var (\<rho> x))"
-  shows "Var ` vars_clause (clause \<cdot> \<rho>) = \<rho> ` vars_clause clause"
-  using test_literal[OF assms]
-  unfolding vars_clause_def subst_clause_def
-  apply auto
-   apply (smt (verit, ccfv_threshold) UN_iff image_iff)
-  using image_iff by fastforce 
-
-lemma finite_vars_atom [simp]:
-  "finite (vars_atom atom)"
-  unfolding vars_atom_def
-  by simp
-
-lemma finite_vars_literal [simp]:
-  "finite (vars_literal literal)"
-  unfolding vars_literal_def
-  by simp
-
-lemma finite_vars_clause [simp]:
-  "finite (vars_clause clause)"
-  unfolding vars_clause_def
-  by auto
-
-context first_order_superposition_calculus
-begin
-
-lemmas term_renaming_exists = 
-  renaming_exists[OF subset_UNIV subset_UNIV finite_vars_term  finite_vars_term]
-
-lemmas atom_renaming_exists = 
-  renaming_exists[OF subset_UNIV subset_UNIV finite_vars_atom finite_vars_atom]
-
-lemmas literal_renaming_exists = 
-  renaming_exists[OF subset_UNIV subset_UNIV finite_vars_literal finite_vars_literal]
-
-lemmas clause_renaming_exists = 
-  renaming_exists[OF subset_UNIV subset_UNIV finite_vars_clause finite_vars_clause]
-
-end
-
 (* TODO: *)
 
-lemma term_subst_if: "term \<cdot>t (\<lambda>var. if var \<in> vars_term term then x var else y var) = term \<cdot>t (\<lambda>var. x var)"
-  by (smt (verit, ccfv_threshold) term_subst_eq)
-
-lemma atom_subst_if: "atom \<cdot>a (\<lambda>var. if var \<in> vars_atom atom then x var else y var) = atom \<cdot>a (\<lambda>var. x var)"
-  using term_subst_if
-  unfolding subst_atom_def vars_atom_def
-  by (smt (verit, ccfv_SIG) UN_I term_subst_eq uprod.map_cong0)
-
-lemma literal_subst_if: "literal \<cdot>l (\<lambda>var. if var \<in> vars_literal literal then x var else y var) = literal \<cdot>l (\<lambda>var. x var)"
-  using atom_subst_if
-  unfolding subst_literal_def vars_literal_def
-  by(cases "literal") auto
-
-lemma literal_subst_if': "literal \<in># clause
-   \<Longrightarrow> literal \<cdot>l (\<lambda>var. if  \<exists>x\<in>#clause. var \<in> vars_literal x then x var else y var) = literal \<cdot>l (\<lambda>var. x var)"
-  unfolding vars_literal_def subst_literal_def
-  apply(cases literal)
-   apply auto
-  by (smt (verit) UN_I literal.sel subst_atom_def term_subst_eq uprod.map_cong0 vars_atom_def)+
-  
-(* TODO: generalize? *)
-lemma clause_subst_if: "clause \<cdot> (\<lambda>var. if var \<in> vars_clause clause then x var else y var) = clause \<cdot> (\<lambda>var. x var)"
-  unfolding subst_clause_def vars_clause_def 
-  using literal_subst_if'[of _ clause x y]
-  by simp
 
 lemma term_subst_if'': "vars_term term\<^sub>1 \<subseteq> vars_term term\<^sub>2 \<Longrightarrow> term\<^sub>1 \<cdot>t (\<lambda>var. if var \<in> vars_term term\<^sub>2 then x var else y var) = term\<^sub>1 \<cdot>t (\<lambda>var. x var)"
   apply(cases term\<^sub>1; cases term\<^sub>2)
@@ -1730,7 +1640,7 @@ proof-
 
   (* TODO: *)
   then have vars_distinct: "vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}"
-    using test_clause[symmetric] term_subst_is_renaming_iff[of \<rho>\<^sub>1]  term_subst_is_renaming_iff[of \<rho>\<^sub>2]  
+    using renaming_vars_clause[symmetric]
     by (smt (verit, del_insts) disjoint_iff imageI)
 
   from renaming obtain \<rho>\<^sub>1_inv \<rho>\<^sub>2_inv where
@@ -1768,7 +1678,7 @@ proof-
     using premise\<^sub>1_\<theta>\<^sub>1 premise\<^sub>2_\<theta>\<^sub>2 select' 
        apply auto
 
-    unfolding clause_subst_if clause_subst_if_2[rule_format, OF vars_distinct]  clause_subst_if_2[rule_format, OF vars_distinct]
+    unfolding clause_subst_reduntant_if clause_subst_if_2[rule_format, OF vars_distinct]  clause_subst_if_2[rule_format, OF vars_distinct]
     using \<rho>\<^sub>1_inv \<rho>\<^sub>2_inv clause_subst_if_2[of "premise\<^sub>2 \<cdot> \<rho>\<^sub>2" "premise\<^sub>1 \<cdot> \<rho>\<^sub>2"]
        apply (metis (mono_tags, lifting) clause_subst_compose subst_clause_Var_ident)
       apply (metis (no_types) \<rho>\<^sub>2_inv clause_subst_compose clause_subst_if_2 inf_commute vars_distinct subst_clause_Var_ident)
@@ -1959,9 +1869,6 @@ lemma (in first_order_superposition_calculus) ground_instances:
     "ground_Inf_overapproximated select\<^sub>G premises"
     "is_grounding select\<^sub>G"
 proof-
-  assume assumption: 
-    "\<And>select\<^sub>G. ground_Inf_overapproximated select\<^sub>G premises \<Longrightarrow> is_grounding select\<^sub>G \<Longrightarrow> thesis"
-
   obtain select\<^sub>G where   
       select\<^sub>G': "\<forall>premise\<^sub>G \<in> \<Union>(clause_groundings ` premises). \<exists>\<theta> premise. 
           premise \<cdot> \<theta> = to_clause premise\<^sub>G 
@@ -1969,54 +1876,44 @@ proof-
         \<and> premise \<in> premises" and
        "is_grounding select\<^sub>G" 
     using necessary_select\<^sub>G_exists
-    by (metis (mono_tags, opaque_lifting) ground_clause_is_ground select_subst1 to_clause_inverse to_ground_clause_inverse)
+    by (metis (mono_tags, opaque_lifting) ground_clause_is_ground select_subst1 to_clause_inverse 
+         to_ground_clause_inverse)
 
   then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
-    apply unfold_locales.
+    by unfold_locales
 
   from select\<^sub>G'(1) have "ground_Inf_overapproximated select\<^sub>G premises"
     using ground_instances  
     by auto
 
-  with assumption select\<^sub>G show thesis
+  with that select\<^sub>G show thesis
     by blast
 qed
 
 sublocale first_order_superposition_calculus \<subseteq> 
   statically_complete_calculus "\<bottom>\<^sub>F" inferences entails_\<G> Red_I_\<G> Red_F_\<G>
   unfolding static_empty_ord_inter_equiv_static_inter
-proof(rule stat_ref_comp_to_non_ground_fam_inter)
-  (* TODO *)
-  show "\<forall>q\<in>select\<^sub>G\<^sub>s.
-    statically_complete_calculus 
-      {{#}}                           
-      (ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G) q)
-      ground_superposition_calculus.G_entails 
-      (ground_superposition_calculus.GRed_I (\<prec>\<^sub>t\<^sub>G) q)
-      (ground_superposition_calculus.GRed_F (\<prec>\<^sub>t\<^sub>G))"
-  proof
-    fix select\<^sub>G
-    assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
-    then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
-      apply unfold_locales
-      unfolding select\<^sub>G\<^sub>s_def
-      by simp
+proof(rule stat_ref_comp_to_non_ground_fam_inter, rule ballI)
+  fix select\<^sub>G
+  assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
+  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
+    by unfold_locales (simp add: select\<^sub>G\<^sub>s_def)
 
-    show "statically_complete_calculus 
-            ground.G_Bot 
-            ground.G_Inf 
-            ground.G_entails 
-            ground.Red_I 
-            ground.Red_F"
-      using ground.statically_complete_calculus_axioms by blast
-  qed
+  show "statically_complete_calculus 
+          ground.G_Bot 
+          ground.G_Inf 
+          ground.G_entails 
+          ground.Red_I 
+          ground.Red_F"
+    using ground.statically_complete_calculus_axioms 
+    by blast
 next
-  (* TODO: Why don't we need the saturated precondition? *)
-  have "\<And>N. \<exists>q \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated q N" 
+  have "\<And>N. \<exists>select\<^sub>G \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated select\<^sub>G N" 
     using ground_instances
     by (smt (verit, ccfv_threshold) mem_Collect_eq select\<^sub>G\<^sub>s_def)
     
-  then show "\<And>N. empty_ord.saturated N \<Longrightarrow> \<exists>q \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated q N".
+  then show "\<And>N. empty_ord.saturated N \<Longrightarrow> 
+    \<exists>select\<^sub>G \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated select\<^sub>G N".
 qed 
 
 

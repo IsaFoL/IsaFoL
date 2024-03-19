@@ -10,7 +10,8 @@ locale grounded_first_order_superposition_calculus =
   for select :: "('f, 'v) select"
 begin
 
-sublocale ground: ground_superposition_calculus "(\<prec>\<^sub>t\<^sub>G)" select\<^sub>G
+sublocale ground: ground_superposition_calculus where
+  less_trm = "(\<prec>\<^sub>t\<^sub>G)" and select = select\<^sub>G
   by unfold_locales (rule ground_critical_pair_theorem)
 
 definition inference_groundings
@@ -142,7 +143,7 @@ sublocale first_order_superposition_calculus \<subseteq>
     "\<lambda>_. ground_superposition_calculus.GRed_F(\<prec>\<^sub>t\<^sub>G)" 
     "\<bottom>\<^sub>F"
     "\<lambda>_. clause_groundings" 
-    "\<lambda>select\<^sub>G.  Some \<circ> 
+    "\<lambda>select\<^sub>G. Some \<circ>
       (grounded_first_order_superposition_calculus.inference_groundings (\<prec>\<^sub>t) select\<^sub>G)"
     tiebreakers
 proof(unfold_locales; (intro ballI)?)

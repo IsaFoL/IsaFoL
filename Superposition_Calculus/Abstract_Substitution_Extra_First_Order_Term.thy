@@ -90,11 +90,4 @@ proof (intro exI)
     by blast
 qed
 
-lemma is_imgu_equals: 
-  assumes "term_subst.is_imgu \<mu> {{term\<^sub>1, term\<^sub>2}}" 
-  shows "term\<^sub>1 \<cdot> \<mu> = term\<^sub>2 \<cdot> \<mu>"
-  using assms term_subst.is_unifier_iff_if_finite[of "{term\<^sub>1, term\<^sub>2}"]
-  unfolding term_subst.is_imgu_def term_subst.is_unifiers_def
-  by blast
-
 end

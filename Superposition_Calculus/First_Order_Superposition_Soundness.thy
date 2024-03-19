@@ -53,14 +53,14 @@ proof (cases P C rule: equality_resolution.cases)
        by (auto simp: true_cls_def)
 
      have [simp]: "?P = add_mset ?L ?P'"
-       by (simp add: to_ground_clause_def local.equality_resolutionI(1) subst_clause_add_mset)
+       by (simp add: to_ground_clause_def equality_resolutionI(1) subst_clause_add_mset)
 
      have [simp]: "?L = (Neg (Upair ?s\<^sub>1 ?s\<^sub>2))"
        unfolding to_ground_literal_def equality_resolutionI(2) to_ground_atom_def
        by (simp add: subst_atom_def subst_literal)
        
      have [simp]: "?s\<^sub>1 = ?s\<^sub>2"
-       using is_imgu_equals[OF equality_resolutionI(3)] by simp
+       using term_subst.subst_imgu_eq_subst_imgu[OF equality_resolutionI(3)] by simp
       
      have "is_neg ?L"
        by (simp add: to_ground_literal_def equality_resolutionI(2) subst_literal)
@@ -93,8 +93,8 @@ proof (cases P C rule: equality_resolution.cases)
    qed
     
    then show ?thesis 
-    unfolding ground.G_entails_def true_clss_def clause_groundings_def
-    by auto
+     unfolding ground.G_entails_def true_clss_def clause_groundings_def
+     by auto
 qed
 
 lemma equality_factoring_sound:
@@ -145,7 +145,7 @@ proof (cases P C rule: equality_factoring.cases)
       by (auto simp: true_cls_def)
 
     then have s\<^sub>1_equals_t\<^sub>2: "?t\<^sub>2 = ?s\<^sub>1"
-      using is_imgu_equals[OF equality_factoringI(7)]
+      using term_subst.subst_imgu_eq_subst_imgu[OF equality_factoringI(7)]
       by simp
 
     have L\<^sub>1: "?L\<^sub>1 = ?s\<^sub>1 \<approx> ?s\<^sub>1'"
@@ -271,7 +271,7 @@ proof (cases P2 P1 C rule: superposition.cases)
        by (auto simp: true_cls_def)
 
      have u\<^sub>1_equals_t\<^sub>2: "?t\<^sub>2 = ?u\<^sub>1"
-       using is_imgu_equals[OF superpositionI(10)]
+       using term_subst.subst_imgu_eq_subst_imgu[OF superpositionI(10)]
        by simp
 
      have s\<^sub>1_u\<^sub>1: "?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G = to_ground_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>\<rangle>"
@@ -293,15 +293,20 @@ proof (cases P2 P1 C rule: superposition.cases)
 
     then have L\<^sub>1: "?L\<^sub>1 = ?\<P> (Upair ?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G ?s\<^sub>1')"
       unfolding superpositionI to_ground_literal_def to_ground_atom_def
-      (* TODO *)
-      by (smt (verit, ccfv_threshold) ground_atom_in_ground_literal2(1) literal.simps(10) map_uprod_simps s\<^sub>1_u\<^sub>1 subst_apply_term_ctxt_apply_distrib subst_atom subst_literal(1) subst_literal(2) to_ground_atom_def to_ground_literal_def)
-    
+      by (auto simp: s\<^sub>1_u\<^sub>1 subst_atom subst_literal)
+     
     have C: "?C = add_mset (?\<P> (Upair (?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G (?s\<^sub>1'))) (?P\<^sub>1' + ?P\<^sub>2')"
       using \<P>_pos_or_neg
-      unfolding s\<^sub>1_t\<^sub>2' superpositionI
-      apply(cases "\<P> = Pos")
-      by (simp_all add: to_ground_clause_def to_ground_literal_def subst_atom_def subst_clause_add_mset subst_clause_plus 
-              subst_literal to_ground_atom_def)
+      unfolding 
+        s\<^sub>1_t\<^sub>2' 
+        superpositionI 
+        to_ground_clause_def 
+        to_ground_literal_def 
+        subst_atom_def 
+        to_ground_atom_def
+        subst_clause_add_mset 
+        subst_clause_plus 
+      by(auto simp: subst_atom subst_literal)
 
     show "?I \<TTurnstile> to_ground_clause (C \<cdot> \<theta>)"
     proof (cases "L\<^sub>1' = ?L\<^sub>1")
@@ -400,25 +405,26 @@ end
 sublocale grounded_first_order_superposition_calculus \<subseteq> 
   sound_inference_system inferences "{{#}}" "(\<TTurnstile>\<^sub>F)"
 proof unfold_locales
-  show "\<And>\<iota>. \<iota> \<in> inferences \<Longrightarrow> set (prems_of \<iota>) \<TTurnstile>\<^sub>F {concl_of \<iota>}"
+  fix \<iota>
+  assume "\<iota> \<in> inferences"
+  then show "set (prems_of \<iota>) \<TTurnstile>\<^sub>F {concl_of \<iota>}"
     using 
-      inferences_def 
       equality_factoring_sound
       equality_resolution_sound
       superposition_sound
-      ground.G_entails_def
+    unfolding inferences_def ground.G_entails_def
     by auto
 qed
 
-(* TODO: How can I write (SOME _. True) nicer? *)
 sublocale first_order_superposition_calculus \<subseteq> 
-  sound_inference_system inferences "{{#}}" "entails_\<G>_q (SOME _. True)"
+  sound_inference_system inferences "{{#}}" entails_\<G>
 proof-
   interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G_simple
     by unfold_locales (rule select\<^sub>G_simple)
 
-  show "sound_inference_system inferences {{#}} (\<TTurnstile>\<^sub>F)"
-    using sound_inference_system_axioms by blast
+  show "sound_inference_system inferences {{#}} entails_\<G>"
+    unfolding entails_def
+    by(simp add: Q_nonempty ex_in_conv sound_inference_system_axioms)
 qed
 
 end
