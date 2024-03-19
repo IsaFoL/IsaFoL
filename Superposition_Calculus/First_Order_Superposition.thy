@@ -194,6 +194,18 @@ next
     using superposition_if_neg_superposition superposition_if_pos_superposition by metis
 qed
 
+lemmas term_renaming_exists = 
+  renaming_exists[OF subset_UNIV subset_UNIV finite_vars_term finite_vars_term]
+
+lemmas atom_renaming_exists = 
+  renaming_exists[OF subset_UNIV subset_UNIV finite_vars_atom finite_vars_atom]
+
+lemmas literal_renaming_exists = 
+  renaming_exists[OF subset_UNIV subset_UNIV finite_vars_literal finite_vars_literal]
+
+lemmas clause_renaming_exists = 
+  renaming_exists[OF subset_UNIV subset_UNIV finite_vars_clause finite_vars_clause]
+
 end
 
 end

@@ -243,15 +243,12 @@ qed
 
 lemma multp_map_strong:
   assumes
-    "asymp R" and "transp R" and
-    "asymp S" and "transp S" and
+    transp: "transp R" and
     f_mono: "monotone_on (set_mset (M1 + M2)) R S f" and
     M1_lt_M2: "multp R M1 M2"
   shows "multp S (image_mset f M1) (image_mset f M2)"
-  using M1_lt_M2 multp\<^sub>D\<^sub>M_map_strong[OF f_mono]
-  unfolding multp_eq_multp\<^sub>D\<^sub>M[OF assms(1, 2)]
-  unfolding multp_eq_multp\<^sub>D\<^sub>M[OF assms(3, 4)]
-  by argo
+  using monotone_on_multp_multp_image_mset[THEN monotone_onD, OF f_mono transp _ _ M1_lt_M2]
+  by simp
 
 lemma multp\<^sub>H\<^sub>O_add_mset:
   assumes "asymp R" "transp R" "R x y" "multp\<^sub>H\<^sub>O R X Y"
@@ -306,7 +303,7 @@ lemma multp_add_mset':
   by (metis add_mset_add_single empty_iff insert_iff one_step_implies_multp set_mset_add_mset_insert 
         set_mset_empty)
 
-lemma multp_add_mset_refl:
+lemma multp_add_mset_reflclp:
   assumes "asymp R" "transp R" "R x y" "(multp R)\<^sup>=\<^sup>= X Y"
   shows "multp R (add_mset x X) (add_mset y Y)"
   using 

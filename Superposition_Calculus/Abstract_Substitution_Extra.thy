@@ -207,6 +207,20 @@ next
     by (metis is_ground_set_def finite.insertI is_unifier_iff_if_finite subst_ident_if_ground)
 qed
 
+lemma subst_mgu_eq_subst_mgu: 
+  assumes "is_mgu \<mu> {{t\<^sub>1, t\<^sub>2}}" 
+  shows "t\<^sub>1 \<cdot> \<mu> = t\<^sub>2 \<cdot> \<mu>"
+  using assms is_unifier_iff_if_finite[of "{t\<^sub>1, t\<^sub>2}"]
+  unfolding is_mgu_def is_unifiers_def
+  by blast
+
+lemma subst_imgu_eq_subst_imgu: 
+  assumes "is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}}" 
+  shows "t\<^sub>1 \<cdot> \<mu> = t\<^sub>2 \<cdot> \<mu>"
+  using assms is_unifier_iff_if_finite[of "{t\<^sub>1, t\<^sub>2}"]
+  unfolding is_imgu_def is_unifiers_def
+  by blast
+
 
 subsection \<open>Ground Substitutions\<close>
 

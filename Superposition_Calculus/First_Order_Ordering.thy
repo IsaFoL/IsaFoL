@@ -36,8 +36,8 @@ locale first_order_ordering =
     less\<^sub>t_transitive [intro]: "transp (\<prec>\<^sub>t)" and
     less\<^sub>t_asymmetric [intro]: "asymp (\<prec>\<^sub>t)" and 
 
-    less\<^sub>t_wellfounded_on [intro]: "wfp_on (\<prec>\<^sub>t) {term. is_ground_term term}" and
     less\<^sub>t_total_on [intro]: "totalp_on {term. is_ground_term term} (\<prec>\<^sub>t)" and
+    less\<^sub>t_wellfounded_on [intro]: "wfp_on (\<prec>\<^sub>t) {term. is_ground_term term}" and
     
     less\<^sub>t_ground_context_compatible:
       "\<And>context term\<^sub>1 term\<^sub>2. 
@@ -167,7 +167,7 @@ lemma less\<^sub>t\<^sub>G_subterm_property [simp]:
   assumes "context \<noteq> \<box>\<^sub>G" 
   shows "term \<prec>\<^sub>t\<^sub>G context\<langle>term\<rangle>\<^sub>G"
   using 
-    assms 
+    assms
     less\<^sub>t_ground_subterm_property[OF ground_term_is_ground ground_context_is_ground] 
     to_context_hole
   unfolding less\<^sub>t\<^sub>G_def ground_term_with_context(3)  
@@ -768,7 +768,7 @@ next
   qed
 qed
 
-lemmas less\<^sub>c_add_mset = multp_add_mset_refl[OF less\<^sub>l_asymmetric less\<^sub>l_transitive] 
+lemmas less\<^sub>c_add_mset = multp_add_mset_reflclp[OF less\<^sub>l_asymmetric less\<^sub>l_transitive] 
 
 lemmas less\<^sub>c_add_same = multp_add_same[OF less\<^sub>l_asymmetric less\<^sub>l_transitive]
 
