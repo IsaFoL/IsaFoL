@@ -47,7 +47,7 @@ lemma Constructor_hnr[sepref_fr_rules]:
   by (auto simp: intro!: frefI)
 
 definition search_stats_assn :: \<open>search_stats \<Rightarrow> search_stats \<Rightarrow> _\<close> where
-  \<open>search_stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
+  \<open>search_stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 definition subsumption_stats_assn :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats \<Rightarrow> _\<close> where
   \<open>subsumption_stats_assn = word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
@@ -61,8 +61,8 @@ definition pure_lits_stats_assn :: \<open>inprocessing_pure_lits_stats \<Rightar
 definition rephase_stats_assn :: \<open>rephase_stats \<Rightarrow> rephase_stats \<Rightarrow> _\<close> where
   \<open>rephase_stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
-definition empty_search_stats where
-  \<open>empty_search_stats = (0,0,0,0,0,0,0,0,0,0)\<close>
+definition empty_search_stats :: search_stats where
+  \<open>empty_search_stats = (0,0,0,0,0,0,0,0,0,0,0)\<close>
 
 sepref_def empty_search_stats_impl
   is \<open>uncurry0 (RETURN empty_search_stats)\<close>
@@ -1084,8 +1084,8 @@ sepref_def empty_stats_impl
   apply (subst empty_lsize_limit_stats_def[symmetric])
   by sepref
 
-definition empty_search_stats_clss where
-  \<open>empty_search_stats_clss n = (0,0,0,0,0,0,0,0,n,0)\<close>
+definition empty_search_stats_clss :: \<open>64 word \<Rightarrow> search_stats\<close> where
+  \<open>empty_search_stats_clss n = (0,0,0,0,0,0,0,0,n,0,0)\<close>
 
 sepref_def empty_search_stats_clss_impl
   is \<open>(RETURN o empty_search_stats_clss)\<close>

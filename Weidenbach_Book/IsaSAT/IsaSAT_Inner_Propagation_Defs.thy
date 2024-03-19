@@ -359,33 +359,41 @@ where
        length (get_clauses_wl_heur S') = length (get_clauses_wl_heur S\<^sub>0) \<and>
        isa_length_trail_pre (get_trail_wl_heur S'))\<close>
 
-definition unit_propagation_update_statistics :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
-  \<open>unit_propagation_update_statistics p q S = do {
+definition unit_propagation_update_statistics :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
+  \<open>unit_propagation_update_statistics p q ticks S = do {
   let stats = get_stats_heur S;
+  let curr = get_restart_phase S;
   let pq = q - p;
   let stats = incr_propagation_by pq stats;
   let stats = (if get_conflict_wl_is_None_heur S then stats else incr_conflict stats);
   let stats = (if count_decided_pol (get_trail_wl_heur S) = 0 then incr_units_since_last_GC_by pq (incr_uset_by pq stats) else stats);
   height \<leftarrow> (if get_conflict_wl_is_None_heur S then RETURN q else do {j \<leftarrow> trail_height_before_conflict (get_trail_wl_heur S); RETURN (of_nat j)});
+  let stats = (if curr = STABLE_MODE then incr_search_ticks_stable_by ticks stats else incr_search_ticks_focused_by ticks stats);
   let stats = set_no_conflict_until q stats;
   RETURN (set_stats_wl_heur stats S)}\<close>
 
+
+text \<open>
+TODO: this is a crude approximation of ticks and \<^term>\<open>unit_propagation_inner_loop_wl_D_heur\<close> should do something with it.\<close>
 definition unit_propagation_outer_loop_wl_D_heur
    :: \<open>isasat \<Rightarrow> isasat nres\<close> where
   \<open>unit_propagation_outer_loop_wl_D_heur S\<^sub>0 = do {
     let j1 = isa_length_trail (get_trail_wl_heur S\<^sub>0);
     _ \<leftarrow> RETURN (IsaSAT_Profile.start_propagate);
-    S \<leftarrow> WHILE\<^sub>T\<^bsup>unit_propagation_outer_loop_wl_D_heur_inv S\<^sub>0\<^esup>
-      (\<lambda>S. literals_to_update_wl_heur S < isa_length_trail (get_trail_wl_heur S))
-      (\<lambda>S. do {
+    (S, ticks) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(T, ticks::64 word). unit_propagation_outer_loop_wl_D_heur_inv S\<^sub>0 T\<^esup>
+      (\<lambda>(S, ticks). literals_to_update_wl_heur S < isa_length_trail (get_trail_wl_heur S))
+      (\<lambda>(S, ticks). do {
         ASSERT(literals_to_update_wl_heur S < isa_length_trail (get_trail_wl_heur S));
         (S', L) \<leftarrow> select_and_remove_from_literals_to_update_wl_heur S;
         ASSERT(length (get_clauses_wl_heur S') = length (get_clauses_wl_heur S));
-        unit_propagation_inner_loop_wl_D_heur L S'
+        n \<leftarrow> mop_length_watched_by_int S\<^sub>0 L;
+        let ticks' = ticks + 8*of_nat n;
+        S \<leftarrow> unit_propagation_inner_loop_wl_D_heur L S';
+        RETURN (S, ticks')
       })
-    S\<^sub>0;
+     (S\<^sub>0, 0);
   let j2 = isa_length_trail (get_trail_wl_heur S);
-  S \<leftarrow> unit_propagation_update_statistics (of_nat j1) (of_nat j2) S;
+  S \<leftarrow> unit_propagation_update_statistics (of_nat j1) (of_nat j2) ticks S;
   _ \<leftarrow> RETURN (IsaSAT_Profile.stop_propagate);
   RETURN S}
   \<close>
