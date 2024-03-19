@@ -165,21 +165,6 @@ lemma clause_subst_empty [simp]: "{#} \<cdot> \<theta> = {#}"  "clause \<cdot> \
   by (simp_all add: subst_clause_def)
 
 lemmas upair_in_literal = literal.sel
-<<<<<<< HEAD
-=======
-
-(* This is an example where type-classes would be nice, but the Isabelle ones are shitty...*)
-abbreviation vars_context :: "('f, 'v) context \<Rightarrow> 'v set" where
-  "vars_context \<equiv> vars_ctxt"
-
-definition vars_atom :: "('f, 'v) atom \<Rightarrow> 'v set" where
-  "vars_atom atom = (\<Union>term \<in> set_uprod atom. vars_term term)"
-
-definition vars_literal :: "('f, 'v) atom literal \<Rightarrow> 'v set" where
-  "vars_literal literal = vars_atom (atm_of literal)"
-                            
-definition vars_clause :: "('f, 'v) atom clause \<Rightarrow> 'v set" where
-  "vars_clause clause = (\<Union>literal \<in> set_mset clause. vars_literal literal)"
 
 lemma finite_vars_atom [simp]:
   "finite (vars_atom atom)"
@@ -195,7 +180,6 @@ lemma finite_vars_clause [simp]:
   "finite (vars_clause clause)"
   unfolding vars_clause_def
   by auto
->>>>>>> refs/remotes/origin/master
   
 lemma vars_literal [simp]: 
   "vars_literal (Pos atom) = vars_atom atom"
