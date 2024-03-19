@@ -6,14 +6,12 @@ locale basic_substitution_ops =
   fixes
     subst :: "'x \<Rightarrow> 's \<Rightarrow> 'x" (infixl "\<cdot>" 67) and
     id_subst :: 's and
-    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67)
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) and
+    is_ground :: "'x \<Rightarrow> bool"
 begin
 
 definition subst_set :: "'x set \<Rightarrow> 's \<Rightarrow> 'x set" (infixl "\<cdot>s" 67) where
   "subst_set X \<sigma> = (\<lambda>x. subst x \<sigma>) ` X"
-
-definition is_ground :: "'x \<Rightarrow> bool" where
-  "is_ground x \<longleftrightarrow> (\<forall>\<sigma>. x = x \<cdot> \<sigma>)"
 
 definition is_ground_set :: "'x set \<Rightarrow> bool" where
   "is_ground_set X \<longleftrightarrow> (\<forall>x \<in> X. is_ground x)"
@@ -94,38 +92,6 @@ lemma subst_set_union[simp]: "(X1 \<union> X2) \<cdot>s \<sigma> = X1 \<cdot>s \
 lemma is_unifiers_union: "is_unifiers \<upsilon> (XX\<^sub>1 \<union> XX\<^sub>2) \<longleftrightarrow> is_unifiers \<upsilon> XX\<^sub>1 \<and> is_unifiers \<upsilon> XX\<^sub>2"
   by (auto simp add: is_unifiers_def)
 
-
-subsection \<open>Substituting on Ground Expressions\<close>
-
-lemma subst_ident_if_ground[simp]: "is_ground x \<Longrightarrow> x \<cdot> \<sigma> = x"
-  unfolding is_ground_def by simp
-
-lemma subst_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> X \<cdot>s \<sigma> = X"
-  unfolding is_ground_set_def subst_set_def by simp
-
-
-subsection \<open>Instances of Ground Expressions\<close>
-
-lemma instances_of_ident_if_ground[simp]: "is_ground x \<Longrightarrow> instances_of x = {x}"
-  unfolding instances_of_def generalizes_def by simp
-
-lemma instances_of_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> instances_of_set X = X"
-  unfolding instances_of_set_def is_ground_set_def by simp
-
-lemma ground_instances_of_ident_if_ground[simp]: "is_ground x \<Longrightarrow> ground_instances_of x = {x}"
-  unfolding ground_instances_of_def by auto
-
-lemma ground_instances_of_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> ground_instances_of_set X = X"
-  unfolding is_ground_set_def ground_instances_of_set_eq_Union_ground_instances_of by simp
-
-
-subsection \<open>Unifier of Ground Expressions\<close>
-
-lemma
-  assumes "is_unifier \<upsilon> {t\<^sub>1, t\<^sub>2}" and "is_ground t\<^sub>1" and "is_ground t\<^sub>2"
-  shows "t\<^sub>1 = t\<^sub>2"
-  using assms by (simp add: card_Suc_eq is_unifier_def le_Suc_eq subst_set_def)
-
 lemma is_unifier_subset: "is_unifier \<upsilon> A \<Longrightarrow> finite A \<Longrightarrow> B \<subseteq> A \<Longrightarrow> is_unifier \<upsilon> B"
   by (smt (verit, best) card_mono dual_order.trans finite_imageI image_mono is_unifier_def
       subst_set_def)
@@ -133,32 +99,21 @@ lemma is_unifier_subset: "is_unifier \<upsilon> A \<Longrightarrow> finite A \<L
 lemma is_ground_set_subset: "is_ground_set A \<Longrightarrow> B \<subseteq> A \<Longrightarrow> is_ground_set B"
   by (auto simp: is_ground_set_def)
 
-lemma ball_eq_constant_if_unifier:
-  assumes "finite X" and "x \<in> X" and "is_unifier \<upsilon> X" and "is_ground_set X"
-  shows "\<forall>y \<in> X. y = x"
-  using assms
-proof (induction X rule: finite_induct)
-  case empty
-  show ?case by simp
-next
-  case (insert z F)
-  then show ?case
-    by (metis is_ground_set_def finite.insertI is_unifier_iff_if_finite subst_ident_if_ground)
-qed
-
 end
 
 
 locale basic_substitution =
-  basic_substitution_ops subst id_subst comp_subst +
+  basic_substitution_ops subst id_subst comp_subst is_ground +
   comp_subst: monoid comp_subst id_subst
   for
     subst :: "'x \<Rightarrow> 's \<Rightarrow> 'x" (infixl "\<cdot>" 67) and
     id_subst :: 's and
-    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) +
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) and
+    is_ground :: "'x \<Rightarrow> bool" +
   assumes
     subst_id_subst[simp]: "x \<cdot> id_subst = x" and
-    subst_comp_subst[simp]: "x \<cdot> (\<sigma> \<odot> \<tau>) = (x \<cdot> \<sigma>) \<cdot> \<tau>"
+    subst_comp_subst[simp]: "x \<cdot> (\<sigma> \<odot> \<tau>) = (x \<cdot> \<sigma>) \<cdot> \<tau>" and
+    all_subst_ident_if_ground: "is_ground x \<Longrightarrow> (\<forall>\<sigma>. x = x \<cdot> \<sigma>)"
 begin
 
 subsection \<open>Identity Substitution\<close>
@@ -207,6 +162,50 @@ lemma is_mgu_id_subst_insert_singleton[simp]:
 lemma is_imgu_id_subst_insert_singleton[simp]:
   "is_imgu id_subst (insert {x} XX) \<longleftrightarrow> is_imgu id_subst XX"
   by (simp add: is_imgu_id_subst)
+
+
+subsection \<open>Substituting on Ground Expressions\<close>
+
+lemma subst_ident_if_ground[simp]: "is_ground x \<Longrightarrow> x \<cdot> \<sigma> = x"
+  using all_subst_ident_if_ground by simp
+
+lemma subst_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> X \<cdot>s \<sigma> = X"
+  unfolding is_ground_set_def subst_set_def by simp
+
+subsection \<open>Instances of Ground Expressions\<close>
+
+lemma instances_of_ident_if_ground[simp]: "is_ground x \<Longrightarrow> instances_of x = {x}"
+  unfolding instances_of_def generalizes_def by simp
+
+lemma instances_of_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> instances_of_set X = X"
+  unfolding instances_of_set_def is_ground_set_def by simp
+
+lemma ground_instances_of_ident_if_ground[simp]: "is_ground x \<Longrightarrow> ground_instances_of x = {x}"
+  unfolding ground_instances_of_def by auto
+
+lemma ground_instances_of_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> ground_instances_of_set X = X"
+  unfolding is_ground_set_def ground_instances_of_set_eq_Union_ground_instances_of by simp
+
+
+subsection \<open>Unifier of Ground Expressions\<close>
+
+lemma ground_eq_ground_if_unifiable:
+  assumes "is_unifier \<upsilon> {t\<^sub>1, t\<^sub>2}" and "is_ground t\<^sub>1" and "is_ground t\<^sub>2"
+  shows "t\<^sub>1 = t\<^sub>2"
+  using assms by (simp add: card_Suc_eq is_unifier_def le_Suc_eq subst_set_def)
+
+lemma ball_eq_constant_if_unifier:
+  assumes "finite X" and "x \<in> X" and "is_unifier \<upsilon> X" and "is_ground_set X"
+  shows "\<forall>y \<in> X. y = x"
+  using assms
+proof (induction X rule: finite_induct)
+  case empty
+  show ?case by simp
+next
+  case (insert z F)
+  then show ?case
+    by (metis is_ground_set_def finite.insertI is_unifier_iff_if_finite subst_ident_if_ground)
+qed
 
 
 subsection \<open>Ground Substitutions\<close>

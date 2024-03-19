@@ -47,17 +47,60 @@ definition subst_clause ::
 where
   "subst_clause clause \<sigma> = image_mset (\<lambda>literal. literal \<cdot>l \<sigma>) clause"
 
-global_interpretation subst_context: basic_substitution subst_apply_ctxt Var subst_compose
+
+(* This is an example where type-classes would be nice, but the Isabelle ones are shitty...*)
+abbreviation vars_context :: "('f, 'v) context \<Rightarrow> 'v set" where
+  "vars_context \<equiv> vars_ctxt"
+
+definition vars_atom :: "('f, 'v) atom \<Rightarrow> 'v set" where
+  "vars_atom atom = (\<Union>term \<in> set_uprod atom. vars_term term)"
+
+definition vars_literal :: "('f, 'v) atom literal \<Rightarrow> 'v set" where
+  "vars_literal literal = vars_atom (atm_of literal)"
+                            
+definition vars_clause :: "('f, 'v) atom clause \<Rightarrow> 'v set" where
+  "vars_clause clause = (\<Union>literal \<in> set_mset clause. vars_literal literal)"
+
+definition vars_clause_set :: "('f, 'v) atom clause set \<Rightarrow> 'v set" where
+  "vars_clause_set clauses = (\<Union>clause \<in> clauses. vars_clause clause)"
+
+abbreviation is_ground_term where 
+  "is_ground_term \<equiv> is_ground_trm"
+
+hide_const is_ground_trm
+
+abbreviation is_ground_context where
+  "is_ground_context context \<equiv> vars_context context = {}"
+
+abbreviation is_ground_atom where
+  "is_ground_atom atom \<equiv> vars_atom atom = {}"
+                           
+abbreviation is_ground_literal where
+  "is_ground_literal literal \<equiv> vars_literal literal = {}"
+
+abbreviation is_ground_clause where
+  "is_ground_clause clause \<equiv> vars_clause clause = {}"
+
+
+global_interpretation subst_context: basic_substitution where
+  subst = subst_apply_ctxt and id_subst = Var and comp_subst = subst_compose and
+  is_ground = is_ground_context
 proof unfold_locales
   fix \<kappa>
   show "\<kappa> \<cdot>t\<^sub>c Var = \<kappa>"
     by (induction \<kappa>) auto
 next
-  show "\<And>x \<sigma> \<tau>. x \<cdot>t\<^sub>c \<sigma> \<odot> \<tau> = x \<cdot>t\<^sub>c \<sigma> \<cdot>t\<^sub>c \<tau>"
+  show "\<And>\<kappa> \<sigma> \<tau>. \<kappa> \<cdot>t\<^sub>c \<sigma> \<odot> \<tau> = \<kappa> \<cdot>t\<^sub>c \<sigma> \<cdot>t\<^sub>c \<tau>"
     by simp
+next
+  fix \<kappa>
+  show "is_ground_context \<kappa> \<Longrightarrow> \<forall>\<sigma>. \<kappa> = \<kappa> \<cdot>t\<^sub>c \<sigma>"
+    by (induction \<kappa>) (simp_all add: list.map_ident_strong)
 qed
 
-global_interpretation subst_atom: basic_substitution subst_atom Var subst_compose
+global_interpretation subst_atom: basic_substitution where
+  subst = subst_atom and id_subst = Var and comp_subst = subst_compose and
+  is_ground = is_ground_atom
 proof unfold_locales
   show "\<And>x. x \<cdot>a Var = x"
     by (simp add: subst_atom_def uprod.map_ident)
@@ -65,24 +108,37 @@ next
   show "\<And>x \<sigma> \<tau>. x \<cdot>a \<sigma> \<odot> \<tau> = x \<cdot>a \<sigma> \<cdot>a \<tau>"
     unfolding subst_atom_def subst_subst_compose
     by (metis (no_types, lifting) map_uprod_simps uprod_exhaust)
+next
+  show "\<And>x. is_ground_atom x \<Longrightarrow> \<forall>\<sigma>. x = x \<cdot>a \<sigma>"
+    by (simp add: subst_atom_def uprod.map_ident_strong vars_atom_def)
 qed
 
-global_interpretation subst_literal: basic_substitution subst_literal Var subst_compose
+global_interpretation subst_literal: basic_substitution where
+  subst = subst_literal and id_subst = Var and comp_subst = subst_compose and
+  is_ground = is_ground_literal
 proof unfold_locales
   show "\<And>x. x \<cdot>l Var = x"
     by (simp add: subst_literal_def literal.map_ident)
 next
   show "\<And>x \<sigma> \<tau>. x \<cdot>l \<sigma> \<odot> \<tau> = x \<cdot>l \<sigma> \<cdot>l \<tau>"
     by (simp add: subst_literal_def map_literal_comp)
+next
+  show "\<And>x. is_ground_literal x \<Longrightarrow> \<forall>\<sigma>. x = x \<cdot>l \<sigma>"
+    by (simp add: literal.expand literal.map_sel subst_literal_def vars_literal_def)
 qed
 
-global_interpretation subst_clause: basic_substitution subst_clause Var subst_compose
+global_interpretation subst_clause: basic_substitution where
+  subst = subst_clause and id_subst = Var and comp_subst = subst_compose and
+  is_ground = is_ground_clause
 proof unfold_locales
   show "\<And>x. x \<cdot> Var = x"
   by (simp add: subst_clause_def)
 next
   show "\<And>x \<sigma> \<tau>. x \<cdot> \<sigma> \<odot> \<tau> = x \<cdot> \<sigma> \<cdot> \<tau>"
     by (simp add: subst_clause_def)
+next
+  show "\<And>x. is_ground_clause x \<Longrightarrow> \<forall>\<sigma>. x = x \<cdot> \<sigma>"
+    by (simp add: subst_clause_def vars_clause_def)
 qed
 
 text \<open>The following names are for backward compatibility\<close>
@@ -104,22 +160,6 @@ lemma clause_subst_empty [simp]: "{#} \<cdot> \<theta> = {#}"  "clause \<cdot> \
   by (simp_all add: subst_clause_def)
 
 lemmas upair_in_literal = literal.sel
-
-(* This is an example where type-classes would be nice, but the Isabelle ones are shitty...*)
-abbreviation vars_context :: "('f, 'v) context \<Rightarrow> 'v set" where
-  "vars_context \<equiv> vars_ctxt"
-
-definition vars_atom :: "('f, 'v) atom \<Rightarrow> 'v set" where
-  "vars_atom atom = (\<Union>term \<in> set_uprod atom. vars_term term)"
-
-definition vars_literal :: "('f, 'v) atom literal \<Rightarrow> 'v set" where
-  "vars_literal literal = vars_atom (atm_of literal)"
-                            
-definition vars_clause :: "('f, 'v) atom clause \<Rightarrow> 'v set" where
-  "vars_clause clause = (\<Union>literal \<in> set_mset clause. vars_literal literal)"
-
-definition vars_clause_set :: "('f, 'v) atom clause set \<Rightarrow> 'v set" where
-  "vars_clause_set clauses = (\<Union>clause \<in> clauses. vars_clause clause)"
   
 lemma vars_literal[simp]: 
   "vars_literal (Pos atom) = vars_atom atom"
@@ -159,23 +199,6 @@ lemma clause_subst_eq:
   using literal_subst_eq assms
   unfolding vars_clause_def subst_clause_def
   by (metis (mono_tags, lifting) UN_I multiset.map_cong0)
-
-abbreviation is_ground_term where 
-  "is_ground_term \<equiv> is_ground_trm"
-
-hide_const is_ground_trm
-
-abbreviation is_ground_context where
-  "is_ground_context context \<equiv> vars_context context = {}"
-
-abbreviation is_ground_atom where
-  "is_ground_atom atom \<equiv> vars_atom atom = {}"
-                           
-abbreviation is_ground_literal where
-  "is_ground_literal literal \<equiv> vars_literal literal = {}"
-
-abbreviation is_ground_clause where
-  "is_ground_clause clause \<equiv> vars_clause clause = {}"
 
 lemma is_ground_clause_empty [simp]: "is_ground_clause {#}"
   unfolding vars_clause_def

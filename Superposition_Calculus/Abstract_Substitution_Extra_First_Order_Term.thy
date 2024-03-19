@@ -8,22 +8,15 @@ begin
 abbreviation is_ground_trm where
   "is_ground_trm t \<equiv> vars_term t = {}"
 
+lemma is_ground_iff: "is_ground_trm (t \<cdot> \<gamma>) \<longleftrightarrow> (\<forall>x \<in> vars_term t. is_ground_trm (\<gamma> x))"
+  by (induction t) simp_all
+
 lemma is_ground_trm_iff_ident_forall_subst: "is_ground_trm t \<longleftrightarrow> (\<forall>\<sigma>. t = t \<cdot> \<sigma>)"
   by (metis (full_types) Int_empty_left ex_in_conv fun_upd_same subst_apply_term_ident
       term.disc(1) term.disc(2) term_subst_eq_conv)
 
-global_interpretation term_subst: basic_substitution_ops subst_apply_term Var subst_compose
-  rewrites "term_subst.is_ground = is_ground_trm"
-proof -
-  interpret basic_substitution_ops subst_apply_term Var subst_compose .
-  show "is_ground = is_ground_trm"
-    using is_ground_trm_iff_ident_forall_subst
-    by (metis is_ground_def)
-qed
-
-lemma is_ground_iff:
-  "term_subst.is_ground (t \<cdot> \<gamma>) \<longleftrightarrow> (\<forall>x \<in> vars_term t. term_subst.is_ground (\<gamma> x))"
-  by (induction t) (auto simp add: term_subst.is_ground_def)
+global_interpretation term_subst:
+  basic_substitution_ops subst_apply_term Var subst_compose is_ground_trm .
 
 lemma term_subst_is_renaming_iff:
   "term_subst.is_renaming \<rho> \<longleftrightarrow> inj \<rho> \<and> (\<forall>x. is_Var (\<rho> x))"
@@ -37,21 +30,25 @@ next
     using ex_inverse_of_renaming by metis
 qed
 
-global_interpretation term_subst: basic_substitution subst_apply_term Var subst_compose
+global_interpretation term_subst:
+  basic_substitution subst_apply_term Var subst_compose is_ground_trm
 proof unfold_locales
   show "\<And>x. x \<cdot> Var = x"
     by simp
 next
   show "\<And>x \<sigma> \<tau>. x \<cdot> \<sigma> \<circ>\<^sub>s \<tau> = x \<cdot> \<sigma> \<cdot> \<tau>"
     by simp
+next
+  show "\<And>x. is_ground_trm x \<Longrightarrow> \<forall>\<sigma>. x = x \<cdot> \<sigma>"
+    using is_ground_trm_iff_ident_forall_subst ..
 qed
 
 lemma ground_imgu_equals: 
   assumes "is_ground_trm t\<^sub>1" and "is_ground_trm t\<^sub>2" and "term_subst.is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}}"
   shows "t\<^sub>1 = t\<^sub>2"
   using assms
-  unfolding basic_substitution_ops.is_imgu_def term_subst.is_ground_def term_subst.is_unifiers_def
-  by (metis finite.emptyI finite.insertI insertCI term_subst.is_unifier_iff_if_finite)
+  using term_subst.ground_eq_ground_if_unifiable
+  by (metis insertCI term_subst.is_imgu_def term_subst.is_unifiers_def)
 
 lemma the_mgu_is_unifier: 
   assumes "term \<cdot> the_mgu term term' = term' \<cdot> the_mgu term term'" 
