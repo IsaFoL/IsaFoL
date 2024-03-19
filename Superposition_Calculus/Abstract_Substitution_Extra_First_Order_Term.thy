@@ -15,8 +15,19 @@ lemma is_ground_trm_iff_ident_forall_subst: "is_ground_trm t \<longleftrightarro
   by (metis (full_types) Int_empty_left ex_in_conv fun_upd_same subst_apply_term_ident
       term.disc(1) term.disc(2) term_subst_eq_conv)
 
-global_interpretation term_subst:
-  basic_substitution_ops subst_apply_term Var subst_compose is_ground_trm .
+global_interpretation term_subst: basic_substitution where
+  subst = subst_apply_term and id_subst = Var and comp_subst = subst_compose and
+  is_ground = is_ground_trm
+proof unfold_locales
+  show "\<And>x. x \<cdot> Var = x"
+    by simp
+next
+  show "\<And>x \<sigma> \<tau>. x \<cdot> \<sigma> \<circ>\<^sub>s \<tau> = x \<cdot> \<sigma> \<cdot> \<tau>"
+    by simp
+next
+  show "\<And>x. is_ground_trm x \<Longrightarrow> \<forall>\<sigma>. x = x \<cdot> \<sigma>"
+    using is_ground_trm_iff_ident_forall_subst ..
+qed
 
 lemma term_subst_is_renaming_iff:
   "term_subst.is_renaming \<rho> \<longleftrightarrow> inj \<rho> \<and> (\<forall>x. is_Var (\<rho> x))"
@@ -28,19 +39,6 @@ next
   show "inj \<rho> \<and> (\<forall>x. is_Var (\<rho> x)) \<Longrightarrow> term_subst.is_renaming \<rho>"
     unfolding term_subst.is_renaming_def
     using ex_inverse_of_renaming by metis
-qed
-
-global_interpretation term_subst:
-  basic_substitution subst_apply_term Var subst_compose is_ground_trm
-proof unfold_locales
-  show "\<And>x. x \<cdot> Var = x"
-    by simp
-next
-  show "\<And>x \<sigma> \<tau>. x \<cdot> \<sigma> \<circ>\<^sub>s \<tau> = x \<cdot> \<sigma> \<cdot> \<tau>"
-    by simp
-next
-  show "\<And>x. is_ground_trm x \<Longrightarrow> \<forall>\<sigma>. x = x \<cdot> \<sigma>"
-    using is_ground_trm_iff_ident_forall_subst ..
 qed
 
 lemma ground_imgu_equals: 
