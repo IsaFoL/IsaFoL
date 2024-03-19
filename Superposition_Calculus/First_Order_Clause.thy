@@ -98,6 +98,8 @@ lemmas atom_subst_compose = subst_atom.subst_comp_subst
 lemmas literal_subst_compose = subst_literal.subst_comp_subst
 lemmas clause_subst_compose = subst_clause.subst_comp_subst
 
+lemmas ground_subst_compose = term_subst.is_ground_subst_comp_right
+
 lemma clause_subst_empty [simp]: "{#} \<cdot> \<theta> = {#}"  "clause \<cdot> \<theta> = {#} \<longleftrightarrow> clause = {#}"
   by (simp_all add: subst_clause_def)
 
@@ -157,13 +159,6 @@ lemma clause_subst_eq:
   using literal_subst_eq assms
   unfolding vars_clause_def subst_clause_def
   by (metis (mono_tags, lifting) UN_I multiset.map_cong0)
-
-lemma ground_subst_compose: 
-  assumes "term_subst.is_ground_subst \<theta>"
-  shows "term_subst.is_ground_subst (\<mu> \<odot> \<theta>)"
-  using assms
-  unfolding term_subst.is_ground_subst_def
-  by simp
 
 abbreviation is_ground_term where 
   "is_ground_term \<equiv> is_ground_trm"

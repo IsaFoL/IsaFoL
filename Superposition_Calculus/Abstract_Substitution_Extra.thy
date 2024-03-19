@@ -209,6 +209,15 @@ lemma is_imgu_id_subst_insert_singleton[simp]:
   by (simp add: is_imgu_id_subst)
 
 
+subsection \<open>Ground Substitutions\<close>
+
+lemma is_ground_subst_comp_left: "is_ground_subst \<sigma> \<Longrightarrow> is_ground_subst (\<sigma> \<odot> \<tau>)"
+  by (simp add: is_ground_subst_def)
+
+lemma is_ground_subst_comp_right: "is_ground_subst \<tau> \<Longrightarrow> is_ground_subst (\<sigma> \<odot> \<tau>)"
+  by (simp add: is_ground_subst_def)
+
+
 subsection \<open>IMGU is Idempotent and an MGU\<close>
 
 lemma is_imgu_iff_is_idem_and_is_mgu: "is_imgu \<mu> XX \<longleftrightarrow> is_idem \<mu> \<and> is_mgu \<mu> XX"
