@@ -47,20 +47,56 @@ definition subst_clause ::
 where
   "subst_clause clause \<sigma> = image_mset (\<lambda>literal. literal \<cdot>l \<sigma>) clause"
 
-lemma subst_context_Var_ident[simp]: "context \<cdot>t\<^sub>c Var = context"
-  by(induction "context") auto
+global_interpretation subst_context: basic_substitution subst_apply_ctxt Var subst_compose
+proof unfold_locales
+  fix \<kappa>
+  show "\<kappa> \<cdot>t\<^sub>c Var = \<kappa>"
+    by (induction \<kappa>) auto
+next
+  show "\<And>x \<sigma> \<tau>. x \<cdot>t\<^sub>c \<sigma> \<odot> \<tau> = x \<cdot>t\<^sub>c \<sigma> \<cdot>t\<^sub>c \<tau>"
+    by simp
+qed
 
-lemma subst_atom_Var_ident[simp]: "atom \<cdot>a Var = atom"
-  unfolding subst_atom_def
-  by (simp add: uprod.map_ident)
+global_interpretation subst_atom: basic_substitution subst_atom Var subst_compose
+proof unfold_locales
+  show "\<And>x. x \<cdot>a Var = x"
+    by (simp add: subst_atom_def uprod.map_ident)
+next
+  show "\<And>x \<sigma> \<tau>. x \<cdot>a \<sigma> \<odot> \<tau> = x \<cdot>a \<sigma> \<cdot>a \<tau>"
+    unfolding subst_atom_def subst_subst_compose
+    by (metis (no_types, lifting) map_uprod_simps uprod_exhaust)
+qed
 
-lemma subst_literal_Var_ident[simp]: "literal \<cdot>l Var = literal"
-  unfolding subst_literal_def
-  by (simp add: literal.map_ident)
+global_interpretation subst_literal: basic_substitution subst_literal Var subst_compose
+proof unfold_locales
+  show "\<And>x. x \<cdot>l Var = x"
+    by (simp add: subst_literal_def literal.map_ident)
+next
+  show "\<And>x \<sigma> \<tau>. x \<cdot>l \<sigma> \<odot> \<tau> = x \<cdot>l \<sigma> \<cdot>l \<tau>"
+    by (simp add: subst_literal_def map_literal_comp)
+qed
 
-lemma subst_clause_Var_ident[simp]: "clause \<cdot> Var = clause"
-  unfolding subst_clause_def
-  by simp
+global_interpretation subst_clause: basic_substitution subst_clause Var subst_compose
+proof unfold_locales
+  show "\<And>x. x \<cdot> Var = x"
+  by (simp add: subst_clause_def)
+next
+  show "\<And>x \<sigma> \<tau>. x \<cdot> \<sigma> \<odot> \<tau> = x \<cdot> \<sigma> \<cdot> \<tau>"
+    by (simp add: subst_clause_def)
+qed
+
+text \<open>The following names are for backward compatibility\<close>
+
+lemmas subst_context_Var_ident = subst_context.subst_id_subst
+lemmas subst_atom_Var_ident = subst_atom.subst_id_subst
+lemmas subst_literal_Var_ident = subst_literal.subst_id_subst
+lemmas subst_clause_Var_ident = subst_clause.subst_id_subst
+
+lemmas context_subst_compose = subst_context.subst_comp_subst
+lemmas term_subst_compose = term_subst.subst_comp_subst
+lemmas atom_subst_compose = subst_atom.subst_comp_subst
+lemmas literal_subst_compose = subst_literal.subst_comp_subst
+lemmas clause_subst_compose = subst_clause.subst_comp_subst
 
 lemma clause_subst_empty [simp]: "{#} \<cdot> \<theta> = {#}"  "clause \<cdot> \<theta> = {#} \<longleftrightarrow> clause = {#}"
   by (simp_all add: subst_clause_def)
@@ -121,22 +157,6 @@ lemma clause_subst_eq:
   using literal_subst_eq assms
   unfolding vars_clause_def subst_clause_def
   by (metis (mono_tags, lifting) UN_I multiset.map_cong0)
-
-lemmas term_subst_compose = subst_subst_compose
-
-lemmas context_subst_compose = ctxt_compose_subst_compose_distrib  
-  
-lemma atom_subst_compose [simp]: "atom \<cdot>a \<mu> \<odot> \<theta> = atom \<cdot>a \<mu> \<cdot>a \<theta>"
-  unfolding subst_atom_def subst_subst_compose
-  by (metis (no_types, lifting) map_uprod_simps uprod_exhaust)
-
-lemma literal_subst_compose [simp]: "literal \<cdot>l \<mu> \<odot> \<theta> = literal \<cdot>l \<mu> \<cdot>l \<theta>"
-  unfolding subst_literal_def 
-  by(simp add: map_literal_comp) 
-
-lemma clause_subst_compose [simp]: "clause \<cdot> \<mu> \<odot> \<theta> = clause \<cdot> \<mu> \<cdot> \<theta>"
-  unfolding subst_clause_def
-  by simp
 
 lemma ground_subst_compose: 
   assumes "term_subst.is_ground_subst \<theta>"
