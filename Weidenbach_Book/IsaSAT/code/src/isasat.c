@@ -796,7 +796,7 @@ int main(int argc, char *argv[]) {
 #endif
   OPTIONb target_phases = 1;
   OPTIONb reduce = 1;
-  OPTIONb reduceint = 300;
+  OPTIONu64 reduceint = 300;
   OPTIONb restart = 1;
   OPTIONb subsume = 1;
   OPTIONu64 restartint = 10;
