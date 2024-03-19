@@ -1,6 +1,6 @@
 theory First_Order_Select
   imports 
-    Generic_Select 
+    Selection_Function
     First_Order_Clause
 begin
 
@@ -8,12 +8,12 @@ type_synonym 'f ground_select = "'f ground_atom clause \<Rightarrow> 'f ground_a
 type_synonym ('f, 'v) select = "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
 
 definition is_select_grounding :: "('f, 'v) select \<Rightarrow> 'f ground_select \<Rightarrow> bool" where
-  "is_select_grounding select select\<^sub>G = (\<forall>clause\<^sub>G. \<exists>clause \<theta>. 
+  "is_select_grounding sel sel\<^sub>G = (\<forall>clause\<^sub>G. \<exists>clause \<theta>.
         is_ground_clause (clause \<cdot> \<theta>)  \<and> 
         clause\<^sub>G = to_ground_clause (clause \<cdot> \<theta>) \<and> 
-        select\<^sub>G clause\<^sub>G = to_ground_clause ((select clause) \<cdot> \<theta>))"
+        sel\<^sub>G clause\<^sub>G = to_ground_clause ((sel clause) \<cdot> \<theta>))"
 
-locale first_order_select = generic_select select
+locale first_order_select = select select
   for select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
 begin
 
@@ -102,7 +102,7 @@ proof -
     by simp
 qed
 
-sublocale ground: generic_select select\<^sub>G
+sublocale ground: select select\<^sub>G
   by unfold_locales (simp_all add: select\<^sub>G_subset select\<^sub>G_negative)
 
 end

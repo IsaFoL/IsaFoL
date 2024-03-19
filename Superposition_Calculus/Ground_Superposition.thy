@@ -19,7 +19,7 @@ theory Ground_Superposition
     "HOL_Extra"
     Relation_Extra
     Clausal_Calculus_Extra
-    Generic_Select
+    Selection_Function
     Ground_Ordering
 begin
 
@@ -35,7 +35,7 @@ no_notation subst_apply_term (infixl "\<cdot>" 67)
 
 section \<open>Superposition Calculus\<close>
 
-locale ground_superposition_calculus = ground_ordering less_trm + generic_select select
+locale ground_superposition_calculus = ground_ordering less_trm + select select
   for
     less_trm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
     select :: "'f gatom clause \<Rightarrow> 'f gatom clause" +
