@@ -95,7 +95,7 @@ static void free_clause (CLAUSE *cl) {
   free(cl->clause);
 }
 
-int64_t IsaSAT_LLVM_IsaSAT_wrapped(CBOOL, CBOOL, CBOOL, int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CBOOL, CLAUSES);
+int64_t IsaSAT_LLVM_IsaSAT_wrapped(CBOOL, CBOOL, CBOOL, int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CBOOL,int64_t, CLAUSES);
 
 CLAUSES new_clauses(int64_t size) {
   CLAUSES clauses;
@@ -796,6 +796,7 @@ int main(int argc, char *argv[]) {
 #endif
   OPTIONb target_phases = 1;
   OPTIONb reduce = 1;
+  OPTIONb reduceint = 1;
   OPTIONb restart = 1;
   OPTIONb subsume = 1;
   OPTIONu64 restartint = 10;
@@ -817,51 +818,55 @@ int main(int argc, char *argv[]) {
 
     if(strcmp(opt, "--default\0") == 0)
       ;
-    else
-       if(strcmp(opt, "--ascii\0") == 0)
+    else if (strcmp(opt, "--ascii\0") == 0)
       binary_proof = 0;
-    else if(strcmp(opt, "--notarget\0") == 0)
+    else if (strcmp(opt, "--notarget\0") == 0)
       target_phases = 0;
-    else if(strcmp(opt, "--alwaystarget\0") == 0)
+    else if (strcmp(opt, "--alwaystarget\0") == 0)
       target_phases = 2;
-    else if(strcmp(opt, "--noreduce\0") == 0)
+    else if (strcmp(opt, "--noreduce\0") == 0)
       reduce = 0;
-    else if(strcmp(opt, "--norestart\0") == 0)
+    else if (strcmp(opt, "--norestart\0") == 0)
       restart = 0;
     else if (strcmp(opt, "--nosubsume\0") == 0)
-      subsume = 0; 
-    else if(strcmp(opt, "--norestart\0") == 0)
+      subsume = 0;
+    else if (strcmp(opt, "--norestart\0") == 0)
       restart = 0;
-    else if (strcmp(opt, "--restartint\0") == 0 && i+1 < argc - 1 && (n = atol(argv[i+1]))) {
+    else if (strcmp(opt, "--restartint\0") == 0 && i + 1 < argc - 1 &&
+             (n = atol(argv[i + 1]))) {
       restartint = (uint64_t)n;
       ++i;
-    }
-    else if (strcmp(opt, "--restartmargin\0") == 0 && i+1 < argc - 1 && (n = atol(argv[i+1]))) {
+    } else if (strcmp(opt, "--reduceint\0") == 0 && i + 1 < argc - 1 &&
+               (n = atol(argv[i + 1]))) {
+      reduceint = (uint64_t)n;
+      ++i;
+    } else if (strcmp(opt, "--restartmargin\0") == 0 && i + 1 < argc - 1 &&
+               (n = atol(argv[i + 1]))) {
       restartmargin = (uint64_t)n;
       ++i;
-    }
-    else if (strcmp(opt, "--emafast\0") == 0 && i+1 < argc - 1 && (n = atol(argv[i+1]))) {
+    } else if (strcmp(opt, "--emafast\0") == 0 && i + 1 < argc - 1 &&
+               (n = atol(argv[i + 1]))) {
       fema = (uint64_t)n;
       ++i;
-    }
-    else if (strcmp(opt, "--emaslow\0") == 0 && i+1 < argc - 1 && (n = atol(argv[i+1]))) {
+    } else if (strcmp(opt, "--emaslow\0") == 0 && i + 1 < argc - 1 &&
+               (n = atol(argv[i + 1]))) {
       sema = (uint64_t)n;
       ++i;
-    }
-    else if (strcmp(opt, "--unitinterval\0") == 0 && i+1 < argc - 1 && (n = atol(argv[i+1]))) {
+    } else if (strcmp(opt, "--unitinterval\0") == 0 && i + 1 < argc - 1 &&
+               (n = atol(argv[i + 1]))) {
       unitinterval = (uint64_t)n;
       ++i;
-    }
-    else if (opt[0] == '-') {
+    } else if (opt[0] == '-') {
       printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
     } else
 #endif
-      if (inputname) {
+        if (inputname) {
       proof_path = opt;
       // printf("c proof file %s i=%d argc=%d\n", opt, i, argc);
       ++i;
     } else if (proof_path) {
-      // printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
+      // printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i,
+      // argc);
       ++i;
     } else {
       // printf("c input file %s i=%d argc=%d\n", opt, i, argc);
@@ -932,7 +937,7 @@ READ_FILE:
 
 #endif
   int64_t t = IsaSAT_LLVM_IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema,
-			     sema, unitinterval, subsume, clauses);
+					 sema, unitinterval, subsume, reduceint, clauses);
   stop_profile(&total_prof);
 
   _Bool interrupted = t & 2;
