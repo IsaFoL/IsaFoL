@@ -154,6 +154,11 @@ lemmas atom_subst_compose = subst_atom.subst_comp_subst
 lemmas literal_subst_compose = subst_literal.subst_comp_subst
 lemmas clause_subst_compose = subst_clause.subst_comp_subst
 
+lemmas subst_ground_context = subst_context.subst_ident_if_ground
+lemmas subst_ground_atom = subst_atom.subst_ident_if_ground
+lemmas subst_ground_literal = subst_literal.subst_ident_if_ground
+lemmas subst_ground_clause = subst_clause.subst_ident_if_ground
+
 lemmas ground_subst_compose = term_subst.is_ground_subst_comp_right
 
 lemma clause_subst_empty [simp]: "{#} \<cdot> \<theta> = {#}"  "clause \<cdot> \<theta> = {#} \<longleftrightarrow> clause = {#}"
@@ -211,33 +216,6 @@ lemma is_ground_term_iff_term_context_ground:
 lemma is_ground_term_ctxt_iff_ground_ctxt: 
   "ground_ctxt context = is_ground_context context"
   by (induction "context") (simp_all add: is_ground_term_iff_term_context_ground)
-
-lemma subst_ground_context [simp]: 
-  assumes "is_ground_context context" 
-  shows "context \<cdot>t\<^sub>c \<sigma> = context"
-  using assms
-  by (induction "context") (simp_all add: list.map_ident_strong)
-
-lemma subst_ground_atom [simp]: 
-  assumes "is_ground_atom atom" 
-  shows "atom \<cdot>a \<sigma> = atom"
-  using assms
-  unfolding subst_atom_def vars_atom_def
-  by (simp add: uprod.map_ident_strong)
-
-lemma subst_ground_literal [simp]: 
-  assumes "is_ground_literal literal" 
-  shows "literal \<cdot>l \<sigma> = literal"
-  using assms
-  unfolding subst_literal_def vars_literal_def 
-  by (simp add: literal.expand literal.map_sel)
-
-lemma subst_ground_clause [simp]: 
-  assumes "is_ground_clause clause"  
-  shows "clause \<cdot> \<sigma> = clause"
-  using assms
-  unfolding subst_clause_def vars_clause_def
-  by simp
 
 lemma subst_atom: 
   "Upair term\<^sub>1 term\<^sub>2 \<cdot>a \<sigma> = Upair (term\<^sub>1 \<cdot>t \<sigma>) (term\<^sub>2 \<cdot>t \<sigma>)"
