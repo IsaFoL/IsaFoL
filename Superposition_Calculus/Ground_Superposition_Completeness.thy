@@ -58,20 +58,20 @@ subsection \<open>Mode Construction\<close>
 
 context ground_superposition_calculus begin
 
-function equation :: "_ \<Rightarrow> 'f gatom clause \<Rightarrow> 'f gterm rel" where
-  "equation N C = {(s, t)| s t C'.
+function epsilon :: "_ \<Rightarrow> 'f gatom clause \<Rightarrow> 'f gterm rel" where
+  "epsilon N C = {(s, t)| s t C'.
     C \<in> N \<and>
     C = add_mset (Pos (Upair s t)) C' \<and>
     select C = {#} \<and>
     is_strictly_maximal_lit (Pos (Upair s t)) C \<and>
     t \<prec>\<^sub>t s \<and>
-    (let R\<^sub>C = (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. equation {E \<in> N. E \<preceq>\<^sub>c D} D) in
+    (let R\<^sub>C = (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. epsilon {E \<in> N. E \<preceq>\<^sub>c D} D) in
     \<not> upair ` (rewrite_inside_gctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
     \<not> upair ` (rewrite_inside_gctxt (insert (s, t) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
     s \<in> NF (rewrite_inside_gctxt R\<^sub>C))}"
   by auto
 
-termination equation
+termination epsilon
 proof (relation "{((x1, x2), (y1, y2)). x2 \<prec>\<^sub>c y2}")
   define f :: "'c \<times> 'f gterm uprod literal multiset \<Rightarrow> 'f gterm uprod literal multiset" where
     "f = (\<lambda>(x1, x2). x2)"
@@ -90,63 +90,63 @@ next
     by simp
 qed
 
-declare equation.simps[simp del]
+declare epsilon.simps[simp del]
 
-lemma equation_filter_le_conv: "equation {D \<in> N. D \<preceq>\<^sub>c C} C = equation N C"
+lemma epsilon_filter_le_conv: "epsilon {D \<in> N. D \<preceq>\<^sub>c C} C = epsilon N C"
 proof (intro subset_antisym subrelI)
   fix x y
-  assume "(x, y) \<in> equation {D \<in> N. D \<preceq>\<^sub>c C} C"
+  assume "(x, y) \<in> epsilon {D \<in> N. D \<preceq>\<^sub>c C} C"
   then obtain C' where
     "C \<in> N" and
     "C = add_mset (x \<approx> y) C'" and
     "select C = {#}" and
     "is_strictly_maximal_lit (x \<approx> y) C" and
     "y \<prec>\<^sub>t x" and
-    "(let R\<^sub>C = \<Union>x\<in>{D \<in> N. (D \<prec>\<^sub>c C \<or> D = C) \<and> D \<prec>\<^sub>c C}. equation {E \<in> N. (E \<prec>\<^sub>c C \<or> E = C) \<and> E \<preceq>\<^sub>c x} x in
+    "(let R\<^sub>C = \<Union>x\<in>{D \<in> N. (D \<prec>\<^sub>c C \<or> D = C) \<and> D \<prec>\<^sub>c C}. epsilon {E \<in> N. (E \<prec>\<^sub>c C \<or> E = C) \<and> E \<preceq>\<^sub>c x} x in
       \<not> upair ` (rewrite_inside_gctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
       \<not> upair ` (rewrite_inside_gctxt (insert (x, y) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
       x \<in> NF (rewrite_inside_gctxt R\<^sub>C))"
-    unfolding equation.simps[of _ C] mem_Collect_eq
+    unfolding epsilon.simps[of _ C] mem_Collect_eq
     by auto
 
-  moreover have "(\<Union>x\<in>{D \<in> N. (D \<prec>\<^sub>c C \<or> D = C) \<and> D \<prec>\<^sub>c C}. equation {E \<in> N. (E \<prec>\<^sub>c C \<or> E = C) \<and> E \<preceq>\<^sub>c x} x) = (\<Union>D\<in>{D \<in> N. D \<prec>\<^sub>c C}. equation {E \<in> N. E \<preceq>\<^sub>c D} D)"
+  moreover have "(\<Union>x\<in>{D \<in> N. (D \<prec>\<^sub>c C \<or> D = C) \<and> D \<prec>\<^sub>c C}. epsilon {E \<in> N. (E \<prec>\<^sub>c C \<or> E = C) \<and> E \<preceq>\<^sub>c x} x) = (\<Union>D\<in>{D \<in> N. D \<prec>\<^sub>c C}. epsilon {E \<in> N. E \<preceq>\<^sub>c D} D)"
   proof (rule SUP_cong)
     show "{D \<in> N. (D \<prec>\<^sub>c C \<or> D = C) \<and> D \<prec>\<^sub>c C} = {D \<in> N. D \<prec>\<^sub>c C}"
       by metis
   next
-    show "\<And>x. x \<in> {D \<in> N. D \<prec>\<^sub>c C} \<Longrightarrow> equation {E \<in> N. (E \<prec>\<^sub>c C \<or> E = C) \<and> E \<preceq>\<^sub>c x} x = equation {E \<in> N. E \<preceq>\<^sub>c x} x"
+    show "\<And>x. x \<in> {D \<in> N. D \<prec>\<^sub>c C} \<Longrightarrow> epsilon {E \<in> N. (E \<prec>\<^sub>c C \<or> E = C) \<and> E \<preceq>\<^sub>c x} x = epsilon {E \<in> N. E \<preceq>\<^sub>c x} x"
       by (metis (mono_tags, lifting) linorder_cls.order.strict_trans1 mem_Collect_eq)
   qed
 
-  ultimately show "(x, y) \<in> equation N C"
-    unfolding equation.simps[of _ C] by simp
+  ultimately show "(x, y) \<in> epsilon N C"
+    unfolding epsilon.simps[of _ C] by simp
 next
   fix x y
-  assume "(x, y) \<in> equation N C"
+  assume "(x, y) \<in> epsilon N C"
   then obtain C' where
     "C \<in> N" and
     "C = add_mset (x \<approx> y) C'" and
     "select C = {#}" and
     "is_strictly_maximal_lit (x \<approx> y) C" and
     "y \<prec>\<^sub>t x" and
-    "(let R\<^sub>C = \<Union>x\<in>{D \<in> N. D \<prec>\<^sub>c C}. equation {E \<in> N. E \<preceq>\<^sub>c x} x in
+    "(let R\<^sub>C = \<Union>x\<in>{D \<in> N. D \<prec>\<^sub>c C}. epsilon {E \<in> N. E \<preceq>\<^sub>c x} x in
       \<not> upair ` (rewrite_inside_gctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
       \<not> upair ` (rewrite_inside_gctxt (insert (x, y) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
       x \<in> NF (rewrite_inside_gctxt R\<^sub>C))"
-    unfolding equation.simps[of _ C] mem_Collect_eq
+    unfolding epsilon.simps[of _ C] mem_Collect_eq
     by auto
 
-  moreover have "(\<Union>x\<in>{D \<in> N. (D \<prec>\<^sub>c C \<or> D = C) \<and> D \<prec>\<^sub>c C}. equation {E \<in> N. (E \<prec>\<^sub>c C \<or> E = C) \<and> E \<preceq>\<^sub>c x} x) = (\<Union>D\<in>{D \<in> N. D \<prec>\<^sub>c C}. equation {E \<in> N. E \<preceq>\<^sub>c D} D)"
+  moreover have "(\<Union>x\<in>{D \<in> N. (D \<prec>\<^sub>c C \<or> D = C) \<and> D \<prec>\<^sub>c C}. epsilon {E \<in> N. (E \<prec>\<^sub>c C \<or> E = C) \<and> E \<preceq>\<^sub>c x} x) = (\<Union>D\<in>{D \<in> N. D \<prec>\<^sub>c C}. epsilon {E \<in> N. E \<preceq>\<^sub>c D} D)"
   proof (rule SUP_cong)
     show "{D \<in> N. (D \<prec>\<^sub>c C \<or> D = C) \<and> D \<prec>\<^sub>c C} = {D \<in> N. D \<prec>\<^sub>c C}"
       by metis
   next
-    show "\<And>x. x \<in> {D \<in> N. D \<prec>\<^sub>c C} \<Longrightarrow> equation {E \<in> N. (E \<prec>\<^sub>c C \<or> E = C) \<and> E \<preceq>\<^sub>c x} x = equation {E \<in> N. E \<preceq>\<^sub>c x} x"
+    show "\<And>x. x \<in> {D \<in> N. D \<prec>\<^sub>c C} \<Longrightarrow> epsilon {E \<in> N. (E \<prec>\<^sub>c C \<or> E = C) \<and> E \<preceq>\<^sub>c x} x = epsilon {E \<in> N. E \<preceq>\<^sub>c x} x"
       by (metis (mono_tags, lifting) linorder_cls.order.strict_trans1 mem_Collect_eq)
   qed
 
-  ultimately show "(x, y) \<in> equation {D \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C} C"
-    unfolding equation.simps[of _ C] by simp
+  ultimately show "(x, y) \<in> epsilon {D \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C} C"
+    unfolding epsilon.simps[of _ C] by simp
 qed
 
 end
@@ -155,54 +155,54 @@ lemma (in ground_ordering) Uniq_striclty_maximal_lit_in_ground_cls:
   "\<exists>\<^sub>\<le>\<^sub>1L. is_strictly_maximal_lit L C"
   using linorder_lit.Uniq_is_greatest_in_mset .
 
-lemma (in ground_superposition_calculus) equation_eq_empty_or_singleton:
-  "equation N C = {} \<or> (\<exists>s t. equation N C = {(s, t)})"
+lemma (in ground_superposition_calculus) epsilon_eq_empty_or_singleton:
+  "epsilon N C = {} \<or> (\<exists>s t. epsilon N C = {(s, t)})"
 proof -
   have "\<exists>\<^sub>\<le>\<^sub>1 (x, y). \<exists>C'.
     C = add_mset (Pos (Upair x y)) C' \<and> is_strictly_maximal_lit (Pos (Upair x y)) C \<and> y \<prec>\<^sub>t x"
     by (rule Uniq_prodI)
       (metis Uniq_D Upair_inject linorder_lit.Uniq_is_greatest_in_mset linorder_trm.min.absorb3
         linorder_trm.min.absorb4 literal.inject(1))
-  hence Uniq_equation: "\<exists>\<^sub>\<le>\<^sub>1 (x, y). \<exists>C'.
+  hence Uniq_epsilon: "\<exists>\<^sub>\<le>\<^sub>1 (x, y). \<exists>C'.
     C \<in> N \<and>
     C = add_mset (Pos (Upair x y)) C' \<and> select C = {#} \<and>
     is_strictly_maximal_lit (Pos (Upair x y)) C \<and> y \<prec>\<^sub>t x \<and>
-    (let R\<^sub>C = \<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. equation {E \<in> N. E \<preceq>\<^sub>c D} D in
+    (let R\<^sub>C = \<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. epsilon {E \<in> N. E \<preceq>\<^sub>c D} D in
       \<not> upair ` (rewrite_inside_gctxt R\<^sub>C)\<^sup>\<down> \<TTurnstile> C \<and>
       \<not> upair ` (rewrite_inside_gctxt (insert (x, y) R\<^sub>C))\<^sup>\<down> \<TTurnstile> C' \<and>
       x \<in> NF (rewrite_inside_gctxt R\<^sub>C))"
     using Uniq_antimono'
     by (smt (verit) Uniq_def Uniq_prodI case_prod_conv)
   show ?thesis
-    unfolding equation.simps[of N C]
-    using Collect_eq_if_Uniq_prod[OF Uniq_equation]
-    by (smt (verit, best) Collect_cong Collect_empty_eq Uniq_def Uniq_equation case_prod_conv
+    unfolding epsilon.simps[of N C]
+    using Collect_eq_if_Uniq_prod[OF Uniq_epsilon]
+    by (smt (verit, best) Collect_cong Collect_empty_eq Uniq_def Uniq_epsilon case_prod_conv
         insertCI mem_Collect_eq)
 qed
 
-lemma (in ground_superposition_calculus) card_equation_le_one:
-  "card (equation N C) \<le> 1"
-  using equation_eq_empty_or_singleton[of N C]
+lemma (in ground_superposition_calculus) card_epsilon_le_one:
+  "card (epsilon N C) \<le> 1"
+  using epsilon_eq_empty_or_singleton[of N C]
   by auto
 
 definition (in ground_superposition_calculus) rewrite_sys where
-  "rewrite_sys N C \<equiv> (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. equation {E \<in> N. E \<preceq>\<^sub>c D} D)"
+  "rewrite_sys N C \<equiv> (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. epsilon {E \<in> N. E \<preceq>\<^sub>c D} D)"
 
 definition (in ground_superposition_calculus) rewrite_sys' where
-  "rewrite_sys' N \<equiv> (\<Union>C \<in> N. equation N C)"
+  "rewrite_sys' N \<equiv> (\<Union>C \<in> N. epsilon N C)"
 
 lemma (in ground_superposition_calculus) rewrite_sys_alt: "rewrite_sys' {D \<in> N. D \<prec>\<^sub>c C} = rewrite_sys N C"
   unfolding rewrite_sys'_def rewrite_sys_def
 proof (rule SUP_cong)
   show "{D \<in> N. D \<prec>\<^sub>c C} = {D \<in> N. D \<prec>\<^sub>c C}" ..
 next
-  show "\<And>x. x \<in> {D \<in> N. D \<prec>\<^sub>c C} \<Longrightarrow> equation {D \<in> N. D \<prec>\<^sub>c C} x = equation {E \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= E x} x"
-    using equation_filter_le_conv
+  show "\<And>x. x \<in> {D \<in> N. D \<prec>\<^sub>c C} \<Longrightarrow> epsilon {D \<in> N. D \<prec>\<^sub>c C} x = epsilon {E \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= E x} x"
+    using epsilon_filter_le_conv
     by (smt (verit, best) Collect_cong linorder_cls.le_less_trans mem_Collect_eq)
 qed
 
-lemma (in ground_superposition_calculus) mem_equationE:
-  assumes rule_in: "rule \<in> equation N C"
+lemma (in ground_superposition_calculus) mem_epsilonE:
+  assumes rule_in: "rule \<in> epsilon N C"
   obtains l r C' where
     "C \<in> N" and
     "rule = (l, r)" and
@@ -214,11 +214,11 @@ lemma (in ground_superposition_calculus) mem_equationE:
     "\<not> upair ` (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'" and
     "l \<in> NF (rewrite_inside_gctxt (rewrite_sys N C))"
   using rule_in
-  unfolding equation.simps[of N C] mem_Collect_eq Let_def rewrite_sys_def
+  unfolding epsilon.simps[of N C] mem_Collect_eq Let_def rewrite_sys_def
   by (metis (no_types, lifting))
 
-lemma (in ground_superposition_calculus) mem_equation_iff:
-  "(l, r) \<in> equation N C \<longleftrightarrow>
+lemma (in ground_superposition_calculus) mem_epsilon_iff:
+  "(l, r) \<in> epsilon N C \<longleftrightarrow>
     (\<exists>C'. C \<in> N \<and> C = add_mset (Pos (Upair l r)) C' \<and> select C = {#} \<and>
       is_strictly_maximal_lit (Pos (Upair l r)) C \<and> r \<prec>\<^sub>t l \<and>
       \<not> upair ` (rewrite_inside_gctxt (rewrite_sys' {D \<in> N. D \<prec>\<^sub>c C}))\<^sup>\<down> \<TTurnstile> C \<and>
@@ -229,11 +229,11 @@ proof (rule iffI)
   assume ?LHS
   thus ?RHS
     using rewrite_sys_alt
-    by (auto elim: mem_equationE)
+    by (auto elim: mem_epsilonE)
 next
   assume ?RHS
   thus ?LHS
-    unfolding equation.simps[of N C] mem_Collect_eq
+    unfolding epsilon.simps[of N C] mem_Collect_eq
     unfolding rewrite_sys_alt rewrite_sys_def by auto
 qed
 
@@ -242,7 +242,7 @@ lemma (in ground_superposition_calculus) rhs_lt_lhs_if_mem_rewrite_sys:
   shows "t2 \<prec>\<^sub>t t1"
   using assms
   unfolding rewrite_sys_def
-  by (smt (verit, best) UN_iff mem_equationE prod.inject)
+  by (smt (verit, best) UN_iff mem_epsilonE prod.inject)
 
 lemma (in ground_superposition_calculus) rhs_less_trm_lhs_if_mem_rewrite_inside_gctxt_rewrite_sys:
   assumes rule_in: "(t1, t2) \<in> rewrite_inside_gctxt (rewrite_sys N C)"
@@ -282,26 +282,26 @@ lemma subset_Union_mem_CollectI: "P x \<Longrightarrow> f x \<subseteq> (\<Union
 lemma (in ground_superposition_calculus) rewrite_sys_subset_if_less_cls:
   "C \<prec>\<^sub>c D \<Longrightarrow> rewrite_sys N C \<subseteq> rewrite_sys N D"
   unfolding rewrite_sys_def
-  unfolding equation_filter_le_conv
+  unfolding epsilon_filter_le_conv
   by (smt (verit, del_insts) SUP_mono linorder_cls.dual_order.strict_trans mem_Collect_eq subset_eq)
 
 lemma (in ground_superposition_calculus) mem_rewrite_sys_if_less_cls:
-  assumes "D \<in> N" and "D \<prec>\<^sub>c C" and "(u, v) \<in> equation N D"
+  assumes "D \<in> N" and "D \<prec>\<^sub>c C" and "(u, v) \<in> epsilon N D"
   shows "(u, v) \<in> rewrite_sys N C"
   unfolding rewrite_sys_def UN_iff
 proof (intro bexI)
   show "D \<in> {D \<in> N. D \<prec>\<^sub>c C}"
     using \<open>D \<in> N\<close> \<open>D \<prec>\<^sub>c C\<close> by simp
 next
-  show "(u, v) \<in> equation {E \<in> N. E \<preceq>\<^sub>c D} D"
-    using \<open>(u, v) \<in> equation N D\<close> equation_filter_le_conv by simp
+  show "(u, v) \<in> epsilon {E \<in> N. E \<preceq>\<^sub>c D} D"
+    using \<open>(u, v) \<in> epsilon N D\<close> epsilon_filter_le_conv by simp
 qed
 
-lemma (in ground_superposition_calculus) less_trm_iff_less_cls_if_lhs_equation:
-  assumes E\<^sub>C: "equation N C = {(s, t)}" and E\<^sub>D: "equation N D = {(u, v)}"
+lemma (in ground_superposition_calculus) less_trm_iff_less_cls_if_lhs_epsilon:
+  assumes E\<^sub>C: "epsilon N C = {(s, t)}" and E\<^sub>D: "epsilon N D = {(u, v)}"
   shows "u \<prec>\<^sub>t s \<longleftrightarrow> D \<prec>\<^sub>c C"
 proof -
-  from E\<^sub>C have "(s, t) \<in> equation N C"
+  from E\<^sub>C have "(s, t) \<in> epsilon N C"
     by simp
   then obtain C' where
     "C \<in> N" and
@@ -309,7 +309,7 @@ proof -
     "is_strictly_maximal_lit (Pos (Upair s t)) C" and
     "t \<prec>\<^sub>t s" and
     s_irreducible: "s \<in> NF (rewrite_inside_gctxt (rewrite_sys N C))"
-    by (auto elim!: mem_equationE)
+    by (auto elim!: mem_epsilonE)
   hence "\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (Upair s t)"
     by (simp add: linorder_lit.is_greatest_in_mset_iff)
 
@@ -318,7 +318,7 @@ proof -
     D_def: "D = add_mset (Pos (Upair u v)) D'" and
     "is_strictly_maximal_lit (Pos (Upair u v)) D" and
     "v \<prec>\<^sub>t u"
-    by (auto simp:  elim: equation.elims dest: singleton_eq_CollectD)
+    by (auto simp:  elim: epsilon.elims dest: singleton_eq_CollectD)
   hence "\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (Upair u v)"
     by (simp add: linorder_lit.is_greatest_in_mset_iff)
 
@@ -381,10 +381,10 @@ next
   assume "(t, s) \<in> (rewrite_sys N C)\<inverse>"
   hence "(s, t) \<in> rewrite_sys N C"
     by simp
-  then obtain D where "D \<prec>\<^sub>c C" and "(s, t) \<in> equation N D"
-    unfolding rewrite_sys_def using equation_filter_le_conv by blast
+  then obtain D where "D \<prec>\<^sub>c C" and "(s, t) \<in> epsilon N D"
+    unfolding rewrite_sys_def using epsilon_filter_le_conv by blast
   hence "t \<prec>\<^sub>t s"
-    by (auto elim: mem_equationE)
+    by (auto elim: mem_epsilonE)
   thus "(t, s) \<in> {(x, y). x \<prec>\<^sub>t y}"
     by (simp add: ) 
 qed
@@ -402,29 +402,29 @@ next
     by simp
   then obtain C where "C \<in> N" "(s, t) \<in> rewrite_sys N C"
     by auto
-  then obtain D where "D \<prec>\<^sub>c C" and "(s, t) \<in> equation N D"
-    unfolding rewrite_sys_def using equation_filter_le_conv by blast
+  then obtain D where "D \<prec>\<^sub>c C" and "(s, t) \<in> epsilon N D"
+    unfolding rewrite_sys_def using epsilon_filter_le_conv by blast
   hence "t \<prec>\<^sub>t s"
-    by (auto elim: mem_equationE)
+    by (auto elim: mem_epsilonE)
   thus "(t, s) \<in> {(x, y). x \<prec>\<^sub>t y}"
     by simp 
 qed
 
 lemma (in ground_superposition_calculus) no_crit_pairs:
-  "{(t1, t2) \<in> ground_critical_pairs (\<Union> (equation N2 ` N)). t1 \<noteq> t2} = {}"
+  "{(t1, t2) \<in> ground_critical_pairs (\<Union> (epsilon N2 ` N)). t1 \<noteq> t2} = {}"
 proof (rule ccontr)
   assume "{(t1, t2).
-    (t1, t2) \<in> ground_critical_pairs (\<Union> (equation N2 ` N)) \<and> t1 \<noteq> t2} \<noteq> {}"
+    (t1, t2) \<in> ground_critical_pairs (\<Union> (epsilon N2 ` N)) \<and> t1 \<noteq> t2} \<noteq> {}"
   then obtain ctxt l r1 r2 where
-    "(ctxt\<langle>r2\<rangle>\<^sub>G, r1) \<in> ground_critical_pairs (\<Union> (equation N2 ` N))" and
+    "(ctxt\<langle>r2\<rangle>\<^sub>G, r1) \<in> ground_critical_pairs (\<Union> (epsilon N2 ` N))" and
     "ctxt\<langle>r2\<rangle>\<^sub>G \<noteq> r1" and
-    rule1_in: "(ctxt\<langle>l\<rangle>\<^sub>G, r1) \<in> \<Union> (equation N2 ` N)" and
-    rule2_in: "(l, r2) \<in> \<Union> (equation N2 ` N)"
+    rule1_in: "(ctxt\<langle>l\<rangle>\<^sub>G, r1) \<in> \<Union> (epsilon N2 ` N)" and
+    rule2_in: "(l, r2) \<in> \<Union> (epsilon N2 ` N)"
     unfolding ground_critical_pairs_def mem_Collect_eq by blast
 
   from rule1_in rule2_in obtain C1 C2 where
-    "C1 \<in> N" and rule1_in': "(ctxt\<langle>l\<rangle>\<^sub>G, r1) \<in> equation N2 C1" and
-    "C2 \<in> N" and rule2_in': "(l, r2) \<in> equation N2 C2"
+    "C1 \<in> N" and rule1_in': "(ctxt\<langle>l\<rangle>\<^sub>G, r1) \<in> epsilon N2 C1" and
+    "C2 \<in> N" and rule2_in': "(l, r2) \<in> epsilon N2 C2"
     by auto
 
   from rule1_in' obtain C1' where
@@ -432,19 +432,19 @@ proof (rule ccontr)
     C1_max: "is_strictly_maximal_lit (Pos (Upair ctxt\<langle>l\<rangle>\<^sub>G r1)) C1" and
     "r1 \<prec>\<^sub>t ctxt\<langle>l\<rangle>\<^sub>G" and
     l1_irreducible: "ctxt\<langle>l\<rangle>\<^sub>G \<in> NF (rewrite_inside_gctxt (rewrite_sys N2 C1))"
-    by (auto elim: mem_equationE)
+    by (auto elim: mem_epsilonE)
 
   from rule2_in' obtain C2' where
     C2_def: "C2 = add_mset (Pos (Upair l r2)) C2'" and
     C2_max: "is_strictly_maximal_lit (Pos (Upair l r2)) C2" and
     "r2 \<prec>\<^sub>t l"
-    by (auto elim: mem_equationE)
+    by (auto elim: mem_epsilonE)
 
-  have "equation N2 C1 = {(ctxt\<langle>l\<rangle>\<^sub>G, r1)}"
-    using rule1_in' equation_eq_empty_or_singleton by fastforce
+  have "epsilon N2 C1 = {(ctxt\<langle>l\<rangle>\<^sub>G, r1)}"
+    using rule1_in' epsilon_eq_empty_or_singleton by fastforce
 
-  have "equation N2 C2 = {(l, r2)}"
-    using rule2_in' equation_eq_empty_or_singleton by fastforce
+  have "epsilon N2 C2 = {(l, r2)}"
+    using rule2_in' epsilon_eq_empty_or_singleton by fastforce
 
   show False
   proof (cases "ctxt = \<box>\<^sub>G")
@@ -452,13 +452,13 @@ proof (rule ccontr)
     hence "\<not> (ctxt\<langle>l\<rangle>\<^sub>G \<prec>\<^sub>t l)" and "\<not> (l \<prec>\<^sub>t ctxt\<langle>l\<rangle>\<^sub>G)"
       by (simp_all add: irreflpD)
     hence "\<not> (C1 \<prec>\<^sub>c C2)" and "\<not> (C2 \<prec>\<^sub>c C1)"
-      using \<open>equation N2 C1 = {(ctxt\<langle>l\<rangle>\<^sub>G, r1)}\<close> \<open>equation N2 C2 = {(l, r2)}\<close>
-        less_trm_iff_less_cls_if_lhs_equation
+      using \<open>epsilon N2 C1 = {(ctxt\<langle>l\<rangle>\<^sub>G, r1)}\<close> \<open>epsilon N2 C2 = {(l, r2)}\<close>
+        less_trm_iff_less_cls_if_lhs_epsilon
       by simp_all
     hence "C1 = C2"
       by order
     hence "r1 = r2"
-      using \<open>equation N2 C1 = {(ctxt\<langle>l\<rangle>\<^sub>G, r1)}\<close> \<open>equation N2 C2 = {(l, r2)}\<close> by simp
+      using \<open>epsilon N2 C1 = {(ctxt\<langle>l\<rangle>\<^sub>G, r1)}\<close> \<open>epsilon N2 C2 = {(l, r2)}\<close> by simp
     moreover have "r1 \<noteq> r2"
       using \<open>ctxt\<langle>r2\<rangle>\<^sub>G \<noteq> r1\<close>
       unfolding \<open>ctxt = \<box>\<^sub>G\<close>
@@ -470,11 +470,11 @@ proof (rule ccontr)
     hence "l \<prec>\<^sub>t ctxt\<langle>l\<rangle>\<^sub>G"
       by (metis less_trm_if_subterm)
     hence "C2 \<prec>\<^sub>c C1"
-      using \<open>equation N2 C1 = {(ctxt\<langle>l\<rangle>\<^sub>G, r1)}\<close> \<open>equation N2 C2 = {(l, r2)}\<close>
-        less_trm_iff_less_cls_if_lhs_equation
+      using \<open>epsilon N2 C1 = {(ctxt\<langle>l\<rangle>\<^sub>G, r1)}\<close> \<open>epsilon N2 C2 = {(l, r2)}\<close>
+        less_trm_iff_less_cls_if_lhs_epsilon
       by simp
     have "(l, r2) \<in> rewrite_sys N2 C1"
-      by (metis \<open>C2 \<prec>\<^sub>c C1\<close> \<open>equation N2 C2 = {(l, r2)}\<close> mem_equationE mem_rewrite_sys_if_less_cls
+      by (metis \<open>C2 \<prec>\<^sub>c C1\<close> \<open>epsilon N2 C2 = {(l, r2)}\<close> mem_epsilonE mem_rewrite_sys_if_less_cls
           singletonI)
     hence "(ctxt\<langle>l\<rangle>\<^sub>G, ctxt\<langle>r2\<rangle>\<^sub>G) \<in> rewrite_inside_gctxt (rewrite_sys N2 C1)"
       by auto
@@ -484,41 +484,41 @@ proof (rule ccontr)
 qed
 
 lemma (in ground_superposition_calculus) WCR_Union_rewrite_sys:
-  "WCR (rewrite_inside_gctxt (\<Union>D \<in> N. equation N2 D))"
+  "WCR (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N2 D))"
   unfolding ground_critical_pair_theorem
 proof (intro subsetI ballI)
   fix tuple
-  assume tuple_in: "tuple \<in> ground_critical_pairs (\<Union> (equation N2 ` N))"
+  assume tuple_in: "tuple \<in> ground_critical_pairs (\<Union> (epsilon N2 ` N))"
   then obtain t1 t2 where tuple_def: "tuple = (t1, t2)"
     by fastforce
 
-  moreover have "(t1, t2) \<in> (rewrite_inside_gctxt (\<Union> (equation N2 ` N)))\<^sup>\<down>" if "t1 = t2"
+  moreover have "(t1, t2) \<in> (rewrite_inside_gctxt (\<Union> (epsilon N2 ` N)))\<^sup>\<down>" if "t1 = t2"
     using that by auto
 
   moreover have False if "t1 \<noteq> t2"
     using that tuple_def tuple_in no_crit_pairs by simp
 
-  ultimately show "tuple \<in> (rewrite_inside_gctxt (\<Union> (equation N2 ` N)))\<^sup>\<down>"
+  ultimately show "tuple \<in> (rewrite_inside_gctxt (\<Union> (epsilon N2 ` N)))\<^sup>\<down>"
     by (cases "t1 = t2") simp_all
 qed
 
 lemma (in ground_superposition_calculus)
   assumes
     "D \<preceq>\<^sub>c C" and
-    E\<^sub>C_eq: "equation N C = {(s, t)}" and
+    E\<^sub>C_eq: "epsilon N C = {(s, t)}" and
     L_in: "L \<in># D" and
     topmost_trms_of_L: "mset_uprod (atm_of L) = {#u, v#}"
   shows
     lesseq_trm_if_pos: "is_pos L \<Longrightarrow> u \<preceq>\<^sub>t s" and
     less_trm_if_neg: "is_neg L \<Longrightarrow> u \<prec>\<^sub>t s"
 proof -
-  from E\<^sub>C_eq have "(s, t) \<in> equation N C"
+  from E\<^sub>C_eq have "(s, t) \<in> epsilon N C"
     by simp
   then obtain C' where
     C_def: "C = add_mset (Pos (Upair s t)) C'" and
     C_max_lit: "is_strictly_maximal_lit (Pos (Upair s t)) C" and
     "t \<prec>\<^sub>t s"
-    by (auto elim: mem_equationE)
+    by (auto elim: mem_epsilonE)
 
   hence less_lit_tot_on_C_D[simp]: "totalp_on (set_mset C \<union> set_mset D) (\<prec>\<^sub>l)"
     using totalp_less_lit totalp_on_subset by blast
@@ -591,10 +591,10 @@ proof -
     using ball_lt_lhs[OF rule_in'] lesseq_trm_if_subtermeq[of t1' ctxt] l_def by order
 qed
 
-lemma (in ground_superposition_calculus) split_Union_equation:
+lemma (in ground_superposition_calculus) split_Union_epsilon:
   assumes D_in: "D \<in> N"
-  shows "(\<Union>C \<in> N. equation N C) =
-    rewrite_sys N D \<union> equation N D \<union> (\<Union>C \<in> {C \<in> N. D \<prec>\<^sub>c C}. equation N C)"
+  shows "(\<Union>C \<in> N. epsilon N C) =
+    rewrite_sys N D \<union> epsilon N D \<union> (\<Union>C \<in> {C \<in> N. D \<prec>\<^sub>c C}. epsilon N C)"
 proof -
   have "N = {C \<in> N. C \<prec>\<^sub>c D} \<union> {D} \<union> {C \<in> N. D \<prec>\<^sub>c C}"
   proof (rule partition_set_around_element)
@@ -604,22 +604,22 @@ proof -
     show "D \<in> N"
       using D_in by simp
   qed
-  hence "(\<Union>C \<in> N. equation N C) =
-      (\<Union>C \<in> {C \<in> N. C \<prec>\<^sub>c D}. equation N C) \<union> equation N D \<union> (\<Union>C \<in> {C \<in> N. D \<prec>\<^sub>c C}. equation N C)"
+  hence "(\<Union>C \<in> N. epsilon N C) =
+      (\<Union>C \<in> {C \<in> N. C \<prec>\<^sub>c D}. epsilon N C) \<union> epsilon N D \<union> (\<Union>C \<in> {C \<in> N. D \<prec>\<^sub>c C}. epsilon N C)"
     by auto
-  thus "(\<Union>C \<in> N. equation N C) =
-    rewrite_sys N D \<union> equation N D \<union> (\<Union>C \<in> {C \<in> N. D \<prec>\<^sub>c C}. equation N C)"
-    using equation_filter_le_conv rewrite_sys_def by simp
+  thus "(\<Union>C \<in> N. epsilon N C) =
+    rewrite_sys N D \<union> epsilon N D \<union> (\<Union>C \<in> {C \<in> N. D \<prec>\<^sub>c C}. epsilon N C)"
+    using epsilon_filter_le_conv rewrite_sys_def by simp
 qed
 
-lemma (in ground_superposition_calculus) split_Union_equation':
+lemma (in ground_superposition_calculus) split_Union_epsilon':
   assumes D_in: "D \<in> N"
-  shows "(\<Union>C \<in> N. equation N C) = rewrite_sys N D \<union> (\<Union>C \<in> {C \<in> N. D \<preceq>\<^sub>c C}. equation N C)"
-  using split_Union_equation[OF D_in] D_in by auto
+  shows "(\<Union>C \<in> N. epsilon N C) = rewrite_sys N D \<union> (\<Union>C \<in> {C \<in> N. D \<preceq>\<^sub>c C}. epsilon N C)"
+  using split_Union_epsilon[OF D_in] D_in by auto
 
 lemma (in ground_superposition_calculus) split_rewrite_sys:
   assumes "C \<in> N" and D_in: "D \<in> N" and "D \<prec>\<^sub>c C"
-  shows "rewrite_sys N C = rewrite_sys N D \<union> (\<Union>C' \<in> {C' \<in> N. D \<preceq>\<^sub>c C' \<and> C' \<prec>\<^sub>c C}. equation N C')"
+  shows "rewrite_sys N C = rewrite_sys N D \<union> (\<Union>C' \<in> {C' \<in> N. D \<preceq>\<^sub>c C' \<and> C' \<prec>\<^sub>c C}. epsilon N C')"
 proof -
   have "{D \<in> N. D \<prec>\<^sub>c C} =
         {y \<in> {D \<in> N. D \<prec>\<^sub>c C}. y \<prec>\<^sub>c D} \<union> {D} \<union> {y \<in> {D \<in> N. D \<prec>\<^sub>c C}. D \<prec>\<^sub>c y}"
@@ -638,13 +638,13 @@ proof -
   finally have Collect_N_lt_C: "{x \<in> N. x \<prec>\<^sub>c C} = {x \<in> N. x \<prec>\<^sub>c D} \<union> {x \<in> N. D \<preceq>\<^sub>c x \<and> x \<prec>\<^sub>c C}"
     by auto
 
-  have "rewrite_sys N C = (\<Union>C' \<in> {D \<in> N. D \<prec>\<^sub>c C}. equation N C')"
-    using equation_filter_le_conv
+  have "rewrite_sys N C = (\<Union>C' \<in> {D \<in> N. D \<prec>\<^sub>c C}. epsilon N C')"
+    using epsilon_filter_le_conv
     by (simp add: rewrite_sys_def)
-  also have "\<dots> = (\<Union>C' \<in> {x \<in> N. x \<prec>\<^sub>c D}. equation N C') \<union> (\<Union>C' \<in> {x \<in> N. D \<preceq>\<^sub>c x \<and> x \<prec>\<^sub>c C}. equation N C')"
+  also have "\<dots> = (\<Union>C' \<in> {x \<in> N. x \<prec>\<^sub>c D}. epsilon N C') \<union> (\<Union>C' \<in> {x \<in> N. D \<preceq>\<^sub>c x \<and> x \<prec>\<^sub>c C}. epsilon N C')"
     unfolding Collect_N_lt_C by simp
-  finally show "rewrite_sys N C = rewrite_sys N D \<union> \<Union> (equation N ` {C' \<in> N. D \<preceq>\<^sub>c C' \<and> C' \<prec>\<^sub>c C})"
-    using equation_filter_le_conv
+  finally show "rewrite_sys N C = rewrite_sys N D \<union> \<Union> (epsilon N ` {C' \<in> N. D \<preceq>\<^sub>c C' \<and> C' \<prec>\<^sub>c C})"
+    using epsilon_filter_le_conv
     unfolding rewrite_sys_def by simp
 qed
 
@@ -737,7 +737,7 @@ lemma (in ground_superposition_calculus) lift_entailment_to_Union:
     D_in: "D \<in> N" and
     R\<^sub>D_entails_D: "upair ` (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down> \<TTurnstile> D"
   shows
-    "upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> D" and
+    "upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down> \<TTurnstile> D" and
     "\<And>C. C \<in> N \<Longrightarrow> D \<prec>\<^sub>c C \<Longrightarrow> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D"
 proof -
   from R\<^sub>D_entails_D obtain L s t where
@@ -748,59 +748,59 @@ proof -
     by (metis (no_types, opaque_lifting) image_iff prod.case surj_pair uprod_exhaust)
 
   from L_eq_disj_L_eq show
-    "upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> D" and
+    "upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down> \<TTurnstile> D" and
     "\<And>C. C \<in> N \<Longrightarrow> D \<prec>\<^sub>c C \<Longrightarrow> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D"
     unfolding atomize_all atomize_conj atomize_imp
   proof (elim disjE conjE)
     assume L_def: "L = Pos (Upair s t)" and "(s, t) \<in> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>"
-    have "R\<^sub>D \<subseteq> (\<Union>D \<in> N. equation N D)" and
+    have "R\<^sub>D \<subseteq> (\<Union>D \<in> N. epsilon N D)" and
       "\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> R\<^sub>D \<subseteq> rewrite_sys N C"
       unfolding R\<^sub>D_def rewrite_sys_def
       using D_in transp_less_cls[THEN transpD]
-      using equation_filter_le_conv
+      using epsilon_filter_le_conv
       by (auto intro: Collect_mono)
-    hence "rewrite_inside_gctxt R\<^sub>D \<subseteq> rewrite_inside_gctxt (\<Union>D \<in> N. equation N D)" and
+    hence "rewrite_inside_gctxt R\<^sub>D \<subseteq> rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D)" and
       "\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> rewrite_inside_gctxt R\<^sub>D \<subseteq> rewrite_inside_gctxt (rewrite_sys N C)"
       by (auto intro!: rewrite_inside_gctxt_mono)
-    hence "(s, t) \<in> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>" and
+    hence "(s, t) \<in> (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down>" and
       "\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (s, t) \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
       by (auto intro!: join_mono intro: set_mp[OF _ \<open>(s, t) \<in> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>\<close>])
-    thus "upair ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile> D \<and>
+    thus "upair ` (rewrite_inside_gctxt (\<Union> (epsilon N ` N)))\<^sup>\<down> \<TTurnstile> D \<and>
       (\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D)"
       unfolding true_cls_def true_lit_iff
       using L_in L_def by blast
   next
     have "(t1, t2) \<in> R\<^sub>D \<Longrightarrow> t2 \<prec>\<^sub>t t1" for t1 t2
-      by (auto simp: R\<^sub>D_def rewrite_sys_def elim: mem_equationE)
+      by (auto simp: R\<^sub>D_def rewrite_sys_def elim: mem_epsilonE)
     hence ball_R\<^sub>D_rhs_lt_lhs: "(t1, t2) \<in> rewrite_inside_gctxt R\<^sub>D \<Longrightarrow> t2 \<prec>\<^sub>t t1" for t1 t2
       by (smt (verit, ccfv_SIG) Pair_inject less_trm_compatible_with_gctxt mem_Collect_eq
           rewrite_inside_gctxt_def)
 
     assume L_def: "L = Neg (Upair s t)" and "(s, t) \<notin> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>"
 
-    have "(s, t) \<in> (rewrite_inside_gctxt R\<^sub>D \<union> rewrite_inside_gctxt (\<Union>C \<in> {C \<in> N. D \<preceq>\<^sub>c C}. equation N C))\<^sup>\<down> \<longleftrightarrow>
+    have "(s, t) \<in> (rewrite_inside_gctxt R\<^sub>D \<union> rewrite_inside_gctxt (\<Union>C \<in> {C \<in> N. D \<preceq>\<^sub>c C}. epsilon N C))\<^sup>\<down> \<longleftrightarrow>
       (s, t) \<in> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>"
     proof (rule mem_join_union_iff_mem_join_lhs')
       show "\<And>t1 t2. (t1, t2) \<in> rewrite_inside_gctxt R\<^sub>D \<Longrightarrow> t2 \<prec>\<^sub>t t1"
         using ball_R\<^sub>D_rhs_lt_lhs by simp
     next
       have ball_Rinf_minus_lt_lhs: "s \<prec>\<^sub>t fst rule \<and> t \<prec>\<^sub>t fst rule"
-        if rule_in: "rule \<in> (\<Union>C \<in> {C \<in> N. D \<preceq>\<^sub>c C}. equation N C)"
+        if rule_in: "rule \<in> (\<Union>C \<in> {C \<in> N. D \<preceq>\<^sub>c C}. epsilon N C)"
         for rule
       proof -
         from rule_in obtain C where
-          "C \<in> N" and "D \<preceq>\<^sub>c C" and "rule \<in> equation N C"
+          "C \<in> N" and "D \<preceq>\<^sub>c C" and "rule \<in> epsilon N C"
           by auto
 
-        have equation_C_eq: "equation N C = {(fst rule, snd rule)}"
-          using \<open>rule \<in> equation N C\<close> equation_eq_empty_or_singleton by force
+        have epsilon_C_eq: "epsilon N C = {(fst rule, snd rule)}"
+          using \<open>rule \<in> epsilon N C\<close> epsilon_eq_empty_or_singleton by force
 
         show ?thesis
-          using less_trm_if_neg[OF \<open>D \<preceq>\<^sub>c C\<close> equation_C_eq L_in]
+          using less_trm_if_neg[OF \<open>D \<preceq>\<^sub>c C\<close> epsilon_C_eq L_in]
           by (simp add: L_def)
       qed
 
-      show "\<And>t1 t2. (t1, t2) \<in> rewrite_inside_gctxt (\<Union> (equation N ` {C \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C})) \<Longrightarrow>
+      show "\<And>t1 t2. (t1, t2) \<in> rewrite_inside_gctxt (\<Union> (epsilon N ` {C \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C})) \<Longrightarrow>
         s \<prec>\<^sub>t t1 \<and> t \<prec>\<^sub>t t1"
         using less_trm_const_lhs_if_mem_rewrite_inside_gctxt
         using ball_Rinf_minus_lt_lhs
@@ -808,7 +808,7 @@ proof -
     qed
 
     moreover have
-      "(s, t) \<in> (rewrite_inside_gctxt R\<^sub>D \<union> rewrite_inside_gctxt (\<Union>C' \<in> {C' \<in> N. D \<preceq>\<^sub>c C' \<and> C' \<prec>\<^sub>c C}. equation N C'))\<^sup>\<down> \<longleftrightarrow>
+      "(s, t) \<in> (rewrite_inside_gctxt R\<^sub>D \<union> rewrite_inside_gctxt (\<Union>C' \<in> {C' \<in> N. D \<preceq>\<^sub>c C' \<and> C' \<prec>\<^sub>c C}. epsilon N C'))\<^sup>\<down> \<longleftrightarrow>
        (s, t) \<in> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>"
       if "C \<in> N" and "D \<prec>\<^sub>c C"
       for C
@@ -818,42 +818,42 @@ proof -
     next
       have ball_lt_lhs: "s \<prec>\<^sub>t t1 \<and> t \<prec>\<^sub>t t1"
         if "C \<in> N" and "D \<prec>\<^sub>c C" and
-          rule_in: "(t1, t2) \<in> (\<Union>C' \<in> {C' \<in> N. D \<preceq>\<^sub>c C' \<and> C' \<prec>\<^sub>c C}. equation N C')"
+          rule_in: "(t1, t2) \<in> (\<Union>C' \<in> {C' \<in> N. D \<preceq>\<^sub>c C' \<and> C' \<prec>\<^sub>c C}. epsilon N C')"
         for C t1 t2
       proof -
         from rule_in obtain C' where
-          "C' \<in> N" and "D \<preceq>\<^sub>c C'" and "C' \<prec>\<^sub>c C" and "(t1, t2) \<in> equation N C'"
+          "C' \<in> N" and "D \<preceq>\<^sub>c C'" and "C' \<prec>\<^sub>c C" and "(t1, t2) \<in> epsilon N C'"
           by (auto simp: rewrite_sys_def)
 
-        have equation_C'_eq: "equation N C' = {(t1, t2)}"
-          using \<open>(t1, t2) \<in> equation N C'\<close> equation_eq_empty_or_singleton by force
+        have epsilon_C'_eq: "epsilon N C' = {(t1, t2)}"
+          using \<open>(t1, t2) \<in> epsilon N C'\<close> epsilon_eq_empty_or_singleton by force
 
         show ?thesis
-          using less_trm_if_neg[OF \<open>D \<preceq>\<^sub>c C'\<close> equation_C'_eq L_in]
+          using less_trm_if_neg[OF \<open>D \<preceq>\<^sub>c C'\<close> epsilon_C'_eq L_in]
           by (simp add: L_def)
       qed
 
-      show "\<And>t1 t2. (t1, t2) \<in> rewrite_inside_gctxt (\<Union> (equation N ` {C' \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C' \<and> C' \<prec>\<^sub>c C})) \<Longrightarrow>
+      show "\<And>t1 t2. (t1, t2) \<in> rewrite_inside_gctxt (\<Union> (epsilon N ` {C' \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C' \<and> C' \<prec>\<^sub>c C})) \<Longrightarrow>
         s \<prec>\<^sub>t t1 \<and> t \<prec>\<^sub>t t1"
         using less_trm_const_lhs_if_mem_rewrite_inside_gctxt
         using ball_lt_lhs[OF that(1,2)]
         by (metis (no_types, lifting))
     qed
 
-    ultimately have "(s, t) \<notin> (rewrite_inside_gctxt R\<^sub>D \<union> rewrite_inside_gctxt (\<Union>C \<in> {C \<in> N. D \<preceq>\<^sub>c C}. equation N C))\<^sup>\<down>" and
+    ultimately have "(s, t) \<notin> (rewrite_inside_gctxt R\<^sub>D \<union> rewrite_inside_gctxt (\<Union>C \<in> {C \<in> N. D \<preceq>\<^sub>c C}. epsilon N C))\<^sup>\<down>" and
       "\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow>
-        (s, t) \<notin> (rewrite_inside_gctxt R\<^sub>D \<union> rewrite_inside_gctxt (\<Union>C' \<in> {C' \<in> N. D \<preceq>\<^sub>c C' \<and> C' \<prec>\<^sub>c C}. equation N C'))\<^sup>\<down>"
+        (s, t) \<notin> (rewrite_inside_gctxt R\<^sub>D \<union> rewrite_inside_gctxt (\<Union>C' \<in> {C' \<in> N. D \<preceq>\<^sub>c C' \<and> C' \<prec>\<^sub>c C}. epsilon N C'))\<^sup>\<down>"
       using \<open>(s, t) \<notin> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>\<close> by simp_all
-    hence "(s, t) \<notin> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>" and
+    hence "(s, t) \<notin> (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down>" and
       "\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (s, t) \<notin> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
-      using split_Union_equation'[OF D_in, folded R\<^sub>D_def]
+      using split_Union_epsilon'[OF D_in, folded R\<^sub>D_def]
       using split_rewrite_sys[OF _ D_in, folded R\<^sub>D_def]
       by (simp_all add: rewrite_inside_gctxt_union)
-    hence "(Upair s t) \<notin> upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>" and
+    hence "(Upair s t) \<notin> upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down>" and
       "\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> (Upair s t) \<notin> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
       unfolding atomize_conj
       by (meson sym_join true_lit_simps(2) true_lit_uprod_iff_true_lit_prod(2))
-    thus "upair ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile> D \<and>
+    thus "upair ` (rewrite_inside_gctxt (\<Union> (epsilon N ` N)))\<^sup>\<down> \<TTurnstile> D \<and>
     (\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> D)"
       unfolding true_cls_def true_lit_iff
       using L_in L_def by metis
@@ -861,16 +861,16 @@ proof -
 qed
 
 lemma (in ground_superposition_calculus)
-  assumes productive: "equation N C = {(l, r)}"
+  assumes productive: "epsilon N C = {(l, r)}"
   shows
-    true_cls_if_productive_equation:
-      "upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C"
+    true_cls_if_productive_epsilon:
+      "upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down> \<TTurnstile> C"
       "\<And>D. D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> upair ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C" and
-    false_cls_if_productive_equation:
-      "\<not> upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
+    false_cls_if_productive_epsilon:
+      "\<not> upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
       "\<And>D. D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> \<not> upair ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
 proof -
-  from productive have "(l, r) \<in> equation N C"
+  from productive have "(l, r) \<in> epsilon N C"
     by simp
   then obtain C' where
     C_in: "C \<in> N" and
@@ -881,28 +881,28 @@ proof -
     e: "\<not> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C" and
     f: "\<not> upair ` (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'" and
     "l \<in> NF (rewrite_inside_gctxt (rewrite_sys N C))"
-    by (rule mem_equationE) blast
+    by (rule mem_epsilonE) blast
 
-  have "(l, r) \<in> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>"
-    using C_in \<open>(l, r) \<in> equation N C\<close> mem_rewrite_inside_gctxt_if_mem_rewrite_rules by blast
-  thus "upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C"
+  have "(l, r) \<in> (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down>"
+    using C_in \<open>(l, r) \<in> epsilon N C\<close> mem_rewrite_inside_gctxt_if_mem_rewrite_rules by blast
+  thus "upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down> \<TTurnstile> C"
     using C_def by blast
 
-  have "rewrite_inside_gctxt (\<Union>D \<in> N. equation N D) =
-        rewrite_inside_gctxt (rewrite_sys N C \<union> equation N C \<union> (\<Union>D \<in> {D \<in> N. C \<prec>\<^sub>c D}. equation N D))"
-    using split_Union_equation[OF C_in] by simp
+  have "rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D) =
+        rewrite_inside_gctxt (rewrite_sys N C \<union> epsilon N C \<union> (\<Union>D \<in> {D \<in> N. C \<prec>\<^sub>c D}. epsilon N D))"
+    using split_Union_epsilon[OF C_in] by simp
   also have "\<dots> =
-    rewrite_inside_gctxt (rewrite_sys N C \<union> equation N C) \<union>
-    rewrite_inside_gctxt (\<Union>D \<in> {D \<in> N. C \<prec>\<^sub>c D}. equation N D)"
+    rewrite_inside_gctxt (rewrite_sys N C \<union> epsilon N C) \<union>
+    rewrite_inside_gctxt (\<Union>D \<in> {D \<in> N. C \<prec>\<^sub>c D}. epsilon N D)"
     by (simp add: rewrite_inside_gctxt_union)
-  finally have rewrite_inside_gctxt_Union_equation_eq:
-    "rewrite_inside_gctxt (\<Union>D \<in> N. equation N D) =
+  finally have rewrite_inside_gctxt_Union_epsilon_eq:
+    "rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D) =
       rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)) \<union>
-      rewrite_inside_gctxt (\<Union>D \<in> {D \<in> N. C \<prec>\<^sub>c D}. equation N D)"
+      rewrite_inside_gctxt (\<Union>D \<in> {D \<in> N. C \<prec>\<^sub>c D}. epsilon N D)"
     unfolding productive by simp
 
   have mem_join_union_iff_mem_lhs:"(t1, t2) \<in> (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)) \<union>
-    rewrite_inside_gctxt (\<Union>D \<in> {D \<in> N. C \<prec>\<^sub>c D}. equation N D))\<^sup>\<down> \<longleftrightarrow>
+    rewrite_inside_gctxt (\<Union>D \<in> {D \<in> N. C \<prec>\<^sub>c D}. epsilon N D))\<^sup>\<down> \<longleftrightarrow>
     (t1, t2) \<in> (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down>"
     if "t1 \<preceq>\<^sub>t l" and "t2 \<preceq>\<^sub>t l"
     for t1 t2
@@ -925,31 +925,31 @@ proof -
       using rewrite_inside_gctxt_union[of "{(l, r)}", simplified] by blast
   next
     have ball_lt_lhs: "t1 \<prec>\<^sub>t s1 \<and> t2 \<prec>\<^sub>t s1"
-      if rule_in: "(s1, s2) \<in> (\<Union>D \<in> {D \<in> N. C \<prec>\<^sub>c D}. equation N D)"
+      if rule_in: "(s1, s2) \<in> (\<Union>D \<in> {D \<in> N. C \<prec>\<^sub>c D}. epsilon N D)"
       for s1 s2
     proof -
       from rule_in obtain D where
-        "D \<in> N" and "C \<prec>\<^sub>c D" and "(s1, s2) \<in> equation N D"
+        "D \<in> N" and "C \<prec>\<^sub>c D" and "(s1, s2) \<in> epsilon N D"
         by (auto simp: rewrite_sys_def)
 
-      have E\<^sub>D_eq: "equation N D = {(s1, s2)}"
-        using \<open>(s1, s2) \<in> equation N D\<close> equation_eq_empty_or_singleton by force
+      have E\<^sub>D_eq: "epsilon N D = {(s1, s2)}"
+        using \<open>(s1, s2) \<in> epsilon N D\<close> epsilon_eq_empty_or_singleton by force
 
       have "l \<prec>\<^sub>t s1"
         using \<open>C \<prec>\<^sub>c D\<close>
-        using less_trm_iff_less_cls_if_lhs_equation[OF E\<^sub>D_eq productive]
+        using less_trm_iff_less_cls_if_lhs_epsilon[OF E\<^sub>D_eq productive]
         by metis
 
       with \<open>t1 \<preceq>\<^sub>t l\<close> \<open>t2 \<preceq>\<^sub>t l\<close> show ?thesis
         by (metis reflclp_iff transpD transp_less_trm)
     qed
-    thus "\<And>l r. (l, r) \<in> rewrite_inside_gctxt (\<Union> (equation N ` {D \<in> N. C \<prec>\<^sub>c D})) \<Longrightarrow> t1 \<prec>\<^sub>t l \<and> t2 \<prec>\<^sub>t l"
-      using rewrite_inside_gctxt_Union_equation_eq
+    thus "\<And>l r. (l, r) \<in> rewrite_inside_gctxt (\<Union> (epsilon N ` {D \<in> N. C \<prec>\<^sub>c D})) \<Longrightarrow> t1 \<prec>\<^sub>t l \<and> t2 \<prec>\<^sub>t l"
+      using rewrite_inside_gctxt_Union_epsilon_eq
       using less_trm_const_lhs_if_mem_rewrite_inside_gctxt
       by presburger
   qed
 
-  have neg_concl1: "\<not> upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C'"
+  have neg_concl1: "\<not> upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down> \<TTurnstile> C'"
     unfolding true_cls_def Set.bex_simps
   proof (intro ballI)
     fix L assume L_in: "L \<in># C'"
@@ -967,47 +967,47 @@ proof -
       using lesseq_trm_if_pos[OF reflclp_refl productive \<open>L \<in># C\<close>]
       by (metis (no_types, opaque_lifting) add_mset_commute sup2CI)
 
-    have "(t1, t2) \<notin> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>" if L_def: "L = Pos (Upair t1 t2)"
+    have "(t1, t2) \<notin> (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down>" if L_def: "L = Pos (Upair t1 t2)"
     proof -
       from that have "(t1, t2) \<notin> (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down>"
         using f \<open>L \<in># C'\<close> by blast
       thus ?thesis
-        using rewrite_inside_gctxt_Union_equation_eq mem_join_union_iff_mem_lhs[OF \<open>t1 \<preceq>\<^sub>t l\<close> \<open>t2 \<preceq>\<^sub>t l\<close>]
+        using rewrite_inside_gctxt_Union_epsilon_eq mem_join_union_iff_mem_lhs[OF \<open>t1 \<preceq>\<^sub>t l\<close> \<open>t2 \<preceq>\<^sub>t l\<close>]
         by simp
     qed
 
-    moreover have "(t1, t2) \<in> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>"
+    moreover have "(t1, t2) \<in> (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down>"
       if L_def: "L = Neg (Upair t1 t2)"
     proof -
       from that have "(t1, t2) \<in> (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down>"
         using f \<open>L \<in># C'\<close>
         by (meson true_lit_uprod_iff_true_lit_prod(2) sym_join true_cls_def true_lit_simps(2))
       thus ?thesis
-        using rewrite_inside_gctxt_Union_equation_eq
+        using rewrite_inside_gctxt_Union_epsilon_eq
           mem_join_union_iff_mem_lhs[OF \<open>t1 \<preceq>\<^sub>t l\<close> \<open>t2 \<preceq>\<^sub>t l\<close>]
         by simp
     qed
 
-    ultimately show "\<not> upair ` (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down> \<TTurnstile>l L"
+    ultimately show "\<not> upair ` (rewrite_inside_gctxt (\<Union> (epsilon N ` N)))\<^sup>\<down> \<TTurnstile>l L"
       using atm_L_eq true_lit_uprod_iff_true_lit_prod[OF sym_join] true_lit_simps
       by (smt (verit, ccfv_SIG) literal.exhaust_sel)
   qed
-  then show "\<not> upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
+  then show "\<not> upair ` (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down> \<TTurnstile> C - {#Pos (Upair l r)#}"
     by (simp add: C_def)
   fix D
   assume "D \<in> N" and "C \<prec>\<^sub>c D"
   have "(l, r) \<in> rewrite_sys N D"
-    using C_in \<open>(l, r) \<in> equation N C\<close> \<open>C \<prec>\<^sub>c D\<close> mem_rewrite_sys_if_less_cls by metis
+    using C_in \<open>(l, r) \<in> epsilon N C\<close> \<open>C \<prec>\<^sub>c D\<close> mem_rewrite_sys_if_less_cls by metis
   hence "(l, r) \<in> (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down>"
     by auto
   thus "upair ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C"
     using C_def by blast
 
-  from \<open>D \<in> N\<close> have "rewrite_sys N D \<subseteq> (\<Union>D \<in> N. equation N D)"
-    by (simp add: split_Union_equation')
-  hence "rewrite_inside_gctxt (rewrite_sys N D) \<subseteq> rewrite_inside_gctxt (\<Union>D \<in> N. equation N D)"
+  from \<open>D \<in> N\<close> have "rewrite_sys N D \<subseteq> (\<Union>D \<in> N. epsilon N D)"
+    by (simp add: split_Union_epsilon')
+  hence "rewrite_inside_gctxt (rewrite_sys N D) \<subseteq> rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D)"
     using rewrite_inside_gctxt_mono by metis
-  hence "(rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<subseteq> (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>"
+  hence "(rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<subseteq> (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down>"
     using join_mono by metis
 
   have "\<not> upair ` (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<TTurnstile> C'"
@@ -1033,9 +1033,9 @@ proof -
       from that have "(t1, t2) \<notin> (rewrite_inside_gctxt (insert (l, r) (rewrite_sys N C)))\<^sup>\<down>"
         using f \<open>L \<in># C'\<close> by blast
       thus ?thesis
-        using rewrite_inside_gctxt_Union_equation_eq
+        using rewrite_inside_gctxt_Union_epsilon_eq
         using mem_join_union_iff_mem_lhs[OF \<open>t1 \<preceq>\<^sub>t l\<close> \<open>t2 \<preceq>\<^sub>t l\<close>]
-        using \<open>(rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<subseteq> (rewrite_inside_gctxt (\<Union> (equation N ` N)))\<^sup>\<down>\<close> by auto
+        using \<open>(rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down> \<subseteq> (rewrite_inside_gctxt (\<Union> (epsilon N ` N)))\<^sup>\<down>\<close> by auto
     qed
 
     moreover have "(t1, t2) \<in> (rewrite_inside_gctxt (rewrite_sys N D))\<^sup>\<down>" if L_def: "L = Neg (Upair t1 t2)"
@@ -1083,17 +1083,17 @@ proof (rule trans_join)
   proof (rule wf_converse_rewrite_inside_gctxt)
     fix s t
     assume "(s, t) \<in> rewrite_sys N C"
-    then obtain D where "(s, t) \<in> equation N D"
+    then obtain D where "(s, t) \<in> epsilon N D"
       unfolding rewrite_sys_def
-      using equation_filter_le_conv by auto
+      using epsilon_filter_le_conv by auto
     thus "t \<prec>\<^sub>t s"
-      by (auto elim: mem_equationE)
+      by (auto elim: mem_epsilonE)
   qed auto
   thus "SN (rewrite_inside_gctxt (rewrite_sys N C))"
     by (simp only: SN_iff_wf)
 next
   show "WCR (rewrite_inside_gctxt (rewrite_sys N C))"
-    unfolding rewrite_sys_def equation_filter_le_conv
+    unfolding rewrite_sys_def epsilon_filter_le_conv
     using WCR_Union_rewrite_sys
     by (metis (mono_tags, lifting))
 qed
@@ -1177,7 +1177,7 @@ lemma (in ground_superposition_calculus) model_preconstruction:
     "entails \<equiv> \<lambda>E C. upair ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile> C"
   assumes "saturated N" and "{#} \<notin> N" and C_in: "C \<in> N"
   shows
-    "equation N C = {} \<longleftrightarrow> entails (rewrite_sys N C) C"
+    "epsilon N C = {} \<longleftrightarrow> entails (rewrite_sys N C) C"
     "\<And>D. D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> entails (rewrite_sys N D) C"
   unfolding atomize_all atomize_conj atomize_imp
   using wfP_less_cls C_in
@@ -1206,13 +1206,13 @@ proof (induction C rule: wfP_induct_rule)
 
   note I_interp = \<open>refl I\<close> \<open>trans I\<close> \<open>sym I\<close> \<open>compatible_with_gctxt I\<close>
 
-  have i: "(equation N C = {}) \<longleftrightarrow> entails (rewrite_sys N C) C"
+  have i: "(epsilon N C = {}) \<longleftrightarrow> entails (rewrite_sys N C) C"
   proof (rule iffI)
-    show "entails (rewrite_sys N C) C \<Longrightarrow> equation N C = {}"
+    show "entails (rewrite_sys N C) C \<Longrightarrow> epsilon N C = {}"
       unfolding entails_def rewrite_sys_def
-      by (metis (no_types) empty_iff equalityI mem_equationE rewrite_sys_def subsetI)
+      by (metis (no_types) empty_iff equalityI mem_epsilonE rewrite_sys_def subsetI)
   next
-    assume "equation N C = {}"
+    assume "epsilon N C = {}"
 
     have cond_conv: "(\<exists>L. L \<in># select C \<or> (select C = {#} \<and> is_maximal_lit L C \<and> is_neg L)) \<longleftrightarrow>
       (\<exists>A. Neg A \<in># C \<and> (Neg A \<in># select C \<or> select C = {#} \<and> is_maximal_lit (Neg A) C))"
@@ -1313,14 +1313,14 @@ proof (induction C rule: wfP_induct_rule)
             by (smt (verit) Pair_inject \<open>s \<prec>\<^sub>t s' \<or> s' \<prec>\<^sub>t s\<close> asympD asymp_less_trm mem_Collect_eq
                 rewrite_inside_gctxt_def)
           then obtain D where
-            "(t, t') \<in> equation N D" and "D \<in> N" and "D \<prec>\<^sub>c C"
-            unfolding rewrite_sys_def equation_filter_le_conv by auto
+            "(t, t') \<in> epsilon N D" and "D \<in> N" and "D \<prec>\<^sub>c C"
+            unfolding rewrite_sys_def epsilon_filter_le_conv by auto
           then obtain D' where
             D_def: "D = add_mset (Pos (Upair t t')) D'" and
             sel_D: "select D = {#}" and
             max_t_t': "is_strictly_maximal_lit (Pos (Upair t t')) D" and
             "t' \<prec>\<^sub>t t"
-            by (elim mem_equationE) fast
+            by (elim mem_epsilonE) fast
 
           have superI: "ground_neg_superposition D C (add_mset (Neg (Upair s\<^sub>1\<langle>t'\<rangle>\<^sub>G s\<^sub>1')) (C' + D'))"
             if "{s, s'} = {s\<^sub>1\<langle>t\<rangle>\<^sub>G, s\<^sub>1'}" and "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1\<langle>t\<rangle>\<^sub>G"
@@ -1415,9 +1415,9 @@ proof (induction C rule: wfP_induct_rule)
 
           moreover have "\<not> entails (rewrite_sys N C) D'"
             unfolding entails_def
-            using false_cls_if_productive_equation(2)[OF _ \<open>C \<in> N\<close> \<open>D \<prec>\<^sub>c C\<close>]
-            by (metis D_def \<open>(t, t') \<in> equation N D\<close> add_mset_remove_trivial empty_iff
-                 equation_eq_empty_or_singleton singletonD)
+            using false_cls_if_productive_epsilon(2)[OF _ \<open>C \<in> N\<close> \<open>D \<prec>\<^sub>c C\<close>]
+            by (metis D_def \<open>(t, t') \<in> epsilon N D\<close> add_mset_remove_trivial empty_iff
+                 epsilon_eq_empty_or_singleton singletonD)
 
           moreover have "\<not> upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile>l
             (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s'))"
@@ -1459,7 +1459,7 @@ proof (induction C rule: wfP_induct_rule)
       proof (cases "upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C' \<or> s = s'")
         case True
         then show ?thesis
-          using \<open>equation N C = {}\<close>
+          using \<open>epsilon N C = {}\<close>
           using A_def C_def entails_def by blast
       next
         case False
@@ -1478,7 +1478,7 @@ proof (induction C rule: wfP_induct_rule)
             case s_irreducible: True
             hence e_or_f_doesnt_hold: "upair ` (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down> \<TTurnstile> C \<or>
               upair ` (rewrite_inside_gctxt (insert (s, s') (rewrite_sys N C)))\<^sup>\<down> \<TTurnstile> C'"
-              using \<open>equation N C = {}\<close>[unfolded  equation.simps[of N C]]
+              using \<open>epsilon N C = {}\<close>[unfolded  epsilon.simps[of N C]]
               using \<open>C \<in> N\<close> C_def \<open>select C = {#}\<close> strictly_maximal \<open>s' \<prec>\<^sub>t s\<close>
               unfolding A_def rewrite_sys_def 
               by (smt (verit, best) Collect_empty_eq)
@@ -1672,9 +1672,9 @@ proof (induction C rule: wfP_induct_rule)
             then obtain ctxt t t' D where
               "D \<in> N" and
               "D \<prec>\<^sub>c C" and
-              "(t, t') \<in> equation N D" and
+              "(t, t') \<in> epsilon N D" and
               "s = ctxt\<langle>t\<rangle>\<^sub>G"
-              using equation_filter_le_conv
+              using epsilon_filter_le_conv
               by (auto simp: rewrite_inside_gctxt_def rewrite_sys_def)
 
             obtain D' where
@@ -1682,8 +1682,8 @@ proof (induction C rule: wfP_induct_rule)
               "select D = {#}" and
               max_t_t': "is_strictly_maximal_lit (t \<approx> t') D" and
               "t' \<prec>\<^sub>t t"
-              using \<open>(t, t') \<in> equation N D\<close>
-              by (elim mem_equationE) simp
+              using \<open>(t, t') \<in> epsilon N D\<close>
+              by (elim mem_epsilonE) simp
 
             let ?concl = "add_mset (Pos (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')) (C' + D')"
 
@@ -1756,9 +1756,9 @@ proof (induction C rule: wfP_induct_rule)
 
             moreover have "\<not> entails (rewrite_sys N C) D'"
               unfolding entails_def
-              using false_cls_if_productive_equation(2)[OF _ \<open>C \<in> N\<close> \<open>D \<prec>\<^sub>c C\<close>]
-              by (metis D_def \<open>(t, t') \<in> equation N D\<close> add_mset_remove_trivial empty_iff
-                   equation_eq_empty_or_singleton singletonD)
+              using false_cls_if_productive_epsilon(2)[OF _ \<open>C \<in> N\<close> \<open>D \<prec>\<^sub>c C\<close>]
+              by (metis D_def \<open>(t, t') \<in> epsilon N D\<close> add_mset_remove_trivial empty_iff
+                   epsilon_eq_empty_or_singleton singletonD)
 
             ultimately have "entails (rewrite_sys N C) {#Pos (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')#}"
               unfolding entails_def
@@ -1769,7 +1769,7 @@ proof (induction C rule: wfP_induct_rule)
               by (simp add: entails_def true_cls_def uprod_mem_image_iff_prod_mem[OF sym_join])
 
             moreover have "(ctxt\<langle>t\<rangle>\<^sub>G, ctxt\<langle>t'\<rangle>\<^sub>G) \<in> rewrite_inside_gctxt (rewrite_sys N C)"
-              using \<open>(t, t') \<in> equation N D\<close> \<open>D \<in> N\<close> \<open>D \<prec>\<^sub>c C\<close> rewrite_sys_def equation_filter_le_conv
+              using \<open>(t, t') \<in> epsilon N D\<close> \<open>D \<in> N\<close> \<open>D \<prec>\<^sub>c C\<close> rewrite_sys_def epsilon_filter_le_conv
               by (auto simp: rewrite_inside_gctxt_def)
 
             ultimately have "(ctxt\<langle>t\<rangle>\<^sub>G, s') \<in> (rewrite_inside_gctxt (rewrite_sys N C))\<^sup>\<down>"
@@ -1851,18 +1851,18 @@ proof (induction C rule: wfP_induct_rule)
   qed
 
   moreover have iib: "entails (rewrite_sys N D) C" if "D \<in> N" and "C \<prec>\<^sub>c D" for D
-    using equation_eq_empty_or_singleton[of N C, folded ]
+    using epsilon_eq_empty_or_singleton[of N C, folded ]
   proof (elim disjE exE)
-    assume "equation N C = {}"
+    assume "epsilon N C = {}"
     hence "entails (rewrite_sys N C) C"
       unfolding i by simp
     thus ?thesis
       using lift_entailment_to_Union(2)[OF \<open>C \<in> N\<close> _ that]
       by (simp only: entails_def)
   next
-    fix l r assume "equation N C = {(l, r)}"
+    fix l r assume "epsilon N C = {(l, r)}"
     thus ?thesis
-      using true_cls_if_productive_equation(2)[OF \<open>equation N C = {(l, r)}\<close> that]
+      using true_cls_if_productive_epsilon(2)[OF \<open>epsilon N C = {(l, r)}\<close> that]
       by (simp only: entails_def)
   qed
 
@@ -1877,19 +1877,19 @@ lemma (in ground_superposition_calculus) model_construction:
   defines
     "entails \<equiv> \<lambda>E C. upair ` (rewrite_inside_gctxt E)\<^sup>\<down> \<TTurnstile> C"
   assumes "saturated N" and "{#} \<notin> N" and C_in: "C \<in> N"
-  shows "entails (\<Union>D \<in> N. equation N D) C"
-  using equation_eq_empty_or_singleton[of N C]
+  shows "entails (\<Union>D \<in> N. epsilon N D) C"
+  using epsilon_eq_empty_or_singleton[of N C]
 proof (elim disjE exE)
-  assume "equation N C = {}"
+  assume "epsilon N C = {}"
   hence "entails (rewrite_sys N C) C"
     using model_preconstruction(1)[OF assms(2,3,4)] by (metis entails_def)
   thus ?thesis
     using lift_entailment_to_Union(1)[OF \<open>C \<in> N\<close>]
     by (simp only: entails_def)
 next
-  fix l r assume "equation N C = {(l, r)}"
+  fix l r assume "epsilon N C = {(l, r)}"
   thus ?thesis
-    using true_cls_if_productive_equation(1)[OF \<open>equation N C = {(l, r)}\<close>]
+    using true_cls_if_productive_epsilon(1)[OF \<open>epsilon N C = {(l, r)}\<close>]
     by (simp only: entails_def)
 qed
 
@@ -1904,7 +1904,7 @@ proof (rule contrapos_pp)
   assume "{#} \<notin> N"
 
   define I :: "'f gterm rel" where
-    "I = (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<^sup>\<down>"
+    "I = (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<^sup>\<down>"
 
   show "\<not> G_entails N G_Bot"
     unfolding G_entails_def not_all not_imp
@@ -1915,19 +1915,19 @@ proof (rule contrapos_pp)
     show "trans I"
       unfolding I_def
     proof (rule trans_join)
-      have "wf ((rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))\<inverse>)"
+      have "wf ((rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))\<inverse>)"
       proof (rule wf_converse_rewrite_inside_gctxt)
         fix s t
-        assume "(s, t) \<in> (\<Union>D \<in> N. equation N D)"
-        then obtain C where "C \<in> N" "(s, t) \<in> equation N C"
+        assume "(s, t) \<in> (\<Union>D \<in> N. epsilon N D)"
+        then obtain C where "C \<in> N" "(s, t) \<in> epsilon N C"
           by auto
         thus "t \<prec>\<^sub>t s"
-          by (auto elim: mem_equationE)
+          by (auto elim: mem_epsilonE)
       qed auto
-      thus "SN (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))"
+      thus "SN (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))"
         unfolding SN_iff_wf .
     next
-      show "WCR (rewrite_inside_gctxt (\<Union>D \<in> N. equation N D))"
+      show "WCR (rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D))"
         using WCR_Union_rewrite_sys .
     qed
   next
