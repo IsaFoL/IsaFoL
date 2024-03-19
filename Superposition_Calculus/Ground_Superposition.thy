@@ -209,11 +209,6 @@ qed
 
 subsection \<open>Ground Layer\<close>
 
-(*
-Considérer de changer l'ordre des prémisses des règles afin qu'elles soient cohérentes avec le
-framework et l'état de l'art. 
-*)
-
 definition G_Inf :: "'f gatom clause inference set" where
   "G_Inf =
     {Infer [P\<^sub>2, P\<^sub>1] C | P\<^sub>2 P\<^sub>1 C. ground_superposition P\<^sub>2 P\<^sub>1 C} \<union>
