@@ -7,7 +7,7 @@ theory Ground_Ordering
     Clause_Ordering
 begin
 
-locale ground_ordering = clause_ordering less_trm
+locale ground_ordering = lifting_term_ordering less_trm
   for
     less_trm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   assumes

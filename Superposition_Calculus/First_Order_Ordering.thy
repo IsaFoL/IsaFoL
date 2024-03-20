@@ -28,7 +28,7 @@ end
 section \<open>First order ordering\<close>
 
 (* TODO: less\<^sub>t-prefixes actually not needed *)
-locale first_order_ordering = clause_ordering less\<^sub>t
+locale first_order_ordering = lifting_term_ordering less\<^sub>t
   for
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   assumes
