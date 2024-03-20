@@ -94,9 +94,9 @@ abbreviation is_strictly_maximal\<^sub>l ::
 (* TODO: Try factoring out a locale for the sections *)
 subsection \<open>Term ordering\<close>
 
-lemmas less\<^sub>t_asymmetric_on = less\<^sub>t_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
-
-lemmas less\<^sub>t_transitive_on = less\<^sub>t_transitive[THEN transp_on_subset, OF subset_UNIV]
+lemmas less\<^sub>t_asymmetric_on = term_order.asymp_on_less
+lemmas less\<^sub>t_irreflexive_on = term_order.irreflp_on_less
+lemmas less\<^sub>t_transitive_on = term_order.transp_on_less
 
 lemma less\<^sub>t_wellfounded_on': "wfp_on (\<prec>\<^sub>t) (to_term ` terms\<^sub>G)"
   using less\<^sub>t_wellfounded_on
@@ -106,8 +106,6 @@ lemma less\<^sub>t_wellfounded_on': "wfp_on (\<prec>\<^sub>t) (to_term ` terms\<
 lemma less\<^sub>t_total_on': "totalp_on (to_term ` terms\<^sub>G) (\<prec>\<^sub>t)"
   using less\<^sub>t_total_on
   by (simp add: totalp_on_def)
-
-lemmas less\<^sub>t_irreflexive_on = term_order.irreflp_on_less
 
 lemma less\<^sub>t\<^sub>G_wellfounded: "wfP (\<prec>\<^sub>t\<^sub>G)"
 proof -
@@ -246,7 +244,7 @@ notation ground.lesseq_lit (infix "\<preceq>\<^sub>l\<^sub>G" 50)
 notation ground.lesseq_cls (infix "\<preceq>\<^sub>c\<^sub>G" 50)
 
 lemma not_less_eq\<^sub>t\<^sub>G: "\<not> term\<^sub>G\<^sub>2 \<preceq>\<^sub>t\<^sub>G term\<^sub>G\<^sub>1 \<longleftrightarrow> term\<^sub>G\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2"
-  by auto  
+  using ground.term_order.not_le .
 
 lemma less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G:
   assumes "is_ground_term term\<^sub>1" and "is_ground_term term\<^sub>2" 
