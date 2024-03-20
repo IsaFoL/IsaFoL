@@ -39,38 +39,6 @@ lemma wfP_less_lit[simp]: "wfP (\<prec>\<^sub>l)"
 lemma wfP_less_cls[simp]: "wfP (\<prec>\<^sub>c)"
   using wfP_less_lit wfP_multp less_cls_def by metis
 
-lemma totalp_on_less_lit[simp]: "totalp_on A (\<prec>\<^sub>l)"
-proof (rule totalp_onI)
-  fix L1 L2 :: "'f gatom literal"
-  assume "L1 \<noteq> L2"
-
-  show "L1 \<prec>\<^sub>l L2 \<or> L2 \<prec>\<^sub>l L1"
-    unfolding less_lit_def
-  proof (rule totalp_multp[THEN totalpD])
-    show "totalp (\<prec>\<^sub>t)"
-      using totalp_less_trm .
-  next
-    show "transp (\<prec>\<^sub>t)"
-      using transp_less_trm .
-  next
-    obtain x1 y1 x2 y2 :: "'f gterm" where
-      "atm_of L1 = Upair x1 y1" and "atm_of L2 = Upair x2 y2"
-      using uprod_exhaust by metis
-    thus "mset_lit L1 \<noteq> mset_lit L2"
-      using \<open>L1 \<noteq> L2\<close>
-      by (cases L1; cases L2) (auto simp add: add_eq_conv_ex)
-  qed
-qed
-
-lemma totalp_less_cls[simp]: "totalp (\<prec>\<^sub>c)"
-  unfolding less_cls_def
-proof (rule totalp_multp)
-  show "totalp (\<prec>\<^sub>l)"
-    by simp
-next
-  show "transp (\<prec>\<^sub>l)"
-    by simp
-qed
 
 sublocale term_order: linorder lesseq_trm less_trm
 proof unfold_locales
@@ -80,14 +48,38 @@ qed
 
 sublocale literal_order: linorder lesseq_lit less_lit
 proof unfold_locales
-  show "\<And>x y. x \<preceq>\<^sub>l y \<or> y \<preceq>\<^sub>l x"
-    by (metis reflclp_iff totalpD totalp_on_less_lit)
+  have "totalp_on A (\<prec>\<^sub>l)" for A
+  proof (rule totalp_onI)
+    fix L1 L2 :: "'f gatom literal"
+    assume "L1 \<noteq> L2"
+
+    show "L1 \<prec>\<^sub>l L2 \<or> L2 \<prec>\<^sub>l L1"
+      unfolding less_lit_def
+    proof (rule totalp_multp[THEN totalpD])
+      show "totalp (\<prec>\<^sub>t)"
+        using totalp_less_trm .
+    next
+      show "transp (\<prec>\<^sub>t)"
+        using transp_less_trm .
+    next
+      obtain x1 y1 x2 y2 :: "'f gterm" where
+        "atm_of L1 = Upair x1 y1" and "atm_of L2 = Upair x2 y2"
+        using uprod_exhaust by metis
+      thus "mset_lit L1 \<noteq> mset_lit L2"
+        using \<open>L1 \<noteq> L2\<close>
+        by (cases L1; cases L2) (auto simp add: add_eq_conv_ex)
+    qed
+  qed
+  thus "\<And>x y. x \<preceq>\<^sub>l y \<or> y \<preceq>\<^sub>l x"
+    by (metis reflclp_iff totalpD)
 qed
 
 sublocale clause_order: linorder lesseq_cls less_cls
 proof unfold_locales
   show "\<And>x y. x \<preceq>\<^sub>c y \<or> y \<preceq>\<^sub>c x"
-    by (metis reflclp_iff totalpD totalp_less_cls)
+    unfolding less_cls_def
+    using totalp_multp[OF literal_order.totalp_on_less literal_order.transp_on_less]
+    by (metis reflclp_iff totalpD)
 qed
 
 abbreviation is_maximal_lit :: "'f gatom literal \<Rightarrow> 'f gatom clause \<Rightarrow> bool" where

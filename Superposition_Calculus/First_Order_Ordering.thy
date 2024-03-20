@@ -12,11 +12,11 @@ begin
 
 lemmas less\<^sub>l\<^sub>G_transitive_on = literal_order.transp_on_less
 lemmas less\<^sub>l\<^sub>G_asymmetric_on = literal_order.asymp_on_less
-lemmas less\<^sub>l\<^sub>G_total_on = totalp_on_less_lit
+lemmas less\<^sub>l\<^sub>G_total_on = literal_order.totalp_on_less
 
 lemmas less\<^sub>c\<^sub>G_transitive_on = clause_order.transp_on_less
 lemmas less\<^sub>c\<^sub>G_asymmetric_on = clause_order.asymp_on_less
-lemmas less\<^sub>c\<^sub>G_total_on = totalp_less_cls[THEN totalp_on_subset, OF subset_UNIV]
+lemmas less\<^sub>c\<^sub>G_total_on = clause_order.totalp_on_less
 
 lemmas is_maximal_lit_def = is_maximal_in_mset_wrt_iff[OF less\<^sub>l\<^sub>G_transitive_on less\<^sub>l\<^sub>G_asymmetric_on]
 lemmas is_strictly_maximal_lit_def = 
@@ -567,7 +567,7 @@ lemmas less\<^sub>l_total_on_set_mset =
   less\<^sub>l_total_on[THEN totalp_on_subset, OF set_mset_to_clause_to_literal[THEN equalityD1]]
 
 lemma less\<^sub>c_total_on: "totalp_on (to_clause ` clauses) (\<prec>\<^sub>c)"
-  by (smt ground.totalp_less_cls image_iff less\<^sub>c\<^sub>G_less\<^sub>c totalpD totalp_onI) 
+  by (smt ground.clause_order.totalp_on_less image_iff less\<^sub>c\<^sub>G_less\<^sub>c totalpD totalp_onI)
 
 lemma unique_maximal_in_ground_clause:
   assumes
