@@ -520,9 +520,6 @@ proof -
     "t \<prec>\<^sub>t s"
     by (auto elim: mem_epsilonE)
 
-  hence less_lit_tot_on_C_D[simp]: "totalp_on (set_mset C \<union> set_mset D) (\<prec>\<^sub>l)"
-    using totalp_on_less_lit totalp_on_subset by blast
-
   have "Pos (Upair s t) \<prec>\<^sub>l L" if "is_pos L" and "\<not> u \<preceq>\<^sub>t s"
   proof -
     from that(2) have "s \<prec>\<^sub>t u"
@@ -600,7 +597,7 @@ proof -
   have "N = {C \<in> N. C \<prec>\<^sub>c D} \<union> {D} \<union> {C \<in> N. D \<prec>\<^sub>c C}"
   proof (rule partition_set_around_element)
     show "totalp_on N (\<prec>\<^sub>c)"
-      using totalp_less_cls totalp_on_subset by blast
+      using clause_order.totalp_on_less .
   next
     show "D \<in> N"
       using D_in by simp
@@ -626,7 +623,7 @@ proof -
         {y \<in> {D \<in> N. D \<prec>\<^sub>c C}. y \<prec>\<^sub>c D} \<union> {D} \<union> {y \<in> {D \<in> N. D \<prec>\<^sub>c C}. D \<prec>\<^sub>c y}"
   proof (rule partition_set_around_element)
     show "totalp_on {D \<in> N. D \<prec>\<^sub>c C} (\<prec>\<^sub>c)"
-      using totalp_less_cls totalp_on_subset by blast
+      using clause_order.totalp_on_less .
   next
     from D_in \<open>D \<prec>\<^sub>c C\<close> show "D \<in> {D \<in> N. D \<prec>\<^sub>c C}"
       by simp

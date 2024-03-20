@@ -265,7 +265,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
         unfolding \<open>P1 = add_mset L\<^sub>2 P\<^sub>2'\<close> \<open>L\<^sub>2 = t \<approx> t'\<close>
         by auto
       hence "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l Pos (Upair t t')"
-        using totalp_on_less_lit[THEN totalpD] by metis
+        using literal_order.totalp_on_less[THEN totalpD] by metis
 
       have thesis_if_Neg: "Pos (Upair t t') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
         if "\<P> = Neg"
@@ -400,7 +400,7 @@ lemma ground_eq_resolution_smaller_conclusion:
 proof (cases P C rule: ground_eq_resolution.cases)
   case (ground_eq_resolutionI L t)
   then show ?thesis
-    using totalp_less_cls unfolding less_cls_def
+    using clause_order.totalp_on_less unfolding less_cls_def
     by (metis add.right_neutral add_mset_add_single empty_iff empty_not_add_mset
         one_step_implies_multp set_mset_empty)
 qed
@@ -419,8 +419,7 @@ proof (cases P C rule: ground_eq_factoring.cases)
   hence "\<not> Pos (Upair t t') \<prec>\<^sub>l Pos (Upair t t'')"
     by simp
   hence "Pos (Upair t t'') \<preceq>\<^sub>l Pos (Upair t t')"
-    using totalp_on_less_lit
-    by (metis reflclp_iff totalpD)
+    by order
   hence "t'' \<preceq>\<^sub>t t'"
     unfolding reflclp_iff
     using transp_less_trm
