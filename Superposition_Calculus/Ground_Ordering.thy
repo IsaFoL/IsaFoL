@@ -111,7 +111,7 @@ proof(rule ccontr)
       by blast
     then show False
       using assms
-      by (metis insert_iff irreflp_on_def irreflp_on_less_trm)
+      by (metis insert_iff irreflp_on_def term_order.irreflp_on_less)
   next
     case False
     then have "t' \<prec>\<^sub>t t"

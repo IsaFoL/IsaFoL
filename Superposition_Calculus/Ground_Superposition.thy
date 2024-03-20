@@ -324,17 +324,17 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
             unfolding literal_order.is_maximal_in_mset_iff
             by auto
           ultimately have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l Pos (Upair t t')"
-            using transp_on_less_lit
+            using literal_order.transp_on_less
             by (metis (no_types, lifting) reflclp_iff transpD)
           hence "P2 \<prec>\<^sub>c P1"
             using \<open>\<P> (Upair s\<langle>t\<rangle>\<^sub>G s') \<prec>\<^sub>l Pos (Upair t t')\<close>
               one_step_implies_multp[of P1 P2 "(\<prec>\<^sub>l)" "{#}", simplified]
             unfolding ground_superpositionI less_cls_def
             by (metis \<open>\<forall>K\<in>#P\<^sub>1'. K \<preceq>\<^sub>l (\<P> (Upair s\<langle>t\<rangle>\<^sub>G s'))\<close> empty_not_add_mset insert_iff reflclp_iff
-                set_mset_add_mset_insert transpD transp_on_less_lit)
+                set_mset_add_mset_insert transpD literal_order.transp_on_less)
           hence False
             using \<open>P1 \<prec>\<^sub>c P2\<close>
-            by (meson asympD asymp_less_cls)
+            by (meson asympD clause_order.asymp_on_less)
           thus ?thesis ..
         qed
       next
