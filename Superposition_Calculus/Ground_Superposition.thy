@@ -310,8 +310,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
         next
           case False
           hence "s' \<prec>\<^sub>t t'"
-            using totalp_less_trm
-            by (metis reflclp_iff totalpD)
+            by order
           hence "multp (\<prec>\<^sub>t) {#s\<langle>t\<rangle>\<^sub>G, s'#} {#t, t'#}"
             using transp_less_trm
             by (simp add: GHole multp_cancel_add_mset)
@@ -333,8 +332,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
             by (metis \<open>\<forall>K\<in>#P\<^sub>1'. K \<preceq>\<^sub>l (\<P> (Upair s\<langle>t\<rangle>\<^sub>G s'))\<close> empty_not_add_mset insert_iff reflclp_iff
                 set_mset_add_mset_insert transpD literal_order.transp_on_less)
           hence False
-            using \<open>P1 \<prec>\<^sub>c P2\<close>
-            by (meson asympD clause_order.asymp_on_less)
+            using \<open>P1 \<prec>\<^sub>c P2\<close> by order
           thus ?thesis ..
         qed
       next
@@ -342,15 +340,14 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
         hence "t \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
           using less_trm_if_subterm[of s t] by simp
         moreover hence "t' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
-          using \<open>t' \<prec>\<^sub>t t\<close> transp_less_trm
-          by (metis transpD)
+          using \<open>t' \<prec>\<^sub>t t\<close> by order
         ultimately have "multp (\<prec>\<^sub>t) {#t, t'#} {#s\<langle>t\<rangle>\<^sub>G, s'#}"
           using one_step_implies_multp[of "{#s\<langle>t\<rangle>\<^sub>G, s'#}" "{#t, t'#}" "(\<prec>\<^sub>t)" "{#}"] by simp
         hence "Pos (Upair t t') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
           using \<open>\<P> = Pos\<close>
           by (simp add: less_lit_def)
         thus ?thesis
-          by simp
+          by order
       qed
 
       have "\<P> = Pos \<or> \<P> = Neg"
@@ -426,7 +423,7 @@ proof (cases P C rule: ground_eq_factoring.cases)
     by (auto simp: less_lit_def multp_cancel_add_mset)
 
   have "C = add_mset (Neg (Upair t' t'')) (add_mset (Pos (Upair t t'')) P')"
-    using ground_eq_factoringI by fastforce
+    using ground_eq_factoringI by argo
 
   moreover have "add_mset (Neg (Upair t' t'')) (add_mset (Pos (Upair t t'')) P') \<prec>\<^sub>c P"
     unfolding ground_eq_factoringI less_cls_def
@@ -442,7 +439,7 @@ proof (cases P C rule: ground_eq_factoring.cases)
   qed
 
   ultimately show ?thesis
-    by simp
+    by argo
 qed
 
 end

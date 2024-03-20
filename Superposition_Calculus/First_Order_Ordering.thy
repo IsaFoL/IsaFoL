@@ -417,9 +417,7 @@ proof
            ].
 
   then show False 
-    using assms(3)
-    unfolding not_less_eq\<^sub>t[OF assms(1, 2), symmetric]
-    by blast
+    using assms(3) by order
 qed
 
 lemma less_eq\<^sub>l_ground_subst_stability:

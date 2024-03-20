@@ -91,8 +91,8 @@ lemma less_trm_compatible_with_gctxt':
   shows "t \<prec>\<^sub>t t'"
 proof(rule ccontr)
   assume "\<not> t \<prec>\<^sub>t t'"
-  then have "t' \<preceq>\<^sub>t t"
-    using totalpD by fastforce    
+  hence "t' \<preceq>\<^sub>t t"
+    by order
 
   show False
   proof(cases "t' = t")
@@ -100,20 +100,17 @@ proof(rule ccontr)
     then have "ctxt\<langle>t\<rangle>\<^sub>G = ctxt\<langle>t'\<rangle>\<^sub>G"
       by blast
     then show False
-      using assms
-      by (metis insert_iff irreflp_on_def term_order.irreflp_on_less)
+      using assms by order
   next
     case False
     then have "t' \<prec>\<^sub>t t"
-      using \<open>t' \<preceq>\<^sub>t t\<close> by fastforce
+      using \<open>t' \<preceq>\<^sub>t t\<close> by order
 
     then have "ctxt\<langle>t'\<rangle>\<^sub>G \<prec>\<^sub>t ctxt\<langle>t\<rangle>\<^sub>G"
-      using less_trm_compatible_with_gctxt
-      by force
+      using less_trm_compatible_with_gctxt by metis
       
     then show ?thesis
-      using assms
-      by (meson asympD asymp_less_trm)
+      using assms by order
   qed
 qed
 
