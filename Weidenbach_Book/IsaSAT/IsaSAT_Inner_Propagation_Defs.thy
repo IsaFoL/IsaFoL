@@ -386,7 +386,7 @@ definition unit_propagation_outer_loop_wl_D_heur
         ASSERT(literals_to_update_wl_heur S < isa_length_trail (get_trail_wl_heur S));
         (S', L) \<leftarrow> select_and_remove_from_literals_to_update_wl_heur S;
         ASSERT(length (get_clauses_wl_heur S') = length (get_clauses_wl_heur S));
-        n \<leftarrow> mop_length_watched_by_int S\<^sub>0 L;
+        n \<leftarrow> mop_length_watched_by_int S' L;
         let ticks' = ticks + 8*of_nat n;
         S \<leftarrow> unit_propagation_inner_loop_wl_D_heur L S';
         RETURN (S, ticks')

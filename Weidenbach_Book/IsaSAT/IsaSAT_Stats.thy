@@ -421,6 +421,12 @@ definition Pure_Lits_Stats_removed :: \<open>inprocessing_pure_lits_stats \<Righ
 
 definition stats_pure_lits_removed :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
   \<open>stats_pure_lits_removed = Pure_Lits_Stats_removed o get_pure_lits_stats\<close>
+  
+definition stats_ticks_stable :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_ticks_stable = Search_Stats_ticks_stable o get_search_stats\<close>
+  
+definition stats_ticks_focused :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_ticks_focused = Search_Stats_ticks_stable o get_search_stats\<close>
 
 definition Pure_Lits_Stats_rounds :: \<open>inprocessing_pure_lits_stats \<Rightarrow> 64 word\<close> where
   \<open>Pure_Lits_Stats_rounds = (\<lambda>(rounds, rounds). rounds)\<close> 
@@ -492,8 +498,8 @@ This datastructure contains:
 \<close>
 
 definition incr_conflict_count_since_last_restart :: \<open>restart_info \<Rightarrow> restart_info\<close> where
-  \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl, restart_phase, end_of_phase, length_phase, init_phase_ticks).
-    (ccount + 1, ema_lvl, restart_phase, end_of_phase, length_phase, init_phase_ticks))\<close>
+  \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl, restart_phase, end_of_phase, stabmode, init_phase_ticks).
+    (ccount + 1, ema_lvl, restart_phase, end_of_phase, stabmode, init_phase_ticks))\<close>
 
 definition restart_info_update_lvl_avg :: \<open>32 word \<Rightarrow> restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_update_lvl_avg = (\<lambda>lvl (ccount, ema_lvl). (ccount, ema_lvl))\<close>
@@ -961,20 +967,20 @@ lemma save_phase_heur_preI:
 
 text \<open>Using \<^term>\<open>a + 1\<close> ensures that we do not get stuck with 0.\<close>
 fun incr_restart_phase_end_stats :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>incr_restart_phase_end_stats end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, length_phase, init_phase_ticks), wasted) =
-  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, length_phase, init_phase_ticks), wasted)\<close>
+  \<open>incr_restart_phase_end_stats end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, stabmode, init_phase_ticks), wasted) =
+  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, stabmode, init_phase_ticks), wasted)\<close>
 
 fun incr_restart_phase_and_length_end_stats :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>incr_restart_phase_and_length_end_stats end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, length_phase, init_phase_ticks), wasted) =
-  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, (length_phase * 3) >> 1, init_phase_ticks), wasted)\<close>
+  \<open>incr_restart_phase_and_length_end_stats end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, stabmode, init_phase_ticks), wasted) =
+  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, stabmode +1, init_phase_ticks), wasted)\<close>
 
 
 fun init_phase_ticks_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
-  \<open>init_phase_ticks_stats (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, length_phase, init_phase_ticks), wasted) = init_phase_ticks\<close>
+  \<open>init_phase_ticks_stats (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, stabmode, init_phase_ticks), wasted) = init_phase_ticks\<close>
 
 fun set_init_phase_ticks_stats :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>set_init_phase_ticks_stats init_phase_ticks (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, length_phase, _), wasted) =
-  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, length_phase, init_phase_ticks), wasted)\<close>
+  \<open>set_init_phase_ticks_stats init_phase_ticks (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, stabmode, _), wasted) =
+  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, stabmode, init_phase_ticks), wasted)\<close>
 
 definition incr_restart_phase_and_length_end :: \<open>64 word \<Rightarrow> isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
   \<open>incr_restart_phase_and_length_end end_of_phase = Restart_Heuristics o (incr_restart_phase_and_length_end_stats end_of_phase) o get_content\<close>
@@ -1368,9 +1374,16 @@ definition end_of_restart_phase_stats :: \<open>restart_heuristics \<Rightarrow>
   \<open>end_of_restart_phase_stats = (\<lambda>(_, _, (restart_phase,_ ,_ , end_of_phase, _), _).
     end_of_phase)\<close>
 
+definition stabmode_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>stabmode_stats = (\<lambda>(_, _, (restart_phase,_ ,_ , end_of_phase, stabmode, _::64 word), _). stabmode)\<close>
+  
 definition end_of_restart_phase :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
   \<open>end_of_restart_phase = end_of_restart_phase_stats o get_content\<close>
 
+
+definition nbstable_phase :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>nbstable_phase = stabmode_stats o get_content\<close>
+  
 definition init_phase_ticks :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
   \<open>init_phase_ticks = init_phase_ticks_stats o get_content\<close>
 

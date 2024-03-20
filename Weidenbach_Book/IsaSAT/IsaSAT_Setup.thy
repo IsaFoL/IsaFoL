@@ -1582,6 +1582,9 @@ definition end_of_rephasing_phase_st :: \<open>isasat \<Rightarrow> 64 word\<clo
 definition end_of_restart_phase_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
  \<open>end_of_restart_phase_st = (\<lambda>S. end_of_restart_phase (get_heur S))\<close>
 
+definition nb_stabmode_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
+  \<open>nb_stabmode_st = (\<lambda>S. nbstable_phase (get_heur S))\<close>
+
 definition get_vmtf_heur_array where
   \<open>get_vmtf_heur_array S = (fst (get_focused_heuristics (get_vmtf_heur S)))\<close>
 

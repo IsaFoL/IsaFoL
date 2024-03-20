@@ -19,9 +19,9 @@ lemma update_all_phases_Pair:
      update_all_phases S \<le> \<Down> ({(T, T'). (T,T')\<in>twl_st_heur_loop''''uu r u \<and> T' = S'}) (RETURN (id S'))\<close>
 proof -
   have [refine0]: \<open>(S, S') \<in> twl_st_heur_loop''''uu r u \<Longrightarrow> count_decided (get_trail_wl S') = 0 \<Longrightarrow>
-    update_restart_phases S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur_loop''''uu r u)\<close>
+    update_restart_mode S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur_loop''''uu r u)\<close>
     for S :: isasat and S' :: \<open>nat twl_st_wl\<close>
-    unfolding update_all_phases_def update_restart_phases_def Let_def
+    unfolding update_all_phases_def update_restart_mode_def Let_def
     by (auto simp: twl_st_heur'_def twl_st_heur_loop_def learned_clss_count_def
         intro!: rephase_heur_st_spec[THEN order_trans] switch_bump_heur
         simp del: incr_restart_phase_end_stats.simps incr_restart_phase_stats.simps)

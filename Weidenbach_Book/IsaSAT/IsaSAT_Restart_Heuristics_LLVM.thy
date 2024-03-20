@@ -137,11 +137,11 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   end_of_rephasing_phase_st_impl_def[unfolded read_all_st_code_def]
 
 sepref_register incr_restart_phase incr_restart_phase_end
-  update_restart_phases
+  update_restart_mode
 
 
-lemma update_restart_phases_alt_def:
-  \<open>update_restart_phases = (\<lambda>S. do {
+lemma update_restart_mode_alt_def:
+  \<open>update_restart_mode = (\<lambda>S. do {
      let lcount = get_global_conflict_count S;
      let (heur, S) = extract_heur_wl_heur S;
      let (vm, S) = extract_vmtf_wl_heur S;
@@ -152,12 +152,12 @@ lemma update_restart_phases_alt_def:
      heur \<leftarrow> RETURN (swap_emas heur);
      RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm S))
   })\<close>
-  by (auto simp: update_restart_phases_def state_extractors split: isasat_int_splits intro!: ext)
+  by (auto simp: update_restart_mode_def state_extractors split: isasat_int_splits intro!: ext)
 
-sepref_def update_restart_phases_impl
-  is \<open>update_restart_phases\<close>
+sepref_def update_restart_mode_impl
+  is \<open>update_restart_mode\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding update_restart_phases_alt_def
+  unfolding update_restart_mode_alt_def
   by sepref
 
 sepref_register upper_restart_bound_reached
