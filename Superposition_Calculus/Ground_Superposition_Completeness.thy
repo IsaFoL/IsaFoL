@@ -12,7 +12,7 @@ sublocale ground_superposition_calculus \<subseteq> calculus_with_finitary_stand
   defines GRed_I = Red_I and GRed_F = Red_F
 proof unfold_locales
   show "transp (\<prec>\<^sub>c)"
-    using transp_less_cls .
+    using clause_order.transp_on_less .
 next
   show "wfP (\<prec>\<^sub>c)"
     using wfP_less_cls .
@@ -334,7 +334,7 @@ proof -
       by (simp add: less_lit_def)
     moreover hence "\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (Upair s t)"
       using \<open>\<forall>L \<in># D'. L \<prec>\<^sub>l Pos (Upair u v)\<close>
-      by (meson transp_on_less_lit transpD)
+      by (meson literal_order.transp_on_less transpD)
     ultimately show "D \<prec>\<^sub>c C"
       using one_step_implies_multp[of C D _ "{#}"] less_cls_def
       by (simp add: D_def C_def)
@@ -359,7 +359,7 @@ proof -
         by (simp add: less_lit_def)
       moreover hence "\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (Upair u v)"
         using \<open>\<forall>L \<in># C'. L \<prec>\<^sub>l Pos (Upair s t)\<close>
-        by (meson transp_on_less_lit transpD)
+        by (meson literal_order.transp_on_less transpD)
       ultimately have "C \<prec>\<^sub>c D"
         using one_step_implies_multp[of D C _ "{#}"] less_cls_def
         by (simp add: D_def C_def)
@@ -634,7 +634,7 @@ proof -
   also have "\<dots> = {x \<in> N. x \<prec>\<^sub>c C \<and> x \<prec>\<^sub>c D} \<union> {D} \<union> {x \<in> N. D \<prec>\<^sub>c x \<and> x \<prec>\<^sub>c C}"
     by auto
   also have "\<dots> = {x \<in> N. x \<prec>\<^sub>c D} \<union> {D} \<union> {x \<in> N. D \<prec>\<^sub>c x \<and> x \<prec>\<^sub>c C}"
-    using \<open>D \<prec>\<^sub>c C\<close> transp_less_cls
+    using \<open>D \<prec>\<^sub>c C\<close> clause_order.transp_on_less
     by (metis (no_types, opaque_lifting) transpD)
   finally have Collect_N_lt_C: "{x \<in> N. x \<prec>\<^sub>c C} = {x \<in> N. x \<prec>\<^sub>c D} \<union> {x \<in> N. D \<preceq>\<^sub>c x \<and> x \<prec>\<^sub>c C}"
     by auto
@@ -721,14 +721,14 @@ proof (rule mem_join_union_iff_mem_join_lhs)
     by (meson Range.intros rtrancl.cases)
   thus "u \<notin> Domain R\<^sub>2"
     using Range_R\<^sub>1_lt_Domain_R\<^sub>2 s_lt_Domain_R\<^sub>2
-    by (metis irreflpD irreflp_on_less_trm)
+    by (metis irreflpD term_order.irreflp_on_less)
 next
   fix u assume "(t, u) \<in> R\<^sub>1\<^sup>*"
   hence "u = t \<or> u \<in> Range R\<^sub>1"
     by (meson Range.intros rtrancl.cases)
   thus "u \<notin> Domain R\<^sub>2"
     using Range_R\<^sub>1_lt_Domain_R\<^sub>2 t_lt_Domain_R\<^sub>2
-    by (metis irreflpD irreflp_on_less_trm)
+    by (metis irreflpD term_order.irreflp_on_less)
 qed
 
 lemma (in ground_superposition_calculus) lift_entailment_to_Union:
@@ -757,7 +757,7 @@ proof -
     have "R\<^sub>D \<subseteq> (\<Union>D \<in> N. epsilon N D)" and
       "\<forall>C. C \<in> N \<longrightarrow> D \<prec>\<^sub>c C \<longrightarrow> R\<^sub>D \<subseteq> rewrite_sys N C"
       unfolding R\<^sub>D_def rewrite_sys_def
-      using D_in transp_less_cls[THEN transpD]
+      using D_in clause_order.transp_on_less[THEN transpD]
       using epsilon_filter_le_conv
       by (auto intro: Collect_mono)
     hence "rewrite_inside_gctxt R\<^sub>D \<subseteq> rewrite_inside_gctxt (\<Union>D \<in> N. epsilon N D)" and

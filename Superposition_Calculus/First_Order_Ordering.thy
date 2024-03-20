@@ -10,12 +10,12 @@ begin
 context ground_ordering
 begin
 
-lemmas less\<^sub>l\<^sub>G_transitive_on = transp_on_less_lit
-lemmas less\<^sub>l\<^sub>G_asymmetric_on = asymp_on_less_lit
+lemmas less\<^sub>l\<^sub>G_transitive_on = literal_order.transp_on_less
+lemmas less\<^sub>l\<^sub>G_asymmetric_on = literal_order.asymp_on_less
 lemmas less\<^sub>l\<^sub>G_total_on = totalp_on_less_lit
 
-lemmas less\<^sub>c\<^sub>G_transitive_on = transp_less_cls[THEN transp_on_subset, OF subset_UNIV]
-lemmas less\<^sub>c\<^sub>G_asymmetric_on = asymp_less_cls[THEN asymp_on_subset, OF subset_UNIV]
+lemmas less\<^sub>c\<^sub>G_transitive_on = clause_order.transp_on_less
+lemmas less\<^sub>c\<^sub>G_asymmetric_on = clause_order.asymp_on_less
 lemmas less\<^sub>c\<^sub>G_total_on = totalp_less_cls[THEN totalp_on_subset, OF subset_UNIV]
 
 lemmas is_maximal_lit_def = is_maximal_in_mset_wrt_iff[OF less\<^sub>l\<^sub>G_transitive_on less\<^sub>l\<^sub>G_asymmetric_on]
@@ -107,7 +107,7 @@ lemma less\<^sub>t_total_on': "totalp_on (to_term ` terms\<^sub>G) (\<prec>\<^su
   using less\<^sub>t_total_on
   by (simp add: totalp_on_def)
 
-lemmas less\<^sub>t_irreflexive_on = irreflp_on_less_trm
+lemmas less\<^sub>t_irreflexive_on = term_order.irreflp_on_less
 
 lemma less\<^sub>t\<^sub>G_wellfounded: "wfP (\<prec>\<^sub>t\<^sub>G)"
 proof -
@@ -171,11 +171,11 @@ lemma less_eq\<^sub>t_ground_subst_stability:
 
 subsection \<open>Literal ordering\<close>
 
-lemmas less\<^sub>l_asymmetric [intro] = asymp_on_less_lit[of UNIV]
-lemmas less\<^sub>l_asymmetric_on [intro] = asymp_on_less_lit
+lemmas less\<^sub>l_asymmetric [intro] = literal_order.asymp_on_less[of UNIV]
+lemmas less\<^sub>l_asymmetric_on [intro] = literal_order.asymp_on_less
 
-lemmas less\<^sub>l_transitive [intro] = transp_on_less_lit[of UNIV]
-lemmas less\<^sub>l_transitive_on = transp_on_less_lit
+lemmas less\<^sub>l_transitive [intro] = literal_order.transp_on_less[of UNIV]
+lemmas less\<^sub>l_transitive_on = literal_order.transp_on_less
                                                             
 lemmas is_maximal\<^sub>l_def = is_maximal_in_mset_wrt_iff[OF less\<^sub>l_transitive_on less\<^sub>l_asymmetric_on]
 
@@ -215,10 +215,10 @@ lemma strictly_maximal\<^sub>l_in_clause:
 
 subsection \<open>Clause ordering\<close>
 
-lemmas less\<^sub>c_asymmetric [intro] = asymp_less_cls
-lemmas less\<^sub>c_asymmetric_on [intro] = asymp_less_cls[THEN asymp_on_subset, OF subset_UNIV]
-lemmas less\<^sub>c_transitive [intro] = transp_less_cls
-lemmas less\<^sub>c_transitive_on [intro] = transp_less_cls[THEN transp_on_subset, OF subset_UNIV]
+lemmas less\<^sub>c_asymmetric [intro] = clause_order.asymp_on_less[of UNIV]
+lemmas less\<^sub>c_asymmetric_on [intro] = clause_order.asymp_on_less
+lemmas less\<^sub>c_transitive [intro] = clause_order.transp_on_less[of UNIV]
+lemmas less\<^sub>c_transitive_on [intro] = clause_order.transp_on_less
 
 lemma less\<^sub>c_ground_subst_stability: 
   assumes 
