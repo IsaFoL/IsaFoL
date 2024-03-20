@@ -43,7 +43,7 @@ next
     using antisymp_on_reflclp[OF \<open>asymp R\<close>, THEN antisympD] .
 qed
 
-locale clause_ordering =
+locale lifting_term_ordering =
   fixes
     less_trm :: "'t \<Rightarrow> 't \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50)
   assumes
