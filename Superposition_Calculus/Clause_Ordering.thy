@@ -2,29 +2,11 @@ theory Clause_Ordering
   imports Clausal_Calculus_Extra
 begin
 
-lemma antisymp_on_reflclp:
+lemma antisymp_on_reflclp_if_asymp_on:
   assumes "asymp_on A R"
   shows "antisymp_on A R\<^sup>=\<^sup>="
-proof (rule antisymp_onI)
-  fix x y
-  assume "x \<in> A" and "y \<in> A" and "R\<^sup>=\<^sup>= x y" and "R\<^sup>=\<^sup>= y x"
-  show "x = y"
-  proof (cases "x = y")
-    case True
-    thus ?thesis .
-  next
-    case False
-    hence "R x y"
-      using \<open>R\<^sup>=\<^sup>= x y\<close> by simp
-    hence "\<not> R y x"
-      using \<open>asymp_on A R\<close>[THEN asymp_onD, OF \<open>x \<in> A\<close> \<open>y \<in> A\<close>] by iprover
-    moreover have "R y x"
-      using \<open>R\<^sup>=\<^sup>= y x\<close> False by simp
-    ultimately have False
-      by contradiction
-    thus ?thesis ..
-  qed
-qed
+  unfolding antisymp_on_reflcp
+  using antisymp_on_if_asymp_on[OF \<open>asymp_on A R\<close>] .
 
 lemma order_reflclp_if_transp_and_asymp:
   assumes "transp R" and "asymp R"
@@ -40,7 +22,7 @@ next
     using transp_on_reflclp[OF \<open>transp R\<close>, THEN transpD] .
 next
   show "\<And>x y. R\<^sup>=\<^sup>= x y \<Longrightarrow> R\<^sup>=\<^sup>= y x \<Longrightarrow> x = y"
-    using antisymp_on_reflclp[OF \<open>asymp R\<close>, THEN antisympD] .
+    using antisymp_on_reflclp_if_asymp_on[OF \<open>asymp R\<close>, THEN antisympD] .
 qed
 
 locale lifting_term_ordering =
