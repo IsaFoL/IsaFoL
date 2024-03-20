@@ -5,7 +5,7 @@ begin
 lemma antisymp_on_reflclp_if_asymp_on:
   assumes "asymp_on A R"
   shows "antisymp_on A R\<^sup>=\<^sup>="
-  unfolding antisymp_on_reflcp
+  unfolding antisym_on_reflcl[to_pred]
   using antisymp_on_if_asymp_on[OF \<open>asymp_on A R\<close>] .
 
 lemma order_reflclp_if_transp_and_asymp:

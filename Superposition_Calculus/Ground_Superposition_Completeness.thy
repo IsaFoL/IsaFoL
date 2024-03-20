@@ -264,7 +264,7 @@ lemma (in ground_superposition_calculus) rhs_lesseq_trm_lhs_if_mem_rtrancl_rewri
 proof (induction t2 rule: rtrancl_induct)
   case base
   show ?case
-    by simp
+    by order
 next
   case (step t2 t3)
   from step.hyps have "t3 \<prec>\<^sub>t t2"
@@ -326,8 +326,7 @@ proof -
   proof (rule iffI)
     assume "u \<prec>\<^sub>t s"
     moreover hence "v \<prec>\<^sub>t s"
-      using \<open>v \<prec>\<^sub>t u\<close>
-      by (meson transpD transp_less_trm)
+      using \<open>v \<prec>\<^sub>t u\<close> by order
     ultimately have "multp (\<prec>\<^sub>t) {#u, v#} {#s, t#}"
       using one_step_implies_multp[of "{#s, t#}" "{#u, v#}" _ "{#}"] by simp
     hence "Pos (Upair u v) \<prec>\<^sub>l Pos (Upair s t)"
@@ -351,8 +350,7 @@ proof -
     proof (rule notI)
       assume "s \<prec>\<^sub>t u"
       moreover hence "t \<prec>\<^sub>t u"
-        using \<open>t \<prec>\<^sub>t s\<close>
-        by (meson transpD transp_less_trm)
+        using \<open>t \<prec>\<^sub>t s\<close> by order
       ultimately have "multp (\<prec>\<^sub>t) {#s, t#} {#u, v#}"
         using one_step_implies_multp[of "{#u, v#}" "{#s, t#}" _ "{#}"] by simp
       hence "Pos (Upair s t) \<prec>\<^sub>l Pos (Upair u v)"
@@ -523,7 +521,7 @@ proof -
   have "Pos (Upair s t) \<prec>\<^sub>l L" if "is_pos L" and "\<not> u \<preceq>\<^sub>t s"
   proof -
     from that(2) have "s \<prec>\<^sub>t u"
-      using totalp_less_trm[THEN totalpD] by auto
+      by order
     hence "multp (\<prec>\<^sub>t) {#s, t#} {#u, v#}"
       using \<open>t \<prec>\<^sub>t s\<close>
       by (smt (verit, del_insts) add.right_neutral empty_iff insert_iff one_step_implies_multp
@@ -536,7 +534,7 @@ proof -
   moreover have "Pos (Upair s t) \<prec>\<^sub>l L" if "is_neg L" and "\<not> u \<prec>\<^sub>t s"
   proof -
     from that(2) have "s \<preceq>\<^sub>t u"
-      using totalp_less_trm[THEN totalpD] by auto
+      by order
     hence "multp (\<prec>\<^sub>t) {#s, t#} {#u, v, u, v#}"
       using \<open>t \<prec>\<^sub>t s\<close>
       by (smt (z3) add_mset_add_single add_mset_remove_trivial add_mset_remove_trivial_iff
@@ -562,7 +560,7 @@ proof -
         using C_max_lit by auto
     next
       show "Pos (Upair s t) \<prec>\<^sub>l L"
-        using that by simp
+        using that .
     qed simp_all
     with \<open>D \<preceq>\<^sub>c C\<close> show False
       by order
@@ -656,7 +654,7 @@ proof -
   proof (induction t2 rule: rtrancl_induct)
     case base
     show ?case
-      by simp
+      by order
   next
     case (step y z)
     thus ?case
@@ -1337,7 +1335,7 @@ proof (induction C rule: wfP_induct_rule)
               using sel_or_max by argo
           next
             show "select D = {#}"
-              using sel_D by blast
+              using sel_D .
           next
             show "is_strictly_maximal_lit (Pos (Upair t t')) D"
               using max_t_t' .
@@ -1537,7 +1535,7 @@ proof (induction C rule: wfP_induct_rule)
                   hence "Pos (Upair s s') \<prec>\<^sub>l Pos (Upair t t')"
                     by (simp add: less_lit_def)
                   thus False
-                    using strictly_maximal \<open>t \<approx> t' \<prec>\<^sub>l s \<approx> s'\<close> by force
+                    using \<open>t \<approx> t' \<prec>\<^sub>l s \<approx> s'\<close> by order
                 qed
 
                 ultimately have "t = s"
