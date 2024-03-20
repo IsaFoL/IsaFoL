@@ -47,7 +47,7 @@ lemma Constructor_hnr[sepref_fr_rules]:
   by (auto simp: intro!: frefI)
 
 definition search_stats_assn :: \<open>search_stats \<Rightarrow> search_stats \<Rightarrow> _\<close> where
-  \<open>search_stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
+  \<open>search_stats_assn \<equiv> word64_assn \<times>\<^sub>a  word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 definition subsumption_stats_assn :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats \<Rightarrow> _\<close> where
   \<open>subsumption_stats_assn = word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
@@ -62,7 +62,7 @@ definition rephase_stats_assn :: \<open>rephase_stats \<Rightarrow> rephase_stat
   \<open>rephase_stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 definition empty_search_stats :: search_stats where
-  \<open>empty_search_stats = (0,0,0,0,0,0,0,0,0,0,0)\<close>
+  \<open>empty_search_stats = (0,0,0,0,0,0,0,0,0,0,0,0)\<close>
 
 sepref_def empty_search_stats_impl
   is \<open>uncurry0 (RETURN empty_search_stats)\<close>
@@ -1085,7 +1085,7 @@ sepref_def empty_stats_impl
   by sepref
 
 definition empty_search_stats_clss :: \<open>64 word \<Rightarrow> search_stats\<close> where
-  \<open>empty_search_stats_clss n = (0,0,0,0,0,0,0,0,n,0,0)\<close>
+  \<open>empty_search_stats_clss n = (0,0,0,0,0,0,0,0,n,0,0,0)\<close>
 
 sepref_def empty_search_stats_clss_impl
   is \<open>(RETURN o empty_search_stats_clss)\<close>
@@ -1122,9 +1122,9 @@ export_llvm empty_stats_impl
 sepref_register unset_fully_propagated_heur is_fully_propagated_heur set_fully_propagated_heur
 
 
-abbreviation (input) \<open>restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel\<close>
+abbreviation (input) \<open>restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel\<close>
 abbreviation (input) restart_info_assn where
-  \<open>restart_info_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
+  \<open>restart_info_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 lemma restart_info_params[sepref_import_param]:
   "(incr_conflict_count_since_last_restart,incr_conflict_count_since_last_restart) \<in>
@@ -1850,8 +1850,8 @@ lemmas end_of_restart_phase_impl_refine[sepref_fr_rules] =
     unfolded heuristic_assn_alt_def[symmetric]]
 
 lemma incr_restart_phase_end_stats_alt_def:
-  \<open>incr_restart_phase_end_stats = (\<lambda>end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, length_phase), wasted).
-  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, length_phase), wasted))\<close>
+  \<open>incr_restart_phase_end_stats = (\<lambda>end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, length_phase, t), wasted).
+  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, length_phase, t), wasted))\<close>
   by (auto intro!: ext)
 
 sepref_register incr_restart_phase_end_stats incr_restart_phase_and_length_end_stats
@@ -1863,8 +1863,8 @@ sepref_def incr_restart_phase_end_stats_impl [llvm_inline]
   by sepref
 
 lemma incr_restart_phase_and_length_end_stats_alt_def:
-  \<open>incr_restart_phase_and_length_end_stats = (\<lambda>end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, length_phase), wasted).
-  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, (length_phase * 3) >> 1), wasted))\<close>
+  \<open>incr_restart_phase_and_length_end_stats = (\<lambda>end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, stabmode, init_phase_ticks), wasted).
+  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, stabmode +1, init_phase_ticks), wasted))\<close>
   by (auto intro!: ext)
 
 sepref_def incr_restart_phase_and_length_end_stats_impl [llvm_inline]
@@ -1872,7 +1872,6 @@ sepref_def incr_restart_phase_and_length_end_stats_impl [llvm_inline]
   :: \<open>word64_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
   supply[[goals_limit=1]]
   unfolding heuristic_int_assn_def incr_restart_phase_and_length_end_stats_alt_def
-  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_def incr_restart_phase_and_length_end_impl
