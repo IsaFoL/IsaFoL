@@ -142,21 +142,48 @@ sepref_register incr_restart_phase incr_restart_phase_end
 
 lemma update_restart_mode_alt_def:
   \<open>update_restart_mode = (\<lambda>S. do {
+     end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
      let lcount = get_global_conflict_count S;
      let (heur, S) = extract_heur_wl_heur S;
      let (vm, S) = extract_vmtf_wl_heur S;
-     let vm = switch_bump_heur vm;
-     heur \<leftarrow> RETURN (incr_restart_phase heur);
-     heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then incr_restart_phase_and_length_end lcount heur else incr_restart_phase_end lcount heur);
-     heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
-     heur \<leftarrow> RETURN (swap_emas heur);
-     RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm S))
+     let (stats, S) = extract_stats_wl_heur S;
+     let init_ticks = init_phase_ticks heur;
+     let curr = current_restart_phase heur;
+     if init_ticks = 0 \<comment>\<open>This is still the very first phase, here the limit is given by conflicts\<close>
+     then do{
+       if (end_of_restart_phase < lcount) then RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats S)))
+       else do {
+          let ticks = stats_ticks_focused stats;
+          let vm = switch_bump_heur vm;
+          heur \<leftarrow> RETURN (if curr \<noteq> STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
+          heur \<leftarrow> RETURN (incr_restart_phase heur);
+          heur \<leftarrow> RETURN (set_init_phase_ticks ticks heur);
+          heur \<leftarrow> RETURN (swap_emas heur);
+          RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats S)))
+       }
+     } else do { \<comment>\<open>This is still the very first phase, here the limit is given by ticks\<close>
+        let search_ticks = (if current_restart_phase heur = STABLE_MODE then stats_ticks_stable stats else stats_ticks_focused stats);
+        if (end_of_restart_phase < search_ticks) then RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats S)))
+        else do {
+          let vm = switch_bump_heur vm;
+          heur \<leftarrow> RETURN (incr_restart_phase heur);
+          heur \<leftarrow> RETURN (if curr \<noteq> STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
+          let search_ticks = (if curr = STABLE_MODE then stats_ticks_stable stats else stats_ticks_focused stats);
+          let delta = init_ticks * nbstable_phase heur * nbstable_phase heur;
+          let lim = search_ticks + delta;
+          heur \<leftarrow> RETURN (if curr = STABLE_MODE then incr_restart_phase_and_length_end lim heur else incr_restart_phase_end lim heur);
+          heur \<leftarrow> RETURN (swap_emas heur);
+          RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats S)))
+      }
+    }
   })\<close>
-  by (auto simp: update_restart_mode_def state_extractors split: isasat_int_splits intro!: ext)
+  by (auto simp: update_restart_mode_def state_extractors split: isasat_int_splits intro!: ext
+              cong: if_cong)
 
 sepref_def update_restart_mode_impl
   is \<open>update_restart_mode\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
   unfolding update_restart_mode_alt_def
   by sepref
 

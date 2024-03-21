@@ -8,7 +8,8 @@ hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 sepref_register isa_save_pos unit_propagation_update_statistics
 
 lemma unit_propagation_update_statistics_alt_def:
-  \<open>unit_propagation_update_statistics p q S = do {
+  \<open>unit_propagation_update_statistics p q ticks S = do {
+  let curr = get_restart_phase S;
   let (stats, S) = extract_stats_wl_heur S;
   let (M, S) = extract_trail_wl_heur S;
   let pq = q - p;
@@ -16,6 +17,7 @@ lemma unit_propagation_update_statistics_alt_def:
   let stats = (if get_conflict_wl_is_None_heur S then stats else incr_conflict stats);
   let stats = (if count_decided_pol M = 0 then incr_units_since_last_GC_by pq (incr_uset_by pq stats) else stats);
   height \<leftarrow> (if get_conflict_wl_is_None_heur S then RETURN q else do {j \<leftarrow> trail_height_before_conflict M; RETURN (of_nat j)});
+  let stats = (if curr = STABLE_MODE then incr_search_ticks_stable_by ticks stats else incr_search_ticks_focused_by ticks stats);
   let stats = set_no_conflict_until q stats;
   RETURN (update_stats_wl_heur stats (update_trail_wl_heur M S))
   }\<close>
@@ -23,8 +25,8 @@ lemma unit_propagation_update_statistics_alt_def:
     split: isasat_int_splits intro!: ext)
 
 sepref_def unit_propagation_update_statistics_impl
-  is \<open>uncurry2 (unit_propagation_update_statistics)\<close>
-  :: \<open>word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  is \<open>uncurry3 (unit_propagation_update_statistics)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]] of_nat_unat[sepref_import_param]
   unfolding unit_propagation_update_statistics_alt_def
   apply (annot_unat_const \<open>TYPE (32)\<close>)

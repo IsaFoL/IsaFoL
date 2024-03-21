@@ -266,7 +266,6 @@ definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close
      let stats = get_stats_heur S;
      let lcount = get_global_conflict_count S;
      let vm = get_vmtf_heur S;
-     let vm = switch_bump_heur vm;
      let init_ticks = init_phase_ticks heur;
      end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
      let curr = current_restart_phase heur;
@@ -274,6 +273,7 @@ definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close
      then do{
        if (end_of_restart_phase < lcount) then RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
        else do {
+          let vm = switch_bump_heur vm;
           let stats = get_stats_heur S;
           let ticks = stats_ticks_focused stats;
           heur \<leftarrow> RETURN (if curr \<noteq> STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
@@ -286,6 +286,7 @@ definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close
         let search_ticks = (if current_restart_phase heur = STABLE_MODE then stats_ticks_stable stats else stats_ticks_focused stats);
         if (end_of_restart_phase < search_ticks) then RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
         else do {
+          let vm = switch_bump_heur vm;
           heur \<leftarrow> RETURN (incr_restart_phase heur);
           heur \<leftarrow> RETURN (if curr \<noteq> STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
           let search_ticks = (if curr = STABLE_MODE then stats_ticks_stable stats else stats_ticks_focused stats);

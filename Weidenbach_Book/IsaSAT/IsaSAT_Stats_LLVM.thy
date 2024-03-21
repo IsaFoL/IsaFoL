@@ -506,6 +506,18 @@ sepref_def Search_Stats_fixed_impl
   unfolding search_stats_assn_def Search_Stats_fixed_def
   by sepref
 
+sepref_def Search_Stats_ticks_stable_impl
+  is \<open>RETURN o Search_Stats_ticks_stable\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_ticks_stable_def
+  by sepref
+
+sepref_def Search_Stats_ticks_focused_impl
+  is \<open>RETURN o Search_Stats_ticks_focused\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_ticks_focused_def
+  by sepref
+
 sepref_def add_lbd_stats_impl
   is \<open>uncurry (RETURN oo add_lbd)\<close>
   :: \<open>word32_assn\<^sup>k *\<^sub>a isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
@@ -518,6 +530,17 @@ sepref_def get_conflict_count_stats_impl
   unfolding stats_conflicts_def stats_code_unfold
   by sepref
 
+sepref_def stats_ticks_stable_impl
+  is \<open>(RETURN o stats_ticks_stable)\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_ticks_stable_def stats_code_unfold
+  by sepref
+
+sepref_def stats_ticks_focused_impl
+  is \<open>(RETURN o stats_ticks_focused)\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_ticks_focused_def stats_code_unfold
+  by sepref
 
 sepref_def units_since_last_GC_stats_impl
   is \<open>(RETURN o units_since_last_GC)\<close>
@@ -675,6 +698,18 @@ sepref_def Search_Stats_gcs_impl
   unfolding search_stats_assn_def Search_Stats_gcs_def
   by sepref
 
+sepref_def Search_Stats_incr_ticks_stable_impl
+  is \<open>uncurry (RETURN oo Search_Stats_incr_ticks_stable)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a search_stats_assn\<^sup>d \<rightarrow>\<^sub>asearch_stats_assn\<close>
+  unfolding Search_Stats_incr_ticks_stable_def search_stats_assn_def
+  by sepref
+
+sepref_def Search_Stats_incr_ticks_focused_impl
+  is \<open>uncurry (RETURN oo Search_Stats_incr_ticks_focused)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a search_stats_assn\<^sup>d \<rightarrow>\<^sub>asearch_stats_assn\<close>
+  unfolding Search_Stats_incr_ticks_focused_def search_stats_assn_def
+  by sepref
+
 sepref_register Search_Stats_fixed Search_Stats_incr_irred Search_Stats_decr_irred
   Search_Stats_incr_propagation Search_Stats_incr_conflicts
   Search_Stats_incr_decisions Search_Stats_incr_restarts
@@ -683,6 +718,7 @@ sepref_register Search_Stats_fixed Search_Stats_incr_irred Search_Stats_decr_irr
   Binary_Stats_incr_removed Binary_Stats_incr_units
   Search_Stats_reductions Search_Stats_restarts
   Search_Stats_irred Search_Stats_propagations Search_Stats_gcs
+  Search_Stats_incr_ticks_focused Search_Stats_incr_ticks_stable
 
 sepref_def Search_Stats_decisions_impl
   is \<open>RETURN o Search_Stats_decisions\<close>
@@ -738,9 +774,21 @@ sepref_def LSize_Stats_impl
   unfolding  LSize_Stats_def lbd_size_limit_assn_def
   by sepref
 
+sepref_def incr_search_ticks_stable_by_impl
+  is \<open>uncurry (RETURN oo incr_search_ticks_stable_by)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_search_ticks_stable_by_def stats_code_unfold
+  by sepref
+
+sepref_def incr_search_ticks_focused_by_impl
+  is \<open>uncurry (RETURN oo incr_search_ticks_focused_by)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_search_ticks_focused_by_def stats_code_unfold
+  by sepref
 
 sepref_register Search_Stats_decisions Pure_Lits_Stats_rounds Pure_Lits_Stats_removed
   Binary_Stats_removed Binary_Stats_rounds Binary_Stats_units
+
 sepref_def stats_decisions_impl
   is \<open>RETURN o stats_decisions\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
  unfolding stats_decisions_def stats_code_unfold by sepref
@@ -1472,7 +1520,13 @@ lemma set_zero_wasted_stats_set_zero_wasted_stats:
   next_subsume_schedule_next_subsume_schedule_stats:
     \<open>(next_subsume_schedule_info_stats, next_subsume_schedule) \<in> heur_rel \<rightarrow> word64_rel\<close> and
   swap_emas_stats_swap_emas:
-    \<open>(swap_emas_stats, swap_emas) \<in> heur_rel \<rightarrow> heur_rel\<close>
+    \<open>(swap_emas_stats, swap_emas) \<in> heur_rel \<rightarrow> heur_rel\<close> and
+  init_phase_ticks_stats_init_phase_ticks:
+  \<open>(init_phase_ticks_stats, init_phase_ticks) \<in> heur_rel \<rightarrow> word64_rel\<close> and
+  stabmode_stats_nbstable_phase:
+  \<open>(stabmode_stats, nbstable_phase) \<in> heur_rel \<rightarrow> word64_rel\<close> and
+  set_init_phase_ticks_stats_set_init_phase_ticks:
+    \<open>(set_init_phase_ticks_stats, set_init_phase_ticks) \<in> word64_rel \<rightarrow> heur_rel \<rightarrow> heur_rel\<close>
   by (auto simp: set_zero_wasted_def code_hider_rel_def heuristic_reluctant_tick_def
     heuristic_reluctant_enable_def heuristic_reluctant_triggered_def apfst_def map_prod_def
     heuristic_reluctant_disable_def heuristic_reluctant_triggered2_def is_fully_propagated_heur_def
@@ -1483,6 +1537,7 @@ lemma set_zero_wasted_stats_set_zero_wasted_stats:
     schedule_next_pure_lits_def schedule_next_pure_lits_stats_def next_reduce_schedule_def
     schedule_next_reduce_def schedule_next_reduce_stats_def next_subsume_schedule_def
     schedule_next_subsume_def schedule_next_subsume_stats_def swap_emas_def
+    init_phase_ticks_def nbstable_phase_def set_init_phase_ticks_def
     intro!: frefI nres_relI
     split: prod.splits)
 
@@ -1714,6 +1769,33 @@ sepref_def schedule_next_subsume_stats_impl
   unfolding schedule_next_subsume_stats_def heuristic_int_assn_def
   by sepref
 
+lemma init_phase_ticks_stats_alt_def:
+  \<open>init_phase_ticks_stats = (\<lambda>(fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, stabmode, init_phase_ticks), wasted). init_phase_ticks)\<close>
+  by (auto intro!: ext)
+
+sepref_def init_phase_ticks_stats_impl
+  is \<open>RETURN o init_phase_ticks_stats\<close>
+  :: \<open>heuristic_int_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding init_phase_ticks_stats_alt_def heuristic_int_assn_def
+  by sepref
+
+sepref_def stabmode_stats_impl
+  is \<open>RETURN o stabmode_stats\<close>
+  :: \<open>heuristic_int_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stabmode_stats_def heuristic_int_assn_def
+  by sepref
+
+lemma set_init_phase_ticks_stats_alt_def:
+  \<open>set_init_phase_ticks_stats = (\<lambda>init_phase_ticks (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, stabmode, _), wasted).
+  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, stabmode, init_phase_ticks), wasted))\<close>
+  by (auto intro!: ext)
+sepref_def set_init_phase_ticks_impl [llvm_inline]
+  is \<open>uncurry (RETURN oo set_init_phase_ticks_stats)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
+  supply[[goals_limit=1]]
+  unfolding heuristic_int_assn_def set_init_phase_ticks_stats_alt_def
+  by sepref
+
 lemma hn_id_pure:
   \<open>CONSTRAINT is_pure A \<Longrightarrow> (Mreturn, RETURN o id) \<in> A\<^sup>k \<rightarrow>\<^sub>a A\<close>
   apply sepref_to_hoare
@@ -1750,6 +1832,9 @@ lemmas heur_refine[sepref_fr_rules] =
   next_reduce_schedule_info_stats_impl.refine[FCOMP next_reduce_schedule_next_reduce_schedule_stats]
   schedule_next_subsume_stats_impl.refine[FCOMP schedule_next_subsume_stats_schedule_next_subsume]
   next_subsume_schedule_info_stats_impl.refine[FCOMP next_subsume_schedule_next_subsume_schedule_stats]
+  init_phase_ticks_stats_impl.refine[FCOMP init_phase_ticks_stats_init_phase_ticks]
+  stabmode_stats_impl.refine[FCOMP stabmode_stats_nbstable_phase]
+  set_init_phase_ticks_impl.refine[FCOMP set_init_phase_ticks_stats_set_init_phase_ticks]
   hn_id[of heuristic_int_assn, FCOMP get_content_hnr[of heur_int_rel]]
   hn_id[of heuristic_int_assn, FCOMP Constructor_hnr[of heur_int_rel]]
 
