@@ -50,9 +50,6 @@ proof -
     apply assumption
     subgoal by simp
     subgoal by simp
-    apply assumption
-    subgoal by simp
-    subgoal by simp
     subgoal by simp
     done
 qed

@@ -505,7 +505,7 @@ definition restart_info_update_lvl_avg :: \<open>32 word \<Rightarrow> restart_i
   \<open>restart_info_update_lvl_avg = (\<lambda>lvl (ccount, ema_lvl). (ccount, ema_lvl))\<close>
 
 definition restart_info_init :: \<open>restart_info\<close> where
-  \<open>restart_info_init = (0, 0, FOCUSED_MODE, DEFAULT_INIT_PHASE, 1000, 0)\<close>
+  \<open>restart_info_init = (0, 0, FOCUSED_MODE, DEFAULT_INIT_PHASE, 0, 0)\<close>
 
 definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>

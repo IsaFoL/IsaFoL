@@ -271,29 +271,40 @@ definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close
      let curr = current_restart_phase heur;
      if init_ticks = 0 \<comment>\<open>This is still the very first phase, here the limit is given by conflicts\<close>
      then do{
-       if (end_of_restart_phase < lcount) then RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
+       if (end_of_restart_phase \<ge> lcount) then RETURN S
        else do {
+          let search_ticks = (if current_restart_phase heur = STABLE_MODE then stats_ticks_stable stats else stats_ticks_focused stats);
           let vm = switch_bump_heur vm;
           let stats = get_stats_heur S;
           let ticks = stats_ticks_focused stats;
           heur \<leftarrow> RETURN (if curr \<noteq> STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
           heur \<leftarrow> RETURN (incr_restart_phase heur);
-          heur \<leftarrow> RETURN (set_init_phase_ticks ticks heur);
+          heur \<leftarrow> RETURN (set_init_phase_ticks search_ticks heur);
+          let lim = search_ticks + search_ticks;
+          heur \<leftarrow> RETURN (incr_restart_phase_end lim heur);
           heur \<leftarrow> RETURN (swap_emas heur);
+          let lcount = get_learned_count S;
+          let _ = isasat_print_progress 125 curr stats lcount;
+          let _ = isasat_print_progress 95 (curr XOR 1) stats lcount;
           RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
        }
      } else do { \<comment>\<open>This is still the very first phase, here the limit is given by ticks\<close>
         let search_ticks = (if current_restart_phase heur = STABLE_MODE then stats_ticks_stable stats else stats_ticks_focused stats);
-        if (end_of_restart_phase < search_ticks) then RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
+        if (end_of_restart_phase \<ge> search_ticks) then RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
         else do {
           let vm = switch_bump_heur vm;
           heur \<leftarrow> RETURN (incr_restart_phase heur);
           heur \<leftarrow> RETURN (if curr \<noteq> STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
           let search_ticks = (if curr = STABLE_MODE then stats_ticks_stable stats else stats_ticks_focused stats);
-          let delta = init_ticks * nbstable_phase heur * nbstable_phase heur;
+          let stable_number = nbstable_phase heur + 1;
+          let delta = init_ticks * stable_number * stable_number;
           let lim = search_ticks + delta;
           heur \<leftarrow> RETURN (if curr = STABLE_MODE then incr_restart_phase_and_length_end lim heur else incr_restart_phase_end lim heur);
           heur \<leftarrow> RETURN (swap_emas heur);
+          let lcount = get_learned_count S;
+          let (open, close) = (if curr = STABLE_MODE then (91, 125) else (123, 93));
+          let _ = isasat_print_progress close curr stats lcount;
+          let _ = isasat_print_progress open (curr XOR 1) stats lcount;
           RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
       }
     }
