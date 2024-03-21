@@ -1216,13 +1216,14 @@ proof (induction C rule: wfP_induct_rule)
           literal.disc(2) literal.exhaust mset_subset_eqD select_negative_lits select_subset)
 
     show "entails (rewrite_sys N C) C"
-    proof (cases "\<exists>L. L \<in># select C \<or> (select C = {#} \<and> is_maximal_lit L C \<and> is_neg L)")
+    proof (cases "\<exists>L. is_maximal_lit L (select C) \<or> (select C = {#} \<and> is_maximal_lit L C \<and> is_neg L)")
       case ex_neg_lit_sel_or_max: True
-      hence "\<exists>A. Neg A \<in># C \<and> (Neg A \<in># select C \<or> select C = {#} \<and> is_maximal_lit (Neg A) C)"
-        unfolding cond_conv .
+      hence "\<exists>A. Neg A \<in># C \<and> (is_maximal_lit (Neg A) (select C) \<or> select C = {#} \<and> is_maximal_lit (Neg A) C)"
+        by (metis is_pos_def literal.exhaust literal_order.is_maximal_in_mset_iff mset_subset_eqD
+            select_negative_lits select_subset)
       then obtain s s' where
         "Neg (Upair s s') \<in># C" and
-        sel_or_max: "Neg (Upair s s') \<in># select C \<or> select C = {#} \<and> is_maximal_lit (Neg (Upair s s')) C"
+        sel_or_max: "select C = {#} \<and> is_maximal_lit (Neg (Upair s s')) C \<or> is_maximal_lit (Neg (Upair s s')) (select C)"
         by (metis uprod_exhaust)
       then obtain C' where
         C_def: "C = add_mset (Neg (Upair s s')) C'"
@@ -1251,8 +1252,8 @@ proof (induction C rule: wfP_induct_rule)
             show "Neg (Upair s s') = Neg (Upair s s)"
               by (simp only: \<open>s = s'\<close>)
           next
-            show "select C = {#} \<and> is_maximal_lit (Neg (Upair s s')) C \<or> Neg (Upair s s') \<in># select C"
-              using sel_or_max by argo
+            show "select C = {#} \<and> is_maximal_lit (s !\<approx> s') C \<or> is_maximal_lit (s !\<approx> s') (select C)"
+              using sel_or_max .
           qed
           hence "\<iota> \<in> G_Inf"
             by (auto simp only: \<iota>_def G_Inf_def)
@@ -1331,8 +1332,8 @@ proof (induction C rule: wfP_induct_rule)
             show "D \<prec>\<^sub>c C"
               using \<open>D \<prec>\<^sub>c C\<close> .
           next
-            show "select C = {#} \<and> is_maximal_lit (Neg (Upair s s')) C \<or> Neg (Upair s s') \<in># select C"
-              using sel_or_max by argo
+            show "select C = {#} \<and> is_maximal_lit (Neg (Upair s s')) C \<or> is_maximal_lit (s !\<approx> s') (select C)"
+              using sel_or_max .
           next
             show "select D = {#}"
               using sel_D .
@@ -1438,7 +1439,7 @@ proof (induction C rule: wfP_induct_rule)
     next
       case False
       hence "select C = {#}"
-        by (metis (no_types, opaque_lifting) multiset_nonemptyE)
+        using literal_order.ex_maximal_in_mset by blast
         
       from False obtain A where Pos_A_in: "Pos A \<in># C" and max_Pos_A: "is_maximal_lit (Pos A) C"
         using \<open>select C = {#}\<close> literal_order.ex_maximal_in_mset[OF \<open>C \<noteq> {#}\<close>]
