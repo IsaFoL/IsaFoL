@@ -58,7 +58,7 @@ where
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     (\<P> = Pos \<and> select P\<^sub>1 = {#} \<and> is_strictly_maximal_lit L\<^sub>1 P\<^sub>1) \<or>
-    (\<P> = Neg \<and> (select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> L\<^sub>1 \<in># select P\<^sub>1)) \<Longrightarrow>
+    (\<P> = Neg \<and> (select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> is_maximal_lit L\<^sub>1 (select P\<^sub>1))) \<Longrightarrow>
     select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
@@ -69,7 +69,7 @@ inductive ground_eq_resolution ::
   ground_eq_resolutionI: "
     P = add_mset L P' \<Longrightarrow>
     L = Neg (Upair t t) \<Longrightarrow>
-    select P = {#} \<and> is_maximal_lit L P \<or> L \<in># select P \<Longrightarrow>
+    select P = {#} \<and> is_maximal_lit L P \<or> is_maximal_lit L (select P) \<Longrightarrow>
     ground_eq_resolution P P'"
 
 inductive ground_eq_factoring ::
@@ -100,7 +100,7 @@ where
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     (\<P> = Pos \<longrightarrow> select P\<^sub>1 = {#} \<and> is_strictly_maximal_lit L\<^sub>1 P\<^sub>1) \<Longrightarrow>
-    (\<P> = Neg \<longrightarrow> (select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> L\<^sub>1 \<in># select P\<^sub>1)) \<Longrightarrow>
+    (\<P> = Neg \<longrightarrow> (select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> is_maximal_lit L\<^sub>1 (select P\<^sub>1))) \<Longrightarrow>
     select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
@@ -168,7 +168,7 @@ where
     L\<^sub>2 = t \<approx> t' \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
-    select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> L\<^sub>1 \<in># select P\<^sub>1 \<Longrightarrow>
+    select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> is_maximal_lit L\<^sub>1 (select P\<^sub>1) \<Longrightarrow>
     select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (Neg (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
