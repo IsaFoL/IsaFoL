@@ -63,23 +63,23 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
   if ?select\<^sub>G_empty
     using ground_eq_resolutionI(3) max_literal unique_maximal_in_ground_clause
     unfolding ground_eq_resolutionI(2) is_maximal_lit_iff_is_maximal\<^sub>l premise\<^sub>G
-    by (metis empty_not_add_mset multi_member_split premise_grounding that to_ground_clause_inverse)
+    by (metis empty_not_add_mset maximal\<^sub>l_in_clause multi_member_split premise_grounding that to_clause_empty_mset to_ground_clause_inverse)
 
   moreover obtain selected_literal where 
     "selected_literal \<cdot>l \<theta> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)" and
-    "selected_literal \<in># select premise" 
+    "is_maximal\<^sub>l selected_literal (select premise)" 
   if ?select\<^sub>G_not_empty
     using ground_eq_resolutionI(3) select
     unfolding ground_eq_resolutionI(2) premise\<^sub>G
-    by (smt image_iff multiset.set_map subst_clause_def ground_literal_in_ground_clause(3))
+    by (metis clause_subst_empty(2) is_maximal\<^sub>l_ground_subst_stability is_maximal_lit_iff_is_maximal\<^sub>l premise_grounding select_subst1 to_clause_inverse to_ground_clause_empty_mset unique_maximal_in_ground_clause)
    
   moreover then have "?select\<^sub>G_not_empty \<Longrightarrow> selected_literal \<in># premise"
-    by (meson mset_subset_eqD select_subset)
+    by (meson maximal\<^sub>l_in_clause mset_subset_eqD select_subset)
 
   ultimately obtain literal where
     literal: "literal \<cdot>l \<theta> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)" and
     literal_in_premise: "literal \<in># premise" and
-    literal_selected: "?select\<^sub>G_not_empty \<Longrightarrow> literal \<in># select premise" and
+    literal_selected: "?select\<^sub>G_not_empty \<Longrightarrow> is_maximal\<^sub>l literal (select premise)" and
     literal_max: "?select\<^sub>G_empty \<Longrightarrow> is_maximal\<^sub>l literal premise"
     by blast    
 
@@ -127,7 +127,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
       using \<sigma>(1).
   next
     show "select premise = {#} \<and> is_maximal\<^sub>l (literal \<cdot>l \<sigma>) (premise \<cdot> \<sigma>) 
-       \<or> literal \<in># select premise"
+       \<or>  is_maximal\<^sub>l literal (select premise)"
     proof(cases ?select\<^sub>G_empty)
       case select\<^sub>G_empty: True
 
