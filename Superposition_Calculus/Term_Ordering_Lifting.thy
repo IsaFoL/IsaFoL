@@ -1,4 +1,4 @@
-theory Clause_Ordering
+theory Term_Ordering_Lifting
   imports Clausal_Calculus_Extra
 begin
 
@@ -25,7 +25,7 @@ next
     using antisymp_on_reflclp_if_asymp_on[OF \<open>asymp R\<close>, THEN antisympD] .
 qed
 
-locale lifting_term_ordering =
+locale term_ordering_lifting =
   fixes
     less_trm :: "'t \<Rightarrow> 't \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50)
   assumes

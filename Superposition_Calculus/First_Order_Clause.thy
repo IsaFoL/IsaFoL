@@ -5,7 +5,7 @@ theory First_Order_Clause
     Clausal_Calculus_Extra
     Multiset_Extra
     Term_Rewrite_System
-    Clause_Ordering
+    Term_Ordering_Lifting
 begin
 
 (* TODO: Maybe split up file*)
