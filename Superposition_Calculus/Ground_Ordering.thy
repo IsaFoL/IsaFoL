@@ -4,10 +4,10 @@ theory Ground_Ordering
     Transitive_Closure_Extra
     Clausal_Calculus_Extra
     Min_Max_Least_Greatest_Multiset
-    Clause_Ordering
+    Term_Ordering_Lifting
 begin
 
-locale ground_ordering = lifting_term_ordering less_trm
+locale ground_ordering = term_ordering_lifting less_trm
   for
     less_trm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   assumes
