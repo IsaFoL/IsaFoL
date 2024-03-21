@@ -478,7 +478,7 @@ proof(cases
     "\<P>\<^sub>G = Neg \<Longrightarrow> ?select\<^sub>G_empty \<Longrightarrow> is_maximal\<^sub>l (to_literal literal\<^sub>G\<^sub>1) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<odot> \<theta>)"
     using ground_superpositionI(9)
     unfolding is_maximal_lit_iff_is_maximal\<^sub>l
-    by(simp add: premise\<^sub>1_grounding)
+    by (metis clause_subst_compose diff_empty ground_superpositionI(1) id_remove_1_mset_iff_notin is_maximal\<^sub>l_if_is_strictly_maximal\<^sub>l is_maximal_lit_iff_is_maximal\<^sub>l maximal_lit_in_clause pos_literal\<^sub>G\<^sub>1_is_strictly_maximal\<^sub>l premise\<^sub>1_\<theta>)
 
   obtain pos_literal\<^sub>1 where
     "is_strictly_maximal\<^sub>l pos_literal\<^sub>1 premise\<^sub>1"
@@ -509,22 +509,21 @@ proof(cases
     using maximal\<^sub>l_in_clause by fastforce
 
   moreover obtain neg_selected_literal\<^sub>1 where
-    "neg_selected_literal\<^sub>1 \<in># select premise\<^sub>1"
+    "is_maximal\<^sub>l neg_selected_literal\<^sub>1 (select premise\<^sub>1)"
     "neg_selected_literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<theta> = to_literal literal\<^sub>G\<^sub>1" 
   if "\<P>\<^sub>G = Neg" ?select\<^sub>G_not_empty 
     using ground_superpositionI(9) select(1)
-    by (smt (z3) clause_subst_compose ground_literal_in_ground_clause3 image_iff multiset.set_map 
-          subst_clause_def)
+    by (metis (no_types, opaque_lifting) clause_subst_compose clause_subst_empty(2) ground_clause_is_ground is_maximal\<^sub>l_ground_subst_stability is_maximal_lit_iff_is_maximal\<^sub>l to_clause_inverse to_ground_clause_empty_mset unique_maximal_in_ground_clause)
 
   moreover then have "\<P>\<^sub>G = Neg \<Longrightarrow> ?select\<^sub>G_not_empty \<Longrightarrow> neg_selected_literal\<^sub>1 \<in># premise\<^sub>1" 
-    by (meson mset_subset_eqD select_subset)
+    by (meson maximal\<^sub>l_in_clause mset_subset_eqD select_subset)
 
   ultimately obtain literal\<^sub>1 where
    literal\<^sub>1_\<theta>: "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<theta> = to_literal literal\<^sub>G\<^sub>1" and
    literal\<^sub>1_in_premise\<^sub>1: "literal\<^sub>1 \<in># premise\<^sub>1" and
    literal\<^sub>1_is_strictly_maximal: "\<P>\<^sub>G = Pos \<Longrightarrow> is_strictly_maximal\<^sub>l literal\<^sub>1 premise\<^sub>1" and
    literal\<^sub>1_is_maximal: "\<P>\<^sub>G = Neg \<Longrightarrow> ?select\<^sub>G_empty \<Longrightarrow> is_maximal\<^sub>l literal\<^sub>1 premise\<^sub>1" and
-   literal\<^sub>1_selected: "\<P>\<^sub>G = Neg \<Longrightarrow> ?select\<^sub>G_not_empty \<Longrightarrow> literal\<^sub>1 \<in># select premise\<^sub>1"
+   literal\<^sub>1_selected: "\<P>\<^sub>G = Neg \<Longrightarrow> ?select\<^sub>G_not_empty \<Longrightarrow> is_maximal\<^sub>l literal\<^sub>1 (select premise\<^sub>1)"
     by (metis ground_superpositionI(9) literals_distinct(1))
 
   then have literal\<^sub>1_grounding [intro]: "is_ground_literal (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<theta>)"
@@ -1031,7 +1030,7 @@ proof(cases
             \<and> is_strictly_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<sigma>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<sigma>) 
        \<or> ?\<P> = Neg 
             \<and> (select premise\<^sub>1 = {#} \<and> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<sigma>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<sigma>) 
-               \<or> literal\<^sub>1 \<in># select premise\<^sub>1)"
+               \<or> is_maximal\<^sub>l literal\<^sub>1 (select premise\<^sub>1))"
     proof(cases "?\<P> = Pos")
       case True
       moreover then have select_empty: "select premise\<^sub>1 = {#}"
@@ -1089,7 +1088,7 @@ proof(cases
           by simp
       next
         case select\<^sub>G_not_empty: False
-        have "literal\<^sub>1 \<in># select premise\<^sub>1"
+        have "is_maximal\<^sub>l literal\<^sub>1 (select premise\<^sub>1)"
           using literal\<^sub>1_selected[OF \<P>\<^sub>G_Neg select\<^sub>G_not_empty].
   
         with select\<^sub>G_not_empty \<P>\<^sub>G_Neg show ?thesis 
