@@ -4,26 +4,26 @@ begin
 
 lemma (in ground_superposition_calculus) ground_superposition_preserves_typing:
   assumes
-    step: "ground_superposition P1 P2 C" and
-    wt_P1: "well_typed_cls \<F> P1" and
-    wt_P2: "well_typed_cls \<F> P2"
+    step: "ground_superposition D E C" and
+    wt_D: "well_typed_cls \<F> D" and
+    wt_E: "well_typed_cls \<F> E"
   shows "well_typed_cls \<F> C"
   using step
-proof (cases P1 P2 C rule: ground_superposition.cases)
-  case hyps: (ground_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
+proof (cases D E C rule: ground_superposition.cases)
+  case hyps: (ground_superpositionI L\<^sub>E E' L\<^sub>D D' \<P> \<kappa> t u t')
   show ?thesis
-    unfolding \<open>C = add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2')\<close>
+    unfolding \<open>C = add_mset (\<P> (Upair \<kappa>\<langle>t'\<rangle>\<^sub>G u)) (E' + D')\<close>
     unfolding well_typed_cls_add_mset well_typed_cls_plus
   proof (intro conjI)
-    have "\<exists>\<tau>. has_type \<F> s\<langle>t\<rangle>\<^sub>G \<tau> \<and> has_type \<F> s' \<tau>"
+    have "\<exists>\<tau>. has_type \<F> \<kappa>\<langle>t\<rangle>\<^sub>G \<tau> \<and> has_type \<F> u \<tau>"
     proof -
-      have "well_typed_lit \<F> L\<^sub>1"
-        using wt_P2
-        unfolding \<open>P2 = add_mset L\<^sub>1 P\<^sub>1'\<close> well_typed_cls_add_mset
+      have "well_typed_lit \<F> L\<^sub>E"
+        using wt_E
+        unfolding \<open>E = add_mset L\<^sub>E E'\<close> well_typed_cls_add_mset
         by argo
-      hence "well_typed_atm \<F> (Upair s\<langle>t\<rangle>\<^sub>G s')"
+      hence "well_typed_atm \<F> (Upair \<kappa>\<langle>t\<rangle>\<^sub>G u)"
         using \<open>\<P> \<in> {Pos, Neg}\<close>
-        unfolding \<open>L\<^sub>1 = \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')\<close> well_typed_lit_def
+        unfolding \<open>L\<^sub>E = \<P> (Upair \<kappa>\<langle>t\<rangle>\<^sub>G u)\<close> well_typed_lit_def
         by auto
       thus ?thesis
         unfolding well_typed_atm_def by simp
@@ -31,35 +31,35 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
 
     moreover have "\<exists>\<tau>. has_type \<F> t \<tau> \<and> has_type \<F> t' \<tau>"
     proof -
-      have "well_typed_lit \<F> L\<^sub>2"
-        using wt_P1
-        unfolding \<open>P1 = add_mset L\<^sub>2 P\<^sub>2'\<close> well_typed_cls_add_mset
+      have "well_typed_lit \<F> L\<^sub>D"
+        using wt_D
+        unfolding \<open>D = add_mset L\<^sub>D D'\<close> well_typed_cls_add_mset
         by argo
       hence "well_typed_atm \<F> (Upair t t')"
         using \<open>\<P> \<in> {Pos, Neg}\<close>
-        unfolding \<open>L\<^sub>2 = t \<approx> t'\<close> well_typed_lit_def
+        unfolding \<open>L\<^sub>D = t \<approx> t'\<close> well_typed_lit_def
         by auto
       thus ?thesis
         unfolding well_typed_atm_def by simp
     qed
 
-    ultimately have "\<exists>\<tau>. has_type \<F> s\<langle>t'\<rangle>\<^sub>G \<tau> \<and> has_type \<F> s' \<tau>"
-      using gctxt_apply_term_preserves_typing[of \<F> s t _ _ t']
+    ultimately have "\<exists>\<tau>. has_type \<F> \<kappa>\<langle>t'\<rangle>\<^sub>G \<tau> \<and> has_type \<F> u \<tau>"
+      using gctxt_apply_term_preserves_typing[of \<F> \<kappa> t _ _ t']
       by blast
-    hence "well_typed_atm \<F> (Upair s\<langle>t'\<rangle>\<^sub>G s')"
+    hence "well_typed_atm \<F> (Upair \<kappa>\<langle>t'\<rangle>\<^sub>G u)"
       unfolding well_typed_atm_def by simp
-    thus "well_typed_lit \<F> (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s'))"
+    thus "well_typed_lit \<F> (\<P> (Upair \<kappa>\<langle>t'\<rangle>\<^sub>G u))"
       unfolding well_typed_lit_def
       using \<open>\<P> \<in> {Pos, Neg}\<close> by auto
   next
-    show "well_typed_cls \<F> P\<^sub>1'"
-      using wt_P2
-      unfolding \<open>P2 = add_mset L\<^sub>1 P\<^sub>1'\<close> well_typed_cls_add_mset
+    show "well_typed_cls \<F> E'"
+      using wt_E
+      unfolding \<open>E = add_mset L\<^sub>E E'\<close> well_typed_cls_add_mset
       by argo
   next
-    show "well_typed_cls \<F> P\<^sub>2'"
-      using wt_P1
-      unfolding \<open>P1 = add_mset L\<^sub>2 P\<^sub>2'\<close> well_typed_cls_add_mset
+    show "well_typed_cls \<F> D'"
+      using wt_D
+      unfolding \<open>D = add_mset L\<^sub>D D'\<close> well_typed_cls_add_mset
       by argo
   qed
 qed
