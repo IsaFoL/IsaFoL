@@ -5,6 +5,7 @@ theory First_Order_Superposition
     First_Order_Select
     First_Order_Ordering
     Renaming
+    First_Order_Type_System
 begin
 
 hide_type Inference_System.inference
@@ -28,7 +29,8 @@ locale first_order_superposition_calculus =
     select :: "('f, 'v) select" and
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   fixes
-    tiebreakers :: "'f gatom clause  \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
+    tiebreakers :: "'f gatom clause  \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" and
+    typeof_fun :: "('f \<Rightarrow> 'ty list \<times> 'ty)"
   assumes
     wellfounded_tiebreakers: 
       "\<And>term\<^sub>G. wfP (tiebreakers term\<^sub>G) \<and> 
@@ -38,10 +40,11 @@ locale first_order_superposition_calculus =
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
 
-inductive equality_resolution :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
+inductive equality_resolution :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"  where
   equality_resolutionI: 
    "premise = add_mset literal premise' \<Longrightarrow>
     literal = term !\<approx> term' \<Longrightarrow>
+    well_typed_subst typeof_fun \<V> \<mu> \<Longrightarrow>
     term_subst.is_imgu \<mu> {{ term, term' }} \<Longrightarrow>
     select premise = {#} \<and> is_maximal\<^sub>l (literal \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<or> 
       is_maximal\<^sub>l literal (select premise) \<Longrightarrow>
@@ -206,6 +209,26 @@ lemmas literal_renaming_exists =
 
 lemmas clause_renaming_exists = 
   renaming_exists[OF subset_UNIV subset_UNIV finite_vars_clause finite_vars_clause]
+
+lemma eq_resolution_preserves_typing:
+  assumes
+    step: "equality_resolution D C" and
+    wt_D: "\<And>\<V>. well_typed_cls typeof_fun \<V> D"
+  shows "\<exists>\<V>. well_typed_cls typeof_fun \<V> C"
+  using step
+proof (cases D C rule: equality_resolution.cases)
+  case (equality_resolutionI literal premise' "term" term' \<V> \<mu>)
+  have "well_typed_cls typeof_fun \<V> D"
+    by (simp add: wt_D)
+
+  then have "well_typed_cls typeof_fun \<V> (D  \<cdot> \<mu>)"
+    using well_typed_subst_clause[OF equality_resolutionI(3)]
+    by blast    
+    
+  then show ?thesis
+    unfolding equality_resolutionI subst_clause_add_mset well_typed_cls_add_mset
+    by blast
+qed
 
 end
 
