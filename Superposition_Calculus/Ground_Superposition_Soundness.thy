@@ -93,7 +93,7 @@ lemma (in ground_superposition_calculus) soundness_ground_eq_resolution:
   shows "G_entails {P} {C}"
   using step
 proof (cases P C rule: ground_eq_resolution.cases)
-  case (ground_eq_resolutionI L t)
+  case (ground_eq_resolutionI L D' t)
   show ?thesis
     unfolding G_entails_def true_clss_singleton
   proof (intro allI impI)
@@ -104,7 +104,7 @@ proof (cases P C rule: ground_eq_resolution.cases)
     hence "K \<noteq> L"
       by (metis \<open>refl I\<close> ground_eq_resolutionI(2) pair_imageI reflD true_lit_simps(2))
     hence "K \<in># C"
-      using \<open>K \<in># P\<close> \<open>P = add_mset L C\<close> by simp
+      using \<open>K \<in># P\<close> \<open>P = add_mset L D'\<close> \<open>C = D'\<close> by simp
     thus "(\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile> C"
       using \<open>(\<lambda>(t\<^sub>1, t\<^sub>2). Upair t\<^sub>1 t\<^sub>2) ` I \<TTurnstile>l K\<close> by blast
   qed

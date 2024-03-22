@@ -1254,7 +1254,7 @@ proof (induction C rule: wfP_induct_rule)
           next
             show "select C = {#} \<and> is_maximal_lit (s !\<approx> s') C \<or> is_maximal_lit (s !\<approx> s') (select C)"
               using sel_or_max .
-          qed
+          qed simp
           hence "\<iota> \<in> G_Inf"
             by (auto simp only: \<iota>_def G_Inf_def)
 

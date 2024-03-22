@@ -51,40 +51,41 @@ inductive ground_superposition ::
   "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool"
 where
   ground_superpositionI: "
-    P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
-    P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
-    P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
+    E = add_mset L\<^sub>E E' \<Longrightarrow>
+    D = add_mset L\<^sub>D D' \<Longrightarrow>
+    D \<prec>\<^sub>c E \<Longrightarrow>
     \<P> \<in> {Pos, Neg} \<Longrightarrow>
-    L\<^sub>1 = \<P> (Upair s\<langle>t\<rangle>\<^sub>G s') \<Longrightarrow>
-    L\<^sub>2 = t \<approx> t' \<Longrightarrow>
-    s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
+    L\<^sub>E = \<P> (Upair \<kappa>\<langle>t\<rangle>\<^sub>G u) \<Longrightarrow>
+    L\<^sub>D = t \<approx> t' \<Longrightarrow>
+    u \<prec>\<^sub>t \<kappa>\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
-    (\<P> = Pos \<and> select P\<^sub>1 = {#} \<and> is_strictly_maximal_lit L\<^sub>1 P\<^sub>1) \<or>
-    (\<P> = Neg \<and> (select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> is_maximal_lit L\<^sub>1 (select P\<^sub>1))) \<Longrightarrow>
-    select P\<^sub>2 = {#} \<Longrightarrow>
-    is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
-    C = add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
-    ground_superposition P\<^sub>2 P\<^sub>1 C"
+    (\<P> = Pos \<and> select E = {#} \<and> is_strictly_maximal_lit L\<^sub>E E) \<or>
+    (\<P> = Neg \<and> (select E = {#} \<and> is_maximal_lit L\<^sub>E E \<or> is_maximal_lit L\<^sub>E (select E))) \<Longrightarrow>
+    select D = {#} \<Longrightarrow>
+    is_strictly_maximal_lit L\<^sub>D D \<Longrightarrow>
+    C = add_mset (\<P> (Upair \<kappa>\<langle>t'\<rangle>\<^sub>G u)) (E' + D') \<Longrightarrow>
+    ground_superposition D E C"
 
 inductive ground_eq_resolution ::
   "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool" where
   ground_eq_resolutionI: "
-    P = add_mset L P' \<Longrightarrow>
+    D = add_mset L D' \<Longrightarrow>
     L = Neg (Upair t t) \<Longrightarrow>
-    select P = {#} \<and> is_maximal_lit L P \<or> is_maximal_lit L (select P) \<Longrightarrow>
-    ground_eq_resolution P P'"
+    select D = {#} \<and> is_maximal_lit L D \<or> is_maximal_lit L (select D) \<Longrightarrow>
+    C = D' \<Longrightarrow>
+    ground_eq_resolution D C"
 
 inductive ground_eq_factoring ::
   "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool" where
   ground_eq_factoringI: "
-    P = add_mset L\<^sub>1 (add_mset L\<^sub>2 P') \<Longrightarrow>
+    D = add_mset L\<^sub>1 (add_mset L\<^sub>2 D') \<Longrightarrow>
     L\<^sub>1 = t \<approx> t' \<Longrightarrow>
     L\<^sub>2 = t \<approx> t'' \<Longrightarrow>
-    select P = {#} \<Longrightarrow>
-    is_maximal_lit L\<^sub>1 P \<Longrightarrow>
+    select D = {#} \<Longrightarrow>
+    is_maximal_lit L\<^sub>1 D \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
-    C = add_mset (Neg (Upair t' t'')) (add_mset (t \<approx> t'') P') \<Longrightarrow>
-    ground_eq_factoring P C"
+    C = add_mset (Neg (Upair t' t'')) (add_mset (t \<approx> t'') D') \<Longrightarrow>
+    ground_eq_factoring D C"
 
 
 subsubsection \<open>Alternative Specification of the Superposition Rule\<close>

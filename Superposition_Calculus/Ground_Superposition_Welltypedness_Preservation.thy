@@ -71,7 +71,7 @@ lemma (in ground_superposition_calculus) ground_eq_resolution_preserves_typing:
   shows "well_typed_cls \<F> C"
   using step
 proof (cases D C rule: ground_eq_resolution.cases)
-  case (ground_eq_resolutionI L t)
+  case (ground_eq_resolutionI L D' t)
   thus ?thesis
     using wt_D
     unfolding well_typed_cls_def
@@ -85,8 +85,8 @@ lemma (in ground_superposition_calculus) ground_eq_factoring_preserves_typing:
   shows "well_typed_cls \<F> C"
   using step
 proof (cases D C rule: ground_eq_factoring.cases)
-  case (ground_eq_factoringI L\<^sub>1 L\<^sub>2 P' t t' t'')
-  hence "well_typed_lit \<F> (t \<approx> t')" and "well_typed_lit \<F> (t \<approx> t'')" and "well_typed_cls \<F> P'"
+  case (ground_eq_factoringI L\<^sub>1 L\<^sub>2 D' t t' t'')
+  hence "well_typed_lit \<F> (t \<approx> t')" and "well_typed_lit \<F> (t \<approx> t'')" and "well_typed_cls \<F> D'"
     unfolding atomize_conj
     using wt_D well_typed_cls_add_mset by metis
   hence "\<exists>\<tau>. has_type \<F> t \<tau> \<and> has_type \<F> t' \<tau>" "\<exists>\<tau>. has_type \<F> t \<tau> \<and> has_type \<F> t'' \<tau>"
@@ -95,7 +95,7 @@ proof (cases D C rule: ground_eq_factoring.cases)
     using right_unique_has_type[THEN right_uniqueD] by metis
 
   show ?thesis
-    unfolding \<open>C = add_mset (t' !\<approx> t'') (add_mset (t \<approx> t'') P')\<close> well_typed_cls_add_mset
+    unfolding \<open>C = add_mset (t' !\<approx> t'') (add_mset (t \<approx> t'') D')\<close> well_typed_cls_add_mset
   proof (intro conjI)
     show "well_typed_lit \<F> (t' !\<approx> t'')"
       using t_t'_same_type
@@ -104,8 +104,8 @@ proof (cases D C rule: ground_eq_factoring.cases)
     show "well_typed_lit \<F> (t \<approx> t'')"
       using \<open>well_typed_lit \<F> (t \<approx> t'')\<close> .
   next
-    show "well_typed_cls \<F> P'"
-      using \<open>well_typed_cls \<F> P'\<close> .
+    show "well_typed_cls \<F> D'"
+      using \<open>well_typed_cls \<F> D'\<close> .
   qed
 qed
 

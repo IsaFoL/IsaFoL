@@ -23,7 +23,7 @@ lemma equality_resolution_lifting:
     "conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
   using ground_eq_resolution
 proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution.cases)
-  case (ground_eq_resolutionI literal\<^sub>G term\<^sub>G)
+  case (ground_eq_resolutionI literal\<^sub>G premise\<^sub>G' term\<^sub>G)
 
   have premise_not_empty: "premise \<noteq> {#}"
     using 
@@ -37,7 +37,8 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     using 
        ground_eq_resolutionI(1)[THEN arg_cong, of to_clause]
        to_ground_clause_inverse[OF premise_grounding]
-    unfolding premise\<^sub>G conclusion\<^sub>G
+    unfolding premise\<^sub>G
+    using \<open>conclusion\<^sub>G = premise\<^sub>G'\<close> conclusion\<^sub>G
     by metis
 
   also have "... = add_mset (to_literal literal\<^sub>G) (conclusion \<cdot> \<theta>)"
