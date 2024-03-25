@@ -426,7 +426,7 @@ definition stats_ticks_stable :: \<open>isasat_stats \<Rightarrow> 64 word\<clos
   \<open>stats_ticks_stable = Search_Stats_ticks_stable o get_search_stats\<close>
   
 definition stats_ticks_focused :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
-  \<open>stats_ticks_focused = Search_Stats_ticks_stable o get_search_stats\<close>
+  \<open>stats_ticks_focused = Search_Stats_ticks_focused o get_search_stats\<close>
 
 definition Pure_Lits_Stats_rounds :: \<open>inprocessing_pure_lits_stats \<Rightarrow> 64 word\<close> where
   \<open>Pure_Lits_Stats_rounds = (\<lambda>(rounds, rounds). rounds)\<close> 
