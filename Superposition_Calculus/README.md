@@ -2,7 +2,8 @@
 
 This formalization is compatible with Isabelle2023 and requires the Archive of Formal Proofs.
 Instructions to install Isabelle are available at https://isabelle.in.tum.de/installation.html.
-Instruction to install the AFP are available at https://www.isa-afp.org/help.
+Instruction to install the AFP are available at https://www.isa-afp.org/help. 
+(It was tested with the version afp-2024-03-23.)
 
 Note that the formalization is also compatible with isabelle-devel and afp-devel.
 
