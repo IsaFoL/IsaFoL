@@ -1562,19 +1562,19 @@ lemma for_all_elements_exists_f_implies_f_exists_for_all_elements:
   "\<forall>x \<in> X. \<exists>f. P (f x) x \<Longrightarrow> \<exists>f. \<forall>x\<in> X. P (f x) x"
   by meson
 
-lemma (in first_order_superposition_calculus) necessary_select\<^sub>G_exists:
+lemma necessary_select\<^sub>G_exists:
   obtains select\<^sub>G where 
       "\<forall>premise\<^sub>G \<in> \<Union>(clause_groundings ` premises). \<exists>premise \<theta>. 
           premise \<cdot> \<theta> = to_clause premise\<^sub>G 
-        \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<theta>)
+        \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((sel premise) \<cdot> \<theta>)
         \<and> premise \<in> premises" 
-      "is_grounding select\<^sub>G" 
+      "is_select_grounding sel select\<^sub>G"
 proof-
   let ?premise_groundings = "\<Union>(clause_groundings ` premises)"
   
   have select\<^sub>G_exists_for_premises: "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G premise \<theta>.
           premise \<cdot> \<theta> = to_clause premise\<^sub>G 
-        \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<theta>)
+        \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((sel premise) \<cdot> \<theta>)
         \<and> premise \<in> premises"
     unfolding clause_groundings_def
     by fastforce
@@ -1583,7 +1583,7 @@ proof-
     select\<^sub>G_on_premise_groundings: "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>\<theta> premise. 
         premise \<cdot> \<theta> = to_clause premise\<^sub>G 
       \<and> select\<^sub>G_on_premise_groundings (to_ground_clause (premise \<cdot> \<theta>)) = 
-          to_ground_clause ((select premise) \<cdot> \<theta>)
+          to_ground_clause ((sel premise) \<cdot> \<theta>)
       \<and> premise \<in> premises"
     using 
       for_all_elements_exists_f_implies_f_exists_for_all_elements[OF select\<^sub>G_exists_for_premises]
@@ -1593,11 +1593,11 @@ proof-
     select\<^sub>G_def: "\<And>clause\<^sub>G. select\<^sub>G clause\<^sub>G = (
         if clause\<^sub>G  \<in> ?premise_groundings 
         then select\<^sub>G_on_premise_groundings clause\<^sub>G 
-        else select\<^sub>G_simple clause\<^sub>G
+        else to_ground_clause (sel (to_clause clause\<^sub>G))
     )"
 
-  have "is_grounding select\<^sub>G" 
-    unfolding is_select_grounding_def select\<^sub>G_def select\<^sub>G_simple_def
+  have "is_select_grounding sel select\<^sub>G"
+    unfolding is_select_grounding_def select\<^sub>G_def
     using select\<^sub>G_on_premise_groundings
     by (metis ground_clause_is_ground subst_clause_Var_ident to_clause_inverse)
   

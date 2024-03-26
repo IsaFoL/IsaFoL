@@ -16,6 +16,10 @@ hide_const
 
 section \<open>First-Order Layer\<close>
 
+definition clause_groundings ::
+  "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" where
+  "clause_groundings clause = { to_ground_clause (clause \<cdot> \<theta>) | \<theta>. is_ground_clause (clause \<cdot> \<theta>) }"
+
 locale first_order_superposition_calculus =
   first_order_select select +
   first_order_ordering less\<^sub>t +
@@ -33,10 +37,6 @@ locale first_order_superposition_calculus =
     (* TODO: Use theorem from CeTA *)
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
-  
-definition clause_groundings ::
-  "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" where
-  "clause_groundings clause = { to_ground_clause (clause \<cdot> \<theta>) | \<theta>. is_ground_clause (clause \<cdot> \<theta>) }"
 
 inductive equality_resolution :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
   equality_resolutionI: 
