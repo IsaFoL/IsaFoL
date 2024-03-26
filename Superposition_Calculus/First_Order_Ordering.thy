@@ -74,6 +74,30 @@ definition less\<^sub>t\<^sub>G :: "'f ground_term \<Rightarrow> 'f ground_term 
 notation less_lit (infix "\<prec>\<^sub>l" 50)
 notation less_cls (infix "\<prec>\<^sub>c" 50)
 
+lemma
+  assumes
+    L_in: "L \<in># C" and
+    subst_stability: "\<And>L K. L \<prec>\<^sub>l K \<Longrightarrow> (L \<cdot>l \<sigma>) \<prec>\<^sub>l (K \<cdot>l \<sigma>)" and
+    L\<sigma>_max_in_C\<sigma>: "literal_order.is_maximal_in_mset (C \<cdot> \<sigma>) (L \<cdot>l \<sigma>)"
+  shows " literal_order.is_maximal_in_mset C L"
+proof -
+  have L\<sigma>_in: "L \<cdot>l \<sigma> \<in># C \<cdot> \<sigma>" and L\<sigma>_max: "\<forall>y\<in>#C \<cdot> \<sigma>. y \<noteq> L \<cdot>l \<sigma> \<longrightarrow> \<not> L \<cdot>l \<sigma> \<prec>\<^sub>l y"
+    using L\<sigma>_max_in_C\<sigma>
+    unfolding atomize_conj literal_order.is_maximal_in_mset_iff
+    by argo
+
+  show "literal_order.is_maximal_in_mset C L"
+    unfolding literal_order.is_maximal_in_mset_iff
+  proof (intro conjI ballI impI)
+    show "L \<in># C"
+      using L_in .
+  next
+    show "\<And>y. y \<in># C \<Longrightarrow> y \<noteq> L \<Longrightarrow> \<not> L \<prec>\<^sub>l y"
+      using subst_stability
+      by (metis L\<sigma>_max literal_in_clause_subst literal_order.order.strict_iff_order)
+  qed
+qed
+
 lemmas less\<^sub>l_def = less_lit_def
 lemmas less\<^sub>c_def = less_cls_def
 
