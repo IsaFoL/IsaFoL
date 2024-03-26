@@ -15,10 +15,10 @@ lemma equality_resolution_lifting:
     premise_grounding [intro]: "is_ground_clause (premise \<cdot> \<theta>)" and
     conclusion_grounding [intro]: "is_ground_clause (conclusion \<cdot> \<theta>)" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<theta>" and
-    ground_eq_resolution:  "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G"
-  obtains conclusion' 
+    ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G"
+  obtains \<V> conclusion' 
   where
-    "equality_resolution premise conclusion'"
+    "equality_resolution \<V> premise conclusion'"
     "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')"
     "conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
   using ground_eq_resolution
@@ -97,9 +97,12 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     unfolding terms subst_literal(2) subst_atom_def to_literal_def to_atom_def
     by simp
 
-  then obtain \<sigma> \<tau> where \<sigma>: "term_subst.is_imgu \<sigma> {{term, term'}}" "\<theta> = \<sigma> \<odot> \<tau>"
-    using imgu_exists
-    by blast
+  then obtain \<sigma> \<tau> \<V> where \<sigma>: 
+    "term_subst.is_imgu \<sigma> {{term, term'}}" 
+    "\<theta> = \<sigma> \<odot> \<tau>"
+    "well_typed_unifier typeof_fun \<V> term term' \<sigma>"
+    using welltyped_imgu_exists
+    by meson
 
   have literal\<^sub>G: 
     "to_literal literal\<^sub>G = (term !\<approx> term') \<cdot>l \<theta>" 
@@ -116,7 +119,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     unfolding conclusion' ground_eq_resolutionI(2) literal[symmetric] subst_clause_add_mset
     by simp
     
-  have equality_resolution: "equality_resolution premise (conclusion' \<cdot> \<sigma>)"
+  have equality_resolution: "equality_resolution \<V> premise (conclusion' \<cdot> \<sigma>)"
   proof (rule equality_resolutionI)
      show "premise = add_mset literal conclusion'"
        using conclusion'.
@@ -157,6 +160,9 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
         using literal_selected by blast
     qed
   next 
+    show "well_typed_unifier typeof_fun \<V> term term' \<sigma>"
+      using \<sigma>(3).
+  next
     show "conclusion' \<cdot> \<sigma> = conclusion' \<cdot> \<sigma>" ..
   qed
 
@@ -1255,8 +1261,8 @@ proof-
     conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<theta>)"
     by (smt ground_clause_is_ground to_clause_inverse)+
    
-  obtain conclusion' where 
-    equality_resolution: "equality_resolution premise conclusion'" and
+  obtain conclusion' \<V> where 
+    equality_resolution: "equality_resolution \<V> premise conclusion'" and
     inference_groundings: 
       "Infer [to_ground_clause (premise \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> 
         inference_groundings (Infer [premise] conclusion')" and  
@@ -1279,7 +1285,7 @@ proof-
   have "?\<iota> \<in> Inf_from premises"
     using premise_in_premises  equality_resolution
     unfolding Inf_from_def inferences_def inference_system.Inf_from_def
-    by simp
+    by auto    
 
   moreover have "\<iota>\<^sub>G \<in> inference_groundings ?\<iota>"
     unfolding \<iota>\<^sub>G premise\<^sub>G conclusion\<^sub>G conclusion'_conclusion[symmetric]
@@ -1621,7 +1627,8 @@ proof-
     by (metis (mono_tags, opaque_lifting) ground_clause_is_ground select_subst1 to_clause_inverse 
          to_ground_clause_inverse)
 
-  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus
+    where select\<^sub>G = select\<^sub>G
     by unfold_locales
 
   from select\<^sub>G'(1) have "ground_Inf_overapproximated select\<^sub>G premises"
@@ -1639,7 +1646,8 @@ sublocale first_order_superposition_calculus \<subseteq>
 proof(rule stat_ref_comp_to_non_ground_fam_inter, rule ballI)
   fix select\<^sub>G
   assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
-  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus
+    where select\<^sub>G = select\<^sub>G
     by unfold_locales (simp add: select\<^sub>G\<^sub>s_def)
 
   show "statically_complete_calculus 

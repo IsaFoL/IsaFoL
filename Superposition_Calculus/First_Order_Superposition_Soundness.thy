@@ -13,10 +13,10 @@ abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
   "entails\<^sub>F \<equiv> lifting.entails_\<G>"
 
 lemma equality_resolution_sound:
-  assumes step: "equality_resolution P C"
+  assumes step: "equality_resolution \<V> P C"
   shows "{P} \<TTurnstile>\<^sub>F {C}"
   using step
-proof (cases P C rule: equality_resolution.cases)
+proof (cases \<V> P C rule: equality_resolution.cases)
   case (equality_resolutionI L P' s\<^sub>1 s\<^sub>2 \<mu>)
 
   have 
@@ -423,7 +423,8 @@ proof-
   obtain select\<^sub>G where "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
     using Q_nonempty by blast
     
-  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus
+    where select\<^sub>G = select\<^sub>G
     by unfold_locales (simp add: select\<^sub>G\<^sub>s_def)
 
   show "sound_inference_system inferences {{#}} entails_\<G>"
