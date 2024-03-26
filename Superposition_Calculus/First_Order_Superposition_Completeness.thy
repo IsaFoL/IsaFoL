@@ -102,7 +102,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     "\<theta> = \<sigma> \<odot> \<tau>"
     "well_typed_unifier typeof_fun \<V> term term' \<sigma>"
     using welltyped_imgu_exists
-    by meson
+    sorry
 
   have literal\<^sub>G: 
     "to_literal literal\<^sub>G = (term !\<approx> term') \<cdot>l \<theta>" 

@@ -41,7 +41,7 @@ locale first_order_superposition_calculus =
 begin
 
 inductive equality_resolution :: 
-  "('v \<Rightarrow> 'ty) \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"  where
+  "('v \<Rightarrow> 'ty) \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
   equality_resolutionI: 
    "premise = add_mset literal premise' \<Longrightarrow>
     literal = term !\<approx> term' \<Longrightarrow>

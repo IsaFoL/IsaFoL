@@ -34,7 +34,7 @@ definition well_typed_subst where
 
 definition well_typed_subst' where
   "well_typed_subst' \<F> \<V> \<sigma> \<longleftrightarrow> 
-    (\<forall>x. has_type \<F> \<V> (Var x) (\<V> x) \<longrightarrow> has_type \<F> \<V> (\<sigma> x) (\<V> x))"
+    (\<forall>t \<tau>. has_type \<F> \<V> t \<tau> \<longrightarrow> has_type \<F> \<V> (t \<cdot>t \<sigma>) \<tau>)"
 
 definition well_typed_unifier where
   "well_typed_unifier \<F> \<V> t\<^sub>1 t\<^sub>2 \<upsilon> \<longleftrightarrow> 
@@ -47,6 +47,13 @@ lemma well_typed_cls_add_mset:
 lemma well_typed_cls_plus: 
   "well_typed_cls \<F> \<V> (C + D) \<longleftrightarrow> well_typed_cls \<F> \<V> C \<and> well_typed_cls \<F> \<V> D"
   by (auto simp: well_typed_cls_def)
+
+lemma well_typed_subst'_term: 
+  assumes well_typed_subst': "well_typed_subst' \<F> \<V> \<sigma>" and typed_t: "has_type \<F> \<V> t \<tau>"
+  shows "has_type \<F> \<V> (t \<cdot>t \<sigma>) \<tau>"
+  using assms 
+  unfolding well_typed_subst'_def
+  by blast
 
 lemma well_typed_subst_term: 
   assumes well_typed_subst: "well_typed_subst \<F> \<V> \<sigma>"
@@ -85,7 +92,7 @@ proof(rule iffI)
         using  well_typed_subst 
         unfolding well_typed_subst_def Var
         by (metis (no_types, opaque_lifting) eval_term.simps(1) has_type.simps prod.sel(2) 
-              term.distinct(1) term.inject(2))
+            term.distinct(1) term.inject(2))
     next
       case Fun\<^sub>t: Fun
       with Fun show ?thesis
@@ -184,9 +191,6 @@ lemma well_typed_subst'_Var: "well_typed_subst' \<F> \<V> Var"
   unfolding well_typed_subst'_def
   by simp
 
-value "foldr (\<lambda>(x, t) \<sigma>. \<sigma> \<odot> Var(x := t)) [(x, t)] Var"
-
-
 lemma Fun_arg_types:
   assumes 
     "has_type \<F> \<V> (Fun f fs) \<tau>" 
@@ -207,7 +211,6 @@ lemma welltyped_zip_option:
 proof-
 
   obtain \<tau>s where 
-    (*"\<F> f = (\<tau>s, \<tau>)" *)
     "list_all2 (has_type \<F> \<V>) ts \<tau>s"
     "list_all2 (has_type \<F> \<V>) ss \<tau>s"
     using Fun_arg_types[OF assms(1, 2)].
@@ -222,7 +225,6 @@ proof-
     obtain d' ds' where ds: "ds = d' # ds'"
       by auto
 
-    
     have "zip_option ts ss = Some ds'"
       using Cons_Cons(2) 
       unfolding ds
@@ -240,7 +242,7 @@ proof-
 
     moreover have "\<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> s \<tau>"
       using Cons_Cons.prems(2) Cons_Cons.prems(3) \<tau>s by blast
-  
+
     ultimately show ?case
       using Cons_Cons.prems(1) ds
       by fastforce
@@ -255,7 +257,7 @@ lemma welltyped_decompose':
   shows "\<forall>(t, t') \<in> set ds. \<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> t' \<tau>"
   using assms welltyped_zip_option[OF assms(1,2)]
   by force
-  
+
 lemma welltyped_decompose:
   assumes
     "has_type \<F> \<V> f \<tau>" 
@@ -273,14 +275,20 @@ proof-
     using assms welltyped_decompose'
     by (metis (mono_tags, lifting))
 qed
-    
+
+lemma welltyped_subst'_subst: 
+  assumes "has_type \<F> \<V> (Var x) \<tau>" "has_type \<F> \<V> t \<tau>"
+  shows "well_typed_subst' \<F> \<V> (subst x t)"
+  using assms
+  unfolding subst_def well_typed_subst'_def
+  by (metis (mono_tags, lifting) fun_upd_other fun_upd_same has_type.Var right_uniqueD right_unique_has_type well_typed_subst_def well_typed_subst_term)
 
 lemma welltyped_unify:
   assumes 
     "unify es bs = Some unifier"
     "\<forall>(t, t') \<in> set es. \<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> t' \<tau>"
-    "well_typed_subst \<F> \<V> (subst_of bs)"
-  shows "well_typed_subst \<F> \<V> (subst_of unifier)"
+    "well_typed_subst' \<F> \<V> (subst_of bs)"
+  shows "well_typed_subst' \<F> \<V> (subst_of unifier)"
   using assms
 proof(induction es bs arbitrary: unifier rule: unify.induct)
   case (1 bs)
@@ -303,9 +311,9 @@ next
   moreover have "\<forall>(t, t')\<in>set (ds @ E). \<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> t' \<tau>"
     using welltyped_decompose[OF \<tau> ds] 2(3)
     by fastforce
-   
+
   ultimately show ?case 
-    using 2(1) 2(4)
+    using 2
     by blast
 next
   case (3 x t E bs)
@@ -322,162 +330,99 @@ next
       by(auto split: if_splits)
 
     moreover have 
-      "\<forall>(t, t') \<in> set (subst_list (subst x t) E). \<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> t' \<tau>"
+      "\<forall>(s, s') \<in> set E. \<exists>\<tau>. has_type \<F> \<V> (s \<cdot>t Var(x := t)) \<tau> \<and> has_type \<F> \<V> (s' \<cdot>t Var(x := t)) \<tau>"
       using 3(4)
+      by (smt (verit, ccfv_threshold) case_prodD case_prodI2 fun_upd_apply has_type.Var 
+          list.set_intros(1) list.set_intros(2) right_uniqueD right_unique_has_type 
+          well_typed_subst_def well_typed_subst_term)
+
+    moreover then have 
+      "\<forall>(s, s') \<in> set (subst_list (subst x t) E). \<exists>\<tau>. has_type \<F> \<V> s \<tau> \<and> has_type \<F> \<V> s' \<tau>"
       unfolding subst_def subst_list_def
-      apply auto
-      by (smt (verit) case_prodD fun_upd_other fun_upd_same has_type.Var right_uniqueD right_unique_has_type well_typed_subst_def well_typed_subst_term)
-
-    moreover have "well_typed_subst \<F> \<V> (subst_of ((x, t) # bs))"
-      using 3(5)
-      sorry
-      
-
-    ultimately show ?thesis 
-      using 3(2)[OF False _ ]  "3.prems"(1) False by force
-  qed
-next
-  case (4 v va x E bs)
-  then show ?case sorry
-qed
-  
-lemma welltyped_unify:
-  assumes "unify [(t\<^sub>1, t\<^sub>2)] [] = Some unifier"
-  shows "well_typed_unifier \<F> \<V> t\<^sub>1 t\<^sub>2 (subst_of unifier)"
-  using assms 
-proof(induction "[(t\<^sub>1, t\<^sub>2)]" "[]:: ('a \<times> ('b, 'a) Term.term) list" rule: unify.induct)
-  case (2 f ss g ts)
-  then show ?case
-    apply (auto split: option.splits)
-    sorry
-next
-  case (3 x)
-  then show ?case
-    apply(auto simp: has_type.Var well_typed_unifier_def split: if_splits)
-    sorry
-next
-  case (4 v va x)
-  then show ?case
-    apply(auto split: if_splits)
-    sorry
-qed
-(*  case 1
-  then show ?case
-    unfolding well_typed_unifier_def
-    using has_type.Var
-    by fastforce
-next
-  case 2
-  then show ?case
-    by(simp split: option.splits)
-next
-  case (3 x t E bs)
-  then show ?case 
-  proof(cases "t = Var x")
-    case True
-    moreover have "unify E [] = Some bs"
-      using 3(3)
-      unfolding True
-      by simp
-      
-    ultimately show ?thesis
-      using 3
-      by blast
-  next
-    case False
-    moreover then have "x \<notin> vars_term t"
-      using "3.prems"
       by fastforce
 
-    moreover have "unify (subst_list (subst x t) E) [] = Some ((x, t) # bs)"
-      using 3(3)
-      apply(auto simp: False split: if_splits)
-    proof(induction rule: unify.induct)
-      case (1 bs)
-      then show ?case
-        apply auto
-        sorry
-    next
-      case (2 f ss g ts E bs)
-      then show ?case sorry
-    next
-      case (3 x t E bs)
-      then show ?case sorry
-    next
-      case (4 v va x E bs)
-      then show ?case sorry
-    qed
-     
+    moreover have "well_typed_subst' \<F> \<V> (subst x t)"
+      using 3(4) welltyped_subst'_subst
+      by fastforce
+
+    moreover then have "well_typed_subst' \<F> \<V> (subst_of ((x, t) # bs))"
+      using 3(5)
+      unfolding well_typed_subst'_def
+      by auto
 
     ultimately show ?thesis 
-      using 3 
-      sorry
+      using 3(2, 3) False by force
   qed
 next
-  case (4 f ts x E bs)
-  then have "x \<notin> vars_term (Fun f ts)"
-    by force
-   
-  have "unify (subst_list (subst x (Fun f ts)) E) [] = Some ((x, Fun f ts) # bs)"
-    sorry
+  case (4 t ts x E bs)
+  then have "unify (subst_list (subst x (Fun t ts)) E) ((x, (Fun t ts)) # bs) = Some unifier"
+    by(auto split: if_splits)
 
-  then show ?case
-    sorry
-qed*)
-  
+  moreover have 
+    "\<forall>(s, s') \<in> set E. \<exists>\<tau>. 
+        has_type \<F> \<V> (s \<cdot>t Var(x := (Fun t ts))) \<tau> \<and> has_type \<F> \<V> (s' \<cdot>t Var(x := (Fun t ts))) \<tau>"
+    using 4(3)
+    by (smt (verit, ccfv_threshold) case_prodD case_prodI2 fun_upd_apply has_type.Var 
+        list.set_intros(1) list.set_intros(2) right_uniqueD right_unique_has_type 
+        well_typed_subst_def well_typed_subst_term)
+
+  moreover then have 
+    "\<forall>(s, s') \<in> set (subst_list (subst x (Fun t ts)) E). \<exists>\<tau>. 
+        has_type \<F> \<V> s \<tau> \<and> has_type \<F> \<V> s' \<tau>"
+    unfolding subst_def subst_list_def
+    by fastforce
+
+  moreover have "well_typed_subst' \<F> \<V> (subst x (Fun t ts))"
+    using 4(3) welltyped_subst'_subst
+    by fastforce
+
+  moreover then have "well_typed_subst' \<F> \<V> (subst_of ((x, (Fun t ts)) # bs))"
+    using 4(4) 
+    unfolding well_typed_subst'_def
+    by auto
+     
+  ultimately show ?case 
+    using 4(1, 2)
+    by (metis (no_types, lifting) option.distinct(1) unify.simps(4))
+qed
+
+lemma welltyped_unify':
+  assumes 
+    unify: "unify [(t, t')] [] = Some unifier" and
+    \<tau>: "\<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> t' \<tau>"
+  shows "well_typed_subst' \<F> \<V> (subst_of unifier)"
+  using assms welltyped_unify[OF unify] \<tau> well_typed_subst'_Var
+  by fastforce
+
 lemma welltyped_the_mgu: 
   assumes
-    "the_mgu t\<^sub>1 t\<^sub>2 = \<mu>"
+    the_mgu: "the_mgu t t' = \<mu>" and
+    \<tau>: "\<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> t' \<tau>"
   shows 
-   "well_typed_unifier \<F> \<V> t\<^sub>1 t\<^sub>2 \<mu>"
-  using assms welltyped_unify[of t\<^sub>1 t\<^sub>2 _ \<F> \<V>]
-  unfolding the_mgu_def mgu_def well_typed_unifier_def 
+    "well_typed_subst' \<F> \<V> \<mu>"
+  using assms welltyped_unify'[of t t' _ \<F> \<V>]
+  unfolding the_mgu_def mgu_def well_typed_subst'_def 
   by(auto simp: has_type.Var split: option.splits)
- 
+
 lemma welltyped_imgu_exists:
   fixes \<upsilon> :: "('f, 'v) subst"
-  assumes 
-    unified: "term \<cdot>t \<upsilon> = term' \<cdot>t \<upsilon>"
+  assumes unified: "term \<cdot>t \<upsilon> = term' \<cdot>t \<upsilon>"
   obtains \<mu> :: "('f, 'v) subst"
   where 
     "\<upsilon> = \<mu> \<odot> \<upsilon>" 
     "term_subst.is_imgu \<mu> {{term, term'}}"
-    "well_typed_unifier \<F> \<V> term term' \<mu>"
-proof
-  have finite_terms: "finite {term, term'}"
-    by simp
-
-  have "term_subst.is_unifiers (the_mgu term term') {{term, term'}}"
-    unfolding term_subst.is_unifiers_def
-    using the_mgu_is_unifier[OF the_mgu[OF unified, THEN conjunct1]]
-    by simp
-
-  moreover have
-    "\<And>\<sigma>. term_subst.is_unifiers \<sigma> {{term, term'}} \<Longrightarrow> \<sigma> = the_mgu term term' \<odot> \<sigma>"
-    unfolding term_subst.is_unifiers_def
-    using
-      term_subst.is_unifier_iff_if_finite[OF finite_terms]
-      the_mgu[of "term" _ term']
-    by blast
-
-  ultimately have is_imgu: "term_subst.is_imgu (the_mgu term term') {{term, term'}}"
-    unfolding term_subst.is_imgu_def
-    by blast
-
-  show "\<upsilon> = (the_mgu term term') \<odot> \<upsilon>" 
-    using the_mgu[OF unified]
-    by blast
-
-  show "term_subst.is_imgu (the_mgu term term') {{term, term'}}"
-    using is_imgu
-    by blast
-
+    "well_typed_subst' \<F> \<V> \<mu>"
+proof-
   obtain \<mu> where \<mu>: "the_mgu term term' = \<mu>"
     using assms ex_mgu_if_subst_apply_term_eq_subst_apply_term by blast
 
-  show "well_typed_unifier \<F> \<V> term term' (the_mgu term term')"
+  have "well_typed_subst' \<F> \<V>  (the_mgu term term')"
     using welltyped_the_mgu[OF \<mu>, of \<F> \<V>]
-    unfolding \<mu>.
+    unfolding \<mu> sorry
+
+  then show ?thesis
+    using that imgu_exists_extendable[OF unified]
+    sorry
 qed
 
 end
