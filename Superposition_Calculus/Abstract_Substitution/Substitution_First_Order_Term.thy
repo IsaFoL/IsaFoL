@@ -76,18 +76,18 @@ lemma the_mgu_is_unifier:
   unfolding term_subst.is_unifier_def the_mgu_def
   by simp
 
-lemma imgu_exists:
+lemma imgu_exists_extendable:
   fixes \<upsilon> :: "('f, 'v) subst"
-  assumes "term \<cdot> \<upsilon> = term' \<cdot> \<upsilon>"
+  assumes "term \<cdot> \<upsilon> = term' \<cdot> \<upsilon>" "P term term' (the_mgu term term')"
   obtains \<mu> :: "('f, 'v) subst"
-  where "\<upsilon> = \<mu> \<circ>\<^sub>s \<upsilon>" "term_subst.is_imgu \<mu> {{term, term'}}"
+  where "\<upsilon> = \<mu> \<circ>\<^sub>s \<upsilon>" "term_subst.is_imgu \<mu> {{term, term'}}" "P term term' \<mu>"
 proof
   have finite_terms: "finite {term, term'}"
     by simp
 
   have "term_subst.is_unifier_set (the_mgu term term') {{term, term'}}"
     unfolding term_subst.is_unifier_set_def
-    using the_mgu_is_unifier[OF the_mgu[OF assms, THEN conjunct1]]
+    using the_mgu_is_unifier[OF the_mgu[OF assms(1), THEN conjunct1]]
     by simp
 
   moreover have
@@ -103,12 +103,23 @@ proof
     by metis
 
   show "\<upsilon> = (the_mgu term term') \<circ>\<^sub>s \<upsilon>" 
-    using the_mgu[OF assms]
+    using the_mgu[OF assms(1)]
     by blast
 
   show "term_subst.is_imgu (the_mgu term term') {{term, term'}}"
     using is_imgu
     by blast
+
+  show "P term term' (the_mgu term term')"
+    using assms(2).
 qed
+
+lemma imgu_exists:
+  fixes \<upsilon> :: "('f, 'v) subst"
+  assumes "term \<cdot> \<upsilon> = term' \<cdot> \<upsilon>"
+  obtains \<mu> :: "('f, 'v) subst"
+  where "\<upsilon> = \<mu> \<circ>\<^sub>s \<upsilon>" "term_subst.is_imgu \<mu> {{term, term'}}"
+  using imgu_exists_extendable[OF assms, of "(\<lambda>_ _ _. True)"]
+  by auto
 
 end
