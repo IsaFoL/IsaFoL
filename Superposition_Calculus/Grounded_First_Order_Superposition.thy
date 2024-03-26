@@ -19,9 +19,11 @@ abbreviation superposition_inferences where
 end
 
 locale grounded_first_order_superposition_calculus =
-  first_order_superposition_calculus select +
+  first_order_superposition_calculus select _ _ typeof_fun +
   grounded_first_order_select select
-  for select :: "('f, 'v) select"
+  for 
+    select :: "('f, 'v) select" and
+    typeof_fun :: "'f \<Rightarrow> 'ty list \<times> 'ty"
 begin
 
 sublocale ground: ground_superposition_calculus where
@@ -174,7 +176,8 @@ next
   fix select\<^sub>G
   assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
  
-  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus
+    where select\<^sub>G = select\<^sub>G
     apply unfold_locales
     by(simp add: select\<^sub>G\<^sub>s_def)
 
@@ -184,7 +187,8 @@ next
    fix select\<^sub>G
    assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
  
-  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
+   then interpret grounded_first_order_superposition_calculus
+    where select\<^sub>G = select\<^sub>G
     apply unfold_locales
     by(simp add: select\<^sub>G\<^sub>s_def)
 

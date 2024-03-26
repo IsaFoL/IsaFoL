@@ -26,7 +26,7 @@ locale first_order_superposition_calculus =
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   fixes
     tiebreakers :: "'f gatom clause  \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" and
-    typeof_fun :: "('f \<Rightarrow> 'ty list \<times> 'ty)"
+    typeof_fun :: "'f \<Rightarrow> 'ty list \<times> 'ty"
   assumes
     wellfounded_tiebreakers: 
       "\<And>clause\<^sub>G. wfP (tiebreakers clause\<^sub>G) \<and> 
@@ -36,16 +36,17 @@ locale first_order_superposition_calculus =
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
 
-inductive eq_resolution :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
+inductive eq_resolution :: 
+  "('v \<Rightarrow> 'ty) \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"  where
   eq_resolutionI: 
    "premise = add_mset literal premise' \<Longrightarrow>
     literal = term !\<approx> term' \<Longrightarrow>
-    well_typed_subst typeof_fun \<V> \<mu> \<Longrightarrow>
     term_subst.is_imgu \<mu> {{ term, term' }} \<Longrightarrow>
+    well_typed_unifier typeof_fun \<V> term term' \<mu> \<Longrightarrow>
     select premise = {#} \<and> is_maximal\<^sub>l (literal \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<or> 
       is_maximal\<^sub>l (literal \<cdot>l \<mu>) ((select premise) \<cdot> \<mu>) \<Longrightarrow>
     conclusion = premise' \<cdot> \<mu> \<Longrightarrow>
-    eq_resolution premise conclusion"
+    eq_resolution \<V> premise conclusion"
 
 inductive eq_factoring :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
   eq_factoringI: "
@@ -81,7 +82,7 @@ where
       \<and> (select premise\<^sub>1 = {#} \<and> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) 
           \<or> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) ((select premise\<^sub>1) \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>))) \<Longrightarrow>
     select premise\<^sub>2 = {#} \<Longrightarrow>
-    is_strictly_maximal\<^sub>l  (literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    is_strictly_maximal\<^sub>l (literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     \<not> (context\<^sub>1\<langle>term\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
     \<not> (term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
     conclusion = add_mset (\<P> (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) 
@@ -94,7 +95,7 @@ abbreviation eq_factoring_inferences where
 
 abbreviation eq_resolution_inferences where
   "eq_resolution_inferences \<equiv> 
-    { Infer [premise] conclusion | premise conclusion. eq_resolution premise conclusion }"
+    { Infer [premise] conclusion | \<V> premise conclusion. eq_resolution \<V> premise conclusion }"
 
 abbreviation superposition_inferences where
   "superposition_inferences \<equiv> { Infer [premise\<^sub>2, premise\<^sub>1] conclusion 
@@ -207,25 +208,120 @@ lemmas literal_renaming_exists =
 lemmas clause_renaming_exists = 
   renaming_exists[OF subset_UNIV subset_UNIV finite_vars_clause finite_vars_clause]
 
+lemma well_typed_unifier_well_typed_subst:
+  assumes 
+    "has_type typeof_fun \<V> term \<tau>"
+    "has_type typeof_fun \<V> term' \<tau>"
+  shows
+    "well_typed_unifier typeof_fun \<V> term term' \<mu> \<longleftrightarrow> well_typed_subst typeof_fun \<V> \<mu>"
+  using assms
+  unfolding well_typed_unifier_def well_typed_subst_def
+  by blast
+
 lemma eq_resolution_preserves_typing:
   assumes
-    step: "equality_resolution D C" and
-    wt_D: "\<And>\<V>. well_typed_cls typeof_fun \<V> D"
-  shows "\<exists>\<V>. well_typed_cls typeof_fun \<V> C"
+    step: "equality_resolution \<V> D C" and
+    wt_D: "well_typed_cls typeof_fun \<V> D"
+  shows "well_typed_cls typeof_fun \<V> C"
   using step
-proof (cases D C rule: equality_resolution.cases)
-  case (equality_resolutionI literal premise' "term" term' \<V> \<mu>)
-  have "well_typed_cls typeof_fun \<V> D"
-    by (simp add: wt_D)
+proof (cases \<V> D C rule: equality_resolution.cases)
+  case (equality_resolutionI literal premise' "term" term' \<mu>)
+  obtain \<tau> where \<tau>:
+    "has_type typeof_fun \<V> term \<tau>"
+    "has_type typeof_fun \<V> term' \<tau>"
+    using wt_D
+    unfolding 
+      equality_resolutionI 
+      well_typed_cls_add_mset 
+      well_typed_lit_def 
+      well_typed_atm_def
+    by auto
 
-  then have "well_typed_cls typeof_fun \<V> (D  \<cdot> \<mu>)"
-    using well_typed_subst_clause[OF equality_resolutionI(3)]
-    by blast    
+  have "well_typed_cls typeof_fun \<V> (D  \<cdot> \<mu>)"
+    using wt_D equality_resolutionI(4) well_typed_subst_clause
+    unfolding well_typed_unifier_well_typed_subst[OF \<tau>]
+    by blast
     
   then show ?thesis
     unfolding equality_resolutionI subst_clause_add_mset well_typed_cls_add_mset
     by blast
 qed
+
+
+(*lemma eq_factoring_preserves_typing:
+  assumes
+    step: "equality_factoring D C" and
+    wt_D: "\<And>\<V>. well_typed_cls typeof_fun \<V> D"
+  shows "\<exists>\<V>. well_typed_cls typeof_fun \<V> C"
+  using step
+proof (cases D C rule: equality_factoring.cases)
+  case (equality_factoringI literal\<^sub>1 literal\<^sub>2 premise' term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu> \<V>)
+  have "well_typed_cls typeof_fun \<V> D"
+    by (simp add: wt_D)
+
+  then have "well_typed_cls typeof_fun \<V> (D  \<cdot> \<mu>)"
+    using equality_factoringI(7) well_typed_subst_clause well_typed_imgu_def
+    by blast
+
+  then have well_typed:
+    "well_typed_lit typeof_fun \<V> (term\<^sub>1 \<approx> term\<^sub>1' \<cdot>l \<mu>)"
+    "well_typed_lit typeof_fun \<V> (term\<^sub>2 \<approx> term\<^sub>2' \<cdot>l \<mu>)"
+    "well_typed_cls typeof_fun \<V> (premise' \<cdot> \<mu>)"
+    unfolding equality_factoringI subst_clause_add_mset well_typed_cls_add_mset
+    by auto
+
+  moreover have "well_typed_lit typeof_fun \<V> (term\<^sub>1 \<approx> term\<^sub>2' \<cdot>l \<mu>)" 
+    using equality_factoringI(7) well_typed
+    unfolding 
+      well_typed_imgu_def 
+      well_typed_subst_def
+      well_typed_lit_def 
+      well_typed_atm_def 
+      subst_literal_def
+    by (metis literal.simps(9) subst_atom term_subst.subst_imgu_eq_subst_imgu)
+
+  moreover have "\<exists>\<tau>. has_type typeof_fun \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau> \<and> has_type typeof_fun \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>"
+    using equality_factoringI(7) well_typed
+    unfolding
+      well_typed_imgu_def 
+      well_typed_subst_def
+      well_typed_lit_def 
+      well_typed_atm_def 
+      subst_literal_def 
+      subst_atom_def
+    by (metis (mono_tags, lifting) right_unique_has_type insert_iff literal.disc(1) 
+          literal.map_sel(1) map_uprod_simps right_uniqueD set_uprod_simps 
+           term_subst.subst_imgu_eq_subst_imgu upair_in_literal(1))
+    
+   
+  moreover then have "well_typed_lit typeof_fun \<V> (term\<^sub>1' !\<approx> term\<^sub>2' \<cdot>l \<mu>)"
+    using well_typed
+    unfolding 
+      well_typed_lit_def 
+      well_typed_atm_def 
+      subst_literal_def 
+      subst_atom_def
+    by auto
+
+  ultimately show ?thesis
+    unfolding equality_factoringI well_typed_cls_add_mset subst_clause_add_mset
+    by blast        
+qed
+
+lemma superposition_preserves_typing:
+  assumes
+    step: "superposition D E C" and
+    wt_D: "\<And>\<V>. well_typed_cls typeof_fun \<V> D" and
+    wt_E: "\<And>\<V>. well_typed_cls typeof_fun \<V> E"
+  shows "\<exists>\<V>. well_typed_cls typeof_fun \<V> C"
+  using step
+proof (cases D E C rule: superposition.cases)
+  case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' \<P> 
+          context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
+  then show ?thesis 
+    
+    sorry
+qed*)
 
 end
 

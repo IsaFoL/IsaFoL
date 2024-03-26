@@ -427,7 +427,8 @@ proof-
   obtain select\<^sub>G where "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
     using Q_nonempty by blast
     
-  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus
+    where select\<^sub>G = select\<^sub>G
     by unfold_locales (simp add: select\<^sub>G\<^sub>s_def)
 
   show "sound_inference_system inferences {{#}} entails_\<G>"

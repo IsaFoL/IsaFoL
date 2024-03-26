@@ -79,8 +79,9 @@ lemma the_mgu_is_unifier:
 lemma imgu_exists:
   fixes \<upsilon> :: "('f, 'v) subst"
   assumes "term \<cdot> \<upsilon> = term' \<cdot> \<upsilon>"
-  shows "\<exists>(\<mu> :: ('f, 'v) subst).  \<upsilon> = \<mu> \<circ>\<^sub>s \<upsilon> \<and> term_subst.is_imgu \<mu> {{term, term'}}"
-proof (intro exI)
+  obtains \<mu> :: "('f, 'v) subst"
+  where "\<upsilon> = \<mu> \<circ>\<^sub>s \<upsilon>" "term_subst.is_imgu \<mu> {{term, term'}}"
+proof
   have finite_terms: "finite {term, term'}"
     by simp
 
@@ -101,8 +102,12 @@ proof (intro exI)
     unfolding term_subst.is_imgu_def
     by metis
 
-  show "\<upsilon> = (the_mgu term term') \<circ>\<^sub>s \<upsilon> \<and> term_subst.is_imgu (the_mgu term term') {{term, term'}}"
-    using is_imgu the_mgu[OF assms]
+  show "\<upsilon> = (the_mgu term term') \<circ>\<^sub>s \<upsilon>" 
+    using the_mgu[OF assms]
+    by blast
+
+  show "term_subst.is_imgu (the_mgu term term') {{term, term'}}"
+    using is_imgu
     by blast
 qed
 

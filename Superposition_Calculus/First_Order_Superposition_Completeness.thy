@@ -20,9 +20,9 @@ lemma eq_resolution_lifting:
     conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
     ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G"
-  obtains conclusion' 
+  obtains \<V> conclusion' 
   where
-    "eq_resolution premise conclusion'"
+    "eq_resolution \<V> premise conclusion'"
     "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')"
     "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
   using ground_eq_resolution
@@ -1675,7 +1675,8 @@ proof-
     using obtain_subst_stable_on_select_grounding
     by blast
 
-  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus
+    where select\<^sub>G = select\<^sub>G
     by unfold_locales
 
   have overapproximation: "ground_Inf_overapproximated select\<^sub>G premises"
@@ -1692,7 +1693,8 @@ proof(unfold static_empty_ord_inter_equiv_static_inter,
       rule ballI)
   fix select\<^sub>G
   assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
-  then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
+  then interpret grounded_first_order_superposition_calculus
+    where select\<^sub>G = select\<^sub>G
     by unfold_locales (simp add: select\<^sub>G\<^sub>s_def)
 
   show "statically_complete_calculus
