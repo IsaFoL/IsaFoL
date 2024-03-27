@@ -22,8 +22,14 @@ definition is_ground_subst :: "'s \<Rightarrow> bool" where
 definition generalizes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
   "generalizes x y \<longleftrightarrow> (\<exists>\<sigma>. x \<cdot> \<sigma> = y)"
 
+abbreviation specializes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
+  "specializes x y \<equiv> generalizes y x"
+
 definition strictly_generalizes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
   "strictly_generalizes x y \<longleftrightarrow> generalizes x y \<and> \<not> generalizes y x"
+
+abbreviation strictly_specializes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
+  "strictly_specializes x y \<equiv> strictly_generalizes y x"
 
 definition instances_of :: "'x \<Rightarrow> 'x set" where
   "instances_of x = {y. generalizes x y}"
