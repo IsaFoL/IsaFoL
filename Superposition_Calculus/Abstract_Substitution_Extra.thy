@@ -59,17 +59,17 @@ definition is_renaming :: "'s \<Rightarrow> bool" where
 definition is_unifier :: "'s \<Rightarrow> 'x set \<Rightarrow> bool" where
   "is_unifier \<upsilon> X \<longleftrightarrow> card (X \<cdot>s \<upsilon>) \<le> 1"
 
-definition is_unifiers :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
-  "is_unifiers \<upsilon> XX \<longleftrightarrow> (\<forall>X \<in> XX. is_unifier \<upsilon> X)"
+definition is_unifier_set :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
+  "is_unifier_set \<upsilon> XX \<longleftrightarrow> (\<forall>X \<in> XX. is_unifier \<upsilon> X)"
 
 definition is_mgu :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
-  "is_mgu \<mu> XX \<longleftrightarrow> is_unifiers \<mu> XX \<and> (\<forall>\<upsilon>. is_unifiers \<upsilon> XX \<longrightarrow> (\<exists>\<sigma>. \<upsilon> = \<mu> \<odot> \<sigma>))"
+  "is_mgu \<mu> XX \<longleftrightarrow> is_unifier_set \<mu> XX \<and> (\<forall>\<upsilon>. is_unifier_set \<upsilon> XX \<longrightarrow> (\<exists>\<sigma>. \<upsilon> = \<mu> \<odot> \<sigma>))"
 
 definition is_imgu :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
-  "is_imgu \<mu> XX \<longleftrightarrow> is_unifiers \<mu> XX \<and> (\<forall>\<tau>. is_unifiers \<tau> XX \<longrightarrow> \<tau> = \<mu> \<odot> \<tau>)"
+  "is_imgu \<mu> XX \<longleftrightarrow> is_unifier_set \<mu> XX \<and> (\<forall>\<tau>. is_unifier_set \<tau> XX \<longrightarrow> \<tau> = \<mu> \<odot> \<tau>)"
 
 definition is_idem :: "'s \<Rightarrow> bool" where
-  "is_idem \<sigma> \<longleftrightarrow> (\<sigma> \<odot> \<sigma>) = \<sigma>"
+  "is_idem \<sigma> \<longleftrightarrow> \<sigma> \<odot> \<sigma> = \<sigma>"
 
 lemma is_unifier_iff_if_finite:
   assumes "finite X"
@@ -95,8 +95,8 @@ lemma subst_set_insert[simp]: "(insert x X) \<cdot>s \<sigma> = insert (x \<cdot
 lemma subst_set_union[simp]: "(X1 \<union> X2) \<cdot>s \<sigma> = X1 \<cdot>s \<sigma> \<union> X2 \<cdot>s \<sigma>"
   by (simp only: subst_set_def image_Un)
 
-lemma is_unifiers_union: "is_unifiers \<upsilon> (XX\<^sub>1 \<union> XX\<^sub>2) \<longleftrightarrow> is_unifiers \<upsilon> XX\<^sub>1 \<and> is_unifiers \<upsilon> XX\<^sub>2"
-  by (auto simp add: is_unifiers_def)
+lemma is_unifier_set_union: "is_unifier_set \<upsilon> (XX\<^sub>1 \<union> XX\<^sub>2) \<longleftrightarrow> is_unifier_set \<upsilon> XX\<^sub>1 \<and> is_unifier_set \<upsilon> XX\<^sub>2"
+  by (auto simp add: is_unifier_set_def)
 
 lemma is_unifier_subset: "is_unifier \<upsilon> A \<Longrightarrow> finite A \<Longrightarrow> B \<subseteq> A \<Longrightarrow> is_unifier \<upsilon> B"
   by (smt (verit, best) card_mono dual_order.trans finite_imageI image_mono is_unifier_def
@@ -108,6 +108,7 @@ lemma is_ground_set_subset: "is_ground_set A \<Longrightarrow> B \<subseteq> A \
 end
 
 
+(* Rename to abstract substitution *)
 locale basic_substitution =
   basic_substitution_ops subst id_subst comp_subst is_ground +
   comp_subst: monoid comp_subst id_subst
@@ -133,8 +134,8 @@ lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
 lemma is_unifier_id_subst_empty[simp]: "is_unifier id_subst {}"
   by (simp add: is_unifier_def)
 
-lemma is_unifiers_id_subst_empty[simp]: "is_unifiers id_subst {}"
-  by (simp add: is_unifiers_def)
+lemma is_unifier_set_id_subst_empty[simp]: "is_unifier_set id_subst {}"
+  by (simp add: is_unifier_set_def)
 
 lemma is_mgu_id_subst_empty[simp]: "is_mgu id_subst {}"
   by (simp add: is_mgu_def)
@@ -148,18 +149,18 @@ lemma is_idem_id_subst[simp]: "is_idem id_subst"
 lemma is_unifier_id_subst: "is_unifier id_subst X \<longleftrightarrow> card X \<le> 1"
   by (simp add: is_unifier_def)
 
-lemma is_unifiers_id_subst: "is_unifiers id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
-  by (simp add: is_unifiers_def is_unifier_id_subst)
+lemma is_unifier_set_id_subst: "is_unifier_set id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
+  by (simp add: is_unifier_set_def is_unifier_id_subst)
 
 lemma is_mgu_id_subst: "is_mgu id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
-  by (simp add: is_mgu_def is_unifiers_id_subst)
+  by (simp add: is_mgu_def is_unifier_set_id_subst)
 
 lemma is_imgu_id_subst: "is_imgu id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
-  by (simp add: is_imgu_def is_unifiers_id_subst)
+  by (simp add: is_imgu_def is_unifier_set_id_subst)
 
-lemma is_unifiers_id_subst_insert_singleton[simp]:
-  "is_unifiers id_subst (insert {x} XX) \<longleftrightarrow> is_unifiers id_subst XX"
-  by (simp add: is_unifiers_id_subst)
+lemma is_unifier_set_id_subst_insert_singleton[simp]:
+  "is_unifier_set id_subst (insert {x} XX) \<longleftrightarrow> is_unifier_set id_subst XX"
+  by (simp add: is_unifier_set_id_subst)
 
 lemma is_mgu_id_subst_insert_singleton[simp]:
   "is_mgu id_subst (insert {x} XX) \<longleftrightarrow> is_mgu id_subst XX"
@@ -217,14 +218,14 @@ lemma subst_mgu_eq_subst_mgu:
   assumes "is_mgu \<mu> {{t\<^sub>1, t\<^sub>2}}" 
   shows "t\<^sub>1 \<cdot> \<mu> = t\<^sub>2 \<cdot> \<mu>"
   using assms is_unifier_iff_if_finite[of "{t\<^sub>1, t\<^sub>2}"]
-  unfolding is_mgu_def is_unifiers_def
+  unfolding is_mgu_def is_unifier_set_def
   by blast
 
 lemma subst_imgu_eq_subst_imgu: 
   assumes "is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}}" 
   shows "t\<^sub>1 \<cdot> \<mu> = t\<^sub>2 \<cdot> \<mu>"
   using assms is_unifier_iff_if_finite[of "{t\<^sub>1, t\<^sub>2}"]
-  unfolding is_imgu_def is_unifiers_def
+  unfolding is_imgu_def is_unifier_set_def
   by blast
 
 

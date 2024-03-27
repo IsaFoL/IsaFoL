@@ -548,7 +548,7 @@ lemma unifiers_Pairs:
   assumes
     "finite AAA" and
     "\<forall>AA \<in> AAA. finite AA"
-  shows "unifiers (set (Pairs AAA)) = {\<sigma>. is_unifiers \<sigma> AAA}"
+  shows "unifiers (set (Pairs AAA)) = {\<sigma>. is_unifier_set \<sigma> AAA}"
 proof (rule; rule)
   fix \<sigma> :: "('a, 'b) subst"
   assume asm: "\<sigma> \<in> unifiers (set (Pairs AAA))"
@@ -566,11 +566,11 @@ proof (rule; rule)
       by (smt imageE card.empty card_Suc_eq card_mono finite.intros(1) finite_insert le_SucI
            singletonI subsetI)
   qed
-  then show "\<sigma> \<in> {\<sigma>. is_unifiers \<sigma> AAA}"
-    using assms by (auto simp: is_unifiers_def is_unifier_def subst_atms_def)
+  then show "\<sigma> \<in> {\<sigma>. is_unifier_set \<sigma> AAA}"
+    using assms by (auto simp: is_unifier_set_def is_unifier_def subst_atms_def)
 next
   fix \<sigma> :: "('a, 'b) subst"
-  assume asm: "\<sigma> \<in> {\<sigma>. is_unifiers \<sigma> AAA}"
+  assume asm: "\<sigma> \<in> {\<sigma>. is_unifier_set \<sigma> AAA}"
 
   {
     fix AB_pairs A B
@@ -584,7 +584,7 @@ next
      a: "AA \<in> AAA" "A \<in> AA" "B \<in> AA"
       by blast
     from a assms asm have card_AA_\<sigma>: "card (AA \<cdot>\<^sub>s\<^sub>e\<^sub>t \<sigma>) \<le> Suc 0"
-      unfolding is_unifiers_def is_unifier_def subst_atms_def by auto
+      unfolding is_unifier_set_def is_unifier_def subst_atms_def by auto
     have "subst_atm_abbrev A \<sigma> = subst_atm_abbrev B \<sigma>"
     proof (cases "card (AA \<cdot>\<^sub>s\<^sub>e\<^sub>t \<sigma>) = Suc 0")
       case True
@@ -636,7 +636,7 @@ proof unfold_locales
     using mgu_sets_is_imgu by auto
 next
   fix AAA :: "('a :: compare, nat) term set set" and \<sigma> :: "('a, nat) subst"
-  assume fin: "finite AAA" "\<forall>AA \<in> AAA. finite AA" and "is_unifiers \<sigma> AAA"
+  assume fin: "finite AAA" "\<forall>AA \<in> AAA. finite AA" and "is_unifier_set \<sigma> AAA"
   then have "\<sigma> \<in> unifiers (set (Pairs AAA))"
     unfolding is_mgu_def unifiers_Pairs[OF fin] by auto
   then show "\<exists>\<tau>. mgu_sets AAA = Some \<tau>"

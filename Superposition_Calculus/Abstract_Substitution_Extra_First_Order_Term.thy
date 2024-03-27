@@ -46,7 +46,7 @@ lemma ground_imgu_equals:
   shows "t\<^sub>1 = t\<^sub>2"
   using assms
   using term_subst.ground_eq_ground_if_unifiable
-  by (metis insertCI term_subst.is_imgu_def term_subst.is_unifiers_def)
+  by (metis insertCI term_subst.is_imgu_def term_subst.is_unifier_set_def)
 
 lemma the_mgu_is_unifier: 
   assumes "term \<cdot> the_mgu term term' = term' \<cdot> the_mgu term term'" 
@@ -63,14 +63,14 @@ proof (intro exI)
   have finite_terms: "finite {term, term'}"
     by simp
 
-  have "term_subst.is_unifiers (the_mgu term term') {{term, term'}}"
-    unfolding term_subst.is_unifiers_def
+  have "term_subst.is_unifier_set (the_mgu term term') {{term, term'}}"
+    unfolding term_subst.is_unifier_set_def
     using the_mgu_is_unifier[OF the_mgu[OF assms, THEN conjunct1]]
     by simp
 
   moreover have
-    "\<And>\<sigma>. term_subst.is_unifiers \<sigma> {{term, term'}} \<Longrightarrow> \<sigma> = the_mgu term term' \<circ>\<^sub>s \<sigma>"
-    unfolding term_subst.is_unifiers_def
+    "\<And>\<sigma>. term_subst.is_unifier_set \<sigma> {{term, term'}} \<Longrightarrow> \<sigma> = the_mgu term term' \<circ>\<^sub>s \<sigma>"
+    unfolding term_subst.is_unifier_set_def
     using
       term_subst.is_unifier_iff_if_finite[OF finite_terms]
       the_mgu[of "term" _ term']
