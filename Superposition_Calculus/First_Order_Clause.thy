@@ -1,7 +1,7 @@
 theory First_Order_Clause
   imports 
     Ground_Clause
-    Abstract_Substitution_Extra_First_Order_Term
+    Substitution_First_Order_Term
     Clausal_Calculus_Extra
     Multiset_Extra
     Term_Rewrite_System

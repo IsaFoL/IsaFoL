@@ -1,4 +1,4 @@
-theory Abstract_Substitution_Extra
+theory Abstract_Substitution
   imports Main
 begin
 
