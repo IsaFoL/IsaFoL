@@ -118,6 +118,12 @@ lemma is_unifier_subset: "is_unifier \<upsilon> A \<Longrightarrow> finite A \<L
 lemma is_ground_set_subset: "is_ground_set A \<Longrightarrow> B \<subseteq> A \<Longrightarrow> is_ground_set B"
   by (auto simp: is_ground_set_def)
 
+lemma is_ground_set_ground_instances_of[simp]: "is_ground_set (ground_instances_of x)"
+  by (simp add: ground_instances_of_def is_ground_set_def)
+
+lemma is_ground_set_ground_instances_of_set[simp]: "is_ground_set (ground_instances_of_set x)"
+  by (simp add: ground_instances_of_set_def is_ground_set_def)
+
 end
 
 
