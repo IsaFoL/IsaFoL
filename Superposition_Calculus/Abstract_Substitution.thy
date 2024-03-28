@@ -86,6 +86,19 @@ next
         card_le_Suc0_iff_eq dual_order.eq_iff imageE le_Suc_eq)
 qed
 
+lemma is_unifier_singleton[simp]: "is_unifier \<upsilon> {x}"
+  by (simp add: is_unifier_iff_if_finite)
+
+lemma is_unifier_set_insert_singleton[simp]:
+  "is_unifier_set \<sigma> (insert {x} XX) \<longleftrightarrow> is_unifier_set \<sigma> XX"
+  by (simp add: is_unifier_set_def)
+
+lemma is_mgu_insert_singleton[simp]: "is_mgu \<mu> (insert {x} XX) \<longleftrightarrow> is_mgu \<mu> XX"
+  by (simp add: is_mgu_def)
+
+lemma is_imgu_insert_singleton[simp]: "is_imgu \<mu> (insert {x} XX) \<longleftrightarrow> is_imgu \<mu> XX"
+  by (simp add: is_imgu_def)
+
 lemma subst_set_empty[simp]: "{} \<cdot>s \<sigma> = {}"
   by (simp only: subst_set_def image_empty)
 
@@ -158,18 +171,6 @@ lemma is_mgu_id_subst: "is_mgu id_subst XX \<longleftrightarrow> (\<forall>X \<i
 
 lemma is_imgu_id_subst: "is_imgu id_subst XX \<longleftrightarrow> (\<forall>X \<in> XX. card X \<le> 1)"
   by (simp add: is_imgu_def is_unifier_set_id_subst)
-
-lemma is_unifier_set_id_subst_insert_singleton[simp]:
-  "is_unifier_set id_subst (insert {x} XX) \<longleftrightarrow> is_unifier_set id_subst XX"
-  by (simp add: is_unifier_set_id_subst)
-
-lemma is_mgu_id_subst_insert_singleton[simp]:
-  "is_mgu id_subst (insert {x} XX) \<longleftrightarrow> is_mgu id_subst XX"
-  by (simp add: is_mgu_id_subst)
-
-lemma is_imgu_id_subst_insert_singleton[simp]:
-  "is_imgu id_subst (insert {x} XX) \<longleftrightarrow> is_imgu id_subst XX"
-  by (simp add: is_imgu_id_subst)
 
 
 subsection \<open>Generalization\<close>
