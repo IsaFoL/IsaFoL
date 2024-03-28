@@ -61,17 +61,17 @@ next
 next
   fix 
     term\<^sub>1 term\<^sub>2 :: "('f, 'v) term" and 
-    \<theta> :: "('f, 'v) subst"
+    \<gamma> :: "('f, 'v) subst"
 
   assume 
-    "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)" 
-    "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)" 
+    "is_ground_term (term\<^sub>1 \<cdot>t \<gamma>)" 
+    "is_ground_term (term\<^sub>2 \<cdot>t \<gamma>)" 
     "less_kbo term\<^sub>1 term\<^sub>2"
 
-  then show "less_kbo (term\<^sub>1 \<cdot>t \<theta>) (term\<^sub>2 \<cdot>t \<theta>)"
+  then show "less_kbo (term\<^sub>1 \<cdot>t \<gamma>) (term\<^sub>2 \<cdot>t \<gamma>)"
     using less_kbo_subst by blast
 next
-  fix 
+  fix
     term\<^sub>G :: "('f, 'v) term" and
     context\<^sub>G :: "('f, 'v) context"
   assume 
