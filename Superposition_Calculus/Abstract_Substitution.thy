@@ -22,13 +22,13 @@ definition is_ground_subst :: "'s \<Rightarrow> bool" where
 definition generalizes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
   "generalizes x y \<longleftrightarrow> (\<exists>\<sigma>. x \<cdot> \<sigma> = y)"
 
-abbreviation specializes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
+definition specializes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
   "specializes x y \<equiv> generalizes y x"
 
 definition strictly_generalizes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
   "strictly_generalizes x y \<longleftrightarrow> generalizes x y \<and> \<not> generalizes y x"
 
-abbreviation strictly_specializes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
+definition strictly_specializes :: "'x \<Rightarrow> 'x \<Rightarrow> bool" where
   "strictly_specializes x y \<equiv> strictly_generalizes y x"
 
 definition instances_of :: "'x \<Rightarrow> 'x set" where
@@ -123,6 +123,7 @@ locale basic_substitution =
     all_subst_ident_if_ground: "is_ground x \<Longrightarrow> (\<forall>\<sigma>. x = x \<cdot> \<sigma>)"
 begin
 
+
 subsection \<open>Identity Substitution\<close>
 
 lemma subst_set_id_subst[simp]: "X \<cdot>s id_subst = X"
@@ -169,6 +170,21 @@ lemma is_mgu_id_subst_insert_singleton[simp]:
 lemma is_imgu_id_subst_insert_singleton[simp]:
   "is_imgu id_subst (insert {x} XX) \<longleftrightarrow> is_imgu id_subst XX"
   by (simp add: is_imgu_id_subst)
+
+
+subsection \<open>Generalization\<close>
+
+sublocale generalizes: preorder generalizes strictly_generalizes
+proof unfold_locales
+  show "\<And>x y. strictly_generalizes x y = (generalizes x y \<and> \<not> generalizes y x)"
+    unfolding strictly_generalizes_def generalizes_def by blast
+next
+  show "\<And>x. generalizes x x"
+    unfolding generalizes_def using subst_id_subst by metis
+next
+  show "\<And>x y z. generalizes x y \<Longrightarrow> generalizes y z \<Longrightarrow> generalizes x z"
+    unfolding generalizes_def using subst_comp_subst by metis
+qed
 
 
 subsection \<open>Substituting on Ground Expressions\<close>
