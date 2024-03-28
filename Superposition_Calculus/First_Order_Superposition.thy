@@ -31,9 +31,9 @@ locale first_order_superposition_calculus =
     tiebreakers :: "'f gatom clause  \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
   assumes
     wellfounded_tiebreakers: 
-      "\<And>term\<^sub>G. wfP (tiebreakers term\<^sub>G) \<and> 
-               transp (tiebreakers term\<^sub>G) \<and> 
-               asymp (tiebreakers term\<^sub>G)" and
+      "\<And>clause\<^sub>G. wfP (tiebreakers clause\<^sub>G) \<and> 
+                 transp (tiebreakers clause\<^sub>G) \<and> 
+                 asymp (tiebreakers clause\<^sub>G)" and
     (* TODO: Use theorem from CeTA *)
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
