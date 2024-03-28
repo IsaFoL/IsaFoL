@@ -139,7 +139,7 @@ locale basic_substitution =
   assumes
     subst_id_subst[simp]: "x \<cdot> id_subst = x" and
     subst_comp_subst[simp]: "x \<cdot> (\<sigma> \<odot> \<tau>) = (x \<cdot> \<sigma>) \<cdot> \<tau>" and
-    all_subst_ident_if_ground: "is_ground x \<Longrightarrow> (\<forall>\<sigma>. x = x \<cdot> \<sigma>)"
+    all_subst_ident_if_ground: "is_ground x \<Longrightarrow> (\<forall>\<sigma>. x \<cdot> \<sigma> = x)"
 begin
 
 

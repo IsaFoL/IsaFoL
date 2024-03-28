@@ -95,7 +95,7 @@ next
     by simp
 next
   fix \<kappa>
-  show "is_ground_context \<kappa> \<Longrightarrow> \<forall>\<sigma>. \<kappa> = \<kappa> \<cdot>t\<^sub>c \<sigma>"
+  show "is_ground_context \<kappa> \<Longrightarrow> \<forall>\<sigma>. \<kappa> \<cdot>t\<^sub>c \<sigma> = \<kappa>"
     by (induction \<kappa>) (simp_all add: list.map_ident_strong)
 qed
 
@@ -110,7 +110,7 @@ next
     unfolding subst_atom_def subst_subst_compose
     by (metis (no_types, lifting) map_uprod_simps uprod_exhaust)
 next
-  show "\<And>x. is_ground_atom x \<Longrightarrow> \<forall>\<sigma>. x = x \<cdot>a \<sigma>"
+  show "\<And>x. is_ground_atom x \<Longrightarrow> \<forall>\<sigma>. x \<cdot>a \<sigma> = x"
     by (simp add: subst_atom_def uprod.map_ident_strong vars_atom_def)
 qed
 
@@ -124,7 +124,7 @@ next
   show "\<And>x \<sigma> \<tau>. x \<cdot>l \<sigma> \<odot> \<tau> = x \<cdot>l \<sigma> \<cdot>l \<tau>"
     by (simp add: subst_literal_def map_literal_comp)
 next
-  show "\<And>x. is_ground_literal x \<Longrightarrow> \<forall>\<sigma>. x = x \<cdot>l \<sigma>"
+  show "\<And>x. is_ground_literal x \<Longrightarrow> \<forall>\<sigma>. x \<cdot>l \<sigma> = x"
     by (simp add: literal.expand literal.map_sel subst_literal_def vars_literal_def)
 qed
 
@@ -138,7 +138,7 @@ next
   show "\<And>x \<sigma> \<tau>. x \<cdot> \<sigma> \<odot> \<tau> = x \<cdot> \<sigma> \<cdot> \<tau>"
     by (simp add: subst_clause_def)
 next
-  show "\<And>x. is_ground_clause x \<Longrightarrow> \<forall>\<sigma>. x = x \<cdot> \<sigma>"
+  show "\<And>x. is_ground_clause x \<Longrightarrow> \<forall>\<sigma>. x \<cdot> \<sigma> = x"
     by (simp add: subst_clause_def vars_clause_def)
 qed
 

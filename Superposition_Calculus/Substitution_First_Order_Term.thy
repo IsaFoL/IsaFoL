@@ -11,7 +11,7 @@ abbreviation is_ground_trm where
 lemma is_ground_iff: "is_ground_trm (t \<cdot> \<gamma>) \<longleftrightarrow> (\<forall>x \<in> vars_term t. is_ground_trm (\<gamma> x))"
   by (induction t) simp_all
 
-lemma is_ground_trm_iff_ident_forall_subst: "is_ground_trm t \<longleftrightarrow> (\<forall>\<sigma>. t = t \<cdot> \<sigma>)"
+lemma is_ground_trm_iff_ident_forall_subst: "is_ground_trm t \<longleftrightarrow> (\<forall>\<sigma>. t \<cdot> \<sigma> = t)"
   by (metis (full_types) Int_empty_left ex_in_conv fun_upd_same subst_apply_term_ident
       term.disc(1) term.disc(2) term_subst_eq_conv)
 
@@ -25,7 +25,7 @@ next
   show "\<And>x \<sigma> \<tau>. x \<cdot> \<sigma> \<circ>\<^sub>s \<tau> = x \<cdot> \<sigma> \<cdot> \<tau>"
     by simp
 next
-  show "\<And>x. is_ground_trm x \<Longrightarrow> \<forall>\<sigma>. x = x \<cdot> \<sigma>"
+  show "\<And>x. is_ground_trm x \<Longrightarrow> \<forall>\<sigma>. x \<cdot> \<sigma> = x"
     using is_ground_trm_iff_ident_forall_subst ..
 qed
 
