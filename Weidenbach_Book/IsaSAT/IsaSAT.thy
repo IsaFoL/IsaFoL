@@ -3441,7 +3441,7 @@ lemma IsaSAT_bounded_heur_alt_def:
     id_apply IsaSAT_Profile.start_def IsaSAT_Profile.stop_def nres_monad1
   unfolding
     convert_state_def de_Morgan_disj not_not if_not_swap
-  by (intro bind_cong[OF refl] if_cong[OF refl] refl)
+  by (auto intro!: bind_cong[OF refl] if_cong[OF refl] refl)
 
 lemma IsaSAT_heur_bounded_IsaSAT_bounded:
   \<open>IsaSAT_bounded_heur b CS \<le> \<Down>(bool_rel \<times>\<^sub>f model_stat_rel) (IsaSAT_bounded CS)\<close>

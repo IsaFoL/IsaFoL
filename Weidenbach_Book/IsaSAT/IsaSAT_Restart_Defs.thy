@@ -285,6 +285,8 @@ definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close
           heur \<leftarrow> RETURN (swap_emas heur);
           let lcount = get_learned_count S;
           let _ = isasat_print_progress 125 curr stats lcount;
+          _ \<leftarrow> RETURN (IsaSAT_Profile.stop_focused_mode);
+          _ \<leftarrow> RETURN (IsaSAT_Profile.start_stable_mode);
           let _ = isasat_print_progress 95 (curr XOR 1) stats lcount;
           RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
        }
@@ -304,6 +306,8 @@ definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close
           let lcount = get_learned_count S;
           let (open, close) = (if curr = STABLE_MODE then (91, 125) else (123, 93));
           let _ = isasat_print_progress close curr stats lcount;
+          _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));
+          _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.start_focused_mode) else RETURN (IsaSAT_Profile.start_stable_mode));
           let _ = isasat_print_progress open (curr XOR 1) stats lcount;
           RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
       }

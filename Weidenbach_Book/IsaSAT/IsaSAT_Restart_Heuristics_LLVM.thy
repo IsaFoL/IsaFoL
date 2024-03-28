@@ -166,6 +166,8 @@ lemma update_restart_mode_alt_def:
           
           let (lcount, S) = extract_lcount_wl_heur S;
           let _ = isasat_print_progress 125 curr stats lcount;
+          _ \<leftarrow> RETURN (IsaSAT_Profile.stop_focused_mode);
+          _ \<leftarrow> RETURN (IsaSAT_Profile.start_stable_mode);
           let _ = isasat_print_progress 93 (curr XOR 1) stats lcount;
 
           RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats (update_lcount_wl_heur lcount S))))
@@ -186,6 +188,8 @@ lemma update_restart_mode_alt_def:
           let (lcount, S) = extract_lcount_wl_heur S;
           let (open, close) = (if curr = STABLE_MODE then (91, 125) else (123, 93));
           let _ = isasat_print_progress close curr stats lcount;
+          _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));
+          _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.start_focused_mode) else RETURN (IsaSAT_Profile.start_stable_mode));
           let _ = isasat_print_progress open (curr XOR 1) stats lcount;
           RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats (update_lcount_wl_heur lcount S))))
       }
