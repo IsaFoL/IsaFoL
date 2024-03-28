@@ -8,7 +8,7 @@ begin
 context grounded_first_order_superposition_calculus
 begin
 
-lemma equality_resolution_lifting:
+lemma eq_resolution_lifting:
   fixes 
     premise\<^sub>G conclusion\<^sub>G :: "'f gatom clause" and 
     premise conclusion :: "('f, 'v) atom clause" and
@@ -23,7 +23,7 @@ lemma equality_resolution_lifting:
     ground_eq_resolution:  "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G"
   obtains conclusion' 
   where
-    "equality_resolution premise conclusion'"
+    "eq_resolution premise conclusion'"
     "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')"
     "conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
   using ground_eq_resolution
@@ -121,8 +121,8 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     unfolding conclusion' ground_eq_resolutionI(2) literal[symmetric] subst_clause_add_mset
     by simp
 
-  have equality_resolution: "equality_resolution premise (conclusion' \<cdot> \<sigma>)"
-  proof (rule equality_resolutionI)
+  have eq_resolution: "eq_resolution premise (conclusion' \<cdot> \<sigma>)"
+  proof (rule eq_resolutionI)
     show "premise = add_mset literal conclusion'"
       using conclusion'.
   next 
@@ -182,7 +182,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     by (smt (verit, ccfv_threshold) conclusion'_\<sigma>_\<theta> conclusion_grounding mem_Collect_eq)
 
 (* TODO *)
-  with equality_resolution that
+  with eq_resolution that
   show ?thesis
     unfolding 
       clause_groundings_def 
@@ -196,7 +196,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     by (metis conclusion'_\<sigma>_\<theta> conclusion_grounding ground_eq_resolution premise\<^sub>G conclusion\<^sub>G)
 qed
 
-lemma equality_factoring_lifting:
+lemma eq_factoring_lifting:
   fixes 
     premise\<^sub>G conclusion\<^sub>G :: "'f gatom clause" and 
     premise conclusion :: "('f, 'v) atom clause" and
@@ -211,7 +211,7 @@ lemma equality_factoring_lifting:
     ground_eq_factoring: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G"
   obtains conclusion' 
   where
-    "equality_factoring premise (conclusion')"
+    "eq_factoring premise (conclusion')"
     "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')"
     "conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
   using ground_eq_factoring
@@ -326,8 +326,8 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
 
   let ?conclusion' = "add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise')"
 
-  have equality_factoring: "equality_factoring premise (?conclusion' \<cdot> \<sigma>)"
-  proof (rule equality_factoringI)
+  have eq_factoring: "eq_factoring premise (?conclusion' \<cdot> \<sigma>)"
+  proof (rule eq_factoringI)
     show "premise = add_mset literal\<^sub>1 (add_mset literal\<^sub>2 premise')"
       using premise.
   next
@@ -414,7 +414,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     using \<sigma>(2) conclusion_\<theta> conclusion_grounding by auto
 
 (* TODO *)
-  with equality_factoring that show ?thesis
+  with eq_factoring that show ?thesis
     unfolding clause_groundings_def inference_groundings_def ground.G_Inf_def inferences_def 
     using premise_grounding
     apply auto
@@ -1234,12 +1234,9 @@ abbreviation subst_stability_on where
           premise \<cdot> \<theta> = to_clause premise\<^sub>G 
         \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<theta>))) = (select premise) \<cdot> \<theta>"
 
-(* TODO: Probably it is easier to combine these with the above ones or have a generic way for 
-    converting the formats
-*)
-lemma equality_resolution_ground_instance': 
+lemma eq_resolution_ground_instance': 
   assumes 
-    "\<iota>\<^sub>G \<in> ground.equality_resolution_inferences"
+    "\<iota>\<^sub>G \<in> ground.eq_resolution_inferences"
     "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))"
     "subst_stability_on premises"
   shows "\<exists>\<iota> \<in> Inf_from premises. \<iota>\<^sub>G \<in> inference_groundings \<iota>"
@@ -1272,7 +1269,7 @@ proof-
     by (smt ground_clause_is_ground to_clause_inverse)+
 
   obtain conclusion' where 
-    equality_resolution: "equality_resolution premise conclusion'" and
+    eq_resolution: "eq_resolution premise conclusion'" and
     inference_groundings: 
     "Infer [to_ground_clause (premise \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> 
         inference_groundings (Infer [premise] conclusion')" and  
@@ -1282,7 +1279,7 @@ proof-
       conclusion_grounding 
       select  
       ground_eq_resolution
-      equality_resolution_lifting
+      eq_resolution_lifting
     unfolding
       premise\<^sub>G
       conclusion\<^sub>G
@@ -1291,7 +1288,7 @@ proof-
   let ?\<iota> = "Infer [premise] conclusion'"
 
   have "?\<iota> \<in> Inf_from premises"
-    using premise_in_premises  equality_resolution
+    using premise_in_premises  eq_resolution
     unfolding Inf_from_def inferences_def inference_system.Inf_from_def
     by simp
 
@@ -1303,9 +1300,9 @@ proof-
     by blast
 qed 
 
-lemma equality_factoring_ground_instance': 
+lemma eq_factoring_ground_instance': 
   assumes 
-    "\<iota>\<^sub>G \<in> ground.equality_factoring_inferences"
+    "\<iota>\<^sub>G \<in> ground.eq_factoring_inferences"
     "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))" 
     "subst_stability_on premises"
   shows  "\<exists>\<iota> \<in> Inf_from premises. \<iota>\<^sub>G \<in> inference_groundings \<iota>"
@@ -1338,13 +1335,13 @@ proof-
     by (smt ground_clause_is_ground to_clause_inverse)+
 
   obtain conclusion' where 
-    equality_factoring: "equality_factoring premise conclusion'" and
+    eq_factoring: "eq_factoring premise conclusion'" and
     inference_groundings: 
     "Infer [to_ground_clause (premise \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> 
         inference_groundings (Infer [premise] conclusion')" and  
     conclusion'_conclusion: "conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
     using 
-      equality_factoring_lifting[OF 
+      eq_factoring_lifting[OF 
         premise_grounding 
         conclusion_grounding 
         select 
@@ -1355,7 +1352,7 @@ proof-
   let ?\<iota> = "Infer [premise] conclusion'"
 
   have "?\<iota> \<in> Inf_from premises"
-    using premise_in_premises  equality_factoring
+    using premise_in_premises  eq_factoring
     unfolding Inf_from_def inferences_def inference_system.Inf_from_def
     by simp
 
@@ -1551,8 +1548,8 @@ lemma ground_instances:
   shows "\<exists>\<iota>'\<in>Inf_from premises. \<iota> \<in> inference_groundings \<iota>'"
 proof-
   have "\<iota> \<in> ground.superposition_inferences \<or>
-        \<iota> \<in> ground.equality_resolution_inferences \<or>
-        \<iota> \<in> ground.equality_factoring_inferences"
+        \<iota> \<in> ground.eq_resolution_inferences \<or>
+        \<iota> \<in> ground.eq_factoring_inferences"
     using assms(1)
     unfolding 
       ground.Inf_from_q_def 
@@ -1564,8 +1561,8 @@ proof-
   then show ?thesis
     using 
       assms
-      equality_resolution_ground_instance'
-      equality_factoring_ground_instance'
+      eq_resolution_ground_instance'
+      eq_factoring_ground_instance'
       superposition_ground_instance'
     by presburger
 qed

@@ -7,11 +7,11 @@ begin
 context ground_superposition_calculus
 begin
 
-abbreviation equality_resolution_inferences where
-  "equality_resolution_inferences \<equiv>  {Infer [P] C | P C. ground_eq_resolution P C}"
+abbreviation eq_resolution_inferences where
+  "eq_resolution_inferences \<equiv>  {Infer [P] C | P C. ground_eq_resolution P C}"
 
-abbreviation equality_factoring_inferences where
-  "equality_factoring_inferences \<equiv>  {Infer [P] C | P C.  ground_eq_factoring P C}"
+abbreviation eq_factoring_inferences where
+  "eq_factoring_inferences \<equiv>  {Infer [P] C | P C.  ground_eq_factoring P C}"
 
 abbreviation superposition_inferences where
   "superposition_inferences \<equiv> {Infer [P2, P1] C | P1 P2 C. ground_superposition P2 P1 C}"

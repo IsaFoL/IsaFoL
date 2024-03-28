@@ -12,12 +12,12 @@ begin
 abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
   "entails\<^sub>F \<equiv> lifting.entails_\<G>"
 
-lemma equality_resolution_sound:
-  assumes step: "equality_resolution P C"
+lemma eq_resolution_sound:
+  assumes step: "eq_resolution P C"
   shows "{P} \<TTurnstile>\<^sub>F {C}"
   using step
-proof (cases P C rule: equality_resolution.cases)
-  case (equality_resolutionI L P' s\<^sub>1 s\<^sub>2 \<mu>)
+proof (cases P C rule: eq_resolution.cases)
+  case (eq_resolutionI L P' s\<^sub>1 s\<^sub>2 \<mu>)
 
   have 
     "\<And>I \<theta>. \<lbrakk>
@@ -54,17 +54,17 @@ proof (cases P C rule: equality_resolution.cases)
        by (auto simp: true_cls_def)
 
      have [simp]: "?P = add_mset ?L ?P'"
-       by (simp add: to_ground_clause_def equality_resolutionI(1) subst_clause_add_mset)
+       by (simp add: to_ground_clause_def eq_resolutionI(1) subst_clause_add_mset)
 
      have [simp]: "?L = (Neg (Upair ?s\<^sub>1 ?s\<^sub>2))"
-       unfolding to_ground_literal_def equality_resolutionI(2) to_ground_atom_def
+       unfolding to_ground_literal_def eq_resolutionI(2) to_ground_atom_def
        by (simp add: subst_atom_def subst_literal)
        
      have [simp]: "?s\<^sub>1 = ?s\<^sub>2"
-       using term_subst.subst_imgu_eq_subst_imgu[OF equality_resolutionI(3)] by simp
+       using term_subst.subst_imgu_eq_subst_imgu[OF eq_resolutionI(3)] by simp
       
      have "is_neg ?L"
-       by (simp add: to_ground_literal_def equality_resolutionI(2) subst_literal)
+       by (simp add: to_ground_literal_def eq_resolutionI(2) subst_literal)
 
      show "?I \<TTurnstile> to_ground_clause (C \<cdot> \<theta>)"
       proof(cases "L' = ?L")
@@ -84,7 +84,7 @@ proof (cases P C rule: equality_resolution.cases)
          using L'_in_P by force
   
        then have "L' \<in># to_ground_clause (C \<cdot> \<gamma>)"
-         unfolding equality_resolutionI.
+         unfolding eq_resolutionI.
   
        then show ?thesis
          using I_models_L' 
@@ -98,12 +98,12 @@ proof (cases P C rule: equality_resolution.cases)
      by auto
 qed
 
-lemma equality_factoring_sound:
-  assumes step: "equality_factoring P C"
+lemma eq_factoring_sound:
+  assumes step: "eq_factoring P C"
   shows "{P} \<TTurnstile>\<^sub>F {C}"
   using step
-proof (cases P C rule: equality_factoring.cases)
-  case (equality_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
+proof (cases P C rule: eq_factoring.cases)
+  case (eq_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
 
   have 
     "\<And>I \<theta>. \<lbrakk>
@@ -146,19 +146,19 @@ proof (cases P C rule: equality_factoring.cases)
       by (auto simp: true_cls_def)
 
     then have s\<^sub>1_equals_t\<^sub>2: "?t\<^sub>2 = ?s\<^sub>1"
-      using term_subst.subst_imgu_eq_subst_imgu[OF equality_factoringI(7)]
+      using term_subst.subst_imgu_eq_subst_imgu[OF eq_factoringI(7)]
       by simp
 
     have L\<^sub>1: "?L\<^sub>1 = ?s\<^sub>1 \<approx> ?s\<^sub>1'"
-      unfolding to_ground_literal_def equality_factoringI(2) to_ground_atom_def
+      unfolding to_ground_literal_def eq_factoringI(2) to_ground_atom_def
       by (simp add: subst_atom_def subst_literal)
 
     have L\<^sub>2: "?L\<^sub>2 = ?t\<^sub>2 \<approx> ?t\<^sub>2'"
-      unfolding to_ground_literal_def equality_factoringI(3) to_ground_atom_def
+      unfolding to_ground_literal_def eq_factoringI(3) to_ground_atom_def
       by (simp add: subst_atom_def subst_literal)
 
     have C: "?C = add_mset (?s\<^sub>1 \<approx> ?t\<^sub>2') (add_mset (Neg (Upair ?s\<^sub>1' ?t\<^sub>2')) ?P')"
-      unfolding equality_factoringI 
+      unfolding eq_factoringI 
       by (simp add: to_ground_clause_def to_ground_literal_def subst_atom_def subst_clause_add_mset subst_literal
             to_ground_atom_def)
 
@@ -183,11 +183,11 @@ proof (cases P C rule: equality_factoring.cases)
       case False
       then have "L' \<in># ?P'"
         using L'_in_P
-        unfolding equality_factoringI
+        unfolding eq_factoringI
         by (simp add: to_ground_clause_def subst_clause_add_mset)
 
       then have "L' \<in># to_ground_clause (C \<cdot> \<gamma>)"
-        by (simp add: to_ground_clause_def equality_factoringI(8) subst_clause_add_mset)
+        by (simp add: to_ground_clause_def eq_factoringI(8) subst_clause_add_mset)
 
       then show ?thesis
         unfolding \<gamma>(2)
@@ -410,8 +410,8 @@ proof unfold_locales
   assume "\<iota> \<in> inferences"
   then show "set (prems_of \<iota>) \<TTurnstile>\<^sub>F {concl_of \<iota>}"
     using 
-      equality_factoring_sound
-      equality_resolution_sound
+      eq_factoring_sound
+      eq_resolution_sound
       superposition_sound
     unfolding inferences_def ground.G_entails_def
     by auto

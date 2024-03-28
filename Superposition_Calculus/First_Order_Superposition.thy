@@ -38,18 +38,18 @@ locale first_order_superposition_calculus =
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
 
-inductive equality_resolution :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
-  equality_resolutionI: 
+inductive eq_resolution :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
+  eq_resolutionI: 
    "premise = add_mset literal premise' \<Longrightarrow>
     literal = term !\<approx> term' \<Longrightarrow>
     term_subst.is_imgu \<mu> {{ term, term' }} \<Longrightarrow>
     select premise = {#} \<and> is_maximal\<^sub>l (literal \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<or> 
       is_maximal\<^sub>l literal (select premise) \<Longrightarrow>
     conclusion = premise' \<cdot> \<mu> \<Longrightarrow>
-    equality_resolution premise conclusion"
+    eq_resolution premise conclusion"
 
-inductive equality_factoring :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
-  equality_factoringI: "
+inductive eq_factoring :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
+  eq_factoringI: "
     premise = add_mset literal\<^sub>1 (add_mset literal\<^sub>2 premise') \<Longrightarrow>
     literal\<^sub>1 = term\<^sub>1 \<approx> term\<^sub>1' \<Longrightarrow>
     literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2' \<Longrightarrow>
@@ -58,7 +58,7 @@ inductive equality_factoring :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) ato
     \<not> (term\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<mu>) \<Longrightarrow>
     term_subst.is_imgu \<mu> {{ term\<^sub>1, term\<^sub>2 }} \<Longrightarrow>
     conclusion = add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise') \<cdot> \<mu> \<Longrightarrow>
-    equality_factoring premise conclusion"
+    eq_factoring premise conclusion"
 
 inductive superposition ::
   "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"
@@ -89,13 +89,13 @@ where
           (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
     superposition premise\<^sub>2 premise\<^sub>1 conclusion"
 
-abbreviation equality_factoring_inferences where
-  "equality_factoring_inferences \<equiv> 
-    { Infer [premise] conclusion | premise conclusion. equality_factoring premise conclusion }"
+abbreviation eq_factoring_inferences where
+  "eq_factoring_inferences \<equiv> 
+    { Infer [premise] conclusion | premise conclusion. eq_factoring premise conclusion }"
 
-abbreviation equality_resolution_inferences where
-  "equality_resolution_inferences \<equiv> 
-    { Infer [premise] conclusion | premise conclusion. equality_resolution premise conclusion }"
+abbreviation eq_resolution_inferences where
+  "eq_resolution_inferences \<equiv> 
+    { Infer [premise] conclusion | premise conclusion. eq_resolution premise conclusion }"
 
 abbreviation superposition_inferences where
   "superposition_inferences \<equiv> { Infer [premise\<^sub>2, premise\<^sub>1] conclusion 
@@ -103,7 +103,7 @@ abbreviation superposition_inferences where
 
 definition inferences :: "('f, 'v) atom clause inference set" where
   "inferences \<equiv> 
-    superposition_inferences \<union> equality_resolution_inferences \<union> equality_factoring_inferences"
+    superposition_inferences \<union> eq_resolution_inferences \<union> eq_factoring_inferences"
 
 abbreviation bottom\<^sub>F :: "('f, 'v) atom clause set" ("\<bottom>\<^sub>F") where
   "bottom\<^sub>F \<equiv> {{#}}"
