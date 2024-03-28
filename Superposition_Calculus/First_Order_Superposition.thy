@@ -26,27 +26,26 @@ locale first_order_superposition_calculus =
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   fixes
     tiebreakers :: "'f gatom clause  \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" and
-    typeof_fun :: "'f \<Rightarrow> 'ty list \<times> 'ty"
+    typeof_fun :: "('f, 'ty) fun_types" and
+    typeof_var :: "('v, 'ty) var_types"
   assumes
     wellfounded_tiebreakers: 
-      "\<And>clause\<^sub>G. wfP (tiebreakers clause\<^sub>G) \<and> 
-                 transp (tiebreakers clause\<^sub>G) \<and> 
-                 asymp (tiebreakers clause\<^sub>G)" and
+      "\<And>term\<^sub>G. wfP (tiebreakers term\<^sub>G) \<and> 
+               transp (tiebreakers term\<^sub>G) \<and> 
+               asymp (tiebreakers term\<^sub>G)" and
     (* TODO: Use theorem from CeTA *)
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
 
-inductive eq_resolution :: 
-  "('v \<Rightarrow> 'ty) \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool"  where
+inductive eq_resolution :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
   eq_resolutionI: 
    "premise = add_mset literal premise' \<Longrightarrow>
     literal = term !\<approx> term' \<Longrightarrow>
     term_subst.is_imgu \<mu> {{ term, term' }} \<Longrightarrow>
-    well_typed_unifier typeof_fun \<V> term term' \<mu> \<Longrightarrow>
     select premise = {#} \<and> is_maximal\<^sub>l (literal \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<or> 
       is_maximal\<^sub>l (literal \<cdot>l \<mu>) ((select premise) \<cdot> \<mu>) \<Longrightarrow>
     conclusion = premise' \<cdot> \<mu> \<Longrightarrow>
-    eq_resolution \<V> premise conclusion"
+    eq_resolution premise conclusion"
 
 inductive eq_factoring :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
   eq_factoringI: "
@@ -95,7 +94,7 @@ abbreviation eq_factoring_inferences where
 
 abbreviation eq_resolution_inferences where
   "eq_resolution_inferences \<equiv> 
-    { Infer [premise] conclusion | \<V> premise conclusion. eq_resolution \<V> premise conclusion }"
+    { Infer [premise] conclusion | premise conclusion. eq_resolution premise conclusion }"
 
 abbreviation superposition_inferences where
   "superposition_inferences \<equiv> { Infer [premise\<^sub>2, premise\<^sub>1] conclusion 
@@ -208,43 +207,49 @@ lemmas literal_renaming_exists =
 lemmas clause_renaming_exists = 
   renaming_exists[OF subset_UNIV subset_UNIV finite_vars_clause finite_vars_clause]
 
-lemma well_typed_unifier_well_typed_subst:
-  assumes 
-    "has_type typeof_fun \<V> term \<tau>"
-    "has_type typeof_fun \<V> term' \<tau>"
-  shows
-    "well_typed_unifier typeof_fun \<V> term term' \<mu> \<longleftrightarrow> well_typed_subst typeof_fun \<V> \<mu>"
-  using assms
-  unfolding well_typed_unifier_def well_typed_subst_def
-  by blast
-
+(* TODO: abbreviations without typeof_fun typeof_var *)
 lemma eq_resolution_preserves_typing:
   assumes
-    step: "equality_resolution \<V> D C" and
-    wt_D: "well_typed_cls typeof_fun \<V> D"
-  shows "well_typed_cls typeof_fun \<V> C"
+    step: "equality_resolution D C" and
+    wt_D: "welltyped\<^sub>c typeof_fun typeof_var D"
+  shows "welltyped\<^sub>c typeof_fun typeof_var C"
   using step
-proof (cases \<V> D C rule: equality_resolution.cases)
+proof (cases D C rule: equality_resolution.cases)
   case (equality_resolutionI literal premise' "term" term' \<mu>)
   obtain \<tau> where \<tau>:
-    "has_type typeof_fun \<V> term \<tau>"
-    "has_type typeof_fun \<V> term' \<tau>"
+    "welltyped typeof_fun typeof_var term \<tau>"
+    "welltyped typeof_fun typeof_var term' \<tau>"
     using wt_D
     unfolding 
       equality_resolutionI 
-      well_typed_cls_add_mset 
-      well_typed_lit_def 
-      well_typed_atm_def
+      welltyped\<^sub>c_add_mset 
+      welltyped\<^sub>l_def 
+      welltyped\<^sub>a_def
     by auto
 
-  have "well_typed_cls typeof_fun \<V> (D  \<cdot> \<mu>)"
-    using wt_D equality_resolutionI(4) well_typed_subst_clause
-    unfolding well_typed_unifier_well_typed_subst[OF \<tau>]
+  then have "welltyped\<^sub>\<sigma> typeof_fun typeof_var \<mu>"
+    using welltyped_is_imgu equality_resolutionI(3)
+    by fast
+    
+  then have "welltyped\<^sub>c typeof_fun typeof_var (D  \<cdot> \<mu>)"
+    using wt_D welltyped\<^sub>\<sigma>_welltyped\<^sub>c
     by blast
     
   then show ?thesis
-    unfolding equality_resolutionI subst_clause_add_mset well_typed_cls_add_mset
+    unfolding equality_resolutionI subst_clause_add_mset welltyped\<^sub>c_add_mset
     by blast
+qed
+
+lemma eq_factoring_preserves_typing:
+  assumes
+    step: "equality_factoring D C" and
+    wt_D: "welltyped\<^sub>c typeof_fun typeof_var D"
+  shows "welltyped\<^sub>c typeof_fun typeof_var C"
+  using step
+proof (cases D C rule: equality_factoring.cases)
+  case (equality_factoringI literal\<^sub>1 literal\<^sub>2 premise' term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
+  then show ?thesis 
+    sorry
 qed
 
 
