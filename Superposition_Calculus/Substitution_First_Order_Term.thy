@@ -41,6 +41,27 @@ next
     using ex_inverse_of_renaming by metis
 qed
 
+lemma term_subst_is_renaming_iff_ex_inj_fun_on_vars:
+  "term_subst.is_renaming \<rho> \<longleftrightarrow> (\<exists>f. inj f \<and> \<rho> = Var \<circ> f)"
+proof (rule iffI)
+  assume "term_subst.is_renaming \<rho>"
+  hence "inj \<rho>" and all_Var: "\<forall>x. is_Var (\<rho> x)"
+    unfolding term_subst_is_renaming_iff by simp_all
+  from all_Var obtain f where "\<forall>x. \<rho> x = Var (f x)"
+    by (metis comp_apply term.collapse(1))
+  hence "\<rho> = Var \<circ> f"
+    using \<open>\<forall>x. \<rho> x = Var (f x)\<close>
+    by (intro ext) simp
+  moreover have "inj f"
+      using \<open>inj \<rho>\<close> unfolding \<open>\<rho> = Var \<circ> f\<close>
+      using inj_on_imageI2 by metis
+  ultimately show "\<exists>f. inj f \<and> \<rho> = Var \<circ> f"
+    by metis
+next
+  show "\<exists>f. inj f \<and> \<rho> = Var \<circ> f \<Longrightarrow> term_subst.is_renaming \<rho>"
+    by (metis comp_apply inj_compose inj_on_Var term.disc(1) term_subst_is_renaming_iff)
+qed
+
 lemma ground_imgu_equals: 
   assumes "is_ground_trm t\<^sub>1" and "is_ground_trm t\<^sub>2" and "term_subst.is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}}"
   shows "t\<^sub>1 = t\<^sub>2"
