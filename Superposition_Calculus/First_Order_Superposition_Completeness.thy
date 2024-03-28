@@ -16,9 +16,9 @@ lemma equality_resolution_lifting:
     conclusion_grounding [intro]: "is_ground_clause (conclusion \<cdot> \<theta>)" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<theta>" and
     ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G"
-  obtains \<V> conclusion' 
+  obtains conclusion' 
   where
-    "equality_resolution \<V> premise conclusion'"
+    "equality_resolution premise conclusion'"
     "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')"
     "conclusion' \<cdot> \<theta> = conclusion \<cdot> \<theta>"
   using ground_eq_resolution
@@ -97,12 +97,11 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     unfolding terms subst_literal(2) subst_atom_def to_literal_def to_atom_def
     by simp
 
-  then obtain \<sigma> \<tau> \<V> where \<sigma>: 
+  then obtain \<sigma> \<tau> where \<sigma>: 
     "term_subst.is_imgu \<sigma> {{term, term'}}" 
     "\<theta> = \<sigma> \<odot> \<tau>"
-    "well_typed_unifier typeof_fun \<V> term term' \<sigma>"
-    using welltyped_imgu_exists
-    sorry
+    using imgu_exists
+    by metis
 
   have literal\<^sub>G: 
     "to_literal literal\<^sub>G = (term !\<approx> term') \<cdot>l \<theta>" 
@@ -119,7 +118,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     unfolding conclusion' ground_eq_resolutionI(2) literal[symmetric] subst_clause_add_mset
     by simp
     
-  have equality_resolution: "equality_resolution \<V> premise (conclusion' \<cdot> \<sigma>)"
+  have equality_resolution: "equality_resolution premise (conclusion' \<cdot> \<sigma>)"
   proof (rule equality_resolutionI)
      show "premise = add_mset literal conclusion'"
        using conclusion'.
@@ -159,9 +158,6 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
       then show ?thesis
         using literal_selected by blast
     qed
-  next 
-    show "well_typed_unifier typeof_fun \<V> term term' \<sigma>"
-      using \<sigma>(3).
   next
     show "conclusion' \<cdot> \<sigma> = conclusion' \<cdot> \<sigma>" ..
   qed
@@ -1261,8 +1257,8 @@ proof-
     conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<theta>)"
     by (smt ground_clause_is_ground to_clause_inverse)+
    
-  obtain conclusion' \<V> where 
-    equality_resolution: "equality_resolution \<V> premise conclusion'" and
+  obtain conclusion' where 
+    equality_resolution: "equality_resolution premise conclusion'" and
     inference_groundings: 
       "Infer [to_ground_clause (premise \<cdot> \<theta>)] (to_ground_clause (conclusion' \<cdot> \<theta>)) \<in> 
         inference_groundings (Infer [premise] conclusion')" and  

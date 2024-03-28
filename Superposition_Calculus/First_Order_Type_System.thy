@@ -2,14 +2,20 @@ theory First_Order_Type_System
   imports First_Order_Clause
 begin
 
-inductive has_type :: 
-  "('f \<Rightarrow> 'ty list \<times> 'ty) \<Rightarrow> ('v \<Rightarrow> 'ty) \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" for \<F> \<V> where
-  Var: "\<V> x = \<tau> \<Longrightarrow> has_type \<F> \<V> (Var x) \<tau>" |
-  Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> 
-    list_all2 (has_type \<F> \<V>) ts \<tau>s \<Longrightarrow>
-    has_type \<F> \<V> (Fun f ts) \<tau>"
+type_synonym ('f, 'ty) fun_types = "('f \<Rightarrow> 'ty list \<times> 'ty)"
+type_synonym ('v, 'ty) var_types = "('v \<Rightarrow> 'ty)"
 
-lemma right_unique_has_type: "right_unique (has_type \<F> \<V>)"
+inductive has_type :: "('f, 'ty) fun_types \<Rightarrow> ('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" 
+  for \<F> \<V> where
+  Var: "\<V> x = \<tau> \<Longrightarrow> has_type \<F> \<V> (Var x) \<tau>"
+| Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> has_type \<F> \<V> (Fun f ts) \<tau>"
+
+inductive welltyped :: "('f, 'ty) fun_types \<Rightarrow>  ('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" 
+  for \<F> \<V> where
+  Var: "\<V> x = \<tau> \<Longrightarrow> welltyped \<F> \<V> (Var x) \<tau>"
+| Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> list_all2 (welltyped \<F> \<V>) ts \<tau>s \<Longrightarrow> welltyped \<F> \<V> (Fun f ts) \<tau>"
+
+lemma has_type_right_unique: "right_unique (has_type \<F> \<V>)"
 proof (rule right_uniqueI)
   fix t \<tau>\<^sub>1 \<tau>\<^sub>2
   assume "has_type \<F> \<V> t \<tau>\<^sub>1" and "has_type \<F> \<V> t \<tau>\<^sub>2"
@@ -17,168 +23,232 @@ proof (rule right_uniqueI)
     by (auto elim!: has_type.cases)
 qed
 
-definition well_typed_atm where
-  "well_typed_atm \<F> \<V> A \<longleftrightarrow> (\<exists>\<tau>. \<forall>t \<in> set_uprod A. has_type \<F> \<V> t \<tau>)"
+lemma welltyped_right_unique: "right_unique (welltyped \<F> \<V>)"
+proof (rule right_uniqueI)
+  fix t \<tau>\<^sub>1 \<tau>\<^sub>2
+  assume "welltyped \<F> \<V> t \<tau>\<^sub>1" and "welltyped \<F> \<V> t \<tau>\<^sub>2"
+  thus "\<tau>\<^sub>1 = \<tau>\<^sub>2"
+    by (auto elim!: welltyped.cases)
+qed
 
-definition well_typed_lit where
-  "well_typed_lit \<F> \<V> L \<longleftrightarrow> well_typed_atm \<F> \<V> (atm_of L)"
+definition has_type\<^sub>a where
+  "has_type\<^sub>a \<F> \<V> A \<longleftrightarrow> (\<exists>\<tau>. \<forall>t \<in> set_uprod A. has_type \<F> \<V> t \<tau>)"
 
-definition well_typed_cls where
-  "well_typed_cls \<F> \<V> C \<longleftrightarrow> (\<forall>L \<in># C. well_typed_lit \<F> \<V> L)"
+definition welltyped\<^sub>a where
+  "welltyped\<^sub>a \<F> \<V> A \<longleftrightarrow> (\<exists>\<tau>. \<forall>t \<in> set_uprod A. welltyped \<F> \<V> t \<tau>)"
 
-definition well_typed_cls_set where
-  "well_typed_cls_set \<F> \<V> N \<longleftrightarrow> (\<forall>C \<in> N. well_typed_cls \<F> \<V> C)"
+definition has_type\<^sub>l where
+  "has_type\<^sub>l \<F> \<V> L \<longleftrightarrow> has_type\<^sub>a \<F> \<V> (atm_of L)"
 
-definition well_typed_subst where
-  "well_typed_subst \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>x. has_type \<F> \<V> (\<sigma> x) (\<V> x))"
+definition welltyped\<^sub>l where
+  "welltyped\<^sub>l \<F> \<V> L \<longleftrightarrow> welltyped\<^sub>a \<F> \<V> (atm_of L)"
 
-definition well_typed_subst' where
-  "well_typed_subst' \<F> \<V> \<sigma> \<longleftrightarrow> 
-    (\<forall>t \<tau>. has_type \<F> \<V> t \<tau> \<longrightarrow> has_type \<F> \<V> (t \<cdot>t \<sigma>) \<tau>)"
+definition has_type\<^sub>c where
+  "has_type\<^sub>c \<F> \<V> C \<longleftrightarrow> (\<forall>L \<in># C. has_type\<^sub>l \<F> \<V> L)"
 
-definition well_typed_unifier where
-  "well_typed_unifier \<F> \<V> t\<^sub>1 t\<^sub>2 \<upsilon> \<longleftrightarrow> 
-    (\<forall>\<tau>. has_type \<F> \<V> t\<^sub>1 \<tau> \<longrightarrow> has_type \<F> \<V> t\<^sub>2 \<tau> \<longrightarrow> (\<forall>x. has_type \<F> \<V> (\<upsilon> x) (\<V> x)))"
+definition welltyped\<^sub>c where
+  "welltyped\<^sub>c \<F> \<V> C \<longleftrightarrow> (\<forall>L \<in># C. welltyped\<^sub>l \<F> \<V> L)"
 
-lemma well_typed_cls_add_mset: 
-  "well_typed_cls \<F> \<V> (add_mset L C) \<longleftrightarrow> well_typed_lit \<F> \<V> L \<and> well_typed_cls \<F> \<V> C"
-  by (simp add: well_typed_cls_def)
+definition has_type\<^sub>c\<^sub>s where
+  "has_type\<^sub>c\<^sub>s \<F> \<V> N \<longleftrightarrow> (\<forall>C \<in> N. has_type\<^sub>c \<F> \<V> C)"
 
-lemma well_typed_cls_plus: 
-  "well_typed_cls \<F> \<V> (C + D) \<longleftrightarrow> well_typed_cls \<F> \<V> C \<and> well_typed_cls \<F> \<V> D"
-  by (auto simp: well_typed_cls_def)
+definition welltyped\<^sub>c\<^sub>s where
+  "welltyped\<^sub>c\<^sub>s \<F> \<V> N \<longleftrightarrow> (\<forall>C \<in> N. welltyped\<^sub>c \<F> \<V> C)"
 
-lemma well_typed_subst'_term: 
-  assumes well_typed_subst': "well_typed_subst' \<F> \<V> \<sigma>" and typed_t: "has_type \<F> \<V> t \<tau>"
+(* TODO: Rename *)
+definition has_type\<^sub>\<sigma> where
+  "has_type\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>t \<tau>. has_type \<F> \<V> t \<tau> \<longrightarrow> has_type \<F> \<V> (t \<cdot>t \<sigma>) \<tau>)"
+
+definition has_type\<^sub>\<sigma>' where
+  "has_type\<^sub>\<sigma>' \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>x. has_type \<F> \<V> (\<sigma> x) (\<V> x))"
+
+(* TODO: Would also (\<forall>t \<tau>. welltyped \<F> \<V> t \<tau> \<longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>)  work? *)
+definition welltyped\<^sub>\<sigma> where
+  "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>x. welltyped \<F> \<V> (\<sigma> x) (\<V> x))"
+
+lemma has_type\<^sub>c_add_mset: 
+  "has_type\<^sub>c \<F> \<V> (add_mset L C) \<longleftrightarrow> has_type\<^sub>l \<F> \<V> L \<and> has_type\<^sub>c \<F> \<V> C"
+  by (simp add: has_type\<^sub>c_def)
+
+lemma welltyped\<^sub>c_add_mset: 
+  "welltyped\<^sub>c \<F> \<V> (add_mset L C) \<longleftrightarrow> welltyped\<^sub>l \<F> \<V> L \<and> welltyped\<^sub>c \<F> \<V> C"
+  by (simp add: welltyped\<^sub>c_def)
+
+lemma has_type\<^sub>c_plus: 
+  "has_type\<^sub>c \<F> \<V> (C + D) \<longleftrightarrow> has_type\<^sub>c \<F> \<V> C \<and> has_type\<^sub>c \<F> \<V> D"
+  by (auto simp: has_type\<^sub>c_def)
+
+lemma welltyped\<^sub>c_plus: 
+  "welltyped\<^sub>c \<F> \<V> (C + D) \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> C \<and> welltyped\<^sub>c \<F> \<V> D"
+  by (auto simp: welltyped\<^sub>c_def)
+
+lemma has_type\<^sub>\<sigma>_has_type: 
+  assumes "has_type\<^sub>\<sigma> \<F> \<V> \<sigma>" "has_type \<F> \<V> t \<tau>"
   shows "has_type \<F> \<V> (t \<cdot>t \<sigma>) \<tau>"
   using assms 
-  unfolding well_typed_subst'_def
+  unfolding has_type\<^sub>\<sigma>_def
   by blast
 
-lemma well_typed_subst_term: 
-  assumes well_typed_subst: "well_typed_subst \<F> \<V> \<sigma>"
-  shows "has_type \<F> \<V> (t \<cdot>t \<sigma>) \<tau> \<longleftrightarrow> has_type \<F> \<V> t \<tau>"
+lemma welltyped\<^sub>\<sigma>_welltyped: 
+  assumes welltyped\<^sub>\<sigma>: "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma>"
+  shows "welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau> \<longleftrightarrow> welltyped \<F> \<V> t \<tau>"
 proof(rule iffI)
-  assume "has_type \<F> \<V> (t \<cdot>t \<sigma>) \<tau>"
-  thus "has_type \<F> \<V> t \<tau>"
-  proof(induction "t \<cdot>t \<sigma>" \<tau>  arbitrary: t rule: has_type.induct)
+  assume "welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>"
+  thus "welltyped \<F> \<V> t \<tau>"
+  proof(induction "t \<cdot>t \<sigma>" \<tau>  arbitrary: t rule: welltyped.induct)
     case (Var x \<tau>)
     then obtain x' where t: "t = Var x'"
       by (metis subst_apply_eq_Var)
 
-    have "has_type \<F> \<V> t (\<V> x')"
+    have "welltyped \<F> \<V> t (\<V> x')"
       unfolding t 
-      by (simp add: has_type.Var)
+      by (simp add: welltyped.Var)
 
-    have "has_type \<F> \<V> t (\<V> x)"
-      using Var well_typed_subst
-      unfolding t well_typed_subst_def
-      by (metis eval_term.simps(1) has_type.Var right_uniqueD right_unique_has_type)
+    have "welltyped \<F> \<V> t (\<V> x)"
+      using Var welltyped\<^sub>\<sigma>
+      unfolding t welltyped\<^sub>\<sigma>_def
+      by (metis eval_term.simps(1) welltyped.Var right_uniqueD welltyped_right_unique)
 
     then have \<V>_x': "\<tau> = \<V> x'"
-      using Var well_typed_subst
-      unfolding well_typed_subst_def  t
-      by (metis has_type.Var right_uniqueD right_unique_has_type t)
+      using Var welltyped\<^sub>\<sigma>
+      unfolding welltyped\<^sub>\<sigma>_def  t
+      by (metis welltyped.Var right_uniqueD welltyped_right_unique t)
 
     show ?case 
       unfolding t \<V>_x'
-      by (simp add: has_type.Var)
+      by (simp add: welltyped.Var)
   next
     case (Fun f \<tau>s \<tau> ts)
     show ?case 
     proof(cases t)
       case (Var x)
       from Fun show ?thesis
-        using  well_typed_subst 
-        unfolding well_typed_subst_def Var
-        by (metis (no_types, opaque_lifting) eval_term.simps(1) has_type.simps prod.sel(2) 
+        using welltyped\<^sub>\<sigma>
+        unfolding welltyped\<^sub>\<sigma>_def Var
+        by (metis (no_types, opaque_lifting) eval_term.simps(1) welltyped.simps prod.sel(2) 
             term.distinct(1) term.inject(2))
     next
       case Fun\<^sub>t: Fun
       with Fun show ?thesis
-        by (simp add: has_type.simps list.rel_map(1) list_all2_mono)
+        by (simp add: welltyped.simps list.rel_map(1) list_all2_mono)
     qed
   qed
 next
-  assume "has_type \<F> \<V> t \<tau>"
-  thus "has_type \<F> \<V> (t \<cdot>t \<sigma>) \<tau>"
-  proof(induction t \<tau>  rule: has_type.induct)
+  assume "welltyped \<F> \<V> t \<tau>"
+  thus "welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>"
+  proof(induction t \<tau>  rule: welltyped.induct)
     case Var\<^sub>t: (Var x \<tau>)
     then show ?case
     proof(cases "Var x \<cdot>t \<sigma>")
       case Var
       then show ?thesis
-        using well_typed_subst
-        unfolding well_typed_subst_def
+        using welltyped\<^sub>\<sigma>
+        unfolding welltyped\<^sub>\<sigma>_def
         by (metis Var\<^sub>t.hyps eval_term.simps(1))        
     next
       case Fun
       then show ?thesis
-        using well_typed_subst
-        unfolding well_typed_subst_def
+        using welltyped\<^sub>\<sigma>
+        unfolding welltyped\<^sub>\<sigma>_def
         by (metis Var\<^sub>t.hyps eval_term.simps(1))    
     qed
   next
     case (Fun f \<tau>s \<tau> ts)
     then show ?case
       using assms list_all2_mono
-      unfolding well_typed_subst_def
-      by (smt (verit, ccfv_SIG) eval_term.simps(2) has_type.simps list.rel_map(1))
+      unfolding welltyped\<^sub>\<sigma>_def
+      by (smt (verit, ccfv_SIG) eval_term.simps(2) welltyped.simps list.rel_map(1))
   qed
 qed
 
-lemma well_typed_subst_atom: 
-  assumes well_typed_subst: "well_typed_subst \<F> \<V> \<sigma>"
-  shows "well_typed_atm \<F> \<V> (a \<cdot>a \<sigma>) \<longleftrightarrow> well_typed_atm \<F> \<V> a"
-  using well_typed_subst_term[OF well_typed_subst]
-  unfolding well_typed_atm_def subst_atom_def
+lemma has_type\<^sub>\<sigma>_has_type\<^sub>a: 
+  assumes "has_type\<^sub>\<sigma> \<F> \<V> \<sigma>" "has_type\<^sub>a \<F> \<V> a"
+  shows "has_type\<^sub>a \<F> \<V> (a \<cdot>a \<sigma>)"
+  using assms has_type\<^sub>\<sigma>_has_type
+  unfolding has_type\<^sub>a_def subst_atom_def
+  by(cases a) fastforce
+
+lemma welltyped\<^sub>\<sigma>_welltyped\<^sub>a: 
+  assumes welltyped\<^sub>\<sigma>: "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma>"
+  shows "welltyped\<^sub>a \<F> \<V> (a \<cdot>a \<sigma>) \<longleftrightarrow> welltyped\<^sub>a \<F> \<V> a"
+  using welltyped\<^sub>\<sigma>_welltyped[OF welltyped\<^sub>\<sigma>]
+  unfolding welltyped\<^sub>a_def subst_atom_def
   by(cases a) simp
 
-lemma well_typed_subst_literal: 
-  assumes well_typed_subst: "well_typed_subst \<F> \<V> \<sigma>"
-  shows "well_typed_lit \<F> \<V> (l \<cdot>l \<sigma>) \<longleftrightarrow> well_typed_lit \<F> \<V> l"
-  using well_typed_subst_atom[OF well_typed_subst]
-  unfolding well_typed_lit_def subst_literal_def
+lemma has_type\<^sub>\<sigma>_has_type\<^sub>l: 
+  assumes "has_type\<^sub>\<sigma> \<F> \<V> \<sigma>" "has_type\<^sub>l \<F> \<V> l"
+  shows "has_type\<^sub>l \<F> \<V> (l \<cdot>l \<sigma>)"
+  using assms has_type\<^sub>\<sigma>_has_type\<^sub>a
+  unfolding has_type\<^sub>l_def subst_literal_def
   by(cases l) auto
 
-lemma well_typed_subst_clause: 
-  assumes well_typed_subst: "well_typed_subst \<F> \<V> \<sigma>"
-  shows "well_typed_cls \<F> \<V> (c \<cdot> \<sigma>) \<longleftrightarrow> well_typed_cls \<F> \<V> c"
-  using well_typed_subst_literal[OF well_typed_subst]
-  unfolding well_typed_cls_def subst_clause_def
+lemma welltyped\<^sub>\<sigma>_welltyped\<^sub>l: 
+  assumes welltyped\<^sub>\<sigma>: "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma>"
+  shows "welltyped\<^sub>l \<F> \<V> (l \<cdot>l \<sigma>) \<longleftrightarrow> welltyped\<^sub>l \<F> \<V> l"
+  using welltyped\<^sub>\<sigma>_welltyped\<^sub>a[OF welltyped\<^sub>\<sigma>]
+  unfolding welltyped\<^sub>l_def subst_literal_def
+  by(cases l) auto
+
+lemma has_type\<^sub>\<sigma>_has_type\<^sub>c: 
+  assumes "has_type\<^sub>\<sigma> \<F> \<V> \<sigma>" "has_type\<^sub>c \<F> \<V> c"
+  shows "has_type\<^sub>c \<F> \<V> (c \<cdot> \<sigma>)"
+  using assms has_type\<^sub>\<sigma>_has_type\<^sub>l
+  unfolding has_type\<^sub>c_def subst_clause_def
   by blast
 
-definition well_typed_imgu where
-  "well_typed_imgu \<F> \<V> \<sigma> terms \<equiv> 
-    term_subst.is_imgu \<sigma> terms \<and> well_typed_subst \<F> \<V> \<sigma>"
+lemma welltyped\<^sub>\<sigma>_welltyped\<^sub>c: 
+  assumes welltyped\<^sub>\<sigma>: "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma>"
+  shows "welltyped\<^sub>c \<F> \<V> (c \<cdot> \<sigma>) \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> c"
+  using welltyped\<^sub>\<sigma>_welltyped\<^sub>l[OF welltyped\<^sub>\<sigma>]
+  unfolding welltyped\<^sub>c_def subst_clause_def
+  by blast
 
-lemma ctxt_apply_term_preserves_typing:
+lemma has_type\<^sub>\<kappa>:
   assumes
     \<kappa>_type: "has_type \<F> \<V> \<kappa>\<langle>t\<rangle> \<tau>\<^sub>1" and
     t_type: "has_type \<F> \<V> t \<tau>\<^sub>2" and
     t'_type: "has_type \<F> \<V> t' \<tau>\<^sub>2"
-  shows "has_type \<F> \<V> \<kappa>\<langle>t'\<rangle> \<tau>\<^sub>1"
+  shows 
+    "has_type \<F> \<V> \<kappa>\<langle>t'\<rangle> \<tau>\<^sub>1"
+  using \<kappa>_type
+proof(induction \<kappa> arbitrary: \<tau>\<^sub>1)
+  case Hole
+  then show ?case 
+    using has_type_right_unique right_uniqueD t'_type t_type by fastforce
+next
+  case More
+  then show ?case 
+    by (simp add: has_type.simps)
+qed
+
+lemma welltyped\<^sub>\<kappa>:
+  assumes
+    \<kappa>_type: "welltyped \<F> \<V> \<kappa>\<langle>t\<rangle> \<tau>\<^sub>1" and
+    t_type: "welltyped \<F> \<V> t \<tau>\<^sub>2" and
+    t'_type: "welltyped \<F> \<V> t' \<tau>\<^sub>2"
+  shows 
+    "welltyped \<F> \<V> \<kappa>\<langle>t'\<rangle> \<tau>\<^sub>1"
   using \<kappa>_type
 proof (induction \<kappa> arbitrary: \<tau>\<^sub>1)
   case Hole
   then show ?case
     using t_type t'_type
-    using right_unique_has_type[of \<F>, THEN right_uniqueD]
+    using welltyped_right_unique[of \<F>, THEN right_uniqueD]
     by auto
 next
   case (More f ss1 \<kappa> ss2)
-  have "has_type \<F> \<V> (Fun f (ss1 @ \<kappa>\<langle>t\<rangle> # ss2)) \<tau>\<^sub>1"
+  have "welltyped \<F> \<V> (Fun f (ss1 @ \<kappa>\<langle>t\<rangle> # ss2)) \<tau>\<^sub>1"
     using More.prems by simp
-  hence "has_type \<F> \<V> (Fun f (ss1 @ \<kappa>\<langle>t'\<rangle> # ss2)) \<tau>\<^sub>1"
-  proof (cases \<F> \<V> "Fun f (ss1 @ \<kappa>\<langle>t\<rangle> # ss2)" \<tau>\<^sub>1 rule: has_type.cases)
+  hence "welltyped \<F> \<V> (Fun f (ss1 @ \<kappa>\<langle>t'\<rangle> # ss2)) \<tau>\<^sub>1"
+  proof (cases \<F> \<V> "Fun f (ss1 @ \<kappa>\<langle>t\<rangle> # ss2)" \<tau>\<^sub>1 rule: welltyped.cases)
     case (Fun \<tau>s)
     show ?thesis
-    proof (rule has_type.Fun)
+    proof (rule welltyped.Fun)
       show "\<F> f = (\<tau>s, \<tau>\<^sub>1)"
         using \<open>\<F> f = (\<tau>s, \<tau>\<^sub>1)\<close> .
     next
-      show "list_all2 (has_type \<F> \<V>) (ss1 @ \<kappa>\<langle>t'\<rangle> # ss2) \<tau>s"
-        using \<open>list_all2 (has_type \<F> \<V>) (ss1 @ \<kappa>\<langle>t\<rangle> # ss2) \<tau>s\<close>
+      show "list_all2 (welltyped \<F> \<V>) (ss1 @ \<kappa>\<langle>t'\<rangle> # ss2) \<tau>s"
+        using \<open>list_all2 (welltyped \<F> \<V>) (ss1 @ \<kappa>\<langle>t\<rangle> # ss2) \<tau>s\<close>
         using More.IH
         by (smt (verit, del_insts) list_all2_Cons1 list_all2_append1 list_all2_lengthD)
     qed
@@ -187,11 +257,20 @@ next
     by simp
 qed
 
-lemma well_typed_subst'_Var: "well_typed_subst' \<F> \<V> Var"
-  unfolding well_typed_subst'_def
+lemma has_type\<^sub>\<sigma>_Var: "has_type\<^sub>\<sigma> \<F> \<V> Var"
+  unfolding has_type\<^sub>\<sigma>_def
   by simp
 
-lemma Fun_arg_types:
+lemma welltyped\<^sub>\<sigma>_Var: "welltyped\<^sub>\<sigma> \<F> \<V> Var"
+  unfolding welltyped\<^sub>\<sigma>_def
+  by (simp add: welltyped.Var)
+
+lemma welltyped_is_imgu:
+  assumes "welltyped \<F> \<V> t \<tau>" "welltyped \<F> \<V> t' \<tau>" "term_subst.is_imgu \<mu> {{term, term'}}"
+  shows "welltyped\<^sub>\<sigma> \<F> \<V> \<mu>"
+  sorry
+
+(*lemma Fun_arg_types:
   assumes 
     "has_type \<F> \<V> (Fun f fs) \<tau>" 
     "has_type \<F> \<V> (Fun f gs) \<tau>" 
@@ -201,71 +280,80 @@ lemma Fun_arg_types:
     "list_all2 (has_type \<F> \<V>) gs \<tau>s"
   by (metis Pair_inject assms(1) assms(2) has_type.simps term.distinct(1) term.inject(2))
 
+
 lemma welltyped_zip_option:
   assumes 
-    "has_type \<F> \<V> (Fun f ts) \<tau>" 
-    "has_type \<F> \<V> (Fun f ss) \<tau>" 
+    "\<forall>\<tau>. has_type \<F> \<V> (Fun f ts) \<tau> \<longrightarrow> has_type \<F> \<V> (Fun f ss) \<tau>" 
+    "\<forall>\<tau>. has_type \<F> \<V> (Fun f ss) \<tau> \<longrightarrow> has_type \<F> \<V> (Fun f ts) \<tau>" 
     "zip_option ts ss = Some ds" 
   shows 
-    "\<forall>(a, b) \<in> set ds. \<exists>\<tau>. has_type \<F> \<V> a \<tau> \<and> has_type \<F> \<V> b \<tau>"
+    "\<forall>(a, b) \<in> set ds. \<forall>\<tau>. (has_type \<F> \<V> a \<tau> \<longrightarrow> has_type \<F> \<V> b \<tau>) \<and> (has_type \<F> \<V> b \<tau> \<longrightarrow> has_type \<F> \<V> a \<tau>)"
 proof-
-
-  obtain \<tau>s where 
-    "list_all2 (has_type \<F> \<V>) ts \<tau>s"
-    "list_all2 (has_type \<F> \<V>) ss \<tau>s"
-    using Fun_arg_types[OF assms(1, 2)].
+  have
+      "\<forall>\<tau>s. list_all2 (has_type \<F> \<V>) ts \<tau>s \<longrightarrow> list_all2 (has_type \<F> \<V>) ss \<tau>s"
+      "\<forall>\<tau>s. list_all2 (has_type \<F> \<V>) ss \<tau>s \<longrightarrow> list_all2 (has_type \<F> \<V>) ts \<tau>s"
+      using assms(1,2)
+       apply auto
+      sorry
 
   with assms(3) show ?thesis
-  proof(induction ts ss arbitrary: \<tau>s ds rule: zip_induct)
+  proof(induction ts ss arbitrary: ds rule: zip_induct)
     case (Cons_Cons t ts s ss)
-    then obtain \<tau>' \<tau>s' where \<tau>s: "\<tau>s = \<tau>' # \<tau>s'"
-      by (meson list_all2_Cons1)
-
-    from Cons_Cons(2) 
-    obtain d' ds' where ds: "ds = d' # ds'"
+    then obtain d' ds' where ds: "ds = d' # ds'"
       by auto
 
-    have "zip_option ts ss = Some ds'"
+    have
+      "\<forall>\<tau>s. list_all2 (has_type \<F> \<V>) (t # ts) \<tau>s \<longrightarrow> (\<exists>\<tau>' \<tau>s'. \<tau>s = \<tau>' # \<tau>s')"
+      "\<forall>\<tau>s. list_all2 (has_type \<F> \<V>) (s # ss) \<tau>s \<longrightarrow> (\<exists>\<tau>' \<tau>s'. \<tau>s = \<tau>' # \<tau>s')"
+      by (metis list.exhaust list.rel_distinct(2))+
+
+    have "\<forall>\<tau>' \<tau>s'. list_all2 (has_type \<F> \<V>) (t # ts) (\<tau>' # \<tau>s') \<longrightarrow> list_all2 (has_type \<F> \<V>) ts \<tau>s'"
+      by simp
+
+    then have 
+      "\<forall>\<tau>s. list_all2 (has_type \<F> \<V>) ts \<tau>s \<longrightarrow> list_all2 (has_type \<F> \<V>) ss \<tau>s"
+      "\<forall>\<tau>s. list_all2 (has_type \<F> \<V>) ss \<tau>s \<longrightarrow> list_all2 (has_type \<F> \<V>) ts \<tau>s"
+      using Cons_Cons(3, 4)
+      sorry
+
+    moreover have "zip_option ts ss = Some ds'"
       using Cons_Cons(2) 
       unfolding ds
       by fastforce
 
-    moreover have "list_all2 (has_type \<F> \<V>) ts \<tau>s'" 
-      using Cons_Cons.prems(2) \<tau>s by blast
-
-    moreover have "list_all2 (has_type \<F> \<V>) ss \<tau>s'"
-      using Cons_Cons.prems(3) \<tau>s by blast
-
-    ultimately have "\<forall>(t, s)\<in>set ds'. \<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> s \<tau>"
+  
+    ultimately have 
+      "\<forall>(t, s)\<in>set ds'. \<forall>\<tau>. (has_type \<F> \<V> t \<tau> \<longrightarrow> has_type \<F> \<V> s \<tau>) \<and> (has_type \<F> \<V> s \<tau> \<longrightarrow> has_type \<F> \<V> t \<tau>)"
       using Cons_Cons.IH
       by presburger
 
-    moreover have "\<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> s \<tau>"
-      using Cons_Cons.prems(2) Cons_Cons.prems(3) \<tau>s by blast
+    moreover have "\<forall>\<tau>. (has_type \<F> \<V> t \<tau> \<longrightarrow> has_type \<F> \<V> s \<tau>) \<and> (has_type \<F> \<V> s \<tau> \<longrightarrow> has_type \<F> \<V> t \<tau>)"
+      using Cons_Cons.prems
+      sorry
 
     ultimately show ?case
       using Cons_Cons.prems(1) ds
-      by fastforce
+      by auto
   qed(auto)
 qed
 
 lemma welltyped_decompose':
   assumes
-    "has_type \<F> \<V> (Fun f fs) \<tau>" 
-    "has_type \<F> \<V> (Fun f gs) \<tau>"
-    "decompose (Fun f fs) (Fun g gs) = Some ds"
-  shows "\<forall>(t, t') \<in> set ds. \<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> t' \<tau>"
-  using assms welltyped_zip_option[OF assms(1,2)]
-  by force
+    "\<forall>\<tau>. has_type \<F> \<V> (Fun f fs) \<tau> \<longrightarrow> has_type \<F> \<V> (Fun f gs) \<tau>" 
+    "\<forall>\<tau>. has_type \<F> \<V> (Fun f gs) \<tau> \<longrightarrow> has_type \<F> \<V> (Fun f fs) \<tau>" 
+    "decompose (Fun f fs) (Fun f gs) = Some ds"
+  shows "\<forall>(t, t') \<in> set ds. \<forall>\<tau>. (has_type \<F> \<V> t \<tau> \<longrightarrow> has_type \<F> \<V> t' \<tau>) \<and> (has_type \<F> \<V> t' \<tau> \<longrightarrow> has_type \<F> \<V> t \<tau>)"
+  using welltyped_zip_option assms
+  unfolding decompose_def
+  by (smt (verit, del_insts) assms(3) case_prodI2 case_prod_conv decompose_Some length_zip zip_option_same zip_option_zip_conv) 
 
 lemma welltyped_decompose:
   assumes
-    "has_type \<F> \<V> f \<tau>" 
-    "has_type \<F> \<V> g \<tau>"
+    "\<forall>\<tau> .has_type \<F> \<V> f \<tau> \<longrightarrow> has_type \<F> \<V> g \<tau>" 
+    "\<forall>\<tau>. has_type \<F> \<V> g \<tau> \<longrightarrow> has_type \<F> \<V> f \<tau>" 
     "decompose f g = Some ds"
-  shows "\<forall>(t, t') \<in> set ds. \<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> t' \<tau>"
+  shows "\<forall>(t, t') \<in> set ds. \<forall>\<tau>. (has_type \<F> \<V> t \<tau> \<longrightarrow> has_type \<F> \<V> t' \<tau>) \<and> (has_type \<F> \<V> t' \<tau> \<longrightarrow> has_type \<F> \<V> t \<tau>)"
 proof-
-
   obtain f' fs gs where "f = Fun f' fs" "g = Fun f' gs"
     using assms(3)
     unfolding decompose_def
@@ -273,20 +361,20 @@ proof-
 
   then show ?thesis
     using assms welltyped_decompose'
-    by (metis (mono_tags, lifting))
+    by (smt (verit, ccfv_SIG) case_prodI2 case_prod_conv) 
 qed
 
 lemma welltyped_subst'_subst: 
-  assumes "has_type \<F> \<V> (Var x) \<tau>" "has_type \<F> \<V> t \<tau>"
+  assumes "\<forall>\<tau>. has_type \<F> \<V> (Var x) \<tau> \<longrightarrow> has_type \<F> \<V> t \<tau>"
   shows "well_typed_subst' \<F> \<V> (subst x t)"
   using assms
   unfolding subst_def well_typed_subst'_def
-  by (metis (mono_tags, lifting) fun_upd_other fun_upd_same has_type.Var right_uniqueD right_unique_has_type well_typed_subst_def well_typed_subst_term)
+  by (auto simp add: has_type.Var well_typed_subst_def well_typed_subst_term)
 
 lemma welltyped_unify:
   assumes 
     "unify es bs = Some unifier"
-    "\<forall>(t, t') \<in> set es. \<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> t' \<tau>"
+    "\<forall>(t, t') \<in> set es. \<forall>\<tau>. (has_type \<F> \<V> t \<tau> \<longrightarrow> has_type \<F> \<V> t' \<tau>) \<and> (has_type \<F> \<V> t' \<tau> \<longrightarrow> has_type \<F> \<V> t \<tau>)"
     "well_typed_subst' \<F> \<V> (subst_of bs)"
   shows "well_typed_subst' \<F> \<V> (subst_of unifier)"
   using assms
@@ -296,9 +384,8 @@ proof(induction es bs arbitrary: unifier rule: unify.induct)
     by simp
 next
   case (2 f ss g ts E bs)
-  then obtain \<tau> where \<tau>:
-    "has_type \<F> \<V> (Fun f ss) \<tau>" 
-    "has_type \<F> \<V> (Fun g ts) \<tau>"
+  then have
+    "\<forall>\<tau>. (has_type \<F> \<V> (Fun f ss) \<tau> \<longrightarrow> has_type \<F> \<V> (Fun g ts) \<tau>) \<and> (has_type \<F> \<V> (Fun g ts) \<tau> \<longrightarrow> has_type \<F> \<V> (Fun f ss) \<tau>)"
     by auto
 
   obtain ds where ds: "decompose (Fun f ss) (Fun g ts) = Some ds"
@@ -308,13 +395,17 @@ next
   moreover then have "unify (ds @ E) bs = Some unifier"
     using "2.prems"(1) by auto
 
-  moreover have "\<forall>(t, t')\<in>set (ds @ E). \<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> t' \<tau>"
-    using welltyped_decompose[OF \<tau> ds] 2(3)
-    by fastforce
+  moreover have "\<forall>(t, t') \<in> set ds. \<forall>\<tau>. (has_type \<F> \<V> t \<tau> \<longrightarrow> has_type \<F> \<V> t' \<tau>)  \<and> (has_type \<F> \<V> t' \<tau> \<longrightarrow> has_type \<F> \<V> t \<tau>)"
+    using 2 welltyped_decompose
+    by (smt (verit, ccfv_threshold) \<open>\<forall>\<tau>. (has_type \<F> \<V> (Fun f ss) \<tau> \<longrightarrow> has_type \<F> \<V> (Fun g ts) \<tau>) \<and> (has_type \<F> \<V> (Fun g ts) \<tau> \<longrightarrow> has_type \<F> \<V> (Fun f ss) \<tau>)\<close> case_prodD case_prodI2 ds)
+
+  moreover then have "\<forall>(t, t') \<in> set (ds @ E). \<forall>\<tau>. (has_type \<F> \<V> t \<tau> \<longrightarrow> has_type \<F> \<V> t' \<tau>)  \<and> (has_type \<F> \<V> t' \<tau> \<longrightarrow> has_type \<F> \<V> t \<tau>)"
+    using 2
+    by auto
 
   ultimately show ?case 
-    using 2
-    by blast
+    using 2(1, 4)
+    by presburger
 next
   case (3 x t E bs)
   show ?case
@@ -330,20 +421,19 @@ next
       by(auto split: if_splits)
 
     moreover have 
-      "\<forall>(s, s') \<in> set E. \<exists>\<tau>. has_type \<F> \<V> (s \<cdot>t Var(x := t)) \<tau> \<and> has_type \<F> \<V> (s' \<cdot>t Var(x := t)) \<tau>"
-      using 3(4)
-      by (smt (verit, ccfv_threshold) case_prodD case_prodI2 fun_upd_apply has_type.Var 
-          list.set_intros(1) list.set_intros(2) right_uniqueD right_unique_has_type 
-          well_typed_subst_def well_typed_subst_term)
-
-    moreover then have 
-      "\<forall>(s, s') \<in> set (subst_list (subst x t) E). \<exists>\<tau>. has_type \<F> \<V> s \<tau> \<and> has_type \<F> \<V> s' \<tau>"
+      "\<forall>(s, s') \<in> set (subst_list (subst x t) E). \<forall>\<tau>. (has_type \<F> \<V> s \<tau> \<longrightarrow> has_type \<F> \<V> s' \<tau>) \<and> (has_type \<F> \<V> s' \<tau>  \<longrightarrow> has_type \<F> \<V> s \<tau>)"
       unfolding subst_def subst_list_def
-      by fastforce
+      apply auto
+       apply (smt (verit, del_insts) "3.prems"(2) case_prodD fun_upd_other fun_upd_same has_type.Var list.set_intros(1) list.set_intros(2) well_typed_subst_def well_typed_subst_term)
+      by (smt (verit, del_insts) "3.prems"(2) case_prodD fun_upd_apply has_type.Var list.set_intros(1) list.set_intros(2) well_typed_subst_def well_typed_subst_term)
 
-    moreover have "well_typed_subst' \<F> \<V> (subst x t)"
-      using 3(4) welltyped_subst'_subst
-      by fastforce
+    moreover have "\<forall>\<tau>. (has_type \<F> \<V> (Var x) \<tau> \<longrightarrow> has_type \<F> \<V> t \<tau>) \<and> (has_type \<F> \<V> t \<tau> \<longrightarrow> has_type \<F> \<V> (Var x) \<tau>)"
+      using 3(4) 
+      by auto
+
+    moreover then have "well_typed_subst' \<F> \<V> (subst x t)"
+      using welltyped_subst'_subst
+      by meson
 
     moreover then have "well_typed_subst' \<F> \<V> (subst_of ((x, t) # bs))"
       using 3(5)
@@ -351,7 +441,8 @@ next
       by auto
 
     ultimately show ?thesis 
-      using 3(2, 3) False by force
+      using 3(2, 3) False
+      by fastforce
   qed
 next
   case (4 t ts x E bs)
@@ -359,37 +450,36 @@ next
     by(auto split: if_splits)
 
   moreover have 
-    "\<forall>(s, s') \<in> set E. \<exists>\<tau>. 
-        has_type \<F> \<V> (s \<cdot>t Var(x := (Fun t ts))) \<tau> \<and> has_type \<F> \<V> (s' \<cdot>t Var(x := (Fun t ts))) \<tau>"
+    "\<forall>(s, s') \<in> set E. \<forall>\<tau>. 
+        has_type \<F> \<V> (s \<cdot>t Var(x := (Fun t ts))) \<tau> \<longrightarrow> has_type \<F> \<V> (s' \<cdot>t Var(x := (Fun t ts))) \<tau>"
     using 4(3)
-    by (smt (verit, ccfv_threshold) case_prodD case_prodI2 fun_upd_apply has_type.Var 
-        list.set_intros(1) list.set_intros(2) right_uniqueD right_unique_has_type 
-        well_typed_subst_def well_typed_subst_term)
+    sorry
+
 
   moreover then have 
-    "\<forall>(s, s') \<in> set (subst_list (subst x (Fun t ts)) E). \<exists>\<tau>. 
-        has_type \<F> \<V> s \<tau> \<and> has_type \<F> \<V> s' \<tau>"
+    "\<forall>(s, s') \<in> set (subst_list (subst x (Fun t ts)) E). \<forall>\<tau>. 
+        has_type \<F> \<V> s \<tau> \<longrightarrow> has_type \<F> \<V> s' \<tau>"
     unfolding subst_def subst_list_def
     by fastforce
 
   moreover have "well_typed_subst' \<F> \<V> (subst x (Fun t ts))"
     using 4(3) welltyped_subst'_subst
-    by fastforce
+    sorry
 
   moreover then have "well_typed_subst' \<F> \<V> (subst_of ((x, (Fun t ts)) # bs))"
     using 4(4) 
     unfolding well_typed_subst'_def
     by auto
-     
+
   ultimately show ?case 
     using 4(1, 2)
-    by (metis (no_types, lifting) option.distinct(1) unify.simps(4))
+    sorry
 qed
 
 lemma welltyped_unify':
   assumes 
     unify: "unify [(t, t')] [] = Some unifier" and
-    \<tau>: "\<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> t' \<tau>"
+    \<tau>: "\<forall>\<tau>. (has_type \<F> \<V> t \<tau> \<longrightarrow> has_type \<F> \<V> t' \<tau>) \<and> (has_type \<F> \<V> t' \<tau> \<longrightarrow> has_type \<F> \<V> t \<tau>)"
   shows "well_typed_subst' \<F> \<V> (subst_of unifier)"
   using assms welltyped_unify[OF unify] \<tau> well_typed_subst'_Var
   by fastforce
@@ -397,16 +487,22 @@ lemma welltyped_unify':
 lemma welltyped_the_mgu: 
   assumes
     the_mgu: "the_mgu t t' = \<mu>" and
-    \<tau>: "\<exists>\<tau>. has_type \<F> \<V> t \<tau> \<and> has_type \<F> \<V> t' \<tau>"
+    \<tau>: "\<forall>\<tau>. (has_type \<F> \<V> t \<tau> \<longrightarrow> has_type \<F> \<V> t' \<tau>) \<and> (has_type \<F> \<V> t' \<tau> \<longrightarrow> has_type \<F> \<V> t \<tau>)"
   shows 
     "well_typed_subst' \<F> \<V> \<mu>"
   using assms welltyped_unify'[of t t' _ \<F> \<V>]
   unfolding the_mgu_def mgu_def well_typed_subst'_def 
-  by(auto simp: has_type.Var split: option.splits)
+  by (smt (verit) case_prodI2 option.case_eq_if option.collapse option.sel subst_of_simps(1) well_typed_subst'_Var well_typed_subst'_term welltyped_unify)
+
+lemma aux:
+  assumes "well_typed_subst' \<F> \<V> \<upsilon>" "term \<cdot>t \<upsilon> = term' \<cdot>t \<upsilon>"
+  shows "\<forall>\<tau>. (has_type \<F> \<V> term \<tau> \<longrightarrow> has_type \<F> \<V> term' \<tau>) \<and> (has_type \<F> \<V> term' \<tau> \<longrightarrow> has_type \<F> \<V> term \<tau>)"
+  by (metis assms(1) assms(2) eval_term.simps(1) has_type.Var well_typed_subst'_term well_typed_subst_def well_typed_subst_term)
 
 lemma welltyped_imgu_exists:
   fixes \<upsilon> :: "('f, 'v) subst"
-  assumes unified: "term \<cdot>t \<upsilon> = term' \<cdot>t \<upsilon>"
+  assumes 
+    unified: "term \<cdot>t \<upsilon> = term' \<cdot>t \<upsilon>" and \<upsilon>_welltyped: "well_typed_subst' \<F> \<V> \<upsilon>"
   obtains \<mu> :: "('f, 'v) subst"
   where 
     "\<upsilon> = \<mu> \<odot> \<upsilon>" 
@@ -417,12 +513,14 @@ proof-
     using assms ex_mgu_if_subst_apply_term_eq_subst_apply_term by blast
 
   have "well_typed_subst' \<F> \<V>  (the_mgu term term')"
-    using welltyped_the_mgu[OF \<mu>, of \<F> \<V>]
-    unfolding \<mu> sorry
+    using welltyped_the_mgu[OF \<mu>] aux
+    by (metis \<mu> \<upsilon>_welltyped unified)
 
   then show ?thesis
     using that imgu_exists_extendable[OF unified]
     sorry
-qed
+    (*by (smt (verit, del_insts) basic_substitution_ops.is_imgu_def imgu_exists singletonD subst_compose_assoc term_subst.is_unifier_set_def term_subst.subst_imgu_eq_subst_imgu the_mgu the_mgu_is_unifier unified)
+  *)
+qed*)
 
 end
