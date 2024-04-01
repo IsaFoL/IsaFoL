@@ -659,7 +659,7 @@ struct PROFILE {
 
 struct PROFILE propagate_prof, analyze_prof, gc_prof, reduce_prof, total_prof, parsing_prof,
 init_prof, minimization_prof, subsumption_prof, pure_lits_prof, binary_simp_prof,
-stable_prof, focused_prof;
+stable_mode_prof, focused_mode_prof;
 
 void init_profiles () {
   propagate_prof.total = 0;
@@ -670,8 +670,8 @@ void init_profiles () {
   parsing_prof.total = 0;
   init_prof.total = 0;
   minimization_prof.total = 0;
-  stable_prof.total = 0;
-  focused_prof.total = 0;
+  stable_mode_prof.total = 0;
+  focused_mode_prof.total = 0;
 }
 
 void start_profile(struct PROFILE *p) {
@@ -984,8 +984,8 @@ READ_FILE:
 #ifdef PRINTSTATS
   const long double total_measure = propagate_prof.total + analyze_prof.total + minimization_prof.total + reduce_prof.total + gc_prof.total +
     init_prof.total + subsumption_prof.total + pure_lits_prof.total + binary_simp_prof.total;
-  printf("c focused              : %.2Lf%% (%.2Lf s)\n", 100. * focused_prof.total / total_prof.total, focused_prof.total / 1000000.);
-  printf("c stable              : %.2Lf%% (%.2Lf s)\n", 100. * stable_prof.total / total_prof.total, stable_prof.total / 1000000.);
+  printf("c focused              : %.2Lf%% (%.2Lf s)\n", 100. * focused_mode_prof.total / total_prof.total, focused_mode_prof.total / 1000000.);
+  printf("c stable              : %.2Lf%% (%.2Lf s)\n", 100. * stable_mode_prof.total / total_prof.total, stable_mode_prof.total / 1000000.);
   printf("c ==================================================================\n");
   printf("c propagate           : %.2Lf%% (%.2Lf s)\n", 100. * propagate_prof.total / total_prof.total, propagate_prof.total / 1000000.);
   printf("c analyze             : %.2Lf%% (%.2Lf s)\n", 100. * analyze_prof.total / total_prof.total, analyze_prof.total / 1000000.);
