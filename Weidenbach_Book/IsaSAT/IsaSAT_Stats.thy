@@ -225,7 +225,7 @@ type_synonym isasat_stats = \<open>
   inprocessing_pure_lits_stats, lbd_size_limit_stats,
   rephase_stats,
 
-  ―\<open>\<nbspace>Now the unused part:\<close>
+  ―\<open>Now the unused part:\<close>
   64 word,
   64 word, 64 word,64 word, 64 word,
   64 word, 64 word, 32 word, 64 word) tuple16\<close>
