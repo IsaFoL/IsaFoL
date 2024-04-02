@@ -8,10 +8,10 @@ type_synonym 'f ground_select = "'f ground_atom clause \<Rightarrow> 'f ground_a
 type_synonym ('f, 'v) select = "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
 
 definition is_select_grounding :: "('f, 'v) select \<Rightarrow> 'f ground_select \<Rightarrow> bool" where
-  "is_select_grounding sel sel\<^sub>G = (\<forall>clause\<^sub>G. \<exists>clause \<theta>.
-        is_ground_clause (clause \<cdot> \<theta>)  \<and> 
-        clause\<^sub>G = to_ground_clause (clause \<cdot> \<theta>) \<and> 
-        sel\<^sub>G clause\<^sub>G = to_ground_clause ((sel clause) \<cdot> \<theta>))"
+  "is_select_grounding sel sel\<^sub>G = (\<forall>clause\<^sub>G. \<exists>clause \<gamma>.
+        is_ground_clause (clause \<cdot> \<gamma>)  \<and> 
+        clause\<^sub>G = to_ground_clause (clause \<cdot> \<gamma>) \<and> 
+        sel\<^sub>G clause\<^sub>G = to_ground_clause ((sel clause) \<cdot> \<gamma>))"
 
 locale first_order_select = select select
   for select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
@@ -54,13 +54,13 @@ lemmas select_from_ground_clause =
   select_from_ground_clause3
 
 lemma select_subst1:
-  assumes "is_ground_clause (clause \<cdot> \<theta>)"  
-  shows "is_ground_clause (select clause \<cdot> \<theta>)" 
+  assumes "is_ground_clause (clause \<cdot> \<gamma>)"  
+  shows "is_ground_clause (select clause \<cdot> \<gamma>)" 
   using assms
   by (metis image_mset_subseteq_mono select_subset sub_ground_clause subst_clause_def)
   
 lemma select_subst2: 
-  assumes "literal \<in># select clause \<cdot> \<theta>"  
+  assumes "literal \<in># select clause \<cdot> \<gamma>"  
   shows "is_neg literal"
   using assms subst_neg_stable select_negative_lits
   unfolding subst_clause_def
@@ -85,9 +85,9 @@ lemma select\<^sub>G_negative:
   assumes "literal\<^sub>G \<in># select\<^sub>G clause\<^sub>G"
   shows "is_neg literal\<^sub>G"
 proof -
-  obtain clause \<theta> where 
-    is_ground: "is_ground_clause (clause \<cdot> \<theta>)" and
-    select\<^sub>G: "select\<^sub>G clause\<^sub>G = to_ground_clause (select clause \<cdot> \<theta>)"
+  obtain clause \<gamma> where 
+    is_ground: "is_ground_clause (clause \<cdot> \<gamma>)" and
+    select\<^sub>G: "select\<^sub>G clause\<^sub>G = to_ground_clause (select clause \<cdot> \<gamma>)"
     using select\<^sub>G
     unfolding is_select_grounding_def
     by blast

@@ -7,11 +7,11 @@ begin
 context ground_superposition_calculus
 begin
 
-abbreviation equality_resolution_inferences where
-  "equality_resolution_inferences \<equiv>  {Infer [P] C | P C. ground_eq_resolution P C}"
+abbreviation eq_resolution_inferences where
+  "eq_resolution_inferences \<equiv>  {Infer [P] C | P C. ground_eq_resolution P C}"
 
-abbreviation equality_factoring_inferences where
-  "equality_factoring_inferences \<equiv>  {Infer [P] C | P C.  ground_eq_factoring P C}"
+abbreviation eq_factoring_inferences where
+  "eq_factoring_inferences \<equiv>  {Infer [P] C | P C.  ground_eq_factoring P C}"
 
 abbreviation superposition_inferences where
   "superposition_inferences \<equiv> {Infer [P2, P1] C | P1 P2 C. ground_superposition P2 P1 C}"
@@ -30,24 +30,24 @@ sublocale ground: ground_superposition_calculus where
 
 definition inference_groundings
   where "inference_groundings inference = 
-  { ground_inference | ground_inference \<theta> \<rho>\<^sub>1 \<rho>\<^sub>2.
+  { ground_inference | ground_inference \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2.
     (case inference of 
         Infer [premise] conclusion \<Rightarrow>
-          is_ground_clause (premise \<cdot> \<theta>) 
-        \<and> is_ground_clause (conclusion \<cdot> \<theta>)
+          is_ground_clause (premise \<cdot> \<gamma>) 
+        \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
         \<and> ground_inference = 
-            Infer [to_ground_clause (premise \<cdot> \<theta>)] (to_ground_clause (conclusion \<cdot> \<theta>))
+            Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion \<cdot> \<gamma>))
       | Infer [premise\<^sub>2, premise\<^sub>1] conclusion \<Rightarrow> 
           term_subst.is_renaming \<rho>\<^sub>1
         \<and> term_subst.is_renaming \<rho>\<^sub>2
         \<and> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}
-        \<and> is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>) 
-        \<and> is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>) 
-        \<and> is_ground_clause (conclusion \<cdot> \<theta>)
+        \<and> is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>) 
+        \<and> is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>) 
+        \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
         \<and> ground_inference = 
             Infer 
-              [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<theta>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<theta>)] 
-              (to_ground_clause (conclusion \<cdot> \<theta>))
+              [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)] 
+              (to_ground_clause (conclusion \<cdot> \<gamma>))
       | _ \<Rightarrow> False
      )
   \<and> ground_inference \<in> ground.G_Inf
@@ -65,9 +65,9 @@ proof-
     \<iota>: "\<iota> = Infer premises conlcusion"
     using Calculus.inference.exhaust by blast
 
-  obtain \<theta> where 
-    "is_ground_clause (conlcusion \<cdot> \<theta>)"
-    "conlcusion\<^sub>G = to_ground_clause (conlcusion \<cdot> \<theta>)"
+  obtain \<gamma> where 
+    "is_ground_clause (conlcusion \<cdot> \<gamma>)"
+    "conlcusion\<^sub>G = to_ground_clause (conlcusion \<cdot> \<gamma>)"
     using assms list_4_cases
     unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
     by(simp split: list.splits)(metis list_4_cases) 

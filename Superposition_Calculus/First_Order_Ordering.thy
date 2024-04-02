@@ -47,11 +47,11 @@ locale first_order_ordering = term_ordering_lifting less\<^sub>t
         is_ground_context context \<Longrightarrow>
         context\<langle>term\<^sub>1\<rangle> \<prec>\<^sub>t context\<langle>term\<^sub>2\<rangle>" and
     less\<^sub>t_ground_subst_stability: 
-      "\<And>term\<^sub>1 term\<^sub>2 (\<theta> :: 'v \<Rightarrow> ('f, 'v) term). 
-        is_ground_term (term\<^sub>1 \<cdot>t \<theta>) \<Longrightarrow>
-        is_ground_term (term\<^sub>2 \<cdot>t \<theta>) \<Longrightarrow>
+      "\<And>term\<^sub>1 term\<^sub>2 (\<gamma> :: 'v \<Rightarrow> ('f, 'v) term). 
+        is_ground_term (term\<^sub>1 \<cdot>t \<gamma>) \<Longrightarrow>
+        is_ground_term (term\<^sub>2 \<cdot>t \<gamma>) \<Longrightarrow>
         term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<Longrightarrow>
-        term\<^sub>1 \<cdot>t \<theta> \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<theta>" and
+        term\<^sub>1 \<cdot>t \<gamma> \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<gamma>" and
     less\<^sub>t_ground_subterm_property: 
       "\<And>term\<^sub>G context\<^sub>G.
          is_ground_term term\<^sub>G \<Longrightarrow>
@@ -79,7 +79,7 @@ lemma
     L_in: "L \<in># C" and
     subst_stability: "\<And>L K. L \<prec>\<^sub>l K \<Longrightarrow> (L \<cdot>l \<sigma>) \<prec>\<^sub>l (K \<cdot>l \<sigma>)" and
     L\<sigma>_max_in_C\<sigma>: "literal_order.is_maximal_in_mset (C \<cdot> \<sigma>) (L \<cdot>l \<sigma>)"
-  shows " literal_order.is_maximal_in_mset C L"
+  shows "literal_order.is_maximal_in_mset C L"
 proof -
   have L\<sigma>_in: "L \<cdot>l \<sigma> \<in># C \<cdot> \<sigma>" and L\<sigma>_max: "\<forall>y\<in>#C \<cdot> \<sigma>. y \<noteq> L \<cdot>l \<sigma> \<longrightarrow> \<not> L \<cdot>l \<sigma> \<prec>\<^sub>l y"
     using L\<sigma>_max_in_C\<sigma>
@@ -186,8 +186,8 @@ lemma less\<^sub>t_less\<^sub>t\<^sub>G:
   by (simp add: assms less\<^sub>t\<^sub>G_def)
 
 lemma less_eq\<^sub>t_ground_subst_stability:
-  assumes "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)" "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)"  "term\<^sub>1 \<preceq>\<^sub>t term\<^sub>2"
-  shows "term\<^sub>1 \<cdot>t \<theta> \<preceq>\<^sub>t term\<^sub>2 \<cdot>t \<theta>"
+  assumes "is_ground_term (term\<^sub>1 \<cdot>t \<gamma>)" "is_ground_term (term\<^sub>2 \<cdot>t \<gamma>)"  "term\<^sub>1 \<preceq>\<^sub>t term\<^sub>2"
+  shows "term\<^sub>1 \<cdot>t \<gamma> \<preceq>\<^sub>t term\<^sub>2 \<cdot>t \<gamma>"
   using less\<^sub>t_ground_subst_stability[OF assms(1, 2)] assms(3)
   by auto
 
@@ -211,12 +211,12 @@ lemmas is_maximal\<^sub>l_if_is_strictly_maximal\<^sub>l =
 
 lemma less\<^sub>l_ground_subst_stability: 
   assumes 
-    "is_ground_literal (literal \<cdot>l \<theta>)" 
-    "is_ground_literal (literal' \<cdot>l \<theta>)" 
-  shows "literal \<prec>\<^sub>l literal' \<Longrightarrow> literal \<cdot>l \<theta> \<prec>\<^sub>l literal' \<cdot>l \<theta>"
+    "is_ground_literal (literal \<cdot>l \<gamma>)" 
+    "is_ground_literal (literal' \<cdot>l \<gamma>)" 
+  shows "literal \<prec>\<^sub>l literal' \<Longrightarrow> literal \<cdot>l \<gamma> \<prec>\<^sub>l literal' \<cdot>l \<gamma>"
   unfolding less\<^sub>l_def mset_mset_lit_subst[symmetric]
 proof (elim multp_map_strong[rotated -1])
-  show "monotone_on (set_mset (mset_lit literal + mset_lit literal')) (\<prec>\<^sub>t) (\<prec>\<^sub>t) (\<lambda>term. term \<cdot>t \<theta>)"
+  show "monotone_on (set_mset (mset_lit literal + mset_lit literal')) (\<prec>\<^sub>t) (\<prec>\<^sub>t) (\<lambda>term. term \<cdot>t \<gamma>)"
     by (rule monotone_onI)
       (metis assms(1,2) less\<^sub>t_ground_subst_stability ground_term_in_ground_literal_subst union_iff)
 qed (use less\<^sub>t_asymmetric less\<^sub>t_transitive in simp_all)
@@ -244,12 +244,12 @@ lemmas less\<^sub>c_transitive_on [intro] = clause_order.transp_on_less
 
 lemma less\<^sub>c_ground_subst_stability: 
   assumes 
-    "is_ground_clause (clause \<cdot> \<theta>)" 
-    "is_ground_clause (clause' \<cdot> \<theta>)" 
-  shows "clause \<prec>\<^sub>c clause' \<Longrightarrow> clause \<cdot> \<theta> \<prec>\<^sub>c clause' \<cdot> \<theta>"
+    "is_ground_clause (clause \<cdot> \<gamma>)" 
+    "is_ground_clause (clause' \<cdot> \<gamma>)" 
+  shows "clause \<prec>\<^sub>c clause' \<Longrightarrow> clause \<cdot> \<gamma> \<prec>\<^sub>c clause' \<cdot> \<gamma>"
   unfolding subst_clause_def less\<^sub>c_def
 proof (elim multp_map_strong[rotated -1])
-  show "monotone_on (set_mset (clause + clause')) (\<prec>\<^sub>l) (\<prec>\<^sub>l) (\<lambda>literal. literal \<cdot>l \<theta>)"
+  show "monotone_on (set_mset (clause + clause')) (\<prec>\<^sub>l) (\<prec>\<^sub>l) (\<lambda>literal. literal \<cdot>l \<gamma>)"
     by (rule monotone_onI)
       (metis assms(1,2) ground_literal_in_ground_clause_subst less\<^sub>l_ground_subst_stability union_iff)
 qed (use less\<^sub>l_asymmetric less\<^sub>l_transitive in simp_all)
@@ -426,15 +426,15 @@ subsection \<open>Stability under ground substitution\<close>
 
 lemma less\<^sub>t_less_eq\<^sub>t_ground_subst_stability:
   assumes 
-    "is_ground_term (term\<^sub>1 \<cdot>t \<theta>)"
-    "is_ground_term (term\<^sub>2 \<cdot>t \<theta>)"
-    "term\<^sub>1 \<cdot>t \<theta> \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<theta>"
+    "is_ground_term (term\<^sub>1 \<cdot>t \<gamma>)"
+    "is_ground_term (term\<^sub>2 \<cdot>t \<gamma>)"
+    "term\<^sub>1 \<cdot>t \<gamma> \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<gamma>"
   shows
     "\<not> term\<^sub>2 \<preceq>\<^sub>t term\<^sub>1"
 proof
   assume assumption: "term\<^sub>2 \<preceq>\<^sub>t term\<^sub>1"
 
-  have "term\<^sub>2 \<cdot>t \<theta> \<preceq>\<^sub>t term\<^sub>1 \<cdot>t \<theta>"
+  have "term\<^sub>2 \<cdot>t \<gamma> \<preceq>\<^sub>t term\<^sub>1 \<cdot>t \<gamma>"
     using less_eq\<^sub>t_ground_subst_stability[OF 
             assms(2, 1)
             assumption
@@ -446,34 +446,34 @@ qed
 
 lemma less_eq\<^sub>l_ground_subst_stability:
   assumes   
-    "is_ground_literal (literal\<^sub>1 \<cdot>l \<theta>)" 
-    "is_ground_literal (literal\<^sub>2 \<cdot>l \<theta>)"  
+    "is_ground_literal (literal\<^sub>1 \<cdot>l \<gamma>)" 
+    "is_ground_literal (literal\<^sub>2 \<cdot>l \<gamma>)"  
     "literal\<^sub>1 \<preceq>\<^sub>l literal\<^sub>2"
-  shows "literal\<^sub>1 \<cdot>l \<theta> \<preceq>\<^sub>l literal\<^sub>2 \<cdot>l \<theta>"
+  shows "literal\<^sub>1 \<cdot>l \<gamma> \<preceq>\<^sub>l literal\<^sub>2 \<cdot>l \<gamma>"
   using less\<^sub>l_ground_subst_stability[OF assms(1, 2)] assms(3)
   by auto
 
 lemma less\<^sub>l_less_eq\<^sub>l_ground_subst_stability: assumes 
-  "is_ground_literal (literal\<^sub>1 \<cdot>l \<theta>)"
-  "is_ground_literal (literal\<^sub>2 \<cdot>l \<theta>)"
-  "literal\<^sub>1 \<cdot>l \<theta> \<prec>\<^sub>l literal\<^sub>2 \<cdot>l \<theta>"
+  "is_ground_literal (literal\<^sub>1 \<cdot>l \<gamma>)"
+  "is_ground_literal (literal\<^sub>2 \<cdot>l \<gamma>)"
+  "literal\<^sub>1 \<cdot>l \<gamma> \<prec>\<^sub>l literal\<^sub>2 \<cdot>l \<gamma>"
 shows
   "\<not> literal\<^sub>2 \<preceq>\<^sub>l literal\<^sub>1"
   by (meson assms less_eq\<^sub>l_ground_subst_stability not_less_eq\<^sub>l)
 
 lemma less_eq\<^sub>c_ground_subst_stability:
   assumes   
-    "is_ground_clause (clause\<^sub>1 \<cdot> \<theta>)" 
-    "is_ground_clause (clause\<^sub>2 \<cdot> \<theta>)"  
+    "is_ground_clause (clause\<^sub>1 \<cdot> \<gamma>)" 
+    "is_ground_clause (clause\<^sub>2 \<cdot> \<gamma>)"  
     "clause\<^sub>1 \<preceq>\<^sub>c clause\<^sub>2"
-  shows "clause\<^sub>1 \<cdot> \<theta> \<preceq>\<^sub>c clause\<^sub>2 \<cdot> \<theta>"
+  shows "clause\<^sub>1 \<cdot> \<gamma> \<preceq>\<^sub>c clause\<^sub>2 \<cdot> \<gamma>"
   using less\<^sub>c_ground_subst_stability[OF assms(1, 2)] assms(3)
   by auto
 
 lemma less\<^sub>c_less_eq\<^sub>c_ground_subst_stability: assumes 
-  "is_ground_clause (clause\<^sub>1 \<cdot> \<theta>)"
-  "is_ground_clause (clause\<^sub>2 \<cdot> \<theta>)"
-  "clause\<^sub>1 \<cdot> \<theta> \<prec>\<^sub>c clause\<^sub>2 \<cdot> \<theta>"
+  "is_ground_clause (clause\<^sub>1 \<cdot> \<gamma>)"
+  "is_ground_clause (clause\<^sub>2 \<cdot> \<gamma>)"
+  "clause\<^sub>1 \<cdot> \<gamma> \<prec>\<^sub>c clause\<^sub>2 \<cdot> \<gamma>"
 shows
   "\<not> clause\<^sub>2 \<preceq>\<^sub>c clause\<^sub>1"
   by (meson assms less_eq\<^sub>c_ground_subst_stability not_less_eq\<^sub>c)
@@ -481,21 +481,21 @@ shows
 lemma is_maximal\<^sub>l_ground_subst_stability:
   assumes 
     clause_not_empty: "clause \<noteq> {#}" and
-    clause_grounding: "is_ground_clause (clause \<cdot> \<theta>)" 
+    clause_grounding: "is_ground_clause (clause \<cdot> \<gamma>)" 
   obtains literal
-  where "is_maximal\<^sub>l literal clause" "is_maximal\<^sub>l (literal \<cdot>l \<theta>) (clause \<cdot> \<theta>)"
+  where "is_maximal\<^sub>l literal clause" "is_maximal\<^sub>l (literal \<cdot>l \<gamma>) (clause \<cdot> \<gamma>)"
 proof-
   assume assumption: 
-    "\<And>literal. is_maximal\<^sub>l literal clause \<Longrightarrow> is_maximal\<^sub>l (literal \<cdot>l \<theta>) (clause \<cdot> \<theta>) \<Longrightarrow> thesis"
+    "\<And>literal. is_maximal\<^sub>l literal clause \<Longrightarrow> is_maximal\<^sub>l (literal \<cdot>l \<gamma>) (clause \<cdot> \<gamma>) \<Longrightarrow> thesis"
 
   from clause_not_empty 
-  have clause_grounding_not_empty: "clause \<cdot> \<theta> \<noteq> {#}"
+  have clause_grounding_not_empty: "clause \<cdot> \<gamma> \<noteq> {#}"
     unfolding subst_clause_def
     by simp
 
   obtain literal where 
     literal: "literal \<in># clause" and
-    literal_grounding_is_maximal: "is_maximal\<^sub>l (literal \<cdot>l \<theta>) (clause \<cdot> \<theta>)" 
+    literal_grounding_is_maximal: "is_maximal\<^sub>l (literal \<cdot>l \<gamma>) (clause \<cdot> \<gamma>)" 
     using
       ex_maximal_in_mset_wrt[OF less\<^sub>l_transitive_on less\<^sub>l_asymmetric_on clause_grounding_not_empty]  
       maximal\<^sub>l_in_clause
@@ -504,7 +504,7 @@ proof-
 
   from literal_grounding_is_maximal
   have no_bigger_than_literal: 
-    "\<forall>literal' \<in># clause \<cdot> \<theta>. literal' \<noteq> literal \<cdot>l \<theta> \<longrightarrow> \<not> literal \<cdot>l \<theta> \<prec>\<^sub>l literal'"
+    "\<forall>literal' \<in># clause \<cdot> \<gamma>. literal' \<noteq> literal \<cdot>l \<gamma> \<longrightarrow> \<not> literal \<cdot>l \<gamma> \<prec>\<^sub>l literal'"
     unfolding is_maximal\<^sub>l_def
     by simp
 
@@ -526,7 +526,7 @@ proof-
         ground_literal_in_ground_clause_subst[OF clause_grounding]
       ]
 
-    have "literal \<cdot>l \<theta> \<prec>\<^sub>l literal' \<cdot>l \<theta>"
+    have "literal \<cdot>l \<gamma> \<prec>\<^sub>l literal' \<cdot>l \<gamma>"
       using less\<^sub>l_ground_subst_stability[OF literals_grounding literal'(2)].
    
     then have False
@@ -542,8 +542,8 @@ qed
 lemma is_maximal\<^sub>l_ground_subst_stability':
   assumes 
    "literal \<in># clause"
-   "is_ground_clause (clause \<cdot> \<theta>)"
-   "is_maximal\<^sub>l (literal \<cdot>l \<theta>) (clause \<cdot> \<theta>)"
+   "is_ground_clause (clause \<cdot> \<gamma>)"
+   "is_maximal\<^sub>l (literal \<cdot>l \<gamma>) (clause \<cdot> \<gamma>)"
  shows 
    "is_maximal\<^sub>l literal clause"
 proof(rule ccontr)
@@ -556,21 +556,21 @@ proof(rule ccontr)
   unfolding is_maximal\<^sub>l_def
   by blast
 
-  then have literal'_grounding: "is_ground_literal (literal' \<cdot>l \<theta>)"
+  then have literal'_grounding: "is_ground_literal (literal' \<cdot>l \<gamma>)"
     using assms(2) ground_literal_in_ground_clause_subst by blast
 
-  have literal_grounding: "is_ground_literal (literal \<cdot>l \<theta>)"
+  have literal_grounding: "is_ground_literal (literal \<cdot>l \<gamma>)"
     using assms(1) assms(2) ground_literal_in_ground_clause_subst by blast
 
-  have literal_\<theta>_in_premise: "literal' \<cdot>l \<theta> \<in># clause \<cdot> \<theta>"
+  have literal_\<gamma>_in_premise: "literal' \<cdot>l \<gamma> \<in># clause \<cdot> \<gamma>"
     using literal_in_clause_subst[OF literal'(2)]
     by simp
      
-  have "literal \<cdot>l \<theta> \<prec>\<^sub>l literal' \<cdot>l \<theta>"
+  have "literal \<cdot>l \<gamma> \<prec>\<^sub>l literal' \<cdot>l \<gamma>"
     using less\<^sub>l_ground_subst_stability[OF literal_grounding literal'_grounding literal'(1)].
   
-  then have "\<not> is_maximal\<^sub>l (literal \<cdot>l \<theta>) (clause \<cdot> \<theta>)"
-    using literal_\<theta>_in_premise 
+  then have "\<not> is_maximal\<^sub>l (literal \<cdot>l \<gamma>) (clause \<cdot> \<gamma>)"
+    using literal_\<gamma>_in_premise 
     unfolding is_maximal\<^sub>l_def literal_subst_compose
     by (metis asympD less\<^sub>l_asymmetric)
   
@@ -616,23 +616,23 @@ qed
 
 lemma is_strictly_maximal\<^sub>l_ground_subst_stability:
   assumes 
-   clause_grounding: "is_ground_clause (clause \<cdot> \<theta>)" and
-   ground_strictly_maximal: "is_strictly_maximal\<^sub>l literal\<^sub>G (clause \<cdot> \<theta>)"
+   clause_grounding: "is_ground_clause (clause \<cdot> \<gamma>)" and
+   ground_strictly_maximal: "is_strictly_maximal\<^sub>l literal\<^sub>G (clause \<cdot> \<gamma>)"
  obtains literal where 
-   "is_strictly_maximal\<^sub>l literal clause" "literal \<cdot>l \<theta> = literal\<^sub>G"
+   "is_strictly_maximal\<^sub>l literal clause" "literal \<cdot>l \<gamma> = literal\<^sub>G"
 proof-
   assume assumption: "\<And>literal. 
-    is_strictly_maximal\<^sub>l literal clause \<Longrightarrow> literal \<cdot>l \<theta> = literal\<^sub>G \<Longrightarrow> thesis"
+    is_strictly_maximal\<^sub>l literal clause \<Longrightarrow> literal \<cdot>l \<gamma> = literal\<^sub>G \<Longrightarrow> thesis"
 
-  have clause_grounding_not_empty: "clause \<cdot> \<theta> \<noteq> {#}"
+  have clause_grounding_not_empty: "clause \<cdot> \<gamma> \<noteq> {#}"
     using ground_strictly_maximal
     unfolding is_strictly_maximal\<^sub>l_def
     by fastforce
 
-  have literal\<^sub>G_in_clause_grounding: "literal\<^sub>G \<in># clause \<cdot> \<theta>"
+  have literal\<^sub>G_in_clause_grounding: "literal\<^sub>G \<in># clause \<cdot> \<gamma>"
     using ground_strictly_maximal is_strictly_maximal\<^sub>l_def by blast
 
-  obtain literal where literal: "literal \<in># clause" "literal \<cdot>l \<theta> = literal\<^sub>G"
+  obtain literal where literal: "literal \<in># clause" "literal \<cdot>l \<gamma> = literal\<^sub>G"
     by (metis imageE literal\<^sub>G_in_clause_grounding multiset.set_map subst_clause_def)
 
   show ?thesis
@@ -654,11 +654,11 @@ proof-
     note literal_grounding = 
       ground_literal_in_ground_clause_subst[OF clause_grounding literal(1)]
 
-    have literal'_grounding: "is_ground_literal (literal' \<cdot>l \<theta>)"
+    have literal'_grounding: "is_ground_literal (literal' \<cdot>l \<gamma>)"
       using literal'(1) clause_grounding
       by (meson ground_literal_in_ground_clause_subst in_diffD)
 
-    have "literal \<cdot>l \<theta> \<preceq>\<^sub>l literal' \<cdot>l \<theta>"
+    have "literal \<cdot>l \<gamma> \<preceq>\<^sub>l literal' \<cdot>l \<gamma>"
       using less_eq\<^sub>l_ground_subst_stability[OF literal_grounding literal'_grounding literal'(2)].
 
     then have False
@@ -676,8 +676,8 @@ qed
 lemma is_strictly_maximal\<^sub>l_ground_subst_stability':
   assumes 
    "literal \<in># clause"
-   "is_ground_clause (clause \<cdot> \<theta>)"
-   "is_strictly_maximal\<^sub>l (literal \<cdot>l \<theta>) (clause \<cdot> \<theta>)"
+   "is_ground_clause (clause \<cdot> \<gamma>)"
+   "is_strictly_maximal\<^sub>l (literal \<cdot>l \<gamma>) (clause \<cdot> \<gamma>)"
  shows 
    "is_strictly_maximal\<^sub>l literal clause"
   using 
@@ -704,17 +704,17 @@ lemma less\<^sub>t_less\<^sub>l:
 
 lemma less\<^sub>t_less\<^sub>l':
   assumes 
-    "\<forall>term \<in> set_uprod (atm_of literal). term \<cdot>t \<theta>' \<preceq>\<^sub>t term \<cdot>t \<theta>"
-    "\<exists>term \<in> set_uprod (atm_of literal). term \<cdot>t \<theta>' \<prec>\<^sub>t term \<cdot>t \<theta>"
-  shows "literal \<cdot>l \<theta>' \<prec>\<^sub>l literal \<cdot>l \<theta>"
+    "\<forall>term \<in> set_uprod (atm_of literal). term \<cdot>t \<sigma>' \<preceq>\<^sub>t term \<cdot>t \<sigma>"
+    "\<exists>term \<in> set_uprod (atm_of literal). term \<cdot>t \<sigma>' \<prec>\<^sub>t term \<cdot>t \<sigma>"
+  shows "literal \<cdot>l \<sigma>' \<prec>\<^sub>l literal \<cdot>l \<sigma>"
 proof(cases literal)
   case (Pos atom)
   show ?thesis
   proof(cases atom)
     case (Upair term\<^sub>1 term\<^sub>2)
-    have "term\<^sub>2 \<cdot>t \<theta>' \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<theta> \<Longrightarrow> 
-          multp (\<prec>\<^sub>t) {#term\<^sub>1 \<cdot>t \<theta>, term\<^sub>2 \<cdot>t \<theta>'#} {#term\<^sub>1 \<cdot>t \<theta>, term\<^sub>2 \<cdot>t \<theta>#}"
-      using multp_add_mset'[of "(\<prec>\<^sub>t)" "term\<^sub>2 \<cdot>t \<theta>'"  "term\<^sub>2 \<cdot>t \<theta>" "{#term\<^sub>1 \<cdot>t \<theta>#}"] add_mset_commute
+    have "term\<^sub>2 \<cdot>t \<sigma>' \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<sigma> \<Longrightarrow> 
+          multp (\<prec>\<^sub>t) {#term\<^sub>1 \<cdot>t \<sigma>, term\<^sub>2 \<cdot>t \<sigma>'#} {#term\<^sub>1 \<cdot>t \<sigma>, term\<^sub>2 \<cdot>t \<sigma>#}"
+      using multp_add_mset'[of "(\<prec>\<^sub>t)" "term\<^sub>2 \<cdot>t \<sigma>'"  "term\<^sub>2 \<cdot>t \<sigma>" "{#term\<^sub>1 \<cdot>t \<sigma>#}"] add_mset_commute
       by metis
 
     then show ?thesis 
@@ -727,10 +727,10 @@ next
   show ?thesis
    proof(cases atom)
      case (Upair term\<^sub>1 term\<^sub>2)
-     have "term\<^sub>2 \<cdot>t \<theta>' \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<theta> \<Longrightarrow> 
+     have "term\<^sub>2 \<cdot>t \<sigma>' \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<sigma> \<Longrightarrow> 
             multp (\<prec>\<^sub>t) 
-              {#term\<^sub>1 \<cdot>t \<theta>, term\<^sub>1 \<cdot>t \<theta>, term\<^sub>2 \<cdot>t \<theta>', term\<^sub>2 \<cdot>t \<theta>'#} 
-              {#term\<^sub>1 \<cdot>t \<theta>, term\<^sub>1 \<cdot>t \<theta>, term\<^sub>2 \<cdot>t \<theta>, term\<^sub>2 \<cdot>t \<theta>#}"
+              {#term\<^sub>1 \<cdot>t \<sigma>, term\<^sub>1 \<cdot>t \<sigma>, term\<^sub>2 \<cdot>t \<sigma>', term\<^sub>2 \<cdot>t \<sigma>'#} 
+              {#term\<^sub>1 \<cdot>t \<sigma>, term\<^sub>1 \<cdot>t \<sigma>, term\<^sub>2 \<cdot>t \<sigma>, term\<^sub>2 \<cdot>t \<sigma>#}"
        using multp_add_mset' multp_add_same[OF less\<^sub>t_asymmetric less\<^sub>t_transitive]
        by simp
 
@@ -746,29 +746,29 @@ lemmas less\<^sub>c_add_mset = multp_add_mset_reflclp[OF less\<^sub>l_asymmetric
 lemmas less\<^sub>c_add_same = multp_add_same[OF less\<^sub>l_asymmetric less\<^sub>l_transitive, folded less\<^sub>c_def]
 
 lemma less_eq\<^sub>l_less_eq\<^sub>c:
-  assumes "\<forall>literal \<in># clause. literal \<cdot>l \<theta>' \<preceq>\<^sub>l literal \<cdot>l \<theta>"
-  shows "clause \<cdot> \<theta>' \<preceq>\<^sub>c clause \<cdot> \<theta>"
+  assumes "\<forall>literal \<in># clause. literal \<cdot>l \<sigma>' \<preceq>\<^sub>l literal \<cdot>l \<sigma>"
+  shows "clause \<cdot> \<sigma>' \<preceq>\<^sub>c clause \<cdot> \<sigma>"
   using assms 
   by(induction clause)(auto simp: less\<^sub>c_add_same less\<^sub>c_add_mset subst_clause_add_mset)
    
 lemma less\<^sub>l_less\<^sub>c:
   assumes 
-    "\<forall>literal \<in># clause. literal \<cdot>l \<theta>' \<preceq>\<^sub>l literal \<cdot>l \<theta>"
-    "\<exists>literal \<in># clause. literal \<cdot>l \<theta>' \<prec>\<^sub>l literal \<cdot>l \<theta>"
-  shows "clause \<cdot> \<theta>' \<prec>\<^sub>c clause \<cdot> \<theta>"
+    "\<forall>literal \<in># clause. literal \<cdot>l \<sigma>' \<preceq>\<^sub>l literal \<cdot>l \<sigma>"
+    "\<exists>literal \<in># clause. literal \<cdot>l \<sigma>' \<prec>\<^sub>l literal \<cdot>l \<sigma>"
+  shows "clause \<cdot> \<sigma>' \<prec>\<^sub>c clause \<cdot> \<sigma>"
   using assms
 proof(induction clause)
   case empty
   then show ?case by auto
 next
   case (add literal clause)
-  then have less_eq: "\<forall>literal \<in># clause. literal \<cdot>l \<theta>' \<preceq>\<^sub>l literal \<cdot>l \<theta>"
+  then have less_eq: "\<forall>literal \<in># clause. literal \<cdot>l \<sigma>' \<preceq>\<^sub>l literal \<cdot>l \<sigma>"
     by (metis add_mset_remove_trivial in_diffD)
 
   show ?case 
-  proof(cases "literal \<cdot>l \<theta>' \<prec>\<^sub>l literal \<cdot>l \<theta>")
+  proof(cases "literal \<cdot>l \<sigma>' \<prec>\<^sub>l literal \<cdot>l \<sigma>")
     case True
-    moreover have "clause \<cdot> \<theta>' \<preceq>\<^sub>c clause \<cdot> \<theta>"
+    moreover have "clause \<cdot> \<sigma>' \<preceq>\<^sub>c clause \<cdot> \<sigma>"
       using less_eq\<^sub>l_less_eq\<^sub>c[OF less_eq].
 
     ultimately show ?thesis
@@ -777,10 +777,10 @@ next
       by blast
   next
     case False
-    then have less: "\<exists>literal \<in># clause. literal \<cdot>l \<theta>' \<prec>\<^sub>l literal \<cdot>l \<theta>"
+    then have less: "\<exists>literal \<in># clause. literal \<cdot>l \<sigma>' \<prec>\<^sub>l literal \<cdot>l \<sigma>"
       using add.prems(2) by auto
 
-   from False have eq: "literal \<cdot>l \<theta>' = literal \<cdot>l \<theta>"
+   from False have eq: "literal \<cdot>l \<sigma>' = literal \<cdot>l \<sigma>"
       using add.prems(1) by force
 
    show ?thesis
@@ -793,13 +793,13 @@ qed
 subsection \<open>Substitution update\<close>
 
 lemma less\<^sub>t_subst_upd:
-  fixes \<theta> :: "('f, 'v) subst"
+  fixes \<gamma> :: "('f, 'v) subst"
   assumes 
     update_is_ground: "is_ground_term update" and
-    update_less: "update \<prec>\<^sub>t \<theta> var" and
-    term_grounding: "is_ground_term (term \<cdot>t \<theta>)" and
+    update_less: "update \<prec>\<^sub>t \<gamma> var" and
+    term_grounding: "is_ground_term (term \<cdot>t \<gamma>)" and
     var: "var \<in> vars_term term"
-  shows "term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>"
+  shows "term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>"
   using assms(3, 4)
 proof(induction "term")
   case Var
@@ -809,17 +809,17 @@ proof(induction "term")
 next
   case (Fun f terms)
 
-  then have "\<forall>term \<in> set terms. term \<cdot>t \<theta>(var := update) \<preceq>\<^sub>t term \<cdot>t \<theta>"
+  then have "\<forall>term \<in> set terms. term \<cdot>t \<gamma>(var := update) \<preceq>\<^sub>t term \<cdot>t \<gamma>"
     by (metis eval_with_fresh_var is_ground_iff reflclp_iff term.set_intros(4))
 
-  moreover then have "\<exists>term \<in> set terms. term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>"
+  moreover then have "\<exists>term \<in> set terms. term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>"
     using Fun assms(2)
     by (metis (full_types) fun_upd_same  term.distinct(1) term.sel(4) term.set_cases(2) 
           term_order.dual_order.strict_iff_order term_subst_eq_rev)
 
   ultimately show ?case
     using Fun(2, 3)
-  proof(induction "filter (\<lambda>term. term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>) terms" 
+  proof(induction "filter (\<lambda>term. term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>) terms" 
           arbitrary: terms)
     case Nil
     then show ?case
@@ -828,12 +828,12 @@ next
   next
     case first: (Cons t ts)
 
-    have update_grounding [simp]: "is_ground_term (t \<cdot>t \<theta>(var := update))"
+    have update_grounding [simp]: "is_ground_term (t \<cdot>t \<gamma>(var := update))"
       using first.prems(3) update_is_ground first.hyps(2)
       by (metis (no_types, lifting) filter_eq_ConsD fun_upd_other fun_upd_same in_set_conv_decomp 
             is_ground_iff term.set_intros(4))
 
-    then have t_grounding [simp]: "is_ground_term (t \<cdot>t \<theta>)"
+    then have t_grounding [simp]: "is_ground_term (t \<cdot>t \<gamma>)"
       using update_grounding Fun.prems(1,2)
       by (metis fun_upd_other is_ground_iff)
     
@@ -844,45 +844,45 @@ next
         using filter_eq_ConsD[OF first.hyps(2)[symmetric]]
         by blast
 
-      have ss1: "\<forall>term \<in> set ss1. term \<cdot>t \<theta>(var := update) = term \<cdot>t \<theta>"
+      have ss1: "\<forall>term \<in> set ss1. term \<cdot>t \<gamma>(var := update) = term \<cdot>t \<gamma>"
         using first.hyps(2) first.prems(1) 
         unfolding Nil terms
         by (smt (verit, del_insts) Un_iff append_Cons_eq_iff filter_empty_conv filter_eq_ConsD 
               set_append term_order.antisym_conv2)
 
-      have ss2: "\<forall>term \<in> set ss2. term \<cdot>t \<theta>(var := update) = term \<cdot>t \<theta>"
+      have ss2: "\<forall>term \<in> set ss2. term \<cdot>t \<gamma>(var := update) = term \<cdot>t \<gamma>"
         using first.hyps(2) first.prems(1) 
         unfolding Nil terms
         by (smt (verit, ccfv_SIG) Un_iff append_Cons_eq_iff filter_empty_conv filter_eq_ConsD 
               list.set_intros(2) set_append term_order.antisym_conv2)
 
-      let ?context = "More f (map (\<lambda>term. (term \<cdot>t \<theta>)) ss1) \<box> (map (\<lambda>term. (term \<cdot>t \<theta>)) ss2)"
+      let ?context = "More f (map (\<lambda>term. (term \<cdot>t \<gamma>)) ss1) \<box> (map (\<lambda>term. (term \<cdot>t \<gamma>)) ss2)"
 
-      have 1: "is_ground_term (t \<cdot>t \<theta>)"
+      have 1: "is_ground_term (t \<cdot>t \<gamma>)"
         using terms first(5)
         by auto
 
-      moreover then have "is_ground_term (t \<cdot>t \<theta>(var := update))"
+      moreover then have "is_ground_term (t \<cdot>t \<gamma>(var := update))"
         by (metis assms(1) fun_upd_other fun_upd_same is_ground_iff)
 
       moreover have "is_ground_context ?context"
         using terms first(5)
         by auto
 
-      moreover have "t \<cdot>t \<theta>(var := update) \<prec>\<^sub>t t \<cdot>t \<theta>" 
+      moreover have "t \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t t \<cdot>t \<gamma>" 
         using first.hyps(2)
         by (meson Cons_eq_filterD)
 
-      ultimately have "?context\<langle>t \<cdot>t \<theta>(var := update)\<rangle> \<prec>\<^sub>t ?context\<langle>t \<cdot>t \<theta>\<rangle>"
+      ultimately have "?context\<langle>t \<cdot>t \<gamma>(var := update)\<rangle> \<prec>\<^sub>t ?context\<langle>t \<cdot>t \<gamma>\<rangle>"
         using less\<^sub>t_ground_context_compatible
         by blast
 
-      moreover have "Fun f terms \<cdot>t \<theta>(var := update) = ?context\<langle>t \<cdot>t \<theta>(var := update)\<rangle>"
+      moreover have "Fun f terms \<cdot>t \<gamma>(var := update) = ?context\<langle>t \<cdot>t \<gamma>(var := update)\<rangle>"
         unfolding terms
         using ss1 ss2
         by simp
 
-      moreover have "Fun f terms \<cdot>t \<theta> = ?context\<langle>t \<cdot>t \<theta>\<rangle>"
+      moreover have "Fun f terms \<cdot>t \<gamma> = ?context\<langle>t \<cdot>t \<gamma>\<rangle>"
         unfolding terms
         by auto
 
@@ -894,37 +894,37 @@ next
       from first(2) 
       obtain ss1 ss2 where
         terms: "terms = ss1 @ t # ss2" and
-        ss1: "\<forall>s\<in>set ss1. \<not> s \<cdot>t \<theta>(var := update) \<prec>\<^sub>t s \<cdot>t \<theta>" and
-        less: "t \<cdot>t \<theta>(var := update) \<prec>\<^sub>t t \<cdot>t \<theta>" and 
-        ts: "ts = filter (\<lambda>term. term \<cdot>t \<theta>(var := update)\<prec>\<^sub>t term \<cdot>t \<theta>) ss2"
-        using Cons_eq_filter_iff[of t ts "(\<lambda>term. term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>)"]
+        ss1: "\<forall>s\<in>set ss1. \<not> s \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t s \<cdot>t \<gamma>" and
+        less: "t \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t t \<cdot>t \<gamma>" and 
+        ts: "ts = filter (\<lambda>term. term \<cdot>t \<gamma>(var := update)\<prec>\<^sub>t term \<cdot>t \<gamma>) ss2"
+        using Cons_eq_filter_iff[of t ts "(\<lambda>term. term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>)"]
         by blast
 
-      let ?terms' = "ss1 @ (t \<cdot>t \<theta>(var := update))  # ss2"
+      let ?terms' = "ss1 @ (t \<cdot>t \<gamma>(var := update))  # ss2"
 
-      have [simp]: "t \<cdot>t \<theta>(var := update) \<cdot>t \<theta> = t \<cdot>t \<theta>(var := update)"
+      have [simp]: "t \<cdot>t \<gamma>(var := update) \<cdot>t \<gamma> = t \<cdot>t \<gamma>(var := update)"
         using first.prems(3) update_is_ground
         unfolding terms
         by (simp add: is_ground_iff)
 
-      have [simp]: "t \<cdot>t \<theta>(var := update) \<cdot>t \<theta>(var := update) = t \<cdot>t \<theta>(var := update)"
+      have [simp]: "t \<cdot>t \<gamma>(var := update) \<cdot>t \<gamma>(var := update) = t \<cdot>t \<gamma>(var := update)"
         using first.prems(3) update_is_ground
         unfolding terms
         by (simp add: is_ground_iff)
 
-      have "ts = filter (\<lambda>term. term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>) ?terms'" 
+      have "ts = filter (\<lambda>term. term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>) ?terms'" 
         using ss1 ts
         by auto
     
-      moreover have "\<forall>term \<in> set ?terms'. term \<cdot>t \<theta>(var := update) \<preceq>\<^sub>t term \<cdot>t \<theta>"
+      moreover have "\<forall>term \<in> set ?terms'. term \<cdot>t \<gamma>(var := update) \<preceq>\<^sub>t term \<cdot>t \<gamma>"
         using first.prems(1)
         unfolding terms
         by simp
     
-      moreover have "\<exists>term \<in> set ?terms'. term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>"
+      moreover have "\<exists>term \<in> set ?terms'. term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>"
         using calculation(1) Cons neq_Nil_conv by force
 
-      moreover have terms'_grounding: "is_ground_term (Fun f ?terms' \<cdot>t \<theta>)"
+      moreover have terms'_grounding: "is_ground_term (Fun f ?terms' \<cdot>t \<gamma>)"
         using first.prems(3)
         unfolding terms
         by simp
@@ -932,14 +932,14 @@ next
       moreover have "var \<in> vars_term (Fun f ?terms')"
         by (metis calculation(3) eval_with_fresh_var term.set_intros(4) term_order.less_irrefl)
 
-      ultimately have less_terms': "Fun f ?terms' \<cdot>t \<theta>(var := update) \<prec>\<^sub>t Fun f ?terms' \<cdot>t \<theta>"
+      ultimately have less_terms': "Fun f ?terms' \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t Fun f ?terms' \<cdot>t \<gamma>"
         using first.hyps(1) first.prems(3) by blast
 
-      have context_grounding: "is_ground_context (More f ss1 \<box> ss2 \<cdot>t\<^sub>c \<theta>)"
+      have context_grounding: "is_ground_context (More f ss1 \<box> ss2 \<cdot>t\<^sub>c \<gamma>)"
         using terms'_grounding
         by auto
 
-      have "Fun f (ss1 @ t \<cdot>t \<theta>(var := update) # ss2) \<cdot>t \<theta> \<prec>\<^sub>t Fun f terms \<cdot>t \<theta>"
+      have "Fun f (ss1 @ t \<cdot>t \<gamma>(var := update) # ss2) \<cdot>t \<gamma> \<prec>\<^sub>t Fun f terms \<cdot>t \<gamma>"
         unfolding terms
         using less\<^sub>t_ground_context_compatible[OF less _ _ context_grounding]
         by simp
@@ -952,35 +952,35 @@ next
 qed
 
 lemma less\<^sub>l_subst_upd:
-  fixes \<theta> :: "('f, 'v) subst"
+  fixes \<gamma> :: "('f, 'v) subst"
   assumes 
     update_is_ground: "is_ground_term update" and
-    update_less: "update \<prec>\<^sub>t \<theta> var" and
-    literal_grounding: "is_ground_literal (literal \<cdot>l \<theta>)" and
+    update_less: "update \<prec>\<^sub>t \<gamma> var" and
+    literal_grounding: "is_ground_literal (literal \<cdot>l \<gamma>)" and
     var: "var \<in> vars_literal literal"
-  shows "literal \<cdot>l \<theta>(var := update) \<prec>\<^sub>l literal \<cdot>l \<theta>"
+  shows "literal \<cdot>l \<gamma>(var := update) \<prec>\<^sub>l literal \<cdot>l \<gamma>"
 proof-
-  note less\<^sub>t_subst_upd = less\<^sub>t_subst_upd[of _ \<theta>, OF update_is_ground update_less] 
+  note less\<^sub>t_subst_upd = less\<^sub>t_subst_upd[of _ \<gamma>, OF update_is_ground update_less] 
 
-  have all_ground_terms: "\<forall>term \<in> set_uprod (atm_of literal). is_ground_term (term \<cdot>t \<theta>)"
+  have all_ground_terms: "\<forall>term \<in> set_uprod (atm_of literal). is_ground_term (term \<cdot>t \<gamma>)"
     using assms(3) 
     by(cases literal)(auto simp: ground_term_in_ground_literal_subst)
    
   then have 
     "\<forall>term \<in> set_uprod (atm_of literal). 
-       var \<in> vars_term term \<longrightarrow> term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>"
+       var \<in> vars_term term \<longrightarrow> term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>"
     using less\<^sub>t_subst_upd
     by blast
 
   moreover have
     "\<forall>term \<in> set_uprod (atm_of literal). 
-       var \<notin> vars_term term \<longrightarrow> term \<cdot>t \<theta>(var := update) = term \<cdot>t \<theta>"
+       var \<notin> vars_term term \<longrightarrow> term \<cdot>t \<gamma>(var := update) = term \<cdot>t \<gamma>"
     by (meson eval_with_fresh_var)  
 
-  ultimately have "\<forall>term \<in> set_uprod (atm_of literal). term \<cdot>t \<theta>(var := update) \<preceq>\<^sub>t term \<cdot>t \<theta>" 
+  ultimately have "\<forall>term \<in> set_uprod (atm_of literal). term \<cdot>t \<gamma>(var := update) \<preceq>\<^sub>t term \<cdot>t \<gamma>" 
     by blast
 
-  moreover have "\<exists>term \<in> set_uprod (atm_of literal). term \<cdot>t \<theta>(var := update) \<prec>\<^sub>t term \<cdot>t \<theta>"
+  moreover have "\<exists>term \<in> set_uprod (atm_of literal). term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>"
     using update_less var less\<^sub>t_subst_upd all_ground_terms
     unfolding vars_literal_def vars_atom_def 
     by blast
@@ -993,26 +993,26 @@ qed
 lemma less\<^sub>c_subst_upd:
   assumes 
     update_is_ground: "is_ground_term update" and
-    update_less: "update \<prec>\<^sub>t \<theta> var" and
-    literal_grounding: "is_ground_clause (clause \<cdot> \<theta>)" and
+    update_less: "update \<prec>\<^sub>t \<gamma> var" and
+    literal_grounding: "is_ground_clause (clause \<cdot> \<gamma>)" and
     var: "var \<in> vars_clause clause"
-  shows "clause \<cdot> \<theta>(var := update) \<prec>\<^sub>c clause \<cdot> \<theta>"
+  shows "clause \<cdot> \<gamma>(var := update) \<prec>\<^sub>c clause \<cdot> \<gamma>"
 proof-
-  note less\<^sub>l_subst_upd = less\<^sub>l_subst_upd[of _ \<theta>, OF update_is_ground update_less] 
+  note less\<^sub>l_subst_upd = less\<^sub>l_subst_upd[of _ \<gamma>, OF update_is_ground update_less] 
 
-  have all_ground_literals: "\<forall>literal \<in># clause. is_ground_literal (literal \<cdot>l \<theta>)"
+  have all_ground_literals: "\<forall>literal \<in># clause. is_ground_literal (literal \<cdot>l \<gamma>)"
     using ground_literal_in_ground_clause_subst[OF literal_grounding] by blast
 
   then have 
     "\<forall>literal \<in># clause. 
-      var \<in> vars_literal literal \<longrightarrow> literal \<cdot>l \<theta>(var := update) \<prec>\<^sub>l literal \<cdot>l \<theta>"
+      var \<in> vars_literal literal \<longrightarrow> literal \<cdot>l \<gamma>(var := update) \<prec>\<^sub>l literal \<cdot>l \<gamma>"
     using less\<^sub>l_subst_upd
     by blast
 
-  then have "\<forall>literal \<in># clause. literal \<cdot>l \<theta>(var := update) \<preceq>\<^sub>l literal \<cdot>l \<theta>"
+  then have "\<forall>literal \<in># clause. literal \<cdot>l \<gamma>(var := update) \<preceq>\<^sub>l literal \<cdot>l \<gamma>"
     by (metis fun_upd_other literal_subst_eq reflclp_iff)
 
-  moreover have "\<exists>literal \<in># clause. literal \<cdot>l \<theta>(var := update) \<prec>\<^sub>l literal \<cdot>l \<theta>"
+  moreover have "\<exists>literal \<in># clause. literal \<cdot>l \<gamma>(var := update) \<prec>\<^sub>l literal \<cdot>l \<gamma>"
     using update_less var less\<^sub>l_subst_upd all_ground_literals
     unfolding vars_clause_def
     by blast
