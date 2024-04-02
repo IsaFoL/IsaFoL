@@ -277,7 +277,6 @@ lemma IsaSAT_bounded_heur_alt_def:
     S \<leftarrow> init_state_wl_heur_fast \<A>\<^sub>i\<^sub>n';
     (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur_b CS S;
     let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
-    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
     if isasat_fast_init T \<and> \<not>is_failed_heur_init T
     then do {
       if \<not>get_conflict_wl_is_None_heur_init T
@@ -294,6 +293,7 @@ lemma IsaSAT_bounded_heur_alt_def:
         ASSERT(isasat_fast_init T);
         T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
         _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
+        _ \<leftarrow> RETURN (IsaSAT_Profile.start_focused_mode);
         ASSERT(isasat_fast T);
         (b, U) \<leftarrow> cdcl_twl_stgy_restart_prog_bounded_wl_heur T;
         RETURN (b, if \<not>b \<and> get_conflict_wl_is_None_heur U then IsaSAT_Defs.extract_model_of_state_stat U
