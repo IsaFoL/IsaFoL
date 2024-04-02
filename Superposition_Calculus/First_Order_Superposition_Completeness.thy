@@ -66,31 +66,53 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
 
   moreover have max_literal_\<gamma>: 
     "max_literal \<cdot>l \<gamma> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)"
-  if ?select\<^sub>G_empty
-    using ground_eq_resolutionI(3) max_literal unique_maximal_in_ground_clause
-    unfolding ground_eq_resolutionI(2) is_maximal_lit_iff_is_maximal\<^sub>l premise\<^sub>G
-    by (metis add_mset_not_empty maximal\<^sub>l_in_clause multi_member_split premise\<^sub>G premise_grounding 
-          that to_clause_empty_mset to_ground_clause_inverse)
-  
+    if ?select\<^sub>G_empty
+  proof-
+    have "ground.is_maximal_lit literal\<^sub>G premise\<^sub>G"
+      using ground_eq_resolutionI(3) that maximal_lit_in_clause
+      by (metis empty_iff set_mset_empty)
+
+    then show ?thesis
+      using max_literal(2) unique_maximal_in_ground_clause[OF premise_grounding] 
+      unfolding 
+        ground_eq_resolutionI(2) 
+        is_maximal_lit_iff_is_maximal\<^sub>l 
+        premise\<^sub>G 
+        to_ground_clause_inverse[OF premise_grounding]
+      by blast
+  qed
+
   moreover obtain selected_literal where 
     "selected_literal \<cdot>l \<gamma> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)" and
     "is_maximal\<^sub>l selected_literal (select premise)" 
   if ?select\<^sub>G_not_empty
-    using ground_eq_resolutionI(3) select
-    unfolding ground_eq_resolutionI(2) premise\<^sub>G
-    by (metis clause_subst_empty(2) is_maximal\<^sub>l_ground_subst_stability 
-          is_maximal_lit_iff_is_maximal\<^sub>l premise_grounding select_subst1 to_clause_inverse 
-          to_ground_clause_empty_mset unique_maximal_in_ground_clause)
+  proof-
+    have "ground.is_maximal_lit literal\<^sub>G (select\<^sub>G premise\<^sub>G)" if ?select\<^sub>G_not_empty
+      using ground_eq_resolutionI(3) that
+      by blast
 
-  moreover then have "?select\<^sub>G_not_empty \<Longrightarrow> selected_literal \<in># premise"
-    by (meson maximal\<^sub>l_in_clause mset_subset_eqD select_subset)
+    then show ?thesis 
+      using 
+        that 
+        select 
+        unique_maximal_in_ground_clause[OF select_subst(1)[OF premise_grounding]]
+        is_maximal\<^sub>l_ground_subst_stability[OF _ select_subst(1)[OF premise_grounding]]
+      unfolding
+        ground_eq_resolutionI(2) 
+        premise\<^sub>G
+        is_maximal_lit_iff_is_maximal\<^sub>l
+      by (metis clause_subst_empty(2) to_clause_inverse to_ground_clause_empty_mset)
+  qed
+
+  moreover then have "selected_literal \<in># premise" if ?select\<^sub>G_not_empty
+    by (meson that maximal\<^sub>l_in_clause mset_subset_eqD select_subset)
 
   ultimately obtain literal where
     literal: "literal \<cdot>l \<gamma> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)" and
     literal_in_premise: "literal \<in># premise" and
     literal_selected: "?select\<^sub>G_not_empty \<Longrightarrow> is_maximal\<^sub>l literal (select premise)" and
     literal_max: "?select\<^sub>G_empty \<Longrightarrow> is_maximal\<^sub>l literal premise"
-    by blast    
+    by blast
 
   have literal_grounding: "is_ground_literal (literal \<cdot>l \<gamma>)"
     using literal ground_literal_is_ground
@@ -180,23 +202,21 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     using conclusion'_\<gamma>  
     unfolding clause_subst_compose[symmetric] \<mu>_\<gamma>.
 
-  have "to_ground_clause (conclusion \<cdot> \<gamma>) \<in> clause_groundings (conclusion' \<cdot> \<mu>)"
-    unfolding clause_groundings_def conclusion'_\<mu>_\<gamma>
-    by (smt (verit, ccfv_threshold) conclusion'_\<mu>_\<gamma> conclusion_grounding mem_Collect_eq)
-
-(* TODO *)
-  with eq_resolution that
-  show ?thesis
+  moreover then have 
+    "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [premise] (conclusion' \<cdot> \<mu>))"
+    using ground_eq_resolution conclusion_grounding premise_grounding
     unfolding 
       clause_groundings_def 
       inference_groundings_def 
       ground.G_Inf_def 
       inferences_def 
       premise\<^sub>G
+      conclusion\<^sub>G
+    by auto
 
-    using premise_grounding 
-    apply auto
-    by (metis conclusion'_\<mu>_\<gamma> conclusion_grounding ground_eq_resolution premise\<^sub>G conclusion\<^sub>G)
+  ultimately show ?thesis
+    using that[OF eq_resolution]
+    by blast
 qed
 
 lemma eq_factoring_lifting:
