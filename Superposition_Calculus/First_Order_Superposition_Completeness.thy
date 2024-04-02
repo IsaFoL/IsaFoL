@@ -50,7 +50,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     unfolding to_clause_add_mset
     by (simp add: conclusion_grounding)
 
-  finally have premise_\<gamma> : "premise \<cdot> \<gamma> = add_mset (to_literal literal\<^sub>G) (conclusion \<cdot> \<gamma>)".
+  finally have premise_\<gamma>: "premise \<cdot> \<gamma> = add_mset (to_literal literal\<^sub>G) (conclusion \<cdot> \<gamma>)".
 
   let ?select\<^sub>G_empty = "select\<^sub>G premise\<^sub>G = {#}"
   let ?select\<^sub>G_not_empty = "select\<^sub>G premise\<^sub>G \<noteq> {#}"
@@ -64,8 +64,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
   moreover then have "max_literal \<in># premise"
     using maximal\<^sub>l_in_clause by fastforce
 
-  moreover have max_literal_\<gamma>: 
-    "max_literal \<cdot>l \<gamma> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)"
+  moreover have max_literal_\<gamma>: "max_literal \<cdot>l \<gamma> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)"
     if ?select\<^sub>G_empty
   proof-
     have "ground.is_maximal_lit literal\<^sub>G premise\<^sub>G"
@@ -108,33 +107,35 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     by (meson that maximal\<^sub>l_in_clause mset_subset_eqD select_subset)
 
   ultimately obtain literal where
-    literal: "literal \<cdot>l \<gamma> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)" and
+    literal_\<gamma>: "literal \<cdot>l \<gamma> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)" and
     literal_in_premise: "literal \<in># premise" and
     literal_selected: "?select\<^sub>G_not_empty \<Longrightarrow> is_maximal\<^sub>l literal (select premise)" and
     literal_max: "?select\<^sub>G_empty \<Longrightarrow> is_maximal\<^sub>l literal premise"
     by blast
 
   have literal_grounding: "is_ground_literal (literal \<cdot>l \<gamma>)"
-    using literal ground_literal_is_ground
+    using literal_\<gamma> ground_literal_is_ground
     by simp
 
-  from literal obtain "term" term' where terms: "literal = term !\<approx> term'"
+  from literal_\<gamma> obtain "term" term' where 
+    literal: "literal = term !\<approx> term'"
     using subst_polarity_stable to_literal_polarity_stable
     by (metis literal.collapse(2) literal.disc(2) uprod_exhaust)
 
   have term_term': "term \<cdot>t \<gamma> = term' \<cdot>t \<gamma>"
-    using literal
-    unfolding terms subst_literal(2) subst_atom_def to_literal_def to_atom_def
+    using literal_\<gamma>
+    unfolding literal subst_literal(2) subst_atom_def to_literal_def to_atom_def
     by simp
 
-  then obtain \<mu> \<sigma> where \<mu>: "term_subst.is_imgu \<mu> {{term, term'}}" "\<gamma> = \<mu> \<odot> \<sigma>"
+  then obtain \<mu> \<sigma> where 
+    \<mu>: "term_subst.is_imgu \<mu> {{term, term'}}" "\<gamma> = \<mu> \<odot> \<sigma>"
     using imgu_exists
     by blast
 
   have literal\<^sub>G: 
     "to_literal literal\<^sub>G = (term !\<approx> term') \<cdot>l \<gamma>" 
     "literal\<^sub>G = to_ground_literal ((term !\<approx> term') \<cdot>l \<gamma>)"
-    using literal ground_eq_resolutionI(2)  terms 
+    using literal_\<gamma> literal ground_eq_resolutionI(2) 
     by simp_all
 
   obtain conclusion' where conclusion': "premise = add_mset literal conclusion'"
@@ -143,7 +144,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
 
   have conclusion'_\<gamma>: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     using premise_\<gamma>
-    unfolding conclusion' ground_eq_resolutionI(2) literal[symmetric] subst_clause_add_mset
+    unfolding conclusion' ground_eq_resolutionI(2) literal_\<gamma>[symmetric] subst_clause_add_mset
     by simp
 
   have eq_resolution: "eq_resolution premise (conclusion' \<cdot> \<mu>)"
@@ -152,7 +153,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
       using conclusion'.
   next 
     show "literal = term !\<approx> term'"
-      using terms.    
+      using literal.    
   next
     show "term_subst.is_imgu \<mu> {{term, term'}}"
       using \<mu>(1).
@@ -163,7 +164,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
       case select\<^sub>G_empty: True
 
       then have "max_literal \<cdot>l \<gamma> = literal \<cdot>l \<gamma>"
-        by (simp add: max_literal_\<gamma> literal)
+        by (simp add: max_literal_\<gamma> literal_\<gamma>)
 
       then have literal_\<gamma>_is_maximal: "is_maximal\<^sub>l (literal \<cdot>l \<gamma>) (premise \<cdot> \<gamma>)"
         using max_literal(2) by simp
@@ -198,7 +199,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     unfolding \<mu>(2) term_subst.is_idem_def
     by (metis subst_compose_assoc)
 
-  have conclusion'_\<mu>_\<gamma> : "conclusion' \<cdot> \<mu> \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
+  have "conclusion' \<cdot> \<mu> \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     using conclusion'_\<gamma>  
     unfolding clause_subst_compose[symmetric] \<mu>_\<gamma>.
 
@@ -259,28 +260,31 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     using is_maximal\<^sub>l_ground_subst_stability[OF premise_not_empty premise_grounding]
     by blast
 
-  note max_ground_literal = is_maximal_lit_iff_is_maximal\<^sub>l[
-      THEN iffD1,
-      OF ground_eq_factoringI(5), 
-      unfolded ground_eq_factoringI(2) to_ground_clause_inverse[OF premise_grounding] premise\<^sub>G
-      ]
+  have max_ground_literal: "is_maximal\<^sub>l (to_literal (term\<^sub>G\<^sub>1 \<approx> term\<^sub>G\<^sub>2)) (premise \<cdot> \<gamma>)"
+    using ground_eq_factoringI(5)
+    unfolding 
+      is_maximal_lit_iff_is_maximal\<^sub>l 
+      ground_eq_factoringI(2) 
+      premise\<^sub>G 
+      to_ground_clause_inverse[OF premise_grounding].
 
-  have literal\<^sub>1: "literal\<^sub>1 \<cdot>l \<gamma> = to_literal literal\<^sub>G\<^sub>1"
+  have literal\<^sub>1_\<gamma>: "literal\<^sub>1 \<cdot>l \<gamma> = to_literal literal\<^sub>G\<^sub>1"
     using 
       unique_maximal_in_ground_clause[OF premise_grounding literal\<^sub>1_maximal(2) max_ground_literal]
       ground_eq_factoringI(2)
     by blast
 
-  then have "\<exists>term\<^sub>1 term\<^sub>1'. literal\<^sub>1 = term\<^sub>1 \<approx> term\<^sub>1'"
-    unfolding ground_eq_factoringI(2)  
-    using to_literal_stable subst_pos_stable is_pos_def[symmetric]
-    by (metis uprod_exhaust)
+  then have "is_pos literal\<^sub>1"
+    unfolding ground_eq_factoringI(2)
+    using to_literal_stable subst_pos_stable
+    by (metis literal.disc(1))
 
-  with literal\<^sub>1 obtain term\<^sub>1 term\<^sub>1' where 
+  with literal\<^sub>1_\<gamma> obtain term\<^sub>1 term\<^sub>1' where 
     literal\<^sub>1_terms: "literal\<^sub>1 = term\<^sub>1 \<approx> term\<^sub>1'" and
     term\<^sub>G\<^sub>1_term\<^sub>1: "to_term term\<^sub>G\<^sub>1 = term\<^sub>1 \<cdot>t \<gamma>"
-    unfolding ground_eq_factoringI(2) to_literal_def to_atom_def subst_literal_def subst_atom_def 
-    by force 
+    unfolding ground_eq_factoringI(2) to_atom_to_literal[symmetric] to_term_to_atom[symmetric]
+    using obtain_from_pos_literal_subst[of literal\<^sub>1]
+    by metis
 
   obtain premise'' where premise'': "premise = add_mset literal\<^sub>1 premise''"
     using maximal\<^sub>l_in_clause[OF literal\<^sub>1_maximal(1)]
@@ -288,7 +292,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
 
   then have premise''_\<gamma>: "premise'' \<cdot> \<gamma> =  add_mset (to_literal literal\<^sub>G\<^sub>2) (to_clause premise'\<^sub>G)"
     using premise_\<gamma> 
-    unfolding to_clause_add_mset literal\<^sub>1[symmetric]
+    unfolding to_clause_add_mset literal\<^sub>1_\<gamma>[symmetric]
     by (simp add: subst_clause_add_mset)
 
   then obtain literal\<^sub>2 where literal\<^sub>2:
@@ -297,16 +301,17 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     unfolding subst_clause_def
     using msed_map_invR by force
 
-  then have "\<exists>term\<^sub>2 term\<^sub>2'. literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'"
-    unfolding ground_eq_factoringI(3)  
-    using to_literal_stable subst_pos_stable is_pos_def[symmetric]
-    by (metis uprod_exhaust)
+  then have "is_pos literal\<^sub>2"
+    unfolding ground_eq_factoringI(3)
+    using to_literal_stable subst_pos_stable
+    by (metis literal.disc(1))
 
   with literal\<^sub>2 obtain term\<^sub>2 term\<^sub>2' where 
     literal\<^sub>2_terms: "literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'" and
     term\<^sub>G\<^sub>1_term\<^sub>2: "to_term term\<^sub>G\<^sub>1 = term\<^sub>2 \<cdot>t \<gamma>"
-    unfolding ground_eq_factoringI(3) to_literal_def to_atom_def subst_literal_def subst_atom_def 
-    by force
+    unfolding ground_eq_factoringI(3) to_atom_to_literal[symmetric] to_term_to_atom[symmetric]
+    using obtain_from_pos_literal_subst[of literal\<^sub>2]
+    by metis
 
   have term\<^sub>1_term\<^sub>2: "term\<^sub>1 \<cdot>t \<gamma> = term\<^sub>2 \<cdot>t \<gamma>"
     using term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>1_term\<^sub>2
@@ -317,7 +322,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     by blast
 
   have term\<^sub>G\<^sub>2_term\<^sub>1': "to_term term\<^sub>G\<^sub>2 = term\<^sub>1' \<cdot>t \<gamma>"
-    using literal\<^sub>1 term\<^sub>G\<^sub>1_term\<^sub>1 
+    using literal\<^sub>1_\<gamma> term\<^sub>G\<^sub>1_term\<^sub>1 
     unfolding 
       literal\<^sub>1_terms 
       ground_eq_factoringI(2) 
@@ -432,16 +437,24 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
       subst_atom[symmetric]
     by (simp add: add_mset_commute)
 
-  then have "to_ground_clause (conclusion \<cdot> \<gamma>) \<in> clause_groundings (?conclusion' \<cdot> \<mu>)"
-    unfolding clause_groundings_def 
-    using \<mu>(2) conclusion_\<gamma> conclusion_grounding by auto
+  then have "?conclusion' \<cdot> \<mu> \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
+    by (metis \<mu>_\<gamma> clause_subst_compose)
+    
+  moreover then have 
+    "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [premise] (?conclusion' \<cdot> \<mu>))"
+    using ground_eq_factoring conclusion_grounding premise_grounding
+     unfolding 
+      clause_groundings_def 
+      inference_groundings_def 
+      ground.G_Inf_def 
+      inferences_def 
+      premise\<^sub>G
+      conclusion\<^sub>G
+    by auto
 
-(* TODO *)
-  with eq_factoring that show ?thesis
-    unfolding clause_groundings_def inference_groundings_def ground.G_Inf_def inferences_def 
-    using premise_grounding
-    apply auto
-    by (metis \<mu>_\<gamma> clause_subst_compose conclusion\<^sub>G conclusion_\<gamma> conclusion_grounding ground_eq_factoring premise\<^sub>G)
+  ultimately show ?thesis
+    using that[OF eq_factoring]
+    by blast
 qed
 
 lemma superposition_lifting:
@@ -978,7 +991,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     unfolding ground.Red_I_def
     apply auto
     unfolding ground.G_Inf_def
-    apply blast
+     apply blast
     by (metis conclusion\<^sub>G ground_superpositionI(12) premise\<^sub>1 premise\<^sub>1_\<gamma> premise\<^sub>2 premise\<^sub>2_\<gamma> special_case to_clause_inverse)
 
   obtain term\<^sub>2'_with_context where
@@ -1465,12 +1478,12 @@ proof-
     "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>))) = select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
     "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>))) = select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>"
     using premise\<^sub>1_\<gamma>\<^sub>1 premise\<^sub>2_\<gamma>\<^sub>2 select' 
-    apply auto
+       apply auto
 
     using \<rho>\<^sub>1_inv \<rho>\<^sub>2_inv 
-    apply (metis (mono_tags, lifting) clause_subst_compose subst_clause_Var_ident)
-    apply (metis \<rho>\<^sub>2_inv clause_subst_compose clause_subst_reduntant_if' inf_commute subst_clause_Var_ident vars_distinct)
-    apply (metis (no_types, lifting) \<rho>\<^sub>1_inv a(1) clause_submset_vars_clause_subset clause_subst_compose clause_subst_eq select'(1) subset_eq subst_clause_Var_ident)
+       apply (metis (mono_tags, lifting) clause_subst_compose subst_clause_Var_ident)
+      apply (metis \<rho>\<^sub>2_inv clause_subst_compose clause_subst_reduntant_if' inf_commute subst_clause_Var_ident vars_distinct)
+     apply (metis (no_types, lifting) \<rho>\<^sub>1_inv a(1) clause_submset_vars_clause_subset clause_subst_compose clause_subst_eq select'(1) subset_eq subst_clause_Var_ident)
     by (metis Int_iff \<rho>\<^sub>2_inv all_not_in_conv b clause_subst_compose clause_subst_reduntant_if' subst_clause_Var_ident to_clause_inverse vars_distinct)
 
   obtain conclusion where conclusion_\<gamma>: "to_clause conclusion\<^sub>G = conclusion \<cdot> \<gamma>"
@@ -1483,7 +1496,7 @@ proof-
     premise\<^sub>G\<^sub>2: "premise\<^sub>G\<^sub>2 = to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and 
     conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
     conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
-    apply (simp_all add: premise\<^sub>1_\<gamma> premise\<^sub>2_\<gamma>)
+         apply (simp_all add: premise\<^sub>1_\<gamma> premise\<^sub>2_\<gamma>)
     by (smt ground_clause_is_ground to_clause_inverse)+
 
   have "clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2 \<subseteq> \<Union> (clause_groundings ` premises)"
