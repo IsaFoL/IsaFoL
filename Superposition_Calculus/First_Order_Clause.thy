@@ -31,12 +31,10 @@ type_synonym ('f, 'v) "context" = "('f, 'v) ctxt"
 type_synonym 'f ground_atom = "'f gatom"
 type_synonym ('f, 'v) atom = "('f, 'v) term uprod"
 
-
-(* This is an example where type-classes would be nice, but the Isabelle ones are shitty...*)
 definition subst_atom ::
   "('f, 'v) atom \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom" (infixl "\<cdot>a" 67)
   where
-    "subst_atom A \<sigma> = map_uprod (\<lambda>t. subst_apply_term t \<sigma>) A"
+    "subst_atom atom \<sigma> = map_uprod (\<lambda>term. term \<cdot>t \<sigma>) atom"
 
 definition subst_literal ::
   "('f, 'v) atom literal \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom literal" (infixl "\<cdot>l" 66)
@@ -47,7 +45,6 @@ definition subst_clause ::
   "('f, 'v) atom clause \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom clause" (infixl "\<cdot>" 67)
   where
     "subst_clause clause \<sigma> = image_mset (\<lambda>literal. literal \<cdot>l \<sigma>) clause"
-
 
 (* This is an example where type-classes would be nice, but the Isabelle ones are shitty...*)
 abbreviation vars_context :: "('f, 'v) context \<Rightarrow> 'v set" where
@@ -82,7 +79,7 @@ abbreviation is_ground_literal where
 abbreviation is_ground_clause where
   "is_ground_clause clause \<equiv> vars_clause clause = {}"
 
-
+(* TODO: *)
 global_interpretation subst_context: basic_substitution where
   subst = subst_apply_ctxt and id_subst = Var and comp_subst = subst_compose and
   is_ground = is_ground_context
@@ -557,6 +554,40 @@ lemmas ground_term_with_context =
   ground_term_with_context2
   ground_term_with_context3
 
+lemma is_ground_context_context_compose1:
+  assumes "is_ground_context (context \<circ>\<^sub>c context')"
+  shows "is_ground_context context" "is_ground_context context'"
+  using assms
+  by(induction "context" context' rule: ctxt_compose.induct) auto
+
+lemma is_ground_context_context_compose2:
+  assumes "is_ground_context context" "is_ground_context context'" 
+  shows "is_ground_context (context \<circ>\<^sub>c context')"
+  using assms
+  by (meson ground_ctxt_comp is_ground_term_ctxt_iff_ground_ctxt)
+
+lemmas is_ground_context_context_compose = 
+  is_ground_context_context_compose1 
+  is_ground_context_context_compose2
+
+lemma ground_context_subst:
+  assumes 
+    "is_ground_context context\<^sub>G" 
+    "context\<^sub>G = (context \<cdot>t\<^sub>c \<sigma>) \<circ>\<^sub>c context'"
+  shows 
+    "context\<^sub>G = context \<circ>\<^sub>c context' \<cdot>t\<^sub>c \<sigma>"
+  using assms 
+proof(induction "context")
+  case Hole
+  then show ?case
+    by simp
+next
+  case More
+  then show ?case
+    using is_ground_context_context_compose1(2)
+    by (metis subst_compose_ctxt_compose_distrib subst_ground_context)
+qed
+   
 lemma ground_term_subst_upd [simp]:
   assumes "is_ground_term update" "is_ground_term (term \<cdot>t \<gamma>)" 
   shows "is_ground_term (term \<cdot>t \<gamma>(var := update))"
