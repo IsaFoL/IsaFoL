@@ -210,25 +210,25 @@ lemmas clause_renaming_exists =
 (* TODO: abbreviations without typeof_fun typeof_var *)
 lemma eq_resolution_preserves_typing:
   assumes
-    step: "equality_resolution D C" and
+    step: "eq_resolution D C" and
     wt_D: "welltyped\<^sub>c typeof_fun typeof_var D"
   shows "welltyped\<^sub>c typeof_fun typeof_var C"
   using step
-proof (cases D C rule: equality_resolution.cases)
-  case (equality_resolutionI literal premise' "term" term' \<mu>)
+proof (cases D C rule: eq_resolution.cases)
+  case (eq_resolutionI literal premise' "term" term' \<mu>)
   obtain \<tau> where \<tau>:
     "welltyped typeof_fun typeof_var term \<tau>"
     "welltyped typeof_fun typeof_var term' \<tau>"
     using wt_D
     unfolding 
-      equality_resolutionI 
+      eq_resolutionI 
       welltyped\<^sub>c_add_mset 
       welltyped\<^sub>l_def 
       welltyped\<^sub>a_def
     by auto
 
   then have "welltyped\<^sub>\<sigma> typeof_fun typeof_var \<mu>"
-    using welltyped_is_imgu equality_resolutionI(3)
+    using welltyped_is_imgu eq_resolutionI(3)
     by fast
     
   then have "welltyped\<^sub>c typeof_fun typeof_var (D  \<cdot> \<mu>)"
@@ -236,18 +236,18 @@ proof (cases D C rule: equality_resolution.cases)
     by blast
     
   then show ?thesis
-    unfolding equality_resolutionI subst_clause_add_mset welltyped\<^sub>c_add_mset
+    unfolding eq_resolutionI subst_clause_add_mset welltyped\<^sub>c_add_mset
     by blast
 qed
 
 lemma eq_factoring_preserves_typing:
   assumes
-    step: "equality_factoring D C" and
+    step: "eq_factoring D C" and
     wt_D: "welltyped\<^sub>c typeof_fun typeof_var D"
   shows "welltyped\<^sub>c typeof_fun typeof_var C"
   using step
-proof (cases D C rule: equality_factoring.cases)
-  case (equality_factoringI literal\<^sub>1 literal\<^sub>2 premise' term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
+proof (cases D C rule: eq_factoring.cases)
+  case (eq_factoringI literal\<^sub>1 literal\<^sub>2 premise' term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
   then show ?thesis 
     sorry
 qed
