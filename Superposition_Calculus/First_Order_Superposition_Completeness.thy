@@ -16,8 +16,8 @@ lemma eq_resolution_lifting:
     premise\<^sub>G [simp]: "premise\<^sub>G \<equiv> to_ground_clause (premise \<cdot> \<gamma>)" and
     conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> to_ground_clause (conclusion \<cdot> \<gamma>)"
   assumes 
-    premise_grounding [intro]: "is_ground_clause (premise \<cdot> \<gamma>)" and
-    conclusion_grounding [intro]: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
+    premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and
+    conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
     ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G"
   obtains conclusion' 
@@ -228,8 +228,8 @@ lemma eq_factoring_lifting:
     premise\<^sub>G [simp]: "premise\<^sub>G \<equiv> to_ground_clause (premise \<cdot> \<gamma>)" and
     conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> to_ground_clause (conclusion \<cdot> \<gamma>)"
   assumes
-    premise_grounding [intro]: "is_ground_clause (premise \<cdot> \<gamma>)" and
-    conclusion_grounding [intro]: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
+    premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and
+    conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
     ground_eq_factoring: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G"
   obtains conclusion' 
@@ -438,11 +438,11 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
 
   then have "?conclusion' \<cdot> \<mu> \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     by (metis \<mu>_\<gamma> clause_subst_compose)
-    
+
   moreover then have 
     "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [premise] (?conclusion' \<cdot> \<mu>))"
     using ground_eq_factoring conclusion_grounding premise_grounding
-     unfolding 
+    unfolding 
       clause_groundings_def 
       inference_groundings_def 
       ground.G_Inf_def 
@@ -454,8 +454,9 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
   ultimately show ?thesis
     using that[OF eq_factoring]
     by blast
-qed     
+qed
 
+(* TODO: Try to split up proof *)
 lemma superposition_lifting:
   fixes 
     premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 conclusion\<^sub>G :: "'f gatom clause" and 
@@ -473,9 +474,9 @@ lemma superposition_lifting:
     "term_subst.is_renaming \<rho>\<^sub>1" 
     "term_subst.is_renaming \<rho>\<^sub>2" 
     "vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}" and
-    premise\<^sub>1_grounding [intro]: "is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)" and
-    premise\<^sub>2_grounding [intro]: "is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and
-    conclusion_grounding [intro]: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
+    premise\<^sub>1_grounding: "is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)" and
+    premise\<^sub>2_grounding: "is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and
+    conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
     select: 
     "to_clause (select\<^sub>G premise\<^sub>G\<^sub>1) = (select premise\<^sub>1) \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
     "to_clause (select\<^sub>G premise\<^sub>G\<^sub>2) = (select premise\<^sub>2) \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>" and
@@ -538,7 +539,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l
       ground_superpositionI(1)
     by auto
-  
+
   obtain pos_literal\<^sub>1 where
     "is_strictly_maximal\<^sub>l pos_literal\<^sub>1 premise\<^sub>1"
     "pos_literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<gamma> = to_literal literal\<^sub>G\<^sub>1" 
@@ -584,10 +585,10 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         is_maximal\<^sub>l_ground_subst_stability
       unfolding premise\<^sub>G\<^sub>1 is_maximal_lit_iff_is_maximal\<^sub>l
       by (metis (full_types) clause_subst_compose clause_subst_empty(2) ground_clause_is_ground 
-            image_mset_is_empty_iff to_clause_def)
-   qed
+          image_mset_is_empty_iff to_clause_def)
+  qed
 
-  moreover then have "neg_selected_literal\<^sub>1 \<in># premise\<^sub>1"  if "\<P>\<^sub>G = Neg" ?select\<^sub>G_not_empty 
+  moreover then have "neg_selected_literal\<^sub>1 \<in># premise\<^sub>1" if "\<P>\<^sub>G = Neg" ?select\<^sub>G_not_empty 
     using that
     by (meson maximal\<^sub>l_in_clause mset_subset_eqD select_subset)
 
@@ -599,7 +600,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     literal\<^sub>1_selected: "\<P>\<^sub>G = Neg \<Longrightarrow> ?select\<^sub>G_not_empty \<Longrightarrow> is_maximal\<^sub>l literal\<^sub>1 (select premise\<^sub>1)"
     by (metis ground_superpositionI(9) literals_distinct(1))
 
-  then have literal\<^sub>1_grounding [intro]: "is_ground_literal (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<gamma>)"
+  then have literal\<^sub>1_grounding: "is_ground_literal (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<gamma>)"
     by simp
 
   have literal\<^sub>G\<^sub>2_is_strictly_maximal\<^sub>l: 
@@ -619,7 +620,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
   then have literal\<^sub>2_in_premise\<^sub>2: "literal\<^sub>2 \<in># premise\<^sub>2" 
     using strictly_maximal\<^sub>l_in_clause by blast
 
-  have literal\<^sub>2_grounding [intro]: "is_ground_literal (literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<odot> \<gamma>)"
+  have literal\<^sub>2_grounding: "is_ground_literal (literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<odot> \<gamma>)"
     using literal\<^sub>2_\<gamma> by simp
 
   obtain premise\<^sub>1' where premise\<^sub>1: "premise\<^sub>1 = add_mset literal\<^sub>1 premise\<^sub>1'"
@@ -640,41 +641,22 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
   let ?\<P> = "if \<P>\<^sub>G = Pos then Pos else Neg"
 
-  from literal\<^sub>1_\<gamma> have literal\<^sub>1_\<gamma>': 
-    "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<gamma> = ?\<P> (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>1\<rangle> (to_term term\<^sub>G\<^sub>2))"
-    using ground_superpositionI(4)
+  have [simp]: "\<P>\<^sub>G \<noteq> Pos \<longleftrightarrow> \<P>\<^sub>G = Neg"
+    using ground_superpositionI(4) 
+    by auto
+
+  have "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<gamma> = ?\<P> (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>1\<rangle> (to_term term\<^sub>G\<^sub>2))"
+    using literal\<^sub>1_\<gamma>
     unfolding ground_superpositionI(5)
-    by 
-      (cases "\<P>\<^sub>G = Pos") 
-      (simp_all add: 
-        to_atom_to_literal[symmetric] 
-        to_term_to_atom[symmetric] 
-        ground_term_with_context(3)[symmetric]
-        )
+    by (simp add: to_atom_to_literal to_term_to_atom ground_term_with_context(3))
 
   then obtain term\<^sub>1_with_context term\<^sub>1' where 
     literal\<^sub>1: "literal\<^sub>1 = ?\<P> (Upair term\<^sub>1_with_context term\<^sub>1')" and
     term\<^sub>1'_\<gamma>: "term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = to_term term\<^sub>G\<^sub>2" and
     term\<^sub>1_with_context_\<gamma>: "term\<^sub>1_with_context \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>1\<rangle>"
-    by (smt (verit, ccfv_SIG) obtain_from_literal_subst)
+    by (smt (verit) obtain_from_literal_subst)
 
-  have "to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>) \<in> clause_groundings premise\<^sub>1"
-    unfolding clause_groundings_def
-    by (smt (verit, del_insts) clause_subst_compose mem_Collect_eq premise\<^sub>1_grounding)
-
-  moreover have "to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>) \<in> clause_groundings premise\<^sub>2"
-    unfolding clause_groundings_def
-    by (smt (verit, del_insts) clause_subst_compose mem_Collect_eq premise\<^sub>2_grounding)
-
-  moreover have conclusion_\<gamma>\<^sub>G: "conclusion \<cdot> \<gamma> = 
-    add_mset (?\<P> (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> (to_term term\<^sub>G\<^sub>2))) 
-      (to_clause premise\<^sub>G\<^sub>1' + to_clause premise\<^sub>G\<^sub>2')"
-    using ground_superpositionI(4, 12) to_ground_clause_inverse[OF conclusion_grounding] 
-    unfolding ground_term_with_context(3) to_term_to_atom
-    by(cases "\<P>\<^sub>G = Pos")(simp_all add: to_atom_to_literal to_clause_add_mset)
-
-  from literal\<^sub>2_\<gamma> have literal\<^sub>2_\<gamma>': 
-    "literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<gamma> = to_term term\<^sub>G\<^sub>1 \<approx> to_term term\<^sub>G\<^sub>3"
+  from literal\<^sub>2_\<gamma> have "literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<gamma> = to_term term\<^sub>G\<^sub>1 \<approx> to_term term\<^sub>G\<^sub>3"
     unfolding ground_superpositionI(6) to_term_to_atom to_atom_to_literal(2) literal_subst_compose.
 
   then obtain term\<^sub>2 term\<^sub>2' where 
@@ -684,353 +666,364 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     using obtain_from_pos_literal_subst
     by metis
 
-  let ?inf_in_var = "\<nexists>context\<^sub>1 term\<^sub>1. 
+  let ?inference_into_var = "\<nexists>context\<^sub>1 term\<^sub>1. 
       term\<^sub>1_with_context = context\<^sub>1\<langle>term\<^sub>1\<rangle> \<and> 
       term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = to_term term\<^sub>G\<^sub>1 \<and> 
       context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma> = to_context context\<^sub>G \<and> 
       is_Fun term\<^sub>1"
 
-  let ?is_redundant = 
-    "ground.redundant_infer
-         (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)
-         (Infer [premise\<^sub>G\<^sub>2, premise\<^sub>G\<^sub>1] conclusion\<^sub>G)"
-
-  have inf_in_var_is_redundant: "?inf_in_var \<Longrightarrow> ?is_redundant"
+  have inference_into_var_is_redundant: 
+    "?inference_into_var \<Longrightarrow> ground.redundant_infer premise_groundings \<iota>\<^sub>G"
   proof-
-    assume inf_in_var: ?inf_in_var
+    assume inference_into_var: ?inference_into_var
 
-    have term\<^sub>1_with_context_not_ground: "\<not> is_ground_term term\<^sub>1_with_context"
-    proof(rule notI)
-      assume "is_ground_term term\<^sub>1_with_context"
-
-      then obtain term\<^sub>1 context\<^sub>1 where
-        "term\<^sub>1_with_context = context\<^sub>1\<langle>term\<^sub>1\<rangle>"
-        "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = to_term term\<^sub>G\<^sub>1" 
-        "context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma> = to_context context\<^sub>G"
-        "is_Fun term\<^sub>1"
-        using term\<^sub>1_with_context_\<gamma>
-        by (metis ground_context_is_ground ground_term_is_ground gterm_is_fun subst_ground_context 
-              term_subst.subst_ident_if_ground)
-
-      with inf_in_var show False
-        by blast
-    qed
-
-    with inf_in_var term\<^sub>1_with_context_\<gamma> 
-    have 
-      "\<exists>term\<^sub>x context\<^sub>x context\<^sub>x'. 
+    obtain term\<^sub>x context\<^sub>x context\<^sub>x' where
+      term\<^sub>1_with_context: "term\<^sub>1_with_context = context\<^sub>x\<langle>term\<^sub>x\<rangle>" and
+      is_Var_term\<^sub>x: "is_Var term\<^sub>x" and
+      "to_context context\<^sub>G = (context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>) \<circ>\<^sub>c context\<^sub>x'"
+    proof-  
+      from inference_into_var term\<^sub>1_with_context_\<gamma> 
+      have 
+        "\<exists>term\<^sub>x context\<^sub>x context\<^sub>x'. 
         term\<^sub>1_with_context = context\<^sub>x\<langle>term\<^sub>x\<rangle> \<and> 
         is_Var term\<^sub>x \<and> 
         to_context context\<^sub>G = (context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>) \<circ>\<^sub>c context\<^sub>x'"
-    proof(induction term\<^sub>1_with_context arbitrary: context\<^sub>G)
-      case (Var x)
-      show ?case
-      proof(intro exI conjI)
-        show
-          "Var x = \<box>\<langle>Var x\<rangle>"
-          "is_Var (Var x)"
-          "to_context context\<^sub>G = (\<box> \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>) \<circ>\<^sub>c to_context context\<^sub>G"
-          by simp_all
-      qed
-    next
-      case (Fun f terms)
+      proof(induction term\<^sub>1_with_context arbitrary: context\<^sub>G)
+        case (Var x)
+        show ?case
+        proof(intro exI conjI)
+          show
+            "Var x = \<box>\<langle>Var x\<rangle>"
+            "is_Var (Var x)"
+            "to_context context\<^sub>G = (\<box> \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>) \<circ>\<^sub>c to_context context\<^sub>G"
+            by simp_all
+        qed
+      next
+        case (Fun f terms)
 
-      then have "context\<^sub>G \<noteq> GHole"
-        by (metis ctxt_apply_term.simps(1) ctxt_of_gctxt.simps(1) subst_apply_ctxt.simps(1) 
+        then have "context\<^sub>G \<noteq> GHole"
+          by (metis ctxt_apply_term.simps(1) ctxt_of_gctxt.simps(1) subst_apply_ctxt.simps(1) 
               term.disc(2))
 
-      then obtain terms\<^sub>G\<^sub>1 context\<^sub>G' terms\<^sub>G\<^sub>2 where
-        context\<^sub>G: "context\<^sub>G = GMore f terms\<^sub>G\<^sub>1 context\<^sub>G' terms\<^sub>G\<^sub>2"
-        using Fun(3)
-        by (smt (verit) ctxt_apply_term.simps(2) ctxt_of_gctxt.elims eval_term.simps(2) term.sel(2))
-     
-      have terms_\<gamma>: 
-        "map (\<lambda>term. term \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) terms = 
-          map to_term terms\<^sub>G\<^sub>1 @ (to_context context\<^sub>G')\<langle>to_term term\<^sub>G\<^sub>1\<rangle> # map to_term terms\<^sub>G\<^sub>2"
-        using Fun(3)
-        unfolding context\<^sub>G
-        by(simp add: comp_def)
+        then obtain terms\<^sub>G\<^sub>1 context\<^sub>G' terms\<^sub>G\<^sub>2 where
+          context\<^sub>G: "context\<^sub>G = GMore f terms\<^sub>G\<^sub>1 context\<^sub>G' terms\<^sub>G\<^sub>2"
+          using Fun(3)
+          by(cases context\<^sub>G) auto
 
-      then obtain terms\<^sub>1 "term" terms\<^sub>2 where 
-        terms: "terms = terms\<^sub>1 @ term # terms\<^sub>2" and
-        terms\<^sub>1_\<gamma>: "map (\<lambda>term. term \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) terms\<^sub>1 = map to_term terms\<^sub>G\<^sub>1" and
-        terms\<^sub>2_\<gamma>: "map (\<lambda>term. term \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) terms\<^sub>2 = map to_term terms\<^sub>G\<^sub>2"
-        by (smt (z3) append_eq_map_conv map_eq_Cons_conv)
+        have terms_\<gamma>: 
+          "map (\<lambda>term. term \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) terms = 
+            map to_term terms\<^sub>G\<^sub>1 @ (to_context context\<^sub>G')\<langle>to_term term\<^sub>G\<^sub>1\<rangle> # map to_term terms\<^sub>G\<^sub>2"
+          using Fun(3)
+          unfolding context\<^sub>G
+          by(simp add: comp_def)
 
-      with terms_\<gamma> 
+        then obtain terms\<^sub>1 "term" terms\<^sub>2 where 
+          terms: "terms = terms\<^sub>1 @ term # terms\<^sub>2" and
+          terms\<^sub>1_\<gamma>: "map (\<lambda>term. term \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) terms\<^sub>1 = map to_term terms\<^sub>G\<^sub>1" and
+          terms\<^sub>2_\<gamma>: "map (\<lambda>term. term \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) terms\<^sub>2 = map to_term terms\<^sub>G\<^sub>2"     
+          by (smt (z3) append_eq_map_conv map_eq_Cons_D)
+
+        with terms_\<gamma> 
         have term_\<gamma>: "term \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = (to_context context\<^sub>G')\<langle>to_term term\<^sub>G\<^sub>1\<rangle>"
-        by simp
+          by simp
 
-      show ?case
-      proof(cases "is_ground_term term")
-        case True
+        show ?case
+        proof(cases "is_ground_term term")
+          case True
 
-        with term_\<gamma> 
-        obtain term\<^sub>1 context\<^sub>1 where
-          "term = context\<^sub>1\<langle>term\<^sub>1\<rangle>"
-          "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = to_term term\<^sub>G\<^sub>1" 
-          "context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma> = to_context context\<^sub>G'" 
-          "is_Fun term\<^sub>1"
-          by (metis Term.ground_vars_term_empty ground_context_is_ground ground_subst_apply 
+          with term_\<gamma> 
+          obtain term\<^sub>1 context\<^sub>1 where
+            "term = context\<^sub>1\<langle>term\<^sub>1\<rangle>"
+            "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = to_term term\<^sub>G\<^sub>1" 
+            "context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma> = to_context context\<^sub>G'" 
+            "is_Fun term\<^sub>1"
+            by (metis Term.ground_vars_term_empty ground_context_is_ground ground_subst_apply 
                 ground_term_is_ground subst_ground_context gterm_is_fun)
 
-        moreover then have "Fun f terms = (More f terms\<^sub>1 context\<^sub>1 terms\<^sub>2)\<langle>term\<^sub>1\<rangle>"
-          unfolding terms
-          by auto
+          moreover then have "Fun f terms = (More f terms\<^sub>1 context\<^sub>1 terms\<^sub>2)\<langle>term\<^sub>1\<rangle>"
+            unfolding terms
+            by auto
 
-        ultimately have 
-          "\<exists>context\<^sub>1 term\<^sub>1. 
+          ultimately have 
+            "\<exists>context\<^sub>1 term\<^sub>1. 
             Fun f terms = context\<^sub>1\<langle>term\<^sub>1\<rangle> \<and> 
             term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = to_term term\<^sub>G\<^sub>1 \<and> 
             context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma> = to_context context\<^sub>G \<and> 
             is_Fun term\<^sub>1"
-          by (auto
+            by (auto
                 intro: exI[of _ "More f terms\<^sub>1 context\<^sub>1 terms\<^sub>2"] exI[of _ term\<^sub>1] 
                 simp: comp_def terms\<^sub>1_\<gamma> terms\<^sub>2_\<gamma> context\<^sub>G)
 
-        then show ?thesis
-          using Fun(2)
-          by argo
-      next
-        case False
-        moreover have "term \<in> set terms"
-          using terms by auto
+          then show ?thesis
+            using Fun(2)
+            by argo
+        next
+          case False
+          moreover have "term \<in> set terms"
+            using terms by auto
 
-        moreover have 
-          "\<nexists>context\<^sub>1 term\<^sub>1. term = context\<^sub>1\<langle>term\<^sub>1\<rangle> \<and> 
+          moreover have 
+            "\<nexists>context\<^sub>1 term\<^sub>1. term = context\<^sub>1\<langle>term\<^sub>1\<rangle> \<and> 
             term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = to_term term\<^sub>G\<^sub>1 \<and> 
             context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma> = to_context context\<^sub>G' \<and> 
             is_Fun term\<^sub>1"
-        proof(rule notI)
-          assume 
-            "\<exists>context\<^sub>1 term\<^sub>1. 
+          proof(rule notI)
+            assume 
+              "\<exists>context\<^sub>1 term\<^sub>1. 
               term = context\<^sub>1\<langle>term\<^sub>1\<rangle> \<and> 
               term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = to_term term\<^sub>G\<^sub>1 \<and> 
               context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma> = to_context context\<^sub>G' \<and> 
               is_Fun term\<^sub>1"
 
-          then obtain context\<^sub>1 term\<^sub>1 where
-            "term": "term = context\<^sub>1\<langle>term\<^sub>1\<rangle>"
-            "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = to_term term\<^sub>G\<^sub>1"
-            "context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma> = to_context context\<^sub>G'"
-            "is_Fun term\<^sub>1"
-            by blast
+            then obtain context\<^sub>1 term\<^sub>1 where
+              "term": "term = context\<^sub>1\<langle>term\<^sub>1\<rangle>"
+              "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = to_term term\<^sub>G\<^sub>1"
+              "context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma> = to_context context\<^sub>G'"
+              "is_Fun term\<^sub>1"
+              by blast
 
-          then have 
-            "\<exists>context\<^sub>1 term\<^sub>1. 
+            then have 
+              "\<exists>context\<^sub>1 term\<^sub>1. 
               Fun f terms = context\<^sub>1\<langle>term\<^sub>1\<rangle> \<and> 
               term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = to_term term\<^sub>G\<^sub>1 \<and> 
               context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma> = to_context context\<^sub>G \<and> 
               is_Fun term\<^sub>1"
-            by(auto 
+              by(auto 
                   intro: exI[of _ "(More f terms\<^sub>1 context\<^sub>1 terms\<^sub>2)"] exI[of _ term\<^sub>1] 
                   simp: "term" terms terms\<^sub>1_\<gamma> terms\<^sub>2_\<gamma> context\<^sub>G comp_def)
 
-          then show False
-            using Fun(2)
-            by argo
+            then show False
+              using Fun(2)
+              by argo
+          qed
+
+          ultimately obtain term\<^sub>x context\<^sub>x context\<^sub>x' where
+            "term = context\<^sub>x\<langle>term\<^sub>x\<rangle>"  
+            "is_Var term\<^sub>x" 
+            "to_context context\<^sub>G' = (context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>) \<circ>\<^sub>c context\<^sub>x'"
+            using Fun(1) term_\<gamma> by blast
+
+          then have 
+            "Fun f terms = (More f terms\<^sub>1 context\<^sub>x terms\<^sub>2)\<langle>term\<^sub>x\<rangle>"
+            "is_Var term\<^sub>x" 
+            "to_context context\<^sub>G = (More f terms\<^sub>1 context\<^sub>x terms\<^sub>2 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>) \<circ>\<^sub>c context\<^sub>x'"
+            by(auto simp: terms terms\<^sub>1_\<gamma> terms\<^sub>2_\<gamma> context\<^sub>G comp_def)
+
+          then show ?thesis
+            by blast
         qed
-
-        ultimately obtain term\<^sub>x context\<^sub>x context\<^sub>x' where
-          "term = context\<^sub>x\<langle>term\<^sub>x\<rangle>"  
-          "is_Var term\<^sub>x" 
-          "to_context context\<^sub>G' = (context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>) \<circ>\<^sub>c context\<^sub>x'"
-          using Fun(1) term_\<gamma> by blast
-
-        then have 
-          "Fun f terms = (More f terms\<^sub>1 context\<^sub>x terms\<^sub>2)\<langle>term\<^sub>x\<rangle>"
-          "is_Var term\<^sub>x" 
-          "to_context context\<^sub>G = (More f terms\<^sub>1 context\<^sub>x terms\<^sub>2 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>) \<circ>\<^sub>c context\<^sub>x'"
-          by(auto simp: terms terms\<^sub>1_\<gamma> terms\<^sub>2_\<gamma> context\<^sub>G comp_def)
-
-        then show ?thesis
-          by blast
       qed
-    qed
 
-    then obtain term\<^sub>x context\<^sub>x context\<^sub>x' where
-      term\<^sub>1_with_context: "term\<^sub>1_with_context = context\<^sub>x\<langle>term\<^sub>x\<rangle>" and
-      is_Var_term\<^sub>x: "is_Var term\<^sub>x" and
-      "to_context context\<^sub>G = (context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>) \<circ>\<^sub>c context\<^sub>x'"
-      by blast
+      then show ?thesis
+        using that
+        by blast
+    qed
 
     then have context\<^sub>G: "to_context context\<^sub>G = context\<^sub>x \<circ>\<^sub>c context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>"
       using ground_context_subst[OF ground_context_is_ground] ctxt_compose_subst_compose_distrib
       by metis
-      
+
+    have \<iota>\<^sub>G_parts: 
+      "set (side_prems_of \<iota>\<^sub>G) = {premise\<^sub>G\<^sub>2}" 
+      "main_prem_of \<iota>\<^sub>G = premise\<^sub>G\<^sub>1"
+      "concl_of \<iota>\<^sub>G = conclusion\<^sub>G"
+      unfolding \<iota>\<^sub>G
+      by simp_all
+
     from is_Var_term\<^sub>x 
     obtain var\<^sub>x where var\<^sub>x: "Var var\<^sub>x = term\<^sub>x \<cdot>t \<rho>\<^sub>1"
       using renaming(1)
       unfolding is_Var_def term_subst.is_renaming_def subst_compose_def
       by (metis eval_term.simps(1) subst_apply_eq_Var)
 
-    define \<gamma>' where
-      \<gamma>': "\<gamma>' \<equiv> \<gamma>(var\<^sub>x := (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle>)"
+    show ?thesis
+    proof(unfold ground.redundant_infer_def \<iota>\<^sub>G_parts, intro exI conjI)
 
-    have update_grounding: "is_ground_term (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle>"
-    proof-
-      have "is_ground_context ((context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>) \<circ>\<^sub>c (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>))"
-        using ground_context_is_ground[of context\<^sub>G] context\<^sub>G
-        by fastforce
-      
-      then show ?thesis
-        using is_ground_context_context_compose1(2)
-        by auto        
-    qed
+      let ?update = "(context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle>"
 
-    have \<gamma>'_grounding: "is_ground_clause (add_mset literal\<^sub>1 premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
-      using ground_clause_subst_upd[OF update_grounding] premise\<^sub>1_grounding
-      unfolding premise\<^sub>1 \<gamma>'
-      by blast
+      define \<gamma>' where
+        \<gamma>': "\<gamma>' \<equiv> \<gamma>(var\<^sub>x := ?update)"
 
-    let ?ground_premise\<^sub>1_\<gamma>' = "to_ground_clause ((add_mset literal\<^sub>1 premise\<^sub>1') \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
-    let ?ground_clauses = "{?ground_premise\<^sub>1_\<gamma>'}"
+      have update_grounding: "is_ground_term ?update"
+      proof-
+        have "is_ground_context ((context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>) \<circ>\<^sub>c (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>))"
+          using ground_context_is_ground[of context\<^sub>G] context\<^sub>G
+          by fastforce
 
-    let ?context\<^sub>x'\<^sub>G =  "to_ground_context (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)"
-
-    have term\<^sub>x_\<gamma>: "to_ground_term (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) = ?context\<^sub>x'\<^sub>G\<langle>term\<^sub>G\<^sub>1\<rangle>\<^sub>G"
-      using term\<^sub>1_with_context_\<gamma> update_grounding 
-      unfolding term\<^sub>1_with_context context\<^sub>G
-      by(auto simp: ground_term_with_context1[OF _ ground_term_is_ground, unfolded to_term_inverse])
-     
-    have term\<^sub>x_\<gamma>': "to_ground_term (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>') = ?context\<^sub>x'\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G"
-      using update_grounding
-      unfolding var\<^sub>x[symmetric] \<gamma>'
-      by(auto simp: ground_term_with_context1[OF _ ground_term_is_ground, unfolded to_term_inverse])
-
-    have \<gamma>'_entails: "\<And>I. refl I \<Longrightarrow>
-         trans I \<Longrightarrow>
-         sym I \<Longrightarrow>
-         compatible_with_gctxt I \<Longrightarrow>
-         (\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s {premise\<^sub>G\<^sub>2, ?ground_premise\<^sub>1_\<gamma>'} \<Longrightarrow>
-         (\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s {conclusion\<^sub>G}"
-    proof-
-      fix I :: "'f gterm rel"
-      let ?I = "(\<lambda>(x, y). Upair x y) ` I"
-
-      assume 
-        refl: "refl I" and 
-        trans: "trans I" and 
-        sym: "sym I" and
-        compatible_with_gctxt: "compatible_with_gctxt I" and
-        premise: "?I \<TTurnstile>s {premise\<^sub>G\<^sub>2, ?ground_premise\<^sub>1_\<gamma>'}"
-
-      have var\<^sub>x_\<gamma>_ground: "is_ground_term (Var var\<^sub>x \<cdot>t \<gamma>)"
-        using term\<^sub>1_with_context_\<gamma>
-        unfolding term\<^sub>1_with_context var\<^sub>x subst_apply_term_ctxt_apply_distrib
-        by (metis ground_term_with_context_is_ground1 ground_term_with_context_is_ground(3))
-
-      show "?I \<TTurnstile>s { conclusion\<^sub>G }"
-      proof(cases "?I \<TTurnstile> premise\<^sub>G\<^sub>2'")
-        case True
-        then show ?thesis 
-          unfolding ground_superpositionI(12)
+        then show ?thesis
+          using is_ground_context_context_compose1(2)
           by auto
-      next
-        case False
-        then have literal\<^sub>G\<^sub>2: "?I \<TTurnstile>l literal\<^sub>G\<^sub>2"
-          using premise 
-          unfolding ground_superpositionI(2)
-          by blast
-
-        then have "?I \<TTurnstile>l ?context\<^sub>x'\<^sub>G\<langle>term\<^sub>G\<^sub>1\<rangle>\<^sub>G \<approx> ?context\<^sub>x'\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G"
-          unfolding ground_superpositionI(6)
-          using compatible_with_gctxt compatible_with_gctxt_def sym 
-          by auto
-
-        then have X: "?I \<TTurnstile>l to_ground_term (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) \<approx> to_ground_term (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>')"
-          using term\<^sub>x_\<gamma> term\<^sub>x_\<gamma>'
-          by argo
-
-        moreover then have "?I \<TTurnstile> to_ground_clause (add_mset literal\<^sub>1 premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
-          using premise by fastforce
-
-        ultimately have "?I \<TTurnstile> to_ground_clause (add_mset literal\<^sub>1 premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)"
-          using
-            \<gamma>'_grounding
-            interpretation_clause_congruence[OF 
-              trans sym compatible_with_gctxt update_grounding var\<^sub>x_\<gamma>_ground premise\<^sub>1_grounding
-            ]
-            var\<^sub>x
-          unfolding \<gamma>' premise\<^sub>1
-          by simp
-
-        then have "?I \<TTurnstile> add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>1\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) premise\<^sub>G\<^sub>1'"
-          using ground_superpositionI(1) ground_superpositionI(5) premise\<^sub>1 by auto
-
-        then have "?I \<TTurnstile> add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) premise\<^sub>G\<^sub>1'"
-          using 
-            literal\<^sub>G\<^sub>2
-            interpretation_context_congruence[OF trans sym compatible_with_gctxt]
-            interpretation_context_congruence'[OF trans sym compatible_with_gctxt]
-            ground_superpositionI(4)
-          unfolding ground_superpositionI(6)
-          by(cases "\<P>\<^sub>G = Pos")(auto simp: sym)
-  
-        then show ?thesis 
-          unfolding ground_superpositionI(12)
-          by blast
       qed
 
+      let ?premise\<^sub>1_\<gamma>' = "to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
+      have premise\<^sub>1_\<gamma>'_grounding: "is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
+        using ground_clause_subst_upd[OF update_grounding premise\<^sub>1_grounding] 
+        unfolding \<gamma>'
+        by blast
+
+      show "{?premise\<^sub>1_\<gamma>'} \<subseteq> premise_groundings"
+        using premise\<^sub>1_\<gamma>'_grounding
+        unfolding clause_groundings_def clause_subst_compose[symmetric] premise\<^sub>1 premise_groundings
+        by blast
+
+      show "finite {?premise\<^sub>1_\<gamma>'}"
+        by simp
+
+      show "ground.G_entails ({?premise\<^sub>1_\<gamma>'} \<union> {premise\<^sub>G\<^sub>2}) {conclusion\<^sub>G}"
+      proof(unfold ground.G_entails_def, intro allI impI)
+        fix I :: "'f gterm rel"
+        let ?I = "upair ` I"
+        
+        assume 
+          refl: "refl I" and 
+          trans: "trans I" and 
+          sym: "sym I" and
+          compatible_with_gctxt: "compatible_with_gctxt I" and
+          premise: "?I \<TTurnstile>s {?premise\<^sub>1_\<gamma>'} \<union> {premise\<^sub>G\<^sub>2}"
+
+        let ?context\<^sub>x'_\<gamma> = "to_ground_context (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)"
+        note to_term_context =
+          ground_term_with_context1[OF _ ground_term_is_ground, unfolded to_term_inverse]
+
+        have term\<^sub>x_\<gamma>: "to_ground_term (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) = ?context\<^sub>x'_\<gamma>\<langle>term\<^sub>G\<^sub>1\<rangle>\<^sub>G"
+          using term\<^sub>1_with_context_\<gamma> update_grounding 
+          unfolding term\<^sub>1_with_context context\<^sub>G
+          by(auto simp: to_term_context)
+
+        have term\<^sub>x_\<gamma>': "to_ground_term (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>') = ?context\<^sub>x'_\<gamma>\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G"
+          using update_grounding
+          unfolding var\<^sub>x[symmetric] \<gamma>'
+          by(auto simp: to_term_context)
+
+        have var\<^sub>x_\<gamma>_ground: "is_ground_term (Var var\<^sub>x \<cdot>t \<gamma>)"
+          using term\<^sub>1_with_context_\<gamma>
+          unfolding term\<^sub>1_with_context var\<^sub>x subst_apply_term_ctxt_apply_distrib
+          by (metis ground_term_with_context_is_ground1 ground_term_with_context_is_ground(3))
+
+        show "?I \<TTurnstile>s { conclusion\<^sub>G }"
+        proof(cases "?I \<TTurnstile> premise\<^sub>G\<^sub>2'")
+          case True
+          then show ?thesis 
+            unfolding ground_superpositionI(12)
+            by auto
+        next
+          case False
+          then have literal\<^sub>G\<^sub>2: "?I \<TTurnstile>l literal\<^sub>G\<^sub>2"
+            using premise 
+            unfolding ground_superpositionI(2)
+            by blast
+
+          then have "?I \<TTurnstile>l ?context\<^sub>x'_\<gamma>\<langle>term\<^sub>G\<^sub>1\<rangle>\<^sub>G \<approx> ?context\<^sub>x'_\<gamma>\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G"
+            unfolding ground_superpositionI(6)
+            using compatible_with_gctxt compatible_with_gctxt_def sym 
+            by auto
+
+          then have "?I \<TTurnstile>l to_ground_term (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) \<approx> to_ground_term (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>')"
+            using term\<^sub>x_\<gamma> term\<^sub>x_\<gamma>'
+            by argo
+
+          moreover then have "?I \<TTurnstile> ?premise\<^sub>1_\<gamma>'"
+            using premise by fastforce
+
+          ultimately have "?I \<TTurnstile> premise\<^sub>G\<^sub>1"
+            using
+              interpretation_clause_congruence[OF 
+                trans sym compatible_with_gctxt update_grounding var\<^sub>x_\<gamma>_ground premise\<^sub>1_grounding
+                ]
+              var\<^sub>x
+            unfolding \<gamma>'
+            by simp
+
+          then have "?I \<TTurnstile> add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>1\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) premise\<^sub>G\<^sub>1'"
+            using ground_superpositionI(1) ground_superpositionI(5) by auto
+
+          then have "?I \<TTurnstile> add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) premise\<^sub>G\<^sub>1'"
+            using 
+              literal\<^sub>G\<^sub>2
+              interpretation_context_congruence[OF trans sym compatible_with_gctxt]
+              interpretation_context_congruence'[OF trans sym compatible_with_gctxt]
+              ground_superpositionI(4)
+            unfolding ground_superpositionI(6)
+            by(cases "\<P>\<^sub>G = Pos")(auto simp: sym)
+
+          then show ?thesis 
+            unfolding ground_superpositionI(12)
+            by blast
+        qed
+      qed
+
+      show "\<forall>clause\<^sub>G \<in> {?premise\<^sub>1_\<gamma>'}. clause\<^sub>G \<prec>\<^sub>c\<^sub>G premise\<^sub>G\<^sub>1"
+      proof-
+        have var\<^sub>x_\<gamma>: "\<gamma> var\<^sub>x = term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>"
+          using var\<^sub>x
+          by simp
+
+        have context\<^sub>x_grounding: "is_ground_context (context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)"
+          using context\<^sub>G
+          unfolding subst_compose_ctxt_compose_distrib
+          by (metis ground_context_is_ground is_ground_context_context_compose1(1))
+
+        have term\<^sub>x_grounding: "is_ground_term (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>)"
+          using term\<^sub>1_with_context_\<gamma>
+          unfolding term\<^sub>1_with_context subst_apply_term_ctxt_apply_distrib
+          by (metis ground_term_with_context_is_ground(1,3))
+
+        have "(context\<^sub>x \<circ>\<^sub>c context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> \<prec>\<^sub>t context\<^sub>x\<langle>term\<^sub>x\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>"
+          using ground_superpositionI(8)
+          unfolding 
+            less\<^sub>t\<^sub>G_def 
+            context\<^sub>G[symmetric] 
+            term\<^sub>1_with_context[symmetric] 
+            term\<^sub>1_with_context_\<gamma>
+            less\<^sub>t_ground_context_compatible_iff[OF 
+              ground_context_is_ground ground_term_is_ground ground_term_is_ground].
+
+        then have update_smaller: "?update \<prec>\<^sub>t \<gamma> var\<^sub>x"
+          unfolding 
+            var\<^sub>x_\<gamma>
+            subst_apply_term_ctxt_apply_distrib 
+            subst_compose_ctxt_compose_distrib
+            Subterm_and_Context.ctxt_ctxt_compose
+          by(rule less\<^sub>t_ground_context_compatible'[OF 
+                context\<^sub>x_grounding update_grounding term\<^sub>x_grounding])     
+          
+        have var\<^sub>x_in_literal\<^sub>1: "var\<^sub>x \<in> vars_literal (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1)"
+          unfolding literal\<^sub>1 term\<^sub>1_with_context  vars_literal_def vars_atom_def 
+          using var\<^sub>x
+          by(auto simp: subst_literal subst_atom)
+
+        have literal\<^sub>1_smaller: "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<gamma>' \<prec>\<^sub>l literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<gamma>"
+          unfolding \<gamma>'
+          using less\<^sub>l_subst_upd[OF 
+              update_grounding 
+              update_smaller 
+              literal\<^sub>1_grounding[unfolded literal_subst_compose] 
+              var\<^sub>x_in_literal\<^sub>1
+              ].
+
+        have premise\<^sub>1'_grounding: "is_ground_clause (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)"
+          using premise\<^sub>1'_\<gamma>
+          by simp
+
+        have premise\<^sub>1'_smaller: "premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>' \<preceq>\<^sub>c premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
+          unfolding \<gamma>'
+          using less\<^sub>c_subst_upd[of _ \<gamma>, OF update_grounding update_smaller premise\<^sub>1'_grounding]
+          by(cases "var\<^sub>x \<in> vars_clause (premise\<^sub>1' \<cdot> \<rho>\<^sub>1)") simp_all
+
+        have "?premise\<^sub>1_\<gamma>' \<prec>\<^sub>c\<^sub>G premise\<^sub>G\<^sub>1"
+          using less\<^sub>c_add_mset[OF literal\<^sub>1_smaller premise\<^sub>1'_smaller]
+          unfolding 
+            less\<^sub>c\<^sub>G_less\<^sub>c 
+            premise\<^sub>G\<^sub>1
+            subst_clause_add_mset[symmetric]
+            to_ground_clause_inverse[OF premise\<^sub>1_\<gamma>'_grounding]
+            to_ground_clause_inverse[OF premise\<^sub>1_grounding]
+          unfolding premise\<^sub>1.
+
+        then show ?thesis
+          by blast
+      qed   
     qed
-
-    have var\<^sub>x_\<gamma>: "\<gamma> var\<^sub>x = term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>"
-      using var\<^sub>x
-      by simp
-
-    have smaller': "((context\<^sub>x \<circ>\<^sub>c context\<^sub>x') \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> \<prec>\<^sub>t context\<^sub>x\<langle>term\<^sub>x\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>"
-      unfolding term\<^sub>1_with_context context\<^sub>G
-      unfolding term\<^sub>1_with_context_\<gamma>
-      using context\<^sub>G ground_superpositionI(8) less\<^sub>t\<^sub>G_def less\<^sub>t_ground_context_compatible_iff term\<^sub>1_with_context term\<^sub>1_with_context_\<gamma>
-      by (metis ground_context_is_ground ground_term_is_ground)
-
-    then have xx: "(context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> \<prec>\<^sub>t \<gamma> var\<^sub>x"
-      unfolding var\<^sub>x_\<gamma>
-      using less\<^sub>t_ground_context_compatible'[of "context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>" "(context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle>" "term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>"]
-      by (metis Subterm_and_Context.ctxt_ctxt_compose term\<^sub>1_with_context ground_term_with_context_is_ground1 ground_term_with_context_is_ground2(1) ground_term_with_context_is_ground2(2) update_grounding subst_compose_ctxt_compose_distrib term\<^sub>1_with_context_\<gamma> subst_apply_term_ctxt_apply_distrib)
-
-    have xy: "var\<^sub>x \<in> vars_literal (literal\<^sub>1  \<cdot>l \<rho>\<^sub>1)"
-      unfolding literal\<^sub>1 term\<^sub>1_with_context  vars_literal_def vars_atom_def 
-      using var\<^sub>x
-      by(auto simp: subst_literal subst_atom)
-
-    have "is_ground_literal (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<gamma>)"
-      using literal\<^sub>1_grounding by force
-
-    then have smaller: "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<gamma>' \<prec>\<^sub>l literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<gamma>"
-      unfolding \<gamma>'
-      using less\<^sub>l_subst_upd[of _ \<gamma>, OF update_grounding xx _ xy]
-      by blast
-
-    have premise\<^sub>1'_\<gamma>_grounding: "is_ground_clause (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)"
-      using premise\<^sub>1'_\<gamma>
-      by simp
-
-    have smaller_premise\<^sub>1': "premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>' \<preceq>\<^sub>c premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
-      unfolding \<gamma>'
-      using 
-        less\<^sub>c_subst_upd[of _ \<gamma>, OF update_grounding xx premise\<^sub>1'_\<gamma>_grounding]
-      by (metis (no_types, lifting) clause_subst_eq fun_upd_other reflclp_iff)
-
-    from \<gamma>'_grounding have "?ground_premise\<^sub>1_\<gamma>' \<in> clause_groundings (add_mset literal\<^sub>1 premise\<^sub>1')"
-      unfolding clause_groundings_def clause_subst_compose[symmetric]
-      by blast
-
-    moreover have "?ground_premise\<^sub>1_\<gamma>' \<prec>\<^sub>c\<^sub>G add_mset literal\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>1'"
-      unfolding less\<^sub>c\<^sub>G_less\<^sub>c to_ground_clause_inverse[OF \<gamma>'_grounding] to_clause_add_mset
-      unfolding literal\<^sub>1_\<gamma>[symmetric]  subst_clause_add_mset premise\<^sub>1'_\<gamma>[symmetric]
-      using less\<^sub>c_add_mset[OF smaller smaller_premise\<^sub>1']
-      by simp
-
-    moreover have "ground.G_entails (insert (add_mset literal\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>2') ?ground_clauses) {add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) (premise\<^sub>G\<^sub>1' + premise\<^sub>G\<^sub>2')}"
-      using \<gamma>'_entails
-      unfolding ground.G_entails_def ground_superpositionI
-      by blast
-
-    ultimately show ?thesis
-      unfolding ground.redundant_infer_def premise\<^sub>1 premise\<^sub>2 ground_superpositionI(1, 2, 12)
-      (* TODO *)
-      by auto
   qed
 
   obtain context\<^sub>1 term\<^sub>1 where 
@@ -1038,35 +1031,32 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     term\<^sub>1_\<gamma> : "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = to_term term\<^sub>G\<^sub>1" and
     context\<^sub>1_\<gamma> : "context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma> = to_context context\<^sub>G" and
     term\<^sub>1_not_Var: "\<not> is_Var term\<^sub>1"
-    using non_redundant ground_superposition
-    unfolding premise\<^sub>1_\<gamma>
-    unfolding premise\<^sub>2_\<gamma>
-    unfolding conclusion_\<gamma>\<^sub>G
-    unfolding premise\<^sub>1 premise\<^sub>2
-    apply auto
-    unfolding ground.Red_I_def
-    apply auto
-    unfolding ground.G_Inf_def
-     apply blast
-    by (metis conclusion\<^sub>G ground_superpositionI(1, 2)  premise\<^sub>1_\<gamma> premise\<^sub>2_\<gamma> inf_in_var_is_redundant to_clause_inverse)
+    using non_redundant ground_superposition inference_into_var_is_redundant 
+    unfolding
+      ground.Red_I_def 
+      ground.G_Inf_def 
+      premise_groundings 
+      \<iota>\<^sub>G 
+      conclusion\<^sub>G 
+      ground_superpositionI(1, 2) 
+      premise_groundings 
+    by blast
 
-  obtain term\<^sub>2'_with_context where
-    term\<^sub>2'_with_context: 
+  obtain term\<^sub>2'_with_context where term\<^sub>2'_with_context:
     "term\<^sub>2'_with_context \<cdot>t \<gamma> = (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>3\<rangle>"
     "term\<^sub>2'_with_context = (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle>" 
-    unfolding term\<^sub>2'_\<gamma>[symmetric]  context\<^sub>1_\<gamma>[symmetric]
+    unfolding term\<^sub>2'_\<gamma>[symmetric] context\<^sub>1_\<gamma>[symmetric]
     by force
 
   have term_term': "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<gamma>"
-    unfolding term\<^sub>1_\<gamma> term\<^sub>2_\<gamma>
-    by(rule refl)
+    unfolding term\<^sub>1_\<gamma> term\<^sub>2_\<gamma> ..
 
   then obtain \<mu> \<sigma> where \<mu>: "term_subst.is_imgu \<mu> {{term\<^sub>1 \<cdot>t \<rho>\<^sub>1, term\<^sub>2 \<cdot>t \<rho>\<^sub>2}}" "\<gamma> = \<mu> \<odot> \<sigma>"
     using imgu_exists
     by blast
 
   let ?conclusion' = 
-      "add_mset (?\<P> (Upair term\<^sub>2'_with_context (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu>"
+    "add_mset (?\<P> (Upair term\<^sub>2'_with_context (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu>"
 
   have "term_subst.is_idem \<mu>"
     using \<mu>(1)
@@ -1076,7 +1066,14 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     unfolding \<mu>(2) term_subst.is_idem_def
     by (metis subst_compose_assoc)
 
-  from conclusion_\<gamma>\<^sub>G have conclusion_\<gamma>: "conclusion \<cdot> \<gamma> =  ?conclusion' \<cdot> \<gamma>"
+  have "conclusion \<cdot> \<gamma> = 
+    add_mset (?\<P> (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> (to_term term\<^sub>G\<^sub>2))) 
+      (to_clause premise\<^sub>G\<^sub>1' + to_clause premise\<^sub>G\<^sub>2')"
+    using ground_superpositionI(4, 12) to_ground_clause_inverse[OF conclusion_grounding] 
+    unfolding ground_term_with_context(3) to_term_to_atom
+    by(cases "\<P>\<^sub>G = Pos")(simp_all add: to_atom_to_literal to_clause_add_mset)
+
+  then have conclusion_\<gamma>: "conclusion \<cdot> \<gamma> =  ?conclusion' \<cdot> \<gamma>"
     unfolding 
       term\<^sub>2'_with_context[symmetric]
       premise\<^sub>1'_\<gamma>[symmetric] 
@@ -1106,7 +1103,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     show "premise\<^sub>2 = add_mset literal\<^sub>2 premise\<^sub>2'"
       using premise\<^sub>2.
   next
-    show  "?\<P> \<in> {Pos, Neg}"
+    show "?\<P> \<in> {Pos, Neg}"
       by simp
   next
     show "literal\<^sub>1 = ?\<P> (Upair context\<^sub>1\<langle>term\<^sub>1\<rangle> term\<^sub>1')"
