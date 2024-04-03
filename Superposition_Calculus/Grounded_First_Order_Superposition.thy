@@ -28,15 +28,13 @@ sublocale ground: ground_superposition_calculus where
   less_trm = "(\<prec>\<^sub>t\<^sub>G)" and select = select\<^sub>G
   by unfold_locales (rule ground_critical_pair_theorem)
 
-definition inference_groundings
-  where "inference_groundings inference = 
-  { ground_inference | ground_inference \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2.
-    (case inference of 
+abbreviation is_inference_grounding where
+  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv> 
+    (case \<iota> of 
         Infer [premise] conclusion \<Rightarrow>
           is_ground_clause (premise \<cdot> \<gamma>) 
         \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
-        \<and> ground_inference = 
-            Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion \<cdot> \<gamma>))
+        \<and> \<iota>\<^sub>G = Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion \<cdot> \<gamma>))
       | Infer [premise\<^sub>2, premise\<^sub>1] conclusion \<Rightarrow> 
           term_subst.is_renaming \<rho>\<^sub>1
         \<and> term_subst.is_renaming \<rho>\<^sub>2
@@ -44,14 +42,21 @@ definition inference_groundings
         \<and> is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>) 
         \<and> is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>) 
         \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
-        \<and> ground_inference = 
+        \<and> \<iota>\<^sub>G = 
             Infer 
               [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)] 
               (to_ground_clause (conclusion \<cdot> \<gamma>))
       | _ \<Rightarrow> False
      )
-  \<and> ground_inference \<in> ground.G_Inf
-}"
+  \<and> \<iota>\<^sub>G \<in> ground.G_Inf"
+
+definition inference_groundings where 
+  "inference_groundings \<iota> = { \<iota>\<^sub>G | \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2. is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 }"
+
+lemma is_inference_grounding_inference_groundings: 
+  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<Longrightarrow> \<iota>\<^sub>G \<in> inference_groundings \<iota>"
+  unfolding inference_groundings_def
+  by blast
 
 lemma inference\<^sub>G_concl_in_clause_grounding: 
   assumes "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
