@@ -53,6 +53,7 @@ lemma ground_instances_of_eq_Collect_subst_grounding:
   "ground_instances_of x = {x \<cdot> \<gamma> | \<gamma>. is_ground (x \<cdot> \<gamma>)}"
   by (auto simp: ground_instances_of_def instances_of_def generalizes_def)
 
+(* This corresponds to the maximal subgroup of the monoid on (\<odot>) and id_subst *)
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<rho> \<longleftrightarrow> (\<exists>\<sigma>. \<rho> \<odot> \<sigma> = id_subst)"
 
@@ -141,11 +142,17 @@ locale basic_substitution =
   for
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) and
     id_subst :: 's and
+
+    \<comment> \<open>Right monoid action\<close>
     subst :: "'x \<Rightarrow> 's \<Rightarrow> 'x" (infixl "\<cdot>" 67) and
+
+    \<comment> \<open>Predicate identifying the fixed elements w.r.t. the monoid action\<close>
     is_ground :: "'x \<Rightarrow> bool" +
   assumes
+    \<comment> \<open>These are the axioms of the monoid-action subst\<close>
     subst_id_subst[simp]: "x \<cdot> id_subst = x" and
     subst_comp_subst[simp]: "x \<cdot> (\<sigma> \<odot> \<tau>) = (x \<cdot> \<sigma>) \<cdot> \<tau>" and
+
     all_subst_ident_if_ground: "is_ground x \<Longrightarrow> (\<forall>\<sigma>. x \<cdot> \<sigma> = x)"
 begin
 
