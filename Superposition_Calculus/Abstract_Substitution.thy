@@ -56,6 +56,13 @@ lemma ground_instances_of_eq_Collect_subst_grounding:
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<rho> \<longleftrightarrow> (\<exists>\<sigma>. \<rho> \<odot> \<sigma> = id_subst)"
 
+definition renaming_inverse where
+  "is_renaming \<rho> \<Longrightarrow> renaming_inverse \<rho> = (SOME inv. \<rho> \<odot> inv = id_subst)"
+
+lemma renaming_comp_renaming_inverse[simp]:
+  "is_renaming \<rho> \<Longrightarrow> \<rho> \<odot> renaming_inverse \<rho> = id_subst"
+  by (auto simp: is_renaming_def renaming_inverse_def intro: someI_ex)
+
 definition is_unifier :: "'s \<Rightarrow> 'x set \<Rightarrow> bool" where
   "is_unifier \<upsilon> X \<longleftrightarrow> card (X \<cdot>s \<upsilon>) \<le> 1"
 
