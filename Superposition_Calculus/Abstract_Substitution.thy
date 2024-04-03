@@ -63,10 +63,10 @@ definition is_unifier_set :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" wh
   "is_unifier_set \<upsilon> XX \<longleftrightarrow> (\<forall>X \<in> XX. is_unifier \<upsilon> X)"
 
 definition is_mgu :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
-  "is_mgu \<mu> XX \<longleftrightarrow> is_unifier_set \<mu> XX \<and> (\<forall>\<upsilon>. is_unifier_set \<upsilon> XX \<longrightarrow> (\<exists>\<sigma>. \<upsilon> = \<mu> \<odot> \<sigma>))"
+  "is_mgu \<mu> XX \<longleftrightarrow> is_unifier_set \<mu> XX \<and> (\<forall>\<upsilon>. is_unifier_set \<upsilon> XX \<longrightarrow> (\<exists>\<sigma>. \<mu> \<odot> \<sigma> = \<upsilon>))"
 
 definition is_imgu :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
-  "is_imgu \<mu> XX \<longleftrightarrow> is_unifier_set \<mu> XX \<and> (\<forall>\<tau>. is_unifier_set \<tau> XX \<longrightarrow> \<tau> = \<mu> \<odot> \<tau>)"
+  "is_imgu \<mu> XX \<longleftrightarrow> is_unifier_set \<mu> XX \<and> (\<forall>\<tau>. is_unifier_set \<tau> XX \<longrightarrow> \<mu> \<odot> \<tau> = \<tau>)"
 
 definition is_idem :: "'s \<Rightarrow> bool" where
   "is_idem \<sigma> \<longleftrightarrow> \<sigma> \<odot> \<sigma> = \<sigma>"

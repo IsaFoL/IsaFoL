@@ -99,7 +99,7 @@ proof (intro exI)
 
   ultimately have is_imgu: "term_subst.is_imgu (the_mgu term term') {{term, term'}}"
     unfolding term_subst.is_imgu_def
-    by blast
+    by metis
 
   show "\<upsilon> = (the_mgu term term') \<circ>\<^sub>s \<upsilon> \<and> term_subst.is_imgu (the_mgu term term') {{term, term'}}"
     using is_imgu the_mgu[OF assms]
