@@ -322,6 +322,18 @@ lemma maximal_lit_in_clause:
   unfolding ground.is_maximal_lit_def
   by(rule conjunct1)
 
+lemma is_maximal\<^sub>l_empty [simp]: 
+  assumes "is_maximal\<^sub>l literal {#}"  
+  shows False
+  using assms maximal\<^sub>l_in_clause
+  by fastforce
+
+lemma is_strictly_maximal\<^sub>l_empty [simp]: 
+  assumes "is_strictly_maximal\<^sub>l literal {#}"  
+  shows False
+  using assms strictly_maximal\<^sub>l_in_clause
+  by fastforce
+
 lemma is_maximal_lit_iff_is_maximal\<^sub>l: 
   "ground.is_maximal_lit literal\<^sub>G clause\<^sub>G \<longleftrightarrow> is_maximal\<^sub>l (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
    unfolding 
@@ -333,6 +345,7 @@ lemma is_maximal_lit_iff_is_maximal\<^sub>l:
      ground_literal_in_ground_clause(2, 3)
    by (metis to_ground_literal_inverse to_literal_inverse)
 
+(* TODO: Name *)
 lemma is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l:
   "ground.is_strictly_maximal_lit literal\<^sub>G clause\<^sub>G 
     \<longleftrightarrow> is_strictly_maximal\<^sub>l (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
