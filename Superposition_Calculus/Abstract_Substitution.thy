@@ -2,6 +2,38 @@ theory Abstract_Substitution
   imports Main
 begin
 
+locale right_semigroup_action = semigroup +
+  fixes action :: "'b \<Rightarrow> 'a \<Rightarrow> 'b" (infixl "\<cdot>" 70)
+  assumes action_compatibility[simp]: "\<And>x a b. x \<cdot> (a \<^bold>* b) = (x \<cdot> a) \<cdot> b"
+
+locale right_monoid_action = monoid +
+  fixes action :: "'b \<Rightarrow> 'a \<Rightarrow> 'b" (infixl "\<cdot>" 70)
+  assumes
+    monoid_action_compatibility: "\<And>x a b. x \<cdot> (a \<^bold>* b) = (x \<cdot> a) \<cdot> b" and
+    action_right_neutral[simp]: "\<And>x. x \<cdot> \<^bold>1 = x"
+
+sublocale right_monoid_action \<subseteq> right_semigroup_action
+proof unfold_locales
+  show "\<And>x a b. x \<cdot> (a \<^bold>* b) = x \<cdot> a \<cdot> b"
+    using monoid_action_compatibility .
+qed
+
+locale right_group_action = group +
+  fixes action :: "'b \<Rightarrow> 'a \<Rightarrow> 'b" (infixl "\<cdot>" 70)
+  assumes
+    group_action_compatibility: "\<And>x a b. x \<cdot> (a \<^bold>* b) = (x \<cdot> a) \<cdot> b" and
+    group_action_right_neutral: "\<And>x. x \<cdot> \<^bold>1 = x"
+
+sublocale right_group_action \<subseteq> right_monoid_action
+proof unfold_locales
+  show "\<And>x a b. x \<cdot> (a \<^bold>* b) = x \<cdot> a \<cdot> b"
+    using group_action_compatibility .
+next
+  show "\<And>x. x \<cdot> \<^bold>1 = x"
+    using group_action_right_neutral .
+qed
+
+
 locale basic_substitution_ops =
   fixes
     subst :: "'x \<Rightarrow> 's \<Rightarrow> 'x" (infixl "\<cdot>" 67) and
@@ -10,7 +42,7 @@ locale basic_substitution_ops =
     is_ground :: "'x \<Rightarrow> bool"
 begin
 
-definition subst_set :: "'x set \<Rightarrow> 's \<Rightarrow> 'x set" (infixl "\<cdot>s" 67) where
+definition subst_set :: "'x set \<Rightarrow> 's \<Rightarrow> 'x set" (infixl "\<cdot>s" 70) where
   "subst_set X \<sigma> = (\<lambda>x. subst x \<sigma>) ` X"
 
 definition is_ground_set :: "'x set \<Rightarrow> bool" where
@@ -134,33 +166,37 @@ lemma is_ground_set_ground_instances_of_set[simp]: "is_ground_set (ground_instan
 
 end
 
-
 (* Rename to abstract substitution *)
 locale basic_substitution =
-  basic_substitution_ops subst id_subst comp_subst is_ground +
-  comp_subst: monoid comp_subst id_subst
+  comp_subst: right_monoid_action comp_subst id_subst subst +
+  basic_substitution_ops subst id_subst comp_subst is_ground
   for
-    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) and
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 70) and
     id_subst :: 's and
-
-    \<comment> \<open>Right monoid action\<close>
-    subst :: "'x \<Rightarrow> 's \<Rightarrow> 'x" (infixl "\<cdot>" 67) and
+    subst :: "'x \<Rightarrow> 's \<Rightarrow> 'x" (infixl "\<cdot>" 70) and
 
     \<comment> \<open>Predicate identifying the fixed elements w.r.t. the monoid action\<close>
     is_ground :: "'x \<Rightarrow> bool" +
   assumes
-    \<comment> \<open>These are the axioms of the monoid-action subst\<close>
-    subst_id_subst[simp]: "x \<cdot> id_subst = x" and
-    subst_comp_subst[simp]: "x \<cdot> (\<sigma> \<odot> \<tau>) = (x \<cdot> \<sigma>) \<cdot> \<tau>" and
-
     all_subst_ident_if_ground: "is_ground x \<Longrightarrow> (\<forall>\<sigma>. x \<cdot> \<sigma> = x)"
 begin
+
+lemmas subst_id_subst = comp_subst.action_right_neutral
+lemmas subst_comp_subst = comp_subst.action_compatibility
+
+sublocale comp_subst_set: right_monoid_action comp_subst id_subst subst_set
+proof unfold_locales
+  show "\<And>x \<sigma>\<^sub>1 \<sigma>\<^sub>2. x \<cdot>s (\<sigma>\<^sub>1 \<odot> \<sigma>\<^sub>2) = x \<cdot>s \<sigma>\<^sub>1 \<cdot>s \<sigma>\<^sub>2"
+    by (simp add: subst_set_def image_comp)
+next
+  show "\<And>x. x \<cdot>s id_subst = x"
+    by (simp add: subst_set_def)
+qed
 
 
 subsection \<open>Identity Substitution\<close>
 
-lemma subst_set_id_subst[simp]: "X \<cdot>s id_subst = X"
-  by (simp add: subst_set_def)
+lemmas subst_set_id_subst = comp_subst_set.action_right_neutral
 
 lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
   by (simp add: is_renaming_def)
