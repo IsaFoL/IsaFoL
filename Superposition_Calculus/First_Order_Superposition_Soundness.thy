@@ -94,7 +94,7 @@ proof (cases P C rule: eq_resolution.cases)
      qed
    qed
     
-   then show ?thesis 
+   then show ?thesis
      unfolding ground.G_entails_def true_clss_def clause_groundings_def
      by auto
 qed
@@ -197,7 +197,7 @@ proof (cases P C rule: eq_factoring.cases)
     qed
   qed
 
- then show ?thesis 
+ then show ?thesis
     unfolding ground.G_entails_def true_clss_def clause_groundings_def
     by auto
 qed
