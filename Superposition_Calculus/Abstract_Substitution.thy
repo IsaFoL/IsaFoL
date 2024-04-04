@@ -2,37 +2,104 @@ theory Abstract_Substitution
   imports Main
 begin
 
+section \<open>Semigroup Action\<close>
+
+text \<open>We define both left and right semigroup actions. Left semigroup actions seem to be prevalent
+in algebra, but right semigroup actions directly uses the usual notation of term/atom/literal/clause
+substitution.\<close>
+
+locale left_semigroup_action = semigroup +
+  fixes action :: "'a \<Rightarrow> 'b \<Rightarrow> 'b" (infix "\<cdot>" 70)
+  assumes action_compatibility[simp]: "\<And>a b x. (a \<^bold>* b) \<cdot> x = a \<cdot> (b \<cdot> x)"
+
 locale right_semigroup_action = semigroup +
-  fixes action :: "'b \<Rightarrow> 'a \<Rightarrow> 'b" (infixl "\<cdot>" 70)
+  fixes action :: "'b \<Rightarrow> 'a \<Rightarrow> 'b" (infix "\<cdot>" 70)
   assumes action_compatibility[simp]: "\<And>x a b. x \<cdot> (a \<^bold>* b) = (x \<cdot> a) \<cdot> b"
 
+text \<open>We then instantiate the right action in the context of the left action in order to get access
+to any lemma proven in the context of the other locale. We do analogously in the context of the
+right locale.\<close>
+
+sublocale left_semigroup_action \<subseteq> right: right_semigroup_action where
+  f = "\<lambda>x y. f y x" and action = "\<lambda>x y. action y x"
+proof unfold_locales
+  show "\<And>a b c. c \<^bold>* (b \<^bold>* a) = c \<^bold>* b \<^bold>* a"
+    by (simp only: assoc)
+next
+  show "\<And>x a b. (b \<^bold>* a) \<cdot> x = b \<cdot> (a \<cdot> x)"
+    by simp
+qed
+
+sublocale right_semigroup_action \<subseteq> left: left_semigroup_action where
+  f = "\<lambda>x y. f y x" and action = "\<lambda>x y. action y x"
+proof unfold_locales
+  show "\<And>a b c. c \<^bold>* (b \<^bold>* a) = c \<^bold>* b \<^bold>* a"
+    by (simp only: assoc)
+next
+  show "\<And>a b x. x \<cdot> (b \<^bold>* a) = (x \<cdot> b) \<cdot> a"
+    by simp
+qed
+
+
+section \<open>Monoid Action\<close>
+
+locale left_monoid_action = monoid +
+  fixes action :: "'a \<Rightarrow> 'b \<Rightarrow> 'b" (infix "\<cdot>" 70)
+  assumes
+    monoid_action_compatibility: "\<And>a b x. (a \<^bold>* b) \<cdot> x = a \<cdot> (b \<cdot> x)" and
+    action_neutral[simp]: "\<And>x. \<^bold>1 \<cdot> x = x"
+
 locale right_monoid_action = monoid +
-  fixes action :: "'b \<Rightarrow> 'a \<Rightarrow> 'b" (infixl "\<cdot>" 70)
+  fixes action :: "'b \<Rightarrow> 'a \<Rightarrow> 'b" (infix "\<cdot>" 70)
   assumes
     monoid_action_compatibility: "\<And>x a b. x \<cdot> (a \<^bold>* b) = (x \<cdot> a) \<cdot> b" and
-    action_right_neutral[simp]: "\<And>x. x \<cdot> \<^bold>1 = x"
+    action_neutral[simp]: "\<And>x. x \<cdot> \<^bold>1 = x"
+
+sublocale left_monoid_action \<subseteq> left_semigroup_action
+  by unfold_locales (fact monoid_action_compatibility)
 
 sublocale right_monoid_action \<subseteq> right_semigroup_action
-proof unfold_locales
-  show "\<And>x a b. x \<cdot> (a \<^bold>* b) = x \<cdot> a \<cdot> b"
-    using monoid_action_compatibility .
-qed
+  by unfold_locales (fact monoid_action_compatibility)
+
+sublocale left_monoid_action \<subseteq> right: right_monoid_action where
+  f = "\<lambda>x y. f y x" and action = "\<lambda>x y. action y x"
+  by unfold_locales simp_all
+
+sublocale right_monoid_action \<subseteq> left: left_monoid_action where
+  f = "\<lambda>x y. f y x" and action = "\<lambda>x y. action y x"
+  by unfold_locales simp_all
+
+
+section \<open>Group Action\<close>
+
+locale left_group_action = group +
+  fixes action :: "'a \<Rightarrow> 'b \<Rightarrow> 'b" (infix "\<cdot>" 70)
+  assumes
+    group_action_compatibility: "\<And>a b x. (a \<^bold>* b) \<cdot> x = a \<cdot> (b \<cdot> x)" and
+    group_action_neutral: "\<And>x. \<^bold>1 \<cdot> x = x"
 
 locale right_group_action = group +
   fixes action :: "'b \<Rightarrow> 'a \<Rightarrow> 'b" (infixl "\<cdot>" 70)
   assumes
     group_action_compatibility: "\<And>x a b. x \<cdot> (a \<^bold>* b) = (x \<cdot> a) \<cdot> b" and
-    group_action_right_neutral: "\<And>x. x \<cdot> \<^bold>1 = x"
+    group_action_neutral: "\<And>x. x \<cdot> \<^bold>1 = x"
+
+sublocale left_group_action \<subseteq> left_monoid_action
+  by unfold_locales (fact group_action_compatibility group_action_neutral)+
 
 sublocale right_group_action \<subseteq> right_monoid_action
-proof unfold_locales
-  show "\<And>x a b. x \<cdot> (a \<^bold>* b) = x \<cdot> a \<cdot> b"
-    using group_action_compatibility .
-next
-  show "\<And>x. x \<cdot> \<^bold>1 = x"
-    using group_action_right_neutral .
-qed
+  by unfold_locales (fact group_action_compatibility group_action_neutral)+
 
+sublocale left_group_action \<subseteq> right: right_group_action where
+  f = "\<lambda>x y. f y x" and action = "\<lambda>x y. action y x"
+  by unfold_locales simp_all
+
+sublocale right_group_action \<subseteq> left: left_group_action where
+  f = "\<lambda>x y. f y x" and action = "\<lambda>x y. action y x"
+  by unfold_locales simp_all
+
+
+section \<open>Basic Assumption-free Substitution\<close>
 
 locale basic_substitution_ops =
   fixes
@@ -166,6 +233,9 @@ lemma is_ground_set_ground_instances_of_set[simp]: "is_ground_set (ground_instan
 
 end
 
+
+section \<open>Basic Substitution\<close>
+
 (* Rename to abstract substitution *)
 locale basic_substitution =
   comp_subst: right_monoid_action comp_subst id_subst subst +
@@ -181,7 +251,7 @@ locale basic_substitution =
     all_subst_ident_if_ground: "is_ground x \<Longrightarrow> (\<forall>\<sigma>. x \<cdot> \<sigma> = x)"
 begin
 
-lemmas subst_id_subst = comp_subst.action_right_neutral
+lemmas subst_id_subst = comp_subst.action_neutral
 lemmas subst_comp_subst = comp_subst.action_compatibility
 
 sublocale comp_subst_set: right_monoid_action comp_subst id_subst subst_set
@@ -196,7 +266,7 @@ qed
 
 subsection \<open>Identity Substitution\<close>
 
-lemmas subst_set_id_subst = comp_subst_set.action_right_neutral
+lemmas subst_set_id_subst = comp_subst_set.action_neutral
 
 lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
   by (simp add: is_renaming_def)
