@@ -40,6 +40,13 @@ next
     by simp
 qed
 
+lemma (in right_semigroup_action) lifting_semigroup_action_to_set:
+  "right_semigroup_action (\<^bold>*) (\<lambda>X a. (\<lambda>x. action x a) ` X)"
+proof unfold_locales
+  show "\<And>x a b. (\<lambda>x. x \<cdot> (a \<^bold>* b)) ` x = (\<lambda>x. x \<cdot> b) ` (\<lambda>x. x \<cdot> a) ` x"
+    by (simp add: image_comp)
+qed
+
 
 section \<open>Monoid Action\<close>
 
@@ -68,6 +75,16 @@ sublocale left_monoid_action \<subseteq> right: right_monoid_action where
 sublocale right_monoid_action \<subseteq> left: left_monoid_action where
   f = "\<lambda>x y. f y x" and action = "\<lambda>x y. action y x"
   by unfold_locales simp_all
+
+lemma (in right_monoid_action) lifting_monoid_action_to_set:
+  "right_monoid_action (\<^bold>*) \<^bold>1 (\<lambda>X a. (\<lambda>x. action x a) ` X)"
+proof (unfold_locales)
+  show "\<And>x a b. (\<lambda>x. x \<cdot> (a \<^bold>* b)) ` x = (\<lambda>x. x \<cdot> b) ` (\<lambda>x. x \<cdot> a) ` x"
+    by (simp add: image_comp)
+next
+  show "\<And>x. (\<lambda>x. x \<cdot> \<^bold>1) ` x = x"
+    by simp
+qed
 
 
 section \<open>Group Action\<close>
@@ -251,21 +268,19 @@ locale basic_substitution =
     all_subst_ident_if_ground: "is_ground x \<Longrightarrow> (\<forall>\<sigma>. x \<cdot> \<sigma> = x)"
 begin
 
-lemmas subst_id_subst = comp_subst.action_neutral
-lemmas subst_comp_subst = comp_subst.action_compatibility
-
 sublocale comp_subst_set: right_monoid_action comp_subst id_subst subst_set
-proof unfold_locales
-  show "\<And>x \<sigma>\<^sub>1 \<sigma>\<^sub>2. x \<cdot>s (\<sigma>\<^sub>1 \<odot> \<sigma>\<^sub>2) = x \<cdot>s \<sigma>\<^sub>1 \<cdot>s \<sigma>\<^sub>2"
-    by (simp add: subst_set_def image_comp)
-next
-  show "\<And>x. x \<cdot>s id_subst = x"
-    by (simp add: subst_set_def)
-qed
+  using comp_subst.lifting_monoid_action_to_set unfolding subst_set_def .
 
 
-subsection \<open>Identity Substitution\<close>
+subsection \<open>Substitution Composition\<close>
 
+lemmas subst_comp_subst = comp_subst.action_compatibility
+lemmas subst_set_comp_subst = comp_subst_set.action_compatibility
+
+
+subsection \<open>Substitution Identity\<close>
+
+lemmas subst_id_subst = comp_subst.action_neutral
 lemmas subst_set_id_subst = comp_subst_set.action_neutral
 
 lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
