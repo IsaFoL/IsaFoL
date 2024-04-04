@@ -189,7 +189,7 @@ lemma ground_instances_eq_Collect_subst_grounding:
   "ground_instances x = {x \<cdot> \<gamma> | \<gamma>. is_ground (x \<cdot> \<gamma>)}"
   by (auto simp: ground_instances_def instances_def generalizes_def)
 
-(* This corresponds to the maximal subgroup of the monoid on (\<odot>) and id_subst *)
+(* This corresponds to the maximal right-subquasigroup of the monoid on (\<odot>) and id_subst *)
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<rho> \<longleftrightarrow> (\<exists>\<sigma>. \<rho> \<odot> \<sigma> = id_subst)"
 
