@@ -225,11 +225,10 @@ type_synonym isasat_stats = \<open>
   inprocessing_pure_lits_stats, lbd_size_limit_stats,
   rephase_stats,
 
-  ―\<open>Now the unused part:\<close>
   64 word,
   64 word, 64 word,64 word, 64 word,
   64 word, 64 word, 32 word, 64 word) tuple16\<close>
-
+text \<open>The unused part starts after the linebreak, but Isabelle does not allow for comments there.\<close>
 
 
 abbreviation Stats :: \<open>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow> isasat_stats\<close> where

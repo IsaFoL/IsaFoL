@@ -277,6 +277,7 @@ lemma IsaSAT_bounded_heur_alt_def:
     S \<leftarrow> init_state_wl_heur_fast \<A>\<^sub>i\<^sub>n';
     (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur_b CS S;
     let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
+    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
     if isasat_fast_init T \<and> \<not>is_failed_heur_init T
     then do {
       if \<not>get_conflict_wl_is_None_heur_init T

@@ -688,7 +688,7 @@ void start_profile(struct PROFILE *p) {
 #endif
 }
 
-void IsaSAT_Profile_start_profile(uint8_t t) {
+void IsaSAT_Profile_LLVM_start_profile(uint8_t t) {
 #ifndef NOPROFILING
   if(t == IsaSAT_Profile_PROPAGATE ()) {
     start_profile(&propagate_prof);
@@ -717,10 +717,10 @@ void IsaSAT_Profile_start_profile(uint8_t t) {
   else if (t == IsaSAT_Profile_PURE_LITERAL ()) {
     start_profile(&pure_lits_prof);
   }
-  else if (t == IsaSAT_Profile_FOCUSED_MODE ()) {
+  else if (t == IsaSAT_Profile_LLVM_IsaSAT_Profile_FOCUSED_MODE ()) {
     start_profile(&focused_mode_prof);
   }
-  else if (t == IsaSAT_Profile_STABLE_MODE ()) {
+  else if (t == IsaSAT_Profile_LLVM_IsaSAT_Profile_STABLE_MODE ()) {
     start_profile(&stable_mode_prof);
   }
   else {
@@ -745,7 +745,7 @@ void stop_profile(struct PROFILE *p) {
 #endif
 }
 
-void IsaSAT_Profile_stop_profile(uint8_t t) {
+void IsaSAT_Profile_LLVM_stop_profile(uint8_t t) {
 #ifndef NOPROFILING
   if(t == IsaSAT_Profile_PROPAGATE ()) {
     stop_profile(&propagate_prof);
@@ -774,10 +774,10 @@ void IsaSAT_Profile_stop_profile(uint8_t t) {
   else if (t == IsaSAT_Profile_PURE_LITERAL ()) {
     stop_profile(&pure_lits_prof);
   }
-  else if (t == IsaSAT_Profile_FOCUSED_MODE ()) {
+  else if (t == IsaSAT_Profile_LLVM_IsaSAT_Profile_FOCUSED_MODE ()) {
     stop_profile(&focused_mode_prof);
   }
-  else if (t == IsaSAT_Profile_STABLE_MODE ()) {
+  else if (t == IsaSAT_Profile_LLVM_IsaSAT_Profile_STABLE_MODE ()) {
     stop_profile(&stable_mode_prof);
   }
   else {
