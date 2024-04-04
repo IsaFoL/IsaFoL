@@ -2,6 +2,24 @@ theory Abstract_Substitution
   imports Main
 begin
 
+section \<open>General Results on Groups\<close>
+
+lemma (in monoid) group_wrt_right_inverse:
+  fixes inv
+  assumes right_inverse:  "\<And>a. a \<^bold>* inv a = \<^bold>1"
+  shows "group (\<^bold>*) \<^bold>1 inv"
+proof unfold_locales
+  show "\<And>a. \<^bold>1 \<^bold>* a = a"
+    by simp
+next
+  have "\<And>a. inv (inv a) = a"
+    using assoc right_inverse right_neutral
+    by (metis assoc right_inverse right_neutral)
+  thus "\<And>a. inv a \<^bold>* a = \<^bold>1"
+  by (metis right_inverse)
+qed
+
+
 section \<open>Semigroup Action\<close>
 
 text \<open>We define both left and right semigroup actions. Left semigroup actions seem to be prevalent
@@ -189,16 +207,18 @@ lemma ground_instances_eq_Collect_subst_grounding:
   "ground_instances x = {x \<cdot> \<gamma> | \<gamma>. is_ground (x \<cdot> \<gamma>)}"
   by (auto simp: ground_instances_def instances_def generalizes_def)
 
-(* This corresponds to the maximal right-subquasigroup of the monoid on (\<odot>) and id_subst *)
+(* This corresponds to the maximal subgroup of the monoid on (\<odot>) and id_subst *)
 definition is_renaming :: "'s \<Rightarrow> bool" where
-  "is_renaming \<rho> \<longleftrightarrow> (\<exists>\<sigma>. \<rho> \<odot> \<sigma> = id_subst)"
+  "is_renaming \<rho> \<longleftrightarrow> (\<exists>\<rho>_inv. \<rho> \<odot> \<rho>_inv = id_subst)"
 
 definition renaming_inverse where
-  "is_renaming \<rho> \<Longrightarrow> renaming_inverse \<rho> = (SOME inv. \<rho> \<odot> inv = id_subst)"
+  "is_renaming \<rho> \<Longrightarrow> renaming_inverse \<rho> = (SOME \<rho>_inv. \<rho> \<odot> \<rho>_inv = id_subst)"
 
 lemma renaming_comp_renaming_inverse[simp]:
   "is_renaming \<rho> \<Longrightarrow> \<rho> \<odot> renaming_inverse \<rho> = id_subst"
   by (auto simp: is_renaming_def renaming_inverse_def intro: someI_ex)
+
+thm monoid.group_wrt_right_inverse[of "(\<odot>)" id_subst renaming_inverse]
 
 definition is_unifier :: "'s \<Rightarrow> 'x set \<Rightarrow> bool" where
   "is_unifier \<upsilon> X \<longleftrightarrow> card (subst_set X \<upsilon>) \<le> 1"
