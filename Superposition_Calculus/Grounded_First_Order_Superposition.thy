@@ -29,22 +29,22 @@ sublocale ground: ground_superposition_calculus where
   by unfold_locales (rule ground_critical_pair_theorem)
 
 abbreviation is_inference_grounding where
-  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv> 
-    (case \<iota> of 
+  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv>
+    (case \<iota> of
         Infer [premise] conclusion \<Rightarrow>
-          is_ground_clause (premise \<cdot> \<gamma>) 
+          is_ground_clause (premise \<cdot> \<gamma>)
         \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
         \<and> \<iota>\<^sub>G = Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion \<cdot> \<gamma>))
       | Infer [premise\<^sub>2, premise\<^sub>1] conclusion \<Rightarrow> 
           term_subst.is_renaming \<rho>\<^sub>1
         \<and> term_subst.is_renaming \<rho>\<^sub>2
         \<and> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}
-        \<and> is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>) 
-        \<and> is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>) 
+        \<and> is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)
+        \<and> is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)
         \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
-        \<and> \<iota>\<^sub>G = 
-            Infer 
-              [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)] 
+        \<and> \<iota>\<^sub>G =
+            Infer
+              [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)]
               (to_ground_clause (conclusion \<cdot> \<gamma>))
       | _ \<Rightarrow> False
      )
@@ -133,18 +133,18 @@ next
     unfolding clause_groundings_def to_ground_clause_def subst_clause_def
     by simp
 next
-  fix \<iota>   
-  show "the ((Some \<circ> inference_groundings) \<iota>) 
-              \<subseteq> ground.GRed_I (clause_groundings (concl_of \<iota>))"
+  fix \<iota> :: "('f, 'v) atom clause inference"
+
+  show "the ((Some \<circ> inference_groundings) \<iota>) \<subseteq> ground.GRed_I (clause_groundings (concl_of \<iota>))"
     using inference\<^sub>G_red_in_clause_grounding_of_concl
     by auto
 next
-  show "\<And>g. po_on (tiebreakers g) UNIV"
+  show "\<And>clause\<^sub>G. po_on (tiebreakers clause\<^sub>G) UNIV"
     unfolding po_on_def
     using wellfounded_tiebreakers
     by simp
 next
-  show "\<And>g. wfp_on (tiebreakers g) UNIV"
+  show "\<And>clause\<^sub>G. wfp_on (tiebreakers clause\<^sub>G) UNIV"
     using wellfounded_tiebreakers
     by simp
 qed
