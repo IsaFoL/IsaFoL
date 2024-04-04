@@ -252,6 +252,15 @@ lemma subst_set_insert[simp]: "subst_set (insert x X) \<sigma> = insert (x \<cdo
 lemma subst_set_union[simp]: "subst_set (X1 \<union> X2) \<sigma> = subst_set X1 \<sigma> \<union> subst_set X2 \<sigma>"
   by (simp only: subst_set_def image_Un)
 
+lemma subst_list_Nil[simp]: "subst_list [] \<sigma> = []"
+  by (simp only: subst_list_def list.map)
+
+lemma subst_list_insert[simp]: "subst_list (x # xs) \<sigma> = (x \<cdot> \<sigma>) # (subst_list xs \<sigma>)"
+  by (simp only: subst_list_def list.map)
+
+lemma subst_list_append[simp]: "subst_list (xs\<^sub>1 @ xs\<^sub>2) \<sigma> = subst_list xs\<^sub>1 \<sigma> @ subst_list xs\<^sub>2 \<sigma>"
+  by (simp only: subst_list_def map_append)
+
 lemma is_unifier_set_union:
   "is_unifier_set \<upsilon> (XX\<^sub>1 \<union> XX\<^sub>2) \<longleftrightarrow> is_unifier_set \<upsilon> XX\<^sub>1 \<and> is_unifier_set \<upsilon> XX\<^sub>2"
   by (auto simp add: is_unifier_set_def)
@@ -362,6 +371,7 @@ lemma subst_ident_if_ground[simp]: "is_ground x \<Longrightarrow> x \<cdot> \<si
 
 lemma subst_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> subst_set X \<sigma> = X"
   unfolding is_ground_set_def subst_set_def by simp
+
 
 subsection \<open>Instances of Ground Expressions\<close>
 
