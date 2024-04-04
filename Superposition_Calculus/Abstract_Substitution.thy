@@ -143,7 +143,7 @@ locale basic_substitution_ops =
     is_ground :: "'x \<Rightarrow> bool"
 begin
 
-definition subst_set :: "'x set \<Rightarrow> 's \<Rightarrow> 'x set" (infixl "\<cdot>s" 70) where
+definition subst_set :: "'x set \<Rightarrow> 's \<Rightarrow> 'x set" where
   "subst_set X \<sigma> = (\<lambda>x. subst x \<sigma>) ` X"
 
 definition subst_list :: "'x list \<Rightarrow> 's \<Rightarrow> 'x list" where
@@ -201,7 +201,7 @@ lemma renaming_comp_renaming_inverse[simp]:
   by (auto simp: is_renaming_def renaming_inverse_def intro: someI_ex)
 
 definition is_unifier :: "'s \<Rightarrow> 'x set \<Rightarrow> bool" where
-  "is_unifier \<upsilon> X \<longleftrightarrow> card (X \<cdot>s \<upsilon>) \<le> 1"
+  "is_unifier \<upsilon> X \<longleftrightarrow> card (subst_set X \<upsilon>) \<le> 1"
 
 definition is_unifier_set :: "'s \<Rightarrow> 'x set set \<Rightarrow> bool" where
   "is_unifier_set \<upsilon> XX \<longleftrightarrow> (\<forall>X \<in> XX. is_unifier \<upsilon> X)"
@@ -243,16 +243,17 @@ lemma is_mgu_insert_singleton[simp]: "is_mgu \<mu> (insert {x} XX) \<longleftrig
 lemma is_imgu_insert_singleton[simp]: "is_imgu \<mu> (insert {x} XX) \<longleftrightarrow> is_imgu \<mu> XX"
   by (simp add: is_imgu_def)
 
-lemma subst_set_empty[simp]: "{} \<cdot>s \<sigma> = {}"
+lemma subst_set_empty[simp]: "subst_set {} \<sigma> = {}"
   by (simp only: subst_set_def image_empty)
 
-lemma subst_set_insert[simp]: "(insert x X) \<cdot>s \<sigma> = insert (x \<cdot> \<sigma>) (X \<cdot>s \<sigma>)"
+lemma subst_set_insert[simp]: "subst_set (insert x X) \<sigma> = insert (x \<cdot> \<sigma>) (subst_set X \<sigma>)"
   by (simp only: subst_set_def image_insert)
 
-lemma subst_set_union[simp]: "(X1 \<union> X2) \<cdot>s \<sigma> = X1 \<cdot>s \<sigma> \<union> X2 \<cdot>s \<sigma>"
+lemma subst_set_union[simp]: "subst_set (X1 \<union> X2) \<sigma> = subst_set X1 \<sigma> \<union> subst_set X2 \<sigma>"
   by (simp only: subst_set_def image_Un)
 
-lemma is_unifier_set_union: "is_unifier_set \<upsilon> (XX\<^sub>1 \<union> XX\<^sub>2) \<longleftrightarrow> is_unifier_set \<upsilon> XX\<^sub>1 \<and> is_unifier_set \<upsilon> XX\<^sub>2"
+lemma is_unifier_set_union:
+  "is_unifier_set \<upsilon> (XX\<^sub>1 \<union> XX\<^sub>2) \<longleftrightarrow> is_unifier_set \<upsilon> XX\<^sub>1 \<and> is_unifier_set \<upsilon> XX\<^sub>2"
   by (auto simp add: is_unifier_set_def)
 
 lemma is_unifier_subset: "is_unifier \<upsilon> A \<Longrightarrow> finite A \<Longrightarrow> B \<subseteq> A \<Longrightarrow> is_unifier \<upsilon> B"
@@ -359,7 +360,7 @@ subsection \<open>Substituting on Ground Expressions\<close>
 lemma subst_ident_if_ground[simp]: "is_ground x \<Longrightarrow> x \<cdot> \<sigma> = x"
   using all_subst_ident_if_ground by simp
 
-lemma subst_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> X \<cdot>s \<sigma> = X"
+lemma subst_set_ident_if_ground[simp]: "is_ground_set X \<Longrightarrow> subst_set X \<sigma> = X"
   unfolding is_ground_set_def subst_set_def by simp
 
 subsection \<open>Instances of Ground Expressions\<close>
@@ -454,7 +455,7 @@ proof (rule subsetI)
 qed
 
 lemma instances_set_subst_set:
-  "instances_set (X \<cdot>s \<sigma>) \<subseteq> instances_set X"
+  "instances_set (subst_set X \<sigma>) \<subseteq> instances_set X"
   unfolding instances_set_def subst_set_def
   using instances_subst by auto
 
@@ -464,7 +465,7 @@ lemma ground_instances_subst:
   using instances_subst by auto
 
 lemma ground_instances_set_subst_set:
-  "ground_instances_set (X \<cdot>s \<sigma>) \<subseteq> ground_instances_set X"
+  "ground_instances_set (subst_set X \<sigma>) \<subseteq> ground_instances_set X"
   unfolding ground_instances_set_def
   using instances_set_subst_set by auto
 
@@ -476,7 +477,7 @@ lemma instances_subst_ident_if_renaming[simp]:
   by (metis instances_subst is_renaming_def subset_antisym subst_comp_subst subst_id_subst)
 
 lemma instances_set_subst_set_ident_if_renaming[simp]:
-  "is_renaming \<rho> \<Longrightarrow> instances_set (X \<cdot>s \<rho>) = instances_set X"
+  "is_renaming \<rho> \<Longrightarrow> instances_set (subst_set X \<rho>) = instances_set X"
   by (simp add: instances_set_def subst_set_def)
 
 lemma ground_instances_subst_ident_if_renaming[simp]:
@@ -484,7 +485,7 @@ lemma ground_instances_subst_ident_if_renaming[simp]:
   by (simp add: ground_instances_def)
 
 lemma ground_instances_set_subst_set_ident_if_renaming[simp]:
-  "is_renaming \<rho> \<Longrightarrow> ground_instances_set (X \<cdot>s \<rho>) = ground_instances_set X"
+  "is_renaming \<rho> \<Longrightarrow> ground_instances_set (subst_set X \<rho>) = ground_instances_set X"
   by (simp add: ground_instances_set_def)
 
 end
