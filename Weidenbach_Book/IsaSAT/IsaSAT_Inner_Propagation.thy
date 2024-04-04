@@ -1185,6 +1185,7 @@ lemma mop_access_lit_in_clauses_heur:
       by (simp_all add: K find_unwatched_wl_st_pre_def literals_are_in_\<L>\<^sub>i\<^sub>n_nth2)
   qed
 
+
 lemma unit_propagation_inner_loop_body_wl_alt_def:
   \<open>unit_propagation_inner_loop_body_wl L j w S = do {
       ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
@@ -1213,7 +1214,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
           L' \<leftarrow> other_watched_wl S L C i;
           val_L' \<leftarrow> mop_polarity_wl S L';
           if val_L' = Some True
-          then update_blit_wl L C b j w L' S
+          then do{T \<leftarrow> update_blit_wl L C b j w L' S; RETURN T}
           else do {
             f \<leftarrow> find_unwatched_l (get_trail_wl S) (get_clauses_wl S) C;
             ASSERT (unit_prop_body_wl_find_unwatched_inv f C S);
@@ -1230,14 +1231,14 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
                 K \<leftarrow> mop_clauses_at (get_clauses_wl S) C f;
                 val_L' \<leftarrow> mop_polarity_wl S K;
                 if val_L' = Some True
-                then update_blit_wl L C b j w K S
-                else update_clause_wl L L' C b j w i f S
+                then do{S \<leftarrow> update_blit_wl L C b j w K S; RETURN S}
+                else do{S \<leftarrow> update_clause_wl L L' C b j w i f S; RETURN S}
               }
           }
         }
       }
    }\<close>
-  unfolding unit_propagation_inner_loop_body_wl_def Let_def by auto
+  unfolding unit_propagation_inner_loop_body_wl_def Let_def nres_monad2 by auto
 
 lemma fref_to_Down_curry8:
   \<open>(uncurry8 ff, uncurry8 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
@@ -1248,12 +1249,12 @@ lemma fref_to_Down_curry8:
 
 
 lemma unit_propagation_inner_loop_body_wl_heur_unit_propagation_inner_loop_body_wl_D:
-  \<open>(uncurry3 unit_propagation_inner_loop_body_wl_heur,
+  \<open>(uncurry3 (unit_propagation_inner_loop_body_wl_heur ticks),
     uncurry3 unit_propagation_inner_loop_body_wl)
     \<in> [\<lambda>(((L, i), j), S). length (watched_by S L) \<le> r - MIN_HEADER_SIZE \<and> L = K \<and>
         length (watched_by S L) = s]\<^sub>f
-      nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K lcount \<rightarrow>
-     \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K lcount\<rangle>nres_rel\<close>
+       nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K lcount \<rightarrow>
+     \<langle>{((ticks, S), T). (S,T) \<in> nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K lcount}\<rangle>nres_rel\<close>
 proof -
 
   have [refine]: \<open>clause_not_marked_to_delete_heur_pre (S', C')\<close>
@@ -1291,7 +1292,7 @@ proof -
     unfolding unit_propagation_inner_loop_body_wl_heur_def
       unit_propagation_inner_loop_body_wl_alt_def
       uncurry_def  clause_not_marked_to_delete_def[symmetric]
-      watched_by_app_heur_def access_lit_in_clauses_heur_def
+      watched_by_app_heur_def access_lit_in_clauses_heur_def Let_def[of "_ + 1 :: 64 word"]
 
     apply (refine_rcg (*find_unw isa_save_pos mop_access_lit_in_clauses_heur pos_of_watched_heur*))
     subgoal unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv0_def twl_st_heur'_def
@@ -1342,6 +1343,7 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal by simp
+    subgoal by simp
     subgoal by (simp add: clause_not_marked_to_delete_def)
     subgoal by simp
     subgoal by simp
@@ -1353,32 +1355,36 @@ proof -
     subgoal by simp
     subgoal by (simp add: update_blit_wl_heur_pre_def)
     subgoal by simp
+    subgoal by simp
     subgoal by (simp add: update_clause_wl_pre_def)
+    subgoal by simp
     subgoal by simp
     done
 qed
 (*TODO Move*)
 
 lemma unit_propagation_inner_loop_wl_loop_D_heur_unit_propagation_inner_loop_wl_loop_D:
-  \<open>(uncurry unit_propagation_inner_loop_wl_loop_D_heur,
+  \<open>(uncurry (unit_propagation_inner_loop_wl_loop_D_heur),
        uncurry unit_propagation_inner_loop_wl_loop)
    \<in> [\<lambda>(L, S). length (watched_by S L) \<le> r - MIN_HEADER_SIZE \<and> L = K \<and> length (watched_by S L) = s \<and>
          length (watched_by S L) \<le> r]\<^sub>f
      nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K lcount \<rightarrow>
-     \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K lcount\<rangle>nres_rel\<close>
+     \<langle>{((ticks, S), T). (S, T)\<in>(nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K lcount)}\<rangle>nres_rel\<close>
 proof -
   have unit_propagation_inner_loop_wl_loop_D_heur_inv:
     \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv x2a x1a xa\<close>
     if
       \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K lcount\<close> and
-      \<open>y = (x1, x2)\<close> and
-      \<open>x = (x1a, x2a)\<close> and
-      \<open>(xa, x') \<in> nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K lcount\<close> and
+      st: \<open>y = (x1, x2)\<close>
+        \<open>x = (x1a, x2a)\<close> 
+      \<open>(xa, x') \<in> {((ticks, S), T).
+           (S, T) \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K lcount)} \<close> and
       H: \<open>unit_propagation_inner_loop_wl_loop_inv x1 x'\<close>
-    for x y x1 x2 x1a x2a xa x'
+    for x y x1 x2 x1a x2a xa x' ya
   proof -
-    obtain w S w' S' j j' where
-      xa: \<open>xa = (j, w, S)\<close> and x': \<open>x' = (j', w', S')\<close>
+    obtain w S w' S' j j' ticks where
+      xa: \<open>xa = (ticks, j, w, S)\<close> and x': \<open>x' = (j', w', S')\<close>
+      using st
       by (cases xa; cases x') auto
     show ?thesis
       unfolding xa unit_propagation_inner_loop_wl_loop_D_heur_inv_def prod.case
@@ -1675,10 +1681,19 @@ lemma cut_watch_list_heur_cut_watch_list_heur:
         dest!: in_set_dropD in_set_takeD)
   done
 
+lemma unit_propagation_inner_loop_wl_alt_def:
+  \<open>unit_propagation_inner_loop_wl L S\<^sub>0 = do {
+     (j, w, S) \<leftarrow> unit_propagation_inner_loop_wl_loop L S\<^sub>0;
+     ASSERT(j \<le> w \<and> w \<le> length (watched_by S L) \<and> L \<in># all_lits_st S);
+     T \<leftarrow> cut_watch_list j w L S;
+     RETURN T
+  }\<close>
+  unfolding unit_propagation_inner_loop_wl_def nres_monad2 by auto
+
 lemma unit_propagation_inner_loop_wl_D_heur_unit_propagation_inner_loop_wl_D:
   \<open>(uncurry unit_propagation_inner_loop_wl_D_heur, uncurry unit_propagation_inner_loop_wl) \<in>
     [\<lambda>(L, S). length(watched_by S L) \<le> r-MIN_HEADER_SIZE]\<^sub>f
-    nat_lit_lit_rel \<times>\<^sub>f twl_st_heur'' \<D> r lcount \<rightarrow> \<langle>twl_st_heur'' \<D> r lcount\<rangle> nres_rel\<close>
+    nat_lit_lit_rel \<times>\<^sub>f twl_st_heur'' \<D> r lcount \<rightarrow> \<langle>{((ticks,S), T). (S,T) \<in> twl_st_heur'' \<D> r lcount}\<rangle> nres_rel\<close>
 proof -
   have length_le: \<open>length (watched_by x2b x1b) \<le> r - MIN_HEADER_SIZE\<close> and
     length_eq: \<open>length (watched_by x2b x1b) = length (watched_by (snd y) (fst y))\<close> and
@@ -1693,7 +1708,7 @@ proof -
       using that by auto
   show ?thesis
     unfolding unit_propagation_inner_loop_wl_D_heur_def
-      unit_propagation_inner_loop_wl_def uncurry_def
+      unit_propagation_inner_loop_wl_alt_def uncurry_def
       apply (intro frefI nres_relI)
     apply (refine_vcg cut_watch_list_heur_cut_watch_list_heur[of \<D> r, THEN fref_to_Down_curry3]
 	unit_propagation_inner_loop_wl_loop_D_heur_unit_propagation_inner_loop_wl_loop_D[of r _ _ \<D> lcount,
@@ -1842,8 +1857,8 @@ lemma unit_propagation_outer_loop_wl_D_heur_alt_def:
         ASSERT(length (get_clauses_wl_heur S') = length (get_clauses_wl_heur S));
         n \<leftarrow> mop_length_watched_by_int S' L;
         let ticks' = ticks + 8*of_nat n;
-        S \<leftarrow> unit_propagation_inner_loop_wl_D_heur L S';
-        RETURN (S, ticks')
+        (t, S) \<leftarrow> unit_propagation_inner_loop_wl_D_heur L S';
+        RETURN (S, ticks' + t)
       })
      (S\<^sub>0, 0);
   let j2 = isa_length_trail (get_trail_wl_heur S);

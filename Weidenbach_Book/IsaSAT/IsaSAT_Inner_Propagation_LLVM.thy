@@ -444,10 +444,10 @@ sepref_def pos_of_watched_heur_impl
   by sepref
 
 sepref_def unit_propagation_inner_loop_body_wl_fast_heur_code
-  is \<open>uncurry3 unit_propagation_inner_loop_body_wl_heur\<close>
-  :: \<open>[\<lambda>((L, w), S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
-       sint64_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
+  is \<open>uncurry4 unit_propagation_inner_loop_body_wl_heur\<close>
+  :: \<open>[\<lambda>(((ticks, L), w), S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
+      word64_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
+       word64_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
     if_splits[split] snat64_max_le_max_snat64[intro] unit_propagation_inner_loop_wl_loop_D_heur_inv0D[dest!]
   unfolding unit_propagation_inner_loop_body_wl_heur_def PR_CONST_def
