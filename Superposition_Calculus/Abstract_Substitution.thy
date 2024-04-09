@@ -4,6 +4,19 @@ begin
 
 section \<open>General Results on Groups\<close>
 
+lemma (in monoid) right_inverse_idem:
+  fixes inv
+  assumes right_inverse:  "\<And>a. a \<^bold>* inv a = \<^bold>1"
+  shows "\<And>a. inv (inv a) = a"
+    by (metis assoc right_inverse right_neutral)
+
+lemma (in monoid) left_inverse_if_right_inverse:
+  fixes inv
+  assumes
+    right_inverse:  "\<And>a. a \<^bold>* inv a = \<^bold>1"
+  shows "inv a \<^bold>* a = \<^bold>1"
+  by (metis right_inverse_idem right_inverse)
+
 lemma (in monoid) group_wrt_right_inverse:
   fixes inv
   assumes right_inverse:  "\<And>a. a \<^bold>* inv a = \<^bold>1"
@@ -12,11 +25,8 @@ proof unfold_locales
   show "\<And>a. \<^bold>1 \<^bold>* a = a"
     by simp
 next
-  have "\<And>a. inv (inv a) = a"
-    using assoc right_inverse right_neutral
-    by (metis assoc right_inverse right_neutral)
-  thus "\<And>a. inv a \<^bold>* a = \<^bold>1"
-  by (metis right_inverse)
+  show "\<And>a. inv a \<^bold>* a = \<^bold>1"
+    by (metis left_inverse_if_right_inverse right_inverse)
 qed
 
 
