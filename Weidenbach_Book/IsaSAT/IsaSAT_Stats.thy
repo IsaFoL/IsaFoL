@@ -522,6 +522,9 @@ context begin
 qualified definition BUMPREASONRATE where
   \<open>BUMPREASONRATE = 10\<close> (*Kissat has 10, but our sorting is worse, so maybe decrease*)
 
+qualified definition current_rate :: \<open>bool \<Rightarrow> isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>current_rate is_stable stats = (Rate_get_rate is_stable (get_rate_stats stats))\<close>
+  
 qualified definition rate_should_bump_reason :: \<open>bool \<Rightarrow> isasat_stats \<Rightarrow> bool\<close> where
   \<open>rate_should_bump_reason is_stable stats = (Rate_get_rate is_stable (get_rate_stats stats) \<ge> BUMPREASONRATE)\<close>
 

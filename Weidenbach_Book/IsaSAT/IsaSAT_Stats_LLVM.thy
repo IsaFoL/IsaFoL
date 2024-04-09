@@ -2173,6 +2173,12 @@ sepref_def rate_should_bump_reason_impl
   unfolding IsaSAT_Stats.rate_should_bump_reason_def IsaSAT_Stats.BUMPREASONRATE_def stats_code_unfold
   by sepref
 
+sepref_def current_rate_impl
+  is \<open>uncurry (RETURN oo IsaSAT_Stats.current_rate)\<close>
+  :: \<open>bool1_assn\<^sup>k *\<^sub>a isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding IsaSAT_Stats.current_rate_def stats_code_unfold
+  by sepref
+
 sepref_def rate_set_last_decision_impl
   is \<open>uncurry (RETURN oo IsaSAT_Stats.rate_set_last_decision)\<close>
   :: \<open>word64_assn\<^sup>k *\<^sub>a isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a isasat_stats_assn\<close>
