@@ -96,6 +96,43 @@ next
     by (induction \<kappa>) (simp_all add: list.map_ident_strong)
 qed
 
+lemma is_ground_atom_iff_ident_forall_subst:
+  fixes A :: "('f, 'v) atom"
+  shows "is_ground_atom A \<longleftrightarrow> (\<forall>\<sigma>. A \<cdot>a \<sigma> = A)"
+proof (rule iffI)
+  show "\<And>x. is_ground_atom x \<Longrightarrow> \<forall>\<sigma>. x \<cdot>a \<sigma> = x"
+    by (simp add: subst_atom_def uprod.map_ident_strong vars_atom_def)
+next
+  assume ident_forall_subst: "\<forall>\<sigma>. A \<cdot>a \<sigma> = A"
+
+  have "is_ground_term t" if A_def: "A = Upair t u" for t u :: "('f, 'v) term"
+  proof (rule ccontr)
+    assume "\<not> is_ground_term t"
+    define \<sigma> :: "'v \<Rightarrow> ('f, 'v) term" where
+      "\<sigma> = (\<lambda>_. u)"
+
+    have "t \<cdot>t \<sigma> = t \<and> u \<cdot>t \<sigma> = u \<or> t \<cdot>t \<sigma> = u \<and> u \<cdot>t \<sigma> = t"
+      using ident_forall_subst by (simp add: A_def subst_atom_def)
+
+    moreover have "\<not> (t \<cdot>t \<sigma> = t \<and> u \<cdot>t \<sigma> = u)"
+      by (smt (z3) Upair_inject \<open>vars_term t \<noteq> {}\<close> \<sigma>_def ident_forall_subst
+          is_ground_trm_iff_ident_forall_subst
+          map_uprod_simps subst_apply_eq_Var subst_atom_def term_subst.subst_id_subst
+          term_subst_eq_conv A_def)
+
+    moreover have "\<not> (t \<cdot>t \<sigma> = u \<and> u \<cdot>t \<sigma> = t)"
+      by (metis (no_types, opaque_lifting) \<sigma>_def calculation subst_apply_eq_Var subst_compose_def
+          term_subst.subst_comp_subst term_subst_eq_conv)
+
+    ultimately show False
+      by argo
+  qed
+
+  thus "is_ground_atom A"
+    by (metis (no_types, opaque_lifting) Sup_empty Sup_insert Upair_inject map_uprod_simps
+        set_uprod_simps sup.idem uprod.set_map uprod_exhaust vars_atom_def)
+qed
+
 global_interpretation subst_atom: basic_substitution where
   subst = subst_atom and id_subst = Var and comp_subst = subst_compose and
   is_ground = is_ground_atom
@@ -108,7 +145,7 @@ next
     by (metis (no_types, lifting) map_uprod_simps uprod_exhaust)
 next
   show "\<And>x. is_ground_atom x \<Longrightarrow> \<forall>\<sigma>. x \<cdot>a \<sigma> = x"
-    by (simp add: subst_atom_def uprod.map_ident_strong vars_atom_def)
+    using is_ground_atom_iff_ident_forall_subst by  metis
 qed
 
 global_interpretation subst_literal: basic_substitution where
