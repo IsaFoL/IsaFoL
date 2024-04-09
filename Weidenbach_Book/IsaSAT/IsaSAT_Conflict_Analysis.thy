@@ -508,7 +508,7 @@ proof -
       ASSERT(arena_is_valid_clause_idx N C);
       ((b, (n, xs)), clvls, outl) \<leftarrow> rr L M N C b n xs clvls outl;
       ASSERT(arena_act_pre N C);
-      vm \<leftarrow> isa_vmtf_bump_to_rescore_also_reasons_cl M N C (-L) vm;
+      vm \<leftarrow> isa_vmtf_bump_to_rescore_also_reasons_cl_maybe (rate_should_bump_reason_st S) M N C (-L) vm;
       ASSERT(isa_bump_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       vm \<leftarrow> isa_bump_unset L' vm;
@@ -777,45 +777,25 @@ note [[goals_limit=1]]
             D = resolve_cls_wl' (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la) x2 x1)
        b} \<Longrightarrow>
     arena_act_pre x1t x2g \<Longrightarrow>
-    isa_vmtf_bump_to_rescore_also_reasons_cl (get_trail_wl_heur S) x1t x2g (-x1g) (get_vmtf_heur S)
+    isa_vmtf_bump_to_rescore_also_reasons_cl_maybe b (get_trail_wl_heur S) x1t x2g (-x1g) (get_vmtf_heur S)
            \<le> \<Down> {(vm, N'). N = N' \<and> vm \<in> bump_heur (all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la)) x1a}
     (RETURN N)\<close>
    for l m n p q ra s ha ia ja ka la x1 x2 x1a x1b x1c x1d x1e x1f x1g x2g x1h x1i x1k x1l x2k
-     x1m x1n x1o x1p x1q x1r x1s N x1t x2t D x1v x1w x2v x1x x2x CLS CLS' S
+     x1m x1n x1o x1p x1q x1r x1s N x1t x2t D x1v x1w x2v x1x x2x CLS CLS' S b
   unfolding twl_st_heur_conflict_ana_def apply (clarsimp simp only: prod_rel_iff)
   subgoal
-    apply (rule isa_vmtf_bump_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl[
-        where \<A> = \<open>all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la)\<close>,
-        THEN fref_to_Down_curry4,
-          of _ _ _ _ _ x1a x1t x2 \<open>-x1\<close> \<open>get_vmtf_heur S\<close>,
-        THEN order_trans])
-    subgoal by (simp add: twl_st_heur_conflict_ana_def)
-    subgoal by (auto simp add: twl_st_heur_conflict_ana_def)
-    subgoal
-      apply (rule ref_two_step'[THEN order_trans, OF vmtf_mark_to_rescore_also_reasons_cl_spec,
-        of _ _ x1a _
-          N \<open>set (get_vdom_aivdom (get_aivdom S))\<close>])
-      subgoal by (auto simp: )
-      subgoal by (auto simp: update_confl_tl_wl_pre_def update_confl_tl_l_pre_def
-        twl_st_l_def state_wl_l_def)
-      subgoal by (auto simp: update_confl_tl_wl_pre_def update_confl_tl_l_pre_def
-        twl_st_l_def state_wl_l_def)
-      subgoal by auto
-      subgoal
-        by (rule all_in_dom)
-          (auto simp: update_confl_tl_wl_pre_def update_confl_tl_l_pre_def ran_m_def
-          twl_st_l_def state_wl_l_def)
-      subgoal
-        by (intro conjI impI ballI allI,
-             (auto simp: update_confl_tl_wl_pre_def update_confl_tl_l_pre_def ran_m_def
-              twl_st_l_def state_wl_l_def twl_list_invs_def)[])
-         (rule all_in_do,
-          auto simp: update_confl_tl_wl_pre_def update_confl_tl_l_pre_def ran_m_def
-          twl_st_l_def state_wl_l_def twl_list_invs_def)
-      subgoal by (auto simp: RETURN_def conc_fun_RES)
-     done
+    apply (rule isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_vmtf_mark_to_rescore_also_reasons_cl[
+      where \<A> = \<open>all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la)\<close>,
+  THEN fref_to_Down_curry5,
+    of _ b x1a _ _ _ _ _ _ x1t  x2 \<open>-x1\<close>  \<open>get_vmtf_heur S\<close>,
+  THEN order_trans])
+    apply  (auto simp: update_confl_tl_wl_pre_def update_confl_tl_l_pre_def ran_m_def
+      isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_pre_def RETURN_def conc_fun_RES
+      twl_st_l_def state_wl_l_def twl_list_invs_def intro!: all_in_dom)
+    apply (meson all_in_dom)
+    apply (meson all_in_dom)
+    done
    done
-  done
 
   have isa_bump_unset: \<open>isa_bump_unset L x \<le> \<Down>{(a, _). a \<in> bump_heur \<A> (tl M)} (RETURN ())\<close>
   if

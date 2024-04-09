@@ -1839,6 +1839,9 @@ definition set_stats_size_limit_st where
 definition get_lsize_limit_stats_st :: \<open>_\<close> where
   \<open>get_lsize_limit_stats_st T = get_lsize_limit_stats (get_stats_heur T)\<close>
 
+definition rate_should_bump_reason_st :: \<open>_\<close> where
+  \<open>rate_should_bump_reason_st T =  IsaSAT_Stats.rate_should_bump_reason (get_restart_phase T = STABLE_MODE) (get_stats_heur T)\<close>
+
 definition maybe_mark_added_clause_heur2 where
   \<open>maybe_mark_added_clause_heur2 S C = do {
      let (lbd_limit, size_limit) = get_lsize_limit_stats_st S;

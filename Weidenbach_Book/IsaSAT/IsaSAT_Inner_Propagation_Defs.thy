@@ -369,6 +369,7 @@ definition unit_propagation_update_statistics :: \<open>64 word \<Rightarrow> 64
   let pq = q - p;
   let stats = incr_propagation_by pq stats;
   let stats = (if get_conflict_wl_is_None_heur S then stats else incr_conflict stats);
+  let stats = (if get_conflict_wl_is_None_heur S then stats else IsaSAT_Stats.update_rate (curr = STABLE_MODE) (stats_decisions stats) stats);
   let stats = (if count_decided_pol (get_trail_wl_heur S) = 0 then incr_units_since_last_GC_by pq (incr_uset_by pq stats) else stats);
   height \<leftarrow> (if get_conflict_wl_is_None_heur S then RETURN q else do {j \<leftarrow> trail_height_before_conflict (get_trail_wl_heur S); RETURN (of_nat j)});
   let stats = (if curr = STABLE_MODE then incr_search_ticks_stable_by ticks stats else incr_search_ticks_focused_by ticks stats);
@@ -376,8 +377,6 @@ definition unit_propagation_update_statistics :: \<open>64 word \<Rightarrow> 64
   RETURN (set_stats_wl_heur stats S)}\<close>
 
 
-text \<open>
-TODO: this is a crude approximation of ticks and \<^term>\<open>unit_propagation_inner_loop_wl_D_heur\<close> should do something with it.\<close>
 definition unit_propagation_outer_loop_wl_D_heur
    :: \<open>isasat \<Rightarrow> isasat nres\<close> where
   \<open>unit_propagation_outer_loop_wl_D_heur S\<^sub>0 = do {
