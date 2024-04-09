@@ -116,7 +116,7 @@ lemma update_restart_mode_alt_def:
           _ \<leftarrow> RETURN (IsaSAT_Profile.stop_focused_mode);
           _ \<leftarrow> RETURN (IsaSAT_Profile.start_stable_mode);
           let _ = isasat_print_progress 93 (curr XOR 1) stats lcount;
-
+          let stats = IsaSAT_Stats.rate_set_last_decision (get_decisions stats) stats;
           RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats (update_lcount_wl_heur lcount S))))
        }
      } else do { \<comment>\<open>This is still the very first phase, here the limit is given by ticks\<close>
@@ -138,6 +138,7 @@ lemma update_restart_mode_alt_def:
           _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));
           _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.start_focused_mode) else RETURN (IsaSAT_Profile.start_stable_mode));
           let _ = isasat_print_progress open (curr XOR 1) stats lcount;
+          let stats = IsaSAT_Stats.rate_set_last_decision (get_decisions stats) stats;
           RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats (update_lcount_wl_heur lcount S))))
       }
     }

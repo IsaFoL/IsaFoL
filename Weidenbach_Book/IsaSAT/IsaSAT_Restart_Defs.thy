@@ -269,7 +269,8 @@ definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close
           _ \<leftarrow> RETURN (IsaSAT_Profile.stop_focused_mode);
           _ \<leftarrow> RETURN (IsaSAT_Profile.start_stable_mode);
           let _ = isasat_print_progress 95 (curr XOR 1) stats lcount;
-          RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
+          let stats = IsaSAT_Stats.rate_set_last_decision (get_decisions stats) stats;
+          RETURN (set_stats_wl_heur stats (set_heur_wl_heur heur (set_vmtf_wl_heur vm S)))
        }
      } else do { \<comment>\<open>This is still the very first phase, here the limit is given by ticks\<close>
         let search_ticks = (if current_restart_phase heur = STABLE_MODE then stats_ticks_stable stats else stats_ticks_focused stats);
@@ -290,7 +291,8 @@ definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close
           _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));
           _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.start_focused_mode) else RETURN (IsaSAT_Profile.start_stable_mode));
           let _ = isasat_print_progress open (curr XOR 1) stats lcount;
-          RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
+          let stats = IsaSAT_Stats.rate_set_last_decision (get_decisions stats) stats;
+          RETURN (set_stats_wl_heur stats (set_heur_wl_heur heur (set_vmtf_wl_heur vm S)))
       }
     }
   })\<close>

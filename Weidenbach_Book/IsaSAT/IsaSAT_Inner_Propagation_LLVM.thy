@@ -15,6 +15,7 @@ lemma unit_propagation_update_statistics_alt_def:
   let pq = q - p;
   let stats = incr_propagation_by pq stats;
   let stats = (if get_conflict_wl_is_None_heur S then stats else incr_conflict stats);
+  let stats = (if get_conflict_wl_is_None_heur S then stats else IsaSAT_Stats.update_rate (curr = STABLE_MODE) (stats_decisions stats) stats);
   let stats = (if count_decided_pol M = 0 then incr_units_since_last_GC_by pq (incr_uset_by pq stats) else stats);
   height \<leftarrow> (if get_conflict_wl_is_None_heur S then RETURN q else do {j \<leftarrow> trail_height_before_conflict M; RETURN (of_nat j)});
   let stats = (if curr = STABLE_MODE then incr_search_ticks_stable_by ticks stats else incr_search_ticks_focused_by ticks stats);
