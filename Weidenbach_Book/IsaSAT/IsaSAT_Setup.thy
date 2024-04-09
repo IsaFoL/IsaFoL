@@ -1887,4 +1887,11 @@ lemma all_count_learned[simp]: \<open>clss_size_allcount (get_learned_count S) =
     by (auto simp: twl_st_heur'_def clss_size_allcount_def learned_clss_count_def clss_size_lcountU0_def
       clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountUEk_def
       split: prod.splits)
+
+definition trail_zeroed_until_state where
+  \<open>trail_zeroed_until_state S = trail_zeroed_until (get_trail_wl_heur S)\<close>
+
+definition trail_set_zeroed_until_state where
+  \<open>trail_set_zeroed_until_state z S = (let M = get_trail_wl_heur S in set_trail_wl_heur (trail_set_zeroed_until z M) S)\<close>
+
 end

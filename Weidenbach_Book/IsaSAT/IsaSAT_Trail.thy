@@ -1306,4 +1306,17 @@ lemma trail_set_zeroed_until_rel:
   \<open>(M,M') \<in> trail_pol \<A> \<Longrightarrow>zeroed_trail M' z \<Longrightarrow> (trail_set_zeroed_until z M, M') \<in> (trail_pol \<A>)\<close>
   by (auto simp: trail_pol_def trail_set_zeroed_until_def)
 
+definition trail_update_reason_at :: \<open>_ \<Rightarrow> _ \<Rightarrow> trail_pol \<Rightarrow> _\<close> where
+  \<open>trail_update_reason_at \<equiv> (\<lambda>L C (M, val, lvls, reason, k). (M, val, lvls, reason[atm_of L := C], k))\<close>
+
+abbreviation trail_get_reason :: \<open>trail_pol \<Rightarrow> _\<close> where
+  \<open>trail_get_reason \<equiv> (\<lambda>(M, val, lvls, reason, k). reason)\<close>
+
+definition replace_reason_in_trail :: \<open>nat literal \<Rightarrow> _\<close> where
+  \<open>replace_reason_in_trail L C = (\<lambda>M. do {
+    ASSERT(atm_of L < length (trail_get_reason M));
+    RETURN (trail_update_reason_at L 0 M)
+  })\<close>
+
+
 end

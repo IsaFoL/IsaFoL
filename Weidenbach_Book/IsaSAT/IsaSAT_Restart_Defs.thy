@@ -104,18 +104,6 @@ definition number_clss_to_keep_impl :: \<open>isasat \<Rightarrow> nat nres\<clo
 definition (in -) MINIMUM_DELETION_LBD :: nat where
   \<open>MINIMUM_DELETION_LBD = 3\<close>
 
-definition trail_update_reason_at :: \<open>_ \<Rightarrow> _ \<Rightarrow> trail_pol \<Rightarrow> _\<close> where
-  \<open>trail_update_reason_at \<equiv> (\<lambda>L C (M, val, lvls, reason, k). (M, val, lvls, reason[atm_of L := C], k))\<close>
-
-abbreviation trail_get_reason :: \<open>trail_pol \<Rightarrow> _\<close> where
-  \<open>trail_get_reason \<equiv> (\<lambda>(M, val, lvls, reason, k). reason)\<close>
-
-definition replace_reason_in_trail :: \<open>nat literal \<Rightarrow> _\<close> where
-  \<open>replace_reason_in_trail L C = (\<lambda>M. do {
-    ASSERT(atm_of L < length (trail_get_reason M));
-    RETURN (trail_update_reason_at L 0 M)
-  })\<close>
-
 definition isasat_replace_annot_in_trail
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close>
   where
@@ -161,13 +149,6 @@ definition remove_one_annot_true_clause_imp_wl_D_heur_inv
 definition empty_US  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
   \<open>empty_US = (\<lambda>(M', N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
   (M', N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))\<close>
-
-
-definition trail_zeroed_until_state where
-  \<open>trail_zeroed_until_state S = trail_zeroed_until (get_trail_wl_heur S)\<close>
-
-definition trail_set_zeroed_until_state where
-  \<open>trail_set_zeroed_until_state z S = (let M = get_trail_wl_heur S in set_trail_wl_heur (trail_set_zeroed_until z M) S)\<close>
 
 definition remove_one_annot_true_clause_imp_wl_D_heur :: \<open>isasat \<Rightarrow> isasat nres\<close>
 where
