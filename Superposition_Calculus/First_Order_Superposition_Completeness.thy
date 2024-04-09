@@ -1057,7 +1057,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     by blast
 
   define conclusion' where 
-    conclusion': "conclusion' \<equiv> 
+    conclusion': "conclusion' \<equiv>
       add_mset (?\<P> (Upair term\<^sub>2'_with_context (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu>"
 
   show ?thesis
@@ -1107,11 +1107,11 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by blast
     next
       show "?\<P> = Pos 
-            \<and> select premise\<^sub>1 = {#} 
-            \<and> is_strictly_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) 
-       \<or> ?\<P> = Neg 
-            \<and> (select premise\<^sub>1 = {#} \<and> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) 
-               \<or> is_maximal\<^sub>l literal\<^sub>1 (select premise\<^sub>1))"
+              \<and> select premise\<^sub>1 = {#} 
+              \<and> is_strictly_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) 
+          \<or> ?\<P> = Neg 
+              \<and> (select premise\<^sub>1 = {#} \<and> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) 
+                 \<or> is_maximal\<^sub>l literal\<^sub>1 (select premise\<^sub>1))"
       proof(cases "?\<P> = Pos")
         case True
         moreover then have select_empty: "select premise\<^sub>1 = {#}"
@@ -1236,9 +1236,9 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         using less\<^sub>t_less_eq\<^sub>t_ground_subst_stability[OF term_groundings]
         by blast
     next
-      show "conclusion' =  add_mset
-     ((if \<P>\<^sub>G = Pos then Pos else Neg) (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1)))
-     (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu>"
+      show 
+        "conclusion' = add_mset (?\<P> (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) 
+          (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu>"
         unfolding term\<^sub>2'_with_context conclusion'..
     qed
 
@@ -1292,18 +1292,14 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
   qed
 qed  
 
-abbreviation subst_stability_on where
-  "subst_stability_on premises \<equiv>
-    \<forall>premise\<^sub>G \<in> \<Union> (clause_groundings ` premises). \<exists>premise \<in> premises. \<exists>\<gamma>. 
-          premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
-        \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<gamma>))) = (select premise) \<cdot> \<gamma>"
-
-lemma eq_resolution_ground_instance': 
+lemma eq_resolution_ground_instance: 
   assumes 
     "\<iota>\<^sub>G \<in> ground.eq_resolution_inferences"
-    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))"
+    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union>(clause_groundings ` premises))"
     "subst_stability_on premises"
-  shows "\<exists>\<iota> \<in> Inf_from premises. \<iota>\<^sub>G \<in> inference_groundings \<iota>"
+  obtains \<iota> where 
+    "\<iota> \<in> Inf_from premises" 
+    "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
 proof-
   obtain premise\<^sub>G conclusion\<^sub>G where 
     \<iota>\<^sub>G : "\<iota>\<^sub>G = Infer [premise\<^sub>G] conclusion\<^sub>G" and
@@ -1311,7 +1307,7 @@ proof-
     using assms(1)
     by blast
 
-  have premise\<^sub>G_in_groundings: "premise\<^sub>G \<in>  \<Union> (clause_groundings ` premises)"
+  have premise\<^sub>G_in_groundings: "premise\<^sub>G \<in> \<Union>(clause_groundings ` premises)"
     using assms(2)
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
     by simp
@@ -1322,54 +1318,54 @@ proof-
     select: "to_clause (select\<^sub>G premise\<^sub>G) = select premise \<cdot> \<gamma>" and
     premise_in_premises: "premise \<in> premises"
     using assms(2, 3) premise\<^sub>G_in_groundings
-    unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def 
-    by (metis (no_types, opaque_lifting) ground_clause_is_ground subst_ground_clause to_clause_inverse)
-
-  then have 
-    premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and 
-    premise\<^sub>G: "premise\<^sub>G = to_ground_clause (premise \<cdot> \<gamma>)" and 
+    unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
+    by (metis (no_types, lifting) select_subst(1) ground_clause_is_ground subst_ground_clause 
+          to_clause_inverse to_ground_clause_inverse)
+    
+  then have
+    premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and
+    premise\<^sub>G: "premise\<^sub>G = to_ground_clause (premise \<cdot> \<gamma>)" and
     conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
     conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
-    by (smt ground_clause_is_ground to_clause_inverse)+
+    using ground_clause_is_ground to_clause_inverse
+    by(smt(verit))+
 
-  obtain conclusion' where 
+  obtain conclusion' where
     eq_resolution: "eq_resolution premise conclusion'" and
-    inference_groundings: 
-    "Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion' \<cdot> \<gamma>)) \<in> 
-        inference_groundings (Infer [premise] conclusion')" and  
+    \<iota>\<^sub>G: "\<iota>\<^sub>G = Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion' \<cdot> \<gamma>))" and
+    inference_groundings: "\<iota>\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')" and  
     conclusion'_conclusion: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
-    using 
-      premise_grounding 
-      conclusion_grounding 
-      select  
-      ground_eq_resolution
-      eq_resolution_lifting
-    unfolding
-      premise\<^sub>G
-      conclusion\<^sub>G
+    using
+      eq_resolution_lifting[OF 
+        premise_grounding 
+        conclusion_grounding 
+        select[unfolded premise\<^sub>G] 
+        ground_eq_resolution[unfolded premise\<^sub>G conclusion\<^sub>G]]
+    unfolding premise\<^sub>G conclusion\<^sub>G \<iota>\<^sub>G
     by metis
 
   let ?\<iota> = "Infer [premise] conclusion'"
 
-  have "?\<iota> \<in> Inf_from premises"
-    using premise_in_premises  eq_resolution
-    unfolding Inf_from_def inferences_def inference_system.Inf_from_def
-    by simp
+  show ?thesis
+  proof(rule that)
+    show "?\<iota> \<in> Inf_from premises"
+      using premise_in_premises eq_resolution
+      unfolding Inf_from_def inferences_def inference_system.Inf_from_def
+      by simp
 
-  moreover have "\<iota>\<^sub>G \<in> inference_groundings ?\<iota>"
-    unfolding \<iota>\<^sub>G premise\<^sub>G conclusion\<^sub>G conclusion'_conclusion[symmetric]
-    by(rule inference_groundings)
-
-  ultimately show ?thesis
-    by blast
+    show "\<iota>\<^sub>G \<in> inference_groundings ?\<iota>"
+      using inference_groundings.
+  qed
 qed 
 
-lemma eq_factoring_ground_instance': 
+lemma eq_factoring_ground_instance: 
   assumes 
     "\<iota>\<^sub>G \<in> ground.eq_factoring_inferences"
-    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))" 
+    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union>(clause_groundings ` premises))" 
     "subst_stability_on premises"
-  shows  "\<exists>\<iota> \<in> Inf_from premises. \<iota>\<^sub>G \<in> inference_groundings \<iota>"
+  obtains \<iota> where 
+    "\<iota> \<in> Inf_from premises" 
+    "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
 proof-
   obtain premise\<^sub>G conclusion\<^sub>G where 
     \<iota>\<^sub>G : "\<iota>\<^sub>G = Infer [premise\<^sub>G] conclusion\<^sub>G" and
@@ -1377,7 +1373,7 @@ proof-
     using assms(1)
     by blast
 
-  have premise\<^sub>G_in_groundings: "premise\<^sub>G \<in>  \<Union> (clause_groundings ` premises)"
+  have premise\<^sub>G_in_groundings: "premise\<^sub>G \<in> \<Union>(clause_groundings ` premises)"
     using assms(2)
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
     by simp
@@ -1389,20 +1385,19 @@ proof-
     premise_in_premises: "premise \<in> premises"
     using assms(2, 3) premise\<^sub>G_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
-    by (metis (no_types, opaque_lifting) ground_clause_is_ground subst_ground_clause)
+    by (metis (no_types, opaque_lifting) ground_clause_is_ground select_subst1 subst_ground_clause 
+          to_ground_clause_inverse)
 
   then have 
     premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and 
     premise\<^sub>G: "premise\<^sub>G = to_ground_clause (premise \<cdot> \<gamma>)" and 
     conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
     conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
-    by (smt ground_clause_is_ground to_clause_inverse)+
+    by (smt(verit) ground_clause_is_ground to_clause_inverse)+
 
   obtain conclusion' where 
     eq_factoring: "eq_factoring premise conclusion'" and
-    inference_groundings: 
-    "Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion' \<cdot> \<gamma>)) \<in> 
-        inference_groundings (Infer [premise] conclusion')" and  
+    inference_groundings: "\<iota>\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')" and  
     conclusion'_conclusion: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     using 
       eq_factoring_lifting[OF 
@@ -1411,30 +1406,32 @@ proof-
         select 
         ground_eq_factoring[unfolded premise\<^sub>G conclusion\<^sub>G]
         ]
+    unfolding premise\<^sub>G conclusion\<^sub>G \<iota>\<^sub>G
     by auto
 
   let ?\<iota> = "Infer [premise] conclusion'"
 
-  have "?\<iota> \<in> Inf_from premises"
-    using premise_in_premises  eq_factoring
-    unfolding Inf_from_def inferences_def inference_system.Inf_from_def
-    by simp
+  show ?thesis
+  proof(rule that)
+    show "?\<iota> \<in> Inf_from premises"
+      using premise_in_premises eq_factoring
+      unfolding Inf_from_def inferences_def inference_system.Inf_from_def
+      by simp
 
-  moreover have "\<iota>\<^sub>G \<in> inference_groundings ?\<iota>"
-    unfolding \<iota>\<^sub>G premise\<^sub>G conclusion\<^sub>G conclusion'_conclusion[symmetric]
-    by(rule inference_groundings)
-
-  ultimately show ?thesis
-    by blast
+    show "\<iota>\<^sub>G \<in> inference_groundings ?\<iota>"
+      using inference_groundings.
+  qed
 qed
 
-lemma superposition_ground_instance': 
+lemma superposition_ground_instance: 
   assumes 
     "\<iota>\<^sub>G \<in> ground.superposition_inferences"
     "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))" 
     "\<iota>\<^sub>G \<notin> ground.GRed_I (\<Union> (clause_groundings ` premises))"
     "subst_stability_on premises"
-  shows  "\<exists>\<iota> \<in> Inf_from premises. \<iota>\<^sub>G \<in> inference_groundings \<iota>"
+  obtains \<iota> where 
+    "\<iota> \<in> Inf_from premises" 
+    "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
 proof-
   obtain premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 conclusion\<^sub>G where 
     \<iota>\<^sub>G : "\<iota>\<^sub>G = Infer [premise\<^sub>G\<^sub>2, premise\<^sub>G\<^sub>1] conclusion\<^sub>G" and
@@ -1452,23 +1449,22 @@ proof-
   obtain premise\<^sub>1 premise\<^sub>2 \<gamma>\<^sub>1 \<gamma>\<^sub>2 where
     premise\<^sub>1_\<gamma>\<^sub>1: "premise\<^sub>1 \<cdot> \<gamma>\<^sub>1 = to_clause premise\<^sub>G\<^sub>1" and
     premise\<^sub>2_\<gamma>\<^sub>2: "premise\<^sub>2 \<cdot> \<gamma>\<^sub>2 = to_clause premise\<^sub>G\<^sub>2" and
-    select': 
-    "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<gamma>\<^sub>1))) = select premise\<^sub>1 \<cdot> \<gamma>\<^sub>1"
-    "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<gamma>\<^sub>2))) = select premise\<^sub>2 \<cdot> \<gamma>\<^sub>2" and
+    select: 
+      "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<gamma>\<^sub>1))) = select premise\<^sub>1 \<cdot> \<gamma>\<^sub>1"
+      "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<gamma>\<^sub>2))) = select premise\<^sub>2 \<cdot> \<gamma>\<^sub>2" and
     premise\<^sub>1_in_premises: "premise\<^sub>1 \<in> premises" and
     premise\<^sub>2_in_premises: "premise\<^sub>2 \<in> premises"
     using assms(2, 4) premise\<^sub>G\<^sub>1_in_groundings premise\<^sub>G\<^sub>2_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
-    by (metis (no_types, lifting))
+    by (metis (no_types, lifting) ground_clause_is_ground select_subst1 to_ground_clause_inverse)
 
   obtain \<rho>\<^sub>1 \<rho>\<^sub>2 where
     renaming: 
-    "term_subst.is_renaming (\<rho>\<^sub>1 :: ('f, 'v) subst)" 
-    "term_subst.is_renaming \<rho>\<^sub>2" 
-    "\<rho>\<^sub>1 ` vars_clause premise\<^sub>1 \<inter> \<rho>\<^sub>2 ` vars_clause premise\<^sub>2 = {}"
+      "term_subst.is_renaming (\<rho>\<^sub>1 :: ('f, 'v) subst)" 
+      "term_subst.is_renaming \<rho>\<^sub>2" and
+      "\<rho>\<^sub>1 ` vars_clause premise\<^sub>1 \<inter> \<rho>\<^sub>2 ` vars_clause premise\<^sub>2 = {}"
     using clause_renaming_exists[of premise\<^sub>1 premise\<^sub>2]. 
 
-(* TODO: *)
   then have vars_distinct: "vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}"
     using renaming_vars_clause[symmetric]
     by (smt (verit, del_insts) disjoint_iff imageI)
@@ -1479,43 +1475,66 @@ proof-
     unfolding term_subst.is_renaming_def
     by blast
 
-  have select_subset: "select premise\<^sub>1 \<subseteq># premise\<^sub>1" "select premise\<^sub>2 \<subseteq># premise\<^sub>2"
+  have "select premise\<^sub>1 \<subseteq># premise\<^sub>1" "select premise\<^sub>2 \<subseteq># premise\<^sub>2"
     by (simp_all add: select_subset)
 
-  then have a: "select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<subseteq># premise\<^sub>1 \<cdot> \<rho>\<^sub>1"  "select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<subseteq># premise\<^sub>2 \<cdot> \<rho>\<^sub>2"
+  then have select_subset: 
+    "select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<subseteq># premise\<^sub>1 \<cdot> \<rho>\<^sub>1" 
+    "select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<subseteq># premise\<^sub>2 \<cdot> \<rho>\<^sub>2"
     by (simp_all add: image_mset_subseteq_mono subst_clause_def)
 
-  have "vars_clause (select premise\<^sub>2 \<cdot> \<rho>\<^sub>2) \<subseteq> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2)"
-    using clause_submset_vars_clause_subset[OF a(2)].
+  define \<gamma> where 
+    \<gamma>: "\<And>var. \<gamma> var = (
+          if var \<in> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) 
+          then (\<rho>\<^sub>1_inv \<odot> \<gamma>\<^sub>1) var 
+          else (\<rho>\<^sub>2_inv \<odot> \<gamma>\<^sub>2) var
+        )"
 
-  then have b: "vars_clause (select premise\<^sub>2 \<cdot> \<rho>\<^sub>2) \<inter> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) = {}"
-    using vars_distinct
-    by blast
+  have premise\<^sub>1_\<gamma>: "premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma> = to_clause premise\<^sub>G\<^sub>1" 
+  proof -
+    have "premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<odot> (\<rho>\<^sub>1_inv \<odot> \<gamma>\<^sub>1) = to_clause premise\<^sub>G\<^sub>1"
+      by (metis \<rho>\<^sub>1_inv premise\<^sub>1_\<gamma>\<^sub>1 subst_monoid_mult.mult.left_neutral subst_monoid_mult.mult_assoc)
 
-  obtain \<gamma> where "\<gamma> = (\<lambda>var. 
-      if var \<in> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) 
-      then (\<rho>\<^sub>1_inv \<odot> \<gamma>\<^sub>1) var 
-      else (\<rho>\<^sub>2_inv \<odot> \<gamma>\<^sub>2) var
-    )"
-    by simp
+    then show ?thesis
+      unfolding \<gamma>
+      by simp
+  qed
 
-  then have 
-    premise\<^sub>1_\<gamma>: "premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma> = to_clause premise\<^sub>G\<^sub>1" and
-    premise\<^sub>2_\<gamma>: "premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma> = to_clause premise\<^sub>G\<^sub>2" and
-    select: 
-    "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>))) = select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
-    "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>))) = select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>"
-    using premise\<^sub>1_\<gamma>\<^sub>1 premise\<^sub>2_\<gamma>\<^sub>2 select' 
-       apply auto
+  have premise\<^sub>2_\<gamma>: "premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma> = to_clause premise\<^sub>G\<^sub>2" 
+  proof -
+    have "premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<odot> (\<rho>\<^sub>2_inv \<odot> \<gamma>\<^sub>2) = to_clause premise\<^sub>G\<^sub>2"
+      by (metis \<rho>\<^sub>2_inv premise\<^sub>2_\<gamma>\<^sub>2 subst_monoid_mult.mult.left_neutral subst_monoid_mult.mult_assoc)
 
-    using \<rho>\<^sub>1_inv \<rho>\<^sub>2_inv 
-       apply (metis (mono_tags, lifting) clause_subst_compose subst_clause_Var_ident)
-      apply (metis \<rho>\<^sub>2_inv clause_subst_compose clause_subst_reduntant_if' inf_commute subst_clause_Var_ident vars_distinct)
-    apply (metis (no_types, lifting) \<rho>\<^sub>1_inv a(1) clause_submset_vars_clause_subset clause_subst_compose clause_subst_eq select'(1) subset_eq subst_clause_Var_ident)
-    by (metis Int_iff \<rho>\<^sub>2_inv all_not_in_conv b clause_subst_compose clause_subst_reduntant_if' subst_clause_Var_ident to_clause_inverse vars_distinct)
+    then show ?thesis
+      unfolding \<gamma>
+      by (simp add: inf_commute vars_distinct)
+  qed
 
-  obtain conclusion where conclusion_\<gamma>: "to_clause conclusion\<^sub>G = conclusion \<cdot> \<gamma>"
-    by (metis ground_clause_is_ground subst_ground_clause)
+  have select\<^sub>1: "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>))) = select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
+    using select(1) \<rho>\<^sub>1_inv
+    unfolding \<gamma> clause_subst_reduntant_if[OF clause_submset_vars_clause_subset, OF select_subset(1)]
+    by (smt (verit, ccfv_SIG) clause_subst_compose clause_subst_eq subst_clause_Var_ident)
+   
+  have select\<^sub>2: "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>))) = select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>"   
+  proof -
+    have "vars_clause (select premise\<^sub>2 \<cdot> \<rho>\<^sub>2) \<subseteq> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2)"
+      using clause_submset_vars_clause_subset[OF select_subset(2)].
+
+    then have "vars_clause (select premise\<^sub>2 \<cdot> \<rho>\<^sub>2) \<inter> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) = {}"
+      using vars_distinct
+      by blast
+
+    moreover have "\<And>clause \<sigma>. clause \<cdot> \<rho>\<^sub>2 \<odot> (\<rho>\<^sub>2_inv \<odot> \<sigma>) = clause \<cdot> \<sigma>"
+      by (metis \<rho>\<^sub>2_inv subst_monoid_mult.mult.left_neutral subst_monoid_mult.mult_assoc)
+
+    ultimately show ?thesis
+      unfolding \<gamma>
+      by (simp add: inf_commute select(2) vars_distinct)
+  qed
+    
+  obtain conclusion where 
+    conclusion_\<gamma>: "conclusion \<cdot> \<gamma> = to_clause conclusion\<^sub>G"
+    by (meson ground_clause_is_ground subst_ground_clause)
 
   then have 
     premise\<^sub>1_grounding: "is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)" and 
@@ -1524,214 +1543,141 @@ proof-
     premise\<^sub>G\<^sub>2: "premise\<^sub>G\<^sub>2 = to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and 
     conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
     conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
-    apply (simp_all add: premise\<^sub>1_\<gamma> premise\<^sub>2_\<gamma>)
-    by (smt ground_clause_is_ground to_clause_inverse)+
+    by (simp_all add: premise\<^sub>1_\<gamma> premise\<^sub>2_\<gamma>)
 
   have "clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2 \<subseteq> \<Union> (clause_groundings ` premises)"
     using premise\<^sub>1_in_premises premise\<^sub>2_in_premises by blast
 
-  then have Infer_not_GRed_I:
-    "Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)]
-      (to_ground_clause (conclusion \<cdot> \<gamma>)) \<notin>
-      ground.GRed_I (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
+  then have \<iota>\<^sub>G_not_redunant:
+    "\<iota>\<^sub>G \<notin> ground.GRed_I (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
     using assms(3) ground.Red_I_of_subset
-    unfolding \<iota>\<^sub>G  premise\<^sub>G\<^sub>1[symmetric] premise\<^sub>G\<^sub>2[symmetric] conclusion\<^sub>G[symmetric]
     by blast
 
-  have "\<exists>conclusion'. superposition premise\<^sub>2 premise\<^sub>1 conclusion' \<and>
-    Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)]
-      (to_ground_clause (conclusion' \<cdot> \<gamma>)) \<in> inference_groundings (Infer [premise\<^sub>2, premise\<^sub>1] conclusion') \<and>
-    conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
-  proof (rule superposition_lifting)
-    show "term_subst.is_renaming \<rho>\<^sub>1"
-      using renaming by argo
-  next
-    show "term_subst.is_renaming \<rho>\<^sub>2"
-      using renaming by argo
-  next
-    show "vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}"
-      using vars_distinct .
-  next
-    show "is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)"
-      using premise\<^sub>1_grounding .
-  next
-    show "is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)"
-      using premise\<^sub>2_grounding .
-  next
-    show "is_ground_clause (conclusion \<cdot> \<gamma>)"
-      using conclusion_grounding .
-  next
-    show "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>))) = select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
-      using select by argo
-  next
-    show "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>))) = select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>"
-      using select by argo
-  next
-    show "ground.ground_superposition
-      (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>))
-      (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>))
-      (to_ground_clause (conclusion \<cdot> \<gamma>))"
-      using ground_superposition unfolding premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G .
-  next
-    show "Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)]
-     (to_ground_clause (conclusion \<cdot> \<gamma>))
-    \<notin> ground.GRed_I (clause_groundings premise\<^sub>1 \<union> clause_groundings premise\<^sub>2)"
-      using Infer_not_GRed_I .
-  qed(auto)
-
-  then obtain conclusion' where 
+  obtain conclusion' where 
     superposition: "superposition premise\<^sub>2 premise\<^sub>1 conclusion'" and
-    inference_groundings: 
-    "Infer [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)]
-        (to_ground_clause (conclusion' \<cdot> \<gamma>)) \<in> 
-        inference_groundings (Infer [premise\<^sub>2, premise\<^sub>1] conclusion')" and  
-    conclusion'_conclusion: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
-    by metis
-
+    inference_groundings: "\<iota>\<^sub>G \<in>  inference_groundings (Infer [premise\<^sub>2, premise\<^sub>1] conclusion')" and  
+    conclusion'_\<gamma>_conclusion_\<gamma>: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
+    using superposition_lifting[OF 
+        renaming 
+        vars_distinct 
+        premise\<^sub>1_grounding 
+        premise\<^sub>2_grounding 
+        conclusion_grounding
+        select\<^sub>1
+        select\<^sub>2
+        ground_superposition[unfolded  premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G]
+        \<iota>\<^sub>G_not_redunant[unfolded \<iota>\<^sub>G premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G]
+       ]
+    unfolding \<iota>\<^sub>G conclusion\<^sub>G premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 .
+   
   let ?\<iota> = "Infer [premise\<^sub>2, premise\<^sub>1] conclusion'"
 
-  have "?\<iota> \<in> Inf_from premises"
-    using premise\<^sub>1_in_premises premise\<^sub>2_in_premises superposition
-    unfolding Inf_from_def inferences_def inference_system.Inf_from_def
-    by simp
+  show ?thesis
+  proof(rule that)
+    show "?\<iota> \<in> Inf_from premises"
+      using premise\<^sub>1_in_premises premise\<^sub>2_in_premises superposition
+      unfolding Inf_from_def inferences_def inference_system.Inf_from_def
+      by simp
 
-  moreover have "\<iota>\<^sub>G \<in> inference_groundings ?\<iota>"
-    unfolding \<iota>\<^sub>G premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 conclusion\<^sub>G conclusion'_conclusion[symmetric]
-    by(rule inference_groundings)
-
-
-  ultimately show ?thesis
-    by blast
+    show "\<iota>\<^sub>G \<in> inference_groundings ?\<iota>"
+      using inference_groundings.
+  qed
 qed
 
 lemma ground_instances: 
   assumes 
-    "\<iota> \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))" 
-    "\<iota> \<notin> ground.Red_I (\<Union> (clause_groundings ` premises))"
+    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))" 
+    "\<iota>\<^sub>G \<notin> ground.Red_I (\<Union> (clause_groundings ` premises))"
     "subst_stability_on premises"
-  shows "\<exists>\<iota>'\<in>Inf_from premises. \<iota> \<in> inference_groundings \<iota>'"
+  obtains \<iota> where 
+    "\<iota> \<in> Inf_from premises" 
+    "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
 proof-
-  have "\<iota> \<in> ground.superposition_inferences \<or>
-        \<iota> \<in> ground.eq_resolution_inferences \<or>
-        \<iota> \<in> ground.eq_factoring_inferences"
+  have "\<iota>\<^sub>G \<in> ground.superposition_inferences \<or>
+        \<iota>\<^sub>G \<in> ground.eq_resolution_inferences \<or>
+        \<iota>\<^sub>G \<in> ground.eq_factoring_inferences"
     using assms(1)
     unfolding 
       ground.Inf_from_q_def 
       ground.Inf_from_def 
       ground.G_Inf_def 
       inference_system.Inf_from_def
-    by auto
+    by fastforce
 
   then show ?thesis
-    using 
-      assms
-      eq_resolution_ground_instance'
-      eq_factoring_ground_instance'
-      superposition_ground_instance'
-    by presburger
+  proof(elim disjE)
+    assume "\<iota>\<^sub>G \<in> ground.superposition_inferences"
+    then show ?thesis
+      using that superposition_ground_instance assms
+      by blast
+  next
+    assume "\<iota>\<^sub>G \<in> ground.eq_resolution_inferences"  
+    then show ?thesis
+      using that eq_resolution_ground_instance assms
+      by blast
+  next
+    assume "\<iota>\<^sub>G \<in> ground.eq_factoring_inferences"
+    then show ?thesis
+      using that eq_factoring_ground_instance assms
+      by blast
+  qed
 qed
 
 end
 
-lemma for_all_elements_exists_f_implies_f_exists_for_all_elements: 
-  "\<forall>x \<in> X. \<exists>f. P (f x) x \<Longrightarrow> \<exists>f. \<forall>x\<in> X. P (f x) x"
-  by meson
+context first_order_superposition_calculus
+begin
 
-lemma necessary_select\<^sub>G_exists:
-  obtains select\<^sub>G where 
-    "\<forall>premise\<^sub>G \<in> \<Union>(clause_groundings ` premises). \<exists>premise \<gamma>. 
-          premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
-        \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((sel premise) \<cdot> \<gamma>)
-        \<and> premise \<in> premises" 
-    "is_select_grounding sel select\<^sub>G"
-proof-
-  let ?premise_groundings = "\<Union>(clause_groundings ` premises)"
-
-  have select\<^sub>G_exists_for_premises: "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G premise \<gamma>.
-          premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
-        \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((sel premise) \<cdot> \<gamma>)
-        \<and> premise \<in> premises"
-    unfolding clause_groundings_def
-    by fastforce
-
-  obtain select\<^sub>G_on_premise_groundings where 
-    select\<^sub>G_on_premise_groundings: "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>\<gamma> premise. 
-        premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
-      \<and> select\<^sub>G_on_premise_groundings (to_ground_clause (premise \<cdot> \<gamma>)) = 
-          to_ground_clause ((sel premise) \<cdot> \<gamma>)
-      \<and> premise \<in> premises"
-    using 
-      for_all_elements_exists_f_implies_f_exists_for_all_elements[OF select\<^sub>G_exists_for_premises]
-    by (metis (mono_tags, opaque_lifting) to_clause_inverse)
-
-  define select\<^sub>G where
-    select\<^sub>G_def: "\<And>clause\<^sub>G. select\<^sub>G clause\<^sub>G = (
-        if clause\<^sub>G  \<in> ?premise_groundings 
-        then select\<^sub>G_on_premise_groundings clause\<^sub>G 
-        else to_ground_clause (sel (to_clause clause\<^sub>G))
-    )"
-
-  have "is_select_grounding sel select\<^sub>G"
-    unfolding is_select_grounding_def select\<^sub>G_def
-    using select\<^sub>G_on_premise_groundings
-    by (metis ground_clause_is_ground subst_clause_Var_ident to_clause_inverse)
-
-  then show ?thesis
-    using select\<^sub>G_def select\<^sub>G_on_premise_groundings that 
-    by (metis to_clause_inverse)
-qed
-
-lemma (in first_order_superposition_calculus) ground_instances:
+lemma overapproximation:
   obtains select\<^sub>G where
     "ground_Inf_overapproximated select\<^sub>G premises"
     "is_grounding select\<^sub>G"
 proof-
   obtain select\<^sub>G where   
-    select\<^sub>G': "\<forall>premise\<^sub>G \<in> \<Union>(clause_groundings ` premises). \<exists>\<gamma> premise. 
-          premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
-        \<and> to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<gamma>))) = (select premise) \<cdot> \<gamma>
-        \<and> premise \<in> premises" and
+    subst_stability: "select_subst_stability_on select select\<^sub>G premises" and
     "is_grounding select\<^sub>G" 
-    using necessary_select\<^sub>G_exists
-    by (metis (mono_tags, opaque_lifting) ground_clause_is_ground select_subst1 to_clause_inverse 
-        to_ground_clause_inverse)
+    using obtain_subst_stable_on_select_grounding
+    by blast
 
   then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
     by unfold_locales
 
-  from select\<^sub>G'(1) have "ground_Inf_overapproximated select\<^sub>G premises"
-    using ground_instances  
-    apply auto
-    by blast
+  have overapproximation: "ground_Inf_overapproximated select\<^sub>G premises"
+    using ground_instances[OF _ _ subst_stability]
+    by auto
 
-  with that select\<^sub>G show thesis
-    by blast
+  show thesis
+    using that[OF overapproximation select\<^sub>G].
 qed
 
-sublocale first_order_superposition_calculus \<subseteq> 
-  statically_complete_calculus "\<bottom>\<^sub>F" inferences entails_\<G> Red_I_\<G> Red_F_\<G>
-  unfolding static_empty_ord_inter_equiv_static_inter
-proof(rule stat_ref_comp_to_non_ground_fam_inter, rule ballI)
+sublocale statically_complete_calculus "\<bottom>\<^sub>F" inferences entails_\<G> Red_I_\<G> Red_F_\<G>
+proof(unfold static_empty_ord_inter_equiv_static_inter, 
+      rule stat_ref_comp_to_non_ground_fam_inter, 
+      rule ballI)
   fix select\<^sub>G
   assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
   then interpret grounded_first_order_superposition_calculus _ _ select\<^sub>G
     by unfold_locales (simp add: select\<^sub>G\<^sub>s_def)
 
-  show "statically_complete_calculus 
-          ground.G_Bot 
-          ground.G_Inf 
-          ground.G_entails 
-          ground.Red_I 
+  show "statically_complete_calculus
+          ground.G_Bot
+          ground.G_Inf
+          ground.G_entails
+          ground.Red_I
           ground.Red_F"
     using ground.statically_complete_calculus_axioms 
     by blast
 next
-  have "\<And>N. \<exists>select\<^sub>G \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated select\<^sub>G N" 
-    using ground_instances
+  fix clauses
+
+  have "\<And>clauses. \<exists>select\<^sub>G \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated select\<^sub>G clauses" 
+    using overapproximation
     by (smt (verit, ccfv_threshold) mem_Collect_eq select\<^sub>G\<^sub>s_def)
 
-  then show "\<And>N. empty_ord.saturated N \<Longrightarrow> 
-    \<exists>select\<^sub>G \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated select\<^sub>G N".
-qed 
+  then show "empty_ord.saturated clauses \<Longrightarrow> 
+    \<exists>select\<^sub>G \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated select\<^sub>G clauses".
+qed
+
+end
 
 end

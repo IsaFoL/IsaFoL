@@ -16,10 +16,6 @@ hide_const
 
 section \<open>First-Order Layer\<close>
 
-definition clause_groundings ::
-  "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" where
-  "clause_groundings clause = { to_ground_clause (clause \<cdot> \<gamma>) | \<gamma>. is_ground_clause (clause \<cdot> \<gamma>) }"
-
 locale first_order_superposition_calculus =
   first_order_select select +
   first_order_ordering less\<^sub>t +
