@@ -137,7 +137,7 @@ sepref_def empty_rephase_stats_impl
   unfolding empty_rephase_stats_def rephase_stats_assn_def by sepref
 
 definition empty_rate_stats :: \<open>isasat_rate\<close> where
-  \<open>empty_rate_stats = (ema_fast_init, ema_fast_init, 0)\<close>
+  \<open>empty_rate_stats = (ema_slow_init, ema_slow_init, 0)\<close>
 
 sepref_def empty_rate_stats_impl
   is \<open>uncurry0 (RETURN empty_rate_stats)\<close>

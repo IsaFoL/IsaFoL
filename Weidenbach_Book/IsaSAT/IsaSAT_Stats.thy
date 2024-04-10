@@ -576,13 +576,13 @@ definition empty_stats :: \<open>isasat_stats\<close> where
   \<open>empty_stats = Tuple16( (0,0,0,0,0,0,0,0,0,0,0,0)::search_stats)
   ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0,0)::inprocessing_subsumption_stats)
   (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) (0,0,0,0,0,0)
-  ((ema_fast_init, ema_fast_init, 0)::isasat_rate) 0 0 0 0 0 0 0 0\<close>
+  ((ema_slow_init, ema_slow_init, 0)::isasat_rate) 0 0 0 0 0 0 0 0\<close>
 
 definition empty_stats_clss :: \<open>64 word \<Rightarrow> isasat_stats\<close> where
   \<open>empty_stats_clss n = Tuple16( (0,0,0,0,0,0,0,0,n,0,0,0)::search_stats)
   ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0,0)::inprocessing_subsumption_stats)
   (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) (0,0,0,0,0,0)
-  ((ema_fast_init, ema_fast_init, 0)::isasat_rate) 0 0 0 0 0 0 0 0\<close>
+  ((ema_slow_init, ema_slow_init, 0)::isasat_rate) 0 0 0 0 0 0 0 0\<close>
 
 
 section \<open>Scheduling Information\<close>
