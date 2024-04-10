@@ -61,7 +61,7 @@ definition pure_lits_stats_assn :: \<open>inprocessing_pure_lits_stats \<Rightar
 definition rephase_stats_assn :: \<open>rephase_stats \<Rightarrow> rephase_stats \<Rightarrow> _\<close> where
   \<open>rephase_stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
-definition rate_stats_assn :: \<open>isasat_rate \<Rightarrow> isasat_rate \<Rightarrow> _› where
+definition rate_stats_assn :: \<open>isasat_rate \<Rightarrow> isasat_rate \<Rightarrow> _\<close> where
   \<open>rate_stats_assn = ema_assn \<times>\<^sub>a ema_assn \<times>\<^sub>a word64_assn\<close>
   
 definition empty_search_stats :: search_stats where
