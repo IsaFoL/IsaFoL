@@ -86,4 +86,8 @@ value \<open>let \<alpha> = shiftr 128849010 (EMA_FIXPOINT_SIZE - 32);
         x =  (((ema_update 10)^^ 400) (7 * ema_bitshifting, \<alpha>, ema_bitshifting, 1, 0))
   in (ema_extract_value x, ema_get_value x, x)\<close>
 
+value \<open>let \<alpha> = shiftr 128849010 (EMA_FIXPOINT_SIZE - 32);
+        x =  (((ema_update_word 10)^^2) (0, \<alpha>, ema_bitshifting, 1, 0))
+  in (ema_extract_value x, ema_get_value x, x)\<close>
+
 end
