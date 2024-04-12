@@ -1,3 +1,12 @@
+session Abstract_Substitution in Abstract_Substitution = HOL +
+  sessions
+    First_Order_Terms
+    "HOL-ex"
+  theories
+    Abstract_Substitution
+    Substitution_First_Order_Term
+    Substitution_HOL_ex_Unification
+
 session Superposition_Calculus = Saturation_Framework_Extensions +
   sessions
     Knuth_Bendix_Order
@@ -5,6 +14,7 @@ session Superposition_Calculus = Saturation_Framework_Extensions +
     Regular_Tree_Relations
     Saturation_Framework
     Saturation_Framework_Extensions
+    Abstract_Substitution
 
   theories (* These theories contain the main results. *)
     Ground_Superposition_Completeness
@@ -16,10 +26,6 @@ session Superposition_Calculus = Saturation_Framework_Extensions +
 
   theories (* This theory contains a proof of the critical-pair assumption. It should not be submitted to the AFP due to LGPL conflict. *)
     LGPL_Ground_Critical_Pairs_Adapted_From_CeTA
-
-  theories (* These theories contain witnesses for the basic_substitution locale. *)
-    Substitution_First_Order_Term
-    Substitution_HOL_ex_Unification
 
   theories (* This theory contain an analogue specification of ground ordered resolution. *)
     Ground_Ordered_Resolution
