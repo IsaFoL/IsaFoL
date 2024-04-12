@@ -1,7 +1,7 @@
 session Abstract_Substitution in Abstract_Substitution = HOL +
   sessions
-    First_Order_Terms
     "HOL-ex"
+    First_Order_Terms
   theories
     Abstract_Substitution
     Substitution_First_Order_Term
@@ -24,8 +24,13 @@ session Superposition_Calculus = Saturation_Framework_Extensions +
     First_Order_Superposition_Soundness
     First_Order_Superposition_Example
 
-  theories (* This theory contains a proof of the critical-pair assumption. It should not be submitted to the AFP due to LGPL conflict. *)
-    LGPL_Ground_Critical_Pairs_Adapted_From_CeTA
-
   theories (* This theory contain an analogue specification of ground ordered resolution. *)
     Ground_Ordered_Resolution
+
+session Ground_Critical_Pairs_Theorem in Ground_Critical_Pairs_Theorem = Superposition_Calculus +
+  description "This theory contains a proof of the ground critical-pair assumption found in some locales of the session Superposition_Calculus. It should not be submitted to the AFP in the same entry due to LGPL conflict."
+  sessions
+    "HOL-Library"
+    Superposition_Calculus
+  theories
+    LGPL_Ground_Critical_Pairs_Adapted_From_CeTA

@@ -2,7 +2,6 @@ theory First_Order_Superposition_Example
   imports 
     IsaFoR_Term_Copy             
     First_Order_Superposition
-    LGPL_Ground_Critical_Pairs_Adapted_From_CeTA
 begin
 
 abbreviation trivial_select :: "('f, 'v) select" where
@@ -10,6 +9,11 @@ abbreviation trivial_select :: "('f, 'v) select" where
 
 abbreviation trivial_tiebreakers where
   "trivial_tiebreakers _ _ _ \<equiv> False"
+
+context
+  assumes ground_critical_pair_theorem:
+    "\<And>(R :: ('f :: weighted) gterm rel). ground_critical_pair_theorem R"
+begin
                                     
 interpretation first_order_superposition_calculus 
   "trivial_select :: ('f :: weighted, 'v :: infinite) select" 
@@ -84,12 +88,14 @@ next
 next
   show "infinite (UNIV :: 'v set)"
     using infinite_UNIV.
-next                      
-  show "\<And>R. ground_critical_pair_theorem R"
-    using ground_critical_pair_theorem.
+next
+  show "\<And>(R :: ('f gterm \<times> 'f gterm) set). ground_critical_pair_theorem R"
+    using ground_critical_pair_theorem .
 next
   show "\<And>term\<^sub>G. wfP (\<lambda>_ _. False) \<and> transp (\<lambda>_ _. False) \<and> asymp (\<lambda>_ _. False)"
     by (simp add: asympI)
 qed
+
+end
 
 end

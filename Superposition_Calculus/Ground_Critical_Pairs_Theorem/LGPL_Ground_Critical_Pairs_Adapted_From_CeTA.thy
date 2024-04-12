@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 theory LGPL_Ground_Critical_Pairs_Adapted_From_CeTA
   imports
     "HOL-Library.Sublist"
-    Ground_Critical_Pairs
+    Superposition_Calculus.Ground_Critical_Pairs
 begin
 
 text \<open>This theory is adapted from CeTA 2.44 (file
