@@ -24,7 +24,7 @@ session Superposition_Calculus = Saturation_Framework_Extensions +
     First_Order_Superposition_Soundness
     First_Order_Superposition_Example
 
-  theories (* This theory contain an analogue specification of ground ordered resolution. *)
+  theories (* This theory contains an analogue specification of ground ordered resolution. *)
     Ground_Ordered_Resolution
 
 session Ground_Critical_Pairs_Theorem in Ground_Critical_Pairs_Theorem = Superposition_Calculus +
