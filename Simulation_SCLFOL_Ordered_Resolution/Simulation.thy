@@ -7867,6 +7867,64 @@ qed
 
 subsection \<open>ORD-RES-6 (model backjump)\<close>
 
+inductive ord_res_6 where
+  skip: "
+    (dom \<M>) \<TTurnstile> C \<Longrightarrow>
+    \<C>' = The_optional (linorder_cls.is_least_in_fset {|D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D|}) \<Longrightarrow>
+    ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>')" |
+
+  production: "
+    \<not> (dom \<M>) \<TTurnstile> C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    is_pos L \<Longrightarrow>
+    linorder_lit.is_greatest_in_mset C L \<Longrightarrow>
+    \<M>' = \<M>(atm_of L := Some C) \<Longrightarrow>
+    \<C>' = The_optional (linorder_cls.is_least_in_fset {|D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D|}) \<Longrightarrow>
+    ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<M>', \<C>')" |
+
+  factoring: "
+    \<not> (dom \<M>) \<TTurnstile> C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    is_pos L \<Longrightarrow>
+    \<not> linorder_lit.is_greatest_in_mset C L \<Longrightarrow>
+    \<F>' = finsert C \<F> \<Longrightarrow>
+    ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac C))" |
+
+  resolution_bot: "
+    \<not> (dom \<M>) \<TTurnstile> C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    is_neg L \<Longrightarrow>
+    \<M> (atm_of L) = Some D \<Longrightarrow>
+    U\<^sub>e\<^sub>r' = finsert (eres D C) U\<^sub>e\<^sub>r \<Longrightarrow>
+    eres D C = {#} \<Longrightarrow>
+    \<M>' = (\<lambda>_. None) \<Longrightarrow>
+    ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some {#})" |
+
+  resolution_pos: "
+    \<not> (dom \<M>) \<TTurnstile> C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    is_neg L \<Longrightarrow>
+    \<M> (atm_of L) = Some D \<Longrightarrow>
+    U\<^sub>e\<^sub>r' = finsert (eres D C) U\<^sub>e\<^sub>r \<Longrightarrow>
+    eres D C \<noteq> {#} \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset (eres D C) K \<Longrightarrow>
+    is_pos K \<Longrightarrow>
+    \<M>' = restrict_map \<M> {A. A \<prec>\<^sub>t atm_of K} \<Longrightarrow>
+    ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some (eres D C))" |
+
+  resolution_neg: "
+    \<not> (dom \<M>) \<TTurnstile> C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    is_neg L \<Longrightarrow>
+    \<M> (atm_of L) = Some D \<Longrightarrow>
+    U\<^sub>e\<^sub>r' = finsert (eres D C) U\<^sub>e\<^sub>r \<Longrightarrow>
+    eres D C \<noteq> {#} \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset (eres D C) K \<Longrightarrow>
+    is_neg K \<Longrightarrow>
+    \<M> (atm_of K) = Some E \<Longrightarrow>
+    \<M>' = restrict_map \<M> {A. A \<prec>\<^sub>t atm_of K} \<Longrightarrow>
+    ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some E)"
+
 
 subsection \<open>SCL(FOL)-1 (resolution-driven strategy)\<close>
 
