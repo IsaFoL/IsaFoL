@@ -241,8 +241,8 @@ definition arena_header_size :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat
   \<open>arena_header_size arena C =
   (if arena_length arena C > 4 then MAX_HEADER_SIZE else MIN_HEADER_SIZE)\<close>
 
-definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close> where
-  \<open>update_restart_mode = (\<lambda>S. do {
+definition update_restart_mode_ticks :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>update_restart_mode_ticks = (\<lambda>S. do {
     let heur = get_heur S;
      let stats = get_stats_heur S;
      let lcount = get_global_conflict_count S;
@@ -295,6 +295,32 @@ definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close
           RETURN (set_stats_wl_heur stats (set_heur_wl_heur heur (set_vmtf_wl_heur vm S)))
       }
     }
+  })\<close>
+
+
+definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>update_restart_mode = (\<lambda>S. do {
+     let heur = get_heur S;
+     let curr = current_restart_phase heur;
+     let lcount = get_global_conflict_count S;
+     let stats = get_stats_heur S;
+     let vm = get_vmtf_heur S;
+     let vm = switch_bump_heur vm;
+     heur \<leftarrow> RETURN (incr_restart_phase heur);
+     heur \<leftarrow> RETURN (incr_restart_phase_end lcount heur);
+     heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
+     heur \<leftarrow> RETURN (swap_emas heur);
+     let (open, close) = (if curr = STABLE_MODE then (91, 125) else (123, 93));
+     let lcount2 = get_learned_count S;
+     let _ = isasat_print_progress close curr stats lcount2;
+     let _ = isasat_print_progress open curr stats lcount2;
+     _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));
+     _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.start_focused_mode) else RETURN (IsaSAT_Profile.start_stable_mode));
+     let (lcount2) = get_learned_count S;
+     let (open, close) = (if curr = STABLE_MODE then (91::64 word, 125::64 word) else (123, 93));
+     let _ = isasat_print_progress close curr stats lcount2;
+     let _ = isasat_print_progress open (curr XOR 1) stats lcount2;
+     RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
   })\<close>
 
 

@@ -87,8 +87,8 @@ sepref_register incr_restart_phase incr_restart_phase_end
   update_restart_mode
 
 
-lemma update_restart_mode_alt_def:
-  \<open>update_restart_mode = (\<lambda>S. do {
+lemma update_restart_mode_ticks_alt_def:
+  \<open>update_restart_mode_ticks = (\<lambda>S. do {
      end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
      let lcount = get_global_conflict_count S;
      let (heur, S) = extract_heur_wl_heur S;
@@ -132,19 +132,41 @@ lemma update_restart_mode_alt_def:
           let lim = search_ticks + delta;
           heur \<leftarrow> RETURN (if curr = STABLE_MODE then incr_restart_phase_and_length_end lim heur else incr_restart_phase_end lim heur);
           heur \<leftarrow> RETURN (swap_emas heur);
-          let (lcount, S) = extract_lcount_wl_heur S;
+          let (lcount2, S) = extract_lcount_wl_heur S;
           let (open, close) = (if curr = STABLE_MODE then (91, 125) else (123, 93));
-          let _ = isasat_print_progress close curr stats lcount;
+          let _ = isasat_print_progress close curr stats lcount2;
           _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));
           _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.start_focused_mode) else RETURN (IsaSAT_Profile.start_stable_mode));
-          let _ = isasat_print_progress open (curr XOR 1) stats lcount;
+          let _ = isasat_print_progress open (curr XOR 1) stats lcount2;
           let stats = IsaSAT_Stats.rate_set_last_decision (get_decisions stats) stats;
-          RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats (update_lcount_wl_heur lcount S))))
+          RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats (update_lcount_wl_heur lcount2 S))))
       }
     }
   })\<close>
-  by (auto simp: update_restart_mode_def state_extractors Let_def split: isasat_int_splits intro!: ext bind_cong[OF refl]
+  by (auto simp: update_restart_mode_ticks_def state_extractors Let_def split: isasat_int_splits intro!: ext bind_cong[OF refl]
     cong: if_cong)
+
+lemma update_restart_mode_alt_def:
+  \<open>update_restart_mode = (\<lambda>S. do {
+     let lcount = get_global_conflict_count S;
+     let (heur, S) = extract_heur_wl_heur S;
+     let curr = current_restart_phase heur;
+     let (vm, S) = extract_vmtf_wl_heur S;
+     let (stats, S) = extract_stats_wl_heur S;
+     let vm = switch_bump_heur vm;
+     heur \<leftarrow> RETURN (incr_restart_phase heur);
+     heur \<leftarrow> RETURN (incr_restart_phase_end lcount heur);
+     heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
+     _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));
+     _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.start_focused_mode) else RETURN (IsaSAT_Profile.start_stable_mode));
+     let (lcount2, S) = extract_lcount_wl_heur S;
+     let (open, close) = (if curr = STABLE_MODE then (91::64 word, 125::64 word) else (123, 93));
+     let _ = isasat_print_progress close curr stats lcount2;
+     let _ = isasat_print_progress open (curr XOR 1) stats lcount2;
+     heur \<leftarrow> RETURN (swap_emas heur);
+     RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats (update_lcount_wl_heur lcount2 S))))
+  })\<close>
+  by (auto simp: Let_def update_restart_mode_def state_extractors split: isasat_int_splits intro!: ext bind_cong)
 
 sepref_def update_restart_mode_impl
   is \<open>update_restart_mode\<close>
