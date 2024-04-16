@@ -636,10 +636,10 @@ definition forward_subsumption_finalize :: \<open>nat list \<Rightarrow> isasat 
   }\<close>
 
 definition subsumemineff :: \<open>64 word\<close> where
-  \<open>subsumemineff = 1000000›
+  \<open>subsumemineff = 1000000\<close>
 
 definition subsumemaxeff :: \<open>64 word\<close> where
-  \<open>subsumemaxeff = 1000000›
+  \<open>subsumemaxeff = 1000000\<close>
   
 definition isa_forward_set_budget where
   \<open>isa_forward_set_budget S = do {
