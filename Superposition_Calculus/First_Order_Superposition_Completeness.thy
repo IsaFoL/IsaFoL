@@ -1703,14 +1703,14 @@ proof(unfold static_empty_ord_inter_equiv_static_inter,
           ground.G_entails
           ground.Red_I
           ground.Red_F"
-    using ground.statically_complete_calculus_axioms 
-    by blast
+    using ground.statically_complete_calculus_axioms.
 next
   fix clauses
 
   have "\<And>clauses. \<exists>select\<^sub>G \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated select\<^sub>G clauses" 
-    using overapproximation
-    by (smt (verit, ccfv_threshold) mem_Collect_eq select\<^sub>G\<^sub>s_def)
+    using overapproximation 
+    unfolding select\<^sub>G\<^sub>s_def
+    by (smt (verit, best) mem_Collect_eq)
 
   then show "empty_ord.saturated clauses \<Longrightarrow> 
     \<exists>select\<^sub>G \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated select\<^sub>G clauses".

@@ -432,8 +432,9 @@ proof-
     by unfold_locales (simp add: select\<^sub>G\<^sub>s_def)
 
   show "sound_inference_system inferences {{#}} entails_\<G>"
+    using sound_inference_system_axioms Q_nonempty[folded ex_in_conv]
     unfolding entails_def
-    by(simp add: Q_nonempty ex_in_conv sound_inference_system_axioms)
+    by simp
 qed
 
 end

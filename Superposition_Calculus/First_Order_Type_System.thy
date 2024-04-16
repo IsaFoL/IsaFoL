@@ -266,7 +266,7 @@ lemma welltyped\<^sub>\<sigma>_Var: "welltyped\<^sub>\<sigma> \<F> \<V> Var"
   by (simp add: welltyped.Var)
 
 lemma welltyped_is_imgu:
-  assumes "welltyped \<F> \<V> t \<tau>" "welltyped \<F> \<V> t' \<tau>" "term_subst.is_imgu \<mu> {{term, term'}}"
+  assumes "welltyped \<F> \<V> t \<tau>" "welltyped \<F> \<V> t' \<tau>" "term_subst.is_imgu \<mu> {{t, t'}}"
   shows "welltyped\<^sub>\<sigma> \<F> \<V> \<mu>"
   sorry
 
