@@ -8262,11 +8262,43 @@ proof (cases S5 S6 rule: ord_res_5_matches_ord_res_6.cases)
 qed
 
 lemma backward_simulation_between_5_and_6:
-  fixes i S5 S6 S6'
-  assumes "match i S5 S6" and "ord_res_6_step S6 S6'"
-  shows "\<exists>i' S5'. ord_res_5_step\<^sup>+\<^sup>+ S5 S5' \<and> match i' S5' S6'"
-  using assms
-  sorry
+  fixes S5 S6 S6'
+  assumes match: "ord_res_5_matches_ord_res_6 S5 S6" and step: "ord_res_6_step S6 S6'"
+  shows "\<exists>S5'. ord_res_5_step\<^sup>+\<^sup>+ S5 S5' \<and> match i' S5' S6'"
+  using match
+proof (cases S5 S6 rule: ord_res_5_matches_ord_res_6.cases)
+  case match_hyps: (1 N U\<^sub>e\<^sub>r \<F> \<M> \<C>)
+  hence S5_def: "S5 = (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)" and S6_def: "S6 = (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)"
+    by metis+
+
+  obtain s6' where S6'_def: "S6' = (N, s6')" and step': "ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>) s6'"
+    using step unfolding S6_def
+    using ord_res_6_step.simps by auto
+
+  show ?thesis
+    using step'
+  proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)" s6' rule: ord_res_6.cases)
+    case (skip C \<C>')
+    then show ?thesis
+      using ord_res_6.skip
+      sorry
+  next
+    case (production C L \<M>' \<C>')
+    then show ?thesis sorry
+  next
+    case (factoring C L \<F>')
+    then show ?thesis sorry
+  next
+    case (resolution_bot C L D U\<^sub>e\<^sub>r' \<M>')
+    then show ?thesis sorry
+  next
+    case (resolution_pos C L D U\<^sub>e\<^sub>r' \<M>' K)
+    then show ?thesis sorry
+  next
+    case (resolution_neg C L D U\<^sub>e\<^sub>r' \<M>' K E)
+    then show ?thesis sorry
+  qed
+qed
 
 theorem bisimulation_ord_res_5_ord_res_6:
   defines "match \<equiv> \<lambda>_. ord_res_5_matches_ord_res_6"
@@ -8314,6 +8346,7 @@ next
        match i S5 S6 \<longrightarrow>
        ord_res_6_step S6 S6' \<longrightarrow>
        (\<exists>i' S5'. ord_res_5_step\<^sup>+\<^sup>+ S5 S5' \<and> match i' S5' S6') \<or> (\<exists>i'. match i' S5 S6' \<and> False)"
+    unfolding match_def
     using backward_simulation_between_5_and_6 by metis
 qed
 
