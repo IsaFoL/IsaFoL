@@ -438,6 +438,8 @@ sepref_def isa_try_to_forward_subsume_wl2_break_impl
   is isa_try_to_forward_subsume_wl2_break
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding isa_try_to_forward_subsume_wl2_break_def
+    forward_budget_st_def[symmetric]
+    forward_subchecks_st_def[symmetric]
   by sepref
 
 sepref_register isa_try_to_forward_subsume_wl2_break
@@ -744,14 +746,66 @@ sepref_def isa_subsume_or_strengthen_wl_impl
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
+lemma isa_forward_set_budget_alt_def:
+  \<open>isa_forward_set_budget S = do {
+     let (stats, S) = extract_stats_wl_heur S;
+     let delta = stats_propagations stats;
+     let delta = (if delta < subsumemineff then subsumemineff else delta);
+     let delta = (if delta > subsumemaxeff then subsumemaxeff else delta);
+     let budget = delta + forward_budget stats;
+     let stats = set_forward_budget budget stats;
+     RETURN (update_stats_wl_heur stats S)
+  }\<close>
+  by (auto simp: isa_forward_set_budget_def Let_def state_extractors push_to_tvdom_st_def
+    intro!: bind_cong[OF refl]
+    split: isasat_int_splits)
+sepref_def isa_forward_set_budget_impl
+  is \<open>isa_forward_set_budget\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isa_forward_set_budget_alt_def subsumemineff_def subsumemaxeff_def
+  by sepref
+
+lemma isa_forward_subsumption_one_wl_alt_def:
+  \<open>isa_forward_subsumption_one_wl = (\<lambda>C D L S. do {
+  ASSERT (isa_forward_subsumption_one_wl_pre C L S);
+  ASSERT (nat_of_lit L < length (get_occs S));
+  n \<leftarrow> mop_cocc_list_length (get_occs S) L;
+  (i, s) \<leftarrow>
+    WHILE\<^sub>T\<^bsup> isa_forward_subsumption_one_wl2_inv S C L \<^esup> (\<lambda>(i, s). i < n \<and> s = NONE)
+    (\<lambda>(i, s). do {
+      ASSERT (i < n);
+      C' \<leftarrow> mop_cocc_list_at (get_occs S) L i;
+      status \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C';
+      if status = DELETED
+      then RETURN (i+1, s)
+      else do  {
+        s \<leftarrow> isa_subsume_clauses_match2 C' C S D;
+       RETURN (i+1, s)
+      }
+    })
+        (0, NONE);
+  D \<leftarrow> (if s \<noteq> NONE then mop_cch_remove_all_clauses S C D else RETURN D);
+  S \<leftarrow> (if is_strengthened s then isa_maybe_push_to_occs_list_st C S else RETURN S);
+  S \<leftarrow> isa_subsume_or_strengthen_wl C s S;
+  let (stats, S) = extract_stats_wl_heur S;
+  let stats = incr_forward_subchecks_by (of_nat i) stats;
+  let S = update_stats_wl_heur stats S;
+  RETURN (S, s, D)
+  })\<close>
+  by (auto simp: isa_forward_subsumption_one_wl_def Let_def state_extractors push_to_tvdom_st_def
+    intro!: bind_cong[OF refl] ext
+    split: isasat_int_splits)
+
 sepref_def isa_forward_subsumption_one_wl_impl
   is \<open>uncurry3 isa_forward_subsumption_one_wl\<close>
   :: \<open>[\<lambda>((_, _), S). isasat_fast_relaxed S]\<^sub>asint64_nat_assn\<^sup>k *\<^sub>a  cch_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn \<times>\<^sub>a subsumption_assn \<times>\<^sub>a cch_assn\<close>
   supply [dest] = rdomp_isasat_bounded_assn_length_avdomD isasat_bounded_assn_length_arenaD
   supply [[goals_limit=1]]
-  unfolding isa_forward_subsumption_one_wl_def get_occs_list_at_def[symmetric] fold_is_NONE
+  unfolding isa_forward_subsumption_one_wl_alt_def get_occs_list_at_def[symmetric] fold_is_NONE
     mop_access_lit_in_clauses_heur_def[symmetric] length_occs_at_def[symmetric] mop_arena_status_st_def[symmetric]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
+  apply (rewrite at \<open>of_nat \<hole>\<close> annot_snat_unat_conv)
   by sepref
 
 lemma isa_try_to_forward_subsume_wl_invI:
@@ -839,7 +893,7 @@ sepref_def schedule_next_subsume_st
   unfolding schedule_next_subsume_st_alt_def
   by sepref
 
-sepref_def forward_subsumption_finalize
+sepref_def forward_subsumption_finalize_impl
   is \<open>uncurry forward_subsumption_finalize\<close>
   :: \<open>(al_assn' TYPE(64) sint64_nat_assn)\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding forward_subsumption_finalize_def

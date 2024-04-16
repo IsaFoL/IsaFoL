@@ -1894,4 +1894,10 @@ definition trail_zeroed_until_state where
 definition trail_set_zeroed_until_state where
   \<open>trail_set_zeroed_until_state z S = (let M = get_trail_wl_heur S in set_trail_wl_heur (trail_set_zeroed_until z M) S)\<close>
 
+definition forward_budget_st where
+  \<open>forward_budget_st S = forward_budget (get_stats_heur S)\<close>
+
+definition forward_subchecks_st where
+  \<open>forward_subchecks_st S = forward_subchecks (get_stats_heur S)\<close>
+
 end

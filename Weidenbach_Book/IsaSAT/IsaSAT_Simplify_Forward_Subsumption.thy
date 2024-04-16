@@ -3066,7 +3066,6 @@ proof -
       unfolding twl_list_invs_def
       by (simp add:mset_take_mset_drop_mset')
    done
-
   have forward_subsumption_one_wl2_alt_def:
   \<open>forward_subsumption_one_wl2 = (\<lambda>C cands L occs D S. do {
   ASSERT (forward_subsumption_one_wl2_pre C cands L S);
@@ -3091,7 +3090,7 @@ proof -
   S \<leftarrow> subsume_or_strengthen_wl C s S;
   RETURN (S, s \<noteq> NONE, occs, D)
   })\<close>
-   unfolding forward_subsumption_one_wl2_def by auto
+   unfolding forward_subsumption_one_wl2_def Let_def by auto
   have eq: \<open>L' = L\<close> \<open>C' = C\<close>
     using assms by auto
   have [refine]: \<open>((0, NONE), 0, NONE) \<in> nat_rel \<times>\<^sub>r Id\<close>
@@ -3102,6 +3101,9 @@ proof -
     by (cases L)
      (auto simp: forward_subsumption_one_wl2_pre_def occ_list_def occurrence_list_ref_def map_fun_rel_def
       dest: bspec[of _ _ L])
+  have set_stats_twl_heur: \<open>(U, V) \<in> twl_st_heur_restart_occs \<Longrightarrow> (set_stats_wl_heur stats U, V)
+          \<in> twl_st_heur_restart_occs\<close> for U V stats
+    by (auto simp: twl_st_heur_restart_occs_def)
   show ?thesis
     unfolding isa_forward_subsumption_one_wl_def forward_subsumption_one_wl2_alt_def eq Let_def mop_cocc_list_length_def nres_monad3
       cocc_list_length_def
@@ -3143,7 +3145,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by (auto 4 3 simp: forward_subsumption_one_wl2_pre_def isa_forward_subsumption_one_wl_pre_def
-      forward_subsumption_one_wl_pre_def)
+      forward_subsumption_one_wl_pre_def intro: set_stats_twl_heur)
     done
 qed
 
@@ -3967,6 +3969,18 @@ proof -
     done
 qed
 
+
+lemma isa_forward_set_budget:
+  assumes SS': \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
+  shows \<open>isa_forward_set_budget S \<le> \<Down>{(U,V). (U, V) \<in> twl_st_heur_restart_ana' r u \<and> V = S' \<and>
+    get_clauses_wl_heur U = get_clauses_wl_heur S \<and> learned_clss_count U = learned_clss_count S \<and> get_vdom U = get_vdom S} (RETURN S')\<close>
+proof -
+  show ?thesis
+    using assms
+    unfolding isa_forward_set_budget_def
+    by (auto simp add: Let_def twl_st_heur_restart_ana_def twl_st_heur_restart_def)
+qed
+
 lemma get_occs_incr_forward_rounds_st[simp]: \<open>get_occs (incr_forward_rounds_st S) = get_occs S\<close>
   \<open>get_occs (isa_forward_reset_added_and_stats S) = get_occs S\<close>
   \<open>get_clauses_wl_heur (incr_forward_tried_st S) = (get_clauses_wl_heur S)\<close>
@@ -3990,7 +4004,7 @@ proof -
    ((0, D, [], x2a), 0, occs, D', S', 2, {#}) \<in>
     {((m, D, shrunken, U), (n, occs, D', U', _, shrunken')). (m,n)\<in>nat_rel \<and> (D,D')\<in>clause_hash \<and> (get_occs U, occs) \<in> occurrence_list_ref \<and>
       shrunken' = mset shrunken \<and>
-    (U, U') \<in> twl_st_heur_restart_occs' (length (get_clauses_wl_heur S)) (learned_clss_count S)\<and> get_aivdom U = get_aivdom x2a}\<close> for x2a occs D D'
+    (U, U') \<in> twl_st_heur_restart_occs' (length (get_clauses_wl_heur S)) (learned_clss_count S)\<and> get_aivdom U = get_aivdom x2a}\<close> for x2a occs D D' S'
     by auto
   have H: \<open>(S, S') \<in> twl_st_heur_restart_occs' r u \<Longrightarrow>
     \<forall>L\<in>fst ` D\<^sub>1 (set_mset (all_init_atms_st S')). L < length (get_watched_wl_heur S)\<close> for S S' r u
@@ -4012,26 +4026,53 @@ proof -
     unfolding twl_st_heur_restart_occs_def IsaSAT_Restart.all_init_atms_alt_def
       aivdom_inv_dec_alt_def
     by (auto dest: mset_subset_eqD dest!: mset_subset_eq_insertD)
-
+  have forward_subsumption_all_wl2_alt_def:
+    \<open>forward_subsumption_all_wl2 = (\<lambda>S. do {
+      ASSERT (forward_subsumption_all_wl_pre S);
+      S \<leftarrow> RETURN S;
+      (occs, xs) \<leftarrow> SPEC (populate_occs_spec S);
+      let m = length xs;
+      D \<leftarrow> mop_ch_create (set_mset (all_init_atms_st S));
+      let shrunken = {#};
+      (_, occs, D, S, _, shrunken) \<leftarrow>
+        WHILE\<^sub>T\<^bsup> forward_subsumption_all_wl2_inv S xs \<^esup> (\<lambda>(i, occs, D, S, n, shrunken). i < m \<and> get_conflict_wl S = None)
+          (\<lambda>(i, occs, D, S, n, shrunken). do {
+          let C = xs!i;
+          ASSERT(C\<in>#dom_m (get_clauses_wl S));
+          D \<leftarrow> mop_ch_add_all (mset (get_clauses_wl S \<propto> C)) D;
+          (occs, D, shrunken, T) \<leftarrow> try_to_forward_subsume_wl2 C occs (mset (drop (i) xs)) D shrunken S;
+          RETURN (i+1, occs, D, T, (length (get_clauses_wl S \<propto> C)), shrunken)
+        })
+        (0, occs, D, S, 2, shrunken);
+      ASSERT (fst occs = set_mset (all_init_atms_st S));
+      ASSERT (shrunken \<subseteq># mset xs);
+      ASSERT (literals_are_\<L>\<^sub>i\<^sub>n' S);
+      RETURN S
+    })\<close>
+    unfolding forward_subsumption_all_wl2_def nres_monad3 by auto
   show ?thesis
     supply [[goals_limit=1]]
     unfolding isa_forward_subsumption_all_def
-      forward_subsumption_all_wl2_def Let_def
+      forward_subsumption_all_wl2_alt_def Let_def
     apply (refine_vcg ref_two_step[OF isa_populate_occs populate_occs_populate_occs_spec,
       unfolded Down_id_eq, of _ _ \<open>length (get_clauses_wl_heur S)\<close>  \<open>(learned_clss_count S)\<close>]
       forward_subsumption_finalize[where r=\<open>length (get_clauses_wl_heur S)\<close>  and u=\<open>(learned_clss_count S)\<close>]
       mop_cch_create_mop_cch_create
       mop_cch_add_all_clause_mop_ch_add_all[where r=\<open>length (get_clauses_wl_heur S)\<close> and u=\<open>(learned_clss_count S)\<close>]
       isa_try_to_forward_subsume_wl2_try_to_forward_subsume_wl2[where r=\<open>length (get_clauses_wl_heur S)\<close>  and u=\<open>(learned_clss_count S)\<close>]
-      isa_forward_reset_added_and_stats[where r=\<open>length (get_clauses_wl_heur S)\<close>  and u=\<open>(learned_clss_count S)\<close>])
+      isa_forward_reset_added_and_stats[where r=\<open>length (get_clauses_wl_heur S)\<close>  and u=\<open>(learned_clss_count S)\<close>]
+      isa_forward_set_budget[where r=\<open>length (get_clauses_wl_heur S)\<close>  and u=\<open>(learned_clss_count S)\<close>])
     subgoal using assms unfolding isa_forward_subsumption_pre_all_def by blast
     subgoal using assms by (auto simp: twl_st_heur_restart_ana_def)
+    subgoal by (auto simp: isasat_fast_relaxed_def)
+    subgoal by (auto simp: isasat_fast_relaxed_def)
+    subgoal unfolding forward_subsumption_all_wl_pre_def by blast
     subgoal unfolding forward_subsumption_all_wl_pre_def by blast
     subgoal by (auto simp: isasat_fast_relaxed_def)
     subgoal by (rule H) auto
     subgoal by auto
     subgoal by auto
-    subgoal for Sa x' x1 x2 D Da x x'a
+    subgoal for S\<^sub>0 Sa Saa x' x1 x2 D Da x x'a
       using SS'' unfolding isa_forward_subsumption_all_wl_inv_def apply (case_tac x, hypsubst, unfold prod.simps)
       by (rule exI[of _ S'], rule exI[of _ S'], rule exI[of _ \<open>fst (snd (snd (snd x'a)))\<close>],
         rule_tac x= \<open>fst (snd (snd (x'a)))\<close> in exI, rule_tac x= \<open>fst (snd x'a)\<close> in exI,

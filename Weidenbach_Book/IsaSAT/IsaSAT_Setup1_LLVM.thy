@@ -651,9 +651,6 @@ global_interpretation fast_ema: read_heur_param_adder0 where
   subgoal by (auto simp: get_fast_ema_heur_fast_code_def)
   done
 
- thm get_conflict_count_since_last_restart_heur.simps
-find_theorems get_conflict_count_since_last_restart RETURN
-
 lemma get_conflict_count_since_last_restart_heur_alt_def:
   \<open>RETURN o get_conflict_count_since_last_restart_heur =
   read_heur_wl_heur (RETURN \<circ> get_conflict_count_since_last_restart)\<close>
@@ -675,7 +672,6 @@ global_interpretation get_conflict_count_since_last_restart: read_heur_param_add
   subgoal by (auto simp: get_conflict_count_since_last_restart_heur_alt_def)
   subgoal by (auto simp: get_conflict_count_since_last_restart_heur_fast_code_def)
   done
-
 
 lemma id_lcount_assn: \<open>(Mreturn, RETURN) \<in> (lcount_assn)\<^sup>k \<rightarrow>\<^sub>a lcount_assn\<close>
   unfolding lcount_assn_def
@@ -772,8 +768,55 @@ lemma mop_marked_as_used_st_alt_def: \<open>mop_marked_as_used_st = marked_used.
 lemmas [sepref_fr_rules] =
   marked_used.mop_refine[unfolded mop_marked_as_used_st_alt_def[symmetric]]
 
+lemma forward_budget_st_alt_def:
+  \<open>RETURN o forward_budget_st =
+  read_stats_wl_heur (RETURN \<circ> forward_budget)\<close>
+  by (auto simp: read_all_st_def forward_budget_st_def intro!: ext split: isasat_int_splits)
+
+definition forward_budget_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>forward_budget_st_code = read_stats_wl_heur_code forward_budget_impl\<close>
+
+global_interpretation forward_budget_st: read_stats_param_adder0 where
+  f' = \<open>RETURN o forward_budget\<close> and
+  f = forward_budget_impl and
+  x_assn = \<open>word64_assn\<close> and
+  P = \<open>(\<lambda>_. True)\<close>
+  rewrites
+    \<open>read_stats_wl_heur (RETURN o forward_budget) = RETURN o forward_budget_st\<close> and
+    \<open>read_stats_wl_heur_code forward_budget_impl = forward_budget_st_code\<close>
+  apply unfold_locales
+  apply (rule forward_budget_impl.refine)
+  subgoal by (auto simp: forward_budget_st_def read_all_st_def intro!: ext split: isasat_int_splits)
+  subgoal by (auto simp: forward_budget_st_code_def)
+  done
+
+lemma forward_subchecks_st_alt_def:
+  \<open>RETURN o forward_subchecks_st =
+  read_stats_wl_heur (RETURN \<circ> forward_subchecks)\<close>
+  by (auto simp: read_all_st_def forward_subchecks_st_def intro!: ext split: isasat_int_splits)
+
+definition forward_subchecks_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>forward_subchecks_st_code = read_stats_wl_heur_code forward_subchecks_impl\<close>
+
+global_interpretation forward_subchecks_st: read_stats_param_adder0 where
+  f' = \<open>RETURN o forward_subchecks\<close> and
+  f = forward_subchecks_impl and
+  x_assn = \<open>word64_assn\<close> and
+  P = \<open>(\<lambda>_. True)\<close>
+  rewrites
+    \<open>read_stats_wl_heur (RETURN o forward_subchecks) = RETURN o forward_subchecks_st\<close> and
+    \<open>read_stats_wl_heur_code forward_subchecks_impl = forward_subchecks_st_code\<close>
+  apply unfold_locales
+  apply (rule forward_subchecks_impl.refine)
+  subgoal by (auto simp: forward_subchecks_st_def read_all_st_def intro!: ext split: isasat_int_splits)
+  subgoal by (auto simp: forward_subchecks_st_code_def)
+  done
+ 
+lemmas [sepref_fr_rules] = forward_budget_st.refine forward_subchecks_st.refine
+
 
 sepref_register get_the_propagation_reason_heur delete_index_vdom_heur access_length_heur marked_as_used_st
+  forward_budget_st forward_subchecks_st
 
 experiment
 begin

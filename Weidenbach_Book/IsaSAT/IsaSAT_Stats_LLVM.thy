@@ -50,7 +50,7 @@ definition search_stats_assn :: \<open>search_stats \<Rightarrow> search_stats \
   \<open>search_stats_assn \<equiv> word64_assn \<times>\<^sub>a  word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 definition subsumption_stats_assn :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats \<Rightarrow> _\<close> where
-  \<open>subsumption_stats_assn = word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
+  \<open>subsumption_stats_assn = word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 definition binary_stats_assn :: \<open>inprocessing_binary_stats \<Rightarrow> inprocessing_binary_stats \<Rightarrow> _\<close> where
   \<open>binary_stats_assn = word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
@@ -84,7 +84,7 @@ sepref_def empty_binary_stats_impl
   by sepref
 
 definition empty_subsumption_stats :: \<open>inprocessing_subsumption_stats\<close> where
-  \<open>empty_subsumption_stats = (0,0,0,0,0)\<close>
+  \<open>empty_subsumption_stats = (0,0,0,0,0,0)\<close>
 
 sepref_def empty_subsumption_stats_impl
   is \<open>uncurry0 (RETURN empty_subsumption_stats)\<close>
@@ -1067,6 +1067,30 @@ sepref_def Subsumption_Stats_incr_tried_impl
   unfolding Subsumption_Stats_incr_tried_def subsumption_stats_assn_def
   by sepref
 
+sepref_def Subsumption_Stats_set_budget_impl
+  is \<open>uncurry (RETURN oo Subsumption_Stats_set_budget)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a subsumption_stats_assn\<close>
+  unfolding Subsumption_Stats_set_budget_def subsumption_stats_assn_def
+  by sepref
+
+sepref_def Subsumption_Stats_budget_impl
+  is \<open>(RETURN o Subsumption_Stats_budget)\<close>
+  :: \<open>subsumption_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding Subsumption_Stats_budget_def subsumption_stats_assn_def
+  by sepref
+
+sepref_def Subsumption_Stats_incr_subchecks_impl
+  is \<open>uncurry (RETURN oo Subsumption_Stats_incr_subchecks)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a subsumption_stats_assn\<close>
+  unfolding Subsumption_Stats_incr_subchecks_def subsumption_stats_assn_def
+  by sepref
+
+sepref_def Subsumption_Stats_subchecks_impl
+  is \<open>(RETURN o Subsumption_Stats_subchecks)\<close>
+  :: \<open>subsumption_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding Subsumption_Stats_subchecks_def subsumption_stats_assn_def
+  by sepref
+
 sepref_def Subsumption_Stats_incr_rounds_impl
   is \<open>RETURN o Subsumption_Stats_incr_rounds\<close>
   :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a subsumption_stats_assn\<close>
@@ -1089,6 +1113,30 @@ sepref_def incr_forward_tried_impl
   is \<open>RETURN o incr_forward_tried\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
   unfolding incr_forward_tried_def stats_code_unfold
+  by sepref
+
+sepref_def set_forward_budget_impl
+  is \<open>uncurry (RETURN oo set_forward_budget)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding set_forward_budget_def stats_code_unfold
+  by sepref
+
+sepref_def incr_forward_subchecks_by_impl
+  is \<open>uncurry (RETURN oo incr_forward_subchecks_by)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_forward_subchecks_by_def stats_code_unfold
+  by sepref
+
+sepref_def forward_budget_impl
+  is \<open>(RETURN o forward_budget)\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding forward_budget_def stats_code_unfold 
+  by sepref
+
+sepref_def forward_subchecks_impl
+  is \<open>(RETURN o forward_subchecks)\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding forward_subchecks_def stats_code_unfold 
   by sepref
 
 sepref_def Subsumption_Stats_rounds_impl
@@ -1132,6 +1180,7 @@ sepref_def Rephase_Stats_total_impl
   by sepref
 
 sepref_register stats_forward_tried stats_forward_subsumed stats_forward_strengthened
+  forward_subchecks forward_budget incr_forward_subchecks_by set_forward_budget
 
 sepref_def stats_forward_subsumed_impl
   is \<open>RETURN o stats_forward_subsumed\<close>
@@ -1158,7 +1207,7 @@ sepref_def empty_stats_impl
   is \<open>uncurry0 (RETURN empty_stats)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a isasat_stats_assn\<close>
   unfolding empty_stats_def empty_search_stats_def[symmetric]
-  apply (subst empty_rephase_stats_def[symmetric])
+  apply (subst (2) empty_rephase_stats_def[symmetric])
   unfolding empty_subsumption_stats_def[symmetric]
   unfolding empty_binary_stats_def[symmetric]
   apply (subst empty_pure_lits_stats_def[symmetric])
@@ -1179,7 +1228,7 @@ sepref_def empty_stats_clss_impl
   is \<open>(RETURN o empty_stats_clss)\<close>
   :: \<open>word64_assn\<^sup>k \<rightarrow>\<^sub>a isasat_stats_assn\<close>
   unfolding empty_stats_clss_def empty_search_stats_clss_def[symmetric]
-  apply (subst empty_rephase_stats_def[symmetric])
+  apply (subst(2) empty_rephase_stats_def[symmetric])
   unfolding empty_subsumption_stats_def[symmetric]
   unfolding empty_binary_stats_def[symmetric]
   apply (subst empty_pure_lits_stats_def[symmetric])
