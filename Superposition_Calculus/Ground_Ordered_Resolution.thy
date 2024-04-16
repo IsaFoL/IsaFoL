@@ -1462,6 +1462,55 @@ proof -
     by argo
 qed
 
+lemma Interp_swap_clause_set:
+  assumes
+    fin: "finite N1" and
+    agree: "{D \<in> N1. D \<preceq>\<^sub>c C} = {D \<in> N2. D \<preceq>\<^sub>c C}"
+  shows "interp N1 C \<union> production N1 C = interp N2 C \<union> production N2 C"
+  using production_swap_clause_set[OF assms]
+  using interp_swap_clause_set[OF assms(1)]
+  using assms(2)
+  by blast
+
+lemma production_insert_greater_clause:
+  assumes
+    fin: "finite N" and
+    "C \<prec>\<^sub>c D"
+  shows "production (insert D N) C = production N C"
+proof (rule production_swap_clause_set)
+  show "finite (insert D N)"
+    using fin by simp
+next
+  show "{Da \<in> insert D N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= Da C} = {D \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C}"
+    using \<open>C \<prec>\<^sub>c D\<close> by auto
+qed
+
+lemma interp_insert_greater_clause:
+  assumes
+    fin: "finite N" and
+    "C \<prec>\<^sub>c D"
+  shows "interp (insert D N) C = interp N C"
+proof (rule interp_swap_clause_set)
+  show "finite (insert D N)"
+    using fin by simp
+next
+  show "{x \<in> insert D N. x \<prec>\<^sub>c C} = {x \<in> N. x \<prec>\<^sub>c C}"
+    using \<open>C \<prec>\<^sub>c D\<close> by auto
+qed
+
+lemma Interp_insert_greater_clause:
+  assumes
+    fin: "finite N" and
+    "C \<prec>\<^sub>c D"
+  shows "interp (insert D N) C \<union> production (insert D N) C = interp N C \<union> production N C"
+proof (rule Interp_swap_clause_set)
+  show "finite (insert D N)"
+    using fin by simp
+next
+  show "{Da \<in> insert D N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= Da C} = {D \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C}"
+    using \<open>C \<prec>\<^sub>c D\<close> by auto
+qed
+
 lemma production_add_irrelevant_clause_to_set0:
   assumes
     fin: "finite N" and
