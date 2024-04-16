@@ -814,6 +814,10 @@ global_interpretation forward_subchecks_st: read_stats_param_adder0 where
  
 lemmas [sepref_fr_rules] = forward_budget_st.refine forward_subchecks_st.refine
 
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  forward_budget_st_code_def[unfolded read_all_st_code_def]
+  forward_subchecks_st_code_def[unfolded read_all_st_code_def]
+
 
 sepref_register get_the_propagation_reason_heur delete_index_vdom_heur access_length_heur marked_as_used_st
   forward_budget_st forward_subchecks_st
@@ -823,7 +827,7 @@ begin
 
 export_llvm polarity_st_heur_pol_fast count_decided_st_heur_fast_code get_conflict_wl_is_None_fast_code
   clause_not_marked_to_delete_heur_code access_lit_in_clauses_heur_fast_code length_ivdom_fast_code
-  length_avdom_fast_code length_tvdom_fast_code
+  length_avdom_fast_code length_tvdom_fast_code forward_subchecks_st_code forward_budget_st_code
   clause_is_learned_heur_code2 clause_lbd_heur_code2 mop_mark_garbage_heur_impl mark_garbage_heur_code2
   mop_mark_garbage_heur3_impl delete_index_vdom_heur_fast_code2 access_length_heur_fast_code2
   get_fast_ema_heur_fast_code get_slow_ema_heur_fast_code get_conflict_count_since_last_restart_heur_fast_code
