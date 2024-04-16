@@ -11,7 +11,7 @@ The best place to start exploring the formalization is the ROOT file: the main r
 split into different theories listed there. You can start exploring with the following command:
 
 ``` sh
-$ isabelle jedit ROOT
+$ isabelle jedit -d . ROOT
 ```
 
 This will open the jEdit-based Isabelle environment and CTRL+clicking on a theory name will
