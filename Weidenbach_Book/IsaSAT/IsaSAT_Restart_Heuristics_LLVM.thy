@@ -87,8 +87,8 @@ sepref_register incr_restart_phase incr_restart_phase_end
   update_restart_mode
 
 
-lemma update_restart_mode_ticks_alt_def:
-  \<open>update_restart_mode_ticks = (\<lambda>S. do {
+lemma update_restart_mode_alt_def:
+  \<open>update_restart_mode = (\<lambda>S. do {
      end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
      let lcount = get_global_conflict_count S;
      let (heur, S) = extract_heur_wl_heur S;
@@ -143,11 +143,11 @@ lemma update_restart_mode_ticks_alt_def:
       }
     }
   })\<close>
-  by (auto simp: update_restart_mode_ticks_def state_extractors Let_def split: isasat_int_splits intro!: ext bind_cong[OF refl]
+  by (auto simp: update_restart_mode_def state_extractors Let_def split: isasat_int_splits intro!: ext bind_cong[OF refl]
     cong: if_cong)
 
-lemma update_restart_mode_alt_def:
-  \<open>update_restart_mode = (\<lambda>S. do {
+lemma update_restart_mode_conflicts_alt_def:
+  \<open>update_restart_mode_conflicts = (\<lambda>S. do {
      let lcount = get_global_conflict_count S;
      let (heur, S) = extract_heur_wl_heur S;
      let curr = current_restart_phase heur;
@@ -166,7 +166,7 @@ lemma update_restart_mode_alt_def:
      heur \<leftarrow> RETURN (swap_emas heur);
      RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats (update_lcount_wl_heur lcount2 S))))
   })\<close>
-  by (auto simp: Let_def update_restart_mode_def state_extractors split: isasat_int_splits intro!: ext bind_cong)
+  by (auto simp: Let_def update_restart_mode_conflicts_def state_extractors split: isasat_int_splits intro!: ext bind_cong)
 
 sepref_def update_restart_mode_impl
   is \<open>update_restart_mode\<close>

@@ -241,8 +241,8 @@ definition arena_header_size :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat
   \<open>arena_header_size arena C =
   (if arena_length arena C > 4 then MAX_HEADER_SIZE else MIN_HEADER_SIZE)\<close>
 
-definition update_restart_mode_ticks :: \<open>isasat \<Rightarrow> isasat nres\<close> where
-  \<open>update_restart_mode_ticks = (\<lambda>S. do {
+definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>update_restart_mode = (\<lambda>S. do {
     let heur = get_heur S;
      let stats = get_stats_heur S;
      let lcount = get_global_conflict_count S;
@@ -298,8 +298,8 @@ definition update_restart_mode_ticks :: \<open>isasat \<Rightarrow> isasat nres\
   })\<close>
 
 
-definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close> where
-  \<open>update_restart_mode = (\<lambda>S. do {
+definition update_restart_mode_conflicts :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>update_restart_mode_conflicts = (\<lambda>S. do {
      let heur = get_heur S;
      let curr = current_restart_phase heur;
      let lcount = get_global_conflict_count S;
