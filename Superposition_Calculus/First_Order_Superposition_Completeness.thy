@@ -22,7 +22,7 @@ lemma eq_resolution_lifting:
     ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G"
   obtains conclusion' 
   where
-    "eq_resolution premise conclusion'"
+    "eq_resolution (premise, \<V>) (conclusion', \<V>)"
     "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')"
     "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
   using ground_eq_resolution
@@ -127,8 +127,8 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     by simp
 
   then obtain \<mu> \<sigma> where 
-    \<mu>: "term_subst.is_imgu \<mu> {{term, term'}}" "\<gamma> = \<mu> \<odot> \<sigma>"
-    using imgu_exists
+    \<mu>: "term_subst.is_imgu \<mu> {{term, term'}}" "\<gamma> = \<mu> \<odot> \<sigma>" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<mu>"
+    using welltyped_imgu_exists
     by blast
 
   have literal\<^sub>G: 
@@ -146,7 +146,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     unfolding conclusion' ground_eq_resolutionI(2) literal_\<gamma>[symmetric] subst_clause_add_mset
     by simp
 
-  have eq_resolution: "eq_resolution premise (conclusion' \<cdot> \<mu>)"
+  have eq_resolution: "eq_resolution (premise, \<V>) (conclusion' \<cdot> \<mu>, \<V>)"
   proof (rule eq_resolutionI)
     show "premise = add_mset literal conclusion'"
       using conclusion'.
@@ -204,6 +204,9 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
       with False show ?thesis
         by blast
     qed
+  next 
+    show "welltyped\<^sub>\<sigma> typeof_fun \<V> \<mu>"
+      using \<mu>(3).
   next 
     show "conclusion' \<cdot> \<mu> = conclusion' \<cdot> \<mu>" ..
   qed

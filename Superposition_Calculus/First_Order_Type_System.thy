@@ -62,9 +62,19 @@ definition has_type\<^sub>\<sigma> where
 definition has_type\<^sub>\<sigma>' where
   "has_type\<^sub>\<sigma>' \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>x. has_type \<F> \<V> (\<sigma> x) (\<V> x))"
 
-(* TODO: Would also (\<forall>t \<tau>. welltyped \<F> \<V> t \<tau> \<longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>)  work? *)
+lemma "has_type\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> has_type\<^sub>\<sigma>' \<F> \<V> \<sigma>"
+  unfolding has_type\<^sub>\<sigma>_def has_type\<^sub>\<sigma>'_def
+  apply auto
+  using has_type.Var apply fastforce
+  by (smt (verit, ccfv_threshold) eval_term.simps(1) eval_term.simps(2) has_type.simps)
+
 definition welltyped\<^sub>\<sigma> where
   "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>x. welltyped \<F> \<V> (\<sigma> x) (\<V> x))"
+
+definition welltyped\<^sub>\<sigma>' where
+  "welltyped\<^sub>\<sigma>' \<F> \<V> \<sigma> \<longleftrightarrow>  (\<forall>t \<tau>. welltyped \<F> \<V> t \<tau> \<longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>)"
+
+(* Probably true: lemma "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> welltyped\<^sub>\<sigma>' \<F> \<V> \<sigma>" *)
 
 lemma has_type\<^sub>c_add_mset: 
   "has_type\<^sub>c \<F> \<V> (add_mset L C) \<longleftrightarrow> has_type\<^sub>l \<F> \<V> L \<and> has_type\<^sub>c \<F> \<V> C"
@@ -265,10 +275,62 @@ lemma welltyped\<^sub>\<sigma>_Var: "welltyped\<^sub>\<sigma> \<F> \<V> Var"
   unfolding welltyped\<^sub>\<sigma>_def
   by (simp add: welltyped.Var)
 
+lemma term_subst_is_imgu_is_mgu: "term_subst.is_imgu \<mu> {{s, t}} = is_imgu \<mu> {(s, t)}"
+  unfolding term_subst.is_imgu_def is_imgu_def term_subst.is_unifier_set_def  unifiers_def
+  apply auto
+     apply (meson finite.emptyI finite_insert insertCI term_subst.is_unifier_iff_if_finite)
+    apply (metis subst_compose_assoc the_mgu the_mgu_is_unifier)
+   apply (simp add: term_subst.is_unifier_iff_if_finite)
+  by (metis finite.emptyI finite.insertI insertI1 insert_subset subset_insertI term_subst.is_unifier_iff_if_finite)
+
+lemma the_mgu_term_subst_is_imgu:
+  fixes \<sigma> :: "('f, 'v) subst"
+  assumes "s \<cdot>t \<sigma> = t \<cdot>t \<sigma>"
+  shows "term_subst.is_imgu (the_mgu s t) {{s, t}}"
+  using term_subst_is_imgu_is_mgu the_mgu_is_imgu
+  using assms by blast
+
+lemma welltyped_imgu_exists:
+  fixes \<upsilon> :: "('f, 'v) subst"
+  assumes unified: "term \<cdot>t \<upsilon> = term' \<cdot>t \<upsilon>"
+  obtains \<mu> :: "('f, 'v) subst"
+  where 
+    "\<upsilon> = \<mu> \<odot> \<upsilon>" 
+    "term_subst.is_imgu \<mu> {{term, term'}}"
+    "welltyped\<^sub>\<sigma> \<F> \<V> \<mu>"
+  sorry
+
+(*abbreviation welltyped_renaming where
+  "welltyped_renaming \<F> \<V> \<rho> \<equiv> term_subst.is_renaming \<rho> \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<rho>"
+
+lemma imgu_is_unique_upto_renaming:
+  assumes "term_subst.is_imgu \<mu> XX" "term_subst.is_imgu \<mu>' XX" "\<And>\<tau>. infinite {x. \<V> x = \<tau>}"
+  obtains \<rho> where "\<mu> = \<mu>' \<odot> \<rho>" "welltyped_renaming \<F> \<V> \<rho>"
+  using assms
+  unfolding term_subst.is_imgu_iff_is_idem_and_is_mgu
+  unfolding term_subst.is_mgu_def term_subst.is_unifier_set_def
+  apply auto
+  sorry
+
+lemma term_subst_is_imgu_the_mgu:
+  assumes "mgu t t' = Some \<mu>"
+  obtains \<rho> where 
+    "term_subst.is_imgu (\<mu> \<odot> \<rho>) {{t, t'}}"
+    "welltyped_renaming \<F> \<V> \<rho>"
+  using imgu_is_unique_upto_renaming
+  sorry
+
+lemma welltyped_mgu:
+  assumes "welltyped \<F> \<V> t \<tau>" "welltyped \<F> \<V> t' \<tau>" "mgu t t' = Some \<mu>"
+  shows "welltyped\<^sub>\<sigma> \<F> \<V> \<mu>"
+  using assms
+  sorry
+
 lemma welltyped_is_imgu:
   assumes "welltyped \<F> \<V> t \<tau>" "welltyped \<F> \<V> t' \<tau>" "term_subst.is_imgu \<mu> {{t, t'}}"
   shows "welltyped\<^sub>\<sigma> \<F> \<V> \<mu>"
-  sorry
+  using assms term_subst_is_imgu_the_mgu welltyped_mgu
+  sorry*)
 
 (*lemma Fun_arg_types:
   assumes 
