@@ -54,11 +54,7 @@ next
     context\<^sub>G :: "('f, 'v) context" and
     term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2 :: "('f, 'v) term" 
 
-  assume 
-    "less_kbo term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2" 
-    "is_ground_term term\<^sub>G\<^sub>1" 
-    "is_ground_term term\<^sub>G\<^sub>2" 
-    "is_ground_context context\<^sub>G"
+  assume "less_kbo term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2" 
 
   then show "less_kbo context\<^sub>G\<langle>term\<^sub>G\<^sub>1\<rangle> context\<^sub>G\<langle>term\<^sub>G\<^sub>2\<rangle>"
     using KBO.S_ctxt less_kbo_def by blast
@@ -67,10 +63,7 @@ next
     term\<^sub>1 term\<^sub>2 :: "('f, 'v) term" and 
     \<gamma> :: "('f, 'v) subst"
 
-  assume 
-    "is_ground_term (term\<^sub>1 \<cdot>t \<gamma>)" 
-    "is_ground_term (term\<^sub>2 \<cdot>t \<gamma>)" 
-    "less_kbo term\<^sub>1 term\<^sub>2"
+  assume "less_kbo term\<^sub>1 term\<^sub>2"
 
   then show "less_kbo (term\<^sub>1 \<cdot>t \<gamma>) (term\<^sub>2 \<cdot>t \<gamma>)"
     using less_kbo_subst by blast
@@ -92,7 +85,7 @@ next
   show "\<And>(R :: ('f gterm \<times> 'f gterm) set). ground_critical_pair_theorem R"
     using ground_critical_pair_theorem .
 next
-  show "\<And>term\<^sub>G. wfP (\<lambda>_ _. False) \<and> transp (\<lambda>_ _. False) \<and> asymp (\<lambda>_ _. False)"
+  show "\<And>clause\<^sub>G. wfP (\<lambda>_ _. False) \<and> transp (\<lambda>_ _. False) \<and> asymp (\<lambda>_ _. False)"
     by (simp add: asympI)
 qed
 

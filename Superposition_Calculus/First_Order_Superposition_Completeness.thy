@@ -158,7 +158,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
       using \<mu>(1).
   next
     show "select premise = {#} \<and> is_maximal\<^sub>l (literal \<cdot>l \<mu>) (premise \<cdot> \<mu>) 
-       \<or>  is_maximal\<^sub>l literal (select premise)"
+       \<or>  is_maximal\<^sub>l (literal \<cdot>l \<mu>) ((select premise) \<cdot> \<mu>)"
     proof(cases ?select\<^sub>G_empty)
       case select\<^sub>G_empty: True
 
@@ -183,8 +183,26 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
         by simp
     next
       case False
-      then show ?thesis
-        using literal_selected by blast
+
+      have selected_grounding: "is_ground_clause (select premise \<cdot> \<mu> \<cdot> \<sigma>)"
+        using select_subst(1)[OF premise_grounding]
+        unfolding \<mu>(2) clause_subst_compose.
+
+      note selected_subst =
+        literal_selected[OF False, THEN maximal\<^sub>l_in_clause, THEN literal_in_clause_subst]
+
+      have "is_maximal\<^sub>l (literal \<cdot>l \<gamma>) (select premise \<cdot> \<gamma>)"
+        using False ground_eq_resolutionI(3) 
+        unfolding ground_eq_resolutionI(2) is_maximal_lit_iff_is_maximal\<^sub>l literal_\<gamma> select
+        by presburger
+
+      then have "is_maximal\<^sub>l (literal \<cdot>l \<mu>) (select premise \<cdot> \<mu>)"
+        unfolding \<mu>(2) clause_subst_compose literal_subst_compose
+        using is_maximal\<^sub>l_ground_subst_stability'[OF selected_subst selected_grounding]
+        by argo
+        
+      with False show ?thesis
+        by blast
     qed
   next 
     show "conclusion' \<cdot> \<mu> = conclusion' \<cdot> \<mu>" ..
@@ -1111,7 +1129,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
               \<and> is_strictly_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) 
           \<or> ?\<P> = Neg 
               \<and> (select premise\<^sub>1 = {#} \<and> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) 
-                 \<or> is_maximal\<^sub>l literal\<^sub>1 (select premise\<^sub>1))"
+                 \<or> is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) ((select premise\<^sub>1) \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>))"
       proof(cases "?\<P> = Pos")
         case True
         moreover then have select_empty: "select premise\<^sub>1 = {#}"
@@ -1169,8 +1187,26 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
             by simp
         next
           case select\<^sub>G_not_empty: False
-          have "is_maximal\<^sub>l literal\<^sub>1 (select premise\<^sub>1)"
-            using literal\<^sub>1_selected[OF \<P>\<^sub>G_Neg select\<^sub>G_not_empty].
+
+          have selected_grounding: "is_ground_clause (select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<sigma>)"
+            using select_subst(1)[OF premise\<^sub>1_grounding] select(1)
+            unfolding \<mu>(2) clause_subst_compose
+            by (metis ground_clause_is_ground)
+
+          note selected_subst =
+            literal\<^sub>1_selected[
+              OF \<P>\<^sub>G_Neg select\<^sub>G_not_empty, 
+              THEN maximal\<^sub>l_in_clause, 
+              THEN literal_in_clause_subst] 
+
+          have "is_maximal\<^sub>l (literal\<^sub>1  \<cdot>l \<rho>\<^sub>1 \<cdot>l \<gamma>) (select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)"  
+            using select\<^sub>G_not_empty ground_superpositionI(9) \<P>\<^sub>G_Neg 
+            unfolding is_maximal_lit_iff_is_maximal\<^sub>l literal\<^sub>1_\<gamma>[symmetric] select(1)
+            by simp
+
+          then have "is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) ((select premise\<^sub>1) \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)"
+            using is_maximal\<^sub>l_ground_subst_stability'[OF _ selected_grounding] selected_subst
+            by (metis \<mu>(2) clause_subst_compose literal_subst_compose)
 
           with select\<^sub>G_not_empty \<P>\<^sub>G_Neg show ?thesis
             by simp
