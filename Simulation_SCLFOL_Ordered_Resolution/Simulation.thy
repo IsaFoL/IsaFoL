@@ -8224,24 +8224,42 @@ proof (cases S5 S6 rule: ord_res_5_matches_ord_res_6.cases)
 
     show ?thesis
     proof (intro exI conjI)
-      have "ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>')"
+      have step5: "ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>')"
         using ord_res_5.skip step_hyps by metis
       hence "ord_res_5_step S5 S5'"
-        by (metis S5'_def S5_def ord_res_5_step.simps step_hyps(1))
+        unfolding S5_def S5'_def
+        by (metis ord_res_5_step.simps step_hyps(1))
       thus "ord_res_5_step\<^sup>+\<^sup>+ S5 S5'"
         by simp
 
       have "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>')"
-        using \<open>ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>')\<close> match_hyps(3)
-          ord_res_5_preserves_invars step_hyps(1)
-        by metis
+        using step5 match_hyps(3) ord_res_5_preserves_invars step_hyps(1) by metis
       thus "ord_res_5_matches_ord_res_6 S5' S6'"
         unfolding S5'_def S6'_def \<open>s6' = (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>')\<close>
         using ord_res_5_matches_ord_res_6.intros by metis
     qed
   next
-    case (production C L \<M>' \<C>')
-    then show ?thesis sorry
+    case step_hyps: (production C L \<M>' \<C>')
+
+    define S5' where
+      "S5' = (N, U\<^sub>e\<^sub>r, \<F>, \<M>', \<C>')"
+
+    show ?thesis
+    proof (intro exI conjI)
+      have step5: "ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<M>', \<C>')"
+        using ord_res_5.production step_hyps by metis
+      hence "ord_res_5_step S5 S5'"
+        unfolding S5_def S5'_def
+        by (metis ord_res_5_step.simps step_hyps(1))
+      thus "ord_res_5_step\<^sup>+\<^sup>+ S5 S5'"
+        by simp
+
+      have "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>', \<C>')"
+        using step5 match_hyps(3) ord_res_5_preserves_invars step_hyps(1) by metis
+      thus "ord_res_5_matches_ord_res_6 S5' S6'"
+        unfolding S5'_def S6'_def \<open>s6' = (U\<^sub>e\<^sub>r, \<F>, \<M>', \<C>')\<close>
+        using ord_res_5_matches_ord_res_6.intros by metis
+    qed
   next
     case (factoring C L \<F>')
     then show ?thesis sorry
