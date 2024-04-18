@@ -129,7 +129,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
   then obtain \<mu> \<sigma> where 
     \<mu>: "term_subst.is_imgu \<mu> {{term, term'}}" "\<gamma> = \<mu> \<odot> \<sigma>" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<mu>"
     using welltyped_imgu_exists
-    by blast
+    sorry
 
   have literal\<^sub>G: 
     "to_literal literal\<^sub>G = (term !\<approx> term') \<cdot>l \<gamma>" 
