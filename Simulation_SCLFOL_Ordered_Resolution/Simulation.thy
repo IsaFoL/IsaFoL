@@ -7557,72 +7557,11 @@ proof -
   qed
 qed
 
-
-
-
-
-
-
-
 lemma ord_res_5_construct_model_upto_least_false_clause:
   assumes invars: "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)"
   shows "\<exists>\<M>' \<C>'. (ord_res_5 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>) (U\<^sub>e\<^sub>r, \<F>, \<M>', \<C>') \<and>
     (\<forall>C. \<C>' = Some C \<longleftrightarrow> is_least_false_clause (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) C)"
   using MAGIC1[OF invars] MAGIC3[OF invars] by metis
-
-(* proof (cases \<C>)
-  case None
-  then show ?thesis
-    by (smt (verit) assms is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
-        option.discI ord_res_5_invars_def rtranclp.rtrancl_refl
-        all_smaller_clauses_true_wrt_respective_Interp_def)
-next
-  case \<C>_def: (Some C)
-  hence "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
-    by (metis assms next_clause_in_factorized_clause_def ord_res_5_invars_def)
-  hence "iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r) \<noteq> {||}"
-    by (metis bot_fset.rep_eq empty_iff )
-
-(*   show ?thesis
-  proof (cases "is_least_false_clause (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) C")
-    case True
-    then show ?thesis
-      by (metis (no_types, opaque_lifting) \<C>_def Uniq_D Uniq_is_least_false_clause option.inject
-          rtranclp.simps)
-  next
-    case False *)
-  obtain E where E_greatest: "linorder_cls.is_greatest_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) E"
-    using \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r) \<noteq> {||}\<close> by (metis linorder_cls.ex1_greatest_in_fset)
-
-  define E' where
-    "E' = E + E + {#undefined#}"
-
-  have "E \<prec>\<^sub>c E'"
-    unfolding E'_def
-    by (metis add.right_neutral empty_iff multi_self_add_other_not_self one_step_implies_multp
-        set_mset_empty subset_mset.add_eq_0_iff_both_eq_0 union_assoc)
-  hence ball_lt_E': "D \<prec>\<^sub>c E'" if D_in: "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for D
-    using E_greatest D_in
-    by (metis linorder_cls.is_greatest_in_fset_iff linorder_cls.order.strict_trans)
-
-  show ?thesis
-    using ord_res.wfP_less_cls ball_lt_E'
-  proof (induction E' rule: wfP_induct_rule)
-    case (less E')
-    show ?case
-    proof (cases "\<exists>D. is_least_false_clause (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) D")
-      case True
-      then obtain D where "is_least_false_clause (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) D"
-        by metis
-      then show ?thesis
-        using less.IH
-        sorry
-    next
-      case False
-      then show ?thesis sorry
-    qed
-  qed
-qed *)
 
 inductive ord_res_4_matches_ord_res_5 ::
   "'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<Rightarrow>
