@@ -42,7 +42,7 @@ inductive eq_resolution :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 't
    "premise = add_mset literal premise' \<Longrightarrow>
     literal = term !\<approx> term' \<Longrightarrow>
     term_subst.is_imgu \<mu> {{ term, term' }} \<Longrightarrow>
-    welltyped\<^sub>\<sigma> typeof_fun \<V> \<mu> \<Longrightarrow>
+    welltyped_imgu typeof_fun \<V> term term' \<mu> \<Longrightarrow>
     select premise = {#} \<and> is_maximal\<^sub>l (literal \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<or> 
       is_maximal\<^sub>l (literal \<cdot>l \<mu>) ((select premise) \<cdot> \<mu>) \<Longrightarrow>
     conclusion = premise' \<cdot> \<mu> \<Longrightarrow>
@@ -231,7 +231,7 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
       welltyped\<^sub>a_def
     by auto
     
-  have "welltyped\<^sub>c typeof_fun \<V> (D  \<cdot> \<mu>)"
+  then have "welltyped\<^sub>c typeof_fun \<V> (D  \<cdot> \<mu>)"
     using wt_D welltyped\<^sub>\<sigma>_welltyped\<^sub>c eq_resolutionI(4)
     by blast
     

@@ -127,9 +127,9 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     by simp
 
   then obtain \<mu> \<sigma> where 
-    \<mu>: "term_subst.is_imgu \<mu> {{term, term'}}" "\<gamma> = \<mu> \<odot> \<sigma>" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<mu>"
+    \<mu>: "term_subst.is_imgu \<mu> {{term, term'}}" "\<gamma> = \<mu> \<odot> \<sigma>" "welltyped_imgu \<V> term term' \<mu>"
     using welltyped_imgu_exists
-    sorry
+    by meson
 
   have literal\<^sub>G: 
     "to_literal literal\<^sub>G = (term !\<approx> term') \<cdot>l \<gamma>" 
