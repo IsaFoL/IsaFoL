@@ -305,11 +305,8 @@ proof -
                 from seq1 seq2 show ?thesis by auto
               next
                 assume "\<exists>C l r. D1\<langle>r1\<rangle>\<^sub>G = C\<langle>l\<rangle>\<^sub>G \<and> D2\<langle>r2\<rangle>\<^sub>G = C\<langle>r\<rangle>\<^sub>G \<and> ((l, r) \<in> ?CP \<or> (r, l) \<in> ?CP)"
-                then obtain C l r where
-                  idD: "D1\<langle>r1\<rangle>\<^sub>G = C\<langle>l\<rangle>\<^sub>G" "D2\<langle>r2\<rangle>\<^sub>G = C\<langle>r\<rangle>\<^sub>G" and mem: "((l, r) \<in> ?CP \<or> (r, l) \<in> ?CP)"
-                  by blast
-                show ?thesis
-                  by (rule disjI2, unfold id1 id2, rule exI [of _ "?C \<circ>\<^sub>G\<^sub>c C"], intro exI, rule conjI [OF _ conjI [OF _ mem]], insert idD, auto)
+                thus ?thesis
+                  by (metis ctxt_ctxt_compose id1 id2)
               qed
             next
               case False
