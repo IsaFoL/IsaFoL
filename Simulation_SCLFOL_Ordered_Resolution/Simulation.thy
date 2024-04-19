@@ -8,6 +8,8 @@ theory Simulation
     VeriComp.Compiler
 begin
 
+no_notation restrict_map (infixl "|`"  110)
+
 section \<open>Move to HOL\<close>
 
 lemma filter_set_eq_filter_set_minus_singleton:
@@ -272,6 +274,9 @@ next
   by (metis add_Suc relpowp_Suc_D2 relpowp_Suc_I2)
 qed
 
+lemma restrict_map_ident_if_dom_subset: "dom \<M> \<subseteq> A \<Longrightarrow> restrict_map \<M> A = \<M>"
+  by (metis domIff ext in_mono restrict_map_def)
+
 
 section \<open>Move to \<^theory>\<open>HOL-Library.Multiset\<close>\<close>
 
@@ -314,6 +319,10 @@ lemma ffilter_eq_ffilter_minus_singleton:
   assumes "\<not> P y"
   shows "{|x |\<in>| X. P x|} = {|x |\<in>| X - {|y|}. P x|}"
   using assms by (induction X) auto
+
+lemma fun_upd_fimage: "f(x := y) |`| A = (if x |\<in>| A then finsert y (f |`| (A - {|x|})) else f |`| A)"
+  using fun_upd_image
+  by (smt (verit) bot_fset.rep_eq finsert.rep_eq fset.set_map fset_cong minus_fset.rep_eq)
 
 
 section \<open>Move to \<^theory>\<open>VeriComp.Simulation\<close>\<close>
@@ -6100,6 +6109,11 @@ lemma None_eq_The_optionalD: "None = The_optional P \<Longrightarrow> \<nexists>
   unfolding The_optional_def
   by (metis option.discI)
 
+lemma The_optional_eq_SomeI:
+  assumes "\<exists>\<^sub>\<le>\<^sub>1x. P x" and "P x"
+  shows "The_optional P = Some x"
+  using assms by (metis The_optional_def the1_equality')
+
 inductive ord_res_5 where
   skip: "
     (dom \<M>) \<TTurnstile> C \<Longrightarrow>
@@ -6992,6 +7006,12 @@ lemma rtranclp_ord_res_5_preserves_invars:
   shows "ord_res_5_invars N s'"
   using steps invars
   by (induction s rule: converse_rtranclp_induct) (auto intro: ord_res_5_preserves_invars)
+
+lemma tranclp_ord_res_5_preserves_invars:
+  assumes steps: "(ord_res_5 N)\<^sup>+\<^sup>+ s s'" and invars: "ord_res_5_invars N s"
+  shows "ord_res_5_invars N s'"
+  using rtranclp_ord_res_5_preserves_invars
+  by (metis invars steps tranclp_into_rtranclp)
 
 lemma le_least_false_clause:
   fixes N s U\<^sub>e\<^sub>r \<F> \<M> C D
@@ -8200,6 +8220,16 @@ proof (cases S5 S6 rule: ord_res_5_matches_ord_res_6.cases)
         ord_res_6_final.contradiction_found ord_res_6_final.model_found)
 qed
 
+lemma full_rtranclp_ord_res_5_run_upto:
+  assumes
+    "ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) (U\<^sub>e\<^sub>r', \<F>', \<M>', Some D)" and
+    "D \<prec>\<^sub>c E" and
+    "{|C |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r'). C \<prec>\<^sub>c D|} = {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D|}" and
+    "\<M>' = restrict_map \<M> {A. \<exists>K. linorder_lit.is_maximal_in_mset D K \<and> A \<prec>\<^sub>t atm_of K}" and
+    "linorder_cls.is_least_in_fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r')) C"
+  shows "(ord_res_5 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r', \<F>', Map.empty, Some C) (U\<^sub>e\<^sub>r', \<F>', \<M>', Some D)"
+  sorry
+
 lemma backward_simulation_between_5_and_6:
   fixes S5 S6 S6'
   assumes match: "ord_res_5_matches_ord_res_6 S5 S6" and step: "ord_res_6_step S6 S6'"
@@ -8261,8 +8291,127 @@ proof (cases S5 S6 rule: ord_res_5_matches_ord_res_6.cases)
         using ord_res_5_matches_ord_res_6.intros by metis
     qed
   next
-    case (factoring C L \<F>')
-    then show ?thesis sorry
+    case step_hyps: (factoring D K \<F>')
+
+    define S5' where
+      "S5' = (N, U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac D))"
+
+    have "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+      by (metis match_hyps(3) next_clause_in_factorized_clause_def ord_res_5_invars_def step_hyps(1))
+    hence "iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r) \<noteq> {||}"
+      by blast
+    then obtain C where C_least: "linorder_cls.is_least_in_fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r)) C"
+      by (metis linorder_cls.ex1_least_in_fset)
+
+    have "efac D \<noteq> D"
+      by (metis ex1_efac_eq_factoring_chain is_pos_def ex_ground_factoringI step_hyps(4,5,6))
+
+    show ?thesis
+    proof (intro exI conjI)
+      have "The_optional (linorder_cls.is_least_in_fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r))) = Some C"
+      proof (rule The_optional_eq_SomeI)
+        show "\<exists>\<^sub>\<le>\<^sub>1 x. linorder_cls.is_least_in_fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r)) x"
+          by blast
+      next
+        show "linorder_cls.is_least_in_fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r)) C"
+          using C_least .
+      qed
+      hence step5: "ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some D) (U\<^sub>e\<^sub>r, \<F>', Map.empty, Some C)"
+        using ord_res_5.factoring step_hyps by metis
+      moreover have "(ord_res_5 N)\<^sup>*\<^sup>* \<dots> (U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac D))"
+      proof (rule full_rtranclp_ord_res_5_run_upto)
+        show "ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some D) (U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac D))"
+          using step' S6_def S6'_def \<open>s6' = (U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac D))\<close> \<open>\<C> = Some D\<close> by argo
+      next
+        show "efac D \<prec>\<^sub>c D"
+          using \<open>efac D \<noteq> D\<close> efac_properties_if_not_ident(1) by metis
+      next
+        have "iefac \<F> D = D" and "D |\<in>| N |\<union>| U\<^sub>e\<^sub>r"
+          unfolding atomize_conj
+          using \<open>efac D \<noteq> D\<close> \<open>D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close>[unfolded fimage_iff]
+          unfolding iefac_def
+          by (metis ex1_efac_eq_factoring_chain factorizable_if_neq_efac)
+
+        have iefac_\<F>'_eq: "iefac \<F>' = (iefac \<F>)(D := efac D)"
+          unfolding \<open>\<F>' = finsert D \<F>\<close> iefac_def by auto
+
+        have fimage_iefac_\<F>'_eq:
+          "iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r) = finsert (efac D) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r - {|D|}))"
+          unfolding iefac_\<F>'_eq
+          unfolding fun_upd_fimage[of "iefac \<F>" D "efac D"] \<open>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r\<close>
+          using \<open>D |\<in>| N |\<union>| U\<^sub>e\<^sub>r\<close> by argo
+
+        have "{|C |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c efac D|} =
+          {|C |\<in>| finsert (efac D) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r - {|D|})). C \<prec>\<^sub>c efac D|}"
+          unfolding fimage_iefac_\<F>'_eq ..
+
+        also have "\<dots> = {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r - {|D|}). C \<prec>\<^sub>c efac D|}"
+          by auto
+
+        also have "\<dots> = {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c efac D|}"
+          by (smt (verit, ccfv_SIG) \<open>iefac \<F> D = D\<close> efac_properties_if_not_ident(1)
+              ffilter_eq_ffilter_minus_singleton fimage_finsert finsertI1 finsert_fminus1
+              finsert_fminus_single linorder_cls.less_imp_not_less)
+
+        finally show "{|C |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c efac D|} = {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c efac D|}" .
+      next
+        have dom_\<M>_eq: "dom \<M> = ord_res.interp (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D"
+          using \<open>ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close> \<open>\<C> = Some D\<close>
+          unfolding ord_res_5_invars_def model_eq_interp_upto_next_clause_def
+          by metis
+
+        have "atm_of K \<notin> dom \<M>"
+          by (metis linorder_lit.is_maximal_in_mset_iff literal.collapse(1)
+              pos_literal_in_imp_true_cls step_hyps(3) step_hyps(4) step_hyps(5))
+
+        have "A \<prec>\<^sub>t atm_of K" if "A \<in> dom \<M>" for A
+        proof -
+          obtain C where
+            "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+            "C \<prec>\<^sub>c D" and
+            "A \<in> ord_res.production (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) C"
+            using \<open>A \<in> dom \<M>\<close> unfolding dom_\<M>_eq
+            unfolding ord_res.interp_def UN_iff
+            by blast
+
+          hence "ord_res.is_strictly_maximal_lit (Pos A) C"
+            using ord_res.mem_productionE by metis
+
+          hence "Pos A \<preceq>\<^sub>l K"
+            using \<open>ord_res.is_maximal_lit K D\<close> \<open>C \<prec>\<^sub>c D\<close>
+            by (metis ord_res.asymp_less_lit ord_res.transp_less_lit linorder_cls.less_asym
+                linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset linorder_lit.leI
+                linorder_lit.multp\<^sub>H\<^sub>O_if_maximal_less_that_maximal multp_eq_multp\<^sub>H\<^sub>O)
+
+          hence "A \<preceq>\<^sub>t atm_of K"
+            by (metis literal.collapse(1) literal.sel(1) ord_res.less_lit_simps(1) reflclp_iff
+                step_hyps(5))
+
+          moreover have "A \<noteq> atm_of K"
+            using \<open>atm_of K \<notin> dom \<M>\<close> \<open>A \<in> dom \<M>\<close> by metis
+
+          ultimately show ?thesis
+            by order
+        qed
+        hence "dom \<M> \<subseteq> {A. \<exists>K. ord_res.is_maximal_lit K (efac D) \<and> A \<prec>\<^sub>t atm_of K}"
+          using linorder_lit.is_maximal_in_mset_iff step_hyps(4) by auto
+        thus "\<M> = restrict_map \<M> {A. \<exists>K. ord_res.is_maximal_lit K (efac D) \<and> A \<prec>\<^sub>t atm_of K}"
+          using restrict_map_ident_if_dom_subset by fastforce
+      next
+        show "linorder_cls.is_least_in_fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r)) C"
+          using C_least .
+      qed
+      ultimately have steps5: "(ord_res_5 N)\<^sup>+\<^sup>+ (U\<^sub>e\<^sub>r, \<F>, \<M>, Some D) (U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac D))"
+        by simp
+      thus "ord_res_5_step\<^sup>+\<^sup>+ S5 S5'"
+        using S5'_def S5_def step_hyps(1) tranclp_ord_res_5_step_if_tranclp_ord_res_5 by metis
+
+      have "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac D))"
+        using steps5 match_hyps(3) tranclp_ord_res_5_preserves_invars step_hyps(1) by metis
+      thus "ord_res_5_matches_ord_res_6 S5' S6'"
+        unfolding S5'_def S6'_def \<open>s6' = (U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac D))\<close>
+        using ord_res_5_matches_ord_res_6.intros by metis
+    qed
   next
     case (resolution_bot C L D U\<^sub>e\<^sub>r' \<M>')
     then show ?thesis sorry
