@@ -876,6 +876,8 @@ int main(int argc, char *argv[]) {
                (n = atol(argv[i + 1]))) {
       pureelimrounds = (uint64_t)n;
       ++i;
+    } else if (strcmp(opt, "--nopureelimrounds\0") == 0) {
+      pureelimrounds = (uint64_t)0;
     } else if (opt[0] == '-') {
       printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
     } else
@@ -906,7 +908,7 @@ int main(int argc, char *argv[]) {
       return 0;
     }
     if (pureelimrounds)
-      printf ("c WARNING use --pureelimrounds=0 to produce valid DRAT proofs\nc The solvers still gives the right answer, but the proof is invalid.\n");
+      printf ("c WARNING use --pureelimrounds 0 to produce valid DRAT proofs\nc The solvers still gives the right answer, but the proof is invalid.\n");
     
     setvbuf ( proof , NULL , _IOFBF , 1000000 );
   }
