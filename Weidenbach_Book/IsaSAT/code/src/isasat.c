@@ -95,7 +95,7 @@ static void free_clause (CLAUSE *cl) {
   free(cl->clause);
 }
 
-int64_t IsaSAT_LLVM_IsaSAT_wrapped(CBOOL, CBOOL, CBOOL, int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CBOOL,int64_t, CLAUSES);
+int64_t IsaSAT_LLVM_IsaSAT_wrapped(CBOOL, CBOOL, CBOOL, int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CBOOL,int64_t, int64_t, CLAUSES);
 
 CLAUSES new_clauses(int64_t size) {
   CLAUSES clauses;
@@ -819,6 +819,7 @@ int main(int argc, char *argv[]) {
   OPTIONu64 fema = 141733;
   OPTIONu64 sema = 429496729;
   OPTIONu64 unitinterval = 1000;
+  OPTIONu64 pureelimrounds = 3; // incompatible with DRAT proofs
   char *proof_path = NULL;
   int versionOnly = 0;
 
@@ -871,11 +872,15 @@ int main(int argc, char *argv[]) {
                (n = atol(argv[i + 1]))) {
       unitinterval = (uint64_t)n;
       ++i;
+    } else if (strcmp(opt, "--pureelimrounds\0") == 0 && i + 1 < argc - 1 &&
+               (n = atol(argv[i + 1]))) {
+      pureelimrounds = (uint64_t)n;
+      ++i;
     } else if (opt[0] == '-') {
       printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
     } else
 #endif
-        if (inputname) {
+    if (inputname) {
       proof_path = opt;
       // printf("c proof file %s i=%d argc=%d\n", opt, i, argc);
       ++i;
@@ -884,7 +889,7 @@ int main(int argc, char *argv[]) {
       // argc);
       ++i;
     } else {
-      // printf("c input file %s i=%d argc=%d\n", opt, i, argc);
+      printf("c input file %s i=%d argc=%d\n", opt, i, argc);
       inputname = opt;
     }
   }
@@ -900,6 +905,8 @@ int main(int argc, char *argv[]) {
       printf ("cannot open proof file, aborting");
       return 0;
     }
+    if (pureelimrounds)
+      printf ("c WARNING use --pureelimrounds=0 to produce valid DRAT proofs\nc The solvers still gives the right answer, but the proof is invalid.\n");
     
     setvbuf ( proof , NULL , _IOFBF , 1000000 );
   }
@@ -952,7 +959,7 @@ READ_FILE:
 
 #endif
   int64_t t = IsaSAT_LLVM_IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema,
-					 sema, unitinterval, subsume, reduceint, clauses);
+					 sema, unitinterval, subsume, reduceint, pureelimrounds, clauses);
   stop_profile(&total_prof);
 
   _Bool interrupted = t & 2;
