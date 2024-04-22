@@ -373,7 +373,7 @@ definition unit_propagation_update_statistics :: \<open>64 word \<Rightarrow> 64
   let stats = (if count_decided_pol (get_trail_wl_heur S) = 0 then incr_units_since_last_GC_by pq (incr_uset_by pq stats) else stats);
   height \<leftarrow> (if get_conflict_wl_is_None_heur S then RETURN q else do {j \<leftarrow> trail_height_before_conflict (get_trail_wl_heur S); RETURN (of_nat j)});
   let stats = (if curr = STABLE_MODE then incr_search_ticks_stable_by ticks stats else incr_search_ticks_focused_by ticks stats);
-  let stats = set_no_conflict_until q stats;
+  let stats = set_no_conflict_until height stats;
   RETURN (set_stats_wl_heur stats S)}\<close>
 
 
