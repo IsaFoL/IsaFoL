@@ -1456,6 +1456,56 @@ next
     using \<open>y \<noteq> C\<close> by order
 qed
 
+lemma is_least_false_clause_swap_swap_compatible_fsets:
+  assumes "{|x |\<in>| N1. x \<preceq>\<^sub>c C|} = {|x |\<in>| N2. x \<preceq>\<^sub>c C|}"
+  shows "is_least_false_clause N1 C \<longleftrightarrow> is_least_false_clause N2 C"
+proof -
+  have "is_least_false_clause N2 C" if
+    subsets_agree: "{|x |\<in>| N1. x \<preceq>\<^sub>c C|} = {|x |\<in>| N2. x \<preceq>\<^sub>c C|}" and
+    C_least: "is_least_false_clause N1 C" for N1 N2 C
+    unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+  proof (intro conjI ballI impI)
+    have "C |\<in>| N1"
+      using C_least
+      unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+      by argo
+    thus "C |\<in>| N2"
+      using subsets_agree by auto
+  next
+    have "\<not> ord_res_Interp (fset N1) C \<TTurnstile> C"
+      using C_least
+      unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+      by argo
+    moreover have "ord_res_Interp (fset N1) C = ord_res_Interp (fset N2) C"
+      using subsets_agree by (auto intro!: ord_res.Interp_swap_clause_set) 
+    ultimately show "\<not> ord_res_Interp (fset N2) C \<TTurnstile> C"
+      by argo
+  next
+    fix y assume "y |\<in>| N2" and "y \<noteq> C"
+    show "\<not> ord_res_Interp (fset N2) y \<TTurnstile> y \<Longrightarrow> C \<prec>\<^sub>c y"
+    proof (erule contrapos_np)
+      assume "\<not> C \<prec>\<^sub>c y"
+      hence "y \<preceq>\<^sub>c C"
+        by order
+      hence "y |\<in>| N1"
+        using \<open>y |\<in>| N2\<close> using subsets_agree by auto
+      hence "\<not> ord_res_Interp (fset N1) y \<TTurnstile> y \<longrightarrow> C \<prec>\<^sub>c y"
+        using \<open>is_least_false_clause N1 C\<close> \<open>y \<noteq> C\<close>
+        unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+        by metis
+      moreover have "ord_res_Interp (fset N1) y = ord_res_Interp (fset N2) y"
+      proof (rule ord_res.Interp_swap_clause_set)
+        show "{D. D |\<in>| N1 \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D y} = {D. D |\<in>| N2 \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D y}"
+          using subsets_agree \<open>y \<preceq>\<^sub>c C\<close> by fastforce
+      qed simp_all
+      ultimately show "ord_res_Interp (fset N2) y \<TTurnstile> y"
+        using \<open>y \<preceq>\<^sub>c C\<close> by auto
+    qed
+  qed
+  thus ?thesis
+    using assms by metis
+qed
+
 lemma Uniq_is_least_false_clause: "\<exists>\<^sub>\<le>\<^sub>1 C. is_least_false_clause N C"
 proof (rule Uniq_I)
   show "\<And>x y z. is_least_false_clause x y \<Longrightarrow> is_least_false_clause x z \<Longrightarrow> y = z"
@@ -5539,6 +5589,16 @@ subsection \<open>ORD-RES-4 (implicit factorization)\<close>
 definition iefac where
   "iefac \<F> C = (if C |\<in>| \<F> then efac C else C)"
 
+lemma iefac_le:
+  fixes \<F> :: "'f gclause fset" and C :: "'f gclause"
+  shows "iefac \<F> C \<preceq>\<^sub>c C"
+  by (metis efac_subset iefac_def reflclp_iff subset_implies_reflclp_multp)
+
+lemma true_cls_iefac_iff[simp]:
+  fixes \<I> :: "'f gterm set" and \<F> :: "'f gclause fset" and C :: "'f gclause"
+  shows "\<I> \<TTurnstile> iefac \<F> C \<longleftrightarrow> \<I> \<TTurnstile> C"
+  by (metis iefac_def set_mset_efac true_cls_iff_set_mset_eq)
+
 inductive ord_res_4 where
   factoring: "
     NN = iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r) \<Longrightarrow>
@@ -6446,13 +6506,6 @@ definition model_eq_interp_upto_next_clause where
     (\<forall>U\<^sub>e\<^sub>r \<F> \<M> C. s = (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) \<longrightarrow>
       dom \<M> = ord_res.interp (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) C)"
 
-thm ord_res.interp_def
-
-definition model_eq_interpretation where
-  "model_eq_interpretation N s \<longleftrightarrow>
-    (\<forall>U\<^sub>e\<^sub>r \<F> \<M>. s = (U\<^sub>e\<^sub>r, \<F>, \<M>, None) \<longrightarrow>
-      (let NN = fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) in dom \<M> = \<Union> (ord_res.production NN ` NN)))"
-
 lemma model_eq_interp_upto_next_clause:
   assumes step: "ord_res_5 N s s'" and
     invars:
@@ -6776,6 +6829,36 @@ lemma all_smaller_clauses_true_wrt_model:
     invars:
       "all_smaller_clauses_true_wrt_respective_Interp N s"
       "model_eq_interp_upto_next_clause N s"
+  shows "\<forall>U\<^sub>e\<^sub>r \<F> \<M> D. s = (U\<^sub>e\<^sub>r, \<F>, \<M>, Some D) \<longrightarrow>
+    (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> dom \<M> \<TTurnstile> C)"
+proof (intro allI impI ballI)
+  fix U\<^sub>e\<^sub>r \<F> \<M> D C
+  assume
+    s_def: "s = (U\<^sub>e\<^sub>r, \<F>, \<M>, Some D)" and
+    C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+    C_lt: "C \<prec>\<^sub>c D"
+
+  hence C_true: "ord_res_Interp (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) C \<TTurnstile> C"
+    using invars(1)[unfolded all_smaller_clauses_true_wrt_respective_Interp_def s_def]
+    by auto
+
+  moreover have "dom \<M> = ord_res.interp (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D"
+    using invars(2) s_def by (metis model_eq_interp_upto_next_clause_def)
+
+  ultimately show "dom \<M> \<TTurnstile> C"
+    using ord_res.entailed_clause_stays_entailed' C_lt by metis
+qed
+
+definition model_eq_interpretation where
+  "model_eq_interpretation N s \<longleftrightarrow>
+    (\<forall>U\<^sub>e\<^sub>r \<F> \<M>. s = (U\<^sub>e\<^sub>r, \<F>, \<M>, None) \<longrightarrow>
+      (let NN = fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) in dom \<M> = \<Union> (ord_res.production NN ` NN)))"
+
+lemma all_smaller_clauses_true_wrt_model_strong:
+  assumes
+    invars:
+      "all_smaller_clauses_true_wrt_respective_Interp N s"
+      "model_eq_interp_upto_next_clause N s"
       "model_eq_interpretation N s"
   shows "\<forall>U\<^sub>e\<^sub>r \<F> \<M> \<C>. s = (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>) \<longrightarrow>
     (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C> = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow> dom \<M> \<TTurnstile> C)"
@@ -6976,12 +7059,44 @@ qed
 
 definition ord_res_5_invars where
   "ord_res_5_invars N s \<longleftrightarrow>
-    (\<forall>U\<^sub>e\<^sub>r \<F> \<M> \<C>. s = (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>) \<longrightarrow>
-      next_clause_in_factorized_clause N s \<and>
-      model_eq_interp_upto_next_clause N s \<and>
-      all_smaller_clauses_true_wrt_respective_Interp N s \<and>
-      atoms_in_model_were_produced N s \<and>
-      all_produced_atoms_in_model N s)"
+    next_clause_in_factorized_clause N s \<and>
+    model_eq_interp_upto_next_clause N s \<and>
+    all_smaller_clauses_true_wrt_respective_Interp N s \<and>
+    atoms_in_model_were_produced N s \<and>
+    all_produced_atoms_in_model N s"
+
+lemma ord_res_5_invars_initial_state:
+  assumes C_least: "linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) C"
+  shows "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, Map.empty, Some C)"
+  unfolding ord_res_5_invars_def
+proof (intro conjI)
+  show "next_clause_in_factorized_clause N (U\<^sub>e\<^sub>r, \<F>, \<lambda>x. None, Some C)"
+    unfolding next_clause_in_factorized_clause_def
+    using C_least[unfolded linorder_cls.is_least_in_fset_iff] by simp
+next
+  have "ord_res.interp (iefac \<F> ` (fset N \<union> fset U\<^sub>e\<^sub>r)) C = {}"
+    using C_least[unfolded linorder_cls.is_least_in_fset_iff]
+    by (simp add: interp_eq_empty_if_least_in_set linorder_cls.is_least_in_set_iff)
+  thus "model_eq_interp_upto_next_clause N (U\<^sub>e\<^sub>r, \<F>, \<lambda>x. None, Some C)"
+    unfolding model_eq_interp_upto_next_clause_def by simp
+next
+  have "\<not>(\<exists>Ca |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). Ca \<prec>\<^sub>c C)"
+    using C_least[unfolded linorder_cls.is_least_in_fset_iff]
+    by (metis linorder_cls.less_asym)
+  thus "all_smaller_clauses_true_wrt_respective_Interp N (U\<^sub>e\<^sub>r, \<F>, \<lambda>x. None, Some C)"
+    unfolding all_smaller_clauses_true_wrt_respective_Interp_def by simp
+next
+  show "atoms_in_model_were_produced N (U\<^sub>e\<^sub>r, \<F>, \<lambda>x. None, Some C)"
+    unfolding atoms_in_model_were_produced_def by simp
+next
+  have "\<forall>Ca. Ca \<prec>\<^sub>c C \<longrightarrow> Ca |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+    using C_least[unfolded linorder_cls.is_least_in_fset_iff]
+    by (metis linorder_cls.order.asym)
+  thus "all_produced_atoms_in_model N (U\<^sub>e\<^sub>r, \<F>, \<lambda>x. None, Some C)"
+    unfolding all_produced_atoms_in_model_def
+    by (simp add: ord_res.production_unfold)
+qed
+
 
 lemma ord_res_5_preserves_invars:
   assumes step: "ord_res_5 N s s'" and invars: "ord_res_5_invars N s"
@@ -6992,7 +7107,7 @@ proof -
 
   then show ?thesis
     unfolding ord_res_5_invars_def
-    using invars[unfolded ord_res_5_invars_def, rule_format, OF s_def]
+    using invars[unfolded ord_res_5_invars_def]
     using next_clause_in_factorized_clause[OF step]
       model_eq_interp_upto_next_clause[OF step]
       all_smaller_clauses_true_wrt_respective_Interp[OF step]
@@ -7052,7 +7167,7 @@ proof -
     unfolding ord_res_5_final.simps de_Morgan_disj not_ex
     by (metis option.exhaust surj_pair)
 
-  note invars' = invars[unfolded ord_res_5_invars_def, rule_format, OF S_def refl]
+  note invars' = invars[unfolded ord_res_5_invars_def, rule_format, OF S_def]
 
   have "\<exists>s'. ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) s'"
   proof (cases "dom \<M> \<TTurnstile> C")
@@ -7548,12 +7663,14 @@ proof -
         unfolding ord_res_5_invars_def next_clause_in_factorized_clause_def
         by metis
     next
-      show "\<not> ord_res_Interp (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D \<TTurnstile> D"
-        using MAGIC2
-        by (smt (verit) Pair_inject Some Un_empty_right Uniq_D empty_iff invars'
+      have "D \<noteq> {#} \<Longrightarrow> \<exists>s'. ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>', Some D) s'"
+        using MAGIC2 invars' \<open>\<C>' = Some D\<close> by metis
+
+      thus "\<not> ord_res_Interp (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D \<TTurnstile> D"
+        by (smt (verit) Pair_inject Un_empty_right Uniq_D calculation empty_iff invars'
             linorder_lit.Uniq_is_maximal_in_mset
             linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset no_more_steps option.inject
-            ord_res_5.cases ord_res_5_invars_def set_mset_empty model_eq_interp_upto_next_clause_def
+            ord_res_5.cases set_mset_empty model_eq_interp_upto_next_clause_def ord_res_5_invars_def
             true_cls_def unproductive_if_nex_strictly_maximal_pos_lit)
     next
       fix E
@@ -8008,7 +8125,7 @@ proof -
     unfolding ord_res_6_final.simps de_Morgan_disj not_ex
     by (metis option.exhaust surj_pair)
 
-  note invars' = invars[unfolded ord_res_5_invars_def, rule_format, OF S_def refl]
+  note invars' = invars[unfolded ord_res_5_invars_def, rule_format, OF S_def]
 
   have "\<exists>s'. ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) s'"
   proof (cases "dom \<M> \<TTurnstile> C")
@@ -8220,15 +8337,248 @@ proof (cases S5 S6 rule: ord_res_5_matches_ord_res_6.cases)
         ord_res_6_final.contradiction_found ord_res_6_final.model_found)
 qed
 
+lemma ex_model_build_from_least_clause_to_any_less_than_least_false:
+  assumes
+    C_least: "linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) C" and
+    D_in: "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+    D_lt_least_false: "\<forall>E. is_least_false_clause (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) E \<longrightarrow> D \<preceq>\<^sub>c E" and
+    "C \<preceq>\<^sub>c D"
+  shows "\<exists>\<M>. (ord_res_5 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r, \<F>, Map.empty, Some C) (U\<^sub>e\<^sub>r, \<F>, \<M>, Some D)"
+  using ord_res.wfP_less_cls D_in \<open>C \<preceq>\<^sub>c D\<close> D_lt_least_false
+proof (induction D rule: wfP_induct_rule)
+  case (less D)
+
+  have invars: "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, Map.empty, Some C)"
+    using ord_res_5_invars_initial_state C_least by metis
+
+  define clauses_lt_D :: "'f gclause fset" where
+    "clauses_lt_D = {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D|}"
+
+  show ?case
+  proof (cases "clauses_lt_D = {||}")
+    case True
+    hence "C = D"
+      unfolding clauses_lt_D_def
+      using C_least \<open>C \<preceq>\<^sub>c D\<close>
+      by (metis fempty_iff ffmember_filter linorder_cls.antisym_conv3
+          linorder_cls.is_least_in_fset_iff linorder_cls.less_le_not_le)
+    thus ?thesis
+      by blast
+  next
+    case False
+
+    obtain x where x_greatest: "linorder_cls.is_greatest_in_fset clauses_lt_D x"
+      using False linorder_cls.ex_greatest_in_fset by metis
+
+    have "x \<prec>\<^sub>c D" and "x |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+      using x_greatest by (simp_all add: clauses_lt_D_def linorder_cls.is_greatest_in_fset_iff)
+
+    moreover have "C \<preceq>\<^sub>c x"
+      using x_greatest C_least
+      by (metis clauses_lt_D_def ffmember_filter linorder_cls.is_greatest_in_fset_iff
+          linorder_cls.not_less nbex_less_than_least_in_fset)
+
+    moreover have "\<And>E. is_least_false_clause (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) E \<Longrightarrow> x \<prec>\<^sub>c E"
+      using \<open>x \<prec>\<^sub>c D\<close> less.prems by force
+
+    ultimately obtain \<M> where
+      IH: "(ord_res_5 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r, \<F>, Map.empty, Some C) (U\<^sub>e\<^sub>r, \<F>, \<M>, Some x)"
+      using less.IH by blast
+
+    moreover have "\<exists>\<M>'. ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some x) (U\<^sub>e\<^sub>r, \<F>, \<M>', Some D)"
+    proof -
+      have "linorder_cls.is_least_in_fset (ffilter ((\<prec>\<^sub>c) x) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D"
+        using x_greatest[unfolded clauses_lt_D_def]
+        by (smt (verit) ffmember_filter less.prems(1) linorder_cls.is_greatest_in_fset_iff
+            linorder_cls.is_least_in_ffilter_iff linorder_cls.not_less_iff_gr_or_eq)
+      hence next_clause_eq: "The_optional (linorder_cls.is_least_in_fset
+        (ffilter ((\<prec>\<^sub>c) x) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)))) = Some D"
+        by (metis linorder_cls.Uniq_is_least_in_fset The_optional_eq_SomeI)
+
+      have x_true: "ord_res_Interp (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) x \<TTurnstile> x"
+        using less.prems
+        unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+        
+        by (metis \<open>\<And>E. is_least_false_clause (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) E \<Longrightarrow> x \<prec>\<^sub>c E\<close> \<open>x |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close>
+            ex_false_clause_iff finsert_absorb is_least_false_clause_finsert_smaller_false_clause
+            linorder_cls.order.irrefl ex_false_clause_def)
+
+      show ?thesis
+      proof (cases "dom \<M> \<TTurnstile> x")
+        case True
+        thus ?thesis
+          using ord_res_5.skip next_clause_eq by metis
+      next
+        case False
+        hence "\<not> ord_res.interp (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) x \<TTurnstile> x"
+          using rtranclp_ord_res_5_preserves_invars[OF IH invars, unfolded ord_res_5_invars_def,
+              simplified]
+          by (simp add: model_eq_interp_upto_next_clause_def)
+
+        thus ?thesis
+          using ord_res_5.production[OF False] next_clause_eq
+          using x_true
+          by (metis Un_empty_right linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset
+              unproductive_if_nex_strictly_maximal_pos_lit)
+      qed
+    qed
+
+    ultimately show ?thesis
+      by (smt (verit) rtranclp.rtrancl_into_rtrancl)
+  qed
+qed
+
+lemma MAGIC4:
+  fixes N \<F> \<F>' U\<^sub>e\<^sub>r U\<^sub>e\<^sub>r'
+  defines
+    "N1 \<equiv> iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+    "N2 \<equiv> iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r')"
+  assumes
+    subsets_agree: "{|x |\<in>| N1. x \<prec>\<^sub>c C|} = {|x |\<in>| N2. x \<prec>\<^sub>c C|}" and
+    "is_least_false_clause N1 D" and
+    "is_least_false_clause N2 E" and
+    "C \<prec>\<^sub>c D"
+  shows "C \<preceq>\<^sub>c E"
+proof -
+  have "\<not> E \<prec>\<^sub>c C"
+  proof (rule notI)
+    assume "E \<prec>\<^sub>c C"
+
+    have "is_least_false_clause N2 E \<longleftrightarrow> is_least_false_clause {|x |\<in>| N2. x \<preceq>\<^sub>c E|} E"
+    proof (rule is_least_false_clause_swap_swap_compatible_fsets)
+      show "{|x |\<in>| N2. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|} = {|x |\<in>| {|x |\<in>| N2. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|}. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|}"
+        using \<open>E \<prec>\<^sub>c C\<close> by force
+    qed
+
+    also have "\<dots> \<longleftrightarrow> is_least_false_clause {|x |\<in>| N1. x \<preceq>\<^sub>c E|} E"
+    proof (rule is_least_false_clause_swap_swap_compatible_fsets)
+      show "{|x |\<in>| {|x |\<in>| N2. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|}. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|} =
+        {|x |\<in>| {|x |\<in>| N1. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|}. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|}"
+        using subsets_agree \<open>E \<prec>\<^sub>c C\<close> by fastforce
+    qed
+
+    also have "\<dots> \<longleftrightarrow> is_least_false_clause N1 E"
+    proof (rule is_least_false_clause_swap_swap_compatible_fsets)
+      show "{|x |\<in>| {|x |\<in>| N1. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|}. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|} = {|x |\<in>| N1. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|}"
+        using \<open>E \<prec>\<^sub>c C\<close> by fastforce
+    qed
+
+    finally have "is_least_false_clause N1 E"
+      using \<open>is_least_false_clause N2 E\<close> by argo
+
+    hence "D = E"
+      using \<open>is_least_false_clause N1 D\<close>
+      by (metis Uniq_is_least_false_clause the1_equality')
+
+    thus False
+      using \<open>E \<prec>\<^sub>c C\<close> \<open>C \<prec>\<^sub>c D\<close> by order
+  qed
+  thus "C \<preceq>\<^sub>c E"
+    by order
+qed
+
 lemma full_rtranclp_ord_res_5_run_upto:
   assumes
     "ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) (U\<^sub>e\<^sub>r', \<F>', \<M>', Some D)" and
-    "D \<prec>\<^sub>c E" and
-    "{|C |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r'). C \<prec>\<^sub>c D|} = {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D|}" and
-    "\<M>' = restrict_map \<M> {A. \<exists>K. linorder_lit.is_maximal_in_mset D K \<and> A \<prec>\<^sub>t atm_of K}" and
-    "linorder_cls.is_least_in_fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r')) C"
+    invars: "ord_res_5_invars N (U\<^sub>e\<^sub>r', \<F>', \<M>', Some D)" and
+    \<M>'_def: "\<M>' = restrict_map \<M> {A. \<exists>K. linorder_lit.is_maximal_in_mset D K \<and> A \<prec>\<^sub>t atm_of K}" and
+    C_least: "linorder_cls.is_least_in_fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r')) C"
   shows "(ord_res_5 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r', \<F>', Map.empty, Some C) (U\<^sub>e\<^sub>r', \<F>', \<M>', Some D)"
-  sorry
+proof -
+  have D_in: "D |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r')"
+    using invars
+    by (metis next_clause_in_factorized_clause_def ord_res_5_invars_def)
+
+  have "C \<preceq>\<^sub>c D"
+    using C_least D_in
+    by (metis linorder_cls.dual_order.strict_iff_order linorder_cls.is_least_in_fset_iff
+        linorder_cls.le_cases)
+
+  moreover have "\<forall>F. is_least_false_clause (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r')) F \<longrightarrow> D \<preceq>\<^sub>c F"
+    using invars le_least_false_clause by metis
+
+  ultimately obtain \<M>'' where
+    steps: "(ord_res_5 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r', \<F>', Map.empty, Some C) (U\<^sub>e\<^sub>r', \<F>', \<M>'', Some D)"
+    using C_least D_in
+    by (metis ex_model_build_from_least_clause_to_any_less_than_least_false)
+
+  have "ord_res_5_invars N (U\<^sub>e\<^sub>r', \<F>', Map.empty, Some C)"
+    using C_least ord_res_5_invars_initial_state by metis
+
+  hence "ord_res_5_invars N (U\<^sub>e\<^sub>r', \<F>', \<M>'', Some D)"
+    using \<open>(ord_res_5 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r', \<F>', \<lambda>x. None, Some C) (U\<^sub>e\<^sub>r', \<F>', \<M>'', Some D)\<close>
+      rtranclp_ord_res_5_preserves_invars by metis
+
+  hence \<M>''_spec:
+    "dom \<M>'' = ord_res.interp (fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r'))) D"
+    "\<forall>A C. \<M>'' A = Some C \<longrightarrow> A \<in> ord_res.production (fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r'))) C"
+    "\<forall>C A. C \<prec>\<^sub>c D \<longrightarrow> A \<in> ord_res.production (fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r'))) C \<longrightarrow> \<M>'' A = Some C"
+    unfolding ord_res_5_invars_def
+    unfolding model_eq_interp_upto_next_clause_def atoms_in_model_were_produced_def
+      all_produced_atoms_in_model_def
+    by metis+
+
+  have "\<M>' = \<M>''"
+  proof (cases "D = {#}")
+    case True
+    have "\<M>' = Map.empty"
+    proof -
+      have "\<nexists>K. ord_res.is_maximal_lit K D \<and> A \<prec>\<^sub>t atm_of K" for A
+        unfolding \<open>D = {#}\<close>
+        by (simp add: linorder_lit.is_maximal_in_mset_iff)
+      hence "{A. \<exists>K. ord_res.is_maximal_lit K D \<and> A \<prec>\<^sub>t atm_of K} = {}"
+        by simp
+      thus ?thesis
+        unfolding \<M>'_def by auto
+    qed
+
+    also have "Map.empty = \<M>''"
+    proof -
+      have "ord_res.interp (fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r'))) D = {}"
+        unfolding \<open>D = {#}\<close> by simp
+      thus ?thesis
+        using \<M>''_spec(1) by simp
+    qed
+
+    finally show ?thesis .
+  next
+    case False
+    then obtain K where "ord_res.is_maximal_lit K D"
+      using linorder_lit.ex_maximal_in_mset by metis
+    hence "{A. \<exists>K. ord_res.is_maximal_lit K D \<and> A \<prec>\<^sub>t atm_of K} = {A. A \<prec>\<^sub>t atm_of K}"
+      by (metis (no_types, lifting) linorder_lit.Uniq_is_maximal_in_mset the1_equality')
+    hence \<M>'_def': "\<M>' = restrict_map \<M> {A. A \<prec>\<^sub>t atm_of K}"
+      unfolding \<M>'_def by argo
+
+    show ?thesis
+    proof (intro ext)
+      fix x
+      have \<M>'_spec:
+        "dom \<M>' = ord_res.interp (fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r'))) D"
+        "\<forall>A C. \<M>' A = Some C \<longrightarrow> A \<in> ord_res.production (fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r'))) C"
+        "\<forall>C A. C \<prec>\<^sub>c D \<longrightarrow> A \<in> ord_res.production (fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r'))) C \<longrightarrow> \<M>' A = Some C"
+        using invars
+        unfolding ord_res_5_invars_def
+        unfolding model_eq_interp_upto_next_clause_def atoms_in_model_were_produced_def
+          all_produced_atoms_in_model_def
+        by metis+
+
+      have "dom \<M>' = dom \<M>''"
+        using \<M>'_spec(1) \<M>''_spec(1) by argo
+
+      moreover have "\<forall>A C. \<M>' A = Some C \<longleftrightarrow> \<M>'' A = Some C"
+        using \<M>'_spec(2) \<M>''_spec(2)
+        by (smt (verit, del_insts) calculation domD domI linorder_cls.less_irrefl linorder_cls.neqE
+            ord_res.less_trm_iff_less_cls_if_mem_production)
+
+      ultimately show "\<M>' x = \<M>'' x"
+        by (metis domD domIff)
+    qed
+  qed
+
+  thus ?thesis
+    using \<open>(ord_res_5 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r', \<F>', Map.empty, Some C) (U\<^sub>e\<^sub>r', \<F>', \<M>'', Some D)\<close> by argo
+qed
 
 lemma backward_simulation_between_5_and_6:
   fixes S5 S6 S6'
@@ -8323,8 +8673,11 @@ proof (cases S5 S6 rule: ord_res_5_matches_ord_res_6.cases)
         show "ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some D) (U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac D))"
           using step' S6_def S6'_def \<open>s6' = (U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac D))\<close> \<open>\<C> = Some D\<close> by argo
       next
+        show "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac D))"
+          using match_hyps(3) ord_res_6_preserves_invars step' step_hyps(2) by blast
+      (* next
         show "efac D \<prec>\<^sub>c D"
-          using \<open>efac D \<noteq> D\<close> efac_properties_if_not_ident(1) by metis
+          using \<open>efac D \<noteq> D\<close> efac_properties_if_not_ident(1) by metis *)
       next
         have "iefac \<F> D = D" and "D |\<in>| N |\<union>| U\<^sub>e\<^sub>r"
           unfolding atomize_conj
@@ -8353,7 +8706,8 @@ proof (cases S5 S6 rule: ord_res_5_matches_ord_res_6.cases)
               ffilter_eq_ffilter_minus_singleton fimage_finsert finsertI1 finsert_fminus1
               finsert_fminus_single linorder_cls.less_imp_not_less)
 
-        finally show "{|C |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c efac D|} = {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c efac D|}" .
+        finally have "{|C |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c efac D|} =
+          {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c efac D|}" .
       next
         have dom_\<M>_eq: "dom \<M> = ord_res.interp (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D"
           using \<open>ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close> \<open>\<C> = Some D\<close>
@@ -8413,14 +8767,263 @@ proof (cases S5 S6 rule: ord_res_5_matches_ord_res_6.cases)
         using ord_res_5_matches_ord_res_6.intros by metis
     qed
   next
-    case (resolution_bot C L D U\<^sub>e\<^sub>r' \<M>')
-    then show ?thesis sorry
+    case step_hyps: (resolution_bot C L D U\<^sub>e\<^sub>r' \<M>')
+
+    define S5' :: "_ \<times> _ \<times> _ \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option" where
+      "S5' = (N, U\<^sub>e\<^sub>r', \<F>, \<M>', Some {#})"
+
+    show ?thesis
+    proof (intro exI conjI)
+      have "{#} |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')"
+        using \<open>U\<^sub>e\<^sub>r' = finsert (eres D C) U\<^sub>e\<^sub>r\<close> \<open>eres D C = {#}\<close>
+        using iefac_def by simp
+
+      hence "linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) {#}"
+        by (metis linorder_cls.is_minimal_in_fset_eq_is_least_in_fset
+            linorder_cls.is_minimal_in_fset_iff linorder_cls.leD mempty_lesseq_cls)
+
+      hence "The_optional (linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'))) = Some {#}"
+        by (metis linorder_cls.Uniq_is_least_in_fset The_optional_eq_SomeI)
+
+      hence step5: "ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some {#})"
+        using ord_res_5.resolution step_hyps by metis
+
+      thus "ord_res_5_step\<^sup>+\<^sup>+ S5 S5'"
+        unfolding S5_def \<open>\<C> = Some C\<close> S5'_def
+        by (simp only: ord_res_5_step.intros tranclp.r_into_trancl)
+
+      show "ord_res_5_matches_ord_res_6 S5' S6'"
+        using step5
+        by (metis S5'_def S6'_def match_hyps(3) ord_res_5_matches_ord_res_6.intros
+            ord_res_5_preserves_invars step_hyps(1) step_hyps(2))
+    qed
   next
-    case (resolution_pos C L D U\<^sub>e\<^sub>r' \<M>' K)
-    then show ?thesis sorry
+    case step_hyps: (resolution_pos E L D U\<^sub>e\<^sub>r' \<M>' K)
+
+    define S5' :: "_ \<times> _ \<times> _ \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option" where
+      "S5' = (N, U\<^sub>e\<^sub>r', \<F>, \<M>', Some (eres D E))"
+
+    hence "iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') \<noteq> {||}"
+      using \<open>U\<^sub>e\<^sub>r' = finsert (eres D E) U\<^sub>e\<^sub>r\<close> by simp
+    then obtain C where C_least: "linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) C"
+      by (metis linorder_cls.ex1_least_in_fset)
+
+    show ?thesis
+    proof (intro exI conjI)
+      have "The_optional (linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'))) = Some C"
+      proof (rule The_optional_eq_SomeI)
+        show "\<exists>\<^sub>\<le>\<^sub>1 x. linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) x"
+          by blast
+      next
+        show "linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) C"
+          using C_least .
+      qed
+
+      hence step5: "ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) (U\<^sub>e\<^sub>r', \<F>, Map.empty, Some C)"
+        using ord_res_5.resolution step_hyps by metis
+
+      moreover have "(ord_res_5 N)\<^sup>*\<^sup>* \<dots> (U\<^sub>e\<^sub>r', \<F>, \<M>', Some (eres D E))"
+      proof (rule full_rtranclp_ord_res_5_run_upto)
+        show "ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some (eres D E))"
+          using step' \<open>\<C> = Some E\<close> \<open>s6' = (U\<^sub>e\<^sub>r', \<F>, \<M>', Some (eres D E))\<close> by argo
+      next
+        show "ord_res_5_invars N (U\<^sub>e\<^sub>r', \<F>, \<M>', Some (eres D E))"
+          using match_hyps(3) ord_res_6_preserves_invars step' step_hyps(2) by blast
+      (* next
+        show "eres D E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')"
+          by (metis match_hyps(3) ord_res_6_preserves_invars next_clause_in_factorized_clause_def
+              ord_res_5_invars_def step' step_hyps(2)) *)
+      next
+        have "eres D E \<noteq> E"
+          using step_hyps by (metis linorder_lit.Uniq_is_maximal_in_mset the1_equality')
+
+        moreover have "eres D E \<preceq>\<^sub>c E"
+          using eres_le .
+
+        ultimately have "eres D E \<prec>\<^sub>c E"
+          by order
+
+        have "\<forall>F. is_least_false_clause (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) F \<longrightarrow> E \<preceq>\<^sub>c F"
+          using \<open>ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close>
+          unfolding ord_res_5_invars_def \<open>\<C> = Some E\<close>
+          using next_clause_lt_least_false_clause[of N "(U\<^sub>e\<^sub>r, \<F>, \<M>, Some E)"]
+          by simp
+
+        have E_least_false: "is_least_false_clause (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) E"
+          unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+        proof (intro conjI ballI impI)
+          show "E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+            using \<open>ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close>
+            unfolding ord_res_5_invars_def \<open>\<C> = Some E\<close>
+            by (metis next_clause_in_factorized_clause_def)
+        next
+          have "\<not> ord_res.interp (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) E \<TTurnstile> E"
+            using \<open>ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close>
+            unfolding ord_res_5_invars_def \<open>\<C> = Some E\<close>
+            using \<open>\<not> dom \<M> \<TTurnstile> E\<close> by (metis model_eq_interp_upto_next_clause_def)
+          moreover have "ord_res.production (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) E = {}"
+          proof -
+            have "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L E"
+              using \<open>ord_res.is_maximal_lit L E\<close> \<open>is_neg L\<close>
+              by (metis Uniq_D linorder_lit.Uniq_is_maximal_in_mset
+                  linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset)
+            thus ?thesis
+              using unproductive_if_nex_strictly_maximal_pos_lit by metis
+          qed
+          ultimately show "\<not> ord_res_Interp (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) E \<TTurnstile> E"
+            by simp
+        next
+          fix F
+          assume F_in: "F |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and "F \<noteq> E" and
+            F_false: "\<not> ord_res_Interp (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) F \<TTurnstile> F"
+          have "\<not> F \<prec>\<^sub>c E"
+            using \<open>ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close>
+            unfolding ord_res_5_invars_def \<open>\<C> = Some E\<close>
+            unfolding all_smaller_clauses_true_wrt_respective_Interp_def
+            using F_in F_false
+            by (metis option.inject)
+          thus "E \<prec>\<^sub>c F"
+            using \<open>F \<noteq> E\<close> by order
+        qed
+
+        have D_prod: "ord_res.production (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D \<noteq> {}"
+          using \<open>ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close>
+          unfolding ord_res_5_invars_def \<open>\<C> = Some E\<close>
+          by (metis atoms_in_model_were_produced_def empty_iff step_hyps(6))
+
+        have "iefac \<F> (eres D E) = eres D E"
+          using E_least_false D_prod
+          by (smt (verit, ccfv_threshold)
+              \<open>\<forall>F. is_least_false_clause (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) F \<longrightarrow> (\<prec>\<^sub>c)\<^sup>=\<^sup>= E F\<close>
+              \<open>eres D E \<prec>\<^sub>c E\<close> clause_true_if_resolved_true ex1_eres_eq_full_run_ground_resolution
+              fimage_finsert finsert_absorb finsert_iff full_run_def funion_finsert_right
+              is_least_false_clause_def is_least_false_clause_finsert_smaller_false_clause
+              linorder_cls.is_least_in_fset_ffilterD(2) linorder_cls.leD match_hyps(3)
+              next_clause_in_factorized_clause_def ord_res_5_invars_def ord_res_6_preserves_invars
+              rtranclpD step' step_hyps(2) step_hyps(7))
+
+        hence "{|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'). C \<prec>\<^sub>c eres D E|} =
+          {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c eres D E|}"
+          unfolding \<open>U\<^sub>e\<^sub>r' = finsert (eres D E) U\<^sub>e\<^sub>r\<close> by auto
+      next
+        show "\<M>' = restrict_map \<M> {A. \<exists>K. ord_res.is_maximal_lit K (eres D E) \<and> A \<prec>\<^sub>t atm_of K}"
+          using \<open>\<M>' = restrict_map \<M> {A. A \<prec>\<^sub>t atm_of K}\<close>
+          by (smt (verit, ccfv_SIG) Collect_cong linorder_lit.Uniq_is_maximal_in_mset step_hyps(10)
+              the1_equality')
+      next
+        show "linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) C"
+          using C_least .
+      qed
+
+      ultimately have steps5: "(ord_res_5 N)\<^sup>+\<^sup>+ (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some (eres D E))"
+        by simp
+
+      thus "ord_res_5_step\<^sup>+\<^sup>+ S5 S5'"
+        unfolding S5_def \<open>\<C> = Some E\<close> S5'_def
+        by (metis tranclp_ord_res_5_step_if_tranclp_ord_res_5)
+
+      show "ord_res_5_matches_ord_res_6 S5' S6'"
+        unfolding S5'_def S6'_def \<open>s6' = (U\<^sub>e\<^sub>r', \<F>, \<M>', Some (eres D E))\<close>
+        using steps5
+        using match_hyps(3) ord_res_5_matches_ord_res_6.intros ord_res_6_preserves_invars step'
+          step_hyps(2) by metis
+    qed
   next
-    case (resolution_neg C L D U\<^sub>e\<^sub>r' \<M>' K E)
-    then show ?thesis sorry
+    case step_hyps: (resolution_neg E L D U\<^sub>e\<^sub>r' \<M>' K C)
+
+    define S5' :: "_ \<times> _ \<times> _ \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option" where
+      "S5' = (N, U\<^sub>e\<^sub>r', \<F>, \<M>', Some C)"
+
+    hence "iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') \<noteq> {||}"
+      using \<open>U\<^sub>e\<^sub>r' = finsert (eres D E) U\<^sub>e\<^sub>r\<close> by simp
+    then obtain B where B_least: "linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) B"
+      by (metis linorder_cls.ex1_least_in_fset)
+
+    show ?thesis
+    proof (intro exI conjI)
+      have "The_optional (linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'))) = Some B"
+      proof (rule The_optional_eq_SomeI)
+        show "\<exists>\<^sub>\<le>\<^sub>1 x. linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) x"
+          by blast
+      next
+        show "linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) B"
+          using B_least .
+      qed
+
+      hence step5: "ord_res_5 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) (U\<^sub>e\<^sub>r', \<F>, Map.empty, Some B)"
+        using ord_res_5.resolution step_hyps by metis
+
+      moreover have "(ord_res_5 N)\<^sup>*\<^sup>* \<dots> (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C)"
+      proof (rule full_rtranclp_ord_res_5_run_upto)
+        show "ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C)"
+          using step' \<open>\<C> = Some E\<close> \<open>s6' = (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C)\<close> by argo
+      next
+        show "ord_res_5_invars N (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C)"
+          using match_hyps(3) ord_res_6_preserves_invars step' step_hyps(2) by blast
+        (* show "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')"
+          by (metis match_hyps(3) ord_res_6_preserves_invars next_clause_in_factorized_clause_def
+              ord_res_5_invars_def step' step_hyps(2)) *)
+      next
+        have "ord_res.is_strictly_maximal_lit (Pos (atm_of K)) C"
+          using \<open>\<M> (atm_of K) = Some C\<close>
+            \<open>ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close>[unfolded ord_res_5_invars_def
+              atoms_in_model_were_produced_def, simplified]
+          using ord_res.mem_productionE by blast
+
+        moreover have "Pos (atm_of K) \<prec>\<^sub>l K"
+          using \<open>is_neg K\<close> by (cases K) simp_all
+
+        ultimately have "C \<prec>\<^sub>c eres D E"
+          using \<open>ord_res.is_maximal_lit K (eres D E)\<close>
+          by (metis ord_res.asymp_less_lit ord_res.transp_less_lit
+              linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset
+              linorder_lit.multp\<^sub>H\<^sub>O_if_maximal_less_that_maximal multp_eq_multp\<^sub>H\<^sub>O)
+
+        hence "C \<prec>\<^sub>c E"
+          using eres_le[of D E] by order
+
+        have "C \<prec>\<^sub>c efac (eres D E)"
+          by (metis Uniq_D \<open>C \<prec>\<^sub>c eres D E\<close> efac_spec is_pos_def linorder_lit.Uniq_is_maximal_in_mset
+              step_hyps(10) step_hyps(11))
+
+        moreover have "efac (eres D E) \<preceq>\<^sub>c eres D E"
+          by (metis efac_subset subset_implies_reflclp_multp)
+
+        ultimately have "C \<prec>\<^sub>c iefac \<F> (eres D E)"
+          unfolding iefac_def by auto
+
+        hence "{|Ca |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'). Ca \<prec>\<^sub>c C|} =
+          {|Ca |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). Ca \<prec>\<^sub>c C|}"
+          unfolding \<open>U\<^sub>e\<^sub>r' = finsert (eres D E) U\<^sub>e\<^sub>r\<close> by auto
+
+        have "(\<exists>K. ord_res.is_maximal_lit K C \<and> A \<prec>\<^sub>t atm_of K) \<longleftrightarrow> A \<prec>\<^sub>t atm_of K" for A
+          using \<open>ord_res.is_strictly_maximal_lit (Pos (atm_of K)) C\<close>
+          by (metis Uniq_def linorder_lit.Uniq_is_maximal_in_mset
+              linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset literal.sel(1))
+
+        hence "{A. \<exists>K. ord_res.is_maximal_lit K C \<and> A \<prec>\<^sub>t atm_of K} = {A. A \<prec>\<^sub>t atm_of K}"
+          by metis
+
+        thus "\<M>' = restrict_map \<M> {A. \<exists>K. ord_res.is_maximal_lit K C \<and> A \<prec>\<^sub>t atm_of K}"
+          using \<open>\<M>' = restrict_map \<M> {A. A \<prec>\<^sub>t atm_of K}\<close> by argo
+      next
+        show "linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) B"
+          using B_least .
+      qed
+
+      ultimately have steps5: "(ord_res_5 N)\<^sup>+\<^sup>+ (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C)"
+        by simp
+
+      thus "ord_res_5_step\<^sup>+\<^sup>+ S5 S5'"
+        unfolding S5_def \<open>\<C> = Some E\<close> S5'_def
+        by (metis tranclp_ord_res_5_step_if_tranclp_ord_res_5)
+
+      show "ord_res_5_matches_ord_res_6 S5' S6'"
+        unfolding S5'_def S6'_def \<open>s6' = (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C)\<close>
+        using steps5
+        using match_hyps(3) ord_res_5_matches_ord_res_6.intros ord_res_6_preserves_invars step'
+          step_hyps(2) by metis
+    qed
   qed
 qed
 

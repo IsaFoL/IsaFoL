@@ -503,6 +503,16 @@ qed
 definition interp where
   "interp N C \<equiv> (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. production N D)"
 
+lemma interp_mempty[simp]: "interp N {#} = {}"
+proof -
+  have "\<nexists>C. C \<prec>\<^sub>c {#}"
+    by (metis clause_order.order.asym subset_implies_multp subset_mset.gr_zeroI)
+  hence "{D \<in> N. D \<prec>\<^sub>c {#}} = {}"
+    by simp
+  thus ?thesis
+    unfolding interp_def by auto
+qed
+
 lemma production_unfold: "production N C = {A | A C'.
     C \<in> N \<and>
     C = add_mset (Pos A) C' \<and>
