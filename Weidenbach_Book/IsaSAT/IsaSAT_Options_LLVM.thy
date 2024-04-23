@@ -128,8 +128,8 @@ definition IsaOptions_rel
 
 lemma IsaOptions_rel:
   \<open>(uncurry12 (RETURN o\<^sub>1\<^sub>3 IsaOptions_rel), uncurry12 (RETURN o\<^sub>1\<^sub>3 IsaOptions)) \<in>
-    bool_rel \<times>\<^sub>f bool_rel \<times>\<^sub>f  bool_rel \<times>\<^sub>fbool_rel \<times>\<^sub>f  word_rel \<times>\<^sub>f word_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f word_rel \<times>\<^sub>f word_rel \<times>\<^sub>f
-      word_rel  \<times>\<^sub>f word_rel \<times>\<^sub>f word_rel \<times>\<^sub>f word_rel \<rightarrow>
+    bool_rel \<times>\<^sub>f bool_rel \<times>\<^sub>f  bool_rel \<times>\<^sub>fbool_rel \<times>\<^sub>f  word_rel \<times>\<^sub>f word_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f word_rel \<times>\<^sub>f word_rel \<times>\<^sub>f word_rel \<times>\<^sub>f
+      word_rel  \<times>\<^sub>f word_rel \<times>\<^sub>f word_rel \<rightarrow>
    \<langle>opts_rel\<rangle>nres_rel\<close>
   by (auto intro!: frefI nres_relI simp: opts_rel_def IsaOptions_rel_def)
 
@@ -142,6 +142,7 @@ sepref_def IsaOptions_rel_impl
   by sepref
 
 sepref_register IsaOptions
+thm     IsaOptions_rel_impl.refine[unfolded opts_assn_def[symmetric]]
 
 lemmas [sepref_fr_rules] =
     IsaOptions_rel_impl.refine[FCOMP IsaOptions_rel, unfolded opts_assn_def[symmetric]]

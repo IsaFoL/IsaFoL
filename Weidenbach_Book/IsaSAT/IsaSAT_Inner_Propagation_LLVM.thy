@@ -19,7 +19,7 @@ lemma unit_propagation_update_statistics_alt_def:
   let stats = (if count_decided_pol M = 0 then incr_units_since_last_GC_by pq (incr_uset_by pq stats) else stats);
   height \<leftarrow> (if get_conflict_wl_is_None_heur S then RETURN q else do {j \<leftarrow> trail_height_before_conflict M; RETURN (of_nat j)});
   let stats = (if curr = STABLE_MODE then incr_search_ticks_stable_by ticks stats else incr_search_ticks_focused_by ticks stats);
-  let stats = set_no_conflict_until q stats;
+  let stats = set_no_conflict_until height stats;
   RETURN (update_stats_wl_heur stats (update_trail_wl_heur M S))
   }\<close>
   by (auto simp: unit_propagation_update_statistics_def state_extractors Let_def get_conflict_wl_is_None_heur_def

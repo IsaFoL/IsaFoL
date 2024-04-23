@@ -878,7 +878,7 @@ int main(int argc, char *argv[]) {
       ++i;
     } else if (strcmp(opt, "--nopureelimrounds\0") == 0) {
       pureelimrounds = (uint64_t)0;
-    } else if (opt[0] == '-') {
+    } else if (opt[0] == '-' && strcmp(opt, "-\0") != 0) {
       printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
     } else
 #endif
@@ -902,7 +902,10 @@ int main(int argc, char *argv[]) {
   }
 
   if (proof_path) {
-    proof = fopen (proof_path, "w");
+    if (strcmp(proof_path, "-\0") == 0)
+       proof = stdout;
+    else
+      proof = fopen (proof_path, "w");
     if (!proof) {
       printf ("cannot open proof file, aborting");
       return 0;

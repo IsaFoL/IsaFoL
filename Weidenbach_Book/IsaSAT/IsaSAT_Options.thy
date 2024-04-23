@@ -21,7 +21,6 @@ datatype opts =
   (opts_reduce: bool)
   (opts_unbounded_mode: bool)
   (opts_subsumption: bool)
-  (opts_pureelim_rounds:  \<open>64 word\<close>)
   (opts_minimum_between_restart: \<open>64 word\<close>)
   (opts_restart_coeff1: \<open>64 word\<close>)
   (opts_restart_coeff2: nat)
@@ -30,6 +29,7 @@ datatype opts =
   (opts_sema: \<open>64 word\<close>)
   (opts_GC_units_lim: \<open>64 word\<close>)
   (opts_reduceint: \<open>64 word\<close>)
+  (opts_pureelim_rounds:  \<open>64 word\<close>)
 
 
 definition TARGET_NEVER :: \<open>opts_target\<close> where
