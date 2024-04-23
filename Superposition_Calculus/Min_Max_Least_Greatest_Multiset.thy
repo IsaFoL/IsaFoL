@@ -365,6 +365,28 @@ proof -
   qed
 qed
 
+lemma multp\<^sub>D\<^sub>M_if_maximal_wrt_less_that_maximal_wrt:
+  assumes
+    trans: "transp_on (set_mset M1 \<union> set_mset M2) R" and
+    asym: "asymp_on (set_mset M1 \<union> set_mset M2) R" and
+    tot: "totalp_on (set_mset M1 \<union> set_mset M2) R" and
+    x1_maximal: "is_maximal_in_mset_wrt R M1 x1" and
+    x2_maximal: "is_maximal_in_mset_wrt R M2 x2" and
+    "R x1 x2"
+  shows "multp\<^sub>D\<^sub>M R M1 M2"
+  using multp\<^sub>H\<^sub>O_if_maximal_wrt_less_that_maximal_wrt[OF assms, THEN multp\<^sub>H\<^sub>O_imp_multp\<^sub>D\<^sub>M] .
+
+lemma multp_if_maximal_wrt_less_that_maximal_wrt:
+  assumes
+    trans: "transp_on (set_mset M1 \<union> set_mset M2) R" and
+    asym: "asymp_on (set_mset M1 \<union> set_mset M2) R" and
+    tot: "totalp_on (set_mset M1 \<union> set_mset M2) R" and
+    x1_maximal: "is_maximal_in_mset_wrt R M1 x1" and
+    x2_maximal: "is_maximal_in_mset_wrt R M2 x2" and
+    "R x1 x2"
+  shows "multp R M1 M2"
+  using multp\<^sub>D\<^sub>M_if_maximal_wrt_less_that_maximal_wrt[OF assms, THEN multp\<^sub>D\<^sub>M_imp_multp] .
+
 
 lemma multp\<^sub>H\<^sub>O_if_same_maximal_wrt_and_count_lt:
   assumes
@@ -475,6 +497,14 @@ lemmas (in linorder) count_ge_2_if_maximal_in_mset_and_not_greatest_in_mset =
 
 lemmas (in linorder) multp\<^sub>H\<^sub>O_if_maximal_less_that_maximal =
   multp\<^sub>H\<^sub>O_if_maximal_wrt_less_that_maximal_wrt[OF transp_on_less asymp_on_less
+    totalp_on_less]
+
+lemmas (in linorder) multp\<^sub>D\<^sub>M_if_maximal_less_that_maximal =
+  multp\<^sub>D\<^sub>M_if_maximal_wrt_less_that_maximal_wrt[OF transp_on_less asymp_on_less
+    totalp_on_less]
+
+lemmas (in linorder) multp_if_maximal_less_that_maximal =
+  multp_if_maximal_wrt_less_that_maximal_wrt[OF transp_on_less asymp_on_less
     totalp_on_less]
 
 lemmas (in linorder) multp\<^sub>H\<^sub>O_if_same_maximal_and_count_lt =
