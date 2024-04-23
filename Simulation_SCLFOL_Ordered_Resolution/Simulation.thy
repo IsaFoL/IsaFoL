@@ -8074,7 +8074,7 @@ proof (cases N s s' rule: ord_res_6.cases)
     by (metis invars ord_res_5_preserves_invars ord_res_5.skip)
 next
   case (production \<M> C L \<M>' \<C>' \<F> U\<^sub>e\<^sub>r)
-  then show ?thesis
+  thus ?thesis
     by (metis invars ord_res_5.production ord_res_5_preserves_invars)
 next
   case step_hyps: (factoring \<M> C L \<F>' \<F> U\<^sub>e\<^sub>r)
@@ -8450,8 +8450,12 @@ next
       unfolding all_produced_atoms_in_model_def by simp
   qed
 next
-  case (resolution_bot \<M> C L D U\<^sub>e\<^sub>r' U\<^sub>e\<^sub>r \<M>' \<F>)
-  then show ?thesis sorry
+  case step_hyps: (resolution_bot \<M> D L C U\<^sub>e\<^sub>r' U\<^sub>e\<^sub>r \<M>' \<F>)
+  hence "linorder_cls.is_least_in_fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) {#}"
+    using linorder_cls.is_least_in_fset_iff mempty_lesseq_cls by fastforce
+  thus ?thesis
+    using step_hyps
+    by (metis ord_res_5_invars_initial_state)
 next
   case (resolution_pos \<M> C L D U\<^sub>e\<^sub>r' U\<^sub>e\<^sub>r \<M>' K \<F>)
   then show ?thesis sorry
