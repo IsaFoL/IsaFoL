@@ -16,7 +16,7 @@ definition (in -) length_ll_fs_heur :: \<open>isasat \<Rightarrow> nat literal \
 
 lemma unit_propagation_inner_loop_wl_loop_D_heur_fast:
   \<open>length (get_clauses_wl_heur b) \<le> unat64_max \<Longrightarrow>
-    unit_propagation_inner_loop_wl_loop_D_heur_inv b a (a1', a1'a, a2'a) \<Longrightarrow>
+    unit_propagation_inner_loop_wl_loop_D_heur_inv b a (ticks, a1', a1'a, a2'a) \<Longrightarrow>
      length (get_clauses_wl_heur a2'a) \<le> unat64_max\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv_def
   by auto
@@ -25,11 +25,11 @@ lemma unit_propagation_inner_loop_wl_loop_D_heur_alt_def:
   \<open>unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0 = do {
     ASSERT (length (watched_by_int S\<^sub>0 L) \<le> length (get_clauses_wl_heur S\<^sub>0));
     n \<leftarrow> mop_length_watched_by_int S\<^sub>0 L;
-    let b = (0, 0, S\<^sub>0);
+    let b = (0, 0, 0, S\<^sub>0);
     WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_D_heur_inv S\<^sub>0 L\<^esup>
-      (\<lambda>(j, w, S). w < n \<and> get_conflict_wl_is_None_heur S)
-      (\<lambda>(j, w, S). do {
-        unit_propagation_inner_loop_body_wl_heur L j w S
+      (\<lambda>(ticks, j, w, S). w < n \<and> get_conflict_wl_is_None_heur S)
+      (\<lambda>(ticks, j, w, S). do {
+        unit_propagation_inner_loop_body_wl_heur ticks L j w S
       })
       b
   }\<close>

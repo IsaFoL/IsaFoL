@@ -277,6 +277,15 @@ schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: \<open>MK_F
   unfolding trail_pol_fast_assn_def
   by synthesize_free
 
+sepref_def replace_reason_in_trail_code
+  is \<open>uncurry2 replace_reason_in_trail\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a (sint64_nat_assn)\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding trail_pol_fast_assn_def replace_reason_in_trail_def trail_update_reason_at_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  apply (rewrite at \<open>list_update _ _ _\<close> annot_index_of_atm)
+  by sepref
+
 
 experiment begin
 
