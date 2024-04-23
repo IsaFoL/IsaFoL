@@ -104,18 +104,6 @@ definition number_clss_to_keep_impl :: \<open>isasat \<Rightarrow> nat nres\<clo
 definition (in -) MINIMUM_DELETION_LBD :: nat where
   \<open>MINIMUM_DELETION_LBD = 3\<close>
 
-definition trail_update_reason_at :: \<open>_ \<Rightarrow> _ \<Rightarrow> trail_pol \<Rightarrow> _\<close> where
-  \<open>trail_update_reason_at \<equiv> (\<lambda>L C (M, val, lvls, reason, k). (M, val, lvls, reason[atm_of L := C], k))\<close>
-
-abbreviation trail_get_reason :: \<open>trail_pol \<Rightarrow> _\<close> where
-  \<open>trail_get_reason \<equiv> (\<lambda>(M, val, lvls, reason, k). reason)\<close>
-
-definition replace_reason_in_trail :: \<open>nat literal \<Rightarrow> _\<close> where
-  \<open>replace_reason_in_trail L C = (\<lambda>M. do {
-    ASSERT(atm_of L < length (trail_get_reason M));
-    RETURN (trail_update_reason_at L 0 M)
-  })\<close>
-
 definition isasat_replace_annot_in_trail
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close>
   where
@@ -161,13 +149,6 @@ definition remove_one_annot_true_clause_imp_wl_D_heur_inv
 definition empty_US  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
   \<open>empty_US = (\<lambda>(M', N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
   (M', N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))\<close>
-
-
-definition trail_zeroed_until_state where
-  \<open>trail_zeroed_until_state S = trail_zeroed_until (get_trail_wl_heur S)\<close>
-
-definition trail_set_zeroed_until_state where
-  \<open>trail_set_zeroed_until_state z S = (let M = get_trail_wl_heur S in set_trail_wl_heur (trail_set_zeroed_until z M) S)\<close>
 
 definition remove_one_annot_true_clause_imp_wl_D_heur :: \<open>isasat \<Rightarrow> isasat nres\<close>
 where
@@ -260,16 +241,85 @@ definition arena_header_size :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat
   \<open>arena_header_size arena C =
   (if arena_length arena C > 4 then MAX_HEADER_SIZE else MIN_HEADER_SIZE)\<close>
 
-definition update_restart_phases :: \<open>isasat \<Rightarrow> isasat nres\<close> where
-  \<open>update_restart_phases = (\<lambda>S. do {
-     let heur = get_heur S;
+definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>update_restart_mode = (\<lambda>S. do {
+    let heur = get_heur S;
+     let stats = get_stats_heur S;
      let lcount = get_global_conflict_count S;
+     let vm = get_vmtf_heur S;
+     let init_ticks = init_phase_ticks heur;
+     end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
+     let curr = current_restart_phase heur;
+     if init_ticks = 0 \<comment>\<open>This is still the very first phase, here the limit is given by conflicts\<close>
+     then do{
+       if (end_of_restart_phase \<ge> lcount) then RETURN S
+       else do {
+          let search_ticks = (if current_restart_phase heur = STABLE_MODE then stats_ticks_stable stats else stats_ticks_focused stats);
+          let vm = switch_bump_heur vm;
+          let stats = get_stats_heur S;
+          let ticks = stats_ticks_focused stats;
+          heur \<leftarrow> RETURN (if curr \<noteq> STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
+          heur \<leftarrow> RETURN (incr_restart_phase heur);
+          heur \<leftarrow> RETURN (set_init_phase_ticks search_ticks heur);
+          let lim = search_ticks + search_ticks;
+          heur \<leftarrow> RETURN (incr_restart_phase_end lim heur);
+          heur \<leftarrow> RETURN (swap_emas heur);
+          let lcount = get_learned_count S;
+          let _ = isasat_print_progress 125 curr stats lcount;
+          _ \<leftarrow> RETURN (IsaSAT_Profile.stop_focused_mode);
+          _ \<leftarrow> RETURN (IsaSAT_Profile.start_stable_mode);
+          let _ = isasat_print_progress 95 (curr XOR 1) stats lcount;
+          let stats = IsaSAT_Stats.rate_set_last_decision (get_decisions stats) stats;
+          RETURN (set_stats_wl_heur stats (set_heur_wl_heur heur (set_vmtf_wl_heur vm S)))
+       }
+     } else do { \<comment>\<open>This is still the very first phase, here the limit is given by ticks\<close>
+        let search_ticks = (if current_restart_phase heur = STABLE_MODE then stats_ticks_stable stats else stats_ticks_focused stats);
+        if (end_of_restart_phase \<ge> search_ticks) then RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
+        else do {
+          let vm = switch_bump_heur vm;
+          heur \<leftarrow> RETURN (incr_restart_phase heur);
+          heur \<leftarrow> RETURN (if curr \<noteq> STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
+          let search_ticks = (if curr = STABLE_MODE then stats_ticks_stable stats else stats_ticks_focused stats);
+          let stable_number = nbstable_phase heur + 1;
+          let delta = init_ticks * stable_number * stable_number;
+          let lim = search_ticks + delta;
+          heur \<leftarrow> RETURN (if curr = STABLE_MODE then incr_restart_phase_and_length_end lim heur else incr_restart_phase_end lim heur);
+          heur \<leftarrow> RETURN (swap_emas heur);
+          let lcount = get_learned_count S;
+          let (open, close) = (if curr = STABLE_MODE then (91, 125) else (123, 93));
+          let _ = isasat_print_progress close curr stats lcount;
+          _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));
+          _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.start_focused_mode) else RETURN (IsaSAT_Profile.start_stable_mode));
+          let _ = isasat_print_progress open (curr XOR 1) stats lcount;
+          let stats = IsaSAT_Stats.rate_set_last_decision (get_decisions stats) stats;
+          RETURN (set_stats_wl_heur stats (set_heur_wl_heur heur (set_vmtf_wl_heur vm S)))
+      }
+    }
+  })\<close>
+
+
+definition update_restart_mode_conflicts :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>update_restart_mode_conflicts = (\<lambda>S. do {
+     let heur = get_heur S;
+     let curr = current_restart_phase heur;
+     let lcount = get_global_conflict_count S;
+     let stats = get_stats_heur S;
      let vm = get_vmtf_heur S;
      let vm = switch_bump_heur vm;
      heur \<leftarrow> RETURN (incr_restart_phase heur);
-     heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then incr_restart_phase_and_length_end lcount heur else incr_restart_phase_end lcount heur);
+     heur \<leftarrow> RETURN (incr_restart_phase_end lcount heur);
      heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
      heur \<leftarrow> RETURN (swap_emas heur);
+     let (open, close) = (if curr = STABLE_MODE then (91, 125) else (123, 93));
+     let lcount2 = get_learned_count S;
+     let _ = isasat_print_progress close curr stats lcount2;
+     let _ = isasat_print_progress open curr stats lcount2;
+     _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));
+     _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.start_focused_mode) else RETURN (IsaSAT_Profile.start_stable_mode));
+     let (lcount2) = get_learned_count S;
+     let (open, close) = (if curr = STABLE_MODE then (91::64 word, 125::64 word) else (123, 93));
+     let _ = isasat_print_progress close curr stats lcount2;
+     let _ = isasat_print_progress open (curr XOR 1) stats lcount2;
      RETURN (set_heur_wl_heur heur (set_vmtf_wl_heur vm S))
   })\<close>
 

@@ -95,7 +95,7 @@ static void free_clause (CLAUSE *cl) {
   free(cl->clause);
 }
 
-int64_t IsaSAT_LLVM_IsaSAT_wrapped(CBOOL, CBOOL, CBOOL, int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CBOOL,int64_t, CLAUSES);
+int64_t IsaSAT_LLVM_IsaSAT_wrapped(CBOOL, CBOOL, CBOOL, int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CBOOL,int64_t, int64_t, CLAUSES);
 
 CLAUSES new_clauses(int64_t size) {
   CLAUSES clauses;
@@ -658,7 +658,8 @@ struct PROFILE {
 };
 
 struct PROFILE propagate_prof, analyze_prof, gc_prof, reduce_prof, total_prof, parsing_prof,
-  init_prof, minimization_prof, subsumption_prof, pure_lits_prof, binary_simp_prof;
+init_prof, minimization_prof, subsumption_prof, pure_lits_prof, binary_simp_prof,
+stable_mode_prof, focused_mode_prof;
 
 void init_profiles () {
   propagate_prof.total = 0;
@@ -669,6 +670,8 @@ void init_profiles () {
   parsing_prof.total = 0;
   init_prof.total = 0;
   minimization_prof.total = 0;
+  stable_mode_prof.total = 0;
+  focused_mode_prof.total = 0;
 }
 
 void start_profile(struct PROFILE *p) {
@@ -713,6 +716,12 @@ void IsaSAT_Profile_LLVM_start_profile(uint8_t t) {
   }
   else if (t == IsaSAT_Profile_PURE_LITERAL ()) {
     start_profile(&pure_lits_prof);
+  }
+  else if (t == IsaSAT_Profile_LLVM_IsaSAT_Profile_FOCUSED_MODE ()) {
+    start_profile(&focused_mode_prof);
+  }
+  else if (t == IsaSAT_Profile_LLVM_IsaSAT_Profile_STABLE_MODE ()) {
+    start_profile(&stable_mode_prof);
   }
   else {
 #ifdef PRINTSTATS
@@ -765,6 +774,12 @@ void IsaSAT_Profile_LLVM_stop_profile(uint8_t t) {
   else if (t == IsaSAT_Profile_PURE_LITERAL ()) {
     stop_profile(&pure_lits_prof);
   }
+  else if (t == IsaSAT_Profile_LLVM_IsaSAT_Profile_FOCUSED_MODE ()) {
+    stop_profile(&focused_mode_prof);
+  }
+  else if (t == IsaSAT_Profile_LLVM_IsaSAT_Profile_STABLE_MODE ()) {
+    stop_profile(&stable_mode_prof);
+  }
   else {
     printf("c unrecognised profile, ignoring\n");
   }
@@ -804,6 +819,7 @@ int main(int argc, char *argv[]) {
   OPTIONu64 fema = 141733;
   OPTIONu64 sema = 429496729;
   OPTIONu64 unitinterval = 1000;
+  OPTIONu64 pureelimrounds = 3; // incompatible with DRAT proofs
   char *proof_path = NULL;
   int versionOnly = 0;
 
@@ -856,11 +872,17 @@ int main(int argc, char *argv[]) {
                (n = atol(argv[i + 1]))) {
       unitinterval = (uint64_t)n;
       ++i;
-    } else if (opt[0] == '-') {
+    } else if (strcmp(opt, "--pureelimrounds\0") == 0 && i + 1 < argc - 1 &&
+               (n = atol(argv[i + 1]))) {
+      pureelimrounds = (uint64_t)n;
+      ++i;
+    } else if (strcmp(opt, "--nopureelimrounds\0") == 0) {
+      pureelimrounds = (uint64_t)0;
+    } else if (opt[0] == '-' && strcmp(opt, "-\0") != 0) {
       printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
     } else
 #endif
-        if (inputname) {
+    if (inputname) {
       proof_path = opt;
       // printf("c proof file %s i=%d argc=%d\n", opt, i, argc);
       ++i;
@@ -869,7 +891,7 @@ int main(int argc, char *argv[]) {
       // argc);
       ++i;
     } else {
-      // printf("c input file %s i=%d argc=%d\n", opt, i, argc);
+      printf("c input file %s i=%d argc=%d\n", opt, i, argc);
       inputname = opt;
     }
   }
@@ -880,11 +902,16 @@ int main(int argc, char *argv[]) {
   }
 
   if (proof_path) {
-    proof = fopen (proof_path, "w");
+    if (strcmp(proof_path, "-\0") == 0)
+       proof = stdout;
+    else
+      proof = fopen (proof_path, "w");
     if (!proof) {
       printf ("cannot open proof file, aborting");
       return 0;
     }
+    if (pureelimrounds)
+      printf ("c WARNING use --pureelimrounds 0 to produce valid DRAT proofs\nc The solvers still gives the right answer, but the proof is invalid.\n");
     
     setvbuf ( proof , NULL , _IOFBF , 1000000 );
   }
@@ -937,7 +964,7 @@ READ_FILE:
 
 #endif
   int64_t t = IsaSAT_LLVM_IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema,
-					 sema, unitinterval, subsume, reduceint, clauses);
+					 sema, unitinterval, subsume, reduceint, pureelimrounds, clauses);
   stop_profile(&total_prof);
 
   _Bool interrupted = t & 2;
@@ -975,6 +1002,9 @@ READ_FILE:
 #ifdef PRINTSTATS
   const long double total_measure = propagate_prof.total + analyze_prof.total + minimization_prof.total + reduce_prof.total + gc_prof.total +
     init_prof.total + subsumption_prof.total + pure_lits_prof.total + binary_simp_prof.total;
+  printf("c focused              : %.2Lf%% (%.2Lf s)\n", 100. * focused_mode_prof.total / total_prof.total, focused_mode_prof.total / 1000000.);
+  printf("c stable              : %.2Lf%% (%.2Lf s)\n", 100. * stable_mode_prof.total / total_prof.total, stable_mode_prof.total / 1000000.);
+  printf("c ==================================================================\n");
   printf("c propagate           : %.2Lf%% (%.2Lf s)\n", 100. * propagate_prof.total / total_prof.total, propagate_prof.total / 1000000.);
   printf("c analyze             : %.2Lf%% (%.2Lf s)\n", 100. * analyze_prof.total / total_prof.total, analyze_prof.total / 1000000.);
   printf("c minimization        : %.2Lf%% (%.2Lf s)\n", 100. * minimization_prof.total / total_prof.total, minimization_prof.total / 1000000.);

@@ -71,7 +71,6 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
     S \<leftarrow> init_state_wl_heur_fast \<A>\<^sub>i\<^sub>n';
     (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur_b CS S;
     let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
-    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
     if isasat_fast_init T \<and> \<not>is_failed_heur_init T
     then do {
       if \<not>get_conflict_wl_is_None_heur_init T
@@ -87,8 +86,11 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
         ASSERT(isasat_fast_init T);
         T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
         _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
+        _ \<leftarrow> RETURN (IsaSAT_Profile.start_focused_mode);
         ASSERT(isasat_fast T);
         (b, U) \<leftarrow> cdcl_twl_stgy_restart_prog_bounded_wl_heur T;
+        let curr = get_restart_phase U;
+        _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));
         RETURN (b, if \<not>b \<and> get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
           else extract_state_stat U)
       }

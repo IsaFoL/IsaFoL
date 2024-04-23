@@ -7,7 +7,7 @@ begin
 
 lemma unit_propagation_inner_loop_wl_loop_D_heur_fast:
   \<open>length (get_clauses_wl_heur b) \<le> snat64_max \<Longrightarrow>
-    unit_propagation_inner_loop_wl_loop_D_heur_inv b a (a1', a1'a, a2'a) \<Longrightarrow>
+    unit_propagation_inner_loop_wl_loop_D_heur_inv b a (ticks, a1', a1'a, a2'a) \<Longrightarrow>
      length (get_clauses_wl_heur a2'a) \<le> snat64_max\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv_def
   by auto
@@ -15,7 +15,7 @@ lemma unit_propagation_inner_loop_wl_loop_D_heur_fast:
 sepref_def unit_propagation_inner_loop_wl_loop_D_fast
   is \<open>uncurry unit_propagation_inner_loop_wl_loop_D_heur\<close>
   :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> sint64_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
+      unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> word64_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_def PR_CONST_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
     length_ll_fs_heur_def[symmetric]
@@ -90,7 +90,7 @@ sepref_def cut_watch_list_heur2_fast_code
 sepref_def unit_propagation_inner_loop_wl_D_fast_code
   is \<open>uncurry unit_propagation_inner_loop_wl_D_heur\<close>
   :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
-        unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+        unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> word64_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_heur_def
   by sepref

@@ -652,9 +652,15 @@ global_interpretation restart_count: read_stats_param_adder0 where
   subgoal by (auto simp: get_restart_count_st_impl_def)
   done
 
+sepref_def get_decisions_impl
+  is \<open>RETURN o get_decisions\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding get_decisions_def stats_code_unfold
+  by sepref
+
 definition get_reductions_count_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_reductions_count_fast_code = read_stats_wl_heur_code get_reduction_count_impl\<close>
-
+  
 (*TODO check if this is the right statistics to read!*)
 global_interpretation reduction_count: read_stats_param_adder0 where
   f' = \<open>RETURN o get_reduction_count\<close> and

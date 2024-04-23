@@ -29,6 +29,7 @@ datatype opts =
   (opts_sema: \<open>64 word\<close>)
   (opts_GC_units_lim: \<open>64 word\<close>)
   (opts_reduceint: \<open>64 word\<close>)
+  (opts_pureelim_rounds:  \<open>64 word\<close>)
 
 
 definition TARGET_NEVER :: \<open>opts_target\<close> where
@@ -44,12 +45,12 @@ definition TARGET_ALWAYS :: \<open>opts_target\<close> where
 subsection \<open>Refinement\<close>
 
 type_synonym opts_ref =
-  \<open>bool \<times> bool \<times> bool \<times> bool \<times> 64 word \<times> 64 word \<times> nat \<times> opts_target \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
+  \<open>bool \<times> bool \<times> bool \<times> bool \<times> 64 word \<times> 64 word \<times> nat \<times> opts_target \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
 
 definition opts_rel :: \<open>(opts_ref \<times> opts) set\<close> where
   \<open>opts_rel = {(S, T). S = (opts_restart T, opts_reduce T, opts_unbounded_mode T, opts_subsumption T,
       opts_minimum_between_restart T, opts_restart_coeff1 T, opts_restart_coeff2 T,
-    opts_target T, opts_fema T, opts_sema T, opts_GC_units_lim T, opts_reduceint T)}\<close>
+    opts_target T, opts_fema T, opts_sema T, opts_GC_units_lim T, opts_reduceint T, opts_pureelim_rounds T)}\<close>
 
 fun opts_rel_restart :: \<open>opts_ref \<Rightarrow> bool\<close> where
   \<open>opts_rel_restart (res, red, unbd, mini, res1, res2) = res\<close>
@@ -120,14 +121,19 @@ fun opts_rel_subsumption :: \<open>opts_ref \<Rightarrow> bool\<close> where
   \<open>opts_rel_subsumption (res, red, unbd, subsume, mini, res1, res2, target, fema, sema, units, redint) = subsume\<close>
 
 fun opts_rel_reduceint :: \<open>opts_ref \<Rightarrow> 64 word\<close> where
-  \<open>opts_rel_reduceint (res, red, unbd, subsume, mini, res1, res2, target, fema, sema, units, redint) = redint\<close>
+  \<open>opts_rel_reduceint (res, red, unbd, subsume, mini, res1, res2, target, fema, sema, units, redint, pureelim_rounds) = redint\<close>
+
+fun opts_rel_pureelim_rounds :: \<open>opts_ref \<Rightarrow> 64 word\<close> where
+  \<open>opts_rel_pureelim_rounds (res, red, unbd, subsume, mini, res1, res2, target, fema, sema, units, redint, pureelim_rounds) = pureelim_rounds\<close>
 
 lemma opts_GC_units_lim:
   \<open>(opts_rel_GC_units_lim, opts_GC_units_lim) \<in> opts_rel \<rightarrow> Id\<close> and
   opts_subsumption:
   \<open>(opts_rel_subsumption, opts_subsumption) \<in> opts_rel \<rightarrow> Id\<close> and
   opts_reduceint:
-  \<open>(opts_rel_reduceint, opts_reduceint) \<in> opts_rel \<rightarrow> Id\<close>
+  \<open>(opts_rel_reduceint, opts_reduceint) \<in> opts_rel \<rightarrow> Id\<close>and
+  opts_pureelim_rounds:
+  \<open>(opts_rel_pureelim_rounds, opts_pureelim_rounds) \<in> opts_rel \<rightarrow> Id\<close>
   by (auto simp: opts_rel_def opts_GC_units_lim_def intro!: frefI)
 
 lemma opts_rel_alt_defs:
@@ -142,7 +148,8 @@ lemma opts_rel_alt_defs:
   \<open>RETURN o opts_rel_sema = (\<lambda>(res, red, unbd, subsume, mini, res1, res2, target, fema, sema, units). RETURN sema)\<close>
   \<open>RETURN o opts_rel_GC_units_lim = (\<lambda>(res, red, unbd, subsume, mini, res1, res2, target, fema, sema, units, subsume). RETURN units)\<close>
   \<open>RETURN o opts_rel_subsumption = (\<lambda>(res, red, unbd, subsume, mini, res1, res2, target, fema, sema, units, _). RETURN subsume)\<close>
-  \<open>RETURN o opts_rel_reduceint = (\<lambda>(res, red, unbd, subsume, mini, res1, res2, target, fema, sema, units, reduceint). RETURN reduceint)\<close>
+  \<open>RETURN o opts_rel_reduceint = (\<lambda>(res, red, unbd, subsume, mini, res1, res2, target, fema, sema, units, reduceint, pureelim_rounds). RETURN reduceint)\<close>
+  \<open>RETURN o opts_rel_pureelim_rounds = (\<lambda>(res, red, unbd, subsume, mini, res1, res2, target, fema, sema, units, reduceint, pureelim_rounds). RETURN pureelim_rounds)\<close>
   by (auto intro!: ext)
 
 end

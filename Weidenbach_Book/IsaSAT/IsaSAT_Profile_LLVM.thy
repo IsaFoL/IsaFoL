@@ -79,6 +79,18 @@ sepref_def IsaSAT_Profile_SUBSUMPTION
   unfolding IsaSAT_Profile.SUBSUMPTION_def
   by sepref
 
+sepref_def IsaSAT_Profile_FOCUSED_MODE
+  is \<open>uncurry0 (RETURN IsaSAT_Profile.FOCUSED_MODE)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding IsaSAT_Profile.FOCUSED_MODE_def
+  by sepref
+
+sepref_def IsaSAT_Profile_STABLE_MODE
+  is \<open>uncurry0 (RETURN IsaSAT_Profile.STABLE_MODE)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding IsaSAT_Profile.STABLE_MODE_def
+  by sepref
+
 experiment begin
 
 export_llvm
@@ -91,6 +103,8 @@ export_llvm
     IsaSAT_Profile_SUBSUMPTION is \<open>PROFILE_CST IsaSAT_Profile_SUBSUMPTION()\<close>
     IsaSAT_Profile_PURE_LITERAL is \<open>PROFILE_CST IsaSAT_Profile_PURE_LITERAL()\<close>
     IsaSAT_Profile_BINARY_SIMP is \<open>PROFILE_CST IsaSAT_Profile_BINARY_SIMP()\<close>
+    IsaSAT_Profile_FOCUSED_MODE is \<open>PROFILE_CST IsaSAT_Profile_FOCUSED_MODE()\<close>
+    IsaSAT_Profile_STABLE_MODE is \<open>PROFILE_CST IsaSAT_Profile_STABLE_MODE()\<close>
     defines \<open>
        typedef int8_t PROFILE_CST;
   \<close>

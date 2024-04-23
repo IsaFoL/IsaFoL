@@ -1901,7 +1901,10 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
      let other_fema = ema_init (opts_fema opts);
      let other_sema = ema_init (opts_sema opts);
      let ccount = restart_info_init;
-     let heur = Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, rephasing_end_of_initial_phase, 0, rephasing_initial_phase), reluctant_init, False, replicate (length \<phi>) False, (inprocessing_interval_init, reduce_interval_init, subsuming_length_initial_phase), other_fema, other_sema));
+     let heur = Restart_Heuristics (fema, sema, ccount, 0,
+       (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False,
+           rephasing_end_of_initial_phase, 0, rephasing_initial_phase), reluctant_init, False, replicate (length \<phi>) False,
+          (inprocessing_interval_init, reduce_interval_init, subsuming_length_initial_phase), other_fema, other_sema);
      let vdoms = AIvdom_init vdom [] ivdom;
      let occs =  replicate (length W') [];
     bmp \<leftarrow> finalize_bump_init bmp;
