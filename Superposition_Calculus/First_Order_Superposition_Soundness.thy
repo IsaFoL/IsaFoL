@@ -189,7 +189,7 @@ proof (cases "(P, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
         by (simp add: to_ground_clause_def subst_clause_add_mset)
 
       then have "L' \<in># to_ground_clause (C \<cdot> \<gamma>')"
-        by (simp add: to_ground_clause_def eq_factoringI(8) subst_clause_add_mset)
+        by (simp add: to_ground_clause_def eq_factoringI(10) subst_clause_add_mset)
 
       then show ?thesis
         unfolding \<gamma>'(2)

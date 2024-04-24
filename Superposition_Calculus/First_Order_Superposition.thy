@@ -57,6 +57,8 @@ inductive eq_factoring :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty
     is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<Longrightarrow>
     \<not> (term\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<mu>) \<Longrightarrow>
     term_subst.is_imgu \<mu> {{ term\<^sub>1, term\<^sub>2 }} \<Longrightarrow>
+    welltyped_imgu typeof_fun \<V> term\<^sub>1 term\<^sub>2 \<mu> \<Longrightarrow>
+    (welltyped\<^sub>c typeof_fun \<V> premise \<Longrightarrow> \<exists>\<tau>. has_type typeof_fun \<V> term\<^sub>1 \<tau> \<and> has_type typeof_fun \<V> term\<^sub>2 \<tau>) \<Longrightarrow>
     conclusion = add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise') \<cdot> \<mu> \<Longrightarrow>
     eq_factoring (premise, \<V>) (conclusion, \<V>)"
 
@@ -234,103 +236,57 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
       welltyped\<^sub>l_def 
       welltyped\<^sub>a_def
     by auto
-    
+
   then have "welltyped\<^sub>c typeof_fun \<V> (D  \<cdot> \<mu>)"
     using wt_D welltyped\<^sub>\<sigma>_welltyped\<^sub>c eq_resolutionI(4)
     by blast
-    
+
   then show ?thesis
     unfolding eq_resolutionI subst_clause_add_mset welltyped\<^sub>c_add_mset
     by blast
 qed
 
-(* lemma eq_factoring_preserves_typing:
- (ssumes
-    step: "eq_factoring D C" and
-    wt_D: "welltyped\<^sub>c typeof_fun typeof_var D"
-  shows "welltyped\<^sub>c typeof_fun typeof_var C"
-  using step
-proof (cases D C rule: eq_factoring.cases)
-  case (eq_factoringI literal\<^sub>1 literal\<^sub>2 premise' term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
-  then show ?thesis 
-    sorry
-qed *)
+lemma has_type_welltyped:
+  assumes "has_type typeof_fun \<V> term \<tau>" "welltyped typeof_fun \<V> term \<tau>'"
+  shows "welltyped typeof_fun \<V> term \<tau>"
+  using assms
+  by (smt (verit, best) welltyped.simps has_type.simps has_type_right_unique right_uniqueD)
 
+lemma welltyped_has_type: 
+  assumes "welltyped typeof_fun \<V> term \<tau>"
+  shows "has_type typeof_fun \<V> term \<tau>"
+  using assms welltyped.cases has_type.simps by fastforce
 
-(*lemma eq_factoring_preserves_typing:
+lemma eq_factoring_preserves_typing:
   assumes
-    step: "equality_factoring D C" and
-    wt_D: "\<And>\<V>. well_typed_cls typeof_fun \<V> D"
-  shows "\<exists>\<V>. well_typed_cls typeof_fun \<V> C"
+    step: "eq_factoring (D, \<V>) (C, \<V>)" and
+    wt_D: "welltyped\<^sub>c typeof_fun \<V> D"
+  shows "welltyped\<^sub>c typeof_fun \<V> C"
   using step
-proof (cases D C rule: equality_factoring.cases)
-  case (equality_factoringI literal\<^sub>1 literal\<^sub>2 premise' term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu> \<V>)
-  have "well_typed_cls typeof_fun \<V> D"
-    by (simp add: wt_D)
-
-  then have "well_typed_cls typeof_fun \<V> (D  \<cdot> \<mu>)"
-    using equality_factoringI(7) well_typed_subst_clause well_typed_imgu_def
+proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
+  case (eq_factoringI literal\<^sub>1 literal\<^sub>2 premise' term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
+  
+  obtain \<tau> where \<tau>:
+    "has_type typeof_fun \<V> term\<^sub>1 \<tau>"
+    "has_type typeof_fun \<V> term\<^sub>2 \<tau>"
+    using eq_factoringI(9)[OF wt_D]
     by blast
 
-  then have well_typed:
-    "well_typed_lit typeof_fun \<V> (term\<^sub>1 \<approx> term\<^sub>1' \<cdot>l \<mu>)"
-    "well_typed_lit typeof_fun \<V> (term\<^sub>2 \<approx> term\<^sub>2' \<cdot>l \<mu>)"
-    "well_typed_cls typeof_fun \<V> (premise' \<cdot> \<mu>)"
-    unfolding equality_factoringI subst_clause_add_mset well_typed_cls_add_mset
+  then have "welltyped typeof_fun \<V> term\<^sub>1 \<tau>" "welltyped typeof_fun \<V> term\<^sub>2 \<tau>"
+    using wt_D has_type_welltyped
+    unfolding welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def eq_factoringI
     by auto
 
-  moreover have "well_typed_lit typeof_fun \<V> (term\<^sub>1 \<approx> term\<^sub>2' \<cdot>l \<mu>)" 
-    using equality_factoringI(7) well_typed
-    unfolding 
-      well_typed_imgu_def 
-      well_typed_subst_def
-      well_typed_lit_def 
-      well_typed_atm_def 
-      subst_literal_def
-    by (metis literal.simps(9) subst_atom term_subst.subst_imgu_eq_subst_imgu)
-
-  moreover have "\<exists>\<tau>. has_type typeof_fun \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau> \<and> has_type typeof_fun \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>"
-    using equality_factoringI(7) well_typed
-    unfolding
-      well_typed_imgu_def 
-      well_typed_subst_def
-      well_typed_lit_def 
-      well_typed_atm_def 
-      subst_literal_def 
-      subst_atom_def
-    by (metis (mono_tags, lifting) right_unique_has_type insert_iff literal.disc(1) 
-          literal.map_sel(1) map_uprod_simps right_uniqueD set_uprod_simps 
-           term_subst.subst_imgu_eq_subst_imgu upair_in_literal(1))
-    
-   
-  moreover then have "well_typed_lit typeof_fun \<V> (term\<^sub>1' !\<approx> term\<^sub>2' \<cdot>l \<mu>)"
-    using well_typed
-    unfolding 
-      well_typed_lit_def 
-      well_typed_atm_def 
-      subst_literal_def 
-      subst_atom_def
-    by auto
+  moreover then have "welltyped\<^sub>c typeof_fun \<V> (D  \<cdot> \<mu>)"
+    using wt_D welltyped\<^sub>\<sigma>_welltyped\<^sub>c eq_factoringI
+    by blast
 
   ultimately show ?thesis
-    unfolding equality_factoringI well_typed_cls_add_mset subst_clause_add_mset
-    by blast        
+    unfolding welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def eq_factoringI subst_clause_add_mset subst_literal subst_atom
+    (* TODO: *)
+    apply auto
+    by (metis First_Order_Type_System.welltyped_right_unique local.eq_factoringI(8) right_uniqueD welltyped\<^sub>\<sigma>_welltyped)+
 qed
-
-lemma superposition_preserves_typing:
-  assumes
-    step: "superposition D E C" and
-    wt_D: "\<And>\<V>. well_typed_cls typeof_fun \<V> D" and
-    wt_E: "\<And>\<V>. well_typed_cls typeof_fun \<V> E"
-  shows "\<exists>\<V>. well_typed_cls typeof_fun \<V> C"
-  using step
-proof (cases D E C rule: superposition.cases)
-  case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' \<P> 
-          context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
-  then show ?thesis 
-    
-    sorry
-qed*)
 
 end
 

@@ -36,6 +36,7 @@ abbreviation is_inference_grounding where
         Infer [premise] conclusion \<Rightarrow>
           is_ground_clause (premise \<cdot> \<gamma>)
         \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
+        \<and> (\<forall>\<V>. welltyped\<^sub>c typeof_fun \<V> conclusion \<longleftrightarrow> welltyped\<^sub>c typeof_fun \<V> (conclusion \<cdot> \<gamma>))
         \<and> \<iota>\<^sub>G = Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion \<cdot> \<gamma>))
       | Infer [premise\<^sub>2, premise\<^sub>1] conclusion \<Rightarrow> 
           term_subst.is_renaming \<rho>\<^sub>1
@@ -44,6 +45,7 @@ abbreviation is_inference_grounding where
         \<and> is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)
         \<and> is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)
         \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
+        \<and> (\<forall>\<V>. welltyped\<^sub>c typeof_fun \<V> conclusion \<longleftrightarrow> welltyped\<^sub>c typeof_fun \<V> (conclusion \<cdot> \<gamma>))
         \<and> \<iota>\<^sub>G =
             Infer
               [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)]
@@ -62,7 +64,7 @@ lemma is_inference_grounding_inference_groundings:
 
 lemma inference\<^sub>G_concl_in_clause_grounding: 
   assumes "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
-  shows "concl_of \<iota>\<^sub>G \<in> clause_groundings (concl_of \<iota>)"
+  shows "concl_of \<iota>\<^sub>G \<in> typed_clause_groundings typeof_fun (concl_of \<iota>)"
 proof-
   obtain premises\<^sub>G conlcusion\<^sub>G where
     \<iota>\<^sub>G: "\<iota>\<^sub>G = Infer premises\<^sub>G conlcusion\<^sub>G"
@@ -75,28 +77,29 @@ proof-
   obtain \<gamma> where 
     "is_ground_clause (conlcusion \<cdot> \<gamma>)"
     "conlcusion\<^sub>G = to_ground_clause (conlcusion \<cdot> \<gamma>)"
+    "\<forall>\<V>. welltyped\<^sub>c typeof_fun \<V> conlcusion = welltyped\<^sub>c typeof_fun \<V> (conlcusion \<cdot> \<gamma>)"
     using assms list_4_cases
     unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
     by(simp split: list.splits)(metis list_4_cases) 
 
   then show ?thesis
-    unfolding \<iota> \<iota>\<^sub>G clause_groundings_def
+    unfolding \<iota> \<iota>\<^sub>G typed_clause_groundings_def
     by auto
 qed  
 
 lemma inference\<^sub>G_red_in_clause_grounding_of_concl: 
   assumes "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
-  shows "\<iota>\<^sub>G \<in> ground.Red_I (clause_groundings (concl_of \<iota>))"
+  shows "\<iota>\<^sub>G \<in> ground.Red_I (typed_clause_groundings typeof_fun (concl_of \<iota>))"
 proof-
   from assms have "\<iota>\<^sub>G \<in> ground.G_Inf"
     unfolding inference_groundings_def
     by blast
 
-  moreover have "concl_of \<iota>\<^sub>G \<in> clause_groundings (concl_of \<iota>)"
+  moreover have "concl_of \<iota>\<^sub>G \<in> typed_clause_groundings typeof_fun  (concl_of \<iota>)"
     using assms inference\<^sub>G_concl_in_clause_grounding
     by auto
 
-  ultimately show "\<iota>\<^sub>G \<in> ground.Red_I (clause_groundings (concl_of \<iota>))"
+  ultimately show "\<iota>\<^sub>G \<in> ground.Red_I (typed_clause_groundings typeof_fun (concl_of \<iota>))"
     using ground.Red_I_of_Inf_to_N
     by blast
 qed
@@ -110,7 +113,7 @@ sublocale lifting:
           ground.G_Inf 
           ground.GRed_I
           ground.GRed_F 
-          clause_groundings
+          "typed_clause_groundings typeof_fun"
           "(Some \<circ> inference_groundings)"
           tiebreakers
 proof unfold_locales
@@ -120,24 +123,24 @@ next
   fix bottom
   assume "bottom \<in> \<bottom>\<^sub>F"
 
-  then show "clause_groundings bottom \<noteq> {}"
-    unfolding clause_groundings_def 
+  then show "typed_clause_groundings typeof_fun bottom \<noteq> {}"
+    unfolding typed_clause_groundings_def 
     by simp
 next
   fix bottom
   assume "bottom \<in> \<bottom>\<^sub>F"
-  then show "clause_groundings bottom \<subseteq> ground.G_Bot"
-    unfolding clause_groundings_def
+  then show "typed_clause_groundings typeof_fun bottom \<subseteq> ground.G_Bot"
+    unfolding typed_clause_groundings_def
     by simp
 next
   fix clause
-  show "clause_groundings clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"
-    unfolding clause_groundings_def to_ground_clause_def subst_clause_def
+  show "typed_clause_groundings typeof_fun clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"
+    unfolding typed_clause_groundings_def to_ground_clause_def subst_clause_def
     by simp
 next
   fix \<iota> :: "('f, 'v) atom clause inference"
 
-  show "the ((Some \<circ> inference_groundings) \<iota>) \<subseteq> ground.GRed_I (clause_groundings (concl_of \<iota>))"
+  show "the ((Some \<circ> inference_groundings) \<iota>) \<subseteq> ground.GRed_I (typed_clause_groundings typeof_fun (concl_of \<iota>))"
     using inference\<^sub>G_red_in_clause_grounding_of_concl
     by auto
 next
@@ -163,9 +166,9 @@ sublocale first_order_superposition_calculus \<subseteq>
     "ground_superposition_calculus.GRed_I (\<prec>\<^sub>t\<^sub>G)" 
     "\<lambda>_. ground_superposition_calculus.GRed_F(\<prec>\<^sub>t\<^sub>G)" 
     "\<bottom>\<^sub>F"
-    "\<lambda>_. clause_groundings" 
+    "\<lambda>_. typed_clause_groundings typeof_fun" 
     "\<lambda>select\<^sub>G. Some \<circ>
-      (grounded_first_order_superposition_calculus.inference_groundings (\<prec>\<^sub>t) select\<^sub>G)"
+      (grounded_first_order_superposition_calculus.inference_groundings (\<prec>\<^sub>t) select\<^sub>G typeof_fun)"
     tiebreakers
 proof(unfold_locales; (intro ballI)?)
   show "select\<^sub>G\<^sub>s \<noteq> {}"
@@ -200,7 +203,7 @@ next
           ground.G_Inf 
           ground.GRed_I
           ground.GRed_F 
-          clause_groundings
+          (typed_clause_groundings typeof_fun)
           (Some \<circ> inference_groundings)
           tiebreakers"
     by unfold_locales

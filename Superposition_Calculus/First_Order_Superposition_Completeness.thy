@@ -19,7 +19,8 @@ lemma eq_resolution_lifting:
     premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and
     conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
-    ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G"
+    ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G" and
+    typing: "welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>) \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> premise"
   obtains conclusion' 
   where
     "eq_resolution (premise, \<V>) (conclusion', \<V>)"
@@ -235,7 +236,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
       inferences_def 
       premise\<^sub>G
       conclusion\<^sub>G
-    by auto
+    sorry
 
   ultimately show ?thesis
     using that[OF eq_resolution]
@@ -254,7 +255,8 @@ lemma eq_factoring_lifting:
     premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and
     conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
-    ground_eq_factoring: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G"
+    ground_eq_factoring: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G" and
+    welltyped_grounding: "welltyped\<^sub>c typeof_fun \<V> (premise \<cdot> \<gamma>) \<longleftrightarrow> welltyped\<^sub>c typeof_fun \<V> premise"
   obtains conclusion' 
   where
     "eq_factoring (premise, \<V>) (conclusion', \<V>)"
@@ -339,9 +341,12 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     using term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>1_term\<^sub>2
     by argo
 
-  then obtain \<mu> \<sigma> where \<mu>: "term_subst.is_imgu \<mu> {{term\<^sub>1, term\<^sub>2}}" "\<gamma> = \<mu> \<odot> \<sigma>"
-    using imgu_exists
-    by blast
+   then obtain \<mu> \<sigma> where \<mu>: 
+    "term_subst.is_imgu \<mu> {{term\<^sub>1, term\<^sub>2}}" 
+    "\<gamma> = \<mu> \<odot> \<sigma>" 
+    "welltyped_imgu typeof_fun \<V> term\<^sub>1 term\<^sub>2 \<mu>"
+    using welltyped_imgu_exists
+    by meson
 
   have term\<^sub>G\<^sub>2_term\<^sub>1': "to_term term\<^sub>G\<^sub>2 = term\<^sub>1' \<cdot>t \<gamma>"
     using literal\<^sub>1_\<gamma> term\<^sub>G\<^sub>1_term\<^sub>1 
@@ -428,6 +433,32 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     show "term_subst.is_imgu \<mu> {{term\<^sub>1, term\<^sub>2}}"
       using \<mu>(1).
   next 
+    show "welltyped_imgu typeof_fun \<V> term\<^sub>1 term\<^sub>2 \<mu>"
+      using \<mu>(3).
+  next 
+    assume welltyped_premise: "welltyped\<^sub>c typeof_fun \<V> premise"
+
+    then have welltyped\<^sub>_grounding: "welltyped\<^sub>c typeof_fun \<V> (premise \<cdot> \<gamma>)"
+      using welltyped_grounding by blast
+
+    obtain \<tau> \<tau>' where 
+      "welltyped typeof_fun \<V> term\<^sub>1 \<tau>"
+      "welltyped typeof_fun \<V> term\<^sub>2 \<tau>'"
+      using welltyped_premise
+      unfolding welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def premise literal\<^sub>1_terms literal\<^sub>2_terms
+      by auto
+
+    moreover then have "\<tau> = \<tau>'"
+      using welltyped\<^sub>_grounding term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>1_term\<^sub>2 
+      unfolding premise_\<gamma>   
+      (* TODO *)
+      sorry
+      (*by (metis welltyped_right_unique right_uniqueD welltyped\<^sub>\<sigma>_welltyped)*)
+        
+    ultimately show "\<exists>\<tau>. has_type typeof_fun \<V> term\<^sub>1 \<tau> \<and> has_type typeof_fun \<V> term\<^sub>2 \<tau>"
+      using welltyped_has_type
+      by blast
+  next 
     show "?conclusion' \<cdot> \<mu> = ?conclusion' \<cdot> \<mu>"
       ..
   qed
@@ -472,7 +503,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
       inferences_def 
       premise\<^sub>G
       conclusion\<^sub>G
-    by auto
+    sorry
 
   ultimately show ?thesis
     using that[OF eq_factoring]
@@ -1321,7 +1352,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       have "is_inference_grounding (Infer [premise\<^sub>2, premise\<^sub>1] conclusion') \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2"
         using conclusion'_\<gamma> ground_superposition
         unfolding ground.G_Inf_def \<iota>\<^sub>G
-        by(auto simp: renaming premise\<^sub>1_grounding premise\<^sub>2_grounding conclusion_grounding)
+        sorry
+        (*by(auto simp: renaming premise\<^sub>1_grounding premise\<^sub>2_grounding conclusion_grounding)*)
 
       then show ?thesis
         using is_inference_grounding_inference_groundings
@@ -1336,8 +1368,8 @@ qed
 lemma eq_resolution_ground_instance: 
   assumes 
     "\<iota>\<^sub>G \<in> ground.eq_resolution_inferences"
-    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union>(clause_groundings ` premises))"
-    "subst_stability_on premises"
+    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union>(typed_clause_groundings typeof_fun ` premises))"
+    "typed_subst_stability_on typeof_fun premises"
   obtains \<iota> where 
     "\<iota> \<in> Inf_from premises" 
     "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
@@ -1348,20 +1380,20 @@ proof-
     using assms(1)
     by blast
 
-  have premise\<^sub>G_in_groundings: "premise\<^sub>G \<in> \<Union>(clause_groundings ` premises)"
+  have premise\<^sub>G_in_groundings: "premise\<^sub>G \<in> \<Union>(typed_clause_groundings typeof_fun ` premises)"
     using assms(2)
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
     by simp
 
-  obtain premise conclusion \<gamma> where
+  obtain premise conclusion \<gamma> \<V> where
     "to_clause premise\<^sub>G = premise \<cdot> \<gamma>" and
     "to_clause conclusion\<^sub>G = conclusion \<cdot> \<gamma>" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = select premise \<cdot> \<gamma>" and
-    premise_in_premises: "premise \<in> premises"
+    premise_in_premises: "premise \<in> premises" and
+    typing: "welltyped\<^sub>c typeof_fun \<V> (premise \<cdot> \<gamma>) \<longleftrightarrow> welltyped\<^sub>c typeof_fun \<V> premise"
     using assms(2, 3) premise\<^sub>G_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
-    by (metis (no_types, lifting) select_subst(1) ground_clause_is_ground subst_ground_clause 
-          to_clause_inverse to_ground_clause_inverse)
+    by (metis (no_types, opaque_lifting) first_order_select.select_subst(1) first_order_select_axioms ground_clause_is_ground subst_ground_clause to_clause_inverse to_ground_clause_inverse)
     
   then have
     premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and
@@ -1381,7 +1413,8 @@ proof-
         premise_grounding 
         conclusion_grounding 
         select[unfolded premise\<^sub>G] 
-        ground_eq_resolution[unfolded premise\<^sub>G conclusion\<^sub>G]]
+        ground_eq_resolution[unfolded premise\<^sub>G conclusion\<^sub>G]
+        typing]
     unfolding premise\<^sub>G conclusion\<^sub>G \<iota>\<^sub>G
     by metis
 
@@ -1405,8 +1438,8 @@ qed
 lemma eq_factoring_ground_instance: 
   assumes 
     "\<iota>\<^sub>G \<in> ground.eq_factoring_inferences"
-    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union>(clause_groundings ` premises))" 
-    "subst_stability_on premises"
+    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union>(typed_clause_groundings typeof_fun ` premises))"
+    "typed_subst_stability_on typeof_fun premises"
   obtains \<iota> where 
     "\<iota> \<in> Inf_from premises" 
     "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
@@ -1417,20 +1450,20 @@ proof-
     using assms(1)
     by blast
 
-  have premise\<^sub>G_in_groundings: "premise\<^sub>G \<in> \<Union>(clause_groundings ` premises)"
+  have premise\<^sub>G_in_groundings: "premise\<^sub>G \<in> \<Union>(typed_clause_groundings typeof_fun ` premises)"
     using assms(2)
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
     by simp
 
-  obtain premise conclusion \<gamma> where
+  obtain premise conclusion \<gamma> \<V> where
     "to_clause premise\<^sub>G = premise \<cdot> \<gamma>" and
     "to_clause conclusion\<^sub>G = conclusion \<cdot> \<gamma>" and
     select: "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<gamma>))) = select premise \<cdot> \<gamma>" and
-    premise_in_premises: "premise \<in> premises"
+    premise_in_premises: "premise \<in> premises" and
+    typing: "welltyped\<^sub>c typeof_fun \<V> (premise \<cdot> \<gamma>) \<longleftrightarrow> welltyped\<^sub>c typeof_fun \<V> premise"
     using assms(2, 3) premise\<^sub>G_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
-    by (metis (no_types, opaque_lifting) ground_clause_is_ground select_subst1 subst_ground_clause 
-          to_ground_clause_inverse)
+    by (metis (no_types, opaque_lifting) ground_clause_is_ground select_subst1 subst_ground_clause to_ground_clause_inverse)
 
   then have 
     premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and 
@@ -1449,6 +1482,7 @@ proof-
         conclusion_grounding 
         select 
         ground_eq_factoring[unfolded premise\<^sub>G conclusion\<^sub>G]
+        typing
         ]
     unfolding premise\<^sub>G conclusion\<^sub>G \<iota>\<^sub>G
     by metis
@@ -1473,7 +1507,7 @@ lemma superposition_ground_instance:
     "\<iota>\<^sub>G \<in> ground.superposition_inferences"
     "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))" 
     "\<iota>\<^sub>G \<notin> ground.GRed_I (\<Union> (clause_groundings ` premises))"
-    "subst_stability_on premises"
+    "subst_stability_on typeof_fun premises"
   obtains \<iota> where 
     "\<iota> \<in> Inf_from premises" 
     "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
@@ -1632,9 +1666,9 @@ qed
 
 lemma ground_instances: 
   assumes 
-    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (clause_groundings ` premises))" 
-    "\<iota>\<^sub>G \<notin> ground.Red_I (\<Union> (clause_groundings ` premises))"
-    "subst_stability_on premises"
+    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union> (typed_clause_groundings typeof_fun ` premises))" 
+    "\<iota>\<^sub>G \<notin> ground.Red_I (\<Union> (typed_clause_groundings typeof_fun ` premises))"
+    "typed_subst_stability_on typeof_fun premises"
   obtains \<iota> where 
     "\<iota> \<in> Inf_from premises" 
     "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
@@ -1655,7 +1689,7 @@ proof-
     assume "\<iota>\<^sub>G \<in> ground.superposition_inferences"
     then show ?thesis
       using that superposition_ground_instance assms
-      by blast
+      sorry
   next
     assume "\<iota>\<^sub>G \<in> ground.eq_resolution_inferences"  
     then show ?thesis
@@ -1680,7 +1714,7 @@ lemma overapproximation:
     "is_grounding select\<^sub>G"
 proof-
   obtain select\<^sub>G where   
-    subst_stability: "select_subst_stability_on select select\<^sub>G premises" and
+    subst_stability: "typed_select_subst_stability_on typeof_fun select select\<^sub>G premises" and
     "is_grounding select\<^sub>G" 
     using obtain_subst_stable_on_select_grounding
     by blast

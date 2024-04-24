@@ -491,6 +491,7 @@ definition clause_groundings ::
   "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" where
   "clause_groundings clause = { to_ground_clause (clause \<cdot> \<gamma>) | \<gamma>. is_ground_clause (clause \<cdot> \<gamma>) }"
 
+
 (* Turn around and simp lemmas? *)
 lemma to_term_to_atom: "Upair (to_term term\<^sub>G\<^sub>1) (to_term term\<^sub>G\<^sub>2) = to_atom (Upair term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2)"
   by (simp add: to_atom_def)
