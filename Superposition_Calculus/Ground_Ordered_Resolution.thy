@@ -1495,6 +1495,19 @@ next
     using \<open>C \<prec>\<^sub>c D\<close> by auto
 qed
 
+lemma interp_insert_greater_clause_strong:
+  assumes
+    fin: "finite N" and
+    "C \<preceq>\<^sub>c D"
+  shows "interp (insert D N) C = interp N C"
+proof (rule interp_swap_clause_set)
+  show "finite (insert D N)"
+    using fin by simp
+next
+  show "{x \<in> insert D N. x \<prec>\<^sub>c C} = {x \<in> N. x \<prec>\<^sub>c C}"
+    using \<open>C \<preceq>\<^sub>c D\<close> by auto
+qed
+
 lemma interp_insert_greater_clause:
   assumes
     fin: "finite N" and
