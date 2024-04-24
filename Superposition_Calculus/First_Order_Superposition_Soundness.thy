@@ -13,10 +13,10 @@ abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
   "entails\<^sub>F \<equiv> lifting.entails_\<G>"
 
 lemma eq_resolution_sound:
-  assumes step: "eq_resolution P C"
+  assumes step: "eq_resolution (P, \<V>) (C, \<V>)"
   shows "{P} \<TTurnstile>\<^sub>F {C}"
   using step
-proof (cases P C rule: eq_resolution.cases)
+proof (cases "(P, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
   case (eq_resolutionI L P' s\<^sub>1 s\<^sub>2 \<mu>)
 
   have 
@@ -100,10 +100,10 @@ proof (cases P C rule: eq_resolution.cases)
 qed
 
 lemma eq_factoring_sound:
-  assumes step: "eq_factoring P C"
+  assumes step: "eq_factoring (P, \<V>) (C, \<V>)"
   shows "{P} \<TTurnstile>\<^sub>F {C}"
   using step
-proof (cases P C rule: eq_factoring.cases)
+proof (cases "(P, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
   case (eq_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
 
   have 
@@ -203,10 +203,10 @@ proof (cases P C rule: eq_factoring.cases)
 qed
 
 lemma superposition_sound:
-  assumes step: "superposition P2 P1 C"
+  assumes step: "superposition (P2, \<V>) (P1, \<V>) (C, \<V>)"
   shows "{P1, P2} \<TTurnstile>\<^sub>F {C}"
   using step
-proof (cases P2 P1 C rule: superposition.cases)
+proof (cases "(P2, \<V>)" "(P1, \<V>)" "(C, \<V>)" rule: superposition.cases)
   case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
 
   have 
@@ -215,8 +215,8 @@ proof (cases P2 P1 C rule: superposition.cases)
         trans I; 
         sym I;
         compatible_with_gctxt I;
-        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P1 \<cdot> \<gamma>') \<and> is_ground_clause (P1 \<cdot> \<gamma>')) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
-        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P2 \<cdot> \<gamma>') \<and> is_ground_clause (P2 \<cdot> \<gamma>')) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
+        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P1 \<cdot> \<gamma>') \<and> is_ground_clause (P1 \<cdot> \<gamma>')) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G;
+        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P2 \<cdot> \<gamma>') \<and> is_ground_clause (P2 \<cdot> \<gamma>')) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G;
         is_ground_clause (C \<cdot> \<gamma>)
      \<rbrakk> \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause (C \<cdot> \<gamma>)"
   proof -
@@ -418,7 +418,11 @@ proof unfold_locales
       eq_resolution_sound
       superposition_sound
     unfolding inferences_def ground.G_entails_def
-    by auto
+    (* TODO *)
+    apply auto
+      apply (smt (verit) prod.inject superposition.simps)
+     apply (smt (verit) prod.inject eq_resolution.simps)
+    by (smt (verit) prod.inject eq_factoring.simps)
 qed
 
 sublocale first_order_superposition_calculus \<subseteq> 

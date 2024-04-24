@@ -101,8 +101,12 @@ abbreviation superposition_inferences where
   "superposition_inferences \<equiv> { Infer [premise\<^sub>2, premise\<^sub>1] conclusion 
     | premise\<^sub>1 premise\<^sub>2 conclusion. superposition premise\<^sub>2 premise\<^sub>1 conclusion }"
 
-definition inferences :: "('f, 'v, 'ty) typed_clause inference set" where
-  "inferences \<equiv> superposition_inferences \<union> eq_resolution_inferences \<union> eq_factoring_inferences"
+abbreviation typed_inferences :: "('f, 'v, 'ty) typed_clause inference set" where
+  "typed_inferences \<equiv> superposition_inferences \<union> eq_resolution_inferences \<union> eq_factoring_inferences"
+
+definition inferences :: "('f, 'v) atom clause inference set" where
+  "inferences \<equiv> { Infer (map fst premises) (fst conclusion) | premises conclusion. 
+    Infer premises conclusion \<in> typed_inferences }"
 
 abbreviation bottom\<^sub>F :: "('f, 'v) atom clause set" ("\<bottom>\<^sub>F") where
   "bottom\<^sub>F \<equiv> {{#}}"

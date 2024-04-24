@@ -126,8 +126,10 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     unfolding literal subst_literal(2) subst_atom_def to_literal_def to_atom_def
     by simp
 
-  then obtain \<mu> \<sigma> where 
-    \<mu>: "term_subst.is_imgu \<mu> {{term, term'}}" "\<gamma> = \<mu> \<odot> \<sigma>" "welltyped_imgu \<V> term term' \<mu>"
+  then obtain \<mu> \<sigma> where \<mu>: 
+    "term_subst.is_imgu \<mu> {{term, term'}}" 
+    "\<gamma> = \<mu> \<odot> \<sigma>" 
+    "welltyped_imgu typeof_fun \<V> term term' \<mu>"
     using welltyped_imgu_exists
     by meson
 
@@ -205,7 +207,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
         by blast
     qed
   next 
-    show "welltyped\<^sub>\<sigma> typeof_fun \<V> \<mu>"
+    show "welltyped_imgu typeof_fun \<V> term term' \<mu>"
       using \<mu>(3).
   next 
     show "conclusion' \<cdot> \<mu> = conclusion' \<cdot> \<mu>" ..
@@ -255,7 +257,7 @@ lemma eq_factoring_lifting:
     ground_eq_factoring: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G"
   obtains conclusion' 
   where
-    "eq_factoring premise (conclusion')"
+    "eq_factoring (premise, \<V>) (conclusion', \<V>)"
     "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')"
     "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
   using ground_eq_factoring
@@ -374,7 +376,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
 
   let ?conclusion' = "add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise')"
 
-  have eq_factoring: "eq_factoring premise (?conclusion' \<cdot> \<mu>)"
+  have eq_factoring: "eq_factoring (premise, \<V>) (?conclusion' \<cdot> \<mu>, \<V>)"
   proof (rule eq_factoringI)
     show "premise = add_mset literal\<^sub>1 (add_mset literal\<^sub>2 premise')"
       using premise.
@@ -504,8 +506,8 @@ lemma superposition_lifting:
     ground_superposition: "ground.ground_superposition premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G" and
     non_redundant: "\<iota>\<^sub>G \<notin> ground.Red_I premise_groundings"
   obtains conclusion' 
-  where 
-    "superposition premise\<^sub>2 premise\<^sub>1 conclusion'"
+  where
+    "superposition (premise\<^sub>2, \<V>) (premise\<^sub>1, \<V>) (conclusion', \<V>)"
     "\<iota>\<^sub>G \<in> inference_groundings (Infer [premise\<^sub>2, premise\<^sub>1] conclusion')"
     "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
   using ground_superposition
@@ -1083,7 +1085,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
   show ?thesis
   proof(rule that)
-    show "superposition premise\<^sub>2 premise\<^sub>1 conclusion'"
+    show "superposition (premise\<^sub>2, \<V>) (premise\<^sub>1, \<V>) (conclusion', \<V>)"
     proof(rule superpositionI)
       show "term_subst.is_renaming \<rho>\<^sub>1"
         using renaming(1).
@@ -1369,8 +1371,8 @@ proof-
     using ground_clause_is_ground to_clause_inverse
     by(smt(verit))+
 
-  obtain conclusion' where
-    eq_resolution: "eq_resolution premise conclusion'" and
+  obtain conclusion' \<V> where
+    eq_resolution: "eq_resolution (premise, \<V>) (conclusion', \<V>)" and
     \<iota>\<^sub>G: "\<iota>\<^sub>G = Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion' \<cdot> \<gamma>))" and
     inference_groundings: "\<iota>\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')" and  
     conclusion'_conclusion: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
@@ -1390,7 +1392,10 @@ proof-
     show "?\<iota> \<in> Inf_from premises"
       using premise_in_premises eq_resolution
       unfolding Inf_from_def inferences_def inference_system.Inf_from_def
-      by simp
+      (* TODO *) 
+      apply auto
+      by (metis (no_types, opaque_lifting) fst_conv list.simps(8) list.simps(9))
+      
 
     show "\<iota>\<^sub>G \<in> inference_groundings ?\<iota>"
       using inference_groundings.
@@ -1434,8 +1439,8 @@ proof-
     conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
     by (smt(verit) ground_clause_is_ground to_clause_inverse)+
 
-  obtain conclusion' where 
-    eq_factoring: "eq_factoring premise conclusion'" and
+  obtain conclusion' \<V> where 
+    eq_factoring: "eq_factoring (premise, \<V>) (conclusion', \<V>)" and
     inference_groundings: "\<iota>\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')" and  
     conclusion'_conclusion: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     using 
@@ -1446,7 +1451,7 @@ proof-
         ground_eq_factoring[unfolded premise\<^sub>G conclusion\<^sub>G]
         ]
     unfolding premise\<^sub>G conclusion\<^sub>G \<iota>\<^sub>G
-    by auto
+    by metis
 
   let ?\<iota> = "Infer [premise] conclusion'"
 
@@ -1455,7 +1460,8 @@ proof-
     show "?\<iota> \<in> Inf_from premises"
       using premise_in_premises eq_factoring
       unfolding Inf_from_def inferences_def inference_system.Inf_from_def
-      by simp
+      apply auto
+      by (metis (no_types, lifting) fst_conv list.simps(8) list.simps(9))
 
     show "\<iota>\<^sub>G \<in> inference_groundings ?\<iota>"
       using inference_groundings.
@@ -1592,8 +1598,8 @@ proof-
     using assms(3) ground.Red_I_of_subset
     by blast
 
-  obtain conclusion' where 
-    superposition: "superposition premise\<^sub>2 premise\<^sub>1 conclusion'" and
+  obtain conclusion' \<V> where 
+    superposition: "superposition (premise\<^sub>2, \<V>) (premise\<^sub>1, \<V>) (conclusion', \<V>)" and
     inference_groundings: "\<iota>\<^sub>G \<in>  inference_groundings (Infer [premise\<^sub>2, premise\<^sub>1] conclusion')" and  
     conclusion'_\<gamma>_conclusion_\<gamma>: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     using superposition_lifting[OF 
@@ -1616,7 +1622,8 @@ proof-
     show "?\<iota> \<in> Inf_from premises"
       using premise\<^sub>1_in_premises premise\<^sub>2_in_premises superposition
       unfolding Inf_from_def inferences_def inference_system.Inf_from_def
-      by simp
+      apply auto
+      by (metis (no_types, opaque_lifting) fst_conv list.simps(8) list.simps(9))
 
     show "\<iota>\<^sub>G \<in> inference_groundings ?\<iota>"
       using inference_groundings.
