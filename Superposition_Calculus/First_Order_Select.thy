@@ -18,7 +18,7 @@ definition is_select_grounding :: "('f, 'v) select \<Rightarrow> 'f ground_selec
 
 definition typed_clause_groundings where
   "typed_clause_groundings \<F> clause = { to_ground_clause (clause \<cdot> \<gamma>) | \<gamma>. 
-    is_ground_clause (clause \<cdot> \<gamma>) \<and> (\<forall>\<V>. welltyped\<^sub>c \<F> \<V> clause \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> (clause \<cdot> \<gamma>))
+    is_ground_clause (clause \<cdot> \<gamma>) \<and> (\<forall>\<V>. welltyped\<^sub>c \<F> \<V> clause \<longrightarrow> welltyped\<^sub>c \<F> \<V> (clause \<cdot> \<gamma>))
 }"
 
 (* TODO: Factor out sth like select_subst_stable for a single premise and use that format 
@@ -35,7 +35,7 @@ abbreviation typed_select_subst_stability_on where
     \<forall>premise\<^sub>G \<in> \<Union> (typed_clause_groundings \<F> ` premises). \<exists>premise \<in> premises. \<exists>\<gamma> \<V>. 
       premise \<cdot> \<gamma> = to_clause premise\<^sub>G \<and> 
       select\<^sub>G (to_ground_clause (premise \<cdot> \<gamma>)) = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
-       (welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>) \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> premise)"
+       (welltyped\<^sub>c \<F> \<V> premise \<longrightarrow> welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>))"
 
 (*lemma welltyped\<^sub>c_grounding:
   assumes "premise \<cdot> \<gamma> = to_clause premise\<^sub>G"
@@ -59,7 +59,7 @@ proof-
     "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G \<gamma> \<V>. \<exists>premise \<in> premises.
           premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
         \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
-         (welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>) \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> premise)"
+          (welltyped\<^sub>c \<F> \<V> premise \<longrightarrow> welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>))"
     unfolding typed_clause_groundings_def
     by fastforce
 
@@ -68,8 +68,7 @@ proof-
         premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
       \<and> select\<^sub>G_on_premise_groundings (to_ground_clause (premise \<cdot> \<gamma>)) = 
           to_ground_clause ((select premise) \<cdot> \<gamma>)
-      \<and> (welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>) \<longrightarrow> welltyped\<^sub>c \<F> \<V> premise) \<and> 
-        (\<not> welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>) \<longrightarrow> \<not> welltyped\<^sub>c \<F> \<V> premise)"
+      \<and> (welltyped\<^sub>c \<F> \<V> premise \<longrightarrow> welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>))"
     using Ball_Ex_comm(1)[OF select\<^sub>G_exists_for_premises]
     by (metis (mono_tags, opaque_lifting) to_clause_inverse)
 

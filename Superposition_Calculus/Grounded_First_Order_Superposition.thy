@@ -36,7 +36,7 @@ abbreviation is_inference_grounding where
         Infer [premise] conclusion \<Rightarrow>
           is_ground_clause (premise \<cdot> \<gamma>)
         \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
-        \<and> (\<forall>\<V>. welltyped\<^sub>c typeof_fun \<V> conclusion \<longleftrightarrow> welltyped\<^sub>c typeof_fun \<V> (conclusion \<cdot> \<gamma>))
+        \<and> (\<forall>\<V>. welltyped\<^sub>c typeof_fun \<V> conclusion \<longrightarrow> welltyped\<^sub>c typeof_fun \<V> (conclusion \<cdot> \<gamma>))
         \<and> \<iota>\<^sub>G = Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion \<cdot> \<gamma>))
       | Infer [premise\<^sub>2, premise\<^sub>1] conclusion \<Rightarrow> 
           term_subst.is_renaming \<rho>\<^sub>1
@@ -45,7 +45,7 @@ abbreviation is_inference_grounding where
         \<and> is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)
         \<and> is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)
         \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
-        \<and> (\<forall>\<V>. welltyped\<^sub>c typeof_fun \<V> conclusion \<longleftrightarrow> welltyped\<^sub>c typeof_fun \<V> (conclusion \<cdot> \<gamma>))
+        \<and> (\<forall>\<V>. welltyped\<^sub>c typeof_fun \<V> conclusion \<longrightarrow> welltyped\<^sub>c typeof_fun \<V> (conclusion \<cdot> \<gamma>))
         \<and> \<iota>\<^sub>G =
             Infer
               [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)]

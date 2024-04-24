@@ -20,7 +20,7 @@ lemma eq_resolution_lifting:
     conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
     ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G" and
-    typing: "welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>) \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> premise"
+    typing: "welltyped\<^sub>c \<F> \<V> premise \<longrightarrow> welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>)"
   obtains conclusion' 
   where
     "eq_resolution (premise, \<V>) (conclusion', \<V>)"
@@ -256,7 +256,7 @@ lemma eq_factoring_lifting:
     conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
     ground_eq_factoring: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G" and
-    welltyped_grounding: "welltyped\<^sub>c typeof_fun \<V> (premise \<cdot> \<gamma>) \<longleftrightarrow> welltyped\<^sub>c typeof_fun \<V> premise"
+    welltyped_grounding: "welltyped\<^sub>c typeof_fun \<V> premise \<longrightarrow> welltyped\<^sub>c typeof_fun \<V> (premise \<cdot> \<gamma>)"
   obtains conclusion' 
   where
     "eq_factoring (premise, \<V>) (conclusion', \<V>)"
@@ -1390,7 +1390,7 @@ proof-
     "to_clause conclusion\<^sub>G = conclusion \<cdot> \<gamma>" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = select premise \<cdot> \<gamma>" and
     premise_in_premises: "premise \<in> premises" and
-    typing: "welltyped\<^sub>c typeof_fun \<V> (premise \<cdot> \<gamma>) \<longleftrightarrow> welltyped\<^sub>c typeof_fun \<V> premise"
+    typing: "welltyped\<^sub>c typeof_fun \<V> premise \<longrightarrow> welltyped\<^sub>c typeof_fun \<V> (premise \<cdot> \<gamma>)"
     using assms(2, 3) premise\<^sub>G_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
     by (metis (no_types, opaque_lifting) first_order_select.select_subst(1) first_order_select_axioms ground_clause_is_ground subst_ground_clause to_clause_inverse to_ground_clause_inverse)
@@ -1460,7 +1460,7 @@ proof-
     "to_clause conclusion\<^sub>G = conclusion \<cdot> \<gamma>" and
     select: "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<gamma>))) = select premise \<cdot> \<gamma>" and
     premise_in_premises: "premise \<in> premises" and
-    typing: "welltyped\<^sub>c typeof_fun \<V> (premise \<cdot> \<gamma>) \<longleftrightarrow> welltyped\<^sub>c typeof_fun \<V> premise"
+    typing: "welltyped\<^sub>c typeof_fun \<V> premise \<longrightarrow> welltyped\<^sub>c typeof_fun \<V> (premise \<cdot> \<gamma>)"
     using assms(2, 3) premise\<^sub>G_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
     by (metis (no_types, opaque_lifting) ground_clause_is_ground select_subst1 subst_ground_clause to_ground_clause_inverse)
