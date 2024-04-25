@@ -22,20 +22,17 @@ definition typed_clause_groundings where
 }"
 
 (* TODO: Factor out sth like select_subst_stable for a single premise and use that format 
-  everywhere *)
+  everywhere
+
+TODO: Can I write \<forall>\<F>?.
+
+ *)
 abbreviation select_subst_stability_on where
   "\<And>select select\<^sub>G. select_subst_stability_on \<F> select select\<^sub>G premises \<equiv>
-    \<forall>premise\<^sub>G \<in> \<Union> (clause_groundings ` premises). \<exists>premise \<in> premises. \<exists>\<gamma> \<V>. 
+    \<forall>premise\<^sub>G \<in> \<Union> (typed_clause_groundings \<F> ` premises). \<exists>premise \<in> premises. \<exists>\<gamma>. 
       premise \<cdot> \<gamma> = to_clause premise\<^sub>G \<and> 
       select\<^sub>G (to_ground_clause (premise \<cdot> \<gamma>)) = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
-      (welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>) \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> premise)"
-
-abbreviation typed_select_subst_stability_on where
-  "\<And>select select\<^sub>G. typed_select_subst_stability_on \<F> select select\<^sub>G premises \<equiv>
-    \<forall>premise\<^sub>G \<in> \<Union> (typed_clause_groundings \<F> ` premises). \<exists>premise \<in> premises. \<exists>\<gamma> \<V>. 
-      premise \<cdot> \<gamma> = to_clause premise\<^sub>G \<and> 
-      select\<^sub>G (to_ground_clause (premise \<cdot> \<gamma>)) = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
-       (welltyped\<^sub>c \<F> \<V> premise \<longrightarrow> welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>))"
+       (\<forall>\<V>. welltyped\<^sub>c \<F> \<V> premise \<longrightarrow> welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>))"
 
 (*lemma welltyped\<^sub>c_grounding:
   assumes "premise \<cdot> \<gamma> = to_clause premise\<^sub>G"
@@ -50,25 +47,25 @@ abbreviation typed_select_subst_stability_on where
 lemma obtain_subst_stable_on_select_grounding:
   fixes select :: "('f, 'v) select"
   obtains select\<^sub>G where 
-    "typed_select_subst_stability_on \<F> select select\<^sub>G premises"
+    "select_subst_stability_on \<F> select select\<^sub>G premises"
     "is_select_grounding select select\<^sub>G"
 proof-
   let ?premise_groundings = "\<Union>(typed_clause_groundings \<F> ` premises)"
 
   have select\<^sub>G_exists_for_premises: 
-    "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G \<gamma> \<V>. \<exists>premise \<in> premises.
+    "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G \<gamma>. \<exists>premise \<in> premises.
           premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
         \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
-          (welltyped\<^sub>c \<F> \<V> premise \<longrightarrow> welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>))"
+          (\<forall>\<V>. welltyped\<^sub>c \<F> \<V> premise \<longrightarrow> welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>))"
     unfolding typed_clause_groundings_def
     by fastforce
 
   obtain select\<^sub>G_on_premise_groundings where 
-    select\<^sub>G_on_premise_groundings: "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>premise \<in> premises. \<exists>\<gamma> \<V>.
+    select\<^sub>G_on_premise_groundings: "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>premise \<in> premises. \<exists>\<gamma>.
         premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
       \<and> select\<^sub>G_on_premise_groundings (to_ground_clause (premise \<cdot> \<gamma>)) = 
           to_ground_clause ((select premise) \<cdot> \<gamma>)
-      \<and> (welltyped\<^sub>c \<F> \<V> premise \<longrightarrow> welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>))"
+      \<and> (\<forall>\<V>. welltyped\<^sub>c \<F> \<V> premise \<longrightarrow> welltyped\<^sub>c \<F> \<V> (premise \<cdot> \<gamma>))"
     using Ball_Ex_comm(1)[OF select\<^sub>G_exists_for_premises]
     by (metis (mono_tags, opaque_lifting) to_clause_inverse)
 
@@ -155,9 +152,6 @@ begin
 
 abbreviation subst_stability_on where
   "subst_stability_on \<F> premises \<equiv> select_subst_stability_on \<F> select select\<^sub>G premises"
-
-abbreviation typed_subst_stability_on where
-  "typed_subst_stability_on \<F> premises \<equiv> typed_select_subst_stability_on \<F> select select\<^sub>G premises"
   
 lemma select\<^sub>G_subset: "select\<^sub>G clause \<subseteq># clause"
   using select\<^sub>G 

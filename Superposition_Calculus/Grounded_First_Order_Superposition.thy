@@ -36,6 +36,7 @@ abbreviation is_inference_grounding where
         Infer [premise] conclusion \<Rightarrow>
           is_ground_clause (premise \<cdot> \<gamma>)
         \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
+        \<and> (\<forall>\<V>. welltyped\<^sub>c typeof_fun \<V> premise \<longrightarrow> welltyped\<^sub>c typeof_fun \<V> conclusion)
         \<and> (\<forall>\<V>. welltyped\<^sub>c typeof_fun \<V> conclusion \<longrightarrow> welltyped\<^sub>c typeof_fun \<V> (conclusion \<cdot> \<gamma>))
         \<and> \<iota>\<^sub>G = Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion \<cdot> \<gamma>))
       | Infer [premise\<^sub>2, premise\<^sub>1] conclusion \<Rightarrow> 
@@ -45,6 +46,7 @@ abbreviation is_inference_grounding where
         \<and> is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)
         \<and> is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)
         \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
+        \<and> (\<forall>\<V>. welltyped\<^sub>c typeof_fun \<V> premise\<^sub>1 \<longrightarrow> welltyped\<^sub>c typeof_fun \<V> premise\<^sub>2 \<longrightarrow> welltyped\<^sub>c typeof_fun \<V> conclusion)
         \<and> (\<forall>\<V>. welltyped\<^sub>c typeof_fun \<V> conclusion \<longrightarrow> welltyped\<^sub>c typeof_fun \<V> (conclusion \<cdot> \<gamma>))
         \<and> \<iota>\<^sub>G =
             Infer
@@ -77,10 +79,10 @@ proof-
   obtain \<gamma> where 
     "is_ground_clause (conlcusion \<cdot> \<gamma>)"
     "conlcusion\<^sub>G = to_ground_clause (conlcusion \<cdot> \<gamma>)"
-    "\<forall>\<V>. welltyped\<^sub>c typeof_fun \<V> conlcusion = welltyped\<^sub>c typeof_fun \<V> (conlcusion \<cdot> \<gamma>)"
+    "\<forall>\<V>. welltyped\<^sub>c typeof_fun \<V> conlcusion \<longrightarrow> welltyped\<^sub>c typeof_fun \<V> (conlcusion \<cdot> \<gamma>)"
     using assms list_4_cases
     unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
-    by(simp split: list.splits)(metis list_4_cases) 
+    by(simp split: list.splits)(metis list_4_cases)
 
   then show ?thesis
     unfolding \<iota> \<iota>\<^sub>G typed_clause_groundings_def
