@@ -95,7 +95,7 @@ proof (cases "(P, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
    qed
     
    then show ?thesis
-     unfolding ground.G_entails_def true_clss_def clause_groundings_def
+     unfolding ground.G_entails_def true_clss_def typed_clause_groundings_def
      by auto
 qed
 
