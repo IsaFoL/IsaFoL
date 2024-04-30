@@ -68,6 +68,7 @@ definition isasat_current_information_stats :: \<open>64 word \<Rightarrow> isas
          _ = print_uint64 (of_nat lcountUE);
          _ = print_uint64 (of_nat lcountUEk);
          _ = print_uint64 (of_nat lcountUS);
+         _ = print_uint64 ((IsaSAT_Stats.current_rate (curr_phase = 1) stats));
          _ = print_close_colour 0
        in
          stats}
@@ -99,7 +100,7 @@ definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Right
 \<open>isasat_print_progress c curr_phase =
   (\<lambda>stats (lcount, lcountUE, lcountUEk, lcountUS, _).
      let _ = print_c (stats_propagations stats);
-         _ = if curr_phase = 1 then print_open_colour 33 else ();
+         _ = if curr_phase = STABLE_MODE then print_open_colour 33 else ();
          _ = print_char c;
          _ = print_uint64 (stats_propagations stats);
          _ = print_uint64 (stats_conflicts stats);
@@ -113,6 +114,7 @@ definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Right
          _ = print_uint64 (of_nat lcountUE);
          _ = print_uint64 (of_nat lcountUEk);
          _ = print_uint64 (of_nat lcountUS);
+         _ = print_uint64 ((IsaSAT_Stats.current_rate (curr_phase = 1) stats));
          _ = print_close_colour 0
      in
        ())\<close>

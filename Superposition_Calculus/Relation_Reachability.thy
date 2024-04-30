@@ -8,6 +8,9 @@ section \<open>Definitions\<close>
 text \<open>When a binary relation hold for two values, i.e., \<^term>\<open>R x y\<close>, we say that \<^term>\<open>x\<close> reaches
 \<^term>\<open>y\<close> and, conversely, that \<^term>\<open>y\<close> is reachable by \<^term>\<open>x\<close>.\<close>
 
+(* We say that a literal L is maximal (strictly maximal) in a clause C, if there is no other
+   literal in C that is greater (greater or equal) than L w.r.t. \<succ>L. *)
+
 definition non_reachable_wrt where
   "non_reachable_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. \<not> (R y x))"
 
@@ -92,6 +95,22 @@ next
     unfolding reachable_by_all_wrt_def non_reaching_wrt_def
     by (metis Diff_iff asymp_onD)
 qed
+
+lemma non_reachable_wrt_reflclp[simp]:
+  "non_reachable_wrt R\<^sup>=\<^sup>= = non_reachable_wrt R"
+  by (intro ext iffI) (simp_all add: non_reachable_wrt_iff)
+
+lemma non_reaching_wrt_reflclp[simp]:
+  "non_reaching_wrt R\<^sup>=\<^sup>= = non_reaching_wrt R"
+  by (intro ext iffI) (simp_all add: non_reaching_wrt_iff)
+
+lemma reaching_all_wrt_reflclp[simp]:
+  "reaching_all_wrt R\<^sup>=\<^sup>= = reaching_all_wrt R"
+  by (intro ext iffI) (simp_all add: reaching_all_wrt_iff)
+
+lemma reachable_by_all_wrt_reflclp[simp]:
+  "reachable_by_all_wrt R\<^sup>=\<^sup>= = reachable_by_all_wrt R"
+  by (intro ext iffI) (simp_all add: reachable_by_all_wrt_iff)
 
 
 section \<open>Existence\<close>

@@ -357,7 +357,7 @@ definition isa_forward_subsumption_one_wl :: \<open>nat \<Rightarrow> bool list 
   ASSERT (isa_forward_subsumption_one_wl_pre C L S);
   ASSERT (nat_of_lit L < length (get_occs S));
   n \<leftarrow> mop_cocc_list_length (get_occs S) L;
-  (_, s) \<leftarrow>
+  (i, s) \<leftarrow>
     WHILE\<^sub>T\<^bsup> isa_forward_subsumption_one_wl2_inv S C L \<^esup> (\<lambda>(i, s). i < n \<and> s = NONE)
     (\<lambda>(i, s). do {
       ASSERT (i < n);
@@ -374,6 +374,8 @@ definition isa_forward_subsumption_one_wl :: \<open>nat \<Rightarrow> bool list 
   D \<leftarrow> (if s \<noteq> NONE then mop_cch_remove_all_clauses S C D else RETURN D);
   S \<leftarrow> (if is_strengthened s then isa_maybe_push_to_occs_list_st C S else RETURN S);
   S \<leftarrow> isa_subsume_or_strengthen_wl C s S;
+  
+  let S = set_stats_wl_heur (incr_forward_subchecks_by (of_nat i) (get_stats_heur S)) S;
   RETURN (S, s, D)
   })\<close>
 
@@ -404,7 +406,7 @@ definition isa_try_to_forward_subsume_wl_inv :: \<open>isasat \<Rightarrow> nat 
 
   (*TODO: Missing ticks*)
 definition isa_try_to_forward_subsume_wl2_break :: \<open>isasat \<Rightarrow> bool nres\<close> where
-  \<open>isa_try_to_forward_subsume_wl2_break S = RETURN False\<close>
+  \<open>isa_try_to_forward_subsume_wl2_break S = RETURN (forward_subchecks (get_stats_heur S) \<ge> forward_budget (get_stats_heur S))\<close>
 
 definition isa_try_to_forward_subsume_wl2 :: \<open>nat \<Rightarrow> bool list \<Rightarrow> nat list \<Rightarrow> isasat \<Rightarrow> (bool list \<times> nat list \<times> isasat) nres\<close> where
   \<open>isa_try_to_forward_subsume_wl2 C D shrunken S = do {
@@ -633,6 +635,22 @@ definition forward_subsumption_finalize :: \<open>nat list \<Rightarrow> isasat 
     empty_occs2_st S
   }\<close>
 
+definition subsumemineff :: \<open>64 word\<close> where
+  \<open>subsumemineff = 1000000\<close>
+
+definition subsumemaxeff :: \<open>64 word\<close> where
+  \<open>subsumemaxeff = 1000000\<close>
+  
+definition isa_forward_set_budget where
+  \<open>isa_forward_set_budget S = do {
+     let stats = get_stats_heur S;
+     let delta = stats_propagations stats;
+     let delta = (if delta < subsumemineff then subsumemineff else delta);
+     let delta = (if delta > subsumemaxeff then subsumemaxeff else delta);
+     let budget = delta + forward_budget stats;
+     let stats = set_forward_budget budget stats;
+     RETURN (set_stats_wl_heur stats S)
+  }\<close>
 definition isa_forward_subsumption_all_wl_inv :: \<open>_\<close> where
   \<open>isa_forward_subsumption_all_wl_inv R\<^sub>0 S =
   (\<lambda>(i, D, shrunken, T). \<exists>R\<^sub>0' S' T' D' occs' n. (R\<^sub>0, R\<^sub>0')\<in>twl_st_heur_restart_occs' (length (get_clauses_wl_heur R\<^sub>0)) (learned_clss_count R\<^sub>0) \<and>
@@ -644,7 +662,9 @@ definition isa_forward_subsumption_all_wl_inv :: \<open>_\<close> where
 definition isa_forward_subsumption_all :: \<open>_ \<Rightarrow> _ nres\<close> where
   \<open>isa_forward_subsumption_all = (\<lambda>S\<^sub>0. do {
   ASSERT (isa_forward_subsumption_pre_all S\<^sub>0);
-  S \<leftarrow> isa_populate_occs S\<^sub>0;
+  S \<leftarrow> isa_forward_set_budget S\<^sub>0;
+  ASSERT (isasat_fast_relaxed S\<^sub>0 \<longrightarrow> isasat_fast_relaxed S);
+  S \<leftarrow> isa_populate_occs S;
   ASSERT (isasat_fast_relaxed S\<^sub>0 \<longrightarrow> isasat_fast_relaxed S);
   let m = length (get_tvdom S);
   D \<leftarrow> mop_cch_create (length (get_watched_wl_heur S));

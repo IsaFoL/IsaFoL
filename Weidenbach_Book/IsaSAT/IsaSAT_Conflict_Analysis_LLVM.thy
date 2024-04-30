@@ -191,7 +191,9 @@ lemma update_confl_tl_wl_heur_alt_def:
       ASSERT(curry lookup_conflict_remove1_pre L (nxs) \<and> clvls \<ge> 1);
       let (nxs) = lookup_conflict_remove1 L (nxs);
       ASSERT(arena_act_pre N C);
-      vm \<leftarrow> isa_vmtf_bump_to_rescore_also_reasons_cl M N C (-L) vm;
+      let (stats, S) = extract_stats_wl_heur S;
+      let should_bump =  IsaSAT_Stats.rate_should_bump_reason (get_restart_phase S = STABLE_MODE) stats;
+      vm \<leftarrow> isa_vmtf_bump_to_rescore_also_reasons_cl_maybe should_bump M N C (-L) vm;
       ASSERT(isa_bump_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       vm \<leftarrow> isa_bump_unset L' vm;
@@ -202,11 +204,14 @@ lemma update_confl_tl_wl_heur_alt_def:
       let S = update_outl_wl_heur outl S;
       let S = update_arena_wl_heur N S;
       let S = update_lbd_wl_heur lbd S;
+      let S = update_stats_wl_heur stats S;
       RETURN (False, S)
    })\<close>
   unfolding update_confl_tl_wl_heur_def
-  by (auto intro!: ext bind_cong simp: None_lookup_conflict_def the_lookup_conflict_def
+  by (auto intro!: ext bind_cong simp: None_lookup_conflict_def the_lookup_conflict_def rate_should_bump_reason_st_def get_restart_phase_def
     extract_values_of_lookup_conflict_def Let_def state_extractors split: isasat_int_splits)
+
+sepref_register isa_vmtf_bump_to_rescore_also_reasons_cl_maybe
 
 sepref_def update_confl_tl_wl_fast_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>

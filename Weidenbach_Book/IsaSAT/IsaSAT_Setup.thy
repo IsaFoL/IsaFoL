@@ -1220,6 +1220,9 @@ definition opts_restart_st :: \<open>isasat \<Rightarrow> bool\<close> where
 definition opts_reduction_st :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>opts_reduction_st S = opts_reduce (get_opts S)\<close>
 
+definition opts_reduceint_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
+  \<open>opts_reduceint_st S = opts_reduceint (get_opts S)\<close>
+
 definition opts_unbounded_mode_st :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>opts_unbounded_mode_st S = opts_unbounded_mode (get_opts S)\<close>
 
@@ -1579,6 +1582,9 @@ definition end_of_rephasing_phase_st :: \<open>isasat \<Rightarrow> 64 word\<clo
 definition end_of_restart_phase_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
  \<open>end_of_restart_phase_st = (\<lambda>S. end_of_restart_phase (get_heur S))\<close>
 
+definition nb_stabmode_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
+  \<open>nb_stabmode_st = (\<lambda>S. nbstable_phase (get_heur S))\<close>
+
 definition get_vmtf_heur_array where
   \<open>get_vmtf_heur_array S = (fst (get_focused_heuristics (get_vmtf_heur S)))\<close>
 
@@ -1833,6 +1839,9 @@ definition set_stats_size_limit_st where
 definition get_lsize_limit_stats_st :: \<open>_\<close> where
   \<open>get_lsize_limit_stats_st T = get_lsize_limit_stats (get_stats_heur T)\<close>
 
+definition rate_should_bump_reason_st :: \<open>_\<close> where
+  \<open>rate_should_bump_reason_st T =  IsaSAT_Stats.rate_should_bump_reason (get_restart_phase T = STABLE_MODE) (get_stats_heur T)\<close>
+
 definition maybe_mark_added_clause_heur2 where
   \<open>maybe_mark_added_clause_heur2 S C = do {
      let (lbd_limit, size_limit) = get_lsize_limit_stats_st S;
@@ -1878,4 +1887,17 @@ lemma all_count_learned[simp]: \<open>clss_size_allcount (get_learned_count S) =
     by (auto simp: twl_st_heur'_def clss_size_allcount_def learned_clss_count_def clss_size_lcountU0_def
       clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountUEk_def
       split: prod.splits)
+
+definition trail_zeroed_until_state where
+  \<open>trail_zeroed_until_state S = trail_zeroed_until (get_trail_wl_heur S)\<close>
+
+definition trail_set_zeroed_until_state where
+  \<open>trail_set_zeroed_until_state z S = (let M = get_trail_wl_heur S in set_trail_wl_heur (trail_set_zeroed_until z M) S)\<close>
+
+definition forward_budget_st where
+  \<open>forward_budget_st S = forward_budget (get_stats_heur S)\<close>
+
+definition forward_subchecks_st where
+  \<open>forward_subchecks_st S = forward_subchecks (get_stats_heur S)\<close>
+
 end

@@ -53,7 +53,8 @@ where
       ASSERT(curry lookup_conflict_remove1_pre L (n, xs) \<and> clvls \<ge> 1);
       let (n, xs) = lookup_conflict_remove1 L (n, xs);
       ASSERT(arena_act_pre N C);
-      vm \<leftarrow> isa_vmtf_bump_to_rescore_also_reasons_cl M N C (-L) vm;
+      let should_bump = rate_should_bump_reason_st S;
+      vm \<leftarrow> isa_vmtf_bump_to_rescore_also_reasons_cl_maybe should_bump M N C (-L) vm;
       ASSERT(isa_bump_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       vm \<leftarrow> isa_bump_unset L' vm;

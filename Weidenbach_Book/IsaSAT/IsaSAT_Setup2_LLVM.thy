@@ -38,6 +38,23 @@ global_interpretation opts_reduce: read_opts_param_adder0 where
   subgoal by (auto simp: opts_reduction_st_fast_code_def)
   done
 
+definition opts_reduceint_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>opts_reduceint_st_fast_code = read_opts_wl_heur_code opts_rel_reduceint_code\<close>
+
+global_interpretation opts_reduceint: read_opts_param_adder0 where
+  f' = \<open>RETURN o opts_reduceint\<close> and
+  f = opts_rel_reduceint_code and
+  x_assn = word64_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_opts_wl_heur (RETURN o opts_reduceint) = RETURN o opts_reduceint_st\<close> and
+    \<open>read_opts_wl_heur_code opts_rel_reduceint_code = opts_reduceint_st_fast_code\<close>
+  apply unfold_locales
+  apply (rule opts_refine; assumption)
+  subgoal by (auto simp: opts_reduceint_st_fast_code_def read_all_st_def opts_reduceint_st_def intro!: ext
+    split: isasat_int_splits)
+  subgoal by (auto simp: opts_reduceint_st_fast_code_def)
+  done
+
 definition opts_unbounded_mode_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
    \<open>opts_unbounded_mode_st_fast_code = read_opts_wl_heur_code opts_rel_unbounded_mode_code\<close>
 
@@ -241,8 +258,9 @@ global_interpretation stats_conflict: read_stats_param_adder0 where
   done
 
 lemmas [unfolded lambda_comp_true, sepref_fr_rules] =
-  opts_restart.refine[unfolded]
-  opts_reduce.refine[unfolded]
+  opts_restart.refine
+  opts_reduce.refine
+  opts_reduceint.refine
   opts_unbounded_mode.refine
   opts_minimum_between_restart.refine
   opts_restart_coeff1.refine
@@ -257,11 +275,12 @@ lemmas [unfolded lambda_comp_true, sepref_fr_rules] =
 
 sepref_register opts_reduction_st opts_restart_st opts_restart_coeff2_st opts_restart_coeff1_st
     opts_minimum_between_restart_st opts_unbounded_mode_st get_GC_units_opt units_since_last_GC_st
-    isasat_length_trail_st get_pos_of_level_in_trail_imp_st units_since_beginning
+    isasat_length_trail_st get_pos_of_level_in_trail_imp_st units_since_beginning opts_reduceint_st
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   opts_restart_st_fast_code_def[unfolded read_all_st_code_def]
   opts_reduction_st_fast_code_def[unfolded read_all_st_code_def]
+  opts_reduceint_st_fast_code_def[unfolded read_all_st_code_def]
   opts_unbounded_mode_st_fast_code_def[unfolded read_all_st_code_def]
   opts_minimum_between_restart_st_fast_code_def[unfolded read_all_st_code_def]
   opts_restart_coeff1_st_fast_code_def[unfolded read_all_st_code_def]
@@ -566,6 +585,56 @@ sepref_def mop_mark_added_heur_st_impl
   unfolding mop_mark_added_heur_st_alt_def
   by sepref
 
+definition trail_zeroed_until_state_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>trail_zeroed_until_state_fast_code = read_trail_wl_heur_code trail_zeroed_until_impl\<close>
+
+lemma trail_zeroed_until_state_alt_def:
+  \<open>RETURN o trail_zeroed_until_state = read_trail_wl_heur (RETURN \<circ> trail_zeroed_until)\<close>
+  by (auto intro!: ext simp: trail_zeroed_until_state_def trail_zeroed_until_def
+    read_all_st_def split: isasat_int_splits)
+
+definition trail_zeroed_until_state_impl where
+  \<open>trail_zeroed_until_state_impl = read_trail_wl_heur_code count_decided_pol_impl\<close>
+
+sepref_register extract_trail_wl_heur count_decided_pol trail_zeroed_until_state trail_set_zeroed_until_state
+
+
+lemma trail_set_zeroed_until_state_alt_def:
+  \<open>RETURN oo trail_set_zeroed_until_state = (\<lambda>k S. do {
+    let (M, S) = extract_trail_wl_heur S;
+    let M = trail_set_zeroed_until k M;
+    RETURN (update_trail_wl_heur M S)
+  })\<close>
+  unfolding trail_set_zeroed_until_state_def
+  by  (auto simp: state_extractors
+    intro!: ext split: isasat_int_splits)
+
+sepref_def trail_set_zeroed_until_state
+  is \<open>uncurry (RETURN oo trail_set_zeroed_until_state)\<close>
+  ::  \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding trail_set_zeroed_until_state_alt_def
+  by sepref
+
+global_interpretation trail_zeroed_until: read_trail_param_adder0 where
+  f = \<open>trail_zeroed_until_impl\<close> and
+  f' = \<open>RETURN o trail_zeroed_until\<close> and
+  x_assn = sint64_nat_assn and
+  P = \<open>(\<lambda>S. True)\<close>
+  rewrites \<open>read_trail_wl_heur (RETURN o trail_zeroed_until) = RETURN o trail_zeroed_until_state\<close> and
+  \<open>read_trail_wl_heur_code trail_zeroed_until_impl = trail_zeroed_until_state_fast_code\<close>
+  apply unfold_locales
+  apply (rule trail_zeroed_until_impl.refine)
+  subgoal
+    by (auto simp: read_all_st_def trail_zeroed_until_state_def intro!: ext
+      split: isasat_int_splits)
+  subgoal
+    by (auto simp: trail_zeroed_until_state_fast_code_def)
+  done
+
+lemmas [sepref_fr_rules] = trail_zeroed_until.refine[unfolded lambda_comp_true]
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  trail_zeroed_until_state_fast_code_def[unfolded read_all_st_code_def]
+
 
 experiment
 begin
@@ -573,6 +642,7 @@ begin
 export_llvm opts_reduction_st_fast_code opts_restart_st_fast_code opts_unbounded_mode_st_fast_code
   opts_minimum_between_restart_st_fast_code mop_arena_status_st_impl full_arena_length_st_impl
   get_global_conflict_count_impl get_count_max_lvls_heur_impl clss_size_resetUS0_st
+  opts_reduceint_st_fast_code
 end
 
 end

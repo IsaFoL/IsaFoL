@@ -486,6 +486,18 @@ proof -
     done
 qed
 
+
+definition isa_vmtf_bump_to_rescore_also_reasons_cl_maybe where
+  \<open>isa_vmtf_bump_to_rescore_also_reasons_cl_maybe b M N C L vm =
+    (if b then isa_vmtf_bump_to_rescore_also_reasons_cl M N C L vm else isa_bump_mark_to_rescore_clause N C vm)\<close>
+
+definition isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_pre where
+  \<open>isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_pre \<A> vdom b M N C L vm \<longleftrightarrow>
+   (vm \<in> bump_heur \<A> M \<and> C \<in># dom_m N \<and> isasat_input_bounded \<A> \<and>
+    (\<forall>L \<in> set (N \<propto> C). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
+   (\<forall>L \<in> set (N \<propto> C). \<forall>C. (Propagated (-L) C \<in> set M \<longrightarrow> C \<noteq> 0 \<longrightarrow> (C \<in># dom_m N \<and>
+       (\<forall>L\<in> set (N \<propto> C). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)))))\<close>
+
 (*TODO*)
 lemma arena_lifting_list:
   \<open>valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>
@@ -522,6 +534,55 @@ lemma vmtf_mark_to_rescore_also_reasons_cl_spec:
     done
   done
 
+
+lemma isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_pre_alt_def:
+  \<open>valid_arena arena N vdom \<Longrightarrow> isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_pre \<A> vdom b M N C L vm \<longleftrightarrow>
+   (vm \<in> bump_heur \<A> M \<and> C \<in># dom_m N \<and> isasat_input_bounded \<A> \<and>
+    (\<forall>i \<in> set [C..<C + arena_length arena C]. arena_lit arena i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
+   (\<forall>L \<in> set (N \<propto> C). \<forall>C. (Propagated (-L) C \<in> set M \<longrightarrow> C \<noteq> 0 \<longrightarrow> (C \<in># dom_m N \<and>
+    (\<forall>i < length (N \<propto> C). N \<propto> C ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)))))\<close>
+  unfolding isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_pre_def Ball_def
+  apply (auto simp: )
+  apply (metis add_less_imp_less_left arena_lifting(4) arena_lifting(5) in_set_conv_nth le_iff_add)
+  apply (smt (verit, best) add_less_cancel_left arena_lifting(4) arena_lifting(5) in_set_conv_nth le_iff_add)
+  by (metis in_set_conv_nth)
+
+lemma isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_pre_alt_def2:
+  \<open>valid_arena arena N vdom \<Longrightarrow> isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_pre \<A> vdom b M N C L vm \<longleftrightarrow>
+   (vm \<in> bump_heur \<A> M \<and> C \<in># dom_m N \<and> isasat_input_bounded \<A> \<and> (\<forall>L \<in> set (N \<propto> C). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
+    (\<forall>i \<in> set [C..<C + arena_length arena C]. arena_lit arena i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
+   (\<forall>L \<in> set (N \<propto> C). \<forall>C. (Propagated (-L) C \<in> set M \<longrightarrow> C \<noteq> 0 \<longrightarrow> (C \<in># dom_m N \<and>
+       (\<forall>C \<in> set [C..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)))))\<close>
+  unfolding isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_pre_alt_def Ball_def
+  apply (auto simp: )
+  apply (smt (verit, best) add_less_cancel_left arena_lifting(4) arena_lifting(5) in_set_conv_nth le_add1)
+  apply (smt (verit, best) add_less_imp_less_left arena_lifting(4) arena_lifting(5) le_iff_add)
+  by (metis add_less_cancel_left arena_lifting(4) arena_lifting(5) le_add1)
+
+lemma isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_vmtf_mark_to_rescore_also_reasons_cl:
+  \<open>(uncurry5 isa_vmtf_bump_to_rescore_also_reasons_cl_maybe, uncurry5 (\<lambda>_ M _ _ _ _. RES (bump_heur \<A> M))) \<in>
+    [uncurry5 (isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_pre \<A> vdom)]\<^sub>f
+   Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f {(arena,N). valid_arena arena N vdom} \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f (Id) \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+proof -
+  have H: \<open>f = g \<Longrightarrow> (f,g) \<in> Id\<close> for f g
+    by auto
+  show ?thesis
+    unfolding isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg isa_vmtf_bump_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl[THEN fref_to_Down_curry4])
+    apply (rule lhs_step_If)
+    subgoal
+      apply (rule ref_two_step[OF isa_vmtf_bump_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl[where \<A>=\<A>, THEN fref_to_Down_curry4]])
+      apply (auto simp: isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_pre_def)[2]
+      apply (rule vmtf_mark_to_rescore_also_reasons_cl_spec)
+      by (auto simp: isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_pre_alt_def2[where vdom=vdom and \<A>=\<A>])
+    subgoal
+      apply (rule ref_two_step[OF isa_bump_mark_to_rescore_clause_vmtf_mark_to_rescore_clause[where \<A>=\<A>, THEN fref_to_Down_curry2]])
+      apply (auto simp: isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_pre_def)[2]
+      apply (rule vmtf_mark_to_rescore_clause_spec)
+      by (auto simp: isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_pre_alt_def)
+    done
+qed
 
 section \<open>Backtrack level for Restarts\<close>
 

@@ -21,15 +21,19 @@ begin
   qualified definition SUBSUMPTION :: \<open>8 word\<close> where \<open>SUBSUMPTION = 6\<close>
   qualified definition PURE_LITERAL :: \<open>8 word\<close> where \<open>PURE_LITERAL = 7\<close>
   qualified definition BINARY_SIMP :: \<open>8 word\<close> where \<open>BINARY_SIMP = 8\<close>
+  qualified definition FOCUSED_MODE :: \<open>8 word\<close> where \<open>FOCUSED_MODE = 9\<close>
+  qualified definition STABLE_MODE :: \<open>8 word\<close> where \<open>STABLE_MODE = 10\<close>
 
 qualified abbreviation start_propagate :: \<open>unit\<close> where
   \<open>start_propagate \<equiv> IsaSAT_Profile.start IsaSAT_Profile.PROPAGATE\<close>
 qualified abbreviation stop_propagate :: \<open>unit\<close> where
   \<open>stop_propagate \<equiv> IsaSAT_Profile.stop IsaSAT_Profile.PROPAGATE\<close>
-  qualified abbreviation start_analyze :: \<open>unit\<close> where
+
+qualified abbreviation start_analyze :: \<open>unit\<close> where
   \<open>start_analyze \<equiv> IsaSAT_Profile.start IsaSAT_Profile.ANALYZE\<close>
-  qualified abbreviation stop_analyze :: \<open>unit\<close> where
+qualified abbreviation stop_analyze :: \<open>unit\<close> where
   \<open>stop_analyze \<equiv> IsaSAT_Profile.stop IsaSAT_Profile.ANALYZE\<close>
+
 qualified abbreviation start_GC :: \<open>unit\<close> where
   \<open>start_GC \<equiv> IsaSAT_Profile.start IsaSAT_Profile.GC\<close>
 qualified abbreviation stop_GC :: \<open>unit\<close> where
@@ -64,6 +68,16 @@ qualified abbreviation start_pure_literal :: \<open>unit\<close> where
   \<open>start_pure_literal \<equiv> IsaSAT_Profile.start IsaSAT_Profile.PURE_LITERAL\<close>
 qualified abbreviation stop_pure_literal :: \<open>unit\<close> where
   \<open>stop_pure_literal \<equiv> IsaSAT_Profile.stop IsaSAT_Profile.PURE_LITERAL\<close>
+
+qualified abbreviation start_focused_mode :: \<open>unit\<close> where
+  \<open>start_focused_mode \<equiv> IsaSAT_Profile.start IsaSAT_Profile.FOCUSED_MODE\<close>
+qualified abbreviation stop_focused_mode :: \<open>unit\<close> where
+  \<open>stop_focused_mode \<equiv> IsaSAT_Profile.stop IsaSAT_Profile.FOCUSED_MODE\<close>
+
+qualified abbreviation start_stable_mode :: \<open>unit\<close> where
+  \<open>start_stable_mode \<equiv> IsaSAT_Profile.start IsaSAT_Profile.STABLE_MODE\<close>
+qualified abbreviation stop_stable_mode :: \<open>unit\<close> where
+  \<open>stop_stable_mode \<equiv> IsaSAT_Profile.stop IsaSAT_Profile.STABLE_MODE\<close>
 
 end
 

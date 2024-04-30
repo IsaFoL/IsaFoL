@@ -186,7 +186,7 @@ But we continued working on it in [IsaFoL entry](https://github.com/IsaFoL/IsaFo
 * [Mathias Fleury](mailto:mathias.fleury_shtrudel_mpi-inf.mpg.de)
 * [Asta Halkjær From](mailto:ahfrom_shtrudel_dtu.dk)
 * [Alexander Birch Jensen](mailto:aleje_shtrudel_dtu.dk)
-* [Peter Lammich](mailto:lammich_shtrudel_in.tum.de)
+* [Peter Lammich](mailto:p.lammich_shtrudel_utwente.nl)
 * [John Bruntse Larsen](mailto:jobla_shtrudel_dtu.dk)
 * [Julius Michaelis](mailto:j.michaelis_shtrudel_live.de)
 * [Tobias Nipkow](mailto:nipkow_shtrudel_in.tum.de)
@@ -197,7 +197,7 @@ But we continued working on it in [IsaFoL entry](https://github.com/IsaFoL/IsaFo
 * [Anders Schlichtkrull](mailto:andschl_shtrudel_dtu.dk)
 * [Balazs Toth](mailto:balazs.toth_shtrudel_ifi.lmu.de)
 * [Sophie Tourret](mailto:stourret_shtrudel_mpi-inf.mpg.de)
-* [Dmitriy Traytel](mailto:traytel_shtrudel_inf.ethz.ch)
+* [Dmitriy Traytel](mailto:traytel_shtrudel_di.ku.dk)
 * [Jørgen Villadsen](mailto:jovi_shtrudel_dtu.dk)
 * [Petar Vukmirović](mailto:p.vukmirovic_shtrudel_vu.nl)
 

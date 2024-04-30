@@ -95,8 +95,7 @@ definition rewrite_inside_gctxt :: "'f gterm rel \<Rightarrow> 'f gterm rel" whe
 
 lemma mem_rewrite_inside_gctxt_if_mem_rewrite_rules[intro]:
   "(l, r) \<in> R \<Longrightarrow> (l, r) \<in> rewrite_inside_gctxt R"
-  apply (simp add: rewrite_inside_gctxt_def)
-  by (metis gctxt_apply_term.simps(1))
+  by (metis (mono_tags, lifting) CollectI gctxt_apply_term.simps(1) rewrite_inside_gctxt_def)
 
 lemma ctxt_mem_rewrite_inside_gctxt_if_mem_rewrite_rules[intro]:
   "(l, r) \<in> R \<Longrightarrow> (ctxt\<langle>l\<rangle>\<^sub>G, ctxt\<langle>r\<rangle>\<^sub>G) \<in> rewrite_inside_gctxt R"

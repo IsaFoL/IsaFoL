@@ -128,7 +128,7 @@ next
     by simp
 qed
 
-interpretation linorder_trm: linorder lesseq_trm less_trm
+interpretation term_order: linorder lesseq_trm less_trm
 proof unfold_locales
   show "\<And>x y. (x \<prec>\<^sub>t y) = (x \<preceq>\<^sub>t y \<and> \<not> y \<preceq>\<^sub>t x)"
     by (metis asympD asymp_less_trm reflclp_iff)
@@ -146,7 +146,7 @@ next
     by (metis reflclp_iff totalpD totalp_less_trm)
 qed
 
-interpretation linorder_lit: linorder lesseq_lit less_lit
+interpretation literal_order: linorder lesseq_lit less_lit
 proof unfold_locales
   show "\<And>x y. (x \<prec>\<^sub>l y) = (x \<preceq>\<^sub>l y \<and> \<not> y \<preceq>\<^sub>l x)"
     by (metis asympD asymp_less_lit reflclp_iff)
@@ -164,7 +164,7 @@ next
     by (metis reflclp_iff totalpD totalp_less_lit)
 qed
 
-interpretation linorder_cls: linorder lesseq_cls less_cls
+interpretation clause_order: linorder lesseq_cls less_cls
 proof unfold_locales
   show "\<And>x y. (x \<prec>\<^sub>c y) = (x \<preceq>\<^sub>c y \<and> \<not> y \<preceq>\<^sub>c x)"
     by (metis asympD asymp_less_cls reflclp_iff)
@@ -236,7 +236,7 @@ definition G_entails :: "'f gterm atom clause set \<Rightarrow> 'f gterm atom cl
 
 subsection \<open>Correctness\<close>
 
-lemma correctness_ground_resolution:
+lemma soundness_ground_resolution:
   assumes
     step: "ground_resolution P1 P2 C"
   shows "G_entails {P1, P2} {C}"
@@ -291,7 +291,7 @@ proof (cases P1 P2 C rule: ground_resolution.cases)
   qed
 qed
 
-lemma correctness_ground_factoring:
+lemma soundness_ground_factoring:
   assumes step: "ground_factoring P C"
   shows "G_entails {P} {C}"
   using step
@@ -357,8 +357,8 @@ next
 next
   show "\<And>\<iota>. \<iota> \<in> G_Inf \<Longrightarrow> G_entails (set (prems_of \<iota>)) {concl_of \<iota>}"
     unfolding G_Inf_def
-    using correctness_ground_resolution
-    using correctness_ground_factoring
+    using soundness_ground_resolution
+    using soundness_ground_factoring
     by (auto simp: G_entails_def)
 qed
 
@@ -374,7 +374,7 @@ proof (cases P1 P2 C rule: ground_resolution.cases)
   case (ground_resolutionI t P\<^sub>1' P\<^sub>2')
   have "\<forall>k\<in>#P\<^sub>2'. k \<prec>\<^sub>l Pos t"
     using \<open>is_strictly_maximal_lit (Pos t) P2\<close> \<open>P2 = add_mset (Pos t) P\<^sub>2'\<close>
-    by (simp add: linorder_lit.is_greatest_in_mset_iff)
+    by (simp add: literal_order.is_greatest_in_mset_iff)
   moreover have "\<And>A. Pos A \<prec>\<^sub>l Neg A"
     by (simp add: less_lit_def)
   ultimately have "\<forall>k\<in>#P\<^sub>2'. k \<prec>\<^sub>l Neg t"
@@ -480,12 +480,11 @@ qed
 lemma production_eq_empty_or_singleton:
   "production N C = {} \<or> (\<exists>A. production N C = {A})"
 proof -
-  have "\<exists>\<^sub>\<le>\<^sub>1A. \<exists>C'. C = add_mset (Pos A) C' \<and> is_strictly_maximal_lit (Pos A) C"
-    apply (rule UniqI)
-    apply (elim exE conjE)
-    using Uniq_striclty_maximal_lit_in_ground_cls[THEN Uniq_D,
-        of _ "Pos _" "Pos _", unfolded literal.inject]
-    by (metis )
+  have "\<exists>\<^sub>\<le>\<^sub>1A. is_strictly_maximal_lit (Pos A) C"
+    using Uniq_striclty_maximal_lit_in_ground_cls
+    by (metis (mono_tags, lifting) Uniq_def literal.inject(1))
+  hence "\<exists>\<^sub>\<le>\<^sub>1A. \<exists>C'. C = add_mset (Pos A) C' \<and> is_strictly_maximal_lit (Pos A) C"
+    by (simp add: Uniq_def)
   hence Uniq_production: "\<exists>\<^sub>\<le>\<^sub>1A. \<exists>C'.
     C \<in> N \<and>
     C = add_mset (Pos A) C' \<and>
@@ -503,6 +502,16 @@ qed
 
 definition interp where
   "interp N C \<equiv> (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. production N D)"
+
+lemma interp_mempty[simp]: "interp N {#} = {}"
+proof -
+  have "\<nexists>C. C \<prec>\<^sub>c {#}"
+    by (metis clause_order.order.asym subset_implies_multp subset_mset.gr_zeroI)
+  hence "{D \<in> N. D \<prec>\<^sub>c {#}} = {}"
+    by simp
+  thus ?thesis
+    unfolding interp_def by auto
+qed
 
 lemma production_unfold: "production N C = {A | A C'.
     C \<in> N \<and>
@@ -834,7 +843,7 @@ proof -
     "is_strictly_maximal_lit (Pos A\<^sub>C) C"
     by (elim mem_productionE) simp
   hence "\<forall>L \<in># C'. L \<prec>\<^sub>l Pos A\<^sub>C"
-    by (simp add: linorder_lit.is_greatest_in_mset_iff)
+    by (simp add: literal_order.is_greatest_in_mset_iff)
 
   from D_prod obtain D' where
     "D \<in> N" and
@@ -842,7 +851,7 @@ proof -
     "is_strictly_maximal_lit (Pos A\<^sub>D) D"
     by (elim mem_productionE) simp
   hence "\<forall>L \<in># D'. L \<prec>\<^sub>l Pos A\<^sub>D"
-    by (simp add: linorder_lit.is_greatest_in_mset_iff)
+    by (simp add: literal_order.is_greatest_in_mset_iff)
 
   show ?thesis
   proof (rule iffI)
@@ -900,9 +909,7 @@ proof -
     have "C' \<prec>\<^sub>c C"
       by (simp add: C_def subset_implies_multp)
     hence "C' \<preceq>\<^sub>c C"
-      by simp
-
-    thm lesseq_trm_if_pos[OF \<open>C' \<preceq>\<^sub>c C\<close> C_prod \<open>L \<in># C'\<close>]
+      by order
 
     show "\<not> interp N D \<TTurnstile>l L"
     proof (cases L)
@@ -911,7 +918,7 @@ proof -
       proof -
         have "\<forall>y\<in>#C'. y \<prec>\<^sub>l Pos A"
           using Pox_A_max
-          by (simp add: C_def linorder_lit.is_greatest_in_mset_iff)
+          by (simp add: C_def literal_order.is_greatest_in_mset_iff)
         with Pos have "A\<^sub>L \<notin> insert A (interp N C)"
           using L_in \<open>\<not> interp N C \<TTurnstile> C\<close> C_def
           by blast
@@ -1130,7 +1137,7 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
           case False
           hence "count C (Pos A) \<ge> 2"
             using max_Pos_A
-            by (simp add: linorder_lit.count_ge_2_if_maximal_in_mset_and_not_greatest_in_mset)
+            by (simp add: literal_order.count_ge_2_if_maximal_in_mset_and_not_greatest_in_mset)
           then obtain C' where C_def: "C = add_mset (Pos A) (add_mset (Pos A) C')"
             by (metis two_le_countE)
 
@@ -1230,9 +1237,9 @@ proof (induction C arbitrary: D rule: wfP_induct_rule)
 qed
 
 lemma
-  assumes "linorder_cls.is_least_in_fset N C" and "A \<in> production (fset N) C"
+  assumes "clause_order.is_least_in_fset N C" and "A \<in> production (fset N) C"
   shows "\<And>A'. A' \<prec>\<^sub>t A \<Longrightarrow> A' \<notin> (\<Union>D \<in> fset N. production (fset N) D)"
-  using assms less_trm_iff_less_cls_if_mem_production linorder_cls.is_least_in_fset_iff by auto
+  using assms less_trm_iff_less_cls_if_mem_production clause_order.is_least_in_fset_iff by auto
 
 lemma lesser_atoms_not_in_previous_interp_are_not_in_final_interp_if_productive:
   assumes "A \<in> production (fset N) C"
@@ -1240,17 +1247,17 @@ lemma lesser_atoms_not_in_previous_interp_are_not_in_final_interp_if_productive:
   using assms production_subset_if_less_cls less_trm_iff_less_cls_if_mem_production by fastforce
 
 lemma lesser_atoms_not_in_previous_interp_are_not_in_final_interp_if_not_productive:
-  assumes "linorder_lit.is_maximal_in_mset C L" and "production (fset N) C = {}"
+  assumes "literal_order.is_maximal_in_mset C L" and "production (fset N) C = {}"
   shows "\<And>A'. A' \<prec>\<^sub>t atm_of L \<Longrightarrow> A' \<notin> interp (fset N) C \<Longrightarrow> A' \<notin> (\<Union>D \<in> fset N. production (fset N) D)"
   using assms
   by (metis (no_types, lifting) UN_E UnCI less_trm_if_neg lesseq_trm_if_pos
-      linorder_lit.is_maximal_in_mset_iff linorder_trm.less_imp_not_less linorder_trm.not_le
+      literal_order.is_maximal_in_mset_iff term_order.less_imp_not_less term_order.not_le
       not_interp_to_Interp_imp_le)
 
 lemma lesser_atoms_not_in_previous_interp_are_not_in_final_interp:
   fixes A
   assumes
-    L_max: "linorder_lit.is_maximal_in_mset C L" and
+    L_max: "literal_order.is_maximal_in_mset C L" and
     A_less: "A \<prec>\<^sub>t atm_of L" and
     A_no_in: "A \<notin> interp (fset N) C"
   shows "A \<notin> (\<Union>D \<in> fset N. production (fset N) D)"
@@ -1266,11 +1273,11 @@ next
     by auto
   hence "is_strictly_maximal_lit (Pos A') C"
     unfolding production_unfold mem_Collect_eq by metis
-  hence "linorder_lit.is_maximal_in_mset C (Pos A')"
-    using linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset by metis
+  hence "literal_order.is_maximal_in_mset C (Pos A')"
+    using literal_order.is_maximal_in_mset_if_is_greatest_in_mset by metis
   hence "L = Pos A'"
     using L_max
-    by (metis Uniq_D linorder_lit.Uniq_is_maximal_in_mset)
+    by (metis Uniq_D literal_order.Uniq_is_maximal_in_mset)
   hence "atm_of L \<in> production (fset N) C"
     using C_produces_A' by simp
   thus ?thesis
@@ -1282,7 +1289,7 @@ qed
 lemma lesser_atoms_in_previous_interp_are_in_final_interp:
   fixes A
   assumes
-    L_max: "linorder_lit.is_maximal_in_mset C L" and
+    L_max: "literal_order.is_maximal_in_mset C L" and
     A_less: "A \<prec>\<^sub>t atm_of L" and
     A_in: "A \<in> interp N C"
   shows "A \<in> (\<Union>D \<in> N. production N D)"
@@ -1291,7 +1298,7 @@ lemma lesser_atoms_in_previous_interp_are_in_final_interp:
 lemma interp_fixed_for_smaller_literals:
   fixes A
   assumes
-    L_max: "linorder_lit.is_maximal_in_mset C L" and
+    L_max: "literal_order.is_maximal_in_mset C L" and
     A_less: "A \<prec>\<^sub>t atm_of L" and
     "C \<prec>\<^sub>c D"
   shows "A \<in> interp N C \<longleftrightarrow> A \<in> interp N D"
@@ -1304,16 +1311,16 @@ next
   then obtain E where "A \<in> production N E" and "E \<in> N" and "E \<prec>\<^sub>c D"
     unfolding interp_def by auto
 
-  hence "linorder_lit.is_greatest_in_mset E (Pos A)"
+  hence "literal_order.is_greatest_in_mset E (Pos A)"
     by (auto elim: mem_productionE)
 
   moreover have "Pos A \<prec>\<^sub>l L"
     by (metis A_less Neg_atm_of_iff less_lit_simps(1) less_lit_simps(2)
-        linorder_lit.dual_order.strict_trans linorder_trm.order_eq_iff literal.collapse(1))
+        literal_order.dual_order.strict_trans term_order.order_eq_iff literal.collapse(1))
 
   ultimately have "E \<prec>\<^sub>c C"
     using L_max
-    using linorder_lit.multp\<^sub>H\<^sub>O_if_maximal_less_that_maximal multp\<^sub>D\<^sub>M_imp_multp multp\<^sub>H\<^sub>O_imp_multp\<^sub>D\<^sub>M
+    using literal_order.multp\<^sub>H\<^sub>O_if_maximal_less_that_maximal multp\<^sub>D\<^sub>M_imp_multp multp\<^sub>H\<^sub>O_imp_multp\<^sub>D\<^sub>M
     by blast
 
   hence "production N E \<subseteq> interp N C"
@@ -1352,7 +1359,7 @@ proof -
   from L_in have "C \<noteq> {#}"
     by auto
   then obtain K where K_max: "is_maximal_lit K C"
-    using linorder_lit.ex_maximal_in_mset by metis
+    using literal_order.ex_maximal_in_mset by metis
 
   from L_pos obtain A where L_def: "L = Pos A"
     by (metis literal.collapse(1))
@@ -1387,7 +1394,7 @@ proof -
     then show ?thesis
       unfolding L_def literal.sel
       apply (intro lesser_atoms_not_in_previous_interp_are_not_in_final_interp[OF K_max, of A N])
-      apply (metis K_max L_def L_in Neg_atm_of_iff ground_ordered_resolution_calculus.less_lit_simps(1) ground_ordered_resolution_calculus.less_lit_simps(4) ground_ordered_resolution_calculus_axioms linorder_lit.is_maximal_in_mset_iff linorder_trm.less_linear literal.collapse(1) literal.sel(1))
+      apply (metis K_max L_def L_in Neg_atm_of_iff ground_ordered_resolution_calculus.less_lit_simps(1) ground_ordered_resolution_calculus.less_lit_simps(4) ground_ordered_resolution_calculus_axioms literal_order.is_maximal_in_mset_iff term_order.less_linear literal.collapse(1) literal.sel(1))
       using atm_L_not_in[unfolded L_def literal.sel]
       by argo
   qed
@@ -1428,7 +1435,7 @@ proof (induction C rule: wfP_induct[OF wfP_less_cls])
     hence "x \<in> N2" and "x \<prec>\<^sub>c C"
       by simp_all
     moreover have "{D \<in> N1. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D x} = {D \<in> N2. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D x}"
-      using hyps.prems \<open>x \<prec>\<^sub>c C\<close> linorder_cls.order.strict_trans1 by blast
+      using hyps.prems \<open>x \<prec>\<^sub>c C\<close> clause_order.order.strict_trans1 by blast
     ultimately show "production N1 x = production N2 x"
       using hyps.IH[rule_format, of x] by metis
   qed
@@ -1445,22 +1452,86 @@ qed
 lemma interp_swap_clause_set:
   assumes
     fin: "finite N1" and
-    agree: "{D \<in> N1. D \<preceq>\<^sub>c C} = {D \<in> N2. D \<preceq>\<^sub>c C}"
+    agree: "{D \<in> N1. D \<prec>\<^sub>c C} = {D \<in> N2. D \<prec>\<^sub>c C}"
   shows "interp N1 C = interp N2 C"
 proof -
-  have AAA: "{D \<in> N1. D \<prec>\<^sub>c C} = {D \<in> N2. D \<prec>\<^sub>c C}"
-    using agree by blast
-
   have BBB: "production N1 ` {D \<in> N2. D \<prec>\<^sub>c C} = production N2 ` {D \<in> N2. D \<prec>\<^sub>c C}"
-    apply (rule image_eq_imageI)
-    apply (rule production_swap_clause_set)
-    using fin apply simp
-    using agree linorder_cls.less_le_trans by blast
+  proof (intro image_eq_imageI production_swap_clause_set)
+    show "finite N1"
+      using \<open>finite N1\<close> .
+  next
+    fix x
+    assume "x \<in> {D \<in> N2. D \<prec>\<^sub>c C}"
+    thus "{D \<in> N1. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D x} = {D \<in> N2. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D x}"
+      using agree clause_order.le_less_trans by blast
+  qed
 
   show ?thesis
     unfolding interp_def
-    unfolding AAA BBB
+    unfolding agree BBB
     by argo
+qed
+
+lemma Interp_swap_clause_set:
+  assumes
+    fin: "finite N1" and
+    agree: "{D \<in> N1. D \<preceq>\<^sub>c C} = {D \<in> N2. D \<preceq>\<^sub>c C}"
+  shows "interp N1 C \<union> production N1 C = interp N2 C \<union> production N2 C"
+  using production_swap_clause_set[OF assms]
+  using interp_swap_clause_set[OF assms(1)]
+  using assms(2)
+  by blast
+
+lemma production_insert_greater_clause:
+  assumes
+    fin: "finite N" and
+    "C \<prec>\<^sub>c D"
+  shows "production (insert D N) C = production N C"
+proof (rule production_swap_clause_set)
+  show "finite (insert D N)"
+    using fin by simp
+next
+  show "{Da \<in> insert D N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= Da C} = {D \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C}"
+    using \<open>C \<prec>\<^sub>c D\<close> by auto
+qed
+
+lemma interp_insert_greater_clause_strong:
+  assumes
+    fin: "finite N" and
+    "C \<preceq>\<^sub>c D"
+  shows "interp (insert D N) C = interp N C"
+proof (rule interp_swap_clause_set)
+  show "finite (insert D N)"
+    using fin by simp
+next
+  show "{x \<in> insert D N. x \<prec>\<^sub>c C} = {x \<in> N. x \<prec>\<^sub>c C}"
+    using \<open>C \<preceq>\<^sub>c D\<close> by auto
+qed
+
+lemma interp_insert_greater_clause:
+  assumes
+    fin: "finite N" and
+    "C \<prec>\<^sub>c D"
+  shows "interp (insert D N) C = interp N C"
+proof (rule interp_swap_clause_set)
+  show "finite (insert D N)"
+    using fin by simp
+next
+  show "{x \<in> insert D N. x \<prec>\<^sub>c C} = {x \<in> N. x \<prec>\<^sub>c C}"
+    using \<open>C \<prec>\<^sub>c D\<close> by auto
+qed
+
+lemma Interp_insert_greater_clause:
+  assumes
+    fin: "finite N" and
+    "C \<prec>\<^sub>c D"
+  shows "interp (insert D N) C \<union> production (insert D N) C = interp N C \<union> production N C"
+proof (rule Interp_swap_clause_set)
+  show "finite (insert D N)"
+    using fin by simp
+next
+  show "{Da \<in> insert D N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= Da C} = {D \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C}"
+    using \<open>C \<prec>\<^sub>c D\<close> by auto
 qed
 
 lemma production_add_irrelevant_clause_to_set0:
@@ -1482,7 +1553,7 @@ proof -
       unfolding production_unfold
       using no_select
       by (smt (verit, del_insts) Collect_empty_eq \<open>E \<in> N\<close> diff_single_eq_union insertI2
-          linorder_lit.is_greatest_in_mset_iff)
+          literal_order.is_greatest_in_mset_iff)
     hence "(\<nexists>A. is_strictly_maximal_lit (Pos A) D) \<or> interp (insert D N) D \<TTurnstile> D"
     proof (elim disjE)
       assume "\<nexists>A. is_strictly_maximal_lit (Pos A) E"
@@ -1490,7 +1561,7 @@ proof -
       proof (rule contrapos_nn)
         show "\<exists>A. is_strictly_maximal_lit (Pos A) D \<Longrightarrow> \<exists>A. is_strictly_maximal_lit (Pos A) E"
           using \<open>E \<subset># D\<close> \<open>set_mset D = set_mset E\<close>
-          unfolding linorder_lit.is_greatest_in_mset_iff
+          unfolding literal_order.is_greatest_in_mset_iff
           by (metis (no_types, opaque_lifting) add_mset_remove_trivial_eq
               insert_union_subset_iff)
       qed
@@ -1509,7 +1580,7 @@ proof -
     hence "interp (insert D N) D \<TTurnstile> D"
       using prod_E_subset
       by (metis \<open>set_mset D = set_mset E\<close> mem_productionE production_eq_empty_or_singleton
-          insertCI insert_subset linorder_lit.is_greatest_in_mset_iff
+          insertCI insert_subset literal_order.is_greatest_in_mset_iff
           pos_literal_in_imp_true_cls)
     thus ?thesis
       unfolding production_unfold by simp
@@ -1642,6 +1713,34 @@ proof -
     using assms interp_add_irrelevant_clauses_to_set by metis
 qed
 
+lemma lesser_entailed_clause_stays_entailed':
+  assumes "C \<preceq>\<^sub>c D" and D_lt: "D \<prec>\<^sub>c E" and C_entailed: "interp N D \<union> production N D \<TTurnstile> C"
+  shows "interp N E \<TTurnstile> C"
+proof -
+  from C_entailed obtain L where "L \<in># C" and "interp N D \<union> production N D \<TTurnstile>l L"
+    by (auto simp: true_cls_def)
+
+  show ?thesis
+  proof (cases L)
+    case (Pos A)
+    hence "A \<in> interp N D \<union> production N D"
+      using \<open>interp N D \<union> production N D \<TTurnstile>l L\<close> by simp
+    moreover from D_lt have "interp N D \<union> production N D \<subseteq> interp N E"
+      using less_imp_Interp_subseteq_interp by blast
+    ultimately have "A \<in> interp N E"
+      by auto
+    thus ?thesis
+      using Pos \<open>L \<in># C\<close> by auto
+  next
+    case (Neg A)
+    then show ?thesis
+      using neg_lits_not_in_model_stay_out_of_model
+      by (smt (verit, best) UN_E Un_iff \<open>L \<in># C\<close> \<open>interp N D \<union> production N D \<TTurnstile>l L\<close> assms(1)
+          interp_def clause_order.antisym_conv neg_literal_notin_imp_true_cls
+          not_interp_to_Interp_imp_le produces_imp_in_interp true_lit_simps(2))
+  qed
+qed
+
 lemma lesser_entailed_clause_stays_entailed:
   assumes C_le: "C \<preceq>\<^sub>c D" and D_lt: "D \<prec>\<^sub>c E" and C_entailed: "interp N D \<union> production N D \<TTurnstile> C"
   shows "interp N E \<union> production N E \<TTurnstile> C"
@@ -1665,15 +1764,20 @@ proof -
     then show ?thesis
       using neg_lits_not_in_model_stay_out_of_model
       by (smt (verit, best) UN_E Un_iff \<open>L \<in># C\<close> \<open>interp N D \<union> production N D \<TTurnstile>l L\<close> assms(1)
-          interp_def linorder_cls.antisym_conv neg_literal_notin_imp_true_cls
+          interp_def clause_order.antisym_conv neg_literal_notin_imp_true_cls
           not_interp_to_Interp_imp_le produces_imp_in_interp true_lit_simps(2))
   qed
 qed
 
+lemma entailed_clause_stays_entailed':
+  assumes C_lt: "C \<prec>\<^sub>c D" and C_entailed: "interp N C \<union> production N C \<TTurnstile> C"
+  shows "interp N D \<TTurnstile> C"
+  using lesser_entailed_clause_stays_entailed'[OF clause_order.order_refl assms] .
+
 lemma entailed_clause_stays_entailed:
   assumes C_lt: "C \<prec>\<^sub>c D" and C_entailed: "interp N C \<union> production N C \<TTurnstile> C"
   shows "interp N D \<union> production N D \<TTurnstile> C"
-  using lesser_entailed_clause_stays_entailed[OF linorder_cls.order_refl assms] .
+  using lesser_entailed_clause_stays_entailed[OF clause_order.order_refl assms] .
 
 lemma multp_if_all_left_smaller: "M2 \<noteq> {#} \<Longrightarrow> \<forall>k\<in>#M1. \<exists>j\<in>#M2. R k j \<Longrightarrow> multp R M1 M2"
   using one_step_implies_multp
@@ -1803,8 +1907,8 @@ proof -
     unfolding interp_def N_def
     using cls_order
     by (smt (verit, best) Collect_empty_eq bot_fset.rep_eq ccSUP_empty finsertCI fset_simps(2)
-        linorder_cls.dual_order.strict_implies_not_eq linorder_cls.is_minimal_in_fset_finsertI
-        linorder_cls.is_minimal_in_fset_iff singletonD)
+        clause_order.dual_order.strict_implies_not_eq clause_order.is_minimal_in_fset_finsertI
+        clause_order.is_minimal_in_fset_iff singletonD)
   hence "production N C1 = {}"
     unfolding production_unfold C1_def by simp
   hence "interp N C1 \<union> production N C1 \<TTurnstile> C1"
@@ -1845,7 +1949,7 @@ proof -
     moreover have "\<exists>C3'. C3 = add_mset (Pos P4) C3'"
       by (auto simp: C3_def)
     moreover have "is_strictly_maximal_lit (Pos P4) C3"
-      unfolding C3_def linorder_lit.is_greatest_in_mset_iff
+      unfolding C3_def literal_order.is_greatest_in_mset_iff
       using lit_order by auto
     moreover have "\<not> interp N C3 \<TTurnstile> C3"
       unfolding \<open>interp N C3 = {}\<close>
@@ -1896,10 +2000,10 @@ proof -
   have "production N C5 = {}"
   proof -
     have "is_strictly_maximal_lit (Neg P4) C5"
-      unfolding C5_def linorder_lit.is_greatest_in_mset_iff
+      unfolding C5_def literal_order.is_greatest_in_mset_iff
       using lit_order by auto
     hence "\<And>A. \<not> is_strictly_maximal_lit (Pos A) C5"
-      by (meson Uniq_D linorder_lit.Uniq_is_greatest_in_mset literal.distinct(1))
+      by (meson Uniq_D literal_order.Uniq_is_greatest_in_mset literal.distinct(1))
     thus ?thesis
       unfolding production_unfold by simp
   qed

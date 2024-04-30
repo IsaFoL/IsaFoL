@@ -8,23 +8,26 @@ hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 sepref_register isa_save_pos unit_propagation_update_statistics
 
 lemma unit_propagation_update_statistics_alt_def:
-  \<open>unit_propagation_update_statistics p q S = do {
+  \<open>unit_propagation_update_statistics p q ticks S = do {
+  let curr = get_restart_phase S;
   let (stats, S) = extract_stats_wl_heur S;
   let (M, S) = extract_trail_wl_heur S;
   let pq = q - p;
   let stats = incr_propagation_by pq stats;
   let stats = (if get_conflict_wl_is_None_heur S then stats else incr_conflict stats);
+  let stats = (if get_conflict_wl_is_None_heur S then stats else IsaSAT_Stats.update_rate (curr = STABLE_MODE) (stats_decisions stats) stats);
   let stats = (if count_decided_pol M = 0 then incr_units_since_last_GC_by pq (incr_uset_by pq stats) else stats);
   height \<leftarrow> (if get_conflict_wl_is_None_heur S then RETURN q else do {j \<leftarrow> trail_height_before_conflict M; RETURN (of_nat j)});
-  let stats = set_no_conflict_until q stats;
+  let stats = (if curr = STABLE_MODE then incr_search_ticks_stable_by ticks stats else incr_search_ticks_focused_by ticks stats);
+  let stats = set_no_conflict_until height stats;
   RETURN (update_stats_wl_heur stats (update_trail_wl_heur M S))
   }\<close>
   by (auto simp: unit_propagation_update_statistics_def state_extractors Let_def get_conflict_wl_is_None_heur_def
     split: isasat_int_splits intro!: ext)
 
 sepref_def unit_propagation_update_statistics_impl
-  is \<open>uncurry2 (unit_propagation_update_statistics)\<close>
-  :: \<open>word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  is \<open>uncurry3 (unit_propagation_update_statistics)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]] of_nat_unat[sepref_import_param]
   unfolding unit_propagation_update_statistics_alt_def
   apply (annot_unat_const \<open>TYPE (32)\<close>)
@@ -442,10 +445,10 @@ sepref_def pos_of_watched_heur_impl
   by sepref
 
 sepref_def unit_propagation_inner_loop_body_wl_fast_heur_code
-  is \<open>uncurry3 unit_propagation_inner_loop_body_wl_heur\<close>
-  :: \<open>[\<lambda>((L, w), S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
-       sint64_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
+  is \<open>uncurry4 unit_propagation_inner_loop_body_wl_heur\<close>
+  :: \<open>[\<lambda>(((ticks, L), w), S). length (get_clauses_wl_heur S) \<le> snat64_max]\<^sub>a
+      word64_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
+       word64_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
     if_splits[split] snat64_max_le_max_snat64[intro] unit_propagation_inner_loop_wl_loop_D_heur_inv0D[dest!]
   unfolding unit_propagation_inner_loop_body_wl_heur_def PR_CONST_def

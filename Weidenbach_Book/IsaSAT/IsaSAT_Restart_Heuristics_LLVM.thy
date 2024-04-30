@@ -10,59 +10,6 @@ begin
 hide_fact (open) Sepref_Rules.frefI
 
 (*TODO Move*)
-lemma trail_set_zeroed_until_state_alt_def:
-  \<open>RETURN oo trail_set_zeroed_until_state = (\<lambda>k S. do {
-    let (M, S) = extract_trail_wl_heur S;
-    let M = trail_set_zeroed_until k M;
-    RETURN (update_trail_wl_heur M S)
-  })\<close>
-  unfolding trail_set_zeroed_until_state_def
-  by  (auto simp: state_extractors
-    intro!: ext split: isasat_int_splits)
-
-sepref_def trail_set_zeroed_until_state
-  is \<open>uncurry (RETURN oo trail_set_zeroed_until_state)\<close>
-  ::  \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding trail_set_zeroed_until_state_alt_def
-  by sepref
-
-
-lemma trail_zeroed_until_state_alt_def:
-  \<open>RETURN o trail_zeroed_until_state = read_trail_wl_heur (RETURN \<circ> trail_zeroed_until)\<close>
-  by (auto intro!: ext simp: trail_zeroed_until_state_def trail_zeroed_until_def
-    read_all_st_def split: isasat_int_splits)
-
-definition trail_zeroed_until_state_impl where
-  \<open>trail_zeroed_until_state_impl = read_trail_wl_heur_code count_decided_pol_impl\<close>
-
-sepref_register extract_trail_wl_heur count_decided_pol trail_zeroed_until_state trail_set_zeroed_until_state
-
-
-definition trail_zeroed_until_state_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
-  \<open>trail_zeroed_until_state_fast_code = read_trail_wl_heur_code trail_zeroed_until_impl\<close>
-
-
-global_interpretation trail_zeroed_until: read_trail_param_adder0 where
-  f = \<open>trail_zeroed_until_impl\<close> and
-  f' = \<open>RETURN o trail_zeroed_until\<close> and
-  x_assn = sint64_nat_assn and
-  P = \<open>(\<lambda>S. True)\<close>
-  rewrites \<open>read_trail_wl_heur (RETURN o trail_zeroed_until) = RETURN o trail_zeroed_until_state\<close> and
-  \<open>read_trail_wl_heur_code trail_zeroed_until_impl = trail_zeroed_until_state_fast_code\<close>
-  apply unfold_locales
-  apply (rule trail_zeroed_until_impl.refine)
-  subgoal
-    by (auto simp: read_all_st_def trail_zeroed_until_state_def intro!: ext
-      split: isasat_int_splits)
-  subgoal
-    by (auto simp: trail_zeroed_until_state_fast_code_def)
-  done
-
-lemmas [sepref_fr_rules] = trail_zeroed_until.refine[unfolded lambda_comp_true]
-lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  trail_zeroed_until_state_fast_code_def[unfolded read_all_st_code_def]
-
-
   (*End Move*)
 
 
@@ -137,27 +84,95 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   end_of_rephasing_phase_st_impl_def[unfolded read_all_st_code_def]
 
 sepref_register incr_restart_phase incr_restart_phase_end
-  update_restart_phases
+  update_restart_mode
 
 
-lemma update_restart_phases_alt_def:
-  \<open>update_restart_phases = (\<lambda>S. do {
+lemma update_restart_mode_alt_def:
+  \<open>update_restart_mode = (\<lambda>S. do {
+     end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
      let lcount = get_global_conflict_count S;
      let (heur, S) = extract_heur_wl_heur S;
      let (vm, S) = extract_vmtf_wl_heur S;
+     let (stats, S) = extract_stats_wl_heur S;
+     let init_ticks = init_phase_ticks heur;
+     let curr = current_restart_phase heur;
+     if init_ticks = 0 \<comment>\<open>This is still the very first phase, here the limit is given by conflicts\<close>
+     then do{
+       if (end_of_restart_phase \<ge> lcount) then RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats S)))
+       else do {
+          let search_ticks = (if current_restart_phase heur = STABLE_MODE then stats_ticks_stable stats else stats_ticks_focused stats);
+          let ticks = stats_ticks_focused stats;
+          let vm = switch_bump_heur vm;
+          heur \<leftarrow> RETURN (if curr \<noteq> STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
+          heur \<leftarrow> RETURN (incr_restart_phase heur);
+          heur \<leftarrow> RETURN (set_init_phase_ticks search_ticks heur);
+          let lim = search_ticks + search_ticks;
+          heur \<leftarrow> RETURN (incr_restart_phase_end lim heur);
+
+          heur \<leftarrow> RETURN (swap_emas heur);
+          
+          let (lcount, S) = extract_lcount_wl_heur S;
+          let _ = isasat_print_progress 125 curr stats lcount;
+          _ \<leftarrow> RETURN (IsaSAT_Profile.stop_focused_mode);
+          _ \<leftarrow> RETURN (IsaSAT_Profile.start_stable_mode);
+          let _ = isasat_print_progress 93 (curr XOR 1) stats lcount;
+          let stats = IsaSAT_Stats.rate_set_last_decision (get_decisions stats) stats;
+          RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats (update_lcount_wl_heur lcount S))))
+       }
+     } else do { \<comment>\<open>This is still the very first phase, here the limit is given by ticks\<close>
+        let search_ticks = (if current_restart_phase heur = STABLE_MODE then stats_ticks_stable stats else stats_ticks_focused stats);
+        if (end_of_restart_phase \<ge> search_ticks) then RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats S)))
+        else do {
+          let vm = switch_bump_heur vm;
+          heur \<leftarrow> RETURN (incr_restart_phase heur);
+          heur \<leftarrow> RETURN (if curr \<noteq> STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
+          let search_ticks = (if curr = STABLE_MODE then stats_ticks_stable stats else stats_ticks_focused stats);
+          let stable_number = nbstable_phase heur + 1;
+          let delta = init_ticks * stable_number * stable_number;
+          let lim = search_ticks + delta;
+          heur \<leftarrow> RETURN (if curr = STABLE_MODE then incr_restart_phase_and_length_end lim heur else incr_restart_phase_end lim heur);
+          heur \<leftarrow> RETURN (swap_emas heur);
+          let (lcount2, S) = extract_lcount_wl_heur S;
+          let (open, close) = (if curr = STABLE_MODE then (91, 125) else (123, 93));
+          let _ = isasat_print_progress close curr stats lcount2;
+          _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));
+          _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.start_focused_mode) else RETURN (IsaSAT_Profile.start_stable_mode));
+          let _ = isasat_print_progress open (curr XOR 1) stats lcount2;
+          let stats = IsaSAT_Stats.rate_set_last_decision (get_decisions stats) stats;
+          RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats (update_lcount_wl_heur lcount2 S))))
+      }
+    }
+  })\<close>
+  by (auto simp: update_restart_mode_def state_extractors Let_def split: isasat_int_splits intro!: ext bind_cong[OF refl]
+    cong: if_cong)
+
+lemma update_restart_mode_conflicts_alt_def:
+  \<open>update_restart_mode_conflicts = (\<lambda>S. do {
+     let lcount = get_global_conflict_count S;
+     let (heur, S) = extract_heur_wl_heur S;
+     let curr = current_restart_phase heur;
+     let (vm, S) = extract_vmtf_wl_heur S;
+     let (stats, S) = extract_stats_wl_heur S;
      let vm = switch_bump_heur vm;
      heur \<leftarrow> RETURN (incr_restart_phase heur);
      heur \<leftarrow> RETURN (incr_restart_phase_end lcount heur);
      heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
+     _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));
+     _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.start_focused_mode) else RETURN (IsaSAT_Profile.start_stable_mode));
+     let (lcount2, S) = extract_lcount_wl_heur S;
+     let (open, close) = (if curr = STABLE_MODE then (91::64 word, 125::64 word) else (123, 93));
+     let _ = isasat_print_progress close curr stats lcount2;
+     let _ = isasat_print_progress open (curr XOR 1) stats lcount2;
      heur \<leftarrow> RETURN (swap_emas heur);
-     RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm S))
+     RETURN (update_heur_wl_heur heur (update_vmtf_wl_heur vm (update_stats_wl_heur stats (update_lcount_wl_heur lcount2 S))))
   })\<close>
-  by (auto simp: update_restart_phases_def state_extractors split: isasat_int_splits intro!: ext)
+  by (auto simp: Let_def update_restart_mode_conflicts_def state_extractors split: isasat_int_splits intro!: ext bind_cong)
 
-sepref_def update_restart_phases_impl
-  is \<open>update_restart_phases\<close>
+sepref_def update_restart_mode_impl
+  is \<open>update_restart_mode\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding update_restart_phases_alt_def
+  supply [[goals_limit=1]]
+  unfolding update_restart_mode_alt_def
   by sepref
 
 sepref_register upper_restart_bound_reached
@@ -224,17 +239,6 @@ sepref_def restart_required_heur_fast_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-(*TODO Move to trail*)
-sepref_def replace_reason_in_trail_code
-  is \<open>uncurry2 replace_reason_in_trail\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a (sint64_nat_assn)\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding trail_pol_fast_assn_def replace_reason_in_trail_def trail_update_reason_at_def
-  apply (annot_snat_const \<open>TYPE(64)\<close>)
-  apply (rewrite at \<open>list_update _ _ _\<close> annot_index_of_atm)
-  by sepref
-
-(*END Move*)
 lemma isasat_replace_annot_in_trail_alt_def:
   \<open>isasat_replace_annot_in_trail L C = (\<lambda>S. do {
     let (lcount, S) = extract_lcount_wl_heur S;

@@ -285,6 +285,17 @@ sepref_def access_focused_vmtf_array_code
   unfolding access_focused_vmtf_array_alt_def
   by sepref
 
+sepref_def vmtf_mark_to_rescore_also_reasons_cl_maybe_fast_code
+  is \<open>uncurry5 (isa_vmtf_bump_to_rescore_also_reasons_cl_maybe)\<close>
+  :: \<open>[\<lambda>(((((_,_), N), _), _), _). length N \<le> snat64_max]\<^sub>a
+   bool1_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a heuristic_bump_assn\<^sup>d \<rightarrow>
+  heuristic_bump_assn\<close>
+  supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n[simp]
+  supply [[goals_limit=1]]
+  unfolding isa_vmtf_bump_to_rescore_also_reasons_cl_maybe_def PR_CONST_def
+  by sepref
+
 experiment begin
 
 export_llvm
@@ -294,6 +305,7 @@ export_llvm
   isa_bump_mark_to_rescore_clause_fast_code
   isa_bump_heur_flush_impl
   isa_vmtf_heur_array_nth_code
+  vmtf_mark_to_rescore_also_reasons_cl_maybe_fast_code
 
 end
 

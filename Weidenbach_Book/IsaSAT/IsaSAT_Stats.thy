@@ -11,6 +11,16 @@ We do some statistics on the run.
 NB: the statistics are not proven correct (especially they might
 overflow), there are just there to look for regressions, do some comparisons (e.g., to conclude that
 we are propagating slower than the other solvers), or to test different option combinations.
+
+
+Remark that the code here has grown organically when I needed to add information. It never felt 
+important to reorganize it in a meaningful way... although getting some parts right is absolutely
+critical for performance.
+
+If I were to redo it, I would use (like in other places) a datatype and try to stick to setters to be 
+certain of what is changed during statistics. For example, I tend to bundle update of the number of 
+phases and increasing the length... but if I copy-paste it wrong then some other definitions might 
+have unforseen side effects and given the number of statistics, it is pretty hard to realize.
 \<close>
 
 type_synonym limit = \<open>64 word \<times> 64 word\<close>
@@ -28,17 +38,19 @@ text \<open>The statistics have the following meaning:
   \<^enum> other: max kept lbd, 
   \<^enum> ticks
   \<^enum> average lbds
-  \<^enum> heuristics
+  \<^enum> heuristics for scheduling
 
 
 At first we used a tuple that became longer and longer. We even had statistics bug because we changed
 the wrong element of the tuple. Therefore, we changed to a structure and kept some free spots.
 \<close>
 
-type_synonym search_stats = \<open>64 word \<times> 64 word \<times>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times>64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
+subsection \<open>Search Information\<close>
+
+type_synonym search_stats = \<open>64 word \<times> 64 word \<times>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
 
 definition Search_Stats_propagations :: \<open>search_stats \<Rightarrow> 64 word\<close> where
-  \<open>Search_Stats_propagations = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). propa)\<close>
+  \<open>Search_Stats_propagations = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until, ticks_stable, ticks_focused). propa)\<close>
 
 definition Search_Stats_incr_propagation :: \<open>search_stats \<Rightarrow> search_stats\<close> where
   \<open>Search_Stats_incr_propagation = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa+1, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until))\<close>
@@ -107,10 +119,31 @@ definition Search_Stats_irred :: \<open>search_stats \<Rightarrow> 64 word\<clos
   \<open>Search_Stats_irred = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). irred_cls)\<close>
 
 definition Search_Stats_no_conflict_until :: \<open>search_stats \<Rightarrow> 64 word\<close> where
-  \<open>Search_Stats_no_conflict_until = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). no_conflict_until)\<close>
+  \<open>Search_Stats_no_conflict_until = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until, ticks). no_conflict_until)\<close>
 
 definition Search_Stats_set_no_conflict_until :: \<open>64 word \<Rightarrow> search_stats \<Rightarrow> search_stats\<close> where
-  \<open>Search_Stats_set_no_conflict_until = (\<lambda>p (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, p))\<close>
+  \<open>Search_Stats_set_no_conflict_until = (\<lambda>p (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until, ticks). (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, p, ticks))\<close>
+
+definition Search_Stats_ticks_stable :: \<open>search_stats \<Rightarrow> 64 word\<close> where
+  \<open>Search_Stats_ticks_stable = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until, ticks, ticks_focused). ticks)\<close>
+
+definition Search_Stats_set_ticks_stable :: \<open>64 word \<Rightarrow> search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_set_ticks_stable = (\<lambda>ticks (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until, _, ticks_focused). (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until, ticks, ticks_focused))\<close>
+
+definition Search_Stats_incr_ticks_stable :: \<open>64 word \<Rightarrow> search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_incr_ticks_stable = (\<lambda>t (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until, ticks, ticks_focused). (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until, ticks+t, ticks_focused))\<close>
+  
+definition Search_Stats_ticks_focused :: \<open>search_stats \<Rightarrow> 64 word\<close> where
+  \<open>Search_Stats_ticks_focused = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until, _, ticks_focused). ticks_focused)\<close>
+
+definition Search_Stats_set_ticks_focused :: \<open>64 word \<Rightarrow> search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_set_ticks_focused = (\<lambda>ticks_focused (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until, ticks, _). (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until, ticks, ticks_focused))\<close>
+
+definition Search_Stats_incr_ticks_focused :: \<open>64 word \<Rightarrow> search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_incr_ticks_focused = (\<lambda>t (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until, ticks, ticks_focused). (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until, ticks, ticks_focused+t))\<close>
+
+
+subsection \<open>Inprocessing Information\<close>
 
 type_synonym inprocessing_binary_stats = \<open>64 word \<times> 64 word \<times> 64 word\<close>
 
@@ -126,41 +159,59 @@ definition Binary_Stats_incr_removed :: \<open>inprocessing_binary_stats \<Right
 
 
 text \<open>\<^term>\<open>ticks\<close> is currently unused: it is supposed to be used as to limit the number of clauses to try.\<close>
-type_synonym inprocessing_subsumption_stats = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
+type_synonym inprocessing_subsumption_stats = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
 
-definition Subsumption_Stats_rounds where
+definition Subsumption_Stats_rounds :: \<open>inprocessing_subsumption_stats \<Rightarrow> 64 word\<close> where
   \<open>Subsumption_Stats_rounds = (\<lambda>(rounds, strengthened, subsumed, _). rounds)\<close>
 
-definition Subsumption_Stats_subsumed where
-  \<open>Subsumption_Stats_subsumed = (\<lambda>(subsumed, strengthened, subsumed, _). subsumed)\<close>
+definition Subsumption_Stats_subsumed :: \<open>inprocessing_subsumption_stats \<Rightarrow> 64 word\<close> where
+  \<open>Subsumption_Stats_subsumed = (\<lambda>(rounds, strengthened, subsumed, _). subsumed)\<close>
 
-definition Subsumption_Stats_tried where
-  \<open>Subsumption_Stats_tried = (\<lambda>(subsumed, strengthened, subsumed, _, tried). tried)\<close>
+definition Subsumption_Stats_tried :: \<open>inprocessing_subsumption_stats \<Rightarrow> 64 word\<close> where
+  \<open>Subsumption_Stats_tried = (\<lambda>(rounds, strengthened, subsumed, _, tried, budget). tried)\<close>
 
-definition Subsumption_Stats_strengthened where
+definition Subsumption_Stats_strengthened:: \<open>inprocessing_subsumption_stats \<Rightarrow> 64 word\<close> where
   \<open>Subsumption_Stats_strengthened = (\<lambda>(rounds, strengethened, subsumed, _). strengethened)\<close>
 
 definition Subsumption_Stats_incr_rounds :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
-  \<open>Subsumption_Stats_incr_rounds = (\<lambda>(rounds, units, removed, ticks, tried). (rounds + 1, units, removed, ticks, tried))\<close>
+  \<open>Subsumption_Stats_incr_rounds = (\<lambda>(rounds, units, removed, subcheck, tried). (rounds + 1, units, removed, subcheck, tried))\<close>
 
 definition Subsumption_Stats_incr_strengthening :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
   \<open>Subsumption_Stats_incr_strengthening = (\<lambda>(rounds, units, removed). (rounds, units+1, removed))\<close>
 
 definition Subsumption_Stats_incr_subsumed :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
-  \<open>Subsumption_Stats_incr_subsumed = (\<lambda>(rounds, units, removed, ticks). (rounds, units, removed+1, ticks))\<close>
+  \<open>Subsumption_Stats_incr_subsumed = (\<lambda>(rounds, units, removed, subchecks). (rounds, units, removed+1, subchecks))\<close>
 
 definition Subsumption_Stats_incr_tried :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
-  \<open>Subsumption_Stats_incr_tried = (\<lambda>(rounds, units, removed, ticks, tried). (rounds, units, removed, ticks, tried+1))\<close>
+  \<open>Subsumption_Stats_incr_tried = (\<lambda>(rounds, units, removed, subchecks, tried, budget). (rounds, units, removed, subchecks, tried+1, budget))\<close>
 
-definition Subsumption_Stats_set_ticks_limit :: \<open>64 word \<Rightarrow> inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
-  \<open>Subsumption_Stats_set_ticks_limit = (\<lambda>ticks (rounds, units, removed, _, tried). (rounds, units, removed+1, ticks, tried))\<close>
+definition Subsumption_Stats_incr_subchecks_limit :: \<open>64 word \<Rightarrow> inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
+  \<open>Subsumption_Stats_incr_subchecks_limit = (\<lambda>subs (rounds, units, removed, subchecks, tried). (rounds, units, removed, subchecks + subs, tried))\<close>
 
-definition Subsumption_Stats_ticks_limit :: \<open>inprocessing_subsumption_stats \<Rightarrow> 64 word\<close> where
-  \<open>Subsumption_Stats_ticks_limit = (\<lambda>(rounds, units, removed, ticks, tried). ticks)\<close>
+definition Subsumption_Stats_limit :: \<open>inprocessing_subsumption_stats \<Rightarrow> 64 word\<close> where
+  \<open>Subsumption_Stats_limit = (\<lambda>(rounds, units, removed, subchecks, tried). subchecks)\<close>
 
 definition Subsumption_Stats_ticks_tried :: \<open>inprocessing_subsumption_stats \<Rightarrow> 64 word\<close> where
-  \<open>Subsumption_Stats_ticks_tried = (\<lambda>(rounds, units, removed, ticks, tried). tried)\<close>
+  \<open>Subsumption_Stats_ticks_tried = (\<lambda>(rounds, units, removed, subchecks, tried, budget). tried)\<close>
 
+definition Subsumption_Stats_incr_ticks_tried :: \<open>64 word \<Rightarrow> inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
+  \<open>Subsumption_Stats_incr_ticks_tried = (\<lambda>t (rounds, units, removed, subchecks, tried, budget). (rounds, units, removed, subchecks, tried+t, budget))\<close>
+  
+definition Subsumption_Stats_set_budget :: \<open>64 word \<Rightarrow> inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
+  \<open>Subsumption_Stats_set_budget = (\<lambda>budget (rounds, units, removed, subchecks, tried, _). (rounds, units, removed, subchecks, tried, budget))\<close>
+  
+definition Subsumption_Stats_budget :: \<open>inprocessing_subsumption_stats \<Rightarrow> 64 word\<close> where
+  \<open>Subsumption_Stats_budget = (\<lambda>(rounds, units, removed, subchecks, tried, budget). budget)\<close>
+  
+
+definition Subsumption_Stats_incr_subchecks :: \<open>64 word \<Rightarrow> inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
+  \<open>Subsumption_Stats_incr_subchecks = (\<lambda>w (rounds, units, removed, subchecks, tried, budget). (rounds, units, removed, subchecks+w, tried, budget))\<close>
+  
+definition Subsumption_Stats_subchecks :: \<open>inprocessing_subsumption_stats \<Rightarrow> 64 word\<close> where
+  \<open>Subsumption_Stats_subchecks = (\<lambda>(rounds, units, removed, subchecks, tried, budget). subchecks)\<close>
+  
+
+  
 type_synonym inprocessing_pure_lits_stats = \<open>64 word \<times> 64 word\<close>
 
 definition Pure_lits_Stats_incr_rounds :: \<open>inprocessing_pure_lits_stats \<Rightarrow> inprocessing_pure_lits_stats\<close> where
@@ -168,6 +219,9 @@ definition Pure_lits_Stats_incr_rounds :: \<open>inprocessing_pure_lits_stats \<
 
 definition Pure_lits_Stats_incr_removed :: \<open>inprocessing_pure_lits_stats \<Rightarrow> inprocessing_pure_lits_stats\<close> where
   \<open>Pure_lits_Stats_incr_removed = (\<lambda>(rounds, removed). (rounds, removed+1))\<close>
+
+
+subsubsection \<open>Biggest Seen Clause\<close>
 
 type_synonym lbd_size_limit_stats = \<open>nat \<times> nat\<close>
 
@@ -180,7 +234,9 @@ definition LSize_Stats_size where
 definition LSize_Stats where
   \<open>LSize_Stats lbd size' = (lbd, size')\<close>
 
-
+  
+subsubsection \<open>Rephasing\<close>
+  
 type_synonym rephase_stats = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
 
 definition Rephase_Stats_total :: \<open>rephase_stats \<Rightarrow> _\<close> where
@@ -190,11 +246,39 @@ definition Rephase_Stats_incr_total :: \<open>rephase_stats \<Rightarrow> rephas
   \<open>Rephase_Stats_incr_total = (\<lambda>(rephased, original, best, invert, flipped, random). (rephased+1, original, best, invert, flipped, random))\<close>
 
 
-type_synonym isasat_stats = \<open>(search_stats, inprocessing_binary_stats, inprocessing_subsumption_stats, ema,
-  inprocessing_pure_lits_stats, lbd_size_limit_stats, rephase_stats, 64 word,
+subsubsection \<open>Rate\<close>
+
+text \<open>Rate = number of decision between conflicts. If the number is too high, then we should not do
+ recursive bumping, especially since our sorting is less efficient than the one in kissat.\<close>
+
+type_synonym isasat_rate = \<open>(ema \<times> ema \<times> 64 word)\<close>
+
+definition Rate_get_rate :: \<open>bool \<Rightarrow> isasat_rate \<Rightarrow> 64 word\<close> where
+  \<open>Rate_get_rate is_stable = (\<lambda>(rate_focused, rate_stable, last_decision). if is_stable then ema_extract_value rate_stable else ema_extract_value rate_focused)\<close>
+
+definition Rate_get_rate_last_decision :: \<open>isasat_rate \<Rightarrow> 64 word\<close> where
+  \<open>Rate_get_rate_last_decision = (\<lambda>(rate_focused, rate_stable, last_decision). last_decision)\<close>
+
+definition Rate_set_rate_last_decision :: \<open>64 word \<Rightarrow> isasat_rate \<Rightarrow> isasat_rate\<close> where
+  \<open>Rate_set_rate_last_decision last_decision  = (\<lambda>(rate_focused, rate_stable, _). (rate_focused, rate_stable, last_decision))\<close>
+
+definition Rate_update_rate :: \<open>bool \<Rightarrow> 64 word \<Rightarrow> isasat_rate \<Rightarrow> isasat_rate\<close> where
+  \<open>Rate_update_rate is_stable r = (\<lambda>(rate_focused, rate_stable, last_decision).
+  (if is_stable then rate_focused else ema_update_word (r - last_decision) rate_focused,
+   if is_stable then ema_update_word  (r - last_decision) rate_stable else rate_stable, r))\<close>
+
+
+subsection \<open>All Together\<close>
+
+type_synonym isasat_stats = \<open>
+  (search_stats, inprocessing_binary_stats, inprocessing_subsumption_stats, ema,
+  inprocessing_pure_lits_stats, lbd_size_limit_stats,
+  rephase_stats,
+  isasat_rate,
+
   64 word, 64 word,64 word, 64 word,
   64 word, 64 word, 32 word, 64 word) tuple16\<close>
-
+text \<open>The unused part starts after the line break, but Isabelle does not allow for comments there.\<close>
 
 
 abbreviation Stats :: \<open>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow> isasat_stats\<close> where
@@ -221,6 +305,9 @@ definition get_lsize_limit_stats :: \<open>isasat_stats \<Rightarrow> lbd_size_l
 definition get_rephase_stats :: \<open>isasat_stats \<Rightarrow> rephase_stats\<close> where
   \<open>get_rephase_stats \<equiv> Tuple16.Tuple16_get_g\<close>
 
+definition get_rate_stats :: \<open>isasat_stats \<Rightarrow> isasat_rate\<close> where
+  \<open>get_rate_stats \<equiv> Tuple16.Tuple16_get_h\<close>
+
 definition set_propagation_stats :: \<open>search_stats \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>set_propagation_stats \<equiv> Tuple16.set_a\<close>
 
@@ -242,11 +329,20 @@ definition set_lsize_limit_stats :: \<open>lbd_size_limit_stats \<Rightarrow> is
 definition set_rephase_stats :: \<open>rephase_stats \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>set_rephase_stats \<equiv> Tuple16.set_g\<close>
 
+definition set_rate_stats :: \<open>isasat_rate \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>set_rate_stats \<equiv> Tuple16.set_h\<close>
+  
 definition incr_propagation :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_propagation S = (set_propagation_stats (Search_Stats_incr_propagation (get_search_stats S)) S)\<close>
 
 definition incr_propagation_by :: \<open>64 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_propagation_by p S = (set_propagation_stats (Search_Stats_incr_propagation_by p (get_search_stats S)) S)\<close>
+
+definition incr_search_ticks_stable_by :: \<open>64 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_search_ticks_stable_by p S = (set_propagation_stats (Search_Stats_incr_ticks_stable p (get_search_stats S)) S)\<close>
+  
+definition incr_search_ticks_focused_by :: \<open>64 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_search_ticks_focused_by p S = (set_propagation_stats (Search_Stats_incr_ticks_focused p (get_search_stats S)) S)\<close>
 
 definition incr_conflict :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_conflict S = (set_propagation_stats (Search_Stats_incr_conflicts (get_search_stats S)) S)\<close>
@@ -254,6 +350,9 @@ definition incr_conflict :: \<open>isasat_stats \<Rightarrow> isasat_stats\<clos
 definition incr_decision :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_decision S = (set_propagation_stats (Search_Stats_incr_decisions (get_search_stats S)) S)\<close>
 
+definition get_decisions :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>get_decisions S = (Search_Stats_decisions (get_search_stats S))\<close>
+  
 definition incr_restart :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_restart S = (set_propagation_stats (Search_Stats_incr_restarts (get_search_stats S)) S)\<close>
 
@@ -310,6 +409,18 @@ definition stats_forward_subsumed :: \<open>isasat_stats \<Rightarrow> _\<close>
 
 definition stats_forward_strengthened :: \<open>isasat_stats \<Rightarrow> _\<close> where
   \<open>stats_forward_strengthened = Subsumption_Stats_strengthened o get_subsumption_stats\<close>
+  
+definition set_forward_budget :: \<open>64 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>set_forward_budget w S = set_subsumption_stats (Subsumption_Stats_set_budget w (get_subsumption_stats S)) S\<close>
+  
+definition forward_budget :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>forward_budget S = Subsumption_Stats_budget (get_subsumption_stats S)\<close>
+
+definition incr_forward_subchecks_by :: \<open>64 word \<Rightarrow>  isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_forward_subchecks_by w S = set_subsumption_stats (Subsumption_Stats_incr_subchecks w (get_subsumption_stats S)) S\<close>
+  
+definition forward_subchecks :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>forward_subchecks S = Subsumption_Stats_subchecks (get_subsumption_stats S)\<close>
 
 definition stats_forward_tried :: \<open>isasat_stats \<Rightarrow> _\<close> where
   \<open>stats_forward_tried = Subsumption_Stats_tried o get_subsumption_stats\<close>
@@ -380,6 +491,12 @@ definition Pure_Lits_Stats_removed :: \<open>inprocessing_pure_lits_stats \<Righ
 
 definition stats_pure_lits_removed :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
   \<open>stats_pure_lits_removed = Pure_Lits_Stats_removed o get_pure_lits_stats\<close>
+  
+definition stats_ticks_stable :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_ticks_stable = Search_Stats_ticks_stable o get_search_stats\<close>
+  
+definition stats_ticks_focused :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_ticks_focused = Search_Stats_ticks_focused o get_search_stats\<close>
 
 definition Pure_Lits_Stats_rounds :: \<open>inprocessing_pure_lits_stats \<Rightarrow> 64 word\<close> where
   \<open>Pure_Lits_Stats_rounds = (\<lambda>(rounds, rounds). rounds)\<close> 
@@ -428,6 +545,25 @@ definition stats_size_limit :: \<open>isasat_stats \<Rightarrow> nat\<close> whe
 definition set_stats_size_limit :: \<open>nat \<Rightarrow> nat \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>set_stats_size_limit lbd size' = set_lsize_limit_stats (lbd, size')\<close>
 
+context begin
+qualified definition BUMPREASONRATE where
+  \<open>BUMPREASONRATE = 10\<close> (*Kissat has 10, but our sorting is worse, so maybe decrease*)
+
+qualified definition current_rate :: \<open>bool \<Rightarrow> isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>current_rate is_stable stats = (Rate_get_rate is_stable (get_rate_stats stats))\<close>
+  
+qualified definition rate_should_bump_reason :: \<open>bool \<Rightarrow> isasat_stats \<Rightarrow> bool\<close> where
+  \<open>rate_should_bump_reason is_stable stats = (Rate_get_rate is_stable (get_rate_stats stats) \<ge> BUMPREASONRATE)\<close>
+
+qualified definition update_rate :: \<open>bool \<Rightarrow> 64 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>update_rate is_stable dec stats = (set_rate_stats (Rate_update_rate is_stable dec (get_rate_stats stats)) stats)\<close>
+
+qualified definition rate_set_last_decision :: \<open>64 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>rate_set_last_decision dec stats = (set_rate_stats (Rate_set_rate_last_decision dec (get_rate_stats stats)) stats)\<close>
+
+
+end
+
 
 section \<open>Information related to restarts\<close>
 
@@ -440,33 +576,43 @@ definition STABLE_MODE :: \<open>64 word\<close> where
 definition DEFAULT_INIT_PHASE :: \<open>64 word\<close> where
   \<open>DEFAULT_INIT_PHASE = 10000\<close>
 
-type_synonym restart_info = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
+type_synonym restart_info = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
+text \<open>
+This datastructure contains:
+ \<^item> \<^term>\<open>ccount\<close>: the "conflict count" since the beginning of the current mode. Will soon contain that or the ticks (in cadical: \<^text>\<open>last.stabilize.ticks\<close>).
+ \<^item> \<^term>\<open>ema_lvl\<close>: average restart level (purely for statistics)
+ \<^item> \<^term>\<open>end_of_phase\<close>: scheduled end of phase (to be interpreted as ticks or conflicts)
+ \<^item> \<^term>\<open>lenth_phase\<close>: length of the current phase (useful to schedule next one). Will soon be the number of mode changes.
+ \<^item> \<^term>\<open>init_phase_ticks\<close>: length in ticks of the very first phase
+\<close>
 
 definition incr_conflict_count_since_last_restart :: \<open>restart_info \<Rightarrow> restart_info\<close> where
-  \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl, restart_phase, end_of_phase, length_phase).
-    (ccount + 1, ema_lvl, restart_phase, end_of_phase, length_phase))\<close>
+  \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl, restart_phase, end_of_phase, stabmode, init_phase_ticks).
+    (ccount + 1, ema_lvl, restart_phase, end_of_phase, stabmode, init_phase_ticks))\<close>
 
 definition restart_info_update_lvl_avg :: \<open>32 word \<Rightarrow> restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_update_lvl_avg = (\<lambda>lvl (ccount, ema_lvl). (ccount, ema_lvl))\<close>
 
 definition restart_info_init :: \<open>restart_info\<close> where
-  \<open>restart_info_init = (0, 0, FOCUSED_MODE, DEFAULT_INIT_PHASE, 1000)\<close>
+  \<open>restart_info_init = (0, 0, FOCUSED_MODE, DEFAULT_INIT_PHASE, 0, 0)\<close>
 
 definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>
 
 definition empty_stats :: \<open>isasat_stats\<close> where
-  \<open>empty_stats = Tuple16( (0,0,0,0,0,0,0,0,0,0)::search_stats)
-  ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0,0)::inprocessing_subsumption_stats)
-  (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) (0,0,0,0,0,0) 0 0 0 0 0 0 0 0 0\<close>
+  \<open>empty_stats = Tuple16( (0,0,0,0,0,0,0,0,0,0,0,0)::search_stats)
+  ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0,0,0)::inprocessing_subsumption_stats)
+  (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) ((0,0,0,0,0,0))
+  ((ema_slow_init, ema_slow_init, 0)::isasat_rate) 0 0 0 0 0 0 0 0\<close>
 
 definition empty_stats_clss :: \<open>64 word \<Rightarrow> isasat_stats\<close> where
-  \<open>empty_stats_clss n = Tuple16( (0,0,0,0,0,0,0,0,n,0)::search_stats)
-  ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0,0)::inprocessing_subsumption_stats)
-  (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) (0,0,0,0,0,0) 0 0 0 0 0 0 0 0 0\<close>
+  \<open>empty_stats_clss n = Tuple16( (0,0,0,0,0,0,0,0,n,0,0,0)::search_stats)
+  ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0,0,0)::inprocessing_subsumption_stats)
+  (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) (0,0,0,0,0,0)
+  ((ema_slow_init, ema_slow_init, 0)::isasat_rate) 0 0 0 0 0 0 0 0\<close>
 
 
-section \<open>Heuristics\<close>
+section \<open>Scheduling Information\<close>
 
 type_synonym schedule_info = \<open>64 word \<times> 64 word \<times> 64 word\<close>
 
@@ -912,8 +1058,34 @@ lemma save_phase_heur_preI:
 
 text \<open>Using \<^term>\<open>a + 1\<close> ensures that we do not get stuck with 0.\<close>
 fun incr_restart_phase_end_stats :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>incr_restart_phase_end_stats end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, length_phase), wasted) =
-  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, (length_phase * 3) >> 1), wasted)\<close>
+  \<open>incr_restart_phase_end_stats end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, stabmode, init_phase_ticks), wasted) =
+  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, stabmode, init_phase_ticks), wasted)\<close>
+
+fun incr_restart_phase_and_length_end_stats :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>incr_restart_phase_and_length_end_stats end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, stabmode, init_phase_ticks), wasted) =
+  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, stabmode +1, init_phase_ticks), wasted)\<close>
+
+
+fun init_phase_ticks_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>init_phase_ticks_stats (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, stabmode, init_phase_ticks), wasted) = init_phase_ticks\<close>
+
+fun set_init_phase_ticks_stats :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>set_init_phase_ticks_stats init_phase_ticks (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, stabmode, _), wasted) =
+  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, stabmode, init_phase_ticks), wasted)\<close>
+
+definition incr_restart_phase_and_length_end :: \<open>64 word \<Rightarrow> isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
+  \<open>incr_restart_phase_and_length_end end_of_phase = Restart_Heuristics o (incr_restart_phase_and_length_end_stats end_of_phase) o get_content\<close>
+
+definition set_init_phase_ticks :: \<open>64 word \<Rightarrow> isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
+  \<open>set_init_phase_ticks end_of_phase = Restart_Heuristics o (set_init_phase_ticks_stats end_of_phase) o get_content\<close>
+
+lemma heuristic_rel_incr_restart_lengthI[intro!]:
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase_and_length_end lcount heur)\<close>
+  by (auto simp: heuristic_rel_def heuristic_rel_stats_def incr_restart_phase_and_length_end_def)
+
+lemma heuristic_rel_set_init_phase_ticks[intro!]:
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (set_init_phase_ticks lcount heur)\<close>
+  by (auto simp: heuristic_rel_def heuristic_rel_stats_def set_init_phase_ticks_def)
 
 definition incr_restart_phase_end :: \<open>64 word \<Rightarrow> isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
   \<open>incr_restart_phase_end end_of_phase = Restart_Heuristics o (incr_restart_phase_end_stats end_of_phase) o get_content\<close>
@@ -921,6 +1093,7 @@ definition incr_restart_phase_end :: \<open>64 word \<Rightarrow> isasat_restart
 lemma heuristic_rel_incr_restartI[intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase_end lcount heur)\<close>
   by (auto simp: heuristic_rel_def heuristic_rel_stats_def incr_restart_phase_end_def)
+
 
 lemma [intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (heuristic_reluctant_disable heur)\<close>
@@ -1292,7 +1465,17 @@ definition end_of_restart_phase_stats :: \<open>restart_heuristics \<Rightarrow>
   \<open>end_of_restart_phase_stats = (\<lambda>(_, _, (restart_phase,_ ,_ , end_of_phase, _), _).
     end_of_phase)\<close>
 
+definition stabmode_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>stabmode_stats = (\<lambda>(_, _, (restart_phase,_ ,_ , end_of_phase, stabmode, _::64 word), _). stabmode)\<close>
+  
 definition end_of_restart_phase :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
   \<open>end_of_restart_phase = end_of_restart_phase_stats o get_content\<close>
+
+
+definition nbstable_phase :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>nbstable_phase = stabmode_stats o get_content\<close>
+  
+definition init_phase_ticks :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>init_phase_ticks = init_phase_ticks_stats o get_content\<close>
 
 end

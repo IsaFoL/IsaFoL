@@ -4,6 +4,9 @@ theory Uprod_Extra
     "HOL-Library.Uprod"
 begin
 
+abbreviation upair where
+  "upair \<equiv> \<lambda>(x, y). Upair x y"
+
 lemma Upair_sym: "Upair x y = Upair y x"
   by (metis Upair_inject)
 
@@ -53,5 +56,20 @@ lemma set_mset_mset_uprod[simp]: "set_mset (mset_uprod up) = set_uprod up"
 
 lemma mset_uprod_Upair[simp]: "mset_uprod (Upair x y) = {#x, y#}"
   by (simp add: mset_uprod_def)
+
+lemma map_uprod_inverse: "(\<And>x. f (g x) = x) \<Longrightarrow> (\<And>y. map_uprod f (map_uprod g y) = y)"
+  by (simp add: uprod.map_comp uprod.map_ident_strong)
+
+lemma mset_uprod_image_mset: "mset_uprod (map_uprod f p) = image_mset f (mset_uprod p)"
+proof-
+  obtain x y where [simp]: "p = Upair x y"
+    using uprod_exhaust by blast
+
+  have "mset_uprod (map_uprod f p) = {# f x, f y #}"
+    by simp
+
+  then show "mset_uprod (map_uprod f p) = image_mset f (mset_uprod p)"
+    by simp
+qed
 
 end

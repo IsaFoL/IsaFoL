@@ -1,5 +1,5 @@
 theory Relation_Extra
-  imports "HOL.Relation"
+  imports "HOL.Relation"  "Open_Induction.Restricted_Predicates"
 begin
 
 lemma partition_set_around_element:
@@ -17,6 +17,51 @@ next
     by auto
   thus "z \<in> N"
     using x_in by auto
+qed
+
+lemma reflp_on_image: "reflp_on (f ` A) R \<longleftrightarrow> reflp_on A (\<lambda>a b. R (f a) (f b))"
+  by (simp add: reflp_on_def)
+
+lemma irreflp_on_image: "irreflp_on (f ` A) R \<longleftrightarrow> irreflp_on A (\<lambda>a b. R (f a) (f b))"
+  by (simp add: irreflp_on_def)
+
+lemma symp_on_image: "symp_on (f ` A) R \<longleftrightarrow> symp_on A (\<lambda>a b. R (f a) (f b))"
+  by (simp add: symp_on_def)
+
+lemma asymp_on_image: "asymp_on (f ` A) R \<longleftrightarrow> asymp_on A (\<lambda>a b. R (f a) (f b))"
+  by (simp add: asymp_on_def)
+
+lemma antisymp_on_image:
+  assumes "inj_on f A"
+  shows "antisymp_on (f ` A) R \<longleftrightarrow> antisymp_on A (\<lambda>a b. R (f a) (f b))"
+  using assms by (auto simp: antisymp_on_def inj_on_def)
+
+lemma transp_on_image: "transp_on (f ` A) R \<longleftrightarrow> transp_on A (\<lambda>a b. R (f a) (f b))"
+  by (simp add: transp_on_def)
+
+lemma totalp_on_image:
+  assumes "inj_on f A"
+  shows "totalp_on (f ` A) R \<longleftrightarrow> totalp_on A (\<lambda>a b. R (f a) (f b))"
+  using assms by (auto simp: totalp_on_def inj_on_def)
+
+lemma wfp_on_image: "wfp_on R (f ` A) \<longleftrightarrow> wfp_on (\<lambda>a b. R (f a) (f b)) A"
+proof (rule iffI)
+  show "wfp_on R (f ` A) \<Longrightarrow> wfp_on (\<lambda>a b. R (f a) (f b)) A"
+    unfolding wfp_on_def
+    by (metis imageI o_apply)
+next
+  assume hyp: "wfp_on (\<lambda>a b. R (f a) (f b)) A"
+  show "wfp_on R (f ` A)"
+    unfolding wfp_on_iff_minimal
+  proof (intro allI impI, elim conjE)
+    fix Q x
+    assume "x \<in> Q" and "Q \<subseteq> f ` A"
+    then obtain A' x' where "x' \<in> A'" and "A' \<subseteq> A" and "x = f x'" and "Q = f ` A'"
+      by (smt (verit) image_iff subset_image_iff)
+    with hyp show "\<exists>z\<in>Q. \<forall>y. R y z \<longrightarrow> y \<notin> Q "
+      unfolding wfp_on_iff_minimal
+      by (metis imageE imageI)
+  qed
 qed
 
 end
