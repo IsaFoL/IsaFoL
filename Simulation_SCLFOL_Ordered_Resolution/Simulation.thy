@@ -10388,10 +10388,23 @@ qed
 
 subsection \<open>ORD-RES-7\<close>
 
-find_consts "_ fset fset \<Rightarrow> _ fset"
-
 definition atoms_of_clause_set where
   "atoms_of_clause_set N = (\<Union>C \<in> fset N. atm_of ` set_mset C)"
+
+lemma atoms_of_clause_set_image_fset_iefac[simp]:
+  "atoms_of_clause_set (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) = atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)"
+proof -
+  have "atoms_of_clause_set (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) =
+    (\<Union>C\<in>fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)). atm_of ` set_mset C)"
+  unfolding atoms_of_clause_set_def ..
+  also have "\<dots> = (\<Union>C\<in>fset (N |\<union>| U\<^sub>e\<^sub>r). atm_of ` set_mset (iefac \<F> C))"
+    by simp
+  also have "\<dots> = (\<Union>C\<in>fset (N |\<union>| U\<^sub>e\<^sub>r). atm_of ` set_mset C)"
+    by (metis iefac_def set_mset_efac)
+  also have "\<dots> = atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)"
+    unfolding atoms_of_clause_set_def ..
+  finally show ?thesis .
+qed
 
 definition trail_defined_atm :: "(_ literal \<times> _ option) list \<Rightarrow> _ \<Rightarrow> bool" where
   "trail_defined_atm \<Gamma> A \<longleftrightarrow> A \<in> atm_of ` fst ` set \<Gamma>"
@@ -10404,45 +10417,55 @@ lemma trail_defined_lit_iff_trail_defined_atm:
 lemma "\<I> \<TTurnstile> C \<Longrightarrow> C \<noteq> {#}"
   by blast
 
-find_consts "('a \<times> _) list \<Rightarrow> 'a \<Rightarrow> _"
-term map_of
+definition trail_atoms where
+  "trail_atoms \<Gamma> = atm_of ` fst ` set \<Gamma>"
 
-term takeWhile
+definition clause_could_propagate where
+  "clause_could_propagate \<Gamma> C L \<longleftrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<and> trail_false_cls \<Gamma> {#K \<in># C. K \<noteq> L#}"
 
-(* inductive ord_res_7 where
+lemma true_cls_imp_neq_mempty: "\<I> \<TTurnstile> C \<Longrightarrow> C \<noteq> {#}"
+  by blast
+
+inductive ord_res_7 where
   preskip: "
-    trail_interp \<Gamma> \<TTurnstile> C \<Longrightarrow>
     linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
-    linorder_trm.is_least_in_set {A \<in> atoms_of_clause_set (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)).
+    linorder_trm.is_least_in_set {A \<in> atoms_of_clause_set N.
       A \<preceq>\<^sub>t atm_of L \<and> \<not> trail_defined_atm \<Gamma> A} A \<Longrightarrow>
-    ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, (Neg A, None) # \<Gamma>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C)" |
+    \<Gamma>' = decide_lit (Neg A) # \<Gamma> \<Longrightarrow>
+    \<not> trail_false_cls \<Gamma>' C \<Longrightarrow>
+    ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', Some C)" |
 
   skip: "
-    (trail_interp \<Gamma>) \<TTurnstile> C \<Longrightarrow>
     linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
-    (\<nexists>A. A \<in> atoms_of_clause_set (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) \<and> A \<preceq>\<^sub>t atm_of L \<and>
-      \<not> trail_defined_lit \<Gamma> (Pos A)) \<Longrightarrow>
+    \<not> (\<exists>A \<in> atoms_of_clause_set N. A \<preceq>\<^sub>t atm_of L \<and> \<not> trail_defined_atm \<Gamma> A) \<Longrightarrow>
+    trail_true_cls \<Gamma> C \<Longrightarrow>
     \<C>' = The_optional (linorder_cls.is_least_in_fset {|D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D|}) \<Longrightarrow>
     ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>')" |
 
   production: "
-    \<not> (trail_interp \<Gamma>) \<TTurnstile> C \<Longrightarrow>
     linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    \<not> (\<exists>A \<in> atoms_of_clause_set N. A \<preceq>\<^sub>t atm_of L \<and> \<not> trail_defined_atm \<Gamma> A) \<Longrightarrow>
+    trail_false_cls \<Gamma> C \<Longrightarrow>
     is_pos L \<Longrightarrow>
     linorder_lit.is_greatest_in_mset C L \<Longrightarrow>
+    \<Gamma>' = (L, Some C) # \<Gamma> \<Longrightarrow>
     \<C>' = The_optional (linorder_cls.is_least_in_fset {|D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D|}) \<Longrightarrow>
-    ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C) (U\<^sub>e\<^sub>r, \<F>, (L, Some C) # \<Gamma>, \<C>')" |
+    ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')" |
 
   factoring: "
-    \<not> (trail_interp \<Gamma>) \<TTurnstile> C \<Longrightarrow>
     linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    \<not> (\<exists>A \<in> atoms_of_clause_set N. A \<preceq>\<^sub>t atm_of L \<and> \<not> trail_defined_atm \<Gamma> A) \<Longrightarrow>
+    trail_false_cls \<Gamma> C \<Longrightarrow>
     is_pos L \<Longrightarrow>
     \<not> linorder_lit.is_greatest_in_mset C L \<Longrightarrow>
     \<F>' = finsert C \<F> \<Longrightarrow>
     ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C) (U\<^sub>e\<^sub>r, \<F>', \<Gamma>, Some (efac C))" |
 
   resolution_bot: "
-    \<not> (trail_interp \<Gamma>) \<TTurnstile> C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    \<not> (\<exists>A \<in> atoms_of_clause_set N. A \<preceq>\<^sub>t atm_of L \<and> \<not> trail_defined_atm \<Gamma> A) \<Longrightarrow>
+    trail_false_cls \<Gamma> C \<Longrightarrow>
     linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
     is_neg L \<Longrightarrow>
     map_of \<Gamma> (- L) = Some (Some D) \<Longrightarrow>
@@ -10452,40 +10475,49 @@ term takeWhile
     ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C) (U\<^sub>e\<^sub>r', \<F>, \<Gamma>', Some {#})" |
 
   resolution_pos: "
-    \<not> (trail_interp \<Gamma>) \<TTurnstile> C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    \<not> (\<exists>A \<in> atoms_of_clause_set N. A \<preceq>\<^sub>t atm_of L \<and> \<not> trail_defined_atm \<Gamma> A) \<Longrightarrow>
+    trail_false_cls \<Gamma> C \<Longrightarrow>
     linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
     is_neg L \<Longrightarrow>
     map_of \<Gamma> (- L) = Some (Some D) \<Longrightarrow>
     U\<^sub>e\<^sub>r' = finsert (eres D C) U\<^sub>e\<^sub>r \<Longrightarrow>
     eres D C \<noteq> {#} \<Longrightarrow>
-    \<Gamma>' = takeWhile (\<lambda>(L, _). atm_of L \<prec>\<^sub>t atm_of K) \<Gamma> \<Longrightarrow>
+    \<Gamma>' = takeWhile (\<lambda>x. atm_of (fst x) \<prec>\<^sub>t atm_of K) \<Gamma> \<Longrightarrow>
     linorder_lit.is_maximal_in_mset (eres D C) K \<Longrightarrow>
     is_pos K \<Longrightarrow>
     ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C) (U\<^sub>e\<^sub>r', \<F>, \<Gamma>', Some (eres D C))" |
 
   resolution_neg: "
-    \<not> (trail_interp \<Gamma>) \<TTurnstile> C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    \<not> (\<exists>A \<in> atoms_of_clause_set N. A \<preceq>\<^sub>t atm_of L \<and> \<not> trail_defined_atm \<Gamma> A) \<Longrightarrow>
+    trail_false_cls \<Gamma> C \<Longrightarrow>
     linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
     is_neg L \<Longrightarrow>
     map_of \<Gamma> (- L) = Some (Some D) \<Longrightarrow>
     U\<^sub>e\<^sub>r' = finsert (eres D C) U\<^sub>e\<^sub>r \<Longrightarrow>
     eres D C \<noteq> {#} \<Longrightarrow>
-    \<Gamma>' = takeWhile (\<lambda>(L, _). atm_of L \<prec>\<^sub>t atm_of K) \<Gamma> \<Longrightarrow>
+    \<Gamma>' = takeWhile (\<lambda>x. atm_of (fst x) \<prec>\<^sub>t atm_of K) \<Gamma> \<Longrightarrow>
     linorder_lit.is_maximal_in_mset (eres D C) K \<Longrightarrow>
     is_neg K \<Longrightarrow>
-    \<M> (atm_of K) = Some E \<Longrightarrow>
-    ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C) (U\<^sub>e\<^sub>r', \<F>, \<Gamma>', Some E)" *)
+    map_of \<Gamma> (- K) = Some (Some E) \<Longrightarrow>
+    ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C) (U\<^sub>e\<^sub>r', \<F>, \<Gamma>', Some E)"
+
+
+subsection \<open>ORD-RES-8\<close>
+
+inductive ord_res_8 where
+  preskip: "
+    linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set N. \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
+    linorder_cls.is_least_in_fset {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). \<not> trail_true_cls \<Gamma> C|} C \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset C L \<Longrightarrow>
+    linorder_trm.is_least_in_set {A \<in> atoms_of_clause_set N.
+      A \<preceq>\<^sub>t atm_of L \<and> \<not> trail_defined_atm \<Gamma> A} A \<Longrightarrow>
+    \<Gamma>' = decide_lit (Neg A) # \<Gamma> \<Longrightarrow>
+    \<not> trail_false_cls \<Gamma>' C \<Longrightarrow>
+    ord_res_8 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')"
 
 subsection \<open>SCL(FOL)-1 (resolution-driven strategy)\<close>
-
-thm scl_fol.propagateI
-
-definition trail_atoms where
-  "trail_atoms \<Gamma> = atm_of ` fst ` set \<Gamma>"
-
-definition clause_could_propagate where
-  "clause_could_propagate \<Gamma> C L \<longleftrightarrow>
-    linorder_lit.is_maximal_in_mset C L \<and> trail_false_cls \<Gamma> {#K \<in># C. K \<noteq> L#}"
 
 inductive scl_fol_1 where
   decide_neg: "\<not> (\<exists>C |\<in>| N |\<union>| U. trail_false_cls \<Gamma> C) \<Longrightarrow>
