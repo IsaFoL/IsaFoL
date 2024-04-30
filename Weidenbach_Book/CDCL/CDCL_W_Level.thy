@@ -412,4 +412,64 @@ lemma card_max_lvl_tl:
         then card_max_lvl a y - 1 else card_max_lvl a y)\<close>
   using assms by (cases a) (auto simp: card_max_lvl_Cons)
 
+text \<open>This is the critical theorem for vivification: propagations are entailed by the decisions on the lower level.\<close>
+lemma all_decomposition_implies_propagations_upto:
+  assumes \<open>all_decomposition_implies N (get_all_ann_decomposition M)\<close> \<open>no_dup M\<close>
+  shows \<open>N \<union> {unmark L |L. is_decided L \<and> L \<in> set M \<and> get_level M (lit_of L) \<le> k} \<Turnstile>ps unmark_l (filter (\<lambda>L. get_level M (lit_of L) \<le> k) M)\<close>
+proof -
+  let ?DECO = \<open>\<lambda>M k. unmark ` set (filter (\<lambda>L. is_decided L \<and> L \<in> set M \<and> get_level M (lit_of L) \<le> k) M)\<close>
+  have 1: \<open>{unmark L |L. is_decided L \<and> L \<in> set M \<and> get_level M (lit_of L) \<le> k} = ?DECO M k\<close> for M k
+    by auto
+  show ?thesis
+    using assms unfolding 1
+  proof (induction M arbitrary: k rule: ann_lit_list_induct)
+    case Nil
+    then show ?case by auto
+  next
+    case (Decided L xs) note IH = this(1) and decomp = this(2) and nd = this(3)
+    then have \<open>all_decomposition_implies N (get_all_ann_decomposition xs)\<close>
+      by fastforce
+    then have IH: \<open>N \<union> unmark_l (filter (\<lambda>L. is_decided L \<and> L \<in> set xs \<and> get_level xs (lit_of L) \<le> k) xs) \<Turnstile>ps
+      unmark_l (filter (\<lambda>L. get_level xs (lit_of L) \<le> k) xs)\<close>
+      using IH decomp nd by auto
+    have \<open>count_decided xs \<le> k \<Longrightarrow> {x. is_decided x \<and> x \<in> set xs \<and> get_level xs (lit_of x) \<le> k} =
+      {x. is_decided x \<and> x \<in> set xs}\<close>
+      using count_decided_ge_get_level[of xs] le_trans by blast
+    then have 0: \<open>?DECO (Decided L # xs) k = ?DECO xs k \<union> (if k > count_decided xs then {{#L#}} else {})\<close>
+      using nd
+      apply (auto simp: get_level_cons_if image_iff dest: undefined_notin)
+      apply (metis defined_lit_Pos_atm_iff undefined_notin)
+      by (metis (no_types, lifting) defined_lit_map undefined_notin)
+    moreover have \<open>unmark_l (filter (\<lambda>La. get_level (Decided L # xs) (lit_of La) \<le> k) (Decided L # xs)) =
+      unmark_l (filter (\<lambda>La. get_level xs (lit_of La) \<le> k) xs) \<union> (if k > count_decided xs then {{#L#}} else {})\<close>
+      using nd apply (auto simp: get_level_cons_if image_iff dest: undefined_notin)
+      apply (metis defined_lit_Pos_atm_iff undefined_notin)
+      by (metis (no_types, lifting) defined_lit_map undefined_notin)
+    ultimately show ?case
+      using IH by auto
+  next
+    case (Propagated L C xs) note IH = this(1) and decomp = this(2) and nd = this(3)
+    have 0: \<open>?DECO (Propagated L C # xs) k = ?DECO xs k\<close>
+      using nd apply (auto simp: get_level_cons_if dest: undefined_notin)
+      apply (metis defined_lit_Pos_atm_iff undefined_notin)
+      by (metis (mono_tags, lifting) defined_lit_map mem_Collect_eq rev_image_eqI)
+    have \<open>all_decomposition_implies N (get_all_ann_decomposition xs)\<close>
+      using decomp by (metis all_decomposition_implies_mono_right append_Cons append_Nil)
+    then have IH: \<open>N \<union> ?DECO (Propagated L C # xs) k \<Turnstile>ps unmark_l (filter (\<lambda>L. get_level xs (lit_of L) \<le> k) xs)\<close>
+      using IH nd "0" by auto
+    have unm: \<open>unmark_s {x \<in> set xs. get_level (Propagated L C # xs) (lit_of x) \<le> k} = unmark_s {x \<in> set xs. get_level xs (lit_of x) \<le> k}\<close>
+      using nd apply (auto simp: get_level_cons_if dest: undefined_notin)
+      apply (metis defined_lit_Pos_atm_iff undefined_notin)
+      by (smt (z3) defined_lit_Pos_atm_iff imageI mem_Collect_eq undefined_notin)
+    moreover have \<open>count_decided xs \<le> k \<Longrightarrow> {x. is_decided x \<and> x \<in> set xs \<and> get_level xs (lit_of x) \<le> k} =
+      {x. is_decided x \<and> x \<in> set xs}\<close>
+      using count_decided_ge_get_level[of xs] le_trans by blast
+    moreover have 3: \<open>{unmark La |La. is_decided La \<and> La \<in> set (Propagated L C # xs)} = unmark ` set (filter (\<lambda>L. is_decided L\<and> L \<in> set xs) xs)\<close>
+      using nd by auto
+    ultimately show ?case
+      using IH all_decomposition_implies_propagated_lits_are_implied[OF decomp] unfolding 0 1 3
+      by (auto simp: unm ac_simps)[]
+  qed
+qed
+
 end
