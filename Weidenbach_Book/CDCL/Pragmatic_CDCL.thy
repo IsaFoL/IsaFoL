@@ -268,16 +268,19 @@ inductive pcdcl_core_stgy :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Righta
 
 section \<open>The new rules\<close>
 
+abbreviation make_tautology :: \<open>_\<close> where
+  \<open>make_tautology C \<equiv> C + uminus `# C\<close>
+
 text \<open>Now the different part\<close>
 inductive cdcl_subsumed :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 subsumed_II:
   \<open>cdcl_subsumed (M, N + {#C,C'#}, U, D, NE, UE, NS, US, N0, U0)
-    (M, add_mset C N, U, D, NE, UE, add_mset (add_mset (-L) C') NS, US, N0, U0)\<close>
-  if \<open>C \<subseteq># C'\<close> and \<open>L \<in># C'\<close> and \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> and \<open>-L \<notin># C'\<close> |
+    (M, add_mset C N, U, D, NE, UE, add_mset (make_tautology C') NS, US, N0, U0)\<close>
+  if \<open>C \<subseteq># C'\<close> and \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> |
 subsumed_LL:
   \<open>cdcl_subsumed (M, N, U + {#C,C'#}, D, NE, UE, NS, US, N0, U0)
     (M, N, add_mset C U, D, NE, UE, NS, US, N0, U0)\<close>
-  if \<open>C \<subseteq># C'\<close> and  \<open>L \<in># C'\<close> and \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> |
+  if \<open>C \<subseteq># C'\<close> and \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> |
 subsumed_IL:
   \<open>cdcl_subsumed (M, add_mset C N, add_mset C' U, D, NE, UE, NS, US, N0, U0)
     (M, add_mset C N, U, D, NE, UE, NS, US, N0, U0)\<close>
@@ -476,6 +479,7 @@ section \<open>Model Reconstruction\<close>
 fun to_mr_state :: \<open>'v prag_st \<times> 'v stackWit \<Rightarrow> 'v clauses \<times> 'v clauses \<times> 'v stackWit \<times> 'v set\<close> where
   \<open>to_mr_state ((M, N, U, D, NE, UE, NS, US, N0, U0), S) = (N + NE + NS + N0, U + UE + US + U0, S, atms_of_mm (N + NE + NS + N0 + U + UE + US + U0) \<union> atms_of_ms (wit_clause ` set S))\<close>
 
+(*
 lemma
   assumes \<open>pcdcl V W\<close>
   shows \<open>inp_mr\<^sup>*\<^sup>* (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
@@ -494,7 +498,7 @@ lemma
       dest: multi_member_split)
       sledgehammer
   oops
-
+*)
 section \<open>Invariants\<close>
 
 text \<open>
@@ -1605,22 +1609,22 @@ rule instead of doing any other solution.
 inductive cdcl_unitres :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 cdcl_unitresI:
   \<open>cdcl_unitres (M, N + {#C+C'#}, U, None, NE, UE, NS, US, N0, U0)
-    (M, N + {#C#}, U, None, NE, UE, add_mset (C+C') NS, US, N0, U0)\<close>
+    (M, N + {#C#}, U, None, NE, UE, add_mset (make_tautology (C+C')) NS, US, N0, U0)\<close>
   if \<open>count_decided M = 0\<close> and \<open>add_mset (C+C') (N + NE + NS + N0) \<Turnstile>psm mset_set (CNot C')\<close>
-    \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close> |
+    \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close> \<open>C+C' \<notin> set (get_all_mark_of_propagated M)\<close>|
 cdcl_unitresI_unit:
   \<open>cdcl_unitres (M, N + {#C+C'#}, U, None, NE, UE, NS, US, N0, U0)
-    (Propagated K C # M, N, U, None, NE + {#C#}, UE, add_mset (C+C') NS, US, N0, U0)\<close>
+    (Propagated K C # M, N, U, None, NE + {#C#}, UE, add_mset (add_mset (-K) (C+C')) NS, US, N0, U0)\<close>
   if \<open>count_decided M = 0\<close> and \<open>add_mset (C+C') (N + NE + NS + N0) \<Turnstile>psm mset_set (CNot C')\<close>
     \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close> \<open>C = {#K#}\<close> \<open>undefined_lit M K\<close> |
 cdcl_unitresR:
   \<open>cdcl_unitres (M, N, U + {#C+C'#}, None, NE, UE, NS, US, N0, U0)
-    (M, N, U + {#C#}, None, NE, UE, NS, add_mset (C+C') US, N0, U0)\<close>
+    (M, N, U + {#C#}, None, NE, UE, NS, add_mset (add_mset (-L)(C+C')) US, N0, U0)\<close>
   if \<open>count_decided M = 0\<close> and \<open>(N + NE + NS + N0) \<Turnstile>psm mset_set (CNot C')\<close>  \<open>\<not>tautology C\<close>
-    \<open>distinct_mset C\<close> \<open>atms_of C \<subseteq> atms_of_mm (N+NE+NS+N0)\<close>|
+    \<open>distinct_mset C\<close> \<open>atms_of C \<subseteq> atms_of_mm (N+NE+NS+N0)\<close>  \<open>L \<in># C+C'\<close>|
 cdcl_unitresR_unit:
   \<open>cdcl_unitres (M, N, U + {#C+C'#}, None, NE, UE, NS, US, N0, U0)
-    (Propagated K C # M, N, U, None, NE, UE + {#C#}, NS, add_mset (C+C') US, N0, U0)\<close>
+    (Propagated K C # M, N, U, None, NE, UE + {#C#}, NS, add_mset (add_mset (-K) (C+C')) US, N0, U0)\<close>
   if \<open>count_decided M = 0\<close> and \<open>(N + NE + NS + N0) \<Turnstile>psm mset_set (CNot C')\<close>  \<open>\<not>tautology C\<close>
     \<open>distinct_mset C\<close> \<open>atms_of C \<subseteq> atms_of_mm (N+NE+NS+N0)\<close> \<open>C = {#K#}\<close> \<open>undefined_lit M K\<close> |
 cdcl_unitresR_empty:
@@ -1646,6 +1650,9 @@ lemma true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise':
 lemmas true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise =
   true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise'[of N C' C C' for C C' N, simplified]
 
+lemma true_clss_cls_insert_itself:
+  \<open>insert (C + C') (set_mset N \<union> set_mset NE \<union> set_mset NS \<union> set_mset N0) \<Turnstile>p C + C'\<close>
+  by auto
 lemma cdcl_unitres_learn_subsumeE:
   assumes \<open>cdcl_unitres S X\<close>
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
@@ -1657,9 +1664,19 @@ lemma cdcl_unitres_learn_subsumeE:
     using assms
     apply (cases rule: cdcl_unitres.cases)
     subgoal for M C C' N NE NS N0 U UE US U0
-      by (rule that[of \<open>(M, N + {#C+C', C#}, U, None, NE, UE, NS, US, N0, U0)\<close> X X])
-       (auto simp: cdcl_learn_clause.simps cdcl_subsumed.simps
+      apply (rule that[of \<open>(M, N + {#C+C', C#}, U, None, NE, UE, NS, US, N0, U0)\<close> X X])
+      apply (auto simp: cdcl_learn_clause.simps cdcl_subsumed.simps
+        intro: true_clss_cls_insert_itself
         dest!: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise)
+apply (rule exI[of _ C])
+apply (rule exI[of _ \<open>C+C'\<close>])
+apply (rule exI[of _ N])
+apply auto
+  sledgehammer
+      apply (rule true_clss_cls_insert_itself)
+        
+      try0
+find_theorems "insert ?C _ \<Turnstile>p ?C"
     subgoal for M C C' N NE NS N0 K U UE US U0
       by (rule that[of \<open>(M, N + {#C+C', C#}, U, None, NE, UE, NS, US, N0, U0)\<close>
            \<open>(M, add_mset C N, U, None, NE, UE, add_mset (C+C')NS, US, N0, U0)\<close>

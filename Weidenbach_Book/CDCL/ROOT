@@ -13,6 +13,7 @@ session "CDCL" (Weidenbach_Book) = "HOL"  +
     Nested_Multisets_Ordinals
     Weidenbach_Book_Base
     Entailment_Definition
+    Model_Reconstruction
   theories [document = false]
     "HOL-Eisbach.Eisbach_Tools"
 
