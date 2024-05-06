@@ -11096,23 +11096,6 @@ proof (cases S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
 
         ultimately have "\<forall>A. \<not> trail_defined_atm \<Gamma> A"
           by metis
-
-        show "\<Gamma> = []"
-        proof (cases \<Gamma>)
-          case Nil
-          thus ?thesis by simp
-        next
-          case (Cons Ln \<Gamma>')
-
-          hence "trail_defined_atm \<Gamma> (atm_of (fst Ln))"
-            by (simp add: trail_defined_atm_def)
-
-          moreover have "\<not> trail_defined_atm \<Gamma> (atm_of (fst Ln))"
-            using \<open>\<forall>A. \<not> trail_defined_atm \<Gamma> A\<close> by metis
-
-          ultimately show ?thesis
-            by contradiction
-        qed
       next
         show "{#} |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
           using \<open>\<C> = Some {#}\<close>
@@ -11248,11 +11231,9 @@ inductive scl_fol_1 where
     \<Gamma>' = (Neg A, None) # \<Gamma> \<Longrightarrow>
     scl_fol_1 N (\<Gamma>, U, None) (\<Gamma>', U, None)" |
 
-  \<comment> \<open>C is not used and condition could be replaced by
-    \<^term>\<open>\<exists>C |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> C (Pos A)\<close>\<close>
   decide_pos: "\<not> (\<exists>C |\<in>| N |\<union>| U. trail_false_cls \<Gamma> C) \<Longrightarrow>
     linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set N. \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
-    linorder_cls.is_least_in_fset {|C |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> C (Pos A)|} C \<Longrightarrow>
+    (\<exists>C |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> C (Pos A)) \<Longrightarrow>
     \<not> (\<exists>D |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> D (Neg A)) \<Longrightarrow>
     \<Gamma>' = (Pos A, None) # \<Gamma> \<Longrightarrow>
     scl_fol_1 N (\<Gamma>, U, None) (\<Gamma>', U, None)" |
@@ -11292,10 +11273,9 @@ proof (rule right_uniqueI)
       with step1_hyps show ?thesis
         by (metis (no_types, lifting) linorder_trm.Uniq_is_least_in_set the1_equality')
     next
-      case (decide_pos A2 C2 \<Gamma>2')
+      case (decide_pos A2 \<Gamma>2')
       with step1_hyps have False
-        by (metis (mono_tags, lifting) Uniq_D linorder_cls.is_least_in_fset_ffilterD(1)
-            linorder_cls.is_least_in_fset_ffilterD(2) linorder_trm.Uniq_is_least_in_set)
+        by (metis (mono_tags, lifting) Uniq_D linorder_trm.Uniq_is_least_in_set)
       thus ?thesis ..
     next
       case (propagate_pos A2 C2 \<Gamma>2')
@@ -11311,18 +11291,17 @@ proof (rule right_uniqueI)
       thus ?thesis ..
     qed
   next
-    case step1_hyps: (decide_pos U \<Gamma> A C \<Gamma>')
+    case step1_hyps: (decide_pos U \<Gamma> A \<Gamma>')
     show ?thesis
       using step2
       unfolding \<open>x = (\<Gamma>, U, None)\<close>
     proof (cases N "(\<Gamma>, U, None :: 'f gterm literal multiset option)" z rule: scl_fol_1.cases)
       case (decide_neg A2 \<Gamma>2')
       with step1_hyps have False
-        by (metis (mono_tags, lifting) Uniq_D linorder_cls.is_least_in_fset_ffilterD(1)
-            linorder_cls.is_least_in_fset_ffilterD(2) linorder_trm.Uniq_is_least_in_set)
+        by (metis (mono_tags, lifting) Uniq_D linorder_trm.Uniq_is_least_in_set)
       thus ?thesis ..
     next
-      case (decide_pos A2 C2 \<Gamma>2')
+      case (decide_pos A2 \<Gamma>2')
       with step1_hyps show ?thesis
         by (metis (no_types, lifting) linorder_trm.Uniq_is_least_in_set the1_equality')
     next
@@ -11349,7 +11328,7 @@ proof (rule right_uniqueI)
             linorder_cls.is_least_in_fset_ffilterD(2) linorder_trm.Uniq_is_least_in_set)
       thus ?thesis ..
     next
-      case (decide_pos A2 C2 \<Gamma>2')
+      case (decide_pos A2 \<Gamma>2')
       with step1_hyps show ?thesis
         by (metis (no_types, lifting) linorder_trm.Uniq_is_least_in_set the1_equality')
     next
@@ -11388,7 +11367,7 @@ proof (rule right_uniqueI)
         using linorder_cls.is_least_in_ffilter_iff by metis
       thus ?thesis ..
     next
-      case (decide_pos A2 C2 \<Gamma>2')
+      case (decide_pos A2 \<Gamma>2')
       with step1_hyps have False
         using linorder_cls.is_least_in_ffilter_iff by metis
       thus ?thesis ..
@@ -11750,7 +11729,7 @@ proof -
     ultimately show ?thesis
       unfolding scl_fol.regular_scl_def by argo
   next
-    case step_hyps: (decide_pos A\<^sub>G C\<^sub>G)
+    case step_hyps: (decide_pos A\<^sub>G)
 
     define A :: "('f, 'v) term" where
       "A = term_of_gterm A\<^sub>G"
