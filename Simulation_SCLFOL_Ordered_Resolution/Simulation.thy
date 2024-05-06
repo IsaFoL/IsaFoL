@@ -97,6 +97,45 @@ lemma (in linorder) ex1_sorted_list_for_fset:
   using ex1_sorted_list_for_set_if_finite
   by (metis finite_fset fset_cong fset_of_list.rep_eq)
 
+definition is_lower_set_wrt :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a set \<Rightarrow> 'a set \<Rightarrow> bool" where
+  "transp_on X R \<Longrightarrow> asymp_on X R \<Longrightarrow>
+    is_lower_set_wrt R X L \<longleftrightarrow> L \<subseteq> X \<and> (\<forall>l \<in> L. \<forall>x \<in> X. R x l \<longrightarrow> x \<in> L)"
+
+lemma is_lower_set_wrt_insertI:
+  assumes "transp_on (insert x X) R" and "asymp_on (insert x X) R" and
+    "x \<in> X" and "\<forall>w \<in> X. R w x \<longrightarrow> w \<in> L" and "is_lower_set_wrt R X L"
+  shows "is_lower_set_wrt R X (insert x L)"
+proof -
+  have "is_lower_set_wrt R X (insert x L) \<longleftrightarrow>
+    insert x L \<subseteq> X \<and> (\<forall>l\<in>insert x L. \<forall>xa\<in>X. R xa l \<longrightarrow> xa \<in> insert x L)"
+    using assms is_lower_set_wrt_def[of X R "insert x L"]
+    by (meson asymp_on_subset subset_insertI transp_on_subset)
+
+  also have "\<dots> \<longleftrightarrow> x \<in> X \<and> L \<subseteq> X \<and> (\<forall>l\<in>insert x L. \<forall>xa\<in>X. R xa l \<longrightarrow> xa \<in> insert x L)"
+    by simp
+
+  also have "\<dots> \<longleftrightarrow> x \<in> X \<and> L \<subseteq> X \<and> (\<forall>w\<in>X. R w x \<longrightarrow> w \<in> insert x L) \<and>
+    (\<forall>l\<in>L. \<forall>xa\<in>X. R xa l \<longrightarrow> xa \<in> insert x L)"
+    by simp
+
+  also have "\<dots> \<longleftrightarrow> x \<in> X \<and> L \<subseteq> X \<and> (\<forall>w\<in>X. R w x \<longrightarrow> w \<in> L) \<and>
+    (\<forall>l\<in>L. \<forall>y\<in>X. R y l \<longrightarrow> y \<in> insert x L)"
+    using \<open>asymp_on (insert x X) R\<close> by (smt (verit) asymp_onD insertCI insertE)
+
+  finally show ?thesis
+    using assms
+    by (metis insertCI insert_absorb is_lower_set_wrt_def)
+qed
+
+abbreviation (in order) is_lower_set where
+  "is_lower_set \<equiv> is_lower_set_wrt (<)"
+
+lemmas (in order) is_lower_set_iff =
+  is_lower_set_wrt_def[OF transp_on_less asymp_on_less]
+
+lemmas (in order) is_lower_set_insertI =
+  is_lower_set_wrt_insertI[OF transp_on_less asymp_on_less]
+
 
 subsection \<open>Minimal, maximal, least, and greatest element of a set\<close>
 
@@ -899,6 +938,19 @@ definition lits_of_clss :: "'a clause fset \<Rightarrow> 'a literal fset" where
 
 definition lit_occures_in_clss where
   "lit_occures_in_clss L N \<longleftrightarrow> fBex N (\<lambda>C. L \<in># C)"
+
+inductive constant_context for R where
+  "R \<C> \<D> \<D>' \<Longrightarrow> constant_context R (\<C>, \<D>) (\<C>, \<D>')"
+
+lemma right_unique_constant_context:
+  assumes R_ru: "\<And>\<C>. right_unique (R \<C>)"
+  shows "right_unique (constant_context R)"
+proof (rule right_uniqueI)
+  fix x y z
+  show "constant_context R x y \<Longrightarrow> constant_context R x z \<Longrightarrow> y = z"
+    using R_ru[THEN right_uniqueD]
+    by (elim constant_context.cases) (metis prod.inject)
+qed
 
 
 section \<open>Simulation\<close>
@@ -10430,7 +10482,8 @@ lemma true_cls_imp_neq_mempty: "\<I> \<TTurnstile> C \<Longrightarrow> C \<noteq
 inductive ord_res_7 where
   decide_neg: "
     \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C) \<Longrightarrow>
-    linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set N. \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
+    linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r).
+      \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
     \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).
       linorder_lit.is_maximal_in_mset C (Pos A) \<or>
       linorder_lit.is_maximal_in_mset C (Neg A)) \<Longrightarrow>
@@ -10439,7 +10492,8 @@ inductive ord_res_7 where
 
   propagate: "
     \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C) \<Longrightarrow>
-    linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set N. \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
+    linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r).
+      \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
     linorder_cls.is_least_in_fset {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).
       linorder_lit.is_maximal_in_mset C (Pos A)|} C \<Longrightarrow>
     linorder_lit.is_greatest_in_mset C (Pos A) \<Longrightarrow>
@@ -10448,25 +10502,708 @@ inductive ord_res_7 where
 
   factorize: "
     \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C) \<Longrightarrow>
-    linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set N. \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
+    linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r).
+      \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
     linorder_cls.is_least_in_fset {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).
       linorder_lit.is_maximal_in_mset C (Pos A)|} C \<Longrightarrow>
     \<not> linorder_lit.is_greatest_in_mset C (Pos A) \<Longrightarrow>
     \<F>' = finsert C \<F> \<Longrightarrow>
     ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (U\<^sub>e\<^sub>r, \<F>', \<Gamma>)" |
 
-  resolution_bot: "
+  resolution: "
     linorder_cls.is_least_in_fset {|D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> D|} D \<Longrightarrow>
-    linorder_lit.is_maximal_in_mset C (Neg A) \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset D (Neg A) \<Longrightarrow>
     linorder_cls.is_least_in_fset {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).
       linorder_lit.is_greatest_in_mset C (Pos A)|} C \<Longrightarrow>
-    U\<^sub>e\<^sub>r' = finsert (eres D C) U\<^sub>e\<^sub>r \<Longrightarrow>
+    U\<^sub>e\<^sub>r' = finsert (eres C D) U\<^sub>e\<^sub>r \<Longrightarrow>
     \<Gamma>' = dropWhile (\<lambda>(L, _). \<forall>K.
       linorder_lit.is_maximal_in_mset (eres C D) K \<longrightarrow> atm_of K \<preceq>\<^sub>t atm_of L) \<Gamma> \<Longrightarrow>
     ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (U\<^sub>e\<^sub>r', \<F>, \<Gamma>')"
 
+lemma right_unique_ord_res_7:
+  fixes N :: "'f gclause fset"
+  shows "right_unique (ord_res_7 N)"
+  sketch (rule right_uniqueI)
+proof (rule right_uniqueI)
+  fix x y z
+  assume step1: "ord_res_7 N x y" and step2: "ord_res_7 N x z"
+  show "y = z"
+    using step1
+  proof (cases N x y rule: ord_res_7.cases)
+    case step1_hyps: (decide_neg \<F> U\<^sub>e\<^sub>r \<Gamma> A \<Gamma>')
+    show ?thesis
+      using step2 unfolding \<open>x = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>
+    proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>)" z rule: ord_res_7.cases)
+      case (decide_neg A \<Gamma>')
+      with step1_hyps show ?thesis
+        by (metis (mono_tags, lifting) linorder_trm.is_least_in_set_iff
+            linorder_trm.not_less_iff_gr_or_eq)
+    next
+      case (propagate A2 C2 \<Gamma>2')
+      with step1_hyps have False
+        by (metis (no_types, lifting) linorder_cls.is_least_in_fset_ffilterD(1)
+            linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset linorder_trm.dual_order.asym
+            linorder_trm.is_least_in_set_iff)
+      thus ?thesis ..
+    next
+      case (factorize A2 C2 \<F>2')
+      with step1_hyps have False
+        by (metis (no_types, lifting) linorder_cls.is_least_in_fset_ffilterD(1)
+            linorder_cls.is_least_in_fset_ffilterD(2) linorder_trm.dual_order.asym
+            linorder_trm.is_least_in_set_iff)
+      thus ?thesis ..
+    next
+      case (resolution D2 A2 C2 U\<^sub>e\<^sub>r2' \<Gamma>2')
+      with step1_hyps have False
+        by (metis linorder_cls.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    qed
+  next
+    case step1_hyps: (propagate \<F> U\<^sub>e\<^sub>r \<Gamma> A C \<Gamma>')
+    show ?thesis
+      using step2 unfolding \<open>x = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>
+    proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>)" z rule: ord_res_7.cases)
+      case (decide_neg A2 \<Gamma>2')
+      with step1_hyps have False
+        by (metis (no_types, lifting) linorder_cls.is_least_in_ffilter_iff
+            linorder_trm.dual_order.asym linorder_trm.is_least_in_set_iff)
+      thus ?thesis ..
+    next
+      case (propagate A2 C2 \<Gamma>2')
+      with step1_hyps show ?thesis
+        by (metis (no_types, lifting) linorder_cls.Uniq_is_least_in_fset
+            linorder_trm.dual_order.asym linorder_trm.is_least_in_set_iff the1_equality')
+    next
+      case (factorize A2 C2 \<F>2')
+      with step1_hyps have False
+        by (metis (no_types, lifting) linorder_cls.Uniq_is_least_in_fset
+            linorder_trm.Uniq_is_least_in_set the1_equality')
+      thus ?thesis ..
+    next
+      case (resolution D2 A2 C2 U\<^sub>e\<^sub>r2' \<Gamma>2')
+      with step1_hyps have False
+        by (metis linorder_cls.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    qed
+  next
+    case step1_hyps: (factorize \<F> U\<^sub>e\<^sub>r \<Gamma> A C \<F>')
+    show ?thesis
+      using step2 unfolding \<open>x = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>
+    proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>)" z rule: ord_res_7.cases)
+      case (decide_neg A2 \<Gamma>2')
+      with step1_hyps have False
+        by (metis (no_types, lifting) linorder_cls.is_least_in_ffilter_iff
+            linorder_trm.dual_order.asym linorder_trm.is_least_in_set_iff)
+      thus ?thesis ..
+    next
+      case (propagate A2 C2 \<Gamma>2')
+      with step1_hyps have False
+        by (metis (mono_tags, lifting) linorder_cls.Uniq_is_least_in_fset
+            linorder_trm.dual_order.asym linorder_trm.is_least_in_set_iff the1_equality')
+      thus ?thesis ..
+    next
+      case (factorize A2 C2 \<F>2')
+      with step1_hyps show ?thesis
+        by (metis (no_types, lifting) linorder_cls.Uniq_is_least_in_fset
+            linorder_trm.dual_order.asym linorder_trm.is_least_in_set_iff the1_equality')
+    next
+      case (resolution D2 A2 C2 U\<^sub>e\<^sub>r2' \<Gamma>2')
+      with step1_hyps have False
+        by (metis linorder_cls.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    qed
+  next
+    case step1_hyps: (resolution \<Gamma> \<F> U\<^sub>e\<^sub>r D A C U\<^sub>e\<^sub>r' \<Gamma>')
+    show ?thesis
+      using step2 unfolding \<open>x = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>
+    proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>)" z rule: ord_res_7.cases)
+      case (decide_neg A \<Gamma>')
+      with step1_hyps have False
+        by (metis (no_types, opaque_lifting) linorder_cls.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    next
+      case (propagate A C \<Gamma>')
+      with step1_hyps have False
+        by (metis (no_types, opaque_lifting) linorder_cls.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    next
+      case (factorize A C \<F>')
+      with step1_hyps have False
+        by (metis (no_types, opaque_lifting) linorder_cls.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    next
+      case step2_hyps: (resolution D2 A2 C2 U\<^sub>e\<^sub>r2' \<Gamma>2')
+      have "D2 = D"
+        using \<open>linorder_cls.is_least_in_fset (ffilter (trail_false_cls \<Gamma>) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D\<close>
+        using \<open>linorder_cls.is_least_in_fset (ffilter (trail_false_cls \<Gamma>) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D2\<close>
+        by (metis linorder_cls.Uniq_is_least_in_fset Uniq_D)
 
-subsection \<open>ORD-RES-7 (only propagate when necessary)\<close>
+      have "A2 = A"
+        using \<open>linorder_lit.is_maximal_in_mset D (Neg A)\<close>
+        using \<open>linorder_lit.is_maximal_in_mset D2 (Neg A2)\<close>
+        unfolding \<open>D2 = D\<close>
+        by (metis Uniq_D linorder_lit.Uniq_is_maximal_in_mset literal.sel(2))
+
+      have "C2 = C"
+        using \<open>A2 = A\<close> step1_hyps(5) step2_hyps(4)
+        by (metis asympD linorder_cls.is_least_in_ffilter_iff ord_res.asymp_less_cls)
+
+      show ?thesis
+        unfolding \<open>y = (U\<^sub>e\<^sub>r', \<F>, \<Gamma>')\<close> \<open>z = (U\<^sub>e\<^sub>r2', \<F>, \<Gamma>2')\<close> prod.inject
+        sketch (intro conjI)
+      proof (intro conjI)
+        show "U\<^sub>e\<^sub>r' = U\<^sub>e\<^sub>r2'"
+          unfolding \<open>U\<^sub>e\<^sub>r' = finsert (eres C D) U\<^sub>e\<^sub>r\<close> \<open>U\<^sub>e\<^sub>r2' = finsert (eres C2 D2) U\<^sub>e\<^sub>r\<close>
+          unfolding \<open>D2 = D\<close> \<open>C2 = C\<close> ..
+      next
+        show "\<F> = \<F>" ..
+      next
+        show "\<Gamma>' = \<Gamma>2'"
+          using step1_hyps(7) step2_hyps(6)
+          unfolding \<open>D2 = D\<close> \<open>C2 = C\<close>
+          by argo
+      qed
+    qed
+  qed
+qed
+
+inductive ord_res_7_final where
+  model_found: "
+    \<not> (\<exists>A \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r). \<not> trail_defined_atm \<Gamma> A) \<Longrightarrow>
+    \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C) \<Longrightarrow>
+    ord_res_7_final (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)" |
+
+  contradiction_found: "
+    {#} |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r) \<Longrightarrow>
+    ord_res_7_final (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)"
+
+interpretation ord_res_7_semantics: semantics where
+  step = "constant_context ord_res_7" and
+  final = ord_res_7_final
+proof unfold_locales
+  fix S :: "'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times>
+    ('f gterm literal \<times> 'f gterm literal multiset option) list"
+
+  obtain
+    N U\<^sub>e\<^sub>r \<F> :: "'f gterm clause fset" and
+    \<Gamma> :: "('f gterm literal \<times> 'f gterm literal multiset option) list" where
+    S_def: "S = (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)"
+    by (metis prod.exhaust)
+
+  assume "ord_res_7_final S"
+
+  hence "\<nexists>x. ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) x"
+    unfolding S_def
+  proof (cases "(N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)" rule: ord_res_7_final.cases)
+    case model_found
+
+    have "\<nexists>A. linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r).
+      \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A"
+      using \<open>\<not> (\<exists>A\<in>atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r). \<not> trail_defined_atm \<Gamma> A)\<close>
+      by (metis (no_types, lifting) linorder_trm.dual_order.strict_implies_not_eq
+          linorder_trm.is_least_in_set_iff mem_Collect_eq trail_defined_atm_def trail_atoms_def)
+
+    moreover have "\<nexists>C. linorder_cls.is_least_in_fset
+      (ffilter (trail_false_cls \<Gamma>) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) C"
+      using \<open>\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) (trail_false_cls \<Gamma>)\<close>
+      by (metis linorder_cls.is_least_in_ffilter_iff)
+
+    ultimately show ?thesis
+      unfolding ord_res_7.simps by blast
+  next
+    case contradiction_found
+
+    hence "\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C"
+      using trail_false_cls_mempty by metis
+
+    moreover have "\<nexists>D A. linorder_cls.is_least_in_fset (ffilter (trail_false_cls \<Gamma>)
+      (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D \<and> ord_res.is_maximal_lit (Neg A) D"
+      by (metis empty_iff linorder_cls.is_least_in_ffilter_iff linorder_cls.leD
+          linorder_lit.is_maximal_in_mset_iff local.contradiction_found(1) mempty_lesseq_cls
+          set_mset_empty trail_false_cls_mempty)
+
+    ultimately show ?thesis
+      unfolding ord_res_7.simps by blast
+  qed
+
+  thus "finished (constant_context ord_res_7) S"
+    by (simp add: S_def finished_def constant_context.simps)
+qed
+
+definition trail_is_consistent where
+  "trail_is_consistent N s \<longleftrightarrow> (\<forall>U\<^sub>e\<^sub>r \<F> \<Gamma>. s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) \<longrightarrow> trail_consistent \<Gamma>)"
+
+lemma ord_res_7_preserves_trail_is_consistent:
+  assumes
+    step: "ord_res_7 N s s'" and
+    invar: "trail_is_consistent N s"
+  shows "trail_is_consistent N s'"
+  using step
+proof (cases N s s' rule: ord_res_7.cases)
+  case step_hyps: (decide_neg \<F> U\<^sub>e\<^sub>r \<Gamma> A \<Gamma>')
+  have "trail_consistent \<Gamma>'"
+    unfolding \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close>
+  proof (rule trail_consistent.Cons)
+    have "\<forall>x \<in> trail_atoms \<Gamma>. x \<prec>\<^sub>t A"
+      using step_hyps(3-) linorder_trm.is_least_in_set_iff by simp
+    hence "\<forall>x \<in> trail_atoms \<Gamma>. x \<noteq> A"
+      by blast
+    hence "\<not> trail_defined_atm \<Gamma> A"
+      unfolding trail_defined_atm_def trail_atoms_def[symmetric] by metis
+    thus "\<not> trail_defined_lit \<Gamma> (Neg A)"
+      unfolding trail_defined_lit_iff_trail_defined_atm literal.sel .
+  next
+    show "trail_consistent \<Gamma>"
+      using invar \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close> trail_is_consistent_def by metis
+  qed
+  thus ?thesis
+    by (simp add: \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')\<close> trail_is_consistent_def)
+next
+  case step_hyps: (propagate \<F> U\<^sub>e\<^sub>r \<Gamma> A C \<Gamma>')
+  have "trail_consistent \<Gamma>'"
+    unfolding \<open>\<Gamma>' = (Pos A, Some C) # \<Gamma>\<close>
+  proof (rule trail_consistent.Cons)
+    have "\<forall>x \<in> trail_atoms \<Gamma>. x \<prec>\<^sub>t A"
+      using step_hyps(3-) linorder_trm.is_least_in_set_iff by simp
+    hence "\<forall>x \<in> trail_atoms \<Gamma>. x \<noteq> A"
+      by blast
+    hence "\<not> trail_defined_atm \<Gamma> A"
+      unfolding trail_defined_atm_def trail_atoms_def[symmetric] by metis
+    thus "\<not> trail_defined_lit \<Gamma> (Pos A)"
+      unfolding trail_defined_lit_iff_trail_defined_atm literal.sel .
+  next
+    show "trail_consistent \<Gamma>"
+      using invar \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close> trail_is_consistent_def by metis
+  qed
+  thus ?thesis
+    by (simp add: \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')\<close> trail_is_consistent_def)
+next
+  case (factorize \<F> U\<^sub>e\<^sub>r \<Gamma> A C \<F>')
+  have "trail_consistent \<Gamma>"
+    using invar \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close> trail_is_consistent_def by metis
+  thus ?thesis
+    by (simp add: \<open>s' = (U\<^sub>e\<^sub>r, \<F>', \<Gamma>)\<close> trail_is_consistent_def)
+next
+  case step_hyps: (resolution \<Gamma> \<F> U\<^sub>e\<^sub>r D A C U\<^sub>e\<^sub>r' \<Gamma>')
+  have "trail_consistent \<Gamma>"
+    using invar \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close> trail_is_consistent_def by metis
+
+  moreover have "suffix \<Gamma>' \<Gamma>"
+    using step_hyps suffix_dropWhile by blast
+
+  ultimately have "trail_consistent \<Gamma>'"
+    using trail_consistent_if_suffix by metis
+
+  thus ?thesis
+    by (simp add: \<open>s' = (U\<^sub>e\<^sub>r', \<F>, \<Gamma>')\<close> trail_is_consistent_def)
+qed
+
+definition atoms_in_trail_lower_set where
+  "atoms_in_trail_lower_set N s \<longleftrightarrow>
+    (\<forall>U\<^sub>e\<^sub>r \<F> \<Gamma>. s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) \<longrightarrow>
+      linorder_trm.is_lower_set (atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)) (trail_atoms \<Gamma>))"
+
+lemma ord_res_7_preserves_atoms_in_trail_lower_set:
+  assumes
+    step: "ord_res_7 N s s'" and
+    invar: "atoms_in_trail_lower_set N s"
+  shows "atoms_in_trail_lower_set N s'"
+  using step
+proof (cases N s s' rule: ord_res_7.cases)
+  case step_hyps: (decide_neg \<F> U\<^sub>e\<^sub>r \<Gamma> A \<Gamma>')
+  have "linorder_trm.is_lower_set (atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r))
+    (insert A (atm_of ` fst ` set \<Gamma>))"
+  proof (rule linorder_trm.is_lower_set_insertI)
+    show "A \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)"
+      using linorder_trm.is_least_in_set_iff step_hyps(4) by force
+  next
+    show "\<forall>w\<in>atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r). w \<prec>\<^sub>t A \<longrightarrow> w \<in> atm_of ` fst ` set \<Gamma>"
+      using step_hyps unfolding trail_atoms_def linorder_trm.is_least_in_set_iff
+      apply simp
+      (* by (metis atoms_in_trail_lower_set_def invar linorder_trm.antisym_conv3
+          linorder_trm.dual_order.asym linorder_trm.is_least_in_set_iff linorder_trm.is_lower_set_iff mem_Collect_eq step_hyps(4) trail_atoms_def) *)
+      sorry
+  next
+    show "linorder_trm.is_lower_set (atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)) (atm_of ` fst ` set \<Gamma>)"
+      using invar unfolding \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>
+      by (simp add: atoms_in_trail_lower_set_def trail_atoms_def)
+  qed
+
+  thus ?thesis
+    unfolding \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')\<close> \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close>
+    by (simp add: atoms_in_trail_lower_set_def trail_atoms_def)
+next
+  case (propagate \<F> U\<^sub>e\<^sub>r \<Gamma> A C \<Gamma>')
+  then show ?thesis sorry
+next
+  case (factorize \<F> U\<^sub>e\<^sub>r \<Gamma> A C \<F>')
+  then show ?thesis sorry
+next
+  case (resolution \<Gamma> \<F> U\<^sub>e\<^sub>r D A C U\<^sub>e\<^sub>r' \<Gamma>')
+  then show ?thesis sorry
+qed
+
+definition false_cls_is_mempty_or_has_neg_max_lit where
+  "false_cls_is_mempty_or_has_neg_max_lit N s \<longleftrightarrow>
+    (\<forall>U\<^sub>e\<^sub>r \<F> \<Gamma>. s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) \<longrightarrow> (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).
+      trail_false_cls \<Gamma> C \<longrightarrow> C = {#} \<or> (\<exists>A. linorder_lit.is_maximal_in_mset C (Neg A))))"
+
+lemma trail_defined_atm_iff_mem_trail_atoms: "trail_defined_atm \<Gamma> A \<longleftrightarrow> A \<in> trail_atoms \<Gamma>"
+  unfolding trail_defined_atm_def trail_atoms_def ..
+
+lemma ord_res_7_preserves_false_cls_is_mempty_or_has_neg_max_lit:
+  assumes
+    step: "ord_res_7 N s s'" and
+    invars: "false_cls_is_mempty_or_has_neg_max_lit N s" "atoms_in_trail_lower_set N s"
+  shows "false_cls_is_mempty_or_has_neg_max_lit N s'"
+  using step
+proof (cases N s s' rule: ord_res_7.cases)
+  case step_hyps: (decide_neg \<F> U\<^sub>e\<^sub>r \<Gamma> A \<Gamma>')
+
+  have "trail_consistent \<Gamma>"
+    sorry
+  hence "trail_consistent \<Gamma>'"
+    by (metis (no_types, lifting) linorder_trm.is_least_in_set_iff linorder_trm.neq_iff
+        literal.sel(2) mem_Collect_eq step_hyps(4) step_hyps(6) trail_consistent.simps
+        trail_defined_atm_iff_mem_trail_atoms trail_defined_lit_iff_trail_defined_atm)
+
+  have "trail_defined_atm \<Gamma> x \<longleftrightarrow> x \<prec>\<^sub>t A" if x_in: "x \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)" for x
+  proof (rule iffI)
+    assume "trail_defined_atm \<Gamma> x"
+    hence "x \<in> trail_atoms \<Gamma>"
+      unfolding trail_defined_atm_iff_mem_trail_atoms .
+    thus "x \<prec>\<^sub>t A"
+      using step_hyps(4)
+      unfolding linorder_trm.is_least_in_set_iff
+      by simp
+  next
+    assume "x \<prec>\<^sub>t A"
+    hence "x \<in> trail_atoms \<Gamma>"
+      using x_in
+      using step_hyps(4)
+      unfolding linorder_trm.is_least_in_set_iff
+      apply simp
+      apply (elim conjE)
+      using invars(2)[unfolded \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close> atoms_in_trail_lower_set_def, simplified]
+      by (metis linorder_trm.is_lower_set_iff linorder_trm.not_less_iff_gr_or_eq)
+    thus "trail_defined_atm \<Gamma> x"
+      unfolding trail_defined_atm_iff_mem_trail_atoms .
+  qed
+
+  hence "\<not> trail_false_cls \<Gamma>' C" if C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C
+  proof -
+    have "\<not> trail_false_cls \<Gamma> C"
+      using C_in step_hyps(3) by metis
+    hence "trail_true_cls \<Gamma> C \<or> \<not> trail_defined_cls \<Gamma> C"
+      using trail_true_or_false_cls_if_defined by metis
+    thus "\<not> trail_false_cls \<Gamma>' C"
+    proof (elim disjE)
+      assume "trail_true_cls \<Gamma> C"
+      hence "trail_true_cls \<Gamma>' C"
+        unfolding \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close> trail_true_cls_def
+        by (metis image_insert insert_iff list.set(2) trail_true_lit_def)
+      thus "\<not> trail_false_cls \<Gamma>' C"
+        using \<open>trail_consistent \<Gamma>'\<close>
+        by (metis trail_defined_lit_iff_true_or_false trail_false_cls_def
+            trail_false_cls_iff_not_trail_interp_entails trail_interp_cls_if_trail_true)
+    next
+      assume "\<not> trail_defined_cls \<Gamma> C"
+      then obtain L where "L \<in># C" and "\<not> trail_defined_lit \<Gamma> L"
+        unfolding trail_defined_cls_def by auto
+
+      have "\<not> trail_defined_lit \<Gamma>' L"
+        unfolding \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close>
+        using \<open>\<not> trail_defined_lit \<Gamma> L\<close>
+        sorry
+
+      hence "\<not> trail_false_lit \<Gamma>' L"
+        unfolding trail_defined_lit_def trail_false_lit_def by argo
+
+      thus "\<not> trail_false_cls \<Gamma>' C"
+        unfolding trail_false_cls_def
+        using \<open>L \<in># C\<close> by metis
+    qed
+  qed
+  hence "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma>' C \<longrightarrow>
+    C = {#} \<or> (\<exists>A. ord_res.is_maximal_lit (Neg A) C)"
+    by metis
+
+  thus ?thesis
+    unfolding false_cls_is_mempty_or_has_neg_max_lit_def \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')\<close> by simp
+next
+  case (propagate \<F> U\<^sub>e\<^sub>r \<Gamma> A C \<Gamma>')
+  then show ?thesis sorry
+next
+  case (factorize \<F> U\<^sub>e\<^sub>r \<Gamma> A C \<F>')
+  then show ?thesis sorry
+next
+  case (resolution \<Gamma> \<F> U\<^sub>e\<^sub>r D A C U\<^sub>e\<^sub>r' \<Gamma>')
+  then show ?thesis sorry
+qed
+
+lemma ex_ord_res_7_if_not_final:
+  assumes
+    not_final: "\<not> ord_res_7_final (N, s)" and
+    invars:
+      "false_cls_is_mempty_or_has_neg_max_lit N s"
+  shows "\<exists>s'. ord_res_7 N s s'"
+proof -
+  obtain U\<^sub>e\<^sub>r \<F> \<Gamma> where "s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)"
+    by (metis surj_pair)
+
+  note invars' = invars[unfolded \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>]
+  
+  have
+    undef_atm_or_false_cls: "(\<exists>x \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r). \<not> trail_defined_atm \<Gamma> x) \<or>
+     (\<exists>x |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> x)" and
+    "{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+  using not_final[unfolded ord_res_7_final.simps] \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close> by simp_all
+
+  show ?thesis
+    using undef_atm_or_false_cls
+  proof (elim disjE)
+    assume "\<exists>x\<in>atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r). \<not> trail_defined_atm \<Gamma> x"
+    show "\<exists>s'. ord_res_7 N s s'"
+      sorry
+  next
+    assume "\<exists>x|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> x"
+    then obtain D where
+      D_least: "linorder_cls.is_least_in_fset
+        (ffilter (trail_false_cls \<Gamma>) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D"
+      by (metis femptyE ffmember_filter linorder_cls.ex_least_in_fset)
+
+    hence "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and "trail_false_cls \<Gamma> D"
+      unfolding atomize_conj linorder_cls.is_least_in_ffilter_iff by argo
+
+    moreover have "D \<noteq> {#}"
+      using \<open>D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> \<open>{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> by metis
+
+    ultimately obtain A where Neg_A_max: "linorder_lit.is_maximal_in_mset D (Neg A)"
+      using invars' by (metis false_cls_is_mempty_or_has_neg_max_lit_def)
+
+    have "\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). ord_res.is_strictly_maximal_lit (Pos A) C"
+      sorry
+
+    then obtain C where C_least: "linorder_cls.is_least_in_fset
+        (ffilter (ord_res.is_strictly_maximal_lit (Pos A)) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) C"
+      by (metis femptyE ffmember_filter linorder_cls.ex_least_in_fset)
+
+    thus "\<exists>s'. ord_res_7 N s s'"
+      unfolding \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>
+      using ord_res_7.resolution D_least Neg_A_max by blast
+  qed
+qed
+
+lemma ord_res_7_safe_state_if_invars:
+  fixes N s
+  shows "safe_state (constant_context ord_res_7) ord_res_7_final (N, s)"
+  unfolding safe_state_def
+proof (intro allI impI)
+  fix S'
+  assume "ord_res_7_semantics.eval (N, s) S'"
+  then obtain s' where "S' = (N, s')" and "(ord_res_7 N)\<^sup>*\<^sup>* s s'"
+  proof (induction "(N, s)" arbitrary: N s rule: converse_rtranclp_induct)
+    case base
+    thus ?case by simp
+  next
+    case (step z)
+    thus ?case
+      by (smt (verit, ccfv_SIG) converse_rtranclp_into_rtranclp constant_context.cases prod.inject)
+  qed
+  hence "\<not> ord_res_7_final (N, s') \<Longrightarrow> \<exists>s''. ord_res_7 N s' s''"
+    using ex_ord_res_7_if_not_final[of N s'] by argo
+  hence "\<not> ord_res_7_final S' \<Longrightarrow> \<exists>S''. constant_context ord_res_7 S' S''"
+    unfolding \<open>S' = (N, s')\<close> using constant_context.intros by metis
+  thus "ord_res_7_final S' \<or> Ex (constant_context ord_res_7 S')"
+    by argo
+qed
+
+inductive ord_res_6_matches_ord_res_7 ::
+  "'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times>
+      ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow>
+    'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times>
+      ('f gterm literal \<times> 'f gclause option) list \<Rightarrow> bool" where
+  "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>) \<Longrightarrow>
+    trail_consistent \<Gamma> \<Longrightarrow>
+    (\<forall>A. A \<notin> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r) \<longrightarrow> \<not> trail_defined_atm \<Gamma> A) \<Longrightarrow>
+    dom \<M> = trail_interp \<Gamma> \<Longrightarrow>
+    (\<forall>C. \<C> = Some C \<longleftrightarrow> linorder_cls.is_least_in_fset
+      {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).  trail_false_cls \<Gamma> C \<or> \<not> trail_defined_cls \<Gamma> C|} C) \<Longrightarrow>
+    (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C> = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow> trail_true_cls \<Gamma> C) \<Longrightarrow>
+    (\<forall>A \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r).
+      trail_defined_atm \<Gamma> A \<longleftrightarrow>
+      (\<forall>C. \<C> = Some C \<longrightarrow> (\<exists>L. linorder_lit.is_maximal_in_mset C L \<and> A \<prec>\<^sub>t atm_of L))) \<Longrightarrow>
+    ord_res_6_matches_ord_res_7 (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>) (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)"
+
+lemma not_trail_true_cls_and_trail_false_cls:
+  fixes \<Gamma> :: "('a literal \<times> 'a clause option) list" and C :: "'a clause"
+  shows "trail_consistent \<Gamma> \<Longrightarrow> \<not> (trail_true_cls \<Gamma> C \<and> trail_false_cls \<Gamma> C)"
+proof (induction \<Gamma> rule: trail_consistent.induct)
+  case Nil
+  show ?case
+    by simp
+next
+  case (Cons \<Gamma> L u)
+  then show ?case
+    by (metis trail_consistent.Cons trail_defined_lit_iff_true_or_false trail_false_cls_def
+        trail_false_cls_iff_not_trail_interp_entails trail_interp_cls_if_trail_true)
+qed 
+
+lemma ord_res_6_final_iff_ord_res_7_final:
+  fixes S6 S7
+  assumes match: "ord_res_6_matches_ord_res_7 S6 S7"
+  shows "ord_res_6_final S6 \<longleftrightarrow> ord_res_7_final S7"
+  using match
+proof (cases S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
+  case match_hyps: (1 N U\<^sub>e\<^sub>r \<F> \<M> \<C> \<Gamma>)
+
+  show "ord_res_6_final S6 \<longleftrightarrow> ord_res_7_final S7"
+  proof (rule iffI)
+    assume "ord_res_6_final S6"
+    thus "ord_res_7_final S7"
+      unfolding \<open>S6 = (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close>
+    proof (cases "(N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)" rule: ord_res_6_final.cases)
+      case model_found
+      show "ord_res_7_final S7"
+        unfolding \<open>S7 = (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>
+      proof (rule ord_res_7_final.model_found)
+        have "\<forall>A\<in>atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r). trail_defined_atm \<Gamma> A"
+          using match_hyps model_found by simp
+
+        thus "\<not> (\<exists>A\<in>atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r). \<not> trail_defined_atm \<Gamma> A)"
+          by metis
+      next
+        have "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_true_cls \<Gamma> C"
+          using match_hyps model_found by simp
+
+        moreover have "\<not> (trail_true_cls \<Gamma> C \<and> trail_false_cls \<Gamma> C)" for C
+          using not_trail_true_cls_and_trail_false_cls \<open>trail_consistent \<Gamma>\<close> by metis
+
+        ultimately show "\<not> (\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C)"
+          by metis
+      qed
+    next
+      case contradiction_found
+      show "ord_res_7_final S7"
+        unfolding \<open>S7 = (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>
+      proof (rule ord_res_7_final.contradiction_found)
+        have "\<forall>A \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r). \<not> trail_defined_atm \<Gamma> A"
+          using \<open>\<C> = Some {#}\<close> match_hyps
+          by (metis empty_iff linorder_lit.is_maximal_in_mset_iff set_mset_empty)
+
+        moreover have "\<forall>A. A \<notin> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r) \<longrightarrow> \<not> trail_defined_atm \<Gamma> A"
+          using match_hyps by argo
+
+        ultimately have "\<forall>A. \<not> trail_defined_atm \<Gamma> A"
+          by metis
+
+        show "\<Gamma> = []"
+        proof (cases \<Gamma>)
+          case Nil
+          thus ?thesis by simp
+        next
+          case (Cons Ln \<Gamma>')
+
+          hence "trail_defined_atm \<Gamma> (atm_of (fst Ln))"
+            by (simp add: trail_defined_atm_def)
+
+          moreover have "\<not> trail_defined_atm \<Gamma> (atm_of (fst Ln))"
+            using \<open>\<forall>A. \<not> trail_defined_atm \<Gamma> A\<close> by metis
+
+          ultimately show ?thesis
+            by contradiction
+        qed
+      next
+        show "{#} |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+          using \<open>\<C> = Some {#}\<close>
+          by (metis match_hyps(3) next_clause_in_factorized_clause_def ord_res_5_invars_def) 
+      qed
+    qed
+  next
+    assume "ord_res_7_final S7"
+    thus "ord_res_6_final S6"
+      unfolding \<open>S7 = (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>
+    proof (cases "(N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)" rule: ord_res_7_final.cases)
+      case model_found
+      hence "\<forall>A \<in> atoms_of_clause_set (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)). trail_defined_atm \<Gamma> A"
+        by (metis atoms_of_clause_set_image_fset_iefac)
+      hence "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). \<forall>A \<in> atm_of ` set_mset C. trail_defined_atm \<Gamma> A"
+        unfolding atoms_of_clause_set_def by blast
+      hence "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). \<forall>L \<in># C. trail_defined_lit \<Gamma> L"
+        by (simp add: trail_defined_lit_iff_trail_defined_atm)
+      hence "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_defined_cls \<Gamma> C"
+        by (simp only: trail_defined_cls_def)
+      hence "\<C> = None"
+        using model_found match_hyps(7)
+        by (metis (no_types, lifting) linorder_cls.is_least_in_ffilter_iff option.exhaust)
+      thus "ord_res_6_final S6"
+        unfolding \<open>S6 = (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close>
+        using ord_res_6_final.model_found by metis
+    next
+      case contradiction_found
+      hence "\<C> = Some {#}"
+        using match_hyps(7)
+        by (metis (no_types, lifting) linorder_cls.dual_order.not_eq_order_implies_strict
+            linorder_cls.is_least_in_ffilter_iff mempty_lesseq_cls trail_false_cls_mempty)
+
+      thus "ord_res_6_final S6"
+        unfolding \<open>S6 = (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close>
+        using ord_res_6_final.contradiction_found by metis
+    qed
+  qed
+qed
+
+theorem bisimulation_ord_res_6_ord_res_7:
+  defines "match \<equiv> \<lambda>_. ord_res_6_matches_ord_res_7"
+  shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
+    'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow>
+    'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm literal \<times> 'f gclause option) list \<Rightarrow> bool) ORDER.
+    bisimulation ord_res_6_step (constant_context ord_res_7) ord_res_6_final ord_res_7_final ORDER MATCH"
+proof (rule ex_bisimulation_from_backward_simulation)
+  show "right_unique ord_res_6_step"
+    using right_unique_ord_res_6_step .
+next
+  show "right_unique (constant_context ord_res_7)"
+    using right_unique_constant_context right_unique_ord_res_7 by metis
+next
+  show "\<forall>S. ord_res_6_final S \<longrightarrow> (\<nexists>S'. ord_res_6_step S S')"
+    by (metis finished_def ord_res_6_semantics.final_finished)
+next
+  show "\<forall>S. ord_res_7_final S \<longrightarrow> (\<nexists>S'. constant_context ord_res_7 S S')"
+    by (metis finished_def ord_res_7_semantics.final_finished)
+next
+  show "\<forall>i S6 S7. match i S6 S7 \<longrightarrow> ord_res_6_final S6 \<longleftrightarrow> ord_res_7_final S7"
+    unfolding match_def
+    using ord_res_6_final_iff_ord_res_7_final by metis
+next
+  show "\<forall>i S6 S7. match i S6 S7 \<longrightarrow>
+       safe_state ord_res_6_step ord_res_6_final S6 \<and>
+       safe_state (constant_context ord_res_7) ord_res_7_final S7"
+  proof (intro allI impI conjI)
+    fix i S6 S7
+    assume "match i S6 S7"
+    show "safe_state ord_res_6_step ord_res_6_final S6"
+      using \<open>match i S6 S7\<close>[unfolded match_def]
+      using ord_res_6_safe_state_if_invars
+      using ord_res_6_matches_ord_res_7.simps by auto
+
+    show "safe_state (constant_context ord_res_7) ord_res_7_final S7"
+      using \<open>match i S6 S7\<close>
+      using ord_res_5_safe_state_if_invars
+      using match_def ord_res_5_matches_ord_res_6.cases
+      sorry
+  qed
+next
+  show "wfp (\<lambda>_ _. False)"
+    by simp
+next
+  show "\<forall>i s1 s2 s2'. match i s1 s2 \<longrightarrow> constant_context ord_res_7 s2 s2' \<longrightarrow>
+    (\<exists>i' s1'. ord_res_6_step\<^sup>+\<^sup>+ s1 s1' \<and> match i' s1' s2') \<or> (\<exists>i'. match i' s1 s2' \<and> False)"
+    sorry
+qed
+
+
+subsection \<open>ORD-RES-8 (only propagate when necessary)\<close>
 
 
 subsection \<open>SCL(FOL)-2 (one-step conflict resolution)\<close>
@@ -10511,6 +11248,8 @@ inductive scl_fol_1 where
     \<Gamma>' = (Neg A, None) # \<Gamma> \<Longrightarrow>
     scl_fol_1 N (\<Gamma>, U, None) (\<Gamma>', U, None)" |
 
+  \<comment> \<open>C is not used and condition could be replaced by
+    \<^term>\<open>\<exists>C |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> C (Pos A)\<close>\<close>
   decide_pos: "\<not> (\<exists>C |\<in>| N |\<union>| U. trail_false_cls \<Gamma> C) \<Longrightarrow>
     linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set N. \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
     linorder_cls.is_least_in_fset {|C |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> C (Pos A)|} C \<Longrightarrow>
@@ -10537,12 +11276,163 @@ inductive scl_fol_1 where
   backjump: "\<Gamma> = (L, None) # \<Gamma>' \<Longrightarrow> L = - K \<Longrightarrow>
     scl_fol_1 N (\<Gamma>, U, Some (add_mset K D)) (\<Gamma>', finsert (add_mset K D) U, None)"
 
+lemma "right_unique (scl_fol_1 N)"
+proof (rule right_uniqueI)
+  fix x y z
+  assume step1: "scl_fol_1 N x y" and step2: "scl_fol_1 N x z"
+  show "y = z"
+    using step1
+  proof (cases N x y rule: scl_fol_1.cases)
+    case step1_hyps: (decide_neg U \<Gamma> A \<Gamma>')
+    show ?thesis
+      using step2
+      unfolding \<open>x = (\<Gamma>, U, None)\<close>
+    proof (cases N "(\<Gamma>, U, None :: 'f gterm literal multiset option)" z rule: scl_fol_1.cases)
+      case (decide_neg A2 \<Gamma>2')
+      with step1_hyps show ?thesis
+        by (metis (no_types, lifting) linorder_trm.Uniq_is_least_in_set the1_equality')
+    next
+      case (decide_pos A2 C2 \<Gamma>2')
+      with step1_hyps have False
+        by (metis (mono_tags, lifting) Uniq_D linorder_cls.is_least_in_fset_ffilterD(1)
+            linorder_cls.is_least_in_fset_ffilterD(2) linorder_trm.Uniq_is_least_in_set)
+      thus ?thesis ..
+    next
+      case (propagate_pos A2 C2 \<Gamma>2')
+      with step1_hyps have False
+        by (metis (mono_tags, lifting) Uniq_D linorder_cls.is_least_in_fset_ffilterD(1)
+            linorder_cls.is_least_in_fset_ffilterD(2) linorder_trm.Uniq_is_least_in_set)
+      thus ?thesis ..
+    next
+      case (conflict C2)
+      with step1_hyps have False
+        using linorder_cls.is_least_in_fset_ffilterD(1) linorder_cls.is_least_in_fset_ffilterD(2)
+        by blast
+      thus ?thesis ..
+    qed
+  next
+    case step1_hyps: (decide_pos U \<Gamma> A C \<Gamma>')
+    show ?thesis
+      using step2
+      unfolding \<open>x = (\<Gamma>, U, None)\<close>
+    proof (cases N "(\<Gamma>, U, None :: 'f gterm literal multiset option)" z rule: scl_fol_1.cases)
+      case (decide_neg A2 \<Gamma>2')
+      with step1_hyps have False
+        by (metis (mono_tags, lifting) Uniq_D linorder_cls.is_least_in_fset_ffilterD(1)
+            linorder_cls.is_least_in_fset_ffilterD(2) linorder_trm.Uniq_is_least_in_set)
+      thus ?thesis ..
+    next
+      case (decide_pos A2 C2 \<Gamma>2')
+      with step1_hyps show ?thesis
+        by (metis (no_types, lifting) linorder_trm.Uniq_is_least_in_set the1_equality')
+    next
+      case (propagate_pos A2 C2 \<Gamma>2')
+      with step1_hyps have False
+        by (metis (no_types, lifting) linorder_trm.Uniq_is_least_in_set the1_equality')
+      thus ?thesis ..
+    next
+      case (conflict C2)
+      with step1_hyps have False
+        using linorder_cls.is_least_in_fset_ffilterD(1) linorder_cls.is_least_in_fset_ffilterD(2)
+        by blast
+      thus ?thesis ..
+    qed
+  next
+    case step1_hyps: (propagate_pos U \<Gamma> A C \<Gamma>')
+    show ?thesis
+      using step2
+      unfolding \<open>x = (\<Gamma>, U, None)\<close>
+    proof (cases N "(\<Gamma>, U, None :: 'f gterm literal multiset option)" z rule: scl_fol_1.cases)
+      case (decide_neg A2 \<Gamma>2')
+      with step1_hyps have False
+        by (metis (mono_tags, lifting) Uniq_D linorder_cls.is_least_in_fset_ffilterD(1)
+            linorder_cls.is_least_in_fset_ffilterD(2) linorder_trm.Uniq_is_least_in_set)
+      thus ?thesis ..
+    next
+      case (decide_pos A2 C2 \<Gamma>2')
+      with step1_hyps show ?thesis
+        by (metis (no_types, lifting) linorder_trm.Uniq_is_least_in_set the1_equality')
+    next
+      case step2_hyps: (propagate_pos A2 C2 \<Gamma>2')
+      have "A2 = A"
+        using step1_hyps step2_hyps
+        by (metis (no_types, lifting) linorder_trm.dual_order.asym linorder_trm.is_least_in_set_iff)
 
-term scl_fol.regular_scl
+      have "C2 = C"
+        using step1_hyps step2_hyps
+        unfolding \<open>A2 = A\<close>
+        by (metis (no_types, lifting) linorder_cls.is_least_in_ffilter_iff linorder_cls.not_less_iff_gr_or_eq)
 
-thm scl_fol.regular_scl_def
+      have "\<Gamma>2' = \<Gamma>'"
+        using step1_hyps step2_hyps
+        unfolding \<open>A2 = A\<close> \<open>C2 = C\<close> by argo
 
-term map_prod
+      thus "y = z"
+        unfolding \<open>y = (\<Gamma>', U, None)\<close> \<open>z = (\<Gamma>2', U, None)\<close>
+        unfolding prod.inject by argo
+    next
+      case (conflict C2)
+      with step1_hyps have False
+        using linorder_cls.is_least_in_fset_ffilterD(1) linorder_cls.is_least_in_fset_ffilterD(2)
+        by blast
+      thus ?thesis ..
+    qed
+  next
+    case step1_hyps: (conflict \<Gamma> U C)
+    show ?thesis
+      using step2
+      unfolding \<open>x = (\<Gamma>, U, None)\<close>
+    proof (cases N "(\<Gamma>, U, None :: 'f gterm literal multiset option)" z rule: scl_fol_1.cases)
+      case (decide_neg A2 \<Gamma>2')
+      with step1_hyps have False
+        using linorder_cls.is_least_in_ffilter_iff by metis
+      thus ?thesis ..
+    next
+      case (decide_pos A2 C2 \<Gamma>2')
+      with step1_hyps have False
+        using linorder_cls.is_least_in_ffilter_iff by metis
+      thus ?thesis ..
+    next
+      case (propagate_pos A2 C2 \<Gamma>2')
+      with step1_hyps have False
+        using linorder_cls.is_least_in_ffilter_iff by metis
+      thus ?thesis ..
+    next
+      case (conflict C2)
+      with step1_hyps show ?thesis
+        by (metis Uniq_D linorder_cls.Uniq_is_least_in_fset)
+    qed
+  next
+    case step2_hyps: (skip L C n \<Gamma> U)
+    show ?thesis
+      using step2
+      unfolding \<open>x = ((L, n) # \<Gamma>, U, Some C)\<close>
+    proof (cases N "((L, n) # \<Gamma>, U, Some C)" z rule: scl_fol_1.cases)
+      case skip
+      with step2_hyps show ?thesis
+        by argo
+    next
+      case (resolve L2 C2 \<Gamma>2' K2 D2)
+      with step2_hyps have False
+        by force
+      thus ?thesis ..
+    next
+      case (backjump L2 \<Gamma>2' K2 D2)
+      with step2_hyps have False
+        by force
+      thus ?thesis ..
+    qed
+  next
+    case step2_hyps: (resolve \<Gamma> L C \<Gamma>' K U D)
+    thus ?thesis
+      using step2 by (simp add: scl_fol_1.simps)
+  next
+    case (backjump \<Gamma> L \<Gamma>' K U D)
+    thus ?thesis
+      using step2 by (simp add: scl_fol_1.simps)
+  qed
+qed
+
 
 abbreviation trail_of_gtrail where
   "trail_of_gtrail \<equiv> map (\<lambda>(L, opt). (lit_of_glit L, map_option (\<lambda>C. (cls_of_gcls C, lit_of_glit L, Var)) opt))"
