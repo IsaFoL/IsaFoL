@@ -16,23 +16,21 @@ definition is_select_grounding :: "('f, 'v) select \<Rightarrow> 'f ground_selec
         clause\<^sub>G = to_ground_clause (clause \<cdot> \<gamma>) \<and> 
         select\<^sub>G clause\<^sub>G = to_ground_clause ((select clause) \<cdot> \<gamma>))"
 
-definition typed_clause_groundings where
-  "typed_clause_groundings \<F> clause = { to_ground_clause (clause \<cdot> \<gamma>) | \<gamma>. 
-    is_ground_clause (clause \<cdot> \<gamma>) \<and> (\<forall>\<V>. welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>)
-}"
+definition clause_groundings :: "('f, 'ty) fun_types \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set"  where
+  "clause_groundings \<F> clause = { to_ground_clause (clause \<cdot> \<gamma>) | \<gamma> \<V>. 
+    is_ground_clause (clause \<cdot> \<gamma>) \<and> welltyped\<^sub>c \<F> \<V> clause \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>
+  }"
 
 (* TODO: Factor out sth like select_subst_stable for a single premise and use that format 
   everywhere
 
-TODO: Can I write \<forall>\<F>?.
-
  *)
 abbreviation select_subst_stability_on where
   "\<And>select select\<^sub>G. select_subst_stability_on \<F> select select\<^sub>G premises \<equiv>
-    \<forall>premise\<^sub>G \<in> \<Union> (typed_clause_groundings \<F> ` premises). \<exists>premise \<in> premises. \<exists>\<gamma>. 
+    \<forall>premise\<^sub>G \<in> \<Union> (clause_groundings \<F> ` premises). \<exists>premise \<in> premises. \<exists>\<gamma> \<V>. 
       premise \<cdot> \<gamma> = to_clause premise\<^sub>G \<and> 
       select\<^sub>G (to_ground_clause (premise \<cdot> \<gamma>)) = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
-      (\<forall>\<V>. welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>)"
+      welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>"
 
 lemma obtain_subst_stable_on_select_grounding:
   fixes select :: "('f, 'v) select"
@@ -40,22 +38,22 @@ lemma obtain_subst_stable_on_select_grounding:
     "select_subst_stability_on \<F> select select\<^sub>G premises"
     "is_select_grounding select select\<^sub>G"
 proof-
-  let ?premise_groundings = "\<Union>(typed_clause_groundings \<F> ` premises)"
+  let ?premise_groundings = "\<Union>(clause_groundings \<F> ` premises)"
 
   have select\<^sub>G_exists_for_premises: 
-    "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G \<gamma>. \<exists>premise \<in> premises.
+    "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G \<gamma> \<V>. \<exists>premise \<in> premises.
           premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
-        \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<gamma>) 
-        \<and> (\<forall>\<V>. welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>)"
-    unfolding typed_clause_groundings_def
+        \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
+        welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>"
+    unfolding clause_groundings_def
     by fastforce
 
   obtain select\<^sub>G_on_premise_groundings where 
-    select\<^sub>G_on_premise_groundings: "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>premise \<in> premises. \<exists>\<gamma>.
+    select\<^sub>G_on_premise_groundings: "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>premise \<in> premises. \<exists>\<gamma> \<V>.
         premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
       \<and> select\<^sub>G_on_premise_groundings (to_ground_clause (premise \<cdot> \<gamma>)) = 
-          to_ground_clause ((select premise) \<cdot> \<gamma>)
-      \<and> (\<forall>\<V>. welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>)"
+          to_ground_clause ((select premise) \<cdot> \<gamma>) 
+      \<and> welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>"
     using Ball_Ex_comm(1)[OF select\<^sub>G_exists_for_premises]
     by (metis (mono_tags, opaque_lifting) to_clause_inverse)
 

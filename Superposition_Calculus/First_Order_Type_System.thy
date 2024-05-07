@@ -505,7 +505,7 @@ lemma welltyped_the_mgu:
 
 abbreviation welltyped_imgu where
   "welltyped_imgu \<F> \<V> term term' \<mu> \<equiv>
-    \<forall>\<tau>. welltyped \<F> \<V> term \<tau> \<longrightarrow> welltyped  \<F> \<V> term' \<tau> \<longrightarrow> welltyped\<^sub>\<sigma>  \<F> \<V> \<mu>"
+    \<forall>\<tau>. welltyped \<F> \<V> term \<tau> \<longrightarrow> welltyped \<F> \<V> term' \<tau> \<longrightarrow> welltyped\<^sub>\<sigma> \<F> \<V> \<mu>"
 
 lemma welltyped_imgu_exists:
   fixes \<upsilon> :: "('f, 'v) subst"
@@ -527,6 +527,32 @@ proof-
   then show ?thesis
     using that imgu_exists_extendable[OF unified]
     by (metis the_mgu the_mgu_term_subst_is_imgu unified)
+qed
+
+abbreviation welltyped_imgu' where
+  "welltyped_imgu' \<F> \<V> term term' \<mu> \<equiv>
+    \<exists>\<tau>. welltyped \<F> \<V> term \<tau> \<and> welltyped \<F> \<V> term' \<tau> \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<mu>"
+
+lemma welltyped_imgu'_exists:
+  fixes \<upsilon> :: "('f, 'v) subst"
+  assumes unified: "term \<cdot>t \<upsilon> = term' \<cdot>t \<upsilon>" and "welltyped \<F> \<V> term \<tau>" "welltyped \<F> \<V> term' \<tau>"
+  obtains \<mu> :: "('f, 'v) subst"
+  where 
+    "\<upsilon> = \<mu> \<odot> \<upsilon>" 
+    "term_subst.is_imgu \<mu> {{term, term'}}"
+    "welltyped_imgu' \<F> \<V> term term' \<mu>"
+proof-
+  obtain \<mu> where \<mu>: "the_mgu term term' = \<mu>"
+    using assms ex_mgu_if_subst_apply_term_eq_subst_apply_term by blast
+
+  have "welltyped_imgu \<F> \<V> term term' (the_mgu term term')"
+    using welltyped_the_mgu[OF \<mu>, of \<F> \<V>] assms
+    unfolding \<mu>
+    by blast
+
+  then show ?thesis
+    using that imgu_exists_extendable[OF unified]
+    by (metis assms(2) assms(3) the_mgu the_mgu_term_subst_is_imgu unified)
 qed
 
 end

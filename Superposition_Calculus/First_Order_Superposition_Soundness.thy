@@ -5,6 +5,13 @@ begin
 
 subsection \<open>Soundness\<close>
 
+lemma welltyped_add_literal:
+  assumes "welltyped\<^sub>c \<F> \<V> P'" "welltyped \<F> \<V> s\<^sub>1 \<tau>" "welltyped \<F> \<V> s\<^sub>2 \<tau>" 
+  shows "welltyped\<^sub>c \<F> \<V> (add_mset (s\<^sub>1 !\<approx> s\<^sub>2) P')"
+  using assms
+  unfolding welltyped\<^sub>c_add_mset welltyped\<^sub>l_def welltyped\<^sub>a_def
+  by auto
+
 context grounded_first_order_superposition_calculus
 begin
 
@@ -13,17 +20,19 @@ abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
   "entails\<^sub>F \<equiv> lifting.entails_\<G>"
 
 lemma eq_resolution_sound:
-  assumes step: "eq_resolution (P, \<V>) (C, \<V>)"
+  assumes step: "eq_resolution \<V> P C"
   shows "{P} \<TTurnstile>\<^sub>F {C}"
   using step
-proof (cases "(P, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
+proof (cases \<V> P C rule: eq_resolution.cases)
   case (eq_resolutionI L P' s\<^sub>1 s\<^sub>2 \<mu>)
 
   have 
     "\<And>I \<gamma>. \<lbrakk>
         refl I; 
-        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P \<cdot> \<gamma>') \<and> is_ground_clause (P \<cdot> \<gamma>')) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
-        is_ground_clause (C \<cdot> \<gamma>)
+        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P \<cdot> \<gamma>') \<and> is_ground_clause (P \<cdot> \<gamma>') 
+              \<and> (\<exists>\<V>. First_Order_Type_System.welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>')) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
+        is_ground_clause (C \<cdot> \<gamma>);
+        welltyped\<^sub>c typeof_fun \<V> C; welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>
      \<rbrakk> \<Longrightarrow> upair  ` I \<TTurnstile> to_ground_clause (C \<cdot> \<gamma>)"
    proof-
     fix I :: "'f gterm rel" and \<gamma> :: "('f, 'v) subst"
@@ -33,13 +42,15 @@ proof (cases "(P, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
     assume
      refl_I: "refl I" and 
      premise: 
-      "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P \<cdot> \<gamma>') \<and> is_ground_clause (P \<cdot> \<gamma>')) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
-     grounding: "is_ground_clause (C \<cdot> \<gamma>)"
+      "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P \<cdot> \<gamma>') \<and> is_ground_clause (P \<cdot> \<gamma>') 
+            \<and> (\<exists>\<V>. First_Order_Type_System.welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>')) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
+     grounding: "is_ground_clause (C \<cdot> \<gamma>)" and
+     wt: "welltyped\<^sub>c typeof_fun \<V> C" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>"
 
     obtain \<gamma>' :: "'v \<Rightarrow> ('f, 'v) Term.term" where 
-      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "C \<cdot> \<gamma> = C \<cdot> \<gamma>'"
+      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "C \<cdot> \<gamma> = C \<cdot> \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'"
       using ground_subst_exstension_clause[OF grounding]
-      by blast
+      sorry
 
     let ?P = "to_ground_clause (P \<cdot> \<mu> \<cdot> \<gamma>')"
     let ?L = "to_ground_literal (L \<cdot>l \<mu> \<cdot>l \<gamma>')"
@@ -47,9 +58,32 @@ proof (cases "(P, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
     let ?s\<^sub>1 = "to_ground_term (s\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
     let ?s\<^sub>2 = "to_ground_term (s\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>')"
 
-    have "?I \<TTurnstile> ?P"
-      using premise[rule_format, of ?P, OF exI, of "\<mu> \<odot> \<gamma>'"] \<gamma>'
-      by (simp add: is_ground_subst_is_ground_clause)
+    have "welltyped\<^sub>c typeof_fun \<V> (P' \<cdot> \<mu>)"
+      using eq_resolutionI(6) wt(1)
+      by blast
+
+    moreover have welltyped_\<mu>: "welltyped\<^sub>\<sigma> typeof_fun \<V> \<mu>"
+      using eq_resolutionI(4)
+      by auto
+
+    ultimately have welltyped_P': "welltyped\<^sub>c typeof_fun \<V> P'"
+      using welltyped\<^sub>\<sigma>_welltyped\<^sub>c
+      by blast
+
+    from welltyped_\<mu> have "welltyped\<^sub>\<sigma> typeof_fun \<V> (\<mu> \<odot> \<gamma>')"
+      using \<gamma>'(3)
+      by (simp add: subst_compose_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_welltyped)
+
+    moreover have "welltyped\<^sub>c typeof_fun \<V> (add_mset (s\<^sub>1 !\<approx> s\<^sub>2) P')"
+      using eq_resolutionI(4) welltyped_add_literal[OF welltyped_P']
+      by auto
+
+    ultimately have "?I \<TTurnstile> ?P"
+      using premise[rule_format, of ?P, OF exI, of "\<mu> \<odot> \<gamma>'"] \<gamma>' wt(1)
+      apply auto
+      using eq_resolutionI
+      apply auto
+      using is_ground_subst_is_ground_clause by blast+
 
     then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
        by (auto simp: true_cls_def)
@@ -95,15 +129,17 @@ proof (cases "(P, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
    qed
     
    then show ?thesis
-     unfolding ground.G_entails_def true_clss_def typed_clause_groundings_def
-     by auto
+     unfolding ground.G_entails_def true_clss_def clause_groundings_def
+     apply auto
+    (* TODO: Fix \<V> *)
+     sorry
 qed
 
 lemma eq_factoring_sound:
-  assumes step: "eq_factoring (P, \<V>) (C, \<V>)"
+  assumes step: "eq_factoring \<V> P C"
   shows "{P} \<TTurnstile>\<^sub>F {C}"
   using step
-proof (cases "(P, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
+proof (cases \<V> P C rule: eq_factoring.cases)
   case (eq_factoringI L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
 
   have 
@@ -203,10 +239,10 @@ proof (cases "(P, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
 qed
 
 lemma superposition_sound:
-  assumes step: "superposition (P2, \<V>) (P1, \<V>) (C, \<V>)"
+  assumes step: "superposition \<V>\<^sub>2 P2 \<V>\<^sub>1 P1 C"
   shows "{P1, P2} \<TTurnstile>\<^sub>F {C}"
   using step
-proof (cases "(P2, \<V>)" "(P1, \<V>)" "(C, \<V>)" rule: superposition.cases)
+proof (cases  \<V>\<^sub>2 P2 \<V>\<^sub>1 P1 C rule: superposition.cases)
   case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
 
   have 
@@ -381,7 +417,7 @@ proof (cases "(P2, \<V>)" "(P1, \<V>)" "(C, \<V>)" rule: superposition.cases)
 
         then show ?thesis
           unfolding superpositionI 
-          by (metis C \<gamma>'(2) local.superpositionI(17) true_cls_union union_mset_add_mset_left)
+          by (metis C \<gamma>'(2) local.superpositionI(19) true_cls_union union_mset_add_mset_left)
       qed
     next
       case False
@@ -418,11 +454,7 @@ proof unfold_locales
       eq_resolution_sound
       superposition_sound
     unfolding inferences_def ground.G_entails_def
-    (* TODO *)
-    apply auto
-      apply (smt (verit) prod.inject superposition.simps)
-     apply (smt (verit) prod.inject eq_resolution.simps)
-    by (smt (verit) prod.inject eq_factoring.simps)
+    by auto
 qed
 
 sublocale first_order_superposition_calculus \<subseteq> 

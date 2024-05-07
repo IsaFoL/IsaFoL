@@ -250,14 +250,14 @@ lemma literal_subst_eq:
   shows "literal \<cdot>l \<sigma> = literal \<cdot>l \<tau>"
   using atom_subst_eq assms
   unfolding vars_literal_def subst_literal_def
-  by (metis literal.map_cong set_literal_atm_of singletonD)
+  by(cases literal) auto
 
 lemma clause_subst_eq:
   assumes "\<And>x. x \<in> vars_clause clause \<Longrightarrow> \<sigma> x = \<tau> x"
   shows "clause \<cdot> \<sigma> = clause \<cdot> \<tau>"
-  using literal_subst_eq assms
-  unfolding vars_clause_def subst_clause_def
-  by (metis (mono_tags, lifting) UN_I multiset.map_cong0)
+  using literal_subst_eq[OF assms[unfolded vars_clause_def subst_clause_def]]
+  unfolding subst_clause_def
+  by(induction clause) simp_all
 
 lemma is_ground_clause_empty [simp]: "is_ground_clause {#}"
   unfolding vars_clause_def
