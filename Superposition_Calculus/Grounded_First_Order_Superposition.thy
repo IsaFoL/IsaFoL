@@ -31,16 +31,17 @@ sublocale ground: ground_superposition_calculus where
   by unfold_locales (rule ground_critical_pair_theorem)
 
 abbreviation is_inference_grounding where
-  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<V> \<equiv>
+  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv>
     (case \<iota> of
-        Infer [premise] conclusion \<Rightarrow>
+        Infer [(premise, \<V>')] (conclusion, \<V>) \<Rightarrow>
           is_ground_clause (premise \<cdot> \<gamma>)
         \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
         \<and> \<iota>\<^sub>G = Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion \<cdot> \<gamma>))
         \<and> welltyped\<^sub>c typeof_fun \<V> premise 
         \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma> 
         \<and> welltyped\<^sub>c typeof_fun \<V> conclusion
-      | Infer [premise\<^sub>2, premise\<^sub>1] conclusion \<Rightarrow> 
+        \<and> \<V> = \<V>'
+      | Infer [(premise\<^sub>2, \<V>''), (premise\<^sub>1, \<V>')] (conclusion, \<V>) \<Rightarrow> 
           term_subst.is_renaming \<rho>\<^sub>1
         \<and> term_subst.is_renaming \<rho>\<^sub>2
         \<and> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}
@@ -60,10 +61,10 @@ abbreviation is_inference_grounding where
   \<and> \<iota>\<^sub>G \<in> ground.G_Inf"
 
 definition inference_groundings where 
-  "inference_groundings \<iota> = { \<iota>\<^sub>G | \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<V>. is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<V> }"
+  "inference_groundings \<iota> = { \<iota>\<^sub>G | \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2. is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 }"
 
 lemma is_inference_grounding_inference_groundings: 
-  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<V> \<Longrightarrow> \<iota>\<^sub>G \<in> inference_groundings \<iota>"
+  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2  \<Longrightarrow> \<iota>\<^sub>G \<in> inference_groundings \<iota>"
   unfolding inference_groundings_def
   by blast
 
@@ -75,17 +76,19 @@ proof-
     \<iota>\<^sub>G: "\<iota>\<^sub>G = Infer premises\<^sub>G conlcusion\<^sub>G"
     using Calculus.inference.exhaust by blast
 
-  obtain "premises" conclusion where
-    \<iota>: "\<iota> = Infer premises conclusion"
-    using Calculus.inference.exhaust by blast
+  obtain "premises" conclusion \<V> where
+    \<iota>: "\<iota> = Infer premises (conclusion, \<V>)"
+    using Calculus.inference.exhaust
+    by (metis prod.collapse)
 
-  then obtain \<gamma> \<V> where
+  then obtain \<gamma> where
     "is_ground_clause (conclusion \<cdot> \<gamma>)"
     "conlcusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
     "welltyped\<^sub>c typeof_fun \<V> conclusion \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>"
     using assms list_4_cases
     unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
-    by(auto split: list.splits)(metis list_4_cases)
+    apply(auto split: list.splits)
+    by (metis list_4_cases surj_pair)
 
   then show ?thesis
     unfolding \<iota> \<iota>\<^sub>G clause_groundings_def
@@ -120,7 +123,7 @@ sublocale lifting:
           ground.GRed_F 
           "clause_groundings typeof_fun"
           "(Some \<circ> inference_groundings)"
-          tiebreakers
+          typed_tiebreakers
 proof unfold_locales
   show "\<bottom>\<^sub>F \<noteq> {}"
     by simp
@@ -130,8 +133,9 @@ next
 
   then show "clause_groundings typeof_fun bottom \<noteq> {}"
     unfolding clause_groundings_def
-    apply auto
-    by (metis welltyped\<^sub>c_def emptyE set_mset_empty welltyped\<^sub>\<sigma>_Var)
+    using welltyped\<^sub>\<sigma>_Var
+    apply (auto simp add: First_Order_Type_System.welltyped\<^sub>c_def )
+    by blast
 next
   fix bottom
   assume "bottom \<in> \<bottom>\<^sub>F"
@@ -142,21 +146,22 @@ next
   fix clause
   show "clause_groundings typeof_fun clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"
     unfolding clause_groundings_def to_ground_clause_def subst_clause_def
-    by simp
+    apply auto
+    by (metis eq_fst_iff)
 next
-  fix \<iota> :: "('f, 'v) atom clause inference"
+  fix \<iota> :: "('f, 'v, 'ty) typed_clause inference"
 
   show "the ((Some \<circ> inference_groundings) \<iota>) \<subseteq> ground.GRed_I (clause_groundings typeof_fun (concl_of \<iota>))"
     using inference\<^sub>G_red_in_clause_grounding_of_concl
     by auto
 next
-  show "\<And>clause\<^sub>G. po_on (tiebreakers clause\<^sub>G) UNIV"
+  show "\<And>clause\<^sub>G. po_on (typed_tiebreakers clause\<^sub>G) UNIV"
     unfolding po_on_def
-    using wellfounded_tiebreakers
+    using wellfounded_typed_tiebreakers
     by simp
 next
-  show "\<And>clause\<^sub>G. wfp_on (tiebreakers clause\<^sub>G) UNIV"
-    using wellfounded_tiebreakers
+  show "\<And>clause\<^sub>G. wfp_on (typed_tiebreakers clause\<^sub>G) UNIV"
+    using wellfounded_typed_tiebreakers
     by simp
 qed
 
@@ -175,7 +180,7 @@ sublocale first_order_superposition_calculus \<subseteq>
     "\<lambda>_. clause_groundings typeof_fun" 
     "\<lambda>select\<^sub>G. Some \<circ>
       (grounded_first_order_superposition_calculus.inference_groundings (\<prec>\<^sub>t) select\<^sub>G typeof_fun)"
-    tiebreakers
+    typed_tiebreakers
 proof(unfold_locales; (intro ballI)?)
   show "select\<^sub>G\<^sub>s \<noteq> {}"
     using select\<^sub>G_simple
@@ -211,7 +216,7 @@ next
           ground.GRed_F 
           (clause_groundings typeof_fun)
           (Some \<circ> inference_groundings)
-          tiebreakers"
+          typed_tiebreakers"
     by unfold_locales
 qed
 

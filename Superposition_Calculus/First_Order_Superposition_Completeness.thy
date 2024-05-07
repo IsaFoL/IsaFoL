@@ -23,8 +23,8 @@ lemma eq_resolution_lifting:
     typing: "welltyped\<^sub>c typeof_fun \<V> premise" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>"
   obtains conclusion' 
   where
-    "eq_resolution \<V> premise conclusion'"
-    "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')"
+    "eq_resolution (premise, \<V>) (conclusion', \<V>)"
+    "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (conclusion', \<V>))"
     "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
   using ground_eq_resolution
 proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution.cases)
@@ -155,7 +155,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     unfolding conclusion' ground_eq_resolutionI(2) literal_\<gamma>[symmetric] subst_clause_add_mset
     by simp
 
-  have eq_resolution: "eq_resolution \<V> premise (conclusion' \<cdot> \<mu>)"
+  have eq_resolution: "eq_resolution (premise, \<V>) (conclusion' \<cdot> \<mu>, \<V>)"
   proof (rule eq_resolutionI)
     show "premise = add_mset literal conclusion'"
       using conclusion'.
@@ -233,7 +233,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     unfolding clause_subst_compose[symmetric] \<mu>_\<gamma>.
 
   moreover then have 
-    "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [premise] (conclusion' \<cdot> \<mu>))"
+    "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (conclusion' \<cdot> \<mu>, \<V>))"
     using ground_eq_resolution conclusion_grounding premise_grounding typing
     unfolding 
       clause_groundings_def 
@@ -244,8 +244,6 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
       conclusion\<^sub>G
     apply auto
     apply(rule exI[of _ \<gamma>])
-    apply auto
-    apply(rule exI[of _ \<V>])
     apply auto
     using eq_resolution eq_resolution_preserves_typing by blast
 
@@ -269,8 +267,8 @@ lemma eq_factoring_lifting:
     ground_eq_factoring: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G"
   obtains conclusion' 
   where
-    "eq_factoring \<V> premise conclusion'"
-    "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')"
+    "eq_factoring (premise, \<V>) (conclusion', \<V>)"
+    "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (conclusion', \<V>))"
     "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
   using ground_eq_factoring
 proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.cases)
@@ -391,7 +389,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
 
   let ?conclusion' = "add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise')"
 
-  have eq_factoring: "eq_factoring \<V> premise (?conclusion' \<cdot> \<mu>)"
+  have eq_factoring: "eq_factoring (premise, \<V>) (?conclusion' \<cdot> \<mu>, \<V>)"
   proof (rule eq_factoringI)
     show "premise = add_mset literal\<^sub>1 (add_mset literal\<^sub>2 premise')"
       using premise.
@@ -507,7 +505,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     by (metis \<mu>_\<gamma> clause_subst_compose)
 
   moreover then have 
-    "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [premise] (?conclusion' \<cdot> \<mu>))"
+    "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (?conclusion' \<cdot> \<mu>, \<V>))"
     using ground_eq_factoring conclusion_grounding premise_grounding 
     unfolding 
       clause_groundings_def 
@@ -1409,11 +1407,12 @@ proof-
     "to_clause premise\<^sub>G = premise \<cdot> \<gamma>" and
     "to_clause conclusion\<^sub>G = conclusion \<cdot> \<gamma>" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = select premise \<cdot> \<gamma>" and
-    premise_in_premises: "premise \<in> premises" and
+    premise_in_premises: "(premise, \<V>) \<in> premises" and
     typing: "welltyped\<^sub>c typeof_fun \<V> premise" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>"
     using assms(2, 3) premise\<^sub>G_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
-    by (metis (no_types, opaque_lifting) first_order_select.select_subst(1) first_order_select_axioms ground_clause_is_ground subst_ground_clause to_clause_inverse to_ground_clause_inverse)
+    apply auto
+    by (smt (verit, del_insts) case_prodE ground_clause_is_ground select_subst1 subst_ground_clause to_clause_inverse to_ground_clause_inverse)
     
   then have
     premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and
@@ -1424,9 +1423,9 @@ proof-
     by(smt(verit))+
 
   obtain conclusion' where
-    eq_resolution: "eq_resolution \<V> premise conclusion'" and
+    eq_resolution: "eq_resolution (premise, \<V>) (conclusion', \<V>)" and
     \<iota>\<^sub>G: "\<iota>\<^sub>G = Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion' \<cdot> \<gamma>))" and
-    inference_groundings: "\<iota>\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')" and  
+    inference_groundings: "\<iota>\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (conclusion', \<V>))" and  
     conclusion'_conclusion: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     using
       eq_resolution_lifting[OF 
@@ -1438,14 +1437,13 @@ proof-
     unfolding premise\<^sub>G conclusion\<^sub>G \<iota>\<^sub>G
     by metis
 
-  let ?\<iota> = "Infer [premise] conclusion'"
+  let ?\<iota> = "Infer [(premise, \<V>)] (conclusion', \<V>)"
 
   show ?thesis
   proof(rule that)
     show "?\<iota> \<in> Inf_from premises"
       using premise_in_premises eq_resolution
       unfolding Inf_from_def inferences_def inference_system.Inf_from_def
-      (* TODO *) 
       by auto
 
     show "\<iota>\<^sub>G \<in> inference_groundings ?\<iota>"

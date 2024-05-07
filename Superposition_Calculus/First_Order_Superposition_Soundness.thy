@@ -12,6 +12,61 @@ lemma welltyped_add_literal:
   unfolding welltyped\<^sub>c_add_mset welltyped\<^sub>l_def welltyped\<^sub>a_def
   by auto
 
+(* TODO: I will need precondition of \<F> *)
+lemma obtain_welltyped_ground_subst:
+  obtains \<gamma> :: "('f, 'v) subst"
+  where "term_subst.is_ground_subst \<gamma>" "welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>"
+  
+proof-
+  obtain t\<^sub>G :: "'v \<Rightarrow> ('f, 'v) Term.term" where 
+    "\<And>x. is_ground_term (t\<^sub>G x)" 
+    "\<And>x. welltyped \<F> \<V> (t\<^sub>G x) (\<V> x)"
+   
+    sorry
+    
+
+  then have "term_subst.is_ground_subst t\<^sub>G" "welltyped\<^sub>\<sigma> \<F> \<V> t\<^sub>G"
+    unfolding welltyped\<^sub>\<sigma>_def is_ground_iff term_subst.is_ground_subst_def
+    by blast+
+ 
+  with that show ?thesis
+    by blast
+qed
+
+
+lemma welltyped_ground_subst_exstension_term:
+  assumes "is_ground_term (term \<cdot>t \<gamma>)" "welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>"
+  obtains \<gamma>'  :: "('f, 'v) subst"
+  where "term \<cdot>t \<gamma> = term \<cdot>t \<gamma>'" and "term_subst.is_ground_subst \<gamma>'" and "welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>'"
+proof-
+  obtain \<gamma>'' :: "'v \<Rightarrow> ('f, 'v) Term.term" where 
+    \<gamma>'': "term_subst.is_ground_subst \<gamma>''"  "welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>''"
+    using obtain_welltyped_ground_subst
+    by blast
+
+  define \<gamma>' where 
+    \<gamma>':  "\<gamma>' = (\<lambda>var. if var \<in> vars_term term then \<gamma> var else \<gamma>'' var)"
+
+  have "term_subst.is_ground_subst \<gamma>'"
+    using assms \<gamma>'' 
+    unfolding \<gamma>' term_subst.is_ground_subst_def
+    by (simp add: is_ground_iff)
+
+  moreover have "term \<cdot>t \<gamma> = term \<cdot>t \<gamma>'"
+    unfolding \<gamma>'
+    by (smt (verit, best) term_subst_eq)
+
+  moreover have "welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>'"
+    unfolding \<gamma>'
+    using assms(2) \<gamma>''(2)
+    by (simp add: welltyped\<^sub>\<sigma>_def)
+
+  ultimately show ?thesis
+    using that
+    by blast
+qed
+
+
 context grounded_first_order_superposition_calculus
 begin
 
@@ -20,17 +75,17 @@ abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
   "entails\<^sub>F \<equiv> lifting.entails_\<G>"
 
 lemma eq_resolution_sound:
-  assumes step: "eq_resolution \<V> P C"
+  assumes step: "eq_resolution P C"
   shows "{P} \<TTurnstile>\<^sub>F {C}"
   using step
-proof (cases \<V> P C rule: eq_resolution.cases)
-  case (eq_resolutionI L P' s\<^sub>1 s\<^sub>2 \<mu>)
+proof (cases P C rule: eq_resolution.cases)
+  case (eq_resolutionI P L P' s\<^sub>1 s\<^sub>2 \<mu> \<V> C)
 
   have 
     "\<And>I \<gamma>. \<lbrakk>
         refl I; 
         \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P \<cdot> \<gamma>') \<and> is_ground_clause (P \<cdot> \<gamma>') 
-              \<and> (\<exists>\<V>. First_Order_Type_System.welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>')) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
+              \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma> typeof_fun  \<V> \<gamma>') \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
         is_ground_clause (C \<cdot> \<gamma>);
         welltyped\<^sub>c typeof_fun \<V> C; welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>
      \<rbrakk> \<Longrightarrow> upair  ` I \<TTurnstile> to_ground_clause (C \<cdot> \<gamma>)"
@@ -43,7 +98,7 @@ proof (cases \<V> P C rule: eq_resolution.cases)
      refl_I: "refl I" and 
      premise: 
       "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P \<cdot> \<gamma>') \<and> is_ground_clause (P \<cdot> \<gamma>') 
-            \<and> (\<exists>\<V>. First_Order_Type_System.welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>')) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
+             \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma> typeof_fun  \<V> \<gamma>') \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
      grounding: "is_ground_clause (C \<cdot> \<gamma>)" and
      wt: "welltyped\<^sub>c typeof_fun \<V> C" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>"
 
@@ -59,11 +114,11 @@ proof (cases \<V> P C rule: eq_resolution.cases)
     let ?s\<^sub>2 = "to_ground_term (s\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>')"
 
     have "welltyped\<^sub>c typeof_fun \<V> (P' \<cdot> \<mu>)"
-      using eq_resolutionI(6) wt(1)
+      using eq_resolutionI(8) wt(1)
       by blast
 
     moreover have welltyped_\<mu>: "welltyped\<^sub>\<sigma> typeof_fun \<V> \<mu>"
-      using eq_resolutionI(4)
+      using eq_resolutionI(6)
       by auto
 
     ultimately have welltyped_P': "welltyped\<^sub>c typeof_fun \<V> P'"
@@ -75,7 +130,7 @@ proof (cases \<V> P C rule: eq_resolution.cases)
       by (simp add: subst_compose_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_welltyped)
 
     moreover have "welltyped\<^sub>c typeof_fun \<V> (add_mset (s\<^sub>1 !\<approx> s\<^sub>2) P')"
-      using eq_resolutionI(4) welltyped_add_literal[OF welltyped_P']
+      using eq_resolutionI(6) welltyped_add_literal[OF welltyped_P']
       by auto
 
     ultimately have "?I \<TTurnstile> ?P"
@@ -89,17 +144,17 @@ proof (cases \<V> P C rule: eq_resolution.cases)
        by (auto simp: true_cls_def)
 
      have [simp]: "?P = add_mset ?L ?P'"
-       by (simp add: to_ground_clause_def eq_resolutionI(1) subst_clause_add_mset)
+       by (simp add: to_ground_clause_def eq_resolutionI(3) subst_clause_add_mset)
 
      have [simp]: "?L = (Neg (Upair ?s\<^sub>1 ?s\<^sub>2))"
-       unfolding to_ground_literal_def eq_resolutionI(2) to_ground_atom_def
+       unfolding to_ground_literal_def eq_resolutionI(4) to_ground_atom_def
        by (simp add: subst_atom_def subst_literal)
        
      have [simp]: "?s\<^sub>1 = ?s\<^sub>2"
-       using term_subst.subst_imgu_eq_subst_imgu[OF eq_resolutionI(3)] by simp
+       using term_subst.subst_imgu_eq_subst_imgu[OF eq_resolutionI(5)] by simp
       
      have "is_neg ?L"
-       by (simp add: to_ground_literal_def eq_resolutionI(2) subst_literal)
+       by (simp add: to_ground_literal_def eq_resolutionI(4) subst_literal)
 
      show "?I \<TTurnstile> to_ground_clause (C \<cdot> \<gamma>)"
       proof(cases "L' = ?L")
@@ -128,11 +183,9 @@ proof (cases \<V> P C rule: eq_resolution.cases)
      qed
    qed
     
-   then show ?thesis
+    then show ?thesis
      unfolding ground.G_entails_def true_clss_def clause_groundings_def
-     apply auto
-    (* TODO: Fix \<V> *)
-     sorry
+     using eq_resolutionI(1, 2) by auto
 qed
 
 lemma eq_factoring_sound:

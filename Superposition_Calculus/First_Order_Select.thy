@@ -6,6 +6,8 @@ theory First_Order_Select
     HOL_Extra
 begin
 
+type_synonym ('f, 'v, 'ty) typed_clause = "('f, 'v) atom clause \<times> ('v, 'ty) var_types"
+
 type_synonym 'f ground_select = "'f ground_atom clause \<Rightarrow> 'f ground_atom clause"
 type_synonym ('f, 'v) select = "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
 
@@ -16,9 +18,11 @@ definition is_select_grounding :: "('f, 'v) select \<Rightarrow> 'f ground_selec
         clause\<^sub>G = to_ground_clause (clause \<cdot> \<gamma>) \<and> 
         select\<^sub>G clause\<^sub>G = to_ground_clause ((select clause) \<cdot> \<gamma>))"
 
-definition clause_groundings :: "('f, 'ty) fun_types \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set"  where
-  "clause_groundings \<F> clause = { to_ground_clause (clause \<cdot> \<gamma>) | \<gamma> \<V>. 
-    is_ground_clause (clause \<cdot> \<gamma>) \<and> welltyped\<^sub>c \<F> \<V> clause \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>
+definition clause_groundings :: "('f, 'ty) fun_types \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> 'f ground_atom clause set"  where
+  "clause_groundings \<F> clause = { to_ground_clause (fst clause \<cdot> \<gamma>) | \<gamma> . 
+    is_ground_clause (fst clause \<cdot> \<gamma>) \<and> 
+    welltyped\<^sub>c \<F> (snd clause) (fst clause) \<and> 
+    welltyped\<^sub>\<sigma> \<F> (snd clause) \<gamma>
   }"
 
 (* TODO: Factor out sth like select_subst_stable for a single premise and use that format 
@@ -27,7 +31,7 @@ definition clause_groundings :: "('f, 'ty) fun_types \<Rightarrow> ('f, 'v) atom
  *)
 abbreviation select_subst_stability_on where
   "\<And>select select\<^sub>G. select_subst_stability_on \<F> select select\<^sub>G premises \<equiv>
-    \<forall>premise\<^sub>G \<in> \<Union> (clause_groundings \<F> ` premises). \<exists>premise \<in> premises. \<exists>\<gamma> \<V>. 
+    \<forall>premise\<^sub>G \<in> \<Union> (clause_groundings \<F> ` premises). \<exists>(premise, \<V>) \<in> premises. \<exists>\<gamma>. 
       premise \<cdot> \<gamma> = to_clause premise\<^sub>G \<and> 
       select\<^sub>G (to_ground_clause (premise \<cdot> \<gamma>)) = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
       welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>"
@@ -41,7 +45,7 @@ proof-
   let ?premise_groundings = "\<Union>(clause_groundings \<F> ` premises)"
 
   have select\<^sub>G_exists_for_premises: 
-    "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G \<gamma> \<V>. \<exists>premise \<in> premises.
+    "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G \<gamma>. \<exists>(premise, \<V>) \<in> premises.
           premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
         \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
         welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>"
@@ -49,13 +53,14 @@ proof-
     by fastforce
 
   obtain select\<^sub>G_on_premise_groundings where 
-    select\<^sub>G_on_premise_groundings: "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>premise \<in> premises. \<exists>\<gamma> \<V>.
+    select\<^sub>G_on_premise_groundings: "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>(premise, \<V>) \<in> premises. \<exists>\<gamma>.
         premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
       \<and> select\<^sub>G_on_premise_groundings (to_ground_clause (premise \<cdot> \<gamma>)) = 
           to_ground_clause ((select premise) \<cdot> \<gamma>) 
       \<and> welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>"
     using Ball_Ex_comm(1)[OF select\<^sub>G_exists_for_premises]
-    by (metis (mono_tags, opaque_lifting) to_clause_inverse)
+    apply auto
+    by (smt (verit, best) prod.case_eq_if to_clause_inverse)
 
   define select\<^sub>G where
     "\<And>clause\<^sub>G. select\<^sub>G clause\<^sub>G = (
@@ -67,6 +72,8 @@ proof-
   have grounding: "is_select_grounding select select\<^sub>G"
     unfolding is_select_grounding_def select\<^sub>G_def
     using select\<^sub>G_on_premise_groundings
+    apply auto
+     apply force
     by (metis ground_clause_is_ground subst_clause_Var_ident to_clause_inverse)
 
   show ?thesis
