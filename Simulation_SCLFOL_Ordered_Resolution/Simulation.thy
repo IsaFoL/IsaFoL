@@ -12021,7 +12021,6 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
     have "\<C> = Some C"
       using \<C>_eq_Some_if[of A C] step_hyps(2,3,4) by metis
 
-
     have "ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')"
       using \<open>ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>
       using step'[unfolded \<open>s7' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')\<close>]
@@ -12521,8 +12520,144 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
     ultimately show ?thesis
       by metis
   next
-    case (resolution D A C U\<^sub>e\<^sub>r' \<Gamma>')
-    then show ?thesis sorry
+    case step_hyps: (resolution E A D U\<^sub>e\<^sub>r' \<Gamma>')
+
+    define \<M>' where
+      "\<M>' = restrict_map \<M> {A. \<forall>L. ord_res.is_maximal_lit L (eres D E) \<longrightarrow> A \<prec>\<^sub>t atm_of L}"
+
+    define \<C>' where
+      "\<C>' = The_optional (linorder_cls.is_least_in_fset (ffilter ((\<prec>\<^sub>c) E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'))))"
+
+    define s6' where
+      "s6' = (U\<^sub>e\<^sub>r', \<F>, \<M>', \<C>')"
+
+    have
+      E_in: "E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+      E_false: "trail_false_cls \<Gamma> E" and
+      E_least_false: "\<forall>F |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). F \<noteq> E \<longrightarrow> trail_false_cls \<Gamma> F \<longrightarrow> E \<prec>\<^sub>c F"
+      using step_hyps(2) unfolding atomize_conj linorder_cls.is_least_in_ffilter_iff by metis
+
+    have three_resolution_cases: thesis if
+      case1: "eres D E = {#} \<Longrightarrow> thesis" and
+      case2: "\<And>L. eres D E \<noteq> {#} \<Longrightarrow> ord_res.is_maximal_lit L (eres D E) \<Longrightarrow> is_pos L \<Longrightarrow> thesis" and
+      case3: "\<And>L. eres D E \<noteq> {#} \<Longrightarrow> ord_res.is_maximal_lit L (eres D E) \<Longrightarrow> is_neg L \<Longrightarrow> thesis"
+    for thesis
+    proof (cases "eres D E = {#}")
+      case True
+      thus ?thesis
+        using case1 by metis
+    next
+      case False
+      then obtain L where L_max: "ord_res.is_maximal_lit L (eres D E)"
+        using linorder_lit.ex_maximal_in_mset by metis
+
+      show ?thesis
+      proof (cases L)
+        case (Pos A\<^sub>L)
+        then show ?thesis
+          using case2 False L_max by simp
+      next
+        case (Neg A\<^sub>L)
+        then show ?thesis
+          using case3 False L_max by simp
+      qed
+    qed
+
+    have "linorder_cls.is_least_in_fset
+      {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C \<or> Ex (clause_could_propagate \<Gamma> C)|} E"
+      unfolding linorder_cls.is_least_in_ffilter_iff
+      sketch (intro conjI ballI impI)
+    proof (intro conjI ballI impI)
+      show "E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+        using E_in .
+    next
+      show "trail_false_cls \<Gamma> E \<or> Ex (clause_could_propagate \<Gamma> E)"
+        using E_false ..
+    next
+      fix F :: "'f gterm literal multiset"
+      assume
+        "F |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+        "F \<noteq> E" and
+        "trail_false_cls \<Gamma> F \<or> Ex (clause_could_propagate \<Gamma> F)"
+      then show "E \<prec>\<^sub>c F"
+        sorry
+    qed
+
+    hence "\<C> = Some E"
+      using match_hyps(6)[rule_format, of E] by metis
+
+    have "\<not> dom \<M> \<TTurnstile> E"
+      sorry
+
+    have "is_neg (Neg A)"
+      by simp
+
+    have "\<M> (atm_of (Neg A)) = Some D"
+      sorry
+
+    have \<M>'_eq_if_eres_not_mempty: "\<M>' = restrict_map \<M> {A. A \<prec>\<^sub>t atm_of L}"
+      if "ord_res.is_maximal_lit L (eres D E)" for L
+      sorry
+
+    have "ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) s6'"
+    proof (cases rule: three_resolution_cases)
+      case 1
+
+      moreover have "\<M>' = (\<lambda>_. None)"
+        sorry
+
+      moreover have "\<C>' = Some {#}"
+        sorry
+
+      ultimately show ?thesis 
+        unfolding \<open>s6' = (U\<^sub>e\<^sub>r', \<F>, \<M>', \<C>')\<close>
+        using \<open>\<not> dom \<M> \<TTurnstile> E\<close> \<open>ord_res.is_maximal_lit (Neg A) E\<close> \<open>is_neg (Neg A)\<close>
+          \<open>\<M> (atm_of (Neg A)) = Some D\<close> \<open>U\<^sub>e\<^sub>r' = finsert (eres D E) U\<^sub>e\<^sub>r\<close>
+        using ord_res_6.resolution_bot
+        by metis
+    next
+      case (2 L)
+
+      moreover hence "\<M>' = restrict_map \<M> {A. A \<prec>\<^sub>t atm_of L}"
+        using \<M>'_eq_if_eres_not_mempty by metis
+
+      moreover have "\<C>' = Some (eres D E)"
+        sorry
+
+      ultimately show ?thesis 
+        unfolding \<open>s6' = (U\<^sub>e\<^sub>r', \<F>, \<M>', \<C>')\<close>
+        using \<open>\<not> dom \<M> \<TTurnstile> E\<close> \<open>ord_res.is_maximal_lit (Neg A) E\<close> \<open>is_neg (Neg A)\<close>
+          \<open>\<M> (atm_of (Neg A)) = Some D\<close> \<open>U\<^sub>e\<^sub>r' = finsert (eres D E) U\<^sub>e\<^sub>r\<close>
+        using ord_res_6.resolution_pos
+        by metis
+    next
+      case (3 L)
+
+      moreover hence "\<M>' = restrict_map \<M> {A. A \<prec>\<^sub>t atm_of L}"
+        using \<M>'_eq_if_eres_not_mempty by metis
+
+      moreover obtain C where "\<M> (atm_of L) = Some C"
+        sorry
+
+      moreover have "\<C>' = Some C"
+        sorry
+
+      ultimately show ?thesis 
+        unfolding \<open>s6' = (U\<^sub>e\<^sub>r', \<F>, \<M>', \<C>')\<close>
+        using \<open>\<not> dom \<M> \<TTurnstile> E\<close> \<open>ord_res.is_maximal_lit (Neg A) E\<close> \<open>is_neg (Neg A)\<close>
+          \<open>\<M> (atm_of (Neg A)) = Some D\<close> \<open>U\<^sub>e\<^sub>r' = finsert (eres D E) U\<^sub>e\<^sub>r\<close>
+        using ord_res_6.resolution_neg
+        by metis
+    qed
+
+    hence "ord_res_6_step\<^sup>+\<^sup>+ S6 (N, s6')"
+      unfolding \<open>S6 = (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close> \<open>\<C> = Some E\<close>
+      using ord_res_6_step.intros by blast
+        
+    moreover have "ord_res_6_matches_ord_res_7 0 (N, s6') S7'"
+      sorry
+
+    ultimately show ?thesis by metis
   qed
 qed
 
