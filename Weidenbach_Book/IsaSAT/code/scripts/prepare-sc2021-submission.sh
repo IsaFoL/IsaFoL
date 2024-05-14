@@ -23,7 +23,7 @@ rm -rf $dir
 echo "mkdir"
 mkdir $dir
 mkdir $dir/bin
-# cp ./src/isasat $dir/bin/
+cp ./src/isasat $dir/bin/
 mkdir $dir/build
 # cp ~/Documents/repos/cadical/build/cadical $dir/build/isasat
 #cp src/isasat $dir/build
