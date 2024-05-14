@@ -503,7 +503,7 @@ FILE * read_pipe (const char * fmt,
 void LLVM_DS_NArray_narray_free1(int32_t *);
 
 void print_version() {
-  printf("sc2023+");
+  printf("sc2024, internally:");
   int32_t* version = llvm_version();
   while(*version) {
     printf("%c", (char)*version);
@@ -819,7 +819,11 @@ int main(int argc, char *argv[]) {
   OPTIONu64 fema = 141733;
   OPTIONu64 sema = 429496729;
   OPTIONu64 unitinterval = 1000;
+#ifdef NOOPTIONS
+  OPTIONu64 pureelimrounds = 0; // incompatible with DRAT proofs
+#else
   OPTIONu64 pureelimrounds = 3; // incompatible with DRAT proofs
+#endif
   char *proof_path = NULL;
   int versionOnly = 0;
 
@@ -891,7 +895,7 @@ int main(int argc, char *argv[]) {
       // argc);
       ++i;
     } else {
-      printf("c input file %s i=%d argc=%d\n", opt, i, argc);
+      // printf("c input file %s i=%d argc=%d\n", opt, i, argc);
       inputname = opt;
     }
   }
