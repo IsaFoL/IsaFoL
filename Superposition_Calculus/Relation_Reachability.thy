@@ -1,5 +1,5 @@
 theory Relation_Reachability
-  imports Main
+  imports Relation_Extra
 begin
 
 

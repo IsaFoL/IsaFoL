@@ -52,6 +52,15 @@ lemma ex_maximal_in_fset_wrt:
 end
 
 
+subsection \<open>Non-existence\<close>
+
+lemma not_is_minimal_in_fset_wrt_fempty[simp]: "\<And>R x. \<not> is_minimal_in_fset_wrt R {||} x"
+  using is_minimal_in_fset_wrt_iff[of "{||}", simplified] .
+
+lemma not_is_maximal_in_fset_wrt_fempty[simp]: "\<And>R x. \<not> is_maximal_in_fset_wrt R {||} x"
+  using is_maximal_in_fset_wrt_iff[of "{||}", simplified] .
+
+
 subsection \<open>Miscellaneous\<close>
 
 lemma is_minimal_in_fset_wrt_ffilter_iff:
@@ -163,6 +172,15 @@ lemma ex1_greatest_in_fset_wrt:
   by (metis Uniq_def)
 
 end
+
+
+subsection \<open>Non-existence\<close>
+
+lemma not_is_least_in_fset_wrt_fempty[simp]: "\<And>R x. \<not> is_least_in_fset_wrt R {||} x"
+  using is_least_in_fset_wrt_iff[of "{||}", simplified] .
+
+lemma not_is_greatest_in_fset_wrt_fempty[simp]: "\<And>R x. \<not> is_greatest_in_fset_wrt R {||} x"
+  using is_greatest_in_fset_wrt_iff[of "{||}", simplified] .
 
 
 subsection \<open>Miscellaneous\<close>
