@@ -19,10 +19,11 @@ definition is_select_grounding :: "('f, 'v) select \<Rightarrow> 'f ground_selec
         select\<^sub>G clause\<^sub>G = to_ground_clause ((select clause) \<cdot> \<gamma>))"
 
 definition clause_groundings :: "('f, 'ty) fun_types \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> 'f ground_atom clause set"  where
-  "clause_groundings \<F> clause = { to_ground_clause (fst clause \<cdot> \<gamma>) | \<gamma> . 
-    is_ground_clause (fst clause \<cdot> \<gamma>) \<and> 
+  "clause_groundings \<F> clause = { to_ground_clause (fst clause \<cdot> \<gamma>) | \<gamma> \<F>\<^sub>G. 
+    term_subst.is_ground_subst \<gamma> \<and> 
     welltyped\<^sub>c \<F> (snd clause) (fst clause) \<and> 
-    welltyped\<^sub>\<sigma> \<F> (snd clause) \<gamma>
+    welltyped\<^sub>\<sigma> \<F>\<^sub>G (snd clause) \<gamma> \<and>
+    \<F> \<subseteq>\<^sub>m \<F>\<^sub>G
   }"
 
 (* TODO: Factor out sth like select_subst_stable for a single premise and use that format 
@@ -31,10 +32,10 @@ definition clause_groundings :: "('f, 'ty) fun_types \<Rightarrow> ('f, 'v, 'ty)
  *)
 abbreviation select_subst_stability_on where
   "\<And>select select\<^sub>G. select_subst_stability_on \<F> select select\<^sub>G premises \<equiv>
-    \<forall>premise\<^sub>G \<in> \<Union> (clause_groundings \<F> ` premises). \<exists>(premise, \<V>) \<in> premises. \<exists>\<gamma>. 
+    \<forall>premise\<^sub>G \<in> \<Union> (clause_groundings \<F> ` premises). \<exists>(premise, \<V>) \<in> premises. \<exists>\<gamma> \<F>\<^sub>G. 
       premise \<cdot> \<gamma> = to_clause premise\<^sub>G \<and> 
       select\<^sub>G (to_ground_clause (premise \<cdot> \<gamma>)) = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
-      welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>"
+      welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F>\<^sub>G \<V> \<gamma> \<and> \<F> \<subseteq>\<^sub>m \<F>\<^sub>G \<and> term_subst.is_ground_subst \<gamma>"
 
 lemma obtain_subst_stable_on_select_grounding:
   fixes select :: "('f, 'v) select"
@@ -45,19 +46,19 @@ proof-
   let ?premise_groundings = "\<Union>(clause_groundings \<F> ` premises)"
 
   have select\<^sub>G_exists_for_premises: 
-    "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G \<gamma>. \<exists>(premise, \<V>) \<in> premises.
+    "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G \<gamma> \<F>\<^sub>G. \<exists>(premise, \<V>) \<in> premises.
           premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
         \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
-        welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>"
+        welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F>\<^sub>G \<V> \<gamma> \<and> \<F> \<subseteq>\<^sub>m \<F>\<^sub>G \<and> term_subst.is_ground_subst \<gamma>"
     unfolding clause_groundings_def
-    by fastforce
+    using is_ground_subst_is_ground_clause by fastforce
 
   obtain select\<^sub>G_on_premise_groundings where 
-    select\<^sub>G_on_premise_groundings: "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>(premise, \<V>) \<in> premises. \<exists>\<gamma>.
+    select\<^sub>G_on_premise_groundings: "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>(premise, \<V>) \<in> premises. \<exists>\<gamma> \<F>\<^sub>G.
         premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
       \<and> select\<^sub>G_on_premise_groundings (to_ground_clause (premise \<cdot> \<gamma>)) = 
           to_ground_clause ((select premise) \<cdot> \<gamma>) 
-      \<and> welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>"
+      \<and> welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F>\<^sub>G \<V> \<gamma> \<and> \<F> \<subseteq>\<^sub>m \<F>\<^sub>G  \<and> term_subst.is_ground_subst \<gamma>"
     using Ball_Ex_comm(1)[OF select\<^sub>G_exists_for_premises]
     apply auto
     by (smt (verit, best) prod.case_eq_if to_clause_inverse)

@@ -23,22 +23,24 @@ locale grounded_first_order_superposition_calculus =
   grounded_first_order_select select
   for 
     select :: "('f, 'v) select" and
-    typeof_fun :: "'f \<Rightarrow> 'ty list \<times> 'ty"
+    typeof_fun :: "('f, 'ty :: countable) fun_types"
 begin
 
 sublocale ground: ground_superposition_calculus where
   less_trm = "(\<prec>\<^sub>t\<^sub>G)" and select = select\<^sub>G
   by unfold_locales (rule ground_critical_pair_theorem)
 
+(* TODO: Clean up*)
 abbreviation is_inference_grounding where
   "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv>
     (case \<iota> of
         Infer [(premise, \<V>')] (conclusion, \<V>) \<Rightarrow>
           is_ground_clause (premise \<cdot> \<gamma>)
         \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
+        \<and> term_subst.is_ground_subst \<gamma>
         \<and> \<iota>\<^sub>G = Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion \<cdot> \<gamma>))
         \<and> welltyped\<^sub>c typeof_fun \<V> premise 
-        \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma> 
+        \<and> (\<exists>\<F>\<^sub>G. welltyped\<^sub>\<sigma> \<F>\<^sub>G \<V> \<gamma> \<and> typeof_fun \<subseteq>\<^sub>m \<F>\<^sub>G)
         \<and> welltyped\<^sub>c typeof_fun \<V> conclusion
         \<and> \<V> = \<V>'
       | Infer [(premise\<^sub>2, \<V>''), (premise\<^sub>1, \<V>')] (conclusion, \<V>) \<Rightarrow> 
@@ -48,13 +50,14 @@ abbreviation is_inference_grounding where
         \<and> is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)
         \<and> is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)
         \<and> is_ground_clause (conclusion \<cdot> \<gamma>)
+        \<and> term_subst.is_ground_subst \<gamma>
         \<and> \<iota>\<^sub>G =
             Infer
               [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)]
               (to_ground_clause (conclusion \<cdot> \<gamma>))
         \<and> welltyped\<^sub>c typeof_fun \<V> premise\<^sub>1 
         \<and> welltyped\<^sub>c typeof_fun \<V> premise\<^sub>2 
-        \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma> 
+        \<and> (\<exists>\<F>\<^sub>G. welltyped\<^sub>\<sigma> \<F>\<^sub>G \<V> \<gamma> \<and> typeof_fun \<subseteq>\<^sub>m \<F>\<^sub>G)
         \<and> welltyped\<^sub>c typeof_fun \<V> conclusion
       | _ \<Rightarrow> False
      )
@@ -84,7 +87,7 @@ proof-
   then obtain \<gamma> where
     "is_ground_clause (conclusion \<cdot> \<gamma>)"
     "conlcusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
-    "welltyped\<^sub>c typeof_fun \<V> conclusion \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>"
+    "welltyped\<^sub>c typeof_fun \<V> conclusion \<and> (\<exists>\<F>\<^sub>G. welltyped\<^sub>\<sigma> \<F>\<^sub>G \<V> \<gamma> \<and> typeof_fun \<subseteq>\<^sub>m \<F>\<^sub>G) \<and> term_subst.is_ground_subst \<gamma>"
     using assms list_4_cases
     unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
     apply(auto split: list.splits)
@@ -112,6 +115,50 @@ proof-
     by blast
 qed
 
+lemma obtain_welltyped_ground_subst:
+  obtains \<gamma> :: "('f, 'v) subst" and \<F>\<^sub>G :: "('f, 'ty) fun_types"
+  where "welltyped\<^sub>\<sigma> \<F>\<^sub>G \<V> \<gamma>" "typeof_fun \<subseteq>\<^sub>m \<F>\<^sub>G" "term_subst.is_ground_subst \<gamma>"
+proof-
+  let ?fresh_f = "UNIV - dom typeof_fun"
+
+  have "infinite ?fresh_f"
+    by (simp add: function_symbols)
+
+  then obtain \<F>\<^sub>G' :: "'f \<Rightarrow> 'ty" where
+    surj: "surj_on ?fresh_f \<F>\<^sub>G'"
+    using obtain_surj_on
+    by blast
+
+  define \<F>\<^sub>G :: "('f, 'ty) fun_types" where 
+    "\<And>f. \<F>\<^sub>G f = (case typeof_fun f of 
+                  Some tys \<Rightarrow> Some tys
+                | None \<Rightarrow> Some ([], \<F>\<^sub>G' f))"
+
+  define \<gamma> :: "('f, 'v) subst" where
+    "\<And>x. \<gamma> x \<equiv> Fun (SOME f. \<F>\<^sub>G' f = \<V> x \<and> f \<in> ?fresh_f) []"
+
+  have "typeof_fun \<subseteq>\<^sub>m \<F>\<^sub>G"
+    unfolding \<F>\<^sub>G_def map_le_def
+    by auto
+
+  moreover have "welltyped\<^sub>\<sigma> \<F>\<^sub>G \<V> \<gamma>"
+    unfolding \<gamma>_def \<F>\<^sub>G_def welltyped\<^sub>\<sigma>_def
+    apply(auto split: option.splits)
+    apply(rule welltyped.Fun)
+     using surj
+     apply(auto split: option.splits)
+     by (metis (mono_tags, lifting) Diff_iff domI someI_ex)+
+
+  moreover have "term_subst.is_ground_subst \<gamma>"
+    unfolding term_subst.is_ground_subst_def \<gamma>_def
+    by (smt (verit) Nil_is_map_conv equals0D eval_term.simps(2) is_ground_iff is_ground_trm_iff_ident_forall_subst)
+
+  ultimately show ?thesis
+    using that
+    by blast
+qed
+  
+
 sublocale lifting: 
     tiebreaker_lifting
           "\<bottom>\<^sub>F"
@@ -134,7 +181,8 @@ next
   then show "clause_groundings typeof_fun bottom \<noteq> {}"
     unfolding clause_groundings_def
     using welltyped\<^sub>\<sigma>_Var
-    apply (auto simp add: First_Order_Type_System.welltyped\<^sub>c_def )
+    apply (auto simp add: First_Order_Type_System.welltyped\<^sub>c_def)
+    using obtain_welltyped_ground_subst
     by blast
 next
   fix bottom

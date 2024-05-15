@@ -16,11 +16,15 @@ lemma eq_resolution_lifting:
     premise\<^sub>G [simp]: "premise\<^sub>G \<equiv> to_ground_clause (premise \<cdot> \<gamma>)" and
     conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> to_ground_clause (conclusion \<cdot> \<gamma>)"
   assumes 
-    premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and
+    premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and (* TODO: groundings can be derived from ground_subst*)
     conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
     ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G" and
-    typing: "welltyped\<^sub>c typeof_fun \<V> premise" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>"
+    typing: 
+      "welltyped\<^sub>c typeof_fun \<V> premise"
+      "term_subst.is_ground_subst \<gamma>"
+      "welltyped\<^sub>\<sigma> typeof_fun' \<V> \<gamma>"
+      "typeof_fun \<subseteq>\<^sub>m typeof_fun'"
   obtains conclusion' 
   where
     "eq_resolution (premise, \<V>) (conclusion', \<V>)"
@@ -242,6 +246,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
       inferences_def 
       premise\<^sub>G
       conclusion\<^sub>G
+    (* TODO: *)
     apply auto
     apply(rule exI[of _ \<gamma>])
     apply auto
@@ -264,7 +269,12 @@ lemma eq_factoring_lifting:
     premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and
     conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
-    ground_eq_factoring: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G"
+    ground_eq_factoring: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G" and
+    typing:
+      "welltyped\<^sub>c typeof_fun \<V> premise"
+      "term_subst.is_ground_subst \<gamma>"
+      "welltyped\<^sub>\<sigma> typeof_fun' \<V> \<gamma>"
+      "typeof_fun \<subseteq>\<^sub>m typeof_fun'"
   obtains conclusion' 
   where
     "eq_factoring (premise, \<V>) (conclusion', \<V>)"
@@ -345,17 +355,6 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     using obtain_from_pos_literal_subst[of literal\<^sub>2]
     by metis
 
-  have term\<^sub>1_term\<^sub>2: "term\<^sub>1 \<cdot>t \<gamma> = term\<^sub>2 \<cdot>t \<gamma>"
-    using term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>1_term\<^sub>2
-    by argo
-
-   then obtain \<mu> \<sigma> where \<mu>: 
-    "term_subst.is_imgu \<mu> {{term\<^sub>1, term\<^sub>2}}" 
-    "\<gamma> = \<mu> \<odot> \<sigma>" 
-    "welltyped_imgu typeof_fun \<V> term\<^sub>1 term\<^sub>2 \<mu>"
-    using welltyped_imgu_exists
-    by meson
-
   have term\<^sub>G\<^sub>2_term\<^sub>1': "to_term term\<^sub>G\<^sub>2 = term\<^sub>1' \<cdot>t \<gamma>"
     using literal\<^sub>1_\<gamma> term\<^sub>G\<^sub>1_term\<^sub>1 
     unfolding 
@@ -386,6 +385,56 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     using premise''_\<gamma>  premise''
     unfolding literal\<^sub>2(1)[symmetric]
     by (simp add: subst_clause_add_mset)
+
+   have term\<^sub>1_term\<^sub>2: "term\<^sub>1 \<cdot>t \<gamma> = term\<^sub>2 \<cdot>t \<gamma>"
+    using term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>1_term\<^sub>2
+    by argo
+
+  moreover obtain \<tau> where "welltyped typeof_fun \<V> term\<^sub>1 \<tau>" "welltyped typeof_fun \<V> term\<^sub>2 \<tau>"
+  proof-
+    have "welltyped\<^sub>c typeof_fun' \<V> premise"
+      using welltyped\<^sub>c_map_le[OF typing(1, 4)].
+
+    then have "welltyped\<^sub>c typeof_fun' \<V> (premise \<cdot> \<gamma>)"
+      using typing(3)
+      by (simp add: welltyped\<^sub>\<sigma>_welltyped\<^sub>c)
+
+    then obtain \<tau> where "welltyped typeof_fun' \<V> (to_term term\<^sub>G\<^sub>1) \<tau>"
+      unfolding 
+        premise_\<gamma> 
+        ground_eq_factoringI 
+        to_clause_add_mset 
+        to_atom_to_literal[symmetric]
+        to_term_to_atom[symmetric]
+        welltyped\<^sub>c_add_mset
+        welltyped\<^sub>l_def
+        welltyped\<^sub>a_def
+      by auto
+
+    then have "welltyped typeof_fun' \<V> (term\<^sub>1 \<cdot>t \<gamma>) \<tau>" "welltyped typeof_fun' \<V> (term\<^sub>2 \<cdot>t \<gamma>) \<tau>"
+      using term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>1_term\<^sub>2
+      by metis+
+
+    then have "welltyped typeof_fun' \<V> term\<^sub>1 \<tau>" "welltyped typeof_fun' \<V> term\<^sub>2 \<tau>"
+      by (meson typing(3) welltyped\<^sub>\<sigma>_welltyped)+
+
+    then have "welltyped typeof_fun \<V> term\<^sub>1 \<tau>" "welltyped typeof_fun \<V> term\<^sub>2 \<tau>"
+      using typing(1) same_type_map_le[OF _ _ typing(4)] 
+      unfolding 
+        premise literal\<^sub>1_terms literal\<^sub>2_terms welltyped\<^sub>c_add_mset welltyped\<^sub>l_def welltyped\<^sub>a_def
+      by auto
+
+    then show ?thesis
+      using that
+      by blast
+  qed
+
+  ultimately obtain \<mu> \<sigma> where \<mu>: 
+    "term_subst.is_imgu \<mu> {{term\<^sub>1, term\<^sub>2}}" 
+    "\<gamma> = \<mu> \<odot> \<sigma>" 
+    "welltyped_imgu' typeof_fun \<V> term\<^sub>1 term\<^sub>2 \<mu>"
+    using welltyped_imgu'_exists
+    by meson
 
   let ?conclusion' = "add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise')"
 
@@ -441,35 +490,9 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     show "term_subst.is_imgu \<mu> {{term\<^sub>1, term\<^sub>2}}"
       using \<mu>(1).
   next 
-    show "welltyped_imgu typeof_fun \<V> term\<^sub>1 term\<^sub>2 \<mu>"
+    show "welltyped_imgu' typeof_fun \<V> term\<^sub>1 term\<^sub>2 \<mu>"
       using \<mu>(3).
-  next 
-    assume welltyped_premise: "welltyped\<^sub>c typeof_fun \<V> premise"
-
-    then have "welltyped\<^sub>c typeof_fun \<V> (premise \<cdot> \<gamma>)"
-      using  welltyped\<^sub>\<sigma>_welltyped\<^sub>c sorry
-
-    then obtain \<tau> where 
-      "welltyped typeof_fun \<V> (to_term term\<^sub>G\<^sub>1) \<tau>"
-      unfolding 
-        premise_\<gamma> 
-        welltyped\<^sub>c_def 
-        to_clause_add_mset 
-        welltyped\<^sub>l_def 
-        welltyped\<^sub>a_def
-        ground_eq_factoringI(2)
-        to_atom_to_literal[symmetric] 
-        to_term_to_atom[symmetric]
-      by auto
-
-    then have "welltyped typeof_fun \<V> term\<^sub>1 \<tau>" "welltyped typeof_fun \<V> term\<^sub>2 \<tau>"
-      using term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>1_term\<^sub>2  welltyped\<^sub>\<sigma>_welltyped
-      sorry
-    
-    then show "\<exists>\<tau>. has_type typeof_fun \<V> term\<^sub>1 \<tau> \<and> has_type typeof_fun \<V> term\<^sub>2 \<tau>"
-      using welltyped_has_type
-      by blast
-  next 
+  next
     show "?conclusion' \<cdot> \<mu> = ?conclusion' \<cdot> \<mu>"
       ..
   qed
@@ -514,8 +537,11 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
       inferences_def 
       premise\<^sub>G
       conclusion\<^sub>G
-    sorry
-    
+    apply auto
+    apply(rule exI[of _ \<gamma>])
+    apply(auto simp: typing)
+    using typing(3) typing(4) apply blast
+    using eq_factoring eq_factoring_preserves_typing typing(1) by blast    
 
   ultimately show ?thesis
     using that[OF eq_factoring]
@@ -527,13 +553,14 @@ lemma superposition_lifting:
   fixes 
     premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 conclusion\<^sub>G :: "'f gatom clause" and 
     premise\<^sub>1 premise\<^sub>2 conclusion :: "('f, 'v) atom clause" and
-    \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v) subst"
+    \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v) subst" and
+    \<V> 
   defines 
     premise\<^sub>G\<^sub>1 [simp]: "premise\<^sub>G\<^sub>1 \<equiv> to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)" and
     premise\<^sub>G\<^sub>2 [simp]: "premise\<^sub>G\<^sub>2 \<equiv> to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and
     conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> to_ground_clause (conclusion \<cdot> \<gamma>)" and
     premise_groundings [simp]: 
-    "premise_groundings \<equiv> clause_groundings typeof_fun premise\<^sub>1 \<union> clause_groundings typeof_fun premise\<^sub>2" and
+    "premise_groundings \<equiv> clause_groundings typeof_fun (premise\<^sub>1, \<V>) \<union> clause_groundings typeof_fun (premise\<^sub>2, \<V>)" and
     \<iota>\<^sub>G [simp]: "\<iota>\<^sub>G \<equiv> Infer [premise\<^sub>G\<^sub>2, premise\<^sub>G\<^sub>1] conclusion\<^sub>G"
   assumes 
     renaming: 
@@ -547,12 +574,11 @@ lemma superposition_lifting:
     "to_clause (select\<^sub>G premise\<^sub>G\<^sub>1) = (select premise\<^sub>1) \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
     "to_clause (select\<^sub>G premise\<^sub>G\<^sub>2) = (select premise\<^sub>2) \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>" and
     ground_superposition: "ground.ground_superposition premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G" and
-    non_redundant: "\<iota>\<^sub>G \<notin> ground.Red_I premise_groundings" and
-    welltyped_grounding: "\<forall>\<V>. welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>"
+    non_redundant: "\<iota>\<^sub>G \<notin> ground.Red_I premise_groundings"
   obtains conclusion' 
   where
-    "superposition \<V> premise\<^sub>2 \<V>  premise\<^sub>1 conclusion'"
-    "\<iota>\<^sub>G \<in> inference_groundings (Infer [premise\<^sub>2, premise\<^sub>1] conclusion')"
+    "superposition (premise\<^sub>2, \<V>) (premise\<^sub>1, \<V>) (conclusion', \<V>)"
+    "\<iota>\<^sub>G \<in> inference_groundings (Infer [(premise\<^sub>2, \<V>), (premise\<^sub>1, \<V>)] (conclusion', \<V>))"
     "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
   using ground_superposition
 proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G rule: ground.ground_superposition.cases)
@@ -1130,7 +1156,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
   show ?thesis
   proof(rule that)
-    show "superposition \<V> premise\<^sub>2 \<V> premise\<^sub>1 conclusion'"
+    show "superposition (premise\<^sub>2, \<V>) (premise\<^sub>1, \<V>) (conclusion', \<V>)"
     proof(rule superpositionI)
       show "term_subst.is_renaming \<rho>\<^sub>1"
         using renaming(1).
@@ -1365,10 +1391,10 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by(simp add: subst_clause_add_mset subst_literal)
     qed
 
-    show "\<iota>\<^sub>G \<in> inference_groundings (Infer [premise\<^sub>2, premise\<^sub>1] conclusion')"
+    show "\<iota>\<^sub>G \<in> inference_groundings (Infer [(premise\<^sub>2, \<V>), (premise\<^sub>1, \<V>)] (conclusion', \<V>))"
     proof-
-      have "is_inference_grounding (Infer [premise\<^sub>2, premise\<^sub>1] conclusion') \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<V>"
-        using conclusion'_\<gamma> ground_superposition welltyped_grounding
+      have "is_inference_grounding (Infer [(premise\<^sub>2, \<V>), (premise\<^sub>1, \<V>)] (conclusion', \<V>)) \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2"
+        using conclusion'_\<gamma> ground_superposition 
         unfolding ground.G_Inf_def \<iota>\<^sub>G
         sorry
         (*by(auto simp: renaming premise\<^sub>1_grounding premise\<^sub>2_grounding conclusion_grounding)*)
@@ -1403,12 +1429,15 @@ proof-
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
     by simp
 
-  obtain premise conclusion \<gamma> \<V> where
+  obtain premise conclusion \<gamma> \<V> typeof_fun' where
     "to_clause premise\<^sub>G = premise \<cdot> \<gamma>" and
     "to_clause conclusion\<^sub>G = conclusion \<cdot> \<gamma>" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = select premise \<cdot> \<gamma>" and
     premise_in_premises: "(premise, \<V>) \<in> premises" and
-    typing: "welltyped\<^sub>c typeof_fun \<V> premise" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>"
+    typing: "welltyped\<^sub>c typeof_fun \<V> premise"
+      "term_subst.is_ground_subst \<gamma>"
+      "welltyped\<^sub>\<sigma> typeof_fun' \<V> \<gamma>"
+      "typeof_fun \<subseteq>\<^sub>m typeof_fun'"
     using assms(2, 3) premise\<^sub>G_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
     apply auto
@@ -1471,15 +1500,19 @@ proof-
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
     by simp
 
-  obtain premise conclusion \<gamma> \<V> where
+  obtain premise conclusion \<gamma> \<V> typeof_fun' where
     "to_clause premise\<^sub>G = premise \<cdot> \<gamma>" and
     "to_clause conclusion\<^sub>G = conclusion \<cdot> \<gamma>" and
     select: "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<gamma>))) = select premise \<cdot> \<gamma>" and
-    premise_in_premises: "premise \<in> premises" and
-    typing: "welltyped\<^sub>c typeof_fun \<V> premise" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>"
+    premise_in_premises: "(premise, \<V>) \<in> premises" and
+    typing:
+      "welltyped\<^sub>c typeof_fun \<V> premise"
+      "term_subst.is_ground_subst \<gamma>"
+      "welltyped\<^sub>\<sigma> typeof_fun' \<V> \<gamma>"
+      "typeof_fun \<subseteq>\<^sub>m typeof_fun'"
     using assms(2, 3) premise\<^sub>G_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
-    by (metis (no_types, opaque_lifting) ground_clause_is_ground select_subst1 subst_ground_clause to_ground_clause_inverse)
+    by (smt (verit, del_insts) case_prodE ground_clause_is_ground is_ground_subst_is_ground_clause subst_ground_clause to_ground_clause_inverse)
 
   then have 
     premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and 
@@ -1489,8 +1522,8 @@ proof-
     by (smt(verit) ground_clause_is_ground to_clause_inverse)+
 
   obtain conclusion' where 
-    eq_factoring: "eq_factoring \<V> premise conclusion'" and
-    inference_groundings: "\<iota>\<^sub>G \<in> inference_groundings (Infer [premise] conclusion')" and  
+    eq_factoring: "eq_factoring (premise, \<V>) (conclusion', \<V>)" and
+    inference_groundings: "\<iota>\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (conclusion', \<V>))" and  
     conclusion'_conclusion: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     using 
       eq_factoring_lifting[OF 
@@ -1503,7 +1536,7 @@ proof-
     unfolding premise\<^sub>G conclusion\<^sub>G \<iota>\<^sub>G
     by metis
 
-  let ?\<iota> = "Infer [premise] conclusion'"
+  let ?\<iota> = "Infer [(premise, \<V>)] (conclusion', \<V>)"
 
   show ?thesis
   proof(rule that)

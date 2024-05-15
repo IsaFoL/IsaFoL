@@ -2,18 +2,18 @@ theory First_Order_Type_System
   imports First_Order_Clause
 begin
 
-type_synonym ('f, 'ty) fun_types = "('f \<Rightarrow> 'ty list \<times> 'ty)"
-type_synonym ('v, 'ty) var_types = "('v \<Rightarrow> 'ty)"
+type_synonym ('f, 'ty) fun_types = "'f \<rightharpoonup> 'ty list \<times> 'ty"
+type_synonym ('v, 'ty) var_types = "'v \<Rightarrow> 'ty"
 
 inductive has_type :: "('f, 'ty) fun_types \<Rightarrow> ('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" 
   for \<F> \<V> where
   Var: "\<V> x = \<tau> \<Longrightarrow> has_type \<F> \<V> (Var x) \<tau>"
-| Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> has_type \<F> \<V> (Fun f ts) \<tau>"
+| Fun: "\<F> f = Some (\<tau>s, \<tau>) \<Longrightarrow> has_type \<F> \<V> (Fun f ts) \<tau>"
 
 inductive welltyped :: "('f, 'ty) fun_types \<Rightarrow>  ('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" 
   for \<F> \<V> where
   Var: "\<V> x = \<tau> \<Longrightarrow> welltyped \<F> \<V> (Var x) \<tau>"
-| Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> list_all2 (welltyped \<F> \<V>) ts \<tau>s \<Longrightarrow> welltyped \<F> \<V> (Fun f ts) \<tau>"
+| Fun: "\<F> f = Some (\<tau>s, \<tau>) \<Longrightarrow> list_all2 (welltyped \<F> \<V>) ts \<tau>s \<Longrightarrow> welltyped \<F> \<V> (Fun f ts) \<tau>"
 
 lemma has_type_right_unique: "right_unique (has_type \<F> \<V>)"
 proof (rule right_uniqueI)
@@ -135,8 +135,8 @@ proof(rule iffI)
       from Fun show ?thesis
         using welltyped\<^sub>\<sigma>
         unfolding welltyped\<^sub>\<sigma>_def Var
-        by (metis (no_types, opaque_lifting) eval_term.simps(1) welltyped.simps prod.sel(2) 
-            term.distinct(1) term.inject(2))
+        by (metis (no_types, opaque_lifting) eval_term.simps(1) option.sel prod.sel(2) 
+              term.distinct(1) term.inject(2) welltyped.simps)
     next
       case Fun\<^sub>t: Fun
       with Fun show ?thesis
@@ -254,8 +254,8 @@ next
     case (Fun \<tau>s)
     show ?thesis
     proof (rule welltyped.Fun)
-      show "\<F> f = (\<tau>s, \<tau>\<^sub>1)"
-        using \<open>\<F> f = (\<tau>s, \<tau>\<^sub>1)\<close> .
+      show "\<F> f = Some (\<tau>s, \<tau>\<^sub>1)"
+        using \<open>\<F> f = Some (\<tau>s, \<tau>\<^sub>1)\<close> .
     next
       show "list_all2 (welltyped \<F> \<V>) (ss1 @ \<kappa>\<langle>t'\<rangle> # ss2) \<tau>s"
         using \<open>list_all2 (welltyped \<F> \<V>) (ss1 @ \<kappa>\<langle>t\<rangle> # ss2) \<tau>s\<close>
@@ -274,6 +274,72 @@ lemma has_type\<^sub>\<sigma>_Var: "has_type\<^sub>\<sigma> \<F> \<V> Var"
 lemma welltyped\<^sub>\<sigma>_Var: "welltyped\<^sub>\<sigma> \<F> \<V> Var"
   unfolding welltyped\<^sub>\<sigma>_def
   by (simp add: welltyped.Var)
+
+lemma welltyped_add_literal:
+  assumes "welltyped\<^sub>c \<F> \<V> P'" "welltyped \<F> \<V> s\<^sub>1 \<tau>" "welltyped \<F> \<V> s\<^sub>2 \<tau>" 
+  shows "welltyped\<^sub>c \<F> \<V> (add_mset (s\<^sub>1 !\<approx> s\<^sub>2) P')"
+  using assms
+  unfolding welltyped\<^sub>c_add_mset welltyped\<^sub>l_def welltyped\<^sub>a_def
+  by auto
+
+lemma welltyped_map_le:
+  assumes "welltyped \<F> \<V> t \<tau>" "\<F> \<subseteq>\<^sub>m \<F>'"
+  shows "welltyped \<F>' \<V> t \<tau>"
+  using assms
+proof(induction rule: welltyped.induct)
+  case (Var x \<tau>)
+  then show ?case 
+    by (simp add: welltyped.Var)
+next
+  case (Fun f \<tau>s \<tau> ts)
+  
+  show ?case
+  proof(rule welltyped.Fun)
+    have "f \<in> dom \<F>"
+      using Fun(1)
+      by (simp add: domIff)
+
+    then show "\<F>' f = Some (\<tau>s, \<tau>)"
+      using Fun(1, 3)
+      unfolding map_le_def
+      by auto
+      
+    show "list_all2 (welltyped \<F>' \<V>) ts \<tau>s"
+      using Fun list_all2_mono
+      by blast
+  qed
+qed
+
+lemma welltyped\<^sub>a_map_le:
+  assumes "welltyped\<^sub>a \<F> \<V> a" "\<F> \<subseteq>\<^sub>m \<F>'"
+  shows "welltyped\<^sub>a \<F>' \<V> a"
+  using assms welltyped_map_le
+  by (metis welltyped\<^sub>a_def)
+
+lemma welltyped\<^sub>l_map_le:
+  assumes "welltyped\<^sub>l \<F> \<V> l" "\<F> \<subseteq>\<^sub>m \<F>'"
+  shows "welltyped\<^sub>l \<F>' \<V> l"
+  using assms welltyped\<^sub>a_map_le
+  by (metis welltyped\<^sub>l_def)
+
+lemma welltyped\<^sub>c_map_le:
+  assumes "welltyped\<^sub>c \<F> \<V> clause" "\<F> \<subseteq>\<^sub>m \<F>'"
+  shows "welltyped\<^sub>c \<F>' \<V> clause"
+  using assms welltyped\<^sub>l_map_le
+  by (metis welltyped\<^sub>c_def)
+  
+lemma welltyped\<^sub>\<sigma>_map_le:
+  assumes "welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>" "\<F> \<subseteq>\<^sub>m \<F>'"
+  shows "welltyped\<^sub>\<sigma> \<F>' \<V> \<gamma>"
+  using assms welltyped_map_le
+  unfolding welltyped\<^sub>\<sigma>_def
+  by metis
+
+lemma same_type_map_le:
+  assumes "welltyped \<F> \<V> t \<tau>" "welltyped \<F>' \<V> t \<tau>'" "\<F> \<subseteq>\<^sub>m \<F>'"
+  shows "\<tau> = \<tau>'"
+  using assms
+  by (meson right_uniqueD welltyped_map_le welltyped_right_unique)
 
 lemma term_subst_is_imgu_is_mgu: "term_subst.is_imgu \<mu> {{s, t}} = is_imgu \<mu> {(s, t)}"
   unfolding term_subst.is_imgu_def is_imgu_def term_subst.is_unifier_set_def  unifiers_def
@@ -295,10 +361,10 @@ lemma Fun_arg_types:
     "welltyped \<F> \<V> (Fun f fs) \<tau>" 
     "welltyped \<F> \<V> (Fun f gs) \<tau>" 
   obtains \<tau>s where 
-    "\<F> f = (\<tau>s, \<tau>)" 
+    "\<F> f = Some (\<tau>s, \<tau>)" 
     "list_all2 (welltyped \<F> \<V>) fs \<tau>s"
     "list_all2 (welltyped \<F> \<V>) gs \<tau>s"
-  by (metis Pair_inject assms(1) assms(2) welltyped.simps term.distinct(1) term.inject(2))
+  by (smt (verit, ccfv_SIG) Pair_inject assms(1) assms(2) option.inject term.distinct(1) term.inject(2) welltyped.simps)
 
 lemma welltyped_zip_option:
   assumes 

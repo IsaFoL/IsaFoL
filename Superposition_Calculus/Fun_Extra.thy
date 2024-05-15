@@ -1,8 +1,7 @@
 theory Fun_Extra
-  imports Main
+  imports Main "HOL-Library.Countable_Set"
 begin
 
-(* TODO: Ask fun expert*)
 lemma obtain_bij_betw_endo: 
   assumes "finite domain" "finite img" "card img = card domain" 
   obtains f 
@@ -161,6 +160,53 @@ proof-
   ultimately show ?thesis 
     using that
     by blast
+qed
+
+abbreviation surj_on where 
+  "surj_on domain f \<equiv> (\<forall>y. \<exists>x \<in> domain. y = f x)"
+
+lemma surj_on_alternative: "surj_on domain f \<longleftrightarrow> f ` domain = UNIV"
+  by auto
+
+lemma obtain_surj_on_nat:
+  assumes "infinite domain"
+  obtains f :: "'a \<Rightarrow> nat" where "surj_on domain f"
+proof-
+  obtain subdomain where
+    subdomain: "infinite subdomain" "countable subdomain" "subdomain \<subseteq> domain"
+    using infinite_countable_subset'[OF assms]
+    by blast
+
+  then obtain f :: "'a \<Rightarrow> nat" where "surj_on subdomain f"
+    by (metis to_nat_on_surj)
+
+  then have "surj_on domain f"
+    using subdomain(3)
+    by (meson subset_iff)
+
+  then show ?thesis
+    using that
+    by blast
+qed
+
+lemma obtain_surj_on:
+  assumes "infinite domain"
+  obtains f :: "'a \<Rightarrow> 'b :: countable" where "surj_on domain f"
+proof-
+  obtain f' :: "'a \<Rightarrow> nat" 
+    where f': "surj_on domain f'"
+    using obtain_surj_on_nat[OF assms]
+    by blast
+
+  let ?f  = "(from_nat :: nat \<Rightarrow> 'b) \<circ> f'"
+
+  have f: "\<forall>y. \<exists>x\<in>domain. y = ?f x"
+    using f'
+    unfolding comp_def
+    by (metis from_nat_to_nat)
+
+  show ?thesis
+    using that[OF f].
 qed
 
 end

@@ -26,12 +26,13 @@ locale first_order_superposition_calculus =
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   fixes
     tiebreakers :: "'f gatom clause  \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" and
-    typeof_fun :: "('f, 'ty) fun_types"
+    typeof_fun :: "('f, 'ty :: countable) fun_types"
   assumes
     wellfounded_tiebreakers: 
       "\<And>clause\<^sub>G. wfP (tiebreakers clause\<^sub>G) \<and> 
                transp (tiebreakers clause\<^sub>G) \<and> 
                asymp (tiebreakers clause\<^sub>G)" and
+    function_symbols: "infinite (UNIV :: 'f set)" "finite (dom typeof_fun)" and
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R" 
 begin
 
@@ -66,8 +67,7 @@ inductive eq_factoring :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty
     is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<Longrightarrow>
     \<not> (term\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<mu>) \<Longrightarrow>
     term_subst.is_imgu \<mu> {{ term\<^sub>1, term\<^sub>2 }} \<Longrightarrow>
-    welltyped_imgu typeof_fun \<V> term\<^sub>1 term\<^sub>2 \<mu> \<Longrightarrow>
-    (welltyped\<^sub>c typeof_fun \<V> premise \<Longrightarrow> \<exists>\<tau>. has_type typeof_fun \<V> term\<^sub>1 \<tau> \<and> has_type typeof_fun \<V> term\<^sub>2 \<tau>) \<Longrightarrow>
+    welltyped_imgu' typeof_fun \<V> term\<^sub>1 term\<^sub>2 \<mu> \<Longrightarrow>
     conclusion = add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise') \<cdot> \<mu> \<Longrightarrow>
     eq_factoring (premise, \<V>) (conclusion, \<V>)"
 
@@ -275,22 +275,11 @@ lemma eq_factoring_preserves_typing:
 proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
   case (eq_factoringI literal\<^sub>1 literal\<^sub>2 premise' term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
   
-  obtain \<tau> where \<tau>:
-    "has_type typeof_fun \<V> term\<^sub>1 \<tau>"
-    "has_type typeof_fun \<V> term\<^sub>2 \<tau>"
-    using eq_factoringI(9)[OF wt_D]
-    by blast
-
-  then have "welltyped typeof_fun \<V> term\<^sub>1 \<tau>" "welltyped typeof_fun \<V> term\<^sub>2 \<tau>"
-    using wt_D has_type_welltyped
-    unfolding welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def eq_factoringI
-    by auto
-
-  moreover then have "welltyped\<^sub>c typeof_fun \<V> (D  \<cdot> \<mu>)"
+  have "welltyped\<^sub>c typeof_fun \<V> (D  \<cdot> \<mu>)"
     using wt_D welltyped\<^sub>\<sigma>_welltyped\<^sub>c eq_factoringI
     by blast
 
-  ultimately show ?thesis
+  then show ?thesis
     unfolding welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def eq_factoringI subst_clause_add_mset subst_literal subst_atom
     (* TODO: *)
     apply auto
