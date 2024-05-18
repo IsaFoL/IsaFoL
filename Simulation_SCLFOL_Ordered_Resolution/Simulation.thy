@@ -12241,43 +12241,6 @@ inductive ord_res_6_matches_ord_res_7 ::
       trail_defined_atm \<Gamma> A) \<Longrightarrow>
     i \<le> card (atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)) - length \<Gamma> \<Longrightarrow>
     ord_res_6_matches_ord_res_7 i (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>) (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)"
-
-(* lemma
-  assumes
-    "trail_consistent \<Gamma>" and
-    "\<forall>C. \<C> = Some C \<longleftrightarrow> is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r \<F> \<Gamma> C"
-  shows "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C> = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow> trail_true_cls \<Gamma> C"
-proof (cases \<C>)
-  case None
-  hence FOO: "\<nexists>C. is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r \<F> \<Gamma> C"
-    using assms(2) by simp
-
-  have "ffilter (trail_false_cls \<Gamma>) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) = {||}"
-    using FOO
-    unfolding is_least_false_or_propagating_clause_def
-    by (metis linorder_cls.ex1_least_in_fset)
-
-  hence clauses_not_false: "\<not> trail_false_cls \<Gamma> C" if "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C
-    by (metis fempty_iff ffmember_filter that)
-
-  hence "{|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). Ex (clause_could_propagate \<Gamma> C)|} = {||}"
-    using FOO
-    unfolding is_least_false_or_propagating_clause_def
-    by (meson linorder_cls.ex_least_in_fset)
-
-  hence clauses_cannot_propagate: "\<not> clause_could_propagate \<Gamma> C L" if "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C L
-    by (metis femptyE ffmember_filter that)
-
-  have "trail_true_cls \<Gamma> C" if C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C
-    using clauses_not_false[OF C_in] clauses_cannot_propagate[OF C_in]
-    sorry
-
-  thus ?thesis
-    using \<open>\<C> = None\<close> by simp
-next
-  case (Some a)
-  then show ?thesis sorry
-qed *)
   
 
 lemma dom_model_eq_trail_interp:
@@ -13585,7 +13548,38 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
         using E_least_false \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> by auto
     qed
 
-    have "\<exists>C. ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C)"
+    have stronger_not_bex_false_clause_in_\<Gamma>':
+      "\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) (trail_false_cls \<Gamma>')"
+      if "ord_res.is_maximal_lit L (eres D E)" for L
+    proof -
+      have "L \<in># eres D E"
+        using \<open>ord_res.is_maximal_lit L (eres D E)\<close> unfolding linorder_lit.is_maximal_in_mset_iff
+        by argo
+
+      moreover have "\<not> trail_defined_lit \<Gamma>' L"
+        unfolding trail_defined_lit_iff_trail_defined_atm
+        unfolding trail_defined_atm_def
+        unfolding trail_atoms_def[symmetric]
+        unfolding mem_trail_atoms_\<Gamma>'_iff[OF \<open>ord_res.is_maximal_lit L (eres D E)\<close>]
+        by simp
+
+      ultimately have "\<not> trail_defined_cls \<Gamma>' (eres D E)"
+        unfolding trail_defined_cls_def by metis
+
+      hence "\<not> trail_false_cls \<Gamma>' (eres D E)"
+        unfolding trail_false_cls_def trail_false_lit_def
+          trail_defined_cls_def trail_defined_lit_def by metis
+
+      moreover have "\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) (trail_false_cls \<Gamma>')"
+        using not_bex_false_clause_in_\<Gamma>'[OF \<open>ord_res.is_maximal_lit L (eres D E)\<close>] .
+
+      ultimately show "\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) (trail_false_cls \<Gamma>')"
+        unfolding \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') = finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close>
+        by simp
+    qed
+
+    have "\<exists>C. ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C) \<and>
+      is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r' \<F> \<Gamma>' C"
     proof (cases rule: three_resolution_cases)
       case 1
 
@@ -13626,30 +13620,8 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
       moreover have "is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r' \<F> \<Gamma>' (eres D E)"
         unfolding is_least_false_or_propagating_clause_def
       proof (intro disjI2 conjI)
-        have "L \<in># eres D E"
-          using \<open>ord_res.is_maximal_lit L (eres D E)\<close> unfolding linorder_lit.is_maximal_in_mset_iff
-          by argo
-
-        moreover have "\<not> trail_defined_lit \<Gamma>' L"
-          unfolding trail_defined_lit_iff_trail_defined_atm
-          unfolding trail_defined_atm_def
-          unfolding trail_atoms_def[symmetric]
-          unfolding mem_trail_atoms_\<Gamma>'_iff[OF \<open>ord_res.is_maximal_lit L (eres D E)\<close>]
-          by simp
-
-        ultimately have "\<not> trail_defined_cls \<Gamma>' (eres D E)"
-          unfolding trail_defined_cls_def by metis
-
-        hence "\<not> trail_false_cls \<Gamma>' (eres D E)"
-          unfolding trail_false_cls_def trail_false_lit_def
-            trail_defined_cls_def trail_defined_lit_def by metis
-
-        moreover have "\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) (trail_false_cls \<Gamma>')"
-          using not_bex_false_clause_in_\<Gamma>'[OF \<open>ord_res.is_maximal_lit L (eres D E)\<close>] .
-
-        ultimately show "\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) (trail_false_cls \<Gamma>')"
-          unfolding \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') = finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close>
-          by simp
+        show "\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) (trail_false_cls \<Gamma>')"
+          using stronger_not_bex_false_clause_in_\<Gamma>'[OF \<open>ord_res.is_maximal_lit L (eres D E)\<close>] .
       next
         show "linorder_cls.is_least_in_fset {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r').
           Ex (clause_could_propagate \<Gamma>' C)|} (eres D E)"
@@ -13726,7 +13698,7 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
               unfolding trail_atoms_def .
 
             hence "atm_of L \<preceq>\<^sub>t atm_of K \<or> atm_of K \<notin> atm_of ` fst ` set \<Gamma>"
-              unfolding mem_trail_atoms_\<Gamma>'_iff[OF \<open>ord_res.is_maximal_lit L (eres D E)\<close>] by auto 
+              unfolding mem_trail_atoms_\<Gamma>'_iff[OF \<open>ord_res.is_maximal_lit L (eres D E)\<close>] by auto
 
             hence "L \<prec>\<^sub>l K"
             proof (elim disjE)
@@ -13792,46 +13764,262 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
       obtain A\<^sub>L :: "'f gterm" where "L = Neg A\<^sub>L"
         using \<open>is_neg L\<close> by (cases L) simp_all
 
-      have "\<M>' = restrict_map \<M> {A. A \<prec>\<^sub>t atm_of L}"
+      have "trail_false_lit \<Gamma> (Neg A\<^sub>L)"
+        using E_false \<open>trail_false_cls \<Gamma> {#K \<in># D. K \<noteq> Pos A#}\<close>
+        using \<open>eres D E \<noteq> {#}\<close> \<open>ord_res.is_maximal_lit L (eres D E)\<close>
+        unfolding \<open>L = Neg A\<^sub>L\<close>
+        by (metis linorder_lit.is_maximal_in_mset_iff lit_in_one_of_resolvents_if_in_eres
+            literal.distinct(1) trail_false_cls_def trail_false_cls_filter_mset_iff)
+
+      hence "Pos A\<^sub>L \<in> fst ` set \<Gamma>"
+        unfolding trail_false_lit_def by simp
+
+      moreover have "decided_literals_all_neg N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)"
+        using match_hyps unfolding ord_res_7_invars_def by metis
+
+      ultimately obtain C where "map_of \<Gamma> (Pos A\<^sub>L) = Some (Some C)"
+        by (metis (no_types, opaque_lifting) is_pos_def map_of_SomeD map_of_eq_None_iff
+            not_Some_eq decided_literals_all_neg_def)
+
+      hence "\<M> (atm_of L) = Some C"
+        unfolding \<open>L = Neg A\<^sub>L\<close> literal.sel
+        using \<open>\<forall>A C. (\<M> A = Some C) = (map_of \<Gamma> (Pos A) = Some (Some C))\<close>
+        by metis
+
+      moreover have "\<M>' = restrict_map \<M> {A. A \<prec>\<^sub>t atm_of L}"
         using \<M>'_eq_if_eres_not_mempty case3_hyps by metis
-
-      moreover obtain C where "\<M> (atm_of L) = Some C"
-      proof atomize_elim
-        have "trail_false_lit \<Gamma> (Neg A\<^sub>L)"
-          using E_false \<open>trail_false_cls \<Gamma> {#K \<in># D. K \<noteq> Pos A#}\<close>
-          using \<open>eres D E \<noteq> {#}\<close> \<open>ord_res.is_maximal_lit L (eres D E)\<close>
-          unfolding \<open>L = Neg A\<^sub>L\<close>
-          by (metis linorder_lit.is_maximal_in_mset_iff lit_in_one_of_resolvents_if_in_eres
-              literal.distinct(1) trail_false_cls_def trail_false_cls_filter_mset_iff)
-
-        hence "Pos A\<^sub>L \<in> fst ` set \<Gamma>"
-          unfolding trail_false_lit_def by simp
-
-        moreover have "decided_literals_all_neg N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)"
-          using match_hyps unfolding ord_res_7_invars_def by metis
-
-        ultimately have "\<exists>C. map_of \<Gamma> (Pos A\<^sub>L) = Some (Some C)"
-          by (metis (no_types, opaque_lifting) is_pos_def map_of_SomeD map_of_eq_None_iff
-              not_Some_eq decided_literals_all_neg_def)
-
-        thus "\<exists>C. \<M> (atm_of L) = Some C"
-          unfolding \<open>L = Neg A\<^sub>L\<close> literal.sel
-          using \<open>\<forall>A C. (\<M> A = Some C) = (map_of \<Gamma> (Pos A) = Some (Some C))\<close>
-          by metis
-      qed
 
       ultimately have "ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C)"
         using \<open>\<not> dom \<M> \<TTurnstile> E\<close> \<open>ord_res.is_maximal_lit (Neg A) E\<close> \<open>is_neg (Neg A)\<close>
           \<open>\<M> (atm_of (Neg A)) = Some D\<close> \<open>U\<^sub>e\<^sub>r' = finsert (eres D E) U\<^sub>e\<^sub>r\<close>
-        using ord_res_6.resolution_neg case3_hyps
-        by metis
+        using ord_res_6.resolution_neg case3_hyps by metis
 
-      thus ?thesis
+      moreover have "is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r' \<F> \<Gamma>' C"
+        unfolding is_least_false_or_propagating_clause_def
+      proof (intro disjI2 conjI)
+        show "\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')) (trail_false_cls \<Gamma>')"
+          using stronger_not_bex_false_clause_in_\<Gamma>'[OF \<open>ord_res.is_maximal_lit L (eres D E)\<close>] .
+
+        define \<Gamma>'' where
+          "\<Gamma>'' = takeWhile (\<lambda>Ln. atm_of L \<prec>\<^sub>t atm_of (fst Ln)) \<Gamma>"
+
+        have "(Pos A\<^sub>L, Some C) \<in> set \<Gamma>"
+          using \<open>map_of \<Gamma> (Pos A\<^sub>L) = Some (Some C)\<close>
+          by (metis map_of_SomeD)
+
+        hence "\<Gamma> = \<Gamma>'' @ (Pos A\<^sub>L, Some C) # \<Gamma>'"
+          unfolding \<Gamma>''_def
+          unfolding \<Gamma>'_eq_if_eres_not_empty[OF \<open>ord_res.is_maximal_lit L (eres D E)\<close>]
+          using \<Gamma>_sorted
+        proof (induction \<Gamma>)
+          case Nil
+          hence False by simp
+          thus ?case ..
+        next
+          case (Cons x xs)
+
+          show ?case
+          proof (cases "x = (Pos A\<^sub>L, Some C)")
+            case True
+
+            have "\<forall>y\<in>set xs. atm_of (fst y) \<prec>\<^sub>t A\<^sub>L"
+              using \<open>sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) (x # xs)\<close>
+              unfolding sorted_wrt.simps \<open>x = (Pos A\<^sub>L, Some C)\<close> prod.sel literal.sel
+              by metis
+
+            hence "dropWhile (\<lambda>Ln. A\<^sub>L \<preceq>\<^sub>t atm_of (fst Ln)) xs = xs"
+              unfolding dropWhile_eq_self_iff
+              by (cases xs) auto
+
+            moreover have "A\<^sub>L \<preceq>\<^sub>t A\<^sub>L"
+              by order
+
+            ultimately have "dropWhile (\<lambda>Ln. atm_of L \<preceq>\<^sub>t atm_of (fst Ln)) (x # xs) = xs"
+              unfolding dropWhile.simps
+              unfolding \<open>L = Neg A\<^sub>L\<close> \<open>x = (Pos A\<^sub>L, Some C)\<close> prod.sel literal.sel
+              by simp
+
+            moreover have "takeWhile (\<lambda>Ln. atm_of L \<prec>\<^sub>t atm_of (fst Ln)) (x # xs) = []"
+              unfolding \<open>L = Neg A\<^sub>L\<close> \<open>x = (Pos A\<^sub>L, Some C)\<close> by simp
+
+            ultimately show ?thesis
+              unfolding \<open>x = (Pos A\<^sub>L, Some C)\<close> by simp
+          next
+            case False
+
+            have "atm_of L \<prec>\<^sub>t atm_of (fst x)"
+              using \<open>sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) (x # xs)\<close>
+              using Cons.prems(1) False \<open>L = Neg A\<^sub>L\<close> by fastforce
+
+            moreover have "xs = takeWhile (\<lambda>Ln. atm_of L \<prec>\<^sub>t atm_of (fst Ln)) xs @
+                  (Pos A\<^sub>L, Some C) # dropWhile (\<lambda>Ln. atm_of L \<preceq>\<^sub>t atm_of (fst Ln)) xs"
+              using Cons.IH Cons.prems \<open>x \<noteq> (Pos A\<^sub>L, Some C)\<close> by simp
+
+            ultimately show ?thesis
+              by simp
+          qed
+        qed
+
+        have "trail_annotations_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)"
+          using match_hyps(4)[unfolded ord_res_7_invars_def] by argo
+
+        hence "trail_annotations_invars N (U\<^sub>e\<^sub>r, \<F>, (Pos A\<^sub>L, Some C) # \<Gamma>')"
+          using \<open>\<Gamma> = \<Gamma>'' @ (Pos A\<^sub>L, Some C) # \<Gamma>'\<close>
+          by (metis suffixI trail_annotations_invars_mono_wrt_trail_suffix)
+
+        hence "ord_res.is_strictly_maximal_lit (Pos A\<^sub>L) C" and
+          "C \<in> iefac \<F> ` (fset N \<union> fset U\<^sub>e\<^sub>r)" and
+          "trail_false_cls \<Gamma>' {#K \<in># C. K \<noteq> Pos A\<^sub>L#}" and
+          C_least_propagating: "linorder_cls.is_least_in_fset
+            {|D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). clause_could_propagate \<Gamma>' D (Pos A\<^sub>L)|} C"
+          unfolding \<open>\<Gamma> = \<Gamma>'' @ (Pos A\<^sub>L, Some C) # \<Gamma>'\<close>
+          by (auto elim: trail_annotations_invars.cases)
+
+        hence "ord_res.is_maximal_lit (Pos A\<^sub>L) C"
+          by blast
+
+        have "C \<prec>\<^sub>c eres D E"
+          using \<open>ord_res.is_maximal_lit (Pos A\<^sub>L) C\<close> \<open>ord_res.is_maximal_lit L (eres D E)\<close>
+          unfolding \<open>L = Neg A\<^sub>L\<close>
+          by (simp add: linorder_lit.multp_if_maximal_less_that_maximal)
+
+        show "linorder_cls.is_least_in_fset
+          {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'). Ex (clause_could_propagate \<Gamma>' C)|} C"
+          unfolding \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') = finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close>
+          unfolding linorder_cls.is_least_in_ffilter_iff
+        proof (intro conjI ballI impI exI)
+          have "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+            using match_hyps(4) \<open>map_of \<Gamma> (Pos A\<^sub>L) = Some (Some C)\<close>
+            by (metis propagating_clause_in_clauses ord_res_7_invars_def)
+
+          thus "C |\<in>| finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))"
+            by simp
+
+          show "clause_could_propagate \<Gamma>' C (Pos A\<^sub>L)"
+            unfolding clause_could_propagate_def
+          proof (intro conjI)
+            show "\<not> trail_defined_lit \<Gamma>' (Pos A\<^sub>L)"
+              by (metis \<open>L = Neg A\<^sub>L\<close> case3_hyps(2) linorder_trm.less_imp_not_eq2 literal.sel
+                  mem_trail_atoms_\<Gamma>'_iff trail_atoms_def trail_defined_lit_iff)
+          next
+            show "ord_res.is_maximal_lit (Pos A\<^sub>L) C"
+              using \<open>ord_res.is_maximal_lit (Pos A\<^sub>L) C\<close> .
+
+            show "trail_false_cls \<Gamma>' {#K \<in># C. K \<noteq> Pos A\<^sub>L#}"
+              using \<open>trail_false_cls \<Gamma>' {#K \<in># C. K \<noteq> Pos A\<^sub>L#}\<close> .
+          qed
+        next
+          fix y
+          assume
+            "y |\<in>| finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))" and
+            "y \<noteq> C" and
+            "Ex (clause_could_propagate \<Gamma>' y)"
+
+          obtain K where "clause_could_propagate \<Gamma>' y K"
+            using \<open>Ex (clause_could_propagate \<Gamma>' y)\<close> by metis
+
+          hence
+            "\<not> trail_defined_lit \<Gamma>' K" and
+            "ord_res.is_maximal_lit K y" and
+            "trail_false_cls \<Gamma>' {#a \<in># y. a \<noteq> K#}"
+            unfolding atomize_conj clause_could_propagate_def
+            by metis
+
+          show "C \<prec>\<^sub>c y"
+          proof (cases "y = eres D E")
+            case True
+            thus ?thesis
+              using \<open>C \<prec>\<^sub>c eres D E\<close> by argo
+          next
+            case False
+
+            hence "y |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+              using \<open>y |\<in>| finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close> by simp
+
+            show ?thesis
+            proof (cases "K = Pos A\<^sub>L")
+              case True
+              thus ?thesis
+                using C_least_propagating
+                unfolding linorder_cls.is_least_in_ffilter_iff
+                using \<open>y |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> \<open>y \<noteq> C\<close> \<open>clause_could_propagate \<Gamma>' y K\<close>
+                by metis
+            next
+              case False
+
+              have "atm_of K \<notin> trail_atoms \<Gamma>'"
+                using \<open>\<not> trail_defined_lit \<Gamma>' K\<close>
+                unfolding trail_defined_lit_iff_trail_defined_atm
+                unfolding trail_defined_atm_def
+                unfolding trail_atoms_def .
+
+              hence "atm_of L \<preceq>\<^sub>t atm_of K \<or> atm_of K \<notin> atm_of ` fst ` set \<Gamma>"
+                unfolding mem_trail_atoms_\<Gamma>'_iff[OF \<open>ord_res.is_maximal_lit L (eres D E)\<close>] by auto
+
+              hence "Pos A\<^sub>L \<prec>\<^sub>l K"
+              proof (elim disjE)
+                assume "atm_of L \<preceq>\<^sub>t atm_of K"
+                thus "Pos A\<^sub>L \<prec>\<^sub>l K"
+                  using \<open>L = Neg A\<^sub>L\<close> \<open>K \<noteq> Pos A\<^sub>L\<close>
+                  by (metis atm_of_eq_atm_of linorder_lit.antisym_conv3 linorder_trm.leD
+                      literal.sel(2) ord_res.less_lit_simps(1) ord_res.less_lit_simps(4) uminus_Neg)
+              next
+                assume "atm_of K \<notin> atm_of ` fst ` set \<Gamma>"
+
+                hence "atm_of K \<notin> trail_atoms \<Gamma>"
+                  unfolding trail_atoms_def .
+
+                moreover have "atm_of K \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)"
+                proof -
+                  have "K \<in># y"
+                    using \<open>ord_res.is_maximal_lit K y\<close>
+                    unfolding linorder_lit.is_maximal_in_mset_iff by argo
+
+                  hence "atm_of K \<in> atoms_of_clause_set (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))"
+                    unfolding atoms_of_clause_set_def
+                    using \<open>y |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close>
+                    by blast
+
+                  thus ?thesis
+                    by simp
+                qed
+
+                ultimately have "\<not> (atm_of K \<prec>\<^sub>t A)"
+                  using \<Gamma>_lower_set[unfolded linorder_trm.is_lower_set_iff, THEN conjunct2,
+                      rule_format, OF \<open>A \<in> trail_atoms \<Gamma>\<close> \<open>atm_of K \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)\<close>]
+                  by argo
+
+                hence "A \<preceq>\<^sub>t atm_of K"
+                  by order
+
+                hence "Pos A \<preceq>\<^sub>l K"
+                  by (cases K) simp_all
+
+                moreover have "Pos A\<^sub>L \<prec>\<^sub>l Pos A"
+                  by (metis \<open>- Neg A \<notin># E\<close> \<open>L = Neg A\<^sub>L\<close> \<open>eres D E \<noteq> E\<close> case3_hyps(2)
+                      linorder_lit.is_maximal_in_mset_iff
+                      lit_in_eres_lt_greatest_lit_in_grestest_resolvant literal.sel(2)
+                      ord_res.less_lit_simps(1) step_hyps(3))
+
+                ultimately show "Pos A\<^sub>L \<prec>\<^sub>l K"
+                  by order
+              qed
+
+              thus "C \<prec>\<^sub>c y"
+                using \<open>ord_res.is_maximal_lit (Pos A\<^sub>L) C\<close> \<open>ord_res.is_maximal_lit K y\<close>
+                using linorder_lit.multp_if_maximal_less_that_maximal by metis
+            qed
+          qed
+        qed
+      qed
+
+      ultimately show ?thesis
         by metis
     qed
 
     moreover have "ord_res_6_matches_ord_res_7 0 (N, U\<^sub>e\<^sub>r', \<F>, \<M>', Some C) S7'"
-      if step6: "ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C)"
+      if step6: "ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C)" and
+        "is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r' \<F> \<Gamma>' C"
       for C
       unfolding \<open>S7' = (N, s7')\<close> \<open>s7' = (U\<^sub>e\<^sub>r', \<F>, \<Gamma>')\<close>
     proof (intro ord_res_6_matches_ord_res_7.intros allI ballI impI)
@@ -13926,15 +14114,8 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
 
       finally show "\<M>' x = Some y \<longleftrightarrow> map_of \<Gamma>' (Pos x) = Some (Some y)" .
     next
-      have "\<not> trail_false_cls \<Gamma>' C"
-        sorry
-
-      then have "is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r' \<F> \<Gamma>' C"
-        unfolding is_least_false_or_propagating_clause_def
-        apply simp
-        sorry
-
-      thus "\<And>C'. (Some C = Some C') = is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r' \<F> \<Gamma>' C'"
+      show "\<And>C'. (Some C = Some C') = is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r' \<F> \<Gamma>' C'"
+        using \<open>is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r' \<F> \<Gamma>' C\<close>
         by (metis Uniq_D Uniq_is_least_false_or_propagating_clause option.inject)
     next
       show "\<And>x. x|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') \<Longrightarrow> (\<forall>C'. Some C = Some C' \<longrightarrow> x \<prec>\<^sub>c C') \<Longrightarrow>
