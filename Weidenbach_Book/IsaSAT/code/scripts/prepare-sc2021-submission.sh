@@ -3,8 +3,8 @@ set -e
 
 cd `dirname $0`/..
 root=`pwd`
-tmp=/tmp/prepare-isasat-sc2023-submission.log
-VERSION="sc2023"
+tmp=/tmp/prepare-isasat-sc2024-submission.log
+VERSION="sc2024"
 rm -f $tmp
 ##########################################################################
 echo "make-src-release.sh"
@@ -23,7 +23,7 @@ rm -rf $dir
 echo "mkdir"
 mkdir $dir
 mkdir $dir/bin
-# cp ./src/isasat $dir/bin/
+cp ./src/isasat $dir/bin/
 mkdir $dir/build
 # cp ~/Documents/repos/cadical/build/cadical $dir/build/isasat
 #cp src/isasat $dir/build
