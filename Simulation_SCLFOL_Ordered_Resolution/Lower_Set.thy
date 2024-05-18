@@ -132,6 +132,22 @@ proof -
     using assms(3-) by argo
 qed
 
+lemma lower_set_wrt_appendI:
+  assumes
+    trans: "transp_on (set (xs @ ys)) R" and
+    asym: "asymp_on (set (xs @ ys)) R" and
+    sorted: "sorted_wrt R (xs @ ys)"
+  shows "is_lower_set_wrt R (set xs) (set (xs @ ys))"
+  unfolding is_lower_set_wrt_def[OF trans asym]
+proof (intro conjI)
+  show "set xs \<subseteq> set (xs @ ys)"
+    by simp
+next
+  show "\<forall>l\<in>set xs. \<forall>x\<in>set (xs @ ys). R x l \<longrightarrow> x \<in> set xs"
+    using sorted
+    by (metis Un_iff asym asymp_on_def set_append sorted_wrt_append)
+qed
+
 lemma sorted_and_lower_set_wrt_appendD_left:
   assumes "transp_on A R" and "asymp_on A R" and
     "sorted_wrt R (xs @ ys)" and "is_lower_set_wrt R (set (xs @ ys)) A"
@@ -171,6 +187,9 @@ end
 
 lemmas (in preorder) is_lower_set_insertI =
   is_lower_set_wrt_insertI[OF transp_on_less asymp_on_less]
+
+lemmas (in preorder) lower_set_appendI =
+  lower_set_wrt_appendI[OF transp_on_less asymp_on_less]
 
 lemmas (in preorder) sorted_and_lower_set_appendD_left =
   sorted_and_lower_set_wrt_appendD_left[OF transp_on_less asymp_on_less]
