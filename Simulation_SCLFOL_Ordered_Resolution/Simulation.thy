@@ -10637,6 +10637,9 @@ lemma "\<I> \<TTurnstile> C \<Longrightarrow> C \<noteq> {#}"
 definition trail_atoms where
   "trail_atoms \<Gamma> = atm_of ` fst ` set \<Gamma>"
 
+lemma finite_trail_atoms: "finite (trail_atoms \<Gamma>)"
+  by (simp add: trail_atoms_def) 
+
 lemma trail_atoms_Cons: "trail_atoms (Ln # \<Gamma>) = insert (atm_of (fst Ln)) (trail_atoms \<Gamma>)"
   by (simp add: trail_atoms_def)
 
@@ -12226,8 +12229,11 @@ lemma Uniq_is_least_false_or_propagating_clause:
   unfolding is_least_false_or_propagating_clause_def
   by (smt (verit) Uniq_def linorder_cls.Uniq_is_least_in_fset linorder_cls.is_least_in_ffilter_iff)
 
+fun measure_ord_res_7 where
+  "measure_ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) = Abs_fset (atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r) - trail_atoms \<Gamma>)"
+
 inductive ord_res_6_matches_ord_res_7 ::
-  "nat \<Rightarrow> 'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times>
+  "'f gterm fset \<Rightarrow> 'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times>
       ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow>
     'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times>
       ('f gterm literal \<times> 'f gclause option) list \<Rightarrow> bool" where
@@ -12239,7 +12245,7 @@ inductive ord_res_6_matches_ord_res_7 ::
     (\<forall>A \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r).
       (\<forall>C. \<C> = Some C \<longrightarrow> (\<exists>L. linorder_lit.is_maximal_in_mset C L \<and> A \<prec>\<^sub>t atm_of L)) \<longrightarrow>
       trail_defined_atm \<Gamma> A) \<Longrightarrow>
-    i \<le> card (atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)) - length \<Gamma> \<Longrightarrow>
+    i = measure_ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) \<Longrightarrow>
     ord_res_6_matches_ord_res_7 i (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>) (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)"
   
 
@@ -12420,11 +12426,18 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
   qed
 qed
 
+
+(* TODO: move *)
+lemma fstrict_subset_iff_fset_strict_subset_fset:
+  fixes \<X> \<Y> :: "_ fset"
+  shows "\<X> |\<subset>| \<Y> \<longleftrightarrow> fset \<X> \<subset> fset \<Y>"
+    by blast
+
 lemma backward_simulation_between_6_and_7:
   fixes i S6 S7 S7'
   assumes match: "ord_res_6_matches_ord_res_7 i S6 S7" and step: "constant_context ord_res_7 S7 S7'"
   shows "(\<exists>i' S6'. ord_res_6_step\<^sup>+\<^sup>+ S6 S6' \<and> ord_res_6_matches_ord_res_7 i' S6' S7') \<or>
-    (\<exists>i'. ord_res_6_matches_ord_res_7 i' S6 S7' \<and> i' < i)"
+    (\<exists>i'. ord_res_6_matches_ord_res_7 i' S6 S7' \<and> i' |\<subset>| i)"
   using match
 proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
   case match_hyps: (1 N U\<^sub>e\<^sub>r \<F> \<M> \<C> \<Gamma>)
@@ -12571,9 +12584,242 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
     using step'
   proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>)" s7' rule: ord_res_7.cases)
     case step_hyps: (decide_neg A \<Gamma>')
-    then show ?thesis
+
+    have A_in: "A \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)" and A_undef: "\<not> trail_defined_atm \<Gamma> A"
+      unfolding atomize_conj
+      using step_hyps(3)
+      unfolding linorder_trm.is_least_in_set_iff trail_defined_atm_iff_mem_trail_atoms
+      by blast
+
+    have "A \<notin> trail_atoms \<Gamma>"
+      using A_undef unfolding trail_defined_atm_def trail_atoms_def .
+
+    have "\<C> \<noteq> None"
+    proof (rule notI)
+      assume "\<C> = None"
+
+      hence "\<forall>A\<in>atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r). trail_defined_atm \<Gamma> A"
+        using match_hyps(8) by simp
+
+      hence "trail_defined_atm \<Gamma> A"
+        using A_in by metis
+
+      thus False
+        using A_undef by contradiction
+    qed
+
+    then obtain D :: "'f gclause" where "\<C> = Some D"
+      by blast
+
+    have D_in: "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+      using match_hyps(3) \<open>\<C> = Some D\<close>
+      by (metis ord_res_5_invars_def next_clause_in_factorized_clause_def)
+
+    hence "\<not> clause_could_propagate \<Gamma> D (Pos A)"
+      using \<open>\<not> (\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). clause_could_propagate \<Gamma> C (Pos A))\<close> by metis
+
+    have "is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r \<F> \<Gamma> D"
+      using match_hyps(6) \<open>\<C> = Some D\<close> by metis
+
+    hence "linorder_cls.is_least_in_fset {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).
+      Ex (clause_could_propagate \<Gamma> C)|} D"
+      unfolding is_least_false_or_propagating_clause_def linorder_cls.is_least_in_ffilter_iff
+      using \<open>\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) (trail_false_cls \<Gamma>)\<close> by metis
+
+    then obtain L where
+      "clause_could_propagate \<Gamma> D L" and
+      "\<forall>y|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). y \<noteq> D \<longrightarrow> Ex (clause_could_propagate \<Gamma> y) \<longrightarrow> D \<prec>\<^sub>c y"
+      unfolding linorder_cls.is_least_in_ffilter_iff by metis
+
+    have
+      "\<not> trail_defined_lit \<Gamma> L" and
+      D_max_lit: "ord_res.is_maximal_lit L D" and
+      "trail_false_cls \<Gamma> {#K \<in># D. K \<noteq> L#}"
+      using \<open>clause_could_propagate \<Gamma> D L\<close>
+      unfolding atomize_conj clause_could_propagate_def by metis
+
+    have "L \<in># D"
+      using D_max_lit unfolding linorder_lit.is_maximal_in_mset_iff by argo
+
+    have "atm_of L \<notin> trail_atoms \<Gamma>"
+      using \<open>\<not> trail_defined_lit \<Gamma> L\<close>
+      by (metis trail_atoms_def trail_defined_lit_iff)
+
+    have "atm_of L \<in> atoms_of_clause_set (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))"
+      using D_max_lit D_in
+      unfolding linorder_lit.is_maximal_in_mset_iff atoms_of_clause_set_def
+      by blast
+
+    hence "atm_of L \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)"
+      by simp
+
+    hence "A \<preceq>\<^sub>t atm_of L"
+      using step_hyps(3)[unfolded linorder_trm.is_least_in_set_iff, simplified]
+      by (metis \<Gamma>_lower_set \<open>atm_of L \<notin> trail_atoms \<Gamma>\<close> linorder_trm.antisym_conv3
+          linorder_trm.dual_order.eq_iff linorder_trm.dual_order.strict_implies_order
+          linorder_trm.is_lower_set_iff)
+
+    have "L \<noteq> Pos A"
+      using \<open>clause_could_propagate \<Gamma> D L\<close> \<open>\<not> clause_could_propagate \<Gamma> D (Pos A)\<close> by metis
+
+
+    have False if "L \<noteq> Neg A"
+      using that
+        A_undef Neg_atm_of_iff[of L]
+        \<open>A \<preceq>\<^sub>t atm_of L\<close>[unfolded reflclp_iff] \<open>L \<noteq> Pos A\<close> \<open>\<C> = Some D\<close>
+        \<open>clause_could_propagate \<Gamma> D L\<close>[unfolded clause_could_propagate_def]
+        literal.collapse(1)[of L] match_hyps(8)[rule_format, of A, OF A_in] option.inject[of D]
+      by metis
+
+    hence "L = Neg A"
+      by argo
+
+    have "A \<notin> dom \<M>"
       using match_hyps
+      by (metis \<open>A \<notin> trail_atoms \<Gamma>\<close> domD image_eqI literal.sel(1) map_of_eq_None_iff
+          option.distinct(1) trail_atoms_def)
+
+    hence "dom \<M> \<TTurnstile> D"
+      using \<open>L \<in># D\<close>[unfolded \<open>L = Neg A\<close>] by blast
+
+    define \<C>' where
+      "\<C>' = The_optional (linorder_cls.is_least_in_fset
+        (ffilter ((\<prec>\<^sub>c) D) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))))"
+
+    define i' where
+      "i' = measure_ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')"
+
+    have "ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some D) (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>')"
+      unfolding \<C>'_def
+      using ord_res_6.skip[OF \<open>dom \<M> \<TTurnstile> D\<close> refl, of N U\<^sub>e\<^sub>r \<F>] .
+
+    have "ord_res_6_matches_ord_res_7 i' (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>') S7'"
+      unfolding \<open>S7' = (N, s7')\<close> \<open>s7' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')\<close>
+    proof (intro ord_res_6_matches_ord_res_7.intros)
+      show "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>')"
+        sorry
+    next
+      show "ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')"
+        using \<open>ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>
+        using ord_res_7_preserves_invars step' step_hyps(1) by metis
+    next
+      have "\<forall>A C. (\<M> A = Some C) = (map_of \<Gamma> (Pos A) = Some (Some C))"
+        using match_hyps by argo
+
+      moreover have "map_of \<Gamma>' (Pos x) = map_of \<Gamma> (Pos x)" for x
+        unfolding \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close> by simp
+
+      ultimately show "\<forall>x C. (\<M> x = Some C) = (map_of \<Gamma>' (Pos x) = Some (Some C))"
+        by metis
+    next
+      show "\<forall>C. (\<C>' = Some C) = is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r \<F> \<Gamma>' C"
+        sorry
+    next
+      show "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C>' = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow> trail_true_cls \<Gamma>' C"
+        sorry
+    next
+      show "\<forall>A\<in>atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>C. \<C>' = Some C \<longrightarrow> (\<exists>L. ord_res.is_maximal_lit L C \<and> A \<prec>\<^sub>t atm_of L)) \<longrightarrow> trail_defined_atm \<Gamma>' A"
+        sorry
+    next
+      show "i' = measure_ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')"
+        unfolding i'_def ..
+    qed
+
+    have "\<exists>i' S6'. ord_res_6_step\<^sup>+\<^sup>+ S6 S6' \<and> ord_res_6_matches_ord_res_7 i' S6' S7'"
+      unfolding \<open>S6 = (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close>
       sorry
+
+    thus ?thesis
+      by metis
+
+    show ?thesis
+    proof (cases "L = Neg A")
+      case True
+      \<comment> \<open>ORD-RES-6 is using @{thm [source] ord_res_6.skip}\<close>
+    next
+      case False
+      \<comment> \<open>ORD-RES-6 is not doing anything\<close>
+
+      define i' where
+        "i' = measure_ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')"
+
+      have "ord_res_6_matches_ord_res_7 i' S6 S7'"
+        unfolding \<open>S6 = (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close> \<open>S7' = (N, s7')\<close> \<open>s7' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')\<close>
+      proof (intro ord_res_6_matches_ord_res_7.intros ballI impI)
+        show "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)"
+          using \<open>ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close> .
+      next
+        show "ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')"
+          using \<open>ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>
+          using ord_res_7_preserves_invars step' step_hyps(1) by blast
+      next
+        have "\<And>x. map_of \<Gamma>' (Pos x) = map_of \<Gamma> (Pos x)" for x
+          unfolding \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close> by simp
+        thus "\<forall>A C. (\<M> A = Some C) = (map_of \<Gamma>' (Pos A) = Some (Some C))"
+          using match_hyps by metis
+      next
+        have "is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r \<F> \<Gamma>' D"
+          using \<open>is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r \<F> \<Gamma> D\<close>
+          by (metis A_in A_undef False Neg_atm_of_iff \<open>A \<preceq>\<^sub>t atm_of L\<close> \<open>L \<noteq> Pos A\<close> \<open>\<C> = Some D\<close>
+              \<open>clause_could_propagate \<Gamma> D L\<close> literal.collapse(1) match_hyps(8) option.inject
+              reflclp_iff clause_could_propagate_def)
+        thus "\<forall>C. (\<C> = Some C) = is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r \<F> \<Gamma>' C"
+          using \<open>\<C> = Some D\<close>
+          by (metis Uniq_D Uniq_is_least_false_or_propagating_clause option.inject)
+      next
+        fix C
+        assume "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and "\<forall>D. \<C> = Some D \<longrightarrow> C \<prec>\<^sub>c D"
+
+        hence "trail_true_cls \<Gamma> C"
+          using match_hyps(7) by metis
+
+        thus "trail_true_cls \<Gamma>' C"
+          unfolding \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close>
+          by (auto simp: trail_true_cls_def trail_true_lit_def)
+      next
+        fix x
+        assume
+          "x \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)" and
+          "(\<forall>C. \<C> = Some C \<longrightarrow> (\<exists>L. ord_res.is_maximal_lit L C \<and> x \<prec>\<^sub>t atm_of L))"
+
+        hence "trail_defined_atm \<Gamma> x"
+          using match_hyps(8) by metis
+
+        thus "trail_defined_atm \<Gamma>' x"
+          unfolding \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close>
+          by (simp add: trail_defined_atm_def)
+      next
+        show "i' = measure_ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')"
+          unfolding i'_def ..
+      qed
+
+      moreover have "i' |\<subset>| i"
+      proof -
+        have "trail_atoms \<Gamma>' = insert A (trail_atoms \<Gamma>)"
+          using \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close>
+          by (simp add: trail_atoms_def)
+
+        hence "atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r) - trail_atoms \<Gamma>' \<subset>
+        atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r) - trail_atoms \<Gamma>"
+          using \<open>A \<in> atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)\<close> \<open>A \<notin> trail_atoms \<Gamma>\<close>
+          by blast
+
+        moreover have "finite (atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r) - trail_atoms \<Gamma>')"
+          using finite_atoms_of_clause_set finite_Diff by metis
+
+        moreover have "finite (atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r) - trail_atoms \<Gamma>)"
+          using finite_atoms_of_clause_set finite_Diff by metis
+
+        ultimately show ?thesis
+          unfolding i'_def \<open>i = measure_ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>
+          unfolding measure_ord_res_7.simps
+          unfolding fstrict_subset_iff_fset_strict_subset_fset
+          by (simp add: fset.Abs_fset_inverse[simplified])
+      qed
+
+      ultimately show ?thesis
+        by metis
+    qed
   next
     case step_hyps: (propagate A C \<Gamma>')
 
@@ -12631,7 +12877,7 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
       unfolding \<open>S6 = (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close> \<open>\<C> = Some C\<close>
       using ord_res_6_step.intros by blast
 
-    moreover have "ord_res_6_matches_ord_res_7 0 (N, s6') S7'"
+    moreover have "ord_res_6_matches_ord_res_7 (measure_ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')) (N, s6') S7'"
       unfolding \<open>s6' = (U\<^sub>e\<^sub>r, \<F>, \<M>', \<C>')\<close> \<open>S7' = (N, s7')\<close> \<open>s7' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')\<close>
     proof (intro ord_res_6_matches_ord_res_7.intros allI ballI impI)
       show "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>', \<C>')"
@@ -12865,8 +13111,7 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
           sorry
       qed
     next
-      show "0 \<le> card (atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)) - length \<Gamma>'"
-        by presburger
+      show "measure_ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>') = measure_ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')" ..
     qed
 
     ultimately show ?thesis
@@ -12952,7 +13197,8 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
       unfolding \<open>S6 = (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close> \<open>\<C> = Some C\<close>
       using ord_res_6_step.intros by blast
 
-    moreover have "ord_res_6_matches_ord_res_7 0 (N, U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac C)) S7'"
+    moreover have "ord_res_6_matches_ord_res_7
+      (measure_ord_res_7 N (U\<^sub>e\<^sub>r, \<F>', \<Gamma>)) (N, U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac C)) S7'"
       unfolding \<open>S7' = (N, s7')\<close> \<open>s7' = (U\<^sub>e\<^sub>r, \<F>', \<Gamma>)\<close>
     proof (rule ord_res_6_matches_ord_res_7.intros)
       show "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac C))"
@@ -13089,8 +13335,7 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
         by (metis \<open>\<C> = Some C\<close> ex1_efac_eq_factoring_chain match_hyps(8) option.inject
             ord_res.ground_factorings_preserves_maximal_literal)
     next
-      show "0 \<le> card (atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r)) - length \<Gamma>"
-        by presburger
+      show "measure_ord_res_7 N (U\<^sub>e\<^sub>r, \<F>', \<Gamma>) = measure_ord_res_7 N (U\<^sub>e\<^sub>r, \<F>', \<Gamma>)" ..
     qed
 
     ultimately show ?thesis
@@ -14266,7 +14511,8 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
       qed
     qed
 
-    moreover have "ord_res_6_matches_ord_res_7 0 (N, U\<^sub>e\<^sub>r', \<F>, \<M>', Some C) S7'"
+    moreover have "ord_res_6_matches_ord_res_7 (measure_ord_res_7 N (U\<^sub>e\<^sub>r', \<F>, \<Gamma>'))
+      (N, U\<^sub>e\<^sub>r', \<F>, \<M>', Some C) S7'"
       if step6: "ord_res_6 N (U\<^sub>e\<^sub>r, \<F>, \<M>, Some E) (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C)" and
         invars:
           "is_least_false_or_propagating_clause N U\<^sub>e\<^sub>r' \<F> \<Gamma>' C"
@@ -14384,13 +14630,12 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
       thus "trail_defined_atm \<Gamma>' x"
         using invars(2) by blast
     next
-      show "0 \<le> card (atoms_of_clause_set (N |\<union>| U\<^sub>e\<^sub>r')) - length \<Gamma>'"
-        by simp
+      show "measure_ord_res_7 N (U\<^sub>e\<^sub>r', \<F>, \<Gamma>') = measure_ord_res_7 N (U\<^sub>e\<^sub>r', \<F>, \<Gamma>')" ..
     qed
 
     ultimately have "\<exists>C.
       ord_res_6_step\<^sup>+\<^sup>+ S6 (N, (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C)) \<and>
-      ord_res_6_matches_ord_res_7 0 (N, U\<^sub>e\<^sub>r', \<F>, \<M>', Some C) S7'"
+      ord_res_6_matches_ord_res_7 (measure_ord_res_7 N (U\<^sub>e\<^sub>r', \<F>, \<Gamma>')) (N, U\<^sub>e\<^sub>r', \<F>, \<M>', Some C) S7'"
       unfolding \<open>S6 = (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)\<close> \<open>\<C> = Some E\<close>
       using ord_res_6_step.intros by blast
 
@@ -14438,12 +14683,12 @@ next
       using ord_res_6_matches_ord_res_7.simps by auto
   qed
 next
-  show "wfp ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool)"
-    by simp
+  show "wfp (|\<subset>|)"
+    using wfP_pfsubset .
 next
   show "\<forall>i S6 S7 S7'. match i S6 S7 \<longrightarrow> constant_context ord_res_7 S7 S7' \<longrightarrow>
     (\<exists>i' S6'. ord_res_6_step\<^sup>+\<^sup>+ S6 S6' \<and> match i' S6' S7') \<or>
-    (\<exists>i'. match i' S6 S7' \<and> i' < i)"
+    (\<exists>i'. match i' S6 S7' \<and> i' |\<subset>| i)"
     unfolding match_def
     using backward_simulation_between_6_and_7 by metis
 qed
