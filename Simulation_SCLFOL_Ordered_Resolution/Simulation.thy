@@ -10871,13 +10871,6 @@ next
   qed
 qed
 
-(*
-(\<forall>Ln \<in> set \<Gamma>. snd Ln = None \<longrightarrow> \<comment> \<open>This is wrong! FIXME\<close>
-        \<not>(\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). linorder_lit.is_maximal_in_mset C (- (fst Ln)))) \<and>
-(\<forall>Ln \<in> set \<Gamma>. \<forall>D. snd Ln = Some D \<longrightarrow> \<comment> \<open>This is also wrong! FIXME\<close>
-  \<not>(\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<and> fst Ln \<in># C)) \<and>
-*)
-
 definition ord_res_7_invars where
   "ord_res_7_invars N s \<longleftrightarrow>
     (\<forall>U\<^sub>e\<^sub>r \<F> \<Gamma> \<C>. s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>) \<longrightarrow>
