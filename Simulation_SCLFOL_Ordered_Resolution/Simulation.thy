@@ -14930,79 +14930,36 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
         fix A :: "'f gterm"
         show "(restrict_map \<M> {A. A \<prec>\<^sub>t atm_of K} A = None) =
           (map_of \<Gamma>' (Neg A) \<noteq> None \<or> A |\<notin>| trail_atms \<Gamma>')"
-        proof (cases "A \<in> dom \<M> \<and> A \<prec>\<^sub>t atm_of K")
+        proof (cases "A \<prec>\<^sub>t atm_of K")
           case True
+
           have "restrict_map \<M> {A. A \<prec>\<^sub>t atm_of K} A = None \<longleftrightarrow> \<M> A = None"
             using True by simp
 
           also have "\<dots> \<longleftrightarrow> map_of \<Gamma> (Neg A) \<noteq> None \<or> A |\<notin>| trail_atms \<Gamma>"
-            using match_hyps(3-) by metis
+            using match_hyps(6) by metis
+
+          also have "\<dots> \<longleftrightarrow> map_of \<Gamma>' (Neg A) \<noteq> None \<or> A |\<notin>| trail_atms \<Gamma>"
+            using True mem_set_\<Gamma>'_iff
+            by (metis eq_fst_iff literal.sel(2) map_of_SomeD not_None_eq weak_map_of_SomeI)
 
           also have "\<dots> \<longleftrightarrow> map_of \<Gamma>' (Neg A) \<noteq> None \<or> A |\<notin>| trail_atms \<Gamma>'"
-          proof -
-            have "Pos A \<in> fst ` set \<Gamma>"
-              using True 
-              by (metis domIff map_of_eq_None_iff match_hyps(5) not_None_eq)
-
-            hence "\<exists>\<C>. (Pos A, \<C>) \<in> set \<Gamma>"
-              by fastforce
-
-            hence "\<exists>\<C>. (Pos A, \<C>) \<in> set \<Gamma> \<and> (Pos A, \<C>) \<in> set \<Gamma>'"
-              using True unfolding mem_set_\<Gamma>'_iff prod.sel literal.sel by metis
-
-            moreover have "distinct (map fst \<Gamma>')"
-              using \<Gamma>_distinct_atoms
-            proof (rule distinct_suffix)
-              show "suffix (map fst \<Gamma>') (map fst \<Gamma>)"
-                using map_mono_suffix step_hyps(9) suffix_dropWhile by blast
-            qed
-
-            ultimately have "map_of \<Gamma> (Pos A) = map_of \<Gamma>' (Pos A)"
-              using \<Gamma>_distinct_atoms by (auto dest: map_of_is_SomeI)
-
-            thus ?thesis
-              by (metis True \<Gamma>_distinct_atoms domIff dom_map_of_conv_image_fst literal.sel(2)
-                  map_of_SomeD map_of_is_SomeI match_hyps(6) mem_set_\<Gamma>'_iff option.exhaust
-                  trail_defined_lit_def trail_defined_lit_iff_trail_defined_atm uminus_Neg)
-          qed
+            using True mem_set_\<Gamma>'_iff
+            by (smt (verit, best) fset_trail_atms image_iff)
 
           finally show ?thesis .
         next
           case False
+
           have "restrict_map \<M> {A. A \<prec>\<^sub>t atm_of K} A = None"
-            using False unfolding restrict_map_def by auto
+            using False by simp
 
-          moreover have "\<And>C. map_of \<Gamma>' (Pos A) \<noteq> Some (Some C)"
-            using False unfolding de_Morgan_conj
-          proof (elim disjE)
-            fix C
-            assume "A \<notin> dom \<M>"
-
-            hence "\<And>\<C>. (Pos A, \<C>) \<notin> set \<Gamma>"
-              using match_hyps(5)
-              by (metis (no_types, opaque_lifting) domIff fst_eqD invars_7 is_pos_def map_of_SomeD
-                  not_None_eq snd_conv weak_map_of_SomeI)
-
-            hence "\<And>\<C>. (Pos A, \<C>) \<notin> set \<Gamma>'"
-              unfolding mem_set_\<Gamma>'_iff by simp
-
-            then show "map_of \<Gamma>' (Pos A) \<noteq> Some (Some C)"
-              by (meson map_of_SomeD)
-          next
-            fix C
-            assume "\<not> A \<prec>\<^sub>t atm_of K"
-
-            hence "\<And>\<C>. (Pos A, \<C>) \<notin> set \<Gamma>'"
-              unfolding mem_set_\<Gamma>'_iff by simp
-
-            then show "map_of \<Gamma>' (Pos A) \<noteq> Some (Some C)"
-              by (meson map_of_SomeD)
-          qed
+          moreover have "A |\<notin>| trail_atms \<Gamma>'"
+            using False mem_set_\<Gamma>'_iff
+            by (smt (verit, ccfv_threshold) fset_trail_atms image_iff)
 
           ultimately show ?thesis
-            by (smt (verit, ccfv_SIG) fset_trail_atms image_eqI image_eqI image_iff image_iff
-                literal.sel(2) map_of_eq_None_iff match_hyps(6) mem_Collect_eq mem_set_\<Gamma>'_iff
-                restrict_in uminus_Neg)
+            by metis
         qed
       qed
     next
@@ -15154,79 +15111,36 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
         fix A :: "'f gterm"
         show "(restrict_map \<M> {A. A \<prec>\<^sub>t atm_of K} A = None) =
           (map_of \<Gamma>' (Neg A) \<noteq> None \<or> A |\<notin>| trail_atms \<Gamma>')"
-        proof (cases "A \<in> dom \<M> \<and> A \<prec>\<^sub>t atm_of K")
+        proof (cases "A \<prec>\<^sub>t atm_of K")
           case True
+
           have "restrict_map \<M> {A. A \<prec>\<^sub>t atm_of K} A = None \<longleftrightarrow> \<M> A = None"
             using True by simp
 
           also have "\<dots> \<longleftrightarrow> map_of \<Gamma> (Neg A) \<noteq> None \<or> A |\<notin>| trail_atms \<Gamma>"
-            using match_hyps(3-) by metis
+            using match_hyps(6) by metis
+
+          also have "\<dots> \<longleftrightarrow> map_of \<Gamma>' (Neg A) \<noteq> None \<or> A |\<notin>| trail_atms \<Gamma>"
+            using True mem_set_\<Gamma>'_iff
+            by (metis eq_fst_iff literal.sel(2) map_of_SomeD not_None_eq weak_map_of_SomeI)
 
           also have "\<dots> \<longleftrightarrow> map_of \<Gamma>' (Neg A) \<noteq> None \<or> A |\<notin>| trail_atms \<Gamma>'"
-          proof -
-            have "Pos A \<in> fst ` set \<Gamma>"
-              using True 
-              by (metis domIff map_of_eq_None_iff match_hyps(5) not_None_eq)
-
-            hence "\<exists>\<C>. (Pos A, \<C>) \<in> set \<Gamma>"
-              by fastforce
-
-            hence "\<exists>\<C>. (Pos A, \<C>) \<in> set \<Gamma> \<and> (Pos A, \<C>) \<in> set \<Gamma>'"
-              using True unfolding mem_set_\<Gamma>'_iff prod.sel literal.sel by metis
-
-            moreover have "distinct (map fst \<Gamma>')"
-              using \<Gamma>_distinct_atoms
-            proof (rule distinct_suffix)
-              show "suffix (map fst \<Gamma>') (map fst \<Gamma>)"
-                using map_mono_suffix step_hyps(9) suffix_dropWhile by blast
-            qed
-
-            ultimately have "map_of \<Gamma> (Pos A) = map_of \<Gamma>' (Pos A)"
-              using \<Gamma>_distinct_atoms by (auto dest: map_of_is_SomeI)
-
-            thus ?thesis
-              by (metis True \<Gamma>_distinct_atoms domIff dom_map_of_conv_image_fst literal.sel(2)
-                  map_of_SomeD map_of_is_SomeI match_hyps(6) mem_set_\<Gamma>'_iff option.exhaust
-                  trail_defined_lit_def trail_defined_lit_iff_trail_defined_atm uminus_Neg)
-          qed
+            using True mem_set_\<Gamma>'_iff
+            by (smt (verit, best) fset_trail_atms image_iff)
 
           finally show ?thesis .
         next
           case False
+
           have "restrict_map \<M> {A. A \<prec>\<^sub>t atm_of K} A = None"
-            using False unfolding restrict_map_def by auto
+            using False by simp
 
-          moreover have "\<And>C. map_of \<Gamma>' (Pos A) \<noteq> Some (Some C)"
-            using False unfolding de_Morgan_conj
-          proof (elim disjE)
-            fix C
-            assume "A \<notin> dom \<M>"
-
-            hence "\<And>\<C>. (Pos A, \<C>) \<notin> set \<Gamma>"
-              using match_hyps(5)
-              by (metis (no_types, opaque_lifting) domIff fst_eqD invars_7 is_pos_def map_of_SomeD
-                  not_None_eq snd_conv weak_map_of_SomeI)
-
-            hence "\<And>\<C>. (Pos A, \<C>) \<notin> set \<Gamma>'"
-              unfolding mem_set_\<Gamma>'_iff by simp
-
-            then show "map_of \<Gamma>' (Pos A) \<noteq> Some (Some C)"
-              by (meson map_of_SomeD)
-          next
-            fix C
-            assume "\<not> A \<prec>\<^sub>t atm_of K"
-
-            hence "\<And>\<C>. (Pos A, \<C>) \<notin> set \<Gamma>'"
-              unfolding mem_set_\<Gamma>'_iff by simp
-
-            then show "map_of \<Gamma>' (Pos A) \<noteq> Some (Some C)"
-              by (meson map_of_SomeD)
-          qed
+          moreover have "A |\<notin>| trail_atms \<Gamma>'"
+            using False mem_set_\<Gamma>'_iff
+            by (smt (verit, ccfv_threshold) fset_trail_atms image_iff)
 
           ultimately show ?thesis
-            by (smt (verit, ccfv_SIG) fset_trail_atms image_eqI image_eqI image_iff image_iff
-                literal.sel(2) map_of_eq_None_iff match_hyps(6) mem_Collect_eq mem_set_\<Gamma>'_iff
-                restrict_in uminus_Neg)
+            by metis
         qed
       qed
     next
