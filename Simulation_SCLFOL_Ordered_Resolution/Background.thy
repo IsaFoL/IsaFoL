@@ -18,6 +18,21 @@ no_notation restrict_map (infixl "|`"  110)
 
 section \<open>Move to HOL\<close>
 
+lemma strict_partial_order_wfp_on_finite_set:
+  assumes "transp_on \<X> R" and "asymp_on \<X> R"
+  shows "finite \<X> \<Longrightarrow> Wellfounded.wfp_on \<X> R"
+  unfolding Wellfounded.wfp_on_iff_ex_minimal
+  using assms
+  by (metis (no_types, opaque_lifting) Finite_Set.bex_min_element asymp_onD asymp_on_subset
+      finite_subset transp_on_subset)
+
+lemma (in order) greater_wfp_on_finite_set: "finite \<X> \<Longrightarrow> Wellfounded.wfp_on \<X> (>)"
+  using strict_partial_order_wfp_on_finite_set[OF transp_on_greater asymp_on_greater] .
+
+lemma (in order) less_wfp_on_finite_set: "finite \<X> \<Longrightarrow> Wellfounded.wfp_on \<X> (<)"
+  using strict_partial_order_wfp_on_finite_set[OF transp_on_less asymp_on_less] .
+
+
 lemma sorted_wrt_dropWhile: "sorted_wrt R xs \<Longrightarrow> sorted_wrt R (dropWhile P xs)"
   by (auto dest: sorted_wrt_drop simp: dropWhile_eq_drop)
 

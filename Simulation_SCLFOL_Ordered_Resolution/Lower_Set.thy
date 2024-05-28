@@ -166,6 +166,14 @@ lemma sorted_and_lower_set_wrt_appendD_right:
   by (smt (verit, ccfv_threshold) Un_iff asymp_onD is_lower_set_wrt_def le_sup_iff set_append
       sorted_wrt_append subsetD)
 
+lemma not_in_lower_set_wrtI:
+  fixes R :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
+  assumes trans: "transp_on Y R" and asym: "asymp_on Y R"
+  shows "is_lower_set_wrt R X Y \<Longrightarrow> y \<notin> X \<Longrightarrow> y \<in> Y \<Longrightarrow> R y z \<Longrightarrow> z \<notin> X"
+  unfolding is_lower_set_wrt_def[OF trans asym]
+  by blast
+
+
 abbreviation (in preorder) is_lower_set where
   "is_lower_set \<equiv> is_lower_set_wrt (<)"
 
@@ -196,6 +204,9 @@ lemmas (in preorder) sorted_and_lower_set_appendD_left =
 
 lemmas (in preorder) sorted_and_lower_set_appendD_right =
   sorted_and_lower_set_wrt_appendD_right[OF transp_on_less asymp_on_less]
+
+lemmas (in preorder) not_in_lower_setI =
+  not_in_lower_set_wrtI[OF transp_on_less asymp_on_less]
 
 
 end
