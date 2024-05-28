@@ -26,13 +26,13 @@ locale first_order_superposition_calculus =
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   fixes
     tiebreakers :: "'f gatom clause  \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" and
-    typeof_fun :: "('f, 'ty :: countable) fun_types"
+    typeof_fun :: "('f, 'ty) fun_types"
   assumes
     wellfounded_tiebreakers: 
       "\<And>clause\<^sub>G. wfP (tiebreakers clause\<^sub>G) \<and> 
                transp (tiebreakers clause\<^sub>G) \<and> 
                asymp (tiebreakers clause\<^sub>G)" and
-    function_symbols: "infinite (UNIV :: 'f set)" "finite (dom typeof_fun)" and
+    function_symbols: "\<And>\<tau>. \<exists>f. typeof_fun f = ([], \<tau>)" and
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R" 
 begin
 
@@ -71,7 +71,7 @@ inductive eq_factoring :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty
     conclusion = add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise') \<cdot> \<mu> \<Longrightarrow>
     eq_factoring (premise, \<V>) (conclusion, \<V>)"
 
-(* TODO *)
+(* TODO: Can I write \<V>\<^sub>3 nicer? *)
 inductive superposition ::
   "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> bool"
 where
@@ -86,8 +86,11 @@ where
     literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2' \<Longrightarrow>
     \<not> is_Var term\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{term\<^sub>1 \<cdot>t \<rho>\<^sub>1, term\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
-    welltyped_imgu typeof_fun \<V>\<^sub>1 (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
-    welltyped_imgu typeof_fun \<V>\<^sub>2 (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
+    welltyped_imgu' typeof_fun \<V>\<^sub>3 (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
+    \<forall>x \<in> vars_clause premise\<^sub>1. \<V>\<^sub>1 x = \<V>\<^sub>3 (the_inv Var (\<rho>\<^sub>1 x)) \<Longrightarrow>
+    \<forall>x \<in> vars_clause premise\<^sub>2. \<V>\<^sub>2 x = \<V>\<^sub>3 (the_inv Var (\<rho>\<^sub>2 x)) \<Longrightarrow>
+    welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
+    welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
     \<not> (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     (\<P> = Pos 
       \<and> select premise\<^sub>1 = {#} 
@@ -101,7 +104,7 @@ where
     \<not> (term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
     conclusion = add_mset (\<P> (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) 
           (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
-    superposition (premise\<^sub>2, \<V>\<^sub>2) (premise\<^sub>1, \<V>\<^sub>1) (conclusion, \<V>\<^sub>1)"
+    superposition (premise\<^sub>2, \<V>\<^sub>2) (premise\<^sub>1, \<V>\<^sub>1) (conclusion, \<V>\<^sub>3)"
 
 abbreviation eq_factoring_inferences where
   "eq_factoring_inferences \<equiv> 
@@ -136,8 +139,11 @@ where
     L\<^sub>2 = (t\<^sub>2 \<approx> t\<^sub>2') \<Longrightarrow>
     \<not> is_Var u\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
-    welltyped_imgu typeof_fun \<V>\<^sub>1 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
-    welltyped_imgu typeof_fun \<V>\<^sub>2 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
+    welltyped_imgu' typeof_fun \<V>\<^sub>3 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
+    \<forall>x \<in> vars_clause P\<^sub>1. \<V>\<^sub>1 x = \<V>\<^sub>3 (the_inv Var (\<rho>\<^sub>1 x)) \<Longrightarrow>
+    \<forall>x \<in> vars_clause P\<^sub>2. \<V>\<^sub>2 x = \<V>\<^sub>3 (the_inv Var (\<rho>\<^sub>2 x)) \<Longrightarrow>
+    welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
+    welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
     \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     select P\<^sub>1 = {#} \<Longrightarrow>
     is_strictly_maximal\<^sub>l  (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<Longrightarrow>
@@ -146,16 +152,16 @@ where
     \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
     \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
     C = add_mset ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> \<approx> (s\<^sub>1' \<cdot>t \<rho>\<^sub>1)) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
-    pos_superposition (P\<^sub>2, \<V>\<^sub>2) (P\<^sub>1, \<V>\<^sub>1) (C, \<V>\<^sub>1)"
+    pos_superposition (P\<^sub>2, \<V>\<^sub>2) (P\<^sub>1, \<V>\<^sub>1) (C, \<V>\<^sub>3)"
 
 lemma superposition_if_pos_superposition:
   assumes "pos_superposition P\<^sub>2 P\<^sub>1 C"
   shows "superposition P\<^sub>2 P\<^sub>1 C"
   using assms
 proof (cases rule: pos_superposition.cases)
-  case (pos_superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
+  case (pos_superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu> \<V>\<^sub>3 \<V>\<^sub>1 \<V>\<^sub>2 C)
   then show ?thesis
-    using superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2]
+    using superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2]
     by blast
 qed
 
@@ -172,8 +178,11 @@ where
     L\<^sub>2 = (t\<^sub>2 \<approx> t\<^sub>2') \<Longrightarrow>
     \<not> is_Var u\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
-    welltyped_imgu typeof_fun \<V>\<^sub>1 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
-    welltyped_imgu typeof_fun \<V>\<^sub>2 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
+    welltyped_imgu' typeof_fun \<V>\<^sub>3 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
+    \<forall>x \<in> vars_clause P\<^sub>1. \<V>\<^sub>1 x = \<V>\<^sub>3 (the_inv Var (\<rho>\<^sub>1 x)) \<Longrightarrow>
+    \<forall>x \<in> vars_clause P\<^sub>2. \<V>\<^sub>2 x = \<V>\<^sub>3 (the_inv Var (\<rho>\<^sub>2 x)) \<Longrightarrow>
+    welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
+    welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
     \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     select P\<^sub>1 = {#} \<and> 
       is_maximal\<^sub>l (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or> is_maximal\<^sub>l (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) ((select P\<^sub>1) \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<Longrightarrow>
@@ -182,7 +191,7 @@ where
     \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
     \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
     C = add_mset (Neg (Upair (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle>  (s\<^sub>1' \<cdot>t \<rho>\<^sub>1))) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
-    neg_superposition (P\<^sub>2, \<V>\<^sub>2) (P\<^sub>1, \<V>\<^sub>1) (C, \<V>\<^sub>1)"
+    neg_superposition (P\<^sub>2, \<V>\<^sub>2) (P\<^sub>1, \<V>\<^sub>1) (C, \<V>\<^sub>3)"
 
 lemma superposition_if_neg_superposition:
   assumes "neg_superposition  P\<^sub>2 P\<^sub>1 C"
@@ -201,11 +210,11 @@ proof (rule iffI)
   assume "superposition P\<^sub>2 P\<^sub>1 C"
   thus "pos_superposition  P\<^sub>2 P\<^sub>1 C \<or> neg_superposition P\<^sub>2 P\<^sub>1 C"
   proof (cases P\<^sub>2 P\<^sub>1 C rule: superposition.cases)
-    case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 premise\<^sub>1 premise\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' \<P> context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu> \<V>\<^sub>1 \<V>\<^sub>2 conclusion)
-    then show ?thesis 
-      using 
-        pos_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 premise\<^sub>1 premise\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu> \<V>\<^sub>1 \<V>\<^sub>2]
-        neg_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 premise\<^sub>1 premise\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu> \<V>\<^sub>1 \<V>\<^sub>2] 
+    case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 premise\<^sub>1 premise\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' \<P> context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
+    then show ?thesis
+      using
+        pos_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 premise\<^sub>1 premise\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>]
+        neg_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 premise\<^sub>1 premise\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>] 
       by blast
   qed
 next
@@ -226,7 +235,6 @@ lemmas literal_renaming_exists =
 lemmas clause_renaming_exists = 
   renaming_exists[OF subset_UNIV subset_UNIV finite_vars_clause finite_vars_clause]
 
-(* TODO: abbreviations without typeof_fun typeof_var *)
 lemma eq_resolution_preserves_typing:
   assumes
     step: "eq_resolution (D, \<V>) (C, \<V>)" and
@@ -275,7 +283,7 @@ lemma eq_factoring_preserves_typing:
 proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
   case (eq_factoringI literal\<^sub>1 literal\<^sub>2 premise' term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
   
-  have "welltyped\<^sub>c typeof_fun \<V> (D  \<cdot> \<mu>)"
+  have "welltyped\<^sub>c typeof_fun \<V> (D \<cdot> \<mu>)"
     using wt_D welltyped\<^sub>\<sigma>_welltyped\<^sub>c eq_factoringI
     by blast
 
@@ -284,6 +292,58 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
     (* TODO: *)
     apply auto
     by (metis First_Order_Type_System.welltyped_right_unique local.eq_factoringI(8) right_uniqueD welltyped\<^sub>\<sigma>_welltyped)+
+qed
+
+(* TODO: Naming!! *)
+lemma superposition_preserves_typing:
+  assumes
+    step: "superposition (D, \<V>\<^sub>2) (C, \<V>\<^sub>1) (E, \<V>\<^sub>3)" and
+    wt_C: "welltyped\<^sub>c typeof_fun \<V>\<^sub>1 C" and
+    wt_D: "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 D"
+  shows "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 E"
+  using step
+proof (cases "(D, \<V>\<^sub>2)" "(C, \<V>\<^sub>1)" "(E, \<V>\<^sub>3)" rule: superposition.cases)
+  case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' \<P> context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
+
+  have xx: "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 \<mu>"
+    using superpositionI(11)
+    by blast
+
+  have "welltyped\<^sub>c typeof_fun (\<lambda>x. \<V>\<^sub>3 (the_inv Var (\<rho>\<^sub>1 x))) C"
+    using welltyped\<^sub>c_\<V>[OF superpositionI(12) wt_C].
+
+  then have "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 (C \<cdot> \<rho>\<^sub>1)"
+    sorry
+    (*using welltyped\<^sub>c_renaming[OF superpositionI(1, 14)]
+    by blast*)
+
+  then have wt_C\<mu>: "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 (C \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)"
+    using welltyped\<^sub>\<sigma>_welltyped\<^sub>c[OF xx]
+    by blast
+
+  have "welltyped\<^sub>c typeof_fun (\<lambda>x. \<V>\<^sub>3 (the_inv Var (\<rho>\<^sub>2 x))) D"
+    using welltyped\<^sub>c_\<V>[OF superpositionI(13) wt_D].
+
+  then have "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 (D \<cdot> \<rho>\<^sub>2)"
+    (*using welltyped\<^sub>c_renaming[OF superpositionI(2, 15)]
+    by blast*)
+    sorry
+
+  then have wt_D\<mu>: "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 (D \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)"
+    using welltyped\<^sub>\<sigma>_welltyped\<^sub>c[OF xx]
+    by blast
+    
+  show ?thesis 
+    using wt_C\<mu> wt_D\<mu> 
+    unfolding superpositionI subst_clause_add_mset welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def
+    using superpositionI(6)
+    apply auto
+    unfolding subst_literal subst_atom subst_apply_term_ctxt_apply_distrib
+     apply auto
+       apply (metis local.superpositionI(10) term_subst.subst_imgu_eq_subst_imgu welltyped\<^sub>\<kappa>)
+      apply (metis subst_clause_plus union_iff)
+     apply (metis local.superpositionI(10) term_subst.subst_imgu_eq_subst_imgu welltyped\<^sub>\<kappa>)
+    by (metis subst_clause_plus union_iff)
 qed
 
 end
