@@ -16930,10 +16930,47 @@ proof (intro allI impI)
     by argo
 qed
 
+definition clause_without_max_lit where
+  "clause_without_max_lit C = {#K \<in># C. \<forall>L. linorder_lit.is_maximal_in_mset C L \<longrightarrow> K \<noteq> L#}"
+
+lemma clause_without_max_lit_eq_for_max_lit:
+  assumes C_max_lit: "linorder_lit.is_maximal_in_mset C L"
+  shows "clause_without_max_lit C = {#K \<in># C. K \<noteq> L#}"
+  unfolding clause_without_max_lit_def
+proof (rule filter_mset_cong)
+  show "C = C" ..
+next
+  fix K :: "'f gliteral"
+  show "(\<forall>L. ord_res.is_maximal_lit L C \<longrightarrow> K \<noteq> L) = (K \<noteq> L)"
+    using C_max_lit
+    by (meson Uniq_D linorder_lit.Uniq_is_maximal_in_mset)
+qed
+
+lemma clause_without_max_lit_mempty[simp]: "clause_without_max_lit {#} = {#}"
+  unfolding clause_without_max_lit_def by simp
+
+lemma clause_without_max_lit_subset: "clause_without_max_lit C \<subseteq># C"
+  unfolding clause_without_max_lit_def by simp
+
+lemma trail_defined_clause_without_max_lit_if_trail_defined_cls:
+  assumes "trail_defined_cls \<Gamma> C"
+  shows "trail_defined_cls \<Gamma> (clause_without_max_lit C)"
+  using assms by (simp add: clause_without_max_lit_def trail_defined_cls_def)
+
+lemma trail_false_clause_without_max_lit_if_trail_false_cls:
+  assumes "trail_false_cls \<Gamma> C"
+  shows "trail_false_cls \<Gamma> (clause_without_max_lit C)"
+  using assms by (simp add: clause_without_max_lit_def trail_false_cls_def)
+
+lemma trail_true_cls_if_trail_true_clause_without_max_lit:
+  assumes "trail_true_cls \<Gamma> (clause_without_max_lit C)"
+  shows "trail_true_cls \<Gamma> C"
+  using assms by (auto simp: clause_without_max_lit_def trail_true_cls_def)
+
 definition is_least_false_or_undefined_clause where
   "is_least_false_or_undefined_clause N U\<^sub>e\<^sub>r \<F> \<Gamma> C \<longleftrightarrow>
     linorder_cls.is_least_in_fset {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).
-      trail_false_cls \<Gamma> C \<or> \<not> trail_defined_cls \<Gamma> C|} C"
+      trail_false_cls \<Gamma> C \<or> \<not> trail_defined_cls \<Gamma> (clause_without_max_lit C)|} C"
 
 lemma Uniq_is_least_false_or_undefined_clause:
   "\<exists>\<^sub>\<le>\<^sub>1C. is_least_false_or_undefined_clause N U\<^sub>e\<^sub>r \<F> \<Gamma> C"
@@ -17045,7 +17082,8 @@ proof (cases i S7 S8 rule: ord_res_7_matches_ord_res_8.cases)
 
       hence "\<nexists>C. is_least_false_or_undefined_clause N U\<^sub>e\<^sub>r \<F> \<Gamma> C"
         unfolding is_least_false_or_undefined_clause_def
-        using linorder_cls.is_least_in_ffilter_iff by simp
+        unfolding linorder_cls.is_least_in_ffilter_iff
+        by (metis trail_defined_clause_without_max_lit_if_trail_defined_cls)
 
       hence "\<C> = None"
         using match_hyps by simp
@@ -17105,30 +17143,31 @@ proof -
 
     have do_nothing_if_false_or_undef: "\<exists>\<C>. (ord_res_7 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>) \<and>
         (\<forall>E. (\<C> = Some E) = is_least_false_or_undefined_clause N U\<^sub>e\<^sub>r \<F> \<Gamma> E)"
-      if "trail_false_cls \<Gamma> D \<or> \<not> trail_defined_cls \<Gamma> D"
+      if "trail_false_cls \<Gamma> D \<or> \<not> trail_defined_cls \<Gamma> (clause_without_max_lit D)"
     proof (intro exI conjI allI)
       show "(ord_res_7 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)"
         by simp
     next
-      have "linorder_cls.is_least_in_fset
-          {|E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> E \<or> \<not> trail_defined_cls \<Gamma> E|} D"
+      have "linorder_cls.is_least_in_fset {|E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).
+        trail_false_cls \<Gamma> E \<or> \<not> trail_defined_cls \<Gamma> (clause_without_max_lit E)|} D"
         unfolding linorder_cls.is_least_in_ffilter_iff
       proof (intro conjI ballI impI)
         show "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
           using less.hyps by metis
       next
-        show "trail_false_cls \<Gamma> D \<or> \<not> trail_defined_cls \<Gamma> D"
-          using that by argo
+        show "trail_false_cls \<Gamma> D \<or> \<not> trail_defined_cls \<Gamma> (clause_without_max_lit D)"
+          using that .
       next
         fix E :: "'f gterm literal multiset"
         assume
           "E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
           "E \<noteq> D" and
-          "trail_false_cls \<Gamma> E \<or> \<not> trail_defined_cls \<Gamma> E"
+          "trail_false_cls \<Gamma> E \<or> \<not> trail_defined_cls \<Gamma> (clause_without_max_lit E)"
 
         hence "\<not> E \<prec>\<^sub>c D"
           using less.prems
-          using \<open>trail_consistent \<Gamma>\<close> not_trail_true_cls_and_trail_false_cls by blast
+          using \<open>trail_consistent \<Gamma>\<close> not_trail_true_cls_and_trail_false_cls
+          by (metis trail_defined_clause_without_max_lit_if_trail_defined_cls)
 
         thus "D \<prec>\<^sub>c E"
           using \<open>E \<noteq> D\<close> by order
@@ -17152,9 +17191,39 @@ proof -
       then obtain L where D_max_lit: "ord_res.is_maximal_lit L D"
         by (metis linorder_lit.ex_maximal_in_mset trail_false_cls_mempty)
 
+      (* have D_flagrantly_not_false: "\<not> trail_false_cls \<Gamma> (clause_without_max_lit D)"
+        using D_not_false 
+        sledgehammer *)
+
+      have FOO: "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+        trail_defined_cls \<Gamma> (clause_without_max_lit C)"
+        using less.prems(1)[unfolded ord_res_7_invars_def, rule_format, OF refl]
+        by (simp add: less.prems(3) trail_defined_clause_without_max_lit_if_trail_defined_cls)
+      
+
       show ?thesis
-      proof (cases "trail_defined_cls \<Gamma> D")
-        case D_defined: True
+      proof (cases "trail_defined_cls \<Gamma> (clause_without_max_lit D)")
+        case D_almost_defined: True
+
+        hence "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of L \<and> A |\<notin>| trail_atms \<Gamma>)"
+          using less.prems(1)[unfolded ord_res_7_invars_def, rule_format, OF refl]
+          using FOO
+          
+
+        (* hence D_flagrantly_true: "trail_true_cls \<Gamma> (clause_without_max_lit D)"
+          using D_not_false
+          by (metis trail_true_or_false_cls_if_defined) *)
+
+        show ?thesis
+          using ord_res_7.skip_defined
+          sorry
+      next
+        case D_flagrantly_undef: False
+        thus ?thesis
+          using do_nothing_if_false_or_undef by metis
+      qed
+
+      (*   case D_defined: True
 
         have D_true: "trail_true_cls \<Gamma> D"
           using D_not_false D_defined by (metis trail_true_or_false_cls_if_defined)
@@ -17201,7 +17270,8 @@ proof -
 
             ultimately have "\<nexists>E. is_least_false_or_undefined_clause N U\<^sub>e\<^sub>r \<F> \<Gamma> E"
               unfolding is_least_false_or_undefined_clause_def
-              by (metis linorder_cls.is_least_in_ffilter_iff)
+              unfolding linorder_cls.is_least_in_ffilter_iff
+              by (metis trail_defined_cls_clause_without_max_lit)
 
             thus "\<And>E. (None = Some E) = is_least_false_or_undefined_clause N U\<^sub>e\<^sub>r \<F> \<Gamma> E"
               by (metis option.distinct(1))
@@ -17252,8 +17322,9 @@ proof -
       next
         case False
         thus ?thesis
-          using do_nothing_if_false_or_undef by metis
-      qed
+          using do_nothing_if_false_or_undef
+          by metis
+      qed *)
     qed
   qed
 qed
