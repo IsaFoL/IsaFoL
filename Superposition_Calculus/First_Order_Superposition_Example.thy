@@ -87,6 +87,9 @@ next
 next
   show "\<And>clause\<^sub>G. wfP (\<lambda>_ _. False) \<and> transp (\<lambda>_ _. False) \<and> asymp (\<lambda>_ _. False)"
     by (simp add: asympI)
+next
+  show "\<And>\<tau>. \<exists>f. ([], ()) = ([], \<tau>)"
+    by simp
 qed
 
 end

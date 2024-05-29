@@ -231,6 +231,33 @@ next
     by (simp add: has_type.simps)
 qed
 
+lemma welltyped_subterm:
+  assumes "welltyped \<F> \<V> (Fun f ts) \<tau>"
+  shows "\<forall>t\<in>set ts. \<exists>\<tau>'. welltyped \<F> \<V> t \<tau>'"
+  using assms
+  apply(simp add: welltyped.simps)
+  apply(induction ts)
+  apply force
+  apply auto
+   apply (metis list_all2_Cons1 welltyped.simps)
+  by (metis (no_types, lifting) in_set_conv_nth list_all2_Cons1 list_all2_conv_all_nth welltyped.simps)
+
+lemma welltyped\<^sub>\<kappa>': 
+  assumes "welltyped \<F> \<V> \<kappa>\<langle>t\<rangle> \<tau>" 
+  shows "\<exists>\<tau>'. welltyped \<F> \<V> t \<tau>'"
+  using assms
+proof(induction \<kappa> arbitrary: \<tau>)
+  case Hole
+  then show ?case
+    by auto
+next
+  case (More x1 x2 \<kappa> x4)
+  then show ?case 
+    apply(auto)
+    by (meson in_set_conv_decomp welltyped_subterm)
+qed
+
+
 lemma welltyped\<^sub>\<kappa>:
   assumes
     \<kappa>_type: "welltyped \<F> \<V> \<kappa>\<langle>t\<rangle> \<tau>\<^sub>1" and
@@ -322,7 +349,7 @@ lemma welltyped\<^sub>c_\<V>:
   unfolding welltyped\<^sub>c_def vars_clause_def
   by fastforce
 
-lemma welltyped_renaming:
+lemma welltyped_renaming':
   assumes 
     "term_subst.is_renaming \<rho>"
     "welltyped\<^sub>\<sigma> typeof_fun \<V> \<rho>"
@@ -341,94 +368,191 @@ next
     by (smt (verit, ccfv_SIG) assms(2) list_all2_mono welltyped.Fun welltyped\<^sub>\<sigma>_welltyped)
 qed
 
-lemma welltyped\<^sub>a_renaming:
+lemma welltyped\<^sub>a_renaming':
   assumes 
     "term_subst.is_renaming \<rho>"
     "welltyped\<^sub>\<sigma> typeof_fun \<V> \<rho>"
     "welltyped\<^sub>a typeof_fun (\<lambda>x. \<V> (the_inv Var (\<rho> x))) a"
   shows "welltyped\<^sub>a typeof_fun \<V> (a \<cdot>a \<rho>)"
-  using welltyped_renaming[OF assms(1,2)] assms(3)
+  using welltyped_renaming'[OF assms(1,2)] assms(3)
   unfolding welltyped\<^sub>a_def
   by(cases a)(auto simp: subst_atom)
 
-lemma welltyped\<^sub>l_renaming:
+lemma welltyped\<^sub>l_renaming':
   assumes 
     "term_subst.is_renaming \<rho>"
     "welltyped\<^sub>\<sigma> typeof_fun \<V> \<rho>"
     "welltyped\<^sub>l typeof_fun (\<lambda>x. \<V> (the_inv Var (\<rho> x))) l"
   shows "welltyped\<^sub>l typeof_fun \<V> (l \<cdot>l \<rho>)"
-  using welltyped\<^sub>a_renaming[OF assms(1,2)] assms(3)
+  using welltyped\<^sub>a_renaming'[OF assms(1,2)] assms(3)
   unfolding welltyped\<^sub>l_def subst_literal(3)
   by presburger
 
-lemma welltyped\<^sub>c_renaming:
+lemma welltyped\<^sub>c_renaming':
   assumes 
     "term_subst.is_renaming \<rho>"
     "welltyped\<^sub>\<sigma> typeof_fun \<V> \<rho>"
     "welltyped\<^sub>c typeof_fun (\<lambda>x. \<V> (the_inv Var (\<rho> x))) c"
   shows "welltyped\<^sub>c typeof_fun \<V> (c \<cdot> \<rho>)"
-  using welltyped\<^sub>l_renaming[OF assms(1,2)] assms(3)
+  using welltyped\<^sub>l_renaming'[OF assms(1,2)] assms(3)
   unfolding welltyped\<^sub>c_def
   by (simp add: subst_clause_def)
 
-(*lemma welltyped_map_le:
-  assumes "welltyped \<F> \<V> t \<tau>" "\<And>\<tau>. \<exists>f. \<F> f = ([], \<tau>)"
-  shows "welltyped \<F>' \<V> t \<tau>"
-  using assms
-proof(induction rule: welltyped.induct)
-  case (Var x \<tau>)
-  then show ?case 
-    by (simp add: welltyped.Var)
-next
-  case (Fun f \<tau>s \<tau> ts)
-  
-  show ?case
-  proof(rule welltyped.Fun)
-    have "f \<in> dom \<F>"
-      using Fun(1)
-      by (simp add: domIff)
+definition range_vars' :: "('f, 'v) subst \<Rightarrow> 'v set" where                                 
+  "range_vars' \<sigma> = \<Union>(vars_term ` range \<sigma>)"
 
-    then show "\<F>' f = Some (\<tau>s, \<tau>)"
-      using Fun(1, 3)
-      unfolding map_le_def
-      by auto
-      
-    show "list_all2 (welltyped \<F>' \<V>) ts \<tau>s"
-      using Fun list_all2_mono
+lemma vars_term_range_vars':
+  assumes "x \<in> vars_term (t \<cdot>t \<sigma>)"
+  shows "x \<in> range_vars' \<sigma>"
+  using assms
+  unfolding range_vars'_def
+  by(induction t) auto
+
+context  
+  fixes \<rho> \<V> \<V>'
+  assumes 
+    renaming: "subst_clause.is_renaming \<rho>" and
+    range_vars: "\<forall>x \<in> range_vars' \<rho>. \<V> (the_inv \<rho> (Var x)) = \<V>' x"
+begin
+
+lemma welltyped_renaming: "welltyped \<F> \<V> t \<tau> \<longleftrightarrow> welltyped \<F> \<V>' (t \<cdot>t \<rho>) \<tau>"
+proof(intro iffI)
+  assume "welltyped \<F> \<V> t \<tau>"
+  then show "welltyped \<F> \<V>' (t \<cdot>t \<rho>) \<tau>"
+  proof(induction rule: welltyped.induct)
+    case (Var x \<tau>)
+
+    obtain y where y: "Var x \<cdot>t \<rho> = Var y"
+      using renaming
+      by (metis eval_term.simps(1) term.collapse(1) term_subst_is_renaming_iff)
+
+    then have "y \<in> range_vars' \<rho>"
+      using vars_term_range_vars'
+      by (metis term.set_intros(3))
+
+    then have "\<V> (the_inv \<rho> (Var y)) = \<V>' y"
+      by (simp add: range_vars)
+
+    moreover have "(the_inv \<rho> (Var y)) = x"
+      using y renaming
+      unfolding term_subst_is_renaming_iff
+      by (metis eval_term.simps(1) the_inv_f_f)
+    
+    ultimately have "\<V>' y = \<tau>"
+      using Var
+      by argo
+
+    then show ?case
+      unfolding y
+      by(rule welltyped.Var)
+  next
+    case (Fun f \<tau>s \<tau> ts)
+    then show ?case
+      by (smt (verit, ccfv_SIG) eval_term.simps(2) length_map list_all2_conv_all_nth nth_map welltyped.simps)
+  qed
+next
+  assume "welltyped \<F> \<V>' (t \<cdot>t \<rho>) \<tau>"
+  then show " welltyped \<F> \<V> t \<tau>"
+  proof(induction t arbitrary: \<tau>)
+    case (Var x)
+    then obtain y where y: "Var x \<cdot>t \<rho> = Var y"
+      using renaming
+      by (metis eval_term.simps(1) term.collapse(1) term_subst_is_renaming_iff)
+
+    then have "y \<in> range_vars' \<rho>"
+      using vars_term_range_vars'
+      by (metis term.set_intros(3))
+
+    then have "\<V> (the_inv \<rho> (Var y)) = \<V>' y"
+      by (simp add: range_vars)
+
+    moreover have "(the_inv \<rho> (Var y)) = x"
+      using y renaming
+      unfolding term_subst_is_renaming_iff
+      by (metis eval_term.simps(1) the_inv_f_f)
+
+    moreover have "\<V>' y = \<tau>"
+      using Var
+      unfolding y
+      by (meson right_uniqueD welltyped.Var welltyped_right_unique)
+
+    ultimately have "\<V> x = \<tau>"
       by blast
+
+    then show ?case
+      by(rule welltyped.Var)
+  next
+    case (Fun f ts)
+    then show ?case
+      by (smt (verit, ccfv_SIG) eval_term.simps(2) list.rel_map(1) list.rel_mono_strong term.distinct(1) term.inject(2) welltyped.simps)
   qed
 qed
 
-lemma welltyped\<^sub>a_map_le:
-  assumes "welltyped\<^sub>a \<F> \<V> a" "\<F> \<subseteq>\<^sub>m \<F>'"
-  shows "welltyped\<^sub>a \<F>' \<V> a"
-  using assms welltyped_map_le
-  by (metis welltyped\<^sub>a_def)
+lemma has_type_renaming: "has_type \<F> \<V> t \<tau> \<longleftrightarrow> has_type \<F> \<V>' (t \<cdot>t \<rho>) \<tau>"
+  using renaming range_vars
+  apply(cases t)
+   apply(auto simp: has_type.simps)
+  apply (metis (mono_tags, opaque_lifting) comp_apply eval_term.simps(1) has_type.Var has_type_right_unique right_uniqueD term_subst_is_renaming_iff_ex_inj_fun_on_vars welltyped\<^sub>\<sigma>_Var welltyped\<^sub>\<sigma>_def welltyped_renaming welltyped_right_unique)
+  apply (metis eval_term.simps(1) has_type.Var has_type_right_unique right_uniqueD term.collapse(1) term_subst_is_renaming_iff welltyped.Var welltyped_renaming welltyped_right_unique)
+  by (metis term.disc(2) term_subst_is_renaming_iff)
 
-lemma welltyped\<^sub>l_map_le:
-  assumes "welltyped\<^sub>l \<F> \<V> l" "\<F> \<subseteq>\<^sub>m \<F>'"
-  shows "welltyped\<^sub>l \<F>' \<V> l"
-  using assms welltyped\<^sub>a_map_le
-  by (metis welltyped\<^sub>l_def)
 
-lemma welltyped\<^sub>c_map_le:
-  assumes "welltyped\<^sub>c \<F> \<V> clause" "\<F> \<subseteq>\<^sub>m \<F>'"
-  shows "welltyped\<^sub>c \<F>' \<V> clause"
-  using assms welltyped\<^sub>l_map_le
-  by (metis welltyped\<^sub>c_def)
-  
-lemma welltyped\<^sub>\<sigma>_map_le:
-  assumes "welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>" "\<F> \<subseteq>\<^sub>m \<F>'"
-  shows "welltyped\<^sub>\<sigma> \<F>' \<V> \<gamma>"
-  using assms welltyped_map_le
-  unfolding welltyped\<^sub>\<sigma>_def
-  by metis
+(* TODO: *)
+lemma welltyped\<^sub>\<sigma>_renaming_ground_subst: 
+  assumes "welltyped\<^sub>\<sigma> \<F> \<V>' \<gamma>" "welltyped\<^sub>\<sigma> \<F> \<V> \<rho>" "term_subst.is_ground_subst \<gamma>"
+  shows "welltyped\<^sub>\<sigma> \<F> \<V> (\<rho> \<odot> \<gamma>)"
+proof-
 
-lemma same_type_map_le:
-  assumes "welltyped \<F> \<V> t \<tau>" "welltyped \<F>' \<V> t \<tau>'" "\<F> \<subseteq>\<^sub>m \<F>'"
-  shows "\<tau> = \<tau>'"
-  using assms
-  by (meson right_uniqueD welltyped_map_le welltyped_right_unique)*)
+  have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' (\<gamma> x) (\<V>' x)"
+    using assms 
+    unfolding welltyped\<^sub>\<sigma>_def
+    by simp
+
+  then have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' (\<gamma> x) (\<V> (the_inv \<rho> (Var x)))"
+    using range_vars
+    by auto
+
+  then have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' ((\<rho> \<odot> \<gamma>) x) (\<V> x)"
+    by (metis assms(1) eval_term.simps(1) subst_compose_def welltyped.Var welltyped\<^sub>\<sigma>_welltyped welltyped_renaming)
+
+  then have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' (Var x \<cdot>t (\<rho> \<odot> \<gamma>)) (\<V> x)"
+    by auto
+
+  then have "\<forall>x. welltyped \<F> \<V>' (Var x \<cdot>t (\<rho> \<odot> \<gamma>)) (\<V> x)"
+    by (metis assms(1) eval_term.simps(1) subst_compose_def welltyped\<^sub>\<sigma>_Var welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_welltyped welltyped_renaming)
+
+  then have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' (Var x \<cdot>t \<rho>) (\<V> x)"
+    using welltyped\<^sub>\<sigma>_welltyped[OF assms(1)]
+    by (simp add: subst_compose_def)
+
+  have "\<forall>x. welltyped \<F> \<V>' (Var x \<cdot>t \<rho>) (\<V> x)"
+    by (meson welltyped.Var welltyped_renaming)
+
+  then have "\<forall>x. welltyped \<F> \<V> (Var x \<cdot>t \<rho>) (\<V> x)"
+    using welltyped_renaming
+    by (meson assms(2) welltyped\<^sub>\<sigma>_welltyped)
+
+  then show "welltyped\<^sub>\<sigma> \<F> \<V> (\<rho> \<odot> \<gamma>)"
+    unfolding welltyped\<^sub>\<sigma>_def
+    by (metis (mono_tags, lifting) \<open>\<forall>x. welltyped \<F> \<V>' (Var x \<cdot>t \<rho> \<odot> \<gamma>) (\<V> x)\<close> assms(3) eval_term.simps(1) ground_subst_compose is_ground_subst_is_ground_term term_subst.subst_ident_if_ground welltyped_renaming)
+qed
+
+lemma welltyped\<^sub>a_renaming: "welltyped\<^sub>a \<F> \<V> a \<longleftrightarrow> welltyped\<^sub>a \<F> \<V>' (a \<cdot>a \<rho>)"
+  using welltyped_renaming
+  unfolding welltyped\<^sub>a_def
+  by(cases a)(simp add: subst_atom)
+
+lemma welltyped\<^sub>l_renaming: "welltyped\<^sub>l \<F> \<V> l \<longleftrightarrow> welltyped\<^sub>l \<F> \<V>' (l \<cdot>l \<rho>)"
+  using welltyped\<^sub>a_renaming
+  unfolding welltyped\<^sub>l_def
+  by (simp add: subst_literal(3))
+
+lemma welltyped\<^sub>c_renaming: "welltyped\<^sub>c \<F> \<V> c \<longleftrightarrow> welltyped\<^sub>c \<F> \<V>' (c \<cdot> \<rho>)"
+  using welltyped\<^sub>l_renaming
+  unfolding welltyped\<^sub>c_def
+  by (simp add: subst_clause_def)
+
+end
 
 lemma term_subst_is_imgu_is_mgu: "term_subst.is_imgu \<mu> {{s, t}} = is_imgu \<mu> {(s, t)}"
   unfolding term_subst.is_imgu_def is_imgu_def term_subst.is_unifier_set_def  unifiers_def
