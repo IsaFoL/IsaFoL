@@ -1122,6 +1122,12 @@ definition lit_occures_in_clss where
 inductive constant_context for R where
   "R \<C> \<D> \<D>' \<Longrightarrow> constant_context R (\<C>, \<D>) (\<C>, \<D>')"
 
+lemma rtranclp_constant_context: "(R \<C>)\<^sup>*\<^sup>* \<D> \<D>' \<Longrightarrow> (constant_context R)\<^sup>*\<^sup>* (\<C>, \<D>) (\<C>, \<D>')"
+  by (induction \<D>' rule: rtranclp_induct) (auto intro: constant_context.intros rtranclp.intros)
+
+lemma tranclp_constant_context: "(R \<C>)\<^sup>+\<^sup>+ \<D> \<D>' \<Longrightarrow> (constant_context R)\<^sup>+\<^sup>+ (\<C>, \<D>) (\<C>, \<D>')"
+  by (induction \<D>' rule: tranclp_induct) (auto intro: constant_context.intros tranclp.intros)
+
 lemma right_unique_constant_context:
   assumes R_ru: "\<And>\<C>. right_unique (R \<C>)"
   shows "right_unique (constant_context R)"
