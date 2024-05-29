@@ -17537,12 +17537,72 @@ proof (cases i S7 S8 rule: ord_res_7_matches_ord_res_8.cases)
     hence "atm_of L |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
       by simp
 
-    hence "A \<prec>\<^sub>t atm_of L \<or> A = atm_of L"
+    hence A_lt_or_eq: "A \<prec>\<^sub>t atm_of L \<or> A = atm_of L"
       using A_least
       by (metis \<Gamma>_lower_set \<open>atm_of L |\<notin>| trail_atms \<Gamma>\<close> linorder_trm.antisym_conv3
           linorder_trm.is_lower_set_iff)
 
-    thus ?thesis
+    hence "Pos A \<preceq>\<^sub>l L"
+      by (cases L) simp_all
+
+    have no_false_clause_wrt_\<Gamma>': "\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) (trail_false_cls \<Gamma>')"
+    proof (rule notI , elim bexE)
+      fix E :: "'f gclause"
+      assume E_in: "E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and "trail_false_cls \<Gamma>' E"
+
+      have "\<not> trail_false_cls \<Gamma> E"
+        using E_in \<open>\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) (trail_false_cls \<Gamma>)\<close> by metis
+
+      have "Pos A \<in># E" and "trail_false_cls \<Gamma> {#K \<in># E. K \<noteq> Pos A#}"
+        unfolding atomize_conj
+        using \<open>\<not> trail_false_cls \<Gamma> E\<close> \<open>trail_false_cls \<Gamma>' E\<close>
+        unfolding \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close>
+        by (smt (verit, best) mem_Collect_eq set_mset_filter subtrail_falseI trail_false_cls_def
+            uminus_Neg)
+
+      have E_max_lit: "linorder_lit.is_maximal_in_mset E (Pos A)"
+        unfolding linorder_lit.is_maximal_in_mset_iff
+      proof (intro conjI ballI impI)
+        show "Pos A \<in># E"
+          using \<open>Pos A \<in># E\<close> .
+      next
+        fix K :: "'f gliteral"
+        assume "K \<in># E" and "K \<noteq> Pos A"
+
+        hence "trail_false_lit \<Gamma> K"
+          using \<open>trail_false_cls \<Gamma> {#K \<in># E. K \<noteq> Pos A#}\<close>
+          unfolding trail_false_cls_def by simp
+
+        hence "atm_of K |\<in>| trail_atms \<Gamma>"
+          using trail_defined_lit_iff_trail_defined_atm trail_defined_lit_iff_true_or_false
+          by metis
+
+        hence "atm_of K \<prec>\<^sub>t A"
+          by (metis A_in A_undef \<Gamma>_lower_set linorder_trm.antisym_conv3
+              linorder_trm.is_lower_set_iff)
+
+        hence "K \<prec>\<^sub>l Pos A"
+          by (cases K) simp_all
+
+        thus "\<not> Pos A \<prec>\<^sub>l K"
+          by order
+      qed
+
+      hence "clause_could_propagate \<Gamma> E (Pos A)"
+        unfolding clause_could_propagate_def
+        using A_undef \<open>trail_false_cls \<Gamma> {#K \<in># E. K \<noteq> Pos A#}\<close>
+        by (simp add: trail_defined_lit_iff_trail_defined_atm)
+
+      hence "\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). clause_could_propagate \<Gamma> C (Pos A)"
+        using E_in by metis
+
+      thus False
+        using \<open>\<not> (\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). clause_could_propagate \<Gamma> C (Pos A))\<close>
+        by contradiction
+    qed
+
+    show ?thesis
+      using A_lt_or_eq
     proof (elim disjE)
       assume "A \<prec>\<^sub>t atm_of L"
 
@@ -17588,76 +17648,7 @@ proof (cases i S7 S8 rule: ord_res_7_matches_ord_res_8.cases)
         show "ord_res_8_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')"
           using invars_s8' unfolding \<open>s8' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')\<close> .
       next
-        have "Pos A \<prec>\<^sub>l L"
-          using \<open>A \<prec>\<^sub>t atm_of L\<close> by (cases L) simp_all
-
-        have "\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) (trail_false_cls \<Gamma>')"
-        proof (rule notI , elim bexE)
-          fix E :: "'f gclause"
-          assume E_in: "E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and "trail_false_cls \<Gamma>' E"
-
-          have "\<not> trail_false_cls \<Gamma> E"
-            using E_in \<open>\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) (trail_false_cls \<Gamma>)\<close> by metis
-
-          have "Pos A \<in># E" and "trail_false_cls \<Gamma> {#K \<in># E. K \<noteq> Pos A#}"
-            unfolding atomize_conj
-            using \<open>\<not> trail_false_cls \<Gamma> E\<close> \<open>trail_false_cls \<Gamma>' E\<close>
-            unfolding \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close>
-            by (smt (verit, best) mem_Collect_eq set_mset_filter subtrail_falseI trail_false_cls_def
-                uminus_Neg)
-
-          have E_max_lit: "linorder_lit.is_maximal_in_mset E (Pos A)"
-            unfolding linorder_lit.is_maximal_in_mset_iff
-          proof (intro conjI ballI impI)
-            show "Pos A \<in># E"
-              using \<open>Pos A \<in># E\<close> .
-          next
-            fix K :: "'f gliteral"
-            assume "K \<in># E" and "K \<noteq> Pos A"
-
-            hence "trail_false_lit \<Gamma> K"
-              using \<open>trail_false_cls \<Gamma> {#K \<in># E. K \<noteq> Pos A#}\<close>
-              unfolding trail_false_cls_def by simp
-
-            hence "atm_of K |\<in>| trail_atms \<Gamma>"
-              using trail_defined_lit_iff_trail_defined_atm trail_defined_lit_iff_true_or_false
-              by metis
-
-            hence "atm_of K \<prec>\<^sub>t A"
-              by (metis A_in A_undef \<Gamma>_lower_set linorder_trm.antisym_conv3
-                  linorder_trm.is_lower_set_iff)
-
-            hence "K \<prec>\<^sub>l Pos A"
-              by (cases K) simp_all
-
-            thus "\<not> Pos A \<prec>\<^sub>l K"
-              by order
-          qed
-
-          hence "E \<prec>\<^sub>c D"
-            using D_max_lit \<open>Pos A \<prec>\<^sub>l L\<close> by (metis linorder_lit.multp_if_maximal_less_that_maximal)
-
-          hence "E \<noteq> D"
-            by order
-
-          moreover have "\<not> trail_defined_cls \<Gamma> E"
-          proof -
-            have "\<not> trail_defined_lit \<Gamma> (Pos A)"
-              using A_undef unfolding trail_defined_lit_iff_trail_defined_atm literal.sel .
-
-            thus ?thesis
-              unfolding trail_defined_cls_def
-              using \<open>Pos A \<in># E\<close> by metis
-          qed
-
-          ultimately have "D \<prec>\<^sub>c E"
-            using D_lt_if[rule_format, OF E_in] by metis
-
-          thus False
-            using \<open>E \<prec>\<^sub>c D\<close> by order
-        qed
-
-        moreover have "linorder_cls.is_least_in_fset
+        have "linorder_cls.is_least_in_fset
           {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). \<not> trail_defined_cls \<Gamma>' C|} D"
           unfolding linorder_cls.is_least_in_ffilter_iff
         proof (intro conjI ballI impI)
@@ -17686,9 +17677,9 @@ proof (cases i S7 S8 rule: ord_res_7_matches_ord_res_8.cases)
             using D_lt_if[rule_format, OF E_in \<open>E \<noteq> D\<close>] by argo
         qed
 
-        ultimately have "is_least_false_or_undefined_clause N U\<^sub>e\<^sub>r \<F> \<Gamma>' D"
+        hence "is_least_false_or_undefined_clause N U\<^sub>e\<^sub>r \<F> \<Gamma>' D"
           unfolding is_least_false_or_undefined_clause_def
-          using linorder_cls.is_least_in_ffilter_iff by force
+          using no_false_clause_wrt_\<Gamma>' linorder_cls.is_least_in_ffilter_iff by force
 
         thus "\<forall>C. (Some D = Some C) = is_least_false_or_undefined_clause N U\<^sub>e\<^sub>r \<F> \<Gamma>' C"
           by (metis Uniq_D Uniq_is_least_false_or_undefined_clause option.inject)
@@ -17844,6 +17835,8 @@ proof (cases i S7 S8 rule: ord_res_7_matches_ord_res_8.cases)
                 OF D_not_false D_max_lit nbex_undef_atm_lt L_undef L_pos D_almost_true
                   E_next_clause]
             by metis
+
+          thm step_hyps match_hyps
 
 (*           have "\<And>C. C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r) \<Longrightarrow> (\<And>D. \<C>' = Some D \<Longrightarrow> C \<prec>\<^sub>c D) \<Longrightarrow>
             trail_true_cls \<Gamma>' C \<and> trail_defined_cls \<Gamma>' C"
