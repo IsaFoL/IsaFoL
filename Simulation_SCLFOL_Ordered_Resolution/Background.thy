@@ -505,6 +505,11 @@ lemma fun_upd_fimage: "f(x := y) |`| A = (if x |\<in>| A then finsert y (f |`| (
 lemma ffilter_fempty[simp]: "ffilter P {||} = {||}"
   by (metis ex_fin_conv ffmember_filter)
 
+lemma fstrict_subset_iff_fset_strict_subset_fset:
+  fixes \<X> \<Y> :: "_ fset"
+  shows "\<X> |\<subset>| \<Y> \<longleftrightarrow> fset \<X> \<subset> fset \<Y>"
+    by blast
+
 
 section \<open>Move to \<^theory>\<open>VeriComp.Simulation\<close>\<close>
 
@@ -961,6 +966,67 @@ lemma trail_false_cls_ignores_duplicates:
   "set_mset C = set_mset D \<Longrightarrow> trail_true_cls \<Gamma> C \<longleftrightarrow> trail_true_cls \<Gamma> D"
   by (simp add: trail_true_cls_def)
 
+lemma not_trail_true_cls_and_trail_false_cls:
+  fixes \<Gamma> :: "('a literal \<times> 'a clause option) list" and C :: "'a clause"
+  shows "trail_consistent \<Gamma> \<Longrightarrow> \<not> (trail_true_cls \<Gamma> C \<and> trail_false_cls \<Gamma> C)"
+proof (induction \<Gamma> rule: trail_consistent.induct)
+  case Nil
+  show ?case
+    by simp
+next
+  case (Cons \<Gamma> L u)
+  then show ?case
+    by (metis trail_consistent.Cons trail_defined_lit_iff_true_or_false trail_false_cls_def
+        trail_false_cls_iff_not_trail_interp_entails trail_interp_cls_if_trail_true)
+qed
+
+lemma trail_true_lit_if_trail_true_suffix:
+  "suffix \<Gamma>' \<Gamma> \<Longrightarrow> trail_true_lit \<Gamma>' K \<Longrightarrow> trail_true_lit \<Gamma> K"
+  by (meson image_mono set_mono_suffix subsetD trail_true_lit_def)
+
+lemma trail_true_cls_if_trail_true_suffix:
+  "suffix \<Gamma>' \<Gamma> \<Longrightarrow> trail_true_cls \<Gamma>' C \<Longrightarrow> trail_true_cls \<Gamma> C"
+  using trail_true_cls_def trail_true_lit_if_trail_true_suffix by metis
+
+lemma not_lit_and_comp_lit_false_if_trail_consistent:
+  assumes "trail_consistent \<Gamma>"
+  shows "\<not> (trail_false_lit \<Gamma> L \<and> trail_false_lit \<Gamma> (- L))"
+  using assms
+proof (induction \<Gamma>)
+  case Nil
+  show ?case
+    by simp
+next
+  case (Cons \<Gamma> K u)
+  show ?case
+  proof (cases "K = L \<or> K = - L")
+    case True
+    thus ?thesis
+      unfolding trail_false_lit_def uminus_of_uminus_id
+      unfolding de_Morgan_conj list.set image_insert prod.sel
+      by (metis Cons.hyps(1) insertE trail_defined_lit_def uminus_not_id' uminus_of_uminus_id)
+  next
+    case False
+    thus ?thesis
+      unfolding trail_false_lit_def uminus_of_uminus_id
+      by (metis (no_types, lifting) Cons.IH fst_conv image_iff set_ConsD trail_false_lit_def
+          uminus_of_uminus_id)
+  qed
+qed
+
+lemma not_both_lit_and_comp_lit_in_false_clause_if_trail_consistent:
+  assumes \<Gamma>_consistent: "trail_consistent \<Gamma>" and C_false: "trail_false_cls \<Gamma> C"
+  shows "\<not> (L \<in># C \<and> - L \<in># C)"
+proof (rule notI)
+  assume "L \<in># C \<and> - L \<in># C"
+
+  hence "trail_false_lit \<Gamma> L \<and> trail_false_lit \<Gamma> (- L)"
+    using C_false unfolding trail_false_cls_def by metis
+
+  thus False
+    using \<Gamma>_consistent not_lit_and_comp_lit_false_if_trail_consistent by metis
+qed
+
 lemma lower_set_wrt_prefixI:
   assumes
     trans: "transp_on (set zs) R" and
@@ -1137,5 +1203,30 @@ proof (rule right_uniqueI)
     using R_ru[THEN right_uniqueD]
     by (elim constant_context.cases) (metis prod.inject)
 qed
+
+
+
+definition The_optional :: "('a \<Rightarrow> bool) \<Rightarrow> 'a option" where
+  "The_optional P = (if \<exists>!x. P x then Some (THE x. P x) else None)"
+
+lemma The_optional_eq_SomeD: "The_optional P = Some x \<Longrightarrow> P x"
+  unfolding The_optional_def
+  by (metis option.discI option.inject theI_unique)
+
+lemma Some_eq_The_optionalD: "Some x = The_optional P \<Longrightarrow> P x"
+  using The_optional_eq_SomeD by metis
+
+lemma The_optional_eq_NoneD: "The_optional P = None \<Longrightarrow> \<nexists>!x. P x"
+  unfolding The_optional_def
+  by (metis option.discI)
+
+lemma None_eq_The_optionalD: "None = The_optional P \<Longrightarrow> \<nexists>!x. P x"
+  unfolding The_optional_def
+  by (metis option.discI)
+
+lemma The_optional_eq_SomeI:
+  assumes "\<exists>\<^sub>\<le>\<^sub>1x. P x" and "P x"
+  shows "The_optional P = Some x"
+  using assms by (metis The_optional_def the1_equality')
 
 end
