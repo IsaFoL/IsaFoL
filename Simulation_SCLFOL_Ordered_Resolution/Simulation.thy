@@ -20178,7 +20178,35 @@ next
 qed
 
 
-section \<open>ORD-RES-9\<close>
+section \<open>ORD-RES-9 (factorize when propagating)\<close>
+
+inductive ord_res_9 where
+  decide_neg: "
+    \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C) \<Longrightarrow>
+    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r).
+      \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
+    \<not> (\<exists>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r. clause_could_propagate \<Gamma> C (Pos A)) \<Longrightarrow>
+    \<Gamma>' = (Neg A, None) # \<Gamma> \<Longrightarrow>
+    ord_res_9 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')" |
+
+  propagate: "
+    \<not> (\<exists>C |\<in>| N |\<union>| U\<^sub>e\<^sub>r. trail_false_cls \<Gamma> C) \<Longrightarrow>
+    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r).
+      \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
+    linorder_cls.is_least_in_fset {|C |\<in>| N |\<union>| U\<^sub>e\<^sub>r.
+      clause_could_propagate \<Gamma> C (Pos A)|} C \<Longrightarrow>
+    \<Gamma>' = (Pos A, Some (efac C)) # \<Gamma> \<Longrightarrow>
+    ord_res_9 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')" |
+
+  resolution: "
+    linorder_cls.is_least_in_fset {|D |\<in>| N |\<union>| U\<^sub>e\<^sub>r. trail_false_cls \<Gamma> D|} D \<Longrightarrow>
+    linorder_lit.is_maximal_in_mset D (Neg A) \<Longrightarrow>
+    map_of \<Gamma> (Pos A) = Some (Some C) \<Longrightarrow>
+    CD = eres (add_mset (Pos A) C) D \<Longrightarrow>
+    U\<^sub>e\<^sub>r' = finsert CD U\<^sub>e\<^sub>r \<Longrightarrow>
+    \<Gamma>' = dropWhile (\<lambda>Ln. \<forall>K.
+      linorder_lit.is_maximal_in_mset CD K \<longrightarrow> atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma> \<Longrightarrow>
+    ord_res_9 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (U\<^sub>e\<^sub>r', \<F>, \<Gamma>')"
 
 
 section \<open>SCL(FOL)-2 (one-step conflict resolution)\<close>
