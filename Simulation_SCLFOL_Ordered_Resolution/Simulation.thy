@@ -10920,6 +10920,53 @@ next
   qed
 qed
 
+lemma clause_almost_almost_definedI:
+  fixes \<Gamma> D K
+  assumes
+    D_in: "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+    D_max_lit: "ord_res.is_maximal_lit K D" and
+    no_undef_atm: "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>)"
+  shows "trail_defined_cls \<Gamma> {#L \<in># D. L \<noteq> K \<and> L \<noteq> - K#}"
+  unfolding trail_defined_cls_def
+proof (intro ballI)
+  have "K \<in># D" and lit_in_D_le_K: "\<And>L. L \<in># D \<Longrightarrow> L \<preceq>\<^sub>l K"
+    using D_max_lit
+    unfolding atomize_imp atomize_all atomize_conj linorder_lit.is_maximal_in_mset_iff
+    using linorder_lit.leI by blast
+
+  fix L :: "'f gterm literal"
+  assume "L \<in># {#L \<in># D. L \<noteq> K \<and> L \<noteq> - K#}"
+
+  hence "L \<in># D" and "L \<noteq> K" and "L \<noteq> - K"
+    by simp_all
+
+  have "atm_of L |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+    using \<open>L \<in># D\<close> D_in by (metis atm_of_in_atms_of_clssI)
+
+  hence "atm_of L \<prec>\<^sub>t atm_of K \<Longrightarrow> atm_of L |\<in>| trail_atms \<Gamma>"
+    using no_undef_atm by metis
+
+  moreover have "atm_of L \<prec>\<^sub>t atm_of K"
+    using lit_in_D_le_K[OF \<open>L \<in># D\<close>] \<open>L \<noteq> K\<close> \<open>L \<noteq> - K\<close>
+    by (cases L; cases K) simp_all
+
+  ultimately show "trail_defined_lit \<Gamma> L"
+    using trail_defined_lit_iff_trail_defined_atm by auto
+qed
+
+lemma clause_almost_definedI:
+  fixes \<Gamma> D K
+  assumes
+    D_in: "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+    D_max_lit: "ord_res.is_maximal_lit K D" and
+    no_undef_atm: "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>)" and
+    K_defined: "trail_defined_lit \<Gamma> K"
+  shows "trail_defined_cls \<Gamma> {#Ka \<in># D. Ka \<noteq> K#}"
+  using clause_almost_almost_definedI[OF D_in D_max_lit no_undef_atm]
+  using K_defined
+  by (metis (mono_tags, lifting) mem_Collect_eq set_mset_filter trail_defined_cls_def
+      trail_defined_lit_iff_defined_uminus)
+
 term "(\<not> trail_defined_lit \<Gamma> K \<longleftrightarrow> (trail_true_cls \<Gamma> {#L \<in># C. L \<noteq> K#} \<and> is_pos K))"
 
 inductive ord_res_7_invars for N where
@@ -10932,7 +10979,8 @@ inductive ord_res_7_invars for N where
               \<not> trail_defined_lit \<Gamma> L\<^sub>C \<longrightarrow> (trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C))))" and
       "(\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C> = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow> trail_true_cls \<Gamma> C)" and
       "(\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C> = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow>
-        (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#}))" and
+        (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow>
+          \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>)))" and
       "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>" and
       "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
       "(\<C> = None \<longrightarrow> trail_atms \<Gamma> = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
@@ -10947,6 +10995,64 @@ inductive ord_res_7_invars for N where
       "(\<forall>\<Gamma>\<^sub>1 L D \<Gamma>\<^sub>0. \<Gamma> = \<Gamma>\<^sub>1 @ (L, Some D) # \<Gamma>\<^sub>0 \<longrightarrow>
         (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma>\<^sub>0 C))"
 
+lemma clause_almost_defined_if_lt_next_clause:
+  assumes "ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>)"
+  shows "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C> = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow>
+    (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})"
+proof (intro ballI impI allI)
+  fix C :: "'f gclause" and K :: "'f gliteral"
+  assume
+    C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+    C_lt: "\<forall>D. \<C> = Some D \<longrightarrow> C \<prec>\<^sub>c D" and
+    C_max_lit: "ord_res.is_maximal_lit K C"
+
+  show "trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#}"
+    using assms
+  proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>)" rule: ord_res_7_invars.cases)
+    case invars: 1
+
+    have "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>)"
+      using invars C_in C_lt C_max_lit by metis
+
+    hence C_almost_almost_defined: "trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K \<and> L \<noteq> - K#}"
+      using clause_almost_almost_definedI[OF C_in C_max_lit] by blast
+
+    show ?thesis
+    proof (cases "trail_defined_lit \<Gamma> K")
+      case True
+      then show ?thesis
+        using C_almost_almost_defined
+        unfolding trail_defined_cls_def
+        by (auto simp add: trail_defined_lit_iff_defined_uminus[symmetric])
+    next
+      case False
+      show ?thesis
+      proof (cases \<C>)
+        case None
+        hence "trail_atms \<Gamma> = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+          using invars by argo
+        then show ?thesis
+          by (metis C_in C_max_lit False atm_of_in_atms_of_clssI linorder_lit.is_maximal_in_mset_iff
+              trail_defined_lit_iff_trail_defined_atm)
+      next
+        case (Some D)
+        hence "C \<prec>\<^sub>c D"
+          using C_lt by simp
+        then show ?thesis
+          using invars
+          by (smt (verit, ccfv_SIG) C_almost_almost_defined C_in C_max_lit False Some
+              \<open>\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>)\<close>
+              atm_of_in_atms_of_clssI atm_of_uminus filter_mset_cong0
+              linorder_lit.is_greatest_in_set_iff linorder_lit.is_maximal_in_mset_iff
+              linorder_lit.is_maximal_in_set_eq_is_greatest_in_set
+              linorder_lit.is_maximal_in_set_iff literal.collapse(1) literal.exhaust_sel
+              ord_res.less_lit_simps(4) trail_defined_lit_iff_trail_defined_atm)
+      qed
+    qed
+  qed
+qed
+
+
 lemma ord_res_7_invars_def:
   "ord_res_7_invars N s \<longleftrightarrow>
     (\<forall>U\<^sub>e\<^sub>r \<F> \<Gamma> \<C>. s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>) \<longrightarrow>
@@ -10958,7 +11064,8 @@ lemma ord_res_7_invars_def:
               \<not> trail_defined_lit \<Gamma> L\<^sub>C \<longrightarrow> (trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C)))) \<and>
       (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C> = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow> trail_true_cls \<Gamma> C) \<and>
       (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C> = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow>
-        (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})) \<and>
+        (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow>
+          \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))) \<and>
       sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma> \<and>
       linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)) \<and>
       (\<C> = None \<longrightarrow> trail_atms \<Gamma> = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)) \<and>
@@ -11022,60 +11129,13 @@ proof (intro monotone_onI, unfold le_bool_def, intro impI)
     by order
 qed
 
-lemma clause_almost_almost_definedI:
-  fixes \<Gamma> D K
-  assumes
-    D_in: "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
-    D_max_lit: "ord_res.is_maximal_lit K D" and
-    no_undef_atm: "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>)"
-  shows "trail_defined_cls \<Gamma> {#L \<in># D. L \<noteq> K \<and> L \<noteq> - K#}"
-  unfolding trail_defined_cls_def
-proof (intro ballI)
-  have "K \<in># D" and lit_in_D_le_K: "\<And>L. L \<in># D \<Longrightarrow> L \<preceq>\<^sub>l K"
-    using D_max_lit
-    unfolding atomize_imp atomize_all atomize_conj linorder_lit.is_maximal_in_mset_iff
-    using linorder_lit.leI by blast
-
-  fix L :: "'f gterm literal"
-  assume "L \<in># {#L \<in># D. L \<noteq> K \<and> L \<noteq> - K#}"
-
-  hence "L \<in># D" and "L \<noteq> K" and "L \<noteq> - K"
-    by simp_all
-
-  have "atm_of L |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
-    using \<open>L \<in># D\<close> D_in by (metis atm_of_in_atms_of_clssI)
-
-  hence "atm_of L \<prec>\<^sub>t atm_of K \<Longrightarrow> atm_of L |\<in>| trail_atms \<Gamma>"
-    using no_undef_atm by metis
-
-  moreover have "atm_of L \<prec>\<^sub>t atm_of K"
-    using lit_in_D_le_K[OF \<open>L \<in># D\<close>] \<open>L \<noteq> K\<close> \<open>L \<noteq> - K\<close>
-    by (cases L; cases K) simp_all
-
-  ultimately show "trail_defined_lit \<Gamma> L"
-    using trail_defined_lit_iff_trail_defined_atm by auto
-qed
-
-lemma clause_almost_definedI:
-  fixes \<Gamma> D K
-  assumes
-    D_in: "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
-    D_max_lit: "ord_res.is_maximal_lit K D" and
-    no_undef_atm: "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>)" and
-    K_defined: "trail_defined_lit \<Gamma> K"
-  shows "trail_defined_cls \<Gamma> {#Ka \<in># D. Ka \<noteq> K#}"
-  using clause_almost_almost_definedI[OF D_in D_max_lit no_undef_atm]
-  using K_defined
-  by (metis (mono_tags, lifting) mem_Collect_eq set_mset_filter trail_defined_cls_def
-      trail_defined_lit_iff_defined_uminus)
-
-lemma trail_defined_lit_dropWhileI:
+lemma in_trail_atms_dropWhileI:
   assumes
     "sorted_wrt R \<Gamma>" and
-    "monotone_on (set \<Gamma>) R (\<ge>) (\<lambda>x. P (fst x))" and
-    "\<not> P L \<and> \<not> P (- L)" and
-    "trail_defined_lit \<Gamma> L"
-  shows "trail_defined_lit (dropWhile (\<lambda>Ln. P (fst Ln)) \<Gamma>) L"
+    "monotone_on (set \<Gamma>) R (\<ge>) (\<lambda>x. P (atm_of (fst x)))" and
+    "\<not> P A" and
+    "A |\<in>| trail_atms \<Gamma>"
+  shows "A |\<in>| trail_atms (dropWhile (\<lambda>Ln. P (atm_of (fst Ln))) \<Gamma>)"
   using assms(1,2,4)
 proof (induction \<Gamma>)
   case Nil
@@ -11084,36 +11144,46 @@ proof (induction \<Gamma>)
 next
   case (Cons Ln \<Gamma>)
   show ?case
-  proof (cases "P (fst Ln)")
+  proof (cases "P (atm_of (fst Ln))")
     case True
 
-    have "trail_defined_lit (dropWhile (\<lambda>Ln. P (fst Ln)) \<Gamma>) L"
+    have "A |\<in>| trail_atms (dropWhile (\<lambda>Ln. P (atm_of (fst Ln))) \<Gamma>)"
     proof (rule Cons.IH)
       show "sorted_wrt R \<Gamma>"
         using Cons.prems(1) by simp
     next
-      show "monotone_on (set \<Gamma>) R (\<lambda>x y. y \<le> x) (\<lambda>x. P (fst x))"
+      show "monotone_on (set \<Gamma>) R (\<lambda>x y. y \<le> x) (\<lambda>x. P (atm_of (fst x)))"
         using Cons.prems(2) by (meson monotone_on_subset set_subset_Cons)
     next
-      have "\<not> P L \<and> \<not> P (- L)"
+      have "\<not> P A"
         using assms by metis
-      hence "L \<noteq> fst Ln \<and> - L \<noteq> fst Ln"
-        using \<open>P (fst Ln)\<close> by metis
-      moreover have "trail_defined_lit (Ln # \<Gamma>) L"
+      hence "A \<noteq> atm_of (fst Ln)"
+        using True by metis
+      moreover have "A |\<in>| trail_atms (Ln # \<Gamma>)"
         using Cons.prems(3) by metis
-      ultimately show "trail_defined_lit \<Gamma> L"
+      ultimately show "A |\<in>| trail_atms \<Gamma>"
         by (simp add: trail_defined_lit_def)
     qed
 
     thus ?thesis
-      using \<open>P (fst Ln)\<close>
-      by simp
+      using True by simp
   next
     case False
     thus ?thesis
       using Cons.prems(3) by simp
   qed
 qed
+
+lemma trail_defined_lit_dropWhileI:
+  assumes
+    "sorted_wrt R \<Gamma>" and
+    "monotone_on (set \<Gamma>) R (\<ge>) (\<lambda>x. P (fst x))" and
+    "\<not> P L \<and> \<not> P (- L)" and
+    "trail_defined_lit \<Gamma> L"
+  shows "trail_defined_lit (dropWhile (\<lambda>Ln. P (fst Ln)) \<Gamma>) L"
+  using assms in_trail_atms_dropWhileI
+  by (smt (verit) imageE image_eqI mem_set_dropWhile_conv_if_list_sorted_and_pred_monotone
+      trail_defined_lit_def trail_defined_lit_iff_trail_defined_atm)
 
 lemma trail_defined_cls_dropWhileI:
   assumes
@@ -11215,8 +11285,9 @@ proof (cases N s s' rule: ord_res_7.cases)
         (\<forall>L\<^sub>C. linorder_lit.is_maximal_in_mset C L\<^sub>C \<longrightarrow>
           \<not> trail_defined_lit \<Gamma> L\<^sub>C \<longrightarrow> (trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C))" and
     clauses_lt_D_true: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma> C" and
-    clauses_lt_D_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
-      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})" and
+    no_undef_atm_lt_max_lit_if_lt_D: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))" and
     \<Gamma>_sorted: "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>" and
     \<Gamma>_lower: "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
     trail_atms_le0: "\<forall>A |\<in>| trail_atms \<Gamma>. \<exists>L. ord_res.is_maximal_lit L D \<and> (A \<preceq>\<^sub>t atm_of L)" and
@@ -11235,6 +11306,11 @@ proof (cases N s s' rule: ord_res_7.cases)
   have trail_atms_le: "\<forall>A |\<in>| trail_atms \<Gamma>. A \<preceq>\<^sub>t atm_of L"
     using trail_atms_le0 \<open>ord_res.is_maximal_lit L D\<close>
     by (metis Uniq_D linorder_lit.Uniq_is_maximal_in_mset)
+
+  have clauses_lt_D_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+    (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})"
+    using invar[unfolded \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)\<close>] clause_almost_defined_if_lt_next_clause
+    by simp
 
   have "\<F> |\<subseteq>| N |\<union>| U\<^sub>e\<^sub>r"
     using \<F>_subset .
@@ -11268,7 +11344,8 @@ proof (cases N s s' rule: ord_res_7.cases)
 
   moreover have
     "trail_true_cls \<Gamma>' C"
-    "\<And>K. linorder_lit.is_maximal_in_mset C K \<Longrightarrow> trail_defined_cls \<Gamma>' {#L \<in># C. L \<noteq> K#}"
+    "\<And>K. linorder_lit.is_maximal_in_mset C K \<Longrightarrow>
+      \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>')"
     if C_lt: "\<And>D'. Some D = Some D' \<Longrightarrow> C \<prec>\<^sub>c D'" and "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C
   proof -
     have "C \<prec>\<^sub>c D"
@@ -11284,13 +11361,12 @@ proof (cases N s s' rule: ord_res_7.cases)
     fix K
     assume C_max_lit: "linorder_lit.is_maximal_in_mset C K"
 
-    have "trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#}"
-      using clauses_lt_D_almost_defined
+    have "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>)"
+      using no_undef_atm_lt_max_lit_if_lt_D
       using \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> \<open>C \<prec>\<^sub>c D\<close> C_max_lit by metis
 
-    thus "trail_defined_cls \<Gamma>' {#L \<in># C. L \<noteq> K#}"
-      using \<open>suffix \<Gamma> \<Gamma>'\<close>
-      by (metis trail_defined_cls_if_trail_defined_suffix)
+    thus "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>')"
+      using step_hyps(6) by auto
   qed
 
   moreover have "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>'"
@@ -11427,8 +11503,9 @@ next
         (\<forall>L\<^sub>C. linorder_lit.is_maximal_in_mset C L\<^sub>C \<longrightarrow>
           \<not> trail_defined_lit \<Gamma> L\<^sub>C \<longrightarrow> (trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C))" and
     clauses_lt_D_true: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma> C" and
-    clauses_lt_D_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
-      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})" and
+    no_undef_atm_lt_max_lit_if_lt_D: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))" and
     \<Gamma>_sorted: "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>" and
     \<Gamma>_lower: "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
     trail_atms_le0: "\<forall>A |\<in>| trail_atms \<Gamma>. \<exists>L. ord_res.is_maximal_lit L D \<and> (A \<preceq>\<^sub>t atm_of L)" and
@@ -11443,6 +11520,11 @@ next
     \<Gamma>_prop_ball_lt_true: "(\<forall>\<Gamma>\<^sub>1 L D \<Gamma>\<^sub>0. \<Gamma> = \<Gamma>\<^sub>1 @ (L, Some D) # \<Gamma>\<^sub>0 \<longrightarrow>
       (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma>\<^sub>0 C))"
     using invar by (simp_all add: \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)\<close> ord_res_7_invars_def)
+
+  have clauses_lt_D_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+    (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})"
+    using invar[unfolded \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)\<close>] clause_almost_defined_if_lt_next_clause
+    by simp
 
   have \<Gamma>_consistent: "trail_consistent \<Gamma>"
     using trail_consistent_if_sorted_wrt_atoms \<Gamma>_sorted by metis
@@ -11462,201 +11544,213 @@ next
   have "trail_defined_cls \<Gamma> {#Ka \<in># D. Ka \<noteq> K#}"
     using step_hyps(4,5,6) D_in by (metis clause_almost_definedI)
 
-  have "\<F> |\<subseteq>| N |\<union>| U\<^sub>e\<^sub>r"
-    using \<F>_subset .
+  show ?thesis
+    unfolding \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>')\<close>
+  proof (intro ord_res_7_invars.intros)
+    show "\<F> |\<subseteq>| N |\<union>| U\<^sub>e\<^sub>r"
+      using \<F>_subset .
 
-  moreover have "\<forall>C'. \<C>' = Some C' \<longrightarrow> C' |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
-    using step_hyps(7) by (metis linorder_cls.is_least_in_ffilter_iff Some_eq_The_optionalD)
+    show "\<forall>C'. \<C>' = Some C' \<longrightarrow> C' |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+      using step_hyps(7) by (metis linorder_cls.is_least_in_ffilter_iff Some_eq_The_optionalD)
 
-  moreover have "trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C"
-    if "\<C>' = Some E" and
-      C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
-      C_lt: "C \<prec>\<^sub>c E" and
-      C_max_lit: "linorder_lit.is_maximal_in_mset C L\<^sub>C" and
-      L\<^sub>C_undef: "\<not> trail_defined_lit \<Gamma> L\<^sub>C"
-    for E C L\<^sub>C
-  proof -
-    have "linorder_cls.is_least_in_fset (ffilter ((\<prec>\<^sub>c) D) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) E"
-      using \<open>\<C>' = Some E\<close> step_hyps by (metis Some_eq_The_optionalD)
-    hence "C \<prec>\<^sub>c D \<or> C = D"
-      unfolding linorder_cls.is_least_in_ffilter_iff
-      using C_lt by (metis C_in linorder_cls.not_less_iff_gr_or_eq)
-    thus ?thesis
-    proof (elim disjE)
-      assume "C \<prec>\<^sub>c D"
+    have "trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C"
+      if "\<C>' = Some E" and
+        C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+        C_lt: "C \<prec>\<^sub>c E" and
+        C_max_lit: "linorder_lit.is_maximal_in_mset C L\<^sub>C" and
+        L\<^sub>C_undef: "\<not> trail_defined_lit \<Gamma> L\<^sub>C"
+      for E C L\<^sub>C
+    proof -
+      have "linorder_cls.is_least_in_fset (ffilter ((\<prec>\<^sub>c) D) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) E"
+        using \<open>\<C>' = Some E\<close> step_hyps by (metis Some_eq_The_optionalD)
+      hence "C \<prec>\<^sub>c D \<or> C = D"
+        unfolding linorder_cls.is_least_in_ffilter_iff
+        using C_lt by (metis C_in linorder_cls.not_less_iff_gr_or_eq)
       thus ?thesis
-        using clauses_lt_D_seldomly_have_undef_max_lit[rule_format, OF C_in _ C_max_lit L\<^sub>C_undef]
-        by argo
-    next
-      assume "C = D"
-      hence "L\<^sub>C = K"
-        using C_max_lit D_max_lit
-        by (metis Uniq_D linorder_lit.Uniq_is_maximal_in_mset)
-      hence False
-        using L\<^sub>C_undef \<open>trail_defined_lit \<Gamma> K\<close> by argo
-      thus ?thesis ..
-    qed
-  qed
-
-  moreover have
-    "trail_true_cls \<Gamma> C"
-    "\<And>K. linorder_lit.is_maximal_in_mset C K \<Longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#}"
-    if C_lt: "\<And>E. \<C>' = Some E \<Longrightarrow> C \<prec>\<^sub>c E" and C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C
-  proof -
-    have "C \<preceq>\<^sub>c D"
-      using step_hyps that by (metis clause_le_if_lt_least_greater)
-
-    hence "C \<prec>\<^sub>c D \<or> C = D"
-      by simp
-
-    thus "trail_true_cls \<Gamma> C"
-    proof (elim disjE)
-      assume "C \<prec>\<^sub>c D"
-      thus "trail_true_cls \<Gamma> C"
-        using clauses_lt_D_true \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> by metis
-    next
-      assume "C = D"
-
-      have "trail_defined_cls \<Gamma> D"
-        using \<open>trail_defined_lit \<Gamma> K\<close> \<open>trail_defined_cls \<Gamma> {#Ka \<in># D. Ka \<noteq> K#}\<close>
-        unfolding trail_defined_cls_def by auto
-
-      hence "trail_true_cls \<Gamma> D"
-        using \<Gamma>_consistent \<open>\<not> trail_false_cls \<Gamma> D\<close>
-        by (metis trail_true_or_false_cls_if_defined)
-
-      thus "trail_true_cls \<Gamma> C"
-        using \<open>C = D\<close> by simp
+      proof (elim disjE)
+        assume "C \<prec>\<^sub>c D"
+        thus ?thesis
+          using clauses_lt_D_seldomly_have_undef_max_lit[rule_format, OF C_in _ C_max_lit L\<^sub>C_undef]
+          by argo
+      next
+        assume "C = D"
+        hence "L\<^sub>C = K"
+          using C_max_lit D_max_lit
+          by (metis Uniq_D linorder_lit.Uniq_is_maximal_in_mset)
+        hence False
+          using L\<^sub>C_undef \<open>trail_defined_lit \<Gamma> K\<close> by argo
+        thus ?thesis ..
+      qed
     qed
 
-    fix K\<^sub>c
-    assume C_max_lit: "linorder_lit.is_maximal_in_mset C K\<^sub>c"
-    thus "trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K\<^sub>c#}"
-      using \<open>C \<prec>\<^sub>c D \<or> C = D\<close>
-    proof (elim disjE)
-      assume "C \<prec>\<^sub>c D"
-      thus "trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K\<^sub>c#}"
-        using clauses_lt_D_almost_defined \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> C_max_lit by metis
-    next
-      assume "C = D"
+    thus "\<forall>D. \<C>' = Some D \<longrightarrow> (\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+      (\<forall>L\<^sub>C. ord_res.is_maximal_lit L\<^sub>C C \<longrightarrow> \<not> trail_defined_lit \<Gamma> L\<^sub>C \<longrightarrow>
+        trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C))"
+      by metis
 
-      have "trail_defined_cls \<Gamma> D"
-        using \<open>trail_defined_lit \<Gamma> K\<close> \<open>trail_defined_cls \<Gamma> {#Ka \<in># D. Ka \<noteq> K#}\<close>
-        unfolding trail_defined_cls_def by auto
+    have
+      "trail_true_cls \<Gamma> C"
+      "\<And>K. linorder_lit.is_maximal_in_mset C K \<Longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>)"
+      if C_lt: "\<And>E. \<C>' = Some E \<Longrightarrow> C \<prec>\<^sub>c E" and C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C
+    proof -
+      have "C \<preceq>\<^sub>c D"
+        using step_hyps that by (metis clause_le_if_lt_least_greater)
 
-      thus "trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K\<^sub>c#}"
-        using \<open>C = D\<close> unfolding trail_defined_cls_def by simp
-    qed
-  qed
-
-  moreover have "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
-    using \<Gamma>_sorted .
-
-  moreover have "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))"
-    using \<Gamma>_lower .
-
-  moreover have "trail_atms \<Gamma> = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)" if "\<C>' = None"
-  proof (intro fsubset_antisym)
-    show "trail_atms \<Gamma> |\<subseteq>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
-      using \<Gamma>_lower unfolding linorder_trm.is_lower_set_iff by blast
-  next
-    have nbex_gt_D: "\<not> (\<exists>E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). D \<prec>\<^sub>c E)"
-      using step_hyps \<open>\<C>' = None\<close>
-      by (metis clause_le_if_lt_least_greater linorder_cls.leD option.simps(3))
-
-    have "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). atm_of K \<prec>\<^sub>t A)"
-    proof (intro notI , elim bexE)
-      fix A :: "'f gterm"
-      assume "A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)" and "atm_of K \<prec>\<^sub>t A"
-
-      hence "A |\<in>| atms_of_clss (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))"
+      hence "C \<prec>\<^sub>c D \<or> C = D"
         by simp
 
-      then obtain E L where E_in: "E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and "L \<in># E" and "A = atm_of L"
-        unfolding atms_of_clss_def atms_of_cls_def
-        by (smt (verit, del_insts) fimage_iff fmember_ffUnion_iff fset_fset_mset)
+      thus "trail_true_cls \<Gamma> C"
+      proof (elim disjE)
+        assume "C \<prec>\<^sub>c D"
+        thus "trail_true_cls \<Gamma> C"
+          using clauses_lt_D_true \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> by metis
+      next
+        assume "C = D"
 
-      have "K \<prec>\<^sub>l L"
-        using \<open>atm_of K \<prec>\<^sub>t A\<close> \<open>A = atm_of L\<close>
-        by (cases K; cases L) simp_all
+        have "trail_defined_cls \<Gamma> D"
+          using \<open>trail_defined_lit \<Gamma> K\<close> \<open>trail_defined_cls \<Gamma> {#Ka \<in># D. Ka \<noteq> K#}\<close>
+          unfolding trail_defined_cls_def by auto
+
+        hence "trail_true_cls \<Gamma> D"
+          using \<Gamma>_consistent \<open>\<not> trail_false_cls \<Gamma> D\<close>
+          by (metis trail_true_or_false_cls_if_defined)
+
+        thus "trail_true_cls \<Gamma> C"
+          using \<open>C = D\<close> by simp
+      qed
+
+      fix K\<^sub>c
+      assume C_max_lit: "linorder_lit.is_maximal_in_mset C K\<^sub>c"
+      thus "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>c \<and> A |\<notin>| trail_atms \<Gamma>)"
+        using \<open>C \<prec>\<^sub>c D \<or> C = D\<close>
+      proof (elim disjE)
+        assume "C \<prec>\<^sub>c D"
+        thus ?thesis
+          using no_undef_atm_lt_max_lit_if_lt_D \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> C_max_lit by metis
+      next
+        assume "C = D"
+        thus ?thesis 
+          by (metis C_max_lit D_max_lit Uniq_D linorder_lit.Uniq_is_maximal_in_mset step_hyps(5))
+      qed
+    qed
+
+    thus
+      "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C>' = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow> trail_true_cls \<Gamma> C"
+      "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C>' = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow>
+        (\<forall>K. ord_res.is_maximal_lit K C \<longrightarrow>
+          \<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))"
+      unfolding atomize_conj by metis
+
+    show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
+      using \<Gamma>_sorted .
+
+    show "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))"
+      using \<Gamma>_lower .
+
+    have "trail_atms \<Gamma> = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)" if "\<C>' = None"
+    proof (intro fsubset_antisym)
+      show "trail_atms \<Gamma> |\<subseteq>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+        using \<Gamma>_lower unfolding linorder_trm.is_lower_set_iff by blast
+    next
+      have nbex_gt_D: "\<not> (\<exists>E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). D \<prec>\<^sub>c E)"
+        using step_hyps \<open>\<C>' = None\<close>
+        by (metis clause_le_if_lt_least_greater linorder_cls.leD option.simps(3))
+
+      have "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). atm_of K \<prec>\<^sub>t A)"
+      proof (intro notI , elim bexE)
+        fix A :: "'f gterm"
+        assume "A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)" and "atm_of K \<prec>\<^sub>t A"
+
+        hence "A |\<in>| atms_of_clss (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))"
+          by simp
+
+        then obtain E L where E_in: "E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and "L \<in># E" and "A = atm_of L"
+          unfolding atms_of_clss_def atms_of_cls_def
+          by (smt (verit, del_insts) fimage_iff fmember_ffUnion_iff fset_fset_mset)
+
+        have "K \<prec>\<^sub>l L"
+          using \<open>atm_of K \<prec>\<^sub>t A\<close> \<open>A = atm_of L\<close>
+          by (cases K; cases L) simp_all
+
+        hence "D \<prec>\<^sub>c E"
+          using D_max_lit \<open>L \<in># E\<close>
+          by (metis empty_iff linorder_lit.ex_maximal_in_mset linorder_lit.is_maximal_in_mset_iff
+              linorder_lit.less_linear linorder_lit.less_trans
+              linorder_lit.multp_if_maximal_less_that_maximal set_mset_empty)
+
+        thus False
+          using E_in nbex_gt_D by metis
+      qed
+
+      hence "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A |\<notin>| trail_atms \<Gamma>)"
+        using step_hyps(5) step_hyps(6)
+        by (metis linorder_trm.linorder_cases 
+            trail_defined_lit_iff_trail_defined_atm)
+
+      then show "atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r) |\<subseteq>| trail_atms \<Gamma>"
+        by blast
+    qed
+
+    thus "\<C>' = None \<longrightarrow> trail_atms \<Gamma> = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+      by metis
+
+    show "\<forall>D. \<C>' = Some D \<longrightarrow> (\<forall>A |\<in>| trail_atms \<Gamma>.
+      \<exists>L. ord_res.is_maximal_lit L D \<and> A \<preceq>\<^sub>t atm_of L)"
+    proof (intro allI impI ballI)
+      fix E :: "'f gterm literal multiset" and A :: "'f gterm"
+      assume "\<C>' = Some E" and "A |\<in>| trail_atms \<Gamma>"
+
+      have "linorder_cls.is_least_in_fset (ffilter ((\<prec>\<^sub>c) D) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) E"
+        using step_hyps(7) \<open>\<C>' = Some E\<close> by (metis Some_eq_The_optionalD)
 
       hence "D \<prec>\<^sub>c E"
-        using D_max_lit \<open>L \<in># E\<close>
-        by (metis empty_iff linorder_lit.ex_maximal_in_mset linorder_lit.is_maximal_in_mset_iff
-            linorder_lit.less_linear linorder_lit.less_trans
-            linorder_lit.multp_if_maximal_less_that_maximal set_mset_empty)
+        unfolding linorder_cls.is_least_in_ffilter_iff by argo
 
-      thus False
-        using E_in nbex_gt_D by metis
+      obtain L where "linorder_lit.is_maximal_in_mset E L"
+        by (metis \<open>D \<prec>\<^sub>c E\<close> linorder_cls.leD linorder_lit.ex_maximal_in_mset mempty_lesseq_cls)
+
+      show "\<exists>L. ord_res.is_maximal_lit L E \<and> A \<preceq>\<^sub>t atm_of L"
+      proof (intro exI conjI)
+        show "ord_res.is_maximal_lit L E"
+          using \<open>ord_res.is_maximal_lit L E\<close> .
+      next
+        have "K \<preceq>\<^sub>l L"
+          using step_hyps(4) \<open>ord_res.is_maximal_lit L E\<close>
+          by (metis \<open>D \<prec>\<^sub>c E\<close> linorder_cls.less_asym linorder_lit.leI
+              linorder_lit.multp_if_maximal_less_that_maximal)
+
+        hence "atm_of K \<preceq>\<^sub>t atm_of L"
+          by (cases K; cases L) simp_all
+
+        moreover have "A \<preceq>\<^sub>t atm_of K"
+          using \<open>A |\<in>| trail_atms \<Gamma>\<close> trail_atms_le by blast
+
+        ultimately show "A \<preceq>\<^sub>t atm_of L"
+          by order
+      qed
     qed
 
-    hence "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A |\<notin>| trail_atms \<Gamma>)"
-      using step_hyps(5) step_hyps(6)
-      by (metis linorder_trm.linorder_cases 
-          trail_defined_lit_iff_trail_defined_atm)
+    show "\<forall>Ln\<in>set \<Gamma>. is_neg (fst Ln) = (snd Ln = None)"
+      using \<Gamma>_deci_iff_neg by metis
 
-    then show "atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r) |\<subseteq>| trail_atms \<Gamma>"
-      by blast
-  qed
-
-  moreover have "\<forall>D. \<C>' = Some D \<longrightarrow> (\<forall>A |\<in>| trail_atms \<Gamma>.
-    \<exists>L. ord_res.is_maximal_lit L D \<and> A \<preceq>\<^sub>t atm_of L)"
-  proof (intro allI impI ballI)
-    fix E :: "'f gterm literal multiset" and A :: "'f gterm"
-    assume "\<C>' = Some E" and "A |\<in>| trail_atms \<Gamma>"
-
-    have "linorder_cls.is_least_in_fset (ffilter ((\<prec>\<^sub>c) D) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) E"
-      using step_hyps(7) \<open>\<C>' = Some E\<close> by (metis Some_eq_The_optionalD)
-
-    hence "D \<prec>\<^sub>c E"
-      unfolding linorder_cls.is_least_in_ffilter_iff by argo
-
-    obtain L where "linorder_lit.is_maximal_in_mset E L"
-      by (metis \<open>D \<prec>\<^sub>c E\<close> linorder_cls.leD linorder_lit.ex_maximal_in_mset mempty_lesseq_cls)
-
-    show "\<exists>L. ord_res.is_maximal_lit L E \<and> A \<preceq>\<^sub>t atm_of L"
-    proof (intro exI conjI)
-      show "ord_res.is_maximal_lit L E"
-        using \<open>ord_res.is_maximal_lit L E\<close> .
-    next
-      have "K \<preceq>\<^sub>l L"
-        using step_hyps(4) \<open>ord_res.is_maximal_lit L E\<close>
-        by (metis \<open>D \<prec>\<^sub>c E\<close> linorder_cls.less_asym linorder_lit.leI
-            linorder_lit.multp_if_maximal_less_that_maximal)
-
-      hence "atm_of K \<preceq>\<^sub>t atm_of L"
-        by (cases K; cases L) simp_all
-
-      moreover have "A \<preceq>\<^sub>t atm_of K"
-        using \<open>A |\<in>| trail_atms \<Gamma>\<close> trail_atms_le by blast
-
-      ultimately show "A \<preceq>\<^sub>t atm_of L"
-        by order
-    qed
-  qed
-
-  moreover have "\<forall>Ln \<in> set \<Gamma>. snd Ln = None \<longleftrightarrow> is_neg (fst Ln)"
-    using \<Gamma>_deci_iff_neg .
-
-  moreover have "\<forall>Ln \<in> set \<Gamma>. snd Ln = None \<longrightarrow>
+    show "\<forall>Ln \<in> set \<Gamma>. snd Ln = None \<longrightarrow>
     (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c {#fst Ln#} \<longrightarrow> trail_true_cls \<Gamma> C)"
-    using \<Gamma>_deci_ball_lt_true .
+      using \<Gamma>_deci_ball_lt_true .
 
-  moreover have "\<forall>Ln \<in> set \<Gamma>. \<forall>C. snd Ln = Some C \<longrightarrow> C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
-    using \<Gamma>_prop_in by simp
+    show "\<forall>Ln \<in> set \<Gamma>. \<forall>C. snd Ln = Some C \<longrightarrow> C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+      using \<Gamma>_prop_in by simp
 
-  moreover have "\<forall>Ln \<in> set \<Gamma>. \<forall>C. snd Ln = Some C \<longrightarrow> linorder_lit.is_greatest_in_mset C (fst Ln)"
-    using \<Gamma>_prop_greatest by simp
+    show "\<forall>Ln \<in> set \<Gamma>. \<forall>C. snd Ln = Some C \<longrightarrow> linorder_lit.is_greatest_in_mset C (fst Ln)"
+      using \<Gamma>_prop_greatest by simp
 
-  moreover have "\<forall>\<Gamma>\<^sub>1 L C \<Gamma>\<^sub>0. \<Gamma> = \<Gamma>\<^sub>1 @ (L, Some C) # \<Gamma>\<^sub>0 \<longrightarrow> trail_false_cls \<Gamma>\<^sub>0 {#K \<in># C. K \<noteq> L#}"
-    using \<Gamma>_prop_almost_false .
+    show "\<forall>\<Gamma>\<^sub>1 L C \<Gamma>\<^sub>0. \<Gamma> = \<Gamma>\<^sub>1 @ (L, Some C) # \<Gamma>\<^sub>0 \<longrightarrow> trail_false_cls \<Gamma>\<^sub>0 {#K \<in># C. K \<noteq> L#}"
+      using \<Gamma>_prop_almost_false .
 
-  moreover have "(\<forall>\<Gamma>\<^sub>1 L D \<Gamma>\<^sub>0. \<Gamma> = \<Gamma>\<^sub>1 @ (L, Some D) # \<Gamma>\<^sub>0 \<longrightarrow>
-    (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma>\<^sub>0 C))"
-    using \<Gamma>_prop_ball_lt_true .
-
-  ultimately show ?thesis
-    by (simp add: \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>')\<close> ord_res_7_invars_def)
+    show "(\<forall>\<Gamma>\<^sub>1 L D \<Gamma>\<^sub>0. \<Gamma> = \<Gamma>\<^sub>1 @ (L, Some D) # \<Gamma>\<^sub>0 \<longrightarrow>
+      (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma>\<^sub>0 C))"
+      using \<Gamma>_prop_ball_lt_true .
+  qed
 next
   case step_hyps: (skip_undefined_neg \<Gamma> D K U\<^sub>e\<^sub>r \<Gamma>' \<C>' \<F>)
 
@@ -11673,8 +11767,9 @@ next
         (\<forall>L\<^sub>C. linorder_lit.is_maximal_in_mset C L\<^sub>C \<longrightarrow>
           \<not> trail_defined_lit \<Gamma> L\<^sub>C \<longrightarrow> (trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C))" and
     clauses_lt_D_true: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma> C" and
-    clauses_lt_D_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
-      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})" and
+    no_undef_atm_lt_max_lit_if_lt_D: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))" and
     \<Gamma>_sorted: "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>" and
     \<Gamma>_lower: "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
     trail_atms_le0: "\<forall>A |\<in>| trail_atms \<Gamma>. \<exists>L. ord_res.is_maximal_lit L D \<and> (A \<preceq>\<^sub>t atm_of L)" and
@@ -11689,6 +11784,11 @@ next
     \<Gamma>_prop_ball_lt_true: "(\<forall>\<Gamma>\<^sub>1 L D \<Gamma>\<^sub>0. \<Gamma> = \<Gamma>\<^sub>1 @ (L, Some D) # \<Gamma>\<^sub>0 \<longrightarrow>
       (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma>\<^sub>0 C))"
     using invar by (simp_all add: \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)\<close> ord_res_7_invars_def)
+
+  have clauses_lt_D_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+    (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})"
+    using invar[unfolded \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)\<close>] clause_almost_defined_if_lt_next_clause
+    by simp
 
   have \<Gamma>_consistent: "trail_consistent \<Gamma>"
     using trail_consistent_if_sorted_wrt_atoms \<Gamma>_sorted by metis
@@ -11746,65 +11846,6 @@ next
       ultimately have False
         using L\<^sub>C_undef by argo
       thus ?thesis ..
-    qed
-  qed
-
-  moreover have "trail_true_cls \<Gamma>' C"
-    "\<And>K\<^sub>C. linorder_lit.is_maximal_in_mset C K\<^sub>C \<Longrightarrow> trail_defined_cls \<Gamma>' {#L \<in># C. L \<noteq> K\<^sub>C#}"
-    if C_lt: "\<And>E. \<C>' = Some E \<longrightarrow> C \<prec>\<^sub>c E" and C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C
-  proof -
-    have "C \<preceq>\<^sub>c D"
-      using step_hyps that by (metis clause_le_if_lt_least_greater)
-    
-    hence "C \<prec>\<^sub>c D \<or> C = D"
-      by simp
-
-    thus "trail_true_cls \<Gamma>' C"
-    proof (elim disjE)
-      assume "C \<prec>\<^sub>c D"
-
-      hence "trail_true_cls \<Gamma> C"
-        using clauses_lt_D_true \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> by metis
-
-      thus "trail_true_cls \<Gamma>' C"
-        using \<open>suffix \<Gamma> \<Gamma>'\<close> by (metis trail_true_cls_if_trail_true_suffix)
-    next
-      assume "C = D"
-
-      have "trail_true_lit \<Gamma>' K"
-        unfolding \<open>\<Gamma>' = (K, None) # \<Gamma>\<close> trail_true_lit_def by simp
-
-      thus "trail_true_cls \<Gamma>' C"
-        unfolding \<open>C = D\<close> trail_true_cls_def 
-        using \<open>K \<in># D\<close> by metis
-    qed
-
-    fix K\<^sub>C
-    assume C_max_lit: "linorder_lit.is_maximal_in_mset C K\<^sub>C"
-    show "trail_defined_cls \<Gamma>' {#L \<in># C. L \<noteq> K\<^sub>C#}"
-      using \<open>C \<prec>\<^sub>c D \<or> C = D\<close>
-    proof (elim disjE)
-      assume "C \<prec>\<^sub>c D"
-
-      hence "trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K\<^sub>C#}"
-        using clauses_lt_D_almost_defined \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> C_max_lit by metis
-
-      thus "trail_defined_cls \<Gamma>' {#L \<in># C. L \<noteq> K\<^sub>C#}"
-        using \<open>suffix \<Gamma> \<Gamma>'\<close> by (metis trail_defined_cls_if_trail_defined_suffix)
-    next
-      assume "C = D"
-
-      have "trail_defined_cls \<Gamma> {#L \<in># D. L \<noteq> K \<and> L \<noteq> - K#}"
-        using clause_almost_almost_definedI[OF D_in step_hyps(4,5)] .
-
-      hence "trail_defined_cls \<Gamma>' {#L \<in># D. L \<noteq> K \<and> L \<noteq> - K#}"
-        using \<open>suffix \<Gamma> \<Gamma>'\<close> by (metis (no_types) trail_defined_cls_if_trail_defined_suffix)
-
-      moreover have "trail_defined_lit \<Gamma>' K" and "trail_defined_lit \<Gamma>' (- K)"
-        unfolding atomize_conj \<open>\<Gamma>' = (K, None) # \<Gamma>\<close> trail_defined_lit_def by simp
-
-      ultimately show "trail_defined_cls \<Gamma>' {#L \<in># C. L \<noteq> K\<^sub>C#}"
-        unfolding \<open>C = D\<close> trail_defined_cls_def by auto
     qed
   qed
 
@@ -11998,7 +12039,67 @@ next
     by (smt (verit, ccfv_SIG) append_eq_Cons_conv list.inject option.discI prod.inject)
 
   ultimately show ?thesis
-    by (simp add: \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')\<close> ord_res_7_invars_def)
+    unfolding \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')\<close>
+  proof (intro ord_res_7_invars.intros)
+    have "trail_true_cls \<Gamma>' C"
+      "\<And>K\<^sub>C. linorder_lit.is_maximal_in_mset C K\<^sub>C \<Longrightarrow>
+      \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>')"
+      if C_lt: "\<And>E. \<C>' = Some E \<longrightarrow> C \<prec>\<^sub>c E" and C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C
+    proof -
+      have "C \<preceq>\<^sub>c D"
+        using step_hyps that by (metis clause_le_if_lt_least_greater)
+
+      hence "C \<prec>\<^sub>c D \<or> C = D"
+        by simp
+
+      thus "trail_true_cls \<Gamma>' C"
+      proof (elim disjE)
+        assume "C \<prec>\<^sub>c D"
+
+        hence "trail_true_cls \<Gamma> C"
+          using clauses_lt_D_true \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> by metis
+
+        thus "trail_true_cls \<Gamma>' C"
+          using \<open>suffix \<Gamma> \<Gamma>'\<close> by (metis trail_true_cls_if_trail_true_suffix)
+      next
+        assume "C = D"
+
+        have "trail_true_lit \<Gamma>' K"
+          unfolding \<open>\<Gamma>' = (K, None) # \<Gamma>\<close> trail_true_lit_def by simp
+
+        thus "trail_true_cls \<Gamma>' C"
+          unfolding \<open>C = D\<close> trail_true_cls_def 
+          using \<open>K \<in># D\<close> by metis
+      qed
+
+      fix K\<^sub>C
+      assume C_max_lit: "linorder_lit.is_maximal_in_mset C K\<^sub>C"
+      show "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>')"
+        using \<open>C \<prec>\<^sub>c D \<or> C = D\<close>
+      proof (elim disjE)
+        assume "C \<prec>\<^sub>c D"
+
+        hence "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>)"
+          using no_undef_atm_lt_max_lit_if_lt_D \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> C_max_lit by metis
+
+        thus "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>')"
+          by (metis finsert_iff step_hyps(8) trail_atms.simps(2))
+      next
+        assume "C = D"
+        thus "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>')"
+          by (metis (mono_tags, lifting) C_max_lit D_max_lit Uniq_D \<Gamma>'_lower finsert_iff
+              linorder_lit.Uniq_is_maximal_in_mset linorder_trm.not_in_lower_setI prod.sel(1)
+              step_hyps(8) trail_atms.simps(2))
+      qed
+    qed
+
+    thus
+      "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C>' = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow> trail_true_cls \<Gamma>' C"
+      "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C>' = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow>
+        (\<forall>K. ord_res.is_maximal_lit K C \<longrightarrow>
+          \<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>'))"
+      unfolding atomize_conj by metis
+  qed simp_all
 next
   case step_hyps: (skip_undefined_pos \<Gamma> D K U\<^sub>e\<^sub>r \<F> E)
 
@@ -12016,8 +12117,9 @@ next
         (\<forall>L\<^sub>C. linorder_lit.is_maximal_in_mset C L\<^sub>C \<longrightarrow>
           \<not> trail_defined_lit \<Gamma> L\<^sub>C \<longrightarrow> (trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C))" and
     clauses_lt_D_true: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma> C" and
-    clauses_lt_D_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
-      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})" and
+    no_undef_atm_lt_max_lit_if_lt_D: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))" and
     \<Gamma>_sorted: "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>" and
     \<Gamma>_lower: "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
     trail_atms_le0: "\<forall>A |\<in>| trail_atms \<Gamma>. \<exists>L. ord_res.is_maximal_lit L D \<and> (A \<preceq>\<^sub>t atm_of L)" and
@@ -12032,6 +12134,11 @@ next
     \<Gamma>_prop_ball_lt_true: "(\<forall>\<Gamma>\<^sub>1 L D \<Gamma>\<^sub>0. \<Gamma> = \<Gamma>\<^sub>1 @ (L, Some D) # \<Gamma>\<^sub>0 \<longrightarrow>
       (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma>\<^sub>0 C))"
     using invar by (simp_all add: \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)\<close> ord_res_7_invars_def)
+
+  have clauses_lt_D_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+    (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})"
+    using invar[unfolded \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)\<close>] clause_almost_defined_if_lt_next_clause
+    by simp
 
   have \<Gamma>_consistent: "trail_consistent \<Gamma>"
     using trail_consistent_if_sorted_wrt_atoms \<Gamma>_sorted by metis
@@ -12106,49 +12213,6 @@ next
     qed
   qed
 
-  moreover have "trail_true_cls \<Gamma> C"
-    "\<And>K\<^sub>C. linorder_lit.is_maximal_in_mset C K\<^sub>C \<Longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K\<^sub>C#}"
-    if C_lt: "\<And>E'. Some E = Some E' \<Longrightarrow> C \<prec>\<^sub>c E'" and C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C
-  proof -
-    have "C \<prec>\<^sub>c E"
-      using C_lt by simp
-
-    hence "C \<prec>\<^sub>c D \<or> C = D"
-      using E_least C_in
-      by (metis linorder_cls.is_least_in_ffilter_iff linorder_cls.less_imp_triv
-          linorder_cls.linorder_cases)
-
-    thus "trail_true_cls \<Gamma> C"
-    proof (elim disjE)
-      assume "C \<prec>\<^sub>c D"
-      thus "trail_true_cls \<Gamma> C"
-        using clauses_lt_D_true \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> by metis
-    next
-      assume "C = D"
-      thus "trail_true_cls \<Gamma> C"
-        using D_true by argo
-    qed
-
-    fix K\<^sub>C
-    assume C_max_lit: "linorder_lit.is_maximal_in_mset C K\<^sub>C"
-    show "trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K\<^sub>C#}"
-      using \<open>C \<prec>\<^sub>c D \<or> C = D\<close>
-    proof (elim disjE)
-      assume "C \<prec>\<^sub>c D"
-
-      thus "trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K\<^sub>C#}"
-        using clauses_lt_D_almost_defined \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> C_max_lit by metis
-    next
-      assume "C = D"
-
-      hence "K\<^sub>C = K"
-        using C_max_lit D_max_lit by (metis Uniq_D linorder_lit.Uniq_is_maximal_in_mset)
-
-      thus "trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K\<^sub>C#}"
-        using D_almost_defined unfolding \<open>C = D\<close> by metis
-    qed
-  qed
-
   moreover have "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
     using \<Gamma>_sorted .
 
@@ -12208,7 +12272,54 @@ next
     using \<Gamma>_prop_ball_lt_true .
 
   ultimately show ?thesis
-    by (auto simp add: \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some E)\<close> ord_res_7_invars_def)
+    unfolding \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some E)\<close>
+  proof (intro ord_res_7_invars.intros)
+    have "trail_true_cls \<Gamma> C"
+      "\<And>K\<^sub>C. linorder_lit.is_maximal_in_mset C K\<^sub>C \<Longrightarrow>
+      \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>)"
+      if C_lt: "\<And>E'. Some E = Some E' \<Longrightarrow> C \<prec>\<^sub>c E'" and C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C
+    proof -
+      have "C \<prec>\<^sub>c E"
+        using C_lt by simp
+
+      hence "C \<prec>\<^sub>c D \<or> C = D"
+        using E_least C_in
+        by (metis linorder_cls.is_least_in_ffilter_iff linorder_cls.less_imp_triv
+            linorder_cls.linorder_cases)
+
+      thus "trail_true_cls \<Gamma> C"
+      proof (elim disjE)
+        assume "C \<prec>\<^sub>c D"
+        thus "trail_true_cls \<Gamma> C"
+          using clauses_lt_D_true \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> by metis
+      next
+        assume "C = D"
+        thus "trail_true_cls \<Gamma> C"
+          using D_true by argo
+      qed
+
+      fix K\<^sub>C
+      assume C_max_lit: "linorder_lit.is_maximal_in_mset C K\<^sub>C"
+      show "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>)"
+        using \<open>C \<prec>\<^sub>c D \<or> C = D\<close>
+      proof (elim disjE)
+        assume "C \<prec>\<^sub>c D"
+        thus "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>)"
+          using no_undef_atm_lt_max_lit_if_lt_D \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> C_max_lit by metis
+      next
+        assume "C = D"
+        thus "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>)"
+          by (metis C_max_lit D_max_lit Uniq_D linorder_lit.Uniq_is_maximal_in_mset step_hyps(5))
+      qed
+    qed
+
+    thus
+      "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. Some E = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow> trail_true_cls \<Gamma> C"
+      "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. Some E = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow>
+        (\<forall>K. ord_res.is_maximal_lit K C \<longrightarrow>
+          \<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))"
+      unfolding atomize_conj by metis
+  qed simp_all
 next
   case step_hyps: (skip_undefined_pos_ultimate \<Gamma> D K U\<^sub>e\<^sub>r \<Gamma>' \<F>)
 
@@ -12225,8 +12336,9 @@ next
         (\<forall>L\<^sub>C. linorder_lit.is_maximal_in_mset C L\<^sub>C \<longrightarrow>
           \<not> trail_defined_lit \<Gamma> L\<^sub>C \<longrightarrow> (trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C))" and
     clauses_lt_D_true: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma> C" and
-    clauses_lt_D_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
-      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})" and
+    no_undef_atm_lt_max_lit_if_lt_D: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))" and
     \<Gamma>_sorted: "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>" and
     \<Gamma>_lower: "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
     trail_atms_le0: "\<forall>A |\<in>| trail_atms \<Gamma>. \<exists>L. ord_res.is_maximal_lit L D \<and> (A \<preceq>\<^sub>t atm_of L)" and
@@ -12241,6 +12353,11 @@ next
     \<Gamma>_prop_ball_lt_true: "(\<forall>\<Gamma>\<^sub>1 L D \<Gamma>\<^sub>0. \<Gamma> = \<Gamma>\<^sub>1 @ (L, Some D) # \<Gamma>\<^sub>0 \<longrightarrow>
       (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma>\<^sub>0 C))"
     using invar by (simp_all add: \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)\<close> ord_res_7_invars_def)
+
+  have clauses_lt_D_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+    (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})"
+    using invar[unfolded \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)\<close>] clause_almost_defined_if_lt_next_clause
+    by simp
 
   have \<Gamma>_consistent: "trail_consistent \<Gamma>"
     using trail_consistent_if_sorted_wrt_atoms \<Gamma>_sorted by metis
@@ -12289,56 +12406,6 @@ next
       L\<^sub>C_undef: "\<not> trail_defined_lit \<Gamma>' L\<^sub>C"
     for E' C L\<^sub>C
     using that by simp
-
-  moreover have "trail_true_cls \<Gamma>' C"
-    "\<And>K\<^sub>C. linorder_lit.is_maximal_in_mset C K\<^sub>C \<Longrightarrow> trail_defined_cls \<Gamma>' {#L \<in># C. L \<noteq> K\<^sub>C#}"
-    if C_lt: "\<And>E. None = Some E \<Longrightarrow> C \<prec>\<^sub>c E" and C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C
-  proof -
-    have "None = The_optional (linorder_cls.is_least_in_fset
-      (ffilter ((\<prec>\<^sub>c) D) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))))"
-      using step_hyps
-      by (metis (no_types, opaque_lifting) Some_eq_The_optionalD
-          linorder_cls.is_least_in_ffilter_iff not_Some_eq)
-
-    hence "C \<preceq>\<^sub>c D"
-      using step_hyps that by (metis clause_le_if_lt_least_greater)
-    
-    hence "C \<prec>\<^sub>c D \<or> C = D"
-      by simp
-
-    hence "trail_true_cls \<Gamma> C"
-    proof (elim disjE)
-      assume "C \<prec>\<^sub>c D"
-      thus "trail_true_cls \<Gamma> C"
-        using clauses_lt_D_true \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> by metis
-    next
-      assume "C = D"
-      thus "trail_true_cls \<Gamma> C"
-        using D_true by argo
-    qed
-
-    thus "trail_true_cls \<Gamma>' C"
-      using \<open>suffix \<Gamma> \<Gamma>'\<close> by (metis trail_true_cls_if_trail_true_suffix)
-
-    fix K\<^sub>C
-    assume C_max_lit: "linorder_lit.is_maximal_in_mset C K\<^sub>C"
-
-    have "trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K\<^sub>C#}"
-      using \<open>C \<prec>\<^sub>c D \<or> C = D\<close>
-    proof (elim disjE)
-      assume "C \<prec>\<^sub>c D"
-      thus "trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K\<^sub>C#}"
-        using clauses_lt_D_almost_defined \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> C_max_lit by metis
-    next
-      assume "C = D"
-      thus "trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K\<^sub>C#}"
-        using D_almost_defined C_max_lit D_max_lit
-        by (metis Uniq_D linorder_lit.Uniq_is_maximal_in_mset)
-    qed
-
-    thus "trail_defined_cls \<Gamma>' {#L \<in># C. L \<noteq> K\<^sub>C#}"
-      using \<open>suffix \<Gamma> \<Gamma>'\<close> by (metis trail_defined_cls_if_trail_defined_suffix)
-  qed
 
   moreover have "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>'"
   proof -
@@ -12467,7 +12534,65 @@ next
         suffix_def)
 
   ultimately show ?thesis
-    by (simp add: \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', None)\<close> ord_res_7_invars_def)
+    unfolding \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', None)\<close>
+  proof (intro ord_res_7_invars.intros)
+    have "trail_true_cls \<Gamma>' C"
+      "\<And>K\<^sub>C. linorder_lit.is_maximal_in_mset C K\<^sub>C \<Longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>')"
+      if C_lt: "\<And>E. None = Some E \<Longrightarrow> C \<prec>\<^sub>c E" and C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C
+    proof -
+      have "None = The_optional (linorder_cls.is_least_in_fset
+      (ffilter ((\<prec>\<^sub>c) D) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))))"
+        using step_hyps
+        by (metis (no_types, opaque_lifting) Some_eq_The_optionalD
+            linorder_cls.is_least_in_ffilter_iff not_Some_eq)
+
+      hence "C \<preceq>\<^sub>c D"
+        using step_hyps that by (metis clause_le_if_lt_least_greater)
+
+      hence "C \<prec>\<^sub>c D \<or> C = D"
+        by simp
+
+      hence "trail_true_cls \<Gamma> C"
+      proof (elim disjE)
+        assume "C \<prec>\<^sub>c D"
+        thus "trail_true_cls \<Gamma> C"
+          using clauses_lt_D_true \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> by metis
+      next
+        assume "C = D"
+        thus "trail_true_cls \<Gamma> C"
+          using D_true by argo
+      qed
+
+      thus "trail_true_cls \<Gamma>' C"
+        using \<open>suffix \<Gamma> \<Gamma>'\<close> by (metis trail_true_cls_if_trail_true_suffix)
+
+      fix K\<^sub>C
+      assume C_max_lit: "linorder_lit.is_maximal_in_mset C K\<^sub>C"
+      thus "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>')"
+        using \<open>C \<prec>\<^sub>c D \<or> C = D\<close>
+      proof (elim disjE)
+        assume "C \<prec>\<^sub>c D"
+        hence "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>)"
+          using no_undef_atm_lt_max_lit_if_lt_D C_in C_max_lit by force
+        thus ?thesis
+          using step_hyps(9) by force
+      next
+        assume "C = D"
+        thus ?thesis
+          by (metis C_max_lit D_max_lit finsert_iff linorder_cls.order.irrefl
+              linorder_lit.antisym_conv3 linorder_lit.multp_if_maximal_less_that_maximal
+              step_hyps(5) step_hyps(9) trail_atms.simps(2))
+      qed
+    qed
+
+    thus
+      "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. None = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow> trail_true_cls \<Gamma>' C"
+      "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. None = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow>
+      (\<forall>K. ord_res.is_maximal_lit K C \<longrightarrow>
+        \<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>'))"
+      unfolding atomize_conj by metis
+  qed simp_all
 next
   case step_hyps: (production \<Gamma> D K U\<^sub>e\<^sub>r \<Gamma>' \<C>' \<F>)
 
@@ -12484,8 +12609,9 @@ next
         (\<forall>L\<^sub>C. linorder_lit.is_maximal_in_mset C L\<^sub>C \<longrightarrow>
           \<not> trail_defined_lit \<Gamma> L\<^sub>C \<longrightarrow> (trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C))" and
     clauses_lt_D_true: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma> C" and
-    clauses_lt_D_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
-      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})" and
+    no_undef_atm_lt_max_lit_if_lt_D: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))" and
     \<Gamma>_sorted: "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>" and
     \<Gamma>_lower: "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
     trail_atms_le0: "\<forall>A |\<in>| trail_atms \<Gamma>. \<exists>L. ord_res.is_maximal_lit L D \<and> (A \<preceq>\<^sub>t atm_of L)" and
@@ -12501,6 +12627,10 @@ next
       (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma>\<^sub>0 C))"
     using invar by (simp_all add: \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)\<close> ord_res_7_invars_def)
 
+  have clauses_lt_D_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+    (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})"
+    using invar[unfolded \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)\<close>] clause_almost_defined_if_lt_next_clause
+    by simp
 
   have "K \<in># D"
     using \<open>ord_res.is_maximal_lit K D\<close>
@@ -12559,67 +12689,6 @@ next
       ultimately have False
         using L\<^sub>C_undef by argo
       thus ?thesis ..
-    qed
-  qed
-
-  moreover have "trail_true_cls \<Gamma>' C"
-    "\<And>K\<^sub>C. linorder_lit.is_maximal_in_mset C K\<^sub>C \<Longrightarrow> trail_defined_cls \<Gamma>' {#L \<in># C. L \<noteq> K\<^sub>C#}"
-    if C_lt: "\<And>E. \<C>' = Some E \<Longrightarrow> C \<prec>\<^sub>c E" and C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C
-  proof -
-    have "C \<preceq>\<^sub>c D"
-      using step_hyps that by (metis clause_le_if_lt_least_greater)
-    
-    hence "C \<prec>\<^sub>c D \<or> C = D"
-      by simp
-
-    thus "trail_true_cls \<Gamma>' C"
-    proof (elim disjE)
-      assume "C \<prec>\<^sub>c D"
-
-      hence "trail_true_cls \<Gamma> C"
-        using clauses_lt_D_true \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> by metis
-
-      thus "trail_true_cls \<Gamma>' C"
-        using \<open>suffix \<Gamma> \<Gamma>'\<close> by (metis trail_true_cls_if_trail_true_suffix)
-    next
-      assume "C = D"
-
-      have "trail_true_lit \<Gamma>' K"
-        using \<open>\<Gamma>' = (K, Some D) # \<Gamma>\<close> \<open>is_pos K\<close>
-        unfolding trail_true_lit_def by (cases K) simp_all
-
-      thus "trail_true_cls \<Gamma>' C"
-        unfolding \<open>C = D\<close> trail_true_cls_def 
-        using \<open>K \<in># D\<close> by metis
-    qed
-
-    fix K\<^sub>C
-    assume C_max_lit: "linorder_lit.is_maximal_in_mset C K\<^sub>C"
-    show "trail_defined_cls \<Gamma>' {#L \<in># C. L \<noteq> K\<^sub>C#}"
-      using \<open>C \<prec>\<^sub>c D \<or> C = D\<close>
-    proof (elim disjE)
-      assume "C \<prec>\<^sub>c D"
-
-      hence "trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K\<^sub>C#}"
-        using clauses_lt_D_almost_defined \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> C_max_lit by metis
-
-      thus "trail_defined_cls \<Gamma>' {#L \<in># C. L \<noteq> K\<^sub>C#}"
-        using \<open>suffix \<Gamma> \<Gamma>'\<close> by (metis trail_defined_cls_if_trail_defined_suffix)
-    next
-      assume "C = D"
-
-      have "trail_defined_cls \<Gamma> {#L \<in># D. L \<noteq> K \<and> L \<noteq> - K#}"
-        using clause_almost_almost_definedI[OF D_in step_hyps(4,5)] .
-
-      hence "trail_defined_cls \<Gamma>' {#L \<in># D. L \<noteq> K \<and> L \<noteq> - K#}"
-        using \<open>suffix \<Gamma> \<Gamma>'\<close> by (metis trail_defined_cls_if_trail_defined_suffix)
-
-      moreover have "trail_defined_lit \<Gamma>' K" and "trail_defined_lit \<Gamma>' (- K)"
-        unfolding atomize_conj \<open>\<Gamma>' = (K, Some D) # \<Gamma>\<close> trail_defined_lit_def
-        using \<open>is_pos K\<close> by (cases K) simp_all
-
-      ultimately show "trail_defined_cls \<Gamma>' {#L \<in># C. L \<noteq> K\<^sub>C#}"
-        unfolding \<open>C = D\<close> trail_defined_cls_def by auto
     qed
   qed
 
@@ -12804,7 +12873,66 @@ next
   qed
 
   ultimately show ?thesis
-    by (simp add: \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')\<close> ord_res_7_invars_def)
+    unfolding \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')\<close>
+  proof (intro ord_res_7_invars.intros)
+    have "trail_true_cls \<Gamma>' C"
+      "\<And>K\<^sub>C. linorder_lit.is_maximal_in_mset C K\<^sub>C \<Longrightarrow>
+      \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>')"
+      if C_lt: "\<And>E. \<C>' = Some E \<Longrightarrow> C \<prec>\<^sub>c E" and C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" for C
+    proof -
+      have "C \<preceq>\<^sub>c D"
+        using step_hyps that by (metis clause_le_if_lt_least_greater)
+
+      hence "C \<prec>\<^sub>c D \<or> C = D"
+        by simp
+
+      thus "trail_true_cls \<Gamma>' C"
+      proof (elim disjE)
+        assume "C \<prec>\<^sub>c D"
+
+        hence "trail_true_cls \<Gamma> C"
+          using clauses_lt_D_true \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> by metis
+
+        thus "trail_true_cls \<Gamma>' C"
+          using \<open>suffix \<Gamma> \<Gamma>'\<close> by (metis trail_true_cls_if_trail_true_suffix)
+      next
+        assume "C = D"
+
+        have "trail_true_lit \<Gamma>' K"
+          using \<open>\<Gamma>' = (K, Some D) # \<Gamma>\<close> \<open>is_pos K\<close>
+          unfolding trail_true_lit_def by (cases K) simp_all
+
+        thus "trail_true_cls \<Gamma>' C"
+          unfolding \<open>C = D\<close> trail_true_cls_def 
+          using \<open>K \<in># D\<close> by metis
+      qed
+
+      fix K\<^sub>C
+      assume C_max_lit: "linorder_lit.is_maximal_in_mset C K\<^sub>C"
+      show "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>')"
+        using \<open>C \<prec>\<^sub>c D \<or> C = D\<close>
+      proof (elim disjE)
+        assume "C \<prec>\<^sub>c D"
+        hence "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>)"
+          using no_undef_atm_lt_max_lit_if_lt_D C_in C_max_lit by force
+        thus ?thesis
+          using step_hyps by force
+      next
+        assume "C = D"
+        thus ?thesis
+          by (metis C_max_lit D_max_lit \<open>suffix \<Gamma> \<Gamma>'\<close> linorder_lit.Uniq_is_maximal_in_mset
+              literal.sel(2) step_hyps(5) the1_equality' trail_defined_lit_if_trail_defined_suffix
+              trail_defined_lit_iff_trail_defined_atm)
+      qed
+    qed
+
+    thus
+      "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C>' = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow> trail_true_cls \<Gamma>' C"
+      "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C>' = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow>
+      (\<forall>K. ord_res.is_maximal_lit K C \<longrightarrow>
+        \<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>'))"
+      unfolding atomize_conj by metis
+  qed simp_all
 next
   case step_hyps: (factoring \<Gamma> D K U\<^sub>e\<^sub>r \<F>' \<F>)
 
@@ -12818,8 +12946,9 @@ next
         (\<forall>L\<^sub>C. linorder_lit.is_maximal_in_mset C L\<^sub>C \<longrightarrow>
           \<not> trail_defined_lit \<Gamma> L\<^sub>C \<longrightarrow> (trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C))" and
     clauses_lt_D_true: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma> C" and
-    clauses_lt_D_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
-      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})" and
+    no_undef_atm_lt_max_lit_if_lt_D: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))" and
     \<Gamma>_sorted: "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>" and
     \<Gamma>_lower: "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
     trail_atms_le0: "\<forall>A |\<in>| trail_atms \<Gamma>. \<exists>L. ord_res.is_maximal_lit L D \<and> (A \<preceq>\<^sub>t atm_of L)" and
@@ -12834,6 +12963,11 @@ next
     \<Gamma>_prop_ball_lt_true: "(\<forall>\<Gamma>\<^sub>1 L D \<Gamma>\<^sub>0. \<Gamma> = \<Gamma>\<^sub>1 @ (L, Some D) # \<Gamma>\<^sub>0 \<longrightarrow>
       (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma>\<^sub>0 C))"
     using invar by (simp_all add: \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)\<close> ord_res_7_invars_def)
+
+  have clauses_lt_D_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
+    (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})"
+    using invar[unfolded \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)\<close>] clause_almost_defined_if_lt_next_clause
+    by simp
 
   have "atm_of K |\<notin>| trail_atms \<Gamma>"
     using \<open>\<not> trail_defined_lit \<Gamma> K\<close>
@@ -13062,7 +13196,43 @@ next
   qed
 
   ultimately show ?thesis
-    by (auto simp add: \<open>s' = (U\<^sub>e\<^sub>r, \<F>', \<Gamma>, Some (efac D))\<close> ord_res_7_invars_def)
+    unfolding \<open>s' = (U\<^sub>e\<^sub>r, \<F>', \<Gamma>, Some (efac D))\<close>
+  proof (intro ord_res_7_invars.intros)
+    have "trail_true_cls \<Gamma> C"
+      "\<And>K\<^sub>C. linorder_lit.is_maximal_in_mset C K\<^sub>C \<Longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>)"
+      if C_lt: "\<And>E. Some (efac D) = Some E \<Longrightarrow> C \<prec>\<^sub>c E" and C_in: "C |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+      for C
+    proof -
+      have "C \<prec>\<^sub>c efac D"
+        using C_lt by metis
+
+      hence "C \<noteq> efac D"
+        by order
+
+      hence "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+        using C_in by (auto simp: \<open>\<F>' = finsert D \<F>\<close> iefac_def)
+
+      moreover have "C \<prec>\<^sub>c D"
+        using \<open>C \<prec>\<^sub>c efac D\<close> \<open>efac D \<prec>\<^sub>c D\<close> by order
+
+      ultimately show "trail_true_cls \<Gamma> C"
+        using clauses_lt_D_true by metis
+
+      fix K\<^sub>C
+      assume C_max_lit: "linorder_lit.is_maximal_in_mset C K\<^sub>C"
+      thus "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>C \<and> A |\<notin>| trail_atms \<Gamma>)"
+        using no_undef_atm_lt_max_lit_if_lt_D \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> \<open>C \<prec>\<^sub>c D\<close> by metis
+    qed
+
+    thus
+      "\<forall>C|\<in>|iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>Da. Some (efac D) = Some Da \<longrightarrow> C \<prec>\<^sub>c Da) \<longrightarrow>
+        trail_true_cls \<Gamma> C"
+      "\<forall>C|\<in>|iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>Da. Some (efac D) = Some Da \<longrightarrow> C \<prec>\<^sub>c Da) \<longrightarrow>
+        (\<forall>K. ord_res.is_maximal_lit K C \<longrightarrow>
+          \<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))"
+      unfolding atomize_conj by metis
+  qed simp_all
 next
   case step_hyps: (resolution_bot \<Gamma> E K D U\<^sub>e\<^sub>r' U\<^sub>e\<^sub>r \<Gamma>' \<F>)
 
@@ -13074,8 +13244,9 @@ next
         (\<forall>L\<^sub>C. linorder_lit.is_maximal_in_mset C L\<^sub>C \<longrightarrow>
           \<not> trail_defined_lit \<Gamma> L\<^sub>C \<longrightarrow> (trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C))" and
     clauses_lt_E_true: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c E \<longrightarrow> trail_true_cls \<Gamma> C" and
-    clauses_lt_E_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c E \<longrightarrow>
-      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})" and
+    no_undef_atm_lt_max_lit_if_lt_E: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c E \<longrightarrow>
+      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))" and
     \<Gamma>_sorted: "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>" and
     \<Gamma>_lower: "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
     trail_atms_le0: "\<forall>A |\<in>| trail_atms \<Gamma>. \<exists>L. ord_res.is_maximal_lit L E \<and> (A \<preceq>\<^sub>t atm_of L)" and
@@ -13090,8 +13261,11 @@ next
     \<Gamma>_prop_ball_lt_true: "\<forall>\<Gamma>\<^sub>1 L D \<Gamma>\<^sub>0. \<Gamma> = \<Gamma>\<^sub>1 @ (L, Some D) # \<Gamma>\<^sub>0 \<longrightarrow>
       (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma>\<^sub>0 C)"
     using invar by (simp_all add: \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some E)\<close> ord_res_7_invars_def)
-
-  thm ord_res_7_invars_def
+  
+  have clauses_lt_E_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c E \<longrightarrow>
+      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})"
+    using invar[unfolded \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some E)\<close>] clause_almost_defined_if_lt_next_clause
+    by simp
 
   have "\<F> |\<subseteq>| N |\<union>| U\<^sub>e\<^sub>r'"
     unfolding \<open>U\<^sub>e\<^sub>r' = finsert (eres D E) U\<^sub>e\<^sub>r\<close>
@@ -13113,20 +13287,6 @@ next
     hence False
       using C_lt linorder_cls.leD mempty_lesseq_cls by blast
     thus ?thesis ..
-  qed
-
-  moreover have "trail_true_cls \<Gamma>' x"
-    "\<And>K\<^sub>x. linorder_lit.is_maximal_in_mset x K\<^sub>x \<Longrightarrow> trail_defined_cls \<Gamma> {#L \<in># x. L \<noteq> K\<^sub>x#}"
-    if C_lt: "\<And>y. Some {#} = Some y \<Longrightarrow> x \<prec>\<^sub>c y" and x_in: "x |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')" for x
-  proof -
-    have "x \<prec>\<^sub>c {#}"
-      using C_lt by metis
-    hence False
-      using linorder_cls.leD mempty_lesseq_cls by blast
-    thus
-      "trail_true_cls \<Gamma>' x"
-      "\<And>K\<^sub>x. linorder_lit.is_maximal_in_mset x K\<^sub>x \<Longrightarrow> trail_defined_cls \<Gamma> {#L \<in># x. L \<noteq> K\<^sub>x#}"
-      by argo+
   qed
 
   moreover have "trail_defined_cls \<Gamma>' {#L \<in># x. L \<noteq> K\<^sub>x#}"
@@ -13178,7 +13338,32 @@ next
     using \<open>\<Gamma>' = []\<close> by simp
 
   ultimately show ?thesis
-    by (auto simp add: \<open>s' = (U\<^sub>e\<^sub>r', \<F>, \<Gamma>', Some {#})\<close> ord_res_7_invars_def)
+    unfolding \<open>s' = (U\<^sub>e\<^sub>r', \<F>, \<Gamma>', Some {#})\<close>
+  proof (intro ord_res_7_invars.intros)
+    have "trail_true_cls \<Gamma>' x"
+      "\<And>K\<^sub>x. linorder_lit.is_maximal_in_mset x K\<^sub>x \<Longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r'). A \<prec>\<^sub>t atm_of K\<^sub>x \<and> A |\<notin>| trail_atms \<Gamma>')"
+      if C_lt: "\<And>E. Some {#} = Some E \<Longrightarrow> x \<prec>\<^sub>c E" and C_in: "x |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')"
+      for x
+    proof -
+      have "x \<prec>\<^sub>c {#}"
+        using C_lt by metis
+      hence False
+        using linorder_cls.leD mempty_lesseq_cls by blast
+      thus
+        "trail_true_cls \<Gamma>' x"
+        "\<And>K\<^sub>x. linorder_lit.is_maximal_in_mset x K\<^sub>x \<Longrightarrow>
+          \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r'). A \<prec>\<^sub>t atm_of K\<^sub>x \<and> A |\<notin>| trail_atms \<Gamma>')"
+        by argo+
+    qed
+
+    thus
+      "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'). (\<forall>D. Some {#} = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow> trail_true_cls \<Gamma>' C"
+      "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'). (\<forall>D. Some {#} = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow>
+        (\<forall>K. ord_res.is_maximal_lit K C \<longrightarrow>
+          \<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r'). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>'))"
+      unfolding atomize_conj by metis
+  qed simp_all
 next
   case step_hyps: (resolution_pos \<Gamma> E L D U\<^sub>e\<^sub>r' U\<^sub>e\<^sub>r \<Gamma>' K \<F>)
 
@@ -13193,8 +13378,9 @@ next
         (\<forall>L\<^sub>C. linorder_lit.is_maximal_in_mset C L\<^sub>C \<longrightarrow>
           \<not> trail_defined_lit \<Gamma> L\<^sub>C \<longrightarrow> (trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C))" and
     clauses_lt_E_true: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c E \<longrightarrow> trail_true_cls \<Gamma> C" and
-    clauses_lt_E_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c E \<longrightarrow>
-      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})" and
+    no_undef_atm_lt_max_lit_if_lt_E: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c E \<longrightarrow>
+      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))" and
     \<Gamma>_sorted: "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>" and
     \<Gamma>_lower: "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
     trail_atms_le0: "\<forall>A |\<in>| trail_atms \<Gamma>. \<exists>L. ord_res.is_maximal_lit L E \<and> (A \<preceq>\<^sub>t atm_of L)" and
@@ -13209,6 +13395,11 @@ next
     \<Gamma>_prop_ball_lt_true: "\<forall>\<Gamma>\<^sub>1 L D \<Gamma>\<^sub>0. \<Gamma> = \<Gamma>\<^sub>1 @ (L, Some D) # \<Gamma>\<^sub>0 \<longrightarrow>
       (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma>\<^sub>0 C)"
     using invar by (simp_all add: \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some E)\<close> ord_res_7_invars_def)
+  
+  have clauses_lt_E_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c E \<longrightarrow>
+      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})"
+    using invar[unfolded \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some E)\<close>] clause_almost_defined_if_lt_next_clause
+    by simp
 
   have \<Gamma>_consistent: "trail_consistent \<Gamma>"
     using trail_consistent_if_sorted_wrt_atoms \<Gamma>_sorted by metis
@@ -13329,195 +13520,6 @@ next
 
     thus ?thesis
       by simp
-  qed
-
-  moreover have
-    "\<And>K\<^sub>x. linorder_lit.is_maximal_in_mset x K\<^sub>x \<Longrightarrow> trail_defined_cls \<Gamma>' {#L \<in># x. L \<noteq> K\<^sub>x#}" and
-    clause_true_in_\<Gamma>'_if: "trail_true_cls \<Gamma>' x"
-    if x_lt: "\<And>y. Some (eres D E) = Some y \<Longrightarrow> x \<prec>\<^sub>c y" and x_in: "x |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')" for x
-  proof -
-    have "x \<prec>\<^sub>c eres D E"
-      using x_lt by metis
-
-    hence "x \<noteq> eres D E"
-      by order
-
-    hence x_in': "x |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
-      using x_in \<open>iefac \<F> (eres D E) = eres D E\<close>
-      by (simp add: \<open>U\<^sub>e\<^sub>r' = finsert (eres D E) U\<^sub>e\<^sub>r\<close>)
-
-    have "x \<prec>\<^sub>c E"
-      using \<open>x \<prec>\<^sub>c eres D E\<close> \<open>eres D E \<prec>\<^sub>c E\<close> by order
-
-    have x_true: "trail_true_cls \<Gamma> x"
-      using clauses_lt_E_true x_in' \<open>x \<prec>\<^sub>c E\<close> by metis
-
-    have "(- K, None) \<in> set \<Gamma>"
-      using \<open>trail_false_lit \<Gamma> K\<close>
-      using \<open>is_pos K\<close>
-      using \<Gamma>_deci_iff_neg
-      by (metis is_pos_neg_not_is_pos map_of_SomeD map_of_eq_None_iff not_Some_eq prod.collapse
-          prod.inject trail_false_lit_def)
-
-    obtain  L\<^sub>x where "L\<^sub>x \<in># x" and L\<^sub>x_true: "trail_true_lit \<Gamma> L\<^sub>x"
-      using x_true unfolding trail_true_cls_def by metis
-
-    moreover have "L\<^sub>x \<noteq> K"
-      using \<Gamma>_consistent \<open>trail_false_cls \<Gamma> (eres D E)\<close> L\<^sub>x_true eres_max_lit
-      by (metis linorder_lit.is_maximal_in_mset_iff not_trail_true_cls_and_trail_false_cls
-          trail_true_cls_def)
-
-    moreover have "L\<^sub>x \<noteq> - K"
-      using eres_max_lit \<open>x \<prec>\<^sub>c eres D E\<close>
-      by (smt (verit, del_insts) calculation(1) calculation(3) empty_iff linorder_cls.less_not_sym
-          linorder_lit.ex_maximal_in_mset linorder_lit.is_maximal_in_mset_iff
-          linorder_lit.less_trans linorder_lit.multp_if_maximal_less_that_maximal linorder_lit.neqE
-          linorder_trm.not_less_iff_gr_or_eq literal.collapse(1) ord_res.less_lit_simps(4)
-          set_mset_empty step_hyps(11) uminus_literal_def)
-
-    ultimately have "atm_of L\<^sub>x \<prec>\<^sub>t atm_of K"
-      by (smt (verit, best) \<Gamma>_consistent \<open>x \<prec>\<^sub>c eres D E\<close> asympD ord_res.less_lit_simps(1)
-          linorder_lit.dual_order.strict_trans linorder_lit.is_greatest_in_set_iff
-          linorder_lit.is_maximal_in_mset_iff linorder_lit.is_maximal_in_set_eq_is_greatest_in_set
-          linorder_lit.is_maximal_in_set_iff linorder_trm.le_less_linear linorder_trm.less_linear
-          literal.collapse(1) literal.exhaust_sel not_trail_true_cls_and_trail_false_cls
-          ord_res.asymp_less_cls ord_res.less_lit_simps(2) ord_res.multp_if_all_left_smaller
-          step_hyps(10) step_hyps(11) trail_false_cls_mempty x_true)
-
-    hence "trail_true_lit \<Gamma>' L\<^sub>x"
-      unfolding \<open>\<Gamma>' = dropWhile (\<lambda>Ln. atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<close>
-      using L\<^sub>x_true
-      unfolding trail_true_lit_def
-      using mem_set_dropWhile_conv_if_list_sorted_and_pred_monotone[OF \<Gamma>_sorted mono_atms_lt]
-      by (metis (no_types, lifting) image_iff linorder_trm.not_le)
-
-    thus "trail_true_cls \<Gamma>' x"
-      using \<open>L\<^sub>x \<in># x\<close> unfolding trail_true_cls_def by metis
-
-    fix K\<^sub>x
-    assume x_max_lit: "ord_res.is_maximal_lit K\<^sub>x x"
-    show "trail_defined_cls \<Gamma>' {#L \<in># x. L \<noteq> K\<^sub>x#}"
-      unfolding \<open>\<Gamma>' = dropWhile (\<lambda>Ln. atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<close>
-    proof (intro trail_defined_cls_dropWhileI ballI)
-      show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
-        using \<Gamma>_sorted .
-    next
-      show "monotone_on (set \<Gamma>) (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) (\<lambda>x y. y \<le> x)
-        (\<lambda>x. atm_of K \<preceq>\<^sub>t atm_of (fst x))"
-        using mono_atms_lt .
-    next
-      fix L\<^sub>x
-      assume "L\<^sub>x \<in># {#L \<in># x. L \<noteq> K\<^sub>x#}"
-
-      hence "L\<^sub>x \<in># x" and "L\<^sub>x \<noteq> K\<^sub>x"
-        by simp_all
-
-      hence "L\<^sub>x \<prec>\<^sub>l K\<^sub>x"
-        using x_max_lit \<open>L\<^sub>x \<in># x\<close> \<open>L\<^sub>x \<noteq> K\<^sub>x\<close> unfolding linorder_lit.is_maximal_in_mset_iff
-        by fastforce
-
-      moreover have "K\<^sub>x \<preceq>\<^sub>l K"
-        using \<open>x \<prec>\<^sub>c eres D E\<close>
-        using linorder_lit.multp_if_maximal_less_that_maximal[OF eres_max_lit x_max_lit]
-        by fastforce
-
-      ultimately have "atm_of L\<^sub>x \<prec>\<^sub>t atm_of K"
-        using \<open>is_pos K\<close>
-        by (metis linorder_lit.less_le_trans literal.collapse(1) literal.exhaust_sel
-            ord_res.less_lit_simps(1) ord_res.less_lit_simps(4))
-
-      hence "\<not> atm_of K \<preceq>\<^sub>t atm_of L\<^sub>x"
-        by order
-
-      thus "\<not> atm_of K \<preceq>\<^sub>t atm_of L\<^sub>x \<and> \<not> atm_of K \<preceq>\<^sub>t atm_of (- L\<^sub>x)"
-        unfolding atm_of_uminus conj_absorb .
-    next
-      show "trail_defined_cls \<Gamma> {#L \<in># x. L \<noteq> K\<^sub>x#}"
-        using clauses_lt_E_almost_defined x_in' \<open>x \<prec>\<^sub>c E\<close> x_max_lit by metis
-    qed
-  qed
-
-  moreover have "trail_true_cls \<Gamma>' {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C"
-    if "Some (eres D E) = Some DE" and
-      C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')" and
-      C_lt: "C \<prec>\<^sub>c DE" and
-      C_max_lit: "linorder_lit.is_maximal_in_mset C L\<^sub>C" and
-      L\<^sub>C_undef: "\<not> trail_defined_lit \<Gamma>' L\<^sub>C"
-    for DE C L\<^sub>C
-  proof -
-    have "DE = eres D E"
-      using that by simp
-    hence "C \<prec>\<^sub>c eres D E"
-      using C_lt by order
-    hence "C \<noteq> eres D E"
-      by order
-    hence "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
-      using C_in \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') = finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close>
-      by simp
-    moreover have "C \<prec>\<^sub>c E"
-      using \<open>C \<prec>\<^sub>c eres D E\<close> \<open>eres D E \<prec>\<^sub>c E\<close> by order
-
-    have "L\<^sub>C \<preceq>\<^sub>l K"
-      using \<open>C \<prec>\<^sub>c eres D E\<close> C_max_lit eres_max_lit
-      by (meson linorder_cls.dual_order.asym linorder_lit.leI
-          linorder_lit.multp_if_maximal_less_that_maximal)
-    hence "L\<^sub>C \<prec>\<^sub>l K \<or> L\<^sub>C = K"
-      by simp
-
-    thus ?thesis
-    proof (elim disjE)
-      assume "L\<^sub>C \<prec>\<^sub>l K"
-      hence "atm_of L\<^sub>C \<prec>\<^sub>t atm_of K"
-        using \<open>is_pos K\<close>
-        by (cases L\<^sub>C; cases K) simp_all
-
-      have "trail_defined_lit \<Gamma>' L\<^sub>C"
-        unfolding \<open>\<Gamma>' = dropWhile (\<lambda>Ln. atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<close>
-      proof (intro trail_defined_lit_dropWhileI ballI)
-        show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
-          using \<Gamma>_sorted .
-      next
-        show "monotone_on (set \<Gamma>) (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) (\<lambda>x y. y \<le> x)
-        (\<lambda>x. atm_of K \<preceq>\<^sub>t atm_of (fst x))"
-          using mono_atms_lt .
-      next
-        have "\<not> atm_of K \<preceq>\<^sub>t atm_of L\<^sub>C"
-          using \<open>atm_of L\<^sub>C \<prec>\<^sub>t atm_of K\<close> by order
-        thus "\<not> atm_of K \<preceq>\<^sub>t atm_of L\<^sub>C \<and> \<not> atm_of K \<preceq>\<^sub>t atm_of (- L\<^sub>C)"
-          by simp
-      next
-        have "trail_defined_lit \<Gamma> K"
-          using \<open>trail_false_lit \<Gamma> K\<close>
-          using trail_defined_lit_iff_true_or_false by blast
-        moreover have "atm_of K |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
-          by (metis \<open>atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r) = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r')\<close>
-              \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') = finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close>
-              atm_of_in_atms_of_clssI eres_max_lit finsertI1 linorder_lit.is_maximal_in_mset_iff)
-        moreover have "atm_of L\<^sub>C |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
-          using \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> C_max_lit atm_of_in_atms_of_clssI
-          unfolding linorder_lit.is_maximal_in_mset_iff
-          by metis
-        ultimately show "trail_defined_lit \<Gamma> L\<^sub>C"
-          using \<open>atm_of L\<^sub>C \<prec>\<^sub>t atm_of K\<close> \<Gamma>_lower
-          unfolding trail_defined_lit_iff_trail_defined_atm
-          by (meson linorder_trm.is_lower_set_iff)
-      qed
-
-      hence False
-        using L\<^sub>C_undef by contradiction
-
-      thus ?thesis ..
-    next
-      have "trail_true_cls \<Gamma>' C"
-        using clause_true_in_\<Gamma>'_if C_in \<open>C \<prec>\<^sub>c eres D E\<close> by simp
-      hence "trail_true_cls \<Gamma>' {#K \<in># C. K \<noteq> L\<^sub>C#}"
-        using L\<^sub>C_undef
-        by (smt (verit, best) mem_Collect_eq set_mset_filter trail_defined_lit_iff_true_or_false
-            trail_true_cls_def)
-      moreover assume "L\<^sub>C = K"
-      ultimately show "trail_true_cls \<Gamma>' {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C"
-        using \<open>is_pos K\<close> by metis
-    qed
   qed
 
   moreover have "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>'"
@@ -13722,6 +13724,201 @@ next
   ultimately show ?thesis
     unfolding \<open>s' = (U\<^sub>e\<^sub>r', \<F>, \<Gamma>', Some (eres D E))\<close>
   proof (intro ord_res_7_invars.intros)
+    have clause_true_in_\<Gamma>'_if: "trail_true_cls \<Gamma>' x" and
+      "\<And>K\<^sub>x. linorder_lit.is_maximal_in_mset x K\<^sub>x \<Longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r'). A \<prec>\<^sub>t atm_of K\<^sub>x \<and> A |\<notin>| trail_atms \<Gamma>')"
+      if x_lt: "\<And>DE. Some (eres D E) = Some DE \<longrightarrow> x \<prec>\<^sub>c DE" and x_in: "x |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')"
+      for x
+    proof -
+      have "x \<prec>\<^sub>c eres D E"
+        using x_lt by metis
+
+      hence "x \<noteq> eres D E"
+        by order
+
+      hence x_in': "x |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+        using x_in \<open>iefac \<F> (eres D E) = eres D E\<close>
+        by (simp add: \<open>U\<^sub>e\<^sub>r' = finsert (eres D E) U\<^sub>e\<^sub>r\<close>)
+
+      have "x \<prec>\<^sub>c E"
+        using \<open>x \<prec>\<^sub>c eres D E\<close> \<open>eres D E \<prec>\<^sub>c E\<close> by order
+
+      have x_true: "trail_true_cls \<Gamma> x"
+        using clauses_lt_E_true x_in' \<open>x \<prec>\<^sub>c E\<close> by metis
+
+      have "(- K, None) \<in> set \<Gamma>"
+        using \<open>trail_false_lit \<Gamma> K\<close>
+        using \<open>is_pos K\<close>
+        using \<Gamma>_deci_iff_neg
+        by (metis is_pos_neg_not_is_pos map_of_SomeD map_of_eq_None_iff not_Some_eq prod.collapse
+            prod.inject trail_false_lit_def)
+
+      obtain  L\<^sub>x where "L\<^sub>x \<in># x" and L\<^sub>x_true: "trail_true_lit \<Gamma> L\<^sub>x"
+        using x_true unfolding trail_true_cls_def by metis
+
+      moreover have "L\<^sub>x \<noteq> K"
+        using \<Gamma>_consistent \<open>trail_false_cls \<Gamma> (eres D E)\<close> L\<^sub>x_true eres_max_lit
+        by (metis linorder_lit.is_maximal_in_mset_iff not_trail_true_cls_and_trail_false_cls
+            trail_true_cls_def)
+
+      moreover have "L\<^sub>x \<noteq> - K"
+        using eres_max_lit \<open>x \<prec>\<^sub>c eres D E\<close>
+        by (smt (verit, del_insts) calculation(1) calculation(3) empty_iff linorder_cls.less_not_sym
+            linorder_lit.ex_maximal_in_mset linorder_lit.is_maximal_in_mset_iff
+            linorder_lit.less_trans linorder_lit.multp_if_maximal_less_that_maximal linorder_lit.neqE
+            linorder_trm.not_less_iff_gr_or_eq literal.collapse(1) ord_res.less_lit_simps(4)
+            set_mset_empty step_hyps(11) uminus_literal_def)
+
+      ultimately have "atm_of L\<^sub>x \<prec>\<^sub>t atm_of K"
+        by (smt (verit, best) \<Gamma>_consistent \<open>x \<prec>\<^sub>c eres D E\<close> asympD ord_res.less_lit_simps(1)
+            linorder_lit.dual_order.strict_trans linorder_lit.is_greatest_in_set_iff
+            linorder_lit.is_maximal_in_mset_iff linorder_lit.is_maximal_in_set_eq_is_greatest_in_set
+            linorder_lit.is_maximal_in_set_iff linorder_trm.le_less_linear linorder_trm.less_linear
+            literal.collapse(1) literal.exhaust_sel not_trail_true_cls_and_trail_false_cls
+            ord_res.asymp_less_cls ord_res.less_lit_simps(2) ord_res.multp_if_all_left_smaller
+            step_hyps(10) step_hyps(11) trail_false_cls_mempty x_true)
+
+      hence "trail_true_lit \<Gamma>' L\<^sub>x"
+        unfolding \<open>\<Gamma>' = dropWhile (\<lambda>Ln. atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<close>
+        using L\<^sub>x_true
+        unfolding trail_true_lit_def
+        using mem_set_dropWhile_conv_if_list_sorted_and_pred_monotone[OF \<Gamma>_sorted mono_atms_lt]
+        by (metis (no_types, lifting) image_iff linorder_trm.not_le)
+
+      thus "trail_true_cls \<Gamma>' x"
+        using \<open>L\<^sub>x \<in># x\<close> unfolding trail_true_cls_def by metis
+
+
+      fix K\<^sub>x
+      assume x_max_lit: "ord_res.is_maximal_lit K\<^sub>x x"
+
+      hence "K\<^sub>x \<preceq>\<^sub>l K"
+        using \<open>x \<prec>\<^sub>c eres D E\<close> eres_max_lit
+        using linorder_lit.multp_if_maximal_less_that_maximal by fastforce
+
+      hence "atm_of K\<^sub>x \<preceq>\<^sub>t atm_of K"
+        by (cases K\<^sub>x; cases K) simp_all
+
+      have "A |\<in>| trail_atms \<Gamma>'"
+        if A_lt: "A \<prec>\<^sub>t atm_of K\<^sub>x" and A_in: "A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)" for A
+        unfolding \<open>\<Gamma>' = dropWhile (\<lambda>Ln. atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<close>
+      proof (rule in_trail_atms_dropWhileI)
+        show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
+          using \<Gamma>_sorted .
+      next
+        show "monotone_on (set \<Gamma>) (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) (\<lambda>x y. y \<le> x) (\<lambda>x. atm_of K \<preceq>\<^sub>t atm_of (fst x))"
+          using mono_atms_lt .
+      next
+        show "\<not> atm_of K \<preceq>\<^sub>t A"
+          using A_lt \<open>atm_of K\<^sub>x \<preceq>\<^sub>t atm_of K\<close> by order
+      next
+        have "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>x \<and> A |\<notin>| trail_atms \<Gamma>)"
+          using no_undef_atm_lt_max_lit_if_lt_E \<open>x |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> \<open>x \<prec>\<^sub>c E\<close> x_max_lit
+          by metis
+
+        thus "A |\<in>| trail_atms \<Gamma>"
+          using A_in A_lt by metis
+      qed
+
+      thus "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r'). A \<prec>\<^sub>t atm_of K\<^sub>x \<and> A |\<notin>| trail_atms \<Gamma>')"
+        using \<open>atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r) = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r')\<close> by metis
+    qed
+
+    thus
+      "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'). (\<forall>DE. Some (eres D E) = Some DE \<longrightarrow> C \<prec>\<^sub>c DE) \<longrightarrow>
+        trail_true_cls \<Gamma>' C"
+      "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'). (\<forall>DE. Some (eres D E) = Some DE \<longrightarrow> C \<prec>\<^sub>c DE) \<longrightarrow>
+        (\<forall>K. ord_res.is_maximal_lit K C \<longrightarrow>
+          \<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r'). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>'))"
+      unfolding atomize_conj by metis
+
+    have "trail_true_cls \<Gamma>' {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C"
+      if "Some (eres D E) = Some DE" and
+        C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')" and
+        C_lt: "C \<prec>\<^sub>c DE" and
+        C_max_lit: "linorder_lit.is_maximal_in_mset C L\<^sub>C" and
+        L\<^sub>C_undef: "\<not> trail_defined_lit \<Gamma>' L\<^sub>C"
+      for DE C L\<^sub>C
+    proof -
+      have "DE = eres D E"
+        using that by simp
+      hence "C \<prec>\<^sub>c eres D E"
+        using C_lt by order
+      hence "C \<noteq> eres D E"
+        by order
+      hence "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+        using C_in \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') = finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close>
+        by simp
+      moreover have "C \<prec>\<^sub>c E"
+        using \<open>C \<prec>\<^sub>c eres D E\<close> \<open>eres D E \<prec>\<^sub>c E\<close> by order
+
+      have "L\<^sub>C \<preceq>\<^sub>l K"
+        using \<open>C \<prec>\<^sub>c eres D E\<close> C_max_lit eres_max_lit
+        by (meson linorder_cls.dual_order.asym linorder_lit.leI
+            linorder_lit.multp_if_maximal_less_that_maximal)
+      hence "L\<^sub>C \<prec>\<^sub>l K \<or> L\<^sub>C = K"
+        by simp
+
+      thus ?thesis
+      proof (elim disjE)
+        assume "L\<^sub>C \<prec>\<^sub>l K"
+        hence "atm_of L\<^sub>C \<prec>\<^sub>t atm_of K"
+          using \<open>is_pos K\<close>
+          by (cases L\<^sub>C; cases K) simp_all
+
+        have "trail_defined_lit \<Gamma>' L\<^sub>C"
+          unfolding \<open>\<Gamma>' = dropWhile (\<lambda>Ln. atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<close>
+        proof (intro trail_defined_lit_dropWhileI ballI)
+          show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
+            using \<Gamma>_sorted .
+        next
+          show "monotone_on (set \<Gamma>) (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) (\<lambda>x y. y \<le> x)
+        (\<lambda>x. atm_of K \<preceq>\<^sub>t atm_of (fst x))"
+            using mono_atms_lt .
+        next
+          have "\<not> atm_of K \<preceq>\<^sub>t atm_of L\<^sub>C"
+            using \<open>atm_of L\<^sub>C \<prec>\<^sub>t atm_of K\<close> by order
+          thus "\<not> atm_of K \<preceq>\<^sub>t atm_of L\<^sub>C \<and> \<not> atm_of K \<preceq>\<^sub>t atm_of (- L\<^sub>C)"
+            by simp
+        next
+          have "trail_defined_lit \<Gamma> K"
+            using \<open>trail_false_lit \<Gamma> K\<close>
+            using trail_defined_lit_iff_true_or_false by blast
+          moreover have "atm_of K |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+            by (metis \<open>atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r) = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r')\<close>
+                \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') = finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close>
+                atm_of_in_atms_of_clssI eres_max_lit finsertI1 linorder_lit.is_maximal_in_mset_iff)
+          moreover have "atm_of L\<^sub>C |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+            using \<open>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> C_max_lit atm_of_in_atms_of_clssI
+            unfolding linorder_lit.is_maximal_in_mset_iff
+            by metis
+          ultimately show "trail_defined_lit \<Gamma> L\<^sub>C"
+            using \<open>atm_of L\<^sub>C \<prec>\<^sub>t atm_of K\<close> \<Gamma>_lower
+            unfolding trail_defined_lit_iff_trail_defined_atm
+            by (meson linorder_trm.is_lower_set_iff)
+        qed
+
+        hence False
+          using L\<^sub>C_undef by contradiction
+
+        thus ?thesis ..
+      next
+        have "trail_true_cls \<Gamma>' C"
+          using clause_true_in_\<Gamma>'_if C_in \<open>C \<prec>\<^sub>c eres D E\<close> by blast
+        hence "trail_true_cls \<Gamma>' {#K \<in># C. K \<noteq> L\<^sub>C#}"
+          using L\<^sub>C_undef
+          by (smt (verit, best) mem_Collect_eq set_mset_filter trail_defined_lit_iff_true_or_false
+              trail_true_cls_def)
+        moreover assume "L\<^sub>C = K"
+        ultimately show "trail_true_cls \<Gamma>' {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C"
+          using \<open>is_pos K\<close> by metis
+      qed
+    qed
+
+    thus "\<forall>Da. Some (eres D E) = Some Da \<longrightarrow>
+      (\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'). C \<prec>\<^sub>c Da \<longrightarrow> (\<forall>L\<^sub>C. ord_res.is_maximal_lit L\<^sub>C C \<longrightarrow>
+        \<not> trail_defined_lit \<Gamma>' L\<^sub>C \<longrightarrow> trail_true_cls \<Gamma>' {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C))"
+      by metis
   qed simp_all
 next
   case step_hyps: (resolution_neg \<Gamma> E L D U\<^sub>e\<^sub>r' U\<^sub>e\<^sub>r \<Gamma>' K C \<F>)
@@ -13737,8 +13934,9 @@ next
         (\<forall>L\<^sub>C. linorder_lit.is_maximal_in_mset C L\<^sub>C \<longrightarrow>
           \<not> trail_defined_lit \<Gamma> L\<^sub>C \<longrightarrow> (trail_true_cls \<Gamma> {#K \<in># C. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C))" and
     clauses_lt_E_true: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c E \<longrightarrow> trail_true_cls \<Gamma> C" and
-    clauses_lt_E_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c E \<longrightarrow>
-      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})" and
+    no_undef_atm_lt_max_lit_if_lt_E: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c E \<longrightarrow>
+      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))" and
     \<Gamma>_sorted: "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>" and
     \<Gamma>_lower: "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
     trail_atms_le0: "\<forall>A |\<in>| trail_atms \<Gamma>. \<exists>L. ord_res.is_maximal_lit L E \<and> (A \<preceq>\<^sub>t atm_of L)" and
@@ -13755,6 +13953,11 @@ next
     \<Gamma>_prop_ball_lt_true: "\<forall>\<Gamma>\<^sub>1 L D \<Gamma>\<^sub>0. \<Gamma> = \<Gamma>\<^sub>1 @ (L, Some D) # \<Gamma>\<^sub>0 \<longrightarrow>
       (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma>\<^sub>0 C)"
     using invar by (simp_all add: \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some E)\<close> ord_res_7_invars_def)
+  
+  have clauses_lt_E_almost_defined: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c E \<longrightarrow>
+      (\<forall>K. linorder_lit.is_maximal_in_mset C K \<longrightarrow> trail_defined_cls \<Gamma> {#L \<in># C. L \<noteq> K#})"
+    using invar[unfolded \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some E)\<close>] clause_almost_defined_if_lt_next_clause
+    by simp
 
   have \<Gamma>_consistent: "trail_consistent \<Gamma>"
     using trail_consistent_if_sorted_wrt_atoms \<Gamma>_sorted by metis
@@ -14039,91 +14242,6 @@ next
     qed
   qed
 
-  moreover have "trail_true_cls \<Gamma>' {#K \<in># B. K \<noteq> L\<^sub>B#} \<and> is_pos L\<^sub>B"
-    if "Some C = Some C'" and
-      B_in: "B |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')" and
-      B_lt: "B \<prec>\<^sub>c C'" and
-      B_max_lit: "linorder_lit.is_maximal_in_mset B L\<^sub>B" and
-      L\<^sub>B_undef: "\<not> trail_defined_lit \<Gamma>' L\<^sub>B"
-    for C' B L\<^sub>B
-  proof -
-    have "C' = C"
-      using that by simp
-    hence "B \<prec>\<^sub>c C"
-      using B_lt by order
-    hence "B \<prec>\<^sub>c eres D E"
-      using \<open>C \<prec>\<^sub>c eres D E\<close> by order
-    hence "B \<noteq> eres D E"
-      by order
-    hence "B |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
-      using B_in \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') = finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close>
-      by simp
-    moreover have "B \<prec>\<^sub>c E"
-      using \<open>B \<prec>\<^sub>c eres D E\<close> \<open>eres D E \<prec>\<^sub>c E\<close> by order
-
-    have "L\<^sub>B \<preceq>\<^sub>l - K"
-      using \<open>B \<prec>\<^sub>c C\<close> B_max_lit C_max_lit
-      by (metis asympD linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset linorder_lit.leI
-          linorder_lit.multp_if_maximal_less_that_maximal ord_res.asymp_less_cls)
-    hence "L\<^sub>B \<prec>\<^sub>l - K \<or> L\<^sub>B = - K"
-      by simp
-
-    thus ?thesis
-    proof (elim disjE)
-      assume "L\<^sub>B \<prec>\<^sub>l - K"
-      hence "atm_of L\<^sub>B \<prec>\<^sub>t atm_of K"
-        using \<open>is_neg K\<close>
-        by (cases L\<^sub>B; cases K) simp_all
-
-      have "trail_defined_lit \<Gamma>' L\<^sub>B"
-        unfolding \<open>\<Gamma>' = dropWhile (\<lambda>Ln. atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<close>
-      proof (intro trail_defined_lit_dropWhileI ballI)
-        show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
-          using \<Gamma>_sorted .
-      next
-        show "monotone_on (set \<Gamma>) (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) (\<lambda>x y. y \<le> x)
-        (\<lambda>x. atm_of K \<preceq>\<^sub>t atm_of (fst x))"
-          using mono_atms_lt .
-      next
-        have "\<not> atm_of K \<preceq>\<^sub>t atm_of L\<^sub>B"
-          using \<open>atm_of L\<^sub>B \<prec>\<^sub>t atm_of K\<close> by order
-        thus "\<not> atm_of K \<preceq>\<^sub>t atm_of L\<^sub>B \<and> \<not> atm_of K \<preceq>\<^sub>t atm_of (- L\<^sub>B)"
-          by simp
-      next
-        have "trail_defined_lit \<Gamma> K"
-          by (metis map_of_eq_None_iff option.discI step_hyps(12) trail_defined_lit_def)
-        moreover have "atm_of K |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
-          by (metis \<open>atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r) = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r')\<close>
-              \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') = finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close>
-              atm_of_in_atms_of_clssI eres_max_lit finsertI1 linorder_lit.is_maximal_in_mset_iff)
-        moreover have "atm_of L\<^sub>B |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
-          using \<open>B |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> B_max_lit atm_of_in_atms_of_clssI
-          unfolding linorder_lit.is_maximal_in_mset_iff
-          by metis
-        ultimately show "trail_defined_lit \<Gamma> L\<^sub>B"
-          using \<open>atm_of L\<^sub>B \<prec>\<^sub>t atm_of K\<close> \<Gamma>_lower
-          unfolding trail_defined_lit_iff_trail_defined_atm
-          by (meson linorder_trm.is_lower_set_iff)
-      qed
-
-      hence False
-        using L\<^sub>B_undef by contradiction
-
-      thus ?thesis ..
-    next
-      have "trail_true_cls \<Gamma>' B"
-        using clause_true_in_\<Gamma>'_if B_in \<open>B \<prec>\<^sub>c C\<close> by simp
-      hence "trail_true_cls \<Gamma>' {#K \<in># B. K \<noteq> L\<^sub>B#}"
-        using L\<^sub>B_undef
-        by (smt (verit, best) mem_Collect_eq set_mset_filter trail_defined_lit_iff_true_or_false
-            trail_true_cls_def)
-      moreover assume "L\<^sub>B = - K"
-      ultimately show "trail_true_cls \<Gamma>' {#K \<in># B. K \<noteq> L\<^sub>B#} \<and> is_pos L\<^sub>B"
-        using \<open>is_neg K\<close>
-        by (cases K) simp_all
-    qed
-  qed
-
   moreover have "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>'"
     using \<Gamma>_sorted step_hyps(9) by (metis sorted_wrt_dropWhile)
 
@@ -14327,6 +14445,241 @@ next
   ultimately show ?thesis
     unfolding \<open>s' = (U\<^sub>e\<^sub>r', \<F>, \<Gamma>', Some C)\<close>
   proof (intro ord_res_7_invars.intros)
+    have clause_true_in_\<Gamma>'_if: "trail_true_cls \<Gamma>' x" and
+      "\<And>K\<^sub>x. linorder_lit.is_maximal_in_mset x K\<^sub>x \<Longrightarrow>
+        \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r'). A \<prec>\<^sub>t atm_of K\<^sub>x \<and> A |\<notin>| trail_atms \<Gamma>')"
+      if x_lt: "\<And>DE. Some C = Some DE \<longrightarrow> x \<prec>\<^sub>c DE" and x_in: "x |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')"
+      for x
+    proof -
+      have "x \<prec>\<^sub>c C"
+        using x_lt by metis
+
+      hence "x \<prec>\<^sub>c eres D E"
+        using \<open>C \<prec>\<^sub>c eres D E\<close> by order
+
+      hence "x \<noteq> eres D E"
+        by order
+
+      have "x \<prec>\<^sub>c E"
+        using \<open>x \<prec>\<^sub>c eres D E\<close> \<open>eres D E \<prec>\<^sub>c E\<close> by order
+
+      moreover have x_in': "x |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+        using x_in \<open>x \<noteq> eres D E\<close>
+        unfolding \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') = finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close>
+        by simp
+
+      ultimately have x_true: "trail_true_cls \<Gamma> x"
+        using clauses_lt_E_true by metis
+
+      then obtain L\<^sub>x where "L\<^sub>x \<in># x" and "trail_true_lit \<Gamma> L\<^sub>x"
+        unfolding trail_true_cls_def by metis
+
+      have "L\<^sub>x \<preceq>\<^sub>l - K"
+        using C_max_lit \<open>x \<prec>\<^sub>c C\<close> \<open>L\<^sub>x \<in># x\<close>
+        by (smt (verit, ccfv_threshold) asympD empty_not_add_mset ord_res.transp_less_lit insert_DiffM
+            linorder_lit.is_greatest_in_set_iff linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset
+            linorder_lit.is_maximal_in_mset_iff linorder_lit.is_maximal_in_set_eq_is_greatest_in_set
+            linorder_lit.is_maximal_in_set_iff linorder_lit.leI ord_res.asymp_less_cls
+            ord_res.multp_if_all_left_smaller transpE)
+
+      have mono_atms_lt: "monotone_on (set \<Gamma>) (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) (\<lambda>x y. y \<le> x)
+        (\<lambda>x. atm_of K \<preceq>\<^sub>t atm_of (fst x))"
+      proof (intro monotone_onI, unfold le_bool_def, intro impI)
+        fix x y
+        assume "atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)" and "atm_of K \<preceq>\<^sub>t atm_of (fst y)"
+        thus "atm_of K \<preceq>\<^sub>t atm_of (fst x)"
+          by order
+      qed
+
+      obtain \<Gamma>\<^sub>1 \<Gamma>\<^sub>0 where \<Gamma>_eq: "\<Gamma> = \<Gamma>\<^sub>1 @ (- K, Some C) # \<Gamma>\<^sub>0"
+        using \<open>(- K, Some C) \<in> set \<Gamma>\<close> by (metis split_list)
+
+      hence "trail_true_cls \<Gamma>\<^sub>0 x"
+        using \<Gamma>_prop_ball_lt_true x_in' \<open>x \<prec>\<^sub>c C\<close> by metis
+
+      then obtain  L\<^sub>x where "L\<^sub>x \<in># x" and L\<^sub>x_true: "trail_true_lit \<Gamma>\<^sub>0 L\<^sub>x"
+        unfolding trail_true_cls_def by auto
+
+      moreover have "\<Gamma>' = \<Gamma>\<^sub>0"
+      proof -
+        have "\<Gamma>' = dropWhile (\<lambda>Ln. atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) ((\<Gamma>\<^sub>1 @ [(- K, Some C)]) @ \<Gamma>\<^sub>0)"
+          unfolding \<open>\<Gamma>' = dropWhile (\<lambda>Ln. atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<close> \<Gamma>_eq by simp
+
+        also have "\<dots> = dropWhile (\<lambda>Ln. atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<^sub>0"
+        proof (rule dropWhile_append2)
+          fix Ln :: "'f gterm literal \<times> 'f gclause option"
+          assume "Ln \<in> set (\<Gamma>\<^sub>1 @ [(- K, Some C)])"
+
+          moreover have "\<forall>x\<in>set \<Gamma>\<^sub>1. atm_of K \<prec>\<^sub>t atm_of (fst x)"
+            using \<Gamma>_sorted by (simp add: \<Gamma>_eq sorted_wrt_append)
+
+          ultimately show "atm_of K \<preceq>\<^sub>t atm_of (fst Ln)"
+            using \<open>is_neg K\<close> by auto
+        qed
+
+        also have "\<dots> = \<Gamma>\<^sub>0"
+        proof (cases \<Gamma>\<^sub>0)
+          case Nil
+          thus ?thesis
+            by (simp add: dropWhile_eq_self_iff)
+        next
+          case (Cons Ln \<Gamma>\<^sub>0')
+
+          hence "atm_of (fst Ln) \<prec>\<^sub>t atm_of K"
+            using \<Gamma>_sorted by (simp add: \<Gamma>_eq sorted_wrt_append)
+
+          hence "\<not> atm_of K \<preceq>\<^sub>t atm_of (fst Ln)"
+            by order
+
+          hence "\<not> atm_of K \<preceq>\<^sub>t atm_of (fst (hd \<Gamma>\<^sub>0))"
+            by (simp add: \<open>\<Gamma>\<^sub>0 = Ln # \<Gamma>\<^sub>0'\<close>)
+
+          thus ?thesis
+            by (simp add: dropWhile_eq_self_iff)
+        qed
+
+        finally show ?thesis .
+      qed
+
+      ultimately have "trail_true_lit \<Gamma>' L\<^sub>x"
+        by argo
+
+      thus "trail_true_cls \<Gamma>' x"
+        using \<open>L\<^sub>x \<in># x\<close> unfolding trail_true_cls_def by metis
+
+
+      fix K\<^sub>x
+      assume x_max_lit: "ord_res.is_maximal_lit K\<^sub>x x"
+
+      hence "K\<^sub>x \<preceq>\<^sub>l K"
+        using \<open>x \<prec>\<^sub>c eres D E\<close> eres_max_lit
+        using linorder_lit.multp_if_maximal_less_that_maximal by fastforce
+
+      hence "atm_of K\<^sub>x \<preceq>\<^sub>t atm_of K"
+        by (cases K\<^sub>x; cases K) simp_all
+
+      have "A |\<in>| trail_atms \<Gamma>'"
+        if A_lt: "A \<prec>\<^sub>t atm_of K\<^sub>x" and A_in: "A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)" for A
+        unfolding \<open>\<Gamma>' = dropWhile (\<lambda>Ln. atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<close>
+      proof (rule in_trail_atms_dropWhileI)
+        show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
+          using \<Gamma>_sorted .
+      next
+        show "monotone_on (set \<Gamma>) (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) (\<lambda>x y. y \<le> x) (\<lambda>x. atm_of K \<preceq>\<^sub>t atm_of (fst x))"
+          using mono_atms_lt .
+      next
+        show "\<not> atm_of K \<preceq>\<^sub>t A"
+          using A_lt \<open>atm_of K\<^sub>x \<preceq>\<^sub>t atm_of K\<close> by order
+      next
+        have "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K\<^sub>x \<and> A |\<notin>| trail_atms \<Gamma>)"
+          using no_undef_atm_lt_max_lit_if_lt_E \<open>x |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> \<open>x \<prec>\<^sub>c E\<close> x_max_lit
+          by metis
+
+        thus "A |\<in>| trail_atms \<Gamma>"
+          using A_in A_lt by metis
+      qed
+
+      thus "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r'). A \<prec>\<^sub>t atm_of K\<^sub>x \<and> A |\<notin>| trail_atms \<Gamma>')"
+        using \<open>atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r) = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r')\<close> by metis
+    qed
+
+    thus
+      "\<forall>x|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'). (\<forall>DE. Some C = Some DE \<longrightarrow> x \<prec>\<^sub>c DE) \<longrightarrow>
+        trail_true_cls \<Gamma>' x"
+      "\<forall>x|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'). (\<forall>DE. Some C = Some DE \<longrightarrow> x \<prec>\<^sub>c DE) \<longrightarrow>
+        (\<forall>K. ord_res.is_maximal_lit K x \<longrightarrow>
+          \<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r'). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>'))"
+      unfolding atomize_conj by metis
+
+    have "trail_true_cls \<Gamma>' {#K \<in># B. K \<noteq> L\<^sub>B#} \<and> is_pos L\<^sub>B"
+      if "Some C = Some C'" and
+        B_in: "B |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')" and
+        B_lt: "B \<prec>\<^sub>c C'" and
+        B_max_lit: "linorder_lit.is_maximal_in_mset B L\<^sub>B" and
+        L\<^sub>B_undef: "\<not> trail_defined_lit \<Gamma>' L\<^sub>B"
+      for C' B L\<^sub>B
+    proof -
+      have "C' = C"
+        using that by simp
+      hence "B \<prec>\<^sub>c C"
+        using B_lt by order
+      hence "B \<prec>\<^sub>c eres D E"
+        using \<open>C \<prec>\<^sub>c eres D E\<close> by order
+      hence "B \<noteq> eres D E"
+        by order
+      hence "B |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+        using B_in \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') = finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close>
+        by simp
+      moreover have "B \<prec>\<^sub>c E"
+        using \<open>B \<prec>\<^sub>c eres D E\<close> \<open>eres D E \<prec>\<^sub>c E\<close> by order
+
+      have "L\<^sub>B \<preceq>\<^sub>l - K"
+        using \<open>B \<prec>\<^sub>c C\<close> B_max_lit C_max_lit
+        by (metis asympD linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset linorder_lit.leI
+            linorder_lit.multp_if_maximal_less_that_maximal ord_res.asymp_less_cls)
+      hence "L\<^sub>B \<prec>\<^sub>l - K \<or> L\<^sub>B = - K"
+        by simp
+
+      thus ?thesis
+      proof (elim disjE)
+        assume "L\<^sub>B \<prec>\<^sub>l - K"
+        hence "atm_of L\<^sub>B \<prec>\<^sub>t atm_of K"
+          using \<open>is_neg K\<close>
+          by (cases L\<^sub>B; cases K) simp_all
+
+        have "trail_defined_lit \<Gamma>' L\<^sub>B"
+          unfolding \<open>\<Gamma>' = dropWhile (\<lambda>Ln. atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<close>
+        proof (intro trail_defined_lit_dropWhileI ballI)
+          show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
+            using \<Gamma>_sorted .
+        next
+          show "monotone_on (set \<Gamma>) (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) (\<lambda>x y. y \<le> x)
+        (\<lambda>x. atm_of K \<preceq>\<^sub>t atm_of (fst x))"
+            using mono_atms_lt .
+        next
+          have "\<not> atm_of K \<preceq>\<^sub>t atm_of L\<^sub>B"
+            using \<open>atm_of L\<^sub>B \<prec>\<^sub>t atm_of K\<close> by order
+          thus "\<not> atm_of K \<preceq>\<^sub>t atm_of L\<^sub>B \<and> \<not> atm_of K \<preceq>\<^sub>t atm_of (- L\<^sub>B)"
+            by simp
+        next
+          have "trail_defined_lit \<Gamma> K"
+            by (metis map_of_eq_None_iff option.discI step_hyps(12) trail_defined_lit_def)
+          moreover have "atm_of K |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+            by (metis \<open>atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r) = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r')\<close>
+                \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') = finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close>
+                atm_of_in_atms_of_clssI eres_max_lit finsertI1 linorder_lit.is_maximal_in_mset_iff)
+          moreover have "atm_of L\<^sub>B |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+            using \<open>B |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> B_max_lit atm_of_in_atms_of_clssI
+            unfolding linorder_lit.is_maximal_in_mset_iff
+            by metis
+          ultimately show "trail_defined_lit \<Gamma> L\<^sub>B"
+            using \<open>atm_of L\<^sub>B \<prec>\<^sub>t atm_of K\<close> \<Gamma>_lower
+            unfolding trail_defined_lit_iff_trail_defined_atm
+            by (meson linorder_trm.is_lower_set_iff)
+        qed
+
+        hence False
+          using L\<^sub>B_undef by contradiction
+
+        thus ?thesis ..
+      next
+        have "trail_true_cls \<Gamma>' B"
+          using clause_true_in_\<Gamma>'_if B_in \<open>B \<prec>\<^sub>c C\<close> by blast
+        hence "trail_true_cls \<Gamma>' {#K \<in># B. K \<noteq> L\<^sub>B#}"
+          using L\<^sub>B_undef
+          by (smt (verit, best) mem_Collect_eq set_mset_filter trail_defined_lit_iff_true_or_false
+              trail_true_cls_def)
+        moreover assume "L\<^sub>B = - K"
+        ultimately show "trail_true_cls \<Gamma>' {#K \<in># B. K \<noteq> L\<^sub>B#} \<and> is_pos L\<^sub>B"
+          using \<open>is_neg K\<close>
+          by (cases K) simp_all
+      qed
+    qed
+
+    thus "\<forall>Da. Some C = Some Da \<longrightarrow>
+      (\<forall>x|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'). x \<prec>\<^sub>c Da \<longrightarrow> (\<forall>L\<^sub>C. ord_res.is_maximal_lit L\<^sub>C x \<longrightarrow>
+        \<not> trail_defined_lit \<Gamma>' L\<^sub>C \<longrightarrow> trail_true_cls \<Gamma>' {#K \<in># x. K \<noteq> L\<^sub>C#} \<and> is_pos L\<^sub>C))"
+      by metis
   qed simp_all
 qed
 
@@ -17787,12 +18140,14 @@ next
         "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma> C"
         using invars[unfolded ord_res_7_invars_def] Some by simp
 
+      have \<Gamma>_lower_set: "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))"
+        using invars[unfolded ord_res_7_invars_def] by simp
+
       have FOO:
         "\<forall>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
           (\<forall>K. ord_res.is_maximal_lit K C \<longrightarrow>
           \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>))"
-        using invars[unfolded ord_res_7_invars_def] Some E_in
-        sorry
+        using invars[unfolded ord_res_7_invars_def] Some E_in by simp
 
       hence BAR:
         "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow>
@@ -18826,9 +19181,6 @@ proof (cases S7 S8 rule: ord_res_7_matches_ord_res_8.cases)
   qed
 qed
 
-
-thm MAGIC6 MAGIC5
-
 lemma backward_simulation_between_7_and_8:
   fixes i S7 S8 S8'
   assumes match: "ord_res_7_matches_ord_res_8 S7 S8" and step: "constant_context ord_res_8 S8 S8'"
@@ -19787,59 +20139,59 @@ proof (cases S7 S8 rule: ord_res_7_matches_ord_res_8.cases)
   qed
 qed
 
-theorem bisimulation_ord_res_6_ord_res_7:
-  defines "match \<equiv> \<lambda>_. ord_res_6_matches_ord_res_7"
+theorem bisimulation_ord_res_7_ord_res_7:
+  defines "match \<equiv> \<lambda>_. ord_res_7_matches_ord_res_8"
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow> 'f ord_res_7_state \<Rightarrow> 'f ord_res_8_state \<Rightarrow> bool) ORDER.
     bisimulation
-      ord_res_6_step (constant_context ord_res_7)
-      ord_res_6_final ord_res_7_final
+      (constant_context ord_res_7) (constant_context ord_res_8)
+      ord_res_7_final ord_res_8_final
       ORDER MATCH"
 proof (rule ex_bisimulation_from_backward_simulation)
-  show "right_unique ord_res_6_step"
-    using right_unique_ord_res_6_step .
-next
   show "right_unique (constant_context ord_res_7)"
     using right_unique_constant_context right_unique_ord_res_7 by metis
 next
-  show "\<forall>S. ord_res_6_final S \<longrightarrow> (\<nexists>S'. ord_res_6_step S S')"
-    by (metis finished_def ord_res_6_semantics.final_finished)
+  show "right_unique (constant_context ord_res_8)"
+    using right_unique_constant_context right_unique_ord_res_8 by metis
 next
   show "\<forall>S. ord_res_7_final S \<longrightarrow> (\<nexists>S'. constant_context ord_res_7 S S')"
     by (metis finished_def ord_res_7_semantics.final_finished)
 next
-  show "\<forall>i S6 S7. match i S6 S7 \<longrightarrow> ord_res_6_final S6 \<longleftrightarrow> ord_res_7_final S7"
-    unfolding match_def
-    using ord_res_6_final_iff_ord_res_7_final by metis
+  show "\<forall>S. ord_res_8_final S \<longrightarrow> (\<nexists>S'. constant_context ord_res_8 S S')"
+    by (metis finished_def ord_res_8_semantics.final_finished)
 next
-  show "\<forall>i S6 S7. match i S6 S7 \<longrightarrow>
-       safe_state ord_res_6_step ord_res_6_final S6 \<and>
-       safe_state (constant_context ord_res_7) ord_res_7_final S7"
+  show "\<forall>i S7 S8. match i S7 S8 \<longrightarrow> ord_res_7_final S7 \<longleftrightarrow> ord_res_8_final S8"
+    unfolding match_def
+    using ord_res_7_final_iff_ord_res_8_final by metis
+next
+  show "\<forall>i S7 S8. match i S7 S8 \<longrightarrow>
+       safe_state (constant_context ord_res_7) ord_res_7_final S7 \<and>
+       safe_state (constant_context ord_res_8) ord_res_8_final S8"
   proof (intro allI impI conjI)
-    fix i S6 S7
-    assume "match i S6 S7"
-    show "safe_state ord_res_6_step ord_res_6_final S6"
-      using \<open>match i S6 S7\<close>[unfolded match_def]
-      using ord_res_6_safe_state_if_invars
-      using ord_res_6_matches_ord_res_7.simps by auto
-
+    fix i S7 S8
+    assume match: "match i S7 S8"
     show "safe_state (constant_context ord_res_7) ord_res_7_final S7"
-      using \<open>match i S6 S7\<close>[unfolded match_def]
+      using match[unfolded match_def]
       using ord_res_7_safe_state_if_invars
-      using ord_res_6_matches_ord_res_7.simps by auto
+      using ord_res_7_matches_ord_res_8.simps by auto
+
+    show "safe_state (constant_context ord_res_8) ord_res_8_final S8"
+      using match[unfolded match_def]
+      using ord_res_8_safe_state_if_invars
+      using ord_res_7_matches_ord_res_8.simps by auto
   qed
 next
-  show "wfp (|\<subset>|)"
-    using wfP_pfsubset .
+  show "wfp (\<lambda>_ _. False)"
+    by simp
 next
-  show "\<forall>i S6 S7 S7'. match i S6 S7 \<longrightarrow> constant_context ord_res_7 S7 S7' \<longrightarrow>
-    (\<exists>i' S6'. ord_res_6_step\<^sup>+\<^sup>+ S6 S6' \<and> match i' S6' S7') \<or>
-    (\<exists>i'. match i' S6 S7' \<and> i' |\<subset>| i)"
+  show "\<forall>i S7 S8 S8'. match i S7 S8 \<longrightarrow> constant_context ord_res_8 S8 S8' \<longrightarrow>
+    (\<exists>i' S7'. (constant_context ord_res_7)\<^sup>+\<^sup>+ S7 S7' \<and> match i' S7' S8') \<or>
+    (\<exists>i'. match i' S7 S8' \<and> False)"
     unfolding match_def
-    using backward_simulation_between_6_and_7 by metis
+    using backward_simulation_between_7_and_8 by metis
 qed
 
 
-section \<open>ORD-RES-8 (only propagate when necessary)\<close>
+section \<open>ORD-RES-9\<close>
 
 
 section \<open>SCL(FOL)-2 (one-step conflict resolution)\<close>
