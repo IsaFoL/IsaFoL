@@ -3,19 +3,6 @@ theory Simulation
     Background
 begin
 
-
-
-lemma (in order) lift_properties:
-  fixes P Q :: "'a \<Rightarrow> ('b :: order) \<Rightarrow> bool"
-  assumes
-    "\<And>xs ys a. xs < ys \<Longrightarrow> P a xs \<Longrightarrow> P a ys" and
-    "\<And>xs ys a. xs < ys \<Longrightarrow> Q a ys \<Longrightarrow> Q a xs" and
-    "xs < ys" and
-    "\<And>a. P a ys \<Longrightarrow> Q a ys"
-  shows "\<And>a. P a xs \<Longrightarrow> Q a xs"
-  using assms
-  by presburger
-
 type_synonym 'f gliteral = "'f gterm literal"
 type_synonym 'f gclause = "'f gterm clause"
 
