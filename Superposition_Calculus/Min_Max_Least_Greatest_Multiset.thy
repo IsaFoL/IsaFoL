@@ -402,6 +402,67 @@ lemma multp\<^sub>H\<^sub>O_if_same_maximal_wrt_and_count_lt:
       local.trans multp\<^sub>H\<^sub>O_def order_less_imp_not_less sup_ge1 tot totalp_on_subset transp_on_subset
       x1_maximal)
 
+lemma multp_if_same_maximal_wrt_and_count_lt:
+  assumes
+    trans: "transp_on (set_mset M1 \<union> set_mset M2) R" and
+    asym: "asymp_on (set_mset M1 \<union> set_mset M2) R" and
+    tot: "totalp_on (set_mset M1 \<union> set_mset M2) R" and
+    x1_maximal: "is_maximal_in_mset_wrt R M1 x" and
+    x2_maximal: "is_maximal_in_mset_wrt R M2 x" and
+    "count M1 x < count M2 x"
+  shows "multp R M1 M2"
+  using multp\<^sub>H\<^sub>O_if_same_maximal_wrt_and_count_lt[
+      OF assms, THEN multp\<^sub>H\<^sub>O_imp_multp\<^sub>D\<^sub>M, THEN multp\<^sub>D\<^sub>M_imp_multp] .
+
+lemma less_than_maximal_wrt_if_multp\<^sub>H\<^sub>O:
+  assumes
+    trans: "transp_on (set_mset M1 \<union> set_mset M2) R" and
+    asym: "asymp_on (set_mset M2) R" and
+    tot: "totalp_on (set_mset M2) R" and
+    x2_maximal: "is_maximal_in_mset_wrt R M2 x2" and
+    "multp\<^sub>H\<^sub>O R M1 M2" and
+    "x1 \<in># M1"
+  shows "R\<^sup>=\<^sup>= x1 x2"
+proof -
+  have
+    trans2: "transp_on (set_mset M2) R" and
+    asym2: "asymp_on (set_mset M2) R" and
+    tot2: "totalp_on (set_mset M2) R"
+    using trans[THEN transp_on_subset] asym[THEN asymp_on_subset] tot[THEN totalp_on_subset]
+    by simp_all
+
+  have x2_in: "x2 \<in># M2" and x2_gr: "\<forall>y\<in>#M2. y \<noteq> x2 \<longrightarrow> \<not> R x2 y"
+    using x2_maximal[unfolded is_maximal_in_mset_wrt_iff[OF trans2 asym2]] by argo+
+
+  show ?thesis
+  proof (cases "x1 \<in># M2")
+    case True
+    thus ?thesis
+      using x2_gr by (metis (mono_tags) sup2CI tot2 totalp_onD x2_in)
+  next
+    case False
+
+    hence "x1 \<in># M1 - M2"
+      using \<open>x1 \<in># M1\<close> by (simp add: in_diff_count not_in_iff)
+
+    moreover have "\<forall>k\<in>#M1 - M2. \<exists>x\<in>#M2 - M1. R k x"
+      using multp\<^sub>H\<^sub>O_implies_one_step_strong(2)[OF \<open>multp\<^sub>H\<^sub>O R M1 M2\<close>] .
+
+    ultimately obtain x where "x \<in># M2 - M1" and "R x1 x"
+      by metis
+
+    hence "x \<noteq> x2 \<longrightarrow> \<not> R x2 x"
+      using x2_gr by (metis in_diffD)
+
+    hence "x \<noteq> x2 \<longrightarrow> R x x2"
+      by (metis \<open>x \<in># M2 - M1\<close> in_diffD tot2 totalp_onD x2_in)
+
+    thus ?thesis
+      using \<open>R x1 x\<close>
+      by (meson Un_iff \<open>x \<in># M2 - M1\<close> assms(6) in_diffD local.trans sup2I1 transp_onD x2_in)
+  qed
+qed
+
 
 section \<open>Examples of duplicate handling in set and multiset definitions\<close>
 
@@ -509,5 +570,11 @@ lemmas (in linorder) multp_if_maximal_less_that_maximal =
 
 lemmas (in linorder) multp\<^sub>H\<^sub>O_if_same_maximal_and_count_lt =
   multp\<^sub>H\<^sub>O_if_same_maximal_wrt_and_count_lt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) multp_if_same_maximal_and_count_lt =
+  multp_if_same_maximal_wrt_and_count_lt[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) less_than_maximal_if_multp\<^sub>H\<^sub>O =
+  less_than_maximal_wrt_if_multp\<^sub>H\<^sub>O[OF transp_on_less asymp_on_less totalp_on_less]
 
 end

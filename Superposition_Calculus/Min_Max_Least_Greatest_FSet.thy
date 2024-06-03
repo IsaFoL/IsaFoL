@@ -194,7 +194,7 @@ lemma is_least_in_ffilter_wrt_iff:
     (x |\<in>| X \<and> P x \<and> fBall X (\<lambda>y. y \<noteq> x \<longrightarrow> P y \<longrightarrow> R x y))"
   unfolding is_least_in_fset_wrt_iff[OF trans asym tot] by auto
 
-lemma is_least_in_fset_wrt_swap_predicate:
+lemma is_least_in_ffilter_wrt_swap_predicate:
   assumes
     trans: "transp_on (fset X) R" and
     asym: "asymp_on (fset X) R" and
@@ -240,6 +240,15 @@ proof -
       by (metis \<open>y |\<in>| X\<close> sup2I1 tot totalp_onD)
   qed
 qed
+  
+lemma ex_is_least_in_ffilter_wrt_iff:
+  assumes
+    trans: "transp_on (fset (ffilter P X)) R" and
+    asym: "asymp_on (fset (ffilter P X)) R" and
+    tot: "totalp_on (fset (ffilter P X)) R"
+  shows "(\<exists>x. is_least_in_fset_wrt R (ffilter P X) x) \<longleftrightarrow> (\<exists>x |\<in>| X. P x)"
+  by (metis asym bot_fset.rep_eq empty_iff ex_least_in_fset_wrt ffmember_filter
+      is_least_in_fset_wrt_iff local.trans tot)
 
 
 section \<open>Hide stuff\<close>
@@ -316,7 +325,10 @@ lemmas (in linorder) ex1_greatest_in_fset =
 lemmas (in linorder) is_least_in_ffilter_iff =
   is_least_in_ffilter_wrt_iff[OF transp_on_less asymp_on_less totalp_on_less]
 
-lemmas (in linorder) is_least_in_fset_swap_predicate =
-  is_least_in_fset_wrt_swap_predicate[OF transp_on_less asymp_on_less totalp_on_less]
+lemmas (in linorder) ex_is_least_in_ffilter_iff =
+  ex_is_least_in_ffilter_wrt_iff[OF transp_on_less asymp_on_less totalp_on_less]
+
+lemmas (in linorder) is_least_in_ffilter_swap_predicate =
+  is_least_in_ffilter_wrt_swap_predicate[OF transp_on_less asymp_on_less totalp_on_less]
 
 end
