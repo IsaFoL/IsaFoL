@@ -17868,7 +17868,7 @@ qed
 
 thm is_least_nonskipped_clause_def
 
-lemma MAGIC5:
+lemma
   assumes invars: "ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>)" and
     no_more_steps: "\<nexists>\<Gamma>' \<C>'. ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')"
   shows "(\<forall>C. \<C> = Some C \<longleftrightarrow> is_least_false_or_producing_or_factorizing N U\<^sub>e\<^sub>r \<F> \<Gamma> C)"
@@ -18076,7 +18076,267 @@ next
     by (metis (no_types) The_optional_eq_SomeD The_optional_eq_SomeI)
 qed
 
+
 lemma MAGIC6:
+  assumes invars: "ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>)"
+  shows "\<exists>\<C>'. (ord_res_7 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>') \<and>
+    (\<nexists>\<C>''. ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>') (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>''))"
+proof -
+  define R where
+    "R = (\<lambda>\<C> \<C>'. ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>'))"
+
+  define f :: "'f gclause option \<Rightarrow> 'f gclause fset" where
+    "f = (\<lambda>\<C>. case \<C> of None \<Rightarrow> {||} | Some C \<Rightarrow> {|D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<preceq>\<^sub>c D|})"
+
+  let ?less_f = "(|\<subset>|)"
+
+  have "Wellfounded.wfp_on {x'. R\<^sup>*\<^sup>* \<C> x'} R\<inverse>\<inverse>"
+  proof (rule wfp_on_if_convertible_to_wfp_on)
+    have "wfp (|\<subset>|)"
+      by auto
+    thus "Wellfounded.wfp_on (f ` {x'. R\<^sup>*\<^sup>* \<C> x'}) ?less_f"
+      using Wellfounded.wfp_on_subset subset_UNIV by metis
+  next
+    fix \<C>\<^sub>x \<C>\<^sub>y :: "'f gclause option"
+
+    have rtranclp_with_constsD: "(\<lambda>y y'. R (x, y) (x, y'))\<^sup>*\<^sup>* y y' \<Longrightarrow>
+      R\<^sup>*\<^sup>* (x, y) (x, y')" for R x y y'
+    proof (induction y arbitrary: rule: converse_rtranclp_induct)
+      case base
+      show ?case
+        by simp
+    next
+      case (step w)
+      thus ?case
+        by force
+    qed 
+
+    assume "\<C>\<^sub>x \<in> {x'. R\<^sup>*\<^sup>* \<C> x'}" and  "\<C>\<^sub>y \<in> {x'. R\<^sup>*\<^sup>* \<C> x'}"
+    hence
+      "(ord_res_7 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>\<^sub>x)" and
+      "(ord_res_7 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>\<^sub>y)"
+      unfolding atomize_conj mem_Collect_eq R_def
+      by (auto intro: rtranclp_with_constsD)
+    hence
+      x_invars: "ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>\<^sub>x)" and
+      y_invars: "ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>\<^sub>y)"
+      using ord_res_7_preserves_invars
+      using invars by (metis rtranclp_ord_res_7_preserves_ord_res_7_invars)+
+
+    have \<Gamma>_consistent: "trail_consistent \<Gamma>"
+      using x_invars by (metis ord_res_7_invars_implies_trail_consistent)
+
+    have less_f_if: "?less_f (f \<C>\<^sub>y) (f \<C>\<^sub>x)"
+      if "\<C>\<^sub>x = Some C" and
+        \<C>\<^sub>y_disj: "\<C>\<^sub>y = None \<or> \<C>\<^sub>y = Some D \<and> C \<prec>\<^sub>c D" and
+        C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+      for C D
+    proof -
+      have f_x: "f \<C>\<^sub>x = {|D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<preceq>\<^sub>c D|}"
+        by (auto simp add: \<open>\<C>\<^sub>x = Some C\<close> f_def)
+
+      moreover have "C |\<in>| f \<C>\<^sub>x"
+        using C_in f_x by simp
+
+      moreover have "C |\<notin>| f \<C>\<^sub>y \<and> f \<C>\<^sub>y |\<subseteq>| f \<C>\<^sub>x"
+        using \<C>\<^sub>y_disj
+      proof (elim disjE conjE; intro conjI)
+        assume "\<C>\<^sub>y = None"
+        thus "C |\<notin>| f \<C>\<^sub>y" and "f \<C>\<^sub>y |\<subseteq>| f \<C>\<^sub>x"
+          unfolding f_x
+          by (simp_all add: f_def)
+      next
+        assume "\<C>\<^sub>y = Some D" and "C \<prec>\<^sub>c D"
+
+        have "\<And>x. D \<preceq>\<^sub>c x \<Longrightarrow> C \<preceq>\<^sub>c x"
+          using \<open>C \<prec>\<^sub>c D\<close> by auto
+
+        moreover have fst_f_y: "f \<C>\<^sub>y = {|E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). D \<preceq>\<^sub>c E|}"
+          by (auto simp add: \<open>\<C>\<^sub>y = Some D\<close> f_def)
+
+        ultimately show "f \<C>\<^sub>y |\<subseteq>| f \<C>\<^sub>x"
+          using f_x by auto
+
+        show "C |\<notin>| f \<C>\<^sub>y"
+          using \<open>C \<prec>\<^sub>c D\<close> fst_f_y by auto
+      qed
+
+      ultimately have "f \<C>\<^sub>y |\<subset>| f \<C>\<^sub>x"
+        by blast
+
+      thus ?thesis
+        by (simp add: lex_prodp_def)
+    qed
+
+    have eres_not_in_if: "eres D E |\<notin>| U\<^sub>e\<^sub>r"
+      if "\<C>\<^sub>x = Some E" and E_false: "trail_false_cls \<Gamma> E" and
+        E_max_lit: "ord_res.is_maximal_lit L E" and L_neg: "is_neg L"
+        "map_of \<Gamma> (- L) = Some (Some D)"
+      for D E L
+    proof -
+      have
+        clauses_lt_E_true:
+        "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c E \<longrightarrow> trail_true_cls \<Gamma> C" and
+        \<Gamma>_prop_greatest:
+        "\<forall>Ln \<in> set \<Gamma>. \<forall>C. snd Ln = Some C \<longrightarrow> linorder_lit.is_greatest_in_mset C (fst Ln)"
+        using x_invars unfolding \<open>\<C>\<^sub>x = Some E\<close> ord_res_7_invars_def by simp_all
+
+      have "(- L, Some D) \<in> set \<Gamma>"
+        using \<open>map_of \<Gamma> (- L) = Some (Some D)\<close> by (metis map_of_SomeD)
+
+      hence D_greatest_lit: "linorder_lit.is_greatest_in_mset D (- L)"
+        using \<Gamma>_prop_greatest by fastforce
+
+      have "eres D E \<prec>\<^sub>c E"
+        using eres_lt_if
+        using E_max_lit L_neg D_greatest_lit
+        by metis
+
+      hence "eres D E \<noteq> E"
+        by order
+
+      have "L \<in># E"
+        using E_max_lit unfolding linorder_lit.is_maximal_in_mset_iff by metis
+
+      hence "- L \<notin># E"
+        using not_both_lit_and_comp_lit_in_false_clause_if_trail_consistent
+        using \<Gamma>_consistent E_false by metis
+
+      hence "\<forall>K \<in># eres D E. atm_of K \<prec>\<^sub>t atm_of L"
+        using lit_in_eres_lt_greatest_lit_in_grestest_resolvant[OF \<open>eres D E \<noteq> E\<close> E_max_lit]
+        by metis
+
+      hence "\<forall>K \<in># eres D E. K \<noteq> L \<and> K \<noteq> - L"
+        by fastforce
+
+      moreover have "\<forall>L \<in># eres D E. L \<in># D \<or> L \<in># E"
+        using lit_in_one_of_resolvents_if_in_eres by metis
+
+      moreover have D_almost_false: "trail_false_cls \<Gamma> {#K \<in># D. K \<noteq> - L#}"
+        using ord_res_7_invars_implies_propagated_clause_almost_false
+        using \<open>(- L, Some D) \<in> set \<Gamma>\<close> x_invars
+        by metis
+
+      ultimately have "trail_false_cls \<Gamma> (eres D E)"
+        using E_false unfolding trail_false_cls_def by fastforce
+
+      have "eres D E |\<notin>| N |\<union>| U\<^sub>e\<^sub>r"
+        using eres_not_in_known_clauses_if_trail_false_cls
+        using \<Gamma>_consistent clauses_lt_E_true \<open>eres D E \<prec>\<^sub>c E\<close> \<open>trail_false_cls \<Gamma> (eres D E)\<close>
+        by metis
+
+      thus "eres D E |\<notin>| U\<^sub>e\<^sub>r"
+        by blast
+    qed
+
+    assume "R\<inverse>\<inverse> \<C>\<^sub>y \<C>\<^sub>x"
+    hence "ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>\<^sub>x) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>\<^sub>y)"
+      unfolding conversep_iff R_def .
+    thus "?less_f (f \<C>\<^sub>y) (f \<C>\<^sub>x)"
+    proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>\<^sub>x)" "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>\<^sub>y)" rule: ord_res_7.cases)
+      case step_hyps: (decide_neg C L A)
+      hence False by simp
+      thus ?thesis ..
+    next
+      case step_hyps: (skip_defined C L)
+
+      have "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+        using ord_res_7_invars_def step_hyps(1) x_invars by presburger
+
+      moreover have "\<exists>D. \<C>\<^sub>y = None \<or> \<C>\<^sub>y = Some D \<and> C \<prec>\<^sub>c D"
+      proof (cases \<C>\<^sub>y)
+        case None
+        thus ?thesis
+          by simp
+      next
+        case (Some D)
+        thus ?thesis
+          using step_hyps
+          by (metis linorder_cls.is_least_in_ffilter_iff Some_eq_The_optionalD)
+      qed
+
+      ultimately show ?thesis
+        using less_f_if step_hyps by metis
+    next
+      case step_hyps: (skip_undefined_neg C L)
+      hence False by simp
+      thus ?thesis ..
+    next
+      case step_hyps: (skip_undefined_pos C L D)
+
+      have "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+        using ord_res_7_invars_def step_hyps(1) x_invars by presburger
+
+      moreover have "\<exists>D. \<C>\<^sub>y = None \<or> \<C>\<^sub>y = Some D \<and> C \<prec>\<^sub>c D"
+        using step_hyps by (metis linorder_cls.is_least_in_ffilter_iff)
+
+      ultimately show ?thesis
+        using less_f_if step_hyps by metis
+    next
+      case step_hyps: (skip_undefined_pos_ultimate C L)
+      hence False by simp
+      thus ?thesis ..
+    next
+      case step_hyps: (production C L)
+      hence False by simp
+      thus ?thesis ..
+    next
+      case step_hyps: (factoring C L)
+
+      have "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+        using ord_res_7_invars_def step_hyps(1) x_invars by presburger
+
+      moreover have "efac C \<noteq> C"
+        using step_hyps by (metis greatest_literal_in_efacI)
+      
+      ultimately have "C |\<notin>| \<F>"
+        by (smt (verit, ccfv_threshold) fimage_iff iefac_def ex1_efac_eq_factoring_chain
+            factorizable_if_neq_efac)
+
+      hence False
+        using \<open>\<F> = finsert C \<F>\<close> by blast
+
+      thus ?thesis ..
+    next
+      case step_hyps: (resolution_bot E L D)
+      hence "eres D E |\<notin>| U\<^sub>e\<^sub>r"
+        using eres_not_in_if by metis
+      hence False
+        using \<open>U\<^sub>e\<^sub>r = finsert (eres D E) U\<^sub>e\<^sub>r\<close> by blast
+      thus ?thesis ..
+    next
+      case (resolution_pos E L D K)
+      hence "eres D E |\<notin>| U\<^sub>e\<^sub>r"
+        using eres_not_in_if by metis
+      hence False
+        using \<open>U\<^sub>e\<^sub>r = finsert (eres D E) U\<^sub>e\<^sub>r\<close> by blast
+      thus ?thesis ..
+    next
+      case (resolution_neg E L D K C)
+      hence "eres D E |\<notin>| U\<^sub>e\<^sub>r"
+        using eres_not_in_if by metis
+      hence False
+        using \<open>U\<^sub>e\<^sub>r = finsert (eres D E) U\<^sub>e\<^sub>r\<close> by blast
+      thus ?thesis ..
+    qed
+  qed
+
+  then obtain \<C>' where "R\<^sup>*\<^sup>* \<C> \<C>'" and "\<nexists>z. R \<C>' z"
+    using ex_terminating_rtranclp_strong by metis
+
+  show ?thesis
+  proof (intro exI conjI)
+    show "(ord_res_7 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>')"
+      using \<open>R\<^sup>*\<^sup>* \<C> \<C>'\<close>
+      by (induction \<C> rule: converse_rtranclp_induct) (auto simp: R_def)
+  next
+    show "\<nexists>\<C>''. ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>') (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>'')"
+      using \<open>\<nexists>z. R \<C>' z\<close>
+      by (simp add: R_def)
+  qed
+qed
+
+lemma
   assumes invars: "ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>)"
   shows "\<exists>\<Gamma>' \<C>'. (ord_res_7 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>') \<and>
     (\<nexists>\<Gamma>'' \<C>''. ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>') (U\<^sub>e\<^sub>r, \<F>, \<Gamma>'', \<C>''))"
@@ -18577,11 +18837,124 @@ proof (cases S7 S8 rule: ord_res_7_matches_ord_res_8.cases)
     then obtain D :: "'f gclause" where "\<C> = Some D"
       by blast
 
-    hence "is_least_nonskipped_clause N U\<^sub>e\<^sub>r \<F> \<Gamma> D"
-      using match_hyps by metis
+    hence D_in: "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+      by (metis \<open>\<C> = Some D\<close> invars7)
 
-    thus ?thesis
-      sorry
+    have "is_least_nonskipped_clause N U\<^sub>e\<^sub>r \<F> \<Gamma> D"
+      using match_hyps \<open>\<C> = Some D\<close> by metis
+
+    moreover have D_not_false: "\<not> trail_false_cls \<Gamma> D"
+      using D_in step_hyps by metis
+
+    moreover have "\<not> ord_res_8_can_produce N U\<^sub>e\<^sub>r \<F> \<Gamma> D"
+    proof (rule notI)
+      assume "ord_res_8_can_produce N U\<^sub>e\<^sub>r \<F> \<Gamma> D"
+      thus False
+      proof (cases N U\<^sub>e\<^sub>r \<F> \<Gamma> D rule: ord_res_8_can_produce.cases)
+        case (1 L')
+        thus ?thesis
+          by (metis A_in A_least A_undef D_in atm_of_in_atms_of_clssI
+              atoms_of_trail_lt_atom_of_propagatable_literal clause_could_propagate_def invars7
+              linorder_lit.is_maximal_in_mset_iff literal.collapse(1) step_hyps(4))
+      qed
+    qed
+
+    moreover have "\<not> ord_res_8_can_factorize N U\<^sub>e\<^sub>r \<F> \<Gamma> D"
+    proof (rule notI)
+      assume "ord_res_8_can_factorize N U\<^sub>e\<^sub>r \<F> \<Gamma> D"
+      thus False
+      proof (cases N U\<^sub>e\<^sub>r \<F> \<Gamma> D rule: ord_res_8_can_factorize.cases)
+        case (1 L')
+        thus False
+          by (metis A_in A_least A_undef D_in atm_of_in_atms_of_clssI
+              atoms_of_trail_lt_atom_of_propagatable_literal clause_could_propagate_def invars7
+              linorder_lit.is_maximal_in_mset_iff literal.collapse(1) step_hyps(4))
+      qed
+    qed
+
+    ultimately have "ord_res_8_can_decide_neg N U\<^sub>e\<^sub>r \<F> \<Gamma> D \<or>
+      ord_res_8_can_skip_undefined_neg N U\<^sub>e\<^sub>r \<F> \<Gamma> D \<or>
+      ord_res_8_can_skip_undefined_pos_ultimate N U\<^sub>e\<^sub>r \<F> \<Gamma> D"
+      unfolding is_least_nonskipped_clause_def
+      unfolding linorder_cls.is_least_in_ffilter_iff
+      by argo
+
+    then obtain \<C>' where first_step7: "ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')"
+    proof (elim disjE; atomize_elim)
+      assume "ord_res_8_can_decide_neg N U\<^sub>e\<^sub>r \<F> \<Gamma> D"
+      thus "\<exists>\<C>'. ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')"
+      proof (cases N U\<^sub>e\<^sub>r \<F> \<Gamma> D rule: ord_res_8_can_decide_neg.cases)
+        case hyps: (1 L A')
+        hence "A' = A"
+          by (smt (verit, del_insts) \<Gamma>_lower_set linorder_trm.is_least_in_ffilter_iff
+              linorder_trm.neq_iff linorder_trm.not_in_lower_setI linorder_trm.order.strict_trans
+              step_hyps(3))
+        thus ?thesis
+          using hyps \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close>
+          using ord_res_7.decide_neg[of \<Gamma> D _ N U\<^sub>e\<^sub>r A \<Gamma>' \<F>] by blast
+      qed
+    next
+      assume "ord_res_8_can_skip_undefined_neg N U\<^sub>e\<^sub>r \<F> \<Gamma> D"
+      thus "\<exists>\<C>'. ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')"
+      proof (cases N U\<^sub>e\<^sub>r \<F> \<Gamma> D rule: ord_res_8_can_skip_undefined_neg.cases)
+        case hyps: (1 L)
+        hence "L = Neg A"
+          by (smt (verit) A_in A_least A_undef D_in \<Gamma>_lower_set atm_of_in_atms_of_clssI
+              linorder_lit.is_maximal_in_mset_iff linorder_trm.antisym_conv3
+              linorder_trm.not_in_lower_setI literal.disc(2) literal.expand literal.sel(2)
+              trail_defined_lit_iff_trail_defined_atm)
+        thus ?thesis
+          using hyps \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close>
+          using ord_res_7.skip_undefined_neg by blast
+      qed
+    next
+      assume "ord_res_8_can_skip_undefined_pos_ultimate N U\<^sub>e\<^sub>r \<F> \<Gamma> D"
+      thus "\<exists>\<C>'. ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')"
+      proof (cases N U\<^sub>e\<^sub>r \<F> \<Gamma> D rule: ord_res_8_can_skip_undefined_pos_ultimate.cases)
+        case hyps: (1 L)
+        hence "L = Pos A"
+          by (smt (verit, best) A_in A_least A_undef D_in atm_of_in_atms_of_clssI invars7
+              linorder_lit.is_maximal_in_mset_iff linorder_trm.antisym_conv3
+              linorder_trm.not_in_lower_setI literal.disc(1) literal.expand literal.sel(1)
+              trail_defined_lit_iff_trail_defined_atm)
+        thus ?thesis
+          using hyps \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close>
+          using ord_res_7.skip_undefined_pos_ultimate by fastforce
+      qed
+    qed
+
+    moreover have "ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')"
+      using \<open>\<C> = Some D\<close> first_step7 match_hyps(3) ord_res_7_preserves_invars by blast
+
+    ultimately obtain \<C>'' where
+      following_steps7: "(ord_res_7 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>') (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'')" and
+      no_more_step7: "(\<nexists>\<C>'''. ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'') (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'''))"
+      using MAGIC6 by metis
+
+    show ?thesis
+    proof (intro exI conjI)
+      have "(ord_res_7 N)\<^sup>+\<^sup>+ (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'')"
+        unfolding \<open>\<C> = Some D\<close>
+        using first_step7 following_steps7 by simp
+
+      thus "(constant_context ord_res_7)\<^sup>+\<^sup>+ S7 (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'')"
+        unfolding S7_def by (simp add: tranclp_constant_context)
+
+      show "ord_res_7_matches_ord_res_8 (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'') S8'"
+        unfolding S8'_def \<open>s8' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')\<close>
+      proof (intro ord_res_7_matches_ord_res_8.intros allI)
+        show "ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'')"
+          using \<open>ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')\<close> following_steps7
+            rtranclp_ord_res_7_preserves_ord_res_7_invars by blast
+
+        show "ord_res_8_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')"
+          using invars_s8' step_hyps(1) by blast
+
+        fix C :: "'f gclause"
+        show "\<C>'' = Some C \<longleftrightarrow> is_least_nonskipped_clause N U\<^sub>e\<^sub>r \<F> \<Gamma>' C"
+          using MAGIC5 \<open>ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'')\<close> no_more_step7 by metis
+      qed
+    qed
   next
     case step_hyps: (propagate A C \<Gamma>')
 
@@ -18599,7 +18972,7 @@ proof (cases S7 S8 rule: ord_res_7_matches_ord_res_8.cases)
       using step_hyps unfolding atomize_conj linorder_cls.is_least_in_ffilter_iff by argo
 
     hence
-      "\<not> trail_defined_lit \<Gamma> (Pos A)" and
+      Pos_A_undef: "\<not> trail_defined_lit \<Gamma> (Pos A)" and
       C_max_lit: "linorder_lit.is_maximal_in_mset C (Pos A)" and
       C_almost_false: "trail_false_cls \<Gamma> {#K \<in># C. K \<noteq> Pos A#}"
       unfolding atomize_conj clause_could_propagate_def by argo
@@ -18776,17 +19149,69 @@ proof (cases S7 S8 rule: ord_res_7_matches_ord_res_8.cases)
       "\<C>' = The_optional (linorder_cls.is_least_in_fset
         (ffilter ((\<prec>\<^sub>c) C) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))))"
 
-    define \<Gamma>' where
-      "\<Gamma>' = (Pos A, Some C) # \<Gamma>"
+    have first_step7: "ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')"
+    proof (rule ord_res_7.production [of \<Gamma> C "Pos A" N U\<^sub>e\<^sub>r \<Gamma>' \<C>' \<F>])
+      show "\<not> trail_false_cls \<Gamma> C"
+        using C_in step_hyps(2) by blast
+    next
+      show "ord_res.is_maximal_lit (Pos A) C"
+        using C_max_lit by force
+    next
+      show "\<not> (\<exists>Aa|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). Aa \<prec>\<^sub>t atm_of (Pos A) \<and> Aa |\<notin>| trail_atms \<Gamma>)"
+        by (metis A_least \<Gamma>_lower_set linorder_trm.dual_order.asym linorder_trm.neq_iff
+            linorder_trm.not_in_lower_setI literal.sel(1))
+    next
+      show "\<not> trail_defined_lit \<Gamma> (Pos A)"
+        using Pos_A_undef .
+    next
+      show "is_pos (Pos A)"
+        by simp
+    next
+      show "trail_false_cls \<Gamma> {#K \<in># C. K \<noteq> Pos A#}"
+        using C_almost_false .
+    next
+      show "ord_res.is_strictly_maximal_lit (Pos A) C"
+        using step_hyps by argo
+    next
+      show "\<Gamma>' = (Pos A, Some C) # \<Gamma>"
+        using step_hyps by argo
+    next
+      show "\<C>' = The_optional (linorder_cls.is_least_in_fset (ffilter ((\<prec>\<^sub>c) C) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))))"
+        using \<C>'_def .
+    qed
 
-    have "ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')"
-      using ord_res_7.production[of \<Gamma> C "Pos A" N U\<^sub>e\<^sub>r \<Gamma>' \<C>' \<F>]
-      sorry
+    moreover have "ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')"
+      using \<open>\<C> = Some C\<close> first_step7 match_hyps(3) ord_res_7_preserves_invars by blast
 
-    thus ?thesis
-      using MAGIC5
-      using step_hyps
-      sorry
+    ultimately obtain \<C>'' where
+      following_steps7: "(ord_res_7 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>') (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'')" and
+      no_more_step7: "(\<nexists>\<C>'''. ord_res_7 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'') (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'''))"
+      using MAGIC6 by metis
+
+    show ?thesis
+    proof (intro exI conjI)
+      have "(ord_res_7 N)\<^sup>+\<^sup>+ (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'')"
+        unfolding \<open>\<C> = Some C\<close>
+        using first_step7 following_steps7 by simp
+
+      thus "(constant_context ord_res_7)\<^sup>+\<^sup>+ S7 (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'')"
+        unfolding S7_def by (simp add: tranclp_constant_context)
+
+      show "ord_res_7_matches_ord_res_8 (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'') S8'"
+        unfolding S8'_def \<open>s8' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')\<close>
+      proof (intro ord_res_7_matches_ord_res_8.intros allI)
+        show "ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'')"
+          using \<open>ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>')\<close> following_steps7
+            rtranclp_ord_res_7_preserves_ord_res_7_invars by blast
+
+        show "ord_res_8_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')"
+          using invars_s8' step_hyps(1) by blast
+
+        fix C :: "'f gclause"
+        show "\<C>'' = Some C \<longleftrightarrow> is_least_nonskipped_clause N U\<^sub>e\<^sub>r \<F> \<Gamma>' C"
+          using MAGIC5 \<open>ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', \<C>'')\<close> no_more_step7 by metis
+      qed
+    qed
   next
     case step_hyps: (factorize A C \<F>')
     show ?thesis
@@ -18799,7 +19224,7 @@ proof (cases S7 S8 rule: ord_res_7_matches_ord_res_8.cases)
 qed
 
 theorem bisimulation_ord_res_6_ord_res_7:
-  defines "match \<equiv> ord_res_6_matches_ord_res_7"
+  defines "match \<equiv> \<lambda>_. ord_res_6_matches_ord_res_7"
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow> 'f ord_res_7_state \<Rightarrow> 'f ord_res_8_state \<Rightarrow> bool) ORDER.
     bisimulation
       ord_res_6_step (constant_context ord_res_7)
