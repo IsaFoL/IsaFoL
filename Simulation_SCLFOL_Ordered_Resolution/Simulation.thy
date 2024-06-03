@@ -20213,20 +20213,20 @@ section \<open>SCL(FOL)-2 (one-step conflict resolution)\<close>
 
 inductive scl_fol_2 where
   decide_neg: "\<not> (\<exists>C |\<in>| N |\<union>| U. trail_false_cls \<Gamma> C) \<Longrightarrow>
-    linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set N. \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
+    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss N. \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
     \<not> (\<exists>C |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> C (Pos A)) \<Longrightarrow>
     \<Gamma>' = (Neg A, None) # \<Gamma> \<Longrightarrow>
     scl_fol_2 N (\<Gamma>, U, None) (\<Gamma>', U)" |
 
   decide_pos: "\<not> (\<exists>C |\<in>| N |\<union>| U. trail_false_cls \<Gamma> C) \<Longrightarrow>
-    linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set N. \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
+    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss N. \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
     linorder_cls.is_least_in_fset {|C |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> C (Pos A)|} C \<Longrightarrow>
     \<not> (\<exists>D |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> D (Neg A)) \<Longrightarrow>
     \<Gamma>' = (Pos A, None) # \<Gamma> \<Longrightarrow>
     scl_fol_2 N (\<Gamma>, U, None) (\<Gamma>', U)" |
 
   propagate_pos: "\<not> (\<exists>C |\<in>| N |\<union>| U. trail_false_cls \<Gamma> C) \<Longrightarrow>
-    linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set N. \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
+    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss N. \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
     linorder_cls.is_least_in_fset {|C |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> C (Pos A)|} C \<Longrightarrow>
     (\<exists>D |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> D (Neg A)) \<Longrightarrow>
     \<Gamma>' = (Pos A, Some {#L \<in># C. L \<noteq> Pos A#}) # \<Gamma> \<Longrightarrow>
@@ -20246,20 +20246,20 @@ section \<open>SCL(FOL)-1 (resolution-driven strategy)\<close>
 
 inductive scl_fol_1 where
   decide_neg: "\<not> (\<exists>C |\<in>| N |\<union>| U. trail_false_cls \<Gamma> C) \<Longrightarrow>
-    linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set N. \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
+    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss N. \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
     \<not> (\<exists>C |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> C (Pos A)) \<Longrightarrow>
     \<Gamma>' = (Neg A, None) # \<Gamma> \<Longrightarrow>
     scl_fol_1 N (\<Gamma>, U, None) (\<Gamma>', U, None)" |
 
   decide_pos: "\<not> (\<exists>C |\<in>| N |\<union>| U. trail_false_cls \<Gamma> C) \<Longrightarrow>
-    linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set N. \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
+    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss N. \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
     (\<exists>C |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> C (Pos A)) \<Longrightarrow>
     \<not> (\<exists>D |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> D (Neg A)) \<Longrightarrow>
     \<Gamma>' = (Pos A, None) # \<Gamma> \<Longrightarrow>
     scl_fol_1 N (\<Gamma>, U, None) (\<Gamma>', U, None)" |
 
   propagate_pos: "\<not> (\<exists>C |\<in>| N |\<union>| U. trail_false_cls \<Gamma> C) \<Longrightarrow>
-    linorder_trm.is_least_in_set {A\<^sub>2 \<in> atoms_of_clause_set N. \<forall>A\<^sub>1 \<in> trail_atoms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2} A \<Longrightarrow>
+    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss N. \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
     linorder_cls.is_least_in_fset {|C |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> C (Pos A)|} C \<Longrightarrow>
     (\<exists>D |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> D (Neg A)) \<Longrightarrow>
     \<Gamma>' = (Pos A, Some {#L \<in># C. L \<noteq> Pos A#}) # \<Gamma> \<Longrightarrow>
@@ -20291,23 +20291,22 @@ proof (rule right_uniqueI)
     proof (cases N "(\<Gamma>, U, None :: 'f gterm literal multiset option)" z rule: scl_fol_1.cases)
       case (decide_neg A2 \<Gamma>2')
       with step1_hyps show ?thesis
-        by (metis (no_types, lifting) linorder_trm.Uniq_is_least_in_set the1_equality')
+        by (metis (no_types, lifting) Uniq_D linorder_trm.Uniq_is_least_in_fset)
     next
       case (decide_pos A2 \<Gamma>2')
       with step1_hyps have False
-        by (metis (mono_tags, lifting) Uniq_D linorder_trm.Uniq_is_least_in_set)
+        by (metis (no_types, lifting) Uniq_D linorder_trm.Uniq_is_least_in_fset)
       thus ?thesis ..
     next
       case (propagate_pos A2 C2 \<Gamma>2')
       with step1_hyps have False
-        by (metis (mono_tags, lifting) Uniq_D linorder_cls.is_least_in_fset_ffilterD(1)
-            linorder_cls.is_least_in_fset_ffilterD(2) linorder_trm.Uniq_is_least_in_set)
+        by (metis (no_types, lifting) Uniq_D linorder_trm.Uniq_is_least_in_fset
+            linorder_cls.is_least_in_ffilter_iff)
       thus ?thesis ..
     next
       case (conflict C2)
       with step1_hyps have False
-        using linorder_cls.is_least_in_fset_ffilterD(1) linorder_cls.is_least_in_fset_ffilterD(2)
-        by blast
+        unfolding linorder_cls.is_least_in_ffilter_iff by blast
       thus ?thesis ..
     qed
   next
@@ -20318,22 +20317,21 @@ proof (rule right_uniqueI)
     proof (cases N "(\<Gamma>, U, None :: 'f gterm literal multiset option)" z rule: scl_fol_1.cases)
       case (decide_neg A2 \<Gamma>2')
       with step1_hyps have False
-        by (metis (mono_tags, lifting) Uniq_D linorder_trm.Uniq_is_least_in_set)
+        by (metis (no_types, lifting) Uniq_D linorder_trm.Uniq_is_least_in_fset)
       thus ?thesis ..
     next
       case (decide_pos A2 \<Gamma>2')
       with step1_hyps show ?thesis
-        by (metis (no_types, lifting) linorder_trm.Uniq_is_least_in_set the1_equality')
+        by (metis (no_types, lifting) Uniq_D linorder_trm.Uniq_is_least_in_fset)
     next
       case (propagate_pos A2 C2 \<Gamma>2')
       with step1_hyps have False
-        by (metis (no_types, lifting) linorder_trm.Uniq_is_least_in_set the1_equality')
+        by (metis (no_types, lifting) Uniq_D linorder_trm.Uniq_is_least_in_fset)
       thus ?thesis ..
     next
       case (conflict C2)
       with step1_hyps have False
-        using linorder_cls.is_least_in_fset_ffilterD(1) linorder_cls.is_least_in_fset_ffilterD(2)
-        by blast
+        unfolding linorder_cls.is_least_in_ffilter_iff by blast
       thus ?thesis ..
     qed
   next
@@ -20344,23 +20342,24 @@ proof (rule right_uniqueI)
     proof (cases N "(\<Gamma>, U, None :: 'f gterm literal multiset option)" z rule: scl_fol_1.cases)
       case (decide_neg A2 \<Gamma>2')
       with step1_hyps have False
-        by (metis (mono_tags, lifting) Uniq_D linorder_cls.is_least_in_fset_ffilterD(1)
-            linorder_cls.is_least_in_fset_ffilterD(2) linorder_trm.Uniq_is_least_in_set)
+        by (metis (no_types, lifting) Uniq_D linorder_trm.Uniq_is_least_in_fset
+            linorder_cls.is_least_in_ffilter_iff)
       thus ?thesis ..
     next
       case (decide_pos A2 \<Gamma>2')
       with step1_hyps show ?thesis
-        by (metis (no_types, lifting) linorder_trm.Uniq_is_least_in_set the1_equality')
+        by (metis (no_types, lifting) Uniq_D linorder_trm.Uniq_is_least_in_fset)
     next
       case step2_hyps: (propagate_pos A2 C2 \<Gamma>2')
       have "A2 = A"
         using step1_hyps step2_hyps
-        by (metis (no_types, lifting) linorder_trm.dual_order.asym linorder_trm.is_least_in_set_iff)
+        by (metis (no_types, lifting) Uniq_D linorder_trm.Uniq_is_least_in_fset)
 
       have "C2 = C"
         using step1_hyps step2_hyps
         unfolding \<open>A2 = A\<close>
-        by (metis (no_types, lifting) linorder_cls.is_least_in_ffilter_iff linorder_cls.not_less_iff_gr_or_eq)
+        by (metis (no_types, lifting) linorder_cls.is_least_in_ffilter_iff
+            linorder_cls.not_less_iff_gr_or_eq)
 
       have "\<Gamma>2' = \<Gamma>'"
         using step1_hyps step2_hyps
@@ -20372,8 +20371,7 @@ proof (rule right_uniqueI)
     next
       case (conflict C2)
       with step1_hyps have False
-        using linorder_cls.is_least_in_fset_ffilterD(1) linorder_cls.is_least_in_fset_ffilterD(2)
-        by blast
+        unfolding linorder_cls.is_least_in_ffilter_iff by blast
       thus ?thesis ..
     qed
   next
@@ -20499,7 +20497,7 @@ lemma
     "S \<equiv> state_of_gstate S\<^sub>G" and
     "S' \<equiv> state_of_gstate S\<^sub>G'"
   assumes
-    ball_le_\<beta>\<^sub>G: "\<forall>A\<^sub>G \<in> atoms_of_clause_set N\<^sub>G. A\<^sub>G \<preceq>\<^sub>t \<beta>\<^sub>G" and
+    ball_le_\<beta>\<^sub>G: "\<forall>A\<^sub>G |\<in>| atms_of_clss N\<^sub>G. A\<^sub>G \<preceq>\<^sub>t \<beta>\<^sub>G" and
     invar: "trail_consistent (fst S\<^sub>G)" and
     step: "scl_fol_1 N\<^sub>G S\<^sub>G S\<^sub>G'"
   shows
@@ -20573,7 +20571,7 @@ proof -
     "\<not> Ex (scl_fol.conflict N \<beta> ((lit_of_glit L\<^sub>G, None) # \<Gamma>, U, \<C>))"
     if
       nex_false_clause_wrt_\<Gamma>\<^sub>G: "\<not> fBex (N\<^sub>G |\<union>| U\<^sub>G) (trail_false_cls \<Gamma>\<^sub>G)" and
-      ball_lt_atm_L\<^sub>G: "\<forall>x \<in> trail_atoms \<Gamma>\<^sub>G. x \<prec>\<^sub>t atm_of L\<^sub>G" and
+      ball_lt_atm_L\<^sub>G: "\<forall>x |\<in>| trail_atms \<Gamma>\<^sub>G. x \<prec>\<^sub>t atm_of L\<^sub>G" and
       nex_clause_that_propagate: "\<not> (\<exists>C|\<in>|N\<^sub>G |\<union>| U\<^sub>G. clause_could_propagate \<Gamma>\<^sub>G C (- L\<^sub>G))"
     for L\<^sub>G
   proof (intro notI, elim exE)
@@ -20614,9 +20612,10 @@ proof -
         hence "trail_false_lit \<Gamma>\<^sub>G K\<^sub>G"
           using \<open>trail_false_cls \<Gamma>\<^sub>G {#K\<^sub>G \<in># D\<^sub>G. K\<^sub>G \<noteq> - L\<^sub>G#}\<close>
           unfolding trail_false_cls_def by simp
-        hence "atm_of K\<^sub>G \<in> trail_atoms \<Gamma>\<^sub>G"
-          unfolding trail_false_lit_def
-          by (metis atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set trail_atoms_def)
+        hence "trail_defined_lit \<Gamma>\<^sub>G K\<^sub>G"
+          by (simp add: trail_defined_lit_iff_true_or_false)
+        hence "atm_of K\<^sub>G |\<in>| trail_atms \<Gamma>\<^sub>G"
+          unfolding trail_defined_lit_iff_trail_defined_atm .
         hence "atm_of K\<^sub>G \<prec>\<^sub>t atm_of L\<^sub>G"
           using ball_lt_atm_L\<^sub>G by metis
         hence "K\<^sub>G \<prec>\<^sub>l - L\<^sub>G"
@@ -20624,6 +20623,10 @@ proof -
         thus "\<not> - L\<^sub>G \<prec>\<^sub>l K\<^sub>G"
           by order
       qed
+
+      moreover have "\<not> trail_defined_lit \<Gamma>\<^sub>G (- L\<^sub>G)"
+        by (metis atm_of_uminus linorder_trm.less_irrefl that(2)
+            trail_defined_lit_iff_trail_defined_atm)
 
       ultimately have "clause_could_propagate \<Gamma>\<^sub>G D\<^sub>G (- L\<^sub>G)"
         unfolding clause_could_propagate_def by argo
@@ -20676,13 +20679,12 @@ proof -
         show "is_ground_lit (Neg A \<cdot>l Var)"
           by (simp add: A_def)
       next
-        have "\<forall>x \<in> trail_atoms \<Gamma>\<^sub>G. x \<prec>\<^sub>t A\<^sub>G"
-          using step_hyps linorder_trm.is_least_in_set_iff by simp
-        hence "\<not> trail_defined_atm \<Gamma>\<^sub>G A\<^sub>G"
-          unfolding trail_defined_atm_def
-          by (metis linorder_trm.less_irrefl trail_atoms_def)
+        have "\<forall>x |\<in>| trail_atms \<Gamma>\<^sub>G. x \<prec>\<^sub>t A\<^sub>G"
+          using step_hyps linorder_trm.is_least_in_ffilter_iff by simp
+        hence "A\<^sub>G |\<notin>| trail_atms \<Gamma>\<^sub>G"
+          by blast
         hence "A\<^sub>G \<notin> atm_of ` fst ` set \<Gamma>\<^sub>G"
-          unfolding trail_defined_atm_def .
+          unfolding fset_trail_atms .
         hence "term_of_gterm A\<^sub>G \<notin> term_of_gterm ` atm_of ` fst ` set \<Gamma>\<^sub>G"
           using inj_image_mem_iff inj_term_of_gterm by metis
         hence "term_of_gterm A\<^sub>G \<notin> set (map (\<lambda>x. term_of_gterm (atm_of (fst x))) \<Gamma>\<^sub>G)"
@@ -20691,13 +20693,13 @@ proof -
           unfolding A_def atm_of_lit_of_glit_conv .
         hence "A \<notin> atm_of ` fst ` set \<Gamma>"
           unfolding image_set list.map_comp comp_def \<Gamma>_def fst_case_prod_simp .
-        hence "\<not> trail_defined_atm \<Gamma> A"
-          unfolding trail_defined_atm_def .
+        hence "A |\<notin>| trail_atms \<Gamma>"
+          unfolding fset_trail_atms .
         thus "\<not> trail_defined_lit \<Gamma> (Neg A \<cdot>l Var)"
           by (simp add: trail_defined_lit_iff_trail_defined_atm)
       next
-        have "A\<^sub>G \<in> atoms_of_clause_set N\<^sub>G"
-          using step_hyps linorder_trm.is_least_in_set_iff by simp
+        have "A\<^sub>G |\<in>| atms_of_clss N\<^sub>G"
+          using step_hyps linorder_trm.is_least_in_ffilter_iff by blast
         hence "A\<^sub>G \<preceq>\<^sub>t \<beta>\<^sub>G"
           using ball_le_\<beta>\<^sub>G by metis
         moreover have "gterm_of_term A = A\<^sub>G"
@@ -20728,9 +20730,9 @@ proof -
           show "\<not> fBex (N\<^sub>G |\<union>| U\<^sub>G) (trail_false_cls \<Gamma>\<^sub>G)"
             using \<open>\<not> fBex (N\<^sub>G |\<union>| U\<^sub>G) (trail_false_cls \<Gamma>\<^sub>G)\<close> .
         next
-          show "\<forall>x\<in>trail_atoms \<Gamma>\<^sub>G. x \<prec>\<^sub>t atm_of (Neg A\<^sub>G)"
+          show "\<forall>x |\<in>| trail_atms \<Gamma>\<^sub>G. x \<prec>\<^sub>t atm_of (Neg A\<^sub>G)"
             unfolding literal.sel
-            using step_hyps linorder_trm.is_least_in_set_iff by simp
+            using step_hyps linorder_trm.is_least_in_fset_iff by simp
         next
           show "\<not> (\<exists>C|\<in>|N\<^sub>G |\<union>| U\<^sub>G. clause_could_propagate \<Gamma>\<^sub>G C (- Neg A\<^sub>G))"
             using \<open>\<not> (\<exists>C|\<in>|N\<^sub>G |\<union>| U\<^sub>G. clause_could_propagate \<Gamma>\<^sub>G C (Pos A\<^sub>G))\<close> by simp
@@ -20787,13 +20789,12 @@ proof -
         show "is_ground_lit (Pos A \<cdot>l Var)"
           by (simp add: A_def)
       next
-        have "\<forall>x \<in> trail_atoms \<Gamma>\<^sub>G. x \<prec>\<^sub>t A\<^sub>G"
-          using step_hyps linorder_trm.is_least_in_set_iff by simp
-        hence "\<not> trail_defined_atm \<Gamma>\<^sub>G A\<^sub>G"
-          unfolding trail_defined_atm_def
-          by (metis linorder_trm.less_irrefl trail_atoms_def)
+        have "\<forall>x |\<in>| trail_atms \<Gamma>\<^sub>G. x \<prec>\<^sub>t A\<^sub>G"
+          using step_hyps linorder_trm.is_least_in_ffilter_iff by simp
+        hence "A\<^sub>G |\<notin>| trail_atms \<Gamma>\<^sub>G"
+          by blast
         hence "A\<^sub>G \<notin> atm_of ` fst ` set \<Gamma>\<^sub>G"
-          unfolding trail_defined_atm_def .
+          unfolding fset_trail_atms .
         hence "term_of_gterm A\<^sub>G \<notin> term_of_gterm ` atm_of ` fst ` set \<Gamma>\<^sub>G"
           using inj_image_mem_iff inj_term_of_gterm by metis
         hence "term_of_gterm A\<^sub>G \<notin> set (map (\<lambda>x. term_of_gterm (atm_of (fst x))) \<Gamma>\<^sub>G)"
@@ -20802,13 +20803,13 @@ proof -
           unfolding A_def atm_of_lit_of_glit_conv .
         hence "A \<notin> atm_of ` fst ` set \<Gamma>"
           unfolding image_set list.map_comp comp_def \<Gamma>_def fst_case_prod_simp .
-        hence "\<not> trail_defined_atm \<Gamma> A"
-          unfolding trail_defined_atm_def .
+        hence "A |\<notin>| trail_atms \<Gamma>"
+          unfolding fset_trail_atms .
         thus "\<not> trail_defined_lit \<Gamma> (Pos A \<cdot>l Var)"
           by (simp add: trail_defined_lit_iff_trail_defined_atm)
       next
-        have "A\<^sub>G \<in> atoms_of_clause_set N\<^sub>G"
-          using step_hyps linorder_trm.is_least_in_set_iff by simp
+        have "A\<^sub>G |\<in>| atms_of_clss N\<^sub>G"
+          using step_hyps linorder_trm.is_least_in_ffilter_iff by simp
         hence "A\<^sub>G \<preceq>\<^sub>t \<beta>\<^sub>G"
           using ball_le_\<beta>\<^sub>G by metis
         moreover have "gterm_of_term A = A\<^sub>G"
@@ -20839,9 +20840,9 @@ proof -
           show "\<not> fBex (N\<^sub>G |\<union>| U\<^sub>G) (trail_false_cls \<Gamma>\<^sub>G)"
             using \<open>\<not> fBex (N\<^sub>G |\<union>| U\<^sub>G) (trail_false_cls \<Gamma>\<^sub>G)\<close> .
         next
-          show "\<forall>x\<in>trail_atoms \<Gamma>\<^sub>G. x \<prec>\<^sub>t atm_of (Pos A\<^sub>G)"
+          show "\<forall>x|\<in>| trail_atms \<Gamma>\<^sub>G. x \<prec>\<^sub>t atm_of (Pos A\<^sub>G)"
             unfolding literal.sel
-            using step_hyps linorder_trm.is_least_in_set_iff by simp
+            using step_hyps linorder_trm.is_least_in_ffilter_iff by simp
         next
           show "\<not> (\<exists>C|\<in>|N\<^sub>G |\<union>| U\<^sub>G. clause_could_propagate \<Gamma>\<^sub>G C (- Pos A\<^sub>G))"
             using \<open>\<not> (\<exists>D|\<in>|N\<^sub>G |\<union>| U\<^sub>G. clause_could_propagate \<Gamma>\<^sub>G D (Neg A\<^sub>G))\<close> by simp
@@ -20943,8 +20944,8 @@ proof -
         show "is_ground_cls (C \<cdot> Var)"
           by (simp add: C_def)
 
-        have "A\<^sub>G \<in> atoms_of_clause_set N\<^sub>G"
-          using step_hyps linorder_trm.is_least_in_set_iff by simp
+        have "A\<^sub>G |\<in>| atms_of_clss N\<^sub>G"
+          using step_hyps linorder_trm.is_least_in_ffilter_iff by simp
         hence "A\<^sub>G \<preceq>\<^sub>t \<beta>\<^sub>G"
           using ball_le_\<beta>\<^sub>G by metis
         moreover have "gterm_of_term A = A\<^sub>G"
@@ -21008,13 +21009,12 @@ proof -
         ultimately show "trail_false_cls \<Gamma> ({#K \<in># C'. K \<noteq> Pos A#} \<cdot> Var)"
           by simp
 
-        have "\<forall>x \<in> trail_atoms \<Gamma>\<^sub>G. x \<prec>\<^sub>t A\<^sub>G"
-          using step_hyps linorder_trm.is_least_in_set_iff by simp
-        hence "\<not> trail_defined_atm \<Gamma>\<^sub>G A\<^sub>G"
-          unfolding trail_defined_atm_def
-          by (metis linorder_trm.less_irrefl trail_atoms_def)
+        have "\<forall>x |\<in>| trail_atms \<Gamma>\<^sub>G. x \<prec>\<^sub>t A\<^sub>G"
+          using step_hyps linorder_trm.is_least_in_ffilter_iff by simp
+        hence "A\<^sub>G |\<notin>| trail_atms \<Gamma>\<^sub>G"
+          by blast
         hence "A\<^sub>G \<notin> atm_of ` fst ` set \<Gamma>\<^sub>G"
-          unfolding trail_defined_atm_def .
+          unfolding fset_trail_atms .
         hence "term_of_gterm A\<^sub>G \<notin> term_of_gterm ` atm_of ` fst ` set \<Gamma>\<^sub>G"
           using inj_image_mem_iff inj_term_of_gterm by metis
         hence "term_of_gterm A\<^sub>G \<notin> set (map (\<lambda>x. term_of_gterm (atm_of (fst x))) \<Gamma>\<^sub>G)"
@@ -21023,8 +21023,8 @@ proof -
           unfolding A_def atm_of_lit_of_glit_conv .
         hence "A \<notin> atm_of ` fst ` set \<Gamma>"
           unfolding image_set list.map_comp comp_def \<Gamma>_def fst_case_prod_simp .
-        hence "\<not> trail_defined_atm \<Gamma> A"
-          unfolding trail_defined_atm_def .
+        hence "A |\<notin>| trail_atms \<Gamma>"
+          unfolding fset_trail_atms .
         thus "\<not> trail_defined_lit \<Gamma> (Pos A \<cdot>l Var)"
           by (simp add: trail_defined_lit_iff_trail_defined_atm)
 
