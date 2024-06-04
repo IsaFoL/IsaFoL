@@ -24,9 +24,6 @@ session Superposition_Calculus = Saturation_Framework_Extensions +
     First_Order_Superposition_Soundness
     First_Order_Superposition_Example
 
-  theories (* This theory contains an analogue specification of ground ordered resolution. *)
-    Ground_Ordered_Resolution
-
 session Ground_Critical_Pairs_Theorem in Ground_Critical_Pairs_Theorem = Superposition_Calculus +
   description "This theory contains a proof of the ground critical-pair assumption found in some locales of the session Superposition_Calculus. It should not be submitted to the AFP in the same entry due to LGPL conflict."
   sessions
