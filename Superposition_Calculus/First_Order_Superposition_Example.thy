@@ -41,9 +41,8 @@ next
     using wfP_imp_asymp wfP_less_kbo 
     by blast
 next
-  show "wfp_on less_kbo {term. is_ground_term term}"
-    using wfp_on_subset[OF _ wfP_less_kbo[unfolded wfp_on_UNIV[symmetric]]]
-    by auto
+  show "Wellfounded.wfp_on {term. is_ground_term term} less_kbo"
+    using Wellfounded.wfp_on_subset[OF wfP_less_kbo subset_UNIV] .
 next
   show "totalp_on {term. is_ground_term term} less_kbo"
     using less_kbo_gtotal
