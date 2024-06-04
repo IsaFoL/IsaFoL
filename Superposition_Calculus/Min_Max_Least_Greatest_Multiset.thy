@@ -477,6 +477,35 @@ lemma
   by (auto simp: M_def is_minimal_in_set_wrt_iff is_minimal_in_mset_wrt_def
       is_least_in_set_wrt_iff is_least_in_mset_wrt_def)
 
+lemma
+  fixes x y :: 'a and M :: "'a multiset"
+  defines "M \<equiv> {#x, y, y#}"
+  defines "R \<equiv> \<lambda>_ _. False"
+  assumes "x \<noteq> y"
+  shows
+    "is_maximal_in_mset_wrt R M x"
+    "is_maximal_in_mset_wrt R M y"
+    "is_strictly_maximal_in_mset_wrt R M x"
+    "\<not> is_strictly_maximal_in_mset_wrt R M y"
+proof -
+  have transp_on_False[simp]: "\<And>A. transp_on A (\<lambda>_ _. False)"
+    by (simp add: transp_onI)
+
+  have asymp_on_False[simp]: "\<And>A. asymp_on A (\<lambda>_ _. False)"
+    by (simp add: asymp_onI)
+
+  show
+    "is_maximal_in_mset_wrt R M x"
+    "is_maximal_in_mset_wrt R M y"
+    "is_strictly_maximal_in_mset_wrt R M x"
+    "\<not> is_strictly_maximal_in_mset_wrt R M y"
+    unfolding is_maximal_in_mset_wrt_iff[of M R, unfolded R_def, simplified, folded R_def]
+    unfolding is_strictly_maximal_in_mset_wrt_iff[of M R, unfolded R_def, simplified, folded R_def]
+    unfolding atomize_conj
+    using \<open>x \<noteq> y\<close>
+    by (simp add: M_def)
+qed
+
 
 section \<open>Hide stuff\<close>
 
