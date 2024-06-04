@@ -1,5 +1,5 @@
 theory First_Order_Type_System
-  imports First_Order_Clause
+  imports First_Order_Clause Fun_Extra
 begin
 
 type_synonym ('f, 'ty) fun_types = "'f \<Rightarrow> 'ty list \<times> 'ty"
@@ -553,6 +553,72 @@ lemma welltyped\<^sub>c_renaming: "welltyped\<^sub>c \<F> \<V> c \<longleftright
   by (simp add: subst_clause_def)
 
 end
+
+
+lemma welltyped_renaming_exists: 
+  obtains \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v) subst" where
+    "term_subst.is_renaming \<rho>\<^sub>1" 
+    "term_subst.is_renaming \<rho>\<^sub>2"
+    "range_vars' \<rho>\<^sub>1 \<inter> range_vars' \<rho>\<^sub>2 = {}"
+    "range_vars' \<rho>\<^sub>1 \<union> range_vars' \<rho>\<^sub>2 = UNIV"
+    "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>1 \<rho>\<^sub>1" 
+    "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
+proof-
+  obtain \<rho>\<^sub>1 where "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>1 \<rho>\<^sub>1" "term_subst.is_renaming \<rho>\<^sub>1" 
+    using welltyped\<^sub>\<sigma>_Var term_subst.is_renaming_id_subst by blast
+
+  obtain renaming where 
+    renaming: 
+    "inj renaming" 
+    "renaming ` UNIV  =  UNIV - range_vars' \<rho>\<^sub>1"
+    "\<And>x. \<V>\<^sub>2 (renaming x) = \<V>\<^sub>2 x"
+    unfolding inj_def range_vars'_def
+    apply auto
+    sorry
+
+  define \<rho>\<^sub>2 :: "('f, 'v) subst" where
+    "\<And>x. \<rho>\<^sub>2 x \<equiv>  Var (renaming x)"
+
+  have "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
+    unfolding \<rho>\<^sub>2_def welltyped\<^sub>\<sigma>_def
+    using renaming(3)
+    by (simp add: welltyped.Var)
+
+  have "term_subst.is_renaming \<rho>\<^sub>2"
+    unfolding \<rho>\<^sub>2_def term_subst_is_renaming_iff 
+    using renaming(1)
+    by(auto simp: inj_def)
+
+  have "range_vars' \<rho>\<^sub>2 = UNIV - range_vars' \<rho>\<^sub>1"
+    using renaming(2)
+    unfolding \<rho>\<^sub>2_def range_vars'_def
+    by auto
+ 
+  have "range_vars' \<rho>\<^sub>1 \<inter> range_vars' \<rho>\<^sub>2 = {}"
+    using renaming
+    unfolding \<rho>\<^sub>2_def range_vars'_def
+    by auto
+
+  have "range_vars' \<rho>\<^sub>1 \<union> range_vars' \<rho>\<^sub>2 = UNIV"
+    using renaming 
+    using \<open>range_vars' \<rho>\<^sub>2 = UNIV - range_vars' \<rho>\<^sub>1\<close> by blast
+
+  then show ?thesis 
+    using that
+    using \<open>range_vars' \<rho>\<^sub>1 \<inter> range_vars' \<rho>\<^sub>2 = {}\<close> \<open>subst_clause.is_renaming \<rho>\<^sub>1\<close> \<open>subst_clause.is_renaming \<rho>\<^sub>2\<close> \<open>welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>1 \<rho>\<^sub>1\<close> \<open>welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>2 \<rho>\<^sub>2\<close> by blast
+qed
+
+lemma welltyped\<^sub>\<sigma>_subst_upd:
+  assumes "welltyped \<F> \<V> (Var var) \<tau>" "welltyped \<F> \<V> update \<tau>"  "welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>" 
+  shows "welltyped\<^sub>\<sigma> \<F> \<V> (\<gamma>(var := update))"
+  using assms
+  unfolding welltyped\<^sub>\<sigma>_def
+  by (metis fun_upd_other fun_upd_same right_unique_def welltyped.Var welltyped_right_unique)
+
+lemma welltyped_is_ground:
+  assumes "is_ground_term t" "welltyped \<F> \<V> t \<tau>"
+  shows "welltyped \<F> \<V>' t \<tau>"
+  by (metis assms(1) assms(2) empty_iff welltyped_\<V>)
 
 lemma term_subst_is_imgu_is_mgu: "term_subst.is_imgu \<mu> {{s, t}} = is_imgu \<mu> {(s, t)}"
   unfolding term_subst.is_imgu_def is_imgu_def term_subst.is_unifier_set_def  unifiers_def

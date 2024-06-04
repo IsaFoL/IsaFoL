@@ -167,6 +167,9 @@ proof (cases rule: pos_superposition.cases)
     by blast
 qed
 
+(*lemma term_subst_is_renaming_iff_ex_inj_fun_on_vars:
+  "term_subst.is_renaming \<rho> \<longleftrightarrow> (\<exists>f. inj f \<and> \<rho> = Var \<circ> f)"*)
+
 inductive neg_superposition ::
   "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> bool"
 where

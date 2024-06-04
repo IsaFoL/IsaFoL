@@ -13,7 +13,7 @@ begin
 
 (* TODO: generalize? *)
 lemma renaming_exists: 
-  assumes  
+  assumes
     "X \<subseteq> variables"
     "Y \<subseteq> variables"
     "finite X"

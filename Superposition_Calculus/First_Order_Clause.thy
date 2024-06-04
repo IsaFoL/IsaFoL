@@ -1308,4 +1308,10 @@ lemma renaming_vars_clause: "Var ` vars_clause (clause \<cdot> \<rho>) = \<rho> 
 
 end
 
+lemma obtain_ground_fun:
+  assumes "is_ground_term t"
+  obtains f ts where "t = Fun f ts"
+  using assms
+  by(cases t) auto
+
 end
