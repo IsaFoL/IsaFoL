@@ -39,8 +39,7 @@ section \<open>Superposition Calculus\<close>
 locale ground_superposition_calculus = ground_ordering less_trm + select select
   for
     less_trm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
-    select :: "'f gatom clause \<Rightarrow> 'f gatom clause" (* and
-    typeof_fun :: "'f \<Rightarrow> 'ty list \<times> 'ty" *) +
+    select :: "'f gatom clause \<Rightarrow> 'f gatom clause" +
   assumes
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
