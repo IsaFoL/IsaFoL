@@ -3,7 +3,6 @@ theory First_Order_Ordering
     First_Order_Clause
     Ground_Ordering
     Relation_Extra
-    "Open_Induction.Restricted_Predicates"
 begin
 
 (* TODO: Move *)
@@ -37,7 +36,7 @@ locale first_order_ordering = term_ordering_lifting less\<^sub>t
     (* less\<^sub>t_asymmetric [intro]: "asymp (\<prec>\<^sub>t)" and  *)
 
     less\<^sub>t_total_on [intro]: "totalp_on {term. is_ground_term term} (\<prec>\<^sub>t)" and
-    HOL_less\<^sub>t_wellfounded_on: "Wellfounded.wfp_on {term. is_ground_term term} (\<prec>\<^sub>t)" and
+    less\<^sub>t_wellfounded_on: "Wellfounded.wfp_on {term. is_ground_term term} (\<prec>\<^sub>t)" and
     
     less\<^sub>t_ground_context_compatible:
       "\<And>context term\<^sub>1 term\<^sub>2. 
@@ -62,11 +61,6 @@ begin
 
 lemmas less\<^sub>t_transitive = transp_less_trm
 lemmas less\<^sub>t_asymmetric = asymp_less_trm
-
-lemma less\<^sub>t_wellfounded_on [intro]: "wfp_on (\<prec>\<^sub>t) {term. is_ground_term term}"
-  unfolding Restricted_Predicates.wfp_on_iff_minimal
-  using HOL_less\<^sub>t_wellfounded_on[unfolded Wellfounded.wfp_on_iff_ex_minimal]
-  by blast
 
 
 subsection \<open>Definitions\<close>
@@ -128,10 +122,14 @@ lemmas less\<^sub>t_asymmetric_on = term_order.asymp_on_less
 lemmas less\<^sub>t_irreflexive_on = term_order.irreflp_on_less
 lemmas less\<^sub>t_transitive_on = term_order.transp_on_less
 
-lemma less\<^sub>t_wellfounded_on': "wfp_on (\<prec>\<^sub>t) (to_term ` terms\<^sub>G)"
-  using less\<^sub>t_wellfounded_on
-  unfolding wfp_on_def
-  by (metis (mono_tags) ground_term_is_ground imageE mem_Collect_eq)
+lemma less\<^sub>t_wellfounded_on': "Wellfounded.wfp_on (to_term ` terms\<^sub>G) (\<prec>\<^sub>t)"
+proof (rule Wellfounded.wfp_on_subset)
+  show "Wellfounded.wfp_on {term. is_ground_term term} (\<prec>\<^sub>t)"
+    using less\<^sub>t_wellfounded_on .
+next
+  show "to_term ` terms\<^sub>G \<subseteq> {term. is_ground_term term}"
+    by force
+qed
 
 lemma less\<^sub>t_total_on': "totalp_on (to_term ` terms\<^sub>G) (\<prec>\<^sub>t)"
   using less\<^sub>t_total_on
@@ -139,14 +137,12 @@ lemma less\<^sub>t_total_on': "totalp_on (to_term ` terms\<^sub>G) (\<prec>\<^su
 
 lemma less\<^sub>t\<^sub>G_wellfounded: "wfP (\<prec>\<^sub>t\<^sub>G)"
 proof -
-  have "wfp_on (\<prec>\<^sub>t) (range to_term)"
+  have "Wellfounded.wfp_on (range to_term) (\<prec>\<^sub>t)"
     using less\<^sub>t_wellfounded_on' by metis
-  hence "wfp_on (\<lambda>term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2. to_term term\<^sub>G\<^sub>1 \<prec>\<^sub>t to_term term\<^sub>G\<^sub>2) UNIV"
-    unfolding wfp_on_image[symmetric] .
-  hence "wfp_on (\<prec>\<^sub>t\<^sub>G) UNIV"
+  hence "wfp (\<lambda>term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2. to_term term\<^sub>G\<^sub>1 \<prec>\<^sub>t to_term term\<^sub>G\<^sub>2)"
+    unfolding Wellfounded.wfp_on_image[symmetric] .
+  thus "wfp (\<prec>\<^sub>t\<^sub>G)"
     unfolding less\<^sub>t\<^sub>G_def .
-  thus "wfP (\<prec>\<^sub>t\<^sub>G)"
-    unfolding wfp_on_UNIV .
 qed
 
 subsection \<open>Ground term ordering\<close>

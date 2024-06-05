@@ -144,7 +144,7 @@ next
     using wellfounded_tiebreakers
     by simp
 next
-  show "\<And>clause\<^sub>G. wfp_on (tiebreakers clause\<^sub>G) UNIV"
+  show "\<And>clause\<^sub>G. Restricted_Predicates.wfp_on (tiebreakers clause\<^sub>G) UNIV"
     using wellfounded_tiebreakers
     by simp
 qed

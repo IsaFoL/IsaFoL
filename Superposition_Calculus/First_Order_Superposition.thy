@@ -14,6 +14,30 @@ hide_const
   Inference_System.concl_of
   Inference_System.main_prem_of
 
+(* Hide as much of Restricted_Predicates.wfp_on as possible *)
+hide_fact
+  Restricted_Predicates.wfp_on_imp_minimal
+  Restricted_Predicates.wfp_on_imp_inductive_on
+  Restricted_Predicates.inductive_on_imp_wfp_on
+  Restricted_Predicates.wfp_on_iff_inductive_on
+  Restricted_Predicates.wfp_on_iff_minimal
+  Restricted_Predicates.wfp_on_imp_has_min_elt
+  Restricted_Predicates.wfp_on_induct
+  Restricted_Predicates.wfp_on_UNIV
+  Restricted_Predicates.wfp_less
+  Restricted_Predicates.wfp_on_measure_on
+  Restricted_Predicates.wfp_on_mono
+  Restricted_Predicates.wfp_on_subset
+  Restricted_Predicates.wfp_on_restrict_to
+  Restricted_Predicates.wfp_on_imp_irreflp_on
+  Restricted_Predicates.accessible_on_imp_wfp_on
+  Restricted_Predicates.wfp_on_tranclp_imp_wfp_on
+  Restricted_Predicates.wfp_on_imp_accessible_on
+  Restricted_Predicates.wfp_on_accessible_on_iff
+  Restricted_Predicates.wfp_on_restrict_to_tranclp
+  Restricted_Predicates.wfp_on_restrict_to_tranclp'
+  Restricted_Predicates.wfp_on_restrict_to_tranclp_wfp_on_conv
+
 section \<open>First-Order Layer\<close>
 
 locale first_order_superposition_calculus =
