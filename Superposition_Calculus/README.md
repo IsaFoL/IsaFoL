@@ -1,6 +1,6 @@
 # A Modular Formalization of Superposition in Isabelle/HOL
 
-This formalization is compatible with _Isabelle2023_ and requires the Archive of Formal Proofs.
+This formalization is compatible with _Isabelle2024_ and requires the Archive of Formal Proofs.
 Instructions to install Isabelle are available at <https://isabelle.in.tum.de/installation.html>.
 Instruction to install the AFP are available at <https://www.isa-afp.org/help>.
 (It was tested with the version _afp-2024-03-23_.)
