@@ -860,7 +860,7 @@ qed
 
 lemma (in ground_ordered_resolution_calculus) termination_ground_factoring:
   shows "wfP ground_factoring\<inverse>\<inverse>"
-proof (rule wfP_if_convertible_to_wfP)
+proof (rule wfp_if_convertible_to_wfp)
   show "\<And>x y. ground_factoring\<inverse>\<inverse> x y \<Longrightarrow> x \<prec>\<^sub>c y"
     using ground_factoring_smaller_conclusion by simp
 next

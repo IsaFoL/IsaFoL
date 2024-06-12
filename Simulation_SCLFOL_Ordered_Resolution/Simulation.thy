@@ -1370,7 +1370,7 @@ lemma production_union_unproductive_strong:
     C_in: "C \<in> N1"
   shows "ord_res.production (N1 \<union> N2) C = ord_res.production N1 C"
   using ord_res.wfP_less_cls C_in
-proof (induction C rule: wfP_induct_rule)
+proof (induction C rule: wfp_induct_rule)
   case (less C)
   hence C_in_iff: "C \<in> N1 \<union> N2 \<longleftrightarrow> C \<in> N1"
     by simp
@@ -2617,7 +2617,7 @@ next
   qed
 next
   show "wfP (\<subset>#)"
-    using wfP_subset_mset .
+    using wfp_subset_mset .
 next
   show "\<forall>i s1 s2 s1'. match i s1 s2 \<longrightarrow> ord_res_1 s1 s1' \<longrightarrow>
     (\<exists>i' s2'. ord_res_2_step\<^sup>+\<^sup>+ s2 s2' \<and> match i' s1' s2') \<or> (\<exists>i'. match i' s1' s2 \<and> i' \<subset># i)"
@@ -2698,7 +2698,7 @@ lemma Uniq_ground_resolution: "\<exists>\<^sub>\<le>\<^sub>1DC. ground_resolutio
   by (simp add: ground_resolution_def ord_res.unique_ground_resolution)
 
 lemma ground_resolution_terminates: "wfP (ground_resolution D)\<inverse>\<inverse>"
-proof (rule wfP_if_convertible_to_wfP)
+proof (rule wfp_if_convertible_to_wfp)
   show "wfP (\<prec>\<^sub>c)"
     using ord_res.wfP_less_cls .
 next
@@ -8928,7 +8928,7 @@ lemma ex_model_build_from_least_clause_to_any_less_than_least_false:
     "C \<preceq>\<^sub>c D"
   shows "\<exists>\<M>. (ord_res_5 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r, \<F>, Map.empty, Some C) (U\<^sub>e\<^sub>r, \<F>, \<M>, Some D)"
   using ord_res.wfP_less_cls D_in \<open>C \<preceq>\<^sub>c D\<close> D_lt_least_false
-proof (induction D rule: wfP_induct_rule)
+proof (induction D rule: wfp_induct_rule)
   case (less D)
 
   have invars: "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, Map.empty, Some C)"
@@ -20126,7 +20126,7 @@ proof (cases S7 S8 rule: ord_res_7_matches_ord_res_8.cases)
   qed
 qed
 
-theorem bisimulation_ord_res_7_ord_res_7:
+theorem bisimulation_ord_res_7_ord_res_8:
   defines "match \<equiv> \<lambda>_. ord_res_7_matches_ord_res_8"
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow> 'f ord_res_7_state \<Rightarrow> 'f ord_res_8_state \<Rightarrow> bool) ORDER.
     bisimulation
