@@ -536,7 +536,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
         then show ?thesis
           unfolding superpositionI 
-          by (metis C local.superpositionI(25) true_cls_union union_mset_add_mset_left)
+          by (metis C local.superpositionI(26) true_cls_add_mset true_cls_union)
       qed
     next
       case False

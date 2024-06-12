@@ -22,7 +22,7 @@ locale grounded_first_order_superposition_calculus =
   first_order_superposition_calculus select _ _ typeof_fun +
   grounded_first_order_select select
   for 
-    select :: "('f, 'v) select" and
+    select :: "('f, ('v :: {countable,infinite})) select" and
     typeof_fun :: "('f, 'ty) fun_types"
 begin
 

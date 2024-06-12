@@ -22,7 +22,7 @@ locale first_order_superposition_calculus =
   first_order_ordering less\<^sub>t +
   renaming "UNIV :: 'v set"
   for 
-    select :: "('f, 'v) select" and
+    select :: "('f, ('v :: {countable,infinite})) select" and
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   fixes
     tiebreakers :: "'f gatom clause  \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" and

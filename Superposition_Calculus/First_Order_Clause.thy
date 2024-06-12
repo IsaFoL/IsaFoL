@@ -659,6 +659,11 @@ lemma ground_clause_subst_upd [simp]:
 
 lemmas to_term_inj = inj_term_of_gterm
 
+(* TODO: *)
+lemma "surj to_ground_term"
+  unfolding surj_def
+  by (metis to_term_inverse)
+
 lemma to_ground_term_inj: "inj_on to_ground_term (to_term ` domain\<^sub>G)"
   using inj_on_def by fastforce
 

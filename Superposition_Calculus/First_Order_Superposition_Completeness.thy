@@ -1793,20 +1793,23 @@ proof-
     "term_subst.is_ground_subst \<gamma>\<^sub>1"
     "term_subst.is_ground_subst \<gamma>\<^sub>2" 
     "welltyped\<^sub>c typeof_fun \<V>\<^sub>1 premise\<^sub>1"
-    "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 premise\<^sub>2"     
+    "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 premise\<^sub>2"  and
+    \<V>: "\<exists>X. \<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1 x = ty}) \<and> infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty})"
     using assms(2, 4) premise\<^sub>G\<^sub>1_in_groundings premise\<^sub>G\<^sub>2_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
-    by (smt (verit, del_insts) case_prodE is_ground_subst_is_ground_clause to_ground_clause_inverse)
+    apply auto
+    sorry
+    (*by (smt (verit, del_insts) case_prodE is_ground_subst_is_ground_clause to_ground_clause_inverse)*)
    
-  obtain \<rho>\<^sub>1 \<rho>\<^sub>2 where
+  obtain \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v) subst" where
     renaming: 
-      "term_subst.is_renaming (\<rho>\<^sub>1 :: ('f, 'v) subst)" 
+      "term_subst.is_renaming \<rho>\<^sub>1" 
       "term_subst.is_renaming \<rho>\<^sub>2"
       "range_vars' \<rho>\<^sub>1 \<inter> range_vars' \<rho>\<^sub>2 = {}" 
       "range_vars' \<rho>\<^sub>1 \<union> range_vars' \<rho>\<^sub>2 = UNIV"
     and
      wt_\<rho>: "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1" "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2"
-    using welltyped_renaming_exists
+    using welltyped_renaming_exists[OF \<V>]
     by blast
 
   from renaming obtain \<rho>\<^sub>1_inv \<rho>\<^sub>2_inv where

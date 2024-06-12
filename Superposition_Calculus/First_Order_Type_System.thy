@@ -7,13 +7,13 @@ type_synonym ('v, 'ty) var_types = "'v \<Rightarrow> 'ty"
 
 inductive has_type :: "('f, 'ty) fun_types \<Rightarrow> ('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" 
   for \<F> \<V> where
-  Var: "\<V> x = \<tau> \<Longrightarrow> has_type \<F> \<V> (Var x) \<tau>"
-| Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> has_type \<F> \<V> (Fun f ts) \<tau>"
+    Var: "\<V> x = \<tau> \<Longrightarrow> has_type \<F> \<V> (Var x) \<tau>"
+  | Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> has_type \<F> \<V> (Fun f ts) \<tau>"
 
 inductive welltyped :: "('f, 'ty) fun_types \<Rightarrow>  ('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" 
   for \<F> \<V> where
-  Var: "\<V> x = \<tau> \<Longrightarrow> welltyped \<F> \<V> (Var x) \<tau>"
-| Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> list_all2 (welltyped \<F> \<V>) ts \<tau>s \<Longrightarrow> welltyped \<F> \<V> (Fun f ts) \<tau>"
+    Var: "\<V> x = \<tau> \<Longrightarrow> welltyped \<F> \<V> (Var x) \<tau>"
+  | Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> list_all2 (welltyped \<F> \<V>) ts \<tau>s \<Longrightarrow> welltyped \<F> \<V> (Fun f ts) \<tau>"
 
 lemma has_type_right_unique: "right_unique (has_type \<F> \<V>)"
 proof (rule right_uniqueI)
@@ -136,7 +136,7 @@ proof(rule iffI)
         using welltyped\<^sub>\<sigma>
         unfolding welltyped\<^sub>\<sigma>_def Var
         by (metis (no_types, opaque_lifting) eval_term.simps(1) option.sel prod.sel(2) 
-              term.distinct(1) term.inject(2) welltyped.simps)
+            term.distinct(1) term.inject(2) welltyped.simps)
     next
       case Fun\<^sub>t: Fun
       with Fun show ?thesis
@@ -237,7 +237,7 @@ lemma welltyped_subterm:
   using assms
   apply(simp add: welltyped.simps)
   apply(induction ts)
-  apply force
+   apply force
   apply auto
    apply (metis list_all2_Cons1 welltyped.simps)
   by (metis (no_types, lifting) in_set_conv_nth list_all2_Cons1 list_all2_conv_all_nth welltyped.simps)
@@ -437,7 +437,7 @@ proof(intro iffI)
       using y renaming
       unfolding term_subst_is_renaming_iff
       by (metis eval_term.simps(1) the_inv_f_f)
-    
+
     ultimately have "\<V>' y = \<tau>"
       using Var
       by argo
@@ -492,8 +492,8 @@ lemma has_type_renaming: "has_type \<F> \<V> t \<tau> \<longleftrightarrow> has_
   using renaming range_vars
   apply(cases t)
    apply(auto simp: has_type.simps)
-  apply (metis (mono_tags, opaque_lifting) comp_apply eval_term.simps(1) has_type.Var has_type_right_unique right_uniqueD term_subst_is_renaming_iff_ex_inj_fun_on_vars welltyped\<^sub>\<sigma>_Var welltyped\<^sub>\<sigma>_def welltyped_renaming welltyped_right_unique)
-  apply (metis eval_term.simps(1) has_type.Var has_type_right_unique right_uniqueD term.collapse(1) term_subst_is_renaming_iff welltyped.Var welltyped_renaming welltyped_right_unique)
+    apply (metis (mono_tags, opaque_lifting) comp_apply eval_term.simps(1) has_type.Var has_type_right_unique right_uniqueD term_subst_is_renaming_iff_ex_inj_fun_on_vars welltyped\<^sub>\<sigma>_Var welltyped\<^sub>\<sigma>_def welltyped_renaming welltyped_right_unique)
+   apply (metis eval_term.simps(1) has_type.Var has_type_right_unique right_uniqueD term.collapse(1) term_subst_is_renaming_iff welltyped.Var welltyped_renaming welltyped_right_unique)
   by (metis term.disc(2) term_subst_is_renaming_iff)
 
 
@@ -554,9 +554,832 @@ lemma welltyped\<^sub>c_renaming: "welltyped\<^sub>c \<F> \<V> c \<longleftright
 
 end
 
+(* 
+abbreviation range :: "('a \<Rightarrow> 'b) \<Rightarrow> 'b set"  \<comment> \<open>of function\<close>
+  where "range f \<equiv> f ` UNIV"
+*)
+
+
+lemma 
+  infinite_even_nat: "infinite { n :: nat . even n }" and 
+  infinite_odd_nat: "infinite { n :: nat . odd n }"
+  by (metis Suc_leD dual_order.refl even_Suc infinite_nat_iff_unbounded_le mem_Collect_eq)+
+
+lemma obtain_infinite_partition: 
+  obtains X Y :: "'a :: {countable, infinite} set" 
+  where
+    "X \<inter> Y = {}" "X \<union> Y = UNIV" and
+    "infinite X" and
+    "infinite Y"
+proof-
+  obtain g :: "'a \<Rightarrow> nat" where "bij g"
+    using countableE_infinite[of "UNIV :: 'a set"] infinite_UNIV by blast
+
+  define g' where "g' \<equiv> inv g"
+
+  then have bij_g': "bij g'"
+    by (simp add: \<open>bij g\<close> bij_betw_inv_into)
+
+  define X :: "'a set" where 
+    "X \<equiv> g' ` { n. even n }"
+
+  define Y :: "'a set" where 
+    "Y \<equiv> g' ` { n. odd n }"
+
+  have "X \<inter> Y = {}"
+    using bij_g'
+    unfolding X_def Y_def
+    by (simp add: bij_image_Collect_eq disjoint_iff)
+
+  moreover have "X \<union> Y = UNIV"
+    using bij_g'
+    unfolding X_def Y_def
+    by(auto simp: bij_image_Collect_eq)
+
+  moreover have "bij_betw g' { n. even n } X" "bij_betw g' { n. odd n } Y"
+    unfolding X_def Y_def
+    by (metis \<open>bij g\<close> bij_betw_imp_surj_on g'_def inj_on_imp_bij_betw inj_on_inv_into top.extremum)+
+
+  then have "infinite X" "infinite Y"
+    using infinite_even_nat infinite_odd_nat bij_betw_finite
+    by blast+
+
+  ultimately show ?thesis
+    using that
+    by blast
+qed
+
+lemma "(\<Union>n'.{ n. g n = n' }) = UNIV"
+  by blast
+
+lemma inv_enumerate:
+  assumes "infinite N" 
+  shows "(\<lambda>x. inv (enumerate N) x) ` N = UNIV"
+  by (metis assms enumerate_in_set inj_enumerate inv_f_eq surj_on_alternative)
+
+(*primrec (in wellorder) enumerate' :: "'a set \<Rightarrow> nat \<Rightarrow> 'a"
+  where
+    enumerate_0: "enumerate' S 0 = (LEAST n. n \<in> S)"
+  | enumerate_Suc: "enumerate' S (Suc n) = enumerate' (S - {LEAST n. n \<in> S}) n"*)
+
+instance nat :: infinite
+  by(standard) simp
+
+lemma 
+  assumes "n < card X"
+  shows "enumerate X n \<in> X"
+  using assms
+  by (metis enumerate_in_set finite_enumerate_in_set)
+
+(*lemma  obtain n where x: "enumerate {n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 x} n = x"
+      using enumerate_Ex[OF xx yy]
+      by blast
+    
+    moreover then have n: "card {n' \<in> X. n' < x \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 x} = n"*)
+
+thm less_induct
+
+
+lemma enumerate_n:
+  fixes S :: "nat set"
+  assumes S: "infinite S"
+    and s: "s \<in> S"
+  shows "enumerate S (card {s' \<in> S. s' < s}) = s"
+  using s
+proof(induction s  rule: less_induct)
+  case (less s)
+  show ?case
+  proof (cases "\<exists>y\<in>S. y < s")
+    case True
+    define s' where "s' \<equiv> Max {s''\<in>S. s'' < s}"
+
+    then have s': "s' < s"  "s'\<in> S"
+      by (metis (no_types, lifting) Collect_empty_eq Max_in True finite_nat_set_iff_bounded mem_Collect_eq)+
+
+    have "{s' \<in> S. s' < s} = insert s' {s'' \<in> S. s'' < s'}"
+      unfolding s'_def
+      apply auto
+         apply (metis (no_types, lifting) Max_ge finite_nat_set_iff_bounded mem_Collect_eq nless_le)
+      using s'(2) s'_def apply blast
+      using s'(1) s'_def apply blast
+      using order_less_trans s'(1) s'_def by blast
+
+    then have Suc: "card {s' \<in> S. s' < s} = Suc (card {s' \<in> S. s' < Max {s'' \<in> S. s'' < s}})"
+      unfolding s'_def
+      by (metis (no_types, lifting) bounded_nat_set_is_finite card_insert_disjoint mem_Collect_eq not_less_iff_gr_or_eq)      
+
+    show ?thesis 
+      using less(1)[OF s']
+      unfolding s'_def Suc enumerate_Suc''[OF S]
+      apply auto
+    proof -
+      obtain nn :: "(nat \<Rightarrow> bool) \<Rightarrow> nat" where
+        "\<And>p pa n. (p (nn p) \<or> Collect p = {}) \<and> (\<not> pa (n::nat) \<or> Collect pa \<noteq> {})"
+        by (metis (full_types) Collect_empty_eq)
+      then have "\<And>n na. (n \<notin> S \<or> \<not> n < s) \<or> \<not> s' < na \<or> n < na"
+        using s'_def by force
+      then show "(LEAST n. n \<in> S \<and> Max {n \<in> S. n < s} < n) = s"
+        by (smt (z3) LeastI_ex less.prems not_less_Least not_less_iff_gr_or_eq s'(1) s'_def)
+    qed
+  next
+    case False
+    then have 0: "card {s' \<in> S. s' < s} = 0"
+      by auto
+
+    show ?thesis 
+      unfolding 0 enumerate_0
+      using False
+      by (meson LeastI less.prems linorder_cases not_less_Least)
+  qed
+qed
+
+lemma obtain_inj_test'':
+  fixes \<V>\<^sub>1 \<V>\<^sub>2 :: "nat \<Rightarrow> 'ty"
+  (* TODO: Could I write this nicer? *)
+  assumes "\<exists>X. \<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1 x = ty}) \<and>  infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty})"
+  obtains f f' :: "nat \<Rightarrow> nat" where
+    "inj f" "inj f'"
+    "range f \<inter> range f' = {}"
+    "range f \<union> range f' = UNIV"
+    "\<And>x. \<V>\<^sub>1 (f x) = \<V>\<^sub>1 x"     
+    "\<And>x. \<V>\<^sub>2 (f' x) = \<V>\<^sub>2 x"
+proof-
+  obtain X where X:
+    "\<And>ty. infinite (X \<inter> {x. \<V>\<^sub>1 x = ty}) \<and>  infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty})"
+    using assms
+    by blast
+
+  then have infinits: "\<And>ty. infinite {x. \<V>\<^sub>1 x = ty}" "\<And>ty. infinite {x. \<V>\<^sub>2 x = ty}"
+    by blast+
+
+  define Y where
+    "Y \<equiv> UNIV - X"
+
+  have infinite: "infinite X" "infinite Y"
+    using X
+    unfolding Y_def
+    by blast+
+
+  have X_Y: "X \<inter> Y = {}" "X \<union> Y = UNIV"
+    unfolding Y_def
+    by simp_all
+
+  have xx: "\<And>n. infinite { n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 n }"
+    using X
+    by (simp add: Collect_conj_eq)
+
+  have yy: "\<And>n. infinite { n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 n }"
+    using X Y_def
+    by (metis Collect_conj_eq Collect_mem_eq)
+
+  have X': "(\<Union>n.{ n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 n }) = X"
+    by auto
+
+
+(* nat \<rightarrow> X *)
+  define f where
+    "\<And>n. f n \<equiv> enumerate { n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 n } (card {n'. n' < n \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 n})"
+
+  have inj_f: "inj f"
+  proof(unfold inj_def f_def; intro allI impI)
+    fix x y
+    assume a: "enumerate {n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 x} (card {n'. n' < x \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 x}) = 
+          enumerate {n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 y} (card {n'. n' < y \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 y})"
+
+    then have 1: "enumerate {n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 x} (card {n'. n' < x \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 x}) \<in>  {n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 y}"
+      using enumerate_in_set xx by auto
+
+    have 2: "enumerate {n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 x} (card {n'. n' < x \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 x}) \<in> {n'. \<V>\<^sub>1 n' = \<V>\<^sub>1 x}"
+      using enumerate_in_set xx by blast
+
+    have \<V>: "\<V>\<^sub>1 x = \<V>\<^sub>1 y"
+    proof(rule ccontr)
+      assume "\<V>\<^sub>1 x \<noteq> \<V>\<^sub>1 y"
+
+      then have "{n'. \<V>\<^sub>1 n' = \<V>\<^sub>1 x} \<inter> {n'. \<V>\<^sub>1 n' = \<V>\<^sub>1 y} = {}"
+        by (simp add: disjoint_iff)
+
+      then show False
+        using 1 2
+        by blast
+    qed
+
+    have "card {n'. n' < x \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 y} = card {n'. n' < y \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 y}"
+      using a inj_enumerate[OF xx] 
+      unfolding \<V> inj_def
+      by blast
+
+    then show "x = y"
+    proof -
+      have "y \<in> {n. \<V>\<^sub>1 n = \<V>\<^sub>1 x} \<and> x \<in> {n. \<V>\<^sub>1 n = \<V>\<^sub>1 x}"
+        by (simp add: \<V>)
+      then show ?thesis
+        by (metis (no_types) Collect_conj_eq Collect_mem_eq Int_commute \<V> \<open>card {n'. n' < x \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 y} = card {n'. n' < y \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 y}\<close> infinits(1) enumerate_n)
+    qed
+
+  qed
+
+  have "\<And>x. x \<in> X \<Longrightarrow> x \<in> range (\<lambda>n. enumerate {n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 n} (card {n'. n' < n \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 n}))"
+  proof-
+    fix x
+    assume "x \<in> X"
+
+    then have "\<exists>n. x = enumerate {n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 n} (card {n'. n' < n \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 n})"
+    proof(induction x rule: less_induct)
+      case (less x)
+      show ?case
+      proof (cases "\<exists>y\<in>X. y < x \<and> \<V>\<^sub>1 y = \<V>\<^sub>1 x")
+        case True
+        define y where "y \<equiv> Max {x' \<in> X. x' < x \<and> \<V>\<^sub>1 x' = \<V>\<^sub>1 x}"
+
+        then have y: "y < x"  "y \<in> X"
+          by (metis (mono_tags, lifting) Max_in True empty_iff finite_nat_set_iff_bounded mem_Collect_eq)+
+
+        obtain n where 
+          y: "y = enumerate {n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 n} (card {n'. n' < n \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 n})"
+          using less(1)[OF y]
+          by blast
+
+        then have "\<V>\<^sub>1 n = \<V>\<^sub>1 y"
+          by (metis (mono_tags, lifting) enumerate_in_set mem_Collect_eq xx)
+
+        then have \<V>': "\<V>\<^sub>1 n = \<V>\<^sub>1 x"
+          by (metis (mono_tags, lifting) Max_in True emptyE finite_nat_set_iff_bounded mem_Collect_eq y_def)
+
+        have x: "x = enumerate {n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 n} (Suc (card {n'. n' < n \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 n}))"
+          unfolding enumerate_Suc''[OF xx]  
+          using y
+          unfolding y_def
+          unfolding \<V>'[symmetric]
+          apply auto
+        proof -
+          assume a1: "Max {x' \<in> X. x' < x \<and> \<V>\<^sub>1 x' = \<V>\<^sub>1 n} = wellorder_class.enumerate {n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 n} (card {n'. n' < n \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 n})"
+          have f2: "{} \<noteq> {na \<in> X. na < x \<and> \<V>\<^sub>1 na = \<V>\<^sub>1 n}"
+            using True \<V>' by auto
+          have f3: "finite {na \<in> X. na < x \<and> \<V>\<^sub>1 na = \<V>\<^sub>1 n}"
+            by auto
+          then have "(LEAST na. na \<in> X \<and> \<V>\<^sub>1 na = \<V>\<^sub>1 n \<and> wellorder_class.enumerate {na \<in> X. \<V>\<^sub>1 na = \<V>\<^sub>1 n} (card {na. na < n \<and> \<V>\<^sub>1 na = \<V>\<^sub>1 n}) < na) \<in> X \<and> \<V>\<^sub>1 (LEAST na. na \<in> X \<and> \<V>\<^sub>1 na = \<V>\<^sub>1 n \<and> wellorder_class.enumerate {na \<in> X. \<V>\<^sub>1 na = \<V>\<^sub>1 n} (card {na. na < n \<and> \<V>\<^sub>1 na = \<V>\<^sub>1 n}) < na) = \<V>\<^sub>1 n \<and> wellorder_class.enumerate {na \<in> X. \<V>\<^sub>1 na = \<V>\<^sub>1 n} (card {na. na < n \<and> \<V>\<^sub>1 na = \<V>\<^sub>1 n}) < (LEAST na. na \<in> X \<and> \<V>\<^sub>1 na = \<V>\<^sub>1 n \<and> wellorder_class.enumerate {na \<in> X. \<V>\<^sub>1 na = \<V>\<^sub>1 n} (card {na. na < n \<and> \<V>\<^sub>1 na = \<V>\<^sub>1 n}) < na)"
+            using f2 a1 by (smt (z3) LeastI Max_in \<V>' less.prems mem_Collect_eq)
+          then have "(LEAST na. na \<in> X \<and> \<V>\<^sub>1 na = \<V>\<^sub>1 n \<and> wellorder_class.enumerate {na \<in> X. \<V>\<^sub>1 na = \<V>\<^sub>1 n} (card {na. na < n \<and> \<V>\<^sub>1 na = \<V>\<^sub>1 n}) < na) \<notin> {na \<in> X. na < x \<and> \<V>\<^sub>1 na = \<V>\<^sub>1 n}"
+            using f3 f2 a1 by (metis (lifting) Max_less_iff nat_less_le)
+          then show "x = (LEAST na. na \<in> X \<and> \<V>\<^sub>1 na = \<V>\<^sub>1 n \<and> wellorder_class.enumerate {na \<in> X. \<V>\<^sub>1 na = \<V>\<^sub>1 n} (card {na. na < n \<and> \<V>\<^sub>1 na = \<V>\<^sub>1 n}) < na)"
+            using f3 f2 a1 by (smt (z3) LeastI Least_le Max_in \<V>' less.prems mem_Collect_eq nat_less_le)
+        qed
+
+        define n' where "n' \<equiv> LEAST n''. n < n'' \<and> \<V>\<^sub>1 n'' = \<V>\<^sub>1 n"
+
+        have "{n''. n'' < n' \<and> \<V>\<^sub>1 n'' = \<V>\<^sub>1 n} = insert n {n'. n' < n \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 n}"
+          apply auto
+          using linorder_less_linear n'_def not_less_Least apply auto[1]
+          subgoal
+            unfolding n'_def
+            by (metis (mono_tags, lifting) LeastI infinite_nat_iff_unbounded mem_Collect_eq xx)
+          using \<open>n < n'\<close> by linarith
+
+        then have suc: "Suc (card {n'. n' < n \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 n}) = card {n''. n'' < n' \<and> \<V>\<^sub>1 n'' = \<V>\<^sub>1 n}"
+          by auto
+
+        have \<V>: "\<V>\<^sub>1 n = \<V>\<^sub>1 n'" 
+          by (metis (mono_tags, lifting) LeastI infinite_nat_iff_unbounded mem_Collect_eq n'_def xx)
+
+        show ?thesis
+          apply(rule exI[of _ n'])
+          using x
+          unfolding suc
+          unfolding \<V>.
+      next
+        case False
+        define n where "n \<equiv> Min {n'. n' \<le> x \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 x}"
+
+        have \<V>: "\<V>\<^sub>1 x = \<V>\<^sub>1 n"
+          unfolding n_def
+          by (metis (mono_tags, lifting) CollectD dual_order.eq_iff empty_Collect_eq eq_Min_iff finite_nat_set_iff_bounded_le)
+
+        have 0: "card {n'. n' < n \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 n} = 0"
+          unfolding \<V>[symmetric]
+          unfolding n_def
+          apply auto
+          by (metis (mono_tags, lifting) Min_le finite_nat_set_iff_bounded_le leD mem_Collect_eq nle_le order.trans)
+
+        show ?thesis 
+          apply(rule exI[of _ n])
+          unfolding 0
+          apply(auto simp: enumerate_0)
+          by (metis (mono_tags, lifting) False Least_equality \<V> less.prems less_or_eq_imp_le linorder_neqE_nat)
+      qed
+    qed
+
+    then show "x \<in> range (\<lambda>n. enumerate {n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 n} (card {n'. n' < n \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 n}))"
+      by auto
+  qed
+
+  then have range_f: "range f = X"
+    unfolding f_def
+    using enumerate_in_set xx
+    by auto
+
+  have \<V>_f: "\<And>x. \<V>\<^sub>1 (f x) = \<V>\<^sub>1 x"   
+    unfolding f_def
+    using enumerate_in_set[OF xx]
+    by auto
+
+
+  (* nat \<rightarrow> Y
+  It's completely the same as for f!!*)
+  define f' where
+    "\<And>n. f' n \<equiv> enumerate { n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 n } (card {n'. n' < n \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 n})"
+
+  have inj_f': "inj f'"
+  proof(unfold inj_def f'_def; intro allI impI)
+    fix x y
+    assume a: "enumerate {n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 x} (card {n'. n' < x \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 x}) = 
+          enumerate {n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 y} (card {n'. n' < y \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 y})"
+
+    then have 1: "enumerate {n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 x} (card {n'. n' < x \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 x}) \<in>  {n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 y}"
+      using enumerate_in_set yy by auto
+
+    have 2: "enumerate {n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 x} (card {n'. n' < x \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 x}) \<in> {n'. \<V>\<^sub>2 n' = \<V>\<^sub>2 x}"
+      using enumerate_in_set yy by blast
+
+    have \<V>: "\<V>\<^sub>2 x = \<V>\<^sub>2 y"
+    proof(rule ccontr)
+      assume "\<V>\<^sub>2 x \<noteq> \<V>\<^sub>2 y"
+
+      then have "{n'. \<V>\<^sub>2 n' = \<V>\<^sub>2 x} \<inter> {n'. \<V>\<^sub>2 n' = \<V>\<^sub>2 y} = {}"
+        by (simp add: disjoint_iff)
+
+      then show False
+        using 1 2
+        by blast
+    qed
+
+    have "card {n'. n' < x \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 y} = card {n'. n' < y \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 y}"
+      using a inj_enumerate[OF yy] 
+      unfolding \<V> inj_def
+      by blast
+
+    then show "x = y"
+    proof -
+      have "y \<in> {n. \<V>\<^sub>2 n = \<V>\<^sub>2 x} \<and> x \<in> {n. \<V>\<^sub>2 n = \<V>\<^sub>2 x}"
+        by (simp add: \<V>)
+      then show ?thesis
+        by (metis (no_types) Collect_conj_eq Collect_mem_eq Int_commute \<V> \<open>card {n'. n' < x \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 y} = card {n'. n' < y \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 y}\<close> infinits(2) enumerate_n)
+    qed
+
+  qed
+
+  have "\<And>x. x \<in> Y \<Longrightarrow> x \<in> range (\<lambda>n. enumerate {n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 n} (card {n'. n' < n \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 n}))"
+  proof-
+    fix x
+    assume "x \<in> Y"
+
+    then have "\<exists>n. x = enumerate {n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 n} (card {n'. n' < n \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 n})"
+    proof(induction x rule: less_induct)
+      case (less x)
+      show ?case
+      proof (cases "\<exists>y\<in>Y. y < x \<and> \<V>\<^sub>2 y = \<V>\<^sub>2 x")
+        case True
+        define y where "y \<equiv> Max {x' \<in> Y. x' < x \<and> \<V>\<^sub>2 x' = \<V>\<^sub>2 x}"
+
+        then have y: "y < x"  "y \<in> Y"
+          by (metis (mono_tags, lifting) Max_in True empty_iff finite_nat_set_iff_bounded mem_Collect_eq)+
+
+        obtain n where 
+          y: "y = enumerate {n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 n} (card {n'. n' < n \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 n})"
+          using less(1)[OF y]
+          by blast
+
+        then have "\<V>\<^sub>2 n = \<V>\<^sub>2 y"
+          by (metis (mono_tags, lifting) enumerate_in_set mem_Collect_eq yy)
+
+        then have \<V>': "\<V>\<^sub>2 n = \<V>\<^sub>2 x"
+          by (metis (mono_tags, lifting) Max_in True emptyE finite_nat_set_iff_bounded mem_Collect_eq y_def)
+
+        have x: "x = enumerate {n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 n} (Suc (card {n'. n' < n \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 n}))"
+          unfolding enumerate_Suc''[OF yy]  
+          using y
+          unfolding y_def
+          unfolding \<V>'[symmetric]
+          apply auto
+        proof -
+          assume a1: "Max {x' \<in> Y. x' < x \<and> \<V>\<^sub>2 x' = \<V>\<^sub>2 n} = wellorder_class.enumerate {n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 n} (card {n'. n' < n \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 n})"
+          have f2: "{} \<noteq> {na \<in> Y. na < x \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n}"
+            using True \<V>' by auto
+          have f3: "finite {na \<in> Y. na < x \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n}"
+            by auto
+          then have "(LEAST na. na \<in> Y \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n \<and> wellorder_class.enumerate {na \<in> Y. \<V>\<^sub>2 na = \<V>\<^sub>2 n} (card {na. na < n \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n}) < na) \<in> Y \<and> \<V>\<^sub>2 (LEAST na. na \<in> Y \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n \<and> wellorder_class.enumerate {na \<in> Y. \<V>\<^sub>2 na = \<V>\<^sub>2 n} (card {na. na < n \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n}) < na) = \<V>\<^sub>2 n \<and> wellorder_class.enumerate {na \<in> Y. \<V>\<^sub>2 na = \<V>\<^sub>2 n} (card {na. na < n \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n}) < (LEAST na. na \<in> Y \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n \<and> wellorder_class.enumerate {na \<in> Y. \<V>\<^sub>2 na = \<V>\<^sub>2 n} (card {na. na < n \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n}) < na)"
+            using f2 a1 by (smt (z3) LeastI Max_in \<V>' less.prems mem_Collect_eq)
+          then have "(LEAST na. na \<in> Y \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n \<and> wellorder_class.enumerate {na \<in> Y. \<V>\<^sub>2 na = \<V>\<^sub>2 n} (card {na. na < n \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n}) < na) \<notin> {na \<in> Y. na < x \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n}"
+            using f3 f2 a1 by (metis (lifting) Max_less_iff nat_less_le)
+          then show "x = (LEAST na. na \<in> Y \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n \<and> wellorder_class.enumerate {na \<in> Y. \<V>\<^sub>2 na = \<V>\<^sub>2 n} (card {na. na < n \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n}) < na)"
+            using f3 f2 a1 by (smt (z3) LeastI Least_le Max_in \<V>' less.prems mem_Collect_eq nat_less_le)
+        qed
+
+        define n' where "n' \<equiv> LEAST n''. n < n'' \<and> \<V>\<^sub>2 n'' = \<V>\<^sub>2 n"
+
+        have "{n''. n'' < n' \<and> \<V>\<^sub>2 n'' = \<V>\<^sub>2 n} = insert n {n'. n' < n \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 n}"
+          apply auto
+          using linorder_less_linear n'_def not_less_Least apply auto[1]
+          subgoal
+            unfolding n'_def
+            by (metis (mono_tags, lifting) LeastI infinite_nat_iff_unbounded mem_Collect_eq yy)
+          using \<open>n < n'\<close> by linarith
+
+        then have suc: "Suc (card {n'. n' < n \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 n}) = card {n''. n'' < n' \<and> \<V>\<^sub>2 n'' = \<V>\<^sub>2 n}"
+          by auto
+
+        have \<V>: "\<V>\<^sub>2 n = \<V>\<^sub>2 n'" 
+          by (metis (mono_tags, lifting) LeastI infinite_nat_iff_unbounded mem_Collect_eq n'_def yy)
+
+        show ?thesis
+          apply(rule exI[of _ n'])
+          using x
+          unfolding suc
+          unfolding \<V>.
+      next
+        case False
+        define n where "n \<equiv> Min {n'. n' \<le> x \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 x}"
+
+        have \<V>: "\<V>\<^sub>2 x = \<V>\<^sub>2 n"
+          unfolding n_def
+          by (metis (mono_tags, lifting) CollectD dual_order.eq_iff empty_Collect_eq eq_Min_iff finite_nat_set_iff_bounded_le)
+
+        have 0: "card {n'. n' < n \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 n} = 0"
+          unfolding \<V>[symmetric]
+          unfolding n_def
+          apply auto
+          by (metis (mono_tags, lifting) Min_le finite_nat_set_iff_bounded_le leD mem_Collect_eq nle_le order.trans)
+
+        show ?thesis 
+          apply(rule exI[of _ n])
+          unfolding 0
+          apply(auto simp: enumerate_0)
+          by (metis (mono_tags, lifting) False Least_equality \<V> less.prems less_or_eq_imp_le linorder_neqE_nat)
+      qed
+    qed
+
+    then show "x \<in> range (\<lambda>n. enumerate {n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 n} (card {n'. n' < n \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 n}))"
+      by auto
+  qed
+
+  then have range_f': "range f' = Y"
+    unfolding f'_def
+    using enumerate_in_set yy
+    by auto
+
+  have \<V>_f': "\<And>x. \<V>\<^sub>2 (f' x) = \<V>\<^sub>2 x"   
+    unfolding f'_def
+    using enumerate_in_set[OF yy]
+    by auto
+
+  show ?thesis
+    using that[OF inj_f inj_f' X_Y[unfolded range_f[symmetric] range_f'[symmetric]] \<V>_f \<V>_f'].
+qed
+
+lemma test:
+  assumes "bij f"
+  shows "f ` X \<union> f ` X' = UNIV \<longleftrightarrow> X \<union> X' = UNIV"
+  using assms
+  by (metis bij_is_inj bij_is_surj image_Un inj_image_eq_iff)
+
+lemma obtain_inj'':
+  assumes "\<exists>X. \<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1 x = ty}) \<and> infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty})"
+  obtains f f' :: "'a :: {countable, infinite} \<Rightarrow> 'a" where
+    "inj f" "inj f'"
+    "range f \<inter> range f' = {}" 
+    "range f \<union> range f' = UNIV"
+    "\<And>x. \<V>\<^sub>1 (f x) = \<V>\<^sub>1 x"
+    "\<And>x. \<V>\<^sub>2 (f' x) = \<V>\<^sub>2 x"
+proof-
+  obtain a_to_nat :: "'a \<Rightarrow> nat" where bij_a_to_nat: "bij a_to_nat"
+    using countableE_infinite[of "UNIV :: 'a set"] infinite_UNIV by blast
+
+  define nat_to_a where "nat_to_a \<equiv> inv a_to_nat"
+
+  have bij_nat_to_a: "bij nat_to_a"
+    unfolding nat_to_a_def
+    by (simp add: bij_a_to_nat bij_imp_bij_inv)
+
+  define \<V>\<^sub>1_nat where "\<And>n. \<V>\<^sub>1_nat n \<equiv> \<V>\<^sub>1 (nat_to_a n)"
+  define \<V>\<^sub>2_nat where "\<And>n. \<V>\<^sub>2_nat n \<equiv> \<V>\<^sub>2 (nat_to_a n)"
+
+  have xx: "\<And>n. {n'. \<V>\<^sub>1_nat n' = n} = a_to_nat ` {n'. \<V>\<^sub>1  n' = n}"
+    unfolding  \<V>\<^sub>1_nat_def
+    apply auto
+    using bij_a_to_nat bij_image_Collect_eq nat_to_a_def apply blast
+    by (metis bij_a_to_nat bij_inv_eq_iff nat_to_a_def)
+
+   have yy: "\<And>n. {n'. \<V>\<^sub>2_nat n' = n} = a_to_nat ` {n'. \<V>\<^sub>2  n' = n}"
+    unfolding  \<V>\<^sub>2_nat_def
+    apply auto
+    using bij_a_to_nat bij_image_Collect_eq nat_to_a_def apply blast
+    by (metis bij_a_to_nat bij_inv_eq_iff nat_to_a_def)
+
+  obtain X where X: "\<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1 x = ty}) \<and> infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty})"
+    using assms
+    by blast
+
+  then have "\<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1 x = ty}) \<and> infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty})"
+    by blast
+
+  then have  "\<forall>ty. infinite (a_to_nat ` (X \<inter> {x. \<V>\<^sub>1 x = ty})) \<and> infinite (a_to_nat ` ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty}))"
+    using bij_a_to_nat
+    by (metis Int_UNIV_right bij_betw_def finite_image_iff inj_on_Int)
+
+  then have zz: "\<forall>ty. infinite (a_to_nat ` X \<inter> a_to_nat ` {x. \<V>\<^sub>1 x = ty}) \<and> infinite ((UNIV - a_to_nat ` X) \<inter> a_to_nat ` {x. \<V>\<^sub>2 x = ty})"
+    by (simp add: bij_a_to_nat bij_is_inj image_Int  bij_is_surj image_set_diff)
+
+  then have assms_nat: "\<exists>X. \<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1_nat x = ty}) \<and> infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2_nat x = ty})"
+    unfolding xx yy
+    by(rule exI[of _ "a_to_nat ` X"])
+
+  then obtain f_nat f'_nat :: "nat \<Rightarrow> nat"  where 
+    nats: "inj f_nat" "inj f'_nat"
+    "range f_nat \<inter> range f'_nat = {}" 
+    "range f_nat \<union> range f'_nat = UNIV" 
+    "\<And>x. \<V>\<^sub>1_nat (f_nat x) = \<V>\<^sub>1_nat x" 
+    "\<And>x. \<V>\<^sub>2_nat (f'_nat x) = \<V>\<^sub>2_nat x"
+    using obtain_inj_test''[OF assms_nat]
+    by blast
+
+  define f where "\<And>a. f a \<equiv> nat_to_a (f_nat (a_to_nat a))"
+  define f' where "\<And>a. f' a \<equiv> nat_to_a (f'_nat (a_to_nat a))"
+
+  have "inj f" 
+    using nats(1) unfolding f_def
+    by (meson bij_a_to_nat bij_is_inj bij_nat_to_a inj_def)
+
+  moreover have "inj f'"
+    using nats(2) unfolding f'_def
+    by (meson bij_a_to_nat bij_is_inj bij_nat_to_a inj_def)
+
+  moreover have "range f \<inter> range f' = {}"
+    using nats(3) bij_a_to_nat bij_nat_to_a
+    unfolding f'_def f_def
+    apply auto
+    by (metis Int_iff bij_is_inj empty_iff inj_def rangeI)
+
+  moreover have "range f \<union> range f' = UNIV"
+    using nats(4) bij_a_to_nat
+    unfolding f'_def f_def 
+    unfolding range_composition[of nat_to_a]
+    unfolding test[OF bij_nat_to_a]
+    by (simp add: bij_betw_imp_surj range_composition)
+    
+  moreover have "\<And>x. \<V>\<^sub>1 (f x) = \<V>\<^sub>1 x"
+    using nats(5)
+    unfolding \<V>\<^sub>1_nat_def f_def
+    by (simp add: bij_a_to_nat bij_is_inj nat_to_a_def)
+
+  moreover have "\<And>x. \<V>\<^sub>2 (f' x) = \<V>\<^sub>2 x"
+    using nats(6)
+    unfolding \<V>\<^sub>2_nat_def f'_def
+    by (simp add: bij_a_to_nat bij_is_inj nat_to_a_def)
+
+
+  ultimately show ?thesis
+    using that
+    by presburger
+qed
+
+
+lemma obtain_inj': 
+  obtains f :: "'a :: {countable, infinite} \<Rightarrow> 'a" where
+    "inj f"
+    "infinite (range f)"
+    "infinite (UNIV - range f)"
+proof-
+  obtain g :: "'a \<Rightarrow> nat" where bij: "bij g"
+    using countableE_infinite[of "UNIV :: 'a set"] infinite_UNIV by blast
+
+  obtain X Y :: "'a set" where
+    X_Y: "X \<inter> Y = {}" "X \<union> Y = UNIV" and
+    infinite_X: "infinite X" and
+    infinite_Y: "infinite Y"
+    using obtain_infinite_partition
+    by auto
+
+  have countable_X: "countable X" and countable_Y: "countable Y"
+    by auto
+
+  obtain f where 
+    f: "bij_betw f (UNIV :: 'a set) Y"
+    using countable_infiniteE'[OF countable_Y infinite_Y]     
+    by (meson bij bij_betw_trans)
+
+  have inj_f: "inj f" 
+    using f bij_betw_def by blast+
+
+  have Y: "Y = range f" 
+    using f
+    by (simp add: bij_betw_def)
+
+  have X: "X = UNIV - range f"
+    using X_Y
+    unfolding Y
+    by auto
+
+  show ?thesis
+    using infinite_X infinite_Y that[OF inj_f]
+    unfolding X Y
+    by presburger
+qed
+
+lemma obtain_inj: 
+  fixes X
+  defines "Y \<equiv> UNIV - X"
+  assumes 
+    infinite_X: "infinite X" and
+    infinite_Y: "infinite Y"
+  obtains f :: "'a :: {countable, infinite} \<Rightarrow> 'a" where
+    "inj f"
+    "range f \<inter> X = {}"
+    "range f \<union> X = UNIV"
+proof-
+  obtain g :: "'a \<Rightarrow> nat" where bij: "bij g"
+    using countableE_infinite[of "UNIV :: 'a set"] infinite_UNIV by blast
+
+  have X_Y: "X \<inter> Y = {}" "X \<union> Y = UNIV"
+    unfolding Y_def 
+    by simp_all              
+
+  have countable_X: "countable X" and countable_Y: "countable Y"
+    by auto
+
+  obtain f where 
+    f: "bij_betw f (UNIV :: 'a set) Y"
+    using countable_infiniteE'[OF countable_Y infinite_Y]     
+    by (meson bij bij_betw_trans)
+
+  have "inj f" 
+    using f bij_betw_def by blast+
+
+  moreover have "range f = Y" 
+    using f
+    by (simp_all add: bij_betw_def)
+
+  then have "range f \<inter> X = {}" "range f \<union> X = UNIV"
+    using X_Y
+    by auto
+
+  ultimately show ?thesis
+    using that
+    by presburger
+qed
+
+lemma obtain_injs:
+  obtains f f' :: "'a :: {countable, infinite} \<Rightarrow> 'a" where
+    "inj f" "inj f'" 
+    "range f \<inter> range f' = {}"
+    "range f \<union> range f' = UNIV"  
+proof-
+  obtain g :: "'a \<Rightarrow> nat" where "bij g"
+    using countableE_infinite[of "UNIV :: 'a set"] infinite_UNIV by blast
+
+  define g' where "g' \<equiv> inv g"
+
+  then have bij_g': "bij g'"
+    by (simp add: \<open>bij g\<close> bij_betw_inv_into)
+
+  obtain X Y :: "'a set" where
+    X_Y: "X \<inter> Y = {}" "X \<union> Y = UNIV" and
+    infinite_X: "infinite X" and
+    infinite_Y: "infinite Y"
+    using obtain_infinite_partition
+    by auto
+
+  have countable_X: "countable X" and countable_Y: "countable Y"
+    by blast+
+
+  obtain f where 
+    f: "bij_betw f (UNIV :: 'a set) X"
+    using countable_infiniteE'[OF countable_X infinite_X]     
+    by (meson \<open>bij g\<close> bij_betw_trans)
+
+  obtain f' where 
+    f': "bij_betw f' (UNIV :: 'a set) Y"
+    using countable_infiniteE'[OF countable_Y infinite_Y]
+    by (meson \<open>bij g\<close> bij_betw_trans)
+
+  have "inj f" "inj f'"
+    using f f' bij_betw_def by blast+
+
+  moreover have "range f = X" "range f' = Y"
+    using f f'
+    by (simp_all add: bij_betw_def)
+
+  then have "range f \<inter> range f' = {}" "range f \<union> range f' = UNIV"
+    using X_Y
+    by simp_all
+
+  ultimately show ?thesis
+    using that
+    by presburger
+qed
 
 lemma welltyped_renaming_exists: 
-  obtains \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v) subst" where
+  assumes "\<exists>X. \<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1 x = ty}) \<and> infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty})"
+  obtains \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v :: {countable, infinite}) subst" where
+    "term_subst.is_renaming \<rho>\<^sub>1" 
+    "term_subst.is_renaming \<rho>\<^sub>2" 
+    "range_vars' \<rho>\<^sub>1 \<inter> range_vars' \<rho>\<^sub>2 = {}"
+    "range_vars' \<rho>\<^sub>1 \<union> range_vars' \<rho>\<^sub>2 = UNIV"
+    "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>1 \<rho>\<^sub>1"
+    "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
+  using obtain_inj'
+proof-
+  obtain renaming\<^sub>1 renaming\<^sub>2 :: "'v \<Rightarrow> 'v" where
+    renamings:
+    "inj renaming\<^sub>1" "inj renaming\<^sub>2"
+    "range renaming\<^sub>1 \<inter> range renaming\<^sub>2 = {}" 
+    "range renaming\<^sub>1 \<union> range renaming\<^sub>2 = UNIV" 
+    "\<And>x. \<V>\<^sub>1 (renaming\<^sub>1 x) = \<V>\<^sub>1 x" 
+    "\<And>x. \<V>\<^sub>2 (renaming\<^sub>2 x) = \<V>\<^sub>2 x"
+    using obtain_inj''[OF assms]
+    by metis
+
+  define \<rho>\<^sub>1 :: "('f, 'v) subst" where
+    "\<And>x. \<rho>\<^sub>1 x \<equiv> Var (renaming\<^sub>1 x)"
+
+  define \<rho>\<^sub>2 :: "('f, 'v) subst" where
+    "\<And>x. \<rho>\<^sub>2 x \<equiv> Var (renaming\<^sub>2 x)"
+
+  have "term_subst.is_renaming \<rho>\<^sub>1"  "term_subst.is_renaming \<rho>\<^sub>2" 
+    unfolding \<rho>\<^sub>1_def \<rho>\<^sub>2_def
+    using renamings(1,2)
+    by (meson injD injI term_subst.is_renaming_id_subst term_subst_is_renaming_iff)+
+
+  moreover have "range_vars' \<rho>\<^sub>1 \<inter> range_vars' \<rho>\<^sub>2 = {}"
+    unfolding \<rho>\<^sub>1_def \<rho>\<^sub>2_def range_vars'_def
+    using renamings(3)
+    by auto
+
+  moreover have "range_vars' \<rho>\<^sub>1 \<union> range_vars' \<rho>\<^sub>2 = UNIV"
+    unfolding \<rho>\<^sub>1_def \<rho>\<^sub>2_def range_vars'_def
+    using renamings(4)
+    by auto
+   
+  moreover have "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>1 \<rho>\<^sub>1" "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
+    unfolding \<rho>\<^sub>1_def \<rho>\<^sub>2_def welltyped\<^sub>\<sigma>_def
+    using renamings(5, 6)
+    by(auto simp: welltyped.Var)
+
+  ultimately show ?thesis 
+    using that
+    by blast
+qed
+
+(*lemma welltyped_renaming_exists': 
+  assumes "\<And>ty. infinite { x. \<V> x = ty }" "infinite X" "infinite (UNIV - X)"
+  obtains \<rho> :: "('f, 'v :: {countable, infinite}) subst" where
+    "term_subst.is_renaming \<rho>" 
+    "range_vars' \<rho> \<inter> X = {}"
+    "range_vars' \<rho> \<union> X = UNIV"
+    "welltyped\<^sub>\<sigma> \<F> \<V> \<rho>"
+proof-
+  obtain renaming :: "'v \<Rightarrow> 'v" where
+    renamings:
+    "inj renaming"
+    "range renaming \<inter> X = {}"
+    "range renaming \<union> X = UNIV"
+    "\<And>x. \<V> (renaming x) = \<V> x"
+    sorry
+
+  then have "\<And>X. \<V> ` X = \<V> ` renaming ` X"
+    using image_image
+    by (simp add: image_image)
+
+  define \<rho> :: "('f, 'v) subst" where
+    "\<And>x. \<rho> x \<equiv>  Var (renaming x)"
+
+  have "welltyped\<^sub>\<sigma> \<F> \<V> \<rho>"
+    unfolding \<rho>_def welltyped\<^sub>\<sigma>_def
+    using renamings
+    by (simp_all add: welltyped.Var)
+
+  moreover have "term_subst.is_renaming \<rho>"
+    using renamings(1)
+    unfolding \<rho>_def term_subst_is_renaming_iff  inj_def
+    by (meson term.disc(1) term.inject(1))
+
+  moreover have "range_vars' \<rho> \<inter> X = {}"
+    using renamings
+    unfolding \<rho>_def range_vars'_def
+    by auto
+
+  moreover have "range_vars' \<rho> \<union> X = UNIV"
+    using renamings(3)
+    unfolding \<rho>_def range_vars'_def
+    by auto
+
+  ultimately show ?thesis 
+    using that
+    by blast
+qed
+
+lemma welltyped_renaming_exists: 
+  assumes "\<And>ty. infinite { x. \<V>\<^sub>1 x = ty }" "\<And>ty. infinite { x. \<V>\<^sub>2 x = ty }"
+  obtains \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v :: {countable, infinite}) subst" where
     "term_subst.is_renaming \<rho>\<^sub>1" 
     "term_subst.is_renaming \<rho>\<^sub>2"
     "range_vars' \<rho>\<^sub>1 \<inter> range_vars' \<rho>\<^sub>2 = {}"
@@ -564,49 +1387,27 @@ lemma welltyped_renaming_exists:
     "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>1 \<rho>\<^sub>1" 
     "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
 proof-
-  obtain \<rho>\<^sub>1 where "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>1 \<rho>\<^sub>1" "term_subst.is_renaming \<rho>\<^sub>1" 
-    using welltyped\<^sub>\<sigma>_Var term_subst.is_renaming_id_subst by blast
+  obtain \<rho>\<^sub>1 :: "('f, 'v) subst" where \<rho>\<^sub>1:
+    "term_subst.is_renaming \<rho>\<^sub>1"
+    "infinite (range_vars' \<rho>\<^sub>1)"
+    "infinite (UNIV - range_vars' \<rho>\<^sub>1)"
+    "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>1 \<rho>\<^sub>1" 
+    using welltyped_renaming_exists''[OF assms(1)]
+    by blast
 
-  obtain renaming where 
-    renaming: 
-    "inj renaming" 
-    "renaming ` UNIV  =  UNIV - range_vars' \<rho>\<^sub>1"
-    "\<And>x. \<V>\<^sub>2 (renaming x) = \<V>\<^sub>2 x"
-    unfolding inj_def range_vars'_def
-    apply auto
+  moreover obtain \<rho>\<^sub>2 :: "('f, 'v) subst"  where
+    "term_subst.is_renaming \<rho>\<^sub>2"
+    "range_vars' \<rho>\<^sub>1 \<inter> range_vars' \<rho>\<^sub>2 = {}"
+    "range_vars' \<rho>\<^sub>1 \<union> range_vars' \<rho>\<^sub>2 = UNIV"
+    "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
+    (*using welltyped_renaming_exists'[OF assms(2) \<rho>\<^sub>1(2, 3)]
+    by (metis inf_commute sup_commute)*)
     sorry
 
-  define \<rho>\<^sub>2 :: "('f, 'v) subst" where
-    "\<And>x. \<rho>\<^sub>2 x \<equiv>  Var (renaming x)"
-
-  have "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
-    unfolding \<rho>\<^sub>2_def welltyped\<^sub>\<sigma>_def
-    using renaming(3)
-    by (simp add: welltyped.Var)
-
-  have "term_subst.is_renaming \<rho>\<^sub>2"
-    unfolding \<rho>\<^sub>2_def term_subst_is_renaming_iff 
-    using renaming(1)
-    by(auto simp: inj_def)
-
-  have "range_vars' \<rho>\<^sub>2 = UNIV - range_vars' \<rho>\<^sub>1"
-    using renaming(2)
-    unfolding \<rho>\<^sub>2_def range_vars'_def
-    by auto
- 
-  have "range_vars' \<rho>\<^sub>1 \<inter> range_vars' \<rho>\<^sub>2 = {}"
-    using renaming
-    unfolding \<rho>\<^sub>2_def range_vars'_def
-    by auto
-
-  have "range_vars' \<rho>\<^sub>1 \<union> range_vars' \<rho>\<^sub>2 = UNIV"
-    using renaming 
-    using \<open>range_vars' \<rho>\<^sub>2 = UNIV - range_vars' \<rho>\<^sub>1\<close> by blast
-
-  then show ?thesis 
+  ultimately show ?thesis 
     using that
-    using \<open>range_vars' \<rho>\<^sub>1 \<inter> range_vars' \<rho>\<^sub>2 = {}\<close> \<open>subst_clause.is_renaming \<rho>\<^sub>1\<close> \<open>subst_clause.is_renaming \<rho>\<^sub>2\<close> \<open>welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>1 \<rho>\<^sub>1\<close> \<open>welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>2 \<rho>\<^sub>2\<close> by blast
-qed
+    by blast
+qed*)
 
 lemma welltyped\<^sub>\<sigma>_subst_upd:
   assumes "welltyped \<F> \<V> (Var var) \<tau>" "welltyped \<F> \<V> update \<tau>"  "welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>" 
@@ -807,8 +1608,8 @@ next
         welltyped \<F> \<V> (s \<cdot>t Var(x := (Fun t ts))) \<tau> \<and> welltyped \<F> \<V> (s' \<cdot>t Var(x := (Fun t ts))) \<tau>"
     using 4(3)
     by (smt (verit, ccfv_threshold) case_prodD case_prodI2 fun_upd_apply welltyped.Var 
-          list.set_intros(1) list.set_intros(2) right_uniqueD welltyped_right_unique 
-          welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_welltyped)
+        list.set_intros(1) list.set_intros(2) right_uniqueD welltyped_right_unique 
+        welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_welltyped)
 
   moreover then have 
     "\<forall>(s, s') \<in> set (subst_list (subst x (Fun t ts)) E). \<exists>\<tau>. 
@@ -824,7 +1625,7 @@ next
     using 4(4) 
     unfolding welltyped\<^sub>\<sigma>_def
     by (simp add: calculation(4) subst_compose_def welltyped\<^sub>\<sigma>_welltyped)
-     
+
   ultimately show ?case 
     using 4(1, 2)
     by (metis (no_types, lifting) option.distinct(1) unify.simps(4))
