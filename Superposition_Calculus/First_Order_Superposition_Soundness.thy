@@ -405,7 +405,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       by (metis grounding(3) local.superpositionI(14) subst_compose_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_welltyped)
 
     have wt_\<gamma>: "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<gamma>)" "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot> \<mu> \<odot> \<gamma>)"
-      using 
+      using
         welltyped\<^sub>\<sigma>_renaming_ground_subst[OF superpositionI(4, 15) wt_\<mu>_\<gamma> superpositionI(17) ground_subst(3)]
         welltyped\<^sub>\<sigma>_renaming_ground_subst[OF superpositionI(5, 16) wt_\<mu>_\<gamma> superpositionI(18) ground_subst(3)]
       by (simp_all add: subst_compose_assoc)

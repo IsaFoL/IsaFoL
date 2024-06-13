@@ -2,6 +2,7 @@ theory First_Order_Superposition_Completeness
   imports
     Ground_Superposition_Completeness
     Grounded_First_Order_Superposition
+    "HOL-ex.Sketch_and_Explore"
 begin
 
 context grounded_first_order_superposition_calculus
@@ -568,10 +569,10 @@ lemma superposition_lifting:
       "welltyped\<^sub>c typeof_fun \<V>\<^sub>1 premise\<^sub>1"
       "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 premise\<^sub>2"
       "term_subst.is_ground_subst \<gamma>"
-      "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<gamma>)"
-      "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot> \<gamma>)"
-      "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1"
-      "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2"
+      "welltyped\<^sub>\<sigma>_on (vars_clause premise\<^sub>1) typeof_fun \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<gamma>)"
+      "welltyped\<^sub>\<sigma>_on (vars_clause premise\<^sub>2) typeof_fun \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot> \<gamma>)"
+      (*"welltyped\<^sub>\<sigma>_on (vars_clause premise\<^sub>1) typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1"
+      "welltyped\<^sub>\<sigma>_on (vars_clause premise\<^sub>2) typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2"*)
   obtains conclusion' \<V>\<^sub>3
   where
     "superposition (premise\<^sub>2, \<V>\<^sub>2) (premise\<^sub>1, \<V>\<^sub>1) (conclusion', \<V>\<^sub>3)"
@@ -934,7 +935,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
     then have \<tau>\<^sub>x_var\<^sub>x: "welltyped typeof_fun \<V>\<^sub>1 (Var var\<^sub>x) \<tau>\<^sub>x"
       using \<tau>\<^sub>x
-      by (metis typing(6) welltyped\<^sub>\<sigma>_welltyped)
+      sorry
+      (*by (metis typing(6) welltyped\<^sub>\<sigma>_welltyped)*)
 
     show ?thesis
     proof(unfold ground.redundant_infer_def \<iota>\<^sub>G_parts, intro exI conjI)
@@ -975,7 +977,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by (metis (no_types, lifting) Un_iff ground_context_is_ground ground_term_is_ground ground_term_with_context2 ground_term_with_context_is_ground2(1) is_ground_iff subst_apply_term_ctxt_apply_distrib term\<^sub>1_with_context term\<^sub>1_with_context_\<gamma> to_ground_term_inverse update_grounding vars_term_ctxt_apply)
 
       have "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 (to_clause premise\<^sub>G\<^sub>2)"
-        by (metis clause_subst_compose ground_superpositionI(2) premise\<^sub>2_\<gamma> typing(2) typing(5) welltyped\<^sub>\<sigma>_welltyped\<^sub>c)
+        sorry
+        (*by (metis clause_subst_compose ground_superpositionI(2) premise\<^sub>2_\<gamma> typing(2) typing(5) welltyped\<^sub>\<sigma>_welltyped\<^sub>c)*)
 
       then have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>2 (to_term term\<^sub>G\<^sub>1) \<tau> \<and>  welltyped typeof_fun \<V>\<^sub>2 (to_term term\<^sub>G\<^sub>3) \<tau>"
         unfolding 
@@ -992,7 +995,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by (meson ground_term_is_ground welltyped_is_ground)
 
       have "welltyped typeof_fun \<V>\<^sub>1 (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) \<tau>\<^sub>x"
-        by (metis \<tau>\<^sub>x subst_subst_compose typing(4) welltyped\<^sub>\<sigma>_welltyped)
+        sorry
+        (*by (metis \<tau>\<^sub>x subst_subst_compose typing(4) welltyped\<^sub>\<sigma>_welltyped)*)
 
       then have \<tau>\<^sub>x_update: "welltyped typeof_fun \<V>\<^sub>1 ?update \<tau>\<^sub>x"
         unfolding aux
@@ -1009,10 +1013,11 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by (metis \<gamma>' ground_term_subst_upd term_subst.comp_subst.left.monoid_action_compatibility term_subst.is_ground_subst_def typing(3) update_grounding)
 
       have \<gamma>'_wt: "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<gamma>')"
-        using welltyped\<^sub>\<sigma>_subst_upd[OF \<tau>\<^sub>x_var\<^sub>x \<tau>\<^sub>x_update typing(4)]
+        (*using welltyped\<^sub>\<sigma>_subst_upd[OF \<tau>\<^sub>x_var\<^sub>x \<tau>\<^sub>x_update typing(4)]
         unfolding \<gamma>' welltyped\<^sub>\<sigma>_def subst_compose
         apply auto
-        by (smt (verit) First_Order_Type_System.welltyped.simps \<tau>\<^sub>x \<tau>\<^sub>x_update eval_term.simps(1) eval_with_fresh_var fun_upd_same is_Var_term\<^sub>x renaming(1) subst_compose_def term.collapse(1) term.distinct(1) term.set_cases(2) term_subst_is_renaming_iff the_inv_f_f typing(4) var\<^sub>x welltyped\<^sub>\<sigma>_def)
+        by (smt (verit) First_Order_Type_System.welltyped.simps \<tau>\<^sub>x \<tau>\<^sub>x_update eval_term.simps(1) eval_with_fresh_var fun_upd_same is_Var_term\<^sub>x renaming(1) subst_compose_def term.collapse(1) term.distinct(1) term.set_cases(2) term_subst_is_renaming_iff the_inv_f_f typing(4) var\<^sub>x welltyped\<^sub>\<sigma>_def)*)
+        sorry
 
       show "{?premise\<^sub>1_\<gamma>'} \<subseteq> premise_groundings"
         using premise\<^sub>1_\<gamma>'_grounding typing \<gamma>'_wt \<gamma>'_ground
@@ -1215,7 +1220,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       have "welltyped typeof_fun \<V>\<^sub>1 (Var x \<cdot>t \<gamma>) (\<V>\<^sub>1 y)"
         unfolding y
         using typing
-        by (metis subst_compose_def welltyped\<^sub>\<sigma>_def)  
+        sorry
+        (*by (metis subst_compose_def welltyped\<^sub>\<sigma>_def)  *)
 
       then have "welltyped typeof_fun \<V>\<^sub>1 (Var x \<cdot>t \<gamma>) (\<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)))"
         by (metis renaming(1) term_subst_is_renaming_iff the_inv_f_f y)
@@ -1240,7 +1246,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       have "welltyped typeof_fun \<V>\<^sub>2 (Var x \<cdot>t \<gamma>) (\<V>\<^sub>2 y)"
         unfolding y
         using typing
-        by (metis subst_compose_def welltyped\<^sub>\<sigma>_def)  
+        sorry
+        (*by (metis subst_compose_def welltyped\<^sub>\<sigma>_def)  *)
 
       then have "welltyped typeof_fun \<V>\<^sub>2 (Var x \<cdot>t \<gamma>) (\<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)))"
         by (metis renaming(2) term_subst_is_renaming_iff the_inv_f_f y)
@@ -1266,7 +1273,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
   proof-
     have "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)"
       using typing
-      by (metis clause_subst_compose welltyped\<^sub>\<sigma>_welltyped\<^sub>c)
+     (* by (metis clause_subst_compose welltyped\<^sub>\<sigma>_welltyped\<^sub>c)*)
+      sorry
 
     then obtain \<tau> where 
       "welltyped typeof_fun \<V>\<^sub>2 (to_term term\<^sub>G\<^sub>1) \<tau>" 
@@ -1521,10 +1529,10 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by auto
 
       show "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1"
-        using typing(6).
+        using typing(6) sorry
         
       show "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2"
-        using typing(7).
+        using typing(7) sorry
 
       have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>2 term\<^sub>2 \<tau> \<and> welltyped typeof_fun \<V>\<^sub>2 term\<^sub>2' \<tau>"
         using typing(2)
@@ -1793,14 +1801,32 @@ proof-
     "term_subst.is_ground_subst \<gamma>\<^sub>1"
     "term_subst.is_ground_subst \<gamma>\<^sub>2" 
     "welltyped\<^sub>c typeof_fun \<V>\<^sub>1 premise\<^sub>1"
-    "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 premise\<^sub>2"  and
-    \<V>: "\<exists>X. \<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1 x = ty}) \<and> infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty})"
+    "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 premise\<^sub>2"     
     using assms(2, 4) premise\<^sub>G\<^sub>1_in_groundings premise\<^sub>G\<^sub>2_in_groundings
-    unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
-    apply auto
+    unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def    
+    by (smt (verit, del_insts) case_prodE is_ground_subst_is_ground_clause to_ground_clause_inverse)
+
+  define \<V>\<^sub>1' where
+    "\<V>\<^sub>1' \<equiv> \<V>\<^sub>1"
+
+  define \<V>\<^sub>2' where
+    "\<V>\<^sub>2' \<equiv> \<V>\<^sub>2"
+
+  have \<V>\<^sub>1'_spec: "(\<forall>x \<in> vars_clause premise\<^sub>1. \<V>\<^sub>1' x = \<V>\<^sub>1 x) \<and> (\<forall>ty. infinite {x. \<V>\<^sub>1' x = ty})"
+    unfolding \<V>\<^sub>1'_def
     sorry
-    (*by (smt (verit, del_insts) case_prodE is_ground_subst_is_ground_clause to_ground_clause_inverse)*)
-   
+
+  (* Martin: Look here *)
+  have \<V>\<^sub>2'_spec: "(\<forall>x \<in> vars_clause premise\<^sub>2. \<V>\<^sub>2' x = \<V>\<^sub>2 x) \<and> (\<forall>ty. infinite  {x. \<V>\<^sub>2' x = ty})"
+    unfolding \<V>\<^sub>2'_def
+    sorry
+
+  hence \<V>: "\<exists>X\<^sub>1 X\<^sub>2. \<forall>ty. infinite (X\<^sub>1 \<inter> {x. \<V>\<^sub>1' x = ty}) \<and> infinite (X\<^sub>2 \<inter> {x. \<V>\<^sub>2' x = ty}) \<and> X\<^sub>1 \<inter> X\<^sub>2 = {}"
+    sorry
+
+  hence \<V>: "\<exists>X. \<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1' x = ty}) \<and> infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2' x = ty})"
+    by (metis Diff_Int2 Diff_Int_distrib2 Diff_empty Int_commute finite_Int inf_top.left_neutral)
+
   obtain \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v) subst" where
     renaming: 
       "term_subst.is_renaming \<rho>\<^sub>1" 
@@ -1808,9 +1834,13 @@ proof-
       "range_vars' \<rho>\<^sub>1 \<inter> range_vars' \<rho>\<^sub>2 = {}" 
       "range_vars' \<rho>\<^sub>1 \<union> range_vars' \<rho>\<^sub>2 = UNIV"
     and
-     wt_\<rho>: "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1" "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2"
+     wt_\<rho>': "welltyped\<^sub>\<sigma>_on (vars_clause premise\<^sub>1) typeof_fun \<V>\<^sub>1' \<rho>\<^sub>1" "welltyped\<^sub>\<sigma>_on (vars_clause premise\<^sub>2) typeof_fun \<V>\<^sub>2' \<rho>\<^sub>2"
     using welltyped_renaming_exists[OF \<V>]
-    by blast
+    sorry
+
+  have wt_\<rho>: "welltyped\<^sub>\<sigma>_on (vars_clause premise\<^sub>1) typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1" "welltyped\<^sub>\<sigma>_on (vars_clause premise\<^sub>2) typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2"
+    using  wt_\<rho>' welltyped_subst_\<V>[OF \<V>\<^sub>1'_spec] welltyped_subst_\<V>[OF \<V>\<^sub>2'_spec]
+    sorry
 
   from renaming obtain \<rho>\<^sub>1_inv \<rho>\<^sub>2_inv where
     \<rho>\<^sub>1_inv: "\<rho>\<^sub>1 \<odot> \<rho>\<^sub>1_inv = Var" and
@@ -1833,20 +1863,27 @@ proof-
           else (\<rho>\<^sub>2_inv \<odot> \<gamma>\<^sub>2) var
         )"
 
-  have "\<rho>\<^sub>1 \<odot> \<gamma> = \<gamma>\<^sub>1"
+  have \<gamma>\<^sub>1: "\<rho>\<^sub>1 \<odot> \<gamma> = \<gamma>\<^sub>1"
     unfolding \<gamma> subst_compose_if
     by (simp add: \<rho>\<^sub>1_inv term_subst.comp_subst.left.assoc)
 
-  moreover have "\<rho>\<^sub>2 \<odot> \<gamma> = \<gamma>\<^sub>2"
+  have \<gamma>\<^sub>2: "\<rho>\<^sub>2 \<odot> \<gamma> = \<gamma>\<^sub>2"
     using subst_compose_if'[of \<rho>\<^sub>2 \<rho>\<^sub>1] renaming(3)
     unfolding \<gamma>    
     by(metis (no_types) \<rho>\<^sub>2_inv inf_commute subst_monoid_mult.mult_assoc term_subst.comp_subst.left.right_neutral)
 
-  ultimately have wt_\<gamma>:
-    "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<gamma>)"
-    "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot> \<gamma>)"
-    using wt(1,2)
-    by auto
+  have \<gamma>\<^sub>1_is_ground: "\<forall>x\<in>vars_clause premise\<^sub>1. is_ground_term (\<gamma>\<^sub>1 x)"
+    by (metis Term.term.simps(17) insert_iff is_ground_iff term_subst.is_ground_subst_def wt(3))
+
+   have \<gamma>\<^sub>2_is_ground: "\<forall>x\<in>vars_clause premise\<^sub>2. is_ground_term (\<gamma>\<^sub>2 x)"
+    by (metis Term.term.simps(17) insert_iff is_ground_iff term_subst.is_ground_subst_def wt(4))
+
+  have wt_\<gamma>:
+    "welltyped\<^sub>\<sigma>_on (vars_clause premise\<^sub>1) typeof_fun \<V>\<^sub>1' (\<rho>\<^sub>1 \<odot> \<gamma>)"
+    "welltyped\<^sub>\<sigma>_on (vars_clause premise\<^sub>2) typeof_fun \<V>\<^sub>2' (\<rho>\<^sub>2 \<odot> \<gamma>)"
+    unfolding \<gamma>\<^sub>1 \<gamma>\<^sub>2 welltyped_subst_\<V>[OF \<V>\<^sub>1'_spec \<gamma>\<^sub>1_is_ground] welltyped_subst_\<V>[OF \<V>\<^sub>2'_spec \<gamma>\<^sub>2_is_ground]
+    using wt(1,2) welltyped\<^sub>\<sigma>_on_subset welltyped\<^sub>\<sigma>_welltyped\<^sub>\<sigma>_on
+    by blast+
 
   have "term_subst.is_ground_subst (\<rho>\<^sub>1_inv \<odot> \<gamma>\<^sub>1)" "term_subst.is_ground_subst (\<rho>\<^sub>2_inv \<odot> \<gamma>\<^sub>2)"
     using ground_subst_compose wt by blast+

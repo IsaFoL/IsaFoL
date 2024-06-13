@@ -71,6 +71,21 @@ lemma "has_type\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> has_type
 definition welltyped\<^sub>\<sigma> where
   "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>x. welltyped \<F> \<V> (\<sigma> x) (\<V> x))"
 
+definition welltyped\<^sub>\<sigma>_on where
+  "welltyped\<^sub>\<sigma>_on X \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>x \<in> X. welltyped \<F> \<V> (\<sigma> x) (\<V> x))"
+
+lemma welltyped\<^sub>\<sigma>_welltyped\<^sub>\<sigma>_on:
+  "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma> = welltyped\<^sub>\<sigma>_on UNIV \<F> \<V> \<sigma>"
+  unfolding welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_on_def
+  by blast
+
+lemma welltyped\<^sub>\<sigma>_on_subset:
+  assumes "welltyped\<^sub>\<sigma>_on Y \<F> \<V> \<sigma>" "X \<subseteq> Y"
+  shows "welltyped\<^sub>\<sigma>_on X \<F> \<V> \<sigma>"
+  using assms
+  unfolding welltyped\<^sub>\<sigma>_on_def
+  by blast
+
 definition welltyped\<^sub>\<sigma>' where
   "welltyped\<^sub>\<sigma>' \<F> \<V> \<sigma> \<longleftrightarrow>  (\<forall>t \<tau>. welltyped \<F> \<V> t \<tau> \<longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>)"
 
@@ -318,6 +333,16 @@ lemma welltyped_\<V>:
     "welltyped \<F> \<V>' t \<tau>"
   using assms(2, 1)
   by(induction rule: welltyped.induct)(auto simp: welltyped.simps list.rel_mono_strong)
+
+lemma welltyped_subst_\<V>:
+  assumes 
+    "\<forall>x\<in> X. \<V> x = \<V>' x"
+    "\<forall>x\<in> X. is_ground_term (\<gamma> x)"
+  shows  
+    "welltyped\<^sub>\<sigma>_on X \<F> \<V> \<gamma> \<longleftrightarrow> welltyped\<^sub>\<sigma>_on X \<F> \<V>' \<gamma>"
+  unfolding welltyped\<^sub>\<sigma>_on_def
+  using welltyped_\<V> assms
+  by (metis empty_iff)
 
 lemma welltyped\<^sub>a_\<V>:
   assumes 
@@ -1277,6 +1302,7 @@ proof-
     by presburger
 qed
 
+(* Martin: Look here *)
 lemma welltyped_renaming_exists: 
   assumes "\<exists>X. \<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1 x = ty}) \<and> infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty})"
   obtains \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v :: {countable, infinite}) subst" where
