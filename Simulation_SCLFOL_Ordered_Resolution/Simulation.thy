@@ -16,6 +16,9 @@ type_synonym 'f ord_res_8_state =
 type_synonym 'f ord_res_9_state =
   "'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gliteral \<times> 'f gclause option) list"
 
+type_synonym 'f ord_res_10_state =
+  "'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gliteral \<times> 'f gclause option) list"
+
 locale simulation_SCLFOL_ground_ordered_resolution =
   renaming_apart renaming_vars
   for renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v" +
@@ -89,6 +92,11 @@ next
   show "\<And>x y. x \<preceq>\<^sub>c y \<or> y \<preceq>\<^sub>c x"
     by (metis reflclp_iff totalpD ord_res.totalp_less_cls)
 qed
+
+declare linorder_trm.is_least_in_fset_ffilterD[no_atp]
+declare linorder_lit.is_least_in_fset_ffilterD[no_atp]
+declare linorder_cls.is_least_in_fset_ffilterD[no_atp]
+
 
 section \<open>Function for full factorization\<close>
 
@@ -20189,10 +20197,6 @@ qed
 
 section \<open>ORD-RES-9 (factorize when propagating)\<close>
 
-declare linorder_trm.is_least_in_fset_ffilterD[no_atp]
-declare linorder_lit.is_least_in_fset_ffilterD[no_atp]
-declare linorder_cls.is_least_in_fset_ffilterD[no_atp]
-
 inductive ord_res_9 where
   decide_neg: "
     \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C) \<Longrightarrow>
@@ -20781,37 +20785,60 @@ next
     using backward_simulation_between_8_and_9 by metis
 qed
 
-section \<open>SCL(FOL)-2 (one-step conflict resolution)\<close>
 
-inductive scl_fol_2 where
-  decide_neg: "\<not> (\<exists>C |\<in>| N |\<union>| U. trail_false_cls \<Gamma> C) \<Longrightarrow>
-    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss N. \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
-    \<not> (\<exists>C |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> C (Pos A)) \<Longrightarrow>
+section \<open>ORD-RES-10\<close>
+
+inductive ord_res_10 where
+  decide_neg: "
+    \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C) \<Longrightarrow>
+    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r).
+      \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
+    \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). clause_could_propagate \<Gamma> C (Pos A)) \<Longrightarrow>
     \<Gamma>' = (Neg A, None) # \<Gamma> \<Longrightarrow>
-    scl_fol_2 N (\<Gamma>, U, None) (\<Gamma>', U)" |
+    ord_res_10 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>')" |
 
-  decide_pos: "\<not> (\<exists>C |\<in>| N |\<union>| U. trail_false_cls \<Gamma> C) \<Longrightarrow>
-    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss N. \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
-    linorder_cls.is_least_in_fset {|C |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> C (Pos A)|} C \<Longrightarrow>
-    \<not> (\<exists>D |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> D (Neg A)) \<Longrightarrow>
+  decide_pos: "
+    \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C) \<Longrightarrow>
+    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r).
+      \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
+    linorder_cls.is_least_in_fset {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).
+      clause_could_propagate \<Gamma> C (Pos A)|} C \<Longrightarrow>
     \<Gamma>' = (Pos A, None) # \<Gamma> \<Longrightarrow>
-    scl_fol_2 N (\<Gamma>, U, None) (\<Gamma>', U)" |
+    \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma>' C) \<Longrightarrow>
+    \<F>' = (if linorder_lit.is_greatest_in_mset C (Pos A) then \<F> else finsert C \<F>) \<Longrightarrow>
+    ord_res_10 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (U\<^sub>e\<^sub>r, \<F>', \<Gamma>')" |
 
-  propagate_pos: "\<not> (\<exists>C |\<in>| N |\<union>| U. trail_false_cls \<Gamma> C) \<Longrightarrow>
-    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss N. \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
-    linorder_cls.is_least_in_fset {|C |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> C (Pos A)|} C \<Longrightarrow>
-    (\<exists>D |\<in>| N |\<union>| U. clause_could_propagate \<Gamma> D (Neg A)) \<Longrightarrow>
-    \<Gamma>' = (Pos A, Some {#L \<in># C. L \<noteq> Pos A#}) # \<Gamma> \<Longrightarrow>
-    scl_fol_2 N (\<Gamma>, U, None) (\<Gamma>', U)" |
+  propagate: "
+    \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C) \<Longrightarrow>
+    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r).
+      \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
+    linorder_cls.is_least_in_fset {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).
+      clause_could_propagate \<Gamma> C (Pos A)|} C \<Longrightarrow>
+    \<Gamma>' = (Pos A, Some (efac C)) # \<Gamma> \<Longrightarrow>
+    (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma>' C) \<Longrightarrow>
+    \<F>' = (if linorder_lit.is_greatest_in_mset C (Pos A) then \<F> else finsert C \<F>) \<Longrightarrow>
+    ord_res_10 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (U\<^sub>e\<^sub>r, \<F>', \<Gamma>')" |
 
-  conflict_resolution: "
-    linorder_cls.is_least_in_fset {|C |\<in>| N |\<union>| U. trail_false_cls \<Gamma> C|} D \<Longrightarrow>
+  resolution: "
+    linorder_cls.is_least_in_fset {|D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> D|} D \<Longrightarrow>
     linorder_lit.is_maximal_in_mset D (Neg A) \<Longrightarrow>
-    C = add_mset (Pos A) C' \<Longrightarrow>
-    U' = finsert (eres C D) U \<Longrightarrow>
-    \<Gamma>' = dropWhile (\<lambda>(L, _). \<forall>K.
-      linorder_lit.is_maximal_in_mset (eres C D) K \<longrightarrow> atm_of K \<preceq>\<^sub>t atm_of L) \<Gamma> \<Longrightarrow>
-    scl_fol_2 N ((Pos A, Some C') # \<Gamma>, U, None) (\<Gamma>', U')"
+    map_of \<Gamma> (Pos A) = Some (Some C) \<Longrightarrow>
+    U\<^sub>e\<^sub>r' = finsert (eres C D) U\<^sub>e\<^sub>r \<Longrightarrow>
+    \<Gamma>' = dropWhile (\<lambda>Ln. \<forall>K.
+      linorder_lit.is_maximal_in_mset (eres C D) K \<longrightarrow> atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma> \<Longrightarrow>
+    ord_res_10 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (U\<^sub>e\<^sub>r', \<F>, \<Gamma>')"
+
+inductive ord_res_9_matches_ord_res_10 :: "'f ord_res_9_state \<Rightarrow> 'f ord_res_10_state \<Rightarrow> bool" where
+  "ord_res_8_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) \<Longrightarrow>
+    ord_res_8_matches_ord_res_9 (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)"
+
+lemma backward_simulation_between_8_and_9:
+  fixes S8 S9 S9'
+  assumes match: "ord_res_8_matches_ord_res_9 S8 S9" and step: "constant_context ord_res_9 S9 S9'"
+  shows "\<exists>S8'. (constant_context ord_res_8)\<^sup>+\<^sup>+ S8 S8' \<and> ord_res_8_matches_ord_res_9 S8' S9'"
+  using match
+proof (cases S8 S9 rule: ord_res_8_matches_ord_res_9.cases)
+
 
 
 section \<open>SCL(FOL)-1 (resolution-driven strategy)\<close>

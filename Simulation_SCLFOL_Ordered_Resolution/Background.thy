@@ -9,7 +9,7 @@ theory Background
     VeriComp.Compiler
     "HOL-ex.Sketch_and_Explore"
     "HOL-Library.FuncSet"
-
+    "Try1.Try1_HOL"
     Lower_Set
 begin
 
