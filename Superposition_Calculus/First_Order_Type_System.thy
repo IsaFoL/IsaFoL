@@ -1,5 +1,6 @@
 theory First_Order_Type_System
   imports First_Order_Clause Fun_Extra
+    "HOL-ex.Sketch_and_Explore"
 begin
 
 type_synonym ('f, 'ty) fun_types = "'f \<Rightarrow> 'ty list \<times> 'ty"
@@ -70,6 +71,10 @@ lemma "has_type\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> has_type
 
 definition welltyped\<^sub>\<sigma> where
   "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>x. welltyped \<F> \<V> (\<sigma> x) (\<V> x))"
+
+lemma welltyped\<^sub>\<sigma>_Var[simp]: "welltyped\<^sub>\<sigma> \<F> \<V> Var"
+  unfolding welltyped\<^sub>\<sigma>_def
+  by (simp add: welltyped.intros)
 
 definition welltyped\<^sub>\<sigma>_on where
   "welltyped\<^sub>\<sigma>_on X \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>x \<in> X. welltyped \<F> \<V> (\<sigma> x) (\<V> x))"
@@ -221,6 +226,160 @@ lemma has_type\<^sub>\<sigma>_has_type\<^sub>c:
   unfolding has_type\<^sub>c_def subst_clause_def
   by blast
 
+lemma welltyped\<^sub>\<sigma>_on_welltyped: 
+  assumes wt: "welltyped\<^sub>\<sigma>_on (vars_term t) \<F> \<V> \<sigma>"
+  shows "welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau> \<longleftrightarrow> welltyped \<F> \<V> t \<tau>"
+proof(rule iffI)
+  assume "welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>"
+  thus "welltyped \<F> \<V> t \<tau>"
+    using wt
+  proof(induction "t \<cdot>t \<sigma>" \<tau>  arbitrary: t rule: welltyped.induct)
+    case (Var x \<tau>)
+    then obtain x' where t: "t = Var x'"
+      by (metis subst_apply_eq_Var)
+
+    have "welltyped \<F> \<V> t (\<V> x')"
+      unfolding t 
+      by (simp add: welltyped.Var)
+
+    have "welltyped \<F> \<V> t (\<V> x)"
+      using Var
+      unfolding t welltyped\<^sub>\<sigma>_on_def
+      by (auto intro: welltyped.Var elim: welltyped.cases)
+
+    then have \<V>_x': "\<tau> = \<V> x'"
+      using Var
+      unfolding welltyped\<^sub>\<sigma>_def  t
+      by (metis welltyped.Var right_uniqueD welltyped_right_unique t)
+
+    show ?case 
+      unfolding t \<V>_x'
+      by (simp add: welltyped.Var)
+  next
+    case (Fun f \<tau>s \<tau> ts)
+    show ?case 
+    proof(cases t)
+      case (Var x)
+      from Fun show ?thesis
+        using Fun
+        unfolding welltyped\<^sub>\<sigma>_def Var
+        by (simp add: welltyped.simps welltyped\<^sub>\<sigma>_on_def)
+    next
+      case Fun\<^sub>t: (Fun f' ts')
+      hence "f = f'" and "ts = map (\<lambda>t. t \<cdot>t \<sigma>) ts'"
+        using \<open>Fun f ts = t \<cdot>t \<sigma>\<close> by simp_all
+
+      show ?thesis
+        unfolding Fun\<^sub>t
+      proof (rule welltyped.Fun)
+        show "\<F> f' = (\<tau>s, \<tau>)"
+          using Fun.hyps \<open>f = f'\<close> by argo
+      next
+        show "list_all2 (welltyped \<F> \<V>) ts' \<tau>s"
+        proof (rule list.rel_mono_strong)
+          show "list_all2 (\<lambda>x x2. welltyped \<F> \<V> (x \<cdot>t \<sigma>) x2 \<and>
+            (\<forall>xa. x \<cdot>t \<sigma> = xa \<cdot>t \<sigma> \<longrightarrow> welltyped\<^sub>\<sigma>_on (vars_term xa) \<F> \<V> \<sigma> \<longrightarrow> welltyped \<F> \<V> xa x2))
+            ts' \<tau>s"
+            using Fun.hyps
+            unfolding \<open>ts = map (\<lambda>t. t \<cdot>t \<sigma>) ts'\<close> list.rel_map
+            by argo
+        next
+          fix t' \<tau>'
+          assume
+            "t' \<in> set ts'" and
+            "\<tau>' \<in> set \<tau>s" and
+            "welltyped \<F> \<V> (t' \<cdot>t \<sigma>) \<tau>' \<and>
+              (\<forall>xa. t' \<cdot>t \<sigma> = xa \<cdot>t \<sigma> \<longrightarrow> welltyped\<^sub>\<sigma>_on (vars_term xa) \<F> \<V> \<sigma> \<longrightarrow> welltyped \<F> \<V> xa \<tau>')"
+          thus "welltyped \<F> \<V> t' \<tau>'"
+            using Fun.prems Fun.hyps
+            by (simp add: Fun\<^sub>t welltyped\<^sub>\<sigma>_on_def)
+        qed
+      qed
+    qed
+  qed
+next
+  assume "welltyped \<F> \<V> t \<tau>"
+  thus "welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>"
+    using wt
+  proof(induction t \<tau>  rule: welltyped.induct)
+    case Var\<^sub>t: (Var x \<tau>)
+    thus ?case
+      by (cases "Var x \<cdot>t \<sigma>") (simp_all add: welltyped\<^sub>\<sigma>_on_def)
+  next
+    case (Fun f \<tau>s \<tau> ts)
+
+    show ?case
+      unfolding eval_term.simps
+    proof (rule welltyped.Fun)
+      show "\<F> f = (\<tau>s, \<tau>)"
+        using Fun by argo
+    next
+      show "list_all2 (welltyped \<F> \<V>) (map (\<lambda>s. s \<cdot>t \<sigma>) ts) \<tau>s"
+        unfolding list.rel_map
+        using Fun.IH
+      proof (rule list.rel_mono_strong)
+        fix t and \<tau>'
+        assume
+          "t \<in> set ts" and
+          "\<tau>' \<in> set \<tau>s" and
+          "welltyped \<F> \<V> t \<tau>' \<and> (welltyped\<^sub>\<sigma>_on (vars_term t) \<F> \<V> \<sigma> \<longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>')"
+        thus "welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>'"
+          using Fun.prems
+          by (simp add: welltyped\<^sub>\<sigma>_on_def)
+      qed
+    qed
+  qed
+qed
+
+lemma welltyped\<^sub>\<sigma>_on_welltyped\<^sub>a: 
+  assumes wt: "welltyped\<^sub>\<sigma>_on (vars_atom A) \<F> \<V> \<sigma>"
+  shows "welltyped\<^sub>a \<F> \<V> (A \<cdot>a \<sigma>) \<longleftrightarrow> welltyped\<^sub>a \<F> \<V> A"
+proof (cases A)
+  case (Upair t t')
+
+  have "welltyped\<^sub>\<sigma>_on (vars_term t) \<F> \<V> \<sigma>" "welltyped\<^sub>\<sigma>_on (vars_term t') \<F> \<V> \<sigma>"
+    using wt unfolding Upair by (simp_all add: welltyped\<^sub>\<sigma>_on_def vars_atom_def)
+
+  hence "(\<exists>\<tau>. welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau> \<and> welltyped \<F> \<V> (t' \<cdot>t \<sigma>) \<tau>) =
+    (\<exists>\<tau>. welltyped \<F> \<V> t \<tau> \<and> welltyped \<F> \<V> t' \<tau>)"
+    using welltyped\<^sub>\<sigma>_on_welltyped by metis
+
+  thus ?thesis
+    using Upair
+    by (simp add: subst_atom_def welltyped\<^sub>a_def)
+qed
+
+lemma welltyped\<^sub>l_iff_welltyped\<^sub>a: "welltyped\<^sub>l \<F> \<V> L \<longleftrightarrow> welltyped\<^sub>a \<F> \<V> (atm_of L)"
+  by (cases L) (simp_all add: welltyped\<^sub>l_def)
+
+lemma welltyped\<^sub>\<sigma>_on_welltyped\<^sub>l: 
+  assumes wt: "welltyped\<^sub>\<sigma>_on (vars_literal L) \<F> \<V> \<sigma>"
+  shows "welltyped\<^sub>l \<F> \<V> (L \<cdot>l \<sigma>) \<longleftrightarrow> welltyped\<^sub>l \<F> \<V> L"
+  unfolding welltyped\<^sub>l_iff_welltyped\<^sub>a subst_literal
+proof (rule welltyped\<^sub>\<sigma>_on_welltyped\<^sub>a)
+  have "vars_atom (atm_of L) = vars_literal L"
+    by (cases L) simp_all
+  thus "welltyped\<^sub>\<sigma>_on (vars_atom (atm_of L)) \<F> \<V> \<sigma>"
+    using wt by argo
+qed
+
+lemma welltyped\<^sub>\<sigma>_on_welltyped\<^sub>c: 
+  assumes wt: "welltyped\<^sub>\<sigma>_on (vars_clause C) \<F> \<V> \<sigma>"
+  shows "welltyped\<^sub>c \<F> \<V> (C \<cdot> \<sigma>) \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> C"
+proof -
+  have "welltyped\<^sub>l \<F> \<V> (L \<cdot>l \<sigma>) \<longleftrightarrow> welltyped\<^sub>l \<F> \<V> L" if "L \<in># C" for L
+  proof (rule welltyped\<^sub>\<sigma>_on_welltyped\<^sub>l)
+    have "vars_literal L \<subseteq> vars_clause C"
+      using \<open>L \<in># C\<close> by (metis Un_iff insert_DiffM subsetI vars_clause_add_mset)
+    thus "welltyped\<^sub>\<sigma>_on (vars_literal L) \<F> \<V> \<sigma>"
+      using wt welltyped\<^sub>\<sigma>_on_subset by metis
+  qed
+
+  thus ?thesis
+    unfolding welltyped\<^sub>c_def subst_clause_def
+    by simp
+qed
+
 lemma welltyped\<^sub>\<sigma>_welltyped\<^sub>c: 
   assumes welltyped\<^sub>\<sigma>: "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma>"
   shows "welltyped\<^sub>c \<F> \<V> (c \<cdot> \<sigma>) \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> c"
@@ -312,10 +471,6 @@ qed
 lemma has_type\<^sub>\<sigma>_Var: "has_type\<^sub>\<sigma> \<F> \<V> Var"
   unfolding has_type\<^sub>\<sigma>_def
   by simp
-
-lemma welltyped\<^sub>\<sigma>_Var: "welltyped\<^sub>\<sigma> \<F> \<V> Var"
-  unfolding welltyped\<^sub>\<sigma>_def
-  by (simp add: welltyped.Var)
 
 lemma welltyped_add_literal:
   assumes "welltyped\<^sub>c \<F> \<V> P'" "welltyped \<F> \<V> s\<^sub>1 \<tau>" "welltyped \<F> \<V> s\<^sub>2 \<tau>" 
