@@ -20828,16 +20828,68 @@ inductive ord_res_10 where
       linorder_lit.is_maximal_in_mset (eres C D) K \<longrightarrow> atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma> \<Longrightarrow>
     ord_res_10 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (U\<^sub>e\<^sub>r', \<F>, \<Gamma>')"
 
-inductive ord_res_9_matches_ord_res_10 :: "'f ord_res_9_state \<Rightarrow> 'f ord_res_10_state \<Rightarrow> bool" where
+(* inductive ord_res_9_matches_ord_res_10 :: "'f ord_res_9_state \<Rightarrow> 'f ord_res_10_state \<Rightarrow> bool" where
   "ord_res_8_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) \<Longrightarrow>
-    ord_res_8_matches_ord_res_9 (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)"
-
+    ord_res_8_matches_ord_res_9 (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)" *)
+(* 
 lemma backward_simulation_between_8_and_9:
   fixes S8 S9 S9'
   assumes match: "ord_res_8_matches_ord_res_9 S8 S9" and step: "constant_context ord_res_9 S9 S9'"
   shows "\<exists>S8'. (constant_context ord_res_8)\<^sup>+\<^sup>+ S8 S8' \<and> ord_res_8_matches_ord_res_9 S8' S9'"
   using match
-proof (cases S8 S9 rule: ord_res_8_matches_ord_res_9.cases)
+(* proof (cases S8 S9 rule: ord_res_8_matches_ord_res_9.cases) *)
+  sorry *)
+
+
+section \<open>ORD-RES-11\<close>
+
+inductive ord_res_11 where
+  decide_neg: "
+    \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C) \<Longrightarrow>
+    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r).
+      \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
+    \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). clause_could_propagate \<Gamma> C (Pos A)) \<Longrightarrow>
+    \<Gamma>' = (Neg A, None) # \<Gamma> \<Longrightarrow>
+    ord_res_11 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, None) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>', None)" |
+
+  decide_pos: "
+    \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C) \<Longrightarrow>
+    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r).
+      \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
+    linorder_cls.is_least_in_fset {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).
+      clause_could_propagate \<Gamma> C (Pos A)|} C \<Longrightarrow>
+    \<Gamma>' = (Pos A, None) # \<Gamma> \<Longrightarrow>
+    \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma>' C) \<Longrightarrow>
+    \<F>' = (if linorder_lit.is_greatest_in_mset C (Pos A) then \<F> else finsert C \<F>) \<Longrightarrow>
+    ord_res_11 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, None) (U\<^sub>e\<^sub>r, \<F>', \<Gamma>', None)" |
+
+  propagate: "
+    \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C) \<Longrightarrow>
+    linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r).
+      \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A \<Longrightarrow>
+    linorder_cls.is_least_in_fset {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).
+      clause_could_propagate \<Gamma> C (Pos A)|} C \<Longrightarrow>
+    \<Gamma>' = (Pos A, Some (efac C)) # \<Gamma> \<Longrightarrow>
+    (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma>' C) \<Longrightarrow>
+    \<F>' = (if linorder_lit.is_greatest_in_mset C (Pos A) then \<F> else finsert C \<F>) \<Longrightarrow>
+    ord_res_11 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, None) (U\<^sub>e\<^sub>r, \<F>', \<Gamma>', None)" |
+
+  conflict: "
+    linorder_cls.is_least_in_fset {|D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> D|} D \<Longrightarrow>
+    ord_res_11 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, None) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)" |
+
+  skip: "- L \<notin># C \<Longrightarrow>
+    ord_res_11 N (U\<^sub>e\<^sub>r, \<F>, (L, n) # \<Gamma>, Some C) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C)" |
+
+  resolution: "
+    \<Gamma> = (- L, Some D) # \<Gamma>' \<Longrightarrow>
+    ord_res_11 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some (add_mset L C)) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some (C + (D - {#- L#})))" |
+
+  backtrack: "
+    \<Gamma> = (- L, None) # \<Gamma>' \<Longrightarrow>
+    ord_res_11 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some (add_mset L C)) (finsert (add_mset L C) U\<^sub>e\<^sub>r, \<F>, \<Gamma>', None)"
+
+(* ORD-RES-10's resolution rule is equivalent to "conflict resolution+ skip+ backtrack" here. *)
 
 
 
