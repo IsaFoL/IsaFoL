@@ -23,7 +23,7 @@ locale grounded_first_order_superposition_calculus =
   grounded_first_order_select select
   for 
     select :: "('f, ('v :: {countable,infinite})) select" and
-    typeof_fun :: "('f, 'ty) fun_types"
+    typeof_fun :: "('f, 'ty :: countable) fun_types"
 begin
 
 sublocale ground: ground_superposition_calculus where
@@ -40,6 +40,7 @@ abbreviation is_inference_grounding where
         \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>
         \<and> welltyped\<^sub>c typeof_fun \<V> conclusion
         \<and> \<V> = \<V>'
+        \<and> all_types \<V>
       | Infer [(premise\<^sub>2, \<V>\<^sub>2), (premise\<^sub>1, \<V>\<^sub>1)] (conclusion, \<V>\<^sub>3) \<Rightarrow> 
           term_subst.is_renaming \<rho>\<^sub>1
         \<and> term_subst.is_renaming \<rho>\<^sub>2
@@ -53,6 +54,7 @@ abbreviation is_inference_grounding where
         \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>2 premise\<^sub>2
         \<and> welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 \<gamma>
         \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>3 conclusion
+        \<and> all_types \<V>\<^sub>1 \<and> all_types \<V>\<^sub>2 \<and> all_types \<V>\<^sub>3
       | _ \<Rightarrow> False
      )
   \<and> \<iota>\<^sub>G \<in> ground.G_Inf"
@@ -81,7 +83,7 @@ proof-
   then obtain \<gamma> where
     "is_ground_clause (conclusion \<cdot> \<gamma>)"
     "conlcusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
-    "welltyped\<^sub>c typeof_fun \<V> conclusion \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma>"
+    "welltyped\<^sub>c typeof_fun \<V> conclusion \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     using assms list_4_cases
     unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
     apply(auto split: list.splits)
@@ -150,7 +152,8 @@ sublocale lifting:
           typed_tiebreakers
 proof unfold_locales
   show "\<bottom>\<^sub>F \<noteq> {}"
-    by simp
+    using all_types
+    by blast
 next
   fix bottom
   assume "bottom \<in> \<bottom>\<^sub>F"
@@ -172,7 +175,7 @@ next
   show "clause_groundings typeof_fun clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"
     unfolding clause_groundings_def to_ground_clause_def subst_clause_def
     apply auto
-    by (metis eq_fst_iff)
+    by (metis prod.exhaust_sel)
 next
   fix \<iota> :: "('f, 'v, 'ty) typed_clause inference"
 

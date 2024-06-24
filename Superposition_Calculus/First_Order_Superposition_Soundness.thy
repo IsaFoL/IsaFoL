@@ -268,7 +268,7 @@ lemma superposition_sound:
   shows "{P1, P2} \<TTurnstile>\<^sub>F {C}"
   using step
 proof (cases P2 P1 C rule: superposition.cases)
-  case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 L\<^sub>1 P\<^sub>1' P\<^sub>2 L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu> \<V>\<^sub>3 \<V>\<^sub>1 \<V>\<^sub>2 C)
+  case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1  P\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu> \<V>\<^sub>3 \<V>\<^sub>1 \<V>\<^sub>2 C)
 
   have 
     "\<And>I \<gamma>. \<lbrakk>
@@ -322,70 +322,63 @@ proof (cases P2 P1 C rule: superposition.cases)
       using ground_subst_compose[OF grounding(1)]
       by blast+
 
+    have xx: "\<forall>x\<in>vars_term (t\<^sub>2 \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x" "\<forall>x\<in>vars_term (t\<^sub>2' \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
+      using superpositionI(16)
+      unfolding superpositionI vars_clause_def subst_clause_add_mset vars_literal_def vars_atom_def subst_literal subst_atom
+      by auto
 
     have wt_t: "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau> \<and> welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<tau>"
       using grounding(2) superpositionI(9, 14,19) welltyped\<^sub>\<kappa>'
-      unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def subst_clause_add_mset has_type_renaming[OF superpositionI(5,16)]
-      apply(auto simp: subst_literal subst_atom)
-      by (metis (no_types, lifting) welltyped\<^sub>\<kappa>' welltyped\<^sub>\<sigma>_welltyped welltyped_has_type)+
+      unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def subst_clause_add_mset 
+      unfolding xx[THEN has_type_renaming_weaker[OF superpositionI(5)]] 
+      apply(auto simp: subst_literal subst_atom) 
+      by (metis (mono_tags, lifting) welltyped\<^sub>\<kappa>' welltyped\<^sub>\<sigma>_welltyped welltyped_has_type)+     
 
     have wt_P\<^sub>1: "welltyped\<^sub>c typeof_fun \<V>\<^sub>1 P\<^sub>1" 
     proof-
-      have wt_P\<^sub>1': "\<forall>L \<in># P\<^sub>1'. \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). welltyped typeof_fun \<V>\<^sub>1 t \<tau>"
-      proof-
-        have "\<forall>L \<in># P\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>. \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). welltyped typeof_fun \<V>\<^sub>3 t \<tau>"
-          using grounding(2)
-          unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def subst_clause_add_mset subst_clause_plus
-          by simp
+      have xx: "\<forall>x\<in>vars_clause (P\<^sub>1' \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x"
+        using superpositionI(15)
+        unfolding superpositionI subst_clause_add_mset
+        by auto
 
-        then have "\<forall>L \<in># P\<^sub>1'. \<exists>\<tau>. \<forall>t\<in>set_uprod ((atm_of L) \<cdot>a \<rho>\<^sub>1 \<cdot>a \<mu>). welltyped typeof_fun \<V>\<^sub>3 t \<tau>"
-          by (metis literal_in_clause_subst subst_literal(3))
+      have wt_P\<^sub>1': "welltyped\<^sub>c typeof_fun \<V>\<^sub>1 P\<^sub>1'"
+        using grounding(2)
+        unfolding superpositionI subst_clause_add_mset subst_clause_plus welltyped\<^sub>c_add_mset welltyped\<^sub>c_plus
+        apply auto
+        unfolding welltyped\<^sub>c_renaming_weaker[OF superpositionI(4) xx] 
+        using superpositionI(14) welltyped\<^sub>\<sigma>_welltyped\<^sub>c by blast
 
-        then have "\<forall>L \<in># P\<^sub>1'. \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). welltyped typeof_fun \<V>\<^sub>3 (t \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<tau>"
-          by (simp add: subst_atom_def uprod.set_map)
-          
-        then show ?thesis
-          unfolding welltyped_renaming[OF superpositionI(4,15)]
-          by (meson superpositionI(14) welltyped\<^sub>\<sigma>_welltyped)
-      qed
-
-      with wt_t have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1\<rangle> \<tau> \<and> welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1) \<tau>"
+      from wt_t wt_P\<^sub>1' have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1\<rangle> \<tau> \<and> welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1) \<tau>"
         using grounding(2) superpositionI(9, 14, 15) welltyped\<^sub>\<kappa>
         unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def subst_clause_add_mset
         apply(auto simp: subst_literal subst_atom)
         by (smt (verit) subst_apply_term_ctxt_apply_distrib welltyped\<^sub>\<kappa> welltyped\<^sub>\<sigma>_welltyped)+
 
       then have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>1 s\<^sub>1\<langle>u\<^sub>1\<rangle> \<tau> \<and> welltyped typeof_fun \<V>\<^sub>1 s\<^sub>1' \<tau>"
-        using welltyped_renaming[OF superpositionI(4,15)]
-        by auto
+        using welltyped_renaming_weaker[OF superpositionI(4)] superpositionI(15) vars_clause_add_mset  superpositionI(9)
+        unfolding superpositionI subst_clause_add_mset 
+        apply(auto simp: subst_literal subst_atom vars_atom_def)
+        by (metis (mono_tags) Un_iff \<open>\<And>t \<tau> \<V>' \<V> \<F>. \<forall>x\<in>vars_term (t \<cdot>t \<rho>\<^sub>1). \<V> (the_inv \<rho>\<^sub>1 (Var x)) = \<V>' x \<Longrightarrow> First_Order_Type_System.welltyped \<F> \<V> t \<tau> = First_Order_Type_System.welltyped \<F> \<V>' (t \<cdot>t \<rho>\<^sub>1) \<tau>\<close> subst_apply_term_ctxt_apply_distrib vars_term_ctxt_apply)+
 
       then show ?thesis
-        using grounding(2) superpositionI(9, 14)
+        using grounding(2) superpositionI(9, 14) wt_P\<^sub>1'
         unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def subst_clause_add_mset subst_clause_plus
-        apply auto
-        unfolding subst_literal subst_atom
-        by(auto simp: wt_P\<^sub>1')
+        by auto
     qed
 
     have wt_P\<^sub>2: "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 P\<^sub>2"
     proof-
-      have wt_P\<^sub>2': "\<forall>L \<in># P\<^sub>2'. \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). welltyped typeof_fun \<V>\<^sub>2 t \<tau>"
-      proof-
-        have "\<forall>L \<in># P\<^sub>2' \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>. \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). welltyped typeof_fun \<V>\<^sub>3 t \<tau>"
-          using grounding(2)
-          unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def subst_clause_add_mset subst_clause_plus
-          by simp
+       have xx: "\<forall>x\<in>vars_clause (P\<^sub>2' \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
+        using superpositionI(16)
+        unfolding superpositionI subst_clause_add_mset
+        by auto
 
-        then have "\<forall>L \<in># P\<^sub>2'. \<exists>\<tau>. \<forall>t\<in>set_uprod ((atm_of L) \<cdot>a \<rho>\<^sub>2 \<cdot>a \<mu>). welltyped typeof_fun \<V>\<^sub>3 t \<tau>"
-          by (metis literal_in_clause_subst subst_literal(3))
-
-        then have "\<forall>L \<in># P\<^sub>2'. \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). welltyped typeof_fun \<V>\<^sub>3 (t \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<tau>"
-          by (simp add: subst_atom_def uprod.set_map)
-          
-        then show ?thesis
-          unfolding welltyped_renaming[OF superpositionI(5,16)]
-          by (meson superpositionI(14) welltyped\<^sub>\<sigma>_welltyped)
-      qed
+      have wt_P\<^sub>2': "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 P\<^sub>2'"
+        using grounding(2)
+        unfolding superpositionI subst_clause_add_mset subst_clause_plus welltyped\<^sub>c_add_mset welltyped\<^sub>c_plus
+        apply auto
+        unfolding welltyped\<^sub>c_renaming_weaker[OF superpositionI(5) xx] 
+        using superpositionI(14) welltyped\<^sub>\<sigma>_welltyped\<^sub>c by blast
 
       have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau> \<and> welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2) \<tau>"
         using wt_t
@@ -395,20 +388,28 @@ proof (cases P2 P1 C rule: superposition.cases)
         using 
           grounding(2) 
           superpositionI(14) 
-          welltyped_renaming[OF superpositionI(5,16)] 
+          welltyped_renaming_weaker[OF superpositionI(5)]  superpositionI(16)
           wt_P\<^sub>2'
         unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def subst_clause_add_mset subst_clause_plus
-        by auto
+        apply(auto simp: subst_literal subst_atom vars_atom_def)
+        by (metis Un_iff \<open>\<And>t \<tau> \<V>' \<V> \<F>. \<forall>x\<in>vars_term (t \<cdot>t \<rho>\<^sub>2). \<V> (the_inv \<rho>\<^sub>2 (Var x)) = \<V>' x \<Longrightarrow> First_Order_Type_System.welltyped \<F> \<V> t \<tau> = First_Order_Type_System.welltyped \<F> \<V>' (t \<cdot>t \<rho>\<^sub>2) \<tau>\<close>)
     qed
 
     have wt_\<mu>_\<gamma>: "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 (\<mu> \<odot> \<gamma>)"
       by (metis grounding(3) local.superpositionI(14) subst_compose_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_welltyped)
 
+    have yy:  "welltyped\<^sub>\<sigma>_on (vars_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1)) typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1"
+      sorry
+
     have wt_\<gamma>: "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<gamma>)" "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot> \<mu> \<odot> \<gamma>)"
       using
-        welltyped\<^sub>\<sigma>_renaming_ground_subst[OF superpositionI(4, 15) wt_\<mu>_\<gamma> superpositionI(17) ground_subst(3)]
-        welltyped\<^sub>\<sigma>_renaming_ground_subst[OF superpositionI(5, 16) wt_\<mu>_\<gamma> superpositionI(18) ground_subst(3)]
-      by (simp_all add: subst_compose_assoc)
+        welltyped\<^sub>\<sigma>_renaming_ground_subst_weaker[OF superpositionI(4)  wt_\<mu>_\<gamma> yy  ground_subst(3) superpositionI(15)]
+       
+        
+        (*welltyped\<^sub>\<sigma>_renaming_ground_subst[OF superpositionI(4, 15) wt_\<mu>_\<gamma> superpositionI(17) ground_subst(3)]
+        welltyped\<^sub>\<sigma>_renaming_ground_subst[OF superpositionI(5, 16) wt_\<mu>_\<gamma> superpositionI(18) ground_subst(3)]*)
+       apply(simp_all add: subst_compose_assoc)
+      sorry
 
     have "?I \<TTurnstile> ?P\<^sub>1"
       using premise1[rule_format, of ?P\<^sub>1, OF exI, of "\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<gamma>"] ground_subst wt_P\<^sub>1 wt_\<gamma>

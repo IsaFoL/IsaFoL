@@ -734,6 +734,174 @@ lemma welltyped\<^sub>c_renaming: "welltyped\<^sub>c \<F> \<V> c \<longleftright
 
 end
 
+context  
+  fixes \<rho>
+  assumes renaming: "subst_clause.is_renaming \<rho>"
+begin
+
+
+lemma welltyped_renaming_weaker: 
+  assumes "\<forall>x \<in> vars_term (t \<cdot>t \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
+  shows "welltyped \<F> \<V> t \<tau> \<longleftrightarrow> welltyped \<F> \<V>' (t \<cdot>t \<rho>) \<tau>"
+proof(intro iffI)
+  assume "welltyped \<F> \<V> t \<tau>"
+  then show "welltyped \<F> \<V>' (t \<cdot>t \<rho>) \<tau>"
+    using assms
+  proof(induction rule: welltyped.induct)
+    case (Var x \<tau>)
+
+    obtain y where y: "Var x \<cdot>t \<rho> = Var y"
+      using renaming
+      by (metis eval_term.simps(1) term.collapse(1) term_subst_is_renaming_iff)
+
+    then have "\<V> (the_inv \<rho> (Var y)) = \<V>' y"
+      using Var(2)
+      by simp     
+
+    moreover have "(the_inv \<rho> (Var y)) = x"
+      using y renaming
+      unfolding term_subst_is_renaming_iff
+      by (metis eval_term.simps(1) the_inv_f_f)
+
+    ultimately have "\<V>' y = \<tau>"
+      using Var
+      by argo
+
+    then show ?case
+      unfolding y
+      by(rule welltyped.Var)
+  next
+    case (Fun f \<tau>s \<tau> ts)
+    show ?case
+      apply auto
+      apply(rule welltyped.Fun)
+       apply(rule Fun(1))
+      using Fun(2, 3)
+      apply auto
+      by (simp add: list.rel_mono_strong list_all2_map1)
+  qed
+next
+  assume "welltyped \<F> \<V>' (t \<cdot>t \<rho>) \<tau>"
+  then show " welltyped \<F> \<V> t \<tau>"
+    using assms
+  proof(induction t arbitrary: \<tau>)
+    case (Var x)
+    then obtain y where y: "Var x \<cdot>t \<rho> = Var y"
+      using renaming
+      by (metis eval_term.simps(1) term.collapse(1) term_subst_is_renaming_iff)
+
+    then have "\<V> (the_inv \<rho> (Var y)) = \<V>' y"
+      by (simp add: Var)
+
+    moreover have "(the_inv \<rho> (Var y)) = x"
+      using y renaming
+      unfolding term_subst_is_renaming_iff
+      by (metis eval_term.simps(1) the_inv_f_f)
+
+    moreover have "\<V>' y = \<tau>"
+      using Var
+      unfolding y
+      by (meson right_uniqueD welltyped.Var welltyped_right_unique)
+
+    ultimately have "\<V> x = \<tau>"
+      by blast
+
+    then show ?case
+      by(rule welltyped.Var)
+  next
+    case (Fun f ts)
+    then show ?case
+      apply auto
+      by (smt (verit, best) Term.term.simps(2) Term.term.simps(4) list.rel_mono_strong list_all2_map1 welltyped.simps)
+  qed
+qed
+
+lemma welltyped\<^sub>a_renaming_weaker: 
+  assumes"\<forall>x \<in> vars_atom (a \<cdot>a \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
+  shows "welltyped\<^sub>a \<F> \<V> a \<longleftrightarrow> welltyped\<^sub>a \<F> \<V>' (a \<cdot>a \<rho>)"
+  using welltyped_renaming_weaker  assms
+  unfolding welltyped\<^sub>a_def vars_atom_def
+  apply(cases a)
+  apply(auto simp add: subst_atom)
+  by (metis UnCI welltyped_renaming_weaker)+
+
+lemma welltyped\<^sub>l_renaming_weaker: 
+  assumes "\<forall>x \<in> vars_literal (l \<cdot>l \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
+  shows "welltyped\<^sub>l \<F> \<V> l \<longleftrightarrow> welltyped\<^sub>l \<F> \<V>' (l \<cdot>l \<rho>)"
+  using welltyped\<^sub>a_renaming_weaker assms
+  unfolding welltyped\<^sub>l_def vars_literal_def
+  by (simp add: subst_literal(3))
+
+lemma welltyped\<^sub>c_renaming_weaker: 
+  assumes "\<forall>x \<in> vars_clause (c \<cdot> \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
+  shows "welltyped\<^sub>c \<F> \<V> c \<longleftrightarrow> welltyped\<^sub>c \<F> \<V>' (c \<cdot> \<rho>)"
+  using welltyped\<^sub>l_renaming_weaker assms
+  unfolding welltyped\<^sub>c_def vars_clause_def subst_clause_def
+  by blast
+
+lemma has_type_renaming_weaker:
+  assumes "\<forall>x \<in> vars_term (t \<cdot>t \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
+  shows "has_type \<F> \<V> t \<tau> \<longleftrightarrow> has_type \<F> \<V>' (t \<cdot>t \<rho>) \<tau>"
+  using renaming assms
+  apply(cases t)
+   apply(auto simp: has_type.simps)
+    apply (metis term.collapse(1) term.set_intros(3) term_subst_is_renaming_iff the_inv_f_f)
+   apply (metis term_subst_is_renaming_iff the_inv_f_f)
+  by (metis is_FunI term_subst_is_renaming_iff)
+
+(* TODO: *)
+lemma welltyped\<^sub>\<sigma>_renaming_ground_subst_weaker: 
+  assumes 
+    "welltyped\<^sub>\<sigma> \<F> \<V>' \<gamma>" 
+    "welltyped\<^sub>\<sigma>_on X \<F> \<V> \<rho>" 
+    "term_subst.is_ground_subst \<gamma>" 
+    "\<forall>x \<in> X. \<V> (the_inv \<rho> (Var x)) = \<V>' x"
+  shows "welltyped\<^sub>\<sigma>_on X \<F> \<V> (\<rho> \<odot> \<gamma>)"
+proof-
+
+  have "\<forall>x \<in> X. welltyped \<F> \<V>' (\<gamma> x) (\<V>' x)"
+    using assms 
+    unfolding welltyped\<^sub>\<sigma>_def
+    by simp
+
+  then have "\<forall>x \<in> X. welltyped \<F> \<V>' (\<gamma> x) (\<V> (the_inv \<rho> (Var x)))"
+    using assms(4)
+    by auto
+
+  then have "\<forall>x \<in> X. welltyped \<F> \<V>' ((\<rho> \<odot> \<gamma>) x) (\<V> x)"
+    using 
+      assms(1) 
+      eval_term.simps(1) 
+      subst_compose_def welltyped.Var welltyped\<^sub>\<sigma>_welltyped 
+      welltyped_renaming_weaker
+    sorry
+
+  then have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' (Var x \<cdot>t (\<rho> \<odot> \<gamma>)) (\<V> x)"
+    sorry
+
+  then have "\<forall>x. welltyped \<F> \<V>' (Var x \<cdot>t (\<rho> \<odot> \<gamma>)) (\<V> x)"
+    sorry
+
+  then have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' (Var x \<cdot>t \<rho>) (\<V> x)"
+    using welltyped\<^sub>\<sigma>_welltyped[OF assms(1)]
+    by (simp add: subst_compose_def)
+
+  have "\<forall>x. welltyped \<F> \<V>' (Var x \<cdot>t \<rho>) (\<V> x)"
+    sorry
+
+  then have "\<forall>x. welltyped \<F> \<V> (Var x \<cdot>t \<rho>) (\<V> x)"
+    using welltyped_renaming
+    sorry
+
+  then show "welltyped\<^sub>\<sigma>_on X \<F> \<V> (\<rho> \<odot> \<gamma>)"
+    unfolding welltyped\<^sub>\<sigma>_def
+    sorry
+qed
+
+
+end
+
+
 (* 
 abbreviation range :: "('a \<Rightarrow> 'b) \<Rightarrow> 'b set"  \<comment> \<open>of function\<close>
   where "range f \<equiv> f ` UNIV"
@@ -811,14 +979,6 @@ lemma
   using assms
   by (metis enumerate_in_set finite_enumerate_in_set)
 
-(*lemma  obtain n where x: "enumerate {n' \<in> X. \<V>\<^sub>1 n' = \<V>\<^sub>1 x} n = x"
-      using enumerate_Ex[OF xx yy]
-      by blast
-    
-    moreover then have n: "card {n' \<in> X. n' < x \<and> \<V>\<^sub>1 n' = \<V>\<^sub>1 x} = n"*)
-
-thm less_induct
-
 
 lemma enumerate_n:
   fixes S :: "nat set"
@@ -873,9 +1033,79 @@ proof(induction s  rule: less_induct)
   qed
 qed
 
+
+lemma finite_bij_enumerate_inv_into:
+  fixes S :: "'a::wellorder set"
+  assumes S: "finite S"
+  shows "bij_betw (inv_into {..<card S} (enumerate S)) S {..<card S}"
+  using finite_bij_enumerate[OF assms] bij_betw_inv_into
+  by blast
+
+lemma obtain_inj_test'_on:
+  fixes \<V>\<^sub>1 \<V>\<^sub>2 :: "nat \<Rightarrow> 'ty"
+  assumes 
+    "finite X" 
+    "finite Y" 
+    "\<And>ty. infinite {x. \<V>\<^sub>1 x = ty}" 
+    "\<And>ty. infinite {x. \<V>\<^sub>2 x = ty}"
+  obtains f f' :: "nat \<Rightarrow> nat" where
+    "inj f" "inj f'"
+    "f ` X \<inter> f' ` Y = {}"
+    "\<forall>x \<in> X. \<V>\<^sub>1 (f x) = \<V>\<^sub>1 x"
+    "\<forall>x \<in> Y. \<V>\<^sub>2 (f' x) = \<V>\<^sub>2 x"
+proof
+  have "\<And>ty. infinite ({x. \<V>\<^sub>2 x = ty} - X)"
+    by (simp add: assms(1) assms(4))
+
+  then have infinite: "\<And>ty. infinite {x. \<V>\<^sub>2 x = ty \<and> x \<notin> X}"
+    by (simp add: set_diff_eq)
+
+  define f' where
+    "\<And>x. f' x \<equiv> enumerate {y. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> y \<notin> X} x"
+
+
+  have f'_not_in_x: "\<And>x. f' x \<notin> X"
+  proof-
+    fix x
+    show "f' x \<notin> X"
+      unfolding f'_def
+      using enumerate_in_set[OF infinite]
+      by (smt (verit) CollectD Collect_cong)
+  qed 
+ 
+   show "inj id"
+     by simp
+
+   show "inj f'"
+   proof(unfold inj_def; intro allI impI)
+     fix x y
+     assume "f' x = f' y"
+
+     moreover then have "\<V>\<^sub>2 y = \<V>\<^sub>2 x"
+       unfolding f'_def
+       by (smt (verit, ccfv_SIG) Collect_mono_iff enumerate_in_set infinite mem_Collect_eq rev_finite_subset)
+
+     ultimately show "x = y"
+       unfolding f'_def
+       by (smt (verit) Collect_cong infinite inj_enumerate inj_onD iso_tuple_UNIV_I)
+   qed
+
+   show "id ` X \<inter> f' ` Y = {}"
+     using f'_not_in_x
+     by auto
+
+   show "\<forall>x\<in>X. \<V>\<^sub>1 (id x) = \<V>\<^sub>1 x"
+     by simp
+
+   show "\<forall>x\<in>Y. \<V>\<^sub>2 (f' x) = \<V>\<^sub>2 x" 
+     unfolding f'_def
+     using enumerate_in_set[OF infinite]
+     by (smt (verit) Collect_cong mem_Collect_eq)
+qed
+
 lemma obtain_inj_test'':
   fixes \<V>\<^sub>1 \<V>\<^sub>2 :: "nat \<Rightarrow> 'ty"
-  (* TODO: Could I write this nicer? *)
+    (* TODO: Could I write this nicer? *)
   assumes "\<exists>X. \<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1 x = ty}) \<and>  infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty})"
   obtains f f' :: "nat \<Rightarrow> nat" where
     "inj f" "inj f'"
@@ -1064,7 +1294,7 @@ proof-
     by auto
 
 
-  (* nat \<rightarrow> Y
+(* nat \<rightarrow> Y
   It's completely the same as for f!!*)
   define f' where
     "\<And>n. f' n \<equiv> enumerate { n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 n } (card {n'. n' < n \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 n})"
@@ -1249,7 +1479,7 @@ proof-
     using bij_a_to_nat bij_image_Collect_eq nat_to_a_def apply blast
     by (metis bij_a_to_nat bij_inv_eq_iff nat_to_a_def)
 
-   have yy: "\<And>n. {n'. \<V>\<^sub>2_nat n' = n} = a_to_nat ` {n'. \<V>\<^sub>2  n' = n}"
+  have yy: "\<And>n. {n'. \<V>\<^sub>2_nat n' = n} = a_to_nat ` {n'. \<V>\<^sub>2  n' = n}"
     unfolding  \<V>\<^sub>2_nat_def
     apply auto
     using bij_a_to_nat bij_image_Collect_eq nat_to_a_def apply blast
@@ -1305,7 +1535,7 @@ proof-
     unfolding range_composition[of nat_to_a]
     unfolding test[OF bij_nat_to_a]
     by (simp add: bij_betw_imp_surj range_composition)
-    
+
   moreover have "\<And>x. \<V>\<^sub>1 (f x) = \<V>\<^sub>1 x"
     using nats(5)
     unfolding \<V>\<^sub>1_nat_def f_def
@@ -1322,6 +1552,79 @@ proof-
     by presburger
 qed
 
+lemma obtain_inj''_on:
+  fixes \<V>\<^sub>1 \<V>\<^sub>2 :: "'a :: {countable, infinite} \<Rightarrow> 'ty"
+  assumes "finite X" "finite Y" "\<And>ty. infinite {x. \<V>\<^sub>1 x = ty}" "\<And>ty. infinite {x. \<V>\<^sub>2 x = ty}"
+  obtains f f' :: "'a \<Rightarrow> 'a" where
+    "inj f" "inj f'"
+    "f ` X \<inter> f' ` Y = {}"
+    "\<forall>x \<in> X. \<V>\<^sub>1 (f x) = \<V>\<^sub>1 x"
+    "\<forall>x \<in> Y. \<V>\<^sub>2 (f' x) = \<V>\<^sub>2 x"
+proof-
+  obtain a_to_nat :: "'a \<Rightarrow> nat" where bij_a_to_nat: "bij a_to_nat"
+    using countableE_infinite[of "UNIV :: 'a set"] infinite_UNIV by blast
+
+  define nat_to_a where "nat_to_a \<equiv> inv a_to_nat"
+
+  have bij_nat_to_a: "bij nat_to_a"
+    unfolding nat_to_a_def
+    by (simp add: bij_a_to_nat bij_imp_bij_inv)
+
+  define X_nat Y_nat where 
+    "X_nat \<equiv> a_to_nat ` X" and 
+    "Y_nat \<equiv> a_to_nat ` Y"
+
+  have finite_X_nat: "finite X_nat" and finite_Y_nat: "finite Y_nat"
+    unfolding X_nat_def Y_nat_def
+    using assms(1,2)
+    by blast+
+
+  define \<V>\<^sub>1_nat \<V>\<^sub>2_nat where 
+    "\<And>n. \<V>\<^sub>1_nat n \<equiv> \<V>\<^sub>1 (nat_to_a n)" and 
+    "\<And>n. \<V>\<^sub>2_nat n \<equiv> \<V>\<^sub>2 (nat_to_a n)"
+
+  have 
+    "\<And>ty. {x. \<V>\<^sub>1_nat x = ty} = a_to_nat ` {x. \<V>\<^sub>1 x = ty}" 
+    "\<And>ty. {x. \<V>\<^sub>2_nat x = ty} = a_to_nat ` {x. \<V>\<^sub>2 x = ty}"
+    unfolding \<V>\<^sub>1_nat_def \<V>\<^sub>2_nat_def
+    using bij_a_to_nat bij_image_Collect_eq nat_to_a_def by fastforce+
+
+  then have \<V>_nat_infinite: "\<And>ty. infinite {x. \<V>\<^sub>1_nat x = ty}" "\<And>ty. infinite {x. \<V>\<^sub>2_nat x = ty}"
+    using assms(3, 4)
+    by (metis bij_a_to_nat bij_betw_finite bij_betw_subset subset_UNIV)+
+
+  obtain f_nat f'_nat where
+    inj: "inj f_nat" "inj f'_nat"  and
+    disjoint: "f_nat ` X_nat \<inter> f'_nat ` Y_nat = {}"  and
+    type_preserving: 
+      "\<forall>x\<in> X_nat. \<V>\<^sub>1_nat (f_nat x) = \<V>\<^sub>1_nat x" 
+      "\<forall>x\<in> Y_nat. \<V>\<^sub>2_nat (f'_nat x) = \<V>\<^sub>2_nat x"
+    using obtain_inj_test'_on[OF finite_X_nat finite_Y_nat \<V>_nat_infinite].
+
+  let ?f = "nat_to_a \<circ> f_nat \<circ> a_to_nat"
+  let ?f' = "nat_to_a \<circ> f'_nat \<circ> a_to_nat"
+  
+  have "inj ?f" "inj ?f'"
+    using inj
+    by (simp_all add: bij_a_to_nat bij_is_inj bij_nat_to_a inj_compose)
+
+  moreover have "?f ` X \<inter> ?f' ` Y = {}"
+    using disjoint
+    unfolding X_nat_def Y_nat_def
+    by (metis bij_is_inj bij_nat_to_a image_Int image_comp image_empty)
+
+  moreover have 
+    "\<forall>x\<in> X. \<V>\<^sub>1 (?f x) = \<V>\<^sub>1 x" 
+    "\<forall>x\<in> Y. \<V>\<^sub>2 (?f' x) = \<V>\<^sub>2 x"
+    using type_preserving
+    unfolding X_nat_def Y_nat_def \<V>\<^sub>1_nat_def \<V>\<^sub>2_nat_def
+    by (simp_all add: bij_a_to_nat bij_is_inj nat_to_a_def)
+
+  ultimately show ?thesis
+    using that
+    by presburger    
+qed
+   
 
 lemma obtain_inj': 
   obtains f :: "'a :: {countable, infinite} \<Rightarrow> 'a" where
@@ -1467,7 +1770,6 @@ lemma welltyped_renaming_exists:
     "range_vars' \<rho>\<^sub>1 \<union> range_vars' \<rho>\<^sub>2 = UNIV"
     "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>1 \<rho>\<^sub>1"
     "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
-  using obtain_inj'
 proof-
   obtain renaming\<^sub>1 renaming\<^sub>2 :: "'v \<Rightarrow> 'v" where
     renamings:
@@ -1499,7 +1801,7 @@ proof-
     unfolding \<rho>\<^sub>1_def \<rho>\<^sub>2_def range_vars'_def
     using renamings(4)
     by auto
-   
+
   moreover have "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>1 \<rho>\<^sub>1" "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
     unfolding \<rho>\<^sub>1_def \<rho>\<^sub>2_def welltyped\<^sub>\<sigma>_def
     using renamings(5, 6)
@@ -1509,6 +1811,50 @@ proof-
     using that
     by blast
 qed
+
+lemma welltyped_on_renaming_exists:
+  assumes "finite X" "finite Y"  "\<And>ty. infinite {x. \<V>\<^sub>1 x = ty}" "\<And>ty. infinite {x. \<V>\<^sub>2 x = ty}"
+  obtains \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v :: {countable, infinite}) subst" where
+    "term_subst.is_renaming \<rho>\<^sub>1" 
+    "term_subst.is_renaming \<rho>\<^sub>2" 
+    "\<rho>\<^sub>1 ` X \<inter> \<rho>\<^sub>2 ` Y = {}"
+    "welltyped\<^sub>\<sigma>_on X \<F> \<V>\<^sub>1 \<rho>\<^sub>1"
+    "welltyped\<^sub>\<sigma>_on Y \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
+proof-
+  obtain renaming\<^sub>1 renaming\<^sub>2 :: "'v \<Rightarrow> 'v" where
+    renamings:
+    "inj renaming\<^sub>1" "inj renaming\<^sub>2"
+    "renaming\<^sub>1 ` X \<inter> renaming\<^sub>2 ` Y = {}" 
+    "\<forall>x \<in> X. \<V>\<^sub>1 (renaming\<^sub>1 x) = \<V>\<^sub>1 x" 
+    "\<forall>x \<in> Y. \<V>\<^sub>2 (renaming\<^sub>2 x) = \<V>\<^sub>2 x"
+    using obtain_inj''_on[OF assms].
+
+  define \<rho>\<^sub>1 :: "('f, 'v) subst" where
+    "\<And>x. \<rho>\<^sub>1 x \<equiv> Var (renaming\<^sub>1 x)"
+
+  define \<rho>\<^sub>2 :: "('f, 'v) subst" where
+    "\<And>x. \<rho>\<^sub>2 x \<equiv> Var (renaming\<^sub>2 x)"
+
+  have "term_subst.is_renaming \<rho>\<^sub>1"  "term_subst.is_renaming \<rho>\<^sub>2" 
+    unfolding \<rho>\<^sub>1_def \<rho>\<^sub>2_def
+    using renamings(1,2)
+    by (meson injD injI term_subst.is_renaming_id_subst term_subst_is_renaming_iff)+
+
+  moreover have "\<rho>\<^sub>1 ` X \<inter> \<rho>\<^sub>2 ` Y = {}"
+    unfolding \<rho>\<^sub>1_def \<rho>\<^sub>2_def range_vars'_def
+    using renamings(3)
+    by auto
+ 
+  moreover have "welltyped\<^sub>\<sigma>_on X \<F> \<V>\<^sub>1 \<rho>\<^sub>1" "welltyped\<^sub>\<sigma>_on Y \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
+    unfolding \<rho>\<^sub>1_def \<rho>\<^sub>2_def welltyped\<^sub>\<sigma>_on_def
+    using renamings(4, 5)
+    by(auto simp: welltyped.Var)
+
+  ultimately show ?thesis 
+    using that
+    by presburger
+qed
+
 
 (*lemma welltyped_renaming_exists': 
   assumes "\<And>ty. infinite { x. \<V> x = ty }" "infinite X" "infinite (UNIV - X)"
