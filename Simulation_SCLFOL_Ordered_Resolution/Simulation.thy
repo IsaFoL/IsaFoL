@@ -21555,6 +21555,7 @@ inductive ord_res_9_matches_ord_res_10 :: "'f ord_res_9_state \<Rightarrow> 'f o
   "ord_res_8_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>9) \<Longrightarrow>
     ord_res_10_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>1\<^sub>0) \<Longrightarrow>
     list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0 \<Longrightarrow>
+    list_all2 (\<lambda>x y. snd y \<noteq> None \<longrightarrow> x = y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0 \<Longrightarrow>
     ord_res_9_matches_ord_res_10 (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>9) (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>1\<^sub>0)"
 
 lemma trail_atms_eq_trail_atms_if_same_lits:
@@ -21627,22 +21628,12 @@ proof (cases S9 S10 rule: ord_res_9_matches_ord_res_10.cases)
     by simp
 qed
 
-(* lemma "list_all2 (\<lambda>x y. f x = f y) xs ys \<Longrightarrow> map f xs = map g ys"
-proof (induction xs ys rule: list.rel_induct)
-  case Nil
-  then show ?case sorry
-next
-  case (Cons a21 a22 b21 b22)
-  then show ?case sorry
-qed
-
-lemma "length (takeWhile (P \<circ> fst) \<Gamma>\<^sub>9) = length (takeWhile P (map fst \<Gamma>\<^sub>9))"
-  find_theorems "list_all2 _ _ _ \<Longrightarrow> map _ _ = map _ _" *)
-
-lemma
-  fixes S9 S10 S9'
-  assumes match: "ord_res_9_matches_ord_res_10 S9 S10" and step: "constant_context ord_res_9 S9 S9'"
-  shows "\<exists>S10'. (constant_context ord_res_10)\<^sup>+\<^sup>+ S10 S10' \<and> ord_res_9_matches_ord_res_10 S9' S10'"
+lemma backward_simulation_between_9_and_10:
+  fixes S9 S10 S10'
+  assumes
+    match: "ord_res_9_matches_ord_res_10 S9 S10" and
+    step: "constant_context ord_res_10 S10 S10'"
+  shows "\<exists>S9'. (constant_context ord_res_9)\<^sup>+\<^sup>+ S9 S9' \<and> ord_res_9_matches_ord_res_10 S9' S10'"
   using match
 proof (cases S9 S10 rule: ord_res_9_matches_ord_res_10.cases)
   case match_hyps: (1 N U\<^sub>e\<^sub>r \<F> \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0)
@@ -21653,19 +21644,24 @@ proof (cases S9 S10 rule: ord_res_9_matches_ord_res_10.cases)
   note invars10 = \<open>ord_res_10_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>1\<^sub>0)\<close>
 
   have "trail_atms \<Gamma>\<^sub>9 = trail_atms \<Gamma>\<^sub>1\<^sub>0"
-    using match_hyps trail_atms_eq_trail_atms_if_same_lits by metis
+    using \<open>list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0\<close> trail_atms_eq_trail_atms_if_same_lits
+    by metis
 
   have "trail_false_lit \<Gamma>\<^sub>9 = trail_false_lit \<Gamma>\<^sub>1\<^sub>0"
-    using match_hyps trail_false_lit_eq_trail_false_lit_if_same_lits by metis
+    using \<open>list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0\<close> trail_false_lit_eq_trail_false_lit_if_same_lits
+    by metis
 
   have "trail_false_cls \<Gamma>\<^sub>9 = trail_false_cls \<Gamma>\<^sub>1\<^sub>0"
-    using match_hyps trail_false_cls_eq_trail_false_cls_if_same_lits by metis
+    using \<open>list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0\<close> trail_false_cls_eq_trail_false_cls_if_same_lits
+    by metis
 
   have "trail_defined_lit \<Gamma>\<^sub>9 = trail_defined_lit \<Gamma>\<^sub>1\<^sub>0"
-    using match_hyps trail_defined_lit_eq_trail_defined_lit_if_same_lits by metis
+    using \<open>list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0\<close>
+      trail_defined_lit_eq_trail_defined_lit_if_same_lits by metis
 
   have "trail_defined_cls \<Gamma>\<^sub>9 = trail_defined_cls \<Gamma>\<^sub>1\<^sub>0"
-    using match_hyps trail_defined_cls_eq_trail_defined_cls_if_same_lits by metis
+    using \<open>list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0\<close>
+      trail_defined_cls_eq_trail_defined_cls_if_same_lits by metis
 
   have "clause_could_propagate \<Gamma>\<^sub>9 = clause_could_propagate \<Gamma>\<^sub>1\<^sub>0"
     unfolding clause_could_propagate_def
@@ -21675,104 +21671,209 @@ proof (cases S9 S10 rule: ord_res_9_matches_ord_res_10.cases)
   have \<Gamma>\<^sub>9_sorted: "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>\<^sub>9"
     using invars9[unfolded ord_res_8_invars_def trail_is_sorted_def, simplified] by argo
 
-  obtain s9' where "S9' = (N, s9')" and step': "ord_res_9 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>9) s9'"
-    using step unfolding S9_def by (auto elim: constant_context.cases)
+  obtain s10' where "S10' = (N, s10')" and step10: "ord_res_10 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>1\<^sub>0) s10'"
+    using step unfolding S10_def by (auto elim: constant_context.cases)
 
   show ?thesis
-    using step'
-  proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>9)" s9' rule: ord_res_9.cases)
-    case step_hyps: (decide_neg A \<Gamma>\<^sub>9')
+    using step10
+  proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>1\<^sub>0)" s10' rule: ord_res_10.cases)
+    case step_hyps: (decide_neg A \<Gamma>\<^sub>1\<^sub>0')
+
+    define \<Gamma>\<^sub>9' where
+      "\<Gamma>\<^sub>9' = (Neg A, None) # \<Gamma>\<^sub>9"
+
     show ?thesis
     proof (intro exI conjI)
-      have step10: "ord_res_10 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>1\<^sub>0) (U\<^sub>e\<^sub>r, \<F>, (Neg A, None) # \<Gamma>\<^sub>1\<^sub>0)"
-      proof (rule ord_res_10.decide_neg)
-        show "\<not> (\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma>\<^sub>1\<^sub>0 C)"
+      have step9: "ord_res_9 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>9) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>9')"
+      proof (rule ord_res_9.decide_neg)
+        show "\<not> (\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma>\<^sub>9 C)"
           using step_hyps \<open>trail_false_cls \<Gamma>\<^sub>9 = trail_false_cls \<Gamma>\<^sub>1\<^sub>0\<close> by argo
       next
-        show "linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r).
-          \<forall>A\<^sub>1|\<in>|trail_atms \<Gamma>\<^sub>1\<^sub>0. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A"
+        show "linorder_trm.is_least_in_fset
+          {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>\<^sub>9. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A"
           using step_hyps \<open>trail_atms \<Gamma>\<^sub>9 = trail_atms \<Gamma>\<^sub>1\<^sub>0\<close> by metis
       next
-        show "\<not> (\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). clause_could_propagate \<Gamma>\<^sub>1\<^sub>0 C (Pos A))"
+        show "\<not> (\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). clause_could_propagate \<Gamma>\<^sub>9 C (Pos A))"
           using step_hyps \<open>clause_could_propagate \<Gamma>\<^sub>9 = clause_could_propagate \<Gamma>\<^sub>1\<^sub>0\<close> by metis
       next
-        show "(Neg A, None) # \<Gamma>\<^sub>1\<^sub>0 = (Neg A, None) # \<Gamma>\<^sub>1\<^sub>0" ..
+        show "\<Gamma>\<^sub>9' = (Neg A, None) # \<Gamma>\<^sub>9"
+          using \<Gamma>\<^sub>9'_def .
       qed
 
-      thus "(constant_context ord_res_10)\<^sup>+\<^sup>+ S10 (N, U\<^sub>e\<^sub>r, \<F>, (Neg A, None) # \<Gamma>\<^sub>1\<^sub>0)"
-        unfolding S10_def
-        by (simp add: constant_context.intros tranclp.r_into_trancl)
+      thus "(constant_context ord_res_9)\<^sup>+\<^sup>+ S9 (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>9')"
+        unfolding S9_def by (auto intro: constant_context.intros)
 
-      show "ord_res_9_matches_ord_res_10 S9' (N, U\<^sub>e\<^sub>r, \<F>, (Neg A, None) # \<Gamma>\<^sub>1\<^sub>0)"
-        unfolding \<open>S9' = (N, s9')\<close> \<open>s9' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>9')\<close>
-      proof (intro ord_res_9_matches_ord_res_10.intros allI impI conjI)
+      show "ord_res_9_matches_ord_res_10 (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>9') S10'"
+        unfolding \<open>S10' = (N, s10')\<close> \<open>s10' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>1\<^sub>0')\<close>
+      proof (rule ord_res_9_matches_ord_res_10.intros)
         show "ord_res_8_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>9')"
-          using match_hyps(3) ord_res_9_preserves_invars step' step_hyps(1) by blast
+          using invars9 step9 ord_res_9_preserves_invars by metis 
       next
-        show "ord_res_10_invars N (U\<^sub>e\<^sub>r, \<F>, (Neg A, None) # \<Gamma>\<^sub>1\<^sub>0)"
-          using match_hyps(4) ord_res_10_preserves_invars step10 by metis
+        show "ord_res_10_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>1\<^sub>0')"
+          using invars10 step10 ord_res_10_preserves_invars \<open>s10' = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>1\<^sub>0')\<close> by metis
       next
-        show "list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9' ((Neg A, None) # \<Gamma>\<^sub>1\<^sub>0)"
-          unfolding \<open>\<Gamma>\<^sub>9' = (Neg A, None) # \<Gamma>\<^sub>9\<close>
-          using match_hyps(5) by blast
+        show "list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9' \<Gamma>\<^sub>1\<^sub>0'"
+          unfolding \<open>\<Gamma>\<^sub>9' = (Neg A, None) # \<Gamma>\<^sub>9\<close> \<open>\<Gamma>\<^sub>1\<^sub>0' = (Neg A, None) # \<Gamma>\<^sub>1\<^sub>0\<close>
+          using \<open>list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0\<close> by simp
+      next
+        show "list_all2 (\<lambda>x y. snd y \<noteq> None \<longrightarrow> x = y) \<Gamma>\<^sub>9' \<Gamma>\<^sub>1\<^sub>0'"
+          unfolding \<open>\<Gamma>\<^sub>9' = (Neg A, None) # \<Gamma>\<^sub>9\<close> \<open>\<Gamma>\<^sub>1\<^sub>0' = (Neg A, None) # \<Gamma>\<^sub>1\<^sub>0\<close>
+          using \<open>list_all2 (\<lambda>x y. snd y \<noteq> None \<longrightarrow> x = y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0\<close>
+          by simp
       qed
     qed
   next
-    case (propagate A C \<Gamma>\<^sub>9' \<F>')
-    then show ?thesis
-      sorry
-  next
-    case step_hyps: (resolution D A C U\<^sub>e\<^sub>r' \<Gamma>\<^sub>9')
+    case step_hyps: (decide_pos A C \<Gamma>\<^sub>1\<^sub>0' \<F>')
 
-    note D_max_lit = \<open>ord_res.is_maximal_lit (Neg A) D\<close>
-
-    have
-      D_in: "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
-      D_false: "trail_false_cls \<Gamma>\<^sub>9 D" and
-      D_lt: "\<forall>E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). E \<noteq> D \<longrightarrow> trail_false_cls \<Gamma>\<^sub>9 E \<longrightarrow> D \<prec>\<^sub>c E"
-      using step_hyps unfolding atomize_conj linorder_cls.is_least_in_ffilter_iff by argo
-
+    define \<Gamma>\<^sub>9' where
+      "\<Gamma>\<^sub>9' = (Pos A, Some (efac C)) # \<Gamma>\<^sub>9"
+    
     show ?thesis
     proof (intro exI conjI)
-      define \<Gamma>\<^sub>1\<^sub>0' where
-        "\<Gamma>\<^sub>1\<^sub>0' = dropWhile
-          (\<lambda>Ln. \<forall>K. ord_res.is_maximal_lit K (eres C D) \<longrightarrow> atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<^sub>1\<^sub>0"
+      have step9: "ord_res_9 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>9) (U\<^sub>e\<^sub>r, \<F>', \<Gamma>\<^sub>9')"
+      proof (rule ord_res_9.propagate)
+        show "\<not> (\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma>\<^sub>9 C)"
+          using step_hyps \<open>trail_false_cls \<Gamma>\<^sub>9 = trail_false_cls \<Gamma>\<^sub>1\<^sub>0\<close> by argo
+      next
+        show "linorder_trm.is_least_in_fset
+          {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). \<forall>A\<^sub>1|\<in>|trail_atms \<Gamma>\<^sub>9. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A"
+          using step_hyps \<open>trail_atms \<Gamma>\<^sub>9 = trail_atms \<Gamma>\<^sub>1\<^sub>0\<close> by metis
+      next
+        show "linorder_cls.is_least_in_fset
+          {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). clause_could_propagate \<Gamma>\<^sub>9 C (Pos A)|} C"
+          using step_hyps \<open>clause_could_propagate \<Gamma>\<^sub>9 = clause_could_propagate \<Gamma>\<^sub>1\<^sub>0\<close> by metis
+      next
+        show "\<Gamma>\<^sub>9' = (Pos A, Some (efac C)) # \<Gamma>\<^sub>9"
+          using \<Gamma>\<^sub>9'_def .
+      next
+        show "\<F>' = (if ord_res.is_strictly_maximal_lit (Pos A) C then \<F> else finsert C \<F>)"
+          using step_hyps by argo
+      qed
 
-      have step10: "ord_res_10 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>1\<^sub>0) (U\<^sub>e\<^sub>r', \<F>, \<Gamma>\<^sub>1\<^sub>0')"
-      proof (rule ord_res_10.resolution)
-        show "linorder_cls.is_least_in_fset (ffilter (trail_false_cls \<Gamma>\<^sub>1\<^sub>0) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D"
-          unfolding linorder_cls.is_least_in_ffilter_iff
-          using D_in D_false D_lt
-          unfolding \<open>trail_false_cls \<Gamma>\<^sub>9 = trail_false_cls \<Gamma>\<^sub>1\<^sub>0\<close>
-          by argo
+      thus "(constant_context ord_res_9)\<^sup>+\<^sup>+ S9 (N, U\<^sub>e\<^sub>r, \<F>', \<Gamma>\<^sub>9')"
+        unfolding S9_def by (auto intro: constant_context.intros)
+
+      show "ord_res_9_matches_ord_res_10 (N, U\<^sub>e\<^sub>r, \<F>', \<Gamma>\<^sub>9') S10'"
+        unfolding \<open>S10' = (N, s10')\<close> \<open>s10' = (U\<^sub>e\<^sub>r, \<F>', \<Gamma>\<^sub>1\<^sub>0')\<close>
+      proof (rule ord_res_9_matches_ord_res_10.intros)
+        show "ord_res_8_invars N (U\<^sub>e\<^sub>r, \<F>', \<Gamma>\<^sub>9')"
+          using invars9 step9 ord_res_9_preserves_invars by metis 
+      next
+        show "ord_res_10_invars N (U\<^sub>e\<^sub>r, \<F>', \<Gamma>\<^sub>1\<^sub>0')"
+          using invars10 step10 ord_res_10_preserves_invars \<open>s10' = (U\<^sub>e\<^sub>r, \<F>', \<Gamma>\<^sub>1\<^sub>0')\<close> by metis
+      next
+        show "list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9' \<Gamma>\<^sub>1\<^sub>0'"
+          unfolding \<open>\<Gamma>\<^sub>9' = (Pos A, Some (efac C)) # \<Gamma>\<^sub>9\<close> \<open>\<Gamma>\<^sub>1\<^sub>0' = (Pos A, None) # \<Gamma>\<^sub>1\<^sub>0\<close>
+          using \<open>list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0\<close> by simp
+      next
+        show "list_all2 (\<lambda>x y. snd y \<noteq> None \<longrightarrow> x = y) \<Gamma>\<^sub>9' \<Gamma>\<^sub>1\<^sub>0'"
+          unfolding \<open>\<Gamma>\<^sub>9' = (Pos A, Some (efac C)) # \<Gamma>\<^sub>9\<close> \<open>\<Gamma>\<^sub>1\<^sub>0' = (Pos A, None) # \<Gamma>\<^sub>1\<^sub>0\<close>
+          using \<open>list_all2 (\<lambda>x y. snd y \<noteq> None \<longrightarrow> x = y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0\<close>
+          by simp
+      qed
+    qed
+  next
+    case step_hyps: (propagate A C \<Gamma>\<^sub>1\<^sub>0' \<F>')
+
+    define \<Gamma>\<^sub>9' where
+      "\<Gamma>\<^sub>9' = (Pos A, Some (efac C)) # \<Gamma>\<^sub>9"
+    
+    show ?thesis
+    proof (intro exI conjI)
+      have step9: "ord_res_9 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>9) (U\<^sub>e\<^sub>r, \<F>', \<Gamma>\<^sub>9')"
+      proof (rule ord_res_9.propagate)
+        show "\<not> (\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma>\<^sub>9 C)"
+          using step_hyps \<open>trail_false_cls \<Gamma>\<^sub>9 = trail_false_cls \<Gamma>\<^sub>1\<^sub>0\<close> by argo
+      next
+        show "linorder_trm.is_least_in_fset
+          {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). \<forall>A\<^sub>1|\<in>|trail_atms \<Gamma>\<^sub>9. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A"
+          using step_hyps \<open>trail_atms \<Gamma>\<^sub>9 = trail_atms \<Gamma>\<^sub>1\<^sub>0\<close> by metis
+      next
+        show "linorder_cls.is_least_in_fset
+          {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). clause_could_propagate \<Gamma>\<^sub>9 C (Pos A)|} C"
+          using step_hyps \<open>clause_could_propagate \<Gamma>\<^sub>9 = clause_could_propagate \<Gamma>\<^sub>1\<^sub>0\<close> by metis
+      next
+        show "\<Gamma>\<^sub>9' = (Pos A, Some (efac C)) # \<Gamma>\<^sub>9"
+          using \<Gamma>\<^sub>9'_def .
+      next
+        show "\<F>' = (if ord_res.is_strictly_maximal_lit (Pos A) C then \<F> else finsert C \<F>)"
+          using step_hyps by argo
+      qed
+
+      thus "(constant_context ord_res_9)\<^sup>+\<^sup>+ S9 (N, U\<^sub>e\<^sub>r, \<F>', \<Gamma>\<^sub>9')"
+        unfolding S9_def by (auto intro: constant_context.intros)
+
+      show "ord_res_9_matches_ord_res_10 (N, U\<^sub>e\<^sub>r, \<F>', \<Gamma>\<^sub>9') S10'"
+        unfolding \<open>S10' = (N, s10')\<close> \<open>s10' = (U\<^sub>e\<^sub>r, \<F>', \<Gamma>\<^sub>1\<^sub>0')\<close>
+      proof (rule ord_res_9_matches_ord_res_10.intros)
+        show "ord_res_8_invars N (U\<^sub>e\<^sub>r, \<F>', \<Gamma>\<^sub>9')"
+          using invars9 step9 ord_res_9_preserves_invars by metis 
+      next
+        show "ord_res_10_invars N (U\<^sub>e\<^sub>r, \<F>', \<Gamma>\<^sub>1\<^sub>0')"
+          using invars10 step10 ord_res_10_preserves_invars \<open>s10' = (U\<^sub>e\<^sub>r, \<F>', \<Gamma>\<^sub>1\<^sub>0')\<close> by metis
+      next
+        show "list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9' \<Gamma>\<^sub>1\<^sub>0'"
+          unfolding \<open>\<Gamma>\<^sub>9' = (Pos A, Some (efac C)) # \<Gamma>\<^sub>9\<close> \<open>\<Gamma>\<^sub>1\<^sub>0' = (Pos A, Some (efac C)) # \<Gamma>\<^sub>1\<^sub>0\<close>
+          using \<open>list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0\<close> by simp
+      next
+        show "list_all2 (\<lambda>x y. snd y \<noteq> None \<longrightarrow> x = y) \<Gamma>\<^sub>9' \<Gamma>\<^sub>1\<^sub>0'"
+          unfolding \<open>\<Gamma>\<^sub>9' = (Pos A, Some (efac C)) # \<Gamma>\<^sub>9\<close> \<open>\<Gamma>\<^sub>1\<^sub>0' = (Pos A, Some (efac C)) # \<Gamma>\<^sub>1\<^sub>0\<close>
+          using \<open>list_all2 (\<lambda>x y. snd y \<noteq> None \<longrightarrow> x = y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0\<close>
+          by simp
+      qed
+    qed
+  next
+    case step_hyps: (resolution D A C U\<^sub>e\<^sub>r' \<Gamma>\<^sub>1\<^sub>0')
+
+    have "\<forall>Ln \<Gamma>'. \<Gamma>\<^sub>1\<^sub>0 = Ln # \<Gamma>' \<longrightarrow>
+      (snd Ln \<noteq> None) = fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) (trail_false_cls \<Gamma>\<^sub>1\<^sub>0) \<and>
+      (\<forall>x\<in>set \<Gamma>'. snd x = None)"
+      using invars10 by (simp add: ord_res_10_invars.simps)
+
+    then obtain \<Gamma>\<^sub>1\<^sub>0'' where "\<Gamma>\<^sub>1\<^sub>0 = (Pos A, Some C) # \<Gamma>\<^sub>1\<^sub>0''"
+      using \<open>map_of \<Gamma>\<^sub>1\<^sub>0 (Pos A) = Some (Some C)\<close>
+      by (metis list.set_cases map_of_SomeD not_Some_eq snd_conv)
+
+    then obtain \<Gamma>\<^sub>9'' where "\<Gamma>\<^sub>9 = (Pos A, Some C) # \<Gamma>\<^sub>9''"
+      using \<open>list_all2 (\<lambda>x y. snd y \<noteq> None \<longrightarrow> x = y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0\<close>
+      by (smt (verit, best) list_all2_Cons2 option.discI snd_conv)
+
+    define \<Gamma>\<^sub>9' where
+      "\<Gamma>\<^sub>9' = dropWhile (\<lambda>Ln. \<forall>K. ord_res.is_maximal_lit K (eres C D) \<longrightarrow>
+        atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<^sub>9"
+    
+    show ?thesis
+    proof (intro exI conjI)
+      have step9: "ord_res_9 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>9) (U\<^sub>e\<^sub>r', \<F>, \<Gamma>\<^sub>9')"
+      proof (rule ord_res_9.resolution)
+        show "linorder_cls.is_least_in_fset (ffilter (trail_false_cls \<Gamma>\<^sub>9) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D"
+          using step_hyps \<open>trail_false_cls \<Gamma>\<^sub>9 = trail_false_cls \<Gamma>\<^sub>1\<^sub>0\<close> by argo
       next
         show "ord_res.is_maximal_lit (Neg A) D"
-          using D_max_lit .
+          using step_hyps by argo
       next
-        show "map_of \<Gamma>\<^sub>1\<^sub>0 (Pos A) = Some (Some C)"
-          using invars10[unfolded ord_res_10_invars.simps, simplified]
-          sorry
+        show "map_of \<Gamma>\<^sub>9 (Pos A) = Some (Some C)"
+          unfolding \<open>\<Gamma>\<^sub>9 = (Pos A, Some C) # \<Gamma>\<^sub>9''\<close> by simp
       next
         show "U\<^sub>e\<^sub>r' = finsert (eres C D) U\<^sub>e\<^sub>r"
           using step_hyps by argo
       next
-        show "\<Gamma>\<^sub>1\<^sub>0' = dropWhile
-          (\<lambda>Ln. \<forall>K. ord_res.is_maximal_lit K (eres C D) \<longrightarrow> atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<^sub>1\<^sub>0"
-          using \<Gamma>\<^sub>1\<^sub>0'_def .
+        show "\<Gamma>\<^sub>9' = dropWhile (\<lambda>Ln. \<forall>K. ord_res.is_maximal_lit K (eres C D) \<longrightarrow>
+          atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<^sub>9"
+          using \<Gamma>\<^sub>9'_def .
       qed
 
-      thus "(constant_context ord_res_10)\<^sup>+\<^sup>+ S10 (N, U\<^sub>e\<^sub>r', \<F>, \<Gamma>\<^sub>1\<^sub>0')"
-        unfolding S10_def
-        by (simp add: constant_context.intros tranclp.r_into_trancl)
+      thus "(constant_context ord_res_9)\<^sup>+\<^sup>+ S9 (N, U\<^sub>e\<^sub>r', \<F>, \<Gamma>\<^sub>9')"
+        unfolding S9_def by (auto intro: constant_context.intros)
 
-      show "ord_res_9_matches_ord_res_10 S9' (N, U\<^sub>e\<^sub>r', \<F>, \<Gamma>\<^sub>1\<^sub>0')"
-        unfolding \<open>S9' = (N, s9')\<close> \<open>s9' = (U\<^sub>e\<^sub>r', \<F>, \<Gamma>\<^sub>9')\<close>
-      proof (intro ord_res_9_matches_ord_res_10.intros allI impI conjI)
+      show "ord_res_9_matches_ord_res_10 (N, U\<^sub>e\<^sub>r', \<F>, \<Gamma>\<^sub>9') S10'"
+        unfolding \<open>S10' = (N, s10')\<close> \<open>s10' = (U\<^sub>e\<^sub>r', \<F>, \<Gamma>\<^sub>1\<^sub>0')\<close>
+      proof (rule ord_res_9_matches_ord_res_10.intros)
         show "ord_res_8_invars N (U\<^sub>e\<^sub>r', \<F>, \<Gamma>\<^sub>9')"
-          using match_hyps(3) ord_res_9_preserves_invars step' step_hyps(1) by blast
+          using invars9 step9 ord_res_9_preserves_invars by metis 
       next
         show "ord_res_10_invars N (U\<^sub>e\<^sub>r', \<F>, \<Gamma>\<^sub>1\<^sub>0')"
-          using match_hyps(4) ord_res_10_preserves_invars step10 by metis
+          using invars10 step10 ord_res_10_preserves_invars \<open>s10' = (U\<^sub>e\<^sub>r', \<F>, \<Gamma>\<^sub>1\<^sub>0')\<close> by metis
       next
         define P :: "'f gterm literal \<times> 'f gterm literal multiset option \<Rightarrow> bool" where
           "P \<equiv> \<lambda>Ln. \<forall>K. ord_res.is_maximal_lit K (eres C D) \<longrightarrow> atm_of K \<preceq>\<^sub>t atm_of (fst Ln)"
@@ -21791,15 +21892,25 @@ proof (cases S9 S10 rule: ord_res_9_matches_ord_res_10.cases)
 
         moreover have "\<Gamma>\<^sub>9 = takeWhile P \<Gamma>\<^sub>9 @ \<Gamma>\<^sub>9'"
           unfolding takeWhile_dropWhile_id
-          unfolding P_def step_hyps by simp
+          unfolding P_def \<open>\<Gamma>\<^sub>9' = dropWhile _ \<Gamma>\<^sub>9\<close> by simp
 
         moreover have "\<Gamma>\<^sub>1\<^sub>0 = takeWhile P \<Gamma>\<^sub>1\<^sub>0 @ \<Gamma>\<^sub>1\<^sub>0'"
           unfolding takeWhile_dropWhile_id
-          unfolding P_def \<Gamma>\<^sub>1\<^sub>0'_def by simp
+          unfolding P_def \<open>\<Gamma>\<^sub>1\<^sub>0' = dropWhile _ \<Gamma>\<^sub>1\<^sub>0\<close> by simp
 
-        ultimately show "list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9' \<Gamma>\<^sub>1\<^sub>0'"
-          using match_hyps(5) by (metis list_all2_append)
+        ultimately have "\<And>Q. list_all2 Q \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0 \<longleftrightarrow>
+          (list_all2 Q (takeWhile P \<Gamma>\<^sub>9) (takeWhile P \<Gamma>\<^sub>1\<^sub>0) \<and> list_all2 Q \<Gamma>\<^sub>9' \<Gamma>\<^sub>1\<^sub>0')"
+          using list_all2_append by metis
+
+        thus
+          "list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9' \<Gamma>\<^sub>1\<^sub>0'"
+          "list_all2 (\<lambda>x y. snd y \<noteq> None \<longrightarrow> x = y) \<Gamma>\<^sub>9' \<Gamma>\<^sub>1\<^sub>0'"
+          unfolding atomize_conj
+          using \<open>list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0\<close>
+          using \<open>list_all2 (\<lambda>x y. snd y \<noteq> None \<longrightarrow> x = y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0\<close>
+          by (simp only:)
       qed
+    qed
   qed
 qed
 
@@ -21810,7 +21921,7 @@ theorem bisimulation_ord_res_9_ord_res_10:
       (constant_context ord_res_9) (constant_context ord_res_10)
       ord_res_8_final ord_res_8_final
       ORDER MATCH"
-proof (rule ex_bisimulation_from_forward_simulation)
+proof (rule ex_bisimulation_from_backward_simulation)
   show "right_unique (constant_context ord_res_9)"
     using right_unique_constant_context right_unique_ord_res_9 by metis
 next
@@ -21848,21 +21959,12 @@ next
   show "wfp (\<lambda>_ _. False)"
     by simp
 next
-  show "\<forall>i S9 S10 S9'. match i S9 S10 \<longrightarrow> constant_context ord_res_9 S9 S9' \<longrightarrow>
-    (\<exists>i' S10'. (constant_context ord_res_10)\<^sup>+\<^sup>+ S10 S10' \<and> match i' S9' S10') \<or>
-    (\<exists>i'. match i' S9' S10 \<and> False)"
+  show "\<forall>i S9 S10 S10'. match i S9 S10 \<longrightarrow> constant_context ord_res_10 S10 S10' \<longrightarrow>
+    (\<exists>i' S9'. (constant_context ord_res_9)\<^sup>+\<^sup>+ S9 S9' \<and> match i' S9' S10') \<or>
+    (\<exists>i'. match i' S9 S10' \<and> False)"
     unfolding match_def
-    using backward_simulation_between_8_and_9 by metis
+    using backward_simulation_between_9_and_10 by metis
 qed
-
-(* 
-lemma backward_simulation_between_8_and_9:
-  fixes S8 S9 S9'
-  assumes match: "ord_res_8_matches_ord_res_9 S8 S9" and step: "constant_context ord_res_9 S9 S9'"
-  shows "\<exists>S8'. (constant_context ord_res_8)\<^sup>+\<^sup>+ S8 S8' \<and> ord_res_8_matches_ord_res_9 S8' S9'"
-  using match
-(* proof (cases S8 S9 rule: ord_res_8_matches_ord_res_9.cases) *)
-  sorry *)
 
 
 
