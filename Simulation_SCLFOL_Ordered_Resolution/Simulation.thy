@@ -21037,6 +21037,315 @@ proof unfold_locales
     by (simp add: S_def finished_def constant_context.simps)
 qed
 
+inductive ord_res_10_invars for N where
+  "ord_res_10_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)" if
+    "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>" and
+    "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
+    "\<forall>Ln \<Gamma>'. \<Gamma> = Ln # \<Gamma>' \<longrightarrow>
+        (snd Ln \<noteq> None \<longleftrightarrow> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C)) \<and>
+        (\<forall>x \<in> set \<Gamma>'. snd x = None)"
+
+lemma ord_res_10_preserves_invars:
+  assumes
+    step: "ord_res_10 N s s'" and
+    invars: "ord_res_10_invars N s"
+  shows "ord_res_10_invars N s'"
+  using invars
+proof (cases N s rule: ord_res_10_invars.cases)
+  case invars: (1 \<Gamma> U\<^sub>e\<^sub>r \<F>)
+
+  note \<Gamma>_sorted = \<open>sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>\<close>
+  note \<Gamma>_lower = \<open>linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))\<close>
+
+  show ?thesis
+    using step unfolding \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>
+  proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>)" s' rule: ord_res_10.cases)
+    case step_hyps: (decide_neg A \<Gamma>')
+
+    have
+      A_in: "A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)" and
+      A_gt: "\<forall>A\<^sub>1|\<in>|trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A" and
+      A_lt: "\<forall>y|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r).
+        y \<noteq> A \<longrightarrow> (\<forall>A\<^sub>1|\<in>|trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t y) \<longrightarrow> A \<prec>\<^sub>t y"
+      using \<open>linorder_trm.is_least_in_fset _ A\<close>
+      unfolding atomize_conj linorder_trm.is_least_in_ffilter_iff
+      by argo
+
+    have "trail_atms \<Gamma>' = finsert A (trail_atms \<Gamma>)"
+      unfolding \<open>\<Gamma>' = (Neg A, _) # \<Gamma>\<close> by simp
+
+    show ?thesis
+      unfolding \<open>s' = (_, _, _)\<close>
+    proof (intro ord_res_10_invars.intros allI impI conjI)
+      show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>'"
+        unfolding \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close> sorted_wrt.simps
+      proof (intro conjI ballI)
+        fix Ln :: "'f gliteral \<times> 'f gclause option"
+        assume "Ln \<in> set \<Gamma>"
+
+        hence "atm_of (fst Ln) |\<in>| trail_atms \<Gamma>"
+          by (simp add: fset_trail_atms)
+
+        thus "atm_of (fst Ln) \<prec>\<^sub>t atm_of (fst (Neg A, None))"
+          unfolding prod.sel literal.sel
+          using A_gt by metis
+      next
+        show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
+          using \<Gamma>_sorted .
+      qed
+
+      show "linorder_trm.is_lower_fset (trail_atms \<Gamma>') (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))"
+        unfolding \<open>trail_atms \<Gamma>' = finsert A (trail_atms \<Gamma>)\<close> finsert.rep_eq
+      proof (intro linorder_trm.is_lower_set_insertI ballI impI)
+        show "A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+          using A_in .
+      next
+        fix w :: "'f gterm"
+        assume "w |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)" and "w \<prec>\<^sub>t A"
+        thus "w |\<in>| trail_atms \<Gamma>"
+          by (metis A_lt \<Gamma>_lower linorder_trm.dual_order.asym linorder_trm.neq_iff
+              linorder_trm.not_in_lower_setI)
+      next
+        show "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))"
+          using \<Gamma>_lower .
+      qed
+
+      {
+        fix
+          Ln :: "'f gliteral \<times> 'f gclause option" and
+          \<Gamma>'' :: "('f gliteral \<times> 'f gclause option) list"
+
+        assume "\<Gamma>' = Ln # \<Gamma>''"
+        show "(snd Ln \<noteq> None) = (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma>' C)"
+          sorry
+
+        show "\<forall>x\<in>set \<Gamma>''. snd x = None"
+          sorry
+      }
+    qed
+  next
+    case (decide_pos A C \<Gamma>' \<F>')
+
+    have
+      A_in: "A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)" and
+      A_gt: "\<forall>A\<^sub>1|\<in>|trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A" and
+      A_lt: "\<forall>y|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r).
+        y \<noteq> A \<longrightarrow> (\<forall>A\<^sub>1|\<in>|trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t y) \<longrightarrow> A \<prec>\<^sub>t y"
+      using \<open>linorder_trm.is_least_in_fset _ A\<close>
+      unfolding atomize_conj linorder_trm.is_least_in_ffilter_iff
+      by argo
+
+    have "trail_atms \<Gamma>' = finsert A (trail_atms \<Gamma>)"
+      unfolding \<open>\<Gamma>' = (Pos A, _) # \<Gamma>\<close> by simp
+
+    show ?thesis
+      unfolding \<open>s' = (_, _, _)\<close>
+    proof (intro ord_res_10_invars.intros allI impI conjI)
+      show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>'"
+        unfolding \<open>\<Gamma>' = (Pos A, None) # \<Gamma>\<close> sorted_wrt.simps
+      proof (intro conjI ballI)
+        fix Ln :: "'f gliteral \<times> 'f gclause option"
+        assume "Ln \<in> set \<Gamma>"
+
+        hence "atm_of (fst Ln) |\<in>| trail_atms \<Gamma>"
+          by (simp add: fset_trail_atms)
+
+        thus "atm_of (fst Ln) \<prec>\<^sub>t atm_of (fst (Pos A, None))"
+          unfolding prod.sel literal.sel
+          using A_gt by metis
+      next
+        show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
+          using \<Gamma>_sorted .
+      qed
+
+      show "linorder_trm.is_lower_fset (trail_atms \<Gamma>') (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))"
+        unfolding \<open>trail_atms \<Gamma>' = finsert A (trail_atms \<Gamma>)\<close> finsert.rep_eq
+      proof (intro linorder_trm.is_lower_set_insertI ballI impI)
+        show "A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+          using A_in .
+      next
+        fix w :: "'f gterm"
+        assume "w |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)" and "w \<prec>\<^sub>t A"
+        thus "w |\<in>| trail_atms \<Gamma>"
+          by (metis A_lt \<Gamma>_lower linorder_trm.dual_order.asym linorder_trm.neq_iff
+              linorder_trm.not_in_lower_setI)
+      next
+        show "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))"
+          using \<Gamma>_lower .
+      qed
+
+      {
+        fix
+          Ln :: "'f gliteral \<times> 'f gclause option" and
+          \<Gamma>'' :: "('f gliteral \<times> 'f gclause option) list"
+
+        assume "\<Gamma>' = Ln # \<Gamma>''"
+        show "(snd Ln \<noteq> None) = (\<exists>C |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma>' C)"
+          sorry
+
+        show "\<forall>x\<in>set \<Gamma>''. snd x = None"
+          sorry
+      }
+    qed
+  next
+    case (propagate A C \<Gamma>' \<F>')
+
+    have
+      A_in: "A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)" and
+      A_gt: "\<forall>A\<^sub>1|\<in>|trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A" and
+      A_lt: "\<forall>y|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r).
+        y \<noteq> A \<longrightarrow> (\<forall>A\<^sub>1|\<in>|trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t y) \<longrightarrow> A \<prec>\<^sub>t y"
+      using \<open>linorder_trm.is_least_in_fset _ A\<close>
+      unfolding atomize_conj linorder_trm.is_least_in_ffilter_iff
+      by argo
+
+    have "trail_atms \<Gamma>' = finsert A (trail_atms \<Gamma>)"
+      unfolding \<open>\<Gamma>' = (Pos A, _) # \<Gamma>\<close> by simp
+
+    show ?thesis
+      unfolding \<open>s' = (_, _, _)\<close>
+    proof (intro ord_res_10_invars.intros allI impI conjI)
+      show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>'"
+        unfolding \<open>\<Gamma>' = (Pos A, _) # \<Gamma>\<close> sorted_wrt.simps
+      proof (intro conjI ballI)
+        fix Ln :: "'f gliteral \<times> 'f gclause option"
+        assume "Ln \<in> set \<Gamma>"
+
+        hence "atm_of (fst Ln) |\<in>| trail_atms \<Gamma>"
+          by (simp add: fset_trail_atms)
+
+        thus "atm_of (fst Ln) \<prec>\<^sub>t atm_of (fst (Pos A, Some (efac C)))"
+          unfolding prod.sel literal.sel
+          using A_gt by metis
+      next
+        show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
+          using \<Gamma>_sorted .
+      qed
+
+      show "linorder_trm.is_lower_fset (trail_atms \<Gamma>') (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))"
+        unfolding \<open>trail_atms \<Gamma>' = finsert A (trail_atms \<Gamma>)\<close> finsert.rep_eq
+      proof (intro linorder_trm.is_lower_set_insertI ballI impI)
+        show "A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+          using A_in .
+      next
+        fix w :: "'f gterm"
+        assume "w |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)" and "w \<prec>\<^sub>t A"
+        thus "w |\<in>| trail_atms \<Gamma>"
+          by (metis A_lt \<Gamma>_lower linorder_trm.dual_order.asym linorder_trm.neq_iff
+              linorder_trm.not_in_lower_setI)
+      next
+        show "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))"
+          using \<Gamma>_lower .
+      qed
+
+      {
+        fix
+          Ln :: "'f gliteral \<times> 'f gclause option" and
+          \<Gamma>'' :: "('f gliteral \<times> 'f gclause option) list"
+
+        assume "\<Gamma>' = Ln # \<Gamma>''"
+        show "(snd Ln \<noteq> None) = (\<exists>C |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma>' C)"
+          sorry
+
+        show "\<forall>x\<in>set \<Gamma>''. snd x = None"
+          sorry
+      }
+    qed
+  next
+    case step_hyps: (resolution D A C U\<^sub>e\<^sub>r' \<Gamma>')
+
+    have
+      D_in: "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+      D_false: "trail_false_cls \<Gamma> D" and
+      D_lt: "\<forall>E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). E \<noteq> D \<longrightarrow> trail_false_cls \<Gamma> E \<longrightarrow> D \<prec>\<^sub>c E"
+      using \<open>linorder_cls.is_least_in_fset _ D\<close>
+      unfolding atomize_conj linorder_cls.is_least_in_ffilter_iff by argo
+
+    have C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+      sorry
+
+    define P :: "'f gliteral \<times> 'f gclause option \<Rightarrow> bool" where
+      "P \<equiv> \<lambda>Ln. \<forall>K. ord_res.is_maximal_lit K (eres C D) \<longrightarrow> atm_of K \<preceq>\<^sub>t atm_of (fst Ln)"
+
+    have "\<Gamma> = takeWhile P \<Gamma> @ \<Gamma>'"
+      unfolding takeWhile_dropWhile_id
+      unfolding P_def \<open>\<Gamma>' = dropWhile _ \<Gamma>\<close> by simp
+
+    hence "suffix \<Gamma>' \<Gamma>"
+      unfolding suffix_def by metis
+
+    show ?thesis
+      unfolding \<open>s' = (_, _, _)\<close>
+    proof (intro ord_res_10_invars.intros allI impI conjI)
+      show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>'"
+        by (metis (no_types, lifting) \<Gamma>_sorted \<open>suffix \<Gamma>' \<Gamma>\<close> sorted_wrt_append suffix_def)
+
+      have "\<And>xs. fset (trail_atms xs) = atm_of ` fst ` set xs"
+        unfolding fset_trail_atms ..
+      also have "\<And>xs. atm_of ` fst ` set xs = set (map (atm_of o fst) xs)"
+        by (simp add: image_comp)
+      finally have "\<And>xs. fset (trail_atms xs) = set (map (atm_of o fst) xs)" .
+
+      have "atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r') = atms_of_cls (eres C D) |\<union>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+        unfolding \<open>U\<^sub>e\<^sub>r' = finsert (eres C D) U\<^sub>e\<^sub>r\<close> by simp
+
+      also have "\<dots> = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+      proof -
+        have "atms_of_cls (eres C D) |\<subseteq>| atms_of_cls C |\<union>| atms_of_cls D"
+          by (smt (verit, best) atms_of_cls_def fimage_iff fset_fset_mset fsubsetI funionCI
+              lit_in_one_of_resolvents_if_in_eres)
+
+        moreover have "atms_of_cls C |\<subseteq>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+          using C_in
+          by (metis atms_of_clss_fimage_iefac atms_of_clss_finsert finsert_absorb fsubset_funion_eq)
+
+        moreover have "atms_of_cls D |\<subseteq>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+          using D_in
+          by (metis atms_of_clss_fimage_iefac atms_of_clss_finsert finsert_absorb fsubset_funion_eq)
+
+        ultimately show ?thesis
+          by blast
+      qed
+
+      finally have "atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r') = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)" .
+
+      show "linorder_trm.is_lower_fset (trail_atms \<Gamma>') (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r'))"
+        unfolding \<open>fset (trail_atms \<Gamma>') = set (map (atm_of o fst) \<Gamma>')\<close>
+      proof (rule linorder_trm.sorted_and_lower_set_appendD_right(2))
+        have "sorted_wrt (\<lambda>x y. y \<prec>\<^sub>t x) (map (atm_of \<circ> fst) \<Gamma>)"
+          using \<Gamma>_sorted by (simp add: sorted_wrt_map)
+
+        thus "sorted_wrt (\<lambda>x y. y \<prec>\<^sub>t x) (map (atm_of \<circ> fst) (takeWhile P \<Gamma>) @ map (atm_of \<circ> fst) \<Gamma>')"
+          using \<open>\<Gamma> = takeWhile P \<Gamma> @ \<Gamma>'\<close>
+          by (metis map_append)
+      next
+        show "linorder_trm.is_lower_set
+          (set (map (atm_of \<circ> fst) (takeWhile P \<Gamma>) @ map (atm_of \<circ> fst) \<Gamma>'))
+          (fset (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r')))"
+          unfolding map_append[symmetric]
+          unfolding \<open>\<Gamma> = takeWhile P \<Gamma> @ \<Gamma>'\<close>[symmetric]
+          using \<Gamma>_lower
+          unfolding \<open>fset (trail_atms \<Gamma>) = set (map (atm_of o fst) \<Gamma>)\<close>
+          unfolding \<open>atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r') = atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)\<close>
+          .
+      qed
+
+      {
+        fix
+          Ln :: "'f gliteral \<times> 'f gclause option" and
+          \<Gamma>'' :: "('f gliteral \<times> 'f gclause option) list"
+
+        assume "\<Gamma>' = Ln # \<Gamma>''"
+        show "(snd Ln \<noteq> None) = (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'). trail_false_cls \<Gamma>' C)"
+          sorry
+
+        show "\<forall>x\<in>set \<Gamma>''. snd x = None"
+          sorry
+      }
+    qed
+  qed
+qed
+
 lemma only_top_of_trail_may_propagate:
   assumes
     step: "ord_res_10 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (U\<^sub>e\<^sub>r', \<F>', \<Gamma>')" and
@@ -21535,22 +21844,6 @@ proof -
   qed
 qed
 
-inductive ord_res_10_invars for N where
-  "ord_res_10_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)" if
-    "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>" and
-    "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
-    "\<forall>Ln \<Gamma>'. \<Gamma> = Ln # \<Gamma>' \<longrightarrow>
-        (snd Ln \<noteq> None \<longleftrightarrow> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C)) \<and>
-        (\<forall>x \<in> set \<Gamma>'. snd x = None)"
-
-
-lemma ord_res_10_preserves_invars:
-  assumes
-    step: "ord_res_10 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>) (U\<^sub>e\<^sub>r', \<F>', \<Gamma>')" and
-    invars: "ord_res_10_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)"
-    shows "ord_res_10_invars N (U\<^sub>e\<^sub>r', \<F>', \<Gamma>')"
-  sorry
-
 inductive ord_res_9_matches_ord_res_10 :: "'f ord_res_9_state \<Rightarrow> 'f ord_res_10_state \<Rightarrow> bool" where
   "ord_res_8_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>9) \<Longrightarrow>
     ord_res_10_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>\<^sub>1\<^sub>0) \<Longrightarrow>
@@ -21965,60 +22258,6 @@ next
     unfolding match_def
     using backward_simulation_between_9_and_10 by metis
 qed
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 section \<open>ORD-RES-11\<close>
