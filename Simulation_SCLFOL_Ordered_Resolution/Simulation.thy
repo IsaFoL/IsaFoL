@@ -19,6 +19,10 @@ type_synonym 'f ord_res_9_state =
 type_synonym 'f ord_res_10_state =
   "'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gliteral \<times> 'f gclause option) list"
 
+type_synonym 'f ord_res_11_state =
+  "'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gliteral \<times> 'f gclause option) list \<times>
+    'f gclause option"
+
 locale simulation_SCLFOL_ground_ordered_resolution =
   renaming_apart renaming_vars
   for renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v" +
@@ -22745,6 +22749,273 @@ proof (rule right_uniqueI)
         by simp
     qed
   qed
+qed
+
+inductive ord_res_11_final :: "'f ord_res_11_state \<Rightarrow> bool" where
+  model_found: "
+    \<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A |\<notin>| trail_atms \<Gamma>) \<Longrightarrow>
+    \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C) \<Longrightarrow>
+    ord_res_11_final (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>, None)" |
+
+  contradiction_found: "
+    ord_res_11_final (N, U\<^sub>e\<^sub>r, \<F>, [], Some {#})"
+
+interpretation ord_res_11_semantics: semantics where
+  step = "constant_context ord_res_11" and
+  final = ord_res_11_final
+proof unfold_locales
+  fix S :: "'f ord_res_11_state"
+
+  assume "ord_res_11_final S"
+  thus "finished (constant_context ord_res_11) S"
+  proof (cases S rule: ord_res_11_final.cases)
+    case (model_found N U\<^sub>e\<^sub>r \<Gamma> \<F>)
+
+    have "\<nexists>A. linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r).
+      \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A"
+      using \<open>\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A |\<notin>| trail_atms \<Gamma>)\<close>
+      unfolding linorder_trm.is_least_in_ffilter_iff
+      by blast
+
+    moreover have "\<nexists>D. linorder_cls.is_least_in_fset
+      (ffilter (trail_false_cls \<Gamma>) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D"
+      using \<open>\<not> (\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C)\<close>
+      unfolding linorder_cls.is_least_in_ffilter_iff
+      by metis
+
+    ultimately have "\<nexists>x. ord_res_11 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, None) x"
+      by (auto elim: ord_res_11.cases)
+
+    thus ?thesis
+      by (simp add: \<open>S = _\<close> finished_def constant_context.simps)
+  next
+    case (contradiction_found N U\<^sub>e\<^sub>r \<F>)
+    hence "\<nexists>x. ord_res_11 N (U\<^sub>e\<^sub>r, \<F>, [], Some {#}) x"
+      by (auto elim: ord_res_11.cases)
+    thus ?thesis
+      by (simp add: \<open>S = _\<close> finished_def constant_context.simps)
+  qed
+qed
+
+inductive ord_res_10_matches_ord_res_11 :: "'f ord_res_10_state \<Rightarrow> 'f ord_res_11_state \<Rightarrow> bool" where
+  "ord_res_10_invars N (U\<^sub>e\<^sub>r\<^sub>1\<^sub>0, \<F>, \<Gamma>) \<Longrightarrow>
+    U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0 - {|{#}|} \<Longrightarrow>
+    if {#} |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0) then \<Gamma> = [] \<and> \<C> = Some {#} else \<C> = None \<Longrightarrow>
+    ord_res_10_matches_ord_res_11 (N, U\<^sub>e\<^sub>r\<^sub>1\<^sub>0, \<F>, \<Gamma>) (N, U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, \<C>)"
+
+lemma ord_res_10_final_iff_ord_res_11_final:
+  fixes S10 S11
+  assumes match: "ord_res_10_matches_ord_res_11 S10 S11"
+  shows "ord_res_8_final S10 = ord_res_11_final S11"
+  using match
+proof (cases S10 S11 rule: ord_res_10_matches_ord_res_11.cases)
+  case match_hyps: (1 N U\<^sub>e\<^sub>r\<^sub>1\<^sub>0 \<F> \<Gamma> U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 \<C>)
+  show ?thesis
+  proof (rule iffI)
+    assume "ord_res_8_final S10"
+    thus "ord_res_11_final S11"
+      unfolding \<open>S10 = _\<close>
+    proof (cases "(N, U\<^sub>e\<^sub>r\<^sub>1\<^sub>0, \<F>, \<Gamma>)" rule: ord_res_8_final.cases)
+      case model_found
+      hence "{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)"
+        using trail_false_cls_mempty by blast
+      hence "\<C> = None"
+        using match_hyps by argo
+      moreover have "U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0"
+        using match_hyps
+        by (metis \<open>{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)\<close> fimage_eqI finsert_fminus1 finsert_iff
+            fminus_finsert_absorb funionI2 iefac_mempty)
+      ultimately show ?thesis
+        unfolding \<open>S11 = _\<close>
+        using model_found
+        using ord_res_11_final.model_found
+        by metis
+    next
+      case contradiction_found
+      hence "\<Gamma> = [] \<and> \<C> = Some {#}"
+        using match_hyps by argo
+      thus ?thesis
+        unfolding \<open>S11 = _\<close>
+        using ord_res_11_final.contradiction_found by metis
+    qed
+  next
+    assume "ord_res_11_final S11"
+    thus "ord_res_8_final S10"
+      unfolding \<open>S11 = _\<close>
+    proof (cases "(N, U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, \<C>)" rule: ord_res_11_final.cases)
+      case model_found
+      show ?thesis
+        unfolding \<open>S10 = _\<close>
+      proof (rule ord_res_8_final.model_found)
+        show "\<not> (\<exists>A |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0). A |\<notin>| trail_atms \<Gamma>)"
+          by (metis (no_types, lifting) fimage_iff fminus_finsert_absorb fminus_idemp funionCI
+              iefac_mempty local.model_found(1,2) match_hyps(4,5) option.simps(3))
+      next
+        show "\<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0). trail_false_cls \<Gamma> C)"
+          by (metis finsertCI finsert_fminus1 fminus_finsert_absorb funionI2 iefac_mempty
+              local.model_found(1,3) match_hyps(4,5) option.simps(3) rev_fimage_eqI)
+      qed
+    next
+      case contradiction_found
+      show ?thesis
+        unfolding \<open>S10 = _\<close>
+      proof (rule ord_res_8_final.contradiction_found)
+        show "{#} |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)"
+          using match_hyps contradiction_found
+          by auto
+      qed
+    qed
+  qed
+qed
+
+lemma forward_simulation_between_10_and_11:
+  fixes S10 S11 S10'
+  assumes
+    match: "ord_res_10_matches_ord_res_11 S10 S11" and
+    step: "constant_context ord_res_10 S10 S10'"
+  shows "\<exists>S11'. (constant_context ord_res_11)\<^sup>+\<^sup>+ S11 S11' \<and> ord_res_10_matches_ord_res_11 S10' S11'"
+  using match
+proof (cases S10 S11 rule: ord_res_10_matches_ord_res_11.cases)
+  case match_hyps: (1 N U\<^sub>e\<^sub>r\<^sub>1\<^sub>0 \<F> \<Gamma> U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 \<C>)
+
+  note S10_def = \<open>S10 = (N, U\<^sub>e\<^sub>r\<^sub>1\<^sub>0, \<F>, \<Gamma>)\<close>
+  note S11_def = \<open>S11 = (N, U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, \<C>)\<close>
+  note invars10 = \<open>ord_res_10_invars N (U\<^sub>e\<^sub>r\<^sub>1\<^sub>0, \<F>, \<Gamma>)\<close>
+
+  have mempty_not_in_if_no_false_cls: "{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)"
+    if "\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)) (trail_false_cls \<Gamma>)"
+    using that by force
+
+  have \<C>_eq_None_if_no_false_cls: "\<C> = None"
+    if "\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)) (trail_false_cls \<Gamma>)"
+    using match_hyps mempty_not_in_if_no_false_cls[OF that] by argo
+
+  have mempty_not_in_if: "{#} |\<notin>| N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0"
+    if "\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)) (trail_false_cls \<Gamma>)"
+    using that
+    by (metis (no_types, opaque_lifting) fimageI iefac_mempty trail_false_cls_mempty)
+
+  have U\<^sub>e\<^sub>r\<^sub>1\<^sub>1_eq_U\<^sub>e\<^sub>r\<^sub>1\<^sub>0_if: "U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0"
+    if "\<not> fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)) (trail_false_cls \<Gamma>)"
+    using mempty_not_in_if[OF that]
+    by (metis (no_types, opaque_lifting) finsertI1 finsert_ident fminusD2 funionCI
+        funion_fempty_right funion_finsert_right funion_fminus_cancel2 match_hyps(4))
+
+  obtain s10' where "S10' = (N, s10')" and step10: "ord_res_10 N (U\<^sub>e\<^sub>r\<^sub>1\<^sub>0, \<F>, \<Gamma>) s10'"
+    using step unfolding S10_def by (auto elim: constant_context.cases)
+
+  show ?thesis
+    using step10
+  proof (cases N "(U\<^sub>e\<^sub>r\<^sub>1\<^sub>0, \<F>, \<Gamma>)" s10' rule: ord_res_10.cases)
+    case step_hyps: (decide_neg A \<Gamma>')
+
+    have "\<C> = None"
+      using step_hyps \<C>_eq_None_if_no_false_cls by argo
+
+    have "{#} |\<notin>| N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0"
+      using step_hyps mempty_not_in_if by argo
+
+    have "U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0"
+      using step_hyps U\<^sub>e\<^sub>r\<^sub>1\<^sub>1_eq_U\<^sub>e\<^sub>r\<^sub>1\<^sub>0_if by argo
+
+    show ?thesis
+    proof (intro exI conjI)
+      have "ord_res_11 N (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, None) (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>', None)"
+      proof (rule ord_res_11.decide_neg)
+        show "\<not> (\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>1). trail_false_cls \<Gamma> C)"
+          using step_hyps unfolding \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> by argo
+      next
+        show "linorder_trm.is_least_in_fset
+          {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>1). \<forall>A\<^sub>1|\<in>|trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A"
+          using step_hyps unfolding \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> by argo
+      next
+        show "\<not> (\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>1). clause_could_propagate \<Gamma> C (Pos A))"
+          using step_hyps unfolding \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> by argo
+      next
+        show "\<Gamma>' = (Neg A, None) # \<Gamma>"
+          using step_hyps by argo
+      qed
+
+      thus "(constant_context ord_res_11)\<^sup>+\<^sup>+ S11 (N, U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>', None)"
+        unfolding S11_def \<open>\<C> = None\<close> by (auto intro: constant_context.intros)
+
+      show "ord_res_10_matches_ord_res_11 S10' (N, U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>', None)"
+        unfolding \<open>S10' = (N, s10')\<close> \<open>s10' = _\<close>
+      proof (rule ord_res_10_matches_ord_res_11.intros)
+        show "ord_res_10_invars N (U\<^sub>e\<^sub>r\<^sub>1\<^sub>0, \<F>, \<Gamma>')"
+          using step10 \<open>s10' = _\<close> invars10 ord_res_10_preserves_invars by metis
+      next
+        show "U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0 |-| {|{#}|}"
+          unfolding \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close>
+          using \<open>{#} |\<notin>| N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> by simp
+      next
+        have "{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)"
+          using \<open>{#} |\<notin>| N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> by (simp add: iefac_def)
+        thus "if {#} |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0) then \<Gamma>' = [] \<and> None = Some {#} else None = None"
+          by argo
+      qed
+    qed
+  next
+    case (decide_pos A C \<Gamma>' \<F>')
+    then show ?thesis sorry
+  next
+    case (propagate A C \<Gamma>' \<F>')
+    then show ?thesis sorry
+  next
+    case (resolution D A C U\<^sub>e\<^sub>r' \<Gamma>')
+    then show ?thesis sorry
+  qed
+qed
+
+theorem bisimulation_ord_res_10_ord_res_11:
+  defines "match \<equiv> \<lambda>_. ord_res_10_matches_ord_res_11"
+  shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow> 'f ord_res_10_state \<Rightarrow> 'f ord_res_11_state \<Rightarrow> bool) ORDER.
+    bisimulation
+      (constant_context ord_res_10) (constant_context ord_res_11)
+      ord_res_8_final ord_res_11_final
+      ORDER MATCH"
+proof (rule ex_bisimulation_from_forward_simulation)
+  show "right_unique (constant_context ord_res_10)"
+    using right_unique_constant_context right_unique_ord_res_10 by metis
+next
+  show "right_unique (constant_context ord_res_11)"
+    using right_unique_constant_context right_unique_ord_res_11 by metis
+next
+  show "\<forall>S. ord_res_8_final S \<longrightarrow> (\<nexists>S'. constant_context ord_res_10 S S')"
+    by (metis finished_def ord_res_10_semantics.final_finished)
+next
+  show "\<forall>S. ord_res_11_final S \<longrightarrow> (\<nexists>S'. constant_context ord_res_11 S S')"
+    by (metis finished_def ord_res_11_semantics.final_finished)
+next
+  show "\<forall>i S10 S11. match i S10 S11 \<longrightarrow> ord_res_8_final S10 \<longleftrightarrow> ord_res_11_final S11"
+    unfolding match_def
+    using ord_res_10_final_iff_ord_res_11_final by metis
+next
+  show "\<forall>i S10 S11. match i S10 S11 \<longrightarrow>
+       safe_state (constant_context ord_res_10) ord_res_8_final S10 \<and>
+       safe_state (constant_context ord_res_11) ord_res_11_final S11"
+  proof (intro allI impI conjI)
+    fix i S10 S11
+    assume match: "match i S10 S11"
+    show "safe_state (constant_context ord_res_10) ord_res_8_final S10"
+      using match[unfolded match_def]
+      using ord_res_10_safe_state_if_invars
+      unfolding ord_res_10_matches_ord_res_11.simps by auto
+
+    show "safe_state (constant_context ord_res_11) ord_res_11_final S11"
+      using match[unfolded match_def]
+      using ord_res_10_safe_state_if_invars
+      using ord_res_9_matches_ord_res_10.simps by auto
+  qed
+next
+  show "wfp (\<lambda>_ _. False)"
+    by simp
+next
+  show "\<forall>i S10 S11 S10'. match i S10 S11 \<longrightarrow> constant_context ord_res_10 S10 S10' \<longrightarrow>
+    (\<exists>i' S11'. (constant_context ord_res_11)\<^sup>+\<^sup>+ S11 S11' \<and> match i' S10' S11') \<or>
+    (\<exists>i'. match i' S10' S11 \<and> False)"
+    unfolding match_def
+    using forward_simulation_between_10_and_11 by metis
 qed
 
 
