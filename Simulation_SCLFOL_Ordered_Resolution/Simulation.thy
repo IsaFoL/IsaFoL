@@ -22090,7 +22090,7 @@ proof (intro allI impI)
   hence "ord_res_10_invars N s'"
     using invars by (metis rtranclp_ord_res_10_preserves_invars)
   hence "\<not> ord_res_8_final (N, s') \<Longrightarrow> \<exists>s''. ord_res_10 N s' s''"
-    using ex_ord_res_9_if_not_final[of N s'] by argo
+    using ex_ord_res_10_if_not_final[of N s'] by argo
   hence "\<not> ord_res_8_final S' \<Longrightarrow> \<exists>S''. constant_context ord_res_10 S' S''"
     unfolding \<open>S' = (N, s')\<close> using constant_context.intros by metis
   thus "ord_res_8_final S' \<or> Ex (constant_context ord_res_10 S')"
@@ -22562,6 +22562,190 @@ inductive ord_res_11 where
 
 (* ORD-RES-10's resolution rule is equivalent to "conflict resolution+ skip+ backtrack" here. *)
 
+lemma right_unique_ord_res_11:
+  fixes N :: "'f gclause fset"
+  shows "right_unique (ord_res_11 N)"
+proof (rule right_uniqueI)
+  fix x y z
+  assume step1: "ord_res_11 N x y" and step2: "ord_res_11 N x z"
+  show "y = z"
+    using step1
+  proof (cases N x y rule: ord_res_11.cases)
+    case hyps1: (decide_neg \<F> U\<^sub>e\<^sub>r \<Gamma> A1 \<Gamma>1')
+    show ?thesis
+      using step2 unfolding \<open>x = _\<close>
+    proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>, None :: 'f gclause option)" z rule: ord_res_11.cases)
+      case (decide_neg A \<Gamma>')
+      with hyps1 show ?thesis
+        by (metis (no_types, lifting) linorder_trm.dual_order.asym
+            linorder_trm.is_least_in_fset_iff)
+    next
+      case (decide_pos A C \<Gamma>' \<F>')
+      with hyps1 have False
+        by (metis (no_types, lifting) linorder_cls.is_least_in_ffilter_iff
+            linorder_trm.dual_order.asym linorder_trm.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    next
+      case (propagate A C \<Gamma>' \<F>')
+      with hyps1 have False
+        by (metis (no_types, lifting) linorder_cls.is_least_in_ffilter_iff
+            linorder_trm.dual_order.asym linorder_trm.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    next
+      case (conflict D)
+      with hyps1 have False
+        by (metis (no_types) linorder_cls.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    qed
+  next
+    case hyps1: (decide_pos \<F> U\<^sub>e\<^sub>r \<Gamma> A1 C1 \<Gamma>1' \<F>1')
+    show ?thesis
+      using step2 unfolding \<open>x = _\<close>
+    proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>, None :: 'f gclause option)" z rule: ord_res_11.cases)
+      case (decide_neg A \<Gamma>')
+      with hyps1 have False
+        by (metis (no_types, lifting) linorder_cls.is_least_in_ffilter_iff
+            linorder_trm.dual_order.asym linorder_trm.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    next
+      case (decide_pos A C \<Gamma>' \<F>')
+      with hyps1 show ?thesis
+        by (metis (no_types, lifting) linorder_cls.Uniq_is_least_in_fset
+            linorder_trm.Uniq_is_least_in_fset the1_equality')
+    next
+      case hyps2: (propagate A C \<Gamma>' \<F>')
+      have "A1 = A"
+        using \<open>linorder_trm.is_least_in_fset _ A1\<close> \<open>linorder_trm.is_least_in_fset _ A\<close>
+        by (metis (no_types) linorder_trm.Uniq_is_least_in_fset Uniq_D)
+      hence "trail_false_cls \<Gamma>1' = trail_false_cls \<Gamma>'"
+        unfolding \<open>\<Gamma>1' = _ # \<Gamma>\<close> \<open>\<Gamma>' = _ # \<Gamma>\<close>
+        unfolding trail_false_cls_def trail_false_lit_def
+        by simp
+      hence False
+        using hyps1 hyps2 by argo
+      thus ?thesis ..
+    next
+      case (conflict D)
+      with hyps1 have False
+        by (metis (no_types) linorder_cls.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    qed
+  next
+    case hyps1: (propagate \<F> U\<^sub>e\<^sub>r \<Gamma> A1 C1 \<Gamma>1' \<F>1')
+    show ?thesis
+      using step2 unfolding \<open>x = _\<close>
+    proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>, None :: 'f gclause option)" z rule: ord_res_11.cases)
+      case (decide_neg A \<Gamma>')
+      with hyps1 have False
+        by (metis (no_types, lifting) linorder_cls.is_least_in_ffilter_iff
+            linorder_trm.dual_order.asym linorder_trm.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    next
+      case hyps2: (decide_pos A C \<Gamma>' \<F>')
+      have "A1 = A"
+        using \<open>linorder_trm.is_least_in_fset _ A1\<close> \<open>linorder_trm.is_least_in_fset _ A\<close>
+        by (metis (no_types) linorder_trm.Uniq_is_least_in_fset Uniq_D)
+      hence "trail_false_cls \<Gamma>1' = trail_false_cls \<Gamma>'"
+        unfolding \<open>\<Gamma>1' = _ # \<Gamma>\<close> \<open>\<Gamma>' = _ # \<Gamma>\<close>
+        unfolding trail_false_cls_def trail_false_lit_def
+        by simp
+      hence False
+        using hyps1 hyps2 by argo
+      thus ?thesis ..
+    next
+      case (propagate A C \<Gamma>' \<F>')
+      with hyps1 show ?thesis
+        by (metis (no_types, lifting) linorder_cls.Uniq_is_least_in_fset
+            linorder_trm.Uniq_is_least_in_fset the1_equality')
+    next
+      case (conflict D)
+      with hyps1 have False
+        by (metis (no_types) linorder_cls.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    qed
+  next
+    case hyps1: (conflict \<Gamma> \<F> U\<^sub>e\<^sub>r D1)
+    show ?thesis
+      using step2 unfolding \<open>x = _\<close>
+    proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>, None :: 'f gclause option)" z rule: ord_res_11.cases)
+      case (decide_neg A \<Gamma>')
+      with hyps1 have False
+        by (metis (no_types) linorder_cls.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    next
+      case (decide_pos A C \<Gamma>' \<F>')
+      with hyps1 have False
+        by (metis (no_types) linorder_cls.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    next
+      case (propagate A C \<Gamma>' \<F>')
+      with hyps1 have False
+        by (metis (no_types) linorder_cls.is_least_in_ffilter_iff)
+      thus ?thesis ..
+    next
+      case (conflict D)
+      with hyps1 show ?thesis
+        by (metis (no_types) linorder_cls.Uniq_is_least_in_fset Uniq_D)
+    qed
+  next
+    case hyps1: (skip L C U\<^sub>e\<^sub>r \<F> n \<Gamma>)
+    show ?thesis
+      using step2 unfolding \<open>x = _\<close>
+    proof (cases N "(U\<^sub>e\<^sub>r, \<F>, (L, n) # \<Gamma>, Some C)" z rule: ord_res_11.cases)
+      case skip
+      with hyps1 show ?thesis
+        by argo
+    next
+      case (resolution L D \<Gamma>' C)
+      with hyps1 have False
+        by simp
+      thus ?thesis ..
+    next
+      case (backtrack L \<Gamma>' C)
+      with hyps1 have False
+        by simp
+      thus ?thesis ..
+    qed
+  next
+    case hyps1: (resolution \<Gamma> L D \<Gamma>' U\<^sub>e\<^sub>r \<F> C)
+    show ?thesis
+      using step2 unfolding \<open>x = _\<close>
+    proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some (add_mset L C))" z rule: ord_res_11.cases)
+      case (skip L n \<Gamma>)
+      with hyps1 have False
+        by simp
+      thus ?thesis ..
+    next
+      case (resolution L D \<Gamma>' C)
+      with hyps1 show ?thesis
+        by simp
+    next
+      case (backtrack L \<Gamma>' C)
+      with hyps1 have False
+        by simp
+      thus ?thesis ..
+    qed
+  next
+    case hyps1: (backtrack \<Gamma> L \<Gamma>' U\<^sub>e\<^sub>r \<F> C)
+    show ?thesis
+      using step2 unfolding \<open>x = _\<close>
+    proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some (add_mset L C))" z rule: ord_res_11.cases)
+      case (skip L n \<Gamma>)
+      with hyps1 have False
+        by simp
+      thus ?thesis ..
+    next
+      case (resolution L D \<Gamma>' C)
+      with hyps1 have False
+        by simp
+      thus ?thesis ..
+    next
+      case (backtrack L \<Gamma>' C)
+      with hyps1 show ?thesis
+        by simp
+    qed
+  qed
+qed
 
 
 section \<open>SCL(FOL)-1 (resolution-driven strategy)\<close>
