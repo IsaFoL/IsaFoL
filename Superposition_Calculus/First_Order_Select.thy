@@ -160,6 +160,7 @@ proof-
     by fast
 qed
 
+(* TODO: term_subst.is_ground_subst \<gamma> \<rightarrow> is_ground_clause (fst clause \<cdot> \<gamma>) *)
 (* TODO: Is  welltyped\<^sub>c \<F> (snd clause) (fst clause) needed? *)
 definition clause_groundings :: "('f, 'ty) fun_types \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> 'f ground_atom clause set"  where
   "clause_groundings \<F> clause = { to_ground_clause (fst clause \<cdot> \<gamma>) | \<gamma>. 

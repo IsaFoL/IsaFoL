@@ -73,9 +73,7 @@ inductive eq_factoring :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty
 
 (* TODO: Not sure if welltypedness for renaming is necessary, I think it's already implied *)
 (* TODO: welltyped_on for imgu *)
-
-(*     welltyped\<^sub>\<sigma>_on (vars_clause P\<^sub>1) typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
-    welltyped\<^sub>\<sigma>_on (vars_clause P\<^sub>2) typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow> *)
+(* TODO: weaken  all_types \<V>\<^sub>1 \<Longrightarrow> all_types \<V>\<^sub>2 *)
 inductive superposition ::
   "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> bool"
 where
@@ -109,6 +107,7 @@ where
     \<not> (term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
     conclusion = add_mset (\<P> (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) 
           (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
+    all_types \<V>\<^sub>1 \<Longrightarrow> all_types \<V>\<^sub>2 \<Longrightarrow>
     superposition (premise\<^sub>2, \<V>\<^sub>2) (premise\<^sub>1, \<V>\<^sub>1) (conclusion, \<V>\<^sub>3)"
 
 abbreviation eq_factoring_inferences where
@@ -158,6 +157,7 @@ where
     \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
     \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
     C = add_mset ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> \<approx> (s\<^sub>1' \<cdot>t \<rho>\<^sub>1)) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
+    all_types \<V>\<^sub>1 \<Longrightarrow> all_types \<V>\<^sub>2 \<Longrightarrow>
     pos_superposition (P\<^sub>2, \<V>\<^sub>2) (P\<^sub>1, \<V>\<^sub>1) (C, \<V>\<^sub>3)"
 
 lemma superposition_if_pos_superposition:
@@ -201,6 +201,7 @@ where
     \<not> (s\<^sub>1\<langle>u\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
     \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
     C = add_mset (Neg (Upair (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle>  (s\<^sub>1' \<cdot>t \<rho>\<^sub>1))) (P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
+    all_types \<V>\<^sub>1 \<Longrightarrow> all_types \<V>\<^sub>2 \<Longrightarrow>
     neg_superposition (P\<^sub>2, \<V>\<^sub>2) (P\<^sub>1, \<V>\<^sub>1) (C, \<V>\<^sub>3)"
 
 lemma superposition_if_neg_superposition:

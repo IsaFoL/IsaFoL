@@ -855,47 +855,42 @@ lemma welltyped\<^sub>\<sigma>_renaming_ground_subst_weaker:
     "welltyped\<^sub>\<sigma> \<F> \<V>' \<gamma>" 
     "welltyped\<^sub>\<sigma>_on X \<F> \<V> \<rho>" 
     "term_subst.is_ground_subst \<gamma>" 
-    "\<forall>x \<in> X. \<V> (the_inv \<rho> (Var x)) = \<V>' x"
+    "\<forall>x \<in> \<Union>(vars_term ` \<rho> ` X). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
   shows "welltyped\<^sub>\<sigma>_on X \<F> \<V> (\<rho> \<odot> \<gamma>)"
-proof-
+proof(unfold welltyped\<^sub>\<sigma>_on_def, intro ballI)
+  fix x
+  assume "x \<in> X"
 
-  have "\<forall>x \<in> X. welltyped \<F> \<V>' (\<gamma> x) (\<V>' x)"
-    using assms 
-    unfolding welltyped\<^sub>\<sigma>_def
+  then have "welltyped \<F> \<V> (\<rho> x) (\<V> x)"
+    using assms(2)
+    unfolding welltyped\<^sub>\<sigma>_on_def
     by simp
 
-  then have "\<forall>x \<in> X. welltyped \<F> \<V>' (\<gamma> x) (\<V> (the_inv \<rho> (Var x)))"
+  obtain y where y: "\<rho> x =  Var y"
+    by (metis renaming term.collapse(1) term_subst_is_renaming_iff)
+
+  then have "y \<in> \<Union>(vars_term ` \<rho> ` X)"
+    using \<open>x \<in> X\<close> 
+    by (metis Union_iff image_eqI term.set_intros(3))
+
+  moreover have "welltyped \<F> \<V> (\<gamma> y) (\<V>' y)"
+    using assms(1)
+    by (metis assms(3) emptyE eval_term.simps(1) term_subst.is_ground_subst_def welltyped\<^sub>\<sigma>_def welltyped_\<V>)
+
+  ultimately have "welltyped \<F> \<V> (\<gamma> y) (\<V> (the_inv \<rho> (Var y)))"
     using assms(4)
-    by auto
+    by metis
 
-  then have "\<forall>x \<in> X. welltyped \<F> \<V>' ((\<rho> \<odot> \<gamma>) x) (\<V> x)"
-    using 
-      assms(1) 
-      eval_term.simps(1) 
-      subst_compose_def welltyped.Var welltyped\<^sub>\<sigma>_welltyped 
-      welltyped_renaming_weaker
-    sorry
+  moreover have "the_inv \<rho> (Var y) = x"
+    using y renaming
+    by (metis term_subst_is_renaming_iff the_inv_f_f)
 
-  then have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' (Var x \<cdot>t (\<rho> \<odot> \<gamma>)) (\<V> x)"
-    sorry
-
-  then have "\<forall>x. welltyped \<F> \<V>' (Var x \<cdot>t (\<rho> \<odot> \<gamma>)) (\<V> x)"
-    sorry
-
-  then have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' (Var x \<cdot>t \<rho>) (\<V> x)"
-    using welltyped\<^sub>\<sigma>_welltyped[OF assms(1)]
+  moreover have "\<gamma> y = (\<rho> \<odot> \<gamma>) x"
+    using y
     by (simp add: subst_compose_def)
 
-  have "\<forall>x. welltyped \<F> \<V>' (Var x \<cdot>t \<rho>) (\<V> x)"
-    sorry
-
-  then have "\<forall>x. welltyped \<F> \<V> (Var x \<cdot>t \<rho>) (\<V> x)"
-    using welltyped_renaming
-    sorry
-
-  then show "welltyped\<^sub>\<sigma>_on X \<F> \<V> (\<rho> \<odot> \<gamma>)"
-    unfolding welltyped\<^sub>\<sigma>_def
-    sorry
+  ultimately show "welltyped \<F> \<V> ((\<rho> \<odot> \<gamma>) x) (\<V> x)"
+    by argo
 qed
 
 
