@@ -1938,6 +1938,13 @@ lemma welltyped\<^sub>\<sigma>_subst_upd:
   unfolding welltyped\<^sub>\<sigma>_def
   by (metis fun_upd_other fun_upd_same right_unique_def welltyped.Var welltyped_right_unique)
 
+lemma welltyped\<^sub>\<sigma>_on_subst_upd:
+  assumes "welltyped \<F> \<V> (Var var) \<tau>" "welltyped \<F> \<V> update \<tau>"  "welltyped\<^sub>\<sigma>_on X \<F> \<V> \<gamma>" 
+  shows "welltyped\<^sub>\<sigma>_on X \<F> \<V> (\<gamma>(var := update))"
+  using assms
+  unfolding welltyped\<^sub>\<sigma>_on_def
+  by (metis fun_upd_other fun_upd_same right_unique_def welltyped.Var welltyped_right_unique)
+
 lemma welltyped_is_ground:
   assumes "is_ground_term t" "welltyped \<F> \<V> t \<tau>"
   shows "welltyped \<F> \<V>' t \<tau>"

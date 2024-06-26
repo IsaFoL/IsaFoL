@@ -44,7 +44,7 @@ abbreviation is_inference_grounding where
       | Infer [(premise\<^sub>2, \<V>\<^sub>2), (premise\<^sub>1, \<V>\<^sub>1)] (conclusion, \<V>\<^sub>3) \<Rightarrow> 
           term_subst.is_renaming \<rho>\<^sub>1
         \<and> term_subst.is_renaming \<rho>\<^sub>2
-        \<and> range_vars' \<rho>\<^sub>1 \<inter> range_vars' \<rho>\<^sub>2 = {}
+        \<and> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}
         \<and> term_subst.is_ground_subst \<gamma>
         \<and> \<iota>\<^sub>G =
             Infer
