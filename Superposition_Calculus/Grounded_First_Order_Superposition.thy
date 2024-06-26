@@ -37,7 +37,7 @@ abbreviation is_inference_grounding where
            term_subst.is_ground_subst \<gamma>
         \<and> \<iota>\<^sub>G = Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion \<cdot> \<gamma>))
         \<and> welltyped\<^sub>c typeof_fun \<V> premise 
-        \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>
+        \<and> welltyped\<^sub>\<sigma>_on (vars_clause premise) typeof_fun \<V> \<gamma>
         \<and> welltyped\<^sub>c typeof_fun \<V> conclusion
         \<and> \<V> = \<V>'
         \<and> all_types \<V>
@@ -52,7 +52,7 @@ abbreviation is_inference_grounding where
               (to_ground_clause (conclusion \<cdot> \<gamma>))
         \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>1 premise\<^sub>1
         \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>2 premise\<^sub>2
-        \<and> welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 \<gamma>
+        \<and> welltyped\<^sub>\<sigma>_on (vars_clause premise\<^sub>1 \<union> vars_clause premise\<^sub>2) typeof_fun \<V>\<^sub>3 \<gamma>
         \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>3 conclusion
         \<and> all_types \<V>\<^sub>1 \<and> all_types \<V>\<^sub>2 \<and> all_types \<V>\<^sub>3
       | _ \<Rightarrow> False
@@ -80,14 +80,16 @@ proof-
     using Calculus.inference.exhaust
     by (metis prod.collapse)
 
-  then obtain \<gamma> where
+  then obtain \<gamma> X where
     "is_ground_clause (conclusion \<cdot> \<gamma>)"
     "conlcusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
-    "welltyped\<^sub>c typeof_fun \<V> conclusion \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
+    "welltyped\<^sub>c typeof_fun \<V> conclusion \<and> welltyped\<^sub>\<sigma>_on (vars_clause conclusion) typeof_fun \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     using assms list_4_cases
     unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
     apply(auto split: list.splits)
-    by (metis is_ground_subst_is_ground_clause list_4_cases prod.exhaust_sel)
+    (* TODO !*)
+    sorry
+   (* by (metis is_ground_subst_is_ground_clause list_4_cases prod.exhaust_sel)*)
 
   then show ?thesis
     unfolding \<iota> \<iota>\<^sub>G clause_groundings_def
@@ -136,7 +138,11 @@ proof-
     using that
     by blast
 qed
-  
+
+
+lemma welltyped\<^sub>\<sigma>_on_empty: "welltyped\<^sub>\<sigma>_on {} \<F> \<V> \<sigma>"
+  unfolding welltyped\<^sub>\<sigma>_on_def
+  by simp  
 
 sublocale lifting: 
     tiebreaker_lifting
@@ -161,9 +167,9 @@ next
   then show "clause_groundings typeof_fun bottom \<noteq> {}"
     unfolding clause_groundings_def
     using welltyped\<^sub>\<sigma>_Var
-    apply (auto simp add: First_Order_Type_System.welltyped\<^sub>c_def)
-    using obtain_welltyped_ground_subst
-    by blast
+    apply (auto simp add: First_Order_Type_System.welltyped\<^sub>c_def welltyped\<^sub>\<sigma>_on_empty)
+    using obtain_ground_subst
+    by metis
 next
   fix bottom
   assume "bottom \<in> \<bottom>\<^sub>F"

@@ -23,10 +23,10 @@ proof (cases P C rule: eq_resolution.cases)
     "\<And>I \<gamma> \<F>\<^sub>G. \<lbrakk>
         refl I; 
         \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>'
-              \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>') 
+              \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma>_on (vars_clause P) typeof_fun \<V> \<gamma>') 
             \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
        term_subst.is_ground_subst \<gamma>;
-       welltyped\<^sub>c typeof_fun \<V> C; welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>
+       welltyped\<^sub>c typeof_fun \<V> C; welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V> \<gamma>
      \<rbrakk> \<Longrightarrow> upair  ` I \<TTurnstile> to_ground_clause (C \<cdot> \<gamma>)"
   proof-
     fix I :: "'f gterm rel" and \<gamma> :: "('f, 'v) subst"
@@ -37,9 +37,9 @@ proof (cases P C rule: eq_resolution.cases)
       refl_I: "refl I" and 
       premise: 
       "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>'
-             \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>') \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
+             \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma>_on (vars_clause P) typeof_fun \<V> \<gamma>') \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
       grounding: "term_subst.is_ground_subst \<gamma>" and
-      wt: "welltyped\<^sub>c typeof_fun \<V> C" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>"
+      wt: "welltyped\<^sub>c typeof_fun \<V> C" "welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V> \<gamma>"
 
     let ?P = "to_ground_clause (P \<cdot> \<mu> \<cdot> \<gamma>)"
     let ?L = "to_ground_literal (L \<cdot>l \<mu> \<cdot>l \<gamma>)"
@@ -59,8 +59,12 @@ proof (cases P C rule: eq_resolution.cases)
       using welltyped\<^sub>\<sigma>_welltyped\<^sub>c
       by blast
 
-    from welltyped_\<mu> have "welltyped\<^sub>\<sigma> typeof_fun \<V> (\<mu> \<odot> \<gamma>)"
-      using wt(2)
+    from welltyped_\<mu> have "welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V> (\<mu> \<odot> \<gamma>)"
+      using wt(2) 
+      unfolding welltyped\<^sub>\<sigma>_welltyped\<^sub>\<sigma>_on
+        subst_compose_def welltyped\<^sub>\<sigma>_on_def 
+      using welltyped\<^sub>\<sigma>_on_welltyped
+      sorry
       by (simp add: subst_compose_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_welltyped)
 
     moreover have "welltyped\<^sub>c typeof_fun \<V> (add_mset (s\<^sub>1 !\<approx> s\<^sub>2) P')"
@@ -114,7 +118,7 @@ proof (cases P C rule: eq_resolution.cases)
     qed
   qed
 
-  then show ?thesis
+   show ?thesis
     unfolding ground.G_entails_def true_clss_def clause_groundings_def
     apply auto
     using eq_resolutionI(1, 2) by auto
@@ -401,8 +405,9 @@ proof (cases P2 P1 C rule: superposition.cases)
     have yy:  "welltyped\<^sub>\<sigma>_on (vars_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1)) typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1"
       sorry
 
-    have wt_\<gamma>: "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<gamma>)" "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot> \<mu> \<odot> \<gamma>)"
+    have wt_\<gamma>: "welltyped\<^sub>\<sigma>_on  (vars_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1)) typeof_fun \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<gamma>)" "welltyped\<^sub>\<sigma>_on  (vars_clause (P\<^sub>2 \<cdot> \<rho>\<^sub>2)) typeof_fun \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot> \<mu> \<odot> \<gamma>)"
       using
+        welltyped\<^sub>\<sigma>_renaming_ground_subst_weaker[OF superpositionI(4)  wt_\<mu>_\<gamma> yy  ground_subst(3) superpositionI(15)]
         welltyped\<^sub>\<sigma>_renaming_ground_subst_weaker[OF superpositionI(4)  wt_\<mu>_\<gamma> yy  ground_subst(3) superpositionI(15)]
        
         

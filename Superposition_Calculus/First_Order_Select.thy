@@ -124,7 +124,7 @@ lemma all_types_nat: "\<exists>\<V> :: nat \<Rightarrow> nat. all_types \<V>"
   using nat_version
   by blast
 
-lemma all_types: "\<exists>\<V> :: 'v :: {infinite, countable} \<Rightarrow> 'ty :: countable. all_types \<V>"
+lemma all_types: "\<exists>\<V> :: ('v :: {infinite, countable} \<Rightarrow> 'ty :: countable). all_types \<V>"
 proof-
   obtain \<V>_nat :: "nat \<Rightarrow> nat" where \<V>_nat: "all_types \<V>_nat"
     using all_types_nat
@@ -165,7 +165,7 @@ definition clause_groundings :: "('f, 'ty) fun_types \<Rightarrow> ('f, 'v, 'ty)
   "clause_groundings \<F> clause = { to_ground_clause (fst clause \<cdot> \<gamma>) | \<gamma>. 
     term_subst.is_ground_subst \<gamma> \<and> 
     welltyped\<^sub>c \<F> (snd clause) (fst clause) \<and> 
-    welltyped\<^sub>\<sigma> \<F> (snd clause) \<gamma> \<and> 
+    welltyped\<^sub>\<sigma>_on (vars_clause (fst clause))  \<F> (snd clause) \<gamma> \<and> 
     all_types (snd clause)
   }"
 
@@ -178,7 +178,7 @@ abbreviation select_subst_stability_on where
     \<forall>premise\<^sub>G \<in> \<Union> (clause_groundings \<F> ` premises). \<exists>(premise, \<V>) \<in> premises. \<exists>\<gamma>. 
       premise \<cdot> \<gamma> = to_clause premise\<^sub>G \<and> 
       select\<^sub>G (to_ground_clause (premise \<cdot> \<gamma>)) = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
-      welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma>  \<and> 
+      welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (vars_clause premise) \<F> \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma>  \<and> 
       all_types \<V>"
 
 lemma obtain_subst_stable_on_select_grounding:
@@ -193,7 +193,7 @@ proof-
     "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G \<gamma>. \<exists>(premise, \<V>) \<in> premises.
           premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
         \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
-        welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
+        welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (vars_clause premise) \<F> \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     unfolding clause_groundings_def
     using is_ground_subst_is_ground_clause 
     by fastforce
@@ -203,7 +203,7 @@ proof-
         premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
       \<and> select\<^sub>G_on_premise_groundings (to_ground_clause (premise \<cdot> \<gamma>)) = 
           to_ground_clause ((select premise) \<cdot> \<gamma>) 
-      \<and> welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma> \<F> \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
+      \<and> welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (vars_clause premise) \<F> \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     using Ball_Ex_comm(1)[OF select\<^sub>G_exists_for_premises]
     apply auto
     by (smt (verit, best) prod.case_eq_if to_clause_inverse)
