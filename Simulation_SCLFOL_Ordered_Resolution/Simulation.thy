@@ -23068,8 +23068,132 @@ proof (cases S10 S11 rule: ord_res_10_matches_ord_res_11.cases)
       qed
     qed
   next
-    case (resolution D A C U\<^sub>e\<^sub>r' \<Gamma>')
-    then show ?thesis sorry
+    case step_hyps: (resolution D A C U\<^sub>e\<^sub>r\<^sub>1\<^sub>0' \<Gamma>')
+
+    have "{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)"
+      using \<open>linorder_cls.is_least_in_fset _ D\<close> \<open>linorder_lit.is_maximal_in_mset D _\<close>
+      unfolding linorder_cls.is_least_in_ffilter_iff linorder_lit.is_maximal_in_mset_iff
+      by (metis (no_types, lifting) empty_iff linorder_cls.leD mempty_lesseq_cls set_mset_empty
+          trail_false_cls_mempty)
+
+    have "\<C> = None"
+      using match_hyps \<open>{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)\<close> by argo
+
+    have "U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0"
+      using match_hyps \<open>{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)\<close> by force
+
+    have step11_conf: "ord_res_11 N (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, None) (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, Some D)"
+    proof (rule ord_res_11.conflict)
+      show "linorder_cls.is_least_in_fset
+        (ffilter (trail_false_cls \<Gamma>) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>1))) D"
+        using step_hyps unfolding \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> by argo
+    qed
+
+    have "\<forall>Ln \<Gamma>'. \<Gamma> = Ln # \<Gamma>' \<longrightarrow>
+      (snd Ln \<noteq> None) = fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)) (trail_false_cls \<Gamma>) \<and>
+      (\<forall>x\<in>set \<Gamma>'. snd x = None)"
+      using invars10 by (simp add: ord_res_10_invars.simps)
+
+    then obtain \<Gamma>''' where "\<Gamma> = (Pos A, Some C) # \<Gamma>'''"
+      using \<open>map_of \<Gamma> (Pos A) = Some (Some C)\<close>
+      by (metis list.set_cases map_of_SomeD not_Some_eq snd_conv)
+
+    have steps11_reso: "(ord_res_11 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, Some D) (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, Some (eres C D))"
+      unfolding \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>'''\<close>
+      sorry
+
+    define non_strict_P :: "'f gterm literal \<times> 'f gterm literal multiset option \<Rightarrow> bool" where
+      "non_strict_P \<equiv> \<lambda>Ln. \<forall>K. ord_res.is_maximal_lit K (eres C D) \<longrightarrow> atm_of K \<preceq>\<^sub>t atm_of (fst Ln)"
+
+    define strict_P :: "'f gterm literal \<times> 'f gterm literal multiset option \<Rightarrow> bool" where
+      "strict_P \<equiv> \<lambda>Ln. \<forall>K. ord_res.is_maximal_lit K (eres C D) \<longrightarrow> atm_of K \<prec>\<^sub>t atm_of (fst Ln)"
+
+    have steps11_skip: "(ord_res_11 N)\<^sup>*\<^sup>*
+      (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, Some (eres C D))
+      (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, dropWhile strict_P \<Gamma>, Some (eres C D))"
+      using step_hyps sorry
+
+    have most_steps11: "(ord_res_11 N)\<^sup>+\<^sup>+ (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, None)
+     (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, dropWhile strict_P \<Gamma>, Some (eres C D))"
+      using step11_conf steps11_reso steps11_skip by simp
+
+    show ?thesis
+    proof (cases "eres C D = {#}")
+      case True
+
+      hence "dropWhile strict_P \<Gamma> = []"
+        unfolding strict_P_def \<open>eres C D = {#}\<close>
+        unfolding linorder_lit.is_maximal_in_mset_iff
+        by simp
+
+      have "\<Gamma>' = []"
+        unfolding \<open>\<Gamma>' = dropWhile _ \<Gamma>\<close> \<open>eres C D = {#}\<close>
+        unfolding linorder_lit.is_maximal_in_mset_iff
+        by simp
+
+      show ?thesis
+      proof (intro exI conjI)
+        show "(constant_context ord_res_11)\<^sup>+\<^sup>+ S11 (N, U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, [], Some {#})"
+          unfolding S11_def \<open>\<C> = None\<close>
+          using most_steps11[unfolded \<open>dropWhile strict_P \<Gamma> = []\<close> \<open>eres C D = {#}\<close>]
+          using tranclp_constant_context by metis
+
+        show "ord_res_10_matches_ord_res_11 S10' (N, U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, [], Some {#})"
+          unfolding \<open>S10' = (N, s10')\<close> \<open>s10' = _\<close> \<open>\<Gamma>' = []\<close>
+        proof (rule ord_res_10_matches_ord_res_11.intros)
+          show "ord_res_10_invars N (U\<^sub>e\<^sub>r\<^sub>1\<^sub>0', \<F>, [])"
+            using step10 \<open>s10' = _\<close> \<open>\<Gamma>' = []\<close> invars10 ord_res_10_preserves_invars by metis
+        next
+          show "U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0' |-| {|{#}|}"
+            unfolding \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>0' = finsert (eres C D) U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> \<open>eres C D = {#}\<close>
+            using \<open>{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)\<close>
+            by force
+        next
+          show "if {#} |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0') then
+            [] = [] \<and> Some {#} = Some {#} else Some {#} = None"
+            unfolding \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>0' = finsert (eres C D) U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> \<open>eres C D = {#}\<close>
+            by simp
+        qed
+      qed
+    next
+      case False
+      have step10_back: "ord_res_11 N
+        (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, dropWhile strict_P \<Gamma>, Some (eres C D))
+        (finsert (eres C D) U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>', None)"
+        sorry
+
+      hence all_steps10: "(ord_res_11 N)\<^sup>+\<^sup>+ (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, None)
+        (finsert (eres C D) U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>', None)"
+        using most_steps11 by simp
+
+      show ?thesis
+      proof (intro exI conjI)
+        show "(constant_context ord_res_11)\<^sup>+\<^sup>+ S11 (N, finsert (eres C D) U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>', None)"
+          unfolding S11_def \<open>\<C> = None\<close>
+          using all_steps10
+          using tranclp_constant_context by metis
+
+        have "{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0')"
+          by (smt (verit, del_insts) False \<open>{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)\<close> fimage.rep_eq
+              fimageE fimageI finsertE funion_iff iefac_def mempty_in_image_efac_iff step_hyps(5))
+
+        show "ord_res_10_matches_ord_res_11 S10' (N, finsert (eres C D) U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>', None)"
+          unfolding \<open>S10' = (N, s10')\<close> \<open>s10' = _\<close>
+        proof (rule ord_res_10_matches_ord_res_11.intros)
+          show "ord_res_10_invars N (U\<^sub>e\<^sub>r\<^sub>1\<^sub>0', \<F>, \<Gamma>')"
+            using step10 \<open>s10' = _\<close> invars10 ord_res_10_preserves_invars by metis
+        next
+          show "finsert (eres C D) U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0' |-| {|{#}|}"
+            unfolding \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>0' = finsert (eres C D) U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close>
+            using \<open>{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0')\<close>
+            using False \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> match_hyps(4) by auto
+        next
+          show "if {#} |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0') then
+            \<Gamma>' = [] \<and> None = Some {#} else None = None"
+            using \<open>{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0')\<close> by simp
+        qed
+      qed
+    qed
   qed
 qed
 
