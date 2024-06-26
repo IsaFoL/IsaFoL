@@ -3303,7 +3303,6 @@ next
     unfolding member_mset_repeat_mset_Suc .
 
   thus "K \<in># C \<and> K \<noteq> -L \<or> K \<in># D"
-    sketch (elim disjE)
   proof (elim disjE)
     assume "K \<in># C'"
 
@@ -3319,6 +3318,59 @@ next
       unfolding D_eq by simp
 
     thus "K \<in># C \<and> K \<noteq> - L \<or> K \<in># D" ..
+  qed
+qed
+
+lemma stronger_lit_in_one_of_resolvents_if_in_eres:
+  fixes K L :: "'f gterm literal" and C D :: "'f gclause"
+  assumes "eres C D \<noteq> D" and
+    D_max_lit: "linorder_lit.is_maximal_in_mset D L" and
+    K_in_eres: "K \<in># eres C D"
+  shows "K \<in># C \<and> K \<noteq> - L \<or> K \<in># D \<and> K \<noteq> L "
+proof -
+  obtain m :: nat and A :: "'f gterm" and C' D' :: "'f gterm literal multiset" where
+    C_max_lit: "ord_res.is_strictly_maximal_lit (Pos A) C" and
+    C_def: "C = add_mset (Pos A) C'" and
+    "D = replicate_mset (Suc m) (Neg A) + D'" and
+    "Neg A \<notin># D'" and
+    "eres C D = repeat_mset (Suc m) C' + D'"
+    using \<open>eres C D \<noteq> D\<close>[THEN eres_not_identD] by metis
+
+  have "L = Neg A"
+    using assms(1) D_max_lit C_max_lit
+    by (metis ground_resolutionD linorder_lit.Uniq_is_greatest_in_mset
+        linorder_lit.Uniq_is_maximal_in_mset resolvable_if_neq_eres the1_equality' uminus_Pos)
+
+  have "K \<in># repeat_mset (Suc m) C' + D'"
+    using K_in_eres unfolding \<open>eres C D = repeat_mset (Suc m) C' + D'\<close> .
+
+  hence "K \<in># repeat_mset (Suc m) C' \<or> K \<in># D'"
+    unfolding Multiset.union_iff .
+
+  hence "K \<in># C' \<or> K \<in># D'"
+    unfolding member_mset_repeat_mset_Suc .
+
+  thus "K \<in># C \<and> K \<noteq> - L \<or> K \<in># D \<and> K \<noteq> L "
+  proof (elim disjE)
+    assume "K \<in># C'"
+
+    hence "K \<in># C \<and> K \<noteq> - L"
+      using C_max_lit[unfolded linorder_lit.is_greatest_in_mset_iff]
+      unfolding \<open>C = add_mset (Pos A) C'\<close> \<open>L = Neg A\<close>
+      by auto
+
+    thus ?thesis
+      by argo
+  next
+    assume "K \<in># D'"
+
+    hence "K \<in># D \<and> K \<noteq> L "
+      unfolding \<open>D = replicate_mset (Suc m) (Neg A) +  D'\<close> \<open>L = Neg A\<close>
+      using \<open>Neg A \<notin># D'\<close>
+      by auto
+
+    thus ?thesis
+      by argo
   qed
 qed
 
@@ -9769,6 +9821,16 @@ qed
 definition clause_could_propagate where
   "clause_could_propagate \<Gamma> C L \<longleftrightarrow> \<not> trail_defined_lit \<Gamma> L \<and>
     linorder_lit.is_maximal_in_mset C L \<and> trail_false_cls \<Gamma> {#K \<in># C. K \<noteq> L#}"
+
+lemma clause_could_propagate_efac: "clause_could_propagate \<Gamma> (efac C) = clause_could_propagate \<Gamma> C"
+proof (rule ext)
+  fix L
+  show "clause_could_propagate \<Gamma> (efac C) L \<longleftrightarrow> clause_could_propagate \<Gamma> C L"
+    unfolding clause_could_propagate_def
+    by (metis (mono_tags, lifting) ex1_efac_eq_factoring_chain mem_Collect_eq
+        ord_res.ground_factorings_preserves_maximal_literal set_mset_efac set_mset_filter
+        trail_false_cls_def)
+qed
 
 lemma atoms_of_trail_lt_atom_of_propagatable_literal:
   assumes
@@ -21050,6 +21112,7 @@ inductive ord_res_10_invars for N where
         (snd Ln \<noteq> None \<longleftrightarrow> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C)) \<and>
         (snd Ln \<noteq> None \<longrightarrow> is_pos (fst Ln)) \<and>
         (\<forall>C. snd Ln = Some C \<longrightarrow> C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) \<and>
+        (\<forall>C. snd Ln = Some C \<longrightarrow> clause_could_propagate \<Gamma>' C (fst Ln)) \<and>
         (\<forall>x \<in> set \<Gamma>'. snd x = None)" and
     "\<forall>\<Gamma>\<^sub>1 Ln \<Gamma>\<^sub>0. \<Gamma> = \<Gamma>\<^sub>1 @ Ln # \<Gamma>\<^sub>0 \<longrightarrow>
         snd Ln = None \<longrightarrow> \<not>(\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls (Ln # \<Gamma>\<^sub>0) C)"
@@ -21234,6 +21297,9 @@ proof (cases N s rule: ord_res_10_invars.cases)
         thus "\<forall>x \<in> set \<Gamma>''. snd x = None"
           using \<open>\<Gamma>' = Ln # \<Gamma>''\<close> \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close> by simp
 
+        show "\<And>C. snd Ln = Some C \<Longrightarrow> clause_could_propagate \<Gamma>'' C (fst Ln)"
+          using \<open>\<Gamma>' = Ln # \<Gamma>''\<close> \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close> by force
+
         show "\<And>D. snd Ln = Some D \<Longrightarrow> D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
           using \<open>\<Gamma>' = Ln # \<Gamma>''\<close> \<open>\<Gamma>' = (Neg A, None) # \<Gamma>\<close> by force
       }
@@ -21404,6 +21470,9 @@ proof (cases N s rule: ord_res_10_invars.cases)
         thus "\<forall>x\<in>set \<Gamma>''. snd x = None"
           using \<open>\<Gamma>' = Ln # \<Gamma>''\<close> \<open>\<Gamma>' = (Pos A, None) # \<Gamma>\<close> by simp
 
+        show "\<And>C. snd Ln = Some C \<Longrightarrow> clause_could_propagate \<Gamma>'' C (fst Ln)"
+          using \<open>\<Gamma>' = Ln # \<Gamma>''\<close> \<open>\<Gamma>' = (Pos A, None) # \<Gamma>\<close> by force
+
         show "\<And>D. snd Ln = Some D \<Longrightarrow> D |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r)"
           using \<open>\<Gamma>' = Ln # \<Gamma>''\<close> \<open>\<Gamma>' = (Pos A, None) # \<Gamma>\<close> by force
       }
@@ -21519,6 +21588,13 @@ proof (cases N s rule: ord_res_10_invars.cases)
         show "\<forall>x\<in>set \<Gamma>''. snd x = None"
           unfolding \<open>\<Gamma>'' = \<Gamma>\<close>
           using invars by (meson list.set_cases step_hyps(2))
+
+        have "clause_could_propagate \<Gamma> (efac C) (Pos A)"
+          using C_prop clause_could_propagate_efac by metis
+
+        thus "\<And>C. snd Ln = Some C \<Longrightarrow> clause_could_propagate \<Gamma>'' C (fst Ln)"
+          using \<open>\<Gamma>' = Ln # \<Gamma>''\<close> \<open>\<Gamma>' = (Pos A, Some (efac C)) # \<Gamma>\<close>
+          by force
 
         have "efac C |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r)"
         proof (cases "ord_res.is_strictly_maximal_lit (Pos A) C")
@@ -21882,6 +21958,10 @@ proof (cases N s rule: ord_res_10_invars.cases)
         show "\<forall>x\<in>set \<Gamma>''. snd x = None"
           using invars \<open>\<Gamma>' \<noteq> \<Gamma>\<close> \<open>suffix \<Gamma>' \<Gamma>\<close>
           by (metis \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>\<^sub>b\<close> \<open>\<Gamma>' = Ln # \<Gamma>''\<close> set_mono_suffix subsetD suffix_ConsD2)
+
+
+        show "\<And>C. snd Ln = Some C \<Longrightarrow> clause_could_propagate \<Gamma>'' C (fst Ln)"
+          by (simp add: \<open>snd Ln = None\<close>)
 
         show "\<And>E. snd Ln = Some E \<Longrightarrow> E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')"
           by (simp add: \<open>snd Ln = None\<close>)
@@ -22561,8 +22641,12 @@ inductive ord_res_11 where
     ord_res_11 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some (add_mset L C)) (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some (C + (D - {#- L#})))" |
 
   backtrack: "
+    \<Gamma> = (L, None) # \<Gamma>' \<Longrightarrow> - L \<in># C \<Longrightarrow>
+    ord_res_11 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C) (finsert C U\<^sub>e\<^sub>r, \<F>, \<Gamma>', None)" (* |
+
+  backtrack_old: "
     \<Gamma> = (- L, None) # \<Gamma>' \<Longrightarrow>
-    ord_res_11 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some (add_mset L C)) (finsert (add_mset L C) U\<^sub>e\<^sub>r, \<F>, \<Gamma>', None)"
+    ord_res_11 N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some (add_mset L C)) (finsert (add_mset L C) U\<^sub>e\<^sub>r, \<F>, \<Gamma>', None)" *)
 
 (* ORD-RES-10's resolution rule is equivalent to "conflict resolution+ skip+ backtrack" here. *)
 
@@ -22705,7 +22789,7 @@ proof (rule right_uniqueI)
         by simp
       thus ?thesis ..
     next
-      case (backtrack L \<Gamma>' C)
+      case (backtrack K \<Gamma>')
       with hyps1 have False
         by simp
       thus ?thesis ..
@@ -22724,16 +22808,16 @@ proof (rule right_uniqueI)
       with hyps1 show ?thesis
         by simp
     next
-      case (backtrack L \<Gamma>' C)
+      case (backtrack K \<Gamma>')
       with hyps1 have False
         by simp
       thus ?thesis ..
     qed
   next
-    case hyps1: (backtrack \<Gamma> L \<Gamma>' U\<^sub>e\<^sub>r \<F> C)
+    case hyps1: (backtrack \<Gamma> L \<Gamma>' C U\<^sub>e\<^sub>r \<F>)
     show ?thesis
       using step2 unfolding \<open>x = _\<close>
-    proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some (add_mset L C))" z rule: ord_res_11.cases)
+    proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some C)" z rule: ord_res_11.cases)
       case (skip L n \<Gamma>)
       with hyps1 have False
         by simp
@@ -22744,7 +22828,7 @@ proof (rule right_uniqueI)
         by simp
       thus ?thesis ..
     next
-      case (backtrack L \<Gamma>' C)
+      case (backtrack K \<Gamma>')
       with hyps1 show ?thesis
         by simp
     qed
@@ -22867,6 +22951,95 @@ proof (cases S10 S11 rule: ord_res_10_matches_ord_res_11.cases)
     qed
   qed
 qed
+
+lemma rtrancl_ord_res_11_all_resolution_steps:
+  assumes C_max_lit: "ord_res.is_strictly_maximal_lit K C"
+  shows "(ord_res_11 N)\<^sup>*\<^sup>* (U, \<F>, (K, Some C) # \<Gamma>, Some D) (U, \<F>, (K, Some C) # \<Gamma>, Some (eres C D))"
+proof -
+  obtain CD where "eres C D = CD" and run: "full_run (ground_resolution C) D CD"
+    using ex1_eres_eq_full_run_ground_resolution by metis
+
+  have "(ord_res_11 N)\<^sup>*\<^sup>* (U, \<F>, (K, Some C) # \<Gamma>, Some D) (U, \<F>, (K, Some C) # \<Gamma>, Some CD)"
+  proof (rule full_run_preserves_invariant[OF run])
+    show "(ord_res_11 N)\<^sup>*\<^sup>* (U, \<F>, (K, Some C) # \<Gamma>, Some D) (U, \<F>, (K, Some C) # \<Gamma>, Some D)"
+      by simp
+  next
+    fix x y
+    assume "ground_resolution C x y"
+
+    hence "ord_res_11 N (U, \<F>, (K, Some C) # \<Gamma>, Some x) (U, \<F>, (K, Some C) # \<Gamma>, Some y)"
+      unfolding ground_resolution_def
+    proof (cases x C y rule: ord_res.ground_resolution.cases)
+      case res_hyps: (ground_resolutionI A P\<^sub>1' P\<^sub>2')
+
+      moreover have "K = - Neg A"
+        using C_max_lit
+        by (metis ord_res.Uniq_striclty_maximal_lit_in_ground_cls res_hyps(6) the1_equality'
+            uminus_Neg)
+
+      moreover have "y = P\<^sub>1' + remove1_mset K C"
+        using res_hyps
+        using calculation(8) by force 
+
+      ultimately show ?thesis
+        using ord_res_11.resolution by metis
+    qed
+
+    moreover assume "(ord_res_11 N)\<^sup>*\<^sup>*
+      (U, \<F>, (K, Some C) # \<Gamma>, Some D)
+      (U, \<F>, (K, Some C) # \<Gamma>, Some x)"
+
+    ultimately show "(ord_res_11 N)\<^sup>*\<^sup>*
+      (U, \<F>, (K, Some C) # \<Gamma>, Some D)
+      (U, \<F>, (K, Some C) # \<Gamma>, Some y)"
+      by simp
+  qed
+
+  then show ?thesis
+    unfolding \<open>eres C D = CD\<close>
+    by argo
+qed
+
+lemma rtrancl_ord_res_11_all_skip_steps:
+  "(ord_res_11 N)\<^sup>*\<^sup>* (U, \<F>, \<Gamma>, Some C) (U, \<F>, dropWhile (\<lambda>Ln. - fst Ln \<notin># C) \<Gamma>, Some C)"
+proof (induction \<Gamma>)
+  case Nil
+  show ?case by simp
+next
+  case (Cons Ln \<Gamma>)
+  show ?case
+  proof (cases "- fst Ln \<in># C")
+    case True
+    hence "dropWhile (\<lambda>Ln. - fst Ln \<notin># C) (Ln # \<Gamma>) = Ln # \<Gamma>"
+      by simp
+    thus ?thesis
+      by simp
+  next
+    case False
+    hence *: "dropWhile (\<lambda>Ln. - fst Ln \<notin># C) (Ln # \<Gamma>) = dropWhile (\<lambda>Ln. - fst Ln \<notin># C) \<Gamma>"
+      by simp
+
+    obtain L \<C> where "Ln = (L, \<C>)"
+      by (metis prod.exhaust)
+
+    have "ord_res_11 N (U, \<F>, Ln # \<Gamma>, Some C) (U, \<F>, \<Gamma>, Some C)"
+      unfolding \<open>Ln = (L, \<C>)\<close>
+    proof (rule ord_res_11.skip)
+      show "- L \<notin># C"
+        using False unfolding \<open>Ln = (L, \<C>)\<close> by simp
+    qed
+
+    thus ?thesis
+      unfolding *
+      using Cons.IH
+      by simp
+  qed
+qed
+
+lemma dropWhile_ident_if_pred_always_false:
+  assumes "\<forall>x \<in> set xs. \<not> P x"
+  shows "dropWhile P xs = xs"
+  using assms dropWhile_eq_self_iff hd_in_set by auto
 
 lemma forward_simulation_between_10_and_11:
   fixes S10 S11 S10'
@@ -23070,6 +23243,8 @@ proof (cases S10 S11 rule: ord_res_10_matches_ord_res_11.cases)
   next
     case step_hyps: (resolution D A C U\<^sub>e\<^sub>r\<^sub>1\<^sub>0' \<Gamma>')
 
+    note D_max_lit = \<open>ord_res.is_maximal_lit (Neg A) D\<close>
+
     have "{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)"
       using \<open>linorder_cls.is_least_in_fset _ D\<close> \<open>linorder_lit.is_maximal_in_mset D _\<close>
       unfolding linorder_cls.is_least_in_ffilter_iff linorder_lit.is_maximal_in_mset_iff
@@ -23089,7 +23264,7 @@ proof (cases S10 S11 rule: ord_res_10_matches_ord_res_11.cases)
         using step_hyps unfolding \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> by argo
     qed
 
-    have "\<forall>Ln \<Gamma>'. \<Gamma> = Ln # \<Gamma>' \<longrightarrow>
+    have \<Gamma>_spec: "\<forall>Ln \<Gamma>'. \<Gamma> = Ln # \<Gamma>' \<longrightarrow>
       (snd Ln \<noteq> None) = fBex (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)) (trail_false_cls \<Gamma>) \<and>
       (\<forall>x\<in>set \<Gamma>'. snd x = None)"
       using invars10 by (simp add: ord_res_10_invars.simps)
@@ -23098,20 +23273,171 @@ proof (cases S10 S11 rule: ord_res_10_matches_ord_res_11.cases)
       using \<open>map_of \<Gamma> (Pos A) = Some (Some C)\<close>
       by (metis list.set_cases map_of_SomeD not_Some_eq snd_conv)
 
+    have C_max_lit: "linorder_lit.is_greatest_in_mset C (Pos A)"
+      using invars10 by (simp add: ord_res_10_invars.simps \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>'''\<close>)
+
+    have "ord_res.ground_resolution D C ((D - {#Neg A#}) + (C - {#Pos A#}))"
+    proof (rule ord_res.ground_resolutionI)
+      show "D = add_mset (Neg A) (D - {#Neg A#})"
+        using D_max_lit unfolding linorder_lit.is_maximal_in_mset_iff by simp
+    next
+      show "C = add_mset (Pos A) (C - {#Pos A#})"
+        using C_max_lit unfolding linorder_lit.is_greatest_in_mset_iff by simp
+    next
+      show "C \<prec>\<^sub>c D"
+        using C_max_lit D_max_lit
+        by (simp add: clause_lt_clause_if_max_lit_comp
+            linorder_lit.is_greatest_in_mset_iff_is_maximal_and_count_eq_one)
+    next
+      show "{#} = {#} \<and> ord_res.is_maximal_lit (Neg A) D \<or> Neg A \<in># {#}"
+        using D_max_lit by argo
+    next
+      show "{#} = {#}"
+        by argo
+    next
+      show "ord_res.is_strictly_maximal_lit (Pos A) C"
+        using C_max_lit .
+    next
+      show "remove1_mset (Neg A) D + remove1_mset (Pos A) C = (D - {#Neg A#}) + (C - {#Pos A#})"
+        ..
+    qed
+
+    hence "eres C D \<noteq> D"
+      unfolding eres_ident_iff not_not ground_resolution_def by metis
+
+    have D_false: "trail_false_cls \<Gamma> D"
+      using step_hyps unfolding linorder_cls.is_least_in_ffilter_iff by argo
+
+    have "clause_could_propagate \<Gamma>''' C (Pos A)"
+      using invars10 \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>'''\<close> by (simp add: ord_res_10_invars.simps)
+
+    hence "trail_false_cls \<Gamma>''' {#L \<in># C. L \<noteq> Pos A#}"
+      unfolding clause_could_propagate_def by argo
+
+    hence C_almost_false: "trail_false_cls \<Gamma> {#L \<in># C. L \<noteq> Pos A#}"
+      unfolding \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>'''\<close>
+      by (meson suffix_ConsD suffix_order.dual_order.refl trail_false_cls_if_trail_false_suffix)
+
+    have eres_false: "trail_false_cls \<Gamma> (eres C D)"
+      unfolding trail_false_cls_def
+    proof (intro ballI)
+      fix K :: "'f gliteral"
+      assume "K \<in># eres C D"
+      hence "K \<in># C \<and> K \<noteq> Pos A \<or> K \<in># D"
+        using strong_lit_in_one_of_resolvents_if_in_eres[OF D_max_lit] by simp
+      thus "trail_false_lit \<Gamma> K"
+      proof (elim disjE conjE)
+        assume "K \<in># C" and "K \<noteq> Pos A"
+        thus "trail_false_lit \<Gamma> K"
+          using C_almost_false unfolding trail_false_cls_def by simp
+      next
+        assume "K \<in># D"
+        thus "trail_false_lit \<Gamma> K"
+          using D_false unfolding trail_false_cls_def by simp
+      qed
+    qed
+
+    have "\<forall>Ln \<in> set \<Gamma>. \<forall>C. snd Ln = Some C \<longrightarrow> ord_res.is_strictly_maximal_lit (fst Ln) C"
+      using invars10 by (simp add: ord_res_10_invars.simps)
+
+    hence C_max_lit: "ord_res.is_strictly_maximal_lit (Pos A) C"
+      unfolding \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>'''\<close> by simp
+
     have steps11_reso: "(ord_res_11 N)\<^sup>*\<^sup>* (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, Some D) (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, Some (eres C D))"
       unfolding \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>'''\<close>
-      sorry
-
-    define non_strict_P :: "'f gterm literal \<times> 'f gterm literal multiset option \<Rightarrow> bool" where
-      "non_strict_P \<equiv> \<lambda>Ln. \<forall>K. ord_res.is_maximal_lit K (eres C D) \<longrightarrow> atm_of K \<preceq>\<^sub>t atm_of (fst Ln)"
+      using C_max_lit rtrancl_ord_res_11_all_resolution_steps by metis
 
     define strict_P :: "'f gterm literal \<times> 'f gterm literal multiset option \<Rightarrow> bool" where
       "strict_P \<equiv> \<lambda>Ln. \<forall>K. ord_res.is_maximal_lit K (eres C D) \<longrightarrow> atm_of K \<prec>\<^sub>t atm_of (fst Ln)"
 
-    have steps11_skip: "(ord_res_11 N)\<^sup>*\<^sup>*
+    have "\<forall>K \<in># eres C D. - K \<in> fst ` set \<Gamma>"
+      using eres_false unfolding trail_false_cls_def trail_false_lit_def .
+
+    moreover have \<Gamma>_sorted: "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
+      using invars10 by (simp add: ord_res_10_invars.simps)
+
+    ultimately have "dropWhile strict_P \<Gamma> = dropWhile (\<lambda>Ln. - fst Ln \<notin># eres C D) \<Gamma>"
+    proof (induction \<Gamma>)
+      case Nil
+      show ?case by simp
+    next
+      case (Cons Ln \<Gamma>)
+
+      show ?case
+      proof (cases "eres C D = {#}")
+        case True
+        thus ?thesis
+          unfolding strict_P_def linorder_lit.is_maximal_in_mset_iff by simp
+      next
+        case False
+
+        then obtain L where eres_max_lit: "ord_res.is_maximal_lit L (eres C D)"
+          using linorder_lit.ex_maximal_in_mset by metis
+
+        hence strict_P_Ln_iff: "strict_P Ln \<longleftrightarrow> atm_of L \<prec>\<^sub>t atm_of (fst Ln)"
+          unfolding strict_P_def
+          by (metis linorder_lit.Uniq_is_maximal_in_mset the1_equality')
+
+        show ?thesis
+        proof (cases "atm_of L \<prec>\<^sub>t atm_of (fst Ln)")
+          case True
+
+          moreover have "- fst Ln \<notin># eres C D"
+            using True
+            by (smt (verit, best) atm_of_uminus eres_max_lit linorder_lit.dual_order.strict_trans
+                linorder_lit.is_maximal_in_mset_iff linorder_lit.neq_iff linorder_trm.order.irrefl
+                literal.exhaust_sel ord_res.less_lit_simps(4))
+
+          moreover have "dropWhile strict_P \<Gamma> = dropWhile (\<lambda>Ln. - fst Ln \<notin># eres C D) \<Gamma>"
+          proof (rule Cons.IH)
+            show "\<forall>K\<in>#eres C D. - K \<in> fst ` set \<Gamma>"
+              using Cons.prems True \<open>- fst Ln \<notin># eres C D\<close>
+              using image_iff by fastforce
+          next
+            show "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
+              using Cons.prems by simp
+          qed
+
+          ultimately show ?thesis
+            unfolding dropWhile.simps
+            unfolding strict_P_Ln_iff
+            by simp
+        next
+          case False
+
+          hence "atm_of (fst Ln) \<preceq>\<^sub>t atm_of L"
+            by order
+
+          hence "atm_of (fst Ln) = atm_of L"
+            using Cons.prems
+            using atm_of_eq_atm_of eres_max_lit linorder_lit.is_maximal_in_mset_iff by fastforce
+
+          hence "L = fst Ln \<or> L = - fst Ln"
+            by (metis atm_of_eq_atm_of)
+
+          moreover have "- fst Ln \<notin> fst ` set \<Gamma>"
+            using \<open>sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) (Ln # \<Gamma>)\<close>
+            by fastforce
+
+          moreover have "- L \<in> fst ` (set (Ln # \<Gamma>))"
+            using Cons.prems(1) eres_max_lit linorder_lit.is_maximal_in_mset_iff by blast
+
+          ultimately have "- fst Ln \<in># eres C D"
+            using eres_max_lit linorder_lit.is_maximal_in_mset_iff by auto
+
+          then show ?thesis
+            unfolding dropWhile.simps
+            unfolding strict_P_Ln_iff
+            using False
+            by argo
+        qed
+      qed
+    qed
+
+    hence steps11_skip: "(ord_res_11 N)\<^sup>*\<^sup>*
       (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, Some (eres C D))
       (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, dropWhile strict_P \<Gamma>, Some (eres C D))"
-      using step_hyps sorry
+      using rtrancl_ord_res_11_all_skip_steps by metis
 
     have most_steps11: "(ord_res_11 N)\<^sup>+\<^sup>+ (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, None)
      (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, dropWhile strict_P \<Gamma>, Some (eres C D))"
@@ -23157,10 +23483,97 @@ proof (cases S10 S11 rule: ord_res_10_matches_ord_res_11.cases)
       qed
     next
       case False
+
+      then obtain L where eres_max_lit: "ord_res.is_maximal_lit L (eres C D)"
+        using linorder_lit.ex_maximal_in_mset by metis
+
+      hence "L \<in># eres C D"
+        unfolding linorder_lit.is_maximal_in_mset_iff by argo
+
+      hence "L \<in># C \<and> L \<noteq> Pos A \<or> L \<in># D \<and> L \<noteq> Neg A"
+        using stronger_lit_in_one_of_resolvents_if_in_eres \<open>eres C D \<noteq> D\<close> D_max_lit
+        by (metis uminus_Neg)
+
+      hence "L \<prec>\<^sub>l Neg A"
+        using C_max_lit D_max_lit
+        unfolding linorder_lit.is_greatest_in_mset_iff linorder_lit.is_maximal_in_mset_iff
+        by (metis C_max_lit D_max_lit \<open>L \<in># eres C D\<close> eres_lt_if ord_res.asymp_less_lit
+            ord_res.less_lit_simps(3,4) ord_res.transp_less_lit in_remove1_mset_neq
+            linorder_lit.less_than_maximal_if_multp\<^sub>H\<^sub>O linorder_lit.order.not_eq_order_implies_strict
+            literal.disc(2) multp_eq_multp\<^sub>H\<^sub>O uminus_Neg)
+
+      have "dropWhile strict_P \<Gamma> = dropWhile (\<lambda>Ln. atm_of L \<prec>\<^sub>t atm_of (fst Ln)) \<Gamma>"
+        unfolding strict_P_def
+        using eres_max_lit
+        by (metis (no_types) Uniq_D linorder_lit.Uniq_is_maximal_in_mset)
+
+      also have "\<dots> = (- L, None) # dropWhile (\<lambda>Ln. atm_of L \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>"
+      proof -
+        have "- L \<noteq> Pos A"
+          using \<open>L \<prec>\<^sub>l Neg A\<close> by (cases L) simp_all
+
+        hence "- L \<in> fst ` set \<Gamma>'''"
+          using eres_false \<open>L \<in># eres C D\<close>
+          unfolding trail_false_cls_def trail_false_lit_def 
+          unfolding \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>'''\<close>
+          by auto
+
+        hence "(- L, None) \<in> set \<Gamma>'''"
+          using \<Gamma>_spec unfolding \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>'''\<close> by auto
+
+        then obtain \<Gamma>\<^sub>0 \<Gamma>\<^sub>1 where "\<Gamma>''' = \<Gamma>\<^sub>1 @ (- L, None) # \<Gamma>\<^sub>0"
+          by (meson split_list)
+
+        hence "\<Gamma> = (Pos A, Some C) # \<Gamma>\<^sub>1 @ (- L, None) # \<Gamma>\<^sub>0"
+          unfolding \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>'''\<close> by (simp only:)
+
+        have AAA: "\<forall>Ln \<in> set ((Pos A, Some C) # \<Gamma>\<^sub>1). atm_of L \<prec>\<^sub>t atm_of (fst Ln)"
+          using \<Gamma>_sorted unfolding \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>\<^sub>1 @ (- L, None) # \<Gamma>\<^sub>0\<close>
+          by (simp add: sorted_wrt_append)
+
+        hence BBB: "\<forall>Ln \<in> set ((Pos A, Some C) # \<Gamma>\<^sub>1 @ [(- L, None)]). atm_of L \<preceq>\<^sub>t atm_of (fst Ln)"
+          by simp
+
+        have "\<forall>Ln \<in> set \<Gamma>\<^sub>0. atm_of (fst Ln) \<prec>\<^sub>t atm_of L"
+          using \<Gamma>_sorted unfolding \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>\<^sub>1 @ (- L, None) # \<Gamma>\<^sub>0\<close>
+          by (simp add: sorted_wrt_append)
+
+        hence CCC: "\<forall>Ln \<in> set \<Gamma>\<^sub>0. \<not> atm_of L \<preceq>\<^sub>t atm_of (fst Ln)"
+          using linorder_trm.leD by blast
+
+        have "dropWhile (\<lambda>Ln. atm_of L \<prec>\<^sub>t atm_of (fst Ln)) \<Gamma> = (- L, None) # \<Gamma>\<^sub>0"
+          unfolding \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>\<^sub>1 @ (- L, None) # \<Gamma>\<^sub>0\<close>
+          using dropWhile_append2 AAA by simp
+
+        also have "\<dots> = (- L, None) # dropWhile (\<lambda>Ln. atm_of L \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<^sub>0"
+          using CCC by (simp add: dropWhile_ident_if_pred_always_false)
+
+        also have "\<dots> = (- L, None) # dropWhile (\<lambda>Ln. atm_of L \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>"
+          unfolding \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>\<^sub>1 @ (- L, None) # \<Gamma>\<^sub>0\<close>
+          using dropWhile_append2 BBB by simp
+
+        finally show ?thesis .
+      qed
+
+      also have "\<dots> = (- L, None) # \<Gamma>'"
+        unfolding \<open>\<Gamma>' = dropWhile _ \<Gamma>\<close>
+        using eres_max_lit
+        by (metis (no_types) Uniq_D linorder_lit.Uniq_is_maximal_in_mset)
+
+      finally have "dropWhile strict_P \<Gamma> = (- L, None) # \<Gamma>'" .
+
       have step10_back: "ord_res_11 N
         (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, dropWhile strict_P \<Gamma>, Some (eres C D))
         (finsert (eres C D) U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>', None)"
-        sorry
+        unfolding \<open>dropWhile strict_P \<Gamma> = (- L, None) # \<Gamma>'\<close>
+      proof (rule ord_res_11.backtrack)
+        show "(- L, None) # \<Gamma>' = (- L, None) # \<Gamma>'" ..
+      next
+        show "- (- L) \<in># eres C D"
+          unfolding uminus_of_uminus_id
+          using eres_max_lit
+          unfolding linorder_lit.is_maximal_in_mset_iff by argo
+      qed
 
       hence all_steps10: "(ord_res_11 N)\<^sup>+\<^sup>+ (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, None)
         (finsert (eres C D) U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>', None)"
@@ -23235,7 +23648,8 @@ next
     show "safe_state (constant_context ord_res_11) ord_res_11_final S11"
       using match[unfolded match_def]
       using ord_res_10_safe_state_if_invars
-      using ord_res_9_matches_ord_res_10.simps by auto
+      using ord_res_9_matches_ord_res_10.simps
+      sorry
   qed
 next
   show "wfp (\<lambda>_ _. False)"
