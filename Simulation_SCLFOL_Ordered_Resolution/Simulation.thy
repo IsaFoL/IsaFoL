@@ -22956,8 +22956,61 @@ proof (cases S10 S11 rule: ord_res_10_matches_ord_res_11.cases)
       qed
     qed
   next
-    case (decide_pos A C \<Gamma>' \<F>')
-    then show ?thesis sorry
+    case step_hyps: (decide_pos A C \<Gamma>' \<F>')
+    
+    have "\<C> = None"
+      using step_hyps \<C>_eq_None_if_no_false_cls by argo
+
+    have "{#} |\<notin>| N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0"
+      using step_hyps mempty_not_in_if by argo
+
+    have "U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0"
+      using step_hyps U\<^sub>e\<^sub>r\<^sub>1\<^sub>1_eq_U\<^sub>e\<^sub>r\<^sub>1\<^sub>0_if by argo
+
+    show ?thesis
+    proof (intro exI conjI)
+      have "ord_res_11 N (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>, \<Gamma>, None) (U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>', \<Gamma>', None)"
+      proof (rule ord_res_11.decide_pos)
+        show "\<not> (\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>1). trail_false_cls \<Gamma> C)"
+          using step_hyps unfolding \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> by argo
+      next
+        show "linorder_trm.is_least_in_fset
+          {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>1). \<forall>A\<^sub>1|\<in>|trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A"
+          using step_hyps unfolding \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> by argo
+      next
+        show "linorder_cls.is_least_in_fset
+          {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>1). clause_could_propagate \<Gamma> C (Pos A)|} C"
+          using step_hyps unfolding \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> by argo
+      next
+        show "\<Gamma>' = (Pos A, None) # \<Gamma>"
+          using step_hyps by argo
+      next
+        show "\<not> (\<exists>C|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>1). trail_false_cls \<Gamma>' C)"
+          using step_hyps unfolding \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> by argo
+      next
+        show "\<F>' = (if ord_res.is_strictly_maximal_lit (Pos A) C then \<F> else finsert C \<F>)"
+          using step_hyps by argo
+      qed
+
+      thus "(constant_context ord_res_11)\<^sup>+\<^sup>+ S11 (N, U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>', \<Gamma>', None)"
+        unfolding S11_def \<open>\<C> = None\<close> by (auto intro: constant_context.intros)
+
+      show "ord_res_10_matches_ord_res_11 S10' (N, U\<^sub>e\<^sub>r\<^sub>1\<^sub>1, \<F>', \<Gamma>', None)"
+        unfolding \<open>S10' = (N, s10')\<close> \<open>s10' = _\<close>
+      proof (rule ord_res_10_matches_ord_res_11.intros)
+        show "ord_res_10_invars N (U\<^sub>e\<^sub>r\<^sub>1\<^sub>0, \<F>', \<Gamma>')"
+          using step10 \<open>s10' = _\<close> invars10 ord_res_10_preserves_invars by metis
+      next
+        show "U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0 |-| {|{#}|}"
+          unfolding \<open>U\<^sub>e\<^sub>r\<^sub>1\<^sub>1 = U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close>
+          using \<open>{#} |\<notin>| N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> by simp
+      next
+        have "{#} |\<notin>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0)"
+          using \<open>{#} |\<notin>| N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0\<close> by (simp add: iefac_def)
+        thus "if {#} |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r\<^sub>1\<^sub>0) then \<Gamma>' = [] \<and> None = Some {#} else None = None"
+          by argo
+      qed
+    qed
   next
     case (propagate A C \<Gamma>' \<F>')
     then show ?thesis sorry
