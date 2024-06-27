@@ -1204,6 +1204,37 @@ proof (rule right_uniqueI)
     by (elim constant_context.cases) (metis prod.inject)
 qed
 
+lemma safe_state_if_invars:
+  fixes N s
+  assumes
+    \<R>_preserves_\<I>:
+      "\<And>N s s'. \<R> N s s' \<Longrightarrow> \<I> N s \<Longrightarrow> \<I> N s'" and
+    ex_\<R>_if_not_final:
+      "\<And>N s. \<not> \<F> (N, s) \<Longrightarrow> \<I> N s \<Longrightarrow> \<exists>s'. \<R> N s s'"
+  assumes invars: "\<I> N s"
+  shows "safe_state (constant_context \<R>) \<F> (N, s)"
+  unfolding safe_state_def
+proof (intro allI impI)
+  fix S'
+  assume "(constant_context \<R>)\<^sup>*\<^sup>* (N, s) S'"
+  then obtain s' where "S' = (N, s')" and "(\<R> N)\<^sup>*\<^sup>* s s'" and "\<I> N s'"
+    using invars
+  proof (induction "(N, s)" arbitrary: N s rule: converse_rtranclp_induct)
+    case base
+    thus ?case by simp
+  next
+    case (step z)
+    thus ?case
+      by (metis (no_types, opaque_lifting) Pair_inject \<R>_preserves_\<I> constant_context.cases
+          converse_rtranclp_into_rtranclp)
+  qed
+  hence "\<not> \<F> (N, s') \<Longrightarrow> \<exists>s''. \<R> N s' s''"
+    using ex_\<R>_if_not_final[of N s'] by argo
+  hence "\<not> \<F> S' \<Longrightarrow> \<exists>S''. constant_context \<R> S' S''"
+    unfolding \<open>S' = (N, s')\<close> using constant_context.intros by metis
+  thus "\<F> S' \<or> Ex (constant_context \<R> S')"
+    by argo
+qed
 
 
 definition The_optional :: "('a \<Rightarrow> bool) \<Rightarrow> 'a option" where
