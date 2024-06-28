@@ -16,7 +16,7 @@ context
 begin
                                     
 interpretation first_order_superposition_calculus 
-  "trivial_select :: ('f :: weighted, 'v :: infinite) select" 
+  "trivial_select :: ('f :: weighted, 'v :: {countable, infinite}) select" 
   less_kbo
   trivial_tiebreakers
   "\<lambda>_. ([], ())"

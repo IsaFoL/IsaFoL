@@ -216,15 +216,21 @@ lemma finite_vars_clause [simp]:
   unfolding vars_clause_def
   by auto
 
-lemma vars_literal [simp]: 
-  "vars_literal (Pos atom) = vars_atom atom"
-  "vars_literal (Neg atom) = vars_atom atom"
-  by (simp_all add: vars_literal_def)
+lemma vars_atom [simp]: 
+  "vars_atom (Upair term\<^sub>1 term\<^sub>2) = vars_term term\<^sub>1 \<union> vars_term term\<^sub>2"
+  by (simp_all add: vars_atom_def)
 
 lemma vars_literal_split [simp]: 
   "vars_literal (term\<^sub>1 \<approx> term\<^sub>2) = vars_term term\<^sub>1 \<union> vars_term term\<^sub>2"
+  "vars_literal (term\<^sub>1 !\<approx> term\<^sub>2) = vars_term term\<^sub>1 \<union> vars_term term\<^sub>2"
   unfolding vars_literal_def vars_atom_def
-  by simp
+  by simp_all
+
+lemma vars_literal [simp]: 
+  "vars_literal (Pos atom) = vars_atom atom"
+  "vars_literal (Neg atom) = vars_atom atom"
+  "vars_literal ((if b then Pos else Neg) atom) = vars_atom atom"
+  by (simp_all add: vars_literal_def)
 
 lemma vars_clause_add_mset [simp]: 
   "vars_clause (add_mset literal clause) = vars_literal literal \<union> vars_clause clause"
@@ -1311,12 +1317,132 @@ lemma renaming_vars_clause: "Var ` vars_clause (clause \<cdot> \<rho>) = \<rho> 
   using renaming_vars_literal
   by(induction clause)(simp_all add: image_Un subst_clause_add_mset)
 
+lemma surj_the_inv: "surj (\<lambda>x. the_inv \<rho> (Var x))"
+  by (metis is_Var_def renaming surj_def term_subst_is_renaming_iff the_inv_f_f)
+
 end
+
+lemma needed: "surj g \<Longrightarrow> infinite {x. f x = ty} \<Longrightarrow> infinite {x. f (g x) = ty}"
+  by (smt (verit) UNIV_I finite_imageI image_iff mem_Collect_eq rev_finite_subset subset_eq)
 
 lemma obtain_ground_fun:
   assumes "is_ground_term t"
   obtains f ts where "t = Fun f ts"
   using assms
   by(cases t) auto
+
+(* 
+lemma IMGU_subst_domain_subset:
+  assumes "IMGU \<mu> t u"
+  shows "subst_domain \<mu> \<subseteq> vars_of t \<union> vars_of u"
+proof (rule Set.subsetI)
+  from assms have "Unifier \<mu> t u"
+    by (simp add: IMGU_def)
+  then obtain \<upsilon> where "unify t u = Some \<upsilon>"
+    using unify_eq_Some_if_Unifier by metis
+  hence "Unifier \<upsilon> t u"
+    using MGU_def unify_computes_MGU by blast
+  with assms have "\<upsilon> \<doteq> \<mu> \<lozenge> \<upsilon>"
+    by (simp add: IMGU_def)
+
+  fix x assume "x \<in> subst_domain \<mu>"
+  hence "Var x \<lhd> \<mu> \<noteq> Var x"
+    by (simp add: subst_domain_def)
+
+  show "x \<in> vars_of t \<union> vars_of u"
+  proof (cases "x \<in> subst_domain \<upsilon>")
+    case True
+    hence "x \<in> fst ` set \<upsilon>"
+      using subst_domain_subset_list_domain by fast
+    thus ?thesis
+      using unify_gives_minimal_domain[OF \<open>unify t u = Some \<upsilon>\<close>] by auto
+  next
+    case False
+    hence "Var x \<lhd> \<upsilon> = Var x"
+      by (simp add: subst_domain_def)
+    hence "Var x \<lhd> \<mu> \<lhd> \<upsilon> = Var x"
+      using \<open>\<upsilon> \<doteq> \<mu> \<lozenge> \<upsilon>\<close>
+      by (metis subst_comp subst_eq_dest)
+    then show ?thesis
+      apply (rule subst_apply_eq_Var)
+      using \<open>Var x \<lhd> \<mu> \<noteq> Var x\<close>
+      using unify_gives_minimal_range[OF \<open>unify t u = Some \<upsilon>\<close>]
+      using mem_range_varsI
+      by force
+  qed
+qed
+*)
+find_consts "?'a set \<Rightarrow> ?'b set \<Rightarrow> (?'a \<times> ?'b) set"
+
+
+lemma test:
+  assumes "finite X"
+  shows "term_subst.is_unifier \<mu> X \<longleftrightarrow> \<mu> \<in> unifiers (X \<times> X)"
+  unfolding term_subst.is_unifier_iff_if_finite[OF assms] unifiers_def
+  by auto
+
+lemma term_subst_is_imgu_iff_is_imgu:
+  assumes "\<forall>X\<in> XX. finite X"
+  shows "term_subst.is_imgu \<mu> XX \<longleftrightarrow> is_imgu \<mu> (\<Union>X\<in>XX. X \<times> X)"
+  using assms(1) test
+  unfolding term_subst.is_imgu_def term_subst.is_unifier_set_def is_imgu_def
+  apply auto
+     apply (smt (verit, best) UN_iff mem_Collect_eq test unifiers_def)
+    apply (smt (verit) UN_iff mem_Collect_eq test unifiers_def)
+   apply (smt (verit, ccfv_threshold) UN_iff mem_Collect_eq test unifiers_def)
+  by (smt (verit, ccfv_SIG) UN_iff mem_Collect_eq test unifiers_def)
+
+(* TODO! *)
+lemma range_vars_subset_if_is_imgu:
+  assumes "term_subst.is_imgu \<mu> {{t, t'}}"
+  shows "range_vars \<mu> \<subseteq> vars_term t \<union> vars_term t'"
+proof-
+  have "is_imgu \<mu> ({t, t'} \<times> {t, t'})"
+    using term_subst_is_imgu_iff_is_imgu[of "{{t, t'}}"] assms
+    by simp
+
+  then have "is_imgu \<mu> {(t, t')}"
+    unfolding is_imgu_def
+    by (simp add: assms term_subst.subst_imgu_eq_subst_imgu unifiers_insert)
+
+  then have "(\<Union>x \<in> vars_term t \<union> vars_term t'. vars_term (\<mu> x)) \<subseteq> vars_term t \<union> vars_term t'"
+    using imgu_range_vars_of_equations_vars_subset
+    by (metis (mono_tags, lifting) UN_insert Union_image_empty finite.emptyI finite_insert fst_conv snd_conv)
+
+  
+  then show ?thesis
+    by (metis (mono_tags, lifting) UN_insert Union_image_empty \<open>is_imgu \<mu> {(t, t')}\<close> finite.emptyI finite.insertI imgu_range_vars_subset prod.sel(1) prod.sel(2))
+qed
+
+
+lemma vars_term_subst: "vars_term (t \<cdot>t \<sigma>) \<subseteq> vars_term t \<union> range_vars \<sigma>"
+  by (meson Diff_subset order_refl subset_trans sup.mono vars_term_subst_apply_term_subset)
+
+lemma vars_term_imgu:
+  assumes "term_subst.is_imgu \<mu> {{s, s'}}"
+  shows "vars_term (t \<cdot>t \<mu>) \<subseteq> vars_term t \<union> vars_term s \<union> vars_term s'"
+  using range_vars_subset_if_is_imgu[OF assms] vars_term_subst
+  by fastforce
+
+lemma vars_atom_imgu:
+  assumes "term_subst.is_imgu \<mu> {{s, s'}}"
+  shows "vars_atom (a \<cdot>a \<mu>) \<subseteq> vars_atom a \<union> vars_term s \<union> vars_term s'"
+  using vars_term_imgu[OF assms]
+  unfolding vars_atom_def subst_atom_def
+  by(cases a) auto
+
+lemma vars_literal_imgu:
+  assumes "term_subst.is_imgu \<mu> {{s, s'}}"
+  shows "vars_literal (l \<cdot>l \<mu>) \<subseteq> vars_literal l \<union> vars_term s \<union> vars_term s'"
+  using vars_atom_imgu[OF assms]
+  unfolding vars_literal_def subst_literal
+  by blast
+
+lemma vars_clause_imgu:
+  assumes "term_subst.is_imgu \<mu> {{s, s'}}"
+  shows "vars_clause (c \<cdot> \<mu>) \<subseteq> vars_clause c \<union> vars_term s \<union> vars_term s'"
+  using vars_literal_imgu[OF assms]
+  unfolding vars_clause_def subst_clause_def
+  by blast
 
 end

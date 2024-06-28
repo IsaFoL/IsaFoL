@@ -1850,87 +1850,6 @@ proof-
     by presburger
 qed
 
-
-(*lemma welltyped_renaming_exists': 
-  assumes "\<And>ty. infinite { x. \<V> x = ty }" "infinite X" "infinite (UNIV - X)"
-  obtains \<rho> :: "('f, 'v :: {countable, infinite}) subst" where
-    "term_subst.is_renaming \<rho>" 
-    "range_vars' \<rho> \<inter> X = {}"
-    "range_vars' \<rho> \<union> X = UNIV"
-    "welltyped\<^sub>\<sigma> \<F> \<V> \<rho>"
-proof-
-  obtain renaming :: "'v \<Rightarrow> 'v" where
-    renamings:
-    "inj renaming"
-    "range renaming \<inter> X = {}"
-    "range renaming \<union> X = UNIV"
-    "\<And>x. \<V> (renaming x) = \<V> x"
-    sorry
-
-  then have "\<And>X. \<V> ` X = \<V> ` renaming ` X"
-    using image_image
-    by (simp add: image_image)
-
-  define \<rho> :: "('f, 'v) subst" where
-    "\<And>x. \<rho> x \<equiv>  Var (renaming x)"
-
-  have "welltyped\<^sub>\<sigma> \<F> \<V> \<rho>"
-    unfolding \<rho>_def welltyped\<^sub>\<sigma>_def
-    using renamings
-    by (simp_all add: welltyped.Var)
-
-  moreover have "term_subst.is_renaming \<rho>"
-    using renamings(1)
-    unfolding \<rho>_def term_subst_is_renaming_iff  inj_def
-    by (meson term.disc(1) term.inject(1))
-
-  moreover have "range_vars' \<rho> \<inter> X = {}"
-    using renamings
-    unfolding \<rho>_def range_vars'_def
-    by auto
-
-  moreover have "range_vars' \<rho> \<union> X = UNIV"
-    using renamings(3)
-    unfolding \<rho>_def range_vars'_def
-    by auto
-
-  ultimately show ?thesis 
-    using that
-    by blast
-qed
-
-lemma welltyped_renaming_exists: 
-  assumes "\<And>ty. infinite { x. \<V>\<^sub>1 x = ty }" "\<And>ty. infinite { x. \<V>\<^sub>2 x = ty }"
-  obtains \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v :: {countable, infinite}) subst" where
-    "term_subst.is_renaming \<rho>\<^sub>1" 
-    "term_subst.is_renaming \<rho>\<^sub>2"
-    "range_vars' \<rho>\<^sub>1 \<inter> range_vars' \<rho>\<^sub>2 = {}"
-    "range_vars' \<rho>\<^sub>1 \<union> range_vars' \<rho>\<^sub>2 = UNIV"
-    "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>1 \<rho>\<^sub>1" 
-    "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
-proof-
-  obtain \<rho>\<^sub>1 :: "('f, 'v) subst" where \<rho>\<^sub>1:
-    "term_subst.is_renaming \<rho>\<^sub>1"
-    "infinite (range_vars' \<rho>\<^sub>1)"
-    "infinite (UNIV - range_vars' \<rho>\<^sub>1)"
-    "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>1 \<rho>\<^sub>1" 
-    using welltyped_renaming_exists''[OF assms(1)]
-    by blast
-
-  moreover obtain \<rho>\<^sub>2 :: "('f, 'v) subst"  where
-    "term_subst.is_renaming \<rho>\<^sub>2"
-    "range_vars' \<rho>\<^sub>1 \<inter> range_vars' \<rho>\<^sub>2 = {}"
-    "range_vars' \<rho>\<^sub>1 \<union> range_vars' \<rho>\<^sub>2 = UNIV"
-    "welltyped\<^sub>\<sigma> \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
-    (*using welltyped_renaming_exists'[OF assms(2) \<rho>\<^sub>1(2, 3)]
-    by (metis inf_commute sup_commute)*)
-    sorry
-
-  ultimately show ?thesis 
-    using that
-    by blast
-qed*)
-
 lemma welltyped\<^sub>\<sigma>_subst_upd:
   assumes "welltyped \<F> \<V> (Var var) \<tau>" "welltyped \<F> \<V> update \<tau>"  "welltyped\<^sub>\<sigma> \<F> \<V> \<gamma>" 
   shows "welltyped\<^sub>\<sigma> \<F> \<V> (\<gamma>(var := update))"
@@ -2058,7 +1977,7 @@ lemma welltyped_subst'_subst:
   by (simp add: welltyped.simps)
 
 lemma welltyped_unify:
-  assumes 
+  assumes    
     "unify es bs = Some unifier"
     "\<forall>(t, t') \<in> set es. \<exists>\<tau>. welltyped \<F> \<V> t \<tau> \<and> welltyped \<F> \<V> t' \<tau>"
     "welltyped\<^sub>\<sigma> \<F> \<V> (subst_of bs)"
