@@ -3,6 +3,7 @@ theory Background
     Simple_Clause_Learning.SCL_FOL
     Simple_Clause_Learning.Correct_Termination
     Simple_Clause_Learning.Initial_Literals_Generalize_Learned_Literals
+    Simple_Clause_Learning.Termination
     Superposition_Calculus.Ground_Ordered_Resolution
     Superposition_Calculus.Min_Max_Least_Greatest_FSet
     Superposition_Calculus.Multiset_Extra

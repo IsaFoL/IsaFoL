@@ -10,6 +10,12 @@ definition is_strict_lower_set_wrt :: "('a \<Rightarrow> 'a \<Rightarrow> bool) 
   "transp_on X R \<Longrightarrow> asymp_on X R \<Longrightarrow>
     is_strict_lower_set_wrt R L X \<longleftrightarrow> L \<subset> X \<and> (\<forall>l \<in> L. \<forall>x \<in> X. R x l \<longrightarrow> x \<in> L)"
 
+lemma is_lower_set_wrt_empty:
+  fixes X :: "'a set" and R :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
+  assumes "transp_on X R" and "asymp_on X R"
+  shows "is_lower_set_wrt R {} X"
+  unfolding is_lower_set_wrt_def[OF assms] by simp
+
 lemma is_lower_set_wrt_refl:
   fixes X :: "'a set" and R :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
   assumes "transp_on X R" and "asymp_on X R"
@@ -192,6 +198,9 @@ next
 qed
 
 end
+
+lemmas (in preorder) is_lower_set_empty[simp] =
+  is_lower_set_wrt_empty[OF transp_on_less asymp_on_less]
 
 lemmas (in preorder) is_lower_set_insertI =
   is_lower_set_wrt_insertI[OF transp_on_less asymp_on_less]
