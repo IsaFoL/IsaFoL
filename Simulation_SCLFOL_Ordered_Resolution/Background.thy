@@ -1180,6 +1180,9 @@ definition atms_of_cls :: "'a clause \<Rightarrow> 'a fset" where
 definition atms_of_clss :: "'a clause fset \<Rightarrow> 'a fset" where
   "atms_of_clss N = ffUnion (atms_of_cls |`| N)"
 
+lemma atms_of_clss_fempty[simp]: "atms_of_clss {||} = {||}"
+  unfolding atms_of_clss_def by simp
+
 definition lits_of_clss :: "'a clause fset \<Rightarrow> 'a literal fset" where
   "lits_of_clss N = ffUnion (fset_mset |`| N)"
 
