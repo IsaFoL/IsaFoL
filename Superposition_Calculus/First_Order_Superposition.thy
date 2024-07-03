@@ -19,8 +19,7 @@ section \<open>First-Order Layer\<close>
 
 locale first_order_superposition_calculus =
   first_order_select select +
-  first_order_ordering less\<^sub>t +
-  renaming "UNIV :: 'v set"
+  first_order_ordering less\<^sub>t
   for 
     select :: "('f, ('v :: {countable,infinite})) select" and
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
@@ -233,18 +232,6 @@ next
   thus "superposition P\<^sub>2 P\<^sub>1 C"
     using superposition_if_neg_superposition superposition_if_pos_superposition by metis
 qed
-
-lemmas term_renaming_exists = 
-  renaming_exists[OF subset_UNIV subset_UNIV finite_vars_term finite_vars_term]
-
-lemmas atom_renaming_exists = 
-  renaming_exists[OF subset_UNIV subset_UNIV finite_vars_atom finite_vars_atom]
-
-lemmas literal_renaming_exists = 
-  renaming_exists[OF subset_UNIV subset_UNIV finite_vars_literal finite_vars_literal]
-
-lemmas clause_renaming_exists = 
-  renaming_exists[OF subset_UNIV subset_UNIV finite_vars_clause finite_vars_clause]
 
 lemma eq_resolution_preserves_typing:
   assumes

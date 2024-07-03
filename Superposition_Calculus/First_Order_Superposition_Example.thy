@@ -79,9 +79,6 @@ next
   then show "less_kbo term\<^sub>G context\<^sub>G\<langle>term\<^sub>G\<rangle>"
     by (simp add: KBO.S_supt less_kbo_def nectxt_imp_supt_ctxt)
 next
-  show "infinite (UNIV :: 'v set)"
-    using infinite_UNIV.
-next
   show "\<And>(R :: ('f gterm \<times> 'f gterm) set). ground_critical_pair_theorem R"
     using ground_critical_pair_theorem .
 next
