@@ -21,18 +21,19 @@ locale first_order_superposition_calculus =
   first_order_select select +
   first_order_ordering less\<^sub>t
   for 
-    select :: "('f, ('v :: {countable,infinite})) select" and
+    select :: "('f, ('v :: infinite)) select" and
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   fixes
     tiebreakers :: "'f gatom clause  \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" and
-    typeof_fun :: "('f, 'ty :: countable) fun_types"
+    typeof_fun :: "('f, 'ty) fun_types"
   assumes
     wellfounded_tiebreakers: 
       "\<And>clause\<^sub>G. wfP (tiebreakers clause\<^sub>G) \<and> 
                transp (tiebreakers clause\<^sub>G) \<and> 
                asymp (tiebreakers clause\<^sub>G)" and
     function_symbols: "\<And>\<tau>. \<exists>f. typeof_fun f = ([], \<tau>)" and
-    ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R" 
+    ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R" and
+    variables: "|UNIV :: 'ty set| \<le>o |UNIV :: 'v set|"
 begin
 
 abbreviation typed_tiebreakers ::  "'f gatom clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> bool" 

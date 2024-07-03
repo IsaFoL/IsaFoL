@@ -22,8 +22,8 @@ locale grounded_first_order_superposition_calculus =
   first_order_superposition_calculus select _ _ typeof_fun +
   grounded_first_order_select select
   for 
-    select :: "('f, ('v :: {countable,infinite})) select" and
-    typeof_fun :: "('f, 'ty :: countable) fun_types"
+    select :: "('f, 'v :: infinite) select" and
+    typeof_fun :: "('f, 'ty) fun_types"
 begin
 
 sublocale ground: ground_superposition_calculus where
@@ -156,7 +156,7 @@ sublocale lifting:
           typed_tiebreakers
 proof unfold_locales
   show "\<bottom>\<^sub>F \<noteq> {}"
-    using all_types
+    using all_types'[OF variables]
     by blast
 next
   fix bottom

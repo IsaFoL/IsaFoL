@@ -1,7 +1,6 @@
 theory Substitution_First_Order_Term
   imports
     Abstract_Substitution
-    "First_Order_Terms.Subsumption"
     "First_Order_Terms.Unification"
 begin
 

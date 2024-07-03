@@ -16,7 +16,7 @@ context
 begin
                                     
 interpretation first_order_superposition_calculus 
-  "trivial_select :: ('f :: weighted, 'v :: {countable, infinite}) select" 
+  "trivial_select :: ('f :: weighted, 'v :: infinite) select" 
   less_kbo
   trivial_tiebreakers
   "\<lambda>_. ([], ())"
@@ -86,6 +86,10 @@ next
     by (simp add: asympI)
 next
   show "\<And>\<tau>. \<exists>f. ([], ()) = ([], \<tau>)"
+    by simp
+next
+  show "|UNIV :: unit set| \<le>o |UNIV|"
+    unfolding UNIV_unit
     by simp
 qed
 

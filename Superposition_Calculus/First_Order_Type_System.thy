@@ -1,6 +1,5 @@
 theory First_Order_Type_System
   imports First_Order_Clause Fun_Extra
-    "HOL-ex.Sketch_and_Explore"
 begin
 
 type_synonym ('f, 'ty) fun_types = "'f \<Rightarrow> 'ty list \<times> 'ty"
@@ -974,7 +973,6 @@ lemma
   using assms
   by (metis enumerate_in_set finite_enumerate_in_set)
 
-
 lemma enumerate_n:
   fixes S :: "nat set"
   assumes S: "infinite S"
@@ -1547,6 +1545,112 @@ proof-
     by presburger
 qed
 
+lemma obtain_inj''_on':
+  fixes \<V>\<^sub>1 \<V>\<^sub>2 :: "'a :: infinite \<Rightarrow> 'ty"
+  assumes "finite X" "finite Y" "\<And>ty. infinite {x. \<V>\<^sub>1 x = ty}" "\<And>ty. infinite {x. \<V>\<^sub>2 x = ty}"
+  obtains f f' :: "'a \<Rightarrow> 'a" where
+    "inj f" "inj f'"
+    "f ` X \<inter> f' ` Y = {}"
+    "\<forall>x \<in> X. \<V>\<^sub>1 (f x) = \<V>\<^sub>1 x"
+    "\<forall>x \<in> Y. \<V>\<^sub>2 (f' x) = \<V>\<^sub>2 x"
+proof
+  have "\<And>ty. infinite ({x. \<V>\<^sub>2 x = ty} - X)"
+    by (simp add: assms(1) assms(4))
+
+  then have infinite: "\<And>ty. infinite {x. \<V>\<^sub>2 x = ty \<and> x \<notin> X}"
+    by (simp add: set_diff_eq)
+
+  have "\<And>ty. |{x. \<V>\<^sub>2 x = ty}| =o |{x. \<V>\<^sub>2 x = ty } - X|"
+    using assms(1, 4)
+    using card_of_infinite_diff_finite ordIso_symmetric by blast
+
+  then have "\<And>ty. |{x. \<V>\<^sub>2 x = ty}| =o |{x. \<V>\<^sub>2 x = ty \<and> x \<notin> X}|"
+    using set_diff_eq[of _ X]
+    by auto
+
+  then have exists_g': "\<And>ty. \<exists>g'. bij_betw g' {x. \<V>\<^sub>2 x = ty} {x. \<V>\<^sub>2 x = ty \<and> x \<notin> X}"
+    using card_of_ordIso by blast
+
+  define get_g' where
+    "\<And>ty. get_g' ty \<equiv> SOME g'. bij_betw g' {x. \<V>\<^sub>2 x = ty} {x. \<V>\<^sub>2 x = ty \<and> x \<notin> X}"
+
+  define f' where
+    "\<And>x. f' x \<equiv> get_g' (\<V>\<^sub>2 x) x"
+
+  have f'_not_in_x: "\<And>x. f' x \<notin> X"
+  proof-
+    fix y
+
+    define g' where "g' \<equiv> SOME g'. bij_betw g' {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y} {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X}"
+
+    have "y \<in> {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y}"
+      by simp
+
+    moreover have "g' y \<in> {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X}"
+      unfolding g'_def
+      using exists_g'[of "\<V>\<^sub>2 y"]
+      apply auto
+      apply (smt (verit, ccfv_SIG) bij_betw_apply mem_Collect_eq verit_sko_ex_indirect)
+      by (smt (verit, best) bij_betw_apply mem_Collect_eq tfl_some)
+
+    then have "g' y \<notin> X"
+      by simp
+
+    then show "f' y \<notin> X"
+      unfolding f'_def get_g'_def g'_def.
+  qed
+
+   show "inj id"
+     by simp
+
+   show "inj f'"
+   proof(unfold inj_def; intro allI impI)
+     fix x y
+     assume "f' x = f' y"
+
+     moreover then have "\<V>\<^sub>2 y = \<V>\<^sub>2 x"
+       unfolding f'_def get_g'_def
+       using someI_ex[OF exists_g']
+       by (smt (verit, best) \<open>f' \<equiv> \<lambda>x. get_g' (\<V>\<^sub>2 x) x\<close> \<open>get_g' \<equiv> \<lambda>ty. SOME g'. bij_betw g' {x. \<V>\<^sub>2 x = ty} {x. \<V>\<^sub>2 x = ty \<and> x \<notin> X}\<close> bij_betw_iff_bijections calculation mem_Collect_eq)
+
+     ultimately show "x = y"
+       using exists_g'[of "\<V>\<^sub>2 x"] someI
+       unfolding f'_def get_g'_def
+       apply auto
+       by (smt (verit, ccfv_threshold) bij_betw_iff_bijections mem_Collect_eq some_eq_ex)
+   qed
+
+   show "id ` X \<inter> f' ` Y = {}"
+     using f'_not_in_x
+     by auto
+
+   show "\<forall>x\<in>X. \<V>\<^sub>1 (id x) = \<V>\<^sub>1 x"
+     by simp
+
+   show "\<forall>x\<in>Y. \<V>\<^sub>2 (f' x) = \<V>\<^sub>2 x" 
+   proof(intro ballI)
+     fix y
+     assume "y \<in> Y"
+
+      define g' where "g' \<equiv> SOME g'. bij_betw g' {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y} {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X}"
+
+      have "y \<in> {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y}"
+        by simp
+  
+      moreover have "g' y \<in> {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X}"
+        unfolding g'_def
+        using exists_g'[of "\<V>\<^sub>2 y"]
+        apply auto
+        apply (smt (verit, ccfv_SIG) bij_betw_apply mem_Collect_eq verit_sko_ex_indirect)
+        by (smt (verit, best) bij_betw_apply mem_Collect_eq tfl_some)
+
+
+      then show "\<V>\<^sub>2 (f' y) = \<V>\<^sub>2 y"
+        unfolding g'_def f'_def get_g'_def
+        by blast
+   qed
+qed
+
 lemma obtain_inj''_on:
   fixes \<V>\<^sub>1 \<V>\<^sub>2 :: "'a :: {countable, infinite} \<Rightarrow> 'ty"
   assumes "finite X" "finite Y" "\<And>ty. infinite {x. \<V>\<^sub>1 x = ty}" "\<And>ty. infinite {x. \<V>\<^sub>2 x = ty}"
@@ -1622,28 +1726,22 @@ qed
    
 
 lemma obtain_inj': 
-  obtains f :: "'a :: {countable, infinite} \<Rightarrow> 'a" where
+  obtains f :: "'a :: infinite \<Rightarrow> 'a" where
     "inj f"
-    "infinite (range f)"
-    "infinite (UNIV - range f)"
+    "|range f| =o |UNIV - range f|"
 proof-
-  obtain g :: "'a \<Rightarrow> nat" where bij: "bij g"
-    using countableE_infinite[of "UNIV :: 'a set"] infinite_UNIV by blast
-
   obtain X Y :: "'a set" where
-    X_Y: "X \<inter> Y = {}" "X \<union> Y = UNIV" and
-    infinite_X: "infinite X" and
-    infinite_Y: "infinite Y"
-    using obtain_infinite_partition
-    by auto
-
-  have countable_X: "countable X" and countable_Y: "countable Y"
-    by auto
-
-  obtain f where 
+    X_Y: 
+      "|X| =o |Y|"
+      "|X| =o |UNIV :: 'a set|" 
+      "X \<inter> Y = {}" 
+      "X \<union> Y = UNIV"
+    using partitions[OF infinite_UNIV]
+    by blast
+    
+  then obtain f where 
     f: "bij_betw f (UNIV :: 'a set) Y"
-    using countable_infiniteE'[OF countable_Y infinite_Y]     
-    by (meson bij bij_betw_trans)
+    by (meson card_of_ordIso ordIso_symmetric ordIso_transitive)
 
   have inj_f: "inj f" 
     using f bij_betw_def by blast+
@@ -1658,9 +1756,7 @@ proof-
     by auto
 
   show ?thesis
-    using infinite_X infinite_Y that[OF inj_f]
-    unfolding X Y
-    by presburger
+    using X X_Y(1) Y inj_f ordIso_symmetric that by blast
 qed
 
 lemma obtain_inj: 
@@ -1805,6 +1901,49 @@ proof-
   ultimately show ?thesis 
     using that
     by blast
+qed
+
+lemma welltyped_on_renaming_exists':
+  assumes "finite X" "finite Y"  "\<And>ty. infinite {x. \<V>\<^sub>1 x = ty}" "\<And>ty. infinite {x. \<V>\<^sub>2 x = ty}"
+  obtains \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v :: infinite) subst" where
+    "term_subst.is_renaming \<rho>\<^sub>1" 
+    "term_subst.is_renaming \<rho>\<^sub>2" 
+    "\<rho>\<^sub>1 ` X \<inter> \<rho>\<^sub>2 ` Y = {}"
+    "welltyped\<^sub>\<sigma>_on X \<F> \<V>\<^sub>1 \<rho>\<^sub>1"
+    "welltyped\<^sub>\<sigma>_on Y \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
+proof-
+  obtain renaming\<^sub>1 renaming\<^sub>2 :: "'v \<Rightarrow> 'v" where
+    renamings:
+    "inj renaming\<^sub>1" "inj renaming\<^sub>2"
+    "renaming\<^sub>1 ` X \<inter> renaming\<^sub>2 ` Y = {}" 
+    "\<forall>x \<in> X. \<V>\<^sub>1 (renaming\<^sub>1 x) = \<V>\<^sub>1 x" 
+    "\<forall>x \<in> Y. \<V>\<^sub>2 (renaming\<^sub>2 x) = \<V>\<^sub>2 x"
+    using obtain_inj''_on'[OF assms].
+
+  define \<rho>\<^sub>1 :: "('f, 'v) subst" where
+    "\<And>x. \<rho>\<^sub>1 x \<equiv> Var (renaming\<^sub>1 x)"
+
+  define \<rho>\<^sub>2 :: "('f, 'v) subst" where
+    "\<And>x. \<rho>\<^sub>2 x \<equiv> Var (renaming\<^sub>2 x)"
+
+  have "term_subst.is_renaming \<rho>\<^sub>1"  "term_subst.is_renaming \<rho>\<^sub>2" 
+    unfolding \<rho>\<^sub>1_def \<rho>\<^sub>2_def
+    using renamings(1,2)
+    by (meson injD injI term_subst.is_renaming_id_subst term_subst_is_renaming_iff)+
+
+  moreover have "\<rho>\<^sub>1 ` X \<inter> \<rho>\<^sub>2 ` Y = {}"
+    unfolding \<rho>\<^sub>1_def \<rho>\<^sub>2_def range_vars'_def
+    using renamings(3)
+    by auto
+ 
+  moreover have "welltyped\<^sub>\<sigma>_on X \<F> \<V>\<^sub>1 \<rho>\<^sub>1" "welltyped\<^sub>\<sigma>_on Y \<F> \<V>\<^sub>2 \<rho>\<^sub>2"
+    unfolding \<rho>\<^sub>1_def \<rho>\<^sub>2_def welltyped\<^sub>\<sigma>_on_def
+    using renamings(4, 5)
+    by(auto simp: welltyped.Var)
+
+  ultimately show ?thesis 
+    using that
+    by presburger
 qed
 
 lemma welltyped_on_renaming_exists:

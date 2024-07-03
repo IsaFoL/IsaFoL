@@ -14,7 +14,6 @@ the \textsf{IsaFoR} library.
 theory IsaFoR_Term_Copy
   imports
     First_Order_Terms.Unification
-    First_Order_Terms.Subsumption
     "HOL-Cardinals.Wellorder_Extension"
     Open_Induction.Restricted_Predicates
     Knuth_Bendix_Order.KBO

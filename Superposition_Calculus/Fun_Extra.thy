@@ -1,5 +1,5 @@
 theory Fun_Extra
-  imports Main "HOL-Library.Countable_Set"
+  imports Main "HOL-Library.Countable_Set" "HOL-Cardinals.Cardinals"
 begin
 
 lemma obtain_bij_betw_endo: 
@@ -208,5 +208,54 @@ proof-
   show ?thesis
     using that[OF f].
 qed
+
+lemma partitions:
+  assumes "infinite (UNIV :: 'x set)"
+  obtains A B where
+    "|A| =o |B|" 
+    "|A| =o |UNIV :: 'x set|"
+    "A \<inter> B = {}"
+    "A \<union> B = (UNIV :: 'x set)"
+proof-      
+  obtain f :: "'x + 'x \<Rightarrow> 'x" where f: "bij f"
+    by (meson Plus_infinite_bij_betw_types assms bij_betw_inv one_type_greater)
+
+  define A :: "'x set" where "A \<equiv> f ` range Inl"
+  define B :: "'x set" where "B \<equiv> f ` range Inr"
+
+  have "A \<inter> B = {}"
+    unfolding A_def B_def
+    by (smt (verit, best) Inl_Inr_False UNIV_I bij_betw_iff_bijections disjoint_iff f imageE)
+
+  moreover have "A \<union> B = UNIV"
+    unfolding A_def B_def
+    apply auto
+    by (metis (mono_tags, opaque_lifting) UNIV_I bij_betw_imp_surj f imageI old.sum.exhaust rangeE)
+
+  moreover have Inl: "|Inl ` (UNIV :: 'x set)| =o |UNIV :: 'x set|"
+    by (meson bij_betw_imageI card_of_ordIsoI inj_Inl ordIso_symmetric)
+
+  have Inr: "|Inr ` (UNIV :: 'x set)| =o |UNIV :: 'x set|"
+    by (meson bij_betw_imageI card_of_ordIsoI inj_Inr ordIso_symmetric)
+
+  have "|A| =o |UNIV :: 'x set|"
+    unfolding A_def
+    using f
+    unfolding bij_betw_def
+    apply auto
+    by (smt (verit, del_insts) A_def Inl bij_betw_imageI card_of_ordIso inj_on_subset ordIso_symmetric ordIso_transitive subset_UNIV)
+
+  moreover have "|B| =o |UNIV :: 'x set|"
+     unfolding B_def
+    using f
+    unfolding bij_betw_def
+    apply auto
+    by (smt (verit, del_insts) B_def Inr bij_betw_imageI card_of_ordIso inj_on_subset ordIso_symmetric ordIso_transitive subset_UNIV)
+
+  ultimately show ?thesis
+    using that
+    by (meson ordIso_symmetric ordIso_transitive)
+qed
+
 
 end

@@ -90,6 +90,97 @@ next
   qed
 qed
 
+lemma infinite_prods': "{p :: 'a \<times> 'a . fst p = y} = {y} \<times> UNIV"
+  by auto
+ 
+
+lemma infinite_prods: "infinite {p :: (('a :: infinite) \<times> 'a). fst p = y}"
+  unfolding infinite_prods'
+  using finite_cartesian_productD2 infinite_UNIV by blast
+
+lemma nat_version': "\<exists>f :: nat \<Rightarrow> nat. \<forall>y :: nat. infinite {x. f x = y}"
+proof-
+  obtain g :: "nat \<Rightarrow> nat \<times> nat" where bij_g: "bij g"
+    using bij_prod_decode by blast
+
+  define f :: "nat \<Rightarrow> nat" where 
+    "\<And>x. f x \<equiv> fst (g x)"
+
+  have "\<And>y. infinite {x. f x = y}"
+  proof-
+    fix y
+    have x: "{x. fst (g x) = y} =  inv g ` {p. fst p = y}"
+      by (smt (verit, ccfv_SIG) Collect_cong bij_g bij_image_Collect_eq bij_imp_bij_inv inv_inv_eq)
+
+    show "infinite {x. f x = y}"
+      unfolding f_def x
+      using infinite_prods
+      by (smt (z3) Collect_mono_iff bij_betw_finite bij_betw_inv_into bij_betw_subset bij_g finite_subset top_greatest)
+  qed
+
+  then show ?thesis
+    by blast    
+qed
+
+lemma not_nat_version': "\<exists>f :: ('a :: infinite) \<Rightarrow> 'a. \<forall>y. infinite {x. f x = y}"
+proof-
+  obtain g :: "'a \<Rightarrow> 'a \<times> 'a" where bij_g: "bij g"
+    using Times_same_infinite_bij_betw_types bij_betw_inv infinite_UNIV by blast
+
+  define f :: "'a \<Rightarrow> 'a" where 
+    "\<And>x. f x \<equiv> fst (g x)"
+
+  have "\<And>y. infinite {x. f x = y}"
+  proof-
+    fix y
+    have x: "{x. fst (g x) = y} =  inv g ` {p. fst p = y}"
+      by (smt (verit, ccfv_SIG) Collect_cong bij_g bij_image_Collect_eq bij_imp_bij_inv inv_inv_eq)
+
+    show "infinite {x. f x = y}"
+      unfolding f_def x
+      using infinite_prods
+      by (smt (z3) Collect_mono_iff bij_betw_finite bij_betw_inv_into bij_betw_subset bij_g finite_subset top_greatest)
+  qed
+
+  then show ?thesis
+    by blast    
+qed
+
+lemma not_nat_version'': 
+  assumes "|UNIV :: 'b set| \<le>o |UNIV :: ('a :: infinite) set|"
+  shows "\<exists>f :: 'a \<Rightarrow> 'b. \<forall>y. infinite {x. f x = y}"
+proof-
+  obtain g :: "'a \<Rightarrow> 'a \<times> 'a" where bij_g: "bij g"
+    using Times_same_infinite_bij_betw_types bij_betw_inv infinite_UNIV by blast
+
+  define f :: "'a \<Rightarrow> 'a" where 
+    "\<And>x. f x \<equiv> fst (g x)"
+
+  have inf: "\<And>y. infinite {x. f x = y}"
+  proof-
+    fix y
+    have x: "{x. fst (g x) = y} =  inv g ` {p. fst p = y}"
+      by (smt (verit, ccfv_SIG) Collect_cong bij_g bij_image_Collect_eq bij_imp_bij_inv inv_inv_eq)
+
+    show "infinite {x. f x = y}"
+      unfolding f_def x
+      using infinite_prods
+      by (smt (z3) Collect_mono_iff bij_betw_finite bij_betw_inv_into bij_betw_subset bij_g finite_subset top_greatest)
+  qed
+
+  obtain f' ::  "'a \<Rightarrow> 'b" where "surj f'"
+    using assms
+    by (metis card_of_ordLeq2 empty_not_UNIV)
+
+  then have "\<And>y. infinite {x. f' (f x) = y}"
+    using inf
+    by (smt (verit, ccfv_SIG) Collect_mono finite_subset surjD)
+
+  then show ?thesis
+    by meson
+qed
+
+
 
 lemma nat_version: "\<exists>f :: nat \<Rightarrow> nat. \<forall>y :: nat. infinite {x. f x = y}"
 proof-
@@ -159,6 +250,13 @@ proof-
     unfolding all_types_def
     by fast
 qed
+
+lemma all_types': 
+  assumes "|UNIV :: 'ty set| \<le>o |UNIV :: ('v :: infinite) set|"
+  shows "\<exists>\<V> :: ('v :: infinite \<Rightarrow> 'ty). all_types \<V>"
+  using not_nat_version''[OF assms]
+  unfolding all_types_def
+  by argo
 
 (* TODO: term_subst.is_ground_subst \<gamma> \<rightarrow> is_ground_clause (fst clause \<cdot> \<gamma>) *)
 (* TODO: Is  welltyped\<^sub>c \<F> (snd clause) (fst clause) needed? *)
