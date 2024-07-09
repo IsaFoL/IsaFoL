@@ -1264,4 +1264,770 @@ lemma The_optional_eq_SomeI:
   shows "The_optional P = Some x"
   using assms by (metis The_optional_def the1_equality')
 
+type_synonym 'f gliteral = "'f gterm literal"
+type_synonym 'f gclause = "'f gterm clause"
+
+
+
+locale simulation_SCLFOL_ground_ordered_resolution =
+  renaming_apart renaming_vars
+  for renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v" +
+  fixes
+    less_trm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50)
+  assumes
+    transp_less_trm[simp]: "transp (\<prec>\<^sub>t)" and
+    asymp_less_trm[intro]: "asymp (\<prec>\<^sub>t)" and
+    wfP_less_trm[intro]: "wfP (\<prec>\<^sub>t)" and
+    totalp_less_trm[intro]: "totalp (\<prec>\<^sub>t)" and
+    finite_less_trm: "\<And>\<beta>. finite {x. x \<prec>\<^sub>t \<beta>}" and
+    less_trm_compatible_with_gctxt[simp]: "\<And>ctxt t t'. t \<prec>\<^sub>t t' \<Longrightarrow> ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t ctxt\<langle>t'\<rangle>\<^sub>G" and
+    less_trm_if_subterm[simp]: "\<And>t ctxt. ctxt \<noteq> \<box>\<^sub>G \<Longrightarrow> t \<prec>\<^sub>t ctxt\<langle>t\<rangle>\<^sub>G"
+
+
+
+section \<open>Ground ordered resolution for ground terms\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
+
+sublocale ord_res: ground_ordered_resolution_calculus "(\<prec>\<^sub>t)" "\<lambda>_. {#}"
+  by unfold_locales auto
+
+sublocale linorder_trm: linorder "(\<preceq>\<^sub>t)" "(\<prec>\<^sub>t)"
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>t y) = (x \<preceq>\<^sub>t y \<and> \<not> y \<preceq>\<^sub>t x)"
+    by (metis asympD asymp_less_trm reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>t x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>t y \<Longrightarrow> y \<preceq>\<^sub>t z \<Longrightarrow> x \<preceq>\<^sub>t z"
+    by (meson transpE transp_less_trm transp_on_reflclp)
+next
+  show "\<And>x y. x \<preceq>\<^sub>t y \<Longrightarrow> y \<preceq>\<^sub>t x \<Longrightarrow> x = y"
+    by (metis asympD asymp_less_trm reflclp_iff)
+next
+  show "\<And>x y. x \<preceq>\<^sub>t y \<or> y \<preceq>\<^sub>t x"
+    by (metis reflclp_iff totalpD totalp_less_trm)
+qed
+
+sublocale linorder_lit: linorder "(\<preceq>\<^sub>l)" "(\<prec>\<^sub>l)"
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>l y) = (x \<preceq>\<^sub>l y \<and> \<not> y \<preceq>\<^sub>l x)"
+    by (metis asympD ord_res.asymp_less_lit reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>l x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>l y \<Longrightarrow> y \<preceq>\<^sub>l z \<Longrightarrow> x \<preceq>\<^sub>l z"
+    by (meson transpE ord_res.transp_less_lit transp_on_reflclp)
+next
+  show "\<And>x y. x \<preceq>\<^sub>l y \<Longrightarrow> y \<preceq>\<^sub>l x \<Longrightarrow> x = y"
+    by (metis asympD ord_res.asymp_less_lit reflclp_iff)
+next
+  show "\<And>x y. x \<preceq>\<^sub>l y \<or> y \<preceq>\<^sub>l x"
+    by (metis reflclp_iff totalpD ord_res.totalp_less_lit)
+qed
+
+sublocale linorder_cls: linorder "(\<preceq>\<^sub>c)" "(\<prec>\<^sub>c)"
+proof unfold_locales
+  show "\<And>x y. (x \<prec>\<^sub>c y) = (x \<preceq>\<^sub>c y \<and> \<not> y \<preceq>\<^sub>c x)"
+    by (metis asympD ord_res.asymp_less_cls reflclp_iff)
+next
+  show "\<And>x. x \<preceq>\<^sub>c x"
+    by simp
+next
+  show "\<And>x y z. x \<preceq>\<^sub>c y \<Longrightarrow> y \<preceq>\<^sub>c z \<Longrightarrow> x \<preceq>\<^sub>c z"
+    by (meson transpE ord_res.transp_less_cls transp_on_reflclp)
+next
+  show "\<And>x y. x \<preceq>\<^sub>c y \<Longrightarrow> y \<preceq>\<^sub>c x \<Longrightarrow> x = y"
+    by (metis asympD ord_res.asymp_less_cls reflclp_iff)
+next
+  show "\<And>x y. x \<preceq>\<^sub>c y \<or> y \<preceq>\<^sub>c x"
+    by (metis reflclp_iff totalpD ord_res.totalp_less_cls)
+qed
+
+declare linorder_trm.is_least_in_fset_ffilterD[no_atp]
+declare linorder_lit.is_least_in_fset_ffilterD[no_atp]
+declare linorder_cls.is_least_in_fset_ffilterD[no_atp]
+
+end
+
+
+
+section \<open>Function for full factorization\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
+
+definition efac :: "'f gterm clause \<Rightarrow> 'f gterm clause" where
+  "efac C = (THE C'. ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C''))"
+
+text \<open>The function \<^const>\<open>efac\<close> performs exhaustive factorization of its input clause.\<close>
+
+lemma ex1_efac_eq_factoring_chain:
+  "\<exists>!C'. efac C = C' \<and> ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')"
+proof -
+  have "right_unique (\<lambda>x y. ord_res.ground_factoring\<^sup>*\<^sup>* x y \<and> (\<nexists>z. ord_res.ground_factoring y z))"
+    using ord_res.unique_ground_factoring right_unique_terminating_rtranclp right_unique_iff
+    by blast
+
+  moreover obtain C' where "ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')"
+    using ex_terminating_rtranclp[OF ord_res.termination_ground_factoring]
+    by metis
+
+  ultimately have "efac C = C'"
+    by (simp add: efac_def right_unique_def the_equality)
+
+  then show ?thesis
+    using \<open>ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')\<close> by blast
+qed
+
+lemma efac_eq_disj:
+  "efac C = C \<or> (\<exists>!C'. efac C = C' \<and> ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C''))"
+  using ex1_efac_eq_factoring_chain
+  by (metis is_pos_def)
+
+lemma member_mset_if_count_eq_Suc: "count X x = Suc n \<Longrightarrow> x \<in># X"
+  by (simp add: count_inI)
+
+lemmas member_fsetE = mset_add
+
+lemma ord_res_ground_factoring_iff: "ord_res.ground_factoring C C' \<longleftrightarrow>
+  (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> (\<exists>n. count C (Pos A) = Suc (Suc n) \<and> C' = C - {#Pos A#}))"
+proof (rule iffI)
+  assume "ord_res.ground_factoring C C'"
+  thus "\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> (\<exists>n. count C (Pos A) = Suc (Suc n) \<and> C' = C - {#Pos A#})"
+  proof (cases C C' rule: ord_res.ground_factoring.cases)
+    case (ground_factoringI A P')
+    show ?thesis
+    proof (intro exI conjI)
+      show "ord_res.is_maximal_lit (Pos A) C"
+        using \<open>ord_res.is_maximal_lit (Pos A) C\<close> .
+    next
+      show "count C (Pos A) = Suc (Suc (count P' (Pos A)))"
+        unfolding \<open>C = add_mset (Pos A) (add_mset (Pos A) P')\<close> by simp
+    next
+      show "C' = remove1_mset (Pos A) C"
+        unfolding \<open>C = add_mset (Pos A) (add_mset (Pos A) P')\<close> \<open>C' = add_mset (Pos A) P'\<close> by simp
+    qed
+  qed
+next
+  assume "\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and>
+    (\<exists>n. count C (Pos A) = Suc (Suc n) \<and> C' = C - {#Pos A#})"
+  then obtain A n where
+    "ord_res.is_maximal_lit (Pos A) C" and
+    "count C (Pos A) = Suc (Suc n)" and
+    "C' = C - {#Pos A#}"
+    by metis
+
+  have "Pos A \<in># C"
+    using \<open>count C (Pos A) = Suc (Suc n)\<close> member_mset_if_count_eq_Suc by metis
+  then obtain C'' where "C = add_mset (Pos A) C''"
+    by (auto elim: member_fsetE)
+  with \<open>count C (Pos A) = Suc (Suc n)\<close> have "count C'' (Pos A) = Suc n"
+    by simp
+  hence "Pos A \<in># C''"
+    using member_mset_if_count_eq_Suc by metis
+  then obtain C''' where "C'' = add_mset (Pos A) C'''"
+    by (auto elim: member_fsetE)
+
+  show "ord_res.ground_factoring C C'"
+  proof (rule ord_res.ground_factoringI)
+    show "C = add_mset (Pos A) (add_mset (Pos A) C''')"
+      using \<open>C = add_mset (Pos A) C''\<close> \<open>C'' = add_mset (Pos A) C'''\<close> by metis
+  next
+    show "ord_res.is_maximal_lit (Pos A) C"
+      using \<open>ord_res.is_maximal_lit (Pos A) C\<close> .
+  next
+    show "C' = add_mset (Pos A) C'''"
+      using \<open>C' = C - {#Pos A#}\<close> \<open>C = add_mset (Pos A) C''\<close> \<open>C'' = add_mset (Pos A) C'''\<close> by simp
+  qed simp_all
+qed
+
+lemma tranclp_ord_res_ground_factoring_iff:
+  "ord_res.ground_factoring\<^sup>+\<^sup>+ C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'') \<longleftrightarrow>
+  (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> (\<exists>n. count C (Pos A) = Suc (Suc n) \<and>
+    C' = C - replicate_mset (Suc n) (Pos A)))"
+proof (intro iffI; elim exE conjE)
+  assume "ord_res.ground_factoring\<^sup>+\<^sup>+ C C'" and "(\<nexists>C''. ord_res.ground_factoring C' C'')"
+  then show "\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> (\<exists>n. count C (Pos A) = Suc (Suc n) \<and>
+    C' = C - replicate_mset (Suc n) (Pos A))"
+  proof (induction C rule: converse_tranclp_induct)
+    case (base C)
+    from base.hyps obtain A n where
+      "ord_res.is_maximal_lit (Pos A) C" and
+      "count C (Pos A) = Suc (Suc n)" and
+      "C' = remove1_mset (Pos A) C"
+      unfolding ord_res_ground_factoring_iff by auto
+
+    moreover have "n = 0"
+    proof (rule ccontr)
+      assume "n \<noteq> 0"
+      then obtain C'' where "C' = add_mset (Pos A) (add_mset (Pos A) C'')"
+        by (metis (no_types, lifting) Zero_not_Suc calculation(2,3) count_add_mset count_inI
+            diff_Suc_1 insert_DiffM)
+      hence "ord_res.ground_factoring C' (add_mset (Pos A) C'')"
+        using ord_res.ground_factoringI
+        by (metis calculation(1,3) linorder_lit.is_maximal_in_mset_iff more_than_one_mset_mset_diff
+            union_single_eq_member)
+      with base.prems show False
+        by metis
+    qed
+
+    ultimately show ?case
+      by (metis replicate_mset_0 replicate_mset_Suc)
+  next
+    case (step C C'')
+    from step.IH step.prems obtain A n where
+      "ord_res.is_maximal_lit (Pos A) C''" and
+      "count C'' (Pos A) = Suc (Suc n)" and
+      "C' = C'' - replicate_mset (Suc n) (Pos A)"
+      by metis
+
+    from step.hyps(1) obtain A' m where
+      "ord_res.is_maximal_lit (Pos A') C" and
+      "count C (Pos A') = Suc (Suc m)" and
+      "C'' = remove1_mset (Pos A') C"
+      unfolding ord_res_ground_factoring_iff by metis
+
+    have "A' = A"
+      using \<open>ord_res.is_maximal_lit (Pos A) C''\<close> \<open>ord_res.is_maximal_lit (Pos A') C\<close>
+      by (metis \<open>C'' = remove1_mset (Pos A') C\<close> \<open>count C (Pos A') = Suc (Suc m)\<close>
+          add_mset_remove_trivial_eq count_add_mset count_greater_zero_iff diff_Suc_1
+          linorder_lit.antisym_conv3 linorder_lit.is_maximal_in_mset_iff literal.inject(1)
+          zero_less_Suc)
+
+    have "m = Suc n"
+      using \<open>count C'' (Pos A) = Suc (Suc n)\<close> \<open>count C (Pos A') = Suc (Suc m)\<close>
+      unfolding \<open>C'' = remove1_mset (Pos A') C\<close> \<open>A' = A\<close>
+      by simp
+
+    show ?case
+    proof (intro exI conjI)
+      show "ord_res.is_maximal_lit (Pos A) C"
+        using \<open>ord_res.is_maximal_lit (Pos A') C\<close> \<open>A' = A\<close> by metis
+    next
+      show "count C (Pos A) = Suc (Suc m)"
+        using \<open>count C (Pos A') = Suc (Suc m)\<close> \<open>A' = A\<close> by metis
+    next
+      show "C' = C - replicate_mset (Suc m) (Pos A)"
+        unfolding \<open>C' = C'' - replicate_mset (Suc n) (Pos A)\<close> \<open>C'' = remove1_mset (Pos A') C\<close>
+          \<open>A' = A\<close> \<open>m = Suc n\<close>
+        by simp
+    qed
+  qed
+next
+  fix A n assume "ord_res.is_maximal_lit (Pos A) C"
+  thus "count C (Pos A) = Suc (Suc n) \<Longrightarrow> C' = C - replicate_mset (Suc n) (Pos A) \<Longrightarrow>
+    ord_res.ground_factoring\<^sup>+\<^sup>+ C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')"
+  proof (induction n arbitrary: C)
+    case 0
+    hence "(ord_res.is_maximal_lit (Pos A) C \<and>
+         (count C (Pos A) = Suc (Suc 0) \<and>
+              C' = remove1_mset (Pos A) C))"
+      by (metis replicate_mset_0 replicate_mset_Suc)
+    hence "ord_res.ground_factoring C C' \<and> (\<nexists>a. ord_res.ground_factoring C' a)"
+      unfolding ord_res_ground_factoring_iff
+      by (metis Zero_not_Suc add_mset_remove_trivial_eq count_add_mset count_inI
+          linorder_lit.antisym_conv3 linorder_lit.is_maximal_in_mset_iff nat.inject)
+    thus ?case
+      by blast
+  next
+    case (Suc n)
+    have "ord_res.ground_factoring\<^sup>+\<^sup>+ (C - {#Pos A#}) C' \<and> (\<nexists>a. ord_res.ground_factoring C' a)"
+    proof (rule Suc.IH)
+      show "count (remove1_mset (Pos A) C) (Pos A) = Suc (Suc n)"
+        using Suc.prems by simp
+    next
+      show "C' = remove1_mset (Pos A) C - replicate_mset (Suc n) (Pos A)"
+        using Suc.prems by simp
+    next
+      show "ord_res.is_maximal_lit (Pos A) (remove1_mset (Pos A) C)"
+        using Suc.prems
+        by (smt (verit, ccfv_SIG) Zero_not_Suc add_diff_cancel_left' add_mset_remove_trivial_eq
+            count_add_mset count_inI linorder_lit.is_maximal_in_mset_iff plus_1_eq_Suc)
+    qed
+
+    moreover have "ord_res.ground_factoring C (C - {#Pos A#})"
+      unfolding ord_res_ground_factoring_iff
+    proof (intro exI conjI)
+      show "ord_res.is_maximal_lit (Pos A) C"
+        using Suc.prems by metis
+    next
+      show "count C (Pos A) = Suc (Suc (Suc n))"
+        using Suc.prems by metis
+    next
+      show "remove1_mset (Pos A) C = remove1_mset (Pos A) C" ..
+    qed
+
+    ultimately show ?case
+      by auto
+  qed
+qed
+
+lemma minus_mset_replicate_mset_eq_add_mset_filter_mset:
+  assumes "count X x = Suc n"
+  shows "X - replicate_mset n x = add_mset x {#y \<in># X. y \<noteq> x#}"
+  using assms
+  by (metis add_diff_cancel_left' add_mset_diff_bothsides filter_mset_eq filter_mset_neq
+      multiset_partition replicate_mset_Suc union_mset_add_mset_right)
+
+lemma minus_mset_replicate_mset_eq_add_mset_add_mset_filter_mset:
+  assumes "count X x = Suc (Suc n)"
+  shows "X - replicate_mset n x = add_mset x (add_mset x {#y \<in># X. y \<noteq> x#})"
+  using assms
+  by (metis add_diff_cancel_left' add_mset_diff_bothsides filter_mset_eq filter_mset_neq
+      multiset_partition replicate_mset_Suc union_mset_add_mset_right)
+
+lemma rtrancl_ground_factoring_iff:
+  shows "ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'') \<longleftrightarrow>
+  ((\<nexists>A. ord_res.is_maximal_lit (Pos A) C \<and> count C (Pos A) \<ge> 2) \<and> C = C' \<or>
+   (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> C' = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#}))"
+proof (intro iffI; elim exE conjE disjE)
+  show "ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<Longrightarrow> \<nexists>C''. ord_res.ground_factoring C' C'' \<Longrightarrow>
+    (\<nexists>A. ord_res.is_maximal_lit (Pos A) C \<and> 2 \<le> count C (Pos A)) \<and> C = C' \<or>
+    (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> C' = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#})"
+  proof (induction C rule: converse_rtranclp_induct)
+    case base
+    thus ?case
+      by (metis add_2_eq_Suc le_Suc_ex ord_res_ground_factoring_iff)
+  next
+    case (step y z)
+    hence "ord_res.ground_factoring\<^sup>+\<^sup>+ y C' \<and> (\<nexists>x. ord_res.ground_factoring C' x)"
+      by simp
+    thus ?case
+      unfolding tranclp_ord_res_ground_factoring_iff
+      by (metis minus_mset_replicate_mset_eq_add_mset_filter_mset)
+  qed
+next
+  assume "\<nexists>A. ord_res.is_maximal_lit (Pos A) C \<and> 2 \<le> count C (Pos A)" and "C = C'"
+  thus "ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')"
+    by (metis One_nat_def Suc_1 Suc_le_eq Suc_le_mono ord_res_ground_factoring_iff
+        rtranclp.rtrancl_refl zero_less_Suc)
+next
+  fix A assume "ord_res.is_maximal_lit (Pos A) C"
+  then obtain n where "count C (Pos A) = Suc n"
+    by (meson in_countE linorder_lit.is_maximal_in_mset_iff)
+  with \<open>ord_res.is_maximal_lit (Pos A) C\<close> show "C' = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#} \<Longrightarrow>
+    ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')"
+  proof (induction n arbitrary: C)
+    case 0
+
+    have "(\<nexists>a. ord_res.ground_factoring C a)"
+    proof (intro notI, elim exE)
+      fix D assume "ord_res.ground_factoring C D"
+      thus False
+      proof (cases rule: ord_res.ground_factoring.cases)
+        case (ground_factoringI A' P')
+        hence "A' = A"
+          using \<open>ord_res.is_maximal_lit (Pos A) C\<close>
+          using linorder_lit.Uniq_is_maximal_in_mset
+          by (metis Uniq_D literal.inject(1))
+        thus False
+          using \<open>count C (Pos A) = Suc 0\<close> \<open>C = add_mset (Pos A') (add_mset (Pos A') P')\<close> by simp
+      qed
+    qed
+    thus ?case
+      by (metis "0.prems"(1) "0.prems"(3) diff_zero
+          minus_mset_replicate_mset_eq_add_mset_filter_mset replicate_mset_0 rtranclp.rtrancl_refl)
+  next
+    case (Suc x)
+    then show ?case
+      by (metis minus_mset_replicate_mset_eq_add_mset_filter_mset tranclp_into_rtranclp
+          tranclp_ord_res_ground_factoring_iff)
+  qed
+qed
+
+lemma efac_spec: "efac C = C \<or>
+  (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> efac C = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#})"
+  using efac_eq_disj[of C]
+proof (elim disjE)
+  assume "efac C = C"
+  thus "efac C = C \<or>
+    (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> efac C = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#})"
+    by metis
+next
+  assume "\<exists>!C'. efac C = C' \<and> ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and>
+    (\<nexists>C''. ord_res.ground_factoring C' C'')"
+  then obtain C' where
+    "efac C = C'" and
+    "ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')"
+    by metis
+  thus "efac C = C \<or>
+    (\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> efac C = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#})"
+    unfolding rtrancl_ground_factoring_iff
+    by metis
+qed
+
+lemma efac_spec_if_pos_lit_is_maximal:
+  assumes L_pos: "is_pos L" and L_max: "ord_res.is_maximal_lit L C"
+  shows "efac C = add_mset L {#K \<in># C. K \<noteq> L#}"
+proof -
+  from assms obtain C' where
+    "efac C = C'" and
+    "ord_res.ground_factoring\<^sup>*\<^sup>* C C' \<and> (\<nexists>C''. ord_res.ground_factoring C' C'')"
+    using ex1_efac_eq_factoring_chain by metis
+  thus ?thesis
+    unfolding rtrancl_ground_factoring_iff
+  proof (elim disjE conjE)
+    assume hyps: "\<nexists>A. ord_res.is_maximal_lit (Pos A) C \<and> 2 \<le> count C (Pos A)" "C = C'"
+    with assms have "count C L = 1"
+      by (metis One_nat_def in_countE is_pos_def le_less_linear less_2_cases_iff
+          linorder_lit.is_maximal_in_mset_iff nat_less_le zero_less_Suc)
+    hence "C = add_mset L {#K \<in># C. K \<noteq> L#}"
+      by (metis One_nat_def diff_zero minus_mset_replicate_mset_eq_add_mset_filter_mset
+          replicate_mset_0)
+    thus "efac C = add_mset L {#K \<in># C. K \<noteq> L#}"
+      using \<open>efac C = C'\<close> \<open>C = C'\<close> by argo
+  next
+    assume "\<exists>A. ord_res.is_maximal_lit (Pos A) C \<and> C' = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#}"
+    thus "efac C = add_mset L {#K \<in># C. K \<noteq> L#}"
+      by (metis L_max Uniq_D \<open>efac C = C'\<close> linorder_lit.Uniq_is_maximal_in_mset)
+  qed
+qed
+
+lemma efac_mempty[simp]: "efac {#} = {#}"
+  by (metis empty_iff linorder_lit.is_maximal_in_mset_iff set_mset_empty efac_spec)
+
+lemma set_mset_efac[simp]: "set_mset (efac C) = set_mset C"
+  using efac_spec[of C]
+proof (elim disjE exE conjE)
+  show "efac C = C \<Longrightarrow> set_mset (efac C) = set_mset C"
+    by simp
+next
+  fix A
+  assume "ord_res.is_maximal_lit (Pos A) C"
+  hence "Pos A \<in># C"
+    by (simp add: linorder_lit.is_maximal_in_mset_iff)
+
+  assume efac_C_eq: "efac C = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#}"
+  show "set_mset (efac C) = set_mset C"
+  proof (intro Set.subset_antisym Set.subsetI)
+    fix L assume "L \<in># efac C"
+    then show "L \<in># C"
+      unfolding efac_C_eq
+      using \<open>Pos A \<in># C\<close> by auto
+  next
+    fix L assume "L \<in># C"
+    then show "L \<in># efac C"
+      unfolding efac_C_eq
+      by simp
+  qed
+qed
+
+lemma efac_subset: "efac C \<subseteq># C"
+  using efac_spec[of C]
+proof (elim disjE exE conjE)
+  show "efac C = C \<Longrightarrow> efac C \<subseteq># C"
+    by simp
+next
+  fix A
+  assume "ord_res.is_maximal_lit (Pos A) C" and
+    efac_C_eq: "efac C = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#}"
+  then show "efac C \<subseteq># C"
+    by (smt (verit, ccfv_SIG) filter_mset_add_mset insert_DiffM insert_subset_eq_iff
+        linorder_lit.is_maximal_in_mset_iff multiset_filter_subset)
+qed
+
+lemma true_cls_efac_iff[simp]:
+  fixes \<I> :: "'f gterm set" and C :: "'f gclause"
+  shows "\<I> \<TTurnstile> efac C \<longleftrightarrow> \<I> \<TTurnstile> C"
+  by (metis set_mset_efac true_cls_iff_set_mset_eq)
+
+lemma obtains_positive_greatest_lit_if_efac_not_ident:
+  assumes "efac C \<noteq> C"
+  obtains L where "is_pos L" and "linorder_lit.is_greatest_in_mset (efac C) L"
+proof -
+  from \<open>efac C \<noteq> C\<close> obtain A where
+    Pos_A_maximal: "linorder_lit.is_maximal_in_mset C (Pos A)" and
+    efac_C_eq: "efac C = add_mset (Pos A) {#L \<in># C. L \<noteq> Pos A#}"
+    using efac_spec by metis
+
+  assume hyp: "\<And>L. is_pos L \<Longrightarrow> linorder_lit.is_greatest_in_mset (efac C) L \<Longrightarrow> thesis"
+  show thesis
+  proof (rule hyp)
+    show "is_pos (Pos A)"
+      by simp
+  next
+    show "linorder_lit.is_greatest_in_mset(efac C) (Pos A)"
+      unfolding efac_C_eq linorder_lit.is_greatest_in_mset_iff
+      using Pos_A_maximal[unfolded linorder_lit.is_maximal_in_mset_iff]
+      by auto
+  qed
+qed
+
+lemma mempty_in_image_efac_iff[simp]: "{#} \<in> efac ` N \<longleftrightarrow> {#} \<in> N"
+  by (metis empty_iff imageE image_eqI linorder_lit.is_maximal_in_mset_iff set_mset_empty set_mset_efac efac_spec)
+
+lemma greatest_literal_in_efacI:
+  assumes "is_pos L" and C_max_lit: "linorder_lit.is_maximal_in_mset C L"
+  shows "linorder_lit.is_greatest_in_mset (efac C) L"
+  unfolding efac_spec_if_pos_lit_is_maximal[OF assms] linorder_lit.is_greatest_in_mset_iff
+proof (intro conjI ballI)
+  show "L \<in># add_mset L {#K \<in># C. K \<noteq> L#}"
+    by simp
+next
+  fix y :: "'f gterm literal"
+  assume "y \<in># remove1_mset L (add_mset L {#K \<in># C. K \<noteq> L#})"
+  then show "y \<prec>\<^sub>l L"
+    using C_max_lit[unfolded linorder_lit.is_maximal_in_mset_iff]
+    by  auto
+qed
+
+end
+
+
+section \<open>Lemmas about going between ground and first-order terms\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
+
+lemma ex1_gterm_of_term:
+  fixes t :: "'f gterm"
+  shows "\<exists>!(t' :: ('f, 'v) term). ground t' \<and> t = gterm_of_term t'"
+proof (rule ex1I)
+  show "ground (term_of_gterm t) \<and> t = gterm_of_term (term_of_gterm t)"
+    by simp
+next
+  fix t' :: "('f, 'v) term"
+  show "ground t' \<and> t = gterm_of_term t' \<Longrightarrow> t' = term_of_gterm t"
+    by (induction t') (simp_all add: map_idI)
+qed
+
+lemma binj_betw_gterm_of_term: "bij_betw gterm_of_term {t. ground t} UNIV"
+  unfolding bij_betw_def
+proof (rule conjI)
+  show "inj_on gterm_of_term {t. ground t}"
+    by (metis gterm_of_term_inj mem_Collect_eq)
+next
+  show "gterm_of_term ` {t. ground t} = UNIV"
+  proof (rule Set.subset_antisym)
+    show "gterm_of_term ` {t. Term_Context.ground t} \<subseteq> UNIV"
+      by simp
+  next
+    show "UNIV \<subseteq> gterm_of_term ` {t. Term_Context.ground t}"
+      by (metis (mono_tags, opaque_lifting) ground_term_of_gterm image_iff mem_Collect_eq subsetI
+          term_of_gterm_inv)
+  qed
+qed
+
+end
+
+
+section \<open>SCL(FOL) for first-order terms\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
+
+definition less_B where
+  "less_B x y \<longleftrightarrow> ground x \<and> ground y \<and> gterm_of_term x \<prec>\<^sub>t gterm_of_term y"
+
+sublocale order_less_B: order "less_B\<^sup>=\<^sup>=" less_B
+  by unfold_locales (auto simp add: less_B_def)
+
+sublocale scl_fol: scl_fol_calculus renaming_vars less_B
+proof unfold_locales
+  fix \<beta> :: "('f, 'v) term"
+
+  have Collect_gterms_eq: "\<And>P. {y. P y} = gterm_of_term ` {t. ground t \<and> P (gterm_of_term t)}"
+    using Collect_eq_image_filter_Collect_if_bij_betw[OF binj_betw_gterm_of_term subset_UNIV]
+    by auto
+
+  have "{t\<^sub>G. t\<^sub>G \<prec>\<^sub>t gterm_of_term \<beta>} = gterm_of_term ` {x. ground x \<and> gterm_of_term x \<prec>\<^sub>t gterm_of_term \<beta>}"
+    using Collect_gterms_eq[of "\<lambda>t\<^sub>G. t\<^sub>G \<prec>\<^sub>t gterm_of_term \<beta>"] .
+  hence "finite (gterm_of_term ` {x. ground x \<and> gterm_of_term x \<prec>\<^sub>t gterm_of_term \<beta>})"
+    using finite_less_trm[of "gterm_of_term \<beta>"] by metis
+  moreover have "inj_on gterm_of_term {x. ground x \<and> gterm_of_term x \<prec>\<^sub>t gterm_of_term \<beta>}"
+    by (rule gterm_of_term_inj) simp
+  ultimately have "finite {x. ground x \<and> gterm_of_term x \<prec>\<^sub>t gterm_of_term \<beta>}"
+    using finite_imageD by blast
+  thus "finite {x. less_B x \<beta>}"
+    unfolding less_B_def
+    using not_finite_existsD by force
+qed
+
+end
+
+
+section \<open>Common definitions and lemmas\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
+
+abbreviation ord_res_Interp where
+  "ord_res_Interp N C \<equiv> ord_res.interp N C \<union> ord_res.production N C"
+
+definition is_least_false_clause where
+  "is_least_false_clause N C \<longleftrightarrow>
+    linorder_cls.is_least_in_fset {|C |\<in>| N. \<not> ord_res_Interp (fset N) C \<TTurnstile> C|} C"
+
+lemma is_least_false_clause_finsert_smaller_false_clause:
+  assumes
+    D_least: "is_least_false_clause N D" and
+    "C \<prec>\<^sub>c D" and
+    C_false: "\<not> ord_res_Interp (fset (finsert C N)) C \<TTurnstile> C"
+  shows "is_least_false_clause (finsert C N) C"
+  unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+proof (intro conjI ballI impI)
+  show "C |\<in>| finsert C N"
+    by simp
+next
+  show "\<not> ord_res_Interp (fset (finsert C N)) C \<TTurnstile> C"
+    using assms by metis
+next
+  fix y
+  assume "y |\<in>| finsert C N" and "y \<noteq> C" and y_false: "\<not> ord_res_Interp (fset (finsert C N)) y \<TTurnstile> y"
+  hence "y |\<in>| N"
+    by simp
+
+  have "\<not> (y \<prec>\<^sub>c C)"
+  proof (rule notI)
+    assume "y \<prec>\<^sub>c C"
+    hence "ord_res_Interp (fset (finsert C N)) y = ord_res_Interp (fset N) y"
+      using ord_res.Interp_insert_greater_clause by simp
+
+    hence "\<not> ord_res_Interp (fset N) y \<TTurnstile> y"
+      using y_false by argo
+
+    moreover have "y \<prec>\<^sub>c D"
+      using \<open>y \<prec>\<^sub>c C\<close> \<open>C \<prec>\<^sub>c D\<close> by order
+
+    ultimately show False
+      using D_least
+      by (metis (mono_tags, lifting) \<open>y |\<in>| N\<close> linorder_cls.is_least_in_ffilter_iff
+          linorder_cls.less_asym' is_least_false_clause_def)
+  qed
+  thus "C \<prec>\<^sub>c y"
+    using \<open>y \<noteq> C\<close> by order
+qed
+
+lemma is_least_false_clause_swap_swap_compatible_fsets:
+  assumes "{|x |\<in>| N1. x \<preceq>\<^sub>c C|} = {|x |\<in>| N2. x \<preceq>\<^sub>c C|}"
+  shows "is_least_false_clause N1 C \<longleftrightarrow> is_least_false_clause N2 C"
+proof -
+  have "is_least_false_clause N2 C" if
+    subsets_agree: "{|x |\<in>| N1. x \<preceq>\<^sub>c C|} = {|x |\<in>| N2. x \<preceq>\<^sub>c C|}" and
+    C_least: "is_least_false_clause N1 C" for N1 N2 C
+    unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+  proof (intro conjI ballI impI)
+    have "C |\<in>| N1"
+      using C_least
+      unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+      by argo
+    thus "C |\<in>| N2"
+      using subsets_agree by auto
+  next
+    have "\<not> ord_res_Interp (fset N1) C \<TTurnstile> C"
+      using C_least
+      unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+      by argo
+    moreover have "ord_res_Interp (fset N1) C = ord_res_Interp (fset N2) C"
+      using subsets_agree by (auto intro!: ord_res.Interp_swap_clause_set) 
+    ultimately show "\<not> ord_res_Interp (fset N2) C \<TTurnstile> C"
+      by argo
+  next
+    fix y assume "y |\<in>| N2" and "y \<noteq> C"
+    show "\<not> ord_res_Interp (fset N2) y \<TTurnstile> y \<Longrightarrow> C \<prec>\<^sub>c y"
+    proof (erule contrapos_np)
+      assume "\<not> C \<prec>\<^sub>c y"
+      hence "y \<preceq>\<^sub>c C"
+        by order
+      hence "y |\<in>| N1"
+        using \<open>y |\<in>| N2\<close> using subsets_agree by auto
+      hence "\<not> ord_res_Interp (fset N1) y \<TTurnstile> y \<longrightarrow> C \<prec>\<^sub>c y"
+        using \<open>is_least_false_clause N1 C\<close> \<open>y \<noteq> C\<close>
+        unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+        by metis
+      moreover have "ord_res_Interp (fset N1) y = ord_res_Interp (fset N2) y"
+      proof (rule ord_res.Interp_swap_clause_set)
+        show "{D. D |\<in>| N1 \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D y} = {D. D |\<in>| N2 \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D y}"
+          using subsets_agree \<open>y \<preceq>\<^sub>c C\<close> by fastforce
+      qed simp_all
+      ultimately show "ord_res_Interp (fset N2) y \<TTurnstile> y"
+        using \<open>y \<preceq>\<^sub>c C\<close> by auto
+    qed
+  qed
+  thus ?thesis
+    using assms by metis
+qed
+
+lemma Uniq_is_least_false_clause: "\<exists>\<^sub>\<le>\<^sub>1 C. is_least_false_clause N C"
+proof (rule Uniq_I)
+  show "\<And>x y z. is_least_false_clause x y \<Longrightarrow> is_least_false_clause x z \<Longrightarrow> y = z"
+    unfolding is_least_false_clause_def
+    by (meson Uniq_D linorder_cls.Uniq_is_least_in_fset)
+qed
+
+lemma mempty_lesseq_cls[simp]: "{#} \<preceq>\<^sub>c C" for C
+  by (cases C) (simp_all add: strict_subset_implies_multp)
+
+lemma is_least_false_clause_mempty: "{#} |\<in>| N \<Longrightarrow> is_least_false_clause N {#}"
+  using is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff mempty_lesseq_cls
+  by fastforce
+
+definition ex_false_clause where
+  "ex_false_clause N = (\<exists>C \<in> N. \<not> ord_res.interp N C \<union> ord_res.production N C \<TTurnstile> C)"
+
+lemma obtains_least_false_clause_if_ex_false_clause:
+  assumes "ex_false_clause (fset N)"
+  obtains C where "is_least_false_clause N C"
+  using assms
+  by (metis (mono_tags, lifting) bot_fset.rep_eq emptyE ex_false_clause_def ffmember_filter
+      linorder_cls.ex_least_in_fset is_least_false_clause_def)
+
+lemma ex_false_clause_if_least_false_clause:
+  assumes "is_least_false_clause N C"
+  shows "ex_false_clause (fset N)"
+  using assms
+  by (metis (no_types, lifting) ex_false_clause_def is_least_false_clause_def
+      linorder_cls.is_least_in_fset_ffilterD(1) linorder_cls.is_least_in_fset_ffilterD(2))
+
+lemma ex_false_clause_iff: "ex_false_clause (fset N) \<longleftrightarrow> (\<exists>C. is_least_false_clause N C)"
+  using obtains_least_false_clause_if_ex_false_clause ex_false_clause_if_least_false_clause by metis
+
+definition ord_res_model where
+  "ord_res_model N = (\<Union>D \<in> N. ord_res.production N D)"
+
+lemma ord_res_model_eq_interp_union_production_of_greatest_clause:
+  assumes C_greatest: "linorder_cls.is_greatest_in_set N C"
+  shows "ord_res_model N = ord_res.interp N C \<union> ord_res.production N C"
+proof -
+  have "ord_res_model N = (\<Union>D \<in> N. ord_res.production N D)"
+    unfolding ord_res_model_def ..
+  also have "\<dots> = (\<Union>D \<in> {D \<in> N. D \<preceq>\<^sub>c C}. ord_res.production N D)"
+    using C_greatest linorder_cls.is_greatest_in_set_iff by auto
+  also have "\<dots> = (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C} \<union> {C}. ord_res.production N D)"
+    using C_greatest linorder_cls.is_greatest_in_set_iff by auto
+  also have "\<dots> = (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. ord_res.production N D) \<union> ord_res.production N C"
+    by auto
+  also have "\<dots> = ord_res.interp N C \<union> ord_res.production N C"
+    unfolding ord_res.interp_def ..
+  finally show ?thesis .
+qed
+
+lemma ord_res_model_entails_clauses_if_nex_false_clause:
+  assumes "finite N" and "N \<noteq> {}" and "\<not> ex_false_clause N"
+  shows "ord_res_model N \<TTurnstile>s N"
+  unfolding true_clss_def
+proof (intro ballI)
+  from \<open>\<not> ex_false_clause N\<close> have ball_true:
+    "\<forall>C \<in> N. ord_res.interp N C \<union> ord_res.production N C \<TTurnstile> C"
+    by (simp add: ex_false_clause_def)
+
+  from \<open>finite N\<close> \<open>N \<noteq> {}\<close> obtain D where
+    D_greatest: "linorder_cls.is_greatest_in_set N D"
+    using linorder_cls.ex_greatest_in_set by metis
+
+  fix C assume "C \<in> N"
+  hence "ord_res.interp N C \<union> ord_res.production N C \<TTurnstile> C"
+    using ball_true by metis
+
+  moreover have "C \<preceq>\<^sub>c D"
+    using \<open>C \<in> N\<close> D_greatest[unfolded linorder_cls.is_greatest_in_set_iff] by auto
+
+  ultimately have "ord_res.interp N D \<union> ord_res.production N D \<TTurnstile> C"
+    using ord_res.entailed_clause_stays_entailed by auto
+
+  thus "ord_res_model N \<TTurnstile> C"
+    using ord_res_model_eq_interp_union_production_of_greatest_clause[OF D_greatest] by argo
+qed
+
+end
+
 end
