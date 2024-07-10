@@ -1853,7 +1853,7 @@ theorem bisimulation_ord_res_1_ord_res_2:
   defines "match \<equiv> \<lambda>i s1 s2. i = ord_res_1_measure s1 \<and> ord_res_1_matches_ord_res_2 s1 s2"
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow> 'f gterm clause fset \<Rightarrow>
     'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow> bool) ORDER.
-    bisimulation ord_res_1 ord_res_2_step ord_res_1_final ord_res_2_final ORDER MATCH"
+    bisimulation ord_res_1 ord_res_2_step ord_res_1_final ord_res_2_final ORDER ORDER MATCH"
 proof (rule ex_bisimulation_from_forward_simulation)
   show "right_unique ord_res_1"
     using right_unique_ord_res_1 .
@@ -4192,7 +4192,7 @@ theorem bisimulation_ord_res_2_ord_res_3:
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
     'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow>
     'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow> bool) ORDER.
-    bisimulation ord_res_2_step ord_res_3_step ord_res_2_final ord_res_3_final ORDER MATCH"
+    bisimulation ord_res_2_step ord_res_3_step ord_res_2_final ord_res_3_final ORDER ORDER MATCH"
 proof (rule ex_bisimulation_from_backward_simulation)
   show "right_unique ord_res_2_step"
     using right_unique_ord_res_2_step .
@@ -4233,7 +4233,7 @@ proof -
   obtain
     MATCH12 :: "nat \<times> nat \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> bool" and
     ORDER12 :: "nat \<times> nat \<Rightarrow> nat \<times> nat \<Rightarrow> bool" where
-    "bisimulation ord_res_1 ord_res_2_step ord_res_1_final ord_res_2_final ORDER12 MATCH12"
+    "bisimulation ord_res_1 ord_res_2_step ord_res_1_final ord_res_2_final ORDER12 ORDER12 MATCH12"
     using bisimulation_ord_res_1_ord_res_2 by metis
   hence bsim12: "backward_simulation ord_res_1 ord_res_2_step ord_res_1_final ord_res_2_final ORDER12 MATCH12"
     by (simp add: bisimulation_def)
@@ -4241,7 +4241,7 @@ proof -
   obtain
     MATCH23 :: "nat \<times> nat \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> bool" and
     ORDER23 :: "nat \<times> nat \<Rightarrow> nat \<times> nat \<Rightarrow> bool" where
-    "bisimulation ord_res_2_step ord_res_3_step ord_res_2_final ord_res_3_final ORDER23 MATCH23"
+    "bisimulation ord_res_2_step ord_res_3_step ord_res_2_final ord_res_3_final ORDER23 ORDER23 MATCH23"
     using bisimulation_ord_res_2_ord_res_3 by metis
   hence bsim23: "backward_simulation ord_res_2_step ord_res_3_step ord_res_2_final ord_res_3_final ORDER23 MATCH23"
     by (simp add: bisimulation_def)
@@ -4809,7 +4809,7 @@ theorem bisimulation_ord_res_3_ord_res_4:
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
     'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow>
     'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow> bool) ORDER.
-    bisimulation ord_res_3_step ord_res_4_step ord_res_3_final ord_res_4_final ORDER MATCH"
+    bisimulation ord_res_3_step ord_res_4_step ord_res_3_final ord_res_4_final ORDER ORDER MATCH"
 proof (rule ex_bisimulation_from_forward_simulation)
   show "right_unique ord_res_3_step"
     using right_unique_ord_res_3_step .
@@ -6640,7 +6640,7 @@ theorem bisimulation_ord_res_4_ord_res_5:
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
     'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<Rightarrow>
     'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow> bool) ORDER.
-    bisimulation ord_res_4_step ord_res_5_step ord_res_4_final ord_res_5_final ORDER MATCH"
+    bisimulation ord_res_4_step ord_res_5_step ord_res_4_final ord_res_5_final ORDER ORDER MATCH"
 proof (rule ex_bisimulation_from_forward_simulation)
   show "right_unique ord_res_4_step"
     using right_unique_ord_res_4_step .
@@ -8946,7 +8946,7 @@ theorem bisimulation_ord_res_5_ord_res_6:
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
     'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow>
     'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow> bool) ORDER.
-    bisimulation ord_res_5_step ord_res_6_step ord_res_5_final ord_res_6_final ORDER MATCH"
+    bisimulation ord_res_5_step ord_res_6_step ord_res_5_final ord_res_6_final ORDER ORDER MATCH"
 proof (rule ex_bisimulation_from_backward_simulation)
   show "right_unique ord_res_5_step"
     using right_unique_ord_res_5_step .
@@ -15455,7 +15455,7 @@ theorem bisimulation_ord_res_6_ord_res_7:
     'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm literal \<times> 'f gclause option) list \<times> 'f gclause option \<Rightarrow> bool)
     ORDER.
     bisimulation ord_res_6_step (constant_context ord_res_7) ord_res_6_final ord_res_7_final
-      ORDER MATCH"
+      ORDER ORDER MATCH"
 proof (rule ex_bisimulation_from_backward_simulation)
   show "right_unique ord_res_6_step"
     using right_unique_ord_res_6_step .
@@ -19490,7 +19490,7 @@ theorem bisimulation_ord_res_7_ord_res_8:
     bisimulation
       (constant_context ord_res_7) (constant_context ord_res_8)
       ord_res_7_final ord_res_8_final
-      ORDER MATCH"
+      ORDER ORDER MATCH"
 proof (rule ex_bisimulation_from_backward_simulation)
   show "right_unique (constant_context ord_res_7)"
     using right_unique_constant_context right_unique_ord_res_7 by metis
@@ -20081,7 +20081,7 @@ theorem bisimulation_ord_res_8_ord_res_9:
     bisimulation
       (constant_context ord_res_8) (constant_context ord_res_9)
       ord_res_8_final ord_res_8_final
-      ORDER MATCH"
+      ORDER ORDER MATCH"
 proof (rule ex_bisimulation_from_backward_simulation)
   show "right_unique (constant_context ord_res_8)"
     using right_unique_constant_context right_unique_ord_res_8 by metis
@@ -21817,7 +21817,7 @@ theorem bisimulation_ord_res_9_ord_res_10:
     bisimulation
       (constant_context ord_res_9) (constant_context ord_res_10)
       ord_res_8_final ord_res_8_final
-      ORDER MATCH"
+      ORDER ORDER MATCH"
 proof (rule ex_bisimulation_from_backward_simulation)
   show "right_unique (constant_context ord_res_9)"
     using right_unique_constant_context right_unique_ord_res_9 by metis
@@ -23977,7 +23977,7 @@ theorem bisimulation_ord_res_10_ord_res_11:
     bisimulation
       (constant_context ord_res_10) (constant_context ord_res_11)
       ord_res_8_final ord_res_11_final
-      ORDER MATCH"
+      ORDER ORDER MATCH"
 proof (rule ex_bisimulation_from_forward_simulation)
   show "right_unique (constant_context ord_res_10)"
     using right_unique_constant_context right_unique_ord_res_10 by metis
