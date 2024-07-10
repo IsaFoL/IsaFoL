@@ -25173,7 +25173,9 @@ proof -
   qed
 qed
 
-lemma "wfp_on {S. (ord_res_11 N)\<^sup>*\<^sup>* ({||}, {||}, [], None) S} (ord_res_11 N)\<inverse>\<inverse>"
+theorem ord_res_11_termination:
+  fixes N :: "'f gclause fset"
+  shows "wfp_on {S. (ord_res_11 N)\<^sup>*\<^sup>* ({||}, {||}, [], None) S} (ord_res_11 N)\<inverse>\<inverse>"
 proof (rule scl_fol.termination_projectable_strategy)
   fix S S'
   assume run: "(ord_res_11 N)\<^sup>*\<^sup>* ({||}, {||}, [], None) S" and step: "ord_res_11 N S S'"
