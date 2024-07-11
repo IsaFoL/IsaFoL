@@ -19,6 +19,26 @@ no_notation restrict_map (infixl "|`"  110)
 
 section \<open>Move to HOL\<close>
 
+lemma
+  assumes "\<exists>\<^sub>\<le>\<^sub>1x. P x"
+  shows "finite {x. P x}"
+  using assms Collect_eq_if_Uniq by fastforce
+
+lemma finite_if_Uniq_Uniq:
+  assumes
+    "\<exists>\<^sub>\<le>\<^sub>1x. P x"
+    "\<forall>x. \<exists>\<^sub>\<le>\<^sub>1y. Q x y"
+  shows "finite {y. \<exists>x. P x \<and> Q x y}"
+  using assms
+  by (smt (verit, best) Collect_eq_if_Uniq UniqI Uniq_D finite.emptyI finite_insert)
+
+lemma finite_if_finite_finite:
+  assumes
+    "finite {x. P x}"
+    "\<forall>x. finite {y. Q x y}"
+  shows "finite {y. \<exists>x. P x \<and> Q x y}"
+  using assms by auto
+
 lemma strict_partial_order_wfp_on_finite_set:
   assumes "transp_on \<X> R" and "asymp_on \<X> R"
   shows "finite \<X> \<Longrightarrow> Wellfounded.wfp_on \<X> R"
@@ -264,6 +284,9 @@ lemma (in linorder) ex1_sorted_list_for_fset:
   using ex1_sorted_list_for_set_if_finite
   by (metis finite_fset fset_cong fset_of_list.rep_eq)
 
+lemma restrict_map_ident_if_dom_subset: "dom \<M> \<subseteq> A \<Longrightarrow> restrict_map \<M> A = \<M>"
+  by (metis domIff ext in_mono restrict_map_def)
+
 
 subsection \<open>Minimal, maximal, least, and greatest element of a set\<close>
 
@@ -443,8 +466,8 @@ next
   by (metis add_Suc relpowp_Suc_D2 relpowp_Suc_I2)
 qed
 
-lemma restrict_map_ident_if_dom_subset: "dom \<M> \<subseteq> A \<Longrightarrow> restrict_map \<M> A = \<M>"
-  by (metis domIff ext in_mono restrict_map_def)
+lemma tranclp_if_relpowp: "n \<noteq> 0 \<Longrightarrow> (R ^^ n) x y \<Longrightarrow> R\<^sup>+\<^sup>+ x y"
+  by (meson bot_nat_0.not_eq_extremum tranclp_power)
 
 
 section \<open>Move to \<^theory>\<open>HOL-Library.Multiset\<close>\<close>
@@ -1739,6 +1762,132 @@ proof -
   qed
 qed
 
+
+
+lemma
+  fixes N N'
+  assumes
+    fin: "finite N" "finite N'" and
+    irrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subset># D \<and> set_mset D = set_mset E" and
+    C_in: "C \<in> N" and
+    C_not_entailed: "\<not> ord_res.interp N C \<union> ord_res.production N C \<TTurnstile> C"
+  shows "\<not> ord_res.interp (N \<union> N') C \<union> ord_res.production (N \<union> N') C \<TTurnstile> C"
+  using C_not_entailed
+proof (rule contrapos_nn)
+  assume "ord_res.interp (N \<union> N') C \<union> ord_res.production (N \<union> N') C \<TTurnstile> C"
+  then show "ord_res.interp N C \<union> ord_res.production N C \<TTurnstile> C"
+    using ord_res.interp_add_irrelevant_clauses_to_set[OF fin C_in irrelevant]
+    using ord_res.production_add_irrelevant_clauses_to_set[OF fin C_in irrelevant]
+    by metis
+qed
+
+lemma production_union_unproductive_strong:
+  assumes
+    fin: "finite N1" "finite N2" and
+    N2_unproductive: "\<forall>x \<in> N2 - N1. ord_res.production (N1 \<union> N2) x = {}" and
+    C_in: "C \<in> N1"
+  shows "ord_res.production (N1 \<union> N2) C = ord_res.production N1 C"
+  using ord_res.wfP_less_cls C_in
+proof (induction C rule: wfp_induct_rule)
+  case (less C)
+  hence C_in_iff: "C \<in> N1 \<union> N2 \<longleftrightarrow> C \<in> N1"
+    by simp
+
+  have interp_eq: "ord_res.interp (N1 \<union> N2) C = ord_res.interp N1 C"
+  proof -
+    have "ord_res.interp (N1 \<union> N2) C = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1 \<union> N2. D \<prec>\<^sub>c C})"
+      unfolding ord_res.interp_def ..
+    also have "\<dots> = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1. D \<prec>\<^sub>c C} \<union>
+    ord_res.production (N1 \<union> N2) ` {D \<in> N2 - N1. D \<prec>\<^sub>c C})"
+      by auto
+    also have "\<dots> = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1. D \<prec>\<^sub>c C})"
+      using N2_unproductive by simp
+    also have "\<dots> = \<Union> (ord_res.production N1 ` {D \<in> N1. D \<prec>\<^sub>c C})"
+      using less.IH by simp
+    also have "\<dots> = ord_res.interp N1 C"
+      unfolding ord_res.interp_def ..
+    finally show "ord_res.interp (N1 \<union> N2) C = ord_res.interp N1 C" .
+  qed
+
+  show ?case
+    unfolding ord_res.production_unfold C_in_iff interp_eq by argo
+qed
+
+lemma production_union_unproductive:
+  assumes
+    fin: "finite N1" "finite N2" and
+    N2_unproductive: "\<forall>x \<in> N2. ord_res.production (N1 \<union> N2) x = {}" and
+    C_in: "C \<in> N1"
+  shows "ord_res.production (N1 \<union> N2) C = ord_res.production N1 C"
+  using production_union_unproductive_strong assms by simp
+
+lemma interp_union_unproductive:
+  assumes
+    fin: "finite N1" "finite N2" and
+    N2_unproductive: "\<forall>x \<in> N2. ord_res.production (N1 \<union> N2) x = {}"
+  shows "ord_res.interp (N1 \<union> N2) = ord_res.interp N1"
+proof (rule ext)
+  fix C
+  have "ord_res.interp (N1 \<union> N2) C = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1 \<union> N2. D \<prec>\<^sub>c C})"
+    unfolding ord_res.interp_def ..
+  also have "\<dots> = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1. D \<prec>\<^sub>c C} \<union>
+    ord_res.production (N1 \<union> N2) ` {D \<in> N2. D \<prec>\<^sub>c C})"
+    by auto
+  also have "\<dots> = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1. D \<prec>\<^sub>c C})"
+    using N2_unproductive by simp
+  also have "\<dots> = \<Union> (ord_res.production N1 ` {D \<in> N1. D \<prec>\<^sub>c C})"
+    using production_union_unproductive[OF fin N2_unproductive] by simp
+  also have "\<dots> = ord_res.interp N1 C"
+    unfolding ord_res.interp_def ..
+  finally show "ord_res.interp (N1 \<union> N2) C = ord_res.interp N1 C" .
+qed
+
+lemma Interp_union_unproductive:
+  assumes
+    fin: "finite N1" "finite N2" and
+    N2_unproductive: "\<forall>x \<in> N2. ord_res.production (N1 \<union> N2) x = {}"
+  shows "ord_res_Interp (N1 \<union> N2) C = ord_res_Interp N1 C"
+  unfolding interp_union_unproductive[OF assms]
+  using production_union_unproductive[OF assms]
+  using N2_unproductive[rule_format]
+  by (metis (no_types, lifting) Un_iff empty_Collect_eq ord_res.production_unfold)
+
+lemma Interp_insert_unproductive:
+  assumes
+    fin: "finite N1" and
+    x_unproductive: "ord_res.production (insert x N1) x = {}"
+  shows "ord_res_Interp (insert x N1) C = ord_res_Interp N1 C"
+  using assms Interp_union_unproductive
+  by (metis Un_commute finite.emptyI finite.insertI insert_is_Un singletonD)
+
+lemma extended_partial_model_entails_iff_partial_model_entails:
+  assumes
+    fin: "finite N" "finite N'" and
+    irrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subset># D \<and> set_mset D = set_mset E" and
+    C_in: "C \<in> N"
+  shows "ord_res_Interp (N \<union> N') C \<TTurnstile> C \<longleftrightarrow> ord_res_Interp N C \<TTurnstile> C"
+  using ord_res.interp_add_irrelevant_clauses_to_set[OF fin C_in irrelevant]
+  using ord_res.production_add_irrelevant_clauses_to_set[OF fin C_in irrelevant]
+  by metis
+
+lemma nex_strictly_maximal_pos_lit_if_factorizable:
+  assumes "ord_res.ground_factoring C C'"
+  shows "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C"
+  by (metis Uniq_D add_mset_remove_trivial assms linorder_lit.Uniq_is_maximal_in_mset
+      linorder_lit.dual_order.order_iff_strict linorder_lit.is_greatest_in_mset_iff
+      linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset linorder_lit.not_less
+      ord_res.ground_factoring.cases union_single_eq_member)
+
+lemma unproductive_if_nex_strictly_maximal_pos_lit:
+  assumes "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C"
+  shows "ord_res.production N C = {}"
+  using assms by (simp add: ord_res.production_unfold)
+
+lemma ball_unproductive_if_nex_strictly_maximal_pos_lit:
+  assumes "\<forall>C \<in> N'. \<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C"
+  shows "\<forall>C \<in> N'. ord_res.production (N \<union> N') C = {}"
+  using assms unproductive_if_nex_strictly_maximal_pos_lit by metis
+
 end
 
 
@@ -2160,6 +2309,17 @@ next
     using C_max_lit[unfolded linorder_lit.is_maximal_in_mset_iff]
     by  auto
 qed
+
+lemma factorizable_if_neq_efac:
+  assumes "C \<noteq> efac C"
+  shows "\<exists>C'. ord_res.ground_factoring C C'"
+  using assms
+  by (metis converse_rtranclpE ex1_efac_eq_factoring_chain)
+
+lemma nex_strictly_maximal_pos_lit_if_neq_efac:
+  assumes "C \<noteq> efac C"
+  shows "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C"
+  using assms factorizable_if_neq_efac nex_strictly_maximal_pos_lit_if_factorizable by metis
 
 end
 
@@ -2955,6 +3115,299 @@ proof (intro allI impI)
         using \<open>D = repeat_mset (Suc n) C' + replicate_mset (Suc m - Suc n) (Neg A) + D\<^sub>0'\<close>
         by (metis member_mset_repeat_msetD repeat_mset_Suc true_cls_def true_cls_union)
     qed
+  qed
+qed
+
+
+
+lemma clause_true_if_resolved_true:
+  assumes
+    "(ground_resolution D)\<^sup>+\<^sup>+ C DC" and
+    D_productive: "ord_res.production N D \<noteq> {}" and
+    C_true: "ord_res_Interp N DC \<TTurnstile> DC"
+  shows "ord_res_Interp N C \<TTurnstile> C"
+proof -
+  obtain n where
+    steps: "(ground_resolution D ^^ Suc n) C DC"
+    using \<open>(ground_resolution D)\<^sup>+\<^sup>+ C DC\<close>
+    by (metis less_not_refl not0_implies_Suc tranclp_power)
+
+  obtain m A D' C' where
+    "n \<le> m" and
+    "ord_res.is_strictly_maximal_lit (Pos A) D" and
+    "ord_res.is_maximal_lit (Neg A) C" and
+    "D = add_mset (Pos A) D'" and
+    "C = replicate_mset (Suc m) (Neg A) + C'" and
+    "Neg A \<notin># C'" and
+    "DC = repeat_mset (Suc n) D' + replicate_mset (m - n) (Neg A) + C'"
+    using relpowp_ground_resolutionD[OF Suc_not_Zero steps]
+    by (metis diff_Suc_Suc Suc_le_mono)
+
+  have "Neg A \<notin># D'"
+    by (metis \<open>D = add_mset (Pos A) D'\<close> \<open>ord_res.is_strictly_maximal_lit (Pos A) D\<close>
+        ord_res.less_lit_simps(4) linorder_lit.is_greatest_in_mset_iff linorder_trm.eq_refl
+        linorder_trm.leD remove1_mset_add_mset_If)
+
+  have "DC \<prec>\<^sub>c C"
+  proof (cases "m = n")
+    case True
+    show ?thesis
+    proof (intro one_step_implies_multp[of _ _ _ "{#}", simplified] ballI)
+      show "C \<noteq> {#}"
+        by (simp add: \<open>C = replicate_mset (Suc m) (Neg A) + C'\<close>)
+    next
+      fix L
+      assume "L \<in># DC"
+      hence "L \<in># D' \<or> L \<in># C'"
+        unfolding \<open>DC = repeat_mset (Suc n) D' + replicate_mset (m - n) (Neg A) + C'\<close> \<open>m = n\<close>
+        using member_mset_repeat_msetD by fastforce
+      hence "L \<prec>\<^sub>l Neg A"
+        using \<open>ord_res.is_strictly_maximal_lit (Pos A) D\<close> \<open>ord_res.is_maximal_lit (Neg A) C\<close>
+        unfolding \<open>D = add_mset (Pos A) D'\<close> \<open>C = replicate_mset (Suc m) (Neg A) + C'\<close>
+        unfolding linorder_lit.is_maximal_in_mset_iff linorder_lit.is_greatest_in_mset_iff
+        by (metis \<open>Neg A \<notin># C'\<close> add_mset_remove_trivial ord_res.less_lit_simps(4)
+            linorder_lit.antisym_conv3 linorder_lit.dual_order.strict_trans
+            linorder_trm.dual_order.asym union_iff)
+
+      moreover have "Neg A \<in># C"
+        by (simp add: \<open>C = replicate_mset (Suc m) (Neg A) + C'\<close>)
+
+      ultimately show "\<exists>K \<in># C. L \<prec>\<^sub>l K"
+        by metis
+    qed
+  next
+    case False
+    hence "n < m"
+      using \<open>n \<le> m\<close> by presburger
+
+    have "multp\<^sub>H\<^sub>O (\<prec>\<^sub>l) DC C"
+    proof (rule linorder_lit.multp\<^sub>H\<^sub>O_if_same_maximal_and_count_lt)
+      show "ord_res.is_maximal_lit (Neg A) DC"
+        unfolding linorder_lit.is_maximal_in_mset_iff
+      proof (intro conjI ballI impI)
+        show "Neg A \<in># DC"
+          unfolding \<open>DC = repeat_mset (Suc n) D' + replicate_mset (m - n) (Neg A) + C'\<close>
+          using \<open>n < m\<close> by simp
+      next
+        fix L
+        assume "L \<in># DC" and "L \<noteq> Neg A"
+        hence "L \<in># D' \<or> L \<in># C'"
+          unfolding \<open>DC = repeat_mset (Suc n) D' + replicate_mset (m - n) (Neg A) + C'\<close>
+          by (metis in_replicate_mset member_mset_repeat_msetD union_iff)
+        thus "\<not> Neg A \<prec>\<^sub>l L"
+          using \<open>ord_res.is_strictly_maximal_lit (Pos A) D\<close> \<open>ord_res.is_maximal_lit (Neg A) C\<close>
+          unfolding \<open>D = add_mset (Pos A) D'\<close> \<open>C = replicate_mset (Suc m) (Neg A) + C'\<close>
+          unfolding linorder_lit.is_maximal_in_mset_iff linorder_lit.is_greatest_in_mset_iff
+          by (metis \<open>L \<noteq> Neg A\<close> add_mset_diff_bothsides diff_zero
+              linorder_lit.dual_order.strict_trans linorder_trm.less_irrefl
+              ord_res.less_lit_simps(4) union_iff)
+      qed
+    next
+      show "ord_res.is_maximal_lit (Neg A) C"
+        using \<open>ord_res.is_maximal_lit (Neg A) C\<close> .
+    next
+      have "count DC (Neg A) = count (repeat_mset (Suc n) D') (Neg A) +
+      count (replicate_mset (m - n) (Neg A)) (Neg A) + count C' (Neg A)"
+        unfolding \<open>DC = repeat_mset (Suc n) D' + replicate_mset (m - n) (Neg A) + C'\<close> by simp
+      also have "\<dots> = count D' (Neg A) * Suc n + count {#Neg A#} (Neg A) * (m - n) + count C' (Neg A)"
+        by simp
+      also have "\<dots> = 0 * Suc n + 1 * (m - n) + 0"
+        by (simp add: \<open>Neg A \<notin># C'\<close> \<open>Neg A \<notin># D'\<close> count_eq_zero_iff)
+      also have "\<dots> = m - n"
+        by presburger
+      also have "\<dots> < Suc m"
+        by presburger
+      also have "\<dots> = 1 * Suc m + 0"
+        by presburger
+      also have "\<dots> = count {#Neg A#} (Neg A) * Suc m + count C' (Neg A)"
+        by (simp add: \<open>Neg A \<notin># C'\<close> count_eq_zero_iff)
+      also have "\<dots> = count (replicate_mset (Suc m) (Neg A)) (Neg A) + count C' (Neg A)"
+        by simp
+      also have "\<dots> = count C (Neg A)"
+        unfolding \<open>C = replicate_mset (Suc m) (Neg A) + C'\<close> by simp
+      finally show "count DC (Neg A) < count C (Neg A)" .
+    qed
+    thus ?thesis
+      by (simp add: multp\<^sub>D\<^sub>M_imp_multp multp\<^sub>H\<^sub>O_imp_multp\<^sub>D\<^sub>M)
+  qed
+
+  with C_true have "ord_res_Interp N C \<TTurnstile> DC"
+    using ord_res.entailed_clause_stays_entailed by metis
+
+  thus "ord_res_Interp N C \<TTurnstile> C"
+    unfolding true_cls_def
+  proof (elim bexE)
+    fix L
+    assume
+      L_in: "L \<in># DC" and
+      L_true: "ord_res_Interp N C \<TTurnstile>l L"
+
+    from L_in have "L \<in># D' \<or> L = Neg A \<or> L \<in># C'"
+      unfolding \<open>DC = repeat_mset (Suc n) D' + replicate_mset (m - n) (Neg A) + C'\<close>
+      by (metis in_replicate_mset member_mset_repeat_msetD union_iff)
+
+    moreover have "L \<notin># D'"
+    proof (rule notI)
+      assume "L \<in># D'"
+
+      moreover have "\<not> ord_res.interp N (add_mset (Pos A) D') \<TTurnstile> add_mset (Pos A) D'"
+        using D_productive[unfolded \<open>D = add_mset (Pos A) D'\<close>]
+        unfolding ord_res.production_unfold
+        by fast
+
+      ultimately have "\<not> ord_res.interp N (add_mset (Pos A) D') \<TTurnstile>l L"
+        by auto
+
+      have "L \<prec>\<^sub>l Pos A"
+        using \<open>D = add_mset (Pos A) D'\<close> \<open>L \<in># D'\<close> \<open>ord_res.is_strictly_maximal_lit (Pos A) D\<close>
+          linorder_lit.is_greatest_in_mset_iff by fastforce
+
+      have "\<not> ord_res_Interp N C \<TTurnstile>l L"
+      proof (cases L)
+        case (Pos B)
+        hence "B \<notin> ord_res.interp N (add_mset (Pos A) D')"
+          using \<open>\<not> ord_res.interp N (add_mset (Pos A) D') \<TTurnstile>l L\<close> by simp
+
+        moreover have "add_mset (Pos A) D' \<prec>\<^sub>c C"
+          by (metis \<open>D = add_mset (Pos A) D'\<close> \<open>\<And>thesis. (\<And>m A D' C'. \<lbrakk>n \<le> m; ord_res.is_strictly_maximal_lit (Pos A) D; ord_res.is_maximal_lit (Neg A) C; D = add_mset (Pos A) D'; C = replicate_mset (Suc m) (Neg A) + C'; Neg A \<notin># C'; DC = repeat_mset (Suc n) D' + replicate_mset (m - n) (Neg A) + C'\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset linorder_lit.multp\<^sub>H\<^sub>O_if_maximal_less_that_maximal multp\<^sub>D\<^sub>M_imp_multp multp\<^sub>H\<^sub>O_imp_multp\<^sub>D\<^sub>M ord_res.less_lit_simps(2) reflclp_iff)
+
+        ultimately have "B \<notin> ord_res.interp N C"
+          using \<open>L \<prec>\<^sub>l Pos A\<close>[unfolded Pos, simplified]
+          using ord_res.interp_fixed_for_smaller_literals
+          by (metis \<open>D = add_mset (Pos A) D'\<close> \<open>ord_res.is_strictly_maximal_lit (Pos A) D\<close>
+              linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset literal.sel(1))
+
+        moreover have "B \<notin> ord_res.production N C"
+          by (metis Uniq_D \<open>ord_res.is_maximal_lit (Neg A) C\<close> ground_ordered_resolution_calculus.mem_productionE linorder_lit.Uniq_is_maximal_in_mset linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset literal.simps(4) ord_res.ground_ordered_resolution_calculus_axioms)
+
+        ultimately show ?thesis
+          unfolding Pos by simp
+      next
+        case (Neg B)
+        hence "B \<in> ord_res.interp N (add_mset (Pos A) D')"
+          using \<open>\<not> ord_res.interp N (add_mset (Pos A) D') \<TTurnstile>l L\<close> by simp
+
+        moreover have "add_mset (Pos A) D' \<prec>\<^sub>c C"
+          by (metis \<open>D = add_mset (Pos A) D'\<close> \<open>\<And>thesis. (\<And>m A D' C'. \<lbrakk>n \<le> m; ord_res.is_strictly_maximal_lit (Pos A) D; ord_res.is_maximal_lit (Neg A) C; D = add_mset (Pos A) D'; C = replicate_mset (Suc m) (Neg A) + C'; Neg A \<notin># C'; DC = repeat_mset (Suc n) D' + replicate_mset (m - n) (Neg A) + C'\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset linorder_lit.multp\<^sub>H\<^sub>O_if_maximal_less_that_maximal multp\<^sub>D\<^sub>M_imp_multp multp\<^sub>H\<^sub>O_imp_multp\<^sub>D\<^sub>M ord_res.less_lit_simps(2) reflclp_iff)
+
+        ultimately have "B \<in> ord_res.interp N C"
+          by (metis Un_iff ord_res.not_interp_to_Interp_imp_le linorder_cls.leD)
+
+        then show ?thesis
+          unfolding Neg
+          by simp
+      qed
+
+      with L_true show False
+        by contradiction
+    qed
+
+    ultimately have "L \<in># C"
+      unfolding \<open>C = replicate_mset (Suc m) (Neg A) + C'\<close> by simp
+
+    with L_true show "\<exists>L \<in># C. ord_res_Interp N C \<TTurnstile>l L"
+      by metis
+  qed
+qed
+
+lemma clause_true_if_eres_true:
+  assumes
+    "(ground_resolution D1)\<^sup>+\<^sup>+ D2 C" and
+    "C \<noteq> eres D1 C" and
+    eres_C_true: "ord_res_Interp N (eres D1 C) \<TTurnstile> eres D1 C"
+  shows "ord_res_Interp N C \<TTurnstile> C"
+proof -
+  obtain n where
+    steps: "(ground_resolution D1 ^^ Suc n) D2 C"
+    using \<open>(ground_resolution D1)\<^sup>+\<^sup>+ D2 C\<close>
+    by (metis less_not_refl not0_implies_Suc tranclp_power)
+
+  obtain m A D' C' where
+    "n \<le> m" and
+    "ord_res.is_strictly_maximal_lit (Pos A) D1" and
+    "ord_res.is_maximal_lit (Neg A) D2" and
+    "D1 = add_mset (Pos A) D'" and
+    "D2 = replicate_mset (Suc m) (Neg A) + C'" and
+    "Neg A \<notin># C'" and
+    "C = repeat_mset (Suc n) D' + replicate_mset (m - n) (Neg A) + C'"
+    using relpowp_ground_resolutionD[OF Suc_not_Zero steps]
+    by (metis diff_Suc_Suc Suc_le_mono)
+
+  have "Neg A \<notin># D'"
+    by (metis \<open>D1 = add_mset (Pos A) D'\<close> \<open>ord_res.is_strictly_maximal_lit (Pos A) D1\<close>
+        ord_res.less_lit_simps(4) linorder_lit.is_greatest_in_mset_iff linorder_trm.eq_refl
+        linorder_trm.leD remove1_mset_add_mset_If)
+
+  obtain m' C'' where
+    "C = replicate_mset (Suc m') (Neg A) + C''" and
+    "Neg A \<notin># C''" and
+    "eres D1 C = repeat_mset (Suc m') D' + C''"
+    using \<open>C \<noteq> eres D1 C\<close> eres_not_identD
+    using \<open>ord_res.is_strictly_maximal_lit (Pos A) D1\<close> linorder_lit.Uniq_is_greatest_in_mset
+    using \<open>D1 = add_mset (Pos A) D'\<close>
+    by (metis Uniq_D add_mset_remove_trivial literal.inject(1))
+
+  have "m - n = Suc m'"
+  proof -
+    have "count C (Neg A) = count (repeat_mset (Suc n) D') (Neg A) +
+              count (replicate_mset (m - n) (Neg A)) (Neg A) + count C' (Neg A)"
+      using \<open>C = repeat_mset (Suc n) D' + replicate_mset (m - n) (Neg A) + C'\<close> by simp
+    also have "\<dots> = count D' (Neg A) * Suc n + count {#Neg A#} (Neg A) * (m - n) +
+              count C' (Neg A)"
+      by simp
+    also have "\<dots> = 0 * Suc n + 1 * (m - n) + 0"
+      using \<open>Neg A \<notin># D'\<close> \<open>Neg A \<notin># C'\<close> by (simp add: count_eq_zero_iff)
+    also have "\<dots> = m - n"
+      by presburger
+    finally have "count C (Neg A) = m - n" .
+
+    have "count C (Neg A) = count (replicate_mset (Suc m') (Neg A)) (Neg A) +
+              count C'' (Neg A)"
+      using \<open>C = replicate_mset (Suc m') (Neg A) + C''\<close> by simp
+    also have "\<dots> = count {#Neg A#} (Neg A) * Suc m' + count C'' (Neg A)"
+      by simp
+    also have "\<dots> = 1 * Suc m' + 0"
+      using \<open>Neg A \<notin># C''\<close> by (simp add: count_eq_zero_iff)
+    also have "\<dots> = Suc m'"
+      by presburger
+    finally have "count C (Neg A) = Suc m'" .
+
+    show ?thesis
+      using \<open>count C (Neg A) = m - n\<close> \<open>count C (Neg A) = Suc m'\<close> by argo
+  qed
+
+  hence "C'' = repeat_mset (Suc n) D' + C'"
+    using \<open>C = repeat_mset (Suc n) D' + replicate_mset (m - n) (Neg A) + C'\<close>
+      \<open>C = replicate_mset (Suc m') (Neg A) + C''\<close>
+    by simp
+
+  hence eres_D1_C_eq: "eres D1 C = repeat_mset (Suc m' + Suc n) D' + C'"
+    using \<open>eres D1 C = repeat_mset (Suc m') D' + C''\<close> by simp
+
+  have "ord_res_Interp N (eres D1 C) \<TTurnstile> eres D1 C"
+    using eres_C_true .
+
+  moreover have "eres D1 C \<prec>\<^sub>c C"
+    using eres_le[of D1 C] \<open>C \<noteq> eres D1 C\<close> by order
+
+  ultimately have "ord_res_Interp N C \<TTurnstile> eres D1 C"
+    using ord_res.entailed_clause_stays_entailed by metis
+
+  thus "ord_res_Interp N C \<TTurnstile> C"
+    unfolding true_cls_def
+  proof (elim bexE)
+    fix L
+    assume
+      L_in: "L \<in># eres D1 C" and
+      L_true: "ord_res_Interp N C \<TTurnstile>l L"
+
+    from L_in have "L \<in># D' \<or> L \<in># C'"
+      unfolding eres_D1_C_eq
+      using member_mset_repeat_msetD by fastforce
+    hence "L \<in># C"
+      by (auto simp: \<open>C = repeat_mset (Suc n) D' + replicate_mset (m - n) (Neg A) + C'\<close>)
+    with L_true show "\<exists>L \<in># C. ord_res_Interp N C \<TTurnstile>l L"
+      by metis
   qed
 qed
 
