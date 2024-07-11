@@ -1,5 +1,7 @@
 theory ORD_RES_2
-  imports ORD_RES
+  imports
+    ORD_RES
+    Exhaustive_Factorization
 begin
 
 section \<open>ORD-RES-2 (full factorization)\<close>

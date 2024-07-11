@@ -1,5 +1,8 @@
 theory ORD_RES_3
-  imports ORD_RES
+  imports
+    ORD_RES
+    Exhaustive_Factorization
+    Exhaustive_Resolution
 begin
 
 section \<open>ORD-RES-3 (full resolve)\<close>

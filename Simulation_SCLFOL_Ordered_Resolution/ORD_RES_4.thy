@@ -1,5 +1,8 @@
 theory ORD_RES_4
-  imports ORD_RES
+  imports
+    ORD_RES
+    Implicit_Exhaustive_Factorization
+    Exhaustive_Resolution
 begin
 
 section \<open>ORD-RES-4 (implicit factorization)\<close>
