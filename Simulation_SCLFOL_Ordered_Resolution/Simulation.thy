@@ -43,7 +43,7 @@ inductive ord_res where
 inductive ord_res_load where
   "N \<noteq> {||} \<Longrightarrow> ord_res_load N N"
 
-interpretation ord_res_semantics: semantics where
+sublocale ord_res_semantics: semantics where
   step = ord_res and
   final = ord_res_final
 proof unfold_locales
@@ -60,14 +60,18 @@ proof unfold_locales
   qed
 qed
 
-interpretation ord_res_language: language where
+sublocale ord_res_language: language where
   step = ord_res and
   final = ord_res_final and
   load = ord_res_load
   by unfold_locales
 
+end
+
 
 section \<open>ORD-RES-1 (deterministic)\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
 
 inductive ord_res_1 where
   factoring: "
@@ -149,7 +153,7 @@ definition ord_res_1_final where
 inductive ord_res_1_load where
   "N \<noteq> {||} \<Longrightarrow> ord_res_1_load N N"
 
-interpretation ord_res_1_semantics: semantics where
+sublocale ord_res_1_semantics: semantics where
   step = ord_res_1 and
   final = ord_res_1_final
 proof unfold_locales
@@ -206,13 +210,13 @@ proof unfold_locales
   qed
 qed
 
-interpretation ord_res_1_language: language where
+sublocale ord_res_1_language: language where
   step = ord_res_1 and
   final = ord_res_1_final and
   load = ord_res_1_load
   by unfold_locales
 
-interpretation backward_simulation_with_measuring_function where
+sublocale backward_simulation_with_measuring_function where
   step1 = ord_res and
   step2 = ord_res_1 and
   final1 = ord_res_final and
@@ -363,8 +367,12 @@ qed
 corollary ord_res_1_safe: "ord_res_1_final N \<or> (\<exists>N'. ord_res_1 N N')"
   using ex_ord_res_1_if_not_final by metis
 
+end
+
 
 section \<open>ORD-RES-2 (full factorization)\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
 
 inductive ord_res_2 where
   factoring: "
@@ -394,7 +402,7 @@ inductive ord_res_2_final where
 inductive ord_res_2_load where
   "N \<noteq> {||} \<Longrightarrow> ord_res_2_load N (N, ({||}, {||}))"
 
-interpretation ord_res_2_semantics: semantics where
+sublocale ord_res_2_semantics: semantics where
   step = ord_res_2_step and
   final = ord_res_2_final
 proof unfold_locales
@@ -455,7 +463,7 @@ proof unfold_locales
   qed
 qed
 
-interpretation ord_res_2_language: language where
+sublocale ord_res_2_language: language where
   step = ord_res_2_step and
   final = ord_res_2_final and
   load = ord_res_2_load
@@ -1764,9 +1772,12 @@ next
   qed
 qed
 
+end
+
 
 section \<open>ORD-RES-3 (full resolve)\<close>
 
+context simulation_SCLFOL_ground_ordered_resolution begin
 
 inductive ord_res_3 where
   factoring: "
@@ -1795,7 +1806,7 @@ inductive ord_res_3_final where
 inductive ord_res_3_load where
   "N \<noteq> {||} \<Longrightarrow> ord_res_3_load N (N, ({||}, {||}))"
 
-interpretation ord_res_3_semantics: semantics where
+sublocale ord_res_3_semantics: semantics where
   step = ord_res_3_step and
   final = ord_res_3_final
 proof unfold_locales
@@ -1833,7 +1844,7 @@ proof unfold_locales
   qed
 qed
 
-interpretation ord_res_3_language: language where
+sublocale ord_res_3_language: language where
   step = ord_res_3_step and
   final = ord_res_3_final and
   load = ord_res_3_load
@@ -3261,8 +3272,12 @@ proof -
     using backward_simulation_composition[OF bsim12 bsim23] by metis
 qed
 
+end
+
 
 section \<open>ORD-RES-4 (implicit factorization)\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
 
 definition iefac where
   "iefac \<F> C = (if C |\<in>| \<F> then efac C else C)"
@@ -3329,7 +3344,7 @@ inductive ord_res_4_step where
 inductive ord_res_4_final where
   "ord_res_final (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) \<Longrightarrow> ord_res_4_final (N, U\<^sub>e\<^sub>r, \<F>)"
 
-interpretation ord_res_4_semantics: semantics where
+sublocale ord_res_4_semantics: semantics where
   step = ord_res_4_step and
   final = ord_res_4_final
 proof unfold_locales
@@ -3367,7 +3382,7 @@ proof unfold_locales
   qed
 qed
 
-(* interpretation ord_res_4_language: language where
+(* sublocale ord_res_4_language: language where
   step = ord_res_4_step and
   final = ord_res_4_final and
   load = ord_res_4_load
@@ -3852,8 +3867,12 @@ next
     using forward_simulation_between_3_and_4 by metis
 qed
 
+end
+
 
 section \<open>ORD-RES-5 (explicit model construction)\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
 
 inductive ord_res_5 where
   skip: "
@@ -3905,7 +3924,7 @@ inductive ord_res_5_final where
   contradiction_found:
     "ord_res_5_final (N, U\<^sub>e\<^sub>r, \<F>, \<M>, Some {#})"
 
-interpretation ord_res_5_semantics: semantics where
+sublocale ord_res_5_semantics: semantics where
   step = ord_res_5_step and
   final = ord_res_5_final
 proof unfold_locales
@@ -4564,8 +4583,8 @@ proof (intro allI impI ballI)
     using ord_res.entailed_clause_stays_entailed' C_lt by metis
 qed
 
-definition model_eq_interpretation where
-  "model_eq_interpretation N s \<longleftrightarrow>
+definition model_eq_sublocale where
+  "model_eq_sublocale N s \<longleftrightarrow>
     (\<forall>U\<^sub>e\<^sub>r \<F> \<M>. s = (U\<^sub>e\<^sub>r, \<F>, \<M>, None) \<longrightarrow>
       (let NN = fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) in dom \<M> = \<Union> (ord_res.production NN ` NN)))"
 
@@ -4574,7 +4593,7 @@ lemma all_smaller_clauses_true_wrt_model_strong:
     invars:
       "all_smaller_clauses_true_wrt_respective_Interp N s"
       "model_eq_interp_upto_next_clause N s"
-      "model_eq_interpretation N s"
+      "model_eq_sublocale N s"
   shows "\<forall>U\<^sub>e\<^sub>r \<F> \<M> \<C>. s = (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>) \<longrightarrow>
     (\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). (\<forall>D. \<C> = Some D \<longrightarrow> C \<prec>\<^sub>c D) \<longrightarrow> dom \<M> \<TTurnstile> C)"
 proof (intro allI impI ballI)
@@ -4591,7 +4610,7 @@ proof (intro allI impI ballI)
     case \<C>_def: None
     have "let NN = fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) in dom \<M> = \<Union> (ord_res.production NN ` NN)"
       using invars(3) s_def \<C>_def
-      by (metis model_eq_interpretation_def)
+      by (metis model_eq_sublocale_def)
     then show ?thesis
       using C_true
       by (smt (verit, ccfv_SIG) C_in UN_I insertCI linorder_lit.is_greatest_in_mset_iff
@@ -5694,8 +5713,12 @@ next
     using forward_simulation_between_4_and_5 by metis
 qed
 
+end
+
 
 section \<open>ORD-RES-6 (model backjump)\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
 
 inductive ord_res_6 where
   skip: "
@@ -7011,7 +7034,7 @@ inductive ord_res_6_final where
   contradiction_found:
     "ord_res_6_final (N, U\<^sub>e\<^sub>r, \<F>, \<M>, Some {#})"
 
-interpretation ord_res_6_semantics: semantics where
+sublocale ord_res_6_semantics: semantics where
   step = ord_res_6_step and
   final = ord_res_6_final
 proof unfold_locales
@@ -8002,8 +8025,12 @@ next
     using backward_simulation_between_5_and_6 by metis
 qed
 
+end
+
 
 section \<open>ORD-RES-7 (clause-guided literal trail construction)\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
 
 lemma atms_of_clss_finsert[simp]:
   "atms_of_clss (finsert C N) = atms_of_cls C |\<union>| atms_of_clss N"
@@ -9205,7 +9232,7 @@ inductive ord_res_7_final where
   contradiction_found:
     "ord_res_7_final (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some {#})"
 
-interpretation ord_res_7_semantics: semantics where
+sublocale ord_res_7_semantics: semantics where
   step = "constant_context ord_res_7" and
   final = ord_res_7_final
 proof unfold_locales
@@ -14511,9 +14538,12 @@ next
     using backward_simulation_between_6_and_7 by metis
 qed
 
+end
+
 
 section \<open>ORD-RES-8 (atom-guided literal trail construction)\<close>
 
+context simulation_SCLFOL_ground_ordered_resolution begin
 
 inductive ord_res_8 where
   decide_neg: "
@@ -14710,7 +14740,7 @@ inductive ord_res_8_final :: "'f ord_res_8_state \<Rightarrow> bool" where
     {#} |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r) \<Longrightarrow>
     ord_res_8_final (N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>)"
 
-interpretation ord_res_8_semantics: semantics where
+sublocale ord_res_8_semantics: semantics where
   step = "constant_context ord_res_8" and
   final = ord_res_8_final
 proof unfold_locales
@@ -18546,8 +18576,12 @@ next
     using backward_simulation_between_7_and_8 by metis
 qed
 
+end
+
 
 section \<open>ORD-RES-9 (factorize when propagating)\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
 
 inductive ord_res_9 where
   decide_neg: "
@@ -18983,7 +19017,7 @@ proof (intro allI impI)
     by argo
 qed
 
-interpretation ord_res_9_semantics: semantics where
+sublocale ord_res_9_semantics: semantics where
   step = "constant_context ord_res_9" and
   final = ord_res_8_final
 proof unfold_locales
@@ -19137,8 +19171,12 @@ next
     using backward_simulation_between_8_and_9 by metis
 qed
 
+end
+
 
 section \<open>ORD-RES-10 (propagate iff a conflict is produced)\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
 
 inductive ord_res_10 where
   decide_neg: "
@@ -19325,7 +19363,7 @@ proof (rule right_uniqueI)
   qed
 qed
 
-interpretation ord_res_10_semantics: semantics where
+sublocale ord_res_10_semantics: semantics where
   step = "constant_context ord_res_10" and
   final = ord_res_8_final
 proof unfold_locales
@@ -20873,8 +20911,12 @@ next
     using backward_simulation_between_9_and_10 by metis
 qed
 
+end
+
 
 section \<open>ORD-RES-11\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
 
 inductive ord_res_11 where
   decide_neg: "
@@ -21118,7 +21160,7 @@ inductive ord_res_11_final :: "'f ord_res_11_state \<Rightarrow> bool" where
   contradiction_found: "
     ord_res_11_final (N, U\<^sub>e\<^sub>r, \<F>, [], Some {#})"
 
-interpretation ord_res_11_semantics: semantics where
+sublocale ord_res_11_semantics: semantics where
   step = "constant_context ord_res_11" and
   final = ord_res_11_final
 proof unfold_locales
