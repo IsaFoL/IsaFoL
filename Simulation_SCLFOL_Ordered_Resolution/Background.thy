@@ -960,6 +960,10 @@ qed
 
 section \<open>Move somewhere?\<close>
 
+lemma lift_tranclp_to_pairs_with_constant_fst:
+  "(R x)\<^sup>+\<^sup>+ y z \<Longrightarrow> (\<lambda>(x, y) (x', z). x = x' \<and> R x y z)\<^sup>+\<^sup>+ (x, y) (x, z)"
+  by (induction z arbitrary: rule: tranclp_induct) (auto simp: tranclp.trancl_into_trancl)
+
 abbreviation (in preorder) is_lower_fset where
   "is_lower_fset X Y \<equiv> is_lower_set_wrt (<) (fset X) (fset Y)"
 
