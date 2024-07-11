@@ -1542,6 +1542,255 @@ lemma is_least_false_clause_mempty: "{#} |\<in>| N \<Longrightarrow> is_least_fa
   using is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff mempty_lesseq_cls
   by fastforce
 
+lemma production_union_unproductive_strong:
+  assumes
+    fin: "finite N1" "finite N2" and
+    N2_unproductive: "\<forall>x \<in> N2 - N1. ord_res.production (N1 \<union> N2) x = {}" and
+    C_in: "C \<in> N1"
+  shows "ord_res.production (N1 \<union> N2) C = ord_res.production N1 C"
+  using ord_res.wfP_less_cls C_in
+proof (induction C rule: wfp_induct_rule)
+  case (less C)
+  hence C_in_iff: "C \<in> N1 \<union> N2 \<longleftrightarrow> C \<in> N1"
+    by simp
+
+  have interp_eq: "ord_res.interp (N1 \<union> N2) C = ord_res.interp N1 C"
+  proof -
+    have "ord_res.interp (N1 \<union> N2) C = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1 \<union> N2. D \<prec>\<^sub>c C})"
+      unfolding ord_res.interp_def ..
+    also have "\<dots> = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1. D \<prec>\<^sub>c C} \<union>
+    ord_res.production (N1 \<union> N2) ` {D \<in> N2 - N1. D \<prec>\<^sub>c C})"
+      by auto
+    also have "\<dots> = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1. D \<prec>\<^sub>c C})"
+      using N2_unproductive by simp
+    also have "\<dots> = \<Union> (ord_res.production N1 ` {D \<in> N1. D \<prec>\<^sub>c C})"
+      using less.IH by simp
+    also have "\<dots> = ord_res.interp N1 C"
+      unfolding ord_res.interp_def ..
+    finally show "ord_res.interp (N1 \<union> N2) C = ord_res.interp N1 C" .
+  qed
+
+  show ?case
+    unfolding ord_res.production_unfold C_in_iff interp_eq by argo
+qed
+
+lemma production_union_unproductive:
+  assumes
+    fin: "finite N1" "finite N2" and
+    N2_unproductive: "\<forall>x \<in> N2. ord_res.production (N1 \<union> N2) x = {}" and
+    C_in: "C \<in> N1"
+  shows "ord_res.production (N1 \<union> N2) C = ord_res.production N1 C"
+  using production_union_unproductive_strong assms by simp
+
+lemma interp_union_unproductive:
+  assumes
+    fin: "finite N1" "finite N2" and
+    N2_unproductive: "\<forall>x \<in> N2. ord_res.production (N1 \<union> N2) x = {}"
+  shows "ord_res.interp (N1 \<union> N2) = ord_res.interp N1"
+proof (rule ext)
+  fix C
+  have "ord_res.interp (N1 \<union> N2) C = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1 \<union> N2. D \<prec>\<^sub>c C})"
+    unfolding ord_res.interp_def ..
+  also have "\<dots> = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1. D \<prec>\<^sub>c C} \<union>
+    ord_res.production (N1 \<union> N2) ` {D \<in> N2. D \<prec>\<^sub>c C})"
+    by auto
+  also have "\<dots> = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1. D \<prec>\<^sub>c C})"
+    using N2_unproductive by simp
+  also have "\<dots> = \<Union> (ord_res.production N1 ` {D \<in> N1. D \<prec>\<^sub>c C})"
+    using production_union_unproductive[OF fin N2_unproductive] by simp
+  also have "\<dots> = ord_res.interp N1 C"
+    unfolding ord_res.interp_def ..
+  finally show "ord_res.interp (N1 \<union> N2) C = ord_res.interp N1 C" .
+qed
+
+lemma Interp_union_unproductive:
+  assumes
+    fin: "finite N1" "finite N2" and
+    N2_unproductive: "\<forall>x \<in> N2. ord_res.production (N1 \<union> N2) x = {}"
+  shows "ord_res_Interp (N1 \<union> N2) C = ord_res_Interp N1 C"
+  unfolding interp_union_unproductive[OF assms]
+  using production_union_unproductive[OF assms]
+  using N2_unproductive[rule_format]
+  by (metis (no_types, lifting) Un_iff empty_Collect_eq ord_res.production_unfold)
+
+lemma Interp_insert_unproductive:
+  assumes
+    fin: "finite N1" and
+    x_unproductive: "ord_res.production (insert x N1) x = {}"
+  shows "ord_res_Interp (insert x N1) C = ord_res_Interp N1 C"
+  using assms Interp_union_unproductive
+  by (metis Un_commute finite.emptyI finite.insertI insert_is_Un singletonD)
+
+lemma extended_partial_model_entails_iff_partial_model_entails:
+  assumes
+    fin: "finite N" "finite N'" and
+    irrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subset># D \<and> set_mset D = set_mset E" and
+    C_in: "C \<in> N"
+  shows "ord_res_Interp (N \<union> N') C \<TTurnstile> C \<longleftrightarrow> ord_res_Interp N C \<TTurnstile> C"
+  using ord_res.interp_add_irrelevant_clauses_to_set[OF fin C_in irrelevant]
+  using ord_res.production_add_irrelevant_clauses_to_set[OF fin C_in irrelevant]
+  by metis
+
+lemma nex_strictly_maximal_pos_lit_if_factorizable:
+  assumes "ord_res.ground_factoring C C'"
+  shows "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C"
+  by (metis Uniq_D add_mset_remove_trivial assms linorder_lit.Uniq_is_maximal_in_mset
+      linorder_lit.dual_order.order_iff_strict linorder_lit.is_greatest_in_mset_iff
+      linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset linorder_lit.not_less
+      ord_res.ground_factoring.cases union_single_eq_member)
+
+lemma unproductive_if_nex_strictly_maximal_pos_lit:
+  assumes "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C"
+  shows "ord_res.production N C = {}"
+  using assms by (simp add: ord_res.production_unfold)
+
+lemma ball_unproductive_if_nex_strictly_maximal_pos_lit:
+  assumes "\<forall>C \<in> N'. \<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C"
+  shows "\<forall>C \<in> N'. ord_res.production (N \<union> N') C = {}"
+  using assms unproductive_if_nex_strictly_maximal_pos_lit by metis
+
+lemma is_least_false_clause_finsert_cancel:
+  assumes
+    C_unproductive: "ord_res.production (fset (finsert C N)) C = {}" and
+    C_entailed_by_smaller: "\<exists>D |\<in>| N. D \<prec>\<^sub>c C \<and> {D} \<TTurnstile>e {C}"
+  shows "is_least_false_clause (finsert C N) = is_least_false_clause N"
+proof (intro ext iffI)
+  fix E
+  assume E_least: "is_least_false_clause (finsert C N) E"
+  hence
+    E_in: "E |\<in>| finsert C N" and
+    E_false: "\<not> ord_res_Interp (fset (finsert C N)) E \<TTurnstile> E" and
+    E_least: "(\<forall>y |\<in>| finsert C N. y \<noteq> E \<longrightarrow> \<not> ord_res_Interp (fset (finsert C N)) y \<TTurnstile> y \<longrightarrow> E \<prec>\<^sub>c y)"
+    unfolding atomize_conj is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+    by metis
+
+  obtain D where
+    "D |\<in>| N" and "D \<prec>\<^sub>c C" and "{D} \<TTurnstile>e {C}"
+    using C_entailed_by_smaller by metis
+
+  show "is_least_false_clause N E"
+  proof (cases "C = E")
+    case True
+
+    have "E \<prec>\<^sub>c D"
+    proof (rule E_least[rule_format])
+      show "D |\<in>| finsert C N"
+        using \<open>D |\<in>| N\<close> by simp
+    next
+      show "D \<noteq> E"
+        using \<open>D \<prec>\<^sub>c C\<close> \<open>C = E\<close> by order
+    next
+      show "\<not> ord_res_Interp (fset (finsert C N)) D \<TTurnstile> D"
+        using E_false
+      proof (rule contrapos_nn)
+        assume "ord_res_Interp (fset (finsert C N)) D \<TTurnstile> D"
+        thus "ord_res_Interp (fset (finsert C N)) E \<TTurnstile> E"
+          using \<open>D \<prec>\<^sub>c C\<close> \<open>C = E\<close> \<open>{D} \<TTurnstile>e {C}\<close> ord_res.entailed_clause_stays_entailed by auto
+      qed
+    qed
+    hence False
+      using \<open>D \<prec>\<^sub>c C\<close> \<open>C = E\<close> by order
+    thus ?thesis ..
+  next
+    case False
+    show ?thesis
+      unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+    proof (intro conjI ballI impI)
+      show "E |\<in>| N"
+        using E_in \<open>C \<noteq> E\<close> by simp
+    next
+      have "ord_res_Interp (fset (finsert C N)) E = ord_res_Interp (fset N) E"
+        using C_unproductive Interp_insert_unproductive by simp
+      thus "\<not> ord_res_Interp (fset N) E \<TTurnstile> E"
+        using E_false by argo
+    next
+      show "\<And>y. y |\<in>| N \<Longrightarrow> y \<noteq> E \<Longrightarrow> \<not> ord_res_Interp (fset N) y \<TTurnstile> y \<Longrightarrow> E \<prec>\<^sub>c y"
+        using E_least C_unproductive Interp_insert_unproductive by auto
+    qed
+  qed
+next
+  fix E
+  assume "is_least_false_clause N E"
+  hence
+    E_in: "E |\<in>| N" and
+    E_false: "\<not> ord_res_Interp (fset N) E \<TTurnstile> E" and
+    E_least: "(\<forall>y |\<in>| N. y \<noteq> E \<longrightarrow> \<not> ord_res_Interp (fset N) y \<TTurnstile> y \<longrightarrow> E \<prec>\<^sub>c y)"
+    unfolding atomize_conj is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+    by metis
+
+  show "is_least_false_clause (finsert C N) E"
+    unfolding is_least_false_clause_def linorder_cls.is_least_in_ffilter_iff
+  proof (intro conjI ballI impI)
+    show "E |\<in>| finsert C N"
+      using E_in by simp
+  next
+    show "\<not> ord_res_Interp (fset (finsert C N)) E \<TTurnstile> E"
+      using E_least E_false C_unproductive Interp_insert_unproductive by simp
+  next
+    fix y
+    assume "y |\<in>| finsert C N" and "y \<noteq> E" and "\<not> ord_res_Interp (fset (finsert C N)) y \<TTurnstile> y"
+    show "E \<prec>\<^sub>c y"
+    proof (cases "y = C")
+      case True
+      thus ?thesis
+      using E_least \<open>\<not> ord_res_Interp (fset (finsert C N)) y \<TTurnstile> y\<close>
+      by (metis (no_types, lifting) C_entailed_by_smaller C_unproductive Interp_insert_unproductive
+          finite_fset fset_simps(2) linorder_cls.dual_order.strict_trans
+          ord_res.entailed_clause_stays_entailed true_clss_singleton)
+    next
+      case False
+      thus ?thesis
+        using E_least \<open>y |\<in>| finsert C N\<close> \<open>y \<noteq> E\<close> \<open>\<not> ord_res_Interp (fset (finsert C N)) y \<TTurnstile> y\<close>
+        using C_unproductive Interp_insert_unproductive by auto
+    qed
+  qed
+qed
+
+lemma is_least_false_clause_funion_cancel_right_strong:
+  assumes
+    "\<forall>C |\<in>| N2 - N1. \<forall>U. ord_res.production U C = {}" and
+    "\<forall>C |\<in>| N2 - N1. \<exists>D |\<in>| N1. D \<prec>\<^sub>c C \<and> {D} \<TTurnstile>e {C}"
+  shows "is_least_false_clause (N1 |\<union>| N2) = is_least_false_clause N1"
+  using assms
+proof (induction N2)
+  case empty
+  thus ?case
+    by simp
+next
+  case (insert C N2)
+
+  have IH: "is_least_false_clause (N1 |\<union>| N2) = is_least_false_clause N1"
+  proof (rule insert.IH)
+    show "\<forall>C|\<in>|N2 |-| N1. \<forall>U. ord_res.production U C = {}"
+      using insert.prems(1) by auto
+  next
+    show "\<forall>C|\<in>|N2 |-| N1. \<exists>D|\<in>|N1. D \<prec>\<^sub>c C \<and> {D} \<TTurnstile>e {C}"
+      using insert.prems(2) by auto
+  qed
+
+  show ?case
+  proof (cases "C |\<in>| N1")
+    case True
+    hence "is_least_false_clause (N1 |\<union>| finsert C N2) = is_least_false_clause (N1 |\<union>| N2)"
+      by (simp add: finsert_absorb)
+    also have "\<dots> = is_least_false_clause N1"
+      using IH .
+    finally show ?thesis .
+  next
+    case False
+    then show ?thesis
+      using is_least_false_clause_finsert_cancel IH
+      by (metis finsertCI fminusI funionI1 funion_finsert_right insert.prems(1) insert.prems(2))
+  qed
+qed
+
+lemma is_least_false_clause_funion_cancel_right:
+  assumes
+    "\<forall>C |\<in>| N2. \<forall>U. ord_res.production U C = {}" and
+    "\<forall>C |\<in>| N2. \<exists>D |\<in>| N1. D \<prec>\<^sub>c C \<and> {D} \<TTurnstile>e {C}"
+  shows "is_least_false_clause (N1 |\<union>| N2) = is_least_false_clause N1"
+  using assms is_least_false_clause_funion_cancel_right_strong by simp
+
 definition ex_false_clause where
   "ex_false_clause N = (\<exists>C \<in> N. \<not> ord_res.interp N C \<union> ord_res.production N C \<TTurnstile> C)"
 
@@ -1780,113 +2029,6 @@ proof (rule contrapos_nn)
     using ord_res.production_add_irrelevant_clauses_to_set[OF fin C_in irrelevant]
     by metis
 qed
-
-lemma production_union_unproductive_strong:
-  assumes
-    fin: "finite N1" "finite N2" and
-    N2_unproductive: "\<forall>x \<in> N2 - N1. ord_res.production (N1 \<union> N2) x = {}" and
-    C_in: "C \<in> N1"
-  shows "ord_res.production (N1 \<union> N2) C = ord_res.production N1 C"
-  using ord_res.wfP_less_cls C_in
-proof (induction C rule: wfp_induct_rule)
-  case (less C)
-  hence C_in_iff: "C \<in> N1 \<union> N2 \<longleftrightarrow> C \<in> N1"
-    by simp
-
-  have interp_eq: "ord_res.interp (N1 \<union> N2) C = ord_res.interp N1 C"
-  proof -
-    have "ord_res.interp (N1 \<union> N2) C = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1 \<union> N2. D \<prec>\<^sub>c C})"
-      unfolding ord_res.interp_def ..
-    also have "\<dots> = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1. D \<prec>\<^sub>c C} \<union>
-    ord_res.production (N1 \<union> N2) ` {D \<in> N2 - N1. D \<prec>\<^sub>c C})"
-      by auto
-    also have "\<dots> = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1. D \<prec>\<^sub>c C})"
-      using N2_unproductive by simp
-    also have "\<dots> = \<Union> (ord_res.production N1 ` {D \<in> N1. D \<prec>\<^sub>c C})"
-      using less.IH by simp
-    also have "\<dots> = ord_res.interp N1 C"
-      unfolding ord_res.interp_def ..
-    finally show "ord_res.interp (N1 \<union> N2) C = ord_res.interp N1 C" .
-  qed
-
-  show ?case
-    unfolding ord_res.production_unfold C_in_iff interp_eq by argo
-qed
-
-lemma production_union_unproductive:
-  assumes
-    fin: "finite N1" "finite N2" and
-    N2_unproductive: "\<forall>x \<in> N2. ord_res.production (N1 \<union> N2) x = {}" and
-    C_in: "C \<in> N1"
-  shows "ord_res.production (N1 \<union> N2) C = ord_res.production N1 C"
-  using production_union_unproductive_strong assms by simp
-
-lemma interp_union_unproductive:
-  assumes
-    fin: "finite N1" "finite N2" and
-    N2_unproductive: "\<forall>x \<in> N2. ord_res.production (N1 \<union> N2) x = {}"
-  shows "ord_res.interp (N1 \<union> N2) = ord_res.interp N1"
-proof (rule ext)
-  fix C
-  have "ord_res.interp (N1 \<union> N2) C = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1 \<union> N2. D \<prec>\<^sub>c C})"
-    unfolding ord_res.interp_def ..
-  also have "\<dots> = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1. D \<prec>\<^sub>c C} \<union>
-    ord_res.production (N1 \<union> N2) ` {D \<in> N2. D \<prec>\<^sub>c C})"
-    by auto
-  also have "\<dots> = \<Union> (ord_res.production (N1 \<union> N2) ` {D \<in> N1. D \<prec>\<^sub>c C})"
-    using N2_unproductive by simp
-  also have "\<dots> = \<Union> (ord_res.production N1 ` {D \<in> N1. D \<prec>\<^sub>c C})"
-    using production_union_unproductive[OF fin N2_unproductive] by simp
-  also have "\<dots> = ord_res.interp N1 C"
-    unfolding ord_res.interp_def ..
-  finally show "ord_res.interp (N1 \<union> N2) C = ord_res.interp N1 C" .
-qed
-
-lemma Interp_union_unproductive:
-  assumes
-    fin: "finite N1" "finite N2" and
-    N2_unproductive: "\<forall>x \<in> N2. ord_res.production (N1 \<union> N2) x = {}"
-  shows "ord_res_Interp (N1 \<union> N2) C = ord_res_Interp N1 C"
-  unfolding interp_union_unproductive[OF assms]
-  using production_union_unproductive[OF assms]
-  using N2_unproductive[rule_format]
-  by (metis (no_types, lifting) Un_iff empty_Collect_eq ord_res.production_unfold)
-
-lemma Interp_insert_unproductive:
-  assumes
-    fin: "finite N1" and
-    x_unproductive: "ord_res.production (insert x N1) x = {}"
-  shows "ord_res_Interp (insert x N1) C = ord_res_Interp N1 C"
-  using assms Interp_union_unproductive
-  by (metis Un_commute finite.emptyI finite.insertI insert_is_Un singletonD)
-
-lemma extended_partial_model_entails_iff_partial_model_entails:
-  assumes
-    fin: "finite N" "finite N'" and
-    irrelevant: "\<forall>D \<in> N'. \<exists>E \<in> N. E \<subset># D \<and> set_mset D = set_mset E" and
-    C_in: "C \<in> N"
-  shows "ord_res_Interp (N \<union> N') C \<TTurnstile> C \<longleftrightarrow> ord_res_Interp N C \<TTurnstile> C"
-  using ord_res.interp_add_irrelevant_clauses_to_set[OF fin C_in irrelevant]
-  using ord_res.production_add_irrelevant_clauses_to_set[OF fin C_in irrelevant]
-  by metis
-
-lemma nex_strictly_maximal_pos_lit_if_factorizable:
-  assumes "ord_res.ground_factoring C C'"
-  shows "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C"
-  by (metis Uniq_D add_mset_remove_trivial assms linorder_lit.Uniq_is_maximal_in_mset
-      linorder_lit.dual_order.order_iff_strict linorder_lit.is_greatest_in_mset_iff
-      linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset linorder_lit.not_less
-      ord_res.ground_factoring.cases union_single_eq_member)
-
-lemma unproductive_if_nex_strictly_maximal_pos_lit:
-  assumes "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C"
-  shows "ord_res.production N C = {}"
-  using assms by (simp add: ord_res.production_unfold)
-
-lemma ball_unproductive_if_nex_strictly_maximal_pos_lit:
-  assumes "\<forall>C \<in> N'. \<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C"
-  shows "\<forall>C \<in> N'. ord_res.production (N \<union> N') C = {}"
-  using assms unproductive_if_nex_strictly_maximal_pos_lit by metis
 
 end
 
@@ -2320,6 +2462,175 @@ lemma nex_strictly_maximal_pos_lit_if_neq_efac:
   assumes "C \<noteq> efac C"
   shows "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C"
   using assms factorizable_if_neq_efac nex_strictly_maximal_pos_lit_if_factorizable by metis
+
+lemma efac_properties_if_not_ident:
+  assumes "efac C \<noteq> C"
+  shows "efac C \<prec>\<^sub>c C" and "{efac C} \<TTurnstile>e {C}"
+proof -
+  have "efac C \<subseteq># C"
+    using efac_subset .
+  hence "efac C \<preceq>\<^sub>c C"
+    using subset_implies_reflclp_multp by blast
+  thus "efac C \<prec>\<^sub>c C"
+    using \<open>efac C \<noteq> C\<close> by order
+
+  show "{efac C} \<TTurnstile>e {C}"
+    using \<open>efac C \<subseteq># C\<close> true_clss_subclause by metis
+qed
+
+
+end
+
+section \<open>Function for implicit full factorization\<close>
+
+context simulation_SCLFOL_ground_ordered_resolution begin
+
+definition iefac where
+  "iefac \<F> C = (if C |\<in>| \<F> then efac C else C)"
+
+lemma iefac_mempty[simp]:
+  fixes \<F> :: "'f gclause fset"
+  shows "iefac \<F> {#} = {#}"
+  by (metis efac_mempty iefac_def)
+
+lemma fset_mset_iefac[simp]: 
+  fixes \<F> :: "'f gclause fset" and C :: "'f gclause"
+  shows "fset_mset (iefac \<F> C) = fset_mset C"
+proof (cases "C |\<in>| \<F>")
+  case True
+  hence "iefac \<F> C = efac C"
+    unfolding iefac_def by simp
+  thus ?thesis
+    by auto
+next
+  case False
+  hence "iefac \<F> C = C"
+    unfolding iefac_def by simp
+  thus ?thesis by simp
+qed
+
+lemma atms_of_cls_iefac[simp]:
+  fixes \<F> :: "'f gclause fset" and C :: "'f gclause"
+  shows "atms_of_cls (iefac \<F> C) = atms_of_cls C"
+  by (simp add: atms_of_cls_def)
+
+lemma iefac_le:
+  fixes \<F> :: "'f gclause fset" and C :: "'f gclause"
+  shows "iefac \<F> C \<preceq>\<^sub>c C"
+  by (metis efac_subset iefac_def reflclp_iff subset_implies_reflclp_multp)
+
+lemma true_cls_iefac_iff[simp]:
+  fixes \<I> :: "'f gterm set" and \<F> :: "'f gclause fset" and C :: "'f gclause"
+  shows "\<I> \<TTurnstile> iefac \<F> C \<longleftrightarrow> \<I> \<TTurnstile> C"
+  by (metis iefac_def true_cls_efac_iff)
+
+(*
+ifac |`| (N |\<union>| U\<^sub>e\<^sub>r) |\<subseteq>| (N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f) = (ifac |`| (N |\<union>| U\<^sub>e\<^sub>r)) |\<union>| N |\<union>| U\<^sub>e\<^sub>r
+*)
+lemma funion_funion_eq_funion_funion_fimage_iefac_if:
+  assumes U\<^sub>e\<^sub>f_eq: "U\<^sub>e\<^sub>f = iefac \<F> |`| {|C |\<in>| N |\<union>| U\<^sub>e\<^sub>r. iefac \<F> C \<noteq> C|}"
+  shows "N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f = N |\<union>| U\<^sub>e\<^sub>r |\<union>| (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))"
+proof (intro fsubset_antisym fsubsetI)
+  fix C :: "'f gterm clause"
+  assume "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
+  hence "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r \<or> C |\<in>| U\<^sub>e\<^sub>f"
+    by simp
+  thus "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))"
+  proof (elim disjE)
+    assume "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r"
+    thus ?thesis
+      by simp
+  next
+    assume "C |\<in>| U\<^sub>e\<^sub>f"
+    hence "C |\<in>| iefac \<F> |`| {|C |\<in>| N |\<union>| U\<^sub>e\<^sub>r. iefac \<F> C \<noteq> C|}"
+      using U\<^sub>e\<^sub>f_eq by argo
+    then obtain C\<^sub>0 :: "'f gterm clause" where
+      "C\<^sub>0 |\<in>| N |\<union>| U\<^sub>e\<^sub>r" and "iefac \<F> C\<^sub>0 \<noteq> C\<^sub>0" and "C = iefac \<F> C\<^sub>0"
+      by auto
+    thus ?thesis
+      by simp
+  qed
+next
+  fix C :: "'f gterm clause"
+  assume "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))"
+  hence "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r \<or> C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+    by simp
+  thus "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f"
+  proof (elim disjE)
+    assume "C |\<in>| N |\<union>| U\<^sub>e\<^sub>r"
+    thus ?thesis
+      by simp
+  next
+    assume "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)"
+    then obtain C\<^sub>0 :: "'f gterm clause" where
+      "C\<^sub>0 |\<in>| N |\<union>| U\<^sub>e\<^sub>r" and "C = iefac \<F> C\<^sub>0"
+      by auto
+
+    show ?thesis
+    proof (cases "iefac \<F> C\<^sub>0 = C\<^sub>0")
+      case True
+      hence "C = C\<^sub>0"
+        using \<open>C = iefac \<F> C\<^sub>0\<close> by argo
+      thus ?thesis
+        using \<open>C\<^sub>0 |\<in>| N |\<union>| U\<^sub>e\<^sub>r\<close> by simp
+    next
+      case False
+      hence "C |\<in>| U\<^sub>e\<^sub>f"
+        unfolding U\<^sub>e\<^sub>f_eq
+        using \<open>C\<^sub>0 |\<in>| N |\<union>| U\<^sub>e\<^sub>r\<close> \<open>C = iefac \<F> C\<^sub>0\<close> by simp
+      thus ?thesis
+        by simp
+    qed
+  qed
+qed
+
+
+lemma clauses_for_iefac_are_unproductive:
+  "\<forall>C |\<in>| N |-| iefac \<F> |`| N. \<forall>U. ord_res.production U C = {}"
+proof (intro ballI allI)
+  fix C U
+  assume "C |\<in>| N |-| iefac \<F> |`| N"
+  hence "C |\<in>| N" and "C |\<notin>| iefac \<F> |`| N"
+    by simp_all
+  hence "iefac \<F> C \<noteq> C"
+    by (metis fimage_iff)
+  hence "efac C \<noteq> C"
+    by (metis iefac_def)
+  hence "\<nexists>L. is_pos L \<and> ord_res.is_strictly_maximal_lit L C"
+    using nex_strictly_maximal_pos_lit_if_neq_efac by metis
+  thus "ord_res.production U C = {}"
+    using unproductive_if_nex_strictly_maximal_pos_lit by metis
+qed
+
+lemma clauses_for_iefac_have_smaller_entailing_clause:
+  "\<forall>C |\<in>| N |-| iefac \<F> |`| N. \<exists>D |\<in>| iefac \<F> |`| N. D \<prec>\<^sub>c C \<and> {D} \<TTurnstile>e {C}"
+proof (intro ballI allI)
+  fix C
+  assume "C |\<in>| N |-| iefac \<F> |`| N"
+  hence "C |\<in>| N" and "C |\<notin>| iefac \<F> |`| N"
+    by simp_all
+  hence "iefac \<F> C \<noteq> C"
+    by (metis fimage_iff)
+  hence "efac C \<noteq> C"
+    by (metis iefac_def)
+
+  show "\<exists>D |\<in>| iefac \<F> |`| N. D \<prec>\<^sub>c C \<and> {D} \<TTurnstile>e {C}"
+  proof (intro bexI conjI)
+    show "efac C \<prec>\<^sub>c C" and "{efac C} \<TTurnstile>e {C}"
+      using efac_properties_if_not_ident[OF \<open>efac C \<noteq> C\<close>] by simp_all
+  next
+    show "efac C |\<in>| iefac \<F> |`| N"
+      using \<open>C |\<in>| N\<close> \<open>iefac \<F> C \<noteq> C\<close> by (metis fimageI iefac_def)
+  qed
+qed
+
+lemma is_least_false_clause_with_iefac_conv:
+  "is_least_false_clause (N |\<union>| U\<^sub>e\<^sub>r |\<union>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) =
+    is_least_false_clause (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))"
+  using is_least_false_clause_funion_cancel_right_strong[OF clauses_for_iefac_are_unproductive
+    clauses_for_iefac_have_smaller_entailing_clause]
+  by (simp add: sup_commute)
+
 
 end
 
