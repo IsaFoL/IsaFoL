@@ -769,6 +769,10 @@ definition atms_of_clss :: "'a clause fset \<Rightarrow> 'a fset" where
 lemma atms_of_clss_fempty[simp]: "atms_of_clss {||} = {||}"
   unfolding atms_of_clss_def by simp
 
+lemma atms_of_clss_finsert[simp]:
+  "atms_of_clss (finsert C N) = atms_of_cls C |\<union>| atms_of_clss N"
+  unfolding atms_of_clss_def by simp
+
 definition lits_of_clss :: "'a clause fset \<Rightarrow> 'a literal fset" where
   "lits_of_clss N = ffUnion (fset_mset |`| N)"
 
@@ -1590,5 +1594,48 @@ proof unfold_locales
 qed
 
 end
+
+primrec trail_atms :: "(_ literal \<times> _) list \<Rightarrow> _ fset" where
+  "trail_atms [] = {||}" |
+  "trail_atms (Ln # \<Gamma>) = finsert (atm_of (fst Ln)) (trail_atms \<Gamma>)"
+
+lemma fset_trail_atms: "fset (trail_atms \<Gamma>) = atm_of ` fst ` set \<Gamma>"
+  by (induction \<Gamma>) simp_all
+
+lemma trail_defined_lit_iff_trail_defined_atm:
+  "trail_defined_lit \<Gamma> L \<longleftrightarrow> atm_of L |\<in>| trail_atms \<Gamma>"
+proof (induction \<Gamma>)
+  case Nil
+  show ?case
+    by simp
+next
+  case (Cons Ln \<Gamma>)
+
+  have "trail_defined_lit (Ln # \<Gamma>) L \<longleftrightarrow> L = fst Ln \<or> - L = fst Ln \<or> trail_defined_lit \<Gamma> L"
+    unfolding trail_defined_lit_def by auto
+
+  also have "\<dots> \<longleftrightarrow> atm_of L = atm_of (fst Ln) \<or> trail_defined_lit \<Gamma> L"
+    by (cases L; cases "fst Ln") simp_all
+
+  also have "\<dots> \<longleftrightarrow> atm_of L = atm_of (fst Ln) \<or> atm_of L |\<in>| trail_atms \<Gamma>"
+    unfolding Cons.IH ..
+
+  also have "\<dots> \<longleftrightarrow> atm_of L |\<in>| trail_atms (Ln # \<Gamma>)"
+    by simp
+
+  finally show ?case .
+qed
+
+lemma trail_atms_subset_if_suffix:
+  assumes "suffix \<Gamma>' \<Gamma>"
+  shows "trail_atms \<Gamma>' |\<subseteq>| trail_atms \<Gamma>"
+proof -
+  obtain \<Gamma>\<^sub>0 where "\<Gamma> = \<Gamma>\<^sub>0 @ \<Gamma>'"
+    using assms unfolding suffix_def by metis
+
+  show ?thesis
+    unfolding \<open>\<Gamma> = \<Gamma>\<^sub>0 @ \<Gamma>'\<close>
+    by (induction \<Gamma>\<^sub>0) auto
+qed
 
 end

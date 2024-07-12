@@ -201,6 +201,40 @@ proof -
     by order
 qed
 
+lemma atms_of_clss_fimage_iefac[simp]:
+  "atms_of_clss (iefac \<F> |`| N) = atms_of_clss N"
+proof -
+  have "atms_of_clss (iefac \<F> |`| N) = ffUnion (atms_of_cls |`| iefac \<F> |`| N)"
+    unfolding atms_of_clss_def ..
+
+  also have "\<dots> = ffUnion ((atms_of_cls \<circ> iefac \<F>) |`| N)"
+    by simp
+
+  also have "\<dots> = ffUnion (atms_of_cls |`| N)"
+    unfolding comp_def atms_of_cls_iefac ..
+
+  also have "\<dots> = atms_of_clss N"
+    unfolding atms_of_clss_def ..
+
+  finally show ?thesis .
+qed
+
+lemma atm_of_in_atms_of_clssI:
+  assumes L_in: "L \<in># C" and C_in: "C |\<in>| iefac \<F> |`| N"
+  shows "atm_of L |\<in>| atms_of_clss N"
+proof -
+  have "atm_of L |\<in>| atms_of_cls C"
+    unfolding atms_of_cls_def
+    using L_in by simp
+
+  hence "atm_of L |\<in>| atms_of_clss (iefac \<F> |`| N)"
+    unfolding atms_of_clss_def
+    using C_in by (metis fmember_ffUnion_iff)
+
+  thus "atm_of L |\<in>| atms_of_clss N"
+    by simp
+qed
+
 end
 
 end
