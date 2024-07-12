@@ -152,6 +152,55 @@ lemma is_least_false_clause_with_iefac_conv:
     clauses_for_iefac_have_smaller_entailing_clause]
   by (simp add: sup_commute)
 
+lemma MAGIC4:
+  fixes N \<F> \<F>' U\<^sub>e\<^sub>r U\<^sub>e\<^sub>r'
+  defines
+    "N1 \<equiv> iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+    "N2 \<equiv> iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r')"
+  assumes
+    subsets_agree: "{|x |\<in>| N1. x \<prec>\<^sub>c C|} = {|x |\<in>| N2. x \<prec>\<^sub>c C|}" and
+    "is_least_false_clause N1 D" and
+    "is_least_false_clause N2 E" and
+    "C \<prec>\<^sub>c D"
+  shows "C \<preceq>\<^sub>c E"
+proof -
+  have "\<not> E \<prec>\<^sub>c C"
+  proof (rule notI)
+    assume "E \<prec>\<^sub>c C"
+
+    have "is_least_false_clause N2 E \<longleftrightarrow> is_least_false_clause {|x |\<in>| N2. x \<preceq>\<^sub>c E|} E"
+    proof (rule is_least_false_clause_swap_swap_compatible_fsets)
+      show "{|x |\<in>| N2. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|} = {|x |\<in>| {|x |\<in>| N2. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|}. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|}"
+        using \<open>E \<prec>\<^sub>c C\<close> by force
+    qed
+
+    also have "\<dots> \<longleftrightarrow> is_least_false_clause {|x |\<in>| N1. x \<preceq>\<^sub>c E|} E"
+    proof (rule is_least_false_clause_swap_swap_compatible_fsets)
+      show "{|x |\<in>| {|x |\<in>| N2. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|}. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|} =
+        {|x |\<in>| {|x |\<in>| N1. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|}. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|}"
+        using subsets_agree \<open>E \<prec>\<^sub>c C\<close> by fastforce
+    qed
+
+    also have "\<dots> \<longleftrightarrow> is_least_false_clause N1 E"
+    proof (rule is_least_false_clause_swap_swap_compatible_fsets)
+      show "{|x |\<in>| {|x |\<in>| N1. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|}. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|} = {|x |\<in>| N1. (\<prec>\<^sub>c)\<^sup>=\<^sup>= x E|}"
+        using \<open>E \<prec>\<^sub>c C\<close> by fastforce
+    qed
+
+    finally have "is_least_false_clause N1 E"
+      using \<open>is_least_false_clause N2 E\<close> by argo
+
+    hence "D = E"
+      using \<open>is_least_false_clause N1 D\<close>
+      by (metis Uniq_is_least_false_clause the1_equality')
+
+    thus False
+      using \<open>E \<prec>\<^sub>c C\<close> \<open>C \<prec>\<^sub>c D\<close> by order
+  qed
+  thus "C \<preceq>\<^sub>c E"
+    by order
+qed
+
 end
 
 end
