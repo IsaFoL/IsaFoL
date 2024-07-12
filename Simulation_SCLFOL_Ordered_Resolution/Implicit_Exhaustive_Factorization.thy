@@ -314,6 +314,78 @@ proof (rule notI)
     by (metis not_trail_true_cls_and_trail_false_cls)
 qed
 
+lemma no_undefined_atom_le_max_lit_of_false_clause:
+  assumes
+    \<Gamma>_lower_set: "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
+    D_in: "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+    D_false: "trail_false_cls \<Gamma> D" and
+    D_max_lit: "linorder_lit.is_maximal_in_mset D L"
+  shows "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<preceq>\<^sub>t atm_of L \<and> A |\<notin>| trail_atms \<Gamma>)"
+proof -
+  have "trail_false_lit \<Gamma> L"
+    using D_false D_max_lit
+    unfolding trail_false_cls_def linorder_lit.is_maximal_in_mset_iff by simp
+
+  hence "trail_defined_lit \<Gamma> L"
+    by (metis trail_defined_lit_iff_true_or_false)
+
+  hence "atm_of L |\<in>| trail_atms \<Gamma>"
+    unfolding trail_defined_lit_iff_trail_defined_atm .
+
+  thus ?thesis
+    using \<Gamma>_lower_set
+    using linorder_trm.not_in_lower_setI by blast
+qed
+
+lemma trail_defined_if_no_undef_atom_le_max_lit:
+  assumes
+    C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+    C_max_lit: "linorder_lit.is_maximal_in_mset C K" and
+    no_undef_atom_le_K:
+      "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<preceq>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>)"
+  shows "trail_defined_cls \<Gamma> C"
+proof -
+
+  have "\<And>x. x \<in># C \<Longrightarrow> atm_of x \<preceq>\<^sub>t atm_of K"
+    using C_in C_max_lit
+    unfolding linorder_lit.is_maximal_in_mset_iff
+    by (metis linorder_trm.le_cases linorder_trm.le_less_linear literal.exhaust_sel
+        ord_res.less_lit_simps(1) ord_res.less_lit_simps(2) ord_res.less_lit_simps(3)
+        ord_res.less_lit_simps(4))
+
+  hence "\<And>x. x \<in># C \<Longrightarrow> trail_defined_lit \<Gamma> x"
+    using C_in no_undef_atom_le_K
+    by (meson atm_of_in_atms_of_clssI trail_defined_lit_iff_trail_defined_atm)
+
+  thus "trail_defined_cls \<Gamma> C"
+    unfolding trail_defined_cls_def
+    by metis
+qed
+
+lemma no_undef_atom_le_max_lit_if_lt_false_clause:
+  assumes
+    \<Gamma>_lower_set: "linorder_trm.is_lower_fset (trail_atms \<Gamma>) (atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r))" and
+    D_in: "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+    D_false: "trail_false_cls \<Gamma> D" and
+    D_max_lit: "linorder_lit.is_maximal_in_mset D L" and
+    C_in: "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+    C_max_lit: "linorder_lit.is_maximal_in_mset C K" and
+    C_lt: "C \<prec>\<^sub>c D"
+  shows "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<preceq>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>)"
+proof -
+  have "K \<preceq>\<^sub>l L"
+    using C_lt C_max_lit D_max_lit
+    using linorder_cls.less_imp_not_less linorder_lit.multp_if_maximal_less_that_maximal
+      linorder_lit.nle_le by blast
+
+  hence "atm_of K \<preceq>\<^sub>t atm_of L"
+    by (cases K; cases L) simp_all
+
+  thus "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<preceq>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>)"
+    using no_undefined_atom_le_max_lit_of_false_clause[OF assms(1,2,3,4)]
+    by fastforce
+qed
+
 end
 
 end
