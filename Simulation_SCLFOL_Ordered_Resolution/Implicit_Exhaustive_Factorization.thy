@@ -1,5 +1,7 @@
 theory Implicit_Exhaustive_Factorization
-  imports Exhaustive_Factorization
+  imports
+    Exhaustive_Factorization
+    Exhaustive_Resolution
 begin
 
 section \<open>Function for implicit full factorization\<close>
@@ -233,6 +235,83 @@ proof -
 
   thus "atm_of L |\<in>| atms_of_clss N"
     by simp
+qed
+
+lemma clause_almost_almost_definedI:
+  fixes \<Gamma> D K
+  assumes
+    D_in: "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+    D_max_lit: "ord_res.is_maximal_lit K D" and
+    no_undef_atm: "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>)"
+  shows "trail_defined_cls \<Gamma> {#L \<in># D. L \<noteq> K \<and> L \<noteq> - K#}"
+  unfolding trail_defined_cls_def
+proof (intro ballI)
+  have "K \<in># D" and lit_in_D_le_K: "\<And>L. L \<in># D \<Longrightarrow> L \<preceq>\<^sub>l K"
+    using D_max_lit
+    unfolding atomize_imp atomize_all atomize_conj linorder_lit.is_maximal_in_mset_iff
+    using linorder_lit.leI by blast
+
+  fix L :: "'f gterm literal"
+  assume "L \<in># {#L \<in># D. L \<noteq> K \<and> L \<noteq> - K#}"
+
+  hence "L \<in># D" and "L \<noteq> K" and "L \<noteq> - K"
+    by simp_all
+
+  have "atm_of L |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r)"
+    using \<open>L \<in># D\<close> D_in by (metis atm_of_in_atms_of_clssI)
+
+  hence "atm_of L \<prec>\<^sub>t atm_of K \<Longrightarrow> atm_of L |\<in>| trail_atms \<Gamma>"
+    using no_undef_atm by metis
+
+  moreover have "atm_of L \<prec>\<^sub>t atm_of K"
+    using lit_in_D_le_K[OF \<open>L \<in># D\<close>] \<open>L \<noteq> K\<close> \<open>L \<noteq> - K\<close>
+    by (cases L; cases K) simp_all
+
+  ultimately show "trail_defined_lit \<Gamma> L"
+    using trail_defined_lit_iff_trail_defined_atm by auto
+qed
+
+lemma clause_almost_definedI:
+  fixes \<Gamma> D K
+  assumes
+    D_in: "D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)" and
+    D_max_lit: "ord_res.is_maximal_lit K D" and
+    no_undef_atm: "\<not> (\<exists>A|\<in>|atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r). A \<prec>\<^sub>t atm_of K \<and> A |\<notin>| trail_atms \<Gamma>)" and
+    K_defined: "trail_defined_lit \<Gamma> K"
+  shows "trail_defined_cls \<Gamma> {#Ka \<in># D. Ka \<noteq> K#}"
+  using clause_almost_almost_definedI[OF D_in D_max_lit no_undef_atm]
+  using K_defined
+  by (metis (mono_tags, lifting) mem_Collect_eq set_mset_filter trail_defined_cls_def
+      trail_defined_lit_iff_defined_uminus)
+
+lemma eres_not_in_known_clauses_if_trail_false_cls:
+  fixes
+    \<F> :: "'f gclause fset" and
+    \<Gamma> :: "('f gliteral \<times> 'f gclause option) list"
+  assumes
+    \<Gamma>_consistent: "trail_consistent \<Gamma>" and
+    clauses_lt_E_true: "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c E \<longrightarrow> trail_true_cls \<Gamma> C" and
+    "eres D E \<prec>\<^sub>c E" and
+    "trail_false_cls \<Gamma> (eres D E)"
+  shows "eres D E |\<notin>| N |\<union>| U\<^sub>e\<^sub>r"
+proof (rule notI)
+  have "iefac \<F> (eres D E) \<preceq>\<^sub>c eres D E"
+    using iefac_le by metis
+  hence "iefac \<F> (eres D E) \<prec>\<^sub>c E"
+    using \<open>eres D E \<prec>\<^sub>c E\<close> by order
+
+  moreover assume "eres D E |\<in>| N |\<union>| U\<^sub>e\<^sub>r"
+
+  ultimately have "trail_true_cls \<Gamma> (iefac \<F> (eres D E))"
+    using clauses_lt_E_true[rule_format, of "iefac \<F> (eres D E)"]
+    by (simp add: iefac_def linorder_lit.is_maximal_in_mset_iff)
+
+  hence "trail_true_cls \<Gamma> (eres D E)"
+    using trail_false_cls_ignores_duplicates by (metis iefac_def set_mset_efac)
+
+  thus False
+    using \<Gamma>_consistent \<open>trail_false_cls \<Gamma> (eres D E)\<close>
+    by (metis not_trail_true_cls_and_trail_false_cls)
 qed
 
 end

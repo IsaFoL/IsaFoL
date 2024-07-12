@@ -840,9 +840,6 @@ next
         \<open>s = (U\<^sub>e\<^sub>r, \<F>, \<M>, Some C)\<close> \<open>s' = (U\<^sub>e\<^sub>r, \<F>, \<M>', \<C>')\<close> \<open>\<M>' = \<M>(atm_of L \<mapsto> C)\<close>)
 qed (simp_all add: atoms_in_model_were_produced_def)
 
-lemma nbex_less_than_least_in_fset: "\<not> (\<exists>w |\<in>| X. w \<prec>\<^sub>c x)" if "linorder_cls.is_least_in_fset X x" for X x
-  using that unfolding linorder_cls.is_least_in_fset_iff by auto
-
 definition all_produced_atoms_in_model where
   "all_produced_atoms_in_model N s \<longleftrightarrow>
     (\<forall>U\<^sub>e\<^sub>r \<F> \<M> D. s = (U\<^sub>e\<^sub>r, \<F>, \<M>, Some D) \<longrightarrow> (\<forall>C A. C \<prec>\<^sub>c D \<longrightarrow>

@@ -542,6 +542,9 @@ qed
 
 section \<open>Move somewhere?\<close>
 
+lemma true_cls_imp_neq_mempty: "\<I> \<TTurnstile> C \<Longrightarrow> C \<noteq> {#}"
+  by blast
+
 lemma lift_tranclp_to_pairs_with_constant_fst:
   "(R x)\<^sup>+\<^sup>+ y z \<Longrightarrow> (\<lambda>(x, y) (x', z). x = x' \<and> R x y z)\<^sup>+\<^sup>+ (x, y) (x, z)"
   by (induction z arbitrary: rule: tranclp_induct) (auto simp: tranclp.trancl_into_trancl)
@@ -829,6 +832,92 @@ proof (intro allI impI)
   thus "\<F> S' \<or> Ex (constant_context \<R> S')"
     by argo
 qed
+
+primrec trail_atms :: "(_ literal \<times> _) list \<Rightarrow> _ fset" where
+  "trail_atms [] = {||}" |
+  "trail_atms (Ln # \<Gamma>) = finsert (atm_of (fst Ln)) (trail_atms \<Gamma>)"
+
+lemma fset_trail_atms: "fset (trail_atms \<Gamma>) = atm_of ` fst ` set \<Gamma>"
+  by (induction \<Gamma>) simp_all
+
+lemma trail_defined_lit_iff_trail_defined_atm:
+  "trail_defined_lit \<Gamma> L \<longleftrightarrow> atm_of L |\<in>| trail_atms \<Gamma>"
+proof (induction \<Gamma>)
+  case Nil
+  show ?case
+    by simp
+next
+  case (Cons Ln \<Gamma>)
+
+  have "trail_defined_lit (Ln # \<Gamma>) L \<longleftrightarrow> L = fst Ln \<or> - L = fst Ln \<or> trail_defined_lit \<Gamma> L"
+    unfolding trail_defined_lit_def by auto
+
+  also have "\<dots> \<longleftrightarrow> atm_of L = atm_of (fst Ln) \<or> trail_defined_lit \<Gamma> L"
+    by (cases L; cases "fst Ln") simp_all
+
+  also have "\<dots> \<longleftrightarrow> atm_of L = atm_of (fst Ln) \<or> atm_of L |\<in>| trail_atms \<Gamma>"
+    unfolding Cons.IH ..
+
+  also have "\<dots> \<longleftrightarrow> atm_of L |\<in>| trail_atms (Ln # \<Gamma>)"
+    by simp
+
+  finally show ?case .
+qed
+
+lemma trail_atms_subset_if_suffix:
+  assumes "suffix \<Gamma>' \<Gamma>"
+  shows "trail_atms \<Gamma>' |\<subseteq>| trail_atms \<Gamma>"
+proof -
+  obtain \<Gamma>\<^sub>0 where "\<Gamma> = \<Gamma>\<^sub>0 @ \<Gamma>'"
+    using assms unfolding suffix_def by metis
+
+  show ?thesis
+    unfolding \<open>\<Gamma> = \<Gamma>\<^sub>0 @ \<Gamma>'\<close>
+    by (induction \<Gamma>\<^sub>0) auto
+qed
+
+lemma dom_model_eq_trail_interp:
+  assumes
+    "\<forall>A C. \<M> A = Some C \<longleftrightarrow> map_of \<Gamma> (Pos A) = Some (Some C)" and
+    "\<forall>Ln \<in> set \<Gamma>. \<forall>L. Ln = (L, None) \<longrightarrow> is_neg L"
+  shows "dom \<M> = trail_interp \<Gamma>"
+proof -
+  have "dom \<M> = {A. \<exists>C. \<M> A = Some C}"
+    unfolding dom_def by simp
+  also have "\<dots> = {A. \<exists>C. map_of \<Gamma> (Pos A) = Some (Some C)}"
+    using assms(1) by metis
+  also have "\<dots> = {A. \<exists>opt. map_of \<Gamma> (Pos A) = Some opt}"
+  proof (rule Collect_cong)
+    show "\<And>A. (\<exists>C. map_of \<Gamma> (Pos A) = Some (Some C)) \<longleftrightarrow> (\<exists>opt. map_of \<Gamma> (Pos A) = Some opt)"
+      using assms(2)
+      by (metis literal.disc(1) map_of_SomeD option.exhaust)
+  qed
+  also have "\<dots> = trail_interp \<Gamma>"
+  proof (induction \<Gamma>)
+    case Nil
+    thus ?case
+      by (simp add: trail_interp_def)
+  next
+    case (Cons Ln \<Gamma>)
+
+    have "{A. \<exists>opt. map_of (Ln # \<Gamma>) (Pos A) = Some opt} =
+      {A. \<exists>opt. map_of [Ln] (Pos A) = Some opt} \<union> {A. \<exists>opt. map_of \<Gamma> (Pos A) = Some opt}"
+      by auto
+
+    also have "\<dots> = {A. Pos A = fst Ln} \<union> trail_interp \<Gamma>"
+      unfolding Cons.IH by simp
+
+    also have "\<dots> = trail_interp [Ln] \<union> trail_interp \<Gamma>"
+      by (cases "fst Ln") (simp_all add: trail_interp_def)
+
+    also have "\<dots> = trail_interp (Ln # \<Gamma>)"
+      unfolding trail_interp_Cons[of Ln \<Gamma>] ..
+
+    finally show ?case .
+  qed
+  finally show ?thesis .
+qed
+
 
 
 type_synonym 'f gliteral = "'f gterm literal"
@@ -1504,8 +1593,6 @@ proof -
   qed
 qed
 
-
-
 lemma
   fixes N N'
   assumes
@@ -1521,6 +1608,151 @@ proof (rule contrapos_nn)
     using ord_res.interp_add_irrelevant_clauses_to_set[OF fin C_in irrelevant]
     using ord_res.production_add_irrelevant_clauses_to_set[OF fin C_in irrelevant]
     by metis
+qed
+
+lemma trail_consistent_if_sorted_wrt_atoms:
+  assumes "sorted_wrt (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) \<Gamma>"
+  shows "trail_consistent \<Gamma>"
+  using assms
+proof (induction \<Gamma>)
+  case Nil
+  show ?case
+    by simp
+next
+  case (Cons Ln \<Gamma>)
+
+  obtain L opt where
+    "Ln = (L, opt)"
+    by fastforce
+
+  show ?case
+    unfolding \<open>Ln = (L, opt)\<close>
+  proof (rule trail_consistent.Cons)
+    have "\<forall>x\<in>set \<Gamma>. atm_of (fst x) \<prec>\<^sub>t atm_of (fst Ln)"
+      using Cons.prems by simp
+
+    hence "\<forall>x\<in>set \<Gamma>. atm_of (fst x) \<noteq> atm_of L"
+      unfolding \<open>Ln = (L, opt)\<close> by fastforce
+
+    thus "\<not> trail_defined_lit \<Gamma> L"
+      unfolding trail_defined_lit_def by fastforce
+  next
+    show "trail_consistent \<Gamma>"
+      using Cons by simp
+  qed
+qed
+
+
+lemma mono_atms_lt: "monotone_on (set \<Gamma>) (\<lambda>x y. atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)) (\<lambda>x y. y \<le> x)
+  (\<lambda>x. atm_of K \<preceq>\<^sub>t atm_of (fst x))" for K
+proof (intro monotone_onI, unfold le_bool_def, intro impI)
+  fix x y
+  assume "atm_of (fst y) \<prec>\<^sub>t atm_of (fst x)" and "atm_of K \<preceq>\<^sub>t atm_of (fst y)"
+  thus "atm_of K \<preceq>\<^sub>t atm_of (fst x)"
+    by order
+qed
+
+lemma in_trail_atms_dropWhileI:
+  assumes
+    "sorted_wrt R \<Gamma>" and
+    "monotone_on (set \<Gamma>) R (\<ge>) (\<lambda>x. P (atm_of (fst x)))" and
+    "\<not> P A" and
+    "A |\<in>| trail_atms \<Gamma>"
+  shows "A |\<in>| trail_atms (dropWhile (\<lambda>Ln. P (atm_of (fst Ln))) \<Gamma>)"
+  using assms(1,2,4)
+proof (induction \<Gamma>)
+  case Nil
+  thus ?case
+    by simp
+next
+  case (Cons Ln \<Gamma>)
+  show ?case
+  proof (cases "P (atm_of (fst Ln))")
+    case True
+
+    have "A |\<in>| trail_atms (dropWhile (\<lambda>Ln. P (atm_of (fst Ln))) \<Gamma>)"
+    proof (rule Cons.IH)
+      show "sorted_wrt R \<Gamma>"
+        using Cons.prems(1) by simp
+    next
+      show "monotone_on (set \<Gamma>) R (\<lambda>x y. y \<le> x) (\<lambda>x. P (atm_of (fst x)))"
+        using Cons.prems(2) by (meson monotone_on_subset set_subset_Cons)
+    next
+      have "\<not> P A"
+        using assms by metis
+      hence "A \<noteq> atm_of (fst Ln)"
+        using True by metis
+      moreover have "A |\<in>| trail_atms (Ln # \<Gamma>)"
+        using Cons.prems(3) by metis
+      ultimately show "A |\<in>| trail_atms \<Gamma>"
+        by (simp add: trail_defined_lit_def)
+    qed
+
+    thus ?thesis
+      using True by simp
+  next
+    case False
+    thus ?thesis
+      using Cons.prems(3) by simp
+  qed
+qed
+
+lemma trail_defined_lit_dropWhileI:
+  assumes
+    "sorted_wrt R \<Gamma>" and
+    "monotone_on (set \<Gamma>) R (\<ge>) (\<lambda>x. P (fst x))" and
+    "\<not> P L \<and> \<not> P (- L)" and
+    "trail_defined_lit \<Gamma> L"
+  shows "trail_defined_lit (dropWhile (\<lambda>Ln. P (fst Ln)) \<Gamma>) L"
+  using assms in_trail_atms_dropWhileI
+  by (smt (verit) imageE image_eqI mem_set_dropWhile_conv_if_list_sorted_and_pred_monotone
+      trail_defined_lit_def trail_defined_lit_iff_trail_defined_atm)
+
+lemma trail_defined_cls_dropWhileI:
+  assumes
+    "sorted_wrt R \<Gamma>" and
+    "monotone_on (set \<Gamma>) R (\<ge>) (\<lambda>x. P (fst x))" and
+    "\<forall>L \<in># C. \<not> P L \<and> \<not> P (- L)" and
+    "trail_defined_cls \<Gamma> C"
+  shows "trail_defined_cls (dropWhile (\<lambda>Ln. P (fst Ln)) \<Gamma>) C"
+  using assms trail_defined_lit_dropWhileI
+  by (metis trail_defined_cls_def)
+
+lemma nbex_less_than_least_in_fset: "\<not> (\<exists>w |\<in>| X. w \<prec>\<^sub>c x)"
+  if "linorder_cls.is_least_in_fset X x" for X x
+  using that unfolding linorder_cls.is_least_in_fset_iff by auto
+
+lemma clause_le_if_lt_least_greater:
+  fixes N U\<^sub>e\<^sub>r \<F> C D
+  defines
+    "\<C> \<equiv> The_optional (linorder_cls.is_least_in_fset (ffilter ((\<prec>\<^sub>c) D) N))"
+  assumes
+    C_lt: "\<And>E. \<C> = Some E \<Longrightarrow> C \<prec>\<^sub>c E" and
+    C_in: "C |\<in>| N"
+  shows "C \<preceq>\<^sub>c D"
+proof (cases \<C>)
+  case None
+
+  hence "\<not> (\<exists>E. linorder_cls.is_least_in_fset (ffilter ((\<prec>\<^sub>c) D) N) E)"
+    using \<C>_def
+    by (metis None_eq_The_optionalD Uniq_D linorder_cls.Uniq_is_least_in_fset)
+
+  hence "\<not> (\<exists>E |\<in>| N. D \<prec>\<^sub>c E)"
+    by (metis femptyE ffmember_filter linorder_cls.ex1_least_in_fset)
+
+  thus ?thesis
+    using C_in linorder_cls.less_linear by blast
+next
+  case (Some E)
+
+  hence "linorder_cls.is_least_in_fset (ffilter ((\<prec>\<^sub>c) D) N) E"
+    using \<C>_def by (metis Some_eq_The_optionalD)
+
+  hence "C \<prec>\<^sub>c D \<or> C = D"
+    by (metis C_in C_lt Some ffmember_filter linorder_cls.neqE nbex_less_than_least_in_fset)
+
+  thus ?thesis
+    by simp
 qed
 
 end
@@ -1594,48 +1826,5 @@ proof unfold_locales
 qed
 
 end
-
-primrec trail_atms :: "(_ literal \<times> _) list \<Rightarrow> _ fset" where
-  "trail_atms [] = {||}" |
-  "trail_atms (Ln # \<Gamma>) = finsert (atm_of (fst Ln)) (trail_atms \<Gamma>)"
-
-lemma fset_trail_atms: "fset (trail_atms \<Gamma>) = atm_of ` fst ` set \<Gamma>"
-  by (induction \<Gamma>) simp_all
-
-lemma trail_defined_lit_iff_trail_defined_atm:
-  "trail_defined_lit \<Gamma> L \<longleftrightarrow> atm_of L |\<in>| trail_atms \<Gamma>"
-proof (induction \<Gamma>)
-  case Nil
-  show ?case
-    by simp
-next
-  case (Cons Ln \<Gamma>)
-
-  have "trail_defined_lit (Ln # \<Gamma>) L \<longleftrightarrow> L = fst Ln \<or> - L = fst Ln \<or> trail_defined_lit \<Gamma> L"
-    unfolding trail_defined_lit_def by auto
-
-  also have "\<dots> \<longleftrightarrow> atm_of L = atm_of (fst Ln) \<or> trail_defined_lit \<Gamma> L"
-    by (cases L; cases "fst Ln") simp_all
-
-  also have "\<dots> \<longleftrightarrow> atm_of L = atm_of (fst Ln) \<or> atm_of L |\<in>| trail_atms \<Gamma>"
-    unfolding Cons.IH ..
-
-  also have "\<dots> \<longleftrightarrow> atm_of L |\<in>| trail_atms (Ln # \<Gamma>)"
-    by simp
-
-  finally show ?case .
-qed
-
-lemma trail_atms_subset_if_suffix:
-  assumes "suffix \<Gamma>' \<Gamma>"
-  shows "trail_atms \<Gamma>' |\<subseteq>| trail_atms \<Gamma>"
-proof -
-  obtain \<Gamma>\<^sub>0 where "\<Gamma> = \<Gamma>\<^sub>0 @ \<Gamma>'"
-    using assms unfolding suffix_def by metis
-
-  show ?thesis
-    unfolding \<open>\<Gamma> = \<Gamma>\<^sub>0 @ \<Gamma>'\<close>
-    by (induction \<Gamma>\<^sub>0) auto
-qed
 
 end
