@@ -34,14 +34,14 @@ qed
 definition has_type\<^sub>a where
   "has_type\<^sub>a \<F> \<V> A \<longleftrightarrow> (\<exists>\<tau>. \<forall>t \<in> set_uprod A. has_type \<F> \<V> t \<tau>)"
 
-definition welltyped\<^sub>a where
-  "welltyped\<^sub>a \<F> \<V> A \<longleftrightarrow> (\<exists>\<tau>. \<forall>t \<in> set_uprod A. welltyped \<F> \<V> t \<tau>)"
+definition welltyped\<^sub>a  where
+  [clause_simps]: "welltyped\<^sub>a \<F> \<V> A \<longleftrightarrow> (\<exists>\<tau>. \<forall>t \<in> set_uprod A. welltyped \<F> \<V> t \<tau>)"
 
 definition has_type\<^sub>l where
   "has_type\<^sub>l \<F> \<V> L \<longleftrightarrow> has_type\<^sub>a \<F> \<V> (atm_of L)"
 
 definition welltyped\<^sub>l where
-  "welltyped\<^sub>l \<F> \<V> L \<longleftrightarrow> welltyped\<^sub>a \<F> \<V> (atm_of L)"
+   [clause_simps]: "welltyped\<^sub>l \<F> \<V> L \<longleftrightarrow> welltyped\<^sub>a \<F> \<V> (atm_of L)"
 
 definition has_type\<^sub>c where
   "has_type\<^sub>c \<F> \<V> C \<longleftrightarrow> (\<forall>L \<in># C. has_type\<^sub>l \<F> \<V> L)"
@@ -95,19 +95,19 @@ definition welltyped\<^sub>\<sigma>' where
 
 (* Probably true: lemma "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> welltyped\<^sub>\<sigma>' \<F> \<V> \<sigma>" *)
 
-lemma has_type\<^sub>c_add_mset: 
+lemma has_type\<^sub>c_add_mset [clause_simps]: 
   "has_type\<^sub>c \<F> \<V> (add_mset L C) \<longleftrightarrow> has_type\<^sub>l \<F> \<V> L \<and> has_type\<^sub>c \<F> \<V> C"
   by (simp add: has_type\<^sub>c_def)
 
-lemma welltyped\<^sub>c_add_mset: 
+lemma welltyped\<^sub>c_add_mset [clause_simps]: 
   "welltyped\<^sub>c \<F> \<V> (add_mset L C) \<longleftrightarrow> welltyped\<^sub>l \<F> \<V> L \<and> welltyped\<^sub>c \<F> \<V> C"
   by (simp add: welltyped\<^sub>c_def)
 
-lemma has_type\<^sub>c_plus: 
+lemma has_type\<^sub>c_plus [clause_simps]: 
   "has_type\<^sub>c \<F> \<V> (C + D) \<longleftrightarrow> has_type\<^sub>c \<F> \<V> C \<and> has_type\<^sub>c \<F> \<V> D"
   by (auto simp: has_type\<^sub>c_def)
 
-lemma welltyped\<^sub>c_plus: 
+lemma welltyped\<^sub>c_plus [clause_simps]: 
   "welltyped\<^sub>c \<F> \<V> (C + D) \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> C \<and> welltyped\<^sub>c \<F> \<V> D"
   by (auto simp: welltyped\<^sub>c_def)
 
@@ -357,9 +357,10 @@ lemma welltyped\<^sub>\<sigma>_on_welltyped\<^sub>l:
   unfolding welltyped\<^sub>l_iff_welltyped\<^sub>a subst_literal
 proof (rule welltyped\<^sub>\<sigma>_on_welltyped\<^sub>a)
   have "vars_atom (atm_of L) = vars_literal L"
-    by (cases L) simp_all
+    by (cases L) clause_auto
   thus "welltyped\<^sub>\<sigma>_on (vars_atom (atm_of L)) \<F> \<V> \<sigma>"
-    using wt by argo
+    using wt
+    by simp
 qed
 
 lemma welltyped\<^sub>\<sigma>_on_welltyped\<^sub>c: 
@@ -431,7 +432,7 @@ next
 qed
 
 
-lemma welltyped\<^sub>\<kappa>:
+lemma welltyped\<^sub>\<kappa> [clause_intros]:
   assumes
     \<kappa>_type: "welltyped \<F> \<V> \<kappa>\<langle>t\<rangle> \<tau>\<^sub>1" and
     t_type: "welltyped \<F> \<V> t \<tau>\<^sub>2" and
@@ -894,6 +895,9 @@ qed
 
 
 end
+
+
+
 
 lemma 
   infinite_even_nat: "infinite { n :: nat . even n }" and 
@@ -1646,7 +1650,7 @@ proof
 qed
 
 
-lemma
+(* TODO: lemma
   fixes \<V>\<^sub>1 \<V>\<^sub>2
   assumes
     inj\<^sub>1: "inj_on f\<^sub>1 \<X>\<^sub>1" and inj\<^sub>2: "inj_on f\<^sub>2 \<X>\<^sub>2" and
@@ -1659,7 +1663,7 @@ lemma
   shows
     "\<And>t \<tau>. vars_term t \<subseteq> \<X>\<^sub>1 \<Longrightarrow> welltyped \<F> \<V>\<^sub>1 t \<tau> \<Longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<rho>\<^sub>1) \<tau>" and
     "\<And>t \<tau>. vars_term t \<subseteq> \<X>\<^sub>2 \<Longrightarrow> welltyped \<F> \<V>\<^sub>2 t \<tau> \<Longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<rho>\<^sub>2) \<tau>"
-  sorry
+  sorry*)
 
 
 lemma obtain_inj''_on:

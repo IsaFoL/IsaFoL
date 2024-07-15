@@ -204,7 +204,7 @@ proof (cases P C rule: eq_resolution.cases)
 
       then show ?thesis
         using I_models_L' 
-        by (metis \<gamma>'(3) clause_subst_eq true_cls_def)
+        by (metis \<gamma>'(3) clause.subst_eq true_cls_def)
     qed
   qed
 
@@ -283,12 +283,12 @@ proof (cases P C rule: eq_factoring.cases)
     then have welltyped_L\<^sub>1: "welltyped\<^sub>l typeof_fun \<V> (s\<^sub>1 \<approx> s\<^sub>1')"
       unfolding welltyped\<^sub>l_def welltyped\<^sub>a_def
       using right_uniqueD[OF welltyped_right_unique] 
-      by (smt (verit, best) insert_iff set_uprod_simps upair_in_literal(1) upair_in_literal(2))
+      by (smt (verit, best) insert_iff set_uprod_simps literal.sel)
 
     have welltyped_L\<^sub>2: "welltyped\<^sub>l typeof_fun \<V> (t\<^sub>2 \<approx> t\<^sub>2')"
       using xx right_uniqueD[OF welltyped_right_unique] eq_factoringI(10) wt(1)
       unfolding welltyped\<^sub>l_def welltyped\<^sub>a_def
-      by (smt (verit) insert_iff set_uprod_simps upair_in_literal(1))
+      by (smt (verit) insert_iff set_uprod_simps literal.sel(1))
 
     from welltyped_\<mu> have "welltyped\<^sub>\<sigma> typeof_fun \<V> (\<mu> \<odot> \<gamma>')"
       using wt(2) \<gamma>'
@@ -341,7 +341,7 @@ proof (cases P C rule: eq_factoring.cases)
 
       then show ?thesis
         unfolding C 
-        by (metis C \<gamma>'(3) clause_subst_eq true_cls_add_mset)
+        by (metis C \<gamma>'(3) clause.subst_eq true_cls_add_mset)
     next
       case False
       then have "L' \<in># ?P'"
@@ -351,7 +351,7 @@ proof (cases P C rule: eq_factoring.cases)
 
       then have "L' \<in># to_ground_clause (C \<cdot> \<gamma>)"
         using C
-        by (metis \<gamma>'(3) clause_subst_eq insert_iff set_mset_add_mset_insert)
+        by (metis \<gamma>'(3) clause.subst_eq insert_iff set_mset_add_mset_insert)
 
       then show ?thesis
         using I_models_L' by blast
@@ -445,7 +445,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       have xx: "\<forall>x\<in>vars_clause (P\<^sub>1' \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x"
         using superpositionI(15)
         unfolding superpositionI subst_clause_add_mset
-        by auto
+        by clause_simp
 
       have wt_P\<^sub>1': "welltyped\<^sub>c typeof_fun \<V>\<^sub>1 P\<^sub>1'"
         using grounding(2)
@@ -463,6 +463,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       then have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>1 s\<^sub>1\<langle>u\<^sub>1\<rangle> \<tau> \<and> welltyped typeof_fun \<V>\<^sub>1 s\<^sub>1' \<tau>"
         using welltyped_renaming_weaker[OF superpositionI(4)] superpositionI(15) vars_clause_add_mset  superpositionI(9)
         unfolding superpositionI subst_clause_add_mset 
+        apply(clause_simp)
         apply(auto simp: subst_literal subst_atom vars_atom_def)
         by (metis (mono_tags) Un_iff \<open>\<And>t \<tau> \<V>' \<V> \<F>. \<forall>x\<in>vars_term (t \<cdot>t \<rho>\<^sub>1). \<V> (the_inv \<rho>\<^sub>1 (Var x)) = \<V>' x \<Longrightarrow> First_Order_Type_System.welltyped \<F> \<V> t \<tau> = First_Order_Type_System.welltyped \<F> \<V>' (t \<cdot>t \<rho>\<^sub>1) \<tau>\<close> subst_apply_term_ctxt_apply_distrib vars_term_ctxt_apply)+
 
@@ -477,7 +478,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       have xx: "\<forall>x\<in>vars_clause (P\<^sub>2' \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
         using superpositionI(16)
         unfolding superpositionI subst_clause_add_mset
-        by auto
+        by clause_simp
 
       have wt_P\<^sub>2': "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 P\<^sub>2'"
         using grounding(2)
@@ -497,6 +498,7 @@ proof (cases P2 P1 C rule: superposition.cases)
           welltyped_renaming_weaker[OF superpositionI(5)]  superpositionI(16)
           wt_P\<^sub>2'
         unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def subst_clause_add_mset subst_clause_plus
+        apply clause_simp
         apply(auto simp: subst_literal subst_atom vars_atom_def)
         by (metis Un_iff \<open>\<And>t \<tau> \<V>' \<V> \<F>. \<forall>x\<in>vars_term (t \<cdot>t \<rho>\<^sub>2). \<V> (the_inv \<rho>\<^sub>2 (Var x)) = \<V>' x \<Longrightarrow> First_Order_Type_System.welltyped \<F> \<V> t \<tau> = First_Order_Type_System.welltyped \<F> \<V>' (t \<cdot>t \<rho>\<^sub>2) \<tau>\<close>)
     qed
@@ -605,7 +607,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
           then show ?thesis 
             unfolding C that
-            by (smt (verit) C \<gamma>'(3) clause_subst_eq that true_cls_def union_single_eq_member)
+            by (smt (verit) C \<gamma>'(3) clause.subst_eq that true_cls_def union_single_eq_member)
         qed
 
         moreover have ?thesis if "\<P> = Neg"
@@ -624,7 +626,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
           then show ?thesis 
             unfolding C that
-            by (smt (verit, best) C \<gamma>'(3) calculation clause_subst_eq true_cls_def union_single_eq_member)
+            by (smt (verit, best) C \<gamma>'(3) calculation clause.subst_eq true_cls_def union_single_eq_member)
         qed
 
         ultimately show ?thesis
@@ -641,7 +643,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
         then show ?thesis
           unfolding superpositionI 
-          by (metis C \<gamma>'(3) clause_subst_eq superpositionI(26) true_cls_union union_mset_add_mset_left)
+          by (metis C \<gamma>'(3) clause.subst_eq superpositionI(26) true_cls_union union_mset_add_mset_left)
       qed
     next
       case False
@@ -655,7 +657,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
       then show ?thesis 
         unfolding superpositionI
-        by (metis C \<gamma>'(3) clause_subst_eq superpositionI(26) true_cls_union union_mset_add_mset_right)
+        by (metis C \<gamma>'(3) clause.subst_eq superpositionI(26) true_cls_union union_mset_add_mset_right)
     qed
   qed
 

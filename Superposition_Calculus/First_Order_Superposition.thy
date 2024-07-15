@@ -256,15 +256,15 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
       welltyped\<^sub>c_add_mset 
       welltyped\<^sub>l_def 
       welltyped\<^sub>a_def
-    by auto
+    by clause_simp
 
   then have "welltyped\<^sub>c typeof_fun \<V> (D  \<cdot> \<mu>)"
     using wt_D welltyped\<^sub>\<sigma>_welltyped\<^sub>c eq_resolutionI(4)
-    by blast
+    by clause_simp
 
   then show ?thesis
     unfolding eq_resolutionI subst_clause_add_mset welltyped\<^sub>c_add_mset
-    by blast
+    by clause_simp
 qed
 
 lemma has_type_welltyped:
@@ -293,9 +293,9 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
 
   then show ?thesis
     unfolding welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def eq_factoringI subst_clause_add_mset subst_literal subst_atom
-    (* TODO: *)
     apply auto
-    by (metis First_Order_Type_System.welltyped_right_unique local.eq_factoringI(8) right_uniqueD welltyped\<^sub>\<sigma>_welltyped)+
+      (* TODO: *)
+    by (metis welltyped_right_unique eq_factoringI(8) right_uniqueD welltyped\<^sub>\<sigma>_welltyped)+
 qed
 
 (* TODO: Naming!! *)
@@ -309,7 +309,7 @@ lemma superposition_preserves_typing:
 proof (cases "(D, \<V>\<^sub>2)" "(C, \<V>\<^sub>1)" "(E, \<V>\<^sub>3)" rule: superposition.cases)
   case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' \<P> context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
 
-  have xx: "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 \<mu>"
+  have welltyped_\<mu>: "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 \<mu>"
     using superpositionI(11)
     by blast
 
@@ -318,7 +318,7 @@ proof (cases "(D, \<V>\<^sub>2)" "(C, \<V>\<^sub>1)" "(E, \<V>\<^sub>3)" rule: s
     by blast
 
   then have wt_C\<mu>: "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 (C \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)"
-    using welltyped\<^sub>\<sigma>_welltyped\<^sub>c[OF xx]
+    using welltyped\<^sub>\<sigma>_welltyped\<^sub>c[OF welltyped_\<mu>]
     by blast
 
   have "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 (D \<cdot> \<rho>\<^sub>2)"
@@ -326,20 +326,14 @@ proof (cases "(D, \<V>\<^sub>2)" "(C, \<V>\<^sub>1)" "(E, \<V>\<^sub>3)" rule: s
     by blast    
 
   then have wt_D\<mu>: "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 (D \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)"
-    using welltyped\<^sub>\<sigma>_welltyped\<^sub>c[OF xx]
+    using welltyped\<^sub>\<sigma>_welltyped\<^sub>c[OF welltyped_\<mu>]
     by blast
-    
-  show ?thesis 
-    using wt_C\<mu> wt_D\<mu> 
-    unfolding superpositionI subst_clause_add_mset welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def
-    using superpositionI(6)
-    apply auto
-    unfolding subst_literal subst_atom subst_apply_term_ctxt_apply_distrib
-     apply auto
-       apply (metis local.superpositionI(10) term_subst.subst_imgu_eq_subst_imgu welltyped\<^sub>\<kappa>)
-      apply (metis subst_clause_plus union_iff)
-     apply (metis local.superpositionI(10) term_subst.subst_imgu_eq_subst_imgu welltyped\<^sub>\<kappa>)
-    by (metis subst_clause_plus union_iff)
+
+  note imgu = term_subst.subst_imgu_eq_subst_imgu[OF superpositionI(10)]
+
+  show ?thesis
+    using literal_cases[OF superpositionI(6)] wt_C\<mu> wt_D\<mu> 
+    by cases (clause_simp simp: superpositionI imgu)
 qed
 
 end

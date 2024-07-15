@@ -982,9 +982,11 @@ proof-
   note less\<^sub>t_subst_upd = less\<^sub>t_subst_upd[of _ \<gamma>, OF update_is_ground update_less] 
 
   have all_ground_terms: "\<forall>term \<in> set_uprod (atm_of literal). is_ground_term (term \<cdot>t \<gamma>)"
-    using assms(3) 
-    by(cases literal)(auto simp: ground_term_in_ground_literal_subst)
-   
+    (* TODO: *)
+    using assms(3)
+    apply(cases literal)
+    by(clause_simp simp: subst_atom_def uprod.set_map vars_atom_def)
+     
   then have 
     "\<forall>term \<in> set_uprod (atm_of literal). 
        var \<in> vars_term term \<longrightarrow> term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>"
@@ -1029,7 +1031,7 @@ proof-
     by blast
 
   then have "\<forall>literal \<in># clause. literal \<cdot>l \<gamma>(var := update) \<preceq>\<^sub>l literal \<cdot>l \<gamma>"
-    by (metis fun_upd_other literal_subst_eq reflclp_iff)
+    by (metis fun_upd_other literal.subst_eq reflclp_iff)
 
   moreover have "\<exists>literal \<in># clause. literal \<cdot>l \<gamma>(var := update) \<prec>\<^sub>l literal \<cdot>l \<gamma>"
     using update_less var less\<^sub>l_subst_upd all_ground_literals

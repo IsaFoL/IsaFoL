@@ -75,7 +75,7 @@ proof-
     \<iota>\<^sub>G: "\<iota>\<^sub>G = Infer premises\<^sub>G conlcusion\<^sub>G"
     using Calculus.inference.exhaust by blast
 
-  obtain "premises" conclusion \<V> where
+  obtain "premises" "conclusion" \<V> where
     \<iota>: "\<iota> = Infer premises (conclusion, \<V>)"
     using Calculus.inference.exhaust
     by (metis prod.collapse)
@@ -165,7 +165,7 @@ next
   then show "clause_groundings typeof_fun bottom \<noteq> {}"
     unfolding clause_groundings_def
     using welltyped\<^sub>\<sigma>_Var
-    apply (auto simp add: First_Order_Type_System.welltyped\<^sub>c_def welltyped\<^sub>\<sigma>_on_empty)
+    apply(clause_auto simp: welltyped\<^sub>c_def welltyped\<^sub>\<sigma>_on_empty)
     using obtain_ground_subst
     by metis
 next

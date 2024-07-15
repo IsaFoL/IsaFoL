@@ -542,9 +542,9 @@ locale variable_substitution = basic_substitution _ _ subst
   fixes vars :: "'a \<Rightarrow> 'x set"
   assumes
     (* TODO: Can be also directly defined like this *)
-    "\<And>a. vars a = {} \<longleftrightarrow> is_ground a"
-    "\<And>a \<sigma> \<tau>. (\<And>x. x \<in> vars a \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot> \<sigma> = a \<cdot> \<tau>"
-    "\<And>a. finite (vars a)"
+    "\<And>a. vars a = {} \<longleftrightarrow> is_ground a" and
+    subst_eq: "\<And>a \<sigma> \<tau>. (\<And>x. x \<in> vars a \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot> \<sigma> = a \<cdot> \<tau>" and
+    finite_vars [simp]: "\<And>a. finite (vars a)"
 begin
 
 
@@ -562,7 +562,7 @@ locale variable_substitution_lifting = base: variable_substitution +
     "\<And>x. lifted_vars x = {} \<Longrightarrow> \<forall>\<sigma>. lifted_subst x \<sigma> = x"
     "\<And>a \<sigma> \<tau>. (\<And>x. x \<in> lifted_vars a \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> lifted_subst a \<sigma> = lifted_subst a \<tau>"
     "(\<forall>x. lifted_vars (lifted_subst x \<gamma>) = {}) \<longleftrightarrow> (\<forall>x. vars (x \<cdot> \<gamma>) = {})"
-    "finite (lifted_vars a)"
+     "\<And>a. finite (lifted_vars a)"
 begin
 
 abbreviation lifted_is_ground where 
@@ -572,7 +572,7 @@ sublocale variable_substitution
   where subst = lifted_subst and id_subst = id_subst and comp_subst = comp_subst and
   is_ground = lifted_is_ground and vars = lifted_vars
   apply unfold_locales
-  using todo 
+  using todo
   by metis+
 
 lemma is_ground_subst_iff [simp]: "is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
