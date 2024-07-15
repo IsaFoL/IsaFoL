@@ -337,7 +337,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
   with literal\<^sub>1_\<gamma> obtain term\<^sub>1 term\<^sub>1' where 
     literal\<^sub>1_terms: "literal\<^sub>1 = term\<^sub>1 \<approx> term\<^sub>1'" and
     term\<^sub>G\<^sub>1_term\<^sub>1: "to_term term\<^sub>G\<^sub>1 = term\<^sub>1 \<cdot>t \<gamma>"
-    unfolding ground_eq_factoringI(2) to_atom_to_literal[symmetric] to_term_to_atom[symmetric]
+    unfolding ground_eq_factoringI(2) to_atom_to_literal to_term_to_atom
     using obtain_from_pos_literal_subst[of literal\<^sub>1]
     by metis
 
@@ -364,7 +364,8 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
   with literal\<^sub>2 obtain term\<^sub>2 term\<^sub>2' where 
     literal\<^sub>2_terms: "literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'" and
     term\<^sub>G\<^sub>1_term\<^sub>2: "to_term term\<^sub>G\<^sub>1 = term\<^sub>2 \<cdot>t \<gamma>"
-    unfolding ground_eq_factoringI(3) to_atom_to_literal[symmetric] to_term_to_atom[symmetric]
+    unfolding ground_eq_factoringI(3) 
+    apply clause_simp
     using obtain_from_pos_literal_subst[of literal\<^sub>2]
     by metis
 
@@ -372,11 +373,8 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     using literal\<^sub>1_\<gamma> term\<^sub>G\<^sub>1_term\<^sub>1 
     unfolding 
       literal\<^sub>1_terms 
-      ground_eq_factoringI(2) 
-      to_literal_def 
-      to_atom_def 
-      subst_literal_def
-      subst_atom_def 
+      ground_eq_factoringI(2)       
+    apply clause_simp
     by auto
 
   have term\<^sub>G\<^sub>3_term\<^sub>2': "to_term term\<^sub>G\<^sub>3 = term\<^sub>2' \<cdot>t \<gamma>"
@@ -410,16 +408,8 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
       using welltyped\<^sub>\<sigma>_on_welltyped\<^sub>c by blast
 
     then obtain \<tau> where "welltyped typeof_fun \<V> (to_term term\<^sub>G\<^sub>1) \<tau>"
-      unfolding 
-        premise_\<gamma> 
-        ground_eq_factoringI 
-        to_clause_add_mset 
-        to_atom_to_literal[symmetric]
-        to_term_to_atom[symmetric]
-        welltyped\<^sub>c_add_mset
-        welltyped\<^sub>l_def
-        welltyped\<^sub>a_def
-      by auto
+      unfolding premise_\<gamma>  ground_eq_factoringI 
+      by clause_simp
 
     then have "welltyped typeof_fun \<V> (term\<^sub>1 \<cdot>t \<gamma>) \<tau>" "welltyped typeof_fun \<V> (term\<^sub>2 \<cdot>t \<gamma>) \<tau>"
       using term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>1_term\<^sub>2
@@ -521,7 +511,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
       add_mset (to_term term\<^sub>G\<^sub>2 !\<approx> to_term term\<^sub>G\<^sub>3) 
         (add_mset (to_term term\<^sub>G\<^sub>1 \<approx> to_term term\<^sub>G\<^sub>3) (to_clause premise'\<^sub>G))"
     using ground_eq_factoringI(7) to_ground_clause_inverse[OF conclusion_grounding]
-    unfolding to_term_to_atom to_atom_to_literal to_clause_add_mset[symmetric]
+    unfolding to_term_to_atom[symmetric] to_atom_to_literal[symmetric] to_clause_add_mset[symmetric]
     by simp
 
   then have conclusion_\<gamma>: 
@@ -531,10 +521,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
       term\<^sub>G\<^sub>3_term\<^sub>2'
       term\<^sub>G\<^sub>1_term\<^sub>1
       premise'_\<gamma>[symmetric]
-      subst_clause_add_mset[symmetric]
-      subst_literal[symmetric]
-      subst_atom[symmetric]
-    by (simp add: add_mset_commute)
+    by(clause_simp simp: add_mset_commute)
 
   then have "?conclusion' \<cdot> \<mu> \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     by (metis \<mu>_\<gamma> clause.subst_comp_subst)
@@ -1008,15 +995,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by (metis ground_superpositionI(2) premise\<^sub>2_\<gamma> clause.comp_subst.left.monoid_action_compatibility typing(2) typing(5) welltyped\<^sub>\<sigma>_on_welltyped\<^sub>c)
 
       then have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>2 (to_term term\<^sub>G\<^sub>1) \<tau> \<and>  welltyped typeof_fun \<V>\<^sub>2 (to_term term\<^sub>G\<^sub>3) \<tau>"
-        unfolding 
-          ground_superpositionI 
-          to_clause_add_mset 
-          to_atom_to_literal[symmetric] 
-          to_term_to_atom[symmetric]
-          welltyped\<^sub>c_def
-          welltyped\<^sub>l_def
-          welltyped\<^sub>a_def
-        by auto
+        unfolding ground_superpositionI 
+        by clause_simp
 
       then have aux': "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>1 (to_term term\<^sub>G\<^sub>1) \<tau> \<and>  welltyped typeof_fun \<V>\<^sub>1 (to_term term\<^sub>G\<^sub>3) \<tau>"
         by (meson ground_term_is_ground welltyped_is_ground)
@@ -1024,7 +1004,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       have "welltyped typeof_fun \<V>\<^sub>1 (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) \<tau>\<^sub>x"
         using typing(4) \<tau>\<^sub>x
         unfolding welltyped\<^sub>\<sigma>_on_def var\<^sub>x premise\<^sub>1 literal\<^sub>1 term\<^sub>1_with_context 
-        apply clause_auto
+        apply clause_simp
         by (metis UnI2 sup.commute term_subst.subst_comp_subst welltyped\<^sub>\<sigma>_on_def welltyped\<^sub>\<sigma>_on_term)
 
       then have \<tau>\<^sub>x_update: "welltyped typeof_fun \<V>\<^sub>1 ?update \<tau>\<^sub>x"
@@ -1312,16 +1292,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
     then obtain \<tau> where 
       "welltyped typeof_fun \<V>\<^sub>2 (to_term term\<^sub>G\<^sub>1) \<tau>" 
-      unfolding 
-        premise\<^sub>2_\<gamma>
-        ground_superpositionI 
-        to_clause_add_mset 
-        to_atom_to_literal[symmetric]
-        to_term_to_atom[symmetric]
-        welltyped\<^sub>c_add_mset
-        welltyped\<^sub>l_def
-        welltyped\<^sub>a_def
-      by auto   
+      unfolding premise\<^sub>2_\<gamma> ground_superpositionI 
+      by clause_simp
 
     then have 
       "welltyped typeof_fun \<V>\<^sub>3 (to_term term\<^sub>G\<^sub>1) \<tau>" 
@@ -1606,8 +1578,10 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
               add_mset (?\<P> (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> (to_term term\<^sub>G\<^sub>2))) 
                 (to_clause premise\<^sub>G\<^sub>1' + to_clause premise\<^sub>G\<^sub>2')"
         using ground_superpositionI(4, 12) to_ground_clause_inverse[OF conclusion_grounding] 
-        unfolding ground_term_with_context(3) to_term_to_atom
-        by(auto simp: to_atom_to_literal to_clause_add_mset)
+        unfolding ground_term_with_context(3) 
+        apply clause_simp
+         apply (simp add: to_atom_to_literal(2) to_clause_add_mset to_term_to_atom)
+        by (simp add: to_atom_to_literal(1) to_clause_add_mset to_term_to_atom)
 
       then show ?thesis
         unfolding 

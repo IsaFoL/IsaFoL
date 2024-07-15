@@ -547,7 +547,22 @@ locale variable_substitution = basic_substitution _ _ subst
     finite_vars [simp]: "\<And>a. finite (vars a)"
 begin
 
+lemma subst_reduntant_upd [simp]:
+  assumes "var \<notin> vars a"
+  shows "a \<cdot> \<sigma>(var := update) = a \<cdot> \<sigma>"
+  using assms subst_eq by fastforce
 
+lemma subst_reduntant_if [simp]: 
+  assumes "vars a \<subseteq> vars'"
+  shows "a \<cdot> (\<lambda>var. if var \<in> vars' then \<sigma> var else \<sigma>' var) = a \<cdot> \<sigma>"
+  using assms
+  by (smt (verit, ccfv_SIG) subsetD subst_eq)
+
+lemma subst_reduntant_if' [simp]: 
+  assumes "vars a \<inter> vars' = {}"  
+  shows "a \<cdot> (\<lambda>var. if var \<in> vars' then \<sigma>' var else \<sigma> var) = a \<cdot> \<sigma>"
+  using assms
+  by (smt (verit, ccfv_SIG) disjoint_iff_not_equal subst_eq)
 
 end
 
