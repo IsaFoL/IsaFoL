@@ -319,7 +319,7 @@ proof-
     using select\<^sub>G_on_premise_groundings
     apply auto
      apply force
-    by (metis ground_clause_is_ground subst_clause_Var_ident to_clause_inverse)
+    by (metis ground_clause_is_ground clause.subst_id_subst to_clause_inverse)
 
   show ?thesis
     using that[OF _ grounding] select\<^sub>G_on_premise_groundings
@@ -342,7 +342,7 @@ definition select\<^sub>G_simple where
 
 lemma select\<^sub>G_simple: "is_grounding select\<^sub>G_simple"
   unfolding is_select_grounding_def select\<^sub>G_simple_def
-  by (metis to_clause_inverse ground_clause_is_ground subst_clause_Var_ident)
+  by (metis to_clause_inverse ground_clause_is_ground clause.subst_id_subst)
 
 lemma select_from_ground_clause1: 
   assumes "is_ground_clause clause" 

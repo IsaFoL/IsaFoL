@@ -162,9 +162,9 @@ proof (cases P C rule: eq_resolution.cases)
       by auto
 
     ultimately have "?I \<TTurnstile> ?P"
-      using premise[rule_format, of ?P, OF exI, of "\<mu> \<odot> \<gamma>'"] \<gamma>'(1) ground_subst_compose
+      using premise[rule_format, of ?P, OF exI, of "\<mu> \<odot> \<gamma>'"] \<gamma>'(1) term_subst.is_ground_subst_comp_right
       using eq_resolutionI
-      by (metis (mono_tags, lifting) \<gamma>'(2) clause_subst_compose subst_compose_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_on_def welltyped\<^sub>\<sigma>_welltyped)
+      by (metis (mono_tags, lifting) \<gamma>'(2) clause.subst_comp_subst subst_compose_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_on_def welltyped\<^sub>\<sigma>_welltyped)
 
     then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
       by (auto simp: true_cls_def)
@@ -302,8 +302,8 @@ proof (cases P C rule: eq_factoring.cases)
     ultimately have "?I \<TTurnstile> ?P"
       using 
         premise[rule_format, of ?P, OF exI, of "\<mu> \<odot> \<gamma>'"] 
-        ground_subst_compose \<gamma>'(1)
-      by (metis clause_subst_compose welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_on_def)
+        term_subst.is_ground_subst_comp_right \<gamma>'(1)
+      by (metis clause.subst_comp_subst welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_on_def)
 
     then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
       by (auto simp: true_cls_def)
@@ -425,7 +425,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       "term_subst.is_ground_subst (\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<gamma>')" 
       "term_subst.is_ground_subst (\<rho>\<^sub>2 \<odot> \<mu> \<odot> \<gamma>')"
       "term_subst.is_ground_subst (\<mu> \<odot> \<gamma>')"
-      using ground_subst_compose[OF \<gamma>'(1)]
+      using term_subst.is_ground_subst_comp_right[OF \<gamma>'(1)]
       by blast+
 
     have xx: "\<forall>x\<in>vars_term (t\<^sub>2 \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x" "\<forall>x\<in>vars_term (t\<^sub>2' \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
@@ -538,7 +538,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       using 
         ground_term_with_context(1)[OF 
           is_ground_subst_is_ground_context
-          is_ground_subst_is_ground_term
+          term_subst.is_ground_subst_is_ground
           ]
         \<gamma>'(1) 
       by blast
@@ -547,7 +547,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       using 
         ground_term_with_context(1)[OF 
           is_ground_subst_is_ground_context
-          is_ground_subst_is_ground_term
+          term_subst.is_ground_subst_is_ground
           ]
         \<gamma>'(1) 
       by blast

@@ -590,7 +590,7 @@ lemma vars_term_range_vars':
 context  
   fixes \<rho> \<V> \<V>'
   assumes 
-    renaming: "subst_clause.is_renaming \<rho>" and
+    renaming: "term_subst.is_renaming \<rho>" and
     range_vars: "\<forall>x \<in> range_vars' \<rho>. \<V> (the_inv \<rho> (Var x)) = \<V>' x"
 begin
 
@@ -713,7 +713,7 @@ proof-
 
   then show "welltyped\<^sub>\<sigma> \<F> \<V> (\<rho> \<odot> \<gamma>)"
     unfolding welltyped\<^sub>\<sigma>_def
-    by (metis (mono_tags, lifting) \<open>\<forall>x. welltyped \<F> \<V>' (Var x \<cdot>t \<rho> \<odot> \<gamma>) (\<V> x)\<close> assms(3) eval_term.simps(1) ground_subst_compose is_ground_subst_is_ground_term term_subst.subst_ident_if_ground welltyped_renaming)
+    by (metis (mono_tags, lifting) \<open>\<forall>x. welltyped \<F> \<V>' (Var x \<cdot>t \<rho> \<odot> \<gamma>) (\<V> x)\<close> assms(3) eval_term.simps(1) term_subst.is_ground_subst_comp_right term_subst.is_ground_subst_is_ground term_subst.subst_ident_if_ground welltyped_renaming)
 qed
 
 lemma welltyped\<^sub>a_renaming: "welltyped\<^sub>a \<F> \<V> a \<longleftrightarrow> welltyped\<^sub>a \<F> \<V>' (a \<cdot>a \<rho>)"
@@ -735,7 +735,7 @@ end
 
 context  
   fixes \<rho>
-  assumes renaming: "subst_clause.is_renaming \<rho>"
+  assumes renaming: "term_subst.is_renaming \<rho>"
 begin
 
 
@@ -894,13 +894,6 @@ qed
 
 
 end
-
-
-(* 
-abbreviation range :: "('a \<Rightarrow> 'b) \<Rightarrow> 'b set"  \<comment> \<open>of function\<close>
-  where "range f \<equiv> f ` UNIV"
-*)
-
 
 lemma 
   infinite_even_nat: "infinite { n :: nat . even n }" and 
@@ -1545,6 +1538,7 @@ proof-
     by presburger
 qed
 
+
 lemma obtain_inj''_on':
   fixes \<V>\<^sub>1 \<V>\<^sub>2 :: "'a :: infinite \<Rightarrow> 'ty"
   assumes "finite X" "finite Y" "\<And>ty. infinite {x. \<V>\<^sub>1 x = ty}" "\<And>ty. infinite {x. \<V>\<^sub>2 x = ty}"
@@ -1627,7 +1621,7 @@ proof
    show "\<forall>x\<in>X. \<V>\<^sub>1 (id x) = \<V>\<^sub>1 x"
      by simp
 
-   show "\<forall>x\<in>Y. \<V>\<^sub>2 (f' x) = \<V>\<^sub>2 x" 
+   show "\<forall>y\<in>Y. \<V>\<^sub>2 (f' y) = \<V>\<^sub>2 y" 
    proof(intro ballI)
      fix y
      assume "y \<in> Y"
@@ -1650,6 +1644,23 @@ proof
         by blast
    qed
 qed
+
+
+lemma
+  fixes \<V>\<^sub>1 \<V>\<^sub>2
+  assumes
+    inj\<^sub>1: "inj_on f\<^sub>1 \<X>\<^sub>1" and inj\<^sub>2: "inj_on f\<^sub>2 \<X>\<^sub>2" and
+    "f\<^sub>1 ` \<X>\<^sub>1 \<inter> f\<^sub>2 ` \<X>\<^sub>2 = {}"
+  defines
+    "\<rho>\<^sub>1 \<equiv> Var o f\<^sub>1" and
+    "\<rho>\<^sub>2 \<equiv> Var o f\<^sub>2" and
+    "\<And>x'. \<V> x' \<equiv>
+      if \<exists>x \<in> \<X>\<^sub>1. x' = f\<^sub>1 x then \<V>\<^sub>1 (the_inv_into \<X>\<^sub>1 f\<^sub>1 x') else \<V>\<^sub>2 (the_inv_into \<X>\<^sub>2 f\<^sub>2 x')"
+  shows
+    "\<And>t \<tau>. vars_term t \<subseteq> \<X>\<^sub>1 \<Longrightarrow> welltyped \<F> \<V>\<^sub>1 t \<tau> \<Longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<rho>\<^sub>1) \<tau>" and
+    "\<And>t \<tau>. vars_term t \<subseteq> \<X>\<^sub>2 \<Longrightarrow> welltyped \<F> \<V>\<^sub>2 t \<tau> \<Longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<rho>\<^sub>2) \<tau>"
+  sorry
+
 
 lemma obtain_inj''_on:
   fixes \<V>\<^sub>1 \<V>\<^sub>2 :: "'a :: {countable, infinite} \<Rightarrow> 'ty"

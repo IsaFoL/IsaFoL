@@ -590,7 +590,7 @@ proof(rule ccontr)
   
   then have "\<not> is_maximal\<^sub>l (literal \<cdot>l \<gamma>) (clause \<cdot> \<gamma>)"
     using literal_\<gamma>_in_premise 
-    unfolding is_maximal\<^sub>l_def literal_subst_compose
+    unfolding is_maximal\<^sub>l_def literal.subst_comp_subst
     by (metis asympD less\<^sub>l_asymmetric)
   
   then show False

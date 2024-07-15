@@ -47,6 +47,11 @@ lemma wellfounded_typed_tiebreakers:
    apply (smt (verit, ccfv_threshold) transpD transpI)
   by (meson asympD asympI)
 
+definition is_merged_var_type_env where
+  "is_merged_var_type_env \<V> X \<V>\<^sub>X \<rho>\<^sub>X Y \<V>\<^sub>Y \<rho>\<^sub>Y \<equiv>
+    (\<forall>x \<in> X. welltyped typeof_fun \<V> (\<rho>\<^sub>X x) (\<V>\<^sub>X x)) \<and>
+    (\<forall>y \<in> Y. welltyped typeof_fun \<V> (\<rho>\<^sub>Y y) (\<V>\<^sub>Y y))"
+
 inductive eq_resolution :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> bool" where
   eq_resolutionI: 
    "premise = add_mset literal premise' \<Longrightarrow>

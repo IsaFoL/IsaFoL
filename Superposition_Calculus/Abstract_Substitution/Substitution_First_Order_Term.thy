@@ -25,6 +25,7 @@ next
     by (auto simp: map_idI)
 qed
 
+(* TODO: Rename to term*)
 global_interpretation term_subst: basic_substitution where
   subst = subst_apply_term and id_subst = Var and comp_subst = subst_compose and
   is_ground = is_ground_trm

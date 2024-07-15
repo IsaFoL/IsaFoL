@@ -461,6 +461,11 @@ lemma is_ground_subst_comp_left: "is_ground_subst \<sigma> \<Longrightarrow> is_
 lemma is_ground_subst_comp_right: "is_ground_subst \<tau> \<Longrightarrow> is_ground_subst (\<sigma> \<odot> \<tau>)"
   by (simp add: is_ground_subst_def)
 
+lemma is_ground_subst_is_ground: 
+  assumes "is_ground_subst \<gamma>" 
+  shows "is_ground (t \<cdot> \<gamma>)"
+  using assms is_ground_subst_def by blast
+
 
 subsection \<open>IMGU is Idempotent and an MGU\<close>
 
@@ -527,6 +532,53 @@ lemma ground_instances_subst_ident_if_renaming[simp]:
 lemma ground_instances_set_subst_set_ident_if_renaming[simp]:
   "is_renaming \<rho> \<Longrightarrow> ground_instances_set (subst_set X \<rho>) = ground_instances_set X"
   by (simp add: ground_instances_set_def)
+
+end
+
+(* functional substitution *)
+locale variable_substitution = basic_substitution _ _ subst
+  for subst :: "'a \<Rightarrow> ('x \<Rightarrow> 'b) \<Rightarrow> 'a" (infixl "\<cdot>" 70) + 
+  (* set \<rightarrow> fset *)
+  fixes vars :: "'a \<Rightarrow> 'x set"
+  assumes
+    (* TODO: Can be also directly defined like this *)
+    "\<And>a. vars a = {} \<longleftrightarrow> is_ground a"
+    "\<And>a \<sigma> \<tau>. (\<And>x. x \<in> vars a \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot> \<sigma> = a \<cdot> \<tau>"
+    "\<And>a. finite (vars a)"
+begin
+
+
+
+end
+
+locale variable_substitution_lifting = base: variable_substitution +
+  fixes
+    lifted_subst :: "'d \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'd" and 
+    lifted_vars :: "'d \<Rightarrow> 'a set"
+  assumes
+    todo: 
+    "\<And>x a b. lifted_subst x (a \<odot> b) = lifted_subst (lifted_subst x a) b"
+    "\<And>x. lifted_subst x id_subst = x"
+    "\<And>x. lifted_vars x = {} \<Longrightarrow> \<forall>\<sigma>. lifted_subst x \<sigma> = x"
+    "\<And>a \<sigma> \<tau>. (\<And>x. x \<in> lifted_vars a \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> lifted_subst a \<sigma> = lifted_subst a \<tau>"
+    "(\<forall>x. lifted_vars (lifted_subst x \<gamma>) = {}) \<longleftrightarrow> (\<forall>x. vars (x \<cdot> \<gamma>) = {})"
+    "finite (lifted_vars a)"
+begin
+
+abbreviation lifted_is_ground where 
+  "lifted_is_ground a \<equiv> lifted_vars a = {}"
+
+sublocale variable_substitution
+  where subst = lifted_subst and id_subst = id_subst and comp_subst = comp_subst and
+  is_ground = lifted_is_ground and vars = lifted_vars
+  apply unfold_locales
+  using todo 
+  by metis+
+
+lemma is_ground_subst_iff [simp]: "is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
+  unfolding is_ground_subst_def  base.is_ground_subst_def
+  using todo(5)
+  by (metis base.variable_substitution_axioms variable_substitution.axioms(2) variable_substitution_axioms_def)
 
 end
 
