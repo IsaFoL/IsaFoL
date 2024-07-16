@@ -186,7 +186,8 @@ lemma less\<^sub>t\<^sub>G_subterm_property [simp]:
   unfolding less\<^sub>t\<^sub>G_def ground_term_with_context(3)  
   by blast
 
-lemma less\<^sub>t_less\<^sub>t\<^sub>G: 
+(* TODO: direction? *)
+lemma less\<^sub>t_less\<^sub>t\<^sub>G [clause_simps]: 
   assumes "is_ground_term term\<^sub>1" and "is_ground_term term\<^sub>2"
   shows "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<longleftrightarrow> to_ground_term term\<^sub>1 \<prec>\<^sub>t\<^sub>G to_ground_term term\<^sub>2"
   by (simp add: assms less\<^sub>t\<^sub>G_def)
@@ -429,8 +430,11 @@ lemma less\<^sub>t_ground_context_compatible':
     "is_ground_term term'" 
     "context\<langle>term\<rangle> \<prec>\<^sub>t context\<langle>term'\<rangle>"
   shows "term \<prec>\<^sub>t term'"
-  using ground.less_trm_compatible_with_gctxt'
-  by (metis assms ground_term_with_context(1) ground_term_with_context_is_ground(4) less\<^sub>t_less\<^sub>t\<^sub>G)
+  (* TODO: *)
+  using assms 
+  apply(clause_simp simp: ground.less_trm_compatible_with_gctxt_iff[symmetric, of "to_ground_term term" _ "to_ground_context context"])
+  by (simp add: ground_term_with_context1 less\<^sub>t_less\<^sub>t\<^sub>G)
+  
 
 lemma less\<^sub>t_ground_context_compatible_iff:
    assumes 

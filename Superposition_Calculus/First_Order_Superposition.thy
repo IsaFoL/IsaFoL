@@ -261,7 +261,7 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
   then have "welltyped\<^sub>c typeof_fun \<V> (D  \<cdot> \<mu>)"
     using wt_D welltyped\<^sub>\<sigma>_welltyped\<^sub>c eq_resolutionI(4)
     by blast
-
+    
   then show ?thesis
     unfolding eq_resolutionI subst_clause_add_mset welltyped\<^sub>c_add_mset
     by clause_simp
@@ -332,7 +332,7 @@ proof (cases "(D, \<V>\<^sub>2)" "(C, \<V>\<^sub>1)" "(E, \<V>\<^sub>3)" rule: s
   note imgu = term_subst.subst_imgu_eq_subst_imgu[OF superpositionI(10)]
 
   show ?thesis
-    using literal_cases[OF superpositionI(6)] wt_C\<mu> wt_D\<mu> 
+    using literal_cases[OF superpositionI(6)] wt_C\<mu> wt_D\<mu>
     by cases (clause_simp simp: superpositionI imgu)
 qed
 

@@ -988,7 +988,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
       have aux: "term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>to_term term\<^sub>G\<^sub>1\<rangle>"
         using term\<^sub>x_\<gamma>
-        by (metis (no_types, lifting) Un_iff ground_context_is_ground ground_term_is_ground ground_term_with_context2 ground_term_with_context_is_ground2(1) is_ground_iff subst_apply_term_ctxt_apply_distrib term\<^sub>1_with_context term\<^sub>1_with_context_\<gamma> to_ground_term_inverse update_grounding vars_term_ctxt_apply)
+        by (metis ground_term_with_context2 is_ground_subst_is_ground_context term_subst.is_ground_subst_is_ground to_ground_term_inverse typing(3))
 
       have "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 (to_clause premise\<^sub>G\<^sub>2)"
         by (metis ground_superpositionI(2) premise\<^sub>2_\<gamma> clause.comp_subst.left.monoid_action_compatibility typing(2) typing(5) welltyped\<^sub>\<sigma>_on_welltyped\<^sub>c)
@@ -1047,11 +1047,10 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           compatible_with_gctxt: "compatible_with_gctxt I" and
           premise: "?I \<TTurnstile>s {?premise\<^sub>1_\<gamma>'} \<union> {premise\<^sub>G\<^sub>2}"
 
-
         have var\<^sub>x_\<gamma>_ground: "is_ground_term (Var var\<^sub>x \<cdot>t \<gamma>)"
           using term\<^sub>1_with_context_\<gamma>
-          unfolding term\<^sub>1_with_context var\<^sub>x subst_apply_term_ctxt_apply_distrib
-          by (metis ground_term_with_context_is_ground1 ground_term_with_context_is_ground(3))
+          unfolding term\<^sub>1_with_context var\<^sub>x
+          by(clause_simp simp: term_subst.is_ground_subst_is_ground typing(3))    
 
         show "?I \<TTurnstile>s { conclusion\<^sub>G }"
         proof(cases "?I \<TTurnstile> premise\<^sub>G\<^sub>2'")
@@ -1118,8 +1117,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
         have term\<^sub>x_grounding: "is_ground_term (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>)"
           using term\<^sub>1_with_context_\<gamma>
-          unfolding term\<^sub>1_with_context subst_apply_term_ctxt_apply_distrib
-          by (metis ground_term_with_context_is_ground(1,3))
+          unfolding term\<^sub>1_with_context
+          by(clause_simp simp: term_subst.is_ground_subst_is_ground typing(3))
 
         have "(context\<^sub>x \<circ>\<^sub>c context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>to_term term\<^sub>G\<^sub>3\<rangle> \<prec>\<^sub>t context\<^sub>x\<langle>term\<^sub>x\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>"
           using ground_superpositionI(8)
@@ -1490,7 +1489,6 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           term\<^sub>1_with_context[symmetric]  
           term\<^sub>1_with_context_\<gamma>[unfolded \<mu>(2) term_subst.subst_comp_subst]
           term\<^sub>1'_\<gamma>[unfolded \<mu>(2) term_subst.subst_comp_subst]
-        using ground_term_with_context_is_ground(1)
         by simp_all
 
       have "term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<sigma> \<prec>\<^sub>t context\<^sub>1\<langle>term\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<sigma>"

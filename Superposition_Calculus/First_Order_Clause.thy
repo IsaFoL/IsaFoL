@@ -469,9 +469,8 @@ definition clause_groundings ::
   "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" where
   "clause_groundings clause = { to_ground_clause (clause \<cdot> \<gamma>) | \<gamma>. is_ground_clause (clause \<cdot> \<gamma>) }"
 
-
-(* Turn around and simp lemmas? *)
-lemma to_atom_to_term [clause_simps]: "to_atom (Upair term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2) = Upair (to_term term\<^sub>G\<^sub>1) (to_term term\<^sub>G\<^sub>2)"
+lemma to_atom_to_term [clause_simps]:
+  "to_atom (Upair term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2) = Upair (to_term term\<^sub>G\<^sub>1) (to_term term\<^sub>G\<^sub>2)"
   by (simp add: to_atom_def)
 
 lemma to_literal_to_atom [clause_simps]: 
@@ -492,29 +491,11 @@ lemmas ground_term_is_ground [clause_intros] = vars_term_of_gterm
 
 lemmas ground_context_is_ground [clause_intros] = vars_ctxt_of_gctxt
 
+lemma is_ground_term_with_context [clause_simps]: 
+  "is_ground_term context\<langle>term\<rangle> \<longleftrightarrow> is_ground_context context \<and> is_ground_term term"
+  by simp
+
 (* --- *)
-lemma ground_term_with_context_is_ground1 [clause_intros]: 
-  "is_ground_term (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<rangle>"
-  by simp
-
-lemma ground_term_with_context_is_ground2:
-  assumes "is_ground_term context\<langle>term\<rangle>"
-  shows 
-    "is_ground_context context" 
-    "is_ground_term term"
-  using assms by auto
-
-lemma ground_term_with_context_is_ground3: 
-  assumes "is_ground_context context" "is_ground_term term"
-  shows "is_ground_term context\<langle>term\<rangle>"
-  using assms
-  by simp
-
-lemmas ground_term_with_context_is_ground = 
-  ground_term_with_context_is_ground1
-  ground_term_with_context_is_ground2
-  ground_term_with_context_is_ground3
-
 lemma ground_atom_is_ground [simp]: "is_ground_atom (to_atom atom\<^sub>G)"
   unfolding to_atom_def vars_atom_def
   using ground_term_is_ground
