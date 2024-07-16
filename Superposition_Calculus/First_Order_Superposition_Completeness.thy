@@ -23,8 +23,8 @@ lemma eq_resolution_lifting:
     premise\<^sub>G [simp]: "premise\<^sub>G \<equiv> to_ground_clause (premise \<cdot> \<gamma>)" and
     conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> to_ground_clause (conclusion \<cdot> \<gamma>)"
   assumes 
-    premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and (* TODO: groundings can be derived from ground_subst*)
-    conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
+    premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and (* TODO: groundings can be derived from ground_subst*)
+    conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
     ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G" and
     typing: 
@@ -124,7 +124,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     literal_max: "?select\<^sub>G_empty \<Longrightarrow> is_maximal\<^sub>l literal premise"
     by blast
 
-  have literal_grounding: "is_ground_literal (literal \<cdot>l \<gamma>)"
+  have literal_grounding: "literal.is_ground (literal \<cdot>l \<gamma>)"
     using literal_\<gamma> ground_literal_is_ground
     by simp
 
@@ -204,7 +204,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     next
       case False
 
-      have selected_grounding: "is_ground_clause (select premise \<cdot> \<mu> \<cdot> \<sigma>)"
+      have selected_grounding: "clause.is_ground (select premise \<cdot> \<mu> \<cdot> \<sigma>)"
         using select_subst(1)[OF premise_grounding]
         unfolding \<mu>(2) clause.subst_comp_subst.
 
@@ -279,8 +279,8 @@ lemma eq_factoring_lifting:
     premise\<^sub>G [simp]: "premise\<^sub>G \<equiv> to_ground_clause (premise \<cdot> \<gamma>)" and
     conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> to_ground_clause (conclusion \<cdot> \<gamma>)"
   assumes
-    premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and
-    conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
+    premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and
+    conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
     select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
     ground_eq_factoring: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G" and
     typing:
@@ -459,7 +459,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     then show "is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<mu>) (premise \<cdot> \<mu>)"
       by blast
   next
-    have term_groundings: "is_ground_term (term\<^sub>1' \<cdot>t \<mu> \<cdot>t \<sigma>)" "is_ground_term (term\<^sub>1 \<cdot>t \<mu> \<cdot>t \<sigma>)" 
+    have term_groundings: "term.is_ground (term\<^sub>1' \<cdot>t \<mu> \<cdot>t \<sigma>)" "term.is_ground (term\<^sub>1 \<cdot>t \<mu> \<cdot>t \<sigma>)" 
       unfolding 
         term_subst.subst_comp_subst[symmetric] 
         \<mu>(2)[symmetric]
@@ -569,9 +569,9 @@ lemma superposition_lifting:
     "term_subst.is_renaming \<rho>\<^sub>1" 
     "term_subst.is_renaming \<rho>\<^sub>2" 
     "vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}"  and
-    premise\<^sub>1_grounding: "is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)" and
-    premise\<^sub>2_grounding: "is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and
-    conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
+    premise\<^sub>1_grounding: "clause.is_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)" and
+    premise\<^sub>2_grounding: "clause.is_ground (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and
+    conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
     select: 
     "to_clause (select\<^sub>G premise\<^sub>G\<^sub>1) = (select premise\<^sub>1) \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
     "to_clause (select\<^sub>G premise\<^sub>G\<^sub>2) = (select premise\<^sub>2) \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>" and
@@ -705,7 +705,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     literal\<^sub>1_selected: "\<P>\<^sub>G = Neg \<Longrightarrow> ?select\<^sub>G_not_empty \<Longrightarrow> is_maximal\<^sub>l literal\<^sub>1 (select premise\<^sub>1)"
     by (metis ground_superpositionI(9) literals_distinct(1))
 
-  then have literal\<^sub>1_grounding: "is_ground_literal (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<gamma>)"
+  then have literal\<^sub>1_grounding: "literal.is_ground (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<gamma>)"
     by simp
 
   have literal\<^sub>G\<^sub>2_is_strictly_maximal\<^sub>l: 
@@ -725,7 +725,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
   then have literal\<^sub>2_in_premise\<^sub>2: "literal\<^sub>2 \<in># premise\<^sub>2" 
     using strictly_maximal\<^sub>l_in_clause by blast
 
-  have literal\<^sub>2_grounding: "is_ground_literal (literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<odot> \<gamma>)"
+  have literal\<^sub>2_grounding: "literal.is_ground (literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<odot> \<gamma>)"
     using literal\<^sub>2_\<gamma> by simp
 
   obtain premise\<^sub>1' where premise\<^sub>1: "premise\<^sub>1 = add_mset literal\<^sub>1 premise\<^sub>1'"
@@ -833,7 +833,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           by simp
 
         show ?case
-        proof(cases "is_ground_term term")
+        proof(cases "term.is_ground term")
           case True
 
           with term_\<gamma> 
@@ -961,14 +961,14 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       define \<gamma>' where
         \<gamma>': "\<gamma>' \<equiv> \<gamma>(var\<^sub>x := ?update)"
 
-      have update_grounding: "is_ground_term ?update"
+      have update_grounding: "term.is_ground ?update"
       proof-
-        have "is_ground_context ((context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>) \<circ>\<^sub>c (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>))"
+        have "context.is_ground ((context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>) \<circ>\<^sub>c (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>))"
           using ground_context_is_ground[of context\<^sub>G] context\<^sub>G
           by fastforce
 
         then show ?thesis
-          using is_ground_context_context_compose1(2)
+          using context_is_ground_context_compose1(2)
           by auto
       qed
       let ?context\<^sub>x'_\<gamma> = "to_ground_context (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)"
@@ -988,7 +988,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
       have aux: "term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>to_term term\<^sub>G\<^sub>1\<rangle>"
         using term\<^sub>x_\<gamma>
-        by (metis ground_term_with_context2 is_ground_subst_is_ground_context term_subst.is_ground_subst_is_ground to_ground_term_inverse typing(3))
+        by (metis ground_term_with_context2 is_ground_subst_context_is_ground term_subst.is_ground_subst_is_ground to_ground_term_inverse typing(3))
 
       have "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 (to_clause premise\<^sub>G\<^sub>2)"
         by (metis ground_superpositionI(2) premise\<^sub>2_\<gamma> clause.comp_subst.left.monoid_action_compatibility typing(2) typing(5) welltyped\<^sub>\<sigma>_on_welltyped\<^sub>c)
@@ -1012,7 +1012,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by (meson welltyped\<^sub>\<kappa>)
 
       let ?premise\<^sub>1_\<gamma>' = "to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
-      have premise\<^sub>1_\<gamma>'_grounding: "is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
+      have premise\<^sub>1_\<gamma>'_grounding: "clause.is_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
         using ground_clause_subst_upd[OF update_grounding premise\<^sub>1_grounding] 
         unfolding \<gamma>'
         by blast
@@ -1047,7 +1047,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           compatible_with_gctxt: "compatible_with_gctxt I" and
           premise: "?I \<TTurnstile>s {?premise\<^sub>1_\<gamma>'} \<union> {premise\<^sub>G\<^sub>2}"
 
-        have var\<^sub>x_\<gamma>_ground: "is_ground_term (Var var\<^sub>x \<cdot>t \<gamma>)"
+        have var\<^sub>x_\<gamma>_ground: "term.is_ground (Var var\<^sub>x \<cdot>t \<gamma>)"
           using term\<^sub>1_with_context_\<gamma>
           unfolding term\<^sub>1_with_context var\<^sub>x
           by(clause_simp simp: term_subst.is_ground_subst_is_ground typing(3))    
@@ -1110,12 +1110,12 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           using var\<^sub>x
           by simp
 
-        have context\<^sub>x_grounding: "is_ground_context (context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)"
+        have context\<^sub>x_grounding: "context.is_ground (context\<^sub>x \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)"
           using context\<^sub>G
           unfolding subst_compose_ctxt_compose_distrib
-          by (metis ground_context_is_ground is_ground_context_context_compose1(1))
+          by (metis ground_context_is_ground context_is_ground_context_compose1(1))
 
-        have term\<^sub>x_grounding: "is_ground_term (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>)"
+        have term\<^sub>x_grounding: "term.is_ground (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>)"
           using term\<^sub>1_with_context_\<gamma>
           unfolding term\<^sub>1_with_context
           by(clause_simp simp: term_subst.is_ground_subst_is_ground typing(3))
@@ -1153,7 +1153,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
               var\<^sub>x_in_literal\<^sub>1
               ].
 
-        have premise\<^sub>1'_grounding: "is_ground_clause (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)"
+        have premise\<^sub>1'_grounding: "clause.is_ground (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)"
           using premise\<^sub>1'_\<gamma>
           by simp
 
@@ -1226,7 +1226,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
       define y where "y \<equiv> the_inv \<rho>\<^sub>1 (Var x)"
 
-      have "is_ground_term (Var y \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>)"
+      have "term.is_ground (Var y \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>)"
         using term_subst.is_ground_subst_is_ground typing(3) by blast
 
       moreover have "welltyped typeof_fun \<V>\<^sub>1 (Var y \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) (\<V>\<^sub>1 y)"
@@ -1255,7 +1255,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
       define y where "y \<equiv> the_inv \<rho>\<^sub>2 (Var x)"
 
-      have "is_ground_term (Var y \<cdot>t \<rho>\<^sub>2 \<cdot>t \<gamma>)"
+      have "term.is_ground (Var y \<cdot>t \<rho>\<^sub>2 \<cdot>t \<gamma>)"
         using term_subst.is_ground_subst_is_ground typing(3) by blast
 
       moreover have "welltyped typeof_fun \<V>\<^sub>2 (Var y \<cdot>t \<rho>\<^sub>2 \<cdot>t \<gamma>) (\<V>\<^sub>2 y)"
@@ -1440,7 +1440,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         next
           case select\<^sub>G_not_empty: False
 
-          have selected_grounding: "is_ground_clause (select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<sigma>)"
+          have selected_grounding: "clause.is_ground (select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<sigma>)"
             using select_subst(1)[OF premise\<^sub>1_grounding] select(1)
             unfolding \<mu>(2) clause.subst_comp_subst
             by (metis ground_clause_is_ground)
@@ -1483,8 +1483,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by blast
     next
       have term_groundings: 
-        "is_ground_term (term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<sigma>)" 
-        "is_ground_term (context\<^sub>1\<langle>term\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<sigma>)" 
+        "term.is_ground (term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<sigma>)" 
+        "term.is_ground (context\<^sub>1\<langle>term\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<sigma>)" 
         unfolding 
           term\<^sub>1_with_context[symmetric]  
           term\<^sub>1_with_context_\<gamma>[unfolded \<mu>(2) term_subst.subst_comp_subst]
@@ -1505,8 +1505,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by blast
     next
       have term_groundings: 
-        "is_ground_term (term\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<sigma>)"
-        "is_ground_term (term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<sigma>)"
+        "term.is_ground (term\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<sigma>)"
+        "term.is_ground (term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<sigma>)"
         unfolding
           term\<^sub>2_\<gamma>[unfolded \<mu>(2) term_subst.subst_comp_subst]
           term\<^sub>2'_\<gamma>[unfolded \<mu>(2) term_subst.subst_comp_subst]
@@ -1712,9 +1712,9 @@ proof-
     by (smt (verit, del_insts) case_prodE ground_clause_is_ground select_subst1 clause.subst_ident_if_ground to_clause_inverse to_ground_clause_inverse)
 
   then have
-    premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and
+    premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and
     premise\<^sub>G: "premise\<^sub>G = to_ground_clause (premise \<cdot> \<gamma>)" and
-    conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
+    conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
     conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
     using ground_clause_is_ground to_clause_inverse
     by(smt(verit))+
@@ -1781,12 +1781,12 @@ proof-
     "all_types \<V>"
     using assms(2, 3) premise\<^sub>G_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
-    by (smt (verit, del_insts) case_prodE ground_clause_is_ground is_ground_subst_is_ground_clause clause.subst_ident_if_ground to_ground_clause_inverse)
+    by (smt (verit, del_insts) case_prodE ground_clause_is_ground is_ground_subst_clause_is_ground clause.subst_ident_if_ground to_ground_clause_inverse)
 
   then have 
-    premise_grounding: "is_ground_clause (premise \<cdot> \<gamma>)" and 
+    premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and 
     premise\<^sub>G: "premise\<^sub>G = to_ground_clause (premise \<cdot> \<gamma>)" and 
-    conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
+    conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
     conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
     by (smt(verit) ground_clause_is_ground to_clause_inverse)+
 
@@ -1892,7 +1892,7 @@ proof-
     "all_types \<V>\<^sub>2" 
     using assms(2, 4) premise\<^sub>G\<^sub>1_in_groundings premise\<^sub>G\<^sub>2_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def   
-    by (smt (verit, del_insts) case_prodE is_ground_subst_is_ground_clause to_ground_clause_inverse)
+    by (smt (verit, del_insts) case_prodE is_ground_subst_clause_is_ground to_ground_clause_inverse)
 
   obtain \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v) subst" where
     renaming: 
@@ -1968,10 +1968,10 @@ proof-
       by (metis y \<rho>\<^sub>2_inv eval_term.simps(1) subst_compose)
   qed
 
-  have \<gamma>\<^sub>1_is_ground: "\<forall>x\<in>vars_clause premise\<^sub>1. is_ground_term (\<gamma>\<^sub>1 x)"
+  have \<gamma>\<^sub>1_is_ground: "\<forall>x\<in>vars_clause premise\<^sub>1. term.is_ground (\<gamma>\<^sub>1 x)"
     by (metis Term.term.simps(17) insert_iff is_ground_iff term_subst.is_ground_subst_def wt(3))
 
-  have \<gamma>\<^sub>2_is_ground: "\<forall>x\<in>vars_clause premise\<^sub>2. is_ground_term (\<gamma>\<^sub>2 x)"
+  have \<gamma>\<^sub>2_is_ground: "\<forall>x\<in>vars_clause premise\<^sub>2. term.is_ground (\<gamma>\<^sub>2 x)"
     by (metis Term.term.simps(17) insert_iff is_ground_iff term_subst.is_ground_subst_def wt(4))
 
   have wt_\<gamma>:
@@ -2046,11 +2046,11 @@ proof-
     by (meson ground_clause_is_ground clause.subst_ident_if_ground)
 
   then have 
-    premise\<^sub>1_grounding: "is_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)" and 
-    premise\<^sub>2_grounding: "is_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and 
+    premise\<^sub>1_grounding: "clause.is_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)" and 
+    premise\<^sub>2_grounding: "clause.is_ground (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and 
     premise\<^sub>G\<^sub>1: "premise\<^sub>G\<^sub>1 = to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)" and 
     premise\<^sub>G\<^sub>2: "premise\<^sub>G\<^sub>2 = to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and 
-    conclusion_grounding: "is_ground_clause (conclusion \<cdot> \<gamma>)" and
+    conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
     conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
     by (simp_all add: premise\<^sub>1_\<gamma> premise\<^sub>2_\<gamma>)
 
@@ -2189,7 +2189,7 @@ next
   fix clauses
 
   have "\<And>clauses. \<exists>select\<^sub>G \<in> select\<^sub>G\<^sub>s. ground_Inf_overapproximated select\<^sub>G clauses" 
-    using overapproximation 
+    using overapproximation
     unfolding select\<^sub>G\<^sub>s_def
     by (smt (verit, best) mem_Collect_eq)
 

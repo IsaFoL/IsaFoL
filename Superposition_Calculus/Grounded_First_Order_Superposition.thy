@@ -81,13 +81,13 @@ proof-
     by (metis prod.collapse)
 
   then obtain \<gamma> where
-    "is_ground_clause (conclusion \<cdot> \<gamma>)"
+    "clause.is_ground (conclusion \<cdot> \<gamma>)"
     "conlcusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
     "welltyped\<^sub>c typeof_fun \<V> conclusion \<and> welltyped\<^sub>\<sigma>_on (vars_clause conclusion) typeof_fun \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     using assms list_4_cases
     unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
     apply(auto split: list.splits)
-    by (metis is_ground_subst_is_ground_clause list_4_cases prod.exhaust_sel)
+    by (metis is_ground_subst_clause_is_ground list_4_cases prod.exhaust_sel)
 
   then show ?thesis
     unfolding \<iota> \<iota>\<^sub>G clause_groundings_def

@@ -36,26 +36,26 @@ locale first_order_ordering = term_ordering_lifting less\<^sub>t
     (* less\<^sub>t_transitive [intro]: "transp (\<prec>\<^sub>t)" and *)
     (* less\<^sub>t_asymmetric [intro]: "asymp (\<prec>\<^sub>t)" and  *)
 
-    less\<^sub>t_total_on [intro]: "totalp_on {term. is_ground_term term} (\<prec>\<^sub>t)" and
-    HOL_less\<^sub>t_wellfounded_on: "Wellfounded.wfp_on {term. is_ground_term term} (\<prec>\<^sub>t)" and
+    less\<^sub>t_total_on [intro]: "totalp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and
+    HOL_less\<^sub>t_wellfounded_on: "Wellfounded.wfp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and
     
     less\<^sub>t_ground_context_compatible:
       "\<And>context term\<^sub>1 term\<^sub>2. 
         term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<Longrightarrow>
-        is_ground_term term\<^sub>1 \<Longrightarrow> 
-        is_ground_term term\<^sub>2 \<Longrightarrow> 
-        is_ground_context context \<Longrightarrow>
+        term.is_ground term\<^sub>1 \<Longrightarrow> 
+        term.is_ground term\<^sub>2 \<Longrightarrow> 
+        context.is_ground context \<Longrightarrow>
         context\<langle>term\<^sub>1\<rangle> \<prec>\<^sub>t context\<langle>term\<^sub>2\<rangle>" and
     less\<^sub>t_ground_subst_stability: 
       "\<And>term\<^sub>1 term\<^sub>2 (\<gamma> :: 'v \<Rightarrow> ('f, 'v) term). 
-        is_ground_term (term\<^sub>1 \<cdot>t \<gamma>) \<Longrightarrow>
-        is_ground_term (term\<^sub>2 \<cdot>t \<gamma>) \<Longrightarrow>
+        term.is_ground (term\<^sub>1 \<cdot>t \<gamma>) \<Longrightarrow>
+        term.is_ground (term\<^sub>2 \<cdot>t \<gamma>) \<Longrightarrow>
         term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<Longrightarrow>
         term\<^sub>1 \<cdot>t \<gamma> \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<gamma>" and
     less\<^sub>t_ground_subterm_property: 
       "\<And>term\<^sub>G context\<^sub>G.
-         is_ground_term term\<^sub>G \<Longrightarrow>
-         is_ground_context context\<^sub>G \<Longrightarrow> 
+         term.is_ground term\<^sub>G \<Longrightarrow>
+         context.is_ground context\<^sub>G \<Longrightarrow> 
          context\<^sub>G \<noteq> \<box> \<Longrightarrow> 
          term\<^sub>G \<prec>\<^sub>t context\<^sub>G\<langle>term\<^sub>G\<rangle>"
 begin
@@ -63,7 +63,7 @@ begin
 lemmas less\<^sub>t_transitive = transp_less_trm
 lemmas less\<^sub>t_asymmetric = asymp_less_trm
 
-lemma less\<^sub>t_wellfounded_on [intro]: "wfp_on (\<prec>\<^sub>t) {term. is_ground_term term}"
+lemma less\<^sub>t_wellfounded_on [intro]: "wfp_on (\<prec>\<^sub>t) {term. term.is_ground term}"
   unfolding Restricted_Predicates.wfp_on_iff_minimal
   using HOL_less\<^sub>t_wellfounded_on[unfolded Wellfounded.wfp_on_iff_ex_minimal]
   by blast
@@ -188,12 +188,12 @@ lemma less\<^sub>t\<^sub>G_subterm_property [simp]:
 
 (* TODO: direction? *)
 lemma less\<^sub>t_less\<^sub>t\<^sub>G [clause_simps]: 
-  assumes "is_ground_term term\<^sub>1" and "is_ground_term term\<^sub>2"
+  assumes "term.is_ground term\<^sub>1" and "term.is_ground term\<^sub>2"
   shows "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<longleftrightarrow> to_ground_term term\<^sub>1 \<prec>\<^sub>t\<^sub>G to_ground_term term\<^sub>2"
   by (simp add: assms less\<^sub>t\<^sub>G_def)
 
 lemma less_eq\<^sub>t_ground_subst_stability:
-  assumes "is_ground_term (term\<^sub>1 \<cdot>t \<gamma>)" "is_ground_term (term\<^sub>2 \<cdot>t \<gamma>)"  "term\<^sub>1 \<preceq>\<^sub>t term\<^sub>2"
+  assumes "term.is_ground (term\<^sub>1 \<cdot>t \<gamma>)" "term.is_ground (term\<^sub>2 \<cdot>t \<gamma>)"  "term\<^sub>1 \<preceq>\<^sub>t term\<^sub>2"
   shows "term\<^sub>1 \<cdot>t \<gamma> \<preceq>\<^sub>t term\<^sub>2 \<cdot>t \<gamma>"
   using less\<^sub>t_ground_subst_stability[OF assms(1, 2)] assms(3)
   by auto
@@ -218,8 +218,8 @@ lemmas is_maximal\<^sub>l_if_is_strictly_maximal\<^sub>l =
 
 lemma less\<^sub>l_ground_subst_stability: 
   assumes 
-    "is_ground_literal (literal \<cdot>l \<gamma>)" 
-    "is_ground_literal (literal' \<cdot>l \<gamma>)" 
+    "literal.is_ground (literal \<cdot>l \<gamma>)" 
+    "literal.is_ground (literal' \<cdot>l \<gamma>)" 
   shows "literal \<prec>\<^sub>l literal' \<Longrightarrow> literal \<cdot>l \<gamma> \<prec>\<^sub>l literal' \<cdot>l \<gamma>"
   unfolding less\<^sub>l_def mset_mset_lit_subst[symmetric]
 proof (elim multp_map_strong[rotated -1])
@@ -251,8 +251,8 @@ lemmas less\<^sub>c_transitive_on [intro] = clause_order.transp_on_less
 
 lemma less\<^sub>c_ground_subst_stability: 
   assumes 
-    "is_ground_clause (clause \<cdot> \<gamma>)" 
-    "is_ground_clause (clause' \<cdot> \<gamma>)" 
+    "clause.is_ground (clause \<cdot> \<gamma>)" 
+    "clause.is_ground (clause' \<cdot> \<gamma>)" 
   shows "clause \<prec>\<^sub>c clause' \<Longrightarrow> clause \<cdot> \<gamma> \<prec>\<^sub>c clause' \<cdot> \<gamma>"
   unfolding subst_clause_def less\<^sub>c_def
 proof (elim multp_map_strong[rotated -1])
@@ -278,7 +278,7 @@ lemma not_less_eq\<^sub>t\<^sub>G: "\<not> term\<^sub>G\<^sub>2 \<preceq>\<^sub>
   using ground.term_order.not_le .
 
 lemma less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G:
-  assumes "is_ground_term term\<^sub>1" and "is_ground_term term\<^sub>2" 
+  assumes "term.is_ground term\<^sub>1" and "term.is_ground term\<^sub>2" 
   shows "term\<^sub>1 \<preceq>\<^sub>t term\<^sub>2 \<longleftrightarrow> to_ground_term term\<^sub>1 \<preceq>\<^sub>t\<^sub>G to_ground_term term\<^sub>2"
   unfolding reflclp_iff less\<^sub>t_less\<^sub>t\<^sub>G[OF assms]
   using assms[THEN to_ground_term_inverse]
@@ -290,7 +290,7 @@ lemma less_eq\<^sub>t\<^sub>G_less_eq\<^sub>t:
   ..
 
 lemma not_less_eq\<^sub>t: 
-  assumes "is_ground_term term\<^sub>1" and "is_ground_term term\<^sub>2"
+  assumes "term.is_ground term\<^sub>1" and "term.is_ground term\<^sub>2"
   shows "\<not> term\<^sub>2 \<preceq>\<^sub>t term\<^sub>1 \<longleftrightarrow> term\<^sub>1 \<prec>\<^sub>t term\<^sub>2"
   unfolding less\<^sub>t_less\<^sub>t\<^sub>G[OF assms] less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>t\<^sub>G
   ..
@@ -303,13 +303,13 @@ lemma less\<^sub>l\<^sub>G_less\<^sub>l: "literal\<^sub>G\<^sub>1 \<prec>\<^sub>
    by blast
 
 lemma less\<^sub>l_less\<^sub>l\<^sub>G: 
-  assumes "is_ground_literal literal\<^sub>1" "is_ground_literal literal\<^sub>2" 
+  assumes "literal.is_ground literal\<^sub>1" "literal.is_ground literal\<^sub>2" 
   shows "literal\<^sub>1 \<prec>\<^sub>l literal\<^sub>2 \<longleftrightarrow> to_ground_literal literal\<^sub>1 \<prec>\<^sub>l\<^sub>G to_ground_literal literal\<^sub>2"
   using assms
   by (simp add: less\<^sub>l\<^sub>G_less\<^sub>l)
 
 lemma less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G:
-  assumes "is_ground_literal literal\<^sub>1" and "is_ground_literal literal\<^sub>2" 
+  assumes "literal.is_ground literal\<^sub>1" and "literal.is_ground literal\<^sub>2" 
   shows "literal\<^sub>1 \<preceq>\<^sub>l literal\<^sub>2 \<longleftrightarrow> to_ground_literal literal\<^sub>1 \<preceq>\<^sub>l\<^sub>G to_ground_literal literal\<^sub>2"
   unfolding reflclp_iff less\<^sub>l_less\<^sub>l\<^sub>G[OF assms]
   using assms[THEN to_ground_literal_inverse]
@@ -373,7 +373,7 @@ lemma not_less_eq\<^sub>l\<^sub>G: "\<not> literal\<^sub>G\<^sub>2 \<preceq>\<^s
   by blast
 
 lemma not_less_eq\<^sub>l: 
-  assumes "is_ground_literal literal\<^sub>1" and "is_ground_literal literal\<^sub>2"
+  assumes "literal.is_ground literal\<^sub>1" and "literal.is_ground literal\<^sub>2"
   shows "\<not> literal\<^sub>2 \<preceq>\<^sub>l literal\<^sub>1 \<longleftrightarrow> literal\<^sub>1 \<prec>\<^sub>l literal\<^sub>2"
   unfolding less\<^sub>l_less\<^sub>l\<^sub>G[OF assms] less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>l\<^sub>G
   ..
@@ -396,13 +396,13 @@ next
 qed
 
 lemma less\<^sub>c_less\<^sub>c\<^sub>G: 
-  assumes "is_ground_clause clause\<^sub>1" "is_ground_clause clause\<^sub>2"
+  assumes "clause.is_ground clause\<^sub>1" "clause.is_ground clause\<^sub>2"
   shows "clause\<^sub>1 \<prec>\<^sub>c clause\<^sub>2 \<longleftrightarrow> to_ground_clause clause\<^sub>1 \<prec>\<^sub>c\<^sub>G  to_ground_clause clause\<^sub>2"
   using assms
   by (simp add: less\<^sub>c\<^sub>G_less\<^sub>c)
 
 lemma less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G:
-  assumes "is_ground_clause clause\<^sub>1" and "is_ground_clause clause\<^sub>2" 
+  assumes "clause.is_ground clause\<^sub>1" and "clause.is_ground clause\<^sub>2" 
   shows "clause\<^sub>1 \<preceq>\<^sub>c clause\<^sub>2 \<longleftrightarrow> to_ground_clause clause\<^sub>1 \<preceq>\<^sub>c\<^sub>G to_ground_clause clause\<^sub>2"
   unfolding reflclp_iff less\<^sub>c_less\<^sub>c\<^sub>G[OF assms]
   using assms[THEN to_ground_clause_inverse]
@@ -418,16 +418,16 @@ lemma not_less_eq\<^sub>c\<^sub>G: "\<not> clause\<^sub>G\<^sub>2 \<preceq>\<^su
   by blast
 
 lemma not_less_eq\<^sub>c: 
-  assumes "is_ground_clause clause\<^sub>1" and "is_ground_clause clause\<^sub>2"
+  assumes "clause.is_ground clause\<^sub>1" and "clause.is_ground clause\<^sub>2"
   shows "\<not> clause\<^sub>2 \<preceq>\<^sub>c clause\<^sub>1 \<longleftrightarrow> clause\<^sub>1 \<prec>\<^sub>c clause\<^sub>2"
   unfolding less\<^sub>c_less\<^sub>c\<^sub>G[OF assms] less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>c\<^sub>G
   ..
 
 lemma less\<^sub>t_ground_context_compatible':
   assumes 
-    "is_ground_context context" 
-    "is_ground_term term" 
-    "is_ground_term term'" 
+    "context.is_ground context" 
+    "term.is_ground term" 
+    "term.is_ground term'" 
     "context\<langle>term\<rangle> \<prec>\<^sub>t context\<langle>term'\<rangle>"
   shows "term \<prec>\<^sub>t term'"
   (* TODO: *)
@@ -438,9 +438,9 @@ lemma less\<^sub>t_ground_context_compatible':
 
 lemma less\<^sub>t_ground_context_compatible_iff:
    assumes 
-    "is_ground_context context" 
-    "is_ground_term term" 
-    "is_ground_term term'" 
+    "context.is_ground context" 
+    "term.is_ground term" 
+    "term.is_ground term'" 
   shows "context\<langle>term\<rangle> \<prec>\<^sub>t context\<langle>term'\<rangle> \<longleftrightarrow> term \<prec>\<^sub>t term'"
   using assms less\<^sub>t_ground_context_compatible less\<^sub>t_ground_context_compatible'
   by blast
@@ -449,8 +449,8 @@ subsection \<open>Stability under ground substitution\<close>
 
 lemma less\<^sub>t_less_eq\<^sub>t_ground_subst_stability:
   assumes 
-    "is_ground_term (term\<^sub>1 \<cdot>t \<gamma>)"
-    "is_ground_term (term\<^sub>2 \<cdot>t \<gamma>)"
+    "term.is_ground (term\<^sub>1 \<cdot>t \<gamma>)"
+    "term.is_ground (term\<^sub>2 \<cdot>t \<gamma>)"
     "term\<^sub>1 \<cdot>t \<gamma> \<prec>\<^sub>t term\<^sub>2 \<cdot>t \<gamma>"
   shows
     "\<not> term\<^sub>2 \<preceq>\<^sub>t term\<^sub>1"
@@ -469,16 +469,16 @@ qed
 
 lemma less_eq\<^sub>l_ground_subst_stability:
   assumes   
-    "is_ground_literal (literal\<^sub>1 \<cdot>l \<gamma>)" 
-    "is_ground_literal (literal\<^sub>2 \<cdot>l \<gamma>)"  
+    "literal.is_ground (literal\<^sub>1 \<cdot>l \<gamma>)" 
+    "literal.is_ground (literal\<^sub>2 \<cdot>l \<gamma>)"  
     "literal\<^sub>1 \<preceq>\<^sub>l literal\<^sub>2"
   shows "literal\<^sub>1 \<cdot>l \<gamma> \<preceq>\<^sub>l literal\<^sub>2 \<cdot>l \<gamma>"
   using less\<^sub>l_ground_subst_stability[OF assms(1, 2)] assms(3)
   by auto
 
 lemma less\<^sub>l_less_eq\<^sub>l_ground_subst_stability: assumes 
-  "is_ground_literal (literal\<^sub>1 \<cdot>l \<gamma>)"
-  "is_ground_literal (literal\<^sub>2 \<cdot>l \<gamma>)"
+  "literal.is_ground (literal\<^sub>1 \<cdot>l \<gamma>)"
+  "literal.is_ground (literal\<^sub>2 \<cdot>l \<gamma>)"
   "literal\<^sub>1 \<cdot>l \<gamma> \<prec>\<^sub>l literal\<^sub>2 \<cdot>l \<gamma>"
 shows
   "\<not> literal\<^sub>2 \<preceq>\<^sub>l literal\<^sub>1"
@@ -486,16 +486,16 @@ shows
 
 lemma less_eq\<^sub>c_ground_subst_stability:
   assumes   
-    "is_ground_clause (clause\<^sub>1 \<cdot> \<gamma>)" 
-    "is_ground_clause (clause\<^sub>2 \<cdot> \<gamma>)"  
+    "clause.is_ground (clause\<^sub>1 \<cdot> \<gamma>)" 
+    "clause.is_ground (clause\<^sub>2 \<cdot> \<gamma>)"  
     "clause\<^sub>1 \<preceq>\<^sub>c clause\<^sub>2"
   shows "clause\<^sub>1 \<cdot> \<gamma> \<preceq>\<^sub>c clause\<^sub>2 \<cdot> \<gamma>"
   using less\<^sub>c_ground_subst_stability[OF assms(1, 2)] assms(3)
   by auto
 
 lemma less\<^sub>c_less_eq\<^sub>c_ground_subst_stability: assumes 
-  "is_ground_clause (clause\<^sub>1 \<cdot> \<gamma>)"
-  "is_ground_clause (clause\<^sub>2 \<cdot> \<gamma>)"
+  "clause.is_ground (clause\<^sub>1 \<cdot> \<gamma>)"
+  "clause.is_ground (clause\<^sub>2 \<cdot> \<gamma>)"
   "clause\<^sub>1 \<cdot> \<gamma> \<prec>\<^sub>c clause\<^sub>2 \<cdot> \<gamma>"
 shows
   "\<not> clause\<^sub>2 \<preceq>\<^sub>c clause\<^sub>1"
@@ -504,7 +504,7 @@ shows
 lemma is_maximal\<^sub>l_ground_subst_stability:
   assumes 
     clause_not_empty: "clause \<noteq> {#}" and
-    clause_grounding: "is_ground_clause (clause \<cdot> \<gamma>)" 
+    clause_grounding: "clause.is_ground (clause \<cdot> \<gamma>)" 
   obtains literal
   where "is_maximal\<^sub>l literal clause" "is_maximal\<^sub>l (literal \<cdot>l \<gamma>) (clause \<cdot> \<gamma>)"
 proof-
@@ -565,7 +565,7 @@ qed
 lemma is_maximal\<^sub>l_ground_subst_stability':
   assumes 
    "literal \<in># clause"
-   "is_ground_clause (clause \<cdot> \<gamma>)"
+   "clause.is_ground (clause \<cdot> \<gamma>)"
    "is_maximal\<^sub>l (literal \<cdot>l \<gamma>) (clause \<cdot> \<gamma>)"
  shows 
    "is_maximal\<^sub>l literal clause"
@@ -579,10 +579,10 @@ proof(rule ccontr)
   unfolding is_maximal\<^sub>l_def
   by blast
 
-  then have literal'_grounding: "is_ground_literal (literal' \<cdot>l \<gamma>)"
+  then have literal'_grounding: "literal.is_ground (literal' \<cdot>l \<gamma>)"
     using assms(2) ground_literal_in_ground_clause_subst by blast
 
-  have literal_grounding: "is_ground_literal (literal \<cdot>l \<gamma>)"
+  have literal_grounding: "literal.is_ground (literal \<cdot>l \<gamma>)"
     using assms(1) assms(2) ground_literal_in_ground_clause_subst by blast
 
   have literal_\<gamma>_in_premise: "literal' \<cdot>l \<gamma> \<in># clause \<cdot> \<gamma>"
@@ -614,7 +614,7 @@ lemma less\<^sub>c_total_on: "totalp_on (to_clause ` clauses) (\<prec>\<^sub>c)"
 
 lemma unique_maximal_in_ground_clause:
   assumes
-    "is_ground_clause clause" 
+    "clause.is_ground clause" 
     "is_maximal\<^sub>l literal clause"
     "is_maximal\<^sub>l literal' clause"
   shows
@@ -625,7 +625,7 @@ lemma unique_maximal_in_ground_clause:
 
 lemma unique_strictly_maximal_in_ground_clause:
   assumes
-    "is_ground_clause clause" 
+    "clause.is_ground clause" 
     "is_strictly_maximal\<^sub>l literal clause"
     "is_strictly_maximal\<^sub>l literal' clause"
   shows
@@ -639,7 +639,7 @@ qed
 
 lemma is_strictly_maximal\<^sub>l_ground_subst_stability:
   assumes 
-   clause_grounding: "is_ground_clause (clause \<cdot> \<gamma>)" and
+   clause_grounding: "clause.is_ground (clause \<cdot> \<gamma>)" and
    ground_strictly_maximal: "is_strictly_maximal\<^sub>l literal\<^sub>G (clause \<cdot> \<gamma>)"
  obtains literal where 
    "is_strictly_maximal\<^sub>l literal clause" "literal \<cdot>l \<gamma> = literal\<^sub>G"
@@ -677,7 +677,7 @@ proof-
     note literal_grounding = 
       ground_literal_in_ground_clause_subst[OF clause_grounding literal(1)]
 
-    have literal'_grounding: "is_ground_literal (literal' \<cdot>l \<gamma>)"
+    have literal'_grounding: "literal.is_ground (literal' \<cdot>l \<gamma>)"
       using literal'(1) clause_grounding
       by (meson ground_literal_in_ground_clause_subst in_diffD)
 
@@ -699,7 +699,7 @@ qed
 lemma is_strictly_maximal\<^sub>l_ground_subst_stability':
   assumes 
    "literal \<in># clause"
-   "is_ground_clause (clause \<cdot> \<gamma>)"
+   "clause.is_ground (clause \<cdot> \<gamma>)"
    "is_strictly_maximal\<^sub>l (literal \<cdot>l \<gamma>) (clause \<cdot> \<gamma>)"
  shows 
    "is_strictly_maximal\<^sub>l literal clause"
@@ -818,9 +818,9 @@ subsection \<open>Substitution update\<close>
 lemma less\<^sub>t_subst_upd:
   fixes \<gamma> :: "('f, 'v) subst"
   assumes 
-    update_is_ground: "is_ground_term update" and
+    update_is_ground: "term.is_ground update" and
     update_less: "update \<prec>\<^sub>t \<gamma> var" and
-    term_grounding: "is_ground_term (term \<cdot>t \<gamma>)" and
+    term_grounding: "term.is_ground (term \<cdot>t \<gamma>)" and
     var: "var \<in> vars_term term"
   shows "term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>"
   using assms(3, 4)
@@ -851,12 +851,12 @@ next
   next
     case first: (Cons t ts)
 
-    have update_grounding [simp]: "is_ground_term (t \<cdot>t \<gamma>(var := update))"
+    have update_grounding [simp]: "term.is_ground (t \<cdot>t \<gamma>(var := update))"
       using first.prems(3) update_is_ground first.hyps(2)
       by (metis (no_types, lifting) filter_eq_ConsD fun_upd_other fun_upd_same in_set_conv_decomp 
             is_ground_iff term.set_intros(4))
 
-    then have t_grounding [simp]: "is_ground_term (t \<cdot>t \<gamma>)"
+    then have t_grounding [simp]: "term.is_ground (t \<cdot>t \<gamma>)"
       using update_grounding Fun.prems(1,2)
       by (metis fun_upd_other is_ground_iff)
     
@@ -881,14 +881,14 @@ next
 
       let ?context = "More f (map (\<lambda>term. (term \<cdot>t \<gamma>)) ss1) \<box> (map (\<lambda>term. (term \<cdot>t \<gamma>)) ss2)"
 
-      have 1: "is_ground_term (t \<cdot>t \<gamma>)"
+      have 1: "term.is_ground (t \<cdot>t \<gamma>)"
         using terms first(5)
         by auto
 
-      moreover then have "is_ground_term (t \<cdot>t \<gamma>(var := update))"
+      moreover then have "term.is_ground (t \<cdot>t \<gamma>(var := update))"
         by (metis assms(1) fun_upd_other fun_upd_same is_ground_iff)
 
-      moreover have "is_ground_context ?context"
+      moreover have "context.is_ground ?context"
         using terms first(5)
         by auto
 
@@ -947,7 +947,7 @@ next
       moreover have "\<exists>term \<in> set ?terms'. term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>"
         using calculation(1) Cons neq_Nil_conv by force
 
-      moreover have terms'_grounding: "is_ground_term (Fun f ?terms' \<cdot>t \<gamma>)"
+      moreover have terms'_grounding: "term.is_ground (Fun f ?terms' \<cdot>t \<gamma>)"
         using first.prems(3)
         unfolding terms
         by simp
@@ -958,7 +958,7 @@ next
       ultimately have less_terms': "Fun f ?terms' \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t Fun f ?terms' \<cdot>t \<gamma>"
         using first.hyps(1) first.prems(3) by blast
 
-      have context_grounding: "is_ground_context (More f ss1 \<box> ss2 \<cdot>t\<^sub>c \<gamma>)"
+      have context_grounding: "context.is_ground (More f ss1 \<box> ss2 \<cdot>t\<^sub>c \<gamma>)"
         using terms'_grounding
         by auto
 
@@ -977,15 +977,15 @@ qed
 lemma less\<^sub>l_subst_upd:
   fixes \<gamma> :: "('f, 'v) subst"
   assumes 
-    update_is_ground: "is_ground_term update" and
+    update_is_ground: "term.is_ground update" and
     update_less: "update \<prec>\<^sub>t \<gamma> var" and
-    literal_grounding: "is_ground_literal (literal \<cdot>l \<gamma>)" and
+    literal_grounding: "literal.is_ground (literal \<cdot>l \<gamma>)" and
     var: "var \<in> vars_literal literal"
   shows "literal \<cdot>l \<gamma>(var := update) \<prec>\<^sub>l literal \<cdot>l \<gamma>"
 proof-
   note less\<^sub>t_subst_upd = less\<^sub>t_subst_upd[of _ \<gamma>, OF update_is_ground update_less] 
 
-  have all_ground_terms: "\<forall>term \<in> set_uprod (atm_of literal). is_ground_term (term \<cdot>t \<gamma>)"
+  have all_ground_terms: "\<forall>term \<in> set_uprod (atm_of literal). term.is_ground (term \<cdot>t \<gamma>)"
     (* TODO: *)
     using assms(3)
     apply(cases literal)
@@ -1017,15 +1017,15 @@ qed
 
 lemma less\<^sub>c_subst_upd:
   assumes 
-    update_is_ground: "is_ground_term update" and
+    update_is_ground: "term.is_ground update" and
     update_less: "update \<prec>\<^sub>t \<gamma> var" and
-    literal_grounding: "is_ground_clause (clause \<cdot> \<gamma>)" and
+    literal_grounding: "clause.is_ground (clause \<cdot> \<gamma>)" and
     var: "var \<in> vars_clause clause"
   shows "clause \<cdot> \<gamma>(var := update) \<prec>\<^sub>c clause \<cdot> \<gamma>"
 proof-
   note less\<^sub>l_subst_upd = less\<^sub>l_subst_upd[of _ \<gamma>, OF update_is_ground update_less] 
 
-  have all_ground_literals: "\<forall>literal \<in># clause. is_ground_literal (literal \<cdot>l \<gamma>)"
+  have all_ground_literals: "\<forall>literal \<in># clause. literal.is_ground (literal \<cdot>l \<gamma>)"
     using ground_literal_in_ground_clause_subst[OF literal_grounding] by blast
 
   then have 

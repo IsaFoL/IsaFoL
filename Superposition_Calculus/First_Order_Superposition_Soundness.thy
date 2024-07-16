@@ -14,34 +14,34 @@ abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
 
 (* TODO: *)
 lemma name_missing\<^sub>t:
-  assumes "is_ground_term (t \<cdot>t \<gamma>)" "x \<in> vars_term t" 
-  shows "is_ground_term (\<gamma> x)"
+  assumes "term.is_ground (t \<cdot>t \<gamma>)" "x \<in> vars_term t" 
+  shows "term.is_ground (\<gamma> x)"
   using assms
   by(induction t) auto
 
 lemma name_missing\<^sub>a:
-  assumes "is_ground_atom (a \<cdot>a \<gamma>)" "x \<in> vars_atom a" 
-  shows "is_ground_term (\<gamma> x)"
+  assumes "atom.is_ground (a \<cdot>a \<gamma>)" "x \<in> vars_atom a" 
+  shows "term.is_ground (\<gamma> x)"
   using assms name_missing\<^sub>t
   unfolding vars_atom_def subst_atom_def
   by(cases a) fastforce
 
 lemma name_missing\<^sub>l:
-  assumes "is_ground_literal (l \<cdot>l \<gamma>)" "x \<in> vars_literal l" 
-  shows "is_ground_term (\<gamma> x)"
+  assumes "literal.is_ground (l \<cdot>l \<gamma>)" "x \<in> vars_literal l" 
+  shows "term.is_ground (\<gamma> x)"
   using assms name_missing\<^sub>a
   unfolding vars_literal_def subst_literal
   by fast
 
 lemma name_missing\<^sub>c:
-  assumes "is_ground_clause (C \<cdot> \<gamma>)" "x \<in> vars_clause C" 
-  shows "is_ground_term (\<gamma> x)"
+  assumes "clause.is_ground (C \<cdot> \<gamma>)" "x \<in> vars_clause C" 
+  shows "term.is_ground (\<gamma> x)"
   using assms name_missing\<^sub>l
   unfolding vars_clause_def subst_clause_def
   by fastforce
 
 lemma welltyped_extension:
-  assumes "is_ground_clause (C \<cdot> \<gamma>)" "welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V> \<gamma>" 
+  assumes "clause.is_ground (C \<cdot> \<gamma>)" "welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V> \<gamma>" 
   obtains \<gamma>'
   where "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" "\<forall>x \<in> vars_clause C. \<gamma> x = \<gamma>' x"
   using assms function_symbols
@@ -55,7 +55,7 @@ proof-
     unfolding  term_subst.is_ground_subst_def
   proof(intro allI)
     fix t
-    show "is_ground_term (t \<cdot>t \<gamma>')"
+    show "term.is_ground (t \<cdot>t \<gamma>')"
     proof(induction t)
       case (Var x)
       then show ?case
@@ -133,7 +133,7 @@ proof (cases P C rule: eq_resolution.cases)
       \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" "\<forall>x \<in> vars_clause C. \<gamma> x = \<gamma>' x"
       using welltyped_extension
       using grounding wt(2)
-      by (metis is_ground_subst_is_ground_clause)
+      by (metis is_ground_subst_clause_is_ground)
 
     let ?P = "to_ground_clause (P \<cdot> \<mu> \<cdot> \<gamma>')"
     let ?L = "to_ground_literal (L \<cdot>l \<mu> \<cdot>l \<gamma>')"
@@ -248,7 +248,7 @@ proof (cases P C rule: eq_factoring.cases)
       \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" "\<forall>x \<in> vars_clause C. \<gamma> x = \<gamma>' x"
       using welltyped_extension
       using grounding wt(2)
-      by (metis is_ground_subst_is_ground_clause)
+      by (metis is_ground_subst_clause_is_ground)
 
     let ?P = "to_ground_clause (P \<cdot> \<mu> \<cdot> \<gamma>')"
     let ?P' = "to_ground_clause (P' \<cdot> \<mu> \<cdot> \<gamma>')"
@@ -400,7 +400,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 \<gamma>'" "\<forall>x \<in> vars_clause C. \<gamma> x = \<gamma>' x"
       using welltyped_extension
       using grounding
-      by (metis is_ground_subst_is_ground_clause)
+      by (metis is_ground_subst_clause_is_ground)
 
     let ?P\<^sub>1 = "to_ground_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1\<cdot> \<mu> \<cdot> \<gamma>')"
     let ?P\<^sub>2 = "to_ground_clause (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu> \<cdot> \<gamma>')"
@@ -539,7 +539,7 @@ proof (cases P2 P1 C rule: superposition.cases)
     have s\<^sub>1_u\<^sub>1: "?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G = to_ground_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"
       using 
         ground_term_with_context(1)[OF 
-          is_ground_subst_is_ground_context
+          is_ground_subst_context_is_ground
           term_subst.is_ground_subst_is_ground
           ]
         \<gamma>'(1) 
@@ -548,7 +548,7 @@ proof (cases P2 P1 C rule: superposition.cases)
     have s\<^sub>1_t\<^sub>2': "(?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G  = to_ground_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"
       using 
         ground_term_with_context(1)[OF 
-          is_ground_subst_is_ground_context
+          is_ground_subst_context_is_ground
           term_subst.is_ground_subst_is_ground
           ]
         \<gamma>'(1) 

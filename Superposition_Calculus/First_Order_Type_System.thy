@@ -492,7 +492,7 @@ lemma welltyped_\<V>:
 lemma welltyped_subst_\<V>:
   assumes 
     "\<forall>x\<in> X. \<V> x = \<V>' x"
-    "\<forall>x\<in> X. is_ground_term (\<gamma> x)"
+    "\<forall>x\<in> X. term.is_ground (\<gamma> x)"
   shows  
     "welltyped\<^sub>\<sigma>_on X \<F> \<V> \<gamma> \<longleftrightarrow> welltyped\<^sub>\<sigma>_on X \<F> \<V>' \<gamma>"
   unfolding welltyped\<^sub>\<sigma>_on_def
@@ -2019,7 +2019,7 @@ lemma welltyped\<^sub>\<sigma>_on_subst_upd:
   by (metis fun_upd_other fun_upd_same right_unique_def welltyped.Var welltyped_right_unique)
 
 lemma welltyped_is_ground:
-  assumes "is_ground_term t" "welltyped \<F> \<V> t \<tau>"
+  assumes "term.is_ground t" "welltyped \<F> \<V> t \<tau>"
   shows "welltyped \<F> \<V>' t \<tau>"
   by (metis assms(1) assms(2) empty_iff welltyped_\<V>)
 

@@ -42,10 +42,10 @@ next
     using wfP_imp_asymp wfP_less_kbo 
     by blast
 next
-  show "Wellfounded.wfp_on {term. is_ground_term term} less_kbo"
+  show "Wellfounded.wfp_on {term. term.is_ground term} less_kbo"
     using Wellfounded.wfp_on_subset[OF wfP_less_kbo subset_UNIV] .
 next
-  show "totalp_on {term. is_ground_term term} less_kbo"
+  show "totalp_on {term. term.is_ground term} less_kbo"
     using less_kbo_gtotal
     unfolding totalp_on_def Term.ground_vars_term_empty
     by blast
@@ -72,8 +72,8 @@ next
     term\<^sub>G :: "('f, 'v) term" and
     context\<^sub>G :: "('f, 'v) context"
   assume 
-    "is_ground_term term\<^sub>G" 
-    "is_ground_context context\<^sub>G" 
+    "term.is_ground term\<^sub>G" 
+    "context.is_ground context\<^sub>G" 
     "context\<^sub>G \<noteq> \<box>"
   
   then show "less_kbo term\<^sub>G context\<^sub>G\<langle>term\<^sub>G\<rangle>"
