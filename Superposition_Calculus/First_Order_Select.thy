@@ -294,7 +294,7 @@ proof-
         \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
         welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (vars_clause premise) \<F> \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     unfolding clause_groundings_def
-    using is_ground_subst_clause_is_ground 
+    using clause.is_ground_subst_is_ground
     by fastforce
 
   obtain select\<^sub>G_on_premise_groundings where 

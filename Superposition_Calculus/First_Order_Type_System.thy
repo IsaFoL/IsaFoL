@@ -35,13 +35,13 @@ definition has_type\<^sub>a where
   "has_type\<^sub>a \<F> \<V> A \<longleftrightarrow> (\<exists>\<tau>. \<forall>t \<in> set_uprod A. has_type \<F> \<V> t \<tau>)"
 
 definition welltyped\<^sub>a  where
-  [clause_simps]: "welltyped\<^sub>a \<F> \<V> A \<longleftrightarrow> (\<exists>\<tau>. \<forall>t \<in> set_uprod A. welltyped \<F> \<V> t \<tau>)"
+  [clause_simp]: "welltyped\<^sub>a \<F> \<V> A \<longleftrightarrow> (\<exists>\<tau>. \<forall>t \<in> set_uprod A. welltyped \<F> \<V> t \<tau>)"
 
 definition has_type\<^sub>l where
   "has_type\<^sub>l \<F> \<V> L \<longleftrightarrow> has_type\<^sub>a \<F> \<V> (atm_of L)"
 
 definition welltyped\<^sub>l where
-   [clause_simps]: "welltyped\<^sub>l \<F> \<V> L \<longleftrightarrow> welltyped\<^sub>a \<F> \<V> (atm_of L)"
+   [clause_simp]: "welltyped\<^sub>l \<F> \<V> L \<longleftrightarrow> welltyped\<^sub>a \<F> \<V> (atm_of L)"
 
 definition has_type\<^sub>c where
   "has_type\<^sub>c \<F> \<V> C \<longleftrightarrow> (\<forall>L \<in># C. has_type\<^sub>l \<F> \<V> L)"
@@ -95,19 +95,19 @@ definition welltyped\<^sub>\<sigma>' where
 
 (* Probably true: lemma "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> welltyped\<^sub>\<sigma>' \<F> \<V> \<sigma>" *)
 
-lemma has_type\<^sub>c_add_mset [clause_simps]: 
+lemma has_type\<^sub>c_add_mset [clause_simp]: 
   "has_type\<^sub>c \<F> \<V> (add_mset L C) \<longleftrightarrow> has_type\<^sub>l \<F> \<V> L \<and> has_type\<^sub>c \<F> \<V> C"
   by (simp add: has_type\<^sub>c_def)
 
-lemma welltyped\<^sub>c_add_mset [clause_simps]: 
+lemma welltyped\<^sub>c_add_mset [clause_simp]: 
   "welltyped\<^sub>c \<F> \<V> (add_mset L C) \<longleftrightarrow> welltyped\<^sub>l \<F> \<V> L \<and> welltyped\<^sub>c \<F> \<V> C"
   by (simp add: welltyped\<^sub>c_def)
 
-lemma has_type\<^sub>c_plus [clause_simps]: 
+lemma has_type\<^sub>c_plus [clause_simp]: 
   "has_type\<^sub>c \<F> \<V> (C + D) \<longleftrightarrow> has_type\<^sub>c \<F> \<V> C \<and> has_type\<^sub>c \<F> \<V> D"
   by (auto simp: has_type\<^sub>c_def)
 
-lemma welltyped\<^sub>c_plus [clause_simps]: 
+lemma welltyped\<^sub>c_plus [clause_simp]: 
   "welltyped\<^sub>c \<F> \<V> (C + D) \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> C \<and> welltyped\<^sub>c \<F> \<V> D"
   by (auto simp: welltyped\<^sub>c_def)
 
@@ -432,7 +432,7 @@ next
 qed
 
 
-lemma welltyped\<^sub>\<kappa> [clause_intros]:
+lemma welltyped\<^sub>\<kappa> [clause_intro]:
   assumes
     \<kappa>_type: "welltyped \<F> \<V> \<kappa>\<langle>t\<rangle> \<tau>\<^sub>1" and
     t_type: "welltyped \<F> \<V> t \<tau>\<^sub>2" and

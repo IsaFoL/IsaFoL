@@ -80,6 +80,7 @@ proof-
     using Calculus.inference.exhaust
     by (metis prod.collapse)
 
+  (* TODO: *)
   then obtain \<gamma> where
     "clause.is_ground (conclusion \<cdot> \<gamma>)"
     "conlcusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
@@ -87,7 +88,8 @@ proof-
     using assms list_4_cases
     unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
     apply(auto split: list.splits)
-    by (metis is_ground_subst_clause_is_ground list_4_cases prod.exhaust_sel)
+    unfolding atom.is_ground_subst_iff[symmetric] literal.is_ground_subst_iff[symmetric] clause.is_ground_subst_iff[symmetric]
+    by (metis clause.is_ground_subst_is_ground list_4_cases prod.exhaust_sel)
 
   then show ?thesis
     unfolding \<iota> \<iota>\<^sub>G clause_groundings_def

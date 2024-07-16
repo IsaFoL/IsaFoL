@@ -171,4 +171,11 @@ lemma imgu_exists:
   using imgu_exists_extendable[OF assms, of "(\<lambda>_ _ _. True)"]
   by auto
 
+(* The other way around it does not work! *)
+lemma is_renaming_if_term_subst_is_renaming:
+  assumes "term_subst.is_renaming \<rho>"
+  shows "is_renaming \<rho>"
+  using assms
+  by (simp add: inj_on_def is_renaming_def term_subst_is_renaming_iff)
+
 end

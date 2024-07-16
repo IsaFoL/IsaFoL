@@ -546,7 +546,7 @@ qed
 
 
 
-lemma if_subst_sth [clause_simps]: "(if b then Pos else Neg) atom \<cdot>l \<rho> = 
+lemma if_subst_sth [clause_simp]: "(if b then Pos else Neg) atom \<cdot>l \<rho> = 
   (if b then Pos else Neg) (atom \<cdot>a \<rho>)"
   by clause_auto
 
@@ -988,7 +988,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
       have aux: "term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>to_term term\<^sub>G\<^sub>1\<rangle>"
         using term\<^sub>x_\<gamma>
-        by (metis ground_term_with_context2 is_ground_subst_context_is_ground term_subst.is_ground_subst_is_ground to_ground_term_inverse typing(3))
+        by (metis context.is_ground_subst_iff context.is_ground_subst_is_ground ground_term_with_context2 term_subst.is_ground_subst_is_ground to_ground_term_inverse typing(3))
 
       have "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 (to_clause premise\<^sub>G\<^sub>2)"
         by (metis ground_superpositionI(2) premise\<^sub>2_\<gamma> clause.comp_subst.left.monoid_action_compatibility typing(2) typing(5) welltyped\<^sub>\<sigma>_on_welltyped\<^sub>c)
@@ -1781,7 +1781,7 @@ proof-
     "all_types \<V>"
     using assms(2, 3) premise\<^sub>G_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
-    by (smt (verit, del_insts) case_prodE ground_clause_is_ground is_ground_subst_clause_is_ground clause.subst_ident_if_ground to_ground_clause_inverse)
+    by (smt (verit) clause.subst_ident_if_ground ground_clause_is_ground old.prod.case old.prod.exhaust select_subst1 to_ground_clause_inverse)
 
   then have 
     premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and 
@@ -1892,7 +1892,7 @@ proof-
     "all_types \<V>\<^sub>2" 
     using assms(2, 4) premise\<^sub>G\<^sub>1_in_groundings premise\<^sub>G\<^sub>2_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def   
-    by (smt (verit, del_insts) case_prodE is_ground_subst_clause_is_ground to_ground_clause_inverse)
+    by (smt (verit, ccfv_threshold) case_prod_conv ground_clause_is_ground select_subst1 surj_pair to_ground_clause_inverse)
 
   obtain \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v) subst" where
     renaming: 

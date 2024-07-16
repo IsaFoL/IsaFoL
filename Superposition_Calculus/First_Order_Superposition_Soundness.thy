@@ -129,12 +129,14 @@ proof (cases P C rule: eq_resolution.cases)
       grounding: "term_subst.is_ground_subst \<gamma>" and
       wt: "welltyped\<^sub>c typeof_fun \<V> C" "welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V> \<gamma>"
 
+    have grounding': "clause.is_ground (C \<cdot> \<gamma>)"
+      using grounding
+      by (simp add: clause.is_ground_subst_is_ground)
+
     obtain \<gamma>' where
       \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" "\<forall>x \<in> vars_clause C. \<gamma> x = \<gamma>' x"
-      using welltyped_extension
-      using grounding wt(2)
-      by (metis is_ground_subst_clause_is_ground)
-
+      using welltyped_extension[OF grounding' wt(2)].
+    
     let ?P = "to_ground_clause (P \<cdot> \<mu> \<cdot> \<gamma>')"
     let ?L = "to_ground_literal (L \<cdot>l \<mu> \<cdot>l \<gamma>')"
     let ?P' = "to_ground_clause (P' \<cdot> \<mu> \<cdot> \<gamma>')"
@@ -248,7 +250,7 @@ proof (cases P C rule: eq_factoring.cases)
       \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" "\<forall>x \<in> vars_clause C. \<gamma> x = \<gamma>' x"
       using welltyped_extension
       using grounding wt(2)
-      by (metis is_ground_subst_clause_is_ground)
+      by (metis atom.is_ground_subst_iff clause.is_ground_subst_iff clause.is_ground_subst_is_ground literal.is_ground_subst_iff)
 
     let ?P = "to_ground_clause (P \<cdot> \<mu> \<cdot> \<gamma>')"
     let ?P' = "to_ground_clause (P' \<cdot> \<mu> \<cdot> \<gamma>')"
@@ -396,11 +398,13 @@ proof (cases P2 P1 C rule: superposition.cases)
       "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P\<^sub>2 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>2 P\<^sub>2 \<and> welltyped\<^sub>\<sigma>_on (vars_clause P\<^sub>2) typeof_fun \<V>\<^sub>2 \<gamma>' \<and> all_types \<V>\<^sub>2) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and 
       grounding: "term_subst.is_ground_subst \<gamma>" "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 C" "welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V>\<^sub>3 \<gamma>" "all_types \<V>\<^sub>3"
 
+    have grounding': "clause.is_ground (C \<cdot> \<gamma>)"
+      using grounding
+      by (simp add: clause.is_ground_subst_is_ground)
+
     obtain \<gamma>' where
       \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 \<gamma>'" "\<forall>x \<in> vars_clause C. \<gamma> x = \<gamma>' x"
-      using welltyped_extension
-      using grounding
-      by (metis is_ground_subst_clause_is_ground)
+      using welltyped_extension[OF grounding' grounding(3)].
 
     let ?P\<^sub>1 = "to_ground_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1\<cdot> \<mu> \<cdot> \<gamma>')"
     let ?P\<^sub>2 = "to_ground_clause (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu> \<cdot> \<gamma>')"
@@ -539,20 +543,20 @@ proof (cases P2 P1 C rule: superposition.cases)
     have s\<^sub>1_u\<^sub>1: "?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G = to_ground_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"
       using 
         ground_term_with_context(1)[OF 
-          is_ground_subst_context_is_ground
+          context.is_ground_subst_is_ground
           term_subst.is_ground_subst_is_ground
           ]
-        \<gamma>'(1) 
-      by blast
+        \<gamma>'(1)
+      by auto
 
     have s\<^sub>1_t\<^sub>2': "(?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G  = to_ground_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"
       using 
         ground_term_with_context(1)[OF 
-          is_ground_subst_context_is_ground
+          context.is_ground_subst_is_ground
           term_subst.is_ground_subst_is_ground
           ]
         \<gamma>'(1) 
-      by blast
+      by auto
 
     have \<P>_pos_or_neg: "\<P> = Pos \<or> \<P> = Neg"
       using superpositionI(9) by blast

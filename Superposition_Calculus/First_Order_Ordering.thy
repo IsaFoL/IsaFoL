@@ -187,7 +187,7 @@ lemma less\<^sub>t\<^sub>G_subterm_property [simp]:
   by blast
 
 (* TODO: direction? *)
-lemma less\<^sub>t_less\<^sub>t\<^sub>G [clause_simps]: 
+lemma less\<^sub>t_less\<^sub>t\<^sub>G [clause_simp]: 
   assumes "term.is_ground term\<^sub>1" and "term.is_ground term\<^sub>2"
   shows "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<longleftrightarrow> to_ground_term term\<^sub>1 \<prec>\<^sub>t\<^sub>G to_ground_term term\<^sub>2"
   by (simp add: assms less\<^sub>t\<^sub>G_def)
