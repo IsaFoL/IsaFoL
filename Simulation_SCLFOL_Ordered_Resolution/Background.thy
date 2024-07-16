@@ -1827,4 +1827,61 @@ qed
 
 end
 
+
+lemma trail_atms_eq_trail_atms_if_same_lits:
+  assumes "list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0"
+  shows "trail_atms \<Gamma>\<^sub>9 = trail_atms \<Gamma>\<^sub>1\<^sub>0"
+  using assms
+proof (induction \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0 rule: list.rel_induct)
+  case Nil
+  show ?case
+    by (simp add: trail_atms_def)
+next
+  case (Cons Ln\<^sub>9 \<Gamma>\<^sub>9' Ln\<^sub>1\<^sub>0 \<Gamma>\<^sub>1\<^sub>0')
+  thus ?case
+    by (simp add: trail_atms_def)
+qed
+
+lemma trail_false_lit_eq_trail_false_lit_if_same_lits:
+  assumes "list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0"
+  shows "trail_false_lit \<Gamma>\<^sub>9 = trail_false_lit \<Gamma>\<^sub>1\<^sub>0"
+  using assms
+proof (induction \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0 rule: list.rel_induct)
+  case Nil
+  show ?case
+    by simp
+next
+  case (Cons Ln\<^sub>9 \<Gamma>\<^sub>9' Ln\<^sub>1\<^sub>0 \<Gamma>\<^sub>1\<^sub>0')
+  thus ?case
+    apply (simp add: trail_false_lit_def)
+    by metis
+qed
+
+lemma trail_false_cls_eq_trail_false_cls_if_same_lits:
+  assumes "list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0"
+  shows "trail_false_cls \<Gamma>\<^sub>9 = trail_false_cls \<Gamma>\<^sub>1\<^sub>0"
+  unfolding trail_false_cls_def 
+  unfolding trail_false_lit_eq_trail_false_lit_if_same_lits[OF assms] ..
+
+lemma trail_defined_lit_eq_trail_defined_lit_if_same_lits:
+  assumes "list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0"
+  shows "trail_defined_lit \<Gamma>\<^sub>9 = trail_defined_lit \<Gamma>\<^sub>1\<^sub>0"
+  using assms
+proof (induction \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0 rule: list.rel_induct)
+  case Nil
+  show ?case
+    by simp
+next
+  case (Cons Ln\<^sub>9 \<Gamma>\<^sub>9' Ln\<^sub>1\<^sub>0 \<Gamma>\<^sub>1\<^sub>0')
+  thus ?case
+    apply (simp add: trail_defined_lit_def)
+    by meson
+qed
+
+lemma trail_defined_cls_eq_trail_defined_cls_if_same_lits:
+  assumes "list_all2 (\<lambda>x y. fst x = fst y) \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0"
+  shows "trail_defined_cls \<Gamma>\<^sub>9 = trail_defined_cls \<Gamma>\<^sub>1\<^sub>0"
+  unfolding trail_defined_cls_def
+  unfolding trail_defined_lit_eq_trail_defined_lit_if_same_lits[OF assms] ..
+
 end

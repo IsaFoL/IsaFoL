@@ -1,7 +1,7 @@
 theory Clause_Could_Propagate
   imports
     Background
-    Exhaustive_Factorization
+    Implicit_Exhaustive_Factorization
 begin
 
 context simulation_SCLFOL_ground_ordered_resolution begin
@@ -47,6 +47,23 @@ proof (rule ext)
     by (metis (mono_tags, lifting) ex1_efac_eq_factoring_chain mem_Collect_eq
         ord_res.ground_factorings_preserves_maximal_literal set_mset_efac set_mset_filter
         trail_false_cls_def)
+qed
+
+lemma bex_clause_could_propagate_simp:
+  fixes \<F> N \<Gamma> L
+  shows "fBex (iefac \<F> |`| N) (\<lambda>C. clause_could_propagate \<Gamma> C L) \<longleftrightarrow>
+    fBex N (\<lambda>C. clause_could_propagate \<Gamma> C L)"
+  sketch (rule iffI; elim bexE)
+proof (rule iffI ; elim bexE)
+  fix C :: "'f gclause"
+  assume "C |\<in>| iefac \<F> |`| N" and "clause_could_propagate \<Gamma> C L"
+  thus "\<exists>C |\<in>| N. clause_could_propagate \<Gamma> C L"
+    by (metis clause_could_propagate_efac fimageE iefac_def)
+next
+  fix C :: "'f gclause"
+  assume "C |\<in>| N" and "clause_could_propagate \<Gamma> C L"
+  thus "\<exists>C|\<in>|iefac \<F> |`| N. clause_could_propagate \<Gamma> C L"
+    by (metis clause_could_propagate_efac fimageI iefac_def)
 qed
 
 end

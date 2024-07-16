@@ -386,6 +386,21 @@ proof -
     by fastforce
 qed
 
+lemma bex_trail_false_cls_simp:
+  fixes \<F> N \<Gamma>
+  shows "fBex (iefac \<F> |`| N) (trail_false_cls \<Gamma>) \<longleftrightarrow> fBex N (trail_false_cls \<Gamma>)"
+proof (rule iffI ; elim bexE)
+  fix C :: "'f gclause"
+  assume C_in: "C |\<in>| iefac \<F> |`| N" and C_false: "trail_false_cls \<Gamma> C"
+  thus "fBex N (trail_false_cls \<Gamma>)"
+    by (smt (verit, ccfv_SIG) fimage_iff iefac_def set_mset_efac trail_false_cls_def)
+next
+  fix C :: "'f gclause"
+  assume "C |\<in>| N" and "trail_false_cls \<Gamma> C"
+  thus "fBex (iefac \<F> |`| N) (trail_false_cls \<Gamma>)"
+    by (metis fimageI iefac_def set_mset_efac trail_false_cls_def)
+qed
+
 end
 
 end
