@@ -260,7 +260,7 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
 
   then have "welltyped\<^sub>c typeof_fun \<V> (D  \<cdot> \<mu>)"
     using wt_D welltyped\<^sub>\<sigma>_welltyped\<^sub>c eq_resolutionI(4)
-    by clause_simp
+    by blast
 
   then show ?thesis
     unfolding eq_resolutionI subst_clause_add_mset welltyped\<^sub>c_add_mset

@@ -768,7 +768,7 @@ lemma less_eq\<^sub>l_less_eq\<^sub>c:
   assumes "\<forall>literal \<in># clause. literal \<cdot>l \<sigma>' \<preceq>\<^sub>l literal \<cdot>l \<sigma>"
   shows "clause \<cdot> \<sigma>' \<preceq>\<^sub>c clause \<cdot> \<sigma>"
   using assms 
-  by(induction clause)(auto simp: less\<^sub>c_add_same less\<^sub>c_add_mset subst_clause_add_mset)
+  by(induction clause)(clause_auto simp: less\<^sub>c_add_same less\<^sub>c_add_mset)
    
 lemma less\<^sub>l_less\<^sub>c:
   assumes 

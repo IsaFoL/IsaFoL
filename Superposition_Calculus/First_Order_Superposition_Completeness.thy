@@ -200,7 +200,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
 
       then show ?thesis
         using select select\<^sub>G_empty
-        by simp
+        by clause_auto
     next
       case False
 
@@ -303,7 +303,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
 
   have select_empty: "select premise = {#}"
     using ground_eq_factoringI(4) select clause_subst_empty
-    by auto
+    by clause_auto
 
   have premise_\<gamma>: "premise \<cdot> \<gamma> = to_clause (add_mset literal\<^sub>G\<^sub>1 (add_mset literal\<^sub>G\<^sub>2 premise'\<^sub>G))"
     using ground_eq_factoringI(1) premise\<^sub>G
@@ -337,10 +337,9 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
   with literal\<^sub>1_\<gamma> obtain term\<^sub>1 term\<^sub>1' where 
     literal\<^sub>1_terms: "literal\<^sub>1 = term\<^sub>1 \<approx> term\<^sub>1'" and
     term\<^sub>G\<^sub>1_term\<^sub>1: "to_term term\<^sub>G\<^sub>1 = term\<^sub>1 \<cdot>t \<gamma>"
-    unfolding ground_eq_factoringI(2) to_atom_to_literal to_term_to_atom
-    using obtain_from_pos_literal_subst[of literal\<^sub>1]
-    by metis
-
+    unfolding ground_eq_factoringI(2)
+    by clause_simp
+  
   obtain premise'' where premise'': "premise = add_mset literal\<^sub>1 premise''"
     using maximal\<^sub>l_in_clause[OF literal\<^sub>1_maximal(1)]
     by (meson multi_member_split)
@@ -365,9 +364,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     literal\<^sub>2_terms: "literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'" and
     term\<^sub>G\<^sub>1_term\<^sub>2: "to_term term\<^sub>G\<^sub>1 = term\<^sub>2 \<cdot>t \<gamma>"
     unfolding ground_eq_factoringI(3) 
-    apply clause_simp
-    using obtain_from_pos_literal_subst[of literal\<^sub>2]
-    by metis
+    by clause_simp
 
   have term\<^sub>G\<^sub>2_term\<^sub>1': "to_term term\<^sub>G\<^sub>2 = term\<^sub>1' \<cdot>t \<gamma>"
     using literal\<^sub>1_\<gamma> term\<^sub>G\<^sub>1_term\<^sub>1 
@@ -418,7 +415,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     then have "welltyped typeof_fun \<V> term\<^sub>1 \<tau>" "welltyped typeof_fun \<V> term\<^sub>2 \<tau>"
       using typing(3) welltyped\<^sub>\<sigma>_on_term
       unfolding welltyped\<^sub>\<sigma>_on_def premise literal\<^sub>1_terms literal\<^sub>2_terms
-       apply clause_auto
+      apply clause_simp 
       by (metis UnCI welltyped\<^sub>\<sigma>_on_def welltyped\<^sub>\<sigma>_on_term)+
 
     then show ?thesis
@@ -505,13 +502,13 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
   have vars_conclusion': "vars_clause (?conclusion' \<cdot> \<mu>) \<subseteq> vars_clause premise"
     using vars_clause_imgu[OF \<mu>(1)] vars_term_imgu[OF \<mu>(1)]
     unfolding premise literal\<^sub>1_terms literal\<^sub>2_terms
-    by clause_simp
+    by clause_auto
 
   have "conclusion \<cdot> \<gamma> = 
       add_mset (to_term term\<^sub>G\<^sub>2 !\<approx> to_term term\<^sub>G\<^sub>3) 
         (add_mset (to_term term\<^sub>G\<^sub>1 \<approx> to_term term\<^sub>G\<^sub>3) (to_clause premise'\<^sub>G))"
     using ground_eq_factoringI(7) to_ground_clause_inverse[OF conclusion_grounding]
-    unfolding to_term_to_atom[symmetric] to_atom_to_literal[symmetric] to_clause_add_mset[symmetric]
+    unfolding to_atom_to_term[symmetric] to_literal_to_atom[symmetric] to_clause_add_mset[symmetric]
     by simp
 
   then have conclusion_\<gamma>: 
@@ -547,10 +544,11 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     by blast
 qed
 
+
+
 lemma if_subst_sth [clause_simps]: "(if b then Pos else Neg) atom \<cdot>l \<rho> = 
   (if b then Pos else Neg) (atom \<cdot>a \<rho>)"
-  by(clause_auto)
-
+  by clause_auto
 
 (* TODO: Try to split up proof *)
 lemma superposition_lifting:
@@ -644,7 +642,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       is_maximal_lit_iff_is_maximal\<^sub>l 
       is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l
       ground_superpositionI(1)
-    by auto
+    apply clause_auto
+    by (metis premise\<^sub>1_\<gamma> to_clause_empty_mset to_clause_inverse)
 
   obtain pos_literal\<^sub>1 where
     "is_strictly_maximal\<^sub>l pos_literal\<^sub>1 premise\<^sub>1"
@@ -754,7 +753,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
   have "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<gamma> = ?\<P> (Upair (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<^sub>1\<rangle> (to_term term\<^sub>G\<^sub>2))"
     using literal\<^sub>1_\<gamma>
     unfolding ground_superpositionI(5)
-    by (simp add: to_atom_to_literal to_term_to_atom ground_term_with_context(3))
+    by (simp add: to_literal_to_atom to_atom_to_term ground_term_with_context(3))
 
   then obtain term\<^sub>1_with_context term\<^sub>1' where 
     literal\<^sub>1: "literal\<^sub>1 = ?\<P> (Upair term\<^sub>1_with_context term\<^sub>1')" and
@@ -763,7 +762,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     by (smt (verit) obtain_from_literal_subst)
 
   from literal\<^sub>2_\<gamma> have "literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<gamma> = to_term term\<^sub>G\<^sub>1 \<approx> to_term term\<^sub>G\<^sub>3"
-    unfolding ground_superpositionI(6) to_term_to_atom to_atom_to_literal(2) literal.subst_comp_subst.
+    unfolding ground_superpositionI(6) to_atom_to_term to_literal_to_atom(2) literal.subst_comp_subst.
 
   then obtain term\<^sub>2 term\<^sub>2' where 
     literal\<^sub>2: "literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'" and
@@ -1388,7 +1387,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         case True
         moreover then have select_empty: "select premise\<^sub>1 = {#}"
           using clause_subst_empty select(1) ground_superpositionI(9) 
-          by(auto simp: subst_clause_def)
+          by(clause_auto simp: subst_clause_def)
 
         moreover have "is_strictly_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu> \<cdot>l \<sigma>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<sigma>)"
           using True pos_literal\<^sub>G\<^sub>1_is_strictly_maximal\<^sub>l
@@ -1419,7 +1418,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
           then have "select premise\<^sub>1 = {#}"
             using clause_subst_empty select(1) ground_superpositionI(9) \<P>\<^sub>G_Neg
-            by auto
+            by clause_auto
 
           moreover have "is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu> \<cdot>l \<sigma>) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<sigma>)"
             using neg_literal\<^sub>G\<^sub>1_is_maximal\<^sub>l[OF select\<^sub>G_empty]
@@ -1468,8 +1467,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       qed
     next
       show "select premise\<^sub>2 = {#}"
-        using clause_subst_empty ground_superpositionI(10) select(2)
-        by auto
+        using ground_superpositionI(10) select(2)
+        by clause_auto
     next 
       have "is_strictly_maximal\<^sub>l (literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu> \<cdot>l \<sigma>) (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu> \<cdot> \<sigma>)"
         using literal\<^sub>G\<^sub>2_is_strictly_maximal\<^sub>l
@@ -1580,8 +1579,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         using ground_superpositionI(4, 12) to_ground_clause_inverse[OF conclusion_grounding] 
         unfolding ground_term_with_context(3) 
         apply clause_simp
-         apply (simp add: to_atom_to_literal(2) to_clause_add_mset to_term_to_atom)
-        by (simp add: to_atom_to_literal(1) to_clause_add_mset to_term_to_atom)
+         apply (simp add: to_literal_to_atom(2) to_clause_add_mset to_atom_to_term)
+        by (simp add: to_literal_to_atom(1) to_clause_add_mset to_atom_to_term)
 
       then show ?thesis
         unfolding 
@@ -1618,7 +1617,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         then show ?thesis 
           using vars_context_imgu[OF \<mu>(1)]  vars_term_imgu[OF \<mu>(1)]
           unfolding premise\<^sub>1 literal\<^sub>1 term\<^sub>1_with_context premise\<^sub>2 literal\<^sub>2 term\<^sub>2'_with_context
-          by clause_simp
+          apply clause_simp
+          by blast
       next
         case term\<^sub>1'
         then show ?thesis

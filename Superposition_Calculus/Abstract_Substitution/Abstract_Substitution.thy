@@ -580,12 +580,9 @@ locale variable_substitution_lifting = base: variable_substitution +
      "\<And>a. finite (lifted_vars a)"
 begin
 
-abbreviation lifted_is_ground where 
-  "lifted_is_ground a \<equiv> lifted_vars a = {}"
-
 sublocale variable_substitution
   where subst = lifted_subst and id_subst = id_subst and comp_subst = comp_subst and
-  is_ground = lifted_is_ground and vars = lifted_vars
+  is_ground = "\<lambda>a. lifted_vars a = {}" and vars = lifted_vars
   apply unfold_locales
   using todo
   by metis+

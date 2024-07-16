@@ -138,7 +138,7 @@ proof-
 
     show "infinite {x. f x = y}"
       unfolding f_def x
-      using infinite_prods
+      using infinite_prods 
       by (smt (z3) Collect_mono_iff bij_betw_finite bij_betw_inv_into bij_betw_subset bij_g finite_subset top_greatest)
   qed
 
