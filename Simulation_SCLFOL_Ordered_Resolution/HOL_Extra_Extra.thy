@@ -217,6 +217,11 @@ lemma (in linorder) ex1_sorted_list_for_set_if_finite:
 lemma restrict_map_ident_if_dom_subset: "dom \<M> \<subseteq> A \<Longrightarrow> restrict_map \<M> A = \<M>"
   by (metis domIff ext in_mono restrict_map_def)
 
+lemma dropWhile_ident_if_pred_always_false:
+  assumes "\<And>x. x \<in> set xs \<Longrightarrow> \<not> P x"
+  shows "dropWhile P xs = xs"
+  using assms dropWhile_eq_self_iff hd_in_set by auto
+
 
 subsection \<open>Move to \<^theory>\<open>HOL.Transitive_Closure\<close>\<close>
 
