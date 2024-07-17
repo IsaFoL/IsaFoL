@@ -84,12 +84,12 @@ definition vars_clause :: "('f, 'v) atom clause \<Rightarrow> 'v set" where
 definition vars_clause_set :: "('f, 'v) atom clause set \<Rightarrow> 'v set" where
   "vars_clause_set clauses = (\<Union>clause \<in> clauses. vars_clause clause)"
 
-global_interpretation "term": variable_substitution where
+global_interpretation "term": variable_substitution_set where
   subst = subst_apply_term and id_subst = Var and comp_subst = subst_compose and vars = vars_term
   using term_subst_eq
   by unfold_locales auto
 
-global_interpretation "context": variable_substitution_lifting where
+global_interpretation "context": variable_substitution_lifting_set where
    lifted_subst = subst_apply_ctxt and lifted_vars = vars_context and id_subst = Var and 
    comp_subst = subst_compose and vars = vars_term and subst = subst_apply_term
 proof unfold_locales
@@ -187,7 +187,7 @@ next
         set_uprod_simps sup.idem uprod.set_map uprod_exhaust vars_atom_def)
 qed
 
-global_interpretation atom: variable_substitution_lifting
+global_interpretation atom: variable_substitution_lifting_set
   where lifted_subst = subst_atom and lifted_vars = vars_atom and id_subst = Var and 
         comp_subst = subst_compose and vars = vars_term and subst = subst_apply_term
 proof unfold_locales
@@ -230,7 +230,7 @@ next
     by (metis literal.map_sel)
 qed
 
-global_interpretation literal: variable_substitution_lifting
+global_interpretation literal: variable_substitution_lifting_set
   where lifted_subst = subst_literal and lifted_vars = vars_literal and id_subst = Var and 
     comp_subst = subst_compose and vars = vars_atom and subst = subst_atom
 proof unfold_locales
@@ -246,8 +246,7 @@ next
 next
   show "\<And>a \<sigma> \<tau>. (\<And>x. x \<in> vars_literal a \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot>l \<sigma> = a \<cdot>l \<tau>"
     unfolding subst_literal_def vars_literal_def  
-    using atom.subst_eq
-    by (metis empty_iff insert_iff literal.map_cong0 set_literal_atm_of)
+    by (metis atom.subst_eq empty_iff insert_iff literal.map_cong0 set_literal_atm_of)
 next
   show "\<And>\<gamma>. (\<forall>x. vars_literal (x \<cdot>l \<gamma>) = {}) = (\<forall>x. atom.is_ground (x \<cdot>a \<gamma>))"
     by (metis literal.map(2) literal.map_sel literal.sel(2) subst_literal_def vars_literal_def)
@@ -257,7 +256,7 @@ next
 qed
 
 (* TODO: also for clause set *)
-global_interpretation clause: variable_substitution_lifting
+global_interpretation clause: variable_substitution_lifting_set
   where lifted_subst = subst_clause and lifted_vars = vars_clause and id_subst = Var and 
     comp_subst = subst_compose and vars = vars_literal and subst = subst_literal
 proof unfold_locales
@@ -361,22 +360,6 @@ lemma mset_mset_lit_subst [clause_simp]:
   "{# term \<cdot>t \<sigma>. term \<in># mset_lit literal #} = mset_lit (literal \<cdot>l \<sigma>)"
   unfolding subst_literal_def subst_atom_def
   by (cases literal) (auto simp: mset_uprod_image_mset)
-
-(*lemma is_ground_subst_literal_is_ground [clause_intro]: 
-  assumes "term_subst.is_ground_subst \<gamma>"  
-  shows "literal.is_ground (literal \<cdot>l \<gamma>)"
-  using assms
-  by (simp add: assms literal.is_ground_subst_is_ground)
-
-lemma is_ground_subst_clause_is_ground [clause_intro]: 
-  assumes "term_subst.is_ground_subst \<gamma>"  
-  shows "clause.is_ground (clause \<cdot> \<gamma>)"
-  by (simp add: assms clause.is_ground_subst_is_ground)
-
-lemma is_ground_subst_context_is_ground [clause_intro]: 
-  assumes "term_subst.is_ground_subst \<gamma>" 
-  shows "context.is_ground (context \<cdot>t\<^sub>c \<gamma>)"
-  by (simp add: assms context.is_ground_subst_is_ground)*)
 
 lemma term_in_literal_subst [clause_intro]: 
   assumes "term \<in># mset_lit literal" 
