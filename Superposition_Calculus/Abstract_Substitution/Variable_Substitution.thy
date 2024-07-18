@@ -42,6 +42,7 @@ for
   contains is_empty is_finite subset_eq disjoint  +
 assumes
   subst_eq: "\<And>a \<sigma> \<tau>. (\<And>x. contains x (vars a) \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot> \<sigma> = a \<cdot> \<tau>" and
+  (* TODO: extract*)
   finite_vars [simp]: "\<And>a. is_finite (vars a)"
 begin
 
@@ -101,9 +102,10 @@ locale variable_substitution_lifting_set' =
   assumes 
     map_comp: "\<And>d f g. map f (map g d) = map (f \<circ> g) d" and
     map_id: "map id d = d" and
-    map_cong: "\<And>d f g. \<forall>c \<in> to_set d. f c = g c \<Longrightarrow> map f d = map g d" and
-    finite_to_set: "\<And>d. finite (to_set d)"
-    (* map_to_set: "\<And>d f. to_set (map f d) = f ` to_set d"   TODO: derivable? *)
+    map_cong: "\<And>d f g. (\<And>c. c \<in> to_set d \<Longrightarrow> f c = g c) \<Longrightarrow> map f d = map g d" and
+    finite_to_set: "\<And>d. finite (to_set d)" and
+    Union_range_to_set: "\<Union>(range to_set) = UNIV" and
+    to_set_map: "\<And>d f. to_set (map f d) = f ` to_set d"  
 begin
 
 definition vars :: "'d \<Rightarrow> 'a set" where
@@ -112,7 +114,7 @@ definition vars :: "'d \<Rightarrow> 'a set" where
 definition subst ::  "'d \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'd" where
   "subst d \<sigma> \<equiv> map (\<lambda>c. base_subst c \<sigma>) d"
 
-lemma map_id_on: "\<And>d f. \<forall>c \<in> to_set d. f c = c \<Longrightarrow> map f d = d"
+lemma map_id_cong: "\<And>d f. (\<And>c. c \<in> to_set d \<Longrightarrow> f c = c) \<Longrightarrow> map f d = d"
   using map_cong map_id
   unfolding id_def
   by metis
@@ -130,7 +132,7 @@ next
 next
    show "\<And>d. vars d = {} \<Longrightarrow> \<forall>\<sigma>. subst d \<sigma> = d"
      unfolding vars_def subst_def
-     using map_id_on
+     using map_id_cong
      by auto
 next
   show "\<And>a \<sigma> \<tau>. (\<And>x. x \<in> vars a \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> subst a \<sigma> = subst a \<tau>"
@@ -144,14 +146,40 @@ next
     by blast
 qed
 
-lemma lifted_vars_vars: "(\<forall>x. vars (subst x \<gamma>) = {}) \<longleftrightarrow> (\<forall>x. (base_vars (base_subst x \<gamma>) = {}))"
-  unfolding vars_def subst_def
-  (* TODO *)
-  sorry
+lemma is_ground_iff_base_is_ground: 
+  "(\<forall>d. is_ground (subst d \<gamma>)) \<longleftrightarrow> (\<forall>c. base.is_ground (base_subst c \<gamma>))"
+proof(intro iffI allI)
+  fix c 
+  assume all_d_ground: "\<forall>d. is_ground (subst d \<gamma>)"
+  show "base.is_ground (base_subst c \<gamma>)"
+  proof(rule ccontr)
+    assume c_not_ground: "\<not>base.is_ground (base_subst c \<gamma>)"
+
+    then obtain d where "c \<in> to_set d"
+      using Union_range_to_set by auto
+
+    then have "\<not>is_ground (subst d \<gamma>)"
+      using c_not_ground to_set_map
+      unfolding subst_def vars_def
+      by auto
+
+    then show False
+      using all_d_ground
+      by blast
+  qed
+next
+  fix d
+  assume all_c_ground: "\<forall>c. base.is_ground (base_subst c \<gamma>)"
+
+  then show "is_ground (subst d \<gamma>)"
+    unfolding vars_def subst_def
+    using to_set_map
+    by auto 
+qed
 
 lemma is_ground_subst_iff [simp]: "is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
   unfolding is_ground_subst_def  base.is_ground_subst_def
-  using lifted_vars_vars
+  using is_ground_iff_base_is_ground
   by presburger
 
 end

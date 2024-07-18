@@ -376,25 +376,44 @@ next
   qed
 qed
 
+lemma Union_range_set_uprod: "\<Union> (range set_uprod) = UNIV"
+  by (metis UNIV_I UNIV_eq_I UN_iff insert_iff set_uprod_simps)
+
+lemma Union_range_set_literal: "\<Union> (range set_literal) = UNIV"
+  unfolding set_literal_atm_of   
+  by (metis (no_types, lifting) UNIV_eq_I Union_iff literal.sel(2) image_insert insertI1 
+      insert_UNIV)
+
+lemma Union_range_set_mset: "\<Union> (range set_mset) = UNIV"
+  by (metis UNIV_eq_I Union_iff multi_member_this rangeI)
+
+lemma finite_set_literal: "\<And>l. finite (set_literal l)"
+  unfolding set_literal_atm_of
+  by simp
+
 global_interpretation atom: variable_substitution_lifting_set'
   where comp_subst = subst_compose and id_subst = Var and 
     base_subst = subst_apply_term and base_vars = vars_term and map = map_uprod and
     to_set = set_uprod
-  by unfold_locales (auto simp: uprod.map_comp uprod.map_id intro: uprod.map_cong)
+  by
+    unfold_locales 
+    (auto simp: uprod.map_comp uprod.map_id uprod.set_map Union_range_set_uprod 
+       intro: uprod.map_cong)
 
 global_interpretation literal: variable_substitution_lifting_set'
   where comp_subst = subst_compose and id_subst = Var and 
     base_subst = atom.subst and base_vars = atom.vars and map = map_literal and
     to_set = set_literal
-  by 
+  by
     unfold_locales 
-    (auto simp: literal.map_comp literal.map_id set_literal_atm_of intro: literal.map_cong)
+    (auto simp: literal.map_comp literal.map_id literal.set_map Union_range_set_literal
+      finite_set_literal intro: literal.map_cong)
 
 global_interpretation clause: variable_substitution_lifting_set'
   where comp_subst = subst_compose and id_subst = Var and 
     base_subst = literal.subst and base_vars = literal.vars and map = image_mset and
     to_set = set_mset
-  by unfold_locales auto
+  by unfold_locales (auto simp: Union_range_set_mset)
 
 (*global_interpretation atom: variable_substitution_lifting_set
   where lifted_subst = subst_atom and lifted_vars = vars_atom and id_subst = Var and 
