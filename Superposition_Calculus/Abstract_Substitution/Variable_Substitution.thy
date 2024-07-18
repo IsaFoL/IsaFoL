@@ -89,7 +89,7 @@ end
 
 locale variable_substitution_set = variable_substitution where 
   contains = "(\<in>)" and is_empty = "\<lambda>X. X = {}" and is_finite = finite and subset_eq = "(\<subseteq>)" and
-  disjoint = "\<lambda>X Y. X \<inter> Y = {}" 
+  disjoint = "\<lambda>X Y. X \<inter> Y = {}"
 
 (* TODO: With set spec *)
 locale variable_substitution_lifting_set' = 
@@ -103,7 +103,7 @@ locale variable_substitution_lifting_set' =
     map_id: "map id d = d" and
     map_cong: "\<And>d f g. \<forall>c \<in> to_set d. f c = g c \<Longrightarrow> map f d = map g d" and
     finite_to_set: "\<And>d. finite (to_set d)"
-   (* map_to_set: "\<And>d f. to_set (map f d) = f ` to_set d"   TODO: Not yet used*)
+    (* map_to_set: "\<And>d f. to_set (map f d) = f ` to_set d"   TODO: derivable? *)
 begin
 
 definition vars :: "'d \<Rightarrow> 'a set" where
@@ -143,6 +143,16 @@ next
     using base.finite_vars finite_to_set
     by blast
 qed
+
+lemma lifted_vars_vars: "(\<forall>x. vars (subst x \<gamma>) = {}) \<longleftrightarrow> (\<forall>x. (base_vars (base_subst x \<gamma>) = {}))"
+  unfolding vars_def subst_def
+  (* TODO *)
+  sorry
+
+lemma is_ground_subst_iff [simp]: "is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
+  unfolding is_ground_subst_def  base.is_ground_subst_def
+  using lifted_vars_vars
+  by presburger
 
 end
 

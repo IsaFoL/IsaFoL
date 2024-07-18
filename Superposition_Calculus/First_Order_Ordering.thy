@@ -254,7 +254,7 @@ lemma less\<^sub>c_ground_subst_stability:
     "clause.is_ground (clause \<cdot> \<gamma>)" 
     "clause.is_ground (clause' \<cdot> \<gamma>)" 
   shows "clause \<prec>\<^sub>c clause' \<Longrightarrow> clause \<cdot> \<gamma> \<prec>\<^sub>c clause' \<cdot> \<gamma>"
-  unfolding subst_clause_def less\<^sub>c_def
+  unfolding clause.subst_def less\<^sub>c_def
 proof (elim multp_map_strong[rotated -1])
   show "monotone_on (set_mset (clause + clause')) (\<prec>\<^sub>l) (\<prec>\<^sub>l) (\<lambda>literal. literal \<cdot>l \<gamma>)"
     by (rule monotone_onI)
@@ -513,7 +513,7 @@ proof-
 
   from clause_not_empty 
   have clause_grounding_not_empty: "clause \<cdot> \<gamma> \<noteq> {#}"
-    unfolding subst_clause_def
+    unfolding clause.subst_def
     by simp
 
   obtain literal where 
@@ -522,7 +522,7 @@ proof-
     using
       ex_maximal_in_mset_wrt[OF less\<^sub>l_transitive_on less\<^sub>l_asymmetric_on clause_grounding_not_empty]  
       maximal\<^sub>l_in_clause
-    unfolding subst_clause_def
+    unfolding clause.subst_def
     by force
 
   from literal_grounding_is_maximal
@@ -656,7 +656,7 @@ proof-
     using ground_strictly_maximal is_strictly_maximal\<^sub>l_def by blast
 
   obtain literal where literal: "literal \<in># clause" "literal \<cdot>l \<gamma> = literal\<^sub>G"
-    by (metis imageE literal\<^sub>G_in_clause_grounding multiset.set_map subst_clause_def)
+    by (smt (verit, best) clause.subst_def imageE literal\<^sub>G_in_clause_grounding multiset.set_map)
 
   show ?thesis
   proof(cases "is_strictly_maximal\<^sub>l literal clause")
@@ -980,7 +980,7 @@ lemma less\<^sub>l_subst_upd:
     update_is_ground: "term.is_ground update" and
     update_less: "update \<prec>\<^sub>t \<gamma> var" and
     literal_grounding: "literal.is_ground (literal \<cdot>l \<gamma>)" and
-    var: "var \<in> vars_literal literal"
+    var: "var \<in> literal.vars literal"
   shows "literal \<cdot>l \<gamma>(var := update) \<prec>\<^sub>l literal \<cdot>l \<gamma>"
 proof-
   note less\<^sub>t_subst_upd = less\<^sub>t_subst_upd[of _ \<gamma>, OF update_is_ground update_less] 
@@ -1007,7 +1007,7 @@ proof-
 
   moreover have "\<exists>term \<in> set_uprod (atm_of literal). term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>"
     using update_less var less\<^sub>t_subst_upd all_ground_terms
-    unfolding vars_literal_def vars_atom_def 
+    unfolding literal.vars_def atom.vars_def set_literal_atm_of
     by blast
 
   ultimately show ?thesis
@@ -1020,7 +1020,7 @@ lemma less\<^sub>c_subst_upd:
     update_is_ground: "term.is_ground update" and
     update_less: "update \<prec>\<^sub>t \<gamma> var" and
     literal_grounding: "clause.is_ground (clause \<cdot> \<gamma>)" and
-    var: "var \<in> vars_clause clause"
+    var: "var \<in> clause.vars clause"
   shows "clause \<cdot> \<gamma>(var := update) \<prec>\<^sub>c clause \<cdot> \<gamma>"
 proof-
   note less\<^sub>l_subst_upd = less\<^sub>l_subst_upd[of _ \<gamma>, OF update_is_ground update_less] 
@@ -1030,16 +1030,16 @@ proof-
 
   then have 
     "\<forall>literal \<in># clause. 
-      var \<in> vars_literal literal \<longrightarrow> literal \<cdot>l \<gamma>(var := update) \<prec>\<^sub>l literal \<cdot>l \<gamma>"
+      var \<in> literal.vars literal \<longrightarrow> literal \<cdot>l \<gamma>(var := update) \<prec>\<^sub>l literal \<cdot>l \<gamma>"
     using less\<^sub>l_subst_upd
     by blast
 
   then have "\<forall>literal \<in># clause. literal \<cdot>l \<gamma>(var := update) \<preceq>\<^sub>l literal \<cdot>l \<gamma>"
-    by (metis fun_upd_other literal.subst_eq reflclp_iff)
+    by fastforce
 
   moreover have "\<exists>literal \<in># clause. literal \<cdot>l \<gamma>(var := update) \<prec>\<^sub>l literal \<cdot>l \<gamma>"
     using update_less var less\<^sub>l_subst_upd all_ground_literals
-    unfolding vars_clause_def
+    unfolding clause.vars_def
     by blast
 
   ultimately show ?thesis

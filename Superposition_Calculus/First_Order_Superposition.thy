@@ -85,7 +85,7 @@ where
   superpositionI:
    "term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
     term_subst.is_renaming \<rho>\<^sub>2 \<Longrightarrow>
-    vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter>  vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
+    clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter>  clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
     premise\<^sub>1 = add_mset literal\<^sub>1 premise\<^sub>1' \<Longrightarrow>
     premise\<^sub>2 = add_mset literal\<^sub>2 premise\<^sub>2' \<Longrightarrow>
     \<P> \<in> {Pos, Neg} \<Longrightarrow>
@@ -94,10 +94,10 @@ where
     \<not> is_Var term\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{term\<^sub>1 \<cdot>t \<rho>\<^sub>1, term\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
     welltyped_imgu' typeof_fun \<V>\<^sub>3 (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
-    \<forall>x \<in> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
-    \<forall>x \<in> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
-    welltyped\<^sub>\<sigma>_on (vars_clause premise\<^sub>1) typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
-    welltyped\<^sub>\<sigma>_on (vars_clause premise\<^sub>2) typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
+    \<forall>x \<in> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
+    \<forall>x \<in> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
+    welltyped\<^sub>\<sigma>_on (clause.vars premise\<^sub>1) typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
+    welltyped\<^sub>\<sigma>_on (clause.vars premise\<^sub>2) typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
     (\<And>\<tau> \<tau>'. has_type typeof_fun \<V>\<^sub>2 term\<^sub>2 \<tau> \<Longrightarrow> has_type typeof_fun \<V>\<^sub>2 term\<^sub>2' \<tau>' \<Longrightarrow> \<tau> = \<tau>') \<Longrightarrow>
     \<not> (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     (\<P> = Pos 
@@ -141,7 +141,7 @@ where
   pos_superpositionI: "
     term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
     term_subst.is_renaming \<rho>\<^sub>2 \<Longrightarrow>
-    vars_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (P\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
+    clause.vars (P\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (P\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
     L\<^sub>1 = s\<^sub>1\<langle>u\<^sub>1\<rangle> \<approx> s\<^sub>1' \<Longrightarrow>
@@ -149,10 +149,10 @@ where
     \<not> is_Var u\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
     welltyped_imgu' typeof_fun \<V>\<^sub>3 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
-    \<forall>x \<in> vars_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
-    \<forall>x \<in> vars_clause (P\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
-    welltyped\<^sub>\<sigma>_on (vars_clause P\<^sub>1) typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
-    welltyped\<^sub>\<sigma>_on (vars_clause P\<^sub>2) typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
+    \<forall>x \<in> clause.vars (P\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
+    \<forall>x \<in> clause.vars (P\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
+    welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>1) typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
+    welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>2) typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
     (\<And>\<tau> \<tau>'. has_type typeof_fun \<V>\<^sub>2 t\<^sub>2 \<tau> \<Longrightarrow> has_type typeof_fun \<V>\<^sub>2 t\<^sub>2' \<tau>' \<Longrightarrow> \<tau> = \<tau>') \<Longrightarrow>
     \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     select P\<^sub>1 = {#} \<Longrightarrow>
@@ -185,7 +185,7 @@ where
   neg_superpositionI: "
     term_subst.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
     term_subst.is_renaming \<rho>\<^sub>2 \<Longrightarrow>
-    vars_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (P\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
+    clause.vars (P\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (P\<^sub>2 \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
     L\<^sub>1 = s\<^sub>1\<langle>u\<^sub>1\<rangle> !\<approx> s\<^sub>1' \<Longrightarrow>
@@ -193,10 +193,10 @@ where
     \<not> is_Var u\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
     welltyped_imgu' typeof_fun \<V>\<^sub>3 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
-    \<forall>x \<in> vars_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
-    \<forall>x \<in> vars_clause (P\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
-    welltyped\<^sub>\<sigma>_on (vars_clause P\<^sub>1) typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
-    welltyped\<^sub>\<sigma>_on (vars_clause P\<^sub>2) typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
+    \<forall>x \<in> clause.vars (P\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
+    \<forall>x \<in> clause.vars (P\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
+    welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>1) typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
+    welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>2) typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
     (\<And>\<tau> \<tau>'. has_type typeof_fun \<V>\<^sub>2 t\<^sub>2 \<tau> \<Longrightarrow> has_type typeof_fun \<V>\<^sub>2 t\<^sub>2' \<tau>' \<Longrightarrow> \<tau> = \<tau>') \<Longrightarrow>
     \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     select P\<^sub>1 = {#} \<and> 

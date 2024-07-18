@@ -194,35 +194,35 @@ lemma has_type\<^sub>\<sigma>_has_type\<^sub>a:
   assumes "has_type\<^sub>\<sigma> \<F> \<V> \<sigma>" "has_type\<^sub>a \<F> \<V> a"
   shows "has_type\<^sub>a \<F> \<V> (a \<cdot>a \<sigma>)"
   using assms has_type\<^sub>\<sigma>_has_type
-  unfolding has_type\<^sub>a_def subst_atom_def
+  unfolding has_type\<^sub>a_def atom.subst_def
   by(cases a) fastforce
 
 lemma welltyped\<^sub>\<sigma>_welltyped\<^sub>a: 
   assumes welltyped\<^sub>\<sigma>: "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma>"
   shows "welltyped\<^sub>a \<F> \<V> (a \<cdot>a \<sigma>) \<longleftrightarrow> welltyped\<^sub>a \<F> \<V> a"
   using welltyped\<^sub>\<sigma>_welltyped[OF welltyped\<^sub>\<sigma>]
-  unfolding welltyped\<^sub>a_def subst_atom_def
+  unfolding welltyped\<^sub>a_def atom.subst_def
   by(cases a) simp
 
 lemma has_type\<^sub>\<sigma>_has_type\<^sub>l: 
   assumes "has_type\<^sub>\<sigma> \<F> \<V> \<sigma>" "has_type\<^sub>l \<F> \<V> l"
   shows "has_type\<^sub>l \<F> \<V> (l \<cdot>l \<sigma>)"
   using assms has_type\<^sub>\<sigma>_has_type\<^sub>a
-  unfolding has_type\<^sub>l_def subst_literal_def
+  unfolding has_type\<^sub>l_def literal.subst_def
   by(cases l) auto
 
 lemma welltyped\<^sub>\<sigma>_welltyped\<^sub>l: 
   assumes welltyped\<^sub>\<sigma>: "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma>"
   shows "welltyped\<^sub>l \<F> \<V> (l \<cdot>l \<sigma>) \<longleftrightarrow> welltyped\<^sub>l \<F> \<V> l"
   using welltyped\<^sub>\<sigma>_welltyped\<^sub>a[OF welltyped\<^sub>\<sigma>]
-  unfolding welltyped\<^sub>l_def subst_literal_def
+  unfolding welltyped\<^sub>l_def literal.subst_def
   by(cases l) auto
 
 lemma has_type\<^sub>\<sigma>_has_type\<^sub>c: 
   assumes "has_type\<^sub>\<sigma> \<F> \<V> \<sigma>" "has_type\<^sub>c \<F> \<V> c"
   shows "has_type\<^sub>c \<F> \<V> (c \<cdot> \<sigma>)"
   using assms has_type\<^sub>\<sigma>_has_type\<^sub>l
-  unfolding has_type\<^sub>c_def subst_clause_def
+  unfolding has_type\<^sub>c_def clause.subst_def
   by blast
 
 lemma welltyped\<^sub>\<sigma>_on_welltyped: 
@@ -331,13 +331,13 @@ next
 qed
 
 lemma welltyped\<^sub>\<sigma>_on_welltyped\<^sub>a: 
-  assumes wt: "welltyped\<^sub>\<sigma>_on (vars_atom A) \<F> \<V> \<sigma>"
+  assumes wt: "welltyped\<^sub>\<sigma>_on (atom.vars A) \<F> \<V> \<sigma>"
   shows "welltyped\<^sub>a \<F> \<V> (A \<cdot>a \<sigma>) \<longleftrightarrow> welltyped\<^sub>a \<F> \<V> A"
 proof (cases A)
   case (Upair t t')
 
   have "welltyped\<^sub>\<sigma>_on (vars_term t) \<F> \<V> \<sigma>" "welltyped\<^sub>\<sigma>_on (vars_term t') \<F> \<V> \<sigma>"
-    using wt unfolding Upair by (simp_all add: welltyped\<^sub>\<sigma>_on_def vars_atom_def)
+    using wt unfolding Upair by (simp_all add: welltyped\<^sub>\<sigma>_on_def atom.vars_def)
 
   hence "(\<exists>\<tau>. welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau> \<and> welltyped \<F> \<V> (t' \<cdot>t \<sigma>) \<tau>) =
     (\<exists>\<tau>. welltyped \<F> \<V> t \<tau> \<and> welltyped \<F> \<V> t' \<tau>)"
@@ -345,38 +345,39 @@ proof (cases A)
 
   thus ?thesis
     using Upair
-    by (simp add: subst_atom_def welltyped\<^sub>a_def)
+    by (simp add: atom.subst_def welltyped\<^sub>a_def)
 qed
 
 lemma welltyped\<^sub>l_iff_welltyped\<^sub>a: "welltyped\<^sub>l \<F> \<V> L \<longleftrightarrow> welltyped\<^sub>a \<F> \<V> (atm_of L)"
   by (cases L) (simp_all add: welltyped\<^sub>l_def)
 
 lemma welltyped\<^sub>\<sigma>_on_welltyped\<^sub>l: 
-  assumes wt: "welltyped\<^sub>\<sigma>_on (vars_literal L) \<F> \<V> \<sigma>"
+  assumes wt: "welltyped\<^sub>\<sigma>_on (literal.vars L) \<F> \<V> \<sigma>"
   shows "welltyped\<^sub>l \<F> \<V> (L \<cdot>l \<sigma>) \<longleftrightarrow> welltyped\<^sub>l \<F> \<V> L"
   unfolding welltyped\<^sub>l_iff_welltyped\<^sub>a subst_literal
 proof (rule welltyped\<^sub>\<sigma>_on_welltyped\<^sub>a)
-  have "vars_atom (atm_of L) = vars_literal L"
+  have "atom.vars (atm_of L) = literal.vars L"
     by (cases L) clause_auto
-  thus "welltyped\<^sub>\<sigma>_on (vars_atom (atm_of L)) \<F> \<V> \<sigma>"
+  thus "welltyped\<^sub>\<sigma>_on (atom.vars (atm_of L)) \<F> \<V> \<sigma>"
     using wt
     by simp
 qed
 
 lemma welltyped\<^sub>\<sigma>_on_welltyped\<^sub>c: 
-  assumes wt: "welltyped\<^sub>\<sigma>_on (vars_clause C) \<F> \<V> \<sigma>"
+  assumes wt: "welltyped\<^sub>\<sigma>_on (clause.vars C) \<F> \<V> \<sigma>"
   shows "welltyped\<^sub>c \<F> \<V> (C \<cdot> \<sigma>) \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> C"
 proof -
   have "welltyped\<^sub>l \<F> \<V> (L \<cdot>l \<sigma>) \<longleftrightarrow> welltyped\<^sub>l \<F> \<V> L" if "L \<in># C" for L
   proof (rule welltyped\<^sub>\<sigma>_on_welltyped\<^sub>l)
-    have "vars_literal L \<subseteq> vars_clause C"
-      using \<open>L \<in># C\<close> by (metis Un_iff insert_DiffM subsetI vars_clause_add_mset)
-    thus "welltyped\<^sub>\<sigma>_on (vars_literal L) \<F> \<V> \<sigma>"
+    have "literal.vars L \<subseteq> clause.vars C"
+      using \<open>L \<in># C\<close>
+      by (simp add: UN_upper clause.vars_def)
+    thus "welltyped\<^sub>\<sigma>_on (literal.vars L) \<F> \<V> \<sigma>"
       using wt welltyped\<^sub>\<sigma>_on_subset by metis
   qed
 
   thus ?thesis
-    unfolding welltyped\<^sub>c_def subst_clause_def
+    unfolding welltyped\<^sub>c_def clause.subst_def
     by simp
 qed
 
@@ -384,7 +385,7 @@ lemma welltyped\<^sub>\<sigma>_welltyped\<^sub>c:
   assumes welltyped\<^sub>\<sigma>: "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma>"
   shows "welltyped\<^sub>c \<F> \<V> (c \<cdot> \<sigma>) \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> c"
   using welltyped\<^sub>\<sigma>_welltyped\<^sub>l[OF welltyped\<^sub>\<sigma>]
-  unfolding welltyped\<^sub>c_def subst_clause_def
+  unfolding welltyped\<^sub>c_def clause.subst_def
   by blast
 
 lemma has_type\<^sub>\<kappa>:
@@ -501,32 +502,32 @@ lemma welltyped_subst_\<V>:
 
 lemma welltyped\<^sub>a_\<V>:
   assumes 
-    "\<forall>x\<in>vars_atom a. \<V> x = \<V>' x"
+    "\<forall>x\<in>atom.vars a. \<V> x = \<V>' x"
     "welltyped\<^sub>a \<F> \<V> a"
   shows  
     "welltyped\<^sub>a \<F> \<V>' a"
   using assms
-  unfolding welltyped\<^sub>a_def vars_atom_def
+  unfolding welltyped\<^sub>a_def atom.vars_def
   by (metis (full_types) UN_I welltyped_\<V>)
 
 lemma welltyped\<^sub>l_\<V>:
   assumes 
-    "\<forall>x\<in>vars_literal l. \<V> x = \<V>' x"
+    "\<forall>x\<in> literal.vars l. \<V> x = \<V>' x"
     "welltyped\<^sub>l \<F> \<V> l"
   shows  
     "welltyped\<^sub>l \<F> \<V>' l"
   using assms welltyped\<^sub>a_\<V>
-  unfolding welltyped\<^sub>l_def vars_literal_def
-  by blast
+  unfolding welltyped\<^sub>l_def literal.vars_def set_literal_atm_of
+  by fastforce
 
 lemma welltyped\<^sub>c_\<V>:
   assumes 
-    "\<forall>x\<in>vars_clause c. \<V> x = \<V>' x"
+    "\<forall>x\<in> clause.vars c. \<V> x = \<V>' x"
     "welltyped\<^sub>c \<F> \<V> c"
   shows  
     "welltyped\<^sub>c \<F> \<V>' c"
   using assms welltyped\<^sub>l_\<V>
-  unfolding welltyped\<^sub>c_def vars_clause_def
+  unfolding welltyped\<^sub>c_def clause.vars_def
   by fastforce
 
 lemma welltyped_renaming':
@@ -576,7 +577,7 @@ lemma welltyped\<^sub>c_renaming':
   shows "welltyped\<^sub>c typeof_fun \<V> (c \<cdot> \<rho>)"
   using welltyped\<^sub>l_renaming'[OF assms(1,2)] assms(3)
   unfolding welltyped\<^sub>c_def
-  by (simp add: subst_clause_def)
+  by (simp add: clause.subst_def)
 
 definition range_vars' :: "('f, 'v) subst \<Rightarrow> 'v set" where                                 
   "range_vars' \<sigma> = \<Union>(vars_term ` range \<sigma>)"
@@ -730,7 +731,7 @@ lemma welltyped\<^sub>l_renaming: "welltyped\<^sub>l \<F> \<V> l \<longleftright
 lemma welltyped\<^sub>c_renaming: "welltyped\<^sub>c \<F> \<V> c \<longleftrightarrow> welltyped\<^sub>c \<F> \<V>' (c \<cdot> \<rho>)"
   using welltyped\<^sub>l_renaming
   unfolding welltyped\<^sub>c_def
-  by (simp add: subst_clause_def)
+  by (simp add: clause.subst_def)
 
 end
 
@@ -817,26 +818,26 @@ next
 qed
 
 lemma welltyped\<^sub>a_renaming_weaker: 
-  assumes"\<forall>x \<in> vars_atom (a \<cdot>a \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
+  assumes"\<forall>x \<in> atom.vars (a \<cdot>a \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
   shows "welltyped\<^sub>a \<F> \<V> a \<longleftrightarrow> welltyped\<^sub>a \<F> \<V>' (a \<cdot>a \<rho>)"
   using welltyped_renaming_weaker  assms
-  unfolding welltyped\<^sub>a_def vars_atom_def
+  unfolding welltyped\<^sub>a_def atom.vars_def
   apply(cases a)
   apply(auto simp add: subst_atom)
   by (metis UnCI welltyped_renaming_weaker)+
 
 lemma welltyped\<^sub>l_renaming_weaker: 
-  assumes "\<forall>x \<in> vars_literal (l \<cdot>l \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
+  assumes "\<forall>x \<in> literal.vars (l \<cdot>l \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
   shows "welltyped\<^sub>l \<F> \<V> l \<longleftrightarrow> welltyped\<^sub>l \<F> \<V>' (l \<cdot>l \<rho>)"
   using welltyped\<^sub>a_renaming_weaker assms
-  unfolding welltyped\<^sub>l_def vars_literal_def
+  unfolding welltyped\<^sub>l_def literal.vars_def set_literal_atm_of
   by (simp add: subst_literal(3))
 
 lemma welltyped\<^sub>c_renaming_weaker: 
-  assumes "\<forall>x \<in> vars_clause (c \<cdot> \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
+  assumes "\<forall>x \<in> clause.vars (c \<cdot> \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
   shows "welltyped\<^sub>c \<F> \<V> c \<longleftrightarrow> welltyped\<^sub>c \<F> \<V>' (c \<cdot> \<rho>)"
   using welltyped\<^sub>l_renaming_weaker assms
-  unfolding welltyped\<^sub>c_def vars_clause_def subst_clause_def
+  unfolding welltyped\<^sub>c_def  clause.vars_def  clause.subst_def
   by blast
 
 lemma has_type_renaming_weaker:

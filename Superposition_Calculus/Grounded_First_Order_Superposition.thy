@@ -37,14 +37,14 @@ abbreviation is_inference_grounding where
            term_subst.is_ground_subst \<gamma>
         \<and> \<iota>\<^sub>G = Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion \<cdot> \<gamma>))
         \<and> welltyped\<^sub>c typeof_fun \<V> premise 
-        \<and> welltyped\<^sub>\<sigma>_on (vars_clause conclusion) typeof_fun \<V> \<gamma>
+        \<and> welltyped\<^sub>\<sigma>_on (clause.vars conclusion) typeof_fun \<V> \<gamma>
         \<and> welltyped\<^sub>c typeof_fun \<V> conclusion
         \<and> \<V> = \<V>'
         \<and> all_types \<V>
       | Infer [(premise\<^sub>2, \<V>\<^sub>2), (premise\<^sub>1, \<V>\<^sub>1)] (conclusion, \<V>\<^sub>3) \<Rightarrow> 
           term_subst.is_renaming \<rho>\<^sub>1
         \<and> term_subst.is_renaming \<rho>\<^sub>2
-        \<and> vars_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> vars_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}
+        \<and> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}
         \<and> term_subst.is_ground_subst \<gamma>
         \<and> \<iota>\<^sub>G =
             Infer
@@ -52,7 +52,7 @@ abbreviation is_inference_grounding where
               (to_ground_clause (conclusion \<cdot> \<gamma>))
         \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>1 premise\<^sub>1
         \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>2 premise\<^sub>2
-        \<and> welltyped\<^sub>\<sigma>_on (vars_clause conclusion) typeof_fun \<V>\<^sub>3 \<gamma>
+        \<and> welltyped\<^sub>\<sigma>_on (clause.vars conclusion) typeof_fun \<V>\<^sub>3 \<gamma>
         \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>3 conclusion
         \<and> all_types \<V>\<^sub>1 \<and> all_types \<V>\<^sub>2 \<and> all_types \<V>\<^sub>3
       | _ \<Rightarrow> False
@@ -84,7 +84,7 @@ proof-
   then obtain \<gamma> where
     "clause.is_ground (conclusion \<cdot> \<gamma>)"
     "conlcusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
-    "welltyped\<^sub>c typeof_fun \<V> conclusion \<and> welltyped\<^sub>\<sigma>_on (vars_clause conclusion) typeof_fun \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
+    "welltyped\<^sub>c typeof_fun \<V> conclusion \<and> welltyped\<^sub>\<sigma>_on (clause.vars conclusion) typeof_fun \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     using assms list_4_cases
     unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
     apply(auto split: list.splits)
@@ -179,7 +179,7 @@ next
 next
   fix clause
   show "clause_groundings typeof_fun clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"
-    unfolding clause_groundings_def to_ground_clause_def subst_clause_def
+    unfolding clause_groundings_def to_ground_clause_def clause.subst_def
     apply auto
     by (metis prod.exhaust_sel)
 next

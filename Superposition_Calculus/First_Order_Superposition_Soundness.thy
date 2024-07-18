@@ -20,34 +20,34 @@ lemma name_missing\<^sub>t:
   by(induction t) auto
 
 lemma name_missing\<^sub>a:
-  assumes "atom.is_ground (a \<cdot>a \<gamma>)" "x \<in> vars_atom a" 
+  assumes "atom.is_ground (a \<cdot>a \<gamma>)" "x \<in> atom.vars a" 
   shows "term.is_ground (\<gamma> x)"
   using assms name_missing\<^sub>t
-  unfolding vars_atom_def subst_atom_def
+  unfolding atom.vars_def atom.subst_def
   by(cases a) fastforce
 
 lemma name_missing\<^sub>l:
-  assumes "literal.is_ground (l \<cdot>l \<gamma>)" "x \<in> vars_literal l" 
+  assumes "literal.is_ground (l \<cdot>l \<gamma>)" "x \<in> literal.vars l" 
   shows "term.is_ground (\<gamma> x)"
   using assms name_missing\<^sub>a
-  unfolding vars_literal_def subst_literal
-  by fast
+  unfolding literal.vars_def literal.subst_def set_literal_atm_of
+  by (metis (no_types, lifting) UN_insert Union_image_empty literal.map_sel)
 
 lemma name_missing\<^sub>c:
-  assumes "clause.is_ground (C \<cdot> \<gamma>)" "x \<in> vars_clause C" 
+  assumes "clause.is_ground (C \<cdot> \<gamma>)" "x \<in> clause.vars C" 
   shows "term.is_ground (\<gamma> x)"
   using assms name_missing\<^sub>l
-  unfolding vars_clause_def subst_clause_def
+  unfolding clause.vars_def clause.subst_def
   by fastforce
 
 lemma welltyped_extension:
-  assumes "clause.is_ground (C \<cdot> \<gamma>)" "welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V> \<gamma>" 
+  assumes "clause.is_ground (C \<cdot> \<gamma>)" "welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V> \<gamma>" 
   obtains \<gamma>'
-  where "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" "\<forall>x \<in> vars_clause C. \<gamma> x = \<gamma>' x"
+  where "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
   using assms function_symbols
 proof-
   define \<gamma>' where "\<And>x. \<gamma>' x \<equiv> 
-    if x \<in> vars_clause C 
+    if x \<in> clause.vars C 
     then \<gamma> x else 
     Fun (SOME f. typeof_fun f = ([], \<V> x)) []"
 
@@ -75,7 +75,7 @@ proof-
     apply auto
     by (meson First_Order_Type_System.welltyped.intros(2) list_all2_Nil someI_ex)
 
-  moreover have "\<forall>x \<in> vars_clause C. \<gamma> x = \<gamma>' x"
+  moreover have "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
     unfolding \<gamma>'_def
     by auto
 
@@ -87,17 +87,18 @@ qed
 lemma vars_subst: "\<Union> (vars_term ` \<rho> ` vars_term t) = vars_term (t \<cdot>t \<rho>)"
   by(induction t) auto
 
-lemma vars_subst\<^sub>a: "\<Union> (vars_term ` \<rho> ` vars_atom a) = vars_atom (a \<cdot>a \<rho>)"
+lemma vars_subst\<^sub>a: "\<Union> (vars_term ` \<rho> ` atom.vars a) = atom.vars (a \<cdot>a \<rho>)"
   using vars_subst
-  unfolding vars_atom_def subst_atom_def
+  unfolding atom.vars_def atom.subst_def
   by (smt (verit) SUP_UNION Sup.SUP_cong UN_extend_simps(10) uprod.set_map)
 
-lemma vars_subst\<^sub>l: "\<Union> (vars_term ` \<rho> ` vars_literal l) = vars_literal (l \<cdot>l \<rho>)"
-   unfolding vars_literal_def subst_literal vars_subst\<^sub>a..
-
-lemma vars_subst\<^sub>c: "\<Union> (vars_term ` \<rho> ` vars_clause C) = vars_clause (C \<cdot> \<rho>)"
+lemma vars_subst\<^sub>l: "\<Union> (vars_term ` \<rho> ` literal.vars l) = literal.vars (l \<cdot>l \<rho>)"
+  unfolding literal.vars_def literal.subst_def set_literal_atm_of
+  by (metis (no_types, lifting) UN_insert Union_image_empty literal.map_sel vars_subst\<^sub>a)
+ 
+lemma vars_subst\<^sub>c: "\<Union> (vars_term ` \<rho> ` clause.vars C) = clause.vars (C \<cdot> \<rho>)"
   using vars_subst\<^sub>l
-  unfolding vars_clause_def subst_clause_def
+  unfolding clause.vars_def clause.subst_def
   by fastforce
 
 lemma eq_resolution_sound:
@@ -111,10 +112,10 @@ proof (cases P C rule: eq_resolution.cases)
     "\<And>I \<gamma> \<F>\<^sub>G. \<lbrakk>
         refl I; 
         \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>'
-              \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma>_on (vars_clause P) typeof_fun \<V> \<gamma>') 
+              \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma>_on (clause.vars P) typeof_fun \<V> \<gamma>') 
             \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
        term_subst.is_ground_subst \<gamma>;
-       welltyped\<^sub>c typeof_fun \<V> C; welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V> \<gamma>
+       welltyped\<^sub>c typeof_fun \<V> C; welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V> \<gamma>
      \<rbrakk> \<Longrightarrow> upair  ` I \<TTurnstile> to_ground_clause (C \<cdot> \<gamma>)"
   proof-
     fix I :: "'f gterm rel" and \<gamma> :: "('f, 'v) subst"
@@ -125,16 +126,16 @@ proof (cases P C rule: eq_resolution.cases)
       refl_I: "refl I" and 
       premise: 
       "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>'
-             \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma>_on (vars_clause P) typeof_fun \<V> \<gamma>') \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
+             \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma>_on (clause.vars P) typeof_fun \<V> \<gamma>') \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
       grounding: "term_subst.is_ground_subst \<gamma>" and
-      wt: "welltyped\<^sub>c typeof_fun \<V> C" "welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V> \<gamma>"
+      wt: "welltyped\<^sub>c typeof_fun \<V> C" "welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V> \<gamma>"
 
     have grounding': "clause.is_ground (C \<cdot> \<gamma>)"
       using grounding
       by (simp add: clause.is_ground_subst_is_ground)
 
     obtain \<gamma>' where
-      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" "\<forall>x \<in> vars_clause C. \<gamma> x = \<gamma>' x"
+      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
       using welltyped_extension[OF grounding' wt(2)].
     
     let ?P = "to_ground_clause (P \<cdot> \<mu> \<cdot> \<gamma>')"
@@ -176,7 +177,7 @@ proof (cases P C rule: eq_resolution.cases)
 
     have [simp]: "?L = (Neg (Upair ?s\<^sub>1 ?s\<^sub>2))"
       unfolding to_ground_literal_def eq_resolutionI(4) to_ground_atom_def
-      by (simp add: subst_atom_def subst_literal)
+      by (simp add: atom.subst_def subst_literal)
 
     have [simp]: "?s\<^sub>1 = ?s\<^sub>2"
       using term_subst.subst_imgu_eq_subst_imgu[OF eq_resolutionI(5)] by simp
@@ -227,10 +228,10 @@ proof (cases P C rule: eq_factoring.cases)
         trans I; 
         sym I;
         \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>'
-              \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma>_on (vars_clause P) typeof_fun \<V> \<gamma>') 
+              \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma>_on (clause.vars P) typeof_fun \<V> \<gamma>') 
             \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
        term_subst.is_ground_subst \<gamma>;
-       welltyped\<^sub>c typeof_fun \<V> C; welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V> \<gamma>
+       welltyped\<^sub>c typeof_fun \<V> C; welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V> \<gamma>
      \<rbrakk> \<Longrightarrow> upair  ` I \<TTurnstile> to_ground_clause (C \<cdot> \<gamma>)"
   proof-
     fix I :: "'f gterm rel" and \<gamma> :: "'v \<Rightarrow> ('f, 'v) Term.term"
@@ -242,15 +243,16 @@ proof (cases P C rule: eq_factoring.cases)
       sym_I: "sym I" and 
       premise: 
       "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>'
-             \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma>_on (vars_clause P) typeof_fun \<V> \<gamma>') \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
+             \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma>_on (clause.vars P) typeof_fun \<V> \<gamma>') \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
       grounding: "term_subst.is_ground_subst \<gamma>" and
-      wt: "welltyped\<^sub>c typeof_fun \<V> C" "welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V> \<gamma>"
+      wt: "welltyped\<^sub>c typeof_fun \<V> C" "welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V> \<gamma>"
 
     obtain \<gamma>' where
-      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" "\<forall>x \<in> vars_clause C. \<gamma> x = \<gamma>' x"
+      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
       using welltyped_extension
       using grounding wt(2)
-      by (metis atom.is_ground_subst_iff clause.is_ground_subst_iff clause.is_ground_subst_is_ground literal.is_ground_subst_iff)
+      by (smt (verit, best) atom.is_ground_subst_iff clause.is_ground_subst_iff 
+            clause.is_ground_subst_is_ground literal.is_ground_subst_iff)
 
     let ?P = "to_ground_clause (P \<cdot> \<mu> \<cdot> \<gamma>')"
     let ?P' = "to_ground_clause (P' \<cdot> \<mu> \<cdot> \<gamma>')"
@@ -316,15 +318,15 @@ proof (cases P C rule: eq_factoring.cases)
 
     have L\<^sub>1: "?L\<^sub>1 = ?s\<^sub>1 \<approx> ?s\<^sub>1'"
       unfolding to_ground_literal_def eq_factoringI(4) to_ground_atom_def
-      by (simp add: subst_atom_def subst_literal)
+      by (simp add: atom.subst_def subst_literal)
 
     have L\<^sub>2: "?L\<^sub>2 = ?t\<^sub>2 \<approx> ?t\<^sub>2'"
       unfolding to_ground_literal_def eq_factoringI(5) to_ground_atom_def
-      by (simp add: subst_atom_def subst_literal)
+      by (simp add: atom.subst_def subst_literal)
 
     have C: "?C = add_mset (?s\<^sub>1 \<approx> ?t\<^sub>2') (add_mset (Neg (Upair ?s\<^sub>1' ?t\<^sub>2')) ?P')"
       unfolding eq_factoringI 
-      by (simp add: to_ground_clause_def to_ground_literal_def subst_atom_def subst_clause_add_mset subst_literal
+      by (simp add: to_ground_clause_def to_ground_literal_def atom.subst_def subst_clause_add_mset subst_literal
           to_ground_atom_def)
 
     show "?I \<TTurnstile> to_ground_clause (C \<cdot> \<gamma>)"
@@ -342,8 +344,8 @@ proof (cases P C rule: eq_factoring.cases)
         unfolding true_lit_uprod_iff_true_lit_prod[OF sym_I].
 
       then show ?thesis
-        unfolding C 
-        by (metis C \<gamma>'(3) clause.subst_eq true_cls_add_mset)
+        using clause.subst_eq \<gamma>'(3) C
+        by (smt (verit, best) true_cls_add_mset)
     next
       case False
       then have "L' \<in># ?P'"
@@ -352,8 +354,8 @@ proof (cases P C rule: eq_factoring.cases)
         by (simp add: to_ground_clause_def subst_clause_add_mset)
 
       then have "L' \<in># to_ground_clause (C \<cdot> \<gamma>)"
-        using C
-        by (metis \<gamma>'(3) clause.subst_eq insert_iff set_mset_add_mset_insert)
+        using clause.subst_eq \<gamma>'(3) C
+        by fastforce
 
       then show ?thesis
         using I_models_L' by blast
@@ -378,9 +380,9 @@ proof (cases P2 P1 C rule: superposition.cases)
         trans I; 
         sym I;
         compatible_with_gctxt I;
-        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P\<^sub>1 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>1 P\<^sub>1 \<and> welltyped\<^sub>\<sigma>_on (vars_clause P\<^sub>1) typeof_fun \<V>\<^sub>1 \<gamma>' \<and> all_types \<V>\<^sub>1) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G;
-        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P\<^sub>2 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>2 P\<^sub>2 \<and> welltyped\<^sub>\<sigma>_on (vars_clause P\<^sub>2) typeof_fun \<V>\<^sub>2 \<gamma>' \<and> all_types \<V>\<^sub>2) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G;
-        term_subst.is_ground_subst \<gamma>; welltyped\<^sub>c typeof_fun \<V>\<^sub>3 C; welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V>\<^sub>3 \<gamma>; all_types \<V>\<^sub>3
+        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P\<^sub>1 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>1 P\<^sub>1 \<and> welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>1) typeof_fun \<V>\<^sub>1 \<gamma>' \<and> all_types \<V>\<^sub>1) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G;
+        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P\<^sub>2 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>2 P\<^sub>2 \<and> welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>2) typeof_fun \<V>\<^sub>2 \<gamma>' \<and> all_types \<V>\<^sub>2) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G;
+        term_subst.is_ground_subst \<gamma>; welltyped\<^sub>c typeof_fun \<V>\<^sub>3 C; welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V>\<^sub>3 \<gamma>; all_types \<V>\<^sub>3
      \<rbrakk> \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> to_ground_clause (C \<cdot> \<gamma>)"
   proof -
     fix I :: "'f gterm rel" and \<gamma> :: "'v \<Rightarrow> ('f, 'v) Term.term"
@@ -393,17 +395,17 @@ proof (cases P2 P1 C rule: superposition.cases)
       sym_I: "sym I" and 
       compatible_with_ground_context_I: "compatible_with_gctxt I" and
       premise1: 
-      "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P\<^sub>1 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>1 P\<^sub>1 \<and> welltyped\<^sub>\<sigma>_on (vars_clause P\<^sub>1) typeof_fun \<V>\<^sub>1 \<gamma>' \<and> all_types \<V>\<^sub>1) \<longrightarrow>?I \<TTurnstile> P\<^sub>G" and
+      "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P\<^sub>1 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>1 P\<^sub>1 \<and> welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>1) typeof_fun \<V>\<^sub>1 \<gamma>' \<and> all_types \<V>\<^sub>1) \<longrightarrow>?I \<TTurnstile> P\<^sub>G" and
       premise2: 
-      "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P\<^sub>2 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>2 P\<^sub>2 \<and> welltyped\<^sub>\<sigma>_on (vars_clause P\<^sub>2) typeof_fun \<V>\<^sub>2 \<gamma>' \<and> all_types \<V>\<^sub>2) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and 
-      grounding: "term_subst.is_ground_subst \<gamma>" "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 C" "welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V>\<^sub>3 \<gamma>" "all_types \<V>\<^sub>3"
+      "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = to_ground_clause (P\<^sub>2 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>2 P\<^sub>2 \<and> welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>2) typeof_fun \<V>\<^sub>2 \<gamma>' \<and> all_types \<V>\<^sub>2) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and 
+      grounding: "term_subst.is_ground_subst \<gamma>" "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 C" "welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V>\<^sub>3 \<gamma>" "all_types \<V>\<^sub>3"
 
     have grounding': "clause.is_ground (C \<cdot> \<gamma>)"
       using grounding
       by (simp add: clause.is_ground_subst_is_ground)
 
     obtain \<gamma>' where
-      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 \<gamma>'" "\<forall>x \<in> vars_clause C. \<gamma> x = \<gamma>' x"
+      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 \<gamma>'" "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
       using welltyped_extension[OF grounding' grounding(3)].
 
     let ?P\<^sub>1 = "to_ground_clause (P\<^sub>1 \<cdot> \<rho>\<^sub>1\<cdot> \<mu> \<cdot> \<gamma>')"
@@ -434,19 +436,18 @@ proof (cases P2 P1 C rule: superposition.cases)
 
     have xx: "\<forall>x\<in>vars_term (t\<^sub>2 \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x" "\<forall>x\<in>vars_term (t\<^sub>2' \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
       using superpositionI(16)
-      unfolding superpositionI vars_clause_def subst_clause_add_mset vars_literal_def vars_atom_def subst_literal subst_atom
-      by auto
+      by (simp_all add: clause.vars_def local.superpositionI(11) local.superpositionI(8) subst_atom subst_clause_add_mset subst_literal(1) vars_atom vars_literal(1))
 
     have wt_t: "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau> \<and> welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<tau>"
       using grounding(2) superpositionI(9, 14,19) welltyped\<^sub>\<kappa>'
       unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def subst_clause_add_mset 
       unfolding xx[THEN has_type_renaming_weaker[OF superpositionI(5)]] 
       apply(auto simp: subst_literal subst_atom) 
-      by (metis (mono_tags, lifting) welltyped\<^sub>\<kappa>' welltyped\<^sub>\<sigma>_welltyped welltyped_has_type)+     
+      by (metis (no_types, lifting) welltyped\<^sub>\<kappa>' welltyped\<^sub>\<sigma>_welltyped welltyped_has_type)+
 
     have wt_P\<^sub>1: "welltyped\<^sub>c typeof_fun \<V>\<^sub>1 P\<^sub>1" 
     proof-
-      have xx: "\<forall>x\<in>vars_clause (P\<^sub>1' \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x"
+      have xx: "\<forall>x\<in>clause.vars (P\<^sub>1' \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x"
         using superpositionI(15)
         unfolding superpositionI subst_clause_add_mset
         by clause_simp
@@ -468,7 +469,7 @@ proof (cases P2 P1 C rule: superposition.cases)
         using welltyped_renaming_weaker[OF superpositionI(4)] superpositionI(15) vars_clause_add_mset  superpositionI(9)
         unfolding superpositionI subst_clause_add_mset 
         apply(clause_simp)
-        apply(auto simp: subst_literal subst_atom vars_atom_def)
+        apply(auto simp: subst_literal subst_atom)
         by (metis (mono_tags) Un_iff \<open>\<And>t \<tau> \<V>' \<V> \<F>. \<forall>x\<in>vars_term (t \<cdot>t \<rho>\<^sub>1). \<V> (the_inv \<rho>\<^sub>1 (Var x)) = \<V>' x \<Longrightarrow> First_Order_Type_System.welltyped \<F> \<V> t \<tau> = First_Order_Type_System.welltyped \<F> \<V>' (t \<cdot>t \<rho>\<^sub>1) \<tau>\<close> subst_apply_term_ctxt_apply_distrib vars_term_ctxt_apply)+
 
       then show ?thesis
@@ -479,7 +480,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
     have wt_P\<^sub>2: "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 P\<^sub>2"
     proof-
-      have xx: "\<forall>x\<in>vars_clause (P\<^sub>2' \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
+      have xx: "\<forall>x\<in>clause.vars (P\<^sub>2' \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
         using superpositionI(16)
         unfolding superpositionI subst_clause_add_mset
         by clause_simp
@@ -503,7 +504,7 @@ proof (cases P2 P1 C rule: superposition.cases)
           wt_P\<^sub>2'
         unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def subst_clause_add_mset subst_clause_plus
         apply clause_simp
-        apply(auto simp: subst_literal subst_atom vars_atom_def)
+        apply(auto simp: subst_literal subst_atom)
         by (metis Un_iff \<open>\<And>t \<tau> \<V>' \<V> \<F>. \<forall>x\<in>vars_term (t \<cdot>t \<rho>\<^sub>2). \<V> (the_inv \<rho>\<^sub>2 (Var x)) = \<V>' x \<Longrightarrow> First_Order_Type_System.welltyped \<F> \<V> t \<tau> = First_Order_Type_System.welltyped \<F> \<V>' (t \<cdot>t \<rho>\<^sub>2) \<tau>\<close>)
     qed
 
@@ -511,7 +512,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       by (metis \<gamma>'(2) local.superpositionI(14) subst_compose_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_welltyped)
 
 
-    have wt_\<gamma>: "welltyped\<^sub>\<sigma>_on  (vars_clause P\<^sub>1) typeof_fun \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<gamma>')" "welltyped\<^sub>\<sigma>_on (vars_clause P\<^sub>2) typeof_fun \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot>  \<mu> \<odot> \<gamma>')"
+    have wt_\<gamma>: "welltyped\<^sub>\<sigma>_on  (clause.vars P\<^sub>1) typeof_fun \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<gamma>')" "welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>2) typeof_fun \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot>  \<mu> \<odot> \<gamma>')"
       using
         superpositionI(15, 16)
         welltyped\<^sub>\<sigma>_renaming_ground_subst_weaker[OF superpositionI(4)  wt_\<mu>_\<gamma> superpositionI(17)  ground_subst(3) _]
@@ -573,7 +574,6 @@ proof (cases P2 P1 C rule: superposition.cases)
         superpositionI 
         to_ground_clause_def 
         to_ground_literal_def 
-        subst_atom_def 
         to_ground_atom_def
         subst_clause_add_mset 
         subst_clause_plus 
@@ -593,7 +593,7 @@ proof (cases P2 P1 C rule: superposition.cases)
         then have ts_in_I: "(?t\<^sub>2, ?t\<^sub>2') \<in> I"
           using I_models_L\<^sub>2' true_lit_uprod_iff_true_lit_prod[OF sym_I] superpositionI(11)
           unfolding to_ground_literal_def to_ground_atom_def 
-          by (smt (verit) literal.simps(9) map_uprod_simps subst_atom_def subst_literal true_lit_simps(1)) 
+          by (smt (verit) literal.simps(9) map_uprod_simps atom.subst_def subst_literal true_lit_simps(1)) 
 
         have ?thesis if "\<P> = Pos"
         proof -
@@ -647,7 +647,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
         then show ?thesis
           unfolding superpositionI 
-          by (metis C \<gamma>'(3) clause.subst_eq superpositionI(26) true_cls_union union_mset_add_mset_left)
+          by (smt (verit, ccfv_SIG) C \<gamma>'(3) clause.subst_eq local.superpositionI(26) true_cls_union union_mset_add_mset_left)
       qed
     next
       case False
@@ -661,7 +661,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
       then show ?thesis 
         unfolding superpositionI
-        by (metis C \<gamma>'(3) clause.subst_eq superpositionI(26) true_cls_union union_mset_add_mset_right)
+        by (smt (verit, best) C \<gamma>'(3) clause.subst_eq local.superpositionI(26) true_cls_union union_mset_add_mset_right)
     qed
   qed
 
