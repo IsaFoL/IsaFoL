@@ -7990,7 +7990,7 @@ proof -
   qed
 qed
 
-theorem ord_res_11_termination:
+corollary ord_res_11_termination:
   fixes N :: "'f gclause fset"
   shows "wfp_on {S. (ord_res_11 N)\<^sup>*\<^sup>* ({||}, {||}, [], None) S} (ord_res_11 N)\<inverse>\<inverse>"
 proof (rule scl_fol.termination_projectable_strategy)
@@ -8025,6 +8025,80 @@ proof (rule scl_fol.termination_projectable_strategy)
 next
   show "state_of_gstate ({||}, {||}, [], None) = SCL_FOL.initial_state"
     by simp
+qed
+
+corollary ord_res_11_non_subsumption:
+  fixes N\<^sub>G :: "'f gclause fset" and s :: "_ \<times> _ \<times> _ \<times> _"
+  defines
+    "\<beta> \<equiv> (THE A. linorder_trm.is_greatest_in_fset (atms_of_clss N\<^sub>G) A)"
+  assumes
+    run: "(ord_res_11 N\<^sub>G)\<^sup>*\<^sup>* ({||}, {||}, [], None) s" and
+    step: "scl_fol.backtrack (cls_of_gcls |`| N\<^sub>G) (term_of_gterm \<beta>) (state_of_gstate s) s'"
+  shows "\<exists>U\<^sub>e\<^sub>r \<F> \<Gamma> D. s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D) \<and> \<not> (\<exists>C |\<in>| N\<^sub>G |\<union>| U\<^sub>e\<^sub>r. C \<subseteq># D)"
+proof -
+  have "\<exists>C \<gamma>. state_conflict (state_of_gstate s) = Some (C, \<gamma>) \<and>
+        \<not> (\<exists>D|\<in>| cls_of_gcls |`| N\<^sub>G |\<union>| state_learned (state_of_gstate s). subsumes D C)"
+  proof (rule scl_fol.static_non_subsumption_projectable_strategy[
+        of "ord_res_11 N\<^sub>G" _ _ _ _ state_of_gstate , OF run step])
+    fix S S'
+    assume run: "(ord_res_11 N\<^sub>G)\<^sup>*\<^sup>* ({||}, {||}, [], None) S" and step: "ord_res_11 N\<^sub>G S S'"
+    show "scl_fol.regular_scl (cls_of_gcls |`| N\<^sub>G) (term_of_gterm \<beta>)
+      (state_of_gstate S) (state_of_gstate S')"
+    proof (intro ord_res_11_is_strategy_for_regular_scl ballI)
+      fix A\<^sub>G :: "'f gterm"
+      assume "A\<^sub>G |\<in>| atms_of_clss N\<^sub>G"
+      show "A\<^sub>G \<preceq>\<^sub>t \<beta>"
+      proof (cases "atms_of_clss N\<^sub>G = {||}")
+        case True
+        thus ?thesis
+          using \<open>A\<^sub>G |\<in>| atms_of_clss N\<^sub>G\<close>
+          by simp
+      next
+        case False
+        then show ?thesis
+          using \<open>A\<^sub>G |\<in>| atms_of_clss N\<^sub>G\<close>
+          unfolding \<beta>_def
+          by (metis (full_types) linorder_trm.Uniq_is_greatest_in_fset
+              linorder_trm.ex_greatest_in_fset linorder_trm.is_greatest_in_fset_iff sup2CI
+              the1_equality')
+      qed
+    next
+      show "(ord_res_11 N\<^sub>G)\<^sup>*\<^sup>* ({||}, {||}, [], None) S"
+        using run .
+    next
+      show "ord_res_11 N\<^sub>G S S'"
+        using step .
+    qed
+  next
+    show "state_of_gstate ({||}, {||}, [], None) = initial_state"
+      by simp
+  qed
+
+  moreover obtain U\<^sub>G \<F> \<Gamma> D where "s = (U\<^sub>G, \<F>, \<Gamma>, Some D)"
+  proof atomize_elim
+    obtain U\<^sub>G \<F> \<Gamma> \<C> where "s = (U\<^sub>G, \<F>, \<Gamma>, \<C>)"
+      by (metis prod.exhaust)
+
+    moreover obtain D where "\<C> = Some D"
+      using step
+      by (auto simp: \<open>s = (U\<^sub>G, \<F>, \<Gamma>, \<C>)\<close> elim: scl_fol.backtrack.cases)
+
+    ultimately show "\<exists>U\<^sub>e\<^sub>r \<F> \<Gamma> D. s = (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, Some D)"
+      by metis
+  qed
+
+  ultimately have "\<not> (\<exists>C |\<in>| N\<^sub>G |\<union>|U\<^sub>G.
+    subsumes (cls_of_gcls C :: ('f, 'v) term clause) (cls_of_gcls D))"
+    by auto
+
+  hence "\<not> (\<exists>C |\<in>| N\<^sub>G |\<union>|U\<^sub>G. (cls_of_gcls C :: ('f, 'v) term clause) \<subseteq># (cls_of_gcls D))"
+    by (simp add: subsumes_def)
+
+  hence "\<not> (\<exists>C |\<in>| N\<^sub>G |\<union>|U\<^sub>G. C \<subseteq># D)"
+    by (metis cls_of_gcls_def image_mset_subseteq_mono)
+
+  thus ?thesis
+    unfolding \<open>s = (U\<^sub>G, \<F>, \<Gamma>, Some D)\<close> by metis
 qed
 
 end
