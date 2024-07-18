@@ -989,7 +989,7 @@ proof-
     (* TODO: *)
     using assms(3)
     apply(cases literal)
-    by(clause_simp simp: subst_atom_def uprod.set_map vars_atom_def)
+    by (simp add: ground_term_in_ground_literal_subst)+
      
   then have 
     "\<forall>term \<in> set_uprod (atm_of literal). 

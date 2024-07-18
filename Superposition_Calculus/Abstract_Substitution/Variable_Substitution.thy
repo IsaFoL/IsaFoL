@@ -2,7 +2,7 @@ theory Variable_Substitution
   imports Abstract_Substitution "HOL-Library.FSet"
 begin
 
-(* TODO: Name + different file *)
+(* TODO: Name + different file + maybe refine that also mulitset works *)
 locale set_spec = 
   fixes
     contains :: "'x \<Rightarrow> 'set \<Rightarrow> bool"  and
@@ -36,8 +36,8 @@ locale variable_substitution =
   set_spec where 
   contains = contains and is_empty = is_empty  and is_finite = is_finite and 
   subset_eq = subset_eq and disjoint = disjoint
-
-for subst :: "'value \<Rightarrow> ('variable \<Rightarrow> 'subvalue) \<Rightarrow> 'value" (infixl "\<cdot>" 70) and
+for
+  subst :: "'value \<Rightarrow> ('variable \<Rightarrow> 'subvalue) \<Rightarrow> 'value" (infixl "\<cdot>" 70) and
   vars :: "'value \<Rightarrow> 'variableset" and
   contains is_empty is_finite subset_eq disjoint  +
 assumes
@@ -77,7 +77,7 @@ locale variable_substitution_lifting = base: variable_substitution +
 for lifted_subst lifted_vars +
 assumes 
   lifted_vars_vars: 
-  "(\<forall>x. is_empty (lifted_vars (lifted_subst x \<gamma>))) \<longleftrightarrow> (\<forall>x. is_empty (vars (x \<cdot> \<gamma>)))"
+    "(\<forall>x. is_empty (lifted_vars (lifted_subst x \<gamma>))) \<longleftrightarrow> (\<forall>x. is_empty (vars (x \<cdot> \<gamma>)))"
 begin
 
 lemma is_ground_subst_iff [simp]: "is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
@@ -90,6 +90,61 @@ end
 locale variable_substitution_set = variable_substitution where 
   contains = "(\<in>)" and is_empty = "\<lambda>X. X = {}" and is_finite = finite and subset_eq = "(\<subseteq>)" and
   disjoint = "\<lambda>X Y. X \<inter> Y = {}" 
+
+(* TODO: With set spec *)
+locale variable_substitution_lifting_set' = 
+  base: variable_substitution_set comp_subst id_subst base_subst base_vars
+  for comp_subst id_subst base_subst base_vars +
+  fixes 
+    map :: "('c \<Rightarrow> 'c) \<Rightarrow> 'd \<Rightarrow> 'd" and
+    to_set :: "'d \<Rightarrow> 'c set" 
+  assumes 
+    map_comp: "\<And>d f g. map f (map g d) = map (f \<circ> g) d" and
+    map_id: "map id d = d" and
+    map_cong: "\<And>d f g. \<forall>c \<in> to_set d. f c = g c \<Longrightarrow> map f d = map g d" and
+    finite_to_set: "\<And>d. finite (to_set d)"
+   (* map_to_set: "\<And>d f. to_set (map f d) = f ` to_set d"   TODO: Not yet used*)
+begin
+
+definition vars :: "'d \<Rightarrow> 'a set" where
+  "vars d \<equiv> \<Union>(base_vars ` to_set d)"
+
+definition subst ::  "'d \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'd" where
+  "subst d \<sigma> \<equiv> map (\<lambda>c. base_subst c \<sigma>) d"
+
+lemma map_id_on: "\<And>d f. \<forall>c \<in> to_set d. f c = c \<Longrightarrow> map f d = d"
+  using map_cong map_id
+  unfolding id_def
+  by metis
+
+sublocale variable_substitution_set comp_subst id_subst subst vars
+proof unfold_locales
+  show "\<And>x a b. subst x (comp_subst a b) = subst (subst x a) b"
+    using base.subst_comp_subst
+    unfolding subst_def map_comp comp_apply
+    by presburger
+next
+  show "\<And>x. subst x id_subst = x"
+    using map_id
+    unfolding subst_def base.subst_id_subst id_def.
+next
+   show "\<And>d. vars d = {} \<Longrightarrow> \<forall>\<sigma>. subst d \<sigma> = d"
+     unfolding vars_def subst_def
+     using map_id_on
+     by auto
+next
+  show "\<And>a \<sigma> \<tau>. (\<And>x. x \<in> vars a \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> subst a \<sigma> = subst a \<tau>"
+    unfolding vars_def subst_def
+    using map_cong base.subst_eq
+    by (meson UN_I)
+next
+  show "\<And>a. finite (vars a)"
+    unfolding vars_def
+    using base.finite_vars finite_to_set
+    by blast
+qed
+
+end
 
 locale variable_substitution_lifting_set = variable_substitution_lifting where 
   contains = "(\<in>)" and is_empty = "\<lambda>X. X = {}" and is_finite = finite and subset_eq = "(\<subseteq>)" and
