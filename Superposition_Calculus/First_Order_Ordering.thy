@@ -35,7 +35,7 @@ locale first_order_ordering = term_ordering_lifting less\<^sub>t
     (* less\<^sub>t_transitive [intro]: "transp (\<prec>\<^sub>t)" and *)
     (* less\<^sub>t_asymmetric [intro]: "asymp (\<prec>\<^sub>t)" and  *)
     less\<^sub>t_total_on [intro]: "totalp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and
-    HOL_less\<^sub>t_wellfounded_on: "Wellfounded.wfp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and    
+    less\<^sub>t_wellfounded_on: "Wellfounded.wfp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and    
     less\<^sub>t_ground_context_compatible:
       "\<And>context term\<^sub>1 term\<^sub>2. 
         term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<Longrightarrow>
@@ -57,13 +57,9 @@ locale first_order_ordering = term_ordering_lifting less\<^sub>t
          term\<^sub>G \<prec>\<^sub>t context\<^sub>G\<langle>term\<^sub>G\<rangle>"
 begin
 
-lemmas less\<^sub>t_transitive = transp_less_trm
+lemmas less\<^sub>t_transitive = transp_less_trm 
 lemmas less\<^sub>t_asymmetric = asymp_less_trm
 
-lemma less\<^sub>t_wellfounded_on [intro]: "wfp_on (\<prec>\<^sub>t) {term. term.is_ground term}"
-  unfolding Restricted_Predicates.wfp_on_iff_minimal
-  using HOL_less\<^sub>t_wellfounded_on[unfolded Wellfounded.wfp_on_iff_ex_minimal]
-  by blast
 
 subsection \<open>Definitions\<close>
 
