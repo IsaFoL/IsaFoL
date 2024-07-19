@@ -815,7 +815,7 @@ lemma less\<^sub>t_subst_upd:
     update_is_ground: "term.is_ground update" and
     update_less: "update \<prec>\<^sub>t \<gamma> var" and
     term_grounding: "term.is_ground (term \<cdot>t \<gamma>)" and
-    var: "var \<in> vars_term term"
+    var: "var \<in> term.vars term"
   shows "term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>"
   using assms(3, 4)
 proof(induction "term")
@@ -946,7 +946,7 @@ next
         unfolding terms
         by simp
        
-      moreover have "var \<in> vars_term (Fun f ?terms')"
+      moreover have "var \<in> term.vars (Fun f ?terms')"
         by (metis calculation(3) eval_with_fresh_var term.set_intros(4) term_order.less_irrefl)
 
       ultimately have less_terms': "Fun f ?terms' \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t Fun f ?terms' \<cdot>t \<gamma>"
@@ -987,13 +987,13 @@ proof-
      
   then have 
     "\<forall>term \<in> set_uprod (atm_of literal). 
-       var \<in> vars_term term \<longrightarrow> term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>"
+       var \<in> term.vars term \<longrightarrow> term \<cdot>t \<gamma>(var := update) \<prec>\<^sub>t term \<cdot>t \<gamma>"
     using less\<^sub>t_subst_upd
     by blast
 
   moreover have
     "\<forall>term \<in> set_uprod (atm_of literal). 
-       var \<notin> vars_term term \<longrightarrow> term \<cdot>t \<gamma>(var := update) = term \<cdot>t \<gamma>"
+       var \<notin> term.vars term \<longrightarrow> term \<cdot>t \<gamma>(var := update) = term \<cdot>t \<gamma>"
     by (meson eval_with_fresh_var)  
 
   ultimately have "\<forall>term \<in> set_uprod (atm_of literal). term \<cdot>t \<gamma>(var := update) \<preceq>\<^sub>t term \<cdot>t \<gamma>" 

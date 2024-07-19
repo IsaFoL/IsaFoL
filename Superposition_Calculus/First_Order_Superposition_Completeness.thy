@@ -6,7 +6,7 @@ theory First_Order_Superposition_Completeness
 begin
 
 lemma welltyped\<^sub>\<sigma>_on_term:
-  assumes "welltyped\<^sub>\<sigma>_on (vars_term term) \<F> \<V> \<gamma>"
+  assumes "welltyped\<^sub>\<sigma>_on (term.vars term) \<F> \<V> \<gamma>"
   shows "welltyped \<F> \<V> term \<tau> \<longleftrightarrow> welltyped \<F> \<V> (term \<cdot>t \<gamma>) \<tau>"
   by (simp add: assms welltyped\<^sub>\<sigma>_on_welltyped)
 
@@ -1304,8 +1304,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       by presburger+
 
     moreover have 
-      "vars_term (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) \<subseteq> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1)"
-      "vars_term (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<subseteq> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2)"
+      "term.vars (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) \<subseteq> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1)"
+      "term.vars (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<subseteq> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2)"
       unfolding premise\<^sub>1 literal\<^sub>1 subst_clause_add_mset term\<^sub>1_with_context premise\<^sub>2 literal\<^sub>2
       by clause_simp
 
@@ -1599,8 +1599,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       assume "x \<in> clause.vars conclusion'"
 
       then consider 
-          (term\<^sub>2'_with_context) "x \<in> vars_term (term\<^sub>2'_with_context \<cdot>t \<mu>)" 
-        | (term\<^sub>1')  "x \<in> vars_term (term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>)"  
+          (term\<^sub>2'_with_context) "x \<in> term.vars (term\<^sub>2'_with_context \<cdot>t \<mu>)" 
+        | (term\<^sub>1')  "x \<in> term.vars (term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>)"  
         | (premise\<^sub>1')  "x \<in> clause.vars (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)"  
         | (premise\<^sub>2')  "x \<in> clause.vars (premise\<^sub>2' \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)"  
         unfolding conclusion' subst_clause_add_mset subst_clause_plus subst_literal

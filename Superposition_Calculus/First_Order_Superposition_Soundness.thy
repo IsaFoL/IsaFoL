@@ -14,7 +14,7 @@ abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
 
 (* TODO: *)
 lemma name_missing\<^sub>t:
-  assumes "term.is_ground (t \<cdot>t \<gamma>)" "x \<in> vars_term t" 
+  assumes "term.is_ground (t \<cdot>t \<gamma>)" "x \<in> term.vars t" 
   shows "term.is_ground (\<gamma> x)"
   using assms
   by(induction t) auto
@@ -84,19 +84,19 @@ proof-
     by blast
 qed
 
-lemma vars_subst: "\<Union> (vars_term ` \<rho> ` vars_term t) = vars_term (t \<cdot>t \<rho>)"
+lemma vars_subst: "\<Union> (term.vars ` \<rho> ` term.vars t) = term.vars (t \<cdot>t \<rho>)"
   by(induction t) auto
 
-lemma vars_subst\<^sub>a: "\<Union> (vars_term ` \<rho> ` atom.vars a) = atom.vars (a \<cdot>a \<rho>)"
+lemma vars_subst\<^sub>a: "\<Union> (term.vars ` \<rho> ` atom.vars a) = atom.vars (a \<cdot>a \<rho>)"
   using vars_subst
   unfolding atom.vars_def atom.subst_def
   by (smt (verit) SUP_UNION Sup.SUP_cong UN_extend_simps(10) uprod.set_map)
 
-lemma vars_subst\<^sub>l: "\<Union> (vars_term ` \<rho> ` literal.vars l) = literal.vars (l \<cdot>l \<rho>)"
+lemma vars_subst\<^sub>l: "\<Union> (term.vars ` \<rho> ` literal.vars l) = literal.vars (l \<cdot>l \<rho>)"
   unfolding literal.vars_def literal.subst_def set_literal_atm_of
   by (metis (no_types, lifting) UN_insert Union_image_empty literal.map_sel vars_subst\<^sub>a)
  
-lemma vars_subst\<^sub>c: "\<Union> (vars_term ` \<rho> ` clause.vars C) = clause.vars (C \<cdot> \<rho>)"
+lemma vars_subst\<^sub>c: "\<Union> (term.vars ` \<rho> ` clause.vars C) = clause.vars (C \<cdot> \<rho>)"
   using vars_subst\<^sub>l
   unfolding clause.vars_def clause.subst_def
   by fastforce
@@ -434,7 +434,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       using term_subst.is_ground_subst_comp_right[OF \<gamma>'(1)]
       by blast+
 
-    have xx: "\<forall>x\<in>vars_term (t\<^sub>2 \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x" "\<forall>x\<in>vars_term (t\<^sub>2' \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
+    have xx: "\<forall>x\<in>term.vars (t\<^sub>2 \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x" "\<forall>x\<in>term.vars (t\<^sub>2' \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
       using superpositionI(16)
       by (simp_all add: clause.vars_def local.superpositionI(11) local.superpositionI(8) subst_atom subst_clause_add_mset subst_literal(1) vars_atom vars_literal(1))
 
@@ -470,7 +470,7 @@ proof (cases P2 P1 C rule: superposition.cases)
         unfolding superpositionI subst_clause_add_mset 
         apply(clause_simp)
         apply(auto simp: subst_literal subst_atom)
-        by (metis (mono_tags) Un_iff \<open>\<And>t \<tau> \<V>' \<V> \<F>. \<forall>x\<in>vars_term (t \<cdot>t \<rho>\<^sub>1). \<V> (the_inv \<rho>\<^sub>1 (Var x)) = \<V>' x \<Longrightarrow> First_Order_Type_System.welltyped \<F> \<V> t \<tau> = First_Order_Type_System.welltyped \<F> \<V>' (t \<cdot>t \<rho>\<^sub>1) \<tau>\<close> subst_apply_term_ctxt_apply_distrib vars_term_ctxt_apply)+
+        by (metis (mono_tags) Un_iff \<open>\<And>t \<tau> \<V>' \<V> \<F>. \<forall>x\<in>term.vars (t \<cdot>t \<rho>\<^sub>1). \<V> (the_inv \<rho>\<^sub>1 (Var x)) = \<V>' x \<Longrightarrow> First_Order_Type_System.welltyped \<F> \<V> t \<tau> = First_Order_Type_System.welltyped \<F> \<V>' (t \<cdot>t \<rho>\<^sub>1) \<tau>\<close> subst_apply_term_ctxt_apply_distrib vars_term_ctxt_apply)+
 
       then show ?thesis
         using grounding(2) superpositionI(9, 14) wt_P\<^sub>1'
@@ -505,7 +505,7 @@ proof (cases P2 P1 C rule: superposition.cases)
         unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def subst_clause_add_mset subst_clause_plus
         apply clause_simp
         apply(auto simp: subst_literal subst_atom)
-        by (metis Un_iff \<open>\<And>t \<tau> \<V>' \<V> \<F>. \<forall>x\<in>vars_term (t \<cdot>t \<rho>\<^sub>2). \<V> (the_inv \<rho>\<^sub>2 (Var x)) = \<V>' x \<Longrightarrow> First_Order_Type_System.welltyped \<F> \<V> t \<tau> = First_Order_Type_System.welltyped \<F> \<V>' (t \<cdot>t \<rho>\<^sub>2) \<tau>\<close>)
+        by (metis Un_iff \<open>\<And>t \<tau> \<V>' \<V> \<F>. \<forall>x\<in>term.vars (t \<cdot>t \<rho>\<^sub>2). \<V> (the_inv \<rho>\<^sub>2 (Var x)) = \<V>' x \<Longrightarrow> First_Order_Type_System.welltyped \<F> \<V> t \<tau> = First_Order_Type_System.welltyped \<F> \<V>' (t \<cdot>t \<rho>\<^sub>2) \<tau>\<close>)
     qed
 
     have wt_\<mu>_\<gamma>: "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 (\<mu> \<odot> \<gamma>')"

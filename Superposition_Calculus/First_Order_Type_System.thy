@@ -226,7 +226,7 @@ lemma has_type\<^sub>\<sigma>_has_type\<^sub>c:
   by blast
 
 lemma welltyped\<^sub>\<sigma>_on_welltyped: 
-  assumes wt: "welltyped\<^sub>\<sigma>_on (vars_term t) \<F> \<V> \<sigma>"
+  assumes wt: "welltyped\<^sub>\<sigma>_on (term.vars t) \<F> \<V> \<sigma>"
   shows "welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau> \<longleftrightarrow> welltyped \<F> \<V> t \<tau>"
 proof(rule iffI)
   assume "welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>"
@@ -277,7 +277,7 @@ proof(rule iffI)
         show "list_all2 (welltyped \<F> \<V>) ts' \<tau>s"
         proof (rule list.rel_mono_strong)
           show "list_all2 (\<lambda>x x2. welltyped \<F> \<V> (x \<cdot>t \<sigma>) x2 \<and>
-            (\<forall>xa. x \<cdot>t \<sigma> = xa \<cdot>t \<sigma> \<longrightarrow> welltyped\<^sub>\<sigma>_on (vars_term xa) \<F> \<V> \<sigma> \<longrightarrow> welltyped \<F> \<V> xa x2))
+            (\<forall>xa. x \<cdot>t \<sigma> = xa \<cdot>t \<sigma> \<longrightarrow> welltyped\<^sub>\<sigma>_on (term.vars xa) \<F> \<V> \<sigma> \<longrightarrow> welltyped \<F> \<V> xa x2))
             ts' \<tau>s"
             using Fun.hyps
             unfolding \<open>ts = map (\<lambda>t. t \<cdot>t \<sigma>) ts'\<close> list.rel_map
@@ -288,7 +288,7 @@ proof(rule iffI)
             "t' \<in> set ts'" and
             "\<tau>' \<in> set \<tau>s" and
             "welltyped \<F> \<V> (t' \<cdot>t \<sigma>) \<tau>' \<and>
-              (\<forall>xa. t' \<cdot>t \<sigma> = xa \<cdot>t \<sigma> \<longrightarrow> welltyped\<^sub>\<sigma>_on (vars_term xa) \<F> \<V> \<sigma> \<longrightarrow> welltyped \<F> \<V> xa \<tau>')"
+              (\<forall>xa. t' \<cdot>t \<sigma> = xa \<cdot>t \<sigma> \<longrightarrow> welltyped\<^sub>\<sigma>_on (term.vars xa) \<F> \<V> \<sigma> \<longrightarrow> welltyped \<F> \<V> xa \<tau>')"
           thus "welltyped \<F> \<V> t' \<tau>'"
             using Fun.prems Fun.hyps
             by (simp add: Fun\<^sub>t welltyped\<^sub>\<sigma>_on_def)
@@ -321,7 +321,7 @@ next
         assume
           "t \<in> set ts" and
           "\<tau>' \<in> set \<tau>s" and
-          "welltyped \<F> \<V> t \<tau>' \<and> (welltyped\<^sub>\<sigma>_on (vars_term t) \<F> \<V> \<sigma> \<longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>')"
+          "welltyped \<F> \<V> t \<tau>' \<and> (welltyped\<^sub>\<sigma>_on (term.vars t) \<F> \<V> \<sigma> \<longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>')"
         thus "welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>'"
           using Fun.prems
           by (simp add: welltyped\<^sub>\<sigma>_on_def)
@@ -336,7 +336,7 @@ lemma welltyped\<^sub>\<sigma>_on_welltyped\<^sub>a:
 proof (cases A)
   case (Upair t t')
 
-  have "welltyped\<^sub>\<sigma>_on (vars_term t) \<F> \<V> \<sigma>" "welltyped\<^sub>\<sigma>_on (vars_term t') \<F> \<V> \<sigma>"
+  have "welltyped\<^sub>\<sigma>_on (term.vars t) \<F> \<V> \<sigma>" "welltyped\<^sub>\<sigma>_on (term.vars t') \<F> \<V> \<sigma>"
     using wt unfolding Upair by (simp_all add: welltyped\<^sub>\<sigma>_on_def atom.vars_def)
 
   hence "(\<exists>\<tau>. welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau> \<and> welltyped \<F> \<V> (t' \<cdot>t \<sigma>) \<tau>) =
@@ -483,7 +483,7 @@ lemma welltyped_add_literal:
 (* TODO: Name *)
 lemma welltyped_\<V>:
   assumes 
-    "\<forall>x\<in>vars_term t. \<V> x = \<V>' x"
+    "\<forall>x\<in>term.vars t. \<V> x = \<V>' x"
     "welltyped \<F> \<V> t \<tau>"
   shows  
     "welltyped \<F> \<V>' t \<tau>"
@@ -580,10 +580,10 @@ lemma welltyped\<^sub>c_renaming':
   by (simp add: clause.subst_def)
 
 definition range_vars' :: "('f, 'v) subst \<Rightarrow> 'v set" where                                 
-  "range_vars' \<sigma> = \<Union>(vars_term ` range \<sigma>)"
+  "range_vars' \<sigma> = \<Union>(term.vars ` range \<sigma>)"
 
 lemma vars_term_range_vars':
-  assumes "x \<in> vars_term (t \<cdot>t \<sigma>)"
+  assumes "x \<in> term.vars (t \<cdot>t \<sigma>)"
   shows "x \<in> range_vars' \<sigma>"
   using assms
   unfolding range_vars'_def
@@ -742,7 +742,7 @@ begin
 
 
 lemma welltyped_renaming_weaker: 
-  assumes "\<forall>x \<in> vars_term (t \<cdot>t \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
+  assumes "\<forall>x \<in> term.vars (t \<cdot>t \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
   shows "welltyped \<F> \<V> t \<tau> \<longleftrightarrow> welltyped \<F> \<V>' (t \<cdot>t \<rho>) \<tau>"
 proof(intro iffI)
   assume "welltyped \<F> \<V> t \<tau>"
@@ -841,7 +841,7 @@ lemma welltyped\<^sub>c_renaming_weaker:
   by blast
 
 lemma has_type_renaming_weaker:
-  assumes "\<forall>x \<in> vars_term (t \<cdot>t \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
+  assumes "\<forall>x \<in> term.vars (t \<cdot>t \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
   shows "has_type \<F> \<V> t \<tau> \<longleftrightarrow> has_type \<F> \<V>' (t \<cdot>t \<rho>) \<tau>"
   using renaming assms
   apply(cases t)
@@ -856,7 +856,7 @@ lemma welltyped\<^sub>\<sigma>_renaming_ground_subst_weaker:
     "welltyped\<^sub>\<sigma> \<F> \<V>' \<gamma>" 
     "welltyped\<^sub>\<sigma>_on X \<F> \<V> \<rho>" 
     "term_subst.is_ground_subst \<gamma>" 
-    "\<forall>x \<in> \<Union>(vars_term ` \<rho> ` X). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
+    "\<forall>x \<in> \<Union>(term.vars ` \<rho> ` X). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
   shows "welltyped\<^sub>\<sigma>_on X \<F> \<V> (\<rho> \<odot> \<gamma>)"
 proof(unfold welltyped\<^sub>\<sigma>_on_def, intro ballI)
   fix x
@@ -870,7 +870,7 @@ proof(unfold welltyped\<^sub>\<sigma>_on_def, intro ballI)
   obtain y where y: "\<rho> x =  Var y"
     by (metis renaming term.collapse(1) term_subst_is_renaming_iff)
 
-  then have "y \<in> \<Union>(vars_term ` \<rho> ` X)"
+  then have "y \<in> \<Union>(term.vars ` \<rho> ` X)"
     using \<open>x \<in> X\<close> 
     by (metis Union_iff image_eqI term.set_intros(3))
 
@@ -1662,8 +1662,8 @@ qed
     "\<And>x'. \<V> x' \<equiv>
       if \<exists>x \<in> \<X>\<^sub>1. x' = f\<^sub>1 x then \<V>\<^sub>1 (the_inv_into \<X>\<^sub>1 f\<^sub>1 x') else \<V>\<^sub>2 (the_inv_into \<X>\<^sub>2 f\<^sub>2 x')"
   shows
-    "\<And>t \<tau>. vars_term t \<subseteq> \<X>\<^sub>1 \<Longrightarrow> welltyped \<F> \<V>\<^sub>1 t \<tau> \<Longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<rho>\<^sub>1) \<tau>" and
-    "\<And>t \<tau>. vars_term t \<subseteq> \<X>\<^sub>2 \<Longrightarrow> welltyped \<F> \<V>\<^sub>2 t \<tau> \<Longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<rho>\<^sub>2) \<tau>"
+    "\<And>t \<tau>. term.vars t \<subseteq> \<X>\<^sub>1 \<Longrightarrow> welltyped \<F> \<V>\<^sub>1 t \<tau> \<Longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<rho>\<^sub>1) \<tau>" and
+    "\<And>t \<tau>. term.vars t \<subseteq> \<X>\<^sub>2 \<Longrightarrow> welltyped \<F> \<V>\<^sub>2 t \<tau> \<Longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<rho>\<^sub>2) \<tau>"
   sorry*)
 
 

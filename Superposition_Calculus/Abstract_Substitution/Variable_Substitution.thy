@@ -88,9 +88,9 @@ locale variable_substitution_expansion = base: variable_substitution +
   comp_subst = comp_subst and 
   vars = expanded_vars 
 for expanded_subst expanded_vars +
-assumes 
+assumes
   expanded_vars_vars: 
-  "(\<forall>x. is_empty (expanded_vars (expanded_subst x \<gamma>))) \<longleftrightarrow> (\<forall>x. is_empty (vars (x \<cdot> \<gamma>)))"
+    "(\<forall>x. is_empty (expanded_vars (expanded_subst x \<gamma>))) \<longleftrightarrow> (\<forall>x. is_empty (vars (x \<cdot> \<gamma>)))"
 begin
 
 (* TODO: name *)
