@@ -24,10 +24,8 @@ notation subst_apply_term (infixl "\<cdot>t" 67)
 notation subst_apply_ctxt (infixl "\<cdot>t\<^sub>c" 67)
 notation subst_compose (infixl "\<odot>" 75)
 
-
 lemmas clause_simp_term =
   subst_apply_term_ctxt_apply_distrib vars_term_ctxt_apply literal.sel
-
 
 named_theorems clause_simp
 named_theorems clause_intro
@@ -87,60 +85,6 @@ definition vars_clause_set :: "('f, 'v) atom clause set \<Rightarrow> 'v set" wh
   "vars_clause_set clauses = (\<Union>clause \<in> clauses. vars_clause clause)"
 *)
 
-lemma term_obtain_non_ident_subst:
-  fixes t :: "('f, 'v) term"
-  assumes "term.vars t \<noteq> {}" "finite ts"
-  obtains \<sigma> where "t \<cdot>t \<sigma> \<noteq> t" "t \<cdot>t \<sigma> \<notin> ts"
-  using assms
-proof(induction t arbitrary: ts thesis)
-  case (Var x)
-
-  have"\<And>f :: 'f. infinite ((Fun f) ` (UNIV :: ('f, 'v) term list set))"
-    using infinite_UNIV_listI
-    by (meson finite_imageD injI term.inject(2))
-
-  then obtain t' where t': "t' \<notin> ts" "is_Fun t'"
-    by (meson Var.prems(3) image_subset_iff is_FunI rev_finite_subset)
-    
-  define \<sigma> :: "('f, 'v) subst" where "\<And>x. \<sigma> x = t'"
-
-  have "Var x \<cdot>t \<sigma> \<noteq> Var x"
-    using t'
-    unfolding \<sigma>_def
-    by auto
-
-  moreover have "Var x \<cdot>t \<sigma> \<notin> ts"
-    using t'
-    unfolding \<sigma>_def
-    by simp
-
-  ultimately show ?case
-    using Var
-    by blast
-next
-  case (Fun f args)
-                   
-  obtain a where a: "a \<in> set args" and a_vars: "term.vars a \<noteq> {}"
-    using Fun.prems by fastforce
-                                                                  
-  then obtain \<sigma> where 
-    \<sigma>: "a \<cdot>t \<sigma> \<noteq> a" and
-    a_\<sigma>_not_in_args: "a \<cdot>t \<sigma> \<notin> \<Union> (set `  term.args ` ts)"
-    using Fun.IH Fun.prems(3) by blast
-
-  then have "Fun f args \<cdot>t \<sigma> \<noteq> Fun f args"
-    by (metis a subsetI term.set_intros(4) term_subst.comp_subst.left.action_neutral 
-        vars_term_subset_subst_eq)
-
-  moreover have "Fun f args \<cdot>t \<sigma> \<notin> ts"
-    using a a_\<sigma>_not_in_args
-    by auto
-
-  ultimately show ?case
-    using Fun
-    by blast
-qed
-
 global_interpretation
   "term": variable_substitution_set 
   where
@@ -163,9 +107,55 @@ next
   show "\<And>t. is_ground_trm t = (\<forall>\<sigma>. t \<cdot>t \<sigma> = t)"
     using is_ground_trm_iff_ident_forall_subst.
 next
-  show "\<And>t ts. \<lbrakk>finite ts; term.vars t \<noteq> {}\<rbrakk> \<Longrightarrow> \<exists>\<sigma>. t \<cdot>t \<sigma> \<noteq> t \<and> t \<cdot>t \<sigma> \<notin> ts"
-    using term_obtain_non_ident_subst
-    by meson
+  (* TODO: type variables *)
+  fix t :: "('e, 'f) term" and ts :: "('e, 'f) term set"
+
+  assume "finite ts" "term.vars t \<noteq> {}"
+  then show "\<exists>\<sigma>. t \<cdot>t \<sigma> \<noteq> t \<and> t \<cdot>t \<sigma> \<notin> ts"
+  proof(induction t arbitrary: ts)
+    case (Var x)
+
+    obtain t' where t': "t' \<notin> ts" "is_Fun t'"
+      using Var.prems(1) finite_list by blast
+
+    define \<sigma> :: "('e, 'f) subst" where "\<And>x. \<sigma> x = t'"
+
+    have "Var x \<cdot>t \<sigma> \<noteq> Var x"
+      using t'
+      unfolding \<sigma>_def
+      by auto
+
+    moreover have "Var x \<cdot>t \<sigma> \<notin> ts"
+      using t'
+      unfolding \<sigma>_def
+      by simp
+
+    ultimately show ?case
+      using Var
+      by blast
+  next
+    case (Fun f args)
+
+    obtain a where a: "a \<in> set args" and a_vars: "term.vars a \<noteq> {}"
+      using Fun.prems by fastforce
+
+    then obtain \<sigma> where 
+      \<sigma>: "a \<cdot>t \<sigma> \<noteq> a" and
+      a_\<sigma>_not_in_args: "a \<cdot>t \<sigma> \<notin> \<Union> (set `  term.args ` ts)"
+      by (metis Fun.IH Fun.prems(1) List.finite_set finite_UN finite_imageI)
+
+    then have "Fun f args \<cdot>t \<sigma> \<noteq> Fun f args"
+      by (metis a subsetI term.set_intros(4) term_subst.comp_subst.left.action_neutral 
+          vars_term_subset_subst_eq)
+
+    moreover have "Fun f args \<cdot>t \<sigma> \<notin> ts"
+      using a a_\<sigma>_not_in_args
+      by auto
+
+    ultimately show ?case
+      using Fun
+      by blast
+  qed
 qed
 
 (* TODO: Use locale *)
@@ -296,10 +286,10 @@ notation atom.subst (infixl "\<cdot>a" 67)
 notation literal.subst (infixl "\<cdot>l" 66)
 notation clause.subst (infixl "\<cdot>" 67)
 
+(* TODO: Directly from "is_ground {#}" *)
 lemma clause_subst_empty [clause_simp]: "{#} \<cdot> \<sigma> = {#}" "clause \<cdot> \<sigma> = {#} \<longleftrightarrow> clause = {#}"
   by (simp_all add: clause.subst_def)
 
-(* TODO: term.vars \<rightarrow> term.vars + same context *)
 lemma vars_atom [clause_simp]: 
   "atom.vars (Upair term\<^sub>1 term\<^sub>2) = term.vars term\<^sub>1 \<union> term.vars term\<^sub>2"
   by (simp_all add: atom.vars_def)
@@ -310,6 +300,7 @@ lemma vars_literal [clause_simp]:
   "literal.vars ((if b then Pos else Neg) atom) = atom.vars atom"
   by (simp_all add: literal.vars_def)
 
+(* TODO: Can these be generalized? *)
 lemma vars_clause_add_mset [clause_simp]: 
   "clause.vars (add_mset literal clause) = literal.vars literal \<union> clause.vars clause"
   by (simp add: clause.vars_def)
@@ -347,6 +338,7 @@ lemma subst_literal [clause_simp]:
   using literal.map_sel
   by auto
 
+(* TODO: Can these be generalized? *)
 lemma subst_clause_add_mset [clause_simp]: 
   "add_mset literal clause \<cdot> \<sigma> = add_mset (literal \<cdot>l \<sigma>) (clause \<cdot> \<sigma>)"
   unfolding clause.subst_def
@@ -376,6 +368,7 @@ lemma mset_mset_lit_subst [clause_simp]:
   unfolding literal.subst_def atom.subst_def
   by (cases literal) (auto simp: mset_uprod_image_mset)
 
+(* TODO: Use subst_in_to_set_subst *)
 lemma term_in_literal_subst [clause_intro]: 
   assumes "term \<in># mset_lit literal" 
   shows "term \<cdot>t \<sigma> \<in># mset_lit (literal \<cdot>l \<sigma>)"
@@ -436,14 +429,6 @@ definition to_clause where
 definition to_ground_clause where
   "to_ground_clause \<equiv> image_mset to_ground_literal"
 
-(*
-This would be just confusing, right?
-
-declare [[coercion_enabled]]
-declare [[coercion to_ground_term]]
-declare [[coercion to_ground_context]] 
-*)
-
 definition clause_groundings ::
   "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" where
   "clause_groundings clause = { to_ground_clause (clause \<cdot> \<gamma>) | \<gamma>. clause.is_ground (clause \<cdot> \<gamma>) }"
@@ -474,7 +459,6 @@ lemma term_with_context_is_ground [clause_simp]:
   "term.is_ground context\<langle>term\<rangle> \<longleftrightarrow> context.is_ground context \<and> term.is_ground term"
   by simp
 
-(* --- *)
 lemma ground_atom_is_ground [simp]: "atom.is_ground (to_atom atom\<^sub>G)"
   unfolding to_atom_def atom.vars_def
   using ground_term_is_ground

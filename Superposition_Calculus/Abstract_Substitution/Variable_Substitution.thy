@@ -120,6 +120,7 @@ locale variable_substitution_lifting_set =
     map_comp: "\<And>d f g. map f (map g d) = map (f \<circ> g) d" and
     map_id: "map id d = d" and
     map_cong: "\<And>d f g. (\<And>c. c \<in> to_set d \<Longrightarrow> f c = g c) \<Longrightarrow> map f d = map g d" and
+    (* TODO: Better def? *)
     Union_range_to_set: "\<Union>(range to_set) = UNIV" and
     to_set_map: "\<And>d f. to_set (map f d) = f ` to_set d"  
 begin
@@ -130,13 +131,23 @@ definition vars :: "'expression \<Rightarrow> 'variable set" where
 definition subst :: "'expression \<Rightarrow> ('variable \<Rightarrow> 'base_expression) \<Rightarrow> 'expression" where
   "subst d \<sigma> \<equiv> map (\<lambda>c. base_subst c \<sigma>) d"
 
-lemma map_id_cong: "\<And>d f. (\<And>c. c \<in> to_set d \<Longrightarrow> f c = c) \<Longrightarrow> map f d = d"
-  using map_cong map_id
+lemma map_id_cong: 
+  assumes "\<And>c. c \<in> to_set d \<Longrightarrow> f c = c"  
+  shows "map f d = d"
+  using map_cong map_id assms
   unfolding id_def
   by metis
 
-lemma to_set_map_not_ident: "\<And>d f c. c \<in> to_set d \<Longrightarrow> f c \<notin> to_set d \<Longrightarrow> map f d \<noteq> d"
-  by (metis image_eqI to_set_map)
+lemma to_set_map_not_ident: 
+  assumes "c \<in> to_set d" "f c \<notin> to_set d" 
+  shows "map f d \<noteq> d"
+  by (metis assms image_eqI to_set_map)
+
+lemma subst_in_to_set_subst:
+  assumes "c \<in> to_set d" 
+  shows "base_subst c \<sigma> \<in> to_set (subst d \<sigma>)"
+  unfolding subst_def
+  using to_set_map assms by auto
 
 sublocale variable_substitution_set comp_subst id_subst subst vars
 proof unfold_locales
@@ -284,8 +295,6 @@ qed
 end
 
 locale mylifting = all_subst_ident_iff_ground_lifiting
-
-
 
 locale variable_substitution_expansion_set = variable_substitution_expansion where 
   contains = "(\<in>)" and is_empty = "\<lambda>X. X = {}" and is_finite = finite and subset_eq = "(\<subseteq>)" and
