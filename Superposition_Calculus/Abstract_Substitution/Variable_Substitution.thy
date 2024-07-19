@@ -37,6 +37,7 @@ locale variable_substitution =
   contains = contains and is_empty = is_empty  and is_finite = is_finite and 
   subset_eq = subset_eq and disjoint = disjoint
 for
+  (* value \<rightarrow> expression *)
   subst :: "'value \<Rightarrow> ('variable \<Rightarrow> 'subvalue) \<Rightarrow> 'value" (infixl "\<cdot>" 70) and
   vars :: "'value \<Rightarrow> 'variableset" and
   contains is_empty is_finite subset_eq disjoint  +
