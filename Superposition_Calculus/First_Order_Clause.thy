@@ -2,10 +2,12 @@ theory First_Order_Clause
   imports 
     Ground_Clause
     Abstract_Substitution.Substitution_First_Order_Term
+    Abstract_Substitution.Variable_Substitution
     Clausal_Calculus_Extra
     Multiset_Extra
     Term_Rewrite_System
     Term_Ordering_Lifting
+    "HOL-Eisbach.Eisbach"
 begin
 
 (* TODO: Maybe split up file*)
@@ -22,7 +24,42 @@ notation subst_apply_term (infixl "\<cdot>t" 67)
 notation subst_apply_ctxt (infixl "\<cdot>t\<^sub>c" 67)
 notation subst_compose (infixl "\<odot>" 75)
 
-(* Is there a way to define ground terms directly as a subset/subtype of non-ground terms? *)
+
+lemmas clause_simp_term =
+  subst_apply_term_ctxt_apply_distrib vars_term_ctxt_apply literal.sel
+
+
+named_theorems clause_simp
+named_theorems clause_intro
+
+lemma ball_set_uprod [clause_simp]: "(\<forall>t\<in>set_uprod (Upair t\<^sub>1 t\<^sub>2). P t) \<longleftrightarrow> P t\<^sub>1 \<and> P t\<^sub>2"
+  by auto
+
+lemma infinite_terms [clause_intro]: "infinite (UNIV :: ('f, 'v) term set)"
+proof-
+  have "infinite (UNIV :: ('f, 'v) term list set)"
+    using infinite_UNIV_listI.
+
+  then have "\<And>f :: 'f. infinite ((Fun f) ` (UNIV :: ('f, 'v) term list set))"
+    by (meson finite_imageD injI term.inject(2))
+
+  then show "infinite (UNIV :: ('f, 'v) term set)"
+    using infinite_super top_greatest by blast
+qed
+
+lemma literal_cases: "\<lbrakk>\<P> \<in> {Pos, Neg}; \<P> = Pos \<Longrightarrow> P; \<P> = Neg \<Longrightarrow> P\<rbrakk> \<Longrightarrow> P"
+  by blast
+
+(* TODO: cases *)
+method clause_simp uses (* cases*) simp intro =
+  (*(-, (rule literal_cases[OF cases]))?,*)
+  auto simp only: simp clause_simp clause_simp_term intro: intro clause_intro
+
+method clause_auto uses simp intro = 
+  (clause_simp simp: simp intro: intro)?,  
+  (auto simp: simp intro intro)?, 
+  (auto simp: simp clause_simp intro: intro clause_intro)?
+
 type_synonym 'f ground_term = "'f gterm"
 
 type_synonym 'f ground_context = "'f gctxt"
@@ -31,24 +68,19 @@ type_synonym ('f, 'v) "context" = "('f, 'v) ctxt"
 type_synonym 'f ground_atom = "'f gatom"
 type_synonym ('f, 'v) atom = "('f, 'v) term uprod"
 
-definition subst_atom ::
-  "('f, 'v) atom \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom" (infixl "\<cdot>a" 67)
-  where
-    "subst_atom atom \<sigma> = map_uprod (\<lambda>term. term \<cdot>t \<sigma>) atom"
-
-definition subst_literal ::
-  "('f, 'v) atom literal \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom literal" (infixl "\<cdot>l" 66)
-  where
-    "subst_literal literal \<sigma> = map_literal (\<lambda>atom. atom \<cdot>a \<sigma>) literal"
-
-definition subst_clause ::
-  "('f, 'v) atom clause \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom clause" (infixl "\<cdot>" 67)
-  where
-    "subst_clause clause \<sigma> = image_mset (\<lambda>literal. literal \<cdot>l \<sigma>) clause"
-
-(* This is an example where type-classes would be nice, but the Isabelle ones are shitty...*)
 abbreviation vars_context :: "('f, 'v) context \<Rightarrow> 'v set" where
   "vars_context \<equiv> vars_ctxt"
+
+(*definition subst_atom :: "('f, 'v) atom \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom" (infixl "\<cdot>a" 67) where
+  "subst_atom atom \<sigma> = map_uprod (\<lambda>term. term \<cdot>t \<sigma>) atom"
+
+definition subst_literal ::
+  "('f, 'v) atom literal \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom literal" (infixl "\<cdot>l" 66) where
+  "subst_literal literal \<sigma> = map_literal (\<lambda>atom. atom \<cdot>a \<sigma>) literal"
+
+definition subst_clause ::
+  "('f, 'v) atom clause \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) atom clause" (infixl "\<cdot>" 67) where
+  "subst_clause clause \<sigma> = image_mset (\<lambda>literal. literal \<cdot>l \<sigma>) clause"
 
 definition vars_atom :: "('f, 'v) atom \<Rightarrow> 'v set" where
   "vars_atom atom = (\<Union>term \<in> set_uprod atom. vars_term term)"
@@ -60,97 +92,367 @@ definition vars_clause :: "('f, 'v) atom clause \<Rightarrow> 'v set" where
   "vars_clause clause = (\<Union>literal \<in> set_mset clause. vars_literal literal)"
 
 definition vars_clause_set :: "('f, 'v) atom clause set \<Rightarrow> 'v set" where
-  "vars_clause_set clauses = (\<Union>clause \<in> clauses. vars_clause clause)"
+  "vars_clause_set clauses = (\<Union>clause \<in> clauses. vars_clause clause)"*)
 
-abbreviation is_ground_term where 
-  "is_ground_term \<equiv> is_ground_trm"
+global_interpretation "term": variable_substitution_set where
+  subst = subst_apply_term and id_subst = Var and comp_subst = subst_compose and vars = vars_term
+  using term_subst_eq
+  by unfold_locales auto
 
-hide_const is_ground_trm
-
-abbreviation is_ground_context where
-  "is_ground_context context \<equiv> vars_context context = {}"
-
-abbreviation is_ground_atom where
-  "is_ground_atom atom \<equiv> vars_atom atom = {}"
-
-abbreviation is_ground_literal where
-  "is_ground_literal literal \<equiv> vars_literal literal = {}"
-
-abbreviation is_ground_clause where
-  "is_ground_clause clause \<equiv> vars_clause clause = {}"
-
-(* TODO: *)
-global_interpretation subst_context: basic_substitution where
-  subst = subst_apply_ctxt and id_subst = Var and comp_subst = subst_compose and
-  is_ground = is_ground_context
-proof unfold_locales
-  fix \<kappa>
-  show "\<kappa> \<cdot>t\<^sub>c Var = \<kappa>"
-    by (induction \<kappa>) auto
+lemma context_is_ground_iff_ident_forall_subst:
+  fixes \<kappa> :: "('f, 'v) context"
+  shows "vars_context \<kappa> = {} \<longleftrightarrow> (\<forall>\<sigma>. \<kappa> \<cdot>t\<^sub>c \<sigma> = \<kappa>)" 
+proof (intro iffI)
+  show "vars_context \<kappa> = {} \<Longrightarrow> \<forall>\<sigma>. \<kappa> \<cdot>t\<^sub>c \<sigma> = \<kappa>"
+    by(induction \<kappa>) (simp_all add: list.map_ident_strong)
 next
-  show "\<And>\<kappa> \<sigma> \<tau>. \<kappa> \<cdot>t\<^sub>c \<sigma> \<odot> \<tau> = \<kappa> \<cdot>t\<^sub>c \<sigma> \<cdot>t\<^sub>c \<tau>"
+  assume "\<forall>\<sigma>. \<kappa> \<cdot>t\<^sub>c \<sigma> = \<kappa>"
+
+  then have "\<And>t\<^sub>G. term.is_ground t\<^sub>G \<Longrightarrow> \<forall>\<sigma>. \<kappa>\<langle>t\<^sub>G\<rangle> \<cdot>t \<sigma> = \<kappa>\<langle>t\<^sub>G\<rangle>"
     by simp
-next
-  fix \<kappa>
-  show "is_ground_context \<kappa> \<Longrightarrow> \<forall>\<sigma>. \<kappa> \<cdot>t\<^sub>c \<sigma> = \<kappa>"
-    by (induction \<kappa>) (simp_all add: list.map_ident_strong)
+
+  then have "\<And>t\<^sub>G. term.is_ground t\<^sub>G \<Longrightarrow> term.is_ground \<kappa>\<langle>t\<^sub>G\<rangle>"
+    by (meson is_ground_trm_iff_ident_forall_subst)
+
+  then show "vars_context \<kappa> = {}"
+    by (metis sup.commute sup_bot_left vars_term_ctxt_apply vars_term_of_gterm)
 qed
 
-lemma is_ground_atom_iff_ident_forall_subst:
-  fixes A :: "('f, 'v) atom"
-  shows "is_ground_atom A \<longleftrightarrow> (\<forall>\<sigma>. A \<cdot>a \<sigma> = A)"
+(* TODO NOW! ! !
+lemma atom_is_ground_iff_ident_forall_subst:
+  fixes atom :: "('f, 'v) atom"
+  shows "vars_atom atom = {} \<longleftrightarrow> (\<forall>\<sigma>. atom \<cdot>a \<sigma> = atom)" 
 proof (rule iffI)
-  show "\<And>x. is_ground_atom x \<Longrightarrow> \<forall>\<sigma>. x \<cdot>a \<sigma> = x"
+  show "\<And>x. vars_atom x = {} \<Longrightarrow> \<forall>\<sigma>. x \<cdot>a \<sigma> = x"
     by (simp add: subst_atom_def uprod.map_ident_strong vars_atom_def)
 next
-  assume ident_forall_subst: "\<forall>\<sigma>. A \<cdot>a \<sigma> = A"
+  assume ident_forall_subst: "\<forall>\<sigma>. atom \<cdot>a \<sigma> = atom"
 
-  have "is_ground_term t" if A_def: "A = Upair t u" for t u :: "('f, 'v) term"
+  have "term.is_ground t" if atom: "atom = Upair t u" for t u :: "('f, 'v) term"
   proof (rule ccontr)
-    assume "\<not> is_ground_term t"
+    assume is_not_ground_term: "\<not> term.is_ground t"
     define \<sigma> :: "'v \<Rightarrow> ('f, 'v) term" where
       "\<sigma> = (\<lambda>_. u)"
 
     have "t \<cdot>t \<sigma> = t \<and> u \<cdot>t \<sigma> = u \<or> t \<cdot>t \<sigma> = u \<and> u \<cdot>t \<sigma> = t"
-      using ident_forall_subst by (simp add: A_def subst_atom_def)
+      using ident_forall_subst by (simp add: atom subst_atom_def)
 
     moreover have "\<not> (t \<cdot>t \<sigma> = t \<and> u \<cdot>t \<sigma> = u)"
-      by (smt (z3) Upair_inject \<open>vars_term t \<noteq> {}\<close> \<sigma>_def ident_forall_subst
-          is_ground_trm_iff_ident_forall_subst
-          map_uprod_simps subst_apply_eq_Var subst_atom_def term_subst.subst_id_subst
-          term_subst_eq_conv A_def)
+      using ident_forall_subst is_ground_trm_iff_ident_forall_subst is_not_ground_term
+      unfolding \<sigma>_def atom Upair_inject subst_atom_def map_uprod_simps 
+      by (metis equals0I eval_term.elims is_FunI is_Fun_num_funs_less leD num_funs_subst)
 
-    moreover have "\<not> (t \<cdot>t \<sigma> = u \<and> u \<cdot>t \<sigma> = t)"
-      by (metis (no_types, opaque_lifting) \<sigma>_def calculation subst_apply_eq_Var subst_compose_def
+    moreover then have "\<not> (t \<cdot>t \<sigma> = u \<and> u \<cdot>t \<sigma> = t)"
+      by (metis (no_types, opaque_lifting) \<sigma>_def subst_apply_eq_Var subst_compose_def
           term_subst.subst_comp_subst term_subst_eq_conv)
 
     ultimately show False
       by argo
   qed
 
-  thus "is_ground_atom A"
+  thus "vars_atom atom = {}"
     by (metis (no_types, opaque_lifting) Sup_empty Sup_insert Upair_inject map_uprod_simps
         set_uprod_simps sup.idem uprod.set_map uprod_exhaust vars_atom_def)
 qed
 
-global_interpretation subst_atom: basic_substitution where
-  subst = subst_atom and id_subst = Var and comp_subst = subst_compose and
-  is_ground = is_ground_atom
-proof unfold_locales
-  show "\<And>x. x \<cdot>a Var = x"
-    by (simp add: subst_atom_def uprod.map_ident)
+lemma literal_is_ground_iff_ident_forall_subst:
+  fixes literal :: "('f, 'v) atom literal"
+  shows "vars_literal literal = {} \<longleftrightarrow> (\<forall>\<sigma>. literal \<cdot>l \<sigma> = literal)" 
+proof(intro iffI)
+  assume "vars_literal literal = {}"
+  then show "\<forall>\<sigma>. literal \<cdot>l \<sigma> = literal"
+    by (simp add: atom_is_ground_iff_ident_forall_subst literal.expand literal.map_sel(1) 
+          literal.map_sel(2) subst_literal_def vars_literal_def)
 next
+  assume "\<forall>\<sigma>. literal \<cdot>l \<sigma> = literal"
+  then show "vars_literal literal = {}"
+    using atom_is_ground_iff_ident_forall_subst
+    unfolding subst_literal_def vars_literal_def
+    by (metis literal.map_sel)
+qed
+
+lemma term_obtain_non_ident_subst:
+  fixes t :: "('f, 'v) term"
+  assumes "vars_term t \<noteq> {}"  
+  obtains \<sigma> where "t \<cdot>t \<sigma> \<noteq> t" "t \<cdot>t \<sigma> \<notin># ts"
+  using assms
+proof(induction t arbitrary: ts thesis)
+  case (Var x)
+
+  have"\<And>f :: 'f. infinite ((Fun f) ` (UNIV :: ('f, 'v) term list set))"
+    using infinite_UNIV_listI
+    by (meson finite_imageD injI term.inject(2))
+
+  then obtain t' where t': "t' \<notin># ts" "is_Fun t'"
+    by (meson finite_set_mset image_subset_iff rev_finite_subset term.discI(2))
+    
+  define \<sigma> :: "('f, 'v) subst" where "\<And>x. \<sigma> x = t'"
+
+  have "Var x \<cdot>t \<sigma> \<noteq> Var x"
+    using t'
+    unfolding \<sigma>_def
+    by auto
+
+  moreover have "Var x \<cdot>t \<sigma> \<notin># ts"
+    using t'
+    unfolding \<sigma>_def
+    by simp
+
+  ultimately show ?case
+    using Var
+    by blast
+next
+  case (Fun f args)
+                   
+  obtain a where a: "a \<in> set args" and a_vars: "vars_term a \<noteq> {}"
+    using Fun.prems by fastforce
+                                                                  
+  then obtain \<sigma> where 
+    \<sigma>: "a \<cdot>t \<sigma> \<noteq> a" and
+    a_\<sigma>_not_in_args: "a \<cdot>t \<sigma> \<notin># \<Sum>\<^sub># (image_mset (mset \<circ> term.args) ts)"
+    using Fun.IH
+    by blast
+
+  then have "Fun f args \<cdot>t \<sigma> \<noteq> Fun f args"
+    by (metis a subsetI term.set_intros(4) term_subst.comp_subst.left.action_neutral 
+        vars_term_subset_subst_eq)
+
+  moreover have "Fun f args \<cdot>t \<sigma> \<notin># ts"
+    using a a_\<sigma>_not_in_args
+    by auto
+
+  ultimately show ?case
+    using Fun
+    by blast
+qed
+
+lemma atom_obtain_non_ident_subst:
+  assumes "vars_atom a \<noteq> {}"  
+  obtains \<sigma> where "a \<cdot>a \<sigma> \<noteq> a" "a \<cdot>a \<sigma> \<notin># as"
+proof-
+  obtain t t' where a: "a = Upair t t'" and t: "vars_term t  \<noteq> {}"
+    using assms
+    unfolding vars_atom_def
+    by (smt (verit, ccfv_threshold) UN_constant Upair_sym image_empty image_insert set_uprod_simps uprod_exhaust)
+
+  then obtain \<sigma> where "t \<cdot>t \<sigma> \<noteq> t" "t \<cdot>t \<sigma> \<notin># add_mset t' (\<Sum>\<^sub># (image_mset mset_uprod as))"
+    by (meson term_obtain_non_ident_subst)
+  
+  then have "a \<cdot>a \<sigma> \<noteq> a \<and> a \<cdot>a \<sigma> \<notin># as"
+    unfolding a subst_atom_def
+    by auto
+
+  then show ?thesis
+    using that
+    by blast
+qed
+
+lemma literal_obtain_non_ident_subst:
+  assumes "vars_literal l \<noteq> {}"
+  obtains \<sigma> where "l \<cdot>l \<sigma> \<noteq> l" "l \<cdot>l \<sigma> \<notin># ls"
+  using atom_obtain_non_ident_subst[OF assms[unfolded vars_literal_def]]
+  unfolding subst_literal_def
+  by (metis (no_types, lifting) atm_of_lit_in_atms_of atms_of_def literal.map_sel multiset.set_map)
+
+lemma clause_obtain_non_ident_subst:
+  assumes "vars_clause c \<noteq> {}"  
+  obtains \<sigma> where "c \<cdot> \<sigma> \<noteq> c" "c \<cdot> \<sigma> \<notin># cs"
+proof-
+  obtain l where l: "l \<in># c" and "vars_literal l  \<noteq> {}"
+    using assms
+    unfolding vars_clause_def
+    by blast
+
+  then obtain \<sigma> where \<sigma>: "l \<cdot>l \<sigma> \<noteq> l \<and> l \<cdot>l \<sigma> \<notin># (c \<union># \<Sum>\<^sub>#cs)"
+    using literal_obtain_non_ident_subst
+    by meson
+
+  moreover then have "c \<cdot> \<sigma> \<noteq> c"
+    unfolding subst_clause_def
+    using l
+    by (metis (mono_tags, lifting) UnI1 image_iff multiset.set_map set_mset_sup)
+  
+  moreover have "c \<cdot> \<sigma> \<notin># cs"
+    unfolding subst_clause_def
+    using l \<sigma>
+    by auto
+    
+  ultimately show ?thesis
+    using that
+    by blast
+qed
+
+lemma clause_is_ground_iff_ident_forall_subst:
+  fixes clause :: "('f, 'v) atom clause"
+  shows "vars_clause clause = {} \<longleftrightarrow> (\<forall>\<sigma>. clause \<cdot> \<sigma> = clause)" 
+proof(intro iffI)
+  assume "vars_clause clause = {}"
+  then show "\<forall>\<sigma>. clause \<cdot> \<sigma> = clause"
+    by (simp add: literal_is_ground_iff_ident_forall_subst subst_clause_def vars_clause_def)
+next
+  assume all_subst_eq: "\<forall>\<sigma>. clause \<cdot> \<sigma> = clause"
+
+  show "vars_clause clause = {}"
+  proof(rule ccontr)
+    assume "vars_clause clause \<noteq> {}"
+
+    then obtain l where l: "l \<in># clause" and "vars_literal l \<noteq> {}"
+      unfolding vars_clause_def
+      by blast
+
+    moreover then obtain \<sigma> where "l \<cdot>l \<sigma> \<noteq> l" "l \<cdot>l \<sigma> \<notin># clause"
+      using literal_obtain_non_ident_subst
+      by meson
+
+    ultimately have "clause \<cdot> \<sigma> \<noteq> clause"
+      unfolding subst_clause_def
+      by (metis (mono_tags, lifting) image_iff in_image_mset)
+
+    then show False
+      using all_subst_eq
+      by blast
+  qed
+qed
+*)
+
+global_interpretation "context": variable_substitution_lifting_set where
+   lifted_subst = subst_apply_ctxt and lifted_vars = vars_context and id_subst = Var and 
+   comp_subst = subst_compose and vars = vars_term and subst = subst_apply_term
+proof unfold_locales
+  fix \<kappa> :: "('f, 'v) context"
+  show "\<kappa> \<cdot>t\<^sub>c Var = \<kappa>"
+    by (induction \<kappa>) auto
+next
+  show "\<And>\<kappa> \<sigma> \<tau>. \<kappa> \<cdot>t\<^sub>c \<sigma> \<odot> \<tau> = \<kappa> \<cdot>t\<^sub>c \<sigma> \<cdot>t\<^sub>c \<tau>"
+    by simp
+next
+  show "\<And>\<kappa>. vars_context \<kappa> = {} \<Longrightarrow> \<forall>\<sigma>. \<kappa> \<cdot>t\<^sub>c \<sigma> = \<kappa>"
+    by (simp add: context_is_ground_iff_ident_forall_subst)
+next 
+  show "\<And>a \<sigma> \<tau>. (\<And>x. x \<in> vars_context a \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot>t\<^sub>c \<sigma> = a \<cdot>t\<^sub>c \<tau>"
+    using ctxt_subst_eq.
+next
+  fix \<kappa> :: "('f, 'v) context"
+
+  have "\<And>t. finite (vars_term \<kappa>\<langle>t\<rangle>)"
+    using term.finite_vars by blast
+
+  then show "finite (vars_context \<kappa>)"
+    unfolding vars_term_ctxt_apply finite_Un
+    by simp
+next
+  fix \<gamma> :: "('f,'v) subst"
+
+  show "(\<forall>\<kappa>. vars_context (\<kappa> \<cdot>t\<^sub>c \<gamma>) = {}) = (\<forall>t. term.is_ground (t \<cdot>t \<gamma>))"
+  proof(intro iffI allI equals0I)
+    fix t x
+
+    assume is_ground: "\<forall>\<kappa>. vars_context (\<kappa> \<cdot>t\<^sub>c \<gamma>) = {}" and vars: "x \<in> vars_term (t \<cdot>t \<gamma>)"
+
+    have "\<And>f. vars_context (More f [t] Hole [] \<cdot>t\<^sub>c \<gamma>) = {}"
+      using is_ground
+      by presburger
+
+    moreover have "\<And>f. x \<in> vars_context (More f [t] Hole [] \<cdot>t\<^sub>c \<gamma>)"
+      using vars
+      by simp
+      
+    ultimately show False
+      by blast
+  next
+    fix \<kappa> x
+    assume is_ground: "\<forall>t. term.is_ground (t \<cdot>t \<gamma>)" and vars: "x \<in> vars_context (\<kappa> \<cdot>t\<^sub>c \<gamma>)"
+
+    have "\<And>t. term.is_ground (\<kappa>\<langle>t\<rangle> \<cdot>t \<gamma>)"
+      using is_ground
+      by presburger
+
+    moreover have "\<And>t. x \<in> vars_term (\<kappa>\<langle>t\<rangle> \<cdot>t \<gamma>)"
+      using vars
+      by simp
+
+    ultimately show False
+      by blast
+  qed
+qed
+
+lemma Union_range_set_uprod: "\<Union> (range set_uprod) = UNIV"
+  by (metis UNIV_I UNIV_eq_I UN_iff insert_iff set_uprod_simps)
+
+lemma Union_range_set_literal: "\<Union> (range set_literal) = UNIV"
+  unfolding set_literal_atm_of   
+  by (metis (no_types, lifting) UNIV_eq_I Union_iff literal.sel(2) image_insert insertI1 
+      insert_UNIV)
+
+lemma Union_range_set_mset: "\<Union> (range set_mset) = UNIV"
+  by (metis UNIV_eq_I Union_iff multi_member_this rangeI)
+
+lemma finite_set_literal: "\<And>l. finite (set_literal l)"
+  unfolding set_literal_atm_of
+  by simp
+
+global_interpretation atom: variable_substitution_lifting_set'
+  where comp_subst = subst_compose and id_subst = Var and 
+    base_subst = subst_apply_term and base_vars = vars_term and map = map_uprod and
+    to_set = set_uprod
+  by
+    unfold_locales 
+    (auto simp: uprod.map_comp uprod.map_id uprod.set_map Union_range_set_uprod 
+       intro: uprod.map_cong)
+
+global_interpretation literal: variable_substitution_lifting_set'
+  where comp_subst = subst_compose and id_subst = Var and 
+    base_subst = atom.subst and base_vars = atom.vars and map = map_literal and
+    to_set = set_literal
+  by
+    unfold_locales 
+    (auto simp: literal.map_comp literal.map_id literal.set_map Union_range_set_literal
+      finite_set_literal intro: literal.map_cong)
+
+global_interpretation clause: variable_substitution_lifting_set'
+  where comp_subst = subst_compose and id_subst = Var and 
+    base_subst = literal.subst and base_vars = literal.vars and map = image_mset and
+    to_set = set_mset
+  by unfold_locales (auto simp: Union_range_set_mset)
+
+(*global_interpretation atom: variable_substitution_lifting_set
+  where lifted_subst = subst_atom and lifted_vars = vars_atom and id_subst = Var and 
+        comp_subst = subst_compose and vars = vars_term and subst = subst_apply_term
+proof unfold_locales
   show "\<And>x \<sigma> \<tau>. x \<cdot>a \<sigma> \<odot> \<tau> = x \<cdot>a \<sigma> \<cdot>a \<tau>"
     unfolding subst_atom_def subst_subst_compose
     by (metis (no_types, lifting) map_uprod_simps uprod_exhaust)
+next 
+  show "\<And>x. x \<cdot>a Var = x"
+    by (simp add: subst_atom_def uprod.map_ident)
 next
-  show "\<And>x. is_ground_atom x \<Longrightarrow> \<forall>\<sigma>. x \<cdot>a \<sigma> = x"
-    using is_ground_atom_iff_ident_forall_subst by  metis
+  show "\<And>x. vars_atom x = {} \<Longrightarrow> \<forall>\<sigma>. x \<cdot>a \<sigma> = x"
+    using atom_is_ground_iff_ident_forall_subst by  metis
+next
+  show "\<And>a \<sigma> \<tau>. (\<And>x. x \<in> vars_atom a \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot>a \<sigma> = a \<cdot>a \<tau>"
+    by (smt (verit, best) UN_I subst_atom_def term_subst_eq uprod.map_cong0 vars_atom_def)
+next
+  fix \<gamma> :: "('f, 'v) subst"
+  show "(\<forall>x. vars_atom (x \<cdot>a \<gamma>) = {}) = (\<forall>x. term.is_ground (x \<cdot>t \<gamma>))" 
+  proof(rule iffI)
+    assume "\<forall>x. vars_atom (x \<cdot>a \<gamma>) = {}"
+    then show "\<forall>x. term.is_ground (x \<cdot>t \<gamma>)"
+      unfolding vars_atom_def subst_atom_def
+      by (metis (no_types, lifting) SUP_bot_conv(2) insert_iff map_uprod_simps set_uprod_simps)
+  next
+    assume "\<forall>x. term.is_ground (x \<cdot>t \<gamma>)"
+    then show "\<forall>x. vars_atom (x \<cdot>a \<gamma>) = {}"
+      unfolding vars_atom_def subst_atom_def
+      by (simp add: uprod.set_map)
+  qed
+next
+  show "\<And>a. finite (vars_atom a)"
+    by (simp add: vars_atom_def)
 qed
 
-global_interpretation subst_literal: basic_substitution where
-  subst = subst_literal and id_subst = Var and comp_subst = subst_compose and
-  is_ground = is_ground_literal
+global_interpretation literal: variable_substitution_lifting_set
+  where lifted_subst = subst_literal and lifted_vars = vars_literal and id_subst = Var and 
+    comp_subst = subst_compose and vars = atom.vars and subst = subst_atom
 proof unfold_locales
   show "\<And>x. x \<cdot>l Var = x"
     by (simp add: subst_literal_def literal.map_ident)
@@ -158,13 +460,25 @@ next
   show "\<And>x \<sigma> \<tau>. x \<cdot>l \<sigma> \<odot> \<tau> = x \<cdot>l \<sigma> \<cdot>l \<tau>"
     by (simp add: subst_literal_def map_literal_comp)
 next
-  show "\<And>x. is_ground_literal x \<Longrightarrow> \<forall>\<sigma>. x \<cdot>l \<sigma> = x"
-    by (simp add: literal.expand literal.map_sel subst_literal_def vars_literal_def)
+  show "\<And>x. vars_literal x = {} \<Longrightarrow> \<forall>\<sigma>. x \<cdot>l \<sigma> = x"
+    using literal_is_ground_iff_ident_forall_subst
+    by blast
+next
+  show "\<And>a \<sigma> \<tau>. (\<And>x. x \<in> vars_literal a \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot>l \<sigma> = a \<cdot>l \<tau>"
+    unfolding subst_literal_def vars_literal_def  
+    by (metis atom.subst_eq empty_iff insert_iff literal.map_cong0 set_literal_atm_of)
+next
+  show "\<And>\<gamma>. (\<forall>x. vars_literal (x \<cdot>l \<gamma>) = {}) = (\<forall>x. atom.is_ground (x \<cdot>a \<gamma>))"
+    by (metis literal.map(2) literal.map_sel literal.sel(2) subst_literal_def vars_literal_def)
+next
+  show "\<And>a. finite (vars_literal a)"
+    by (simp add: vars_literal_def)
 qed
 
-global_interpretation subst_clause: basic_substitution where
-  subst = subst_clause and id_subst = Var and comp_subst = subst_compose and
-  is_ground = is_ground_clause
+(* TODO: also for clause set *)
+global_interpretation clause: variable_substitution_lifting_set
+  where lifted_subst = subst_clause and lifted_vars = vars_clause and id_subst = Var and 
+    comp_subst = subst_compose and vars = vars_literal and subst = subst_literal
 proof unfold_locales
   show "\<And>x. x \<cdot> Var = x"
     by (simp add: subst_clause_def)
@@ -172,280 +486,125 @@ next
   show "\<And>x \<sigma> \<tau>. x \<cdot> \<sigma> \<odot> \<tau> = x \<cdot> \<sigma> \<cdot> \<tau>"
     by (simp add: subst_clause_def)
 next
-  show "\<And>x. is_ground_clause x \<Longrightarrow> \<forall>\<sigma>. x \<cdot> \<sigma> = x"
+  show "\<And>x. vars_clause x = {} \<Longrightarrow> \<forall>\<sigma>. x \<cdot> \<sigma> = x"
     by (simp add: subst_clause_def vars_clause_def)
-qed
+next
+  show "\<And>a \<sigma> \<tau>. (\<And>x. x \<in> vars_clause a \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot> \<sigma> = a \<cdot> \<tau>"
+    unfolding vars_clause_def subst_clause_def
+    using literal.subst_eq
+    by (metis (mono_tags, lifting) UN_I image_mset_cong2)
+next
+  show "\<And>\<gamma>. (\<forall>x. vars_clause (x \<cdot> \<gamma>) = {}) = (\<forall>x. literal.is_ground (x \<cdot>l \<gamma>))"
+    unfolding vars_clause_def subst_clause_def
+    by (smt (z3) SUP_bot_conv(1) image_iff insert_iff set_image_mset set_mset_add_mset_insert)
+next
+  show "\<And>a. finite (vars_clause a)"
+    by (simp add: vars_clause_def)
+qed *)
 
-text \<open>The following names are for backward compatibility\<close>
+notation atom.subst (infixl "\<cdot>a" 67)
+notation literal.subst (infixl "\<cdot>l" 66)
+notation clause.subst (infixl "\<cdot>" 67)
 
-lemmas subst_context_Var_ident = subst_context.subst_id_subst
-lemmas subst_atom_Var_ident = subst_atom.subst_id_subst
-lemmas subst_literal_Var_ident = subst_literal.subst_id_subst
-lemmas subst_clause_Var_ident = subst_clause.subst_id_subst
+lemma clause_subst_empty [clause_simp]: "{#} \<cdot> \<sigma> = {#}" "clause \<cdot> \<sigma> = {#} \<longleftrightarrow> clause = {#}"
+  by (simp_all add: clause.subst_def)
 
-lemmas context_subst_compose = subst_context.subst_comp_subst
-lemmas term_subst_compose = term_subst.subst_comp_subst
-lemmas atom_subst_compose = subst_atom.subst_comp_subst
-lemmas literal_subst_compose = subst_literal.subst_comp_subst
-lemmas clause_subst_compose = subst_clause.subst_comp_subst
+(* TODO: vars_term \<rightarrow> term.vars + same context *)
+lemma vars_atom [clause_simp]: 
+  "atom.vars (Upair term\<^sub>1 term\<^sub>2) = vars_term term\<^sub>1 \<union> vars_term term\<^sub>2"
+  by (simp_all add: atom.vars_def)
 
-lemmas subst_ground_context = subst_context.subst_ident_if_ground
-lemmas subst_ground_atom = subst_atom.subst_ident_if_ground
-lemmas subst_ground_literal = subst_literal.subst_ident_if_ground
-lemmas subst_ground_clause = subst_clause.subst_ident_if_ground
+lemma vars_literal [clause_simp]: 
+  "literal.vars (Pos atom) = atom.vars atom"
+  "literal.vars (Neg atom) = atom.vars atom"
+  "literal.vars ((if b then Pos else Neg) atom) = atom.vars atom"
+  by (simp_all add: literal.vars_def)
 
-lemmas ground_subst_compose = term_subst.is_ground_subst_comp_right
+lemma vars_clause_add_mset [clause_simp]: 
+  "clause.vars (add_mset literal clause) = literal.vars literal \<union> clause.vars clause"
+  by (simp add: clause.vars_def)
 
-lemma clause_subst_empty [simp]: "{#} \<cdot> \<sigma> = {#}" "clause \<cdot> \<sigma> = {#} \<longleftrightarrow> clause = {#}"
-  by (simp_all add: subst_clause_def)
+lemma vars_clause_plus [clause_simp]: 
+  "clause.vars (clause\<^sub>1 + clause\<^sub>2) = clause.vars clause\<^sub>1 \<union> clause.vars clause\<^sub>2"
+  by (simp add: clause.vars_def)
 
-lemmas upair_in_literal = literal.sel
-
-lemma finite_vars_atom [simp]:
-  "finite (vars_atom atom)"
-  unfolding vars_atom_def
-  by simp
-
-lemma finite_vars_literal [simp]:
-  "finite (vars_literal literal)"
-  unfolding vars_literal_def
-  by simp
-
-lemma finite_vars_clause [simp]:
-  "finite (vars_clause clause)"
-  unfolding vars_clause_def
-  by auto
-
-lemma vars_literal [simp]: 
-  "vars_literal (Pos atom) = vars_atom atom"
-  "vars_literal (Neg atom) = vars_atom atom"
-  by (simp_all add: vars_literal_def)
-
-lemma vars_literal_split [simp]: 
-  "vars_literal (term\<^sub>1 \<approx> term\<^sub>2) = vars_term term\<^sub>1 \<union> vars_term term\<^sub>2"
-  unfolding vars_literal_def vars_atom_def
-  by simp
-
-lemma vars_clause_add_mset [simp]: 
-  "vars_clause (add_mset literal clause) = vars_literal literal \<union> vars_clause clause"
-  by (simp add: vars_clause_def)
-
-lemma vars_clause_plus [simp]: 
-  "vars_clause (clause\<^sub>1 + clause\<^sub>2) = vars_clause clause\<^sub>1 \<union> vars_clause clause\<^sub>2"
-  by (simp add: vars_clause_def)
-
-lemma clause_submset_vars_clause_subset: 
-  "clause\<^sub>1 \<subseteq># clause\<^sub>2 \<Longrightarrow> vars_clause clause\<^sub>1 \<subseteq> vars_clause clause\<^sub>2"
+lemma clause_submset_vars_clause_subset [clause_intro]: 
+  "clause\<^sub>1 \<subseteq># clause\<^sub>2 \<Longrightarrow> clause.vars clause\<^sub>1 \<subseteq> clause.vars clause\<^sub>2"
   by (metis subset_mset.add_diff_inverse sup_ge1 vars_clause_plus)
 
-lemma atom_subst_eq:
-  assumes "\<And>x. x \<in> vars_atom atom \<Longrightarrow> \<sigma> x = \<tau> x"
-  shows "atom \<cdot>a \<sigma> = atom \<cdot>a \<tau>"
-  using term_subst_eq assms
-  unfolding vars_atom_def subst_atom_def
-  by (metis (no_types, lifting) UN_I uprod.map_cong0)
-
-lemma literal_subst_eq:
-  assumes "\<And>x. x \<in> vars_literal literal \<Longrightarrow> \<sigma> x = \<tau> x"
-  shows "literal \<cdot>l \<sigma> = literal \<cdot>l \<tau>"
-  using atom_subst_eq assms
-  unfolding vars_literal_def subst_literal_def
-  by (metis literal.map_cong set_literal_atm_of singletonD)
-
-lemma clause_subst_eq:
-  assumes "\<And>x. x \<in> vars_clause clause \<Longrightarrow> \<sigma> x = \<tau> x"
-  shows "clause \<cdot> \<sigma> = clause \<cdot> \<tau>"
-  using literal_subst_eq assms
-  unfolding vars_clause_def subst_clause_def
-  by (metis (mono_tags, lifting) UN_I multiset.map_cong0)
-
-lemma is_ground_clause_empty [simp]: "is_ground_clause {#}"
-  unfolding vars_clause_def
+lemma empty_clause_is_ground [clause_simp]: "clause.is_ground {#}"
+  unfolding clause.vars_def
   by simp 
 
-lemma is_ground_term_iff_term_context_ground: 
-  "Term_Context.ground term = is_ground_term term"
+lemma term_context_ground_iff_term_is_ground [clause_simp]:
+  "Term_Context.ground term = term.is_ground term"
   by(induction "term") auto
 
-lemma is_ground_term_ctxt_iff_ground_ctxt: 
-  "ground_ctxt context = is_ground_context context"
-  by (induction "context") (simp_all add: is_ground_term_iff_term_context_ground)
-
-lemma subst_atom: 
+lemma ground_ctxt_iff_context_is_ground [clause_simp]: 
+  "ground_ctxt context = context.is_ground context"
+  by(induction "context") clause_auto
+ 
+lemma subst_atom [clause_simp]: 
   "Upair term\<^sub>1 term\<^sub>2 \<cdot>a \<sigma> = Upair (term\<^sub>1 \<cdot>t \<sigma>) (term\<^sub>2 \<cdot>t \<sigma>)"
-  unfolding subst_atom_def
+  unfolding atom.subst_def
   by simp_all
-
-lemma subst_literal: 
+  
+lemma subst_literal [clause_simp]: 
   "Pos atom \<cdot>l \<sigma> = Pos (atom \<cdot>a \<sigma>)"
   "Neg atom \<cdot>l \<sigma> = Neg (atom \<cdot>a \<sigma>)"
   "atm_of (literal \<cdot>l \<sigma>) = atm_of literal \<cdot>a \<sigma>"
-  unfolding subst_literal_def
+  unfolding literal.subst_def
   using literal.map_sel
   by auto
 
-lemma subst_clause_add_mset: 
+lemma subst_clause_add_mset [clause_simp]: 
   "add_mset literal clause \<cdot> \<sigma> = add_mset (literal \<cdot>l \<sigma>) (clause \<cdot> \<sigma>)"
-  unfolding subst_clause_def
+  unfolding clause.subst_def
   by simp
 
-lemma subst_clause_remove1_mset: 
+lemma subst_clause_remove1_mset [clause_simp]: 
   assumes "literal \<in># clause" 
   shows "remove1_mset literal clause \<cdot> \<sigma> = remove1_mset (literal \<cdot>l \<sigma>) (clause \<cdot> \<sigma>)"
-  unfolding subst_clause_def image_mset_remove1_mset_if
+  unfolding clause.subst_def image_mset_remove1_mset_if
   using assms
   by simp
 
-lemma subst_clause_plus: 
+lemma subst_clause_plus [clause_simp]: 
   "(clause\<^sub>1 + clause\<^sub>2) \<cdot> \<sigma> = clause\<^sub>1 \<cdot> \<sigma> + clause\<^sub>2 \<cdot> \<sigma>"
-  unfolding subst_clause_def
+  unfolding clause.subst_def
   by simp
 
-lemma sub_ground_clause: 
-  assumes "clause' \<subseteq># clause" "is_ground_clause clause "
-  shows "is_ground_clause clause'"
+lemma sub_ground_clause [clause_intro]: 
+  assumes "clause' \<subseteq># clause" "clause.is_ground clause"
+  shows "clause.is_ground clause'"
   using assms
-  by (simp add: mset_subset_eqD vars_clause_def)
+  unfolding clause.vars_def
+  by blast
 
-lemma mset_mset_lit_subst: 
+lemma mset_mset_lit_subst [clause_simp]: 
   "{# term \<cdot>t \<sigma>. term \<in># mset_lit literal #} = mset_lit (literal \<cdot>l \<sigma>)"
-  unfolding subst_literal_def subst_atom_def
+  unfolding literal.subst_def atom.subst_def
   by (cases literal) (auto simp: mset_uprod_image_mset)
 
-lemma is_ground_subst_is_ground_term: 
-  assumes "term_subst.is_ground_subst \<gamma>" 
-  shows "is_ground_term (term \<cdot>t \<gamma>)"
-  using assms
-  unfolding term_subst.is_ground_subst_def
-  by simp
-
-lemma is_ground_subst_is_ground_atom: 
-  assumes "term_subst.is_ground_subst \<gamma>"  
-  shows "is_ground_atom (atom \<cdot>a \<gamma>)"
-  unfolding vars_atom_def subst_atom_def uprod.set_map
-  using is_ground_subst_is_ground_term[OF assms]
-  by simp 
-
-lemma is_ground_subst_is_ground_literal: 
-  assumes "term_subst.is_ground_subst \<gamma>"  
-  shows "is_ground_literal (literal \<cdot>l \<gamma>)"
-  unfolding subst_literal_def vars_literal_def
-  using is_ground_subst_is_ground_atom[OF assms]
-  by (cases literal) simp_all
-
-lemma is_ground_subst_is_ground_clause: 
-  assumes "term_subst.is_ground_subst \<gamma>"  
-  shows "is_ground_clause (clause \<cdot> \<gamma>)"
-  unfolding subst_clause_def vars_clause_def
-  using is_ground_subst_is_ground_literal[OF assms]
-  by simp
-
-lemma is_ground_subst_is_ground_context: 
-  assumes "term_subst.is_ground_subst \<gamma>" 
-  shows "is_ground_context (context \<cdot>t\<^sub>c \<gamma>)"
-  using assms unfolding term_subst.is_ground_subst_def
-  by (metis subst_apply_term_ctxt_apply_distrib sup_bot.right_neutral vars_term_ctxt_apply)
-
-lemma term_in_literal_subst: 
+lemma term_in_literal_subst [clause_intro]: 
   assumes "term \<in># mset_lit literal" 
   shows "term \<cdot>t \<sigma> \<in># mset_lit (literal \<cdot>l \<sigma>)"
   using assms
-  unfolding subst_literal_def subst_atom_def
+  unfolding literal.subst_def atom.subst_def
   by (cases literal) (auto simp: uprod.set_map)
 
-lemma literal_in_clause_subst: 
+lemma literal_in_clause_subst [clause_intro]: 
   assumes "literal \<in># clause"  
   shows "literal \<cdot>l \<sigma> \<in># clause \<cdot> \<sigma>"
   using assms
-  unfolding subst_clause_def
+  unfolding clause.subst_def
   by simp
 
 lemma subst_polarity_stable: 
   shows 
-    subst_neg_stable: "is_neg literal \<longleftrightarrow> is_neg (literal \<cdot>l \<sigma>)" and
-    subst_pos_stable: "is_pos literal \<longleftrightarrow> is_pos (literal \<cdot>l \<sigma>)"
-  by (simp_all add: subst_literal_def)
-
-lemma term_subst_reduntant_upd [simp]:
-  assumes "var \<notin> vars_term term"
-  shows "term \<cdot>t \<sigma>(var := update) = term \<cdot>t \<sigma>"
-  using eval_with_fresh_var[OF assms] 
-  by fast
-
-lemma atom_subst_reduntant_upd [simp]:
-  assumes "var \<notin> vars_atom atom"
-  shows "atom \<cdot>a \<sigma>(var := update) = atom \<cdot>a \<sigma>"
-  using assms 
-  unfolding vars_atom_def subst_atom_def
-  by(cases atom) simp
-
-lemma literal_subst_reduntant_upd [simp]:
-  assumes "var \<notin> vars_literal literal"
-  shows "literal \<cdot>l \<sigma>(var := update) = literal \<cdot>l \<sigma>"
-  using assms 
-  unfolding vars_literal_def subst_literal_def
-  by(cases literal) simp_all
-
-lemma clause_subst_reduntant_upd [simp]:
-  assumes "var \<notin> vars_clause clause"
-  shows "clause \<cdot> \<sigma>(var := update) = clause \<cdot> \<sigma>"
-  using assms
-  unfolding vars_clause_def subst_clause_def
-  by auto
-
-lemma term_subst_reduntant_if [simp]: 
-  assumes "vars_term term \<subseteq> vars"
-  shows "term \<cdot>t (\<lambda>var. if var \<in> vars then \<sigma> var else \<sigma>' var) = term \<cdot>t \<sigma>"
-  using assms
-  by(induction "term") auto
-
-lemma term_subst_reduntant_if' [simp]: 
-  assumes "vars_term term \<inter> vars = {}"  
-  shows "term \<cdot>t (\<lambda>var. if var \<in> vars then \<sigma>' var else \<sigma> var) = term \<cdot>t \<sigma>"
-  using assms
-  by(induction "term") auto
-
-lemma atom_subst_reduntant_if [simp]:
-  assumes "vars_atom atom \<subseteq> vars"
-  shows "atom \<cdot>a (\<lambda>var. if var \<in> vars then \<sigma> var else \<sigma>' var) = atom \<cdot>a \<sigma>"
-  using assms
-  unfolding subst_atom_def vars_atom_def
-  by(cases atom) simp
-
-lemma atom_subst_reduntant_if' [simp]:
-  assumes "vars_atom atom \<inter> vars = {}"  
-  shows "atom \<cdot>a (\<lambda>var. if var \<in> vars then \<sigma>' var else \<sigma> var) = atom \<cdot>a \<sigma>"
-  using assms
-  unfolding subst_atom_def vars_atom_def
-  by(cases atom)(simp add: disjoint_iff)  
-
-lemma literal_subst_reduntant_if [simp]: 
-  assumes "vars_literal literal \<subseteq> vars"
-  shows "literal \<cdot>l (\<lambda>var. if var \<in> vars then \<sigma> var else \<sigma>' var) = literal \<cdot>l \<sigma>"
-  using assms
-  unfolding subst_literal_def vars_literal_def
-  by(cases literal) simp_all
-
-lemma literal_subst_reduntant_if' [simp]:
-  assumes "vars_literal literal \<inter> vars = {}"  
-  shows "literal \<cdot>l (\<lambda>var. if var \<in> vars then \<sigma>' var else \<sigma> var) = literal \<cdot>l \<sigma>"
-  using assms
-  unfolding subst_literal_def vars_literal_def
-  by(cases literal) simp_all
-
-lemma clause_subst_reduntant_if [simp]: 
-  assumes "vars_clause clause \<subseteq> vars"
-  shows "clause \<cdot> (\<lambda>var. if var \<in> vars then \<sigma> var else \<sigma>' var) = clause \<cdot> \<sigma>"
-  using assms
-  unfolding subst_clause_def vars_clause_def 
-  by(induction clause) simp_all
-
-lemma clause_subst_reduntant_if' [simp]:
-  assumes "vars_clause clause \<inter> vars = {}"  
-  shows "clause \<cdot> (\<lambda>var. if var \<in> vars then \<sigma>' var else \<sigma> var) = clause \<cdot> \<sigma>"
-  using assms
-  unfolding subst_clause_def vars_clause_def 
-  by(induction clause) (simp_all add: disjoint_iff)
+    subst_neg_stable: "is_neg (literal \<cdot>l \<sigma>) \<longleftrightarrow> is_neg literal" and
+    subst_pos_stable: "is_pos (literal \<cdot>l \<sigma>) \<longleftrightarrow> is_pos literal"
+  by (simp_all add: literal.subst_def)
 
 (* TODO: Could these be made less explicit somehow?
 Something like:
@@ -487,65 +646,56 @@ definition to_clause where
 definition to_ground_clause where
   "to_ground_clause \<equiv> image_mset to_ground_literal"
 
+(*
+This would be just confusing, right?
+
+declare [[coercion_enabled]]
+declare [[coercion to_ground_term]]
+declare [[coercion to_ground_context]] 
+*)
+
 definition clause_groundings ::
   "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" where
-  "clause_groundings clause = { to_ground_clause (clause \<cdot> \<gamma>) | \<gamma>. is_ground_clause (clause \<cdot> \<gamma>) }"
+  "clause_groundings clause = { to_ground_clause (clause \<cdot> \<gamma>) | \<gamma>. clause.is_ground (clause \<cdot> \<gamma>) }"
 
-(* Turn around and simp lemmas? *)
-lemma to_term_to_atom: "Upair (to_term term\<^sub>G\<^sub>1) (to_term term\<^sub>G\<^sub>2) = to_atom (Upair term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2)"
+lemma to_atom_to_term [clause_simp]:
+  "to_atom (Upair term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2) = Upair (to_term term\<^sub>G\<^sub>1) (to_term term\<^sub>G\<^sub>2)"
   by (simp add: to_atom_def)
 
-lemma to_atom_to_literal: 
-  "Neg (to_atom atom\<^sub>G) = to_literal (Neg atom\<^sub>G)"
-  "Pos (to_atom atom\<^sub>G) = to_literal (Pos atom\<^sub>G)"  
+lemma to_literal_to_atom [clause_simp]: 
+  "to_literal (Neg atom\<^sub>G) = Neg (to_atom atom\<^sub>G)"
+  "to_literal (Pos atom\<^sub>G) = Pos (to_atom atom\<^sub>G)"  
   by (simp_all add: to_literal_def)
 
-lemma to_context_hole: "context\<^sub>G = \<box>\<^sub>G \<longleftrightarrow> to_context context\<^sub>G = \<box>"
+lemma to_context_hole [clause_simp]: "to_context context\<^sub>G = \<box> \<longleftrightarrow> context\<^sub>G = \<box>\<^sub>G"
   by(cases context\<^sub>G) simp_all
 
-lemma to_clause_empty_mset [simp]: "to_clause {#} = {#}"
+lemma to_clause_empty_mset [clause_simp]: "to_clause {#} = {#}"
   by (simp add: to_clause_def)
 
-lemma to_ground_clause_empty_mset [simp]: "to_ground_clause {#} = {#}"
+lemma to_ground_clause_empty_mset [clause_simp]: "to_ground_clause {#} = {#}"
   by (simp add: to_ground_clause_def)
 
-lemmas ground_term_is_ground = vars_term_of_gterm
+lemmas ground_term_is_ground [clause_intro] = vars_term_of_gterm
 
-lemmas ground_context_is_ground = vars_ctxt_of_gctxt
+lemmas ground_context_is_ground [clause_intro] = vars_ctxt_of_gctxt
 
-lemma ground_term_with_context_is_ground1: 
-  "is_ground_term (to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<rangle>"
+lemma term_with_context_is_ground [clause_simp]: 
+  "term.is_ground context\<langle>term\<rangle> \<longleftrightarrow> context.is_ground context \<and> term.is_ground term"
   by simp
 
-lemma ground_term_with_context_is_ground2:
-  assumes "is_ground_term context\<langle>term\<rangle>" 
-  shows 
-    "is_ground_context context" 
-    "is_ground_term term"
-  using assms by auto
-
-lemma ground_term_with_context_is_ground3: 
-  assumes "is_ground_context context" "is_ground_term term"
-  shows "is_ground_term context\<langle>term\<rangle>"
-  using assms
-  by simp
-
-lemmas ground_term_with_context_is_ground = 
-  ground_term_with_context_is_ground1
-  ground_term_with_context_is_ground2
-  ground_term_with_context_is_ground3
-
-lemma ground_atom_is_ground [simp]: "is_ground_atom (to_atom atom\<^sub>G)"
-  unfolding to_atom_def vars_atom_def
+(* --- *)
+lemma ground_atom_is_ground [simp]: "atom.is_ground (to_atom atom\<^sub>G)"
+  unfolding to_atom_def atom.vars_def
   using ground_term_is_ground
   by (simp add: uprod.set_map)
 
-lemma ground_literal_is_ground [simp]: "is_ground_literal (to_literal literal\<^sub>G)"
-  unfolding to_literal_def vars_literal_def
+lemma ground_literal_is_ground [simp]: "literal.is_ground (to_literal literal\<^sub>G)"
+  unfolding to_literal_def literal.vars_def
   by (cases literal\<^sub>G) simp_all
 
-lemma ground_clause_is_ground [simp]: "is_ground_clause (to_clause clause\<^sub>G)"
-  unfolding to_clause_def vars_clause_def
+lemma ground_clause_is_ground [simp]: "clause.is_ground (to_clause clause\<^sub>G)"
+  unfolding to_clause_def clause.vars_def
   by simp
 
 lemma to_literal_polarity_stable: 
@@ -574,16 +724,16 @@ lemma to_clause_inverse [simp]:
   by simp
 
 lemma ground_term_with_context1:
-  assumes "is_ground_context context" "is_ground_term term"
+  assumes "context.is_ground context" "term.is_ground term"
   shows "(to_ground_context context)\<langle>to_ground_term term\<rangle>\<^sub>G = to_ground_term context\<langle>term\<rangle>"
   using assms
-  by (simp add: is_ground_term_iff_term_context_ground)
+  by (simp add: term_context_ground_iff_term_is_ground)
 
 lemma ground_term_with_context2:
-  assumes "is_ground_context context"  
+  assumes "context.is_ground context"  
   shows "to_term (to_ground_context context)\<langle>term\<^sub>G\<rangle>\<^sub>G = context\<langle>to_term term\<^sub>G\<rangle>"
   using assms
-  by (simp add: ground_gctxt_of_ctxt_apply_gterm is_ground_term_ctxt_iff_ground_ctxt)
+  by (simp add: ground_ctxt_iff_context_is_ground ground_gctxt_of_ctxt_apply_gterm)
 
 lemma ground_term_with_context3: 
   "(to_context context\<^sub>G)\<langle>to_term term\<^sub>G\<rangle> = to_term context\<^sub>G\<langle>term\<^sub>G\<rangle>\<^sub>G"
@@ -595,25 +745,25 @@ lemmas ground_term_with_context =
   ground_term_with_context2
   ground_term_with_context3
 
-lemma is_ground_context_context_compose1:
-  assumes "is_ground_context (context \<circ>\<^sub>c context')"
-  shows "is_ground_context context" "is_ground_context context'"
+lemma context_is_ground_context_compose1:
+  assumes "context.is_ground (context \<circ>\<^sub>c context')"
+  shows "context.is_ground context" "context.is_ground context'"
   using assms
   by(induction "context" context' rule: ctxt_compose.induct) auto
 
-lemma is_ground_context_context_compose2:
-  assumes "is_ground_context context" "is_ground_context context'" 
-  shows "is_ground_context (context \<circ>\<^sub>c context')"
+lemma context_is_ground_context_compose2:
+  assumes "context.is_ground context" "context.is_ground context'" 
+  shows "context.is_ground (context \<circ>\<^sub>c context')"
   using assms
-  by (meson ground_ctxt_comp is_ground_term_ctxt_iff_ground_ctxt)
+  by (meson ground_ctxt_comp ground_ctxt_iff_context_is_ground)
 
-lemmas is_ground_context_context_compose = 
-  is_ground_context_context_compose1 
-  is_ground_context_context_compose2
+lemmas context_is_ground_context_compose = 
+  context_is_ground_context_compose1 
+  context_is_ground_context_compose2
 
 lemma ground_context_subst:
   assumes 
-    "is_ground_context context\<^sub>G" 
+    "context.is_ground context\<^sub>G" 
     "context\<^sub>G = (context \<cdot>t\<^sub>c \<sigma>) \<circ>\<^sub>c context'"
   shows 
     "context\<^sub>G = context \<circ>\<^sub>c context' \<cdot>t\<^sub>c \<sigma>"
@@ -625,38 +775,43 @@ proof(induction "context")
 next
   case More
   then show ?case
-    using is_ground_context_context_compose1(2)
-    by (metis subst_compose_ctxt_compose_distrib subst_ground_context)
+    using context_is_ground_context_compose1(2)
+    by (metis subst_compose_ctxt_compose_distrib context.subst_ident_if_ground)
 qed
    
 lemma ground_term_subst_upd [simp]:
-  assumes "is_ground_term update" "is_ground_term (term \<cdot>t \<gamma>)" 
-  shows "is_ground_term (term \<cdot>t \<gamma>(var := update))"
+  assumes "term.is_ground update" "term.is_ground (term \<cdot>t \<gamma>)" 
+  shows "term.is_ground (term \<cdot>t \<gamma>(var := update))"
   using assms
   by (simp add: is_ground_iff)
 
 lemma ground_atom_subst_upd [simp]:
-  assumes "is_ground_term update" "is_ground_atom (atom \<cdot>a \<gamma>)" 
-  shows "is_ground_atom (atom \<cdot>a \<gamma>(var := update))"
+  assumes "term.is_ground update" "atom.is_ground (atom \<cdot>a \<gamma>)" 
+  shows "atom.is_ground (atom \<cdot>a \<gamma>(var := update))"
   using assms
-  unfolding subst_atom_def vars_atom_def
+  unfolding atom.subst_def atom.vars_def
   by(cases atom) simp
 
 lemma ground_literal_subst_upd [simp]:
-  assumes "is_ground_term update" "is_ground_literal (literal \<cdot>l \<gamma>)" 
-  shows "is_ground_literal (literal \<cdot>l \<gamma>(var := update))"
+  assumes "term.is_ground update" "literal.is_ground (literal \<cdot>l \<gamma>)" 
+  shows "literal.is_ground (literal \<cdot>l \<gamma>(var := update))"
   using assms
-  unfolding subst_literal_def vars_literal_def
+  unfolding literal.subst_def literal.vars_def
   by(cases literal) simp_all
 
 lemma ground_clause_subst_upd [simp]:
-  assumes "is_ground_term update" "is_ground_clause (clause \<cdot> \<gamma>)" 
-  shows "is_ground_clause (clause \<cdot> \<gamma>(var := update))"
+  assumes "term.is_ground update" "clause.is_ground (clause \<cdot> \<gamma>)" 
+  shows "clause.is_ground (clause \<cdot> \<gamma>(var := update))"
   using assms
-  unfolding subst_clause_def vars_clause_def
+  unfolding clause.subst_def clause.vars_def
   by auto
 
 lemmas to_term_inj = inj_term_of_gterm
+
+(* TODO: *)
+lemma "surj to_ground_term"
+  unfolding surj_def
+  by (metis to_term_inverse)
 
 lemma to_ground_term_inj: "inj_on to_ground_term (to_term ` domain\<^sub>G)"
   using inj_on_def by fastforce
@@ -681,7 +836,7 @@ lemma to_clause_inj: "inj_on to_clause domain"
 lemma to_ground_clause_inj: "inj_on to_ground_clause (to_clause ` domain\<^sub>G)"
   by (simp add: inj_on_def)
 
-lemma to_clause_add_mset: 
+lemma to_clause_add_mset [clause_simp]: 
   "to_clause (add_mset literal\<^sub>G clause\<^sub>G) = add_mset (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
   by (simp add: to_clause_def)
 
@@ -695,31 +850,31 @@ lemma remove1_mset_to_literal:
    = to_clause (remove1_mset literal\<^sub>G clause\<^sub>G)"
   unfolding to_clause_def image_mset_remove1_mset[OF to_literal_inj]..
 
-lemma ground_term_in_ground_atom [intro]:
-  assumes "term \<in> set_uprod atom" "is_ground_atom atom"
-  shows "is_ground_term term"
+lemma ground_term_in_ground_atom [clause_simp]:
+  assumes "term \<in> set_uprod atom" "atom.is_ground atom"
+  shows "term.is_ground term"
   using assms
-  by (simp add: vars_atom_def)
+  by (simp add: atom.vars_def)
 
 lemma ground_terms_in_ground_atom1:
-  assumes "is_ground_term term\<^sub>1" and "is_ground_term term\<^sub>2"
+  assumes "term.is_ground term\<^sub>1" and "term.is_ground term\<^sub>2"
   shows "Upair (to_ground_term term\<^sub>1) (to_ground_term term\<^sub>2) = to_ground_atom (Upair term\<^sub>1 term\<^sub>2)"
   using assms
   by (simp add: to_ground_atom_def)
 
-lemma ground_terms_in_ground_atom2 [intro]: 
-  "is_ground_atom (Upair term\<^sub>1 term\<^sub>2) \<longleftrightarrow> is_ground_term term\<^sub>1 \<and> is_ground_term term\<^sub>2"
-  using vars_literal_split by fastforce
+lemma ground_terms_in_ground_atom2 [clause_simp]: 
+  "atom.is_ground (Upair term\<^sub>1 term\<^sub>2) \<longleftrightarrow> term.is_ground term\<^sub>1 \<and> term.is_ground term\<^sub>2"
+  by clause_simp
 
 lemmas ground_terms_in_ground_atom = 
   ground_terms_in_ground_atom1
   ground_terms_in_ground_atom2
 
 lemma ground_atom_in_ground_literal1 [intro]:
-  assumes "atom \<in> set_literal literal" "is_ground_literal literal" 
-  shows "is_ground_atom atom"
+  assumes "atom \<in> set_literal literal" "literal.is_ground literal" 
+  shows "atom.is_ground atom"
   using assms
-  by (simp add: set_literal_atm_of vars_literal_def)
+  by (simp add: literal.vars_def)
 
 lemma ground_atom_in_ground_literal2:
   shows "Pos (to_ground_atom atom) = to_ground_literal (Pos atom)" 
@@ -730,29 +885,33 @@ lemmas ground_atom_in_ground_literal =
   ground_atom_in_ground_literal1
   ground_atom_in_ground_literal2
 
-lemma is_ground_atom_in_ground_literal [intro]:
-  "is_ground_literal literal \<longleftrightarrow> is_ground_atom (atm_of literal)"
-  by (simp add: vars_literal_def)  
+lemma atom_is_ground_in_ground_literal [intro]:
+  "literal.is_ground literal \<longleftrightarrow> atom.is_ground (atm_of literal)"
+  by (simp add: literal.vars_def set_literal_atm_of)
 
 lemma ground_term_in_ground_literal:
-  assumes "is_ground_literal literal"  "term \<in># mset_lit literal"  
-  shows "is_ground_term term"
+  assumes "literal.is_ground literal"  "term \<in># mset_lit literal"  
+  shows "term.is_ground term"
   using assms
-  by(cases literal) (auto simp: ground_term_in_ground_atom)
+  apply(cases literal)
+   apply(clause_simp simp:  ground_term_in_ground_atom)
+   apply (simp add: ground_term_in_ground_atom)
+  by (simp add: ground_term_in_ground_atom)
+  
 
 lemma ground_term_in_ground_literal_subst:
-  assumes "is_ground_literal (literal \<cdot>l \<gamma>)" "term \<in># mset_lit literal"  
-  shows "is_ground_term (term \<cdot>t \<gamma>)"
+  assumes "literal.is_ground (literal \<cdot>l \<gamma>)" "term \<in># mset_lit literal"  
+  shows "term.is_ground (term \<cdot>t \<gamma>)"
   using ground_term_in_ground_literal[OF assms(1) term_in_literal_subst[OF assms(2)]].
 
 lemma ground_literal_in_ground_clause1:
-  assumes "literal \<in># clause" "is_ground_clause clause" 
-  shows "is_ground_literal literal"
+  assumes "literal \<in># clause" "clause.is_ground clause" 
+  shows "literal.is_ground literal"
   using assms
-  by (simp add: vars_clause_def)
+  by (simp add: clause.vars_def)
 
 lemma ground_literal_in_ground_clause2: 
-  "literal \<in># to_clause clause\<^sub>G \<Longrightarrow> is_ground_literal literal"
+  "literal \<in># to_clause clause\<^sub>G \<Longrightarrow> literal.is_ground literal"
   by (simp add: ground_literal_in_ground_clause1)
 
 lemma ground_literal_in_ground_clause3: 
@@ -772,34 +931,34 @@ lemmas ground_literal_in_ground_clause =
   ground_literal_in_ground_clause4
 
 lemma ground_literal_in_ground_clause_subst:
-  assumes "is_ground_clause (clause \<cdot> \<gamma>)"  "literal \<in># clause"  
-  shows "is_ground_literal (literal \<cdot>l \<gamma>)"
+  assumes "clause.is_ground (clause \<cdot> \<gamma>)"  "literal \<in># clause"  
+  shows "literal.is_ground (literal \<cdot>l \<gamma>)"
   using assms
-  unfolding subst_clause_def vars_clause_def
+  unfolding clause.subst_def clause.vars_def
   by simp
 
 lemma to_ground_term_inverse [simp]:
-  assumes "is_ground_term term"  
+  assumes "term.is_ground term"  
   shows "to_term (to_ground_term term) = term"
   using assms
-  by (cases "term") (simp_all add: map_idI is_ground_term_iff_term_context_ground)
+  by (cases "term") (simp_all add: map_idI term_context_ground_iff_term_is_ground)
 
 lemma to_ground_atom_inverse [simp]: 
-  assumes "is_ground_atom atom"  
+  assumes "atom.is_ground atom"  
   shows "to_atom (to_ground_atom atom) = atom"
   using assms to_ground_term_inverse ground_term_in_ground_atom map_uprod_inverse to_term_inverse
   unfolding to_ground_atom_def
   by (smt (verit, ccfv_SIG) to_atom_def uprod.inj_map_strong ground_atom_is_ground)
 
 lemma to_ground_literal_inverse [simp]: 
-  assumes "is_ground_literal literal"  
+  assumes "literal.is_ground literal"  
   shows "to_literal (to_ground_literal literal) = literal"
   using assms ground_atom_in_ground_literal(1)[THEN to_ground_atom_inverse]
-  unfolding to_ground_literal_def to_literal_def vars_literal_def
-  by (simp add: literal.expand literal.map_sel)
-
+  unfolding to_ground_literal_def to_literal_def
+  by (simp add: atom_is_ground_in_ground_literal literal.expand literal.map_sel)
+ 
 lemma to_ground_clause_inverse [simp]: 
-  assumes "is_ground_clause clause"  
+  assumes "clause.is_ground clause"  
   shows "to_clause (to_ground_clause clause) = clause"
   using assms
   unfolding to_clause_def to_ground_clause_def multiset.map_comp comp_def
@@ -817,9 +976,9 @@ lemma mset_to_literal: "mset_lit (to_literal l) = image_mset to_term (mset_lit l
   unfolding to_literal_def
   by (simp add: to_atom_def mset_lit_image_mset)
 
-lemma is_ground_clause_add_mset [intro]: "is_ground_clause (add_mset literal clause) \<longleftrightarrow> 
-  is_ground_literal literal \<and> is_ground_clause clause"
-  by simp
+lemma clause_is_ground_add_mset [clause_simp]: "clause.is_ground (add_mset literal clause) \<longleftrightarrow> 
+  literal.is_ground literal \<and> clause.is_ground clause"
+  by clause_auto
 
 lemma to_ground_clause_add_mset:
   assumes "to_clause clause = add_mset literal clause'" 
@@ -827,18 +986,18 @@ lemma to_ground_clause_add_mset:
   using assms
   by (metis to_clause_inverse to_ground_clause_def image_mset_add_mset)
 
-lemma obtain_from_atom_subst: 
-  assumes "atom \<cdot>a \<sigma> = Upair term\<^sub>1' term\<^sub>2'"
+lemma obtain_from_atom_subst [clause_intro]: 
+  assumes "Upair term\<^sub>1' term\<^sub>2' = atom \<cdot>a \<sigma>"
   obtains term\<^sub>1 term\<^sub>2 
-  where "atom = Upair term\<^sub>1 term\<^sub>2" "term\<^sub>1 \<cdot>t \<sigma> = term\<^sub>1'" "term\<^sub>2 \<cdot>t \<sigma> = term\<^sub>2'"
+  where "atom = Upair term\<^sub>1 term\<^sub>2" "term\<^sub>1' = term\<^sub>1 \<cdot>t \<sigma>" "term\<^sub>2' = term\<^sub>2 \<cdot>t \<sigma>"
   using assms
-  unfolding subst_atom_def
+  unfolding atom.subst_def
   by(cases atom) auto
 
-lemma obtain_from_pos_literal_subst: 
+lemma obtain_from_pos_literal_subst [clause_intro]: 
   assumes "literal \<cdot>l \<sigma> = term\<^sub>1' \<approx> term\<^sub>2'"
   obtains term\<^sub>1 term\<^sub>2 
-  where "literal = term\<^sub>1 \<approx> term\<^sub>2" "term\<^sub>1 \<cdot>t \<sigma> = term\<^sub>1'" "term\<^sub>2 \<cdot>t \<sigma> = term\<^sub>2'"
+  where "literal = term\<^sub>1 \<approx> term\<^sub>2" "term\<^sub>1' = term\<^sub>1 \<cdot>t \<sigma>" "term\<^sub>2' = term\<^sub>2 \<cdot>t \<sigma>"
   using assms obtain_from_atom_subst subst_pos_stable
   by (metis is_pos_def literal.sel(1) subst_literal(1))
 
@@ -847,7 +1006,7 @@ lemma obtain_from_neg_literal_subst:
   obtains term\<^sub>1 term\<^sub>2 
   where "literal = term\<^sub>1 !\<approx> term\<^sub>2" "term\<^sub>1 \<cdot>t \<sigma> = term\<^sub>1'" "term\<^sub>2 \<cdot>t \<sigma> = term\<^sub>2'"
   using assms obtain_from_atom_subst subst_neg_stable
-  by (metis literal.collapse(2) literal.disc(2) subst_literal(2) upair_in_literal(2))
+  by (metis literal.collapse(2) literal.disc(2) literal.sel(2) subst_literal(3))
 
 lemmas obtain_from_literal_subst = obtain_from_pos_literal_subst obtain_from_neg_literal_subst
 
@@ -884,7 +1043,7 @@ next
 qed
 
 lemma var_in_non_ground_term: 
-  assumes "\<not> is_ground_term term"
+  assumes "\<not> term.is_ground term"
   obtains "context" var where "term = context\<langle>var\<rangle>" "is_Var var"
 proof-
   obtain var where "var \<in> vars_term term"
@@ -904,7 +1063,7 @@ lemma obtain_ground_subst:
   obtains \<gamma> 
   where "term_subst.is_ground_subst \<gamma>"
 proof-
-  obtain t\<^sub>G :: "('b, 'a) Term.term" where "is_ground_term t\<^sub>G"
+  obtain t\<^sub>G :: "('b, 'a) Term.term" where "term.is_ground t\<^sub>G"
     by (meson ground_term_is_ground)
 
   then have "term_subst.is_ground_subst  (\<lambda>_. t\<^sub>G)"
@@ -915,7 +1074,7 @@ proof-
 qed
 
 lemma ground_subst_exstension_term:
-  assumes "is_ground_term (term \<cdot>t \<gamma>)"
+  assumes "term.is_ground (term \<cdot>t \<gamma>)"
   obtains \<gamma>'  :: "('f, 'v) subst"
   where "term \<cdot>t \<gamma> = term \<cdot>t \<gamma>'" and "term_subst.is_ground_subst \<gamma>'"
   using assms
@@ -943,52 +1102,54 @@ proof-
 qed
 
 lemma ground_subst_exstension_atom:
-  assumes "is_ground_atom (atom \<cdot>a \<gamma>)"
+  assumes "atom.is_ground (atom \<cdot>a \<gamma>)"
   obtains \<gamma>'
   where "atom \<cdot>a \<gamma> = atom \<cdot>a \<gamma>'" and "term_subst.is_ground_subst \<gamma>'"
-  by (metis assms atom_subst_compose ground_subst_compose obtain_ground_subst subst_ground_atom)
+  by (metis assms atom.subst_comp_subst term_subst.is_ground_subst_comp_right obtain_ground_subst 
+        atom.subst_ident_if_ground)
 
 lemma ground_subst_exstension_literal:
-  assumes "is_ground_literal (literal \<cdot>l \<gamma>)"
+  assumes "literal.is_ground (literal \<cdot>l \<gamma>)"
   obtains \<gamma>'
   where "literal \<cdot>l \<gamma> = literal \<cdot>l \<gamma>'" and "term_subst.is_ground_subst \<gamma>'"
 proof(cases literal)
   case (Pos a)
   then show ?thesis
     using assms that ground_subst_exstension_atom[of a \<gamma>]
-    unfolding vars_literal_def subst_literal_def
+    unfolding literal.vars_def literal.subst_def
     by auto
 next
   case (Neg a)
   then show ?thesis 
     using assms that ground_subst_exstension_atom[of a \<gamma>]
-    unfolding vars_literal_def subst_literal_def
+    unfolding literal.vars_def literal.subst_def
     by auto
 qed
 
 lemma ground_subst_exstension_clause:
-  assumes "is_ground_clause (clause \<cdot> \<gamma>)"
+  assumes "clause.is_ground (clause \<cdot> \<gamma>)"
   obtains \<gamma>'
   where "clause \<cdot> \<gamma> = clause \<cdot> \<gamma>'" and "term_subst.is_ground_subst \<gamma>'"
-  by (metis assms clause_subst_compose ground_subst_compose obtain_ground_subst subst_ground_clause)
+  by (metis assms clause.subst_comp_subst term_subst.is_ground_subst_comp_right obtain_ground_subst 
+      clause.subst_ident_if_ground)
 
 lemma non_ground_arg: 
-  assumes "\<not> is_ground_term (Fun f terms)"
+  assumes "\<not> term.is_ground (Fun f terms)"
   obtains "term"
-  where "term \<in> set terms" "\<not> is_ground_term term"
+  where "term \<in> set terms" "\<not> term.is_ground term"
   using assms that by fastforce
 
 lemma non_ground_arg': 
-  assumes "\<not> is_ground_term (Fun f terms)"
+  assumes "\<not> term.is_ground (Fun f terms)"
   obtains ts1 var ts2 
-  where "terms = ts1 @ [var] @ ts2" "\<not> is_ground_term var"
+  where "terms = ts1 @ [var] @ ts2" "\<not> term.is_ground var"
   using non_ground_arg
   by (metis append.left_neutral append_Cons assms split_list)
 
 subsection \<open>Interpretations\<close>
 
 lemma vars_term_ms_count:
-  assumes "is_ground_term term\<^sub>G"
+  assumes "term.is_ground term\<^sub>G"
   shows "size {#var' \<in># vars_term_ms context\<langle>Var var\<rangle>. var' = var#} = 
          Suc (size {#var' \<in># vars_term_ms context\<langle>term\<^sub>G\<rangle>. var' = var#})"
 proof(induction "context")
@@ -1036,13 +1197,13 @@ context
     update :: "('f, 'v) Term.term" and
     var :: 'v
   assumes
-    update_is_ground: "is_ground_term update" and
-    var_grounding: "is_ground_term (Var var \<cdot>t \<gamma>)" 
+    update_is_ground: "term.is_ground update" and
+    var_grounding: "term.is_ground (Var var \<cdot>t \<gamma>)" 
 begin
 
 lemma interpretation_term_congruence:
   assumes 
-    term_grounding: "is_ground_term (term \<cdot>t \<gamma>)" and
+    term_grounding: "term.is_ground (term \<cdot>t \<gamma>)" and
     var_update: "(to_ground_term (\<gamma> var), to_ground_term update) \<in> I" and
     updated_term: "(to_ground_term (term \<cdot>t \<gamma>(var := update)), term') \<in> I" 
   shows 
@@ -1055,7 +1216,7 @@ proof(induction "size (filter_mset (\<lambda>var'. var' = var) (vars_term_ms ter
     by (metis (mono_tags, lifting) filter_mset_empty_conv set_mset_vars_term_ms size_eq_0_iff_empty)
 
   then have "term \<cdot>t \<gamma>(var := update) = term \<cdot>t \<gamma>"
-    using term_subst_reduntant_upd 
+    using term.subst_reduntant_upd 
     by fast
 
   with 0 show ?case
@@ -1086,7 +1247,7 @@ next
     using Suc vars_term_ms_count[OF update_is_ground, of var "context"]
     by auto
 
-  moreover have "is_ground_term (context\<langle>update\<rangle> \<cdot>t \<gamma>)"
+  moreover have "term.is_ground (context\<langle>update\<rangle> \<cdot>t \<gamma>)"
     using Suc.prems update_is_ground 
     by auto
 
@@ -1113,7 +1274,7 @@ qed
 
 lemma interpretation_term_congruence':
   assumes 
-    term_grounding: "is_ground_term (term \<cdot>t \<gamma>)" and
+    term_grounding: "term.is_ground (term \<cdot>t \<gamma>)" and
     var_update: "(to_ground_term (\<gamma> var), to_ground_term update) \<in> I" and
     updated_term: "(to_ground_term (term \<cdot>t \<gamma>(var := update)), term') \<notin> I" 
   shows
@@ -1135,8 +1296,8 @@ qed
 
 lemma interpretation_atom_congruence:
   assumes 
-    "is_ground_term (term\<^sub>1 \<cdot>t \<gamma>)" 
-    "is_ground_term (term\<^sub>2 \<cdot>t \<gamma>)" 
+    "term.is_ground (term\<^sub>1 \<cdot>t \<gamma>)" 
+    "term.is_ground (term\<^sub>2 \<cdot>t \<gamma>)" 
     "(to_ground_term (\<gamma> var), to_ground_term update) \<in> I"
     "(to_ground_term (term\<^sub>1 \<cdot>t \<gamma>(var := update)), to_ground_term (term\<^sub>2 \<cdot>t \<gamma>(var := update))) \<in> I" 
   shows
@@ -1146,8 +1307,8 @@ lemma interpretation_atom_congruence:
 
 lemma interpretation_atom_congruence':
   assumes 
-    "is_ground_term (term\<^sub>1 \<cdot>t \<gamma>)" 
-    "is_ground_term (term\<^sub>2 \<cdot>t \<gamma>)" 
+    "term.is_ground (term\<^sub>1 \<cdot>t \<gamma>)" 
+    "term.is_ground (term\<^sub>2 \<cdot>t \<gamma>)" 
     "(to_ground_term (\<gamma> var), to_ground_term update) \<in> I"
     "(to_ground_term (term\<^sub>1 \<cdot>t \<gamma>(var := update)), to_ground_term (term\<^sub>2 \<cdot>t \<gamma>(var := update))) \<notin> I" 
   shows
@@ -1157,7 +1318,7 @@ lemma interpretation_atom_congruence':
 
 lemma interpretation_literal_congruence:
   assumes
-    "is_ground_literal (literal \<cdot>l \<gamma>)"
+    "literal.is_ground (literal \<cdot>l \<gamma>)"
     "upair ` I \<TTurnstile>l to_ground_term (Var var \<cdot>t \<gamma>) \<approx> to_ground_term update"
     "upair ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<gamma>(var := update))"
   shows
@@ -1168,9 +1329,9 @@ proof(cases literal)
   have "to_ground_atom (atom \<cdot>a \<gamma>) \<in> upair ` I"
   proof(cases atom)
     case (Upair term\<^sub>1 term\<^sub>2)  
-    then have term_groundings: "is_ground_term (term\<^sub>1 \<cdot>t \<gamma>)" "is_ground_term (term\<^sub>2 \<cdot>t \<gamma>)"
+    then have term_groundings: "term.is_ground (term\<^sub>1 \<cdot>t \<gamma>)" "term.is_ground (term\<^sub>2 \<cdot>t \<gamma>)"
       using Pos assms
-      by(auto simp: subst_atom ground_terms_in_ground_atom2 subst_literal)
+      by clause_auto
 
     have "(to_ground_term (\<gamma> var), to_ground_term update) \<in> I"
       using sym assms by auto
@@ -1194,9 +1355,9 @@ next
   have "to_ground_atom (atom \<cdot>a \<gamma>) \<notin> upair ` I"
   proof(cases atom)
     case (Upair term\<^sub>1 term\<^sub>2)  
-    then have term_groundings: "is_ground_term (term\<^sub>1 \<cdot>t \<gamma>)" "is_ground_term (term\<^sub>2 \<cdot>t \<gamma>)"
+    then have term_groundings: "term.is_ground (term\<^sub>1 \<cdot>t \<gamma>)" "term.is_ground (term\<^sub>2 \<cdot>t \<gamma>)"
       using Neg assms
-      by(auto simp: subst_atom ground_terms_in_ground_atom2 subst_literal(2))
+      by clause_auto
 
     have "(to_ground_term (\<gamma> var), to_ground_term update) \<in> I"
       using sym assms by auto
@@ -1218,7 +1379,7 @@ qed
 
 lemma interpretation_clause_congruence:
   assumes
-    "is_ground_clause (clause \<cdot> \<gamma>)" 
+    "clause.is_ground (clause \<cdot> \<gamma>)" 
     "upair ` I \<TTurnstile>l to_ground_term (Var var \<cdot>t \<gamma>) \<approx> to_ground_term update"
     "upair ` I \<TTurnstile> to_ground_clause (clause \<cdot> \<gamma>(var := update))"
   shows
@@ -1227,12 +1388,12 @@ lemma interpretation_clause_congruence:
 proof(induction "clause")
   case empty
   then show ?case 
-    by auto
+    by clause_simp
 next
   case (add literal clause')
 
-  have clause'_grounding: "is_ground_clause (clause' \<cdot> \<gamma>)"
-    by (metis add.prems(1) is_ground_clause_add_mset subst_clause_add_mset)
+  have clause'_grounding: "clause.is_ground (clause' \<cdot> \<gamma>)"
+    by (metis add.prems(1) clause_is_ground_add_mset subst_clause_add_mset)
 
   show ?case
   proof(cases "upair ` I \<TTurnstile> to_ground_clause (clause' \<cdot> \<gamma>(var := update))")
@@ -1245,11 +1406,11 @@ next
     case False
     then have "upair ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<gamma>(var := update))"
       using add.prems
-      by (metis image_mset_add_mset subst_clause_add_mset to_ground_clause_def true_cls_add_mset)
+      by (metis (no_types, lifting) image_mset_add_mset subst_clause_add_mset to_ground_clause_def true_cls_add_mset)
 
     then have "upair ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<gamma>)"
       using interpretation_literal_congruence add.prems
-      by (metis is_ground_clause_add_mset subst_clause_add_mset)
+      by (metis clause_is_ground_add_mset subst_clause_add_mset)
 
     then show ?thesis 
       by (simp add: subst_clause_add_mset to_ground_clause_def)
@@ -1293,18 +1454,66 @@ next
     by auto
 qed
 
-lemma renaming_vars_atom: "Var ` vars_atom (atom \<cdot>a \<rho>) = \<rho> ` vars_atom atom"
-  unfolding vars_atom_def subst_atom_def 
+lemma renaming_vars_atom: "Var ` atom.vars (atom \<cdot>a \<rho>) = \<rho> ` atom.vars atom"
+  unfolding atom.vars_def atom.subst_def 
   by(cases atom)(auto simp: image_Un renaming_vars_term)
 
-lemma renaming_vars_literal: "Var ` vars_literal (literal \<cdot>l \<rho>) = \<rho> ` vars_literal literal"
-  unfolding vars_literal_def subst_literal_def
+lemma renaming_vars_literal: "Var ` literal.vars (literal \<cdot>l \<rho>) = \<rho> ` literal.vars literal"
+  unfolding literal.vars_def literal.subst_def
   by(cases literal)(auto simp: renaming_vars_atom)
 
-lemma renaming_vars_clause: "Var ` vars_clause (clause \<cdot> \<rho>) = \<rho> ` vars_clause clause"
+lemma renaming_vars_clause: "Var ` clause.vars (clause \<cdot> \<rho>) = \<rho> ` clause.vars clause"
   using renaming_vars_literal
-  by(induction clause)(simp_all add: image_Un subst_clause_add_mset)
+  by(induction clause)(clause_auto simp: image_Un)
+
+lemma surj_the_inv: "surj (\<lambda>x. the_inv \<rho> (Var x))"
+  by (metis is_Var_def renaming surj_def term_subst_is_renaming_iff the_inv_f_f)
 
 end
+
+lemma needed: "surj g \<Longrightarrow> infinite {x. f x = ty} \<Longrightarrow> infinite {x. f (g x) = ty}"
+  by (smt (verit) UNIV_I finite_imageI image_iff mem_Collect_eq rev_finite_subset subset_eq)
+
+lemma obtain_ground_fun:
+  assumes "term.is_ground t"
+  obtains f ts where "t = Fun f ts"
+  using assms
+  by(cases t) auto
+
+lemma vars_term_subst: "vars_term (t \<cdot>t \<sigma>) \<subseteq> vars_term t \<union> range_vars \<sigma>"
+  by (meson Diff_subset order_refl subset_trans sup.mono vars_term_subst_apply_term_subset)
+
+lemma vars_term_imgu [clause_intro]:
+  assumes "term_subst.is_imgu \<mu> {{s, s'}}"
+  shows "vars_term (t \<cdot>t \<mu>) \<subseteq> vars_term t \<union> vars_term s \<union> vars_term s'"
+  using range_vars_subset_if_is_imgu[OF assms] vars_term_subst
+  by fastforce
+
+lemma vars_context_imgu [clause_intro]:
+  assumes "term_subst.is_imgu \<mu> {{s, s'}}"
+  shows "vars_context (c \<cdot>t\<^sub>c \<mu>) \<subseteq> vars_context c \<union> vars_term s \<union> vars_term s'"
+  using  vars_term_imgu[OF assms]
+  by (smt (verit, ccfv_threshold) Un_iff subset_iff subst_apply_term_ctxt_apply_distrib vars_term_ctxt_apply)
+
+lemma vars_atom_imgu [clause_intro]:
+  assumes "term_subst.is_imgu \<mu> {{s, s'}}"
+  shows "atom.vars (a \<cdot>a \<mu>) \<subseteq> atom.vars a \<union> vars_term s \<union> vars_term s'"
+  using vars_term_imgu[OF assms]
+  unfolding atom.vars_def atom.subst_def 
+  by(cases a) auto
+
+lemma vars_literal_imgu [clause_intro]:
+  assumes "term_subst.is_imgu \<mu> {{s, s'}}"
+  shows "literal.vars (l \<cdot>l \<mu>) \<subseteq> literal.vars l \<union> vars_term s \<union> vars_term s'"
+  using vars_atom_imgu[OF assms]
+  unfolding literal.vars_def literal.subst_def set_literal_atm_of
+  by (metis (no_types, lifting) UN_insert ccSUP_empty literal.map_sel sup_bot.right_neutral)
+
+lemma vars_clause_imgu [clause_intro]:
+  assumes "term_subst.is_imgu \<mu> {{s, s'}}"
+  shows "clause.vars (c \<cdot> \<mu>) \<subseteq> clause.vars c \<union> vars_term s \<union> vars_term s'"
+  using vars_literal_imgu[OF assms]
+  unfolding clause.vars_def clause.subst_def
+  by blast
 
 end

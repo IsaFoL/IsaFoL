@@ -10,8 +10,8 @@ lemma map_literal_inverse:
 
 lemma map_literal_comp: 
   "map_literal f (map_literal g literal) = map_literal (\<lambda>atom. f (g atom)) literal"
-  unfolding comp_def[symmetric]
-  by (simp add: literal.map_comp)
+  using literal.map_comp
+  unfolding comp_def.
 
 lemma literals_distinct [simp]: "Neg \<noteq> Pos" "Pos \<noteq> Neg"
   by(metis literal.distinct(1))+
