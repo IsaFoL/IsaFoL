@@ -37,13 +37,10 @@ locale variable_substitution =
   contains = contains and is_empty = is_empty  and is_finite = is_finite and 
   subset_eq = subset_eq and disjoint = disjoint
 for
-  subst :: "'expression \<Rightarrow> ('variable \<Rightarrow> 'sub_expression) \<Rightarrow> 'expression" (infixl "\<cdot>" 70) and
+  subst :: "'expression \<Rightarrow> ('variable \<Rightarrow> 'base_expression) \<Rightarrow> 'expression" (infixl "\<cdot>" 70) and
   vars :: "'expression \<Rightarrow> 'variables" and
   contains is_empty is_finite subset_eq disjoint  +
-assumes
-  subst_eq: "\<And>a \<sigma> \<tau>. (\<And>x. contains x (vars a) \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot> \<sigma> = a \<cdot> \<tau>" and
-  (* TODO: extract*)
-  finite_vars [simp]: "\<And>a. is_finite (vars a)"
+assumes subst_eq: "\<And>a \<sigma> \<tau>. (\<And>x. contains x (vars a) \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot> \<sigma> = a \<cdot> \<tau>"
 begin
 
 abbreviation is_ground where "is_ground a \<equiv> is_empty (vars a)"
@@ -68,7 +65,22 @@ lemma subst_reduntant_if' [simp]:
 
 end
 
-(* TODO: Type annotations *)
+locale finite_variables = 
+  fixes is_finite :: "'variables \<Rightarrow> bool" and vars :: "'expression \<Rightarrow> 'variables"
+  assumes finite_vars [simp]: "\<And>a. is_finite (vars a)"
+
+locale all_subst_ident_iff_ground = 
+  fixes 
+    is_finite :: "'expressions \<Rightarrow> bool" and
+    contains :: "'expression \<Rightarrow> 'expressions \<Rightarrow> bool" and
+    is_ground :: "'expression \<Rightarrow> bool" and
+    subst :: "'expression \<Rightarrow> ('variable \<Rightarrow> 'base_expression) \<Rightarrow> 'expression"
+  assumes
+    all_subst_ident_iff_ground: "\<And>a. is_ground a \<longleftrightarrow> (\<forall>\<sigma>. subst a \<sigma> = a)" and
+    exists_non_ident_subst: 
+      "\<And>a s. is_finite s \<Longrightarrow> \<not>is_ground a \<Longrightarrow> \<exists>\<sigma>. subst a \<sigma> \<noteq> a \<and> \<not> contains (subst a \<sigma>) s"
+  
+(* TODO: Remove? *)
 locale variable_substitution_expansion = base: variable_substitution + 
   variable_substitution where
   subst = expanded_subst and 
@@ -108,7 +120,6 @@ locale variable_substitution_lifting_set =
     map_comp: "\<And>d f g. map f (map g d) = map (f \<circ> g) d" and
     map_id: "map id d = d" and
     map_cong: "\<And>d f g. (\<And>c. c \<in> to_set d \<Longrightarrow> f c = g c) \<Longrightarrow> map f d = map g d" and
-    finite_to_set: "\<And>d. finite (to_set d)" and
     Union_range_to_set: "\<Union>(range to_set) = UNIV" and
     to_set_map: "\<And>d f. to_set (map f d) = f ` to_set d"  
 begin
@@ -123,6 +134,9 @@ lemma map_id_cong: "\<And>d f. (\<And>c. c \<in> to_set d \<Longrightarrow> f c 
   using map_cong map_id
   unfolding id_def
   by metis
+
+lemma to_set_map_not_ident: "\<And>d f c. c \<in> to_set d \<Longrightarrow> f c \<notin> to_set d \<Longrightarrow> map f d \<noteq> d"
+  by (metis image_eqI to_set_map)
 
 sublocale variable_substitution_set comp_subst id_subst subst vars
 proof unfold_locales
@@ -144,11 +158,6 @@ next
     unfolding vars_def subst_def
     using map_cong base.subst_eq
     by (meson UN_I)
-next
-  show "\<And>a. finite (vars a)"
-    unfolding vars_def
-    using base.finite_vars finite_to_set
-    by blast
 qed
 
 lemma is_ground_iff_base_is_ground: 
@@ -189,6 +198,94 @@ lemma is_ground_subst_iff_base_is_ground_subst [simp]:
   by presburger
 
 end
+
+locale finite_variables_lifting = 
+  variable_substitution_lifting_set + 
+  base: finite_variables where is_finite = finite and vars = base_vars +
+  assumes finite_to_set: "\<And>d. finite (to_set d)"
+begin
+
+sublocale finite_variables 
+  where is_finite = finite and vars = vars
+proof unfold_locales
+ show "\<And>a. finite (vars a)"
+    unfolding vars_def
+    using base.finite_vars finite_to_set
+    by blast
+qed
+
+end
+
+locale all_subst_ident_iff_ground_lifiting = 
+  finite_variables_lifting +
+  base: all_subst_ident_iff_ground where is_ground = base.is_ground and subst = base_subst 
+    and is_finite = finite and contains = "(\<in>)" 
+begin
+
+sublocale all_subst_ident_iff_ground 
+  where is_finite = finite and contains = "(\<in>)" and is_ground = is_ground and subst = subst 
+proof unfold_locales
+  show "\<And>x. is_ground x = (\<forall>\<sigma>. subst x \<sigma> = x)"
+  proof(intro iffI allI)
+    show "\<And>x \<sigma>. is_ground x \<Longrightarrow> subst x \<sigma> = x"
+      by simp
+  next
+    fix d 
+    assume all_subst_ident: "\<forall>\<sigma>. subst d \<sigma> = d"
+    
+    show "is_ground d"
+    proof(rule ccontr)
+      assume "\<not>is_ground d"
+
+      then obtain c where c_in_d: "c \<in> to_set d" and c_not_ground: "\<not>base.is_ground c"
+        unfolding vars_def
+        by blast
+
+      then obtain \<sigma> where "base_subst c \<sigma> \<noteq> c" and "base_subst c \<sigma> \<notin> to_set d"
+        using base.exists_non_ident_subst finite_to_set
+        by blast
+        
+      then show False
+        using all_subst_ident c_in_d to_set_map
+        unfolding subst_def 
+        by (metis image_eqI)
+    qed
+  qed
+next
+  fix d :: 'd and ds :: "'d set"
+  assume finite_ds: "finite ds" and d_not_ground: "\<not>is_ground d"
+
+  then have finite_cs: "finite (\<Union>(to_set ` insert d ds))"
+    using finite_to_set by blast
+
+  obtain c where c_in_d: "c \<in> to_set d" and c_not_ground: "\<not>base.is_ground c"
+    using d_not_ground
+    unfolding vars_def
+    by blast
+
+  obtain \<sigma> where \<sigma>_not_ident: "base_subst c \<sigma> \<noteq> c" "base_subst c \<sigma> \<notin> \<Union> (to_set ` insert d ds)"
+    using base.exists_non_ident_subst[OF finite_cs c_not_ground]
+    by blast
+
+  then have "subst d \<sigma> \<noteq> d"
+    using c_in_d
+    unfolding subst_def
+    by (simp add: to_set_map_not_ident)
+
+  moreover have "subst d \<sigma> \<notin> ds"
+    using \<sigma>_not_ident(2) c_in_d to_set_map
+    unfolding subst_def
+    by auto
+
+  ultimately show "\<exists>\<sigma>. subst d \<sigma> \<noteq> d \<and> subst d \<sigma> \<notin> ds"
+    by blast
+qed
+
+end
+
+locale mylifting = all_subst_ident_iff_ground_lifiting
+
+
 
 locale variable_substitution_expansion_set = variable_substitution_expansion where 
   contains = "(\<in>)" and is_empty = "\<lambda>X. X = {}" and is_finite = finite and subset_eq = "(\<subseteq>)" and

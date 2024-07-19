@@ -985,7 +985,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
       have aux: "term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>to_term term\<^sub>G\<^sub>1\<rangle>"
         using term\<^sub>x_\<gamma>
-        by (metis context.is_ground_subst_iff context.is_ground_subst_is_ground ground_term_with_context2 term_subst.is_ground_subst_is_ground to_ground_term_inverse typing(3))
+        by (metis context.is_ground_subst_iff_base_is_ground_subst context.is_ground_subst_is_ground ground_term_with_context2 term_subst.is_ground_subst_is_ground to_ground_term_inverse typing(3))
 
       have "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 (to_clause premise\<^sub>G\<^sub>2)"
         by (metis ground_superpositionI(2) premise\<^sub>2_\<gamma> clause.comp_subst.left.monoid_action_compatibility typing(2) typing(5) welltyped\<^sub>\<sigma>_on_welltyped\<^sub>c)
