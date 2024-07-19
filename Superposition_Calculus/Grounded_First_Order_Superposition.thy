@@ -88,7 +88,10 @@ proof-
     using assms list_4_cases
     unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
     apply(auto split: list.splits)
-    unfolding atom.is_ground_subst_iff[symmetric] literal.is_ground_subst_iff[symmetric] clause.is_ground_subst_iff[symmetric]
+    unfolding 
+      atom.is_ground_subst_iff_base_is_ground_subst[symmetric] 
+      literal.is_ground_subst_iff_base_is_ground_subst[symmetric] 
+      clause.is_ground_subst_iff_base_is_ground_subst[symmetric]
     by (metis clause.is_ground_subst_is_ground list_4_cases prod.exhaust_sel)
 
   then show ?thesis

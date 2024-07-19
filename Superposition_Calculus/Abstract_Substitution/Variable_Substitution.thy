@@ -177,7 +177,8 @@ next
     by auto 
 qed
 
-lemma is_ground_subst_iff [simp]: "is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
+lemma is_ground_subst_iff_base_is_ground_subst [simp]: 
+  "is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
   unfolding is_ground_subst_def  base.is_ground_subst_def
   using is_ground_iff_base_is_ground
   by presburger
