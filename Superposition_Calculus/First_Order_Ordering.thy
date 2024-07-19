@@ -122,10 +122,10 @@ lemmas less\<^sub>t_transitive_on = term_order.transp_on_less
 
 lemma less\<^sub>t_wellfounded_on': "Wellfounded.wfp_on (to_term ` terms\<^sub>G) (\<prec>\<^sub>t)"
 proof (rule Wellfounded.wfp_on_subset)
-  show "Wellfounded.wfp_on {term. is_ground_term term} (\<prec>\<^sub>t)"
+  show "Wellfounded.wfp_on {term. term.is_ground term} (\<prec>\<^sub>t)"
     using less\<^sub>t_wellfounded_on .
 next
-  show "to_term ` terms\<^sub>G \<subseteq> {term. is_ground_term term}"
+  show "to_term ` terms\<^sub>G \<subseteq> {term. term.is_ground term}"
     by force
 qed
 

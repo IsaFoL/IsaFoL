@@ -197,8 +197,8 @@ next
     using wellfounded_typed_tiebreakers
     by simp
 next
-  show "\<And>clause\<^sub>G. Restricted_Predicates.wfp_on (tiebreakers clause\<^sub>G) UNIV"
-    using wellfounded_tiebreakers
+  show "\<And>clause\<^sub>G. Restricted_Predicates.wfp_on (typed_tiebreakers clause\<^sub>G) UNIV"
+    using wellfounded_typed_tiebreakers
     by simp
 qed
 

@@ -2,7 +2,7 @@ theory Variable_Substitution
   imports Abstract_Substitution "HOL-Library.FSet"
 begin
 
-(* TODO: Name + different file + maybe refine that also mulitset works *)
+(* TODO: Name + different file + maybe refine such that also mulitset works *)
 locale set_spec = 
   fixes
     contains :: "'x \<Rightarrow> 'set \<Rightarrow> bool"  and
@@ -37,9 +37,8 @@ locale variable_substitution =
   contains = contains and is_empty = is_empty  and is_finite = is_finite and 
   subset_eq = subset_eq and disjoint = disjoint
 for
-  (* value \<rightarrow> expression *)
-  subst :: "'value \<Rightarrow> ('variable \<Rightarrow> 'subvalue) \<Rightarrow> 'value" (infixl "\<cdot>" 70) and
-  vars :: "'value \<Rightarrow> 'variableset" and
+  subst :: "'expression \<Rightarrow> ('variable \<Rightarrow> 'sub_expression) \<Rightarrow> 'expression" (infixl "\<cdot>" 70) and
+  vars :: "'expression \<Rightarrow> 'variables" and
   contains is_empty is_finite subset_eq disjoint  +
 assumes
   subst_eq: "\<And>a \<sigma> \<tau>. (\<And>x. contains x (vars a) \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot> \<sigma> = a \<cdot> \<tau>" and
@@ -70,21 +69,23 @@ lemma subst_reduntant_if' [simp]:
 end
 
 (* TODO: Type annotations *)
-locale variable_substitution_lifting = base: variable_substitution + 
+locale variable_substitution_expansion = base: variable_substitution + 
   variable_substitution where
-  subst = lifted_subst and 
-  id_subst = id_subst and 
+  subst = expanded_subst and 
+  id_subst = "id_subst" and 
   comp_subst = comp_subst and 
-  vars = lifted_vars 
-for lifted_subst lifted_vars +
+  vars = expanded_vars 
+for expanded_subst expanded_vars +
 assumes 
-  lifted_vars_vars: 
-    "(\<forall>x. is_empty (lifted_vars (lifted_subst x \<gamma>))) \<longleftrightarrow> (\<forall>x. is_empty (vars (x \<cdot> \<gamma>)))"
+  expanded_vars_vars: 
+  "(\<forall>x. is_empty (expanded_vars (expanded_subst x \<gamma>))) \<longleftrightarrow> (\<forall>x. is_empty (vars (x \<cdot> \<gamma>)))"
 begin
 
-lemma is_ground_subst_iff [simp]: "is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
+(* TODO: name *)
+lemma is_ground_subst_iff_base_is_ground_subst [simp]: 
+  "is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
   unfolding is_ground_subst_def  base.is_ground_subst_def
-  using lifted_vars_vars
+  using expanded_vars_vars
   by presburger
 
 end
@@ -94,12 +95,15 @@ locale variable_substitution_set = variable_substitution where
   disjoint = "\<lambda>X Y. X \<inter> Y = {}"
 
 (* TODO: With set spec *)
-locale variable_substitution_lifting_set' = 
+locale variable_substitution_lifting_set = 
   base: variable_substitution_set comp_subst id_subst base_subst base_vars
-  for comp_subst id_subst base_subst base_vars +
+  for 
+    id_subst :: "'variable \<Rightarrow> 'base_expression" and
+    base_vars :: "'sub_expression \<Rightarrow> 'variable set" and
+    comp_subst base_subst +
   fixes 
-    map :: "('c \<Rightarrow> 'c) \<Rightarrow> 'd \<Rightarrow> 'd" and
-    to_set :: "'d \<Rightarrow> 'c set" 
+    map :: "('sub_expression \<Rightarrow> 'sub_expression) \<Rightarrow> 'expression \<Rightarrow> 'expression" and
+    to_set :: "'expression \<Rightarrow> 'sub_expression set" 
   assumes 
     map_comp: "\<And>d f g. map f (map g d) = map (f \<circ> g) d" and
     map_id: "map id d = d" and
@@ -109,10 +113,10 @@ locale variable_substitution_lifting_set' =
     to_set_map: "\<And>d f. to_set (map f d) = f ` to_set d"  
 begin
 
-definition vars :: "'d \<Rightarrow> 'a set" where
+definition vars :: "'expression \<Rightarrow> 'variable set" where
   "vars d \<equiv> \<Union>(base_vars ` to_set d)"
 
-definition subst ::  "'d \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'd" where
+definition subst :: "'expression \<Rightarrow> ('variable \<Rightarrow> 'base_expression) \<Rightarrow> 'expression" where
   "subst d \<sigma> \<equiv> map (\<lambda>c. base_subst c \<sigma>) d"
 
 lemma map_id_cong: "\<And>d f. (\<And>c. c \<in> to_set d \<Longrightarrow> f c = c) \<Longrightarrow> map f d = d"
@@ -186,7 +190,7 @@ lemma is_ground_subst_iff_base_is_ground_subst [simp]:
 
 end
 
-locale variable_substitution_lifting_set = variable_substitution_lifting where 
+locale variable_substitution_expansion_set = variable_substitution_expansion where 
   contains = "(\<in>)" and is_empty = "\<lambda>X. X = {}" and is_finite = finite and subset_eq = "(\<subseteq>)" and
   disjoint = "\<lambda>X Y. X \<inter> Y = {}" 
 
@@ -194,7 +198,7 @@ locale variable_substitution_fset = variable_substitution where
   contains = "(|\<in>|)" and is_empty = "\<lambda>X. X = {||}" and is_finite = "\<lambda>_. True" and
   subset_eq = "(|\<subseteq>|)" and disjoint = "\<lambda>X Y. X |\<inter>| Y = {||}"
 
-locale variable_substitution_lifting_fset = variable_substitution_lifting where 
+locale variable_substitution_expansion_fset = variable_substitution_expansion where 
   contains = "(|\<in>|)" and is_empty = "\<lambda>X. X = {||}" and is_finite = "\<lambda>_. True" and
   subset_eq = "(|\<subseteq>|)" and disjoint = "\<lambda>X Y. X |\<inter>| Y = {||}"
 
