@@ -86,7 +86,7 @@ definition vars_clause_set :: "('f, 'v) atom clause set \<Rightarrow> 'v set" wh
 *)
 
 global_interpretation
-  "term": variable_substitution_set 
+  "term": variable_substitution_base_set 
   where
     subst = subst_apply_term and id_subst = Var and comp_subst = subst_compose and 
     vars = term.vars +
@@ -156,6 +156,12 @@ next
       using Fun
       by blast
   qed
+next
+  show "\<And>\<gamma> t. (term.vars (t \<cdot>t \<gamma>) = {}) = (\<forall>x. x \<in> term.vars t \<longrightarrow> term.vars (\<gamma> x) = {})"
+    by (meson is_ground_iff)
+next
+  show "\<exists>t. term.vars t = {}"
+    by (meson vars_term_of_gterm)
 qed
 
 (* TODO: Use locale *)
@@ -228,6 +234,11 @@ next
     ultimately show False
       by blast
   qed
+next
+  fix \<kappa> and \<gamma> :: "('f, 'v) subst"
+
+  show "(context.vars (\<kappa> \<cdot>t\<^sub>c \<gamma>) = {}) = (\<forall>x. x \<in> context.vars \<kappa> \<longrightarrow> term.is_ground (\<gamma> x))"
+    by(induction \<kappa>)(auto simp: term.is_ground_iff)
 qed
 
 global_interpretation "context": finite_variables where 
@@ -556,7 +567,7 @@ qed
 lemma ground_term_subst_upd [simp]:
   assumes "term.is_ground update" "term.is_ground (term \<cdot>t \<gamma>)" 
   shows "term.is_ground (term \<cdot>t \<gamma>(var := update))"
-  using assms
+  using assms  
   by (simp add: is_ground_iff)
 
 lemma ground_atom_subst_upd [simp]:
@@ -582,10 +593,18 @@ lemma ground_clause_subst_upd [simp]:
 
 lemmas to_term_inj = inj_term_of_gterm
 
+
+  
+
 (* TODO: *)
-lemma "surj to_ground_term"
+lemma surj_to_ground_term: "surj to_ground_term"
   unfolding surj_def
   by (metis to_term_inverse)
+
+(*global_interpretation "term" : grounding
+  where to_ground = to_ground_term and from_ground = to_term
+  apply unfold_locales
+  by (auto simp: surj_to_ground_term to_term_inj)*)
 
 lemma to_ground_term_inj: "inj_on to_ground_term (to_term ` domain\<^sub>G)"
   using inj_on_def by fastforce
@@ -784,12 +803,14 @@ lemma obtain_from_neg_literal_subst:
 
 lemmas obtain_from_literal_subst = obtain_from_pos_literal_subst obtain_from_neg_literal_subst
 
+lemma var_is_not_ground: "is_Var t \<Longrightarrow> \<not>term.is_ground t"
+  by (metis empty_iff term.set_sel(3))
+
 lemma subst_cannot_add_var:
   assumes "is_Var (term \<cdot>t \<sigma>)"  
   shows "is_Var term"
-  using assms
-  unfolding is_Var_def
-  by (meson subst_apply_eq_Var)
+  using assms term.subst_cannot_unground[OF var_is_not_ground] 
+  by fastforce
 
 lemma var_in_term:
   assumes "var \<in> term.vars term"
