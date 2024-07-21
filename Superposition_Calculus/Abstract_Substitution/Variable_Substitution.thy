@@ -58,8 +58,7 @@ for
   vars :: "'expression \<Rightarrow> 'variables" and
   contains is_empty is_finite subset_eq disjoint  +
 assumes 
-  subst_eq: "\<And>a \<sigma> \<tau>. (\<And>x. contains x (vars a) \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot> \<sigma> = a \<cdot> \<tau>" (*and
-  ground_exists: "\<exists>a. is_empty (vars a)"*)
+  subst_eq: "\<And>a \<sigma> \<tau>. (\<And>x. contains x (vars a) \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot> \<sigma> = a \<cdot> \<tau>"
 begin
 
 abbreviation is_ground where "is_ground a \<equiv> is_empty (vars a)"
@@ -259,6 +258,10 @@ lemma ground_subst_upd [simp]:
   shows "is_ground (expanded_subst exp (\<gamma>(var := update)))"
   using base.ground_subst_upd assms is_ground_iff by simp  
 
+lemma ground_exists: "\<exists>exp. is_ground exp"
+  using base.ground_exists
+  by (meson is_ground_iff)
+
 end
 
 locale variable_substitution_set = variable_substitution where 
@@ -284,7 +287,7 @@ locale variable_substitution_lifting_set =
     map_id: "map id d = d" and
     map_cong: "\<And>d f g. (\<And>c. c \<in> to_set d \<Longrightarrow> f c = g c) \<Longrightarrow> map f d = map g d" and
     (* TODO: Better def? *)
-    Union_range_to_set: "\<Union>(range to_set) = UNIV" and
+    Union_range_to_set: "\<And>c. \<exists>d. c \<in> to_set d" and
     to_set_map: "\<And>d f. to_set (map f d) = f ` to_set d"  
 begin
 
@@ -406,6 +409,10 @@ lemma ground_subst_upd [simp]:
   assumes "base.is_ground update" "is_ground (subst exp \<gamma>)" 
   shows "is_ground (subst exp  (\<gamma>(var := update)))"
   using assms(1) assms(2) is_ground_iff by auto
+
+lemma ground_exists: "\<exists>exp. is_ground exp"
+  using base.ground_exists
+  by (meson is_ground_iff)
 
 end
 
