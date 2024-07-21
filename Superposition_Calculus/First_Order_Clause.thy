@@ -272,26 +272,28 @@ lemma finite_set_literal: "\<And>l. finite (set_literal l)"
 global_interpretation atom: mylifting
   where comp_subst = subst_compose and id_subst = Var and 
     base_subst = subst_apply_term and base_vars = term.vars and map = map_uprod and
-    to_set = set_uprod
+    to_set = set_uprod and base'_subst = subst_apply_term and base'_vars = term.vars
   by 
     unfold_locales 
-    (auto simp: uprod.map_comp uprod.map_id uprod.set_map Union_range_set_uprod 
+    (auto simp: uprod.map_comp uprod.map_id uprod.set_map Union_range_set_uprod term.is_ground_iff
        intro: uprod.map_cong)
+
+find_theorems name: atom.obtain
 
 global_interpretation literal: mylifting
   where comp_subst = subst_compose and id_subst = Var and 
     base_subst = atom.subst and base_vars = atom.vars and map = map_literal and
-    to_set = set_literal
+    to_set = set_literal and base'_subst = subst_apply_term and base'_vars = term.vars
   by
     unfold_locales 
-    (auto simp: literal.map_comp literal.map_id literal.set_map Union_range_set_literal
+    (auto simp: literal.map_comp literal.map_id literal.set_map Union_range_set_literal atom.is_ground_iff
       finite_set_literal intro: literal.map_cong)
 
 global_interpretation clause: mylifting
   where comp_subst = subst_compose and id_subst = Var and 
     base_subst = literal.subst and base_vars = literal.vars and map = image_mset and
-    to_set = set_mset
-  by unfold_locales (auto simp: Union_range_set_mset)
+    to_set = set_mset and base'_subst = subst_apply_term and base'_vars = term.vars
+  by unfold_locales (auto simp: Union_range_set_mset literal.is_ground_iff)
 
 notation atom.subst (infixl "\<cdot>a" 67)
 notation literal.subst (infixl "\<cdot>l" 66)
@@ -587,9 +589,8 @@ lemma ground_literal_subst_upd [simp]:
 lemma ground_clause_subst_upd [simp]:
   assumes "term.is_ground update" "clause.is_ground (clause \<cdot> \<gamma>)" 
   shows "clause.is_ground (clause \<cdot> \<gamma>(var := update))"
-  using assms
-  unfolding clause.subst_def clause.vars_def
-  by auto
+  using clause.ground_subst_upd[OF assms].
+  
 
 lemmas to_term_inj = inj_term_of_gterm
 
@@ -900,8 +901,8 @@ lemma ground_subst_exstension_atom:
   assumes "atom.is_ground (atom \<cdot>a \<gamma>)"
   obtains \<gamma>'
   where "atom \<cdot>a \<gamma> = atom \<cdot>a \<gamma>'" and "term_subst.is_ground_subst \<gamma>'"
-  by (metis assms atom.subst_comp_subst term_subst.is_ground_subst_comp_right obtain_ground_subst 
-        atom.subst_ident_if_ground)
+  using atom.ground_subst_extension[OF assms]
+  by auto
 
 lemma ground_subst_exstension_literal:
   assumes "literal.is_ground (literal \<cdot>l \<gamma>)"

@@ -377,9 +377,10 @@ end
 locale based_variable_substitution_lifting_set = 
   variable_substitution_lifting_set where id_subst = id_subst and base_vars = base_vars and 
   comp_subst = comp_subst and base_subst = base_subst and map = map and to_set = to_set +
-  base: variable_substitution_base 
+  base: variable_substitution_base_set
   where comp_subst = comp_subst and id_subst = id_subst and subst = base'_subst and vars = base'_vars
-for id_subst base_vars comp_subst base_subst map to_set base'_subst base'_vars +
+  for id_subst base_vars comp_subst base_subst map to_set base'_subst base'_vars +
+(* TODO: find way to not have provide this manually*)
 assumes lifted_is_ground_iff:
   "\<And>exp \<gamma>. lifted.is_ground (base_subst exp \<gamma>) \<longleftrightarrow> (\<forall>x. x \<in> (base_vars exp) \<longrightarrow> base.is_ground (\<gamma> x))"
 begin
@@ -426,7 +427,7 @@ qed
 end
 
 (* TODO: base \<rightarrow> lifted *)
-locale all_subst_ident_iff_ground_lifiting = 
+locale all_subst_ident_iff_ground_lifting = 
   finite_variables_lifting +
   lifted: all_subst_ident_iff_ground where is_ground = lifted.is_ground and subst = base_subst 
     and is_finite = finite and contains = "(\<in>)" 
@@ -493,7 +494,9 @@ qed
 
 end
 
-locale mylifting = all_subst_ident_iff_ground_lifiting
+locale mylifting = 
+  based_variable_substitution_lifting_set + 
+  all_subst_ident_iff_ground_lifting 
 
 locale variable_substitution_expansion_set = variable_substitution_expansion where 
   contains = "(\<in>)" and is_empty = "\<lambda>X. X = {}" and is_finite = finite and subset_eq = "(\<subseteq>)" and
