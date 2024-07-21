@@ -104,7 +104,7 @@ next
   show "\<And>t. finite (term.vars t)"
     by simp
 next
-  show "\<And>t. is_ground_trm t = (\<forall>\<sigma>. t \<cdot>t \<sigma> = t)"
+  show "\<And>t. (term.vars t = {}) = (\<forall>\<sigma>. t \<cdot>t \<sigma> = t)"
     using is_ground_trm_iff_ident_forall_subst.
 next
   (* TODO: type variables *)
@@ -254,8 +254,15 @@ proof unfold_locales
     by simp
 qed
 
+
+
 lemma Union_range_set_uprod: "\<Union> (range set_uprod) = UNIV"
   by (metis UNIV_I UNIV_eq_I UN_iff insert_iff set_uprod_simps)
+
+
+
+lemma "\<Union> (range f) = UNIV \<longleftrightarrow> (\<forall>x. \<exists>y. x \<in> f y)"
+  by auto
 
 lemma Union_range_set_literal: "\<Union> (range set_literal) = UNIV"
   unfolding set_literal_atm_of   
@@ -273,10 +280,11 @@ global_interpretation atom: mylifting
   where comp_subst = subst_compose and id_subst = Var and 
     base_subst = subst_apply_term and base_vars = term.vars and map = map_uprod and
     to_set = set_uprod and base'_subst = subst_apply_term and base'_vars = term.vars
-  by 
+  apply 
     unfold_locales 
-    (auto simp: uprod.map_comp uprod.map_id uprod.set_map Union_range_set_uprod term.is_ground_iff
+   apply (auto simp: uprod.map_comp uprod.map_id uprod.set_map Union_range_set_uprod term.is_ground_iff
        intro: uprod.map_cong)
+  using Union_range_set_uprod by auto
 
 find_theorems name: atom.obtain
 
@@ -284,16 +292,18 @@ global_interpretation literal: mylifting
   where comp_subst = subst_compose and id_subst = Var and 
     base_subst = atom.subst and base_vars = atom.vars and map = map_literal and
     to_set = set_literal and base'_subst = subst_apply_term and base'_vars = term.vars
-  by
+  apply
     unfold_locales 
-    (auto simp: literal.map_comp literal.map_id literal.set_map Union_range_set_literal atom.is_ground_iff
+  apply (auto simp: literal.map_comp literal.map_id literal.set_map Union_range_set_literal atom.is_ground_iff
       finite_set_literal intro: literal.map_cong)
+  by (meson literal.set_intros(1))
 
 global_interpretation clause: mylifting
   where comp_subst = subst_compose and id_subst = Var and 
     base_subst = literal.subst and base_vars = literal.vars and map = image_mset and
     to_set = set_mset and base'_subst = subst_apply_term and base'_vars = term.vars
-  by unfold_locales (auto simp: Union_range_set_mset literal.is_ground_iff)
+  apply unfold_locales apply(auto simp: Union_range_set_mset literal.is_ground_iff)
+  by (meson multi_member_last)
 
 notation atom.subst (infixl "\<cdot>a" 67)
 notation literal.subst (infixl "\<cdot>l" 66)
