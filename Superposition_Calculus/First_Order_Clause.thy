@@ -86,17 +86,10 @@ definition vars_clause_set :: "('f, 'v) atom clause set \<Rightarrow> 'v set" wh
 *)
 
 global_interpretation
-  "term": variable_substitution_base_set 
-  where
-    subst = subst_apply_term and id_subst = Var and comp_subst = subst_compose and 
-    vars = term.vars +
-  "term": finite_variables
-  where 
-    is_finite = finite and vars = term.vars +
-  "term": all_subst_ident_iff_ground
-  where
-    is_ground = term.is_ground and subst = subst_apply_term and is_finite = finite and 
-    contains = "(\<in>)"
+  "term": variable_substitution_base where subst = subst_apply_term and id_subst = Var and 
+    comp_subst = subst_compose and vars = term.vars +
+  "term": finite_variables where vars = term.vars +
+  "term": all_subst_ident_iff_ground where is_ground = term.is_ground and subst = subst_apply_term 
 proof unfold_locales 
   show "\<And>t \<sigma> \<tau>. (\<And>x. x \<in> term.vars t \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> t \<cdot>t \<sigma> = t \<cdot>t \<tau>"
     using term_subst_eq.
@@ -157,7 +150,7 @@ next
       by blast
   qed
 next
-  show "\<And>\<gamma> t. (term.vars (t \<cdot>t \<gamma>) = {}) = (\<forall>x. x \<in> term.vars t \<longrightarrow> term.vars (\<gamma> x) = {})"
+  show "\<And>\<gamma> t. (term.vars (t \<cdot>t \<gamma>) = {}) = (\<forall>x \<in> term.vars t. term.vars (\<gamma> x) = {})"
     by (meson is_ground_iff)
 next
   show "\<exists>t. term.vars t = {}"
@@ -184,7 +177,7 @@ next
     by (metis sup.commute sup_bot_left vars_term_ctxt_apply vars_term_of_gterm)
 qed
 
-global_interpretation "context": variable_substitution_expansion_set where
+global_interpretation "context": variable_substitution_expansion where
    expanded_subst = subst_apply_ctxt and expanded_vars = context.vars and id_subst = Var and 
    comp_subst = subst_compose and vars = term.vars and subst = subst_apply_term
 proof unfold_locales
@@ -237,12 +230,11 @@ next
 next
   fix \<kappa> and \<gamma> :: "('f, 'v) subst"
 
-  show "(context.vars (\<kappa> \<cdot>t\<^sub>c \<gamma>) = {}) = (\<forall>x. x \<in> context.vars \<kappa> \<longrightarrow> term.is_ground (\<gamma> x))"
+  show "(context.vars (\<kappa> \<cdot>t\<^sub>c \<gamma>) = {}) = (\<forall>x \<in> context.vars \<kappa>. term.is_ground (\<gamma> x))"
     by(induction \<kappa>)(auto simp: term.is_ground_iff)
 qed
 
-global_interpretation "context": finite_variables where 
-  is_finite = finite and vars = context.vars
+global_interpretation "context": finite_variables where vars = context.vars
 proof unfold_locales 
   fix \<kappa> :: "('f, 'v) context"
 
@@ -254,15 +246,8 @@ proof unfold_locales
     by simp
 qed
 
-
-
 lemma Union_range_set_uprod: "\<Union> (range set_uprod) = UNIV"
   by (metis UNIV_I UNIV_eq_I UN_iff insert_iff set_uprod_simps)
-
-
-
-lemma "\<Union> (range f) = UNIV \<longleftrightarrow> (\<forall>x. \<exists>y. x \<in> f y)"
-  by auto
 
 lemma Union_range_set_literal: "\<Union> (range set_literal) = UNIV"
   unfolding set_literal_atm_of   
@@ -285,8 +270,6 @@ global_interpretation atom: mylifting
    apply (auto simp: uprod.map_comp uprod.map_id uprod.set_map Union_range_set_uprod term.is_ground_iff
        intro: uprod.map_cong)
   using Union_range_set_uprod by auto
-
-find_theorems name: atom.obtain
 
 global_interpretation literal: mylifting
   where comp_subst = subst_compose and id_subst = Var and 

@@ -2,151 +2,35 @@ theory Variable_Substitution
   imports Abstract_Substitution "HOL-Library.FSet" "HOL-Library.Multiset"
 begin
 
-locale set_spec = 
-  fixes
-    contains :: "'x \<Rightarrow> 'set \<Rightarrow> bool"  and
-    is_empty is_finite :: "'set \<Rightarrow> bool" and
-    subset_eq disjoint :: "'set \<Rightarrow> 'set \<Rightarrow> bool" 
-  assumes
-    is_empty: "\<And>X. is_empty X \<longleftrightarrow> (\<forall>x. \<not> contains x X)" and
-    is_finite: "\<And>X. is_finite X \<longleftrightarrow> (\<exists>n f. \<forall>x. contains x X \<longrightarrow> x \<in> f ` {i::nat. i < n})" and
-    subset_eq: "\<And>X Y. subset_eq X Y \<longleftrightarrow> (\<forall>x. contains x X \<longrightarrow> contains x Y)" and
-    disjoint: "\<And>X Y. disjoint X Y \<longleftrightarrow> 
-        (\<forall>x. contains x X \<longrightarrow> \<not> contains x Y) \<and> (\<forall>x. contains x Y \<longrightarrow> \<not> contains x X)"
-
-(*locale set_spec' = 
-  fixes contains :: "'x \<Rightarrow> 'set \<Rightarrow> bool" 
-begin
-
-abbreviation "\<And>X. is_empty X \<equiv> \<forall>x. \<not> contains x X"
-
-abbreviation "\<And>X. is_finite X \<equiv> \<exists>n f. \<forall>x. contains x X \<longrightarrow> x \<in> f ` {i::nat. i < n}"
-
-abbreviation "\<And>X Y. subseteq X Y \<equiv> \<forall>x. contains x X \<longrightarrow> contains x Y"
-
-abbreviation "\<And>X Y. disjoint X Y \<equiv> 
-  (\<forall>x. contains x X \<longrightarrow> \<not> contains x Y) \<and> (\<forall>x. contains x Y \<longrightarrow> \<not> contains x X)"
-
-end*)
-
-
-interpretation set : set_spec where 
-  contains = "(\<in>)" and is_empty = "\<lambda>X. X = {}" and is_finite = finite and subset_eq = "(\<subseteq>)" and
-  disjoint = "\<lambda>X Y. X \<inter> Y = {}"
-proof unfold_locales
-  show "\<And>X. finite X = (\<exists>n f. \<forall>x. x \<in> X \<longrightarrow> x \<in> f ` {i :: nat. i < n})"
-    by (metis finite_conv_nat_seg_image rev_finite_subset subset_eq)
-qed auto
-
-(*interpretation set' : set_spec' where 
-  contains = "(\<in>)" 
-rewrites 
-  "set'.is_empty X \<equiv> Set.is_empty X" and
-  "set'.is_finite X = finite X" and
-  "set'.subseteq = (\<subseteq>)"and
-  "set'.disjoint X Y = (X \<inter> Y = {})"
-proof unfold_locales
-  show "(\<exists>n f. \<forall>x. x \<in> X \<longrightarrow> x \<in> f ` {i::nat. i < n}) = finite X"
-    by (metis finite_conv_nat_seg_image rev_finite_subset subset_eq)
-qed(auto simp: Set.is_empty_def)
-
-locale lifted_set_spec' = 
-  set_spec' contains + setset: set_spec' containsS
-  for contains :: "'x \<Rightarrow> 'set \<Rightarrow> bool" and containsS :: "'set \<Rightarrow> 'setset \<Rightarrow> bool" +
-  fixes Union :: "'setset \<Rightarrow> 'set"
-  assumes Union: "\<And>x X. contains x (Union X) \<longleftrightarrow> (\<exists>X'. containsS X' X \<and> contains x X')"
-begin
-
-lemma is_empty_Union: "is_empty (Union XX) \<longleftrightarrow> (\<forall>X. containsS X XX \<longrightarrow> is_empty X)"
-  by (meson Union)
-
-end
-
-interpretation set' : lifted_set_spec' where 
-  contains = "(\<in>)" and containsS = "(\<in>)" and Union = "\<Union>"
-   apply unfold_locales 
-  by auto*)
-
-locale lifted_set_spec = 
-  set_spec 
-  where contains = contains and is_empty = is_empty and is_finite = is_finite and 
-    subset_eq = subset_eq and disjoint = disjoint + 
-  setset: set_spec where contains = containsS and is_empty = is_emptyS and is_finite = is_finiteS and 
-    subset_eq = subset_eqS and disjoint = disjointS 
-  for contains :: "'x \<Rightarrow> 'set \<Rightarrow> bool" and containsS :: "'set \<Rightarrow> 'setset \<Rightarrow> bool" and 
-    is_empty is_finite subset_eq disjoint is_emptyS is_finiteS subset_eqS disjointS +
-  fixes Union :: "'setset \<Rightarrow> 'set" 
-  assumes Union: "\<And>x X. contains x (Union X) \<longleftrightarrow> (\<exists>X'. containsS X' X \<and> contains x X')"
-begin
-
-lemma is_empty_Union: "is_empty (Union XX) \<longleftrightarrow> (\<forall>X. containsS X XX \<longrightarrow> is_empty X)"
-  by (meson Union is_empty)
-  
-end 
-    
-
-interpretation set : lifted_set_spec where 
-  contains = "(\<in>)" and is_empty = "\<lambda>X. X = {}" and is_finite = finite and subset_eq = "(\<subseteq>)" and
-  disjoint = "\<lambda>X Y. X \<inter> Y = {}" and  containsS = "(\<in>)" and is_emptyS = "\<lambda>X. X = {}" and is_finiteS = finite and subset_eqS = "(\<subseteq>)" and
-  disjointS = "\<lambda>X Y. X \<inter> Y = {}" and Union = \<Union>
-proof unfold_locales
-qed auto
-
-interpretation fset : set_spec where 
-  contains = "(|\<in>|)" and is_empty = "\<lambda>X. X = {||}" and is_finite = "\<lambda>_. True" and
-  subset_eq = "(|\<subseteq>|)" and disjoint = "\<lambda>X Y. X |\<inter>| Y = {||}" 
-proof unfold_locales
-  show "\<And>X. True = (\<exists>n f. \<forall>x. x |\<in>| X \<longrightarrow> x \<in> f ` {i :: nat. i < n})"
-    using finite_fset set.is_finite by blast
-qed auto
-
-interpretation mset : set_spec where 
-  contains = "(\<in>#)" and is_empty = "\<lambda>X. X = {#}" and is_finite = "\<lambda>_. True" and
-  subset_eq = "\<lambda>X Y. set_mset X \<subseteq> set_mset Y" and disjoint = "\<lambda>X Y. X \<inter># Y = {#}"
-proof unfold_locales
-  show "\<And>X. (X = {#}) = (\<forall>x. x \<notin># X)"
-    by simp
-next
-  fix X :: "'a multiset"
-  show "True = (\<exists>n f. \<forall>x. x \<in># X \<longrightarrow> x \<in> f ` {i :: nat. i < n})"
-    using set.is_finite by blast
-next
-  show "\<And>X Y. (set_mset X \<subseteq> set_mset Y) = (\<forall>x. x \<in># X \<longrightarrow> x \<in># Y)"
-    by blast
-next
-  show "\<And>X Y. (X \<inter># Y = {#}) = ((\<forall>x. x \<in># X \<longrightarrow> x \<notin># Y) \<and> (\<forall>x. x \<in># Y \<longrightarrow> x \<notin># X))"
-    by (meson disjunct_not_in)
-qed
-
 locale variable_substitution = 
-  set_spec contains +
-  basic_substitution _ _ subst "\<lambda>a. is_empty (vars a)" 
+  basic_substitution _ _ subst "\<lambda>a. vars a = {}" 
 for
   subst :: "'expression \<Rightarrow> ('variable \<Rightarrow> 'base_expression) \<Rightarrow> 'expression" (infixl "\<cdot>" 70) and
-  vars :: "'expression \<Rightarrow> 'variables" and
-  contains :: "'variable \<Rightarrow> 'variables \<Rightarrow> bool" +
+  vars :: "'expression \<Rightarrow> 'variable set" +
 assumes 
-  subst_eq: "\<And>a \<sigma> \<tau>. (\<And>x. contains x (vars a) \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot> \<sigma> = a \<cdot> \<tau>"
+  subst_eq: "\<And>a \<sigma> \<tau>. (\<And>x. x \<in> (vars a) \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> a \<cdot> \<sigma> = a \<cdot> \<tau>"
 begin
 
-abbreviation is_ground where "is_ground a \<equiv> is_empty (vars a)"
+abbreviation is_ground where "is_ground a \<equiv> vars a = {}"
 
 lemma subst_reduntant_upd [simp]:
-  assumes "\<not> contains var (vars a)"
+  assumes "var \<notin> vars a"
   shows "a \<cdot> \<sigma>(var := update) = a \<cdot> \<sigma>"
   using assms subst_eq
   by fastforce
 
 lemma subst_reduntant_if [simp]: 
-  assumes "subset_eq (vars a) vars'"
-  shows "a \<cdot> (\<lambda>var. if contains var vars' then \<sigma> var else \<sigma>' var) = a \<cdot> \<sigma>"
-  using assms subst_eq subset_eq
-  by fastforce
+  assumes "vars a \<subseteq> vars'"
+  shows "a \<cdot> (\<lambda>var. if var \<in> vars' then \<sigma> var else \<sigma>' var) = a \<cdot> \<sigma>"
+  using assms 
+  by (smt (verit, best) subset_eq subst_eq)
 
 lemma subst_reduntant_if' [simp]: 
-  assumes "disjoint (vars a) vars'"  
-  shows "a \<cdot> (\<lambda>var. if contains var vars' then \<sigma>' var else \<sigma> var) = a \<cdot> \<sigma>"
-  using assms subst_eq subset_eq disjoint by fastforce
+  assumes "vars a \<inter> vars' = {}"  
+  shows "a \<cdot> (\<lambda>var. if var \<in> vars' then \<sigma>' var else \<sigma> var) = a \<cdot> \<sigma>"
+  using assms subst_eq 
+  unfolding disjoint_iff
+  by presburger
 
 lemma subst_cannot_unground:
   assumes "\<not>is_ground (a \<cdot> \<sigma>)"  
@@ -170,23 +54,19 @@ lemma
 
 end*)
 
-locale finite_variables = 
-  fixes is_finite :: "'variables \<Rightarrow> bool" and vars :: "'expression \<Rightarrow> 'variables"
-  assumes finite_vars [simp]: "\<And>a. is_finite (vars a)"
+locale finite_variables =
+  fixes vars :: "'expression \<Rightarrow> 'variable set"
+  assumes finite_vars [simp]: "\<And>a. finite (vars a)"
 
-locale all_subst_ident_iff_ground = 
-  fixes 
-    is_finite :: "'expressions \<Rightarrow> bool" and
-    contains :: "'expression \<Rightarrow> 'expressions \<Rightarrow> bool" and
-    is_ground :: "'expression \<Rightarrow> bool" and
-    subst :: "'expression \<Rightarrow> ('variable \<Rightarrow> 'base_expression) \<Rightarrow> 'expression"
+locale all_subst_ident_iff_ground =
+  fixes is_ground :: "'expression \<Rightarrow> bool" and subst 
   assumes
     all_subst_ident_iff_ground: "\<And>a. is_ground a \<longleftrightarrow> (\<forall>\<sigma>. subst a \<sigma> = a)" and
     exists_non_ident_subst: 
-      "\<And>a s. is_finite s \<Longrightarrow> \<not>is_ground a \<Longrightarrow> \<exists>\<sigma>. subst a \<sigma> \<noteq> a \<and> \<not> contains (subst a \<sigma>) s"
+      "\<And>a s. finite s \<Longrightarrow> \<not>is_ground a \<Longrightarrow> \<exists>\<sigma>. subst a \<sigma> \<noteq> a \<and> subst a \<sigma> \<notin> s"
 
 locale grounding = variable_substitution 
-  where vars = vars for vars :: "'a \<Rightarrow> 'vars" +
+  where vars = vars for vars :: "'a \<Rightarrow> 'var set" +
   fixes to_ground :: "'a \<Rightarrow> 'g" and from_ground :: "'g \<Rightarrow> 'a"
   assumes 
     range_from_ground_iff_is_ground: "{f. is_ground f} = range from_ground" and
@@ -222,18 +102,17 @@ lemma to_ground_inverse:
   assumes "is_ground f"
   shows "from_ground (to_ground f) = f"
   using assms 
-  by (smt (verit, ccfv_threshold) from_ground_inverse grounding.range_from_ground_iff_is_ground grounding_axioms inj_onD inj_on_to_ground mem_Collect_eq rangeI)
+  by (metis (mono_tags, lifting) from_ground_inverse inj_on_eq_iff inj_on_to_ground mem_Collect_eq 
+        rangeI range_from_ground_iff_is_ground)
 
 end
 
 (* TODO: base_variable_substitution *)
 locale variable_substitution_base = variable_substitution 
-  where subst = subst and contains = contains
-  for subst :: "'expression \<Rightarrow> ('variable \<Rightarrow> 'expression) \<Rightarrow> 'expression"  (infixl "\<cdot>" 70) and 
-    contains :: "'variable \<Rightarrow> 'variables \<Rightarrow> bool" +
+  where subst = subst
+  for subst :: "'expression \<Rightarrow> ('variable \<Rightarrow> 'expression) \<Rightarrow> 'expression"  (infixl "\<cdot>" 70) +
   assumes 
-    is_ground_iff:
-      "\<And>exp. is_ground (exp \<cdot> \<gamma>) \<longleftrightarrow> (\<forall>x. contains x (vars exp) \<longrightarrow> is_ground (\<gamma> x))" and
+    is_ground_iff: "\<And>exp. is_ground (exp \<cdot> \<gamma>) \<longleftrightarrow> (\<forall>x \<in> vars exp. is_ground (\<gamma> x))" and
    ground_exists: "\<exists>exp. is_ground exp"
 begin 
 
@@ -263,7 +142,7 @@ proof-
     by blast
                     
   define \<gamma>' where 
-    \<gamma>':  "\<gamma>' = (\<lambda>var. if contains var (vars exp) then \<gamma> var else \<gamma>'' var)"
+    \<gamma>':  "\<gamma>' = (\<lambda>var. if var \<in> vars exp then \<gamma> var else \<gamma>'' var)"
 
   have "is_ground_subst \<gamma>'"
     using assms \<gamma>'' is_ground_iff
@@ -299,7 +178,7 @@ assumes
   expanded_vars_vars: 
     "(\<forall>x. is_ground (expanded_subst x \<gamma>)) \<longleftrightarrow> (\<forall>x. base.is_ground (x \<cdot> \<gamma>))" and
   is_ground_iff:
-  "is_ground (expanded_subst exp \<gamma>) \<longleftrightarrow> (\<forall>x. contains x (expanded_vars exp) \<longrightarrow> base.is_ground (\<gamma> x))"
+  "is_ground (expanded_subst exp \<gamma>) \<longleftrightarrow> (\<forall>x \<in> expanded_vars exp. base.is_ground (\<gamma> x))"
 begin
 
 (* TODO: name *)
@@ -332,24 +211,14 @@ lemma ground_exists: "\<exists>exp. is_ground exp"
 
 end
 
-locale variable_substitution_set = variable_substitution where 
-  contains = "(\<in>)" and is_empty = "\<lambda>X. X = {}" and is_finite = finite and
-  subset_eq = "(\<subseteq>)" and disjoint = "\<lambda>X Y. X \<inter> Y = {}"
-
-locale variable_substitution_base_set = variable_substitution_base where 
-  contains = "(\<in>)" and is_empty = "\<lambda>X. X = {}" and is_finite = finite and
-  subset_eq = "(\<subseteq>)" and disjoint = "\<lambda>X Y. X \<inter> Y = {}"
-
-(* TODO: With set spec *)
+(* TODO: Names *)
 locale variable_substitution_lifting = 
   lifted: variable_substitution 
   where comp_subst = comp_subst and id_subst = id_subst and subst = base_subst and 
-    vars = base_vars + 
-  lifted_set_spec where containsS = "(\<in>)"
+    vars = base_vars
   for 
     id_subst :: "'variable \<Rightarrow> 'base_expression" and
-    base_vars :: "'sub_expression \<Rightarrow> 'variables" and
-    containsS :: "'variables \<Rightarrow> 'variables set \<Rightarrow> bool" and
+    base_vars :: "'sub_expression \<Rightarrow> 'variable set" and
     comp_subst base_subst +
   fixes 
     map :: "('sub_expression \<Rightarrow> 'sub_expression) \<Rightarrow> 'expression \<Rightarrow> 'expression" and
@@ -363,8 +232,8 @@ locale variable_substitution_lifting =
     to_set_map: "\<And>d f. to_set (map f d) = f ` to_set d" 
 begin
 
-definition vars :: "'expression \<Rightarrow> 'variables" where
-  "vars d \<equiv> Union (base_vars ` to_set d)"
+definition vars :: "'expression \<Rightarrow> 'variable set" where
+  "vars d \<equiv> \<Union> (base_vars ` to_set d)"
 
 definition subst :: "'expression \<Rightarrow> ('variable \<Rightarrow> 'base_expression) \<Rightarrow> 'expression" where
   "subst d \<sigma> \<equiv> map (\<lambda>c. base_subst c \<sigma>) d"
@@ -379,16 +248,18 @@ lemma map_id_cong:
 lemma to_set_map_not_ident: 
   assumes "c \<in> to_set d" "f c \<notin> to_set d" 
   shows "map f d \<noteq> d"
-  by (metis assms image_eqI to_set_map)
+  using assms
+  by (metis rev_image_eqI to_set_map)
 
 lemma subst_in_to_set_subst:
   assumes "c \<in> to_set d" 
   shows "base_subst c \<sigma> \<in> to_set (subst d \<sigma>)"
   unfolding subst_def
-  using to_set_map assms by auto
+  using assms to_set_map by auto
+
 
 sublocale variable_substitution where
-  comp_subst = comp_subst and id_subst = id_subst and subst = subst and vars = vars and contains = contains 
+  comp_subst = comp_subst and id_subst = id_subst and subst = subst and vars = vars
 proof unfold_locales
   show "\<And>x a b. subst x (comp_subst a b) = subst (subst x a) b"
     using lifted.subst_comp_subst
@@ -399,15 +270,15 @@ next
     using map_id
     unfolding subst_def lifted.subst_id_subst id_def.
 next
-   show "\<And>x. is_empty (vars x) \<Longrightarrow> \<forall>\<sigma>. subst x \<sigma> = x"
-     unfolding vars_def subst_def is_empty_Union   
+   show "\<And>x. vars x = {} \<Longrightarrow> \<forall>\<sigma>. subst x \<sigma> = x"
+     unfolding vars_def subst_def    
      using map_id_cong 
      by simp
 next
-  show "\<And>a \<sigma> \<tau>. (\<And>x. contains x (vars a) \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> subst a \<sigma> = subst a \<tau> "
+  show "\<And>a \<sigma> \<tau>. (\<And>x. x \<in> vars a \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> subst a \<sigma> = subst a \<tau> "
     unfolding vars_def subst_def
     using map_cong lifted.subst_eq
-    by (meson Union image_eqI)   
+    by (meson UN_I)
 qed
 
 (* TODO: name *)
@@ -424,9 +295,9 @@ proof(rule iffI allI; rule allI)
       using Union_range_to_set by auto
 
     then have "\<not>is_ground (subst d \<gamma>)"
-      using c_not_ground to_set_map Union
+      using c_not_ground to_set_map 
       unfolding subst_def vars_def
-      using is_empty_Union by auto
+      by auto
 
     then show False
       using all_d_ground
@@ -439,7 +310,7 @@ next
   then show "is_ground (subst d \<gamma>)"
     unfolding vars_def subst_def
     using to_set_map
-    using is_empty_Union by auto
+    by simp
 qed
 
 lemma is_ground_subst_iff_base_is_ground_subst [simp]: 
@@ -450,15 +321,10 @@ lemma is_ground_subst_iff_base_is_ground_subst [simp]:
 
 end
 
-locale variable_substitution_lifting_set = variable_substitution_lifting where 
-   contains = "(\<in>)" and is_empty = "\<lambda>X. X = {}" and is_finite = finite and
-  subset_eq = "(\<subseteq>)" and disjoint = "\<lambda>X Y. X \<inter> Y = {}" and containsS = "(\<in>)" and is_emptyS = "\<lambda>X. X = {}" and is_finiteS = finite and
-  subset_eqS = "(\<subseteq>)" and disjointS = "\<lambda>X Y. X \<inter> Y = {}" and Union = \<Union>
-
-locale based_variable_substitution_lifting_set = 
-  variable_substitution_lifting_set where id_subst = id_subst and base_vars = base_vars and 
+locale based_variable_substitution_lifting = 
+  variable_substitution_lifting where id_subst = id_subst and base_vars = base_vars and 
   comp_subst = comp_subst and base_subst = base_subst and map = map and to_set = to_set +
-  base: variable_substitution_base_set
+  base: variable_substitution_base
   where comp_subst = comp_subst and id_subst = id_subst and subst = base'_subst and vars = base'_vars
   for id_subst base_vars comp_subst base_subst map to_set base'_subst base'_vars +
 (* TODO: find way to not have provide this manually*)
@@ -496,31 +362,29 @@ lemma ground_exists: "\<exists>exp. is_ground exp"
 end
 
 locale finite_variables_lifting = 
-  variable_substitution_lifting_set + 
-  base: finite_variables where is_finite = finite and vars = base_vars +
+  variable_substitution_lifting + 
+  lifted: finite_variables where vars = base_vars +
   assumes finite_to_set: "\<And>d. finite (to_set d)"
 begin
 
 sublocale finite_variables 
-  where is_finite = finite and vars = vars
+  where vars = vars
 proof unfold_locales
- show "\<And>a. finite (vars a)"
+  show "\<And>a. finite (vars a)"
     unfolding vars_def
-    using base.finite_vars finite_to_set
-    by blast
+    by (simp add: finite_to_set)
 qed
 
 end
 
 (* TODO: base \<rightarrow> lifted *)
 locale all_subst_ident_iff_ground_lifting = 
-  finite_variables_lifting +
-  lifted: all_subst_ident_iff_ground where is_ground = lifted.is_ground and subst = base_subst 
-    and is_finite = finite and contains = "(\<in>)" 
+  finite_variables_lifting +  
+  lifted: all_subst_ident_iff_ground where subst = base_subst and is_ground = lifted.is_ground
 begin
 
 sublocale all_subst_ident_iff_ground 
-  where is_finite = finite and contains = "(\<in>)" and is_ground = is_ground and subst = subst 
+  where subst = subst and is_ground = is_ground
 proof unfold_locales
   show "\<And>x. is_ground x = (\<forall>\<sigma>. subst x \<sigma> = x)"
   proof(rule iffI allI)
@@ -536,7 +400,6 @@ proof unfold_locales
 
       then obtain c where c_in_d: "c \<in> to_set d" and c_not_ground: "\<not>lifted.is_ground c"
         unfolding vars_def
-        using lifted.is_empty
         by blast
 
       then obtain \<sigma> where "base_subst c \<sigma> \<noteq> c" and "base_subst c \<sigma> \<notin> to_set d"
@@ -559,7 +422,6 @@ next
   obtain c where c_in_d: "c \<in> to_set d" and c_not_ground: "\<not>lifted.is_ground c"
     using d_not_ground
     unfolding vars_def
-    using lifted.is_empty
     by blast
 
   obtain \<sigma> where \<sigma>_not_ident: "base_subst c \<sigma> \<noteq> c" "base_subst c \<sigma> \<notin> \<Union> (to_set ` insert d ds)"
@@ -583,19 +445,7 @@ qed
 end
 
 locale mylifting = 
-  based_variable_substitution_lifting_set + 
+  based_variable_substitution_lifting + 
   all_subst_ident_iff_ground_lifting 
-
-locale variable_substitution_expansion_set = variable_substitution_expansion where 
-  contains = "(\<in>)" and is_empty = "\<lambda>X. X = {}" and is_finite = finite and
-  subset_eq = "(\<subseteq>)" and disjoint = "\<lambda>X Y. X \<inter> Y = {}"
-
-(*locale variable_substitution_fset = variable_substitution where
-  contains = "(|\<in>|)" and is_empty = "\<lambda>X. X = {||}" and is_finite = "\<lambda>_. True" and
-  subset_eq = "(|\<subseteq>|)" and disjoint = "\<lambda>X Y. X |\<inter>| Y = {||}"
-
-locale variable_substitution_expansion_fset = variable_substitution_expansion where 
-  contains = "(|\<in>|)" and is_empty = "\<lambda>X. X = {||}" and is_finite = "\<lambda>_. True" and
-  subset_eq = "(|\<subseteq>|)" and disjoint = "\<lambda>X Y. X |\<inter>| Y = {||}"*)
 
 end
