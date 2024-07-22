@@ -396,7 +396,7 @@ abbreviation subst_stability_on where
 lemma select\<^sub>G_subset: "select\<^sub>G clause \<subseteq># clause"
   using select\<^sub>G 
   unfolding is_select_grounding_def
-  by (metis select_subset to_ground_clause_def image_mset_subseteq_mono clause.subst_def)
+  by (metis select_subset clause.to_ground_def image_mset_subseteq_mono clause.subst_def)
 
 lemma select\<^sub>G_negative:
   assumes "literal\<^sub>G \<in># select\<^sub>G clause\<^sub>G"
@@ -415,7 +415,7 @@ proof -
         OF select_subst(1)[OF is_ground] assms[unfolded select\<^sub>G], 
         THEN select_subst(2)
         ]
-    unfolding to_literal_def
+    unfolding literal.from_ground_def
     by simp
 qed
 

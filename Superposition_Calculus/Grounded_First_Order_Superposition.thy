@@ -182,7 +182,7 @@ next
 next
   fix clause
   show "clause_groundings typeof_fun clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"
-    unfolding clause_groundings_def to_ground_clause_def clause.subst_def
+    unfolding clause_groundings_def clause.to_ground_def clause.subst_def
     apply auto
     by (metis prod.exhaust_sel)
 next

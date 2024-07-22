@@ -173,17 +173,17 @@ proof (cases P C rule: eq_resolution.cases)
       by (auto simp: true_cls_def)
 
     have [simp]: "?P = add_mset ?L ?P'"
-      by (simp add: to_ground_clause_def eq_resolutionI(3) subst_clause_add_mset)
+      by (simp add: clause.to_ground_def eq_resolutionI(3) subst_clause_add_mset)
 
     have [simp]: "?L = (Neg (Upair ?s\<^sub>1 ?s\<^sub>2))"
-      unfolding to_ground_literal_def eq_resolutionI(4) to_ground_atom_def
-      by (simp add: atom.subst_def subst_literal)
+      unfolding  eq_resolutionI(4) atom.to_ground_def literal.to_ground_def
+      by clause_auto
 
     have [simp]: "?s\<^sub>1 = ?s\<^sub>2"
       using term_subst.subst_imgu_eq_subst_imgu[OF eq_resolutionI(5)] by simp
 
     have "is_neg ?L"
-      by (simp add: to_ground_literal_def eq_resolutionI(4) subst_literal)
+      by (simp add: literal.to_ground_def eq_resolutionI(4) subst_literal)
 
     show "?I \<TTurnstile> to_ground_clause (C \<cdot> \<gamma>)"
     proof(cases "L' = ?L")
@@ -317,17 +317,17 @@ proof (cases P C rule: eq_factoring.cases)
       by simp
 
     have L\<^sub>1: "?L\<^sub>1 = ?s\<^sub>1 \<approx> ?s\<^sub>1'"
-      unfolding to_ground_literal_def eq_factoringI(4) to_ground_atom_def
+      unfolding literal.to_ground_def eq_factoringI(4) atom.to_ground_def
       by (simp add: atom.subst_def subst_literal)
 
     have L\<^sub>2: "?L\<^sub>2 = ?t\<^sub>2 \<approx> ?t\<^sub>2'"
-      unfolding to_ground_literal_def eq_factoringI(5) to_ground_atom_def
+      unfolding literal.to_ground_def eq_factoringI(5) atom.to_ground_def
       by (simp add: atom.subst_def subst_literal)
 
     have C: "?C = add_mset (?s\<^sub>1 \<approx> ?t\<^sub>2') (add_mset (Neg (Upair ?s\<^sub>1' ?t\<^sub>2')) ?P')"
       unfolding eq_factoringI 
-      by (simp add: to_ground_clause_def to_ground_literal_def atom.subst_def subst_clause_add_mset subst_literal
-          to_ground_atom_def)
+      by (simp add: clause.to_ground_def literal.to_ground_def atom.subst_def subst_clause_add_mset subst_literal
+          atom.to_ground_def)
 
     show "?I \<TTurnstile> to_ground_clause (C \<cdot> \<gamma>)"
     proof(cases "L' = ?L\<^sub>1 \<or> L' = ?L\<^sub>2")
@@ -351,7 +351,7 @@ proof (cases P C rule: eq_factoring.cases)
       then have "L' \<in># ?P'"
         using L'_in_P
         unfolding eq_factoringI
-        by (simp add: to_ground_clause_def subst_clause_add_mset)
+        by (simp add: clause.to_ground_def subst_clause_add_mset)
 
       then have "L' \<in># to_ground_clause (C \<cdot> \<gamma>)"
         using clause.subst_eq \<gamma>'(3) C
@@ -563,8 +563,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       using superpositionI(9) by blast
 
     then have L\<^sub>1: "?L\<^sub>1 = ?\<P> (Upair ?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G ?s\<^sub>1')"
-      unfolding superpositionI to_ground_literal_def to_ground_atom_def
-
+      unfolding superpositionI literal.to_ground_def atom.to_ground_def
       by (auto simp: s\<^sub>1_u\<^sub>1 subst_atom subst_literal)
 
     have C: "?C = add_mset (?\<P> (Upair (?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G (?s\<^sub>1'))) (?P\<^sub>1' + ?P\<^sub>2')"
@@ -572,13 +571,15 @@ proof (cases P2 P1 C rule: superposition.cases)
       unfolding 
         s\<^sub>1_t\<^sub>2' 
         superpositionI 
-        to_ground_clause_def 
-        to_ground_literal_def 
-        to_ground_atom_def
+        clause.to_ground_def 
+        
         subst_clause_add_mset 
         subst_clause_plus 
-      by(auto simp: subst_atom subst_literal)
-
+       
+      apply (auto simp: subst_atom subst_literal)
+       apply (metis atom.to_ground_def ground_atom_in_ground_literal2(1) map_uprod_simps)
+      by (metis atom.to_ground_def ground_atom_in_ground_literal2(2) map_uprod_simps)
+      
     show "?I \<TTurnstile> to_ground_clause (C \<cdot> \<gamma>)"
     proof (cases "L\<^sub>1' = ?L\<^sub>1")
       case L\<^sub>1'_def: True
@@ -592,7 +593,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
         then have ts_in_I: "(?t\<^sub>2, ?t\<^sub>2') \<in> I"
           using I_models_L\<^sub>2' true_lit_uprod_iff_true_lit_prod[OF sym_I] superpositionI(11)
-          unfolding to_ground_literal_def to_ground_atom_def 
+          unfolding literal.to_ground_def  atom.to_ground_def  
           by (smt (verit) literal.simps(9) map_uprod_simps atom.subst_def subst_literal true_lit_simps(1)) 
 
         have ?thesis if "\<P> = Pos"
@@ -640,7 +641,7 @@ proof (cases P2 P1 C rule: superposition.cases)
         then have "L\<^sub>2' \<in># ?P\<^sub>2'"
           using L\<^sub>2'_in_P2
           unfolding superpositionI
-          by (simp add: to_ground_clause_def subst_clause_add_mset)
+          by (simp add:  clause.to_ground_def  subst_clause_add_mset)
 
         then have "?I \<TTurnstile> ?P\<^sub>2'"
           using I_models_L\<^sub>2' by blast
@@ -654,7 +655,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       then have "L\<^sub>1' \<in># ?P\<^sub>1'"
         using L\<^sub>1'_in_P1
         unfolding superpositionI 
-        by (simp add: to_ground_clause_def subst_clause_add_mset)
+        by (simp add:  clause.to_ground_def  subst_clause_add_mset)
 
       then have "?I \<TTurnstile> ?P\<^sub>1'"
         using I_models_L\<^sub>1' by blast

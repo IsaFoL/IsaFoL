@@ -146,7 +146,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
 
   have "term \<cdot>t \<gamma> = term' \<cdot>t \<gamma>"
     using literal_\<gamma>
-    unfolding literal subst_literal(2) atom.subst_def to_literal_def to_atom_def
+    unfolding literal subst_literal(2) atom.subst_def literal.from_ground_def atom.from_ground_def
     by simp
 
   moreover obtain \<tau> where "welltyped typeof_fun \<V> term \<tau>" "welltyped typeof_fun \<V> term' \<tau>"
@@ -379,8 +379,6 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     unfolding 
       literal\<^sub>2_terms 
       ground_eq_factoringI(3) 
-      to_literal_def 
-      to_atom_def 
     by clause_auto
 
   obtain premise' where premise: "premise = add_mset literal\<^sub>1 (add_mset literal\<^sub>2 premise')" 
@@ -666,7 +664,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         premise\<^sub>1_grounding[folded clause.subst_comp_subst]
         ]
       neg_literal\<^sub>G\<^sub>1_is_maximal\<^sub>l
-    by (metis assms(9) clause.comp_subst.monoid_action_compatibility unique_maximal_in_ground_clause)
+    by (metis (no_types, opaque_lifting) assms(9) clause.comp_subst.left.monoid_action_compatibility unique_maximal_in_ground_clause)
 
   moreover then have "neg_max_literal\<^sub>1 \<in># premise\<^sub>1" if "\<P>\<^sub>G = Neg" ?select\<^sub>G_empty
     using that maximal\<^sub>l_in_clause by fastforce
@@ -687,7 +685,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         unique_maximal_in_ground_clause
         is_maximal\<^sub>l_ground_subst_stability
       unfolding premise\<^sub>G\<^sub>1 is_maximal_lit_iff_is_maximal\<^sub>l
-      by (metis (mono_tags, lifting) clause.comp_subst.monoid_action_compatibility clause_subst_empty(2) ground_clause_is_ground image_mset_is_empty_iff to_clause_def)
+      by (metis (mono_tags, lifting) clause.comp_subst.monoid_action_compatibility clause_subst_empty(2) ground_clause_is_ground image_mset_is_empty_iff clause.from_ground_def)
   qed
 
   moreover then have "neg_selected_literal\<^sub>1 \<in># premise\<^sub>1" if "\<P>\<^sub>G = Neg" ?select\<^sub>G_not_empty 
@@ -985,7 +983,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
       have aux: "term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>to_term term\<^sub>G\<^sub>1\<rangle>"
         using term\<^sub>x_\<gamma>
-        by (metis context.is_ground_subst_iff_base_is_ground_subst context.is_ground_subst_is_ground ground_term_with_context2 term_subst.is_ground_subst_is_ground to_ground_term_inverse typing(3))
+        by (metis ground_term_with_context2 term_subst.is_ground_subst_is_ground term_with_context_is_ground to_ground_term_inverse typing(3) update_grounding)
 
       have "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 (to_clause premise\<^sub>G\<^sub>2)"
         by (metis ground_superpositionI(2) premise\<^sub>2_\<gamma> clause.comp_subst.left.monoid_action_compatibility typing(2) typing(5) welltyped\<^sub>\<sigma>_on_welltyped\<^sub>c)

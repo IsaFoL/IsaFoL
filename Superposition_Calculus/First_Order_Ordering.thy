@@ -377,13 +377,13 @@ lemma less\<^sub>c\<^sub>G_less\<^sub>c:
 proof (rule iffI)
   show "clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<Longrightarrow> to_clause clause\<^sub>G\<^sub>1 \<prec>\<^sub>c to_clause clause\<^sub>G\<^sub>2"
     unfolding less\<^sub>c_def
-    by (auto simp: to_clause_def ground.less_cls_def less\<^sub>l\<^sub>G_less\<^sub>l
+    by (auto simp: clause.from_ground_def ground.less_cls_def less\<^sub>l\<^sub>G_less\<^sub>l
         intro!: multp_image_mset_image_msetI elim: multp_mono_strong)
 next
   have "transp (\<lambda>x y. to_literal x \<prec>\<^sub>l to_literal y)"
     by (metis (no_types, lifting) literal_order.less_trans transpI)
   thus "to_clause clause\<^sub>G\<^sub>1 \<prec>\<^sub>c to_clause clause\<^sub>G\<^sub>2 \<Longrightarrow> clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2"
-    unfolding ground.less_cls_def to_clause_def less\<^sub>c_def
+    unfolding ground.less_cls_def clause.from_ground_def less\<^sub>c_def
     by (auto simp: less\<^sub>l\<^sub>G_less\<^sub>l
         dest!: multp_image_mset_image_msetD[OF _ less\<^sub>l_transitive to_literal_inj]
         elim!: multp_mono_strong)
