@@ -20,12 +20,12 @@ lemma eq_resolution_lifting:
     premise "conclusion" :: "('f, 'v) atom clause" and
     \<gamma> :: "('f, 'v) subst"
   defines 
-    premise\<^sub>G [simp]: "premise\<^sub>G \<equiv> to_ground_clause (premise \<cdot> \<gamma>)" and
-    conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> to_ground_clause (conclusion \<cdot> \<gamma>)"
+    premise\<^sub>G [simp]: "premise\<^sub>G \<equiv> clause.to_ground (premise \<cdot> \<gamma>)" and
+    conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> clause.to_ground (conclusion \<cdot> \<gamma>)"
   assumes 
     premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and (* TODO: groundings can be derived from ground_subst*)
     conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
-    select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
+    select: "clause.from_ground (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
     ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G" and
     typing: 
     "welltyped\<^sub>c typeof_fun \<V> premise"
@@ -47,21 +47,21 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
       empty_not_add_mset
       clause_subst_empty
     unfolding premise\<^sub>G
-    by (metis to_clause_empty_mset to_clause_inverse)
+    by (metis clause_from_ground_empty_mset clause.from_ground_inverse)
 
-  have "premise \<cdot> \<gamma> = to_clause (add_mset literal\<^sub>G (to_ground_clause (conclusion \<cdot> \<gamma>)))"
+  have "premise \<cdot> \<gamma> = clause.from_ground (add_mset literal\<^sub>G (clause.to_ground (conclusion \<cdot> \<gamma>)))"
     using 
-      ground_eq_resolutionI(1)[THEN arg_cong, of to_clause]
-      to_ground_clause_inverse[OF premise_grounding]
+      ground_eq_resolutionI(1)[THEN arg_cong, of clause.from_ground]
+      clause.to_ground_inverse[OF premise_grounding]
       ground_eq_resolutionI(4)
     unfolding premise\<^sub>G conclusion\<^sub>G
     by metis
 
-  also have "... = add_mset (to_literal literal\<^sub>G) (conclusion \<cdot> \<gamma>)"
-    unfolding to_clause_add_mset
+  also have "... = add_mset (literal.from_ground literal\<^sub>G) (conclusion \<cdot> \<gamma>)"
+    unfolding clause_from_ground_add_mset
     by (simp add: conclusion_grounding)
 
-  finally have premise_\<gamma>: "premise \<cdot> \<gamma> = add_mset (to_literal literal\<^sub>G) (conclusion \<cdot> \<gamma>)".
+  finally have premise_\<gamma>: "premise \<cdot> \<gamma> = add_mset (literal.from_ground literal\<^sub>G) (conclusion \<cdot> \<gamma>)".
 
   let ?select\<^sub>G_empty = "select\<^sub>G premise\<^sub>G = {#}"
   let ?select\<^sub>G_not_empty = "select\<^sub>G premise\<^sub>G \<noteq> {#}"
@@ -75,7 +75,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
   moreover then have "max_literal \<in># premise"
     using maximal\<^sub>l_in_clause by fastforce
 
-  moreover have max_literal_\<gamma>: "max_literal \<cdot>l \<gamma> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)"
+  moreover have max_literal_\<gamma>: "max_literal \<cdot>l \<gamma> = literal.from_ground (term\<^sub>G !\<approx> term\<^sub>G)"
     if ?select\<^sub>G_empty
   proof-
     have "ground.is_maximal_lit literal\<^sub>G premise\<^sub>G"
@@ -88,12 +88,12 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
         ground_eq_resolutionI(2) 
         is_maximal_lit_iff_is_maximal\<^sub>l 
         premise\<^sub>G 
-        to_ground_clause_inverse[OF premise_grounding]
+        clause.to_ground_inverse[OF premise_grounding]
       by blast
   qed
 
   moreover obtain selected_literal where 
-    "selected_literal \<cdot>l \<gamma> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)" and
+    "selected_literal \<cdot>l \<gamma> = literal.from_ground (term\<^sub>G !\<approx> term\<^sub>G)" and
     "is_maximal\<^sub>l selected_literal (select premise)" 
   if ?select\<^sub>G_not_empty
   proof-
@@ -111,14 +111,14 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
         ground_eq_resolutionI(2) 
         premise\<^sub>G
         is_maximal_lit_iff_is_maximal\<^sub>l
-      by (metis (full_types) clause_subst_empty(2) to_clause_inverse to_ground_clause_empty_mset)
+      by (metis (full_types) clause_subst_empty(2) clause.from_ground_inverse clause_to_ground_empty_mset)
   qed
 
   moreover then have "selected_literal \<in># premise" if ?select\<^sub>G_not_empty
     by (meson that maximal\<^sub>l_in_clause mset_subset_eqD select_subset)
 
   ultimately obtain literal where
-    literal_\<gamma>: "literal \<cdot>l \<gamma> = to_literal (term\<^sub>G !\<approx> term\<^sub>G)" and
+    literal_\<gamma>: "literal \<cdot>l \<gamma> = literal.from_ground (term\<^sub>G !\<approx> term\<^sub>G)" and
     literal_in_premise: "literal \<in># premise" and
     literal_selected: "?select\<^sub>G_not_empty \<Longrightarrow> is_maximal\<^sub>l literal (select premise)" and
     literal_max: "?select\<^sub>G_empty \<Longrightarrow> is_maximal\<^sub>l literal premise"
@@ -130,13 +130,13 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
 
   from literal_\<gamma> obtain "term" term' where 
     literal: "literal = term !\<approx> term'"
-    using subst_polarity_stable to_literal_polarity_stable
+    using subst_polarity_stable literal_from_ground_polarity_stable
     by (metis literal.collapse(2) literal.disc(2) uprod_exhaust)
 
 
   have literal\<^sub>G: 
-    "to_literal literal\<^sub>G = (term !\<approx> term') \<cdot>l \<gamma>" 
-    "literal\<^sub>G = to_ground_literal ((term !\<approx> term') \<cdot>l \<gamma>)"
+    "literal.from_ground literal\<^sub>G = (term !\<approx> term') \<cdot>l \<gamma>" 
+    "literal\<^sub>G = literal.to_ground ((term !\<approx> term') \<cdot>l \<gamma>)"
     using literal_\<gamma> literal ground_eq_resolutionI(2) 
     by simp_all
 
@@ -276,12 +276,12 @@ lemma eq_factoring_lifting:
     premise "conclusion" :: "('f, 'v) atom clause" and
     \<gamma> :: "('f, 'v) subst"
   defines 
-    premise\<^sub>G [simp]: "premise\<^sub>G \<equiv> to_ground_clause (premise \<cdot> \<gamma>)" and
-    conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> to_ground_clause (conclusion \<cdot> \<gamma>)"
+    premise\<^sub>G [simp]: "premise\<^sub>G \<equiv> clause.to_ground (premise \<cdot> \<gamma>)" and
+    conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> clause.to_ground (conclusion \<cdot> \<gamma>)"
   assumes
     premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and
     conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
-    select: "to_clause (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
+    select: "clause.from_ground (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
     ground_eq_factoring: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G" and
     typing:
     "welltyped\<^sub>c typeof_fun \<V> premise"
@@ -299,15 +299,15 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
 
   have premise_not_empty: "premise \<noteq> {#}"
     using ground_eq_factoringI(1) empty_not_add_mset clause_subst_empty premise\<^sub>G
-    by (metis to_clause_empty_mset to_clause_inverse)
+    by (metis clause_from_ground_empty_mset clause.from_ground_inverse)
 
   have select_empty: "select premise = {#}"
     using ground_eq_factoringI(4) select clause_subst_empty
     by clause_auto
 
-  have premise_\<gamma>: "premise \<cdot> \<gamma> = to_clause (add_mset literal\<^sub>G\<^sub>1 (add_mset literal\<^sub>G\<^sub>2 premise'\<^sub>G))"
+  have premise_\<gamma>: "premise \<cdot> \<gamma> = clause.from_ground (add_mset literal\<^sub>G\<^sub>1 (add_mset literal\<^sub>G\<^sub>2 premise'\<^sub>G))"
     using ground_eq_factoringI(1) premise\<^sub>G
-    by (metis premise_grounding to_ground_clause_inverse)
+    by (metis premise_grounding clause.to_ground_inverse)
 
   obtain literal\<^sub>1 where literal\<^sub>1_maximal: 
     "is_maximal\<^sub>l literal\<^sub>1 premise" 
@@ -315,15 +315,15 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     using is_maximal\<^sub>l_ground_subst_stability[OF premise_not_empty premise_grounding]
     by blast
 
-  have max_ground_literal: "is_maximal\<^sub>l (to_literal (term\<^sub>G\<^sub>1 \<approx> term\<^sub>G\<^sub>2)) (premise \<cdot> \<gamma>)"
+  have max_ground_literal: "is_maximal\<^sub>l (literal.from_ground (term\<^sub>G\<^sub>1 \<approx> term\<^sub>G\<^sub>2)) (premise \<cdot> \<gamma>)"
     using ground_eq_factoringI(5)
     unfolding 
       is_maximal_lit_iff_is_maximal\<^sub>l 
       ground_eq_factoringI(2) 
       premise\<^sub>G 
-      to_ground_clause_inverse[OF premise_grounding].
+      clause.to_ground_inverse[OF premise_grounding].
 
-  have literal\<^sub>1_\<gamma>: "literal\<^sub>1 \<cdot>l \<gamma> = to_literal literal\<^sub>G\<^sub>1"
+  have literal\<^sub>1_\<gamma>: "literal\<^sub>1 \<cdot>l \<gamma> = literal.from_ground literal\<^sub>G\<^sub>1"
     using 
       unique_maximal_in_ground_clause[OF premise_grounding literal\<^sub>1_maximal(2) max_ground_literal]
       ground_eq_factoringI(2)
@@ -331,7 +331,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
 
   then have "is_pos literal\<^sub>1"
     unfolding ground_eq_factoringI(2)
-    using to_literal_stable subst_pos_stable
+    using literal_from_ground_stable subst_pos_stable
     by (metis literal.disc(1))
 
   with literal\<^sub>1_\<gamma> obtain term\<^sub>1 term\<^sub>1' where 
@@ -344,20 +344,20 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     using maximal\<^sub>l_in_clause[OF literal\<^sub>1_maximal(1)]
     by (meson multi_member_split)
 
-  then have premise''_\<gamma>: "premise'' \<cdot> \<gamma> =  add_mset (to_literal literal\<^sub>G\<^sub>2) (to_clause premise'\<^sub>G)"
+  then have premise''_\<gamma>: "premise'' \<cdot> \<gamma> =  add_mset (literal.from_ground literal\<^sub>G\<^sub>2) (clause.from_ground premise'\<^sub>G)"
     using premise_\<gamma> 
-    unfolding to_clause_add_mset literal\<^sub>1_\<gamma>[symmetric]
+    unfolding clause_from_ground_add_mset literal\<^sub>1_\<gamma>[symmetric]
     by (simp add: subst_clause_add_mset)
 
   then obtain literal\<^sub>2 where literal\<^sub>2:
-    "literal\<^sub>2 \<cdot>l \<gamma> = to_literal literal\<^sub>G\<^sub>2"
+    "literal\<^sub>2 \<cdot>l \<gamma> = literal.from_ground literal\<^sub>G\<^sub>2"
     "literal\<^sub>2 \<in># premise''"
     unfolding clause.subst_def
     using msed_map_invR by force
 
   then have "is_pos literal\<^sub>2"
     unfolding ground_eq_factoringI(3)
-    using to_literal_stable subst_pos_stable
+    using literal_from_ground_stable subst_pos_stable
     by (metis literal.disc(1))
 
   with literal\<^sub>2 obtain term\<^sub>2 term\<^sub>2' where 
@@ -385,7 +385,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     using literal\<^sub>2(2) maximal\<^sub>l_in_clause[OF  literal\<^sub>1_maximal(1)] premise''
     by (metis multi_member_split)
 
-  then have premise'_\<gamma>: "premise' \<cdot> \<gamma> = to_clause premise'\<^sub>G"
+  then have premise'_\<gamma>: "premise' \<cdot> \<gamma> = clause.from_ground premise'\<^sub>G"
     using premise''_\<gamma>  premise''
     unfolding literal\<^sub>2(1)[symmetric]
     by (simp add: subst_clause_add_mset)
@@ -502,9 +502,10 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
 
   have "conclusion \<cdot> \<gamma> = 
       add_mset (term.from_ground term\<^sub>G\<^sub>2 !\<approx> term.from_ground term\<^sub>G\<^sub>3) 
-        (add_mset (term.from_ground term\<^sub>G\<^sub>1 \<approx> term.from_ground term\<^sub>G\<^sub>3) (to_clause premise'\<^sub>G))"
-    using ground_eq_factoringI(7) to_ground_clause_inverse[OF conclusion_grounding]
-    unfolding to_atom_term_from_ground[symmetric] to_literal_to_atom[symmetric] to_clause_add_mset[symmetric]
+        (add_mset (term.from_ground term\<^sub>G\<^sub>1 \<approx> term.from_ground term\<^sub>G\<^sub>3) (clause.from_ground premise'\<^sub>G))"
+    using ground_eq_factoringI(7) clause.to_ground_inverse[OF conclusion_grounding]
+    unfolding atom_from_ground_term_from_ground[symmetric] 
+      literal_from_ground_atom_from_ground[symmetric] clause_from_ground_add_mset[symmetric]
     by simp
 
   then have conclusion_\<gamma>: 
@@ -554,9 +555,9 @@ lemma superposition_lifting:
     \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v) subst" and
     \<V>\<^sub>1 \<V>\<^sub>2
   defines 
-    premise\<^sub>G\<^sub>1 [simp]: "premise\<^sub>G\<^sub>1 \<equiv> to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)" and
-    premise\<^sub>G\<^sub>2 [simp]: "premise\<^sub>G\<^sub>2 \<equiv> to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and
-    conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> to_ground_clause (conclusion \<cdot> \<gamma>)" and
+    premise\<^sub>G\<^sub>1 [simp]: "premise\<^sub>G\<^sub>1 \<equiv> clause.to_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)" and
+    premise\<^sub>G\<^sub>2 [simp]: "premise\<^sub>G\<^sub>2 \<equiv> clause.to_ground (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and
+    conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> clause.to_ground (conclusion \<cdot> \<gamma>)" and
     premise_groundings [simp]: 
     "premise_groundings \<equiv> clause_groundings typeof_fun (premise\<^sub>1, \<V>\<^sub>1) \<union> clause_groundings typeof_fun (premise\<^sub>2, \<V>\<^sub>2)" and
     \<iota>\<^sub>G [simp]: "\<iota>\<^sub>G \<equiv> Infer [premise\<^sub>G\<^sub>2, premise\<^sub>G\<^sub>1] conclusion\<^sub>G"
@@ -569,8 +570,8 @@ lemma superposition_lifting:
     premise\<^sub>2_grounding: "clause.is_ground (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and
     conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
     select: 
-    "to_clause (select\<^sub>G premise\<^sub>G\<^sub>1) = (select premise\<^sub>1) \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
-    "to_clause (select\<^sub>G premise\<^sub>G\<^sub>2) = (select premise\<^sub>2) \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>" and
+    "clause.from_ground (select\<^sub>G premise\<^sub>G\<^sub>1) = (select premise\<^sub>1) \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
+    "clause.from_ground (select\<^sub>G premise\<^sub>G\<^sub>2) = (select premise\<^sub>2) \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>" and
     ground_superposition: "ground.ground_superposition premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G" and
     non_redundant: "\<iota>\<^sub>G \<notin> ground.Red_I premise_groundings" and
     typing:
@@ -603,31 +604,31 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
   have premise\<^sub>1_not_empty: "premise\<^sub>1 \<noteq> {#}"
     using ground_superpositionI(1) empty_not_add_mset clause_subst_empty premise\<^sub>G\<^sub>1
-    by (metis to_clause_empty_mset to_clause_inverse)
+    by (metis clause_from_ground_empty_mset clause.from_ground_inverse)
 
   have premise\<^sub>2_not_empty: "premise\<^sub>2 \<noteq> {#}"
     using ground_superpositionI(2) empty_not_add_mset clause_subst_empty premise\<^sub>G\<^sub>2
-    by (metis to_clause_empty_mset to_clause_inverse)
+    by (metis clause_from_ground_empty_mset clause.from_ground_inverse)
 
-  have premise\<^sub>1_\<gamma>: "premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma> = to_clause (add_mset literal\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>1')"
+  have premise\<^sub>1_\<gamma>: "premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma> = clause.from_ground (add_mset literal\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>1')"
     using ground_superpositionI(1) premise\<^sub>G\<^sub>1
-    by (metis premise\<^sub>1_grounding to_ground_clause_inverse)
+    by (metis premise\<^sub>1_grounding clause.to_ground_inverse)
 
-  have premise\<^sub>2_\<gamma>: "premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma> = to_clause (add_mset literal\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>2')"
+  have premise\<^sub>2_\<gamma>: "premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma> = clause.from_ground (add_mset literal\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>2')"
     using ground_superpositionI(2) premise\<^sub>G\<^sub>2
-    by (metis premise\<^sub>2_grounding to_ground_clause_inverse)
+    by (metis premise\<^sub>2_grounding clause.to_ground_inverse)
 
-  let ?select\<^sub>G_empty = "select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)) = {#}"
-  let ?select\<^sub>G_not_empty = "select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)) \<noteq> {#}"
+  let ?select\<^sub>G_empty = "select\<^sub>G (clause.to_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)) = {#}"
+  let ?select\<^sub>G_not_empty = "select\<^sub>G (clause.to_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)) \<noteq> {#}"
 
   have pos_literal\<^sub>G\<^sub>1_is_strictly_maximal\<^sub>l: 
-    "is_strictly_maximal\<^sub>l (to_literal literal\<^sub>G\<^sub>1) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<odot> \<gamma>)" if "\<P>\<^sub>G = Pos"
+    "is_strictly_maximal\<^sub>l (literal.from_ground literal\<^sub>G\<^sub>1) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<odot> \<gamma>)" if "\<P>\<^sub>G = Pos"
     using ground_superpositionI(9) that
     unfolding is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l
     by(simp add: premise\<^sub>1_grounding)
 
   have neg_literal\<^sub>G\<^sub>1_is_maximal\<^sub>l: 
-    "is_maximal\<^sub>l (to_literal literal\<^sub>G\<^sub>1) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<odot> \<gamma>)" if ?select\<^sub>G_empty
+    "is_maximal\<^sub>l (literal.from_ground literal\<^sub>G\<^sub>1) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<odot> \<gamma>)" if ?select\<^sub>G_empty
     using 
       that
       ground_superpositionI(9)  
@@ -639,11 +640,11 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l
       ground_superpositionI(1)
     apply clause_auto
-    by (metis premise\<^sub>1_\<gamma> to_clause_empty_mset to_clause_inverse)
+    by (metis premise\<^sub>1_\<gamma> clause_from_ground_empty_mset clause.from_ground_inverse)
 
   obtain pos_literal\<^sub>1 where
     "is_strictly_maximal\<^sub>l pos_literal\<^sub>1 premise\<^sub>1"
-    "pos_literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<gamma> = to_literal literal\<^sub>G\<^sub>1" 
+    "pos_literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<gamma> = literal.from_ground literal\<^sub>G\<^sub>1" 
   if "\<P>\<^sub>G = Pos"
     using is_strictly_maximal\<^sub>l_ground_subst_stability[OF 
         premise\<^sub>1_grounding[folded clause.subst_comp_subst] 
@@ -656,7 +657,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
   moreover obtain neg_max_literal\<^sub>1 where
     "is_maximal\<^sub>l neg_max_literal\<^sub>1 premise\<^sub>1"
-    "neg_max_literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<gamma> = to_literal literal\<^sub>G\<^sub>1" 
+    "neg_max_literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<gamma> = literal.from_ground literal\<^sub>G\<^sub>1" 
   if "\<P>\<^sub>G = Neg" ?select\<^sub>G_empty
     using 
       is_maximal\<^sub>l_ground_subst_stability[OF 
@@ -671,7 +672,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
   moreover obtain neg_selected_literal\<^sub>1 where
     "is_maximal\<^sub>l neg_selected_literal\<^sub>1 (select premise\<^sub>1)"
-    "neg_selected_literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<gamma> = to_literal literal\<^sub>G\<^sub>1" 
+    "neg_selected_literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<gamma> = literal.from_ground literal\<^sub>G\<^sub>1" 
   if "\<P>\<^sub>G = Neg" ?select\<^sub>G_not_empty 
   proof-
     have "ground.is_maximal_lit literal\<^sub>G\<^sub>1 (select\<^sub>G premise\<^sub>G\<^sub>1)" if "\<P>\<^sub>G = Neg" ?select\<^sub>G_not_empty
@@ -693,7 +694,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     by (meson maximal\<^sub>l_in_clause mset_subset_eqD select_subset)
 
   ultimately obtain literal\<^sub>1 where
-    literal\<^sub>1_\<gamma>: "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<gamma> = to_literal literal\<^sub>G\<^sub>1" and
+    literal\<^sub>1_\<gamma>: "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<gamma> = literal.from_ground literal\<^sub>G\<^sub>1" and
     literal\<^sub>1_in_premise\<^sub>1: "literal\<^sub>1 \<in># premise\<^sub>1" and
     literal\<^sub>1_is_strictly_maximal: "\<P>\<^sub>G = Pos \<Longrightarrow> is_strictly_maximal\<^sub>l literal\<^sub>1 premise\<^sub>1" and
     literal\<^sub>1_is_maximal: "\<P>\<^sub>G = Neg \<Longrightarrow> ?select\<^sub>G_empty \<Longrightarrow> is_maximal\<^sub>l literal\<^sub>1 premise\<^sub>1" and
@@ -704,14 +705,14 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     by simp
 
   have literal\<^sub>G\<^sub>2_is_strictly_maximal\<^sub>l: 
-    "is_strictly_maximal\<^sub>l (to_literal literal\<^sub>G\<^sub>2) (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<odot> \<gamma>)"
+    "is_strictly_maximal\<^sub>l (literal.from_ground literal\<^sub>G\<^sub>2) (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<odot> \<gamma>)"
     using ground_superpositionI(11)
     unfolding is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l
     by (simp add: premise\<^sub>2_grounding)
 
   obtain literal\<^sub>2 where 
     literal\<^sub>2_strictly_maximal: "is_strictly_maximal\<^sub>l literal\<^sub>2 premise\<^sub>2" and
-    literal\<^sub>2_\<gamma>: "literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<odot> \<gamma> = to_literal literal\<^sub>G\<^sub>2"
+    literal\<^sub>2_\<gamma>: "literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<odot> \<gamma> = literal.from_ground literal\<^sub>G\<^sub>2"
     using is_strictly_maximal\<^sub>l_ground_subst_stability[OF 
         premise\<^sub>2_grounding[folded clause.subst_comp_subst] 
         literal\<^sub>G\<^sub>2_is_strictly_maximal\<^sub>l
@@ -726,17 +727,17 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
   obtain premise\<^sub>1' where premise\<^sub>1: "premise\<^sub>1 = add_mset literal\<^sub>1 premise\<^sub>1'"
     by (meson literal\<^sub>1_in_premise\<^sub>1 multi_member_split)
 
-  then have premise\<^sub>1'_\<gamma>: "premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma> = to_clause premise\<^sub>G\<^sub>1'"
+  then have premise\<^sub>1'_\<gamma>: "premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma> = clause.from_ground premise\<^sub>G\<^sub>1'"
     using premise\<^sub>1_\<gamma>  
-    unfolding to_clause_add_mset literal\<^sub>1_\<gamma>[symmetric]
+    unfolding clause_from_ground_add_mset literal\<^sub>1_\<gamma>[symmetric]
     by (simp add: subst_clause_add_mset)
 
   obtain premise\<^sub>2' where premise\<^sub>2: "premise\<^sub>2 = add_mset literal\<^sub>2 premise\<^sub>2'"
     by (meson literal\<^sub>2_in_premise\<^sub>2 multi_member_split)
 
-  then have premise\<^sub>2'_\<gamma>: "premise\<^sub>2' \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma> = to_clause premise\<^sub>G\<^sub>2'"
+  then have premise\<^sub>2'_\<gamma>: "premise\<^sub>2' \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma> = clause.from_ground premise\<^sub>G\<^sub>2'"
     using premise\<^sub>2_\<gamma>  
-    unfolding to_clause_add_mset literal\<^sub>2_\<gamma>[symmetric]
+    unfolding clause_from_ground_add_mset literal\<^sub>2_\<gamma>[symmetric]
     by (simp add: subst_clause_add_mset)
 
   let ?\<P> = "if \<P>\<^sub>G = Pos then Pos else Neg"
@@ -748,7 +749,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
   have "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<gamma> = ?\<P> (Upair (context.from_ground context\<^sub>G)\<langle>term.from_ground term\<^sub>G\<^sub>1\<rangle> (term.from_ground term\<^sub>G\<^sub>2))"
     using literal\<^sub>1_\<gamma>
     unfolding ground_superpositionI(5)
-    by (simp add: to_literal_to_atom to_atom_term_from_ground ground_term_with_context(3))
+    by (simp add: literal_from_ground_atom_from_ground atom_from_ground_term_from_ground ground_term_with_context(3))
 
   then obtain term\<^sub>1_with_context term\<^sub>1' where 
     literal\<^sub>1: "literal\<^sub>1 = ?\<P> (Upair term\<^sub>1_with_context term\<^sub>1')" and
@@ -757,7 +758,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     by (smt (verit) obtain_from_literal_subst)
 
   from literal\<^sub>2_\<gamma> have "literal\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<gamma> = term.from_ground term\<^sub>G\<^sub>1 \<approx> term.from_ground term\<^sub>G\<^sub>3"
-    unfolding ground_superpositionI(6) to_atom_term_from_ground to_literal_to_atom(2) literal.subst_comp_subst.
+    unfolding ground_superpositionI(6) atom_from_ground_term_from_ground literal_from_ground_atom_from_ground(2) literal.subst_comp_subst.
 
   then obtain term\<^sub>2 term\<^sub>2' where 
     literal\<^sub>2: "literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'" and
@@ -985,7 +986,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         using term\<^sub>x_\<gamma>
         by (metis ground_term_with_context2 term_subst.is_ground_subst_is_ground term_with_context_is_ground term.to_ground_inverse typing(3) update_grounding)
 
-      have "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 (to_clause premise\<^sub>G\<^sub>2)"
+      have "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 (clause.from_ground premise\<^sub>G\<^sub>2)"
         by (metis ground_superpositionI(2) premise\<^sub>2_\<gamma> clause.comp_subst.left.monoid_action_compatibility typing(2) typing(5) welltyped\<^sub>\<sigma>_on_welltyped\<^sub>c)
 
       then have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>2 (term.from_ground term\<^sub>G\<^sub>1) \<tau> \<and>  welltyped typeof_fun \<V>\<^sub>2 (term.from_ground term\<^sub>G\<^sub>3) \<tau>"
@@ -1006,7 +1007,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         using aux'
         by (meson welltyped\<^sub>\<kappa>)
 
-      let ?premise\<^sub>1_\<gamma>' = "to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
+      let ?premise\<^sub>1_\<gamma>' = "clause.to_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
       have premise\<^sub>1_\<gamma>'_grounding: "clause.is_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
         using ground_clause_subst_upd[OF update_grounding premise\<^sub>1_grounding] 
         unfolding \<gamma>'
@@ -1163,8 +1164,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
             less\<^sub>c\<^sub>G_less\<^sub>c 
             premise\<^sub>G\<^sub>1
             subst_clause_add_mset[symmetric]
-            to_ground_clause_inverse[OF premise\<^sub>1_\<gamma>'_grounding]
-            to_ground_clause_inverse[OF premise\<^sub>1_grounding]
+            clause.to_ground_inverse[OF premise\<^sub>1_\<gamma>'_grounding]
+            clause.to_ground_inverse[OF premise\<^sub>1_grounding]
           unfolding premise\<^sub>1.
 
         then show ?thesis
@@ -1358,12 +1359,12 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       show "term_subst.is_imgu \<mu> {{term\<^sub>1 \<cdot>t \<rho>\<^sub>1, term\<^sub>2 \<cdot>t \<rho>\<^sub>2}}"
         using \<mu>(1).
     next
-      note premises_to_ground_clause_inverse = assms(9, 10)[THEN to_ground_clause_inverse]  
+      note premises_clause_to_ground_inverse = assms(9, 10)[THEN clause.to_ground_inverse]  
       note premise_groundings = assms(10, 9)[unfolded \<mu>(2) clause.subst_comp_subst]
 
       have "premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu> \<cdot> \<sigma> \<prec>\<^sub>c premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<sigma>"
         using ground_superpositionI(3)
-        unfolding premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 less\<^sub>c\<^sub>G_less\<^sub>c premises_to_ground_clause_inverse 
+        unfolding premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 less\<^sub>c\<^sub>G_less\<^sub>c premises_clause_to_ground_inverse 
         unfolding \<mu>(2) clause.subst_comp_subst
         by blast
 
@@ -1568,12 +1569,12 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     proof-
       have "conclusion \<cdot> \<gamma> = 
               add_mset (?\<P> (Upair (context.from_ground context\<^sub>G)\<langle>term.from_ground term\<^sub>G\<^sub>3\<rangle> (term.from_ground term\<^sub>G\<^sub>2))) 
-                (to_clause premise\<^sub>G\<^sub>1' + to_clause premise\<^sub>G\<^sub>2')"
-        using ground_superpositionI(4, 12) to_ground_clause_inverse[OF conclusion_grounding] 
+                (clause.from_ground premise\<^sub>G\<^sub>1' + clause.from_ground premise\<^sub>G\<^sub>2')"
+        using ground_superpositionI(4, 12) clause.to_ground_inverse[OF conclusion_grounding] 
         unfolding ground_term_with_context(3) 
         apply clause_simp
-         apply (simp add: to_literal_to_atom(2) to_clause_add_mset to_atom_term_from_ground)
-        by (simp add: to_literal_to_atom(1) to_clause_add_mset to_atom_term_from_ground)
+         apply (simp add: literal_from_ground_atom_from_ground(2) clause_from_ground_add_mset atom_from_ground_term_from_ground)
+        by (simp add: literal_from_ground_atom_from_ground(1) clause_from_ground_add_mset atom_from_ground_term_from_ground)
 
       then show ?thesis
         unfolding 
@@ -1693,9 +1694,9 @@ proof-
     by simp
 
   obtain premise "conclusion" \<gamma> \<V> where
-    "to_clause premise\<^sub>G = premise \<cdot> \<gamma>" and
-    "to_clause conclusion\<^sub>G = conclusion \<cdot> \<gamma>" and
-    select: "to_clause (select\<^sub>G premise\<^sub>G) = select premise \<cdot> \<gamma>" and
+    "clause.from_ground premise\<^sub>G = premise \<cdot> \<gamma>" and
+    "clause.from_ground conclusion\<^sub>G = conclusion \<cdot> \<gamma>" and
+    select: "clause.from_ground (select\<^sub>G premise\<^sub>G) = select premise \<cdot> \<gamma>" and
     premise_in_premises: "(premise, \<V>) \<in> premises" and
     typing: "welltyped\<^sub>c typeof_fun \<V> premise"
     "term_subst.is_ground_subst \<gamma>"
@@ -1704,19 +1705,19 @@ proof-
     using assms(2, 3) premise\<^sub>G_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
     apply auto
-    by (smt (verit, del_insts) case_prodE ground_clause_is_ground select_subst1 clause.subst_ident_if_ground to_clause_inverse to_ground_clause_inverse)
+    by (smt (verit, del_insts) case_prodE ground_clause_is_ground select_subst1 clause.subst_ident_if_ground clause.from_ground_inverse clause.to_ground_inverse)
 
   then have
     premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and
-    premise\<^sub>G: "premise\<^sub>G = to_ground_clause (premise \<cdot> \<gamma>)" and
+    premise\<^sub>G: "premise\<^sub>G = clause.to_ground (premise \<cdot> \<gamma>)" and
     conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
-    conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
-    using ground_clause_is_ground to_clause_inverse
+    conclusion\<^sub>G: "conclusion\<^sub>G = clause.to_ground (conclusion \<cdot> \<gamma>)"
+    using ground_clause_is_ground clause.from_ground_inverse
     by(smt(verit))+
 
   obtain conclusion' where
     eq_resolution: "eq_resolution (premise, \<V>) (conclusion', \<V>)" and
-    \<iota>\<^sub>G: "\<iota>\<^sub>G = Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion' \<cdot> \<gamma>))" and
+    \<iota>\<^sub>G: "\<iota>\<^sub>G = Infer [clause.to_ground (premise \<cdot> \<gamma>)] (clause.to_ground (conclusion' \<cdot> \<gamma>))" and
     inference_groundings: "\<iota>\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (conclusion', \<V>))" and  
     conclusion'_conclusion: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     using
@@ -1765,9 +1766,9 @@ proof-
     by simp
 
   obtain premise "conclusion" \<gamma> \<V> where
-    "to_clause premise\<^sub>G = premise \<cdot> \<gamma>" and
-    "to_clause conclusion\<^sub>G = conclusion \<cdot> \<gamma>" and
-    select: "to_clause (select\<^sub>G (to_ground_clause (premise \<cdot> \<gamma>))) = select premise \<cdot> \<gamma>" and
+    "clause.from_ground premise\<^sub>G = premise \<cdot> \<gamma>" and
+    "clause.from_ground conclusion\<^sub>G = conclusion \<cdot> \<gamma>" and
+    select: "clause.from_ground (select\<^sub>G (clause.to_ground (premise \<cdot> \<gamma>))) = select premise \<cdot> \<gamma>" and
     premise_in_premises: "(premise, \<V>) \<in> premises" and
     typing:
     "welltyped\<^sub>c typeof_fun \<V> premise"
@@ -1776,14 +1777,14 @@ proof-
     "all_types \<V>"
     using assms(2, 3) premise\<^sub>G_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
-    by (smt (verit) clause.subst_ident_if_ground ground_clause_is_ground old.prod.case old.prod.exhaust select_subst1 to_ground_clause_inverse)
+    by (smt (verit) clause.subst_ident_if_ground ground_clause_is_ground old.prod.case old.prod.exhaust select_subst1 clause.to_ground_inverse)
 
   then have 
     premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and 
-    premise\<^sub>G: "premise\<^sub>G = to_ground_clause (premise \<cdot> \<gamma>)" and 
+    premise\<^sub>G: "premise\<^sub>G = clause.to_ground (premise \<cdot> \<gamma>)" and 
     conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
-    conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
-    by (smt(verit) ground_clause_is_ground to_clause_inverse)+
+    conclusion\<^sub>G: "conclusion\<^sub>G = clause.to_ground (conclusion \<cdot> \<gamma>)"
+    by (smt(verit) ground_clause_is_ground clause.from_ground_inverse)+
 
   obtain conclusion' where 
     eq_factoring: "eq_factoring (premise, \<V>) (conclusion', \<V>)" and
@@ -1869,11 +1870,11 @@ proof-
     by simp_all
 
   obtain premise\<^sub>1 \<V>\<^sub>1 premise\<^sub>2 \<V>\<^sub>2 \<gamma>\<^sub>1 \<gamma>\<^sub>2 where
-    premise\<^sub>1_\<gamma>\<^sub>1: "premise\<^sub>1 \<cdot> \<gamma>\<^sub>1 = to_clause premise\<^sub>G\<^sub>1" and
-    premise\<^sub>2_\<gamma>\<^sub>2: "premise\<^sub>2 \<cdot> \<gamma>\<^sub>2 = to_clause premise\<^sub>G\<^sub>2" and
+    premise\<^sub>1_\<gamma>\<^sub>1: "premise\<^sub>1 \<cdot> \<gamma>\<^sub>1 = clause.from_ground premise\<^sub>G\<^sub>1" and
+    premise\<^sub>2_\<gamma>\<^sub>2: "premise\<^sub>2 \<cdot> \<gamma>\<^sub>2 = clause.from_ground premise\<^sub>G\<^sub>2" and
     select: 
-    "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<gamma>\<^sub>1))) = select premise\<^sub>1 \<cdot> \<gamma>\<^sub>1"
-    "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<gamma>\<^sub>2))) = select premise\<^sub>2 \<cdot> \<gamma>\<^sub>2" and
+    "clause.from_ground (select\<^sub>G (clause.to_ground (premise\<^sub>1 \<cdot> \<gamma>\<^sub>1))) = select premise\<^sub>1 \<cdot> \<gamma>\<^sub>1"
+    "clause.from_ground (select\<^sub>G (clause.to_ground (premise\<^sub>2 \<cdot> \<gamma>\<^sub>2))) = select premise\<^sub>2 \<cdot> \<gamma>\<^sub>2" and
     premise\<^sub>1_in_premises: "(premise\<^sub>1, \<V>\<^sub>1) \<in> premises" and
     premise\<^sub>2_in_premises: "(premise\<^sub>2, \<V>\<^sub>2) \<in> premises" and 
     wt: 
@@ -1887,7 +1888,7 @@ proof-
     "all_types \<V>\<^sub>2" 
     using assms(2, 4) premise\<^sub>G\<^sub>1_in_groundings premise\<^sub>G\<^sub>2_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def   
-    by (smt (verit, ccfv_threshold) case_prod_conv ground_clause_is_ground select_subst1 surj_pair to_ground_clause_inverse)
+    by (smt (verit, ccfv_threshold) case_prod_conv ground_clause_is_ground select_subst1 surj_pair clause.to_ground_inverse)
 
   obtain \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v) subst" where
     renaming: 
@@ -1984,18 +1985,18 @@ proof-
     using is_ground_subst_if
     by fast
 
-  have premise\<^sub>1_\<gamma>: "premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma> = to_clause premise\<^sub>G\<^sub>1" 
+  have premise\<^sub>1_\<gamma>: "premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma> = clause.from_ground premise\<^sub>G\<^sub>1" 
   proof -
-    have "premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<odot> (\<rho>\<^sub>1_inv \<odot> \<gamma>\<^sub>1) = to_clause premise\<^sub>G\<^sub>1"
+    have "premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<odot> (\<rho>\<^sub>1_inv \<odot> \<gamma>\<^sub>1) = clause.from_ground premise\<^sub>G\<^sub>1"
       by (metis \<rho>\<^sub>1_inv premise\<^sub>1_\<gamma>\<^sub>1 subst_monoid_mult.mult.left_neutral subst_monoid_mult.mult_assoc)
 
     then show ?thesis
       using \<gamma>\<^sub>1 premise\<^sub>1_\<gamma>\<^sub>1 clause.subst_eq by fastforce
   qed
 
-  have premise\<^sub>2_\<gamma>: "premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma> = to_clause premise\<^sub>G\<^sub>2" 
+  have premise\<^sub>2_\<gamma>: "premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma> = clause.from_ground premise\<^sub>G\<^sub>2" 
   proof -
-    have "premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<odot> (\<rho>\<^sub>2_inv \<odot> \<gamma>\<^sub>2) = to_clause premise\<^sub>G\<^sub>2"
+    have "premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<odot> (\<rho>\<^sub>2_inv \<odot> \<gamma>\<^sub>2) = clause.from_ground premise\<^sub>G\<^sub>2"
       by (metis \<rho>\<^sub>2_inv premise\<^sub>2_\<gamma>\<^sub>2 subst_monoid_mult.mult.left_neutral subst_monoid_mult.mult_assoc)
 
     then show ?thesis
@@ -2015,7 +2016,7 @@ proof-
       by (smt (verit, best) \<rho>\<^sub>1_inv clause.subst_eq subsetD clause.comp_subst.left.monoid_action_compatibility term_subst.comp_subst.left.right_neutral)
   qed
 
-  ultimately have select\<^sub>1: "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>))) = select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
+  ultimately have select\<^sub>1: "clause.from_ground (select\<^sub>G (clause.to_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>))) = select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
     using select(1)
     by argo
   
@@ -2032,21 +2033,21 @@ proof-
       by (smt (verit, best) \<gamma>\<^sub>2 \<gamma> \<open>select premise\<^sub>2 \<subseteq># premise\<^sub>2\<close> clause_submset_vars_clause_subset clause.subst_eq subset_iff clause.comp_subst.left.monoid_action_compatibility)
   qed
 
-  ultimately have select\<^sub>2: "to_clause (select\<^sub>G (to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>))) = select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>"   
+  ultimately have select\<^sub>2: "clause.from_ground (select\<^sub>G (clause.to_ground (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>))) = select premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>"   
     using select(2) 
     by argo
 
   obtain "conclusion" where 
-    conclusion_\<gamma>: "conclusion \<cdot> \<gamma> = to_clause conclusion\<^sub>G"
+    conclusion_\<gamma>: "conclusion \<cdot> \<gamma> = clause.from_ground conclusion\<^sub>G"
     by (meson ground_clause_is_ground clause.subst_ident_if_ground)
 
   then have 
     premise\<^sub>1_grounding: "clause.is_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)" and 
     premise\<^sub>2_grounding: "clause.is_ground (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and 
-    premise\<^sub>G\<^sub>1: "premise\<^sub>G\<^sub>1 = to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)" and 
-    premise\<^sub>G\<^sub>2: "premise\<^sub>G\<^sub>2 = to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and 
+    premise\<^sub>G\<^sub>1: "premise\<^sub>G\<^sub>1 = clause.to_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)" and 
+    premise\<^sub>G\<^sub>2: "premise\<^sub>G\<^sub>2 = clause.to_ground (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)" and 
     conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
-    conclusion\<^sub>G: "conclusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
+    conclusion\<^sub>G: "conclusion\<^sub>G = clause.to_ground (conclusion \<cdot> \<gamma>)"
     by (simp_all add: premise\<^sub>1_\<gamma> premise\<^sub>2_\<gamma>)
 
   have "clause_groundings typeof_fun (premise\<^sub>1, \<V>\<^sub>1) \<union> clause_groundings typeof_fun (premise\<^sub>2, \<V>\<^sub>2)

@@ -10,7 +10,7 @@ theory First_Order_Clause
     "HOL-Eisbach.Eisbach"
 begin
 
-(* TODO: Maybe split up file*)
+(* TODO: split up file*)
 
 no_notation subst_compose (infixl "\<circ>\<^sub>s" 75)
 no_notation subst_apply_term (infixl "\<cdot>" 67)
@@ -87,6 +87,8 @@ abbreviation "from_ground \<equiv> from_ground_def"
 
 end
 
+(* Term *)
+
 global_interpretation "term": vars_def where vars_def = vars_term.
 
 global_interpretation "context": vars_def where vars_def = vars_ctxt.
@@ -96,12 +98,6 @@ global_interpretation "term": grounding_def where
 
 global_interpretation "context": grounding_def where 
   to_ground_def = gctxt_of_ctxt and from_ground_def = ctxt_of_gctxt.
-
-(*
-TODO: (automatically? )
-definition vars_clause_set :: "('f, 'v) atom clause set \<Rightarrow> 'v set" where
-  "vars_clause_set clauses = (\<Union>clause \<in> clauses. vars_clause clause)"
-*)
 
 global_interpretation
   "term": base_variable_substitution where 
@@ -189,6 +185,8 @@ next
   show "\<And>g. term.to_ground (term.from_ground g) = g"
     by simp
 qed
+
+(* Context *)
 
 global_interpretation "context": all_subst_ident_iff_ground where 
   is_ground = "\<lambda>\<kappa>. context.vars \<kappa> = {}" and subst = "(\<cdot>t\<^sub>c)"
@@ -373,6 +371,8 @@ next
     by simp
 qed
 
+(* Lifiting *)
+
 (* TODO: names *)
 lemma exists_uprod: "\<exists>a. t \<in> set_uprod a"
   by (metis insertI1 set_uprod_simps)
@@ -428,6 +428,11 @@ notation atom.subst (infixl "\<cdot>a" 67)
 notation literal.subst (infixl "\<cdot>l" 66)
 notation clause.subst (infixl "\<cdot>" 67)
 
+lemmas [clause_simp] = literal.to_set_is_ground atom.to_set_is_ground
+
+lemma xx [clause_simp]: "term \<in># mset_lit literal \<longleftrightarrow> term \<in> \<Union>(set_uprod ` set_literal literal)"
+  by (metis UN_insert Union_image_empty literal.set_cases literal.set_sel(1) literal.set_sel(2) mset_lit.simps(1) mset_lit.simps(2) set_literal_atm_of set_mset_mset_uprod union_iff)
+
 (* TODO: Directly from "is_ground {#}" *)
 lemma clause_subst_empty [clause_simp]: "{#} \<cdot> \<sigma> = {#}" "clause \<cdot> \<sigma> = {#} \<longleftrightarrow> clause = {#}"
   by (simp_all add: clause.subst_def)
@@ -457,7 +462,7 @@ lemma clause_submset_vars_clause_subset [clause_intro]:
 
 lemma empty_clause_is_ground [clause_simp]: "clause.is_ground {#}"
   unfolding clause.vars_def
-  by simp 
+  by simp
 
 lemma term_context_ground_iff_term_is_ground [clause_simp]:
   "Term_Context.ground term = term.is_ground term"
@@ -514,16 +519,12 @@ lemma mset_mset_lit_subst [clause_simp]:
 lemma term_in_literal_subst [clause_intro]: 
   assumes "term \<in># mset_lit literal" 
   shows "term \<cdot>t \<sigma> \<in># mset_lit (literal \<cdot>l \<sigma>)"
-  using assms
-  unfolding literal.subst_def atom.subst_def
-  by (cases literal) (auto simp: uprod.set_map)
+  using assms 
+  apply clause_simp
+  apply (simp add: atom.subst_in_to_set_subst)
+  using atom.subst_in_to_set_subst literal.subst_in_to_set_subst by blast
 
-lemma literal_in_clause_subst [clause_intro]: 
-  assumes "literal \<in># clause"  
-  shows "literal \<cdot>l \<sigma> \<in># clause \<cdot> \<sigma>"
-  using assms
-  unfolding clause.subst_def
-  by simp
+lemmas literal_in_clause_subst [clause_intro] = clause.subst_in_to_set_subst
 
 lemma subst_polarity_stable: 
   shows 
@@ -542,44 +543,23 @@ locale conversion =
 ?
  *)
 
-abbreviation to_atom where
-  "to_atom \<equiv> atom.from_ground"
 
-abbreviation to_ground_atom where
-  "to_ground_atom \<equiv> atom.to_ground"
-
-abbreviation to_literal where
-  "to_literal \<equiv> literal.from_ground"
-
-abbreviation to_ground_literal where
-  "to_ground_literal \<equiv> literal.to_ground"
-
-abbreviation to_clause where
-  "to_clause \<equiv> clause.from_ground"
-
-abbreviation to_ground_clause where
-  "to_ground_clause \<equiv> clause.to_ground"
-
-definition clause_groundings ::
-  "('f, 'v) atom clause \<Rightarrow> 'f ground_atom clause set" where
-  "clause_groundings clause = { to_ground_clause (clause \<cdot> \<gamma>) | \<gamma>. clause.is_ground (clause \<cdot> \<gamma>) }"
-
-lemma to_atom_term_from_ground [clause_simp]:
-  "to_atom (Upair term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2) = Upair (term.from_ground term\<^sub>G\<^sub>1) (term.from_ground term\<^sub>G\<^sub>2)"
+lemma atom_from_ground_term_from_ground [clause_simp]:
+  "atom.from_ground (Upair term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2) = Upair (term.from_ground term\<^sub>G\<^sub>1) (term.from_ground term\<^sub>G\<^sub>2)"
   by (simp add: atom.from_ground_def)
 
-lemma to_literal_to_atom [clause_simp]: 
-  "to_literal (Neg atom\<^sub>G) = Neg (to_atom atom\<^sub>G)"
-  "to_literal (Pos atom\<^sub>G) = Pos (to_atom atom\<^sub>G)"  
+lemma literal_from_ground_atom_from_ground [clause_simp]: 
+  "literal.from_ground (Neg atom\<^sub>G) = Neg (atom.from_ground atom\<^sub>G)"
+  "literal.from_ground (Pos atom\<^sub>G) = Pos (atom.from_ground atom\<^sub>G)"  
   by (simp_all add: literal.from_ground_def)
 
 lemma context_from_ground_hole [clause_simp]: "context.from_ground context\<^sub>G = \<box> \<longleftrightarrow> context\<^sub>G = \<box>\<^sub>G"
   by(cases context\<^sub>G) simp_all
 
-lemma to_clause_empty_mset [clause_simp]: "to_clause {#} = {#}"
+lemma clause_from_ground_empty_mset [clause_simp]: "clause.from_ground {#} = {#}"
   by (simp add: clause.from_ground_def)
 
-lemma to_ground_clause_empty_mset [clause_simp]: "to_ground_clause {#} = {#}"
+lemma clause_to_ground_empty_mset [clause_simp]: "clause.to_ground {#} = {#}"
   by (simp add: clause.to_ground_def)
 
 lemmas ground_term_is_ground [clause_intro] = vars_term_of_gterm
@@ -590,35 +570,35 @@ lemma term_with_context_is_ground [clause_simp]:
   "term.is_ground context\<langle>term\<rangle> \<longleftrightarrow> context.is_ground context \<and> term.is_ground term"
   by simp
 
-lemma ground_atom_is_ground [simp]: "atom.is_ground (to_atom atom\<^sub>G)"
+lemma ground_atom_is_ground [simp]: "atom.is_ground (atom.from_ground atom\<^sub>G)"
   using atom.ground_is_ground.
 
-lemma ground_literal_is_ground [simp]: "literal.is_ground (to_literal literal\<^sub>G)"
+lemma ground_literal_is_ground [simp]: "literal.is_ground (literal.from_ground literal\<^sub>G)"
   using literal.ground_is_ground.
 
-lemma ground_clause_is_ground [simp]: "clause.is_ground (to_clause clause\<^sub>G)"
+lemma ground_clause_is_ground [simp]: "clause.is_ground (clause.from_ground clause\<^sub>G)"
   using clause.ground_is_ground.
 
-lemma to_literal_polarity_stable: 
+lemma literal_from_ground_polarity_stable: 
   shows 
-    to_literal_neg_stable: "is_neg literal\<^sub>G \<longleftrightarrow> is_neg (to_literal literal\<^sub>G)" and
-    to_literal_stable: "is_pos literal\<^sub>G \<longleftrightarrow> is_pos (to_literal literal\<^sub>G)"
+    literal_from_ground_neg_stable: "is_neg literal\<^sub>G \<longleftrightarrow> is_neg (literal.from_ground literal\<^sub>G)" and
+    literal_from_ground_stable: "is_pos literal\<^sub>G \<longleftrightarrow> is_pos (literal.from_ground literal\<^sub>G)"
   by (simp_all add: literal.from_ground_def)
 
 lemmas term_from_ground_inverse = term_of_gterm_inv
 
 lemmas context_from_ground_inverse = ctxt_of_gctxt_inv
 
-lemma to_atom_inverse [simp]: 
-  "to_ground_atom (to_atom atom) = atom"
+lemma atom_from_ground_inverse [simp]: 
+  "atom.to_ground (atom.from_ground atom) = atom"
   using atom.from_ground_inverse.
 
-lemma to_literal_inverse [simp]: 
-  "to_ground_literal (to_literal literal) = literal"
+lemma literal_from_ground_inverse [simp]: 
+  "literal.to_ground (literal.from_ground literal) = literal"
   using literal.from_ground_inverse.
 
-lemma to_clause_inverse [simp]: 
-  "to_ground_clause (to_clause clause) = clause"
+lemma clause_from_ground_inverse [simp]: 
+  "clause.to_ground (clause.from_ground clause) = clause"
   using clause.from_ground_inverse.
 
 lemma ground_term_with_context1:
@@ -701,58 +681,20 @@ lemma ground_clause_subst_upd [simp]:
   assumes "term.is_ground update" "clause.is_ground (clause \<cdot> \<gamma>)" 
   shows "clause.is_ground (clause \<cdot> \<gamma>(var := update))"
   using clause.ground_subst_upd[OF assms].
-  
 
-lemmas term_from_ground_inj = inj_term_of_gterm
-
-
-  
-
-(* TODO: *)
-lemma surj_term_to_ground: "surj term.to_ground"
-  unfolding surj_def
-  by (metis term.from_ground_inverse)
-
-(*global_interpretation "term" : grounding
-  where to_ground = term.to_ground and from_ground = term.from_ground
-  apply unfold_locales
-  by (auto simp: surj_term.to_ground term.from_ground_inj)*)
-
-lemma term_to_ground_inj: "inj_on term.to_ground (term.from_ground ` domain\<^sub>G)"
-  using inj_on_def by fastforce
-
-lemma to_atom_inj: "inj_on to_atom domain"
-  unfolding inj_on_def
-  by (metis to_atom_inverse)
-
-lemma to_ground_atom_inj: "inj_on to_ground_atom (to_atom ` domain\<^sub>G)"
-  unfolding inj_on_def
-  by simp
-
-lemma to_literal_inj: "inj_on to_literal domain"
-  by (metis inj_on_def to_literal_inverse)
-
-lemma to_ground_literal_inj: "inj_on to_ground_literal (to_literal ` domain\<^sub>G)"
-  by (simp add: inj_on_def)
-
-lemma to_clause_inj: "inj_on to_clause domain"
-  using clause.inj_from_ground.
-
-lemma to_ground_clause_inj: "inj_on to_ground_clause (to_clause ` domain\<^sub>G)"
-  by (simp add: inj_on_def)
-
-lemma to_clause_add_mset [clause_simp]: 
-  "to_clause (add_mset literal\<^sub>G clause\<^sub>G) = add_mset (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
+lemma clause_from_ground_add_mset [clause_simp]: 
+  "clause.from_ground (add_mset literal\<^sub>G clause\<^sub>G) = 
+    add_mset (literal.from_ground literal\<^sub>G) (clause.from_ground clause\<^sub>G)"
   by (simp add: clause.from_ground_def)
 
-lemma set_mset_to_clause_to_literal: 
-  "set_mset (to_clause clause) = to_literal ` (set_mset clause)"
+lemma set_mset_clause_from_ground_literal_from_ground: 
+  "set_mset (clause.from_ground clause) = literal.from_ground ` (set_mset clause)"
   by (simp add: clause.from_ground_def)
 
-lemma remove1_mset_to_literal: 
-  "remove1_mset (to_literal literal\<^sub>G) (to_clause clause\<^sub>G) 
-   = to_clause (remove1_mset literal\<^sub>G clause\<^sub>G)"
-  unfolding clause.from_ground_def image_mset_remove1_mset[OF to_literal_inj]..
+lemma remove1_mset_literal_from_ground: 
+  "remove1_mset (literal.from_ground literal\<^sub>G) (clause.from_ground clause\<^sub>G) 
+   = clause.from_ground (remove1_mset literal\<^sub>G clause\<^sub>G)"
+  unfolding clause.from_ground_def image_mset_remove1_mset[OF literal.inj_from_ground]..
 
 lemma ground_term_in_ground_atom [clause_simp]:
   assumes "term \<in> set_uprod atom" "atom.is_ground atom"
@@ -762,7 +704,7 @@ lemma ground_term_in_ground_atom [clause_simp]:
 
 lemma ground_terms_in_ground_atom1:
   assumes "term.is_ground term\<^sub>1" and "term.is_ground term\<^sub>2"
-  shows "Upair (term.to_ground term\<^sub>1) (term.to_ground term\<^sub>2) = to_ground_atom (Upair term\<^sub>1 term\<^sub>2)"
+  shows "Upair (term.to_ground term\<^sub>1) (term.to_ground term\<^sub>2) = atom.to_ground (Upair term\<^sub>1 term\<^sub>2)"
   using assms
   by (simp add: atom.to_ground_def)
 
@@ -781,8 +723,8 @@ lemma ground_atom_in_ground_literal1 [intro]:
   by (simp add: literal.vars_def)
 
 lemma ground_atom_in_ground_literal2:
-    "Pos (to_ground_atom atom) = to_ground_literal (Pos atom)" 
-    "Neg (to_ground_atom atom) = to_ground_literal (Neg atom)" 
+    "Pos (atom.to_ground atom) = literal.to_ground (Pos atom)" 
+    "Neg (atom.to_ground atom) = literal.to_ground (Neg atom)" 
   by (simp_all add: literal.to_ground_def)
 
 lemmas ground_atom_in_ground_literal = 
@@ -797,11 +739,7 @@ lemma ground_term_in_ground_literal:
   assumes "literal.is_ground literal"  "term \<in># mset_lit literal"  
   shows "term.is_ground term"
   using assms
-  apply(cases literal)
-   apply(clause_simp simp:  ground_term_in_ground_atom)
-   apply (simp add: ground_term_in_ground_atom)
-  by (simp add: ground_term_in_ground_atom)
-  
+  by clause_simp
 
 lemma ground_term_in_ground_literal_subst:
   assumes "literal.is_ground (literal \<cdot>l \<gamma>)" "term \<in># mset_lit literal"  
@@ -815,17 +753,17 @@ lemma ground_literal_in_ground_clause1:
   by (simp add: clause.vars_def)
 
 lemma ground_literal_in_ground_clause2: 
-  "literal \<in># to_clause clause\<^sub>G \<Longrightarrow> literal.is_ground literal"
+  "literal \<in># clause.from_ground clause\<^sub>G \<Longrightarrow> literal.is_ground literal"
   by (simp add: ground_literal_in_ground_clause1)
 
 lemma ground_literal_in_ground_clause3: 
-  "literal\<^sub>G \<in># clause\<^sub>G \<longleftrightarrow> to_literal literal\<^sub>G \<in># to_clause clause\<^sub>G"
-  using to_clause_inverse to_literal_inverse
-  by (simp add: inj_image_mem_iff set_mset_to_clause_to_literal to_literal_inj)
+  "literal\<^sub>G \<in># clause\<^sub>G \<longleftrightarrow> literal.from_ground literal\<^sub>G \<in># clause.from_ground clause\<^sub>G"
+  using clause.from_ground_inverse literal.from_ground_inverse
+  by (simp add: inj_image_mem_iff set_mset_clause_from_ground_literal_from_ground literal.inj_from_ground)
 
 lemma ground_literal_in_ground_clause4: 
-  "(\<forall>literal \<in># to_clause clause\<^sub>G. P literal) \<longleftrightarrow> (\<forall>literal\<^sub>G \<in># clause\<^sub>G. P (to_literal literal\<^sub>G))"
-  using set_mset_to_clause_to_literal image_iff
+  "(\<forall>literal \<in># clause.from_ground clause\<^sub>G. P literal) \<longleftrightarrow> (\<forall>literal\<^sub>G \<in># clause\<^sub>G. P (literal.from_ground literal\<^sub>G))"
+  using set_mset_clause_from_ground_literal_from_ground image_iff
   by (metis (no_types, opaque_lifting))
 
 lemmas ground_literal_in_ground_clause = 
@@ -845,39 +783,39 @@ lemma term_to_ground_inverse [simp]:
   using assms
   by (cases "term") (simp_all add: map_idI term_context_ground_iff_term_is_ground)
 
-lemma to_ground_atom_inverse [simp]: 
+lemma atom_to_ground_inverse [simp]: 
   assumes "atom.is_ground atom"  
-  shows "to_atom (to_ground_atom atom) = atom"
+  shows "atom.from_ground (atom.to_ground atom) = atom"
   using atom.to_ground_inverse[OF assms].
  
-lemma to_ground_literal_inverse [simp]: 
+lemma literal_to_ground_inverse [simp]: 
   assumes "literal.is_ground literal"  
-  shows "to_literal (to_ground_literal literal) = literal"
+  shows "literal.from_ground (literal.to_ground literal) = literal"
   using literal.to_ground_inverse[OF assms].
  
-lemma to_ground_clause_inverse [simp]: 
+lemma clause_to_ground_inverse [simp]: 
   assumes "clause.is_ground clause"  
-  shows "to_clause (to_ground_clause clause) = clause"
+  shows "clause.from_ground (clause.to_ground clause) = clause"
   using clause.to_ground_inverse[OF assms].
 
-lemma to_ground_clause_plus [simp]: 
-  "to_ground_clause (clause\<^sub>1 + clause\<^sub>2) = to_ground_clause clause\<^sub>1 + to_ground_clause clause\<^sub>2"
+lemma clause_to_ground_plus [simp]: 
+  "clause.to_ground (clause\<^sub>1 + clause\<^sub>2) = clause.to_ground clause\<^sub>1 + clause.to_ground clause\<^sub>2"
   by (simp add: clause.to_ground_def)
 
-lemma to_clause_plus [simp]: 
-  "to_clause (clause\<^sub>G\<^sub>1 + clause\<^sub>G\<^sub>2) = to_clause clause\<^sub>G\<^sub>1 + to_clause clause\<^sub>G\<^sub>2"
+lemma clause_from_ground_plus [simp]: 
+  "clause.from_ground (clause\<^sub>G\<^sub>1 + clause\<^sub>G\<^sub>2) = clause.from_ground clause\<^sub>G\<^sub>1 + clause.from_ground clause\<^sub>G\<^sub>2"
   by (simp add: clause.from_ground_def)
 
-lemma mset_to_literal: "mset_lit (to_literal l) = image_mset term.from_ground (mset_lit l)"
+lemma mset_literal_from_ground: "mset_lit (literal.from_ground l) = image_mset term.from_ground (mset_lit l)"
   by (metis atom.from_ground_def literal.from_ground_def literal.map_cong0 mset_lit_image_mset)
 
 lemma clause_is_ground_add_mset [clause_simp]: "clause.is_ground (add_mset literal clause) \<longleftrightarrow> 
   literal.is_ground literal \<and> clause.is_ground clause"
   by clause_auto
 
-lemma to_ground_clause_add_mset:
-  assumes "to_clause clause = add_mset literal clause'" 
-  shows "clause = add_mset (to_ground_literal literal) (to_ground_clause clause')"
+lemma clause_to_ground_add_mset:
+  assumes "clause.from_ground clause = add_mset literal clause'" 
+  shows "clause = add_mset (literal.to_ground literal) (clause.to_ground clause')"
   using assms
   by (metis clause.from_ground_inverse clause.to_ground_def image_mset_add_mset)
 
@@ -1206,13 +1144,13 @@ lemma interpretation_literal_congruence:
   assumes
     "literal.is_ground (literal \<cdot>l \<gamma>)"
     "upair ` I \<TTurnstile>l term.to_ground (Var var \<cdot>t \<gamma>) \<approx> term.to_ground update"
-    "upair ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<gamma>(var := update))"
+    "upair ` I \<TTurnstile>l literal.to_ground (literal \<cdot>l \<gamma>(var := update))"
   shows
-    "upair ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<gamma>)"
+    "upair ` I \<TTurnstile>l literal.to_ground (literal \<cdot>l \<gamma>)"
 proof(cases literal)
   case (Pos atom)
 
-  have "to_ground_atom (atom \<cdot>a \<gamma>) \<in> upair ` I"
+  have "atom.to_ground (atom \<cdot>a \<gamma>) \<in> upair ` I"
   proof(cases atom)
     case (Upair term\<^sub>1 term\<^sub>2)  
     then have term_groundings: "term.is_ground (term\<^sub>1 \<cdot>t \<gamma>)" "term.is_ground (term\<^sub>2 \<cdot>t \<gamma>)"
@@ -1238,7 +1176,7 @@ proof(cases literal)
 next
   case (Neg atom)
 
-  have "to_ground_atom (atom \<cdot>a \<gamma>) \<notin> upair ` I"
+  have "atom.to_ground (atom \<cdot>a \<gamma>) \<notin> upair ` I"
   proof(cases atom)
     case (Upair term\<^sub>1 term\<^sub>2)  
     then have term_groundings: "term.is_ground (term\<^sub>1 \<cdot>t \<gamma>)" "term.is_ground (term\<^sub>2 \<cdot>t \<gamma>)"
@@ -1267,9 +1205,9 @@ lemma interpretation_clause_congruence:
   assumes
     "clause.is_ground (clause \<cdot> \<gamma>)" 
     "upair ` I \<TTurnstile>l term.to_ground (Var var \<cdot>t \<gamma>) \<approx> term.to_ground update"
-    "upair ` I \<TTurnstile> to_ground_clause (clause \<cdot> \<gamma>(var := update))"
+    "upair ` I \<TTurnstile> clause.to_ground (clause \<cdot> \<gamma>(var := update))"
   shows
-    "upair ` I \<TTurnstile> to_ground_clause (clause \<cdot> \<gamma>)"
+    "upair ` I \<TTurnstile> clause.to_ground (clause \<cdot> \<gamma>)"
   using assms
 proof(induction "clause")
   case empty
@@ -1282,7 +1220,7 @@ next
     by (metis add.prems(1) clause_is_ground_add_mset subst_clause_add_mset)
 
   show ?case
-  proof(cases "upair ` I \<TTurnstile> to_ground_clause (clause' \<cdot> \<gamma>(var := update))")
+  proof(cases "upair ` I \<TTurnstile> clause.to_ground (clause' \<cdot> \<gamma>(var := update))")
     case True
     show ?thesis 
       using add(1)[OF clause'_grounding assms(2) True]
@@ -1290,11 +1228,11 @@ next
       by simp
   next
     case False
-    then have "upair ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<gamma>(var := update))"
+    then have "upair ` I \<TTurnstile>l literal.to_ground (literal \<cdot>l \<gamma>(var := update))"
       using add.prems
       by (metis (no_types, lifting) image_mset_add_mset subst_clause_add_mset clause.to_ground_def true_cls_add_mset)
 
-    then have "upair ` I \<TTurnstile>l to_ground_literal (literal \<cdot>l \<gamma>)"
+    then have "upair ` I \<TTurnstile>l literal.to_ground (literal \<cdot>l \<gamma>)"
       using interpretation_literal_congruence add.prems
       by (metis clause_is_ground_add_mset subst_clause_add_mset)
 

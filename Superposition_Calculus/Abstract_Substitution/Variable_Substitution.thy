@@ -29,6 +29,9 @@ begin
 
 abbreviation is_ground where "is_ground a \<equiv> vars a = {}"
 
+definition vars_set :: "'expression set \<Rightarrow> 'variable set" where
+  "vars_set expressions \<equiv> \<Union>expression \<in> expressions. vars expression"
+
 lemma subst_reduntant_upd [simp]:
   assumes "var \<notin> vars a"
   shows "a \<cdot> \<sigma>(var := update) = a \<cdot> \<sigma>"
@@ -275,7 +278,6 @@ lemma subst_in_to_set_subst:
   unfolding subst_def
   using assms to_set_map by auto
 
-
 sublocale variable_substitution where subst = subst and vars = vars
 proof unfold_locales
   show "\<And>x a b. subst x (comp_subst a b) = subst (subst x a) b"
@@ -474,7 +476,7 @@ next
     unfolding to_ground_def from_ground_def ground_map_comp sub.to_ground_from_ground_id.
 qed
 
-lemma "to_set (from_ground expr) = sub_from_ground ` (to_set_ground expr)"
+lemma to_set_from_ground: "to_set (from_ground expr) = sub_from_ground ` (to_set_ground expr)"
   unfolding from_ground_def
   by (simp add: to_set_from_ground_map)
 

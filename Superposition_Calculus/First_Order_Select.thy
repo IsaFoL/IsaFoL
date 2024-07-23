@@ -15,8 +15,8 @@ definition is_select_grounding :: "('f, 'v) select \<Rightarrow> 'f ground_selec
   "\<And>select select\<^sub>G.
         is_select_grounding select select\<^sub>G = (\<forall>clause\<^sub>G. \<exists>clause \<gamma>.
         clause.is_ground (clause \<cdot> \<gamma>)  \<and> 
-        clause\<^sub>G = to_ground_clause (clause \<cdot> \<gamma>) \<and> 
-        select\<^sub>G clause\<^sub>G = to_ground_clause ((select clause) \<cdot> \<gamma>))"
+        clause\<^sub>G = clause.to_ground (clause \<cdot> \<gamma>) \<and> 
+        select\<^sub>G clause\<^sub>G = clause.to_ground ((select clause) \<cdot> \<gamma>))"
 
 lemma infinite_lists_per_length: "infinite {l :: ('a :: infinite) list. length (tl l) = y}"
 proof(induction y)
@@ -261,7 +261,7 @@ lemma all_types':
 (* TODO: term_subst.is_ground_subst \<gamma> \<rightarrow> clause.is_ground (fst clause \<cdot> \<gamma>) *)
 (* TODO: Is  welltyped\<^sub>c \<F> (snd clause) (fst clause) needed? *)
 definition clause_groundings :: "('f, 'ty) fun_types \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> 'f ground_atom clause set"  where
-  "clause_groundings \<F> clause = { to_ground_clause (fst clause \<cdot> \<gamma>) | \<gamma>. 
+  "clause_groundings \<F> clause = { clause.to_ground (fst clause \<cdot> \<gamma>) | \<gamma>. 
     term_subst.is_ground_subst \<gamma> \<and> 
     welltyped\<^sub>c \<F> (snd clause) (fst clause) \<and> 
     welltyped\<^sub>\<sigma>_on (clause.vars (fst clause))  \<F> (snd clause) \<gamma> \<and> 
@@ -275,8 +275,8 @@ definition clause_groundings :: "('f, 'ty) fun_types \<Rightarrow> ('f, 'v, 'ty)
 abbreviation select_subst_stability_on where
   "\<And>select select\<^sub>G. select_subst_stability_on \<F> select select\<^sub>G premises \<equiv>
     \<forall>premise\<^sub>G \<in> \<Union> (clause_groundings \<F> ` premises). \<exists>(premise, \<V>) \<in> premises. \<exists>\<gamma>. 
-      premise \<cdot> \<gamma> = to_clause premise\<^sub>G \<and> 
-      select\<^sub>G (to_ground_clause (premise \<cdot> \<gamma>)) = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
+      premise \<cdot> \<gamma> = clause.from_ground premise\<^sub>G \<and> 
+      select\<^sub>G (clause.to_ground (premise \<cdot> \<gamma>)) = clause.to_ground ((select premise) \<cdot> \<gamma>) \<and>
       welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma>  \<and> 
       all_types \<V>"
 
@@ -290,8 +290,8 @@ proof-
 
   have select\<^sub>G_exists_for_premises: 
     "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G \<gamma>. \<exists>(premise, \<V>) \<in> premises.
-          premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
-        \<and> select\<^sub>G premise\<^sub>G = to_ground_clause ((select premise) \<cdot> \<gamma>) \<and>
+          premise \<cdot> \<gamma> = clause.from_ground premise\<^sub>G 
+        \<and> select\<^sub>G premise\<^sub>G = clause.to_ground ((select premise) \<cdot> \<gamma>) \<and>
         welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     unfolding clause_groundings_def
     using clause.is_ground_subst_is_ground
@@ -299,19 +299,19 @@ proof-
 
   obtain select\<^sub>G_on_premise_groundings where 
     select\<^sub>G_on_premise_groundings: "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>(premise, \<V>) \<in> premises. \<exists>\<gamma>.
-        premise \<cdot> \<gamma> = to_clause premise\<^sub>G 
-      \<and> select\<^sub>G_on_premise_groundings (to_ground_clause (premise \<cdot> \<gamma>)) = 
-          to_ground_clause ((select premise) \<cdot> \<gamma>) 
+        premise \<cdot> \<gamma> = clause.from_ground premise\<^sub>G 
+      \<and> select\<^sub>G_on_premise_groundings (clause.to_ground (premise \<cdot> \<gamma>)) = 
+          clause.to_ground ((select premise) \<cdot> \<gamma>) 
       \<and> welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     using Ball_Ex_comm(1)[OF select\<^sub>G_exists_for_premises]
     apply auto
-    by (smt (verit, best) prod.case_eq_if to_clause_inverse)
+    by (smt (verit, best) prod.case_eq_if clause.from_ground_inverse)
 
   define select\<^sub>G where
     "\<And>clause\<^sub>G. select\<^sub>G clause\<^sub>G = (
         if clause\<^sub>G  \<in> ?premise_groundings 
         then select\<^sub>G_on_premise_groundings clause\<^sub>G 
-        else to_ground_clause (select (to_clause clause\<^sub>G))
+        else clause.to_ground (select (clause.from_ground clause\<^sub>G))
     )"
 
   have grounding: "is_select_grounding select select\<^sub>G"
@@ -319,7 +319,7 @@ proof-
     using select\<^sub>G_on_premise_groundings
     apply auto
      apply force
-    by (metis (no_types, opaque_lifting) clause.comp_subst.left.action_neutral ground_clause_is_ground to_clause_inverse)
+    by (metis (no_types, opaque_lifting) clause.comp_subst.left.action_neutral ground_clause_is_ground clause.from_ground_inverse)
 
   show ?thesis
     using that[OF _ grounding] select\<^sub>G_on_premise_groundings
@@ -338,11 +338,11 @@ definition select\<^sub>G\<^sub>s where
   "select\<^sub>G\<^sub>s = { ground_select. is_grounding ground_select }"
 
 definition select\<^sub>G_simple where
-  "select\<^sub>G_simple clause = to_ground_clause (select (to_clause clause))"
+  "select\<^sub>G_simple clause = clause.to_ground (select (clause.from_ground clause))"
 
 lemma select\<^sub>G_simple: "is_grounding select\<^sub>G_simple"
   unfolding is_select_grounding_def select\<^sub>G_simple_def
-  by (metis to_clause_inverse ground_clause_is_ground clause.subst_id_subst)
+  by (metis clause.from_ground_inverse ground_clause_is_ground clause.subst_id_subst)
 
 lemma select_from_ground_clause1: 
   assumes "clause.is_ground clause" 
@@ -351,16 +351,16 @@ lemma select_from_ground_clause1:
   by metis
 
 lemma select_from_ground_clause2: 
-  assumes "literal \<in># select (to_clause clause)"  
+  assumes "literal \<in># select (clause.from_ground clause)"  
   shows "literal.is_ground literal"
   using assms ground_literal_in_ground_clause(2) select_subset
   by blast
 
 lemma select_from_ground_clause3: 
-  assumes "clause.is_ground clause" "literal\<^sub>G \<in># to_ground_clause clause"
-  shows "to_literal literal\<^sub>G \<in># clause"
+  assumes "clause.is_ground clause" "literal\<^sub>G \<in># clause.to_ground clause"
+  shows "literal.from_ground literal\<^sub>G \<in># clause"
   using assms 
-  by (metis to_ground_clause_inverse ground_literal_in_ground_clause(3))
+  by (metis clause.to_ground_inverse ground_literal_in_ground_clause(3))
 
 lemmas select_from_ground_clause =
   select_from_ground_clause1
@@ -404,7 +404,7 @@ lemma select\<^sub>G_negative:
 proof -
   obtain clause \<gamma> where 
     is_ground: "clause.is_ground (clause \<cdot> \<gamma>)" and
-    select\<^sub>G: "select\<^sub>G clause\<^sub>G = to_ground_clause (select clause \<cdot> \<gamma>)"
+    select\<^sub>G: "select\<^sub>G clause\<^sub>G = clause.to_ground (select clause \<cdot> \<gamma>)"
     using select\<^sub>G
     unfolding is_select_grounding_def
     by blast

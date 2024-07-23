@@ -289,8 +289,8 @@ lemma not_less_eq\<^sub>t:
   unfolding less\<^sub>t_less\<^sub>t\<^sub>G[OF assms] less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>t\<^sub>G
   ..
 
-lemma less\<^sub>l\<^sub>G_less\<^sub>l: "literal\<^sub>G\<^sub>1 \<prec>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> to_literal literal\<^sub>G\<^sub>1 \<prec>\<^sub>l to_literal literal\<^sub>G\<^sub>2"
-  unfolding less\<^sub>l_def ground.less_lit_def less\<^sub>t\<^sub>G_def mset_to_literal
+lemma less\<^sub>l\<^sub>G_less\<^sub>l: "literal\<^sub>G\<^sub>1 \<prec>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> literal.from_ground literal\<^sub>G\<^sub>1 \<prec>\<^sub>l literal.from_ground literal\<^sub>G\<^sub>2"
+  unfolding less\<^sub>l_def ground.less_lit_def less\<^sub>t\<^sub>G_def mset_literal_from_ground
   using
      multp_image_mset_image_msetI[OF _ less\<^sub>t_transitive]
      multp_image_mset_image_msetD[OF _ less\<^sub>t_transitive_on term.inj_from_ground]
@@ -298,22 +298,22 @@ lemma less\<^sub>l\<^sub>G_less\<^sub>l: "literal\<^sub>G\<^sub>1 \<prec>\<^sub>
 
 lemma less\<^sub>l_less\<^sub>l\<^sub>G: 
   assumes "literal.is_ground literal\<^sub>1" "literal.is_ground literal\<^sub>2" 
-  shows "literal\<^sub>1 \<prec>\<^sub>l literal\<^sub>2 \<longleftrightarrow> to_ground_literal literal\<^sub>1 \<prec>\<^sub>l\<^sub>G to_ground_literal literal\<^sub>2"
+  shows "literal\<^sub>1 \<prec>\<^sub>l literal\<^sub>2 \<longleftrightarrow> literal.to_ground literal\<^sub>1 \<prec>\<^sub>l\<^sub>G literal.to_ground literal\<^sub>2"
   using assms
   by (simp add: less\<^sub>l\<^sub>G_less\<^sub>l)
 
 lemma less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G:
   assumes "literal.is_ground literal\<^sub>1" and "literal.is_ground literal\<^sub>2" 
-  shows "literal\<^sub>1 \<preceq>\<^sub>l literal\<^sub>2 \<longleftrightarrow> to_ground_literal literal\<^sub>1 \<preceq>\<^sub>l\<^sub>G to_ground_literal literal\<^sub>2"
+  shows "literal\<^sub>1 \<preceq>\<^sub>l literal\<^sub>2 \<longleftrightarrow> literal.to_ground literal\<^sub>1 \<preceq>\<^sub>l\<^sub>G literal.to_ground literal\<^sub>2"
   unfolding reflclp_iff less\<^sub>l_less\<^sub>l\<^sub>G[OF assms]
-  using assms[THEN to_ground_literal_inverse]
+  using assms[THEN literal.to_ground_inverse]
   by auto
 
 lemma less_eq\<^sub>l\<^sub>G_less_eq\<^sub>l:
-   "literal\<^sub>G\<^sub>1 \<preceq>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> to_literal literal\<^sub>G\<^sub>1 \<preceq>\<^sub>l to_literal literal\<^sub>G\<^sub>2"
+   "literal\<^sub>G\<^sub>1 \<preceq>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> literal.from_ground literal\<^sub>G\<^sub>1 \<preceq>\<^sub>l literal.from_ground literal\<^sub>G\<^sub>2"
   unfolding 
     less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G[OF ground_literal_is_ground ground_literal_is_ground] 
-    to_literal_inverse
+    literal.from_ground_inverse
   ..
 
 lemma maximal_lit_in_clause:
@@ -336,7 +336,7 @@ lemma is_strictly_maximal\<^sub>l_empty [simp]:
   by fastforce
 
 lemma is_maximal_lit_iff_is_maximal\<^sub>l: 
-  "ground.is_maximal_lit literal\<^sub>G clause\<^sub>G \<longleftrightarrow> is_maximal\<^sub>l (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
+  "ground.is_maximal_lit literal\<^sub>G clause\<^sub>G \<longleftrightarrow> is_maximal\<^sub>l (literal.from_ground literal\<^sub>G) (clause.from_ground clause\<^sub>G)"
    unfolding 
     is_maximal\<^sub>l_def
     ground.is_maximal_lit_def
@@ -344,12 +344,12 @@ lemma is_maximal_lit_iff_is_maximal\<^sub>l:
    using 
      less\<^sub>l_less\<^sub>l\<^sub>G[OF ground_literal_is_ground ground_literal_in_ground_clause(2)] 
      ground_literal_in_ground_clause(2, 3)
-   by (metis to_ground_literal_inverse to_literal_inverse)
+   by (metis literal.to_ground_inverse literal.from_ground_inverse)
 
 (* TODO: Name *)
 lemma is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l:
   "ground.is_strictly_maximal_lit literal\<^sub>G clause\<^sub>G 
-    \<longleftrightarrow> is_strictly_maximal\<^sub>l (to_literal literal\<^sub>G) (to_clause clause\<^sub>G)"
+    \<longleftrightarrow> is_strictly_maximal\<^sub>l (literal.from_ground literal\<^sub>G) (clause.from_ground clause\<^sub>G)"
   unfolding 
     is_strictly_maximal_in_mset_wrt_iff_is_greatest_in_mset_wrt[OF 
       ground.less\<^sub>l\<^sub>G_transitive_on ground.less\<^sub>l\<^sub>G_asymmetric_on ground.less\<^sub>l\<^sub>G_total_on, symmetric
@@ -357,7 +357,7 @@ lemma is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l:
     ground.is_strictly_maximal_lit_def
     is_strictly_maximal\<^sub>l_def
     ground_literal_in_ground_clause(3)[symmetric]
-    remove1_mset_to_literal
+    remove1_mset_literal_from_ground
     ground_literal_in_ground_clause(4)
     less_eq\<^sub>l\<^sub>G_less_eq\<^sub>l
   ..
@@ -373,38 +373,38 @@ lemma not_less_eq\<^sub>l:
   ..
 
 lemma less\<^sub>c\<^sub>G_less\<^sub>c: 
-  "clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<longleftrightarrow> to_clause clause\<^sub>G\<^sub>1 \<prec>\<^sub>c to_clause clause\<^sub>G\<^sub>2"
+  "clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<longleftrightarrow> clause.from_ground clause\<^sub>G\<^sub>1 \<prec>\<^sub>c clause.from_ground clause\<^sub>G\<^sub>2"
 proof (rule iffI)
-  show "clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<Longrightarrow> to_clause clause\<^sub>G\<^sub>1 \<prec>\<^sub>c to_clause clause\<^sub>G\<^sub>2"
+  show "clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<Longrightarrow> clause.from_ground clause\<^sub>G\<^sub>1 \<prec>\<^sub>c clause.from_ground clause\<^sub>G\<^sub>2"
     unfolding less\<^sub>c_def
     by (auto simp: clause.from_ground_def ground.less_cls_def less\<^sub>l\<^sub>G_less\<^sub>l
         intro!: multp_image_mset_image_msetI elim: multp_mono_strong)
 next
-  have "transp (\<lambda>x y. to_literal x \<prec>\<^sub>l to_literal y)"
+  have "transp (\<lambda>x y. literal.from_ground x \<prec>\<^sub>l literal.from_ground y)"
     by (metis (no_types, lifting) literal_order.less_trans transpI)
-  thus "to_clause clause\<^sub>G\<^sub>1 \<prec>\<^sub>c to_clause clause\<^sub>G\<^sub>2 \<Longrightarrow> clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2"
+  thus "clause.from_ground clause\<^sub>G\<^sub>1 \<prec>\<^sub>c clause.from_ground clause\<^sub>G\<^sub>2 \<Longrightarrow> clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2"
     unfolding ground.less_cls_def clause.from_ground_def less\<^sub>c_def
     by (auto simp: less\<^sub>l\<^sub>G_less\<^sub>l
-        dest!: multp_image_mset_image_msetD[OF _ less\<^sub>l_transitive to_literal_inj]
+        dest!: multp_image_mset_image_msetD[OF _ less\<^sub>l_transitive literal.inj_from_ground]
         elim!: multp_mono_strong)
 qed
 
 lemma less\<^sub>c_less\<^sub>c\<^sub>G: 
   assumes "clause.is_ground clause\<^sub>1" "clause.is_ground clause\<^sub>2"
-  shows "clause\<^sub>1 \<prec>\<^sub>c clause\<^sub>2 \<longleftrightarrow> to_ground_clause clause\<^sub>1 \<prec>\<^sub>c\<^sub>G  to_ground_clause clause\<^sub>2"
+  shows "clause\<^sub>1 \<prec>\<^sub>c clause\<^sub>2 \<longleftrightarrow> clause.to_ground clause\<^sub>1 \<prec>\<^sub>c\<^sub>G  clause.to_ground clause\<^sub>2"
   using assms
   by (simp add: less\<^sub>c\<^sub>G_less\<^sub>c)
 
 lemma less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G:
   assumes "clause.is_ground clause\<^sub>1" and "clause.is_ground clause\<^sub>2" 
-  shows "clause\<^sub>1 \<preceq>\<^sub>c clause\<^sub>2 \<longleftrightarrow> to_ground_clause clause\<^sub>1 \<preceq>\<^sub>c\<^sub>G to_ground_clause clause\<^sub>2"
+  shows "clause\<^sub>1 \<preceq>\<^sub>c clause\<^sub>2 \<longleftrightarrow> clause.to_ground clause\<^sub>1 \<preceq>\<^sub>c\<^sub>G clause.to_ground clause\<^sub>2"
   unfolding reflclp_iff less\<^sub>c_less\<^sub>c\<^sub>G[OF assms]
-  using assms[THEN to_ground_clause_inverse]
+  using assms[THEN clause.to_ground_inverse]
   by fastforce
 
 lemma less_eq\<^sub>c\<^sub>G_less_eq\<^sub>c:
-   "clause\<^sub>G\<^sub>1 \<preceq>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<longleftrightarrow> to_clause clause\<^sub>G\<^sub>1 \<preceq>\<^sub>c to_clause clause\<^sub>G\<^sub>2"
-  unfolding less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF ground_clause_is_ground ground_clause_is_ground] to_clause_inverse
+   "clause\<^sub>G\<^sub>1 \<preceq>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<longleftrightarrow> clause.from_ground clause\<^sub>G\<^sub>1 \<preceq>\<^sub>c clause.from_ground clause\<^sub>G\<^sub>2"
+  unfolding less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF ground_clause_is_ground ground_clause_is_ground] clause.from_ground_inverse
   ..
 
 lemma not_less_eq\<^sub>c\<^sub>G: "\<not> clause\<^sub>G\<^sub>2 \<preceq>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>1 \<longleftrightarrow> clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2"
@@ -597,13 +597,13 @@ proof(rule ccontr)
 qed
 
 (* TODO: Try to move these to the fitting others *)
-lemma less\<^sub>l_total_on [intro]: "totalp_on (to_literal ` literals\<^sub>G) (\<prec>\<^sub>l)"
+lemma less\<^sub>l_total_on [intro]: "totalp_on (literal.from_ground ` literals\<^sub>G) (\<prec>\<^sub>l)"
   by (smt (verit, best) image_iff less\<^sub>l\<^sub>G_less\<^sub>l totalpD ground.less\<^sub>l\<^sub>G_total_on totalp_on_def)
 
 lemmas less\<^sub>l_total_on_set_mset =
-  less\<^sub>l_total_on[THEN totalp_on_subset, OF set_mset_to_clause_to_literal[THEN equalityD1]]
+  less\<^sub>l_total_on[THEN totalp_on_subset, OF set_mset_clause_from_ground_literal_from_ground[THEN equalityD1]]
 
-lemma less\<^sub>c_total_on: "totalp_on (to_clause ` clauses) (\<prec>\<^sub>c)"
+lemma less\<^sub>c_total_on: "totalp_on (clause.from_ground ` clauses) (\<prec>\<^sub>c)"
   by (smt ground.clause_order.totalp_on_less image_iff less\<^sub>c\<^sub>G_less\<^sub>c totalpD totalp_onI)
 
 lemma unique_maximal_in_ground_clause:
@@ -615,7 +615,7 @@ lemma unique_maximal_in_ground_clause:
     "literal = literal'"
   using assms(2, 3)
   unfolding is_maximal\<^sub>l_def
-  by (metis assms(1) less\<^sub>l_total_on_set_mset to_ground_clause_inverse totalp_onD)
+  by (metis assms(1) less\<^sub>l_total_on_set_mset clause.to_ground_inverse totalp_onD)
 
 lemma unique_strictly_maximal_in_ground_clause:
   assumes

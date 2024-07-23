@@ -35,7 +35,7 @@ abbreviation is_inference_grounding where
     (case \<iota> of
         Infer [(premise, \<V>')] (conclusion, \<V>) \<Rightarrow>
            term_subst.is_ground_subst \<gamma>
-        \<and> \<iota>\<^sub>G = Infer [to_ground_clause (premise \<cdot> \<gamma>)] (to_ground_clause (conclusion \<cdot> \<gamma>))
+        \<and> \<iota>\<^sub>G = Infer [clause.to_ground (premise \<cdot> \<gamma>)] (clause.to_ground (conclusion \<cdot> \<gamma>))
         \<and> welltyped\<^sub>c typeof_fun \<V> premise 
         \<and> welltyped\<^sub>\<sigma>_on (clause.vars conclusion) typeof_fun \<V> \<gamma>
         \<and> welltyped\<^sub>c typeof_fun \<V> conclusion
@@ -48,8 +48,8 @@ abbreviation is_inference_grounding where
         \<and> term_subst.is_ground_subst \<gamma>
         \<and> \<iota>\<^sub>G =
             Infer
-              [to_ground_clause (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), to_ground_clause (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)]
-              (to_ground_clause (conclusion \<cdot> \<gamma>))
+              [clause.to_ground (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), clause.to_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)]
+              (clause.to_ground (conclusion \<cdot> \<gamma>))
         \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>1 premise\<^sub>1
         \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>2 premise\<^sub>2
         \<and> welltyped\<^sub>\<sigma>_on (clause.vars conclusion) typeof_fun \<V>\<^sub>3 \<gamma>
@@ -83,7 +83,7 @@ proof-
   (* TODO: *)
   then obtain \<gamma> where
     "clause.is_ground (conclusion \<cdot> \<gamma>)"
-    "conlcusion\<^sub>G = to_ground_clause (conclusion \<cdot> \<gamma>)"
+    "conlcusion\<^sub>G = clause.to_ground (conclusion \<cdot> \<gamma>)"
     "welltyped\<^sub>c typeof_fun \<V> conclusion \<and> welltyped\<^sub>\<sigma>_on (clause.vars conclusion) typeof_fun \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     using assms list_4_cases
     unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
