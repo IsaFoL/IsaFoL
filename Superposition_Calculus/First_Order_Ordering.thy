@@ -67,7 +67,7 @@ abbreviation less_eq\<^sub>t (infix "\<preceq>\<^sub>t" 50) where
   "less_eq\<^sub>t \<equiv> (\<prec>\<^sub>t)\<^sup>=\<^sup>="
 
 definition less\<^sub>t\<^sub>G :: "'f ground_term \<Rightarrow> 'f ground_term \<Rightarrow> bool" (infix "\<prec>\<^sub>t\<^sub>G" 50) where
-  "term\<^sub>G\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2 \<equiv> to_term term\<^sub>G\<^sub>1 \<prec>\<^sub>t to_term term\<^sub>G\<^sub>2"
+  "term\<^sub>G\<^sub>1 \<prec>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2 \<equiv> term.from_ground term\<^sub>G\<^sub>1 \<prec>\<^sub>t term.from_ground term\<^sub>G\<^sub>2"
 
 notation less_lit (infix "\<prec>\<^sub>l" 50)
 notation less_cls (infix "\<prec>\<^sub>c" 50)
@@ -120,24 +120,24 @@ lemmas less\<^sub>t_asymmetric_on = term_order.asymp_on_less
 lemmas less\<^sub>t_irreflexive_on = term_order.irreflp_on_less
 lemmas less\<^sub>t_transitive_on = term_order.transp_on_less
 
-lemma less\<^sub>t_wellfounded_on': "Wellfounded.wfp_on (to_term ` terms\<^sub>G) (\<prec>\<^sub>t)"
+lemma less\<^sub>t_wellfounded_on': "Wellfounded.wfp_on (term.from_ground ` terms\<^sub>G) (\<prec>\<^sub>t)"
 proof (rule Wellfounded.wfp_on_subset)
   show "Wellfounded.wfp_on {term. term.is_ground term} (\<prec>\<^sub>t)"
     using less\<^sub>t_wellfounded_on .
 next
-  show "to_term ` terms\<^sub>G \<subseteq> {term. term.is_ground term}"
+  show "term.from_ground ` terms\<^sub>G \<subseteq> {term. term.is_ground term}"
     by force
 qed
 
-lemma less\<^sub>t_total_on': "totalp_on (to_term ` terms\<^sub>G) (\<prec>\<^sub>t)"
+lemma less\<^sub>t_total_on': "totalp_on (term.from_ground ` terms\<^sub>G) (\<prec>\<^sub>t)"
   using less\<^sub>t_total_on
   by (simp add: totalp_on_def)
 
 lemma less\<^sub>t\<^sub>G_wellfounded: "wfP (\<prec>\<^sub>t\<^sub>G)"
 proof -
-  have "Wellfounded.wfp_on (range to_term) (\<prec>\<^sub>t)"
+  have "Wellfounded.wfp_on (range term.from_ground) (\<prec>\<^sub>t)"
     using less\<^sub>t_wellfounded_on' by metis
-  hence "wfp (\<lambda>term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2. to_term term\<^sub>G\<^sub>1 \<prec>\<^sub>t to_term term\<^sub>G\<^sub>2)"
+  hence "wfp (\<lambda>term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2. term.from_ground term\<^sub>G\<^sub>1 \<prec>\<^sub>t term.from_ground term\<^sub>G\<^sub>2)"
     unfolding Wellfounded.wfp_on_image[symmetric] .
   thus "wfp (\<prec>\<^sub>t\<^sub>G)"
     unfolding less\<^sub>t\<^sub>G_def .
@@ -176,14 +176,14 @@ lemma less\<^sub>t\<^sub>G_subterm_property [simp]:
   using 
     assms
     less\<^sub>t_ground_subterm_property[OF ground_term_is_ground ground_context_is_ground] 
-    to_context_hole
+    context_from_ground_hole
   unfolding less\<^sub>t\<^sub>G_def ground_term_with_context(3)  
   by blast
 
 (* TODO: direction? *)
 lemma less\<^sub>t_less\<^sub>t\<^sub>G [clause_simp]: 
   assumes "term.is_ground term\<^sub>1" and "term.is_ground term\<^sub>2"
-  shows "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<longleftrightarrow> to_ground_term term\<^sub>1 \<prec>\<^sub>t\<^sub>G to_ground_term term\<^sub>2"
+  shows "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<longleftrightarrow> term.to_ground term\<^sub>1 \<prec>\<^sub>t\<^sub>G term.to_ground term\<^sub>2"
   by (simp add: assms less\<^sub>t\<^sub>G_def)
 
 lemma less_eq\<^sub>t_ground_subst_stability:
@@ -273,14 +273,14 @@ lemma not_less_eq\<^sub>t\<^sub>G: "\<not> term\<^sub>G\<^sub>2 \<preceq>\<^sub>
 
 lemma less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G:
   assumes "term.is_ground term\<^sub>1" and "term.is_ground term\<^sub>2" 
-  shows "term\<^sub>1 \<preceq>\<^sub>t term\<^sub>2 \<longleftrightarrow> to_ground_term term\<^sub>1 \<preceq>\<^sub>t\<^sub>G to_ground_term term\<^sub>2"
+  shows "term\<^sub>1 \<preceq>\<^sub>t term\<^sub>2 \<longleftrightarrow> term.to_ground term\<^sub>1 \<preceq>\<^sub>t\<^sub>G term.to_ground term\<^sub>2"
   unfolding reflclp_iff less\<^sub>t_less\<^sub>t\<^sub>G[OF assms]
-  using assms[THEN to_ground_term_inverse]
+  using assms[THEN term.to_ground_inverse]
   by auto
 
 lemma less_eq\<^sub>t\<^sub>G_less_eq\<^sub>t:
-   "term\<^sub>G\<^sub>1 \<preceq>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2 \<longleftrightarrow> to_term term\<^sub>G\<^sub>1 \<preceq>\<^sub>t to_term term\<^sub>G\<^sub>2"
-  unfolding less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G[OF ground_term_is_ground ground_term_is_ground] to_term_inverse
+   "term\<^sub>G\<^sub>1 \<preceq>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2 \<longleftrightarrow> term.from_ground term\<^sub>G\<^sub>1 \<preceq>\<^sub>t term.from_ground term\<^sub>G\<^sub>2"
+  unfolding less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G[OF ground_term_is_ground ground_term_is_ground] term.from_ground_inverse
   ..
 
 lemma not_less_eq\<^sub>t: 
@@ -293,7 +293,7 @@ lemma less\<^sub>l\<^sub>G_less\<^sub>l: "literal\<^sub>G\<^sub>1 \<prec>\<^sub>
   unfolding less\<^sub>l_def ground.less_lit_def less\<^sub>t\<^sub>G_def mset_to_literal
   using
      multp_image_mset_image_msetI[OF _ less\<^sub>t_transitive]
-     multp_image_mset_image_msetD[OF _ less\<^sub>t_transitive_on to_term_inj]
+     multp_image_mset_image_msetD[OF _ less\<^sub>t_transitive_on term.inj_from_ground]
    by blast
 
 lemma less\<^sub>l_less\<^sub>l\<^sub>G: 
@@ -426,7 +426,7 @@ lemma less\<^sub>t_ground_context_compatible':
   shows "term \<prec>\<^sub>t term'"
   (* TODO: *)
   using assms 
-  apply(clause_simp simp: ground.less_trm_compatible_with_gctxt_iff[symmetric, of "to_ground_term term" _ "to_ground_context context"])
+  apply(clause_simp simp: ground.less_trm_compatible_with_gctxt_iff[symmetric, of "term.to_ground term" _ "context.to_ground context"])
   by (simp add: ground_term_with_context1 less\<^sub>t_less\<^sub>t\<^sub>G)
   
 

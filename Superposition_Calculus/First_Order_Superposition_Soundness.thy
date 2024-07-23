@@ -141,8 +141,8 @@ proof (cases P C rule: eq_resolution.cases)
     let ?P = "to_ground_clause (P \<cdot> \<mu> \<cdot> \<gamma>')"
     let ?L = "to_ground_literal (L \<cdot>l \<mu> \<cdot>l \<gamma>')"
     let ?P' = "to_ground_clause (P' \<cdot> \<mu> \<cdot> \<gamma>')"
-    let ?s\<^sub>1 = "to_ground_term (s\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
-    let ?s\<^sub>2 = "to_ground_term (s\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>')"
+    let ?s\<^sub>1 = "term.to_ground (s\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
+    let ?s\<^sub>2 = "term.to_ground (s\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>')"
 
     have "welltyped\<^sub>c typeof_fun \<V> (P' \<cdot> \<mu>)"
       using eq_resolutionI(8) wt(1)
@@ -258,10 +258,10 @@ proof (cases P C rule: eq_factoring.cases)
     let ?P' = "to_ground_clause (P' \<cdot> \<mu> \<cdot> \<gamma>')"
     let ?L\<^sub>1 = "to_ground_literal (L\<^sub>1 \<cdot>l \<mu> \<cdot>l \<gamma>')"
     let ?L\<^sub>2 = "to_ground_literal (L\<^sub>2 \<cdot>l \<mu> \<cdot>l \<gamma>')"
-    let ?s\<^sub>1 = "to_ground_term (s\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
-    let ?s\<^sub>1' = "to_ground_term (s\<^sub>1' \<cdot>t \<mu> \<cdot>t \<gamma>')"
-    let ?t\<^sub>2 = "to_ground_term (t\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>')"
-    let ?t\<^sub>2' = "to_ground_term (t\<^sub>2' \<cdot>t \<mu> \<cdot>t \<gamma>')"
+    let ?s\<^sub>1 = "term.to_ground (s\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
+    let ?s\<^sub>1' = "term.to_ground (s\<^sub>1' \<cdot>t \<mu> \<cdot>t \<gamma>')"
+    let ?t\<^sub>2 = "term.to_ground (t\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>')"
+    let ?t\<^sub>2' = "term.to_ground (t\<^sub>2' \<cdot>t \<mu> \<cdot>t \<gamma>')"
     let ?C = "to_ground_clause (C \<cdot> \<gamma>')"
 
     have wt':
@@ -417,11 +417,11 @@ proof (cases P2 P1 C rule: superposition.cases)
     let ?P\<^sub>1' = "to_ground_clause (P\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<gamma>')"
     let ?P\<^sub>2' = "to_ground_clause (P\<^sub>2' \<cdot> \<rho>\<^sub>2 \<cdot> \<mu> \<cdot> \<gamma>')"
 
-    let ?s\<^sub>1 = "to_ground_context (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')"
-    let ?s\<^sub>1' = "to_ground_term (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
-    let ?t\<^sub>2 = "to_ground_term (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>')"
-    let ?t\<^sub>2' = "to_ground_term (t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>')"
-    let ?u\<^sub>1 = "to_ground_term (u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
+    let ?s\<^sub>1 = "context.to_ground (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')"
+    let ?s\<^sub>1' = "term.to_ground (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
+    let ?t\<^sub>2 = "term.to_ground (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>')"
+    let ?t\<^sub>2' = "term.to_ground (t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>')"
+    let ?u\<^sub>1 = "term.to_ground (u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
 
     let ?\<P> = "if \<P> = Pos then Pos else Neg"
 
@@ -541,7 +541,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       using term_subst.subst_imgu_eq_subst_imgu[OF superpositionI(13)]
       by argo
 
-    have s\<^sub>1_u\<^sub>1: "?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G = to_ground_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"
+    have s\<^sub>1_u\<^sub>1: "?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G = term.to_ground (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"
       using 
         ground_term_with_context(1)[OF 
           context.is_ground_subst_is_ground
@@ -550,7 +550,7 @@ proof (cases P2 P1 C rule: superposition.cases)
         \<gamma>'(1)
       by auto
 
-    have s\<^sub>1_t\<^sub>2': "(?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G  = to_ground_term (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"
+    have s\<^sub>1_t\<^sub>2': "(?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G  = term.to_ground (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"
       using 
         ground_term_with_context(1)[OF 
           context.is_ground_subst_is_ground
