@@ -1130,7 +1130,7 @@ lemma ord_res_5_safe_state_if_invars:
   unfolding safe_state_def
 proof (intro allI impI)
   fix S'
-  assume "ord_res_5_semantics.eval (N, s) S'"
+  assume "ord_res_5_semantics.eval (N, s) S'" and stuck: "stuck_state ord_res_5_step S'"
   then obtain s' where "S' = (N, s')" and "(ord_res_5 N)\<^sup>*\<^sup>* s s'"
   proof (induction "(N, s)" arbitrary: N s rule: converse_rtranclp_induct)
     case base
@@ -1144,8 +1144,8 @@ proof (intro allI impI)
     using invars rtranclp_ord_res_5_preserves_invars by metis
   hence "\<not> ord_res_5_final S' \<Longrightarrow> \<exists>S''. ord_res_5_step S' S''"
     using ex_ord_res_5_if_not_final[of S'] \<open>S' = (N, s')\<close> by blast
-  thus "ord_res_5_final S' \<or> Ex (ord_res_5_step S')"
-    by argo
+  thus "ord_res_5_final S'"
+    using stuck[unfolded stuck_state_def] by argo
 qed
 
 lemma MAGIC1:

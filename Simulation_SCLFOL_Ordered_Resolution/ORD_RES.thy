@@ -6,6 +6,9 @@ section \<open>ORD-RES\<close>
 
 context simulation_SCLFOL_ground_ordered_resolution begin
 
+lemma "ex_false_clause N \<longleftrightarrow> \<not> (\<forall>C \<in> N. ord_res_Interp N C \<TTurnstile> C)"
+  unfolding ex_false_clause_def by metis
+
 definition ord_res_final where
   "ord_res_final N \<longleftrightarrow> {#} |\<in>| N \<or> \<not> ex_false_clause (fset N)"
 

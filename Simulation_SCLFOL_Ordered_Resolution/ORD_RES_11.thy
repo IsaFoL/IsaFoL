@@ -1354,16 +1354,9 @@ lemma ord_res_11_safe_state_if_invars:
   fixes N s
   assumes invars: "ord_res_11_invars N s"
   shows "safe_state (constant_context ord_res_11) ord_res_11_final (N, s)"
-proof (rule safe_state_if_invars[where \<I> = ord_res_11_invars])
-  show "ord_res_11_invars N s"
-    using invars .
-next
-  show "\<And>N s s'. ord_res_11 N s s' \<Longrightarrow> ord_res_11_invars N s \<Longrightarrow> ord_res_11_invars N s'"
-    using ord_res_11_preserves_invars by metis
-next
-  show "\<And>N s. \<not> ord_res_11_final (N, s) \<Longrightarrow> ord_res_11_invars N s \<Longrightarrow> \<exists>s'. ord_res_11 N s s'"
-    using ex_ord_res_11_if_not_final by metis
-qed
+  using safe_state_constant_context_if_invars[where
+      \<R> = ord_res_11 and \<F> = ord_res_11_final and \<I> = ord_res_11_invars]
+  using ord_res_11_preserves_invars ex_ord_res_11_if_not_final invars by metis
 
 lemma rtrancl_ord_res_11_all_resolution_steps:
   assumes C_max_lit: "ord_res.is_strictly_maximal_lit K C"

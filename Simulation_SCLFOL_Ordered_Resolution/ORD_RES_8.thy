@@ -1480,28 +1480,9 @@ lemma ord_res_8_safe_state_if_invars:
   fixes N s
   assumes invars: "ord_res_8_invars N s"
   shows "safe_state (constant_context ord_res_8) ord_res_8_final (N, s)"
-  unfolding safe_state_def
-proof (intro allI impI)
-  fix S'
-  assume "ord_res_8_semantics.eval (N, s) S'"
-  then obtain s' where "S' = (N, s')" and "(ord_res_8 N)\<^sup>*\<^sup>* s s'"
-  proof (induction "(N, s)" arbitrary: N s rule: converse_rtranclp_induct)
-    case base
-    thus ?case by simp
-  next
-    case (step z)
-    thus ?case
-      by (smt (verit, ccfv_SIG) converse_rtranclp_into_rtranclp constant_context.cases prod.inject)
-  qed
-  hence "ord_res_8_invars N s'"
-    using invars by (metis rtranclp_ord_res_8_preserves_invars)
-  hence "\<not> ord_res_8_final (N, s') \<Longrightarrow> \<exists>s''. ord_res_8 N s' s''"
-    using ex_ord_res_8_if_not_final[of N s'] by argo
-  hence "\<not> ord_res_8_final S' \<Longrightarrow> \<exists>S''. constant_context ord_res_8 S' S''"
-    unfolding \<open>S' = (N, s')\<close> using constant_context.intros by metis
-  thus "ord_res_8_final S' \<or> Ex (constant_context ord_res_8 S')"
-    by argo
-qed
+  using safe_state_constant_context_if_invars[where
+      \<R> = ord_res_8 and \<F> = ord_res_8_final and \<I> = ord_res_8_invars]
+  using ord_res_8_preserves_invars ex_ord_res_8_if_not_final invars by metis
 
 end
 

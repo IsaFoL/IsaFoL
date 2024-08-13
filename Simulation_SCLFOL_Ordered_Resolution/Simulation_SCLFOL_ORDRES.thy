@@ -1,4 +1,4 @@
-theory Simulation
+theory Simulation_SCLFOL_ORDRES
   imports
     Background
     ORD_RES
@@ -128,6 +128,21 @@ fun ord_res_1_matches_ord_res_2 where
       S1 = N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f |\<union>| U\<^sub>f \<and>
       (\<forall>C\<^sub>f |\<in>| U\<^sub>f. \<exists>C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f. ord_res.ground_factoring\<^sup>+\<^sup>+ C C\<^sub>f \<and> C\<^sub>f \<noteq> efac C\<^sub>f \<and>
         (efac C\<^sub>f |\<in>| U\<^sub>e\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C)))"
+
+lemma ord_res_1_matches_ord_res_2_simps':
+  "ord_res_1_matches_ord_res_2 S1 (N, (U\<^sub>r, U\<^sub>e\<^sub>f)) \<longleftrightarrow>
+    (\<exists>U\<^sub>f. S1 = N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f |\<union>| U\<^sub>f \<and>
+      (\<forall>C\<^sub>f |\<in>| U\<^sub>f. C\<^sub>f \<noteq> efac C\<^sub>f \<and> (\<exists>C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f. ord_res.ground_factoring\<^sup>+\<^sup>+ C C\<^sub>f \<and>
+        (efac C\<^sub>f |\<in>| U\<^sub>e\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C))))"
+  unfolding ord_res_1_matches_ord_res_2.simps by metis
+
+lemma ord_res_1_matches_ord_res_2_simps'':
+  "ord_res_1_matches_ord_res_2 S1 (N, (U\<^sub>r, U\<^sub>e\<^sub>f)) \<longleftrightarrow>
+    (\<exists>U\<^sub>f. S1 = N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f |\<union>| U\<^sub>f \<and>
+      (\<forall>C\<^sub>f |\<in>| U\<^sub>f. C\<^sub>f \<noteq> efac C\<^sub>f \<and> (\<exists>C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f. ord_res.ground_factoring\<^sup>+\<^sup>+ C C\<^sub>f \<and>
+        (efac C |\<in>| U\<^sub>e\<^sub>f \<or> is_least_false_clause (N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f) C))))"
+  unfolding ord_res_1_matches_ord_res_2_simps'
+  by (metis ground_factorings_preserves_efac tranclp_into_rtranclp)
 
 lemma ord_res_1_final_iff_ord_res_2_final:
   assumes match: "ord_res_1_matches_ord_res_2 S\<^sub>1 S\<^sub>2"
