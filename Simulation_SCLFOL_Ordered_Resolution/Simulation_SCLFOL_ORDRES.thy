@@ -6904,11 +6904,6 @@ next
     using strategy_restricts_regular_scl by simp
 qed *)
 
-term "cls_of_gcls |`| N"
-term gcls_of_cls
-term gterm_of_term
-term less_B
-
 definition gtrailelem_of_trailelem where
   "gtrailelem_of_trailelem \<equiv> \<lambda>(L, opt).
     (lit_of_glit L, map_option (\<lambda>C. (cls_of_gcls {#K \<in># C. K \<noteq> L#}, lit_of_glit L, Var)) opt)"
