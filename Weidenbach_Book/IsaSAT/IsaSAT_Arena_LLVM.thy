@@ -15,8 +15,8 @@ lemma protected_bind_assoc:
     Refine_Basic.bind$m$(\<lambda>\<^sub>2x. Refine_Basic.bind$(f x)$(\<lambda>\<^sub>2y. g y))\<close> by simp
 
 
-lemma convert_swap: \<open>WB_More_Refinement_List.swap = More_List.swap\<close>
-  unfolding WB_More_Refinement_List.swap_def More_List.swap_def ..
+lemma convert_swap: \<open>WB_More_Refinement_List.swap = LLVM_More_List.swap\<close>
+  unfolding WB_More_Refinement_List.swap_def LLVM_More_List.swap_def ..
 
 
 subsubsection \<open>Code Generation\<close>

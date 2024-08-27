@@ -2,7 +2,7 @@ theory WB_More_Refinement_List
   imports Weidenbach_Book_Base.WB_List_More
     Word_Lib.Many_More \<comment> \<open>provides some additional lemmas like @{thm nth_rev}\<close>
     Isabelle_LLVM.Refine_Monadic_Thin
-    Isabelle_LLVM.More_List
+    Isabelle_LLVM.LLVM_More_List
 begin
 
 no_notation funcset (infixr "\<rightarrow>" 60)
