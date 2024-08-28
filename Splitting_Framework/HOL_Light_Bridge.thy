@@ -186,22 +186,26 @@ proof
         by (metis HOL_Light_Maps_Set.empty_def intrp_is_struct some_in_eq struct_def)
       moreover have "HOL_Light_Import.satisfies C t"
         using M_def satisfies_equiv C_def T_def by force
-      ultimately have "HOL_Light_Import.interpretation (HOL_Light_Import.language S) C \<and> HOL_Light_Import.Dom C \<noteq> empty \<and> HOL_Light_Import.satisfies C t"
+      ultimately have "HOL_Light_Import.interpretation (HOL_Light_Import.language S) C \<and>
+        HOL_Light_Import.Dom C \<noteq> empty \<and> HOL_Light_Import.satisfies C t"
         by blast
-      thus "\<exists>(M :: 'a HOL_intrp). HOL_Light_Import.interpretation (HOL_Light_Import.language S) M \<and> HOL_Light_Import.Dom M \<noteq> empty \<and> HOL_Light_Import.satisfies M t"
+      thus "\<exists>(M :: 'a HOL_intrp). HOL_Light_Import.interpretation (HOL_Light_Import.language S) M \<and>
+        HOL_Light_Import.Dom M \<noteq> empty \<and> HOL_Light_Import.satisfies M t"
         by blast
     qed
   qed
-  hence "\<exists>(C :: nterm HOL_intrp). HOL_Light_Import.interpretation (HOL_Light_Import.language S) C \<and> HOL_Light_Import.Dom C \<noteq> empty \<and> HOL_Light_Import.satisfies C S"
+  hence "\<exists>(C :: nterm HOL_intrp). HOL_Light_Import.interpretation (HOL_Light_Import.language S) C \<and>
+    HOL_Light_Import.Dom C \<noteq> empty \<and> HOL_Light_Import.satisfies C S"
     using HOL_Light_Import.COMPACT_LS by blast
   then obtain C :: "nterm HOL_intrp"
-    where C_def: "HOL_Light_Import.interpretation (HOL_Light_Import.language S) C \<and> HOL_Light_Import.Dom C \<noteq> empty \<and> HOL_Light_Import.satisfies C S"
+    where C_def: "HOL_Light_Import.interpretation (HOL_Light_Import.language S) C \<and>
+      HOL_Light_Import.Dom C \<noteq> empty \<and> HOL_Light_Import.satisfies C S"
     by blast
   define C' where "C' = intrp_from_HOL C"
   have C_def': "C = intrp_to_HOL C'"
   proof (cases C)
     case (fields M FN REL)
-    have "struct (Collect M)"
+    have "struct (Collect M) FN (\<lambda>n. Collect (REL n))"
     proof
       show "Collect M \<noteq> {}"
       proof -
@@ -210,8 +214,16 @@ proof
         then show ?thesis
           by (metis C_def Collect_empty_eq_bot Dom_hldef fields fst_conv)
       qed
+    next
+      find_theorems HOL_Light_Import.interpretation
+      show \<open>\<forall>f es. (\<forall>e\<in>set es. e \<in> Collect M) \<longrightarrow> FN f es \<in> Collect M\<close>
+        sorry
+    next
+      show \<open>\<forall>p. \<forall>es\<in>Collect (REL p). \<forall>e\<in>set es. e \<in> Collect M\<close>
+        sorry
     qed
-    hence "Rep_intrp (Abs_intrp (Collect (fst C), fst (snd C), \<lambda>n. Collect (snd (snd C) n))) = (Collect (fst C), fst (snd C), \<lambda>n. Collect (snd (snd C) n))"
+    hence "Rep_intrp (Abs_intrp (Collect (fst C), fst (snd C), \<lambda>n. Collect (snd (snd C) n))) =
+      (Collect (fst C), fst (snd C), \<lambda>n. Collect (snd (snd C) n))"
       using intrp.Abs_intrp_inverse fields by auto
     then show ?thesis
       by (simp add: C'_def intrp_from_HOL_def intrp_to_HOL_def dom_def intrp_fn_def intrp_rel_def)
