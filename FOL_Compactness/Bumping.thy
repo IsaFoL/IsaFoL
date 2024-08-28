@@ -73,7 +73,7 @@ proof -
     by (metis bump_intrp_rel)
 qed
 
-lemma bumpintrp: \<open>\<M>, \<beta> \<Turnstile> \<phi> = (bump_intrp \<M>), \<beta> \<Turnstile> (bump_form \<phi>)\<close>
+lemma bumpform: \<open>\<M>, \<beta> \<Turnstile> \<phi> = (bump_intrp \<M>), \<beta> \<Turnstile> (bump_form \<phi>)\<close>
 proof (induct \<phi> arbitrary: \<beta>)
   case Bot
   then show ?case
@@ -94,5 +94,72 @@ next
   then show ?case
     by simp
 qed
+
+(* let FUNCTIONS_FORM_BUMPFORM = prove
+ (`!p f m.
+        f,m IN functions_form(bumpform p)
+        ==> ?k. (f = NUMPAIR 0 k) /\ k,m IN functions_form p`, *)
+lemma functions_form_bumpform: \<open>(f, m) \<in> functions_form (bump_form \<phi>) \<Longrightarrow>
+  \<exists>k. (f = numpair 0 k) \<and> (k, m) \<in> functions_form \<phi>\<close>
+proof (induct \<phi>)
+  case Bot
+  then show ?case
+    by auto
+next
+  case (Atom p ts)
+  {
+    assume \<open>\<exists>x\<in>set ts. (f, m) \<in> functions_term (bump_nterm x)\<close>
+    then obtain t where t_in: \<open>t \<in> set ts\<close> and fm_in_t: \<open>(f, m) \<in> functions_term (bump_nterm t)\<close>
+      by blast
+    have \<open>\<exists>k. f = numpair 0 k \<and> (k, m) \<in> functions_term t\<close>
+      using fm_in_t
+    proof (induction t)
+      case (Var x)
+      then show ?case by auto
+    next
+      case (Fun g us)
+      then show ?case
+      proof (cases "(f, m) = (g, length us)")
+        case True
+        then show ?thesis 
+          
+          sorry
+      next
+        case False
+        then show ?thesis sorry
+      qed
+    qed
+    then have \<open>\<exists>k. f = numpair 0 k \<and> (\<exists>x\<in>set ts. (k, m) \<in> functions_term x)\<close>
+      using t_in by blast
+  }
+  then show ?case using Atom by simp
+next
+  case (Implies \<phi>1 \<phi>2)
+  then show ?case 
+    by auto
+next
+  case (Forall x1 \<phi>)
+  then show ?case
+    by auto
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 end
