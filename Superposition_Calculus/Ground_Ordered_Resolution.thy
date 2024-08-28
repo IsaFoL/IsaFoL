@@ -91,10 +91,10 @@ lemma irreflp_on_less_lit[simp]: "irreflp_on A (\<prec>\<^sub>l)"
 
 lemma wfP_less_lit[simp]: "wfP (\<prec>\<^sub>l)"
   unfolding less_lit_def
-  using wfP_less_trm wfP_multp wfP_if_convertible_to_wfP by meson
+  using wfP_less_trm wfp_multp wfp_if_convertible_to_wfp by meson
 
 lemma wfP_less_cls[simp]: "wfP (\<prec>\<^sub>c)"
-  using wfP_less_lit wfP_multp by blast
+  using wfP_less_lit wfp_multp by blast
 
 lemma totalp_on_less_lit[simp]: "totalp_on A (\<prec>\<^sub>l)"
 proof (rule totalp_onI)
@@ -454,7 +454,7 @@ termination production
 proof (relation "{(x, y). x \<prec>\<^sub>c y}")
   show "wf {(x, y). x \<prec>\<^sub>c y}"
     using wfP_less_cls
-    by (simp add: wfP_def)
+    by (simp add: wfp_def)
 next
   show "\<And>C D. D \<in> {D \<in> N. D \<prec>\<^sub>c C} \<Longrightarrow> (D, C) \<in> {(x, y). x \<prec>\<^sub>c y}"
     by simp
@@ -826,7 +826,7 @@ proof -
         using that by simp
     qed simp_all
     with \<open>D \<preceq>\<^sub>c C\<close> show False
-      by (metis asympD reflclp_iff wfP_imp_asymp wfP_less_cls)
+      by (metis asympD reflclp_iff wfp_imp_asymp wfP_less_cls)
   qed
 
   ultimately show "is_pos L \<Longrightarrow> atm_of L \<preceq>\<^sub>t A" and "is_neg L \<Longrightarrow> atm_of L \<prec>\<^sub>t A"
@@ -991,7 +991,7 @@ lemma model_construction:
     "D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> interp N D \<TTurnstile> C"
   unfolding atomize_conj atomize_imp
   using wfP_less_cls C_in
-proof (induction C arbitrary: D rule: wfP_induct_rule)
+proof (induction C arbitrary: D rule: wfp_induct_rule)
   case (less C)
   note IH = less.IH
 
@@ -1421,7 +1421,7 @@ lemma production_swap_clause_set:
     agree: "{D \<in> N1. D \<preceq>\<^sub>c C} = {D \<in> N2. D \<preceq>\<^sub>c C}"
   shows "production N1 C = production N2 C"
   using agree
-proof (induction C rule: wfP_induct[OF wfP_less_cls])
+proof (induction C rule: wfp_induct[OF wfP_less_cls])
   case hyps: (1 C)
   from hyps have AAA: "C \<in> N1 \<longleftrightarrow> C \<in> N2"
     by auto
@@ -1595,7 +1595,7 @@ lemma production_add_irrelevant_clause_to_set:
     no_select: "\<And>C. select C = {#}"
   shows "production (insert D N) C = production N C"
     using wfP_less_cls C_in
-proof (induction C rule: wfP_induct_rule)
+proof (induction C rule: wfp_induct_rule)
   case (less C)
   hence C_in_iff: "C \<in> insert D N \<longleftrightarrow> C \<in> N"
     by simp

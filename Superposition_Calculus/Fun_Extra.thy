@@ -1,8 +1,7 @@
 theory Fun_Extra
-  imports Main
+  imports Main "HOL-Library.Countable_Set" "HOL-Cardinals.Cardinals"
 begin
 
-(* TODO: Ask fun expert*)
 lemma obtain_bij_betw_endo: 
   assumes "finite domain" "finite img" "card img = card domain" 
   obtains f 
@@ -162,5 +161,101 @@ proof-
     using that
     by blast
 qed
+
+abbreviation surj_on where 
+  "surj_on domain f \<equiv> (\<forall>y. \<exists>x \<in> domain. y = f x)"
+
+lemma surj_on_alternative: "surj_on domain f \<longleftrightarrow> f ` domain = UNIV"
+  by auto
+
+lemma obtain_surj_on_nat:
+  assumes "infinite domain"
+  obtains f :: "'a \<Rightarrow> nat" where "surj_on domain f"
+proof-
+  obtain subdomain where
+    subdomain: "infinite subdomain" "countable subdomain" "subdomain \<subseteq> domain"
+    using infinite_countable_subset'[OF assms]
+    by blast
+
+  then obtain f :: "'a \<Rightarrow> nat" where "surj_on subdomain f"
+    by (metis to_nat_on_surj)
+
+  then have "surj_on domain f"
+    using subdomain(3)
+    by (meson subset_iff)
+
+  then show ?thesis
+    using that
+    by blast
+qed
+
+lemma obtain_surj_on:
+  assumes "infinite domain"
+  obtains f :: "'a \<Rightarrow> 'b :: countable" where "surj_on domain f"
+proof-
+  obtain f' :: "'a \<Rightarrow> nat" 
+    where f': "surj_on domain f'"
+    using obtain_surj_on_nat[OF assms]
+    by blast
+
+  let ?f  = "(from_nat :: nat \<Rightarrow> 'b) \<circ> f'"
+
+  have f: "\<forall>y. \<exists>x\<in>domain. y = ?f x"
+    using f'
+    unfolding comp_def
+    by (metis from_nat_to_nat)
+
+  show ?thesis
+    using that[OF f].
+qed
+
+lemma partitions:
+  assumes "infinite (UNIV :: 'x set)"
+  obtains A B where
+    "|A| =o |B|" 
+    "|A| =o |UNIV :: 'x set|"
+    "A \<inter> B = {}"
+    "A \<union> B = (UNIV :: 'x set)"
+proof-      
+  obtain f :: "'x + 'x \<Rightarrow> 'x" where f: "bij f"
+    by (meson Plus_infinite_bij_betw_types assms bij_betw_inv one_type_greater)
+
+  define A :: "'x set" where "A \<equiv> f ` range Inl"
+  define B :: "'x set" where "B \<equiv> f ` range Inr"
+
+  have "A \<inter> B = {}"
+    unfolding A_def B_def
+    by (smt (verit, best) Inl_Inr_False UNIV_I bij_betw_iff_bijections disjoint_iff f imageE)
+
+  moreover have "A \<union> B = UNIV"
+    unfolding A_def B_def
+    apply auto
+    by (metis (mono_tags, opaque_lifting) UNIV_I bij_betw_imp_surj f imageI old.sum.exhaust rangeE)
+
+  moreover have Inl: "|Inl ` (UNIV :: 'x set)| =o |UNIV :: 'x set|"
+    by (meson bij_betw_imageI card_of_ordIsoI inj_Inl ordIso_symmetric)
+
+  have Inr: "|Inr ` (UNIV :: 'x set)| =o |UNIV :: 'x set|"
+    by (meson bij_betw_imageI card_of_ordIsoI inj_Inr ordIso_symmetric)
+
+  have "|A| =o |UNIV :: 'x set|"
+    unfolding A_def
+    using f
+    unfolding bij_betw_def
+    apply auto
+    by (smt (verit, del_insts) A_def Inl bij_betw_imageI card_of_ordIso inj_on_subset ordIso_symmetric ordIso_transitive subset_UNIV)
+
+  moreover have "|B| =o |UNIV :: 'x set|"
+     unfolding B_def
+    using f
+    unfolding bij_betw_def
+    apply auto
+    by (smt (verit, del_insts) B_def Inr bij_betw_imageI card_of_ordIso inj_on_subset ordIso_symmetric ordIso_transitive subset_UNIV)
+
+  ultimately show ?thesis
+    using that
+    by (meson ordIso_symmetric ordIso_transitive)
+qed
+
 
 end

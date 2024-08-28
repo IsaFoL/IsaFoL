@@ -1,7 +1,6 @@
 theory Substitution_First_Order_Term
   imports
     Abstract_Substitution
-    "First_Order_Terms.Subsumption"
     "First_Order_Terms.Unification"
 begin
 
@@ -12,8 +11,19 @@ lemma is_ground_iff: "is_ground_trm (t \<cdot> \<gamma>) \<longleftrightarrow> (
   by (induction t) simp_all
 
 lemma is_ground_trm_iff_ident_forall_subst: "is_ground_trm t \<longleftrightarrow> (\<forall>\<sigma>. t \<cdot> \<sigma> = t)"
-  by (metis (full_types) Int_empty_left ex_in_conv fun_upd_same subst_apply_term_ident
-      term.disc(1) term.disc(2) term_subst_eq_conv)
+proof(induction t)
+  case Var
+  then show ?case 
+    by auto
+next
+  case Fun
+
+  moreover have "\<And>xs x \<sigma>. \<forall>\<sigma>. map (\<lambda>s. s \<cdot> \<sigma>) xs = xs \<Longrightarrow> x \<in> set xs \<Longrightarrow> x \<cdot> \<sigma> = x"
+    by (metis list.map_ident map_eq_conv)
+
+  ultimately show ?case
+    by (auto simp: map_idI)
+qed
 
 global_interpretation term_subst: basic_substitution where
   subst = subst_apply_term and id_subst = Var and comp_subst = subst_compose and
@@ -28,13 +38,53 @@ next
   show "\<And>x. is_ground_trm x \<Longrightarrow> \<forall>\<sigma>. x \<cdot> \<sigma> = x"
     using is_ground_trm_iff_ident_forall_subst ..
 qed
+                      
+lemma term_subst_is_unifier_iff_unifiers:
+  assumes "finite X"
+  shows "term_subst.is_unifier \<mu> X \<longleftrightarrow> \<mu> \<in> unifiers (X \<times> X)"
+  unfolding term_subst.is_unifier_iff_if_finite[OF assms] unifiers_def
+  by simp
+
+lemma term_subst_is_unifier_set_iff_unifiers:
+  assumes "\<forall>X\<in> XX. finite X"
+  shows "term_subst.is_unifier_set \<mu> XX \<longleftrightarrow> \<mu> \<in> unifiers (\<Union>X\<in>XX. X \<times> X)"
+  using term_subst_is_unifier_iff_unifiers assms 
+  unfolding term_subst.is_unifier_set_def unifiers_def 
+  by fast
+
+lemma term_subst_is_imgu_iff_is_imgu:
+  assumes "\<forall>X\<in> XX. finite X"
+  shows "term_subst.is_imgu \<mu> XX \<longleftrightarrow> is_imgu \<mu> (\<Union>X\<in>XX. X \<times> X)"
+  using term_subst_is_unifier_set_iff_unifiers[OF assms]
+  unfolding term_subst.is_imgu_def is_imgu_def
+  by auto
+
+lemma range_vars_subset_if_is_imgu:
+  assumes "term_subst.is_imgu \<mu> XX" "\<forall>X\<in>XX. finite X" "finite XX"
+  shows "range_vars \<mu> \<subseteq> (\<Union>t\<in>\<Union>XX. vars_term t)"
+proof-
+  have is_imgu: "is_imgu \<mu> (\<Union>X\<in>XX. X \<times> X)"
+    using term_subst_is_imgu_iff_is_imgu[of "XX"] assms
+    by simp
+
+  have finite_prod: "finite (\<Union>X\<in>XX. X \<times> X)"
+    using assms
+    by blast
+
+  have "(\<Union>e\<in>\<Union>X\<in>XX. X \<times> X. vars_term (fst e) \<union> vars_term (snd e)) = (\<Union>t\<in>\<Union>XX. vars_term t)"
+    by fastforce
+
+  then show ?thesis
+    using imgu_range_vars_subset[OF is_imgu finite_prod]
+    by argo
+qed
 
 lemma term_subst_is_renaming_iff:
   "term_subst.is_renaming \<rho> \<longleftrightarrow> inj \<rho> \<and> (\<forall>x. is_Var (\<rho> x))"
 proof (rule iffI)
   show "term_subst.is_renaming \<rho> \<Longrightarrow> inj \<rho> \<and> (\<forall>x. is_Var (\<rho> x))"
-    unfolding term_subst.is_renaming_def
-    by (metis injI subst_apply_eq_Var subst_compose_def term.disc(1) term.inject(1))
+    unfolding term_subst.is_renaming_def subst_compose_def inj_def
+    by (metis term.sel(1) is_VarI subst_apply_eq_Var) 
 next
   show "inj \<rho> \<and> (\<forall>x. is_Var (\<rho> x)) \<Longrightarrow> term_subst.is_renaming \<rho>"
     unfolding term_subst.is_renaming_def
@@ -59,7 +109,8 @@ proof (rule iffI)
     by metis
 next
   show "\<exists>f. inj f \<and> \<rho> = Var \<circ> f \<Longrightarrow> term_subst.is_renaming \<rho>"
-    by (metis comp_apply inj_compose inj_on_Var term.disc(1) term_subst_is_renaming_iff)
+    unfolding term_subst_is_renaming_iff comp_apply inj_def
+    by auto
 qed
 
 lemma ground_imgu_equals: 
@@ -76,34 +127,55 @@ lemma the_mgu_is_unifier:
   unfolding term_subst.is_unifier_def the_mgu_def
   by simp
 
-lemma imgu_exists:
+lemma imgu_exists_extendable:
   fixes \<upsilon> :: "('f, 'v) subst"
-  assumes "term \<cdot> \<upsilon> = term' \<cdot> \<upsilon>"
-  shows "\<exists>(\<mu> :: ('f, 'v) subst).  \<upsilon> = \<mu> \<circ>\<^sub>s \<upsilon> \<and> term_subst.is_imgu \<mu> {{term, term'}}"
-proof (intro exI)
-  have finite_terms: "finite {term, term'}"
+  assumes "term \<cdot> \<upsilon> = term' \<cdot> \<upsilon>" "P term term' (the_mgu term term')"
+  obtains \<mu> :: "('f, 'v) subst"
+  where "\<upsilon> = \<mu> \<circ>\<^sub>s \<upsilon>" "term_subst.is_imgu \<mu> {{term, term'}}" "P term term' \<mu>"
+proof
+  have finite: "finite {term, term'}"
     by simp
 
   have "term_subst.is_unifier_set (the_mgu term term') {{term, term'}}"
     unfolding term_subst.is_unifier_set_def
-    using the_mgu_is_unifier[OF the_mgu[OF assms, THEN conjunct1]]
+    using the_mgu_is_unifier[OF the_mgu[OF assms(1), THEN conjunct1]]
     by simp
 
   moreover have
     "\<And>\<sigma>. term_subst.is_unifier_set \<sigma> {{term, term'}} \<Longrightarrow> \<sigma> = the_mgu term term' \<circ>\<^sub>s \<sigma>"
     unfolding term_subst.is_unifier_set_def
-    using
-      term_subst.is_unifier_iff_if_finite[OF finite_terms]
-      the_mgu[of "term" _ term']
+    using term_subst.is_unifier_iff_if_finite[OF finite] the_mgu
     by blast
 
   ultimately have is_imgu: "term_subst.is_imgu (the_mgu term term') {{term, term'}}"
     unfolding term_subst.is_imgu_def
     by metis
 
-  show "\<upsilon> = (the_mgu term term') \<circ>\<^sub>s \<upsilon> \<and> term_subst.is_imgu (the_mgu term term') {{term, term'}}"
-    using is_imgu the_mgu[OF assms]
+  show "\<upsilon> = (the_mgu term term') \<circ>\<^sub>s \<upsilon>" 
+    using the_mgu[OF assms(1)]
     by blast
+
+  show "term_subst.is_imgu (the_mgu term term') {{term, term'}}"
+    using is_imgu
+    by blast
+
+  show "P term term' (the_mgu term term')"
+    using assms(2).
 qed
+
+lemma imgu_exists:
+  fixes \<upsilon> :: "('f, 'v) subst"
+  assumes "term \<cdot> \<upsilon> = term' \<cdot> \<upsilon>"
+  obtains \<mu> :: "('f, 'v) subst"
+  where "\<upsilon> = \<mu> \<circ>\<^sub>s \<upsilon>" "term_subst.is_imgu \<mu> {{term, term'}}"
+  using imgu_exists_extendable[OF assms, of "(\<lambda>_ _ _. True)"]
+  by auto
+
+(* The other way around it does not work! *)
+lemma is_renaming_if_term_subst_is_renaming:
+  assumes "term_subst.is_renaming \<rho>"
+  shows "is_renaming \<rho>"
+  using assms
+  by (simp add: inj_on_def is_renaming_def term_subst_is_renaming_iff)
 
 end

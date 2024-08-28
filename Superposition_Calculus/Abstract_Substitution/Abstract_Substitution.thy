@@ -461,6 +461,11 @@ lemma is_ground_subst_comp_left: "is_ground_subst \<sigma> \<Longrightarrow> is_
 lemma is_ground_subst_comp_right: "is_ground_subst \<tau> \<Longrightarrow> is_ground_subst (\<sigma> \<odot> \<tau>)"
   by (simp add: is_ground_subst_def)
 
+lemma is_ground_subst_is_ground: 
+  assumes "is_ground_subst \<gamma>" 
+  shows "is_ground (t \<cdot> \<gamma>)"
+  using assms is_ground_subst_def by blast
+
 
 subsection \<open>IMGU is Idempotent and an MGU\<close>
 
