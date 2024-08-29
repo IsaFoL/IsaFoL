@@ -9,6 +9,11 @@ lemma get_all_mark_of_propagated_alt_def:
 
 chapter \<open>Pragmatic CDCL\<close>
 
+text \<open>Pragmatic CDCL is a calculus that connects our nice abstract CDCL and attempts to have what we
+need to run it in IsaSAT.
+\<close>
+section \<open>Background\<close>
+
 text \<open>
 
 The idea of this calculus is to sit between the nice and abstract CDCL
@@ -33,7 +38,10 @@ cannot be expressed in CDCL, but are important in a SAT solver:
   because they cannot be removed anymore.
 
   \<^enum> Variable elimination with model reconstruction at the end to find a model.
+\<close>
 
+paragraph \<open>Initial Inprocesing Version (CADE'27).\<close>
+text \<open>
 The ``CDCL'' operates on the non-subsumed clauses and we show that
 this is enough to connect it to a CDCL that operates on all clauses.
 The drawback of this approach is that we cannot remove literals, even
@@ -71,12 +79,51 @@ transformations, like renumbering of variables or symmetry
 breaking. It only supports clause addition.
 
 
-We tried various ways around model reconstruction to make it work and
-initially thought that it was orthogonal to our CDCL calculus\<dots> but then
-we realised that it breaks invariant used by subsumption before: We cannot
-park the clause in a separate component (as the subsuming clause can be deleted
-later by the reconstruction calculus, we cannot assume anymore that subsumed
-clauses are really subsumed by a real clause).
+To avoid adding a new component, we stored tautologies in the subsumed
+components, even though we could also store them separately. Finally,
+we really want to get rid of tautologies from the clause set. They
+require special cases in the arena module.
+
+\<close>
+
+
+paragraph \<open>Second Version.\<close>
+text \<open>
+
+We tried various ways around model reconstruction to make it work and initially thought that it was
+orthogonal to our CDCL calculus\<dots> but then we realised that it breaks invariant used by subsumption
+before: We cannot park the clause in a separate component (as the subsuming clause can be deleted
+later by the reconstruction calculus, we cannot assume anymore that subsumed clauses are really
+subsumed by a real clause).
+
+On the one hand, this requires changing the calculus. On the other hand, our calculus was kind of
+weird in the first place anyway. So we decided to make explicit what is implicit in our calculus:
+the set of valid literals. In Kissat and CaDiCaL, this set also exists implicitly (with a similar
+function) and it is only the compact functions that renames variables that gets rid of eliminated
+variables.
+
+We decided against a set and went for a (finite) multiset to avoid adding an extra information about
+finiteness in our invariants. To link it to our CDCL calculus, we just add this as a tautology (on
+all literals) to the initial set of clauses. This however has one interesting consequence: we cannot
+eliminate variables if we have only one. And there is another special case: our big tautology can
+be empty if the problem is empty.
+
+The extra set has also some further advantages: it gives a better solution to our tautology problem
+(instead of keeping them stored separately, we can just delete them).
+
+
+To simplify our code we considered removing the components that store the subsumed clauses. This has
+one drawback however: we cannot run subsumption during CDCL anymore (which would be possible
+otherwise because for our abstract CDCL our state does not change, we could only lose some
+propagation power) and have to wait for the next inprocessing phase. This is useful in CaDiCaL to
+subsume recently learned clauses. However, we never implemented it and did not even include it
+in our core calculus so far, so we simplified the state instead (in the long-term hope that it
+makes proofs easier, avoid some commutativity).
+\<close>
+
+
+paragraph \<open>Overall.\<close>
+text \<open>
 
 For the calculus we have three layers:
   \<^enum> the core corresponds to the application to most CDCL rules. Correctness and completeness come
@@ -90,15 +137,45 @@ In order to keep the core small, if backtrack learns a unit clause, we use one s
 At this level of the presentation, the special case of the unit clause does not matter. However,
 it is important for the calculus with watched literals, since these clauses cannot be watched.
 \<close>
+
+section \<open>Formalization\<close>
+
 type_synonym 'v prag_st =
   \<open>('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times>
    'v clause option \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses \<times>
-   'v clauses \<times> 'v clauses\<close>
+   'v multiset\<close>
 
+definition make_big_tautology :: \<open>'v multiset \<Rightarrow> 'v clauses\<close> where
+  \<open>make_big_tautology \<A> = (if \<A> = {#} then {#} else {#poss (remdups_mset \<A>) + negs (remdups_mset \<A>)#})\<close>
+
+lemma total_over_m_implies_make_big_tautology:
+  \<open>total_over_m I (set_mset (make_big_tautology \<A>))  \<Longrightarrow> I \<Turnstile>m make_big_tautology \<A>\<close>
+  apply (cases \<A>)
+  apply (auto simp: true_cls_def make_big_tautology_def total_over_set_def)
+  by (meson UnCI image_eqI)
+
+
+lemma make_big_tautology_true_clss_cls_iff[simp]:
+  \<open>(set_mset (make_big_tautology \<A>) \<union> A) \<Turnstile>p C' \<longleftrightarrow> (A) \<Turnstile>p C'\<close>
+  by (smt (verit, ccfv_threshold) Un_commute sup_bot.right_neutral total_over_m_implies_make_big_tautology
+    true_cls_mset_true_clss_iff(2) true_clss_clss_def true_clss_clss_generalise_true_clss_clss
+    true_clss_clss_insert true_clss_cs_mono_l)
+  
+lemma make_big_tautology_true_clss_cls_iff_mset: \<open>make_big_tautology \<A> + N \<Turnstile>pm C \<longleftrightarrow> N \<Turnstile>pm C\<close>
+  by (auto simp: )
+
+lemma make_big_tautology_true_clss_clss_iff[simp]: \<open>make_big_tautology \<A> + N \<Turnstile>psm C \<longleftrightarrow> N \<Turnstile>psm C\<close>
+  by (metis add.commute set_mset_union sup_bot.right_neutral total_over_m_implies_make_big_tautology
+    total_over_m_union true_cls_mset_true_clss_iff(2) true_clss_clss_def
+    true_clss_clss_generalise_true_clss_clss true_clss_clss_union_l)
+
+lemma make_big_tautology_true_clss_cls_insert_iff[simp]:
+  \<open>insert (C) (set_mset (make_big_tautology \<A>) \<union> A) \<Turnstile>p C' \<longleftrightarrow> insert (C) (A) \<Turnstile>p C'\<close>
+  by (metis Un_insert_right make_big_tautology_true_clss_cls_iff)
 
 fun state_of :: \<open>'v prag_st \<Rightarrow> 'v cdcl\<^sub>W_restart_mset\<close> where
-\<open>state_of (M, N, U, C, NE, UE, NS, US, N0, U0) =
-  (M, N + NE + NS + N0, U + UE + US + U0, C)\<close>
+\<open>state_of (M, N, U, C, NE, UE, N0, U0, \<A>) =
+  (M, make_big_tautology \<A> + N + NE + N0, U + UE + U0, C)\<close>
 
 declare cdcl\<^sub>W_restart_mset_state[simp]
 
@@ -111,63 +188,57 @@ fun pget_trail :: \<open>'v prag_st \<Rightarrow> ('v, 'v clause) ann_lit list\<
   \<open>pget_trail (M, _, _, _, _, _, _, _) = M\<close>
 
 fun set_conflict :: \<open>'v clause \<Rightarrow> 'v prag_st \<Rightarrow> 'v prag_st\<close> where
-  \<open>set_conflict D (M, N, U, _, NE, UE, NS, US) =
-     (M, N, U, Some D, NE, UE, NS, US)\<close>
+  \<open>set_conflict D (M, N, U, _, NE, UE, X) =
+     (M, N, U, Some D, NE, UE, X)\<close>
 
 fun pget_conflict :: \<open>'v prag_st \<Rightarrow> 'v clause option\<close> where
   \<open>pget_conflict (M, N, U, D, NE, UE, WS, Q) = D\<close>
 
 fun pget_clauses :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
-  \<open>pget_clauses (M, N, U, D, NE, UE, NS, US) = N + U\<close>
+  \<open>pget_clauses (M, N, U, D, NE, UE, N0, U0, \<A>) = N + U\<close>
 
 fun pget_init_clauses :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
-  \<open>pget_init_clauses (M, N, U, D, NE, UE, NS, US) = N\<close>
+  \<open>pget_init_clauses (M, N, U, D, NE, UE, N0, U0, \<A>) = N\<close>
 
 fun punit_clss :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
-  \<open>punit_clss (M, N, U, D, NE, UE, NS, US) = NE + UE\<close>
+  \<open>punit_clss (M, N, U, D, NE, UE, N0, U0, \<A>) = NE + UE\<close>
 
 fun punit_init_clauses :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
-  \<open>punit_init_clauses (M, N, U, D, NE, UE, NS, US) = NE\<close>
+  \<open>punit_init_clauses (M, N, U, D, NE, UE, N0, U0, \<A>) = NE\<close>
 
 fun punit_clauses :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
-  \<open>punit_clauses (M, N, U, D, NE, UE, NS, US) = NE + UE\<close>
+  \<open>punit_clauses (M, N, U, D, NE, UE, N0, U0, \<A>) = NE + UE\<close>
 
 fun pclauses0 :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
-  \<open>pclauses0 (M, N, U, D, NE, UE, NS, US, N0, U0) = N0 + U0\<close>
+  \<open>pclauses0 (M, N, U, D, NE, UE, N0, U0, \<A>) = N0 + U0\<close>
 
 fun pinit_clauses0 :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
-  \<open>pinit_clauses0 (M, N, U, D, NE, UE, N0,U0) = N0\<close>
+  \<open>pinit_clauses0 (M, N, U, D, NE, UE, N0, U0, \<A>) = N0\<close>
 
 fun plearned_clauses0 :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
-  \<open>plearned_clauses0 (M, N, U, D, NE, UE, NS, US, N0,U0) = U0\<close>
-
-fun psubsumed_learned_clss :: \<open>'v prag_st \<Rightarrow> 'v clause multiset\<close> where
-  \<open>psubsumed_learned_clss (M, N, U, D, NE, UE, NS, US, N0, U0) = US\<close>
-
-fun psubsumed_init_clauses :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
-  \<open>psubsumed_init_clauses (M, N, U, D, NE, UE, NS, US) = NS\<close>
-
-fun psubsumed_learned_clauses :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
-  \<open>psubsumed_learned_clauses (M, N, U, D, NE, UE, NS, US, N0, U0) = US\<close>
-
-fun psubsumed_clauses :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
-  \<open>psubsumed_clauses (M, N, U, D, NE, UE, NS, US, N0, U0) = NS + US\<close>
+  \<open>plearned_clauses0 (M, N, U, D, NE, UE, N0, U0, \<A>) = U0\<close>
 
 fun pget_all_init_clss :: \<open>'v prag_st \<Rightarrow> 'v clause multiset\<close> where
-  \<open>pget_all_init_clss (M, N, U, D, NE, UE, NS, US, N0, U0) = N + NE + NS + N0\<close>
+  \<open>pget_all_init_clss (M, N, U, D, NE, UE, N0, U0, \<A>) = make_big_tautology \<A> + N + NE + N0\<close>
+
+fun pget_all_init_clss_strict :: \<open>'v prag_st \<Rightarrow> 'v clause multiset\<close> where
+  \<open>pget_all_init_clss_strict (M, N, U, D, NE, UE, N0, U0, \<A>) = N + NE + N0\<close>
+
+fun pget_support_set :: \<open>'v prag_st \<Rightarrow> 'v multiset\<close> where
+  \<open>pget_support_set (M, N, U, D, NE, UE, N0, U0, \<A>) = \<A>\<close>
 
 fun pget_learned_clss :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
-  \<open>pget_learned_clss (M, N, U, D, NE, UE, NS, US) = U\<close>
+  \<open>pget_learned_clss (M, N, U, D, NE, UE, N0, U0, \<A>) = U\<close>
 
 fun pget_init_learned_clss :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
-  \<open>pget_init_learned_clss (_, N, U, _, _, UE, NS, US) = UE\<close>
+  \<open>pget_init_learned_clss (_, N, U, _, _, UE, N0, U0, \<A>) = UE\<close>
 
 fun pget_all_learned_clss :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
-  \<open>pget_all_learned_clss (_, N, U, _, _, UE, NS, US, N0, U0) = U + UE + US + U0\<close>
+  \<open>pget_all_learned_clss (M, N, U, D, NE, UE, N0, U0, \<A>) = U + UE + U0\<close>
 
 fun pget_all_clss :: \<open>'v prag_st \<Rightarrow> 'v clause multiset\<close> where
-  \<open>pget_all_clss (M, N, U, D, NE, UE, NS, US, N0, U0) =
-     N + NE + NS + N0 + U + UE + US + U0\<close>
+  \<open>pget_all_clss (M, N, U, D, NE, UE, N0, U0, \<A>) =
+     make_big_tautology \<A> + N + NE + N0 + U + UE + U0\<close>
 
 lemma [ptwl]:
   \<open>trail (state_of S) = pget_trail S\<close>
@@ -180,32 +251,32 @@ section \<open>The old rules\<close>
 
 inductive cdcl_propagate :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 propagate:
-  \<open>cdcl_propagate (M, N, U, None, NE, UE, NS, US, N0, U0)
-    (Propagated L' D # M, N, U, None, NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_propagate (M, N, U, None, NE, UE, N0, U0, \<A>)
+    (Propagated L' D # M, N, U, None, NE, UE,N0, U0, \<A>)\<close>
   if
   \<open>L' \<in># D\<close> and \<open>M \<Turnstile>as CNot (remove1_mset L' D)\<close> and
   \<open>undefined_lit M L'\<close> \<open>D \<in># N + U\<close>
 
 inductive cdcl_conflict :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 conflict:
-  \<open>cdcl_conflict (M, N, U, None, NE, UE, NS, US, N0, U0)
-    (M, N, U, Some D, NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_conflict (M, N, U, None, NE, UE, N0, U0, \<A>)
+    (M, N, U, Some D, NE, UE, N0, U0, \<A>)\<close>
   if
   \<open>M \<Turnstile>as CNot D\<close> and
   \<open>D \<in># N + U\<close>
 
 inductive cdcl_decide :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 decide:
-  \<open>cdcl_decide (M, N, U, None, NE, UE, NS, US, N0, U0)
-    (Decided L' # M, N, U, None, NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_decide (M, N, U, None, NE, UE, N0, U0, \<A>)
+    (Decided L' # M, N, U, None, NE, UE, N0, U0, \<A>)\<close>
   if
   \<open>undefined_lit M L'\<close> and
-  \<open>atm_of L' \<in> atms_of_mm (N + NE + NS + N0)\<close>
+  \<open>atm_of L' \<in> atms_of_mm (make_big_tautology \<A> + N + NE + N0)\<close>
 
 inductive cdcl_skip :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 skip:
-  \<open>cdcl_skip (Propagated L' C # M, N, U, Some D, NE, UE, NS, US, N0, U0)
-    (M, N, U, Some D, NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_skip (Propagated L' C # M, N, U, Some D, NE, UE, N0, U0, \<A>)
+    (M, N, U, Some D, NE, UE, N0, U0, \<A>)\<close>
   if
   \<open>-L' \<notin># D\<close> and
   \<open>D \<noteq> {#}\<close>
@@ -213,8 +284,8 @@ skip:
 
 inductive cdcl_resolve :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 resolve:
-  \<open>cdcl_resolve (Propagated L' C # M, N, U, Some D, NE, UE, NS, US, N0, U0)
-    (M, N, U, Some (cdcl\<^sub>W_restart_mset.resolve_cls L' D C), NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_resolve (Propagated L' C # M, N, U, Some D, NE, UE, N0, U0)
+    (M, N, U, Some (cdcl\<^sub>W_restart_mset.resolve_cls L' D C), NE, UE, N0, U0)\<close>
   if
   \<open>-L' \<in># D\<close> and
   \<open>get_maximum_level (Propagated L' C # M) (remove1_mset (-L') D) = count_decided M\<close> and
@@ -222,8 +293,8 @@ resolve:
 
 
 inductive cdcl_backtrack :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
-  \<open>cdcl_backtrack (M, N, U, Some (add_mset L D), NE, UE, NS, US, N0, U0)
-  (Propagated L (add_mset L D') # M1, N, add_mset (add_mset L D') U, None, NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_backtrack (M, N, U, Some (add_mset L D), NE, UE, N0, U0, \<A>)
+  (Propagated L (add_mset L D') # M1, N, add_mset (add_mset L D') U, None, NE, UE, N0, U0, \<A>)\<close>
   if
     \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
     \<open>get_level M L = count_decided M\<close> and
@@ -231,7 +302,7 @@ inductive cdcl_backtrack :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightar
     \<open>get_maximum_level M D' \<equiv> i\<close> and
     \<open>get_level M K = i + 1\<close> and
     \<open>D' \<subseteq># D\<close> and
-    \<open>N + U + NE + UE + NS + US + N0 + U0 \<Turnstile>pm add_mset L D'\<close>
+    \<open>make_big_tautology \<A> + N + U + NE + UE + N0 + U0 \<Turnstile>pm add_mset L D'\<close>
 
 text \<open>
   Restart are already slightly restricted: we cannot remove literals
@@ -245,8 +316,8 @@ cdcl_restart:
 
 inductive cdcl_forget :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 cdcl_forget:
-  \<open>cdcl_forget (M, N, add_mset C U, None, NE, UE, NS, US, N0, U0)
-    (M', N, U, None, NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_forget (M, N, add_mset C U, None, NE, UE, N0, U0, \<A>)
+    (M', N, U, None, NE, UE, N0, U0, \<A>)\<close>
   if \<open>Propagated L C \<notin> set M\<close>
 
 inductive pcdcl_core :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> for S T :: \<open>'v prag_st\<close> where
@@ -268,22 +339,19 @@ inductive pcdcl_core_stgy :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Righta
 
 section \<open>The new rules\<close>
 
-abbreviation make_tautology :: \<open>_\<close> where
-  \<open>make_tautology C \<equiv> C + uminus `# C\<close>
-
 text \<open>Now the different part\<close>
 inductive cdcl_subsumed :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 subsumed_II:
-  \<open>cdcl_subsumed (M, N + {#C,C'#}, U, D, NE, UE, NS, US, N0, U0)
-    (M, add_mset C N, U, D, NE, UE, add_mset (make_tautology C') NS, US, N0, U0)\<close>
+  \<open>cdcl_subsumed (M, N + {#C,C'#}, U, D, NE, UE, N0, U0, \<A>)
+    (M, add_mset C N, U, D, NE, UE, N0, U0, \<A>)\<close>
   if \<open>C \<subseteq># C'\<close> and \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> |
 subsumed_LL:
-  \<open>cdcl_subsumed (M, N, U + {#C,C'#}, D, NE, UE, NS, US, N0, U0)
-    (M, N, add_mset C U, D, NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_subsumed (M, N, U + {#C,C'#}, D, NE, UE, N0, U0, \<A>)
+    (M, N, add_mset C U, D, NE, UE, N0, U0, \<A>)\<close>
   if \<open>C \<subseteq># C'\<close> and \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> |
 subsumed_IL:
-  \<open>cdcl_subsumed (M, add_mset C N, add_mset C' U, D, NE, UE, NS, US, N0, U0)
-    (M, add_mset C N, U, D, NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_subsumed (M, add_mset C N, add_mset C' U, D, NE, UE, N0, U0, \<A>)
+    (M, add_mset C N, U, D, NE, UE, N0, U0, \<A>)\<close>
   if \<open>C \<subseteq># C'\<close> and \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> 
 
 text \<open>
@@ -300,22 +368,22 @@ be tautologies.
 
 inductive cdcl_resolution :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 resolution_II:
-  \<open>cdcl_resolution (M, N + {#add_mset L C, add_mset (-L) C'#}, U, D, NE, UE, NS, US, N0, U0)
-    (M, N + {#add_mset L C, add_mset (-L) C', remdups_mset (C + C')#}, U, D, NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_resolution (M, N + {#add_mset L C, add_mset (-L) C'#}, U, D, NE, UE, N0, U0, \<A>)
+    (M, N + {#add_mset L C, add_mset (-L) C', remdups_mset (C + C')#}, U, D, NE, UE, N0, U0, \<A>)\<close>
  if  \<open>count_decided M = 0\<close> |
 resolution_LL:
-  \<open>cdcl_resolution (M, N, U + {#add_mset L C, add_mset (-L) C'#}, D, NE, UE, NS, US, N0, U0)
-    (M, N, U + {#add_mset L C, add_mset (-L) C', remdups_mset (C + C')#}, D, NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_resolution (M, N, U + {#add_mset L C, add_mset (-L) C'#}, D, NE, UE, N0, U0, \<A>)
+    (M, N, U + {#add_mset L C, add_mset (-L) C', remdups_mset (C + C')#}, D, NE, UE, N0, U0, \<A>)\<close>
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> |
 resolution_IL:
-  \<open>cdcl_resolution (M, N + {#add_mset L C#}, U + {#add_mset (-L) C'#}, D, NE, UE, NS, US, N0, U0)
-    (M, N + {#add_mset L C#}, U + {#add_mset (-L) C', remdups_mset (C + C')#}, D, NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_resolution (M, N + {#add_mset L C#}, U + {#add_mset (-L) C'#}, D, NE, UE, N0, U0, \<A>)
+    (M, N + {#add_mset L C#}, U + {#add_mset (-L) C', remdups_mset (C + C')#}, D, NE, UE, N0, U0, \<A>)\<close>
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close>
 
 lemma cdcl_resolution_still_entailed:
   \<open>cdcl_resolution S T \<Longrightarrow> consistent_interp I \<Longrightarrow> I \<Turnstile>m pget_all_init_clss S \<Longrightarrow> I \<Turnstile>m pget_all_init_clss T\<close>
   apply (induction rule: cdcl_resolution.induct)
-  subgoal for M N L C C' U D NE UE NS US
+  subgoal for M N L C C' U D NE UE N0 U0 \<A>
     by (auto simp: consistent_interp_def)
  subgoal
    by auto
@@ -339,24 +407,24 @@ TODO: for clauses in U, drop entailement and level test!
  \<close>
 inductive cdcl_learn_clause :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 learn_clause:
-  \<open>cdcl_learn_clause (M, N, U, D, NE, UE, NS, US, N0, U0)
-    (M, add_mset C N, U, D, NE, UE, NS, US, N0, U0)\<close>
-  if \<open>atms_of C \<subseteq> atms_of_mm (N + NE + NS + N0)\<close> and
-    \<open>N +NE + NS + N0 \<Turnstile>pm C\<close> and
+  \<open>cdcl_learn_clause (M, N, U, D, NE, UE, N0, U0, \<A>)
+    (M, add_mset C N, U, D, NE, UE, N0, U0, \<A>)\<close>
+  if \<open>atms_of C \<subseteq> atms_of_mm (make_big_tautology \<A> +N + NE + N0)\<close> and
+    \<open>make_big_tautology \<A> + N +NE + N0 \<Turnstile>pm C\<close> and
     \<open>\<not>tautology C\<close> and
     \<open>count_decided M = 0\<close> and
     \<open>distinct_mset C\<close> |
 learn_clause_R:
-  \<open>cdcl_learn_clause (M, N, U, D, NE, UE, NS, US, N0, U0)
-    (M, N, add_mset C U, D, NE, UE, NS, US, N0, U0)\<close>
-  if \<open>atms_of C \<subseteq> atms_of_mm (N + NE + NS + N0)\<close> and
-    \<open>N +NE + NS + N0 \<Turnstile>pm C\<close> and
+  \<open>cdcl_learn_clause (M, N, U, D, NE, UE, N0, U0, \<A>)
+    (M, N, add_mset C U, D, NE, UE, N0, U0, \<A>)\<close>
+  if \<open>atms_of C \<subseteq> atms_of_mm (make_big_tautology \<A> + N + NE + N0)\<close> and
+    \<open>make_big_tautology \<A> + N +NE + N0 \<Turnstile>pm C\<close> and
     \<open>\<not>tautology C\<close> and
     \<open>count_decided M = 0\<close> and
     \<open>distinct_mset C\<close> |
 promote_clause:
-  \<open>cdcl_learn_clause (M, N, add_mset C U, D, NE, UE, NS, US, N0, U0)
-    (M, add_mset C N, U, D, NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_learn_clause (M, N, add_mset C U, D, NE, UE, N0, U0, \<A>)
+    (M, add_mset C N, U, D, NE, UE, N0, U0, \<A>)\<close>
   if \<open>\<not>tautology C\<close>
 
 lemma cdcl_learn_clause_still_entailed:
@@ -364,10 +432,10 @@ lemma cdcl_learn_clause_still_entailed:
   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
   I \<Turnstile>m pget_all_init_clss S \<Longrightarrow> I \<Turnstile>m pget_all_init_clss T\<close>
   apply (induction rule: cdcl_learn_clause.induct)
-  subgoal for C N NE NS N0 M U D UE US U0
-    using true_clss_cls_true_clss_true_cls[of \<open>set_mset (N+NE+NS+N0)\<close> C I]
+  subgoal for C \<A> N NE N0 M U D UE U0
+    using true_clss_cls_true_clss_true_cls[of \<open>set_mset (make_big_tautology \<A> + N+NE+N0)\<close> C I]
     by auto
-  subgoal for C N NE NS N0 M U D UE US U0
+  subgoal for C \<A> N NE  N0 M U D UE U0
     by auto
   subgoal
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
@@ -378,10 +446,10 @@ text \<open>Detection and removal of pure literals.\<close>
 
 inductive cdcl_pure_literal_remove :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 cdcl_pure_literal_remove:
-  \<open>cdcl_pure_literal_remove (M, N, U, None, NE, UE, NS, US, N0, U0)
-    (Propagated L {#L#} # M, N, U, None, add_mset {#L#} NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_pure_literal_remove (M, N, U, None, NE, UE, N0, U0, \<A>)
+    (Propagated L {#L#} # M, N, U, None, add_mset {#L#} NE, UE, N0, U0, \<A>)\<close>
   if \<open>-L \<notin> \<Union>(set_mset ` (set_mset N))\<close>
-     \<open>atm_of L \<in> atms_of_mm (N+NE+NS+N0)\<close>
+     \<open>atm_of L \<in> atms_of_mm (make_big_tautology \<A> +N+NE+N0)\<close>
     \<open>undefined_lit M L\<close>
     \<open>count_decided M = 0\<close>
 
@@ -402,46 +470,46 @@ counterpart, but do not cover exactly the same use-cases.
 \<close>
 inductive cdcl_inp_propagate :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 propagate:
-  \<open>cdcl_inp_propagate (M, N, U, None, NE, UE, NS, US, N0, U0)
-    (Propagated L' D # M, N, U, None, NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_inp_propagate (M, N, U, None, NE, UE, N0, U0, \<A>)
+    (Propagated L' D # M, N, U, None, NE, UE, N0, U0, \<A>)\<close>
   if
   \<open>L' \<in># D\<close> and \<open>M \<Turnstile>as CNot (remove1_mset L' D)\<close> and
-  \<open>undefined_lit M L'\<close> \<open>D \<in># N + U + NE + UE + NS + US\<close> and
+  \<open>undefined_lit M L'\<close> \<open>D \<in># N + U + NE + UE\<close> and
   \<open>count_decided M = 0\<close>
 
 inductive cdcl_inp_conflict :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 conflict:
-  \<open>cdcl_inp_conflict (M, N, U, None, NE, UE, NS, US, N0, U0)
-    (M, N, U, Some {#}, NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_inp_conflict (M, N, U, None, NE, UE, N0, U0, \<A>)
+    (M, N, U, Some {#}, NE, UE, N0, U0, \<A>)\<close>
   if
-    \<open>N + NE + NS + N0 \<Turnstile>pm {#}\<close> and
+    \<open>N + NE + N0 \<Turnstile>pm {#}\<close> and
     \<open>count_decided M = 0\<close>
 
 inductive cdcl_flush_unit :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 learn_unit_clause_R:
-  \<open>cdcl_flush_unit (M, add_mset {#L#} N, U, D, NE, UE, NS, US, N0, U0)
-    (M, N, U, D, add_mset {#L#} NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_flush_unit (M, add_mset {#L#} N, U, D, NE, UE, N0, U0, \<A>)
+    (M, N, U, D, add_mset {#L#} NE, UE, N0, U0, \<A>)\<close>
   if \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close> |
 learn_unit_clause_I:
-  \<open>cdcl_flush_unit (M, N, add_mset {#L#} U, D, NE, UE, NS, US, N0, U0)
-    (M, N, U, D, NE, add_mset {#L#} UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_flush_unit (M, N, add_mset {#L#} U, D, NE, UE, N0, U0, \<A>)
+    (M, N, U, D, NE, add_mset {#L#} UE, N0, U0, \<A>)\<close>
   if \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close>
 
 inductive cdcl_unitres_true :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
-  \<open>cdcl_unitres_true (M, add_mset (add_mset L C) N, U, D, NE, UE, NS, US, N0, U0)
-    (M, N, U, D, add_mset (add_mset L C) NE, UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_unitres_true (M, add_mset (add_mset L C) N, U, D, NE, UE, N0, U0, \<A>)
+    (M, N, U, D, add_mset (add_mset L C) NE, UE, N0, U0, \<A>)\<close>
   if \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close> |
-  \<open>cdcl_unitres_true (M, N, add_mset (add_mset L C) U, D, NE, UE, NS, US, N0, U0)
-    (M, N, U, D, NE, add_mset (add_mset L C) UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_unitres_true (M, N, add_mset (add_mset L C) U, D, NE, UE, N0, U0, \<A>)
+    (M, N, U, D, NE, add_mset (add_mset L C) UE, N0, U0, \<A>)\<close>
   if \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close>
 
 text \<open>Even if we don't generated tautologies in the learnt clauses, we still keep the possibility
  to remove them later\<close>
 inductive cdcl_promote_false :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
-  \<open>cdcl_promote_false (M, add_mset {#} N, U, D, NE, UE, NS, US, N0, U0)
-    (M, N, U, Some {#}, NE, UE, NS, US, add_mset {#} N0, U0)\<close> |
-  \<open>cdcl_promote_false (M, N, add_mset {#} U, D, NE, UE, NS, US, N0, U0)
-    (M, N, U, Some {#}, NE, UE, NS, US, N0, add_mset {#} U0)\<close>
+  \<open>cdcl_promote_false (M, add_mset {#} N, U, D, NE, UE, N0, U0, \<A>)
+    (M, N, U, Some {#}, NE, UE, add_mset {#} N0, U0, \<A>)\<close> |
+  \<open>cdcl_promote_false (M, N, add_mset {#} U, D, NE, UE, N0, U0, \<A>)
+    (M, N, U, Some {#}, NE, UE, N0, add_mset {#} U0, \<A>)\<close>
 
 inductive pcdcl :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
   \<open>pcdcl_core S T \<Longrightarrow> pcdcl S T\<close> |
@@ -477,7 +545,7 @@ lemma rtranclp_pcdcl_stgy_pcdcl: \<open>pcdcl_stgy\<^sup>*\<^sup>* S T \<Longrig
 section \<open>Model Reconstruction\<close>
 
 fun to_mr_state :: \<open>'v prag_st \<times> 'v stackWit \<Rightarrow> 'v clauses \<times> 'v clauses \<times> 'v stackWit \<times> 'v set\<close> where
-  \<open>to_mr_state ((M, N, U, D, NE, UE, NS, US, N0, U0), S) = (N + NE + NS + N0, U + UE + US + U0, S, atms_of_mm (N + NE + NS + N0 + U + UE + US + U0) \<union> atms_of_ms (wit_clause ` set S))\<close>
+  \<open>to_mr_state ((M, N, U, D, NE, UE, N0, U0, \<A>), S) = (make_big_tautology \<A> + N + NE + N0, U + UE + U0, S, atms_of_mm (N + NE + N0 + U + UE + U0) \<union> atms_of_ms (wit_clause ` set S) \<union> set_mset \<A>)\<close>
 
 (*
 lemma
@@ -502,18 +570,6 @@ lemma
 section \<open>Invariants\<close>
 
 text \<open>
-
-To avoid adding a new component, we store tautologies in the subsumed
-components, even though we could also store them separately. Finally,
-we really want to get rid of tautologies from the clause set. They
-require special cases in the arena module.
-
-\<close>
-definition psubsumed_invs :: \<open>'v prag_st \<Rightarrow> bool\<close> where
-  \<open>psubsumed_invs S \<longleftrightarrow>
-    ((\<forall>C\<in>#psubsumed_init_clauses S. tautology C) \<and> psubsumed_learned_clauses S = {#}) \<close>
-
-text \<open>
 In the TWL version, we also had \<^term>\<open>(\<forall>C \<in># NE + UE.
       (\<exists>L. L \<in># C \<and> (D = None \<or> count_decided M > 0 \<longrightarrow> get_level M L = 0 \<and> L \<in> lits_of_l M)))\<close>
 as definition. This make is possible to express the conflict analysis at level 0.
@@ -533,7 +589,7 @@ propagate a clause at level 0 and change the reason to this new clause. In eithe
 we could use the subsumed components to store the clauses.
 \<close>
 fun entailed_clss_inv :: \<open>'v prag_st \<Rightarrow> bool\<close> where
-  \<open>entailed_clss_inv (M, N, U, D, NE, UE, NS, US) \<longleftrightarrow>
+  \<open>entailed_clss_inv (M, N, U, D, NE, UE, N0, U0, \<A>) \<longleftrightarrow>
     (\<forall>C \<in># NE + UE.
      (\<exists>L. L \<in># C \<and> ((D = None \<or> count_decided M > 0) \<longrightarrow> (get_level M L = 0 \<and> L \<in> lits_of_l M))))\<close>
 
@@ -542,11 +598,11 @@ lemmas entailed_clss_inv_def = entailed_clss_inv.simps
 lemmas [simp del] = entailed_clss_inv.simps
 
 fun clauses0_inv :: \<open>'v prag_st \<Rightarrow> bool\<close> where
-  \<open>clauses0_inv  (M, N, U, D, NE, UE, NS, US, N0, U0) \<longleftrightarrow> (\<forall>C \<in># N0 + U0. C = {#}) \<and>
+  \<open>clauses0_inv  (M, N, U, D, NE, UE, N0, U0, \<A>) \<longleftrightarrow> (\<forall>C \<in># N0 + U0. C = {#}) \<and>
      ({#} \<in># N0 + U0 \<longrightarrow> D = Some {#})\<close>
 
 lemma clauses0_inv_def:
-  \<open>clauses0_inv  (M, N, U, D, NE, UE, NS, US, N0, U0) \<longleftrightarrow> (\<forall>C \<in># N0 + U0. C = {#}) \<and>
+  \<open>clauses0_inv  (M, N, U, D, NE, UE, N0, U0, \<A>) \<longleftrightarrow> (\<forall>C \<in># N0 + U0. C = {#}) \<and>
      (N0 + U0 \<noteq> {#} \<longrightarrow> D = Some {#})\<close>
   by (auto dest!: multi_member_split)
 
@@ -625,11 +681,70 @@ lemma cdcl_conflict_is_conflict:
   apply (rule_tac D=D in cdcl\<^sub>W_restart_mset.conflict.intros)
   by (auto simp: clauses_def)
 
+lemma in_make_big_tautology_not_conflict: \<open>no_dup A \<Longrightarrow> C \<in># make_big_tautology \<A> \<Longrightarrow> \<not>A \<Turnstile>as CNot C\<close>
+  apply (cases \<A>)
+  apply (auto simp: make_big_tautology_def CNot_def true_annots_def split: if_splits)
+  apply (metis imageI no_dup_consistentD true_annot_singleton uminus_Neg)
+  by (metis in_lit_of_true_annot no_dup_consistentD uminus_Neg)
+
+lemma make_big_tautology_not_singleton: \<open>poss (remdups_mset \<A>) + negs (remdups_mset \<A>) \<noteq> {#L#}\<close>
+  by (metis image_mset_is_empty_iff multi_self_add_other_not_self union_is_single)
+  
+lemma tautology_make_big_tautology_iff: \<open>tautology (poss (remdups_mset \<A>) + negs (remdups_mset \<A>)) \<longleftrightarrow> \<A> \<noteq> {#}\<close>
+  by (cases \<open>remdups_mset \<A>\<close>) auto
+
+lemma in_make_big_tautology_tautology_propagation_iff:
+  assumes \<open>C \<in># make_big_tautology \<A>\<close>
+  shows \<open>\<not>tautology (remove1_mset L C) \<longleftrightarrow> (set_mset \<A> = {atm_of L} \<and> C = {#-L, L#})\<close>
+proof -
+  have [simp]: \<open>atm_of L \<notin># \<A> \<Longrightarrow> remove1_mset L (poss (remdups_mset \<A>) + negs (remdups_mset \<A>)) = poss (remdups_mset \<A>) + negs (remdups_mset \<A>)\<close>
+    by (metis add_diff_cancel_left' atm_iff_pos_or_neg_lit atms_of_negs atms_of_poss diff_single_trivial in_multiset_minus_notin_snd literal.exhaust_sel set_mset_remdups_mset)
+  have \<A>_nempty[simp]: \<open>\<A> \<noteq> {#}\<close> and
+    C: \<open>C = poss (remdups_mset \<A>) + negs (remdups_mset \<A>)\<close>
+    using assms by (auto simp: make_big_tautology_def split: if_splits)
+  show ?thesis
+  proof -
+    consider
+      (LinA) \<open>atm_of L \<in># \<A>\<close> |
+      (LnotinA) \<open>atm_of L \<notin># \<A>\<close>
+      by blast
+    then show ?thesis
+    proof cases
+      case LinA
+      have H: \<open>tautology (remove1_mset L C)\<close> (is ?A) and
+        \<open>set_mset \<A> \<noteq> {atm_of L}\<close> (is ?B) if L': \<open>L' \<in># \<A>\<close>  \<open>atm_of L \<noteq> L'\<close> for L'
+      proof -
+        obtain A' where A': \<open>remdups_mset \<A> = {#atm_of L, L'#} + A'\<close>
+          by (metis L'(1) L'(2) LinA add_mset_add_single in_remove1_msetI insert_DiffM
+            multi_member_split set_mset_remdups_mset union_commute union_mset_add_mset_right)
+        then show ?A
+          using assms that by (cases L) (auto simp: make_big_tautology_def tautology_add_mset split: if_splits)
+        show ?B
+          using A' L' by auto
+      qed
+      have [dest]: \<open>remdups_mset \<A> = {#x1#} \<Longrightarrow> x1 \<in># \<A>\<close> for x1
+        by (metis multi_member_last set_mset_remdups_mset)
+      consider
+        (single) \<open>remdups_mset \<A> = {#atm_of L#}\<close> |
+        (morethanone) L' where \<open>L' \<in># \<A>\<close>  \<open>atm_of L \<noteq> L'\<close>
+        apply (cases \<open>\<exists>L'. L' \<in># \<A> \<and> atm_of L \<noteq> L'\<close>)
+         apply blast
+        by (metis LinA all_not_in_conv insertCI mk_disjoint_insert remdups_mset_def remdups_mset_singleton set_mset_single)
+      then show ?thesis
+        by (cases) (cases \<open>L\<close>, use C H in auto)
+      next
+        case LnotinA
+        then show ?thesis
+          using assms
+          by (auto simp: make_big_tautology_def CNot_def true_annots_def
+            tautology_make_big_tautology_iff split: if_splits)
+      qed
+    qed
+qed
 
 lemma conflict_is_cdcl_conflictD:
   assumes
     confl: \<open>cdcl\<^sub>W_restart_mset.conflict (state_of S) T\<close> and
-    sub: \<open>psubsumed_invs S\<close> and
     ent: \<open>entailed_clss_inv S\<close> and
     invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of S)\<close> and
     clss0: \<open>clauses0_inv S\<close>
@@ -658,19 +773,10 @@ proof -
     by (cases S; auto 4 3 simp: entailed_clss_inv_def cdcl\<^sub>W_restart_mset_state clauses0_inv_def
         true_annots_true_cls
       dest!: multi_member_split dest: no_dup_consistentD; fail)+
-  moreover have \<open>C \<in># psubsumed_clauses S \<Longrightarrow> \<exists>C' \<in># pget_clauses S. trail (state_of S) \<Turnstile>as CNot C'\<close>
-    using sub confl conf n_d ent p0
-      consistent_CNot_not_tautology[of \<open>lits_of_l (pget_trail S)\<close> C, OF distinct_consistent_interp]
-    apply (cases S)
-    apply (auto simp: psubsumed_invs_def true_annots_true_cls entailed_clss_inv_def
-        insert_subset_eq_iff
-      dest: distinct_consistent_interp mset_subset_eqD no_dup_consistentD
-      dest!: multi_member_split)
-     done
-  ultimately show ?thesis
-    using C confl conf
+  then show ?thesis
+    using C confl conf n_d
     by (cases S)
-     (auto simp: cdcl_conflict.simps clauses_def)
+     (auto simp: cdcl_conflict.simps clauses_def in_make_big_tautology_not_conflict)
 qed
 
 lemma cdcl_propagate_is_propagate:
@@ -682,7 +788,6 @@ lemma cdcl_propagate_is_propagate:
 lemma propagate_is_cdcl_propagateD:
   assumes
     confl: \<open>cdcl\<^sub>W_restart_mset.propagate (state_of S) T\<close> and
-    sub: \<open>psubsumed_invs S\<close> and
     ent: \<open>entailed_clss_inv S\<close> and
     invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of S)\<close> and
     clss0: \<open>clauses0_inv S\<close>
@@ -724,65 +829,12 @@ proof -
         insert_subset_eq_iff
       dest: distinct_consistent_interp mset_subset_eqD no_dup_consistentD
       dest!: multi_member_split)
-   have \<open>(\<exists>C' \<in># pget_clauses S. trail (state_of S) \<Turnstile>as CNot C') \<or>
-     (\<exists>C' \<in># pget_clauses S. L \<in># C' \<and> trail (state_of S) \<Turnstile>as CNot (remove1_mset L C'))\<close>
-    if C: \<open>C \<in># psubsumed_clauses S\<close>
-  proof -
-    have \<open>\<not>tautology C\<close>
-      using confl undef tauto
-      apply (auto simp: tautology_decomp' add_mset_eq_add_mset remove1_mset_add_mset_If
-        dest!: multi_member_split dest: in_lits_of_l_defined_litD split: )
-        apply (case_tac \<open>L = -La\<close>)
-        apply (auto dest: in_lits_of_l_defined_litD)[]
-        apply (subst (asm) remove1_mset_add_mset_If)
-        apply (case_tac \<open>L = La\<close>)
-        apply (auto dest: in_lits_of_l_defined_litD)[]
-        apply (auto dest: in_lits_of_l_defined_litD)[]
-        done
-    then consider
-       C' where \<open>C' \<subseteq># C\<close> \<open>C' \<in># pget_clauses S\<close> |
-       C' where \<open>C' \<subseteq># C\<close> \<open>C' \<in># punit_clauses S\<close>
-      using sub C p0
-      by (cases S)
-       (auto simp: psubsumed_invs_def
-        dest!: multi_member_split)
-    then show ?thesis
-    proof cases
-      case 2
-      then show ?thesis
-        using ent confl undef conf n_d
-       apply (cases S)
-       apply (cases \<open>L  \<in># C'\<close>)
-       apply (auto simp: psubsumed_invs_def true_annots_true_cls entailed_clss_inv_def
-           insert_subset_eq_iff remove1_mset_add_mset_If
-         dest: distinct_consistent_interp mset_subset_eqD no_dup_consistentD
-         dest!: multi_member_split)
-       apply (auto simp add: mset_subset_eqD add_mset_eq_add_mset subset_mset.le_iff_add
-           true_clss_def_iff_negation_in_model tautology_decomp' insert_subset_eq_iff
-         dest: no_dup_consistentD in_lits_of_l_defined_litD dest!: multi_member_split[of _ C]
-         split: if_splits)
-       done
-    next
-      case 1
-      then show ?thesis
-        using tauto confl undef conf n_d
-        apply (cases S)
-       apply (cases \<open>L  \<in># C'\<close>)
-        apply (auto simp: psubsumed_invs_def true_annots_true_cls entailed_clss_inv_def
-            insert_subset_eq_iff
-          dest: distinct_consistent_interp mset_subset_eqD no_dup_consistentD
-          dest!: multi_member_split)
-        apply (auto simp add: mset_subset_eqD add_mset_eq_add_mset
-            true_clss_def_iff_negation_in_model tautology_decomp' insert_subset_eq_iff
-          dest: no_dup_consistentD dest!: multi_member_split[of _ C] intro!: bexI[of _ C'])
-        by (metis (no_types, opaque_lifting) in_multiset_minus_notin_snd insert_DiffM member_add_mset
-          mset_subset_eqD multi_self_add_other_not_self zero_diff)+
-     qed
-  qed
-  then show ?thesis
+  moreover have \<open>-L \<notin># C\<close>
+    using LC tauto by (metis Decided_Propagated_in_iff_in_lits_of_l confl in_CNot_implies_uminus(2) in_remove1_mset_neq uminus_not_id uminus_of_uminus_id undef)
+  ultimately show ?thesis
     using C confl conf  \<open>C \<notin># punit_clauses S\<close> \<open>C \<notin># pclauses0 S\<close> undef LC
     by (cases S)
-      (auto simp: cdcl_propagate.simps clauses_def cdcl_conflict.simps intro!: exI[of _ L]
+      (auto simp: cdcl_propagate.simps clauses_def cdcl_conflict.simps in_make_big_tautology_tautology_propagation_iff intro!: exI[of _ L]
         intro: exI[of _ C])
 qed
 
@@ -803,7 +855,6 @@ lemma rtranclp_pcdcl_core_is_cdcl:
 lemma pcdcl_core_stgy_is_cdcl_stgy:
   assumes
     confl: \<open>pcdcl_core_stgy S T\<close> and
-    sub: \<open>psubsumed_invs S\<close> and
     ent: \<open>entailed_clss_inv S\<close> and
     invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of S)\<close> and
     clss0: \<open>clauses0_inv S\<close>
@@ -819,7 +870,6 @@ lemma pcdcl_core_stgy_is_cdcl_stgy:
 lemma no_step_pcdcl_core_stgy_is_cdcl_stgy:
   assumes
     confl: \<open>no_step pcdcl_core_stgy S\<close> and
-    sub: \<open>psubsumed_invs S\<close> and
     ent: \<open>entailed_clss_inv S\<close> and
     clss0: \<open>clauses0_inv S\<close> and
     invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of S)\<close>
@@ -838,41 +888,21 @@ lemma no_step_pcdcl_core_stgy_is_cdcl_stgy:
     skip_is_cdcl_skip)+
   done
 
-
-lemma cdcl_resolution_psubsumed_invs:
-  \<open>cdcl_resolution S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
-  by (cases rule:cdcl_resolution.cases, assumption)
-    (auto simp: psubsumed_invs_def)
-
 lemma cdcl_resolution_entailed_clss_inv:
   \<open>cdcl_resolution S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
   by (cases rule:cdcl_resolution.cases, assumption)
     (auto simp: entailed_clss_inv_def)
 
-lemma cdcl_pure_literal_remove_psubsumed_invs:
-  \<open>cdcl_pure_literal_remove S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
-  by (cases rule:cdcl_pure_literal_remove.cases, assumption)
-    (auto simp: psubsumed_invs_def)
 
 lemma cdcl_pure_literal_remove_entailed_clss_inv:
   \<open>cdcl_pure_literal_remove S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
   by (cases rule:cdcl_pure_literal_remove.cases, assumption)
    (auto simp: entailed_clss_inv_def get_level_cons_if)
 
-lemma cdcl_subsumed_psubsumed_invs:
-  \<open>cdcl_subsumed S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
-  by (cases rule:cdcl_subsumed.cases, assumption)
-   (auto simp: psubsumed_invs_def tautology_add_mset dest: multi_member_split)
-
 lemma cdcl_subsumed_entailed_clss_inv:
   \<open>cdcl_subsumed S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
   by (cases rule:cdcl_subsumed.cases, assumption)
     (auto simp: entailed_clss_inv_def)
-
-lemma cdcl_learn_clause_psubsumed_invs:
-  \<open>cdcl_learn_clause S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
-  by (cases rule:cdcl_learn_clause.cases, assumption)
-    (auto simp: psubsumed_invs_def)
 
 lemma cdcl_learn_clause_entailed_clss_inv:
   \<open>cdcl_learn_clause S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
@@ -955,17 +985,33 @@ lemma true_cls_p_remove_subsumed:
       true_clss_cls_insert_l true_clss_cls_tautology_iff true_clss_cls_true_clss_true_cls
       true_clss_insert true_prop_true_clause)
 
+
+definition proper_support_set :: \<open>'v prag_st \<Rightarrow> bool\<close> where
+  \<open>proper_support_set S \<longleftrightarrow> atms_of_mm (pget_all_init_clss_strict S) = set_mset (pget_support_set S)\<close>
+
+lemma atms_of_mm_make_big_tautology[simp]: \<open>atms_of_mm (make_big_tautology \<A>) = set_mset \<A>\<close>
+  by (auto simp: make_big_tautology_def)
+thm cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
 lemma cdcl_subsumed_all_struct_inv:
   assumes
     \<open>cdcl_subsumed S T\<close> and
+    \<open>proper_support_set S\<close>
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of S)\<close>
   shows
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of T)\<close>
   using assms
-  apply (induction rule: cdcl_subsumed.induct)
-  subgoal for C C'
-    by (auto 5 3 simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-          cdcl\<^sub>W_restart_mset.no_strange_atm_def
+proof (induction rule: cdcl_subsumed.induct)
+  case (subsumed_II C C' M N U D NE UE N0 U0 \<A>)
+  then have [simp]:
+    \<open>atms_of C' \<union> set_mset \<A> = set_mset \<A>\<close>
+    \<open>(atms_of C \<union> set_mset \<A>) = set_mset \<A>\<close>
+    \<open>(set_mset \<A> \<union> atms_of_mm N \<union> atms_of_mm NE \<union> atms_of_mm N0) = set_mset \<A>\<close>
+    by (auto simp: proper_support_set_def
+      intro: all_decomposition_implies_mono)
+  show ?case
+    using subsumed_II
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.no_strange_atm_def proper_support_set_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
           cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
@@ -973,30 +1019,45 @@ lemma cdcl_subsumed_all_struct_inv:
           cdcl\<^sub>W_restart_mset.clauses_def true_cls_p_remove_subsumed
           cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
           insert_commute[of C C'] all_decomposition_implies_remove_subsumed
-        intro: all_decomposition_implies_mono)
-  subgoal for C C'
+      intro: all_decomposition_implies_mono)
+next
+  case (subsumed_LL C C' M N U D NE UE N0 U0 \<A>)
+  then have [simp]:
+    \<open>(set_mset \<A> \<union> atms_of_mm N \<union> atms_of_mm NE \<union> atms_of_mm N0) = set_mset \<A>\<close>
+    by (auto simp: proper_support_set_def
+      intro: all_decomposition_implies_mono)
+  show ?case
+    using subsumed_LL
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-          cdcl\<^sub>W_restart_mset.no_strange_atm_def
+          cdcl\<^sub>W_restart_mset.no_strange_atm_def proper_support_set_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
           cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
-          cdcl\<^sub>W_restart_mset.clauses_def
-          cdcl\<^sub>W_restart_mset.reasons_in_clauses_def true_cls_p_remove_subsumed
+          cdcl\<^sub>W_restart_mset.clauses_def true_cls_p_remove_subsumed
+          cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
           insert_commute[of C C'] all_decomposition_implies_remove_subsumed
-        intro: all_decomposition_implies_mono)
-  subgoal for C C'
+      intro: all_decomposition_implies_mono)
+next
+  case (subsumed_IL C C' M N U D NE UE N0 U0 \<A>)
+  then have [simp]:
+    \<open>(atms_of C \<union> set_mset \<A>) = set_mset \<A>\<close>
+    \<open>(set_mset \<A> \<union> atms_of_mm N \<union> atms_of_mm NE \<union> atms_of_mm N0) = set_mset \<A>\<close>
+    by (auto simp: proper_support_set_def
+      intro: all_decomposition_implies_mono)
+  show ?case
+    using subsumed_IL
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-          cdcl\<^sub>W_restart_mset.no_strange_atm_def
+          cdcl\<^sub>W_restart_mset.no_strange_atm_def proper_support_set_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
           cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
-          cdcl\<^sub>W_restart_mset.clauses_def
-          cdcl\<^sub>W_restart_mset.reasons_in_clauses_def true_cls_p_remove_subsumed
+          cdcl\<^sub>W_restart_mset.clauses_def true_cls_p_remove_subsumed
+          cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
           insert_commute[of C C'] all_decomposition_implies_remove_subsumed
-        intro: all_decomposition_implies_mono)
-   done
+      intro: all_decomposition_implies_mono)
+qed
 
 
 lemma all_decomposition_implies_monoI:
@@ -1011,7 +1072,7 @@ lemma cdcl_resolution_all_struct_inv:
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of T)\<close>
   using assms
   apply (induction rule: cdcl_resolution.induct)
-  subgoal for M N L C C' U D NE UE NS US
+  subgoal for M N L C C' U D NE UE
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
           cdcl\<^sub>W_restart_mset.no_strange_atm_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
@@ -1054,9 +1115,9 @@ lemma cdcl_pure_literal_remove_all_struct_inv:
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of T)\<close>
   using assms
 proof (induction rule: cdcl_pure_literal_remove.induct)
-  case (cdcl_pure_literal_remove L N NE NS N0 M U UE US U0) note IH = this(1-4) and all = this(5)
-  let ?S = \<open>state_of (M, N, U, None, NE, UE, NS, US, N0, U0)\<close>
-  let ?T = \<open>state_of (Propagated L {#L#} # M, N, U, None, add_mset {#L#} NE, UE, NS, US, N0, U0)\<close>
+  case (cdcl_pure_literal_remove L N \<A> NE N0 M U UE U0) note IH = this(1-4) and all = this(5)
+  let ?S = \<open>state_of (M, N, U, None, NE, UE, N0, U0, \<A>)\<close>
+  let ?T = \<open>state_of (Propagated L {#L#} # M, N, U, None, add_mset {#L#} NE, UE, N0, U0, \<A>)\<close>
   have 1: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm ?S\<close> and
     2: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv ?S\<close> and
     3: \<open>(\<forall>s\<in>#learned_clss ?S. \<not> tautology s)\<close> and
@@ -1160,21 +1221,16 @@ lemma cdcl_unitres_true_entailed_clss_inv:
   \<open>cdcl_unitres_true S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
   by (induction rule: cdcl_unitres_true.induct) (auto simp: entailed_clss_inv_def)
 
-lemma cdcl_unitres_true_psubsumed_invs:
-  \<open>cdcl_unitres_true S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
-  by (induction rule: cdcl_unitres_true.induct) (auto simp: psubsumed_invs_def)
-
 definition pcdcl_all_struct_invs :: \<open>_\<close> where
 \<open>pcdcl_all_struct_invs S \<longleftrightarrow>
   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of S) \<and>
   entailed_clss_inv S \<and>
-  psubsumed_invs S \<and>
   clauses0_inv S\<close>
 
 lemma entailed_clss_inv_Propagated:
-  assumes \<open>entailed_clss_inv (M, N, U, None, NE, UE, NS, US)\<close> and
+  assumes \<open>entailed_clss_inv (M, N, U, None, NE, UE, NS, US, \<A>)\<close> and
     undef: \<open>undefined_lit M L'\<close>
-  shows \<open>entailed_clss_inv (Propagated L' D # M, N, U, None, NE, UE, NS, US)\<close>
+  shows \<open>entailed_clss_inv (Propagated L' D # M, N, U, None, NE, UE, NS, US, \<A>)\<close>
   unfolding entailed_clss_inv_def
 proof (intro conjI impI ballI)
   fix C
@@ -1201,8 +1257,8 @@ qed
 
 
 lemma entailed_clss_inv_skip:
-  assumes \<open>entailed_clss_inv (Propagated L' D'' # M, N, U, Some D, NE, UE, NS, US)\<close>
-  shows \<open>entailed_clss_inv (M, N, U, Some D', NE, UE, NS, US)\<close>
+  assumes \<open>entailed_clss_inv (Propagated L' D'' # M, N, U, Some D, NE, UE, NS, US, \<A>)\<close>
+  shows \<open>entailed_clss_inv (M, N, U, Some D', NE, UE, NS, US, \<A>)\<close>
   using assms
   unfolding entailed_clss_inv_def
   by (auto 7 3 simp:
@@ -1211,14 +1267,14 @@ lemma entailed_clss_inv_skip:
         dest: multi_member_split
       split: if_splits)
 
-lemma entailed_clss_inv_ConflictD: \<open>entailed_clss_inv (M, N, U, None, NE, UE, NS, US) \<Longrightarrow>
-  entailed_clss_inv (M, N, U, Some D, NE, UE, NS, US)\<close>
+lemma entailed_clss_inv_ConflictD: \<open>entailed_clss_inv (M, N, U, None, NE, UE, NS, US, \<A>) \<Longrightarrow>
+  entailed_clss_inv (M, N, U, Some D, NE, UE, NS, US, \<A>)\<close>
   by (auto simp: entailed_clss_inv_def)
 
 lemma entailed_clss_inv_Decided:
-  assumes \<open>entailed_clss_inv (M, N, U, None, NE, UE, NS, US)\<close> and
+  assumes \<open>entailed_clss_inv (M, N, U, None, NE, UE, NS, US, \<A>)\<close> and
     undef: \<open>undefined_lit M L'\<close>
-  shows \<open>entailed_clss_inv (Decided L' # M, N, U, None, NE, UE, NS, US)\<close>
+  shows \<open>entailed_clss_inv (Decided L' # M, N, U, None, NE, UE, NS, US, \<A>)\<close>
   using assms
   unfolding entailed_clss_inv_def
   by (auto 7 3 simp: entailed_clss_inv_def
@@ -1265,36 +1321,32 @@ lemma pcdcl_core_clauses0_inv:
     cdcl_skip.simps cdcl_resolve.simps)
 
 lemma cdcl_flush_unit_invs:
-  \<open>cdcl_flush_unit S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
   \<open>cdcl_flush_unit S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
   \<open>cdcl_flush_unit S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state_of S) \<Longrightarrow>
      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state_of T)\<close>
   \<open>cdcl_flush_unit S T \<Longrightarrow> clauses0_inv S \<Longrightarrow> clauses0_inv T\<close>
-  by (auto simp: cdcl_flush_unit.simps psubsumed_invs_def entailed_clss_inv_def clauses0_inv_def
+  by (auto simp: cdcl_flush_unit.simps entailed_clss_inv_def clauses0_inv_def
     dest!: multi_member_split dest: cdcl_flush_unit_unchanged)
 
 lemma cdcl_inp_propagate_invs:
-  \<open>cdcl_inp_propagate S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
   \<open>cdcl_inp_propagate S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
   \<open>cdcl_inp_propagate S T \<Longrightarrow> clauses0_inv S \<Longrightarrow> clauses0_inv T\<close>
   using count_decided_ge_get_level[of \<open>pget_trail S\<close>]
   by (auto 5 5 simp: cdcl_inp_propagate.simps entailed_clss_inv_def clauses0_inv_def
-    get_level_cons_if psubsumed_invs_def)
+    get_level_cons_if)
 
 lemma cdcl_inp_conflict_invs:
-  \<open>cdcl_inp_conflict S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
   \<open>cdcl_inp_conflict S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
   \<open>cdcl_inp_conflict S T \<Longrightarrow> clauses0_inv S \<Longrightarrow> clauses0_inv T\<close>
   using count_decided_ge_get_level[of \<open>pget_trail S\<close>]
-  by (auto 5 5 simp: cdcl_inp_conflict.simps entailed_clss_inv_def psubsumed_invs_def
+  by (auto 5 5 simp: cdcl_inp_conflict.simps entailed_clss_inv_def
     get_level_cons_if clauses0_inv_def)
 
 lemma cdcl_promote_false_invs:
-  \<open>cdcl_promote_false S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
   \<open>cdcl_promote_false S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
   \<open>cdcl_promote_false S T \<Longrightarrow> clauses0_inv S \<Longrightarrow> clauses0_inv T\<close>
   using count_decided_ge_get_level[of \<open>pget_trail S\<close>]
-  by (auto 4 4 simp: cdcl_promote_false.simps entailed_clss_inv_def psubsumed_invs_def
+  by (auto 4 4 simp: cdcl_promote_false.simps entailed_clss_inv_def
     get_level_cons_if clauses0_inv_def dest!: multi_member_split)
 
 lemma pcdcl_entails_clss_inv:
@@ -1311,36 +1363,10 @@ lemma rtranclp_pcdcl_entails_clss_inv:
   by (induction rule: rtranclp_induct)
     (simp_all add: pcdcl_entails_clss_inv)
 
-
-lemma pcdcl_core_psubsumed_invs:
-  \<open>pcdcl_core S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
-  by (induction rule: pcdcl_core.induct)
-    (auto simp: cdcl_conflict.simps cdcl_backtrack.simps
-    cdcl_propagate.simps cdcl_decide.simps cdcl_pure_literal_remove.simps
-    cdcl_skip.simps cdcl_resolve.simps
-    get_level_cons_if atm_of_eq_atm_of
-    psubsumed_invs_def)
-
-lemma pcdcl_psubsumed_invs:
-  \<open>pcdcl S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
-  by (induction rule: pcdcl.induct)
-    (simp_all add: pcdcl_core_psubsumed_invs cdcl_learn_clause_psubsumed_invs
-    cdcl_resolution_psubsumed_invs cdcl_subsumed_psubsumed_invs cdcl_flush_unit_invs
-    cdcl_pure_literal_remove_psubsumed_invs
-    cdcl_inp_propagate_invs cdcl_inp_conflict_invs cdcl_promote_false_invs
-    cdcl_unitres_true_psubsumed_invs)
-
-lemma rtranclp_pcdcl_psubsumed_invs:
-  \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
-  by (induction rule: rtranclp_induct)
-    (simp_all add: pcdcl_psubsumed_invs)
-
 lemma pcdcl_clauses0_inv:
   \<open>pcdcl S T \<Longrightarrow> clauses0_inv S \<Longrightarrow> clauses0_inv T\<close>
   by (induction rule: pcdcl.induct)
-    (auto simp add: pcdcl_core_psubsumed_invs cdcl_learn_clause_psubsumed_invs
-    cdcl_resolution_psubsumed_invs cdcl_subsumed_psubsumed_invs cdcl_flush_unit_invs
-    cdcl_pure_literal_remove_psubsumed_invs cdcl_pure_literal_remove.simps
+    (auto simp add: cdcl_flush_unit_invs cdcl_pure_literal_remove.simps
     cdcl_inp_propagate_invs cdcl_inp_conflict_invs pcdcl_core_clauses0_inv
     cdcl_learn_clause.simps clauses0_inv_def cdcl_resolution.simps cdcl_subsumed.simps
     cdcl_unitres_true.simps cdcl_promote_false.simps)
@@ -1359,7 +1385,6 @@ lemma rtranclp_pcdcl_core_stgy_pcdcl: \<open>pcdcl_core_stgy\<^sup>*\<^sup>* S T
 lemma rtranclp_pcdcl_core_stgy_is_cdcl_stgy:
   assumes
     confl: \<open>pcdcl_core_stgy\<^sup>*\<^sup>* S T\<close> and
-    sub: \<open>psubsumed_invs S\<close> and
     ent: \<open>entailed_clss_inv S\<close> and
     invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of S)\<close> and
     \<open>clauses0_inv S\<close>
@@ -1367,7 +1392,7 @@ lemma rtranclp_pcdcl_core_stgy_is_cdcl_stgy:
   using assms apply (induction rule: rtranclp_induct)
   subgoal by auto
   subgoal for T U
-    using rtranclp_pcdcl_psubsumed_invs[of S T] rtranclp_pcdcl_core_stgy_pcdcl[of S T]
+    using rtranclp_pcdcl_core_stgy_pcdcl[of S T]
       rtranclp_pcdcl_entails_clss_inv[of S T] pcdcl_core_stgy_is_cdcl_stgy[of T U]
       rtranclp_pcdcl_clauses0_inv[of S T]
     by (auto simp add: cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv)
@@ -1380,7 +1405,7 @@ lemma pcdcl_all_struct_invs:
    unfolding pcdcl_all_struct_invs_def
   by (intro conjI)
    (simp_all add: pcdcl_all_struct_inv pcdcl_entails_clss_inv
-    pcdcl_psubsumed_invs pcdcl_clauses0_inv)
+      pcdcl_clauses0_inv)
 
 lemma rtranclp_pcdcl_all_struct_invs:
   \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow> pcdcl_all_struct_invs T\<close>
@@ -1395,7 +1420,6 @@ lemma cdcl_resolution_entailed_by_init:
   using assms
   apply (induction rule: cdcl_resolution.induct)
   apply (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
-  apply (metis (full_types) insert_commute true_clss_clss_insert_l)
   apply (metis (full_types) insert_commute true_clss_clss_insert_l)
   apply (metis (full_types) insert_commute true_clss_clss_insert_l)
   apply (metis (full_types) insert_commute true_clss_clss_insert_l)
@@ -1427,7 +1451,6 @@ lemma cdcl_subsumed_entailed_by_init:
   apply (induction rule: cdcl_subsumed.induct)
   apply (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def insert_commute
     true_clss_ps_remove_subsumed insert_commute)
-  apply (metis insert_commute true_clss_clss_insert_l true_clss_ps_remove_subsumed)
   apply (metis insert_commute true_clss_clss_insert_l true_clss_ps_remove_subsumed)
   apply (metis insert_commute true_clss_clss_insert_l true_clss_ps_remove_subsumed)
   apply (metis insert_commute true_clss_clss_insert_l true_clss_ps_remove_subsumed)
@@ -1496,7 +1519,6 @@ lemma rtranclp_pcdcl_entailed_by_init:
 lemma pcdcl_core_stgy_stgy_invs:
   assumes
     confl: \<open>pcdcl_core_stgy S T\<close> and
-    sub: \<open>psubsumed_invs S\<close> and
     ent: \<open>entailed_clss_inv S\<close> and
     invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of S)\<close> and
      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state_of S)\<close> and
@@ -1509,7 +1531,6 @@ lemma pcdcl_core_stgy_stgy_invs:
 lemma cdcl_subsumed_stgy_stgy_invs:
   assumes
     confl: \<open>cdcl_subsumed S T\<close> and
-    sub: \<open>psubsumed_invs S\<close> and
     ent: \<open>entailed_clss_inv S\<close> and
     invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of S)\<close> and
      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state_of S)\<close>
@@ -1522,7 +1543,6 @@ lemma cdcl_subsumed_stgy_stgy_invs:
 lemma cdcl_resolution_stgy_stgy_invs:
   assumes
     confl: \<open>cdcl_resolution S T\<close> and
-    sub: \<open>psubsumed_invs S\<close> and
     ent: \<open>entailed_clss_inv S\<close> and
     invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of S)\<close> and
      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state_of S)\<close>
@@ -1535,7 +1555,6 @@ lemma cdcl_resolution_stgy_stgy_invs:
 lemma cdcl_pure_literal_remove_stgy_stgy_invs:
   assumes
     confl: \<open>cdcl_pure_literal_remove S T\<close> and
-    sub: \<open>psubsumed_invs S\<close> and
     ent: \<open>entailed_clss_inv S\<close> and
     invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of S)\<close> and
      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state_of S)\<close>
@@ -1548,7 +1567,6 @@ lemma cdcl_pure_literal_remove_stgy_stgy_invs:
 lemma cdcl_learn_clause_stgy_stgy_invs:
   assumes
     confl: \<open>cdcl_learn_clause S T\<close> and
-    sub: \<open>psubsumed_invs S\<close> and
     ent: \<open>entailed_clss_inv S\<close> and
     invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of S)\<close> and
      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state_of S)\<close>
@@ -1570,7 +1588,6 @@ lemma cdcl_inp_conflict_stgy_stgy_invs:
 lemma pcdcl_stgy_stgy_invs:
   assumes
     confl: \<open>pcdcl_stgy S T\<close> and
-    sub: \<open>psubsumed_invs S\<close> and
     ent: \<open>entailed_clss_inv S\<close> and
     invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of S)\<close> and
      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state_of S)\<close> and
@@ -1608,33 +1625,33 @@ rule instead of doing any other solution.
 \<close>
 inductive cdcl_unitres :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 cdcl_unitresI:
-  \<open>cdcl_unitres (M, N + {#C+C'#}, U, None, NE, UE, NS, US, N0, U0)
-    (M, N + {#C#}, U, None, NE, UE, add_mset (make_tautology (C+C')) NS, US, N0, U0)\<close>
-  if \<open>count_decided M = 0\<close> and \<open>add_mset (C+C') (N + NE + NS + N0) \<Turnstile>psm mset_set (CNot C')\<close>
+  \<open>cdcl_unitres (M, N + {#C+C'#}, U, None, NE, UE, N0, U0, \<A>)
+    (M, N + {#C#}, U, None, NE, UE, N0, U0, \<A>)\<close>
+  if \<open>count_decided M = 0\<close> and \<open>add_mset (C+C') (make_big_tautology \<A> + N + NE + N0) \<Turnstile>psm mset_set (CNot C')\<close>
     \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close> \<open>C+C' \<notin> set (get_all_mark_of_propagated M)\<close>|
 cdcl_unitresI_unit:
-  \<open>cdcl_unitres (M, N + {#C+C'#}, U, None, NE, UE, NS, US, N0, U0)
-    (Propagated K C # M, N, U, None, NE + {#C#}, UE, add_mset (add_mset (-K) (C+C')) NS, US, N0, U0)\<close>
-  if \<open>count_decided M = 0\<close> and \<open>add_mset (C+C') (N + NE + NS + N0) \<Turnstile>psm mset_set (CNot C')\<close>
+  \<open>cdcl_unitres (M, N + {#C+C'#}, U, None, NE, UE, N0, U0, \<A>)
+    (Propagated K C # M, N, U, None, NE + {#C#}, UE, N0, U0, \<A>)\<close>
+  if \<open>count_decided M = 0\<close> and \<open>add_mset (C+C') (make_big_tautology \<A> + N + NE + N0) \<Turnstile>psm mset_set (CNot C')\<close>
     \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close> \<open>C = {#K#}\<close> \<open>undefined_lit M K\<close> |
 cdcl_unitresR:
-  \<open>cdcl_unitres (M, N, U + {#C+C'#}, None, NE, UE, NS, US, N0, U0)
-    (M, N, U + {#C#}, None, NE, UE, NS, add_mset (add_mset (-L)(C+C')) US, N0, U0)\<close>
-  if \<open>count_decided M = 0\<close> and \<open>(N + NE + NS + N0) \<Turnstile>psm mset_set (CNot C')\<close>  \<open>\<not>tautology C\<close>
-    \<open>distinct_mset C\<close> \<open>atms_of C \<subseteq> atms_of_mm (N+NE+NS+N0)\<close>  \<open>L \<in># C+C'\<close>|
+  \<open>cdcl_unitres (M, N, U + {#C+C'#}, None, NE, UE, N0, U0, \<A>)
+    (M, N, U + {#C#}, None, NE, UE, N0, U0, \<A>)\<close>
+  if \<open>count_decided M = 0\<close> and \<open>(make_big_tautology \<A> + N + NE + N0) \<Turnstile>psm mset_set (CNot C')\<close>  \<open>\<not>tautology C\<close>
+    \<open>distinct_mset C\<close> \<open>atms_of C \<subseteq> atms_of_mm (N+NE+N0)\<close>  \<open>C+C' \<notin> set (get_all_mark_of_propagated M)\<close> |
 cdcl_unitresR_unit:
-  \<open>cdcl_unitres (M, N, U + {#C+C'#}, None, NE, UE, NS, US, N0, U0)
-    (Propagated K C # M, N, U, None, NE, UE + {#C#}, NS, add_mset (add_mset (-K) (C+C')) US, N0, U0)\<close>
-  if \<open>count_decided M = 0\<close> and \<open>(N + NE + NS + N0) \<Turnstile>psm mset_set (CNot C')\<close>  \<open>\<not>tautology C\<close>
-    \<open>distinct_mset C\<close> \<open>atms_of C \<subseteq> atms_of_mm (N+NE+NS+N0)\<close> \<open>C = {#K#}\<close> \<open>undefined_lit M K\<close> |
+  \<open>cdcl_unitres (M, N, U + {#C+C'#}, None, NE, UE, N0, U0, \<A>)
+    (Propagated K C # M, N, U, None, NE, UE + {#C#}, N0, U0, \<A>)\<close>
+  if \<open>count_decided M = 0\<close> and \<open>(make_big_tautology \<A> + N + NE + N0) \<Turnstile>psm mset_set (CNot C')\<close>  \<open>\<not>tautology C\<close>
+    \<open>distinct_mset C\<close> \<open>atms_of C \<subseteq> atms_of_mm (N+NE+N0)\<close> \<open>C = {#K#}\<close> \<open>undefined_lit M K\<close> |
 cdcl_unitresR_empty:
-  \<open>cdcl_unitres (M, N, U + {#C'#}, None, NE, UE, NS, US, N0, U0)
-    (M, N, U, Some {#}, NE, UE, NS, add_mset (C') US, N0, add_mset {#} U0)\<close>
-  if \<open>count_decided M = 0\<close> and \<open>(N + NE + NS + N0) \<Turnstile>psm mset_set (CNot C')\<close> |
+  \<open>cdcl_unitres (M, N, U + {#C'#}, None, NE, UE, N0, U0, \<A>)
+    (M, N, U, Some {#}, NE, UE, N0, add_mset {#} U0, \<A>)\<close>
+  if \<open>count_decided M = 0\<close> and \<open>(make_big_tautology \<A> + N + NE + N0) \<Turnstile>psm mset_set (CNot C')\<close> |
 cdcl_unitresI_empty:
-  \<open>cdcl_unitres (M, N + {#C'#}, U, None, NE, UE, NS, US, N0, U0)
-    (M, N, U, Some {#}, NE, UE, add_mset (C') NS, US, add_mset {#} N0, U0)\<close>
-  if \<open>count_decided M = 0\<close> and \<open>(add_mset C' N + NE + NS + N0) \<Turnstile>psm mset_set (CNot C')\<close>
+  \<open>cdcl_unitres (M, N + {#C'#}, U, None, NE, UE, N0, U0, \<A>)
+    (M, N, U, Some {#}, NE, UE, add_mset {#} N0, U0, \<A>)\<close>
+  if \<open>count_decided M = 0\<close> and \<open>(add_mset C' (make_big_tautology \<A> + N + NE + N0)) \<Turnstile>psm mset_set (CNot C')\<close>
 
 lemma true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise':
   \<open>N \<Turnstile>ps CNot C' \<Longrightarrow> N \<Turnstile>p C + C' \<Longrightarrow> C'' \<subseteq># C' \<Longrightarrow> N \<Turnstile>p (C + (C' - C''))\<close>
@@ -1653,47 +1670,139 @@ lemmas true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise =
 lemma true_clss_cls_insert_itself:
   \<open>insert (C + C') (set_mset N \<union> set_mset NE \<union> set_mset NS \<union> set_mset N0) \<Turnstile>p C + C'\<close>
   by auto
+
+lemmas make_big_tautology_true_clss_cls_insert_iff3[simp] =
+  make_big_tautology_true_clss_cls_insert_iff[of _ _ \<open>N \<union> NE \<union> N0\<close> for N NE N0, unfolded Un_assoc[symmetric]]
+
 lemma cdcl_unitres_learn_subsumeE:
-  assumes \<open>cdcl_unitres S X\<close>
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
+  assumes
+    \<open>cdcl_unitres S X\<close>
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close> and
+    \<open>pcdcl_all_struct_invs S\<close>
   obtains T U V W where \<open>cdcl_learn_clause S T\<close> \<open>cdcl_subsumed T U\<close>
     \<open>cdcl_propagate\<^sup>*\<^sup>* U V\<close>
     \<open>cdcl_flush_unit\<^sup>*\<^sup>* V W\<close>
     \<open>cdcl_promote_false\<^sup>*\<^sup>* W X\<close>
-  subgoal premises noone_wants_that_premise
-    using assms
-    apply (cases rule: cdcl_unitres.cases)
-    subgoal for M C C' N NE NS N0 U UE US U0
-      apply (rule that[of \<open>(M, N + {#C+C', C#}, U, None, NE, UE, NS, US, N0, U0)\<close> X X])
-      apply (auto simp: cdcl_learn_clause.simps cdcl_subsumed.simps
-        intro: true_clss_cls_insert_itself
-        dest!: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise)
-apply (rule exI[of _ C])
-apply (rule exI[of _ \<open>C+C'\<close>])
-apply (rule exI[of _ N])
-apply auto
-  sledgehammer
-      apply (rule true_clss_cls_insert_itself)
-        
-      try0
-find_theorems "insert ?C _ \<Turnstile>p ?C"
-    subgoal for M C C' N NE NS N0 K U UE US U0
-      by (rule that[of \<open>(M, N + {#C+C', C#}, U, None, NE, UE, NS, US, N0, U0)\<close>
-           \<open>(M, add_mset C N, U, None, NE, UE, add_mset (C+C')NS, US, N0, U0)\<close>
-           \<open>(Propagated K C # M, add_mset C N, U, None, NE, UE, add_mset (C+C')NS, US, N0, U0)\<close>
-           X])
-        (auto simp: cdcl_learn_clause.simps cdcl_subsumed.simps cdcl_flush_unit.simps
-          cdcl_propagate.simps
-        dest!: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise
-        intro!: r_into_rtranclp)
-    subgoal for M N NE NS N0 C' C U UE US U0
-      by (rule that[of \<open>(M, N, U + {#C+C', C#}, None, NE, UE, NS, US, N0, U0)\<close> X X X])
+  using assms
+proof (cases rule: cdcl_unitres.cases)
+  case (cdcl_unitresI M C C' \<A> N NE N0 U UE U0)
+  then show ?thesis
+    using assms(2-) apply -
+    by (rule that[of \<open>(M, N + {#C+C', C#}, U, None, NE, UE, N0, U0, \<A>)\<close> X X])
+      (auto simp: cdcl_learn_clause.simps cdcl_subsumed.simps make_big_tautology_true_clss_cls_insert_iff
+      intro: true_clss_cls_insert_itself
+      dest!: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise
+      intro: exI[of _ C])
+next
+  case (cdcl_unitresI_unit M C C' \<A> N NE N0 K U UE U0)
+  have H: \<open>insert (add_mset K C') (set_mset N \<union> set_mset NE \<union> set_mset N0) \<Turnstile>p {#K#} + C'\<close>
+    by auto
+  have \<open>add_mset K C' \<notin> set (get_all_mark_of_propagated M)\<close>
+  proof (rule ccontr)
+    assume \<open>\<not> ?thesis\<close>
+    moreover have \<open>\<forall>L mark a b. a @ Propagated L mark # b = M \<longrightarrow> b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close>
+      using assms(3) cdcl_unitresI_unit
+      by (auto simp: pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def)
+    ultimately show False
+      using cdcl_unitresI_unit unfolding cdcl\<^sub>W_restart_mset.in_get_all_mark_of_propagated_in_trail
+      apply (auto simp: pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def dest!: split_list)
+      by (metis add_cancel_left_left diff_union_swap multi_member_this true_annots_CNot_definedD union_mset_add_mset_left)
+  qed
+  then show ?thesis
+    using cdcl_unitresI_unit apply -
+    by (rule that[of \<open>(M, N + {#C+C', C#}, U, None, NE, UE, N0, U0, \<A>)\<close>
+      \<open>(M, add_mset C N, U, None, NE, UE, N0, U0, \<A>)\<close>
+      \<open>(Propagated K C # M, add_mset C N, U, None, NE, UE, N0, U0, \<A>)\<close>
+      X])
+      (auto simp: cdcl_learn_clause.simps cdcl_subsumed.simps cdcl_flush_unit.simps
+      cdcl_propagate.simps intro: H exI[of _ \<open>{#K#}\<close>]
+      dest!: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise
+      intro!: r_into_rtranclp)
+next
+  case (cdcl_unitresR M \<A> N NE N0 C' C U UE U0)
+  have \<open>(make_big_tautology \<A>) + N + NE + N0 \<Turnstile>pm C+C'\<close>
+    using assms(2) cdcl_unitresR
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
+  then have \<open>(make_big_tautology \<A>) + N + NE + N0 \<Turnstile>pm C\<close>
+    using cdcl_unitresR(4) true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise
+    by (metis finite_CNot finite_set_mset_mset_set)
+
+  then show ?thesis
+    using cdcl_unitresR apply -
+      by (rule that[of \<open>(M, N, U + {#C+C', C#}, None, NE, UE, N0, U0, \<A>)\<close> X X X])
        (auto simp: cdcl_learn_clause.simps cdcl_subsumed.simps
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-        dest: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or
-        dest: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise[of _ _ C])
-    subgoal for M N NE NS N0 C' C K U UE US U0
-      by (rule that[of \<open>(M, N, U + {#C+C', C#}, None, NE, UE, NS, US, N0, U0)\<close>
+        intro: exI[of _ C])
+next
+  case (cdcl_unitresR_unit M \<A> N NE N0 C' C K U UE U0)
+  moreover have [intro]: \<open>set_mset (make_big_tautology \<A>) \<union> set_mset N \<union> set_mset NE \<union> set_mset N0 \<Turnstile>p
+    {#K#} + C'\<close>
+    using assms(2) cdcl_unitresR_unit
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
+  moreover have \<open>add_mset K C' \<notin> set (get_all_mark_of_propagated M)\<close>
+  proof (rule ccontr)
+    assume \<open>\<not> ?thesis\<close>
+    moreover have \<open>\<forall>L mark a b. a @ Propagated L mark # b = M \<longrightarrow> b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close>
+      using assms(3) cdcl_unitresR_unit
+      by (auto simp: pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def)
+    ultimately show False
+      using cdcl_unitresR_unit unfolding cdcl\<^sub>W_restart_mset.in_get_all_mark_of_propagated_in_trail
+      apply (auto simp: pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def dest!: split_list)
+      by (metis add_cancel_left_left diff_union_swap multi_member_this true_annots_CNot_definedD union_mset_add_mset_left)+
+  qed
+  ultimately show ?thesis apply -
+    by (rule that[of \<open>(M, N, U + {#C+C', C#}, None, NE, UE, N0, U0, \<A>)\<close>
+      \<open>(M, N, add_mset C U, None, NE, UE, N0, U0, \<A>)\<close>
+      \<open>(Propagated K C # M, N, add_mset C U, None, NE, UE, N0, U0, \<A>)\<close>
+      X])
+     (auto simp: cdcl_learn_clause.simps cdcl_subsumed.simps cdcl_flush_unit.simps
+      cdcl_propagate.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+      dest!: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise
+      intro: r_into_rtranclp exI[of _ \<open>{#K#}\<close>])
+next
+  case (cdcl_unitresR_empty M \<A> N NE N0 C' U UE U0)
+  have [intro]: \<open>(make_big_tautology \<A>) + N + NE + N0 \<Turnstile>pm {#} + C'\<close>
+    \<open>set_mset (make_big_tautology \<A>) \<union> set_mset N \<union> set_mset NE \<union> set_mset N0 \<Turnstile>p {#} + C'\<close>
+    using assms(2) cdcl_unitresR_empty
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
+  then have \<open>(make_big_tautology \<A>) + N + NE + N0 \<Turnstile>pm {#}\<close>
+    using cdcl_unitresR_empty true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise[of \<open>set_mset (make_big_tautology \<A> + N + NE + N0)\<close> C' \<open>{#}\<close>]
+    by auto
+  then show ?thesis
+    using cdcl_unitresR_empty apply -
+    by (rule that[of \<open>(M, N, U + {#C', {#}#}, None, NE, UE, N0, U0, \<A>)\<close>
+      \<open>(M, N, add_mset {#} U, None, NE, UE, N0, U0, \<A>)\<close>
+      \<open>(M, N, add_mset {#} U, None, NE, UE, N0, U0, \<A>)\<close>
+      \<open>(M, N, add_mset {#} U, None, NE, UE, N0, U0, \<A>)\<close>])
+      (auto simp: cdcl_learn_clause.simps cdcl_subsumed.simps cdcl_flush_unit.simps
+      cdcl_propagate.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+      cdcl_promote_false.simps
+        dest!: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise
+        intro!: r_into_rtranclp intro: exI[of _ C'])
+next
+  case (cdcl_unitresI_empty M C' \<A> N NE N0 U UE U0)
+  then show ?thesis
+    apply -
+      using true_clss_clss_contradiction_true_clss_cls_false[of C'
+        \<open>insert C' (set_mset N \<union> set_mset NE \<union> set_mset N0)\<close>] apply -
+      by (rule that[of \<open>(M, N + {#C', {#}#}, U, None, NE, UE, N0, U0)\<close>
+           \<open>(M, add_mset {#} N, U, None, NE, UE, N0, U0, \<A>)\<close>
+           \<open>(M, add_mset {#} N, U, None, NE, UE, N0, U0, \<A>)\<close>
+          \<open>(M, add_mset {#} N, U, None, NE, UE,  N0, U0, \<A>)\<close>])
+        (auto simp: cdcl_learn_clause.simps cdcl_subsumed.simps
+        cdcl_propagate.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+        cdcl_promote_false.simps
+        dest: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise
+        intro!: r_into_rtranclp)
+qed
+
+      
+    subgoal for M \<A> N NE N0 C' C K U UE U0
+      by (rule that[of \<open>(M, N, U + {#C+C', C#}, None, NE, UE, N0, U0)\<close>
            \<open>(M, N, add_mset C U, None, NE, UE, NS, add_mset (C+C')US, N0, U0)\<close>
            \<open>(Propagated K C # M, N, add_mset C U, None, NE, UE, NS, add_mset (C+C')US, N0, U0)\<close>
            X])
@@ -1702,10 +1811,10 @@ find_theorems "insert ?C _ \<Turnstile>p ?C"
         dest!: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise
         intro: r_into_rtranclp)
     subgoal for M N NE NS N0 C' U UE US U0
-      by (rule that[of \<open>(M, N, U + {#C', {#}#}, None, NE, UE, NS, US, N0, U0)\<close>
-           \<open>(M, N, add_mset {#} U, None, NE, UE, NS, add_mset (C')US, N0, U0)\<close>
-           \<open>(M, N, add_mset {#} U, None, NE, UE, NS, add_mset (C')US, N0, U0)\<close>
-           \<open>(M, N, add_mset {#} U, None, NE, UE, NS, add_mset (C')US, N0, U0)\<close>])
+      by (rule that[of \<open>(M, N, U + {#C', {#}#}, None, NE, UE, N0, U0, \<A>)\<close>
+           \<open>(M, N, add_mset {#} U, None, NE, UE, NS, add_mset (C')US, N0, U0, \<A>)\<close>
+           \<open>(M, N, add_mset {#} U, None, NE, UE, NS, add_mset (C')US, N0, U0, \<A>)\<close>
+           \<open>(M, N, add_mset {#} U, None, NE, UE, NS, add_mset (C')US, N0, U0, \<A>)\<close>])
        (auto simp: cdcl_learn_clause.simps cdcl_subsumed.simps cdcl_flush_unit.simps
         cdcl_propagate.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         cdcl_promote_false.simps
@@ -1714,10 +1823,10 @@ find_theorems "insert ?C _ \<Turnstile>p ?C"
     subgoal for M C' N NE NS N0 U UE US U0
       using true_clss_clss_contradiction_true_clss_cls_false[of C'
         \<open>insert C' (set_mset N \<union> set_mset NE \<union> set_mset NS \<union> set_mset N0)\<close>] apply -
-      by (rule that[of \<open>(M, N + {#C', {#}#}, U, None, NE, UE, NS, US, N0, U0)\<close>
-           \<open>(M, add_mset {#} N, U, None, NE, UE, add_mset (C')NS, US, N0, U0)\<close>
-           \<open>(M, add_mset {#} N, U, None, NE, UE, add_mset (C')NS, US, N0, U0)\<close>
-          \<open>(M, add_mset {#} N, U, None, NE, UE, add_mset (C')NS, US, N0, U0)\<close>])
+      by (rule that[of \<open>(M, N + {#C', {#}#}, U, None, NE, UE, N0, U0)\<close>
+           \<open>(M, add_mset {#} N, U, None, NE, UE, add_mset (C')NS, US, N0, U0, \<A>)\<close>
+           \<open>(M, add_mset {#} N, U, None, NE, UE, add_mset (C')NS, US, N0, U0, \<A>)\<close>
+          \<open>(M, add_mset {#} N, U, None, NE, UE, add_mset (C')NS, US, N0, U0, \<A>)\<close>])
         (auto simp: cdcl_learn_clause.simps cdcl_subsumed.simps
         cdcl_propagate.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         cdcl_promote_false.simps
@@ -1751,13 +1860,13 @@ text \<open>The following two lemmas gives the nicer introduction rule that are 
 from removing false literals.\<close>
 lemma cdcl_unitresI1:
   assumes
-    invs: \<open>pcdcl_all_struct_invs (M, N, U + {#C+C'#}, None, NE, UE, NS, US, N0, U0)\<close> and
+    invs: \<open>pcdcl_all_struct_invs (M, N, U + {#C+C'#}, None, NE, UE, N0, U0)\<close> and
     L: \<open>\<forall>L. L \<in># C' \<longrightarrow> -L \<in> lits_of_l M\<close> and
     [simp]: \<open>count_decided M = 0\<close> and
     \<open>\<not> tautology C\<close> and
     ent_init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init
-       (state_of (M, N, U + {#C+C'#}, None, NE, UE, NS, US, N0, U0))\<close>
-  shows \<open>cdcl_unitres (M, N, U + {#C+C'#}, None, NE, UE, NS, US, N0, U0)
+       (state_of (M, N, U + {#C+C'#}, None, NE, UE, N0, U0))\<close>
+  shows \<open>cdcl_unitres (M, N, U + {#C+C'#}, None, NE, UE, N0, U0)
     (M, N, U + {#C#}, None, NE, UE, NS, add_mset (C+C') US, N0, U0)\<close> (is \<open>cdcl_unitres ?S ?T\<close>)
 proof
   show \<open>count_decided M = 0\<close> and \<open>\<not> tautology C\<close>
@@ -1798,14 +1907,14 @@ lemma cdcl_unitresI1_unit:
   fixes K :: \<open>'v literal\<close>
   defines \<open>C \<equiv> {#K#}\<close>
   assumes
-    invs: \<open>pcdcl_all_struct_invs (M, N, U + {#C+C'#}, None, NE, UE, NS, US, N0, U0)\<close> and
+    invs: \<open>pcdcl_all_struct_invs (M, N, U + {#C+C'#}, None, NE, UE, N0, U0)\<close> and
     L: \<open>\<forall>L. L \<in># C' \<longrightarrow> -L \<in> lits_of_l M\<close> and
     [simp]: \<open>count_decided M = 0\<close> and
     \<open>\<not> tautology C\<close> and
     undef: \<open>undefined_lit M K\<close> and
     ent_init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init
-       (state_of (M, N, U + {#C+C'#}, None, NE, UE, NS, US, N0, U0))\<close>
-  shows \<open>cdcl_unitres (M, N, U + {#C+C'#}, None, NE, UE, NS, US, N0, U0)
+       (state_of (M, N, U + {#C+C'#}, None, NE, UE, N0, U0))\<close>
+  shows \<open>cdcl_unitres (M, N, U + {#C+C'#}, None, NE, UE, N0, U0)
     (Propagated K C # M, N, U, None, NE, UE + {#C#}, NS, add_mset (C+C') US, N0, U0)\<close> (is \<open>cdcl_unitres ?S ?T\<close>)
 proof
   show \<open>count_decided M = 0\<close> and \<open>\<not> tautology C\<close>
@@ -1848,14 +1957,14 @@ qed
 
 lemma cdcl_unitresI2:
   assumes
-    invs: \<open>pcdcl_all_struct_invs (M, N + {#C+C'#}, U, None, NE, UE, NS, US, N0, U0)\<close> and
+    invs: \<open>pcdcl_all_struct_invs (M, N + {#C+C'#}, U, None, NE, UE, N0, U0)\<close> and
     L: \<open>\<forall>L. L \<in># C' \<longrightarrow> -L \<in> lits_of_l M\<close> and
     [simp]: \<open>count_decided M = 0\<close> and
     \<open>\<not> tautology C\<close> and
     ent_init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init
-       (state_of (M, N + {#C+C'#}, U, None, NE, UE, NS, US, N0, U0))\<close>
-  shows \<open>cdcl_unitres (M, N + {#C+C'#}, U, None, NE, UE, NS, US, N0, U0)
-    (M, N + {#C#}, U, None, NE, UE, add_mset (C+C') NS, US, N0, U0)\<close> (is \<open>cdcl_unitres ?S ?T\<close>)
+       (state_of (M, N + {#C+C'#}, U, None, NE, UE, N0, U0))\<close>
+  shows \<open>cdcl_unitres (M, N + {#C+C'#}, U, None, NE, UE, N0, U0)
+    (M, N + {#C#}, U, None, NE, UE, add_mset (C+C') N0, U0)\<close> (is \<open>cdcl_unitres ?S ?T\<close>)
 proof
   show \<open>count_decided M = 0\<close> and \<open>\<not> tautology C\<close>
     by (rule assms)+
@@ -1894,15 +2003,15 @@ lemma cdcl_unitresI2_unit:
   fixes K :: \<open>'v literal\<close>
   defines \<open>C \<equiv> {#K#}\<close>
   assumes
-    invs: \<open>pcdcl_all_struct_invs (M, N + {#C+C'#}, U, None, NE, UE, NS, US, N0, U0)\<close> and
+    invs: \<open>pcdcl_all_struct_invs (M, N + {#C+C'#}, U, None, NE, UE, N0, U0)\<close> and
     L: \<open>\<forall>L. L \<in># C' \<longrightarrow> -L \<in> lits_of_l M\<close> and
     [simp]: \<open>count_decided M = 0\<close> and
     \<open>\<not> tautology C\<close> and
     undef: \<open>undefined_lit M K\<close> and
     ent_init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init
-       (state_of (M, N + {#C+C'#}, U, None, NE, UE, NS, US, N0, U0))\<close>
-  shows \<open>cdcl_unitres (M, N + {#C+C'#}, U, None, NE, UE, NS, US, N0, U0)
-    (Propagated K C # M, N, U, None, NE + {#C#}, UE, add_mset (C+C') NS, US, N0, U0)\<close> (is \<open>cdcl_unitres ?S ?T\<close>)
+       (state_of (M, N + {#C+C'#}, U, None, NE, UE, N0, U0))\<close>
+  shows \<open>cdcl_unitres (M, N + {#C+C'#}, U, None, NE, UE, N0, U0)
+    (Propagated K C # M, N, U, None, NE + {#C#}, UE, add_mset (C+C') N0, U0)\<close> (is \<open>cdcl_unitres ?S ?T\<close>)
 proof
   show \<open>count_decided M = 0\<close> and \<open>\<not> tautology C\<close> and \<open>undefined_lit M K\<close>
     by (rule assms)+
@@ -1952,22 +2061,22 @@ the calculus to a version without restarts.
 
 inductive cdcl_subresolution :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 subresolution_II:
-  \<open>cdcl_subresolution (M, N + {#add_mset L C, add_mset (-L) C'#}, U, D, NE, UE, NS, US, N0, U0)
-    (M, N + {#add_mset L C, remdups_mset C'#}, U, D, NE, UE, add_mset (add_mset (-L) C') NS, US, N0, U0)\<close>
+  \<open>cdcl_subresolution (M, N + {#add_mset L C, add_mset (-L) C'#}, U, D, NE, UE, N0, U0)
+    (M, N + {#add_mset L C, remdups_mset C'#}, U, D, NE, UE, add_mset (add_mset (-L) C') N0, U0)\<close>
  if  \<open>count_decided M = 0\<close> \<open>C \<subseteq># C'\<close>|
 subresolution_LL:
-  \<open>cdcl_subresolution (M, N, U + {#add_mset L C, add_mset (-L) C'#}, D, NE, UE, NS, US, N0, U0)
+  \<open>cdcl_subresolution (M, N, U + {#add_mset L C, add_mset (-L) C'#}, D, NE, UE, N0, U0)
     (M, N, U + {#add_mset L C, remdups_mset (C')#}, D, NE, UE, NS, add_mset (add_mset (-L) C') US, N0, U0)\<close>
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> and  \<open>C \<subseteq># C'\<close>|
 subresolution_LI:
-  \<open>cdcl_subresolution (M, N + {#add_mset L C#}, U + {#add_mset (-L) C'#}, D, NE, UE, NS, US, N0, U0)
+  \<open>cdcl_subresolution (M, N + {#add_mset L C#}, U + {#add_mset (-L) C'#}, D, NE, UE, N0, U0)
     (M, N + {#add_mset L C#}, U + {#remdups_mset (C')#}, D, NE, UE, NS,
       add_mset (add_mset (-L) C') US, N0, U0)\<close>
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> and  \<open>C \<subseteq># C'\<close>|
 subresolution_IL:
-  \<open>cdcl_subresolution (M, N + {#add_mset L C#}, U + {#add_mset (-L) C'#}, D, NE, UE, NS, US, N0, U0)
+  \<open>cdcl_subresolution (M, N + {#add_mset L C#}, U + {#add_mset (-L) C'#}, D, NE, UE, N0, U0)
     (M, N + {#remdups_mset C#}, U + {#add_mset (-L) C'#}, D, NE, UE,
-      add_mset (add_mset L C) NS, US, N0, U0)\<close>
+      add_mset (add_mset L C) N0, U0)\<close>
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> and  \<open>C' \<subseteq># C\<close>
 
 
@@ -2023,17 +2132,17 @@ next
   have [simp]: \<open>remdups_mset C \<subseteq># add_mset L C\<close>
     by (simp add: remdups_mset_subset_add_mset)
   have 1: \<open>cdcl_resolution
-     (M, N + {#add_mset L C#}, U + {#add_mset (- L) C'#}, D, NE, UE, NS, US, N0, U0)
+     (M, N + {#add_mset L C#}, U + {#add_mset (- L) C'#}, D, NE, UE, N0, U0)
      (M, N + {#add_mset L C#},
-        U + {#add_mset (- L) C', remdups_mset (C + C')#}, D, NE, UE, NS, US, N0, U0)\<close>
+        U + {#add_mset (- L) C', remdups_mset (C + C')#}, D, NE, UE, N0, U0)\<close>
       (is \<open>cdcl_resolution ?A ?B\<close>)
       using subresolution_IL apply -
       by (rule cdcl_resolution.resolution_IL, assumption, assumption)
   have \<open>cdcl_learn_clause
      (M, add_mset (add_mset L C) N,
-      add_mset (remdups_mset (C + C')) (U + {#add_mset (- L) C'#}), D, NE, UE, NS, US, N0, U0)
+      add_mset (remdups_mset (C + C')) (U + {#add_mset (- L) C'#}), D, NE, UE, N0, U0)
       (M, add_mset (remdups_mset (C + C')) (add_mset (add_mset L C) N),
-      U + {#add_mset (- L) C'#}, D, NE, UE, NS, US, N0, U0)\<close> (is \<open>cdcl_learn_clause _ ?C\<close>)
+      U + {#add_mset (- L) C'#}, D, NE, UE, N0, U0)\<close> (is \<open>cdcl_learn_clause _ ?C\<close>)
     by (rule cdcl_learn_clause.intros(3)[of \<open>remdups_mset (C+C')\<close>, OF tauto])
   then have 2: \<open>cdcl_learn_clause ?B ?C\<close>
     by (auto simp: add_mset_commute)
@@ -2082,8 +2191,8 @@ section \<open>Bactrack for unit clause\<close>
 text \<open>This is the specific case where we learn a new unit clause and directly add it to the right
  place.\<close>
 inductive cdcl_backtrack_unit :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
-  \<open>cdcl_backtrack_unit (M, N, U, Some (add_mset L D), NE, UE, NS, US, N0, U0)
-  (Propagated L {#L#} # M1, N, U, None, NE, add_mset {#L#} UE, NS, US, N0, U0)\<close>
+  \<open>cdcl_backtrack_unit (M, N, U, Some (add_mset L D), NE, UE, N0, U0)
+  (Propagated L {#L#} # M1, N, U, None, NE, add_mset {#L#} UE, N0, U0)\<close>
   if
     \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
     \<open>get_level M L = count_decided M\<close> and
@@ -2099,11 +2208,11 @@ lemma cdcl_backtrack_unit_is_backtrack:
   using assms
 proof (induction rule: cdcl_backtrack_unit.induct)
   case (1 K M1 M2 M L N U NE UE NS US N0 U0 D) note H =this(1-5) and that = this(6)
-  let ?T = \<open>(Propagated L (add_mset L {#}) # M1, N, add_mset (add_mset L {#}) U, None, NE, UE, NS, US, N0, U0)\<close>
-  have \<open>cdcl_backtrack (M, N, U, Some (add_mset L D), NE, UE, NS, US, N0, U0) ?T\<close>
+  let ?T = \<open>(Propagated L (add_mset L {#}) # M1, N, add_mset (add_mset L {#}) U, None, NE, UE, N0, U0)\<close>
+  have \<open>cdcl_backtrack (M, N, U, Some (add_mset L D), NE, UE, N0, U0) ?T\<close>
     apply (rule cdcl_backtrack.intros[of K M1 M2 _ _ _ 0])
     using H by auto
-  moreover have \<open>cdcl_flush_unit ?T (Propagated L {#L#} # M1, N, U, None, NE, add_mset {#L#} UE, NS, US, N0, U0)\<close>
+  moreover have \<open>cdcl_flush_unit ?T (Propagated L {#L#} # M1, N, U, None, NE, add_mset {#L#} UE, N0, U0)\<close>
     by (rule cdcl_flush_unit.intros(2))
       (use H in \<open>auto dest!: get_all_ann_decomposition_exists_prepend simp: get_level_append_if
        split: if_splits\<close>)
@@ -2129,7 +2238,7 @@ section \<open>Subsume and promote\<close>
 
 inductive cdcl_subsumed_RI :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 cdcl_subsumed_RI:
-  \<open>cdcl_subsumed_RI (M, add_mset C' N, add_mset C U, D, NE, UE, NS, US, N0, U0)
+  \<open>cdcl_subsumed_RI (M, add_mset C' N, add_mset C U, D, NE, UE, N0, U0)
      (M, add_mset C N, U, D, NE, UE, NS + {#C'#}, US, N0, U0)\<close>
   if \<open>C \<subseteq># C'\<close> \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close>
 
@@ -2142,7 +2251,7 @@ lemma cdcl_subsumed_RID:
   using assms(1)
 proof (cases rule: cdcl_subsumed_RI.cases)
   case (cdcl_subsumed_RI C C' M N U D NE UE NS US N0 U0)
-  let ?T = \<open>(M, add_mset C (add_mset C' N), U, D, NE, UE, NS, US, N0, U0)\<close>
+  let ?T = \<open>(M, add_mset C (add_mset C' N), U, D, NE, UE, N0, U0)\<close>
   show ?thesis
     apply (rule that[of ?T])
     subgoal
