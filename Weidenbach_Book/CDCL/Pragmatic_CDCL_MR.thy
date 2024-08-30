@@ -3,48 +3,55 @@ theory Pragmatic_CDCL_MR
 begin
 
 fun to_mr_state :: \<open>'v prag_st \<times> 'v stackWit \<Rightarrow> 'v clauses \<times> 'v clauses \<times> 'v stackWit \<times> 'v set\<close> where
-  \<open>to_mr_state ((M, N, U, D, NE, UE, NS, US, N0, U0), S) = (N + NE + NS + N0, U + UE + US + U0, S, atms_of_mm (N + NE + NS + N0 + U + UE + US + U0) \<union> atms_of_ms (wit_clause ` set S))\<close>
+  \<open>to_mr_state ((M, N, U, D, NE, UE, N0, U0, \<A>), S) = (N + NE + N0, U + UE + U0, S, set_mset \<A> \<union> atms_of_ms (wit_clause ` set S))\<close>
 
 lemma to_mr_state_alt_def:
-  \<open>to_mr_state ( (S,T)) = (pget_all_init_clss S, pget_all_learned_clss S, T,
-  atms_of_mm (pget_all_init_clss S) \<union>  atms_of_mm (pget_all_learned_clss S) \<union> atms_of_ms (wit_clause ` set T))\<close>
+  \<open>to_mr_state ( (S,T)) = (pget_all_init_clss_strict S, pget_all_learned_clss S, T,
+  set_mset (pget_support_set S) \<union> atms_of_ms (wit_clause ` set T))\<close>
   by (cases S) auto
 
-lemma cdcl_backtrack_rules:
+lemma pcdcl_all_struct_invs_proper_support_set_all:
+  assumes \<open>pcdcl_all_struct_invs S\<close>
+  shows \<open>atms_of_mm (pget_all_init_clss S + pget_all_learned_clss S) = set_mset (pget_support_set S)\<close>
+proof -
+  have proper: \<open>proper_support_set S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of S)\<close>
+    using assms(1) unfolding pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  then have \<open>atms_of_mm (pget_all_learned_clss S) \<subseteq> atms_of_mm (pget_all_init_clss S)\<close>
+    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+    by (cases S) auto
+  then show ?thesis
+    using proper unfolding proper_support_set_def by auto
+qed
+ 
+lemma cdcl_backtrack_inp_mr:
   assumes \<open>cdcl_backtrack V W\<close> and \<open>pcdcl_all_struct_invs V\<close>
-  shows \<open>rules (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
+  shows \<open>inp_mr (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
   using assms
 proof (cases rule: cdcl_backtrack.cases)
-  case (1 K M1 M2 M L D' i D N U NE UE NS US N0 U0)
-  moreover have \<open>insert (atm_of L)
-     (atms_of D' \<union>
-      (atms_of_mm N0 \<union>
-    (atms_of_mm NE \<union>
-     (atms_of_mm NS \<union>
-      (atms_of_mm N \<union>
-       (atms_of_mm U0 \<union>
-    (atms_of_mm UE \<union> (atms_of_mm US \<union> (atms_of_mm U \<union> atms_of_ms (wit_clause ` set S)))))))))) =
-      (atms_of_mm N0 \<union>
-    (atms_of_mm NE \<union>
-     (atms_of_mm NS \<union>
-      (atms_of_mm N \<union>
-       (atms_of_mm U0 \<union>
-    (atms_of_mm UE \<union> (atms_of_mm US \<union> (atms_of_mm U \<union> atms_of_ms (wit_clause ` set S)))))))))\<close>
-    using assms(2) 1 distinct_mset_mono[of D' D] distinct_subseteq_iff[of D' D, THEN iffD2]
-    by (auto simp: cdcl_backtrack.simps ac_simps pcdcl_all_struct_invs_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
-      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-      intro: learn_minus dest!: multi_member_split)
-      (metis (no_types, lifting) UnE distinct_subseteq_iff lits_subseteq_imp_atms_subseteq subsetD)+
+  case (1 K M1 M2 M L D' i D \<A> N U NE UE N0 U0)
+  moreover have \<open>insert (atm_of L) (atms_of D' \<union>
+    (set_mset \<A> \<union> (atms_of_mm N0 \<union> (atms_of_mm NE \<union> (atms_of_mm N \<union> (atms_of_mm U0 \<union>
+    (atms_of_mm UE \<union> (atms_of_mm U \<union> atms_of_ms (wit_clause ` set S))))))))) =  set_mset \<A> \<union> atms_of_ms (wit_clause ` set S)\<close>
+  proof -
+    have \<open>pcdcl_all_struct_invs W\<close>
+      using assms(1) assms(2) pcdcl.intros(1) pcdcl_all_struct_invs pcdcl_core.intros(6) by blast
+    from pcdcl_all_struct_invs_proper_support_set_all[OF this] show ?thesis
+      unfolding 1 by auto
+  qed
   moreover have \<open>L \<notin># D'\<close>
     using assms(2) 1(8) unfolding 1
     by (auto simp: cdcl_backtrack.simps ac_simps pcdcl_all_struct_invs_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.clauses_def
       cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
       intro: learn_minus dest!: multi_member_split)
+  moreover have \<open>set_mset N0 \<union> (set_mset NE \<union> (set_mset N \<union> (set_mset U0 \<union> (set_mset UE \<union> set_mset U)))) \<Turnstile>p
+    add_mset L D'\<close>
+    by (smt (verit, del_insts) ab_semigroup_add_class.add_ac(1) add.commute add.left_commute
+      calculation(9) make_big_tautology_true_clss_cls_iff_mset set_mset_union)
   ultimately show ?thesis
-    using learn_minus[of "pget_all_init_clss V" "pget_all_learned_clss V" "add_mset L D'" S "{}"] 1
+    using learn_minus[of "pget_all_init_clss_strict V" "pget_all_learned_clss V" "add_mset L D'" S "set_mset \<A>"] 1
       distinct_mset_mono[of D' D] assms(2)
     by (auto simp: cdcl_backtrack.simps ac_simps pcdcl_all_struct_invs_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.clauses_def
@@ -54,8 +61,8 @@ proof (cases rule: cdcl_backtrack.cases)
 qed
 
 
-lemma pcdcl_core_rules:
-  \<open>pcdcl_core V W \<Longrightarrow> pcdcl_all_struct_invs V \<Longrightarrow> rules\<^sup>*\<^sup>* (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
+lemma pcdcl_core_inp_mr:
+  \<open>pcdcl_core V W \<Longrightarrow> pcdcl_all_struct_invs V \<Longrightarrow> inp_mr\<^sup>*\<^sup>* (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
   apply (cases rule: pcdcl_core.cases, assumption)
   subgoal
     by (auto simp: cdcl_conflict.simps ac_simps pcdcl_all_struct_invs_def
@@ -71,81 +78,94 @@ lemma pcdcl_core_rules:
   subgoal
     by (auto simp: cdcl_resolve.simps)
   subgoal
-    using cdcl_backtrack_rules[of V W S] by auto
+    using cdcl_backtrack_inp_mr[of V W S] by auto
   done
 
-lemma cdcl_resolution_rules: 
+lemma cdcl_resolution_inp_mr: 
   assumes \<open>cdcl_resolution V W\<close>
     \<open>pcdcl_all_struct_invs V\<close>
-  shows \<open>rules\<^sup>*\<^sup>* (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
+  shows \<open>inp_mr\<^sup>*\<^sup>* (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
   using assms
 proof (cases rule: cdcl_resolution.cases)
-  case (resolution_LL M C C' N U L D NE UE NS US N0 U0) note V = this(1) and W = this(2) and _ = this(3)
-  then have \<open>insert (add_mset L C)
+  case (resolution_LL M C C' N U L D NE UE N0 U0 \<A>) note V = this(1) and W = this(2) and _ = this(3)
+  have inv_W: \<open>pcdcl_all_struct_invs W\<close>
+    using assms(1) assms(2) pcdcl.intros(3) pcdcl_all_struct_invs by blast
+  have \<open>insert (add_mset L C)
    (insert (add_mset (- L) C')
-     (set_mset N \<union> set_mset NE \<union> set_mset NS \<union> set_mset N0 \<union>
-      (set_mset U \<union> set_mset UE \<union> set_mset US \<union> set_mset U0))) \<Turnstile>p
+     (set_mset N \<union> set_mset NE \<union> set_mset N0 \<union>
+      (set_mset U \<union> set_mset UE \<union> set_mset U0))) \<Turnstile>p
     C' + C\<close>
-    using true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[of \<open>set_mset (pget_all_init_clss V + pget_all_learned_clss V)\<close> L C' C]
+    using resolution_LL true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[of \<open>set_mset (pget_all_init_clss_strict V + pget_all_learned_clss V)\<close> L C' C]
     by auto
-  then have R: \<open>rules (pget_all_init_clss V, pget_all_learned_clss V, S, {} \<union> atms_of (remdups_mset (C + C')) \<union> atms_of_mm (pget_all_init_clss V) \<union>
+  then have R: \<open>inp_mr (pget_all_init_clss_strict V, pget_all_learned_clss V, S, set_mset (pget_support_set V) \<union> atms_of (remdups_mset (C + C')) \<union> atms_of_mm (pget_all_init_clss V) \<union>
     atms_of_mm (pget_all_learned_clss V) \<union>
     atms_of_mm (wit_clause `# mset S))
-    (pget_all_init_clss V, add_mset (remdups_mset (C + C')) (pget_all_learned_clss V), S, {} \<union> atms_of (remdups_mset (C + C')) \<union> atms_of_mm (pget_all_init_clss V) \<union>
+    (pget_all_init_clss_strict V, add_mset (remdups_mset (C + C')) (pget_all_learned_clss V), S, set_mset (pget_support_set V) \<union> atms_of (remdups_mset (C + C')) \<union> atms_of_mm (pget_all_init_clss V) \<union>
     atms_of_mm (pget_all_learned_clss V) \<union>
     atms_of_mm (wit_clause `# mset S))\<close>
-    using learn_minus[of \<open>pget_all_init_clss V\<close> \<open>pget_all_learned_clss V\<close> \<open>remdups_mset (C+C')\<close> S \<open>{}\<close>]
+    using learn_minus[of \<open>pget_all_init_clss_strict V\<close> \<open>pget_all_learned_clss V\<close> \<open>remdups_mset (C+C')\<close> S \<open>set_mset (pget_support_set V)\<close>]
     by (auto simp: V W ac_simps)
-  have \<open>rules (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
-    apply (rule arg_cong2[where f = rules, THEN iffD2, OF _ _ R])
-    subgoal by (auto simp: V)
-    subgoal by (auto simp: W V)
+  have \<open>inp_mr (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
+    apply (rule arg_cong2[where f = inp_mr, THEN iffD2, OF _ _ R])
+    subgoal using pcdcl_all_struct_invs_proper_support_set_all[OF inv_W] by (auto simp: W V)
+    subgoal using pcdcl_all_struct_invs_proper_support_set_all[OF inv_W] by (auto simp: W V)
     done
   then show ?thesis by blast
 next
-  case (resolution_II M N L C C' U D NE UE NS US N0 U0) note V = this(1) and W = this(2) and _ = this(3)
-  then have \<open>insert (add_mset L C)
-   (insert (add_mset (- L) C')
-     (set_mset N \<union> set_mset NE \<union> set_mset NS \<union> set_mset N0 \<union>
-      (set_mset U \<union> set_mset UE \<union> set_mset US \<union> set_mset U0))) \<Turnstile>p
-    C' + C\<close>
+  case (resolution_II M N L C C' U D NE UE N0 U0 \<A>) note V = this(1) and W = this(2) and _ = this(3)
+  have inv_W: \<open>pcdcl_all_struct_invs W\<close>
+    using assms(1) assms(2) pcdcl.intros(3) pcdcl_all_struct_invs by blast
+  have \<A>1: \<open>insert (atm_of L) (atms_of C' \<union> (atms_of C \<union> (set_mset \<A> \<union> (atms_of_mm N0 \<union> (atms_of_mm NE \<union> (atms_of_mm N \<union> (atms_of_mm U0 \<union> (atms_of_mm UE \<union> (atms_of_mm U \<union> atms_of_ms (wit_clause ` set S)))))))))) = set_mset \<A>  \<union> atms_of_ms (wit_clause ` set S)\<close> and
+    \<A>2: \<open>insert (atm_of L)
+                (atms_of C' \<union>
+                 (atms_of C \<union>
+                  (set_mset \<A> \<union>
+                   (atms_of_mm N0 \<union> (atms_of_mm NE \<union> (atms_of_mm N \<union> (atms_of_mm U0 \<union> (atms_of_mm UE \<union> (atms_of_mm U \<union> atms_of_ms (wit_clause ` set S)))))))))) = set_mset \<A>  \<union> atms_of_ms (wit_clause ` set S)\<close>
+    using pcdcl_all_struct_invs_proper_support_set_all[OF inv_W] by (auto simp: W V)
+  have \<open>insert (add_mset L C) (insert (add_mset (- L) C') (set_mset N0 \<union> (set_mset NE \<union>
+    (set_mset N \<union> (set_mset U0 \<union> (set_mset UE \<union> set_mset U)))))) \<Turnstile>p C' + C\<close>
+    using true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[of \<open>set_mset (pget_all_init_clss_strict V + pget_all_learned_clss V)\<close> L C' C]
+    by (auto simp: V ac_simps)
+  then have \<open>insert (add_mset L C) (insert (add_mset (- L) C') (set_mset N0 \<union> (set_mset NE \<union>
+       (set_mset N \<union> (set_mset U0 \<union> (set_mset UE \<union> set_mset U)))))) \<Turnstile>p
+     C' + C\<close>
     using true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[of \<open>set_mset (pget_all_init_clss V + pget_all_learned_clss V)\<close> L C' C]
     by auto
-  then have R: \<open>rules (to_mr_state (V, S))
-    (pget_all_init_clss V, add_mset (remdups_mset (C + C')) (pget_all_learned_clss V), S, {} \<union> atms_of (remdups_mset (C + C')) \<union> atms_of_mm (pget_all_init_clss V) \<union>
+  then have R: \<open>inp_mr (to_mr_state (V, S))
+    (pget_all_init_clss_strict V, add_mset (remdups_mset (C + C')) (pget_all_learned_clss V), S, set_mset \<A> \<union> atms_of (remdups_mset (C + C')) \<union> atms_of_mm (pget_all_init_clss_strict V) \<union>
     atms_of_mm (pget_all_learned_clss V) \<union>
-    atms_of_mm (wit_clause `# mset S))\<close> (is \<open>rules ?A ?B\<close>)
-    using learn_minus[of \<open>pget_all_init_clss V\<close> \<open>pget_all_learned_clss V\<close> \<open>remdups_mset (C+C')\<close> S \<open>{}\<close>]
+    atms_of_mm (wit_clause `# mset S))\<close> (is \<open>inp_mr ?A ?B\<close>)
+    using learn_minus[of \<open>pget_all_init_clss_strict V\<close> \<open>pget_all_learned_clss V\<close> \<open>remdups_mset (C+C')\<close> S \<open>set_mset \<A>\<close>] \<A>1
     by (auto simp: V W ac_simps)
-  moreover have R: \<open>rules ?B
-    ( add_mset (remdups_mset (C + C')) (pget_all_init_clss V),(pget_all_learned_clss V), S, {} \<union> atms_of (remdups_mset (C + C')) \<union> atms_of_mm (pget_all_init_clss V) \<union>
+  moreover have R: \<open>inp_mr ?B
+    ( add_mset (remdups_mset (C + C')) (pget_all_init_clss_strict V),(pget_all_learned_clss V), S, set_mset \<A> \<union> atms_of (remdups_mset (C + C')) \<union> atms_of_mm (pget_all_init_clss_strict V) \<union>
     atms_of_mm (pget_all_learned_clss V) \<union>
-    atms_of_mm (wit_clause `# mset S))\<close> (is \<open>rules _ ?C\<close>)
-    using strenghten[of \<open>pget_all_init_clss V\<close>  \<open>remdups_mset (C+C')\<close>  \<open>pget_all_learned_clss V\<close> S \<open>{}\<close>]
+    atms_of_mm (wit_clause `# mset S))\<close> (is \<open>inp_mr _ ?C\<close>)
+    using strenghten[of \<open>pget_all_init_clss_strict V\<close>  \<open>remdups_mset (C+C')\<close>  \<open>pget_all_learned_clss V\<close> S \<open>set_mset \<A>\<close>] \<A>2
     by (auto simp: V W ac_simps)
   moreover have \<open> ?C = (to_mr_state (W, S))\<close>
-    by (auto simp: V W ac_simps)
-  ultimately show \<open>rules\<^sup>*\<^sup>* (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
+    using pcdcl_all_struct_invs_proper_support_set_all[OF inv_W] by (auto simp: V W ac_simps)
+  ultimately show \<open>inp_mr\<^sup>*\<^sup>* (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
     by auto
 next
-  case (resolution_IL M C C' N L U D NE UE NS US N0 U0) note V = this(1) and W = this(2) and _ = this(3)
+  case (resolution_IL M C C' N L U D NE UE N0 U0 \<A>) note V = this(1) and W = this(2) and _ = this(3)
   then have \<open>insert (add_mset (-L) C')
    (insert (add_mset L C)
-     (set_mset N \<union> set_mset NE \<union> set_mset NS \<union> set_mset N0 \<union>
-      (set_mset U \<union> set_mset UE \<union> set_mset US \<union> set_mset U0))) \<Turnstile>p
+     (set_mset N \<union> set_mset NE \<union> set_mset N0 \<union>
+      (set_mset U \<union> set_mset UE \<union> set_mset U0))) \<Turnstile>p
     C' + C\<close>
     using true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[of \<open>set_mset (pget_all_init_clss V + pget_all_learned_clss V)\<close> L C' C]
     by auto
-  then have R: \<open>rules (pget_all_init_clss V, pget_all_learned_clss V, S, {} \<union> atms_of (remdups_mset (C + C')) \<union> atms_of_mm (pget_all_init_clss V) \<union>
+  then have R: \<open>inp_mr (pget_all_init_clss_strict V, pget_all_learned_clss V, S, set_mset \<A> \<union> atms_of (remdups_mset (C + C')) \<union> atms_of_mm (pget_all_init_clss V) \<union>
     atms_of_mm (pget_all_learned_clss V) \<union>
     atms_of_mm (wit_clause `# mset S))
-    (pget_all_init_clss V, add_mset (remdups_mset (C + C')) (pget_all_learned_clss V), S, {} \<union> atms_of (remdups_mset (C + C')) \<union> atms_of_mm (pget_all_init_clss V) \<union>
+    (pget_all_init_clss V, add_mset (remdups_mset (C + C')) (pget_all_learned_clss V), S, set_mset \<A> \<union> atms_of (remdups_mset (C + C')) \<union> atms_of_mm (pget_all_init_clss_strict V) \<union>
     atms_of_mm (pget_all_learned_clss V) \<union>
     atms_of_mm (wit_clause `# mset S))\<close>
-    using learn_minus[of \<open>pget_all_init_clss V\<close> \<open>pget_all_learned_clss V\<close> \<open>remdups_mset (C+C')\<close> S \<open>{}\<close>]
+    using learn_minus[of \<open>pget_all_init_clss_strict V\<close> \<open>pget_all_learned_clss V\<close> \<open>remdups_mset (C+C')\<close> S \<open>set_mset \<A>\<close>]
     by (auto simp: V W ac_simps)
-  have \<open>rules (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
-    apply (rule arg_cong2[where f = rules, THEN iffD2, OF _ _ R])
+  have \<open>inp_mr (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
+    apply (rule arg_cong2[where f = inp_mr, THEN iffD2, OF _ _ R])
     subgoal by (auto simp: V)
     subgoal by (auto simp: W V)
     done
@@ -168,7 +188,7 @@ set of learned clauses. Then put  \<^term>\<open>L\<close> to the reconstruction
 \<close>
 lemma
   assumes \<open>cdcl_pure_literal_remove V W\<close> \<open>pcdcl_all_struct_invs V\<close>
-  shows \<open>rules (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
+  shows \<open>inp_mr (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
   using assms(1)
 proof (cases)
   case (cdcl_pure_literal_remove L N NE NS N0 M U UE US U0) note S = this(1) and T = this(2) and
@@ -258,15 +278,15 @@ proof (cases)
         atms_of_ms (wit_clause ` set S))\<close>
     using L by auto
   ultimately show \<open>?thesis\<close>
-    using rules.learn_plus[of \<open>pget_all_init_clss V\<close> \<open>pget_all_learned_clss V\<close> \<open>{#L#}\<close> S \<open>{}\<close>]
+    using inp_mr.learn_plus[of \<open>pget_all_init_clss V\<close> \<open>pget_all_learned_clss V\<close> \<open>{#L#}\<close> S \<open>{}\<close>]
     by (auto intro: consistent_interp_diffI simp: S T to_mr_state_alt_def)
 qed
 
 
-lemma pcdcl_rules:
-  \<open>pcdcl V W \<Longrightarrow> pcdcl_all_struct_invs V \<Longrightarrow> rules\<^sup>*\<^sup>* (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
+lemma pcdcl_inp_mr:
+  \<open>pcdcl V W \<Longrightarrow> pcdcl_all_struct_invs V \<Longrightarrow> inp_mr\<^sup>*\<^sup>* (to_mr_state (V, S)) (to_mr_state (W, S))\<close>
   apply (cases rule: pcdcl.cases, assumption)
-  subgoal by (rule pcdcl_core_rules)
+  subgoal by (rule pcdcl_core_inp_mr)
   subgoal
     apply (cases rule: cdcl_learn_clause.cases, assumption)
     subgoal for C N NE NS N0 M U D UE US U0
@@ -285,7 +305,7 @@ lemma pcdcl_rules:
       by (auto simp: pcdcl_all_struct_invs_def ac_simps pcdcl_all_struct_invs_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset.no_strange_atm_def)
     done
-  subgoal by (rule cdcl_resolution_rules)
+  subgoal by (rule cdcl_resolution_inp_mr)
   subgoal by (auto simp: cdcl_subsumed.simps Un_left_commute add_mset_commute)
   subgoal by (auto simp: cdcl_flush_unit.simps)
   subgoal by (auto simp: cdcl_inp_propagate.simps)
@@ -299,7 +319,7 @@ lemma pcdcl_rules:
     oops
 
 text \<open>
-This is an attempt to create a rule derived from our inprocessing rules back to our cdcl:
+This is an attempt to create a rule derived from our inprocessing inp_mr back to our cdcl:
 
   \<^item> \<^term>\<open>add_mset (add_mset (-L) C)\<close> is on purpose a tautology to make sure that we do not lose variables. Although
 
@@ -318,7 +338,7 @@ lemma
   assumes \<open>cdcl_weaken (V, S) (W, T)\<close> \<open>pcdcl_all_struct_invs V\<close>
   shows
     \<open>pcdcl_all_struct_invs W\<close> and
-    \<open>rules\<^sup>*\<^sup>*  (to_mr_state (V, S)) (to_mr_state (W, T))\<close>
+    \<open>inp_mr\<^sup>*\<^sup>*  (to_mr_state (V, S)) (to_mr_state (W, T))\<close>
   using assms
 proof (induct rule: cdcl_weaken.cases)
   case (weaken I C N NE NS N0 U UE US U0 S' L M)
@@ -344,19 +364,19 @@ proof (induct rule: cdcl_weaken.cases)
   moreover have [simp]: \<open>insert (atm_of L) (atms_of C \<union> \<V>) =
     (atms_of C \<union> \<V>)\<close> for \<V>
     using LC by (auto dest!: multi_member_split)
-  ultimately have 1: \<open>rules (to_mr_state (V, S)) (to_mr_state (?T, S))\<close>
+  ultimately have 1: \<open>inp_mr (to_mr_state (V, S)) (to_mr_state (?T, S))\<close>
     using tauto_D learn_minus[of \<open>(add_mset C N+NE+NS+N0)\<close> \<open>U+UE+US+U0\<close> \<open>add_mset (-L) C\<close> S \<open>{}\<close>] LC dist
     by (auto simp: V T add_mset_commute ac_simps)
 
   let ?U = \<open>(M, add_mset C N, U, None, add_mset (add_mset (-L) C) NE, UE, NS, US, N0, U0)\<close>
-  have 2: \<open>rules (to_mr_state (?T, S)) (to_mr_state (?U, S))\<close>
+  have 2: \<open>inp_mr (to_mr_state (?T, S)) (to_mr_state (?U, S))\<close>
     using strenghten[of \<open>(add_mset C N+NE+NS+N0)\<close>  \<open>add_mset (-L) C\<close>  \<open>U+UE+US+U0\<close>  S \<open>{}\<close>]
-    by (auto simp: rules.simps)
+    by (auto simp: inp_mr.simps)
 
   have \<open>redundancy (add_mset (add_mset (-L) C) N+NE+NS+N0) C I (add_mset (add_mset (-L) C) N+NE+NS+N0)\<close>
     using weaken apply auto unfolding redundancy_def apply auto
     sorry
-  then have H: \<open>rules
+  then have H: \<open>inp_mr
   (add_mset C (add_mset (add_mset (- L) C) N + NE + NS + N0), U + UE + US + U0, S,
    {} \<union> atms_of C \<union> atms_of_mm (add_mset (add_mset (- L) C) N + NE + NS + N0) \<union> atms_of_mm (U + UE + US + U0) \<union>
    atms_of_mm (wit_clause `# mset S))
@@ -364,10 +384,10 @@ proof (induct rule: cdcl_weaken.cases)
    {} \<union> atms_of C \<union> atms_of_mm (add_mset (add_mset (- L) C) N + NE + NS + N0) \<union> atms_of_mm (U + UE + US + U0) \<union>
     atms_of_mm (wit_clause `# mset S))\<close>
    apply -
-   apply (rule rules.weakenp[of I C  \<open>(add_mset (add_mset (-L) C) N+NE+NS+N0)\<close> \<open>{}\<close> \<open>U+UE+US+U0\<close> S])
+   apply (rule inp_mr.weakenp[of I C  \<open>(add_mset (add_mset (-L) C) N+NE+NS+N0)\<close> \<open>{}\<close> \<open>U+UE+US+U0\<close> S])
    using weaken by auto
-  have 3: \<open>rules (to_mr_state (?U, S)) (to_mr_state (W, T))\<close>
-    by (rule arg_cong2[of _ _ _ _ rules, THEN iffD1, OF _ _ H])
+  have 3: \<open>inp_mr (to_mr_state (?U, S)) (to_mr_state (W, T))\<close>
+    by (rule arg_cong2[of _ _ _ _ inp_mr, THEN iffD1, OF _ _ H])
       (auto simp: V S' W T ac_simps)
     
   then show ?case
