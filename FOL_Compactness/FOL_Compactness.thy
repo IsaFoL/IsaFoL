@@ -266,17 +266,17 @@ locale struct =
   fixes
     M :: \<open>'m set\<close> and
     FN :: \<open>'f \<Rightarrow> 'm list \<Rightarrow> 'm\<close> and
-    REL :: \<open>'p \<Rightarrow> 'm list set\<close> 
+    REL :: \<open>'p \<Rightarrow> 'm list set\<close>
   assumes
-    M_nonempty: \<open>M \<noteq> {}\<close> and 
-    FN_dom_to_dom: \<open>\<forall> f es. (\<forall> e \<in> set es. e \<in> M) \<longrightarrow> FN f es \<in> M\<close> and
-    REL_to_dom: \<open>\<forall> p. \<forall> es \<in> REL p. \<forall> e \<in> set es. e \<in> M\<close> 
+    M_nonempty: \<open>M \<noteq> {}\<close> (* and 
+   FN_dom_to_dom: \<open>\<forall> f es. (\<forall> e \<in> set es. e \<in> M) \<longrightarrow> FN f es \<in> M\<close> and
+    REL_to_dom: \<open>\<forall> p. \<forall> es \<in> REL p. \<forall> e \<in> set es. e \<in> M\<close> *)
 
 definition is_vars :: \<open>'m set \<Rightarrow> ('v \<Rightarrow> 'm) \<Rightarrow> bool\<close> where
   [simp]: \<open>is_vars M \<beta> \<longleftrightarrow> (\<forall> v. \<beta> v \<in> M)\<close> 
 
 typedef ('f, 'p, 'm) model =
-  \<open>{ (M :: 'm set, FN :: 'f \<Rightarrow> 'm list \<Rightarrow> 'm, REL :: 'p \<Rightarrow> 'm list set). struct M FN REL }\<close>
+  \<open>{ (M :: 'm set, FN :: 'f \<Rightarrow> 'm list \<Rightarrow> 'm, REL :: 'p \<Rightarrow> 'm list set). struct M}\<close> (* FN REL }\<close>*)
   using struct.intro
   by fastforce
 
@@ -286,20 +286,26 @@ lift_definition dom :: \<open>('f, 'p, 'm) model \<Rightarrow> 'm set\<close> is
 lift_definition interp_fn :: \<open>('f, 'p, 'm) model \<Rightarrow> ('f \<Rightarrow> 'm list \<Rightarrow> 'm)\<close> is \<open>fst \<circ> snd\<close> .
 lift_definition interp_rel :: \<open>('f, 'p, 'm) model \<Rightarrow> ('p \<Rightarrow> 'm list set)\<close> is \<open>snd \<circ> snd\<close> .
 
-lemma model_is_struct: \<open>struct (dom \<M>) (interp_fn \<M>) (interp_rel \<M>)\<close>
+lemma model_is_struct: \<open>struct (dom \<M>)\<close> (*(interp_fn \<M>) (interp_rel \<M>)\<close>*)
   by transfer auto 
 
-lemma dom_Abs_is_fst [simp]: \<open>struct M FN REL \<Longrightarrow> dom (Abs_model (M, FN, REL)) = M\<close>
+lemma dom_Abs_is_fst [simp]: \<open>struct M \<Longrightarrow> dom (Abs_model (M, FN, REL)) = M\<close>
   by (simp add: Abs_model_inverse dom.rep_eq) 
 
-lemma interp_fn_Abs_is_fst_snd [simp]: \<open>struct M FN REL \<Longrightarrow> interp_fn (Abs_model (M, FN, REL)) = FN\<close>
+lemma interp_fn_Abs_is_fst_snd [simp]: \<open>struct M \<Longrightarrow> interp_fn (Abs_model (M, FN, REL)) = FN\<close>
   by (simp add: Abs_model_inverse interp_fn.rep_eq) 
 
-lemma interp_rel_Abs_is_snd_snd [simp]: \<open>struct M FN REL \<Longrightarrow> interp_rel (Abs_model (M, FN, REL)) = REL\<close>
+lemma interp_rel_Abs_is_snd_snd [simp]: \<open>struct M \<Longrightarrow> interp_rel (Abs_model (M, FN, REL)) = REL\<close>
   by (simp add: Abs_model_inverse interp_rel.rep_eq) 
 
+(*
 lemma FN_dom_to_dom: \<open>\<forall> t \<in> set ts. t \<in> dom \<M> \<Longrightarrow> interp_fn \<M> f ts \<in> dom \<M>\<close>
   by (meson model_is_struct struct.FN_dom_to_dom)  
+*)
+
+definition is_interpretation where
+  \<open>is_interpretation \<M> \<equiv> (\<forall> f es. (\<forall> e \<in> set es. e \<in> dom \<M>) \<longrightarrow> (interp_fn \<M>) f es \<in> dom \<M>)\<close>
+
 
 text \<open>
   We use canonical models to prove (un-)satisfiability.
@@ -505,7 +511,7 @@ text \<open>
 definition is_model_of
   :: \<open>('f, 'p, 'm) model \<Rightarrow> ('f, 'p, 'v) fm set \<Rightarrow> bool\<close>
   where
-  \<open>is_model_of \<M> T \<longleftrightarrow> (\<forall> \<phi> \<in> T. \<forall> V. is_vars (dom \<M>) V \<longrightarrow> \<M>,V \<Turnstile> \<phi>)\<close>
+  \<open>is_model_of \<M> T \<longleftrightarrow> is_interpretation \<M> \<and> (\<forall> \<phi> \<in> T. \<forall> V. is_vars (dom \<M>) V \<longrightarrow> \<M>,V \<Turnstile> \<phi>)\<close>
 
 lemma is_model_of_conj_iff:
   \<open>is_model_of \<M> {\<phi> \<^bold>\<and> \<psi>} \<longleftrightarrow>
@@ -977,7 +983,7 @@ next
     by auto  
 qed
 
-lemma eval_in_dom_if: \<open>is_vars (dom \<M>) \<beta> \<Longrightarrow> \<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> \<in> dom \<M>\<close>
+lemma eval_in_dom_if: \<open>is_interpretation \<M> \<Longrightarrow> is_vars (dom \<M>) \<beta> \<Longrightarrow> \<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> \<in> dom \<M>\<close>
 proof (induction t)   
   case (Fun f ts)
 
@@ -987,7 +993,7 @@ proof (induction t)
     using Fun.IH Fun.prems
     by blast 
   then have \<open>interp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts] \<in> dom \<M>\<close>
-    by (simp add: FN_dom_to_dom) 
+    using Fun(2) unfolding is_interpretation_def by simp 
   ultimately show ?case
     by argo 
 qed auto
@@ -997,13 +1003,21 @@ lemma model_is_model_of_all_subst: \<open>is_model_of \<M> {\<phi>} \<Longrighta
     \<phi> :: \<open>('f, 'p, 'v) fm\<close> and
     \<M> :: \<open>('f, 'p, 'm) model\<close>
   unfolding is_model_of_def
-proof (intro allI ballI impI) 
+proof (intro allI conjI ballI impI)
+  fix \<sigma>
+  assume \<open>is_interpretation \<M> \<and> (\<forall>\<phi>\<in>{\<phi>}. \<forall>V. is_vars (FOL_Compactness.dom \<M>) V \<longrightarrow> \<M>,V \<Turnstile> \<phi>)\<close>
+  then show \<open>is_interpretation \<M>\<close> by blast
+next
   fix \<sigma> \<phi>' and \<beta> :: \<open>'v \<Rightarrow> 'm\<close> 
   assume
-    \<phi>_sat: \<open>\<forall> \<phi> \<in> {\<phi>}. \<forall> \<beta>. is_vars (dom \<M>) \<beta> \<longrightarrow> \<M>,\<beta> \<Turnstile> \<phi>\<close> and
+    is_intrp_sat: \<open>is_interpretation \<M> \<and> (\<forall> \<phi> \<in> {\<phi>}. \<forall> \<beta>. is_vars (dom \<M>) \<beta> \<longrightarrow> \<M>,\<beta> \<Turnstile> \<phi>)\<close> and
     \<phi>'_in: \<open>\<phi>' \<in> {\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>}\<close> and
     \<beta>_val: \<open>is_vars (dom \<M>) \<beta>\<close>
 
+  have is_intrp: \<open>is_interpretation \<M>\<close>
+    using is_intrp_sat by blast
+  have \<phi>_sat: \<open>\<forall> \<phi> \<in> {\<phi>}. \<forall> \<beta>. is_vars (dom \<M>) \<beta> \<longrightarrow> \<M>,\<beta> \<Turnstile> \<phi>\<close>
+    using is_intrp_sat by blast
   have \<open>\<phi>' = \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>\<close>
     using \<phi>'_in
     by blast  
@@ -1011,18 +1025,30 @@ proof (intro allI ballI impI)
     by (simp add: subst_lemma_form)
   moreover have \<open>is_vars (dom \<M>) (eval_subst \<M> \<beta> \<sigma>)\<close>
     unfolding is_vars_def
-    using eval_in_dom_if[OF \<beta>_val]
-    by blast 
+    using eval_in_dom_if[OF is_intrp \<beta>_val] by blast
   then have \<open>\<M>,eval_subst \<M> \<beta> \<sigma> \<Turnstile> \<phi>\<close>
-    using \<phi>_sat
-    by blast 
+    using \<phi>_sat by blast
   ultimately show \<open>\<M>,\<beta> \<Turnstile> \<phi>'\<close>
-    by blast 
+    using is_intrp by blast
 qed
 
 lemma is_model_of_iff: \<open>is_model_of \<M> T \<longleftrightarrow> (\<forall> \<phi> \<in> T. is_model_of \<M> {\<phi>})\<close>
-  unfolding is_model_of_def
-  by blast 
+  unfolding is_model_of_def 
+proof -
+  find_theorems "\<forall>_. _ \<and> _ \<equiv> _ \<and> (\<forall>_._)"
+  have \<open>\<forall>\<phi>. P \<and> Q \<phi> \<equiv> P \<and> (\<forall>\<phi>. Q \<phi>)\<close> for P Q
+    by simp
+  then have \<open>\<forall>\<phi>. P \<and> (\<phi>\<in>T \<and> Q \<phi>) \<equiv> P \<and> (\<forall>\<phi>. \<phi>\<in>T \<and> Q \<phi>)\<close> for P Q
+    by simp
+  find_theorems \<open>\<forall>_\<in>_. _\<close>
+  have \<open>(\<forall>\<phi>\<in>S. P \<phi>) \<equiv> (S = {} \<or> (\<forall>\<phi>. \<phi>\<in>S \<and> P \<phi>))\<close> for S P sledgehammer
+    sorry
+  have \<open>\<forall>\<phi>\<in>T. P \<and> Q \<phi> \<equiv> P \<and> (\<forall>\<phi>\<in>T. Q \<phi>)\<close> for P Q 
+    sorry
+  then have \<open>(\<forall>\<phi>\<in>T. is_interpretation \<M> \<and> (\<forall>\<phi>\<in>{\<phi>}. \<forall>V. is_vars (FOL_Compactness.dom \<M>) V \<longrightarrow> \<M>,V \<Turnstile> \<phi>)) \<equiv>
+(is_interpretation \<M> \<and> (\<forall>\<phi>\<in>T. \<forall>\<phi>\<in>{\<phi>}. \<forall>V. is_vars (FOL_Compactness.dom \<M>) V \<longrightarrow> \<M>,V \<Turnstile> \<phi>))\<close>
+    sorry
+moreover have
 
 lemma is_model_of_indiv: \<open>is_model_of \<M> T \<Longrightarrow> \<forall> \<sigma>. \<forall> \<phi> \<in> T. is_model_of \<M> {\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>}\<close>
   for
