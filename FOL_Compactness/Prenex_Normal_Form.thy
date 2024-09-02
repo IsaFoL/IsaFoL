@@ -630,7 +630,8 @@ proof -
   assume y_notin: \<open>y \<notin> FV \<psi>\<close>
   have \<open>(\<forall>a \<in> dom I. I,\<beta>(y := a) \<Turnstile> \<phi>) \<longrightarrow> (I, \<beta> \<Turnstile> \<psi>) \<equiv>
     (\<exists>a \<in> dom I. (I,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I,\<beta> \<Turnstile> \<psi>))\<close>
-    using FN_dom_to_dom empty_iff list.set(1) by (smt (verit, ccfv_threshold))
+    using empty_iff list.set(1)
+    by (smt (verit, best) equals0I intrp_is_struct struct_def)
   also have \<open>... \<equiv> (\<exists>a \<in> dom I. (I,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
     using holds_indep_\<beta>_if by (smt (verit, del_insts) fun_upd_other y_notin)
   finally show \<open>(I, \<beta> \<Turnstile> ((\<^bold>\<forall>y\<^bold>.\<phi>) \<^bold>\<longrightarrow>  \<psi>) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. (\<phi> \<^bold>\<longrightarrow> \<psi>)))\<close>
@@ -643,18 +644,20 @@ proof -
   assume y_notin: \<open>y \<notin> FV \<psi>\<close>
   have \<open>(\<exists>a \<in> dom I. I,\<beta>(y := a) \<Turnstile> \<phi>) \<longrightarrow> (I, \<beta> \<Turnstile> \<psi>) \<equiv>
     (\<forall>a \<in> dom I. (I,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I,\<beta> \<Turnstile> \<psi>))\<close>
-    using FN_dom_to_dom empty_iff list.set(1) by (smt (verit, ccfv_threshold))
+    using empty_iff list.set(1) by (smt (verit, ccfv_threshold))
   also have \<open>... \<equiv> (\<forall>a \<in> dom I. (I,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
     using holds_indep_\<beta>_if by (smt (verit, del_insts) fun_upd_other y_notin)
   finally show \<open>(I, \<beta> \<Turnstile> ((\<^bold>\<exists>y\<^bold>.\<phi>) \<^bold>\<longrightarrow>  \<psi>) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. (\<phi> \<^bold>\<longrightarrow> \<psi>)))\<close>
     by simp
 qed
 
-lemma exists_imp_commute: \<open>y \<notin> FV \<phi> \<Longrightarrow> ((I :: 'a intrp), \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>y\<^bold>. \<psi>)) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
+lemma exists_imp_commute: \<open>y \<notin> FV \<phi> \<Longrightarrow> ((I :: 'a intrp), \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>y\<^bold>. \<psi>)) \<equiv>
+   I, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
 proof -
   assume y_notin: \<open>y \<notin> FV \<phi>\<close>
-  have \<open>(I, \<beta> \<Turnstile> \<phi>) \<longrightarrow> (\<exists>a \<in> dom I. I,\<beta>(y := a) \<Turnstile> \<psi>) \<equiv> (\<exists>a \<in> dom I. (I, \<beta> \<Turnstile> \<phi>) \<longrightarrow> (I,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
-    by (smt (verit, ccfv_SIG) FN_dom_to_dom empty_iff list.set(1))
+  have \<open>(I, \<beta> \<Turnstile> \<phi>) \<longrightarrow> (\<exists>a \<in> dom I. I,\<beta>(y := a) \<Turnstile> \<psi>) \<equiv>
+   (\<exists>a \<in> dom I. (I, \<beta> \<Turnstile> \<phi>) \<longrightarrow> (I,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
+    by (smt (verit) equals0I intrp_is_struct struct_def)
   also have \<open>... \<equiv> (\<exists>a \<in> dom I. (I,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
     using y_notin by (smt (verit, ccfv_threshold) fun_upd_other holds_indep_\<beta>_if)
   finally show \<open>(I, \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>y\<^bold>. \<psi>)) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>

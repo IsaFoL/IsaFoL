@@ -12,14 +12,14 @@ definition bump_intrp :: "'m intrp \<Rightarrow> 'm intrp" where
 
 lemma bump_dom [simp]: \<open>dom (bump_intrp \<M>) = dom \<M>\<close>
 proof -
-  have is_struct: \<open>struct (dom \<M>) (\<lambda>k zs. (intrp_fn \<M>) (numsnd k) zs) (intrp_rel \<M>)\<close> 
-    by (smt (verit, best) intrp_is_struct struct_def)
+  have is_struct: \<open>struct (dom \<M>)\<close> (*(\<lambda>k zs. (intrp_fn \<M>) (numsnd k) zs) (intrp_rel \<M>)\<close> *)
+    by (simp add: intrp_is_struct)
   then show ?thesis unfolding bump_intrp_def using dom_Abs_is_fst by blast
 qed
 
 lemma bump_intrp_fn [simp]: \<open>intrp_fn (bump_intrp \<M>) (numpair 0 f) ts = intrp_fn \<M> f ts\<close>
 proof -
-  have is_struct: \<open>struct (dom \<M>) (\<lambda>k zs. (intrp_fn \<M>) (numsnd k) zs) (intrp_rel \<M>)\<close> 
+  have is_struct: \<open>struct (dom \<M>)\<close> (* (\<lambda>k zs. (intrp_fn \<M>) (numsnd k) zs) (intrp_rel \<M>)\<close> *)
     by (smt (verit, best) intrp_is_struct struct_def)
   then show ?thesis unfolding bump_intrp_def by simp
 qed
@@ -73,7 +73,7 @@ proof -
     by (metis bump_intrp_rel)
 qed
 
-lemma bumpform: \<open>\<M>, \<beta> \<Turnstile> \<phi> = (bump_intrp \<M>), \<beta> \<Turnstile> (bump_form \<phi>)\<close>
+lemma bumpform: \<open>\<M>\<^bold>, \<beta> \<Turnstile> \<phi> = (bump_intrp \<M>)\<^bold>, \<beta> \<Turnstile> (bump_form \<phi>)\<close>
 proof (induct \<phi> arbitrary: \<beta>)
   case Bot
   then show ?case
@@ -88,8 +88,8 @@ next
     unfolding bump_intrp_def by auto
 next
   case (Forall x1 \<phi>)
-  have \<open>(\<forall>a \<in> dom \<M>. (bump_intrp \<M>),\<beta>(x1 := a) \<Turnstile> bump_form \<phi>) = 
-    (\<forall>a \<in> dom \<M>. \<M>,\<beta>(x1 := a) \<Turnstile> \<phi>)\<close>
+  have \<open>(\<forall>a \<in> dom \<M>. (bump_intrp \<M>)\<^bold>,\<beta>(x1 := a) \<Turnstile> bump_form \<phi>) = 
+    (\<forall>a \<in> dom \<M>. \<M>\<^bold>,\<beta>(x1 := a) \<Turnstile> \<phi>)\<close>
     using Forall by presburger
   then show ?case
     by simp
@@ -133,7 +133,8 @@ qed auto
 
 lemma bumpform_interpretation: \<open>is_interpretation (language {\<phi>}) \<M> \<Longrightarrow>
   is_interpretation (language {(bump_form \<phi>)}) (bump_intrp \<M>)\<close>
-  unfolding is_interpretation_def language_def by (meson FN_dom_to_dom list_all_set)
+  unfolding is_interpretation_def language_def
+  by (metis bump_dom bump_intrp_fn fst_conv functions_form_bumpform lang_singleton language_def)
 
 (* unbumpterm in hol-light *)
 fun unbump_nterm :: "nterm \<Rightarrow> nterm" where
@@ -168,7 +169,7 @@ proof (induct t)
 qed simp
 
 (*  UNBUMPMOD in hol-light *)
-lemma unbump_holds: \<open>(\<M>,\<beta> \<Turnstile> bump_form \<phi>) = (unbump_intrp \<M>,\<beta> \<Turnstile> \<phi>)\<close>
+lemma unbump_holds: \<open>(\<M>\<^bold>,\<beta> \<Turnstile> bump_form \<phi>) = (unbump_intrp \<M>\<^bold>,\<beta> \<Turnstile> \<phi>)\<close>
 proof (induct \<phi> arbitrary: \<beta>)
   case Bot
   then show ?case

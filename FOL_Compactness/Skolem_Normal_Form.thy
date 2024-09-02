@@ -10,8 +10,8 @@ begin
 lemma holds_exists:
   assumes \<open>is_interpretation (functions_term t, preds) (I :: (nat, nat) term intrp)\<close> and
     \<open>is_valuation I \<beta>\<close> and 
-    \<open>I, \<beta> \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m (subst x t))\<close>
-  shows \<open>I, \<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>)\<close>
+    \<open>I\<^bold>, \<beta> \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m (subst x t))\<close>
+  shows \<open>I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>)\<close>
 proof -
   have \<open>(\<lambda>v. \<lbrakk>subst x t v\<rbrakk>\<^bsup>I,\<beta>\<^esup>) = \<beta>(x := \<lbrakk>t\<rbrakk>\<^bsup>I,\<beta>\<^esup>)\<close>
   proof -
@@ -21,8 +21,23 @@ proof -
       by blast
   qed
   moreover have \<open>\<lbrakk>t\<rbrakk>\<^bsup>I,\<beta>\<^esup> \<in> dom I\<close>
-    using interpretation_termval[OF assms(1) assms(2)] .
-  ultimately have \<open>\<exists>a \<in> dom I. I, \<beta>(x := a) \<Turnstile> \<phi>\<close>
+    using assms(1)
+  proof (induct t)
+    case (Var x)
+    then show ?case
+      using assms(2) by auto
+  next
+    case (Fun f ts)
+ (*   have \<open>(f, length ts) \<in> functions_term (Fun f ts)\<close>
+      by force*)
+    then have \<open>u \<in> set ts \<Longrightarrow> \<lbrakk>u\<rbrakk>\<^bsup>I,\<beta>\<^esup> \<in> FOL_Semantics.dom I\<close> for u
+      by (smt (z3) UN_iff Un_iff eq_fst_iff functions_term.simps(2) is_interpretation_def)
+    then show ?case
+      using eval.simps(2) fst_conv imageE length_map list.set_map list_all_set
+      by (smt (verit, del_insts) Fun.prems Un_insert_left functions_term.simps(2) insert_iff
+          is_interpretation_def)
+  qed
+  ultimately have \<open>\<exists>a \<in> dom I. I\<^bold>, \<beta>(x := a) \<Turnstile> \<phi>\<close>
     using assms(3) swap_subst_eval[of I \<beta> \<phi> "subst x t"] by auto
   then show ?thesis
     using holds_exists by blast
@@ -60,10 +75,10 @@ qed
           f,LENGTH zs IN functions_form p ==> (Fun M f zs = Fun M' f zs))
      ==> holds M' v p` *)
 (* essentially a repeat of holds_indep_intrp_if... needed? *)
-lemma holds_indep_intrp_if2: \<open>(I :: 'a intrp), \<beta> \<Turnstile> \<phi> \<Longrightarrow> dom I = dom (I' :: 'a intrp) \<Longrightarrow>
+lemma holds_indep_intrp_if2: \<open>(I :: 'a intrp)\<^bold>, \<beta> \<Turnstile> \<phi> \<Longrightarrow> dom I = dom (I' :: 'a intrp) \<Longrightarrow>
   (\<forall>p. intrp_rel I p  = intrp_rel I' p) \<Longrightarrow>
   (\<forall>f zs. (f, length zs) \<in> functions_form \<phi> \<longrightarrow> (intrp_fn I f zs = intrp_fn I' f zs)) \<Longrightarrow>
-  I', \<beta> \<Turnstile> \<phi>\<close>
+  I'\<^bold>, \<beta> \<Turnstile> \<phi>\<close>
   using holds_indep_intrp_if by blast
 
 lemma fun_upds_prop: \<open>length xs = length zs \<Longrightarrow> \<forall>z\<in>set zs. P z \<Longrightarrow> \<forall>v. P (g v) \<Longrightarrow> \<forall>v. P ((fold (\<lambda>kv f. fun_upd f (fst kv) (snd kv)) (zip xs zs) g) v)\<close>
@@ -134,15 +149,15 @@ lemma holds_skolem1:
   functions_form (skolem1 f x \<phi>) \<subseteq> insert (f, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) (functions_form (\<^bold>\<exists>x\<^bold>. \<phi>)) \<and>
   (\<forall>(I :: 'a intrp). is_interpretation (language {\<phi>}) I \<and>
     \<not> (dom I = {}) \<and>
-    (\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> I, \<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>)) \<longrightarrow>
+    (\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>)) \<longrightarrow>
     (\<exists>(M :: 'a intrp). dom M = dom I \<and>
       intrp_rel M = intrp_rel I \<and>
       (\<forall>g zs. \<not>(g = f) \<or> \<not>(length zs = card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) \<longrightarrow> intrp_fn M g zs = intrp_fn I g zs) \<and>
       is_interpretation (language {skolem1 f x \<phi>}) M \<and>
-      (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M, \<beta> \<Turnstile> (skolem1 f x \<phi>)))) \<and>
+      (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>, \<beta> \<Turnstile> (skolem1 f x \<phi>)))) \<and>
   (\<forall>(N :: 'a intrp). is_interpretation (language {skolem1 f x \<phi>}) N \<and>
     \<not> (dom N = {}) \<longrightarrow>
-    (\<forall>\<beta>. is_valuation N \<beta> \<and> N, \<beta> \<Turnstile> (skolem1 f x \<phi>) \<longrightarrow> N, \<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>)))
+    (\<forall>\<beta>. is_valuation N \<beta> \<and> N\<^bold>, \<beta> \<Turnstile> (skolem1 f x \<phi>) \<longrightarrow> N\<^bold>, \<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>)))
 \<close>
 proof (clarsimp)
   have \<open>is_prenex (skolem1 f x \<phi>)\<close>
@@ -239,29 +254,30 @@ proof (clarsimp)
   qed
 
   moreover have \<open>\<forall>(I :: 'a intrp). is_interpretation (language {\<phi>}) I \<and> dom I \<noteq> {} \<and>
-         (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)) \<longrightarrow>
+         (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I\<^bold>,\<beta>(x := a) \<Turnstile> \<phi>)) \<longrightarrow>
          (\<exists>M. dom M = dom I \<and>
               intrp_rel M = intrp_rel I \<and>
               (\<forall>g zs. (g = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})) \<longrightarrow>
                  intrp_fn M g zs = intrp_fn I g zs) \<and>
               is_interpretation (language {skolem1 f x \<phi>}) M \<and>
-              (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M,\<beta> \<Turnstile> skolem1 f x \<phi>))\<close>
+              (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> skolem1 f x \<phi>))\<close>
   proof clarsimp
     fix I :: "'a intrp"
     assume interp_I: \<open>is_interpretation (language {\<phi>}) I\<close> and
       nempty_I: \<open>dom I \<noteq> {}\<close> and
-      ex_a_mod_phi: \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
+      ex_a_mod_phi: \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I\<^bold>,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
     define intrp_f where \<open>intrp_f = (\<lambda>zs. (fold (\<lambda>kv f. fun_upd f (fst kv) (snd kv))
                         (zip (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) zs) (\<lambda>z. SOME c. c \<in> dom I)))\<close>
-    have M_is_struct: \<open>struct (dom I) (\<lambda>g zs. if ((g = f) \<and> (length zs = card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))
-                      then (SOME a. a \<in> dom I \<and> (I, (intrp_f zs)(x := a) \<Turnstile> \<phi>))
-                      else intrp_fn I g zs) (intrp_rel I)\<close>
-    proof
+    have M_is_struct: \<open>struct (dom I)\<close> (* (\<lambda>g zs. if ((g = f) \<and> (length zs = card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))
+                      then (SOME a. (a \<in> dom I) \<and> (I\<^bold>\<^bold>,((intrp_f zs)(x := a)) \<Turnstile> \<phi>))
+                      else intrp_fn I g zs) (intrp_rel I)\<close> *)
+      using nempty_I intrp_is_struct by blast
+(*    proof
       show \<open>dom I \<noteq> {}\<close>
         using nempty_I .
-    next
+   next
       show  \<open>\<forall>fa zs. (\<forall>e\<in>set zs. e \<in> dom I) \<longrightarrow> (if fa = f \<and> length zs = card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))
-        then SOME a. a \<in> dom I \<and> I, (intrp_f zs)(x := a) \<Turnstile> \<phi>
+        then SOME a. a \<in> dom I \<and> I\<^bold>, (intrp_f zs)(x := a) \<Turnstile> \<phi>
         else intrp_fn I fa zs) \<in> dom I\<close>
       proof (clarsimp, rule conjI, (rule impI)+)
         fix fa and zs :: "'a list"
@@ -272,9 +288,9 @@ proof (clarsimp)
         have \<open>\<forall>v. (intrp_f zs) v \<in> dom I\<close>
           using fun_upds_prop[OF len_eq zs_in] unfolding intrp_f_def
           by (simp add: nempty_I some_in_eq)
-        then have \<open>\<exists>a. a \<in> dom I \<and> I, (intrp_f zs)(x := a) \<Turnstile> \<phi>\<close>
+        then have \<open>\<exists>a. a \<in> dom I \<and> I\<^bold>, (intrp_f zs)(x := a) \<Turnstile> \<phi>\<close>
           using ex_a_mod_phi by blast
-        then show \<open>(SOME a. a \<in> dom I \<and> I,(intrp_f zs)(x := a) \<Turnstile> \<phi>) \<in> dom I\<close>
+        then show \<open>(SOME a. a \<in> dom I \<and> I\<^bold>,(intrp_f zs)(x := a) \<Turnstile> \<phi>) \<in> dom I\<close>
           by (metis (no_types, lifting) someI_ex)
       next
         fix fa and zs :: "'a list"
@@ -290,11 +306,11 @@ proof (clarsimp)
     next
       show \<open>\<forall>p. \<forall>es\<in>intrp_rel I p. \<forall>e\<in>set es. e \<in> dom I\<close>
         by (meson intrp_is_struct struct_def)
-    qed
+    qed *)
     define M :: "'a intrp" where \<open>M =  Abs_intrp
                     ((dom I), 
                     (\<lambda>g zs. if ((g = f) \<and> (length zs = card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))
-                      then (SOME a. a \<in> dom I \<and> (I, (intrp_f zs)(x := a) \<Turnstile> \<phi>))
+                      then (SOME a. a \<in> dom I \<and> (I\<^bold>, (intrp_f zs)(x := a) \<Turnstile> \<phi>))
                       else intrp_fn I g zs),
                     (intrp_rel I))\<close>
     have dom_M_I_eq: \<open>dom M = dom I\<close>
@@ -304,7 +320,8 @@ proof (clarsimp)
     have intrp_fn_eq: \<open>(\<forall>g zs. (g = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})) \<longrightarrow>
                  intrp_fn M g zs = intrp_fn I g zs)\<close>
       using M_is_struct unfolding M_def by simp
-    have in_dom_I: \<open>fold (\<lambda>l b. b \<and> l \<in> dom M) zs True \<Longrightarrow> length zs = card (FV \<phi> - {x}) \<Longrightarrow> intrp_fn M f zs \<in> dom I\<close> for zs
+    have in_dom_I: \<open>fold (\<lambda>l b. b \<and> l \<in> dom M) zs True \<Longrightarrow> length zs = card (FV \<phi> - {x}) \<Longrightarrow>
+      intrp_fn M f zs \<in> dom I\<close> for zs
     proof -
       assume len_eq: \<open>length zs = card (FV \<phi> - {x})\<close> and
         zs_in: \<open>fold (\<lambda>l b. b \<and> l \<in> dom M) zs True\<close>
@@ -325,13 +342,14 @@ proof (clarsimp)
       qed
       then have zs_in2: \<open>\<forall>z\<in>set zs. z \<in> dom I\<close>
         using zs_in dom_M_I_eq by simp
-      have \<open>(intrp_fn M) f zs = (SOME a. a \<in> dom I \<and> I, (intrp_f zs)(x := a) \<Turnstile> \<phi>)\<close>
+      have \<open>(intrp_fn M) f zs = (SOME a. a \<in> dom I \<and> I\<^bold>, (intrp_f zs)(x := a) \<Turnstile> \<phi>)\<close>
         unfolding M_def using len_eq M_is_struct by auto
       have \<open>\<forall>v. (intrp_f zs) v \<in> dom I\<close>
           using fun_upds_prop[OF len_eq2 zs_in2] nempty_I some_in_eq unfolding intrp_f_def
           by (metis (no_types, lifting) Eps_cong)
       then show \<open>intrp_fn M f zs \<in> dom I\<close>
-        using nempty_I ex_a_mod_phi by (metis FN_dom_to_dom dom_M_I_eq zs_in2)
+        using nempty_I ex_a_mod_phi (* by (metis dom_M_I_eq zs_in2) *) 
+        sorry
     qed
     have is_interp_M: \<open>is_interpretation (language {skolem1 f x \<phi>}) M\<close>
       unfolding is_interpretation_def
@@ -348,26 +366,26 @@ proof (clarsimp)
         unfolding language_def is_interpretation_def
         by (metis l_in_dom_I prod.inject)
     qed
-    find_theorems " _, _ \<Turnstile> _" name: indep
+    find_theorems " _\<^bold>, _ \<Turnstile> _" name: indep
     thm holds_indep_intrp_if swap_subst_eval subst_lemma_terms holds.induct
-    have holds_M_phi: \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
+    have holds_M_phi: \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
     proof clarsimp
       fix \<beta> :: "nat \<Rightarrow> 'a"
       assume eval_in_dom: \<open>\<forall>v. \<beta> v \<in> dom M\<close>
-      then have \<open>\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>\<close>
+      then have \<open>\<exists>a\<in>dom I. I\<^bold>,\<beta>(x := a) \<Turnstile> \<phi>\<close>
         using ex_a_mod_phi dom_M_I_eq by blast
-      then have \<open>x \<notin> FV \<phi> \<Longrightarrow> I,\<beta> \<Turnstile> \<phi>\<close>
+      then have \<open>x \<notin> FV \<phi> \<Longrightarrow> I\<^bold>,\<beta> \<Turnstile> \<phi>\<close>
         using holds_indep_\<beta>_if by (metis fun_upd_other)
       thm holds.induct size_wf_ind
-      have \<open>M,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
+      have \<open>M\<^bold>,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
         using ex_a_mod_phi
       proof (induction \<phi> rule: size_wf_induct)
         case (1 \<psi>)
-        assume ex_a_mod_psi: \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<psi>)\<close> and
+        assume ex_a_mod_psi: \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I\<^bold>,\<beta>(x := a) \<Turnstile> \<psi>)\<close> and
           IH: \<open>size y < size \<psi> \<Longrightarrow>
-            \<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> y) \<Longrightarrow>
-            M,\<beta> \<Turnstile> skolem1 f x y\<close> for y
-        have holds_psi: \<open>\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<psi>\<close>
+            \<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I\<^bold>,\<beta>(x := a) \<Turnstile> y) \<Longrightarrow>
+            M\<^bold>,\<beta> \<Turnstile> skolem1 f x y\<close> for y
+        have holds_psi: \<open>\<exists>a\<in>dom I. I\<^bold>,\<beta>(x := a) \<Turnstile> \<psi>\<close>
           using ex_a_mod_psi eval_in_dom dom_M_I_eq by blast
         then show ?case
         proof (cases \<psi>)
@@ -394,7 +412,7 @@ proof (clarsimp)
         qed
       qed
 
-      have \<open>\<forall>v. \<beta> v \<in> dom M \<Longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>) \<Longrightarrow> M,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
+      have \<open>\<forall>v. \<beta> v \<in> dom M \<Longrightarrow> (\<exists>a\<in>dom I. I\<^bold>,\<beta>(x := a) \<Turnstile> \<phi>) \<Longrightarrow> M\<^bold>,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
       proof (induction \<phi> arbitrary: \<beta>)
         case Bot
         then show ?case by auto
@@ -411,33 +429,33 @@ proof (clarsimp)
       qed
       thm subst_lemma_terms
       find_theorems subst holds
-      then have \<open>M,(\<lambda>v. \<lbrakk>subst x (Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))) v\<rbrakk>\<^bsup>M,\<beta>\<^esup>) \<Turnstile> \<phi>\<close>
+      then have \<open>M\<^bold>,(\<lambda>v. \<lbrakk>subst x (Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))) v\<rbrakk>\<^bsup>M,\<beta>\<^esup>) \<Turnstile> \<phi>\<close>
         sorry
-      then show \<open>M,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
+      then show \<open>M\<^bold>,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
         unfolding skolem1_def using swap_subst_eval by blast
     qed
     show \<open>\<exists>M. dom M = dom I \<and>
       intrp_rel M = intrp_rel I \<and>
       (\<forall>g zs. (g = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})) \<longrightarrow> intrp_fn M g zs = intrp_fn I g zs) \<and>
       is_interpretation (language {skolem1 f x \<phi>}) M \<and>
-      (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M,\<beta> \<Turnstile> skolem1 f x \<phi>)\<close>
+      (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> skolem1 f x \<phi>)\<close>
       using dom_M_I_eq intrp_rel_eq intrp_fn_eq is_interp_M holds_M_phi by blast
   qed
 
   moreover have \<open>\<forall>(N :: 'a intrp). is_interpretation (language {skolem1 f x \<phi>}) N \<and> dom N \<noteq> {} \<longrightarrow>
          (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom N) \<and>
-           N,\<beta> \<Turnstile> skolem1 f x \<phi> \<longrightarrow> (\<exists>a\<in>dom N. N,\<beta>(x := a) \<Turnstile> \<phi>))\<close>
+           N\<^bold>,\<beta> \<Turnstile> skolem1 f x \<phi> \<longrightarrow> (\<exists>a\<in>dom N. N\<^bold>,\<beta>(x := a) \<Turnstile> \<phi>))\<close>
   proof clarsimp
     fix N :: "'a intrp" and \<beta>
     assume is_intrp: \<open>is_interpretation (language {skolem1 f x \<phi>}) N\<close> and
       nempty_N: \<open>dom N \<noteq> {}\<close> and
       is_val: \<open>\<forall>v. \<beta> v \<in> dom N\<close> and
-      skol_holds: \<open>N,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
-    then have \<open>N,(\<lambda>v. \<lbrakk>subst x (Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))) v\<rbrakk>\<^bsup>N,\<beta>\<^esup>) \<Turnstile> \<phi>\<close>
+      skol_holds: \<open>N\<^bold>,\<beta> \<Turnstile> skolem1 f x \<phi>\<close>
+    then have \<open>N\<^bold>,(\<lambda>v. \<lbrakk>subst x (Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))) v\<rbrakk>\<^bsup>N,\<beta>\<^esup>) \<Turnstile> \<phi>\<close>
       unfolding skolem1_def using swap_subst_eval by blast
-    then have holds_eval_f: \<open>N,\<beta>(x := \<lbrakk>Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))\<rbrakk>\<^bsup>N,\<beta>\<^esup>) \<Turnstile> \<phi>\<close>
+    then have holds_eval_f: \<open>N\<^bold>,\<beta>(x := \<lbrakk>Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))\<rbrakk>\<^bsup>N,\<beta>\<^esup>) \<Turnstile> \<phi>\<close>
       by (smt (verit, best) eval.simps(1) fun_upd_other fun_upd_same holds_indep_\<beta>_if subst_def)
-    show \<open>\<exists>a\<in>dom N. N,\<beta>(x := a) \<Turnstile> \<phi>\<close>
+    show \<open>\<exists>a\<in>dom N. N\<^bold>,\<beta>(x := a) \<Turnstile> \<phi>\<close>
     proof (cases \<open>x \<in> FV \<phi>\<close>)
       case True
       have eval_to_intrp: \<open>\<lbrakk>Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))\<rbrakk>\<^bsup>N,\<beta>\<^esup> =
@@ -464,7 +482,7 @@ proof (clarsimp)
       case False
       obtain a where a_in: \<open>a \<in> dom N\<close>
         using nempty_N by blast
-      then have \<open>N,\<beta>(x := a) \<Turnstile> \<phi>\<close>
+      then have \<open>N\<^bold>,\<beta>(x := a) \<Turnstile> \<phi>\<close>
         using holds_eval_f False by (metis fun_upd_other holds_indep_\<beta>_if)
       then show ?thesis
         using a_in by blast
@@ -478,16 +496,16 @@ proof (clarsimp)
     functions_form \<phi> \<subseteq> functions_form (skolem1 f x \<phi>) \<and>
     functions_form (skolem1 f x \<phi>) \<subseteq> (f, card (FV \<phi> - {x})) \<triangleright> functions_form \<phi> \<and>
     (\<forall>(I :: 'a intrp). is_interpretation (language {\<phi>}) I \<and> dom I \<noteq> {} \<and>
-         (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)) \<longrightarrow>
+         (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom I) \<longrightarrow> (\<exists>a\<in>dom I. I\<^bold>,\<beta>(x := a) \<Turnstile> \<phi>)) \<longrightarrow>
          (\<exists>M. dom M = dom I \<and>
               intrp_rel M = intrp_rel I \<and>
               (\<forall>g zs. (g = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})) \<longrightarrow>
                  intrp_fn M g zs = intrp_fn I g zs) \<and>
               is_interpretation (language {skolem1 f x \<phi>}) M \<and>
-              (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M,\<beta> \<Turnstile> skolem1 f x \<phi>))) \<and>
+              (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom M) \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> skolem1 f x \<phi>))) \<and>
     (\<forall>N. is_interpretation (language {skolem1 f x \<phi>}) N \<and> dom N \<noteq> {} \<longrightarrow>
          (\<forall>\<beta>. (\<forall>v. \<beta> v \<in> dom N) \<and>
-         N,\<beta> \<Turnstile> skolem1 f x \<phi> \<longrightarrow> (\<exists>a\<in>dom N. N,\<beta>(x := a) \<Turnstile> \<phi>)))\<close>
+         N\<^bold>,\<beta> \<Turnstile> skolem1 f x \<phi> \<longrightarrow> (\<exists>a\<in>dom N. N\<^bold>,\<beta>(x := a) \<Turnstile> \<phi>)))\<close>
     sorry
 qed
 
