@@ -13,12 +13,10 @@ locale struct =
     FN :: \<open>nat \<Rightarrow> 'm list \<Rightarrow> 'm\<close> and
     REL :: \<open>nat \<Rightarrow> 'm list set\<close> (* in hol-ligh a boolean is returned instead *)
   assumes
-    M_nonempty: \<open>M \<noteq> {}\<close> and 
-    FN_dom_to_dom: \<open>\<forall> f es. (\<forall> e \<in> set es. e \<in> M) \<longrightarrow> FN f es \<in> M\<close> and
-    REL_to_dom: \<open>\<forall> p. \<forall> es \<in> REL p. \<forall> e \<in> set es. e \<in> M\<close> 
+    M_nonempty: \<open>M \<noteq> {}\<close>
 
 typedef 'm intrp =
-  \<open>{ (M :: 'm set, FN :: nat \<Rightarrow> 'm list \<Rightarrow> 'm, REL :: nat \<Rightarrow> 'm list set). struct M FN REL }\<close>
+  \<open>{ (M :: 'm set, FN :: nat \<Rightarrow> 'm list \<Rightarrow> 'm, REL :: nat \<Rightarrow> 'm list set). struct M }\<close>
   using struct.intro
   by fastforce
 
@@ -28,21 +26,18 @@ lift_definition dom :: \<open>'m intrp \<Rightarrow> 'm set\<close> is fst .
 lift_definition intrp_fn :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm list \<Rightarrow> 'm)\<close> is \<open>fst \<circ> snd\<close> .
 lift_definition intrp_rel :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm list set)\<close> is \<open>snd \<circ> snd\<close> .
 
-lemma intrp_is_struct: \<open>struct (dom \<M>) (intrp_fn \<M>) (intrp_rel \<M>)\<close>
+lemma intrp_is_struct: \<open>struct (dom \<M>)\<close>
   by transfer auto 
 
-lemma dom_Abs_is_fst [simp]: \<open>struct M FN REL \<Longrightarrow> dom (Abs_intrp (M, FN, REL)) = M\<close>
+lemma dom_Abs_is_fst [simp]: \<open>struct M \<Longrightarrow> dom (Abs_intrp (M, FN, REL)) = M\<close>
   by (simp add: Abs_intrp_inverse dom.rep_eq) 
 
-lemma intrp_fn_Abs_is_fst_snd [simp]: \<open>struct M FN REL \<Longrightarrow> intrp_fn (Abs_intrp (M, FN, REL)) = FN\<close>
+lemma intrp_fn_Abs_is_fst_snd [simp]: \<open>struct M \<Longrightarrow> intrp_fn (Abs_intrp (M, FN, REL)) = FN\<close>
   by (simp add: Abs_intrp_inverse intrp_fn.rep_eq) 
 
 lemma intrp_rel_Abs_is_snd_snd [simp]: 
-  \<open>struct M FN REL \<Longrightarrow> intrp_rel (Abs_intrp (M, FN, REL)) = REL\<close>
+  \<open>struct M \<Longrightarrow> intrp_rel (Abs_intrp (M, FN, REL)) = REL\<close>
   by (simp add: Abs_intrp_inverse intrp_rel.rep_eq) 
-
-lemma FN_dom_to_dom: \<open>\<forall> t \<in> set ts. t \<in> dom \<M> \<Longrightarrow> intrp_fn \<M> f ts \<in> dom \<M>\<close>
-  by (meson intrp_is_struct struct.FN_dom_to_dom) 
 
 (* in hol-ligh: valuation *)
 definition is_valuation :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> bool\<close> where
@@ -69,28 +64,6 @@ lemma list_all_set: \<open>list_all P ls = (\<forall>l\<in>set ls. P l)\<close>
 definition is_interpretation where
   \<open>is_interpretation lang \<M> \<longleftrightarrow> 
     ((\<forall>f l. (f, length(l)) \<in> fst lang \<and> list_all (\<lambda>x. x \<in> dom \<M>) l \<longrightarrow> intrp_fn \<M> f l \<in> dom \<M>))\<close>
-
-lemma interpretation_termval: 
-  \<open>is_interpretation (functions_term t, preds) (\<M> :: (nat,nat) term intrp) \<Longrightarrow> is_valuation \<M> \<beta>
-  \<Longrightarrow> \<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> \<in> dom \<M>\<close>
-proof (induction t)
-  case (Var x)
-  then show ?case by simp
-next
-  case (Fun f ts)
-  have \<open>u \<in> set ts \<Longrightarrow> is_interpretation (functions_term u, preds) \<M>\<close> for u
-  proof -
-    fix u
-    assume \<open>u \<in> set ts\<close>
-    then have \<open>functions_term u \<subseteq> functions_term (Fun f ts)\<close> by auto
-    then show \<open>is_interpretation ((functions_term u), preds) \<M>\<close>
-      using Fun(2) unfolding is_interpretation_def by auto
-  qed
-  then have \<open>u \<in> set ts \<Longrightarrow> \<lbrakk>u\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> \<in> dom \<M>\<close> for u
-    using Fun(1) Fun(3) by presburger
-  then show ?case
-    by (simp add: FN_dom_to_dom)
-qed
 
 lemma interpretation_sublanguage: \<open>funs2 \<subseteq> funs1 \<Longrightarrow> is_interpretation (funs1, pred1) \<M>
   \<Longrightarrow> is_interpretation (funs2, preds2) \<M>\<close>
