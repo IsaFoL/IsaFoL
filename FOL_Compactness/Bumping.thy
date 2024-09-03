@@ -230,22 +230,24 @@ fun num_of_term :: "nterm \<Rightarrow> nat" where
 | \<open>num_of_term (Fun f ts) = numpair 1 (numpair f (numlist (map num_of_term ts)))\<close>
 
 (* to move in AFP theory First-Order Terms.Term *)
-lemma term_induct2: "(\<And>x y. P (Var x) (Var y)) \<Longrightarrow> (\<And>x g us. P (Var x) (Fun g us))
-   \<Longrightarrow> (\<And>f ts y. P (Fun f ts) (Var y)) \<Longrightarrow> (\<And>f ts g us. P (Fun f ts) (Fun g us))
-   \<Longrightarrow> P t1 t2"
-  by (metis term.collapse(1) term.collapse(2))
-
-lemma term_induct2': "(\<And>x y. P (Var x) (Var y)) \<Longrightarrow> (\<And>x g us. P (Var x) (Fun g us))
-   \<Longrightarrow> (\<And>f ts y. P (Fun f ts) (Var y))
-   \<Longrightarrow> (\<And>f ts g us. list_all2 P ts us \<Longrightarrow> P (Fun f ts) (Fun g us))
-   \<Longrightarrow> P t1 t2"
-  sorry
-
+lemma term_induct2:
+  "(\<And>x y. P (Var x) (Var y))
+    \<Longrightarrow> (\<And>x g us. P (Var x) (Fun g us))
+    \<Longrightarrow> (\<And>f ts y. P (Fun f ts) (Var y)) 
+    \<Longrightarrow> (\<And>f ts g us. (\<And>p q. p \<in> set ts \<Longrightarrow> q \<in> set us \<Longrightarrow> P p q) \<Longrightarrow> P (Fun f ts) (Fun g us))
+    \<Longrightarrow> P t1 t2"
+proof (induction t2 arbitrary: t1)
+  case (Var y)
+  then show ?case by (metis is_FunE is_VarE)
+next
+  case (Fun g us)
+  then have \<open>p \<in> set ts \<Longrightarrow> q \<in> set us \<Longrightarrow> P p q\<close> for ts p q
+    by blast
+  then show ?case
+    using Fun by (metis is_FunE is_VarE)
+qed
 (************************************************)
 
-(*
-NUM_OF_TERM_INJ = prove
- (`!s t. (num_of_term s = num_of_term t) = (s = t)`, *)
 lemma num_of_term_inj: \<open>num_of_term s = num_of_term t \<equiv> s = t\<close>
 proof (induction s t rule: term_induct2)
   case (1 x y)
@@ -253,7 +255,7 @@ proof (induction s t rule: term_induct2)
     by (metis num_of_term.simps(1) numsnd_simp)
 next
   case (2 x g us)
-  then show ?case
+  then show ?case 
     by (metis Term.term.simps(4) le_refl not_one_le_zero num_of_term.elims numpair_inj)
 next
   case (3 f ts y)
@@ -261,11 +263,24 @@ next
     by (metis Term.term.simps(4) not_one_le_zero num_of_term.elims numpair_inj order_refl)
 next
   case (4 f ts g us)
-  then show ?case
-    apply simp
-    using numpair_inj
-    sorry
+  have \<open>(Fun f ts = Fun g us) \<Longrightarrow> num_of_term (Fun f ts) = num_of_term (Fun g us)\<close>
+    by auto
+  moreover {
+    assume \<open>num_of_term (Fun f ts) = num_of_term (Fun g us)\<close>
+    then have \<open>numpair f (numlist (map num_of_term ts)) = numpair g (numlist (map num_of_term us))\<close>
+      using numpair_inj num_of_term.simps(2) by metis
+    then have fun_eq: \<open>f = g\<close> and nl_eq: \<open>numlist (map num_of_term ts) = (numlist (map num_of_term us))\<close>
+      using numpair_inj by blast+
+    then have "map num_of_term ts = map num_of_term us"
+      using numlist_inj by auto
+    then have args_eq: \<open>ts = us\<close>
+      using 4 by (metis list.inj_map_strong)
+    have \<open>Fun f ts = Fun g us\<close>
+      using fun_eq args_eq by simp
+  }
+  ultimately show ?case by auto
 qed
+
 
 
 
