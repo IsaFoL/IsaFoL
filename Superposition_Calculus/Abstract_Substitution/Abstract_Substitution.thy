@@ -473,6 +473,22 @@ lemma is_imgu_iff_is_idem_and_is_mgu: "is_imgu \<mu> XX \<longleftrightarrow> is
   by (auto simp add: is_imgu_def is_idem_def is_mgu_def simp flip: comp_subst.assoc)
 
 
+subsection \<open>IMGU can be used before unification\<close>
+
+lemma subst_imgu_subst_unifier:
+  assumes unif: "is_unifier \<upsilon> X" and imgu: "is_imgu \<mu> {X}" and "x \<in> X"
+  shows "x \<cdot> \<mu> \<cdot> \<upsilon> = x \<cdot> \<upsilon>"
+proof -
+  have "x \<cdot> \<mu> \<cdot> \<upsilon> = x \<cdot> (\<mu> \<odot> \<upsilon>)"
+    by simp
+
+  also have "\<dots> = x \<cdot> \<upsilon>"
+    using imgu unif by (simp add: is_imgu_def is_unifier_set_def)
+
+  finally show ?thesis .
+qed
+
+
 subsection \<open>Groundings Idempotence\<close>
 
 lemma image_ground_instances_ground_instances:
