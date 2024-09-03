@@ -281,26 +281,73 @@ next
   ultimately show ?case by auto
 qed
 
+fun num_of_form :: "form \<Rightarrow> nat" where
+  \<open>num_of_form \<^bold>\<bottom> = numpair 0 0\<close>
+| \<open>num_of_form (Atom p ts) = numpair 1 (numpair p (numlist (map num_of_term ts)))\<close>
+| \<open>num_of_form (\<phi> \<^bold>\<longrightarrow> \<psi>) = numpair 2 (numpair (num_of_form \<phi>) (num_of_form \<psi>))\<close>
+| \<open>num_of_form (\<^bold>\<forall>x\<^bold>. \<phi>) = numpair 3 (numpair x (num_of_form \<phi>))\<close>
 
+lemma numlist_num_of_term: \<open>numlist (map num_of_term ts) = (numlist (map num_of_term us)) \<equiv> ts = us\<close>
+  by (smt (verit, best) list.inj_map_strong num_of_term_inj numlist_inj)
 
+(* Shouldn't this already exist somewhere? *)
+lemma double_impl: assumes \<open>A \<Longrightarrow> B\<close> and \<open>B \<Longrightarrow> A\<close> shows \<open>A \<equiv> B\<close>
+  using assms(1) assms(2) by argo
 
+lemma num_of_form_inj: \<open>num_of_form \<phi> = num_of_form \<psi> \<equiv> \<phi> = \<psi>\<close>
+proof (rule double_impl)
+  show \<open>num_of_form \<phi> = num_of_form \<psi> \<Longrightarrow> \<phi> = \<psi>\<close>
+  proof (induct \<phi> arbitrary: \<psi> rule: num_of_form.induct)
+    case 1
+    then show ?case
+      by (metis num_of_form.elims num_of_form.simps(1) numpair_inj_x zero_neq_numeral zero_neq_one)
+  next
+    case (2 p ts)
+    then show ?case
+    proof (cases \<psi>)
+      case Bot
+      then show ?thesis
+        using "2" num_of_term_inj by fastforce
+    next
+      case (Atom q us)
+      then show ?thesis
+        using "2" numpair_inj
+        by (metis num_of_form.simps(2) numlist_num_of_term)
+    next
+      case (Implies \<psi>1 \<psi>2)
+      then show ?thesis
+        using "2" by (metis One_nat_def nat.simps(1) num_of_form.simps(2)
+            num_of_form.simps(3) numpair_inj_x one_add_one plus_1_eq_Suc zero_neq_one)
+    next
+      case (Forall y \<psi>1)
+      then have \<open>\<exists>k. num_of_form \<psi> = numpair 3 k\<close> 
+        by auto
+      moreover have \<open>\<exists>k'. num_of_form (Atom p ts) = numpair 1 k'\<close>
+        by auto
+      ultimately show ?thesis using "2" numpair_inj
+        by (metis numeral_eq_one_iff semiring_norm(86))
+    qed
+  next
+    case (3 \<phi>1 \<phi>2)
+    then show ?case
+      by (smt (verit, best) One_nat_def nat.simps(1) nat.simps(3) num_of_form.elims
+          num_of_form.simps(3) numeral_3_eq_3 numerals(2) numpair_inj)
+  next
+    case (4 x \<phi>1)
+    then show ?case
+      by (smt (verit, ccfv_SIG) Suc_eq_numeral num_of_form.elims num_of_form.simps(4) numeral_3_eq_3
+          numeral_eq_one_iff numerals(2) numpair_inj semiring_norm(86) zero_neq_numeral)
+  qed
+qed auto
 
+consts form_of_num :: "nat \<Rightarrow> form"
+specification (form_of_num) \<open>\<forall>n. form_of_num n = (THE \<phi>. num_of_form \<phi> = n)\<close>
+  using num_of_form_inj by force
 
+find_theorems form_of_num
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+(* FORM_OF_NUM in hol-light *)
+lemma form_of_num_of_form [simp]: \<open>form_of_num(num_of_form \<phi>) = \<phi>\<close>
+  using  HOL.nitpick_choice_spec(3) num_of_form_inj by simp
 
 end
