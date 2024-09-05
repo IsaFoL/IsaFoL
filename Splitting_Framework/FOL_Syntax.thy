@@ -50,8 +50,6 @@ datatype form =
 | Implies form form (infixl \<open>\<^bold>\<longrightarrow>\<close> 85)
 | Forall nat form (\<open>\<^bold>\<forall> _\<^bold>. _\<close> [0, 70] 70)
 
-find_theorems \<open>_ \<or> _ \<close>name: FOL_Syntax.form
-
 fun functions_form :: \<open>form \<Rightarrow> (nat \<times> nat) set\<close> where
   \<open>functions_form \<^bold>\<bottom> = {}\<close>
 | \<open>functions_form (Atom p ts) = (\<Union> t \<in> set ts. functions_term t)\<close> 

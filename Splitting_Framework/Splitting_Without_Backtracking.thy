@@ -830,7 +830,11 @@ qed
 
 lemma minus_\<G>_Fset_to_\<G>_Fset_minus: \<open>C \<in> \<G>_Fset M - \<G>_Fset N \<Longrightarrow> C \<in> \<G>_Fset (M - N)\<close>
   unfolding \<G>_Fset_def \<G>_F_def
-  by blast 
+  by blast
+
+thm COMPACT_LS
+term satisfies
+
 
 lemma entails_\<G>_conj_singleton_compact:
   \<open>M \<TTurnstile>\<inter>\<G>e {C} \<Longrightarrow> \<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> M' \<TTurnstile>\<inter>\<G>e {C}\<close> 
@@ -886,6 +890,7 @@ proof (standard)
     using Union_M'_subset_M finite_Union_M'
     by blast 
 qed
+
 
 lemma unsat_equiv3: \<open>\<not> satisfiable (\<Union> C \<in> M. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}) \<longleftrightarrow> M \<TTurnstile>\<inter>\<G>e {{#}}\<close>
   unfolding F.entails_\<G>_def \<G>_F_def
