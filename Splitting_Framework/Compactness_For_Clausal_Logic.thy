@@ -5,8 +5,14 @@ theory Compactness_For_Clausal_Logic
   imports
     Ordered_Resolution_Prover.Clausal_Logic
     FOL_Syntax
+    Nested_Multisets_Ordinals.Multiset_More
     (*Weighted_Path_Order.WPO*)
 begin
+
+(* TODO: 
+     - move count and related lemmas to separate file, see if it can be merged to the List theory
+     - move list_from_mset to separate file, see if it can be merged to AFP Multiset_More theory
+ *)
 
 fun count :: "'a list \<Rightarrow> 'a \<Rightarrow> nat" where
   \<open>count [] x = 0\<close>
@@ -18,6 +24,17 @@ lemma null_count: \<open>a \<notin> set l \<Longrightarrow> count l a = 0\<close
 lemma count_plus_one: \<open>a \<in> set l \<Longrightarrow> count (a # l) a = 1 + count l a\<close>
   by (induction l) auto
 
+lemma length_count_one: \<open>length l = 1 \<Longrightarrow> count l a = 1 \<Longrightarrow> l = [a]\<close>
+proof (induction l)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons x l)
+  have \<open>l = []\<close> using Cons(2) by simp
+  moreover have \<open>x = a\<close>
+    using Cons by (metis calculation count.elims count.simps(2) list.distinct(1) zero_neq_one)
+  ultimately show ?case by simp
+qed
 
 lemma count_sum_cons: \<open>sum (count (a # l)) (set (a # l)) = 1 + sum (count l) (set l)\<close>
 proof (cases "a \<in> set l")
@@ -45,7 +62,7 @@ next
     by simp
 qed
 
-lemma \<open>length l = sum (\<lambda>x. count l x) (set l)\<close>
+lemma length_is_sum_count: \<open>length l = sum (\<lambda>x. count l x) (set l)\<close>
 proof (induction l)
   case Nil
   then show ?case by simp
@@ -60,8 +77,12 @@ next
   finally show ?case .
 qed
 
+lemma set_as_counts: \<open>set l = {x. 0 < count l x}\<close>
+  by (induction l) auto
+
+
 definition list_of_mset :: "'a multiset \<Rightarrow> 'a list" where
-  \<open>list_of_mset m = (SOME l. (\<forall>x. count l x = (Multiset.count m x)))\<close>
+  \<open>list_of_mset m = (SOME l. (\<forall>x. count l x = (multiset.count m x)))\<close>
 
 lemma empty_list_of_mset: "list_of_mset {#} = []"
   unfolding list_of_mset_def
@@ -80,18 +101,189 @@ proof -
     using f1 by (metis (lifting) One_nat_def add_is_0 count.simps(2) nat.simps(3))
 qed
 
-lemma \<open>size M = length (list_of_mset M)\<close>
-  using size_multiset_overloaded_eq
-  sorry
 
-lemma \<open>size M = length (list_of_mset M)\<close>
+
+lemma list_of_mset_always_exists: \<open>\<exists>l. (\<forall>x. count l x = (Multiset.count m x))\<close>
+proof (induction m)
+  case empty
+  then show ?case
+    by (metis count.simps(1) count_empty)
+next
+  case (add a m)
+  then obtain l where l_is: \<open>\<forall>x. count l x = multiset.count m x\<close>
+    by blast
+  then have \<open>\<forall>x. count (a#l) x = multiset.count (add_mset a m) x\<close>
+    by simp
+  then show ?case by blast
+qed
+
+thm someI_ex
+
+lemma count_list_of_mset: \<open>\<forall>x. count (list_of_mset m) x = (Multiset.count m x)\<close>
+  using someI_ex[OF list_of_mset_always_exists] unfolding list_of_mset_def .
+(*proof
+  fix x
+  show \<open>count (list_of_mset m) x = (Multiset.count m x)\<close>
+  proof (induction "list_of_mset m" arbitrary: m)
+    case Nil
+    then show ?case
+      using empty_list_of_mset_empty count_empty
+      sledgehammer
+      by (metis count.simps(1) count_empty)
+  next
+    case (Cons a as)
+    obtain m_as as_mixed where \<open>as_mixed = list_of_mset m_as\<close> \<open>mset as = mset as_mixed\<close>
+      by simp
+    then have \<open>count (list_of_mset m_as) x = (Multiset.count m_as x)\<close>
+      using Cons(1) unfolding list_of_mset_def
+      sorry
+    then show ?case  sorry
+  qed
+(*    case empty
+    then show ?case 
+      using list_of_mset_empty by (metis count.simps(1) count_empty)
+  next
+    case (add a m)
+    then show ?case sorry
+  qed
+    sorry
+qed *)*)
+
+lemma count_x_list_of_mset: \<open>count (list_of_mset m) x = multiset.count m x\<close>
+  using count_list_of_mset by fast
+
+lemma set_list_of_mset_equiv_set_mset: \<open>set (list_of_mset m) = set_mset m\<close>
+proof (induction m)
+  case empty
+  then show ?case
+    using empty_list_of_mset by auto
+next
+  case (add a m)
+  have \<open>set (list_of_mset (add_mset a m)) = {a} \<union> set (list_of_mset m)\<close>
+  proof -
+    have \<open>set (list_of_mset (add_mset a m)) = {x. 0 < count (list_of_mset (add_mset a m)) x}\<close>
+      using set_as_counts by fast
+    also have \<open>... = {x. 0 < multiset.count (add_mset a m) x}\<close>
+      using count_x_list_of_mset by metis
+    also have \<open>... = {a} \<union> {x. 0 < multiset.count m x}\<close>
+      by auto
+    also have \<open>... = {a} \<union> {x. 0 < count (list_of_mset m) x}\<close>
+      using count_x_list_of_mset by metis
+    also have \<open>... = {a} \<union> set (list_of_mset m)\<close>
+      using set_as_counts by fast
+    finally show \<open>set (list_of_mset (add_mset a m)) = {a} \<union> set (list_of_mset m)\<close> .
+  qed
+  then show ?case
+    using add by simp
+qed
+
+lemma sum_count_add_mset_list: 
+  \<open>sum (count (list_of_mset (add_mset a m))) (set (list_of_mset (add_mset a m))) =
+    1 + sum (count (list_of_mset m)) (set (list_of_mset m))\<close>
+proof -
+  have \<open>sum (count (list_of_mset (add_mset a m))) (set (list_of_mset (add_mset a m))) =
+    sum (\<lambda>x. multiset.count (add_mset a m) x) (set (list_of_mset (add_mset a m)))\<close>
+    using count_x_list_of_mset by meson
+  also have \<open>... = sum (\<lambda>x. multiset.count (add_mset a m) x) (set_mset (add_mset a m))\<close>
+    using set_list_of_mset_equiv_set_mset by metis
+  also have \<open>... = 1 + sum (\<lambda>x. multiset.count m x) (set_mset m)\<close>
+    by (metis plus_1_eq_Suc size_add_mset size_multiset_overloaded_eq)
+  also have \<open>... = 1 + sum (\<lambda>x. multiset.count m x) (set (list_of_mset m))\<close>
+    using set_list_of_mset_equiv_set_mset by metis
+  also have \<open>... = 1 + sum (count (list_of_mset m)) (set (list_of_mset m))\<close>
+    using count_x_list_of_mset by metis
+  finally show ?thesis . 
+qed
+
+lemma size_is_length_list_of_mset: \<open>size M = length (list_of_mset M)\<close>
 proof (induction M)
   case empty
   then show ?case
     using empty_list_of_mset by simp
 next
   case (add x M)
+  have \<open>length (list_of_mset (add_mset x M)) = length (list_of_mset M) + 1\<close>
+  proof -
+    let ?l_add = \<open>list_of_mset (add_mset x M)\<close> and ?l = \<open>list_of_mset M\<close>
+    have \<open>length ?l_add = sum (\<lambda>x. count ?l_add x) (set ?l_add)\<close>
+      using length_is_sum_count[of ?l_add] .
+    also have \<open>... = 1 + sum (\<lambda>x. count ?l x) (set ?l)\<close>
+      using sum_count_add_mset_list by fast
+    also have \<open>... = 1 + length (list_of_mset M)\<close>
+      using length_is_sum_count[of ?l] by argo
+    finally show \<open>length (list_of_mset (add_mset x M)) = length (list_of_mset M) + 1\<close>
+      by auto
+  qed
+  then show ?case
+    using add by auto
+qed
+
+lemma list_of_msingleton: \<open>list_of_mset {#x#} = [x]\<close>
+proof -
+  have \<open>length (list_of_mset {#x#}) = 1\<close>
+    using size_is_length_list_of_mset by (metis size_single)
+  moreover have \<open>count (list_of_mset {#x#}) x = 1\<close>
+    by (simp add: count_x_list_of_mset)
+  ultimately show ?thesis
+    using length_count_one by fast
+qed
+
+lemma length_list_of_add_mset: \<open>length (list_of_mset (add_mset x M)) = length (list_of_mset M) + 1\<close>
+proof (induction M)
+  case empty
+  then show ?case
+    using list_of_msingleton
+    by (simp add: length_is_sum_count sum_count_add_mset_list)
+next
+  case (add x M)
+  then show ?case
+    using size_is_length_list_of_mset by (metis Suc_eq_plus1 size_add_mset)
+qed
+
+lemma count_list_mset: \<open>count l x = multiset.count (mset l) x\<close>
+  by (induction l) auto
+
+find_theorems count
+thm count_list_mset
+
+lemma \<open>count (Multiset_More.list_of_mset m) x = multiset.count m x\<close>
+  using count_list_mset by (metis mset_list_of_mset)
+
+lemma count_mset_list_of_mset: \<open>multiset.count (mset (list_of_mset m)) x = multiset.count m x\<close>
+  using count_list_mset by (metis count_x_list_of_mset)
+
+lemma mset_list_of_mset[simp]: \<open>mset (list_of_mset m) = m\<close>
+  using count_mset_list_of_mset by (metis multi_count_eq)
+
+lemma list_of_mset_exi: "\<exists>l. m = mset l"
+  using mset_list_of_mset by metis
+
+lemma \<open>mset l = mset (list_of_mset m) \<Longrightarrow> mset l = m\<close>
+proof (induction l arbitrary: m)
+  case Nil
+  then have \<open>m = {#}\<close>
+    using empty_list_of_mset by (metis mset_zero_iff size_eq_0_iff_empty size_is_length_list_of_mset)
+  then show ?case by auto
+next
+  case (Cons a l)
+  then have \<open>mset l = mset (list_of_mset m) - {#a#}\<close>
+    by (metis add_mset_remove_trivial mset.simps(2))
+  obtain l2 where \<open>l2 = list_of_mset (mset (list_of_mset m) - {#a#})\<close>
+    by blast
   then show ?case sorry
+qed
+
+
+lemma \<open>mset (list_of_mset (add_mset a m)) = add_mset a (mset (list_of_mset m))\<close>
+proof (induction m arbitrary: a)
+  case empty
+  then show ?case
+    using list_of_msingleton
+    by (metis empty_list_of_mset mset.simps(2))
+next
+  case (add x M)
+  then show ?case
+     sorry (* by (metis Suc_eq_plus1 size_add_mset) *)
 qed
 
 
@@ -267,7 +459,7 @@ lemma shallow_neg_to_nlit_to_neg: \<open>is_shallow_neg \<phi> \<Longrightarrow>
 type_synonym nclause = "natom clause"
 
 definition nclause_to_form :: "nclause \<Rightarrow> form" where
-  \<open>nclause_to_form C = fold (\<lambda>l \<phi>. \<phi> \<^bold>\<or> (nlit_to_form l)) (list_of_mset C) form.Bot\<close>
+  \<open>nclause_to_form C = foldr (\<lambda>l \<phi>. \<phi> \<^bold>\<or> (nlit_to_form l)) (list_of_mset C) form.Bot\<close>
 
 fun is_clausal :: "form \<Rightarrow> bool" where
   \<open>is_clausal form.Bot = True\<close>
@@ -293,43 +485,51 @@ fun form_to_nclause :: \<open>form \<Rightarrow> nclause option\<close> where
 definition no_bot :: "nclause \<Rightarrow> bool" where
   \<open>no_bot C = (Multiset.count C (Pos natom.Bot) = 0)\<close>
 
-lemma length_list_of_add_mset: \<open>l = list_of_mset (add_mset x M) \<Longrightarrow> length l = length (list_of_mset M) + 1\<close>
-proof (induction M)
-  case empty
-  then show ?case
-    using empty_list_of_mset
-     sorry
-next
-  case (add x M)
-  then show ?case sorry
-qed
-
 lemma no_bot_add: \<open>no_bot (add_mset l C) \<Longrightarrow> no_bot C\<close>
   unfolding no_bot_def
   by (metis Zero_neq_Suc add_mset.rep_eq)
-
-find_theorems name: mset name: induct
 
 lemma \<open>no_bot C \<Longrightarrow> the (form_to_nclause (nclause_to_form C)) = C\<close>
 proof (induction "size C" arbitrary: C)
   case 0
   then show ?case
     unfolding no_bot_def nclause_to_form_def 
-    using empty_list_of_mset fold_simps(1) form_to_nclause.simps(1) option.sel
-    by (smt (verit, best) size_eq_0_iff_empty)
+    using empty_list_of_mset form_to_nclause.simps(1) option.sel
+    by (smt (verit) foldr.simps(1) id_apply size_eq_0_iff_empty)
 next
   case (Suc x)
-  then have \<open>\<exists>l D. C = add_mset l D\<close>
+  then have \<open>\<exists>l ls. list_of_mset C = l # ls\<close>
+    using size_is_length_list_of_mset by (metis Suc.hyps(2) length_Suc_conv)
+  then obtain l ls where l_ls_are: \<open>list_of_mset C = l # ls\<close>
+    by blast
+  define D where \<open>D = mset ls\<close>
+  then have \<open>size D = x\<close>
+    using l_ls_are Suc(2)
+    by (metis diff_Suc_1 length_Cons size_is_length_list_of_mset size_mset)
+  moreover have \<open>no_bot D\<close>
+    using Suc(3) D_def l_ls_are
+    by (metis Compactness_For_Clausal_Logic.mset_list_of_mset mset.simps(2) no_bot_add)
+  ultimately have \<open>the (form_to_nclause (nclause_to_form D)) = D\<close>
+    using Suc(1) by blast
+  find_theorems foldr
+  find_theorems foldl
+    (* TODO: find the right fold and detail steps in following "have" *)
+  have \<open>nclause_to_form C = (nclause_to_form D \<^bold>\<or> nlit_to_form l)\<close>
+    using l_ls_are D_def foldr_Cons[of "(\<lambda>l \<phi>. \<phi> \<^bold>\<longrightarrow> nlit_to_form l \<^bold>\<longrightarrow> nlit_to_form l)" l ls]
+    unfolding nclause_to_form_def
+    sorry
+  (*then have \<open>\<exists>l D. C = add_mset l D\<close>
     by (metis size_eq_Suc_imp_eq_union)
-  then obtain l D where \<open>C = add_mset l D\<close>
+  then obtain l D where C_is: \<open>C = add_mset l D\<close>
     by blast
   then have \<open>no_bot D\<close>
     using Suc(3) no_bot_add by blast
   moreover have \<open>size D = x\<close>
-    sorry
+    using C_is Suc(2) by auto
   ultimately have \<open>the (form_to_nclause (nclause_to_form D)) = D\<close>
-    using Suc(1) by blast
+    using Suc(1) by blast*)
   then show ?case
+    unfolding nclause_to_form_def
     sorry
 qed
 (*  case empty
