@@ -13,6 +13,7 @@ the \textsf{IsaFoR} library.
 
 theory IsaFoR_Term_Copy
   imports
+    Isabelle_2024_Compatibility
     First_Order_Terms.Unification
     "HOL-Cardinals.Wellorder_Extension"
     Open_Induction.Restricted_Predicates

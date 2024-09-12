@@ -24,6 +24,7 @@ theory Ground_Superposition
     Ground_Type_System
 begin
 
+
 hide_type Inference_System.inference
 hide_const
   Inference_System.Infer

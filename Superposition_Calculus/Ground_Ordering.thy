@@ -1,5 +1,6 @@
 theory Ground_Ordering
   imports
+    Isabelle_2024_Compatibility
     Ground_Clause
     Transitive_Closure_Extra
     Clausal_Calculus_Extra

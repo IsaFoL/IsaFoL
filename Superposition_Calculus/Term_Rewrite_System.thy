@@ -1,5 +1,6 @@
 theory Term_Rewrite_System
   imports
+    Isabelle_2024_Compatibility
     Regular_Tree_Relations.Ground_Ctxt
 begin
 
