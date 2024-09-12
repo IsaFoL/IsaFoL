@@ -6853,6 +6853,19 @@ theorem bisimulation_ord_res_1_ord_res_11:
     bisimulation_ord_res_10_ord_res_11
   using bisimulation_composition by meson
 
+theorem
+  obtains
+    MATCH :: "bisim_index_1_11 \<Rightarrow> 'f ord_res_1_state \<Rightarrow> 'f ord_res_11_state \<Rightarrow> bool" and
+    ORDER\<^sub>f ORDER\<^sub>b :: "bisim_index_1_11 \<Rightarrow> bisim_index_1_11 \<Rightarrow> bool"
+  where
+    "bisimulation
+      ord_res_1 (constant_context ord_res_11)
+      ord_res_1_final ord_res_11_final
+      ORDER\<^sub>f ORDER\<^sub>b MATCH" and
+    "\<And>j S1 S11. MATCH j S1 S11 \<Longrightarrow> ord_res_1_final S1 \<longleftrightarrow> ord_res_11_final S11"
+  using bisimulation_ord_res_1_ord_res_11 bisimulation.agree_on_final
+  by (metis (no_types, opaque_lifting))
+
 
 section \<open>ORD-RES-11 is a regular SCL strategy\<close>
 

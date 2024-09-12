@@ -10,6 +10,22 @@ type_synonym 'f ord_res_11_state =
 
 context simulation_SCLFOL_ground_ordered_resolution begin
 
+lemma
+  fixes N U\<^sub>e\<^sub>r \<F> \<Gamma> A
+  assumes
+    no_false_cls: "\<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C)" and
+    A_least: "linorder_trm.is_least_in_fset {|A\<^sub>2 |\<in>| atms_of_clss (N |\<union>| U\<^sub>e\<^sub>r).
+      \<forall>A\<^sub>1 |\<in>| trail_atms \<Gamma>. A\<^sub>1 \<prec>\<^sub>t A\<^sub>2|} A" and
+    C_least: "linorder_cls.is_least_in_fset {|C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r).
+      clause_could_propagate \<Gamma> C (Pos A)|} C"
+  defines
+    "\<Gamma>' \<equiv> (Pos A, None) # \<Gamma>" and
+    "\<F>' \<equiv> (if linorder_lit.is_greatest_in_mset C (Pos A) then \<F> else finsert C \<F>)"
+  shows "
+    (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma>' C) \<longleftrightarrow>
+    (\<exists>C |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma>' C)"
+  by (meson bex_trail_false_cls_simp)
+
 inductive ord_res_11 where
   decide_neg: "
     \<not> (\<exists>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> C) \<Longrightarrow>
@@ -252,6 +268,9 @@ inductive ord_res_11_final :: "'f ord_res_11_state \<Rightarrow> bool" where
 
   contradiction_found: "
     ord_res_11_final (N, U\<^sub>e\<^sub>r, \<F>, [], Some {#})"
+
+thm ord_res_11_final.simps[of "(N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>)" for N U\<^sub>e\<^sub>r \<F> \<Gamma> \<C>, unfolded bex_trail_false_cls_simp, simplified]
+thm prod.inject
 
 sublocale ord_res_11_semantics: semantics where
   step = "constant_context ord_res_11" and

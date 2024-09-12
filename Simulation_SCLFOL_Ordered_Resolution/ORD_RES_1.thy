@@ -27,6 +27,13 @@ inductive ord_res_1 where
     N' = finsert CD N \<Longrightarrow>
     ord_res_1 N N'"
 
+lemma
+  assumes "ord_res.ground_resolution C D CD"
+  shows "D \<prec>\<^sub>c C"
+  sledgehammer [overlord, slices = 1, e, verbose]
+  using assms
+  by (auto simp add: ord_res.ground_resolution.simps)
+
 lemma right_unique_ord_res_1: "right_unique ord_res_1"
 proof (rule right_uniqueI)
   fix N N' N'' :: "'f gterm clause fset"

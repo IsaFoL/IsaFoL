@@ -421,6 +421,16 @@ next
     by  auto
 qed
 
+lemma "linorder_lit.is_maximal_in_mset (efac C) L \<longleftrightarrow> linorder_lit.is_maximal_in_mset C L"
+  by (simp add: linorder_lit.is_maximal_in_mset_iff)
+
+lemma
+  assumes "is_pos L"
+  shows "linorder_lit.is_greatest_in_mset (efac C) L \<longleftrightarrow> linorder_lit.is_maximal_in_mset C L"
+  by (metis (no_types, opaque_lifting) Uniq_D assms efac_spec greatest_literal_in_efacI
+      linorder_lit.Uniq_is_greatest_in_mset linorder_lit.is_maximal_in_mset_if_is_greatest_in_mset
+      literal.disc(1))
+
 lemma factorizable_if_neq_efac:
   assumes "C \<noteq> efac C"
   shows "\<exists>C'. ord_res.ground_factoring C C'"
