@@ -1,12 +1,14 @@
 (* Title:        Applications of the Splitting Framework to other architectures
  *               (Splitting without Backtracking)
- * Author:       Ghilain Bergeron <ghilain.bergeron at inria.fr>, 2023 *)
+ * Author:       Ghilain Bergeron <ghilain.bergeron at inria.fr>, 2023
+ *               Sophie Tourret <sophie.tourret at inria.fr, 2024 *)
 
 theory Splitting_Without_Backtracking
   imports
     Main
     Splitting_Calculi
     Saturation_Framework_Extensions.FO_Ordered_Resolution_Prover_Revisited
+    HOL_Light_Bridge
     (* Saturation_Framework_Extensions.Clausal_Calculus *) 
 begin
 

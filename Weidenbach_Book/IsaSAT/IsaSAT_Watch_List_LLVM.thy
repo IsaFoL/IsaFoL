@@ -37,9 +37,9 @@ sepref_def rewatch_heur_fast_code
   by sepref
 
 lemma aal_gen_swap:
-  \<open>W[L := More_List.swap (W ! L) i j] = 
+  \<open>W[L := LLVM_More_List.swap (W ! L) i j] = 
    (let x = W ! L ! i; y = W ! L ! j; W = op_list_list_upd W L j x; W = op_list_list_upd W L i y in W)\<close>
-  apply (auto simp: convert_swap More_List.swap_def)
+  apply (auto simp: convert_swap LLVM_More_List.swap_def)
   by (smt (verit, best) list_update_id' list_update_overwrite list_update_swap nth_list_update')
 
 sepref_register watchlist_put_binaries_first_one watchlist_put_binaries_first
