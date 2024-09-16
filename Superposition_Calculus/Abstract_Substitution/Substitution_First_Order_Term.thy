@@ -1,6 +1,6 @@
 theory Substitution_First_Order_Term
   imports
-    Abstract_Substitution
+    Substitution
     "First_Order_Terms.Unification"
 begin
 
@@ -25,7 +25,7 @@ next
     by (auto simp: map_idI)
 qed
 
-global_interpretation term_subst: basic_substitution where
+global_interpretation term_subst: substitution where
   subst = subst_apply_term and id_subst = Var and comp_subst = subst_compose and
   is_ground = is_ground_trm
 proof unfold_locales

@@ -1,4 +1,4 @@
-theory Abstract_Substitution
+theory Substitution
   imports Main
 begin
 
@@ -161,9 +161,9 @@ sublocale right_group_action \<subseteq> left: left_group_action where
   by unfold_locales simp_all
 
 
-section \<open>Basic Assumption-free Substitution\<close>
+section \<open>Assumption-free Substitution\<close>
 
-locale basic_substitution_ops =
+locale substitution_ops =
   fixes
     subst :: "'x \<Rightarrow> 's \<Rightarrow> 'x" (infixl "\<cdot>" 67) and
     id_subst :: 's and
@@ -228,8 +228,6 @@ lemma renaming_comp_renaming_inverse[simp]:
   "is_renaming \<rho> \<Longrightarrow> \<rho> \<odot> renaming_inverse \<rho> = id_subst"
   by (auto simp: is_renaming_def renaming_inverse_def intro: someI_ex)
 
-thm monoid.group_wrt_right_inverse[of "(\<odot>)" id_subst renaming_inverse]
-
 definition is_unifier :: "'s \<Rightarrow> 'x set \<Rightarrow> bool" where
   "is_unifier \<upsilon> X \<longleftrightarrow> card (subst_set X \<upsilon>) \<le> 1"
 
@@ -256,7 +254,7 @@ proof (rule iffI)
 next
   show "(\<forall>x\<in>X. \<forall>y\<in>X. x \<cdot> \<sigma> = y \<cdot> \<sigma>) \<Longrightarrow> is_unifier \<sigma> X"
     unfolding is_unifier_def
-    by (smt (verit, del_insts) One_nat_def basic_substitution_ops.subst_set_def card_eq_0_iff
+    by (smt (verit, del_insts) One_nat_def substitution_ops.subst_set_def card_eq_0_iff
         card_le_Suc0_iff_eq dual_order.eq_iff imageE le_Suc_eq)
 qed
 
@@ -314,9 +312,9 @@ end
 section \<open>Basic Substitution\<close>
 
 (* Rename to abstract substitution *)
-locale basic_substitution =
+locale substitution =
   comp_subst: right_monoid_action comp_subst id_subst subst +
-  basic_substitution_ops subst id_subst comp_subst is_ground
+  substitution_ops subst id_subst comp_subst is_ground
   for
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 70) and
     id_subst :: 's and

@@ -3,7 +3,7 @@ session Abstract_Substitution in Abstract_Substitution = HOL +
     "HOL-ex"
     First_Order_Terms
   theories
-    Abstract_Substitution
+    Substitution
     Substitution_First_Order_Term
     Substitution_HOL_ex_Unification
 
