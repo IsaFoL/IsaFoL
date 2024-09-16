@@ -4,7 +4,7 @@
 theory Compactness_For_Clausal_Logic
   imports
     Ordered_Resolution_Prover.Clausal_Logic
-    FOL_Syntax
+    "hol_light_import/FOL_Syntax"
     Nested_Multisets_Ordinals.Multiset_More
     (*Weighted_Path_Order.WPO*)
 begin
@@ -80,6 +80,89 @@ qed
 lemma set_as_counts: \<open>set l = {x. 0 < count l x}\<close>
   by (induction l) auto
 
+(* shows equivalence of the definition below of list_of_mset with the one in Multiset_More *)
+lemma \<open>(\<exists>l. m = mset l) \<equiv> (\<exists>l. \<forall>x. count l x = multiset.count m x)\<close> (is "?A \<equiv> ?B")
+proof -
+  have \<open>\<exists>l. m = mset l \<Longrightarrow> \<exists>l. \<forall>x. count l x = multiset.count m x\<close>
+  proof -
+    assume ?A
+    then obtain l where l_is: \<open>m = mset l\<close>
+      by blast
+    then have \<open>count l x = multiset.count m x\<close> for x
+    proof -
+      fix x
+      assume "m = mset l"
+      then show \<open>count l x = multiset.count m x\<close>
+      proof (induction l arbitrary: m rule: length_induct)
+        case (1 xs m)
+        then show ?case
+        proof (cases \<open>length xs = 0\<close>)
+          case True
+          assume m_eq: "m = mset xs"
+          have \<open>xs = []\<close>
+            using True by auto
+          then show ?thesis
+            using m_eq by auto
+        next
+          case False
+          assume m_eq: "m = mset xs" and
+            IH: \<open>\<forall>ys. length ys < length xs \<longrightarrow> (\<forall>y. y = mset ys \<longrightarrow> count ys x = multiset.count y x)\<close>
+          obtain a ys where xs_is: \<open>xs = a # ys\<close>
+            using False by (metis list.size(3) neq_Nil_conv)
+          then have length_eq: \<open>length ys < length xs\<close>
+            by simp
+          obtain n where m_is: \<open>m = add_mset a n\<close>
+            using m_eq xs_is by auto
+          then have n_eq: \<open>n = mset ys\<close>
+            using xs_is m_eq by simp
+          then have \<open>count ys x = multiset.count n x\<close>
+            using IH length_eq n_eq by blast
+          then show ?thesis
+            using m_is xs_is by simp
+        qed
+      qed
+    qed
+    then show ?B
+      by blast
+  qed
+  then show \<open>?A \<equiv> ?B\<close>
+    using equal_intr_rule[of ?A ?B] ex_mset by (smt (verit, ccfv_threshold))
+qed
+
+lemma \<open>m = mset l \<Longrightarrow> \<forall>x. count l x = multiset.count m x\<close>
+proof
+  fix x
+  assume \<open>m = mset l\<close>
+  then show \<open>count l x = multiset.count m x\<close>
+  proof (induction l arbitrary: m rule: length_induct)
+    case (1 xs m)
+    then show ?case
+    proof (cases \<open>length xs = 0\<close>)
+      case True
+      assume m_eq: "m = mset xs"
+      have \<open>xs = []\<close>
+        using True by auto
+      then show ?thesis
+        using m_eq by auto
+    next
+      case False
+      assume m_eq: "m = mset xs" and
+        IH: \<open>\<forall>ys. length ys < length xs \<longrightarrow> (\<forall>y. y = mset ys \<longrightarrow> count ys x = multiset.count y x)\<close>
+      obtain a ys where xs_is: \<open>xs = a # ys\<close>
+        using False by (metis list.size(3) neq_Nil_conv)
+      then have length_eq: \<open>length ys < length xs\<close>
+        by simp
+      obtain n where m_is: \<open>m = add_mset a n\<close>
+        using m_eq xs_is by auto
+      then have n_eq: \<open>n = mset ys\<close>
+        using xs_is m_eq by simp
+      then have \<open>count ys x = multiset.count n x\<close>
+        using IH length_eq n_eq by blast
+      then show ?thesis
+        using m_is xs_is by simp
+    qed
+  qed
+qed
 
 definition list_of_mset :: "'a multiset \<Rightarrow> 'a list" where
   \<open>list_of_mset m = (SOME l. (\<forall>x. count l x = (multiset.count m x)))\<close>
@@ -101,8 +184,6 @@ proof -
     using f1 by (metis (lifting) One_nat_def add_is_0 count.simps(2) nat.simps(3))
 qed
 
-
-
 lemma list_of_mset_always_exists: \<open>\<exists>l. (\<forall>x. count l x = (Multiset.count m x))\<close>
 proof (induction m)
   case empty
@@ -121,33 +202,10 @@ thm someI_ex
 
 lemma count_list_of_mset: \<open>\<forall>x. count (list_of_mset m) x = (Multiset.count m x)\<close>
   using someI_ex[OF list_of_mset_always_exists] unfolding list_of_mset_def .
-(*proof
-  fix x
-  show \<open>count (list_of_mset m) x = (Multiset.count m x)\<close>
-  proof (induction "list_of_mset m" arbitrary: m)
-    case Nil
-    then show ?case
-      using empty_list_of_mset_empty count_empty
-      sledgehammer
-      by (metis count.simps(1) count_empty)
-  next
-    case (Cons a as)
-    obtain m_as as_mixed where \<open>as_mixed = list_of_mset m_as\<close> \<open>mset as = mset as_mixed\<close>
-      by simp
-    then have \<open>count (list_of_mset m_as) x = (Multiset.count m_as x)\<close>
-      using Cons(1) unfolding list_of_mset_def
-      sorry
-    then show ?case  sorry
-  qed
-(*    case empty
-    then show ?case 
-      using list_of_mset_empty by (metis count.simps(1) count_empty)
-  next
-    case (add a m)
-    then show ?case sorry
-  qed
-    sorry
-qed *)*)
+
+lemma nempty_mset_to_list: \<open>m \<noteq> {#} \<Longrightarrow> list_of_mset m \<noteq> []\<close>
+  using count_list_of_mset
+  by (metis count.simps(1) multiset_nonemptyE not_in_iff)
 
 lemma count_x_list_of_mset: \<open>count (list_of_mset m) x = multiset.count m x\<close>
   using count_list_of_mset by fast
@@ -243,9 +301,6 @@ qed
 lemma count_list_mset: \<open>count l x = multiset.count (mset l) x\<close>
   by (induction l) auto
 
-find_theorems count
-thm count_list_mset
-
 lemma \<open>count (Multiset_More.list_of_mset m) x = multiset.count m x\<close>
   using count_list_mset by (metis mset_list_of_mset)
 
@@ -259,59 +314,10 @@ lemma list_of_mset_exi: "\<exists>l. m = mset l"
   using mset_list_of_mset by metis
 
 lemma \<open>mset l = mset (list_of_mset m) \<Longrightarrow> mset l = m\<close>
-proof (induction l arbitrary: m)
-  case Nil
-  then have \<open>m = {#}\<close>
-    using empty_list_of_mset by (metis mset_zero_iff size_eq_0_iff_empty size_is_length_list_of_mset)
-  then show ?case by auto
-next
-  case (Cons a l)
-  then have \<open>mset l = mset (list_of_mset m) - {#a#}\<close>
-    by (metis add_mset_remove_trivial mset.simps(2))
-  obtain l2 where \<open>l2 = list_of_mset (mset (list_of_mset m) - {#a#})\<close>
-    by blast
-  then show ?case sorry
-qed
-
+  by simp
 
 lemma \<open>mset (list_of_mset (add_mset a m)) = add_mset a (mset (list_of_mset m))\<close>
-proof (induction m arbitrary: a)
-  case empty
-  then show ?case
-    using list_of_msingleton
-    by (metis empty_list_of_mset mset.simps(2))
-next
-  case (add x M)
-  then show ?case
-     sorry (* by (metis Suc_eq_plus1 size_add_mset) *)
-qed
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  by simp
 
 (* alignments for atoms *)
 datatype natom =
@@ -458,94 +464,265 @@ lemma shallow_neg_to_nlit_to_neg: \<open>is_shallow_neg \<phi> \<Longrightarrow>
 (* alignments for clauses *)
 type_synonym nclause = "natom clause"
 
+fun nlit_list_to_form :: "nlit list \<Rightarrow> form" where
+  \<open>nlit_list_to_form [] = form.Bot\<close>
+| \<open>nlit_list_to_form (a # as) = nlit_list_to_form as \<^bold>\<or> (nlit_to_form a)\<close>
+
 definition nclause_to_form :: "nclause \<Rightarrow> form" where
-  \<open>nclause_to_form C = foldr (\<lambda>l \<phi>. \<phi> \<^bold>\<or> (nlit_to_form l)) (list_of_mset C) form.Bot\<close>
+  \<open>nclause_to_form C = nlit_list_to_form (list_of_mset C)\<close>
 
 fun is_clausal :: "form \<Rightarrow> bool" where
   \<open>is_clausal form.Bot = True\<close>
 | \<open>is_clausal ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>) = ((\<phi>2 = \<psi>) \<and> (nlit_shape \<psi>) \<and> (is_clausal \<phi>1))\<close>
 | \<open>is_clausal _ = False\<close>
 
+find_theorems name: is_clausal
+
+lemma is_clausal_nlit_list: \<open>is_clausal (nlit_list_to_form ls)\<close>
+proof (induction "nlit_list_to_form ls" arbitrary: ls rule: is_clausal.induct)
+  case 1
+  then show ?case
+    by simp
+next
+  case (2 \<phi>1 \<phi>2 \<psi>)
+  have \<open>\<exists>ms. \<phi>1 = nlit_list_to_form ms\<close>
+    using 2(2) by (metis form.distinct(3) form.sel(3) nlit_list_to_form.elims)
+  then have clausal_phi: \<open>is_clausal \<phi>1\<close>
+    using 2(1) by blast
+  moreover have phi_psi_eq: \<open>\<phi>2 = \<psi>\<close>
+    using 2(2) by (metis form.inject(2) form.simps(7) nlit_list_to_form.elims)
+  moreover have psi_shape: \<open>nlit_shape \<psi>\<close>
+    by (metis 2(2) form.sel(4) form.simps(7) form_to_nlit.simps(3) form_to_nlit.simps(4)
+        nlit_list_to_form.elims nlit_shape.elims(3) nlit_to_form_nlit option.discI shallow_neg_def)
+  ultimately show ?case
+    by (metis 2(2) is_clausal.simps(2))
+next
+  case ("3_1" v va)
+  then have \<open>False\<close>
+    by (metis form.distinct(1) form.simps(11) nlit_list_to_form.elims)
+  then show ?case
+    by blast
+next
+  case ("3_2" va)
+  then have \<open>False\<close>
+    by (metis form.sel(3) form.simps(7) nlit_list_to_form.elims)
+  then show ?case
+    by blast
+next
+  case ("3_3" vb vc va)
+  then have \<open>False\<close>
+    by (metis form.distinct(3) form.sel(3) form.simps(11) nlit_list_to_form.elims)
+  then show ?case
+    by blast
+next
+  case ("3_4" vb vc va)
+  then have \<open>False\<close>
+    by (metis form.sel(3) form.simps(15) form.simps(7) nlit_list_to_form.elims)
+  then show ?case
+    by blast
+next
+  case ("3_5" v va)
+  then have \<open>False\<close>
+    by (metis form.simps(15) form.simps(9) nlit_list_to_form.elims)
+  then show ?case
+    by blast
+qed
+
+lemma is_clausal_nclause: \<open>is_clausal (nclause_to_form C)\<close>
+  unfolding nclause_to_form_def using is_clausal_nlit_list by auto
+
 fun nlit_list_from_form :: "form \<Rightarrow> nlit list option" where
   \<open>nlit_list_from_form form.Bot = Some []\<close>
 | \<open>nlit_list_from_form ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>) = 
     (if (is_clausal ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>)) 
-     then (let ls = (the (nlit_list_from_form \<phi>1)) in Some ((the (form_to_nlit \<psi>)) # ls))
+     then (Some ((the (form_to_nlit \<psi>)) # (the (nlit_list_from_form \<phi>1))))
      else None)\<close>
 | \<open>nlit_list_from_form _ = None\<close>
 
-fun form_to_nclause :: \<open>form \<Rightarrow> nclause option\<close> where
-  \<open>form_to_nclause form.Bot = Some {#}\<close>
-| \<open>form_to_nclause ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>) = 
-    (if (is_clausal ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>)) 
-     then (let ls = (the (form_to_nclause \<phi>1)) in Some (add_mset (the (form_to_nlit \<psi>))  ls))
-     else None)\<close>
-| \<open>form_to_nclause _ = None\<close>
-
-definition no_bot :: "nclause \<Rightarrow> bool" where
-  \<open>no_bot C = (Multiset.count C (Pos natom.Bot) = 0)\<close>
-
-lemma no_bot_add: \<open>no_bot (add_mset l C) \<Longrightarrow> no_bot C\<close>
-  unfolding no_bot_def
-  by (metis Zero_neq_Suc add_mset.rep_eq)
-
-lemma \<open>no_bot C \<Longrightarrow> the (form_to_nclause (nclause_to_form C)) = C\<close>
-proof (induction "size C" arbitrary: C)
-  case 0
+lemma nlit_list_form_conv: \<open>the (nlit_list_from_form (nlit_list_to_form ls)) = ls\<close>
+proof (induction ls)
+  case Nil
   then show ?case
-    unfolding no_bot_def nclause_to_form_def 
-    using empty_list_of_mset form_to_nclause.simps(1) option.sel
-    by (smt (verit) foldr.simps(1) id_apply size_eq_0_iff_empty)
+    by fastforce
 next
-  case (Suc x)
-  then have \<open>\<exists>l ls. list_of_mset C = l # ls\<close>
-    using size_is_length_list_of_mset by (metis Suc.hyps(2) length_Suc_conv)
-  then obtain l ls where l_ls_are: \<open>list_of_mset C = l # ls\<close>
-    by blast
-  define D where \<open>D = mset ls\<close>
-  then have \<open>size D = x\<close>
-    using l_ls_are Suc(2)
-    by (metis diff_Suc_1 length_Cons size_is_length_list_of_mset size_mset)
-  moreover have \<open>no_bot D\<close>
-    using Suc(3) D_def l_ls_are
-    by (metis Compactness_For_Clausal_Logic.mset_list_of_mset mset.simps(2) no_bot_add)
-  ultimately have \<open>the (form_to_nclause (nclause_to_form D)) = D\<close>
-    using Suc(1) by blast
-  find_theorems foldr
-  find_theorems foldl
-    (* TODO: find the right fold and detail steps in following "have" *)
-  have \<open>nclause_to_form C = (nclause_to_form D \<^bold>\<or> nlit_to_form l)\<close>
-    using l_ls_are D_def foldr_Cons[of "(\<lambda>l \<phi>. \<phi> \<^bold>\<longrightarrow> nlit_to_form l \<^bold>\<longrightarrow> nlit_to_form l)" l ls]
-    unfolding nclause_to_form_def
-    sorry
-  (*then have \<open>\<exists>l D. C = add_mset l D\<close>
-    by (metis size_eq_Suc_imp_eq_union)
-  then obtain l D where C_is: \<open>C = add_mset l D\<close>
-    by blast
-  then have \<open>no_bot D\<close>
-    using Suc(3) no_bot_add by blast
-  moreover have \<open>size D = x\<close>
-    using C_is Suc(2) by auto
-  ultimately have \<open>the (form_to_nclause (nclause_to_form D)) = D\<close>
-    using Suc(1) by blast*)
+  case (Cons a ls)
   then show ?case
-    unfolding nclause_to_form_def
-    sorry
+    by (metis is_clausal_nlit_list nlit_list_from_form.simps(2) nlit_list_to_form.simps(2)
+        nlit_to_form_nlit option.sel)
 qed
-(*  case empty
-  then show ?case
-    unfolding no_bot_def nclause_to_form_def using empty_list_of_mset
-      (* Interesting abduction problem: can cvc find empty_list_of_mset if not given? *)
-      by (metis fold_simps(1) form_to_nclause.simps(1) option.sel)
+
+definition nclause_from_form :: "form \<Rightarrow> nclause option" where
+  \<open>nclause_from_form \<phi> = map_option (\<lambda>ls. mset ls) (nlit_list_from_form \<phi>)\<close>
+
+lemma clause_to_form_conv: \<open>the (nclause_from_form (nclause_to_form C)) = C\<close>
+proof (cases \<open>C = {#}\<close>)
+  case True
+  then show ?thesis
+  unfolding nclause_from_form_def nclause_to_form_def by (simp add: empty_list_of_mset)
 next
-  case (add x C)
+  case False
+  then obtain l ls where l_ls_are: \<open>list_of_mset C = l # ls\<close>
+    by (metis mset_list_of_mset mset.simps(1) neq_Nil_conv)
+  then have C_as_form: \<open>nclause_to_form C  = (nlit_list_to_form ls) \<^bold>\<or> (nlit_to_form l)\<close>
+    using nclause_to_form_def by fastforce
+  have \<open>is_clausal (nclause_to_form C)\<close>
+    using is_clausal_nclause[of C] .
+  then have \<open>nlit_list_from_form (nclause_to_form C) =
+    Some ((the (form_to_nlit (nlit_to_form l))) # (the (nlit_list_from_form (nlit_list_to_form ls))))\<close>
+    using C_as_form by auto
+  also have \<open>... = Some (l # ls)\<close>
+    using nlit_list_form_conv by auto
+  finally show ?thesis
+    unfolding nclause_from_form_def nclause_to_form_def
+    by (metis mset_list_of_mset l_ls_are option.sel option.simps(9))
+qed
+
+lemma form_nlit_list_conv: \<open>is_clausal \<phi> \<Longrightarrow> nlit_list_to_form (the (nlit_list_from_form \<phi>)) = \<phi>\<close>
+proof (induction \<phi> rule: is_clausal.induct)
+  case 1
+  then show ?case by auto
+next
+  case (2 \<phi>1 \<phi>2 \<psi>)
   then show ?case
-    unfolding no_bot_def nclause_to_form_def
-    sorry 
-qed *)
+    by (smt (verit, ccfv_threshold) form.disc(2) form_atom_to_nlit_to_atom form_bot_to_nlit_to_bot
+        is_clausal.simps(2) is_shallow_neg.simps(1) nlit_list_from_form.simps(2)
+        nlit_list_to_form.simps(2) nlit_shape.elims(1) option.sel shallow_neg_def
+        shallow_neg_to_nlit_to_neg)
+next
+  case ("3_1" v va)
+  then have False
+    by simp
+  then show ?case
+    by blast
+next
+  case ("3_2" va)
+  then have False
+    by simp
+  then show ?case
+    by blast
+next
+  case ("3_3" vb vc va)
+  then have False
+    by simp
+  then show ?case
+    by blast
+next
+  case ("3_4" vb vc va)
+  then have False
+    by simp
+  then show ?case
+    by blast
+next
+  case ("3_5" v va)
+  then have False
+    by simp
+  then show ?case
+    by blast
+qed
 
+(* this doesn't hold because the literals may change ordering during the transformation process *)
+(* lemma \<open>is_clausal \<phi> \<Longrightarrow> nclause_to_form (the (nclause_from_form \<phi>)) = \<phi>\<close> *)
+(* What we know is that the transformation returns a clause with the same literals as the original
+ *  formula if it is indeed a clause *)
+lemma \<open>is_clausal \<phi> \<Longrightarrow> is_clausal (nclause_to_form (the (nclause_from_form \<phi>)))\<close>
+  using is_clausal_nclause[of "the (nclause_from_form \<phi>)"] .
 
+fun nlit_mset_from_form :: "form \<Rightarrow> nclause option" where
+  \<open>nlit_mset_from_form form.Bot = Some {#}\<close>
+| \<open>nlit_mset_from_form ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>) = 
+    (if (is_clausal ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>)) 
+     then Some (add_mset (the (form_to_nlit \<psi>)) (the (nlit_mset_from_form \<phi>1)))
+     else None)\<close>
+| \<open>nlit_mset_from_form _ = None\<close>
 
+lemma \<open>is_clausal \<phi> \<Longrightarrow> (nlit_mset_from_form \<phi>) =
+  (nlit_mset_from_form (nclause_to_form (the (nclause_from_form \<phi>))))\<close>
+proof (induction \<phi> rule: nlit_list_from_form.induct)
+
+  case 1
+  then show ?case
+    by (metis clause_to_form_conv empty_list_of_mset nclause_to_form_def nlit_list_to_form.simps(1))
+next
+  case (2 \<phi>1 \<phi>2 \<psi>)
+(* this proof attempt looks like a dead end. try via count property of multisets *)
+  have \<open>nlit_mset_from_form (\<phi>1 \<^bold>\<longrightarrow> \<phi>2 \<^bold>\<longrightarrow> \<psi>) = 
+    Some (add_mset (the (form_to_nlit \<psi>)) (the (nlit_mset_from_form \<phi>1)))\<close>
+    using 2(2) by simp
+  have \<open>nlit_list_from_form (\<phi>1 \<^bold>\<longrightarrow> \<phi>2 \<^bold>\<longrightarrow> \<psi>) =
+    Some ((the (form_to_nlit \<psi>)) # (the (nlit_list_from_form \<phi>1)))\<close>
+    using 2(2) by simp
+  then show ?case
+    unfolding nclause_from_form_def nclause_to_form_def
+    
+    sorry
+next
+  case ("3_1" v va)
+  then show ?case sorry
+next
+  case ("3_2" va)
+  then show ?case sorry
+next
+  case ("3_3" vb vc va)
+  then show ?case sorry
+next
+  case ("3_4" vb vc va)
+  then show ?case sorry
+next
+  case ("3_5" v va)
+  then show ?case sorry
+qed
+
+lemma \<open>is_clausal \<phi> \<Longrightarrow> (nlit_mset_from_form \<phi>) =
+  (nlit_mset_from_form (nclause_to_form (the (nclause_from_form \<phi>))))\<close>
+proof -
+  assume is_clausal_phi: \<open>is_clausal \<phi>\<close>
+  define ls where \<open>ls = list_of_mset (the (nclause_from_form \<phi>))\<close>
+  have \<open>is_clausal (nlit_list_to_form ls)\<close>
+    using is_clausal_nlit_list by blast
+  have \<open>is_clausal \<phi> \<Longrightarrow> nlit_mset_from_form \<phi> =
+    nlit_mset_from_form (nlit_list_to_form (list_of_mset (the (nclause_from_form \<phi>))))\<close>
+  proof (induction \<open>(the (nclause_from_form \<phi>))\<close> arbitrary: \<phi>)
+    case empty
+    have not_None: \<open>nlit_list_from_form \<phi> \<noteq> None\<close>
+      by (metis empty.prems form_nlit_list_conv nlit_list_from_form.simps(1)
+          nlit_list_from_form.simps(2) nlit_list_to_form.cases nlit_list_to_form.simps(1)
+          nlit_list_to_form.simps(2) option.distinct(1))
+    then have \<open>\<phi> = form.Bot\<close>
+      using empty nclause_from_form_def form_nlit_list_conv by force
+    then show ?case
+      by (metis empty(1) empty_list_of_mset nlit_list_to_form.simps(1))
+  next
+    case (add l m)
+    obtain \<psi> where m_is: \<open>m = the (nclause_from_form \<psi>)\<close> and \<open>is_clausal \<psi>\<close>
+      using add(2) clause_to_form_conv
+      by (metis is_clausal_nclause)
+    then have \<open>nlit_mset_from_form \<psi> =
+       nlit_mset_from_form (nlit_list_to_form (list_of_mset (the (nclause_from_form \<psi>))))\<close>
+      using add(1) by blast
+    have \<open>nlit_mset_from_form \<phi> = Some (add_mset l (the (nlit_mset_from_form \<psi>)))\<close>
+      using m_is add(2)
+      sorry
+    then show ?case sorry
+  qed
+ (*   case Nil
+    have not_None: \<open>nlit_list_from_form \<phi> \<noteq> None\<close>
+      using Nil(2) by (metis form_nlit_list_conv nlit_list_from_form.simps(1) 
+          nlit_list_from_form.simps(2) nlit_list_to_form.cases nlit_list_to_form.simps(1)
+          nlit_list_to_form.simps(2) option.distinct(1))
+    have \<open>the (nclause_from_form \<phi>) = {#}\<close>
+      using Nil(1) nempty_mset_to_list by force
+    then have \<open>\<phi> = form.Bot\<close>
+      using not_None nclause_from_form_def Nil.prems form_nlit_list_conv by force
+    then show ?case
+      using Nil.hyps by force
+  next
+    case (Cons a ls2)
+    then show ?case sorry
+  qed*)
+  then show \<open>nlit_mset_from_form \<phi> =
+   nlit_mset_from_form (nclause_to_form (the (nclause_from_form \<phi>)))\<close>
+    unfolding nclause_to_form_def using is_clausal_phi by blast
+qed
 
 (* aligments for sets of clauses *)
 
