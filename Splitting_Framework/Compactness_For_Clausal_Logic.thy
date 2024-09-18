@@ -30,38 +30,22 @@ lemma count_sum_cons: \<open>sum (count_list (a # l)) (set (a # l)) = 1 + sum (c
 lemma count_list_mset: \<open>count_list l x = count (mset l) x\<close>
   by (induction l) auto
 
-(* -------------------------- *)
+lemma count_list_of_count_mset_always_exists: \<open>\<exists>l. (\<forall>x. count_list l x = (count m x))\<close>
+proof (induction m)
+  case empty
+  find_theorems count_list
+  then show ?case
+    by (simp add: count_list_0_iff)
+next
+  case (add a m)
+  then obtain l where l_is: \<open>\<forall>x. count_list l x = count m x\<close>
+    by blast
+  then have \<open>\<forall>x. count_list (a#l) x = count (add_mset a m) x\<close>
+    by simp
+  then show ?case by blast
+qed
 
-(* ----------------------------------------------------------------------------- *)
-(* list_from_multiset lemmas, to obtain a list in a random order from a multiset *)
-definition list_of_multiset :: "'a multiset \<Rightarrow> 'a list" where
-  \<open>list_of_multiset m = (SOME l. mset l = m)\<close>
-
-lemma list_of_multiset_exists: \<open>\<exists>l. m = mset l\<close>
-  using ex_mset by metis
-
-lemma empty_list_of_multiset: \<open>list_of_multiset {#} = []\<close>
-  unfolding list_of_multiset_def by simp
-
-lemma nempty_multiset_to_list: \<open>m \<noteq> {#} \<Longrightarrow> list_of_multiset m \<noteq> []\<close>
-  using empty_list_of_multiset
-  by (metis (mono_tags, lifting) list_of_multiset_def mset_list_of_mset someI_ex)
-
-
-lemma mset_list_of_multiset[simp]: "mset (list_of_multiset m) = m"
-  by (metis (mono_tags, lifting) ex_mset list_of_multiset_def someI_ex)
-
-lemma length_list_of_multiset[simp]: "length (list_of_multiset A) = size A"
-  unfolding list_of_multiset_def by (metis (mono_tags) ex_mset size_mset someI_ex)
-
-(* ----------------------------------------------------------------------------- *)
-
-(* ------------------------------------------------ *)
-(* lemmas relating list_of_multiset with count_list *)
-
-
-(* shows equivalence of the definition below of list_of_mset with list_of_multiset *)
-lemma \<open>(\<exists>l. m = mset l) \<equiv> (\<exists>l. \<forall>x. count_list l x = count m x)\<close> (is "?A \<equiv> ?B")
+lemma mset_count_list_eq: \<open>(\<exists>l. m = mset l) \<equiv> (\<exists>l. \<forall>x. count_list l x = count m x)\<close> (is "?A \<equiv> ?B")
 proof -
   have \<open>\<exists>l. m = mset l \<Longrightarrow> \<exists>l. \<forall>x. count_list l x = count m x\<close>
   proof -
@@ -109,7 +93,7 @@ proof -
     using equal_intr_rule[of ?A ?B] ex_mset by (smt (verit, ccfv_threshold))
 qed
 
-lemma \<open>m = mset l \<Longrightarrow> \<forall>x. count_list l x = count m x\<close>
+lemma mset_impl_count_list: \<open>m = mset l \<Longrightarrow> \<forall>x. count_list l x = count m x\<close>
 proof
   fix x
   assume \<open>m = mset l\<close>
@@ -144,195 +128,82 @@ proof
   qed
 qed
 
-lemma count_list_of_mset: \<open>\<forall>x. count_list (list_of_multiset m) x = (count m x)\<close>
+lemma count_list_impl_mset: \<open>(\<forall>x. count_list l x = count m x) \<Longrightarrow> m = mset l\<close>
+proof -
+  assume \<open>\<forall>x. count_list l x = count m x\<close>
+  then have \<open>\<forall>x. count (mset l) x = count m x\<close>
+    using count_list_mset by metis
+  then show \<open>m = mset l\<close>
+    using multi_count_eq by metis
+qed
+
+(* -------------------------- *)
+
+(* ----------------------------------------------------------------------------- *)
+(* list_from_multiset lemmas, to obtain a list in a random order from a multiset *)
+definition list_of_multiset :: "'a multiset \<Rightarrow> 'a list" where
+  \<open>list_of_multiset m = (SOME l. mset l = m)\<close>
+
+lemma list_of_multiset_exists: \<open>\<exists>l. m = mset l\<close>
+  using ex_mset by metis
+
+lemma empty_list_of_multiset: \<open>list_of_multiset {#} = []\<close>
+  unfolding list_of_multiset_def by simp
+
+lemma singleton_list_of_multiset: \<open>list_of_multiset {#x#} = [x]\<close>
+  unfolding list_of_multiset_def by simp
+
+lemma nempty_multiset_to_list: \<open>m \<noteq> {#} \<Longrightarrow> list_of_multiset m \<noteq> []\<close>
+  using empty_list_of_multiset
+  by (metis (mono_tags, lifting) list_of_multiset_def mset_list_of_mset someI_ex)
+
+lemma mset_list_of_multiset[simp]: "mset (list_of_multiset m) = m"
+  by (metis (mono_tags, lifting) ex_mset list_of_multiset_def someI_ex)
+
+lemma length_list_of_multiset[simp]: "length (list_of_multiset m) = size m"
+  unfolding list_of_multiset_def by (metis (mono_tags) ex_mset size_mset someI_ex)
+
+lemma length_list_of_multiset_add_mset[simp]: 
+  \<open>length (list_of_multiset (add_mset x m)) = length (list_of_multiset m) + 1\<close>
+  by simp
+
+lemma \<open>mset (list_of_multiset m) = mset l \<Longrightarrow> m = mset l\<close>
+  by simp
+
+lemma \<open>mset (list_of_multiset (add_mset x m)) = add_mset x (mset (list_of_multiset m))\<close>
+  by simp
+
+lemma set_list_of_multiset_eq: \<open>set (list_of_multiset m) = set_mset m\<close>
+  unfolding list_of_multiset_def
+  by (metis list_of_multiset_def mset_list_of_multiset set_mset_mset)
+(* ----------------------------------------------------------------------------- *)
+
+
+(* ------------------------------------------------ *)
+(* lemmas relating list_of_multiset with count_list and count *)
+
+lemma count_list_of_multiset: \<open>\<forall>x. count_list (list_of_multiset m) x = (count m x)\<close>
   unfolding list_of_multiset_def
   by (metis count_list_mset list_of_multiset_def mset_list_of_multiset)
 
-lemma count_x_list_of_multiset: \<open>count_list (list_of_mset m) x = count m x\<close>
-  using count_list_of_mset by (simp add: count_list_mset)
+lemma count_x_list_of_multiset: \<open>count_list (list_of_multiset m) x = count m x\<close>
+  using count_list_of_multiset by (simp add: count_list_mset)
 
 lemma count_mset_list_of_multiset: \<open>count (mset (list_of_multiset m)) x = count m x\<close>
   using count_list_mset count_x_list_of_multiset by simp
 
-lemma \<open>\<forall>x. count_list l x = count m x \<Longrightarrow> m = mset l\<close>
-  sorry
+lemma sum_count_add_multiset_list: 
+  \<open>sum (count_list (list_of_multiset (add_mset a m))) (set (list_of_multiset (add_mset a m))) =
+    1 + sum (count_list (list_of_multiset m)) (set (list_of_multiset m))\<close>
+  by (simp add: sum_count_set)
 
+(* ------------------------------------------------ *)
 
-definition list_of_mset :: "'a multiset \<Rightarrow> 'a list" where
-  \<open>list_of_mset m = (SOME l. (\<forall>x. count_list l x = (count m x)))\<close>
-
-lemma empty_list_of_mset: "list_of_mset {#} = []"
-  unfolding list_of_mset_def
-proof -
-  have "\<forall>as. ([] \<noteq> as \<or> (\<forall>a asa. (a::'a) # asa \<noteq> as)) \<and> ((\<exists>a asa. a # asa = as) \<or> [] = as)"
-    by (metis (no_types) neq_Nil_conv)
-  then obtain aa :: "'c \<Rightarrow> 'a list \<Rightarrow> 'a" and aas :: "'c \<Rightarrow> 'a list \<Rightarrow> 'a list" and
-    aaa :: "'c \<Rightarrow> 'a list \<Rightarrow> 'a" and aasa :: "'c \<Rightarrow> 'a list \<Rightarrow> 'a list" where
-    f1: "\<forall>c as. ([] \<noteq> as \<or> (\<forall>a asa. a # asa \<noteq> as)) \<and> (aa c as # aas c as = as \<or> [] = as)"
-    by moura
-  have "\<forall>a. count_list [] (a::'a) = count {#} a"
-    by simp
-  then have "\<forall>a. 0 = count_list (SOME as. \<forall>a. count_list as (a::'a) = count {#} a) a"
-    by (smt (z3) tfl_some zero_multiset.rep_eq)
-  then show "(SOME as. \<forall>a. count_list as (a::'a) = count {#} a) = []"
-    using f1 by (metis (lifting) One_nat_def add_is_0 count_list.simps(2) nat.simps(3))
-qed
-
-lemma list_of_mset_always_exists: \<open>\<exists>l. (\<forall>x. count_list l x = (count m x))\<close>
-proof (induction m)
-  case empty
-  find_theorems count_list
-  then show ?case
-    by (simp add: count_list_0_iff)
-next
-  case (add a m)
-  then obtain l where l_is: \<open>\<forall>x. count_list l x = count m x\<close>
-    by blast
-  then have \<open>\<forall>x. count_list (a#l) x = count (add_mset a m) x\<close>
-    by simp
-  then show ?case by blast
-qed
-
-thm someI_ex
-
-lemma count_list_of_mset: \<open>\<forall>x. count_list (list_of_mset m) x = (count m x)\<close>
-  using someI_ex[OF list_of_mset_always_exists] unfolding list_of_mset_def .
-
-lemma nempty_mset_to_list: \<open>m \<noteq> {#} \<Longrightarrow> list_of_mset m \<noteq> []\<close>
-  using count_list_of_mset
-  by (metis count_list.simps(1) multiset_nonemptyE not_in_iff)
-
-lemma count_x_list_of_mset: \<open>count_list (list_of_mset m) x = count m x\<close>
-  using count_list_of_mset by fast
-
-lemma set_list_of_mset_equiv_set_mset: \<open>set (list_of_mset m) = set_mset m\<close>
-proof (induction m)
-  case empty
-  then show ?case
-    using empty_list_of_mset by auto
-next
-  case (add a m)
-  have \<open>set (list_of_mset (add_mset a m)) = {a} \<union> set (list_of_mset m)\<close>
-  proof -
-    have \<open>set (list_of_mset (add_mset a m)) = {x. 0 < count_list (list_of_mset (add_mset a m)) x}\<close>
-      using count_list_0_iff by force
-    also have \<open>... = {x. 0 < count (add_mset a m) x}\<close>
-      using count_x_list_of_mset by metis
-    also have \<open>... = {a} \<union> {x. 0 < count m x}\<close>
-      by auto
-    also have \<open>... = {a} \<union> {x. 0 < count_list (list_of_mset m) x}\<close>
-      using count_x_list_of_mset by metis
-    also have \<open>... = {a} \<union> set (list_of_mset m)\<close>
-      using count_list_0_iff by force
-    finally show \<open>set (list_of_mset (add_mset a m)) = {a} \<union> set (list_of_mset m)\<close> .
-  qed
-  then show ?case
-    using add by simp
-qed
-
-lemma sum_count_add_mset_list: 
-  \<open>sum (count_list (list_of_mset (add_mset a m))) (set (list_of_mset (add_mset a m))) =
-    1 + sum (count_list (list_of_mset m)) (set (list_of_mset m))\<close>
-proof -
-  have \<open>sum (count_list (list_of_mset (add_mset a m))) (set (list_of_mset (add_mset a m))) =
-    sum (\<lambda>x. count (add_mset a m) x) (set (list_of_mset (add_mset a m)))\<close>
-    using count_x_list_of_mset by meson
-  also have \<open>... = sum (\<lambda>x. count (add_mset a m) x) (set_mset (add_mset a m))\<close>
-    using set_list_of_mset_equiv_set_mset by metis
-  also have \<open>... = 1 + sum (\<lambda>x. count m x) (set_mset m)\<close>
-    by (metis plus_1_eq_Suc size_add_mset size_multiset_overloaded_eq)
-  also have \<open>... = 1 + sum (\<lambda>x. count m x) (set (list_of_mset m))\<close>
-    using set_list_of_mset_equiv_set_mset by metis
-  also have \<open>... = 1 + sum (count_list (list_of_mset m)) (set (list_of_mset m))\<close>
-    using count_x_list_of_mset by metis
-  finally show ?thesis . 
-qed
-
-lemma size_is_length_list_of_mset: \<open>size M = length (list_of_mset M)\<close>
-proof (induction M)
-  case empty
-  then show ?case
-    using empty_list_of_mset by simp
-next
-  case (add x M)
-  have \<open>length (list_of_mset (add_mset x M)) = length (list_of_mset M) + 1\<close>
-  proof -
-    let ?l_add = \<open>list_of_mset (add_mset x M)\<close> and ?l = \<open>list_of_mset M\<close>
-    have \<open>length ?l_add = sum (\<lambda>x. count_list ?l_add x) (set ?l_add)\<close>
-      using sum_count_set by (metis List.finite_set dual_order.refl)
-    also have \<open>... = 1 + sum (\<lambda>x. count_list ?l x) (set ?l)\<close>
-      using sum_count_add_mset_list by fast
-    also have \<open>... = 1 + length (list_of_mset M)\<close>
-      using sum_count_set by fastforce
-    finally show \<open>length (list_of_mset (add_mset x M)) = length (list_of_mset M) + 1\<close>
-      by auto
-  qed
-  then show ?case
-    using add by auto
-qed
-
-lemma list_of_msingleton: \<open>list_of_mset {#x#} = [x]\<close>
-proof -
-  have \<open>length (list_of_mset {#x#}) = 1\<close>
-    using size_is_length_list_of_mset by (metis size_single)
-  moreover have \<open>count_list (list_of_mset {#x#}) x = 1\<close>
-    by (simp add: count_x_list_of_mset)
-  ultimately show ?thesis
-    using length_count_one by fast
-qed
-
-lemma length_list_of_add_mset: \<open>length (list_of_mset (add_mset x M)) = length (list_of_mset M) + 1\<close>
-proof (induction M)
-  case empty
-  then show ?case
-    using list_of_msingleton by (metis Suc_eq_plus1 Suc_length_conv empty_list_of_mset)
-next
-  case (add x M)
-  then show ?case
-    using size_is_length_list_of_mset by (metis Suc_eq_plus1 size_add_mset)
-qed
-
-
-
-lemma \<open>count_list (Multiset_More.list_of_mset m) x = count m x\<close>
-  using count_list_mset by (metis mset_list_of_mset)
-
-lemma count_mset_list_of_mset: \<open>count (mset (list_of_mset m)) x = count m x\<close>
-  using count_list_mset by (metis count_x_list_of_mset)
-
-lemma mset_list_of_mset[simp]: \<open>mset (list_of_mset m) = m\<close>
-  using count_mset_list_of_mset by (metis multi_count_eq)
-
-lemma list_of_mset_exi: "\<exists>l. m = mset l"
-  using mset_list_of_mset by metis
-
-lemma \<open>mset l = mset (list_of_mset m) \<Longrightarrow> mset l = m\<close>
-  by simp
-
-lemma \<open>mset (list_of_mset (add_mset a m)) = add_mset a (mset (list_of_mset m))\<close>
-  by simp
-
+(* -------------------- *)
 (* alignments for atoms *)
 datatype natom =
   Bot (\<open>\<^bold>\<bottom>\<close>)
   | Atom (pred:nat) (args:\<open>nterm list\<close>)
-
-(*find_theorems name: wpo_s name: WPO *)
-
-(*
-instantiation natom :: preorder
-begin
-
-definition less_natom :: "natom \<Rightarrow> natom \<Rightarrow> bool" where
-  \<open>less_natom a b \<longleftrightarrow> (a = natom.Bot \<and> b \<noteq> natom.Bot)\<close>
-
-definition less_eq_natom :: "natom \<Rightarrow> natom \<Rightarrow> bool" where
-  \<open>less_eq_natom a b \<longleftrightarrow> True\<close>
-
-instance apply intro_classes sorry
-
-end
-*)
 
 lemma count_natom: \<open>OFCLASS(natom,countable_class)\<close>
   by countable_datatype
@@ -341,25 +212,6 @@ instantiation natom :: countable
 begin
 instance using count_natom by simp
 end
-
-(*
-instantiation natom :: wellorder
-begin
-
-definition natom_less_eq (infix \<open>\<le>\<close> 50) where
-\<open>natom_less_eq (a::natom) b \<longleftrightarrow> (to_nat a) \<le> (to_nat b)\<close>
-
-definition natom_less (infix \<open><\<close> 50) where
-\<open>natom_less (a::natom) b \<longleftrightarrow> (to_nat a) < (to_nat b)\<close>
-
-instance
-proof
-  fix x y :: natom 
-  show \<open>(natom_less x y) = ((natom_less_eq x y) \<and> \<not> (natom_less_eq y x))\<close>
-  sorry
-qed 
-end
-*)
 
 (* impossible to show that countable is wellorder, cf zulip question "proof that linorder is
  countable" *)
@@ -379,21 +231,6 @@ subclass (in countable) (wellorder countable_less_eq countable_less)
 
 *)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 fun natom_to_form :: "natom \<Rightarrow> form" where
   \<open>natom_to_form natom.Bot = form.Bot\<close>
 | \<open>natom_to_form (natom.Atom p ts) = form.Atom p ts\<close>
@@ -412,7 +249,9 @@ lemma form_bot_to_natom_to_bot: \<open>natom_to_form (the (form_to_atom form.Bot
 lemma form_atom_to_natom_to_atom: 
   \<open>FOL_Syntax.is_Atom \<phi> \<Longrightarrow> natom_to_form (the (form_to_atom \<phi>)) = \<phi>\<close>
   using FOL_Syntax.is_Atom_def by fastforce
+(* -------------------- *)
 
+(* ----------------------- *)
 (* alignments for literals *)
 type_synonym nlit = "natom literal"
 
@@ -453,7 +292,9 @@ lemma form_atom_to_nlit_to_atom: \<open>FOL_Syntax.is_Atom \<phi> \<Longrightarr
 
 lemma shallow_neg_to_nlit_to_neg: \<open>is_shallow_neg \<phi> \<Longrightarrow> nlit_to_form (the (form_to_nlit \<phi>)) = \<phi>\<close>
   using shallow_neg_def FOL_Syntax.is_Atom_def is_shallow_neg.elims(2) by fastforce
+(* ----------------------- *)
 
+(* ---------------------- *)
 (* alignments for clauses *)
 type_synonym nclause = "natom clause"
 
@@ -462,7 +303,7 @@ fun nlit_list_to_form :: "nlit list \<Rightarrow> form" where
 | \<open>nlit_list_to_form (a # as) = nlit_list_to_form as \<^bold>\<or> (nlit_to_form a)\<close>
 
 definition nclause_to_form :: "nclause \<Rightarrow> form" where
-  \<open>nclause_to_form C = nlit_list_to_form (list_of_mset C)\<close>
+  \<open>nclause_to_form C = nlit_list_to_form (list_of_multiset C)\<close>
 
 fun is_clausal :: "form \<Rightarrow> bool" where
   \<open>is_clausal form.Bot = True\<close>
@@ -551,23 +392,24 @@ lemma clause_to_form_conv: \<open>the (nclause_from_form (nclause_to_form C)) = 
 proof (cases \<open>C = {#}\<close>)
   case True
   then show ?thesis
-  unfolding nclause_from_form_def nclause_to_form_def by (simp add: empty_list_of_mset)
+  unfolding nclause_from_form_def nclause_to_form_def by (simp add: empty_list_of_multiset)
 next
   case False
-  then obtain l ls where l_ls_are: \<open>list_of_mset C = l # ls\<close>
-    by (metis mset_list_of_mset mset.simps(1) neq_Nil_conv)
+  then obtain l ls where l_ls_are: \<open>list_of_multiset C = l # ls\<close>
+    by (metis mset_list_of_multiset mset.simps(1) neq_Nil_conv)
   then have C_as_form: \<open>nclause_to_form C  = (nlit_list_to_form ls) \<^bold>\<or> (nlit_to_form l)\<close>
-    using nclause_to_form_def by fastforce
+    using nclause_to_form_def by simp
   have \<open>is_clausal (nclause_to_form C)\<close>
     using is_clausal_nclause[of C] .
   then have \<open>nlit_list_from_form (nclause_to_form C) =
-    Some ((the (form_to_nlit (nlit_to_form l))) # (the (nlit_list_from_form (nlit_list_to_form ls))))\<close>
+    Some ((the (form_to_nlit (nlit_to_form l))) #
+     (the (nlit_list_from_form (nlit_list_to_form ls))))\<close>
     using C_as_form by auto
   also have \<open>... = Some (l # ls)\<close>
     using nlit_list_form_conv by auto
   finally show ?thesis
     unfolding nclause_from_form_def nclause_to_form_def
-    by (metis mset_list_of_mset l_ls_are option.sel option.simps(9))
+    by (metis mset_list_of_multiset l_ls_are option.sel option.simps(9))
 qed
 
 lemma form_nlit_list_conv: \<open>is_clausal \<phi> \<Longrightarrow> nlit_list_to_form (the (nlit_list_from_form \<phi>)) = \<phi>\<close>
@@ -615,6 +457,7 @@ qed
 
 (* this doesn't hold because the literals may change ordering during the transformation process *)
 (* lemma \<open>is_clausal \<phi> \<Longrightarrow> nclause_to_form (the (nclause_from_form \<phi>)) = \<phi>\<close> *)
+
 (* What we know is that the transformation returns a clause with the same literals as the original
  *  formula if it is indeed a clause *)
 lemma \<open>is_clausal \<phi> \<Longrightarrow> is_clausal (nclause_to_form (the (nclause_from_form \<phi>)))\<close>
@@ -634,7 +477,7 @@ proof (induction \<phi> rule: nlit_list_from_form.induct)
 
   case 1
   then show ?case
-    by (metis clause_to_form_conv empty_list_of_mset nclause_to_form_def nlit_list_to_form.simps(1))
+    by (metis clause_to_form_conv empty_list_of_multiset nclause_to_form_def nlit_list_to_form.simps(1))
 next
   case (2 \<phi>1 \<phi>2 \<psi>)
 (* this proof attempt looks like a dead end. try via count property of multisets *)
@@ -669,11 +512,11 @@ lemma \<open>is_clausal \<phi> \<Longrightarrow> (nlit_mset_from_form \<phi>) =
   (nlit_mset_from_form (nclause_to_form (the (nclause_from_form \<phi>))))\<close>
 proof -
   assume is_clausal_phi: \<open>is_clausal \<phi>\<close>
-  define ls where \<open>ls = list_of_mset (the (nclause_from_form \<phi>))\<close>
+  define ls where \<open>ls = list_of_multiset (the (nclause_from_form \<phi>))\<close>
   have \<open>is_clausal (nlit_list_to_form ls)\<close>
     using is_clausal_nlit_list by blast
   have \<open>is_clausal \<phi> \<Longrightarrow> nlit_mset_from_form \<phi> =
-    nlit_mset_from_form (nlit_list_to_form (list_of_mset (the (nclause_from_form \<phi>))))\<close>
+    nlit_mset_from_form (nlit_list_to_form (list_of_multiset (the (nclause_from_form \<phi>))))\<close>
   proof (induction \<open>(the (nclause_from_form \<phi>))\<close> arbitrary: \<phi>)
     case empty
     have not_None: \<open>nlit_list_from_form \<phi> \<noteq> None\<close>
@@ -683,14 +526,14 @@ proof -
     then have \<open>\<phi> = form.Bot\<close>
       using empty nclause_from_form_def form_nlit_list_conv by force
     then show ?case
-      by (metis empty(1) empty_list_of_mset nlit_list_to_form.simps(1))
+      using empty(1) empty_list_of_multiset nlit_list_to_form.simps(1) by metis
   next
     case (add l m)
     obtain \<psi> where m_is: \<open>m = the (nclause_from_form \<psi>)\<close> and \<open>is_clausal \<psi>\<close>
       using add(2) clause_to_form_conv
       by (metis is_clausal_nclause)
     then have \<open>nlit_mset_from_form \<psi> =
-       nlit_mset_from_form (nlit_list_to_form (list_of_mset (the (nclause_from_form \<psi>))))\<close>
+       nlit_mset_from_form (nlit_list_to_form (list_of_multiset (the (nclause_from_form \<psi>))))\<close>
       using add(1) by blast
     have \<open>nlit_mset_from_form \<phi> = Some (add_mset l (the (nlit_mset_from_form \<psi>)))\<close>
       using m_is add(2)
@@ -716,6 +559,8 @@ proof -
    nlit_mset_from_form (nclause_to_form (the (nclause_from_form \<phi>)))\<close>
     unfolding nclause_to_form_def using is_clausal_phi by blast
 qed
+
+(* ---------------------- *)
 
 (* aligments for sets of clauses *)
 
