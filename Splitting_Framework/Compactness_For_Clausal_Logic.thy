@@ -5,7 +5,7 @@ theory Compactness_For_Clausal_Logic
   imports
     Ordered_Resolution_Prover.Clausal_Logic
     "hol_light_import/FOL_Syntax"
-    Nested_Multisets_Ordinals.Multiset_More
+    (* Nested_Multisets_Ordinals.Multiset_More *)
     (*Weighted_Path_Order.WPO*)
 begin
 
@@ -507,8 +507,14 @@ qed
 (* aligments for sets of clauses *)
 subsection \<open>Alignments for sets of clauses\<close>
 
+type_synonym nclauses = "nclause set"
 
+definition nclauses_to_form_set :: "nclauses \<Rightarrow> form set" where
+  \<open>nclauses_to_form_set Cs = nclause_to_form ` Cs\<close>
 
+definition form_set_to_nclauses :: "form set \<Rightarrow> nclauses option" where
+  \<open>form_set_to_nclauses F = (let Cs = nclause_from_form ` F in
+    (if None \<in> Cs then None else Some (the ` Cs)))\<close>
 
 (* ----------------------------- *)
 end

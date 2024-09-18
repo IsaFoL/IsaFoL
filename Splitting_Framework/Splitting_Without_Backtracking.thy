@@ -8,7 +8,6 @@ theory Splitting_Without_Backtracking
     Main
     Splitting_Calculi
     Saturation_Framework_Extensions.FO_Ordered_Resolution_Prover_Revisited
-    HOL_Light_Bridge
     (* Saturation_Framework_Extensions.Clausal_Calculus *) 
 begin
 
