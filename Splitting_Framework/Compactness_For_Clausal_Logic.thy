@@ -492,7 +492,7 @@ abbreviation mset_from_clausal_form :: "form \<Rightarrow> nlit multiset" where
 lemma mset_to_form_conv: \<open>m = mset_from_clausal_form (nclause_to_form m)\<close>
   using clause_to_form_conv unfolding nclause_from_form_def by simp
 
-lemma \<open>mset_from_clausal_form \<phi> =
+lemma form_to_clause_mset: \<open>mset_from_clausal_form \<phi> =
   mset_from_clausal_form (nclause_to_form (the (nclause_from_form \<phi>)))\<close>
   (is "?m1 = ?m2")
 proof - 
@@ -515,6 +515,11 @@ definition nclauses_to_form_set :: "nclauses \<Rightarrow> form set" where
 definition form_set_to_nclauses :: "form set \<Rightarrow> nclauses option" where
   \<open>form_set_to_nclauses F = (let Cs = nclause_from_form ` F in
     (if None \<in> Cs then None else Some (the ` Cs)))\<close>
+
+lemma clauses_to_form_set_conv: \<open>the (form_set_to_nclauses (nclauses_to_form_set Cs)) = Cs\<close>
+  unfolding form_set_to_nclauses_def nclauses_to_form_set_def 
+  sorry
+
 
 (* ----------------------------- *)
 end
