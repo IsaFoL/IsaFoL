@@ -5,6 +5,7 @@ theory Compactness_For_Clausal_Logic
   imports
     Ordered_Resolution_Prover.Clausal_Logic
     "hol_light_import/FOL_Syntax"
+    (* "hol_light_import/HOL_Light_Bridge" abbrevs HOL_Light_Import.size = "" *)
     (* Nested_Multisets_Ordinals.Multiset_More *)
     (*Weighted_Path_Order.WPO*)
 begin
@@ -476,7 +477,7 @@ qed
 
 (* What we know is that the transformation returns a clause with the same literals as the original
  *  formula if it is indeed a clause *)
-lemma \<open>is_clausal \<phi> \<Longrightarrow> is_clausal (nclause_to_form (the (nclause_from_form \<phi>)))\<close>
+lemma form_to_clause_clausal: \<open>is_clausal \<phi> \<Longrightarrow> is_clausal (nclause_to_form (the (nclause_from_form \<phi>)))\<close>
   using is_clausal_nclause[of "the (nclause_from_form \<phi>)"] .
 
 lemma some_clausal_nlit_list: \<open>is_clausal \<phi> \<Longrightarrow> nlit_list_from_form \<phi> \<noteq> None\<close>
@@ -516,10 +517,53 @@ definition form_set_to_nclauses :: "form set \<Rightarrow> nclauses option" wher
   \<open>form_set_to_nclauses F = (let Cs = nclause_from_form ` F in
     (if None \<in> Cs then None else Some (the ` Cs)))\<close>
 
+(* Can this be moved to somewhere else? *)
+lemma equality_subsetsI: \<open>(\<And>x. x \<in> A \<Longrightarrow> x \<in> B) \<Longrightarrow> (\<And>x. x \<in> B \<Longrightarrow> x \<in> A) \<Longrightarrow> A = B\<close>
+  by blast
+
 lemma clauses_to_form_set_conv: \<open>the (form_set_to_nclauses (nclauses_to_form_set Cs)) = Cs\<close>
-  unfolding form_set_to_nclauses_def nclauses_to_form_set_def 
-  sorry
+proof -
+  have \<open>None \<notin> nclause_from_form ` nclause_to_form ` Cs\<close>
+  proof (rule ccontr)
+    assume \<open>\<not> None \<notin> nclause_from_form ` nclause_to_form ` Cs\<close>
+    then have \<open>None \<in> nclause_from_form ` nclause_to_form ` Cs\<close>
+      by blast
+    then have \<open>None \<in> nlit_list_from_form ` nclause_to_form ` Cs\<close>
+      unfolding nclause_from_form_def by force
+    then show \<open>False\<close>
+      by (metis imageE is_clausal_nclause some_clausal_nlit_list)
+  qed
+  then have \<open>form_set_to_nclauses (nclauses_to_form_set Cs) = 
+    Some (the ` nclause_from_form ` (nclauses_to_form_set Cs))\<close>
+    using form_set_to_nclauses_def nclauses_to_form_set_def by presburger 
+  moreover have \<open>the ` nclause_from_form ` nclause_to_form ` Cs = Cs\<close>
+  proof (rule equality_subsetsI)
+    fix x
+    assume \<open>x \<in> the ` nclause_from_form ` nclause_to_form ` Cs\<close>
+    then obtain C where "C \<in> Cs" and \<open>x = the (nclause_from_form (nclause_to_form C))\<close>
+      by blast
+    then show \<open>x \<in> Cs\<close>
+      using clause_to_form_conv by simp
+  next
+    fix x
+    assume \<open>x \<in> Cs\<close>
+    then show \<open>x \<in> the ` nclause_from_form ` nclause_to_form ` Cs\<close>
+      using clause_to_form_conv by (simp add: image_iff)
+  qed
+  ultimately show ?thesis
+    unfolding form_set_to_nclauses_def nclauses_to_form_set_def by auto
+qed
 
+(* Again, the conversion starting from formulas and back cannot ensure the ordering of literals *)
+lemma form_set_to_clauses_clausal: \<open>Ball F is_clausal \<Longrightarrow>
+   Ball (nclauses_to_form_set (the (form_set_to_nclauses F))) is_clausal\<close>
+  using form_to_clause_clausal by (simp add: is_clausal_nclause nclauses_to_form_set_def)
 
+lemma form_set_to_clauses_mset: \<open>Ball F (\<lambda>\<phi>. mset_from_clausal_form \<phi> =
+  mset_from_clausal_form (nclause_to_form (the (nclause_from_form \<phi>))))\<close>
+  using form_to_clause_mset by (simp add: is_clausal_nclause nclauses_to_form_set_def)
 (* ----------------------------- *)
+
+section \<open>Clausal compactness\<close>
+
 end
