@@ -831,10 +831,6 @@ lemma minus_\<G>_Fset_to_\<G>_Fset_minus: \<open>C \<in> \<G>_Fset M - \<G>_Fset
   unfolding \<G>_Fset_def \<G>_F_def
   by blast
 
-thm COMPACT_LS
-term satisfies
-
-
 lemma entails_\<G>_conj_singleton_compact:
   \<open>M \<TTurnstile>\<inter>\<G>e {C} \<Longrightarrow> \<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> M' \<TTurnstile>\<inter>\<G>e {C}\<close> 
 proof -

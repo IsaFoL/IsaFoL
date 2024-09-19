@@ -5,7 +5,7 @@ theory Compactness_For_Clausal_Logic
   imports
     Ordered_Resolution_Prover.Clausal_Logic
     "hol_light_import/FOL_Syntax"
-    (* "hol_light_import/HOL_Light_Bridge" abbrevs HOL_Light_Import.size = "" *)
+    "hol_light_import/HOL_Light_Bridge" 
     (* Nested_Multisets_Ordinals.Multiset_More *)
     (*Weighted_Path_Order.WPO*)
 begin
@@ -166,7 +166,7 @@ lemma nempty_multiset_to_list: \<open>m \<noteq> {#} \<Longrightarrow> list_of_m
 lemma mset_list_of_multiset[simp]: "mset (list_of_multiset m) = m"
   by (metis (mono_tags, lifting) ex_mset list_of_multiset_def someI_ex)
 
-lemma length_list_of_multiset[simp]: "length (list_of_multiset m) = size m"
+lemma length_list_of_multiset[simp]: "length (list_of_multiset m) = size_class.size m"
   unfolding list_of_multiset_def by (metis (mono_tags) ex_mset size_mset someI_ex)
 
 lemma length_list_of_multiset_add_mset[simp]: 
@@ -273,8 +273,8 @@ fun nlit_to_form :: "nlit \<Rightarrow> form" where
 | \<open>nlit_to_form (Neg a) = \<^bold>\<not> (natom_to_form a)\<close>
 
 fun nlit_shape :: "form \<Rightarrow> bool" where
-  \<open>nlit_shape form.Bot = True\<close>
-| \<open>nlit_shape (form.Atom p ts) = True\<close>
+  \<open>nlit_shape form.Bot = HOL.True\<close>
+| \<open>nlit_shape (form.Atom p ts) = HOL.True\<close>
 | \<open>nlit_shape (\<phi> \<^bold>\<longrightarrow> \<psi>) = (((\<phi> = form.Bot) \<or> (FOL_Syntax.is_Atom \<phi>)) \<and> (\<psi> = form.Bot))\<close>
 | \<open>nlit_shape _ = False\<close>
 
@@ -323,7 +323,7 @@ definition nclause_to_form :: "nclause \<Rightarrow> form" where
   \<open>nclause_to_form C = nlit_list_to_form (list_of_multiset C)\<close>
 
 fun is_clausal :: "form \<Rightarrow> bool" where
-  \<open>is_clausal form.Bot = True\<close>
+  \<open>is_clausal form.Bot = HOL.True\<close>
 | \<open>is_clausal ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>) = ((\<phi>2 = \<psi>) \<and> (nlit_shape \<psi>) \<and> (is_clausal \<phi>1))\<close>
 | \<open>is_clausal _ = False\<close>
 
@@ -565,5 +565,49 @@ lemma form_set_to_clauses_mset: \<open>Ball F (\<lambda>\<phi>. mset_from_clausa
 (* ----------------------------- *)
 
 section \<open>Clausal compactness\<close>
+
+thm COMPACT_LS
+
+lemma finite_to_form_set: \<open>Finite_Set.finite Cs \<Longrightarrow> Finite_Set.finite (nclauses_to_form_set Cs)\<close>
+  unfolding nclauses_to_form_set_def by blast
+
+lemma finite_from_form_set: \<open>Finite_Set.finite (nclauses_to_form_set Cs) \<Longrightarrow> Finite_Set.finite Cs\<close>
+  by (metis clauses_to_form_set_conv finite_subset_image nclauses_to_form_set_def subset_eq)
+
+lemma subset_to_form_set: \<open>Ds \<subseteq> Cs \<Longrightarrow> (nclauses_to_form_set Ds) \<subseteq> (nclauses_to_form_set Cs)\<close>
+  unfolding nclauses_to_form_set_def by blast
+
+lemma subset_from_form_set: \<open>(nclauses_to_form_set Ds) \<subseteq> (nclauses_to_form_set Cs) \<Longrightarrow> Ds \<subseteq> Cs\<close>
+  by (metis clauses_to_form_set_conv nclauses_to_form_set_def subset_imageE)
+
+theorem clausal_compactness: \<open>(\<forall>Ds. Finite_Set.finite Ds \<and> Ds \<subseteq> Cs \<longrightarrow> 
+  (\<exists>(I :: 'a intrp). is_interpretation (FOL_Syntax.language (nclauses_to_form_set Cs)) I \<and> 
+    satisfies I (nclauses_to_form_set Ds))) \<longrightarrow> 
+  (\<exists>(J :: (nat, nat) term intrp). is_interpretation (FOL_Syntax.language (nclauses_to_form_set Cs)) J \<and> 
+    satisfies J (nclauses_to_form_set Cs))\<close>
+proof clarsimp
+  assume subsets_entail: \<open>\<forall>Ds. (Finite_Set.finite Ds \<and> Ds \<subseteq> Cs \<longrightarrow> 
+  (\<exists>(I :: 'a intrp). is_interpretation (FOL_Syntax.language (nclauses_to_form_set Cs)) I \<and> 
+    satisfies I (nclauses_to_form_set Ds)))\<close>
+  have \<open>\<forall>\<phi>s. Finite_Set.finite \<phi>s \<and> \<phi>s \<subseteq> (nclauses_to_form_set Cs) \<longrightarrow> 
+  (\<exists>(I :: 'a intrp). is_interpretation (FOL_Syntax.language (nclauses_to_form_set Cs)) I \<and> 
+    satisfies I \<phi>s)\<close>
+  proof clarsimp
+    fix \<phi>s
+    assume fin_phi: \<open>Finite_Set.finite \<phi>s\<close> and
+      \<open>\<phi>s \<subseteq> nclauses_to_form_set Cs\<close>
+    then obtain Ds where Ds_is: \<open>\<phi>s = nclauses_to_form_set Ds\<close> and Ds_in: \<open>Ds \<subseteq> Cs\<close>
+      by (metis nclauses_to_form_set_def subset_image_iff)
+    moreover have \<open>Finite_Set.finite Ds\<close>
+      using Ds_is finite_from_form_set fin_phi by simp
+    ultimately show \<open>\<exists>(I::'a intrp). is_interpretation (FOL_Syntax.language (nclauses_to_form_set Cs)) I \<and> 
+      FOL_Semantics.satisfies I \<phi>s\<close>
+      using spec[OF subsets_entail, of Ds] by blast
+  qed
+  then show \<open>\<exists>(J :: (nat, nat) term intrp). is_interpretation (FOL_Syntax.language (nclauses_to_form_set Cs)) J \<and> 
+    FOL_Semantics.satisfies J (nclauses_to_form_set Cs)\<close>
+    using COMPACT_LS by auto
+qed
+
 
 end
