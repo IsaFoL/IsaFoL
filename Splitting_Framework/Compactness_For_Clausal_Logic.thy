@@ -4,9 +4,8 @@
 theory Compactness_For_Clausal_Logic
   imports
     Ordered_Resolution_Prover.Clausal_Logic
-    (*"hol_light_import/FOL_Syntax"*)
     "hol_light_import/HOL_Light_Bridge" 
-    FOL_Entailments
+    (* "hol_light_import/FOL_Syntax" *)
     (* Nested_Multisets_Ordinals.Multiset_More *)
     (*Weighted_Path_Order.WPO*)
 begin
@@ -273,6 +272,19 @@ fun nlit_to_form :: "nlit \<Rightarrow> form" where
   \<open>nlit_to_form (Pos a) = natom_to_form a\<close>
 | \<open>nlit_to_form (Neg a) = \<^bold>\<not> (natom_to_form a)\<close>
 
+fun nlit_shape :: "form \<Rightarrow> bool" where
+  \<open>nlit_shape form.Bot = HOL.True\<close>
+| \<open>nlit_shape (form.Atom p ts) = HOL.True\<close>
+| \<open>nlit_shape (\<phi> \<^bold>\<longrightarrow> \<psi>) = (((\<phi> = form.Bot) \<or> (FOL_Syntax.is_Atom \<phi>)) \<and> (\<psi> = form.Bot))\<close>
+| \<open>nlit_shape _ = False\<close>
+
+definition shallow_neg :: "form \<Rightarrow> form \<Rightarrow> bool" where
+  \<open>shallow_neg \<phi> \<psi> = (((\<phi> = form.Bot) \<or> (FOL_Syntax.is_Atom \<phi>)) \<and> (\<psi> = form.Bot))\<close>
+
+fun is_shallow_neg :: "form \<Rightarrow> bool" where
+  \<open>is_shallow_neg (\<phi> \<^bold>\<longrightarrow> \<psi>) = shallow_neg \<phi> \<psi>\<close>
+| \<open>is_shallow_neg _ = False\<close>
+
 fun form_to_nlit :: "form \<Rightarrow> nlit option" where
   \<open>form_to_nlit form.Bot = Some (Pos (natom.Bot))\<close>
 | \<open>form_to_nlit (form.Atom p ts) = Some (Pos (natom.Atom p ts))\<close>
@@ -309,6 +321,13 @@ fun nlit_list_to_form :: "nlit list \<Rightarrow> form" where
 
 definition nclause_to_form :: "nclause \<Rightarrow> form" where
   \<open>nclause_to_form C = nlit_list_to_form (list_of_multiset C)\<close>
+
+fun is_clausal :: "form \<Rightarrow> bool" where
+  \<open>is_clausal form.Bot = HOL.True\<close>
+| \<open>is_clausal ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>) = ((\<phi>2 = \<psi>) \<and> (nlit_shape \<psi>) \<and> (is_clausal \<phi>1))\<close>
+| \<open>is_clausal _ = False\<close>
+
+find_theorems name: is_clausal
 
 lemma is_clausal_nlit_list: \<open>is_clausal (nlit_list_to_form ls)\<close>
 proof (induction "nlit_list_to_form ls" arbitrary: ls rule: is_clausal.induct)
@@ -363,6 +382,13 @@ qed
 lemma is_clausal_nclause: \<open>is_clausal (nclause_to_form C)\<close>
   unfolding nclause_to_form_def using is_clausal_nlit_list by auto
 
+fun nlit_list_from_form :: "form \<Rightarrow> nlit list option" where
+  \<open>nlit_list_from_form form.Bot = Some []\<close>
+| \<open>nlit_list_from_form ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>) = 
+    (if (is_clausal ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>)) 
+     then (Some ((the (form_to_nlit \<psi>)) # (the (nlit_list_from_form \<phi>1))))
+     else None)\<close>
+| \<open>nlit_list_from_form _ = None\<close>
 
 lemma nlit_list_form_conv: \<open>the (nlit_list_from_form (nlit_list_to_form ls)) = ls\<close>
 proof (induction ls)
@@ -538,9 +564,207 @@ lemma form_set_to_clauses_mset: \<open>Ball F (\<lambda>\<phi>. mset_from_clausa
   using form_to_clause_mset by (simp add: is_clausal_nclause nclauses_to_form_set_def)
 (* ----------------------------- *)
 
+
+section \<open>Tarski and Herbrand Entailments\<close>
+
+definition entails_tarski :: \<open>form set \<Rightarrow> form set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>T\<close> 50) where
+  \<open>\<Phi> \<Turnstile>\<^sub>T \<Psi> \<equiv> (\<forall>(I :: nterm intrp). is_interpretation (FOL_Syntax.language (\<Phi> \<union> \<Psi>)) I \<longrightarrow>
+    (satisfies I \<Phi> \<longrightarrow> satisfies I \<Psi>))\<close>
+
+definition is_grounding :: \<open>(nat, nat) subst \<Rightarrow> bool\<close> where
+  \<open>is_grounding \<sigma> \<equiv> \<forall>t. ground (t \<cdot> \<sigma>)\<close>
+
+definition groundings :: \<open>form set \<Rightarrow> form set\<close> where
+  \<open>groundings \<Phi> = {\<psi>. (\<exists>\<phi>\<in>\<Phi>. \<exists>\<sigma>. is_grounding \<sigma> \<and> \<psi> = \<phi>  \<cdot>\<^sub>f\<^sub>m \<sigma>)}\<close>
+
+definition entails_herbrand :: \<open>form set \<Rightarrow> form set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>H\<close> 50) where
+  \<open>\<Phi> \<Turnstile>\<^sub>H \<Psi> \<equiv> (\<forall>(I :: nterm intrp). is_interpretation (FOL_Syntax.language (\<Phi> \<union> \<Psi>)) I \<longrightarrow>
+    (satisfies I (groundings \<Phi>) \<longrightarrow> satisfies I (groundings \<Psi>)))\<close>
+
+fun nlits_as_form_set :: \<open>form \<Rightarrow> form set option\<close> where
+  \<open>nlits_as_form_set form.Bot = Some {}\<close>
+| \<open>nlits_as_form_set ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>) = 
+    (if (is_clausal ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>)) 
+     then (Some ({\<psi>} \<union> (the (nlits_as_form_set \<phi>1))))
+     else None)\<close>
+| \<open>nlits_as_form_set _ = None\<close>
+
+definition neg_clause :: \<open>form \<Rightarrow> form set\<close> where
+  \<open>neg_clause \<phi> = {\<^bold>\<not> l |l. l \<in> (the (nlits_as_form_set \<phi>))}\<close>
+
+lemma language_with_Bot[simp]: \<open>FOL_Syntax.language (\<Phi> \<union> {form.Bot}) = FOL_Syntax.language \<Phi>\<close>
+  unfolding FOL_Syntax.language_def functions_forms_def FOL_Syntax.predicates_def by auto
+
+lemma language_union[simp]: \<open>FOL_Syntax.language (\<Phi> \<union> \<Psi>) = 
+  (functions_forms \<Phi> \<union> functions_forms \<Psi>, FOL_Syntax.predicates \<Phi> \<union> FOL_Syntax.predicates \<Psi>)\<close>
+  unfolding FOL_Syntax.language_def functions_forms_def FOL_Syntax.predicates_def by auto
+
+lemma functions_in_form_set: 
+  \<open>is_clausal C \<Longrightarrow> functions_forms (the (nlits_as_form_set C)) = functions_forms {C}\<close>
+  unfolding functions_forms_def by (induction C rule: nlits_as_form_set.induct) auto
+
+lemma predicates_in_form_set:
+  \<open>is_clausal C \<Longrightarrow> FOL_Syntax.predicates (the (nlits_as_form_set C)) = FOL_Syntax.predicates {C}\<close>
+  unfolding FOL_Syntax.predicates_def by (induction C rule: nlits_as_form_set.induct) auto
+
+lemma language_neg_clause: \<open>is_clausal C \<Longrightarrow>
+    FOL_Syntax.language (neg_clause C) = FOL_Syntax.language {C}\<close>
+  unfolding FOL_Syntax.language_def
+proof (clarsimp, rule conjI)
+  assume clause_C: \<open>is_clausal C\<close>
+  have \<open>functions_forms (neg_clause C) =
+    functions_forms (the (nlits_as_form_set C))\<close>
+    unfolding neg_clause_def functions_forms_def by fastforce
+  then show \<open>functions_forms (neg_clause C) = functions_forms {C}\<close>
+    using functions_in_form_set[OF clause_C] by argo
+next
+  assume clause_C: \<open>is_clausal C\<close>
+  have \<open>FOL_Syntax.predicates (neg_clause C) = FOL_Syntax.predicates (the (nlits_as_form_set C))\<close>
+    unfolding neg_clause_def FOL_Syntax.predicates_def by fastforce
+  then show \<open>FOL_Syntax.predicates (neg_clause C) = FOL_Syntax.predicates {C}\<close>
+    using predicates_in_form_set[OF clause_C] by argo
+qed
+
+
+lemma ground_dist: \<open>groundings (\<Phi> \<union> \<Psi>) = groundings \<Phi> \<union> groundings \<Psi>\<close>
+  unfolding groundings_def by blast
+
+lemma sat_union: \<open>satisfies I (\<Phi> \<union> \<Psi>) \<equiv> satisfies I \<Phi> \<and> satisfies I \<Psi>\<close>
+  unfolding satisfies_def by (smt (verit) Un_iff)
+
+lemma sat_union_left: \<open>satisfies I (\<Phi> \<union> \<Psi>) \<Longrightarrow> satisfies I \<Phi>\<close>
+  unfolding satisfies_def by blast
+
+lemma bot_not_sat: \<open>\<not> satisfies I {form.Bot}\<close>
+  unfolding satisfies_def
+proof
+  assume \<open>\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<^bold>\<bottom>} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>\<close>
+  then have sat_bot: \<open>\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> I,\<beta> \<Turnstile> form.Bot\<close>
+    by blast
+  have \<open>\<exists>\<beta>. is_valuation I \<beta>\<close> unfolding is_valuation_def
+    using intrp_is_struct struct.M_nonempty by fastforce
+  then obtain \<beta> where \<open>is_valuation I \<beta>\<close> 
+    by blast
+  moreover have \<open>\<not> I,\<beta> \<Turnstile> form.Bot\<close>
+    by auto
+  ultimately show \<open>False\<close> using sat_bot 
+    by fast
+qed
+
+lemma holds_or: \<open>I,\<beta> \<Turnstile> \<phi> \<^bold>\<or> \<psi> \<equiv> (I,\<beta> \<Turnstile> \<phi>) \<or> (I,\<beta> \<Turnstile> \<psi>)\<close>
+  by (smt (verit, best) holds.simps(3))
+
+find_theorems  \<open>\<forall>_\<in>{_}. _\<close>
+lemma super_obvious: \<open>(\<forall>x. x \<in> {a} \<longrightarrow> P x) \<equiv> P a\<close> by auto
+lemma duper_obvious: \<open>a \<longrightarrow> (b \<longrightarrow> c) \<equiv> ((b \<and> a) \<longrightarrow> c)\<close> by argo
+find_theorems name: type name: empty
+lemma \<open>\<exists>x. P x \<and> Q x \<Longrightarrow> \<forall>x. P x \<and> Q x \<equiv> (\<forall>x. P x) \<and> (\<forall>x. Q x)\<close>
+  by (smt (verit, del_insts))
+lemma \<open>\<forall>x. P x \<and> Q x \<Longrightarrow> (\<forall>x. P x) \<and> (\<forall>x. Q x)\<close> by auto
+lemma \<open> (\<forall>x. P x) \<and> (\<forall>x. Q x) \<Longrightarrow> \<forall>x. P x \<and> Q x\<close> by auto
+
+
+lemma union_singleton_under_all: \<open>(\<forall>\<beta> \<phi>. (P \<beta> \<and> \<phi> \<in> {\<psi>} \<union> B) \<longrightarrow> R \<beta> \<phi>) \<equiv> 
+  (\<forall>\<beta> \<phi>. P \<beta> \<and> \<phi> \<in> {\<psi>} \<longrightarrow> R \<beta> \<phi>) \<and>  (\<forall>\<beta> \<phi>. P \<beta> \<and> \<phi> \<in> B \<longrightarrow> R \<beta> \<phi>)\<close>
+  by (smt (verit) Un_iff singleton_iff)
+
+lemma sat_in_form_set: \<open>is_clausal C \<Longrightarrow> C \<noteq> form.Bot \<Longrightarrow>
+  satisfies I (the (nlits_as_form_set C)) = satisfies I {C}\<close>
+  unfolding satisfies_def
+proof (induction C rule: nlits_as_form_set.induct)
+  case 1
+  then show ?case
+    by blast
+next
+  case (2 \<phi>1 \<phi>2 \<psi>)
+  have is_clausal_phi1: \<open>is_clausal \<phi>1\<close>
+    using 2(2) by simp
+  have psi_eq: \<open>\<phi>2 = \<psi>\<close>
+    using 2(2) by simp
+  have split_lits: \<open>the (nlits_as_form_set (\<phi>1 \<^bold>\<longrightarrow> \<phi>2 \<^bold>\<longrightarrow> \<psi>)) = {\<psi>} \<union> (the (nlits_as_form_set \<phi>1))\<close>
+    using 2(2) by simp
+  then show ?case
+  proof (cases \<open>\<phi>1 = form.Bot\<close>)
+    case True
+    then show ?thesis sorry
+  next
+    case False
+    have \<open>(\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> the (nlits_as_form_set (\<phi>1 \<^bold>\<longrightarrow> \<phi>2 \<^bold>\<longrightarrow> \<psi>)) \<longrightarrow> I,\<beta> \<Turnstile> \<phi>) \<equiv>
+      (\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<psi>} \<union> the (nlits_as_form_set \<phi>1) \<longrightarrow> I,\<beta> \<Turnstile> \<phi>)\<close>
+      using split_lits by auto
+    also have \<open>... \<equiv> (\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<psi>} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>) \<and> 
+      (\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> the (nlits_as_form_set \<phi>1) \<longrightarrow> I,\<beta> \<Turnstile> \<phi>)\<close>
+      using union_singleton_under_all[of "\<lambda>\<beta>. is_valuation I \<beta>" \<psi> "the (nlits_as_form_set \<phi>1)"
+          "\<lambda>\<beta> \<phi>. I,\<beta> \<Turnstile> \<phi>"] .
+    also have \<open>... \<equiv> (\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<psi>} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>) \<and> 
+      (\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<phi>1} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>)\<close>
+      using 2(1)[OF 2(2) is_clausal_phi1 False] by auto
+    also have \<open>... \<equiv> (\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<psi>} \<union> {\<phi>1} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>)\<close>
+      by (smt (verit) Un_iff)
+    show ?thesis
+      using 2(1)[OF 2(2) is_clausal_phi1 False] holds_or psi_eq split_lits 
+ sorry
+  qed
+ 
+    sorry
+next
+  case ("3_1" v va)
+  then show ?case sorry
+next
+  case ("3_2" va)
+  then show ?case sorry
+next
+  case ("3_3" vb vc va)
+  then show ?case sorry
+next
+  case ("3_4" vb vc va)
+  then show ?case sorry
+next
+  case ("3_5" v va)
+  then show ?case sorry
+qed
+
+lemma sat_neg_clause: \<open>is_clausal C \<Longrightarrow> satisfies I (neg_clause C) \<equiv> \<not> (satisfies I {C})\<close>
+  unfolding satisfies_def neg_clause_def 
+  sorry
+
+lemma 
+  assumes \<open>is_clausal C\<close> and
+    \<open>\<Phi> \<Turnstile>\<^sub>H {C}\<close>
+  shows \<open>\<Phi> \<union> neg_clause C \<Turnstile>\<^sub>H {form.Bot}\<close>
+proof (cases \<open>\<exists>(I :: (nat, nat) term intrp). is_interpretation (FOL_Syntax.language (\<Phi> \<union> {C})) I \<and>
+  satisfies I (groundings \<Phi>)\<close>)
+  case True
+  show ?thesis
+    unfolding entails_herbrand_def
+  proof clarsimp
+    fix I :: "(nat, nat) term intrp"
+    show \<open>FOL_Semantics.satisfies I (groundings {form.Bot})\<close>
+      sorry
+  qed
+next
+  case False
+  show ?thesis
+    unfolding entails_herbrand_def
+  proof clarsimp
+    fix I :: "(nat, nat) term intrp"
+    assume is_interp: \<open>is_interpretation (FOL_Syntax.language (form.Bot \<triangleright> \<Phi> \<union> neg_clause C)) I\<close> and
+      sat: \<open>FOL_Semantics.satisfies I (groundings (\<Phi> \<union> neg_clause C))\<close>
+    have \<open>is_interpretation (FOL_Syntax.language (\<Phi> \<union> {C})) I\<close>
+      using language_neg_clause[OF assms(1)] language_union
+      by (metis (no_types, lifting) fst_conv insert_is_Un is_interp is_interpretation_def
+          language_def language_with_Bot sup_commute)
+    moreover have \<open>satisfies I (groundings \<Phi>)\<close>
+      using sat ground_dist sat_union_left by metis
+    ultimately show \<open>FOL_Semantics.satisfies I (groundings {form.Bot})\<close>
+      using False by blast
+qed
+
+
+
 subsection \<open>Aligning entailment\<close>
 
-(* TODO *)
+
 
 
 section \<open>Clausal compactness\<close>
