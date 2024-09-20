@@ -4,8 +4,9 @@
 theory Compactness_For_Clausal_Logic
   imports
     Ordered_Resolution_Prover.Clausal_Logic
-    "hol_light_import/FOL_Syntax"
+    (*"hol_light_import/FOL_Syntax"*)
     "hol_light_import/HOL_Light_Bridge" 
+    FOL_Entailments
     (* Nested_Multisets_Ordinals.Multiset_More *)
     (*Weighted_Path_Order.WPO*)
 begin
@@ -272,19 +273,6 @@ fun nlit_to_form :: "nlit \<Rightarrow> form" where
   \<open>nlit_to_form (Pos a) = natom_to_form a\<close>
 | \<open>nlit_to_form (Neg a) = \<^bold>\<not> (natom_to_form a)\<close>
 
-fun nlit_shape :: "form \<Rightarrow> bool" where
-  \<open>nlit_shape form.Bot = HOL.True\<close>
-| \<open>nlit_shape (form.Atom p ts) = HOL.True\<close>
-| \<open>nlit_shape (\<phi> \<^bold>\<longrightarrow> \<psi>) = (((\<phi> = form.Bot) \<or> (FOL_Syntax.is_Atom \<phi>)) \<and> (\<psi> = form.Bot))\<close>
-| \<open>nlit_shape _ = False\<close>
-
-definition shallow_neg :: "form \<Rightarrow> form \<Rightarrow> bool" where
-  \<open>shallow_neg \<phi> \<psi> = (((\<phi> = form.Bot) \<or> (FOL_Syntax.is_Atom \<phi>)) \<and> (\<psi> = form.Bot))\<close>
-
-fun is_shallow_neg :: "form \<Rightarrow> bool" where
-  \<open>is_shallow_neg (\<phi> \<^bold>\<longrightarrow> \<psi>) = shallow_neg \<phi> \<psi>\<close>
-| \<open>is_shallow_neg _ = False\<close>
-
 fun form_to_nlit :: "form \<Rightarrow> nlit option" where
   \<open>form_to_nlit form.Bot = Some (Pos (natom.Bot))\<close>
 | \<open>form_to_nlit (form.Atom p ts) = Some (Pos (natom.Atom p ts))\<close>
@@ -321,13 +309,6 @@ fun nlit_list_to_form :: "nlit list \<Rightarrow> form" where
 
 definition nclause_to_form :: "nclause \<Rightarrow> form" where
   \<open>nclause_to_form C = nlit_list_to_form (list_of_multiset C)\<close>
-
-fun is_clausal :: "form \<Rightarrow> bool" where
-  \<open>is_clausal form.Bot = HOL.True\<close>
-| \<open>is_clausal ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>) = ((\<phi>2 = \<psi>) \<and> (nlit_shape \<psi>) \<and> (is_clausal \<phi>1))\<close>
-| \<open>is_clausal _ = False\<close>
-
-find_theorems name: is_clausal
 
 lemma is_clausal_nlit_list: \<open>is_clausal (nlit_list_to_form ls)\<close>
 proof (induction "nlit_list_to_form ls" arbitrary: ls rule: is_clausal.induct)
@@ -382,13 +363,6 @@ qed
 lemma is_clausal_nclause: \<open>is_clausal (nclause_to_form C)\<close>
   unfolding nclause_to_form_def using is_clausal_nlit_list by auto
 
-fun nlit_list_from_form :: "form \<Rightarrow> nlit list option" where
-  \<open>nlit_list_from_form form.Bot = Some []\<close>
-| \<open>nlit_list_from_form ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>) = 
-    (if (is_clausal ((\<phi>1 \<^bold>\<longrightarrow> \<phi>2) \<^bold>\<longrightarrow> \<psi>)) 
-     then (Some ((the (form_to_nlit \<psi>)) # (the (nlit_list_from_form \<phi>1))))
-     else None)\<close>
-| \<open>nlit_list_from_form _ = None\<close>
 
 lemma nlit_list_form_conv: \<open>the (nlit_list_from_form (nlit_list_to_form ls)) = ls\<close>
 proof (induction ls)
@@ -564,6 +538,11 @@ lemma form_set_to_clauses_mset: \<open>Ball F (\<lambda>\<phi>. mset_from_clausa
   using form_to_clause_mset by (simp add: is_clausal_nclause nclauses_to_form_set_def)
 (* ----------------------------- *)
 
+subsection \<open>Aligning entailment\<close>
+
+(* TODO *)
+
+
 section \<open>Clausal compactness\<close>
 
 thm COMPACT_LS
@@ -608,6 +587,7 @@ proof clarsimp
     FOL_Semantics.satisfies J (nclauses_to_form_set Cs)\<close>
     using COMPACT_LS by auto
 qed
+
 
 
 end
