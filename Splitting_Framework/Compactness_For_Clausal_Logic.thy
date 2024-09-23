@@ -567,6 +567,10 @@ lemma form_set_to_clauses_mset: \<open>Ball F (\<lambda>\<phi>. mset_from_clausa
 
 section \<open>Tarski and Herbrand Entailments\<close>
 
+
+lemma language_with_Bot[simp]: \<open>FOL_Syntax.language (\<Phi> \<union> {form.Bot}) = FOL_Syntax.language \<Phi>\<close>
+  unfolding FOL_Syntax.language_def functions_forms_def FOL_Syntax.predicates_def by auto
+
 definition entails_tarski :: \<open>form set \<Rightarrow> form set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>T\<close> 50) where
   \<open>\<Phi> \<Turnstile>\<^sub>T \<Psi> \<equiv> (\<forall>(I :: nterm intrp). is_interpretation (FOL_Syntax.language (\<Phi> \<union> \<Psi>)) I \<longrightarrow>
     (satisfies I \<Phi> \<longrightarrow> satisfies I \<Psi>))\<close>
@@ -577,9 +581,54 @@ definition is_grounding :: \<open>(nat, nat) subst \<Rightarrow> bool\<close> wh
 definition groundings :: \<open>form set \<Rightarrow> form set\<close> where
   \<open>groundings \<Phi> = {\<psi>. (\<exists>\<phi>\<in>\<Phi>. \<exists>\<sigma>. is_grounding \<sigma> \<and> \<psi> = \<phi>  \<cdot>\<^sub>f\<^sub>m \<sigma>)}\<close>
 
+
+lemma ground_dist: \<open>groundings (\<Phi> \<union> \<Psi>) = groundings \<Phi> \<union> groundings \<Psi>\<close>
+  unfolding groundings_def by blast
+
+find_theorems ground
+
+lemma ground_bot: \<open>groundings {form.Bot} = {form.Bot}\<close>
+  unfolding groundings_def 
+proof -
+  have exists_grounding: \<open>\<exists>\<sigma>. is_grounding \<sigma>\<close>
+  proof -
+    have \<open>\<exists>t. ground t\<close>
+      by (metis all_not_in_conv ground.simps(2) list.set(1))
+    then obtain t where t_ground: \<open>ground (t :: nterm)\<close> 
+      by blast
+    define \<sigma> :: "(nat, nat) subst" where \<open>\<sigma> = (\<lambda>v. t)\<close>
+    then have \<open>is_grounding \<sigma>\<close>
+      using t_ground
+      by (simp add: is_grounding_def)
+    then show ?thesis
+      by blast
+  qed
+  have \<open>{\<psi>. \<exists>\<phi>\<in>{\<^bold>\<bottom>}. \<exists>\<sigma>. is_grounding \<sigma> \<and> \<psi> = \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>} = {\<psi>. \<exists>\<sigma>. is_grounding \<sigma> \<and> \<psi> = form.Bot}\<close>
+    by auto
+  also have \<open>... = {form.Bot}\<close>
+    using exists_grounding by simp
+  finally show \<open>{\<psi>. \<exists>\<phi>\<in>{\<^bold>\<bottom>}. \<exists>\<sigma>. is_grounding \<sigma> \<and> \<psi> = \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>} = {\<^bold>\<bottom>}\<close> .
+qed
+
 definition entails_herbrand :: \<open>form set \<Rightarrow> form set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>H\<close> 50) where
   \<open>\<Phi> \<Turnstile>\<^sub>H \<Psi> \<equiv> (\<forall>(I :: nterm intrp). is_interpretation (FOL_Syntax.language (\<Phi> \<union> \<Psi>)) I \<longrightarrow>
     (satisfies I (groundings \<Phi>) \<longrightarrow> satisfies I (groundings \<Psi>)))\<close>
+
+lemma \<open>\<Phi> \<Turnstile>\<^sub>H {\<psi>} \<equiv> \<Phi> \<union> {\<^bold>\<not>\<psi>} \<Turnstile>\<^sub>H {form.Bot}\<close>
+proof -
+  have \<open>\<forall>(I :: nterm intrp). \<exists>\<beta>. is_valuation I \<beta>\<close> 
+  proof
+    fix I :: "nterm intrp"
+    show \<open>\<exists>\<beta>. is_valuation I \<beta>\<close> 
+      unfolding is_valuation_def using intrp_is_struct struct.M_nonempty by fastforce
+  qed
+  then have \<open>\<forall>(I :: nterm intrp). \<not> (satisfies I {form.Bot})\<close>
+    unfolding satisfies_def using holds.simps(1) by blast
+  then have \<open>\<forall>(I :: nterm intrp). \<not> (satisfies I (groundings {form.Bot}))\<close>
+    using ground_bot by simp
+  show \<open>\<Phi> \<Turnstile>\<^sub>H {\<psi>} \<equiv> \<Phi> \<union> {\<^bold>\<not>\<psi>} \<Turnstile>\<^sub>H {form.Bot}\<close>
+    sorry
+qed
 
 fun nlits_as_form_set :: \<open>form \<Rightarrow> form set option\<close> where
   \<open>nlits_as_form_set form.Bot = Some {}\<close>
@@ -592,8 +641,6 @@ fun nlits_as_form_set :: \<open>form \<Rightarrow> form set option\<close> where
 definition neg_clause :: \<open>form \<Rightarrow> form set\<close> where
   \<open>neg_clause \<phi> = {\<^bold>\<not> l |l. l \<in> (the (nlits_as_form_set \<phi>))}\<close>
 
-lemma language_with_Bot[simp]: \<open>FOL_Syntax.language (\<Phi> \<union> {form.Bot}) = FOL_Syntax.language \<Phi>\<close>
-  unfolding FOL_Syntax.language_def functions_forms_def FOL_Syntax.predicates_def by auto
 
 lemma language_union[simp]: \<open>FOL_Syntax.language (\<Phi> \<union> \<Psi>) = 
   (functions_forms \<Phi> \<union> functions_forms \<Psi>, FOL_Syntax.predicates \<Phi> \<union> FOL_Syntax.predicates \<Psi>)\<close>
@@ -626,8 +673,6 @@ next
 qed
 
 
-lemma ground_dist: \<open>groundings (\<Phi> \<union> \<Psi>) = groundings \<Phi> \<union> groundings \<Psi>\<close>
-  unfolding groundings_def by blast
 
 lemma sat_union: \<open>satisfies I (\<Phi> \<union> \<Psi>) \<equiv> satisfies I \<Phi> \<and> satisfies I \<Psi>\<close>
   unfolding satisfies_def by (smt (verit) Un_iff)
@@ -654,6 +699,10 @@ qed
 lemma holds_or: \<open>I,\<beta> \<Turnstile> \<phi> \<^bold>\<or> \<psi> \<equiv> (I,\<beta> \<Turnstile> \<phi>) \<or> (I,\<beta> \<Turnstile> \<psi>)\<close>
   by (smt (verit, best) holds.simps(3))
 
+lemma holds_not: \<open>I,\<beta> \<Turnstile> \<^bold>\<not> \<phi> \<equiv> \<not> (I,\<beta> \<Turnstile> \<phi>)\<close>
+  by auto
+
+(*
 find_theorems  \<open>\<forall>_\<in>{_}. _\<close>
 lemma super_obvious: \<open>(\<forall>x. x \<in> {a} \<longrightarrow> P x) \<equiv> P a\<close> by auto
 lemma duper_obvious: \<open>a \<longrightarrow> (b \<longrightarrow> c) \<equiv> ((b \<and> a) \<longrightarrow> c)\<close> by argo
@@ -662,14 +711,68 @@ lemma \<open>\<exists>x. P x \<and> Q x \<Longrightarrow> \<forall>x. P x \<and>
   by (smt (verit, del_insts))
 lemma \<open>\<forall>x. P x \<and> Q x \<Longrightarrow> (\<forall>x. P x) \<and> (\<forall>x. Q x)\<close> by auto
 lemma \<open> (\<forall>x. P x) \<and> (\<forall>x. Q x) \<Longrightarrow> \<forall>x. P x \<and> Q x\<close> by auto
-
+*)
 
 lemma union_singleton_under_all: \<open>(\<forall>\<beta> \<phi>. (P \<beta> \<and> \<phi> \<in> {\<psi>} \<union> B) \<longrightarrow> R \<beta> \<phi>) \<equiv> 
   (\<forall>\<beta> \<phi>. P \<beta> \<and> \<phi> \<in> {\<psi>} \<longrightarrow> R \<beta> \<phi>) \<and>  (\<forall>\<beta> \<phi>. P \<beta> \<and> \<phi> \<in> B \<longrightarrow> R \<beta> \<phi>)\<close>
   by (smt (verit) Un_iff singleton_iff)
 
+(* this is false because of valuations! *)
+(* lemma sat_or: \<open>satisfies I {\<phi> \<^bold>\<or> \<psi>} = (satisfies I {\<phi>} \<or> satisfies I {\<psi>})\<close>
+  unfolding satisfies_def
+  oops *)
+
+lemma holds_closed_ex_equiv_all_val: \<open>FOL_Syntax.FV \<phi> = {} \<Longrightarrow> (\<exists>\<beta>. I,\<beta> \<Turnstile> \<phi>) \<Longrightarrow> (\<forall>\<beta>. I,\<beta> \<Turnstile> \<phi>)\<close>
+  by (metis emptyE holds_indep_\<beta>_if)
+
+lemma holds_FV_equiv_forall: 
+  \<open>(\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> (\<forall>a\<in>FOL_Semantics.dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)) =
+    (\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> I,\<beta> \<Turnstile> \<phi>)\<close>
+proof
+  show \<open>\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> I,\<beta> \<Turnstile> \<phi> \<Longrightarrow>
+    \<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> (\<forall>a\<in>FOL_Semantics.dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
+    by auto
+next
+  show \<open>\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> (\<forall>a\<in>FOL_Semantics.dom I. I,\<beta>(x := a) \<Turnstile> \<phi>) \<Longrightarrow>
+    \<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> I,\<beta> \<Turnstile> \<phi>\<close>
+  proof clarsimp
+    fix \<beta> :: "nat \<Rightarrow> 'a"
+    assume sat: \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> FOL_Semantics.dom I) \<longrightarrow> (\<forall>a\<in>FOL_Semantics.dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)\<close> and
+      val: \<open>\<forall>v. \<beta> v \<in> FOL_Semantics.dom I\<close>
+    then have \<open>I,\<beta>(x := \<beta> x) \<Turnstile> \<phi>\<close>
+      by blast
+    moreover have \<open>\<beta>(x := \<beta> x) = \<beta>\<close>
+      by blast
+    ultimately show \<open>I,\<beta> \<Turnstile> \<phi>\<close>
+      by auto
+  qed
+qed
+
+lemma sat_FV_equiv_forall: \<open>satisfies I {\<^bold>\<forall>x\<^bold>. \<phi>} = satisfies I {\<phi>}\<close>
+  unfolding satisfies_def using holds_FV_equiv_forall by simp
+
+fun add_forall :: "nat list \<Rightarrow> form \<Rightarrow> form" where
+  \<open>add_forall [] \<phi> = \<phi>\<close>
+| \<open>add_forall (v # V) \<phi> = add_forall V (\<^bold>\<forall>v\<^bold>. \<phi>)\<close>
+
+definition close_univ :: \<open>form \<Rightarrow> form\<close> where
+  \<open>close_univ \<phi> = add_forall (sorted_list_of_set(FOL_Syntax.FV \<phi>)) \<phi>\<close>
+
+lemma sat_closed_equiv: \<open>satisfies I {close_univ \<phi>} = satisfies I {\<phi>}\<close>
+  unfolding close_univ_def
+proof (induction "sorted_list_of_set (FOL_Syntax.FV \<phi>)" arbitrary: \<phi>)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons a x)
+  then show ?case
+    using sat_FV_equiv_forall by (metis FV.simps(4) add_forall.elims finite_FV list.distinct(1)
+      list.inject sorted_list_of_set.sorted_key_list_of_set_eq_Nil_iff sorted_list_of_set_nonempty)
+qed
+
+(*
 lemma sat_in_form_set: \<open>is_clausal C \<Longrightarrow> C \<noteq> form.Bot \<Longrightarrow>
-  satisfies I (the (nlits_as_form_set C)) = satisfies I {C}\<close>
+  (\<exists>\<phi> \<in> (the (nlits_as_form_set C)). satisfies I {\<phi>}) = satisfies I {C}\<close>
   unfolding satisfies_def
 proof (induction C rule: nlits_as_form_set.induct)
   case 1
@@ -681,15 +784,29 @@ next
     using 2(2) by simp
   have psi_eq: \<open>\<phi>2 = \<psi>\<close>
     using 2(2) by simp
-  have split_lits: \<open>the (nlits_as_form_set (\<phi>1 \<^bold>\<longrightarrow> \<phi>2 \<^bold>\<longrightarrow> \<psi>)) = {\<psi>} \<union> (the (nlits_as_form_set \<phi>1))\<close>
+  have split_lits: \<open>the (nlits_as_form_set (\<phi>1 \<^bold>\<longrightarrow> \<phi>2 \<^bold>\<longrightarrow> \<psi>)) = 
+    {\<psi>} \<union> (the (nlits_as_form_set \<phi>1))\<close>
     using 2(2) by simp
   then show ?case
   proof (cases \<open>\<phi>1 = form.Bot\<close>)
     case True
-    then show ?thesis sorry
+    then show ?thesis
+      using 2(2) by auto
   next
     case False
-    have \<open>(\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> the (nlits_as_form_set (\<phi>1 \<^bold>\<longrightarrow> \<phi>2 \<^bold>\<longrightarrow> \<psi>)) \<longrightarrow> I,\<beta> \<Turnstile> \<phi>) \<equiv>
+    have \<open>(\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<phi>1 \<^bold>\<longrightarrow> \<phi>2 \<^bold>\<longrightarrow> \<psi>} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>) =
+      (\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> (I,\<beta> \<Turnstile> \<phi>1) \<or> (I,\<beta> \<Turnstile> \<psi>))\<close>
+      using holds_or by (smt (verit) psi_eq singleton_iff)
+    also have \<open>... = (\<forall>\<beta>. (is_valuation I \<beta> \<longrightarrow> (I,\<beta> \<Turnstile> \<phi>1)) \<or> (is_valuation I \<beta> \<longrightarrow> (I,\<beta> \<Turnstile> \<psi>)))\<close>
+      by blast
+    also have \<open>... = (\<forall>\<beta>. (\<forall>\<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<phi>1} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>) \<or>
+      (\<forall>\<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<psi>} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>))\<close>
+      by blast
+    show ?thesis
+      using 2(1)[OF 2(2) is_clausal_phi1 False] holds_or psi_eq split_lits
+      sorry
+  qed
+    (*have \<open>(\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> the (nlits_as_form_set (\<phi>1 \<^bold>\<longrightarrow> \<phi>2 \<^bold>\<longrightarrow> \<psi>)) \<longrightarrow> I,\<beta> \<Turnstile> \<phi>) \<equiv>
       (\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<psi>} \<union> the (nlits_as_form_set \<phi>1) \<longrightarrow> I,\<beta> \<Turnstile> \<phi>)\<close>
       using split_lits by auto
     also have \<open>... \<equiv> (\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<psi>} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>) \<and> 
@@ -701,12 +818,9 @@ next
       using 2(1)[OF 2(2) is_clausal_phi1 False] by auto
     also have \<open>... \<equiv> (\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<psi>} \<union> {\<phi>1} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>)\<close>
       by (smt (verit) Un_iff)
-    show ?thesis
-      using 2(1)[OF 2(2) is_clausal_phi1 False] holds_or psi_eq split_lits 
- sorry
-  qed
- 
-    sorry
+    also have \<open>... \<equiv> (\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<phi>1 \<^bold>\<or> \<psi>} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>)\<close>
+      
+      sorry*)
 next
   case ("3_1" v va)
   then show ?case sorry
@@ -723,9 +837,73 @@ next
   case ("3_5" v va)
   then show ?case sorry
 qed
+*)
 
-lemma sat_neg_clause: \<open>is_clausal C \<Longrightarrow> satisfies I (neg_clause C) \<equiv> \<not> (satisfies I {C})\<close>
+
+
+lemma \<open>FOL_Syntax.FV (\<phi> \<^bold>\<or> \<psi>) = {} \<Longrightarrow> satisfies I {\<phi> \<^bold>\<or> \<psi>} = satisfies I {\<phi>} \<or> satisfies I {\<psi>}\<close>
+proof -
+  assume closed: \<open>FOL_Syntax.FV (\<phi> \<^bold>\<longrightarrow> \<psi> \<^bold>\<longrightarrow> \<psi>) = {}\<close>
+  {
+    assume sat_or: \<open>satisfies I {\<phi> \<^bold>\<longrightarrow> \<psi> \<^bold>\<longrightarrow> \<psi>}\<close> and not_sat_phi: \<open>\<not> satisfies I {\<phi>}\<close>
+    then have \<open>satisfies I {\<psi>}\<close>
+      using holds_or unfolding satisfies_def
+      by (metis FV.simps(3) closed holds_closed_ex_equiv_all_val insertI1 singletonD sup_eq_bot_iff)
+  }
+  moreover{
+    assume sat_phi: \<open>satisfies I {\<phi>}\<close> and sat_psi: \<open>satisfies I {\<psi>}\<close>
+    then have \<open>satisfies I {\<phi> \<^bold>\<or> \<psi>}\<close>
+      unfolding satisfies_def by auto
+  }
+  ultimately show \<open>satisfies I {\<phi> \<^bold>\<longrightarrow> \<psi> \<^bold>\<longrightarrow> \<psi>} = satisfies I {\<phi>} \<or> satisfies I {\<psi>}\<close>
+    by (metis holds_or insertI1 satisfies_def singletonD)
+qed
+
+
+
+lemma sat_singleton_simp: \<open>satisfies I {\<phi>} = (\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> I,\<beta> \<Turnstile> \<phi>)\<close>
+  unfolding satisfies_def by blast
+
+(*
+lemma \<open>(\<not> (satisfies I {\<phi> \<^bold>\<or> \<psi>})) = (satisfies I {\<^bold>\<not>\<phi>, \<^bold>\<not>\<psi>})\<close>
+  unfolding satisfies_def
+proof -
+  have \<open>(\<not>(satisfies I {\<phi> \<^bold>\<or> \<psi>})) =
+    (\<not>(\<forall>\<beta> \<phi>'. is_valuation I \<beta> \<and> \<phi>' \<in> {\<phi> \<^bold>\<longrightarrow> \<psi> \<^bold>\<longrightarrow> \<psi>} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>'))\<close>
+    unfolding satisfies_def by simp
+  also have \<open>... = (\<not>(\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> (I,\<beta> \<Turnstile> \<phi> \<or> I,\<beta> \<Turnstile> \<psi>)))\<close>
+    using holds_or by auto
+  also have \<open>... = (\<exists>\<beta>. is_valuation I \<beta> \<and> ((\<not> I,\<beta> \<Turnstile> \<phi>) \<and> (\<not> I,\<beta> \<Turnstile> \<psi>)))\<close>
+    by auto
+  also have \<open>... = (\<exists>\<beta>. is_valuation I \<beta> \<and> (I,\<beta> \<Turnstile> \<^bold>\<not> \<phi>) \<and> (I,\<beta> \<Turnstile> \<^bold>\<not>\<psi>))\<close>
+    using holds_not by auto
+  also have \<open>... = (\<exists>\<beta>. is_valuation I \<beta> \<and> (I,\<beta> \<Turnstile> \<^bold>\<not> \<phi>)) \<and> (\<exists>\<beta>. is_valuation I \<beta> \<and> (I,\<beta> \<Turnstile> \<^bold>\<not>\<psi>))\<close>
+    sorry
+  have \<open>(\<forall>\<beta> \<phi>'. is_valuation I \<beta> \<and> \<phi>' \<in> {\<^bold>\<not>\<phi>, \<^bold>\<not>\<psi>} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>') =
+    (\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> (I,\<beta> \<Turnstile> \<^bold>\<not>\<phi>) \<and> (I,\<beta> \<Turnstile> \<^bold>\<not>\<psi>))\<close>
+    using holds_not by blast
+  also have \<open>... \<Longrightarrow>
+    ((\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> (I,\<beta> \<Turnstile> \<^bold>\<not>\<phi>)) \<and> (\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> (I,\<beta> \<Turnstile> \<^bold>\<not>\<psi>)))\<close>
+    by blast
+  have \<open>((\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> (I,\<beta> \<Turnstile> \<^bold>\<not>\<phi>)) \<and> (\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> (I,\<beta> \<Turnstile> \<^bold>\<not>\<psi>))) =
+    satisfies I {\<^bold>\<not>\<phi>} \<and> satisfies I {\<^bold>\<not>\<psi>}\<close>
+    using sat_singleton_simp[of I "\<^bold>\<not>\<phi>"] sat_singleton_simp[of I "\<^bold>\<not>\<psi>"] 
+    sorry
+  show \<open>(\<not> (\<forall>\<beta> \<phi>'. is_valuation I \<beta> \<and> \<phi>' \<in> {\<phi> \<^bold>\<longrightarrow> \<psi> \<^bold>\<longrightarrow> \<psi>} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>')) = 
+    (\<forall>\<beta> \<phi>'. is_valuation I \<beta> \<and> \<phi>' \<in> {\<phi> \<^bold>\<longrightarrow> \<^bold>\<bottom>, \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>')\<close>
+    sorry
+qed
+
+lemma sat_neg_clause: \<open>is_clausal C \<Longrightarrow> (satisfies I (neg_clause C)) = (\<not> (satisfies I {C}))\<close>
   unfolding satisfies_def neg_clause_def 
+proof -
+  assume \<open>is_clausal C\<close>
+  then have \<open>Finite_Set.finite (the (nlits_as_form_set C))\<close>
+    sorry
+  show \<open>is_clausal C \<Longrightarrow>
+    \<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {l \<^bold>\<longrightarrow> \<^bold>\<bottom> |l. l \<in> the (nlits_as_form_set C)} \<longrightarrow> I,\<beta> \<Turnstile> \<phi> \<Longrightarrow>
+    \<not> (\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {C} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>)\<close>
+  proof (induction "the (nlits_as_form_set C)" rule:finite.induct)
   sorry
 
 lemma 
@@ -759,7 +937,7 @@ next
     ultimately show \<open>FOL_Semantics.satisfies I (groundings {form.Bot})\<close>
       using False by blast
 qed
-
+*)
 
 
 subsection \<open>Aligning entailment\<close>
