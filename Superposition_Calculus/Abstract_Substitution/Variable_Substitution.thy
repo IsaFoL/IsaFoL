@@ -18,8 +18,7 @@ lemma fset_finite_set [simp]: "fset (finite_set b) = set b"
 
 end
 
-locale variable_substitution = 
-  basic_substitution _ _ subst "\<lambda>a. vars a = {}" 
+locale variable_substitution = basic_substitution _ _ subst "\<lambda>a. vars a = {}" 
 for
   subst :: "'expression \<Rightarrow> ('variable \<Rightarrow> 'base_expression) \<Rightarrow> 'expression" (infixl "\<cdot>" 70) and
   vars :: "'expression \<Rightarrow> 'variable set" +
@@ -95,7 +94,7 @@ locale grounding = variable_substitution
   fixes to_ground :: "'a \<Rightarrow> 'g" and from_ground :: "'g \<Rightarrow> 'a"
   assumes 
     range_from_ground_iff_is_ground: "{f. is_ground f} = range from_ground" and
-    from_ground_inverse: "\<And>g. to_ground (from_ground g) = g"
+    from_ground_inverse [simp]: "\<And>g. to_ground (from_ground g) = g"
 begin
 
 definition groundings ::"'a \<Rightarrow> 'g set" where
@@ -114,7 +113,7 @@ lemma inj_from_ground: "inj_on from_ground domain\<^sub>G"
  
 lemma inj_on_to_ground: "inj_on to_ground (from_ground ` domain\<^sub>G)"
   unfolding inj_on_def
-  by (simp add: from_ground_inverse)
+  by simp
 
 lemma bij_betw_to_ground: "bij_betw to_ground (from_ground ` domain\<^sub>G) domain\<^sub>G"
   by (smt (verit, best) bij_betwI' from_ground_inverse image_iff)
@@ -136,6 +135,11 @@ lemma to_ground_inverse:
   using inj_on_to_ground from_ground_inverse is_ground_iff_range_from_ground assms
   unfolding inj_on_def
   by blast
+
+corollary obtain_grounding: 
+  assumes "is_ground f"
+  obtains g where "from_ground g = f"
+  using to_ground_inverse assms by blast
 
 end
 
@@ -202,16 +206,10 @@ locale based_variable_substitution =
   variable_substitution
 for base_subst base_vars +
 assumes
-  ground_subst_base_ground_subst: 
-    "(\<forall>exp. is_ground (exp \<cdot> \<gamma>)) \<longleftrightarrow> (\<forall>base_exp. base.is_ground (base_subst base_exp \<gamma>))" and
+  ground_subst_iff_base_ground_subst [simp]: "is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>" and
   is_grounding_iff_vars_grounded: 
     "\<And>exp. is_ground (exp \<cdot> \<gamma>) \<longleftrightarrow> (\<forall>x \<in> vars exp. base.is_ground (\<gamma> x))"
 begin
-
-lemma is_ground_subst_iff_base [simp]: 
-  "is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
-  unfolding is_ground_subst_def base.is_ground_subst_def
-  using ground_subst_base_ground_subst.
 
 lemma obtain_ground_subst:
   obtains \<gamma> 
@@ -225,6 +223,13 @@ lemma ground_subst_extension:
   using obtain_ground_subst assms
   by (metis all_subst_ident_if_ground is_ground_subst_comp_right subst_comp_subst)
 
+lemma ground_subst_extension':
+  assumes "is_ground (exp \<cdot> \<gamma>)"
+  obtains \<gamma>'
+  where "exp \<cdot> \<gamma> = exp \<cdot> \<gamma>'" and "base.is_ground_subst \<gamma>'"
+  using ground_subst_extension assms
+  by auto
+
 lemma ground_subst_upd [simp]:
   assumes "base.is_ground update" "is_ground (exp \<cdot> \<gamma>)" 
   shows "is_ground (exp \<cdot> \<gamma>(var := update))"
@@ -235,6 +240,8 @@ lemma ground_exists: "\<exists>exp. is_ground exp"
   by (meson is_grounding_iff_vars_grounded)
 
 end
+
+(* ---- Liftings ---- *)
 
 locale variable_substitution_lifting = 
   sub: variable_substitution 
@@ -249,8 +256,8 @@ locale variable_substitution_lifting =
     map_comp: "\<And>d f g. map f (map g d) = map (f \<circ> g) d" and
     map_id: "map id d = d" and
     map_cong: "\<And>d f g. (\<And>c. c \<in> to_set d \<Longrightarrow> f c = g c) \<Longrightarrow> map f d = map g d" and
-    exists_expression: "\<And>c. \<exists>d. c \<in> to_set d" and
-    to_set_map: "\<And>d f. to_set (map f d) = f ` to_set d" 
+    to_set_map: "\<And>d f. to_set (map f d) = f ` to_set d" and
+    exists_expression: "\<And>c. \<exists>d. c \<in> to_set d" 
 begin
 
 definition vars :: "'expression \<Rightarrow> 'variable set" where
@@ -300,10 +307,9 @@ next
     by (meson UN_I)
 qed
 
-(* TODO: name *)
-lemma is_ground_iff_base_is_ground: 
-  "(\<forall>d. is_ground (subst d \<gamma>)) \<longleftrightarrow> (\<forall>c. sub.is_ground (sub_subst c \<gamma>))"
-proof(intro iffI allI)
+lemma ground_subst_iff_sub_ground_subst [simp]: 
+  "is_ground_subst \<gamma> \<longleftrightarrow> sub.is_ground_subst \<gamma>"
+proof(unfold is_ground_subst_def sub.is_ground_subst_def, intro iffI allI)
   fix c 
   assume all_d_ground: "\<forall>d. is_ground (subst d \<gamma>)"
   show "sub.is_ground (sub_subst c \<gamma>)"
@@ -332,12 +338,6 @@ next
     by simp
 qed
 
-lemma is_ground_subst_iff_base_is_ground_subst [simp]: 
-  "is_ground_subst \<gamma> \<longleftrightarrow> sub.is_ground_subst \<gamma>"
-  unfolding is_ground_subst_def sub.is_ground_subst_def
-  using is_ground_iff_base_is_ground
-  by presburger
-
 lemma to_set_is_ground:
   assumes "sub \<in> to_set expr" "is_ground expr"
   shows "sub.is_ground sub"
@@ -356,19 +356,27 @@ locale based_variable_substitution_lifting =
   variable_substitution_lifting +
   base: base_variable_substitution where subst = base_subst and vars = base_vars
 for base_subst base_vars +
-assumes sub_is_ground_iff: 
-  "\<And>exp \<gamma>. sub.is_ground (sub_subst exp \<gamma>) \<longleftrightarrow> (\<forall>x \<in> sub_vars exp. base.is_ground (\<gamma> x))"
+assumes 
+  sub_is_grounding_iff_vars_grounded: 
+    "\<And>exp \<gamma>. sub.is_ground (sub_subst exp \<gamma>) \<longleftrightarrow> (\<forall>x \<in> sub_vars exp. base.is_ground (\<gamma> x))" and
+  (* TODO: Does it make sense to put this into separate locale? *)
+  sub_ground_subst_iff_base_ground_subst: "\<And>\<gamma>. sub.is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
 begin
 
-lemma is_ground_iff: "is_ground (subst exp \<gamma>) \<longleftrightarrow> (\<forall>x \<in> vars exp. base.is_ground (\<gamma> x))"
-  using sub_is_ground_iff subst_def to_set_map vars_def
+lemma is_grounding_iff_vars_grounded: 
+  "is_ground (subst exp \<gamma>) \<longleftrightarrow> (\<forall>x \<in> vars exp. base.is_ground (\<gamma> x))"
+  using sub_is_grounding_iff_vars_grounded subst_def to_set_map vars_def
   by auto
+
+lemma ground_subst_iff_base_ground_subst [simp]: 
+  "\<And>\<gamma>. is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
+  using sub_ground_subst_iff_base_ground_subst ground_subst_iff_sub_ground_subst by blast
 
 lemma obtain_ground_subst:
   obtains \<gamma> 
   where "is_ground_subst \<gamma>"
   using base.obtain_ground_subst
-  by (meson base.ground_exists is_ground_iff is_ground_subst_def that)
+  by (meson base.ground_exists is_grounding_iff_vars_grounded is_ground_subst_def that)
 
 lemma ground_subst_extension:
   assumes "is_ground (subst exp \<gamma>)"
@@ -377,14 +385,21 @@ lemma ground_subst_extension:
   by (metis all_subst_ident_if_ground assms comp_subst.left.monoid_action_compatibility 
         is_ground_subst_comp_right obtain_ground_subst)
 
+lemma ground_subst_extension':
+  assumes "is_ground (subst exp \<gamma>)"
+  obtains \<gamma>'
+  where "subst exp \<gamma> = subst exp \<gamma>'" and "base.is_ground_subst \<gamma>'"
+  by (metis all_subst_ident_if_ground assms base.is_ground_subst_comp_right 
+        base.obtain_ground_subst subst_comp_subst)
+ 
 lemma ground_subst_upd [simp]:
   assumes "base.is_ground update" "is_ground (subst exp \<gamma>)" 
   shows "is_ground (subst exp  (\<gamma>(var := update)))"
-  using assms(1) assms(2) is_ground_iff by auto
+  using assms(1) assms(2) is_grounding_iff_vars_grounded by auto
 
 lemma ground_exists: "\<exists>exp. is_ground exp"
   using base.ground_exists
-  by (meson is_ground_iff)
+  by (meson is_grounding_iff_vars_grounded)
 
 end
 
@@ -447,12 +462,13 @@ proof unfold_locales
     then have "\<forall>sub\<in>to_set expr. sub \<in> range sub_from_ground"
       by (simp add: sub.is_ground_iff_range_from_ground vars_def)
 
-    then have "\<forall>sub\<in>to_set expr. (\<exists>sub_ground. sub_from_ground sub_ground = sub)"
+    then have "\<forall>sub\<in>to_set expr. \<exists>sub_ground. sub_from_ground sub_ground = sub"
       by fast
 
     then have "\<exists>ground_expr. from_ground ground_expr = expr"
-      unfolding from_ground_def
-      by (metis comp_eq_dest_lhs map_comp' map_id_cong)
+      using map_comp'[symmetric] map_id_cong
+      unfolding from_ground_def comp_def
+      by metis
 
     then show "expr \<in> range from_ground"
       unfolding from_ground_def
@@ -481,7 +497,6 @@ lemma to_set_from_ground: "to_set (from_ground expr) = sub_from_ground ` (to_set
   by (simp add: to_set_from_ground_map)
 
 end
-
 
 locale all_subst_ident_iff_ground_lifting = 
   finite_variables_lifting +  
