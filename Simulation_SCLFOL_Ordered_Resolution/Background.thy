@@ -98,18 +98,19 @@ section \<open>Move to \<^theory>\<open>VeriComp.Simulation\<close>\<close>
 
 locale forward_simulation_with_measuring_function =
   L1: semantics step1 final1 +
-  L2: semantics step2 final2 +
-  well_founded "(\<sqsubset>)"
+  L2: semantics step2 final2
   for
     step1 :: "'state1 \<Rightarrow> 'state1 \<Rightarrow> bool" and
     step2 :: "'state2 \<Rightarrow> 'state2 \<Rightarrow> bool" and
     final1 :: "'state1 \<Rightarrow> bool" and
-    final2 :: "'state2 \<Rightarrow> bool" and
-    order :: "'index \<Rightarrow> 'index \<Rightarrow> bool" (infix "\<sqsubset>" 70) +
+    final2 :: "'state2 \<Rightarrow> bool" +
   fixes
     match :: "'state1 \<Rightarrow> 'state2 \<Rightarrow> bool" and
-    measure :: "'state1 \<Rightarrow> 'index"
+    measure :: "'state1 \<Rightarrow> 'index" and
+    order :: "'index \<Rightarrow> 'index \<Rightarrow> bool" (infix "\<sqsubset>" 70)
   assumes
+    wfp_order:
+      "wfp (\<sqsubset>)" and
     match_final:
       "match s1 s2 \<Longrightarrow> final1 s1 \<Longrightarrow> final2 s2" and
     simulation:
@@ -128,24 +129,28 @@ next
     (\<exists>i' s2'. step2\<^sup>+\<^sup>+ s2 s2' \<and> i' = measure s1' \<and> match s1' s2') \<or>
     (\<exists>i'. (i' = measure s1' \<and> match s1' s2) \<and> i' \<sqsubset> i)"
     using simulation by metis
+next
+  show "wfp (\<sqsubset>)"
+    using wfp_order .
 qed
 
 end
 
 locale backward_simulation_with_measuring_function =
   L1: semantics step1 final1 +
-  L2: semantics step2 final2 +
-  well_founded "(\<sqsubset>)"
+  L2: semantics step2 final2
   for
     step1 :: "'state1 \<Rightarrow> 'state1 \<Rightarrow> bool" and
     step2 :: "'state2 \<Rightarrow> 'state2 \<Rightarrow> bool" and
     final1 :: "'state1 \<Rightarrow> bool" and
-    final2 :: "'state2 \<Rightarrow> bool" and
-    order :: "'index \<Rightarrow> 'index \<Rightarrow> bool" (infix "\<sqsubset>" 70) +
+    final2 :: "'state2 \<Rightarrow> bool" +
   fixes
     match :: "'state1 \<Rightarrow> 'state2 \<Rightarrow> bool" and
-    measure :: "'state2 \<Rightarrow> 'index"
+    measure :: "'state2 \<Rightarrow> 'index" and
+    order :: "'index \<Rightarrow> 'index \<Rightarrow> bool" (infix "\<sqsubset>" 70)
   assumes
+    wfp_order:
+      "wfp (\<sqsubset>)" and
     match_final:
       "match s1 s2 \<Longrightarrow> final2 s2 \<Longrightarrow> final1 s1" and
     simulation:
@@ -164,11 +169,14 @@ next
     (\<exists>i2 s1'. step1\<^sup>+\<^sup>+ s1 s1' \<and> i2 = measure s2' \<and> match s1' s2') \<or>
     (\<exists>i2. (i2 = measure s2' \<and> match s1 s2') \<and> i2 \<sqsubset> i1)"
     using simulation by metis
+next
+  show "wfp (\<sqsubset>)"
+    using wfp_order .
 qed
 
 end
 
-locale semantics' =
+(* locale semantics' =
   fixes
     step :: "'const \<Rightarrow> 'state \<Rightarrow> 'state \<Rightarrow> bool" (infix "\<rightarrow>" 50) and
     final :: "'const \<Rightarrow> 'state \<Rightarrow> bool"
@@ -411,7 +419,7 @@ sublocale language where
   load = "\<lambda>p (\<C>, s). load p \<C> s"
   by unfold_locales
 
-end
+end *)
 
 
 section \<open>Move to Superposition_Calculus\<close>
