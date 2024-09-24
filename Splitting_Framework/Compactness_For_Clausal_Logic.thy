@@ -568,7 +568,47 @@ lemma form_set_to_clauses_mset: \<open>Ball F (\<lambda>\<phi>. mset_from_clausa
 section \<open>Tarski and Herbrand Entailments\<close>
 
 
+lemma ex_beta: \<open>\<forall>I. \<exists>\<beta>. is_valuation I \<beta>\<close> 
+proof
+  fix I
+  show \<open>\<exists>\<beta>. is_valuation I \<beta>\<close> 
+    unfolding is_valuation_def using intrp_is_struct struct.M_nonempty by fastforce
+qed
+
+lemma sat_union: \<open>satisfies I (\<Phi> \<union> \<Psi>) = (satisfies I \<Phi> \<and> satisfies I \<Psi>)\<close>
+  unfolding satisfies_def by (smt (verit) Un_iff)
+
+lemma sat_union_left: \<open>satisfies I (\<Phi> \<union> \<Psi>) \<Longrightarrow> satisfies I \<Phi>\<close>
+  unfolding satisfies_def by blast
+
+lemma bot_not_sat: \<open>\<not> satisfies I {form.Bot}\<close>
+  unfolding satisfies_def
+proof
+  assume \<open>\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<^bold>\<bottom>} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>\<close>
+  then have sat_bot: \<open>\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> I,\<beta> \<Turnstile> form.Bot\<close>
+    by blast
+  obtain \<beta> where \<open>is_valuation I \<beta>\<close> 
+    using ex_beta by blast
+  moreover have \<open>\<not> I,\<beta> \<Turnstile> form.Bot\<close>
+    by auto
+  ultimately show \<open>False\<close> using sat_bot 
+    by fast
+qed
+
+lemma holds_or: \<open>I,\<beta> \<Turnstile> \<phi> \<^bold>\<or> \<psi> \<equiv> (I,\<beta> \<Turnstile> \<phi>) \<or> (I,\<beta> \<Turnstile> \<psi>)\<close>
+  by (smt (verit, best) holds.simps(3))
+
+lemma holds_not: \<open>I,\<beta> \<Turnstile> \<^bold>\<not> \<phi> \<equiv> \<not> (I,\<beta> \<Turnstile> \<phi>)\<close>
+  by auto
+
 lemma language_with_Bot[simp]: \<open>FOL_Syntax.language (\<Phi> \<union> {form.Bot}) = FOL_Syntax.language \<Phi>\<close>
+  unfolding FOL_Syntax.language_def functions_forms_def FOL_Syntax.predicates_def by auto
+
+lemma language_union[simp]: \<open>FOL_Syntax.language (\<Phi> \<union> \<Psi>) = 
+  (functions_forms \<Phi> \<union> functions_forms \<Psi>, FOL_Syntax.predicates \<Phi> \<union> FOL_Syntax.predicates \<Psi>)\<close>
+  unfolding FOL_Syntax.language_def functions_forms_def FOL_Syntax.predicates_def by auto
+
+lemma language_not[simp]: \<open>FOL_Syntax.language {\<^bold>\<not>\<phi>} = FOL_Syntax.language {\<phi>}\<close>
   unfolding FOL_Syntax.language_def functions_forms_def FOL_Syntax.predicates_def by auto
 
 definition entails_tarski :: \<open>form set \<Rightarrow> form set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>T\<close> 50) where
@@ -585,24 +625,32 @@ definition groundings :: \<open>form set \<Rightarrow> form set\<close> where
 lemma ground_dist: \<open>groundings (\<Phi> \<union> \<Psi>) = groundings \<Phi> \<union> groundings \<Psi>\<close>
   unfolding groundings_def by blast
 
-find_theorems ground
+lemma exists_grounding: \<open>\<exists>\<sigma>. is_grounding \<sigma>\<close>
+proof -
+  have \<open>\<exists>t. ground t\<close>
+    by (metis all_not_in_conv ground.simps(2) list.set(1))
+  then obtain t where t_ground: \<open>ground (t :: nterm)\<close> 
+    by blast
+  define \<sigma> :: "(nat, nat) subst" where \<open>\<sigma> = (\<lambda>v. t)\<close>
+  then have \<open>is_grounding \<sigma>\<close>
+    using t_ground
+    by (simp add: is_grounding_def)
+  then show ?thesis
+    by blast
+qed
+
+lemma ground_ex_nempty: \<open>\<Phi> \<noteq> {} \<Longrightarrow> \<exists>\<phi>. \<phi> \<in> groundings \<Phi>\<close>
+  using exists_grounding unfolding groundings_def by auto
+
+lemma ground_ex: \<open>\<exists>\<phi>. \<phi> \<in> groundings {\<psi>}\<close>
+  using ground_ex_nempty by blast
+
+lemma ground_neg: \<open>groundings {\<^bold>\<not>\<phi>} = (\<lambda>\<psi>. \<^bold>\<not>\<psi>) ` (groundings {\<phi>})\<close>
+  unfolding groundings_def by auto
 
 lemma ground_bot: \<open>groundings {form.Bot} = {form.Bot}\<close>
   unfolding groundings_def 
 proof -
-  have exists_grounding: \<open>\<exists>\<sigma>. is_grounding \<sigma>\<close>
-  proof -
-    have \<open>\<exists>t. ground t\<close>
-      by (metis all_not_in_conv ground.simps(2) list.set(1))
-    then obtain t where t_ground: \<open>ground (t :: nterm)\<close> 
-      by blast
-    define \<sigma> :: "(nat, nat) subst" where \<open>\<sigma> = (\<lambda>v. t)\<close>
-    then have \<open>is_grounding \<sigma>\<close>
-      using t_ground
-      by (simp add: is_grounding_def)
-    then show ?thesis
-      by blast
-  qed
   have \<open>{\<psi>. \<exists>\<phi>\<in>{\<^bold>\<bottom>}. \<exists>\<sigma>. is_grounding \<sigma> \<and> \<psi> = \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>} = {\<psi>. \<exists>\<sigma>. is_grounding \<sigma> \<and> \<psi> = form.Bot}\<close>
     by auto
   also have \<open>... = {form.Bot}\<close>
@@ -610,24 +658,88 @@ proof -
   finally show \<open>{\<psi>. \<exists>\<phi>\<in>{\<^bold>\<bottom>}. \<exists>\<sigma>. is_grounding \<sigma> \<and> \<psi> = \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>} = {\<^bold>\<bottom>}\<close> .
 qed
 
+lemma sat_neg: \<open>satisfies I {\<psi>} \<Longrightarrow> \<not> (satisfies I  {\<^bold>\<not>\<psi>})\<close>
+  unfolding satisfies_def using ex_beta by auto
+
+lemma sat_ground_neg: \<open>satisfies I (groundings {\<psi>}) \<Longrightarrow> \<not> (satisfies I (groundings {\<^bold>\<not>\<psi>}))\<close>
+  using ground_neg
+  by (metis bot_not_sat ground_ex holds.simps(3) image_eqI satisfies_def singletonD)
+
+lemma sat_ground_neg2: \<open>satisfies I (groundings {\<^bold>\<not>\<psi>}) \<Longrightarrow> \<not> (satisfies I (groundings {\<psi>}))\<close>
+  using ground_neg
+  by (metis bot_not_sat ground_ex holds.simps(3) image_eqI satisfies_def singletonD)
+
 definition entails_herbrand :: \<open>form set \<Rightarrow> form set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>H\<close> 50) where
   \<open>\<Phi> \<Turnstile>\<^sub>H \<Psi> \<equiv> (\<forall>(I :: nterm intrp). is_interpretation (FOL_Syntax.language (\<Phi> \<union> \<Psi>)) I \<longrightarrow>
     (satisfies I (groundings \<Phi>) \<longrightarrow> satisfies I (groundings \<Psi>)))\<close>
 
-lemma \<open>\<Phi> \<Turnstile>\<^sub>H {\<psi>} \<equiv> \<Phi> \<union> {\<^bold>\<not>\<psi>} \<Turnstile>\<^sub>H {form.Bot}\<close>
+lemma \<open>(\<Phi> \<Turnstile>\<^sub>H {\<psi>}) = (\<Phi> \<union> {\<^bold>\<not>\<psi>} \<Turnstile>\<^sub>H {form.Bot})\<close>
 proof -
-  have \<open>\<forall>(I :: nterm intrp). \<exists>\<beta>. is_valuation I \<beta>\<close> 
-  proof
-    fix I :: "nterm intrp"
-    show \<open>\<exists>\<beta>. is_valuation I \<beta>\<close> 
-      unfolding is_valuation_def using intrp_is_struct struct.M_nonempty by fastforce
-  qed
-  then have \<open>\<forall>(I :: nterm intrp). \<not> (satisfies I {form.Bot})\<close>
-    unfolding satisfies_def using holds.simps(1) by blast
+  have \<open>\<forall>(I :: nterm intrp). \<not> (satisfies I {form.Bot})\<close>
+    unfolding satisfies_def using ex_beta holds.simps(1) by blast
   then have \<open>\<forall>(I :: nterm intrp). \<not> (satisfies I (groundings {form.Bot}))\<close>
     using ground_bot by simp
-  show \<open>\<Phi> \<Turnstile>\<^sub>H {\<psi>} \<equiv> \<Phi> \<union> {\<^bold>\<not>\<psi>} \<Turnstile>\<^sub>H {form.Bot}\<close>
-    sorry
+  show \<open>(\<Phi> \<Turnstile>\<^sub>H {\<psi>}) = (\<Phi> \<union> {\<^bold>\<not>\<psi>} \<Turnstile>\<^sub>H {form.Bot})\<close>
+  proof
+    assume entails_phi_psi: \<open>\<Phi> \<Turnstile>\<^sub>H {\<psi>}\<close>
+    show \<open>\<Phi> \<union> {\<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>} \<Turnstile>\<^sub>H {\<^bold>\<bottom>}\<close>
+    proof (cases \<open>\<exists>(I :: nterm intrp). is_interpretation (FOL_Syntax.language (\<Phi> \<union> {\<psi>})) I \<and>
+       satisfies I (groundings \<Phi>)\<close>)
+      case True
+      show ?thesis 
+        unfolding entails_herbrand_def
+      proof clarsimp
+        fix I :: "nterm intrp"
+        assume i_lang: \<open>is_interpretation (FOL_Syntax.language (\<^bold>\<bottom> \<triangleright> \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom> \<triangleright> \<Phi>)) I\<close> and
+          i_sat_neg: \<open>satisfies I (groundings (\<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom> \<triangleright> \<Phi>))\<close>
+        then have i_sat_phi: \<open>satisfies I (groundings \<Phi>)\<close> and 
+          i_sat_npsi: \<open>satisfies I (groundings {\<^bold>\<not>\<psi>})\<close>
+          using ground_dist sat_union insert_is_Un by metis+
+        have i_lang_simp: \<open>is_interpretation (FOL_Syntax.language (\<Phi> \<union> {\<psi>})) I\<close>
+          using i_lang language_with_Bot language_not language_union by (metis fst_conv insert_is_Un
+              language_def prod.sel(2) sup_commute)
+        have i_sat_psi: \<open>satisfies I (groundings {\<psi>})\<close>
+          using i_sat_phi i_lang_simp entails_phi_psi unfolding entails_herbrand_def by blast
+        then have \<open>\<not> (satisfies I (groundings {\<^bold>\<not>\<psi>}))\<close>
+          using sat_ground_neg by blast
+        then have \<open>False\<close>
+          using i_sat_npsi by blast
+        then show \<open>satisfies I (groundings {\<^bold>\<bottom>})\<close>
+          by blast
+      qed
+    next
+      case False
+      then have all_i_neg: 
+        \<open>\<forall>(I :: nterm intrp). \<not> (is_interpretation (FOL_Syntax.language (\<Phi> \<union> {\<psi>})) I) \<or>
+        \<not> (satisfies I (groundings \<Phi>))\<close>
+        by blast
+      have is_intrp: \<open>is_interpretation (FOL_Syntax.language (\<Phi> \<union> {\<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>} \<union> {\<^bold>\<bottom>})) I = 
+        is_interpretation (FOL_Syntax.language (\<Phi> \<union> {\<psi>})) I\<close> for I :: "nterm intrp"
+        using language_with_Bot language_not language_union by (metis language_def prod.inject)
+      have  \<open>\<not> (satisfies I (groundings \<Phi>)) \<Longrightarrow> \<not> satisfies I (groundings (\<Phi> \<union> {\<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>}))\<close>
+        for I :: "nterm intrp"
+        using sat_union[of I "groundings \<Phi>"] ground_dist by presburger
+      then have \<open>\<nexists>(I :: nterm intrp). 
+        is_interpretation (FOL_Syntax.language (\<Phi> \<union> {\<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>} \<union> {\<^bold>\<bottom>})) I \<and> 
+        satisfies I (groundings (\<Phi> \<union> {\<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>}))\<close>
+        using is_intrp all_i_neg by blast        
+      then show ?thesis
+        unfolding entails_herbrand_def by blast
+    qed
+  next
+    assume \<open>\<Phi> \<union> {\<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>} \<Turnstile>\<^sub>H {\<^bold>\<bottom>}\<close>
+    then have \<open>\<forall>(I :: nterm intrp). is_interpretation (FOL_Syntax.language (\<Phi> \<union> {\<psi>})) I \<longrightarrow> 
+      \<not> (satisfies I (groundings (\<Phi> \<union> {\<^bold>\<not>\<psi>})))\<close>
+      using bot_not_sat ground_bot language_with_Bot language_not language_union
+      unfolding entails_herbrand_def by (metis language_def prod.inject)
+    then have \<open>\<forall>(I :: nterm intrp). is_interpretation (FOL_Syntax.language (\<Phi> \<union> {\<psi>})) I \<longrightarrow> 
+      \<not> (satisfies I (groundings \<Phi>) \<or> \<not> (satisfies I {\<^bold>\<not>\<psi>}))\<close>
+      using sat_union 
+      sorry
+    then show \<open>\<Phi> \<Turnstile>\<^sub>H {\<psi>}\<close>
+      unfolding entails_herbrand_def using sat_union sat_ground_neg2
+      sorry
+  qed
 qed
 
 fun nlits_as_form_set :: \<open>form \<Rightarrow> form set option\<close> where
@@ -640,11 +752,6 @@ fun nlits_as_form_set :: \<open>form \<Rightarrow> form set option\<close> where
 
 definition neg_clause :: \<open>form \<Rightarrow> form set\<close> where
   \<open>neg_clause \<phi> = {\<^bold>\<not> l |l. l \<in> (the (nlits_as_form_set \<phi>))}\<close>
-
-
-lemma language_union[simp]: \<open>FOL_Syntax.language (\<Phi> \<union> \<Psi>) = 
-  (functions_forms \<Phi> \<union> functions_forms \<Psi>, FOL_Syntax.predicates \<Phi> \<union> FOL_Syntax.predicates \<Psi>)\<close>
-  unfolding FOL_Syntax.language_def functions_forms_def FOL_Syntax.predicates_def by auto
 
 lemma functions_in_form_set: 
   \<open>is_clausal C \<Longrightarrow> functions_forms (the (nlits_as_form_set C)) = functions_forms {C}\<close>
@@ -673,34 +780,6 @@ next
 qed
 
 
-
-lemma sat_union: \<open>satisfies I (\<Phi> \<union> \<Psi>) \<equiv> satisfies I \<Phi> \<and> satisfies I \<Psi>\<close>
-  unfolding satisfies_def by (smt (verit) Un_iff)
-
-lemma sat_union_left: \<open>satisfies I (\<Phi> \<union> \<Psi>) \<Longrightarrow> satisfies I \<Phi>\<close>
-  unfolding satisfies_def by blast
-
-lemma bot_not_sat: \<open>\<not> satisfies I {form.Bot}\<close>
-  unfolding satisfies_def
-proof
-  assume \<open>\<forall>\<beta> \<phi>. is_valuation I \<beta> \<and> \<phi> \<in> {\<^bold>\<bottom>} \<longrightarrow> I,\<beta> \<Turnstile> \<phi>\<close>
-  then have sat_bot: \<open>\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> I,\<beta> \<Turnstile> form.Bot\<close>
-    by blast
-  have \<open>\<exists>\<beta>. is_valuation I \<beta>\<close> unfolding is_valuation_def
-    using intrp_is_struct struct.M_nonempty by fastforce
-  then obtain \<beta> where \<open>is_valuation I \<beta>\<close> 
-    by blast
-  moreover have \<open>\<not> I,\<beta> \<Turnstile> form.Bot\<close>
-    by auto
-  ultimately show \<open>False\<close> using sat_bot 
-    by fast
-qed
-
-lemma holds_or: \<open>I,\<beta> \<Turnstile> \<phi> \<^bold>\<or> \<psi> \<equiv> (I,\<beta> \<Turnstile> \<phi>) \<or> (I,\<beta> \<Turnstile> \<psi>)\<close>
-  by (smt (verit, best) holds.simps(3))
-
-lemma holds_not: \<open>I,\<beta> \<Turnstile> \<^bold>\<not> \<phi> \<equiv> \<not> (I,\<beta> \<Turnstile> \<phi>)\<close>
-  by auto
 
 (*
 find_theorems  \<open>\<forall>_\<in>{_}. _\<close>

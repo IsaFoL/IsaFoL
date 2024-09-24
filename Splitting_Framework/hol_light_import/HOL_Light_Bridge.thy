@@ -156,7 +156,8 @@ qed
 
 lemma satisfies_equiv:
   "FOL_Semantics.satisfies C fs = HOL_Light_Import.satisfies (intrp_to_HOL C) (\<lambda>z. z \<in> fs)"
-  by (simp add: satisfies_def satisfies_hldef holds_equiv member_def valuation_hldef Dom_hldef intrp_to_HOL_def)
+  by (simp add: is_valuation_def satisfies_def satisfies_hldef holds_equiv member_def 
+      valuation_hldef Dom_hldef intrp_to_HOL_def)
 
 lemma COMPACT_LS:
   "(\<forall>t. Finite_Set.finite t \<and> t \<subseteq> s \<longrightarrow> (\<exists>M. is_interpretation (FOL_Syntax.language s) M \<and> satisfies M t)) \<longrightarrow>
