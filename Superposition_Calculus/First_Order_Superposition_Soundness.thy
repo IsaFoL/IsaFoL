@@ -251,8 +251,8 @@ proof (cases P C rule: eq_factoring.cases)
       \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
       using welltyped_extension
       using grounding wt(2)
-      by (smt (verit, best) atom.is_ground_iff_base_is_ground clause.is_ground_iff_base_is_ground 
-          literal.is_ground_iff_base_is_ground term_subst.is_ground_subst_is_ground)
+      by (smt (verit, ccfv_threshold) clause.ground_subst_iff_base_ground_subst 
+            clause.is_ground_subst_is_ground)
      
     let ?P = "clause.to_ground (P \<cdot> \<mu> \<cdot> \<gamma>')"
     let ?P' = "clause.to_ground (P' \<cdot> \<mu> \<cdot> \<gamma>')"

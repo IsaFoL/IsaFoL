@@ -88,10 +88,7 @@ proof-
     using assms list_4_cases
     unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
     apply(auto split: list.splits)
-    unfolding 
-      atom.is_ground_subst_iff_base_is_ground_subst[symmetric] 
-      literal.is_ground_subst_iff_base_is_ground_subst[symmetric] 
-      clause.is_ground_subst_iff_base_is_ground_subst[symmetric]
+    unfolding clause.ground_subst_iff_base_ground_subst[symmetric]
     by (metis clause.is_ground_subst_is_ground list_4_cases prod.exhaust_sel)
 
   then show ?thesis
@@ -172,7 +169,7 @@ next
     using welltyped\<^sub>\<sigma>_Var
     apply(clause_auto simp: welltyped\<^sub>c_def welltyped\<^sub>\<sigma>_on_empty)
     using obtain_ground_subst
-    by metis
+    by (metis empty_clause_is_ground welltyped\<^sub>\<sigma>_on_empty)
 next
   fix bottom
   assume "bottom \<in> \<bottom>\<^sub>F"

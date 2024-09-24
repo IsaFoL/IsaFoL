@@ -59,6 +59,15 @@ lemma term_subst_is_imgu_iff_is_imgu:
   unfolding term_subst.is_imgu_def is_imgu_def
   by auto
 
+(*
+TODO: ? 
+lemma term_subst_is_imgu_iff_is_imgu:
+  assumes "\<forall>X\<in> XX. finite X"
+  shows "term_subst.is_imgu \<mu> XX \<longleftrightarrow> term_subst.is_imgu \<mu> ({\<Union>X\<in>XX. X})"
+  using term_subst_is_unifier_set_iff_unifiers[OF assms]
+  unfolding term_subst.is_imgu_def is_imgu_def
+  by auto*)
+
 lemma range_vars_subset_if_is_imgu:
   assumes "term_subst.is_imgu \<mu> XX" "\<forall>X\<in>XX. finite X" "finite XX"
   shows "range_vars \<mu> \<subseteq> (\<Union>t\<in>\<Union>XX. vars_term t)"

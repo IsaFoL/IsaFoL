@@ -317,4 +317,12 @@ lemma multp_add_same:
   shows "multp R (add_mset x X) (add_mset x Y)"
   by (meson assms asymp_on_subset irreflp_on_if_asymp_on multp_cancel_add_mset top_greatest)
 
+(* TODO: Should be possible 
+lemma 
+  assumes "wfP (multp\<^sub>D\<^sub>M R)" (* "asymp (multp\<^sub>D\<^sub>M R)" "transp (multp\<^sub>D\<^sub>M R)" ? *)
+  shows "wfP R"
+  using assms
+  sorry
+*)
+
 end
