@@ -7,7 +7,6 @@ imports
   Main
 begin
 
-
 definition numpair :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
   \<open>numpair x y = (2^x) * (2 * y + 1)\<close>
 
@@ -37,12 +36,7 @@ lemma numpair_inj: \<open>numpair x1 y1 = numpair x2 y2 \<Longrightarrow> x1 = x
   by (metis Suc_eq_plus1 bot_nat_0.extremum_strict less_exp mult_cancel1 nat.simps(1) nat.simps(3)
       numerals(2) numpair_def)
 
-(*
-let INJ_INVERSE2 = prove
- (`!P:A->B->C.
-    (!x1 y1 x2 y2. (P x1 y1 = P x2 y2) <=> (x1 = x2) /\ (y1 = y2))
-    ==> ?X Y. !x y. (X(P x y) = x) /\ (Y(P x y) = y)`
-*)
+(* INJ_INVERSE2 in hol-light *)
 lemma inj_inverse2: \<open>(\<forall>x1 y1 x2 y2. P x1 y1 = P x2 y2 \<longleftrightarrow> (x1 = x2) \<and> (y1 = y2)) \<Longrightarrow>
    \<exists>F S. \<forall>x y. (F (P x y) = x) \<and> (S (P x y) = y)\<close>
 proof -
@@ -59,8 +53,6 @@ specification (numfst) \<open>\<forall>x y. numfst (numpair x y) = x\<close>
 
 specification (numsnd) \<open>\<forall>x y. numsnd (numpair x y) = y\<close>
   using inj_inverse2 numpair_inj by metis
-
-find_theorems numfst
 
 lemma numfst_simp [simp]: \<open>numfst (numpair x y) = x\<close>
   using HOL.nitpick_choice_spec(1) by simp

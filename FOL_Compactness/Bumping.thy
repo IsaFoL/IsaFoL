@@ -12,14 +12,14 @@ definition bump_intrp :: "'m intrp \<Rightarrow> 'm intrp" where
 
 lemma bump_dom [simp]: \<open>dom (bump_intrp \<M>) = dom \<M>\<close>
 proof -
-  have is_struct: \<open>struct (dom \<M>) (\<lambda>k zs. (intrp_fn \<M>) (numsnd k) zs) (intrp_rel \<M>)\<close> 
-    by (smt (verit, best) intrp_is_struct struct_def)
+  have is_struct: \<open>struct (dom \<M>)\<close> (*(\<lambda>k zs. (intrp_fn \<M>) (numsnd k) zs) (intrp_rel \<M>)\<close> *)
+    by (simp add: intrp_is_struct)
   then show ?thesis unfolding bump_intrp_def using dom_Abs_is_fst by blast
 qed
 
 lemma bump_intrp_fn [simp]: \<open>intrp_fn (bump_intrp \<M>) (numpair 0 f) ts = intrp_fn \<M> f ts\<close>
 proof -
-  have is_struct: \<open>struct (dom \<M>) (\<lambda>k zs. (intrp_fn \<M>) (numsnd k) zs) (intrp_rel \<M>)\<close> 
+  have is_struct: \<open>struct (dom \<M>)\<close> (* (\<lambda>k zs. (intrp_fn \<M>) (numsnd k) zs) (intrp_rel \<M>)\<close> *)
     by (smt (verit, best) intrp_is_struct struct_def)
   then show ?thesis unfolding bump_intrp_def by simp
 qed
@@ -73,7 +73,7 @@ proof -
     by (metis bump_intrp_rel)
 qed
 
-lemma bumpform: \<open>\<M>, \<beta> \<Turnstile> \<phi> = (bump_intrp \<M>), \<beta> \<Turnstile> (bump_form \<phi>)\<close>
+lemma bumpform: \<open>\<M>\<^bold>, \<beta> \<Turnstile> \<phi> = (bump_intrp \<M>)\<^bold>, \<beta> \<Turnstile> (bump_form \<phi>)\<close>
 proof (induct \<phi> arbitrary: \<beta>)
   case Bot
   then show ?case
@@ -88,8 +88,8 @@ next
     unfolding bump_intrp_def by auto
 next
   case (Forall x1 \<phi>)
-  have \<open>(\<forall>a \<in> dom \<M>. (bump_intrp \<M>),\<beta>(x1 := a) \<Turnstile> bump_form \<phi>) = 
-    (\<forall>a \<in> dom \<M>. \<M>,\<beta>(x1 := a) \<Turnstile> \<phi>)\<close>
+  have \<open>(\<forall>a \<in> dom \<M>. (bump_intrp \<M>)\<^bold>,\<beta>(x1 := a) \<Turnstile> bump_form \<phi>) = 
+    (\<forall>a \<in> dom \<M>. \<M>\<^bold>,\<beta>(x1 := a) \<Turnstile> \<phi>)\<close>
     using Forall by presburger
   then show ?case
     by simp
@@ -133,7 +133,8 @@ qed auto
 
 lemma bumpform_interpretation: \<open>is_interpretation (language {\<phi>}) \<M> \<Longrightarrow>
   is_interpretation (language {(bump_form \<phi>)}) (bump_intrp \<M>)\<close>
-  unfolding is_interpretation_def language_def by (meson FN_dom_to_dom list_all_set)
+  unfolding is_interpretation_def language_def
+  by (metis bump_dom bump_intrp_fn fst_conv functions_form_bumpform lang_singleton language_def)
 
 (* unbumpterm in hol-light *)
 fun unbump_nterm :: "nterm \<Rightarrow> nterm" where
@@ -168,7 +169,7 @@ proof (induct t)
 qed simp
 
 (*  UNBUMPMOD in hol-light *)
-lemma unbump_holds: \<open>(\<M>,\<beta> \<Turnstile> bump_form \<phi>) = (unbump_intrp \<M>,\<beta> \<Turnstile> \<phi>)\<close>
+lemma unbump_holds: \<open>(\<M>\<^bold>,\<beta> \<Turnstile> bump_form \<phi>) = (unbump_intrp \<M>\<^bold>,\<beta> \<Turnstile> \<phi>)\<close>
 proof (induct \<phi> arbitrary: \<beta>)
   case Bot
   then show ?case
@@ -229,22 +230,24 @@ fun num_of_term :: "nterm \<Rightarrow> nat" where
 | \<open>num_of_term (Fun f ts) = numpair 1 (numpair f (numlist (map num_of_term ts)))\<close>
 
 (* to move in AFP theory First-Order Terms.Term *)
-lemma term_induct2: "(\<And>x y. P (Var x) (Var y)) \<Longrightarrow> (\<And>x g us. P (Var x) (Fun g us))
-   \<Longrightarrow> (\<And>f ts y. P (Fun f ts) (Var y)) \<Longrightarrow> (\<And>f ts g us. P (Fun f ts) (Fun g us))
-   \<Longrightarrow> P t1 t2"
-  by (metis term.collapse(1) term.collapse(2))
-
-lemma term_induct2': "(\<And>x y. P (Var x) (Var y)) \<Longrightarrow> (\<And>x g us. P (Var x) (Fun g us))
-   \<Longrightarrow> (\<And>f ts y. P (Fun f ts) (Var y))
-   \<Longrightarrow> (\<And>f ts g us. list_all2 P ts us \<Longrightarrow> P (Fun f ts) (Fun g us))
-   \<Longrightarrow> P t1 t2"
-  sorry
-
+lemma term_induct2:
+  "(\<And>x y. P (Var x) (Var y))
+    \<Longrightarrow> (\<And>x g us. P (Var x) (Fun g us))
+    \<Longrightarrow> (\<And>f ts y. P (Fun f ts) (Var y)) 
+    \<Longrightarrow> (\<And>f ts g us. (\<And>p q. p \<in> set ts \<Longrightarrow> q \<in> set us \<Longrightarrow> P p q) \<Longrightarrow> P (Fun f ts) (Fun g us))
+    \<Longrightarrow> P t1 t2"
+proof (induction t2 arbitrary: t1)
+  case (Var y)
+  then show ?case by (metis is_FunE is_VarE)
+next
+  case (Fun g us)
+  then have \<open>p \<in> set ts \<Longrightarrow> q \<in> set us \<Longrightarrow> P p q\<close> for ts p q
+    by blast
+  then show ?case
+    using Fun by (metis is_FunE is_VarE)
+qed
 (************************************************)
 
-(*
-NUM_OF_TERM_INJ = prove
- (`!s t. (num_of_term s = num_of_term t) = (s = t)`, *)
 lemma num_of_term_inj: \<open>num_of_term s = num_of_term t \<equiv> s = t\<close>
 proof (induction s t rule: term_induct2)
   case (1 x y)
@@ -252,7 +255,7 @@ proof (induction s t rule: term_induct2)
     by (metis num_of_term.simps(1) numsnd_simp)
 next
   case (2 x g us)
-  then show ?case
+  then show ?case 
     by (metis Term.term.simps(4) le_refl not_one_le_zero num_of_term.elims numpair_inj)
 next
   case (3 f ts y)
@@ -260,31 +263,91 @@ next
     by (metis Term.term.simps(4) not_one_le_zero num_of_term.elims numpair_inj order_refl)
 next
   case (4 f ts g us)
-  then show ?case
-    apply simp
-    using numpair_inj
-    sorry
+  have \<open>(Fun f ts = Fun g us) \<Longrightarrow> num_of_term (Fun f ts) = num_of_term (Fun g us)\<close>
+    by auto
+  moreover {
+    assume \<open>num_of_term (Fun f ts) = num_of_term (Fun g us)\<close>
+    then have \<open>numpair f (numlist (map num_of_term ts)) = numpair g (numlist (map num_of_term us))\<close>
+      using numpair_inj num_of_term.simps(2) by metis
+    then have fun_eq: \<open>f = g\<close> and nl_eq: \<open>numlist (map num_of_term ts) = (numlist (map num_of_term us))\<close>
+      using numpair_inj by blast+
+    then have "map num_of_term ts = map num_of_term us"
+      using numlist_inj by auto
+    then have args_eq: \<open>ts = us\<close>
+      using 4 by (metis list.inj_map_strong)
+    have \<open>Fun f ts = Fun g us\<close>
+      using fun_eq args_eq by simp
+  }
+  ultimately show ?case by auto
 qed
 
+fun num_of_form :: "form \<Rightarrow> nat" where
+  \<open>num_of_form \<^bold>\<bottom> = numpair 0 0\<close>
+| \<open>num_of_form (Atom p ts) = numpair 1 (numpair p (numlist (map num_of_term ts)))\<close>
+| \<open>num_of_form (\<phi> \<^bold>\<longrightarrow> \<psi>) = numpair 2 (numpair (num_of_form \<phi>) (num_of_form \<psi>))\<close>
+| \<open>num_of_form (\<^bold>\<forall>x\<^bold>. \<phi>) = numpair 3 (numpair x (num_of_form \<phi>))\<close>
 
+lemma numlist_num_of_term: \<open>numlist (map num_of_term ts) = (numlist (map num_of_term us)) \<equiv> ts = us\<close>
+  by (smt (verit, best) list.inj_map_strong num_of_term_inj numlist_inj)
 
+(* Shouldn't this already exist somewhere? *)
+lemma double_impl: assumes \<open>A \<Longrightarrow> B\<close> and \<open>B \<Longrightarrow> A\<close> shows \<open>A \<equiv> B\<close>
+  using assms(1) assms(2) by argo
 
+lemma num_of_form_inj: \<open>num_of_form \<phi> = num_of_form \<psi> \<equiv> \<phi> = \<psi>\<close>
+proof (rule double_impl)
+  show \<open>num_of_form \<phi> = num_of_form \<psi> \<Longrightarrow> \<phi> = \<psi>\<close>
+  proof (induct \<phi> arbitrary: \<psi> rule: num_of_form.induct)
+    case 1
+    then show ?case
+      by (metis num_of_form.elims num_of_form.simps(1) numpair_inj_x zero_neq_numeral zero_neq_one)
+  next
+    case (2 p ts)
+    then show ?case
+    proof (cases \<psi>)
+      case Bot
+      then show ?thesis
+        using "2" num_of_term_inj by fastforce
+    next
+      case (Atom q us)
+      then show ?thesis
+        using "2" numpair_inj
+        by (metis num_of_form.simps(2) numlist_num_of_term)
+    next
+      case (Implies \<psi>1 \<psi>2)
+      then show ?thesis
+        using "2" by (metis One_nat_def nat.simps(1) num_of_form.simps(2)
+            num_of_form.simps(3) numpair_inj_x one_add_one plus_1_eq_Suc zero_neq_one)
+    next
+      case (Forall y \<psi>1)
+      then have \<open>\<exists>k. num_of_form \<psi> = numpair 3 k\<close> 
+        by auto
+      moreover have \<open>\<exists>k'. num_of_form (Atom p ts) = numpair 1 k'\<close>
+        by auto
+      ultimately show ?thesis using "2" numpair_inj
+        by (metis numeral_eq_one_iff semiring_norm(86))
+    qed
+  next
+    case (3 \<phi>1 \<phi>2)
+    then show ?case
+      by (smt (verit, best) One_nat_def nat.simps(1) nat.simps(3) num_of_form.elims
+          num_of_form.simps(3) numeral_3_eq_3 numerals(2) numpair_inj)
+  next
+    case (4 x \<phi>1)
+    then show ?case
+      by (smt (verit, ccfv_SIG) Suc_eq_numeral num_of_form.elims num_of_form.simps(4) numeral_3_eq_3
+          numeral_eq_one_iff numerals(2) numpair_inj semiring_norm(86) zero_neq_numeral)
+  qed
+qed auto
 
+consts form_of_num :: "nat \<Rightarrow> form"
+specification (form_of_num) \<open>\<forall>n. form_of_num n = (THE \<phi>. num_of_form \<phi> = n)\<close>
+  using num_of_form_inj by force
 
+find_theorems form_of_num
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+(* FORM_OF_NUM in hol-light *)
+lemma form_of_num_of_form [simp]: \<open>form_of_num(num_of_form \<phi>) = \<phi>\<close>
+  using  HOL.nitpick_choice_spec(3) num_of_form_inj by simp
 
 end

@@ -10,8 +10,8 @@ begin
 lemma holds_exists:
   assumes \<open>is_interpretation (functions_term t, preds) (I :: (nat, nat) term intrp)\<close> and
     \<open>is_valuation I \<beta>\<close> and 
-    \<open>I, \<beta> \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m (subst x t))\<close>
-  shows \<open>I, \<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>)\<close>
+    \<open>I\<^bold>, \<beta> \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m (subst x t))\<close>
+  shows \<open>I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>)\<close>
 proof -
   have \<open>(\<lambda>v. \<lbrakk>subst x t v\<rbrakk>\<^bsup>I,\<beta>\<^esup>) = \<beta>(x := \<lbrakk>t\<rbrakk>\<^bsup>I,\<beta>\<^esup>)\<close>
   proof -
@@ -21,8 +21,23 @@ proof -
       by blast
   qed
   moreover have \<open>\<lbrakk>t\<rbrakk>\<^bsup>I,\<beta>\<^esup> \<in> dom I\<close>
-    using interpretation_termval[OF assms(1) assms(2)] .
-  ultimately have \<open>\<exists>a \<in> dom I. I, \<beta>(x := a) \<Turnstile> \<phi>\<close>
+    using assms(1)
+  proof (induct t)
+    case (Var x)
+    then show ?case
+      using assms(2) by auto
+  next
+    case (Fun f ts)
+ (*   have \<open>(f, length ts) \<in> functions_term (Fun f ts)\<close>
+      by force*)
+    then have \<open>u \<in> set ts \<Longrightarrow> \<lbrakk>u\<rbrakk>\<^bsup>I,\<beta>\<^esup> \<in> FOL_Semantics.dom I\<close> for u
+      by (smt (z3) UN_iff Un_iff eq_fst_iff functions_term.simps(2) is_interpretation_def)
+    then show ?case
+      using eval.simps(2) fst_conv imageE length_map list.set_map list_all_set
+      by (smt (verit, del_insts) Fun.prems Un_insert_left functions_term.simps(2) insert_iff
+          is_interpretation_def)
+  qed
+  ultimately have \<open>\<exists>a \<in> dom I. I\<^bold>, \<beta>(x := a) \<Turnstile> \<phi>\<close>
     using assms(3) swap_subst_eval[of I \<beta> \<phi> "subst x t"] by auto
   then show ?thesis
     using holds_exists by blast
@@ -67,7 +82,7 @@ lemma holds_indep_intrp_if2:
  \<open>I, \<beta> \<Turnstile> \<phi> \<Longrightarrow> dom I = dom I' \<Longrightarrow>
   (\<forall>p. intrp_rel I p  = intrp_rel I' p) \<Longrightarrow>
   (\<forall>f zs. (f, length zs) \<in> functions_form \<phi> \<longrightarrow> (intrp_fn I f zs = intrp_fn I' f zs)) \<Longrightarrow>
-  I', \<beta> \<Turnstile> \<phi>\<close>
+  I'\<^bold>, \<beta> \<Turnstile> \<phi>\<close>
   using holds_indep_intrp_if by blast
 
 lemma fun_upds_prop: \<open>length xs = length zs \<Longrightarrow> \<forall>z\<in>set zs. P z \<Longrightarrow> \<forall>v. P (g v) \<Longrightarrow> \<forall>v. P ((foldr (\<lambda>kv f. fun_upd f (fst kv) (snd kv)) (zip xs zs) g) v)\<close>
@@ -116,5 +131,4 @@ next
         functions_term.simps(2) mem_Collect_eq singletonI subst_simps(1))
 qed
   
-
 end

@@ -577,7 +577,7 @@ let PRENEX_RIGHT_FORALL = prove
 lemma id_subst: \<open>\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var x)) = \<phi>\<close>
   by (induction \<phi>) simp+
 
-lemma holds_indep_forall: \<open>y \<notin> FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<Longrightarrow> (I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<equiv> I,\<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
+lemma holds_indep_forall: \<open>y \<notin> FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<Longrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<equiv> I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
 proof -
   assume y_notin: \<open>y \<notin> FV (\<^bold>\<forall>x\<^bold>. \<phi>)\<close>
   {
@@ -594,75 +594,78 @@ proof -
       ultimately show \<open>(\<lambda>v. eval_subst I (\<beta>(y := a)) (subst x (Var y)) v) w = (\<beta>(x := a)) w\<close>
         by argo
     qed
-    have \<open>I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<equiv> (\<forall>a \<in> dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
+    have \<open>I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<equiv> (\<forall>a \<in> dom I. I\<^bold>,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
       by simp
-    also have \<open>... \<equiv> (\<forall>a \<in> dom I. I,(\<lambda>v. eval_subst I (\<beta>(y := a)) (subst x (Var y)) v) \<Turnstile> \<phi>)\<close>
+    also have \<open>... \<equiv> (\<forall>a \<in> dom I. I\<^bold>,(\<lambda>v. eval_subst I (\<beta>(y := a)) (subst x (Var y)) v) \<Turnstile> \<phi>)\<close>
       using holds_indep_\<beta>_if[OF beta_equiv] by presburger
-    also have \<open>... \<equiv> (\<forall>a \<in> dom I. I,\<beta>(y := a) \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
+    also have \<open>... \<equiv> (\<forall>a \<in> dom I. I\<^bold>,\<beta>(y := a) \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
       using swap_subst_eval[of I _ \<phi> "subst x (Var y)"] by presburger
-    also have \<open>... \<equiv> (I,\<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
+    also have \<open>... \<equiv> (I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
       by simp
-    finally have \<open>(I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<equiv> I,\<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
+    finally have \<open>(I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<equiv> I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
       by argo
   }
   moreover {
     assume y_is_x: \<open>y = x\<close>
-    then have \<open>(I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<equiv> I,\<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
+    then have \<open>(I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<equiv> I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
       using id_subst by presburger
   }
- ultimately show \<open>(I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<equiv> I,\<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
+ ultimately show \<open>(I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<equiv> I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
     by argo
 qed
 
 lemma forall_imp_commute: \<open>y \<notin> FV \<phi> \<Longrightarrow>
-  ((I :: 'a intrp), \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<forall>y\<^bold>. \<psi>)) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
+  ((I :: 'a intrp)\<^bold>, \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<forall>y\<^bold>. \<psi>)) \<equiv> I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
 proof -
   assume y_notin: \<open>y \<notin> FV \<phi>\<close>
-  then have \<open>(I, \<beta> \<Turnstile> \<phi>) \<longrightarrow> (\<forall>a \<in> dom I. I,\<beta>(y := a) \<Turnstile> \<psi>) \<equiv>
-    (\<forall>a \<in> dom I. (I,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
+  then have \<open>(I\<^bold>, \<beta> \<Turnstile> \<phi>) \<longrightarrow> (\<forall>a \<in> dom I. I\<^bold>,\<beta>(y := a) \<Turnstile> \<psi>) \<equiv>
+    (\<forall>a \<in> dom I. (I\<^bold>,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I\<^bold>,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
     by (smt (verit, del_insts) fun_upd_other holds_indep_\<beta>_if)
-  then show \<open>(I, \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<forall>y\<^bold>. \<psi>)) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<^bold>\<longrightarrow> \<psi>))\<close> by simp
+  then show \<open>(I\<^bold>, \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<forall>y\<^bold>. \<psi>)) \<equiv> I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<^bold>\<longrightarrow> \<psi>))\<close> by simp
 qed
 
 lemma forall_imp_exists: \<open>y \<notin> FV \<psi> \<Longrightarrow>
-  ((I :: 'a intrp), \<beta> \<Turnstile> ((\<^bold>\<forall>y\<^bold>.\<phi>) \<^bold>\<longrightarrow>  \<psi>) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. (\<phi> \<^bold>\<longrightarrow> \<psi>)))\<close>
+  ((I :: 'a intrp)\<^bold>, \<beta> \<Turnstile> ((\<^bold>\<forall>y\<^bold>.\<phi>) \<^bold>\<longrightarrow>  \<psi>) \<equiv> I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. (\<phi> \<^bold>\<longrightarrow> \<psi>)))\<close>
 proof -
   assume y_notin: \<open>y \<notin> FV \<psi>\<close>
-  have \<open>(\<forall>a \<in> dom I. I,\<beta>(y := a) \<Turnstile> \<phi>) \<longrightarrow> (I, \<beta> \<Turnstile> \<psi>) \<equiv>
-    (\<exists>a \<in> dom I. (I,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I,\<beta> \<Turnstile> \<psi>))\<close>
-    using FN_dom_to_dom empty_iff list.set(1) by (smt (verit, ccfv_threshold))
-  also have \<open>... \<equiv> (\<exists>a \<in> dom I. (I,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
+  have \<open>(\<forall>a \<in> dom I. I\<^bold>,\<beta>(y := a) \<Turnstile> \<phi>) \<longrightarrow> (I\<^bold>, \<beta> \<Turnstile> \<psi>) \<equiv>
+    (\<exists>a \<in> dom I. (I\<^bold>,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I\<^bold>,\<beta> \<Turnstile> \<psi>))\<close>
+    using empty_iff list.set(1)
+    by (smt (verit, best) equals0I intrp_is_struct struct_def)
+  also have \<open>... \<equiv> (\<exists>a \<in> dom I. (I\<^bold>,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I\<^bold>,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
     using holds_indep_\<beta>_if by (smt (verit, del_insts) fun_upd_other y_notin)
-  finally show \<open>(I, \<beta> \<Turnstile> ((\<^bold>\<forall>y\<^bold>.\<phi>) \<^bold>\<longrightarrow>  \<psi>) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. (\<phi> \<^bold>\<longrightarrow> \<psi>)))\<close>
+  finally show \<open>(I\<^bold>, \<beta> \<Turnstile> ((\<^bold>\<forall>y\<^bold>.\<phi>) \<^bold>\<longrightarrow>  \<psi>) \<equiv> I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. (\<phi> \<^bold>\<longrightarrow> \<psi>)))\<close>
     by simp
 qed
 
 lemma exists_imp_forall: \<open>y \<notin> FV \<psi> \<Longrightarrow>
-  ((I :: 'a intrp), \<beta> \<Turnstile> ((\<^bold>\<exists>y\<^bold>.\<phi>) \<^bold>\<longrightarrow>  \<psi>) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. (\<phi> \<^bold>\<longrightarrow> \<psi>)))\<close>
+  ((I :: 'a intrp)\<^bold>, \<beta> \<Turnstile> ((\<^bold>\<exists>y\<^bold>.\<phi>) \<^bold>\<longrightarrow>  \<psi>) \<equiv> I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. (\<phi> \<^bold>\<longrightarrow> \<psi>)))\<close>
 proof -
   assume y_notin: \<open>y \<notin> FV \<psi>\<close>
-  have \<open>(\<exists>a \<in> dom I. I,\<beta>(y := a) \<Turnstile> \<phi>) \<longrightarrow> (I, \<beta> \<Turnstile> \<psi>) \<equiv>
-    (\<forall>a \<in> dom I. (I,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I,\<beta> \<Turnstile> \<psi>))\<close>
-    using FN_dom_to_dom empty_iff list.set(1) by (smt (verit, ccfv_threshold))
-  also have \<open>... \<equiv> (\<forall>a \<in> dom I. (I,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
+  have \<open>(\<exists>a \<in> dom I. I\<^bold>,\<beta>(y := a) \<Turnstile> \<phi>) \<longrightarrow> (I\<^bold>, \<beta> \<Turnstile> \<psi>) \<equiv>
+    (\<forall>a \<in> dom I. (I\<^bold>,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I\<^bold>,\<beta> \<Turnstile> \<psi>))\<close>
+    using empty_iff list.set(1) by (smt (verit, ccfv_threshold))
+  also have \<open>... \<equiv> (\<forall>a \<in> dom I. (I\<^bold>,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I\<^bold>,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
     using holds_indep_\<beta>_if by (smt (verit, del_insts) fun_upd_other y_notin)
-  finally show \<open>(I, \<beta> \<Turnstile> ((\<^bold>\<exists>y\<^bold>.\<phi>) \<^bold>\<longrightarrow>  \<psi>) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. (\<phi> \<^bold>\<longrightarrow> \<psi>)))\<close>
+  finally show \<open>(I\<^bold>, \<beta> \<Turnstile> ((\<^bold>\<exists>y\<^bold>.\<phi>) \<^bold>\<longrightarrow>  \<psi>) \<equiv> I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. (\<phi> \<^bold>\<longrightarrow> \<psi>)))\<close>
     by simp
 qed
 
-lemma exists_imp_commute: \<open>y \<notin> FV \<phi> \<Longrightarrow> ((I :: 'a intrp), \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>y\<^bold>. \<psi>)) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
+lemma exists_imp_commute: \<open>y \<notin> FV \<phi> \<Longrightarrow> ((I :: 'a intrp)\<^bold>, \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>y\<^bold>. \<psi>)) \<equiv>
+   I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
 proof -
   assume y_notin: \<open>y \<notin> FV \<phi>\<close>
-  have \<open>(I, \<beta> \<Turnstile> \<phi>) \<longrightarrow> (\<exists>a \<in> dom I. I,\<beta>(y := a) \<Turnstile> \<psi>) \<equiv> (\<exists>a \<in> dom I. (I, \<beta> \<Turnstile> \<phi>) \<longrightarrow> (I,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
-    by (smt (verit, ccfv_SIG) FN_dom_to_dom empty_iff list.set(1))
-  also have \<open>... \<equiv> (\<exists>a \<in> dom I. (I,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
+  have \<open>(I\<^bold>, \<beta> \<Turnstile> \<phi>) \<longrightarrow> (\<exists>a \<in> dom I. I\<^bold>,\<beta>(y := a) \<Turnstile> \<psi>) \<equiv>
+   (\<exists>a \<in> dom I. (I\<^bold>, \<beta> \<Turnstile> \<phi>) \<longrightarrow> (I\<^bold>,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
+    by (smt (verit) equals0I intrp_is_struct struct_def)
+  also have \<open>... \<equiv> (\<exists>a \<in> dom I. (I\<^bold>,\<beta>(y := a) \<Turnstile> \<phi> \<longrightarrow> I\<^bold>,\<beta>(y := a) \<Turnstile> \<psi>))\<close>
     using y_notin by (smt (verit, ccfv_threshold) fun_upd_other holds_indep_\<beta>_if)
-  finally show \<open>(I, \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>y\<^bold>. \<psi>)) \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
+  finally show \<open>(I\<^bold>, \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>y\<^bold>. \<psi>)) \<equiv> I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
     using holds_exists by simp
 qed
 
 lemma holds_indep_exists: \<open>y \<notin> FV (\<^bold>\<exists>x\<^bold>. \<phi>) \<Longrightarrow> 
-  (I,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>) \<equiv> I,\<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
+  (I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>) \<equiv> I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. \<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
   using holds_indep_forall by (smt (verit, ccfv_threshold) FV.simps(1) FV.simps(3)
     formsubst.simps(1) formsubst.simps(3) holds.simps(3) sup_bot.right_neutral) 
 
@@ -671,17 +674,17 @@ lemma holds_indep_exists: \<open>y \<notin> FV (\<^bold>\<exists>x\<^bold>. \<ph
 (* holds M (v:num->A) (p --> !!y (formsubst (valmod (x,V y) V) q)) *)
 lemma prenex_right_forall_is:
   assumes \<open>\<not>(dom (I :: 'a intrp) = {})\<close> 
-  shows \<open>((I, \<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> (\<^bold>\<forall>x\<^bold>. \<psi>)) \<equiv>
-  (I, \<beta> \<Turnstile> (\<^bold>\<forall>(variant (FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>)))\<^bold>. 
+  shows \<open>((I\<^bold>, \<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> (\<^bold>\<forall>x\<^bold>. \<psi>)) \<equiv>
+  (I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<forall>(variant (FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>)))\<^bold>. 
              (\<phi> \<^bold>\<longrightarrow> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>))))))))))\<close> (is "?lhs \<equiv> ?rhs")
 proof -
   define y where \<open>y = variant (FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>))\<close>
   then have y_notin1: \<open>y \<notin> FV \<phi>\<close> and y_notin2: \<open>y \<notin> FV (\<^bold>\<forall>x\<^bold>. \<psi>)\<close>
   using variant_finite finite_FV by (meson UnCI finite_UnI)+
-  have \<open>?lhs \<equiv> I, \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<forall>y\<^bold>. \<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
+  have \<open>?lhs \<equiv> I\<^bold>, \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<forall>y\<^bold>. \<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
     using holds_indep_forall y_notin2
     by (smt (verit, ccfv_SIG) holds.simps(3))
-  also have \<open>... \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<^bold>\<longrightarrow> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
+  also have \<open>... \<equiv> I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<forall>y\<^bold>. \<phi> \<^bold>\<longrightarrow> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
     using forall_imp_commute[OF y_notin1, of I \<beta> "\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))"] .
   finally show \<open>?lhs \<equiv> ?rhs\<close>
     unfolding y_def .
@@ -694,16 +697,16 @@ qed
                                (x,V(VARIANT (FV(p) UNION FV(??x q)))) V) q)))`,*)
 lemma prenex_right_exists_is:
   assumes \<open>\<not>(dom (I :: 'a intrp) = {})\<close> 
-  shows \<open>((I, \<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>x\<^bold>. \<psi>)) \<equiv>
-  (I, \<beta> \<Turnstile> (\<^bold>\<exists>(variant (FV \<phi> \<union> FV (\<^bold>\<exists>x\<^bold>. \<psi>)))\<^bold>. 
+  shows \<open>((I\<^bold>, \<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>x\<^bold>. \<psi>)) \<equiv>
+  (I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<exists>(variant (FV \<phi> \<union> FV (\<^bold>\<exists>x\<^bold>. \<psi>)))\<^bold>. 
              (\<phi> \<^bold>\<longrightarrow> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV \<phi> \<union> FV (\<^bold>\<exists>x\<^bold>. \<psi>))))))))))\<close> (is "?lhs \<equiv> ?rhs")
 proof -
   define y where \<open>y = variant (FV \<phi> \<union> FV (\<^bold>\<exists>x\<^bold>. \<psi>))\<close>
   then have y_notin1: \<open>y \<notin> FV \<phi>\<close> and y_notin2: \<open>y \<notin> FV (\<^bold>\<exists>x\<^bold>. \<psi>)\<close>
   using variant_finite finite_FV by (meson UnCI finite_UnI)+
-  have \<open>?lhs \<equiv> I, \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>y\<^bold>. \<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
+  have \<open>?lhs \<equiv> I\<^bold>, \<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> (\<^bold>\<exists>y\<^bold>. \<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
     using holds_indep_exists y_notin2 holds_exists by (smt (verit) holds.simps(3))
-  also have \<open>... \<equiv> I, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. \<phi> \<^bold>\<longrightarrow> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
+  also have \<open>... \<equiv> I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<exists>y\<^bold>. \<phi> \<^bold>\<longrightarrow> (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))\<close>
     using exists_imp_commute[OF y_notin1, of I \<beta> "\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))"] .
   finally show \<open>?lhs \<equiv> ?rhs\<close>
     unfolding y_def .
@@ -711,14 +714,14 @@ qed
 
 lemma prenex_left_forall_is:
   assumes \<open>\<not>(dom (I :: 'a intrp) = {})\<close> 
-  shows \<open>(I, \<beta> \<Turnstile> ((\<^bold>\<forall>x\<^bold>. \<phi>) \<^bold>\<longrightarrow> \<psi>)) \<equiv> (I, \<beta> \<Turnstile> (\<^bold>\<exists>(variant (FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<union> FV \<psi>))\<^bold>.
+  shows \<open>(I\<^bold>, \<beta> \<Turnstile> ((\<^bold>\<forall>x\<^bold>. \<phi>) \<^bold>\<longrightarrow> \<psi>)) \<equiv> (I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<exists>(variant (FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<union> FV \<psi>))\<^bold>.
                ((\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<union> FV \<psi>))))) \<^bold>\<longrightarrow> \<psi>)))\<close>
   using forall_imp_exists holds_indep_forall holds.simps(3)
   by (smt (verit, del_insts) FV.simps(3) UnI2 sup.commute variant_form)
 
 lemma prenex_left_exists_is:
   assumes \<open>\<not>(dom (I :: 'a intrp) = {})\<close> 
-  shows \<open>(I, \<beta> \<Turnstile> ((\<^bold>\<exists>x\<^bold>. \<phi>) \<^bold>\<longrightarrow> \<psi>)) \<equiv> (I, \<beta> \<Turnstile> (\<^bold>\<forall>(variant (FV (\<^bold>\<exists>x\<^bold>. \<phi>) \<union> FV \<psi>))\<^bold>.
+  shows \<open>(I\<^bold>, \<beta> \<Turnstile> ((\<^bold>\<exists>x\<^bold>. \<phi>) \<^bold>\<longrightarrow> \<psi>)) \<equiv> (I\<^bold>, \<beta> \<Turnstile> (\<^bold>\<forall>(variant (FV (\<^bold>\<exists>x\<^bold>. \<phi>) \<union> FV \<psi>))\<^bold>.
                ((\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var (variant (FV (\<^bold>\<exists>x\<^bold>. \<phi>) \<union> FV \<psi>))))) \<^bold>\<longrightarrow> \<psi>)))\<close>
   using exists_imp_forall holds_indep_exists holds.simps(3)
   by (smt (verit, ccfv_SIG) FV.simps(3) UnCI finite_FV variant_finite)
@@ -761,16 +764,16 @@ lemma prenex_left_exists_language: \<open>language {(\<^bold>\<exists>x\<^bold>.
 
 (* prenex properties lemmas *)
 lemma prenex_props_forall: \<open>P \<and> FV \<phi> = FV \<psi> \<and> language {\<phi>} = language {\<psi>} \<and>
-  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I,\<beta> \<Turnstile> \<psi>)) \<Longrightarrow>
+  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> \<psi>)) \<Longrightarrow>
   P \<and> FV (\<^bold>\<forall>x\<^bold>. \<phi>) = FV (\<^bold>\<forall>x\<^bold>. \<psi>) \<and> language {(\<^bold>\<forall>x\<^bold>. \<phi>)} = language {(\<^bold>\<forall>x\<^bold>. \<psi>)} \<and>
-  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<longleftrightarrow> I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<psi>)))
+  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<psi>)))
 \<close>
   using lang_singleton by simp
 
 lemma prenex_props_exists: \<open>P \<and> FV \<phi> = FV \<psi> \<and> language {\<phi>} = language {\<psi>} \<and>
-  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I,\<beta> \<Turnstile> \<psi>)) \<Longrightarrow>
+  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> \<psi>)) \<Longrightarrow>
   P \<and> FV (\<^bold>\<exists>x\<^bold>. \<phi>) = FV (\<^bold>\<exists>x\<^bold>. \<psi>) \<and> language {(\<^bold>\<exists>x\<^bold>. \<phi>)} = language {(\<^bold>\<exists>x\<^bold>. \<psi>)} \<and>
-  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>) \<longleftrightarrow> I,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<psi>)))
+  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>) \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<psi>)))
 \<close>
   using lang_singleton by simp
 
@@ -837,13 +840,13 @@ qed
 lemma prenex_right_props_imp:  \<open>qfree \<phi> \<Longrightarrow> is_prenex \<psi> \<longrightarrow> is_prenex (prenex_right \<phi> \<psi>) \<and> 
   FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
   language {prenex_right \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
-  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>))))\<close>
+  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I\<^bold>,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>))))\<close>
 proof -
   (* Is it possible to use the induction tactic here instead? *)
   define P where \<open>P = (\<lambda>\<psi>. is_prenex (prenex_right \<phi> \<psi>)  \<and> 
     FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
     language {prenex_right \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
-    (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>)))))\<close>
+    (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I\<^bold>,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>)))))\<close>
   assume qfree_phi: \<open>qfree \<phi>\<close>
   have \<open>(\<forall>\<psi>. (\<forall>\<psi>'. size \<psi>' < size \<psi> \<longrightarrow> 
     (is_prenex \<psi>'  \<longrightarrow> P \<psi>')) \<longrightarrow> 
@@ -877,11 +880,11 @@ proof -
         using prenex_right_forall_language by (smt (verit, ccfv_threshold) 2(1) P_def p_xps pr_is1
             prenex_props_forall y_def)
       moreover have \<open>(\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> 
-        I,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<xi>)\<close>
+        I\<^bold>,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = I\<^bold>,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<xi>)\<close>
       proof clarsimp
         fix I :: "'a intrp" and \<beta>
         assume \<open>dom I \<noteq> {}\<close>
-        then show \<open>I,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = (I,\<beta> \<Turnstile> \<phi> \<longrightarrow> I,\<beta> \<Turnstile> \<xi>)\<close>
+        then show \<open>I\<^bold>,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = (I\<^bold>,\<beta> \<Turnstile> \<phi> \<longrightarrow> I\<^bold>,\<beta> \<Turnstile> \<xi>)\<close>
           using prenex_right_forall_is by (smt (verit, del_insts) 2(1) P_def holds.simps(3) p_xps
               pr_is1 prenex_props_forall y_def)
       qed
@@ -907,11 +910,11 @@ proof -
         using prenex_right_forall_language by (smt (verit) "3"(1) P_def p_xps pr_is1 
             prenex_props_exists prenex_right_exists_language y_def)
       moreover have \<open>(\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> 
-        I,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<xi>)\<close>
+        I\<^bold>,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = I\<^bold>,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<xi>)\<close>
       proof clarsimp
         fix I :: "'a intrp" and \<beta>
         assume \<open>dom I \<noteq> {}\<close>
-        then show \<open>I,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = (I,\<beta> \<Turnstile> \<phi> \<longrightarrow> I,\<beta> \<Turnstile> \<xi>)\<close>
+        then show \<open>I\<^bold>,\<beta> \<Turnstile> prenex_right \<phi> \<xi> = (I\<^bold>,\<beta> \<Turnstile> \<phi> \<longrightarrow> I\<^bold>,\<beta> \<Turnstile> \<xi>)\<close>
           using prenex_right_exists_is by (smt (verit) 3(1) P_def holds.simps(3) p_xps pr_is1
               prenex_props_exists y_def)
       qed
@@ -928,7 +931,7 @@ lemma prenex_right_props: \<open>qfree \<phi> \<and> is_prenex \<psi> \<Longrigh
   is_prenex (prenex_right \<phi> \<psi>) \<and>
   FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
   language {prenex_right \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
-  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>))))\<close>
+  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I\<^bold>,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>))))\<close>
   using prenex_right_props_imp by meson
 
 
@@ -980,13 +983,13 @@ lemma prenex_left_props_imp: \<open>is_prenex \<psi> \<Longrightarrow> is_prenex
         is_prenex (prenex_left \<phi> \<psi>) \<and>
         FV (prenex_left \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
         (language {(prenex_left \<phi> \<psi>)} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)}) \<and>
-        (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I,\<beta> \<Turnstile> prenex_left \<phi> \<psi> \<longleftrightarrow> I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
+        (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> prenex_left \<phi> \<psi> \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
 proof -
   (* Is it possible to use the induction tactic here instead? *)
   define P where \<open>P = (\<lambda>\<phi>. is_prenex (prenex_left \<phi> \<psi>)  \<and> 
     FV (prenex_left \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
     language {prenex_left \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
-    (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I,\<beta> \<Turnstile> (prenex_left \<phi> \<psi>)) \<longleftrightarrow> (I,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>)))))\<close>
+    (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I\<^bold>,\<beta> \<Turnstile> (prenex_left \<phi> \<psi>)) \<longleftrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>)))))\<close>
   assume is_prenex_psi: \<open>is_prenex \<psi>\<close>
   have \<open>(\<forall>\<phi>. (\<forall>\<phi>'. size \<phi>' < size \<phi> \<longrightarrow> (is_prenex \<phi>'  \<longrightarrow> P \<phi>')) \<longrightarrow> (is_prenex \<phi> \<longrightarrow> P \<phi>))\<close>
   proof clarsimp
@@ -1019,11 +1022,11 @@ proof -
         using prenex_left_forall_language 
         by (smt (verit, ccfv_threshold) 2(1) P_def p_xps pr_is1 prenex_props_exists y_def)
       moreover have \<open>(\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> 
-        I,\<beta> \<Turnstile> prenex_left \<xi> \<psi> = I,\<beta> \<Turnstile> \<xi> \<^bold>\<longrightarrow> \<psi>)\<close>
+        I\<^bold>,\<beta> \<Turnstile> prenex_left \<xi> \<psi> = I\<^bold>,\<beta> \<Turnstile> \<xi> \<^bold>\<longrightarrow> \<psi>)\<close>
       proof clarsimp
         fix I :: "'a intrp" and \<beta>
         assume \<open>dom I \<noteq> {}\<close>
-        then show \<open>I,\<beta> \<Turnstile> prenex_left \<xi> \<psi> = (I,\<beta> \<Turnstile> \<xi> \<longrightarrow> I,\<beta> \<Turnstile> \<psi>)\<close>
+        then show \<open>I\<^bold>,\<beta> \<Turnstile> prenex_left \<xi> \<psi> = (I\<^bold>,\<beta> \<Turnstile> \<xi> \<longrightarrow> I\<^bold>,\<beta> \<Turnstile> \<psi>)\<close>
           using prenex_left_forall_is
           by (smt (verit) "2"(1) P_def holds.simps(3) p_xps pr_is1 prenex_props_exists y_def)
       qed
@@ -1049,11 +1052,11 @@ proof -
         using prenex_left_exists_language[of x \<xi>' \<psi>] 
         by (smt (verit) 3(1) P_def p_xps pr_is2 prenex_props_forall y_def)
       moreover have \<open>(\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> 
-        I,\<beta> \<Turnstile> prenex_left \<xi> \<psi> = I,\<beta> \<Turnstile> \<xi> \<^bold>\<longrightarrow> \<psi>)\<close>
+        I\<^bold>,\<beta> \<Turnstile> prenex_left \<xi> \<psi> = I\<^bold>,\<beta> \<Turnstile> \<xi> \<^bold>\<longrightarrow> \<psi>)\<close>
       proof clarsimp
         fix I :: "'a intrp" and \<beta>
         assume \<open>dom I \<noteq> {}\<close>
-        then show \<open>I,\<beta> \<Turnstile> prenex_left \<xi> \<psi> = (I,\<beta> \<Turnstile> \<xi> \<longrightarrow> I,\<beta> \<Turnstile> \<psi>)\<close>
+        then show \<open>I\<^bold>,\<beta> \<Turnstile> prenex_left \<xi> \<psi> = (I\<^bold>,\<beta> \<Turnstile> \<xi> \<longrightarrow> I\<^bold>,\<beta> \<Turnstile> \<psi>)\<close>
           using prenex_left_exists_is by (smt (verit, del_insts) 3(1) P_def holds.simps(3) p_xps
               pr_is1 prenex_props_forall y_def)
       qed
@@ -1078,12 +1081,12 @@ lemma prenex_left_props: \<open>is_prenex \<phi> \<and> is_prenex \<psi> \<Longr
         is_prenex (prenex_left \<phi> \<psi>) \<and>
         FV (prenex_left \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
         (language {(prenex_left \<phi> \<psi>)} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)}) \<and>
-        (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I,\<beta> \<Turnstile> prenex_left \<phi> \<psi> \<longleftrightarrow> I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
+        (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> prenex_left \<phi> \<psi> \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
   using prenex_left_props_imp by meson
 
 theorem prenex_props: \<open>is_prenex (prenex \<phi>) \<and> (FV (prenex \<phi>) = FV \<phi>) \<and> 
   (language {prenex \<phi>} = language {\<phi>}) \<and>
-  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I, \<beta> \<Turnstile> (prenex \<phi>)) \<longleftrightarrow> (I, \<beta> \<Turnstile> \<phi>))\<close>
+  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I\<^bold>, \<beta> \<Turnstile> (prenex \<phi>)) \<longleftrightarrow> (I\<^bold>, \<beta> \<Turnstile> \<phi>))\<close>
 proof (induction \<phi> rule: form.induct)
   case Bot
   then show ?case
@@ -1102,7 +1105,7 @@ next
     using Implies prenex_left_props prenex.simps(3) lang_singleton 
       functions_form.simps(3) predicates_form.simps(3) by (metis prod.inject)
   moreover have \<open>\<forall>(I::'a intrp) \<beta>. FOL_Semantics.dom I \<noteq> {} \<longrightarrow>
-    I,\<beta> \<Turnstile> prenex (\<phi> \<^bold>\<longrightarrow> \<psi>) = I,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>\<close>
+    I\<^bold>,\<beta> \<Turnstile> prenex (\<phi> \<^bold>\<longrightarrow> \<psi>) = I\<^bold>,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>\<close>
     using Implies prenex_left_props holds.simps(3) prenex.simps(3) by metis
   ultimately show ?case by blast
 next
@@ -1114,7 +1117,7 @@ next
   moreover have \<open>language {prenex (\<^bold>\<forall>x\<^bold>. \<phi>)} = language {\<^bold>\<forall>x\<^bold>. \<phi>}\<close>
     using Forall prenex.simps(4) functions_form.simps(4) predicates_form.simps(4)
     unfolding language_def functions_forms_def predicates_def by simp
-  moreover have \<open>(\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> I,\<beta> \<Turnstile> prenex (\<^bold>\<forall>x\<^bold>. \<phi>) = I,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>))\<close>
+  moreover have \<open>(\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> I\<^bold>,\<beta> \<Turnstile> prenex (\<^bold>\<forall>x\<^bold>. \<phi>) = I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>))\<close>
     using Forall holds.simps(4) by simp
   ultimately show ?case by blast
 qed
