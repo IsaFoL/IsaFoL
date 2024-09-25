@@ -68,7 +68,7 @@ lemma list_all_set: \<open>list_all P ls = (\<forall>l\<in>set ls. P l)\<close>
 
 definition is_interpretation where
   \<open>is_interpretation lang \<M> \<longleftrightarrow> 
-    ((\<forall>f l. (f, length(l)) \<in> fst lang \<and> list_all (\<lambda>x. x \<in> dom \<M>) l \<longrightarrow> intrp_fn \<M> f l \<in> dom \<M>))\<close>
+    ((\<forall>f l. (f, length(l)) \<in> fst lang \<and> set l \<subseteq> dom \<M> \<longrightarrow> intrp_fn \<M> f l \<in> dom \<M>))\<close>
 
 lemma interpretation_termval: 
   \<open>is_interpretation (functions_term t, preds) (\<M> :: (nat,nat) term intrp) \<Longrightarrow> is_valuation \<M> \<beta>
@@ -97,7 +97,7 @@ lemma interpretation_sublanguage: \<open>funs2 \<subseteq> funs1 \<Longrightarro
   unfolding is_interpretation_def by auto
 
 fun holds
-  :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> form \<Rightarrow> bool\<close> (\<open>_,_ \<Turnstile> _\<close> [30, 30, 80] 80) where
+  :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> form \<Rightarrow> bool\<close> (\<open>_,/_/ \<Turnstile> _\<close> [30, 30, 80] 80) where
   \<open>\<M>,\<beta> \<Turnstile> \<^bold>\<bottom> \<longleftrightarrow> False\<close>
 | \<open>\<M>,\<beta> \<Turnstile> Atom p ts \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts] \<in> intrp_rel \<M> p\<close>
 | \<open>\<M>,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi> \<longleftrightarrow> ((\<M>,\<beta> \<Turnstile> \<phi>) \<longrightarrow> (\<M>,\<beta> \<Turnstile> \<psi>))\<close>
