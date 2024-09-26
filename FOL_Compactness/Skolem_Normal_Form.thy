@@ -28,15 +28,13 @@ proof -
       using assms(2) by auto
   next
     case (Fun f ts)
- (*   have \<open>(f, length ts) \<in> functions_term (Fun f ts)\<close>
-      by force*)
     then have \<open>u \<in> set ts \<Longrightarrow> \<lbrakk>u\<rbrakk>\<^bsup>I,\<beta>\<^esup> \<in> FOL_Semantics.dom I\<close> for u
       by (smt (z3) UN_iff Un_iff eq_fst_iff functions_term.simps(2) is_interpretation_def)
     then show ?case
-      using eval.simps(2) fst_conv imageE length_map list.set_map list_all_set
-      sorry
-      (* by (smt (verit, del_insts) Fun.prems Un_insert_left functions_term.simps(2) insert_iff
-          is_interpretation_def) *)
+      using eval.simps(2) fst_conv imageE length_map list.set_map list_all_set assms(2)
+      unfolding is_valuation_def
+      by (smt (verit, best) Fun.prems Un_insert_left functions_term.simps(2) insert_iff 
+          is_interpretation_def subsetI)
   qed
   ultimately have \<open>\<exists>a \<in> dom I. I\<^bold>, \<beta>(x := a) \<Turnstile> \<phi>\<close>
     using assms(3) swap_subst_eval[of I \<beta> \<phi> "subst x t"] by auto

@@ -31,14 +31,16 @@ lemma
     and notin_ff: \<open>\<not> (f, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) \<in> functions_form (\<^bold>\<exists>x\<^bold>. \<phi>)\<close>
   shows holds_skolem1a: "is_prenex (skolem1 f x \<phi>)" (is "?A")
       and holds_skolem1b: "FV (skolem1 f x \<phi>) = FV (\<^bold>\<exists>x\<^bold>. \<phi>)" (is "?B")
-      and holds_skolem1c: "Prenex_Normal_Form.size (skolem1 f x \<phi>) < Prenex_Normal_Form.size (\<^bold>\<exists>x\<^bold>. \<phi>)" (is "?C")
+      and holds_skolem1c: 
+        "Prenex_Normal_Form.size (skolem1 f x \<phi>) < Prenex_Normal_Form.size (\<^bold>\<exists>x\<^bold>. \<phi>)" (is "?C")
       and holds_skolem1d: "predicates_form (skolem1 f x \<phi>) = predicates_form (\<^bold>\<exists>x\<^bold>. \<phi>)" (is "?D")
       and holds_skolem1e: "functions_form (\<^bold>\<exists>x\<^bold>. \<phi>) \<subseteq> functions_form (skolem1 f x \<phi>)" (is "?E")
       and holds_skolem1f: "functions_form (skolem1 f x \<phi>) 
                           \<subseteq> (f, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) \<triangleright> functions_form (\<^bold>\<exists>x\<^bold>. \<phi>)" (is "?F")
 proof -
   show ?A
-    by (metis form.inject(2) form.inject(3) prenex_ex_phi prenex_formsubst prenex_imp qfree_no_quantif skolem1_def)
+    by (metis form.inject(2) form.inject(3) prenex_ex_phi prenex_formsubst prenex_imp 
+        qfree_no_quantif skolem1_def)
   show ?B
   proof
     show \<open>FV (skolem1 f x \<phi>) \<subseteq> FV (\<^bold>\<exists>x\<^bold>. \<phi>)\<close>
@@ -78,7 +80,8 @@ proof -
       g \<in> functions_term (Var y \<cdot> subst x (Fun f (map Var (sorted_list_of_set (FV ((\<^bold>\<exists>x\<^bold>. \<phi>)))))))}\<close>
       unfolding skolem1_def using formsubst_functions_form
       by blast
-    moreover have \<open>{g. \<exists>y \<in> FV \<phi>. g \<in> functions_term (Var y \<cdot> subst x (Fun f (map Var (sorted_list_of_set (FV ((\<^bold>\<exists>x\<^bold>. \<phi>)))))))} 
+    moreover have \<open>{g. \<exists>y \<in> FV \<phi>. 
+      g \<in> functions_term (Var y \<cdot> subst x (Fun f (map Var (sorted_list_of_set (FV ((\<^bold>\<exists>x\<^bold>. \<phi>)))))))} 
                    \<subseteq> (f, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) \<triangleright> functions_form \<phi>\<close>
     proof
       fix h
@@ -133,42 +136,19 @@ proof -
   proof
     show \<open>dom I \<noteq> {}\<close>
       using nempty_I .
-(*  next
-    show \<open>\<forall>g zs. (\<forall>e\<in>set zs. e \<in> dom I) \<longrightarrow> FN g zs \<in> dom I\<close>
-      unfolding FN_def define_fn_def
-    proof (clarsimp, intro conjI strip)
-      fix g and zs :: "'a list"
-      assume len_zs: \<open>g = f \<and> length zs = card (FV \<phi> - {x})\<close> and
-        zs_in: \<open>\<forall>e\<in>set zs. e \<in> dom I\<close>
-      have len_eq: \<open>length (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) = length zs\<close>
-        using len_zs by simp
-      have \<open>\<forall>v. (intrp_f zs) v \<in> dom I\<close>
-        using fun_upds_prop[OF len_eq zs_in] by (simp add: nempty_I some_in_eq intrp_f_def)
-      then have \<open>\<exists>a. a \<in> dom I \<and> I, (intrp_f zs)(x := a) \<Turnstile> \<phi>\<close>
-        using ex_a_mod_phi by blast
-      then show \<open>thex zs \<in> dom I\<close>
-        unfolding thex_def by (metis (no_types, lifting) someI_ex)
-    next
-      fix g and zs :: "'a list"
-      assume "g = f \<longrightarrow> length zs \<noteq> card (FV \<phi> - {x})" "\<forall>e\<in>set zs. e \<in> dom I"
-      show \<open>intrp_fn I g zs \<in> dom I\<close>
-        using FN_dom_to_dom \<open>\<forall>e\<in>set zs. e \<in> dom I\<close> by blast
-    qed
-  next
-    show \<open>\<forall>p. \<forall>es\<in>intrp_rel I p. \<forall>e\<in>set es. e \<in> dom I\<close>
-      by (meson intrp_is_struct struct_def) *)
   qed
   define M :: "'a intrp" where \<open>M =  Abs_intrp (dom I, FN, intrp_rel I)\<close>
-  show thesis
+  show ?thesis
   proof
     show dom_M_I_eq: \<open>dom M = dom I\<close>
       using M_is_struct unfolding M_def by simp
     show intrp_rel_eq: \<open>intrp_rel M = intrp_rel I\<close>
       using M_is_struct unfolding M_def by simp
-    show intrp_fn_eq: "\<And>g zs. g \<noteq> f \<or> length zs \<noteq> card (FV (\<^bold>\<exists>x\<^bold>. \<phi>)) \<Longrightarrow> intrp_fn M g zs = intrp_fn I g zs"
+    show intrp_fn_eq: "\<And>g zs. g \<noteq> f \<or> length zs \<noteq> card (FV (\<^bold>\<exists>x\<^bold>. \<phi>)) \<Longrightarrow> 
+      intrp_fn M g zs = intrp_fn I g zs"
       using M_is_struct unfolding M_def FN_def define_fn_def
       by fastforce
-    have in_dom_I: \<open>intrp_fn M f zs \<in> dom I\<close> 
+   have in_dom_I: \<open>intrp_fn M f zs \<in> dom I\<close> 
       if len_eq: \<open>length zs = card (FV \<phi> - {x})\<close> and zs_in: \<open>set zs \<subseteq> dom M\<close>
         for zs
     proof -
@@ -182,9 +162,10 @@ proof -
         using fun_upds_prop[OF len_eq2 zs_in2] nempty_I some_in_eq unfolding intrp_f_def
         by (metis (mono_tags))
       then show \<open>intrp_fn M f zs \<in> dom I\<close>
-        using nempty_I ex_a_mod_phi sorry (* by (metis FN_dom_to_dom dom_M_I_eq zs_in2) *)
+        using nempty_I ex_a_mod_phi interp_I unfolding is_interpretation_def
+        by (metis (mono_tags, lifting) fn_is_thex someI_ex thex_def)
     qed
-    show is_interp_M: \<open>is_interpretation (language {skolem1 f x \<phi>}) M\<close>
+    show \<open>is_interpretation (language {skolem1 f x \<phi>}) M\<close>
       unfolding is_interpretation_def
     proof clarsimp
       fix g l
@@ -194,21 +175,21 @@ proof -
       then show \<open>intrp_fn M g l \<in> dom M\<close>
         using interp_I dom_M_I_eq intrp_fn_eq in_dom_I in_dom_M
         unfolding language_def is_interpretation_def
-        sorry
-        (*by (meson FN_dom_to_dom subsetD)*)
+        by (metis FV_exists prod.inject)
     qed
-
     show "M\<^bold>,\<beta> \<Turnstile> skolem1 f x \<phi>" if "is_valuation M \<beta>" for \<beta>
     proof -
       have "M\<^bold>,\<beta>(x:=thex (map \<beta> (sorted_list_of_set(FV(\<^bold>\<exists>x\<^bold>. \<phi>))))) \<Turnstile> \<phi>"
       proof (rule holds_indep_intrp_if2)
-        have "I\<^bold>, (intrp_f (map \<beta> (sorted_list_of_set(FV(\<^bold>\<exists>x\<^bold>. \<phi>)))))(x:=a) \<Turnstile> \<phi>  \<longleftrightarrow>  I\<^bold>, \<beta>(x:=a) \<Turnstile> \<phi>"  for a
+        have "I\<^bold>, (intrp_f (map \<beta> (sorted_list_of_set(FV(\<^bold>\<exists>x\<^bold>. \<phi>)))))(x:=a) \<Turnstile> \<phi>  \<longleftrightarrow>  I\<^bold>, \<beta>(x:=a) \<Turnstile> \<phi>"
+          for a
         proof (intro holds_indep_\<beta>_if strip)
           fix v
           assume "v \<in> FV \<phi>"
           then have "v=x \<or> v \<in> FV (\<^bold>\<exists>x\<^bold>. \<phi>)"
             using FV_exists by blast
-          moreover have "foldr (\<lambda>kv f. f(fst kv := snd kv)) (zip vs (map \<beta> vs)) (\<lambda>z. SOME c. c \<in> dom I) w = \<beta> w"
+          moreover have 
+            "foldr (\<lambda>kv f. f(fst kv := snd kv)) (zip vs (map \<beta> vs)) (\<lambda>z. SOME c. c \<in> dom I) w = \<beta> w"
             if "w \<in> set vs" "set vs \<subseteq> FV (\<^bold>\<exists>x\<^bold>. \<phi>)" for vs w
             using that by (induction vs) auto
           ultimately
@@ -216,7 +197,8 @@ proof -
             using finite_FV intrp_f_def by auto
         qed
         then show "I\<^bold>,\<beta> (x := thex (map \<beta> (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))) \<Turnstile> \<phi>"
-          by (metis (mono_tags, lifting) dom_M_I_eq ex_a_mod_phi is_valuation_def that thex_def verit_sko_ex')
+          by (metis (mono_tags, lifting) dom_M_I_eq ex_a_mod_phi is_valuation_def that thex_def
+              verit_sko_ex')
         show "dom I = dom M"
           using dom_M_I_eq by auto
         show "\<forall>p. intrp_rel I p = intrp_rel M p"
@@ -225,7 +207,8 @@ proof -
           using functions_form.simps notin_ff intrp_fn_eq 
           by (metis sup_bot.right_neutral)
       qed
-      moreover have "FN f (map \<beta> (sorted_list_of_set (FV \<phi> - {x}))) = thex (map \<beta> (sorted_list_of_set (FV \<phi> - {x})))"
+      moreover have "FN f (map \<beta> (sorted_list_of_set (FV \<phi> - {x}))) = 
+        thex (map \<beta> (sorted_list_of_set (FV \<phi> - {x})))"
         by (simp add: FN_def define_fn_def)
       ultimately show ?thesis
         by (simp add: holds_formsubst2 skolem1_def M_def o_def)
