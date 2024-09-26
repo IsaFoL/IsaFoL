@@ -568,12 +568,16 @@ lemma form_set_to_clauses_mset: \<open>Ball F (\<lambda>\<phi>. mset_from_clausa
 section \<open>Tarski and Herbrand Entailments\<close>
 
 
+
 lemma ex_beta: \<open>\<forall>I. \<exists>\<beta>. is_valuation I \<beta>\<close> 
 proof
   fix I
   show \<open>\<exists>\<beta>. is_valuation I \<beta>\<close> 
     unfolding is_valuation_def using intrp_is_struct struct.M_nonempty by fastforce
 qed
+
+lemma holds_closed_ex_equiv_all_val: \<open>FOL_Syntax.FV \<phi> = {} \<Longrightarrow> (\<exists>\<beta>. I,\<beta> \<Turnstile> \<phi>) \<Longrightarrow> (\<forall>\<beta>. I,\<beta> \<Turnstile> \<phi>)\<close>
+  by (metis emptyE holds_indep_\<beta>_if)
 
 lemma sat_union: \<open>satisfies I (\<Phi> \<union> \<Psi>) = (satisfies I \<Phi> \<and> satisfies I \<Psi>)\<close>
   unfolding satisfies_def by (smt (verit) Un_iff)
@@ -601,6 +605,21 @@ lemma holds_or: \<open>I,\<beta> \<Turnstile> \<phi> \<^bold>\<or> \<psi> \<equi
 lemma holds_not: \<open>I,\<beta> \<Turnstile> \<^bold>\<not> \<phi> \<equiv> \<not> (I,\<beta> \<Turnstile> \<phi>)\<close>
   by auto
 
+lemma holds_not_not[simp]: \<open>I,\<beta> \<Turnstile> \<^bold>\<not> (\<^bold>\<not> \<phi>) = I,\<beta> \<Turnstile> \<phi>\<close>
+  by auto
+
+lemma sat_neg_forward: \<open>satisfies I {\<psi>} \<Longrightarrow> (\<not> (satisfies I  {\<^bold>\<not>\<psi>}))\<close>
+  unfolding satisfies_def using ex_beta by auto
+
+lemma sat_neg_neg[simp]: \<open>satisfies I {\<^bold>\<not> (\<^bold>\<not> \<phi>)} = satisfies I {\<phi>}\<close>
+  unfolding satisfies_def by auto
+
+lemma sat_neg_back: \<open>satisfies I {\<^bold>\<not>\<psi>} \<Longrightarrow> (\<not> (satisfies I  {\<psi>}))\<close>
+  using sat_neg_forward[of _ "\<^bold>\<not>\<psi>"] by simp
+
+lemma ground_sat_neg_eq: \<open>FOL_Syntax.FV \<psi> = {} \<Longrightarrow> \<not> (satisfies I  {\<psi>}) \<Longrightarrow> satisfies I {\<^bold>\<not>\<psi>}\<close>
+  unfolding satisfies_def using holds_closed_ex_equiv_all_val holds_not by blast
+
 lemma language_with_Bot[simp]: \<open>FOL_Syntax.language (\<Phi> \<union> {form.Bot}) = FOL_Syntax.language \<Phi>\<close>
   unfolding FOL_Syntax.language_def functions_forms_def FOL_Syntax.predicates_def by auto
 
@@ -611,9 +630,12 @@ lemma language_union[simp]: \<open>FOL_Syntax.language (\<Phi> \<union> \<Psi>) 
 lemma language_not[simp]: \<open>FOL_Syntax.language {\<^bold>\<not>\<phi>} = FOL_Syntax.language {\<phi>}\<close>
   unfolding FOL_Syntax.language_def functions_forms_def FOL_Syntax.predicates_def by auto
 
+
 definition entails_tarski :: \<open>form set \<Rightarrow> form set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>T\<close> 50) where
   \<open>\<Phi> \<Turnstile>\<^sub>T \<Psi> \<equiv> (\<forall>(I :: nterm intrp). is_interpretation (FOL_Syntax.language (\<Phi> \<union> \<Psi>)) I \<longrightarrow>
     (satisfies I \<Phi> \<longrightarrow> satisfies I \<Psi>))\<close>
+
+
 
 definition is_grounding :: \<open>(nat, nat) subst \<Rightarrow> bool\<close> where
   \<open>is_grounding \<sigma> \<equiv> \<forall>t. ground (t \<cdot> \<sigma>)\<close>
@@ -621,6 +643,9 @@ definition is_grounding :: \<open>(nat, nat) subst \<Rightarrow> bool\<close> wh
 definition groundings :: \<open>form set \<Rightarrow> form set\<close> where
   \<open>groundings \<Phi> = {\<psi>. (\<exists>\<phi>\<in>\<Phi>. \<exists>\<sigma>. is_grounding \<sigma> \<and> \<psi> = \<phi>  \<cdot>\<^sub>f\<^sub>m \<sigma>)}\<close>
 
+lemma groundings_ground: \<open>\<Union> (FOL_Syntax.FV ` (groundings \<Phi>)) = {}\<close>
+  unfolding groundings_def is_grounding_def using ground_vars_term_empty
+  by (smt (verit, best) SUP_bot_conv(1) all_not_in_conv formsubst_fv mem_Collect_eq)
 
 lemma ground_dist: \<open>groundings (\<Phi> \<union> \<Psi>) = groundings \<Phi> \<union> groundings \<Psi>\<close>
   unfolding groundings_def by blast
@@ -658,8 +683,6 @@ proof -
   finally show \<open>{\<psi>. \<exists>\<phi>\<in>{\<^bold>\<bottom>}. \<exists>\<sigma>. is_grounding \<sigma> \<and> \<psi> = \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>} = {\<^bold>\<bottom>}\<close> .
 qed
 
-lemma sat_neg: \<open>satisfies I {\<psi>} \<Longrightarrow> \<not> (satisfies I  {\<^bold>\<not>\<psi>})\<close>
-  unfolding satisfies_def using ex_beta by auto
 
 lemma sat_ground_neg: \<open>satisfies I (groundings {\<psi>}) \<Longrightarrow> \<not> (satisfies I (groundings {\<^bold>\<not>\<psi>}))\<close>
   using ground_neg
@@ -732,15 +755,21 @@ proof -
       \<not> (satisfies I (groundings (\<Phi> \<union> {\<^bold>\<not>\<psi>})))\<close>
       using bot_not_sat ground_bot language_with_Bot language_not language_union
       unfolding entails_herbrand_def by (metis language_def prod.inject)
-    then have \<open>\<forall>(I :: nterm intrp). is_interpretation (FOL_Syntax.language (\<Phi> \<union> {\<psi>})) I \<longrightarrow> 
-      \<not> (satisfies I (groundings \<Phi>) \<or> \<not> (satisfies I {\<^bold>\<not>\<psi>}))\<close>
-      using sat_union 
-      sorry
+    then have a: \<open>\<forall>(I :: nterm intrp). is_interpretation (FOL_Syntax.language (\<Phi> \<union> {\<psi>})) I \<longrightarrow> 
+      \<not> (satisfies I (groundings \<Phi>) \<and> satisfies I (groundings {\<^bold>\<not>\<psi>}))\<close>
+      using sat_union ground_dist by metis
+    then have \<open>\<forall>(I :: nterm intrp). is_interpretation (FOL_Syntax.language (\<Phi> \<union> {\<psi>})) I \<longrightarrow>
+       FOL_Semantics.satisfies I (groundings \<Phi>) \<longrightarrow>
+      \<not> FOL_Semantics.satisfies I (groundings {\<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>})\<close>
+      by blast
+    
     then show \<open>\<Phi> \<Turnstile>\<^sub>H {\<psi>}\<close>
-      unfolding entails_herbrand_def using sat_union sat_ground_neg2
+      unfolding entails_herbrand_def  
       sorry
   qed
 qed
+
+
 
 fun nlits_as_form_set :: \<open>form \<Rightarrow> form set option\<close> where
   \<open>nlits_as_form_set form.Bot = Some {}\<close>
@@ -801,8 +830,14 @@ lemma union_singleton_under_all: \<open>(\<forall>\<beta> \<phi>. (P \<beta> \<a
   unfolding satisfies_def
   oops *)
 
-lemma holds_closed_ex_equiv_all_val: \<open>FOL_Syntax.FV \<phi> = {} \<Longrightarrow> (\<exists>\<beta>. I,\<beta> \<Turnstile> \<phi>) \<Longrightarrow> (\<forall>\<beta>. I,\<beta> \<Turnstile> \<phi>)\<close>
-  by (metis emptyE holds_indep_\<beta>_if)
+
+fun add_forall :: "nat list \<Rightarrow> form \<Rightarrow> form" where
+  \<open>add_forall [] \<phi> = \<phi>\<close>
+| \<open>add_forall (v # V) \<phi> = add_forall V (\<^bold>\<forall>v\<^bold>. \<phi>)\<close>
+
+definition close_univ :: \<open>form \<Rightarrow> form\<close> where
+  \<open>close_univ \<phi> = add_forall (sorted_list_of_set(FOL_Syntax.FV \<phi>)) \<phi>\<close>
+
 
 lemma holds_FV_equiv_forall: 
   \<open>(\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> (\<forall>a\<in>FOL_Semantics.dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)) =
@@ -829,13 +864,6 @@ qed
 
 lemma sat_FV_equiv_forall: \<open>satisfies I {\<^bold>\<forall>x\<^bold>. \<phi>} = satisfies I {\<phi>}\<close>
   unfolding satisfies_def using holds_FV_equiv_forall by simp
-
-fun add_forall :: "nat list \<Rightarrow> form \<Rightarrow> form" where
-  \<open>add_forall [] \<phi> = \<phi>\<close>
-| \<open>add_forall (v # V) \<phi> = add_forall V (\<^bold>\<forall>v\<^bold>. \<phi>)\<close>
-
-definition close_univ :: \<open>form \<Rightarrow> form\<close> where
-  \<open>close_univ \<phi> = add_forall (sorted_list_of_set(FOL_Syntax.FV \<phi>)) \<phi>\<close>
 
 lemma sat_closed_equiv: \<open>satisfies I {close_univ \<phi>} = satisfies I {\<phi>}\<close>
   unfolding close_univ_def
