@@ -1,5 +1,6 @@
 (*  Title:       Lifting to Non-Ground Calculi
- *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020 *)
+ *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020
+                 Ghilain Bergeron, 2023 *)
 
 section \<open>Lifting to Non-ground Calculi\<close>
 

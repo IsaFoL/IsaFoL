@@ -845,16 +845,16 @@ lemma holds_FV_equiv_forall:
 proof
   show \<open>\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> I,\<beta> \<Turnstile> \<phi> \<Longrightarrow>
     \<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> (\<forall>a\<in>FOL_Semantics.dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)\<close>
-    by auto
+    by (simp add: valuation_valmod)
 next
   show \<open>\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> (\<forall>a\<in>FOL_Semantics.dom I. I,\<beta>(x := a) \<Turnstile> \<phi>) \<Longrightarrow>
     \<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> I,\<beta> \<Turnstile> \<phi>\<close>
   proof clarsimp
     fix \<beta> :: "nat \<Rightarrow> 'a"
-    assume sat: \<open>\<forall>\<beta>. (\<forall>v. \<beta> v \<in> FOL_Semantics.dom I) \<longrightarrow> (\<forall>a\<in>FOL_Semantics.dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)\<close> and
-      val: \<open>\<forall>v. \<beta> v \<in> FOL_Semantics.dom I\<close>
+    assume sat: \<open>\<forall>\<beta>. is_valuation I \<beta> \<longrightarrow> (\<forall>a\<in>FOL_Semantics.dom I. I,\<beta>(x := a) \<Turnstile> \<phi>)\<close> and
+      val: \<open>is_valuation I \<beta>\<close>
     then have \<open>I,\<beta>(x := \<beta> x) \<Turnstile> \<phi>\<close>
-      by blast
+      unfolding is_valuation_def by blast
     moreover have \<open>\<beta>(x := \<beta> x) = \<beta>\<close>
       by blast
     ultimately show \<open>I,\<beta> \<Turnstile> \<phi>\<close>
