@@ -1,11 +1,13 @@
 (* Title:        Part of the proof of compactness of first-order logic following Harrison's one in
  *               HOL-Light
- * Author:       Sophie Tourret <sophie.tourret at inria.fr>, 2023 
+ * Author:       Sophie Tourret <sophie.tourret at inria.fr>, 2023-2024
  *               Larry Paulson <lp15 at cam.ac.edu>, 2024 *)
 
 theory Skolem_Normal_Form
 imports
   Prenex_Normal_Form
+  Naturals_Injection
+  "HOL-ex.Sketch_and_Explore"
 begin
 
 lemma holds_exists:
@@ -412,6 +414,73 @@ lemma holds_skolem1:
 \<close>
   by (smt (verit, ccfv_SIG) assms holds_skolem1a holds_skolem1b holds_skolem1c holds_skolem1d
       holds_skolem1e holds_skolem1f holds_skolem1g holds_skolem1h)
+
+(* Skolems_EXISTENCE in hol-light *)
+lemma skolems_ex: \<open>\<exists>skolems. \<forall>\<phi>. skolems \<phi> = (\<lambda>k. ppat (\<lambda>x \<psi>. \<^bold>\<forall>x\<^bold>. (skolems \<psi> k))
+  (\<lambda>x \<psi>. skolems (skolem1 (numpair J k) x \<psi>) (Suc k)) (\<lambda>\<psi>. \<psi>) \<phi>)\<close>
+proof (rule size_rec, (rule allI)+, (rule impI))
+  fix skolems :: "form \<Rightarrow> nat \<Rightarrow> form" and g \<phi>
+  assume IH: \<open>\<forall>z. size z < size \<phi> \<longrightarrow> skolems z = g z\<close>
+  show "(\<lambda>k. 
+    ppat (\<lambda>x \<psi>. \<^bold>\<forall> x\<^bold>. skolems \<psi> k) (\<lambda>x \<psi>. skolems (skolem1 (numpair J k) x \<psi>) (Suc k))(\<lambda>\<psi>. \<psi>) \<phi>) = 
+    (\<lambda>k. ppat (\<lambda>x \<psi>. \<^bold>\<forall> x\<^bold>. g \<psi> k) (\<lambda>x \<psi>. g (skolem1 (numpair J k) x \<psi>) (Suc k)) (\<lambda>\<psi>. \<psi>) \<phi>)"
+  proof (cases "\<exists>x \<phi>'. \<phi> = \<^bold>\<forall>x\<^bold>. \<phi>'")
+    case True
+    then obtain x \<phi>' where phi_is: "\<phi> = \<^bold>\<forall>x\<^bold>. \<phi>'"
+      by blast
+    then have smaller: \<open>size (\<phi>' \<cdot>\<^sub>f\<^sub>m \<sigma>) < size \<phi>\<close> for \<sigma>
+      using size_indep_subst by simp
+    have ppat_to_skol: \<open>(ppat (\<lambda>x \<psi>. \<^bold>\<forall>x\<^bold>. (skolems \<psi> k))
+      (\<lambda>x \<psi>. skolems (skolem1 (numpair J k) x \<psi>) (Suc k)) (\<lambda>\<psi>. \<psi>) \<phi>) = (\<^bold>\<forall>x\<^bold>. skolems \<phi>' k)\<close> for k
+      unfolding ppat_def by (simp add: phi_is)
+    have skol_to_g: \<open>(\<^bold>\<forall>x\<^bold>. skolems \<phi>' k) = (\<^bold>\<forall> x\<^bold>. g \<phi>' k)\<close> for k
+      using IH smaller by (simp add: phi_is)
+    have g_to_ppat: \<open>(\<^bold>\<forall> x\<^bold>. g \<phi>' k) = 
+      ppat (\<lambda>x \<psi>. \<^bold>\<forall> x\<^bold>. g \<psi> k) (\<lambda>x \<psi>. g (skolem1 (numpair J k) x \<psi>) (Suc k)) (\<lambda>\<psi>. \<psi>) \<phi>\<close> for k
+      unfolding ppat_def using phi_is by simp
+    show ?thesis
+      using ppat_to_skol skol_to_g g_to_ppat by auto
+  next
+    case False
+    assume falseAll: \<open>\<not>(\<exists>x \<phi>'. \<phi> = \<^bold>\<forall> x\<^bold>. \<phi>')\<close>
+    then show ?thesis
+    proof (cases "\<exists>x \<phi>'. \<phi> = \<^bold>\<exists>x\<^bold>. \<phi>'")
+      case True
+      then obtain x \<phi>' where phi_is: "\<phi> = \<^bold>\<exists>x\<^bold>. \<phi>'"
+        by blast
+      then have smaller: \<open>size (\<phi>' \<cdot>\<^sub>f\<^sub>m \<sigma>) < size \<phi>\<close> for \<sigma>
+        using size_indep_subst by simp
+      have  ppat_to_skol: \<open>(ppat (\<lambda>x \<psi>. \<^bold>\<forall>x\<^bold>. (skolems \<psi> k))
+      (\<lambda>x \<psi>. skolems (skolem1 (numpair J k) x \<psi>) (Suc k)) (\<lambda>\<psi>. \<psi>) \<phi>) =
+       skolems (skolem1 (numpair J k) x \<phi>') (Suc k)\<close> for k
+        unfolding ppat_def using phi_is by simp
+      have skol_to_g: \<open>skolems (skolem1 (numpair J k) x \<phi>') (Suc k) = 
+        g (skolem1 (numpair J k) x \<phi>') (Suc k)\<close> for k
+        using IH smaller phi_is by (simp add: skolem1_def)
+      have g_to_ppat: \<open>g (skolem1 (numpair J k) x \<phi>') (Suc k) = 
+        ppat (\<lambda>x \<psi>. \<^bold>\<forall> x\<^bold>. g \<psi> k) (\<lambda>x \<psi>. g (skolem1 (numpair J k) x \<psi>) (Suc k)) (\<lambda>\<psi>. \<psi>) \<phi>\<close> for k
+        unfolding ppat_def using phi_is by simp
+      show ?thesis
+        using ppat_to_skol skol_to_g g_to_ppat by simp
+    next
+      case False
+      then show ?thesis
+        using falseAll ppat_last unfolding ppat_def by auto
+    qed
+  qed
+qed
+
+(* Skolems_SPECIFICATION in hol-light *)
+lemma skolems_specification: \<open>\<exists>skolems. \<forall>J \<psi> k. skolems J \<psi> k =
+  ppat (\<lambda>x \<phi>'. \<^bold>\<forall>x\<^bold>. (skolems J \<phi>' k)) (\<lambda>x \<phi>'. skolems J (skolem1 (numpair J k) x \<phi>') (Suc k)) 
+  (\<lambda>\<phi>. \<phi>) \<psi>\<close>
+  using skolems_ex by meson
+
+consts skolems :: "nat \<Rightarrow> form \<Rightarrow> nat \<Rightarrow> form"
+specification (skolems) \<open>\<forall>J \<psi> k. skolems J \<psi> k =
+  ppat (\<lambda>x \<phi>'. \<^bold>\<forall>x\<^bold>. (skolems J \<phi>' k)) (\<lambda>x \<phi>'. skolems J (skolem1 (numpair J k) x \<phi>') (Suc k)) 
+  (\<lambda>\<phi>. \<phi>) \<psi>\<close>
+  using skolems_specification by simp
 
 
 end

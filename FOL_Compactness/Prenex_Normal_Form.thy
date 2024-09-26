@@ -380,11 +380,13 @@ proof -
     by blast
 qed
 
- (* is it unique? \<rightarrow> No, it is undefined in the last case if \<not>qfree \<phi>. Use SOME, not THE  *)
-definition prenex_right where "prenex_right = (SOME prenex_right.
+(* is it unique? \<rightarrow> No, it is undefined in the last case if \<not>qfree \<phi>. Use SOME, not THE  *)
+consts prenex_right :: "form \<Rightarrow> form \<Rightarrow> form"
+specification (prenex_right) \<open>
   (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall prenex_right \<phi> x \<psi>) \<and>
   (\<forall>\<phi> x \<psi>. prenex_right \<phi> (\<^bold>\<exists>x\<^bold>. \<psi>) = prenex_right_exists prenex_right \<phi> x \<psi>) \<and>
-  (\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>)))"
+  (\<forall>\<phi> \<psi>. qfree \<psi> \<longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
+  using prenex_right_ex by blast
 
 find_theorems "SOME _. _ \<Longrightarrow> _"
 thm some_eq_imp verit_sko_ex someI2_ex

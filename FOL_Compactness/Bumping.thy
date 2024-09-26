@@ -344,8 +344,6 @@ consts form_of_num :: "nat \<Rightarrow> form"
 specification (form_of_num) \<open>\<forall>n. form_of_num n = (THE \<phi>. num_of_form \<phi> = n)\<close>
   using num_of_form_inj by force
 
-find_theorems form_of_num
-
 (* FORM_OF_NUM in hol-light *)
 lemma form_of_num_of_form [simp]: \<open>form_of_num(num_of_form \<phi>) = \<phi>\<close>
   using  HOL.nitpick_choice_spec(3) num_of_form_inj by simp
