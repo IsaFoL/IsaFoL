@@ -370,19 +370,19 @@ lemma entails_bot_iff_unsatisfiable: \<open>M \<TTurnstile>\<inter>e {{#}} \<lon
   by blast 
 
 lemma entails_conj_compactness':
-  \<open>M \<TTurnstile>\<inter>e N \<longleftrightarrow> (\<forall> I. (\<forall> M' \<subseteq> M. Finite_Set.finite M' \<longrightarrow> I \<TTurnstile>s M') \<longrightarrow>
-    (\<forall> N' \<subseteq> N. Finite_Set.finite N' \<longrightarrow> I \<TTurnstile>s N'))\<close>
+  \<open>M \<TTurnstile>\<inter>e N \<longleftrightarrow> (\<forall> I. (\<forall> M' \<subseteq> M. finite M' \<longrightarrow> I \<TTurnstile>s M') \<longrightarrow>
+    (\<forall> N' \<subseteq> N. finite N' \<longrightarrow> I \<TTurnstile>s N'))\<close>
   by (meson empty_subsetI finite.emptyI finite_insert insert_subset true_clss_def true_clss_mono
       true_clss_singleton) 
 
 lemma entails_\<G>_conj_compactness': 
-  \<open>M \<TTurnstile>\<inter>\<G>e N \<longleftrightarrow> (\<forall> I. (\<forall> M' \<subseteq> \<G>_Fset M. Finite_Set.finite M' \<longrightarrow> I \<TTurnstile>s M') \<longrightarrow>
-     (\<forall> N' \<subseteq> \<G>_Fset N. Finite_Set.finite N' \<longrightarrow> I \<TTurnstile>s N'))\<close>
+  \<open>M \<TTurnstile>\<inter>\<G>e N \<longleftrightarrow> (\<forall> I. (\<forall> M' \<subseteq> \<G>_Fset M. finite M' \<longrightarrow> I \<TTurnstile>s M') \<longrightarrow>
+     (\<forall> N' \<subseteq> \<G>_Fset N. finite N' \<longrightarrow> I \<TTurnstile>s N'))\<close>
   unfolding F.entails_\<G>_def \<G>_F_def using entails_conj_compactness'[of \<open>\<G>_Fset M\<close> \<open>\<G>_Fset N\<close>]
   unfolding \<G>_Fset_def \<G>_F_def by (meson UNIV_I) 
 
 (*
-lemma \<open>Finite_Set.finite N \<Longrightarrow> M \<TTurnstile>\<inter>e N \<Longrightarrow> \<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> M' \<TTurnstile>\<inter>e N\<close>
+lemma \<open>finite N \<Longrightarrow> M \<TTurnstile>\<inter>e N \<Longrightarrow> \<exists> M' \<subseteq> M. finite M' \<and> M' \<TTurnstile>\<inter>e N\<close>
   sorry
 *) 
 
@@ -436,12 +436,12 @@ next
 qed
 
 lemma ex_finite_subset_M_if_ex_finite_subset_\<G>_F_M:
-  \<open>M\<sigma> \<subseteq> \<G>_Fset M \<Longrightarrow> Finite_Set.finite M\<sigma> \<Longrightarrow> M\<sigma> \<TTurnstile>\<inter>e {{#}} \<Longrightarrow>
-    \<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> \<G>_Fset M' \<TTurnstile>\<inter>e {{#}}\<close>
+  \<open>M\<sigma> \<subseteq> \<G>_Fset M \<Longrightarrow> finite M\<sigma> \<Longrightarrow> M\<sigma> \<TTurnstile>\<inter>e {{#}} \<Longrightarrow>
+    \<exists> M' \<subseteq> M. finite M' \<and> \<G>_Fset M' \<TTurnstile>\<inter>e {{#}}\<close>
 proof -
   assume
     M\<sigma>_subset: \<open>M\<sigma> \<subseteq> \<G>_Fset M\<close> and
-    finite_M\<sigma>: \<open>Finite_Set.finite M\<sigma>\<close> and
+    finite_M\<sigma>: \<open>finite M\<sigma>\<close> and
     M\<sigma>_entails_bot: \<open>M\<sigma> \<TTurnstile>\<inter>e {{#}}\<close>
 
   have \<open>M\<sigma> \<subseteq> (\<Union> C \<in> M. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>})\<close>
@@ -499,28 +499,28 @@ proof -
   then have \<open>\<G>_Fset (set Cs) \<TTurnstile>\<inter>e {{#}}\<close>
     using M\<sigma>_entails_bot M\<sigma>'_is
     by (meson true_clss_mono) 
-  then show \<open>\<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> \<G>_Fset M' \<TTurnstile>\<inter>e {{#}}\<close>
+  then show \<open>\<exists> M' \<subseteq> M. finite M' \<and> \<G>_Fset M' \<TTurnstile>\<inter>e {{#}}\<close>
     using Cs_in_M
     by blast 
 qed
 
-lemma unsat_\<G>_compact: \<open>M \<TTurnstile>\<inter>\<G>e {{#}} \<Longrightarrow> \<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> M' \<TTurnstile>\<inter>\<G>e {{#}}\<close> 
+lemma unsat_\<G>_compact: \<open>M \<TTurnstile>\<inter>\<G>e {{#}} \<Longrightarrow> \<exists> M' \<subseteq> M. finite M' \<and> M' \<TTurnstile>\<inter>\<G>e {{#}}\<close> 
 proof -
   assume M_entails_bot: \<open>M \<TTurnstile>\<inter>\<G>e {{#}}\<close>
   then have \<open>\<G>_Fset M \<TTurnstile>\<inter>e {{#}}\<close>
     using F_entails_\<G>_iff grounding_of_clss_def
     by fastforce
-  then have \<open>\<exists> M' \<subseteq> \<G>_Fset M. Finite_Set.finite M' \<and> M' \<TTurnstile>\<inter>e {{#}}\<close>
+  then have \<open>\<exists> M' \<subseteq> \<G>_Fset M. finite M' \<and> M' \<TTurnstile>\<inter>e {{#}}\<close>
     using Unordered_Ground_Resolution.clausal_logic_compact
     by auto
-  then have \<open>\<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> \<G>_Fset M' \<TTurnstile>\<inter>e {{#}}\<close>
+  then have \<open>\<exists> M' \<subseteq> M. finite M' \<and> \<G>_Fset M' \<TTurnstile>\<inter>e {{#}}\<close>
     by (elim exE conjE, blast intro: ex_finite_subset_M_if_ex_finite_subset_\<G>_F_M)
-  then show \<open>\<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> M' \<TTurnstile>\<inter>\<G>e {{#}}\<close>
+  then show \<open>\<exists> M' \<subseteq> M. finite M' \<and> M' \<TTurnstile>\<inter>\<G>e {{#}}\<close>
     using F_entails_\<G>_iff grounding_of_clss_def
     by auto
 qed
 
-lemma sat_\<G>_compact: \<open>\<not> M \<TTurnstile>\<inter>\<G>e {{#}} \<Longrightarrow> \<forall> M' \<subseteq> M. Finite_Set.finite M' \<longrightarrow> \<not> M' \<TTurnstile>\<inter>\<G>e {{#}}\<close>
+lemma sat_\<G>_compact: \<open>\<not> M \<TTurnstile>\<inter>\<G>e {{#}} \<Longrightarrow> \<forall> M' \<subseteq> M. finite M' \<longrightarrow> \<not> M' \<TTurnstile>\<inter>\<G>e {{#}}\<close>
   using unsat_\<G>_compact F.entails_trans F.subset_entailed
   by blast
 
@@ -832,7 +832,7 @@ lemma minus_\<G>_Fset_to_\<G>_Fset_minus: \<open>C \<in> \<G>_Fset M - \<G>_Fset
   by blast
 
 lemma entails_\<G>_conj_singleton_compact:
-  \<open>M \<TTurnstile>\<inter>\<G>e {C} \<Longrightarrow> \<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> M' \<TTurnstile>\<inter>\<G>e {C}\<close> 
+  \<open>M \<TTurnstile>\<inter>\<G>e {C} \<Longrightarrow> \<exists> M' \<subseteq> M. finite M' \<and> M' \<TTurnstile>\<inter>\<G>e {C}\<close> 
 proof -
   assume \<open>M \<TTurnstile>\<inter>\<G>e {C}\<close>
   then have \<open>\<G>_Fset M \<TTurnstile>\<inter>e \<G>_Fset {C}\<close>
@@ -861,27 +861,27 @@ proof (standard)
   fix M N :: \<open>('a :: wellorder) clause set\<close> 
 
   assume
-    N_finite: \<open>Finite_Set.finite N\<close> and
+    N_finite: \<open>finite N\<close> and
     M_entails_N: \<open>M \<TTurnstile>\<inter>\<G>e N\<close>
   then have \<open>\<forall> C \<in> N. M \<TTurnstile>\<inter>\<G>e {C}\<close>
     using F.entail_set_all_formulas
     by blast
-  then have \<open>\<forall> C \<in> N. \<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> M' \<TTurnstile>\<inter>\<G>e {C}\<close>
+  then have \<open>\<forall> C \<in> N. \<exists> M' \<subseteq> M. finite M' \<and> M' \<TTurnstile>\<inter>\<G>e {C}\<close>
     using entails_\<G>_conj_singleton_compact
     by blast
   then obtain M'_of where
-    \<open>\<forall> C \<in> N. M'_of C \<subseteq> M \<and> Finite_Set.finite (M'_of C) \<and> M'_of C \<TTurnstile>\<inter>\<G>e {C}\<close>
+    \<open>\<forall> C \<in> N. M'_of C \<subseteq> M \<and> finite (M'_of C) \<and> M'_of C \<TTurnstile>\<inter>\<G>e {C}\<close>
     by moura
   then have
     Union_M'_subset_M: \<open>(\<Union> C \<in> N. M'_of C) \<subseteq> M\<close> and
-    finite_Union_M': \<open>Finite_Set.finite (\<Union> C \<in> N. M'_of C)\<close> and
+    finite_Union_M': \<open>finite (\<Union> C \<in> N. M'_of C)\<close> and
     \<open>\<forall> C \<in> N. (\<Union> C \<in> N. M'_of C) \<TTurnstile>\<inter>\<G>e {C}\<close>
     using N_finite F_entails_\<G>_iff
     by auto
   then have \<open>(\<Union> C \<in> N. M'_of C) \<TTurnstile>\<inter>\<G>e N\<close>
     using F.all_formulas_entailed
     by blast
-  then show \<open>\<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> M' \<TTurnstile>\<inter>\<G>e N\<close>
+  then show \<open>\<exists> M' \<subseteq> M. finite M' \<and> M' \<TTurnstile>\<inter>\<G>e N\<close>
     using Union_M'_subset_M finite_Union_M'
     by blast 
 qed
@@ -909,7 +909,7 @@ text \<open>
   Hence \<open>M \<TTurnstile>\<union>\<G>e N\<close> if \<open>M\<close> is unsatisfiable, or there exists some \<open>C \<in> N\<close> such that \<open>M \<TTurnstile>\<inter>\<G>e {C}\<close>.
 \<close>
 definition entails_\<G>_disj :: \<open>'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool\<close> (infix \<open>\<TTurnstile>\<union>\<G>e\<close> 50) where
-  \<open>M \<TTurnstile>\<union>\<G>e N \<longleftrightarrow> M \<TTurnstile>\<inter>\<G>e {{#}} \<or> (\<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> (\<exists> C \<in> N. M' \<TTurnstile>\<inter>\<G>e {C}))\<close> 
+  \<open>M \<TTurnstile>\<union>\<G>e N \<longleftrightarrow> M \<TTurnstile>\<inter>\<G>e {{#}} \<or> (\<exists> M' \<subseteq> M. finite M' \<and> (\<exists> C \<in> N. M' \<TTurnstile>\<inter>\<G>e {C}))\<close> 
 
 text \<open>
   This is our own requirement: the two entailments must coincide on singleton sets.
@@ -918,7 +918,7 @@ text \<open>
 lemma entails_conj_is_entails_disj_on_singleton: \<open>M \<TTurnstile>\<inter>\<G>e {C} \<longleftrightarrow> M \<TTurnstile>\<union>\<G>e {C}\<close>
 proof (intro iffI)
   assume M_entails_C: \<open>M \<TTurnstile>\<inter>\<G>e {C}\<close>
-  then have \<open>\<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> (\<exists> C' \<in> {C}. M' \<TTurnstile>\<inter>\<G>e {C'})\<close>
+  then have \<open>\<exists> M' \<subseteq> M. finite M' \<and> (\<exists> C' \<in> {C}. M' \<TTurnstile>\<inter>\<G>e {C'})\<close>
     using entails_\<G>_conj_singleton_compact
     by fastforce
   then show \<open>M \<TTurnstile>\<union>\<G>e {C}\<close> 
@@ -928,7 +928,7 @@ next
   assume \<open>M \<TTurnstile>\<union>\<G>e {C}\<close>
   then consider
     (M_unsat) \<open>M \<TTurnstile>\<inter>\<G>e {{#}}\<close> |
-    (b) \<open>\<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> (\<exists> C' \<in> {C}. M' \<TTurnstile>\<inter>\<G>e {C'})\<close>
+    (b) \<open>\<exists> M' \<subseteq> M. finite M' \<and> (\<exists> C' \<in> {C}. M' \<TTurnstile>\<inter>\<G>e {C'})\<close>
     unfolding entails_\<G>_disj_def
     by blast 
   then show \<open>M \<TTurnstile>\<inter>\<G>e {C}\<close>
@@ -941,7 +941,7 @@ next
     case b
     then obtain M' where
       \<open>M' \<subseteq> M\<close> and
-      \<open>Finite_Set.finite M'\<close> and
+      \<open>finite M'\<close> and
       \<open>M' \<TTurnstile>\<inter>\<G>e {C}\<close>
       by blast 
     then show ?thesis
@@ -962,13 +962,13 @@ lemma entails_\<G>_disj_subsets: \<open>M' \<subseteq> M \<Longrightarrow> N' \<
 
 (* Property (D5) *)
 lemma entails_\<G>_disj_compactness:
-  \<open>M \<TTurnstile>\<union>\<G>e N \<Longrightarrow> \<exists> M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> Finite_Set.finite M' \<and> Finite_Set.finite N' \<and>
+  \<open>M \<TTurnstile>\<union>\<G>e N \<Longrightarrow> \<exists> M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and>
      M' \<TTurnstile>\<union>\<G>e N'\<close>
 proof -
   assume \<open>M \<TTurnstile>\<union>\<G>e N\<close>
   then consider
     (M_unsat) \<open>M \<TTurnstile>\<inter>\<G>e {{#}}\<close> |
-    (b) \<open>\<exists> M' \<subseteq> M. Finite_Set.finite M' \<and> (\<exists> C \<in> N. M' \<TTurnstile>\<inter>\<G>e {C})\<close>
+    (b) \<open>\<exists> M' \<subseteq> M. finite M' \<and> (\<exists> C \<in> N. M' \<TTurnstile>\<inter>\<G>e {C})\<close>
     unfolding entails_\<G>_disj_def
     by blast 
   then show ?thesis
@@ -993,10 +993,10 @@ proof -
          M'_u_C_entails_N': \<open>M' \<union> {C} \<TTurnstile>\<union>\<G>e N'\<close>
   then obtain P P' where
     P_subset_M: \<open>P \<subseteq> M\<close> and
-    finite_P: \<open>Finite_Set.finite P\<close> and
+    finite_P: \<open>finite P\<close> and
     P_entails_N_u_C: \<open>P \<TTurnstile>\<union>\<G>e N \<union> {C}\<close> and
     P'_subset_M'_u_C: \<open>P' \<subseteq> M' \<union> {C}\<close> and
-    finite_P': \<open>Finite_Set.finite P'\<close> and
+    finite_P': \<open>finite P'\<close> and
     P'_entails_N': \<open>P' \<TTurnstile>\<union>\<G>e N'\<close>
     using entails_\<G>_disj_compactness[OF M_entails_N_u_C]
           entails_\<G>_disj_compactness[OF M'_u_C_entails_N'] entails_\<G>_disj_subsets
@@ -1017,7 +1017,7 @@ proof -
       using P'_subset_M'_u_C P''_def
       by blast
 
-    have finite_P'': \<open>Finite_Set.finite P''\<close>
+    have finite_P'': \<open>finite P''\<close>
       using finite_P' P''_def
       by blast 
 
@@ -1121,7 +1121,7 @@ proof (standard)
     by (rule entails_\<G>_disj_subsets)
   show \<open>\<And> M N C M' N'. M \<TTurnstile>\<union>\<G>e N \<union> {C} \<Longrightarrow> M' \<union> {C} \<TTurnstile>\<union>\<G>e N' \<Longrightarrow> M \<union> M' \<TTurnstile>\<union>\<G>e N \<union> N'\<close>
     by (rule entails_\<G>_disj_cut)
-  show \<open>\<And> M N. M \<TTurnstile>\<union>\<G>e N \<Longrightarrow> \<exists> M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> Finite_Set.finite M' \<and> Finite_Set.finite N' \<and> M' \<TTurnstile>\<union>\<G>e N'\<close>
+  show \<open>\<And> M N. M \<TTurnstile>\<union>\<G>e N \<Longrightarrow> \<exists> M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<TTurnstile>\<union>\<G>e N'\<close>
     by (rule entails_\<G>_disj_compactness)
 qed
 
@@ -1354,7 +1354,7 @@ interpretation LA_is_sound_calculus: sound_calculus \<open>{#}\<close> F_Inf \<o
 interpretation LA_is_AF_calculus: AF_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
   F.Red_I_\<G> F.Red_F_\<G>_empty fml asn
 proof standard
-  show \<open>\<And> M N. M \<TTurnstile>\<union>\<G>e N \<Longrightarrow> \<exists> M' \<subseteq> M. \<exists> N' \<subseteq> N. Finite_Set.finite M' \<and> Finite_Set.finite N' \<and> M' \<TTurnstile>\<union>\<G>e N'\<close>
+  show \<open>\<And> M N. M \<TTurnstile>\<union>\<G>e N \<Longrightarrow> \<exists> M' \<subseteq> M. \<exists> N' \<subseteq> N. finite M' \<and> finite N' \<and> M' \<TTurnstile>\<union>\<G>e N'\<close>
     using entails_\<G>_disj_compactness
     by presburger
   show \<open>\<And> C. \<forall> a \<in> asn C. {map_sign fml a} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {C}\<close>
