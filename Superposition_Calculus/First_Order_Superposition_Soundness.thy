@@ -108,16 +108,8 @@ lemma eq_resolution_sound:
 proof (cases P C rule: eq_resolution.cases)
   case (eq_resolutionI P L P' s\<^sub>1 s\<^sub>2 \<mu> \<V> C)
 
-  have 
-    "\<And>I \<gamma> \<F>\<^sub>G. \<lbrakk>
-        refl I; 
-        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>'
-              \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma>_on (clause.vars P) typeof_fun \<V> \<gamma>') 
-            \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
-       term_subst.is_ground_subst \<gamma>;
-       welltyped\<^sub>c typeof_fun \<V> C; welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V> \<gamma>
-     \<rbrakk> \<Longrightarrow> upair  ` I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
-  proof-
+  (* TODO: Use blocks everywhere *)
+  { 
     fix I :: "'f gterm rel" and \<gamma> :: "('f, 'v) subst"
 
     let ?I = "upair ` I"
@@ -156,7 +148,7 @@ proof (cases P C rule: eq_resolution.cases)
       using welltyped\<^sub>\<sigma>_welltyped\<^sub>c
       by blast
 
-    from welltyped_\<mu> have "welltyped\<^sub>\<sigma>_on (vars_clause C) typeof_fun \<V> (\<mu> \<odot> \<gamma>')"
+    from welltyped_\<mu> have "welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V> (\<mu> \<odot> \<gamma>')"
       using \<gamma>'(2)
       by (simp add: subst_compose_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_on_def welltyped\<^sub>\<sigma>_welltyped)
 
@@ -167,7 +159,7 @@ proof (cases P C rule: eq_resolution.cases)
     ultimately have "?I \<TTurnstile> ?P"
       using premise[rule_format, of ?P, OF exI, of "\<mu> \<odot> \<gamma>'"] \<gamma>'(1) term_subst.is_ground_subst_comp_right
       using eq_resolutionI
-      by (metis (mono_tags, lifting) \<gamma>'(2) clause.subst_comp_subst subst_compose_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_on_def welltyped\<^sub>\<sigma>_welltyped)
+      by (smt (verit, ccfv_threshold) \<gamma>'(2) clause.comp_subst.left.monoid_action_compatibility subst_compose_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_on_def welltyped\<^sub>\<sigma>_welltyped)
 
     then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
       by (auto simp: true_cls_def)
@@ -185,7 +177,7 @@ proof (cases P C rule: eq_resolution.cases)
     have "is_neg ?L"
       by (simp add: literal.to_ground_def eq_resolutionI(4) subst_literal)
 
-    show "?I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
+    have "?I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
     proof(cases "L' = ?L")
       case True
 
@@ -209,7 +201,7 @@ proof (cases P C rule: eq_resolution.cases)
         using I_models_L' 
         by (metis \<gamma>'(3) clause.subst_eq true_cls_def)
     qed
-  qed
+  }
 
   then show ?thesis
     unfolding ground.G_entails_def true_clss_def clause_groundings_def
