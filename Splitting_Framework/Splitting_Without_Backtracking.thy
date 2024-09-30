@@ -8,6 +8,7 @@ theory Splitting_Without_Backtracking
     Main
     Splitting_Calculi
     Saturation_Framework_Extensions.FO_Ordered_Resolution_Prover_Revisited
+    "HOL-ex.Sketch_and_Explore"
     (* Saturation_Framework_Extensions.Clausal_Calculus *) 
 begin
 
@@ -296,8 +297,8 @@ proof
     unfolding F.entails_\<G>_def \<G>_F_def true_Union_grounding_of_cls_iff by auto
 qed
 
-sublocale F: Calculus.statically_complete_calculus "{{#}}" F_Inf "(\<TTurnstile>\<inter>\<G>e)" F.Red_I_\<G>
-  F.Red_F_\<G>_empty
+lemma F_stat_comp_calc: \<open>Calculus.statically_complete_calculus {{#}} F_Inf (\<TTurnstile>\<inter>\<G>e) F.Red_I_\<G>
+   F.Red_F_\<G>_empty\<close>
 proof (rule F.stat_ref_comp_to_non_ground_fam_inter; clarsimp; (intro exI)?)
   show "\<And>M. Calculus.statically_complete_calculus {{#}} (G_Inf M) (\<TTurnstile>\<inter>e) (G.Red_I M) G.Red_F"
     by (fact G.statically_complete_calculus_axioms)
@@ -309,6 +310,17 @@ next
     using G_Inf_overapprox_F_Inf unfolding F.ground.Inf_from_q_def \<G>_I_def by fastforce
 qed
 
+sublocale F: Calculus.statically_complete_calculus "{{#}}" F_Inf "(\<TTurnstile>\<inter>\<G>e)" F.Red_I_\<G>
+  F.Red_F_\<G>_empty
+  using F_stat_comp_calc by blast
+
+sublocale F': Calculus.statically_complete_calculus "{{#}}" F_Inf "(\<TTurnstile>\<inter>\<G>e)" F.empty_ord.Red_Red_I
+  F.Red_F_\<G>_empty
+  using F.empty_ord.reduced_calc_is_calc F.empty_ord.stat_is_stat_red F_stat_comp_calc
+  by blast
+
+(* NOT NEEDED... I think *)
+(*
 interpretation FL: given_clause "{{#}}" F_Inf "{{#}}" UNIV "\<lambda>N. (\<TTurnstile>\<inter>e)" G_Inf G.Red_I
   "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_I_opt "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Old
 proof (unfold_locales; (intro ballI)?)
@@ -356,15 +368,15 @@ notation FL.Prec_FL (infix "\<sqsubset>" 50)
 notation FL.entails_\<G>_L (infix "\<TTurnstile>\<inter>\<G>Le" 50)
 notation FL.derive (infix "\<rhd>L" 50)
 notation FL.step (infix "\<leadsto>GC" 50)
-
+*)
 (********************************************************)
 (****************** End of copy pasta *******************)
 (********************************************************)
 
 (*<*)
-interpretation F: Calculus.dynamically_complete_calculus \<open>{{#}}\<close> F_Inf \<open>(\<TTurnstile>\<inter>\<G>e)\<close> F.Red_I_\<G>
-  F.Red_F_\<G>_empty
-  using F.dynamically_complete_calculus_axioms . 
+interpretation F': Calculus.dynamically_complete_calculus \<open>{{#}}\<close> F_Inf \<open>(\<TTurnstile>\<inter>\<G>e)\<close> 
+  F.empty_ord.Red_Red_I F.Red_F_\<G>_empty
+  using F'.dynamically_complete_calculus_axioms .
 
 lemma entails_bot_iff_unsatisfiable: \<open>M \<TTurnstile>\<inter>e {{#}} \<longleftrightarrow> \<not> satisfiable M\<close>
   by blast 
@@ -831,6 +843,7 @@ lemma minus_\<G>_Fset_to_\<G>_Fset_minus: \<open>C \<in> \<G>_Fset M - \<G>_Fset
   unfolding \<G>_Fset_def \<G>_F_def
   by blast
 
+(*
 lemma entails_\<G>_conj_singleton_compact:
   \<open>M \<TTurnstile>\<inter>\<G>e {C} \<Longrightarrow> \<exists> M' \<subseteq> M. finite M' \<and> M' \<TTurnstile>\<inter>\<G>e {C}\<close> 
 proof -
@@ -853,8 +866,9 @@ proof -
   then show ?thesis
     sorry 
 qed
+*)
 
-
+(*
 interpretation entails_\<G>_compact: concl_compact_consequence_relation
   \<open>{{#}} :: ('a :: wellorder) clause set\<close> \<open>(\<TTurnstile>\<inter>\<G>e)\<close>
 proof (standard)
@@ -885,7 +899,7 @@ proof (standard)
     using Union_M'_subset_M finite_Union_M'
     by blast 
 qed
-
+*)
 
 lemma unsat_equiv3: \<open>\<not> satisfiable (\<Union> C \<in> M. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}) \<longleftrightarrow> M \<TTurnstile>\<inter>\<G>e {{#}}\<close>
   unfolding F.entails_\<G>_def \<G>_F_def
@@ -915,12 +929,13 @@ text \<open>
   This is our own requirement: the two entailments must coincide on singleton sets.
 \<close> 
 
+(*
 lemma entails_conj_is_entails_disj_on_singleton: \<open>M \<TTurnstile>\<inter>\<G>e {C} \<longleftrightarrow> M \<TTurnstile>\<union>\<G>e {C}\<close>
 proof (intro iffI)
   assume M_entails_C: \<open>M \<TTurnstile>\<inter>\<G>e {C}\<close>
   then have \<open>\<exists> M' \<subseteq> M. finite M' \<and> (\<exists> C' \<in> {C}. M' \<TTurnstile>\<inter>\<G>e {C'})\<close>
     using entails_\<G>_conj_singleton_compact
-    by fastforce
+    by fastforce 
   then show \<open>M \<TTurnstile>\<union>\<G>e {C}\<close> 
     unfolding entails_\<G>_disj_def
     by (intro disjI2)
@@ -949,6 +964,7 @@ next
       by blast
   qed
 qed
+*)
 
 (*<*)
 lemma unsat_supsets: \<open>M \<TTurnstile>\<inter>\<G>e {{#}} \<Longrightarrow> M \<union> M' \<TTurnstile>\<inter>\<G>e {{#}}\<close>
@@ -1116,7 +1132,8 @@ proof (standard)
     using F.subset_entailed entails_\<G>_disj_def
     by blast
   show \<open>\<And> C. {C} \<TTurnstile>\<union>\<G>e {C}\<close>
-    by (meson F.subset_entailed dual_order.refl entails_conj_is_entails_disj_on_singleton)
+    by (meson F.subset_entailed entails_\<G>_disj_def finite.emptyI finite.insertI singletonI
+        subset_refl)
   show \<open>\<And> M' M N' N. M' \<subseteq> M \<Longrightarrow> N' \<subseteq> N \<Longrightarrow> M' \<TTurnstile>\<union>\<G>e N' \<Longrightarrow> M \<TTurnstile>\<union>\<G>e N\<close>
     by (rule entails_\<G>_disj_subsets)
   show \<open>\<And> M N C M' N'. M \<TTurnstile>\<union>\<G>e N \<union> {C} \<Longrightarrow> M' \<union> {C} \<TTurnstile>\<union>\<G>e N' \<Longrightarrow> M \<union> M' \<TTurnstile>\<union>\<G>e N \<union> N'\<close>
@@ -1130,16 +1147,25 @@ sublocale entails_\<G>_disj_cons_rel: consequence_relation \<open>{#}\<close> \<
 
 notation entails_\<G>_disj_cons_rel.entails_neg (infix \<open>\<TTurnstile>\<union>\<G>e\<^sub>\<sim>\<close> 50)
 
+(*
+sublocale F'': Calculus.statically_complete_calculus "{{#}}" F_Inf "(\<TTurnstile>\<union>\<G>e)" F.empty_ord.Red_Red_I
+  F.Red_F_\<G>_empty
+  (*using F.empty_ord.reduced_calc_is_calc F.empty_ord.stat_is_stat_red F_stat_comp_calc*)
+  apply unfold_locales
+  apply simp
+  using F.bot_entails_all entails_\<G>_disj_def apply blast
+  sledgehammer
+  sorry
+*)
+
 lemma all_redundant_to_bottom: \<open>\<C> \<noteq> {#} \<Longrightarrow> \<C> \<in> F.Red_F_\<G>_empty {{#}}\<close>
   unfolding F.Red_F_\<G>_empty_def F.Red_F_\<G>_empty_q_def G.Red_F_def
 proof clarsimp
   fix D :: \<open>'a clause\<close>
 
-  assume \<open>\<C> \<noteq> {#}\<close> and
-         \<open>D \<in> \<G>_F \<C>\<close>
+  assume \<open>\<C> \<noteq> {#}\<close> and \<open>D \<in> \<G>_F \<C>\<close>
   then have \<open>D \<noteq> {#}\<close>
-    unfolding \<G>_F_def
-    by force 
+    unfolding \<G>_F_def by force 
   then have \<open>{#} < D\<close>
     by auto 
   moreover have \<open>\<forall> I. I \<TTurnstile>s {{#}} \<longrightarrow> I \<TTurnstile> D\<close>
@@ -1151,6 +1177,38 @@ qed
 lemma bottom_never_redundant: \<open>{#} \<notin> F.Red_F_\<G>_empty N\<close>
   unfolding F.Red_F_\<G>_empty_def F.Red_F_\<G>_empty_q_def G.Red_F_def
   by auto
+
+lemma \<open>F.Inf_between UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.empty_ord.Red_Red_I N\<close>
+  using F.empty_ord.inf_subs_reduced_red_inf .
+
+(*
+lemma \<open>F.Inf_between UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.Red_I_\<G> N\<close>
+  sketch
+proof
+  fix \<iota> :: "'a literal multiset inference"
+  assume inf_from_red: "\<iota> \<in> F.Inf_between UNIV (F.Red_F_\<G>_empty N)"
+  then have \<open>\<exists>C \<in> set (prems_of \<iota>). C \<in> F.Red_F_\<G>_empty N\<close>
+    by (simp add: F.Inf_between_alt disjoint_iff_not_equal)
+  then obtain C where \<open>C \<in> set (prems_of \<iota>)\<close> and \<open>C \<in> F.Red_F_\<G>_empty N\<close>
+    by blast
+  have \<open>\<iota> \<in> F_Inf\<close>
+    using inf_from_red unfolding F.Inf_between_def F.Inf_from_def by blast
+  moreover have \<open>\<G>_I_opt q \<iota> \<noteq> None \<longrightarrow> the (\<G>_I_opt q \<iota>) \<subseteq> G.Red_I q (\<Union> (\<G>_F ` N))\<close> for q
+  proof
+    assume "\<G>_I_opt q \<iota> \<noteq> None"
+    show "the (\<G>_I_opt q \<iota>) \<subseteq> G.Red_I q (\<Union> (\<G>_F ` N))"
+      unfolding \<G>_I_def G.Red_I_def G.redundant_infer_def
+      sorry
+  qed
+  moreover have \<open>\<G>_I_opt q \<iota> = None \<longrightarrow> \<G>_F (concl_of \<iota>) \<subseteq> \<Union> (\<G>_F ` N) \<union> G.Red_F (\<Union> (\<G>_F ` N))\<close> for q
+    sorry
+  ultimately have \<open>\<forall>q. \<iota> \<in> F.Red_I_\<G>_q q N\<close>
+    unfolding F.Red_I_\<G>_q_def by blast
+  then show "\<iota> \<in> F.Red_I_\<G> N"
+    unfolding F.Red_I_\<G>_def by blast
+qed
+
+
 
 (* TODO: finish that proof!!! *)
 lemma Inf_from_Red_F_subset_Red_I: \<open>F.Inf_between UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.Red_I_\<G> N\<close> 
@@ -1213,7 +1271,7 @@ proof -
       F.Red_I_\<G>_def F.Red_I_\<G>_q_def
     by auto 
 qed
-
+*)
 
 
 
@@ -1307,52 +1365,56 @@ proof standard
     using F.sound
     by blast
   then show \<open>\<And> \<iota>. \<iota> \<in> F_Inf \<Longrightarrow> set (prems_of \<iota>) \<TTurnstile>\<union>\<G>e {concl_of \<iota>}\<close>
-    using entails_conj_is_entails_disj_on_singleton
-    by blast
+    using entails_\<G>_disj_def by blast
+
 qed
 
-interpretation LA_is_calculus: calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> F.Red_I_\<G> F.Red_F_\<G>_empty
+interpretation LA_is_calculus: calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> F.empty_ord.Red_Red_I F.Red_F_\<G>_empty
 proof standard 
-  show \<open>\<And> N. F.Red_I_\<G> N \<subseteq> F_Inf\<close>
-    using F.Red_I_to_Inf
+  show \<open>\<And> N. F.empty_ord.Red_Red_I N \<subseteq> F_Inf\<close>
+    using F'.Red_I_to_Inf
     by blast
   show \<open>\<And> N. N \<TTurnstile>\<union>\<G>e {{#}} \<Longrightarrow> N - F.Red_F_\<G>_empty N \<TTurnstile>\<union>\<G>e {{#}}\<close>
-    using F.empty_ord.Red_F_Bot entails_conj_is_entails_disj_on_singleton
-    by blast
+    using F.empty_ord.Red_F_Bot
+    by (metis (no_types, lifting) entails_\<G>_disj_def sat_\<G>_compact singleton_iff)
   show \<open>\<And> N N'. N \<subseteq> N' \<Longrightarrow> F.Red_F_\<G>_empty N \<subseteq> F.Red_F_\<G>_empty N'\<close>
     using F.empty_ord.Red_F_of_subset
     by presburger
-  show \<open>\<And> N N'. N \<subseteq> N' \<Longrightarrow> F.Red_I_\<G> N \<subseteq> F.Red_I_\<G> N'\<close> 
-    using F.Red_I_of_subset
+  show \<open>\<And> N N'. N \<subseteq> N' \<Longrightarrow> F.empty_ord.Red_Red_I N \<subseteq> F.empty_ord.Red_Red_I N'\<close> 
+    using F'.Red_I_of_subset
     by presburger
   show \<open>\<And> N' N. N' \<subseteq> F.Red_F_\<G>_empty N \<Longrightarrow> F.Red_F_\<G>_empty N \<subseteq> F.Red_F_\<G>_empty (N - N')\<close>
     using F.empty_ord.Red_F_of_Red_F_subset
     by blast
-  show \<open>\<And> N' N. N' \<subseteq> F.Red_F_\<G>_empty N \<Longrightarrow> F.Red_I_\<G> N \<subseteq> F.Red_I_\<G> (N - N')\<close>
-    using F.empty_ord.Red_I_of_Red_F_subset
+  show \<open>\<And> N' N. N' \<subseteq> F.Red_F_\<G>_empty N \<Longrightarrow> F.empty_ord.Red_Red_I N \<subseteq> F.empty_ord.Red_Red_I (N - N')\<close>
+    using F'.Red_I_of_Red_F_subset
     by presburger
-  show \<open>\<And> \<iota> N. \<iota> \<in> F_Inf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> F.Red_I_\<G> N\<close>
-    using F.Red_I_of_Inf_to_N
+  show \<open>\<And> \<iota> N. \<iota> \<in> F_Inf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> F.empty_ord.Red_Red_I N\<close>
+    using F'.Red_I_of_Inf_to_N
     by blast
 qed
 
-interpretation statically_complete_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> F.Red_I_\<G> F.Red_F_\<G>_empty
-proof standard
+lemma F_disj_complete: \<open>statically_complete_calculus {#} F_Inf (\<TTurnstile>\<union>\<G>e) F.empty_ord.Red_Red_I
+  F.Red_F_\<G>_empty\<close>
+proof
   show \<open>\<And> N. LA_is_calculus.saturated N \<Longrightarrow> N \<TTurnstile>\<union>\<G>e {{#}} \<Longrightarrow> {#} \<in> N\<close>
-    unfolding LA_is_calculus.saturated_def
-    using F.saturated_def F.statically_complete entails_conj_is_entails_disj_on_singleton
-    by blast
+    unfolding LA_is_calculus.saturated_def using F'.saturated_def F'.statically_complete
+    by (smt (verit, ccfv_SIG) entails_\<G>_disj_def insertI1 sat_\<G>_compact singletonD)
 qed
+
+interpretation statically_complete_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> F.empty_ord.Red_Red_I
+  F.Red_F_\<G>_empty
+  using F_disj_complete .
 
 interpretation LA_is_sound_calculus: sound_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
-  F.Red_I_\<G> F.Red_F_\<G>_empty 
+  F.empty_ord.Red_Red_I F.Red_F_\<G>_empty 
   using LA_is_calculus.Red_I_to_Inf LA_is_calculus.Red_F_Bot  LA_is_calculus.Red_F_of_subset 
         LA_is_calculus.Red_I_of_subset  LA_is_calculus.Red_F_of_Red_F_subset
         LA_is_calculus.Red_I_of_Red_F_subset LA_is_calculus.Red_I_of_Inf_to_N
   by (unfold_locales, presburger+) 
 
 interpretation LA_is_AF_calculus: AF_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
-  F.Red_I_\<G> F.Red_F_\<G>_empty fml asn
+  F.empty_ord.Red_Red_I F.Red_F_\<G>_empty fml asn
 proof standard
   show \<open>\<And> M N. M \<TTurnstile>\<union>\<G>e N \<Longrightarrow> \<exists> M' \<subseteq> M. \<exists> N' \<subseteq> N. finite M' \<and> finite N' \<and> M' \<TTurnstile>\<union>\<G>e N'\<close>
     using entails_\<G>_disj_compactness
@@ -1374,24 +1436,39 @@ lemma empty_not_unsat: \<open>\<not> {} \<TTurnstile>\<inter>\<G>e {{#}}\<close>
 (*>*)
 
 sublocale splitting_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
-  F.Red_I_\<G> F.Red_F_\<G>_empty fml asn 
+  F.empty_ord.Red_Red_I F.Red_F_\<G>_empty fml asn 
 proof standard
   show \<open>\<not> {} \<TTurnstile>\<union>\<G>e {}\<close>
-    unfolding entails_\<G>_disj_def 
-    using empty_not_unsat
-    by blast
-  show \<open>\<And> N. F.Inf_between UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.Red_I_\<G> N\<close>
-    using Inf_from_Red_F_subset_Red_I
-    by blast
+    unfolding entails_\<G>_disj_def using empty_not_unsat by blast
+  show \<open>\<And> N. F.Inf_between UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.empty_ord.Red_Red_I N\<close>
+    using F.empty_ord.inf_subs_reduced_red_inf by blast
   show \<open>\<And> N. {#} \<notin> F.Red_F_\<G>_empty N\<close>
-    using nobot_in_Red
-    by blast 
+    using nobot_in_Red by blast 
   show \<open>\<And> \<C>. \<C> \<noteq> {#} \<Longrightarrow> \<C> \<in> F.Red_F_\<G>_empty {{#}}\<close>
-    using all_redundant_to_bottom
-    by blast
+    using all_redundant_to_bottom by blast
 qed
 
 notation LA_is_AF_calculus.AF_entails_sound (infix \<open>\<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F\<close> 50)
+notation LA_is_AF_calculus.AF_entails (infix \<open>\<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F\<close> 50)
+
+(*
+lemma \<open>LA_is_AF_calculus.enabled_set \<N> J \<Longrightarrow> 
+  ((LA_is_AF_calculus.fml_ext ` total_strip J \<union> sign.Pos ` (\<M> proj\<^sub>J J) \<TTurnstile>\<union>\<G>e\<^sub>\<sim> sign.Pos ` F_of ` \<N>)
+  = (\<M> proj\<^sub>J J \<TTurnstile>\<union>\<G>e F_of ` \<N>))\<close>
+  sorry
+
+lemma sound_entails_equiv_entails: \<open>\<M> \<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F \<N> = LA_is_AF_calculus.AF_entails \<M> \<N>\<close>
+  unfolding LA_is_AF_calculus.AF_entails_sound_def LA_is_AF_calculus.AF_entails_def 
+ (* entails_\<G>_disj_cons_rel.entails_neg_def *)
+  sorry
+
+find_theorems LA_is_AF_calculus.AF_entails_sound
+*)
+
+(* Local static completeness (as other forms of completeness, global, dynamic...)
+   follows from static completeness of the base calculus *)
+theorem \<open>locally_saturated \<N> \<Longrightarrow> \<N> \<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F {to_AF {#}} \<Longrightarrow> to_AF {#} \<in> \<N>\<close>
+  using S_calculus_strong_statically_complete[OF F_disj_complete] .
 
 
 (* Right. So it is seems that using the lifted entailment \<open>(\<TTurnstile>\<inter>\<G>e)\<close> does not work for our purpose.
@@ -1677,10 +1754,7 @@ proof -
   qed
 qed
 
-
-
 end (* locale LA_calculus *)
-
 
 
 
