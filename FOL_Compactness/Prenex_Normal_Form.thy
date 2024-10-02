@@ -13,6 +13,11 @@ inductive is_prenex :: "form \<Rightarrow> bool" where
 | \<open>is_prenex \<phi> \<Longrightarrow> is_prenex (\<^bold>\<forall>x\<^bold>. \<phi>)\<close>
 | \<open>is_prenex \<phi> \<Longrightarrow> is_prenex (\<^bold>\<exists>x\<^bold>. \<phi>)\<close>
 
+inductive_simps is_prenex_simps [simp]:
+  "is_prenex Bot"
+  "is_prenex (Atom p ts)"
+  "is_prenex (\<phi> \<^bold>\<longrightarrow> \<psi>)"
+  "is_prenex (\<^bold>\<forall> x\<^bold>. \<phi>)" 
 
 lemma prenex_formsubst1: \<open>is_prenex \<phi> \<Longrightarrow> is_prenex (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>)\<close>
 proof (induction \<phi> arbitrary: \<sigma> rule: is_prenex.induct)
@@ -77,6 +82,12 @@ lemma prenex_imp: \<open>is_prenex (\<phi> \<^bold>\<longrightarrow> \<psi>) \<L
 inductive universal :: "form \<Rightarrow> bool" where
   \<open>qfree \<phi> \<Longrightarrow> universal \<phi>\<close>
 | \<open>universal \<phi> \<Longrightarrow> universal (\<^bold>\<forall>x\<^bold>. \<phi>)\<close>
+
+inductive_simps universal_simps [simp]:
+  "universal Bot"
+  "universal (Atom p ts)"
+  "universal (\<phi> \<^bold>\<longrightarrow> \<psi>)"
+  "universal (\<^bold>\<forall> x\<^bold>. \<phi>)" 
 
 fun size :: "form \<Rightarrow> nat" where
   \<open>size \<^bold>\<bottom> = 1\<close>

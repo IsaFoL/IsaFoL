@@ -470,17 +470,31 @@ proof (rule size_rec, (rule allI)+, (rule impI))
   qed
 qed
 
-(* Skolems_SPECIFICATION in hol-light *)
-lemma skolems_specification: \<open>\<exists>skolems. \<forall>J \<psi> k. skolems J \<psi> k =
-  ppat (\<lambda>x \<phi>'. \<^bold>\<forall>x\<^bold>. (skolems J \<phi>' k)) (\<lambda>x \<phi>'. skolems J (skolem1 (numpair J k) x \<phi>') (Suc k)) 
-  (\<lambda>\<phi>. \<phi>) \<psi>\<close>
+consts skolems :: "nat \<Rightarrow> form \<Rightarrow> nat \<Rightarrow> form"
+specification (skolems)
+  skolems_eq: \<open>\<And>J \<psi> k. skolems J \<psi> k 
+              = ppat (\<lambda>x \<phi>'. \<^bold>\<forall>x\<^bold>. (skolems J \<phi>' k))  (\<lambda>x \<phi>'. skolems J (skolem1 (numpair J k) x \<phi>') (Suc k)) (\<lambda>\<phi>. \<phi>) \<psi>\<close>
   using skolems_ex by meson
 
-consts skolems :: "nat \<Rightarrow> form \<Rightarrow> nat \<Rightarrow> form"
-specification (skolems) \<open>\<forall>J \<psi> k. skolems J \<psi> k =
-  ppat (\<lambda>x \<phi>'. \<^bold>\<forall>x\<^bold>. (skolems J \<phi>' k)) (\<lambda>x \<phi>'. skolems J (skolem1 (numpair J k) x \<phi>') (Suc k)) 
-  (\<lambda>\<phi>. \<phi>) \<psi>\<close>
-  using skolems_specification by simp
-
+lemma holds_skolems_induction:
+  assumes n: "size p = n" and "is_prenex p" and "\<And>l m. (numpair J l, m) \<in> functions_form p \<Longrightarrow> l < k"
+  shows "universal(skolems J p k)  \<and>
+               (FV((skolems J p k)) = FV p) \<and>
+               (predicates_form (skolems J p k) = predicates_form p) \<and>
+                functions_form p \<subseteq> functions_form (skolems J p k) \<and>
+                functions_form (skolems J p k) \<subseteq> {(numpair J l,m) | j l m. k \<le> l} \<union> functions_form p \<and>
+                (\<forall>M. is_interpretation (language {p}) M \<and>
+                     dom M \<noteq> {} \<and>
+                     (\<forall>v. is_valuation M v \<longrightarrow> holds M v p)
+                     \<longrightarrow> (\<exists>M'. (dom M' = dom M) \<and>
+                              (intrp_rel M' = intrp_rel M) \<and>
+                              (\<forall>g zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs
+                                    \<longrightarrow> (\<exists>l. k \<le> l \<and> g = numpair J l)) \<and>
+                              is_interpretation (language {(skolems J p k)}) M' \<and>
+                              (\<forall>v. is_valuation M' v
+                                   \<longrightarrow> holds M' v (skolems J p k)))) \<and>
+               (\<forall>N. is_interpretation (language {(skolems J p k)}) N \<and> dom M \<noteq> {}
+                \<longrightarrow> (\<forall>v. is_valuation N v \<and> holds N v (skolems J p k) \<longrightarrow> holds N v p))"
+  sorry
 
 end
