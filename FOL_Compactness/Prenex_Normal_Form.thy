@@ -183,6 +183,9 @@ definition ppat :: "(nat \<Rightarrow> form \<Rightarrow> form) \<Rightarrow> (n
 lemma ppat_simpA: \<open>\<forall>x p. ppat A B C (\<^bold>\<forall>x\<^bold>. p) = A x p\<close>
   unfolding ppat_def by simp
 
+lemma ppat_simpB: \<open>\<forall>x p. ppat A B C (\<^bold>\<exists>x\<^bold>. p) = B x p\<close>
+  unfolding ppat_def by simp
+
 (* simplified unneeded hypotheses: (\<forall>x p. ppat A B C (\<^bold>\<forall>x\<^bold>. p) = A x p) \<Longrightarrow> (\<forall>x p. ppat A B C (\<^bold>\<exists>x\<^bold>. p) = B x p) *)
 lemma ppat_last: \<open>(\<forall>r. \<not>(\<exists>x p. r = \<^bold>\<forall>x\<^bold>. p) \<and> \<not>(\<exists>x p. r = \<^bold>\<exists>x\<^bold>. p)) \<Longrightarrow> ppat A B C r = C r\<close>
   by blast
