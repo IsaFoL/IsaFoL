@@ -548,12 +548,19 @@ proof (induction n arbitrary: J k p rule: less_induct)
            \<and> (\<forall>g. (\<exists>zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs) \<longrightarrow> (\<exists>l\<ge>k. g = numpair J l)) 
            \<and> is_interpretation (language {skolems J (skolem1 (numpair J k) x \<phi>) (Suc k)}) M' 
            \<and> (\<forall>v. (\<forall>va. v va \<in> FOL_Semantics.dom M') \<longrightarrow> M'\<^bold>,v \<Turnstile> skolems J (skolem1 (numpair J k) x \<phi>) (Suc k))"
-      if "is_interpretation (language {(\<^bold>\<forall> x\<^bold>. \<phi> \<^bold>\<longrightarrow> \<^bold>\<bottom>) \<^bold>\<longrightarrow> \<^bold>\<bottom>}) M"
+      if "is_interpretation (language {(\<^bold>\<exists>x\<^bold>. \<phi>)}) M"
         and "FOL_Semantics.dom M \<noteq> {}"
-        and "\<forall>v. (\<forall>va. v va \<in> FOL_Semantics.dom M) \<longrightarrow> (\<exists>a\<in>FOL_Semantics.dom M. M\<^bold>,v (x := a) \<Turnstile> \<phi>)"
+        and "\<forall>v. (\<forall>n. v n \<in> FOL_Semantics.dom M) \<longrightarrow> (\<exists>a\<in>FOL_Semantics.dom M. M\<^bold>,v (x := a) \<Turnstile> \<phi>)"
       for M :: "'a intrp"
-      using holds_skolem1g [OF A \<section> ] that
-      sorry
+    proof -
+      have M: "is_interpretation (language {\<phi>}) M"
+        using lang_singleton that(1) by auto
+      show ?thesis
+        apply (rule  holds_skolem1g [OF A \<section> M])
+        apply (simp add: that(2))
+        using that(3) apply fastforce
+        sorry
+    qed
     show ?thesis
       using less.IH [OF smaller refl pre, of J "Suc k"] skolems_eq [of J p] 
       apply (simp add: ff FV ppat_simpB 3 \<phi>'_def flip: FV)
