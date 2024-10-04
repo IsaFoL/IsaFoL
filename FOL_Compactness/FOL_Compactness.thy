@@ -4,7 +4,6 @@
 theory FOL_Compactness
   imports
     Main
-    HOL.Zorn
     Ordered_Resolution_Prover.Clausal_Logic
     First_Order_Terms.Term
     "HOL-Library.FuncSet"
