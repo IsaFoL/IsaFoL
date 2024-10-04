@@ -1,12 +1,3 @@
-session Abstract_Substitution in Abstract_Substitution = HOL +
-  sessions
-    "HOL-ex"
-    First_Order_Terms
-  theories
-    Substitution
-    Substitution_First_Order_Term
-    Substitution_HOL_ex_Unification
-
 session Superposition_Calculus = Saturation_Framework_Extensions +
   sessions
     Knuth_Bendix_Order
