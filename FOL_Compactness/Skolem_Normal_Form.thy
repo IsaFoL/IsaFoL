@@ -10,7 +10,7 @@ imports
   "HOL-ex.Sketch_and_Explore"
 begin
 
-lemma holds_exists:
+lemma witness_imp_holds_exists:
   assumes \<open>is_interpretation (functions_term t, preds) (I :: (nat, nat) term intrp)\<close> and
     \<open>is_valuation I \<beta>\<close> and 
     \<open>I\<^bold>, \<beta> \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m (subst x t))\<close>
@@ -28,10 +28,10 @@ proof -
   proof (induct t)
     case (Var x)
     then show ?case
-      using assms(2) by auto
+      using assms(2) by (auto simp: is_valuation_def)
   next
     case (Fun f ts)
-    then have \<open>u \<in> set ts \<Longrightarrow> \<lbrakk>u\<rbrakk>\<^bsup>I,\<beta>\<^esup> \<in> FOL_Semantics.dom I\<close> for u
+    then have \<open>u \<in> set ts \<Longrightarrow> \<lbrakk>u\<rbrakk>\<^bsup>I,\<beta>\<^esup> \<in> dom I\<close> for u
       by (smt (z3) UN_iff Un_iff eq_fst_iff functions_term.simps(2) is_interpretation_def)
     then show ?case
       using eval.simps(2) fst_conv imageE length_map list.set_map list_all_set assms(2)
@@ -346,7 +346,7 @@ qed
 lemma holds_skolem1h:
   assumes prenex_ex_phi: \<open>is_prenex (\<^bold>\<exists>x\<^bold>. \<phi>)\<close> and \<open>\<not> (f, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) \<in> functions_form (\<^bold>\<exists>x\<^bold>. \<phi>)\<close>
   assumes is_intrp: "is_interpretation (language {skolem1 f x \<phi>}) N"
-      and nempty_N: "FOL_Semantics.dom N \<noteq> {}"
+      and nempty_N: "dom N \<noteq> {}"
       and is_val: "is_valuation N \<beta>"
       and skol_holds: "N\<^bold>,\<beta> \<Turnstile> skolem1 f x \<phi>"
     shows "N\<^bold>,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>)"
@@ -368,7 +368,7 @@ proof -
         [\<beta> t. t \<leftarrow> (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>)))]\<close>
         by auto
       then have all_in_dom: \<open>set [\<lbrakk>t\<rbrakk>\<^bsup>N,\<beta>\<^esup>. t \<leftarrow> map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>)))] \<subseteq> dom N\<close>
-        using is_val by auto
+        using is_val by (auto simp: is_valuation_def)
       have \<open>(f, length [\<lbrakk>t\<rbrakk>\<^bsup>N,\<beta>\<^esup>. t \<leftarrow> map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>)))]) \<in>
         functions_form (\<phi> \<cdot>\<^sub>f\<^sub>m subst x (Fun f (map Var (sorted_list_of_set (FV (\<^bold>\<exists>x\<^bold>. \<phi>))))))\<close>
         using func_form_subst[OF True] is_intrp lang_singleton 
@@ -476,27 +476,22 @@ specification (skolems)
               = ppat (\<lambda>x \<phi>'. \<^bold>\<forall>x\<^bold>. (skolems J \<phi>' k)) (\<lambda>x \<phi>'. skolems J (skolem1 (numpair J k) x \<phi>') (Suc k)) (\<lambda>\<phi>. \<phi>) \<psi>\<close>
   using skolems_ex by meson
 
-lemma holds_skolems_induction:
-  assumes "size p = n" and "is_prenex p" and "\<And>l m. (numpair J l, m) \<in> functions_form p \<Longrightarrow> l < k"
-  shows "universal(skolems J p k)  \<and>
-               (FV((skolems J p k)) = FV p) \<and>
-               (predicates_form (skolems J p k) = predicates_form p) \<and>
-                functions_form p \<subseteq> functions_form (skolems J p k) \<and>
-                functions_form (skolems J p k) \<subseteq> {(numpair J l,m) | j l m. k \<le> l} \<union> functions_form p \<and>
-                (\<forall>M::'a intrp. is_interpretation (language {p}) M \<and>
-                     dom M \<noteq> {} \<and>
-                     (\<forall>v. is_valuation M v \<longrightarrow> holds M v p)
-                     \<longrightarrow> (\<exists>M'. (dom M' = dom M) \<and>
-                              (intrp_rel M' = intrp_rel M) \<and>
-                              (\<forall>g zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs
-                                    \<longrightarrow> (\<exists>l. k \<le> l \<and> g = numpair J l)) \<and>
-                              is_interpretation (language {(skolems J p k)}) M' \<and>
-                              (\<forall>v. is_valuation M' v
-                                   \<longrightarrow> holds M' v (skolems J p k)))) \<and>
-               (\<forall>N::'a intrp. is_interpretation (language {(skolems J p k)}) N \<and> dom N \<noteq> {}
-                \<longrightarrow> (\<forall>v. is_valuation N v \<and> holds N v (skolems J p k) \<longrightarrow> holds N v p))"
+definition "skolems_bounded \<equiv> \<lambda>p J k. \<forall>l m. (numpair J l, m) \<in> functions_form p \<longrightarrow> l < k"
+
+lemma skolems_bounded_mono: "\<lbrakk>skolems_bounded p J k'; k'\<le>k\<rbrakk> \<Longrightarrow> skolems_bounded p J k"
+  by (meson dual_order.strict_trans1 skolems_bounded_def)
+
+text \<open>Harrison's gigantic conjunction broken up for more manageable proofs, at the cost of some repetition\<close>
+
+lemma holds_skolems_induction_A:
+  assumes "size p = n" and "is_prenex p" and "skolems_bounded p J k"
+  shows "universal(skolems J p k) \<and>
+         FV(skolems J p k) = FV p \<and>
+         predicates_form (skolems J p k) = predicates_form p \<and>
+         functions_form p \<subseteq> functions_form (skolems J p k) \<and>
+         functions_form (skolems J p k) \<subseteq> {(numpair J l,m) | j l m. k \<le> l} \<union> functions_form p"
   using assms
-proof (induction n arbitrary: J k p rule: less_induct)
+proof (induction n arbitrary: k p rule: less_induct)
   case (less n)
   show ?case
     using \<open>is_prenex p\<close>
@@ -506,73 +501,161 @@ proof (induction n arbitrary: J k p rule: less_induct)
       by (metis (no_types, lifting) ppat_last_qfree skolems_eq universal.simps UnCI subsetI)
   next
     case (2 \<phi> x)
-    then have smaller: "Prenex_Normal_Form.size \<phi> < n"
-      using less.prems by force
-    have ff: "\<And>l m. (numpair J l, m) \<in> functions_form \<phi> \<Longrightarrow> l < k"
-      by (simp add: "2"(1) less.prems)
+    then have smaller: "Prenex_Normal_Form.size \<phi> < n" and skbo: "skolems_bounded \<phi> J k"
+      using less.prems by (auto simp add: skolems_bounded_def)
     have skoeq: "skolems J p k = (\<^bold>\<forall> x\<^bold>. skolems J \<phi> k)"
       by (metis "2"(1) ppat_simpA skolems_eq)
     show ?thesis
-      using less.IH [OF smaller refl \<open>is_prenex \<phi>\<close>, of J k] skoeq
-      apply (simp add: ff 2 lang_singleton)
-      by (metis (no_types, opaque_lifting) fun_upd_triv is_valuation_def valuation_valmod)
+      using less.IH [OF smaller refl \<open>is_prenex \<phi>\<close>, of k] skoeq
+      by (simp add: "2"(1) is_valuation_def lang_singleton skbo)
   next
     case (3 \<phi> x)
     define \<phi>' where "\<phi>' \<equiv> skolem1 (numpair J k) x \<phi>"
     have smaller: "Prenex_Normal_Form.size \<phi>' < n"
-             and \<section>: "(numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) \<notin> functions_form (\<^bold>\<exists>x\<^bold>. \<phi>)"
-      unfolding \<phi>'_def
-      using 3 holds_skolem1c less.prems by blast+
+             and pair_notin_ff: "(numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) \<notin> functions_form (\<^bold>\<exists>x\<^bold>. \<phi>)"
+      using 3 holds_skolem1c less.prems unfolding \<phi>'_def skolems_bounded_def by blast+
     have pre: "is_prenex \<phi>'"
-      using "3"(1) "\<section>" holds_skolem1a \<open>is_prenex p\<close> \<phi>'_def by blast
-    have size': "size \<phi>' < 3 + size \<phi>"
-      by (simp add: \<phi>'_def size_indep_subst skolem1_def)
-    have predp: "predicates_form p = predicates_form \<phi>'"
-      using "3"(1) "\<section>" \<phi>'_def holds_skolem1d \<open>is_prenex p\<close> by presburger
-    have funsub1: "functions_form p \<subseteq> functions_form \<phi>'"
-      using "3"(1) "\<section>" \<phi>'_def holds_skolem1e \<open>is_prenex p\<close> by presburger
-    have funsub2: "functions_form \<phi>' \<subseteq> insert (numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) (functions_form p)"
-      using "3"(1) "\<section>" \<phi>'_def holds_skolem1f \<open>is_prenex p\<close> by presburger
+      using "3"(1) pair_notin_ff holds_skolem1a \<open>is_prenex p\<close> \<phi>'_def by blast
+    have funsub: "functions_form p \<subseteq> functions_form \<phi>'" 
+                 "functions_form \<phi>' \<subseteq> insert (numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) (functions_form p)"
+      using "3"(1) pair_notin_ff \<phi>'_def holds_skolem1e holds_skolem1f \<open>is_prenex p\<close> by presburger+
     define \<phi>'' where "\<phi>'' \<equiv> skolems J \<phi>' (Suc k)"
     have skos: "skolems J (\<^bold>\<exists>x\<^bold>. \<phi>) k = \<phi>''"
       by (metis \<phi>'_def \<phi>''_def ppat_simpB skolems_eq)
-    have ff: "\<And>l m. (numpair J l, m) \<in> functions_form \<phi>' \<Longrightarrow> l < Suc k"
-      by (smt (verit) "3"(1) "\<section>" holds_skolem1f insert_iff \<open>is_prenex p\<close> less.prems(3) less_Suc_eq numpair_inj prod.inject \<phi>'_def subsetD)
+    have skbo: "skolems_bounded \<phi>' J (Suc k)"
+      by (smt (verit, ccfv_SIG) funsub insert_iff less.prems(3) less_Suc_eq numpair_inj prod.simps(1) skolems_bounded_def subsetD)
     have FV: "FV \<phi>' = FV \<phi> - {x}"
-      using "3"(1) "\<section>" holds_skolem1b \<open>is_prenex p\<close> \<phi>'_def by auto
-    have *: "functions_form (skolem1 (numpair J k) x \<phi>) \<subseteq> {i. \<exists>l. (\<exists>m. i = (numpair J l, m)) \<and> k \<le> l} \<union> functions_form \<phi>"
-      using "3"(1) "\<section>" holds_skolem1f \<open>is_prenex p\<close> by fastforce
-    have A: "is_prenex (\<^bold>\<exists>x\<^bold>. \<phi>)"
-      using "3"(1) less.prems(2) by blast
-    have **: "\<exists>M'. FOL_Semantics.dom M' = FOL_Semantics.dom M \<and> intrp_rel M' = intrp_rel M
+      using "3"(1) pair_notin_ff holds_skolem1b \<open>is_prenex p\<close> \<phi>'_def by auto
+    have preq: "predicates_form \<phi>' = predicates_form \<phi>"
+      using \<phi>'_def formsubst_predicates skolem1_def by presburger
+    show ?thesis
+      using less.IH [OF smaller refl pre, of "Suc k"] skolems_eq [of J p] FV 3
+      apply (simp add: preq skbo ppat_simpB)
+      using "3"(1) \<phi>'_def funsub apply force
+      done
+  qed
+qed
+
+lemma holds_skolems_induction_B:
+  assumes "size p = n" and "is_prenex p" and "skolems_bounded p J k"
+  shows "(\<forall>N::'a intrp. is_interpretation (language {(skolems J p k)}) N \<and> dom N \<noteq> {}
+          \<longrightarrow> (\<forall>v. is_valuation N v \<and> holds N v (skolems J p k) \<longrightarrow> holds N v p))"
+  using assms
+proof (induction n arbitrary: k p rule: less_induct)
+  case (less n)
+  show ?case
+    using \<open>is_prenex p\<close>
+  proof cases
+    case 1
+    then show ?thesis
+      by (metis (no_types, lifting) ppat_last_qfree skolems_eq)
+  next
+    case (2 \<phi> x)
+    then have smaller: "Prenex_Normal_Form.size \<phi> < n" and skbo: "skolems_bounded \<phi> J k"
+      using less.prems by (auto simp add: skolems_bounded_def)
+    have "skolems J p k = (\<^bold>\<forall> x\<^bold>. skolems J \<phi> k)"
+      by (metis "2"(1) ppat_simpA skolems_eq)
+    then show ?thesis
+      using less.IH [OF smaller refl \<open>is_prenex \<phi>\<close>, of k] 
+      by (simp add: "2"(1) lang_singleton skbo valuation_valmod)
+  next
+    case (3 \<phi> x)
+    define \<phi>' where "\<phi>' \<equiv> skolem1 (numpair J k) x \<phi>"
+    have smaller: "Prenex_Normal_Form.size \<phi>' < n"
+             and pair_notin_ff: "(numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) \<notin> functions_form (\<^bold>\<exists>x\<^bold>. \<phi>)"
+      using 3 holds_skolem1c less.prems unfolding \<phi>'_def skolems_bounded_def by blast+
+    have pre: "is_prenex \<phi>'"
+      using "3"(1) pair_notin_ff holds_skolem1a \<open>is_prenex p\<close> \<phi>'_def by blast
+    have funsub2: "functions_form \<phi>' \<subseteq> insert (numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) (functions_form p)"
+      using "3"(1) pair_notin_ff \<phi>'_def holds_skolem1f \<open>is_prenex p\<close> by presburger
+    define \<phi>'' where "\<phi>'' \<equiv> skolems J \<phi>' (Suc k)"
+    have skos: "skolems J (\<^bold>\<exists>x\<^bold>. \<phi>) k = \<phi>''"
+      by (metis \<phi>'_def \<phi>''_def ppat_simpB skolems_eq)
+    have skbo: "skolems_bounded \<phi>' J (Suc k)"
+      by (smt (verit, ccfv_SIG) funsub2 insert_iff less.prems(3) less_Suc_eq numpair_inj prod.inject skolems_bounded_def subsetD)
+    have prex: "is_prenex (\<^bold>\<exists>x\<^bold>. \<phi>)"
+      using 3 \<open>is_prenex p\<close> by blast
+    have "functions_form (skolem1 (numpair J k) x \<phi>) \<subseteq> functions_form (skolems J \<phi>' (Suc k))"
+      using \<phi>'_def holds_skolems_induction_A pre skbo by blast
+    then show ?thesis
+      using less.IH [OF smaller refl pre, of "Suc k"] skolems_eq [of J p] 
+      apply (simp add: skbo ppat_simpB 3)
+      using holds_skolem1h [of x \<phi> "numpair J k"] pair_notin_ff  \<open>is_prenex \<phi>'\<close>
+      by (metis prex \<phi>'_def holds_exists interpretation_sublanguage lang_singleton) 
+  qed
+qed
+
+
+lemma holds_skolems_induction_C:
+  fixes M :: "'a intrp"
+  assumes "size p = n" and "is_prenex p" and "skolems_bounded p J k"
+    and "is_interpretation (language {p}) M" "dom M \<noteq> {}" "\<And>v. is_valuation M v \<Longrightarrow> holds M v p"
+  shows "\<exists>M'. dom M' = dom M \<and> intrp_rel M' = intrp_rel M \<and>
+                  (\<forall>g zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs
+                        \<longrightarrow> (\<exists>l. k \<le> l \<and> g = numpair J l)) \<and>
+                  is_interpretation (language {(skolems J p k)}) M' \<and>
+                  (\<forall>v. is_valuation M' v \<longrightarrow> holds M' v (skolems J p k))"
+  using assms
+proof (induction n arbitrary: M J k p rule: less_induct)
+  case (less n)
+  show ?case
+    using \<open>is_prenex p\<close>
+  proof cases
+    case 1
+    with less show ?thesis
+      by (metis (no_types, lifting) ppat_last_qfree skolems_eq) 
+  next
+    case (2 \<phi> x)
+    then have smaller: "Prenex_Normal_Form.size \<phi> < n" and skbo: "skolems_bounded \<phi> J k"
+      using less.prems by (auto simp add: skolems_bounded_def)
+    have skoeq: "skolems J p k = (\<^bold>\<forall> x\<^bold>. skolems J \<phi> k)"
+      by (metis "2"(1) ppat_simpA skolems_eq)
+    show ?thesis
+      using less.IH [OF smaller refl \<open>is_prenex \<phi>\<close>, of J k M] skoeq less.prems
+      apply (simp add: skbo 2 lang_singleton)
+      by (metis fun_upd_triv is_valuation_def valuation_valmod)
+  next
+    case (3 \<phi> x)
+    define \<phi>' where "\<phi>' \<equiv> skolem1 (numpair J k) x \<phi>"
+    have smaller: "Prenex_Normal_Form.size \<phi>' < n"
+             and pair_notin_ff: "(numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) \<notin> functions_form (\<^bold>\<exists>x\<^bold>. \<phi>)"
+      using 3 holds_skolem1c less.prems unfolding \<phi>'_def skolems_bounded_def by blast+
+    have pre: "is_prenex \<phi>'"
+      using "3"(1) pair_notin_ff holds_skolem1a \<open>is_prenex p\<close> \<phi>'_def by blast
+    have funsub2: "functions_form \<phi>' \<subseteq> insert (numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) (functions_form p)"
+      using "3"(1) pair_notin_ff \<phi>'_def holds_skolem1f \<open>is_prenex p\<close> by presburger
+    define \<phi>'' where "\<phi>'' \<equiv> skolems J \<phi>' (Suc k)"
+    have skos: "skolems J (\<^bold>\<exists>x\<^bold>. \<phi>) k = \<phi>''"
+      by (metis \<phi>'_def \<phi>''_def ppat_simpB skolems_eq)
+    have skbo: "skolems_bounded \<phi>' J (Suc k)"
+      by (smt (verit, ccfv_SIG) funsub2 insert_iff less.prems(3) less_Suc_eq numpair_inj prod.simps(1) skolems_bounded_def subsetD)
+    have prex: "is_prenex (\<^bold>\<exists>x\<^bold>. \<phi>)"
+      using "3"(1) \<open>is_prenex p\<close> by blast
+    have **: "\<exists>M'. dom M' = dom M \<and> intrp_rel M' = intrp_rel M
            \<and> (\<forall>g. (\<exists>zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs) \<longrightarrow> (\<exists>l\<ge>k. g = numpair J l)) 
-           \<and> is_interpretation (language {skolems J (skolem1 (numpair J k) x \<phi>) (Suc k)}) M' 
-           \<and> (\<forall>v. (\<forall>va. v va \<in> FOL_Semantics.dom M') \<longrightarrow> M'\<^bold>,v \<Turnstile> skolems J (skolem1 (numpair J k) x \<phi>) (Suc k))"
+           \<and> is_interpretation (language {skolems J (\<phi>') (Suc k)}) M' 
+           \<and> (\<forall>v. is_valuation M' v \<longrightarrow> M'\<^bold>,v \<Turnstile> skolems J (\<phi>') (Suc k))"
       if "is_interpretation (language {(\<^bold>\<exists>x\<^bold>. \<phi>)}) M"
-        and "FOL_Semantics.dom M \<noteq> {}"
-        and "\<forall>v. (\<forall>n. v n \<in> FOL_Semantics.dom M) \<longrightarrow> (\<exists>a\<in>FOL_Semantics.dom M. M\<^bold>,v (x := a) \<Turnstile> \<phi>)"
+        and "dom M \<noteq> {}"
+        and M_extend: "\<And>v. is_valuation M v \<Longrightarrow> (\<exists>a\<in>dom M. M\<^bold>,v (x := a) \<Turnstile> \<phi>)"
       for M :: "'a intrp"
     proof -
       have M: "is_interpretation (language {\<phi>}) M"
         using lang_singleton that(1) by auto
-      show ?thesis
-        apply (rule  holds_skolem1g [OF A \<section> M])
-        apply (simp add: that(2))
-        using that(3) apply fastforce
-        sorry
+      obtain M0 :: "'a intrp" 
+        where "dom M0 = dom M"
+            and "intrp_rel M0 = intrp_rel M"
+            and "\<And>g zs. g \<noteq> numpair J k \<or> length zs \<noteq> card (FV (\<^bold>\<exists>x\<^bold>. \<phi>)) \<Longrightarrow> intrp_fn M0 g zs = intrp_fn M g zs"
+            and "is_interpretation (language {\<phi>'}) M0"
+            and "\<And>\<beta>. is_valuation M0 \<beta> \<Longrightarrow> M0\<^bold>,\<beta> \<Turnstile> \<phi>'"
+        using holds_skolem1g [OF prex pair_notin_ff M] M_extend \<open>dom M \<noteq> {}\<close> \<phi>'_def holds_exists by blast
+      then show ?thesis
+        using less.IH[OF smaller refl \<open>is_prenex \<phi>'\<close> skbo, of M0]
+        by (smt (verit) nat_le_linear not_less_eq_eq that(2))
     qed
     show ?thesis
-      using less.IH [OF smaller refl pre, of J "Suc k"] skolems_eq [of J p] 
-      apply (simp add: ff FV ppat_simpB 3 \<phi>'_def flip: FV)
-      apply (intro conjI)
-      using formsubst_predicates skolem1_def apply presburger
-      using "3"(1) \<phi>'_def funsub1 apply force
-      using * apply (force simp: nat_less_le)
-      apply (simp add: "**")
-      using holds_skolem1 [of x \<phi> "numpair J k"]
-       "3"(1) "\<section>" FOL_Semantics.holds_exists interpretation_sublanguage is_valuation_def lang_singleton \<open>is_prenex p\<close>
-      apply (metis (no_types, lifting))
-      done
+      using less.IH [OF smaller refl pre, of J "Suc k"] less.prems skolems_eq [of J p] **
+      by (simp add: skbo ppat_simpB 3 \<phi>'_def)
   qed
 qed
 
