@@ -418,7 +418,7 @@ lemma holds_skolem1:
 (* Skolems_EXISTENCE in hol-light *)
 lemma skolems_ex: \<open>\<exists>skolems. \<forall>\<phi>. skolems \<phi> = (\<lambda>k. ppat (\<lambda>x \<psi>. \<^bold>\<forall>x\<^bold>. (skolems \<psi> k))
   (\<lambda>x \<psi>. skolems (skolem1 (numpair J k) x \<psi>) (Suc k)) (\<lambda>\<psi>. \<psi>) \<phi>)\<close>
-proof (rule size_rec, (rule allI)+, (rule impI))
+proof (intro size_rec strip)
   fix skolems :: "form \<Rightarrow> nat \<Rightarrow> form" and g \<phi>
   assume IH: \<open>\<forall>z. size z < size \<phi> \<longrightarrow> skolems z = g z\<close>
   show "(\<lambda>k. 
@@ -483,6 +483,7 @@ lemma skolems_bounded_mono: "\<lbrakk>skolems_bounded p J k'; k'\<le>k\<rbrakk> 
 
 text \<open>Harrison's gigantic conjunction broken up for more manageable proofs, at the cost of some repetition\<close>
 
+text \<open>first, the simplest properties\<close>
 lemma holds_skolems_induction_A:
   assumes "size p = n" and "is_prenex p" and "skolems_bounded p J k"
   shows "universal(skolems J p k) \<and>
@@ -507,7 +508,7 @@ proof (induction n arbitrary: k p rule: less_induct)
       by (metis "2"(1) ppat_simpA skolems_eq)
     show ?thesis
       using less.IH [OF smaller refl \<open>is_prenex \<phi>\<close>, of k] skoeq
-      by (simp add: "2"(1) is_valuation_def lang_singleton skbo)
+      by (simp add: 2 is_valuation_def lang_singleton skbo)
   next
     case (3 \<phi> x)
     define \<phi>' where "\<phi>' \<equiv> skolem1 (numpair J k) x \<phi>"
@@ -516,38 +517,39 @@ proof (induction n arbitrary: k p rule: less_induct)
       using 3 holds_skolem1c less.prems unfolding \<phi>'_def skolems_bounded_def by blast+
     have pre: "is_prenex \<phi>'"
       using "3"(1) pair_notin_ff holds_skolem1a \<open>is_prenex p\<close> \<phi>'_def by blast
-    have funsub: "functions_form p \<subseteq> functions_form \<phi>'" 
-                 "functions_form \<phi>' \<subseteq> insert (numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) (functions_form p)"
-      using "3"(1) pair_notin_ff \<phi>'_def holds_skolem1e holds_skolem1f \<open>is_prenex p\<close> by presburger+
     define \<phi>'' where "\<phi>'' \<equiv> skolems J \<phi>' (Suc k)"
     have skos: "skolems J (\<^bold>\<exists>x\<^bold>. \<phi>) k = \<phi>''"
       by (metis \<phi>'_def \<phi>''_def ppat_simpB skolems_eq)
+    have funsub: "functions_form p \<subseteq> functions_form \<phi>'" 
+                 "functions_form \<phi>' \<subseteq> insert (numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) (functions_form p)"
+      using "3"(1) pair_notin_ff \<phi>'_def holds_skolem1e holds_skolem1f \<open>is_prenex p\<close> by presburger+
+    with \<open>skolems_bounded p J k\<close> numpair_inj 
     have skbo: "skolems_bounded \<phi>' J (Suc k)"
-      by (smt (verit, ccfv_SIG) funsub insert_iff less.prems(3) less_Suc_eq numpair_inj prod.simps(1) skolems_bounded_def subsetD)
+      unfolding skolems_bounded_def less_Suc_eq by blast
     have FV: "FV \<phi>' = FV \<phi> - {x}"
       using "3"(1) pair_notin_ff holds_skolem1b \<open>is_prenex p\<close> \<phi>'_def by auto
     have preq: "predicates_form \<phi>' = predicates_form \<phi>"
       using \<phi>'_def formsubst_predicates skolem1_def by presburger
     show ?thesis
-      using less.IH [OF smaller refl pre, of "Suc k"] skolems_eq [of J p] FV 3
-      apply (simp add: preq skbo ppat_simpB)
-      using "3"(1) \<phi>'_def funsub apply force
-      done
+      using less.IH [OF smaller refl pre, of "Suc k"] skolems_eq [of J p] FV funsub 3
+      by (force simp: preq skbo ppat_simpB simp flip: \<phi>'_def)
   qed
 qed
 
 lemma holds_skolems_induction_B:
+  fixes N :: "'a intrp"
   assumes "size p = n" and "is_prenex p" and "skolems_bounded p J k"
-  shows "(\<forall>N::'a intrp. is_interpretation (language {(skolems J p k)}) N \<and> dom N \<noteq> {}
-          \<longrightarrow> (\<forall>v. is_valuation N v \<and> holds N v (skolems J p k) \<longrightarrow> holds N v p))"
+    and "is_interpretation (language {skolems J p k}) N" "dom N \<noteq> {}"
+    and "is_valuation N v" "N\<^bold>,v \<Turnstile> skolems J p k"
+  shows "N\<^bold>,v \<Turnstile> p"
   using assms
-proof (induction n arbitrary: k p rule: less_induct)
+proof (induction n arbitrary: N k p v rule: less_induct)
   case (less n)
   show ?case
     using \<open>is_prenex p\<close>
   proof cases
     case 1
-    then show ?thesis
+    with less show ?thesis
       by (metis (no_types, lifting) ppat_last_qfree skolems_eq)
   next
     case (2 \<phi> x)
@@ -556,8 +558,8 @@ proof (induction n arbitrary: k p rule: less_induct)
     have "skolems J p k = (\<^bold>\<forall> x\<^bold>. skolems J \<phi> k)"
       by (metis "2"(1) ppat_simpA skolems_eq)
     then show ?thesis
-      using less.IH [OF smaller refl \<open>is_prenex \<phi>\<close>, of k] 
-      by (simp add: "2"(1) lang_singleton skbo valuation_valmod)
+      using less.IH [OF smaller refl \<open>is_prenex \<phi>\<close>, of k] less.prems
+      by (simp add: lang_singleton skbo valuation_valmod 2)
   next
     case (3 \<phi> x)
     define \<phi>' where "\<phi>' \<equiv> skolem1 (numpair J k) x \<phi>"
@@ -566,19 +568,20 @@ proof (induction n arbitrary: k p rule: less_induct)
       using 3 holds_skolem1c less.prems unfolding \<phi>'_def skolems_bounded_def by blast+
     have pre: "is_prenex \<phi>'"
       using "3"(1) pair_notin_ff holds_skolem1a \<open>is_prenex p\<close> \<phi>'_def by blast
-    have funsub2: "functions_form \<phi>' \<subseteq> insert (numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) (functions_form p)"
-      using "3"(1) pair_notin_ff \<phi>'_def holds_skolem1f \<open>is_prenex p\<close> by presburger
     define \<phi>'' where "\<phi>'' \<equiv> skolems J \<phi>' (Suc k)"
     have skos: "skolems J (\<^bold>\<exists>x\<^bold>. \<phi>) k = \<phi>''"
       by (metis \<phi>'_def \<phi>''_def ppat_simpB skolems_eq)
+    have "functions_form \<phi>' \<subseteq> insert (numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) (functions_form p)"
+      using "3"(1) pair_notin_ff \<phi>'_def holds_skolem1f \<open>is_prenex p\<close> by presburger
+    with \<open>skolems_bounded p J k\<close> numpair_inj 
     have skbo: "skolems_bounded \<phi>' J (Suc k)"
-      by (smt (verit, ccfv_SIG) funsub2 insert_iff less.prems(3) less_Suc_eq numpair_inj prod.inject skolems_bounded_def subsetD)
+      unfolding skolems_bounded_def less_Suc_eq by blast
     have prex: "is_prenex (\<^bold>\<exists>x\<^bold>. \<phi>)"
       using 3 \<open>is_prenex p\<close> by blast
     have "functions_form (skolem1 (numpair J k) x \<phi>) \<subseteq> functions_form (skolems J \<phi>' (Suc k))"
       using \<phi>'_def holds_skolems_induction_A pre skbo by blast
     then show ?thesis
-      using less.IH [OF smaller refl pre, of "Suc k"] skolems_eq [of J p] 
+      using less.IH [OF smaller refl pre, of "Suc k"] less.prems skolems_eq [of J p] 
       apply (simp add: skbo ppat_simpB 3)
       using holds_skolem1h [of x \<phi> "numpair J k"] pair_notin_ff  \<open>is_prenex \<phi>'\<close>
       by (metis prex \<phi>'_def holds_exists interpretation_sublanguage lang_singleton) 
@@ -593,7 +596,7 @@ lemma holds_skolems_induction_C:
   shows "\<exists>M'. dom M' = dom M \<and> intrp_rel M' = intrp_rel M \<and>
                   (\<forall>g zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs
                         \<longrightarrow> (\<exists>l. k \<le> l \<and> g = numpair J l)) \<and>
-                  is_interpretation (language {(skolems J p k)}) M' \<and>
+                  is_interpretation (language {skolems J p k}) M' \<and>
                   (\<forall>v. is_valuation M' v \<longrightarrow> holds M' v (skolems J p k))"
   using assms
 proof (induction n arbitrary: M J k p rule: less_induct)
@@ -622,13 +625,14 @@ proof (induction n arbitrary: M J k p rule: less_induct)
       using 3 holds_skolem1c less.prems unfolding \<phi>'_def skolems_bounded_def by blast+
     have pre: "is_prenex \<phi>'"
       using "3"(1) pair_notin_ff holds_skolem1a \<open>is_prenex p\<close> \<phi>'_def by blast
-    have funsub2: "functions_form \<phi>' \<subseteq> insert (numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) (functions_form p)"
-      using "3"(1) pair_notin_ff \<phi>'_def holds_skolem1f \<open>is_prenex p\<close> by presburger
     define \<phi>'' where "\<phi>'' \<equiv> skolems J \<phi>' (Suc k)"
     have skos: "skolems J (\<^bold>\<exists>x\<^bold>. \<phi>) k = \<phi>''"
       by (metis \<phi>'_def \<phi>''_def ppat_simpB skolems_eq)
+    have "functions_form \<phi>' \<subseteq> insert (numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) (functions_form p)"
+      using "3"(1) pair_notin_ff \<phi>'_def holds_skolem1f \<open>is_prenex p\<close> by presburger
+    with \<open>skolems_bounded p J k\<close> numpair_inj 
     have skbo: "skolems_bounded \<phi>' J (Suc k)"
-      by (smt (verit, ccfv_SIG) funsub2 insert_iff less.prems(3) less_Suc_eq numpair_inj prod.simps(1) skolems_bounded_def subsetD)
+      unfolding skolems_bounded_def less_Suc_eq by blast
     have prex: "is_prenex (\<^bold>\<exists>x\<^bold>. \<phi>)"
       using "3"(1) \<open>is_prenex p\<close> by blast
     have **: "\<exists>M'. dom M' = dom M \<and> intrp_rel M' = intrp_rel M
@@ -642,16 +646,10 @@ proof (induction n arbitrary: M J k p rule: less_induct)
     proof -
       have M: "is_interpretation (language {\<phi>}) M"
         using lang_singleton that(1) by auto
-      obtain M0 :: "'a intrp" 
-        where "dom M0 = dom M"
-            and "intrp_rel M0 = intrp_rel M"
-            and "\<And>g zs. g \<noteq> numpair J k \<or> length zs \<noteq> card (FV (\<^bold>\<exists>x\<^bold>. \<phi>)) \<Longrightarrow> intrp_fn M0 g zs = intrp_fn M g zs"
-            and "is_interpretation (language {\<phi>'}) M0"
-            and "\<And>\<beta>. is_valuation M0 \<beta> \<Longrightarrow> M0\<^bold>,\<beta> \<Turnstile> \<phi>'"
-        using holds_skolem1g [OF prex pair_notin_ff M] M_extend \<open>dom M \<noteq> {}\<close> \<phi>'_def holds_exists by blast
-      then show ?thesis
-        using less.IH[OF smaller refl \<open>is_prenex \<phi>'\<close> skbo, of M0]
-        by (smt (verit) nat_le_linear not_less_eq_eq that(2))
+      with that show ?thesis
+        using less.IH[OF smaller refl \<open>is_prenex \<phi>'\<close> skbo] 
+        using holds_skolem1g [OF prex pair_notin_ff M]  holds_exists
+        by (smt (verit) \<phi>'_def nat_le_linear not_less_eq_eq that(2))
     qed
     show ?thesis
       using less.IH [OF smaller refl pre, of J "Suc k"] less.prems skolems_eq [of J p] **

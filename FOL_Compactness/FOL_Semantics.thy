@@ -43,7 +43,7 @@ lemma intrp_rel_Abs_is_snd_snd [simp]:
 definition is_valuation :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> bool\<close> where
   \<open>is_valuation \<M> \<beta> \<longleftrightarrow> (\<forall> v. \<beta> v \<in> dom \<M>)\<close> 
 
-lemma valuation_valmod: \<open>is_valuation \<M> \<beta> \<and> a \<in> dom \<M> \<Longrightarrow> is_valuation \<M> (\<beta>(x := a))\<close>
+lemma valuation_valmod: \<open>\<lbrakk>is_valuation \<M> \<beta>; a \<in> dom \<M>\<rbrakk> \<Longrightarrow> is_valuation \<M> (\<beta>(x := a))\<close>
   by (simp add: is_valuation_def)
 
 fun eval (* HOL-Light: termval *)
