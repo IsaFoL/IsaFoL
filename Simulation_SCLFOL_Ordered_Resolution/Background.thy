@@ -1109,7 +1109,7 @@ proof -
       proof (rule ord_res.Interp_swap_clause_set)
         show "{D. D |\<in>| N1 \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D y} = {D. D |\<in>| N2 \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D y}"
           using subsets_agree \<open>y \<preceq>\<^sub>c C\<close> by fastforce
-      qed simp_all
+      qed
       ultimately show "ord_res_Interp (fset N2) y \<TTurnstile> y"
         using \<open>y \<preceq>\<^sub>c C\<close> by auto
     qed

@@ -30,7 +30,6 @@ inductive ord_res_1 where
 lemma
   assumes "ord_res.ground_resolution C D CD"
   shows "D \<prec>\<^sub>c C"
-  sledgehammer [overlord, slices = 1, e, verbose]
   using assms
   by (auto simp add: ord_res.ground_resolution.simps)
 

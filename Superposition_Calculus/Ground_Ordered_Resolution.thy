@@ -500,6 +500,12 @@ proof -
         insertCI mem_Collect_eq)
 qed
 
+lemma production_eq_singleton_if_atom_in_production:
+  assumes "A \<in> production N C"
+  shows "production N C = {A}"
+  using assms production_eq_empty_or_singleton
+  by force
+
 definition interp where
   "interp N C \<equiv> (\<Union>D \<in> {D \<in> N. D \<prec>\<^sub>c C}. production N D)"
 
@@ -520,6 +526,14 @@ lemma production_unfold: "production N C = {A | A C'.
     is_strictly_maximal_lit (Pos A) C \<and>
     \<not> interp N C \<TTurnstile> C}"
   by (simp add: production.simps[of N C] interp_def)
+
+lemma production_unfold': "production N C = {A | A.
+    C \<in> N \<and>
+    select C = {#} \<and>
+    is_strictly_maximal_lit (Pos A) C \<and>
+    \<not> interp N C \<TTurnstile> C}"
+  unfolding production_unfold
+  by (metis (mono_tags, lifting) literal_order.explode_greatest_in_mset)
 
 lemma mem_productionE:
   assumes C_prod: "A \<in> production N C"
@@ -1417,7 +1431,6 @@ lemma image_eq_imageI:
 
 lemma production_swap_clause_set:
   assumes
-    fin: "finite N1" and
     agree: "{D \<in> N1. D \<preceq>\<^sub>c C} = {D \<in> N2. D \<preceq>\<^sub>c C}"
   shows "production N1 C = production N2 C"
   using agree
@@ -1450,16 +1463,11 @@ proof (induction C rule: wfp_induct[OF wfP_less_cls])
 qed
 
 lemma interp_swap_clause_set:
-  assumes
-    fin: "finite N1" and
-    agree: "{D \<in> N1. D \<prec>\<^sub>c C} = {D \<in> N2. D \<prec>\<^sub>c C}"
+  assumes agree: "{D \<in> N1. D \<prec>\<^sub>c C} = {D \<in> N2. D \<prec>\<^sub>c C}"
   shows "interp N1 C = interp N2 C"
 proof -
   have BBB: "production N1 ` {D \<in> N2. D \<prec>\<^sub>c C} = production N2 ` {D \<in> N2. D \<prec>\<^sub>c C}"
   proof (intro image_eq_imageI production_swap_clause_set)
-    show "finite N1"
-      using \<open>finite N1\<close> .
-  next
     fix x
     assume "x \<in> {D \<in> N2. D \<prec>\<^sub>c C}"
     thus "{D \<in> N1. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D x} = {D \<in> N2. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D x}"
@@ -1472,64 +1480,67 @@ proof -
     by argo
 qed
 
+definition interp' where
+  "interp' N \<equiv> (\<Union>C \<in> N. production N C)"
+
+lemma interp_eq_interp': "interp N D = interp' {C \<in> N. C \<prec>\<^sub>c D}"
+proof -
+  have "interp N D = interp {C \<in> N. C \<prec>\<^sub>c D} D"
+  proof (rule interp_swap_clause_set)
+    show "{Da \<in> N. Da \<prec>\<^sub>c D} = {Da \<in> {C \<in> N. C \<prec>\<^sub>c D}. Da \<prec>\<^sub>c D}"
+      by blast
+  qed
+
+  also have "\<dots> = interp' {C \<in> N. C \<prec>\<^sub>c D}"
+    unfolding interp_def interp'_def by blast
+
+  finally show ?thesis .
+qed
+
+lemma production_unfold'': "production N C = {A | A.
+    C \<in> N \<and> select C = {#} \<and>
+    is_strictly_maximal_lit (Pos A) C \<and>
+    \<not> interp' {B \<in> N. B \<prec>\<^sub>c C} \<TTurnstile> C}"
+  unfolding production_unfold interp_eq_interp'
+  using literal_order.explode_greatest_in_mset
+  by metis
+
 lemma Interp_swap_clause_set:
-  assumes
-    fin: "finite N1" and
-    agree: "{D \<in> N1. D \<preceq>\<^sub>c C} = {D \<in> N2. D \<preceq>\<^sub>c C}"
+  assumes agree: "{D \<in> N1. D \<preceq>\<^sub>c C} = {D \<in> N2. D \<preceq>\<^sub>c C}"
   shows "interp N1 C \<union> production N1 C = interp N2 C \<union> production N2 C"
-  using production_swap_clause_set[OF assms]
-  using interp_swap_clause_set[OF assms(1)]
-  using assms(2)
+  using production_swap_clause_set[OF agree]
+  using interp_swap_clause_set
+  using agree
   by blast
 
 lemma production_insert_greater_clause:
-  assumes
-    fin: "finite N" and
-    "C \<prec>\<^sub>c D"
+  assumes "C \<prec>\<^sub>c D"
   shows "production (insert D N) C = production N C"
 proof (rule production_swap_clause_set)
-  show "finite (insert D N)"
-    using fin by simp
-next
   show "{Da \<in> insert D N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= Da C} = {D \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C}"
     using \<open>C \<prec>\<^sub>c D\<close> by auto
 qed
 
 lemma interp_insert_greater_clause_strong:
-  assumes
-    fin: "finite N" and
-    "C \<preceq>\<^sub>c D"
+  assumes "C \<preceq>\<^sub>c D"
   shows "interp (insert D N) C = interp N C"
 proof (rule interp_swap_clause_set)
-  show "finite (insert D N)"
-    using fin by simp
-next
   show "{x \<in> insert D N. x \<prec>\<^sub>c C} = {x \<in> N. x \<prec>\<^sub>c C}"
     using \<open>C \<preceq>\<^sub>c D\<close> by auto
 qed
 
 lemma interp_insert_greater_clause:
-  assumes
-    fin: "finite N" and
-    "C \<prec>\<^sub>c D"
+  assumes "C \<prec>\<^sub>c D"
   shows "interp (insert D N) C = interp N C"
 proof (rule interp_swap_clause_set)
-  show "finite (insert D N)"
-    using fin by simp
-next
   show "{x \<in> insert D N. x \<prec>\<^sub>c C} = {x \<in> N. x \<prec>\<^sub>c C}"
     using \<open>C \<prec>\<^sub>c D\<close> by auto
 qed
 
 lemma Interp_insert_greater_clause:
-  assumes
-    fin: "finite N" and
-    "C \<prec>\<^sub>c D"
+  assumes "C \<prec>\<^sub>c D"
   shows "interp (insert D N) C \<union> production (insert D N) C = interp N C \<union> production N C"
 proof (rule Interp_swap_clause_set)
-  show "finite (insert D N)"
-    using fin by simp
-next
   show "{Da \<in> insert D N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= Da C} = {D \<in> N. (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C}"
     using \<open>C \<prec>\<^sub>c D\<close> by auto
 qed
