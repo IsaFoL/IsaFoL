@@ -1,6 +1,6 @@
 theory Substitution_HOL_ex_Unification
   imports
-    Abstract_Substitution
+    Substitution
     "HOL-ex.Unification"
 begin
 
@@ -45,7 +45,7 @@ lift_definition subst_apply :: "'a trm \<Rightarrow> 'a subst \<Rightarrow> 'a t
 abbreviation is_ground_trm where
   "is_ground_trm t \<equiv> vars_of t = {}"
 
-global_interpretation term_subst: basic_substitution where
+global_interpretation term_subst: substitution where
   subst = subst_apply and id_subst = subst_id and comp_subst = subst_comp and
   is_ground = is_ground_trm
 proof unfold_locales

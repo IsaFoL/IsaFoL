@@ -2,7 +2,7 @@ theory First_Order_Clause
   imports 
     Ground_Clause
     Abstract_Substitution.Substitution_First_Order_Term
-    Abstract_Substitution.Variable_Substitution
+    Variable_Substitution
     Clausal_Calculus_Extra
     Multiset_Extra
     Term_Rewrite_System
@@ -306,7 +306,7 @@ qed
 global_interpretation "context": based_variable_substitution where
   subst = "(\<cdot>t\<^sub>c)" and vars = context.vars and id_subst = Var and comp_subst = "(\<odot>)" and 
   base_vars = term.vars and base_subst = "(\<cdot>t)"
-proof(unfold_locales, unfold basic_substitution_ops.is_ground_subst_def)
+proof(unfold_locales, unfold substitution_ops.is_ground_subst_def)
   fix \<kappa> :: "('f, 'v) context"
   show "\<kappa> \<cdot>t\<^sub>c Var = \<kappa>"
     by (induction \<kappa>) auto

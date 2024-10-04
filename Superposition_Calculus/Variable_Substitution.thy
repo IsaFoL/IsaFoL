@@ -1,5 +1,8 @@
 theory Variable_Substitution
-  imports Abstract_Substitution "HOL-Library.FSet" "HOL-Library.Multiset"
+  imports
+    Abstract_Substitution.Substitution
+    "HOL-Library.FSet"
+    "HOL-Library.Multiset"
 begin
 
 locale finite_set =
@@ -18,7 +21,7 @@ lemma fset_finite_set [simp]: "fset (finite_set b) = set b"
 
 end
 
-locale variable_substitution = basic_substitution _ _ subst "\<lambda>a. vars a = {}" 
+locale variable_substitution = substitution _ _ subst "\<lambda>a. vars a = {}" 
 for
   subst :: "'expression \<Rightarrow> ('variable \<Rightarrow> 'base_expression) \<Rightarrow> 'expression" (infixl "\<cdot>" 70) and
   vars :: "'expression \<Rightarrow> 'variable set" +
