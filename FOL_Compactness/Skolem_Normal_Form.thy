@@ -592,21 +592,21 @@ qed
 lemma holds_skolems_induction_C:
   fixes M :: "'a intrp"
   assumes "size p = n" and "is_prenex p" and "skolems_bounded p J k"
-    and "is_interpretation (language {p}) M" "dom M \<noteq> {}" "\<And>v. is_valuation M v \<Longrightarrow> holds M v p"
+    and "is_interpretation (language {p}) M" "dom M \<noteq> {}" "satisfies M {p}"
   shows "\<exists>M'. dom M' = dom M \<and> intrp_rel M' = intrp_rel M \<and>
                   (\<forall>g zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs
                         \<longrightarrow> (\<exists>l. k \<le> l \<and> g = numpair J l)) \<and>
                   is_interpretation (language {skolems J p k}) M' \<and>
-                  (\<forall>v. is_valuation M' v \<longrightarrow> holds M' v (skolems J p k))"
+                  satisfies M' {skolems J p k}"
   using assms
-proof (induction n arbitrary: M J k p rule: less_induct)
+proof (induction n arbitrary: M k p rule: less_induct)
   case (less n)
   show ?case
     using \<open>is_prenex p\<close>
   proof cases
     case 1
     with less show ?thesis
-      by (metis (no_types, lifting) ppat_last_qfree skolems_eq) 
+      by (metis (no_types, lifting) ppat_last_qfree skolems_eq)
   next
     case (2 \<phi> x)
     then have smaller: "Prenex_Normal_Form.size \<phi> < n" and skbo: "skolems_bounded \<phi> J k"
@@ -614,8 +614,8 @@ proof (induction n arbitrary: M J k p rule: less_induct)
     have skoeq: "skolems J p k = (\<^bold>\<forall> x\<^bold>. skolems J \<phi> k)"
       by (metis "2"(1) ppat_simpA skolems_eq)
     show ?thesis
-      using less.IH [OF smaller refl \<open>is_prenex \<phi>\<close>, of J k M] skoeq less.prems
-      apply (simp add: skbo 2 lang_singleton)
+      using less.IH [OF smaller refl \<open>is_prenex \<phi>\<close>, of k M] skoeq less.prems
+      apply (simp add: skbo 2 lang_singleton satisfies_def)
       by (metis fun_upd_triv is_valuation_def valuation_valmod)
   next
     case (3 \<phi> x)
@@ -637,8 +637,8 @@ proof (induction n arbitrary: M J k p rule: less_induct)
       using "3"(1) \<open>is_prenex p\<close> by blast
     have **: "\<exists>M'. dom M' = dom M \<and> intrp_rel M' = intrp_rel M
            \<and> (\<forall>g. (\<exists>zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs) \<longrightarrow> (\<exists>l\<ge>k. g = numpair J l)) 
-           \<and> is_interpretation (language {skolems J (\<phi>') (Suc k)}) M' 
-           \<and> (\<forall>v. is_valuation M' v \<longrightarrow> M'\<^bold>,v \<Turnstile> skolems J (\<phi>') (Suc k))"
+           \<and> is_interpretation (language {skolems J \<phi>' (Suc k)}) M' 
+           \<and> satisfies M' {skolems J \<phi>' (Suc k)}"
       if "is_interpretation (language {(\<^bold>\<exists>x\<^bold>. \<phi>)}) M"
         and "dom M \<noteq> {}"
         and M_extend: "\<And>v. is_valuation M v \<Longrightarrow> (\<exists>a\<in>dom M. M\<^bold>,v (x := a) \<Turnstile> \<phi>)"
@@ -648,12 +648,12 @@ proof (induction n arbitrary: M J k p rule: less_induct)
         using lang_singleton that(1) by auto
       with that show ?thesis
         using less.IH[OF smaller refl \<open>is_prenex \<phi>'\<close> skbo] 
-        using holds_skolem1g [OF prex pair_notin_ff M]  holds_exists
-        by (smt (verit) \<phi>'_def nat_le_linear not_less_eq_eq that(2))
+        using holds_skolem1g [OF prex pair_notin_ff M] holds_exists
+        by (smt (verit) \<phi>'_def nat_le_linear not_less_eq_eq satisfies_def singleton_iff)
     qed
     show ?thesis
-      using less.IH [OF smaller refl pre, of J "Suc k"] less.prems skolems_eq [of J p] **
-      by (simp add: skbo ppat_simpB 3 \<phi>'_def)
+      using less.IH [OF smaller refl pre, of "Suc k"] less.prems skolems_eq [of J p] **
+      by (simp add: skbo ppat_simpB 3 \<phi>'_def satisfies_def)
   qed
 qed
 
