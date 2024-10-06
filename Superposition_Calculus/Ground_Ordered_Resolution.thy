@@ -2,7 +2,7 @@ theory Ground_Ordered_Resolution
   imports
     Saturation_Framework.Calculus
     Saturation_Framework_Extensions.Clausal_Calculus
-
+    Isabelle_2024_Compatibility
     Ground_Ctxt_Extra
     HOL_Extra
     Transitive_Closure_Extra
@@ -1434,7 +1434,7 @@ lemma production_swap_clause_set:
     agree: "{D \<in> N1. D \<preceq>\<^sub>c C} = {D \<in> N2. D \<preceq>\<^sub>c C}"
   shows "production N1 C = production N2 C"
   using agree
-proof (induction C rule: wfp_induct[OF wfP_less_cls])
+proof (induction C rule: wfp_induct_rule[OF wfP_less_cls])
   case hyps: (1 C)
   from hyps have AAA: "C \<in> N1 \<longleftrightarrow> C \<in> N2"
     by auto
