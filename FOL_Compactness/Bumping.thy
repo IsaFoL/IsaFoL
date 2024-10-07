@@ -3,8 +3,23 @@
  * Author:       Sophie Tourret <sophie.tourret at inria.fr>, 2024 *)
 
 theory Bumping
-  imports FOL_Semantics Naturals_Injection
+imports 
+  FOL_Semantics
+  (*Naturals_Injection*)
+  "HOL-Library.Nat_Bijection"
 begin
+
+(* Diverges from hol-light version by reusing a nat \<times> nat \<Rightarrow> nat encoding available in Isabelle/HOL 
+ * /!\ The encoding is not the same (but it serves the same purpose)
+ * The hol-light names numpair, numfst and numsnd have been kept to help with the translation *)
+abbreviation numpair where
+  \<open>numpair m n \<equiv> prod_encode (m,n)\<close>
+
+abbreviation numfst where
+  \<open>numfst k \<equiv> fst (prod_decode k)\<close>
+
+abbreviation numsnd where
+  \<open>numsnd k \<equiv> snd (prod_decode k)\<close>
 
 (* bumpmod in hol-light *)
 definition bump_intrp :: "'m intrp \<Rightarrow> 'm intrp" where
@@ -177,10 +192,10 @@ proof (induct \<phi> arbitrary: \<beta>)
 next
   case (Atom p ts)
   then show ?case
-    unfolding unbump_intrp_def
-    by (smt (verit) bump_intrp_def bumpform dom_Abs_is_fst functions_form_bumpform
+    unfolding unbump_intrp_def using bump_intrp_def bumpform dom_Abs_is_fst functions_form_bumpform
         holds_indep_intrp_if intrp_fn_Abs_is_fst_snd intrp_is_struct intrp_rel_Abs_is_snd_snd
-        numsnd_simp struct_def)
+        struct_def
+    by (smt (verit, ccfv_SIG) prod_encode_inverse snd_conv)
 next
   case (Implies \<phi>1 \<phi>2)
   then show ?case
@@ -192,6 +207,7 @@ next
         struct_def unbump_intrp_def)
 qed
 
+(*
 fun numlist :: "nat list \<Rightarrow> nat" where
   \<open>numlist [] = 0\<close>
 | \<open>numlist (n # ls) = numpair n ((numlist ls) + 1) \<close>
@@ -203,7 +219,7 @@ proof (induct l)
 next
   case (Cons a l)
   then show ?case
-    using numpair_def by auto
+    by (metis add_gr_0 gr0I le_prod_encode_2 linorder_not_less not_one_le_zero numlist.simps(2))
 qed
 
 lemma numlist_inj: \<open>(numlist l1 = numlist l2) \<equiv> (l1 = l2)\<close>
@@ -224,6 +240,10 @@ next
   then show ?case
     by (metis Suc_eq_plus1 nat.simps(1) numlist.simps(2) numpair_inj)
 qed
+*)
+
+abbreviation numlist where
+  \<open>numlist ns \<equiv> list_encode ns\<close>
 
 fun num_of_term :: "nterm \<Rightarrow> nat" where
   \<open>num_of_term (Var x) = numpair 0 x\<close>
@@ -250,36 +270,24 @@ qed
 
 lemma num_of_term_inj: \<open>num_of_term s = num_of_term t \<equiv> s = t\<close>
 proof (induction s t rule: term_induct2)
-  case (1 x y)
-  then show ?case
-    by (metis num_of_term.simps(1) numsnd_simp)
-next
-  case (2 x g us)
-  then show ?case 
-    by (metis Term.term.simps(4) le_refl not_one_le_zero num_of_term.elims numpair_inj)
-next
-  case (3 f ts y)
-  then show ?case
-    by (metis Term.term.simps(4) not_one_le_zero num_of_term.elims numpair_inj order_refl)
-next
   case (4 f ts g us)
   have \<open>(Fun f ts = Fun g us) \<Longrightarrow> num_of_term (Fun f ts) = num_of_term (Fun g us)\<close>
     by auto
   moreover {
     assume \<open>num_of_term (Fun f ts) = num_of_term (Fun g us)\<close>
     then have \<open>numpair f (numlist (map num_of_term ts)) = numpair g (numlist (map num_of_term us))\<close>
-      using numpair_inj num_of_term.simps(2) by metis
+      by auto
     then have fun_eq: \<open>f = g\<close> and nl_eq: \<open>numlist (map num_of_term ts) = (numlist (map num_of_term us))\<close>
-      using numpair_inj by blast+
+      by auto
     then have "map num_of_term ts = map num_of_term us"
-      using numlist_inj by auto
+      using list_encode_eq by blast
     then have args_eq: \<open>ts = us\<close>
       using 4 by (metis list.inj_map_strong)
     have \<open>Fun f ts = Fun g us\<close>
       using fun_eq args_eq by simp
   }
   ultimately show ?case by auto
-qed
+qed auto
 
 fun num_of_form :: "form \<Rightarrow> nat" where
   \<open>num_of_form \<^bold>\<bottom> = numpair 0 0\<close>
@@ -288,7 +296,7 @@ fun num_of_form :: "form \<Rightarrow> nat" where
 | \<open>num_of_form (\<^bold>\<forall>x\<^bold>. \<phi>) = numpair 3 (numpair x (num_of_form \<phi>))\<close>
 
 lemma numlist_num_of_term: \<open>numlist (map num_of_term ts) = (numlist (map num_of_term us)) \<equiv> ts = us\<close>
-  by (smt (verit, best) list.inj_map_strong num_of_term_inj numlist_inj)
+  by (smt (verit) list.inj_map_strong list_encode_eq num_of_term_inj)
 
 (* Shouldn't this already exist somewhere? *)
 lemma double_impl: assumes \<open>A \<Longrightarrow> B\<close> and \<open>B \<Longrightarrow> A\<close> shows \<open>A \<equiv> B\<close>
@@ -300,7 +308,8 @@ proof (rule double_impl)
   proof (induct \<phi> arbitrary: \<psi> rule: num_of_form.induct)
     case 1
     then show ?case
-      by (metis num_of_form.elims num_of_form.simps(1) numpair_inj_x zero_neq_numeral zero_neq_one)
+      using num_of_form.elims num_of_form.simps(1)  zero_neq_numeral zero_neq_one
+      by (metis prod.sel(1) prod_encode_inverse)
   next
     case (2 p ts)
     then show ?case
@@ -311,32 +320,30 @@ proof (rule double_impl)
     next
       case (Atom q us)
       then show ?thesis
-        using "2" numpair_inj
-        by (metis num_of_form.simps(2) numlist_num_of_term)
+        using "2" by (simp add: numlist_num_of_term)
     next
       case (Implies \<psi>1 \<psi>2)
       then show ?thesis
-        using "2" by (metis One_nat_def nat.simps(1) num_of_form.simps(2)
-            num_of_form.simps(3) numpair_inj_x one_add_one plus_1_eq_Suc zero_neq_one)
+        using "2" by simp
     next
       case (Forall y \<psi>1)
       then have \<open>\<exists>k. num_of_form \<psi> = numpair 3 k\<close> 
         by auto
       moreover have \<open>\<exists>k'. num_of_form (Atom p ts) = numpair 1 k'\<close>
         by auto
-      ultimately show ?thesis using "2" numpair_inj
-        by (metis numeral_eq_one_iff semiring_norm(86))
+      ultimately show ?thesis using "2" by force
     qed
   next
     case (3 \<phi>1 \<phi>2)
     then show ?case
-      by (smt (verit, best) One_nat_def nat.simps(1) nat.simps(3) num_of_form.elims
-          num_of_form.simps(3) numeral_3_eq_3 numerals(2) numpair_inj)
+      by (smt (verit, best) One_nat_def Pair_inject Suc_eq_numeral form.distinct(11) 
+          form.distinct(7) form.sel(3) form.sel(4) nat.simps(3) num_of_form.elims numeral_3_eq_3
+          numerals(2) prod_encode_eq)
   next
     case (4 x \<phi>1)
     then show ?case
-      by (smt (verit, ccfv_SIG) Suc_eq_numeral num_of_form.elims num_of_form.simps(4) numeral_3_eq_3
-          numeral_eq_one_iff numerals(2) numpair_inj semiring_norm(86) zero_neq_numeral)
+      by (smt (verit, ccfv_SIG) One_nat_def Zero_neq_Suc num_of_form.elims num_of_form.simps(4)
+          numeral_3_eq_3 numerals(2) old.nat.inject old.prod.inject prod_encode_eq)
   qed
 qed auto
 
@@ -345,7 +352,7 @@ specification (form_of_num) \<open>\<forall>n. form_of_num n = (THE \<phi>. num_
   using num_of_form_inj by force
 
 (* FORM_OF_NUM in hol-light *)
-lemma form_of_num_of_form [simp]: \<open>form_of_num(num_of_form \<phi>) = \<phi>\<close>
-  using  HOL.nitpick_choice_spec(3) num_of_form_inj by simp
+lemma form_of_num_of_form [simp]: \<open>form_of_num (num_of_form \<phi>) = \<phi>\<close>
+  using num_of_form_inj HOL.nitpick_choice_spec by auto
 
 end

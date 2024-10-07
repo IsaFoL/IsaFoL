@@ -6,7 +6,8 @@
 theory Skolem_Normal_Form
 imports
   Prenex_Normal_Form
-  Naturals_Injection
+  (*"HOL-Library.Nat_Bijection"*)
+  (* Naturals_Injection *)
   Bumping
   "HOL-ex.Sketch_and_Explore"
 begin
@@ -524,9 +525,9 @@ proof (induction n arbitrary: k p rule: less_induct)
     have funsub: "functions_form p \<subseteq> functions_form \<phi>'" 
                  "functions_form \<phi>' \<subseteq> insert (numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) (functions_form p)"
       using "3"(1) pair_notin_ff \<phi>'_def holds_skolem1e holds_skolem1f \<open>is_prenex p\<close> by presburger+
-    with \<open>skolems_bounded p J k\<close> numpair_inj 
     have skbo: "skolems_bounded \<phi>' J (Suc k)"
-      unfolding skolems_bounded_def less_Suc_eq by blast
+      using \<open>skolems_bounded p J k\<close> unfolding skolems_bounded_def less_Suc_eq
+      using funsub(2) by fastforce
     have FV: "FV \<phi>' = FV \<phi> - {x}"
       using "3"(1) pair_notin_ff holds_skolem1b \<open>is_prenex p\<close> \<phi>'_def by auto
     have preq: "predicates_form \<phi>' = predicates_form \<phi>"
@@ -574,9 +575,8 @@ proof (induction n arbitrary: N k p v rule: less_induct)
       by (metis \<phi>'_def \<phi>''_def ppat_simpB skolems_eq)
     have "functions_form \<phi>' \<subseteq> insert (numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) (functions_form p)"
       using "3"(1) pair_notin_ff \<phi>'_def holds_skolem1f \<open>is_prenex p\<close> by presburger
-    with \<open>skolems_bounded p J k\<close> numpair_inj 
-    have skbo: "skolems_bounded \<phi>' J (Suc k)"
-      unfolding skolems_bounded_def less_Suc_eq by blast
+    then have skbo: "skolems_bounded \<phi>' J (Suc k)"
+      using \<open>skolems_bounded p J k\<close> unfolding skolems_bounded_def less_Suc_eq by fastforce
     have prex: "is_prenex (\<^bold>\<exists>x\<^bold>. \<phi>)"
       using 3 \<open>is_prenex p\<close> by blast
     have "functions_form (skolem1 (numpair J k) x \<phi>) \<subseteq> functions_form (skolems J \<phi>' (Suc k))"
@@ -631,9 +631,9 @@ proof (induction n arbitrary: M k p rule: less_induct)
       by (metis \<phi>'_def \<phi>''_def ppat_simpB skolems_eq)
     have "functions_form \<phi>' \<subseteq> insert (numpair J k, card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) (functions_form p)"
       using "3"(1) pair_notin_ff \<phi>'_def holds_skolem1f \<open>is_prenex p\<close> by presburger
-    with \<open>skolems_bounded p J k\<close> numpair_inj 
-    have skbo: "skolems_bounded \<phi>' J (Suc k)"
-      unfolding skolems_bounded_def less_Suc_eq by blast
+    then have skbo: "skolems_bounded \<phi>' J (Suc k)"
+      unfolding skolems_bounded_def less_Suc_eq
+      by (meson insert_iff less.prems(3) old.prod.inject prod_encode_eq skolems_bounded_def subsetD)
     have prex: "is_prenex (\<^bold>\<exists>x\<^bold>. \<phi>)"
       using "3"(1) \<open>is_prenex p\<close> by blast
     have **: "\<exists>M'. dom M' = dom M \<and> intrp_rel M' = intrp_rel M
