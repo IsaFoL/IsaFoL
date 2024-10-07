@@ -7,6 +7,7 @@ theory Skolem_Normal_Form
 imports
   Prenex_Normal_Form
   Naturals_Injection
+  Bumping
   "HOL-ex.Sketch_and_Explore"
 begin
 
@@ -656,5 +657,163 @@ proof (induction n arbitrary: M k p rule: less_induct)
       by (simp add: skbo ppat_simpB 3 \<phi>'_def satisfies_def)
   qed
 qed
+
+(* HOLDS_SKOLEMS_PRENEX in hol-light *)
+lemma holds_skolems_prenex:
+  \<open>is_prenex \<phi> \<Longrightarrow> 
+    (\<forall>K. (\<forall>l m. \<not>((numpair K l, m) \<in> functions_form \<phi>)) \<longrightarrow>
+    universal(skolems K \<phi> 0) \<and>
+    (FV (skolems K \<phi> 0) = FV \<phi>) \<and>
+    (predicates_form (skolems K \<phi> 0) = predicates_form \<phi>) \<and>
+    functions_form \<phi> \<subseteq> functions_form (skolems K \<phi> 0) \<and>
+    functions_form (skolems K \<phi> 0) \<subseteq> 
+      {(numpair K l, m) |l m. l \<in> UNIV \<and> m \<in> UNIV} \<union> (functions_form \<phi>) \<and>
+    (\<forall>M. is_interpretation (language {\<phi>}) M \<and>
+      \<not>(dom M = {}) \<and>
+      (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> \<phi>) \<longrightarrow>
+        (\<exists>M'. (dom M' = dom M) \<and>
+        (intrp_rel M' = intrp_rel M) \<and>
+        (\<forall>g zs. \<not> (intrp_fn M' g zs = intrp_fn M g zs) \<longrightarrow> (\<exists>l. g = numpair K l)) \<and>
+        is_interpretation (language {(skolems K \<phi> 0)}) M' \<and>
+        (\<forall>\<beta>. is_valuation M' \<beta> \<longrightarrow> M'\<^bold>,\<beta> \<Turnstile> (skolems K \<phi> 0)))) \<and>
+    (\<forall>N. is_interpretation (language {(skolems K \<phi> 0)}) N \<and>
+      \<not> (dom N = {}) \<longrightarrow>
+      (\<forall>\<beta>. is_valuation N \<beta> \<and> (N\<^bold>,\<beta> \<Turnstile> (skolems K \<phi> 0)) \<longrightarrow> N\<^bold>,\<beta> \<Turnstile> \<phi>)))\<close>
+  sorry
+
+definition skopre where
+  \<open>skopre k \<phi> = skolems k (prenex \<phi>) 0\<close>
+
+(* SKOPRE in hol-light *)
+lemma skopre_model: \<open>(\<forall>l m. \<not> ((numpair K l, m) \<in> functions_form \<phi>)) \<Longrightarrow>
+  (universal (skopre K \<phi>) \<and>
+    (FV (skopre K \<phi>) = FV \<phi>) \<and>
+    (predicates_form (skopre K \<phi>) = predicates_form \<phi>) \<and>
+    functions_form \<phi> \<subseteq> functions_form (skopre K \<phi>) \<and>
+    functions_form (skopre K \<phi>) \<subseteq> 
+      {(numpair K l, m) |l m. l \<in> UNIV \<and> m \<in> UNIV} \<union> (functions_form \<phi>) \<and>
+    (\<forall>M. is_interpretation (language {\<phi>}) M \<and>
+      \<not>(dom M = {}) \<and>
+      (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> \<phi>) \<longrightarrow>
+        (\<exists>M'. (dom M' = dom M) \<and>
+        (intrp_rel M' = intrp_rel M) \<and>
+        (\<forall>g zs. \<not> (intrp_fn M' g zs = intrp_fn M g zs) \<longrightarrow> (\<exists>l. g = numpair K l)) \<and>
+        is_interpretation (language {(skopre K \<phi>)}) M' \<and>
+        (\<forall>\<beta>. is_valuation M' \<beta> \<longrightarrow> M'\<^bold>,\<beta> \<Turnstile> (skopre K \<phi>)))) \<and>
+    (\<forall>N. is_interpretation (language {(skopre K \<phi>)}) N \<and>
+      \<not> (dom N = {}) \<longrightarrow>
+      (\<forall>\<beta>. is_valuation N \<beta> \<and> (N\<^bold>,\<beta> \<Turnstile> (skopre K \<phi>)) \<longrightarrow> N\<^bold>,\<beta> \<Turnstile> \<phi>)))\<close>
+  sorry
+
+definition skolemize where
+  \<open>skolemize \<phi> = skopre (num_of_form (bump_form \<phi>) + 1) (bump_form \<phi>)\<close>
+
+(* SKOLEMIZE_WORKS in hol-light *)
+lemma skolemize_works:
+  \<open>(universal (skolemize \<phi>) \<and>
+    (FV (skolemize \<phi>) = FV (bump_form \<phi>)) \<and>
+    (predicates_form (skolemize \<phi>) = predicates_form (bump_form \<phi>)) \<and>
+    functions_form (bump_form \<phi>) \<subseteq> functions_form (skolemize \<phi>) \<and>
+    functions_form (skolemize \<phi>) \<subseteq> 
+      {(numpair k l, m) |k l m. k = num_of_form(bump_form \<phi>) \<and> l \<in> UNIV \<and> m \<in> UNIV} \<union>
+         (functions_form (bump_form \<phi>)) \<and>
+    (\<forall>M. is_interpretation (language {bump_form \<phi>}) M \<and>
+      \<not>(dom M = {}) \<and>
+      (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> (bump_form \<phi>)) \<longrightarrow>
+        (\<exists>M'. (dom M' = dom M) \<and>
+        (intrp_rel M' = intrp_rel M) \<and>
+        (\<forall>g zs. \<not> (intrp_fn M' g zs = intrp_fn M g zs) \<longrightarrow> 
+          (\<exists>l. g = numpair (num_of_form(bump_form \<phi>)) l)) \<and>
+        is_interpretation (language {(skolemize \<phi>)}) M' \<and>
+        (\<forall>\<beta>. is_valuation M' \<beta> \<longrightarrow> M'\<^bold>,\<beta> \<Turnstile> (skolemize \<phi>)))) \<and>
+    (\<forall>N. is_interpretation (language {(skolemize \<phi>)}) N \<and>
+      \<not> (dom N = {}) \<longrightarrow>
+      (\<forall>\<beta>. is_valuation N \<beta> \<and> (N\<^bold>,\<beta> \<Turnstile> (skolemize \<phi>)) \<longrightarrow> N\<^bold>,\<beta> \<Turnstile> (bump_form \<phi>))))\<close>
+  sorry
+
+(* FUNCTIONS_FORM_SKOLEMIZE in hol-light *)
+lemma functions_form_skolemize: \<open>(f, m) \<in> functions_form (skolemize \<phi>) \<Longrightarrow>
+  (\<exists>k. (f = numpair 0 k) \<and> (k,m) \<in> functions_form \<phi>) \<or>
+  (\<exists>l. (f = numpair (num_of_form (bump_form \<phi>) + 1) l))\<close>
+  sorry
+
+definition skomod1 where
+  \<open>skomod1 \<phi> M = (if (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> \<phi>)
+    then (SOME M'. (dom M' = dom (bump_intrp M)) \<and>
+      intrp_rel M' = intrp_rel (bump_intrp M) \<and>
+      (\<forall>g zs. \<not>(intrp_fn M' g zs = intrp_fn (bump_intrp M) g zs) \<longrightarrow>
+        (\<exists>l. g = numpair (num_of_form (bump_form \<phi>) + 1) l)) \<and>
+      is_interpretation (language {skolemize \<phi>}) M' \<and>
+      (\<forall>\<beta>. is_valuation M' \<beta> \<longrightarrow> M'\<^bold>,\<beta> \<Turnstile> (skolemize \<phi>)))
+    else (Abs_intrp (dom M, (\<lambda>g zs. (SOME a. a \<in> dom M)), intrp_rel M)))\<close>
+
+(* SKOMOD1_WORKS in hol-light *)
+lemma skomod1_works:
+  \<open>is_interpretation (language {\<phi>}) M \<and>
+      \<not>(dom M = {}) \<longrightarrow>
+        (dom (skomod1 \<phi> M) = dom (bump_intrp M)) \<and>
+        (intrp_rel (skomod1 \<phi> M) = intrp_rel (bump_intrp M)) \<and>
+        is_interpretation (language {skolemize \<phi>}) (skomod1 \<phi> M) \<and>
+        (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> (\<phi>)) \<longrightarrow>
+          (\<forall>g zs. \<not> (intrp_fn (skomod1 \<phi> M) g zs = intrp_fn (bump_intrp M) g zs) \<longrightarrow> 
+            (\<exists>l. g = numpair (num_of_form (bump_form \<phi>) + 1) l)) \<and>
+          (\<forall>\<beta>. is_valuation (skomod1 \<phi> M) \<beta> \<longrightarrow> (skomod1 \<phi> M)\<^bold>,\<beta> \<Turnstile> (skolemize \<phi>))\<close>
+  sorry
+
+definition skomod where
+  \<open>skomod M = Abs_intrp (dom M, 
+    (\<lambda>g zs. if numfst g = 0 then intrp_fn M (numsnd g) zs
+      else intrp_fn (skomod1 (unbump_form (form_of_num ((numfst g) - 1))) M ) g zs),
+    intrp_rel M)\<close>
+
+(* SKOMOD_INTERPRETATION in hol-light *)
+lemma skomod_interpretation: \<open>is_interpretation (language {\<phi>}) M \<and> \<not> (dom M = {}) \<Longrightarrow>
+  is_interpretation (language {skolemize \<phi>}) (skomod M)\<close>
+  sorry
+
+(* SKOMOD_WORKS in hol-light *)
+lemma skomod_works: \<open>is_interpretation (language {\<phi>}) M \<and> \<not> (dom M = {}) \<Longrightarrow>
+  (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> \<phi>) \<longleftrightarrow> 
+  (\<forall>\<beta>. is_valuation (skomod M) \<beta> \<longrightarrow> (skomod M)\<^bold>,\<beta> \<Turnstile> (skolemize \<phi>))\<close>
+  sorry
+
+(* SKOLEMIZE_SATISFIABLE *)
+lemma skolemize_satisfiable: \<open>(\<exists>M. \<not> (dom M = {}) \<and> is_interpretation (language S) M \<and> 
+  satisfies M S) \<longleftrightarrow> (\<exists>M. \<not> (dom M = {}) \<and> is_interpretation (language {skolemize \<phi> |\<phi>. \<phi> \<in> S}) M 
+  \<and> satisfies M {skolemize \<phi> |\<phi>. \<phi> \<in> S})\<close>
+  sorry
+
+
+fun specialize :: "form \<Rightarrow> form" where
+  \<open>specialize \<^bold>\<bottom> = \<^bold>\<bottom>\<close>
+| \<open>specialize (Atom p ts) = Atom p ts\<close>
+| \<open>specialize (\<phi> \<^bold>\<longrightarrow> \<psi>) = \<phi> \<^bold>\<longrightarrow> \<psi>\<close>
+| \<open>specialize (\<^bold>\<forall>x\<^bold>. \<phi>) = specialize \<phi>\<close>
+
+
+(* SPECIALIZE_SATISFIES in hol-light *)
+lemma specialize_satisfies: 
+  \<open>\<not> (dom M = {}) \<Longrightarrow> (satisfies M s \<longleftrightarrow> satisfies M {specialize \<phi> |\<phi>. \<phi> \<in> s})\<close>
+  sorry
+
+(* SPECIALIZE_QFREE in hol-light *)
+lemma specialize_qfree: \<open>universal \<phi> \<Longrightarrow> qfree (specialize \<phi>)\<close>
+  sorry
+
+(* SPECIALIZE_LANGUAGE in hol-light *)
+lemma specialize_language: \<open>language {specialize \<phi> |\<phi>. \<phi> \<in> s} = language s\<close>
+  unfolding language_def functions_forms_def predicates_def
+  sorry
+
+definition skolem :: "form \<Rightarrow> form" where
+  \<open>skolem \<phi> = specialize(skolemize \<phi>)\<close>
+
+lemma skolem_qfree: \<open>qfree (skolem \<phi>)\<close>
+  sorry
+
+lemma skolem_satisfiable: \<open>(\<exists>M. \<not> (dom M = {}) \<and> interpretation (language s) M \<and> satisfies M s)
+  = (\<exists>M. \<not> (dom M = {}) \<and> interpretation (language {skolem \<phi> |\<phi>. \<phi> \<in> s}) M \<and> 
+      satisfies M {skolem \<phi> |\<phi>. \<phi> \<in> s})\<close>
+  sorry
 
 end
