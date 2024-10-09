@@ -478,10 +478,15 @@ specification (skolems)
               = ppat (\<lambda>x \<phi>'. \<^bold>\<forall>x\<^bold>. (skolems J \<phi>' k)) (\<lambda>x \<phi>'. skolems J (skolem1 (numpair J k) x \<phi>') (Suc k)) (\<lambda>\<phi>. \<phi>) \<psi>\<close>
   using skolems_ex by meson
 
+text \<open>bounding the possible Skolem functions in a given formula\<close>
 definition "skolems_bounded \<equiv> \<lambda>p J k. \<forall>l m. (numpair J l, m) \<in> functions_form p \<longrightarrow> l < k"
 
 lemma skolems_bounded_mono: "\<lbrakk>skolems_bounded p J k'; k'\<le>k\<rbrakk> \<Longrightarrow> skolems_bounded p J k"
   by (meson dual_order.strict_trans1 skolems_bounded_def)
+
+lemma skolems_bounded_prenex: "skolems_bounded \<phi> K k \<Longrightarrow> skolems_bounded (prenex \<phi>) K k"
+  unfolding skolems_bounded_def
+  by (metis Pair_inject lang_singleton prenex_props)
 
 text \<open>Basic properties proved by induction on the number of Skolemisation steps. 
 Harrison's gigantic conjunction broken up for more manageable proofs, at the cost of some repetition\<close>
@@ -681,35 +686,41 @@ corollary holds_skolems_prenex_C:
   assumes "is_prenex \<phi>" "skolems_bounded \<phi> K 0"
     and "is_interpretation (language {\<phi>}) M" "dom M \<noteq> {}" "satisfies M {\<phi>}"
   shows "\<exists>M'. dom M' = dom M \<and> intrp_rel M' = intrp_rel M \<and>
-                  (\<forall>g zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs
-                        \<longrightarrow> (\<exists>l. 0 \<le> l \<and> g = numpair K l)) \<and>
-                  is_interpretation (language {skolems K \<phi> 0}) M' \<and>
-                  satisfies M' {skolems K \<phi> 0}"
+              (\<forall>g zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs \<longrightarrow> (\<exists>l. g = numpair K l)) \<and>
+              is_interpretation (language {skolems K \<phi> 0}) M' \<and>
+              satisfies M' {skolems K \<phi> 0}"
   using holds_skolems_induction_C [OF refl assms] by simp
 
+(* SKOPRE in hol-light *)
 definition skopre where
   \<open>skopre k \<phi> = skolems k (prenex \<phi>) 0\<close>
 
-(* SKOPRE in hol-light *)
-lemma skopre_model: \<open>(\<forall>l m. \<not> ((numpair K l, m) \<in> functions_form \<phi>)) \<Longrightarrow>
-  (universal (skopre K \<phi>) \<and>
-    (FV (skopre K \<phi>) = FV \<phi>) \<and>
-    (predicates_form (skopre K \<phi>) = predicates_form \<phi>) \<and>
-    functions_form \<phi> \<subseteq> functions_form (skopre K \<phi>) \<and>
-    functions_form (skopre K \<phi>) \<subseteq> 
-      {(numpair K l, m) |l m. l \<in> UNIV \<and> m \<in> UNIV} \<union> (functions_form \<phi>) \<and>
-    (\<forall>M. is_interpretation (language {\<phi>}) M \<and>
-      \<not>(dom M = {}) \<and>
-      (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> \<phi>) \<longrightarrow>
-        (\<exists>M'. (dom M' = dom M) \<and>
-        (intrp_rel M' = intrp_rel M) \<and>
-        (\<forall>g zs. \<not> (intrp_fn M' g zs = intrp_fn M g zs) \<longrightarrow> (\<exists>l. g = numpair K l)) \<and>
-        is_interpretation (language {(skopre K \<phi>)}) M' \<and>
-        (\<forall>\<beta>. is_valuation M' \<beta> \<longrightarrow> M'\<^bold>,\<beta> \<Turnstile> (skopre K \<phi>)))) \<and>
-    (\<forall>N. is_interpretation (language {(skopre K \<phi>)}) N \<and>
-      \<not> (dom N = {}) \<longrightarrow>
-      (\<forall>\<beta>. is_valuation N \<beta> \<and> (N\<^bold>,\<beta> \<Turnstile> (skopre K \<phi>)) \<longrightarrow> N\<^bold>,\<beta> \<Turnstile> \<phi>)))\<close>
-  sorry
+corollary skopre_model_A:
+  assumes "skolems_bounded \<phi> K 0"
+  shows "universal(skopre K \<phi>) \<and> (FV (skopre K \<phi>) = FV \<phi>) \<and>
+         predicates_form (skopre K \<phi>) = predicates_form \<phi> \<and>
+         functions_form \<phi> \<subseteq> functions_form (skopre K \<phi>) \<and>
+         functions_form (skopre K \<phi>) \<subseteq> {(numpair K l,m) | l m. True} \<union> (functions_form \<phi>)"
+  using skolems_bounded_prenex holds_skolems_prenex_A
+  by (metis (no_types, lifting) Pair_inject assms lang_singleton prenex_props skopre_def)
+
+corollary skopre_model_B:
+  assumes "skolems_bounded \<phi> K 0"
+      and "is_interpretation (language {skopre K \<phi>}) M" "dom M \<noteq> {}"
+      and "is_valuation M \<beta>" "M\<^bold>,\<beta> \<Turnstile> skopre K \<phi>"
+  shows "M\<^bold>,\<beta> \<Turnstile> \<phi>"
+  using skolems_bounded_prenex holds_skolems_prenex_B
+  by (metis assms prenex_props skopre_def)
+
+corollary skopre_model_C:
+  assumes "skolems_bounded \<phi> K 0"
+    and "is_interpretation (language {\<phi>}) M" "dom M \<noteq> {}" "satisfies M {\<phi>}"
+  shows "\<exists>M'. dom M' = dom M \<and> intrp_rel M' = intrp_rel M \<and>
+                  (\<forall>g zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs \<longrightarrow> (\<exists>l. g = numpair K l)) \<and>
+                  is_interpretation (language {skopre K \<phi>}) M' \<and>
+                  satisfies M' {skopre K \<phi>}"
+  using holds_skolems_prenex_C skopre_def
+  by (metis assms prenex_props prenex_satisfies skolems_bounded_prenex)
 
 definition skolemize where
   \<open>skolemize \<phi> = skopre (num_of_form (bump_form \<phi>) + 1) (bump_form \<phi>)\<close>

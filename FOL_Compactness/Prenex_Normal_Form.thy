@@ -1146,4 +1146,9 @@ corollary is_prenex_prenex [simp]: \<open>is_prenex (prenex \<phi>)\<close>
 corollary prenex_holds [simp]: \<open>dom I \<noteq> {} \<Longrightarrow> (I\<^bold>,\<beta> \<Turnstile> (prenex \<phi>)) \<longleftrightarrow> (I\<^bold>,\<beta> \<Turnstile> \<phi>)\<close>
   by (simp add: prenex_props)
 
+lemma prenex_satisfies [simp]:
+  assumes "dom M \<noteq> {}" 
+  shows "satisfies M {prenex \<phi>} \<longleftrightarrow> satisfies M {\<phi>}"
+  using assms prenex_holds by (fastforce simp: satisfies_def)
+
 end
