@@ -137,15 +137,15 @@ qed
 
 (* the following lemmas may be useful*)
 lemma holds_formsubst:
-   "M\<^bold>,v \<Turnstile> (p \<cdot>\<^sub>f\<^sub>m i) \<longleftrightarrow> M\<^bold>,(\<lambda>t. \<lbrakk>t\<rbrakk>\<^bsup>M,v\<^esup>) \<circ> i \<Turnstile> p"
+   "M\<^bold>,\<beta> \<Turnstile> (p \<cdot>\<^sub>f\<^sub>m i) \<longleftrightarrow> M\<^bold>,(\<lambda>t. \<lbrakk>t\<rbrakk>\<^bsup>M,\<beta>\<^esup>) \<circ> i \<Turnstile> p"
   by (simp add: holds_indep_\<beta>_if swap_subst_eval)
 
 lemma holds_formsubst1:
-   "M\<^bold>,v \<Turnstile> (p \<cdot>\<^sub>f\<^sub>m Var(x:=t)) \<longleftrightarrow> M\<^bold>,v(x := \<lbrakk>t\<rbrakk>\<^bsup>M,v\<^esup>) \<Turnstile> p"
+   "M\<^bold>,\<beta> \<Turnstile> (p \<cdot>\<^sub>f\<^sub>m Var(x:=t)) \<longleftrightarrow> M\<^bold>,\<beta>(x := \<lbrakk>t\<rbrakk>\<^bsup>M,\<beta>\<^esup>) \<Turnstile> p"
   by (simp add: holds_indep_\<beta>_if swap_subst_eval)
 
 lemma holds_formsubst2:
-   "M\<^bold>,v \<Turnstile> (p \<cdot>\<^sub>f\<^sub>m subst x t) \<longleftrightarrow> M\<^bold>,v(x := \<lbrakk>t\<rbrakk>\<^bsup>M,v\<^esup>) \<Turnstile> p"
+   "M\<^bold>,\<beta> \<Turnstile> (p \<cdot>\<^sub>f\<^sub>m subst x t) \<longleftrightarrow> M\<^bold>,\<beta>(x := \<lbrakk>t\<rbrakk>\<^bsup>M,\<beta>\<^esup>) \<Turnstile> p"
   by (simp add: holds_formsubst1 subst_def)
 
 lemma size_nonzero [simp]: "size fm > 0"
@@ -544,10 +544,10 @@ lemma holds_skolems_induction_B:
   fixes N :: "'a intrp"
   assumes "size p = n" and "is_prenex p" and "skolems_bounded p J k"
     and "is_interpretation (language {skolems J p k}) N" "dom N \<noteq> {}"
-    and "is_valuation N v" "N\<^bold>,v \<Turnstile> skolems J p k"
-  shows "N\<^bold>,v \<Turnstile> p"
+    and "is_valuation N \<beta>" "N\<^bold>,\<beta> \<Turnstile> skolems J p k"
+  shows "N\<^bold>,\<beta> \<Turnstile> p"
   using assms
-proof (induction n arbitrary: N k p v rule: less_induct)
+proof (induction n arbitrary: N k p \<beta> rule: less_induct)
   case (less n)
   show ?case
     using \<open>is_prenex p\<close>
@@ -645,7 +645,7 @@ proof (induction n arbitrary: M k p rule: less_induct)
            \<and> satisfies M' {skolems J \<phi>' (Suc k)}"
       if "is_interpretation (language {(\<^bold>\<exists>x\<^bold>. \<phi>)}) M"
         and "dom M \<noteq> {}"
-        and M_extend: "\<And>v. is_valuation M v \<Longrightarrow> (\<exists>a\<in>dom M. M\<^bold>,v (x := a) \<Turnstile> \<phi>)"
+        and M_extend: "\<And>\<beta>. is_valuation M \<beta> \<Longrightarrow> (\<exists>a \<in> dom M. M\<^bold>, \<beta>(x:=a) \<Turnstile> \<phi>)"
       for M :: "'a intrp"
     proof -
       have M: "is_interpretation (language {\<phi>}) M"
@@ -673,8 +673,8 @@ corollary holds_skolems_prenex_A:
 corollary holds_skolems_prenex_B:
   assumes "is_prenex \<phi>" "skolems_bounded \<phi> K 0"
       and "is_interpretation (language {skolems K \<phi> 0}) M" "dom M \<noteq> {}"
-      and "is_valuation M v" "M\<^bold>,v \<Turnstile> skolems K \<phi> 0"
-  shows "M\<^bold>,v \<Turnstile> \<phi>"
+      and "is_valuation M \<beta>" "M\<^bold>,\<beta> \<Turnstile> skolems K \<phi> 0"
+  shows "M\<^bold>,\<beta> \<Turnstile> \<phi>"
   using holds_skolems_induction_B [OF refl assms] by simp
 
 corollary holds_skolems_prenex_C:
