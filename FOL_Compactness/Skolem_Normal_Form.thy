@@ -726,33 +726,55 @@ definition skolemize where
   \<open>skolemize \<phi> = skopre (num_of_form (bump_form \<phi>) + 1) (bump_form \<phi>)\<close>
 
 (* SKOLEMIZE_WORKS in hol-light *)
-lemma skolemize_works:
-  \<open>(universal (skolemize \<phi>) \<and>
-    (FV (skolemize \<phi>) = FV (bump_form \<phi>)) \<and>
-    (predicates_form (skolemize \<phi>) = predicates_form (bump_form \<phi>)) \<and>
-    functions_form (bump_form \<phi>) \<subseteq> functions_form (skolemize \<phi>) \<and>
-    functions_form (skolemize \<phi>) \<subseteq> 
-      {(numpair k l, m) |k l m. k = num_of_form(bump_form \<phi>) \<and> l \<in> UNIV \<and> m \<in> UNIV} \<union>
-         (functions_form (bump_form \<phi>)) \<and>
-    (\<forall>M. is_interpretation (language {bump_form \<phi>}) M \<and>
-      \<not>(dom M = {}) \<and>
-      (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> (bump_form \<phi>)) \<longrightarrow>
-        (\<exists>M'. (dom M' = dom M) \<and>
-        (intrp_rel M' = intrp_rel M) \<and>
-        (\<forall>g zs. \<not> (intrp_fn M' g zs = intrp_fn M g zs) \<longrightarrow> 
-          (\<exists>l. g = numpair (num_of_form(bump_form \<phi>)) l)) \<and>
-        is_interpretation (language {(skolemize \<phi>)}) M' \<and>
-        (\<forall>\<beta>. is_valuation M' \<beta> \<longrightarrow> M'\<^bold>,\<beta> \<Turnstile> (skolemize \<phi>)))) \<and>
-    (\<forall>N. is_interpretation (language {(skolemize \<phi>)}) N \<and>
-      \<not> (dom N = {}) \<longrightarrow>
-      (\<forall>\<beta>. is_valuation N \<beta> \<and> (N\<^bold>,\<beta> \<Turnstile> (skolemize \<phi>)) \<longrightarrow> N\<^bold>,\<beta> \<Turnstile> (bump_form \<phi>))))\<close>
-  sorry
+
+lemma no_skolems_bump_nterm:
+  shows "i>0 \<Longrightarrow> (numpair i l, m) \<notin> functions_term (bump_nterm t)"
+proof (induction t)
+  case (Var x)
+  then show ?case
+    by auto
+next
+  case (Fun ff ts) then show ?case
+    by induction auto
+qed
+
+lemma no_skolems_bump_form: "i>0 \<Longrightarrow> skolems_bounded (bump_form \<phi>) i 0"
+  by (induction \<phi>) (auto simp: skolems_bounded_def no_skolems_bump_nterm)
+
+
+lemma universal_skolemize [iff]: "universal (skolemize \<phi>)" 
+  and FV_skolemize [simp]: "FV (skolemize \<phi>) = FV (bump_form \<phi>)"
+  and predicates_form_skolemize [simp]: "predicates_form (skolemize \<phi>) = predicates_form (bump_form \<phi>)"
+  by (simp_all add: skolemize_def no_skolems_bump_form skopre_model_A)
+
+lemma functions_bump_form: "functions_form (bump_form \<phi>) \<subseteq> functions_form (skolemize \<phi>)"
+  by (simp add: skolemize_def no_skolems_bump_form skopre_model_A)
+
+lemma functions_skolemize:
+    "functions_form (skolemize \<phi>) \<subseteq> {(numpair (num_of_form (bump_form \<phi>)+1) l, m) |k l m. True} \<union> functions_form (bump_form \<phi>)"
+  unfolding skolemize_def
+  using no_skolems_bump_form skopre_model_A by auto
+
+lemma skolemize_imp_holds_bump_form:
+  assumes "is_interpretation (language {skolemize \<phi>}) N" "dom N \<noteq> {}"
+    and "is_valuation N \<beta>" "N\<^bold>,\<beta> \<Turnstile> skolemize \<phi>"
+  shows "N\<^bold>,\<beta> \<Turnstile> bump_form \<phi>"
+  using assms no_skolems_bump_form skolemize_def skopre_model_B by fastforce
+
+lemma is_interpretation_skolemize:
+  assumes "is_interpretation (language {bump_form \<phi>}) M" "dom M \<noteq> {}" "satisfies M {bump_form \<phi>}"
+  obtains M' where "dom M' = dom M" "intrp_rel M' = intrp_rel M" 
+       "\<And>g zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs \<Longrightarrow> (\<exists>l. g = numpair (num_of_form (bump_form \<phi>) + 1) l)" 
+       "is_interpretation (language {skolemize \<phi>}) M'" "satisfies M' {skolemize \<phi>}"
+  by (metis add_gr_0 assms no_skolems_bump_form skolemize_def skopre_model_C zero_less_one)
+
 
 (* FUNCTIONS_FORM_SKOLEMIZE in hol-light *)
-lemma functions_form_skolemize: \<open>(f, m) \<in> functions_form (skolemize \<phi>) \<Longrightarrow>
-  (\<exists>k. (f = numpair 0 k) \<and> (k,m) \<in> functions_form \<phi>) \<or>
-  (\<exists>l. (f = numpair (num_of_form (bump_form \<phi>) + 1) l))\<close>
-  sorry
+lemma functions_form_skolemize: 
+  assumes \<open>(f, m) \<in> functions_form (skolemize \<phi>)\<close>
+  shows \<open>(\<exists>k. f = numpair 0 k \<and> (k,m) \<in> functions_form \<phi>) \<or> (\<exists>l. f = numpair (num_of_form (bump_form \<phi>) + 1) l)\<close>
+  using functions_skolemize assms functions_form_bumpform by fastforce
+
 
 definition skomod1 where
   \<open>skomod1 \<phi> M = (if (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> \<phi>)
