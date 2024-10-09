@@ -780,16 +780,16 @@ lemma prenex_left_exists_language: \<open>language {(\<^bold>\<exists>x\<^bold>.
 
 (* prenex properties lemmas *)
 lemma prenex_props_forall: \<open>P \<and> FV \<phi> = FV \<psi> \<and> language {\<phi>} = language {\<psi>} \<and>
-  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> \<psi>)) \<Longrightarrow>
+  (\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> \<psi>)) \<Longrightarrow>
   P \<and> FV (\<^bold>\<forall>x\<^bold>. \<phi>) = FV (\<^bold>\<forall>x\<^bold>. \<psi>) \<and> language {(\<^bold>\<forall>x\<^bold>. \<phi>)} = language {(\<^bold>\<forall>x\<^bold>. \<psi>)} \<and>
-  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<psi>)))
+  (\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<phi>) \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<forall>x\<^bold>. \<psi>)))
 \<close>
   using lang_singleton by simp
 
 lemma prenex_props_exists: \<open>P \<and> FV \<phi> = FV \<psi> \<and> language {\<phi>} = language {\<psi>} \<and>
-  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> \<psi>)) \<Longrightarrow>
+  (\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> \<psi>)) \<Longrightarrow>
   P \<and> FV (\<^bold>\<exists>x\<^bold>. \<phi>) = FV (\<^bold>\<exists>x\<^bold>. \<psi>) \<and> language {(\<^bold>\<exists>x\<^bold>. \<phi>)} = language {(\<^bold>\<exists>x\<^bold>. \<psi>)} \<and>
-  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>) \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<psi>)))
+  (\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>) \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<psi>)))
 \<close>
   using lang_singleton by simp
 
@@ -856,13 +856,13 @@ qed
 lemma prenex_right_props_imp:  \<open>qfree \<phi> \<Longrightarrow> is_prenex \<psi> \<longrightarrow> is_prenex (prenex_right \<phi> \<psi>) \<and> 
   FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
   language {prenex_right \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
-  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I\<^bold>,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>))))\<close>
+  (\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> ((I\<^bold>,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>))))\<close>
 proof -
   (* Is it possible to use the induction tactic here instead? *)
   define P where \<open>P = (\<lambda>\<psi>. is_prenex (prenex_right \<phi> \<psi>)  \<and> 
     FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
     language {prenex_right \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
-    (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I\<^bold>,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>)))))\<close>
+    (\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> ((I\<^bold>,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>)))))\<close>
   assume qfree_phi: \<open>qfree \<phi>\<close>
   have \<open>(\<forall>\<psi>. (\<forall>\<psi>'. size \<psi>' < size \<psi> \<longrightarrow> 
     (is_prenex \<psi>'  \<longrightarrow> P \<psi>')) \<longrightarrow> 
@@ -947,7 +947,7 @@ lemma prenex_right_props: \<open>qfree \<phi> \<and> is_prenex \<psi> \<Longrigh
   is_prenex (prenex_right \<phi> \<psi>) \<and>
   FV (prenex_right \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
   language {prenex_right \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
-  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I\<^bold>,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>))))\<close>
+  (\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> ((I\<^bold>,\<beta> \<Turnstile> (prenex_right \<phi> \<psi>)) \<longleftrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>))))\<close>
   using prenex_right_props_imp by meson
 
 
@@ -999,13 +999,13 @@ lemma prenex_left_props_imp: \<open>is_prenex \<psi> \<Longrightarrow> is_prenex
         is_prenex (prenex_left \<phi> \<psi>) \<and>
         FV (prenex_left \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
         (language {(prenex_left \<phi> \<psi>)} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)}) \<and>
-        (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> prenex_left \<phi> \<psi> \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
+        (\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> prenex_left \<phi> \<psi> \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
 proof -
   (* Is it possible to use the induction tactic here instead? *)
   define P where \<open>P = (\<lambda>\<phi>. is_prenex (prenex_left \<phi> \<psi>)  \<and> 
     FV (prenex_left \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
     language {prenex_left \<phi> \<psi>} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)} \<and>
-    (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> ((I\<^bold>,\<beta> \<Turnstile> (prenex_left \<phi> \<psi>)) \<longleftrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>)))))\<close>
+    (\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> ((I\<^bold>,\<beta> \<Turnstile> (prenex_left \<phi> \<psi>)) \<longleftrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<phi> \<^bold>\<longrightarrow> \<psi>)))))\<close>
   assume is_prenex_psi: \<open>is_prenex \<psi>\<close>
   have \<open>(\<forall>\<phi>. (\<forall>\<phi>'. size \<phi>' < size \<phi> \<longrightarrow> (is_prenex \<phi>'  \<longrightarrow> P \<phi>')) \<longrightarrow> (is_prenex \<phi> \<longrightarrow> P \<phi>))\<close>
   proof clarsimp
@@ -1097,12 +1097,12 @@ lemma prenex_left_props: \<open>is_prenex \<phi> \<and> is_prenex \<psi> \<Longr
         is_prenex (prenex_left \<phi> \<psi>) \<and>
         FV (prenex_left \<phi> \<psi>) = FV (\<phi> \<^bold>\<longrightarrow> \<psi>) \<and>
         (language {(prenex_left \<phi> \<psi>)} = language {(\<phi> \<^bold>\<longrightarrow> \<psi>)}) \<and>
-        (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> prenex_left \<phi> \<psi> \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
+        (\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> prenex_left \<phi> \<psi> \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> \<phi> \<^bold>\<longrightarrow> \<psi>))\<close>
   using prenex_left_props_imp by meson
 
 theorem prenex_props: \<open>is_prenex (prenex \<phi>) \<and> (FV (prenex \<phi>) = FV \<phi>) \<and> 
   (language {prenex \<phi>} = language {\<phi>}) \<and>
-  (\<forall>(I :: 'a intrp) \<beta>. \<not>(dom I = {}) \<longrightarrow> (I\<^bold>, \<beta> \<Turnstile> (prenex \<phi>)) \<longleftrightarrow> (I\<^bold>, \<beta> \<Turnstile> \<phi>))\<close>
+  (\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> (I\<^bold>, \<beta> \<Turnstile> (prenex \<phi>)) \<longleftrightarrow> (I\<^bold>, \<beta> \<Turnstile> \<phi>))\<close>
 proof (induction \<phi> rule: form.induct)
   case Bot
   then show ?case
@@ -1138,5 +1138,12 @@ next
   ultimately show ?case by blast
 qed
 
+corollary is_prenex_prenex [simp]: \<open>is_prenex (prenex \<phi>)\<close> 
+  and FV_prenex [simp]: \<open>FV (prenex \<phi>) = FV \<phi>\<close>
+  and language_prenex [simp]: \<open>language {prenex \<phi>} = language {\<phi>}\<close>
+  by (auto simp: prenex_props)
+
+corollary prenex_holds [simp]: \<open>dom I \<noteq> {} \<Longrightarrow> (I\<^bold>,\<beta> \<Turnstile> (prenex \<phi>)) \<longleftrightarrow> (I\<^bold>,\<beta> \<Turnstile> \<phi>)\<close>
+  by (simp add: prenex_props)
 
 end
