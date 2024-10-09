@@ -483,7 +483,8 @@ definition "skolems_bounded \<equiv> \<lambda>p J k. \<forall>l m. (numpair J l,
 lemma skolems_bounded_mono: "\<lbrakk>skolems_bounded p J k'; k'\<le>k\<rbrakk> \<Longrightarrow> skolems_bounded p J k"
   by (meson dual_order.strict_trans1 skolems_bounded_def)
 
-text \<open>Harrison's gigantic conjunction broken up for more manageable proofs, at the cost of some repetition\<close>
+text \<open>Basic properties proved by induction on the number of Skolemisation steps. 
+Harrison's gigantic conjunction broken up for more manageable proofs, at the cost of some repetition\<close>
 
 text \<open>first, the simplest properties\<close>
 lemma holds_skolems_induction_A:
@@ -492,7 +493,7 @@ lemma holds_skolems_induction_A:
          FV(skolems J p k) = FV p \<and>
          predicates_form (skolems J p k) = predicates_form p \<and>
          functions_form p \<subseteq> functions_form (skolems J p k) \<and>
-         functions_form (skolems J p k) \<subseteq> {(numpair J l,m) | j l m. k \<le> l} \<union> functions_form p"
+         functions_form (skolems J p k) \<subseteq> {(numpair J l,m) | l m. k \<le> l} \<union> functions_form p"
   using assms
 proof (induction n arbitrary: k p rule: less_induct)
   case (less n)
@@ -538,6 +539,7 @@ proof (induction n arbitrary: k p rule: less_induct)
   qed
 qed
 
+text \<open>the final conjunct of the HOL Light version\<close>
 lemma holds_skolems_induction_B:
   fixes N :: "'a intrp"
   assumes "size p = n" and "is_prenex p" and "skolems_bounded p J k"
@@ -590,6 +592,7 @@ proof (induction n arbitrary: N k p v rule: less_induct)
 qed
 
 
+text \<open>the penultimate conjunct of the HOL Light version\<close>
 lemma holds_skolems_induction_C:
   fixes M :: "'a intrp"
   assumes "size p = n" and "is_prenex p" and "skolems_bounded p J k"
@@ -659,27 +662,30 @@ proof (induction n arbitrary: M k p rule: less_induct)
 qed
 
 (* HOLDS_SKOLEMS_PRENEX in hol-light *)
-lemma holds_skolems_prenex:
-  \<open>is_prenex \<phi> \<Longrightarrow> 
-    (\<forall>K. (\<forall>l m. \<not>((numpair K l, m) \<in> functions_form \<phi>)) \<longrightarrow>
-    universal(skolems K \<phi> 0) \<and>
-    (FV (skolems K \<phi> 0) = FV \<phi>) \<and>
-    (predicates_form (skolems K \<phi> 0) = predicates_form \<phi>) \<and>
-    functions_form \<phi> \<subseteq> functions_form (skolems K \<phi> 0) \<and>
-    functions_form (skolems K \<phi> 0) \<subseteq> 
-      {(numpair K l, m) |l m. l \<in> UNIV \<and> m \<in> UNIV} \<union> (functions_form \<phi>) \<and>
-    (\<forall>M. is_interpretation (language {\<phi>}) M \<and>
-      \<not>(dom M = {}) \<and>
-      (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> \<phi>) \<longrightarrow>
-        (\<exists>M'. (dom M' = dom M) \<and>
-        (intrp_rel M' = intrp_rel M) \<and>
-        (\<forall>g zs. \<not> (intrp_fn M' g zs = intrp_fn M g zs) \<longrightarrow> (\<exists>l. g = numpair K l)) \<and>
-        is_interpretation (language {(skolems K \<phi> 0)}) M' \<and>
-        (\<forall>\<beta>. is_valuation M' \<beta> \<longrightarrow> M'\<^bold>,\<beta> \<Turnstile> (skolems K \<phi> 0)))) \<and>
-    (\<forall>N. is_interpretation (language {(skolems K \<phi> 0)}) N \<and>
-      \<not> (dom N = {}) \<longrightarrow>
-      (\<forall>\<beta>. is_valuation N \<beta> \<and> (N\<^bold>,\<beta> \<Turnstile> (skolems K \<phi> 0)) \<longrightarrow> N\<^bold>,\<beta> \<Turnstile> \<phi>)))\<close>
-  sorry
+corollary holds_skolems_prenex_A:
+  assumes "is_prenex \<phi>" "skolems_bounded \<phi> K 0"
+  shows "universal(skolems K \<phi> 0) \<and> (FV (skolems K \<phi> 0) = FV \<phi>) \<and>
+         predicates_form (skolems K \<phi> 0) = predicates_form \<phi> \<and>
+         functions_form \<phi> \<subseteq> functions_form (skolems K \<phi> 0) \<and>
+         functions_form (skolems K \<phi> 0) \<subseteq> {(numpair K l,m) | l m. True} \<union> (functions_form \<phi>)"
+  using holds_skolems_induction_A [OF refl assms] by simp
+
+corollary holds_skolems_prenex_B:
+  assumes "is_prenex \<phi>" "skolems_bounded \<phi> K 0"
+      and "is_interpretation (language {skolems K \<phi> 0}) M" "dom M \<noteq> {}"
+      and "is_valuation M v" "M\<^bold>,v \<Turnstile> skolems K \<phi> 0"
+  shows "M\<^bold>,v \<Turnstile> \<phi>"
+  using holds_skolems_induction_B [OF refl assms] by simp
+
+corollary holds_skolems_prenex_C:
+  assumes "is_prenex \<phi>" "skolems_bounded \<phi> K 0"
+    and "is_interpretation (language {\<phi>}) M" "dom M \<noteq> {}" "satisfies M {\<phi>}"
+  shows "\<exists>M'. dom M' = dom M \<and> intrp_rel M' = intrp_rel M \<and>
+                  (\<forall>g zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs
+                        \<longrightarrow> (\<exists>l. 0 \<le> l \<and> g = numpair K l)) \<and>
+                  is_interpretation (language {skolems K \<phi> 0}) M' \<and>
+                  satisfies M' {skolems K \<phi> 0}"
+  using holds_skolems_induction_C [OF refl assms] by simp
 
 definition skopre where
   \<open>skopre k \<phi> = skolems k (prenex \<phi>) 0\<close>
