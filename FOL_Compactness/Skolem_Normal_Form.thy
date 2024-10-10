@@ -764,7 +764,7 @@ lemma skolemize_imp_holds_bump_form:
 lemma is_interpretation_skolemize:
   assumes "is_interpretation (language {bump_form \<phi>}) M" "dom M \<noteq> {}" "satisfies M {bump_form \<phi>}"
   obtains M' where "dom M' = dom M" "intrp_rel M' = intrp_rel M" 
-       "\<And>g zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs \<Longrightarrow> (\<exists>l. g = numpair (num_of_form (bump_form \<phi>) + 1) l)" 
+       "\<And>g zs. intrp_fn M' g zs \<noteq> intrp_fn M g zs \<Longrightarrow> \<exists>l. g = numpair (num_of_form (bump_form \<phi>) + 1) l" 
        "is_interpretation (language {skolemize \<phi>}) M'" "satisfies M' {skolemize \<phi>}"
   by (metis add_gr_0 assms no_skolems_bump_form skolemize_def skopre_model_C zero_less_one)
 
@@ -777,27 +777,46 @@ lemma functions_form_skolemize:
 
 
 definition skomod1 where
-  \<open>skomod1 \<phi> M = (if (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> \<phi>)
-    then (SOME M'. (dom M' = dom (bump_intrp M)) \<and>
-      intrp_rel M' = intrp_rel (bump_intrp M) \<and>
-      (\<forall>g zs. \<not>(intrp_fn M' g zs = intrp_fn (bump_intrp M) g zs) \<longrightarrow>
-        (\<exists>l. g = numpair (num_of_form (bump_form \<phi>) + 1) l)) \<and>
-      is_interpretation (language {skolemize \<phi>}) M' \<and>
-      (\<forall>\<beta>. is_valuation M' \<beta> \<longrightarrow> M'\<^bold>,\<beta> \<Turnstile> (skolemize \<phi>)))
-    else (Abs_intrp (dom M, (\<lambda>g zs. (SOME a. a \<in> dom M)), intrp_rel M)))\<close>
+  \<open>skomod1 \<phi> M \<equiv> 
+    if satisfies M {\<phi>}
+    then (SOME M'. dom M' = dom (bump_intrp M) \<and>
+                   intrp_rel M' = intrp_rel (bump_intrp M) \<and>
+                   (\<forall>g zs. intrp_fn M' g zs \<noteq> intrp_fn (bump_intrp M) g zs \<longrightarrow>
+                     (\<exists>l. g = numpair (num_of_form (bump_form \<phi>) + 1) l)) \<and>
+                   is_interpretation (language {skolemize \<phi>}) M' \<and> satisfies M' {skolemize \<phi>})
+    else (Abs_intrp (dom M, (\<lambda>g zs. (SOME a. a \<in> dom M)), intrp_rel M))\<close>
 
 (* SKOMOD1_WORKS in hol-light *)
 lemma skomod1_works:
-  \<open>is_interpretation (language {\<phi>}) M \<and>
-      \<not>(dom M = {}) \<longrightarrow>
-        (dom (skomod1 \<phi> M) = dom (bump_intrp M)) \<and>
-        (intrp_rel (skomod1 \<phi> M) = intrp_rel (bump_intrp M)) \<and>
-        is_interpretation (language {skolemize \<phi>}) (skomod1 \<phi> M) \<and>
-        (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> (\<phi>)) \<longrightarrow>
-          (\<forall>g zs. \<not> (intrp_fn (skomod1 \<phi> M) g zs = intrp_fn (bump_intrp M) g zs) \<longrightarrow> 
+  assumes M: \<open>is_interpretation (language {\<phi>}) M\<close> \<open>dom M \<noteq> {}\<close>
+  assumes \<section>: "satisfies M {\<phi>}"
+  shows
+     \<open>dom (skomod1 \<phi> M) = dom (bump_intrp M) \<and>
+      intrp_rel (skomod1 \<phi> M) = intrp_rel (bump_intrp M) \<and>
+      is_interpretation (language {skolemize \<phi>}) (skomod1 \<phi> M) \<and>
+      satisfies M {\<phi>} \<longrightarrow>
+          (\<forall>g zs. intrp_fn (skomod1 \<phi> M) g zs \<noteq> intrp_fn (bump_intrp M) g zs \<longrightarrow> 
             (\<exists>l. g = numpair (num_of_form (bump_form \<phi>) + 1) l)) \<and>
-          (\<forall>\<beta>. is_valuation (skomod1 \<phi> M) \<beta> \<longrightarrow> (skomod1 \<phi> M)\<^bold>,\<beta> \<Turnstile> (skolemize \<phi>))\<close>
-  sorry
+          satisfies (skomod1 \<phi> M) {skolemize \<phi>}\<close>
+proof -
+  obtain M' where
+    "dom M' = dom (bump_intrp M)" "intrp_rel M' = intrp_rel (bump_intrp M)" 
+    "\<And>g zs. intrp_fn M' g zs \<noteq> intrp_fn (bump_intrp M) g zs \<Longrightarrow> \<exists>l. g = numpair (num_of_form (bump_form \<phi>) + 1) l" 
+    "is_interpretation (language {skolemize \<phi>}) M'" "satisfies M' {skolemize \<phi>}"
+  proof (rule is_interpretation_skolemize)
+    show "is_interpretation (language {bump_form \<phi>}) (bump_intrp M)"
+      by (simp add: assms(1) bumpform_interpretation)
+  next
+    show "FOL_Semantics.dom (bump_intrp M) \<noteq> {}"
+      by (simp add: assms(2))
+  next
+    show "satisfies (bump_intrp M) {bump_form \<phi>}"
+      by (metis "\<section>" bump_dom bumpform is_valuation_def satisfies_def singleton_iff)
+  qed metis
+  then show ?thesis
+    apply (simp only: skomod1_def \<section>)
+    by (smt (verit, del_insts) someI)
+qed
 
 definition skomod where
   \<open>skomod M = Abs_intrp (dom M, 
@@ -806,19 +825,19 @@ definition skomod where
     intrp_rel M)\<close>
 
 (* SKOMOD_INTERPRETATION in hol-light *)
-lemma skomod_interpretation: \<open>is_interpretation (language {\<phi>}) M \<and> \<not> (dom M = {}) \<Longrightarrow>
+lemma skomod_interpretation: \<open>is_interpretation (language {\<phi>}) M \<and> dom M \<noteq> {} \<Longrightarrow>
   is_interpretation (language {skolemize \<phi>}) (skomod M)\<close>
   sorry
 
 (* SKOMOD_WORKS in hol-light *)
-lemma skomod_works: \<open>is_interpretation (language {\<phi>}) M \<and> \<not> (dom M = {}) \<Longrightarrow>
+lemma skomod_works: \<open>is_interpretation (language {\<phi>}) M \<and> dom M \<noteq> {} \<Longrightarrow>
   (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> \<phi>) \<longleftrightarrow> 
   (\<forall>\<beta>. is_valuation (skomod M) \<beta> \<longrightarrow> (skomod M)\<^bold>,\<beta> \<Turnstile> (skolemize \<phi>))\<close>
   sorry
 
 (* SKOLEMIZE_SATISFIABLE *)
-lemma skolemize_satisfiable: \<open>(\<exists>M. \<not> (dom M = {}) \<and> is_interpretation (language S) M \<and> 
-  satisfies M S) \<longleftrightarrow> (\<exists>M. \<not> (dom M = {}) \<and> is_interpretation (language {skolemize \<phi> |\<phi>. \<phi> \<in> S}) M 
+lemma skolemize_satisfiable: \<open>(\<exists>M. dom M \<noteq> {} \<and> is_interpretation (language S) M \<and> 
+  satisfies M S) \<longleftrightarrow> (\<exists>M. dom M \<noteq> {} \<and> is_interpretation (language {skolemize \<phi> |\<phi>. \<phi> \<in> S}) M 
   \<and> satisfies M {skolemize \<phi> |\<phi>. \<phi> \<in> S})\<close>
   sorry
 
@@ -832,7 +851,7 @@ fun specialize :: "form \<Rightarrow> form" where
 
 (* SPECIALIZE_SATISFIES in hol-light *)
 lemma specialize_satisfies: 
-  \<open>\<not> (dom M = {}) \<Longrightarrow> (satisfies M s \<longleftrightarrow> satisfies M {specialize \<phi> |\<phi>. \<phi> \<in> s})\<close>
+  \<open>dom M \<noteq> {} \<Longrightarrow> (satisfies M s \<longleftrightarrow> satisfies M {specialize \<phi> |\<phi>. \<phi> \<in> s})\<close>
   sorry
 
 (* SPECIALIZE_QFREE in hol-light *)
@@ -850,8 +869,8 @@ definition skolem :: "form \<Rightarrow> form" where
 lemma skolem_qfree: \<open>qfree (skolem \<phi>)\<close>
   sorry
 
-lemma skolem_satisfiable: \<open>(\<exists>M. \<not> (dom M = {}) \<and> interpretation (language s) M \<and> satisfies M s)
-  = (\<exists>M. \<not> (dom M = {}) \<and> interpretation (language {skolem \<phi> |\<phi>. \<phi> \<in> s}) M \<and> 
+lemma skolem_satisfiable: \<open>(\<exists>M. dom M \<noteq> {} \<and> interpretation (language s) M \<and> satisfies M s)
+  = (\<exists>M. dom M \<noteq> {} \<and> interpretation (language {skolem \<phi> |\<phi>. \<phi> \<in> s}) M \<and> 
       satisfies M {skolem \<phi> |\<phi>. \<phi> \<in> s})\<close>
   sorry
 
