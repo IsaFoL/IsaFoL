@@ -771,9 +771,9 @@ lemma is_interpretation_skolemize:
 
 (* FUNCTIONS_FORM_SKOLEMIZE in hol-light *)
 lemma functions_form_skolemize: 
-  assumes \<open>(f, m) \<in> functions_form (skolemize \<phi>)\<close>
-  shows \<open>(\<exists>k. f = numpair 0 k \<and> (k,m) \<in> functions_form \<phi>) \<or> (\<exists>l. f = numpair (num_of_form (bump_form \<phi>) + 1) l)\<close>
-  using functions_skolemize assms functions_form_bumpform by fastforce
+  assumes \<open>(f,m) \<in> functions_form (skolemize \<phi>)\<close>
+  obtains k where \<open>f = numpair 0 k\<close> \<open>(k,m) \<in> functions_form \<phi>\<close> | l where \<open>f = numpair (num_of_form (bump_form \<phi>) + 1) l\<close>
+  using functions_skolemize assms functions_form_bumpform by (fastforce dest: that)
 
 
 definition skomod1 where
@@ -789,16 +789,15 @@ definition skomod1 where
 (* SKOMOD1_WORKS in hol-light *)
 lemma skomod1_works:
   assumes M: \<open>is_interpretation (language {\<phi>}) M\<close> \<open>dom M \<noteq> {}\<close>
-  assumes \<section>: "satisfies M {\<phi>}"
-  shows
-     \<open>dom (skomod1 \<phi> M) = dom (bump_intrp M) \<and>
-      intrp_rel (skomod1 \<phi> M) = intrp_rel (bump_intrp M) \<and>
-      is_interpretation (language {skolemize \<phi>}) (skomod1 \<phi> M) \<and>
-      satisfies M {\<phi>} \<longrightarrow>
-          (\<forall>g zs. intrp_fn (skomod1 \<phi> M) g zs \<noteq> intrp_fn (bump_intrp M) g zs \<longrightarrow> 
-            (\<exists>l. g = numpair (num_of_form (bump_form \<phi>) + 1) l)) \<and>
-          satisfies (skomod1 \<phi> M) {skolemize \<phi>}\<close>
-proof -
+  shows \<open>dom (skomod1 \<phi> M) = dom (bump_intrp M) \<and>
+         intrp_rel (skomod1 \<phi> M) = intrp_rel (bump_intrp M) \<and>
+         is_interpretation (language {skolemize \<phi>}) (skomod1 \<phi> M) \<and>
+         (satisfies M {\<phi>} \<longrightarrow>
+           (\<forall>g zs. intrp_fn (skomod1 \<phi> M) g zs \<noteq> intrp_fn (bump_intrp M) g zs \<longrightarrow> 
+             (\<exists>l. g = numpair (num_of_form (bump_form \<phi>) + 1) l)) \<and>
+           satisfies (skomod1 \<phi> M) {skolemize \<phi>})\<close>
+proof (cases \<open>satisfies M {\<phi>}\<close>)
+  case True
   obtain M' where
     "dom M' = dom (bump_intrp M)" "intrp_rel M' = intrp_rel (bump_intrp M)" 
     "\<And>g zs. intrp_fn M' g zs \<noteq> intrp_fn (bump_intrp M) g zs \<Longrightarrow> \<exists>l. g = numpair (num_of_form (bump_form \<phi>) + 1) l" 
@@ -807,27 +806,62 @@ proof -
     show "is_interpretation (language {bump_form \<phi>}) (bump_intrp M)"
       by (simp add: assms(1) bumpform_interpretation)
   next
-    show "FOL_Semantics.dom (bump_intrp M) \<noteq> {}"
+    show "dom (bump_intrp M) \<noteq> {}"
       by (simp add: assms(2))
   next
     show "satisfies (bump_intrp M) {bump_form \<phi>}"
-      by (metis "\<section>" bump_dom bumpform is_valuation_def satisfies_def singleton_iff)
+      by (metis True bump_dom bumpform is_valuation_def satisfies_def singleton_iff)
   qed metis
   then show ?thesis
-    apply (simp only: skomod1_def \<section>)
+    apply (simp only: skomod1_def True)
     by (smt (verit, del_insts) someI)
+next
+  case False
+  then show ?thesis
+    by (simp add: skomod1_def assms bump_intrp_def intrp_is_struct is_interpretation_def some_in_eq)
 qed
 
 definition skomod where
-  \<open>skomod M = Abs_intrp (dom M, 
+  \<open>skomod M \<equiv> Abs_intrp (dom M, 
     (\<lambda>g zs. if numfst g = 0 then intrp_fn M (numsnd g) zs
       else intrp_fn (skomod1 (unbump_form (form_of_num ((numfst g) - 1))) M ) g zs),
     intrp_rel M)\<close>
 
 (* SKOMOD_INTERPRETATION in hol-light *)
-lemma skomod_interpretation: \<open>is_interpretation (language {\<phi>}) M \<and> dom M \<noteq> {} \<Longrightarrow>
-  is_interpretation (language {skolemize \<phi>}) (skomod M)\<close>
-  sorry
+lemma skomod_interpretation:
+  assumes \<open>is_interpretation (language {\<phi>}) M\<close>  \<open>dom M \<noteq> {}\<close>
+  shows \<open>is_interpretation (language {skolemize \<phi>}) (skomod M)\<close>
+proof -
+  have stM: "struct (dom M)"
+    by (simp add: intrp_is_struct)
+  have indom: "intrp_fn M f l \<in> dom M"
+    if "(f, length l) \<in> functions_form \<phi>" and "set l \<subseteq> dom M" for f l
+    using assms that by (auto simp: is_interpretation_def lang_singleton)
+  show ?thesis
+  proof -
+    have "intrp_fn (skomod M) f l \<in> dom (skomod M)"
+      if fl: "(f, length l) \<in> functions_form (skolemize \<phi>)" and "set l \<subseteq> dom (skomod M)" for f l
+    proof -
+      consider (0) k where \<open>f = numpair 0 k\<close> \<open>(k, length l) \<in> functions_form \<phi>\<close> 
+             | (1) l where \<open>f = numpair (num_of_form (bump_form \<phi>) + 1) l\<close>
+        using functions_form_skolemize [OF fl] by metis
+      then show ?thesis
+      proof cases
+        case 0
+        with that show ?thesis
+          by (simp add: stM indom skomod_def)
+      next
+        case (1 l')
+        then show ?thesis
+          using that skomod1_works [OF assms]
+          by (force simp add: stM indom skomod_def lang_singleton is_interpretation_def)
+      qed
+    qed
+    then show ?thesis
+      by (auto simp: lang_singleton is_interpretation_def)
+  qed
+qed
+
 
 (* SKOMOD_WORKS in hol-light *)
 lemma skomod_works: \<open>is_interpretation (language {\<phi>}) M \<and> dom M \<noteq> {} \<Longrightarrow>
