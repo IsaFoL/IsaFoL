@@ -863,8 +863,8 @@ lemma skomod_works:
   shows   \<open>satisfies M {\<phi>} \<longleftrightarrow> satisfies (skomod M) {skolemize \<phi>}\<close>
 proof
   assume \<phi>: "satisfies M {\<phi>}"
-  have "Abs_intrp (FOL_Semantics.dom M, skomod_FN M, intrp_rel M)\<^bold>, \<beta> \<Turnstile> skolemize \<phi>"
-    if "is_valuation (Abs_intrp (FOL_Semantics.dom M, skomod_FN M, intrp_rel M)) \<beta>"
+  have "Abs_intrp (dom M, skomod_FN M, intrp_rel M)\<^bold>, \<beta> \<Turnstile> skolemize \<phi>"
+    if "is_valuation (Abs_intrp (dom M, skomod_FN M, intrp_rel M)) \<beta>"
     for \<beta> :: "nat \<Rightarrow> 'a"
   proof -
     have "is_valuation (skomod1 \<phi> M) \<beta>"
@@ -875,7 +875,7 @@ proof
     proof (rule holds_indep_intrp_if2)
       fix f and zs :: "'a list"
       assume f: "(f, length zs) \<in> functions_form (skolemize \<phi>)"
-      show "intrp_fn (skomod1 \<phi> M) f zs = intrp_fn (Abs_intrp (FOL_Semantics.dom M, skomod_FN M, intrp_rel M)) f zs"
+      show "intrp_fn (skomod1 \<phi> M) f zs = intrp_fn (Abs_intrp (dom M, skomod_FN M, intrp_rel M)) f zs"
         using functions_form_skolemize [OF f]
       proof cases
         case (1 k)
@@ -913,10 +913,36 @@ qed
 
 
 (* SKOLEMIZE_SATISFIABLE *)
-lemma skolemize_satisfiable: \<open>(\<exists>M. dom M \<noteq> {} \<and> is_interpretation (language S) M \<and> 
-  satisfies M S) \<longleftrightarrow> (\<exists>M. dom M \<noteq> {} \<and> is_interpretation (language {skolemize \<phi> |\<phi>. \<phi> \<in> S}) M 
-  \<and> satisfies M {skolemize \<phi> |\<phi>. \<phi> \<in> S})\<close>
-  sorry
+lemma skolemize_satisfiable: 
+  \<open>(\<exists>M::'a intrp. dom M \<noteq> {} \<and> is_interpretation (language S) M \<and> 
+  satisfies M S) \<longleftrightarrow> 
+   (\<exists>M::'a intrp. dom M \<noteq> {} \<and> is_interpretation (language (skolemize ` S)) M 
+   \<and> satisfies M (skolemize ` S))\<close>   (is "?lhs = ?rhs")
+proof
+  assume ?lhs
+  then obtain M::"'a intrp" where "dom M \<noteq> {}" 
+    and int: "is_interpretation (language S) M" and sat: "satisfies M S"
+    by auto
+  show ?rhs
+  proof (intro exI conjI)
+    show "dom (skomod M) \<noteq> {}"
+      using \<open>dom M \<noteq> {}\<close> 
+      by (simp add: dom_def skomod_def struct_def)
+    show "is_interpretation (language (skolemize ` S)) (skomod M)"
+      apply (simp add: is_interpretation_def language_def functions_forms_def)
+      apply clarify
+      apply (erule functions_form_skolemize)
+      using skomod_interpretation [OF _ \<open>dom M \<noteq> {}\<close>]
+      sorry
+  next
+    show "satisfies (skomod M) (skolemize ` S)"
+      sorry
+  qed
+next
+  assume ?rhs
+  show ?lhs
+    sorry
+qed
 
 
 fun specialize :: "form \<Rightarrow> form" where

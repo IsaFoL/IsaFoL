@@ -20,6 +20,8 @@ typedef 'm intrp =
   using struct.intro
   by fastforce
 
+declare Abs_intrp_inverse [simp] Rep_intrp_inverse [simp]
+
 setup_lifting type_definition_intrp
 
 lift_definition dom :: \<open>'m intrp \<Rightarrow> 'm set\<close> is fst .
@@ -30,14 +32,14 @@ lemma intrp_is_struct [iff]: \<open>struct (dom \<M>)\<close>
   by transfer auto 
 
 lemma dom_Abs_is_fst [simp]: \<open>struct M \<Longrightarrow> dom (Abs_intrp (M, FN, REL)) = M\<close>
-  by (simp add: Abs_intrp_inverse dom.rep_eq) 
+  by (simp add: dom.rep_eq) 
 
 lemma intrp_fn_Abs_is_fst_snd [simp]: \<open>struct M \<Longrightarrow> intrp_fn (Abs_intrp (M, FN, REL)) = FN\<close>
-  by (simp add: Abs_intrp_inverse intrp_fn.rep_eq) 
+  by (simp add: intrp_fn.rep_eq) 
 
 lemma intrp_rel_Abs_is_snd_snd [simp]: 
   \<open>struct M \<Longrightarrow> intrp_rel (Abs_intrp (M, FN, REL)) = REL\<close>
-  by (simp add: Abs_intrp_inverse intrp_rel.rep_eq) 
+  by (simp add: intrp_rel.rep_eq) 
 
 (* in HOL Light: valuation *)
 definition is_valuation :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> bool\<close> where
