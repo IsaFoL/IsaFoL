@@ -879,8 +879,7 @@ proof
         using functions_form_skolemize [OF f]
       proof cases
         case (1 k)
-        with \<phi> skomod1_works [OF assms]
-        show ?thesis
+        with \<phi> skomod1_works [OF assms] show ?thesis
           apply (simp add: skomod_FN_def bump_intrp_def)
           by (metis Zero_neq_Suc prod.inject prod_encode_inverse sndI)
       qed (simp add: skomod_FN_def)
@@ -890,21 +889,23 @@ proof
     by (simp add: satisfies_def skomod_def skomod_FN_def)
 next
   assume \<phi>: "satisfies (skomod M) {skolemize \<phi>}"
-  have "bump_intrp M\<^bold>,\<beta> \<Turnstile> bump_form \<phi>"
-      if "is_valuation (bump_intrp M) \<beta>"
-      for \<beta> :: "nat \<Rightarrow> 'a"
-      using skolemize_imp_holds_bump_form [of \<phi> "skomod M" \<beta>]
-      apply atomize
-      apply safe
-      apply (simp add: assms(1) assms(2) skomod_interpretation)
-      using struct_def apply auto[1]
-      apply (metis \<open>is_valuation (bump_intrp M) \<beta>\<close> bump_dom dom_Abs_is_fst intrp_is_struct is_valuation_def skomod_def)
-       apply (metis \<open>is_valuation (bump_intrp M) \<beta>\<close> \<open>satisfies (skomod M) {skolemize \<phi>}\<close> bump_dom dom_Abs_is_fst insertI1 intrp_is_struct is_valuation_def satisfies_def skomod_def)
-      apply (erule holds_indep_intrp_if2)
-      apply (simp add: skomod_def)
-      apply (simp add: skomod_def)
-      by (metis bump_intrp_def fst_conv functions_form_bumpform intrp_fn_Abs_is_fst_snd intrp_is_struct prod_encode_inverse skomod_FN_def skomod_def)
-    then have "satisfies (bump_intrp M) {bump_form \<phi>}"
+  have "bump_intrp M\<^bold>,\<beta> \<Turnstile> bump_form \<phi>" if "is_valuation (bump_intrp M) \<beta>" for \<beta> :: "nat \<Rightarrow> 'a"
+  proof -
+    have "skomod M\<^bold>,\<beta> \<Turnstile> skolemize \<phi>"
+      using \<phi> that by (simp add: satisfies_def is_valuation_def skomod_def)
+    with assms that skomod_interpretation [OF assms] skolemize_imp_holds_bump_form
+    have "skomod M\<^bold>,\<beta> \<Turnstile> bump_form \<phi>"
+      by (simp add: is_valuation_def skolemize_imp_holds_bump_form skomod_def)
+    then show ?thesis
+    proof (rule holds_indep_intrp_if2)
+      fix f and zs :: "'a list"
+      assume f: "(f, length zs) \<in> functions_form (bump_form \<phi>)"
+      show "intrp_fn (skomod M) f zs = intrp_fn (bump_intrp M) f zs"
+        using functions_form_bumpform [OF f]
+        by (auto simp: skomod_FN_def skomod_def)
+    qed (simp_all add: skomod_def)
+  qed
+  then have "satisfies (bump_intrp M) {bump_form \<phi>}"
     by (auto simp: satisfies_def)
   then show "satisfies M {\<phi>}"
     by (metis bump_dom bumpform is_valuation_def satisfies_def singleton_iff)
@@ -943,7 +944,7 @@ definition skolem :: "form \<Rightarrow> form" where
   \<open>skolem \<phi> = specialize(skolemize \<phi>)\<close>
 
 lemma skolem_qfree: \<open>qfree (skolem \<phi>)\<close>
-  sorry
+  by (simp add: skolem_def specialize_qfree)
 
 lemma skolem_satisfiable: \<open>(\<exists>M. dom M \<noteq> {} \<and> interpretation (language s) M \<and> satisfies M s)
   = (\<exists>M. dom M \<noteq> {} \<and> interpretation (language {skolem \<phi> |\<phi>. \<phi> \<in> s}) M \<and> 
