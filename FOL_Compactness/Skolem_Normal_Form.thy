@@ -83,10 +83,9 @@ Seems to be lemma3 in skolem.ml [Larry]*)
 lemma holds_indep_intrp_if2:
   fixes I I' :: "'a intrp"
   shows
- \<open>I\<^bold>, \<beta> \<Turnstile> \<phi> \<Longrightarrow> dom I = dom I' \<Longrightarrow>
-  (\<forall>p. intrp_rel I p  = intrp_rel I' p) \<Longrightarrow>
-  (\<forall>f zs. (f, length zs) \<in> functions_form \<phi> \<longrightarrow> (intrp_fn I f zs = intrp_fn I' f zs)) \<Longrightarrow>
-  I'\<^bold>, \<beta> \<Turnstile> \<phi>\<close>
+ \<open>\<lbrakk>I\<^bold>,\<beta> \<Turnstile> \<phi>; dom I = dom I'; \<And>p. intrp_rel I p  = intrp_rel I' p;
+  \<And>f zs. (f, length zs) \<in> functions_form \<phi> \<Longrightarrow> intrp_fn I f zs = intrp_fn I' f zs\<rbrakk> \<Longrightarrow>
+  I'\<^bold>,\<beta> \<Turnstile> \<phi>\<close>
   using holds_indep_intrp_if by blast
 
 lemma fun_upds_prop: \<open>length xs = length zs \<Longrightarrow> \<forall>z\<in>set zs. P z \<Longrightarrow> \<forall>v. P (g v) \<Longrightarrow> \<forall>v. P ((foldr (\<lambda>kv f. fun_upd f (fst kv) (snd kv)) (zip xs zs) g) v)\<close>
@@ -261,21 +260,16 @@ proof -
   define thex where "thex \<equiv> \<lambda>zs. SOME a. a \<in> dom I \<and> (I\<^bold>, (intrp_f zs)(x:=a) \<Turnstile> \<phi>)"
   define FN where "FN \<equiv> define_fn (intrp_fn I) f (card (FV (\<^bold>\<exists>x\<^bold>. \<phi>))) thex"
 
-  have M_is_struct [simp]: \<open>struct (dom I)\<close>
-  proof
-    show \<open>dom I \<noteq> {}\<close>
-      using nempty_I .
-  qed
   define M :: "'a intrp" where \<open>M =  Abs_intrp (dom I, FN, intrp_rel I)\<close>
   show ?thesis
   proof
     show dom_M_I_eq: \<open>dom M = dom I\<close>
-      using M_is_struct unfolding M_def by simp
+      unfolding M_def by simp
     show intrp_rel_eq: \<open>intrp_rel M = intrp_rel I\<close>
-      using M_is_struct unfolding M_def by simp
+      unfolding M_def by simp
     show intrp_fn_eq: "\<And>g zs. g \<noteq> f \<or> length zs \<noteq> card (FV (\<^bold>\<exists>x\<^bold>. \<phi>)) \<Longrightarrow> 
       intrp_fn M g zs = intrp_fn I g zs"
-      using M_is_struct unfolding M_def FN_def define_fn_def
+      unfolding M_def FN_def define_fn_def
       by fastforce
    have in_dom_I: \<open>intrp_fn M f zs \<in> dom I\<close> 
       if len_eq: \<open>length zs = card (FV \<phi> - {x})\<close> and zs_in: \<open>set zs \<subseteq> dom M\<close>
@@ -286,7 +280,7 @@ proof -
       have zs_in2: \<open>\<forall>z\<in>set zs. z \<in> dom I\<close>
         using dom_M_I_eq zs_in by force
       have fn_is_thex: \<open>(intrp_fn M) f zs = thex zs\<close>
-        using len_eq M_is_struct by (auto simp: M_def FN_def define_fn_def)
+        using len_eq by (auto simp: M_def FN_def define_fn_def)
       have \<open>\<forall>v. (intrp_f zs) v \<in> dom I\<close>
         using fun_upds_prop[OF len_eq2 zs_in2] nempty_I some_in_eq unfolding intrp_f_def
         by (metis (mono_tags))
@@ -330,9 +324,9 @@ proof -
               verit_sko_ex')
         show "dom I = dom M"
           using dom_M_I_eq by auto
-        show "\<forall>p. intrp_rel I p = intrp_rel M p"
+        show "\<And>p. intrp_rel I p = intrp_rel M p"
           using intrp_rel_eq by auto
-        show "\<forall>f zs. (f, length zs) \<in> functions_form \<phi> \<longrightarrow> intrp_fn I f zs = intrp_fn M f zs"
+        show "\<And>f zs. (f, length zs) \<in> functions_form \<phi> \<Longrightarrow> intrp_fn I f zs = intrp_fn M f zs"
           using functions_form.simps notin_ff intrp_fn_eq 
           by (metis sup_bot.right_neutral)
       qed
@@ -821,11 +815,11 @@ next
     by (simp add: skomod1_def assms bump_intrp_def intrp_is_struct is_interpretation_def some_in_eq)
 qed
 
+definition "skomod_FN \<equiv> \<lambda>M g zs. if numfst g = 0 then intrp_fn M (numsnd g) zs
+                               else intrp_fn (skomod1 (unbump_form (form_of_num (numfst g - 1))) M) g zs"
+
 definition skomod where
-  \<open>skomod M \<equiv> Abs_intrp (dom M, 
-    (\<lambda>g zs. if numfst g = 0 then intrp_fn M (numsnd g) zs
-      else intrp_fn (skomod1 (unbump_form (form_of_num ((numfst g) - 1))) M ) g zs),
-    intrp_rel M)\<close>
+  \<open>skomod M \<equiv> Abs_intrp (dom M, skomod_FN M, intrp_rel M)\<close>
 
 (* SKOMOD_INTERPRETATION in hol-light *)
 lemma skomod_interpretation:
@@ -849,12 +843,12 @@ proof -
       proof cases
         case 0
         with that show ?thesis
-          by (simp add: stM indom skomod_def)
+          by (simp add: stM indom skomod_def skomod_FN_def)
       next
         case (1 l')
         then show ?thesis
           using that skomod1_works [OF assms]
-          by (force simp add: stM indom skomod_def lang_singleton is_interpretation_def)
+          by (force simp add: stM indom skomod_def skomod_FN_def lang_singleton is_interpretation_def)
       qed
     qed
     then show ?thesis
@@ -864,10 +858,58 @@ qed
 
 
 (* SKOMOD_WORKS in hol-light *)
-lemma skomod_works: \<open>is_interpretation (language {\<phi>}) M \<and> dom M \<noteq> {} \<Longrightarrow>
-  (\<forall>\<beta>. is_valuation M \<beta> \<longrightarrow> M\<^bold>,\<beta> \<Turnstile> \<phi>) \<longleftrightarrow> 
-  (\<forall>\<beta>. is_valuation (skomod M) \<beta> \<longrightarrow> (skomod M)\<^bold>,\<beta> \<Turnstile> (skolemize \<phi>))\<close>
-  sorry
+lemma skomod_works:
+  assumes \<open>is_interpretation (language {\<phi>}) M\<close>  \<open>dom M \<noteq> {}\<close>
+  shows   \<open>satisfies M {\<phi>} \<longleftrightarrow> satisfies (skomod M) {skolemize \<phi>}\<close>
+proof
+  assume \<phi>: "satisfies M {\<phi>}"
+  have "Abs_intrp (FOL_Semantics.dom M, skomod_FN M, intrp_rel M)\<^bold>, \<beta> \<Turnstile> skolemize \<phi>"
+    if "is_valuation (Abs_intrp (FOL_Semantics.dom M, skomod_FN M, intrp_rel M)) \<beta>"
+    for \<beta> :: "nat \<Rightarrow> 'a"
+  proof -
+    have "is_valuation (skomod1 \<phi> M) \<beta>"
+      by (metis assms bump_dom dom_Abs_is_fst is_valuation_def skomod1_works struct.intro that)
+    then have "skomod1 \<phi> M\<^bold>,\<beta> \<Turnstile> skolemize \<phi>"
+      by (meson \<phi> assms insertCI satisfies_def skomod1_works)
+    then show ?thesis
+    proof (rule holds_indep_intrp_if2)
+      fix f and zs :: "'a list"
+      assume f: "(f, length zs) \<in> functions_form (skolemize \<phi>)"
+      show "intrp_fn (skomod1 \<phi> M) f zs = intrp_fn (Abs_intrp (FOL_Semantics.dom M, skomod_FN M, intrp_rel M)) f zs"
+        using functions_form_skolemize [OF f]
+      proof cases
+        case (1 k)
+        with \<phi> skomod1_works [OF assms]
+        show ?thesis
+          apply (simp add: skomod_FN_def bump_intrp_def)
+          by (metis Zero_neq_Suc prod.inject prod_encode_inverse sndI)
+      qed (simp add: skomod_FN_def)
+    qed (simp_all add: assms skomod1_works)
+  qed
+  then show "satisfies (skomod M) {skolemize \<phi>}"
+    by (simp add: satisfies_def skomod_def skomod_FN_def)
+next
+  assume \<phi>: "satisfies (skomod M) {skolemize \<phi>}"
+  have "bump_intrp M\<^bold>,\<beta> \<Turnstile> bump_form \<phi>"
+      if "is_valuation (bump_intrp M) \<beta>"
+      for \<beta> :: "nat \<Rightarrow> 'a"
+      using skolemize_imp_holds_bump_form [of \<phi> "skomod M" \<beta>]
+      apply atomize
+      apply safe
+      apply (simp add: assms(1) assms(2) skomod_interpretation)
+      using struct_def apply auto[1]
+      apply (metis \<open>is_valuation (bump_intrp M) \<beta>\<close> bump_dom dom_Abs_is_fst intrp_is_struct is_valuation_def skomod_def)
+       apply (metis \<open>is_valuation (bump_intrp M) \<beta>\<close> \<open>satisfies (skomod M) {skolemize \<phi>}\<close> bump_dom dom_Abs_is_fst insertI1 intrp_is_struct is_valuation_def satisfies_def skomod_def)
+      apply (erule holds_indep_intrp_if2)
+      apply (simp add: skomod_def)
+      apply (simp add: skomod_def)
+      by (metis bump_intrp_def fst_conv functions_form_bumpform intrp_fn_Abs_is_fst_snd intrp_is_struct prod_encode_inverse skomod_FN_def skomod_def)
+    then have "satisfies (bump_intrp M) {bump_form \<phi>}"
+    by (auto simp: satisfies_def)
+  then show "satisfies M {\<phi>}"
+    by (metis bump_dom bumpform is_valuation_def satisfies_def singleton_iff)
+qed
+
 
 (* SKOLEMIZE_SATISFIABLE *)
 lemma skolemize_satisfiable: \<open>(\<exists>M. dom M \<noteq> {} \<and> is_interpretation (language S) M \<and> 

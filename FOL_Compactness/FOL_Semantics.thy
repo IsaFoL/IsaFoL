@@ -26,7 +26,7 @@ lift_definition dom :: \<open>'m intrp \<Rightarrow> 'm set\<close> is fst .
 lift_definition intrp_fn :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm list \<Rightarrow> 'm)\<close> is \<open>fst \<circ> snd\<close> .
 lift_definition intrp_rel :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm list set)\<close> is \<open>snd \<circ> snd\<close> .
 
-lemma intrp_is_struct: \<open>struct (dom \<M>)\<close>
+lemma intrp_is_struct [iff]: \<open>struct (dom \<M>)\<close>
   by transfer auto 
 
 lemma dom_Abs_is_fst [simp]: \<open>struct M \<Longrightarrow> dom (Abs_intrp (M, FN, REL)) = M\<close>
@@ -198,6 +198,15 @@ next
     by auto 
   finally show ?case . 
 qed auto
+
+text \<open>the above in a more idiomatic form (it is a congruence rule)\<close>
+corollary holds_cong:
+  assumes
+    \<open>dom \<M> = dom \<M>'\<close>
+    \<open>\<And>p. intrp_rel \<M> p = intrp_rel \<M>' p\<close>
+    \<open>\<And>f ts. (f, length ts) \<in> functions_form \<phi> \<Longrightarrow> intrp_fn \<M> f ts = intrp_fn \<M>' f ts\<close>
+  shows \<open>\<M>\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> \<M>'\<^bold>,\<beta> \<Turnstile> \<phi>\<close>
+  using assms holds_indep_intrp_if by blast
 
 abbreviation (input) \<open>eval_subst \<M> \<beta> \<sigma> v \<equiv> \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>\<close>
 
@@ -405,7 +414,7 @@ next
 qed auto
 
 definition satisfies :: "'m intrp \<Rightarrow> form set \<Rightarrow> bool" where
-  \<open>satisfies \<M> S \<equiv> (\<forall>\<beta> \<phi>. is_valuation \<M> \<beta> \<and> \<phi> \<in> S \<longrightarrow> \<M>\<^bold>,\<beta> \<Turnstile> \<phi>)\<close>
+  \<open>satisfies \<M> S \<equiv> (\<forall>\<beta> \<phi>. is_valuation \<M> \<beta> \<longrightarrow> \<phi> \<in> S \<longrightarrow> \<M>\<^bold>,\<beta> \<Turnstile> \<phi>)\<close>
 
 
 end
