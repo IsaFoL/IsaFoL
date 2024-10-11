@@ -6,6 +6,15 @@ theory Canonical_Models
   imports Skolem_Normal_Form
 begin
 
+inductive_set terms_set :: \<open>(nat \<times> nat) set \<Rightarrow> nterm set\<close> for fns :: \<open>(nat \<times> nat) set\<close> where
+  vars: \<open>(Var v) \<in> terms_set fns\<close>
+| fn: \<open>(Fun f ts) \<in> terms_set fns\<close>
+  if \<open>(f, length ts) \<in> fns\<close> \<open>\<And>t. t \<in> set ts \<Longrightarrow> t \<in> terms_set fns\<close>
+
+inductive_set terms_set :: \<open>(nat \<times> nat) set \<Rightarrow> nterm set\<close> for fns :: \<open>(nat \<times> nat) set\<close> where
+  vars: \<open>(Var v) \<in> terms_set fns\<close>
+| fn: \<open>(f, length ts) \<in> fns \<and> set ts \<in> Pow (terms_set fns) \<Longrightarrow> (Fun f ts) \<in> terms_set fns\<close>
+
 (* monotonicity is not proven automatically here. Why? How to fix it? *)
 
 term \<open>t :: nterm\<close>
