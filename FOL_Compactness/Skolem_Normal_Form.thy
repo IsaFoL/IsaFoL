@@ -968,8 +968,33 @@ next
     show "dom (unbump_intrp M) \<noteq> {}"
       using \<open>dom M \<noteq> {}\<close> struct_def by blast
   next
-    show "is_interpretation (language S) (unbump_intrp M)"
-      sorry
+    have "functions_forms (bump_form ` S) \<subseteq> functions_forms (skolemize ` S)"
+      using functions_bump_form functions_forms_def by auto
+    then have *: "is_interpretation (language (bump_form ` S)) M"
+      by (metis int interpretation_sublanguage language_def)
+    have "is_interpretation (language {\<phi>}) (unbump_intrp M)" 
+      if "is_interpretation (language {bump_form \<phi>}) M" for \<phi>
+      using that
+    proof (induction \<phi>)
+      case (Atom p ts)
+      have **: "(f,k) \<in> Union (set (map functions_term l))
+           \<Longrightarrow> (numpair 0 f, k) \<in> Union (set (map functions_term (map bump_nterm l)))" for l k f
+      proof (induction l)
+        case Nil
+        then show ?case by simp
+      next
+        case (Cons a l)
+        have "(f,k) \<in> functions_term t \<Longrightarrow> (numpair 0 f, k) \<in> functions_term (bump_nterm t)" for t
+          by (induction t) auto
+        with Cons show ?case
+          by auto
+      qed
+      show ?case
+        using Atom ** by (auto simp: is_interpretation_def lang_singleton unbump_intrp_def)
+    qed (auto simp: is_interpretation_def lang_singleton)
+    with * show "is_interpretation (language S) (unbump_intrp M)"
+      unfolding is_interpretation_def lang_singleton 
+      by (simp add: language_def functions_forms_def) blast
   next
     have "unbump_intrp M\<^bold>,\<beta> \<Turnstile> \<phi>"
       if "is_valuation (unbump_intrp M) \<beta>" and "\<phi> \<in> S" for \<beta> \<phi>
