@@ -926,22 +926,65 @@ proof
   show ?rhs
   proof (intro exI conjI)
     show "dom (skomod M) \<noteq> {}"
-      using \<open>dom M \<noteq> {}\<close> 
-      by (simp add: dom_def skomod_def struct_def)
-    show "is_interpretation (language (skolemize ` S)) (skomod M)"
-      apply (simp add: is_interpretation_def language_def functions_forms_def)
-      apply clarify
-      apply (erule functions_form_skolemize)
-      using skomod_interpretation [OF _ \<open>dom M \<noteq> {}\<close>]
-      sorry
+      using \<open>dom M \<noteq> {}\<close> by (simp add: dom_def skomod_def struct_def)
+    have "intrp_fn (skomod M) f l \<in> dom (skomod M)"
+      if l: "set l \<subseteq> dom (skomod M)"
+        and "\<phi> \<in> S"
+        and f: "(f, length l) \<in> functions_form (skolemize \<phi>)"
+      for f l \<phi> 
+    proof -
+      have "is_interpretation (language {\<phi>}) M"
+        using \<open>\<phi> \<in> S\<close> unfolding lang_singleton
+        by (metis Sup_upper functions_forms_def image_iff int interpretation_sublanguage language_def)
+      then have "is_interpretation (language {skolemize \<phi>}) (skomod M)"
+        by (intro skomod_interpretation \<open>dom M \<noteq> {}\<close>)
+      then show ?thesis
+        by (simp add: f is_interpretation_def l lang_singleton)
+    qed
+    then show "is_interpretation (language (skolemize ` S)) (skomod M)"
+      by (auto simp add: is_interpretation_def language_def functions_forms_def)
   next
-    show "satisfies (skomod M) (skolemize ` S)"
-      sorry
+    have "skomod M\<^bold>,\<beta> \<Turnstile> skolemize \<phi>"
+      if "is_valuation (skomod M) \<beta>" and "\<phi> \<in> S" for \<beta> \<phi>
+    proof -
+      have "is_interpretation (language {\<phi>}) M"
+        using \<open>\<phi> \<in> S\<close> unfolding lang_singleton
+        by (metis Sup_upper functions_forms_def image_iff int interpretation_sublanguage language_def)
+      then show ?thesis
+        using that sat \<open>dom M \<noteq> {}\<close>
+        by (metis satisfies_def singleton_iff skomod_works)
+    qed
+    then show "satisfies (skomod M) (skolemize ` S)"
+      by (auto simp add: satisfies_def image_iff)
   qed
 next
   assume ?rhs
+  then obtain M :: "'a intrp" where "dom M \<noteq> {}"
+    and int: "is_interpretation (language (skolemize ` S)) M"
+    and sat: "satisfies M (skolemize ` S)"
+    by auto
   show ?lhs
-    sorry
+  proof (intro exI conjI)
+    show "dom (unbump_intrp M) \<noteq> {}"
+      using \<open>dom M \<noteq> {}\<close> struct_def by blast
+  next
+    show "is_interpretation (language S) (unbump_intrp M)"
+      sorry
+  next
+    have "unbump_intrp M\<^bold>,\<beta> \<Turnstile> \<phi>"
+      if "is_valuation (unbump_intrp M) \<beta>" and "\<phi> \<in> S" for \<beta> \<phi>
+    proof -
+      have "is_interpretation (language {skolemize \<phi>}) M"
+        using \<open>\<phi> \<in> S\<close> unfolding lang_singleton
+        by (metis Sup_upper functions_forms_def image_eqI int interpretation_sublanguage language_def)
+      then show ?thesis
+        using that \<open>dom M \<noteq> {}\<close> sat unfolding satisfies_def
+        by (metis dom_Abs_is_fst image_eqI intrp_is_struct is_valuation_def 
+            skolemize_imp_holds_bump_form unbump_holds unbump_intrp_def) 
+    qed
+    then show "satisfies (unbump_intrp M) S"
+      by (auto simp add: satisfies_def image_iff)
+  qed
 qed
 
 
