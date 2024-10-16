@@ -858,7 +858,7 @@ qed
 
 
 (* SKOMOD_WORKS in hol-light *)
-lemma skomod_works:
+proposition skomod_works:
   assumes \<open>is_interpretation (language {\<phi>}) M\<close>  \<open>dom M \<noteq> {}\<close>
   shows   \<open>satisfies M {\<phi>} \<longleftrightarrow> satisfies (skomod M) {skolemize \<phi>}\<close>
 proof
@@ -913,7 +913,7 @@ qed
 
 
 (* SKOLEMIZE_SATISFIABLE *)
-lemma skolemize_satisfiable: 
+proposition skolemize_satisfiable: 
   \<open>(\<exists>M::'a intrp. dom M \<noteq> {} \<and> is_interpretation (language S) M \<and> 
   satisfies M S) \<longleftrightarrow> 
    (\<exists>M::'a intrp. dom M \<noteq> {} \<and> is_interpretation (language (skolemize ` S)) M 
@@ -1048,12 +1048,17 @@ qed
 
 (* SPECIALIZE_QFREE in hol-light *)
 lemma specialize_qfree: \<open>universal \<phi> \<Longrightarrow> qfree (specialize \<phi>)\<close>
-  sorry
+  by (induction rule: universal.induct) (auto elim: qfree.elims)
+
+lemma functions_form_specialize [simp]: "functions_form(specialize \<phi>) = functions_form \<phi>"
+  by (induction \<phi>) auto
+
+lemma predicates_form_form_specialize [simp]: "predicates_form(specialize \<phi>) = predicates_form \<phi>"
+  by (induction \<phi>) auto
 
 (* SPECIALIZE_LANGUAGE in hol-light *)
-lemma specialize_language: \<open>language {specialize \<phi> |\<phi>. \<phi> \<in> s} = language s\<close>
-  unfolding language_def functions_forms_def predicates_def
-  sorry
+lemma specialize_language: \<open>language (specialize  ` S) = language S\<close>
+  by (simp add: language_def functions_forms_def predicates_def)
 
 definition skolem :: "form \<Rightarrow> form" where
   \<open>skolem \<phi> = specialize(skolemize \<phi>)\<close>
@@ -1061,9 +1066,20 @@ definition skolem :: "form \<Rightarrow> form" where
 lemma skolem_qfree: \<open>qfree (skolem \<phi>)\<close>
   by (simp add: skolem_def specialize_qfree)
 
-lemma skolem_satisfiable: \<open>(\<exists>M. dom M \<noteq> {} \<and> interpretation (language s) M \<and> satisfies M s)
-  = (\<exists>M. dom M \<noteq> {} \<and> interpretation (language {skolem \<phi> |\<phi>. \<phi> \<in> s}) M \<and> 
-      satisfies M {skolem \<phi> |\<phi>. \<phi> \<in> s})\<close>
-  sorry
+theorem skolem_satisfiable:
+     \<open>(\<exists>M::'a intrp. dom M \<noteq> {} \<and> is_interpretation (language S) M \<and> satisfies M S)
+  \<longleftrightarrow> (\<exists>M::'a intrp. dom M \<noteq> {} \<and> is_interpretation (language (skolem  ` S)) M \<and> 
+      satisfies M (skolem  ` S))\<close>
+proof -
+  have "is_interpretation (language (skolemize  ` S)) M \<longleftrightarrow> is_interpretation (language (skolem  ` S)) M"
+    for M :: "'a intrp"
+    by (simp add: functions_forms_def is_interpretation_def language_def skolem_def)
+  moreover
+  have "satisfies M (skolemize  ` S) \<longleftrightarrow> satisfies M (skolem  ` S)"
+    if "dom M \<noteq> {}" for M :: "'a intrp"
+    by (smt (verit, del_insts) image_iff satisfies_def skolem_def specialize_satisfies that)
+  ultimately show ?thesis
+    by (metis skolemize_satisfiable)
+qed
 
 end

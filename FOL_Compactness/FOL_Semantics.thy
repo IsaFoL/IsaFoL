@@ -3,8 +3,7 @@
  * Author:       Sophie Tourret <sophie.tourret at inria.fr>, 2023 *)
 
 theory FOL_Semantics
-  imports
-    Main FOL_Syntax
+  imports FOL_Syntax
 begin
 
 locale struct =

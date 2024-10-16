@@ -5,7 +5,6 @@
 theory FOL_Syntax
   imports
     Main
-    HOL.Zorn
     Propositional_Proof_Systems.Compactness
     First_Order_Terms.Term
 begin
