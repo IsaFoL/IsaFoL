@@ -418,5 +418,8 @@ qed auto
 definition satisfies :: "'m intrp \<Rightarrow> form set \<Rightarrow> bool" where
   \<open>satisfies \<M> S \<equiv> (\<forall>\<beta> \<phi>. is_valuation \<M> \<beta> \<longrightarrow> \<phi> \<in> S \<longrightarrow> \<M>\<^bold>,\<beta> \<Turnstile> \<phi>)\<close>
 
+lemma satisfies_iff_satisfies_sing: \<open>satisfies M S \<longleftrightarrow> (\<forall>\<phi>\<in>S. satisfies M {\<phi>})\<close>
+  by (auto simp: satisfies_def)
+
 
 end

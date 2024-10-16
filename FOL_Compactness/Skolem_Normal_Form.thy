@@ -1019,11 +1019,32 @@ fun specialize :: "form \<Rightarrow> form" where
 | \<open>specialize (\<phi> \<^bold>\<longrightarrow> \<psi>) = \<phi> \<^bold>\<longrightarrow> \<psi>\<close>
 | \<open>specialize (\<^bold>\<forall>x\<^bold>. \<phi>) = specialize \<phi>\<close>
 
-
 (* SPECIALIZE_SATISFIES in hol-light *)
 lemma specialize_satisfies: 
-  \<open>dom M \<noteq> {} \<Longrightarrow> (satisfies M s \<longleftrightarrow> satisfies M {specialize \<phi> |\<phi>. \<phi> \<in> s})\<close>
-  sorry
+  fixes M :: "'a intrp"
+  assumes \<open>dom M \<noteq> {}\<close>
+  shows \<open>satisfies M (specialize  ` S) \<longleftrightarrow> satisfies M S\<close>
+proof -
+  have "satisfies M {specialize \<phi>} \<longleftrightarrow> satisfies M {\<phi>}" for \<phi>
+  proof (induction \<phi>)
+    case (Forall x1 \<phi>)
+    show ?case
+    proof
+      show "satisfies M {specialize (\<^bold>\<forall> x1\<^bold>. \<phi>)} \<Longrightarrow> satisfies M {\<^bold>\<forall> x1\<^bold>. \<phi>}"
+        using Forall by (auto simp: satisfies_def valuation_valmod)
+      show "satisfies M {specialize (\<^bold>\<forall> x1\<^bold>. \<phi>)}" if \<section>: "satisfies M {\<^bold>\<forall> x1\<^bold>. \<phi>}"
+      proof -
+        have "M\<^bold>,\<beta> \<Turnstile> specialize \<phi>" if "is_valuation M \<beta>" for \<beta>
+          using that \<section> Forall unfolding is_valuation_def satisfies_def singleton_iff
+          by (metis fun_upd_triv holds.simps(4))
+        then show ?thesis
+          by (auto simp: satisfies_def)
+      qed
+    qed
+  qed auto
+  then show ?thesis
+    by (auto simp add: satisfies_def)
+qed
 
 (* SPECIALIZE_QFREE in hol-light *)
 lemma specialize_qfree: \<open>universal \<phi> \<Longrightarrow> qfree (specialize \<phi>)\<close>
