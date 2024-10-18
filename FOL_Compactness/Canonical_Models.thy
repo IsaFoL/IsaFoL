@@ -1,4 +1,4 @@
-(* Title:        Part of the proof of compactness of first-order logic following Harrison's one in
+(* Title:        Part of the proof of compactness of first-order logic following Harrison's in
  *               HOL-Light
  * Author:       Sophie Tourret <sophie.tourret at inria.fr>, 2024 *)
 
@@ -141,23 +141,17 @@ lemma valuation_exists: \<open>\<not> (dom M = {}) \<Longrightarrow> \<exists>\<
   unfolding dom_def is_valuation_def by fast
 
 (* HOLDS_ITLIST_EXISTS in hol-light *)
-lemma holds_itlist_exists: \<open>(M\<^bold>,\<beta> \<Turnstile> (fold (\<lambda>x p. \<^bold>\<exists>x\<^bold>. p) xs \<phi>)) \<equiv> (\<exists>as. length as = length xs \<and>
-  list_all (\<lambda>a. a \<in> dom M) as \<and> 
-  (M\<^bold>,(fold (\<lambda>xa \<beta>. \<beta>(fst xa := snd xa)) (rev (zip xs as)) \<beta>) \<Turnstile> \<phi>))\<close>
+lemma holds_itlist_exists: 
+  \<open>(M\<^bold>,\<beta> \<Turnstile> (foldr (\<lambda>x p. \<^bold>\<exists>x\<^bold>. p) xs \<phi>)) \<longleftrightarrow> 
+     (\<exists>as. length as = length xs \<and> set as \<subseteq> dom M \<and> 
+           (M\<^bold>,(foldr (\<lambda>u \<beta>. \<beta>(fst u := snd u)) (rev (zip xs as)) \<beta>) \<Turnstile> \<phi>))\<close>
 proof (induction xs arbitrary: \<beta> \<phi>)
   case Nil
   then show ?case by simp
 next
   case (Cons x xs)
-  have \<open>M\<^bold>,\<beta> \<Turnstile> fold (\<lambda>x p. (\<^bold>\<exists> x\<^bold>. p)) (x # xs) \<phi> = M\<^bold>,\<beta> \<Turnstile> fold (\<lambda>x p. (\<^bold>\<exists> x\<^bold>. p)) xs (\<^bold>\<exists>x\<^bold>. \<phi>)\<close>
-    by simp
-  also have \<open>... = (\<exists>as. length as = length xs \<and>
-        list_all (\<lambda>a. a \<in> FOL_Semantics.dom M) as \<and>
-        M\<^bold>,fold (\<lambda>xa \<beta>. \<beta>(fst xa := snd xa)) (rev (zip xs as)) \<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>))\<close>
-    using Cons by simp
-  then show ?case
-    sorry
+  show ?case
+    by (force simp add: Cons length_Suc_conv simp flip: fun_upd_def)
 qed
-
 
 end
