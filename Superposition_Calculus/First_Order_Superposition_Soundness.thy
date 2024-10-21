@@ -451,11 +451,23 @@ proof (cases P2 P1 C rule: superposition.cases)
         unfolding welltyped\<^sub>c_renaming_weaker[OF superpositionI(4) xx] 
         using superpositionI(14) welltyped\<^sub>\<sigma>_welltyped\<^sub>c by blast
 
-      from wt_t wt_P\<^sub>1' have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1\<rangle> \<tau> \<and> welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1) \<tau>"
-        using grounding(2) superpositionI(9, 14, 15) welltyped\<^sub>\<kappa>
-        unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def subst_clause_add_mset
-        apply(auto simp: subst_literal subst_atom)
-        by (smt (verit) subst_apply_term_ctxt_apply_distrib welltyped\<^sub>\<kappa> welltyped\<^sub>\<sigma>_welltyped)+
+      from wt_t have 
+         "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1\<rangle> \<tau> \<and> welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1) \<tau>"
+      proof-
+        have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu>)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>\<rangle> \<tau> \<and>
+               welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<tau>"
+          using grounding(2) superpositionI(9, 14, 15) 
+          unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def
+          apply clause_simp
+          by auto
+
+        then have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu>)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>\<rangle> \<tau> \<and>
+               welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<tau>"
+          by (meson local.superpositionI(14) welltyped\<^sub>\<kappa> welltyped\<^sub>\<sigma>_welltyped wt_t)
+
+        then show ?thesis
+          by (metis local.superpositionI(14) subst_apply_term_ctxt_apply_distrib welltyped\<^sub>\<sigma>_welltyped)
+      qed
 
       then have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>1 s\<^sub>1\<langle>u\<^sub>1\<rangle> \<tau> \<and> welltyped typeof_fun \<V>\<^sub>1 s\<^sub>1' \<tau>"
         using welltyped_renaming_weaker[OF superpositionI(4)] superpositionI(15) vars_clause_add_mset  superpositionI(9)
@@ -555,8 +567,9 @@ proof (cases P2 P1 C rule: superposition.cases)
       using superpositionI(9) by blast
 
     then have L\<^sub>1: "?L\<^sub>1 = ?\<P> (Upair ?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G ?s\<^sub>1')"
+      using s\<^sub>1_u\<^sub>1
       unfolding superpositionI literal.to_ground_def atom.to_ground_def
-      by (auto simp: s\<^sub>1_u\<^sub>1 subst_atom subst_literal)
+      by clause_auto     
 
     have C: "?C = add_mset (?\<P> (Upair (?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G (?s\<^sub>1'))) (?P\<^sub>1' + ?P\<^sub>2')"
       using \<P>_pos_or_neg
@@ -569,8 +582,8 @@ proof (cases P2 P1 C rule: superposition.cases)
         subst_clause_plus 
        
       apply (auto simp: subst_atom subst_literal)
-       apply (metis atom.to_ground_def ground_atom_in_ground_literal2(1) map_uprod_simps)
-      by (metis atom.to_ground_def ground_atom_in_ground_literal2(2) map_uprod_simps)
+       apply (metis atom.to_ground_def ground_atom_in_ground_literal(1) map_uprod_simps)
+      by (metis atom.to_ground_def ground_atom_in_ground_literal(2) map_uprod_simps)
       
     show "?I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
     proof (cases "L\<^sub>1' = ?L\<^sub>1")
@@ -681,18 +694,18 @@ qed
 
 sublocale first_order_superposition_calculus \<subseteq> 
   sound_inference_system inferences "\<bottom>\<^sub>F" entails_\<G>
-proof-
-  obtain select\<^sub>G where "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
+proof unfold_locales
+  obtain select\<^sub>G where select\<^sub>G: "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
     using Q_nonempty by blast
 
   then interpret grounded_first_order_superposition_calculus
     where select\<^sub>G = select\<^sub>G
     by unfold_locales (simp add: select\<^sub>G\<^sub>s_def)
 
-  show "sound_inference_system inferences \<bottom>\<^sub>F entails_\<G>"
-    using sound_inference_system_axioms Q_nonempty[folded ex_in_conv]
+  show "\<And>\<iota>. \<iota> \<in> inferences \<Longrightarrow> entails_\<G> (set (prems_of \<iota>)) {concl_of \<iota>}"
+    using sound
     unfolding entails_def
-    by simp
+    by blast
 qed
 
 end

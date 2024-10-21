@@ -168,7 +168,7 @@ next
     unfolding clause_groundings_def
     using welltyped\<^sub>\<sigma>_Var
     apply(clause_auto simp: welltyped\<^sub>c_def welltyped\<^sub>\<sigma>_on_empty)
-    using obtain_ground_subst
+    using term.obtain_ground_subst
     by (metis empty_clause_is_ground welltyped\<^sub>\<sigma>_on_empty)
 next
   fix bottom

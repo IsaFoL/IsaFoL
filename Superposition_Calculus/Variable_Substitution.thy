@@ -60,21 +60,6 @@ lemma subst_cannot_unground:
 
 end
 
-(* TODO: *)
-(*locale variable_substitution_semigroup = variable_substitution 
-  where vars = vars + comm_monoid_add where plus = plus
-  for 
-    vars :: "'expression \<Rightarrow> 'variables" and 
-    plus :: "'expression \<Rightarrow> 'expression \<Rightarrow> 'expression" (infixl "+" 65)
-begin
-
-lemma 
-  fixes a b :: "'expression"
-  shows "(a + b) \<cdot> \<sigma> = (a \<cdot> \<sigma>) + (b \<cdot> \<sigma>)"
-  sorry
-
-end*)
-
 locale finite_variables = finite_set vars for vars :: "'expression \<Rightarrow> 'variable set"
 begin
 
@@ -124,7 +109,7 @@ lemma bij_betw_to_ground: "bij_betw to_ground (from_ground ` domain\<^sub>G) dom
 lemma bij_betw_from_ground: "bij_betw from_ground domain\<^sub>G (from_ground ` domain\<^sub>G)"
   by (simp add: bij_betw_def inj_from_ground)
 
-lemma ground_is_ground: "is_ground (from_ground g)"
+lemma ground_is_ground [simp, intro]: "is_ground (from_ground g)"
   using range_from_ground_iff_is_ground
   by blast
 
@@ -132,7 +117,7 @@ lemma is_ground_iff_range_from_ground: "is_ground f \<longleftrightarrow> f \<in
   using range_from_ground_iff_is_ground
   by auto
 
-lemma to_ground_inverse: 
+lemma to_ground_inverse [simp]: 
   assumes "is_ground f"
   shows "from_ground (to_ground f) = f"
   using inj_on_to_ground from_ground_inverse is_ground_iff_range_from_ground assms
@@ -247,7 +232,7 @@ end
 (* ---- Liftings ---- *)
 
 locale variable_substitution_lifting = 
-  sub: variable_substitution 
+  sub: variable_substitution
   where subst = sub_subst and vars = sub_vars
   for
     sub_vars :: "'sub_expression \<Rightarrow> 'variable set" and
@@ -255,7 +240,7 @@ locale variable_substitution_lifting =
   fixes
     map :: "('sub_expression \<Rightarrow> 'sub_expression) \<Rightarrow> 'expression \<Rightarrow> 'expression" and
     to_set :: "'expression \<Rightarrow> 'sub_expression set"
-  assumes 
+  assumes
     map_comp: "\<And>d f g. map f (map g d) = map (f \<circ> g) d" and
     map_id: "map id d = d" and
     map_cong: "\<And>d f g. (\<And>c. c \<in> to_set d \<Longrightarrow> f c = g c) \<Longrightarrow> map f d = map g d" and
@@ -341,7 +326,7 @@ next
     by simp
 qed
 
-lemma to_set_is_ground:
+lemma to_set_is_ground [intro]:
   assumes "sub \<in> to_set expr" "is_ground expr"
   shows "sub.is_ground sub"
   using assms
@@ -352,6 +337,18 @@ lemma to_set_is_ground_subst:
   shows "sub.is_ground (sub_subst sub \<gamma>)"
   using assms
   by (meson subst_in_to_set_subst to_set_is_ground)
+
+lemma subst_empty:
+  assumes "to_set expr' = {}"
+  shows "subst expr \<sigma> = expr' \<longleftrightarrow> expr = expr'"
+  using assms map_id_cong subst_def to_set_map 
+  by fastforce
+
+lemma empty_is_ground:
+  assumes "to_set expr = {}"  
+  shows "is_ground expr"
+  using assms
+  by (simp add: vars_def)
 
 end
 
@@ -498,6 +495,21 @@ qed
 lemma to_set_from_ground: "to_set (from_ground expr) = sub_from_ground ` (to_set_ground expr)"
   unfolding from_ground_def
   by (simp add: to_set_from_ground_map)
+
+lemma sub_in_ground_is_ground: 
+  assumes "sub \<in> to_set (from_ground expr)" 
+  shows "sub.is_ground sub"
+  using assms
+  by (simp add: to_set_is_ground)
+
+lemma ground_sub_in_ground: 
+  "sub \<in> to_set_ground expr \<longleftrightarrow> sub_from_ground sub \<in> to_set (from_ground expr)"
+  by (simp add: inj_image_mem_iff sub.inj_from_ground to_set_from_ground)
+
+lemma ground_sub: 
+  "(\<forall>sub \<in> to_set (from_ground expr\<^sub>G). P sub) \<longleftrightarrow> 
+   (\<forall>sub\<^sub>G \<in> to_set_ground expr\<^sub>G. P (sub_from_ground sub\<^sub>G))"
+  by (simp add: to_set_from_ground)
 
 end
 

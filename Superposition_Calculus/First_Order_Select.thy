@@ -3,7 +3,6 @@ theory First_Order_Select
     Selection_Function
     First_Order_Clause
     First_Order_Type_System
-    HOL_Extra
 begin
 
 type_synonym ('f, 'v, 'ty) typed_clause = "('f, 'v) atom clause \<times> ('v, 'ty) var_types"
@@ -319,7 +318,7 @@ proof-
     using select\<^sub>G_on_premise_groundings
     apply auto
      apply force
-    by (metis (no_types, opaque_lifting) clause.comp_subst.left.action_neutral ground_clause_is_ground clause.from_ground_inverse)
+    by (metis (no_types, opaque_lifting) clause.comp_subst.left.action_neutral clause.ground_is_ground clause.from_ground_inverse)
 
   show ?thesis
     using that[OF _ grounding] select\<^sub>G_on_premise_groundings
@@ -342,7 +341,7 @@ definition select\<^sub>G_simple where
 
 lemma select\<^sub>G_simple: "is_grounding select\<^sub>G_simple"
   unfolding is_select_grounding_def select\<^sub>G_simple_def
-  by (metis clause.from_ground_inverse ground_clause_is_ground clause.subst_id_subst)
+  by (metis clause.from_ground_inverse clause.ground_is_ground clause.subst_id_subst)
 
 lemma select_from_ground_clause1: 
   assumes "clause.is_ground clause" 
@@ -353,14 +352,14 @@ lemma select_from_ground_clause1:
 lemma select_from_ground_clause2: 
   assumes "literal \<in># select (clause.from_ground clause)"  
   shows "literal.is_ground literal"
-  using assms ground_literal_in_ground_clause(2) select_subset
+  using assms clause.sub_in_ground_is_ground select_subset
   by blast
 
 lemma select_from_ground_clause3: 
   assumes "clause.is_ground clause" "literal\<^sub>G \<in># clause.to_ground clause"
   shows "literal.from_ground literal\<^sub>G \<in># clause"
   using assms 
-  by (metis clause.to_ground_inverse ground_literal_in_ground_clause(3))
+  by (metis clause.to_ground_inverse clause.ground_sub_in_ground)
 
 lemmas select_from_ground_clause =
   select_from_ground_clause1

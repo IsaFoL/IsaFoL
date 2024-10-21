@@ -2028,7 +2028,7 @@ lemma term_subst_is_imgu_is_mgu: "term_subst.is_imgu \<mu> {{s, t}} = is_imgu \<
   unfolding term_subst.is_imgu_def is_imgu_def term_subst.is_unifier_set_def  unifiers_def
   apply auto
      apply (meson finite.emptyI finite_insert insertCI term_subst.is_unifier_iff_if_finite)
-    apply (metis subst_compose_assoc the_mgu the_mgu_is_unifier)
+  apply (metis insert_absorb2 substitution_ops.is_unifier_singleton term_subst.is_unifier_def term_subst.subst_set_insert)
    apply (simp add: term_subst.is_unifier_iff_if_finite)
   by (metis finite.emptyI finite.insertI insertI1 insert_subset subset_insertI term_subst.is_unifier_iff_if_finite)
 

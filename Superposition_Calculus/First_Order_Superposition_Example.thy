@@ -39,7 +39,7 @@ next
     by blast
 next
   show "asymp less_kbo"
-    using wfP_imp_asymp wfP_less_kbo 
+    using wfp_imp_asymp wfP_less_kbo 
     by blast
 next
   show "Wellfounded.wfp_on {term. term.is_ground term} less_kbo"

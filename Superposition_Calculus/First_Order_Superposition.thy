@@ -67,7 +67,7 @@ lemma wellfounded_typed_tiebreakers:
       "wfP (typed_tiebreakers clause\<^sub>G) \<and>  transp (typed_tiebreakers clause\<^sub>G) \<and>  asymp (typed_tiebreakers clause\<^sub>G)"
   using wellfounded_tiebreakers
   apply auto
-    apply (meson wfP_if_convertible_to_wfP)
+    apply (meson wfp_if_convertible_to_wfp)
    apply (smt (verit, ccfv_threshold) transpD transpI)
   by (meson asympD asympI)
 
