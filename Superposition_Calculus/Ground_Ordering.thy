@@ -33,10 +33,10 @@ abbreviation lesseq_cls (infix "\<preceq>\<^sub>c" 50) where
 
 lemma wfP_less_lit[simp]: "wfp (\<prec>\<^sub>l)"
   unfolding less_lit_def
-  using wfP_less_trm wfp_multp wfp_if_convertible_to_wfp by meson
+  using wfP_less_trm wfP_multp wfP_if_convertible_to_wfP by meson
 
 lemma wfP_less_cls[simp]: "wfp (\<prec>\<^sub>c)"
-  using wfP_less_lit wfp_multp less_cls_def by metis
+  using wfP_less_lit wfP_multp less_cls_def by metis
 
 
 sublocale term_order: linorder lesseq_trm less_trm

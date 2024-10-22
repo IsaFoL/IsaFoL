@@ -197,7 +197,7 @@ lemma wf_converse_rewrite_inside_gctxt:
   shows "wf ((rewrite_inside_gctxt E)\<inverse>)"
 proof (rule wf_subset)
   from wfP_R show "wf {(x, y). R x y}"
-    by (simp add: wfp_def)
+    by (simp add: wfP_def)
 next
   show "(rewrite_inside_gctxt E)\<inverse> \<subseteq> {(x, y). R x y}"
   proof (rule Set.subsetI)

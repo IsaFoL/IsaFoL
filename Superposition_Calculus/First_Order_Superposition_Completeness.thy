@@ -811,8 +811,10 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         case (Fun f terms)
 
         then have "context\<^sub>G \<noteq> GHole"
-          by (metis Fun.prems(2) actxt.simps(8) context_from_ground_hole intp_actxt.simps(1) 
-              is_FunI)
+          by (metis Fun.prems(2) ctxt_apply_term.simps(1) ctxt_of_gctxt.simps(1) 
+              subst_apply_ctxt.simps(1) term.discI(2))
+          (*by (metis Fun.prems(2) actxt.simps(8) context_from_ground_hole intp_actxt.simps(1) 
+              is_FunI)*)
 
         then obtain terms\<^sub>G\<^sub>1 context\<^sub>G' terms\<^sub>G\<^sub>2 where
           context\<^sub>G: "context\<^sub>G = GMore f terms\<^sub>G\<^sub>1 context\<^sub>G' terms\<^sub>G\<^sub>2"
@@ -949,8 +951,9 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     obtain var\<^sub>x where var\<^sub>x: "Var var\<^sub>x = term\<^sub>x \<cdot>t \<rho>\<^sub>1"
       using renaming(1)
       unfolding is_Var_def term_subst.is_renaming_def subst_compose_def
-      by (metis eval_subst_def eval_term.simps(1) literal.is_renaming_def renaming(1) 
-          subst_apply_eq_Var)
+      by (metis eval_term.simps(1) subst_apply_eq_Var)
+      (*by (metis eval_subst_def eval_term.simps(1) literal.is_renaming_def renaming(1) 
+          subst_apply_eq_Var)*)
 
     have \<tau>\<^sub>x_var\<^sub>x: "welltyped typeof_fun \<V>\<^sub>1 (Var var\<^sub>x) \<tau>\<^sub>x"
       using \<tau>\<^sub>x typing(6)

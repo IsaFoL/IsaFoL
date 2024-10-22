@@ -32,9 +32,15 @@ type_synonym ('f, 'v) atom = "('f, 'v) term uprod"
 notation subst_apply_term (infixl "\<cdot>t" 67)
 notation subst_compose (infixl "\<odot>" 75)
 
+notation subst_apply_ctxt (infixl "\<cdot>t\<^sub>c" 67)
+
+(*
+Uncomment for AFP devel:
+
 abbreviation subst_apply_ctxt ::
   "('f, 'v) context \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) context" (infixl "\<cdot>t\<^sub>c" 67) where
   "subst_apply_ctxt \<equiv> subst_apply_actxt"
+*)
 
 lemmas clause_simp_term =
   subst_apply_term_ctxt_apply_distrib vars_term_ctxt_apply literal.sel
@@ -673,7 +679,6 @@ lemma term_in_literal_subst [clause_intro]:
 lemma ground_term_in_ground_literal:
   assumes "literal.is_ground literal" "term \<in># mset_lit literal"  
   shows "term.is_ground term"
-  sledgehammer
   by (metis assms(1,2) atom.to_set_is_ground literal.simps(15) literal.vars_def set_literal_atm_of 
       set_mset_set_uprod vars_literal(1))
   (*using mset_lit.to_set_is_ground assms

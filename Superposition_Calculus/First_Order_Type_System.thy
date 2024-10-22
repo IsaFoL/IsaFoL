@@ -433,7 +433,10 @@ proof(induction \<kappa> arbitrary: \<tau>)
 next
   case (More x1 x2 \<kappa> x4)
   then show ?case 
-    by (metis in_set_conv_decomp intp_actxt.simps(2) welltyped_subterm)
+    by (metis ctxt_apply_term.simps(2) in_set_conv_decomp welltyped_subterm)
+    (* AFP Devel:
+      by (metis in_set_conv_decomp intp_actxt.simps(2) welltyped_subterm)
+    *)
 qed
 
 
@@ -680,8 +683,11 @@ lemma has_type_renaming: "has_type \<F> \<V> t \<tau> \<longleftrightarrow> has_
 proof(cases t)
   case (Var x1)
   then show ?thesis
-    by (smt (verit, ccfv_SIG) eval_subst eval_term.simps(2) has_type.simps literal.is_renaming_def 
-        range_vars renaming subst_apply_eq_Var term.set_intros(3) term_subst.comp_subst.left.action_neutral term_subst.is_renaming_id_subst term_subst_is_renaming_iff the_inv_f_f vars_term_range_vars')
+    by (smt (verit, ccfv_SIG) comp_apply eval_term.simps(1) has_type.simps range_vars renaming 
+        term.distinct(1) term.set_intros(3) term_subst_is_renaming_iff 
+        term_subst_is_renaming_iff_ex_inj_fun_on_vars the_inv_f_f vars_term_range_vars')
+   (* by (smt (verit, ccfv_SIG) eval_subst eval_term.simps(2) has_type.simps literal.is_renaming_def 
+        range_vars renaming subst_apply_eq_Var term.set_intros(3) term_subst.comp_subst.left.action_neutral term_subst.is_renaming_id_subst term_subst_is_renaming_iff the_inv_f_f vars_term_range_vars') *)
 next
   case (Fun x21 x22)
   then show ?thesis 

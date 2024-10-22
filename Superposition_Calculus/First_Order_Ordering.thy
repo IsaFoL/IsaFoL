@@ -146,7 +146,7 @@ qed
 subsection \<open>Ground term ordering\<close>
 
 lemma less\<^sub>t\<^sub>G_asymmetric [intro]: "asymp (\<prec>\<^sub>t\<^sub>G)"
-  by (simp add: wfp_imp_asymp less\<^sub>t\<^sub>G_wellfounded)
+  by (simp add: wfP_imp_asymp less\<^sub>t\<^sub>G_wellfounded)
 
 lemmas less\<^sub>t\<^sub>G_asymmetric_on = less\<^sub>t\<^sub>G_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
 
