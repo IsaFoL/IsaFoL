@@ -35,7 +35,7 @@ locale first_order_ordering = term_ordering_lifting less\<^sub>t
     (* less\<^sub>t_transitive [intro]: "transp (\<prec>\<^sub>t)" and *)
     (* less\<^sub>t_asymmetric [intro]: "asymp (\<prec>\<^sub>t)" and  *)
     less\<^sub>t_total_on [intro]: "totalp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and
-    less\<^sub>t_wellfounded_on: "Wellfounded.wfp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and    
+    less\<^sub>t_wellfounded_on: "wfp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and    
     less\<^sub>t_ground_context_compatible:
       "\<And>context term\<^sub>1 term\<^sub>2. 
         term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<Longrightarrow>
@@ -280,7 +280,9 @@ lemma less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G:
 
 lemma less_eq\<^sub>t\<^sub>G_less_eq\<^sub>t:
    "term\<^sub>G\<^sub>1 \<preceq>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2 \<longleftrightarrow> term.from_ground term\<^sub>G\<^sub>1 \<preceq>\<^sub>t term.from_ground term\<^sub>G\<^sub>2"
-  unfolding less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G[OF term.ground_is_ground term.ground_is_ground] term.from_ground_inverse
+  unfolding 
+    less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G[OF term.ground_is_ground term.ground_is_ground] 
+    term.from_ground_inverse
   ..
 
 lemma not_less_eq\<^sub>t: 
@@ -289,7 +291,8 @@ lemma not_less_eq\<^sub>t:
   unfolding less\<^sub>t_less\<^sub>t\<^sub>G[OF assms] less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>t\<^sub>G
   ..
 
-lemma less\<^sub>l\<^sub>G_less\<^sub>l: "literal\<^sub>G\<^sub>1 \<prec>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> literal.from_ground literal\<^sub>G\<^sub>1 \<prec>\<^sub>l literal.from_ground literal\<^sub>G\<^sub>2"
+lemma less\<^sub>l\<^sub>G_less\<^sub>l: 
+  "literal\<^sub>G\<^sub>1 \<prec>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> literal.from_ground literal\<^sub>G\<^sub>1 \<prec>\<^sub>l literal.from_ground literal\<^sub>G\<^sub>2"
   unfolding less\<^sub>l_def ground.less_lit_def less\<^sub>t\<^sub>G_def mset_literal_from_ground
   using
      multp_image_mset_image_msetI[OF _ less\<^sub>t_transitive]
@@ -336,7 +339,8 @@ lemma is_strictly_maximal\<^sub>l_empty [simp]:
   by fastforce
 
 lemma is_maximal_lit_iff_is_maximal\<^sub>l: 
-  "ground.is_maximal_lit literal\<^sub>G clause\<^sub>G \<longleftrightarrow> is_maximal\<^sub>l (literal.from_ground literal\<^sub>G) (clause.from_ground clause\<^sub>G)"
+  "ground.is_maximal_lit literal\<^sub>G clause\<^sub>G \<longleftrightarrow> 
+    is_maximal\<^sub>l (literal.from_ground literal\<^sub>G) (clause.from_ground clause\<^sub>G)"
    unfolding 
     is_maximal\<^sub>l_def
     ground.is_maximal_lit_def
@@ -405,7 +409,9 @@ lemma less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G:
 
 lemma less_eq\<^sub>c\<^sub>G_less_eq\<^sub>c:
    "clause\<^sub>G\<^sub>1 \<preceq>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<longleftrightarrow> clause.from_ground clause\<^sub>G\<^sub>1 \<preceq>\<^sub>c clause.from_ground clause\<^sub>G\<^sub>2"
-  unfolding less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF clause.ground_is_ground clause.ground_is_ground] clause.from_ground_inverse
+  unfolding 
+    less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF clause.ground_is_ground clause.ground_is_ground] 
+    clause.from_ground_inverse
   ..
 
 lemma not_less_eq\<^sub>c\<^sub>G: "\<not> clause\<^sub>G\<^sub>2 \<preceq>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>1 \<longleftrightarrow> clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2"
@@ -427,8 +433,10 @@ lemma less\<^sub>t_ground_context_compatible':
   shows "term \<prec>\<^sub>t term'"
   (* TODO: *)
   using assms 
-  apply(clause_simp simp: ground.less_trm_compatible_with_gctxt_iff[symmetric, of "term.to_ground term" _ "context.to_ground context"])
-  by (simp add: ground_term_with_context1 less\<^sub>t_less\<^sub>t\<^sub>G)
+  by (metis less\<^sub>t_ground_context_compatible not_less_eq\<^sub>t term_order.dual_order.asym 
+        term_order.order.not_eq_order_implies_strict)
+ (* apply(clause_simp simp: ground.less_trm_compatible_with_gctxt_iff[symmetric, of "term.to_ground term" _ "context.to_ground context"])
+  by (simp add: ground_term_with_context1 less\<^sub>t_less\<^sub>t\<^sub>G)*)
   
 
 lemma less\<^sub>t_ground_context_compatible_iff:

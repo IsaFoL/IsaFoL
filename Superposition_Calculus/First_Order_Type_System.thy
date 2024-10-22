@@ -62,11 +62,11 @@ definition has_type\<^sub>\<sigma> where
 definition has_type\<^sub>\<sigma>' where
   "has_type\<^sub>\<sigma>' \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>x. has_type \<F> \<V> (\<sigma> x) (\<V> x))"
 
-lemma "has_type\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> has_type\<^sub>\<sigma>' \<F> \<V> \<sigma>"
+(*lemma "has_type\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> has_type\<^sub>\<sigma>' \<F> \<V> \<sigma>"
   unfolding has_type\<^sub>\<sigma>_def has_type\<^sub>\<sigma>'_def
   apply auto
   using has_type.Var apply fastforce
-  by (smt (verit, ccfv_threshold) eval_term.simps(1) eval_term.simps(2) has_type.simps)
+  by (smt (verit, ccfv_threshold) eval_term.simps(1) eval_term.simps(2) has_type.simps)*)
 
 definition welltyped\<^sub>\<sigma> where
   "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>x. welltyped \<F> \<V> (\<sigma> x) (\<V> x))"
@@ -154,7 +154,7 @@ proof(rule iffI)
       from Fun show ?thesis
         using welltyped\<^sub>\<sigma>
         unfolding welltyped\<^sub>\<sigma>_def Var
-        by (metis (no_types, opaque_lifting) eval_term.simps(1) option.sel prod.sel(2) 
+        by (metis (no_types, opaque_lifting) eval_term.simps(1) prod.sel(2) 
             term.distinct(1) term.inject(2) welltyped.simps)
     next
       case Fun\<^sub>t: Fun
@@ -288,7 +288,8 @@ proof(rule iffI)
             "t' \<in> set ts'" and
             "\<tau>' \<in> set \<tau>s" and
             "welltyped \<F> \<V> (t' \<cdot>t \<sigma>) \<tau>' \<and>
-              (\<forall>xa. t' \<cdot>t \<sigma> = xa \<cdot>t \<sigma> \<longrightarrow> welltyped\<^sub>\<sigma>_on (term.vars xa) \<F> \<V> \<sigma> \<longrightarrow> welltyped \<F> \<V> xa \<tau>')"
+              (\<forall>xa. t' \<cdot>t \<sigma> = xa \<cdot>t \<sigma> \<longrightarrow> welltyped\<^sub>\<sigma>_on (term.vars xa) \<F> \<V> \<sigma> \<longrightarrow> 
+                  welltyped \<F> \<V> xa \<tau>')"
           thus "welltyped \<F> \<V> t' \<tau>'"
             using Fun.prems Fun.hyps
             by (simp add: Fun\<^sub>t welltyped\<^sub>\<sigma>_on_def)
@@ -410,12 +411,16 @@ lemma welltyped_subterm:
   assumes "welltyped \<F> \<V> (Fun f ts) \<tau>"
   shows "\<forall>t\<in>set ts. \<exists>\<tau>'. welltyped \<F> \<V> t \<tau>'"
   using assms
-  apply(simp add: welltyped.simps)
-  apply(induction ts)
-   apply force
-  apply auto
-   apply (metis list_all2_Cons1 welltyped.simps)
-  by (metis (no_types, lifting) in_set_conv_nth list_all2_Cons1 list_all2_conv_all_nth welltyped.simps)
+proof(induction ts)
+  case Nil
+  then show ?case
+    by simp
+next
+  case (Cons a ts)
+  then show ?case
+    by (metis (no_types, lifting) Term.term.simps(4) in_set_conv_nth list_all2_conv_all_nth 
+        term.sel(4) welltyped.simps)
+qed
 
 lemma welltyped\<^sub>\<kappa>': 
   assumes "welltyped \<F> \<V> \<kappa>\<langle>t\<rangle> \<tau>" 
@@ -428,8 +433,7 @@ proof(induction \<kappa> arbitrary: \<tau>)
 next
   case (More x1 x2 \<kappa> x4)
   then show ?case 
-    apply(auto)
-    by (meson in_set_conv_decomp welltyped_subterm)
+    by (metis in_set_conv_decomp intp_actxt.simps(2) welltyped_subterm)
 qed
 
 
@@ -444,8 +448,7 @@ lemma welltyped\<^sub>\<kappa> [clause_intro]:
 proof (induction \<kappa> arbitrary: \<tau>\<^sub>1)
   case Hole
   then show ?case
-    using t_type t'_type
-    using welltyped_right_unique[of \<F>, THEN right_uniqueD]
+    using t_type t'_type welltyped_right_unique[of \<F>, THEN right_uniqueD]
     by auto
 next
   case (More f ss1 \<kappa> ss2)
@@ -542,7 +545,8 @@ proof(induction rule: welltyped.induct)
   then show ?case 
     using assms(1, 2)
     unfolding welltyped\<^sub>\<sigma>_def
-    by (metis comp_apply eval_term.simps(1) inj_on_Var term_subst_is_renaming_iff_ex_inj_fun_on_vars the_inv_f_f welltyped.Var)
+    by (metis comp_apply eval_term.simps(1) inj_on_Var 
+        term_subst_is_renaming_iff_ex_inj_fun_on_vars the_inv_f_f welltyped.Var)
 next
   case (Fun f \<tau>s \<tau> ts)
   then show ?case
@@ -629,7 +633,8 @@ proof(intro iffI)
   next
     case (Fun f \<tau>s \<tau> ts)
     then show ?case
-      by (smt (verit, ccfv_SIG) eval_term.simps(2) length_map list_all2_conv_all_nth nth_map welltyped.simps)
+      by (smt (verit, ccfv_SIG) eval_term.simps(2) length_map list_all2_conv_all_nth 
+          nth_map welltyped.simps)
   qed
 next
   assume "welltyped \<F> \<V>' (t \<cdot>t \<rho>) \<tau>"
@@ -665,25 +670,29 @@ next
   next
     case (Fun f ts)
     then show ?case
-      by (smt (verit, ccfv_SIG) eval_term.simps(2) list.rel_map(1) list.rel_mono_strong term.distinct(1) term.inject(2) welltyped.simps)
+      by (smt (verit, ccfv_SIG) eval_term.simps(2) list.rel_map(1) list.rel_mono_strong 
+          term.distinct(1) term.inject(2) welltyped.simps)
   qed
 qed
 
 lemma has_type_renaming: "has_type \<F> \<V> t \<tau> \<longleftrightarrow> has_type \<F> \<V>' (t \<cdot>t \<rho>) \<tau>"
   using renaming range_vars
-  apply(cases t)
-   apply(auto simp: has_type.simps)
-    apply (metis (mono_tags, opaque_lifting) comp_apply eval_term.simps(1) has_type.Var has_type_right_unique right_uniqueD term_subst_is_renaming_iff_ex_inj_fun_on_vars welltyped\<^sub>\<sigma>_Var welltyped\<^sub>\<sigma>_def welltyped_renaming welltyped_right_unique)
-   apply (metis eval_term.simps(1) has_type.Var has_type_right_unique right_uniqueD term.collapse(1) term_subst_is_renaming_iff welltyped.Var welltyped_renaming welltyped_right_unique)
-  by (metis term.disc(2) term_subst_is_renaming_iff)
-
+proof(cases t)
+  case (Var x1)
+  then show ?thesis
+    by (smt (verit, ccfv_SIG) eval_subst eval_term.simps(2) has_type.simps literal.is_renaming_def 
+        range_vars renaming subst_apply_eq_Var term.set_intros(3) term_subst.comp_subst.left.action_neutral term_subst.is_renaming_id_subst term_subst_is_renaming_iff the_inv_f_f vars_term_range_vars')
+next
+  case (Fun x21 x22)
+  then show ?thesis 
+    by (simp add: has_type.simps)
+qed
 
 (* TODO: *)
 lemma welltyped\<^sub>\<sigma>_renaming_ground_subst: 
   assumes "welltyped\<^sub>\<sigma> \<F> \<V>' \<gamma>" "welltyped\<^sub>\<sigma> \<F> \<V> \<rho>" "term_subst.is_ground_subst \<gamma>"
   shows "welltyped\<^sub>\<sigma> \<F> \<V> (\<rho> \<odot> \<gamma>)"
 proof-
-
   have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' (\<gamma> x) (\<V>' x)"
     using assms 
     unfolding welltyped\<^sub>\<sigma>_def
@@ -694,13 +703,15 @@ proof-
     by auto
 
   then have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' ((\<rho> \<odot> \<gamma>) x) (\<V> x)"
-    by (metis assms(1) eval_term.simps(1) subst_compose_def welltyped.Var welltyped\<^sub>\<sigma>_welltyped welltyped_renaming)
+    by (metis assms(1) eval_term.simps(1) subst_compose_def welltyped.Var welltyped\<^sub>\<sigma>_welltyped
+        welltyped_renaming)
 
   then have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' (Var x \<cdot>t (\<rho> \<odot> \<gamma>)) (\<V> x)"
     by auto
 
   then have "\<forall>x. welltyped \<F> \<V>' (Var x \<cdot>t (\<rho> \<odot> \<gamma>)) (\<V> x)"
-    by (metis assms(1) eval_term.simps(1) subst_compose_def welltyped\<^sub>\<sigma>_Var welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_welltyped welltyped_renaming)
+    by (metis assms(1) eval_term.simps(1) subst_compose_def welltyped\<^sub>\<sigma>_Var welltyped\<^sub>\<sigma>_def 
+        welltyped\<^sub>\<sigma>_welltyped welltyped_renaming)
 
   then have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' (Var x \<cdot>t \<rho>) (\<V> x)"
     using welltyped\<^sub>\<sigma>_welltyped[OF assms(1)]
@@ -715,7 +726,9 @@ proof-
 
   then show "welltyped\<^sub>\<sigma> \<F> \<V> (\<rho> \<odot> \<gamma>)"
     unfolding welltyped\<^sub>\<sigma>_def
-    by (metis (mono_tags, lifting) \<open>\<forall>x. welltyped \<F> \<V>' (Var x \<cdot>t \<rho> \<odot> \<gamma>) (\<V> x)\<close> assms(3) eval_term.simps(1) term_subst.is_ground_subst_comp_right term_subst.is_ground_subst_is_ground term_subst.subst_ident_if_ground welltyped_renaming)
+    by (metis (mono_tags, lifting) \<open>\<forall>x. welltyped \<F> \<V>' (Var x \<cdot>t \<rho> \<odot> \<gamma>) (\<V> x)\<close> assms(3)
+        eval_term.simps(1) term_subst.is_ground_subst_comp_right 
+        term_subst.is_ground_subst_is_ground term_subst.subst_ident_if_ground welltyped_renaming)
 qed
 
 lemma welltyped\<^sub>a_renaming: "welltyped\<^sub>a \<F> \<V> a \<longleftrightarrow> welltyped\<^sub>a \<F> \<V>' (a \<cdot>a \<rho>)"
@@ -773,13 +786,13 @@ proof(intro iffI)
       by(rule welltyped.Var)
   next
     case (Fun f \<tau>s \<tau> ts)
-    show ?case
-      apply auto
-      apply(rule welltyped.Fun)
-       apply(rule Fun(1))
+
+    have "list_all2 (welltyped \<F> \<V>') (map (\<lambda>s. s \<cdot>t \<rho>) ts) \<tau>s"
       using Fun(2, 3)
-      apply auto
-      by (simp add: list.rel_mono_strong list_all2_map1)
+      by(auto simp: list.rel_mono_strong list_all2_map1)
+
+    then show ?case
+      by (simp add: Fun.hyps welltyped.simps)
   qed
 next
   assume "welltyped \<F> \<V>' (t \<cdot>t \<rho>) \<tau>"
@@ -811,20 +824,45 @@ next
       by(rule welltyped.Var)
   next
     case (Fun f ts)
-    then show ?case
-      apply auto
-      by (smt (verit, best) Term.term.simps(2) Term.term.simps(4) list.rel_mono_strong list_all2_map1 welltyped.simps)
+    have "\<lbrakk>\<And>x2a \<tau>. \<lbrakk>x2a \<in> set ts; welltyped \<F> \<V>' (x2a \<cdot>t \<rho>) \<tau>\<rbrakk> \<Longrightarrow> welltyped \<F> \<V> x2a \<tau>;
+     welltyped \<F> \<V>' (Fun f (map (\<lambda>s. s \<cdot>t \<rho>) ts)) \<tau>;
+     \<forall>y\<in>set ts. \<forall>x\<in>term.vars (y \<cdot>t \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x\<rbrakk>
+    \<Longrightarrow> welltyped \<F> \<V> (Fun f ts) \<tau>"
+      by (smt (verit, best) Term.term.simps(2) Term.term.simps(4) list.rel_mono_strong 
+          list_all2_map1 welltyped.simps)
+
+    with Fun show ?case
+      by auto
+     
   qed
 qed
 
 lemma welltyped\<^sub>a_renaming_weaker: 
   assumes"\<forall>x \<in> atom.vars (a \<cdot>a \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
   shows "welltyped\<^sub>a \<F> \<V> a \<longleftrightarrow> welltyped\<^sub>a \<F> \<V>' (a \<cdot>a \<rho>)"
-  using welltyped_renaming_weaker  assms
-  unfolding welltyped\<^sub>a_def atom.vars_def
-  apply(cases a)
-  apply(auto simp add: subst_atom)
-  by (metis UnCI welltyped_renaming_weaker)+
+proof(cases a)
+  case (Upair a b)
+
+  then have 
+    "\<And>\<tau>. \<lbrakk>\<And>t \<V> \<V>' \<F> \<tau>.
+             \<forall>x\<in>term.vars (t \<cdot>t \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x \<Longrightarrow>
+             welltyped \<F> \<V> t \<tau> = welltyped \<F> \<V>' (t \<cdot>t \<rho>) \<tau>;
+          \<forall>x\<in>term.vars (a \<cdot>t \<rho>) \<union> term.vars (b \<cdot>t \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x; welltyped \<F> \<V> a \<tau>;
+          welltyped \<F> \<V> b \<tau>\<rbrakk>
+         \<Longrightarrow> \<exists>\<tau>. welltyped \<F> \<V>' (a \<cdot>t \<rho>) \<tau> \<and> welltyped \<F> \<V>' (b \<cdot>t \<rho>) \<tau>"
+     "\<And>\<tau>. \<lbrakk> \<And>t \<V> \<V>' \<F> \<tau>.
+             \<forall>x\<in>term.vars (t \<cdot>t \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x \<Longrightarrow>
+             welltyped \<F> \<V> t \<tau> = welltyped \<F> \<V>' (t \<cdot>t \<rho>) \<tau>;
+          \<forall>x\<in>term.vars (a \<cdot>t \<rho>) \<union> term.vars (b \<cdot>t \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x;
+          welltyped \<F> \<V>' (a \<cdot>t \<rho>) \<tau>; welltyped \<F> \<V>' (b \<cdot>t \<rho>) \<tau>\<rbrakk>
+         \<Longrightarrow> \<exists>\<tau>. welltyped \<F> \<V> a \<tau> \<and> welltyped \<F> \<V> b \<tau>"
+    by (metis UnCI welltyped_renaming_weaker)+
+
+  with Upair show ?thesis
+    using welltyped_renaming_weaker  assms
+    unfolding welltyped\<^sub>a_def atom.vars_def
+    by(auto simp add: subst_atom)
+qed
 
 lemma welltyped\<^sub>l_renaming_weaker: 
   assumes "\<forall>x \<in> literal.vars (l \<cdot>l \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
@@ -844,11 +882,16 @@ lemma has_type_renaming_weaker:
   assumes "\<forall>x \<in> term.vars (t \<cdot>t \<rho>). \<V> (the_inv \<rho> (Var x)) = \<V>' x"
   shows "has_type \<F> \<V> t \<tau> \<longleftrightarrow> has_type \<F> \<V>' (t \<cdot>t \<rho>) \<tau>"
   using renaming assms
-  apply(cases t)
-   apply(auto simp: has_type.simps)
-    apply (metis term.collapse(1) term.set_intros(3) term_subst_is_renaming_iff the_inv_f_f)
-   apply (metis term_subst_is_renaming_iff the_inv_f_f)
-  by (metis is_FunI term_subst_is_renaming_iff)
+proof(cases t)
+  case (Var x1)
+  then show ?thesis
+    by (smt (verit, ccfv_SIG) Term.term.simps(4) assms eval_term.simps(1) has_type.simps is_Var_def 
+        renaming term.set_intros(3) term_subst_is_renaming_iff the_inv_f_f)
+next
+  case (Fun x21 x22)
+  then show ?thesis
+    by (simp add: has_type.simps)
+qed
 
 (* TODO: *)
 lemma welltyped\<^sub>\<sigma>_renaming_ground_subst_weaker: 
@@ -876,7 +919,8 @@ proof(unfold welltyped\<^sub>\<sigma>_on_def, intro ballI)
 
   moreover have "welltyped \<F> \<V> (\<gamma> y) (\<V>' y)"
     using assms(1)
-    by (metis assms(3) emptyE eval_term.simps(1) term_subst.is_ground_subst_def welltyped\<^sub>\<sigma>_def welltyped_\<V>)
+    by (metis assms(3) emptyE eval_term.simps(1) term_subst.is_ground_subst_def welltyped\<^sub>\<sigma>_def 
+        welltyped_\<V>)
 
   ultimately have "welltyped \<F> \<V> (\<gamma> y) (\<V> (the_inv \<rho> (Var y)))"
     using assms(4)
@@ -965,7 +1009,7 @@ lemma inv_enumerate:
 instance nat :: infinite
   by(standard) simp
 
-lemma 
+(*lemma 
   assumes "n < card X"
   shows "enumerate X n \<in> X"
   using assms
@@ -1022,7 +1066,7 @@ proof(induction s  rule: less_induct)
       using False
       by (meson LeastI less.prems linorder_cases not_less_Least)
   qed
-qed
+qed*)
 
 
 lemma finite_bij_enumerate_inv_into:
@@ -1074,7 +1118,8 @@ proof
 
      moreover then have "\<V>\<^sub>2 y = \<V>\<^sub>2 x"
        unfolding f'_def
-       by (smt (verit, ccfv_SIG) Collect_mono_iff enumerate_in_set infinite mem_Collect_eq rev_finite_subset)
+       by (smt (verit, ccfv_SIG) Collect_mono_iff enumerate_in_set infinite mem_Collect_eq 
+           rev_finite_subset)
 
      ultimately show "x = y"
        unfolding f'_def
@@ -1094,6 +1139,7 @@ proof
      by (smt (verit) Collect_cong mem_Collect_eq)
 qed
 
+(*
 lemma obtain_inj_test'':
   fixes \<V>\<^sub>1 \<V>\<^sub>2 :: "nat \<Rightarrow> 'ty"
     (* TODO: Could I write this nicer? *)
@@ -1408,16 +1454,22 @@ proof-
         have 0: "card {n'. n' < n \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 n} = 0"
           unfolding \<V>[symmetric]
           unfolding n_def
+          sledgehammer
           apply auto
           by (metis (mono_tags, lifting) Min_le finite_nat_set_iff_bounded_le leD mem_Collect_eq nle_le order.trans)
 
         show ?thesis 
-          apply(rule exI[of _ n])
-          unfolding 0
-          apply(auto simp: enumerate_0)
-          by (metis (mono_tags, lifting) False Least_equality \<V> less.prems less_or_eq_imp_le linorder_neqE_nat)
+        proof(rule exI[of _ n])
+          have "x = (LEAST na. na \<in> Y \<and> \<V>\<^sub>2 na = \<V>\<^sub>2 n)"
+            by (metis (mono_tags, lifting) False Least_equality \<V> less.prems less_or_eq_imp_le 
+                linorder_neqE_nat)
+
+          then show "x = enumerate {n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 n} (card {n'. n' < n \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 n})"
+            unfolding 0
+            by(auto simp: enumerate_0)
+        qed
       qed
-    qed
+      qed
 
     then show "x \<in> range (\<lambda>n. enumerate {n' \<in> Y. \<V>\<^sub>2 n' = \<V>\<^sub>2 n} (card {n'. n' < n \<and> \<V>\<^sub>2 n' = \<V>\<^sub>2 n}))"
       by auto
@@ -1435,9 +1487,9 @@ proof-
 
   show ?thesis
     using that[OF inj_f inj_f' X_Y[unfolded range_f[symmetric] range_f'[symmetric]] \<V>_f \<V>_f'].
-qed
+qed*)
 
-lemma test:
+(*lemma test:
   assumes "bij f"
   shows "f ` X \<union> f ` X' = UNIV \<longleftrightarrow> X \<union> X' = UNIV"
   using assms
@@ -1466,15 +1518,11 @@ proof-
 
   have xx: "\<And>n. {n'. \<V>\<^sub>1_nat n' = n} = a_to_nat ` {n'. \<V>\<^sub>1  n' = n}"
     unfolding  \<V>\<^sub>1_nat_def
-    apply auto
-    using bij_a_to_nat bij_image_Collect_eq nat_to_a_def apply blast
-    by (metis bij_a_to_nat bij_inv_eq_iff nat_to_a_def)
+    using bij_a_to_nat bij_image_Collect_eq nat_to_a_def by fastforce
 
   have yy: "\<And>n. {n'. \<V>\<^sub>2_nat n' = n} = a_to_nat ` {n'. \<V>\<^sub>2  n' = n}"
     unfolding  \<V>\<^sub>2_nat_def
-    apply auto
-    using bij_a_to_nat bij_image_Collect_eq nat_to_a_def apply blast
-    by (metis bij_a_to_nat bij_inv_eq_iff nat_to_a_def)
+    using bij_a_to_nat bij_image_Collect_eq nat_to_a_def by fastforce
 
   obtain X where X: "\<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1 x = ty}) \<and> infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty})"
     using assms
@@ -1483,14 +1531,19 @@ proof-
   then have "\<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1 x = ty}) \<and> infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty})"
     by blast
 
-  then have  "\<forall>ty. infinite (a_to_nat ` (X \<inter> {x. \<V>\<^sub>1 x = ty})) \<and> infinite (a_to_nat ` ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty}))"
+  then have 
+    "\<forall>ty. infinite (a_to_nat ` (X \<inter> {x. \<V>\<^sub>1 x = ty})) 
+    \<and> infinite (a_to_nat ` ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty}))"
     using bij_a_to_nat
     by (metis Int_UNIV_right bij_betw_def finite_image_iff inj_on_Int)
 
-  then have zz: "\<forall>ty. infinite (a_to_nat ` X \<inter> a_to_nat ` {x. \<V>\<^sub>1 x = ty}) \<and> infinite ((UNIV - a_to_nat ` X) \<inter> a_to_nat ` {x. \<V>\<^sub>2 x = ty})"
+  then have zz: 
+    "\<forall>ty. infinite (a_to_nat ` X \<inter> a_to_nat ` {x. \<V>\<^sub>1 x = ty}) 
+      \<and> infinite ((UNIV - a_to_nat ` X) \<inter> a_to_nat ` {x. \<V>\<^sub>2 x = ty})"
     by (simp add: bij_a_to_nat bij_is_inj image_Int  bij_is_surj image_set_diff)
 
-  then have assms_nat: "\<exists>X. \<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1_nat x = ty}) \<and> infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2_nat x = ty})"
+  then have assms_nat: 
+    "\<exists>X. \<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1_nat x = ty}) \<and> infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2_nat x = ty})"
     unfolding xx yy
     by(rule exI[of _ "a_to_nat ` X"])
 
@@ -1515,10 +1568,18 @@ proof-
     by (meson bij_a_to_nat bij_is_inj bij_nat_to_a inj_def)
 
   moreover have "range f \<inter> range f' = {}"
-    using nats(3) bij_a_to_nat bij_nat_to_a
-    unfolding f'_def f_def
-    apply auto
-    by (metis Int_iff bij_is_inj empty_iff inj_def rangeI)
+  proof-
+    have " \<And>a aa.
+       \<lbrakk>range f_nat \<inter> range f'_nat = {}; bij a_to_nat; bij nat_to_a;
+        nat_to_a (f_nat (a_to_nat a)) = nat_to_a (f'_nat (a_to_nat aa))\<rbrakk>
+       \<Longrightarrow> False"
+      by (metis Int_iff bij_is_inj empty_iff inj_def rangeI)
+
+    then show ?thesis
+      using nats(3) bij_a_to_nat bij_nat_to_a
+      unfolding f'_def f_def
+      by auto
+  qed
 
   moreover have "range f \<union> range f' = UNIV"
     using nats(4) bij_a_to_nat
@@ -1541,7 +1602,7 @@ proof-
   ultimately show ?thesis
     using that
     by presburger
-qed
+qed*)
 
 
 lemma obtain_inj''_on':
@@ -1586,11 +1647,19 @@ proof
       by simp
 
     moreover have "g' y \<in> {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X}"
-      unfolding g'_def
-      using exists_g'[of "\<V>\<^sub>2 y"]
-      apply auto
-      apply (smt (verit, ccfv_SIG) bij_betw_apply mem_Collect_eq verit_sko_ex_indirect)
-      by (smt (verit, best) bij_betw_apply mem_Collect_eq tfl_some)
+    proof-
+      have "\<And>g'. bij_betw g' {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y} {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X} \<Longrightarrow>
+          \<V>\<^sub>2 ((SOME g'. bij_betw g' {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y} {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X}) y) = \<V>\<^sub>2 y"
+        "\<And>g'. \<lbrakk>bij_betw g' {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y} {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X};
+           (SOME g'. bij_betw g' {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y} {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X}) y \<in> X\<rbrakk>
+          \<Longrightarrow> False"
+        by (smt (verit, ccfv_SIG) bij_betw_apply mem_Collect_eq verit_sko_ex_indirect)+
+        
+       then show ?thesis
+        unfolding g'_def
+        using exists_g'[of "\<V>\<^sub>2 y"]
+        by auto
+    qed
 
     then have "g' y \<notin> X"
       by simp
@@ -1610,13 +1679,20 @@ proof
      moreover then have "\<V>\<^sub>2 y = \<V>\<^sub>2 x"
        unfolding f'_def get_g'_def
        using someI_ex[OF exists_g']
-       by (smt (verit, best) \<open>f' \<equiv> \<lambda>x. get_g' (\<V>\<^sub>2 x) x\<close> \<open>get_g' \<equiv> \<lambda>ty. SOME g'. bij_betw g' {x. \<V>\<^sub>2 x = ty} {x. \<V>\<^sub>2 x = ty \<and> x \<notin> X}\<close> bij_betw_iff_bijections calculation mem_Collect_eq)
+       by (smt (verit, best) f'_def get_g'_def bij_betw_iff_bijections calculation mem_Collect_eq)
+
+      (* TODO *)
+     moreover have "\<And>g'. \<lbrakk>(SOME g'. bij_betw g' {xa. \<V>\<^sub>2 xa = \<V>\<^sub>2 x} {xa. \<V>\<^sub>2 xa = \<V>\<^sub>2 x \<and> xa \<notin> X}) x =
+           (SOME g'. bij_betw g' {xa. \<V>\<^sub>2 xa = \<V>\<^sub>2 x} {xa. \<V>\<^sub>2 xa = \<V>\<^sub>2 x \<and> xa \<notin> X}) y;
+           \<V>\<^sub>2 y = \<V>\<^sub>2 x; \<And>P x. P x \<Longrightarrow> P (Eps P); 
+           bij_betw g' {xa. \<V>\<^sub>2 xa = \<V>\<^sub>2 x} {xa. \<V>\<^sub>2 xa = \<V>\<^sub>2 x \<and> xa \<notin> X}\<rbrakk>
+          \<Longrightarrow> x = y"
+      by (smt (verit, ccfv_threshold) bij_betw_iff_bijections mem_Collect_eq some_eq_ex)
 
      ultimately show "x = y"
        using exists_g'[of "\<V>\<^sub>2 x"] someI
        unfolding f'_def get_g'_def
-       apply auto
-       by (smt (verit, ccfv_threshold) bij_betw_iff_bijections mem_Collect_eq some_eq_ex)
+       by auto
    qed
 
    show "id ` X \<inter> f' ` Y = {}"
@@ -1635,14 +1711,22 @@ proof
 
       have "y \<in> {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y}"
         by simp
-  
-      moreover have "g' y \<in> {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X}"
-        unfolding g'_def
-        using exists_g'[of "\<V>\<^sub>2 y"]
-        apply auto
-        apply (smt (verit, ccfv_SIG) bij_betw_apply mem_Collect_eq verit_sko_ex_indirect)
-        by (smt (verit, best) bij_betw_apply mem_Collect_eq tfl_some)
 
+      have "g' y \<in> {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X}"
+      proof-
+        (* TODO *)
+        have "\<And>g'. bij_betw g' {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y} {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X} \<Longrightarrow>
+          \<V>\<^sub>2 ((SOME g'. bij_betw g' {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y} {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X}) y) = \<V>\<^sub>2 y"
+          "\<And>g'. \<lbrakk>bij_betw g' {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y} {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X};
+           (SOME g'. bij_betw g' {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y} {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X}) y \<in> X\<rbrakk>
+          \<Longrightarrow> False"
+          by (smt (verit, ccfv_SIG) bij_betw_apply mem_Collect_eq verit_sko_ex_indirect)+
+          
+        then show ?thesis
+          unfolding g'_def
+          using exists_g'[of "\<V>\<^sub>2 y"]
+          by auto
+      qed
 
       then show "\<V>\<^sub>2 (f' y) = \<V>\<^sub>2 y"
         unfolding g'_def f'_def get_g'_def
@@ -1867,8 +1951,7 @@ proof-
     by presburger
 qed
 
-(* Martin: Look here *)
-lemma welltyped_renaming_exists: 
+(*lemma welltyped_renaming_exists: 
   assumes "\<exists>X. \<forall>ty. infinite (X \<inter> {x. \<V>\<^sub>1 x = ty}) \<and> infinite ((UNIV - X) \<inter> {x. \<V>\<^sub>2 x = ty})"
   obtains \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v :: {countable, infinite}) subst" where
     "term_subst.is_renaming \<rho>\<^sub>1" 
@@ -1917,7 +2000,7 @@ proof-
   ultimately show ?thesis 
     using that
     by blast
-qed
+qed*)
 
 lemma welltyped_on_renaming_exists':
   assumes "finite X" "finite Y"  "\<And>ty. infinite {x. \<V>\<^sub>1 x = ty}" "\<And>ty. infinite {x. \<V>\<^sub>2 x = ty}"

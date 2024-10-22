@@ -17,6 +17,7 @@ definition is_select_grounding :: "('f, 'v) select \<Rightarrow> 'f ground_selec
         clause\<^sub>G = clause.to_ground (clause \<cdot> \<gamma>) \<and> 
         select\<^sub>G clause\<^sub>G = clause.to_ground ((select clause) \<cdot> \<gamma>))"
 
+(* TODO: Clean up! *)
 lemma infinite_lists_per_length: "infinite {l :: ('a :: infinite) list. length (tl l) = y}"
 proof(induction y)
   case 0
@@ -38,7 +39,8 @@ proof(induction y)
 
     moreover have "\<And>x. length x = Suc 0 \<Longrightarrow> x \<in> range f"
       unfolding f_def
-      by (smt (z3) One_nat_def Suc_length_conv Suc_pred' diff_Suc_1 diff_is_0_eq' length_0_conv nat.simps(3) not_gr0 rangeI)
+      by (smt (z3) One_nat_def Suc_length_conv Suc_pred' diff_Suc_1 diff_is_0_eq' 
+          length_0_conv nat.simps(3) not_gr0 rangeI)
 
     moreover have "\<And>x. \<lbrakk>x \<notin> range f; length x \<le> Suc 0\<rbrakk> \<Longrightarrow> x = []"
       using calculation(3) le_Suc_eq by auto
@@ -49,8 +51,7 @@ proof(induction y)
 
     ultimately have tt: "bij_betw f UNIV  ({l. length (tl l) = 0} - {[]})"
       unfolding bij_betw_def inj_def
-      apply auto
-      by presburger
+      by auto presburger
 
     then have "infinite ({l :: 'a list. length (tl l) = 0} - {[]})"
       using bij_betw_finite infinite_UNIV by blast
@@ -114,7 +115,7 @@ proof-
     show "infinite {x. f x = y}"
       unfolding f_def x
       using infinite_prods
-      by (smt (z3) Collect_mono_iff bij_betw_finite bij_betw_inv_into bij_betw_subset bij_g finite_subset top_greatest)
+      by (metis bij_betw_def bij_g finite_imageI image_f_inv_f)
   qed
 
   then show ?thesis
@@ -138,7 +139,7 @@ proof-
     show "infinite {x. f x = y}"
       unfolding f_def x
       using infinite_prods 
-      by (smt (z3) Collect_mono_iff bij_betw_finite bij_betw_inv_into bij_betw_subset bij_g finite_subset top_greatest)
+      by (metis bij_g bij_is_surj finite_imageI image_f_inv_f)
   qed
 
   then show ?thesis
@@ -164,7 +165,7 @@ proof-
     show "infinite {x. f x = y}"
       unfolding f_def x
       using infinite_prods
-      by (smt (z3) Collect_mono_iff bij_betw_finite bij_betw_inv_into bij_betw_subset bij_g finite_subset top_greatest)
+      by (metis bij_g bij_is_surj finite_imageI image_f_inv_f)
   qed
 
   obtain f' ::  "'a \<Rightarrow> 'b" where "surj f'"
@@ -193,7 +194,8 @@ proof-
   proof-
     fix y
     have "{x. length (tl (g x)) = y} = inv g ` {l. length (tl l) = y}"
-      by (smt (verit, ccfv_SIG) Collect_cong bij_betw_def bij_g bij_image_Collect_eq image_inv_f_f inv_inv_eq surj_imp_inj_inv)
+      by (smt (verit, ccfv_SIG) Collect_cong bij_betw_def bij_g bij_image_Collect_eq image_inv_f_f 
+          inv_inv_eq surj_imp_inj_inv)
 
     then show "infinite {x. f x = y}"
       unfolding f_def
@@ -242,9 +244,8 @@ proof-
   have "\<And>ty. infinite {x. \<V> x = ty}"
     using \<V>_nat
     unfolding \<V>_def all_types_def
-    apply auto
-    by (smt (verit) "2" Collect_mono_iff UNIV_I bij_betw_iff_bijections finite_subset nat_to_ty)
-
+    by (smt (verit) "2" Collect_mono UNIV_I bij_betw_iff_bijections finite_subset nat_to_ty)
+  
   then show "\<exists>\<V> :: 'v :: {infinite, countable} \<Rightarrow> 'ty :: countable. all_types \<V>"
     unfolding all_types_def
     by fast
@@ -276,7 +277,8 @@ abbreviation select_subst_stability_on where
     \<forall>premise\<^sub>G \<in> \<Union> (clause_groundings \<F> ` premises). \<exists>(premise, \<V>) \<in> premises. \<exists>\<gamma>. 
       premise \<cdot> \<gamma> = clause.from_ground premise\<^sub>G \<and> 
       select\<^sub>G (clause.to_ground (premise \<cdot> \<gamma>)) = clause.to_ground ((select premise) \<cdot> \<gamma>) \<and>
-      welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma>  \<and> 
+      welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma> \<and> 
+      term_subst.is_ground_subst \<gamma>  \<and> 
       all_types \<V>"
 
 lemma obtain_subst_stable_on_select_grounding:
@@ -290,8 +292,9 @@ proof-
   have select\<^sub>G_exists_for_premises: 
     "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G \<gamma>. \<exists>(premise, \<V>) \<in> premises.
           premise \<cdot> \<gamma> = clause.from_ground premise\<^sub>G 
-        \<and> select\<^sub>G premise\<^sub>G = clause.to_ground ((select premise) \<cdot> \<gamma>) \<and>
-        welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
+        \<and> select\<^sub>G premise\<^sub>G = clause.to_ground ((select premise) \<cdot> \<gamma>) 
+        \<and> welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma>
+        \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     unfolding clause_groundings_def
     using clause.is_ground_subst_is_ground
     by fastforce
@@ -301,10 +304,11 @@ proof-
         premise \<cdot> \<gamma> = clause.from_ground premise\<^sub>G 
       \<and> select\<^sub>G_on_premise_groundings (clause.to_ground (premise \<cdot> \<gamma>)) = 
           clause.to_ground ((select premise) \<cdot> \<gamma>) 
-      \<and> welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma> \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
-    using Ball_Ex_comm(1)[OF select\<^sub>G_exists_for_premises]
-    apply auto
-    by (smt (verit, best) prod.case_eq_if clause.from_ground_inverse)
+      \<and> welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma> 
+      \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
+    using Ball_Ex_comm(1)[OF select\<^sub>G_exists_for_premises] 
+      prod.case_eq_if clause.from_ground_inverse
+    by fastforce
 
   define select\<^sub>G where
     "\<And>clause\<^sub>G. select\<^sub>G clause\<^sub>G = (
@@ -314,12 +318,53 @@ proof-
     )"
 
   have grounding: "is_select_grounding select select\<^sub>G"
-    unfolding is_select_grounding_def select\<^sub>G_def
-    using select\<^sub>G_on_premise_groundings
-    apply auto
-     apply force
-    by (metis (no_types, opaque_lifting) clause.comp_subst.left.action_neutral clause.ground_is_ground clause.from_ground_inverse)
+  proof-
+    have "\<And>clause\<^sub>G a b.
+       \<lbrakk>\<forall>y\<in>premises.
+           \<forall>premise\<^sub>G\<in>clause_groundings \<F> y.
+              \<exists>x\<in>premises.
+                 case x of
+                 (premise, \<V>) \<Rightarrow>
+                   \<exists>\<gamma>. premise \<cdot> \<gamma> = clause.from_ground premise\<^sub>G \<and>
+                       select\<^sub>G_on_premise_groundings (clause.to_ground (premise \<cdot> \<gamma>)) =
+                       clause.to_ground (select premise \<cdot> \<gamma>) \<and>
+                       welltyped\<^sub>c \<F> \<V> premise \<and>
+                       welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma> \<and>
+                       term_subst.is_ground_subst \<gamma> \<and> all_types \<V>;
+        (a, b) \<in> premises; clause\<^sub>G \<in> clause_groundings \<F> (a, b)\<rbrakk>
+       \<Longrightarrow> \<exists>clause \<gamma>.
+              clause.vars (clause \<cdot> \<gamma>) = {} \<and>
+              clause\<^sub>G = clause.to_ground (clause \<cdot> \<gamma>) \<and>
+              select\<^sub>G_on_premise_groundings clause\<^sub>G = clause.to_ground (select clause \<cdot> \<gamma>)"
+      by force
 
+    moreover have " \<And>clause\<^sub>G.
+       \<lbrakk>\<forall>y\<in>premises.
+           \<forall>premise\<^sub>G\<in>clause_groundings \<F> y.
+              \<exists>x\<in>premises.
+                 case x of
+                 (premise, \<V>) \<Rightarrow>
+                   \<exists>\<gamma>. premise \<cdot> \<gamma> = clause.from_ground premise\<^sub>G \<and>
+                       select\<^sub>G_on_premise_groundings (clause.to_ground (premise \<cdot> \<gamma>)) =
+                       clause.to_ground (select premise \<cdot> \<gamma>) \<and>
+                       welltyped\<^sub>c \<F> \<V> premise \<and>
+                       welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma> \<and>
+                       term_subst.is_ground_subst \<gamma> \<and> all_types \<V>;
+        \<forall>x\<in>premises. clause\<^sub>G \<notin> clause_groundings \<F> x\<rbrakk>
+       \<Longrightarrow> \<exists>clause \<gamma>.
+              clause.vars (clause \<cdot> \<gamma>) = {} \<and>
+              clause\<^sub>G = clause.to_ground (clause \<cdot> \<gamma>) \<and>
+              clause.to_ground (select (clause.from_ground clause\<^sub>G)) =
+              clause.to_ground (select clause \<cdot> \<gamma>)"
+      by (metis (no_types, opaque_lifting) clause.comp_subst.left.action_neutral 
+            clause.ground_is_ground clause.from_ground_inverse)
+
+    ultimately show ?thesis
+      unfolding is_select_grounding_def select\<^sub>G_def
+      using select\<^sub>G_on_premise_groundings
+      by auto
+  qed
+   
   show ?thesis
     using that[OF _ grounding] select\<^sub>G_on_premise_groundings
     unfolding select\<^sub>G_def 

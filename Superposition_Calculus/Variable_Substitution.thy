@@ -187,6 +187,12 @@ lemma ground_subst_upd [simp]:
   shows "is_ground (exp \<cdot> \<gamma>(var := update))"
   using assms is_grounding_iff_vars_grounded by auto
 
+lemma variable_grounding:
+  assumes "is_ground (t \<cdot> \<gamma>)" "x \<in> vars t" 
+  shows "is_ground (\<gamma> x)"
+  using assms is_grounding_iff_vars_grounded 
+  by blast
+
 end
 
 locale based_variable_substitution = 
@@ -227,7 +233,15 @@ lemma ground_exists: "\<exists>exp. is_ground exp"
   using base.ground_exists
   by (meson is_grounding_iff_vars_grounded)
 
+lemma variable_grounding:
+  assumes "is_ground (t \<cdot> \<gamma>)" "x \<in> vars t" 
+  shows "base.is_ground (\<gamma> x)"
+  using assms is_grounding_iff_vars_grounded 
+  by blast
+
 end
+                                             
+
 
 (* ---- Liftings ---- *)
 
@@ -401,6 +415,12 @@ lemma ground_exists: "\<exists>exp. is_ground exp"
   using base.ground_exists
   by (meson is_grounding_iff_vars_grounded)
 
+lemma variable_grounding:
+  assumes "is_ground (subst t \<gamma>)" "x \<in> vars t" 
+  shows "base.is_ground (\<gamma> x)"
+  using assms is_grounding_iff_vars_grounded 
+  by blast
+
 end
 
 locale finite_variables_lifting = 
@@ -436,15 +456,10 @@ fixes
   ground_map :: "('ground_sub \<Rightarrow> 'ground_sub) \<Rightarrow> 'ground_expr \<Rightarrow> 'ground_expr" and
   to_set_ground :: "'ground_expr \<Rightarrow> 'ground_sub set"
 assumes 
-  (* TODO: *)
-  (*to_ground_map_cong: "\<And>d f g. (\<And>c. c \<in> to_set d \<Longrightarrow> f c = g c) \<Longrightarrow> to_ground_map f d = to_ground_map g d" and
-  from_ground_map_cong: "\<And>d f g. (\<And>c. c \<in> to_set_ground d \<Longrightarrow> f c = g c) \<Longrightarrow> from_ground_map f d = from_ground_map g d" and*)
-  (*to_set_to_ground_map: "\<And>d f. to_set_ground (to_ground_map f d) = f ` to_set d" and*)
+  (* TODO: Names *)
   to_set_from_ground_map: "\<And>d f. to_set (from_ground_map f d) = f ` to_set_ground d" and
   map_comp': "\<And>d f g. from_ground_map f (to_ground_map g d) = map (f \<circ> g) d" and
   ground_map_comp: "\<And>d f g. to_ground_map f (from_ground_map g d) = ground_map (f \<circ> g) d" and
-  (*ground_map_cong: "\<And>d f g. (\<And>c. c \<in> to_set_ground d \<Longrightarrow> f c = g c) \<Longrightarrow> ground_map f d = ground_map g d" and*)
-  (*to_set_ground_map: "\<And>d f. to_ground_set (ground_map f d) = f ` to_ground_set d" and*)
   ground_map_id: "ground_map id g = g"
 begin
 
