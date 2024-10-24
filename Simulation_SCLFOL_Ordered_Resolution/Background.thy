@@ -17,6 +17,8 @@ theory Background
     Full_Run
 begin
 
+lemma "I \<TTurnstile>l L \<longleftrightarrow> (is_pos L \<longleftrightarrow> atm_of L \<in> I)"
+  by (cases L) simp_all
 
 section \<open>Move to \<^theory>\<open>HOL-Library.Multiset\<close>\<close>
 

@@ -315,7 +315,7 @@ proof -
       using nex_between_C_and_D by force
     show "{Da. Da |\<in>| NN \<and> Da \<prec>\<^sub>c D} = {Da. Da |\<in>| {|B |\<in>| NN. (\<prec>\<^sub>c)\<^sup>=\<^sup>= B C|} \<and> Da \<prec>\<^sub>c D}"
       using \<open>NN = {|B |\<in>| NN. (\<prec>\<^sub>c)\<^sup>=\<^sup>= B C|} |\<union>| ffilter ((\<prec>\<^sub>c)\<^sup>=\<^sup>= D) NN\<close> linorder_cls.leD by auto
-  qed simp_all
+  qed
 
   also have "\<dots> = \<Union> (ord_res.production (fset {|B |\<in>| NN. (\<prec>\<^sub>c)\<^sup>=\<^sup>= B C|}) `
     {Da. Da |\<in>| {|B |\<in>| NN. (\<prec>\<^sub>c)\<^sup>=\<^sup>= B C|} \<and> Da \<prec>\<^sub>c D})"
