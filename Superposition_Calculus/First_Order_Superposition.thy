@@ -60,16 +60,28 @@ locale first_order_superposition_calculus =
     variables: "|UNIV :: 'ty set| \<le>o |UNIV :: 'v set|"
 begin
 
-abbreviation typed_tiebreakers ::  "'f gatom clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> bool" 
-  where "typed_tiebreakers clause\<^sub>G clause\<^sub>1 clause\<^sub>2 \<equiv> tiebreakers clause\<^sub>G (fst clause\<^sub>1) (fst clause\<^sub>2)"
+abbreviation typed_tiebreakers :: 
+      "'f gatom clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> bool" where 
+    "typed_tiebreakers clause\<^sub>G clause\<^sub>1 clause\<^sub>2 \<equiv> tiebreakers clause\<^sub>G (fst clause\<^sub>1) (fst clause\<^sub>2)"
 
 lemma wellfounded_typed_tiebreakers: 
-      "wfP (typed_tiebreakers clause\<^sub>G) \<and>  transp (typed_tiebreakers clause\<^sub>G) \<and>  asymp (typed_tiebreakers clause\<^sub>G)"
-  using wellfounded_tiebreakers
-  apply auto
-    apply (meson wfP_if_convertible_to_wfP)
-   apply (smt (verit, ccfv_threshold) transpD transpI)
-  by (meson asympD asympI)
+      "wfP (typed_tiebreakers clause\<^sub>G) \<and> 
+       transp (typed_tiebreakers clause\<^sub>G) \<and>
+      asymp (typed_tiebreakers clause\<^sub>G)"
+proof(intro conjI)
+
+  show "wfp (typed_tiebreakers clause\<^sub>G)"
+    using wellfounded_tiebreakers
+    by (meson wfp_if_convertible_to_wfp)
+
+  show "transp (typed_tiebreakers clause\<^sub>G)"
+    using wellfounded_tiebreakers
+    by (smt (verit, ccfv_threshold) transpD transpI)
+
+  show "asymp (typed_tiebreakers clause\<^sub>G)"
+    using wellfounded_tiebreakers
+    by (meson asympD asympI)
+qed
 
 definition is_merged_var_type_env where
   "is_merged_var_type_env \<V> X \<V>\<^sub>X \<rho>\<^sub>X Y \<V>\<^sub>Y \<rho>\<^sub>Y \<equiv>
@@ -250,11 +262,14 @@ proof (rule iffI)
   assume "superposition P\<^sub>2 P\<^sub>1 C"
   thus "pos_superposition  P\<^sub>2 P\<^sub>1 C \<or> neg_superposition P\<^sub>2 P\<^sub>1 C"
   proof (cases P\<^sub>2 P\<^sub>1 C rule: superposition.cases)
-    case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 premise\<^sub>1 premise\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' \<P> context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
+    case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 premise\<^sub>1 premise\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' \<P> context\<^sub>1 
+          term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
     then show ?thesis
       using
-        pos_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 premise\<^sub>1 premise\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>]
-        neg_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 premise\<^sub>1 premise\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>] 
+        pos_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 premise\<^sub>1 premise\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' context\<^sub>1 
+                              term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>]
+        neg_superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 premise\<^sub>1 premise\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' context\<^sub>1 
+                              term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>] 
       by blast
   qed
 next
@@ -311,15 +326,41 @@ lemma eq_factoring_preserves_typing:
 proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
   case (eq_factoringI literal\<^sub>1 literal\<^sub>2 premise' term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
   
-  have "welltyped\<^sub>c typeof_fun \<V> (D \<cdot> \<mu>)"
+  have wt_D\<mu>: "welltyped\<^sub>c typeof_fun \<V> (D \<cdot> \<mu>)"
     using wt_D welltyped\<^sub>\<sigma>_welltyped\<^sub>c eq_factoringI
     by blast
 
-  then show ?thesis
-    unfolding welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def eq_factoringI subst_clause_add_mset subst_literal subst_atom
-    apply auto
-      (* TODO: *)
-    by (metis welltyped_right_unique eq_factoringI(8) right_uniqueD welltyped\<^sub>\<sigma>_welltyped)+
+  show ?thesis
+  proof-
+    (* TODO *)
+    have "\<And>\<tau> \<tau>'.
+       \<lbrakk>\<forall>L\<in>#premise' \<cdot> \<mu>.
+           \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). First_Order_Type_System.welltyped typeof_fun \<V> t \<tau>;
+        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>1 \<cdot>t \<mu>) \<tau>;
+        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau>;
+        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>2 \<cdot>t \<mu>) \<tau>';
+        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>'\<rbrakk>
+       \<Longrightarrow> \<exists>\<tau>. First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>1 \<cdot>t \<mu>) \<tau> \<and>
+               First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>"
+       by (metis welltyped_right_unique eq_factoringI(8) right_uniqueD welltyped\<^sub>\<sigma>_welltyped)
+
+     moreover have "\<And>\<tau> \<tau>'.
+       \<lbrakk>\<forall>L\<in>#premise' \<cdot> \<mu>.
+           \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). First_Order_Type_System.welltyped typeof_fun \<V> t \<tau>;
+        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>1 \<cdot>t \<mu>) \<tau>;
+        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau>;
+        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>2 \<cdot>t \<mu>) \<tau>';
+        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>'\<rbrakk>
+       \<Longrightarrow> \<exists>\<tau>. First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau> \<and>
+               First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>"
+       by (metis welltyped_right_unique eq_factoringI(8) right_uniqueD welltyped\<^sub>\<sigma>_welltyped)
+
+     ultimately show ?thesis
+       using wt_D\<mu>
+       unfolding welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def eq_factoringI subst_clause_add_mset 
+         subst_literal subst_atom
+       by auto
+   qed
 qed
 
 (* TODO: Naming!! *)
@@ -331,7 +372,8 @@ lemma superposition_preserves_typing:
   shows "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 E"
   using step
 proof (cases "(D, \<V>\<^sub>2)" "(C, \<V>\<^sub>1)" "(E, \<V>\<^sub>3)" rule: superposition.cases)
-  case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' \<P> context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
+  case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' \<P> context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 
+         term\<^sub>2' \<mu>)
 
   have welltyped_\<mu>: "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 \<mu>"
     using superpositionI(11)

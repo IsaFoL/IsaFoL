@@ -32,4 +32,10 @@ lemma Ball_Ex_comm:
   "(\<exists>f. \<forall>x \<in> X. P (f x) x) \<Longrightarrow> (\<forall>x \<in> X. \<exists>f. P (f x) x)"
   by meson+
 
+lemma set_map_id:
+  assumes "x \<in> set X" "f x \<notin> set X"  "map f X = X"
+  shows False
+  using assms
+  by(induction X) auto
+
 end

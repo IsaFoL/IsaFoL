@@ -75,8 +75,8 @@ termination epsilon
 proof (relation "{((x1, x2), (y1, y2)). x2 \<prec>\<^sub>c y2}")
   define f :: "'c \<times> 'f gterm uprod literal multiset \<Rightarrow> 'f gterm uprod literal multiset" where
     "f = (\<lambda>(x1, x2). x2)"
-  have "wfP (\<lambda>(x1, x2) (y1, y2). x2 \<prec>\<^sub>c y2)"
-  proof (rule wfP_if_convertible_to_wfP)
+  have "wfp (\<lambda>(x1, x2) (y1, y2). x2 \<prec>\<^sub>c y2)"
+  proof (rule wfp_if_convertible_to_wfp)
     show "\<And>x y. (case x of (x1, x2) \<Rightarrow> \<lambda>(y1, y2). x2 \<prec>\<^sub>c y2) y \<Longrightarrow> (snd x) \<prec>\<^sub>c (snd y)"
       by auto
   next
@@ -84,7 +84,7 @@ proof (relation "{((x1, x2), (y1, y2)). x2 \<prec>\<^sub>c y2}")
       by simp
   qed
   thus "wf {((x1, x2), (y1, y2)). x2 \<prec>\<^sub>c y2}"
-    by (simp add: wfP_def)
+    by (simp add: wfp_def)
 next
   show "\<And>N C x xa xb xc xd. xd \<in> {D \<in> N. D \<prec>\<^sub>c C} \<Longrightarrow> (({E \<in> N. E \<preceq>\<^sub>c xd}, xd), N, C) \<in> {((x1, x2), y1, y2). x2 \<prec>\<^sub>c y2}"
     by simp
@@ -373,7 +373,7 @@ lemma (in ground_superposition_calculus) termination_rewrite_sys: "wf ((rewrite_
 proof (rule wf_if_convertible_to_wf)
   show "wf {(x, y). x \<prec>\<^sub>t y}"
     using wfP_less_trm
-    by (simp add: wfP_def)
+    by (simp add: wfp_def)
 next
   fix t s
   assume "(t, s) \<in> (rewrite_sys N C)\<inverse>"
@@ -392,7 +392,7 @@ lemma (in ground_superposition_calculus) termination_Union_rewrite_sys:
 proof (rule wf_if_convertible_to_wf)
   show "wf {(x, y). x \<prec>\<^sub>t y}"
     using wfP_less_trm
-    by (simp add: wfP_def)
+    by (simp add: wfp_def)
 next
   fix t s
   assume "(t, s) \<in> (\<Union>D \<in> N. rewrite_sys N D)\<inverse>"
@@ -1177,7 +1177,7 @@ lemma (in ground_superposition_calculus) model_preconstruction:
     "\<And>D. D \<in> N \<Longrightarrow> C \<prec>\<^sub>c D \<Longrightarrow> entails (rewrite_sys N D) C"
   unfolding atomize_all atomize_conj atomize_imp
   using wfP_less_cls C_in
-proof (induction C rule: wfP_induct_rule)
+proof (induction C rule: wfp_induct_rule)
   case (less C)
   note IH = less.IH
 

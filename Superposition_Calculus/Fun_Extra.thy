@@ -229,9 +229,8 @@ proof-
 
   moreover have "A \<union> B = UNIV"
     unfolding A_def B_def
-    apply auto
-    by (metis (mono_tags, opaque_lifting) UNIV_I bij_betw_imp_surj f imageI old.sum.exhaust rangeE)
-
+    by (metis UNIV_sum bij_is_surj f image_Un)
+    
   moreover have Inl: "|Inl ` (UNIV :: 'x set)| =o |UNIV :: 'x set|"
     by (meson bij_betw_imageI card_of_ordIsoI inj_Inl ordIso_symmetric)
 
@@ -242,15 +241,14 @@ proof-
     unfolding A_def
     using f
     unfolding bij_betw_def
-    apply auto
-    by (smt (verit, del_insts) A_def Inl bij_betw_imageI card_of_ordIso inj_on_subset ordIso_symmetric ordIso_transitive subset_UNIV)
-
+    by (metis Inl Int_UNIV_left bij_betw_imageI bij_betw_inv card_of_ordIsoI inj_on_Int 
+        ordIso_transitive)
+   
   moreover have "|B| =o |UNIV :: 'x set|"
-     unfolding B_def
     using f
-    unfolding bij_betw_def
-    apply auto
-    by (smt (verit, del_insts) B_def Inr bij_betw_imageI card_of_ordIso inj_on_subset ordIso_symmetric ordIso_transitive subset_UNIV)
+    unfolding B_def bij_betw_def
+    by (meson UNIV_I bij_betw_imageI card_of_ordIsoI inj_Inr inj_on_def ordIso_symmetric 
+        ordIso_transitive)
 
   ultimately show ?thesis
     using that

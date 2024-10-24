@@ -35,7 +35,7 @@ locale first_order_ordering = term_ordering_lifting less\<^sub>t
     (* less\<^sub>t_transitive [intro]: "transp (\<prec>\<^sub>t)" and *)
     (* less\<^sub>t_asymmetric [intro]: "asymp (\<prec>\<^sub>t)" and  *)
     less\<^sub>t_total_on [intro]: "totalp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and
-    less\<^sub>t_wellfounded_on: "Wellfounded.wfp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and    
+    less\<^sub>t_wellfounded_on: "wfp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and    
     less\<^sub>t_ground_context_compatible:
       "\<And>context term\<^sub>1 term\<^sub>2. 
         term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<Longrightarrow>
@@ -92,7 +92,7 @@ proof -
   next
     show "\<And>y. y \<in># C \<Longrightarrow> y \<noteq> L \<Longrightarrow> \<not> L \<prec>\<^sub>l y"
       using subst_stability
-      by (metis L\<sigma>_max literal_in_clause_subst literal_order.order.strict_iff_order)
+      by (metis L\<sigma>_max clause.subst_in_to_set_subst literal_order.order.strict_iff_order)
   qed
 qed
 
@@ -133,7 +133,7 @@ lemma less\<^sub>t_total_on': "totalp_on (term.from_ground ` terms\<^sub>G) (\<p
   using less\<^sub>t_total_on
   by (simp add: totalp_on_def)
 
-lemma less\<^sub>t\<^sub>G_wellfounded: "wfP (\<prec>\<^sub>t\<^sub>G)"
+lemma less\<^sub>t\<^sub>G_wellfounded: "wfp (\<prec>\<^sub>t\<^sub>G)"
 proof -
   have "Wellfounded.wfp_on (range term.from_ground) (\<prec>\<^sub>t)"
     using less\<^sub>t_wellfounded_on' by metis
@@ -146,7 +146,7 @@ qed
 subsection \<open>Ground term ordering\<close>
 
 lemma less\<^sub>t\<^sub>G_asymmetric [intro]: "asymp (\<prec>\<^sub>t\<^sub>G)"
-  by (simp add: wfP_imp_asymp less\<^sub>t\<^sub>G_wellfounded)
+  by (simp add: wfp_imp_asymp less\<^sub>t\<^sub>G_wellfounded)
 
 lemmas less\<^sub>t\<^sub>G_asymmetric_on = less\<^sub>t\<^sub>G_asymmetric[THEN asymp_on_subset, OF subset_UNIV]
 
@@ -168,14 +168,14 @@ lemma less\<^sub>t\<^sub>G_context_compatible [simp]:
   shows "context\<langle>term\<^sub>1\<rangle>\<^sub>G \<prec>\<^sub>t\<^sub>G context\<langle>term\<^sub>2\<rangle>\<^sub>G"
   using assms less\<^sub>t_ground_context_compatible
   unfolding less\<^sub>t\<^sub>G_def
-  by (metis ground_context_is_ground ground_term_is_ground ground_term_with_context(3)) 
+  by (metis context.ground_is_ground term.ground_is_ground ground_term_with_context(3)) 
 
 lemma less\<^sub>t\<^sub>G_subterm_property [simp]: 
   assumes "context \<noteq> \<box>\<^sub>G" 
   shows "term \<prec>\<^sub>t\<^sub>G context\<langle>term\<rangle>\<^sub>G"
   using 
     assms
-    less\<^sub>t_ground_subterm_property[OF ground_term_is_ground ground_context_is_ground] 
+    less\<^sub>t_ground_subterm_property[OF term.ground_is_ground context.ground_is_ground] 
     context_from_ground_hole
   unfolding less\<^sub>t\<^sub>G_def ground_term_with_context(3)  
   by blast
@@ -252,7 +252,7 @@ lemma less\<^sub>c_ground_subst_stability:
 proof (elim multp_map_strong[rotated -1])
   show "monotone_on (set_mset (clause + clause')) (\<prec>\<^sub>l) (\<prec>\<^sub>l) (\<lambda>literal. literal \<cdot>l \<gamma>)"
     by (rule monotone_onI)
-      (metis assms(1,2) ground_literal_in_ground_clause_subst less\<^sub>l_ground_subst_stability union_iff)
+      (metis assms(1,2) clause.to_set_is_ground_subst less\<^sub>l_ground_subst_stability union_iff)
 qed (use less\<^sub>l_asymmetric less\<^sub>l_transitive in simp_all)
 
 subsection \<open>Grounding\<close>
@@ -280,7 +280,9 @@ lemma less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G:
 
 lemma less_eq\<^sub>t\<^sub>G_less_eq\<^sub>t:
    "term\<^sub>G\<^sub>1 \<preceq>\<^sub>t\<^sub>G term\<^sub>G\<^sub>2 \<longleftrightarrow> term.from_ground term\<^sub>G\<^sub>1 \<preceq>\<^sub>t term.from_ground term\<^sub>G\<^sub>2"
-  unfolding less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G[OF ground_term_is_ground ground_term_is_ground] term.from_ground_inverse
+  unfolding 
+    less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G[OF term.ground_is_ground term.ground_is_ground] 
+    term.from_ground_inverse
   ..
 
 lemma not_less_eq\<^sub>t: 
@@ -289,7 +291,8 @@ lemma not_less_eq\<^sub>t:
   unfolding less\<^sub>t_less\<^sub>t\<^sub>G[OF assms] less_eq\<^sub>t_less_eq\<^sub>t\<^sub>G[OF assms(2, 1)] not_less_eq\<^sub>t\<^sub>G
   ..
 
-lemma less\<^sub>l\<^sub>G_less\<^sub>l: "literal\<^sub>G\<^sub>1 \<prec>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> literal.from_ground literal\<^sub>G\<^sub>1 \<prec>\<^sub>l literal.from_ground literal\<^sub>G\<^sub>2"
+lemma less\<^sub>l\<^sub>G_less\<^sub>l: 
+  "literal\<^sub>G\<^sub>1 \<prec>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> literal.from_ground literal\<^sub>G\<^sub>1 \<prec>\<^sub>l literal.from_ground literal\<^sub>G\<^sub>2"
   unfolding less\<^sub>l_def ground.less_lit_def less\<^sub>t\<^sub>G_def mset_literal_from_ground
   using
      multp_image_mset_image_msetI[OF _ less\<^sub>t_transitive]
@@ -312,7 +315,7 @@ lemma less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G:
 lemma less_eq\<^sub>l\<^sub>G_less_eq\<^sub>l:
    "literal\<^sub>G\<^sub>1 \<preceq>\<^sub>l\<^sub>G literal\<^sub>G\<^sub>2 \<longleftrightarrow> literal.from_ground literal\<^sub>G\<^sub>1 \<preceq>\<^sub>l literal.from_ground literal\<^sub>G\<^sub>2"
   unfolding 
-    less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G[OF ground_literal_is_ground ground_literal_is_ground] 
+    less_eq\<^sub>l_less_eq\<^sub>l\<^sub>G[OF literal.ground_is_ground literal.ground_is_ground] 
     literal.from_ground_inverse
   ..
 
@@ -336,14 +339,16 @@ lemma is_strictly_maximal\<^sub>l_empty [simp]:
   by fastforce
 
 lemma is_maximal_lit_iff_is_maximal\<^sub>l: 
-  "ground.is_maximal_lit literal\<^sub>G clause\<^sub>G \<longleftrightarrow> is_maximal\<^sub>l (literal.from_ground literal\<^sub>G) (clause.from_ground clause\<^sub>G)"
+  "ground.is_maximal_lit literal\<^sub>G clause\<^sub>G \<longleftrightarrow> 
+    is_maximal\<^sub>l (literal.from_ground literal\<^sub>G) (clause.from_ground clause\<^sub>G)"
    unfolding 
     is_maximal\<^sub>l_def
     ground.is_maximal_lit_def
-    ground_literal_in_ground_clause(3)[symmetric]
+    clause.ground_sub_in_ground[symmetric]
    using 
-     less\<^sub>l_less\<^sub>l\<^sub>G[OF ground_literal_is_ground ground_literal_in_ground_clause(2)] 
-     ground_literal_in_ground_clause(2, 3)
+     less\<^sub>l_less\<^sub>l\<^sub>G[OF literal.ground_is_ground clause.sub_in_ground_is_ground] 
+     clause.sub_in_ground_is_ground
+     clause.ground_sub_in_ground
    by (metis literal.to_ground_inverse literal.from_ground_inverse)
 
 (* TODO: Name *)
@@ -356,9 +361,9 @@ lemma is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l:
     ]
     ground.is_strictly_maximal_lit_def
     is_strictly_maximal\<^sub>l_def
-    ground_literal_in_ground_clause(3)[symmetric]
+    clause.ground_sub_in_ground[symmetric]
     remove1_mset_literal_from_ground
-    ground_literal_in_ground_clause(4)
+    clause.ground_sub
     less_eq\<^sub>l\<^sub>G_less_eq\<^sub>l
   ..
  
@@ -404,7 +409,9 @@ lemma less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G:
 
 lemma less_eq\<^sub>c\<^sub>G_less_eq\<^sub>c:
    "clause\<^sub>G\<^sub>1 \<preceq>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2 \<longleftrightarrow> clause.from_ground clause\<^sub>G\<^sub>1 \<preceq>\<^sub>c clause.from_ground clause\<^sub>G\<^sub>2"
-  unfolding less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF ground_clause_is_ground ground_clause_is_ground] clause.from_ground_inverse
+  unfolding 
+    less_eq\<^sub>c_less_eq\<^sub>c\<^sub>G[OF clause.ground_is_ground clause.ground_is_ground] 
+    clause.from_ground_inverse
   ..
 
 lemma not_less_eq\<^sub>c\<^sub>G: "\<not> clause\<^sub>G\<^sub>2 \<preceq>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>1 \<longleftrightarrow> clause\<^sub>G\<^sub>1 \<prec>\<^sub>c\<^sub>G clause\<^sub>G\<^sub>2"
@@ -426,8 +433,10 @@ lemma less\<^sub>t_ground_context_compatible':
   shows "term \<prec>\<^sub>t term'"
   (* TODO: *)
   using assms 
-  apply(clause_simp simp: ground.less_trm_compatible_with_gctxt_iff[symmetric, of "term.to_ground term" _ "context.to_ground context"])
-  by (simp add: ground_term_with_context1 less\<^sub>t_less\<^sub>t\<^sub>G)
+  by (metis less\<^sub>t_ground_context_compatible not_less_eq\<^sub>t term_order.dual_order.asym 
+        term_order.order.not_eq_order_implies_strict)
+ (* apply(clause_simp simp: ground.less_trm_compatible_with_gctxt_iff[symmetric, of "term.to_ground term" _ "context.to_ground context"])
+  by (simp add: ground_term_with_context1 less\<^sub>t_less\<^sub>t\<^sub>G)*)
   
 
 lemma less\<^sub>t_ground_context_compatible_iff:
@@ -540,7 +549,7 @@ proof-
 
     note literals_in_clause = literal(1) literal'(1)
     note literals_grounding = literals_in_clause[THEN 
-        ground_literal_in_ground_clause_subst[OF clause_grounding]
+         clause.to_set_is_ground_subst[OF _ clause_grounding]
       ]
 
     have "literal \<cdot>l \<gamma> \<prec>\<^sub>l literal' \<cdot>l \<gamma>"
@@ -549,7 +558,7 @@ proof-
     then have False
      using 
        no_bigger_than_literal
-       literal_in_clause_subst[OF literal'(1)] 
+       clause.subst_in_to_set_subst[OF literal'(1)] 
      by (metis asymp_onD less\<^sub>l_asymmetric_on)
        
     then show ?thesis..
@@ -574,13 +583,13 @@ proof(rule ccontr)
   by blast
 
   then have literal'_grounding: "literal.is_ground (literal' \<cdot>l \<gamma>)"
-    using assms(2) ground_literal_in_ground_clause_subst by blast
+    using assms(2) clause.to_set_is_ground_subst by blast
 
   have literal_grounding: "literal.is_ground (literal \<cdot>l \<gamma>)"
-    using assms(1) assms(2) ground_literal_in_ground_clause_subst by blast
+    using assms(1) assms(2) clause.to_set_is_ground_subst by blast
 
   have literal_\<gamma>_in_premise: "literal' \<cdot>l \<gamma> \<in># clause \<cdot> \<gamma>"
-    using literal_in_clause_subst[OF literal'(2)]
+    using clause.subst_in_to_set_subst[OF literal'(2)]
     by simp
      
   have "literal \<cdot>l \<gamma> \<prec>\<^sub>l literal' \<cdot>l \<gamma>"
@@ -601,7 +610,7 @@ lemma less\<^sub>l_total_on [intro]: "totalp_on (literal.from_ground ` literals\
   by (smt (verit, best) image_iff less\<^sub>l\<^sub>G_less\<^sub>l totalpD ground.less\<^sub>l\<^sub>G_total_on totalp_on_def)
 
 lemmas less\<^sub>l_total_on_set_mset =
-  less\<^sub>l_total_on[THEN totalp_on_subset, OF set_mset_clause_from_ground_literal_from_ground[THEN equalityD1]]
+  less\<^sub>l_total_on[THEN totalp_on_subset, OF clause.to_set_from_ground[THEN equalityD1]]
 
 lemma less\<^sub>c_total_on: "totalp_on (clause.from_ground ` clauses) (\<prec>\<^sub>c)"
   by (smt ground.clause_order.totalp_on_less image_iff less\<^sub>c\<^sub>G_less\<^sub>c totalpD totalp_onI)
@@ -669,17 +678,17 @@ proof-
       by blast 
 
     note literal_grounding = 
-      ground_literal_in_ground_clause_subst[OF clause_grounding literal(1)]
+       clause.to_set_is_ground_subst[OF literal(1) clause_grounding]
 
     have literal'_grounding: "literal.is_ground (literal' \<cdot>l \<gamma>)"
       using literal'(1) clause_grounding
-      by (meson ground_literal_in_ground_clause_subst in_diffD)
+      by (meson clause.to_set_is_ground_subst in_diffD)
 
     have "literal \<cdot>l \<gamma> \<preceq>\<^sub>l literal' \<cdot>l \<gamma>"
       using less_eq\<^sub>l_ground_subst_stability[OF literal_grounding literal'_grounding literal'(2)].
 
     then have False
-      using literal_in_clause_subst[OF literal'(1)]  ground_strictly_maximal 
+      using  clause.subst_in_to_set_subst[OF literal'(1)]  ground_strictly_maximal 
       unfolding 
         is_strictly_maximal\<^sub>l_def 
         literal(2)[symmetric]
@@ -706,7 +715,7 @@ lemma is_strictly_maximal\<^sub>l_ground_subst_stability':
   unfolding 
     is_strictly_maximal\<^sub>l_def is_maximal\<^sub>l_def
     subst_clause_remove1_mset[OF assms(1), symmetric]
-  by (metis in_diffD literal_in_clause_subst reflclp_iff)
+  by (metis in_diffD clause.subst_in_to_set_subst reflclp_iff)
 
 (* TODO: Put in right sections + naming *)
 
@@ -1020,7 +1029,7 @@ proof-
   note less\<^sub>l_subst_upd = less\<^sub>l_subst_upd[of _ \<gamma>, OF update_is_ground update_less] 
 
   have all_ground_literals: "\<forall>literal \<in># clause. literal.is_ground (literal \<cdot>l \<gamma>)"
-    using ground_literal_in_ground_clause_subst[OF literal_grounding] by blast
+    using clause.to_set_is_ground_subst[OF _ literal_grounding] by blast
 
   then have 
     "\<forall>literal \<in># clause. 

@@ -5,7 +5,6 @@
 theory FOL_Syntax
   imports
     Main
-    HOL.Zorn
     Propositional_Proof_Systems.Compactness
     First_Order_Terms.Term
 begin
@@ -65,10 +64,10 @@ fun predicates_form :: \<open>form \<Rightarrow> (nat \<times> nat) set\<close> 
 | \<open>predicates_form (\<^bold>\<forall> x\<^bold>. \<phi>) = predicates_form \<phi>\<close>
 
 definition functions_forms :: \<open>form set \<Rightarrow> (nat \<times> nat) set\<close> where
-  \<open>functions_forms fms = \<Union> {functions_form f |f. f \<in> fms}\<close>
+  \<open>functions_forms fms \<equiv> \<Union>f \<in> fms. functions_form f\<close>
 
 definition predicates :: \<open>form set \<Rightarrow> (nat \<times> nat) set\<close> where
-  \<open>predicates fms = \<Union> {predicates_form f |f. f \<in> fms}\<close>
+  \<open>predicates fms \<equiv> \<Union>f \<in> fms. predicates_form f\<close>
 
 definition language :: \<open>form set \<Rightarrow> ((nat \<times> nat) set \<times> (nat \<times> nat) set)\<close> where
   \<open>language fms = (functions_forms fms, predicates fms)\<close>
