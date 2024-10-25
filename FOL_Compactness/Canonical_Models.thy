@@ -1,6 +1,7 @@
 (* Title:        Part of the proof of compactness of first-order logic following Harrison's in
  *               HOL-Light
- * Author:       Sophie Tourret <sophie.tourret at inria.fr>, 2024 *)
+ * Author:       Sophie Tourret <sophie.tourret at inria.fr>, 2024
+                 Larry Paulson, 2024 *)
 
 theory Canonical_Models
   imports Skolem_Normal_Form
@@ -10,84 +11,6 @@ inductive_set terms_set :: \<open>(nat \<times> nat) set \<Rightarrow> nterm set
   vars: \<open>(Var v) \<in> terms_set fns\<close>
 | fn: \<open>(Fun f ts) \<in> terms_set fns\<close>
   if \<open>(f, length ts) \<in> fns\<close> \<open>\<And>t. t \<in> set ts \<Longrightarrow> t \<in> terms_set fns\<close>
-
-(*
-inductive_set terms_set :: \<open>(nat \<times> nat) set \<Rightarrow> nterm set\<close> for fns :: \<open>(nat \<times> nat) set\<close> where
-  vars: \<open>(Var v) \<in> terms_set fns\<close>
-| fn: \<open>(f, length ts) \<in> fns \<and> set ts \<in> Pow (terms_set fns) \<Longrightarrow> (Fun f ts) \<in> terms_set fns\<close>
-*)
-
-(*
-(* monotonicity is not proven automatically here. Why? How to fix it? *)
-(* \<longrightarrow> avoid the use of list_all in inductive definitions *)
-
-term \<open>t :: nterm\<close>
-term size
-term \<open>num_funs\<close>
-
-lemma subterm_decreases: \<open>\<forall>t \<in> set ts. num_funs t < num_funs (Fun f ts)\<close>
-proof
-  fix t
-  assume \<open>t \<in> set ts\<close>
-  then show \<open>num_funs t < num_funs (Fun f ts)\<close>
-  proof (induction t arbitrary: f ts)
-    case (Var x)
-    then show ?case by simp
-  next
-    case (Fun g rs)
-    have \<open>sum_list (map num_funs ts) \<ge> num_funs (Fun g rs)\<close>
-      using Fun(2) by (simp add: sum_list_map_remove1)
-    then show ?case by simp
-  qed
-qed
-
-lemma mono_terms: \<open>mono
-  (\<lambda>p x. (\<exists>v. (x :: nterm) = Var v) \<or> 
-  (\<exists>f ts. x = Fun f ts \<and> (f, length ts) \<in> fns \<and> FOL_Semantics.list_all p ts))\<close>
-  unfolding mono_def apply simp
-proof clarsimp
-  fix x y f and ts :: "nterm list"
-  assume \<open>x \<le> y\<close>
-    and \<open>\<not> fold (\<lambda>l b. b \<and> y l) ts True\<close>
-    and \<open>(f, length ts) \<in> fns\<close> 
-    and \<open>fold (\<lambda>l b. b \<and> x l) ts True\<close>
-  then show False
-    using subterm_decreases
-    by (metis fold_bool_prop le_boolD le_funD)
-qed
-
-lemma mono_terms_subgoal: \<open>\<And>(x :: nterm \<Rightarrow> bool) y (xa :: nterm) (f :: nat) ts.
-       x (x18 x y xa f ts) \<longrightarrow> y (x18 x y xa f ts) \<Longrightarrow>
-       list_all x ts \<longrightarrow> list_all y ts\<close>
-  unfolding list_all_def mono_def
-  using subterm_decreases fold_bool_prop le_boolD le_funD
-  sorry
-
-(* surprisingly I can prove the failed goal statement (mono_terms) but that cannot be used in the 
- * inductive definitions below. Instead, I must use mono_terms_subgoal but I have a hard time 
- * proving that one... *)
-inductive terms :: \<open>(nat \<times> nat) set \<Rightarrow> nterm \<Rightarrow> bool\<close> for fns :: \<open>(nat \<times> nat) set\<close> where
-  vars: \<open>terms fns (Var v)\<close>
-| fn: \<open>(f, length ts) \<in> fns \<and> list_all (terms fns) ts \<Longrightarrow> terms fns (Fun f ts)\<close>
-monos mono_terms_subgoal
-
-inductive_set terms_set :: \<open>(nat \<times> nat) set \<Rightarrow> nterm set\<close> for fns :: \<open>(nat \<times> nat) set\<close> where
-  vars: \<open>(Var v) \<in> terms_set fns\<close>
-| fn: \<open>(f, length ts) \<in> fns \<and> list_all (\<lambda>t. t \<in> terms_set fns) ts \<Longrightarrow> (Fun f ts) \<in> terms_set fns\<close>
-monos mono_terms_subgoal
-
-(*
-fun in_terms :: \<open>(nat \<times> nat) set \<Rightarrow> nterm \<Rightarrow> bool\<close> where
-  \<open>in_terms fns (Var v) = True\<close>
-| \<open>in_terms fns (Fun f ts) = ((f, length ts) \<in> fns \<and> list_all (in_terms fns) ts)\<close>
-*)
-(*
-primrec in_terms :: \<open>nterm \<Rightarrow> (nat \<times> nat) set \<Rightarrow> bool\<close> where
-  \<open>in_terms (Var v) fns = True\<close>
-| \<open>in_terms (Fun f ts) fns = ((f, length ts) \<in> fns \<and> list_all (\<lambda>t. in_terms t fns) ts)\<close>
-*)
-
-*)
 
 (* STUPID_CANONDOM_LEMMA in hol-light *)
 lemma stupid_canondom: \<open>t \<in> terms_set (fst \<L>) \<Longrightarrow> functions_term t \<subseteq> (fst \<L>)\<close>
@@ -153,5 +76,63 @@ next
   show ?case
     by (force simp add: Cons length_Suc_conv simp flip: fun_upd_def)
 qed
+
+definition canonical :: "(nat \<times> nat) set \<times> (nat \<times> nat) set \<Rightarrow> nterm intrp \<Rightarrow> bool" where
+\<open>canonical \<L> \<M> \<equiv> (dom \<M> = terms_set (fst \<L>) \<and> (\<forall>f. intrp_fn \<M> f = Fun f))\<close>
+
+
+fun formula_to_form :: \<open>(nat\<times>nterm list) formula \<Rightarrow> form\<close> where
+  \<open>formula_to_form (formula.Atom (p,ts)) = Atom p ts\<close>
+| \<open>formula_to_form \<bottom> = \<^bold>\<bottom>\<close>
+| \<open>formula_to_form (formula.Not \<phi>) = \<^bold>\<not> (formula_to_form \<phi>)\<close>
+| \<open>formula_to_form (formula.And \<phi> \<psi>) = (formula_to_form \<phi>) \<^bold>\<and> (formula_to_form \<psi>)\<close>
+| \<open>formula_to_form (formula.Or \<phi> \<psi>) = (formula_to_form \<phi>) \<^bold>\<or> (formula_to_form \<psi>)\<close>
+| \<open>formula_to_form (\<phi> \<^bold>\<rightarrow> \<psi>) = (formula_to_form \<phi>) \<^bold>\<longrightarrow> (formula_to_form \<psi>)\<close>
+
+(* - slight deviation from the hol-light definition where "Atom p ts" appears on the left, which is
+   forbidden in Isabelle, I don't see how to define it only for atoms and obtain a propositional
+   interpretation. 
+   - type translation to bridge with prop compactness result from AFP *)
+definition prop_of_model :: "'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> (nat \<times> nterm list) formula \<Rightarrow> bool" where
+  \<open>prop_of_model \<M> \<beta> \<phi> \<equiv> \<M>\<^bold>,\<beta> \<Turnstile> formula_to_form \<phi>\<close>
+
+(* the predicates are not defined exactly in the same way here and in hol-light, 
+   I replaced the predicate d with the set of all valid atoms and the function returns the list
+   of accepted arguments for a given predicate instead of being a Boolean for compatibility.
+*)
+definition canon_of_prop :: "((nat \<times> nat) set \<times> (nat \<times> nat) set) \<Rightarrow> (form \<Rightarrow> bool) \<Rightarrow> nterm intrp" where
+  \<open>canon_of_prop \<L> I \<equiv> Abs_intrp (terms_set (fst \<L>), (\<lambda>f ts. Fun f ts), (\<lambda>p. {ts. I (Atom p ts)}))\<close>
+
+lemma formula_to_form_to_formula: \<open>qfree \<phi> \<Longrightarrow> formula_to_form (form_to_formula \<phi>) = \<phi>\<close>
+  by (induction \<phi>) simp+
+
+(* PHOLDS_PROP_OF_MODEL in hol-light *)
+lemma pholds_prop_of_model: 
+  \<open>qfree \<phi> \<Longrightarrow> (prop_of_model \<M> \<beta>) (form_to_formula \<phi>) \<longleftrightarrow> \<M>\<^bold>,\<beta> \<Turnstile> \<phi>\<close>
+  unfolding prop_of_model_def using formula_to_form_to_formula by simp
+
+(* PROP_OF_CANON_OF_PROP in hol-light *)
+lemma prop_of_canon_of_prop: 
+  \<open>prop_of_model (canon_of_prop \<L> I) \<beta> (form_to_formula (Atom p ts)) = I (Atom p ts)\<close>
+  unfolding canon_of_prop_def
+  sorry
+
+(* HOLDS_CANON_OF_PROP in hol-light *)
+lemma holds_canon_of_prop:
+  \<open>qfree \<phi> \<Longrightarrow> (canon_of_prop \<L> I)\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p \<phi>\<close>
+  sorry
+
+(* HOLDS_CANON_OF_PROP_GENERAL in hol-light *)
+(* never used afterwards, maybe we can skip it. 
+    It is strange to apply a valuation to a formula anyway, it is a kind of misuse of the fact that 
+    valuations for canonical models and substitutions have the same type *)
+lemma holds_canon_of_prop_general: \<open>qfree \<phi> \<Longrightarrow> (canon_of_prop \<L> I)\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p (\<phi> \<cdot>\<^sub>f\<^sub>m \<beta>)\<close>
+  unfolding canon_of_prop_def
+  sorry
+
+(* CANONICAL_CANON_OF_PROP in hol-light *)
+lemma canonical_canon_of_prop: \<open>canonical \<L> (canon_of_prop \<L> I)\<close>
+  unfolding canonical_def canon_of_prop_def
+  by (metis dom_Abs_is_fst emptyE intrp_fn_Abs_is_fst_snd struct_def terms_set.vars)
 
 end

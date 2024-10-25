@@ -62,6 +62,8 @@ lemma fold_bool_prop: \<open>(fold (\<lambda>l b. b \<and> P l) ls b) = (b \<and
 lemma list_all_set: \<open>list_all P ls = (\<forall>l\<in>set ls. P l)\<close>
   unfolding list_all_def using fold_bool_prop by auto
 
+hide_const lang
+
 definition is_interpretation where
   \<open>is_interpretation lang \<M> \<longleftrightarrow> 
     ((\<forall>f l. (f, length(l)) \<in> fst lang \<and> set l \<subseteq> dom \<M> \<longrightarrow> intrp_fn \<M> f l \<in> dom \<M>))\<close>

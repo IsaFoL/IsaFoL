@@ -7,6 +7,7 @@ theory FOL_Syntax
     Main
     Propositional_Proof_Systems.Compactness
     First_Order_Terms.Term
+    First_Order_Terms.Subterm_and_Context
 begin
 
 (* This heavily reuses Ghilain's FOL_Compactness code, with simplifications for nat type
@@ -39,9 +40,8 @@ instance formula :: (countable) countable
 
 term "test (0, [Var 0])"
 
-fun functions_term :: \<open>nterm \<Rightarrow> (nat \<times> nat) set\<close> where
-  \<open>functions_term (Var _) = {}\<close>
-| \<open>functions_term (Fun f ts) = {(f, length ts)} \<union> (\<Union> t \<in> set ts. functions_term t)\<close>
+abbreviation functions_term :: \<open>nterm \<Rightarrow> (nat \<times> nat) set\<close> where
+  \<open>functions_term t \<equiv> funas_term t\<close>
 
 datatype form =
   Bot (\<open>\<^bold>\<bottom>\<close>)
@@ -535,10 +535,10 @@ next
       have \<open>\<exists>y. y \<in> FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>' y) \<Longrightarrow> v \<in> ?lhs\<close>
         using v_in by (smt (verit, del_insts) Diff_empty Diff_insert0 FV.simps(4)
             Term.term.simps(17) empty_iff eval_term.simps(1) eval_with_fresh_var fun_upd_same
-            functions_term.simps(1) insertE insert_Diff mem_Collect_eq)
+            funas_term.simps(1) insertE insert_Diff mem_Collect_eq)
       moreover have \<open>\<nexists>y. y \<in> FV (\<^bold>\<forall>x\<^bold>. \<phi>) \<and> x \<in> FVT (\<sigma>' y) \<Longrightarrow> v \<in> ?lhs\<close>
         using v_in by (smt (verit, ccfv_threshold) Diff_iff FV.simps(4) \<sigma>'_def empty_iff
-            eval_term.simps(1) fun_upd_other fun_upd_same functions_term.simps(1) insertE
+            eval_term.simps(1) fun_upd_other fun_upd_same funas_term.simps(1) insertE
             mem_Collect_eq)
       ultimately show \<open>v \<in> ?lhs\<close>
         by argo
