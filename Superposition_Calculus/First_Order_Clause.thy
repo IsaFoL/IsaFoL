@@ -19,6 +19,170 @@ no_notation subst_apply_term (infixl "\<cdot>" 67)
 text \<open>Prefer @{thm [source] term_subst.subst_id_subst} to @{thm [source] subst_apply_term_empty}.\<close>
 declare subst_apply_term_empty[no_atp]
 
+locale interpretation_congurence = 
+  based: based_variable_substitution where base_subst = base_subst and vars = vars + 
+  base: grounding where subst = base_subst and vars = base_vars and to_ground = base_to_ground and 
+    from_ground = base_from_ground for 
+  vars :: "'expr \<Rightarrow> 'var set" and
+  base_subst :: "'base \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> 'base" and 
+  base_to_ground :: "'base \<Rightarrow> 'base\<^sub>G" and 
+  base_from_ground +
+  (* TODO: Remove I from entails? *)
+  fixes entails :: "('base\<^sub>G \<times> 'base\<^sub>G) set \<Rightarrow> ('expr \<times> bool) \<Rightarrow> bool" and I ::  "('base\<^sub>G \<times> 'base\<^sub>G) set"
+  assumes
+    (*congruence: 
+    "\<And>expr \<gamma> var update. 
+        based.base.is_ground update \<Longrightarrow>
+        based.base.is_ground (\<gamma> var) \<Longrightarrow>
+        (base_to_ground (\<gamma> var), base_to_ground update) \<in> I \<Longrightarrow>
+        based.is_ground (subst expr \<gamma>) \<Longrightarrow> 
+        entails I (subst expr (\<gamma>(var := update))) \<Longrightarrow> 
+        entails I (subst expr \<gamma>)" and*)
+    congruence:  "\<And>expr \<gamma> var update P. 
+        based.base.is_ground update \<Longrightarrow>
+        based.base.is_ground (\<gamma> var) \<Longrightarrow>
+        (base_to_ground (\<gamma> var), base_to_ground update) \<in> I \<Longrightarrow>
+        based.is_ground (subst expr \<gamma>) \<Longrightarrow> 
+        entails I (subst expr (\<gamma>(var := update)), P) \<Longrightarrow> 
+        entails I (subst expr \<gamma>, P)"
+
+
+locale symmetric_interpretation_congurence = 
+  interpretation_congurence +
+  assumes sym: "sym I"
+begin
+
+lemma negated_congruence:
+  assumes 
+    update_is_ground: "based.base.is_ground update" and
+    var_grounding: "based.base.is_ground (\<gamma> var)" and
+    var_update: "(base_to_ground (\<gamma> var), base_to_ground update) \<in> I" and
+    expr_grounding: "based.is_ground (subst expr \<gamma>)" and
+    updated_expr: "\<not> entails I (subst expr (\<gamma>(var := update)), P)" 
+  shows "\<not> entails I (subst expr \<gamma>, P)"
+  using congruence[OF var_grounding, of "\<gamma>(var := update)"] assms
+  by (metis based.ground_subst_upd fun_upd_same fun_upd_triv fun_upd_upd local.sym symD)
+  
+end
+
+locale symmetric_base_interpretation_congurence = 
+  base_variable_substitution where subst = subst + 
+  grounding where subst = subst and to_ground = to_ground for
+  subst :: "'base \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> 'base"  (infixl "\<cdot>" 70) and
+  to_ground :: "'base \<Rightarrow> 'base\<^sub>G" +
+fixes I :: "('base\<^sub>G \<times> 'base\<^sub>G) set"
+assumes
+  sym: "sym I" and
+  congruence: "\<And>expr expr' update \<gamma> var. 
+      is_ground update \<Longrightarrow> 
+      is_ground (\<gamma> var) \<Longrightarrow> 
+      (to_ground (\<gamma> var), to_ground update) \<in> I \<Longrightarrow>
+      is_ground (expr \<cdot> \<gamma>) \<Longrightarrow> 
+      (to_ground (expr \<cdot> (\<gamma>(var := update))), expr') \<in> I \<Longrightarrow>
+      (to_ground (expr \<cdot> \<gamma>), expr') \<in> I"
+begin
+
+lemma negated_congruence:
+  assumes
+    update_is_ground: "is_ground update" and
+    var_grounding: "is_ground (\<gamma> var)" and
+    expr_grounding: "is_ground (expr \<cdot> \<gamma>)" and
+    var_update: "(to_ground (\<gamma> var), to_ground update) \<in> I" and
+    updated_expr: "(to_ground (expr \<cdot> (\<gamma>(var := update))), expr') \<notin> I" 
+  shows 
+    "(to_ground (expr \<cdot> \<gamma>), expr') \<notin> I"
+  using assms congruence[OF var_grounding, of "\<gamma>(var := update)" var]
+  by (metis fun_upd_same fun_upd_triv fun_upd_upd ground_subst_upd sym symD)
+
+lemma simultaneous_congruence:
+  assumes
+    update_is_ground: "is_ground update" and
+    var_grounding: "is_ground (\<gamma> var)" and
+    var_update: "(to_ground (\<gamma> var), to_ground update) \<in> I" and
+    expr_grounding: "is_ground (expr \<cdot> \<gamma>)" "is_ground (expr' \<cdot> \<gamma>)" and
+    updated_exprs:
+      "(to_ground (expr \<cdot> (\<gamma>(var := update))), to_ground (expr' \<cdot> (\<gamma>(var := update)))) \<in> I" 
+  shows 
+    "(to_ground (expr \<cdot> \<gamma>), to_ground (expr' \<cdot> \<gamma>))  \<in> I"
+  using assms
+  by (meson sym congruence symD)
+
+lemma simultaneous_negated_congruence:
+  assumes
+    update_is_ground: "is_ground update" and
+    var_grounding: "is_ground (\<gamma> var)" and
+    var_update: "(to_ground (\<gamma> var), to_ground update) \<in> I" and
+    expr_grounding: "is_ground (expr \<cdot> \<gamma>)" "is_ground (expr' \<cdot> \<gamma>)" and
+    updated_exprs:
+      "(to_ground (expr \<cdot> (\<gamma>(var := update))), to_ground (expr' \<cdot> (\<gamma>(var := update)))) \<notin> I" 
+  shows 
+    "(to_ground (expr \<cdot> \<gamma>), to_ground (expr' \<cdot> \<gamma>)) \<notin> I"
+  using assms
+  by (meson sym negated_congruence symD)
+  
+end
+
+locale interpretation_congurence_lifting =
+  based_variable_substitution_lifting +
+  finite_variables_lifting +
+  sub: symmetric_interpretation_congurence where subst = sub_subst and vars = sub_vars and 
+    entails = sub_entails
+  for sub_entails + fixes P' :: "'d \<Rightarrow> bool" 
+  assumes P': "\<And>expr \<sigma>. P' expr \<longleftrightarrow> P' (subst expr \<sigma>)"
+(*+
+  a
+fixes entails
+assumes 
+  (*P: "\<And>expr b. P expr b \<longleftrightarrow> (\<forall>sub \<in> to_set expr. sub_P sub b) \<or> (\<forall>sub \<in> to_set expr. \<not> sub_P sub b)" and*)
+  entails: "\<And>expr P. entails I (expr, P) \<longleftrightarrow> (\<forall>sub \<in> to_set expr. sub_entails I (sub, P))" 
+  (*P_cong:  "\<And>expr \<gamma> var update. 
+        base.is_ground update \<Longrightarrow>
+        base.is_ground (\<gamma> var) \<Longrightarrow>
+        (base_to_ground (\<gamma> var), base_to_ground update) \<in> I \<Longrightarrow>
+        is_ground (subst expr \<gamma>) \<Longrightarrow> 
+        P (subst expr (\<gamma>(var := update)))
+                (entails I P (subst expr (\<gamma>(var := update)))) \<Longrightarrow> 
+        P (subst expr \<gamma>) (entails I P (subst expr \<gamma>))"*)*)
+begin
+
+notation subst (infixl "\<cdot>" 70)
+
+abbreviation entails :: "('e \<times> 'e) set \<Rightarrow> 'd \<times> bool \<Rightarrow> bool" where 
+  "\<And>I. entails I expr_P \<equiv> case expr_P of (expr, P) \<Rightarrow> 
+      (\<forall>sub \<in> to_set expr. sub_entails I (sub, if P' expr then P else \<not> P))"
+
+
+sublocale symmetric_interpretation_congurence where subst = subst and vars = vars and entails = entails
+proof unfold_locales
+  fix expr \<gamma> var update P
+  assume 
+    "base.is_ground update"
+    "base.is_ground (\<gamma> var)"
+    "is_ground (expr \<cdot> \<gamma>)"
+    "(base_to_ground (\<gamma> var), base_to_ground update) \<in> I"
+    "entails I (expr \<cdot> \<gamma>(var := update), P)"
+
+  then show "entails I (expr \<cdot> \<gamma>, P)"
+    apply(auto simp: P' split: if_splits)
+    using local.subst_def sub.congruence to_set_is_ground_subst to_set_map apply auto[1]
+      apply (meson P')
+    apply (meson P')
+    by(auto simp add: P' subst_def sub.congruence sub.negated_congruence to_set_is_ground_subst to_set_map)
+qed (simp_all add: is_grounding_iff_vars_grounded sub.sym )
+
+end
+
+locale symmetric_interpretation_congurence_lifting =
+  interpretation_congurence_lifting +
+  assumes sym': "sym I"
+begin
+
+sublocale symmetric_interpretation_congurence 
+  where subst = subst and vars = vars and entails = entails
+  by unfold_locales (rule sym')
+
+end
+
 section \<open>First_Order_Terms And Abstract_Substitution\<close>
 
 type_synonym 'f ground_term = "'f gterm"
@@ -437,11 +601,11 @@ global_interpretation literal: clause_lifting where
       atom.is_grounding_iff_vars_grounded finite_set_literal
       intro: literal.map_cong)
 
-(* TODO: Check if interpreation useful 
+(* TODO: Check if interpreation useful *)
 lemma xx: "(\<And>c. c \<in># mset_lit d \<Longrightarrow> f c = g c) \<Longrightarrow> map_literal (map_uprod f) d = map_literal (map_uprod g) d"
   by(cases d)(auto cong: uprod.map_cong0)
 
-global_interpretation mset_lit: clause_lifting where 
+global_interpretation literal': clause_lifting where 
   sub_subst = "(\<cdot>t)" and sub_vars = term.vars and map = "\<lambda>f. map_literal (map_uprod f) " and 
   to_set = "set_mset \<circ> mset_lit" and sub_to_ground = term.to_ground and 
   sub_from_ground = term.from_ground and to_ground_map = "\<lambda>f. map_literal (map_uprod f) " and 
@@ -453,16 +617,16 @@ global_interpretation mset_lit: clause_lifting where
   using xx apply blast
   by (metis atom.exists_expression mset_lit.simps(1) set_mset_mset_uprod)
 
-lemma mset_lit_subst_literal_subst [simp]: "mset_lit.subst = literal.subst"
-  unfolding mset_lit.subst_def literal.subst_def 
+lemma mset_lit_subst_literal_subst [simp]: "literal'.subst = literal.subst"
+  unfolding literal'.subst_def literal.subst_def 
   by (simp add: atom.subst_def)
 
 lemma yy: "\<Union> (term.vars ` set_mset (mset_lit d)) = (\<Union>x\<in>set_literal d. \<Union> (term.vars ` set_uprod x))"
   by(cases d) simp_all
 
-lemma mset_lit_vars_literal_vars [simp]: "mset_lit.vars = literal.vars"
-  unfolding mset_lit.vars_def literal.vars_def 
-  by(auto simp: yy atom.vars_def)*)
+lemma mset_lit_vars_literal_vars [simp]: "literal'.vars = literal.vars"
+  unfolding literal'.vars_def literal.vars_def 
+  by(auto simp: yy atom.vars_def)
 
 (* ------------------------------ *)
 
@@ -635,7 +799,7 @@ lemma clause_from_ground_add_mset [clause_simp]:
 lemma remove1_mset_literal_from_ground: 
   "remove1_mset (literal.from_ground literal\<^sub>G) (clause.from_ground clause\<^sub>G) 
    = clause.from_ground (remove1_mset literal\<^sub>G clause\<^sub>G)"
-   unfolding clause.from_ground_def image_mset_remove1_mset[OF literal.inj_from_ground]..
+  unfolding clause.from_ground_def image_mset_remove1_mset[OF literal.inj_from_ground]..
 
 lemma term_with_context_is_ground [clause_simp]: 
   "term.is_ground context\<langle>term\<rangle> \<longleftrightarrow> context.is_ground context \<and> term.is_ground term"
@@ -658,11 +822,10 @@ lemma clause_to_ground_add_mset:
 
 (* --------------------------- *)
 
-(* TODO: mset_lit instantiation useful? *)
+(* TODO: literal' instantiation useful? *)
 lemma mset_mset_lit_subst [clause_simp]: 
   "{# term \<cdot>t \<sigma>. term \<in># mset_lit literal #} = mset_lit (literal \<cdot>l \<sigma>)"
-  unfolding literal.subst_def atom.subst_def
-  by (cases literal) (auto simp: mset_uprod_image_mset)
+  by (simp add: atom.subst_def literal.subst_def mset_lit_image_mset)
 
 lemma term_in_literal_subst [clause_intro]: 
   assumes "term \<in># mset_lit literal" 
@@ -673,18 +836,14 @@ lemma term_in_literal_subst [clause_intro]:
 lemma ground_term_in_ground_literal:
   assumes "literal.is_ground literal" "term \<in># mset_lit literal"  
   shows "term.is_ground term"
-  sledgehammer
-  by (metis assms(1,2) atom.to_set_is_ground literal.simps(15) literal.vars_def set_literal_atm_of 
-      set_mset_set_uprod vars_literal(1))
-  (*using mset_lit.to_set_is_ground assms
-  by auto*)
+  using literal'.to_set_is_ground assms
+  by simp
 
 lemma ground_term_in_ground_literal_subst:
   assumes "literal.is_ground (literal \<cdot>l \<gamma>)" "term \<in># mset_lit literal"  
   shows "term.is_ground (term \<cdot>t \<gamma>)"
-  using assms(1,2) ground_term_in_ground_literal term_in_literal_subst by blast
-  (*using mset_lit.to_set_is_ground_subst assms
-  by auto*)
+  using assms literal'.to_set_is_ground_subst
+  by simp
 
 (* --------------------------- *)
 
@@ -846,7 +1005,7 @@ context
     sym: "sym I" and
     compatible_with_gctxt: "compatible_with_gctxt I"
 begin
-
+  
 lemma interpretation_context_congruence:
   assumes 
     "(t, t') \<in> I"
@@ -874,7 +1033,7 @@ context
     var :: 'v
   assumes
     update_is_ground: "term.is_ground update" and
-    var_grounding: "term.is_ground (Var var \<cdot>t \<gamma>)" 
+    var_grounding: "term.is_ground (\<gamma> var)" 
 begin
 
 lemma interpretation_term_congruence:
@@ -947,7 +1106,7 @@ next
     unfolding "term"
     by simp
 qed
-
+(*
 lemma interpretation_term_congruence':
   assumes 
     term_grounding: "term.is_ground (term \<cdot>t \<gamma>)" and
@@ -956,18 +1115,30 @@ lemma interpretation_term_congruence':
   shows
     "(term.to_ground (term \<cdot>t \<gamma>), term') \<notin> I"
 proof
-  assume "(term.to_ground (term \<cdot>t \<gamma>), term') \<in> I"
+  assume a: "(term.to_ground (term \<cdot>t \<gamma>), term') \<in> I"
 
-  then show False
-    using 
-      First_Order_Clause.interpretation_term_congruence[OF 
-        trans sym compatible_with_gctxt var_grounding
+  have "term.vars ((\<gamma>(var := update)) var) = {}" 
+    by (simp add: update_is_ground)
+
+  have "term.vars (term \<cdot>t \<gamma>(var := update)) = {}"
+    by (simp add: term_grounding update_is_ground)
+
+  have "(term.to_ground ((\<gamma>(var := update)) var), term.to_ground (\<gamma> var)) \<in> I"
+    by (simp add: sym symD var_update)
+
+  have "(term.to_ground (term \<cdot>t \<gamma>(var := update, var := \<gamma> var)), term') \<in> I"
+    by (simp add: a)
+
+  from a show False
+    using First_Order_Clause.interpretation_term_congruence[OF 
+        trans sym compatible_with_gctxt var_grounding,
+        of "\<gamma>(var := update)" var
         ]
       assms 
       sym 
       update_is_ground 
     by (smt (verit) eval_term.simps fun_upd_same fun_upd_triv fun_upd_upd term.ground_subst_upd 
-          symD)
+        symD)
 qed
 
 lemma interpretation_atom_congruence:
@@ -1056,7 +1227,7 @@ qed
 lemma interpretation_clause_congruence:
   assumes
     "clause.is_ground (clause \<cdot> \<gamma>)" 
-    "upair ` I \<TTurnstile>l term.to_ground (Var var \<cdot>t \<gamma>) \<approx> term.to_ground update"
+    "upair ` I \<TTurnstile>l term.to_ground (\<gamma> var) \<approx> term.to_ground update"
     "upair ` I \<TTurnstile> clause.to_ground (clause \<cdot> \<gamma>(var := update))"
   shows
     "upair ` I \<TTurnstile> clause.to_ground (clause \<cdot> \<gamma>)"
@@ -1086,90 +1257,121 @@ next
 
     then have "upair ` I \<TTurnstile>l literal.to_ground (literal \<cdot>l \<gamma>)"
       using interpretation_literal_congruence add.prems
-      by (metis clause_is_ground_add_mset subst_clause_add_mset)
+      sorry
+      (*by (metis clause_is_ground_add_mset subst_clause_add_mset)*)
 
     then show ?thesis 
       by (simp add: subst_clause_add_mset clause.to_ground_def)
   qed
 qed
-
+*)
 end
 end
 
-(*
-TODO: Generalize:
-
-lemma interpretation_term_congruence:
+locale term_interpretation_congurence =
+  fixes I :: "('f gterm \<times> 'f gterm) set"
   assumes 
-    term_grounding: "term.is_ground (term \<cdot>t \<gamma>)" and
-    var_update: "(term.to_ground (\<gamma> var), term.to_ground update) \<in> I" and
-    updated_term: "(term.to_ground (term \<cdot>t \<gamma>(var := update)), term') \<in> I" 
-  shows 
-    "(term.to_ground (term \<cdot>t \<gamma>), term') \<in> I"
-
-lemma interpretation_term_congruence':
+    trans: "trans I" and
+    sym: "sym I" and
+    compatible_with_gctxt: "compatible_with_gctxt I"
+(*context
+  fixes I :: "('f gterm \<times> 'f gterm) set"
   assumes 
-    term_grounding: "term.is_ground (term \<cdot>t \<gamma>)" and
-    var_update: "(term.to_ground (\<gamma> var), term.to_ground update) \<in> I" and
-    updated_term: "(term.to_ground (term \<cdot>t \<gamma>(var := update)), term') \<notin> I" 
-  shows
-    "(term.to_ground (term \<cdot>t \<gamma>), term') \<notin> I" *)
-(*
-locale interpretation_congurence = 
-  base_variable_substitution where subst = subst + 
-  grounding where subst = subst and to_ground = to_ground for
-    subst :: "'base \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> 'base" and
-    to_ground :: "'base \<Rightarrow> 'base\<^sub>G" +
-  fixes 
-    \<gamma> :: "'var \<Rightarrow> 'base" and
-    update :: 'base and
-    var :: 'var and
-    I :: "('base\<^sub>G \<times> 'base\<^sub>G) set"
-  assumes
-    update_is_ground: "is_ground update" and
-    var_grounding: "is_ground (\<gamma> var)" and
-    congruence: "\<And>b b'. is_ground (subst b \<gamma>) \<Longrightarrow> 
-      (to_ground (\<gamma> var), to_ground update) \<in> I \<Longrightarrow>
-      (to_ground (subst b (\<gamma>(var := update))), b') \<in> I \<Longrightarrow>
-      (to_ground (subst b \<gamma>), b') \<in> I" and
-    sym: "sym I"
-begin
-
-lemma congruence':
-  assumes 
-    term_grounding: "is_ground (subst b \<gamma>)" and
-    var_update: "(to_ground (\<gamma> var), to_ground update) \<in> I" and
-    updated_term: "(to_ground (subst b (\<gamma>(var := update))), b') \<notin> I" 
-  shows 
-    "(to_ground (subst b \<gamma>), b') \<notin> I"
-  proof
-    assume a: "(to_ground (subst b \<gamma>), b') \<in> I"
-
-    interpret other: interpretation_congurence
-      comp_subst id_subst vars from_ground subst to_ground "\<gamma>(var := update)" "\<gamma> var" var I
-    proof unfold_locales
-      fix b b'
-      assume a:
-        "is_ground (subst b (\<gamma>(var := update)))" 
-        "(to_ground ((\<gamma>(var := update)) var), to_ground (\<gamma> var)) \<in> I"
-        "(to_ground (subst b (\<gamma>(var := update, var := \<gamma> var))), b') \<in> I"
-
-      show "(to_ground (subst b (\<gamma>(var := update))), b') \<in> I"
-        using congruence[OF a(1)]
-        sorry
-
-    qed (simp_all add: sym var_grounding update_is_ground)
-
-    from a show False
-      using other.congruence assms sym update_is_ground
-      by (metis fun_upd_same fun_upd_triv fun_upd_upd ground_subst_upd symE)
-  qed
-end
-(* and
     trans: "trans I" and
     sym: "sym I" and
     compatible_with_gctxt: "compatible_with_gctxt I"*)
-*)
+begin
+
+sublocale "term": symmetric_base_interpretation_congurence where 
+  vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set" and id_subst = Var and comp_subst = "(\<odot>)" and 
+  subst = "(\<cdot>t)" and to_ground = term.to_ground and from_ground = term.from_ground
+  by unfold_locales
+    (auto simp: sym interpretation_term_congruence[OF trans sym compatible_with_gctxt])
+
+abbreviation atom_entails where 
+  "\<And>I. atom_entails I expr_P \<equiv> case expr_P of (a, P) \<Rightarrow> (if P then (\<lambda>a. a) else Not) (atom.to_ground a \<in> upair ` I)"
+
+sublocale atom: symmetric_interpretation_congurence 
+  where comp_subst = "(\<odot>)" and id_subst = Var 
+    and base_subst = "(\<cdot>t)" and base_vars = term.vars and subst = "(\<cdot>a)" and vars = atom.vars
+    and base_to_ground = term.to_ground and base_from_ground = term.from_ground and I = I and 
+    entails = atom_entails
+proof unfold_locales  
+  fix atom :: "('f, 'v) atom" and  \<gamma> var update P
+  assume a:
+    "term.is_ground update"
+    "term.is_ground (\<gamma> var)" 
+    "(term.to_ground (\<gamma> var), term.to_ground update) \<in> I"
+    "atom.is_ground (atom \<cdot>a \<gamma>)"
+    "case (atom \<cdot>a \<gamma>(var := update), P) of (a, P) \<Rightarrow> (if P then (\<lambda>a. a) else Not) (atom.to_ground a \<in> upair ` I)"
+
+  then show "case (atom \<cdot>a \<gamma>, P) of (a, P) \<Rightarrow> (if P then (\<lambda>a. a) else Not) (atom.to_ground a \<in> upair ` I)"
+  unfolding atom.to_ground_def atom.subst_def atom.vars_def
+  apply(cases atom)
+  by(auto simp add: sym term.simultaneous_congruence term.simultaneous_negated_congruence)
+  
+qed (simp_all add: local.sym atom.is_grounding_iff_vars_grounded)
+
+abbreviation literal_entails where 
+  "\<And>I. literal_entails I expr_P \<equiv> case expr_P of (l, P) \<Rightarrow> 
+   if is_neg l then \<not>atom_entails I (atm_of l) else atom_entails I (atm_of l)"
+                                        
+sublocale literal: symmetric_interpretation_congurence_lifting 
+  where comp_subst = "(\<odot>)" and id_subst = Var 
+    and base_subst = "(\<cdot>t)" and base_vars = term.vars and sub_subst = "(\<cdot>a)" and sub_vars = atom.vars
+    and base_to_ground = term.to_ground and base_from_ground = term.from_ground and I = I and 
+        sub_entails = atom_entails and map = "map_literal" and to_set = "set_literal" and P' = is_pos
+  by unfold_locales (auto simp: local.sym subst_polarity_stable)
+
+lemma sad:
+  assumes "(a, b) \<in> I" 
+  shows "rep_uprod (Upair a b) \<in> I"
+proof(cases "rep_uprod (Upair a b) = (a, b)")
+  case True
+  with assms show ?thesis
+    by auto
+next
+  case False
+  then have x: "rep_uprod (Upair a b) = (b, a)"
+    by (smt (verit) Quotient3_def Quotient3_uprod Upair.abs_eq eq_upair_simps old.prod.exhaust)
+    
+  from assms sym show ?thesis
+    unfolding x
+    by (meson symE)
+qed
+
+lemma sadder: "rep_uprod (atom.to_ground x1) \<in> I \<longleftrightarrow> atom.to_ground x1 \<in> upair ` I"
+  by (smt (verit, best) Quotient3_def Quotient3_uprod Upair.abs_eq local.sym surj_pair uprod_mem_image_iff_prod_mem)
+
+lemma lit_entails: "literal.entails I (l, P) \<longleftrightarrow> (if P then (\<lambda>a. a) else Not) (upair ` I \<TTurnstile>l literal.to_ground l)"
+  unfolding literal.vars_def literal.to_ground_def
+  apply(cases l)
+  by(auto )
+
+sublocale clause: symmetric_interpretation_congurence_lifting 
+  where comp_subst = "(\<odot>)" and id_subst = Var 
+    and base_subst = "(\<cdot>t)" and base_vars = term.vars 
+    and base_to_ground = term.to_ground and base_from_ground = term.from_ground and I = I
+    and sub_subst = "(\<cdot>l)" and sub_vars = literal.vars and sub_entails = literal.entails 
+    and map = image_mset and to_set = set_mset and P' = "\<lambda>c. if c = {#} then P else \<not>P"
+  by unfold_locales (auto simp: sym clause.subst_empty)
+
+lemma "\<not>upair ` I \<TTurnstile> clause.to_ground {#}"
+  by (simp add: clause_to_ground_empty_mset)
+
+lemma "clause.entails I ({#}, P) \<longleftrightarrow> True"
+  apply auto
+  sorry
+
+lemma clause_entails: "clause.entails I (c, P) \<longleftrightarrow> (if P then (\<lambda>a. a) else Not) (upair ` I \<TTurnstile> clause.to_ground c)"
+  unfolding clause.to_ground_def
+  apply(cases c)
+  apply auto
+  apply (simp add: clause.to_ground_def)
+  sorry
+
+end
+
 
 subsection \<open>Renaming\<close>
 

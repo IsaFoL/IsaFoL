@@ -159,7 +159,7 @@ proof-
   have inf: "\<And>y. infinite {x. f x = y}"
   proof-
     fix y
-    have x: "{x. fst (g x) = y} =  inv g ` {p. fst p = y}"
+    have x: "{x. fst (g x) = y} = inv g ` {p. fst p = y}"
       by (smt (verit, ccfv_SIG) Collect_cong bij_g bij_image_Collect_eq bij_imp_bij_inv inv_inv_eq)
 
     show "infinite {x. f x = y}"

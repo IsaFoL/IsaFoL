@@ -239,6 +239,12 @@ lemma variable_grounding:
   using assms is_grounding_iff_vars_grounded 
   by blast
 
+(*lemma 
+  assumes "var \<notin> base_vars update"
+  shows "var \<notin> vars (sub \<cdot> \<gamma>(var := update))"
+  using assms
+  sorry*)
+
 end
                                              
 

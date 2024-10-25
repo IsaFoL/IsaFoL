@@ -1070,10 +1070,13 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           compatible_with_gctxt: "compatible_with_gctxt I" and
           premise: "?I \<TTurnstile>s {?premise\<^sub>1_\<gamma>'} \<union> {premise\<^sub>G\<^sub>2}"
 
-        have var\<^sub>x_\<gamma>_ground: "term.is_ground (Var var\<^sub>x \<cdot>t \<gamma>)"
+        interpret term_interpretation_congurence I
+          by unfold_locales (rule trans sym compatible_with_gctxt)+
+
+        have var\<^sub>x_\<gamma>_ground: "term.is_ground (\<gamma> var\<^sub>x)"
           using term\<^sub>1_with_context_\<gamma>
           unfolding term\<^sub>1_with_context var\<^sub>x
-          by(clause_simp simp: term_subst.is_ground_subst_is_ground typing(3))    
+          by (metis eval_term.simps(1) term_subst.is_ground_subst_is_ground typing(3))
 
         show "?I \<TTurnstile>s { conclusion\<^sub>G }"
         proof(cases "?I \<TTurnstile> premise\<^sub>G\<^sub>2'")
@@ -1102,11 +1105,13 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
           ultimately have "?I \<TTurnstile> premise\<^sub>G\<^sub>1"
             using
-              interpretation_clause_congruence[OF 
+              clause.congruence[of _ \<gamma>, OF update_grounding var\<^sub>x_\<gamma>_ground _ premise\<^sub>1_grounding]
+              (*interpretation_clause_congruence[OF 
                 trans sym compatible_with_gctxt update_grounding var\<^sub>x_\<gamma>_ground premise\<^sub>1_grounding
-                ]
+                ]*)
               var\<^sub>x
             unfolding \<gamma>'
+            
             by simp
 
           then have "?I \<TTurnstile> add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>1\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) premise\<^sub>G\<^sub>1'"
