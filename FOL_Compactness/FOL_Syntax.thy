@@ -75,25 +75,25 @@ definition language :: \<open>form set \<Rightarrow> ((nat \<times> nat) set \<t
 lemma lang_singleton: \<open>language {p} = (functions_form p, predicates_form p)\<close>
   unfolding language_def functions_forms_def predicates_def by simp
 
-abbreviation (input) Not :: \<open>form \<Rightarrow> form\<close> (\<open>\<^bold>\<not> _\<close> [90] 90) where
+abbreviation Not :: \<open>form \<Rightarrow> form\<close> (\<open>\<^bold>\<not> _\<close> [90] 90) where
   \<open>\<^bold>\<not> \<phi> \<equiv> \<phi> \<^bold>\<longrightarrow> \<^bold>\<bottom>\<close>
 
-abbreviation (input) Top :: \<open>form\<close> (\<open>\<^bold>\<top>\<close>) where
+abbreviation Top :: \<open>form\<close> (\<open>\<^bold>\<top>\<close>) where
   \<open>\<^bold>\<top> \<equiv> \<^bold>\<not> \<^bold>\<bottom>\<close>
 
-abbreviation (input) Or :: \<open>form \<Rightarrow> form \<Rightarrow> form\<close>
+abbreviation Or :: \<open>form \<Rightarrow> form \<Rightarrow> form\<close>
   (infixl \<open>\<^bold>\<or>\<close> 84) where
   \<open>\<phi> \<^bold>\<or> \<psi> \<equiv> (\<phi> \<^bold>\<longrightarrow> \<psi>) \<^bold>\<longrightarrow> \<psi>\<close>
 
-abbreviation (input) And :: \<open>form \<Rightarrow> form \<Rightarrow> form\<close>
+abbreviation And :: \<open>form \<Rightarrow> form \<Rightarrow> form\<close>
   (infixl \<open>\<^bold>\<and>\<close> 84) where
   \<open>\<phi> \<^bold>\<and> \<psi> \<equiv> \<^bold>\<not> (\<^bold>\<not> \<phi> \<^bold>\<or> \<^bold>\<not> \<psi>)\<close>
 
-abbreviation (input) Equiv :: \<open>form \<Rightarrow> form \<Rightarrow> form\<close>
+abbreviation Equiv :: \<open>form \<Rightarrow> form \<Rightarrow> form\<close>
   (infix \<open>\<^bold>\<longleftrightarrow>\<close> 70) where
   \<open>\<phi> \<^bold>\<longleftrightarrow> \<psi> \<equiv> (\<phi> \<^bold>\<longrightarrow> \<psi> \<^bold>\<and> \<psi> \<^bold>\<longrightarrow> \<phi>)\<close> 
 
-abbreviation (input) Exists :: \<open>nat \<Rightarrow> form \<Rightarrow> form\<close>
+abbreviation Exists :: \<open>nat \<Rightarrow> form \<Rightarrow> form\<close>
   (\<open>\<^bold>\<exists> _\<^bold>. _\<close> [0, 70] 70) where
   \<open>\<^bold>\<exists> x\<^bold>. \<phi> \<equiv> \<^bold>\<not> (\<^bold>\<forall> x\<^bold>. \<^bold>\<not> \<phi>)\<close>
 
@@ -302,38 +302,8 @@ qed
 lemma formsubst_structure_ex: \<open>(\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<exists>x\<^bold>. \<psi>)) \<longleftrightarrow> (\<exists>x \<psi>. \<phi> = (\<^bold>\<exists>x\<^bold>. \<psi>))\<close>
 proof
   assume \<open>\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<exists>x\<^bold>. \<psi>)\<close>
-  (*have \<open>(\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<forall>x\<^bold>. \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>) \<^bold>\<longrightarrow> \<^bold>\<bottom>) \<longleftrightarrow> (\<exists>x \<psi>. \<phi> = (\<^bold>\<forall>x\<^bold>. \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>) \<^bold>\<longrightarrow> \<^bold>\<bottom>)\<close>
-    (* sledgehammer (veriT) segfalts on this one ! *)
-    sorry*)
   then show \<open>\<exists>x \<psi>. \<phi> = (\<^bold>\<exists>x\<^bold>. \<psi>)\<close>
-  proof (induction \<phi>)
-    case Bot
-    then have False by auto
-    then show ?case by auto
-  next
-    case (Atom p ts)
-    then have False by auto
-    then show ?case by auto
-  next
-    case (Implies \<phi>1 \<phi>2)
-    then obtain x \<psi> where imp_def: \<open>\<phi>1 \<^bold>\<longrightarrow> \<phi>2 \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<forall>x\<^bold>. \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>) \<^bold>\<longrightarrow> \<^bold>\<bottom>\<close>
-      by blast
-    then have bot_right: \<open>\<phi>2 = \<^bold>\<bottom>\<close>
-      by (simp add: formsubst_structure_bot)
-    have \<open>\<phi>1  \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<forall>x\<^bold>. \<psi> \<^bold>\<longrightarrow> \<^bold>\<bottom>)\<close>
-      using imp_def by simp
-    then have ex_eq: \<open>\<exists>x2 \<psi>2. \<phi>1  \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<forall>x2\<^bold>. \<psi>2 \<^bold>\<longrightarrow> \<^bold>\<bottom>)\<close>
-      by blast
-    then have \<open>\<exists>x2 \<psi>2. \<phi>1 = (\<^bold>\<forall>x2\<^bold>. \<psi>2 \<^bold>\<longrightarrow> \<^bold>\<bottom>)\<close>
-      using formsubst_structure_all_not by blast
-    then show ?case
-      using bot_right by auto
-  next
-    case (Forall x1 \<phi>)
-    have False
-      using Forall(2) formsubst_def_switch by (metis form.distinct(11) formsubst_structure_all)
-    then show ?case by auto
-  qed
+    by (metis form.inject(2) formsubst.simps(3) formsubst_structure_all_not formsubst_structure_not)
 next
   assume \<open>(\<exists>x \<psi>. \<phi> = (\<^bold>\<exists>x\<^bold>. \<psi>))\<close>
   then show \<open>\<exists>x \<psi>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = (\<^bold>\<exists>x\<^bold>. \<psi>)\<close>
