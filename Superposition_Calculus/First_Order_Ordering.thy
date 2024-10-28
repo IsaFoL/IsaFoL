@@ -1,6 +1,6 @@
 theory First_Order_Ordering
   imports 
-    First_Order_Clause
+    Nonground_Clause
     Ground_Ordering
     Relation_Extra
 begin
@@ -219,7 +219,7 @@ lemma less\<^sub>l_ground_subst_stability:
 proof (elim multp_map_strong[rotated -1])
   show "monotone_on (set_mset (mset_lit literal + mset_lit literal')) (\<prec>\<^sub>t) (\<prec>\<^sub>t) (\<lambda>term. term \<cdot>t \<gamma>)"
     by (rule monotone_onI)
-      (metis assms(1,2) less\<^sub>t_ground_subst_stability ground_term_in_ground_literal_subst union_iff)
+      (metis assms(1,2) less\<^sub>t_ground_subst_stability literal'.to_set_is_ground_subst union_iff)
 qed (use less\<^sub>t_asymmetric less\<^sub>t_transitive in simp_all)
 
 lemma maximal\<^sub>l_in_clause:
@@ -775,7 +775,8 @@ lemma less_eq\<^sub>l_less_eq\<^sub>c:
   assumes "\<forall>literal \<in># clause. literal \<cdot>l \<sigma>' \<preceq>\<^sub>l literal \<cdot>l \<sigma>"
   shows "clause \<cdot> \<sigma>' \<preceq>\<^sub>c clause \<cdot> \<sigma>"
   using assms 
-  by(induction clause)(clause_auto simp: less\<^sub>c_add_same less\<^sub>c_add_mset)
+  apply(induction clause)
+  by(clause_auto simp:  less\<^sub>c_add_same less\<^sub>c_add_mset)
    
 lemma less\<^sub>l_less\<^sub>c:
   assumes 
@@ -989,10 +990,9 @@ proof-
   note less\<^sub>t_subst_upd = less\<^sub>t_subst_upd[of _ \<gamma>, OF update_is_ground update_less] 
 
   have all_ground_terms: "\<forall>term \<in> set_uprod (atm_of literal). term.is_ground (term \<cdot>t \<gamma>)"
-    (* TODO: *)
-    using assms(3)
-    apply(cases literal)
-    by (simp add: ground_term_in_ground_literal_subst)+
+    using literal'.to_set_is_ground_subst[OF _ assms(3)] 
+    unfolding set_mset_set_uprod
+    by blast   
      
   then have 
     "\<forall>term \<in> set_uprod (atm_of literal). 

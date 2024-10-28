@@ -1,7 +1,7 @@
 theory First_Order_Select
   imports 
     Selection_Function
-    First_Order_Clause
+    Nonground_Clause
     First_Order_Type_System
 begin
 

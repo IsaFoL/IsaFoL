@@ -116,6 +116,12 @@ corollary obtain_grounding:
 
 end
 
+locale renaming_variables = 
+  fixes vars :: "'expr \<Rightarrow> 'var set" and id_subst :: "'var \<Rightarrow> 'base" and subst is_renaming
+  assumes
+    renaming_variables:
+      "\<And>expr \<rho>. is_renaming \<rho> \<Longrightarrow> id_subst ` vars (subst expr \<rho>) = \<rho> ` (vars expr)"
+
 locale base_functional_substitution = functional_substitution 
   where id_subst = id_subst and vars = vars
   for id_subst :: "'var \<Rightarrow> 'expr" and vars :: "'expr \<Rightarrow> 'var set" +

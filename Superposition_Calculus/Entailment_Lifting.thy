@@ -1,7 +1,8 @@
-theory Entailment
+theory Entailment_Lifting
   imports Functional_Substitution_Lifting
 begin
 
+(* TODO: Name *)
 locale entailment = 
   based: based_functional_substitution where base_subst = base_subst and vars = vars + 
   base: grounding where subst = base_subst and vars = base_vars and to_ground = base_to_ground and 
@@ -12,7 +13,7 @@ locale entailment =
   base_from_ground +
 fixes entails_def :: "'expr \<Rightarrow> bool" and I ::  "('base\<^sub>G \<times> 'base\<^sub>G) set"
 assumes
-  congruence:  "\<And>expr \<gamma> var update. 
+  congruence: "\<And>expr \<gamma> var update. 
         based.base.is_ground update \<Longrightarrow>
         based.base.is_ground (\<gamma> var) \<Longrightarrow>
         (base_to_ground (\<gamma> var), base_to_ground update) \<in> I \<Longrightarrow>
@@ -100,11 +101,6 @@ locale entailment_lifting =
       (if is_negated expr then Not else (\<lambda>x. x))
         (Finite_Set.fold connective empty (sub_entails  ` to_set expr))"
 begin
-
-notation connective (infixl "\<diamondop>" 60)
-
-notation sub_subst (infixl "\<cdot>\<^sub>s" 70)
-notation subst (infixl "\<cdot>" 70)
 
 notation sub_entails ("(\<Turnstile>\<^sub>s _)" [50] 50)
 notation entails_def ("(\<Turnstile> _)" [50] 50)

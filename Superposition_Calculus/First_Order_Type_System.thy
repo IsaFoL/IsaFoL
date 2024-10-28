@@ -1,5 +1,5 @@
 theory First_Order_Type_System
-  imports First_Order_Clause Fun_Extra
+  imports Nonground_Clause Fun_Extra
 begin
 
 type_synonym ('f, 'ty) fun_types = "'f \<Rightarrow> 'ty list \<times> 'ty"

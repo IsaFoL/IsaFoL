@@ -1248,7 +1248,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     proof(cases "x \<in> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1)")
       case True
       then have "Var x \<in> \<rho>\<^sub>1 ` clause.vars premise\<^sub>1"
-        by (metis image_eqI renaming(1) renaming_vars_clause)
+        by (metis image_eqI renaming(1) clause.renaming_variables)
 
       then have y_in_vars: "the_inv \<rho>\<^sub>1 (Var x) \<in> clause.vars premise\<^sub>1"
         by (metis (no_types, lifting) image_iff renaming(1) term_subst_is_renaming_iff the_inv_f_f)
@@ -1277,7 +1277,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       case False
       then have "Var x \<in> \<rho>\<^sub>2 ` clause.vars premise\<^sub>2"
         using x_in_vars
-        by (metis Un_iff image_eqI renaming(2) renaming_vars_clause)
+        by (metis Un_iff image_eqI renaming(2) clause.renaming_variables)
 
       then have y_in_vars: "the_inv \<rho>\<^sub>2 (Var x) \<in> clause.vars premise\<^sub>2"
         by (metis (no_types, lifting) image_iff renaming(2) term_subst_is_renaming_iff the_inv_f_f)
@@ -1696,7 +1696,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     qed
 
     have surjx: "surj (\<lambda>x. the_inv \<rho>\<^sub>2 (Var x))"
-      using surj_the_inv[OF renaming(2)].
+      using renaming_surj_the_inv[OF renaming(2)].
 
     have yy: 
       "\<And>P Q b ty. {x. (if b x then P x else Q x) = ty } = 
@@ -2015,7 +2015,7 @@ proof-
 
   have renaming_distinct: "clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}"
     using renaming(3)
-    unfolding renaming(1,2)[THEN renaming_vars_clause, symmetric]
+    unfolding renaming(1,2)[THEN clause.renaming_variables, symmetric]
     by blast
 
   from renaming obtain \<rho>\<^sub>1_inv \<rho>\<^sub>2_inv where
@@ -2047,7 +2047,7 @@ proof-
       by (meson is_Var_def renaming(1) term_subst_is_renaming_iff)
 
     then have "y \<in> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1)"
-      using x_in_vars renaming(1) renaming_vars_clause by fastforce
+      using x_in_vars renaming(1) clause.renaming_variables by fastforce
     
 
     then have "\<gamma> y = \<rho>\<^sub>1_inv y \<cdot>t \<gamma>\<^sub>1"
@@ -2066,8 +2066,7 @@ proof-
       by (meson is_Var_def renaming(2) term_subst_is_renaming_iff)
 
     then have "y \<in> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2)"
-      using x_in_vars renaming(2) renaming_vars_clause by fastforce
-    
+      using x_in_vars renaming(2) clause.renaming_variables by fastforce
 
     then have "\<gamma> y = \<rho>\<^sub>2_inv y \<cdot>t \<gamma>\<^sub>2"
       using \<gamma> renaming_distinct subst_compose by fastforce

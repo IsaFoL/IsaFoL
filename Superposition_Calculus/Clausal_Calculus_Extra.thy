@@ -36,4 +36,39 @@ lemma true_lit_uprod_iff_true_lit_prod[simp]:
   unfolding true_lit_simps uprod_mem_image_iff_prod_mem[OF \<open>sym I\<close>]
   by simp_all
 
+abbreviation Pos_Upair (infix "\<approx>" 66) where
+  "Pos_Upair x y \<equiv> Pos (Upair x y)"
+
+abbreviation Neg_Upair (infix "!\<approx>" 66) where
+  "Neg_Upair x y \<equiv> Neg (Upair x y)"
+
+lemma exists_atom_for_term: "\<exists>a. t \<in> set_uprod a"
+  by (metis insertI1 set_uprod_simps)
+
+lemma exists_literal_for_atom: "\<exists>l. a \<in> set_literal l"
+  by (meson literal.set_intros(1))
+
+lemma exists_literal_for_term: "\<exists>l. t \<in># mset_lit l"
+  by (metis exists_atom_for_term mset_lit.simps(1) set_mset_mset_uprod)
+
+lemma exists_clause_for_literal: "\<exists>c. l \<in> set_mset c"
+  by (meson union_single_eq_member)
+
+lemma finite_set_literal: "\<And>l. finite (set_literal l)"
+  unfolding set_literal_atm_of
+  by simp
+
+lemma map_literal_map_uprod_cong: 
+  assumes "\<And>t. t \<in># mset_lit l \<Longrightarrow> f t = g t"  
+  shows "map_literal (map_uprod f) l = map_literal (map_uprod g) l"
+  using assms
+  by(cases l)(auto cong: uprod.map_cong0)
+
+lemma set_mset_set_uprod: "set_mset (mset_lit l) = set_uprod (atm_of l)"
+  by(cases l) simp_all
+
+lemma mset_lit_set_literal: "t \<in># mset_lit l \<longleftrightarrow> t \<in> \<Union>(set_uprod ` set_literal l)"
+  unfolding set_literal_atm_of
+  by(simp add: set_mset_set_uprod)
+ 
 end

@@ -1,7 +1,7 @@
 theory Renaming
   imports 
     Fun_Extra 
-    First_Order_Clause
+    Nonground_Clause
 begin
 
 section \<open>Abstract Renaming\<close>

@@ -131,6 +131,9 @@ lemma empty_is_ground:
   using assms
   by (simp add: vars_def)
 
+lemma to_set_image: "to_set (expr \<cdot> \<sigma>) = (\<lambda>a. a \<cdot>\<^sub>s \<sigma>) ` to_set expr"
+  unfolding subst_def to_set_map..
+
 end
 
 locale based_functional_substitution_lifting = 
@@ -218,6 +221,25 @@ lemma to_fset_is_ground_subst:
   shows "sub.is_ground (sub \<cdot>\<^sub>s \<gamma>)"
   using assms
   by (simp add: to_set_is_ground_subst)
+
+end
+
+locale renaming_variables_lifting = 
+  functional_substitution_lifting +
+  sub: renaming_variables 
+  where vars = sub_vars and subst = sub_subst and is_renaming = sub.is_renaming
+begin
+
+sublocale renaming_variables where subst = subst and vars = vars and is_renaming = is_renaming
+proof unfold_locales
+  fix expr \<rho>    
+  assume "is_renaming \<rho>"
+
+  then show "id_subst ` vars (expr \<cdot> \<rho>) = \<rho> ` vars expr"
+    using sub.renaming_variables
+    unfolding vars_def subst_def to_set_map
+    by fastforce
+qed
 
 end
 

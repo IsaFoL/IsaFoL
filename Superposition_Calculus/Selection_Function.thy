@@ -1,6 +1,5 @@
 theory Selection_Function
-  imports
-    Ground_Clause
+  imports Ground_Clause
 begin
 
 locale select =
