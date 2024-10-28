@@ -1100,19 +1100,21 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
             using term\<^sub>x_\<gamma> term\<^sub>x_\<gamma>'
             by argo
 
+          then have "(term.to_ground (\<gamma> var\<^sub>x), 
+                      term.to_ground (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>term.from_ground term\<^sub>G\<^sub>3\<rangle>) \<in> I"
+            unfolding \<gamma>'
+            using  var\<^sub>x
+            by(auto simp: sym)
+        
           moreover then have "?I \<TTurnstile> ?premise\<^sub>1_\<gamma>'"
             using premise by fastforce
 
           ultimately have "?I \<TTurnstile> premise\<^sub>G\<^sub>1"
             using
-              clause.congruence[of _ \<gamma>, OF update_grounding var\<^sub>x_\<gamma>_ground _ premise\<^sub>1_grounding]
-              (*interpretation_clause_congruence[OF 
-                trans sym compatible_with_gctxt update_grounding var\<^sub>x_\<gamma>_ground premise\<^sub>1_grounding
-                ]*)
-              var\<^sub>x
-            unfolding \<gamma>'
-            
-            by simp
+              clause.symmetric_congruence[of _ \<gamma>, 
+                                          OF update_grounding var\<^sub>x_\<gamma>_ground _ premise\<^sub>1_grounding]
+            unfolding \<gamma>' premise\<^sub>G\<^sub>1
+            by blast
 
           then have "?I \<TTurnstile> add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>1\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) premise\<^sub>G\<^sub>1'"
             using ground_superpositionI(1) ground_superpositionI(5) by auto

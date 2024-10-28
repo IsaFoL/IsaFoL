@@ -28,23 +28,20 @@ locale interpretation_congurence =
   base_to_ground :: "'base \<Rightarrow> 'base\<^sub>G" and 
   base_from_ground +
   (* TODO: Remove I from entails? *)
-  fixes entails :: "('base\<^sub>G \<times> 'base\<^sub>G) set \<Rightarrow> ('expr \<times> bool) \<Rightarrow> bool" and I ::  "('base\<^sub>G \<times> 'base\<^sub>G) set"
+  fixes entails_def :: "('base\<^sub>G \<times> 'base\<^sub>G) set \<Rightarrow> 'expr \<Rightarrow> bool" and I ::  "('base\<^sub>G \<times> 'base\<^sub>G) set"
   assumes
-    (*congruence: 
-    "\<And>expr \<gamma> var update. 
+    congruence:  "\<And>expr \<gamma> var update. 
         based.base.is_ground update \<Longrightarrow>
         based.base.is_ground (\<gamma> var) \<Longrightarrow>
         (base_to_ground (\<gamma> var), base_to_ground update) \<in> I \<Longrightarrow>
         based.is_ground (subst expr \<gamma>) \<Longrightarrow> 
-        entails I (subst expr (\<gamma>(var := update))) \<Longrightarrow> 
-        entails I (subst expr \<gamma>)" and*)
-    congruence:  "\<And>expr \<gamma> var update P. 
-        based.base.is_ground update \<Longrightarrow>
-        based.base.is_ground (\<gamma> var) \<Longrightarrow>
-        (base_to_ground (\<gamma> var), base_to_ground update) \<in> I \<Longrightarrow>
-        based.is_ground (subst expr \<gamma>) \<Longrightarrow> 
-        entails I (subst expr (\<gamma>(var := update)), P) \<Longrightarrow> 
-        entails I (subst expr \<gamma>, P)"
+        entails_def I (subst expr (\<gamma>(var := update))) \<Longrightarrow> 
+        entails_def I (subst expr \<gamma>)" 
+begin
+
+abbreviation "entails \<equiv> entails_def"
+
+end
 
 
 locale symmetric_interpretation_congurence = 
@@ -52,16 +49,16 @@ locale symmetric_interpretation_congurence =
   assumes sym: "sym I"
 begin
 
-lemma negated_congruence:
+lemma symmetric_congruence:
   assumes 
     update_is_ground: "based.base.is_ground update" and
     var_grounding: "based.base.is_ground (\<gamma> var)" and
     var_update: "(base_to_ground (\<gamma> var), base_to_ground update) \<in> I" and
-    expr_grounding: "based.is_ground (subst expr \<gamma>)" and
-    updated_expr: "\<not> entails I (subst expr (\<gamma>(var := update)), P)" 
-  shows "\<not> entails I (subst expr \<gamma>, P)"
+    expr_grounding: "based.is_ground (subst expr \<gamma>)" 
+  shows
+    "entails I (subst expr (\<gamma>(var := update))) \<longleftrightarrow>  entails I (subst expr \<gamma>)" 
   using congruence[OF var_grounding, of "\<gamma>(var := update)"] assms
-  by (metis based.ground_subst_upd fun_upd_same fun_upd_triv fun_upd_upd local.sym symD)
+  by (metis based.ground_subst_upd congruence fun_upd_same fun_upd_triv fun_upd_upd sym symD)
   
 end
 
@@ -126,62 +123,56 @@ locale interpretation_congurence_lifting =
   based_variable_substitution_lifting +
   finite_variables_lifting +
   sub: symmetric_interpretation_congurence where subst = sub_subst and vars = sub_vars and 
-    entails = sub_entails
-  for sub_entails + fixes P' :: "'d \<Rightarrow> bool" 
-  assumes P': "\<And>expr \<sigma>. P' expr \<longleftrightarrow> P' (subst expr \<sigma>)"
-(*+
-  a
-fixes entails
-assumes 
-  (*P: "\<And>expr b. P expr b \<longleftrightarrow> (\<forall>sub \<in> to_set expr. sub_P sub b) \<or> (\<forall>sub \<in> to_set expr. \<not> sub_P sub b)" and*)
-  entails: "\<And>expr P. entails I (expr, P) \<longleftrightarrow> (\<forall>sub \<in> to_set expr. sub_entails I (sub, P))" 
-  (*P_cong:  "\<And>expr \<gamma> var update. 
-        base.is_ground update \<Longrightarrow>
-        base.is_ground (\<gamma> var) \<Longrightarrow>
-        (base_to_ground (\<gamma> var), base_to_ground update) \<in> I \<Longrightarrow>
-        is_ground (subst expr \<gamma>) \<Longrightarrow> 
-        P (subst expr (\<gamma>(var := update)))
-                (entails I P (subst expr (\<gamma>(var := update)))) \<Longrightarrow> 
-        P (subst expr \<gamma>) (entails I P (subst expr \<gamma>))"*)*)
+    entails_def = sub_entails
+  for sub_entails +
+  fixes 
+    is_negated :: "'d \<Rightarrow> bool" and 
+    empty :: bool and 
+    connective :: "bool \<Rightarrow> bool \<Rightarrow> bool" and
+    entails_def
+  assumes 
+    is_negated_subst: "\<And>expr \<sigma>. is_negated (subst expr \<sigma>) \<longleftrightarrow> is_negated expr" and
+    entails_def: "\<And>I expr. entails_def I expr \<longleftrightarrow>
+      (if is_negated expr then Not else (\<lambda>x. x))
+        (Finite_Set.fold connective empty (sub_entails I  ` to_set expr))"
 begin
 
+notation connective (infixl "\<diamondop>" 60)
+
+notation sub_subst (infixl "\<cdot>\<^sub>s" 70)
 notation subst (infixl "\<cdot>" 70)
 
-abbreviation entails :: "('e \<times> 'e) set \<Rightarrow> 'd \<times> bool \<Rightarrow> bool" where 
-  "\<And>I. entails I expr_P \<equiv> case expr_P of (expr, P) \<Rightarrow> 
-      (\<forall>sub \<in> to_set expr. sub_entails I (sub, if P' expr then P else \<not> P))"
+notation sub_entails (infix "\<Turnstile>\<^sub>s" 50)
+notation entails_def (infix "\<Turnstile>" 50) 
 
-
-sublocale symmetric_interpretation_congurence where subst = subst and vars = vars and entails = entails
+sublocale symmetric_interpretation_congurence 
+  where subst = subst and vars = vars and entails_def = entails_def
 proof unfold_locales
   fix expr \<gamma> var update P
-  assume 
+  assume
     "base.is_ground update"
     "base.is_ground (\<gamma> var)"
     "is_ground (expr \<cdot> \<gamma>)"
     "(base_to_ground (\<gamma> var), base_to_ground update) \<in> I"
-    "entails I (expr \<cdot> \<gamma>(var := update), P)"
+    "I \<Turnstile> expr \<cdot> \<gamma>(var := update)"
 
-  then show "entails I (expr \<cdot> \<gamma>, P)"
-    apply(auto simp: P' split: if_splits)
-    using local.subst_def sub.congruence to_set_is_ground_subst to_set_map apply auto[1]
-      apply (meson P')
-    apply (meson P')
-    by(auto simp add: P' subst_def sub.congruence sub.negated_congruence to_set_is_ground_subst to_set_map)
+  moreover then have "\<forall>sub \<in> to_set expr. (I \<Turnstile>\<^sub>s sub \<cdot>\<^sub>s \<gamma>(var := update)) = (I \<Turnstile>\<^sub>s sub \<cdot>\<^sub>s \<gamma>)"
+    using sub.symmetric_congruence[of update \<gamma>] to_set_is_ground_subst 
+    by blast
+
+  ultimately show "I \<Turnstile> expr \<cdot> \<gamma>"
+    unfolding is_negated_subst entails_def
+    by(auto simp: image_image to_set_map subst_def)
+
 qed (simp_all add: is_grounding_iff_vars_grounded sub.sym )
 
 end
 
-locale symmetric_interpretation_congurence_lifting =
-  interpretation_congurence_lifting +
-  assumes sym': "sym I"
-begin
+locale interpretation_congurence_lifting_conj = interpretation_congurence_lifting 
+  where connective = "(\<and>)" and empty = True
 
-sublocale symmetric_interpretation_congurence 
-  where subst = subst and vars = vars and entails = entails
-  by unfold_locales (rule sym')
-
-end
+locale interpretation_congurence_lifting_disj = interpretation_congurence_lifting 
+  where connective = "(\<or>)" and empty = False
 
 section \<open>First_Order_Terms And Abstract_Substitution\<close>
 
@@ -1288,14 +1279,11 @@ sublocale "term": symmetric_base_interpretation_congurence where
   by unfold_locales
     (auto simp: sym interpretation_term_congruence[OF trans sym compatible_with_gctxt])
 
-abbreviation atom_entails where 
-  "\<And>I. atom_entails I expr_P \<equiv> case expr_P of (a, P) \<Rightarrow> (if P then (\<lambda>a. a) else Not) (atom.to_ground a \<in> upair ` I)"
-
 sublocale atom: symmetric_interpretation_congurence 
   where comp_subst = "(\<odot>)" and id_subst = Var 
     and base_subst = "(\<cdot>t)" and base_vars = term.vars and subst = "(\<cdot>a)" and vars = atom.vars
-    and base_to_ground = term.to_ground and base_from_ground = term.from_ground and I = I and 
-    entails = atom_entails
+    and base_to_ground = term.to_ground and base_from_ground = term.from_ground and I = I 
+    and entails_def = "\<lambda>I a. atom.to_ground a \<in> upair ` I"
 proof unfold_locales  
   fix atom :: "('f, 'v) atom" and  \<gamma> var update P
   assume a:
@@ -1303,72 +1291,44 @@ proof unfold_locales
     "term.is_ground (\<gamma> var)" 
     "(term.to_ground (\<gamma> var), term.to_ground update) \<in> I"
     "atom.is_ground (atom \<cdot>a \<gamma>)"
-    "case (atom \<cdot>a \<gamma>(var := update), P) of (a, P) \<Rightarrow> (if P then (\<lambda>a. a) else Not) (atom.to_ground a \<in> upair ` I)"
+    "(atom.to_ground (atom \<cdot>a \<gamma>(var := update)) \<in> upair ` I)"
 
-  then show "case (atom \<cdot>a \<gamma>, P) of (a, P) \<Rightarrow> (if P then (\<lambda>a. a) else Not) (atom.to_ground a \<in> upair ` I)"
+  then show "(atom.to_ground (atom \<cdot>a \<gamma>) \<in> upair ` I)"
   unfolding atom.to_ground_def atom.subst_def atom.vars_def
-  apply(cases atom)
-  by(auto simp add: sym term.simultaneous_congruence term.simultaneous_negated_congruence)
-  
+  by(cases atom) (auto simp add: sym term.simultaneous_congruence)
 qed (simp_all add: local.sym atom.is_grounding_iff_vars_grounded)
 
-abbreviation literal_entails where 
-  "\<And>I. literal_entails I expr_P \<equiv> case expr_P of (l, P) \<Rightarrow> 
-   if is_neg l then \<not>atom_entails I (atm_of l) else atom_entails I (atm_of l)"
-                                        
-sublocale literal: symmetric_interpretation_congurence_lifting 
+sublocale literal: interpretation_congurence_lifting_conj
   where comp_subst = "(\<odot>)" and id_subst = Var 
     and base_subst = "(\<cdot>t)" and base_vars = term.vars and sub_subst = "(\<cdot>a)" and sub_vars = atom.vars
-    and base_to_ground = term.to_ground and base_from_ground = term.from_ground and I = I and 
-        sub_entails = atom_entails and map = "map_literal" and to_set = "set_literal" and P' = is_pos
-  by unfold_locales (auto simp: local.sym subst_polarity_stable)
+    and base_to_ground = term.to_ground and base_from_ground = term.from_ground and I = I 
+    and sub_entails = atom.entails and map = "map_literal" and to_set = "set_literal" 
+    and is_negated = is_neg and entails_def = "\<lambda>I l. upair ` I \<TTurnstile>l literal.to_ground l"
+proof unfold_locales 
+  fix l :: "('f, 'v) atom literal" and I
+  
+  show "(upair ` I \<TTurnstile>l literal.to_ground l) = 
+    (if is_neg l then Not else (\<lambda>x. x))
+      (Finite_Set.fold (\<and>) True ((\<lambda>a. atom.to_ground a \<in> upair ` I) ` set_literal l))" 
+    unfolding literal.vars_def literal.to_ground_def
+    by(cases l)(auto)
+qed (auto simp: sym subst_polarity_stable)
 
-lemma sad:
-  assumes "(a, b) \<in> I" 
-  shows "rep_uprod (Upair a b) \<in> I"
-proof(cases "rep_uprod (Upair a b) = (a, b)")
-  case True
-  with assms show ?thesis
-    by auto
-next
-  case False
-  then have x: "rep_uprod (Upair a b) = (b, a)"
-    by (smt (verit) Quotient3_def Quotient3_uprod Upair.abs_eq eq_upair_simps old.prod.exhaust)
-    
-  from assms sym show ?thesis
-    unfolding x
-    by (meson symE)
-qed
-
-lemma sadder: "rep_uprod (atom.to_ground x1) \<in> I \<longleftrightarrow> atom.to_ground x1 \<in> upair ` I"
-  by (smt (verit, best) Quotient3_def Quotient3_uprod Upair.abs_eq local.sym surj_pair uprod_mem_image_iff_prod_mem)
-
-lemma lit_entails: "literal.entails I (l, P) \<longleftrightarrow> (if P then (\<lambda>a. a) else Not) (upair ` I \<TTurnstile>l literal.to_ground l)"
-  unfolding literal.vars_def literal.to_ground_def
-  apply(cases l)
-  by(auto )
-
-sublocale clause: symmetric_interpretation_congurence_lifting 
+sublocale clause: interpretation_congurence_lifting_disj
   where comp_subst = "(\<odot>)" and id_subst = Var 
     and base_subst = "(\<cdot>t)" and base_vars = term.vars 
     and base_to_ground = term.to_ground and base_from_ground = term.from_ground and I = I
     and sub_subst = "(\<cdot>l)" and sub_vars = literal.vars and sub_entails = literal.entails 
-    and map = image_mset and to_set = set_mset and P' = "\<lambda>c. if c = {#} then P else \<not>P"
-  by unfold_locales (auto simp: sym clause.subst_empty)
+    and map = image_mset and to_set = set_mset and is_negated = "\<lambda>_. False" 
+    and entails_def = "\<lambda>I C. upair ` I \<TTurnstile> clause.to_ground C"
+proof unfold_locales 
+  fix C :: "('f, 'v) atom clause" and I
 
-lemma "\<not>upair ` I \<TTurnstile> clause.to_ground {#}"
-  by (simp add: clause_to_ground_empty_mset)
-
-lemma "clause.entails I ({#}, P) \<longleftrightarrow> True"
-  apply auto
-  sorry
-
-lemma clause_entails: "clause.entails I (c, P) \<longleftrightarrow> (if P then (\<lambda>a. a) else Not) (upair ` I \<TTurnstile> clause.to_ground c)"
-  unfolding clause.to_ground_def
-  apply(cases c)
-  apply auto
-  apply (simp add: clause.to_ground_def)
-  sorry
+  show "(upair ` I \<TTurnstile> clause.to_ground C) = 
+    (if False then Not else (\<lambda>x. x)) (Finite_Set.fold (\<or>) False (literal.entails I ` set_mset C))"
+    unfolding clause.to_ground_def
+    by(induction C) auto
+qed (auto simp: sym clause.subst_empty)
 
 end
 

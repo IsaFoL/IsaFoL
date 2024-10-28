@@ -444,6 +444,16 @@ lemmas fset_to_fset = to_set.fset_finite_set
 sublocale finite_variables where vars = vars
   by unfold_locales (simp add: vars_def)
 
+lemma to_fset_map: "\<And>d f. to_fset (map f d) = f |`| to_fset d"
+  using to_set_map
+  by (metis fset.set_map fset_inverse fset_to_fset)
+
+lemma to_fset_is_ground_subst:
+  assumes "sub |\<in>| to_fset expr"  "is_ground (subst expr \<gamma>)"  
+  shows "sub.is_ground (sub_subst sub \<gamma>)"
+  using assms
+  by (simp add: to_set_is_ground_subst)
+
 end
 
 locale grounding_lifting = 
