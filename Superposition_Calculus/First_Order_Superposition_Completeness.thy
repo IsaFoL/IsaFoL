@@ -1070,7 +1070,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           compatible_with_gctxt: "compatible_with_gctxt I" and
           premise: "?I \<TTurnstile>s {?premise\<^sub>1_\<gamma>'} \<union> {premise\<^sub>G\<^sub>2}"
 
-        interpret term_interpretation_congurence I
+        interpret clause_entailment I
           by unfold_locales (rule trans sym compatible_with_gctxt)+
 
         have var\<^sub>x_\<gamma>_ground: "term.is_ground (\<gamma> var\<^sub>x)"
@@ -1120,11 +1120,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
             using ground_superpositionI(1) ground_superpositionI(5) by auto
 
           then have "?I \<TTurnstile> add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) premise\<^sub>G\<^sub>1'"
-            using 
-              literal\<^sub>G\<^sub>2
-              interpretation_context_congruence[OF trans sym compatible_with_gctxt]
-              interpretation_context_congruence'[OF trans sym compatible_with_gctxt]
-              ground_superpositionI(4)
+            using literal\<^sub>G\<^sub>2 symmetric_context_congruence ground_superpositionI(4)
             unfolding ground_superpositionI(6)
             by(cases "\<P>\<^sub>G = Pos")(auto simp: sym)
 
