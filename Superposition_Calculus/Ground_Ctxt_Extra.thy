@@ -1,23 +1,26 @@
 theory Ground_Ctxt_Extra
-  imports "Regular_Tree_Relations.Ground_Ctxt"
+  imports "Regular_Tree_Relations.Ground_Terms"
 begin
+
+abbreviation ctxt_apply_gterm (\<open>_\<langle>_\<rangle>\<^sub>G\<close> [1000, 0] 1000) where
+  "C\<langle>s\<rangle>\<^sub>G \<equiv> GFun\<langle>C;s\<rangle>"
 
 lemma le_size_gctxt: "size t \<le> size (C\<langle>t\<rangle>\<^sub>G)"
   by (induction C) simp_all
 
-lemma lt_size_gctxt: "ctxt \<noteq> \<box>\<^sub>G \<Longrightarrow> size t < size ctxt\<langle>t\<rangle>\<^sub>G"
+lemma lt_size_gctxt: "ctxt \<noteq> \<box> \<Longrightarrow> size t < size ctxt\<langle>t\<rangle>\<^sub>G"
   by (induction ctxt) force+
 
-lemma gctxt_ident_iff_eq_GHole[simp]: "ctxt\<langle>t\<rangle>\<^sub>G = t \<longleftrightarrow> ctxt = \<box>\<^sub>G"
+lemma gctxt_ident_iff_eq_GHole[simp]: "ctxt\<langle>t\<rangle>\<^sub>G = t \<longleftrightarrow> ctxt = \<box>"
 proof (rule iffI)
   assume "ctxt\<langle>t\<rangle>\<^sub>G = t"
   hence "size (ctxt\<langle>t\<rangle>\<^sub>G) = size t"
     by argo
-  thus "ctxt = \<box>\<^sub>G"
+  thus "ctxt = \<box>"
     using lt_size_gctxt[of ctxt t]
     by linarith
 next
-  show "ctxt = \<box>\<^sub>G \<Longrightarrow> ctxt\<langle>t\<rangle>\<^sub>G = t"
+  show "ctxt = \<box> \<Longrightarrow> ctxt\<langle>t\<rangle>\<^sub>G = t"
     by simp
 qed
 

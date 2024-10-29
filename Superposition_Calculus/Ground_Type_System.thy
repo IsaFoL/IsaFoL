@@ -41,15 +41,15 @@ lemma gctxt_apply_term_preserves_typing:
   shows "welltyped \<F> \<kappa>\<langle>t'\<rangle>\<^sub>G \<tau>\<^sub>1"
   using \<kappa>_type
 proof (induction \<kappa> arbitrary: \<tau>\<^sub>1)
-  case GHole
+  case Hole
   then show ?case
     using t_type t'_type
     using welltyped_right_unique[of \<F>, THEN right_uniqueD]
     by auto
 next
-  case (GMore f ss1 \<kappa> ss2)
+  case (More f ss1 \<kappa> ss2)
   have "welltyped \<F> (GFun f (ss1 @ \<kappa>\<langle>t\<rangle>\<^sub>G # ss2)) \<tau>\<^sub>1"
-    using GMore.prems by simp
+    using More.prems by simp
   hence "welltyped \<F> (GFun f (ss1 @ \<kappa>\<langle>t'\<rangle>\<^sub>G # ss2)) \<tau>\<^sub>1"
   proof (cases \<F> "GFun f (ss1 @ \<kappa>\<langle>t\<rangle>\<^sub>G # ss2)" \<tau>\<^sub>1 rule: welltyped.cases)
     case (GFun \<tau>s)
@@ -60,7 +60,7 @@ next
     next
       show "list_all2 (welltyped \<F>) (ss1 @ \<kappa>\<langle>t'\<rangle>\<^sub>G # ss2) \<tau>s"
         using \<open>list_all2 (welltyped \<F>) (ss1 @ \<kappa>\<langle>t\<rangle>\<^sub>G # ss2) \<tau>s\<close>
-        using GMore.IH
+        using More.IH
         by (smt (verit, del_insts) list_all2_Cons1 list_all2_append1 list_all2_lengthD)
     qed
   qed

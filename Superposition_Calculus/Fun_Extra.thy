@@ -255,5 +255,7 @@ proof-
     by (meson ordIso_symmetric ordIso_transitive)
 qed
 
+lemma surj_infinite_set: "surj g \<Longrightarrow> infinite {x. f x = ty} \<Longrightarrow> infinite {x. f (g x) = ty}"
+  by (smt (verit) UNIV_I finite_imageI image_iff mem_Collect_eq rev_finite_subset subset_eq)
 
 end

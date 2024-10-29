@@ -149,51 +149,15 @@ locale based_functional_substitution_lifting =
     sub_ground_subst_iff_base_ground_subst: "\<And>\<gamma>. sub.is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
 begin
 
-lemma is_grounding_iff_vars_grounded: 
-  "is_ground (subst expr \<gamma>) \<longleftrightarrow> (\<forall>var \<in> vars expr. base.is_ground (\<gamma> var))"
-  using sub_is_grounding_iff_vars_grounded subst_def to_set_map vars_def
-  by auto
-
-lemma ground_subst_iff_base_ground_subst [simp]: 
-  "\<And>\<gamma>. is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
-  using sub_ground_subst_iff_base_ground_subst ground_subst_iff_sub_ground_subst by blast
-
-lemma obtain_ground_subst:
-  obtains \<gamma> 
-  where "is_ground_subst \<gamma>"
-  using base.obtain_ground_subst
-  by (meson base.ground_exists is_grounding_iff_vars_grounded is_ground_subst_def that)
-
-lemma ground_subst_extension:
-  assumes "is_ground (expr \<cdot> \<gamma>)"
-  obtains \<gamma>'
-  where "expr \<cdot> \<gamma> = expr \<cdot> \<gamma>'" and "is_ground_subst \<gamma>'"
-  by (metis all_subst_ident_if_ground assms comp_subst.left.monoid_action_compatibility 
-        is_ground_subst_comp_right obtain_ground_subst)
-
-lemma ground_subst_extension':
-  assumes "is_ground (expr \<cdot> \<gamma>)"
-  obtains \<gamma>'
-  where "expr \<cdot> \<gamma> = expr \<cdot> \<gamma>'" and "base.is_ground_subst \<gamma>'"
-  using ground_subst_extension[OF assms]
-  unfolding ground_subst_iff_base_ground_subst.
- 
-lemma ground_subst_upd [simp]:
-  assumes "base.is_ground update" "is_ground (expr \<cdot> \<gamma>)" 
-  shows "is_ground (expr \<cdot> \<gamma>(var := update))"
-  using assms
-  unfolding is_grounding_iff_vars_grounded
-  by simp
-
-lemma ground_exists: "\<exists>expr. is_ground expr"
-  using base.ground_exists
-  by (meson is_grounding_iff_vars_grounded)
-
-lemma variable_grounding:
-  assumes "is_ground (expr \<cdot> \<gamma>)" "var \<in> vars expr" 
-  shows "base.is_ground (\<gamma> var)"
-  using assms is_grounding_iff_vars_grounded 
-  by blast
+sublocale based_functional_substitution where subst = subst and vars = vars
+proof unfold_locales
+  show "\<And>\<gamma>. is_ground_subst \<gamma> = base.is_ground_subst \<gamma>"
+    using sub_ground_subst_iff_base_ground_subst ground_subst_iff_sub_ground_subst by blast
+next
+  show "\<And>\<gamma> expr. (vars (expr \<cdot> \<gamma>) = {}) = (\<forall>var\<in>vars expr. base.is_ground (\<gamma> var)) "
+    using sub_is_grounding_iff_vars_grounded subst_def to_set_map vars_def
+    by auto
+qed
 
 end
 
@@ -239,6 +203,29 @@ proof unfold_locales
     using sub.renaming_variables
     unfolding vars_def subst_def to_set_map
     by fastforce
+qed
+
+end      
+
+locale variables_in_base_imgu_lifting = 
+  based_functional_substitution_lifting +
+  sub: variables_in_base_imgu 
+    where vars = sub_vars and subst = sub_subst and base_is_imgu = base.is_imgu
+begin
+
+sublocale variables_in_base_imgu where 
+  subst = subst and vars = vars and base_is_imgu = base.is_imgu
+proof unfold_locales
+  fix expr \<mu> unifications
+  assume imgu: 
+    "base.is_imgu \<mu> unifications" 
+    "finite unifications" 
+    "\<forall>unification \<in> unifications. finite unification" 
+
+  show "vars (expr \<cdot> \<mu>) \<subseteq> vars expr \<union> \<Union> (base_vars ` \<Union> unifications)"
+    using sub.variables_in_base_imgu[OF imgu]
+    unfolding vars_def subst_def to_set_map
+    by auto    
 qed
 
 end

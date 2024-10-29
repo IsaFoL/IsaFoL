@@ -22,6 +22,12 @@ abbreviation "finite_vars \<equiv> finite_set"
 
 end
 
+locale renaming_variables = 
+  fixes vars :: "'expr \<Rightarrow> 'var set" and id_subst :: "'var \<Rightarrow> 'base" and subst is_renaming
+  assumes
+    renaming_variables:
+      "\<And>expr \<rho>. is_renaming \<rho> \<Longrightarrow> id_subst ` vars (subst expr \<rho>) = \<rho> ` (vars expr)"
+
 locale functional_substitution = substitution _ _ subst "\<lambda>a. vars a = {}" 
   for
     subst :: "'expr \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> 'expr" (infixl "\<cdot>" 70) and
@@ -115,12 +121,6 @@ corollary obtain_grounding:
   by blast
 
 end
-
-locale renaming_variables = 
-  fixes vars :: "'expr \<Rightarrow> 'var set" and id_subst :: "'var \<Rightarrow> 'base" and subst is_renaming
-  assumes
-    renaming_variables:
-      "\<And>expr \<rho>. is_renaming \<rho> \<Longrightarrow> id_subst ` vars (subst expr \<rho>) = \<rho> ` (vars expr)"
 
 locale base_functional_substitution = functional_substitution 
   where id_subst = id_subst and vars = vars
@@ -234,5 +234,55 @@ lemma variable_grounding:
   by blast
 
 end
+
+locale variables_in_base_imgu =
+  fixes 
+    base_is_imgu and
+    vars :: "'expr \<Rightarrow> 'var set" and
+    subst:: "'expr \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> 'expr" and
+    base_vars :: "'base \<Rightarrow> 'var set"
+  assumes
+    variables_in_base_imgu: "\<And>expr \<mu> unifications. 
+      base_is_imgu \<mu> unifications \<Longrightarrow> 
+      finite unifications \<Longrightarrow> \<forall>unification \<in> unifications. finite unification \<Longrightarrow>  
+      vars (subst expr \<mu>) \<subseteq> vars expr \<union> (\<Union>(base_vars ` \<Union> unifications))"
+
+locale base_variables_in_base_imgu = base_functional_substitution +
+  assumes
+    variables_in_base_imgu: "\<And>expr \<mu> unifications. 
+      is_imgu \<mu> unifications \<Longrightarrow> 
+      finite unifications \<Longrightarrow> \<forall>unification \<in> unifications. finite unification \<Longrightarrow>  
+      vars (subst expr \<mu>) \<subseteq> vars expr \<union> (\<Union>(vars ` \<Union> unifications))"
+begin
+
+
+end
+
+
+(*locale based_variables_in_base_imgu = 
+  based_functional_substitution + 
+  base: base_variables_in_base_imgu where subst = base_subst and vars = base_vars
+begin
+
+sublocale variables_in_base_imgu where base_is_imgu = base.is_imgu
+proof unfold_locales
+  fix expr \<mu> unifications
+  assume imgu_vars:
+    "base.is_imgu \<mu> unifications" 
+    "finite unifications" 
+    "\<forall>unification\<in>unifications. finite unification"
+
+  show "vars (expr \<cdot> \<mu>) \<subseteq> vars expr \<union> \<Union> (base_vars ` \<Union> unifications)"
+    using base.variables_in_base_imgu[OF imgu_vars]
+    
+    sorry
+qed
+
+end*)
+  (*assumes
+    variables_in_base_imgu: "\<And>expr \<mu> unifications. 
+      base.is_imgu \<mu> unifications \<Longrightarrow> 
+      finite unifications \<Longrightarrow> \<forall>unification \<in> unifications. finite unification \<Longrightarrow>  
+      vars (subst expr \<mu>) \<subseteq> vars expr \<union> (\<Union>(base_vars ` \<Union> unifications))"*)
 
 end

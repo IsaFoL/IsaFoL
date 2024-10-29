@@ -241,9 +241,9 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     by (metis subst_compose_assoc)
 
   have vars_conclusion': "clause.vars (conclusion' \<cdot> \<mu>) \<subseteq> clause.vars premise"
-    using vars_clause_imgu[OF \<mu>(1)] 
+    using clause.variables_in_base_imgu[OF \<mu>(1)] 
     unfolding conclusion' literal 
-    by clause_auto
+    by clause_simp
 
   have "conclusion' \<cdot> \<mu> \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     using conclusion'_\<gamma>  
@@ -810,27 +810,31 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       next
         case (Fun f terms)
 
-        then have "context\<^sub>G \<noteq> GHole"
+        then have "context\<^sub>G \<noteq> Hole"
           by (metis Fun.prems(2) actxt.simps(8) context_from_ground_hole intp_actxt.simps(1) 
               is_FunI)
 
         then obtain terms\<^sub>G\<^sub>1 context\<^sub>G' terms\<^sub>G\<^sub>2 where
-          context\<^sub>G: "context\<^sub>G = GMore f terms\<^sub>G\<^sub>1 context\<^sub>G' terms\<^sub>G\<^sub>2"
+          context\<^sub>G: "context\<^sub>G = More f terms\<^sub>G\<^sub>1 context\<^sub>G' terms\<^sub>G\<^sub>2"
           using Fun(3)
-          by(cases context\<^sub>G) auto
+          by(cases context\<^sub>G)          
+            (auto simp: ground_term_with_context3)
 
         have terms_\<gamma>: 
           "map (\<lambda>term. term \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) terms = 
             map term.from_ground terms\<^sub>G\<^sub>1 @ (context.from_ground context\<^sub>G')\<langle>term.from_ground term\<^sub>G\<^sub>1\<rangle> #
              map term.from_ground terms\<^sub>G\<^sub>2"
-          using Fun(3)
-          unfolding context\<^sub>G
-          by(simp add: comp_def)
-
+          using Fun(3) 
+          unfolding context\<^sub>G context.from_ground_def
+          (* TODO *)
+          by (smt (verit, best) actxt.simps(9) eval_subst eval_term.simps(2) intp_actxt.simps(2) map_eq_conv term.inject(2))
+        
         then obtain terms\<^sub>1 "term" terms\<^sub>2 where 
           terms: "terms = terms\<^sub>1 @ term # terms\<^sub>2" and
           terms\<^sub>1_\<gamma>: "map (\<lambda>term. term \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) terms\<^sub>1 = map term.from_ground terms\<^sub>G\<^sub>1" and
-          terms\<^sub>2_\<gamma>: "map (\<lambda>term. term \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) terms\<^sub>2 = map term.from_ground terms\<^sub>G\<^sub>2"     
+          terms\<^sub>2_\<gamma>: "map (\<lambda>term. term \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) terms\<^sub>2 = map term.from_ground terms\<^sub>G\<^sub>2"  
+          unfolding context.from_ground_def
+          (* TODO *)
           by (smt (z3) append_eq_map_conv map_eq_Cons_D)
 
         with terms_\<gamma> 
@@ -860,10 +864,11 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
             term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = term.from_ground term\<^sub>G\<^sub>1 \<and> 
             context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma> = context.from_ground context\<^sub>G \<and> 
             is_Fun term\<^sub>1"
-            by (auto
+             unfolding context.from_ground_def
+             by (auto
                 intro: exI[of _ "More f terms\<^sub>1 context\<^sub>1 terms\<^sub>2"] exI[of _ term\<^sub>1] 
                 simp: comp_def terms\<^sub>1_\<gamma> terms\<^sub>2_\<gamma> context\<^sub>G)
-
+            
           then show ?thesis
             using Fun(2)
             by argo
@@ -898,6 +903,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
               term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = term.from_ground term\<^sub>G\<^sub>1 \<and> 
               context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma> = context.from_ground context\<^sub>G \<and> 
               is_Fun term\<^sub>1"
+              unfolding context.from_ground_def
               by(auto 
                   intro: exI[of _ "(More f terms\<^sub>1 context\<^sub>1 terms\<^sub>2)"] exI[of _ term\<^sub>1] 
                   simp: "term" terms terms\<^sub>1_\<gamma> terms\<^sub>2_\<gamma> context\<^sub>G comp_def)
@@ -917,6 +923,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
             "Fun f terms = (More f terms\<^sub>1 context\<^sub>x terms\<^sub>2)\<langle>term\<^sub>x\<rangle>"
             "is_Var term\<^sub>x" 
             "context.from_ground context\<^sub>G = (More f terms\<^sub>1 context\<^sub>x terms\<^sub>2 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>) \<circ>\<^sub>c context\<^sub>x'"
+            unfolding context.from_ground_def
             by(auto simp: terms terms\<^sub>1_\<gamma> terms\<^sub>2_\<gamma> context\<^sub>G comp_def)
 
           then show ?thesis
@@ -1704,7 +1711,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       by auto
 
     have qq: "\<And>ty. infinite {x. \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = ty}"
-      using needed[OF surjx typing(9)[unfolded all_types_def, rule_format]].
+      using surj_infinite_set[OF surjx typing(9)[unfolded all_types_def, rule_format]].
 
     have zz: 
       "\<And>ty. {x. x \<notin> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<and> \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = ty} = 

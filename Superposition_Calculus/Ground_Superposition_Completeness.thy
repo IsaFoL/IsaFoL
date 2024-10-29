@@ -445,7 +445,7 @@ proof (rule ccontr)
     using rule2_in' epsilon_eq_empty_or_singleton by fastforce
 
   show False
-  proof (cases "ctxt = \<box>\<^sub>G")
+  proof (cases "ctxt = \<box>")
     case True
     hence "\<not> (ctxt\<langle>l\<rangle>\<^sub>G \<prec>\<^sub>t l)" and "\<not> (l \<prec>\<^sub>t ctxt\<langle>l\<rangle>\<^sub>G)"
       by (simp_all add: irreflpD)
@@ -459,7 +459,7 @@ proof (rule ccontr)
       using \<open>epsilon N2 C1 = {(ctxt\<langle>l\<rangle>\<^sub>G, r1)}\<close> \<open>epsilon N2 C2 = {(l, r2)}\<close> by simp
     moreover have "r1 \<noteq> r2"
       using \<open>ctxt\<langle>r2\<rangle>\<^sub>G \<noteq> r1\<close>
-      unfolding \<open>ctxt = \<box>\<^sub>G\<close>
+      unfolding \<open>ctxt = \<box>\<close>
       by simp
     ultimately show ?thesis
       by contradiction

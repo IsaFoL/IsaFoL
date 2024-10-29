@@ -118,12 +118,14 @@ proof-
             all_types \<V>\<^sub>1 \<and> all_types \<V>' \<and> all_types \<V>
         | (premise, \<V>') # (premise\<^sub>1, \<V>\<^sub>1) # a # lista \<Rightarrow> False\<rbrakk>
        \<Longrightarrow> thesis"
-      by(auto simp: clause.is_ground_subst_is_ground split: list.splits)
-        (metis list_4_cases prod.exhaust_sel) 
+      (* TODO: *)
+     apply(auto simp: clause.is_ground_subst_is_ground split: list.splits)
+      by (metis list_4_cases prod.exhaust_sel) 
 
      then show ?thesis
       using that assms 
       unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
+      
       by auto
   qed
 

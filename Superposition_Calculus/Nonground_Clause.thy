@@ -2,6 +2,7 @@ theory Nonground_Clause
   imports 
     Ground_Clause
     Nonground_Term
+    Nonground_Context
     Functional_Substitution_Lifting
     Entailment_Lifting
     Clausal_Calculus_Extra
@@ -46,7 +47,8 @@ locale clause_lifting =
   base_subst = "(\<cdot>t)" and base_vars = term.vars and id_subst = Var and comp_subst = "(\<odot>)" + 
   all_subst_ident_iff_ground_lifting where id_subst = Var and comp_subst = "(\<odot>)" +
   grounding_lifting where id_subst = Var and comp_subst = "(\<odot>)" +
-  renaming_variables_lifting where id_subst = Var and comp_subst = "(\<odot>)"
+  renaming_variables_lifting where id_subst = Var and comp_subst = "(\<odot>)" +
+  variables_in_base_imgu_lifting where id_subst = Var and comp_subst = "(\<odot>)" and base_subst = "(\<cdot>t)" and base_vars = term.vars 
 
 subsection \<open>Nonground Atoms\<close>
 
@@ -132,7 +134,8 @@ global_interpretation clause: clause_lifting where
   to_set = set_mset and sub_to_ground = literal.to_ground and 
   sub_from_ground = literal.from_ground and to_ground_map = image_mset and 
   from_ground_map = image_mset and ground_map = image_mset and to_set_ground = set_mset
-  by unfold_locales 
+  by 
+    unfold_locales 
     (auto simp: exists_clause_for_literal literal.is_grounding_iff_vars_grounded)
 
 notation clause.subst (infixl "\<cdot>" 67)
@@ -227,20 +230,26 @@ lemma clause_from_ground_empty_mset [clause_simp]: "clause.from_ground {#} = {#}
 lemma clause_to_ground_empty_mset [clause_simp]: "clause.to_ground {#} = {#}"
   by (simp add: clause.to_ground_def)
 
+abbreviation ctxt_apply_gterm (\<open>_\<langle>_\<rangle>\<^sub>T\<close> [1000, 0] 1000) where
+  "C\<langle>s\<rangle>\<^sub>T \<equiv> GFun\<langle>C;s\<rangle>"
+
 lemma ground_term_with_context1:
   assumes "context.is_ground c" "term.is_ground t"
-  shows "(context.to_ground c)\<langle>term.to_ground t\<rangle>\<^sub>G = term.to_ground c\<langle>t\<rangle>"
+  shows "(context.to_ground c)\<langle>term.to_ground t\<rangle>\<^sub>T = term.to_ground c\<langle>t\<rangle>"
   using assms
-  by (simp add: term_context_ground_iff_term_is_ground)
+  apply(induction c)
+   apply auto
+  apply (simp add: context.to_ground_def)
+  by (simp add: context.to_ground_def)
 
 lemma ground_term_with_context2:
   assumes "context.is_ground c"  
-  shows "term.from_ground (context.to_ground c)\<langle>t\<^sub>G\<rangle>\<^sub>G = c\<langle>term.from_ground t\<^sub>G\<rangle>"
+  shows "term.from_ground (context.to_ground c)\<langle>t\<^sub>G\<rangle>\<^sub>T = c\<langle>term.from_ground t\<^sub>G\<rangle>"
   using assms
-  by (simp add: ground_ctxt_iff_context_is_ground ground_gctxt_of_ctxt_apply_gterm)
+  by (metis ground_term_with_context1 sup_bot.right_neutral term.from_ground_inverse term.to_ground_inverse vars_term_ctxt_apply vars_term_of_gterm)
 
 lemma ground_term_with_context3: 
-  "(context.from_ground c\<^sub>G)\<langle>term.from_ground t\<^sub>G\<rangle> = term.from_ground c\<^sub>G\<langle>t\<^sub>G\<rangle>\<^sub>G"
+  "(context.from_ground c\<^sub>G)\<langle>term.from_ground t\<^sub>G\<rangle> = term.from_ground c\<^sub>G\<langle>t\<^sub>G\<rangle>\<^sub>T"
   using ground_term_with_context2[OF context.ground_is_ground, symmetric]
   unfolding context.from_ground_inverse.
 
@@ -328,8 +337,8 @@ lemma literal_from_ground_atom_from_ground [clause_simp]:
   by (simp_all add: literal.from_ground_def)
 
 lemma context_from_ground_hole [clause_simp]: 
-  "context.from_ground c\<^sub>G = \<box> \<longleftrightarrow> c\<^sub>G = \<box>\<^sub>G"
-  by(cases c\<^sub>G) simp_all
+  "context.from_ground c\<^sub>G = \<box> \<longleftrightarrow> c\<^sub>G = \<box>"
+  by(cases c\<^sub>G) (simp_all add: context.from_ground_def)
 
 lemma literal_from_ground_polarity_stable: 
   shows 
@@ -380,96 +389,10 @@ lemma obtain_from_neg_literal_subst:
 
 lemmas obtain_from_literal_subst = obtain_from_pos_literal_subst obtain_from_neg_literal_subst
 
-subsection \<open>Interpretations\<close>
+subsection \<open>Entailment\<close>
 
-locale clause_entailment =
-  fixes I :: "('f gterm \<times> 'f gterm) interp"
-  assumes 
-    trans: "trans I" and
-    sym: "sym I" and
-    compatible_with_gctxt: "compatible_with_gctxt I"
+locale clause_entailment = term_entailment where I = I for I :: "('f gterm \<times> 'f gterm) interp"
 begin
-
-lemma symmetric_context_congruence:
-  assumes "(t, t') \<in> I"
-  shows "(c\<langle>t\<rangle>\<^sub>G, t'') \<in> I \<longleftrightarrow> (c\<langle>t'\<rangle>\<^sub>G, t'') \<in> I"
-  by (meson assms compatible_with_gctxt compatible_with_gctxtD sym trans symD transE)
-
-sublocale "term": symmetric_base_entailment where 
-  vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set" and id_subst = Var and comp_subst = "(\<odot>)" and 
-  subst = "(\<cdot>t)" and to_ground = term.to_ground and from_ground = term.from_ground
-proof unfold_locales
-  fix \<gamma> :: "('f, 'v) subst" and t t' update var
-
-  assume 
-    update_is_ground: "term.is_ground update" and
-    var_grounding: "term.is_ground (\<gamma> var)" and
-    var_update: "(term.to_ground (\<gamma> var), term.to_ground update) \<in> I" and
-    term_grounding: "term.is_ground (t \<cdot>t \<gamma>)" and
-    updated_term: "(term.to_ground (t \<cdot>t \<gamma>(var := update)), t') \<in> I"
-
-  from term_grounding updated_term
-  show "(term.to_ground (t \<cdot>t \<gamma>), t') \<in> I"
-  proof(induction "size (filter_mset (\<lambda>var'. var' = var) (vars_term_ms t))" arbitrary: t)
-    case 0
-
-    then have "var \<notin> term.vars t"
-      by (metis (mono_tags, lifting) filter_mset_empty_conv set_mset_vars_term_ms size_eq_0_iff_empty)
-
-    then have "t \<cdot>t \<gamma>(var := update) = t \<cdot>t \<gamma>"
-      using term.subst_reduntant_upd 
-      by (simp add: eval_with_fresh_var)
-
-    with 0 show ?case
-      by argo
-  next
-    case (Suc n)
-
-    have "var \<in> term.vars t"
-      using Suc.hyps(2)
-      by (metis (full_types) filter_mset_empty_conv nonempty_has_size set_mset_vars_term_ms 
-          zero_less_Suc)
-
-    then obtain c where t [simp]: "t = c\<langle>Var var\<rangle>"
-      by (meson var_in_term)
-
-    have [simp]: 
-      "(context.to_ground (c \<cdot>t\<^sub>c \<gamma>))\<langle>term.to_ground (\<gamma> var)\<rangle>\<^sub>G = term.to_ground (c\<langle>Var var\<rangle> \<cdot>t \<gamma>)"
-      using Suc by fastforce
-
-    have context_update [simp]: 
-      "(context.to_ground (c \<cdot>t\<^sub>c \<gamma>))\<langle>term.to_ground update\<rangle>\<^sub>G = term.to_ground (c\<langle>update\<rangle> \<cdot>t \<gamma>)"
-      using Suc update_is_ground
-      by auto
-
-    have "n = size {#var' \<in># vars_term_ms c\<langle>update\<rangle>. var' = var#}"
-      using Suc vars_term_ms_count[OF update_is_ground, of var c]
-      by auto
-
-    moreover have "term.is_ground (c\<langle>update\<rangle> \<cdot>t \<gamma>)"
-      using Suc.prems update_is_ground 
-      by auto
-
-    moreover have "(term.to_ground (c\<langle>update\<rangle> \<cdot>t \<gamma>(var := update)), t') \<in> I"
-      using Suc.prems update_is_ground
-      by auto
-
-    moreover have "(term.to_ground update, term.to_ground (\<gamma> var)) \<in> I"
-      using var_update sym
-      by (metis symD)
-
-    moreover have "(term.to_ground (c\<langle>update\<rangle> \<cdot>t \<gamma>), t') \<in> I"
-      using Suc calculation
-      by blast
-
-    ultimately have "((context.to_ground (c \<cdot>t\<^sub>c \<gamma>))\<langle>term.to_ground (\<gamma> var)\<rangle>\<^sub>G, t') \<in> I"
-      using symmetric_context_congruence context_update
-      by metis
-
-    then show ?case 
-      by simp
-  qed
-qed (rule sym)
 
 sublocale atom: symmetric_entailment 
   where comp_subst = "(\<odot>)" and id_subst = Var 
@@ -527,15 +450,6 @@ qed (auto simp: sym clause.subst_empty)
 
 end
 
-lemma needed: "surj g \<Longrightarrow> infinite {x. f x = ty} \<Longrightarrow> infinite {x. f (g x) = ty}"
-  by (smt (verit) UNIV_I finite_imageI image_iff mem_Collect_eq rev_finite_subset subset_eq)
-
-lemma obtain_ground_fun:
-  assumes "term.is_ground t"
-  obtains f ts where "t = Fun f ts"
-  using assms
-  by(cases t) auto
-
 lemma vars_term_subst: "term.vars (t \<cdot>t \<sigma>) \<subseteq> term.vars t \<union> range_vars \<sigma>"
   by (meson Diff_subset order_refl subset_trans sup.mono vars_term_subst_apply_term_subset)
 
@@ -545,6 +459,13 @@ lemma vars_term_imgu [clause_intro]:
   using range_vars_subset_if_is_imgu[OF assms] vars_term_subst
   by fastforce
 
+lemma vars_term_imgu' [clause_intro]:
+  assumes "term_subst.is_imgu \<mu> XX" "\<forall>X\<in>XX. finite X" "finite XX"
+  shows "term.vars (t \<cdot>t \<mu>) \<subseteq> term.vars t \<union>  \<Union>(term.vars ` \<Union> XX)"
+  using range_vars_subset_if_is_imgu[OF assms] vars_term_subst
+  by (metis sup.absorb_iff1 sup.coboundedI2 sup_left_commute)
+
+(* TODO: *)
 lemma vars_context_imgu [clause_intro]:
   assumes "term_subst.is_imgu \<mu> {{s, s'}}"
   shows "context.vars (c \<cdot>t\<^sub>c \<mu>) \<subseteq> context.vars c \<union> term.vars s \<union> term.vars s'"
@@ -554,22 +475,19 @@ lemma vars_context_imgu [clause_intro]:
 lemma vars_atom_imgu [clause_intro]:
   assumes "term_subst.is_imgu \<mu> {{s, s'}}"
   shows "atom.vars (a \<cdot>a \<mu>) \<subseteq> atom.vars a \<union> term.vars s \<union> term.vars s'"
-  using vars_term_imgu[OF assms]
-  unfolding atom.vars_def atom.subst_def 
-  by(cases a) auto
+  using atom.variables_in_base_imgu[OF assms]
+  by fast
 
 lemma vars_literal_imgu [clause_intro]:
   assumes "term_subst.is_imgu \<mu> {{s, s'}}"
   shows "literal.vars (l \<cdot>l \<mu>) \<subseteq> literal.vars l \<union> term.vars s \<union> term.vars s'"
-  using vars_atom_imgu[OF assms]
-  unfolding literal.vars_def literal.subst_def set_literal_atm_of
-  by (metis (no_types, lifting) UN_insert ccSUP_empty literal.map_sel sup_bot.right_neutral)
+  using literal.variables_in_base_imgu[OF assms]
+  by blast
 
 lemma vars_clause_imgu [clause_intro]:
   assumes "term_subst.is_imgu \<mu> {{s, s'}}"
   shows "clause.vars (c \<cdot> \<mu>) \<subseteq> clause.vars c \<union> term.vars s \<union> term.vars s'"
-  using vars_literal_imgu[OF assms]
-  unfolding clause.vars_def clause.subst_def
+  using clause.variables_in_base_imgu[OF assms]
   by blast
 
 end

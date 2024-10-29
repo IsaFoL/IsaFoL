@@ -15,7 +15,7 @@ locale ground_ordering = term_ordering_lifting less_trm
     wfP_less_trm[intro]: "wfP (\<prec>\<^sub>t)" and
     totalp_less_trm[intro]: "totalp (\<prec>\<^sub>t)" and
     less_trm_compatible_with_gctxt[simp]: "\<And>ctxt t t'. t \<prec>\<^sub>t t' \<Longrightarrow> ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t ctxt\<langle>t'\<rangle>\<^sub>G" and
-    less_trm_if_subterm[simp]: "\<And>t ctxt. ctxt \<noteq> \<box>\<^sub>G \<Longrightarrow> t \<prec>\<^sub>t ctxt\<langle>t\<rangle>\<^sub>G"
+    less_trm_if_subterm[simp]: "\<And>t ctxt. ctxt \<noteq> \<box> \<Longrightarrow> t \<prec>\<^sub>t ctxt\<langle>t\<rangle>\<^sub>G"
 begin
 
 abbreviation lesseq_trm (infix "\<preceq>\<^sub>t" 50) where

@@ -38,7 +38,7 @@ locale ground_ordered_resolution_calculus =
     wfP_less_trm[intro]: "wfP (\<prec>\<^sub>t)" and
     totalp_less_trm[intro]: "totalp (\<prec>\<^sub>t)" and
     less_trm_compatible_with_gctxt[simp]: "\<And>ctxt t t'. t \<prec>\<^sub>t t' \<Longrightarrow> ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t ctxt\<langle>t'\<rangle>\<^sub>G" and
-    less_trm_if_subterm[simp]: "\<And>t ctxt. ctxt \<noteq> \<box>\<^sub>G \<Longrightarrow> t \<prec>\<^sub>t ctxt\<langle>t\<rangle>\<^sub>G" and
+    less_trm_if_subterm[simp]: "\<And>t ctxt. ctxt \<noteq> \<box> \<Longrightarrow> t \<prec>\<^sub>t ctxt\<langle>t\<rangle>\<^sub>G" and
     select_subset: "\<And>C. select C \<subseteq># C" and
     select_negative_lits: "\<And>C L. L \<in># select C \<Longrightarrow> is_neg L"
 begin

@@ -1,7 +1,7 @@
 theory Term_Rewrite_System
   imports
     Isabelle_2024_Compatibility
-    Regular_Tree_Relations.Ground_Ctxt
+    Ground_Ctxt_Extra
 begin
 
 definition compatible_with_gctxt :: "'f gterm rel \<Rightarrow> bool" where
@@ -31,10 +31,10 @@ proof (intro allI impI)
   assume "(t, t') \<in> I\<^sup>\<leftrightarrow>"
   thus "(ctxt\<langle>t\<rangle>\<^sub>G, ctxt\<langle>t'\<rangle>\<^sub>G) \<in> I\<^sup>\<leftrightarrow>"
   proof (induction ctxt arbitrary: t t')
-    case GHole
+    case Hole
     thus ?case by simp
   next
-    case (GMore f ts1 ctxt ts2)
+    case (More f ts1 ctxt ts2)
     thus ?case
       using assms[unfolded compatible_with_gctxt_def, rule_format]
       by blast
@@ -96,7 +96,7 @@ definition rewrite_inside_gctxt :: "'f gterm rel \<Rightarrow> 'f gterm rel" whe
 
 lemma mem_rewrite_inside_gctxt_if_mem_rewrite_rules[intro]:
   "(l, r) \<in> R \<Longrightarrow> (l, r) \<in> rewrite_inside_gctxt R"
-  by (metis (mono_tags, lifting) CollectI gctxt_apply_term.simps(1) rewrite_inside_gctxt_def)
+  by (metis (mono_tags, lifting) intp_actxt.simps(1) mem_Collect_eq rewrite_inside_gctxt_def)
 
 lemma ctxt_mem_rewrite_inside_gctxt_if_mem_rewrite_rules[intro]:
   "(l, r) \<in> R \<Longrightarrow> (ctxt\<langle>l\<rangle>\<^sub>G, ctxt\<langle>r\<rangle>\<^sub>G) \<in> rewrite_inside_gctxt R"
@@ -168,7 +168,7 @@ qed
 lemma compatible_with_gctxt_rewrite_inside_gctxt[simp]: "compatible_with_gctxt (rewrite_inside_gctxt E)"
   unfolding compatible_with_gctxt_def rewrite_inside_gctxt_def
   unfolding mem_Collect_eq
-  by (metis Pair_inject ctxt_ctxt)
+  by (metis Pair_inject intp_actxt_compose)
 
 lemma subset_rewrite_inside_gctxt[simp]: "E \<subseteq> rewrite_inside_gctxt E"
 proof (rule Set.subsetI)
@@ -179,8 +179,9 @@ proof (rule Set.subsetI)
     unfolding rewrite_inside_gctxt_def
     unfolding mem_Collect_eq
   proof (intro exI conjI)
-    show "e = (\<box>\<^sub>G\<langle>s\<rangle>\<^sub>G, \<box>\<^sub>G\<langle>t\<rangle>\<^sub>G)"
-      unfolding e_def gctxt_apply_term.simps ..
+    show "e = (\<box>\<langle>s\<rangle>\<^sub>G, \<box>\<langle>t\<rangle>\<^sub>G)"
+      unfolding e_def 
+      by simp
   next
     show "(s, t) \<in> E"
       using e_in

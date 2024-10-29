@@ -168,10 +168,10 @@ lemma less\<^sub>t\<^sub>G_context_compatible [simp]:
   shows "context\<langle>term\<^sub>1\<rangle>\<^sub>G \<prec>\<^sub>t\<^sub>G context\<langle>term\<^sub>2\<rangle>\<^sub>G"
   using assms less\<^sub>t_ground_context_compatible
   unfolding less\<^sub>t\<^sub>G_def
-  by (metis context.ground_is_ground term.ground_is_ground ground_term_with_context(3)) 
+  by (metis context.ground_is_ground ground_term_with_context(3) vars_term_of_gterm)
 
 lemma less\<^sub>t\<^sub>G_subterm_property [simp]: 
-  assumes "context \<noteq> \<box>\<^sub>G" 
+  assumes "context \<noteq> \<box>" 
   shows "term \<prec>\<^sub>t\<^sub>G context\<langle>term\<rangle>\<^sub>G"
   using 
     assms

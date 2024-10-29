@@ -300,16 +300,16 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
       have thesis_if_Pos: "Pos (Upair t t') \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
         if "\<P> = Pos" and "is_maximal_lit L\<^sub>1 P2"
       proof (cases "s")
-        case GHole
+        case Hole
         show ?thesis
         proof (cases "t' \<preceq>\<^sub>t s'")
           case True
           hence "(multp (\<prec>\<^sub>t))\<^sup>=\<^sup>= {#t, t'#} {#s\<langle>t\<rangle>\<^sub>G, s'#}"
-            unfolding GHole
+            unfolding Hole
             using transp_less_trm
             by (simp add: multp_cancel_add_mset)
           thus ?thesis
-            unfolding GHole \<open>\<P> = Pos\<close>
+            unfolding Hole \<open>\<P> = Pos\<close>
             by (auto simp: less_lit_def)
         next
           case False
@@ -317,7 +317,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
             by order
           hence "multp (\<prec>\<^sub>t) {#s\<langle>t\<rangle>\<^sub>G, s'#} {#t, t'#}"
             using transp_less_trm
-            by (simp add: GHole multp_cancel_add_mset)
+            by (simp add: Hole multp_cancel_add_mset)
           hence "\<P> (Upair s\<langle>t\<rangle>\<^sub>G s') \<prec>\<^sub>l Pos (Upair t t')"
             using \<open>\<P> = Pos\<close>
             by (simp add: less_lit_def)
@@ -340,7 +340,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
           thus ?thesis ..
         qed
       next
-        case (GMore f ts1 ctxt ts2)
+        case (More f ts1 ctxt ts2)
         hence "t \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
           using less_trm_if_subterm[of s t] by simp
         moreover hence "t' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
