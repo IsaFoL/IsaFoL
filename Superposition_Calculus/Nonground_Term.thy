@@ -1,10 +1,10 @@
 theory Nonground_Term
  imports 
     Abstract_Substitution.Substitution_First_Order_Term
-    Functional_Substitution
+    Functional_Substitution_Lifting
     Term_Rewrite_System
     Ground_Term_Extra
-    Ground_Ctxt_Extra
+    Ground_Context
     HOL_Extra
     Multiset_Extra
     Entailment_Lifting
@@ -65,14 +65,8 @@ end
 
 global_interpretation "term": vars_def where vars_def = vars_term.
 
-global_interpretation "context": vars_def where 
-  vars_def = "vars_ctxt".
-
 global_interpretation "term": grounding_def where 
   to_ground_def = gterm_of_term and from_ground_def = term_of_gterm .
-
-global_interpretation "context": grounding_def where 
-  to_ground_def = "map_args_actxt term.to_ground" and from_ground_def = "map_args_actxt term.from_ground".
 
 subsection\<open>Term\<close>
 
@@ -104,29 +98,16 @@ qed
 lemma vars_term_subst: "term.vars (t \<cdot>t \<sigma>) \<subseteq> term.vars t \<union> range_vars \<sigma>"
   by (meson Diff_subset order_refl subset_trans sup.mono vars_term_subst_apply_term_subset)
 
-lemma vars_term_imgu:
-  assumes "term_subst.is_imgu \<mu> {{s, s'}}"
-  shows "term.vars (t \<cdot>t \<mu>) \<subseteq> term.vars t \<union> term.vars s \<union> term.vars s'"
-  using range_vars_subset_if_is_imgu[OF assms] vars_term_subst
-  by fastforce
-
-lemma vars_term_imgu':
-  assumes "term_subst.is_imgu \<mu> XX" "\<forall>X\<in>XX. finite X" "finite XX"
-  shows "term.vars (t \<cdot>t \<mu>) \<subseteq> term.vars t \<union>  \<Union>(term.vars ` \<Union> XX)"
-  using range_vars_subset_if_is_imgu[OF assms] vars_term_subst
-  by (metis sup.absorb_iff1 sup.coboundedI2 sup_left_commute)
-
-global_interpretation "term": base_functional_substitution 
-  where subst = subst_apply_term and id_subst = Var and comp_subst = "(\<odot>)" 
-    and vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set" +
+global_interpretation 
+  "term": base_functional_substitution where subst = subst_apply_term and id_subst = Var and 
+  comp_subst = "(\<odot>)" and vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set" +
   "term": finite_variables where vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set" +
-  "term": all_subst_ident_iff_ground 
-  where is_ground = "term.is_ground :: ('f, 'v) term \<Rightarrow> bool" and subst = "(\<cdot>t)  :: ('f, 'v) term \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) term" + 
-  "term": renaming_variables 
-  where vars = term.vars and is_renaming = term_subst.is_renaming and id_subst = Var 
-    and subst = "(\<cdot>t)  :: ('f, 'v) term \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) term" +
+  "term": all_subst_ident_iff_ground where is_ground = "term.is_ground :: ('f, 'v) term \<Rightarrow> bool" and 
+  subst = "(\<cdot>t)" + 
+  "term": renaming_variables where vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set" and 
+  is_renaming = term_subst.is_renaming and id_subst = Var and subst = "(\<cdot>t)" +
   "term": variables_in_base_imgu where vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set" and 
-    subst = "(\<cdot>t)" and base_is_imgu = term_subst.is_imgu and base_vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set"
+  subst = "(\<cdot>t)" and base_is_imgu = term_subst.is_imgu and base_vars = term.vars
 proof unfold_locales
   show "\<And>t \<sigma> \<tau>. (\<And>x. x \<in> term.vars t \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> t \<cdot>t \<sigma> = t \<cdot>t \<tau>"
     using term_subst_eq.
@@ -188,21 +169,33 @@ next
       by blast
   qed
 next
-  show "\<And>\<gamma> t. (term.vars (t \<cdot>t \<gamma>) = {}) = (\<forall>x \<in> term.vars t. term.vars (\<gamma> x) = {})"
-    by (meson is_ground_iff)
+  fix t :: "('f, 'v) term" and \<gamma> :: "('f, 'v) subst"
+
+  show "term.vars (t \<cdot>t \<gamma>) = {} \<longleftrightarrow> (\<forall>x \<in> term.vars t. term.vars (\<gamma> x) = {})"
+    using is_ground_iff.
 next
   show "\<exists>t. term.vars t = {}"
-    by (meson vars_term_of_gterm)
-next
-  show "\<And>t \<rho>. term_subst.is_renaming \<rho> \<Longrightarrow> Var ` term.vars (t \<cdot>t \<rho>) = \<rho> ` term.vars t"
-    by (meson renaming_vars_term term_subst_is_renaming_iff)
-next
-  (* TODO *)
-  show "\<And>base_vars expr \<mu> unifications.
-       \<lbrakk>term_subst.is_imgu \<mu> unifications; finite unifications; \<forall>unification\<in>unifications. finite unification\<rbrakk>
-       \<Longrightarrow> term.vars (expr \<cdot>t \<mu>) \<subseteq> term.vars expr \<union> \<Union> (term.vars ` \<Union> unifications) "
-    using vars_term_imgu'
+    using vars_term_of_gterm
     by metis
+next
+  fix t :: "('f, 'v) term" and \<rho> :: "('f, 'v) subst"
+  assume "term_subst.is_renaming \<rho>"
+
+  then show "Var ` term.vars (t \<cdot>t \<rho>) = \<rho> ` term.vars t"
+    unfolding term_subst_is_renaming_iff
+    using renaming_vars_term
+    by meson
+next
+  fix t :: "('f, 'v) term" and \<mu>  :: "('f, 'v) subst" and unifications
+
+  assume imgu:
+    "term_subst.is_imgu \<mu> unifications" 
+    "\<forall>unification\<in>unifications. finite unification"
+    "finite unifications" 
+
+  show "term.vars (t \<cdot>t \<mu>) \<subseteq> term.vars t \<union> \<Union> (term.vars ` \<Union> unifications)"
+    using range_vars_subset_if_is_imgu[OF imgu] vars_term_subst
+    by (metis sup.absorb_iff1 sup.coboundedI2 sup_left_commute)
 qed 
 
 global_interpretation
@@ -318,6 +311,8 @@ proof unfold_locales
   next
     case (Suc n)
 
+    let ?context_to_ground = "map_args_actxt term.to_ground"
+
     have "var \<in> term.vars t"
       using Suc.hyps(2)
       by (metis (full_types) filter_mset_empty_conv nonempty_has_size set_mset_vars_term_ms 
@@ -327,19 +322,14 @@ proof unfold_locales
       by (meson var_in_term)
 
     have [simp]: 
-      "(context.to_ground (c \<cdot>t\<^sub>c \<gamma>))\<langle>term.to_ground (\<gamma> var)\<rangle>\<^sub>G = term.to_ground (c\<langle>Var var\<rangle> \<cdot>t \<gamma>)"
+      "(?context_to_ground (c \<cdot>t\<^sub>c \<gamma>))\<langle>term.to_ground (\<gamma> var)\<rangle>\<^sub>G = term.to_ground (c\<langle>Var var\<rangle> \<cdot>t \<gamma>)"
       using Suc 
-      (* TODO *)
-      apply(induction c)
-      by auto
-      
+      by(induction c) simp_all
 
     have context_update [simp]: 
-      "(context.to_ground (c \<cdot>t\<^sub>c \<gamma>))\<langle>term.to_ground update\<rangle>\<^sub>G = term.to_ground (c\<langle>update\<rangle> \<cdot>t \<gamma>)"
+      "(?context_to_ground (c \<cdot>t\<^sub>c \<gamma>))\<langle>term.to_ground update\<rangle>\<^sub>G = term.to_ground (c\<langle>update\<rangle> \<cdot>t \<gamma>)"
       using Suc update_is_ground
-      (* TODO *)
-      apply(induction c)
-      by auto
+      by(induction c) auto
 
     have "n = size {#var' \<in># vars_term_ms c\<langle>update\<rangle>. var' = var#}"
       using Suc vars_term_ms_count[OF update_is_ground, of var c]
@@ -361,7 +351,7 @@ proof unfold_locales
       using Suc calculation
       by blast
 
-    ultimately have "((context.to_ground (c \<cdot>t\<^sub>c \<gamma>))\<langle>term.to_ground (\<gamma> var)\<rangle>\<^sub>G, t') \<in> I"
+    ultimately have "((?context_to_ground (c \<cdot>t\<^sub>c \<gamma>))\<langle>term.to_ground (\<gamma> var)\<rangle>\<^sub>G, t') \<in> I"
       using symmetric_context_congruence context_update
       by metis
 
@@ -371,5 +361,16 @@ proof unfold_locales
 qed (rule sym)
 
 end
-                    
+
+subsection\<open>Setup for lifting from terms\<close>
+
+locale lifting_from_term =
+  based_functional_substitution_lifting where 
+  base_subst = "(\<cdot>t)" and base_vars = term.vars and id_subst = Var and comp_subst = "(\<odot>)" + 
+  all_subst_ident_iff_ground_lifting where id_subst = Var and comp_subst = "(\<odot>)" +
+  grounding_lifting where id_subst = Var and comp_subst = "(\<odot>)" +
+  renaming_variables_lifting where id_subst = Var and comp_subst = "(\<odot>)" +
+  variables_in_base_imgu_lifting where 
+  id_subst = Var and comp_subst = "(\<odot>)" and base_subst = "(\<cdot>t)" and base_vars = term.vars 
+
 end

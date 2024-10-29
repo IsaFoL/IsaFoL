@@ -1,4 +1,4 @@
-theory Ground_Ctxt_Extra
+theory Ground_Context
   imports "Regular_Tree_Relations.Ground_Terms"
 begin
 

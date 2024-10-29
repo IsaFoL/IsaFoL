@@ -1,9 +1,8 @@
 theory Ground_Clause
   imports
     Saturation_Framework_Extensions.Clausal_Calculus
-
     Ground_Term_Extra
-    Ground_Ctxt_Extra
+    Ground_Context
     Uprod_Extra
 begin
 

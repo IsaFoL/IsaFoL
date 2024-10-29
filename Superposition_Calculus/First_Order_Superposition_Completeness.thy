@@ -497,7 +497,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     by (metis subst_compose_assoc)
 
   have vars_conclusion': "clause.vars (?conclusion' \<cdot> \<mu>) \<subseteq> clause.vars premise"
-    using vars_clause_imgu[OF \<mu>(1)] vars_term_imgu[OF \<mu>(1)]
+    using clause.variables_in_base_imgu[OF \<mu>(1)] term.variables_in_base_imgu[OF \<mu>(1)]
     unfolding premise literal\<^sub>1_terms literal\<^sub>2_terms
     by clause_auto
 
@@ -1677,26 +1677,26 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       proof(cases)
         case t: term\<^sub>2'_with_context
         then show ?thesis 
-          using vars_context_imgu[OF \<mu>(1)]  vars_term_imgu[OF \<mu>(1)]
+          using  context.variables_in_base_imgu[OF \<mu>(1)] term.variables_in_base_imgu[OF \<mu>(1)]
           unfolding premise\<^sub>1 literal\<^sub>1 term\<^sub>1_with_context premise\<^sub>2 literal\<^sub>2 term\<^sub>2'_with_context
           apply clause_simp
           by blast
       next
         case term\<^sub>1'
         then show ?thesis
-          using vars_term_imgu[OF \<mu>(1)]
+          using term.variables_in_base_imgu[OF \<mu>(1)]
           unfolding premise\<^sub>1 subst_clause_add_mset literal\<^sub>1 term\<^sub>1_with_context premise\<^sub>2 literal\<^sub>2
           by clause_simp
       next
         case premise\<^sub>1'
         then show ?thesis 
-          using vars_clause_imgu[OF \<mu>(1)]
+          using clause.variables_in_base_imgu[OF \<mu>(1)]
           unfolding premise\<^sub>1 subst_clause_add_mset literal\<^sub>1 term\<^sub>1_with_context premise\<^sub>2 literal\<^sub>2
           by clause_simp
        next
         case premise\<^sub>2'
         then show ?thesis 
-          using vars_clause_imgu[OF \<mu>(1)]
+          using clause.variables_in_base_imgu[OF \<mu>(1)]
           unfolding premise\<^sub>1 subst_clause_add_mset literal\<^sub>1 term\<^sub>1_with_context premise\<^sub>2 literal\<^sub>2
           by clause_simp
       qed
