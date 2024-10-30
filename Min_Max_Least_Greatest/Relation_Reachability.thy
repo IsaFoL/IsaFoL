@@ -1,5 +1,5 @@
 theory Relation_Reachability
-  imports Main Relation_Extra
+  imports Main
 begin
 
 
@@ -7,9 +7,6 @@ section \<open>Definitions\<close>
 
 text \<open>When a binary relation hold for two values, i.e., \<^term>\<open>R x y\<close>, we say that \<^term>\<open>x\<close> reaches
 \<^term>\<open>y\<close> and, conversely, that \<^term>\<open>y\<close> is reachable by \<^term>\<open>x\<close>.\<close>
-
-(* We say that a literal L is maximal (strictly maximal) in a clause C, if there is no other
-   literal in C that is greater (greater or equal) than L w.r.t. \<succ>L. *)
 
 definition non_reachable_wrt where
   "non_reachable_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X - {x}. \<not> (R y x))"
@@ -41,9 +38,6 @@ lemma reaching_all_wrt_iff:
 lemma reachable_by_all_wrt_iff:
   "reachable_by_all_wrt R X x \<longleftrightarrow> x \<in> X \<and> (\<forall>y \<in> X. y \<noteq> x \<longrightarrow> R y x)"
   unfolding reachable_by_all_wrt_def by blast
-
-(* TODO: See theory file IsaFOL/Splitting_Framework.FOL_Compactness for lemmas about
-Set.filter and co. *)
 
 lemma non_reachable_wrt_filter_iff:
   "non_reachable_wrt R {y \<in> X. P y} x \<longleftrightarrow> x \<in> X \<and> P x \<and> (\<forall>y \<in> X - {x}. P y \<longrightarrow> \<not> R y x)"

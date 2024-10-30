@@ -189,7 +189,6 @@ lemma image_mset_remove1_mset:
   unfolding image_mset_remove1_mset_if inj_image_mem_iff[OF assms, symmetric]
   by simp
 
-(* TODO: Make nicer *)
 lemma multp\<^sub>D\<^sub>M_map_strong:
   assumes
     f_mono: "monotone_on (set_mset (M1 + M2)) R S f" and
@@ -288,7 +287,6 @@ next
     qed
 qed
 
-(* TODO: Better names? *)
 lemma multp_add_mset:
   assumes "asymp R" "transp R" "R x y" "multp R X Y"
   shows "multp R (add_mset x X) (add_mset y Y)"
@@ -316,13 +314,5 @@ lemma multp_add_same:
   assumes "asymp R" "transp R" "multp R X Y"
   shows "multp R (add_mset x X) (add_mset x Y)"
   by (meson assms asymp_on_subset irreflp_on_if_asymp_on multp_cancel_add_mset top_greatest)
-
-(* TODO: Should be possible 
-lemma 
-  assumes "wfP (multp\<^sub>D\<^sub>M R)" (* "asymp (multp\<^sub>D\<^sub>M R)" "transp (multp\<^sub>D\<^sub>M R)" ? *)
-  shows "wfP R"
-  using assms
-  sorry
-*)
 
 end

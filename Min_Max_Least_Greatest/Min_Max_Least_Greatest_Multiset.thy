@@ -31,6 +31,7 @@ context
     asym: "asymp_on (set_mset X) R"
 begin
 
+
 subsection \<open>Conversions\<close>
 
 lemma is_minimal_in_mset_wrt_iff:
@@ -39,11 +40,29 @@ lemma is_minimal_in_mset_wrt_iff:
   using is_minimal_in_mset_wrt_def[OF trans asym]
   by simp
 
+lemma "is_minimal_in_mset_wrt R X x \<longleftrightarrow> x \<in># X \<and> (\<forall>y \<in># X. \<not> R y x)"
+  unfolding is_minimal_in_mset_wrt_iff
+proof (rule refl_conj_eq, rule ball_cong)
+  show "set_mset X = set_mset X" ..
+next
+  show "\<And>y. y \<in># X \<Longrightarrow> (y \<noteq> x \<longrightarrow> \<not> R y x) = (\<not> R y x)"
+    using asym[THEN asymp_onD] by metis
+qed
+
 lemma is_maximal_in_mset_wrt_iff:
   "is_maximal_in_mset_wrt R X x \<longleftrightarrow> x \<in># X \<and> (\<forall>y \<in># X. y \<noteq> x \<longrightarrow> \<not> R x y)"
   using is_maximal_in_set_wrt_iff[OF trans asym]
   using is_maximal_in_mset_wrt_def[OF trans asym]
   by simp
+
+lemma "is_maximal_in_mset_wrt R X x \<longleftrightarrow> x \<in># X \<and> (\<forall>y \<in># X. \<not> R x y)"
+  unfolding is_maximal_in_mset_wrt_iff
+proof (rule refl_conj_eq, rule ball_cong)
+  show "set_mset X = set_mset X" ..
+next
+  show "\<And>y. y \<in># X \<Longrightarrow> (y \<noteq> x \<longrightarrow> \<not> R x y) = (\<not> R x y)"
+    using asym[THEN asymp_onD] by metis
+qed
 
 lemma is_strictly_minimal_in_mset_wrt_iff:
   "is_strictly_minimal_in_mset_wrt R X x \<longleftrightarrow> x \<in># X \<and> (\<forall>y \<in># X- {# x #}. \<not> R\<^sup>=\<^sup>= y x)"
@@ -64,6 +83,7 @@ lemma is_maximal_in_mset_wrt_if_is_strictly_maximal_in_mset_wrt:
   "is_strictly_maximal_in_mset_wrt R X x \<Longrightarrow> is_maximal_in_mset_wrt R X x"
   unfolding is_maximal_in_mset_wrt_iff is_strictly_maximal_in_mset_wrt_iff
   using multi_member_split by fastforce
+
 
 subsection \<open>Existence\<close>
 
@@ -132,70 +152,6 @@ proof -
         insert_Diff is_minimal_in_mset_wrt_iff more_than_one_mset_mset_diff tran)
 qed
 
-lemma not_Uniq_is_minimal_in_mset_wrt:
-  "\<not> (\<forall>R (X :: nat multiset). transp_on (set_mset X) R \<longrightarrow> asymp_on (set_mset X) R \<longrightarrow>
-    (\<exists>\<^sub>\<le>\<^sub>1x. is_minimal_in_mset_wrt R X x))"
-proof (intro notI)
-  let ?R = "\<lambda>_ _. False"
-  let ?X = "{#0 :: nat, 1 :: nat#}"
-
-  assume
-    "\<forall>R (X :: nat multiset). transp_on (set_mset X) R \<longrightarrow> asymp_on (set_mset X) R \<longrightarrow>
-      (\<exists>\<^sub>\<le>\<^sub>1 x. is_minimal_in_mset_wrt R X x)"
-
-  moreover have trans: "transp_on (set_mset ?X) ?R"
-    by (simp add: transp_onI)
-
-  moreover have asym: "asymp_on (set_mset ?X) ?R"
-    by (simp add: asymp_onI)
-
-  ultimately have "\<exists>\<^sub>\<le>\<^sub>1 x. is_minimal_in_mset_wrt ?R ?X x"
-    by metis
-
-  moreover have "is_minimal_in_mset_wrt ?R ?X 0"
-    using is_minimal_in_mset_wrt_iff[OF trans asym] by simp
-
-  moreover have "is_minimal_in_mset_wrt ?R ?X 1"
-    using is_minimal_in_mset_wrt_iff[OF trans asym] by simp
-
-  ultimately have "(0 :: nat) = (1 :: nat)"
-    using Uniq_D by fastforce
-  thus False
-    by presburger
-qed
-
-lemma not_Uniq_is_maximal_in_mset_wrt:
-  "\<not> (\<forall>R (X :: nat multiset). transp_on (set_mset X) R \<longrightarrow> asymp_on (set_mset X) R \<longrightarrow>
-    (\<exists>\<^sub>\<le>\<^sub>1x. is_maximal_in_mset_wrt R X x))"
-proof (intro notI)
-  let ?R = "\<lambda>_ _. False"
-  let ?X = "{#0 :: nat, 1 :: nat#}"
-
-  assume
-    "\<forall>R (X :: nat multiset). transp_on (set_mset X) R \<longrightarrow> asymp_on (set_mset X) R \<longrightarrow>
-      (\<exists>\<^sub>\<le>\<^sub>1 x. is_maximal_in_mset_wrt R X x)"
-
-  moreover have trans: "transp_on (set_mset ?X) ?R"
-    by (simp add: transp_onI)
-
-  moreover have asym: "asymp_on (set_mset ?X) ?R"
-    by (simp add: asymp_onI)
-
-  ultimately have "\<exists>\<^sub>\<le>\<^sub>1 x. is_maximal_in_mset_wrt ?R ?X x"
-    by metis
-
-  moreover have "is_maximal_in_mset_wrt ?R ?X 0"
-    using is_maximal_in_mset_wrt_iff[OF trans asym] by simp
-
-  moreover have "is_maximal_in_mset_wrt ?R ?X 1"
-    using is_maximal_in_mset_wrt_iff[OF trans asym] by simp
-
-  ultimately have "(0 :: nat) = (1 :: nat)"
-    using Uniq_D by fastforce
-  thus False
-    by presburger
-qed
-
 lemma multp_if_maximal_of_lhs_is_less:
   assumes
     trans: "transp R" and
@@ -212,6 +168,73 @@ next
     using assms
     using is_maximal_in_mset_wrt_iff[OF transp_on_subset[OF trans subset_UNIV] asym]
     by (metis Un_iff totalp_onD transpE)
+qed
+
+
+subsection \<open>Nonuniqueness\<close>
+
+lemma
+  fixes x :: 'a and y :: 'a
+  assumes "x \<noteq> y"
+  shows
+    not_Uniq_is_minimal_in_mset_if_two_distinct_elements:
+      "\<not> (\<forall>(R :: 'a \<Rightarrow> 'a \<Rightarrow> bool) (X :: 'a multiset).
+        transp_on (set_mset X) R \<longrightarrow> asymp_on (set_mset X) R \<longrightarrow>
+        (\<exists>\<^sub>\<le>\<^sub>1x. is_minimal_in_mset_wrt R X x))" and
+    not_Uniq_is_maximal_in_mset_wrt_if_two_distinct_elements:
+      "\<not> (\<forall>(R :: 'a \<Rightarrow> 'a \<Rightarrow> bool) (X :: 'a multiset).
+        transp_on (set_mset X) R \<longrightarrow> asymp_on (set_mset X) R \<longrightarrow>
+        (\<exists>\<^sub>\<le>\<^sub>1x. is_maximal_in_mset_wrt R X x))" and
+    not_Uniq_is_strictly_minimal_in_mset_if_two_distinct_elements:
+      "\<not> (\<forall>(R :: 'a \<Rightarrow> 'a \<Rightarrow> bool) (X :: 'a multiset).
+        transp_on (set_mset X) R \<longrightarrow> asymp_on (set_mset X) R \<longrightarrow>
+        (\<exists>\<^sub>\<le>\<^sub>1x. is_strictly_minimal_in_mset_wrt R X x))" and
+    not_Uniq_is_strictly_maximal_in_mset_wrt_if_two_distinct_elements:
+      "\<not> (\<forall>(R :: 'a \<Rightarrow> 'a \<Rightarrow> bool) (X :: 'a multiset).
+        transp_on (set_mset X) R \<longrightarrow> asymp_on (set_mset X) R \<longrightarrow>
+        (\<exists>\<^sub>\<le>\<^sub>1x. is_strictly_maximal_in_mset_wrt R X x))"
+proof -
+  let ?R = "\<lambda>_ _. False"
+  let ?X = "{#x, y#}"
+
+  have trans: "transp_on (set_mset ?X) ?R" and asym: "asymp_on (set_mset ?X) ?R"
+    by (simp_all add: transp_onI asymp_onI)
+
+  have "is_minimal_in_mset_wrt ?R ?X x" and "is_minimal_in_mset_wrt ?R ?X y"
+    using is_minimal_in_mset_wrt_iff[OF trans asym] by simp_all
+
+  thus "\<not> (\<forall>(R :: 'a \<Rightarrow> 'a \<Rightarrow> bool) (X :: 'a multiset).
+    transp_on (set_mset X) R \<longrightarrow> asymp_on (set_mset X) R \<longrightarrow>
+    (\<exists>\<^sub>\<le>\<^sub>1x. is_minimal_in_mset_wrt R X x))"
+    using \<open>x \<noteq> y\<close> trans asym
+    by (metis Uniq_D)
+
+  have "is_maximal_in_mset_wrt ?R ?X x" and "is_maximal_in_mset_wrt ?R ?X y"
+    using is_maximal_in_mset_wrt_iff[OF trans asym] by simp_all
+
+  thus "\<not> (\<forall>(R :: 'a \<Rightarrow> 'a \<Rightarrow> bool) (X :: 'a multiset).
+    transp_on (set_mset X) R \<longrightarrow> asymp_on (set_mset X) R \<longrightarrow>
+    (\<exists>\<^sub>\<le>\<^sub>1x. is_maximal_in_mset_wrt R X x))"
+    using \<open>x \<noteq> y\<close> trans asym
+    by (metis Uniq_D)
+
+  have "is_strictly_minimal_in_mset_wrt ?R ?X x" and "is_strictly_minimal_in_mset_wrt ?R ?X y"
+    using \<open>x \<noteq> y\<close> is_strictly_minimal_in_mset_wrt_iff[OF trans asym] by simp_all
+
+  thus "\<not> (\<forall>(R :: 'a \<Rightarrow> 'a \<Rightarrow> bool) (X :: 'a multiset).
+    transp_on (set_mset X) R \<longrightarrow> asymp_on (set_mset X) R \<longrightarrow>
+    (\<exists>\<^sub>\<le>\<^sub>1x. is_strictly_minimal_in_mset_wrt R X x))"
+    using \<open>x \<noteq> y\<close> trans asym
+    by (metis Uniq_D)
+
+  have "is_strictly_maximal_in_mset_wrt ?R ?X x" and "is_strictly_maximal_in_mset_wrt ?R ?X y"
+    using \<open>x \<noteq> y\<close> is_strictly_maximal_in_mset_wrt_iff[OF trans asym] by simp_all
+
+  thus "\<not> (\<forall>(R :: 'a \<Rightarrow> 'a \<Rightarrow> bool) (X :: 'a multiset).
+    transp_on (set_mset X) R \<longrightarrow> asymp_on (set_mset X) R \<longrightarrow>
+    (\<exists>\<^sub>\<le>\<^sub>1x. is_strictly_maximal_in_mset_wrt R X x))"
+    using \<open>x \<noteq> y\<close> trans asym
+    by (metis Uniq_D)
 qed
 
 
@@ -544,6 +567,7 @@ section \<open>Hide stuff\<close>
 text \<open>We restrict the public interface to ease future internal changes.\<close>
 
 hide_fact is_minimal_in_mset_wrt_def is_maximal_in_mset_wrt_def
+hide_fact is_strictly_minimal_in_mset_wrt_def is_strictly_maximal_in_mset_wrt_def
 hide_fact is_least_in_mset_wrt_def is_greatest_in_mset_wrt_def
 
 

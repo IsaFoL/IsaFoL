@@ -1,6 +1,6 @@
 theory First_Order_Superposition_Example
-  imports 
-    IsaFoR_Term_Copy             
+  imports
+    IsaFoR_Term_Copy
     First_Order_Superposition
 begin
 
@@ -14,7 +14,7 @@ context
   assumes ground_critical_pair_theorem:
     "\<And>(R :: ('f :: weighted) gterm rel). ground_critical_pair_theorem R"
 begin
-                                    
+
 interpretation first_order_superposition_calculus 
   "trivial_select :: ('f :: weighted, 'v :: infinite) select" 
   less_kbo

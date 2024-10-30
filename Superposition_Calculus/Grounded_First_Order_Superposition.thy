@@ -30,7 +30,7 @@ sublocale ground: ground_superposition_calculus where
   less_trm = "(\<prec>\<^sub>t\<^sub>G)" and select = select\<^sub>G
   by unfold_locales (rule ground_critical_pair_theorem)
 
-abbreviation is_inference_grounding where
+definition is_inference_grounding where
   "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv>
     (case \<iota> of
         Infer [(premise, \<V>')] (conclusion, \<V>) \<Rightarrow>
@@ -80,14 +80,12 @@ proof-
     using Calculus.inference.exhaust
     by (metis prod.collapse)
 
-  (* TODO: *)
   obtain \<gamma> where
     "clause.is_ground (conclusion \<cdot> \<gamma>)"
     "conlcusion\<^sub>G = clause.to_ground (conclusion \<cdot> \<gamma>)"
     "welltyped\<^sub>c typeof_fun \<V> conclusion \<and> welltyped\<^sub>\<sigma>_on (clause.vars conclusion) typeof_fun \<V> \<gamma> \<and> 
     term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
   proof-
-    (* TODO! *)
     have "\<And>\<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2.
        \<lbrakk>\<And>\<gamma>. \<lbrakk>clause.vars (conclusion \<cdot> \<gamma>) = {}; conlcusion\<^sub>G = clause.to_ground (conclusion \<cdot> \<gamma>);
               First_Order_Type_System.welltyped\<^sub>c typeof_fun \<V> conclusion \<and>
@@ -124,7 +122,7 @@ proof-
      then show ?thesis
       using that assms 
       unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
-      by auto
+      by (auto simp: is_inference_grounding_def)
   qed
 
   then show ?thesis
@@ -137,7 +135,7 @@ lemma inference\<^sub>G_red_in_clause_grounding_of_concl:
   shows "\<iota>\<^sub>G \<in> ground.Red_I (clause_groundings typeof_fun (concl_of \<iota>))"
 proof-
   from assms have "\<iota>\<^sub>G \<in> ground.G_Inf"
-    unfolding inference_groundings_def
+    unfolding inference_groundings_def is_inference_grounding_def
     by blast
 
   moreover have "concl_of \<iota>\<^sub>G \<in> clause_groundings typeof_fun  (concl_of \<iota>)"

@@ -17,7 +17,6 @@ definition is_select_grounding :: "('f, 'v) select \<Rightarrow> 'f ground_selec
         clause\<^sub>G = clause.to_ground (clause \<cdot> \<gamma>) \<and> 
         select\<^sub>G clause\<^sub>G = clause.to_ground ((select clause) \<cdot> \<gamma>))"
 
-(* TODO: Clean up! *)
 lemma infinite_lists_per_length: "infinite {l :: ('a :: infinite) list. length (tl l) = y}"
 proof(induction y)
   case 0
@@ -258,8 +257,6 @@ lemma all_types':
   unfolding all_types_def
   by argo
 
-(* TODO: term_subst.is_ground_subst \<gamma> \<rightarrow> clause.is_ground (fst clause \<cdot> \<gamma>) *)
-(* TODO: Is  welltyped\<^sub>c \<F> (snd clause) (fst clause) needed? *)
 definition clause_groundings :: "('f, 'ty) fun_types \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> 'f ground_atom clause set"  where
   "clause_groundings \<F> clause = { clause.to_ground (fst clause \<cdot> \<gamma>) | \<gamma>. 
     term_subst.is_ground_subst \<gamma> \<and> 
@@ -268,10 +265,6 @@ definition clause_groundings :: "('f, 'ty) fun_types \<Rightarrow> ('f, 'v, 'ty)
     all_types (snd clause)
   }"
 
-(* TODO: Factor out sth like select_subst_stable for a single premise and use that format 
-  everywhere
-
- *)
 abbreviation select_subst_stability_on where
   "\<And>select select\<^sub>G. select_subst_stability_on \<F> select select\<^sub>G premises \<equiv>
     \<forall>premise\<^sub>G \<in> \<Union> (clause_groundings \<F> ` premises). \<exists>(premise, \<V>) \<in> premises. \<exists>\<gamma>. 

@@ -1,10 +1,9 @@
 theory Ground_Ordering
   imports
-    Isabelle_2024_Compatibility
     Ground_Clause
     Transitive_Closure_Extra
     Clausal_Calculus_Extra
-    Min_Max_Least_Greatest_Multiset
+    Min_Max_Least_Greatest.Min_Max_Least_Greatest_Multiset
     Term_Ordering_Lifting
 begin
 

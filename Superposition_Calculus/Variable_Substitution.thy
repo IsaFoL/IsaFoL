@@ -241,9 +241,7 @@ lemma variable_grounding:
 
 end
                                              
-
-
-(* ---- Liftings ---- *)
+section \<open>Liftings\<close>
 
 locale variable_substitution_lifting = 
   sub: variable_substitution
@@ -373,7 +371,6 @@ for base_subst base_vars +
 assumes 
   sub_is_grounding_iff_vars_grounded: 
     "\<And>exp \<gamma>. sub.is_ground (sub_subst exp \<gamma>) \<longleftrightarrow> (\<forall>x \<in> sub_vars exp. base.is_ground (\<gamma> x))" and
-  (* TODO: Does it make sense to put this into separate locale? *)
   sub_ground_subst_iff_base_ground_subst: "\<And>\<gamma>. sub.is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>"
 begin
 
@@ -455,8 +452,7 @@ fixes
   from_ground_map :: "('ground_sub \<Rightarrow> 'sub) \<Rightarrow> 'ground_expr \<Rightarrow> 'expr" and
   ground_map :: "('ground_sub \<Rightarrow> 'ground_sub) \<Rightarrow> 'ground_expr \<Rightarrow> 'ground_expr" and
   to_set_ground :: "'ground_expr \<Rightarrow> 'ground_sub set"
-assumes 
-  (* TODO: Names *)
+assumes
   to_set_from_ground_map: "\<And>d f. to_set (from_ground_map f d) = f ` to_set_ground d" and
   map_comp': "\<And>d f g. from_ground_map f (to_ground_map g d) = map (f \<circ> g) d" and
   ground_map_comp: "\<And>d f g. to_ground_map f (from_ground_map g d) = ground_map (f \<circ> g) d" and

@@ -5,7 +5,6 @@ theory First_Order_Ordering
     Relation_Extra
 begin
 
-(* TODO: Move *)
 context ground_ordering
 begin
 
@@ -23,17 +22,12 @@ lemmas is_strictly_maximal_lit_def =
 
 end
 
-(* TODO: rename to not have "first order" in name*)
 section \<open>First order ordering\<close>
 
-(* TODO: less\<^sub>t-prefixes actually not needed *)
 locale first_order_ordering = term_ordering_lifting less\<^sub>t
   for
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   assumes
-    (* TODO: It should be enough to have these on ground terms*)
-    (* less\<^sub>t_transitive [intro]: "transp (\<prec>\<^sub>t)" and *)
-    (* less\<^sub>t_asymmetric [intro]: "asymp (\<prec>\<^sub>t)" and  *)
     less\<^sub>t_total_on [intro]: "totalp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and
     less\<^sub>t_wellfounded_on: "wfp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and    
     less\<^sub>t_ground_context_compatible:
@@ -113,7 +107,7 @@ abbreviation is_strictly_maximal\<^sub>l ::
   "('f, 'v) atom literal \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" where
   "is_strictly_maximal\<^sub>l literal clause \<equiv> is_strictly_maximal_in_mset_wrt (\<prec>\<^sub>l) clause literal"
 
-(* TODO: Try factoring out a locale for the sections *)
+
 subsection \<open>Term ordering\<close>
 
 lemmas less\<^sub>t_asymmetric_on = term_order.asymp_on_less
@@ -180,7 +174,6 @@ lemma less\<^sub>t\<^sub>G_subterm_property [simp]:
   unfolding less\<^sub>t\<^sub>G_def ground_term_with_context(3)  
   by blast
 
-(* TODO: direction? *)
 lemma less\<^sub>t_less\<^sub>t\<^sub>G [clause_simp]: 
   assumes "term.is_ground term\<^sub>1" and "term.is_ground term\<^sub>2"
   shows "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2 \<longleftrightarrow> term.to_ground term\<^sub>1 \<prec>\<^sub>t\<^sub>G term.to_ground term\<^sub>2"
@@ -351,7 +344,6 @@ lemma is_maximal_lit_iff_is_maximal\<^sub>l:
      clause.ground_sub_in_ground
    by (metis literal.to_ground_inverse literal.from_ground_inverse)
 
-(* TODO: Name *)
 lemma is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l:
   "ground.is_strictly_maximal_lit literal\<^sub>G clause\<^sub>G 
     \<longleftrightarrow> is_strictly_maximal\<^sub>l (literal.from_ground literal\<^sub>G) (clause.from_ground clause\<^sub>G)"
@@ -431,12 +423,9 @@ lemma less\<^sub>t_ground_context_compatible':
     "term.is_ground term'" 
     "context\<langle>term\<rangle> \<prec>\<^sub>t context\<langle>term'\<rangle>"
   shows "term \<prec>\<^sub>t term'"
-  (* TODO: *)
   using assms 
   by (metis less\<^sub>t_ground_context_compatible not_less_eq\<^sub>t term_order.dual_order.asym 
         term_order.order.not_eq_order_implies_strict)
- (* apply(clause_simp simp: ground.less_trm_compatible_with_gctxt_iff[symmetric, of "term.to_ground term" _ "context.to_ground context"])
-  by (simp add: ground_term_with_context1 less\<^sub>t_less\<^sub>t\<^sub>G)*)
   
 
 lemma less\<^sub>t_ground_context_compatible_iff:
@@ -605,7 +594,6 @@ proof(rule ccontr)
     by blast
 qed
 
-(* TODO: Try to move these to the fitting others *)
 lemma less\<^sub>l_total_on [intro]: "totalp_on (literal.from_ground ` literals\<^sub>G) (\<prec>\<^sub>l)"
   by (smt (verit, best) image_iff less\<^sub>l\<^sub>G_less\<^sub>l totalpD ground.less\<^sub>l\<^sub>G_total_on totalp_on_def)
 
@@ -716,8 +704,6 @@ lemma is_strictly_maximal\<^sub>l_ground_subst_stability':
     is_strictly_maximal\<^sub>l_def is_maximal\<^sub>l_def
     subst_clause_remove1_mset[OF assms(1), symmetric]
   by (metis in_diffD clause.subst_in_to_set_subst reflclp_iff)
-
-(* TODO: Put in right sections + naming *)
 
 lemma less\<^sub>t_less\<^sub>l: 
   assumes "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2"
@@ -989,7 +975,6 @@ proof-
   note less\<^sub>t_subst_upd = less\<^sub>t_subst_upd[of _ \<gamma>, OF update_is_ground update_less] 
 
   have all_ground_terms: "\<forall>term \<in> set_uprod (atm_of literal). term.is_ground (term \<cdot>t \<gamma>)"
-    (* TODO: *)
     using assms(3)
     apply(cases literal)
     by (simp add: ground_term_in_ground_literal_subst)+

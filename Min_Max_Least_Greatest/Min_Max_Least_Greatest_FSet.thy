@@ -55,10 +55,12 @@ end
 subsection \<open>Non-existence\<close>
 
 lemma not_is_minimal_in_fset_wrt_fempty[simp]: "\<And>R x. \<not> is_minimal_in_fset_wrt R {||} x"
-  using is_minimal_in_fset_wrt_iff[of "{||}", simplified] .
+  using is_minimal_in_fset_wrt_iff[of "{||}"]
+  by (simp add: transp_on_def asymp_on_def)
 
 lemma not_is_maximal_in_fset_wrt_fempty[simp]: "\<And>R x. \<not> is_maximal_in_fset_wrt R {||} x"
-  using is_maximal_in_fset_wrt_iff[of "{||}", simplified] .
+  using is_maximal_in_fset_wrt_iff[of "{||}"]
+  by (simp add: transp_on_def asymp_on_def)
 
 
 subsection \<open>Miscellaneous\<close>
@@ -174,13 +176,15 @@ lemma ex1_greatest_in_fset_wrt:
 end
 
 
-subsection \<open>Non-existence\<close>
+subsection \<open>Nonexistence\<close>
 
 lemma not_is_least_in_fset_wrt_fempty[simp]: "\<And>R x. \<not> is_least_in_fset_wrt R {||} x"
-  using is_least_in_fset_wrt_iff[of "{||}", simplified] .
+  using is_least_in_fset_wrt_iff[of "{||}"]
+  by (simp add: transp_on_def asymp_on_def)
 
 lemma not_is_greatest_in_fset_wrt_fempty[simp]: "\<And>R x. \<not> is_greatest_in_fset_wrt R {||} x"
-  using is_greatest_in_fset_wrt_iff[of "{||}", simplified] .
+  using is_greatest_in_fset_wrt_iff[of "{||}"]
+  by (simp add: transp_on_def asymp_on_def)
 
 
 subsection \<open>Miscellaneous\<close>

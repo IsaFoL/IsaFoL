@@ -8,7 +8,6 @@ subsection \<open>Soundness\<close>
 context grounded_first_order_superposition_calculus
 begin
 
-(* TODO : Find way to use this abbrev for both entails_\<G> *)
 abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
   "entails\<^sub>F \<equiv> lifting.entails_\<G>"
 
@@ -91,7 +90,6 @@ lemma eq_resolution_sound:
 proof (cases P C rule: eq_resolution.cases)
   case (eq_resolutionI P L P' s\<^sub>1 s\<^sub>2 \<mu> \<V> C)
 
-(* TODO: Use blocks everywhere *)
   { 
     fix I :: "'f gterm rel" and \<gamma> :: "('f, 'v) subst"
 

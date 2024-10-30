@@ -4,7 +4,6 @@ theory First_Order_Superposition
     Ground_Superposition
     First_Order_Select
     First_Order_Ordering
-    Renaming
     First_Order_Type_System
 begin
 
@@ -112,9 +111,6 @@ inductive eq_factoring :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty
     conclusion = add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise') \<cdot> \<mu> \<Longrightarrow>
     eq_factoring (premise, \<V>) (conclusion, \<V>)"
 
-(* TODO: Not sure if welltypedness for renaming is necessary, I think it's already implied *)
-(* TODO: welltyped_on for imgu *)
-(* TODO: weaken  all_types \<V>\<^sub>1 \<Longrightarrow> all_types \<V>\<^sub>2 *)
 inductive superposition ::
   "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> bool"
 where
@@ -211,9 +207,6 @@ proof (cases rule: pos_superposition.cases)
     using superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2]
     by blast
 qed
-
-(*lemma term_subst_is_renaming_iff_ex_inj_fun_on_vars:
-  "term_subst.is_renaming \<rho> \<longleftrightarrow> (\<exists>f. inj f \<and> \<rho> = Var \<circ> f)"*)
 
 inductive neg_superposition ::
   "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> bool"
@@ -332,7 +325,6 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
 
   show ?thesis
   proof-
-    (* TODO *)
     have "\<And>\<tau> \<tau>'.
        \<lbrakk>\<forall>L\<in>#premise' \<cdot> \<mu>.
            \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). First_Order_Type_System.welltyped typeof_fun \<V> t \<tau>;
@@ -363,7 +355,6 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
    qed
 qed
 
-(* TODO: Naming!! *)
 lemma superposition_preserves_typing:
   assumes
     step: "superposition (D, \<V>\<^sub>2) (C, \<V>\<^sub>1) (E, \<V>\<^sub>3)" and

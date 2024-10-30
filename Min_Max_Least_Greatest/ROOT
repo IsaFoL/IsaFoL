@@ -1,0 +1,12 @@
+chapter AFP
+session Min_Max_Least_Greatest = HOL +
+  options [timeout = 300]
+  sessions
+    "HOL-Library"
+  theories
+    Min_Max_Least_Greatest_FSet
+    Min_Max_Least_Greatest_Multiset
+    Min_Max_Least_Greatest_Set
+    Relation_Reachability
+  document_files
+    "root.tex"

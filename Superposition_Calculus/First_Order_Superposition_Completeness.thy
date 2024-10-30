@@ -23,8 +23,7 @@ lemma eq_resolution_lifting:
     premise\<^sub>G [simp]: "premise\<^sub>G \<equiv> clause.to_ground (premise \<cdot> \<gamma>)" and
     conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> clause.to_ground (conclusion \<cdot> \<gamma>)"
   assumes 
-    premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and 
-    (* TODO: groundings can be derived from ground_subst*)
+    premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and
     conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
     select: "clause.from_ground (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
     ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G" and
@@ -249,22 +248,26 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     using conclusion'_\<gamma>  
     unfolding clause.subst_comp_subst[symmetric] \<mu>_\<gamma>.
 
-  moreover then have 
+  moreover have
     "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (conclusion' \<cdot> \<mu>, \<V>))"
-    using ground_eq_resolution conclusion_grounding premise_grounding typing
-    unfolding 
-      clause_groundings_def 
-      inference_groundings_def 
-      ground.G_Inf_def 
-      inferences_def 
-      premise\<^sub>G
-      conclusion\<^sub>G
-      (* TODO: *)
-    apply auto
-    apply(rule exI[of _ \<gamma>])
-    apply auto
-    using vars_conclusion' welltyped\<^sub>\<sigma>_on_subset apply blast
-    using eq_resolution eq_resolution_preserves_typing by blast
+    unfolding inference_groundings_def mem_Collect_eq
+  proof -
+    have "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> ground.G_Inf"
+      unfolding ground.G_Inf_def
+      using ground_eq_resolution by blast
+
+    then have "\<exists>\<rho>\<^sub>1 \<rho>\<^sub>2. is_inference_grounding
+      (Infer [(premise, \<V>)] (conclusion' \<cdot> \<mu>, \<V>))
+      (Infer [premise\<^sub>G] conclusion\<^sub>G) \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2"
+      unfolding is_inference_grounding_def Calculus.inference.case list.case prod.case
+      using typing
+      by (smt (verit) calculation conclusion\<^sub>G eq_resolution eq_resolution_preserves_typing premise\<^sub>G
+          vars_conclusion' welltyped\<^sub>\<sigma>_on_subset)
+
+    thus "\<exists>\<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2. Infer [premise\<^sub>G] conclusion\<^sub>G = \<iota>\<^sub>G \<and>
+       is_inference_grounding (Infer [(premise, \<V>)] (conclusion' \<cdot> \<mu>, \<V>)) \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2"
+      by iprover
+  qed
 
   ultimately show ?thesis
     using that[OF eq_resolution]
@@ -521,21 +524,27 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
   then have "?conclusion' \<cdot> \<mu> \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     by (metis \<mu>_\<gamma> clause.subst_comp_subst)
 
-  moreover then have 
+  moreover have 
     "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (?conclusion' \<cdot> \<mu>, \<V>))"
-    using ground_eq_factoring conclusion_grounding premise_grounding 
-    unfolding 
-      clause_groundings_def 
-      inference_groundings_def 
-      ground.G_Inf_def 
-      inferences_def 
-      premise\<^sub>G
-      conclusion\<^sub>G
-    apply auto
-    apply(rule exI[of _ \<gamma>])
-    apply(auto simp: typing)
-    using vars_conclusion' typing(3) welltyped\<^sub>\<sigma>_on_subset apply blast
-    using eq_factoring eq_factoring_preserves_typing typing(1) by blast    
+    unfolding inference_groundings_def mem_Collect_eq
+  proof -
+    have "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> ground.G_Inf"
+      unfolding ground.G_Inf_def
+      using ground_eq_factoring conclusion_grounding premise_grounding 
+      by blast
+
+    then have "\<exists>\<rho>\<^sub>1 \<rho>\<^sub>2. is_inference_grounding
+      (Infer [(premise, \<V>)] (?conclusion' \<cdot> \<mu>, \<V>))
+      (Infer [premise\<^sub>G] conclusion\<^sub>G) \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2"
+      unfolding is_inference_grounding_def Calculus.inference.case list.case prod.case
+      using typing
+      by (smt (verit) calculation conclusion\<^sub>G eq_factoring eq_factoring_preserves_typing premise\<^sub>G
+          vars_conclusion' welltyped\<^sub>\<sigma>_on_subset)
+
+    thus "\<exists>\<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2. Infer [premise\<^sub>G] conclusion\<^sub>G = \<iota>\<^sub>G \<and>
+      is_inference_grounding (Infer [(premise, \<V>)] (?conclusion' \<cdot> \<mu>, \<V>)) \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2"
+      by iprover
+  qed    
 
   ultimately show ?thesis
     using that[OF eq_factoring]
@@ -548,7 +557,6 @@ lemma if_subst_sth [clause_simp]: "(if b then Pos else Neg) atom \<cdot>l \<rho>
   (if b then Pos else Neg) (atom \<cdot>a \<rho>)"
   by clause_auto
 
-(* TODO: Try to split up proof *)
 lemma superposition_lifting:
   fixes 
     premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 conclusion\<^sub>G :: "'f gatom clause" and 
@@ -813,8 +821,6 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         then have "context\<^sub>G \<noteq> GHole"
           by (metis Fun.prems(2) ctxt_apply_term.simps(1) ctxt_of_gctxt.simps(1) 
               subst_apply_ctxt.simps(1) term.discI(2))
-          (*by (metis Fun.prems(2) actxt.simps(8) context_from_ground_hole intp_actxt.simps(1) 
-              is_FunI)*)
 
         then obtain terms\<^sub>G\<^sub>1 context\<^sub>G' terms\<^sub>G\<^sub>2 where
           context\<^sub>G: "context\<^sub>G = GMore f terms\<^sub>G\<^sub>1 context\<^sub>G' terms\<^sub>G\<^sub>2"
@@ -952,8 +958,6 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       using renaming(1)
       unfolding is_Var_def term_subst.is_renaming_def subst_compose_def
       by (metis eval_term.simps(1) subst_apply_eq_Var)
-      (*by (metis eval_subst_def eval_term.simps(1) literal.is_renaming_def renaming(1) 
-          subst_apply_eq_Var)*)
 
     have \<tau>\<^sub>x_var\<^sub>x: "welltyped typeof_fun \<V>\<^sub>1 (Var var\<^sub>x) \<tau>\<^sub>x"
       using \<tau>\<^sub>x typing(6)
@@ -1736,6 +1740,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           conclusion'_\<gamma> ground_superposition 
           welltyped\<^sub>\<sigma>_on_subset[OF  wt_\<gamma> vars_conclusion'] 
           all_types_\<V>\<^sub>3
+        unfolding is_inference_grounding_def
         unfolding ground.G_Inf_def \<iota>\<^sub>G
         by(auto simp: typing renaming premise\<^sub>1_grounding premise\<^sub>2_grounding conclusion_grounding)
 
