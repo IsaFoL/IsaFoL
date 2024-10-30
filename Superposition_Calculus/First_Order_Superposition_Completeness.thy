@@ -59,7 +59,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     by metis
 
   also have "... = add_mset (literal.from_ground literal\<^sub>G) (conclusion \<cdot> \<gamma>)"
-    unfolding clause_from_ground_add_mset
+    unfolding clause.add_subst
     by (simp add: conclusion_grounding)
 
   finally have premise_\<gamma>: "premise \<cdot> \<gamma> = add_mset (literal.from_ground literal\<^sub>G) (conclusion \<cdot> \<gamma>)".
@@ -164,7 +164,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
 
   have conclusion'_\<gamma>: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     using premise_\<gamma>
-    unfolding conclusion' ground_eq_resolutionI(2) literal_\<gamma>[symmetric] subst_clause_add_mset
+    unfolding conclusion' ground_eq_resolutionI(2) literal_\<gamma>[symmetric] clause.add_subst
     by simp
 
   have eq_resolution: "eq_resolution (premise, \<V>) (conclusion' \<cdot> \<mu>, \<V>)"
@@ -347,8 +347,8 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
 
   then have premise''_\<gamma>: "premise'' \<cdot> \<gamma> =  add_mset (literal.from_ground literal\<^sub>G\<^sub>2) (clause.from_ground premise'\<^sub>G)"
     using premise_\<gamma> 
-    unfolding clause_from_ground_add_mset literal\<^sub>1_\<gamma>[symmetric]
-    by (simp add: subst_clause_add_mset)
+    unfolding clause.from_ground_add literal\<^sub>1_\<gamma>[symmetric]
+    by simp
 
   then obtain literal\<^sub>2 where literal\<^sub>2:
     "literal\<^sub>2 \<cdot>l \<gamma> = literal.from_ground literal\<^sub>G\<^sub>2"
@@ -389,7 +389,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
   then have premise'_\<gamma>: "premise' \<cdot> \<gamma> = clause.from_ground premise'\<^sub>G"
     using premise''_\<gamma>  premise''
     unfolding literal\<^sub>2(1)[symmetric]
-    by (simp add: subst_clause_add_mset)
+    by simp
 
   have term\<^sub>1_term\<^sub>2: "term\<^sub>1 \<cdot>t \<gamma> = term\<^sub>2 \<cdot>t \<gamma>"
     using term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>1_term\<^sub>2
@@ -506,7 +506,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
         (add_mset (term.from_ground term\<^sub>G\<^sub>1 \<approx> term.from_ground term\<^sub>G\<^sub>3) (clause.from_ground premise'\<^sub>G))"
     using ground_eq_factoringI(7) clause.to_ground_inverse[OF conclusion_grounding]
     unfolding atom_from_ground_term_from_ground[symmetric] 
-      literal_from_ground_atom_from_ground[symmetric] clause_from_ground_add_mset[symmetric]
+      literal_from_ground_atom_from_ground[symmetric] clause.from_ground_add[symmetric]
     by simp
 
   then have conclusion_\<gamma>: 
@@ -533,9 +533,10 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
       conclusion\<^sub>G
     apply auto
     apply(rule exI[of _ \<gamma>])
-    apply(auto simp: typing)
-    using vars_conclusion' typing(3) welltyped\<^sub>\<sigma>_on_subset apply blast
-    using eq_factoring eq_factoring_preserves_typing typing(1) by blast    
+    apply(auto simp: typing )
+      apply (metis clause.to_ground_add)
+    using typing(3) vars_conclusion' welltyped\<^sub>\<sigma>_on_subset apply fastforce 
+    using eq_factoring eq_factoring_preserves_typing typing(1) by auto
 
   ultimately show ?thesis
     using that[OF eq_factoring]
@@ -641,8 +642,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       is_maximal_lit_iff_is_maximal\<^sub>l 
       is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l
       ground_superpositionI(1)
-    apply clause_auto
-    by (metis premise\<^sub>1_\<gamma> clause_from_ground_empty_mset clause.from_ground_inverse)
+    by clause_auto
 
   obtain pos_literal\<^sub>1 where
     "is_strictly_maximal\<^sub>l pos_literal\<^sub>1 premise\<^sub>1"
@@ -733,16 +733,16 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
   then have premise\<^sub>1'_\<gamma>: "premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma> = clause.from_ground premise\<^sub>G\<^sub>1'"
     using premise\<^sub>1_\<gamma>  
-    unfolding clause_from_ground_add_mset literal\<^sub>1_\<gamma>[symmetric]
-    by (simp add: subst_clause_add_mset)
+    unfolding clause.from_ground_add  literal\<^sub>1_\<gamma>[symmetric]
+    by simp
 
   obtain premise\<^sub>2' where premise\<^sub>2: "premise\<^sub>2 = add_mset literal\<^sub>2 premise\<^sub>2'"
     by (meson literal\<^sub>2_in_premise\<^sub>2 multi_member_split)
 
   then have premise\<^sub>2'_\<gamma>: "premise\<^sub>2' \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma> = clause.from_ground premise\<^sub>G\<^sub>2'"
     using premise\<^sub>2_\<gamma>  
-    unfolding clause_from_ground_add_mset literal\<^sub>2_\<gamma>[symmetric]
-    by (simp add: subst_clause_add_mset)
+    unfolding clause.from_ground_add literal\<^sub>2_\<gamma>[symmetric]
+    by simp
 
   let ?\<P> = "if \<P>\<^sub>G = Pos then Pos else Neg"
 
@@ -1201,7 +1201,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           unfolding 
             less\<^sub>c\<^sub>G_less\<^sub>c 
             premise\<^sub>G\<^sub>1
-            subst_clause_add_mset[symmetric]
+            clause.add_subst[symmetric]
             clause.to_ground_inverse[OF premise\<^sub>1_\<gamma>'_grounding]
             clause.to_ground_inverse[OF premise\<^sub>1_grounding]
           unfolding premise\<^sub>1.
@@ -1348,7 +1348,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     moreover have 
       "term.vars (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) \<subseteq> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1)"
       "term.vars (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<subseteq> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2)"
-      unfolding premise\<^sub>1 literal\<^sub>1 subst_clause_add_mset term\<^sub>1_with_context premise\<^sub>2 literal\<^sub>2
+      unfolding premise\<^sub>1 literal\<^sub>1 clause.add_subst term\<^sub>1_with_context premise\<^sub>2 literal\<^sub>2
       by clause_simp
 
     ultimately have 
@@ -1623,8 +1623,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
                ((if Pos = Pos then Pos else Neg)
                  (Upair (term.from_ground context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G) (term.from_ground term\<^sub>G\<^sub>2)))
                (clause.from_ground premise\<^sub>G\<^sub>1' + clause.from_ground premise\<^sub>G\<^sub>2')"
-          by (simp add: literal_from_ground_atom_from_ground(2) clause_from_ground_add_mset 
-              atom_from_ground_term_from_ground)
+          by (simp add: literal_from_ground_atom_from_ground(2) atom_from_ground_term_from_ground)
 
         moreover have "\<lbrakk>
           conclusion\<^sub>G = add_mset (context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G !\<approx> term\<^sub>G\<^sub>2) (premise\<^sub>G\<^sub>1' + premise\<^sub>G\<^sub>2');
@@ -1634,8 +1633,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
                ((if Neg = Pos then Pos else Neg)
                  (Upair (term.from_ground context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G) (term.from_ground term\<^sub>G\<^sub>2)))
                (clause.from_ground premise\<^sub>G\<^sub>1' + clause.from_ground premise\<^sub>G\<^sub>2')"
-          by (simp add: literal_from_ground_atom_from_ground(1) clause_from_ground_add_mset 
-              atom_from_ground_term_from_ground)
+          by (simp add: literal_from_ground_atom_from_ground(1) atom_from_ground_term_from_ground)
 
         ultimately show ?thesis
           using ground_superpositionI(4, 12) clause.to_ground_inverse[OF conclusion_grounding] 
@@ -1650,13 +1648,13 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           premise\<^sub>1'_\<gamma>[symmetric] 
           premise\<^sub>2'_\<gamma>[symmetric] 
           term\<^sub>1'_\<gamma>[symmetric]
-          subst_clause_plus[symmetric] 
+          clause.plus_subst[symmetric] 
           subst_apply_term_ctxt_apply_distrib[symmetric]
           subst_atom[symmetric]
         unfolding
           clause.subst_comp_subst[symmetric]
           \<mu>_\<gamma>
-        by(simp add: subst_clause_add_mset subst_literal)
+        by(simp add: subst_literal)
     qed
 
     have vars_conclusion': 
@@ -1670,7 +1668,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         | (term\<^sub>1')  "x \<in> term.vars (term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>)"  
         | (premise\<^sub>1')  "x \<in> clause.vars (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)"  
         | (premise\<^sub>2')  "x \<in> clause.vars (premise\<^sub>2' \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)"  
-        unfolding conclusion' subst_clause_add_mset subst_clause_plus subst_literal
+        unfolding conclusion' clause.add_subst clause.plus_subst subst_literal
         by clause_simp
   
       then show "x \<in> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<union> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2)"
@@ -1685,19 +1683,19 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         case term\<^sub>1'
         then show ?thesis
           using term.variables_in_base_imgu[OF \<mu>(1)]
-          unfolding premise\<^sub>1 subst_clause_add_mset literal\<^sub>1 term\<^sub>1_with_context premise\<^sub>2 literal\<^sub>2
+          unfolding premise\<^sub>1 clause.add_subst literal\<^sub>1 term\<^sub>1_with_context premise\<^sub>2 literal\<^sub>2
           by clause_simp
       next
         case premise\<^sub>1'
         then show ?thesis 
           using clause.variables_in_base_imgu[OF \<mu>(1)]
-          unfolding premise\<^sub>1 subst_clause_add_mset literal\<^sub>1 term\<^sub>1_with_context premise\<^sub>2 literal\<^sub>2
+          unfolding premise\<^sub>1 clause.add_subst literal\<^sub>1 term\<^sub>1_with_context premise\<^sub>2 literal\<^sub>2
           by clause_simp
        next
         case premise\<^sub>2'
         then show ?thesis 
           using clause.variables_in_base_imgu[OF \<mu>(1)]
-          unfolding premise\<^sub>1 subst_clause_add_mset literal\<^sub>1 term\<^sub>1_with_context premise\<^sub>2 literal\<^sub>2
+          unfolding premise\<^sub>1 clause.add_subst literal\<^sub>1 term\<^sub>1_with_context premise\<^sub>2 literal\<^sub>2
           by clause_simp
       qed
     qed

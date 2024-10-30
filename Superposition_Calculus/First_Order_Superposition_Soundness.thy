@@ -151,7 +151,7 @@ proof (cases P C rule: eq_resolution.cases)
       by (auto simp: true_cls_def)
 
     have [simp]: "?P = add_mset ?L ?P'"
-      by (simp add: clause.to_ground_def eq_resolutionI(3) subst_clause_add_mset)
+      by (simp add: clause.to_ground_def eq_resolutionI(3))
 
     have [simp]: "?L = (Neg (Upair ?s\<^sub>1 ?s\<^sub>2))"
       unfolding  eq_resolutionI(4) atom.to_ground_def literal.to_ground_def
@@ -249,7 +249,7 @@ proof (cases P C rule: eq_factoring.cases)
       "welltyped\<^sub>l typeof_fun \<V> (s\<^sub>1 \<approx> t\<^sub>2' \<cdot>l \<mu>)" 
       "welltyped\<^sub>l typeof_fun \<V> (s\<^sub>1' !\<approx> t\<^sub>2' \<cdot>l \<mu>)"
       using wt(1)
-      unfolding eq_factoringI(11) welltyped\<^sub>c_add_mset subst_clause_add_mset
+      unfolding eq_factoringI(11) welltyped\<^sub>c_add_mset clause.add_subst
       by auto
 
     moreover have welltyped_\<mu>: "welltyped\<^sub>\<sigma> typeof_fun \<V> \<mu>"
@@ -306,7 +306,7 @@ proof (cases P C rule: eq_factoring.cases)
 
     have C: "?C = add_mset (?s\<^sub>1 \<approx> ?t\<^sub>2') (add_mset (Neg (Upair ?s\<^sub>1' ?t\<^sub>2')) ?P')"
       unfolding eq_factoringI 
-      by (simp add: clause.to_ground_def literal.to_ground_def atom.subst_def subst_clause_add_mset 
+      by (simp add: clause.to_ground_def literal.to_ground_def atom.subst_def 
           subst_literal atom.to_ground_def)
 
     show "?I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
@@ -331,7 +331,7 @@ proof (cases P C rule: eq_factoring.cases)
       then have "L' \<in># ?P'"
         using L'_in_P
         unfolding eq_factoringI
-        by (simp add: clause.to_ground_def subst_clause_add_mset)
+        by (simp add: clause.to_ground_def)
 
       then have "L' \<in># clause.to_ground (C \<cdot> \<gamma>)"
         using clause.subst_eq \<gamma>'(3) C
@@ -429,7 +429,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       "\<forall>x\<in>term.vars (t\<^sub>2' \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
       using superpositionI(16)
       by (simp_all add: clause.vars_def local.superpositionI(11) local.superpositionI(8) 
-          subst_atom subst_clause_add_mset subst_literal(1) vars_atom vars_literal(1))
+          subst_atom subst_literal(1) vars_atom vars_literal(1))
 
     have wt_t: "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau> \<and> welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<tau>"
     proof-
@@ -462,7 +462,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
       then show ?thesis
         using grounding(2) superpositionI(9, 14, 19)
-        unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def subst_clause_add_mset
+        unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def clause.add_subst
         unfolding xx[THEN has_type_renaming_weaker[OF superpositionI(5)]] 
         by(auto simp: welltyped\<^sub>\<kappa>' subst_literal subst_atom)
     qed
@@ -471,7 +471,7 @@ proof (cases P2 P1 C rule: superposition.cases)
     proof-
       have xx: "\<forall>x\<in>clause.vars (P\<^sub>1' \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x"
         using superpositionI(15)
-        unfolding superpositionI subst_clause_add_mset
+        unfolding superpositionI clause.add_subst
         by clause_simp
 
       have wt_P\<^sub>1': "welltyped\<^sub>c typeof_fun \<V>\<^sub>1 P\<^sub>1'"
@@ -486,7 +486,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
         then show ?thesis
           using grounding(2)
-          unfolding superpositionI subst_clause_add_mset subst_clause_plus welltyped\<^sub>c_add_mset 
+          unfolding superpositionI clause.add_subst clause.plus_subst welltyped\<^sub>c_add_mset 
             welltyped\<^sub>c_plus
           by auto
       qed
@@ -537,14 +537,13 @@ proof (cases P2 P1 C rule: superposition.cases)
         with x1 show ?thesis
           using superpositionI(15)  superpositionI(9) 
             welltyped_renaming_weaker[OF superpositionI(4)] 
-          unfolding superpositionI subst_clause_add_mset vars_clause_add_mset
+          unfolding superpositionI clause.add_subst clause.vars_add
           by(auto simp: welltyped\<^sub>\<kappa>' subst_literal subst_atom)
       qed
 
       then show ?thesis
         using grounding(2) superpositionI(9, 14) wt_P\<^sub>1'
-        unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def subst_clause_add_mset 
-          subst_clause_plus
+        unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def
         by auto
     qed
 
@@ -552,12 +551,12 @@ proof (cases P2 P1 C rule: superposition.cases)
     proof-
       have xx: "\<forall>x\<in>clause.vars (P\<^sub>2' \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
         using superpositionI(16)
-        unfolding superpositionI subst_clause_add_mset
+        unfolding superpositionI
         by clause_simp
 
       have wt_P\<^sub>2': "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 P\<^sub>2'"
         using grounding(2)
-        unfolding superpositionI subst_clause_add_mset subst_clause_plus welltyped\<^sub>c_add_mset 
+        unfolding superpositionI clause.plus_subst welltyped\<^sub>c_add_mset clause.add_subst
           welltyped\<^sub>c_plus welltyped\<^sub>c_renaming_weaker[OF superpositionI(5) xx] 
         using superpositionI(14) welltyped\<^sub>\<sigma>_welltyped\<^sub>c by blast
 
@@ -570,8 +569,8 @@ proof (cases P2 P1 C rule: superposition.cases)
         have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>2 t\<^sub>2 \<tau> \<and> welltyped typeof_fun \<V>\<^sub>2 t\<^sub>2' \<tau>"
           using superpositionI(16) welltyped_renaming_weaker[OF superpositionI(5)]
           unfolding superpositionI
-          by (metis (no_types, lifting) Un_iff subst_atom subst_clause_add_mset subst_literal(1) tt 
-              vars_atom vars_clause_add_mset vars_literal(1))
+          by (metis (no_types, lifting) Un_iff subst_atom clause.add_subst subst_literal(1) tt 
+              vars_atom clause.vars_add vars_literal(1))
 
         with wt_P\<^sub>2' show ?thesis
           unfolding welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def  superpositionI
@@ -660,8 +659,6 @@ proof (cases P2 P1 C rule: superposition.cases)
         s\<^sub>1_t\<^sub>2' 
         superpositionI 
         clause.to_ground_def 
-        subst_clause_add_mset 
-        subst_clause_plus 
       by (auto simp: subst_atom subst_literal)
 
     show "?I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
@@ -727,14 +724,14 @@ proof (cases P2 P1 C rule: superposition.cases)
         then have "L\<^sub>2' \<in># ?P\<^sub>2'"
           using L\<^sub>2'_in_P2
           unfolding superpositionI
-          by (simp add:  clause.to_ground_def subst_clause_add_mset)
+          by (simp add: clause.to_ground_def)
 
         then have "?I \<TTurnstile> ?P\<^sub>2'"
           using I_models_L\<^sub>2' by blast
 
         then show ?thesis
           unfolding superpositionI 
-          by (smt (verit, ccfv_SIG) C \<gamma>'(3) clause.subst_eq local.superpositionI(26) true_cls_union 
+          by (smt (verit, ccfv_SIG) C \<gamma>'(3) clause.subst_eq local.superpositionI(26) true_cls_union
               union_mset_add_mset_left)
       qed
     next
@@ -742,7 +739,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       then have "L\<^sub>1' \<in># ?P\<^sub>1'"
         using L\<^sub>1'_in_P1
         unfolding superpositionI 
-        by (simp add:  clause.to_ground_def  subst_clause_add_mset)
+        by (simp add:  clause.to_ground_def)
 
       then have "?I \<TTurnstile> ?P\<^sub>1'"
         using I_models_L\<^sub>1' by blast

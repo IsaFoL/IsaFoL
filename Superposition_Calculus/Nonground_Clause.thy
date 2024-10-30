@@ -167,6 +167,22 @@ global_interpretation clause: lifting_from_term where
   sub_from_ground = literal.from_ground and to_ground_map = image_mset and 
   from_ground_map = image_mset and ground_map = image_mset and to_set_ground = set_mset
   by unfold_locales (auto simp: literal.is_grounding_iff_vars_grounded)
+(* TODO: Name *)
+locale natural_monoid_functor' = natural_monoid_grounding_lifting where 
+  comp_subst = "(\<odot>)" and id_subst = Var +
+  natural_monoid_functor_functional_substitution_lifting where 
+  comp_subst = "(\<odot>)" and id_subst = Var
+
+global_interpretation clause: natural_monoid_functor' where 
+  to_set = set_mset and sub_to_ground = literal.to_ground and 
+  sub_from_ground = literal.from_ground and sub_subst = literal.subst and 
+  sub_vars = literal.vars and map = image_mset and to_ground_map = image_mset and 
+  from_ground_map = image_mset and ground_map = image_mset and to_set_ground = set_mset and 
+  plus = "(+)" and wrap = "\<lambda>l. {#l#}"  and plus_ground = "(+)" and wrap_ground = "\<lambda>l. {#l#}"
+rewrites 
+  "\<And>l C. clause.add l C = add_mset l C" and
+  "\<And>l C. clause.ground.add l C = add_mset l C"
+  by unfold_locales (auto simp: clause.to_ground_def clause.from_ground_def)
 
 notation clause.subst (infixl "\<cdot>" 67)
 
@@ -182,6 +198,12 @@ declare
   clause.to_set_is_ground [clause_simp]
   set_mset_set_uprod [clause_simp]
   mset_lit_set_literal [clause_simp]
+  clause.is_ground_add [clause_simp]
+  clause.add_subst [clause_simp]
+  clause.from_ground_add [clause_simp]
+  clause.plus_subst [clause_simp]
+  clause.vars_add [clause_simp]
+  clause.vars_plus [clause_simp]
 
 declare 
   clause.subst_in_to_set_subst [clause_intro]
@@ -210,35 +232,8 @@ lemma subst_literal [clause_simp]:
   using literal.map_sel
   by auto
 
-(* TODO: Can these be generalized? *)
-lemma vars_clause_add_mset [clause_simp]: 
-  "clause.vars (add_mset l C) = literal.vars l \<union> clause.vars C"
-  by (simp add: clause.vars_def)
-
-lemma vars_clause_plus [clause_simp]: 
-  "clause.vars (C\<^sub>1 + C\<^sub>2) = clause.vars C\<^sub>1 \<union> clause.vars C\<^sub>2"
-  by (simp add: clause.vars_def)
-
-lemma clause_submset_vars_clause_subset [clause_intro]: 
-  "C\<^sub>1 \<subseteq># C\<^sub>2 \<Longrightarrow> clause.vars C\<^sub>1 \<subseteq> clause.vars C\<^sub>2"
-  by (metis subset_mset.add_diff_inverse sup_ge1 vars_clause_plus)
-
-lemma subst_clause_add_mset [clause_simp]: 
-  "add_mset l C \<cdot> \<sigma> = add_mset (l \<cdot>l \<sigma>) (C \<cdot> \<sigma>)"
-  unfolding clause.subst_def
-  by simp
-
-lemma subst_clause_plus [clause_simp]: "(C\<^sub>1 + C\<^sub>2) \<cdot> \<sigma> = C\<^sub>1 \<cdot> \<sigma> + C\<^sub>2 \<cdot> \<sigma>"
-  unfolding clause.subst_def
-  by simp
-
-lemma clause_to_ground_plus [simp]: 
-  "clause.to_ground (C\<^sub>1 + C\<^sub>2) = clause.to_ground C\<^sub>1 + clause.to_ground C\<^sub>2"
-  by (simp add: clause.to_ground_def)
-
-lemma clause_from_ground_plus [simp]: 
-  "clause.from_ground (C\<^sub>G\<^sub>1 + C\<^sub>G\<^sub>2) = clause.from_ground C\<^sub>G\<^sub>1 + clause.from_ground C\<^sub>G\<^sub>2"
-  by (simp add: clause.from_ground_def)
+lemmas clause_submset_vars_clause_subset [clause_intro] = 
+  clause.to_set_subset_vars_subset[OF set_mset_mono]
 
 lemma subst_clause_remove1_mset [clause_simp]: 
   assumes "l \<in># C" 
@@ -247,22 +242,13 @@ lemma subst_clause_remove1_mset [clause_simp]:
   using assms
   by simp
 
-lemma sub_ground_clause [clause_intro]: 
-  assumes "C' \<subseteq># C" "clause.is_ground C"
-  shows "clause.is_ground C'"
-  using assms
-  unfolding clause.vars_def
-  by blast
+lemmas sub_ground_clause = clause.to_set_subset_is_ground[OF set_mset_mono]
 
 lemma clause_from_ground_empty_mset [clause_simp]: "clause.from_ground {#} = {#}"
   by (simp add: clause.from_ground_def)
 
 lemma clause_to_ground_empty_mset [clause_simp]: "clause.to_ground {#} = {#}"
   by (simp add: clause.to_ground_def)
-
-lemma clause_from_ground_add_mset [clause_simp]: 
-  "clause.from_ground (add_mset l\<^sub>G C\<^sub>G) = add_mset (literal.from_ground l\<^sub>G) (clause.from_ground C\<^sub>G)"
-  by (simp add: clause.from_ground_def)
 
 lemma remove1_mset_literal_from_ground: 
   "remove1_mset (literal.from_ground l\<^sub>G) (clause.from_ground C\<^sub>G)
@@ -272,18 +258,6 @@ lemma remove1_mset_literal_from_ground:
 lemma mset_literal_from_ground: 
   "mset_lit (literal.from_ground l) = image_mset term.from_ground (mset_lit l)"
   by (metis atom.from_ground_def literal.from_ground_def literal.map_cong0 mset_lit_image_mset)
-
-lemma clause_is_ground_add_mset [clause_simp]: 
-  "clause.is_ground (add_mset l C) \<longleftrightarrow> literal.is_ground l \<and> clause.is_ground C"
-  by clause_auto
-
-lemma clause_to_ground_add_mset:
-  assumes "clause.from_ground C = add_mset l C'" 
-  shows "C = add_mset (literal.to_ground l) (clause.to_ground C')"
-  using assms
-  by (metis clause.from_ground_inverse clause.to_ground_def image_mset_add_mset)
-
-(* --------------------------- *)
 
 lemma subst_polarity_stable: 
   shows 

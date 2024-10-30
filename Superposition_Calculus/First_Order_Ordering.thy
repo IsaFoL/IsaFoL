@@ -31,9 +31,6 @@ locale first_order_ordering = term_ordering_lifting less\<^sub>t
   for
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) +
   assumes
-    (* TODO: It should be enough to have these on ground terms*)
-    (* less\<^sub>t_transitive [intro]: "transp (\<prec>\<^sub>t)" and *)
-    (* less\<^sub>t_asymmetric [intro]: "asymp (\<prec>\<^sub>t)" and  *)
     less\<^sub>t_total_on [intro]: "totalp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and
     less\<^sub>t_wellfounded_on: "wfp_on {term. term.is_ground term} (\<prec>\<^sub>t)" and    
     less\<^sub>t_ground_context_compatible:
@@ -800,7 +797,7 @@ next
 
     ultimately show ?thesis
       using less\<^sub>c_add_mset
-      unfolding subst_clause_add_mset less\<^sub>c_def
+      unfolding clause.add_subst less\<^sub>c_def
       by blast
   next
     case False
@@ -812,7 +809,7 @@ next
 
    show ?thesis
      using add(1)[OF less_eq less] less\<^sub>c_add_same
-     unfolding subst_clause_add_mset eq less\<^sub>c_def
+     unfolding clause.add_subst eq less\<^sub>c_def
      by blast
   qed
 qed

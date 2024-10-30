@@ -2,7 +2,7 @@ theory Term_Ordering_Lifting
   imports Clausal_Calculus_Extra
 begin
 
-lemma antisymp_on_reflclp_if_asymp_on:
+(*lemma antisymp_on_reflclp_if_asymp_on:
   assumes "asymp_on A R"
   shows "antisymp_on A R\<^sup>=\<^sup>="
   unfolding antisym_on_reflcl[to_pred]
@@ -23,7 +23,37 @@ next
 next
   show "\<And>x y. R\<^sup>=\<^sup>= x y \<Longrightarrow> R\<^sup>=\<^sup>= y x \<Longrightarrow> x = y"
     using antisymp_on_reflclp_if_asymp_on[OF \<open>asymp R\<close>, THEN antisympD] .
+qed*)
+
+locale multiset_extension = 
+  fixes
+    R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" (infix "\<prec>" 50) and
+    to_mset :: "'b \<Rightarrow> 'a multiset"
+  assumes
+    transp [intro]: "transp (\<prec>)" and
+    asymp [intro]: "asymp (\<prec>)"
+begin
+
+sublocale base: order "(\<prec>)\<^sup>=\<^sup>=" "(\<prec>)"
+  using order_reflclp_if_transp_and_asymp transp asymp 
+  by metis 
+
+definition multiset_extension :: "'b \<Rightarrow> 'b \<Rightarrow> bool" (infix "\<prec>\<^sub>m" 50) where
+  "multiset_extension b1 b2 \<equiv> multp (\<prec>) (to_mset b1) (to_mset b2)"
+
+sublocale order "(\<prec>\<^sub>m)\<^sup>=\<^sup>=" "(\<prec>\<^sub>m)"
+proof (rule order_reflclp_if_transp_and_asymp)
+  show "transp (\<prec>\<^sub>m)"
+    using transp_multp[OF transp]
+    unfolding multiset_extension_def transp_def
+    by blast
+next
+  show "asymp (\<prec>\<^sub>m)"
+    unfolding multiset_extension_def
+    by (simp add: asympD asympI asymp_multp\<^sub>H\<^sub>O multp_eq_multp\<^sub>H\<^sub>O)
 qed
+
+end
 
 locale term_ordering_lifting =
   fixes

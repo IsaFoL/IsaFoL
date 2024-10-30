@@ -1,5 +1,5 @@
 theory Functional_Substitution_Lifting
-  imports Functional_Substitution Natural_Functor
+  imports Functional_Substitution Natural_Monoid_Functor
 begin
 
 locale functional_substitution_lifting = 
@@ -125,6 +125,18 @@ lemma empty_is_ground:
 
 lemma to_set_image: "to_set (expr \<cdot> \<sigma>) = (\<lambda>a. a \<cdot>\<^sub>s \<sigma>) ` to_set expr"
   unfolding subst_def to_set_map..
+
+lemma to_set_subset_vars_subset: 
+  assumes "to_set expr \<subseteq> to_set expr'" 
+  shows "vars expr \<subseteq> vars expr'"
+  using assms
+  unfolding vars_def
+  by blast
+
+lemma to_set_subset_is_ground: 
+  assumes "to_set expr' \<subseteq> to_set expr" "is_ground expr"
+  shows "is_ground expr'"
+  using assms to_set_subset_vars_subset by blast
 
 end
 
@@ -378,5 +390,149 @@ next
 qed
 
 end
+
+(*
+lemma subst_clause_remove1_mset [clause_simp]: 
+  assumes "l \<in># C" 
+  shows "remove1_mset l C \<cdot> \<sigma> = remove1_mset (l \<cdot>l \<sigma>) (C \<cdot> \<sigma>)"
+  unfolding clause.subst_def image_mset_remove1_mset_if
+  using assms
+  by simp
+
+lemma remove1_mset_literal_from_ground: 
+  "remove1_mset (literal.from_ground l\<^sub>G) (clause.from_ground C\<^sub>G)
+   = clause.from_ground (remove1_mset l\<^sub>G C\<^sub>G)"
+  unfolding clause.from_ground_def image_mset_remove1_mset[OF literal.inj_from_ground]..
+
+lemma mset_literal_from_ground: 
+  "mset_lit (literal.from_ground l) = image_mset term.from_ground (mset_lit l)"
+  by (metis atom.from_ground_def literal.from_ground_def literal.map_cong0 mset_lit_image_mset)
+
+
+
+lemma clause_from_ground_empty_mset [clause_simp]: "clause.from_ground {#} = {#}"
+  by (simp add: clause.from_ground_def)
+
+lemma clause_to_ground_empty_mset [clause_simp]: "clause.to_ground {#} = {#}"
+  by (simp add: clause.to_ground_def)
+
+lemma clause_to_ground_plus [simp]: 
+  "clause.to_ground (C\<^sub>1 + C\<^sub>2) = clause.to_ground C\<^sub>1 + clause.to_ground C\<^sub>2"
+  by (simp add: clause.to_ground_def)
+
+lemma clause_from_ground_plus [simp]: 
+  "clause.from_ground (C\<^sub>G\<^sub>1 + C\<^sub>G\<^sub>2) = clause.from_ground C\<^sub>G\<^sub>1 + clause.from_ground C\<^sub>G\<^sub>2"
+  by (simp add: clause.from_ground_def)
+
+lemma sub_ground_clause [clause_intro]: 
+  assumes "C' \<subseteq># C" "clause.is_ground C"
+  shows "clause.is_ground C'"
+  using assms
+  unfolding clause.vars_def
+  by blast
+
+lemma clause_from_ground_add_mset [clause_simp]: 
+  "clause.from_ground (add_mset l\<^sub>G C\<^sub>G) = add_mset (literal.from_ground l\<^sub>G) (clause.from_ground C\<^sub>G)"
+  by (simp add: clause.from_ground_def)
+
+lemma clause_is_ground_add_mset [clause_simp]: 
+  "clause.is_ground (add_mset l C) \<longleftrightarrow> literal.is_ground l \<and> clause.is_ground C"
+  by clause_auto
+
+lemma clause_to_ground_add_mset:
+  assumes "clause.from_ground C = add_mset l C'" 
+  shows "C = add_mset (literal.to_ground l) (clause.to_ground C')"
+  using assms
+  by (metis clause.from_ground_inverse clause.to_ground_def image_mset_add_mset)
+*)
+
+
+locale natural_monoid_functor = natural_monoid + natural_functor +
+  assumes 
+    map_wrap: "\<And>f a. map f (wrap a) = wrap (f a)" and 
+    map_plus: "\<And>f b b'. map f (plus b b') = plus (map f b) (map f b')" 
+begin
+
+lemma map_add: "\<And>f a b. map f (add a b) = add (f a) (map f b)"
+  using map_plus map_wrap
+  by simp
+
+end
+
+locale natural_monoid_functional_substitution_lifting = 
+  functional_substitution_lifting + natural_monoid
+begin
+
+lemma vars_add [simp]: 
+  "vars (add sub expr) = sub_vars sub \<union> vars expr"
+  unfolding vars_def
+  by (simp add: to_set_add)
+
+lemma vars_plus [simp]: 
+  "vars (plus expr expr') = vars expr \<union> vars expr'"
+  unfolding vars_def
+  by (simp add: to_set_plus)
+
+lemma is_ground_add [simp]: 
+  "is_ground (add sub expr) \<longleftrightarrow> sub.is_ground sub \<and> is_ground expr"
+  using vars_add by simp
+
+end
+
+locale natural_monoid_functor_functional_substitution_lifting = 
+  natural_monoid_functional_substitution_lifting + natural_monoid_functor
+begin
+
+lemma add_subst [simp]: 
+  "(add sub expr) \<cdot> \<sigma> = add (sub \<cdot>\<^sub>s \<sigma>) (expr \<cdot> \<sigma>)"
+  unfolding subst_def
+  using map_add
+  by simp
+
+lemma plus_subst [simp]: "(plus expr expr') \<cdot> \<sigma> = plus (expr \<cdot> \<sigma>) (expr' \<cdot> \<sigma>)"
+  unfolding subst_def
+  using map_plus
+  by simp
+
+end
+
+locale natural_monoid_grounding_lifting = 
+  grounding_lifting + 
+  natural_monoid + 
+  ground: natural_monoid where to_set = to_set_ground and plus = plus_ground and wrap = wrap_ground
+for plus_ground wrap_ground +
+assumes 
+  to_ground_plus [simp]: 
+   "\<And>expr expr'. to_ground (plus expr expr') = plus_ground (to_ground expr) (to_ground expr')" and
+  wrap_from_ground: "\<And>sub. from_ground (wrap_ground sub) = wrap (sub_from_ground sub)" and
+  wrap_to_ground: "\<And>sub. to_ground (wrap sub) = wrap_ground (sub_to_ground sub)"
+begin
+
+sublocale natural_monoid_functional_substitution_lifting
+  by unfold_locales
+
+lemma from_ground_plus [simp]: 
+  "from_ground (plus_ground expr expr') = plus (from_ground expr) (from_ground expr')"
+  using to_ground_plus
+  by (metis Un_empty_left from_ground_inverse ground_is_ground to_ground_inverse vars_plus)
+
+lemma from_ground_add [simp]: 
+  "from_ground (ground.add sub expr) = add (sub_from_ground sub) (from_ground expr)"
+  using from_ground_plus
+  by (simp add: wrap_from_ground)
+
+lemma to_ground_add [simp]: 
+  "to_ground (add sub expr) = ground.add (sub_to_ground sub) (to_ground expr)"
+  using from_ground_add wrap_to_ground
+  by simp
+
+lemma ground_add:
+  assumes "from_ground expr = add sub expr'" 
+  shows "expr = ground.add (sub_to_ground sub) (to_ground expr')"
+  using assms
+  by (metis from_ground_inverse to_ground_add)
+
+end
+
 
 end

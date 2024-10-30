@@ -13,6 +13,7 @@ locale natural_functor =
     to_set_map: "\<And>b f. to_set (map f b) = f ` to_set b" and
     exists_functor: "\<And>a. \<exists>b. a \<in> to_set b"
 
+(* TODO: Take 2 functors as input *)
 locale natural_functor_conversion =
   natural_functor +
   fixes

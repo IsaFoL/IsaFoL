@@ -302,8 +302,9 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
     by blast
     
   then show ?thesis
-    unfolding eq_resolutionI subst_clause_add_mset welltyped\<^sub>c_add_mset
-    by clause_simp
+    using welltyped\<^sub>c_add_mset
+    unfolding eq_resolutionI
+    by auto
 qed
 
 lemma has_type_welltyped:
@@ -357,7 +358,7 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
 
      ultimately show ?thesis
        using wt_D\<mu>
-       unfolding welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def eq_factoringI subst_clause_add_mset 
+       unfolding welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def eq_factoringI clause.add_subst 
          subst_literal subst_atom
        by auto
    qed
