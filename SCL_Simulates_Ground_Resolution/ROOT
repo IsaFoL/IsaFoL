@@ -1,5 +1,5 @@
 chapter AFP
-session SCL_Simulates_Ground_Nonredundant_Resolution = Simple_Clause_Learning +
+session SCL_Simulates_Ground_Resolution = Simple_Clause_Learning +
   options [timeout = 300]
   sessions
     Min_Max_Least_Greatest
@@ -7,3 +7,6 @@ session SCL_Simulates_Ground_Nonredundant_Resolution = Simple_Clause_Learning +
     VeriComp
   theories
     Simulation_SCLFOL_ORDRES
+  document_files
+    "root.bib"
+    "root.tex"
