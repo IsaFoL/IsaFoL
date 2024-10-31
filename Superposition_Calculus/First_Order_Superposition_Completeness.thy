@@ -79,15 +79,15 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
   moreover have max_literal_\<gamma>: "max_literal \<cdot>l \<gamma> = literal.from_ground (term\<^sub>G !\<approx> term\<^sub>G)"
     if ?select\<^sub>G_empty
   proof-
-    have "ground.is_maximal_lit literal\<^sub>G premise\<^sub>G"
-      using ground_eq_resolutionI(3) that maximal_lit_in_clause
-      by (metis empty_iff set_mset_empty)
+    have "ground.is_maximal\<^sub>l literal\<^sub>G premise\<^sub>G"
+      using ground_eq_resolutionI(3) that maximal\<^sub>l_in_clause
+      by (metis ground.is_maximal\<^sub>l_empty)
 
     then show ?thesis
       using max_literal(2) unique_maximal_in_ground_clause[OF premise_grounding] 
       unfolding 
         ground_eq_resolutionI(2) 
-        is_maximal_lit_iff_is_maximal\<^sub>l 
+        ground_is_maximal\<^sub>l_iff_is_maximal\<^sub>l 
         premise\<^sub>G 
         clause.to_ground_inverse[OF premise_grounding]
       by blast
@@ -98,7 +98,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     "is_maximal\<^sub>l selected_literal (select premise)" 
   if ?select\<^sub>G_not_empty
   proof-
-    have "ground.is_maximal_lit literal\<^sub>G (select\<^sub>G premise\<^sub>G)" if ?select\<^sub>G_not_empty
+    have "ground.is_maximal\<^sub>l literal\<^sub>G (select\<^sub>G premise\<^sub>G)" if ?select\<^sub>G_not_empty
       using ground_eq_resolutionI(3) that
       by blast
 
@@ -111,7 +111,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
       unfolding
         ground_eq_resolutionI(2) 
         premise\<^sub>G
-        is_maximal_lit_iff_is_maximal\<^sub>l
+        ground_is_maximal\<^sub>l_iff_is_maximal\<^sub>l
       by (metis (full_types) clause_subst_empty(2) clause.from_ground_inverse clause_to_ground_empty_mset)
   qed
 
@@ -214,7 +214,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
 
       have "is_maximal\<^sub>l (literal \<cdot>l \<gamma>) (select premise \<cdot> \<gamma>)"
         using False ground_eq_resolutionI(3) 
-        unfolding ground_eq_resolutionI(2) is_maximal_lit_iff_is_maximal\<^sub>l literal_\<gamma> select
+        unfolding ground_eq_resolutionI(2) ground_is_maximal\<^sub>l_iff_is_maximal\<^sub>l literal_\<gamma> select
         by presburger
 
       then have "is_maximal\<^sub>l (literal \<cdot>l \<mu>) (select premise \<cdot> \<mu>)"
@@ -319,7 +319,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
   have max_ground_literal: "is_maximal\<^sub>l (literal.from_ground (term\<^sub>G\<^sub>1 \<approx> term\<^sub>G\<^sub>2)) (premise \<cdot> \<gamma>)"
     using ground_eq_factoringI(5)
     unfolding 
-      is_maximal_lit_iff_is_maximal\<^sub>l 
+      ground_is_maximal\<^sub>l_iff_is_maximal\<^sub>l 
       ground_eq_factoringI(2) 
       premise\<^sub>G 
       clause.to_ground_inverse[OF premise_grounding].
@@ -627,7 +627,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
   have pos_literal\<^sub>G\<^sub>1_is_strictly_maximal\<^sub>l: 
     "is_strictly_maximal\<^sub>l (literal.from_ground literal\<^sub>G\<^sub>1) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<odot> \<gamma>)" if "\<P>\<^sub>G = Pos"
     using ground_superpositionI(9) that
-    unfolding is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l
+    unfolding ground_is_strictly_maximal\<^sub>l_iff_is_strictly_maximal\<^sub>l
     by(simp add: premise\<^sub>1_grounding)
 
   have neg_literal\<^sub>G\<^sub>1_is_maximal\<^sub>l: 
@@ -639,8 +639,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       is_maximal\<^sub>l_empty
       premise\<^sub>1_\<gamma>
     unfolding 
-      is_maximal_lit_iff_is_maximal\<^sub>l 
-      is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l
+      ground_is_maximal\<^sub>l_iff_is_maximal\<^sub>l 
+      ground_is_strictly_maximal\<^sub>l_iff_is_strictly_maximal\<^sub>l
       ground_superpositionI(1)
     by clause_auto
 
@@ -677,7 +677,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     "neg_selected_literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<gamma> = literal.from_ground literal\<^sub>G\<^sub>1" 
   if "\<P>\<^sub>G = Neg" ?select\<^sub>G_not_empty 
   proof-
-    have "ground.is_maximal_lit literal\<^sub>G\<^sub>1 (select\<^sub>G premise\<^sub>G\<^sub>1)" if "\<P>\<^sub>G = Neg" ?select\<^sub>G_not_empty
+    have "ground.is_maximal\<^sub>l literal\<^sub>G\<^sub>1 (select\<^sub>G premise\<^sub>G\<^sub>1)" if "\<P>\<^sub>G = Neg" ?select\<^sub>G_not_empty
       using ground_superpositionI(9) that
       by simp
 
@@ -687,7 +687,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         select(1) 
         unique_maximal_in_ground_clause
         is_maximal\<^sub>l_ground_subst_stability
-      unfolding premise\<^sub>G\<^sub>1 is_maximal_lit_iff_is_maximal\<^sub>l
+      unfolding premise\<^sub>G\<^sub>1 ground_is_maximal\<^sub>l_iff_is_maximal\<^sub>l
       by (metis (mono_tags, lifting) clause.comp_subst.monoid_action_compatibility 
           clause_subst_empty(2) clause.ground_is_ground image_mset_is_empty_iff 
           clause.from_ground_def)
@@ -711,7 +711,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
   have literal\<^sub>G\<^sub>2_is_strictly_maximal\<^sub>l: 
     "is_strictly_maximal\<^sub>l (literal.from_ground literal\<^sub>G\<^sub>2) (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<odot> \<gamma>)"
     using ground_superpositionI(11)
-    unfolding is_strictly_maximal\<^sub>G\<^sub>l_iff_is_strictly_maximal\<^sub>l
+    unfolding ground_is_strictly_maximal\<^sub>l_iff_is_strictly_maximal\<^sub>l
     by (simp add: premise\<^sub>2_grounding)
 
   obtain literal\<^sub>2 where 
@@ -1493,7 +1493,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
           have "is_maximal\<^sub>l (literal\<^sub>1  \<cdot>l \<rho>\<^sub>1 \<cdot>l \<gamma>) (select premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)"  
             using select\<^sub>G_not_empty ground_superpositionI(9) \<P>\<^sub>G_Neg 
-            unfolding is_maximal_lit_iff_is_maximal\<^sub>l literal\<^sub>1_\<gamma>[symmetric] select(1)
+            unfolding ground_is_maximal\<^sub>l_iff_is_maximal\<^sub>l literal\<^sub>1_\<gamma>[symmetric] select(1)
             by simp
 
           then have "is_maximal\<^sub>l (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) ((select premise\<^sub>1) \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)"

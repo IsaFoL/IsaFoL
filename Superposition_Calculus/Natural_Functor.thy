@@ -2,6 +2,7 @@ theory Natural_Functor
   imports Main
 begin
 
+(* Name natural transformation *)
 locale natural_functor =
   fixes
     map :: "('a \<Rightarrow> 'a) \<Rightarrow> 'b \<Rightarrow> 'b" and

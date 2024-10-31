@@ -4,18 +4,18 @@ begin
 
 locale natural_monoid = 
   fixes 
-    to_set :: "'expr \<Rightarrow> 'sub set" and
-    plus :: "'expr \<Rightarrow> 'expr \<Rightarrow> 'expr" and
-    wrap :: "'sub \<Rightarrow> 'expr" (* TODO: Not typical for Monoid *)
+    to_set :: "'b \<Rightarrow> 'a set" and
+    plus :: "'b \<Rightarrow> 'b \<Rightarrow> 'b" and
+    wrap :: "'a \<Rightarrow> 'b" (* TODO: Not typical for Monoid *)
   assumes
-    to_set_plus: "\<And>expr expr'. to_set (plus expr expr') = (to_set expr) \<union> (to_set expr')" and
-    to_set_wrap: "\<And>sub. to_set (wrap sub) = {sub}"
+    to_set_plus: "\<And>b b'. to_set (plus b b') = (to_set b) \<union> (to_set b')" and
+    to_set_wrap: "\<And>a. to_set (wrap a) = {a}"
 begin
 
 abbreviation add where 
-  "add sub expr \<equiv> plus (wrap sub) expr" 
+  "add a b \<equiv> plus (wrap a) b" 
 
-lemma to_set_add: "\<And>sub expr. to_set (add sub expr) = insert sub (to_set expr)"
+lemma to_set_add: "\<And>a b. to_set (add a b) = insert a (to_set b)"
   using to_set_plus to_set_wrap
   by simp  
 

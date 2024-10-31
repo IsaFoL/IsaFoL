@@ -391,74 +391,6 @@ qed
 
 end
 
-(*
-lemma subst_clause_remove1_mset [clause_simp]: 
-  assumes "l \<in># C" 
-  shows "remove1_mset l C \<cdot> \<sigma> = remove1_mset (l \<cdot>l \<sigma>) (C \<cdot> \<sigma>)"
-  unfolding clause.subst_def image_mset_remove1_mset_if
-  using assms
-  by simp
-
-lemma remove1_mset_literal_from_ground: 
-  "remove1_mset (literal.from_ground l\<^sub>G) (clause.from_ground C\<^sub>G)
-   = clause.from_ground (remove1_mset l\<^sub>G C\<^sub>G)"
-  unfolding clause.from_ground_def image_mset_remove1_mset[OF literal.inj_from_ground]..
-
-lemma mset_literal_from_ground: 
-  "mset_lit (literal.from_ground l) = image_mset term.from_ground (mset_lit l)"
-  by (metis atom.from_ground_def literal.from_ground_def literal.map_cong0 mset_lit_image_mset)
-
-
-
-lemma clause_from_ground_empty_mset [clause_simp]: "clause.from_ground {#} = {#}"
-  by (simp add: clause.from_ground_def)
-
-lemma clause_to_ground_empty_mset [clause_simp]: "clause.to_ground {#} = {#}"
-  by (simp add: clause.to_ground_def)
-
-lemma clause_to_ground_plus [simp]: 
-  "clause.to_ground (C\<^sub>1 + C\<^sub>2) = clause.to_ground C\<^sub>1 + clause.to_ground C\<^sub>2"
-  by (simp add: clause.to_ground_def)
-
-lemma clause_from_ground_plus [simp]: 
-  "clause.from_ground (C\<^sub>G\<^sub>1 + C\<^sub>G\<^sub>2) = clause.from_ground C\<^sub>G\<^sub>1 + clause.from_ground C\<^sub>G\<^sub>2"
-  by (simp add: clause.from_ground_def)
-
-lemma sub_ground_clause [clause_intro]: 
-  assumes "C' \<subseteq># C" "clause.is_ground C"
-  shows "clause.is_ground C'"
-  using assms
-  unfolding clause.vars_def
-  by blast
-
-lemma clause_from_ground_add_mset [clause_simp]: 
-  "clause.from_ground (add_mset l\<^sub>G C\<^sub>G) = add_mset (literal.from_ground l\<^sub>G) (clause.from_ground C\<^sub>G)"
-  by (simp add: clause.from_ground_def)
-
-lemma clause_is_ground_add_mset [clause_simp]: 
-  "clause.is_ground (add_mset l C) \<longleftrightarrow> literal.is_ground l \<and> clause.is_ground C"
-  by clause_auto
-
-lemma clause_to_ground_add_mset:
-  assumes "clause.from_ground C = add_mset l C'" 
-  shows "C = add_mset (literal.to_ground l) (clause.to_ground C')"
-  using assms
-  by (metis clause.from_ground_inverse clause.to_ground_def image_mset_add_mset)
-*)
-
-
-locale natural_monoid_functor = natural_monoid + natural_functor +
-  assumes 
-    map_wrap: "\<And>f a. map f (wrap a) = wrap (f a)" and 
-    map_plus: "\<And>f b b'. map f (plus b b') = plus (map f b) (map f b')" 
-begin
-
-lemma map_add: "\<And>f a b. map f (add a b) = add (f a) (map f b)"
-  using map_plus map_wrap
-  by simp
-
-end
-
 locale natural_monoid_functional_substitution_lifting = 
   functional_substitution_lifting + natural_monoid
 begin
@@ -533,6 +465,5 @@ lemma ground_add:
   by (metis from_ground_inverse to_ground_add)
 
 end
-
 
 end

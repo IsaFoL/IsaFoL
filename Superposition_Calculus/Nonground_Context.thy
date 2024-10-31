@@ -54,6 +54,7 @@ qed
 lemma ground_ctxt_iff_context_is_ground: "ground_ctxt c \<longleftrightarrow> context.is_ground c"
   by(induction c)(simp_all add: term_context_ground_iff_term_is_ground)
 
+(* TODO: Names *)
 lemma ground_term_with_context1:
   assumes "context.is_ground c" "term.is_ground t"
   shows "(context.to_ground c)\<langle>term.to_ground t\<rangle>\<^sub>G = term.to_ground c\<langle>t\<rangle>"

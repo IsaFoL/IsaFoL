@@ -317,6 +317,24 @@ lemma multp_add_same:
   shows "multp R (add_mset x X) (add_mset x Y)"
   by (meson assms asymp_on_subset irreflp_on_if_asymp_on multp_cancel_add_mset top_greatest)
 
+lemma inj_mset_plus_same: "inj (\<lambda>X :: 'a multiset . X + X)"
+proof(unfold inj_def, intro allI impI)
+  fix X Y :: "'a multiset"
+  assume "X + X = Y + Y"
+  
+  then show "X = Y"
+  proof(induction X arbitrary: Y)
+    case empty
+    then show ?case
+      by simp
+  next
+    case (add x X)
+    then show ?case
+      by (metis diff_single_eq_union diff_union_single_conv single_subset_iff 
+          subset_mset.add_diff_assoc2 union_iff union_single_eq_member)
+  qed
+qed
+
 (* TODO: Should be possible 
 lemma 
   assumes "wfP (multp\<^sub>D\<^sub>M R)" (* "asymp (multp\<^sub>D\<^sub>M R)" "transp (multp\<^sub>D\<^sub>M R)" ? *)

@@ -60,10 +60,10 @@ where
     L\<^sub>D = t \<approx> t' \<Longrightarrow>
     u \<prec>\<^sub>t \<kappa>\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
-    (\<P> = Pos \<and> select E = {#} \<and> is_strictly_maximal_lit L\<^sub>E E) \<or>
-    (\<P> = Neg \<and> (select E = {#} \<and> is_maximal_lit L\<^sub>E E \<or> is_maximal_lit L\<^sub>E (select E))) \<Longrightarrow>
+    (\<P> = Pos \<and> select E = {#} \<and> is_strictly_maximal\<^sub>l L\<^sub>E E) \<or>
+    (\<P> = Neg \<and> (select E = {#} \<and> is_maximal\<^sub>l L\<^sub>E E \<or> is_maximal\<^sub>l L\<^sub>E (select E))) \<Longrightarrow>
     select D = {#} \<Longrightarrow>
-    is_strictly_maximal_lit L\<^sub>D D \<Longrightarrow>
+    is_strictly_maximal\<^sub>l L\<^sub>D D \<Longrightarrow>
     C = add_mset (\<P> (Upair \<kappa>\<langle>t'\<rangle>\<^sub>G u)) (E' + D') \<Longrightarrow>
     ground_superposition D E C"
 
@@ -72,7 +72,7 @@ inductive ground_eq_resolution ::
   ground_eq_resolutionI: "
     D = add_mset L D' \<Longrightarrow>
     L = Neg (Upair t t) \<Longrightarrow>
-    select D = {#} \<and> is_maximal_lit L D \<or> is_maximal_lit L (select D) \<Longrightarrow>
+    select D = {#} \<and> is_maximal\<^sub>l L D \<or> is_maximal\<^sub>l L (select D) \<Longrightarrow>
     C = D' \<Longrightarrow>
     ground_eq_resolution D C"
 
@@ -83,7 +83,7 @@ inductive ground_eq_factoring ::
     L\<^sub>1 = t \<approx> t' \<Longrightarrow>
     L\<^sub>2 = t \<approx> t'' \<Longrightarrow>
     select D = {#} \<Longrightarrow>
-    is_maximal_lit L\<^sub>1 D \<Longrightarrow>
+    is_maximal\<^sub>l L\<^sub>1 D \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     C = add_mset (Neg (Upair t' t'')) (add_mset (t \<approx> t'') D') \<Longrightarrow>
     ground_eq_factoring D C"
@@ -103,10 +103,10 @@ where
     L\<^sub>2 = t \<approx> t' \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
-    (\<P> = Pos \<longrightarrow> select P\<^sub>1 = {#} \<and> is_strictly_maximal_lit L\<^sub>1 P\<^sub>1) \<Longrightarrow>
-    (\<P> = Neg \<longrightarrow> (select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> is_maximal_lit L\<^sub>1 (select P\<^sub>1))) \<Longrightarrow>
+    (\<P> = Pos \<longrightarrow> select P\<^sub>1 = {#} \<and> is_strictly_maximal\<^sub>l L\<^sub>1 P\<^sub>1) \<Longrightarrow>
+    (\<P> = Neg \<longrightarrow> (select P\<^sub>1 = {#} \<and> is_maximal\<^sub>l L\<^sub>1 P\<^sub>1 \<or> is_maximal\<^sub>l L\<^sub>1 (select P\<^sub>1))) \<Longrightarrow>
     select P\<^sub>2 = {#} \<Longrightarrow>
-    is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
+    is_strictly_maximal\<^sub>l L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_superposition' P\<^sub>2 P\<^sub>1 C"
 
@@ -118,7 +118,8 @@ proof (intro ext iffI)
   proof (cases P2 P1 C rule: ground_superposition'.cases)
     case (ground_superposition'I L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
     thus ?thesis
-      using ground_superpositionI by blast
+      using ground_superpositionI 
+      by force
   qed
 next
   fix P1 P2 C
@@ -144,9 +145,9 @@ where
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     select P\<^sub>1 = {#} \<Longrightarrow>
-    is_strictly_maximal_lit L\<^sub>1 P\<^sub>1 \<Longrightarrow>
+    is_strictly_maximal\<^sub>l L\<^sub>1 P\<^sub>1 \<Longrightarrow>
     select P\<^sub>2 = {#} \<Longrightarrow>
-    is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
+    is_strictly_maximal\<^sub>l L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (s\<langle>t'\<rangle>\<^sub>G \<approx> s') (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_pos_superposition P\<^sub>2 P\<^sub>1 C"
 
@@ -172,9 +173,9 @@ where
     L\<^sub>2 = t \<approx> t' \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
-    select P\<^sub>1 = {#} \<and> is_maximal_lit L\<^sub>1 P\<^sub>1 \<or> is_maximal_lit L\<^sub>1 (select P\<^sub>1) \<Longrightarrow>
+    select P\<^sub>1 = {#} \<and> is_maximal\<^sub>l L\<^sub>1 P\<^sub>1 \<or> is_maximal\<^sub>l L\<^sub>1 (select P\<^sub>1) \<Longrightarrow>
     select P\<^sub>2 = {#} \<Longrightarrow>
-    is_strictly_maximal_lit L\<^sub>2 P\<^sub>2 \<Longrightarrow>
+    is_strictly_maximal\<^sub>l L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (Neg (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_neg_superposition P\<^sub>2 P\<^sub>1 C"
 
@@ -235,37 +236,39 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
   case (ground_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
 
   have "P\<^sub>1' + add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) P\<^sub>2' \<prec>\<^sub>c P\<^sub>1' + {#\<P> (Upair s\<langle>t\<rangle>\<^sub>G s')#}"
-    unfolding less_cls_def
+    unfolding less\<^sub>c_def
   proof (intro one_step_implies_multp ballI)
     fix K assume "K \<in># add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) P\<^sub>2'"
 
     moreover have "\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
     proof -
       have  "s\<langle>t'\<rangle>\<^sub>G \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
-        using \<open>t' \<prec>\<^sub>t t\<close> less_trm_compatible_with_gctxt by simp
+        using \<open>t' \<prec>\<^sub>t t\<close> by simp
+
       hence "multp (\<prec>\<^sub>t) {#s\<langle>t'\<rangle>\<^sub>G, s'#} {#s\<langle>t\<rangle>\<^sub>G, s'#}"
-        using transp_less_trm
         by (simp add: add_mset_commute multp_cancel_add_mset)
 
       have ?thesis if "\<P> = Pos"
-        unfolding that less_lit_def
-        using \<open>multp (\<prec>\<^sub>t) {#s\<langle>t'\<rangle>\<^sub>G, s'#} {#s\<langle>t\<rangle>\<^sub>G, s'#}\<close> by simp
+        unfolding that less\<^sub>l_def
+        using \<open>multp (\<prec>\<^sub>t) {#s\<langle>t'\<rangle>\<^sub>G, s'#} {#s\<langle>t\<rangle>\<^sub>G, s'#}\<close> 
+        by simp
 
       moreover have ?thesis if "\<P> = Neg"
-        unfolding that less_lit_def
-        using \<open>multp (\<prec>\<^sub>t) {#s\<langle>t'\<rangle>\<^sub>G, s'#} {#s\<langle>t\<rangle>\<^sub>G, s'#}\<close>
-        using multp_double_doubleI by force
+        unfolding that less\<^sub>l_def
+        using \<open>multp (\<prec>\<^sub>t) {#s\<langle>t'\<rangle>\<^sub>G, s'#} {#s\<langle>t\<rangle>\<^sub>G, s'#}\<close> multp_double_doubleI
+        by force
 
       ultimately show ?thesis
-        using \<open>\<P> \<in> {Pos, Neg}\<close> by auto
+        using \<open>\<P> \<in> {Pos, Neg}\<close> 
+        by auto
     qed
 
     moreover have "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
     proof -
-      have "is_strictly_maximal_lit L\<^sub>2 P1"
+      have "is_strictly_maximal\<^sub>l L\<^sub>2 P1"
         using ground_superpositionI by argo
       hence "\<forall>K \<in># P\<^sub>2'. \<not> Pos (Upair t t') \<prec>\<^sub>l K \<and> Pos (Upair t t') \<noteq> K"
-        unfolding literal_order.is_greatest_in_mset_iff
+        unfolding is_strictly_maximal\<^sub>l_def
         unfolding \<open>P1 = add_mset L\<^sub>2 P\<^sub>2'\<close> \<open>L\<^sub>2 = t \<approx> t'\<close>
         by auto
       hence "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l Pos (Upair t t')"
@@ -275,13 +278,16 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
         if "\<P> = Neg"
       proof -
         have "t \<preceq>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
-          using lesseq_trm_if_subtermeq .
+          using lesseq_trm_if_subterm .
         hence " multp (\<prec>\<^sub>t) {#t, t'#} {#s\<langle>t\<rangle>\<^sub>G, s', s\<langle>t\<rangle>\<^sub>G, s'#}"
           unfolding reflclp_iff
         proof (elim disjE)
           assume "t \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
+
           moreover hence "t' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
-            by (meson \<open>t' \<prec>\<^sub>t t\<close> transpD transp_less_trm)
+            using ground_superpositionI(8) 
+            by order
+
           ultimately show ?thesis
             by (auto intro: one_step_implies_multp[of _ _ _ "{#}", simplified])
         next
@@ -294,88 +300,112 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
         qed
         thus "Pos (Upair t t') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
           using \<open>\<P> = Neg\<close>
-          by (simp add: less_lit_def)
+          by (simp add: less\<^sub>l_def)
       qed
 
       have thesis_if_Pos: "Pos (Upair t t') \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
-        if "\<P> = Pos" and "is_maximal_lit L\<^sub>1 P2"
+        if "\<P> = Pos" and "is_maximal\<^sub>l L\<^sub>1 P2"
       proof (cases "s")
         case Hole
         show ?thesis
         proof (cases "t' \<preceq>\<^sub>t s'")
           case True
+
           hence "(multp (\<prec>\<^sub>t))\<^sup>=\<^sup>= {#t, t'#} {#s\<langle>t\<rangle>\<^sub>G, s'#}"
             unfolding Hole
-            using transp_less_trm
             by (simp add: multp_cancel_add_mset)
+
           thus ?thesis
             unfolding Hole \<open>\<P> = Pos\<close>
-            by (auto simp: less_lit_def)
+            by (auto simp: less\<^sub>l_def)
         next
           case False
           hence "s' \<prec>\<^sub>t t'"
             by order
+
           hence "multp (\<prec>\<^sub>t) {#s\<langle>t\<rangle>\<^sub>G, s'#} {#t, t'#}"
-            using transp_less_trm
             by (simp add: Hole multp_cancel_add_mset)
+
           hence "\<P> (Upair s\<langle>t\<rangle>\<^sub>G s') \<prec>\<^sub>l Pos (Upair t t')"
             using \<open>\<P> = Pos\<close>
-            by (simp add: less_lit_def)
+            by (simp add: less\<^sub>l_def)
+
           moreover have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
             using that
-            unfolding ground_superpositionI
-            unfolding literal_order.is_maximal_in_mset_iff
+            unfolding ground_superpositionI literal_order.is_maximal_in_mset_iff
             by auto
+
           ultimately have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l Pos (Upair t t')"
             using literal_order.transp_on_less
             by (metis (no_types, lifting) reflclp_iff transpD)
           hence "P2 \<prec>\<^sub>c P1"
             using \<open>\<P> (Upair s\<langle>t\<rangle>\<^sub>G s') \<prec>\<^sub>l Pos (Upair t t')\<close>
               one_step_implies_multp[of P1 P2 "(\<prec>\<^sub>l)" "{#}", simplified]
-            unfolding ground_superpositionI less_cls_def
+            unfolding ground_superpositionI less\<^sub>c_def
             by (metis \<open>\<forall>K\<in>#P\<^sub>1'. K \<preceq>\<^sub>l (\<P> (Upair s\<langle>t\<rangle>\<^sub>G s'))\<close> empty_not_add_mset insert_iff reflclp_iff
                 set_mset_add_mset_insert transpD literal_order.transp_on_less)
+
           hence False
             using \<open>P1 \<prec>\<^sub>c P2\<close> by order
+
           thus ?thesis ..
         qed
       next
         case (More f ts1 ctxt ts2)
         hence "t \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
-          using less_trm_if_subterm[of s t] by simp
+          using less\<^sub>t_if_subterm [of s t]
+          by simp
+
         moreover hence "t' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
-          using \<open>t' \<prec>\<^sub>t t\<close> by order
+          using \<open>t' \<prec>\<^sub>t t\<close> 
+          by order
+
         ultimately have "multp (\<prec>\<^sub>t) {#t, t'#} {#s\<langle>t\<rangle>\<^sub>G, s'#}"
-          using one_step_implies_multp[of "{#s\<langle>t\<rangle>\<^sub>G, s'#}" "{#t, t'#}" "(\<prec>\<^sub>t)" "{#}"] by simp
+          using one_step_implies_multp[of "{#s\<langle>t\<rangle>\<^sub>G, s'#}" "{#t, t'#}" "(\<prec>\<^sub>t)" "{#}"] 
+          by simp
+
         hence "Pos (Upair t t') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
           using \<open>\<P> = Pos\<close>
-          by (simp add: less_lit_def)
+          by (simp add: less\<^sub>l_def)
+
         thus ?thesis
           by order
       qed
 
       have "\<P> = Pos \<or> \<P> = Neg"
-        using \<open>\<P> \<in> {Pos, Neg}\<close> by simp
+        using \<open>\<P> \<in> {Pos, Neg}\<close> 
+        by simp
+
       thus ?thesis
       proof (elim disjE; intro ballI)
         fix K assume "\<P> = Pos" "K \<in># P\<^sub>2'"
         have "K \<prec>\<^sub>l t \<approx> t'"
-          using \<open>\<forall>K\<in>#P\<^sub>2'. K \<prec>\<^sub>l t \<approx> t'\<close> \<open>K \<in># P\<^sub>2'\<close> by metis
+          using \<open>\<forall>K\<in>#P\<^sub>2'. K \<prec>\<^sub>l t \<approx> t'\<close> \<open>K \<in># P\<^sub>2'\<close> 
+          by metis
+
         also have "t \<approx> t' \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
         proof (rule thesis_if_Pos[OF \<open>\<P> = Pos\<close>])
-          have "is_strictly_maximal_lit L\<^sub>1 P2"
+
+          have "is_strictly_maximal\<^sub>l L\<^sub>1 P2"
             using \<open>\<P> = Pos\<close> ground_superpositionI literal.simps(4)
             by (metis literal.simps(4))
-          thus "is_maximal_lit L\<^sub>1 P2"
-            using literal_order.is_maximal_in_mset_if_is_greatest_in_mset by metis
+
+          thus "is_maximal\<^sub>l L\<^sub>1 P2"
+            by (metis in_remove1_mset_neq is_maximal\<^sub>l_def is_strictly_maximal\<^sub>l_def 
+                literal_order.order.strict_iff_not)
         qed
+
         finally show "K \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')" .
       next
         fix K assume "\<P> = Neg" "K \<in># P\<^sub>2'"
+
         have "K \<prec>\<^sub>l t \<approx> t'"
-          using \<open>\<forall>K\<in>#P\<^sub>2'. K \<prec>\<^sub>l t \<approx> t'\<close> \<open>K \<in># P\<^sub>2'\<close> by metis
+          using \<open>\<forall>K\<in>#P\<^sub>2'. K \<prec>\<^sub>l t \<approx> t'\<close> \<open>K \<in># P\<^sub>2'\<close> 
+          by metis
+
         also have "t \<approx> t' \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
           using thesis_if_Neg[OF \<open>\<P> = Neg\<close>] .
+
         finally show "K \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')" .
       qed
     qed
@@ -401,7 +431,8 @@ lemma ground_eq_resolution_smaller_conclusion:
 proof (cases P C rule: ground_eq_resolution.cases)
   case (ground_eq_resolutionI L t)
   then show ?thesis
-    using clause_order.totalp_on_less unfolding less_cls_def
+    using clause_order.totalp_on_less 
+    unfolding less\<^sub>c_def
     by (metis add.right_neutral add_mset_add_single empty_iff empty_not_add_mset
         one_step_implies_multp set_mset_empty)
 qed
@@ -412,7 +443,7 @@ lemma ground_eq_factoring_smaller_conclusion:
   using step
 proof (cases P C rule: ground_eq_factoring.cases)
   case (ground_eq_factoringI L\<^sub>1 L\<^sub>2 P' t t' t'')
-  have "is_maximal_lit L\<^sub>1 P"
+  have "is_maximal\<^sub>l L\<^sub>1 P"
     using ground_eq_factoringI by simp
   hence "\<forall>K \<in># add_mset (Pos (Upair t t'')) P'. \<not> Pos (Upair t t') \<prec>\<^sub>l K"
     unfolding ground_eq_factoringI
@@ -423,14 +454,13 @@ proof (cases P C rule: ground_eq_factoring.cases)
     by order
   hence "t'' \<preceq>\<^sub>t t'"
     unfolding reflclp_iff
-    using transp_less_trm
-    by (auto simp: less_lit_def multp_cancel_add_mset)
+    by (auto simp: less\<^sub>l_def multp_cancel_add_mset)
 
   have "C = add_mset (Neg (Upair t' t'')) (add_mset (Pos (Upair t t'')) P')"
     using ground_eq_factoringI by argo
 
   moreover have "add_mset (Neg (Upair t' t'')) (add_mset (Pos (Upair t t'')) P') \<prec>\<^sub>c P"
-    unfolding ground_eq_factoringI less_cls_def
+    unfolding ground_eq_factoringI less\<^sub>c_def
   proof (intro one_step_implies_multp[of "{#_#}" "{#_#}", simplified])
     have "t'' \<prec>\<^sub>t t"
       using \<open>t' \<prec>\<^sub>t t\<close> \<open>t'' \<preceq>\<^sub>t t'\<close> by order
@@ -439,7 +469,7 @@ proof (cases P C rule: ground_eq_factoring.cases)
       by (metis \<open>t' \<prec>\<^sub>t t\<close> diff_empty id_remove_1_mset_iff_notin insert_iff
           set_mset_add_mset_insert)
     thus "Neg (Upair t' t'') \<prec>\<^sub>l Pos (Upair t t')"
-      by (simp add: less_lit_def)
+      by (simp add: less\<^sub>l_def)
   qed
 
   ultimately show ?thesis

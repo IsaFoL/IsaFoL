@@ -1,7 +1,7 @@
 theory Uprod_Extra
   imports
-    "HOL-Library.Multiset"
     "HOL-Library.Uprod"
+    Multiset_Extra
 begin
 
 abbreviation upair where
@@ -75,4 +75,15 @@ qed
 lemma ball_set_uprod: "(\<forall>t\<in>set_uprod (Upair t\<^sub>1 t\<^sub>2). P t) \<longleftrightarrow> P t\<^sub>1 \<and> P t\<^sub>2"
   by auto
 
+lemma inj_mset_uprod: "inj mset_uprod"
+proof(unfold inj_def, intro allI impI)
+  fix a b :: "'a uprod"
+  assume "mset_uprod a = mset_uprod b"
+  then show "a = b"
+    by(cases a; cases b)(auto simp: add_mset_eq_add_mset)
+qed
+
+lemma mset_uprod_plus_neq: "mset_uprod a \<noteq> mset_uprod b + mset_uprod b"
+  by(cases a; cases b)(auto simp: add_mset_eq_add_mset)
+  
 end

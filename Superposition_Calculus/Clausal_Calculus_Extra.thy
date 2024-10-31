@@ -70,5 +70,50 @@ lemma set_mset_set_uprod: "set_mset (mset_lit l) = set_uprod (atm_of l)"
 lemma mset_lit_set_literal: "t \<in># mset_lit l \<longleftrightarrow> t \<in> \<Union>(set_uprod ` set_literal l)"
   unfolding set_literal_atm_of
   by(simp add: set_mset_set_uprod)
+
+lemma inj_mset_lit: "inj mset_lit"
+proof(unfold inj_def, intro allI impI)
+  fix l l' :: "'a uprod literal"
+  assume mset_lit: "mset_lit l = mset_lit l'"
+  
+  show "l = l'"
+  proof(cases l)
+    case l: (Pos a)
+    show ?thesis
+    proof(cases l')
+      case l': (Pos a')
+
+      show ?thesis
+        using mset_lit inj_mset_uprod
+        unfolding l l' inj_def
+        by auto
+    next
+      case l': (Neg a')
+
+      show ?thesis
+        using mset_lit mset_uprod_plus_neq
+        unfolding l l' 
+        by auto
+    qed
+  next
+    case l: (Neg a)
+    then show ?thesis
+     proof(cases l')
+      case l': (Pos a')
+
+      show ?thesis
+        using mset_lit 
+        unfolding l l' 
+        by (metis mset_lit.simps mset_uprod_plus_neq)
+    next
+      case l': (Neg a')
+
+      show ?thesis
+        using mset_lit inj_mset_plus_same inj_mset_uprod
+        unfolding l l' inj_def
+        by auto
+    qed
+  qed
+qed
  
 end

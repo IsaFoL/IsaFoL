@@ -42,13 +42,13 @@ next
     using wfp_imp_asymp wfP_less_kbo 
     by blast
 next
-  show "Wellfounded.wfp_on {term. term.is_ground term} less_kbo"
+  show "Wellfounded.wfp_on (range term.from_ground) less_kbo"
     using Wellfounded.wfp_on_subset[OF wfP_less_kbo subset_UNIV] .
 next
-  show "totalp_on {term. term.is_ground term} less_kbo"
+  show "totalp_on (range term.from_ground) less_kbo"
     using less_kbo_gtotal
     unfolding totalp_on_def Term.ground_vars_term_empty
-    by blast
+    by (metis term.is_ground_iff_range_from_ground)
 next
   fix 
     context\<^sub>G :: "('f, 'v) context" and
