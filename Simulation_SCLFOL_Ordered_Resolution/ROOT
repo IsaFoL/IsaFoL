@@ -1,0 +1,9 @@
+chapter AFP
+session SCL_Simulates_Ground_Nonredundant_Resolution = Simple_Clause_Learning +
+  options [timeout = 300]
+  sessions
+    Min_Max_Least_Greatest
+    Superposition_Calculus
+    VeriComp
+  theories
+    Simulation_SCLFOL_ORDRES

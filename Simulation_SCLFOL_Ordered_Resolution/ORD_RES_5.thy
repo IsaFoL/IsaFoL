@@ -1126,26 +1126,31 @@ proof -
 qed
 
 lemma ord_res_5_safe_state_if_invars:
-  "safe_state ord_res_5_step ord_res_5_final (N, s)" if invars: "ord_res_5_invars N s" for N s
-  unfolding safe_state_def
-proof (intro allI impI)
-  fix S'
-  assume "ord_res_5_semantics.eval (N, s) S'" and stuck: "stuck_state ord_res_5_step S'"
-  then obtain s' where "S' = (N, s')" and "(ord_res_5 N)\<^sup>*\<^sup>* s s'"
-  proof (induction "(N, s)" arbitrary: N s rule: converse_rtranclp_induct)
-    case base
-    thus ?case by simp
-  next
-    case (step z)
-    thus ?case
-      by (smt (verit, ccfv_SIG) converse_rtranclp_into_rtranclp ord_res_5_step.cases prod.inject)
-  qed
-  hence "ord_res_5_invars N s'"
-    using invars rtranclp_ord_res_5_preserves_invars by metis
-  hence "\<not> ord_res_5_final S' \<Longrightarrow> \<exists>S''. ord_res_5_step S' S''"
-    using ex_ord_res_5_if_not_final[of S'] \<open>S' = (N, s')\<close> by blast
-  thus "ord_res_5_final S'"
-    using stuck[unfolded stuck_state_def] by argo
+  fixes N s
+  assumes invars: "ord_res_5_invars N s"
+  shows "safe_state ord_res_5_step ord_res_5_final (N, s)"
+proof -
+  {
+    fix S'
+    assume "ord_res_5_semantics.eval (N, s) S'" and stuck: "stuck_state ord_res_5_step S'"
+    then obtain s' where "S' = (N, s')" and "(ord_res_5 N)\<^sup>*\<^sup>* s s'"
+    proof (induction "(N, s)" arbitrary: N s rule: converse_rtranclp_induct)
+      case base
+      thus ?case by simp
+    next
+      case (step z)
+      thus ?case
+        by (smt (verit, ccfv_SIG) converse_rtranclp_into_rtranclp ord_res_5_step.cases prod.inject)
+    qed
+    hence "ord_res_5_invars N s'"
+      using invars rtranclp_ord_res_5_preserves_invars by metis
+    hence "\<not> ord_res_5_final S' \<Longrightarrow> \<exists>S''. ord_res_5_step S' S''"
+      using ex_ord_res_5_if_not_final[of S'] \<open>S' = (N, s')\<close> by blast
+    hence "ord_res_5_final S'"
+      using stuck[unfolded stuck_state_def] by argo
+  }
+  thus ?thesis
+    unfolding safe_state_def stuck_state_def by metis
 qed
 
 lemma MAGIC1:
@@ -1373,7 +1378,7 @@ proof -
             unfolding eres_D_C_eq true_cls_union true_cls_repeat_mset_Suc .
 
           moreover have "\<not> ?I \<TTurnstile> D'"
-            using (* D_false *) (* D'_false *) \<open>D \<prec>\<^sub>c C\<close>
+            using \<open>D \<prec>\<^sub>c C\<close>
             by (smt (verit) D_def D_productive \<open>ord_res.is_strictly_maximal_lit (Pos A) D\<close>
                 diff_single_eq_union ord_res.mem_productionE linorder_lit.is_greatest_in_mset_iff
                 ord_res.Uniq_striclty_maximal_lit_in_ground_cls

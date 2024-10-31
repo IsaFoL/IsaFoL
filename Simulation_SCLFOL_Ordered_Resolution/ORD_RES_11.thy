@@ -1332,7 +1332,7 @@ proof (cases N s rule: ord_res_11_invars.cases)
 
         then obtain L n \<Gamma>' where "\<Gamma> = (L, n) # \<Gamma>'"
           using D_false[unfolded trail_false_cls_def trail_false_lit_def]
-          by (metis D_false neq_Nil_conv not_trail_false_Nil(2) surj_pair)
+          by (metis eq_fst_iff image_iff list.set_cases multiset_nonemptyE)
 
         show ?thesis
         proof (cases "- L \<in># D")

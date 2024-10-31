@@ -1,0 +1,68 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+
+% further packages required for unusual symbols (see also
+% isabellesym.sty), use only when needed
+
+\usepackage{amssymb}
+  %for \<leadsto>, \<box>, \<diamond>, \<sqsupset>, \<mho>, \<Join>,
+  %\<lhd>, \<lesssim>, \<greatersim>, \<lessapprox>, \<greaterapprox>,
+  %\<triangleq>, \<yen>, \<lozenge>
+
+%\usepackage{eurosym}
+  %for \<euro>
+
+%\usepackage[only,bigsqcap]{stmaryrd}
+  %for \<Sqinter>
+
+%\usepackage{eufrak}
+  %for \<AA> ... \<ZZ>, \<aa> ... \<zz> (also included in amssymb)
+
+%\usepackage{textcomp}
+  %for \<onequarter>, \<onehalf>, \<threequarters>, \<degree>, \<cent>,
+  %\<currency>
+
+% this should be the last package used
+\usepackage{pdfsetup}
+
+% urls in roman style, theory text in math-similar italics
+\urlstyle{rm}
+\isabellestyle{it}
+
+% for uniform font size
+%\renewcommand{\isastyle}{\isastyleminor}
+
+
+\begin{document}
+
+\title{SCL(FOL) Can Simulate Ground Nonredundant Ordered Resolution}
+\author{Martin Desharnais}
+\maketitle
+
+\begin{abstract}
+  SCL(FOL) (i.e., Simple Clause Learning for First-Order Logic without equality) is known to be able to simulate the derivation of nonredundant clauses by the ground ordered resolution calculus \cite{Bromberger_CADE2023}.
+  Due to the space constraints of a 16-pages paper, the published proof is monolithic and hard to comprehend.
+  In this work, we reuse the existing strategy for ground ordered resolution and present a new, simpler strategy for SCL(FOL).
+  We prove a stronger bisimulation theorem between these two strategies (i.e., they both simulate each other).
+  Our proof is modular: it consists of ten refinement steps focusing on different aspects of the two strategies.
+\end{abstract}
+
+\tableofcontents
+
+% sane default for proof documents
+\parindent 0pt\parskip 0.5ex
+
+% generated text of all theories
+\input{session}
+
+% optional bibliography
+\bibliographystyle{abbrv}
+\bibliography{root}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

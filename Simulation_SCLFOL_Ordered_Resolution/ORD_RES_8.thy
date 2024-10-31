@@ -340,7 +340,6 @@ inductive trail_annotations_invars
          "trail_false_cls \<Gamma> {#K \<in># D. K \<noteq> L#}" and
          "linorder_cls.is_least_in_fset
            {|D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). clause_could_propagate \<Gamma> D L|} D" and
-         (* "\<forall>C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). C \<prec>\<^sub>c D \<longrightarrow> trail_true_cls \<Gamma> C" and *)
          "trail_annotations_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)"
 
 lemma
@@ -985,8 +984,7 @@ proof (cases N s s' rule: ord_res_8.cases)
         by (metis image_insert insert_iff list.set(2) trail_true_lit_def)
       thus "\<not> trail_false_cls \<Gamma>' C"
         using \<open>trail_consistent \<Gamma>'\<close>
-        by (metis trail_defined_lit_iff_true_or_false trail_false_cls_def
-            trail_false_cls_iff_not_trail_interp_entails trail_interp_cls_if_trail_true)
+        by (metis not_trail_true_cls_and_trail_false_cls)
     next
       assume "\<not> trail_defined_cls \<Gamma> C"
       then obtain L where L_max: "ord_res.is_maximal_lit L C"

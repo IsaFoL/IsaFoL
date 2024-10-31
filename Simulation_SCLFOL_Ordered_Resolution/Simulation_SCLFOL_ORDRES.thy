@@ -18,6 +18,8 @@ begin
 
 section \<open>ORD-RES-1 (deterministic)\<close>
 
+type_synonym 'f ord_res_1_state = "'f gclause fset"
+
 context simulation_SCLFOL_ground_ordered_resolution begin
 
 sublocale backward_simulation_with_measuring_function where
@@ -35,7 +37,7 @@ next
   show "\<And>N1 N2. N1 = N2 \<Longrightarrow> ord_res_1_final N2 \<Longrightarrow> ord_res_final N1"
     unfolding ord_res_1_final_def by metis
 next
-  fix N1 N2 N2' :: "'f gterm clause fset"
+  fix N1 N2 N2' :: "'f ord_res_1_state"
   assume match: "N1 = N2" and step2: "ord_res_1 N2 N2'"
   show "(\<exists>N1'. ord_res\<^sup>+\<^sup>+ N1 N1' \<and> N1' = N2') \<or> N1 = N2' \<and> False"
   proof (intro disjI1 exI conjI)
@@ -123,7 +125,8 @@ section \<open>ORD-RES-2 (full factorization)\<close>
 
 context simulation_SCLFOL_ground_ordered_resolution begin
 
-fun ord_res_1_matches_ord_res_2 where
+fun ord_res_1_matches_ord_res_2
+  :: "'f ord_res_1_state \<Rightarrow> _ \<Rightarrow> bool" where
   "ord_res_1_matches_ord_res_2 S1 (N, (U\<^sub>r, U\<^sub>e\<^sub>f)) \<longleftrightarrow> (\<exists>U\<^sub>f.
       S1 = N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f |\<union>| U\<^sub>f \<and>
       (\<forall>C\<^sub>f |\<in>| U\<^sub>f. \<exists>C |\<in>| N |\<union>| U\<^sub>r |\<union>| U\<^sub>e\<^sub>f. ord_res.ground_factoring\<^sup>+\<^sup>+ C C\<^sub>f \<and> C\<^sub>f \<noteq> efac C\<^sub>f \<and>
@@ -773,8 +776,12 @@ qed
 theorem bisimulation_ord_res_1_ord_res_2:
   defines "match \<equiv> \<lambda>i s1 s2. i = ord_res_1_measure s1 \<and> ord_res_1_matches_ord_res_2 s1 s2"
   shows "\<exists>(\<M> :: nat \<times> nat \<Rightarrow> 'f gterm clause fset \<Rightarrow>
+    'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow> bool) \<R>.
+    bisimulation ord_res_1 ord_res_2_step ord_res_1_final ord_res_2_final \<R> \<M>"  
+(* For AFP-devel
+  shows "\<exists>(\<M> :: nat \<times> nat \<Rightarrow> 'f gterm clause fset \<Rightarrow>
     'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow> bool) \<R>\<^sub>f \<R>\<^sub>b.
-    bisimulation ord_res_1 ord_res_1_final ord_res_2_step ord_res_2_final \<M> \<R>\<^sub>f \<R>\<^sub>b"
+    bisimulation ord_res_1 ord_res_1_final ord_res_2_step ord_res_2_final \<M> \<R>\<^sub>f \<R>\<^sub>b" *)
 proof (rule ex_bisimulation_from_forward_simulation)
   show "right_unique ord_res_1"
     using right_unique_ord_res_1 .
@@ -843,9 +850,11 @@ end
 
 section \<open>ORD-RES-3 (full resolve)\<close>
 
+type_synonym 'f ord_res_3_state = "'f gclause fset \<times> 'f gclause fset \<times> 'f gclause fset"
+
 context simulation_SCLFOL_ground_ordered_resolution begin
 
-inductive ord_res_2_matches_ord_res_3 where
+inductive ord_res_2_matches_ord_res_3 :: "_ \<Rightarrow> 'f ord_res_3_state \<Rightarrow> bool" where
   "(\<forall>C |\<in>| U\<^sub>p\<^sub>r. \<exists>D1 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f. \<exists>D2 |\<in>| N |\<union>| U\<^sub>e\<^sub>r |\<union>| U\<^sub>e\<^sub>f.
       (ground_resolution D1)\<^sup>+\<^sup>+ D2 C \<and> C \<noteq> eres D1 D2 \<and> eres D1 D2 |\<in>| U\<^sub>e\<^sub>r) \<Longrightarrow>
   ord_res_2_matches_ord_res_3 (N, (U\<^sub>p\<^sub>r |\<union>| U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)) (N, (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f))"
@@ -1576,8 +1585,14 @@ theorem bisimulation_ord_res_2_ord_res_3:
   defines "match \<equiv> \<lambda>_ S2 S3. ord_res_2_matches_ord_res_3 S2 S3"
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
     'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow>
+    'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow> bool) \<R>.
+    bisimulation ord_res_2_step ord_res_3_step ord_res_2_final ord_res_3_final \<R> MATCH"
+(* For AFP-devel
+  shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
+    'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow>
     'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow> bool) ORDER\<^sub>f ORDER\<^sub>b.
     bisimulation ord_res_2_step ord_res_2_final ord_res_3_step ord_res_3_final MATCH ORDER\<^sub>f ORDER\<^sub>b"
+*)
 proof (rule ex_bisimulation_from_backward_simulation)
   show "right_unique ord_res_2_step"
     using right_unique_ord_res_2_step .
@@ -1616,9 +1631,11 @@ end
 
 section \<open>ORD-RES-4 (implicit factorization)\<close>
 
+type_synonym 'f ord_res_4_state = "'f gclause fset \<times> 'f gclause fset \<times> 'f gclause fset"
+
 context simulation_SCLFOL_ground_ordered_resolution begin
 
-inductive ord_res_3_matches_ord_res_4 where
+inductive ord_res_3_matches_ord_res_4 :: "'f ord_res_3_state \<Rightarrow> 'f ord_res_4_state \<Rightarrow> bool" where
   "\<F> |\<subseteq>| N |\<union>| U\<^sub>e\<^sub>r \<Longrightarrow> U\<^sub>e\<^sub>f = iefac \<F> |`| {|C |\<in>| N |\<union>| U\<^sub>e\<^sub>r. iefac \<F> C \<noteq> C|} \<Longrightarrow>
   ord_res_3_matches_ord_res_4 (N, (U\<^sub>e\<^sub>r, U\<^sub>e\<^sub>f)) (N, U\<^sub>e\<^sub>r, \<F>)"
 
@@ -1841,8 +1858,14 @@ theorem bisimulation_ord_res_3_ord_res_4:
   defines "match \<equiv> \<lambda>_ S3 S4. ord_res_3_matches_ord_res_4 S3 S4"
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
     'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow>
+    'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow> bool) \<R>.
+    bisimulation ord_res_3_step ord_res_4_step ord_res_3_final ord_res_4_final \<R> MATCH"
+(* For AFP-devel
+  shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
+    'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow>
     'f gterm clause fset \<times> 'f gterm clause fset \<times> 'f gterm clause fset \<Rightarrow> bool) ORDER\<^sub>f ORDER\<^sub>b.
     bisimulation ord_res_3_step ord_res_3_final ord_res_4_step ord_res_4_final MATCH ORDER\<^sub>f ORDER\<^sub>b"
+*)
 proof (rule ex_bisimulation_from_forward_simulation)
   show "right_unique ord_res_3_step"
     using right_unique_ord_res_3_step .
@@ -1879,12 +1902,12 @@ end
 
 section \<open>ORD-RES-5 (explicit model construction)\<close>
 
+type_synonym 'f ord_res_5_state = "'f gclause fset \<times> 'f gclause fset \<times> 'f gclause fset \<times>
+  ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option"
+
 context simulation_SCLFOL_ground_ordered_resolution begin
 
-inductive ord_res_4_matches_ord_res_5 ::
-  "'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<Rightarrow>
-    'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times>
-      ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow> bool" where
+inductive ord_res_4_matches_ord_res_5 :: "'f ord_res_4_state \<Rightarrow> 'f ord_res_5_state \<Rightarrow> bool" where
   "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>) \<Longrightarrow>
     (\<forall>C. \<C> = Some C \<longleftrightarrow> is_least_false_clause (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) C) \<Longrightarrow>
     ord_res_4_matches_ord_res_5 (N, U\<^sub>e\<^sub>r, \<F>) (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)"
@@ -2109,8 +2132,14 @@ theorem bisimulation_ord_res_4_ord_res_5:
   defines "match \<equiv> \<lambda>_. ord_res_4_matches_ord_res_5"
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
     'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<Rightarrow>
+    'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow> bool) \<R>.
+    bisimulation ord_res_4_step ord_res_5_step ord_res_4_final ord_res_5_final \<R> MATCH"
+(* For AFP-devel
+  shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
+    'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<Rightarrow>
     'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow> bool) ORDER\<^sub>f ORDER\<^sub>b.
     bisimulation ord_res_4_step ord_res_4_final ord_res_5_step ord_res_5_final MATCH ORDER\<^sub>f ORDER\<^sub>b"
+*)
 proof (rule ex_bisimulation_from_forward_simulation)
   show "right_unique ord_res_4_step"
     using right_unique_ord_res_4_step .
@@ -2158,13 +2187,12 @@ end
 
 section \<open>ORD-RES-6 (model backjump)\<close>
 
+type_synonym 'f ord_res_6_state = "'f gclause fset \<times> 'f gclause fset \<times> 'f gclause fset \<times>
+  ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option"
+
 context simulation_SCLFOL_ground_ordered_resolution begin
 
-inductive ord_res_5_matches_ord_res_6 ::
-  "'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times>
-      ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow>
-    'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times>
-      ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow> bool" where
+inductive ord_res_5_matches_ord_res_6 :: "'f ord_res_5_state \<Rightarrow> 'f ord_res_6_state \<Rightarrow> bool" where
   "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>) \<Longrightarrow>
     ord_res_5_matches_ord_res_6 (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>) (N, U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>)"
 
@@ -2275,9 +2303,6 @@ proof (cases S5 S6 rule: ord_res_5_matches_ord_res_6.cases)
       next
         show "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>', \<M>, Some (efac D))"
           using match_hyps(3) ord_res_6_preserves_invars step' step_hyps(2) by blast
-      (* next
-        show "efac D \<prec>\<^sub>c D"
-          using \<open>efac D \<noteq> D\<close> efac_properties_if_not_ident(1) by metis *)
       next
         have "iefac \<F> D = D" and "D |\<in>| N |\<union>| U\<^sub>e\<^sub>r"
           unfolding atomize_conj
@@ -2429,10 +2454,6 @@ proof (cases S5 S6 rule: ord_res_5_matches_ord_res_6.cases)
       next
         show "ord_res_5_invars N (U\<^sub>e\<^sub>r', \<F>, \<M>', Some (eres D E))"
           using match_hyps(3) ord_res_6_preserves_invars step' step_hyps(2) by blast
-      (* next
-        show "eres D E |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')"
-          by (metis match_hyps(3) ord_res_6_preserves_invars next_clause_in_factorized_clause_def
-              ord_res_5_invars_def step' step_hyps(2)) *)
       next
         have "eres D E \<noteq> E"
           using step_hyps by (metis linorder_lit.Uniq_is_maximal_in_mset the1_equality')
@@ -2560,9 +2581,6 @@ proof (cases S5 S6 rule: ord_res_5_matches_ord_res_6.cases)
       next
         show "ord_res_5_invars N (U\<^sub>e\<^sub>r', \<F>, \<M>', Some C)"
           using match_hyps(3) ord_res_6_preserves_invars step' step_hyps(2) by blast
-        (* show "C |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r')"
-          by (metis match_hyps(3) ord_res_6_preserves_invars next_clause_in_factorized_clause_def
-              ord_res_5_invars_def step' step_hyps(2)) *)
       next
         have "ord_res.is_strictly_maximal_lit (Pos (atm_of K)) C"
           using \<open>\<M> (atm_of K) = Some C\<close>
@@ -2631,8 +2649,14 @@ theorem bisimulation_ord_res_5_ord_res_6:
   defines "match \<equiv> \<lambda>_. ord_res_5_matches_ord_res_6"
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
     'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow>
+    'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow> bool) \<R>.
+    bisimulation ord_res_5_step ord_res_6_step ord_res_5_final ord_res_6_final \<R> MATCH"
+(* For AFP-devel
+  shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
+    'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow>
     'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow> bool) ORDER\<^sub>f ORDER\<^sub>b.
     bisimulation ord_res_5_step ord_res_5_final ord_res_6_step ord_res_6_final MATCH ORDER\<^sub>f ORDER\<^sub>b"
+*)
 proof (rule ex_bisimulation_from_backward_simulation)
   show "right_unique ord_res_5_step"
     using right_unique_ord_res_5_step .
@@ -2689,11 +2713,7 @@ type_synonym 'f ord_res_7_state =
 context simulation_SCLFOL_ground_ordered_resolution begin
 
 inductive ord_res_6_matches_ord_res_7 ::
-  "'f gterm fset \<Rightarrow>
-    'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times>
-      ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow>
-    'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times>
-      ('f gterm literal \<times> 'f gclause option) list \<times> 'f gclause option \<Rightarrow> bool" where
+  "'f gterm fset \<Rightarrow> 'f ord_res_6_state \<Rightarrow> 'f ord_res_7_state \<Rightarrow> bool" where
   "ord_res_5_invars N (U\<^sub>e\<^sub>r, \<F>, \<M>, \<C>) \<Longrightarrow>
     ord_res_7_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>) \<Longrightarrow>
     (\<forall>A C. \<M> A = Some C \<longleftrightarrow> map_of \<Gamma> (Pos A) = Some (Some C)) \<Longrightarrow>
@@ -2768,9 +2788,8 @@ proof (cases i S6 S7 rule: ord_res_6_matches_ord_res_7.cases)
   have \<Gamma>_consistent: "trail_consistent \<Gamma>"
     using invars_7 by (metis trail_consistent_if_sorted_wrt_atoms)
 
-  have \<Gamma>_distinct_atoms: "distinct (map fst \<Gamma>)"
-    by (metis List.map.compositionality \<Gamma>_consistent distinct_atm_of_trail_if_trail_consistent
-        distinct_map)
+  hence \<Gamma>_distinct_atoms: "distinct (map fst \<Gamma>)"
+    using distinct_lits_if_trail_consistent by iprover
 
   have clause_true_wrt_model_if_true_wrt_\<Gamma>: "dom \<M> \<TTurnstile> D"
     if D_true: "trail_true_cls \<Gamma> D" for D
@@ -3761,10 +3780,16 @@ theorem bisimulation_ord_res_6_ord_res_7:
   defines "match \<equiv> ord_res_6_matches_ord_res_7"
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
     'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow>
-    'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm literal \<times> 'f gclause option) list \<times> 'f gclause option \<Rightarrow> bool)
-    ORDER\<^sub>f ORDER\<^sub>b.
+    'f ord_res_7_state \<Rightarrow> bool) \<R>.
+    bisimulation ord_res_6_step (constant_context ord_res_7) ord_res_6_final ord_res_7_final
+      \<R> MATCH"
+(* For AFP-devel
+  shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow>
+    'f gclause fset \<times>'f gclause fset \<times> 'f gclause fset \<times> ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option \<Rightarrow>
+    'f ord_res_7_state \<Rightarrow> bool) ORDER\<^sub>f ORDER\<^sub>b.
     bisimulation ord_res_6_step ord_res_6_final (constant_context ord_res_7) ord_res_7_final
       MATCH ORDER\<^sub>f ORDER\<^sub>b"
+*)
 proof (rule ex_bisimulation_from_backward_simulation)
   show "right_unique ord_res_6_step"
     using right_unique_ord_res_6_step .
@@ -4625,37 +4650,6 @@ proof (cases S7 S8 rule: ord_res_7_matches_ord_res_8.cases)
   have invars_s8': "ord_res_8_invars N s8'"
     using ord_res_8_preserves_invars[OF step' \<open>ord_res_8_invars N (U\<^sub>e\<^sub>r, \<F>, \<Gamma>)\<close>] .
 
-  have C_not_entailed_if_could_propagate_and_trail_consistent:
-    "\<not> trail_interp \<Gamma> \<TTurnstile> C"
-    if C_could_propagate: "clause_could_propagate \<Gamma> C (Pos A)"
-    for C :: "'f gclause" and A :: "'f gterm"
-  proof -
-    have "\<not> trail_defined_lit \<Gamma> (Pos A)" and
-      "ord_res.is_maximal_lit (Pos A) C" and
-      "trail_false_cls \<Gamma> {#K \<in># C. K \<noteq> Pos A#}"
-      using C_could_propagate by (simp_all add: clause_could_propagate_def)
-
-    have "trail_consistent ((Neg A, None) # \<Gamma>)"
-      using \<open>trail_consistent \<Gamma>\<close>
-      by (metis \<open>\<not> trail_defined_lit \<Gamma> (Pos A)\<close> trail_consistent.Cons trail_defined_lit_def
-          uminus_Neg uminus_Pos)
-
-    moreover have "trail_false_cls ((Neg A, None) # \<Gamma>) C"
-      using \<open>trail_false_cls \<Gamma> {#K \<in># C. K \<noteq> Pos A#}\<close>
-      unfolding trail_false_cls_def trail_false_lit_def
-      by auto
-
-    ultimately have "\<not> trail_interp ((Neg A, None) # \<Gamma>) \<TTurnstile> C"
-      by (metis trail_defined_lit_iff_true_or_false trail_false_cls_def
-          trail_false_cls_iff_not_trail_interp_entails)
-
-    moreover have "trail_interp ((Neg A, None) # \<Gamma>) = trail_interp \<Gamma>"
-      by (simp add: trail_interp_def)
-
-    ultimately show "\<not> trail_interp \<Gamma> \<TTurnstile> C"
-      by argo
-  qed
-
   show ?thesis
     using step'
   proof (cases N "(U\<^sub>e\<^sub>r, \<F>, \<Gamma>)" s8' rule: ord_res_8.cases)
@@ -5502,8 +5496,8 @@ proof (cases S7 S8 rule: ord_res_7_matches_ord_res_8.cases)
           hence "map_of \<Gamma> (- K) = Some (Some C)"
           proof (rule map_of_is_SomeI[rotated])
             show "distinct (map fst \<Gamma>)"
-              using \<Gamma>_sorted \<Gamma>_consistent
-              by (metis distinct_atm_of_trail_if_trail_consistent distinct_map list.map_comp)
+              using \<Gamma>_consistent
+              by (metis distinct_lits_if_trail_consistent)
           qed
 
           then show ?thesis
@@ -5551,11 +5545,18 @@ qed
 
 theorem bisimulation_ord_res_7_ord_res_8:
   defines "match \<equiv> \<lambda>_. ord_res_7_matches_ord_res_8"
+  shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow> 'f ord_res_7_state \<Rightarrow> 'f ord_res_8_state \<Rightarrow> bool) \<R>.
+    bisimulation
+      (constant_context ord_res_7) (constant_context ord_res_8)
+      ord_res_7_final ord_res_8_final
+      \<R> MATCH"
+(* For AFP-devel
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow> 'f ord_res_7_state \<Rightarrow> 'f ord_res_8_state \<Rightarrow> bool) ORDER\<^sub>f ORDER\<^sub>b.
     bisimulation
       (constant_context ord_res_7) ord_res_7_final
       (constant_context ord_res_8) ord_res_8_final
       MATCH ORDER\<^sub>f ORDER\<^sub>b"
+*)
 proof (rule ex_bisimulation_from_backward_simulation)
   show "right_unique (constant_context ord_res_7)"
     using right_unique_constant_context right_unique_ord_res_7 by metis
@@ -5664,11 +5665,18 @@ qed
 
 theorem bisimulation_ord_res_8_ord_res_9:
   defines "match \<equiv> \<lambda>_. ord_res_8_matches_ord_res_9"
+  shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow> 'f ord_res_8_state \<Rightarrow> 'f ord_res_9_state \<Rightarrow> bool) \<R>.
+    bisimulation
+      (constant_context ord_res_8) (constant_context ord_res_9)
+      ord_res_8_final ord_res_8_final
+      \<R> MATCH"
+(* For AFP-devel
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow> 'f ord_res_8_state \<Rightarrow> 'f ord_res_9_state \<Rightarrow> bool) ORDER\<^sub>f ORDER\<^sub>b.
     bisimulation
       (constant_context ord_res_8) ord_res_8_final
       (constant_context ord_res_9) ord_res_8_final
       MATCH ORDER\<^sub>f ORDER\<^sub>b"
+*)
 proof (rule ex_bisimulation_from_backward_simulation)
   show "right_unique (constant_context ord_res_8)"
     using right_unique_constant_context right_unique_ord_res_8 by metis
@@ -6029,11 +6037,18 @@ qed
 
 theorem bisimulation_ord_res_9_ord_res_10:
   defines "match \<equiv> \<lambda>_. ord_res_9_matches_ord_res_10"
+  shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow> 'f ord_res_8_state \<Rightarrow> 'f ord_res_9_state \<Rightarrow> bool) \<R>.
+    bisimulation
+      (constant_context ord_res_9) (constant_context ord_res_10)
+      ord_res_8_final ord_res_8_final
+      \<R> MATCH"
+(* For AFP-devel
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow> 'f ord_res_8_state \<Rightarrow> 'f ord_res_9_state \<Rightarrow> bool) ORDER\<^sub>f ORDER\<^sub>b.
     bisimulation
       (constant_context ord_res_9) ord_res_8_final
       (constant_context ord_res_10) ord_res_8_final
       MATCH ORDER\<^sub>f ORDER\<^sub>b"
+*)
 proof (rule ex_bisimulation_from_backward_simulation)
   show "right_unique (constant_context ord_res_9)"
     using right_unique_constant_context right_unique_ord_res_9 by metis
@@ -6747,11 +6762,18 @@ qed
 
 theorem bisimulation_ord_res_10_ord_res_11:
   defines "match \<equiv> \<lambda>_. ord_res_10_matches_ord_res_11"
+  shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow> 'f ord_res_10_state \<Rightarrow> 'f ord_res_11_state \<Rightarrow> bool) \<R>.
+    bisimulation
+      (constant_context ord_res_10) (constant_context ord_res_11)
+      ord_res_8_final ord_res_11_final
+      \<R> MATCH"
+(* For AFP-devel
   shows "\<exists>(MATCH :: nat \<times> nat \<Rightarrow> 'f ord_res_10_state \<Rightarrow> 'f ord_res_11_state \<Rightarrow> bool) ORDER\<^sub>f ORDER\<^sub>b.
     bisimulation
       (constant_context ord_res_10) ord_res_8_final
       (constant_context ord_res_11) ord_res_11_final
       MATCH ORDER\<^sub>f ORDER\<^sub>b"
+*)
 proof (rule ex_bisimulation_from_forward_simulation)
   show "right_unique (constant_context ord_res_10)"
     using right_unique_constant_context right_unique_ord_res_10 by metis
@@ -6798,13 +6820,98 @@ qed
 
 end
 
-type_synonym 'f ord_res_1_state = "'f gclause fset"
-type_synonym 'f ord_res_3_state = "'f gclause fset \<times> 'f gclause fset \<times> 'f gclause fset"
-type_synonym 'f ord_res_4_state = "'f gclause fset \<times> 'f gclause fset \<times> 'f gclause fset"
-type_synonym 'f ord_res_5_state = "'f gclause fset \<times> 'f gclause fset \<times> 'f gclause fset \<times>
-  ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option"
-type_synonym 'f ord_res_6_state = "'f gclause fset \<times> 'f gclause fset \<times> 'f gclause fset \<times>
-  ('f gterm \<Rightarrow> 'f gclause option) \<times> 'f gclause option"
+lemma forward_simulation_composition:
+  assumes
+    "forward_simulation step1 step2 final1 final2 order1 match1"
+    "forward_simulation step2 step3 final2 final3 order2 match2"
+  defines "ORDER \<equiv> \<lambda>i i'. lex_prodp order2\<^sup>+\<^sup>+ order1 (prod.swap i) (prod.swap i')"
+  shows "forward_simulation step1 step3 final1 final3 ORDER (rel_comp match1 match2)"
+proof intro_locales
+  show "semantics step1 final1"
+    using assms
+    by (auto intro: forward_simulation.axioms)
+next
+  show "semantics step3 final3"
+    using assms
+    by (auto intro: forward_simulation.axioms)
+next
+  have "well_founded order1" "well_founded order2"
+    using assms
+    by (auto intro: forward_simulation.axioms)
+
+  hence "wfp ORDER"
+    unfolding ORDER_def
+    by (metis (no_types, lifting) lex_prodp_wfP well_founded.wf wfP_trancl
+        wfp_if_convertible_to_wfp)
+
+  thus "well_founded ORDER"
+    by unfold_locales
+next
+  show "forward_simulation_axioms step1 step3 final1 final3 ORDER (rel_comp match1 match2)"
+  proof unfold_locales
+    fix i s1 s3
+    assume
+      match: "rel_comp match1 match2 i s1 s3" and
+      final: "final1 s1"
+    obtain i1 i2 s2 where "match1 i1 s1 s2" and "match2 i2 s2 s3" and "i = (i1, i2)"
+      using match unfolding rel_comp_def by auto
+    thus "final3 s3"
+      using final assms(1,2)[THEN forward_simulation.match_final]
+      by simp
+  next
+    fix i s1 s3 s1'
+    assume
+      match: "rel_comp match1 match2 i s1 s3" and
+      step: "step1 s1 s1'"
+    obtain i1 i2 s2 where "match1 i1 s1 s2" and "match2 i2 s2 s3" and i_def: "i = (i1, i2)"
+      using match unfolding rel_comp_def by auto
+    from forward_simulation.simulation[OF assms(1) \<open>match1 i1 s1 s2\<close> step]
+    show "(\<exists>i' s3'. step3\<^sup>+\<^sup>+ s3 s3' \<and> rel_comp match1 match2 i' s1' s3') \<or>
+       (\<exists>i'. rel_comp match1 match2 i' s1' s3 \<and> ORDER i' i)"
+      (is "(\<exists>i' s1'. ?STEPS i' s1') \<or> (\<exists>i'. ?STALL i')")
+    proof (elim disjE exE conjE)
+      fix i1' s2'
+      assume "step2\<^sup>+\<^sup>+ s2 s2'" and "match1 i1' s1' s2'"
+      from forward_simulation.lift_simulation_plus[OF assms(2) \<open>step2\<^sup>+\<^sup>+ s2 s2'\<close> \<open>match2 i2 s2 s3\<close>]
+      show ?thesis
+      proof (elim disjE exE conjE)
+        fix i2' s3'
+        assume "step3\<^sup>+\<^sup>+ s3 s3'" and "match2 i2' s2' s3'"
+        hence "?STEPS (i1', i2') s3'"
+          by (auto intro: \<open>match1 i1' s1' s2'\<close> simp: rel_comp_def)
+        thus ?thesis by auto
+      next
+        fix i2''
+        assume "match2 i2'' s2' s3" and "order2\<^sup>+\<^sup>+ i2'' i2"
+        hence "?STALL (i1', i2'')"
+          unfolding rel_comp_def i_def comp_def prod.swap_def prod.sel
+        proof (intro conjI)
+          show "(match1 i1' OO match2 i2'') s1' s3"
+            using \<open>match1 i1' s1' s2'\<close> \<open>match2 i2'' s2' s3\<close>
+            by (auto simp add: relcompp_apply)
+        next
+          show "ORDER (i1', i2'') (i1, i2)"
+            unfolding ORDER_def lex_prodp_def prod.swap_def prod.sel
+            using \<open>order2\<^sup>+\<^sup>+ i2'' i2\<close> by argo
+        qed
+        thus ?thesis
+          by metis
+      qed
+    next
+      fix i1'
+      assume "match1 i1' s1' s2" and "order1 i1' i1"
+      hence "?STALL (i1', i2)"
+        unfolding rel_comp_def i_def prod.sel
+        using \<open>match2 i2 s2 s3\<close> by (auto simp: ORDER_def lex_prodp_def)
+      thus ?thesis
+        by metis
+    qed
+  qed
+qed
+
+text \<open>For AFP-devel, delete
+@{thm Simulation_SCLFOL_ORDRES.forward_simulation_composition}
+as it is available in \<^theory>\<open>VeriComp.Simulation\<close>.\<close>
 
 type_synonym bisim_index_1_2 = "nat \<times> nat"
 type_synonym bisim_index_1_3 = "bisim_index_1_2 \<times> (nat \<times> nat)"
@@ -6818,6 +6925,72 @@ type_synonym bisim_index_1_10 = "bisim_index_1_9 \<times> (nat \<times> nat)"
 type_synonym bisim_index_1_11 = "bisim_index_1_10 \<times> (nat \<times> nat)"
 
 context simulation_SCLFOL_ground_ordered_resolution begin
+
+theorem forward_simulation_ord_res_1_ord_res_11:
+  obtains
+    MATCH :: "bisim_index_1_11 \<Rightarrow> 'f ord_res_1_state \<Rightarrow> 'f ord_res_11_state \<Rightarrow> bool" and
+    \<R> :: "bisim_index_1_11 \<Rightarrow> bisim_index_1_11 \<Rightarrow> bool"
+  where
+    "forward_simulation
+      ord_res_1 (constant_context ord_res_11)
+      ord_res_1_final ord_res_11_final
+      \<R> MATCH"
+proof -
+  have bi_to_fwd: "\<exists>MATCH (\<R> :: 'a \<Rightarrow> 'a \<Rightarrow> bool).
+    forward_simulation step1 step2 final1 final2 \<R> MATCH"
+    if "\<exists>MATCH (\<R> :: 'a \<Rightarrow> 'a \<Rightarrow> bool). bisimulation step1 step2 final1 final2 \<R> MATCH"
+    for step1 step2 final1 final2
+    using that by (auto intro: bisimulation.axioms)
+
+  show ?thesis
+    using that
+  using bisimulation_ord_res_1_ord_res_2[THEN bi_to_fwd]
+    bisimulation_ord_res_2_ord_res_3[THEN bi_to_fwd]
+    bisimulation_ord_res_3_ord_res_4[THEN bi_to_fwd]
+    bisimulation_ord_res_4_ord_res_5[THEN bi_to_fwd]
+    bisimulation_ord_res_5_ord_res_6[THEN bi_to_fwd]
+    bisimulation_ord_res_6_ord_res_7[THEN bi_to_fwd]
+    bisimulation_ord_res_7_ord_res_8[THEN bi_to_fwd]
+    bisimulation_ord_res_8_ord_res_9[THEN bi_to_fwd]
+    bisimulation_ord_res_9_ord_res_10[THEN bi_to_fwd]
+    bisimulation_ord_res_10_ord_res_11[THEN bi_to_fwd]
+  using forward_simulation_composition by meson
+qed
+
+theorem backward_simulation_ord_res_1_ord_res_11:
+  obtains
+    MATCH :: "bisim_index_1_11 \<Rightarrow> 'f ord_res_1_state \<Rightarrow> 'f ord_res_11_state \<Rightarrow> bool" and
+    \<R> :: "bisim_index_1_11 \<Rightarrow> bisim_index_1_11 \<Rightarrow> bool"
+  where
+    "backward_simulation
+      ord_res_1 (constant_context ord_res_11)
+      ord_res_1_final ord_res_11_final
+      \<R> MATCH"
+proof -
+  have bi_to_bwd: "\<exists>MATCH (\<R> :: 'a \<Rightarrow> 'a \<Rightarrow> bool).
+    backward_simulation step1 step2 final1 final2 \<R> MATCH"
+    if "\<exists>MATCH (\<R> :: 'a \<Rightarrow> 'a \<Rightarrow> bool). bisimulation step1 step2 final1 final2 \<R> MATCH"
+    for step1 step2 final1 final2
+    using that by (auto intro: bisimulation.axioms)
+
+  show ?thesis
+    using that
+  using bisimulation_ord_res_1_ord_res_2[THEN bi_to_bwd]
+    bisimulation_ord_res_2_ord_res_3[THEN bi_to_bwd]
+    bisimulation_ord_res_3_ord_res_4[THEN bi_to_bwd]
+    bisimulation_ord_res_4_ord_res_5[THEN bi_to_bwd]
+    bisimulation_ord_res_5_ord_res_6[THEN bi_to_bwd]
+    bisimulation_ord_res_6_ord_res_7[THEN bi_to_bwd]
+    bisimulation_ord_res_7_ord_res_8[THEN bi_to_bwd]
+    bisimulation_ord_res_8_ord_res_9[THEN bi_to_bwd]
+    bisimulation_ord_res_9_ord_res_10[THEN bi_to_bwd]
+    bisimulation_ord_res_10_ord_res_11[THEN bi_to_bwd]
+  using backward_simulation_composition by meson
+qed
+
+
+(* For AFP-devel, uncomment this theorem; it depends on a changed definition of the locale
+bisimulation.
 
 theorem bisimulation_ord_res_1_ord_res_11:
   obtains
@@ -6853,57 +7026,10 @@ theorem
     "\<And>j S1 S11. MATCH j S1 S11 \<Longrightarrow> ord_res_1_final S1 \<longleftrightarrow> ord_res_11_final S11"
   using bisimulation_ord_res_1_ord_res_11 bisimulation.agree_on_final
   by (metis (no_types, opaque_lifting))
+*)
 
 
 section \<open>ORD-RES-11 is a regular SCL strategy\<close>
-
-(* end
-
-lemma rtranclp_mono_stronger:
-  fixes f :: "'a \<Rightarrow> 'b" and R :: "'b \<Rightarrow> 'b \<Rightarrow> bool" and Q :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
-  assumes "Q\<^sup>*\<^sup>* x y" and "(\<And>y z. Q\<^sup>*\<^sup>* x y \<Longrightarrow> Q y z \<Longrightarrow> R (f y) (f z))"
-  shows "R\<^sup>*\<^sup>* (f x) (f y)"
-  using \<open>Q\<^sup>*\<^sup>* x y\<close>
-proof (induction y rule: rtranclp_induct)
-  case base
-  then show ?case
-    using assms by simp
-next
-  case (step y z)
-  then show ?case
-    using assms by fastforce
-qed
-
-corollary (in scl_fol_calculus)
-  fixes
-    N :: "('f, 'v) Term.term clause fset" and
-    \<beta> :: "('f, 'v) Term.term" and
-    strategy and strategy_init and proj
-  assumes strategy_restricts_regular_scl:
-    "\<And>S S'. strategy\<^sup>*\<^sup>* strategy_init S \<Longrightarrow> strategy S S' \<Longrightarrow> regular_scl N \<beta> (proj S) (proj S')" and
-    initial_state: "proj strategy_init = initial_state"
-  shows "wfp_on {S. strategy\<^sup>*\<^sup>* strategy_init S} strategy\<inverse>\<inverse>"
-proof (rule wfp_on_antimono_stronger)
-  show "wfp_on {proj S | S. strategy\<^sup>*\<^sup>* strategy_init S} (regular_scl N \<beta>)\<inverse>\<inverse>"
-  proof (rule wfp_on_subset)
-    show "wfp_on {S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S} (regular_scl N \<beta>)\<inverse>\<inverse>"
-      using termination_regular_scl by metis
-  next
-    show "{proj S | S. strategy\<^sup>*\<^sup>* strategy_init S} \<subseteq> {S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S}"
-    proof (intro Collect_mono impI, elim exE conjE)
-      fix s S assume "s = proj S" and "strategy\<^sup>*\<^sup>* strategy_init S"
-      then show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state s"
-        using rtranclp_mono_stronger
-        by (smt (verit, best) initial_state strategy_restricts_regular_scl)
-    qed
-  qed
-next
-  show "proj ` {S. strategy\<^sup>*\<^sup>* strategy_init S} \<subseteq> {proj S |S. strategy\<^sup>*\<^sup>* strategy_init S}"
-    by blast
-next
-  show "\<And>S' S. S \<in> {S. strategy\<^sup>*\<^sup>* strategy_init S} \<Longrightarrow> strategy\<inverse>\<inverse> S' S \<Longrightarrow> (regular_scl N \<beta>)\<inverse>\<inverse> (proj S') (proj S)"
-    using strategy_restricts_regular_scl by simp
-qed *)
 
 definition gtrailelem_of_trailelem where
   "gtrailelem_of_trailelem \<equiv> \<lambda>(L, opt).
@@ -7054,7 +7180,10 @@ proof -
         hence "D \<cdot> \<gamma> = D"
           by simp
         hence "trail_false_cls \<Gamma> D"
-          using conflictI by argo
+          using conflictI
+          unfolding SCL_FOL.trail_false_cls_def trail_false_cls_def
+          unfolding SCL_FOL.trail_false_lit_def trail_false_lit_def
+          by argo
 
         thus ?thesis
           unfolding \<Gamma>_def D_def
@@ -7097,7 +7226,10 @@ proof -
 
       ultimately have "trail_false_cls
         (map gtrailelem_of_trailelem ((L\<^sub>G, None) # \<Gamma>\<^sub>G) :: ('f, 'v) SCL_FOL.trail) (cls_of_gcls D\<^sub>G)"
-        using \<open>trail_false_cls ((lit_of_glit L\<^sub>G, None) # \<Gamma>) (D \<cdot> \<gamma>)\<close> by argo
+        using \<open>SCL_FOL.trail_false_cls ((lit_of_glit L\<^sub>G, None) # \<Gamma>) (D \<cdot> \<gamma>)\<close>
+        unfolding SCL_FOL.trail_false_cls_def trail_false_cls_def
+        unfolding SCL_FOL.trail_false_lit_def trail_false_lit_def
+        by metis
 
       hence "trail_false_cls ((L\<^sub>G, None) # \<Gamma>\<^sub>G) D\<^sub>G"
         using trail_false_cls_nonground_iff_trail_false_cls_ground by blast
@@ -7209,8 +7341,10 @@ proof -
             fst_case_prod_simp .
         hence "A |\<notin>| trail_atms \<Gamma>"
           unfolding fset_trail_atms .
-        thus "\<not> trail_defined_lit \<Gamma> (Neg A \<cdot>l Var)"
+        hence "\<not> trail_defined_lit \<Gamma> (Neg A \<cdot>l Var)"
           by (simp add: trail_defined_lit_iff_trail_defined_atm)
+        thus "\<not> SCL_FOL.trail_defined_lit \<Gamma> (Neg A \<cdot>l Var)"
+          by (simp add: SCL_FOL.trail_defined_lit_def trail_defined_lit_def)
       next
         have "A\<^sub>G |\<in>| atms_of_clss (N\<^sub>G |\<union>| U\<^sub>G)"
           using step_hyps linorder_trm.is_least_in_ffilter_iff by blast
@@ -7322,8 +7456,10 @@ proof -
             fst_case_prod_simp .
         hence "A |\<notin>| trail_atms \<Gamma>"
           unfolding fset_trail_atms .
-        thus "\<not> trail_defined_lit \<Gamma> (Pos A \<cdot>l Var)"
+        hence "\<not> trail_defined_lit \<Gamma> (Pos A \<cdot>l Var)"
           by (simp add: trail_defined_lit_iff_trail_defined_atm)
+        thus "\<not> SCL_FOL.trail_defined_lit \<Gamma> (Pos A \<cdot>l Var)"
+          by (simp add: SCL_FOL.trail_defined_lit_def trail_defined_lit_def)
       next
         have "A\<^sub>G |\<in>| atms_of_clss (N\<^sub>G |\<union>| U\<^sub>G)"
           using step_hyps linorder_trm.is_least_in_ffilter_iff by simp
@@ -7542,11 +7678,15 @@ proof -
           by (smt (verit) A_def C\<^sub>0_def cls_of_gcls_def filter_mset_cong0 glit_of_lit_lit_of_glit
               image_mset_filter_mset_swap lit_of_glit_def literal.map(1))
 
-        ultimately show "trail_false_cls \<Gamma> ({#K \<in># C\<^sub>0. K \<noteq> Pos A#} \<cdot> Var)"
+        ultimately have "trail_false_cls \<Gamma> ({#K \<in># C\<^sub>0. K \<noteq> Pos A#} \<cdot> Var)"
           unfolding subst_cls_id_subst
           using trail_false_cls_nonground_iff_trail_false_cls_ground[THEN iffD2]
           by (metis \<Gamma>_def)
 
+        thus "SCL_FOL.trail_false_cls \<Gamma> ({#K \<in># C\<^sub>0. K \<noteq> Pos A#} \<cdot> Var)"
+          unfolding SCL_FOL.trail_false_cls_def trail_false_cls_def
+          unfolding SCL_FOL.trail_false_lit_def trail_false_lit_def
+          by argo
 
         have "\<forall>x |\<in>| trail_atms \<Gamma>\<^sub>G. x \<prec>\<^sub>t A\<^sub>G"
           using step_hyps linorder_trm.is_least_in_ffilter_iff by simp
@@ -7565,8 +7705,10 @@ proof -
             fst_case_prod_simp .
         hence "A |\<notin>| trail_atms \<Gamma>"
           unfolding fset_trail_atms .
-        thus "\<not> trail_defined_lit \<Gamma> (Pos A \<cdot>l Var)"
+        hence "\<not> trail_defined_lit \<Gamma> (Pos A \<cdot>l Var)"
           by (simp add: trail_defined_lit_iff_trail_defined_atm)
+        thus "\<not> SCL_FOL.trail_defined_lit \<Gamma> (Pos A \<cdot>l Var)"
+          by (simp add: SCL_FOL.trail_defined_lit_def trail_defined_lit_def)
 
         have "set_mset (add_mset (Pos A) {#K \<in># remove1_mset (Pos A) C\<^sub>0. K = Pos A#}) =
           {Pos A}"
@@ -7653,7 +7795,8 @@ proof -
         by metis
 
       then obtain Ln \<Gamma>\<^sub>G\<^sub>0 where "\<Gamma>\<^sub>G = Ln # \<Gamma>\<^sub>G\<^sub>0"
-        by (metis neq_Nil_conv not_trail_false_Nil(1))
+        unfolding trail_false_lit_def
+        by (metis (no_types) List.insert_def image_iff insert_Nil neq_Nil_conv)
 
       moreover have
         AAA: "\<forall>x xs. \<Gamma>\<^sub>G = x # xs \<longrightarrow>
@@ -7678,7 +7821,8 @@ proof -
         case Nil
         then show ?thesis
           using \<open>{#} |\<notin>| iefac \<F> |`| (N\<^sub>G |\<union>| U\<^sub>G)\<close>
-          by (metis not_trail_false_Nil(2))
+          unfolding trail_false_cls_def trail_false_lit_def
+          by simp
       next
         case (Cons x xs)
         then show ?thesis
@@ -7735,9 +7879,14 @@ proof -
       have "trail_false_cls \<Gamma>\<^sub>G C\<^sub>G"
         using \<open>trail_false_cls \<Gamma>\<^sub>G C\<^sub>G\<close> .
 
-      thus "trail_false_cls \<Gamma> (cls_of_gcls C\<^sub>G \<cdot> Var)"
+      hence "trail_false_cls \<Gamma> (cls_of_gcls C\<^sub>G \<cdot> Var)"
         unfolding \<Gamma>_def subst_cls_id_subst
         using trail_false_cls_nonground_iff_trail_false_cls_ground by metis
+
+      thus "SCL_FOL.trail_false_cls \<Gamma> (cls_of_gcls C\<^sub>G \<cdot> Var)"
+        unfolding SCL_FOL.trail_false_cls_def trail_false_cls_def
+        unfolding SCL_FOL.trail_false_lit_def trail_false_lit_def
+        by argo
     qed
 
     thus ?thesis
@@ -7965,8 +8114,8 @@ proof -
           using trail_consistent_if_sorted_wrt_atoms by metis
 
         hence "\<not> trail_defined_lit \<Gamma>\<^sub>G' (- L\<^sub>G)"
-          by (metis append.simps(1) prod.sel(1) scl_fol.trail_consistent_iff step_hyps(5)
-              trail_defined_lit_iff_defined_uminus)
+          by (metis trail_consistent.cases atm_of_eq_atm_of list.distinct(1) list.inject
+              prod.sel(1) step_hyps(5) trail_defined_lit_iff_trail_defined_atm)
 
         hence "\<not> trail_false_lit \<Gamma>\<^sub>G' (- L\<^sub>G)"
           using trail_defined_lit_iff_true_or_false by metis
@@ -7982,8 +8131,13 @@ proof -
         moreover have "is_ground_cls (add_mset K D)"
           using \<C>_def \<open>\<C> = Some (add_mset K D, Var)\<close> step_hyps(1) by auto
 
-        ultimately show "\<nexists>\<gamma>. is_ground_cls (add_mset K D \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma>' (add_mset K D \<cdot> \<gamma>)"
+        ultimately have "\<nexists>\<gamma>. is_ground_cls (add_mset K D \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma>' (add_mset K D \<cdot> \<gamma>)"
           by simp
+
+        thus "\<nexists>\<gamma>. is_ground_cls (add_mset K D \<cdot> \<gamma>) \<and> SCL_FOL.trail_false_cls \<Gamma>' (add_mset K D \<cdot> \<gamma>)"
+          unfolding SCL_FOL.trail_false_cls_def trail_false_cls_def
+          unfolding SCL_FOL.trail_false_lit_def trail_false_lit_def
+          by argo
       qed
 
       thus "scl_fol.scl N \<beta> S S'"
@@ -8001,7 +8155,85 @@ proof -
   qed
 qed
 
-corollary ord_res_11_termination:
+end
+
+lemma wfp_on_antimono_stronger:
+  fixes
+    A :: "'a set" and B :: "'b set" and
+    f :: "'a \<Rightarrow> 'b" and
+    R :: "'b \<Rightarrow> 'b \<Rightarrow> bool" and Q :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
+  assumes
+    wf: "wfp_on B R" and
+    sub: "f ` A \<subseteq> B" and
+    mono: "\<And>x y. x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> Q x y \<Longrightarrow> R (f x) (f y)"
+  shows "wfp_on A Q"
+  unfolding wfp_on_iff_ex_minimal
+proof (intro allI impI)
+  fix A' :: "'a set"
+  assume "A' \<subseteq> A" and "A' \<noteq> {}"
+  have "f ` A' \<subseteq> B"
+    using \<open>A' \<subseteq> A\<close> sub by blast
+  moreover have "f ` A' \<noteq> {}"
+    using \<open>A' \<noteq> {}\<close> by blast
+  ultimately have "\<exists>z\<in>f ` A'. \<forall>y. R y z \<longrightarrow> y \<notin> f ` A'"
+    using wf wfp_on_iff_ex_minimal by blast
+  hence "\<exists>z\<in>A'. \<forall>y. R (f y) (f z) \<longrightarrow> y \<notin> A'"
+    by blast
+  thus "\<exists>z\<in>A'. \<forall>y. Q y z \<longrightarrow> y \<notin> A'"
+    using \<open>A' \<subseteq> A\<close> mono by blast
+qed
+
+text \<open>For AFP-devel, delete
+@{thm Simulation_SCLFOL_ORDRES.wfp_on_antimono_stronger}
+as it is available in \<^theory>\<open>HOL.Wellfounded\<close>.\<close>
+
+corollary (in scl_fol_calculus) termination_projectable_strategy:
+  fixes
+    N :: "('f, 'v) Term.term clause fset" and
+    \<beta> :: "('f, 'v) Term.term" and
+    strategy and strategy_init and proj
+  assumes strategy_restricts_regular_scl:
+    "\<And>S S'. strategy\<^sup>*\<^sup>* strategy_init S \<Longrightarrow> strategy S S' \<Longrightarrow> regular_scl N \<beta> (proj S) (proj S')" and
+    initial_state: "proj strategy_init = initial_state"
+  shows "wfp_on {S. strategy\<^sup>*\<^sup>* strategy_init S} strategy\<inverse>\<inverse>"
+proof (rule wfp_on_antimono_stronger)
+  show "wfp_on {proj S | S. strategy\<^sup>*\<^sup>* strategy_init S} (regular_scl N \<beta>)\<inverse>\<inverse>"
+  proof (rule wfp_on_subset)
+    show "wfp_on {S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S} (regular_scl N \<beta>)\<inverse>\<inverse>"
+      using termination_regular_scl by metis
+  next
+    show "{proj S | S. strategy\<^sup>*\<^sup>* strategy_init S} \<subseteq> {S. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S}"
+    proof (intro Collect_mono impI, elim exE conjE)
+      fix s S assume "s = proj S" and "strategy\<^sup>*\<^sup>* strategy_init S"
+      show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state s"
+        unfolding \<open>s = proj S\<close>
+        using \<open>strategy\<^sup>*\<^sup>* strategy_init S\<close>
+      proof (induction S rule: rtranclp_induct)
+        case base
+        thus ?case
+          unfolding initial_state by simp
+      next
+        case (step y z)
+        thus ?case
+          using strategy_restricts_regular_scl
+          by (meson rtranclp.simps)
+      qed
+    qed
+  qed
+next
+  show "proj ` {S. strategy\<^sup>*\<^sup>* strategy_init S} \<subseteq> {proj S |S. strategy\<^sup>*\<^sup>* strategy_init S}"
+    by blast
+next
+  show "\<And>S' S. S \<in> {S. strategy\<^sup>*\<^sup>* strategy_init S} \<Longrightarrow> strategy\<inverse>\<inverse> S' S \<Longrightarrow>
+    (regular_scl N \<beta>)\<inverse>\<inverse> (proj S') (proj S)"
+    using strategy_restricts_regular_scl by simp
+qed
+
+text \<open>For AFP-devel, delete
+@{thm Simulation_SCLFOL_ORDRES.scl_fol_calculus.termination_projectable_strategy}
+as it is available in \<^theory>\<open>Simple_Clause_Learning.Termination\<close>.\<close>
+
+corollary (in simulation_SCLFOL_ground_ordered_resolution) ord_res_11_termination:
   fixes N :: "'f gclause fset"
   shows "wfp_on {S. (ord_res_11 N)\<^sup>*\<^sup>* ({||}, {||}, [], None) S} (ord_res_11 N)\<inverse>\<inverse>"
 proof (rule scl_fol.termination_projectable_strategy)
@@ -8038,7 +8270,45 @@ next
     by simp
 qed
 
-corollary ord_res_11_non_subsumption:
+corollary (in scl_fol_calculus) static_non_subsumption_projectable_strategy:
+  fixes strategy and strategy_init and proj
+  assumes
+    run: "strategy\<^sup>*\<^sup>* strategy_init S" and
+    step: "backtrack N \<beta> (proj S) S'" and
+    strategy_restricts_regular_scl:
+      "\<And>S S'. strategy\<^sup>*\<^sup>* strategy_init S \<Longrightarrow> strategy S S' \<Longrightarrow> regular_scl N \<beta> (proj S) (proj S')" and
+    initial_state: "proj strategy_init = initial_state"
+  defines
+    "U \<equiv> state_learned (proj S)"
+  shows "\<exists>C \<gamma>. state_conflict (proj S) = Some (C, \<gamma>) \<and> \<not> (\<exists>D |\<in>| N |\<union>| U. subsumes D C)"
+proof -
+  have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state (proj S)"
+    using run
+  proof (induction S rule: rtranclp_induct)
+    case base
+    thus ?case
+      unfolding initial_state by simp
+  next
+    case (step y z)
+    thus ?case
+      using strategy_restricts_regular_scl
+      by (meson rtranclp.simps)
+  qed
+
+  moreover have "backtrack N \<beta> (proj S) S'"
+    using step by simp
+
+  ultimately show ?thesis
+    unfolding U_def
+    using static_non_subsumption_regular_scl
+    by simp
+qed
+
+text \<open>For AFP-devel, delete
+@{thm Simulation_SCLFOL_ORDRES.scl_fol_calculus.static_non_subsumption_projectable_strategy}
+as it is available in \<^theory>\<open>Simple_Clause_Learning.Non_Redundancy\<close>.\<close>
+
+corollary (in simulation_SCLFOL_ground_ordered_resolution) ord_res_11_non_subsumption:
   fixes N\<^sub>G :: "'f gclause fset" and s :: "_ \<times> _ \<times> _ \<times> _"
   defines
     "\<beta> \<equiv> (THE A. linorder_trm.is_greatest_in_fset (atms_of_clss N\<^sub>G) A)"
@@ -8111,7 +8381,5 @@ proof -
   thus ?thesis
     unfolding \<open>s = (U\<^sub>G, \<F>, \<Gamma>, Some D)\<close> by metis
 qed
-
-end
 
 end

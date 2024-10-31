@@ -1162,10 +1162,12 @@ proof (intro ballI impI allI)
     show ?thesis
     proof (cases "trail_defined_lit \<Gamma> K")
       case True
+      hence "trail_defined_lit \<Gamma> (- K)"
+        unfolding trail_defined_lit_def uminus_of_uminus_id by argo
       then show ?thesis
         using C_almost_almost_defined
         unfolding trail_defined_cls_def
-        by (auto simp add: trail_defined_lit_iff_defined_uminus[symmetric])
+        by auto
     next
       case False
       show ?thesis
@@ -3764,21 +3766,25 @@ next
             trail_true_cls_def)
 
       moreover have "L\<^sub>x \<noteq> - K"
-        using eres_max_lit \<open>x \<prec>\<^sub>c eres D E\<close>
-        by (smt (verit, del_insts) calculation(1) calculation(3) empty_iff linorder_cls.less_not_sym
+        using eres_max_lit \<open>x \<prec>\<^sub>c eres D E\<close> \<open>L\<^sub>x \<noteq> K\<close> \<open>L\<^sub>x \<in># x\<close>
+        by (smt (verit, del_insts) empty_iff linorder_cls.less_not_sym
             linorder_lit.ex_maximal_in_mset linorder_lit.is_maximal_in_mset_iff
             linorder_lit.less_trans linorder_lit.multp_if_maximal_less_that_maximal linorder_lit.neqE
             linorder_trm.not_less_iff_gr_or_eq literal.collapse(1) ord_res.less_lit_simps(4)
             set_mset_empty step_hyps(11) uminus_literal_def)
 
+      ultimately  have "atm_of L\<^sub>x \<noteq> atm_of K"
+        by (simp add: atm_of_eq_atm_of)
+
+      moreover have "L\<^sub>x \<preceq>\<^sub>l K"
+      proof (rule linorder_lit.less_than_maximal_if_multp\<^sub>H\<^sub>O[OF eres_max_lit _ \<open>L\<^sub>x \<in># x\<close>])
+        show "multp\<^sub>H\<^sub>O (\<prec>\<^sub>l) x (eres D E)"
+          using \<open>x \<prec>\<^sub>c eres D E\<close>
+          by (simp add: multp_imp_multp\<^sub>H\<^sub>O)
+      qed
+
       ultimately have "atm_of L\<^sub>x \<prec>\<^sub>t atm_of K"
-        by (smt (verit, best) \<Gamma>_consistent \<open>x \<prec>\<^sub>c eres D E\<close> asympD ord_res.less_lit_simps(1)
-            linorder_lit.dual_order.strict_trans linorder_lit.is_greatest_in_set_iff
-            linorder_lit.is_maximal_in_mset_iff linorder_lit.is_maximal_in_set_eq_is_greatest_in_set
-            linorder_lit.is_maximal_in_set_iff linorder_trm.le_less_linear linorder_trm.less_linear
-            literal.collapse(1) literal.exhaust_sel not_trail_true_cls_and_trail_false_cls
-            ord_res.asymp_less_cls ord_res.less_lit_simps(2) ord_res.multp_if_all_left_smaller
-            step_hyps(10) step_hyps(11) trail_false_cls_mempty x_true)
+        by (cases L\<^sub>x; cases K) simp_all
 
       hence "trail_true_lit \<Gamma>' L\<^sub>x"
         unfolding \<open>\<Gamma>' = dropWhile (\<lambda>Ln. atm_of K \<preceq>\<^sub>t atm_of (fst Ln)) \<Gamma>\<close>

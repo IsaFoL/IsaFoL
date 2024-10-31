@@ -863,9 +863,17 @@ proof (cases N s rule: ord_res_10_invars.cases)
         by (simp only: suffix_dropWhile trail_atms_subset_if_suffix)
 
       moreover have "A |\<notin>| trail_atms \<Gamma>\<^sub>b"
-        using \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>\<^sub>b\<close> \<Gamma>_sorted
-        by (metis \<open>trail_consistent \<Gamma>\<close> append_Nil literal.sel(1) prod.sel(1)
-            scl_fol.trail_consistent_iff trail_defined_lit_iff_trail_defined_atm)
+      proof (rule notI)
+        assume "A |\<in>| trail_atms \<Gamma>\<^sub>b"
+        then obtain Ln where "Ln \<in> set \<Gamma>\<^sub>b" and "atm_of (fst Ln) = A"
+          unfolding fset_trail_atms by blast
+        moreover have "\<forall>y\<in>set \<Gamma>\<^sub>b. atm_of (fst y) \<prec>\<^sub>t A"
+          using \<Gamma>_sorted[unfolded \<open>\<Gamma> = (Pos A, Some C) # \<Gamma>\<^sub>b\<close>] by simp
+        ultimately have "A \<prec>\<^sub>t A"
+          by metis
+        thus False
+          by order
+      qed
 
       moreover have "trail_atms \<Gamma>\<^sub>b |\<subseteq>| trail_atms \<Gamma>"
       proof (rule trail_atms_subset_if_suffix)
@@ -1212,8 +1220,12 @@ proof (cases N s rule: ord_res_10_invars.cases)
     have "D \<noteq> {#}"
       using D_in \<open>{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close> by metis
 
+    hence "\<Gamma> \<noteq> []"
+      using D_false
+      by (auto simp add: trail_false_cls_def trail_false_lit_def)
+
     then obtain Ln \<Gamma>' where "\<Gamma> = Ln # \<Gamma>'"
-      by (metis \<open>trail_false_cls \<Gamma> D\<close> neq_Nil_conv not_trail_false_Nil(2))
+      using neq_Nil_conv by metis
 
     hence "snd Ln \<noteq> None"
       using invars' \<open>\<exists>x|\<in>|iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r). trail_false_cls \<Gamma> x\<close> by presburger
@@ -1226,7 +1238,7 @@ proof (cases N s rule: ord_res_10_invars.cases)
       case Nil
       thus ?thesis
         using \<open>{#} |\<notin>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)\<close>
-        by (metis not_trail_false_Nil(2))
+        by (simp add: trail_false_cls_def trail_false_lit_def)
     next
       case (Cons x xs)
       hence "snd x = None"

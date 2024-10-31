@@ -73,14 +73,6 @@ proof unfold_locales
   qed
 qed
 
-(* sublocale ord_res_4_language: language where
-  step = ord_res_4_step and
-  final = ord_res_4_final and
-  load = ord_res_4_load
-  by unfold_locales *)
-
-(* {|C |\<in>| N |\<union>| U\<^sub>e\<^sub>r. iefac \<F> C \<noteq> C|} sollte eingentlich gleich \<F> sein... *)
-
 lemma right_unique_ord_res_4: "right_unique (ord_res_4 N)"
 proof (rule right_uniqueI)
   fix s s' s'' :: "'f gterm clause fset \<times> 'f gterm clause fset"

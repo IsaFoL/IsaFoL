@@ -247,7 +247,7 @@ next
         unfolding \<open>iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r) = finsert (iefac \<F>' C) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) - {|C|}\<close>
         using \<open>efac C \<prec>\<^sub>c C\<close>
         using iefac_def by force
-    qed simp_all
+    qed
 
     also have "\<dots> = ord_res.interp (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) C"
     proof -
@@ -392,9 +392,6 @@ next
       moreover have "ord_res_Interp (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) x =
         ord_res_Interp (fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r))) x"
       proof (rule ord_res.Interp_swap_clause_set)
-        show "finite (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)))"
-          by simp
-      next
         show "{D. D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r) \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D x} =
           {D. D |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r) \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D x}"
           unfolding \<open>iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r) = finsert (iefac \<F>' C) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) |-| {|C|}\<close>
@@ -455,9 +452,6 @@ next
       have "ord_res.production (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) D =
         ord_res.production (fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r))) D"
       proof (rule ord_res.production_swap_clause_set)
-        show "finite (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)))"
-          by simp
-      next
         have "D \<prec>\<^sub>c C"
           using \<open>D \<prec>\<^sub>c efac C\<close> \<open>efac C \<prec>\<^sub>c C\<close> by order
         thus "{Da. Da |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r) \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= Da D} =
@@ -487,9 +481,6 @@ next
         have "ord_res.production (fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r))) x =
           ord_res.production (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) x"
         proof (rule ord_res.production_swap_clause_set)
-          show "finite (fset (iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r)))"
-            by simp
-        next
           show "{D. D |\<in>| iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r) \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D x} = {D. D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r) \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D x}"
             using \<open>x \<prec>\<^sub>c efac C\<close> \<open>x \<prec>\<^sub>c C\<close>
             unfolding \<open>iefac \<F>' |`| (N |\<union>| U\<^sub>e\<^sub>r) = finsert (iefac \<F>' C) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) |-| {|C|}\<close>
@@ -863,9 +854,6 @@ next
       moreover have "ord_res.production (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) C =
         ord_res.production (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'))) C"
       proof (rule ord_res.production_swap_clause_set)
-        show "finite (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)))"
-          by simp
-      next
         have "ord_res.is_strictly_maximal_lit (Pos A) C"
           using A_prod_by_C ord_res.mem_productionE by metis
         moreover have "Pos A \<prec>\<^sub>l K"
@@ -898,9 +886,6 @@ next
         have "ord_res.production (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) C =
           ord_res.production (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'))) C"
         proof (rule ord_res.production_swap_clause_set)
-          show "finite (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)))"
-            by simp
-        next
           show "{D. D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r) \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C} =
             {D. D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D C}"
             unfolding \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') = finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close>
@@ -1251,9 +1236,6 @@ next
       moreover have "ord_res.production (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) C =
         ord_res.production (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'))) C"
       proof (rule ord_res.production_swap_clause_set)
-        show "finite (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)))"
-          by simp
-      next
         have "ord_res.is_strictly_maximal_lit (Pos A) C"
           using A_prod_by_C ord_res.mem_productionE by metis
         moreover have "Pos A \<prec>\<^sub>l K"
@@ -1288,9 +1270,6 @@ next
         have "ord_res.production (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))) B =
           ord_res.production (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r'))) B"
         proof (rule ord_res.production_swap_clause_set)
-          show "finite (fset (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)))"
-            by simp
-        next
           show "{D. D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r) \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D B} =
             {D. D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D B}"
             unfolding \<open>iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r') = finsert (eres D E) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r))\<close>
@@ -1500,7 +1479,7 @@ proof -
             thus "{D. D |\<in>| iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r) \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= D E} =
               {Da. Da |\<in>| finsert (eres D C) (iefac \<F> |`| (N |\<union>| U\<^sub>e\<^sub>r)) \<and> (\<prec>\<^sub>c)\<^sup>=\<^sup>= Da E}"
               by (metis (mono_tags, lifting) \<open>E \<prec>\<^sub>c eres D C\<close> finsert_iff linorder_cls.leD)
-          qed simp_all
+          qed
 
           also have "\<dots> = {A\<^sub>K}"
             using E_prod .
@@ -1526,25 +1505,28 @@ qed
 
 lemma ord_res_6_safe_state_if_invars:
   "safe_state ord_res_6_step ord_res_6_final (N, s)" if invars: "ord_res_5_invars N s" for N s
-  unfolding safe_state_def
-proof (intro allI impI)
-  fix S'
-  assume "ord_res_6_semantics.eval (N, s) S'" and stuck: "stuck_state ord_res_6_step S'"
-  then obtain s' where "S' = (N, s')" and "(ord_res_6 N)\<^sup>*\<^sup>* s s'"
-  proof (induction "(N, s)" arbitrary: N s rule: converse_rtranclp_induct)
-    case base
-    thus ?case by simp
-  next
-    case (step z)
-    thus ?case
-      by (smt (verit, ccfv_SIG) converse_rtranclp_into_rtranclp ord_res_6_step.cases prod.inject)
-  qed
-  hence "ord_res_5_invars N s'"
-    using invars rtranclp_ord_res_6_preserves_invars by metis
-  hence "\<not> ord_res_6_final S' \<Longrightarrow> \<exists>S''. ord_res_6_step S' S''"
-    using ex_ord_res_6_if_not_final[of S'] \<open>S' = (N, s')\<close> by blast
-  thus "ord_res_6_final S'"
-    using stuck[unfolded stuck_state_def] by argo
+proof -
+  {
+    fix S'
+    assume "ord_res_6_semantics.eval (N, s) S'" and stuck: "stuck_state ord_res_6_step S'"
+    then obtain s' where "S' = (N, s')" and "(ord_res_6 N)\<^sup>*\<^sup>* s s'"
+    proof (induction "(N, s)" arbitrary: N s rule: converse_rtranclp_induct)
+      case base
+      thus ?case by simp
+    next
+      case (step z)
+      thus ?case
+        by (smt (verit, ccfv_SIG) converse_rtranclp_into_rtranclp ord_res_6_step.cases prod.inject)
+    qed
+    hence "ord_res_5_invars N s'"
+      using invars rtranclp_ord_res_6_preserves_invars by metis
+    hence "\<not> ord_res_6_final S' \<Longrightarrow> \<exists>S''. ord_res_6_step S' S''"
+      using ex_ord_res_6_if_not_final[of S'] \<open>S' = (N, s')\<close> by blast
+    hence "ord_res_6_final S'"
+      using stuck[unfolded stuck_state_def] by argo
+  }
+  thus ?thesis
+    unfolding safe_state_def stuck_state_def by metis
 qed
 
 lemma ex_model_build_from_least_clause_to_any_less_than_least_false:

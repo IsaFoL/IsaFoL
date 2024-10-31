@@ -281,8 +281,8 @@ lemma clause_almost_definedI:
   shows "trail_defined_cls \<Gamma> {#Ka \<in># D. Ka \<noteq> K#}"
   using clause_almost_almost_definedI[OF D_in D_max_lit no_undef_atm]
   using K_defined
-  by (metis (mono_tags, lifting) mem_Collect_eq set_mset_filter trail_defined_cls_def
-      trail_defined_lit_iff_defined_uminus)
+  unfolding trail_defined_cls_def trail_defined_lit_def
+  by (metis (mono_tags, lifting) mem_Collect_eq set_mset_filter uminus_lit_swap)
 
 lemma eres_not_in_known_clauses_if_trail_false_cls:
   fixes
@@ -307,7 +307,8 @@ proof (rule notI)
     by (simp add: iefac_def linorder_lit.is_maximal_in_mset_iff)
 
   hence "trail_true_cls \<Gamma> (eres D E)"
-    using trail_false_cls_ignores_duplicates by (metis iefac_def set_mset_efac)
+    unfolding trail_true_cls_def
+    by (metis fset_fset_mset fset_mset_iefac)
 
   thus False
     using \<Gamma>_consistent \<open>trail_false_cls \<Gamma> (eres D E)\<close>
@@ -327,7 +328,7 @@ proof -
     unfolding trail_false_cls_def linorder_lit.is_maximal_in_mset_iff by simp
 
   hence "trail_defined_lit \<Gamma> L"
-    by (metis trail_defined_lit_iff_true_or_false)
+    unfolding trail_false_lit_def trail_defined_lit_def by argo
 
   hence "atm_of L |\<in>| trail_atms \<Gamma>"
     unfolding trail_defined_lit_iff_trail_defined_atm .

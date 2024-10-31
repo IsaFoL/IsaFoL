@@ -104,16 +104,6 @@ next
     by (metis dropWhile_append dropWhile_cong dropWhile_eq_self_iff member_rec(2))
 qed
 
-(* find_theorems "dropWhile _ (_ @ _)"
-
-lemma
-  fixes R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and xs ys :: "'a list" and P :: "'a \<Rightarrow> bool"
-  assumes "sorted_wrt R xs" and "monotone_on (set xs) R (\<ge>) P"  
-  assumes "P y"
-  shows "dropWhile P (xs @ y # ys) = dropWhile P ys"
-  sorry *)
-
-
 lemma mem_set_dropWhile_conv_if_list_sorted_and_pred_monotone:
   fixes R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and xs :: "'a list" and P :: "'a \<Rightarrow> bool"
   assumes "sorted_wrt R xs" and "monotone_on (set xs) R (\<ge>) P"

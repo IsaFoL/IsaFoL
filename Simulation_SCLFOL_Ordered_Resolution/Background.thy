@@ -4,13 +4,12 @@ theory Background
     Simple_Clause_Learning.Correct_Termination
     Simple_Clause_Learning.Initial_Literals_Generalize_Learned_Literals
     Simple_Clause_Learning.Termination
-    Superposition_Calculus.Ground_Ordered_Resolution
-    Superposition_Calculus.Min_Max_Least_Greatest_FSet
+    Ground_Ordered_Resolution
+    Min_Max_Least_Greatest.Min_Max_Least_Greatest_FSet
     Superposition_Calculus.Multiset_Extra
     VeriComp.Compiler
     "HOL-ex.Sketch_and_Explore"
     "HOL-Library.FuncSet"
-    "Try1.Try1_HOL"
     Lower_Set
     HOL_Extra_Extra
     The_Optional
@@ -178,253 +177,165 @@ qed
 
 end
 
-(* locale semantics' =
-  fixes
-    step :: "'const \<Rightarrow> 'state \<Rightarrow> 'state \<Rightarrow> bool" (infix "\<rightarrow>" 50) and
-    final :: "'const \<Rightarrow> 'state \<Rightarrow> bool"
-  assumes
-    final_finished: "final \<C> s \<Longrightarrow> finished (step \<C>) s"
-begin
 
-sublocale semantics where
-  step = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step \<C> s s'" and
-  final = "\<lambda>(\<C>, s). final \<C> s"
-proof unfold_locales
-  let ?step = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step \<C> s s'"
-  let ?final = "\<lambda>(\<C>, s). final \<C> s"
-  show "\<And>s. ?final s \<Longrightarrow> finished ?step s"
-    using final_finished
-    by (simp add: finished_def split_beta)
+section \<open>Move to \<^theory>\<open>Simple_Clause_Learning.SCL_FOL\<close>\<close>
+
+definition trail_true_lit :: "(_ literal \<times> _ option) list \<Rightarrow> _ literal \<Rightarrow> bool" where
+  "trail_true_lit \<Gamma> L \<longleftrightarrow> L \<in> fst ` set \<Gamma>"
+
+definition trail_false_lit :: "(_ literal \<times> _ option) list \<Rightarrow> _ literal \<Rightarrow> bool" where
+  "trail_false_lit \<Gamma> L \<longleftrightarrow> - L \<in> fst ` set \<Gamma>"
+
+definition trail_true_cls :: "(_ literal \<times> _ option) list \<Rightarrow> _ clause \<Rightarrow> bool" where
+  "trail_true_cls \<Gamma> C \<longleftrightarrow> (\<exists>L \<in># C. trail_true_lit \<Gamma> L)"
+
+definition trail_false_cls :: "(_ literal \<times> _ option) list \<Rightarrow> _ clause \<Rightarrow> bool" where
+  "trail_false_cls \<Gamma> C \<longleftrightarrow> (\<forall>L \<in># C. trail_false_lit \<Gamma> L)"
+
+lemma trail_false_cls_mempty[simp]: "trail_false_cls \<Gamma> {#}"
+  by (simp add: trail_false_cls_def)
+
+definition trail_defined_lit :: "(_ literal \<times> _ option) list \<Rightarrow> _ literal \<Rightarrow> bool" where
+  "trail_defined_lit \<Gamma> L \<longleftrightarrow> (L \<in> fst ` set \<Gamma> \<or> - L \<in> fst ` set \<Gamma>)"
+
+lemma trail_defined_lit_iff: "trail_defined_lit \<Gamma> L \<longleftrightarrow> atm_of L \<in> atm_of ` fst ` set \<Gamma>"
+  by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set trail_defined_lit_def)
+
+definition trail_defined_cls :: "(_ literal \<times> _ option) list \<Rightarrow> _ clause \<Rightarrow> bool" where
+  "trail_defined_cls \<Gamma> C \<longleftrightarrow> (\<forall>L \<in># C. trail_defined_lit \<Gamma> L)"
+
+lemma trail_defined_lit_iff_true_or_false:
+  "trail_defined_lit \<Gamma> L \<longleftrightarrow> trail_true_lit \<Gamma> L \<or> trail_false_lit \<Gamma> L"
+  unfolding trail_defined_lit_def trail_false_lit_def trail_true_lit_def by (rule refl)
+
+lemma trail_true_or_false_cls_if_defined:
+  "trail_defined_cls \<Gamma> C \<Longrightarrow> trail_true_cls \<Gamma> C \<or> trail_false_cls \<Gamma> C"
+  unfolding trail_defined_cls_def trail_false_cls_def trail_true_cls_def
+  unfolding trail_defined_lit_iff_true_or_false
+  by blast
+
+lemma subtrail_falseI:
+  assumes tr_false: "trail_false_cls ((L, Cl) # \<Gamma>) C" and L_not_in: "-L \<notin># C"
+  shows "trail_false_cls \<Gamma> C"
+  unfolding trail_false_cls_def
+proof (rule ballI)
+  fix M
+  assume M_in: "M \<in># C"
+
+  from M_in L_not_in have M_neq_L: "M \<noteq> -L" by auto
+
+  from M_in tr_false have tr_false_lit_M: "trail_false_lit ((L, Cl) # \<Gamma>) M"
+    unfolding trail_false_cls_def by simp
+  thus "trail_false_lit \<Gamma> M"
+    unfolding trail_false_lit_def
+    using M_neq_L
+    by (cases L; cases M) (simp_all add: trail_interp_def trail_false_lit_def)
 qed
 
-end
+inductive trail_consistent :: "('a literal \<times> 'b option) list \<Rightarrow> bool" where
+  Nil[simp]: "trail_consistent []" |
+  Cons: "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow> trail_consistent \<Gamma> \<Longrightarrow> trail_consistent ((L, u) # \<Gamma>)"
 
-locale forward_simulation_with_measuring_function' =
-  L1: semantics' step1 final1 +
-  L2: semantics' step2 final2 +
-  well_founded "(\<sqsubset>)"
-  for
-    step1 :: "'const1 \<Rightarrow> 'state1 \<Rightarrow> 'state1 \<Rightarrow> bool" and
-    step2 :: "'const2 \<Rightarrow> 'state2 \<Rightarrow> 'state2 \<Rightarrow> bool" and
-    final1 :: "'const1 \<Rightarrow> 'state1 \<Rightarrow> bool" and
-    final2 :: "'const2 \<Rightarrow> 'state2 \<Rightarrow> bool" and
-    order :: "'index \<Rightarrow> 'index \<Rightarrow> bool" (infix "\<sqsubset>" 70) +
-  fixes
-    match :: "'const1 \<Rightarrow> 'state1 \<Rightarrow> 'const2 \<Rightarrow> 'state2 \<Rightarrow> bool" and
-    measure :: "'const1 \<Rightarrow> 'state1 \<Rightarrow> 'index"
-  assumes
-    match_final:
-      "match \<C>1 s1 \<C>2 s2 \<Longrightarrow> final1 \<C>1 s1 \<Longrightarrow> final2 \<C>2 s2" and
-    simulation:
-      "match \<C>1 s1 \<C>2 s2 \<Longrightarrow> step1 \<C>1 s1 s1' \<Longrightarrow>
-        (\<exists>s2'. (step2 \<C>2)\<^sup>+\<^sup>+ s2 s2' \<and> match \<C>1 s1' \<C>2 s2') \<or>
-        (match \<C>1 s1' \<C>2 s2 \<and> measure \<C>1 s1' \<sqsubset> measure \<C>1 s1)"
-begin
+lemma distinct_lits_if_trail_consistent:
+  "trail_consistent \<Gamma> \<Longrightarrow> distinct (map fst \<Gamma>)"
+  by (induction \<Gamma> rule: trail_consistent.induct)
+    (simp_all add: image_comp trail_defined_lit_def)
 
-sublocale forward_simulation where
-  step1 = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step1 \<C> s s'" and
-  step2 = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step2 \<C> s s'" and
-  final1 = "\<lambda>(\<C>, s). final1 \<C> s" and
-  final2 = "\<lambda>(\<C>, s). final2 \<C> s" and
-  order = order and
-  match = "\<lambda>i (\<C>1, s1) (\<C>2, s2). i = measure \<C>1 s1 \<and> match \<C>1 s1 \<C>2 s2"
-proof unfold_locales
-  let ?step1 = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step1 \<C> s s'"
-  let ?step2 = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step2 \<C> s s'"
-  let ?final1 = "\<lambda>(\<C>, s). final1 \<C> s"
-  let ?final2 = "\<lambda>(\<C>, s). final2 \<C> s"
-  let ?order = order
-  let ?match = "\<lambda>i (\<C>1, s1) (\<C>2, s2). i = measure \<C>1 s1 \<and> match \<C>1 s1 \<C>2 s2"
+lemma trail_true_lit_if_trail_true_suffix:
+  "suffix \<Gamma>' \<Gamma> \<Longrightarrow> trail_true_lit \<Gamma>' K \<Longrightarrow> trail_true_lit \<Gamma> K"
+  by (meson image_mono set_mono_suffix subsetD trail_true_lit_def)
 
-  show "\<And>i S1 S2. ?match i S1 S2 \<Longrightarrow> ?final1 S1 \<Longrightarrow> ?final2 S2"
-    using match_final by auto
+lemma trail_true_cls_if_trail_true_suffix:
+  "suffix \<Gamma>' \<Gamma> \<Longrightarrow> trail_true_cls \<Gamma>' C \<Longrightarrow> trail_true_cls \<Gamma> C"
+  using trail_true_cls_def trail_true_lit_if_trail_true_suffix by metis
+
+lemma trail_false_lit_if_trail_false_suffix:
+  "suffix \<Gamma>' \<Gamma> \<Longrightarrow> trail_false_lit \<Gamma>' K \<Longrightarrow> trail_false_lit \<Gamma> K"
+  by (meson image_mono set_mono_suffix subsetD trail_false_lit_def)
+
+lemma trail_false_cls_if_trail_false_suffix:
+  "suffix \<Gamma>' \<Gamma> \<Longrightarrow> trail_false_cls \<Gamma>' C \<Longrightarrow> trail_false_cls \<Gamma> C"
+  using trail_false_cls_def trail_false_lit_if_trail_false_suffix by metis
+
+lemma trail_defined_lit_if_trail_defined_suffix:
+  "suffix \<Gamma>' \<Gamma> \<Longrightarrow> trail_defined_lit \<Gamma>' K \<Longrightarrow> trail_defined_lit \<Gamma> K"
+  unfolding trail_defined_lit_def
+  by (metis (no_types) Un_iff image_Un set_append suffix_def)
+
+lemma trail_defined_cls_if_trail_defined_suffix:
+  "suffix \<Gamma>' \<Gamma> \<Longrightarrow> trail_defined_cls \<Gamma>' C \<Longrightarrow> trail_defined_cls \<Gamma> C"
+  unfolding trail_defined_cls_def by (metis trail_defined_lit_if_trail_defined_suffix)
+
+lemma not_trail_true_lit_and_trail_false_lit:
+  fixes \<Gamma> :: "('a literal \<times> 'b option) list" and L :: "'a literal"
+  shows "trail_consistent \<Gamma> \<Longrightarrow> \<not> (trail_true_lit \<Gamma> L \<and> trail_false_lit \<Gamma> L)"
+proof (induction \<Gamma> rule: trail_consistent.induct)
+  case Nil
+  show ?case
+    by (simp add: trail_true_cls_def trail_false_cls_def trail_true_lit_def trail_false_lit_def)
 next
-  let ?step1 = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step1 \<C> s s'"
-  let ?step2 = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step2 \<C> s s'"
-  let ?final1 = "\<lambda>(\<C>, s). final1 \<C> s"
-  let ?final2 = "\<lambda>(\<C>, s). final2 \<C> s"
-  let ?order = order
-  let ?match = "\<lambda>i (\<C>1, s1) (\<C>2, s2). i = measure \<C>1 s1 \<and> match \<C>1 s1 \<C>2 s2"
+  case (Cons \<Gamma> K annot)
+  then show ?case
+    unfolding trail_defined_lit_def trail_false_lit_def trail_true_lit_def
+    by (metis (no_types, opaque_lifting) fst_conv image_insert insertE list.simps(15) uminus_not_id'
+        uminus_of_uminus_id)
+qed
 
-  fix i and S1 S1' :: "'const1 \<times> 'state1" and S2 :: "'const2 \<times> 'state2"
+lemma not_trail_true_cls_and_trail_false_cls:
+  fixes \<Gamma> :: "('a literal \<times> 'b option) list" and C :: "'a clause"
+  shows "trail_consistent \<Gamma> \<Longrightarrow> \<not> (trail_true_cls \<Gamma> C \<and> trail_false_cls \<Gamma> C)"
+proof (induction \<Gamma> rule: trail_consistent.induct)
+  case Nil
+  show ?case
+    by (simp add: trail_true_cls_def trail_false_cls_def trail_true_lit_def trail_false_lit_def)
+next
+  case (Cons \<Gamma> L u)
+  thus ?case
+    using not_trail_true_lit_and_trail_false_lit
+    by (metis trail_consistent.Cons trail_false_cls_def trail_true_cls_def)
+qed
 
-  obtain \<C>1 s1 \<C>2 s2 where
-    S1_def: "S1 = (\<C>1, s1)" and S2_def: "S2 = (\<C>2, s2)"
-    by fastforce
-
-  assume "?match i S1 S2" and "?step1 S1 S1'"
-
-  from \<open>?match i S1 S2\<close> have "i = measure \<C>1 s1 " and "match \<C>1 s1 \<C>2 s2"
-    unfolding S1_def S2_def prod.case by simp_all
-
-  from \<open>?step1 S1 S1'\<close> obtain s1' where
-    S1'_def: "S1' = (\<C>1, s1')" and "step1 \<C>1 s1 s1'"
-    unfolding S1_def prod.case by blast
-
-  show "(\<exists>i' S2'. ?step2\<^sup>+\<^sup>+ S2 S2' \<and> ?match i' S1' S2') \<or> (\<exists>i'. ?match i' S1' S2 \<and> ?order i' i)"
-    using simulation[OF \<open>match \<C>1 s1 \<C>2 s2\<close> \<open>step1 \<C>1 s1 s1'\<close>]
-  proof (elim disjE exE conjE)
-    fix s2'
-    assume "(step2 \<C>2)\<^sup>+\<^sup>+ s2 s2'" and "match \<C>1 s1' \<C>2 s2'"
-    let ?S2' = "(\<C>2, s2')"
-    let ?i' = "measure \<C>1 s1'"
-    have "?step2\<^sup>+\<^sup>+ S2 ?S2'"
-      using \<open>(step2 \<C>2)\<^sup>+\<^sup>+ s2 s2'\<close>
-    proof (induction s2' rule: tranclp_induct)
-      case (base y)
-      thus ?case
-        by (auto simp add: S2_def)
-    next
-      case (step y z)
-      thus ?case
-        using tranclp.trancl_into_trancl by force
-    qed
-    moreover have "?match ?i' S1' ?S2'"
-      using \<open>match \<C>1 s1' \<C>2 s2'\<close>
-      by (simp add: S1'_def)
-    ultimately show ?thesis
-      by auto
-  next
-    assume "match \<C>1 s1' \<C>2 s2" and "measure \<C>1 s1' \<sqsubset> measure \<C>1 s1"
-    then have "\<exists>i'. ?match i' S1' S2 \<and> ?order i' i"
-      using \<open>i = measure \<C>1 s1\<close> by (simp add: S1'_def S2_def)
+lemma not_lit_and_comp_lit_false_if_trail_consistent:
+ assumes "trail_consistent \<Gamma>"
+  shows "\<not> (trail_false_lit \<Gamma> L \<and> trail_false_lit \<Gamma> (- L))"
+  using assms
+proof (induction \<Gamma>)
+  case Nil
+  show ?case
+    by (simp add: trail_false_lit_def)
+next
+ case (Cons \<Gamma> K u)
+  show ?case
+  proof (cases "K = L \<or> K = - L")
+    case True
     thus ?thesis
-      by argo
+      unfolding trail_false_lit_def uminus_of_uminus_id
+      unfolding de_Morgan_conj list.set image_insert prod.sel
+      by (metis Cons.hyps(1) insertE trail_defined_lit_def uminus_not_id' uminus_of_uminus_id)
+ next
+    case False
+    thus ?thesis
+      unfolding trail_false_lit_def uminus_of_uminus_id
+      by (metis (no_types, lifting) Cons.IH fst_conv image_iff set_ConsD trail_false_lit_def
+          uminus_of_uminus_id)
   qed
 qed
 
-end
+lemma not_both_lit_and_comp_lit_in_false_clause_if_trail_consistent:
+  assumes \<Gamma>_consistent: "trail_consistent \<Gamma>" and C_false: "trail_false_cls \<Gamma> C"
+  shows "\<not> (L \<in># C \<and> - L \<in># C)"
+proof (rule notI)
+  assume "L \<in># C \<and> - L \<in># C"
 
-locale backward_simulation_with_measuring_function' =
-  L1: semantics' step1 final1 +
-  L2: semantics' step2 final2 +
-  well_founded "(\<sqsubset>)"
-  for
-    step1 :: "'const1 \<Rightarrow> 'state1 \<Rightarrow> 'state1 \<Rightarrow> bool" and
-    step2 :: "'const2 \<Rightarrow> 'state2 \<Rightarrow> 'state2 \<Rightarrow> bool" and
-    final1 :: "'const1 \<Rightarrow> 'state1 \<Rightarrow> bool" and
-    final2 :: "'const2 \<Rightarrow> 'state2 \<Rightarrow> bool" and
-    order :: "'index \<Rightarrow> 'index \<Rightarrow> bool" (infix "\<sqsubset>" 70) +
-  fixes
-    match :: "'const1 \<Rightarrow> 'state1 \<Rightarrow> 'const2 \<Rightarrow> 'state2 \<Rightarrow> bool" and
-    measure :: "'const2 \<Rightarrow> 'state2 \<Rightarrow> 'index"
-  assumes
-    match_final:
-      "match \<C>1 s1 \<C>2 s2 \<Longrightarrow> final2 \<C>2 s2 \<Longrightarrow> final1 \<C>1 s1" and
-    simulation:
-      "match \<C>1 s1 \<C>2 s2 \<Longrightarrow> step2 \<C>2 s2 s2' \<Longrightarrow>
-        (\<exists>s1'. (step1 \<C>1)\<^sup>+\<^sup>+ s1 s1' \<and> match \<C>1 s1' \<C>2 s2') \<or>
-        (match \<C>1 s1 \<C>2 s2' \<and> measure \<C>2 s2' \<sqsubset> measure \<C>2 s2)"
-begin
+  hence "trail_false_lit \<Gamma> L \<and> trail_false_lit \<Gamma> (- L)"
+    using C_false unfolding trail_false_cls_def by metis
 
-sublocale backward_simulation where
-  step1 = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step1 \<C> s s'" and
-  step2 = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step2 \<C> s s'" and
-  final1 = "\<lambda>(\<C>, s). final1 \<C> s" and
-  final2 = "\<lambda>(\<C>, s). final2 \<C> s" and
-  order = order and
-  match = "\<lambda>i (\<C>1, s1) (\<C>2, s2). i = measure \<C>2 s2 \<and> match \<C>1 s1 \<C>2 s2"
-proof unfold_locales
-  let ?step1 = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step1 \<C> s s'"
-  let ?step2 = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step2 \<C> s s'"
-  let ?final1 = "\<lambda>(\<C>, s). final1 \<C> s"
-  let ?final2 = "\<lambda>(\<C>, s). final2 \<C> s"
-  let ?order = order
-  let ?match = "\<lambda>i (\<C>1, s1) (\<C>2, s2). i = measure \<C>2 s2 \<and> match \<C>1 s1 \<C>2 s2"
-
-  show "\<And>i S1 S2. ?match i S1 S2 \<Longrightarrow> ?final2 S2 \<Longrightarrow> ?final1 S1"
-    using match_final by auto
-next
-  let ?step1 = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step1 \<C> s s'"
-  let ?step2 = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step2 \<C> s s'"
-  let ?final1 = "\<lambda>(\<C>, s). final1 \<C> s"
-  let ?final2 = "\<lambda>(\<C>, s). final2 \<C> s"
-  let ?order = order
-  let ?match = "\<lambda>i (\<C>1, s1) (\<C>2, s2). i = measure \<C>2 s2 \<and> match \<C>1 s1 \<C>2 s2"
-
-  fix i and S1 :: "'const1 \<times> 'state1" and S2 S2' :: "'const2 \<times> 'state2"
-
-  obtain \<C>1 s1 \<C>2 s2 where
-    S1_def: "S1 = (\<C>1, s1)" and S2_def: "S2 = (\<C>2, s2)"
-    by fastforce
-
-  assume "?match i S1 S2" and "?step2 S2 S2'"
-
-  from \<open>?match i S1 S2\<close> have "i = measure \<C>2 s2 " and "match \<C>1 s1 \<C>2 s2"
-    unfolding S1_def S2_def prod.case by simp_all
-
-  from \<open>?step2 S2 S2'\<close> obtain s2' where
-    S2'_def: "S2' = (\<C>2, s2')" and "step2 \<C>2 s2 s2'"
-    unfolding S2_def prod.case by blast
-
-  show "(\<exists>i' S1'. ?step1\<^sup>+\<^sup>+ S1 S1' \<and> ?match i' S1' S2') \<or> (\<exists>i'. ?match i' S1 S2' \<and> ?order i' i)"
-    using simulation[OF \<open>match \<C>1 s1 \<C>2 s2\<close> \<open>step2 \<C>2 s2 s2'\<close>]
-  proof (elim disjE exE conjE)
-    fix s1'
-    assume "(step1 \<C>1)\<^sup>+\<^sup>+ s1 s1'" and "match \<C>1 s1' \<C>2 s2'"
-    let ?S1' = "(\<C>1, s1')"
-    let ?i' = "measure \<C>2 s2'"
-    have "?step1\<^sup>+\<^sup>+ S1 ?S1'"
-      using \<open>(step1 \<C>1)\<^sup>+\<^sup>+ s1 s1'\<close>
-    proof (induction s1' rule: tranclp_induct)
-      case (base y)
-      thus ?case
-        by (auto simp add: S1_def)
-    next
-      case (step y z)
-      thus ?case
-        using tranclp.trancl_into_trancl by force
-    qed
-    moreover have "?match ?i' ?S1' S2'"
-      using \<open>match \<C>1 s1' \<C>2 s2'\<close>
-      by (simp add: S2'_def)
-    ultimately show ?thesis
-      by auto
-  next
-    assume "match \<C>1 s1 \<C>2 s2'" and "measure \<C>2 s2' \<sqsubset> measure \<C>2 s2"
-    then have "\<exists>i'. ?match i' S1 S2' \<and> ?order i' i"
-      using \<open>i = measure \<C>2 s2\<close> by (simp add: S1_def S2'_def)
-    thus ?thesis
-      by argo
-  qed
+  thus False
+    using \<Gamma>_consistent not_lit_and_comp_lit_false_if_trail_consistent by metis
 qed
 
-end
 
-
-locale bisimulation_with_measuring_function' =
-  forward_simulation_with_measuring_function' step1 step2 final1 final2 order1 match measure1 +
-  backward_simulation_with_measuring_function' step1 step2 final1 final2 order2 match measure2
-  for
-    step1 :: "'const1 \<Rightarrow> 'state1 \<Rightarrow> 'state1 \<Rightarrow> bool" and
-    step2 :: "'const2 \<Rightarrow> 'state2 \<Rightarrow> 'state2 \<Rightarrow> bool" and
-    final1 :: "'const1 \<Rightarrow> 'state1 \<Rightarrow> bool" and
-    final2 :: "'const2 \<Rightarrow> 'state2 \<Rightarrow> bool" and
-    match :: "'const1 \<Rightarrow> 'state1 \<Rightarrow> 'const2 \<Rightarrow> 'state2 \<Rightarrow> bool" and
-    order1 :: "'index1 \<Rightarrow> 'index1 \<Rightarrow> bool" and
-    order2 :: "'index2 \<Rightarrow> 'index2 \<Rightarrow> bool" and
-    measure1 :: "'const1 \<Rightarrow> 'state1 \<Rightarrow> 'index1" and
-    measure2 :: "'const2 \<Rightarrow> 'state2 \<Rightarrow> 'index2"
-
-locale language' =
-  semantics' step final
-  for
-    step :: "'const \<Rightarrow> 'state \<Rightarrow> 'state \<Rightarrow> bool" and
-    final :: "'const \<Rightarrow> 'state \<Rightarrow> bool" +
-  fixes
-    load :: "'prog \<Rightarrow> 'const \<Rightarrow> 'state \<Rightarrow> bool"
-begin
-
-sublocale language where
-  step = "\<lambda>(\<C>, s) (\<C>', s'). \<C> = \<C>' \<and> step \<C> s s'" and
-  final = "\<lambda>(\<C>, s). final \<C> s" and
-  load = "\<lambda>p (\<C>, s). load p \<C> s"
-  by unfold_locales
-
-end *)
-
-
-section \<open>Move to Superposition_Calculus\<close>
+section \<open>Move to ground ordered resolution\<close>
 
 lemma (in ground_ordered_resolution_calculus) unique_ground_resolution:
   shows "\<exists>\<^sub>\<le>\<^sub>1C. ground_resolution P1 P2 C"
@@ -562,71 +473,6 @@ lemma lift_tranclp_to_pairs_with_constant_fst:
 abbreviation (in preorder) is_lower_fset where
   "is_lower_fset X Y \<equiv> is_lower_set_wrt (<) (fset X) (fset Y)"
 
-lemma trail_false_cls_ignores_duplicates:
-  "set_mset C = set_mset D \<Longrightarrow> trail_true_cls \<Gamma> C \<longleftrightarrow> trail_true_cls \<Gamma> D"
-  by (simp add: trail_true_cls_def)
-
-lemma not_trail_true_cls_and_trail_false_cls:
-  fixes \<Gamma> :: "('a literal \<times> 'a clause option) list" and C :: "'a clause"
-  shows "trail_consistent \<Gamma> \<Longrightarrow> \<not> (trail_true_cls \<Gamma> C \<and> trail_false_cls \<Gamma> C)"
-proof (induction \<Gamma> rule: trail_consistent.induct)
-  case Nil
-  show ?case
-    by simp
-next
-  case (Cons \<Gamma> L u)
-  then show ?case
-    by (metis trail_consistent.Cons trail_defined_lit_iff_true_or_false trail_false_cls_def
-        trail_false_cls_iff_not_trail_interp_entails trail_interp_cls_if_trail_true)
-qed
-
-lemma trail_true_lit_if_trail_true_suffix:
-  "suffix \<Gamma>' \<Gamma> \<Longrightarrow> trail_true_lit \<Gamma>' K \<Longrightarrow> trail_true_lit \<Gamma> K"
-  by (meson image_mono set_mono_suffix subsetD trail_true_lit_def)
-
-lemma trail_true_cls_if_trail_true_suffix:
-  "suffix \<Gamma>' \<Gamma> \<Longrightarrow> trail_true_cls \<Gamma>' C \<Longrightarrow> trail_true_cls \<Gamma> C"
-  using trail_true_cls_def trail_true_lit_if_trail_true_suffix by metis
-
-lemma not_lit_and_comp_lit_false_if_trail_consistent:
-  assumes "trail_consistent \<Gamma>"
-  shows "\<not> (trail_false_lit \<Gamma> L \<and> trail_false_lit \<Gamma> (- L))"
-  using assms
-proof (induction \<Gamma>)
-  case Nil
-  show ?case
-    by simp
-next
-  case (Cons \<Gamma> K u)
-  show ?case
-  proof (cases "K = L \<or> K = - L")
-    case True
-    thus ?thesis
-      unfolding trail_false_lit_def uminus_of_uminus_id
-      unfolding de_Morgan_conj list.set image_insert prod.sel
-      by (metis Cons.hyps(1) insertE trail_defined_lit_def uminus_not_id' uminus_of_uminus_id)
-  next
-    case False
-    thus ?thesis
-      unfolding trail_false_lit_def uminus_of_uminus_id
-      by (metis (no_types, lifting) Cons.IH fst_conv image_iff set_ConsD trail_false_lit_def
-          uminus_of_uminus_id)
-  qed
-qed
-
-lemma not_both_lit_and_comp_lit_in_false_clause_if_trail_consistent:
-  assumes \<Gamma>_consistent: "trail_consistent \<Gamma>" and C_false: "trail_false_cls \<Gamma> C"
-  shows "\<not> (L \<in># C \<and> - L \<in># C)"
-proof (rule notI)
-  assume "L \<in># C \<and> - L \<in># C"
-
-  hence "trail_false_lit \<Gamma> L \<and> trail_false_lit \<Gamma> (- L)"
-    using C_false unfolding trail_false_cls_def by metis
-
-  thus False
-    using \<Gamma>_consistent not_lit_and_comp_lit_false_if_trail_consistent by metis
-qed
-
 lemma lower_set_wrt_prefixI:
   assumes
     trans: "transp_on (set zs) R" and
@@ -695,14 +541,14 @@ lemma (in scl_fol_calculus) propagateI':
   "C |\<in>| N |\<union>| U \<Longrightarrow> C = add_mset L C' \<Longrightarrow> is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow>
     \<forall>K \<in># C \<cdot> \<gamma>. atm_of K \<preceq>\<^sub>B \<beta> \<Longrightarrow>
     C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<Longrightarrow> C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<Longrightarrow>
-    trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
+    SCL_FOL.trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow> \<not> SCL_FOL.trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
     is_imgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
     \<Gamma>' = trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma> \<Longrightarrow>
     propagate N \<beta> (\<Gamma>, U, None) (\<Gamma>', U, None)"
   using propagateI by metis
 
 lemma (in scl_fol_calculus) decideI':
-  "is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow> atm_of L \<cdot>a \<gamma> \<preceq>\<^sub>B \<beta> \<Longrightarrow>
+  "is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow> \<not> SCL_FOL.trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow> atm_of L \<cdot>a \<gamma> \<preceq>\<^sub>B \<beta> \<Longrightarrow>
     \<Gamma>' = trail_decide \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
     decide N \<beta> (\<Gamma>, U, None) (\<Gamma>', U, None)"
   by (auto intro!: decideI)
@@ -820,27 +666,30 @@ lemma safe_state_constant_context_if_invars:
       "\<And>N s. \<not> \<F> (N, s) \<Longrightarrow> \<I> N s \<Longrightarrow> \<exists>s'. \<R> N s s'"
   assumes invars: "\<I> N s"
   shows "safe_state (constant_context \<R>) \<F> (N, s)"
-  unfolding safe_state_def
-proof (intro allI impI)
-  fix S'
-  assume "(constant_context \<R>)\<^sup>*\<^sup>* (N, s) S'" and "stuck_state (constant_context \<R>) S'"
-  then obtain s' where "S' = (N, s')" and "(\<R> N)\<^sup>*\<^sup>* s s'" and "\<I> N s'"
-    using invars
-  proof (induction "(N, s)" arbitrary: N s rule: converse_rtranclp_induct)
-    case base
-    thus ?case by simp
-  next
-    case (step z)
-    thus ?case
-      by (metis (no_types, opaque_lifting) Pair_inject \<R>_preserves_\<I> constant_context.cases
-          converse_rtranclp_into_rtranclp)
-  qed
-  hence "\<not> \<F> (N, s') \<Longrightarrow> \<exists>s''. \<R> N s' s''"
-    using ex_\<R>_if_not_final[of N s'] by argo
-  hence "\<not> \<F> S' \<Longrightarrow> \<exists>S''. constant_context \<R> S' S''"
-    unfolding \<open>S' = (N, s')\<close> using constant_context.intros by metis
-  thus "\<F> S'"
-    by (metis \<open>stuck_state (constant_context \<R>) S'\<close> stuck_state_def)
+proof -
+  {
+    fix S'
+    assume "(constant_context \<R>)\<^sup>*\<^sup>* (N, s) S'" and "stuck_state (constant_context \<R>) S'"
+    then obtain s' where "S' = (N, s')" and "(\<R> N)\<^sup>*\<^sup>* s s'" and "\<I> N s'"
+      using invars
+    proof (induction "(N, s)" arbitrary: N s rule: converse_rtranclp_induct)
+      case base
+      thus ?case by simp
+    next
+      case (step z)
+      thus ?case
+        by (metis (no_types, opaque_lifting) Pair_inject \<R>_preserves_\<I> constant_context.cases
+            converse_rtranclp_into_rtranclp)
+    qed
+    hence "\<not> \<F> (N, s') \<Longrightarrow> \<exists>s''. \<R> N s' s''"
+      using ex_\<R>_if_not_final[of N s'] by argo
+    hence "\<not> \<F> S' \<Longrightarrow> \<exists>S''. constant_context \<R> S' S''"
+      unfolding \<open>S' = (N, s')\<close> using constant_context.intros by metis
+    hence "\<F> S'"
+      by (metis \<open>stuck_state (constant_context \<R>) S'\<close> stuck_state_def)
+  }
+  thus ?thesis
+    by (metis (no_types) safe_state_def stuck_state_def)
 qed
 
 primrec trail_atms :: "(_ literal \<times> _) list \<Rightarrow> _ fset" where
@@ -855,7 +704,7 @@ lemma trail_defined_lit_iff_trail_defined_atm:
 proof (induction \<Gamma>)
   case Nil
   show ?case
-    by simp
+    by (simp add: trail_defined_lit_def)
 next
   case (Cons Ln \<Gamma>)
 
@@ -1859,12 +1708,13 @@ lemma trail_false_lit_eq_trail_false_lit_if_same_lits:
 proof (induction \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0 rule: list.rel_induct)
   case Nil
   show ?case
-    by simp
+    by (simp add: trail_false_lit_def)
 next
   case (Cons Ln\<^sub>9 \<Gamma>\<^sub>9' Ln\<^sub>1\<^sub>0 \<Gamma>\<^sub>1\<^sub>0')
   thus ?case
-    apply (simp add: trail_false_lit_def)
-    by metis
+    unfolding trail_false_lit_def
+    unfolding list.set image_insert
+    by (metis insert_iff)
 qed
 
 lemma trail_false_cls_eq_trail_false_cls_if_same_lits:
@@ -1880,12 +1730,13 @@ lemma trail_defined_lit_eq_trail_defined_lit_if_same_lits:
 proof (induction \<Gamma>\<^sub>9 \<Gamma>\<^sub>1\<^sub>0 rule: list.rel_induct)
   case Nil
   show ?case
-    by simp
+    by (simp add: trail_defined_lit_def)
 next
   case (Cons Ln\<^sub>9 \<Gamma>\<^sub>9' Ln\<^sub>1\<^sub>0 \<Gamma>\<^sub>1\<^sub>0')
   thus ?case
-    apply (simp add: trail_defined_lit_def)
-    by meson
+    unfolding trail_defined_lit_def
+    unfolding list.set image_insert
+    by (metis (no_types, opaque_lifting) insert_iff)
 qed
 
 lemma trail_defined_cls_eq_trail_defined_cls_if_same_lits:
