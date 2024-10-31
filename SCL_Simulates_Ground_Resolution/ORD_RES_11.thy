@@ -269,9 +269,6 @@ inductive ord_res_11_final :: "'f ord_res_11_state \<Rightarrow> bool" where
   contradiction_found: "
     ord_res_11_final (N, U\<^sub>e\<^sub>r, \<F>, [], Some {#})"
 
-thm ord_res_11_final.simps[of "(N, U\<^sub>e\<^sub>r, \<F>, \<Gamma>, \<C>)" for N U\<^sub>e\<^sub>r \<F> \<Gamma> \<C>, unfolded bex_trail_false_cls_simp, simplified]
-thm prod.inject
-
 sublocale ord_res_11_semantics: semantics where
   step = "constant_context ord_res_11" and
   final = ord_res_11_final
