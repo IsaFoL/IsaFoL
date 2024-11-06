@@ -4,43 +4,6 @@ theory Functional_Substitution
     FSet_Extra
 begin
 
-(* TODO: Base all these on functional_substitution *)
-locale all_subst_ident_iff_ground =
-  fixes is_ground :: "'expr \<Rightarrow> bool" and subst :: "'expr \<Rightarrow> 'subst \<Rightarrow> 'expr"
-  assumes
-    all_subst_ident_iff_ground: "\<And>expr. is_ground expr \<longleftrightarrow> (\<forall>\<sigma>. subst expr \<sigma> = expr)" and
-    exists_non_ident_subst:
-      "\<And>expr S. finite S \<Longrightarrow> \<not>is_ground expr \<Longrightarrow> \<exists>\<sigma>. subst expr \<sigma> \<noteq> expr \<and> subst expr \<sigma> \<notin> S"
-
-locale finite_variables = finite_set vars 
-  for vars :: "'expr \<Rightarrow> 'var set"
-begin
-
-lemmas finite_vars = finite_set finite_set'
-lemmas fset_finite_vars = fset_finite_set
-
-abbreviation "finite_vars \<equiv> finite_set"
-
-end
-
-locale renaming_variables = 
-  fixes vars :: "'expr \<Rightarrow> 'var set" and id_subst :: "'var \<Rightarrow> 'base" and subst is_renaming
-  assumes
-    renaming_variables:
-      "\<And>expr \<rho>. is_renaming \<rho> \<Longrightarrow> id_subst ` vars (subst expr \<rho>) = \<rho> ` (vars expr)"
-
-locale variables_in_base_imgu =
-  fixes 
-    base_is_imgu and
-    vars :: "'expr \<Rightarrow> 'var set" and
-    subst:: "'expr \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> 'expr" and
-    base_vars :: "'base \<Rightarrow> 'var set"
-  assumes
-    variables_in_base_imgu: "\<And>expr \<mu> unifications.
-      base_is_imgu \<mu> unifications \<Longrightarrow>
-      finite unifications \<Longrightarrow> \<forall>unification \<in> unifications. finite unification \<Longrightarrow>
-      vars (subst expr \<mu>) \<subseteq> vars expr \<union> (\<Union>(base_vars ` \<Union> unifications))"
-
 locale functional_substitution = substitution _ _ subst "\<lambda>a. vars a = {}" 
   for
     subst :: "'expr \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> 'expr" (infixl "\<cdot>" 70) and
@@ -94,6 +57,27 @@ end
 locale vars_subst = functional_substitution +
   fixes subst_domain range_vars
   assumes vars_subst: "\<And>expr \<sigma>. vars (expr \<cdot> \<sigma>) \<subseteq> (vars expr - subst_domain \<sigma>) \<union> range_vars \<sigma>"
+
+locale all_subst_ident_iff_ground =
+  functional_substitution +
+  assumes
+    all_subst_ident_iff_ground: "\<And>expr. is_ground expr \<longleftrightarrow> (\<forall>\<sigma>. subst expr \<sigma> = expr)" and
+    exists_non_ident_subst:
+      "\<And>expr S. finite S \<Longrightarrow> \<not>is_ground expr \<Longrightarrow> \<exists>\<sigma>. subst expr \<sigma> \<noteq> expr \<and> subst expr \<sigma> \<notin> S"
+
+locale finite_variables = functional_substitution + finite_set vars 
+begin
+
+lemmas finite_vars = finite_set finite_set'
+lemmas fset_finite_vars = fset_finite_set
+
+abbreviation "finite_vars \<equiv> finite_set"
+
+end
+
+locale renaming_variables = functional_substitution +
+  assumes
+    renaming_variables: "\<And>expr \<rho>. is_renaming \<rho> \<Longrightarrow> id_subst ` vars (expr \<cdot> \<rho>) = \<rho> ` (vars expr)"
 
 locale grounding = functional_substitution where vars = vars and id_subst = id_subst
   for vars :: "'expr \<Rightarrow> 'var set" and id_subst :: "'var \<Rightarrow> 'base" +
@@ -149,12 +133,6 @@ corollary obtain_grounding:
   by blast
 
 end
-
-locale  is_grounding_iff_vars_grounded = 
-  fixes is_ground subst vars base_is_ground 
-  assumes 
-   is_grounding_iff_vars_grounded: 
-   "\<And>expr. is_ground (subst expr \<gamma>) \<longleftrightarrow> (\<forall>var \<in> vars expr. base_is_ground (\<gamma> var))"
 
 locale base_functional_substitution = functional_substitution 
   where id_subst = id_subst and vars = vars
@@ -275,6 +253,14 @@ definition range_vars :: "('var \<Rightarrow> 'base) \<Rightarrow> 'var set" whe
 *)
 
 end
+
+locale variables_in_base_imgu = based_functional_substitution +
+  assumes variables_in_base_imgu: 
+    "\<And>expr \<mu> unifications.
+        base.is_imgu \<mu> unifications \<Longrightarrow>
+        finite unifications \<Longrightarrow> 
+        \<forall>unification \<in> unifications. finite unification \<Longrightarrow>
+        vars (expr \<cdot> \<mu>) \<subseteq> vars expr \<union> (\<Union>(base_vars ` \<Union> unifications))"
 
 sublocale base_functional_substitution \<subseteq> based: based_functional_substitution 
   where base_subst = subst and base_vars = vars

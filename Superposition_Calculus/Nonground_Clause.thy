@@ -2,7 +2,7 @@ theory Nonground_Clause
   imports 
     Ground_Clause
     Nonground_Term
-    Nonground_Context
+    Nonground_Context (* TODO: Remove *)
     Functional_Substitution_Lifting
     Entailment_Lifting
     Clausal_Calculus_Extra
@@ -70,7 +70,7 @@ notation atom.subst (infixl "\<cdot>a" 67)
 
 subsection \<open>Nonground Literals\<close>
 
-global_interpretation literal: finite_natural_functor where 
+global_interpretation literal: finite_natural_functor where
   map = map_literal and to_set = set_literal
   by
     unfold_locales 

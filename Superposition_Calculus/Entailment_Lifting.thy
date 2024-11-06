@@ -121,7 +121,7 @@ proof unfold_locales
 
   ultimately show "\<Turnstile> expr \<cdot> \<gamma>"
     unfolding is_negated_subst entails_def
-    by(auto simp: image_image to_set_map subst_def)
+    by(auto simp: image_image subst_def)
 
 qed (simp_all add: is_grounding_iff_vars_grounded sub.sym )
 

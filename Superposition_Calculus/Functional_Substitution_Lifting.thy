@@ -164,7 +164,7 @@ qed
 end
 
 locale finite_variables_lifting = 
-  sub: finite_variables where vars = "sub_vars :: 'sub \<Rightarrow> 'var set" +
+  sub: finite_variables where vars = "sub_vars :: 'sub \<Rightarrow> 'var set" and subst = sub_subst +
   finite_natural_functor where to_set = "to_set :: 'expr \<Rightarrow> 'sub set" +
   functional_substitution_lifting
 begin
@@ -178,7 +178,7 @@ abbreviation to_fset :: "'expr \<Rightarrow> 'sub fset" where
 lemmas to_set_finite = to_set.finite_set'
 lemmas fset_to_fset = to_set.fset_finite_set
 
-sublocale finite_variables where vars = vars
+sublocale finite_variables where vars = vars and subst = subst
   by unfold_locales (simp add: vars_def)
 
 lemma to_fset_map: "\<And>expr f. to_fset (map f expr) = f |`| to_fset expr"
@@ -195,11 +195,10 @@ end
 
 locale renaming_variables_lifting = 
   functional_substitution_lifting +
-  sub: renaming_variables where vars = sub_vars and subst = sub_subst and 
-  is_renaming = sub.is_renaming
+  sub: renaming_variables where vars = sub_vars and subst = sub_subst
 begin
 
-sublocale renaming_variables where subst = subst and vars = vars and is_renaming = is_renaming
+sublocale renaming_variables where subst = subst and vars = vars
 proof unfold_locales
   fix expr \<rho>    
   assume "is_renaming \<rho>"
@@ -214,11 +213,10 @@ end
 
 locale variables_in_base_imgu_lifting = 
   based_functional_substitution_lifting +
-  sub: variables_in_base_imgu where vars = sub_vars and subst = sub_subst and 
-  base_is_imgu = base.is_imgu
+  sub: variables_in_base_imgu where vars = sub_vars and subst = sub_subst
 begin
 
-sublocale variables_in_base_imgu where subst = subst and vars = vars and base_is_imgu = base.is_imgu
+sublocale variables_in_base_imgu where subst = subst and vars = vars
 proof unfold_locales
   fix expr \<mu> unifications
   assume imgu: 
@@ -324,13 +322,13 @@ lemma ground_sub:
 end
 
 locale all_subst_ident_iff_ground_lifting = 
-  finite_variables_lifting where map = map and id_subst = id_subst +  
-  sub: all_subst_ident_iff_ground where subst = sub_subst and is_ground = sub.is_ground
+  finite_variables_lifting where map = map +  
+  sub: all_subst_ident_iff_ground where subst = sub_subst and vars = sub_vars
 for 
-  map :: "('sub \<Rightarrow> 'sub) \<Rightarrow> 'expr \<Rightarrow> 'expr" and id_subst :: "'var \<Rightarrow> 'base"
+  map :: "('sub \<Rightarrow> 'sub) \<Rightarrow> 'expr \<Rightarrow> 'expr" 
 begin
 
-sublocale all_subst_ident_iff_ground where subst = subst and is_ground = is_ground
+sublocale all_subst_ident_iff_ground where subst = subst and vars = vars
 proof unfold_locales
   fix expr 
 
@@ -408,7 +406,6 @@ proof unfold_locales
 qed
 
 end
- 
 
 locale natural_monoid_functional_substitution_lifting = 
   functional_substitution_lifting + natural_monoid
