@@ -6,15 +6,19 @@ begin
 
 section \<open>Nonground Contexts and Substitutions\<close>
 
-lemma finite_set2_actxt: "finite (set2_actxt c)"
-  by(induction c) auto
-
-global_interpretation "context": natural_functor where map = map_args_actxt and to_set = set2_actxt
+global_interpretation "context": finite_natural_functor where map = map_args_actxt and to_set = set2_actxt
 proof unfold_locales
-  show "\<And>t. \<exists>c. t \<in> set2_actxt c"
+  fix t :: 't
+
+  show "\<exists>c. t \<in> set2_actxt c"
     by (metis actxt.set_intros(5) list.set_intros(1))
+next
+  fix c :: "('f, 't) actxt"
+
+  show "finite (set2_actxt c)"
+    by(induction c) auto
 qed (auto 
-    simp: actxt.set_map(2) actxt.map_comp fun.map_ident actxt.map_ident_strong 
+    simp: actxt.set_map(2) actxt.map_comp fun.map_ident actxt.map_ident_strong
     cong: actxt.map_cong)
 
 global_interpretation "context": natural_functor_conversion 
@@ -24,17 +28,17 @@ global_interpretation "context": natural_functor_conversion
     (auto simp: actxt.set_map(2) actxt.map_comp cong: actxt.map_cong)
 
 global_interpretation "context": lifting_from_term where 
-    sub_vars = term.vars and sub_subst = "(\<cdot>t)" and to_set = "set2_actxt" and map = map_args_actxt
-    and sub_to_ground = term.to_ground and sub_from_ground = term.from_ground 
-    and to_ground_map = map_args_actxt and from_ground_map = map_args_actxt 
-    and ground_map = map_args_actxt and to_set_ground = set2_actxt
+    sub_subst = "(\<cdot>t)" and sub_vars = term.vars and to_set = set2_actxt and map = map_args_actxt and
+    sub_to_ground = term.to_ground and sub_from_ground = term.from_ground and 
+    to_ground_map = map_args_actxt and from_ground_map = map_args_actxt and 
+    ground_map = map_args_actxt and to_set_ground = set2_actxt
    rewrites 
     "\<And>c. context.vars c = vars_ctxt c" and 
     "\<And>c \<sigma>. context.subst c \<sigma> = c \<cdot>\<^sub>c \<sigma>"
 proof -
   interpret lifting_from_term term.vars "(\<cdot>t)" map_args_actxt set2_actxt term.to_ground
     term.from_ground map_args_actxt map_args_actxt map_args_actxt set2_actxt
-    by unfold_locales (auto simp: is_ground_iff finite_set2_actxt)
+    by unfold_locales
 
   fix c :: "('a, ('f, 'v) Term.term) actxt"
   show "vars c = vars_ctxt c"

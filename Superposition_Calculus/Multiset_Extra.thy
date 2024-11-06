@@ -32,10 +32,15 @@ lemma one_step_implies_multp\<^sub>H\<^sub>O_strong:
   unfolding multp\<^sub>H\<^sub>O_def
 proof (intro conjI allI impI)
   show "A \<noteq> B"
-    using assms by force
+    using assms 
+    by force
 next
-  show "\<And>y. count B y < count A y \<Longrightarrow> \<exists>x. R y x \<and> count A x < count B x"
-    using assms by (metis in_diff_count)
+  fix y
+  assume "count B y < count A y"
+
+  then show "\<exists>x. R y x \<and> count A x < count B x"
+    using assms 
+    by (metis in_diff_count)
 qed
 
 lemma Uniq_antimono: "Q \<le> P \<Longrightarrow> Uniq Q \<ge> Uniq P"
@@ -342,5 +347,49 @@ lemma
   using assms
   sorry
 *)
+
+lemma multp_all_lesseq_ex_less: 
+  assumes 
+    asymp: "asymp R" and
+    transp: "transp R" and
+    all_lesseq: "\<forall>x\<in>#X. R\<^sup>=\<^sup>= (f x) (g x)" and
+    ex_less: "\<exists>x\<in>#X. R (f x) (g x)" 
+  shows "multp R {# f x. x \<in># X #} {# g x. x \<in># X #}"
+  using all_lesseq ex_less
+proof(induction X)
+  case empty
+  then show ?case 
+    by simp
+next
+  case (add x X)
+
+  show ?case
+  proof(cases "\<exists>x\<in>#X. R (f x) (g x)")
+    case True
+
+    then have "\<forall>x\<in>#X. R\<^sup>=\<^sup>= (f x) (g x)" "\<exists>x\<in>#X. R (f x) (g x)"
+      using add.prems
+      by auto
+
+    then have "multp R (image_mset f X) (image_mset g X)"
+      using add.IH
+      by blast
+
+    then show ?thesis
+      using add.prems(1) multp_add_mset[OF asymp transp] multp_add_same[OF asymp transp]
+      by auto   
+  next
+    case False
+    
+    then have "R (f x) (g x)"
+      using add.prems(2) by fastforce
+
+    moreover have "\<forall>x\<in>#X. f x = g x"
+      using False add.prems(1) by auto
+
+    ultimately show ?thesis
+      by (metis image_mset_add_mset multiset.map_cong0 multp_add_mset')
+  qed
+qed
 
 end

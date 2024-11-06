@@ -278,7 +278,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
         if "\<P> = Neg"
       proof -
         have "t \<preceq>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
-          using lesseq_trm_if_subterm .
+          using less_eq\<^sub>t_if_subterm .
         hence " multp (\<prec>\<^sub>t) {#t, t'#} {#s\<langle>t\<rangle>\<^sub>G, s', s\<langle>t\<rangle>\<^sub>G, s'#}"
           unfolding reflclp_iff
         proof (elim disjE)

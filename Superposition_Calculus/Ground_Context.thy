@@ -17,8 +17,10 @@ lemma lt_size_gctxt: "ctxt \<noteq> \<box> \<Longrightarrow> size t < size ctxt\
 lemma gctxt_ident_iff_eq_GHole[simp]: "ctxt\<langle>t\<rangle>\<^sub>G = t \<longleftrightarrow> ctxt = \<box>"
 proof (rule iffI)
   assume "ctxt\<langle>t\<rangle>\<^sub>G = t"
+
   hence "size (ctxt\<langle>t\<rangle>\<^sub>G) = size t"
     by argo
+
   thus "ctxt = \<box>"
     using lt_size_gctxt[of ctxt t]
     by linarith

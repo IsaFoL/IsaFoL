@@ -81,22 +81,27 @@ proof(induction t)
 next
   case (Fun f terms)
 
-  have "\<And>t x. \<lbrakk>t \<in> set terms; x \<in> term.vars (t \<cdot>t \<rho>)\<rbrakk> \<Longrightarrow> Var x \<in> \<rho> ` \<Union> (term.vars ` set terms)"
-    using Fun
-    by (smt (verit, del_insts) UN_iff image_UN image_eqI)
+  {
+    fix t x
+    assume "t \<in> set terms" "x \<in> term.vars (t \<cdot>t \<rho>)"
 
-  moreover have 
-    "\<And>t x. \<lbrakk>t \<in> set terms; x \<in> term.vars t\<rbrakk> \<Longrightarrow> \<rho> x \<in> Var ` (\<Union>t' \<in> set terms. term.vars (t' \<cdot>t \<rho>))"
-    using Fun
-    by (smt (verit, del_insts) UN_iff image_UN image_eqI)
+    then have "Var x \<in> \<rho> ` \<Union> (term.vars ` set terms)"
+      using Fun
+      by (smt (verit, del_insts) UN_iff image_UN image_eqI)
+  }
+
+  moreover { 
+    fix t x
+    assume "t \<in> set terms" "x \<in> term.vars t"
+
+    then have "\<rho> x \<in> Var ` (\<Union>t' \<in> set terms. term.vars (t' \<cdot>t \<rho>))"
+      using Fun
+      by (smt (verit, del_insts) UN_iff image_UN image_eqI)
+  }
 
   ultimately show ?case
     by auto
 qed
-
-(* TODO! *)
-lemma vars_term_subst: "term.vars (t \<cdot>t \<sigma>) \<subseteq> term.vars t \<union> range_vars \<sigma>"
-  by (meson Diff_subset order_refl subset_trans sup.mono vars_term_subst_apply_term_subset)
 
 global_interpretation 
   "term": base_functional_substitution where subst = subst_apply_term and id_subst = Var and 
@@ -107,7 +112,11 @@ global_interpretation
   "term": renaming_variables where vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set" and 
   is_renaming = term_subst.is_renaming and id_subst = Var and subst = "(\<cdot>t)" +
   "term": variables_in_base_imgu where vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set" and 
-  subst = "(\<cdot>t)" and base_is_imgu = term_subst.is_imgu and base_vars = term.vars
+  subst = "(\<cdot>t)" and base_is_imgu = term_subst.is_imgu and base_vars = term.vars +
+  "term": vars_subst where subst = "(\<cdot>t)" and  id_subst = Var and 
+  comp_subst = "(\<odot>)" and
+   vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set"  and subst_domain = subst_domain and 
+   range_vars = range_vars
 proof unfold_locales
   show "\<And>t \<sigma> \<tau>. (\<And>x. x \<in> term.vars t \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> t \<cdot>t \<sigma> = t \<cdot>t \<tau>"
     using term_subst_eq.
@@ -194,27 +203,36 @@ next
     "finite unifications" 
 
   show "term.vars (t \<cdot>t \<mu>) \<subseteq> term.vars t \<union> \<Union> (term.vars ` \<Union> unifications)"
-    using range_vars_subset_if_is_imgu[OF imgu] vars_term_subst
-    by (metis sup.absorb_iff1 sup.coboundedI2 sup_left_commute)
-qed 
+    using range_vars_subset_if_is_imgu[OF imgu] vars_term_subst_apply_term_subset
+    by fastforce
+next
+  fix t :: "('f, 'v) term" and \<sigma>
+  show "term.vars (t \<cdot>t \<sigma>) \<subseteq> term.vars t - subst_domain \<sigma> \<union> range_vars \<sigma>"
+    by (rule vars_term_subst_apply_term_subset)  
+qed
 
 global_interpretation
   "term": grounding where 
   vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set" and id_subst = Var and comp_subst = "(\<odot>)" and 
   subst = "(\<cdot>t)" and to_ground = term.to_ground and from_ground = term.from_ground
 proof unfold_locales
-  have "\<And>t :: ('f, 'v) term. term.is_ground t \<Longrightarrow> \<exists>g. term.from_ground g = t"
-  proof(intro exI)
+  {
     fix t :: "('f, 'v) term"
-    assume "term.is_ground t"
-    then show "term.from_ground (term.to_ground t) = t"
-      by(induction t)(simp_all add: map_idI)
-  qed
+    assume t_is_ground: "term.is_ground t"
+
+    have "\<exists>g. term.from_ground g = t"
+    proof(intro exI)
+      from t_is_ground 
+      show "term.from_ground (term.to_ground t) = t"
+        by(induction t)(simp_all add: map_idI)
+    qed
+  }
 
   then show "{t :: ('f, 'v) term. term.is_ground t} = range term.from_ground"
     by fastforce
 next
-  show "\<And>t\<^sub>G. term.to_ground (term.from_ground t\<^sub>G) = t\<^sub>G"
+  fix t\<^sub>G :: "('f) ground_term"
+  show "term.to_ground (term.from_ground t\<^sub>G) = t\<^sub>G"
     by simp
 qed
 
@@ -371,6 +389,9 @@ locale lifting_from_term =
   grounding_lifting where id_subst = Var and comp_subst = "(\<odot>)" +
   renaming_variables_lifting where id_subst = Var and comp_subst = "(\<odot>)" +
   variables_in_base_imgu_lifting where 
-  id_subst = Var and comp_subst = "(\<odot>)" and base_subst = "(\<cdot>t)" and base_vars = term.vars 
+  id_subst = Var and comp_subst = "(\<odot>)" and base_subst = "(\<cdot>t)" and base_vars = term.vars +
+  vars_subst_lifting where comp_subst = "(\<odot>)" and id_subst = Var and 
+  subst_domain = subst_domain and range_vars = range_vars and base_subst = "(\<cdot>t)" and 
+  base_vars = term.vars
 
 end

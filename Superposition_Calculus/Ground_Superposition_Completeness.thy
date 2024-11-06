@@ -256,7 +256,7 @@ proof -
     by auto
   thus ?thesis
   using rhs_lt_lhs_if_mem_rewrite_sys[of t1' t2']
-  by (metis Pair_inject less\<^sub>t_compatible_with_gctxt)
+  by (metis Pair_inject less\<^sub>t_compatible_with_context)
 qed
 
 lemma (in ground_superposition_calculus) rhs_lesseq_trm_lhs_if_mem_rtrancl_rewrite_inside_gctxt_rewrite_sys:
@@ -587,7 +587,7 @@ proof -
     unfolding rewrite_inside_gctxt_def by fast
 
   show ?thesis
-    using ball_lt_lhs[OF rule_in'] lesseq_trm_if_subterm[of t1' ctxt] l_def by order
+    using ball_lt_lhs[OF rule_in'] less_eq\<^sub>t_if_subterm[of t1' ctxt] l_def by order
 qed
 
 lemma (in ground_superposition_calculus) split_Union_epsilon:
@@ -772,7 +772,7 @@ proof -
     have "(t1, t2) \<in> R\<^sub>D \<Longrightarrow> t2 \<prec>\<^sub>t t1" for t1 t2
       by (auto simp: R\<^sub>D_def rewrite_sys_def elim: mem_epsilonE)
     hence ball_R\<^sub>D_rhs_lt_lhs: "(t1, t2) \<in> rewrite_inside_gctxt R\<^sub>D \<Longrightarrow> t2 \<prec>\<^sub>t t1" for t1 t2
-      by (smt (verit, ccfv_SIG) Pair_inject less\<^sub>t_compatible_with_gctxt mem_Collect_eq
+      by (smt (verit, ccfv_SIG) Pair_inject less\<^sub>t_compatible_with_context mem_Collect_eq
           rewrite_inside_gctxt_def)
 
     assume L_def: "L = Neg (Upair s t)" and "(s, t) \<notin> (rewrite_inside_gctxt R\<^sub>D)\<^sup>\<down>"
@@ -1573,7 +1573,7 @@ proof (induction C rule: wfp_induct_rule)
                 next
                   show "\<And>t1 t2 ctxt \<sigma>. (t1, t2) \<in> insert (s, s') (rewrite_sys N C) \<Longrightarrow>
                     t2 \<prec>\<^sub>t t1 \<Longrightarrow> ctxt\<langle>t2\<rangle>\<^sub>G \<prec>\<^sub>t ctxt\<langle>t1\<rangle>\<^sub>G"
-                    by (simp only: less\<^sub>t_compatible_with_gctxt)
+                    by (simp only: less\<^sub>t_compatible_with_context)
                 qed
 
                 have "(t, t'') \<in> rewrite_inside_gctxt {(s, s')}"
@@ -1961,18 +1961,7 @@ sublocale ground_superposition_calculus \<subseteq> statically_complete_calculus
   entails = G_entails and
   Red_I = Red_I and
   Red_F = Red_F
-proof unfold_locales
-  fix B :: "'f gatom clause" and N :: "'f gatom clause set"
-  assume "B \<in> G_Bot" and "saturated N"
-  hence "B = {#}"
-    by simp
-
-  assume "G_entails N {B}"
-  hence "{#} \<in> N"
-    unfolding \<open>B = {#}\<close>
-    using statically_complete[OF \<open>saturated N\<close>] by argo
-  thus "\<exists>B'\<in>G_Bot. B' \<in> N"
-    by auto
-qed
+  using statically_complete
+  by unfold_locales simp
 
 end

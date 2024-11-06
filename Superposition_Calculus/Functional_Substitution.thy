@@ -4,6 +4,7 @@ theory Functional_Substitution
     FSet_Extra
 begin
 
+(* TODO: Base all these on functional_substitution *)
 locale all_subst_ident_iff_ground =
   fixes is_ground :: "'expr \<Rightarrow> bool" and subst :: "'expr \<Rightarrow> 'subst \<Rightarrow> 'expr"
   assumes
@@ -77,7 +78,22 @@ lemma subst_cannot_unground:
   shows "\<not>is_ground expr"
   using assms by force
 
+(* 
+TODO: Bring here?
+
+definition subst_domain :: "('var \<Rightarrow> 'base) \<Rightarrow> 'var set" where
+  "subst_domain \<sigma> = {x. \<sigma> x \<noteq> id_subst x}"
+
+abbreviation subst_range :: "('var \<Rightarrow> 'base) \<Rightarrow> 'base set" where 
+  "subst_range \<sigma> \<equiv> \<sigma> ` subst_domain \<sigma>"
+*)
+
 end
+
+(* TODO: Name *)
+locale vars_subst = functional_substitution +
+  fixes subst_domain range_vars
+  assumes vars_subst: "\<And>expr \<sigma>. vars (expr \<cdot> \<sigma>) \<subseteq> (vars expr - subst_domain \<sigma>) \<union> range_vars \<sigma>"
 
 locale grounding = functional_substitution where vars = vars and id_subst = id_subst
   for vars :: "'expr \<Rightarrow> 'var set" and id_subst :: "'var \<Rightarrow> 'base" +
@@ -134,6 +150,12 @@ corollary obtain_grounding:
 
 end
 
+locale  is_grounding_iff_vars_grounded = 
+  fixes is_ground subst vars base_is_ground 
+  assumes 
+   is_grounding_iff_vars_grounded: 
+   "\<And>expr. is_ground (subst expr \<gamma>) \<longleftrightarrow> (\<forall>var \<in> vars expr. base_is_ground (\<gamma> var))"
+
 locale base_functional_substitution = functional_substitution 
   where id_subst = id_subst and vars = vars
   for id_subst :: "'var \<Rightarrow> 'expr" and vars :: "'expr \<Rightarrow> 'var set" +
@@ -185,6 +207,7 @@ proof-
     by blast
 qed
 
+(* TODO: upd \<rightarrow> update *)
 lemma ground_subst_upd [simp]:
   assumes "is_ground update" "is_ground (expr \<cdot> \<gamma>)" 
   shows "is_ground (expr \<cdot> \<gamma>(var := update))"
@@ -245,6 +268,16 @@ lemma variable_grounding:
   using assms is_grounding_iff_vars_grounded 
   by blast
 
+(*
+TODO: Bring here?
+definition range_vars :: "('var \<Rightarrow> 'base) \<Rightarrow> 'var set" where
+  "range_vars \<sigma> = \<Union>(base_vars ` subst_range \<sigma>)"
+*)
+
 end
+
+sublocale base_functional_substitution \<subseteq> based: based_functional_substitution 
+  where base_subst = subst and base_vars = vars
+  by unfold_locales (simp_all add: is_grounding_iff_vars_grounded)
 
 end

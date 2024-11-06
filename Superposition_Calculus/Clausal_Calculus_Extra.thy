@@ -42,19 +42,19 @@ abbreviation Pos_Upair (infix "\<approx>" 66) where
 abbreviation Neg_Upair (infix "!\<approx>" 66) where
   "Neg_Upair x y \<equiv> Neg (Upair x y)"
 
-lemma exists_atom_for_term: "\<exists>a. t \<in> set_uprod a"
+lemma exists_atom_for_term [intro]: "\<exists>a. t \<in> set_uprod a"
   by (metis insertI1 set_uprod_simps)
 
-lemma exists_literal_for_atom: "\<exists>l. a \<in> set_literal l"
+lemma exists_literal_for_atom [intro]: "\<exists>l. a \<in> set_literal l"
   by (meson literal.set_intros(1))
 
-lemma exists_literal_for_term: "\<exists>l. t \<in># mset_lit l"
+lemma exists_literal_for_term [intro]: "\<exists>l. t \<in># mset_lit l"
   by (metis exists_atom_for_term mset_lit.simps(1) set_mset_mset_uprod)
 
-lemma exists_clause_for_literal: "\<exists>c. l \<in> set_mset c"
+lemma exists_clause_for_literal [intro]: "\<exists>c. l \<in> set_mset c"
   by (meson union_single_eq_member)
 
-lemma finite_set_literal: "\<And>l. finite (set_literal l)"
+lemma finite_set_literal [intro]: "\<And>l. finite (set_literal l)"
   unfolding set_literal_atm_of
   by simp
 
@@ -102,9 +102,9 @@ proof(unfold inj_def, intro allI impI)
       case l': (Pos a')
 
       show ?thesis
-        using mset_lit 
-        unfolding l l' 
-        by (metis mset_lit.simps mset_uprod_plus_neq)
+        using mset_lit mset_uprod_plus_neq
+        unfolding l l'
+        by (metis mset_lit.simps)
     next
       case l': (Neg a')
 
