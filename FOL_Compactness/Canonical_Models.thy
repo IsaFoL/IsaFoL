@@ -168,4 +168,26 @@ lemma compact_canon_qfree: \<open>(\<forall>\<phi>. \<phi> \<in> \<Phi> \<longri
     satisfies \<C> \<Phi>\<close>
   sorry
 
+(* INTERPRETATION_RESTRICTLANGUAGE in hol-light *)
+lemma interpretation_restrictlanguage: \<open>\<Psi> \<subseteq> \<Phi> \<and> is_interpretation (language \<Phi>) \<M> \<Longrightarrow>
+  is_interpretation (language \<Psi>) \<M>\<close>
+  unfolding is_interpretation_def language_def functions_forms_def predicates_def
+  by (metis Union_mono fstI image_mono in_mono)
+
+(* INTERPRETATION_EXTENDLANGUAGE in hol-light *)
+lemma interpretation_extendlanguage: 
+  \<open>is_interpretation (language \<Psi>) \<M> \<and> \<not> (dom \<M> = {}) \<and> satisfies \<M> \<Psi> \<Longrightarrow> \<exists>\<M>'. 
+    (dom \<M>' = dom \<M>) \<and> (intrp_rel \<M>' = intrp_rel \<M>) \<and> is_interpretation (language \<Phi>) \<M>'
+    \<and> satisfies \<M>' \<Psi>\<close>
+  unfolding is_interpretation_def language_def functions_forms_def predicates_def satisfies_def
+  sorry
+
+(* COMPACT_LS in hol-light *)
+lemma compact_ls: \<open>(\<forall>\<Psi>. finite \<Psi> \<and> \<Psi> \<subseteq>\<Phi> \<Longrightarrow> (\<exists>\<M>. is_interpretation (language \<Phi>) \<M> \<and>
+  \<not> (dom \<M> = {}) \<and> satisfies \<M> \<Psi>)) \<Longrightarrow> \<exists>\<C>. is_interpretation (language \<Phi>) \<C> \<and>
+  \<not> (dom \<C> = {}) \<and> satisfies \<C> \<Phi>\<close>
+  sorry
+
+
+
 end
