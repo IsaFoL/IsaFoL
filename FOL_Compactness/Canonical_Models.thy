@@ -80,25 +80,10 @@ qed
 definition canonical :: "(nat \<times> nat) set \<times> (nat \<times> nat) set \<Rightarrow> nterm intrp \<Rightarrow> bool" where
 \<open>canonical \<L> \<M> \<equiv> (dom \<M> = terms_set (fst \<L>) \<and> (\<forall>f. intrp_fn \<M> f = Fun f))\<close>
 
-(* No need to go back to formulas in fact! *)
-(* fun formula_to_form :: \<open>(nat\<times>nterm list) formula \<Rightarrow> form\<close> where
-  \<open>formula_to_form (formula.Atom (p,ts)) = Atom p ts\<close>
-| \<open>formula_to_form \<bottom> = \<^bold>\<bottom>\<close>
-| \<open>formula_to_form (formula.Not \<phi>) = \<^bold>\<not> (formula_to_form \<phi>)\<close>
-| \<open>formula_to_form (formula.And \<phi> \<psi>) = (formula_to_form \<phi>) \<^bold>\<and> (formula_to_form \<psi>)\<close>
-| \<open>formula_to_form (formula.Or \<phi> \<psi>) = (formula_to_form \<phi>) \<^bold>\<or> (formula_to_form \<psi>)\<close>
-| \<open>formula_to_form (\<phi> \<^bold>\<rightarrow> \<psi>) = (formula_to_form \<phi>) \<^bold>\<longrightarrow> (formula_to_form \<psi>)\<close>
-*)
-
 (* Slight deviation from the hol-light definition where "Atom p ts" appears on the left, which is
    forbidden in Isabelle, I don't see how to define it only for atoms and obtain a propositional
    interpretation: *)
- 
-(*    - type translation to bridge with prop compactness result from AFP *)
-(*definition prop_of_model :: "'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> (nat \<times> nterm list) formula \<Rightarrow> bool" where
-  \<open>prop_of_model \<M> \<beta> \<phi> \<equiv> \<M>\<^bold>,\<beta> \<Turnstile> formula_to_form \<phi>\<close> *)
-(* - It makes things easier to define the interpretation instead. It matches the use of the predicate
-    in hol-light better *)
+(* prop_of_model in hol-light *)
 definition pintrp_of_intrp :: "'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> (form \<Rightarrow> bool)" where
   \<open>pintrp_of_intrp \<M> \<beta> = (\<lambda>\<phi>. \<M>\<^bold>,\<beta> \<Turnstile> \<phi>)\<close>
 
@@ -110,27 +95,11 @@ definition
   canon_of_prop :: "((nat \<times> nat) set \<times> (nat \<times> nat) set) \<Rightarrow> (form \<Rightarrow> bool) \<Rightarrow> nterm intrp" where
   \<open>canon_of_prop \<L> I \<equiv> Abs_intrp (terms_set (fst \<L>), (\<lambda>f ts. Fun f ts), (\<lambda>p. {ts. I (Atom p ts)}))\<close>
 
-(*
-lemma formula_to_form_to_formula: \<open>qfree \<phi> \<Longrightarrow> formula_to_form (form_to_formula \<phi>) = \<phi>\<close>
-  by (induction \<phi>) simp+
-*)
-(* PHOLDS_PROP_OF_MODEL in hol-light *)
-(* lemma pholds_prop_of_model: 
-  \<open>qfree \<phi> \<Longrightarrow> (prop_of_model \<M> \<beta>) (form_to_formula \<phi>) \<longleftrightarrow> \<M>\<^bold>,\<beta> \<Turnstile> \<phi>\<close>
-  unfolding prop_of_model_def using formula_to_form_to_formula by simp
-*)
-
 lemma pholds_pintrp_of_intrp:
   \<open>qfree \<phi> \<Longrightarrow> (pintrp_of_intrp \<M> \<beta>) \<Turnstile>\<^sub>p \<phi> \<longleftrightarrow> \<M>\<^bold>,\<beta> \<Turnstile> \<phi>\<close>
   unfolding pintrp_of_intrp_def by (induction \<phi>) simp+
 
 (* PROP_OF_CANON_OF_PROP in hol-light *)
-(* lemma prop_of_canon_of_prop:
-  \<open>prop_of_model (canon_of_prop \<L> I) \<beta> (form_to_formula (Atom p ts)) = I (Atom p ts)\<close>
-  unfolding canon_of_prop_def
-  sorry
-*)
-
 lemma intrp_of_canon_of_prop:
   \<open>pintrp_of_intrp (canon_of_prop \<L> I) \<beta> (Atom p ts) = I (Atom p ts)\<close>
   unfolding canon_of_prop_def
