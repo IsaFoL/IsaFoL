@@ -20,7 +20,7 @@ theory Ground_Superposition
     Relation_Extra
     Clausal_Calculus_Extra
     Selection_Function
-    Ground_Ordering
+    Ground_Order
     Ground_Type_System
 begin
 
@@ -37,14 +37,17 @@ no_notation subst_apply_term (infixl "\<cdot>" 67)
 
 section \<open>Superposition Calculus\<close>
 
-locale ground_superposition_calculus = ground_ordering less_trm + select select
-  for
-    less_trm :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" (infix "\<prec>\<^sub>t" 50) and
-    select :: "'f gatom clause \<Rightarrow> 'f gatom clause" (* and
-    typeof_fun :: "'f \<Rightarrow> 'ty list \<times> 'ty" *) +
-  assumes
-    ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
+locale ground_superposition_calculus = 
+  ground_order where less\<^sub>t = less\<^sub>t +
+  select select
+for
+  less\<^sub>t :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" and
+  select :: "'f gatom clause \<Rightarrow> 'f gatom clause"  +
+assumes
+  ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
+
+
 
 subsection \<open>Ground Rules\<close>
 
@@ -60,10 +63,10 @@ where
     L\<^sub>D = t \<approx> t' \<Longrightarrow>
     u \<prec>\<^sub>t \<kappa>\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
-    (\<P> = Pos \<and> select E = {#} \<and> is_strictly_maximal\<^sub>l L\<^sub>E E) \<or>
-    (\<P> = Neg \<and> (select E = {#} \<and> is_maximal\<^sub>l L\<^sub>E E \<or> is_maximal\<^sub>l L\<^sub>E (select E))) \<Longrightarrow>
+    (\<P> = Pos \<and> select E = {#} \<and> is_strictly_maximal L\<^sub>E E) \<or>
+    (\<P> = Neg \<and> (select E = {#} \<and> is_maximal L\<^sub>E E \<or> is_maximal L\<^sub>E (select E))) \<Longrightarrow>
     select D = {#} \<Longrightarrow>
-    is_strictly_maximal\<^sub>l L\<^sub>D D \<Longrightarrow>
+    is_strictly_maximal L\<^sub>D D \<Longrightarrow>
     C = add_mset (\<P> (Upair \<kappa>\<langle>t'\<rangle>\<^sub>G u)) (E' + D') \<Longrightarrow>
     ground_superposition D E C"
 
@@ -72,7 +75,7 @@ inductive ground_eq_resolution ::
   ground_eq_resolutionI: "
     D = add_mset L D' \<Longrightarrow>
     L = Neg (Upair t t) \<Longrightarrow>
-    select D = {#} \<and> is_maximal\<^sub>l L D \<or> is_maximal\<^sub>l L (select D) \<Longrightarrow>
+    select D = {#} \<and> is_maximal L D \<or> is_maximal L (select D) \<Longrightarrow>
     C = D' \<Longrightarrow>
     ground_eq_resolution D C"
 
@@ -83,7 +86,7 @@ inductive ground_eq_factoring ::
     L\<^sub>1 = t \<approx> t' \<Longrightarrow>
     L\<^sub>2 = t \<approx> t'' \<Longrightarrow>
     select D = {#} \<Longrightarrow>
-    is_maximal\<^sub>l L\<^sub>1 D \<Longrightarrow>
+    is_maximal L\<^sub>1 D \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     C = add_mset (Neg (Upair t' t'')) (add_mset (t \<approx> t'') D') \<Longrightarrow>
     ground_eq_factoring D C"
@@ -103,10 +106,10 @@ where
     L\<^sub>2 = t \<approx> t' \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
-    (\<P> = Pos \<longrightarrow> select P\<^sub>1 = {#} \<and> is_strictly_maximal\<^sub>l L\<^sub>1 P\<^sub>1) \<Longrightarrow>
-    (\<P> = Neg \<longrightarrow> (select P\<^sub>1 = {#} \<and> is_maximal\<^sub>l L\<^sub>1 P\<^sub>1 \<or> is_maximal\<^sub>l L\<^sub>1 (select P\<^sub>1))) \<Longrightarrow>
+    (\<P> = Pos \<longrightarrow> select P\<^sub>1 = {#} \<and> is_strictly_maximal L\<^sub>1 P\<^sub>1) \<Longrightarrow>
+    (\<P> = Neg \<longrightarrow> (select P\<^sub>1 = {#} \<and> is_maximal L\<^sub>1 P\<^sub>1 \<or> is_maximal L\<^sub>1 (select P\<^sub>1))) \<Longrightarrow>
     select P\<^sub>2 = {#} \<Longrightarrow>
-    is_strictly_maximal\<^sub>l L\<^sub>2 P\<^sub>2 \<Longrightarrow>
+    is_strictly_maximal L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_superposition' P\<^sub>2 P\<^sub>1 C"
 
@@ -145,9 +148,9 @@ where
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     select P\<^sub>1 = {#} \<Longrightarrow>
-    is_strictly_maximal\<^sub>l L\<^sub>1 P\<^sub>1 \<Longrightarrow>
+    is_strictly_maximal L\<^sub>1 P\<^sub>1 \<Longrightarrow>
     select P\<^sub>2 = {#} \<Longrightarrow>
-    is_strictly_maximal\<^sub>l L\<^sub>2 P\<^sub>2 \<Longrightarrow>
+    is_strictly_maximal L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (s\<langle>t'\<rangle>\<^sub>G \<approx> s') (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_pos_superposition P\<^sub>2 P\<^sub>1 C"
 
@@ -173,9 +176,9 @@ where
     L\<^sub>2 = t \<approx> t' \<Longrightarrow>
     s' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
-    select P\<^sub>1 = {#} \<and> is_maximal\<^sub>l L\<^sub>1 P\<^sub>1 \<or> is_maximal\<^sub>l L\<^sub>1 (select P\<^sub>1) \<Longrightarrow>
+    select P\<^sub>1 = {#} \<and> is_maximal L\<^sub>1 P\<^sub>1 \<or> is_maximal L\<^sub>1 (select P\<^sub>1) \<Longrightarrow>
     select P\<^sub>2 = {#} \<Longrightarrow>
-    is_strictly_maximal\<^sub>l L\<^sub>2 P\<^sub>2 \<Longrightarrow>
+    is_strictly_maximal L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (Neg (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
     ground_neg_superposition P\<^sub>2 P\<^sub>1 C"
 
@@ -265,20 +268,25 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
 
     moreover have "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
     proof -
-      have "is_strictly_maximal\<^sub>l L\<^sub>2 P1"
-        using ground_superpositionI by argo
+      have "is_strictly_maximal L\<^sub>2 P1"
+        using ground_superpositionI
+        by argo
+
       hence "\<forall>K \<in># P\<^sub>2'. \<not> Pos (Upair t t') \<prec>\<^sub>l K \<and> Pos (Upair t t') \<noteq> K"
-        unfolding is_strictly_maximal\<^sub>l_def
-        unfolding \<open>P1 = add_mset L\<^sub>2 P\<^sub>2'\<close> \<open>L\<^sub>2 = t \<approx> t'\<close>
-        by auto
+        unfolding 
+          is_strictly_maximal_def
+          \<open>P1 = add_mset L\<^sub>2 P\<^sub>2'\<close> \<open>L\<^sub>2 = t \<approx> t'\<close>
+        by simp
+
       hence "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l Pos (Upair t t')"
-        using literal_order.totalp_on_less[THEN totalpD] by metis
+        by auto
 
       have thesis_if_Neg: "Pos (Upair t t') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
         if "\<P> = Neg"
       proof -
         have "t \<preceq>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
-          using less_eq\<^sub>t_if_subterm .
+          using term.order.less_eq_subterm_property .
+
         hence " multp (\<prec>\<^sub>t) {#t, t'#} {#s\<langle>t\<rangle>\<^sub>G, s', s\<langle>t\<rangle>\<^sub>G, s'#}"
           unfolding reflclp_iff
         proof (elim disjE)
@@ -294,9 +302,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
           assume "t = s\<langle>t\<rangle>\<^sub>G"
           thus ?thesis
             using \<open>t' \<prec>\<^sub>t t\<close>
-            by (smt (verit, ccfv_SIG) add.commute add_mset_add_single add_mset_commute bex_empty
-                one_step_implies_multp set_mset_add_mset_insert set_mset_empty singletonD
-                union_single_eq_member)
+            by (simp add: multp_add_same)
         qed
         thus "Pos (Upair t t') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
           using \<open>\<P> = Neg\<close>
@@ -304,7 +310,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
       qed
 
       have thesis_if_Pos: "Pos (Upair t t') \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
-        if "\<P> = Pos" and "is_maximal\<^sub>l L\<^sub>1 P2"
+        if "\<P> = Pos" and "is_maximal L\<^sub>1 P2"
       proof (cases "s")
         case Hole
         show ?thesis
@@ -332,18 +338,21 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
 
           moreover have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
             using that
-            unfolding ground_superpositionI literal_order.is_maximal_in_mset_iff
+            unfolding ground_superpositionI is_maximal_def
             by auto
 
           ultimately have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l Pos (Upair t t')"
-            using literal_order.transp_on_less
-            by (metis (no_types, lifting) reflclp_iff transpD)
+            by auto
+            
           hence "P2 \<prec>\<^sub>c P1"
-            using \<open>\<P> (Upair s\<langle>t\<rangle>\<^sub>G s') \<prec>\<^sub>l Pos (Upair t t')\<close>
-              one_step_implies_multp[of P1 P2 "(\<prec>\<^sub>l)" "{#}", simplified]
-            unfolding ground_superpositionI less\<^sub>c_def
-            by (metis \<open>\<forall>K\<in>#P\<^sub>1'. K \<preceq>\<^sub>l (\<P> (Upair s\<langle>t\<rangle>\<^sub>G s'))\<close> empty_not_add_mset insert_iff reflclp_iff
-                set_mset_add_mset_insert transpD literal_order.transp_on_less)
+            using 
+              \<open>\<P> (Upair s\<langle>t\<rangle>\<^sub>G s') \<prec>\<^sub>l Pos (Upair t t')\<close>
+              one_step_implies_multp[of P1 P2 "(\<prec>\<^sub>l)" "{#}", simplified] 
+              literal.order.multp_if_maximal_less_that_maximal 
+              ground_superpositionI
+              that 
+            unfolding less\<^sub>c_def
+            by blast
 
           hence False
             using \<open>P1 \<prec>\<^sub>c P2\<close> by order
@@ -353,7 +362,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
       next
         case (More f ts1 ctxt ts2)
         hence "t \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
-          using less\<^sub>t_if_subterm [of s t]
+          using term.order.subterm_property[of s t]
           by simp
 
         moreover hence "t' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
@@ -386,13 +395,12 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
         also have "t \<approx> t' \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
         proof (rule thesis_if_Pos[OF \<open>\<P> = Pos\<close>])
 
-          have "is_strictly_maximal\<^sub>l L\<^sub>1 P2"
-            using \<open>\<P> = Pos\<close> ground_superpositionI literal.simps(4)
-            by (metis literal.simps(4))
+          have "is_strictly_maximal L\<^sub>1 P2"
+            using \<open>\<P> = Pos\<close> ground_superpositionI
+            by simp
 
-          thus "is_maximal\<^sub>l L\<^sub>1 P2"
-            by (metis in_remove1_mset_neq is_maximal\<^sub>l_def is_strictly_maximal\<^sub>l_def 
-                literal_order.order.strict_iff_not)
+          thus "is_maximal L\<^sub>1 P2"
+            by blast
         qed
 
         finally show "K \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')" .
@@ -431,10 +439,9 @@ lemma ground_eq_resolution_smaller_conclusion:
 proof (cases P C rule: ground_eq_resolution.cases)
   case (ground_eq_resolutionI L t)
   then show ?thesis
-    using clause_order.totalp_on_less 
     unfolding less\<^sub>c_def
-    by (metis add.right_neutral add_mset_add_single empty_iff empty_not_add_mset
-        one_step_implies_multp set_mset_empty)
+    by (metis add.left_neutral add_mset_add_single empty_not_add_mset multi_member_split 
+        one_step_implies_multp union_commute)
 qed
 
 lemma ground_eq_factoring_smaller_conclusion:
@@ -443,31 +450,40 @@ lemma ground_eq_factoring_smaller_conclusion:
   using step
 proof (cases P C rule: ground_eq_factoring.cases)
   case (ground_eq_factoringI L\<^sub>1 L\<^sub>2 P' t t' t'')
-  have "is_maximal\<^sub>l L\<^sub>1 P"
-    using ground_eq_factoringI by simp
+  have "is_maximal L\<^sub>1 P"
+    using ground_eq_factoringI 
+    by simp
+
   hence "\<forall>K \<in># add_mset (Pos (Upair t t'')) P'. \<not> Pos (Upair t t') \<prec>\<^sub>l K"
-    unfolding ground_eq_factoringI
-    by (simp add: literal_order.is_maximal_in_mset_iff literal_order.neq_iff)
+    unfolding ground_eq_factoringI is_maximal_def
+    by auto
+   
   hence "\<not> Pos (Upair t t') \<prec>\<^sub>l Pos (Upair t t'')"
     by simp
+
   hence "Pos (Upair t t'') \<preceq>\<^sub>l Pos (Upair t t')"
     by order
+
   hence "t'' \<preceq>\<^sub>t t'"
     unfolding reflclp_iff
     by (auto simp: less\<^sub>l_def multp_cancel_add_mset)
 
   have "C = add_mset (Neg (Upair t' t'')) (add_mset (Pos (Upair t t'')) P')"
-    using ground_eq_factoringI by argo
+    using ground_eq_factoringI 
+    by argo
 
   moreover have "add_mset (Neg (Upair t' t'')) (add_mset (Pos (Upair t t'')) P') \<prec>\<^sub>c P"
     unfolding ground_eq_factoringI less\<^sub>c_def
   proof (intro one_step_implies_multp[of "{#_#}" "{#_#}", simplified])
     have "t'' \<prec>\<^sub>t t"
-      using \<open>t' \<prec>\<^sub>t t\<close> \<open>t'' \<preceq>\<^sub>t t'\<close> by order
+      using \<open>t' \<prec>\<^sub>t t\<close> \<open>t'' \<preceq>\<^sub>t t'\<close> 
+      by order
+
     hence "multp (\<prec>\<^sub>t) {#t', t'', t', t''#} {#t, t'#}"
       using one_step_implies_multp[of _ _ _ "{#}", simplified]
       by (metis \<open>t' \<prec>\<^sub>t t\<close> diff_empty id_remove_1_mset_iff_notin insert_iff
           set_mset_add_mset_insert)
+
     thus "Neg (Upair t' t'') \<prec>\<^sub>l Pos (Upair t t')"
       by (simp add: less\<^sub>l_def)
   qed
@@ -498,14 +514,18 @@ next
     fix I :: "'f gterm rel"
     assume "refl I" and "trans I" and "sym I" and "compatible_with_gctxt I" and
       "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s N1"
+
     hence "\<forall>C \<in> N2. (\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s {C}"
-      using ball_G_entails by (simp add: G_entails_def)
+      using ball_G_entails 
+      by (simp add: G_entails_def)
+
     then show "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s N2"
       by (simp add: true_clss_def)
   qed
 next
   show "\<And>N1 N2 N3. G_entails N1 N2 \<Longrightarrow> G_entails N2 N3 \<Longrightarrow> G_entails N1 N3"
-    using G_entails_def by simp
+    using G_entails_def 
+    by simp
 qed
 
 end

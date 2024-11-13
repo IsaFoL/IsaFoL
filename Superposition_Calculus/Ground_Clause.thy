@@ -8,7 +8,4 @@ begin
 
 type_synonym 'f gatom = "'f gterm uprod"
 
-no_notation subst_compose (infixl "\<circ>\<^sub>s" 75)
-no_notation subst_apply_term (infixl "\<cdot>" 67)
-
 end

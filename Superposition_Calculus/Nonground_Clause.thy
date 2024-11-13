@@ -17,6 +17,7 @@ section \<open>Nonground Clauses and Substitutions\<close>
 type_synonym 'f ground_atom = "'f gatom"
 type_synonym ('f, 'v) atom = "('f, 'v) term uprod"
 
+(* TODO: Try to remove  *)
 named_theorems clause_simp
 named_theorems clause_intro
 
@@ -91,11 +92,12 @@ global_interpretation literal: lifting_from_term where
 
 notation literal.subst (infixl "\<cdot>l" 66)
 
+(* TODO: Name  *)
 subsection \<open>Nonground Literals - Alternative\<close>
 
 abbreviation literal_to_term_set where "literal_to_term_set l \<equiv> set_mset (mset_lit l)"
 
-abbreviation map_literal_term where "map_literal_term f \<equiv>  map_literal (map_uprod f)"
+abbreviation map_literal_term where "map_literal_term f \<equiv> map_literal (map_uprod f)"
 
 global_interpretation literal': finite_natural_functor where 
   map = map_literal_term and to_set = literal_to_term_set
@@ -106,6 +108,53 @@ global_interpretation literal': natural_functor_conversion where
   map_from = map_literal_term and map' = map_literal_term and to_set' = literal_to_term_set
   by unfold_locales (auto simp: mset_lit_image_mset)
 
+lemma alternative_literal [simp]:
+  fixes l
+  shows 
+  "functional_substitution_lifting.subst (\<cdot>t) map_literal_term l \<sigma> = l \<cdot>l \<sigma>"
+  "functional_substitution_lifting.vars term.vars literal_to_term_set l = literal.vars l"
+  "grounding_lifting.from_ground term.from_ground map_literal_term l\<^sub>G = literal.from_ground l\<^sub>G"
+  "grounding_lifting.to_ground term.to_ground map_literal_term l = literal.to_ground l"
+proof -
+  interpret lifting_from_term term.vars "(\<cdot>t)" map_literal_term literal_to_term_set term.to_ground 
+    term.from_ground map_literal_term map_literal_term map_literal_term literal_to_term_set
+    by unfold_locales
+
+  fix l :: "('f, 'v) atom literal" and \<sigma>
+
+  show "subst l \<sigma> = l \<cdot>l \<sigma>"
+    unfolding subst_def literal.subst_def atom.subst_def
+    by simp
+
+  show "vars l = literal.vars l"
+    unfolding atom.vars_def vars_def literal.vars_def
+    by(cases l) simp_all
+
+  fix l\<^sub>G:: "'f ground_atom literal"
+  show "from_ground l\<^sub>G = literal.from_ground l\<^sub>G"
+    unfolding from_ground_def literal.from_ground_def atom.from_ground_def..
+
+  fix l :: "('f, 'v) atom literal"
+  show "to_ground l = literal.to_ground l"
+    unfolding to_ground_def literal.to_ground_def atom.to_ground_def..
+qed
+
+lemma literal'_subst_eq_literal_subst: "map_literal_term (\<lambda>sub. sub \<cdot>t \<sigma>) l = l \<cdot>l \<sigma>"
+   unfolding subst_def literal.subst_def 
+   by (simp add: atom.subst_def)
+
+lemma literal'_vars_eq_literal_vars: "\<Union> (term.vars ` literal_to_term_set l) = literal.vars l"
+  unfolding literal.vars_def atom.vars_def
+  by(cases l) simp_all
+
+lemma literal'_from_ground_eq_literal_from_ground: 
+  "map_literal_term term.from_ground l\<^sub>G = literal.from_ground l\<^sub>G"
+  unfolding literal.from_ground_def atom.from_ground_def ..
+
+lemma literal'_to_ground_eq_literal_to_ground: 
+  "map_literal_term term.to_ground l = literal.to_ground l"
+  unfolding literal.to_ground_def atom.to_ground_def ..
+
 global_interpretation literal': lifting_from_term where 
   sub_subst = "(\<cdot>t)" and sub_vars = term.vars and map = map_literal_term and 
   to_set = literal_to_term_set and sub_to_ground = term.to_ground and
@@ -114,10 +163,12 @@ global_interpretation literal': lifting_from_term where
   to_set_ground = literal_to_term_set
 rewrites 
   "\<And>l \<sigma>. literal'.subst l \<sigma> = literal.subst l \<sigma>" and
-  "\<And>l. literal'.vars l = literal.vars l" (* and
-  "\<And>l\<^sub>G. literal'.from_ground l\<^sub>G = literal.from_ground l\<^sub>G"*)
-proof-
-  (* TODO: Is there a way to do this without having to write this stuff again and again?! *)
+  "\<And>l. literal'.vars l = literal.vars l" and
+  "\<And>l\<^sub>G. literal'.from_ground l\<^sub>G = literal.from_ground l\<^sub>G" and
+  "\<And>l. literal'.to_ground l = literal.to_ground l"
+  by unfold_locales simp_all
+(*proof unfold_locales
+  (* TODO: Is there a way to do this without having to write this stuff again?! *)
   interpret lifting_from_term term.vars "(\<cdot>t)" map_literal_term literal_to_term_set term.to_ground 
     term.from_ground map_literal_term map_literal_term map_literal_term literal_to_term_set
     by unfold_locales
@@ -125,25 +176,26 @@ proof-
   fix l :: "('f, 'v) atom literal" and \<sigma>
 
   show "subst l \<sigma> = l \<cdot>l \<sigma>"
-    unfolding subst_def literal.subst_def 
-    by (simp add: atom.subst_def)
+    unfolding subst_def
+    using literal'_subst_eq_literal_subst.
 
   show "vars l = literal.vars l"
     unfolding atom.vars_def vars_def literal.vars_def
     by(cases l) simp_all
 
-  (*fix l\<^sub>G:: "'f ground_atom literal"
+  fix l\<^sub>G:: "'f ground_atom literal"
   show "from_ground l\<^sub>G = literal.from_ground l\<^sub>G"
-    unfolding from_ground_def literal.from_ground_def atom.from_ground_def..*)
+    unfolding from_ground_def literal.from_ground_def atom.from_ground_def..
 
-  show "lifting_from_term term.vars (\<cdot>t) map_literal_term literal_to_term_set term.to_ground 
-    term.from_ground map_literal_term map_literal_term map_literal_term literal_to_term_set"
-    by unfold_locales
-qed
+  fix l :: "('f, 'v) atom literal"
+  show "to_ground l = literal.to_ground l"
+    unfolding to_ground_def literal.to_ground_def atom.to_ground_def..
+qed*)
 
 (* TODO: Delete? *)
 lemma mset_mset_lit_subst [clause_simp]: "{# t \<cdot>t \<sigma>. t \<in># mset_lit l #} = mset_lit (l \<cdot>l \<sigma>)"
-  unfolding literal'.subst_def mset_lit_image_mset ..
+  unfolding literal.subst_def atom.subst_def mset_lit_image_mset
+  by blast
 
 subsection \<open>Nonground Clauses\<close>
 
@@ -181,6 +233,7 @@ rewrites
 
 notation clause.subst (infixl "\<cdot>" 67)
 
+
 lemmas empty_clause_is_ground[clause_intro] = clause.empty_is_ground[OF set_mset_empty]
 
 lemmas clause_subst_empty [clause_simp] = 
@@ -204,8 +257,8 @@ declare
   clause.subst_in_to_set_subst [clause_intro]
   literal'.subst_in_to_set_subst [clause_intro]
 
-lemma vars_atom [clause_simp]: 
-  "atom.vars (Upair t\<^sub>1 t\<^sub>2) = term.vars t\<^sub>1 \<union> term.vars t\<^sub>2"
+(* TODO: Names *)
+lemma vars_atom [clause_simp]: "atom.vars (Upair t\<^sub>1 t\<^sub>2) = term.vars t\<^sub>1 \<union> term.vars t\<^sub>2"
   by (simp_all add: atom.vars_def)
 
 lemma vars_literal [clause_simp]: 
@@ -317,77 +370,5 @@ lemma obtain_from_neg_literal_subst:
   by (metis literal.collapse(2) literal.disc(2) literal.sel(2) subst_literal(3))
 
 lemmas obtain_from_literal_subst = obtain_from_pos_literal_subst obtain_from_neg_literal_subst
-
-subsection \<open>Entailment\<close>
-
-locale clause_entailment = term_entailment where I = I for I :: "('f gterm \<times> 'f gterm) interp"
-begin
-
-sublocale atom: symmetric_entailment 
-  where comp_subst = "(\<odot>)" and id_subst = Var 
-    and base_subst = "(\<cdot>t)" and base_vars = term.vars and subst = "(\<cdot>a)" and vars = atom.vars
-    and base_to_ground = term.to_ground and base_from_ground = term.from_ground and I = I 
-    and entails_def = "\<lambda>a. atom.to_ground a \<in> upair ` I"
-proof unfold_locales  
-  fix a :: "('f, 'v) atom" and  \<gamma> var update P
-
-  assume assms: 
-    "term.is_ground update"
-    "term.is_ground (\<gamma> var)" 
-    "(term.to_ground (\<gamma> var), term.to_ground update) \<in> I"
-    "atom.is_ground (a \<cdot>a \<gamma>)"
-    "(atom.to_ground (a \<cdot>a \<gamma>(var := update)) \<in> upair ` I)"
-
-  show "(atom.to_ground (a \<cdot>a \<gamma>) \<in> upair ` I)"
-  proof(cases a)
-    case (Upair t t')
-
-    moreover have 
-      "(term.to_ground (t' \<cdot>t \<gamma>), term.to_ground (t \<cdot>t \<gamma>)) \<in> I \<longleftrightarrow> 
-       (term.to_ground (t \<cdot>t \<gamma>), term.to_ground (t' \<cdot>t \<gamma>)) \<in> I"
-      by (metis local.sym symD)
-
-    ultimately show ?thesis
-      using assms
-      unfolding atom.to_ground_def atom.subst_def atom.vars_def
-      by(auto simp: sym term.simultaneous_congruence)
-  qed
-qed (simp_all add: sym)
-
-sublocale literal: entailment_lifting_conj
-  where comp_subst = "(\<odot>)" and id_subst = Var 
-    and base_subst = "(\<cdot>t)" and base_vars = term.vars and sub_subst = "(\<cdot>a)" and sub_vars = atom.vars
-    and base_to_ground = term.to_ground and base_from_ground = term.from_ground and I = I 
-    and sub_entails = atom.entails and map = "map_literal" and to_set = "set_literal" 
-    and is_negated = is_neg and entails_def = "\<lambda>l. upair ` I \<TTurnstile>l literal.to_ground l"
-proof unfold_locales 
-  fix l :: "('f, 'v) atom literal" 
-
-  show "(upair ` I \<TTurnstile>l literal.to_ground l) = 
-    (if is_neg l then Not else (\<lambda>x. x))
-      (Finite_Set.fold (\<and>) True ((\<lambda>a. atom.to_ground a \<in> upair ` I) ` set_literal l))" 
-    unfolding literal.vars_def literal.to_ground_def
-    by(cases l)(auto)
-
-qed (auto simp: subst_polarity_stable)
-
-sublocale clause: entailment_lifting_disj
-  where comp_subst = "(\<odot>)" and id_subst = Var 
-    and base_subst = "(\<cdot>t)" and base_vars = term.vars 
-    and base_to_ground = term.to_ground and base_from_ground = term.from_ground and I = I
-    and sub_subst = "(\<cdot>l)" and sub_vars = literal.vars and sub_entails = literal.entails 
-    and map = image_mset and to_set = set_mset and is_negated = "\<lambda>_. False" 
-    and entails_def = "\<lambda>C. upair ` I \<TTurnstile> clause.to_ground C"
-proof unfold_locales 
-  fix C :: "('f, 'v) atom clause" 
-
-  show "(upair ` I \<TTurnstile> clause.to_ground C) = 
-    (if False then Not else (\<lambda>x. x)) (Finite_Set.fold (\<or>) False (literal.entails ` set_mset C))"
-    unfolding clause.to_ground_def
-    by(induction C) auto
-
-qed auto
-
-end
 
 end

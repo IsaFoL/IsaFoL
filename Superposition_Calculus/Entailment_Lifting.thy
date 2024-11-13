@@ -2,7 +2,6 @@ theory Entailment_Lifting
   imports Functional_Substitution_Lifting
 begin
 
-(* TODO: Name *)
 locale entailment = 
   based: based_functional_substitution where base_subst = base_subst and vars = vars + 
   base: grounding where subst = base_subst and vars = base_vars and to_ground = base_to_ground and 

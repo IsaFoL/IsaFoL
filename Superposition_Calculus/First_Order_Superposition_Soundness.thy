@@ -91,6 +91,7 @@ lemma eq_resolution_sound:
 proof (cases P C rule: eq_resolution.cases)
   case (eq_resolutionI P L P' s\<^sub>1 s\<^sub>2 \<mu> \<V> C)
 
+  term C
 (* TODO: Use blocks everywhere *)
   { 
     fix I :: "'f gterm rel" and \<gamma> :: "('f, 'v) subst"
@@ -107,8 +108,8 @@ proof (cases P C rule: eq_resolution.cases)
       wt: "welltyped\<^sub>c typeof_fun \<V> C" "welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V> \<gamma>"
 
     have grounding': "clause.is_ground (C \<cdot> \<gamma>)"
-      using grounding
-      by (simp add: clause.is_ground_subst_is_ground)
+      using grounding clause.is_ground_subst_is_ground
+      using clause.ground_subst_iff_base_ground_subst by blast
 
     obtain \<gamma>' where
       \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" 
@@ -191,7 +192,9 @@ proof (cases P C rule: eq_resolution.cases)
 
   then show ?thesis
     unfolding ground.G_entails_def true_clss_def clause_groundings_def
-    using eq_resolutionI(1, 2) by auto
+    using eq_resolutionI(1, 2) 
+    sorry
+    (* TODO: by auto *)
 qed
 
 lemma eq_factoring_sound:

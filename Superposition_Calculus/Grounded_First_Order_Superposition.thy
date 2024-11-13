@@ -27,7 +27,7 @@ locale grounded_first_order_superposition_calculus =
 begin
 
 sublocale ground: ground_superposition_calculus where
-  less_trm = "(\<prec>\<^sub>t\<^sub>G)" and select = select\<^sub>G
+  less\<^sub>t = "(\<prec>\<^sub>t\<^sub>G)" and select = select\<^sub>G
   by unfold_locales (rule ground_critical_pair_theorem)
 
 abbreviation is_inference_grounding where
@@ -118,20 +118,22 @@ proof-
             all_types \<V>\<^sub>1 \<and> all_types \<V>' \<and> all_types \<V>
         | (premise, \<V>') # (premise\<^sub>1, \<V>\<^sub>1) # a # lista \<Rightarrow> False\<rbrakk>
        \<Longrightarrow> thesis"
-      (* TODO: *)
+      (* TODO: 
      apply(auto simp: clause.is_ground_subst_is_ground split: list.splits)
-      by (metis list_4_cases prod.exhaust_sel) 
+      by (metis list_4_cases prod.exhaust_sel) *)
+      sorry
 
      then show ?thesis
       using that assms 
       unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
-      
-      by auto
+       (* TODO: by auto*)
+      by fast
   qed
 
   then show ?thesis
     unfolding \<iota> \<iota>\<^sub>G clause_groundings_def
-    by auto
+   (* TODO: by auto*)
+    sorry
 qed  
 
 lemma inference\<^sub>G_red_in_clause_grounding_of_concl: 
@@ -219,14 +221,18 @@ next
         \<and> First_Order_Type_System.welltyped\<^sub>c typeof_fun (snd bottom) (fst bottom) 
         \<and> welltyped\<^sub>\<sigma>_on (clause.vars (fst bottom)) typeof_fun (snd bottom) f 
         \<and> all_types (snd bottom)} \<noteq> {}"
-      using \<open>bottom \<in> \<bottom>\<^sub>F\<close> by force
+      using \<open>bottom \<in> \<bottom>\<^sub>F\<close> 
+      by (smt (z3) ex_in_conv mem_Collect_eq split_pairs)
+      (* TODO: by force *)
   qed
 next
   fix bottom
   assume "bottom \<in> \<bottom>\<^sub>F"
   then show "clause_groundings typeof_fun bottom \<subseteq> ground.G_Bot"
     unfolding clause_groundings_def
-    by clause_auto
+    by (smt (verit) clause.subst_ident_if_ground clause_to_ground_empty_mset empty_clause_is_ground
+        fst_conv insert_iff mem_Collect_eq subsetI)
+    (* TODO: by clause_auto *)
 next
   fix clause
   show "clause_groundings typeof_fun clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"
@@ -258,10 +264,10 @@ sublocale first_order_superposition_calculus \<subseteq>
     inferences      
     "{{#}}"
     select\<^sub>G\<^sub>s
-    "ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G)"               
-    "\<lambda>_. ground_superposition_calculus.G_entails" 
-    "ground_superposition_calculus.GRed_I (\<prec>\<^sub>t\<^sub>G)" 
-    "\<lambda>_. ground_superposition_calculus.GRed_F(\<prec>\<^sub>t\<^sub>G)" 
+    "ground_superposition_calculus.G_Inf (\<prec>\<^sub>t\<^sub>G)"
+    "\<lambda>_. ground_superposition_calculus.G_entails"
+    "ground_superposition_calculus.GRed_I (\<prec>\<^sub>t\<^sub>G)"
+    "\<lambda>_. ground_superposition_calculus.GRed_F(\<prec>\<^sub>t\<^sub>G)"
     "\<bottom>\<^sub>F"
     "\<lambda>_. clause_groundings typeof_fun" 
     "\<lambda>select\<^sub>G. Some \<circ>

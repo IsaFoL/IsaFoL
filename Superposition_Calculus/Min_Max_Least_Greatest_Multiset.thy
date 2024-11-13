@@ -580,6 +580,12 @@ abbreviation (in order) is_minimal_in_mset where
 abbreviation (in order) is_maximal_in_mset where
   "is_maximal_in_mset \<equiv> is_maximal_in_mset_wrt (<)"
 
+abbreviation (in order) is_strictly_minimal_in_mset where
+  "is_strictly_minimal_in_mset \<equiv> is_strictly_minimal_in_mset_wrt (<)"
+
+abbreviation (in order) is_strictly_maximal_in_mset where
+  "is_strictly_maximal_in_mset \<equiv> is_strictly_maximal_in_mset_wrt (<)"
+
 lemmas (in order) is_minimal_in_mset_iff =
   is_minimal_in_mset_wrt_iff[OF transp_on_less asymp_on_less]
 

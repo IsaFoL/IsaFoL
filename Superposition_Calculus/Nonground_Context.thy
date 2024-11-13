@@ -6,7 +6,8 @@ begin
 
 section \<open>Nonground Contexts and Substitutions\<close>
 
-global_interpretation "context": finite_natural_functor where map = map_args_actxt and to_set = set2_actxt
+global_interpretation "context": finite_natural_functor where 
+  map = map_args_actxt and to_set = set2_actxt
 proof unfold_locales
   fix t :: 't
 
@@ -21,21 +22,22 @@ qed (auto
     simp: actxt.set_map(2) actxt.map_comp fun.map_ident actxt.map_ident_strong
     cong: actxt.map_cong)
 
-global_interpretation "context": natural_functor_conversion 
-  where map = map_args_actxt and to_set = set2_actxt and map_to = map_args_actxt 
-    and map_from = map_args_actxt and map' = map_args_actxt and to_set' = set2_actxt
+global_interpretation "context": natural_functor_conversion where 
+  map = map_args_actxt and to_set = set2_actxt and map_to = map_args_actxt and 
+  map_from = map_args_actxt and map' = map_args_actxt and to_set' = set2_actxt
   by unfold_locales
     (auto simp: actxt.set_map(2) actxt.map_comp cong: actxt.map_cong)
 
 global_interpretation "context": lifting_from_term where 
-    sub_subst = "(\<cdot>t)" and sub_vars = term.vars and to_set = set2_actxt and map = map_args_actxt and
-    sub_to_ground = term.to_ground and sub_from_ground = term.from_ground and 
-    to_ground_map = map_args_actxt and from_ground_map = map_args_actxt and 
-    ground_map = map_args_actxt and to_set_ground = set2_actxt
-   rewrites 
-    "\<And>c. context.vars c = vars_ctxt c" and 
-    "\<And>c \<sigma>. context.subst c \<sigma> = c \<cdot>\<^sub>c \<sigma>"
-proof -
+  sub_subst = "(\<cdot>t)" and sub_vars = term.vars and to_set = set2_actxt and map = map_args_actxt and
+  sub_to_ground = term.to_ground and sub_from_ground = term.from_ground and 
+  to_ground_map = map_args_actxt and from_ground_map = map_args_actxt and 
+  ground_map = map_args_actxt and to_set_ground = set2_actxt
+rewrites 
+  "\<And>c. context.vars c = vars_ctxt c" and 
+  "\<And>c \<sigma>. context.subst c \<sigma> = c \<cdot>\<^sub>c \<sigma>"
+proof unfold_locales
+  (* TODO: Is there way without repeating myself for this? *)
   interpret lifting_from_term term.vars "(\<cdot>t)" map_args_actxt set2_actxt term.to_ground
     term.from_ground map_args_actxt map_args_actxt map_args_actxt set2_actxt
     by unfold_locales
@@ -50,9 +52,6 @@ proof -
     unfolding subst_def
     by blast
 
-  show "lifting_from_term term.vars (\<cdot>t) map_args_actxt set2_actxt term.to_ground term.from_ground
-     map_args_actxt map_args_actxt map_args_actxt set2_actxt"
-    by unfold_locales
 qed
 
 lemma ground_ctxt_iff_context_is_ground: "ground_ctxt c \<longleftrightarrow> context.is_ground c"

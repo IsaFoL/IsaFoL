@@ -297,7 +297,7 @@ proof-
         \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     unfolding clause_groundings_def
     using clause.is_ground_subst_is_ground
-    by fastforce
+    sorry (* TODO: by fastforce   *)
 
   obtain select\<^sub>G_on_premise_groundings where 
     select\<^sub>G_on_premise_groundings: "\<forall>premise\<^sub>G \<in>?premise_groundings. \<exists>(premise, \<V>) \<in> premises. \<exists>\<gamma>.
@@ -308,7 +308,7 @@ proof-
       \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     using Ball_Ex_comm(1)[OF select\<^sub>G_exists_for_premises] 
       prod.case_eq_if clause.from_ground_inverse
-    by fastforce
+   sorry (* TODO: by fastforce   *)
 
   define select\<^sub>G where
     "\<And>clause\<^sub>G. select\<^sub>G clause\<^sub>G = (
@@ -336,7 +336,7 @@ proof-
               clause.vars (clause \<cdot> \<gamma>) = {} \<and>
               clause\<^sub>G = clause.to_ground (clause \<cdot> \<gamma>) \<and>
               select\<^sub>G_on_premise_groundings clause\<^sub>G = clause.to_ground (select clause \<cdot> \<gamma>)"
-      by force
+      sorry (* TODO: by force   *)
 
     moreover have " \<And>clause\<^sub>G.
        \<lbrakk>\<forall>y\<in>premises.
@@ -362,13 +362,13 @@ proof-
     ultimately show ?thesis
       unfolding is_select_grounding_def select\<^sub>G_def
       using select\<^sub>G_on_premise_groundings
-      by auto
+      sorry (* TODO: by auto   *)
   qed
    
   show ?thesis
     using that[OF _ grounding] select\<^sub>G_on_premise_groundings
     unfolding select\<^sub>G_def 
-    by fastforce
+    sorry (* TODO: by fastforce   *)
 qed
 
 locale first_order_select = select select

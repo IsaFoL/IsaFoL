@@ -696,7 +696,7 @@ proof-
   have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' (\<gamma> x) (\<V>' x)"
     using assms 
     unfolding welltyped\<^sub>\<sigma>_def
-    by simp
+    by blast
 
   then have "\<forall>x \<in> range_vars' \<rho>. welltyped \<F> \<V>' (\<gamma> x) (\<V> (the_inv \<rho> (Var x)))"
     using range_vars

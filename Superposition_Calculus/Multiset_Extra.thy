@@ -317,9 +317,15 @@ lemma multp_add_mset_reflclp:
     multp_add_mset[OF assms(1-3)]
   by blast
 
+(* TODO: *)
 lemma multp_add_same:
   assumes "asymp R" "transp R" "multp R X Y"
   shows "multp R (add_mset x X) (add_mset x Y)"
+  by (meson assms asymp_on_subset irreflp_on_if_asymp_on multp_cancel_add_mset top_greatest)
+
+lemma multp_add_same':
+  assumes "asymp R" "transp R" "multp R (add_mset x X) (add_mset x Y)"
+  shows "multp R X Y"
   by (meson assms asymp_on_subset irreflp_on_if_asymp_on multp_cancel_add_mset top_greatest)
 
 lemma inj_mset_plus_same: "inj (\<lambda>X :: 'a multiset . X + X)"
@@ -348,14 +354,24 @@ lemma
   sorry
 *)
 
-lemma multp_all_lesseq_ex_less: 
+(* TODO: Names *)
+lemma multp_all_less_eq:
+   assumes 
+    asymp: "asymp R" and
+    transp: "transp R" and
+    all_lesseq: "\<forall>x\<in>#X. R\<^sup>=\<^sup>= (f x) (g x)"
+  shows "(multp R)\<^sup>=\<^sup>= {# f x. x \<in># X #} {# g x. x \<in># X #}"
+  using assms
+  by(induction X) (auto simp: multp_add_mset multp_add_mset' multp_add_same)
+
+lemma multp_all_less_eq_ex_less: 
   assumes 
     asymp: "asymp R" and
     transp: "transp R" and
-    all_lesseq: "\<forall>x\<in>#X. R\<^sup>=\<^sup>= (f x) (g x)" and
+    all_less_eq: "\<forall>x\<in>#X. R\<^sup>=\<^sup>= (f x) (g x)" and
     ex_less: "\<exists>x\<in>#X. R (f x) (g x)" 
   shows "multp R {# f x. x \<in># X #} {# g x. x \<in># X #}"
-  using all_lesseq ex_less
+  using all_less_eq ex_less
 proof(induction X)
   case empty
   then show ?case 

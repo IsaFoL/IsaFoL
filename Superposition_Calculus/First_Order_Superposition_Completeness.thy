@@ -3,6 +3,7 @@ theory First_Order_Superposition_Completeness
     Ground_Superposition_Completeness
     Grounded_First_Order_Superposition
     "HOL-ex.Sketch_and_Explore"
+    Nonground_Entailment
 begin
 
 lemma welltyped\<^sub>\<sigma>_on_term:

@@ -1,5 +1,5 @@
 theory Ground_Context
-  imports "Regular_Tree_Relations.Ground_Terms"
+  imports Ground_Term_Extra
 begin
 
 type_synonym 'f ground_context = "('f, 'f gterm) actxt"
