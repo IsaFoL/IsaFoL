@@ -23,49 +23,9 @@ begin
 interpretation term_order_notation.
 
 sublocale context_compatibility_iff "(\<prec>\<^sub>t)"
-proof unfold_locales
-  fix c t t'
-  show "c\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t c\<langle>t'\<rangle>\<^sub>G \<longleftrightarrow> t \<prec>\<^sub>t t'"
-  proof(intro iffI)
-    assume less\<^sub>t_with_context: "c\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t c\<langle>t'\<rangle>\<^sub>G"
+  using context_compatibility antisym_conv3 dual_order.asym 
+  by unfold_locales blast
 
-    show "t \<prec>\<^sub>t t'"
-    proof(rule ccontr)
-      assume "\<not> t \<prec>\<^sub>t t'"
-      hence "t' \<preceq>\<^sub>t t"
-        by order
-
-      show False
-      proof(cases "t' = t")
-        case True
-
-        then have "c\<langle>t\<rangle>\<^sub>G = c\<langle>t'\<rangle>\<^sub>G"
-          by blast
-
-        then show False
-          using less\<^sub>t_with_context 
-          by order
-      next
-        case False
-
-        then have "t' \<prec>\<^sub>t t"
-          using \<open>t' \<preceq>\<^sub>t t\<close> 
-          by order
-
-        then have "c\<langle>t'\<rangle>\<^sub>G \<prec>\<^sub>t c\<langle>t\<rangle>\<^sub>G"
-          using context_compatibility 
-          by metis
-
-        then show ?thesis
-          using less\<^sub>t_with_context 
-          by order
-      qed
-    qed
-  next
-    show "t \<prec>\<^sub>t t' \<Longrightarrow> c\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t c\<langle>t'\<rangle>\<^sub>G"
-      using context_compatibility.
-  qed
-qed
 
 sublocale less_eq: context_compatibility_iff "(\<preceq>\<^sub>t)"
   using context_compatibility not_le

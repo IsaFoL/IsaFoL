@@ -81,6 +81,15 @@ subsection \<open>Total Strict Orders\<close>
 locale restricted_total_strict_order = strict_order +
   fixes restriction
   assumes totalp [intro]: "totalp_on restriction (\<prec>)"
+begin
+
+lemma restricted_not_le:
+  assumes "a \<in> restriction" "b \<in> restriction" "\<not> b \<prec> a"
+  shows "a \<preceq> b"
+  using assms
+  by (metis less_le local.order_refl totalp totalp_on_def)
+  
+end
 
 locale total_strict_order = 
   restricted_total_strict_order where restriction = UNIV

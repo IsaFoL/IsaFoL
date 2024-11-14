@@ -15,14 +15,54 @@ locale ground_context_compatibility_iff =
       R t\<^sub>1 t\<^sub>2 \<longleftrightarrow> R c\<langle>t\<^sub>1\<rangle> c\<langle>t\<^sub>2\<rangle>"
 
 locale ground_context_compatibility =
-  fixes R
+  order: restricted_total_strict_order where less = less\<^sub>t and restriction = "range term.from_ground"
+  for less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" +
   assumes ground_context_compatibility: 
     "\<And>c t\<^sub>1 t\<^sub>2. 
       term.is_ground t\<^sub>1 \<Longrightarrow>
       term.is_ground t\<^sub>2 \<Longrightarrow>
       context.is_ground c \<Longrightarrow>
-      R t\<^sub>1 t\<^sub>2 \<Longrightarrow>
-      R c\<langle>t\<^sub>1\<rangle> c\<langle>t\<^sub>2\<rangle>"
+      less\<^sub>t t\<^sub>1 t\<^sub>2 \<Longrightarrow>
+      less\<^sub>t c\<langle>t\<^sub>1\<rangle> c\<langle>t\<^sub>2\<rangle>"
+begin
+
+interpretation term_order_notation.
+
+sublocale ground_context_compatibility_iff "(\<prec>\<^sub>t)"
+proof unfold_locales
+  fix c :: "('f, 'v) context" and t\<^sub>1 t\<^sub>2 :: "('f, 'v) term"
+  assume ground: "term.is_ground t\<^sub>1" "term.is_ground t\<^sub>2"  "context.is_ground c"
+
+  show "t\<^sub>1 \<prec>\<^sub>t t\<^sub>2 \<longleftrightarrow> c\<langle>t\<^sub>1\<rangle> \<prec>\<^sub>t c\<langle>t\<^sub>2\<rangle>"
+  proof(intro iffI)
+    assume less\<^sub>t_with_context: "c\<langle>t\<^sub>1\<rangle> \<prec>\<^sub>t c\<langle>t\<^sub>2\<rangle>"
+
+    show "t\<^sub>1 \<prec>\<^sub>t t\<^sub>2"
+    proof(rule ccontr)
+      assume "\<not> t\<^sub>1 \<prec>\<^sub>t t\<^sub>2"
+
+      then have "t\<^sub>2 \<preceq>\<^sub>t t\<^sub>1"
+        using ground order.restricted_not_le
+        unfolding term.is_ground_iff_range_from_ground[symmetric]
+        by presburger
+
+      then show False
+        using ground ground_context_compatibility less\<^sub>t_with_context order.dual_order.asym 
+        by blast
+    qed
+   next
+    assume "t\<^sub>1 \<prec>\<^sub>t t\<^sub>2"
+    then show "c\<langle>t\<^sub>1\<rangle> \<prec>\<^sub>t c\<langle>t\<^sub>2\<rangle>"
+      using ground_context_compatibility[OF ground]
+      by argo
+  qed
+qed
+
+sublocale less_eq: ground_context_compatibility_iff "(\<preceq>\<^sub>t)"
+  using ctxt_eq ground_context_compatibility_iff 
+  by unfold_locales blast
+
+end
 
 locale ground_subterm_property =
   fixes R
@@ -49,7 +89,7 @@ locale nonground_term_order =
   order: ground_subst_stability where R = less\<^sub>t and comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and 
   vars = term.vars and id_subst = Var and to_ground = term.to_ground and 
   from_ground = "term.from_ground" + 
-  order: ground_context_compatibility where R = less\<^sub>t  +
+  order: ground_context_compatibility where less\<^sub>t = less\<^sub>t  +
   order: ground_subterm_property where R = less\<^sub>t
 for less\<^sub>t :: "('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term \<Rightarrow> bool"
 begin
@@ -243,12 +283,6 @@ next
     unfolding ground_term_with_context(3) order.less\<^sub>G_def
     by blast
 qed
-
-(* TODO: *)
-sublocale order: ground_context_compatibility_iff "(\<prec>\<^sub>t)"
-  using order.ground_context_compatibility
-  apply unfold_locales
-  by (metis order.dual_order.asym order.dual_order.not_eq_order_implies_strict order.not_less_eq)
 
 end
 
