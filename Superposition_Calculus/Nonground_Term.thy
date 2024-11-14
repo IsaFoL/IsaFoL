@@ -16,11 +16,9 @@ section \<open>Nonground Terms and Substitutions\<close>
 
 type_synonym 'f ground_term = "'f gterm"
 
-
 (* TODO: Already here with t or just from Nonground_Clause on?*)
 notation subst_apply_term (infixl "\<cdot>t" 67)
 notation subst_compose (infixl "\<odot>" 75)
-
 
 lemma infinite_terms: "infinite (UNIV :: ('f, 'v) term set)"
 proof-
