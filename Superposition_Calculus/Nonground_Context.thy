@@ -2,9 +2,16 @@ theory Nonground_Context
   imports 
     Nonground_Term
     Functional_Substitution_Lifting
+    Ground_Context
 begin
 
 section \<open>Nonground Contexts and Substitutions\<close>
+
+type_synonym ('f, 'v) "context" = "('f, 'v) ctxt"
+
+abbreviation subst_apply_ctxt :: 
+  "('f, 'v) context \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) context" (infixl "\<cdot>t\<^sub>c" 67) where
+  "subst_apply_ctxt \<equiv> subst_apply_actxt"
 
 global_interpretation "context": finite_natural_functor where 
   map = map_args_actxt and to_set = set2_actxt
@@ -28,30 +35,32 @@ global_interpretation "context": natural_functor_conversion where
   by unfold_locales
     (auto simp: actxt.set_map(2) actxt.map_comp cong: actxt.map_cong)
 
+term map_args_actxt
+
 global_interpretation "context": lifting_from_term where 
-  sub_subst = "(\<cdot>t)" and sub_vars = term.vars and to_set = set2_actxt and map = map_args_actxt and
+  sub_subst = "(\<cdot>t)" and sub_vars = term.vars and 
+  to_set = "set2_actxt :: ('f, 'v) context \<Rightarrow> ('f, 'v) term set" and map = map_args_actxt and
   sub_to_ground = term.to_ground and sub_from_ground = term.from_ground and 
   to_ground_map = map_args_actxt and from_ground_map = map_args_actxt and 
   ground_map = map_args_actxt and to_set_ground = set2_actxt
 rewrites 
   "\<And>c. context.vars c = vars_ctxt c" and 
-  "\<And>c \<sigma>. context.subst c \<sigma> = c \<cdot>\<^sub>c \<sigma>"
+  "\<And>c \<sigma>. context.subst c \<sigma> = c \<cdot>t\<^sub>c \<sigma>"
 proof unfold_locales
   (* TODO: Is there way without repeating myself for this? *)
   interpret lifting_from_term term.vars "(\<cdot>t)" map_args_actxt set2_actxt term.to_ground
     term.from_ground map_args_actxt map_args_actxt map_args_actxt set2_actxt
     by unfold_locales
 
-  fix c :: "('a, ('f, 'v) Term.term) actxt"
+  fix c :: "('f, 'v) context"
   show "vars c = vars_ctxt c"
     unfolding vars_def 
     by(induction c) auto
 
   fix \<sigma> 
-  show "subst c \<sigma> = c \<cdot>\<^sub>c \<sigma>"
+  show "subst c \<sigma> = c \<cdot>t\<^sub>c \<sigma>"
     unfolding subst_def
     by blast
-
 qed
 
 lemma ground_ctxt_iff_context_is_ground: "ground_ctxt c \<longleftrightarrow> context.is_ground c"

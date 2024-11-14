@@ -167,30 +167,6 @@ rewrites
   "\<And>l\<^sub>G. literal'.from_ground l\<^sub>G = literal.from_ground l\<^sub>G" and
   "\<And>l. literal'.to_ground l = literal.to_ground l"
   by unfold_locales simp_all
-(*proof unfold_locales
-  (* TODO: Is there a way to do this without having to write this stuff again?! *)
-  interpret lifting_from_term term.vars "(\<cdot>t)" map_literal_term literal_to_term_set term.to_ground 
-    term.from_ground map_literal_term map_literal_term map_literal_term literal_to_term_set
-    by unfold_locales
-
-  fix l :: "('f, 'v) atom literal" and \<sigma>
-
-  show "subst l \<sigma> = l \<cdot>l \<sigma>"
-    unfolding subst_def
-    using literal'_subst_eq_literal_subst.
-
-  show "vars l = literal.vars l"
-    unfolding atom.vars_def vars_def literal.vars_def
-    by(cases l) simp_all
-
-  fix l\<^sub>G:: "'f ground_atom literal"
-  show "from_ground l\<^sub>G = literal.from_ground l\<^sub>G"
-    unfolding from_ground_def literal.from_ground_def atom.from_ground_def..
-
-  fix l :: "('f, 'v) atom literal"
-  show "to_ground l = literal.to_ground l"
-    unfolding to_ground_def literal.to_ground_def atom.to_ground_def..
-qed*)
 
 (* TODO: Delete? *)
 lemma mset_mset_lit_subst [clause_simp]: "{# t \<cdot>t \<sigma>. t \<in># mset_lit l #} = mset_lit (l \<cdot>l \<sigma>)"

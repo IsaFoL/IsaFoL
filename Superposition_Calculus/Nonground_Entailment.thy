@@ -1,5 +1,8 @@
 theory Nonground_Entailment
-  imports Nonground_Clause Entailment_Lifting
+  imports 
+    Nonground_Clause 
+    Term_Rewrite_System
+    Entailment_Lifting
 begin
 
 section \<open>Entailment\<close>

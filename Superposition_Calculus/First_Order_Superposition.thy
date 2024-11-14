@@ -15,7 +15,7 @@ hide_const
   Inference_System.concl_of
   Inference_System.main_prem_of
 
-(* TODO: Remove? *)
+(* TODO: Remove Restricted_Predicates all together? *)
 (* Hide as much of Restricted_Predicates.wfp_on as possible *)
 hide_fact
   Restricted_Predicates.wfp_on_imp_minimal

@@ -63,7 +63,7 @@ sublocale clause.order: nonground_term_based_order_lifting where
   from_ground_map = image_mset and ground_map = image_mset and 
   to_set_ground = set_mset and to_mset = "\<lambda>x. x"
   by unfold_locales simp_all
- 
+(*TODO: Restore scoping again! *)
 notation clause.order.less\<^sub>G (infix "\<prec>\<^sub>c\<^sub>G" 50)
 notation clause.order.less_eq\<^sub>G (infix "\<preceq>\<^sub>c\<^sub>G" 50)
 
@@ -255,7 +255,62 @@ lemma unique_strictly_maximal_in_ground_clause:
   using assms unique_maximal_in_ground_clause 
   by blast
 
+(* TODO: *)
+lemma X:
+  "multiset_extension.multiset_extension (\<prec>\<^sub>t\<^sub>G) mset_lit = (\<prec>\<^sub>l\<^sub>G)"
+proof-
+  interpret multiset_extension "(\<prec>\<^sub>t\<^sub>G)" mset_lit
+    by unfold_locales
 
+  interpret relation_restriction "(\<lambda>b1 b2. multp (\<prec>\<^sub>t) (mset_lit b1) (mset_lit b2))" literal.from_ground
+    by unfold_locales
+
+  show ?thesis
+    unfolding multiset_extension_def
+    unfolding term.order.less\<^sub>G_def
+    unfolding literal.order.multiset_extension_def 
+    unfolding R\<^sub>r_def
+    unfolding literal.from_ground_def atom.from_ground_def
+    by (metis mset_lit_image_mset multp_image_mset_image_msetD multp_image_mset_image_msetI strict_order.transp term.inj_from_ground
+        term.order.strict_order_axioms)
+qed
+
+lemma Y:
+  "multiset_extension.multiset_extension (multiset_extension.multiset_extension (\<prec>\<^sub>t\<^sub>G) mset_lit) (\<lambda>x. x) = (\<prec>\<^sub>c\<^sub>G)"
+  unfolding X
+proof-
+  interpret multiset_extension "(\<prec>\<^sub>l\<^sub>G)" "(\<lambda>x. x)"
+    by unfold_locales
+
+  interpret relation_restriction "multp (\<prec>\<^sub>l)" "clause.from_ground"
+    by unfold_locales
+
+  show "multiset_extension.multiset_extension (\<prec>\<^sub>l\<^sub>G) (\<lambda>x. x) = (\<prec>\<^sub>c\<^sub>G)"
+    unfolding multiset_extension_def
+    unfolding literal.order.less\<^sub>G_def
+    unfolding clause.order.multiset_extension_def 
+    unfolding R\<^sub>r_def
+    unfolding clause.from_ground_def
+    by (metis literal.inj_from_ground literal.order.transp multp_image_mset_image_msetD multp_image_mset_image_msetI)
+qed
+
+
+(* TODO: Fix vertical/ horziontal lifting 
+sublocale ground: ground_order "(\<prec>\<^sub>t\<^sub>G)"
+  (*rewrites 
+  
+    "ground.clause.order.multiset_extension = (\<prec>\<^sub>c\<^sub>G)" and
+    "ground.is_maximal = literal.order.restriction.is_maximal"*)
+  by unfold_locales *)
+    (* using X Y
+     by auto*)
+
+(*sublocale ground: ground_order "(\<prec>\<^sub>t\<^sub>G)"
+  rewrites 
+    "ground.clause.order.multiset_extension = (\<prec>\<^sub>c\<^sub>G)"
+    apply unfold_locales
+     using X Y
+     by auto*)
 
 
 (* TODO: Put in right sections + naming *)
@@ -299,6 +354,22 @@ lemma less\<^sub>l_less\<^sub>c:
   shows "clause \<cdot> \<sigma>' \<prec>\<^sub>c clause \<cdot> \<sigma>"
   using clause.order.all_less_eq_ex_less[OF assms].
 
+
+lemma ground_is_maximal_iff_is_maximal: 
+  "literal.order.restriction.is_maximal l C \<longleftrightarrow> is_maximal (literal.from_ground l) (clause.from_ground C)"
+  unfolding is_maximal_def literal.order.restriction.is_maximal_def
+  by (smt (verit, del_insts) clause.to_set_from_ground image_iff literal.from_ground_inverse
+      literal.order.restriction.less\<^sub>r_def)
+
+lemma ground_is_strictly_maximal_iff_is_strictly_maximal: 
+  "literal.order.restriction.is_strictly_maximal l C \<longleftrightarrow> is_strictly_maximal (literal.from_ground l) (clause.from_ground C)"
+  by (metis (no_types, lifting) clause.ground_sub_in_ground ground_is_maximal_iff_is_maximal in_diffD is_maximal_def is_strictly_maximal_def
+      is_strictly_maximal_in_mset_wrt_iff literal.order.dual_order.order_iff_strict literal.order.less_eq\<^sub>r_from_ground
+      literal.order.restriction.restriction.asymp_on_less
+      literal.order.restriction.restriction.is_maximal_in_mset_if_is_strictly_maximal_in_mset
+      literal.order.restriction.restriction.transp_on_less remove1_mset_literal_from_ground)
+
+declare term.order.ground_subst_iff_base_ground_subst [simp del]
 
 end
 

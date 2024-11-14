@@ -5,14 +5,23 @@ theory Nonground_Term_Order
     Ground_Order
 begin
 
+locale ground_context_compatibility_iff =
+  fixes R
+  assumes ground_context_compatibility_iff: 
+    "\<And>c t\<^sub>1 t\<^sub>2.
+      term.is_ground t\<^sub>1 \<Longrightarrow>
+      term.is_ground t\<^sub>2 \<Longrightarrow>
+      context.is_ground c \<Longrightarrow>
+      R t\<^sub>1 t\<^sub>2 \<longleftrightarrow> R c\<langle>t\<^sub>1\<rangle> c\<langle>t\<^sub>2\<rangle>"
+
 locale ground_context_compatibility =
   fixes R
   assumes ground_context_compatibility: 
     "\<And>c t\<^sub>1 t\<^sub>2. 
-      R t\<^sub>1 t\<^sub>2 \<Longrightarrow>
       term.is_ground t\<^sub>1 \<Longrightarrow>
       term.is_ground t\<^sub>2 \<Longrightarrow>
       context.is_ground c \<Longrightarrow>
+      R t\<^sub>1 t\<^sub>2 \<Longrightarrow>
       R c\<langle>t\<^sub>1\<rangle> c\<langle>t\<^sub>2\<rangle>"
 
 locale ground_subterm_property =
@@ -198,7 +207,7 @@ proof unfold_locales
 
         have "Fun f (ss1 @ s \<cdot>t \<gamma>(x := update) # ss2) \<cdot>t \<gamma> \<prec>\<^sub>t Fun f subs \<cdot>t \<gamma>"
           unfolding subs
-          using ground_context_compatibility[OF less _ _ context_grounding]
+          using ground_context_compatibility[OF _ _ context_grounding less]
           by simp
 
         with less_subs' show ?thesis 
@@ -218,7 +227,7 @@ proof unfold_locales
   fix c t t'
   assume "t \<prec>\<^sub>t\<^sub>G t'"
   then show "c\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t\<^sub>G c\<langle>t'\<rangle>\<^sub>G"
-    using ground_context_compatibility[OF _ 
+    using ground_context_compatibility[OF
         term.ground_is_ground term.ground_is_ground context.ground_is_ground]
     unfolding less\<^sub>G_def ground_term_with_context(3)
     by simp
@@ -232,6 +241,13 @@ next
     unfolding ground_term_with_context(3) less\<^sub>G_def
     by blast
 qed
+
+(* TODO: *)
+sublocale ground_context_compatibility_iff "(\<prec>\<^sub>t)"
+  using ground_context_compatibility
+  apply unfold_locales
+  by (metis local.dual_order.asym local.dual_order.not_eq_order_implies_strict
+      local.not_less_eq)
 
 end
 

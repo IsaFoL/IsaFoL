@@ -91,7 +91,6 @@ lemma eq_resolution_sound:
 proof (cases P C rule: eq_resolution.cases)
   case (eq_resolutionI P L P' s\<^sub>1 s\<^sub>2 \<mu> \<V> C)
 
-  term C
 (* TODO: Use blocks everywhere *)
   { 
     fix I :: "'f gterm rel" and \<gamma> :: "('f, 'v) subst"
@@ -193,8 +192,7 @@ proof (cases P C rule: eq_resolution.cases)
   then show ?thesis
     unfolding ground.G_entails_def true_clss_def clause_groundings_def
     using eq_resolutionI(1, 2) 
-    sorry
-    (* TODO: by auto *)
+    by auto
 qed
 
 lemma eq_factoring_sound:
@@ -619,21 +617,20 @@ proof (cases P2 P1 C rule: superposition.cases)
       by argo
 
     have s\<^sub>1_u\<^sub>1: "?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G = term.to_ground (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"
-      using 
-        ground_term_with_context(1)[OF 
+      using ground_term_with_context(1)[OF 
           context.is_ground_subst_is_ground
-          term_subst.is_ground_subst_is_ground
+          term_subst.is_ground_subst_is_ground, 
+          OF ground_subst(1)[folded context.ground_subst_iff_base_ground_subst ] ground_subst(1) (* TODO *)
           ]
-        \<gamma>'(1)
-      by auto
+      by simp
 
     have s\<^sub>1_t\<^sub>2': "(?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G  = term.to_ground (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"
       using 
         ground_term_with_context(1)[OF 
           context.is_ground_subst_is_ground
-          term_subst.is_ground_subst_is_ground
+          term_subst.is_ground_subst_is_ground, 
+          OF ground_subst(1)[folded context.ground_subst_iff_base_ground_subst ] ground_subst(2) (* TODO *)
           ]
-        \<gamma>'(1) 
       by auto
 
     have \<P>_pos_or_neg: "\<P> = Pos \<or> \<P> = Neg"

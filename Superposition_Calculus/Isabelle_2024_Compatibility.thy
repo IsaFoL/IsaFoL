@@ -4,6 +4,8 @@ theory Isabelle_2024_Compatibility
     "HOL-Library.Multiset"
 begin
 
+
+(* TODO Remove! *)
 (*
 lemmas wfP_def = wfp_def
 lemmas wfP_if_convertible_to_wfP = wfp_if_convertible_to_wfp

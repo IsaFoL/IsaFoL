@@ -262,8 +262,15 @@ locale variables_in_base_imgu = based_functional_substitution +
         \<forall>unification \<in> unifications. finite unification \<Longrightarrow>
         vars (expr \<cdot> \<mu>) \<subseteq> vars expr \<union> (\<Union>(base_vars ` \<Union> unifications))"
 
-sublocale base_functional_substitution \<subseteq> based: based_functional_substitution 
+context base_functional_substitution
+begin
+
+sublocale based: based_functional_substitution 
   where base_subst = subst and base_vars = vars
   by unfold_locales (simp_all add: is_grounding_iff_vars_grounded)
+
+declare based.ground_subst_iff_base_ground_subst [simp del]
+
+end
 
 end

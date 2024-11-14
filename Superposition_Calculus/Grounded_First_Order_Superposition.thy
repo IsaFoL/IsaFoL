@@ -26,9 +26,19 @@ locale grounded_first_order_superposition_calculus =
     typeof_fun :: "('f, 'ty) fun_types"
 begin
 
+(* TODO: Fix that ground order is already before interpreted *)  
 sublocale ground: ground_superposition_calculus where
   less\<^sub>t = "(\<prec>\<^sub>t\<^sub>G)" and select = select\<^sub>G
-  by unfold_locales (rule ground_critical_pair_theorem)
+rewrites
+    "ground.literal.order.multiset_extension = (\<prec>\<^sub>l\<^sub>G)" and
+    fix_C: "ground.clause.order.multiset_extension = (\<prec>\<^sub>c\<^sub>G)" and
+    "ground.is_maximal = literal.order.restriction.is_maximal"
+     apply unfold_locales
+  by(auto simp: X  Y[unfolded X] ground_critical_pair_theorem)
+
+ (* TODO! *)
+lemma fix_C': "ground.clause.order.multiset_extension = (\<prec>\<^sub>c\<^sub>G)"
+      using fix_C X by argo
 
 abbreviation is_inference_grounding where
   "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv>
@@ -118,22 +128,19 @@ proof-
             all_types \<V>\<^sub>1 \<and> all_types \<V>' \<and> all_types \<V>
         | (premise, \<V>') # (premise\<^sub>1, \<V>\<^sub>1) # a # lista \<Rightarrow> False\<rbrakk>
        \<Longrightarrow> thesis"
-      (* TODO: 
-     apply(auto simp: clause.is_ground_subst_is_ground split: list.splits)
-      by (metis list_4_cases prod.exhaust_sel) *)
-      sorry
+     (* TOOD: *)
+      apply(auto simp: clause.is_ground_subst_is_ground split: list.splits)
+      by (metis list_4_cases prod.exhaust_sel)
 
      then show ?thesis
       using that assms 
       unfolding inference_groundings_def \<iota> \<iota>\<^sub>G Calculus.inference.case
-       (* TODO: by auto*)
-      by fast
+      by auto
   qed
 
   then show ?thesis
     unfolding \<iota> \<iota>\<^sub>G clause_groundings_def
-   (* TODO: by auto*)
-    sorry
+    by auto
 qed  
 
 lemma inference\<^sub>G_red_in_clause_grounding_of_concl: 
