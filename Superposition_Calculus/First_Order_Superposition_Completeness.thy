@@ -1062,12 +1062,12 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
       let ?premise\<^sub>1_\<gamma>' = "clause.to_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
       have premise\<^sub>1_\<gamma>'_grounding: "clause.is_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
-        using clause.ground_subst_upd[OF update_grounding premise\<^sub>1_grounding] 
+        using clause.ground_subst_update[OF update_grounding premise\<^sub>1_grounding] 
         unfolding \<gamma>'
         by blast
 
       have \<gamma>'_ground: "term_subst.is_ground_subst (\<rho>\<^sub>1 \<odot> \<gamma>')"
-        by (metis \<gamma>' term.ground_subst_upd term_subst.comp_subst.left.monoid_action_compatibility 
+        by (metis \<gamma>' term.ground_subst_update term_subst.comp_subst.left.monoid_action_compatibility 
             term_subst.is_ground_subst_def typing(3) update_grounding)
 
       have \<gamma>'_wt: "welltyped\<^sub>\<sigma>_on (clause.vars premise\<^sub>1) typeof_fun \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<gamma>')"

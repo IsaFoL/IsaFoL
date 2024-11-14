@@ -38,7 +38,7 @@ lemma symmetric_congruence:
   shows
     "entails (subst expr (\<gamma>(var := update))) \<longleftrightarrow> entails (subst expr \<gamma>)" 
   using congruence[OF var_grounding, of "\<gamma>(var := update)"] assms
-  by (metis based.ground_subst_upd congruence fun_upd_same fun_upd_triv fun_upd_upd sym symD)
+  by (metis based.ground_subst_update congruence fun_upd_same fun_upd_triv fun_upd_upd sym symD)
 
 end
 
@@ -67,7 +67,7 @@ lemma symmetric_congruence:
     var_update: "(to_ground (\<gamma> var), to_ground update) \<in> I"
   shows "(to_ground (expr \<cdot> (\<gamma>(var := update))), expr') \<in> I \<longleftrightarrow> (to_ground (expr \<cdot> \<gamma>), expr') \<in> I" 
   using assms congruence[OF var_grounding, of "\<gamma>(var := update)" var] congruence
-  by (metis fun_upd_same fun_upd_triv fun_upd_upd ground_subst_upd sym symD)
+  by (metis fun_upd_same fun_upd_triv fun_upd_upd ground_subst_update sym symD)
 
 lemma simultaneous_congruence:
   assumes

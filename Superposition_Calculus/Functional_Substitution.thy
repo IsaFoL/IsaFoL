@@ -185,8 +185,7 @@ proof-
     by blast
 qed
 
-(* TODO: upd \<rightarrow> update *)
-lemma ground_subst_upd [simp]:
+lemma ground_subst_update [simp]:
   assumes "is_ground update" "is_ground (expr \<cdot> \<gamma>)" 
   shows "is_ground (expr \<cdot> \<gamma>(var := update))"
   using assms is_grounding_iff_vars_grounded by auto
@@ -231,10 +230,10 @@ lemma ground_subst_extension':
   using ground_subst_extension assms
   by auto
 
-lemma ground_subst_upd [simp]:
+lemma ground_subst_update [simp]:
   assumes "base.is_ground update" "is_ground (expr \<cdot> \<gamma>)" 
   shows "is_ground (expr \<cdot> \<gamma>(var := update))"
-  using base.ground_subst_upd assms is_grounding_iff_vars_grounded by simp  
+  using base.ground_subst_update assms is_grounding_iff_vars_grounded by simp  
 
 lemma ground_exists: "\<exists>expr. is_ground expr"
   using base.ground_exists
