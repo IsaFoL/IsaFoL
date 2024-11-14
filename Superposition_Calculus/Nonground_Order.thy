@@ -45,8 +45,8 @@ sublocale literal.order: nonground_term_based_order_lifting where
 rewrites
   "\<And>l \<sigma>. functional_substitution_lifting.subst (\<cdot>t) map_literal_term l \<sigma> = literal.subst l \<sigma>" and
   "\<And>l. functional_substitution_lifting.vars term.vars literal_to_term_set l = literal.vars l" and
-  "\<And>l\<^sub>G. grounding_lifting.from_ground term.from_ground map_literal_term l\<^sub>G = 
-    literal.from_ground l\<^sub>G" and
+  "\<And>l\<^sub>G. grounding_lifting.from_ground term.from_ground map_literal_term l\<^sub>G 
+    = literal.from_ground l\<^sub>G" and
   "\<And>l. grounding_lifting.to_ground term.to_ground map_literal_term l = literal.to_ground l"
   by unfold_locales (auto simp: inj_mset_lit mset_lit_image_mset)
 
@@ -60,14 +60,15 @@ sublocale clause.order: nonground_term_based_order_lifting where
   less = "(\<prec>\<^sub>l)" and sub_subst = literal.subst and sub_vars = literal.vars and
   sub_to_ground = literal.to_ground and sub_from_ground = literal.from_ground and 
   map = image_mset and to_set = set_mset and to_ground_map = image_mset and 
-  from_ground_map = image_mset and ground_map = image_mset and 
-  to_set_ground = set_mset and to_mset = "\<lambda>x. x"
+  from_ground_map = image_mset and ground_map = image_mset and to_set_ground = set_mset and 
+  to_mset = "\<lambda>x. x"
   by unfold_locales simp_all
+
 (*TODO: Restore scoping again! *)
 notation clause.order.less\<^sub>G (infix "\<prec>\<^sub>c\<^sub>G" 50)
 notation clause.order.less_eq\<^sub>G (infix "\<preceq>\<^sub>c\<^sub>G" 50)
 
-lemma obtain_maximal_literal: (* is_maximal_ground_subst_stability *)
+lemma obtain_maximal_literal:
   assumes 
     not_empty: "C \<noteq> {#}" and
     grounding: "clause.is_ground (C \<cdot> \<gamma>)" 
@@ -122,7 +123,7 @@ proof-
   qed
 qed
 
-lemma obtain_strictly_maximal_literal: (* is_strictly_maximal\<^sub>l_ground_subst_stability *)
+lemma obtain_strictly_maximal_literal:
   assumes 
    grounding: "clause.is_ground (C \<cdot> \<gamma>)" and
    ground_strictly_maximal: "is_strictly_maximal l\<^sub>G (C \<cdot> \<gamma>)"
@@ -139,7 +140,7 @@ proof-
    
   obtain l where 
     l_in_C: "l \<in># C" and 
-    grounded_l [simp]: "l\<^sub>G = l \<cdot>l \<gamma>"
+    l\<^sub>G [simp]: "l\<^sub>G = l \<cdot>l \<gamma>"
     using l\<^sub>G_in_grounding 
     unfolding clause.subst_def
     by blast
@@ -148,7 +149,7 @@ proof-
   proof(cases "is_strictly_maximal l C")
     case True
     show ?thesis
-      using that[OF True grounded_l].
+      using that[OF True l\<^sub>G].
   next
     case False
 
@@ -178,12 +179,12 @@ proof-
   qed
 qed
 
-lemma is_maximal_if_grounding_is_maximal: (* is_maximal\<^sub>l_ground_subst_stability' *)
-  assumes 
+lemma is_maximal_if_grounding_is_maximal:
+  assumes
    l_in_C: "l \<in># C" and
    C_grounding: "clause.is_ground (C \<cdot> \<gamma>)" and
    l_grounding_is_maximal: "is_maximal (l \<cdot>l \<gamma>) (C \<cdot> \<gamma>)"
- shows 
+ shows
    "is_maximal l C"
 proof(rule ccontr)
   assume "\<not> is_maximal l C"
@@ -199,14 +200,14 @@ proof(rule ccontr)
   have l_grounding: "literal.is_ground (l \<cdot>l \<gamma>)"
     using clause.to_set_is_ground_subst[OF l_in_C C_grounding].
 
-  have l_grounding_in_C_grounding: "l' \<cdot>l \<gamma> \<in># C \<cdot> \<gamma>"
+  have l'_\<gamma>_in_C_\<gamma>: "l' \<cdot>l \<gamma> \<in># C \<cdot> \<gamma>"
     using clause.subst_in_to_set_subst[OF l'_in_C].
      
   have "l \<cdot>l \<gamma> \<prec>\<^sub>l l' \<cdot>l \<gamma>"
     using literal.order.ground_subst_stability[OF l_grounding l'_grounding l_less_l'].
   
   then have "\<not> is_maximal (l \<cdot>l \<gamma>) (C \<cdot> \<gamma>)"
-    using l_grounding_in_C_grounding 
+    using l'_\<gamma>_in_C_\<gamma> 
     unfolding is_maximal_def literal.subst_comp_subst
     by fastforce
   
@@ -214,7 +215,7 @@ proof(rule ccontr)
     using l_grounding_is_maximal..
 qed
 
-lemma is_strictly_maximal_if_grounding_is_strictly_maximal: (* is_strictly_maximal\<^sub>l_ground_subst_stability' *)
+lemma is_strictly_maximal_if_grounding_is_strictly_maximal:
   assumes 
    l_in_C: "l \<in># C" and
    grounding: "clause.is_ground (C \<cdot> \<gamma>)" and
@@ -294,26 +295,15 @@ proof-
     by (metis literal.inj_from_ground literal.order.transp multp_image_mset_image_msetD multp_image_mset_image_msetI)
 qed
 
-
-(* TODO: Fix vertical/ horziontal lifting 
-sublocale ground: ground_order "(\<prec>\<^sub>t\<^sub>G)"
-  (*rewrites 
-  
-    "ground.clause.order.multiset_extension = (\<prec>\<^sub>c\<^sub>G)" and
-    "ground.is_maximal = literal.order.restriction.is_maximal"*)
-  by unfold_locales *)
-    (* using X Y
-     by auto*)
-
-(*sublocale ground: ground_order "(\<prec>\<^sub>t\<^sub>G)"
-  rewrites 
-    "ground.clause.order.multiset_extension = (\<prec>\<^sub>c\<^sub>G)"
+sublocale ground: ground_order where
+  less\<^sub>t = "(\<prec>\<^sub>t\<^sub>G)"
+rewrites
+  "multiset_extension.multiset_extension (\<prec>\<^sub>t\<^sub>G) mset_lit = (\<prec>\<^sub>l\<^sub>G)" and
+  "multiset_extension.multiset_extension (\<prec>\<^sub>l\<^sub>G) (\<lambda>x. x) = (\<prec>\<^sub>c\<^sub>G)" 
     apply unfold_locales
-     using X Y
-     by auto*)
+  by(auto simp: X  Y[unfolded X])
 
-
-(* TODO: Put in right sections + naming *)
+(* TODO: naming *)
 
 lemma less\<^sub>t_less\<^sub>l: 
   assumes "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2"
@@ -353,7 +343,6 @@ lemma less\<^sub>l_less\<^sub>c:
     "\<exists>literal \<in># clause. literal \<cdot>l \<sigma>' \<prec>\<^sub>l literal \<cdot>l \<sigma>"
   shows "clause \<cdot> \<sigma>' \<prec>\<^sub>c clause \<cdot> \<sigma>"
   using clause.order.all_less_eq_ex_less[OF assms].
-
 
 lemma ground_is_maximal_iff_is_maximal: 
   "literal.order.restriction.is_maximal l C \<longleftrightarrow> is_maximal (literal.from_ground l) (clause.from_ground C)"

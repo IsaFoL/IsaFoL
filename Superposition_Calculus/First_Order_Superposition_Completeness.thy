@@ -979,7 +979,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       by(clause_auto simp: welltyped\<^sub>\<sigma>_on_def welltyped\<^sub>\<sigma>_on_welltyped)
 
     show ?thesis
-    proof(unfold ground.redundant_infer_def \<iota>\<^sub>G_parts, unfold fix_C', intro exI conjI)
+    proof(unfold ground.redundant_infer_def \<iota>\<^sub>G_parts, intro exI conjI)
 
       let ?update = "(context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>term.from_ground term\<^sub>G\<^sub>3\<rangle>"
 
@@ -1431,7 +1431,6 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
       have "premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu> \<cdot> \<sigma> \<prec>\<^sub>c premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<sigma>"
         using ground_superpositionI(3) 
-        unfolding fix_C'
         unfolding premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 clause.order.less\<^sub>G_def premises_clause_to_ground_inverse 
         unfolding \<mu>(2) clause.subst_comp_subst 
         by blast

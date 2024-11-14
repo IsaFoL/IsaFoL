@@ -26,19 +26,17 @@ locale grounded_first_order_superposition_calculus =
     typeof_fun :: "('f, 'ty) fun_types"
 begin
 
-(* TODO: Fix that ground order is already before interpreted *)  
 sublocale ground: ground_superposition_calculus where
   less\<^sub>t = "(\<prec>\<^sub>t\<^sub>G)" and select = select\<^sub>G
-rewrites
+rewrites 
+  "multiset_extension.multiset_extension (\<prec>\<^sub>t\<^sub>G) mset_lit  = (\<prec>\<^sub>l\<^sub>G)" and 
+  "multiset_extension.multiset_extension (\<prec>\<^sub>l\<^sub>G) (\<lambda>x. x) = (\<prec>\<^sub>c\<^sub>G)"
+
+    (*and
     "ground.literal.order.multiset_extension = (\<prec>\<^sub>l\<^sub>G)" and
-    fix_C: "ground.clause.order.multiset_extension = (\<prec>\<^sub>c\<^sub>G)" and
-    "ground.is_maximal = literal.order.restriction.is_maximal"
+    fix_C: "multiset_extension.multiset_extension (\<prec>\<^sub>l\<^sub>G) (\<lambda>x. x) = (\<prec>\<^sub>c\<^sub>G)" *)
      apply unfold_locales
   by(auto simp: X  Y[unfolded X] ground_critical_pair_theorem)
-
- (* TODO! *)
-lemma fix_C': "ground.clause.order.multiset_extension = (\<prec>\<^sub>c\<^sub>G)"
-      using fix_C X by argo
 
 abbreviation is_inference_grounding where
   "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv>
