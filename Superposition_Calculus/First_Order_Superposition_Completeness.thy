@@ -2139,7 +2139,8 @@ proof-
       by (metis \<rho>\<^sub>2_inv premise\<^sub>2_\<gamma>\<^sub>2 subst_monoid_mult.mult.left_neutral subst_monoid_mult.mult_assoc)
 
     then show ?thesis
-      using \<gamma>\<^sub>2 premise\<^sub>2_\<gamma>\<^sub>2 clause.subst_eq by force
+      using \<gamma>\<^sub>2 premise\<^sub>2_\<gamma>\<^sub>2 clause.subst_eq
+      by fastforce
   qed
 
   have "premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma> = premise\<^sub>1 \<cdot> \<gamma>\<^sub>1"

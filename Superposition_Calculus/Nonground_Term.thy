@@ -97,7 +97,6 @@ next
     by auto
 qed
 
-(* TODO: Name *)
 locale nonground_term = 
   base_functional_substitution +
   finite_variables +
@@ -197,6 +196,8 @@ next
   show "term.vars (t \<cdot>t \<sigma>) \<subseteq> term.vars t - subst_domain \<sigma> \<union> range_vars \<sigma>"
     by (rule vars_term_subst_apply_term_subset)  
 qed
+
+hide_fact term.ground_subst_iff_base_ground_subst
 
 global_interpretation "term": term_grounding where subst = "(\<cdot>t)" and id_subst = Var and 
   comp_subst = "(\<odot>)" and vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set" and 

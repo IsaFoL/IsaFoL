@@ -115,6 +115,10 @@ locale subst_update_stability =
         x \<in> vars expr \<Longrightarrow>
         R (expr \<cdot> \<gamma>(x := update)) (expr \<cdot> \<gamma>)"
 
+locale base_subst_update_stability = 
+  base_functional_substitution + 
+  subst_update_stability where base_R = R and base_subst = subst and base_vars = vars
+
 locale subst_update_stable_grounded_order =
   grounded_order + subst_update_stability where R = less and base_R = base_less
 for base_less
@@ -126,5 +130,10 @@ sublocale less_eq: subst_update_stability
   by unfold_locales auto  
 
 end
+
+locale base_subst_update_stable_grounded_order = 
+  base_subst_update_stability where R = less + 
+  subst_update_stable_grounded_order where 
+  base_less = less and base_subst = subst and base_vars = vars
 
 end

@@ -77,7 +77,7 @@ lemma vars_subst\<^sub>a: "\<Union> (term.vars ` \<rho> ` atom.vars a) = atom.va
 
 lemma vars_subst\<^sub>l: "\<Union> (term.vars ` \<rho> ` literal.vars l) = literal.vars (l \<cdot>l \<rho>)"
   unfolding literal.vars_def literal.subst_def set_literal_atm_of
-  by (metis (no_types, lifting) UN_insert Union_image_empty literal.map_sel vars_subst\<^sub>a)
+  using vars_subst by fastforce
 
 lemma vars_subst\<^sub>c: "\<Union> (term.vars ` \<rho> ` clause.vars C) = clause.vars (C \<cdot> \<rho>)"
   using vars_subst\<^sub>l
@@ -617,15 +617,15 @@ proof (cases P2 P1 C rule: superposition.cases)
       by argo
 
     have s\<^sub>1_u\<^sub>1: "?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G = term.to_ground (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"
-      using ground_term_with_context(1)[OF 
+      using ground_term_with_context(1)[OF
           context.is_ground_subst_is_ground
-          term_subst.is_ground_subst_is_ground, 
+          term_subst.is_ground_subst_is_ground,
           OF ground_subst(1)[folded context.ground_subst_iff_base_ground_subst ] ground_subst(1) (* TODO *)
           ]
       by simp
 
     have s\<^sub>1_t\<^sub>2': "(?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G  = term.to_ground (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"
-      using 
+      using
         ground_term_with_context(1)[OF 
           context.is_ground_subst_is_ground
           term_subst.is_ground_subst_is_ground, 
@@ -639,7 +639,7 @@ proof (cases P2 P1 C rule: superposition.cases)
     then have L\<^sub>1: "?L\<^sub>1 = ?\<P> (Upair ?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G ?s\<^sub>1')"
       using s\<^sub>1_u\<^sub>1
       unfolding superpositionI literal.to_ground_def atom.to_ground_def
-      by clause_auto   
+      by clause_auto
 
     have "literal.to_ground
          ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle> \<approx> s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>') =
@@ -655,10 +655,10 @@ proof (cases P2 P1 C rule: superposition.cases)
 
     ultimately have C: "?C = add_mset (?\<P> (Upair (?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G (?s\<^sub>1'))) (?P\<^sub>1' + ?P\<^sub>2')"
       using \<P>_pos_or_neg
-      unfolding 
-        s\<^sub>1_t\<^sub>2' 
-        superpositionI 
-        clause.to_ground_def 
+      unfolding
+        s\<^sub>1_t\<^sub>2'
+        superpositionI
+        clause.to_ground_def
       by (auto simp: subst_atom subst_literal)
 
     show "?I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"

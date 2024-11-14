@@ -94,7 +94,7 @@ for
   to_set_ground :: "'expr\<^sub>G \<Rightarrow> 'sub\<^sub>G set"
 begin
 
-sublocale restriction: strict_order_restriction "(\<prec>\<^sub>m)" from_ground 
+sublocale strict_order_restriction "(\<prec>\<^sub>m)" from_ground 
   by unfold_locales (rule inj_from_ground)
 
 end
@@ -105,10 +105,11 @@ locale total_grounded_multiset_extension =
   sub: total_strict_order_restriction where lift = "sub_from_ground"
 begin
 
-sublocale restriction: total_strict_order_restriction "(\<prec>\<^sub>m)" from_ground
+sublocale total_strict_order_restriction "(\<prec>\<^sub>m)" from_ground
 proof unfold_locales
   have "totalp_on {expr. set_mset expr \<subseteq> range sub_from_ground} (multp (\<prec>))"
-    using sub.totalp totalp_on_multp by fastforce
+    using sub.totalp totalp_on_multp 
+    by force
 
   then have "totalp_on {expr. set_mset (to_mset expr) \<subseteq> range sub_from_ground} (\<prec>\<^sub>m)"
     using inj_to_mset
@@ -182,7 +183,7 @@ proof unfold_locales
   assume assms: 
     "base.is_ground update" "base_less update (\<gamma> x)" "is_ground (expr \<cdot> \<gamma>)" "x \<in> vars expr"
 
-  moreover then have "\<forall>sub \<in># to_mset expr. sub \<cdot>\<^sub>s \<gamma>(x := update)  \<preceq> sub \<cdot>\<^sub>s \<gamma>"
+  moreover then have "\<forall>sub \<in># to_mset expr. sub \<cdot>\<^sub>s \<gamma>(x := update) \<preceq> sub \<cdot>\<^sub>s \<gamma>"
     using 
       sub.subst_update_stability
       sub.subst_reduntant_upd

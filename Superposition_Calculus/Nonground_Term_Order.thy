@@ -34,21 +34,23 @@ locale ground_subterm_property =
       R t\<^sub>G c\<^sub>G\<langle>t\<^sub>G\<rangle>"
 
 locale grounded_term_order = 
-  subst_update_stable_grounded_order where 
-  less = less\<^sub>t and base_less = less\<^sub>t and base_subst = subst and base_vars = vars +
-  grounded_restricted_total_strict_order where less = less\<^sub>t +
-  grounded_restricted_wellfounded_strict_order where less = less\<^sub>t +
-  ground_subst_stable_grounded_order where less = less\<^sub>t
+  order: base_subst_update_stable_grounded_order where less = less\<^sub>t  +
+  order: grounded_restricted_total_strict_order where less = less\<^sub>t +
+  order: grounded_restricted_wellfounded_strict_order where less = less\<^sub>t +
+  order: ground_subst_stable_grounded_order where less = less\<^sub>t +
+  grounding
 for less\<^sub>t
 
 locale nonground_term_order = 
-  restricted_wellfounded_total_strict_order where 
+  base_functional_substitution where comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and 
+  vars = term.vars and id_subst = "Var :: 'v \<Rightarrow> ('f, 'v) term" +
+  order: restricted_wellfounded_total_strict_order where 
   less = less\<^sub>t and restriction = "range term.from_ground" +
-  ground_subst_stability where R = less\<^sub>t and comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and 
+  order: ground_subst_stability where R = less\<^sub>t and comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and 
   vars = term.vars and id_subst = Var and to_ground = term.to_ground and 
   from_ground = "term.from_ground" + 
-  ground_context_compatibility where R = less\<^sub>t  +
-  ground_subterm_property where R = less\<^sub>t
+  order: ground_context_compatibility where R = less\<^sub>t  +
+  order: ground_subterm_property where R = less\<^sub>t
 for less\<^sub>t :: "('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term \<Rightarrow> bool"
 begin
 
@@ -82,7 +84,7 @@ proof unfold_locales
     moreover then have "\<exists>sub \<in> set subs. sub \<cdot>t \<gamma>(x := update) \<prec>\<^sub>t sub \<cdot>t \<gamma>"
       using Fun update_less
       by (metis (full_types) fun_upd_same term.distinct(1) term.sel(4) term.set_cases(2)
-          dual_order.strict_iff_order term_subst_eq_rev)
+          order.dual_order.strict_iff_order term_subst_eq_rev)
 
     ultimately show ?case
       using Fun(2, 3)
@@ -114,13 +116,13 @@ proof unfold_locales
           using first.hyps(2) first.prems(1) 
           unfolding Nil subs
           by (smt (verit, del_insts) Un_iff append_Cons_eq_iff filter_empty_conv filter_eq_ConsD 
-              set_append antisym_conv2)
+              set_append order.antisym_conv2)
 
         have ss2: "\<forall>s \<in> set ss2. s \<cdot>t \<gamma>(x := update) = s \<cdot>t \<gamma>"
           using first.hyps(2) first.prems(1) 
           unfolding Nil subs
           by (smt (verit, ccfv_SIG) Un_iff append_Cons_eq_iff filter_empty_conv filter_eq_ConsD 
-              list.set_intros(2) set_append antisym_conv2)
+              list.set_intros(2) set_append order.antisym_conv2)
 
         let ?c = "More f (map (\<lambda>s. s \<cdot>t \<gamma>) ss1) \<box> (map (\<lambda>s. s \<cdot>t \<gamma>) ss2)"
 
@@ -140,7 +142,7 @@ proof unfold_locales
           by (meson Cons_eq_filterD)
 
         ultimately have "?c\<langle>s \<cdot>t \<gamma>(x := update)\<rangle> \<prec>\<^sub>t ?c\<langle>s \<cdot>t \<gamma>\<rangle>"
-          using ground_context_compatibility
+          using order.ground_context_compatibility
           by blast
 
         moreover have "Fun f subs \<cdot>t \<gamma>(x := update) = ?c\<langle>s \<cdot>t \<gamma>(x := update)\<rangle>"
@@ -196,7 +198,7 @@ proof unfold_locales
           by simp
 
         moreover have "x \<in> term.vars (Fun f ?subs')"
-          by (metis ex_less eval_with_fresh_var term.set_intros(4) less_irrefl)
+          by (metis ex_less eval_with_fresh_var term.set_intros(4) order.less_irrefl)
 
         ultimately have less_subs': "Fun f ?subs' \<cdot>t \<gamma>(x := update) \<prec>\<^sub>t Fun f ?subs' \<cdot>t \<gamma>"
           using first.hyps(1) first.prems(3) by blast
@@ -207,7 +209,7 @@ proof unfold_locales
 
         have "Fun f (ss1 @ s \<cdot>t \<gamma>(x := update) # ss2) \<cdot>t \<gamma> \<prec>\<^sub>t Fun f subs \<cdot>t \<gamma>"
           unfolding subs
-          using ground_context_compatibility[OF _ _ context_grounding less]
+          using order.ground_context_compatibility[OF _ _ context_grounding less]
           by simp
 
         with less_subs' show ?thesis 
@@ -219,35 +221,34 @@ proof unfold_locales
 qed
 
 (* TODO: Find way to not have this twice \<longrightarrow> Use here just with G when up the t are also removed *)
-notation less\<^sub>G (infix "\<prec>\<^sub>t\<^sub>G" 50)
-notation less_eq\<^sub>G (infix "\<preceq>\<^sub>t\<^sub>G" 50)
+notation order.less\<^sub>G (infix "\<prec>\<^sub>t\<^sub>G" 50)
+notation order.less_eq\<^sub>G (infix "\<preceq>\<^sub>t\<^sub>G" 50)
 
 sublocale restriction: ground_term_order "(\<prec>\<^sub>t\<^sub>G)"
 proof unfold_locales
   fix c t t'
   assume "t \<prec>\<^sub>t\<^sub>G t'"
   then show "c\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t\<^sub>G c\<langle>t'\<rangle>\<^sub>G"
-    using ground_context_compatibility[OF
+    using order.ground_context_compatibility[OF
         term.ground_is_ground term.ground_is_ground context.ground_is_ground]
-    unfolding less\<^sub>G_def ground_term_with_context(3)
+    unfolding order.less\<^sub>G_def ground_term_with_context(3)
     by simp
 next
   fix t :: "'f gterm" and c :: "'f ground_context"
   assume "c \<noteq> \<box>"
   then show "t \<prec>\<^sub>t\<^sub>G c\<langle>t\<rangle>\<^sub>G"
     using 
-      ground_subterm_property[OF term.ground_is_ground context.ground_is_ground]
+      order.ground_subterm_property[OF term.ground_is_ground context.ground_is_ground]
       context_from_ground_hole
-    unfolding ground_term_with_context(3) less\<^sub>G_def
+    unfolding ground_term_with_context(3) order.less\<^sub>G_def
     by blast
 qed
 
 (* TODO: *)
-sublocale ground_context_compatibility_iff "(\<prec>\<^sub>t)"
-  using ground_context_compatibility
+sublocale order: ground_context_compatibility_iff "(\<prec>\<^sub>t)"
+  using order.ground_context_compatibility
   apply unfold_locales
-  by (metis local.dual_order.asym local.dual_order.not_eq_order_implies_strict
-      local.not_less_eq)
+  by (metis order.dual_order.asym order.dual_order.not_eq_order_implies_strict order.not_less_eq)
 
 end
 

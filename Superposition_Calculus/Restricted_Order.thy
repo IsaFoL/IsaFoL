@@ -66,7 +66,7 @@ locale wellfounded_strict_order_restriction =
   restricted_wellfounded_strict_order where restriction = "range lift" and less = "(\<prec>)"
 begin
 
-sublocale restriction: wellfounded_strict_order "(\<prec>\<^sub>r)"
+sublocale wellfounded_strict_order "(\<prec>\<^sub>r)"
 proof unfold_locales
   show "wfp (\<prec>\<^sub>r)"
     using wfp_on_if_convertible_to_wfp_on[OF wfp]
@@ -97,7 +97,7 @@ locale total_strict_order_restriction =
   restricted_total_strict_order where restriction = "range lift" and less = "(\<prec>)"
 begin
 
-sublocale restriction: total_strict_order "(\<prec>\<^sub>r)"
+sublocale total_strict_order "(\<prec>\<^sub>r)"
 proof unfold_locales
   show "totalp (\<prec>\<^sub>r)"
     using totalp inj_lift

@@ -138,70 +138,14 @@ locale base_functional_substitution = functional_substitution
   where id_subst = id_subst and vars = vars
   for id_subst :: "'var \<Rightarrow> 'expr" and vars :: "'expr \<Rightarrow> 'var set" +
   assumes
-    is_grounding_iff_vars_grounded:
+    base_is_grounding_iff_vars_grounded:
       "\<And>expr. is_ground (expr \<cdot> \<gamma>) \<longleftrightarrow> (\<forall>var \<in> vars expr. is_ground (\<gamma> var))" and
-    ground_exists: "\<exists>expr. is_ground expr"
-begin 
-
-lemma obtain_ground_subst:
-  obtains \<gamma>
-  where "is_ground_subst \<gamma>"
-proof-
-  obtain expr\<^sub>G where "is_ground expr\<^sub>G"
-    using ground_exists by blast
-
-  then have "is_ground_subst  (\<lambda>_. expr\<^sub>G)"
-    by (simp add: is_grounding_iff_vars_grounded is_ground_subst_def)
-
-  then show ?thesis
-    using that
-    by simp
-qed
-
-lemma ground_subst_extension:
-  assumes "is_ground (expr \<cdot> \<gamma>)"
-  obtains \<gamma>'
-  where "expr \<cdot> \<gamma> = expr \<cdot> \<gamma>'" and "is_ground_subst \<gamma>'"
-proof-
-  obtain \<gamma>'' where 
-    \<gamma>'': "is_ground_subst \<gamma>''"
-    using obtain_ground_subst
-    by blast
-                    
-  define \<gamma>' where 
-    \<gamma>':  "\<gamma>' = (\<lambda>var. if var \<in> vars expr then \<gamma> var else \<gamma>'' var)"
-
-  have "is_ground_subst \<gamma>'"
-    using assms \<gamma>'' is_grounding_iff_vars_grounded
-    unfolding \<gamma>' is_ground_subst_def
-    by simp
-
-  moreover have "expr \<cdot> \<gamma> = expr \<cdot> \<gamma>'"
-    unfolding \<gamma>'
-    using subst_eq by presburger
-
-  ultimately show ?thesis
-    using that
-    by blast
-qed
-
-lemma ground_subst_update [simp]:
-  assumes "is_ground update" "is_ground (expr \<cdot> \<gamma>)" 
-  shows "is_ground (expr \<cdot> \<gamma>(var := update))"
-  using assms is_grounding_iff_vars_grounded by auto
-
-lemma variable_grounding:
-  assumes "is_ground (expr \<cdot> \<gamma>)" "var \<in> vars expr" 
-  shows "is_ground (\<gamma> var)"
-  using assms is_grounding_iff_vars_grounded 
-  by blast
-
-end
+    base_ground_exists: "\<exists>expr. is_ground expr"
 
 locale based_functional_substitution = 
   base: base_functional_substitution where subst = base_subst and vars = base_vars + 
   functional_substitution where vars = vars 
-for 
+for
   base_subst :: "'base \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> 'base" and 
   base_vars and 
   vars :: "'expr \<Rightarrow> 'var set" +
@@ -214,7 +158,9 @@ begin
 lemma obtain_ground_subst:
   obtains \<gamma> 
   where "is_ground_subst \<gamma>"
-  using base.obtain_ground_subst by auto
+  unfolding ground_subst_iff_base_ground_subst  base.is_ground_subst_def
+  using base.base_ground_exists base.base_is_grounding_iff_vars_grounded
+  by auto
 
 lemma ground_subst_extension:
   assumes "is_ground (expr \<cdot> \<gamma>)"
@@ -233,10 +179,11 @@ lemma ground_subst_extension':
 lemma ground_subst_update [simp]:
   assumes "base.is_ground update" "is_ground (expr \<cdot> \<gamma>)" 
   shows "is_ground (expr \<cdot> \<gamma>(var := update))"
-  using base.ground_subst_update assms is_grounding_iff_vars_grounded by simp  
+  using assms is_grounding_iff_vars_grounded 
+  by auto
 
 lemma ground_exists: "\<exists>expr. is_ground expr"
-  using base.ground_exists
+  using base.base_ground_exists
   by (meson is_grounding_iff_vars_grounded)
 
 lemma variable_grounding:
@@ -264,12 +211,15 @@ locale variables_in_base_imgu = based_functional_substitution +
 context base_functional_substitution
 begin
 
-sublocale based: based_functional_substitution 
+sublocale based_functional_substitution 
   where base_subst = subst and base_vars = vars
-  by unfold_locales (simp_all add: is_grounding_iff_vars_grounded)
+  by unfold_locales (simp_all add: base_is_grounding_iff_vars_grounded)
 
-declare based.ground_subst_iff_base_ground_subst [simp del]
+declare ground_subst_iff_base_ground_subst [simp del]
 
 end
+
+hide_fact base_functional_substitution.base_is_grounding_iff_vars_grounded
+hide_fact base_functional_substitution.base_ground_exists
 
 end

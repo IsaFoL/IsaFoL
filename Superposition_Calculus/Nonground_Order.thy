@@ -9,13 +9,14 @@ begin
 section \<open>Nonground Order\<close>
 
 locale nonground_order_lifting = 
-  total_grounded_multiset_extension +
-  ground_subst_stable_total_multiset_extension +
-  subst_update_stable_multiset_extension
+  grounding_lifting +
+  order: total_grounded_multiset_extension +
+  order: ground_subst_stable_total_multiset_extension +
+  order: subst_update_stable_multiset_extension
 begin
 
-sublocale grounded_restricted_total_strict_order where
-  less = multiset_extension and subst = "subst" and vars = vars and to_ground = to_ground and 
+sublocale order: grounded_restricted_total_strict_order where
+  less = order.multiset_extension and subst = subst and vars = vars and to_ground = to_ground and 
   from_ground = "from_ground"
   by unfold_locales
 
@@ -27,17 +28,17 @@ locale nonground_term_based_order_lifting = nonground_order_lifting where
 for less\<^sub>t
 
 locale nonground_order =
-  restricted_term_order_lifting where
-  restriction = "range term.from_ground" and
+  "term": nonground_term_order where
   less\<^sub>t = "less\<^sub>t :: ('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term \<Rightarrow> bool" +
-  term.order: nonground_term_order
+  restricted_term_order_lifting where
+  restriction = "range term.from_ground"
 begin
 
 (* TODO: Find way to not have this twice *)
 notation term.order.less\<^sub>G (infix "\<prec>\<^sub>t\<^sub>G" 50)
 notation term.order.less_eq\<^sub>G (infix "\<preceq>\<^sub>t\<^sub>G" 50)
 
-sublocale literal.order: nonground_term_based_order_lifting where 
+sublocale literal: nonground_term_based_order_lifting where 
   less = less\<^sub>t and sub_subst = "(\<cdot>t)" and sub_vars = term.vars and sub_to_ground = term.to_ground and 
   sub_from_ground = term.from_ground and map = map_literal_term and to_set = literal_to_term_set and
   to_ground_map = map_literal_term and from_ground_map = map_literal_term and 
@@ -56,7 +57,7 @@ notation literal.order.less_eq\<^sub>G (infix "\<preceq>\<^sub>l\<^sub>G" 50)
 sublocale literal.order.restriction: maximal_literal "(\<prec>\<^sub>l\<^sub>G)"
   by unfold_locales
 
-sublocale clause.order: nonground_term_based_order_lifting where 
+sublocale clause: nonground_term_based_order_lifting where 
   less = "(\<prec>\<^sub>l)" and sub_subst = literal.subst and sub_vars = literal.vars and
   sub_to_ground = literal.to_ground and sub_from_ground = literal.from_ground and 
   map = image_mset and to_set = set_mset and to_ground_map = image_mset and 
@@ -64,7 +65,6 @@ sublocale clause.order: nonground_term_based_order_lifting where
   to_mset = "\<lambda>x. x"
   by unfold_locales simp_all
 
-(*TODO: Restore scoping again! *)
 notation clause.order.less\<^sub>G (infix "\<prec>\<^sub>c\<^sub>G" 50)
 notation clause.order.less_eq\<^sub>G (infix "\<preceq>\<^sub>c\<^sub>G" 50)
 
@@ -272,8 +272,8 @@ proof-
     unfolding literal.order.multiset_extension_def 
     unfolding R\<^sub>r_def
     unfolding literal.from_ground_def atom.from_ground_def
-    by (metis mset_lit_image_mset multp_image_mset_image_msetD multp_image_mset_image_msetI strict_order.transp term.inj_from_ground
-        term.order.strict_order_axioms)
+    by (metis term.inj_from_ground mset_lit_image_mset multp_image_mset_image_msetD multp_image_mset_image_msetI term.order.transp_on_less)
+
 qed
 
 lemma Y:
@@ -348,17 +348,15 @@ lemma ground_is_maximal_iff_is_maximal:
   "literal.order.restriction.is_maximal l C \<longleftrightarrow> is_maximal (literal.from_ground l) (clause.from_ground C)"
   unfolding is_maximal_def literal.order.restriction.is_maximal_def
   by (smt (verit, del_insts) clause.to_set_from_ground image_iff literal.from_ground_inverse
-      literal.order.restriction.less\<^sub>r_def)
+      literal.order.less\<^sub>r_def)
 
 lemma ground_is_strictly_maximal_iff_is_strictly_maximal: 
   "literal.order.restriction.is_strictly_maximal l C \<longleftrightarrow> is_strictly_maximal (literal.from_ground l) (clause.from_ground C)"
   by (metis (no_types, lifting) clause.ground_sub_in_ground ground_is_maximal_iff_is_maximal in_diffD is_maximal_def is_strictly_maximal_def
       is_strictly_maximal_in_mset_wrt_iff literal.order.dual_order.order_iff_strict literal.order.less_eq\<^sub>r_from_ground
-      literal.order.restriction.restriction.asymp_on_less
-      literal.order.restriction.restriction.is_maximal_in_mset_if_is_strictly_maximal_in_mset
-      literal.order.restriction.restriction.transp_on_less remove1_mset_literal_from_ground)
-
-declare term.order.ground_subst_iff_base_ground_subst [simp del]
+      literal.order.restriction.asymp_on_less
+      literal.order.restriction.is_maximal_in_mset_if_is_strictly_maximal_in_mset
+      literal.order.restriction.transp_on_less remove1_mset_literal_from_ground)
 
 end
 
