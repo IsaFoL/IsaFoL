@@ -47,7 +47,7 @@ assumes
   ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
 
-
+thm term.order.context_less_term_less_eq
 
 subsection \<open>Ground Rules\<close>
 
@@ -246,7 +246,8 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
     moreover have "\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
     proof -
       have  "s\<langle>t'\<rangle>\<^sub>G \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
-        using \<open>t' \<prec>\<^sub>t t\<close> by simp
+        using \<open>t' \<prec>\<^sub>t t\<close> 
+        by simp
 
       hence "multp (\<prec>\<^sub>t) {#s\<langle>t'\<rangle>\<^sub>G, s'#} {#s\<langle>t\<rangle>\<^sub>G, s'#}"
         by (simp add: add_mset_commute multp_cancel_add_mset)

@@ -15,6 +15,11 @@ inductive welltyped :: "('f, 'ty) fun_types \<Rightarrow>  ('v, 'ty) var_types \
     Var: "\<V> x = \<tau> \<Longrightarrow> welltyped \<F> \<V> (Var x) \<tau>"
   | Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> list_all2 (welltyped \<F> \<V>) ts \<tau>s \<Longrightarrow> welltyped \<F> \<V> (Fun f ts) \<tau>"
 
+inductive welltyped' :: "('f, 'ty) fun_types \<Rightarrow>  ('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" 
+  for \<F> \<V> where
+    Var: "\<V> x = \<tau> \<Longrightarrow> welltyped' \<F> \<V> (Var x) \<tau>"
+  | Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> list_all2 (welltyped \<F> \<V>) ts \<tau>s \<Longrightarrow> welltyped' \<F> \<V> (Fun f ts) \<tau>"
+
 lemma has_type_right_unique: "right_unique (has_type \<F> \<V>)"
 proof (rule right_uniqueI)
   fix t \<tau>\<^sub>1 \<tau>\<^sub>2

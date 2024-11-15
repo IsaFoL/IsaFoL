@@ -1186,8 +1186,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
             subst_apply_term_ctxt_apply_distrib 
             subst_compose_ctxt_compose_distrib
             Subterm_and_Context.ctxt_ctxt_compose
-          using term.order.ground_context_compatibility_iff[OF 
-                 update_grounding term\<^sub>x_grounding context\<^sub>x_grounding]
+          using term.order.context_compatibility[OF 
+              update_grounding term\<^sub>x_grounding context\<^sub>x_grounding]
           by simp   
 
         have var\<^sub>x_in_literal\<^sub>1: "var\<^sub>x \<in> literal.vars (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1)"

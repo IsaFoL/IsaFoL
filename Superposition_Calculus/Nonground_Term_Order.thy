@@ -5,36 +5,23 @@ theory Nonground_Term_Order
     Ground_Order
 begin
 
-locale ground_context_compatibility_iff =
-  fixes R
-  assumes ground_context_compatibility_iff: 
-    "\<And>c t\<^sub>1 t\<^sub>2.
-      term.is_ground t\<^sub>1 \<Longrightarrow>
-      term.is_ground t\<^sub>2 \<Longrightarrow>
-      context.is_ground c \<Longrightarrow>
-      R t\<^sub>1 t\<^sub>2 \<longleftrightarrow> R c\<langle>t\<^sub>1\<rangle> c\<langle>t\<^sub>2\<rangle>"
-
-locale ground_context_compatibility =
-  restricted_total_strict_order where less = less\<^sub>t and restriction = "range term.from_ground"
-for less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" +
+locale ground_context_compatible_order =
+  restricted_total_strict_order where restriction = "range term.from_ground" +
 assumes ground_context_compatibility: 
   "\<And>c t\<^sub>1 t\<^sub>2. 
       term.is_ground t\<^sub>1 \<Longrightarrow>
       term.is_ground t\<^sub>2 \<Longrightarrow>
       context.is_ground c \<Longrightarrow>
-      less\<^sub>t t\<^sub>1 t\<^sub>2 \<Longrightarrow>
-      less\<^sub>t c\<langle>t\<^sub>1\<rangle> c\<langle>t\<^sub>2\<rangle>"
+      t\<^sub>1 \<prec> t\<^sub>2 \<Longrightarrow>
+      c\<langle>t\<^sub>1\<rangle> \<prec> c\<langle>t\<^sub>2\<rangle>"
 begin
 
-interpretation term_order_notation.
-
-sublocale ground_context_compatibility_iff "(\<prec>\<^sub>t)"
+sublocale context_compatible_restricted_order where 
+  restriction = "range term.from_ground" and context_restriction = "range context.from_ground" and
+  Fun = Fun and restricted = term.is_ground and restricted_context = context.is_ground
   using ground_context_compatibility
-  by unfold_locales (metis totalp order.asym term.is_ground_iff_range_from_ground totalp_onD)
-
-sublocale less_eq: ground_context_compatibility_iff "(\<preceq>\<^sub>t)"
-  using ctxt_eq ground_context_compatibility_iff 
-  by unfold_locales blast
+  by unfold_locales 
+    (auto simp: term.is_ground_iff_range_from_ground context.is_ground_iff_range_from_ground)
 
 end
 
@@ -62,26 +49,13 @@ locale nonground_term_order =
   order: ground_subst_stability where R = less\<^sub>t and comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and 
   vars = term.vars and id_subst = Var and to_ground = term.to_ground and 
   from_ground = "term.from_ground" + 
-  order: ground_context_compatibility where less\<^sub>t = less\<^sub>t  +
+  order: ground_context_compatible_order where less = less\<^sub>t  +
   order: ground_subterm_property where R = less\<^sub>t
 for less\<^sub>t :: "('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term \<Rightarrow> bool"
 begin
 
 (* TODO: Already here with t or just from Nonground_Order on? *)
 interpretation term_order_notation.
-
-(* TODO: Names *)
-lemma context_less_term_less_eq:
-  assumes 
-    "\<And>t. term.is_ground t \<Longrightarrow> c\<langle>t\<rangle> \<prec>\<^sub>t c'\<langle>t\<rangle>"
-    "term.is_ground t"
-    "term.is_ground t'"
-    "context.is_ground c"
-    "context.is_ground c'"
-    "t \<preceq>\<^sub>t t'"
-  shows "c\<langle>t\<rangle> \<prec>\<^sub>t c'\<langle>t'\<rangle>"
-  using assms order.ground_context_compatibility
-  using order.dual_order.strict_trans by blast
 
 lemma context_less_eq_term_less:
   assumes 
