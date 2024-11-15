@@ -53,7 +53,6 @@ abbreviation subst_range :: "('var \<Rightarrow> 'base) \<Rightarrow> 'base set"
 
 end
 
-(* TODO: Name *)
 locale vars_subst = functional_substitution +
   fixes subst_domain range_vars
   assumes vars_subst: "\<And>expr \<sigma>. vars (expr \<cdot> \<sigma>) \<subseteq> (vars expr - subst_domain \<sigma>) \<union> range_vars \<sigma>"

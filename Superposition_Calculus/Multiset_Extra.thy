@@ -317,15 +317,9 @@ lemma multp_add_mset_reflclp:
     multp_add_mset[OF assms(1-3)]
   by blast
 
-(* TODO: *)
-lemma multp_add_same:
-  assumes "asymp R" "transp R" "multp R X Y"
-  shows "multp R (add_mset x X) (add_mset x Y)"
-  by (meson assms asymp_on_subset irreflp_on_if_asymp_on multp_cancel_add_mset top_greatest)
-
-lemma multp_add_same':
-  assumes "asymp R" "transp R" "multp R (add_mset x X) (add_mset x Y)"
-  shows "multp R X Y"
+lemma multp_add_same [simp]:
+  assumes "asymp R" "transp R"
+  shows "multp R (add_mset x X) (add_mset x Y) \<longleftrightarrow> multp R X Y"
   by (meson assms asymp_on_subset irreflp_on_if_asymp_on multp_cancel_add_mset top_greatest)
 
 lemma inj_mset_plus_same: "inj (\<lambda>X :: 'a multiset . X + X)"
@@ -362,7 +356,7 @@ lemma multp_all_less_eq:
     all_lesseq: "\<forall>x\<in>#X. R\<^sup>=\<^sup>= (f x) (g x)"
   shows "(multp R)\<^sup>=\<^sup>= {# f x. x \<in># X #} {# g x. x \<in># X #}"
   using assms
-  by(induction X) (auto simp: multp_add_mset multp_add_mset' multp_add_same)
+  by(induction X) (auto simp: multp_add_mset multp_add_mset')
 
 lemma multp_all_less_eq_ex_less: 
   assumes 
@@ -407,5 +401,43 @@ next
       by (metis image_mset_add_mset multiset.map_cong0 multp_add_mset')
   qed
 qed
+
+lemma not_reflp_multp\<^sub>D\<^sub>M: "\<not> reflp (multp\<^sub>D\<^sub>M R)"
+  unfolding multp\<^sub>D\<^sub>M_def reflp_def
+  by force
+
+lemma not_less_empty_multp\<^sub>D\<^sub>M: "\<not> multp\<^sub>D\<^sub>M R X {#}"
+  by (simp add: multp\<^sub>D\<^sub>M_def)
+
+lemma not_reflp_multp\<^sub>H\<^sub>O: "\<not> reflp (multp\<^sub>H\<^sub>O R)"
+  unfolding multp\<^sub>H\<^sub>O_def reflp_def
+  by simp
+
+lemma not_less_empty_multp\<^sub>H\<^sub>O: "\<not> multp\<^sub>H\<^sub>O R X {#}"
+  by (simp add: multp\<^sub>H\<^sub>O_def)
+
+lemma not_refl_mult: "\<not> refl (mult R)"
+  unfolding refl_on_def mult_def
+  by (meson UNIV_I not_less_empty trancl.cases)
+
+lemma not_less_empty_mult: "(X, {#}) \<notin> mult R"
+  by (metis mult_def not_less_empty tranclD2)
+
+lemma empty_less_mult: "X \<noteq> {#} \<Longrightarrow> ({#}, X) \<in> mult R"
+  using subset_implies_mult
+  by force
+
+lemma not_reflp_multp: "\<not> reflp (multp R)"
+  using not_refl_mult
+  unfolding multp_def reflp_refl_eq
+  by blast
+
+lemma empty_less_multp: "X \<noteq> {#} \<Longrightarrow> multp R {#} X"
+  by (simp add: subset_implies_multp subset_mset.not_eq_extremum)
+
+lemma not_less_empty_multp: "\<not> multp R X {#}"
+  using not_less_empty_mult
+  unfolding multp_def
+  by blast
 
 end

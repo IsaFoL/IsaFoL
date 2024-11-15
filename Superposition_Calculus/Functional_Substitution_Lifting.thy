@@ -390,7 +390,6 @@ qed
 
 end
 
-(* TODO: Name *)
 locale vars_subst_lifting = 
   based_functional_substitution_lifting + 
   sub: vars_subst where subst = sub_subst and vars = sub_vars

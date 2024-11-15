@@ -1,9 +1,9 @@
 theory First_Order_Superposition
   imports
+    Nonground_Order
     Saturation_Framework.Lifting_to_Non_Ground_Calculi
     Ground_Superposition
     First_Order_Select
-    Nonground_Order
     Renaming
     First_Order_Type_System
 begin

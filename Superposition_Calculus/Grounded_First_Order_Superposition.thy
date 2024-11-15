@@ -1,7 +1,7 @@
 theory Grounded_First_Order_Superposition
   imports 
     First_Order_Superposition
-    Ground_Superposition_Completeness
+    Ground_Superposition_Completeness (* TODO: Completeness needed? *)
 begin
 
 context ground_superposition_calculus
@@ -21,7 +21,7 @@ end
 locale grounded_first_order_superposition_calculus =
   first_order_superposition_calculus select _ _ typeof_fun +
   grounded_first_order_select select
-  for 
+  for
     select :: "('f, 'v :: infinite) select" and
     typeof_fun :: "('f, 'ty) fun_types"
 begin
@@ -30,13 +30,11 @@ sublocale ground: ground_superposition_calculus where
   less\<^sub>t = "(\<prec>\<^sub>t\<^sub>G)" and select = select\<^sub>G
 rewrites 
   "multiset_extension.multiset_extension (\<prec>\<^sub>t\<^sub>G) mset_lit  = (\<prec>\<^sub>l\<^sub>G)" and 
-  "multiset_extension.multiset_extension (\<prec>\<^sub>l\<^sub>G) (\<lambda>x. x) = (\<prec>\<^sub>c\<^sub>G)"
-
-    (*and
-    "ground.literal.order.multiset_extension = (\<prec>\<^sub>l\<^sub>G)" and
-    fix_C: "multiset_extension.multiset_extension (\<prec>\<^sub>l\<^sub>G) (\<lambda>x. x) = (\<prec>\<^sub>c\<^sub>G)" *)
-     apply unfold_locales
-  by(auto simp: X  Y[unfolded X] ground_critical_pair_theorem)
+  "multiset_extension.multiset_extension (\<prec>\<^sub>l\<^sub>G) (\<lambda>x. x) = (\<prec>\<^sub>c\<^sub>G)" and
+  "\<And>l C. ground.is_maximal l C \<longleftrightarrow> is_maximal (literal.from_ground l) (clause.from_ground C)" and
+  "\<And>l C. ground.is_strictly_maximal l C \<longleftrightarrow>
+    is_strictly_maximal (literal.from_ground l) (clause.from_ground C)"
+  by unfold_locales (auto simp: ground_critical_pair_theorem)
 
 abbreviation is_inference_grounding where
   "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv>
@@ -227,17 +225,14 @@ next
         \<and> welltyped\<^sub>\<sigma>_on (clause.vars (fst bottom)) typeof_fun (snd bottom) f 
         \<and> all_types (snd bottom)} \<noteq> {}"
       using \<open>bottom \<in> \<bottom>\<^sub>F\<close> 
-      by (smt (z3) ex_in_conv mem_Collect_eq split_pairs)
-      (* TODO: by force *)
+      by auto
   qed
 next
   fix bottom
   assume "bottom \<in> \<bottom>\<^sub>F"
   then show "clause_groundings typeof_fun bottom \<subseteq> ground.G_Bot"
     unfolding clause_groundings_def
-    by (smt (verit) clause.subst_ident_if_ground clause_to_ground_empty_mset empty_clause_is_ground
-        fst_conv insert_iff mem_Collect_eq subsetI)
-    (* TODO: by clause_auto *)
+    by clause_auto
 next
   fix clause
   show "clause_groundings typeof_fun clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"

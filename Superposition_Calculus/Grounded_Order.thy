@@ -60,7 +60,7 @@ lemma not_less_eq [simp]:
 end
 
 locale grounded_restricted_wellfounded_strict_order = 
-  order: restricted_wellfounded_strict_order where restriction = "range from_ground" +
+  restricted_wellfounded_strict_order where restriction = "range from_ground" +
   grounded_order
 begin
 

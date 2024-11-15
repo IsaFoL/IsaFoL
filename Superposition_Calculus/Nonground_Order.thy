@@ -54,8 +54,8 @@ rewrites
 notation literal.order.less\<^sub>G (infix "\<prec>\<^sub>l\<^sub>G" 50)
 notation literal.order.less_eq\<^sub>G (infix "\<preceq>\<^sub>l\<^sub>G" 50)
 
-sublocale literal.order.restriction: maximal_literal "(\<prec>\<^sub>l\<^sub>G)"
-  by unfold_locales
+(*sublocale literal.order.restriction: maximal_literal "(\<prec>\<^sub>l\<^sub>G)"
+  by unfold_locales*)
 
 sublocale clause: nonground_term_based_order_lifting where 
   less = "(\<prec>\<^sub>l)" and sub_subst = literal.subst and sub_vars = literal.vars and
@@ -256,69 +256,82 @@ lemma unique_strictly_maximal_in_ground_clause:
   using assms unique_maximal_in_ground_clause 
   by blast
 
-(* TODO: *)
-lemma X:
-  "multiset_extension.multiset_extension (\<prec>\<^sub>t\<^sub>G) mset_lit = (\<prec>\<^sub>l\<^sub>G)"
+(* TODO: Simp? *)
+lemma less\<^sub>l\<^sub>G_rewrite [simp]: "multiset_extension.multiset_extension (\<prec>\<^sub>t\<^sub>G) mset_lit = (\<prec>\<^sub>l\<^sub>G)"
 proof-
   interpret multiset_extension "(\<prec>\<^sub>t\<^sub>G)" mset_lit
     by unfold_locales
 
-  interpret relation_restriction "(\<lambda>b1 b2. multp (\<prec>\<^sub>t) (mset_lit b1) (mset_lit b2))" literal.from_ground
+  interpret relation_restriction 
+    "(\<lambda>b1 b2. multp (\<prec>\<^sub>t) (mset_lit b1) (mset_lit b2))" literal.from_ground
     by unfold_locales
 
   show ?thesis
-    unfolding multiset_extension_def
-    unfolding term.order.less\<^sub>G_def
-    unfolding literal.order.multiset_extension_def 
-    unfolding R\<^sub>r_def
-    unfolding literal.from_ground_def atom.from_ground_def
-    by (metis term.inj_from_ground mset_lit_image_mset multp_image_mset_image_msetD multp_image_mset_image_msetI term.order.transp_on_less)
-
+    unfolding multiset_extension_def  literal.order.multiset_extension_def R\<^sub>r_def 
+    unfolding term.order.less\<^sub>G_def literal.from_ground_def atom.from_ground_def
+    by (metis term.inj_from_ground mset_lit_image_mset multp_image_mset_image_msetD 
+        multp_image_mset_image_msetI term.order.transp_on_less)
 qed
 
-lemma Y:
-  "multiset_extension.multiset_extension (multiset_extension.multiset_extension (\<prec>\<^sub>t\<^sub>G) mset_lit) (\<lambda>x. x) = (\<prec>\<^sub>c\<^sub>G)"
-  unfolding X
+lemma less\<^sub>c\<^sub>G_rewrite [simp]:
+  "multiset_extension.multiset_extension (\<prec>\<^sub>l\<^sub>G) (\<lambda>x. x) = (\<prec>\<^sub>c\<^sub>G)"
+  unfolding less\<^sub>l\<^sub>G_rewrite
 proof-
-  interpret multiset_extension "(\<prec>\<^sub>l\<^sub>G)" "(\<lambda>x. x)"
+  interpret multiset_extension "(\<prec>\<^sub>l\<^sub>G)" "\<lambda>x. x"
     by unfold_locales
 
-  interpret relation_restriction "multp (\<prec>\<^sub>l)" "clause.from_ground"
+  interpret relation_restriction "multp (\<prec>\<^sub>l)" clause.from_ground
     by unfold_locales
 
-  show "multiset_extension.multiset_extension (\<prec>\<^sub>l\<^sub>G) (\<lambda>x. x) = (\<prec>\<^sub>c\<^sub>G)"
-    unfolding multiset_extension_def
-    unfolding literal.order.less\<^sub>G_def
-    unfolding clause.order.multiset_extension_def 
-    unfolding R\<^sub>r_def
-    unfolding clause.from_ground_def
-    by (metis literal.inj_from_ground literal.order.transp multp_image_mset_image_msetD multp_image_mset_image_msetI)
+  show ?thesis
+    unfolding multiset_extension_def clause.order.multiset_extension_def R\<^sub>r_def
+    unfolding literal.order.less\<^sub>G_def clause.from_ground_def
+    by (metis literal.inj_from_ground literal.order.transp multp_image_mset_image_msetD 
+        multp_image_mset_image_msetI)
 qed
+
+lemma is_maximal_rewrite [simp]: 
+  "is_maximal_in_mset_wrt (\<prec>\<^sub>l\<^sub>G) C l = is_maximal (literal.from_ground l) (clause.from_ground C)"
+  unfolding literal.order.less\<^sub>G_def is_maximal_def literal.order.restriction.is_maximal_in_mset_iff
+  by (metis clause.ground_sub_in_ground clause.sub_in_ground_is_ground
+      literal.order.order.strict_iff_order literal.to_ground_inverse)
+ (* TODO: order.order *)
+
+lemma is_strictly_maximal_rewrite [simp]: 
+  "is_strictly_maximal_in_mset_wrt (\<prec>\<^sub>l\<^sub>G) C l = 
+   is_strictly_maximal (literal.from_ground l) (clause.from_ground C)"
+  unfolding literal.order.less\<^sub>G_def is_strictly_maximal_def literal.order.restriction.is_strictly_maximal_in_mset_iff
+  by (metis (lifting) clause.ground_sub_in_ground clause.sub_in_ground_is_ground
+      literal.obtain_grounding reflclp_iff remove1_mset_literal_from_ground)
 
 sublocale ground: ground_order where
   less\<^sub>t = "(\<prec>\<^sub>t\<^sub>G)"
 rewrites
   "multiset_extension.multiset_extension (\<prec>\<^sub>t\<^sub>G) mset_lit = (\<prec>\<^sub>l\<^sub>G)" and
-  "multiset_extension.multiset_extension (\<prec>\<^sub>l\<^sub>G) (\<lambda>x. x) = (\<prec>\<^sub>c\<^sub>G)" 
-    apply unfold_locales
-  by(auto simp: X  Y[unfolded X])
+  "multiset_extension.multiset_extension (\<prec>\<^sub>l\<^sub>G) (\<lambda>x. x) = (\<prec>\<^sub>c\<^sub>G)" and
+  "\<And>l C. ground.is_maximal l C \<longleftrightarrow> is_maximal (literal.from_ground l) (clause.from_ground C)" and
+  "\<And>l C. ground.is_strictly_maximal l C \<longleftrightarrow> is_strictly_maximal (literal.from_ground l) (clause.from_ground C)"
+  by unfold_locales auto
+
+abbreviation "ground_is_maximal literal\<^sub>G premise\<^sub>G \<equiv> is_maximal (literal.from_ground literal\<^sub>G) (clause.from_ground premise\<^sub>G)"
+abbreviation "ground_is_strictly_maximal literal\<^sub>G premise\<^sub>G \<equiv> is_strictly_maximal (literal.from_ground literal\<^sub>G) (clause.from_ground premise\<^sub>G)"
+
 
 (* TODO: naming *)
-
 lemma less\<^sub>t_less\<^sub>l: 
-  assumes "term\<^sub>1 \<prec>\<^sub>t term\<^sub>2"
+  assumes "t\<^sub>1 \<prec>\<^sub>t t\<^sub>2"
   shows 
-    less\<^sub>t_less\<^sub>l_pos: "term\<^sub>1 \<approx> term\<^sub>3 \<prec>\<^sub>l term\<^sub>2 \<approx> term\<^sub>3" and
-    less\<^sub>t_less\<^sub>l_neg: "term\<^sub>1 !\<approx> term\<^sub>3 \<prec>\<^sub>l term\<^sub>2 !\<approx> term\<^sub>3"
+    less\<^sub>t_less\<^sub>l_pos: "t\<^sub>1 \<approx> t\<^sub>3 \<prec>\<^sub>l t\<^sub>2 \<approx> t\<^sub>3" and
+    less\<^sub>t_less\<^sub>l_neg: "t\<^sub>1 !\<approx> t\<^sub>3 \<prec>\<^sub>l t\<^sub>2 !\<approx> t\<^sub>3"
   using assms
   unfolding less\<^sub>l_def
-  by (auto simp: multp_add_mset multp_add_mset' multp_add_same)
+  by (auto simp: multp_add_mset multp_add_mset')
 
 lemma literal_order_all_less_eq_ex_less_set:
   assumes 
-    "\<forall>term \<in> set_uprod (atm_of literal). term \<cdot>t \<sigma>' \<preceq>\<^sub>t term \<cdot>t \<sigma>"
-    "\<exists>term \<in> set_uprod (atm_of literal). term \<cdot>t \<sigma>' \<prec>\<^sub>t term \<cdot>t \<sigma>"
-  shows "literal \<cdot>l \<sigma>' \<prec>\<^sub>l literal \<cdot>l \<sigma>"
+    "\<forall>t \<in> set_uprod (atm_of l). t \<cdot>t \<sigma>' \<preceq>\<^sub>t t \<cdot>t \<sigma>"
+    "\<exists>t \<in> set_uprod (atm_of l). t \<cdot>t \<sigma>' \<prec>\<^sub>t t \<cdot>t \<sigma>"
+  shows "l \<cdot>l \<sigma>' \<prec>\<^sub>l l \<cdot>l \<sigma>"
   using literal.order.all_less_eq_ex_less[OF assms[folded set_mset_set_uprod]].
  
 lemma less\<^sub>c_add_mset:
@@ -328,35 +341,8 @@ lemma less\<^sub>c_add_mset:
   unfolding less\<^sub>c_def
   by blast
 
-lemmas less\<^sub>c_add_same =
+lemmas less\<^sub>c_add_same [simp] =
   multp_add_same[OF literal.order.asymp literal.order.transp, folded less\<^sub>c_def]
-
-(* TODO: Scope *)
-lemma less_eq\<^sub>l_less_eq\<^sub>c:
-  assumes "\<forall>literal \<in># clause. literal \<cdot>l \<sigma>' \<preceq>\<^sub>l literal \<cdot>l \<sigma>"
-  shows "clause \<cdot> \<sigma>' \<preceq>\<^sub>c clause \<cdot> \<sigma>"
-  using clause.order.all_less_eq[OF assms]. 
- 
-lemma less\<^sub>l_less\<^sub>c:
-  assumes 
-    "\<forall>literal \<in># clause. literal \<cdot>l \<sigma>' \<preceq>\<^sub>l literal \<cdot>l \<sigma>"
-    "\<exists>literal \<in># clause. literal \<cdot>l \<sigma>' \<prec>\<^sub>l literal \<cdot>l \<sigma>"
-  shows "clause \<cdot> \<sigma>' \<prec>\<^sub>c clause \<cdot> \<sigma>"
-  using clause.order.all_less_eq_ex_less[OF assms].
-
-lemma ground_is_maximal_iff_is_maximal: 
-  "literal.order.restriction.is_maximal l C \<longleftrightarrow> is_maximal (literal.from_ground l) (clause.from_ground C)"
-  unfolding is_maximal_def literal.order.restriction.is_maximal_def
-  by (smt (verit, del_insts) clause.to_set_from_ground image_iff literal.from_ground_inverse
-      literal.order.less\<^sub>r_def)
-
-lemma ground_is_strictly_maximal_iff_is_strictly_maximal: 
-  "literal.order.restriction.is_strictly_maximal l C \<longleftrightarrow> is_strictly_maximal (literal.from_ground l) (clause.from_ground C)"
-  by (metis (no_types, lifting) clause.ground_sub_in_ground ground_is_maximal_iff_is_maximal in_diffD is_maximal_def is_strictly_maximal_def
-      is_strictly_maximal_in_mset_wrt_iff literal.order.dual_order.order_iff_strict literal.order.less_eq\<^sub>r_from_ground
-      literal.order.restriction.asymp_on_less
-      literal.order.restriction.is_maximal_in_mset_if_is_strictly_maximal_in_mset
-      literal.order.restriction.transp_on_less remove1_mset_literal_from_ground)
 
 end
 

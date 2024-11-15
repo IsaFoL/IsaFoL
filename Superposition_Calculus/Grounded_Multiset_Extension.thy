@@ -4,48 +4,6 @@ begin
 
 section \<open>Grounded Multiset Extensions\<close>
 
-(* TODO:*)
-lemma "refl R \<Longrightarrow> refl (R\<^sup>+)"
-  by (simp add: r_into_trancl' refl_on_def)
-
-lemma not_reflp_multp\<^sub>D\<^sub>M: "\<not> reflp (multp\<^sub>D\<^sub>M R)"
-  unfolding multp\<^sub>D\<^sub>M_def reflp_def
-  by force
-
-lemma not_less_empty_multp\<^sub>D\<^sub>M: "\<not> multp\<^sub>D\<^sub>M R X {#}"
-  by (simp add: multp\<^sub>D\<^sub>M_def)
-
-lemma not_reflp_multp\<^sub>H\<^sub>O: "\<not> reflp (multp\<^sub>H\<^sub>O R)"
-  unfolding multp\<^sub>H\<^sub>O_def reflp_def
-  by simp
-
-lemma not_less_empty_multp\<^sub>H\<^sub>O: "\<not> multp\<^sub>H\<^sub>O R X {#}"
-  by (simp add: multp\<^sub>H\<^sub>O_def)
-
-lemma not_refl_mult: "\<not> refl (mult R)"
-  unfolding refl_on_def mult_def
-  by (meson UNIV_I not_less_empty trancl.cases)
-
-lemma not_less_empty_mult: "(X, {#}) \<notin> mult R"
-  by (metis mult_def not_less_empty tranclD2)
-
-lemma empty_less_mult: "X \<noteq> {#} \<Longrightarrow> ({#}, X) \<in> mult R"
-  using subset_implies_mult
-  by force
-
-lemma not_reflp_multp: "\<not> reflp (multp R)"
-  using not_refl_mult
-  unfolding multp_def reflp_refl_eq
-  by blast
-
-lemma empty_less_multp: "X \<noteq> {#} \<Longrightarrow> multp R {#} X"
-  by (simp add: subset_implies_multp subset_mset.not_eq_extremum)
-
-lemma not_less_empty_multp: "\<not> multp R X {#}"
-  using not_less_empty_mult
-  unfolding multp_def
-  by blast
-
 locale functional_substitution_multiset_extension =
   sub: strict_order where less = "(\<prec>) :: 'sub \<Rightarrow> 'sub \<Rightarrow> bool" +
   multiset_extension where to_mset = to_mset +

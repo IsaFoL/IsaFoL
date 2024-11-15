@@ -64,8 +64,8 @@ lemma context_less_term_less_eq:
     "\<And>t. c\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t c'\<langle>t\<rangle>\<^sub>G"
     "t \<preceq>\<^sub>t t'"
   shows "c\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t c'\<langle>t'\<rangle>\<^sub>G"
-  using assms context_compatibility
-  by (metis reflclp_iff dual_order.strict_trans)
+  using assms context_compatibility dual_order.strict_trans 
+  by blast
 
 lemma context_less_eq_term_less:
   assumes 

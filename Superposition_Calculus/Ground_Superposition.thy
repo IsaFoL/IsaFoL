@@ -302,7 +302,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
           assume "t = s\<langle>t\<rangle>\<^sub>G"
           thus ?thesis
             using \<open>t' \<prec>\<^sub>t t\<close>
-            by (simp add: multp_add_same)
+            by simp
         qed
         thus "Pos (Upair t t') \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
           using \<open>\<P> = Neg\<close>
