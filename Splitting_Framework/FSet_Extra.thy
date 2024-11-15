@@ -7,6 +7,10 @@ text \<open>
   of proving some lemmas in \<^file>\<open>Splitting_Calculi.thy\<close> and \<^file>\<open>Splitting_Without_Backtracking.thy\<close>.
 \<close> 
 
+(* to move to Fset theory? *)
+definition list_of_fset :: "'a fset \<Rightarrow> 'a list" where
+  \<open>list_of_fset A = (SOME l. fset_of_list l = A)\<close>
+
 lemma fimage_snd_zip_is_snd [simp]:
   \<open>length x = length y \<Longrightarrow> (\<lambda>(x, y). y) |`| fset_of_list (zip x y) = fset_of_list y\<close>
 proof -

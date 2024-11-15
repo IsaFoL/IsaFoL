@@ -9,8 +9,12 @@ theory Preliminaries_With_Zorn
     "HOL-Library.Library"
     "HOL-Library.Product_Lexorder"
     Lazy_List_Limsup
+    FSet_Extra
   (* Finite_Set *)
 begin
+
+(*********************************)
+(* Disjunctive_Consequence_Relations *)
 
 no_notation Sema.formula_semantics (infix "\<Turnstile>" 51)
 
@@ -35,7 +39,7 @@ proof -
   ultimately show ?thesis by (meson finite_subset)
 qed
 
-  (* formalizing negated formulas uncovered a mistake in the corresponding paper-definition
+(* formalizing negated formulas uncovered a mistake in the corresponding paper-definition
   (sect. 2.1) *)
 
 (* old def of sign datatype, that causes *a lot* of trouble *)
@@ -44,21 +48,10 @@ qed
 
 datatype 'a sign = Pos "'a" | Neg "'a"
 
-thm countable_classI
-
 instance sign :: (countable) countable
   by (rule countable_classI [of "(\<lambda>x. case x of Pos x \<Rightarrow> to_nat (True, to_nat x)
                                                   | Neg x \<Rightarrow> to_nat (False, to_nat x))"])
      (smt (verit, best) Pair_inject from_nat_to_nat sign.exhaust sign.simps(5) sign.simps(6))
-
-term \<open>less_eq (a::nat) b\<close>
-
-(*
-lift_definition less_eq_sign :: "'a::{countable,linorder} sign \<Rightarrow> 'a sign \<Rightarrow> bool" is
-  \<open>a \<le> b = less_eq (to_nat (a::('a::{countable, linorder}) sign)) (to_nat b)\<close>
-*)
-
-find_theorems "_ \<Longrightarrow> OFCLASS(_,linorder_class)"
 
 fun neg :: \<open>'a sign \<Rightarrow> 'a sign\<close> where
   \<open>neg (Pos C) = Neg C\<close> |
@@ -940,6 +933,10 @@ next
   qed
 qed
 
+
+(*************************************)
+(* Consequence Relation Extension with Negation *)
+
 definition entails_neg :: "'f sign set \<Rightarrow> 'f sign set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>\<sim>" 50) where
   "entails_neg M N \<equiv> {C. Pos C \<in> M} \<union> {C. Neg C \<in> N} \<Turnstile> {C. Pos C \<in> N} \<union> {C. Neg C \<in> M}"
 
@@ -1139,7 +1136,10 @@ proof -
 qed
 
 end
-  
+
+
+(************************************)
+(* Inference_Systems *) (* Calculi_And_Derivations *)
 
 context
 begin
@@ -1440,6 +1440,11 @@ locale dynamically_complete_calculus = calculus +
   assumes dynamically_complete:
     \<open>is_derivation (\<rhd>) Ns \<Longrightarrow> fair Ns \<Longrightarrow> llhd Ns \<Turnstile> {bot} \<Longrightarrow> \<exists>i. bot \<in> llnth Ns i\<close>
 
+
+(*******************************************)
+(* Constrained_Formulas_And_Consequence_Relations *)
+
+
     (* First attempt at formalizing sect. 2.3 *)
     (* below, I force 'v to be countable, but not infinite, alternative, enforce bijection with nat
     in the first locale where it is used? *)
@@ -1466,13 +1471,10 @@ qed
 abbreviation "interp_of \<equiv> Abs_propositional_interpretation"
 abbreviation "strip \<equiv> Rep_propositional_interpretation"
 
-context
-begin
-  setup_lifting type_definition_propositional_interpretation
+setup_lifting type_definition_propositional_interpretation
 
-  lift_definition belong_to :: "'v sign \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>J" 90)
-    is "(\<in>)::('v sign \<Rightarrow> 'v sign set \<Rightarrow> bool)" .
-end
+lift_definition belong_to :: "'v sign \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>J" 90)
+  is "(\<in>)::('v sign \<Rightarrow> 'v sign set \<Rightarrow> bool)" .
 
 definition total :: "'v propositional_interpretation \<Rightarrow> bool" where
   \<open>total J \<equiv> (\<forall>v. (\<exists>v\<^sub>J. v\<^sub>J \<in>\<^sub>J J \<and> to_V v\<^sub>J = v))\<close>
@@ -1527,16 +1529,10 @@ next
     using a_in by (metis neg.simps to_V.elims)
 qed
 
-context
-begin
-  (* TODO : seems the command below fails. What is its impact? *)
-  setup_lifting type_definition_total_interpretation
+setup_lifting type_definition_total_interpretation
 
-  lift_definition belong_to_total :: "'v sign \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>t" 90)
-    is "(\<in>\<^sub>J)::('v sign \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool)" .
-end
-  (* TODO? If propositional_interpretation is never used, directly define total_interpretation from
-  \<t>erm \<open>'v neg set\<close> *)
+lift_definition belong_to_total :: "'v sign \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>t" 90)
+  is "(\<in>\<^sub>J)::('v sign \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool)" .
 
 lemma in_total_to_strip [simp]: \<open>a \<in>\<^sub>t J \<longleftrightarrow> a \<in> total_strip J\<close>
   unfolding belong_to_total_def belong_to_def by simp
@@ -1719,19 +1715,6 @@ next
     by (smt (verit, ccfv_threshold) Un_commute insert_is_Un sound_cons.ext_cons_rel sup.idem)
 qed
 
-  (* various attempts at representing the "enabled" concept *)
-(* definition enabled0 :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
- *   \<open>enabled0 C J = (J \<in> \<J> \<and> ((A_of C) \<subseteq> J \<or> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {})))\<close> *)
-
-  (* J must be an interpretation, but this could also be verified outside of the definitions *)
-(* inductive "enabled" :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
- *   cond1: "J \<in> \<J> \<Longrightarrow> (A_of C) \<subseteq> J \<Longrightarrow> enabled C J" |
-  *   cond2: "J \<in> \<J> \<Longrightarrow> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {}) \<Longrightarrow> enabled C J" *)
-  
-(* inductive "enabled" :: "('f, 'v) AF \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
- *   cond1: "(A_of C) \<subseteq> (total_strip J) \<Longrightarrow> enabled C J" |
-  *   cond2: "(F_of C = bot \<and> (\<sim> (A_of C)) \<inter> (total_strip J) = {}) \<Longrightarrow> enabled C J" *)
-
 definition \<iota>F_of :: "('f, 'v) AF inference \<Rightarrow> 'f inference" where
   \<open>\<iota>F_of \<iota> = Infer (List.map F_of (prems_of \<iota>)) (F_of (concl_of \<iota>))\<close>
   
@@ -1827,10 +1810,6 @@ lemma fml_ext_preserves_val: \<open>to_V v1 = to_V v2 \<Longrightarrow> to_V (fm
 definition sound_consistent :: "'v total_interpretation \<Rightarrow> bool" where
   \<open>sound_consistent J \<equiv> \<not> (sound_cons.entails_neg (fml_ext ` (total_strip J)) {Pos bot})\<close>
   
-  (* most probably overkill *)
-(* abbreviation F_of_set :: "('f, 'v) AF set \<Rightarrow> 'f set" where
-  \<open>F_of_set N \<equiv> F_of ` N\<close> *)
-
 
 
 
@@ -1841,14 +1820,16 @@ definition propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v
   (infix "\<Turnstile>\<^sub>p" 50) where
   \<open>J \<Turnstile>\<^sub>p \<N> \<equiv> bot \<notin> ((proj\<^sub>\<bottom> \<N>) proj\<^sub>J J)\<close>
 
-lemma \<open>J \<Turnstile>\<^sub>p {}\<close> unfolding propositional_model_def enabled_projection_def propositional_projection_def by blast
+lemma \<open>J \<Turnstile>\<^sub>p {}\<close> 
+  unfolding propositional_model_def enabled_projection_def propositional_projection_def by blast
  
 definition propositional_model2 :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
   (infix "\<Turnstile>\<^sub>p2" 50) where
   \<open>J \<Turnstile>\<^sub>p2 \<N> \<equiv> ({} = ((proj\<^sub>\<bottom> \<N>) proj\<^sub>J J))\<close>
 
 lemma subset_model_p2: \<open>\<N>' \<subseteq> \<N> \<Longrightarrow> J \<Turnstile>\<^sub>p2 \<N> \<Longrightarrow> J \<Turnstile>\<^sub>p2 \<N>'\<close>
-  by (simp add: enabled_projection_def propositional_model2_def propositional_projection_def subset_eq)
+  by (simp add: enabled_projection_def propositional_model2_def propositional_projection_def 
+      subset_eq)
 
 lemma subset_not_model: \<open>\<not> J \<Turnstile>\<^sub>p2 \<N> \<Longrightarrow> \<N> = \<N>\<^sub>1 \<union> \<N>\<^sub>2 \<Longrightarrow> J \<Turnstile>\<^sub>p2 \<N>\<^sub>1 \<Longrightarrow> \<not> J \<Turnstile>\<^sub>p2 \<N>\<^sub>2\<close>
   unfolding propositional_model2_def propositional_projection_def enabled_projection_def by blast
@@ -1870,10 +1851,6 @@ lemma form_shape_sign_set: \<open>\<forall>f\<in>sign_set_to_formula_set A. \<ex
 definition AF_to_formula_set :: "('f, 'v) AF \<Rightarrow> 'v formula set" where
   (* /!\ this formula set is to be understood as a disjunction *)
   \<open>AF_to_formula_set \<C> = sign_set_to_formula_set (neg ` fset (A_of \<C>))\<close>
-
-(* to move to Fset theory? *)
-definition list_of_fset :: "'a fset \<Rightarrow> 'a list" where
-  \<open>list_of_fset A = (SOME l. fset_of_list l = A)\<close>
 
 definition AF_to_formula :: "('f, 'v) AF \<Rightarrow> 'v formula" where
   \<open>AF_to_formula \<C> = BigOr (map sign_to_atomic_formula (map neg (list_of_fset (A_of \<C>))))\<close>
