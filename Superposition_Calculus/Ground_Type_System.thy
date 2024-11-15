@@ -5,6 +5,9 @@ begin
 inductive welltyped for \<F> where
   GFun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> list_all2 (welltyped \<F>) ts \<tau>s \<Longrightarrow> welltyped \<F> (GFun f ts) \<tau>"
 
+inductive typed for \<F> where
+  GFun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> typed \<F> (GFun f ts) \<tau>"
+
 lemma welltyped_right_unique: "right_unique (welltyped \<F>)"
 proof (rule right_uniqueI)
   fix t \<tau>\<^sub>1 \<tau>\<^sub>2
@@ -15,6 +18,20 @@ qed
 
 definition welltyped\<^sub>a where
   "welltyped\<^sub>a \<F> A \<longleftrightarrow> (\<exists>\<tau>. \<forall>t \<in> set_uprod A. welltyped \<F> t \<tau>)"
+
+definition welltyped\<^sub>a' where
+  "welltyped\<^sub>a' \<F> A \<tau> \<longleftrightarrow> (\<forall>t \<in> set_uprod A. welltyped \<F> t \<tau>)"
+
+lemma welltyped\<^sub>a_right_unique: "right_unique (welltyped\<^sub>a' \<F>)"
+  unfolding welltyped\<^sub>a'_def
+  using welltyped_right_unique
+  by (smt (verit, ccfv_threshold) Uniq_D Uniq_I insertI1 right_unique_iff set_uprod_simps uprod_exhaust)
+(*proof (rule right_uniqueI)
+  fix t \<tau>\<^sub>1 \<tau>\<^sub>2
+  assume "welltyped \<F> t \<tau>\<^sub>1" and "welltyped \<F> t \<tau>\<^sub>2"
+  thus "\<tau>\<^sub>1 = \<tau>\<^sub>2"
+    by (auto elim!: welltyped.cases)
+qed*)
 
 definition welltyped\<^sub>l where
   "welltyped\<^sub>l \<F> L \<longleftrightarrow> welltyped\<^sub>a \<F> (atm_of L)"

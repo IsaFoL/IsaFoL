@@ -1,5 +1,5 @@
 theory Ground_Superposition_Welltypedness_Preservation
-  imports Ground_Superposition
+  imports Ground_Superposition Ground_Type_System
 begin
 
 lemma (in ground_superposition_calculus) ground_superposition_preserves_typing:

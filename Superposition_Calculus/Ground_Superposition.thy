@@ -21,7 +21,6 @@ theory Ground_Superposition
     Clausal_Calculus_Extra
     Selection_Function
     Ground_Order
-    Ground_Type_System
 begin
 
 
