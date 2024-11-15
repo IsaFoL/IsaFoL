@@ -16,6 +16,10 @@ begin
 (*********************************)
 (* Disjunctive_Consequence_Relations *)
 
+section \<open>Formulas\<close>
+
+subsection \<open>Preliminary Notions\<close>
+
 no_notation Sema.formula_semantics (infix "\<Turnstile>" 51)
 
   (*useful tools for the following proofs*)
@@ -39,49 +43,9 @@ proof -
   ultimately show ?thesis by (meson finite_subset)
 qed
 
-(* formalizing negated formulas uncovered a mistake in the corresponding paper-definition
-  (sect. 2.1) *)
 
-(* old def of sign datatype, that causes *a lot* of trouble *)
-  (* datatype 'a neg = Pos "'a" | Neg "'a neg" *)
-(* ("\<sim>_" 55) (*| Pos (nval_of: "'a neg") *) term "\<sim>F" *)
 
-datatype 'a sign = Pos "'a" | Neg "'a"
-
-instance sign :: (countable) countable
-  by (rule countable_classI [of "(\<lambda>x. case x of Pos x \<Rightarrow> to_nat (True, to_nat x)
-                                                  | Neg x \<Rightarrow> to_nat (False, to_nat x))"])
-     (smt (verit, best) Pair_inject from_nat_to_nat sign.exhaust sign.simps(5) sign.simps(6))
-
-fun neg :: \<open>'a sign \<Rightarrow> 'a sign\<close> where
-  \<open>neg (Pos C) = Neg C\<close> |
-  \<open>neg (Neg C) = Pos C\<close>
-
-fun to_V :: "'a sign \<Rightarrow> 'a" where
-  "to_V (Pos C) = C" |
-  "to_V (Neg C) = C"
-
-lemma neg_neg_A_is_A [simp]: \<open>neg (neg A) = A\<close>
-  by (metis neg.simps(1) neg.simps(2) to_V.elims)
-
-fun is_Pos :: "'a sign \<Rightarrow> bool" where
-  "is_Pos (Pos C) = True" |
-  "is_Pos (Neg C) = False"
-
-lemma is_Pos_to_V: \<open>is_Pos C \<Longrightarrow> C = Pos (to_V C)\<close>
-  by (metis is_Pos.simps(2) to_V.elims)
-
-lemma is_Neg_to_V: \<open>\<not> is_Pos C \<Longrightarrow> C = Neg (to_V C)\<close>
-  by (metis is_Pos.simps(1) to_V.elims)
-
-lemma pos_union_singleton: \<open>{D. Pos D \<in> N \<union> {Pos X}} = {D. Pos D \<in> N} \<union> {X}\<close>
-  by blast
-
-lemma tov_set[simp]: \<open>{to_V C |C. to_V C \<in> A} = A\<close>
-  by (smt (verit, del_insts) mem_Collect_eq subsetI subset_antisym to_V.simps(1))
-
-lemma pos_neg_union: \<open>{P C |C. Q C \<and> is_Pos C} \<union> {P C |C. Q C \<and> \<not> is_Pos C} = {P C |C. Q C}\<close>
-  by blast
+subsection \<open>Disjunctive Consequence Relations\<close>
  
 locale consequence_relation =
   fixes
@@ -932,11 +896,56 @@ next
       using entails_each[OF n_to_c m_to_c_n m_c_to_c] unfolding entails_conjunctive_def .
   qed
 qed
+end
 
+subsection \<open>Extension to Negated Formulas\<close>
 
-(*************************************)
-(* Consequence Relation Extension with Negation *)
+(* formalizing negated formulas uncovered a mistake in the corresponding paper-definition
+  (sect. 2.1) *)
 
+(* old def of sign datatype, that causes *a lot* of trouble *)
+  (* datatype 'a neg = Pos "'a" | Neg "'a neg" *)
+(* ("\<sim>_" 55) (*| Pos (nval_of: "'a neg") *) term "\<sim>F" *)
+
+datatype 'a sign = Pos "'a" | Neg "'a"
+
+instance sign :: (countable) countable
+  by (rule countable_classI [of "(\<lambda>x. case x of Pos x \<Rightarrow> to_nat (True, to_nat x)
+                                                  | Neg x \<Rightarrow> to_nat (False, to_nat x))"])
+     (smt (verit, best) Pair_inject from_nat_to_nat sign.exhaust sign.simps(5) sign.simps(6))
+
+fun neg :: \<open>'a sign \<Rightarrow> 'a sign\<close> where
+  \<open>neg (Pos C) = Neg C\<close> |
+  \<open>neg (Neg C) = Pos C\<close>
+
+fun to_V :: "'a sign \<Rightarrow> 'a" where
+  "to_V (Pos C) = C" |
+  "to_V (Neg C) = C"
+
+lemma neg_neg_A_is_A [simp]: \<open>neg (neg A) = A\<close>
+  by (metis neg.simps(1) neg.simps(2) to_V.elims)
+
+fun is_Pos :: "'a sign \<Rightarrow> bool" where
+  "is_Pos (Pos C) = True" |
+  "is_Pos (Neg C) = False"
+
+lemma is_Pos_to_V: \<open>is_Pos C \<Longrightarrow> C = Pos (to_V C)\<close>
+  by (metis is_Pos.simps(2) to_V.elims)
+
+lemma is_Neg_to_V: \<open>\<not> is_Pos C \<Longrightarrow> C = Neg (to_V C)\<close>
+  by (metis is_Pos.simps(1) to_V.elims)
+
+lemma pos_union_singleton: \<open>{D. Pos D \<in> N \<union> {Pos X}} = {D. Pos D \<in> N} \<union> {X}\<close>
+  by blast
+
+lemma tov_set[simp]: \<open>{to_V C |C. to_V C \<in> A} = A\<close>
+  by (smt (verit, del_insts) mem_Collect_eq subsetI subset_antisym to_V.simps(1))
+
+lemma pos_neg_union: \<open>{P C |C. Q C \<and> is_Pos C} \<union> {P C |C. Q C \<and> \<not> is_Pos C} = {P C |C. Q C}\<close>
+  by blast
+
+context consequence_relation
+begin
 definition entails_neg :: "'f sign set \<Rightarrow> 'f sign set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>\<sim>" 50) where
   "entails_neg M N \<equiv> {C. Pos C \<in> M} \<union> {C. Neg C \<in> N} \<Turnstile> {C. Pos C \<in> N} \<union> {C. Neg C \<in> M}"
 
@@ -1138,8 +1147,7 @@ qed
 end
 
 
-(************************************)
-(* Inference_Systems *) (* Calculi_And_Derivations *)
+subsection \<open>Calculi and Derivations\<close>
 
 context
 begin
@@ -1442,7 +1450,7 @@ locale dynamically_complete_calculus = calculus +
 
 
 (*******************************************)
-(* Constrained_Formulas_And_Consequence_Relations *)
+subsection \<open>Annotated Formulas and Consequence Relations\<close>
 
 
     (* First attempt at formalizing sect. 2.3 *)
@@ -1810,10 +1818,6 @@ lemma fml_ext_preserves_val: \<open>to_V v1 = to_V v2 \<Longrightarrow> to_V (fm
 definition sound_consistent :: "'v total_interpretation \<Rightarrow> bool" where
   \<open>sound_consistent J \<equiv> \<not> (sound_cons.entails_neg (fml_ext ` (total_strip J)) {Pos bot})\<close>
   
-
-
-
-
 (* TODO: try alternative def that makes use of prop semantic from AFP to ease use of compactness *)
 (* connection to compactness from AFP used but could it be made more direct? *)
 definition propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
@@ -3000,10 +3004,6 @@ qed
 interpretation neg_ext_sound_cons_rel: consequence_relation "Pos bot" sound_cons.entails_neg
   using sound_cons.ext_cons_rel by simp
 
-
-(* TODO: move in fset theory? *)
-lemma fin_set_fset: "finite A \<Longrightarrow> \<exists>Af. fset Af = A" by (metis finite_list fset_of_list.rep_eq)
-
 (* Splitting report Lemma 4, 2/2 *)
 lemma AF_ext_sound_cons_rel: \<open>consequence_relation (to_AF bot) AF_entails_sound\<close>
 (* TODO: check if this belongs here or if this needs to be moved somewhere else? *)
@@ -3195,7 +3195,6 @@ next
         using mp_props np_props fin_entail enab_np Jf_in Jf_bot \<J>\<^sub>f'_def AJ_is AM_is AM_in_Jf AF.sel(2) by blast
     }
 
-          (* enabled_set (\<N>'_of J) J could be removed since it is a consequence of enabled_set \<N> J and the subset relation *)
     then obtain \<M>'_of \<N>'_of \<J>'_of where
       fsets_from_J: \<open>enabled_set \<N> J \<Longrightarrow> \<M>'_of J \<subseteq> \<M> \<and> fset (A_of (\<J>'_of J)) \<subseteq> total_strip J \<and> \<N>'_of J \<subseteq> \<N> \<and>
       finite (\<M>'_of J) \<and> finite (\<N>'_of J) \<and> F_of (\<J>'_of J) = bot \<and> enabled_set (\<N>'_of J) J \<and>
@@ -3210,22 +3209,6 @@ next
       using fsets_from_J unfolding propositional_projection_def by blast
     let ?\<N>'_un = \<open>\<Union>{\<N>'_of J |J. enabled_set \<N> J}\<close>
     let ?\<M>'_un = \<open>\<Union>{{\<C>. \<C> \<in> \<M>'_of J \<and> enabled \<C> J} |J. enabled_set \<N> J}\<close>
- (*   have A_of_enabled: \<open>enabled_set \<N> J \<Longrightarrow> (fset (A_of (\<J>'_of J)) =
-      \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> (\<N>'_of J) \<union> {\<C>. \<C> \<in> (\<M>'_of J) \<and> enabled \<C> J}})\<close> for J
-      using fsets_from_J by presburger
-    have A_of_eq: \<open>\<Union> (fset ` A_of ` ?\<J>'_set) =
-      \<Union> (fset ` A_of ` ?\<N>'_un) \<union> \<Union> (fset ` A_of ` ?\<M>'_un)\<close>
-    proof -
-      have \<open>\<Union> (fset ` A_of ` ?\<J>'_set) = \<Union>{fset (A_of (\<J>'_of J)) |J. enabled_set \<N> J}\<close>
-        by blast
-      also have \<open>... = \<Union>{\<Union>{fset (A_of \<C>) |\<C>. \<C> \<in>
-        (\<N>'_of J) \<union> {\<C>. \<C> \<in> (\<M>'_of J) \<and> enabled \<C> J}} |J. enabled_set \<N> J}\<close>
-        using A_of_enabled by (metis (no_types, lifting))
-      also have \<open>... = \<Union>(fset ` A_of ` (?\<N>'_un \<union> ?\<M>'_un))\<close> by blast
-      finally show \<open>\<Union>(fset ` A_of ` ?\<J>'_set) =
-        \<Union>(fset ` A_of ` ?\<N>'_un) \<union> \<Union> (fset ` A_of ` ?\<M>'_un)\<close>
-        by simp
-    qed *)
 
     have \<open>\<forall>J. \<not> (enabled_set \<N> J) \<longrightarrow> \<not> (J \<Turnstile>\<^sub>p2 (\<E>_from \<N>))\<close>
       using equiv_\<E>_enabled_\<N> by blast
@@ -3569,8 +3552,6 @@ qed
 lemma \<open>(to_AF ` M \<Turnstile>\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile> N)\<close>
   unfolding AF_entails_def by simp
 
-
-
 interpretation ext_cons_rel_std: consequence_relation "Pos (to_AF bot)" AF_cons_rel.entails_neg
   using AF_cons_rel.ext_cons_rel .
 
@@ -3651,7 +3632,6 @@ proof -
         qed
         then obtain Jinterp where Jinterp_is: "strip Jinterp = Jstrip"
           by (metis Rep_propositional_interpretation_cases mem_Collect_eq)
-          (* \<open>Jinterp = interp_of Jstrip\<close> by simp *)
         have \<open>total Jinterp\<close>
           unfolding total_def
         proof
@@ -3721,7 +3701,6 @@ proof -
   ultimately show \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
     by (smt (verit, best))
 qed
-
 
 end
 

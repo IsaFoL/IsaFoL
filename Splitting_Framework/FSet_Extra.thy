@@ -11,6 +11,8 @@ text \<open>
 definition list_of_fset :: "'a fset \<Rightarrow> 'a list" where
   \<open>list_of_fset A = (SOME l. fset_of_list l = A)\<close>
 
+lemma fin_set_fset: "finite A \<Longrightarrow> \<exists>Af. fset Af = A" by (metis finite_list fset_of_list.rep_eq)
+
 lemma fimage_snd_zip_is_snd [simp]:
   \<open>length x = length y \<Longrightarrow> (\<lambda>(x, y). y) |`| fset_of_list (zip x y) = fset_of_list y\<close>
 proof -
