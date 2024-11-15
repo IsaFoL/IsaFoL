@@ -209,7 +209,6 @@ rewrites
 
 notation clause.subst (infixl "\<cdot>" 67)
 
-
 lemmas empty_clause_is_ground[clause_intro] = clause.empty_is_ground[OF set_mset_empty]
 
 lemmas clause_subst_empty [clause_simp] = 

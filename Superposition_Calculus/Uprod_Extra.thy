@@ -85,5 +85,8 @@ qed
 
 lemma mset_uprod_plus_neq: "mset_uprod a \<noteq> mset_uprod b + mset_uprod b"
   by(cases a; cases b)(auto simp: add_mset_eq_add_mset)
+
+lemma set_uprod_not_empty: "set_uprod a \<noteq> {}"
+  by(cases a) simp
   
 end

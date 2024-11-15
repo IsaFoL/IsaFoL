@@ -1,99 +1,6 @@
 theory First_Order_Type_System
-  imports Nonground_Clause Fun_Extra
+  imports Nonground_Clause Fun_Extra Clause_Typing Term_Typing
 begin
-
-locale typing =
-  fixes is_typed is_welltyped
-  assumes is_typed_if_is_welltyped: "\<And>\<T> expr. is_welltyped \<T> expr \<Longrightarrow> is_typed \<T> expr"
-
-locale explicit_typing =
-  fixes typed welltyped
-  assumes 
-    typed_right_unique: "\<And>\<T>. right_unique (typed \<T>)" and
-    welltyped_right_unique: "\<And>\<T>. right_unique (welltyped \<T>)" and
-    typed_if_welltyped: "\<And>\<T> expr \<tau>. welltyped \<T> expr \<tau> \<Longrightarrow> typed \<T> expr \<tau>"
-begin
-
-definition is_typed where
-  "is_typed \<T> expr \<equiv> \<exists>\<tau>. typed \<T> expr \<tau>"
-
-definition is_welltyped where
-  "is_welltyped \<T> expr \<equiv> \<exists>\<tau>. welltyped \<T> expr \<tau>"
-
-sublocale typing where is_typed = is_typed and is_welltyped = is_welltyped
-   using typed_if_welltyped
-   by unfold_locales (auto simp: is_typed_def is_welltyped_def)
-
-end
-
-locale typing_lifting =
-  sub: typing where is_typed = is_typed_sub and is_welltyped = is_welltyped_sub
-for is_typed_sub is_welltyped_sub :: "'\<T> \<Rightarrow> 'sub \<Rightarrow> bool" +
-fixes 
-  to_set :: "'expr \<Rightarrow> 'sub set"
-begin
-
-definition is_typed where
-  "is_typed \<T> expr \<equiv> \<forall>sub \<in> to_set expr. is_typed_sub \<T> sub"
-
-definition is_welltyped where
-  "is_welltyped \<T> expr \<equiv> \<forall>sub \<in> to_set expr. is_welltyped_sub \<T> sub"
-
-sublocale typing where is_typed = is_typed and is_welltyped = is_welltyped
-proof unfold_locales
-  fix \<T> expr
-  assume "is_welltyped \<T> expr"
-  then show "is_typed \<T> expr"
-    unfolding is_typed_def is_welltyped_def
-    using sub.is_typed_if_is_welltyped
-    by blast
-qed
-
-end
-
-locale context_compatible_typing = explicit_typing +
-  fixes Fun
-  assumes 
-    welltyped_context_compatible: 
-    "\<And>\<T> t t' c \<tau> \<tau>'.
-      welltyped \<T> t \<tau>' \<Longrightarrow>
-      welltyped \<T> t' \<tau>' \<Longrightarrow>
-      welltyped \<T> (Fun\<langle>c; t\<rangle>) \<tau> \<Longrightarrow>
-      welltyped \<T> (Fun\<langle>c; t'\<rangle>) \<tau>" and
-    typed_context_compatible: 
-    "\<And>\<T> t t' c \<tau> \<tau>'.
-      typed \<T> t \<tau>' \<Longrightarrow>
-      typed \<T> t' \<tau>' \<Longrightarrow>
-      typed \<T> (Fun\<langle>c; t\<rangle>) \<tau> \<Longrightarrow>
-      typed \<T> (Fun\<langle>c; t'\<rangle>) \<tau>"
-
-locale clause_typing_lifting =
-  "term": explicit_typing term_typed term_welltyped
-  for term_typed term_welltyped
-begin
-
-sublocale atom: typing_lifting where 
-  is_typed_sub = term.is_typed and 
-  is_welltyped_sub = term.is_welltyped and
-  to_set = set_uprod 
-  by unfold_locales
-
-sublocale literal: typing_lifting where 
-  is_typed_sub = atom.is_typed and 
-  is_welltyped_sub = atom.is_welltyped and
-  to_set = "\<lambda>l. {atm_of l}"
-  by unfold_locales
-
-sublocale clause: typing_lifting where 
-  is_typed_sub = literal.is_typed and 
-  is_welltyped_sub = literal.is_welltyped and
-  to_set = set_mset
-  by unfold_locales
-
-end
-
-type_synonym ('f, 'ty) fun_types = "'f \<Rightarrow> 'ty list \<times> 'ty"
-type_synonym ('v, 'ty) var_types = "'v \<Rightarrow> 'ty"
 
 inductive has_type :: "('f, 'ty) fun_types \<Rightarrow> ('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" 
   for \<F> \<V> where
@@ -121,23 +28,54 @@ proof (rule right_uniqueI)
     by (auto elim!: welltyped.cases)
 qed
 
-global_interpretation "term": explicit_typing "\<lambda>(\<F>, \<V>). has_type \<F> \<V>" "\<lambda>(\<F>, \<V>). welltyped \<F> \<V>"
-proof(unfold_locales)
-  show "\<And>\<T>. right_unique (case \<T> of (\<F>, \<V>) \<Rightarrow> has_type \<F> \<V>)"
-    using has_type_right_unique
-    by auto
-next
-  show "\<And>\<T>. right_unique (case \<T> of (\<F>, \<V>) \<Rightarrow> welltyped \<F> \<V>)"
-    using welltyped_right_unique
-    by auto
-next
-  fix \<T> and t :: "('f, 'v) term" and \<tau> :: 'ty
-  show "(case \<T> of (\<F>, \<V>) \<Rightarrow> welltyped \<F> \<V>) t \<tau> \<Longrightarrow> (case \<T> of (\<F>, \<V>) \<Rightarrow> has_type \<F> \<V>) t \<tau>"
-    apply(induction t)
-     apply(auto split: prod.splits)
-     apply (simp add: has_type.simps welltyped.simps)
-    using has_type.simps welltyped.cases by fastforce
+lemma pred_prod_imp: 
+  "(\<And>p. (case p of (a, b) \<Rightarrow> P a b) \<Longrightarrow> (case p of (a, b) \<Rightarrow> P' a b)) \<equiv> 
+   (\<And>a b. P a b \<Longrightarrow> P' a b )"
+  by auto
+
+lemma pred_prod_imp': 
+  "(\<And>p c. (case p of (a, b) \<Rightarrow> P a b) c \<Longrightarrow> (case p of (a, b) \<Rightarrow> P' a b) c) \<equiv> 
+   (\<And>a b c. P a b c \<Longrightarrow> P' a b c)"
+  by auto
+
+lemma right_unique_prod: "right_unique (\<lambda>(a, b). P a b) \<longleftrightarrow> (\<forall>a. right_unique (P a))"
+  by (auto simp add: right_unique_iff)
+
+locale nonground_term_type_system = 
+  fixes \<F> :: "('f, 'ty) fun_types"
+begin
+
+sublocale
+  subst: is_typed_def where 
+  is_typed_def = "\<lambda>(\<V>, \<sigma>). \<forall>x. has_type \<F> \<V> (\<sigma> x) (\<V> x)" and 
+  is_welltyped_def = "\<lambda>(\<V>, \<sigma>). \<forall>x. welltyped \<F> \<V> (\<sigma> x) (\<V> x)" + 
+  subst: typing subst.is_typed subst.is_welltyped
+proof(unfold_locales, unfold pred_prod_imp, intro allI)
+  fix \<V> :: "('v, 'ty) var_types" and \<sigma> x
+  show "\<forall>x. welltyped \<F> \<V> (\<sigma> x) (\<V> x) \<Longrightarrow> has_type \<F> \<V> (\<sigma> x) (\<V> x)"
+    by (smt (verit, best) has_type.Fun has_type.Var welltyped.simps)
 qed
+
+sublocale 
+  "term": typed_def "\<lambda>(\<V>, t). has_type \<F> \<V> t" "\<lambda>(\<V>, t). welltyped \<F> \<V> t" +
+  "term": explicit_typing term.typed term.welltyped
+proof(unfold_locales; unfold pred_prod_imp' right_unique_prod; (intro allI)?)
+  fix \<V> :: "('v, 'ty) var_types"
+  show "right_unique (has_type \<F> \<V>)"
+    using has_type_right_unique.
+next
+  fix \<V> :: "('v, 'ty) var_types"
+  show "right_unique (welltyped \<F> \<V>)"
+    using welltyped_right_unique.
+next
+  fix \<V> and t :: "('f,'v) term" and \<tau> :: 'ty
+  assume "welltyped \<F> \<V> t \<tau>"
+  then show "has_type \<F> \<V> t \<tau>"
+    unfolding has_type.simps 
+    by (meson welltyped.simps)
+qed
+
+end
 
 definition has_type\<^sub>a where
   "has_type\<^sub>a \<F> \<V> A \<longleftrightarrow> (\<exists>\<tau>. \<forall>t \<in> set_uprod A. has_type \<F> \<V> t \<tau>)"
@@ -163,18 +101,8 @@ definition has_type\<^sub>c\<^sub>s where
 definition welltyped\<^sub>c\<^sub>s where
   "welltyped\<^sub>c\<^sub>s \<F> \<V> N \<longleftrightarrow> (\<forall>C \<in> N. welltyped\<^sub>c \<F> \<V> C)"
 
-(* TODO: Rename *)
 definition has_type\<^sub>\<sigma> where
-  "has_type\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>t \<tau>. has_type \<F> \<V> t \<tau> \<longrightarrow> has_type \<F> \<V> (t \<cdot>t \<sigma>) \<tau>)"
-
-definition has_type\<^sub>\<sigma>' where
-  "has_type\<^sub>\<sigma>' \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>x. has_type \<F> \<V> (\<sigma> x) (\<V> x))"
-
-(*lemma "has_type\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> has_type\<^sub>\<sigma>' \<F> \<V> \<sigma>"
-  unfolding has_type\<^sub>\<sigma>_def has_type\<^sub>\<sigma>'_def
-  apply auto
-  using has_type.Var apply fastforce
-  by (smt (verit, ccfv_threshold) eval_term.simps(1) eval_term.simps(2) has_type.simps)*)
+  "has_type\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>x. has_type \<F> \<V> (\<sigma> x) (\<V> x))"
 
 definition welltyped\<^sub>\<sigma> where
   "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> (\<forall>x. welltyped \<F> \<V> (\<sigma> x) (\<V> x))"
@@ -197,11 +125,6 @@ lemma welltyped\<^sub>\<sigma>_on_subset:
   using assms
   unfolding welltyped\<^sub>\<sigma>_on_def
   by blast
-
-definition welltyped\<^sub>\<sigma>' where
-  "welltyped\<^sub>\<sigma>' \<F> \<V> \<sigma> \<longleftrightarrow>  (\<forall>t \<tau>. welltyped \<F> \<V> t \<tau> \<longrightarrow> welltyped \<F> \<V> (t \<cdot>t \<sigma>) \<tau>)"
-
-(* Probably true: lemma "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma> \<longleftrightarrow> welltyped\<^sub>\<sigma>' \<F> \<V> \<sigma>" *)
 
 lemma has_type\<^sub>c_add_mset [clause_simp]: 
   "has_type\<^sub>c \<F> \<V> (add_mset L C) \<longleftrightarrow> has_type\<^sub>l \<F> \<V> L \<and> has_type\<^sub>c \<F> \<V> C"
