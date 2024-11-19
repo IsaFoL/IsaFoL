@@ -7,6 +7,7 @@ inductive has_type :: "('f, 'ty) fun_types \<Rightarrow> ('v, 'ty) var_types \<R
     Var: "\<V> x = \<tau> \<Longrightarrow> has_type \<F> \<V> (Var x) \<tau>"
   | Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> has_type \<F> \<V> (Fun f ts) \<tau>"
 
+(* TODO/ Note: Implicitly implies that for every function symbol there is one fixed arity *)
 inductive welltyped :: "('f, 'ty) fun_types \<Rightarrow>  ('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" 
   for \<F> \<V> where
     Var: "\<V> x = \<tau> \<Longrightarrow> welltyped \<F> \<V> (Var x) \<tau>"
@@ -41,41 +42,6 @@ lemma pred_prod_imp':
 lemma right_unique_prod: "right_unique (\<lambda>(a, b). P a b) \<longleftrightarrow> (\<forall>a. right_unique (P a))"
   by (auto simp add: right_unique_iff)
 
-locale nonground_term_type_system = 
-  fixes \<F> :: "('f, 'ty) fun_types"
-begin
-
-sublocale
-  subst: is_typed_def where 
-  is_typed_def = "\<lambda>(\<V>, \<sigma>). \<forall>x. has_type \<F> \<V> (\<sigma> x) (\<V> x)" and 
-  is_welltyped_def = "\<lambda>(\<V>, \<sigma>). \<forall>x. welltyped \<F> \<V> (\<sigma> x) (\<V> x)" + 
-  subst: typing subst.is_typed subst.is_welltyped
-proof(unfold_locales, unfold pred_prod_imp, intro allI)
-  fix \<V> :: "('v, 'ty) var_types" and \<sigma> x
-  show "\<forall>x. welltyped \<F> \<V> (\<sigma> x) (\<V> x) \<Longrightarrow> has_type \<F> \<V> (\<sigma> x) (\<V> x)"
-    by (smt (verit, best) has_type.Fun has_type.Var welltyped.simps)
-qed
-
-sublocale 
-  "term": typed_def "\<lambda>(\<V>, t). has_type \<F> \<V> t" "\<lambda>(\<V>, t). welltyped \<F> \<V> t" +
-  "term": explicit_typing term.typed term.welltyped
-proof(unfold_locales; unfold pred_prod_imp' right_unique_prod; (intro allI)?)
-  fix \<V> :: "('v, 'ty) var_types"
-  show "right_unique (has_type \<F> \<V>)"
-    using has_type_right_unique.
-next
-  fix \<V> :: "('v, 'ty) var_types"
-  show "right_unique (welltyped \<F> \<V>)"
-    using welltyped_right_unique.
-next
-  fix \<V> and t :: "('f,'v) term" and \<tau> :: 'ty
-  assume "welltyped \<F> \<V> t \<tau>"
-  then show "has_type \<F> \<V> t \<tau>"
-    unfolding has_type.simps 
-    by (meson welltyped.simps)
-qed
-
-end
 
 definition has_type\<^sub>a where
   "has_type\<^sub>a \<F> \<V> A \<longleftrightarrow> (\<exists>\<tau>. \<forall>t \<in> set_uprod A. has_type \<F> \<V> t \<tau>)"
@@ -126,6 +92,7 @@ lemma welltyped\<^sub>\<sigma>_on_subset:
   unfolding welltyped\<^sub>\<sigma>_on_def
   by blast
 
+(* TODO: Monoid *)
 lemma has_type\<^sub>c_add_mset [clause_simp]: 
   "has_type\<^sub>c \<F> \<V> (add_mset L C) \<longleftrightarrow> has_type\<^sub>l \<F> \<V> L \<and> has_type\<^sub>c \<F> \<V> C"
   by (simp add: has_type\<^sub>c_def)
@@ -141,13 +108,24 @@ lemma has_type\<^sub>c_plus [clause_simp]:
 lemma welltyped\<^sub>c_plus [clause_simp]: 
   "welltyped\<^sub>c \<F> \<V> (C + D) \<longleftrightarrow> welltyped\<^sub>c \<F> \<V> C \<and> welltyped\<^sub>c \<F> \<V> D"
   by (auto simp: welltyped\<^sub>c_def)
+(* --------------- *)
+
 
 lemma has_type\<^sub>\<sigma>_has_type: 
   assumes "has_type\<^sub>\<sigma> \<F> \<V> \<sigma>" "has_type \<F> \<V> t \<tau>"
   shows "has_type \<F> \<V> (t \<cdot>t \<sigma>) \<tau>"
   using assms 
   unfolding has_type\<^sub>\<sigma>_def
-  by blast
+  by (smt (verit, ccfv_SIG) eval_term.simps(1,2) has_type.simps)
+
+
+lemma has_type\<^sub>\<sigma>_has_type': 
+  assumes "has_type\<^sub>\<sigma> \<F> \<V> \<sigma>" "has_type \<F> \<V> t \<tau>"
+  shows "has_type \<F> \<V> (t \<cdot>t \<sigma>) \<tau> \<longleftrightarrow> has_type \<F> \<V> t \<tau>"
+  using assms 
+  unfolding has_type\<^sub>\<sigma>_def
+  by (smt (verit, ccfv_SIG) eval_term.simps(1,2) has_type.simps)
+
 
 lemma welltyped\<^sub>\<sigma>_welltyped: 
   assumes welltyped\<^sub>\<sigma>: "welltyped\<^sub>\<sigma> \<F> \<V> \<sigma>"
@@ -255,6 +233,7 @@ lemma has_type\<^sub>\<sigma>_has_type\<^sub>c:
   using assms has_type\<^sub>\<sigma>_has_type\<^sub>l
   unfolding has_type\<^sub>c_def clause.subst_def
   by blast
+
 
 lemma welltyped\<^sub>\<sigma>_on_welltyped: 
   assumes wt: "welltyped\<^sub>\<sigma>_on (term.vars t) \<F> \<V> \<sigma>"
@@ -505,7 +484,7 @@ qed
 
 lemma has_type\<^sub>\<sigma>_Var: "has_type\<^sub>\<sigma> \<F> \<V> Var"
   unfolding has_type\<^sub>\<sigma>_def
-  by simp
+  by (simp add: has_type.Var)
 
 lemma welltyped_add_literal:
   assumes "welltyped\<^sub>c \<F> \<V> P'" "welltyped \<F> \<V> s\<^sub>1 \<tau>" "welltyped \<F> \<V> s\<^sub>2 \<tau>" 

@@ -42,17 +42,11 @@ abbreviation Pos_Upair (infix "\<approx>" 66) where
 abbreviation Neg_Upair (infix "!\<approx>" 66) where
   "Neg_Upair x y \<equiv> Neg (Upair x y)"
 
-lemma exists_atom_for_term [intro]: "\<exists>a. t \<in> set_uprod a"
-  by (metis insertI1 set_uprod_simps)
-
 lemma exists_literal_for_atom [intro]: "\<exists>l. a \<in> set_literal l"
   by (meson literal.set_intros(1))
 
 lemma exists_literal_for_term [intro]: "\<exists>l. t \<in># mset_lit l"
-  by (metis exists_atom_for_term mset_lit.simps(1) set_mset_mset_uprod)
-
-lemma exists_clause_for_literal [intro]: "\<exists>c. l \<in> set_mset c"
-  by (meson union_single_eq_member)
+  by (metis exists_uprod mset_lit.simps(1) set_mset_mset_uprod)
 
 lemma finite_set_literal [intro]: "\<And>l. finite (set_literal l)"
   unfolding set_literal_atm_of
@@ -115,5 +109,30 @@ proof(unfold inj_def, intro allI impI)
     qed
   qed
 qed
+
+global_interpretation literal_functor: finite_natural_functor where
+  map = map_literal and to_set = set_literal
+  by
+    unfold_locales 
+    (auto simp: literal.map_comp literal.map_ident literal.set_map intro: literal.map_cong)
+
+global_interpretation literal_functor: natural_functor_conversion where 
+  map = map_literal and to_set = set_literal and map_to = map_literal and map_from = map_literal and 
+  map' = map_literal and to_set' = set_literal
+  by unfold_locales
+    (auto simp: literal.set_map Clausal_Logic.literal.map_comp)
+
+abbreviation uprod_literal_to_set where "uprod_literal_to_set l \<equiv> set_mset (mset_lit l)"
+
+abbreviation map_uprod_literal where "map_uprod_literal f \<equiv> map_literal (map_uprod f)"
+
+global_interpretation uprod_literal_functor: finite_natural_functor where 
+  map = map_uprod_literal and to_set = uprod_literal_to_set
+  by unfold_locales (auto simp: mset_lit_image_mset intro: map_literal_map_uprod_cong)
+
+global_interpretation uprod_literal_functor: natural_functor_conversion where 
+  map = map_uprod_literal and to_set = uprod_literal_to_set and map_to = map_uprod_literal and 
+  map_from = map_uprod_literal and map' = map_uprod_literal and to_set' = uprod_literal_to_set
+  by unfold_locales (auto simp: mset_lit_image_mset)
  
 end

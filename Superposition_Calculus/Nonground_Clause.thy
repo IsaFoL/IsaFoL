@@ -48,18 +48,6 @@ method clause_auto uses simp intro =
 
 subsection \<open>Nonground Atoms\<close>
 
-thm uprod.map_id
-
-global_interpretation atom: finite_natural_functor where map = map_uprod and to_set = set_uprod
-  by
-    unfold_locales 
-    (auto simp: uprod.map_comp uprod.map_ident uprod.set_map intro: uprod.map_cong)
-
-global_interpretation atom: natural_functor_conversion where 
-  map = map_uprod and to_set = set_uprod and map_to = map_uprod and map_from = map_uprod and 
-  map' = map_uprod and to_set' = set_uprod
-  by unfold_locales (auto simp: uprod.set_map uprod.map_comp)
-
 global_interpretation atom: lifting_from_term where 
   sub_subst = "(\<cdot>t)" and sub_vars = term.vars and map = map_uprod and to_set = set_uprod and 
   sub_to_ground = term.to_ground and sub_from_ground = term.from_ground and 
@@ -71,18 +59,6 @@ notation atom.subst (infixl "\<cdot>a" 67)
 
 subsection \<open>Nonground Literals\<close>
 
-global_interpretation literal: finite_natural_functor where
-  map = map_literal and to_set = set_literal
-  by
-    unfold_locales 
-    (auto simp: literal.map_comp literal.map_ident literal.set_map intro: literal.map_cong)
-
-global_interpretation literal: natural_functor_conversion where 
-  map = map_literal and to_set = set_literal and map_to = map_literal and map_from = map_literal and 
-  map' = map_literal and to_set' = set_literal
-  by unfold_locales
-    (auto simp: literal.set_map Clausal_Logic.literal.map_comp)
-
 global_interpretation literal: lifting_from_term where 
   sub_subst = atom.subst and sub_vars = atom.vars and map = map_literal and 
   to_set = set_literal and sub_to_ground = atom.to_ground and 
@@ -92,32 +68,19 @@ global_interpretation literal: lifting_from_term where
 
 notation literal.subst (infixl "\<cdot>l" 66)
 
-(* TODO: Name  *)
 subsection \<open>Nonground Literals - Alternative\<close>
 
-abbreviation literal_to_term_set where "literal_to_term_set l \<equiv> set_mset (mset_lit l)"
-
-abbreviation map_literal_term where "map_literal_term f \<equiv> map_literal (map_uprod f)"
-
-global_interpretation literal': finite_natural_functor where 
-  map = map_literal_term and to_set = literal_to_term_set
-  by unfold_locales (auto simp: mset_lit_image_mset intro: map_literal_map_uprod_cong)
-
-global_interpretation literal': natural_functor_conversion where 
-  map = map_literal_term and to_set = literal_to_term_set and map_to = map_literal_term and 
-  map_from = map_literal_term and map' = map_literal_term and to_set' = literal_to_term_set
-  by unfold_locales (auto simp: mset_lit_image_mset)
-
+(* TODO: Names  *)
 lemma alternative_literal [simp]:
   fixes l
   shows 
-  "functional_substitution_lifting.subst (\<cdot>t) map_literal_term l \<sigma> = l \<cdot>l \<sigma>"
-  "functional_substitution_lifting.vars term.vars literal_to_term_set l = literal.vars l"
-  "grounding_lifting.from_ground term.from_ground map_literal_term l\<^sub>G = literal.from_ground l\<^sub>G"
-  "grounding_lifting.to_ground term.to_ground map_literal_term l = literal.to_ground l"
+  "functional_substitution_lifting.subst (\<cdot>t) map_uprod_literal l \<sigma> = l \<cdot>l \<sigma>"
+  "functional_substitution_lifting.vars term.vars uprod_literal_to_set l = literal.vars l"
+  "grounding_lifting.from_ground term.from_ground map_uprod_literal l\<^sub>G = literal.from_ground l\<^sub>G"
+  "grounding_lifting.to_ground term.to_ground map_uprod_literal l = literal.to_ground l"
 proof -
-  interpret lifting_from_term term.vars "(\<cdot>t)" map_literal_term literal_to_term_set term.to_ground 
-    term.from_ground map_literal_term map_literal_term map_literal_term literal_to_term_set
+  interpret lifting_from_term term.vars "(\<cdot>t)" map_uprod_literal uprod_literal_to_set term.to_ground 
+    term.from_ground map_uprod_literal map_uprod_literal map_uprod_literal uprod_literal_to_set
     by unfold_locales
 
   fix l :: "('f, 'v) atom literal" and \<sigma>
@@ -139,28 +102,28 @@ proof -
     unfolding to_ground_def literal.to_ground_def atom.to_ground_def..
 qed
 
-lemma literal'_subst_eq_literal_subst: "map_literal_term (\<lambda>sub. sub \<cdot>t \<sigma>) l = l \<cdot>l \<sigma>"
+lemma literal'_subst_eq_literal_subst: "map_uprod_literal (\<lambda>sub. sub \<cdot>t \<sigma>) l = l \<cdot>l \<sigma>"
    unfolding subst_def literal.subst_def 
    by (simp add: atom.subst_def)
 
-lemma literal'_vars_eq_literal_vars: "\<Union> (term.vars ` literal_to_term_set l) = literal.vars l"
+lemma literal'_vars_eq_literal_vars: "\<Union> (term.vars ` uprod_literal_to_set l) = literal.vars l"
   unfolding literal.vars_def atom.vars_def
   by(cases l) simp_all
 
 lemma literal'_from_ground_eq_literal_from_ground: 
-  "map_literal_term term.from_ground l\<^sub>G = literal.from_ground l\<^sub>G"
+  "map_uprod_literal term.from_ground l\<^sub>G = literal.from_ground l\<^sub>G"
   unfolding literal.from_ground_def atom.from_ground_def ..
 
 lemma literal'_to_ground_eq_literal_to_ground: 
-  "map_literal_term term.to_ground l = literal.to_ground l"
+  "map_uprod_literal term.to_ground l = literal.to_ground l"
   unfolding literal.to_ground_def atom.to_ground_def ..
 
 global_interpretation literal': lifting_from_term where 
-  sub_subst = "(\<cdot>t)" and sub_vars = term.vars and map = map_literal_term and 
-  to_set = literal_to_term_set and sub_to_ground = term.to_ground and
-  sub_from_ground = term.from_ground and to_ground_map = map_literal_term and 
-  from_ground_map = map_literal_term and ground_map = map_literal_term and 
-  to_set_ground = literal_to_term_set
+  sub_subst = "(\<cdot>t)" and sub_vars = term.vars and map = map_uprod_literal and 
+  to_set = uprod_literal_to_set and sub_to_ground = term.to_ground and
+  sub_from_ground = term.from_ground and to_ground_map = map_uprod_literal and 
+  from_ground_map = map_uprod_literal and ground_map = map_uprod_literal and 
+  to_set_ground = uprod_literal_to_set
 rewrites 
   "\<And>l \<sigma>. literal'.subst l \<sigma> = literal.subst l \<sigma>" and
   "\<And>l. literal'.vars l = literal.vars l" and
@@ -175,14 +138,6 @@ lemma mset_mset_lit_subst [clause_simp]: "{# t \<cdot>t \<sigma>. t \<in># mset_
 
 subsection \<open>Nonground Clauses\<close>
 
-global_interpretation clause: finite_natural_functor where map = image_mset and to_set = set_mset
-  by unfold_locales (auto simp: exists_clause_for_literal)
-
-global_interpretation clause: natural_functor_conversion where 
-  map = image_mset and to_set = set_mset and map_to = image_mset and map_from = image_mset and 
-  map' = image_mset and to_set' = set_mset
-  by unfold_locales simp_all 
-
 global_interpretation clause: lifting_from_term where 
   sub_subst = literal.subst and sub_vars = literal.vars and map = image_mset and 
   to_set = set_mset and sub_to_ground = literal.to_ground and 
@@ -191,20 +146,18 @@ global_interpretation clause: lifting_from_term where
   by unfold_locales
 
 (* TODO: Name *)
-locale natural_monoid_functor' = natural_monoid_grounding_lifting where 
-  comp_subst = "(\<odot>)" and id_subst = Var +
+locale grounded_natural_monoid_functor = natural_monoid_grounding_lifting where 
+  comp_subst = "(\<odot>)" and id_subst = Var  +
   natural_monoid_functor_functional_substitution_lifting where 
   comp_subst = "(\<odot>)" and id_subst = Var
 
-global_interpretation clause: natural_monoid_functor' where 
+global_interpretation clause: grounded_natural_monoid_functor where 
   to_set = set_mset and sub_to_ground = literal.to_ground and 
   sub_from_ground = literal.from_ground and sub_subst = literal.subst and 
   sub_vars = literal.vars and map = image_mset and to_ground_map = image_mset and 
   from_ground_map = image_mset and ground_map = image_mset and to_set_ground = set_mset and 
-  plus = "(+)" and wrap = "\<lambda>l. {#l#}"  and plus_ground = "(+)" and wrap_ground = "\<lambda>l. {#l#}"
-rewrites 
-  "\<And>l C. clause.add l C = add_mset l C" and
-  "\<And>l C. clause.ground.add l C = add_mset l C"
+  plus = "(+)" and wrap = "\<lambda>l. {#l#}" and plus_ground = "(+)" and wrap_ground = "\<lambda>l. {#l#}" and
+  add = add_mset and add_ground = add_mset
   by unfold_locales (auto simp: clause.to_ground_def clause.from_ground_def)
 
 notation clause.subst (infixl "\<cdot>" 67)

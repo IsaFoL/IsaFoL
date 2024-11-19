@@ -71,7 +71,7 @@ lemma context_less_eq_term_less:
     "restricted_context c'"
     "\<And>t. restricted t \<Longrightarrow> Fun\<langle>c;t\<rangle> \<preceq> Fun\<langle>c';t\<rangle>"
     "t \<prec> t'"
-  shows "Fun\<langle>c;t\<rangle> \<prec>  Fun\<langle>c';t'\<rangle>"
+  shows "Fun\<langle>c;t\<rangle> \<prec> Fun\<langle>c';t'\<rangle>"
   using assms context_compatibility dual_order.strict_trans1 
   by meson
 

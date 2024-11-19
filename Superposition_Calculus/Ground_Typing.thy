@@ -14,7 +14,7 @@ begin
 
 sublocale typed_def where typed_def = "typed \<F>" and welltyped_def = "welltyped \<F>" .
 
-sublocale explicit_typing where typed = typed  and welltyped = welltyped
+sublocale explicit_typing where typed = typed and welltyped = welltyped
 proof unfold_locales
   show "right_unique typed"
   proof (rule right_uniqueI)

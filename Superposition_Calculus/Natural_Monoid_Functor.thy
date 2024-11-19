@@ -9,6 +9,7 @@ locale natural_monoid_functor = natural_monoid + natural_functor +
 begin
 
 lemma map_add: "\<And>f a b. map f (add a b) = add (f a) (map f b)"
+  unfolding add_def
   using map_plus map_wrap
   by simp
 

@@ -413,7 +413,7 @@ begin
 lemma vars_add [simp]: 
   "vars (add sub expr) = sub_vars sub \<union> vars expr"
   unfolding vars_def
-  by (simp add: to_set_add)
+  using to_set_add by auto
 
 lemma vars_plus [simp]: 
   "vars (plus expr expr') = vars expr \<union> vars expr'"
@@ -446,8 +446,9 @@ end
 locale natural_monoid_grounding_lifting = 
   grounding_lifting + 
   natural_monoid + 
-  ground: natural_monoid where to_set = to_set_ground and plus = plus_ground and wrap = wrap_ground
-for plus_ground wrap_ground +
+  ground: natural_monoid where 
+  to_set = to_set_ground and plus = plus_ground and wrap = wrap_ground and add = add_ground
+for plus_ground wrap_ground add_ground +
 assumes 
   to_ground_plus [simp]: 
    "\<And>expr expr'. to_ground (plus expr expr') = plus_ground (to_ground expr) (to_ground expr')" and
@@ -464,18 +465,20 @@ lemma from_ground_plus [simp]:
   by (metis Un_empty_left from_ground_inverse ground_is_ground to_ground_inverse vars_plus)
 
 lemma from_ground_add [simp]: 
-  "from_ground (ground.add sub expr) = add (sub_from_ground sub) (from_ground expr)"
+  "from_ground (add_ground sub expr) = add (sub_from_ground sub) (from_ground expr)"
+  unfolding ground.add_def add_def
   using from_ground_plus
   by (simp add: wrap_from_ground)
 
 lemma to_ground_add [simp]: 
-  "to_ground (add sub expr) = ground.add (sub_to_ground sub) (to_ground expr)"
+  "to_ground (add sub expr) = add_ground (sub_to_ground sub) (to_ground expr)"
+  unfolding ground.add_def add_def
   using from_ground_add wrap_to_ground
   by simp
 
 lemma ground_add:
   assumes "from_ground expr = add sub expr'" 
-  shows "expr = ground.add (sub_to_ground sub) (to_ground expr')"
+  shows "expr = add_ground (sub_to_ground sub) (to_ground expr')"
   using assms
   by (metis from_ground_inverse to_ground_add)
 

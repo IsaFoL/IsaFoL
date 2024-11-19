@@ -2,7 +2,7 @@ theory Natural_Functor
   imports Main
 begin
 
-(* Name natural transformation *)
+(* TODO: Name natural transformation? *)
 locale natural_functor =
   fixes
     map :: "('a \<Rightarrow> 'a) \<Rightarrow> 'b \<Rightarrow> 'b" and
@@ -24,7 +24,6 @@ end
 locale finite_natural_functor = natural_functor +
   assumes finite_to_set [intro]: "\<And>b. finite (to_set b)"
 
-(* TODO: Take 2 functors as input *)
 locale natural_functor_conversion =
   natural_functor +
   functor': natural_functor where map = map' and to_set = to_set'

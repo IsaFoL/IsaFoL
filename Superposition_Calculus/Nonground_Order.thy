@@ -40,15 +40,16 @@ notation term.order.less_eq\<^sub>G (infix "\<preceq>\<^sub>t\<^sub>G" 50)
 
 sublocale literal: nonground_term_based_order_lifting where 
   less = less\<^sub>t and sub_subst = "(\<cdot>t)" and sub_vars = term.vars and sub_to_ground = term.to_ground and 
-  sub_from_ground = term.from_ground and map = map_literal_term and to_set = literal_to_term_set and
-  to_ground_map = map_literal_term and from_ground_map = map_literal_term and 
-  ground_map = map_literal_term and to_set_ground = literal_to_term_set and to_mset = mset_lit
+  sub_from_ground = term.from_ground and map = map_uprod_literal and to_set = uprod_literal_to_set and
+  to_ground_map = map_uprod_literal and from_ground_map = map_uprod_literal and 
+  ground_map = map_uprod_literal and to_set_ground = uprod_literal_to_set and to_mset = mset_lit
 rewrites
-  "\<And>l \<sigma>. functional_substitution_lifting.subst (\<cdot>t) map_literal_term l \<sigma> = literal.subst l \<sigma>" and
-  "\<And>l. functional_substitution_lifting.vars term.vars literal_to_term_set l = literal.vars l" and
-  "\<And>l\<^sub>G. grounding_lifting.from_ground term.from_ground map_literal_term l\<^sub>G 
+  "\<And>l \<sigma>. functional_substitution_lifting.subst (\<cdot>t) map_uprod_literal l \<sigma> = literal.subst l \<sigma>" and
+  "\<And>l. functional_substitution_lifting.vars term.vars uprod_literal_to_set l = literal.vars l" and
+  "\<And>l\<^sub>G. grounding_lifting.from_ground term.from_ground map_uprod_literal l\<^sub>G 
     = literal.from_ground l\<^sub>G" and
-  "\<And>l. grounding_lifting.to_ground term.to_ground map_literal_term l = literal.to_ground l"
+  "\<And>l. grounding_lifting.to_ground term.to_ground map_uprod_literal l = literal.to_ground l" 
+  (* TODO: Rewrites \<rightarrow> defines *)
   by unfold_locales (auto simp: inj_mset_lit mset_lit_image_mset)
 
 notation literal.order.less\<^sub>G (infix "\<prec>\<^sub>l\<^sub>G" 50)

@@ -2,13 +2,13 @@ theory Term_Typing
   imports Typing Context_Extra
 begin
 
-type_synonym ('f, 'ty) fun_types = "'f \<Rightarrow> 'ty list \<times> 'ty"
+type_synonym ('f, 'ty) fun_types = "'f \<Rightarrow> 'ty list \<times> 'ty" 
 type_synonym ('v, 'ty) var_types = "'v \<Rightarrow> 'ty"
 
 locale context_compatible_typing = explicit_typing +
   fixes Fun
   assumes 
-    welltyped_context_compatible: 
+    welltyped_context_compatible [intro]: 
     "\<And>t t' c \<tau> \<tau>'.
       welltyped t \<tau>' \<Longrightarrow>
       welltyped t' \<tau>' \<Longrightarrow>
