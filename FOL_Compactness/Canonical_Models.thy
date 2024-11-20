@@ -12,6 +12,9 @@ inductive_set terms_set :: \<open>(nat \<times> nat) set \<Rightarrow> nterm set
 | fn: \<open>(Fun f ts) \<in> terms_set fns\<close>
   if \<open>(f, length ts) \<in> fns\<close> \<open>\<And>t. t \<in> set ts \<Longrightarrow> t \<in> terms_set fns\<close>
 
+lemma struct_terms_set [iff]: "struct (terms_set A)"
+  by (metis empty_iff struct.intro terms_set.vars)
+
 (* STUPID_CANONDOM_LEMMA in HOL Light *)
 lemma stupid_canondom: \<open>t \<in> terms_set (fst \<L>) \<Longrightarrow> functions_term t \<subseteq> (fst \<L>)\<close>
   by (induction t rule: terms_set.induct) auto
@@ -95,6 +98,15 @@ definition
   canon_of_prop :: "((nat \<times> nat) set \<times> (nat \<times> nat) set) \<Rightarrow> (form \<Rightarrow> bool) \<Rightarrow> nterm intrp" where
   \<open>canon_of_prop \<L> I \<equiv> Abs_intrp (terms_set (fst \<L>), Fun, (\<lambda>p. {ts. I (Atom p ts)}))\<close>
 
+lemma dom_canon_of_prop [simp]: "dom (canon_of_prop \<L> I) = terms_set (fst \<L>)"
+  by (simp add: canon_of_prop_def)
+
+lemma intrp_fn_canon_of_prop [simp]: "intrp_fn (canon_of_prop \<L> I) = Fun"
+  by (simp add: canon_of_prop_def)
+
+lemma intrp_rel_canon_of_prop [simp]: "intrp_rel (canon_of_prop \<L> I) = (\<lambda>p. {ts. I (Atom p ts)})"
+  by (simp add: canon_of_prop_def)
+
 lemma pholds_pintrp_of_intrp:
   \<open>qfree \<phi> \<Longrightarrow> (pintrp_of_intrp \<M> \<beta>) \<Turnstile>\<^sub>p \<phi> \<longleftrightarrow> \<M>\<^bold>,\<beta> \<Turnstile> \<phi>\<close>
   unfolding pintrp_of_intrp_def by (induction \<phi>) simp+
@@ -140,8 +152,7 @@ proof -
 qed
 
 (* HOLDS_CANON_OF_PROP_GENERAL in HOL Light *)
-(* never used afterwards.
-    It is strange to apply a valuation to a formula anyway, it is a kind of misuse of the fact that 
+(* It is strange to apply a valuation to a formula anyway, it is a kind of misuse of the fact that 
     valuations for canonical models and substitutions have the same type *)
 lemma holds_canon_of_prop_general: 
   assumes \<open>qfree \<phi>\<close> shows \<open>(canon_of_prop \<L> I)\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p (\<phi> \<cdot>\<^sub>f\<^sub>m \<beta>)\<close>
@@ -181,13 +192,10 @@ lemma fol_valid_imp_prop_valid: \<open>qfree \<phi> \<and> (\<forall>\<M> \<beta
   \<Longrightarrow> \<forall>I. I \<Turnstile>\<^sub>p \<phi>\<close>
   using canonical_canon_of_prop holds_canon_of_prop by blast
 
-(* TODO: as a definition included in Ground_FOL_Compactness, where pholds is defined? *)
-abbreviation psatisfies where \<open>psatisfies I \<Phi> \<equiv> \<forall>\<phi>\<in>\<Phi>. I \<phi>\<close>
-
 (* SATISFIES_PSATISFIES *)
 lemma satisfies_psatisfies: \<open>(\<forall>\<phi>. \<phi> \<in> \<Phi> \<longrightarrow> qfree \<phi>) \<and> satisfies \<M> \<Phi> \<and> is_valuation \<M> \<beta> \<Longrightarrow>
   psatisfies (pintrp_of_intrp \<M> \<beta>) \<Phi>\<close>
-  using pholds_pintrp_of_intrp unfolding satisfies_def by (simp add: pintrp_of_intrp_def)
+  using pholds_pintrp_of_intrp satisfies_def by blast
 
 find_consts name: terms
 
@@ -196,7 +204,9 @@ lemma psatisfies_instances:
   assumes qf: \<open>(\<And>\<phi>. \<phi> \<in> \<Phi> \<longrightarrow> qfree \<phi>)\<close>
     and ps: \<open>psatisfies I {\<phi> \<cdot>\<^sub>f\<^sub>m \<beta> |\<phi> \<beta>. (\<forall>x. \<beta> x \<in> terms_set (fst \<L>)) \<and> \<phi> \<in> \<Phi>}\<close>
   shows \<open>satisfies (canon_of_prop \<L> I) \<Phi>\<close>
-  sorry
+  unfolding satisfies_def
+  by (smt (verit, ccfv_SIG) dom_canon_of_prop holds_canon_of_prop_general is_valuation_def mem_Collect_eq assms)
+
 
 (* SATISFIES_INSTANCES in HOL Light *)
 lemma satisfies_instances: \<open>(is_interpretation (language \<Xi>) \<M> \<Longrightarrow> 
@@ -231,7 +241,5 @@ lemma compact_ls: \<open>(\<forall>\<Psi>. finite \<Psi> \<and> \<Psi> \<subsete
   \<not> (dom \<M> = {}) \<and> satisfies \<M> \<Psi>)) \<Longrightarrow> \<exists>\<C>. is_interpretation (language \<Phi>) \<C> \<and>
   \<not> (dom \<C> = {}) \<and> satisfies \<C> \<Phi>\<close>
   sorry
-
-
 
 end

@@ -60,6 +60,10 @@ definition list_all :: \<open>('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Ri
 lemma term_subst_eval: "intrp_fn M = Fun \<Longrightarrow> t \<cdot> v = eval t M v"
   by (induction t) auto
 
+(*TERMVAL_TRIV*)
+lemma term_eval_triv[simp]: "intrp_fn M = Fun \<Longrightarrow> eval t M Var = t"
+  by (metis subst_apply_term_empty term_subst_eval)
+
 lemma fold_bool_prop: \<open>(fold (\<lambda>l b. b \<and> P l) ls b) = (b \<and> (\<forall>l\<in>set ls. P l))\<close>
   by (induction ls arbitrary: b) auto
 

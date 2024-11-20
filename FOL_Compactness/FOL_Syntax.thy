@@ -121,7 +121,7 @@ lemma finite_FV: \<open>finite (FV \<phi>)\<close>
 fun BV :: \<open>form \<Rightarrow> nat set\<close> where
   \<open>BV \<^bold>\<bottom> = {}\<close>
 | \<open>BV (Atom _ args') = {}\<close>
-| \<open>BV (\<phi> \<^bold>\<longrightarrow> \<psi>) = {}\<close>
+| \<open>BV (\<phi> \<^bold>\<longrightarrow> \<psi>) = BV \<phi> \<union> BV \<psi>\<close>
 | \<open>BV (\<^bold>\<forall> x\<^bold>. \<phi>) = BV \<phi> \<union> {x}\<close>
 
 lemma finite_BV: \<open>finite (BV \<phi>)\<close>

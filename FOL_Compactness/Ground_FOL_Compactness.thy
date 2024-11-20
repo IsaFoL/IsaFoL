@@ -14,6 +14,8 @@ fun qfree :: \<open>form \<Rightarrow> bool\<close> where
 | \<open>qfree (\<phi> \<^bold>\<longrightarrow> \<psi>) = (qfree \<phi> \<and> qfree \<psi>)\<close>
 | \<open>qfree (\<^bold>\<forall> x\<^bold>. \<phi>) = False\<close>
 
+lemma qfree_iff_BV_empty: "qfree \<phi> \<longleftrightarrow> BV \<phi> = {}"
+  by (induction \<phi>) auto
 
 lemma qfree_no_quantif: \<open>qfree r \<Longrightarrow> \<not>(\<exists>x p. r = \<^bold>\<forall>x\<^bold>. p) \<and> \<not>(\<exists>x p. r = \<^bold>\<exists>x\<^bold>. p)\<close>
   using qfree.simps(3) qfree.simps(4) by blast
@@ -47,6 +49,8 @@ fun pholds :: \<open>(form \<Rightarrow> bool) \<Rightarrow> form \<Rightarrow> 
 
 definition psatisfiable :: "form set \<Rightarrow> bool" where
   \<open>psatisfiable S \<equiv> \<exists>I. \<forall>\<phi>\<in>S. I \<Turnstile>\<^sub>p \<phi>\<close>
+
+abbreviation psatisfies where \<open>psatisfies I \<Phi> \<equiv> \<forall>\<phi>\<in>\<Phi>. pholds I \<phi>\<close>
 
 definition val_to_prop_val :: "(form \<Rightarrow> bool) \<Rightarrow> ((nat \<times> nterm list) \<Rightarrow> bool)" where
   \<open>val_to_prop_val I = (\<lambda>x. I (Atom (fst x) (snd x)))\<close>
