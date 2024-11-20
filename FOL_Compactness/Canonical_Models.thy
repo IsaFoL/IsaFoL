@@ -12,11 +12,11 @@ inductive_set terms_set :: \<open>(nat \<times> nat) set \<Rightarrow> nterm set
 | fn: \<open>(Fun f ts) \<in> terms_set fns\<close>
   if \<open>(f, length ts) \<in> fns\<close> \<open>\<And>t. t \<in> set ts \<Longrightarrow> t \<in> terms_set fns\<close>
 
-(* STUPID_CANONDOM_LEMMA in hol-light *)
+(* STUPID_CANONDOM_LEMMA in HOL Light *)
 lemma stupid_canondom: \<open>t \<in> terms_set (fst \<L>) \<Longrightarrow> functions_term t \<subseteq> (fst \<L>)\<close>
   by (induction t rule: terms_set.induct) auto
 
-(* FINITE_SUBSET_INSTANCE in hol-light *)
+(* FINITE_SUBSET_INSTANCE in HOL Light *)
 lemma finite_subset_instance: \<open>finite t' \<Longrightarrow> t' \<subseteq> {\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> |\<sigma> \<phi>. P \<sigma> \<and> \<phi> \<in> s} \<Longrightarrow>
   (\<exists>t. finite t \<and> t \<subseteq> s \<and> t' \<subseteq> {\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> |\<sigma> \<phi>. P \<sigma> \<and> \<phi> \<in> t})\<close>
 proof (induction t' rule: finite.induct)
@@ -37,7 +37,7 @@ next
   ultimately show ?case by blast
 qed
 
-(* FINITE_SUBSET_SKOLEM in hol-light *)
+(* FINITE_SUBSET_SKOLEM in HOL Light *)
 lemma finite_subset_skolem: \<open>finite u \<Longrightarrow> u \<subseteq> {skolem \<phi> |\<phi>. \<phi> \<in> s} \<Longrightarrow>
   (\<exists>t. finite t \<and> t \<subseteq> s \<and> u = {skolem \<phi> |\<phi>. \<phi> \<in> t})\<close>
 proof (induction u rule: finite.induct)
@@ -59,11 +59,11 @@ next
     by blast
 qed
 
-(* VALUATION_EXISTS in hol-light *)
+(* VALUATION_EXISTS in HOL Light *)
 lemma valuation_exists: \<open>\<not> (dom M = {}) \<Longrightarrow> \<exists>\<beta>. is_valuation M \<beta>\<close>
   unfolding dom_def is_valuation_def by fast
 
-(* HOLDS_ITLIST_EXISTS in hol-light *)
+(* HOLDS_ITLIST_EXISTS in HOL Light *)
 lemma holds_itlist_exists: 
   \<open>(M\<^bold>,\<beta> \<Turnstile> (foldr (\<lambda>x p. \<^bold>\<exists>x\<^bold>. p) xs \<phi>)) \<longleftrightarrow> 
      (\<exists>as. length as = length xs \<and> set as \<subseteq> dom M \<and> 
@@ -80,45 +80,88 @@ qed
 definition canonical :: "(nat \<times> nat) set \<times> (nat \<times> nat) set \<Rightarrow> nterm intrp \<Rightarrow> bool" where
 \<open>canonical \<L> \<M> \<equiv> (dom \<M> = terms_set (fst \<L>) \<and> (\<forall>f. intrp_fn \<M> f = Fun f))\<close>
 
-(* Slight deviation from the hol-light definition where "Atom p ts" appears on the left, which is
+(* Slight deviation from the HOL Light definition where "Atom p ts" appears on the left, which is
    forbidden in Isabelle, I don't see how to define it only for atoms and obtain a propositional
    interpretation: *)
-(* prop_of_model in hol-light *)
+(* prop_of_model in HOL Light *)
 definition pintrp_of_intrp :: "'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> (form \<Rightarrow> bool)" where
   \<open>pintrp_of_intrp \<M> \<beta> = (\<lambda>\<phi>. \<M>\<^bold>,\<beta> \<Turnstile> \<phi>)\<close>
 
-(* the predicates are not defined exactly in the same way here and in hol-light, 
+(* the predicates are not defined exactly in the same way here and in HOL Light, 
    I replaced the predicate d with the set of all valid atoms and the function returns the list
    of accepted arguments for a given predicate instead of being a Boolean for compatibility.
 *)
 definition 
   canon_of_prop :: "((nat \<times> nat) set \<times> (nat \<times> nat) set) \<Rightarrow> (form \<Rightarrow> bool) \<Rightarrow> nterm intrp" where
-  \<open>canon_of_prop \<L> I \<equiv> Abs_intrp (terms_set (fst \<L>), (\<lambda>f ts. Fun f ts), (\<lambda>p. {ts. I (Atom p ts)}))\<close>
+  \<open>canon_of_prop \<L> I \<equiv> Abs_intrp (terms_set (fst \<L>), Fun, (\<lambda>p. {ts. I (Atom p ts)}))\<close>
 
 lemma pholds_pintrp_of_intrp:
   \<open>qfree \<phi> \<Longrightarrow> (pintrp_of_intrp \<M> \<beta>) \<Turnstile>\<^sub>p \<phi> \<longleftrightarrow> \<M>\<^bold>,\<beta> \<Turnstile> \<phi>\<close>
   unfolding pintrp_of_intrp_def by (induction \<phi>) simp+
 
-(* PROP_OF_CANON_OF_PROP in hol-light *)
-lemma intrp_of_canon_of_prop:
-  \<open>pintrp_of_intrp (canon_of_prop \<L> I) \<beta> (Atom p ts) = I (Atom p ts)\<close>
-  unfolding canon_of_prop_def
-  sorry
+(* PROP_OF_CANON_OF_PROP in HOL Light *)
+lemma intrp_of_canon_of_prop [simp]:
+  \<open>pintrp_of_intrp (canon_of_prop \<L> I) Var (Atom p ts) = I (Atom p ts)\<close>
+proof -
+  have \<section>: "terms_set (fst \<L>) \<noteq> {}"
+    using terms_set.vars by auto
+  have "\<forall>t \<in> set ts. \<lbrakk>t\<rbrakk>\<^bsup>Abs_intrp (terms_set (fst \<L>), Fun, \<lambda>p. {ts. I (form.Atom p ts)}),Var\<^esup> = t" 
+  proof (induction ts)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons t ts)
+    have "\<lbrakk>t\<rbrakk>\<^bsup>Abs_intrp (terms_set (fst \<L>), Fun, \<lambda>p. {ts. I (form.Atom p ts)}),Var\<^esup> = t"
+    proof (induction t)
+      case (Var x)
+      then show ?case
+        by simp
+    next
+      case Fun
+      then show ?case
+        by (simp add: \<section> struct_def map_idI)
+    qed
+    with Cons show ?case
+      by simp
+  qed
+  then show ?thesis
+    by (simp add: \<section> struct_def canon_of_prop_def pintrp_of_intrp_def holds_def map_idI)
+qed
 
-(* HOLDS_CANON_OF_PROP in hol-light *)
+(* HOLDS_CANON_OF_PROP in HOL Light *)
 lemma holds_canon_of_prop:
-  \<open>qfree \<phi> \<Longrightarrow> (canon_of_prop \<L> I)\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p \<phi>\<close>
-  sorry
+  assumes \<open>qfree \<phi>\<close> shows \<open>(canon_of_prop \<L> I)\<^bold>,Var \<Turnstile> \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p \<phi>\<close>
+proof -
+  have "pintrp_of_intrp (canon_of_prop \<L> I) Var \<Turnstile>\<^sub>p \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p \<phi>"
+    using assms
+    by (induction \<phi>) auto
+  with assms show ?thesis
+    using pholds_pintrp_of_intrp by blast
+qed
 
-(* HOLDS_CANON_OF_PROP_GENERAL in hol-light *)
-(* never used afterwards, maybe we can skip it. 
+(* HOLDS_CANON_OF_PROP_GENERAL in HOL Light *)
+(* never used afterwards.
     It is strange to apply a valuation to a formula anyway, it is a kind of misuse of the fact that 
     valuations for canonical models and substitutions have the same type *)
-lemma holds_canon_of_prop_general: \<open>qfree \<phi> \<Longrightarrow> (canon_of_prop \<L> I)\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p (\<phi> \<cdot>\<^sub>f\<^sub>m \<beta>)\<close>
-  unfolding canon_of_prop_def
-  sorry
+lemma holds_canon_of_prop_general: 
+  assumes \<open>qfree \<phi>\<close> shows \<open>(canon_of_prop \<L> I)\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p (\<phi> \<cdot>\<^sub>f\<^sub>m \<beta>)\<close>
+proof -
+  have "pintrp_of_intrp (canon_of_prop \<L> I) \<beta> \<Turnstile>\<^sub>p \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p (\<phi> \<cdot>\<^sub>f\<^sub>m \<beta>)"
+    using assms
+  proof (induction \<phi>)
+    case Atom
+    have "\<lbrakk>t\<rbrakk>\<^bsup>Abs_intrp (terms_set (fst \<L>), Fun, \<lambda>p. {ts. I (form.Atom p ts)}),\<beta>\<^esup> = t \<cdot> \<beta>" for t
+      using term_subst_eval by (metis empty_iff intrp_fn_Abs_is_fst_snd struct_def terms_set.simps)
+    moreover have "struct (terms_set (fst \<L>))"
+      by (metis empty_iff struct.intro terms_set.vars)
+    ultimately show ?case
+      by (simp add: canon_of_prop_def pintrp_of_intrp_def Atom)
+  qed auto
+  with assms show ?thesis
+    by (simp add: pholds_pintrp_of_intrp)
+qed
 
-(* CANONICAL_CANON_OF_PROP in hol-light *)
+(* CANONICAL_CANON_OF_PROP in HOL Light *)
 lemma canonical_canon_of_prop: \<open>canonical \<L> (canon_of_prop \<L> I)\<close>
   unfolding canonical_def canon_of_prop_def
   by (metis dom_Abs_is_fst emptyE intrp_fn_Abs_is_fst_snd struct_def terms_set.vars)
@@ -129,7 +172,7 @@ lemma interpretation_canon_of_prop: \<open>is_interpretation \<L> (canon_of_prop
   by (metis (no_types, lifting) canonical_canon_of_prop canonical_def dom_Abs_is_fst 
       intrp_fn_Abs_is_fst_snd intrp_is_struct subset_code(1) terms_set.fn)
 
-(* PROP_VALID_IMP_FOL_VALID in hol-light *)
+(* PROP_VALID_IMP_FOL_VALID in HOL Light *)
 lemma prop_valid_imp_fol_valid: \<open>qfree \<phi> \<and> (\<forall>I. I \<Turnstile>\<^sub>p \<phi>) \<Longrightarrow> (\<forall>\<M> \<beta>. \<M>\<^bold>,\<beta> \<Turnstile> \<phi>)\<close>
   using pholds_pintrp_of_intrp by fast
 
@@ -148,19 +191,20 @@ lemma satisfies_psatisfies: \<open>(\<forall>\<phi>. \<phi> \<in> \<Phi> \<longr
 
 find_consts name: terms
 
-(* PSATISFIES_INSTANCES in hol-light *)
-lemma psatisfies_instances: \<open>(\<forall>\<phi>. \<phi> \<in> \<Phi> \<longrightarrow> qfree \<phi>) \<and> 
-  psatisfies I {\<phi> \<cdot>\<^sub>f\<^sub>m \<beta> |\<phi> \<beta>. (\<forall>x. \<beta> x \<in> terms_set (fst \<L>)) \<and> \<phi> \<in> \<Phi>} \<Longrightarrow>
-  satisfies (canon_of_prop \<L> I) \<Phi>\<close>
+(* PSATISFIES_INSTANCES in HOL Light *)
+lemma psatisfies_instances:
+  assumes qf: \<open>(\<And>\<phi>. \<phi> \<in> \<Phi> \<longrightarrow> qfree \<phi>)\<close>
+    and ps: \<open>psatisfies I {\<phi> \<cdot>\<^sub>f\<^sub>m \<beta> |\<phi> \<beta>. (\<forall>x. \<beta> x \<in> terms_set (fst \<L>)) \<and> \<phi> \<in> \<Phi>}\<close>
+  shows \<open>satisfies (canon_of_prop \<L> I) \<Phi>\<close>
   sorry
 
-(* SATISFIES_INSTANCES in hol-light *)
+(* SATISFIES_INSTANCES in HOL Light *)
 lemma satisfies_instances: \<open>(is_interpretation (language \<Xi>) \<M> \<Longrightarrow> 
  (satisfies \<M> {\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> |\<phi> \<sigma>. \<phi> \<in> \<Phi> \<and> (\<forall>x. \<sigma> x \<in> terms_set (fst (language \<Xi>)))}) \<longleftrightarrow>
   satisfies \<M> \<Phi>)\<close>
   sorry
 
-(* COMPACT_CANON_QFREE in hol-light *)
+(* COMPACT_CANON_QFREE in HOL Light *)
 (* I don't see the point of \<open>language \<Xi>\<close> here instead of, e.g., \<L> *)
 lemma compact_canon_qfree: \<open>(\<forall>\<phi>. \<phi> \<in> \<Phi> \<longrightarrow> qfree \<phi>) \<and> 
   (\<forall>\<Psi>. finite \<Psi> \<and> \<Psi> \<subseteq> \<Phi> \<longrightarrow> (\<exists>\<M>. is_interpretation (language \<Xi>) \<M> \<and> \<not> (dom \<M> = {}) \<and> 
@@ -168,13 +212,13 @@ lemma compact_canon_qfree: \<open>(\<forall>\<phi>. \<phi> \<in> \<Phi> \<longri
     satisfies \<C> \<Phi>\<close>
   sorry
 
-(* INTERPRETATION_RESTRICTLANGUAGE in hol-light *)
+(* INTERPRETATION_RESTRICTLANGUAGE in HOL Light *)
 lemma interpretation_restrictlanguage: \<open>\<Psi> \<subseteq> \<Phi> \<and> is_interpretation (language \<Phi>) \<M> \<Longrightarrow>
   is_interpretation (language \<Psi>) \<M>\<close>
   unfolding is_interpretation_def language_def functions_forms_def predicates_def
   by (metis Union_mono fstI image_mono in_mono)
 
-(* INTERPRETATION_EXTENDLANGUAGE in hol-light *)
+(* INTERPRETATION_EXTENDLANGUAGE in HOL Light *)
 lemma interpretation_extendlanguage: 
   \<open>is_interpretation (language \<Psi>) \<M> \<and> \<not> (dom \<M> = {}) \<and> satisfies \<M> \<Psi> \<Longrightarrow> \<exists>\<M>'. 
     (dom \<M>' = dom \<M>) \<and> (intrp_rel \<M>' = intrp_rel \<M>) \<and> is_interpretation (language \<Phi>) \<M>'
@@ -182,7 +226,7 @@ lemma interpretation_extendlanguage:
   unfolding is_interpretation_def language_def functions_forms_def predicates_def satisfies_def
   sorry
 
-(* COMPACT_LS in hol-light *)
+(* COMPACT_LS in HOL Light *)
 lemma compact_ls: \<open>(\<forall>\<Psi>. finite \<Psi> \<and> \<Psi> \<subseteq>\<Phi> \<Longrightarrow> (\<exists>\<M>. is_interpretation (language \<Phi>) \<M> \<and>
   \<not> (dom \<M> = {}) \<and> satisfies \<M> \<Psi>)) \<Longrightarrow> \<exists>\<C>. is_interpretation (language \<Phi>) \<C> \<and>
   \<not> (dom \<C> = {}) \<and> satisfies \<C> \<Phi>\<close>

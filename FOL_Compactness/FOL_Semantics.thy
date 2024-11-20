@@ -1,5 +1,5 @@
 (* Title:        Part of the proof of compactness of first-order logic following Harrison's one in
- *               HOL-Light
+ *               HOL Light
  * Author:       Sophie Tourret <sophie.tourret at inria.fr>, 2023 *)
 
 theory FOL_Semantics
@@ -47,7 +47,7 @@ definition is_valuation :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) 
 lemma valuation_valmod: \<open>\<lbrakk>is_valuation \<M> \<beta>; a \<in> dom \<M>\<rbrakk> \<Longrightarrow> is_valuation \<M> (\<beta>(x := a))\<close>
   by (simp add: is_valuation_def)
 
-fun eval (* HOL-Light: termval *)
+fun eval (* HOL Light: termval *)
   :: \<open>nterm \<Rightarrow> 'm intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> 'm\<close>
   (\<open>\<lbrakk>_\<rbrakk>\<^bsup>_,_\<^esup>\<close> [50, 0, 0] 70) where
   \<open>\<lbrakk>Var v\<rbrakk>\<^bsup>_,\<beta>\<^esup> = \<beta> v\<close>
@@ -55,6 +55,10 @@ fun eval (* HOL-Light: termval *)
 
 definition list_all :: \<open>('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
   [simp]: \<open>list_all P ls \<longleftrightarrow> (fold (\<lambda>l b. b \<and> P l) ls True)\<close>
+
+(*TERMSUBST_TERMVAL*)
+lemma term_subst_eval: "intrp_fn M = Fun \<Longrightarrow> t \<cdot> v = eval t M v"
+  by (induction t) auto
 
 lemma fold_bool_prop: \<open>(fold (\<lambda>l b. b \<and> P l) ls b) = (b \<and> (\<forall>l\<in>set ls. P l))\<close>
   by (induction ls arbitrary: b) auto
@@ -213,7 +217,7 @@ corollary holds_cong:
 
 abbreviation (input) \<open>eval_subst \<M> \<beta> \<sigma> v \<equiv> \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>\<close>
 
-(* HOL-Light: termval_termsubst *)
+(* HOL Light: termval_termsubst *)
 lemma subst_lemma_terms: \<open>\<lbrakk>t \<cdot> \<sigma>\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> = \<lbrakk>t\<rbrakk>\<^bsup>\<M>,eval_subst \<M> \<beta> \<sigma>\<^esup>\<close>
 proof (induction t)
   case (Var v)
@@ -253,7 +257,7 @@ qed
 
 lemma concat_map: \<open>[f t. t \<leftarrow> [g t. t \<leftarrow> ts]] = [f (g t). t \<leftarrow> ts]\<close> by simp
 
-(* more general than hol-light: holds_formsubst1 holds_rename *)
+(* more general than HOL Light: holds_formsubst1 holds_rename *)
 lemma swap_subst_eval: \<open>\<M>\<^bold>,\<beta> \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<longleftrightarrow> \<M>\<^bold>,(\<lambda>v. eval_subst \<M> \<beta> \<sigma> v) \<Turnstile> \<phi>\<close>
 proof (induction \<phi> arbitrary: \<sigma> \<beta>)
   case (Atom p ts)
