@@ -121,11 +121,11 @@ proof -
     proof clarsimp
       fix s
       assume 
-        s_in: "s \<subseteq> form_to_formula ` S" and
+        s_in: \<open>s \<subseteq> form_to_formula ` S\<close> and
         fin_s: \<open>finite s\<close>
       then obtain t where \<open>t \<subseteq> S\<close> and \<open>s = form_to_formula ` t\<close> and \<open>finite t\<close>
         by (meson finite_subset_image)
-      then show "sat s"
+      then show \<open>sat s\<close>
         using pentails_equiv_set[of t] all_qfree by (meson finsat_s finsat_def subsetD)
       qed
   }

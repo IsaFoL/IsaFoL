@@ -12,7 +12,7 @@ inductive_set terms_set :: \<open>(nat \<times> nat) set \<Rightarrow> nterm set
 | fn: \<open>(Fun f ts) \<in> terms_set fns\<close>
   if \<open>(f, length ts) \<in> fns\<close> \<open>\<And>t. t \<in> set ts \<Longrightarrow> t \<in> terms_set fns\<close>
 
-lemma struct_terms_set [iff]: "struct (terms_set A)"
+lemma struct_terms_set [iff]: \<open>struct (terms_set A)\<close>
   by (metis empty_iff struct.intro terms_set.vars)
 
 (* STUPID_CANONDOM_LEMMA in HOL Light *)
@@ -80,14 +80,14 @@ next
     by (force simp add: Cons length_Suc_conv simp flip: fun_upd_def)
 qed
 
-definition canonical :: "(nat \<times> nat) set \<times> (nat \<times> nat) set \<Rightarrow> nterm intrp \<Rightarrow> bool" where
+definition canonical :: \<open>(nat \<times> nat) set \<times> (nat \<times> nat) set \<Rightarrow> nterm intrp \<Rightarrow> bool\<close> where
 \<open>canonical \<L> \<M> \<equiv> (dom \<M> = terms_set (fst \<L>) \<and> (\<forall>f. intrp_fn \<M> f = Fun f))\<close>
 
 (* Slight deviation from the HOL Light definition where "Atom p ts" appears on the left, which is
    forbidden in Isabelle, I don't see how to define it only for atoms and obtain a propositional
    interpretation: *)
 (* prop_of_model in HOL Light *)
-definition pintrp_of_intrp :: "'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> (form \<Rightarrow> bool)" where
+definition pintrp_of_intrp :: \<open>'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<Rightarrow> (form \<Rightarrow> bool)\<close> where
   \<open>pintrp_of_intrp \<M> \<beta> = (\<lambda>\<phi>. \<M>\<^bold>,\<beta> \<Turnstile> \<phi>)\<close>
 
 (* the predicates are not defined exactly in the same way here and in HOL Light, 
@@ -95,16 +95,16 @@ definition pintrp_of_intrp :: "'m intrp \<Rightarrow> (nat \<Rightarrow> 'm) \<R
    of accepted arguments for a given predicate instead of being a Boolean for compatibility.
 *)
 definition 
-  canon_of_prop :: "((nat \<times> nat) set \<times> (nat \<times> nat) set) \<Rightarrow> (form \<Rightarrow> bool) \<Rightarrow> nterm intrp" where
+  canon_of_prop :: \<open>((nat \<times> nat) set \<times> (nat \<times> nat) set) \<Rightarrow> (form \<Rightarrow> bool) \<Rightarrow> nterm intrp\<close> where
   \<open>canon_of_prop \<L> I \<equiv> Abs_intrp (terms_set (fst \<L>), Fun, (\<lambda>p. {ts. I (Atom p ts)}))\<close>
 
-lemma dom_canon_of_prop [simp]: "dom (canon_of_prop \<L> I) = terms_set (fst \<L>)"
+lemma dom_canon_of_prop [simp]: \<open>dom (canon_of_prop \<L> I) = terms_set (fst \<L>)\<close>
   by (simp add: canon_of_prop_def)
 
-lemma intrp_fn_canon_of_prop [simp]: "intrp_fn (canon_of_prop \<L> I) = Fun"
+lemma intrp_fn_canon_of_prop [simp]: \<open>intrp_fn (canon_of_prop \<L> I) = Fun\<close>
   by (simp add: canon_of_prop_def)
 
-lemma intrp_rel_canon_of_prop [simp]: "intrp_rel (canon_of_prop \<L> I) = (\<lambda>p. {ts. I (Atom p ts)})"
+lemma intrp_rel_canon_of_prop [simp]: \<open>intrp_rel (canon_of_prop \<L> I) = (\<lambda>p. {ts. I (Atom p ts)})\<close>
   by (simp add: canon_of_prop_def)
 
 lemma pholds_pintrp_of_intrp:
@@ -115,15 +115,15 @@ lemma pholds_pintrp_of_intrp:
 lemma intrp_of_canon_of_prop [simp]:
   \<open>pintrp_of_intrp (canon_of_prop \<L> I) Var (Atom p ts) = I (Atom p ts)\<close>
 proof -
-  have \<section>: "terms_set (fst \<L>) \<noteq> {}"
+  have \<section>: \<open>terms_set (fst \<L>) \<noteq> {}\<close>
     using terms_set.vars by auto
-  have "\<forall>t \<in> set ts. \<lbrakk>t\<rbrakk>\<^bsup>Abs_intrp (terms_set (fst \<L>), Fun, \<lambda>p. {ts. I (form.Atom p ts)}),Var\<^esup> = t" 
+  have \<open>\<forall>t \<in> set ts. \<lbrakk>t\<rbrakk>\<^bsup>Abs_intrp (terms_set (fst \<L>), Fun, \<lambda>p. {ts. I (form.Atom p ts)}),Var\<^esup> = t\<close> 
   proof (induction ts)
     case Nil
     then show ?case by simp
   next
     case (Cons t ts)
-    have "\<lbrakk>t\<rbrakk>\<^bsup>Abs_intrp (terms_set (fst \<L>), Fun, \<lambda>p. {ts. I (form.Atom p ts)}),Var\<^esup> = t"
+    have \<open>\<lbrakk>t\<rbrakk>\<^bsup>Abs_intrp (terms_set (fst \<L>), Fun, \<lambda>p. {ts. I (form.Atom p ts)}),Var\<^esup> = t\<close>
     proof (induction t)
       case (Var x)
       then show ?case
@@ -144,7 +144,7 @@ qed
 lemma holds_canon_of_prop:
   assumes \<open>qfree \<phi>\<close> shows \<open>(canon_of_prop \<L> I)\<^bold>,Var \<Turnstile> \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p \<phi>\<close>
 proof -
-  have "pintrp_of_intrp (canon_of_prop \<L> I) Var \<Turnstile>\<^sub>p \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p \<phi>"
+  have \<open>pintrp_of_intrp (canon_of_prop \<L> I) Var \<Turnstile>\<^sub>p \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p \<phi>\<close>
     using assms
     by (induction \<phi>) auto
   with assms show ?thesis
@@ -157,13 +157,13 @@ qed
 lemma holds_canon_of_prop_general: 
   assumes \<open>qfree \<phi>\<close> shows \<open>(canon_of_prop \<L> I)\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p (\<phi> \<cdot>\<^sub>f\<^sub>m \<beta>)\<close>
 proof -
-  have "pintrp_of_intrp (canon_of_prop \<L> I) \<beta> \<Turnstile>\<^sub>p \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p (\<phi> \<cdot>\<^sub>f\<^sub>m \<beta>)"
+  have \<open>pintrp_of_intrp (canon_of_prop \<L> I) \<beta> \<Turnstile>\<^sub>p \<phi> \<longleftrightarrow> I \<Turnstile>\<^sub>p (\<phi> \<cdot>\<^sub>f\<^sub>m \<beta>)\<close>
     using assms
   proof (induction \<phi>)
     case Atom
-    have "\<lbrakk>t\<rbrakk>\<^bsup>Abs_intrp (terms_set (fst \<L>), Fun, \<lambda>p. {ts. I (form.Atom p ts)}),\<beta>\<^esup> = t \<cdot> \<beta>" for t
+    have \<open>\<lbrakk>t\<rbrakk>\<^bsup>Abs_intrp (terms_set (fst \<L>), Fun, \<lambda>p. {ts. I (form.Atom p ts)}),\<beta>\<^esup> = t \<cdot> \<beta>\<close> for t
       using term_subst_eval by (metis empty_iff intrp_fn_Abs_is_fst_snd struct_def terms_set.simps)
-    moreover have "struct (terms_set (fst \<L>))"
+    moreover have \<open>struct (terms_set (fst \<L>))\<close>
       by (metis empty_iff struct.intro terms_set.vars)
     ultimately show ?case
       by (simp add: canon_of_prop_def pintrp_of_intrp_def Atom)
@@ -207,12 +207,24 @@ lemma psatisfies_instances:
   unfolding satisfies_def
   by (smt (verit, ccfv_SIG) dom_canon_of_prop holds_canon_of_prop_general is_valuation_def mem_Collect_eq assms)
 
-
 (* SATISFIES_INSTANCES in HOL Light *)
-lemma satisfies_instances: \<open>(is_interpretation (language \<Xi>) \<M> \<Longrightarrow> 
- (satisfies \<M> {\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> |\<phi> \<sigma>. \<phi> \<in> \<Phi> \<and> (\<forall>x. \<sigma> x \<in> terms_set (fst (language \<Xi>)))}) \<longleftrightarrow>
-  satisfies \<M> \<Phi>)\<close>
-  sorry
+lemma satisfies_instances:
+  assumes \<open>is_interpretation (language \<Xi>) \<M>\<close>
+  shows \<open>satisfies \<M> {\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> |\<phi> \<sigma>. \<phi> \<in> \<Phi> \<and> (\<forall>x. \<sigma> x \<in> terms_set (fst (language \<Xi>)))} \<longleftrightarrow>
+         satisfies \<M> \<Phi>\<close>
+  unfolding satisfies_def mem_Collect_eq
+proof (intro iffI strip)
+  fix \<beta> \<phi>
+  assume \<M>: \<open>\<forall>\<beta> \<phi>. is_valuation \<M> \<beta> \<longrightarrow> \<phi> \<in> \<Phi> \<longrightarrow> \<M>\<^bold>,\<beta> \<Turnstile> \<phi>\<close> \<open>is_valuation \<M> \<beta>\<close>
+    and \<open>\<exists>\<phi>' \<sigma>. \<phi> = \<phi>' \<cdot>\<^sub>f\<^sub>m \<sigma> \<and> \<phi>' \<in> \<Phi> \<and> (\<forall>x. \<sigma> x \<in> terms_set (fst (language \<Xi>)))\<close>
+  then obtain \<phi>' \<sigma> where \<sigma>: \<open>\<phi> = \<phi>' \<cdot>\<^sub>f\<^sub>m \<sigma>\<close> \<open>\<phi>' \<in> \<Phi>\<close> \<open>\<forall>x. \<sigma> x \<in> terms_set (functions_forms \<Xi>)\<close>
+    by (auto simp add: language_def)
+  with \<M> assms have \<open>\<M>\<^bold>,(\<lambda>v. \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>) \<Turnstile> \<phi>'\<close>
+    by (metis (no_types, lifting) eq_fst_iff interpretation_eval interpretation_sublanguage 
+        is_valuation_def language_def stupid_canondom)
+  with assms show \<open>\<M>\<^bold>,\<beta> \<Turnstile> \<phi>\<close>
+    by (simp add: \<sigma> swap_subst_eval)
+qed (metis subst_var terms_set.vars)
 
 (* COMPACT_CANON_QFREE in HOL Light *)
 (* I don't see the point of \<open>language \<Xi>\<close> here instead of, e.g., \<L> *)

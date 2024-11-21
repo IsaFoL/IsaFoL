@@ -424,7 +424,7 @@ qed auto
 
 thm formsubst_fv
 
-lemma subst_var: \<open>\<phi> \<cdot>\<^sub>f\<^sub>m Var = \<phi>\<close>
+lemma subst_var [simp]: \<open>\<phi> \<cdot>\<^sub>f\<^sub>m Var = \<phi>\<close>
   by (induction \<phi>) auto
 
 lemma formsubst_rename: \<open>FV (\<phi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))) - {y} = FV \<phi> - {x} - {y}\<close>
