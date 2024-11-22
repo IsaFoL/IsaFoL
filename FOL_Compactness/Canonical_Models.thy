@@ -234,31 +234,31 @@ lemma compact_canon_qfree:
                    \<Longrightarrow> \<exists>\<M>::'a intrp. is_interpretation (language \<Xi>) \<M> \<and> dom \<M> \<noteq> {} \<and> satisfies \<M> \<Psi>\<close>
   obtains \<C> where \<open>is_interpretation (language \<Xi>) \<C>\<close> \<open>canonical (language \<Xi>) \<C>\<close> \<open>satisfies \<C> \<Phi>\<close>
 proof -
-  define \<Gamma> where "\<Gamma> \<equiv> \<lambda>X. {\<phi> \<cdot>\<^sub>f\<^sub>m \<beta> |\<beta> \<phi>. (\<forall>x. \<beta> x \<in> terms_set (fst (language \<Xi>))) \<and> \<phi> \<in> X}"
-  have "psatisfiable (\<Gamma> \<Phi>)"
+  define \<Gamma> where \<open>\<Gamma> \<equiv> \<lambda>X. {\<phi> \<cdot>\<^sub>f\<^sub>m \<beta> |\<beta> \<phi>. (\<forall>x. \<beta> x \<in> terms_set (fst (language \<Xi>))) \<and> \<phi> \<in> X}\<close>
+  have \<open>psatisfiable (\<Gamma> \<Phi>)\<close>
     unfolding psatisfiable_def
   proof (rule compact_prop)
     fix \<Theta> 
-    assume "finite \<Theta>" "\<Theta> \<subseteq> \<Gamma> \<Phi>"
-    then have "\<exists>\<Psi>. finite \<Psi> \<and> \<Psi> \<subseteq> \<Phi> \<and> \<Theta> \<subseteq> \<Gamma> \<Psi>"
+    assume \<open>finite \<Theta>\<close> \<open>\<Theta> \<subseteq> \<Gamma> \<Phi>\<close>
+    then have \<open>\<exists>\<Psi>. finite \<Psi> \<and> \<Psi> \<subseteq> \<Phi> \<and> \<Theta> \<subseteq> \<Gamma> \<Psi>\<close>
       using finite_subset_instance \<Gamma>_def by force
     then obtain \<Psi> where \<Psi>: \<open>finite \<Psi>\<close> \<open>\<Psi> \<subseteq> \<Phi>\<close> \<open>\<Theta> \<subseteq> \<Gamma> \<Psi>\<close>
       by auto
-    have "psatisfiable \<Theta>"
+    have \<open>psatisfiable \<Theta>\<close>
     proof (rule psatisfiable_mono)
-      obtain \<M>::"'a intrp" where \<M>: \<open>is_interpretation (language \<Xi>) \<M>\<close> \<open>dom \<M> \<noteq> {}\<close> \<open>satisfies \<M> \<Psi>\<close>
+      obtain \<M>::\<open>'a intrp\<close> where \<M>: \<open>is_interpretation (language \<Xi>) \<M>\<close> \<open>dom \<M> \<noteq> {}\<close> \<open>satisfies \<M> \<Psi>\<close>
         using int \<Psi> by meson
       then obtain \<beta> where \<beta>: \<open>is_valuation \<M> \<beta>\<close>
         by (meson valuation_exists)
       moreover have \<open>\<And>\<phi>. \<phi> \<in> \<Gamma> \<Psi> \<longrightarrow> qfree \<phi>\<close>
         using \<Gamma>_def \<Psi> qf qfree_formsubst by auto
-      moreover have "satisfies \<M> (\<Gamma> \<Psi>)"
+      moreover have \<open>satisfies \<M> (\<Gamma> \<Psi>)\<close>
         using \<M> unfolding \<Gamma>_def
         by (smt (verit, del_insts) mem_Collect_eq satisfies_def satisfies_instances)
-      ultimately show "psatisfiable (\<Gamma> \<Psi>)"
+      ultimately show \<open>psatisfiable (\<Gamma> \<Psi>)\<close>
         by (meson psatisfiable_def satisfies_psatisfies)
     qed (use \<Psi> in auto)
-    then show "\<exists>I. psatisfies I \<Theta>"
+    then show \<open>\<exists>I. psatisfies I \<Theta>\<close>
       using psatisfiable_def by blast
   qed (use qf qfree_formsubst \<Gamma>_def in force)
   with qf that show thesis
@@ -281,52 +281,60 @@ lemma interpretation_extendlanguage:
   obtains \<N> where \<open>dom \<N> = dom \<M>\<close> \<open>intrp_rel \<N> = intrp_rel \<M>\<close> 
                     \<open>is_interpretation (language \<Phi>) \<N>\<close> \<open>satisfies \<N> \<Psi>\<close>
 proof
-  define m where "m \<equiv> (SOME a. a \<in> dom \<M>)"
-  have m: "m \<in> dom \<M>"
+  define m where \<open>m \<equiv> (SOME a. a \<in> dom \<M>)\<close>
+  have m: \<open>m \<in> dom \<M>\<close>
     by (simp add: \<open>dom \<M> \<noteq> {}\<close> m_def some_in_eq)
   define \<N> where \<open>\<N> \<equiv> Abs_intrp
                     (dom \<M>, 
                      (\<lambda>g zs. if (g,length zs) \<in> functions_forms \<Psi> then intrp_fn \<M> g zs else m),
                      intrp_rel \<M>)\<close>
-  show eq: "dom \<N> = dom \<M>" "intrp_rel \<N> = intrp_rel \<M>"
+  show eq: \<open>dom \<N> = dom \<M>\<close> \<open>intrp_rel \<N> = intrp_rel \<M>\<close>
     by (simp_all add: \<N>_def)
-  show "is_interpretation (language \<Phi>) \<N>"
+  show \<open>is_interpretation (language \<Phi>) \<N>\<close>
   proof -
-    have \<section>: "fst (language \<Psi>) = functions_forms \<Psi>"
+    have \<section>: \<open>fst (language \<Psi>) = functions_forms \<Psi>\<close>
       by (simp add: language_def)
-    obtain \<beta> where "is_valuation \<M> (\<beta> \<M>)"
+    obtain \<beta> where \<open>is_valuation \<M> (\<beta> \<M>)\<close>
       by (meson \<open>dom \<M> \<noteq> {}\<close> valuation_exists)
-    then have "\<forall>n. \<beta> \<M> n \<in> dom \<M>"
+    then have \<open>\<forall>n. \<beta> \<M> n \<in> dom \<M>\<close>
       using is_valuation_def by blast
     with eq m int show ?thesis
       unfolding \<N>_def is_interpretation_def
       by (smt (verit, ccfv_SIG) \<section> intrp_fn_Abs_is_fst_snd intrp_is_struct)
   qed
-  show "satisfies \<N> \<Psi>"
+  show \<open>satisfies \<N> \<Psi>\<close>
     unfolding satisfies_def
   proof (intro strip)
     fix \<beta> \<phi>
-    assume \<beta>: "is_valuation \<N> \<beta>" and "\<phi> \<in> \<Psi>"
-    then have "is_valuation \<M> \<beta>"
+    assume \<beta>: \<open>is_valuation \<N> \<beta>\<close> and \<open>\<phi> \<in> \<Psi>\<close>
+    then have \<open>is_valuation \<M> \<beta>\<close>
       by (simp add: eq is_valuation_def)
-    then have "\<M>\<^bold>,\<beta> \<Turnstile> \<phi>"
+    then have \<open>\<M>\<^bold>,\<beta> \<Turnstile> \<phi>\<close>
       using \<open>\<phi> \<in> \<Psi>\<close> \<open>satisfies \<M> \<Psi>\<close> by (simp add: satisfies_def)
     moreover
     have \<open>(\<N>\<^bold>,\<beta> \<Turnstile> \<phi>) \<longleftrightarrow> (\<M>\<^bold>,\<beta> \<Turnstile> \<phi>)\<close>
     proof (intro holds_cong)
-      fix f :: nat and ts :: "'a list"
-      assume "(f, length ts) \<in> functions_form \<phi>"
-      then show "intrp_fn \<N> f ts = intrp_fn \<M> f ts"
+      fix f :: nat and ts :: \<open>'a list\<close>
+      assume \<open>(f, length ts) \<in> functions_form \<phi>\<close>
+      then show \<open>intrp_fn \<N> f ts = intrp_fn \<M> f ts\<close>
         using \<N>_def \<open>\<phi> \<in> \<Psi>\<close> functions_forms_def by auto
     qed (auto simp: eq)
-    ultimately show "\<N>\<^bold>,\<beta> \<Turnstile> \<phi>" by auto
+    ultimately show \<open>\<N>\<^bold>,\<beta> \<Turnstile> \<phi>\<close> by auto
   qed
 qed
 
 (* COMPACT_LS in HOL Light *)
-lemma compact_ls: \<open>(\<forall>\<Psi>. finite \<Psi> \<and> \<Psi> \<subseteq>\<Phi> \<Longrightarrow> (\<exists>\<M>. is_interpretation (language \<Phi>) \<M> \<and>
-  \<not> (dom \<M> = {}) \<and> satisfies \<M> \<Psi>)) \<Longrightarrow> \<exists>\<C>. is_interpretation (language \<Phi>) \<C> \<and>
-  \<not> (dom \<C> = {}) \<and> satisfies \<C> \<Phi>\<close>
-  sorry
+lemma compact_ls:
+  assumes int: \<open>\<And>\<Psi>. \<lbrakk>finite \<Psi>; \<Psi> \<subseteq> \<Phi>\<rbrakk> 
+                   \<Longrightarrow> \<exists>\<M>::'a intrp. is_interpretation (language \<Phi>) \<M> \<and> dom \<M> \<noteq> {} \<and> satisfies \<M> \<Psi>\<close>
+  obtains \<C> where \<open>is_interpretation (language \<Phi>) \<C>\<close> \<open>dom \<C> \<noteq> {}\<close> \<open>satisfies \<C> \<Phi>\<close>
+proof -
+  have \<open>\<exists>\<M>::'a intrp. is_interpretation(language (skolem ` \<Phi>)) \<M> \<and>
+                dom \<M> \<noteq> {} \<and> satisfies \<M> \<Psi>\<close> 
+      if \<open>finite \<Psi>\<close> \<open>\<Psi> \<subseteq> skolem ` \<Phi>\<close> for \<Psi>
+    sorry
+  show thesis
+    sorry
+qed
 
 end
