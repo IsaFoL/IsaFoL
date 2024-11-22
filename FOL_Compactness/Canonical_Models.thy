@@ -228,11 +228,44 @@ qed (metis subst_var terms_set.vars)
 
 (* COMPACT_CANON_QFREE in HOL Light *)
 (* I don't see the point of \<open>language \<Xi>\<close> here instead of, e.g., \<L> *)
-lemma compact_canon_qfree: \<open>(\<forall>\<phi>. \<phi> \<in> \<Phi> \<longrightarrow> qfree \<phi>) \<and> 
-  (\<forall>\<Psi>. finite \<Psi> \<and> \<Psi> \<subseteq> \<Phi> \<longrightarrow> (\<exists>\<M>. is_interpretation (language \<Xi>) \<M> \<and> \<not> (dom \<M> = {}) \<and> 
-    satisfies \<M> \<Psi>)) \<Longrightarrow> \<exists>\<C>. is_interpretation (language \<Xi>) \<C> \<and> canonical (language \<Xi>) \<C> \<and>
-    satisfies \<C> \<Phi>\<close>
-  sorry
+lemma compact_canon_qfree:
+  assumes qf: \<open>\<And>\<phi>. \<phi> \<in> \<Phi> \<longrightarrow> qfree \<phi>\<close>
+    and int: \<open>\<And>\<Psi>. \<lbrakk>finite \<Psi>; \<Psi> \<subseteq> \<Phi>\<rbrakk> 
+                   \<Longrightarrow> \<exists>\<M>::'a intrp. is_interpretation (language \<Xi>) \<M> \<and> dom \<M> \<noteq> {} \<and> satisfies \<M> \<Psi>\<close>
+  obtains \<C> where \<open>is_interpretation (language \<Xi>) \<C>\<close> \<open>canonical (language \<Xi>) \<C>\<close> \<open>satisfies \<C> \<Phi>\<close>
+proof -
+  define \<Gamma> where "\<Gamma> \<equiv> \<lambda>X. {\<phi> \<cdot>\<^sub>f\<^sub>m \<beta> |\<beta> \<phi>. (\<forall>x. \<beta> x \<in> terms_set (fst (language \<Xi>))) \<and> \<phi> \<in> X}"
+  have "psatisfiable (\<Gamma> \<Phi>)"
+    unfolding psatisfiable_def
+  proof (rule compact_prop)
+    fix \<Theta> 
+    assume "finite \<Theta>" "\<Theta> \<subseteq> \<Gamma> \<Phi>"
+    then have "\<exists>\<Psi>. finite \<Psi> \<and> \<Psi> \<subseteq> \<Phi> \<and> \<Theta> \<subseteq> \<Gamma> \<Psi>"
+      using finite_subset_instance \<Gamma>_def by force
+    then obtain \<Psi> where \<Psi>: \<open>finite \<Psi>\<close> \<open>\<Psi> \<subseteq> \<Phi>\<close> \<open>\<Theta> \<subseteq> \<Gamma> \<Psi>\<close>
+      by auto
+    have "psatisfiable \<Theta>"
+    proof (rule psatisfiable_mono)
+      obtain \<M>::"'a intrp" where \<M>: \<open>is_interpretation (language \<Xi>) \<M>\<close> \<open>dom \<M> \<noteq> {}\<close> \<open>satisfies \<M> \<Psi>\<close>
+        using int \<Psi> by meson
+      then obtain \<beta> where \<beta>: \<open>is_valuation \<M> \<beta>\<close>
+        by (meson valuation_exists)
+      moreover have \<open>\<And>\<phi>. \<phi> \<in> \<Gamma> \<Psi> \<longrightarrow> qfree \<phi>\<close>
+        using \<Gamma>_def \<Psi> qf qfree_formsubst by auto
+      moreover have "satisfies \<M> (\<Gamma> \<Psi>)"
+        using \<M> unfolding \<Gamma>_def
+        by (smt (verit, del_insts) mem_Collect_eq satisfies_def satisfies_instances)
+      ultimately show "psatisfiable (\<Gamma> \<Psi>)"
+        by (meson psatisfiable_def satisfies_psatisfies)
+    qed (use \<Psi> in auto)
+    then show "\<exists>I. psatisfies I \<Theta>"
+      using psatisfiable_def by blast
+  qed (use qf qfree_formsubst \<Gamma>_def in force)
+  with qf that show thesis
+    unfolding \<Gamma>_def psatisfiable_def
+    by (smt (verit, ccfv_threshold) canonical_canon_of_prop interpretation_canon_of_prop 
+        mem_Collect_eq psatisfies_instances)
+qed
 
 (* INTERPRETATION_RESTRICTLANGUAGE in HOL Light *)
 lemma interpretation_restrictlanguage: \<open>\<Psi> \<subseteq> \<Phi> \<and> is_interpretation (language \<Phi>) \<M> \<Longrightarrow>

@@ -158,17 +158,12 @@ lemma finsat_satisfiable: \<open>psatisfiable S \<Longrightarrow> finsat S\<clos
   unfolding psatisfiable_def finsat_def by blast
 
 lemma prop_compactness: \<open>(\<forall>\<phi> \<in> S. qfree \<phi>) \<Longrightarrow> finsat S = psatisfiable S\<close>
-proof -
-  assume all_qfree: \<open>\<forall>\<phi> \<in> S. qfree \<phi>\<close>
-  have \<open>finsat S = fin_sat (form_to_formula ` S)\<close>
-    using finsat_fin_sat_eq[OF all_qfree] by simp
-  also have \<open>... = sat (form_to_formula ` S)\<close>
-    using compactness[of "form_to_formula ` S"] by argo
-      (* for this step, countability of formula and term was critical!!!*)
-  also have \<open>... = psatisfiable S\<close>
-    using pentails_equiv_set[OF all_qfree] by simp
-  finally show \<open>finsat S = psatisfiable S\<close>
-    . 
-qed
+  by (simp add: compactness finsat_fin_sat_eq finsat_satisfiable pentails_equiv_set)
+
+text \<open>as above, more in the style of HOL Light\<close>
+lemma compact_prop:
+  assumes \<open>\<And>B. \<lbrakk>finite B; B \<subseteq> A\<rbrakk> \<Longrightarrow> \<exists>I. psatisfies I B\<close> and \<open>\<And>\<phi>. \<phi> \<in> A \<longrightarrow> qfree \<phi>\<close>
+  shows \<open>\<exists>I. psatisfies I A\<close>
+  by (metis assms finsat_def prop_compactness psatisfiable_def)
 
 end
