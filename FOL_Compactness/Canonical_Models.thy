@@ -275,11 +275,53 @@ lemma interpretation_restrictlanguage: \<open>\<Psi> \<subseteq> \<Phi> \<and> i
 
 (* INTERPRETATION_EXTENDLANGUAGE in HOL Light *)
 lemma interpretation_extendlanguage: 
-  \<open>is_interpretation (language \<Psi>) \<M> \<and> \<not> (dom \<M> = {}) \<and> satisfies \<M> \<Psi> \<Longrightarrow> \<exists>\<M>'. 
-    (dom \<M>' = dom \<M>) \<and> (intrp_rel \<M>' = intrp_rel \<M>) \<and> is_interpretation (language \<Phi>) \<M>'
-    \<and> satisfies \<M>' \<Psi>\<close>
-  unfolding is_interpretation_def language_def functions_forms_def predicates_def satisfies_def
-  sorry
+  fixes \<M>:: \<open>'a intrp\<close>
+  assumes int: \<open>is_interpretation (language \<Psi>) \<M>\<close> and \<open>dom \<M> \<noteq> {}\<close>
+    and \<open>satisfies \<M> \<Psi>\<close>
+  obtains \<N> where \<open>dom \<N> = dom \<M>\<close> \<open>intrp_rel \<N> = intrp_rel \<M>\<close> 
+                    \<open>is_interpretation (language \<Phi>) \<N>\<close> \<open>satisfies \<N> \<Psi>\<close>
+proof
+  define m where "m \<equiv> (SOME a. a \<in> dom \<M>)"
+  have m: "m \<in> dom \<M>"
+    by (simp add: \<open>dom \<M> \<noteq> {}\<close> m_def some_in_eq)
+  define \<N> where \<open>\<N> \<equiv> Abs_intrp
+                    (dom \<M>, 
+                     (\<lambda>g zs. if (g,length zs) \<in> functions_forms \<Psi> then intrp_fn \<M> g zs else m),
+                     intrp_rel \<M>)\<close>
+  show eq: "dom \<N> = dom \<M>" "intrp_rel \<N> = intrp_rel \<M>"
+    by (simp_all add: \<N>_def)
+  show "is_interpretation (language \<Phi>) \<N>"
+  proof -
+    have \<section>: "fst (language \<Psi>) = functions_forms \<Psi>"
+      by (simp add: language_def)
+    obtain \<beta> where "is_valuation \<M> (\<beta> \<M>)"
+      by (meson \<open>dom \<M> \<noteq> {}\<close> valuation_exists)
+    then have "\<forall>n. \<beta> \<M> n \<in> dom \<M>"
+      using is_valuation_def by blast
+    with eq m int show ?thesis
+      unfolding \<N>_def is_interpretation_def
+      by (smt (verit, ccfv_SIG) \<section> intrp_fn_Abs_is_fst_snd intrp_is_struct)
+  qed
+  show "satisfies \<N> \<Psi>"
+    unfolding satisfies_def
+  proof (intro strip)
+    fix \<beta> \<phi>
+    assume \<beta>: "is_valuation \<N> \<beta>" and "\<phi> \<in> \<Psi>"
+    then have "is_valuation \<M> \<beta>"
+      by (simp add: eq is_valuation_def)
+    then have "\<M>\<^bold>,\<beta> \<Turnstile> \<phi>"
+      using \<open>\<phi> \<in> \<Psi>\<close> \<open>satisfies \<M> \<Psi>\<close> by (simp add: satisfies_def)
+    moreover
+    have \<open>(\<N>\<^bold>,\<beta> \<Turnstile> \<phi>) \<longleftrightarrow> (\<M>\<^bold>,\<beta> \<Turnstile> \<phi>)\<close>
+    proof (intro holds_cong)
+      fix f :: nat and ts :: "'a list"
+      assume "(f, length ts) \<in> functions_form \<phi>"
+      then show "intrp_fn \<N> f ts = intrp_fn \<M> f ts"
+        using \<N>_def \<open>\<phi> \<in> \<Psi>\<close> functions_forms_def by auto
+    qed (auto simp: eq)
+    ultimately show "\<N>\<^bold>,\<beta> \<Turnstile> \<phi>" by auto
+  qed
+qed
 
 (* COMPACT_LS in HOL Light *)
 lemma compact_ls: \<open>(\<forall>\<Psi>. finite \<Psi> \<and> \<Psi> \<subseteq>\<Phi> \<Longrightarrow> (\<exists>\<M>. is_interpretation (language \<Phi>) \<M> \<and>
