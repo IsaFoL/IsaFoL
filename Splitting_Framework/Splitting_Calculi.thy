@@ -91,7 +91,11 @@ text \<open>
 
 interpretation SInf_inf_system: inference_system SInf .
 
+find_theorems \<open>{}\<close> \<open>{bot}\<close>
 
+lemma \<open>\<not>{} \<Turnstile> {bot}\<close>
+  using entails_bot_to_entails_empty entails_nontrivial
+by blast
 
 text \<open>
   The proof for Lemma 13 is split into two parts, for each inclusion in the set equality.

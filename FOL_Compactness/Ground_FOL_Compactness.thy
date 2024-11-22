@@ -14,6 +14,8 @@ fun qfree :: \<open>form \<Rightarrow> bool\<close> where
 | \<open>qfree (\<phi> \<^bold>\<longrightarrow> \<psi>) = (qfree \<phi> \<and> qfree \<psi>)\<close>
 | \<open>qfree (\<^bold>\<forall> x\<^bold>. \<phi>) = False\<close>
 
+lemma qfree_iff_BV_empty: "qfree \<phi> \<longleftrightarrow> BV \<phi> = {}"
+  by (induction \<phi>) auto
 
 lemma qfree_no_quantif: \<open>qfree r \<Longrightarrow> \<not>(\<exists>x p. r = \<^bold>\<forall>x\<^bold>. p) \<and> \<not>(\<exists>x p. r = \<^bold>\<exists>x\<^bold>. p)\<close>
   using qfree.simps(3) qfree.simps(4) by blast
@@ -47,6 +49,8 @@ fun pholds :: \<open>(form \<Rightarrow> bool) \<Rightarrow> form \<Rightarrow> 
 
 definition psatisfiable :: "form set \<Rightarrow> bool" where
   \<open>psatisfiable S \<equiv> \<exists>I. \<forall>\<phi>\<in>S. I \<Turnstile>\<^sub>p \<phi>\<close>
+
+abbreviation psatisfies where \<open>psatisfies I \<Phi> \<equiv> \<forall>\<phi>\<in>\<Phi>. pholds I \<phi>\<close>
 
 definition val_to_prop_val :: "(form \<Rightarrow> bool) \<Rightarrow> ((nat \<times> nterm list) \<Rightarrow> bool)" where
   \<open>val_to_prop_val I = (\<lambda>x. I (Atom (fst x) (snd x)))\<close>
@@ -117,11 +121,11 @@ proof -
     proof clarsimp
       fix s
       assume 
-        s_in: "s \<subseteq> form_to_formula ` S" and
+        s_in: \<open>s \<subseteq> form_to_formula ` S\<close> and
         fin_s: \<open>finite s\<close>
       then obtain t where \<open>t \<subseteq> S\<close> and \<open>s = form_to_formula ` t\<close> and \<open>finite t\<close>
         by (meson finite_subset_image)
-      then show "sat s"
+      then show \<open>sat s\<close>
         using pentails_equiv_set[of t] all_qfree by (meson finsat_s finsat_def subsetD)
       qed
   }
@@ -154,17 +158,12 @@ lemma finsat_satisfiable: \<open>psatisfiable S \<Longrightarrow> finsat S\<clos
   unfolding psatisfiable_def finsat_def by blast
 
 lemma prop_compactness: \<open>(\<forall>\<phi> \<in> S. qfree \<phi>) \<Longrightarrow> finsat S = psatisfiable S\<close>
-proof -
-  assume all_qfree: \<open>\<forall>\<phi> \<in> S. qfree \<phi>\<close>
-  have \<open>finsat S = fin_sat (form_to_formula ` S)\<close>
-    using finsat_fin_sat_eq[OF all_qfree] by simp
-  also have \<open>... = sat (form_to_formula ` S)\<close>
-    using compactness[of "form_to_formula ` S"] by argo
-      (* for this step, countability of formula and term was critical!!!*)
-  also have \<open>... = psatisfiable S\<close>
-    using pentails_equiv_set[OF all_qfree] by simp
-  finally show \<open>finsat S = psatisfiable S\<close>
-    . 
-qed
+  by (simp add: compactness finsat_fin_sat_eq finsat_satisfiable pentails_equiv_set)
+
+text \<open>as above, more in the style of HOL Light\<close>
+lemma compact_prop:
+  assumes \<open>\<And>B. \<lbrakk>finite B; B \<subseteq> A\<rbrakk> \<Longrightarrow> \<exists>I. psatisfies I B\<close> and \<open>\<And>\<phi>. \<phi> \<in> A \<longrightarrow> qfree \<phi>\<close>
+  shows \<open>\<exists>I. psatisfies I A\<close>
+  by (metis assms finsat_def prop_compactness psatisfiable_def)
 
 end
