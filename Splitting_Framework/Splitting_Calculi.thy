@@ -70,7 +70,7 @@ abbreviation base_inf :: \<open>('f, 'v) AF list \<Rightarrow> 'f \<Rightarrow> 
   \<open>base_inf \<N> D \<equiv> Infer \<N> (Pair D (ffUnion (fset_of_list (map A_of \<N>))))\<close>
 
 abbreviation unsat_pre :: \<open>('f, 'v) AF list \<Rightarrow> bool\<close> where
-  \<open>unsat_pre \<N> \<equiv> (\<forall> x \<in> set \<N>. F_of x = bot) \<and> propositionally_unsatisfiable (set \<N>) \<and> \<N> \<noteq> []\<close>
+  \<open>unsat_pre \<N> \<equiv> (\<forall> x \<in> set \<N>. F_of x = bot) \<and> propositionally_unsatisfiable (set \<N>)\<close>
 
 abbreviation unsat_inf :: \<open>('f, 'v) AF list \<Rightarrow> ('f, 'v) AF inference\<close> where
   \<open>unsat_inf \<N> \<equiv> Infer \<N> (to_AF bot)\<close>
@@ -91,11 +91,9 @@ text \<open>
 
 interpretation SInf_inf_system: inference_system SInf .
 
-find_theorems \<open>{}\<close> \<open>{bot}\<close>
-
-lemma \<open>\<not>{} \<Turnstile> {bot}\<close>
+lemma not_empty_entails_bot: \<open>\<not>{} \<Turnstile> {bot}\<close>
   using entails_bot_to_entails_empty entails_nontrivial
-by blast
+  by blast
 
 text \<open>
   The proof for Lemma 13 is split into two parts, for each inclusion in the set equality.
@@ -140,7 +138,8 @@ proof (intro subsetI)
       by (metis enabled_inf_def inference.sel(1) local.unsat(1) no_enabled_prop_clause_in_\<N>
            prems_of_\<iota>\<^sub>F_subset_\<N> subset_eq)
     then have \<open>False\<close>
-      by (simp add: local.unsat(2))
+      using not_empty_entails_bot unsat(2) enabled_projection_def prop_proj_in
+        propositional_model_def propositionally_unsatisfiable_def by auto
     ultimately show \<open>base_pre (prems_of \<iota>\<^sub>F) (F_of (concl_of \<iota>\<^sub>F))\<close>
       by blast
   qed

@@ -1359,7 +1359,7 @@ locale LA_calculus = FO_resolution_prover' S subst_atm id_subst comp_subst renam
 begin
 
 interpretation entails_\<G>_disj_sound_inf_system:
-  Preliminaries_With_Zorn.sound_inference_system F_Inf \<open>{#}\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
+  Calculi_And_Annotations.sound_inference_system F_Inf \<open>{#}\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
 proof standard
   have \<open>\<And> \<iota>. \<iota> \<in> F_Inf \<Longrightarrow> set (prems_of \<iota>) \<TTurnstile>\<inter>\<G>e {concl_of \<iota>}\<close>
     using F.sound
@@ -1685,10 +1685,10 @@ qed
 
 
 interpretation SInf_sound:
-  Preliminaries_With_Zorn.sound_inference_system SInf \<open>to_AF {#}\<close> \<open>(\<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F)\<close>
+  Calculi_And_Annotations.sound_inference_system SInf \<open>to_AF {#}\<close> \<open>(\<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F)\<close>
   by (meson LA_is_AF_calculus.AF_ext_sound_cons_rel SInf_sound_wrt_entails_sound
-      Preliminaries_With_Zorn.sound_inference_system.intro
-      Preliminaries_With_Zorn.sound_inference_system_axioms.intro) 
+      Calculi_And_Annotations.sound_inference_system.intro
+      Calculi_And_Annotations.sound_inference_system_axioms.intro) 
 
 interpretation Simps_simplifies: sound_simplification_rules \<open>to_AF {#}\<close> SInf \<open>(\<TTurnstile>\<union>\<G>e\<^sub>A\<^sub>F)\<close> Simps
   by (standard, auto simp add: Simps_are_sound)
