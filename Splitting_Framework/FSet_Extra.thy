@@ -7,6 +7,26 @@ text \<open>
   of proving some lemmas in \<^file>\<open>Splitting_Calculi.thy\<close> and \<^file>\<open>Splitting_Without_Backtracking.thy\<close>.
 \<close> 
 
+(* to move to Set of Fset theory? *)
+
+lemma finite_because_singleton: \<open>(\<forall>C1 \<in> S. \<forall>C2 \<in> S. C1 = C2) \<longrightarrow> finite S\<close> for S
+  by (metis finite.simps is_singletonI' is_singleton_the_elem)
+
+lemma finite_union_of_finite_is_finite: \<open>finite E \<Longrightarrow> (\<forall>D \<in> E. finite({f C |C. P C \<and> g C = D})) \<Longrightarrow>
+                                  finite({f C |C. P C \<and> g C \<in> E})\<close>
+proof -
+  assume finite_E: \<open>finite E\<close> and
+         all_finite: \<open>\<forall>D \<in> E. finite({f C |C. P C \<and> g C = D})\<close>
+  have \<open>finite (\<Union>{{f C |C. P C \<and> g C = D} |D. D\<in>E})\<close>
+    using finite_E all_finite finite_UN_I
+    by (simp add: setcompr_eq_image)
+  moreover have \<open>{f C |C. P C \<and> g C \<in> E} \<subseteq> \<Union>{{f C |C. P C \<and> g C = D} |D. D\<in>E}\<close>
+    by blast
+  ultimately show ?thesis by (meson finite_subset)
+qed
+
+
+
 (* to move to Fset theory? *)
 definition list_of_fset :: "'a fset \<Rightarrow> 'a list" where
   \<open>list_of_fset A = (SOME l. fset_of_list l = A)\<close>

@@ -18,31 +18,14 @@ begin
 
 section \<open>Formulas\<close>
 
-subsection \<open>Preliminary Notions\<close>
-
 no_notation Sema.formula_semantics (infix "\<Turnstile>" 51)
 
   (*useful tools for the following proofs*)
 
+(*
 lemma pow_suc: \<open>(f^^(Suc k)) x = (f^^k) (f x)\<close>
   by (induction k) auto
-
-lemma finite_because_singleton: \<open>(\<forall>C1 \<in> S. \<forall>C2 \<in> S. C1 = C2) \<longrightarrow> finite S\<close> for S
-  by (metis finite.simps is_singletonI' is_singleton_the_elem)
-
-lemma finite_union_of_finite_is_finite: \<open>finite E \<Longrightarrow> (\<forall>D \<in> E. finite({f C |C. P C \<and> g C = D})) \<Longrightarrow>
-                                  finite({f C |C. P C \<and> g C \<in> E})\<close>
-proof -
-  assume finite_E: \<open>finite E\<close> and
-         all_finite: \<open>\<forall>D \<in> E. finite({f C |C. P C \<and> g C = D})\<close>
-  have \<open>finite (\<Union>{{f C |C. P C \<and> g C = D} |D. D\<in>E})\<close>
-    using finite_E all_finite finite_UN_I
-    by (simp add: setcompr_eq_image)
-  moreover have \<open>{f C |C. P C \<and> g C \<in> E} \<subseteq> \<Union>{{f C |C. P C \<and> g C = D} |D. D\<in>E}\<close>
-    by blast
-  ultimately show ?thesis by (meson finite_subset)
-qed
-
+*)
 
 
 subsection \<open>Disjunctive Consequence Relations\<close>
@@ -1634,6 +1617,7 @@ definition F_of_Inf :: "(('f, 'v::countable) AF) inference \<Rightarrow> 'f infe
  *     all_interp: "J \<in> \<J> \<Longrightarrow> is_interpretation J" and
   *     all_in_J: "is_interpretation J \<Longrightarrow> J \<in> \<J>" *)
 
+subsection \<open>Lifting Calculi to Add Annotations\<close>
 
 locale AF_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F
   (* + propositional_interpretations \<J>*)
