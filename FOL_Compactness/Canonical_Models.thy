@@ -193,19 +193,17 @@ lemma fol_valid_imp_prop_valid: \<open>qfree \<phi> \<and> (\<forall>\<M> \<beta
   using canonical_canon_of_prop holds_canon_of_prop by blast
 
 (* SATISFIES_PSATISFIES *)
-lemma satisfies_psatisfies: \<open>(\<forall>\<phi>. \<phi> \<in> \<Phi> \<longrightarrow> qfree \<phi>) \<and> satisfies \<M> \<Phi> \<and> is_valuation \<M> \<beta> \<Longrightarrow>
+lemma satisfies_psatisfies: \<open>\<lbrakk>\<phi> \<in> \<Phi>; \<Phi> \<subseteq> {\<phi>. qfree \<phi>}; satisfies \<M> \<Phi>; is_valuation \<M> \<beta>\<rbrakk> \<Longrightarrow>
   psatisfies (pintrp_of_intrp \<M> \<beta>) \<Phi>\<close>
   using pholds_pintrp_of_intrp satisfies_def by blast
 
-find_consts name: terms
-
 (* PSATISFIES_INSTANCES in HOL Light *)
 lemma psatisfies_instances:
-  assumes qf: \<open>(\<And>\<phi>. \<phi> \<in> \<Phi> \<longrightarrow> qfree \<phi>)\<close>
+  assumes qf: \<open>\<Phi> \<subseteq> {\<phi>. qfree \<phi>}\<close>
     and ps: \<open>psatisfies I {\<phi> \<cdot>\<^sub>f\<^sub>m \<beta> |\<phi> \<beta>. (\<forall>x. \<beta> x \<in> terms_set (fst \<L>)) \<and> \<phi> \<in> \<Phi>}\<close>
   shows \<open>satisfies (canon_of_prop \<L> I) \<Phi>\<close>
-  unfolding satisfies_def
-  by (smt (verit, ccfv_SIG) dom_canon_of_prop holds_canon_of_prop_general is_valuation_def mem_Collect_eq assms)
+  unfolding satisfies_def is_valuation_def
+  by (smt (verit, best) dom_canon_of_prop holds_canon_of_prop_general mem_Collect_eq ps qf subset_iff)
 
 (* SATISFIES_INSTANCES in HOL Light *)
 lemma satisfies_instances:
@@ -229,7 +227,7 @@ qed (metis subst_var terms_set.vars)
 (* COMPACT_CANON_QFREE in HOL Light *)
 (* I don't see the point of \<open>language \<Xi>\<close> here instead of, e.g., \<L> *)
 lemma compact_canon_qfree:
-  assumes qf: \<open>\<And>\<phi>. \<phi> \<in> \<Phi> \<longrightarrow> qfree \<phi>\<close>
+  assumes qf: \<open>\<Phi> \<subseteq> {\<phi>. qfree \<phi>}\<close>
     and int: \<open>\<And>\<Psi>. \<lbrakk>finite \<Psi>; \<Psi> \<subseteq> \<Phi>\<rbrakk> 
                    \<Longrightarrow> \<exists>\<M>::'a intrp. is_interpretation (language \<Xi>) \<M> \<and> dom \<M> \<noteq> {} \<and> satisfies \<M> \<Psi>\<close>
   obtains \<C> where \<open>is_interpretation (language \<Xi>) \<C>\<close> \<open>canonical (language \<Xi>) \<C>\<close> \<open>satisfies \<C> \<Phi>\<close>
@@ -250,7 +248,7 @@ proof -
         using int \<Psi> by meson
       then obtain \<beta> where \<beta>: \<open>is_valuation \<M> \<beta>\<close>
         by (meson valuation_exists)
-      moreover have \<open>\<And>\<phi>. \<phi> \<in> \<Gamma> \<Psi> \<longrightarrow> qfree \<phi>\<close>
+      moreover have \<open>\<Gamma> \<Psi> \<subseteq> {\<phi>. qfree \<phi>}\<close>
         using \<Gamma>_def \<Psi> qf qfree_formsubst by auto
       moreover have \<open>satisfies \<M> (\<Gamma> \<Psi>)\<close>
         using \<M> unfolding \<Gamma>_def
@@ -268,8 +266,8 @@ proof -
 qed
 
 (* INTERPRETATION_RESTRICTLANGUAGE in HOL Light *)
-lemma interpretation_restrictlanguage: \<open>\<Psi> \<subseteq> \<Phi> \<and> is_interpretation (language \<Phi>) \<M> \<Longrightarrow>
-  is_interpretation (language \<Psi>) \<M>\<close>
+lemma interpretation_restrictlanguage: 
+  \<open>\<Psi> \<subseteq> \<Phi> \<Longrightarrow> is_interpretation (language \<Phi>) \<M> \<Longrightarrow> is_interpretation (language \<Psi>) \<M>\<close>
   unfolding is_interpretation_def language_def functions_forms_def predicates_def
   by (metis Union_mono fstI image_mono in_mono)
 
@@ -324,17 +322,25 @@ proof
 qed
 
 (* COMPACT_LS in HOL Light *)
-lemma compact_ls:
-  assumes int: \<open>\<And>\<Psi>. \<lbrakk>finite \<Psi>; \<Psi> \<subseteq> \<Phi>\<rbrakk> 
+theorem compact_ls:
+  assumes \<open>\<And>\<Psi>. \<lbrakk>finite \<Psi>; \<Psi> \<subseteq> \<Phi>\<rbrakk> 
                    \<Longrightarrow> \<exists>\<M>::'a intrp. is_interpretation (language \<Phi>) \<M> \<and> dom \<M> \<noteq> {} \<and> satisfies \<M> \<Psi>\<close>
-  obtains \<C> where \<open>is_interpretation (language \<Phi>) \<C>\<close> \<open>dom \<C> \<noteq> {}\<close> \<open>satisfies \<C> \<Phi>\<close>
+  obtains \<C>::"nterm intrp" where \<open>is_interpretation (language \<Phi>) \<C>\<close> \<open>dom \<C> \<noteq> {}\<close> \<open>satisfies \<C> \<Phi>\<close>
 proof -
   have \<open>\<exists>\<M>::'a intrp. is_interpretation(language (skolem ` \<Phi>)) \<M> \<and>
                 dom \<M> \<noteq> {} \<and> satisfies \<M> \<Psi>\<close> 
-      if \<open>finite \<Psi>\<close> \<open>\<Psi> \<subseteq> skolem ` \<Phi>\<close> for \<Psi>
-    sorry
-  show thesis
-    sorry
+    if \<Psi>: \<open>finite \<Psi>\<close> \<open>\<Psi> \<subseteq> skolem ` \<Phi>\<close> for \<Psi>
+    by (smt (verit, ccfv_threshold) assms finite_subset_image interpretation_extendlanguage 
+             interpretation_restrictlanguage skolem_satisfiable that)
+  with compact_canon_qfree skolem_qfree
+  obtain \<C> where \<C>: \<open>is_interpretation (language (skolem ` \<Phi>)) \<C>\<close> 
+    \<open>canonical (language (skolem ` \<Phi>)) \<C>\<close> 
+    \<open>satisfies \<C> (skolem ` \<Phi>)\<close>
+    by blast
+  have "dom \<C> \<noteq> {}"
+    using struct_def by blast
+  with skolem_satisfiable[of \<Phi>] \<C> that show thesis
+    by metis
 qed
 
 end
