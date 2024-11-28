@@ -1668,7 +1668,7 @@ lemmas SRed_rules = SRed\<^sub>F_entails_bot SRed\<^sub>F_of_subset_F SRed\<^sub
 interpretation S_calculus: calculus \<open>to_AF bot\<close> SInf AF_entails SRed\<^sub>I SRed\<^sub>F
   by (standard; simp add: SRed_rules)
 
-
+term S_calculus.Inf_from
 
 (* Report lemma 20 *)
 lemma S_saturated_to_F_saturated: \<open>S_calculus.saturated \<N> \<Longrightarrow> saturated (\<N> proj\<^sub>J \<J>)\<close>
