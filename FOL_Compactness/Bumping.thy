@@ -268,7 +268,7 @@ next
 qed
 (************************************************)
 
-lemma num_of_term_inj: \<open>num_of_term s = num_of_term t \<equiv> s = t\<close>
+lemma num_of_term_inj: \<open>num_of_term s = num_of_term t \<longleftrightarrow> s = t\<close>
 proof (induction s t rule: term_induct2)
   case (4 f ts g us)
   have \<open>(Fun f ts = Fun g us) \<Longrightarrow> num_of_term (Fun f ts) = num_of_term (Fun g us)\<close>

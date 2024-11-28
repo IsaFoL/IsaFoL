@@ -328,7 +328,7 @@ qed
 theorem compact_ls:
   assumes \<open>\<And>\<Psi>. \<lbrakk>finite \<Psi>; \<Psi> \<subseteq> \<Phi>\<rbrakk> 
              \<Longrightarrow> \<exists>\<M>::'a intrp. is_interpretation (language \<Phi>) \<M> \<and> dom \<M> \<noteq> {} \<and> satisfies \<M> \<Psi>\<close>
-  obtains \<C>::"nterm intrp" where \<open>is_interpretation (language \<Phi>) \<C>\<close> \<open>dom \<C> \<noteq> {}\<close> \<open>satisfies \<C> \<Phi>\<close>
+  obtains \<C>::\<open>nterm intrp\<close> where \<open>is_interpretation (language \<Phi>) \<C>\<close> \<open>dom \<C> \<noteq> {}\<close> \<open>satisfies \<C> \<Phi>\<close>
 proof -
   have \<open>\<exists>\<M>::'a intrp. is_interpretation(language (skolem ` \<Phi>)) \<M> \<and>
                 dom \<M> \<noteq> {} \<and> satisfies \<M> \<Psi>\<close> 
@@ -340,7 +340,7 @@ proof -
     \<open>canonical (language (skolem ` \<Phi>)) \<C>\<close> 
     \<open>satisfies \<C> (skolem ` \<Phi>)\<close>
     by blast
-  have "dom \<C> \<noteq> {}"
+  have \<open>dom \<C> \<noteq> {}\<close>
     using struct_def by blast
   with skolem_satisfiable[of \<Phi>] \<C> that show thesis
     by metis
@@ -348,48 +348,105 @@ qed
 
 (* CANON in HOL Light *)
 lemma canon:
-  assumes \<open>is_interpretation (language \<Phi>) \<M>\<close> \<open>dom \<M> \<noteq> {}\<close> \<open>\<forall>\<Psi>. \<Psi> \<subseteq> \<Phi> \<Longrightarrow> qfree \<Psi>\<close>
-    \<open>satisfies \<M> \<Phi>\<close>
-  obtains \<C>::"nterm intrp" where \<open>is_interpretation (language \<Phi>) \<C>\<close> \<open>dom \<C> \<noteq> {}\<close> \<open>satisfies \<C> \<Phi>\<close>
-  using compact_ls assms(1) assms(2) assms(4) satisfies_def unfolding satisfies_def by blast
+  assumes \<open>is_interpretation (language \<Phi>) \<M>\<close> \<open>dom \<M> \<noteq> {}\<close> \<open>satisfies \<M> \<Phi>\<close>
+  obtains \<C>::\<open>nterm intrp\<close> where \<open>is_interpretation (language \<Phi>) \<C>\<close> \<open>dom \<C> \<noteq> {}\<close> \<open>satisfies \<C> \<Phi>\<close>
+  using compact_ls assms unfolding satisfies_def by blast
 
 (* LOWMOD in HOL Light *)
-definition lowmod :: "nterm intrp \<Rightarrow> nat intrp" where
-  \<open>lowmod \<M> \<equiv> Abs_intrp ({num_of_term t |t. t \<in> dom \<M>}, 
+definition lowmod :: \<open>nterm intrp \<Rightarrow> nat intrp\<close> where
+  \<open>lowmod \<M> \<equiv> Abs_intrp (num_of_term ` (dom \<M>), 
     (\<lambda>g ns. num_of_term (intrp_fn \<M> g (map term_of_num ns))), 
-    (\<lambda>p. {ns. (map term_of_num ns) \<in> intrp_rel \<M> p }))\<close>
+    (\<lambda>p. {ns. (map term_of_num ns) \<in> intrp_rel \<M> p}))\<close>
+
+lemma dom_lowmod [simp]: \<open>dom (lowmod \<M>) = num_of_term ` (dom \<M>)\<close>
+  by (metis (no_types, lifting) dom_Abs_is_fst image_is_empty intrp_is_struct lowmod_def struct_def)
+
+lemma intrp_fn_lowmod [simp]: \<open>intrp_fn (lowmod \<M>) f ns = num_of_term (intrp_fn \<M> f (map term_of_num ns))\<close>
+  by (metis dom_lowmod intrp_fn_Abs_is_fst_snd intrp_is_struct lowmod_def)
+
+lemma intrp_rel_lowmod [simp]: \<open>intrp_rel (lowmod \<M>) p = {ns. (map term_of_num ns) \<in> intrp_rel \<M> p}\<close>
+  by (metis (no_types, lifting) dom_lowmod intrp_is_struct intrp_rel_Abs_is_snd_snd lowmod_def)
+
+lemma is_valuation_lowmod: \<open>is_valuation (lowmod \<C>) (num_of_term \<circ> \<beta>) \<longleftrightarrow> is_valuation \<C> \<beta>\<close>
+  by (simp add: is_valuation_def image_iff num_of_term_inj)
 
 (* LOWMOD_DOM_EMPTY in HOL Light *)
 lemma lowmod_dom_empty: \<open>dom (lowmod \<M>) = {} \<longleftrightarrow> dom \<M> = {}\<close>
-  unfolding lowmod_def dom_def
-  by (metis (no_types, lifting) FOL_Semantics.dom_def intrp_is_struct struct_def)
+  by simp
 
 (* LOWMOD_TERMVAL in HOL Light *)
-lemma lowmod_termval: \<open>is_valuation (lowmod \<M>) \<beta> \<Longrightarrow> 
-  \<forall>t. eval t (lowmod \<M>) \<beta> = num_of_term (eval t \<M> (term_of_num \<circ> \<beta>))\<close>
-  sorry
+lemma lowmod_termval: 
+  assumes \<open>is_valuation (lowmod \<M>) \<beta>\<close>
+  shows \<open>eval t (lowmod \<M>) \<beta> = num_of_term (eval t \<M> (term_of_num \<circ> \<beta>))\<close>
+proof (induction t)
+  case (Var x)
+  then show ?case 
+    using assms unfolding is_valuation_def
+    by (metis (no_types, lifting) comp_apply dom_lowmod eval.simps(1) image_iff term_of_num_of_term)
+next
+  case (Fun f args)
+  then show ?case
+    using assms unfolding is_valuation_def comp_apply intrp_fn_lowmod eval.simps
+    by (smt (verit) concat_map map_eq_conv term_of_num_of_term)
+qed
 
 (* LOWMOD_HOLDS in HOL Light *)
-lemma lowmod_holds: \<open>is_valuation (lowmod \<M>) \<beta> \<Longrightarrow>
-  (lowmod \<M>)\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> \<M>\<^bold>,(term_of_num \<circ> \<beta>) \<Turnstile> \<phi> \<close>
-  sorry
+lemma lowmod_holds:
+  assumes \<open>is_valuation (lowmod \<M>) \<beta>\<close>
+  shows  \<open>(lowmod \<M>)\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> \<M>\<^bold>,(term_of_num \<circ> \<beta>) \<Turnstile> \<phi>\<close>
+  using assms
+proof (induction \<phi> arbitrary: \<beta>)
+  case (Atom x1 x2)
+  then show ?case
+    using lowmod_termval [OF Atom] by (simp add: comp_def)
+next
+  case (Forall x1 \<phi>)
+  then have \<open>\<And>a. a \<in> dom \<M> \<Longrightarrow> is_valuation (lowmod \<M>) (\<beta>(x1 := num_of_term a))\<close>
+    by (simp add: valuation_valmod)
+  with Forall show ?case
+    apply simp
+    by (smt (verit, best) fun_upd_apply holds_indep_\<beta>_if term_of_num_of_term)
+qed auto
 
 (* LOWMOD_INTERPRETATION in HOL Light *)
-lemma lowmod_intrp: \<open>is_interpretation \<L> (lowmod \<M>) \<equiv> is_interpretation \<L> \<M>\<close>
-  sorry
+lemma lowmod_intrp: \<open>is_interpretation \<L> (lowmod \<M>) = is_interpretation \<L> \<M>\<close>
+proof
+  have inj: \<open>inj num_of_term\<close>
+    by (meson injI num_of_term_inj)
+  show "is_interpretation \<L> (lowmod \<M>) \<Longrightarrow> is_interpretation \<L> \<M>"
+    unfolding is_interpretation_def dom_lowmod intrp_fn_lowmod inj_image_mem_iff [OF inj]
+    by (metis (no_types, lifting) concat_map image_mono image_set length_map map_idI term_of_num_of_term)
+  show "is_interpretation \<L> \<M> \<Longrightarrow> is_interpretation \<L> (lowmod \<M>)"
+    unfolding is_interpretation_def dom_lowmod intrp_fn_lowmod subset_iff
+    by (smt (verit, best) image_iff length_map list.set_map term_of_num_of_term)
+qed
 
 (* LS in HOL Light *)
 lemma loewenheim_skolem: 
-  assumes \<open>is_interpretation (language \<Phi>) \<M>\<close> \<open>\<not> dom \<M> = {}\<close> \<open>\<forall>\<phi>. \<phi> \<in> \<Phi> \<Longrightarrow> qfree \<phi>\<close>
-    \<open>satisfies \<M> \<Phi>\<close>
-  obtains \<N> :: "nat intrp" where \<open>is_interpretation (language \<Phi>) \<N>\<close> \<open>\<not> dom \<N> = {}\<close> \<open>satisfies \<N> \<Phi>\<close>
-  sorry
+  assumes \<open>is_interpretation (language \<Phi>) \<M>\<close> \<open>dom \<M> \<noteq> {}\<close> 
+  assumes \<open>\<And>\<phi>. \<phi> \<in> \<Phi> \<Longrightarrow> qfree \<phi>\<close> \<open>satisfies \<M> \<Phi>\<close>
+  obtains \<N> :: \<open>nat intrp\<close> where \<open>is_interpretation (language \<Phi>) \<N>\<close> \<open>dom \<N> \<noteq> {}\<close> \<open>satisfies \<N> \<Phi>\<close>
+proof -
+  obtain \<C>::\<open>nterm intrp\<close> where \<C>: \<open>is_interpretation (language \<Phi>) \<C>\<close> \<open>dom \<C> \<noteq> {}\<close> \<open>satisfies \<C> \<Phi>\<close>
+    using assms canon by blast
+  show ?thesis
+  proof
+    show \<open>is_interpretation (language \<Phi>) (lowmod \<C>)\<close>
+      by (simp add: \<C> lowmod_intrp)
+    show \<open>dom (lowmod \<C>) \<noteq> {}\<close>
+      by (simp add: \<C>)
+    show \<open>satisfies (lowmod \<C>) \<Phi>\<close>
+      using \<C> unfolding satisfies_def
+      by (smt (verit, ccfv_SIG) comp_apply dom_lowmod image_iff is_valuation_def lowmod_holds term_of_num_of_term)
+  qed
+qed
 
 (* UNIFORMITY in HOL Light *)
 lemma uniformity:
-  assumes \<open>qfree \<phi>\<close> \<open>\<forall>\<C> \<beta>. (\<not> dom \<C> = {} \<and> is_valuation \<C> \<beta> \<longrightarrow> (\<C>\<^bold>,\<beta> \<Turnstile> (fold (\<lambda>x \<psi>. \<^bold>\<forall>x\<^bold>. \<psi>) xs \<phi>)))\<close>
+  assumes \<open>qfree \<phi>\<close> 
+          \<open>\<And>\<C> \<beta>. \<lbrakk>dom \<C> \<noteq> {}; is_valuation \<C> \<beta>\<rbrakk> \<Longrightarrow> \<C>\<^bold>,\<beta> \<Turnstile> (foldr (\<lambda>x \<psi>. \<^bold>\<forall>x\<^bold>. \<psi>) xs \<phi>)\<close>
   obtains \<sigma>s where \<open>\<sigma> \<in> set \<sigma>s \<Longrightarrow> (\<sigma> x) \<in> terms_set (fst (language {\<phi>}))\<close>
-    \<open>\<forall>I. I \<Turnstile>\<^sub>p (fold (\<lambda>\<phi> \<psi>. \<phi> \<^bold>\<or> \<psi>) (map (\<lambda>\<sigma>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<sigma>s) \<^bold>\<bottom>)\<close>
+                   \<open>\<And>I. I \<Turnstile>\<^sub>p (foldr (\<lambda>\<phi> \<psi>. \<phi> \<^bold>\<or> \<psi>) (map (\<lambda>\<sigma>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<sigma>s) \<^bold>\<bottom>)\<close>
   sorry
 
 end
