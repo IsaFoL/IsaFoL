@@ -347,6 +347,14 @@ proof (rule double_impl)
   qed
 qed auto
 
+consts term_of_num :: "nat \<Rightarrow> nterm"
+specification (term_of_num) \<open>\<forall>n. term_of_num n = (THE t. num_of_term t = n)\<close>
+  using num_of_term_inj by force
+
+(* TERM_OF_NUM in hol-light *)
+lemma term_of_num_of_term [simp]: \<open>term_of_num(num_of_term t) = t\<close>
+  using num_of_term_inj HOL.nitpick_choice_spec by auto
+
 consts form_of_num :: "nat \<Rightarrow> form"
 specification (form_of_num) \<open>\<forall>n. form_of_num n = (THE \<phi>. num_of_form \<phi> = n)\<close>
   using num_of_form_inj by force

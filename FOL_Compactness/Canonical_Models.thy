@@ -7,6 +7,7 @@ theory Canonical_Models
   imports Skolem_Normal_Form
 begin
 
+
 inductive_set terms_set :: \<open>(nat \<times> nat) set \<Rightarrow> nterm set\<close> for fns :: \<open>(nat \<times> nat) set\<close> where
   vars: \<open>(Var v) \<in> terms_set fns\<close>
 | fn: \<open>(Fun f ts) \<in> terms_set fns\<close>
@@ -203,7 +204,8 @@ lemma psatisfies_instances:
     and ps: \<open>psatisfies I {\<phi> \<cdot>\<^sub>f\<^sub>m \<beta> |\<phi> \<beta>. (\<forall>x. \<beta> x \<in> terms_set (fst \<L>)) \<and> \<phi> \<in> \<Phi>}\<close>
   shows \<open>satisfies (canon_of_prop \<L> I) \<Phi>\<close>
   unfolding satisfies_def is_valuation_def
-  by (smt (verit, best) dom_canon_of_prop holds_canon_of_prop_general mem_Collect_eq ps qf subset_iff)
+  by (smt (verit, best) dom_canon_of_prop holds_canon_of_prop_general mem_Collect_eq ps qf 
+      subset_iff)
 
 (* SATISFIES_INSTANCES in HOL Light *)
 lemma satisfies_instances:
@@ -228,8 +230,8 @@ qed (metis subst_var terms_set.vars)
 (* I don't see the point of \<open>language \<Xi>\<close> here instead of, e.g., \<L> *)
 lemma compact_canon_qfree:
   assumes qf: \<open>\<Phi> \<subseteq> {\<phi>. qfree \<phi>}\<close>
-    and int: \<open>\<And>\<Psi>. \<lbrakk>finite \<Psi>; \<Psi> \<subseteq> \<Phi>\<rbrakk> 
-                   \<Longrightarrow> \<exists>\<M>::'a intrp. is_interpretation (language \<Xi>) \<M> \<and> dom \<M> \<noteq> {} \<and> satisfies \<M> \<Psi>\<close>
+  and int: \<open>\<And>\<Psi>. \<lbrakk>finite \<Psi>; \<Psi> \<subseteq> \<Phi>\<rbrakk> 
+             \<Longrightarrow> \<exists>\<M>::'a intrp. is_interpretation (language \<Xi>) \<M> \<and> dom \<M> \<noteq> {} \<and> satisfies \<M> \<Psi>\<close>
   obtains \<C> where \<open>is_interpretation (language \<Xi>) \<C>\<close> \<open>canonical (language \<Xi>) \<C>\<close> \<open>satisfies \<C> \<Phi>\<close>
 proof -
   define \<Gamma> where \<open>\<Gamma> \<equiv> \<lambda>X. {\<phi> \<cdot>\<^sub>f\<^sub>m \<beta> |\<beta> \<phi>. (\<forall>x. \<beta> x \<in> terms_set (fst (language \<Xi>))) \<and> \<phi> \<in> X}\<close>
@@ -244,7 +246,8 @@ proof -
       by auto
     have \<open>psatisfiable \<Theta>\<close>
     proof (rule psatisfiable_mono)
-      obtain \<M>::\<open>'a intrp\<close> where \<M>: \<open>is_interpretation (language \<Xi>) \<M>\<close> \<open>dom \<M> \<noteq> {}\<close> \<open>satisfies \<M> \<Psi>\<close>
+      obtain \<M>::\<open>'a intrp\<close> where \<M>: \<open>is_interpretation (language \<Xi>) \<M>\<close> \<open>dom \<M> \<noteq> {}\<close>
+        \<open>satisfies \<M> \<Psi>\<close>
         using int \<Psi> by meson
       then obtain \<beta> where \<beta>: \<open>is_valuation \<M> \<beta>\<close>
         by (meson valuation_exists)
@@ -324,7 +327,7 @@ qed
 (* COMPACT_LS in HOL Light *)
 theorem compact_ls:
   assumes \<open>\<And>\<Psi>. \<lbrakk>finite \<Psi>; \<Psi> \<subseteq> \<Phi>\<rbrakk> 
-                   \<Longrightarrow> \<exists>\<M>::'a intrp. is_interpretation (language \<Phi>) \<M> \<and> dom \<M> \<noteq> {} \<and> satisfies \<M> \<Psi>\<close>
+             \<Longrightarrow> \<exists>\<M>::'a intrp. is_interpretation (language \<Phi>) \<M> \<and> dom \<M> \<noteq> {} \<and> satisfies \<M> \<Psi>\<close>
   obtains \<C>::"nterm intrp" where \<open>is_interpretation (language \<Phi>) \<C>\<close> \<open>dom \<C> \<noteq> {}\<close> \<open>satisfies \<C> \<Phi>\<close>
 proof -
   have \<open>\<exists>\<M>::'a intrp. is_interpretation(language (skolem ` \<Phi>)) \<M> \<and>
@@ -342,5 +345,51 @@ proof -
   with skolem_satisfiable[of \<Phi>] \<C> that show thesis
     by metis
 qed
+
+(* CANON in HOL Light *)
+lemma canon:
+  assumes \<open>is_interpretation (language \<Phi>) \<M>\<close> \<open>dom \<M> \<noteq> {}\<close> \<open>\<forall>\<Psi>. \<Psi> \<subseteq> \<Phi> \<Longrightarrow> qfree \<Psi>\<close>
+    \<open>satisfies \<M> \<Phi>\<close>
+  obtains \<C>::"nterm intrp" where \<open>is_interpretation (language \<Phi>) \<C>\<close> \<open>dom \<C> \<noteq> {}\<close> \<open>satisfies \<C> \<Phi>\<close>
+  using compact_ls assms(1) assms(2) assms(4) satisfies_def unfolding satisfies_def by blast
+
+(* LOWMOD in HOL Light *)
+definition lowmod :: "nterm intrp \<Rightarrow> nat intrp" where
+  \<open>lowmod \<M> \<equiv> Abs_intrp ({num_of_term t |t. t \<in> dom \<M>}, 
+    (\<lambda>g ns. num_of_term (intrp_fn \<M> g (map term_of_num ns))), 
+    (\<lambda>p. {ns. (map term_of_num ns) \<in> intrp_rel \<M> p }))\<close>
+
+(* LOWMOD_DOM_EMPTY in HOL Light *)
+lemma lowmod_dom_empty: \<open>dom (lowmod \<M>) = {} \<longleftrightarrow> dom \<M> = {}\<close>
+  unfolding lowmod_def dom_def
+  by (metis (no_types, lifting) FOL_Semantics.dom_def intrp_is_struct struct_def)
+
+(* LOWMOD_TERMVAL in HOL Light *)
+lemma lowmod_termval: \<open>is_valuation (lowmod \<M>) \<beta> \<Longrightarrow> 
+  \<forall>t. eval t (lowmod \<M>) \<beta> = num_of_term (eval t \<M> (term_of_num \<circ> \<beta>))\<close>
+  sorry
+
+(* LOWMOD_HOLDS in HOL Light *)
+lemma lowmod_holds: \<open>is_valuation (lowmod \<M>) \<beta> \<Longrightarrow>
+  (lowmod \<M>)\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> \<M>\<^bold>,(term_of_num \<circ> \<beta>) \<Turnstile> \<phi> \<close>
+  sorry
+
+(* LOWMOD_INTERPRETATION in HOL Light *)
+lemma lowmod_intrp: \<open>is_interpretation \<L> (lowmod \<M>) \<equiv> is_interpretation \<L> \<M>\<close>
+  sorry
+
+(* LS in HOL Light *)
+lemma loewenheim_skolem: 
+  assumes \<open>is_interpretation (language \<Phi>) \<M>\<close> \<open>\<not> dom \<M> = {}\<close> \<open>\<forall>\<phi>. \<phi> \<in> \<Phi> \<Longrightarrow> qfree \<phi>\<close>
+    \<open>satisfies \<M> \<Phi>\<close>
+  obtains \<N> :: "nat intrp" where \<open>is_interpretation (language \<Phi>) \<N>\<close> \<open>\<not> dom \<N> = {}\<close> \<open>satisfies \<N> \<Phi>\<close>
+  sorry
+
+(* UNIFORMITY in HOL Light *)
+lemma uniformity:
+  assumes \<open>qfree \<phi>\<close> \<open>\<forall>\<C> \<beta>. (\<not> dom \<C> = {} \<and> is_valuation \<C> \<beta> \<longrightarrow> (\<C>\<^bold>,\<beta> \<Turnstile> (fold (\<lambda>x \<psi>. \<^bold>\<forall>x\<^bold>. \<psi>) xs \<phi>)))\<close>
+  obtains \<sigma>s where \<open>\<sigma> \<in> set \<sigma>s \<Longrightarrow> (\<sigma> x) \<in> terms_set (fst (language {\<phi>}))\<close>
+    \<open>\<forall>I. I \<Turnstile>\<^sub>p (fold (\<lambda>\<phi> \<psi>. \<phi> \<^bold>\<or> \<psi>) (map (\<lambda>\<sigma>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<sigma>s) \<^bold>\<bottom>)\<close>
+  sorry
 
 end
