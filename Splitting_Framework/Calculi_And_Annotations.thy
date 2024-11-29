@@ -493,6 +493,22 @@ definition F_of_Inf :: "(('f, 'v::countable) AF) inference \<Rightarrow> 'f infe
 section \<open>Lifting Calculi to Add Annotations\<close>
 
 locale AF_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F
+  for
+    bot :: "('f, 'v) AF" and
+    Inf :: \<open>('f, 'v) AF inference set\<close> and
+    entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
+    entails_sound :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) and
+    Red_I :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set" and
+    Red_F :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set"
+  + fixes
+    fml :: \<open>'v \<Rightarrow> 'f\<close> and 
+    asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close> and
+    entails_sound_F :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s\<^sub>F" 50) and
+    Red_F\<^sub>F :: "'f set \<Rightarrow> 'f set"
+
+
+
+locale AF_calculus_lifting = sound_calculus bot Inf entails entails_sound Red_I Red_F
   (* + propositional_interpretations \<J>*)
   for
     bot :: "'f" and
@@ -506,11 +522,11 @@ locale AF_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F
     (* \<J> :: "'v::countable neg set set" and *)
     fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and 
     asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close>
-    assumes
-      entails_sound_compact: \<open>M \<Turnstile>s N \<Longrightarrow> (\<exists>M'\<subseteq>M. (\<exists>N'\<subseteq>N. finite M' \<and> finite N' \<and> M' \<Turnstile>s N'))\<close> and
-      fml_entails_C: \<open>\<forall> a \<in> asn C. sound_cons.entails_neg {map_sign fml a} {C}\<close> and
-      C_entails_fml: \<open>\<forall> a \<in> asn C. sound_cons.entails_neg {C} {map_sign fml a}\<close> and
-      asn_not_empty: \<open>asn C \<noteq> {}\<close>
+  assumes
+    entails_sound_compact: \<open>M \<Turnstile>s N \<Longrightarrow> (\<exists>M'\<subseteq>M. (\<exists>N'\<subseteq>N. finite M' \<and> finite N' \<and> M' \<Turnstile>s N'))\<close> and
+    fml_entails_C: \<open>\<forall> a \<in> asn C. sound_cons.entails_neg {map_sign fml a} {C}\<close> and
+    C_entails_fml: \<open>\<forall> a \<in> asn C. sound_cons.entails_neg {C} {map_sign fml a}\<close> and
+    asn_not_empty: \<open>asn C \<noteq> {}\<close>
     (*  j_is: \<open>\<J> = {J. is_interpretation J}\<close>*)
 begin
 
@@ -602,6 +618,9 @@ lemma enabled_iff: \<open>A_of \<C> = A_of \<C>' \<Longrightarrow> enabled \<C> 
 
 definition enabled_set :: "('f, 'v) AF set \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
   \<open>enabled_set \<N> J = (\<forall>\<C>\<in>\<N>. enabled \<C> J)\<close>
+
+lemma enabled_set_singleton [simp]: \<open>enabled_set {\<C>} J \<longleftrightarrow> enabled \<C> J\<close>
+  by (auto simp add: enabled_set_def)
 
 definition enabled_inf :: "('f, 'v) AF inference \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
   \<open>enabled_inf \<iota> J = (\<forall>\<C>\<in> set (prems_of \<iota>). enabled \<C> J)\<close>
@@ -2557,6 +2576,79 @@ proof -
   }
   ultimately show \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
     by (smt (verit, best))
+qed
+
+lemma strong_entails_bot_cases: \<open>\<N> \<union> {AF.Pair bot A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B} \<Longrightarrow>
+  (\<forall> J. fset B \<subseteq> total_strip J \<longrightarrow>
+    (fml_ext ` total_strip J \<union> Pos ` (\<N> proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {Pos bot} \<or> fset A \<subseteq> total_strip J)\<close>
+proof -
+  assume \<open>\<N> \<union> {AF.Pair bot A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B}\<close>
+  then have \<open>fset B \<subseteq> total_strip J \<Longrightarrow>
+              (fml_ext ` total_strip J \<union> Pos ` (\<N> proj\<^sub>J J) \<union> Pos ` ({AF.Pair bot A} proj\<^sub>J J))
+              \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+    for J
+    unfolding AF_entails_sound_def
+    by (metis (no_types, lifting) AF.sel(1) AF.sel(2) distrib_proj_singleton enabled_def
+         enabled_set_def image_Un image_empty image_insert singletonD sup_assoc)
+  then have \<open>fset B \<subseteq> total_strip J \<Longrightarrow>
+        ((fml_ext ` total_strip J) \<union> Pos ` (\<N> proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {Pos bot} \<or> enabled (AF.Pair bot A) J\<close>
+    for J 
+    by (smt (verit, ccfv_SIG) enabled_projection_def ex_in_conv image_empty
+         mem_Collect_eq singletonD sup_bot_right)
+  then show ?thesis
+    by (simp add: enabled_def)
+qed
+
+lemma strong_entails_bot_cases_Union:
+  \<open>\<N> \<union> \<M> \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B} \<Longrightarrow> (\<forall> x \<in> \<M>. F_of x = bot) \<Longrightarrow>
+    (\<forall> J. fset B \<subseteq> total_strip J \<longrightarrow>
+      (fml_ext ` total_strip J \<union> Pos ` (\<N> proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {Pos bot} \<or>
+      (\<exists> A \<in> A_of ` \<M>. fset A \<subseteq> total_strip J))\<close>
+proof -
+  assume \<N>_union_\<M>_entails_Pair_bot_B: \<open>\<N> \<union> \<M> \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B}\<close> and
+         \<open>\<forall> x \<in> \<M>. F_of x = bot\<close>
+  then show ?thesis
+  proof (cases \<open>\<M> = {}\<close>)
+    case True
+    then show ?thesis
+      using AF_entails_sound_def \<N>_union_\<M>_entails_Pair_bot_B enabled_def enabled_set_def
+      by auto
+  next
+    case False
+    then show ?thesis
+    proof (intro allI impI)
+      fix J
+      assume B_in_J: \<open>fset B \<subseteq> total_strip J\<close>
+      then show \<open>(fml_ext ` total_strip J \<union> Pos ` (\<N> proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {Pos bot} \<or>
+                    (\<exists> A \<in> A_of ` \<M>. fset A \<subseteq> total_strip J)\<close>
+      proof (cases \<open>\<exists> A \<in> A_of ` \<M>. fset A \<subseteq> total_strip J\<close>)
+        case True
+        then show ?thesis
+          by blast
+      next
+        case False
+        then have \<open>\<forall> A \<in> A_of ` \<M>. \<not> fset A \<subseteq> total_strip J\<close>
+          by blast
+        then have \<open>\<M> proj\<^sub>J J = {}\<close>
+          by (simp add: enabled_def enabled_projection_def)
+        then show ?thesis
+          using \<N>_union_\<M>_entails_Pair_bot_B[unfolded AF_entails_sound_def, rule_format]
+                B_in_J distrib_proj enabled_def enabled_set_def
+          by fastforce
+      qed
+    qed
+  qed
+qed
+
+
+lemma AF_entails_sound_right_disjunctive: \<open>(\<exists> \<C>' \<in> A. \<M> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}) \<Longrightarrow> \<M> \<Turnstile>s\<^sub>A\<^sub>F A\<close>
+proof -
+  assume \<open>\<exists> \<C>' \<in> A. \<M> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
+  then obtain \<C>' where \<open>\<M> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close> and
+                       \<open>\<C>' \<in> A\<close>
+    by blast
+  then show \<open>\<M> \<Turnstile>s\<^sub>A\<^sub>F A\<close>
+    by (meson AF_sound_cons_rel.entails_subsets empty_subsetI insert_subset subset_refl)
 qed
 
 end
