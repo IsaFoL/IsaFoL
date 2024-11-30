@@ -1,7 +1,7 @@
 theory Ground_Term_Order
   imports
     Ground_Context
-    Context_Compatibility
+    Context_Compatible_Order
     Term_Order_Notation
     Transitive_Closure_Extra
 begin

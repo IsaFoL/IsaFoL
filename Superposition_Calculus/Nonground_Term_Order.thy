@@ -57,18 +57,6 @@ begin
 (* TODO: Already here with t or just from Nonground_Order on? *)
 interpretation term_order_notation.
 
-lemma context_less_eq_term_less:
-  assumes 
-    "\<And>t. term.is_ground t \<Longrightarrow> c\<langle>t\<rangle> \<preceq>\<^sub>t c'\<langle>t\<rangle>"
-    "term.is_ground t"
-    "term.is_ground t'"
-    "context.is_ground c"
-    "context.is_ground c'"
-    "t \<prec>\<^sub>t t'"
-  shows "c\<langle>t\<rangle> \<prec>\<^sub>t c'\<langle>t'\<rangle>"
-  using assms order.ground_context_compatibility order.dual_order.strict_trans1 
-  by meson
-
 sublocale base_grounded_order where
   comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and vars = term.vars and id_subst = Var and 
   to_ground = term.to_ground and from_ground = "term.from_ground" and less = "(\<prec>\<^sub>t)"

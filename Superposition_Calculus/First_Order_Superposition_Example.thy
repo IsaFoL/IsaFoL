@@ -18,8 +18,8 @@ begin
 interpretation first_order_superposition_calculus 
   "trivial_select :: ('f :: weighted, 'v :: infinite) select" 
   less_kbo
-  trivial_tiebreakers
   "\<lambda>_. ([], ())"
+  trivial_tiebreakers
 proof(unfold_locales)
   fix clause :: "('f, 'v) atom clause"
 

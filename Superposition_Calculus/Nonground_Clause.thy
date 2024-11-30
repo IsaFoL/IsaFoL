@@ -146,12 +146,12 @@ global_interpretation clause: lifting_from_term where
   by unfold_locales
 
 (* TODO: Name *)
-locale grounded_natural_monoid_functor = natural_monoid_grounding_lifting where 
+locale grounded_natural_semigroup_functor = natural_semigroup_grounding_lifting where 
   comp_subst = "(\<odot>)" and id_subst = Var  +
-  natural_monoid_functor_functional_substitution_lifting where 
+  natural_semigroup_functor_functional_substitution_lifting where 
   comp_subst = "(\<odot>)" and id_subst = Var
 
-global_interpretation clause: grounded_natural_monoid_functor where 
+global_interpretation clause: grounded_natural_semigroup_functor where 
   to_set = set_mset and sub_to_ground = literal.to_ground and 
   sub_from_ground = literal.from_ground and sub_subst = literal.subst and 
   sub_vars = literal.vars and map = image_mset and to_ground_map = image_mset and 

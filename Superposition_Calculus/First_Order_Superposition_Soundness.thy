@@ -8,16 +8,18 @@ subsection \<open>Soundness\<close>
 context grounded_first_order_superposition_calculus
 begin
 
+interpretation nonground_typing typeof_fun "UNIV :: 'v set".
+
 (* TODO : Find way to use this abbrev for both entails_\<G> *)
 abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
   "entails\<^sub>F \<equiv> lifting.entails_\<G>"
 
 lemma welltyped_extension:
-  assumes "clause.is_ground (C \<cdot> \<gamma>)" "welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V> \<gamma>" 
+  assumes "clause.is_ground (C \<cdot> \<gamma>)" "is_welltyped_on (clause.vars C) \<V> \<gamma>" 
   obtains \<gamma>'
   where 
     "term_subst.is_ground_subst \<gamma>'" 
-    "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" 
+    "is_welltyped \<V> \<gamma>'" 
     "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
   using assms function_symbols
 proof-
@@ -44,17 +46,16 @@ proof-
     qed
   qed
 
-  moreover have "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'"
+  moreover have "is_welltyped \<V> \<gamma>'"
   proof-
-    have "\<And>x. \<lbrakk>\<forall>x\<in>clause.vars C. First_Order_Type_System.welltyped typeof_fun \<V> (\<gamma> x) (\<V> x);
+    have "\<And>x. \<lbrakk>\<forall>x\<in>clause.vars C. welltyped \<V> (\<gamma> x) (\<V> x);
           \<And>\<tau>. \<exists>f. typeof_fun f = ([], \<tau>); x \<notin> clause.vars C\<rbrakk>
-         \<Longrightarrow> First_Order_Type_System.welltyped typeof_fun \<V>
-              (Fun (SOME f. typeof_fun f = ([], \<V> x)) []) (\<V> x)"
-      by (meson First_Order_Type_System.welltyped.intros(2) list_all2_Nil someI_ex)
+         \<Longrightarrow> welltyped \<V> (Fun (SOME f. typeof_fun f = ([], \<V> x)) []) (\<V> x)"
+      by (meson welltyped.intros(2) list_all2_Nil someI_ex)
 
     then show ?thesis    
       using assms(2) function_symbols
-      unfolding \<gamma>'_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_on_def
+      unfolding \<gamma>'_def
       by auto
   qed
 
@@ -101,17 +102,17 @@ proof (cases P C rule: eq_resolution.cases)
       refl_I: "refl I" and 
       premise: 
       "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>'
-             \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma>_on (clause.vars P) typeof_fun \<V> \<gamma>') 
+             \<and> clause.is_welltyped \<V> P \<and> is_welltyped_on (clause.vars P) \<V> \<gamma>') 
             \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
       grounding: "term_subst.is_ground_subst \<gamma>" and
-      wt: "welltyped\<^sub>c typeof_fun \<V> C" "welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V> \<gamma>"
+      wt: "clause.is_welltyped \<V> C" "is_welltyped_on (clause.vars C) \<V> \<gamma>"
 
     have grounding': "clause.is_ground (C \<cdot> \<gamma>)"
       using grounding clause.is_ground_subst_is_ground
       using clause.ground_subst_iff_base_ground_subst by blast
 
     obtain \<gamma>' where
-      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" 
+      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "is_welltyped \<V> \<gamma>'" 
       "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
       using welltyped_extension[OF grounding' wt(2)].
 
@@ -121,31 +122,31 @@ proof (cases P C rule: eq_resolution.cases)
     let ?s\<^sub>1 = "term.to_ground (s\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
     let ?s\<^sub>2 = "term.to_ground (s\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>')"
 
-    have "welltyped\<^sub>c typeof_fun \<V> (P' \<cdot> \<mu>)"
+    have "clause.is_welltyped \<V> (P' \<cdot> \<mu>)"
       using eq_resolutionI(8) wt(1)
       by blast
 
-    moreover have welltyped_\<mu>: "welltyped\<^sub>\<sigma> typeof_fun \<V> \<mu>"
+    moreover have welltyped_\<mu>: "is_welltyped \<V> \<mu>"
       using eq_resolutionI(6) wt(1)
       by auto
 
-    ultimately have welltyped_P': "welltyped\<^sub>c typeof_fun \<V> P'"
-      using welltyped\<^sub>\<sigma>_welltyped\<^sub>c
-      by blast
-
-    from welltyped_\<mu> have "welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V> (\<mu> \<odot> \<gamma>')"
+    ultimately have welltyped_P': "clause.is_welltyped \<V> P'"
+      (* TODO: Write about wrong displaying *)
+      by (metis clause.is_welltyped.subst_stability iso_tuple_UNIV_I)
+     
+    from welltyped_\<mu> have "is_welltyped_on (clause.vars C) \<V> (\<mu> \<odot> \<gamma>')"
       using \<gamma>'(2)
-      by (simp add: subst_compose_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_on_def welltyped\<^sub>\<sigma>_welltyped)
+      by (simp add: subst_compose_def)
 
-    moreover have "welltyped\<^sub>c typeof_fun \<V> (add_mset (s\<^sub>1 !\<approx> s\<^sub>2) P')"
+    moreover have "clause.is_welltyped \<V> (add_mset (s\<^sub>1 !\<approx> s\<^sub>2) P')"
       using eq_resolutionI(6) welltyped_add_literal[OF welltyped_P'] wt(1)
       by auto
 
     ultimately have "?I \<TTurnstile> ?P"
       using premise[rule_format, of ?P, OF exI, of "\<mu> \<odot> \<gamma>'"] \<gamma>'(1) 
         term_subst.is_ground_subst_comp_right eq_resolutionI
-      by (smt (verit, ccfv_threshold) \<gamma>'(2) clause.comp_subst.left.monoid_action_compatibility 
-          subst_compose_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_on_def welltyped\<^sub>\<sigma>_welltyped)
+      by (metis clause.comp_subst.monoid_action_compatibility UNIV_I \<gamma>'(2) subst_compose_def 
+          welltyped.subst_stability)
 
     then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
       by (auto simp: true_cls_def)
@@ -207,10 +208,10 @@ proof (cases P C rule: eq_factoring.cases)
         trans I; 
         sym I;
         \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>'
-              \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma>_on (clause.vars P) typeof_fun \<V> \<gamma>') 
+              \<and> clause.is_welltyped \<V> P \<and> is_welltyped_on (clause.vars P) \<V> \<gamma>') 
             \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
        term_subst.is_ground_subst \<gamma>;
-       welltyped\<^sub>c typeof_fun \<V> C; welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V> \<gamma>
+       clause.is_welltyped \<V> C; is_welltyped_on (clause.vars C) \<V> \<gamma>
      \<rbrakk> \<Longrightarrow> upair  ` I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
   proof-
     fix I :: "'f gterm rel" and \<gamma> :: "'v \<Rightarrow> ('f, 'v) Term.term"
@@ -222,13 +223,13 @@ proof (cases P C rule: eq_factoring.cases)
       sym_I: "sym I" and 
       premise: 
       "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>'
-             \<and> welltyped\<^sub>c typeof_fun \<V> P \<and> welltyped\<^sub>\<sigma>_on (clause.vars P) typeof_fun \<V> \<gamma>') 
+             \<and> clause.is_welltyped \<V> P \<and> is_welltyped_on (clause.vars P) \<V> \<gamma>') 
               \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
       grounding: "term_subst.is_ground_subst \<gamma>" and
-      wt: "welltyped\<^sub>c typeof_fun \<V> C" "welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V> \<gamma>"
+      wt: "clause.is_welltyped \<V> C" "is_welltyped_on (clause.vars C) \<V> \<gamma>"
 
     obtain \<gamma>' where
-      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>'" 
+      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "is_welltyped \<V> \<gamma>'" 
       "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
       using welltyped_extension
       using grounding wt(2)
@@ -246,49 +247,46 @@ proof (cases P C rule: eq_factoring.cases)
     let ?C = "clause.to_ground (C \<cdot> \<gamma>')"
 
     have wt':
-      "welltyped\<^sub>c typeof_fun \<V> (P' \<cdot> \<mu>)" 
-      "welltyped\<^sub>l typeof_fun \<V> (s\<^sub>1 \<approx> t\<^sub>2' \<cdot>l \<mu>)" 
-      "welltyped\<^sub>l typeof_fun \<V> (s\<^sub>1' !\<approx> t\<^sub>2' \<cdot>l \<mu>)"
+      "clause.is_welltyped \<V> (P' \<cdot> \<mu>)" 
+      "literal.is_welltyped \<V> (s\<^sub>1 \<approx> t\<^sub>2' \<cdot>l \<mu>)" 
+      "literal.is_welltyped \<V> (s\<^sub>1' !\<approx> t\<^sub>2' \<cdot>l \<mu>)"
       using wt(1)
-      unfolding eq_factoringI(11) welltyped\<^sub>c_add_mset clause.add_subst
+      unfolding eq_factoringI(11) clause.is_welltyped_add clause.add_subst
       by auto
 
-    moreover have welltyped_\<mu>: "welltyped\<^sub>\<sigma> typeof_fun \<V> \<mu>"
+    moreover have welltyped_\<mu>: "is_welltyped \<V> \<mu>"
       using eq_factoringI(10) wt(1)
       by blast
 
-    ultimately have welltyped_P': "welltyped\<^sub>c typeof_fun \<V> P'"
-      using welltyped\<^sub>\<sigma>_welltyped\<^sub>c
+    ultimately have welltyped_P': "clause.is_welltyped \<V> P'"
+      using clause.is_welltyped.subst_stability 
       by blast
 
-    have xx: "welltyped\<^sub>l typeof_fun \<V> (s\<^sub>1 \<approx> t\<^sub>2')" "welltyped\<^sub>l typeof_fun \<V> (s\<^sub>1' !\<approx> t\<^sub>2')"
-      using wt'(2, 3) welltyped\<^sub>\<sigma>_welltyped\<^sub>l[OF welltyped_\<mu>]
+    have xx: "literal.is_welltyped \<V> (s\<^sub>1 \<approx> t\<^sub>2')" "literal.is_welltyped \<V> (s\<^sub>1' !\<approx> t\<^sub>2')"
+      using wt'(2, 3) literal.is_welltyped.subst_stability  welltyped_\<mu>
       by auto
 
-    then have welltyped_L\<^sub>1: "welltyped\<^sub>l typeof_fun \<V> (s\<^sub>1 \<approx> s\<^sub>1')"
-      unfolding welltyped\<^sub>l_def welltyped\<^sub>a_def
-      using right_uniqueD[OF welltyped_right_unique] 
-      by (smt (verit, best) insert_iff set_uprod_simps literal.sel)
+    then have welltyped_L\<^sub>1: "literal.is_welltyped \<V> (s\<^sub>1 \<approx> s\<^sub>1')"
+      by auto
 
-    have welltyped_L\<^sub>2: "welltyped\<^sub>l typeof_fun \<V> (t\<^sub>2 \<approx> t\<^sub>2')"
-      using xx right_uniqueD[OF welltyped_right_unique] eq_factoringI(10) wt(1)
-      unfolding welltyped\<^sub>l_def welltyped\<^sub>a_def
-      by (smt (verit) insert_iff set_uprod_simps literal.sel(1))
+    have welltyped_L\<^sub>2: "literal.is_welltyped \<V> (t\<^sub>2 \<approx> t\<^sub>2')"
+      using xx eq_factoringI(10) wt(1)
+      by auto
 
-    from welltyped_\<mu> have "welltyped\<^sub>\<sigma> typeof_fun \<V> (\<mu> \<odot> \<gamma>')"
+    from welltyped_\<mu> have "is_welltyped \<V> (\<mu> \<odot> \<gamma>')"
       using wt(2) \<gamma>'
-      by (simp add: subst_compose_def welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_welltyped)
+      by (simp add: welltyped.subst_compose)
 
-    moreover have "welltyped\<^sub>c typeof_fun \<V> P"
-      unfolding eq_factoringI welltyped\<^sub>c_add_mset
-      using welltyped_P'  welltyped_L\<^sub>1 welltyped_L\<^sub>2
+    moreover have "clause.is_welltyped \<V> P"
+      unfolding eq_factoringI clause.is_welltyped_add
+      using welltyped_P' welltyped_L\<^sub>1 welltyped_L\<^sub>2
       by blast
 
     ultimately have "?I \<TTurnstile> ?P"
       using 
         premise[rule_format, of ?P, OF exI, of "\<mu> \<odot> \<gamma>'"] 
         term_subst.is_ground_subst_comp_right \<gamma>'(1)
-      by (metis clause.subst_comp_subst welltyped\<^sub>\<sigma>_def welltyped\<^sub>\<sigma>_on_def)
+      by fastforce
 
     then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
       by (auto simp: true_cls_def)
@@ -362,13 +360,13 @@ proof (cases P2 P1 C rule: superposition.cases)
         sym I;
         compatible_with_gctxt I;
         \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>1 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> 
-              welltyped\<^sub>c typeof_fun \<V>\<^sub>1 P\<^sub>1 \<and> welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>1) typeof_fun \<V>\<^sub>1 \<gamma>' \<and> 
+              clause.is_welltyped \<V>\<^sub>1 P\<^sub>1 \<and> is_welltyped_on (clause.vars P\<^sub>1) \<V>\<^sub>1 \<gamma>' \<and> 
               all_types \<V>\<^sub>1) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G;
         \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>2 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> 
-              welltyped\<^sub>c typeof_fun \<V>\<^sub>2 P\<^sub>2 \<and> welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>2) typeof_fun \<V>\<^sub>2 \<gamma>' \<and> 
+              clause.is_welltyped \<V>\<^sub>2 P\<^sub>2 \<and> is_welltyped_on (clause.vars P\<^sub>2) \<V>\<^sub>2 \<gamma>' \<and> 
               all_types \<V>\<^sub>2) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G;
-        term_subst.is_ground_subst \<gamma>; welltyped\<^sub>c typeof_fun \<V>\<^sub>3 C; 
-        welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V>\<^sub>3 \<gamma>; all_types \<V>\<^sub>3
+        term_subst.is_ground_subst \<gamma>; clause.is_welltyped \<V>\<^sub>3 C; 
+        is_welltyped_on (clause.vars C) \<V>\<^sub>3 \<gamma>; all_types \<V>\<^sub>3
      \<rbrakk> \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
   proof -
     fix I :: "'f gterm rel" and \<gamma> :: "'v \<Rightarrow> ('f, 'v) Term.term"
@@ -382,21 +380,21 @@ proof (cases P2 P1 C rule: superposition.cases)
       compatible_with_ground_context_I: "compatible_with_gctxt I" and
       premise1: 
       "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>1 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' 
-              \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>1 P\<^sub>1 \<and> welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>1) typeof_fun \<V>\<^sub>1 \<gamma>' 
+              \<and> clause.is_welltyped \<V>\<^sub>1 P\<^sub>1 \<and> is_welltyped_on (clause.vars P\<^sub>1) \<V>\<^sub>1 \<gamma>' 
               \<and> all_types \<V>\<^sub>1) \<longrightarrow>?I \<TTurnstile> P\<^sub>G" and
       premise2: 
       "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>2 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' 
-              \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>2 P\<^sub>2 \<and> welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>2) typeof_fun \<V>\<^sub>2 \<gamma>'
+              \<and> clause.is_welltyped \<V>\<^sub>2 P\<^sub>2 \<and> is_welltyped_on (clause.vars P\<^sub>2) \<V>\<^sub>2 \<gamma>'
               \<and> all_types \<V>\<^sub>2) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and 
-      grounding: "term_subst.is_ground_subst \<gamma>" "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 C" 
-      "welltyped\<^sub>\<sigma>_on (clause.vars C) typeof_fun \<V>\<^sub>3 \<gamma>" "all_types \<V>\<^sub>3"
+      grounding: "term_subst.is_ground_subst \<gamma>" "clause.is_welltyped \<V>\<^sub>3 C" 
+      "is_welltyped_on (clause.vars C) \<V>\<^sub>3 \<gamma>" "all_types \<V>\<^sub>3"
 
     have grounding': "clause.is_ground (C \<cdot> \<gamma>)"
       using grounding
       by (simp add: clause.is_ground_subst_is_ground)
 
     obtain \<gamma>' where
-      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 \<gamma>'" 
+      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "is_welltyped \<V>\<^sub>3 \<gamma>'" 
       "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
       using welltyped_extension[OF grounding' grounding(3)].
 
@@ -426,170 +424,162 @@ proof (cases P2 P1 C rule: superposition.cases)
       using term_subst.is_ground_subst_comp_right[OF \<gamma>'(1)]
       by blast+
 
-    have xx: "\<forall>x\<in>term.vars (t\<^sub>2 \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x" 
-      "\<forall>x\<in>term.vars (t\<^sub>2' \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
+    have xx: "\<forall>x\<in>term.vars (t\<^sub>2 \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x" 
+      "\<forall>x\<in>term.vars (t\<^sub>2' \<cdot>t \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
       using superpositionI(16)
       by (simp_all add: clause.vars_def local.superpositionI(11) local.superpositionI(8) 
           subst_atom subst_literal(1) vars_atom vars_literal(1))
 
-    have wt_t: "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau> \<and> welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<tau>"
+    have wt_t: "\<exists>\<tau>. welltyped \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau> \<and> welltyped \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<tau>"
     proof-
-      have " \<And>\<tau> \<tau>'.
-       \<lbrakk>\<And>\<tau> \<tau>'.
-           \<lbrakk>has_type typeof_fun \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau>; has_type typeof_fun \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2) \<tau>'\<rbrakk> \<Longrightarrow> \<tau> = \<tau>';
-        \<forall>L\<in>#(P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu>.
-           \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 t \<tau>;
-        First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) \<tau>;
-        First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau>; welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 \<mu>;
-        \<P> = Pos;
-        First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3
-         (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu>)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>\<rangle> \<tau>';
-        First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<tau>'\<rbrakk>
-       \<Longrightarrow> \<exists>\<tau>. First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau> \<and>
-               First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<tau>"
-        "\<And>\<tau> \<tau>'.
-       \<lbrakk>\<And>\<tau> \<tau>'.
-           \<lbrakk>has_type typeof_fun \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau>; has_type typeof_fun \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2) \<tau>'\<rbrakk> \<Longrightarrow> \<tau> = \<tau>';
-        \<forall>L\<in>#(P\<^sub>1' \<cdot> \<rho>\<^sub>1 + P\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu>.
-           \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 t \<tau>;
-        First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) \<tau>;
-        First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau>; welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 \<mu>;
-        \<P> = Neg;
-        First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu>)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>\<rangle> \<tau>';
-        First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<tau>'\<rbrakk>
-       \<Longrightarrow> \<exists>\<tau>. First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau> \<and>
-               First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<tau>"
-        by (metis welltyped\<^sub>\<kappa>' welltyped\<^sub>\<sigma>_welltyped welltyped_has_type)+
 
-      then show ?thesis
-        using grounding(2) superpositionI(9, 14, 19)
-        unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def clause.add_subst
-        unfolding xx[THEN has_type_renaming_weaker[OF superpositionI(5)]] 
-        by(auto simp: welltyped\<^sub>\<kappa>' subst_literal subst_atom)
+      obtain \<tau> where "welltyped \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau>"
+        using superpositionI(14) by blast
+
+      moreover obtain \<tau>' where "welltyped \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<tau>'"
+      proof-
+        have "term.is_welltyped \<V>\<^sub>3 ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> \<cdot>t \<mu>)"
+          using grounding(2) superpositionI(9)
+          unfolding superpositionI subst_literal
+          by(auto simp: subst_literal subst_atom)
+
+        then show ?thesis
+          using that
+          by (metis eval_ctxt welltyped.subterm)
+      qed
+
+
+      ultimately show ?thesis
+        using superpositionI(19)  
+        unfolding xx[THEN typed.typed_renaming[OF superpositionI(5)], symmetric] 
+        by (metis UNIV_I local.superpositionI(14) welltyped.subst_stability welltyped_typed)
     qed
 
-    have wt_P\<^sub>1: "welltyped\<^sub>c typeof_fun \<V>\<^sub>1 P\<^sub>1" 
+    have wt_P\<^sub>1: "clause.is_welltyped \<V>\<^sub>1 P\<^sub>1" 
     proof-
-      have xx: "\<forall>x\<in>clause.vars (P\<^sub>1' \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x"
+      have xx: "\<forall>x\<in>clause.vars (P\<^sub>1' \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x"
         using superpositionI(15)
         unfolding superpositionI clause.add_subst
         by clause_simp
 
-      have wt_P\<^sub>1': "welltyped\<^sub>c typeof_fun \<V>\<^sub>1 P\<^sub>1'"
+      have wt_P\<^sub>1': "clause.is_welltyped \<V>\<^sub>1 P\<^sub>1'"
       proof-
-        have "\<lbrakk>welltyped\<^sub>l typeof_fun \<V>\<^sub>3 (\<P> (Upair (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (s\<^sub>1' \<cdot>t \<rho>\<^sub>1)) \<cdot>l \<mu>);
-             welltyped\<^sub>c typeof_fun \<V>\<^sub>3 (P\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>);
-             welltyped\<^sub>c typeof_fun \<V>\<^sub>3 (P\<^sub>2' \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)\<rbrakk>
-             \<Longrightarrow> welltyped\<^sub>c typeof_fun \<V>\<^sub>1 P\<^sub>1'"
-          unfolding welltyped\<^sub>c_renaming_weaker[OF superpositionI(4) xx] 
-          using superpositionI(14) welltyped\<^sub>\<sigma>_welltyped\<^sub>c 
+        have "\<lbrakk>literal.is_welltyped \<V>\<^sub>3 (\<P> (Upair (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (s\<^sub>1' \<cdot>t \<rho>\<^sub>1)) \<cdot>l \<mu>);
+             clause.is_welltyped \<V>\<^sub>3 (P\<^sub>1' \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>);
+             clause.is_welltyped \<V>\<^sub>3 (P\<^sub>2' \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)\<rbrakk>
+             \<Longrightarrow> clause.is_welltyped \<V>\<^sub>1 P\<^sub>1'"
+          using 
+            clause.is_welltyped.typed_renaming[OF superpositionI(4) xx] 
+            superpositionI(14) 
+            clause.is_welltyped.subst_stability 
           by blast
+          
 
         then show ?thesis
           using grounding(2)
-          unfolding superpositionI clause.add_subst clause.plus_subst welltyped\<^sub>c_add_mset 
-            welltyped\<^sub>c_plus
+          unfolding superpositionI clause.add_subst clause.plus_subst clause.is_welltyped_add
+            clause.is_welltyped_plus
           by auto
       qed
 
       from wt_t have x1:
-        "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1\<rangle> \<tau> \<and> welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1) \<tau>"
+        "\<exists>\<tau>. welltyped \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1\<rangle> \<tau> \<and> welltyped \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1) \<tau>"
       proof-
-        have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu>)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>\<rangle> \<tau> \<and>
-               welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<tau>"
+        have "\<exists>\<tau>. welltyped \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu>)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>\<rangle> \<tau> \<and>
+               welltyped \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<tau>"
           using grounding(2) superpositionI(9, 14, 15) 
-          unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def
+          unfolding superpositionI
           by clause_auto
 
-        then have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu>)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>\<rangle> \<tau> \<and>
-               welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<tau>"
-          by (meson local.superpositionI(14) welltyped\<^sub>\<kappa> welltyped\<^sub>\<sigma>_welltyped wt_t)
+        then have "\<exists>\<tau>. welltyped \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu>)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>\<rangle> \<tau> \<and> welltyped \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<tau>"
+          by (metis (no_types, lifting) UNIV_I superpositionI(14) welltyped.subst_stability 
+              welltyped\<^sub>\<kappa> wt_t)
 
         then show ?thesis
-          by (metis local.superpositionI(14) subst_apply_term_ctxt_apply_distrib 
-              welltyped\<^sub>\<sigma>_welltyped)
+          by (metis UNIV_I superpositionI(14) subst_apply_term_ctxt_apply_distrib
+              welltyped.subst_stability)
       qed
 
-      then have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>1 s\<^sub>1\<langle>u\<^sub>1\<rangle> \<tau> \<and> welltyped typeof_fun \<V>\<^sub>1 s\<^sub>1' \<tau>"
+      then have "\<exists>\<tau>. welltyped \<V>\<^sub>1 s\<^sub>1\<langle>u\<^sub>1\<rangle> \<tau> \<and> welltyped \<V>\<^sub>1 s\<^sub>1' \<tau>"
       proof-
         have x1': " \<And>\<tau>. \<lbrakk>\<forall>x\<in>literal.vars ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1\<rangle> \<approx> s\<^sub>1' \<cdot>t \<rho>\<^sub>1) \<union> clause.vars (P\<^sub>1' \<cdot> \<rho>\<^sub>1).
-             \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x;
-          \<And>t \<V> \<V>' \<F> \<tau>.
-             \<forall>x\<in>term.vars (t \<cdot>t \<rho>\<^sub>1). \<V> (the_inv \<rho>\<^sub>1 (Var x)) = \<V>' x \<Longrightarrow>
-             First_Order_Type_System.welltyped \<F> \<V> t \<tau> =
-             First_Order_Type_System.welltyped \<F> \<V>' (t \<cdot>t \<rho>\<^sub>1) \<tau>;
-          First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1\<rangle> \<tau>;
-          First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1) \<tau>; \<P> = Pos\<rbrakk>
-         \<Longrightarrow> \<exists>\<tau>. First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>1 s\<^sub>1\<langle>u\<^sub>1\<rangle> \<tau> \<and>
-                 First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>1 s\<^sub>1' \<tau>"
+             \<V>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x;
+          \<And>t \<V> \<V>' \<tau>.
+             \<forall>x\<in>term.vars (t \<cdot>t \<rho>\<^sub>1). \<V> (inv \<rho>\<^sub>1 (Var x)) = \<V>' x \<Longrightarrow>
+             welltyped \<V> t \<tau> = welltyped \<V>' (t \<cdot>t \<rho>\<^sub>1) \<tau>;
+          welltyped \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1\<rangle> \<tau>;
+          welltyped \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1) \<tau>; \<P> = Pos\<rbrakk>
+         \<Longrightarrow> \<exists>\<tau>. welltyped \<V>\<^sub>1 s\<^sub>1\<langle>u\<^sub>1\<rangle> \<tau> \<and>
+                 welltyped \<V>\<^sub>1 s\<^sub>1' \<tau>"
           "\<And>\<tau>. \<lbrakk>\<forall>x\<in>literal.vars ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1\<rangle> !\<approx> s\<^sub>1' \<cdot>t \<rho>\<^sub>1) \<union> clause.vars (P\<^sub>1' \<cdot> \<rho>\<^sub>1).
-             \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x;
-          \<And>t \<V> \<V>' \<F> \<tau>.
-             \<forall>x\<in>term.vars (t \<cdot>t \<rho>\<^sub>1). \<V> (the_inv \<rho>\<^sub>1 (Var x)) = \<V>' x \<Longrightarrow>
-             First_Order_Type_System.welltyped \<F> \<V> t \<tau> =
-             First_Order_Type_System.welltyped \<F> \<V>' (t \<cdot>t \<rho>\<^sub>1) \<tau>;
-          First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1\<rangle> \<tau>;
-          First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1) \<tau>; \<P> = Neg\<rbrakk>
-         \<Longrightarrow> \<exists>\<tau>. First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>1 s\<^sub>1\<langle>u\<^sub>1\<rangle> \<tau> \<and>
-                 First_Order_Type_System.welltyped typeof_fun \<V>\<^sub>1 s\<^sub>1' \<tau>"
-          by clause_simp (metis (mono_tags) Un_iff welltyped_renaming_weaker[OF superpositionI(4)] 
+             \<V>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x;
+          \<And>t \<V> \<V>' \<tau>.
+             \<forall>x\<in>term.vars (t \<cdot>t \<rho>\<^sub>1). \<V> (inv \<rho>\<^sub>1 (Var x)) = \<V>' x \<Longrightarrow>
+             welltyped \<V> t \<tau> = welltyped \<V>' (t \<cdot>t \<rho>\<^sub>1) \<tau>;
+             welltyped \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1\<rangle> \<tau>;
+              welltyped \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1) \<tau>; \<P> = Neg\<rbrakk>
+         \<Longrightarrow> \<exists>\<tau>. welltyped \<V>\<^sub>1 s\<^sub>1\<langle>u\<^sub>1\<rangle> \<tau> \<and>
+                 welltyped \<V>\<^sub>1 s\<^sub>1' \<tau>"
+          by clause_simp (metis (mono_tags) Un_iff welltyped.typed_renaming[OF superpositionI(4)] 
               subst_apply_term_ctxt_apply_distrib vars_term_ctxt_apply)+
 
         with x1 show ?thesis
-          using superpositionI(15)  superpositionI(9) 
-            welltyped_renaming_weaker[OF superpositionI(4)] 
+          using superpositionI(15)  superpositionI(9) welltyped.typed_renaming[OF superpositionI(4)] 
           unfolding superpositionI clause.add_subst clause.vars_add
-          by(auto simp: welltyped\<^sub>\<kappa>' subst_literal subst_atom)
+          by (auto simp: subst_atom subst_literal)
       qed
 
       then show ?thesis
         using grounding(2) superpositionI(9, 14) wt_P\<^sub>1'
-        unfolding superpositionI welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def
+        unfolding superpositionI
         by auto
     qed
 
-    have wt_P\<^sub>2: "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 P\<^sub>2"
+    have wt_P\<^sub>2: "clause.is_welltyped \<V>\<^sub>2 P\<^sub>2"
     proof-
-      have xx: "\<forall>x\<in>clause.vars (P\<^sub>2' \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
-        using superpositionI(16)
-        unfolding superpositionI
+      have xx: "\<forall>x\<in>clause.vars (P\<^sub>2' \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
+        using superpositionI(16) 
+        unfolding superpositionI 
         by clause_simp
 
-      have wt_P\<^sub>2': "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 P\<^sub>2'"
+      have wt_P\<^sub>2': "clause.is_welltyped \<V>\<^sub>2 P\<^sub>2'"
         using grounding(2)
-        unfolding superpositionI clause.plus_subst welltyped\<^sub>c_add_mset clause.add_subst
-          welltyped\<^sub>c_plus welltyped\<^sub>c_renaming_weaker[OF superpositionI(5) xx] 
-        using superpositionI(14) welltyped\<^sub>\<sigma>_welltyped\<^sub>c by blast
+        unfolding superpositionI clause.plus_subst clause.is_welltyped_add clause.add_subst
+          clause.is_welltyped_plus clause.is_welltyped.typed_renaming[OF superpositionI(5) xx] 
+        using superpositionI(14) clause.is_welltyped.subst_stability  
+        (* TODO: *)
+        by (meson UNIV_I
+            \<open>clause.is_welltyped.expr_is_typed \<V>\<^sub>3 (local.clause.subst P\<^sub>2' \<rho>\<^sub>2) = clause.is_welltyped.expr_is_typed \<V>\<^sub>2 P\<^sub>2'\<close>)
 
-      have tt: "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau> \<and> welltyped typeof_fun \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2) \<tau>"
+      have tt: "\<exists>\<tau>. welltyped \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau> \<and> welltyped \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2) \<tau>"
         using wt_t
-        by (meson superpositionI(14) welltyped\<^sub>\<sigma>_welltyped)
+        by (meson UNIV_I superpositionI(14) welltyped.subst_stability)
 
       show ?thesis
       proof-
-        have "\<exists>\<tau>. welltyped typeof_fun \<V>\<^sub>2 t\<^sub>2 \<tau> \<and> welltyped typeof_fun \<V>\<^sub>2 t\<^sub>2' \<tau>"
-          using superpositionI(16) welltyped_renaming_weaker[OF superpositionI(5)]
+        have "\<exists>\<tau>. welltyped \<V>\<^sub>2 t\<^sub>2 \<tau> \<and> welltyped \<V>\<^sub>2 t\<^sub>2' \<tau>"
+          using superpositionI(16) welltyped.typed_renaming[OF superpositionI(5)]
           unfolding superpositionI
           by (metis (no_types, lifting) Un_iff subst_atom clause.add_subst subst_literal(1) tt 
               vars_atom clause.vars_add vars_literal(1))
 
         with wt_P\<^sub>2' show ?thesis
-          unfolding welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def  superpositionI
+          unfolding superpositionI
           by auto
       qed
     qed
 
-    have wt_\<mu>_\<gamma>: "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 (\<mu> \<odot> \<gamma>')"
-      by (metis \<gamma>'(2) local.superpositionI(14) subst_compose_def welltyped\<^sub>\<sigma>_def 
-          welltyped\<^sub>\<sigma>_welltyped)
+    have wt_\<mu>_\<gamma>: "is_welltyped \<V>\<^sub>3 (\<mu> \<odot> \<gamma>')"
+      by (metis UNIV_I \<gamma>'(2) superpositionI(14) welltyped.subst_compose
+          welltyped.subst_stability)
 
-    have wt_\<gamma>: "welltyped\<^sub>\<sigma>_on  (clause.vars P\<^sub>1) typeof_fun \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<gamma>')" 
-      "welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>2) typeof_fun \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot>  \<mu> \<odot> \<gamma>')"
+    have wt_\<gamma>: "is_welltyped_on (clause.vars P\<^sub>1) \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<gamma>')" 
+      "is_welltyped_on (clause.vars P\<^sub>2) \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot>  \<mu> \<odot> \<gamma>')"
       using
         superpositionI(15, 16)
-        welltyped\<^sub>\<sigma>_renaming_ground_subst_weaker[OF superpositionI(4) wt_\<mu>_\<gamma> superpositionI(17) 
+        is_welltyped_renaming_ground_subst_weaker[OF superpositionI(4) wt_\<mu>_\<gamma> superpositionI(17) 
           ground_subst(3)]
-        welltyped\<^sub>\<sigma>_renaming_ground_subst_weaker[OF superpositionI(5) wt_\<mu>_\<gamma> superpositionI(18)
+        is_welltyped_renaming_ground_subst_weaker[OF superpositionI(5) wt_\<mu>_\<gamma> superpositionI(18)
           ground_subst(3)]
       unfolding vars_subst\<^sub>c
       by (simp_all add: subst_compose_assoc)

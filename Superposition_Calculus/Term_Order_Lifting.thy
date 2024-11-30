@@ -9,7 +9,7 @@ locale restricted_term_order_lifting =
   term.order: restricted_wellfounded_total_strict_order where less = less\<^sub>t
 for less\<^sub>t
 begin
-
+                                    
 sublocale term_order_notation.
 
 abbreviation literal_order_restriction where

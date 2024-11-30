@@ -1,12 +1,13 @@
-theory Natural_Monoid
+theory Natural_Semigroup
   imports Main
 begin
 
-locale natural_monoid = 
+(* TODO: Natural Magma *)
+locale natural_semigroup = 
   fixes 
     to_set :: "'b \<Rightarrow> 'a set" and
     plus :: "'b \<Rightarrow> 'b \<Rightarrow> 'b" and
-    wrap :: "'a \<Rightarrow> 'b" (* TODO: Not typical for Monoid *) and
+    wrap :: "'a \<Rightarrow> 'b" and
     add
   defines "\<And>a b. add a b \<equiv> plus (wrap a) b"
   assumes

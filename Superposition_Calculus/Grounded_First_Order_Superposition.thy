@@ -19,12 +19,15 @@ abbreviation superposition_inferences where
 end
 
 locale grounded_first_order_superposition_calculus =
-  first_order_superposition_calculus select _ _ typeof_fun +
-  grounded_first_order_select select
+  first_order_superposition_calculus where select = select and typeof_fun = typeof_fun +
+  grounded_first_order_select where \<F> = typeof_fun and select = select 
   for
     select :: "('f, 'v :: infinite) select" and
     typeof_fun :: "('f, 'ty) fun_types"
 begin
+
+(* TODO: Write about this limitation of locales! *)
+interpretation nonground_typing typeof_fun "UNIV :: 'v set".
 
 sublocale ground: ground_superposition_calculus where
   less\<^sub>t = "(\<prec>\<^sub>t\<^sub>G)" and select = select\<^sub>G
@@ -42,9 +45,9 @@ abbreviation is_inference_grounding where
         Infer [(premise, \<V>')] (conclusion, \<V>) \<Rightarrow>
            term_subst.is_ground_subst \<gamma>
         \<and> \<iota>\<^sub>G = Infer [clause.to_ground (premise \<cdot> \<gamma>)] (clause.to_ground (conclusion \<cdot> \<gamma>))
-        \<and> welltyped\<^sub>c typeof_fun \<V> premise 
-        \<and> welltyped\<^sub>\<sigma>_on (clause.vars conclusion) typeof_fun \<V> \<gamma>
-        \<and> welltyped\<^sub>c typeof_fun \<V> conclusion
+        \<and> clause.is_welltyped \<V> premise 
+        \<and> is_welltyped_on (clause.vars conclusion) \<V> \<gamma>
+        \<and> clause.is_welltyped \<V> conclusion
         \<and> \<V> = \<V>'
         \<and> all_types \<V>
       | Infer [(premise\<^sub>2, \<V>\<^sub>2), (premise\<^sub>1, \<V>\<^sub>1)] (conclusion, \<V>\<^sub>3) \<Rightarrow> 
@@ -56,10 +59,10 @@ abbreviation is_inference_grounding where
             Infer
               [clause.to_ground (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), clause.to_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)]
               (clause.to_ground (conclusion \<cdot> \<gamma>))
-        \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>1 premise\<^sub>1
-        \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>2 premise\<^sub>2
-        \<and> welltyped\<^sub>\<sigma>_on (clause.vars conclusion) typeof_fun \<V>\<^sub>3 \<gamma>
-        \<and> welltyped\<^sub>c typeof_fun \<V>\<^sub>3 conclusion
+        \<and> clause.is_welltyped \<V>\<^sub>1 premise\<^sub>1
+        \<and> clause.is_welltyped \<V>\<^sub>2 premise\<^sub>2
+        \<and> is_welltyped_on (clause.vars conclusion) \<V>\<^sub>3 \<gamma>
+        \<and> clause.is_welltyped \<V>\<^sub>3 conclusion
         \<and> all_types \<V>\<^sub>1 \<and> all_types \<V>\<^sub>2 \<and> all_types \<V>\<^sub>3
       | _ \<Rightarrow> False
      )
@@ -75,7 +78,7 @@ lemma is_inference_grounding_inference_groundings:
 
 lemma inference\<^sub>G_concl_in_clause_grounding: 
   assumes "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
-  shows "concl_of \<iota>\<^sub>G \<in> clause_groundings typeof_fun (concl_of \<iota>)"
+  shows "concl_of \<iota>\<^sub>G \<in> clause_groundings (concl_of \<iota>)"
 proof-
   obtain premises\<^sub>G conlcusion\<^sub>G where
     \<iota>\<^sub>G: "\<iota>\<^sub>G = Infer premises\<^sub>G conlcusion\<^sub>G"
@@ -90,14 +93,14 @@ proof-
   obtain \<gamma> where
     "clause.is_ground (conclusion \<cdot> \<gamma>)"
     "conlcusion\<^sub>G = clause.to_ground (conclusion \<cdot> \<gamma>)"
-    "welltyped\<^sub>c typeof_fun \<V> conclusion \<and> welltyped\<^sub>\<sigma>_on (clause.vars conclusion) typeof_fun \<V> \<gamma> \<and> 
+    "clause.is_welltyped \<V> conclusion \<and> is_welltyped_on (clause.vars conclusion) \<V> \<gamma> \<and> 
     term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
   proof-
     (* TODO! *)
     have "\<And>\<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2.
        \<lbrakk>\<And>\<gamma>. \<lbrakk>clause.vars (conclusion \<cdot> \<gamma>) = {}; conlcusion\<^sub>G = clause.to_ground (conclusion \<cdot> \<gamma>);
-              First_Order_Type_System.welltyped\<^sub>c typeof_fun \<V> conclusion \<and>
-              welltyped\<^sub>\<sigma>_on (clause.vars conclusion) typeof_fun \<V> \<gamma> \<and>
+              clause.is_welltyped \<V> conclusion \<and>
+              is_welltyped_on (clause.vars conclusion) \<V> \<gamma> \<and>
               term_subst.is_ground_subst \<gamma> \<and> all_types \<V>\<rbrakk>
              \<Longrightarrow> thesis;
         Infer premises\<^sub>G conlcusion\<^sub>G \<in> ground.G_Inf;
@@ -106,9 +109,9 @@ proof-
             term_subst.is_ground_subst \<gamma> \<and>
             Infer premises\<^sub>G conlcusion\<^sub>G =
             Infer [clause.to_ground (premise \<cdot> \<gamma>)] (clause.to_ground (conclusion \<cdot> \<gamma>)) \<and>
-            First_Order_Type_System.welltyped\<^sub>c typeof_fun \<V> premise \<and>
-            welltyped\<^sub>\<sigma>_on (clause.vars conclusion) typeof_fun \<V> \<gamma> \<and>
-            First_Order_Type_System.welltyped\<^sub>c typeof_fun \<V> conclusion \<and> \<V> = \<V>' \<and> all_types \<V>
+            clause.is_welltyped \<V> premise \<and>
+            is_welltyped_on (clause.vars conclusion) \<V> \<gamma> \<and>
+            clause.is_welltyped \<V> conclusion \<and> \<V> = \<V>' \<and> all_types \<V>
         | [(premise, \<V>'), (premise\<^sub>1, \<V>\<^sub>1)] \<Rightarrow>
             clause.is_renaming \<rho>\<^sub>1 \<and>
             clause.is_renaming \<rho>\<^sub>2 \<and>
@@ -117,10 +120,10 @@ proof-
             Infer premises\<^sub>G conlcusion\<^sub>G =
             Infer [clause.to_ground (premise \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), clause.to_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)]
              (clause.to_ground (conclusion \<cdot> \<gamma>)) \<and>
-            First_Order_Type_System.welltyped\<^sub>c typeof_fun \<V>\<^sub>1 premise\<^sub>1 \<and>
-            First_Order_Type_System.welltyped\<^sub>c typeof_fun \<V>' premise \<and>
-            welltyped\<^sub>\<sigma>_on (clause.vars conclusion) typeof_fun \<V> \<gamma> \<and>
-            First_Order_Type_System.welltyped\<^sub>c typeof_fun \<V> conclusion \<and>
+            clause.is_welltyped \<V>\<^sub>1 premise\<^sub>1 \<and>
+            clause.is_welltyped \<V>' premise \<and>
+            is_welltyped_on (clause.vars conclusion) \<V> \<gamma> \<and>
+            clause.is_welltyped \<V> conclusion \<and>
             all_types \<V>\<^sub>1 \<and> all_types \<V>' \<and> all_types \<V>
         | (premise, \<V>') # (premise\<^sub>1, \<V>\<^sub>1) # a # lista \<Rightarrow> False\<rbrakk>
        \<Longrightarrow> thesis"
@@ -141,38 +144,38 @@ qed
 
 lemma inference\<^sub>G_red_in_clause_grounding_of_concl: 
   assumes "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
-  shows "\<iota>\<^sub>G \<in> ground.Red_I (clause_groundings typeof_fun (concl_of \<iota>))"
+  shows "\<iota>\<^sub>G \<in> ground.Red_I (clause_groundings (concl_of \<iota>))"
 proof-
   from assms have "\<iota>\<^sub>G \<in> ground.G_Inf"
     unfolding inference_groundings_def
     by blast
 
-  moreover have "concl_of \<iota>\<^sub>G \<in> clause_groundings typeof_fun  (concl_of \<iota>)"
+  moreover have "concl_of \<iota>\<^sub>G \<in> clause_groundings (concl_of \<iota>)"
     using assms inference\<^sub>G_concl_in_clause_grounding
     by auto
 
-  ultimately show "\<iota>\<^sub>G \<in> ground.Red_I (clause_groundings typeof_fun (concl_of \<iota>))"
+  ultimately show "\<iota>\<^sub>G \<in> ground.Red_I (clause_groundings (concl_of \<iota>))"
     using ground.Red_I_of_Inf_to_N
     by blast
 qed
 
 lemma obtain_welltyped_ground_subst:
   obtains \<gamma> :: "('f, 'v) subst" and \<F>\<^sub>G :: "('f, 'ty) fun_types"
-  where "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>" "term_subst.is_ground_subst \<gamma>"
+  where "is_welltyped \<V> \<gamma>" "term_subst.is_ground_subst \<gamma>"
 proof-
  
   define \<gamma> :: "('f, 'v) subst" where
     "\<And>x. \<gamma> x \<equiv> Fun (SOME f. typeof_fun f = ([], \<V> x)) []"
 
 
-  moreover have "welltyped\<^sub>\<sigma> typeof_fun \<V> \<gamma>"
+  moreover have "is_welltyped \<V> \<gamma>"
   proof-
-    have "\<And>x. First_Order_Type_System.welltyped typeof_fun \<V>
+    have "\<And>x. welltyped \<V>
           (Fun (SOME f. typeof_fun f = ([], \<V> x)) []) (\<V> x)"
       by (meson function_symbols list_all2_Nil someI_ex welltyped.Fun)
 
     then show ?thesis
-      unfolding welltyped\<^sub>\<sigma>_def \<gamma>_def
+      unfolding \<gamma>_def
       by auto
   qed
 
@@ -186,8 +189,7 @@ proof-
 qed
 
 
-lemma welltyped\<^sub>\<sigma>_on_empty: "welltyped\<^sub>\<sigma>_on {} \<F> \<V> \<sigma>"
-  unfolding welltyped\<^sub>\<sigma>_on_def
+lemma is_welltyped_on_empty: "is_welltyped_on {} \<V> \<sigma>"
   by simp  
 
 sublocale lifting: 
@@ -199,7 +201,7 @@ sublocale lifting:
           ground.G_Inf 
           ground.GRed_I
           ground.GRed_F 
-          "clause_groundings typeof_fun"
+          "clause_groundings"
           "(Some \<circ> inference_groundings)"
           typed_tiebreakers
 proof unfold_locales
@@ -210,19 +212,19 @@ next
   fix bottom
   assume "bottom \<in> \<bottom>\<^sub>F"
 
-  then show "clause_groundings typeof_fun bottom \<noteq> {}"
+  then show "clause_groundings bottom \<noteq> {}"
     unfolding clause_groundings_def
-    using welltyped\<^sub>\<sigma>_Var
+    using is_welltyped_id_subst
   proof -
-    have "\<exists>f. welltyped\<^sub>\<sigma>_on (clause.vars {#}) typeof_fun (snd bottom) f \<and> 
-          First_Order_Type_System.welltyped\<^sub>c typeof_fun (snd bottom) {#} \<and> 
+    have "\<exists>f. is_welltyped_on (clause.vars {#}) (snd bottom) f \<and> 
+          clause.is_welltyped (snd bottom) {#} \<and> 
           term_subst.is_ground_subst f"
-      by (metis First_Order_Type_System.welltyped\<^sub>c_def empty_clause_is_ground ex_in_conv 
-          set_mset_eq_empty_iff term.obtain_ground_subst welltyped\<^sub>\<sigma>_on_empty)
+      by (metis (no_types, lifting) all_not_in_conv empty_clause_is_ground is_typed_lifting.elims(1)
+          set_mset_empty term.term.obtain_ground_subst)
 
     then show "{clause.to_ground (fst bottom \<cdot> f) |f. term_subst.is_ground_subst f 
-        \<and> First_Order_Type_System.welltyped\<^sub>c typeof_fun (snd bottom) (fst bottom) 
-        \<and> welltyped\<^sub>\<sigma>_on (clause.vars (fst bottom)) typeof_fun (snd bottom) f 
+        \<and> clause.is_welltyped (snd bottom) (fst bottom) 
+        \<and> is_welltyped_on (clause.vars (fst bottom)) (snd bottom) f 
         \<and> all_types (snd bottom)} \<noteq> {}"
       using \<open>bottom \<in> \<bottom>\<^sub>F\<close> 
       by auto
@@ -230,12 +232,12 @@ next
 next
   fix bottom
   assume "bottom \<in> \<bottom>\<^sub>F"
-  then show "clause_groundings typeof_fun bottom \<subseteq> ground.G_Bot"
+  then show "clause_groundings bottom \<subseteq> ground.G_Bot"
     unfolding clause_groundings_def
     by clause_auto
 next
   fix clause
-  show "clause_groundings typeof_fun clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"
+  show "clause_groundings clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"
     unfolding clause_groundings_def clause.to_ground_def clause.subst_def
     by (smt (verit) disjoint_insert(1) image_mset_is_empty_iff inf_bot_right mem_Collect_eq 
         prod.exhaust_sel)
@@ -243,7 +245,7 @@ next
   fix \<iota> :: "('f, 'v, 'ty) typed_clause inference"
 
   show "the ((Some \<circ> inference_groundings) \<iota>) \<subseteq> 
-      ground.GRed_I (clause_groundings typeof_fun (concl_of \<iota>))"
+      ground.GRed_I (clause_groundings (concl_of \<iota>))"
     using inference\<^sub>G_red_in_clause_grounding_of_concl
     by auto
 next
@@ -259,7 +261,12 @@ qed
 
 end
 
-sublocale first_order_superposition_calculus \<subseteq>
+context first_order_superposition_calculus
+begin
+
+interpretation nonground_typing typeof_fun "UNIV :: 'v set".
+
+sublocale
   lifting_intersection
     inferences      
     "{{#}}"
@@ -269,7 +276,7 @@ sublocale first_order_superposition_calculus \<subseteq>
     "ground_superposition_calculus.GRed_I (\<prec>\<^sub>t\<^sub>G)"
     "\<lambda>_. ground_superposition_calculus.GRed_F(\<prec>\<^sub>t\<^sub>G)"
     "\<bottom>\<^sub>F"
-    "\<lambda>_. clause_groundings typeof_fun" 
+    "\<lambda>_. clause_groundings" 
     "\<lambda>select\<^sub>G. Some \<circ>
       (grounded_first_order_superposition_calculus.inference_groundings (\<prec>\<^sub>t) select\<^sub>G typeof_fun)"
     typed_tiebreakers
@@ -284,8 +291,7 @@ next
  
   then interpret grounded_first_order_superposition_calculus
     where select\<^sub>G = select\<^sub>G
-    apply unfold_locales
-    by(simp add: select\<^sub>G\<^sub>s_def)
+    by unfold_locales (simp add: select\<^sub>G\<^sub>s_def)
 
   show "consequence_relation ground.G_Bot ground.G_entails"
     using ground.consequence_relation_axioms.
@@ -305,11 +311,13 @@ next
           ground.G_Inf 
           ground.GRed_I
           ground.GRed_F 
-          (clause_groundings typeof_fun)
+          clause_groundings
           (Some \<circ> inference_groundings)
           typed_tiebreakers"
     by unfold_locales
 qed
+
+end
 
 end
 

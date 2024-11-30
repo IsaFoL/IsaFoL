@@ -1,4 +1,4 @@
-theory Context_Compatibility
+theory Context_Compatible_Order
   imports 
     Ground_Context
     Restricted_Order
@@ -107,7 +107,7 @@ lemma context_less_eq_term_less:
   assumes
     "\<And>t. Fun\<langle>c;t\<rangle> \<preceq> Fun\<langle>c';t\<rangle>"
     "t \<prec> t'"
-  shows "Fun\<langle>c;t\<rangle> \<prec>  Fun\<langle>c';t'\<rangle>"
+  shows "Fun\<langle>c;t\<rangle> \<prec> Fun\<langle>c';t'\<rangle>"
   using assms context_less_eq_term_less
   by blast
 

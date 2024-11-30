@@ -8,8 +8,8 @@ locale functional_substitution = substitution _ _ subst "\<lambda>a. vars a = {}
   for
     subst :: "'expr \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> 'expr" (infixl "\<cdot>" 70) and
     vars :: "'expr \<Rightarrow> 'var set" +
-  assumes 
-    subst_eq: "\<And>expr \<sigma> \<tau>. (\<And>x. x \<in> (vars expr) \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> expr \<cdot> \<sigma> = expr \<cdot> \<tau>"
+  assumes
+    subst_eq: "\<And>expr \<sigma> \<tau>. (\<And>x. x \<in> vars expr \<Longrightarrow> \<sigma> x = \<tau> x) \<Longrightarrow> expr \<cdot> \<sigma> = expr \<cdot> \<tau>"
 begin
 
 abbreviation is_ground where "is_ground expr \<equiv> vars expr = {}"
@@ -40,6 +40,7 @@ lemma subst_cannot_unground:
   assumes "\<not>is_ground (expr \<cdot> \<sigma>)"  
   shows "\<not>is_ground expr"
   using assms by force
+
 
 (* 
 TODO: Bring here?
@@ -76,7 +77,30 @@ end
 
 locale renaming_variables = functional_substitution +
   assumes
-    renaming_variables: "\<And>expr \<rho>. is_renaming \<rho> \<Longrightarrow> id_subst ` vars (expr \<cdot> \<rho>) = \<rho> ` (vars expr)"
+    (* TODO: Does it make sense to have this as an equality? *)
+    renaming: "\<And>\<rho> x. is_renaming \<rho> \<Longrightarrow> \<rho> x \<in> range id_subst" and 
+    (* TODO: simp? *)
+    renaming_variables: "\<And>expr \<rho>. is_renaming \<rho>  \<Longrightarrow> id_subst ` vars (expr \<cdot> \<rho>) = \<rho> ` (vars expr)"
+begin
+
+(* TODO: Helpful for typed renaming? *)
+definition rename where
+  "is_renaming \<rho> \<Longrightarrow> rename \<rho> x \<equiv> SOME x'. \<rho> x = id_subst x'"
+
+lemma obtain_renamed_variable: 
+  assumes "is_renaming \<rho>" 
+  obtains x' where "\<rho> x = id_subst x'"
+  using renaming[OF assms]
+  by auto
+
+lemma id_subst_rename [simp]:
+  assumes "is_renaming \<rho>" 
+  shows "id_subst (rename \<rho> x) = \<rho> x"
+  unfolding rename_def[OF assms] 
+  using obtain_renamed_variable[OF assms]
+  by (metis (mono_tags, lifting) someI)
+
+end
 
 locale grounding = functional_substitution where vars = vars and id_subst = id_subst
   for vars :: "'expr \<Rightarrow> 'var set" and id_subst :: "'var \<Rightarrow> 'base" +
@@ -157,7 +181,7 @@ begin
 lemma obtain_ground_subst:
   obtains \<gamma> 
   where "is_ground_subst \<gamma>"
-  unfolding ground_subst_iff_base_ground_subst  base.is_ground_subst_def
+  unfolding ground_subst_iff_base_ground_subst base.is_ground_subst_def
   using base.base_ground_exists base.base_is_grounding_iff_vars_grounded
   by auto
 

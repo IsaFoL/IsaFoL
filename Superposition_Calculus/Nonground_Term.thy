@@ -192,10 +192,17 @@ next
 next
   fix t :: "('f, 'v) term" and \<sigma>
   show "term.vars (t \<cdot>t \<sigma>) \<subseteq> term.vars t - subst_domain \<sigma> \<union> range_vars \<sigma>"
-    by (rule vars_term_subst_apply_term_subset)  
+    by (rule vars_term_subst_apply_term_subset)
+next
+  fix \<rho> :: "('f, 'v) subst" and x
+  assume "term_subst.is_renaming \<rho>"
+  then show "\<rho> x \<in> range Var"
+    unfolding is_Var_def term_subst_is_renaming_iff
+    by blast
 qed
 
 hide_fact term.ground_subst_iff_base_ground_subst
+
 
 global_interpretation "term": term_grounding where subst = "(\<cdot>t)" and id_subst = Var and 
   comp_subst = "(\<odot>)" and vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set" and 
@@ -234,7 +241,7 @@ next
     by simp
 qed
 
-(* TODO: Simp? *)
+(* TODO: Simp? *)                                         
 lemma term_context_ground_iff_term_is_ground: "Term_Context.ground t = term.is_ground t"
   by(induction t) simp_all
 
@@ -247,8 +254,8 @@ lemma obtain_ground_fun:
 lemma renaming_surj_the_inv: 
   fixes \<rho> :: "('f, 'v) subst"
   assumes "term_subst.is_renaming \<rho>"
-  shows "surj (\<lambda>x. the_inv \<rho> (Var x))"
-  using assms the_inv_f_f
+  shows "surj (\<lambda>x. inv \<rho> (Var x))"
+  using assms inv_f_f
   unfolding term_subst_is_renaming_iff is_Var_def surj_def
   by metis
 

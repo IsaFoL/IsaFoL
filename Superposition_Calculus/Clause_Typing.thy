@@ -1,8 +1,13 @@
 theory Clause_Typing
-  imports Typing Uprod_Extra Multiset_Extra Clausal_Calculus_Extra Natural_Monoid
+  imports 
+    Typing 
+    Uprod_Extra 
+    Multiset_Extra 
+    Clausal_Calculus_Extra 
+    Natural_Semigroup
 begin
 
-locale monoid_typing_lifting = typing_lifting + natural_monoid
+locale monoid_typing_lifting = typing_lifting + natural_semigroup
 begin
 
 lemma is_typed_add [simp]: 
@@ -40,62 +45,48 @@ locale clause_typing =
   for term_typed term_welltyped
 begin
 
-sublocale atom: uniform_explicit_typing_lifting where 
+sublocale atom: uniform_typing_lifting where 
   typed_sub = term_typed and 
   welltyped_sub = term_welltyped and
   to_set = set_uprod
-  by unfold_locales (rule set_uprod_not_empty)
+  by unfold_locales 
 
-sublocale literal: uniform_explicit_typing_lifting where 
-  typed_sub = atom.typed and 
-  welltyped_sub = atom.welltyped and
-  to_set = "\<lambda>l. {atm_of l}"
-  by unfold_locales simp
-
-lemma atom_typed_iff [simp]:
-  "atom.typed (Upair t t') \<tau> \<longleftrightarrow> term_typed t \<tau> \<and> term_typed t' \<tau>"
-  by (simp add: atom.typed_def)
+sublocale literal: typing_lifting where 
+  is_typed_sub = atom.is_typed and 
+  is_welltyped_sub = atom.is_welltyped and
+  to_set = set_literal
+  by unfold_locales
 
 lemma atom_is_typed_iff [simp]:
   "atom.is_typed (Upair t t') \<longleftrightarrow> (\<exists>\<tau>. term_typed t \<tau> \<and> term_typed t' \<tau>)"
   by auto
 
-lemma atom_welltyped_iff [simp]:
-  "atom.welltyped (Upair t t') \<tau> \<longleftrightarrow> term_welltyped t \<tau> \<and> term_welltyped t' \<tau>"
-  by (simp add: atom.welltyped_def)
-
 lemma atom_is_welltyped_iff [simp]:
   "atom.is_welltyped (Upair t t') \<longleftrightarrow> (\<exists>\<tau>. term_welltyped t \<tau> \<and> term_welltyped t' \<tau>)"
   by auto
-
-lemma literal_typed_iff:
-  "literal.typed l \<tau> \<longleftrightarrow> atom.typed (atm_of l) \<tau>" and
-  [simp]: "literal.typed (t \<approx> t') \<tau> \<longleftrightarrow> atom.typed (Upair t t') \<tau>" and
-  [simp]: "literal.typed (t !\<approx> t') \<tau> \<longleftrightarrow> atom.typed (Upair t t') \<tau>"
-  by (simp_all add: literal.typed_def)
 
 lemma literal_is_typed_iff:
   "literal.is_typed l \<longleftrightarrow> atom.is_typed (atm_of l)" and
   [simp]: "literal.is_typed (t \<approx> t') \<longleftrightarrow> atom.is_typed (Upair t t')" and
   [simp]: "literal.is_typed (t !\<approx> t') \<longleftrightarrow> atom.is_typed (Upair t t')"
-  by (simp_all add: literal.typed_def)
-
-lemma literal_welltyped_iff:
-  "literal.welltyped l \<tau> \<longleftrightarrow> atom.welltyped (atm_of l) \<tau>" and
-  [simp]: "literal.welltyped (t \<approx> t') \<tau> \<longleftrightarrow> atom.welltyped (Upair t t') \<tau>" and
-  [simp]: "literal.welltyped (t !\<approx> t') \<tau> \<longleftrightarrow> atom.welltyped (Upair t t') \<tau>"
-  by (simp_all add: literal.welltyped_def)
+  by (simp_all add: set_literal_atm_of)
 
 lemma literal_is_welltyped_iff:
   "literal.is_welltyped l \<longleftrightarrow> atom.is_welltyped (atm_of l)" and
   [simp]: "literal.is_welltyped (t \<approx> t') \<longleftrightarrow> atom.is_welltyped (Upair t t')" and
   [simp]: "literal.is_welltyped (t !\<approx> t') \<longleftrightarrow> atom.is_welltyped (Upair t t')"
-  by (simp_all add: literal.welltyped_def)
+  by (simp_all add: set_literal_atm_of)
 
 sublocale clause: mulitset_typing_lifting where 
   is_typed_sub = literal.is_typed and 
   is_welltyped_sub = literal.is_welltyped
   by unfold_locales
+
+lemma welltyped_add_literal:
+  assumes "clause.is_welltyped c" "term_welltyped t\<^sub>1 \<tau>" "term_welltyped t\<^sub>2 \<tau>" 
+  shows "clause.is_welltyped (add_mset (t\<^sub>1 !\<approx> t\<^sub>2) c)"
+  using assms
+  by auto
 
 end
 

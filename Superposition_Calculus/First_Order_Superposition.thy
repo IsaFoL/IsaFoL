@@ -47,19 +47,22 @@ locale first_order_superposition_calculus =
   first_order_select select
   for 
     select :: "('f, ('v :: infinite)) select" and
-    less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" +
+    less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" and
+    typeof_fun :: "('f, 'ty) fun_types" + (* TODO: rename to \<F> *)
   fixes
-    tiebreakers :: "'f gatom clause  \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" and
-    typeof_fun :: "('f, 'ty) fun_types"
+    tiebreakers :: "'f gatom clause  \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" 
   assumes
     wellfounded_tiebreakers: 
       "\<And>clause\<^sub>G. wfP (tiebreakers clause\<^sub>G) \<and> 
                transp (tiebreakers clause\<^sub>G) \<and> 
                asymp (tiebreakers clause\<^sub>G)" and
+  (* TODO/ Note: Was not needed without types \<rightarrow> Discuss *)
     function_symbols: "\<And>\<tau>. \<exists>f. typeof_fun f = ([], \<tau>)" and
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R" and
     variables: "|UNIV :: 'ty set| \<le>o |UNIV :: 'v set|"
 begin
+
+interpretation nonground_typing typeof_fun "UNIV :: 'v set".
 
 interpretation term_order_notation.
 
@@ -88,15 +91,15 @@ qed
 
 definition is_merged_var_type_env where
   "is_merged_var_type_env \<V> X \<V>\<^sub>X \<rho>\<^sub>X Y \<V>\<^sub>Y \<rho>\<^sub>Y \<equiv>
-    (\<forall>x \<in> X. welltyped typeof_fun \<V> (\<rho>\<^sub>X x) (\<V>\<^sub>X x)) \<and>
-    (\<forall>y \<in> Y. welltyped typeof_fun \<V> (\<rho>\<^sub>Y y) (\<V>\<^sub>Y y))"
+    (\<forall>x \<in> X. welltyped \<V> (\<rho>\<^sub>X x) (\<V>\<^sub>X x)) \<and>
+    (\<forall>y \<in> Y. welltyped \<V> (\<rho>\<^sub>Y y) (\<V>\<^sub>Y y))"
 
 inductive eq_resolution :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> bool" where
   eq_resolutionI: 
    "premise = add_mset literal premise' \<Longrightarrow>
     literal = term !\<approx> term' \<Longrightarrow>
     term_subst.is_imgu \<mu> {{ term, term' }} \<Longrightarrow>
-    welltyped_imgu' typeof_fun \<V> term term' \<mu> \<Longrightarrow>
+    welltyped_imgu' \<V> term term' \<mu> \<Longrightarrow>
     select premise = {#} \<and> is_maximal (literal \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<or> 
       is_maximal (literal \<cdot>l \<mu>) ((select premise) \<cdot> \<mu>) \<Longrightarrow>
     conclusion = premise' \<cdot> \<mu> \<Longrightarrow>
@@ -111,7 +114,7 @@ inductive eq_factoring :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty
     is_maximal (literal\<^sub>1 \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<Longrightarrow>
     \<not> (term\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<mu>) \<Longrightarrow>
     term_subst.is_imgu \<mu> {{ term\<^sub>1, term\<^sub>2 }} \<Longrightarrow>
-    welltyped_imgu' typeof_fun \<V> term\<^sub>1 term\<^sub>2 \<mu> \<Longrightarrow>
+    welltyped_imgu' \<V> term\<^sub>1 term\<^sub>2 \<mu> \<Longrightarrow>
     conclusion = add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise') \<cdot> \<mu> \<Longrightarrow>
     eq_factoring (premise, \<V>) (conclusion, \<V>)"
 
@@ -132,12 +135,12 @@ where
     literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2' \<Longrightarrow>
     \<not> is_Var term\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{term\<^sub>1 \<cdot>t \<rho>\<^sub>1, term\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
-    welltyped_imgu' typeof_fun \<V>\<^sub>3 (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
-    \<forall>x \<in> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
-    \<forall>x \<in> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
-    welltyped\<^sub>\<sigma>_on (clause.vars premise\<^sub>1) typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
-    welltyped\<^sub>\<sigma>_on (clause.vars premise\<^sub>2) typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
-    (\<And>\<tau> \<tau>'. has_type typeof_fun \<V>\<^sub>2 term\<^sub>2 \<tau> \<Longrightarrow> has_type typeof_fun \<V>\<^sub>2 term\<^sub>2' \<tau>' \<Longrightarrow> \<tau> = \<tau>') \<Longrightarrow>
+    welltyped_imgu' \<V>\<^sub>3 (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
+    \<forall>x \<in> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
+    \<forall>x \<in> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
+    is_welltyped_on (clause.vars premise\<^sub>1) \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
+    is_welltyped_on (clause.vars premise\<^sub>2) \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
+    (\<And>\<tau> \<tau>'. typed \<V>\<^sub>2 term\<^sub>2 \<tau> \<Longrightarrow> typed \<V>\<^sub>2 term\<^sub>2' \<tau>' \<Longrightarrow> \<tau> = \<tau>') \<Longrightarrow>
     \<not> (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     (\<P> = Pos 
       \<and> select premise\<^sub>1 = {#} 
@@ -187,12 +190,12 @@ where
     L\<^sub>2 = t\<^sub>2 \<approx> t\<^sub>2' \<Longrightarrow>
     \<not> is_Var u\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
-    welltyped_imgu' typeof_fun \<V>\<^sub>3 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
-    \<forall>x \<in> clause.vars (P\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
-    \<forall>x \<in> clause.vars (P\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
-    welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>1) typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
-    welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>2) typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
-    (\<And>\<tau> \<tau>'. has_type typeof_fun \<V>\<^sub>2 t\<^sub>2 \<tau> \<Longrightarrow> has_type typeof_fun \<V>\<^sub>2 t\<^sub>2' \<tau>' \<Longrightarrow> \<tau> = \<tau>') \<Longrightarrow>
+    welltyped_imgu' \<V>\<^sub>3 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
+    \<forall>x \<in> clause.vars (P\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
+    \<forall>x \<in> clause.vars (P\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
+    is_welltyped_on (clause.vars P\<^sub>1) \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
+    is_welltyped_on (clause.vars P\<^sub>2) \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
+    (\<And>\<tau> \<tau>'. typed \<V>\<^sub>2 t\<^sub>2 \<tau> \<Longrightarrow> typed \<V>\<^sub>2 t\<^sub>2' \<tau>' \<Longrightarrow> \<tau> = \<tau>') \<Longrightarrow>
     \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     select P\<^sub>1 = {#} \<Longrightarrow>
     is_strictly_maximal (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<Longrightarrow>
@@ -211,7 +214,7 @@ lemma superposition_if_pos_superposition:
 proof (cases rule: pos_superposition.cases)
   case (pos_superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2 L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s\<^sub>1 u\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu> \<V>\<^sub>3 \<V>\<^sub>1 \<V>\<^sub>2 C)
   then show ?thesis
-    using superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2]
+    using superpositionI[of \<rho>\<^sub>1 \<rho>\<^sub>2 P\<^sub>1 P\<^sub>2 L\<^sub>1 P\<^sub>1']
     by blast
 qed
 
@@ -231,12 +234,12 @@ where
     L\<^sub>2 = t\<^sub>2 \<approx> t\<^sub>2' \<Longrightarrow>
     \<not> is_Var u\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
-    welltyped_imgu' typeof_fun \<V>\<^sub>3 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
-    \<forall>x \<in> clause.vars (P\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (the_inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
-    \<forall>x \<in> clause.vars (P\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (the_inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
-    welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>1) typeof_fun \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
-    welltyped\<^sub>\<sigma>_on (clause.vars P\<^sub>2) typeof_fun \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
-    (\<And>\<tau> \<tau>'. has_type typeof_fun \<V>\<^sub>2 t\<^sub>2 \<tau> \<Longrightarrow> has_type typeof_fun \<V>\<^sub>2 t\<^sub>2' \<tau>' \<Longrightarrow> \<tau> = \<tau>') \<Longrightarrow>
+    welltyped_imgu' \<V>\<^sub>3 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
+    \<forall>x \<in> clause.vars (P\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
+    \<forall>x \<in> clause.vars (P\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
+    is_welltyped_on (clause.vars P\<^sub>1) \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
+    is_welltyped_on (clause.vars P\<^sub>2) \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
+    (\<And>\<tau> \<tau>'. typed \<V>\<^sub>2 t\<^sub>2 \<tau> \<Longrightarrow> typed \<V>\<^sub>2 t\<^sub>2' \<tau>' \<Longrightarrow> \<tau> = \<tau>') \<Longrightarrow>
     \<not> (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
     select P\<^sub>1 = {#} \<and> 
       is_maximal (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (P\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or> is_maximal (L\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) ((select P\<^sub>1) \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<Longrightarrow>
@@ -284,86 +287,85 @@ qed
 lemma eq_resolution_preserves_typing:
   assumes
     step: "eq_resolution (D, \<V>) (C, \<V>)" and
-    wt_D: "welltyped\<^sub>c typeof_fun \<V> D"
-  shows "welltyped\<^sub>c typeof_fun \<V> C"
+    wt_D: "clause.is_welltyped \<V> D"
+  shows "clause.is_welltyped \<V> C"
   using step
 proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
   case (eq_resolutionI literal premise' "term" term' \<mu>)
   obtain \<tau> where \<tau>:
-    "welltyped typeof_fun \<V> term \<tau>"
-    "welltyped typeof_fun \<V> term' \<tau>"
+    "welltyped \<V> term \<tau>"
+    "welltyped \<V> term' \<tau>"
     using wt_D
     unfolding 
       eq_resolutionI 
-      welltyped\<^sub>c_add_mset 
-      welltyped\<^sub>l_def 
-      welltyped\<^sub>a_def
-    by clause_simp
+      clause.is_welltyped_add
+    by auto
 
-  then have "welltyped\<^sub>c typeof_fun \<V> (D  \<cdot> \<mu>)"
-    using wt_D welltyped\<^sub>\<sigma>_welltyped\<^sub>c eq_resolutionI(4)
-    by blast
+  then have "clause.is_welltyped \<V> (D  \<cdot> \<mu>)"
+    using wt_D eq_resolutionI(4) clause.is_welltyped.subst_stability
+    by (metis UNIV_I)
     
   then show ?thesis
-    using welltyped\<^sub>c_add_mset
+    using clause.is_welltyped_add
     unfolding eq_resolutionI
     by auto
 qed
 
-lemma has_type_welltyped:
-  assumes "has_type typeof_fun \<V> term \<tau>" "welltyped typeof_fun \<V> term \<tau>'"
-  shows "welltyped typeof_fun \<V> term \<tau>"
+(*TODO: Move *)
+lemma typed_welltyped:
+  assumes "typed \<V> term \<tau>" "welltyped \<V> term \<tau>'"
+  shows "welltyped \<V> term \<tau>"
   using assms
-  by (smt (verit, best) welltyped.simps has_type.simps has_type_right_unique right_uniqueD)
+  by (smt (verit, best) welltyped.simps typed.simps term.typed.right_unique right_uniqueD)
 
-lemma welltyped_has_type: 
-  assumes "welltyped typeof_fun \<V> term \<tau>"
-  shows "has_type typeof_fun \<V> term \<tau>"
-  using assms welltyped.cases has_type.simps by fastforce
+lemma welltyped_typed: 
+  assumes "welltyped \<V> term \<tau>"
+  shows "typed \<V> term \<tau>"
+  using term.typed_if_welltyped[OF assms].
 
 lemma eq_factoring_preserves_typing:
   assumes
     step: "eq_factoring (D, \<V>) (C, \<V>)" and
-    wt_D: "welltyped\<^sub>c typeof_fun \<V> D"
-  shows "welltyped\<^sub>c typeof_fun \<V> C"
+    wt_D: "clause.is_welltyped \<V> D"
+  shows "clause.is_welltyped \<V> C"
   using step
 proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
   case (eq_factoringI literal\<^sub>1 literal\<^sub>2 premise' term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
   
-  have wt_D\<mu>: "welltyped\<^sub>c typeof_fun \<V> (D \<cdot> \<mu>)"
-    using wt_D welltyped\<^sub>\<sigma>_welltyped\<^sub>c eq_factoringI
-    by blast
+  have wt_D\<mu>: "clause.is_welltyped \<V> (D \<cdot> \<mu>)"
+    using wt_D clause.is_welltyped.subst_stability eq_factoringI
+    by (metis UNIV_I)
 
   show ?thesis
   proof-
     (* TODO *)
     have "\<And>\<tau> \<tau>'.
        \<lbrakk>\<forall>L\<in>#premise' \<cdot> \<mu>.
-           \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). First_Order_Type_System.welltyped typeof_fun \<V> t \<tau>;
-        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>1 \<cdot>t \<mu>) \<tau>;
-        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau>;
-        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>2 \<cdot>t \<mu>) \<tau>';
-        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>'\<rbrakk>
-       \<Longrightarrow> \<exists>\<tau>. First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>1 \<cdot>t \<mu>) \<tau> \<and>
-               First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>"
-       by (metis welltyped_right_unique eq_factoringI(8) right_uniqueD welltyped\<^sub>\<sigma>_welltyped)
+           \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). welltyped \<V> t \<tau>;
+        welltyped \<V> (term\<^sub>1 \<cdot>t \<mu>) \<tau>;
+        welltyped \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau>;
+        welltyped \<V> (term\<^sub>2 \<cdot>t \<mu>) \<tau>';
+        welltyped \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>'\<rbrakk>
+       \<Longrightarrow> \<exists>\<tau>. welltyped \<V> (term\<^sub>1 \<cdot>t \<mu>) \<tau> \<and> welltyped \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>"
+      by (metis local.eq_factoringI(7) term_subst.subst_imgu_eq_subst_imgu)
 
      moreover have "\<And>\<tau> \<tau>'.
        \<lbrakk>\<forall>L\<in>#premise' \<cdot> \<mu>.
-           \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). First_Order_Type_System.welltyped typeof_fun \<V> t \<tau>;
-        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>1 \<cdot>t \<mu>) \<tau>;
-        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau>;
-        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>2 \<cdot>t \<mu>) \<tau>';
-        First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>'\<rbrakk>
-       \<Longrightarrow> \<exists>\<tau>. First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau> \<and>
-               First_Order_Type_System.welltyped typeof_fun \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>"
-       by (metis welltyped_right_unique eq_factoringI(8) right_uniqueD welltyped\<^sub>\<sigma>_welltyped)
+           \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). welltyped \<V> t \<tau>;
+        welltyped \<V> (term\<^sub>1 \<cdot>t \<mu>) \<tau>;
+        welltyped \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau>;
+        welltyped \<V> (term\<^sub>2 \<cdot>t \<mu>) \<tau>';
+        welltyped \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>'\<rbrakk>
+       \<Longrightarrow> \<exists>\<tau>. welltyped \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau> \<and>
+               welltyped \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>"
+       by (metis local.eq_factoringI(7) term.welltyped.right_uniqueD term_subst.subst_imgu_eq_subst_imgu)
 
      ultimately show ?thesis
        using wt_D\<mu>
-       unfolding welltyped\<^sub>c_def welltyped\<^sub>l_def welltyped\<^sub>a_def eq_factoringI clause.add_subst 
-         subst_literal subst_atom
-       by auto
+       unfolding eq_factoringI clause.add_subst subst_literal subst_atom
+       (* TODO: *)
+       by (smt (verit, ccfv_threshold) atom_is_welltyped_iff clause.is_welltyped_add literal.sel(1) literal_is_welltyped_iff local.eq_factoringI(7) term.welltyped.right_uniqueD
+           term_subst.subst_imgu_eq_subst_imgu welltyped_add_literal)
    qed
 qed
 
@@ -371,39 +373,43 @@ qed
 lemma superposition_preserves_typing:
   assumes
     step: "superposition (D, \<V>\<^sub>2) (C, \<V>\<^sub>1) (E, \<V>\<^sub>3)" and
-    wt_C: "welltyped\<^sub>c typeof_fun \<V>\<^sub>1 C" and
-    wt_D: "welltyped\<^sub>c typeof_fun \<V>\<^sub>2 D"
-  shows "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 E"
+    wt_C: "clause.is_welltyped \<V>\<^sub>1 C" and
+    wt_D: "clause.is_welltyped \<V>\<^sub>2 D"
+  shows "clause.is_welltyped \<V>\<^sub>3 E"
   using step
 proof (cases "(D, \<V>\<^sub>2)" "(C, \<V>\<^sub>1)" "(E, \<V>\<^sub>3)" rule: superposition.cases)
   case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 literal\<^sub>1 premise\<^sub>1' literal\<^sub>2 premise\<^sub>2' \<P> context\<^sub>1 term\<^sub>1 term\<^sub>1' term\<^sub>2 
          term\<^sub>2' \<mu>)
 
-  have welltyped_\<mu>: "welltyped\<^sub>\<sigma> typeof_fun \<V>\<^sub>3 \<mu>"
+  have welltyped_\<mu>: "is_welltyped \<V>\<^sub>3 \<mu>"
     using superpositionI(11)
     by blast
 
-  have "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 (C \<cdot> \<rho>\<^sub>1)"
-    using wt_C welltyped\<^sub>c_renaming_weaker[OF superpositionI(1, 12)] 
+  have "clause.is_welltyped \<V>\<^sub>3 (C \<cdot> \<rho>\<^sub>1)"
+    using wt_C clause.is_welltyped.typed_renaming[OF superpositionI(1, 12)] 
     by blast
 
-  then have wt_C\<mu>: "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 (C \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)"
-    using welltyped\<^sub>\<sigma>_welltyped\<^sub>c[OF welltyped_\<mu>]
-    by blast
-
-  have "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 (D \<cdot> \<rho>\<^sub>2)"
-    using wt_D welltyped\<^sub>c_renaming_weaker[OF superpositionI(2, 13)]
+  then have wt_C\<mu>: "clause.is_welltyped \<V>\<^sub>3 (C \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)"
+    by (metis UNIV_I clause.is_welltyped.subst_stability welltyped_\<mu>)
+   
+  have "clause.is_welltyped \<V>\<^sub>3 (D \<cdot> \<rho>\<^sub>2)"
+    using wt_D  clause.is_welltyped.typed_renaming[OF superpositionI(2, 13)] 
     by blast    
 
-  then have wt_D\<mu>: "welltyped\<^sub>c typeof_fun \<V>\<^sub>3 (D \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)"
-    using welltyped\<^sub>\<sigma>_welltyped\<^sub>c[OF welltyped_\<mu>]
-    by blast
+  then have wt_D\<mu>: "clause.is_welltyped \<V>\<^sub>3 (D \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)"
+    by (metis UNIV_I clause.is_welltyped.subst_stability welltyped_\<mu>)
 
   note imgu = term_subst.subst_imgu_eq_subst_imgu[OF superpositionI(10)]
 
   show ?thesis
+     (* TODO *)
     using literal_cases[OF superpositionI(6)] wt_C\<mu> wt_D\<mu>
-    by cases (clause_simp simp: superpositionI imgu)
+    apply cases
+    apply (clause_simp simp: superpositionI imgu)
+    apply (smt (verit, best) atom_is_welltyped_iff clause.is_welltyped_add clause.is_welltyped_plus
+        literal.sel(1) literal_is_welltyped_iff welltyped\<^sub>\<kappa>)
+    by (smt (verit) atom_is_welltyped_iff clause.is_welltyped_add clause.is_welltyped_plus
+        literal.sel(1,2) literal_is_welltyped_iff welltyped\<^sub>\<kappa>)
 qed
 
 end

@@ -27,7 +27,7 @@ notation sub.less_eq (infix "\<preceq>" 50)
 lemma all_less_eq:
   assumes "\<forall>sub \<in># to_mset expr. sub \<cdot>\<^sub>s \<sigma>' \<preceq> sub \<cdot>\<^sub>s \<sigma>"
   shows "expr \<cdot> \<sigma>' \<preceq>\<^sub>m expr \<cdot> \<sigma>"
-  using multp_all_less_eq[OF sub.asymp sub.transp assms] inj_to_mset
+  using multp_image_lesseq_if_all_lesseq[OF sub.asymp sub.transp assms] inj_to_mset
   unfolding multiset_extension_def subst_def inj_def
   by(auto simp: to_mset_map)
 
@@ -37,7 +37,7 @@ lemma all_less_eq_ex_less:
     "\<exists>sub\<in>#to_mset expr. sub \<cdot>\<^sub>s \<sigma>' \<prec> sub \<cdot>\<^sub>s \<sigma>"
   shows 
     "expr \<cdot> \<sigma>' \<prec>\<^sub>m expr \<cdot> \<sigma>"
-  using multp_all_less_eq_ex_less[OF sub.asymp sub.transp assms]
+  using multp_image_less_if_all_lesseq_ex_less[OF sub.asymp sub.transp assms]
   unfolding multiset_extension_def subst_def to_mset_map.
 
 end

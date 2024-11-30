@@ -18,17 +18,16 @@ lemma ground_superposition_preserves_typing:
   shows "clause.is_welltyped C"
   using step
 proof (cases D E C rule: ground_superposition.cases)
-  case hyps: (ground_superpositionI L\<^sub>E E' L\<^sub>D D' \<P> c t u t')
+  case (ground_superpositionI L\<^sub>E E' L\<^sub>D D' \<P> c t u t')
 
-(* 
-  TODO: Would be enough
- 
+  
+(*
+ TODO: 
   show ?thesis
-    using wt_D wt_E hyps(4)
-    unfolding hyps
-    by fastforce
-    (* or by (auto 4 3) *)
-  *)
+    using wt_D wt_E ground_superpositionI(4)
+    unfolding ground_superpositionI
+    by (auto 4 3)
+ *)
 
   show ?thesis
     unfolding \<open>C = add_mset (\<P> (Upair c\<langle>t'\<rangle>\<^sub>G u)) (E' + D')\<close>
@@ -43,11 +42,10 @@ proof (cases D E C rule: ground_superposition.cases)
 
       hence "atom.is_welltyped (Upair c\<langle>t\<rangle>\<^sub>G u)"
         using \<open>\<P> \<in> {Pos, Neg}\<close>
-        unfolding \<open>L\<^sub>E = \<P> (Upair c\<langle>t\<rangle>\<^sub>G u)\<close> literal.welltyped_def
+        unfolding \<open>L\<^sub>E = \<P> (Upair c\<langle>t\<rangle>\<^sub>G u)\<close> 
         by auto
 
       thus ?thesis
-        unfolding atom.welltyped_def
         by simp
     qed
 
@@ -60,24 +58,21 @@ proof (cases D E C rule: ground_superposition.cases)
 
       hence "atom.is_welltyped (Upair t t')"
         using \<open>\<P> \<in> {Pos, Neg}\<close>
-        unfolding \<open>L\<^sub>D = t \<approx> t'\<close> literal.welltyped_def
+        unfolding \<open>L\<^sub>D = t \<approx> t'\<close>
         by auto
 
       thus ?thesis
-        unfolding atom.welltyped_def
         by simp
     qed
 
     ultimately have "\<exists>\<tau>. term.welltyped c\<langle>t'\<rangle>\<^sub>G \<tau> \<and> term.welltyped u \<tau>"
-      using term.welltyped_context_compatible
+      using term.welltyped.context_compatible
       by blast
 
     hence "atom.is_welltyped (Upair c\<langle>t'\<rangle>\<^sub>G u)"
-      unfolding atom.welltyped_def
       by simp
 
     thus "literal.is_welltyped (\<P> (Upair c\<langle>t'\<rangle>\<^sub>G u))"
-      unfolding literal.welltyped_def 
       using \<open>\<P> \<in> {Pos, Neg}\<close> 
       by auto
   next
@@ -136,19 +131,17 @@ proof (cases D C rule: ground_eq_factoring.cases)
   hence 
     "\<exists>\<tau>. term.welltyped t \<tau> \<and> term.welltyped t' \<tau>" 
     "\<exists>\<tau>. term.welltyped t \<tau> \<and> term.welltyped t'' \<tau>"
-    unfolding atomize_conj literal.welltyped_def atom.welltyped_def
+    unfolding atomize_conj
     by simp
 
   hence t_t'_same_type: "\<exists>\<tau>. term.welltyped t' \<tau> \<and> term.welltyped t'' \<tau>"
-    using term.welltyped_right_unique[THEN right_uniqueD] 
-    by metis
+    by auto
 
   show ?thesis
     unfolding \<open>C = add_mset (t' !\<approx> t'') (add_mset (t \<approx> t'') D')\<close> clause.is_welltyped_add
   proof (intro conjI)
     show "literal.is_welltyped (t' !\<approx> t'')"
       using t_t'_same_type
-      unfolding literal.welltyped_def atom.welltyped_def
       by simp
   next
     show "literal.is_welltyped (t \<approx> t'')"

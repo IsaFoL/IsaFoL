@@ -207,6 +207,7 @@ proof-
     by blast    
 qed
 
+(* TODO: Name infinite_variables_per_type *)
 definition all_types where 
   "all_types \<V> \<equiv> \<forall>ty. infinite {x. \<V> x = ty}"
 
@@ -258,13 +259,15 @@ lemma all_types':
   unfolding all_types_def
   by argo
 
+context nonground_typing
+begin
 (* TODO: term_subst.is_ground_subst \<gamma> \<rightarrow> clause.is_ground (fst clause \<cdot> \<gamma>) *)
-(* TODO: Is  welltyped\<^sub>c \<F> (snd clause) (fst clause) needed? *)
-definition clause_groundings :: "('f, 'ty) fun_types \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> 'f ground_atom clause set"  where
-  "clause_groundings \<F> clause = { clause.to_ground (fst clause \<cdot> \<gamma>) | \<gamma>. 
+(* TODO: Is  clause.is_welltyped \<F> (snd clause) (fst clause) needed? *)
+definition clause_groundings  :: "('f, 'v, 'ty) typed_clause \<Rightarrow> 'f ground_atom clause set"   where
+  "clause_groundings clause = { clause.to_ground (fst clause \<cdot> \<gamma>) | \<gamma>. 
     term_subst.is_ground_subst \<gamma> \<and> 
-    welltyped\<^sub>c \<F> (snd clause) (fst clause) \<and> 
-    welltyped\<^sub>\<sigma>_on (clause.vars (fst clause))  \<F> (snd clause) \<gamma> \<and> 
+    clause.is_welltyped (snd clause) (fst clause) \<and> 
+    is_welltyped_on (clause.vars (fst clause)) (snd clause) \<gamma> \<and> 
     all_types (snd clause)
   }"
 
@@ -273,27 +276,27 @@ definition clause_groundings :: "('f, 'ty) fun_types \<Rightarrow> ('f, 'v, 'ty)
 
  *)
 abbreviation select_subst_stability_on where
-  "\<And>select select\<^sub>G. select_subst_stability_on \<F> select select\<^sub>G premises \<equiv>
-    \<forall>premise\<^sub>G \<in> \<Union> (clause_groundings \<F> ` premises). \<exists>(premise, \<V>) \<in> premises. \<exists>\<gamma>. 
+  "\<And>select select\<^sub>G. select_subst_stability_on select select\<^sub>G premises \<equiv>
+    \<forall>premise\<^sub>G \<in> \<Union> (clause_groundings ` premises). \<exists>(premise, \<V>) \<in> premises. \<exists>\<gamma>. 
       premise \<cdot> \<gamma> = clause.from_ground premise\<^sub>G \<and> 
       select\<^sub>G (clause.to_ground (premise \<cdot> \<gamma>)) = clause.to_ground ((select premise) \<cdot> \<gamma>) \<and>
-      welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma> \<and> 
+      clause.is_welltyped \<V> premise \<and> is_welltyped_on (clause.vars premise) \<V> \<gamma> \<and> 
       term_subst.is_ground_subst \<gamma>  \<and> 
       all_types \<V>"
 
 lemma obtain_subst_stable_on_select_grounding:
   fixes select :: "('f, 'v) select"
   obtains select\<^sub>G where 
-    "select_subst_stability_on \<F> select select\<^sub>G premises"
+    "select_subst_stability_on select select\<^sub>G premises"
     "is_select_grounding select select\<^sub>G"
 proof-
-  let ?premise_groundings = "\<Union>(clause_groundings \<F> ` premises)"
+  let ?premise_groundings = "\<Union>(clause_groundings ` premises)"
 
   have select\<^sub>G_exists_for_premises: 
     "\<forall>premise\<^sub>G \<in> ?premise_groundings. \<exists>select\<^sub>G \<gamma>. \<exists>(premise, \<V>) \<in> premises.
           premise \<cdot> \<gamma> = clause.from_ground premise\<^sub>G 
         \<and> select\<^sub>G premise\<^sub>G = clause.to_ground ((select premise) \<cdot> \<gamma>) 
-        \<and> welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma>
+        \<and> clause.is_welltyped \<V> premise \<and> is_welltyped_on (clause.vars premise) \<V> \<gamma>
         \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     unfolding clause_groundings_def
     using clause.is_ground_subst_is_ground
@@ -304,11 +307,12 @@ proof-
         premise \<cdot> \<gamma> = clause.from_ground premise\<^sub>G 
       \<and> select\<^sub>G_on_premise_groundings (clause.to_ground (premise \<cdot> \<gamma>)) = 
           clause.to_ground ((select premise) \<cdot> \<gamma>) 
-      \<and> welltyped\<^sub>c \<F> \<V> premise \<and> welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma> 
+      \<and> clause.is_welltyped \<V> premise \<and> is_welltyped_on (clause.vars premise) \<V> \<gamma> 
       \<and> term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
     using Ball_Ex_comm(1)[OF select\<^sub>G_exists_for_premises] 
       prod.case_eq_if clause.from_ground_inverse
-   by fastforce
+    (* TODO! *)
+   by (smt (verit)) 
 
   define select\<^sub>G where
     "\<And>clause\<^sub>G. select\<^sub>G clause\<^sub>G = (
@@ -321,36 +325,39 @@ proof-
   proof-
     have "\<And>clause\<^sub>G a b.
        \<lbrakk>\<forall>y\<in>premises.
-           \<forall>premise\<^sub>G\<in>clause_groundings \<F> y.
+           \<forall>premise\<^sub>G\<in>clause_groundings y.
               \<exists>x\<in>premises.
                  case x of
                  (premise, \<V>) \<Rightarrow>
                    \<exists>\<gamma>. premise \<cdot> \<gamma> = clause.from_ground premise\<^sub>G \<and>
                        select\<^sub>G_on_premise_groundings (clause.to_ground (premise \<cdot> \<gamma>)) =
                        clause.to_ground (select premise \<cdot> \<gamma>) \<and>
-                       welltyped\<^sub>c \<F> \<V> premise \<and>
-                       welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma> \<and>
+                       clause.is_welltyped \<V> premise \<and>
+                       is_welltyped_on (clause.vars premise) \<V> \<gamma> \<and>
                        term_subst.is_ground_subst \<gamma> \<and> all_types \<V>;
-        (a, b) \<in> premises; clause\<^sub>G \<in> clause_groundings \<F> (a, b)\<rbrakk>
+        (a, b) \<in> premises; clause\<^sub>G \<in> clause_groundings (a, b)\<rbrakk>
        \<Longrightarrow> \<exists>clause \<gamma>.
               clause.vars (clause \<cdot> \<gamma>) = {} \<and>
               clause\<^sub>G = clause.to_ground (clause \<cdot> \<gamma>) \<and>
               select\<^sub>G_on_premise_groundings clause\<^sub>G = clause.to_ground (select clause \<cdot> \<gamma>)"
-     by force
+      (* TODO! *)
+      by (smt (verit) clause.ground_subst_iff_base_ground_subst
+          clause.is_ground_subst_is_ground clause.from_ground_inverse
+          split_beta)
 
     moreover have " \<And>clause\<^sub>G.
        \<lbrakk>\<forall>y\<in>premises.
-           \<forall>premise\<^sub>G\<in>clause_groundings \<F> y.
+           \<forall>premise\<^sub>G\<in>clause_groundings y.
               \<exists>x\<in>premises.
                  case x of
                  (premise, \<V>) \<Rightarrow>
                    \<exists>\<gamma>. premise \<cdot> \<gamma> = clause.from_ground premise\<^sub>G \<and>
                        select\<^sub>G_on_premise_groundings (clause.to_ground (premise \<cdot> \<gamma>)) =
                        clause.to_ground (select premise \<cdot> \<gamma>) \<and>
-                       welltyped\<^sub>c \<F> \<V> premise \<and>
-                       welltyped\<^sub>\<sigma>_on (clause.vars premise) \<F> \<V> \<gamma> \<and>
+                       clause.is_welltyped \<V> premise \<and>
+                       is_welltyped_on (clause.vars premise) \<V> \<gamma> \<and>
                        term_subst.is_ground_subst \<gamma> \<and> all_types \<V>;
-        \<forall>x\<in>premises. clause\<^sub>G \<notin> clause_groundings \<F> x\<rbrakk>
+        \<forall>x\<in>premises. clause\<^sub>G \<notin> clause_groundings x\<rbrakk>
        \<Longrightarrow> \<exists>clause \<gamma>.
               clause.vars (clause \<cdot> \<gamma>) = {} \<and>
               clause\<^sub>G = clause.to_ground (clause \<cdot> \<gamma>) \<and>
@@ -370,6 +377,8 @@ proof-
     unfolding select\<^sub>G_def 
     by fastforce
 qed
+
+end
 
 locale first_order_select = select select
   for select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
@@ -429,13 +438,18 @@ lemmas select_subst = select_subst1 select_subst2
 end
 
 locale grounded_first_order_select = 
-  first_order_select select for select +
+  first_order_select select
+  for
+    select :: "('f, 'v :: infinite) atom clause \<Rightarrow> ('f, 'v) atom clause" and 
+    \<F> :: "('f, 'ty) fun_types" +
 fixes select\<^sub>G 
 assumes select\<^sub>G: "is_select_grounding select select\<^sub>G"
 begin
 
+interpretation nonground_typing \<F> "UNIV :: 'v set".
+
 abbreviation subst_stability_on where
-  "subst_stability_on \<F> premises \<equiv> select_subst_stability_on \<F> select select\<^sub>G premises"
+  "subst_stability_on premises \<equiv> select_subst_stability_on select select\<^sub>G premises"
 
 lemma select\<^sub>G_subset: "select\<^sub>G clause \<subseteq># clause"
   using select\<^sub>G 

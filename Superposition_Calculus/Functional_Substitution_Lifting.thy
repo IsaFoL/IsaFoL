@@ -1,5 +1,5 @@
 theory Functional_Substitution_Lifting
-  imports Functional_Substitution Natural_Monoid_Functor
+  imports Functional_Substitution Natural_Semigroup_Functor
 begin
 
 locale functional_substitution_lifting = 
@@ -207,7 +207,7 @@ proof unfold_locales
     using sub.renaming_variables
     unfolding vars_def subst_def to_set_map
     by fastforce
-qed
+qed (rule sub.renaming)
 
 end      
 
@@ -406,8 +406,8 @@ qed
 
 end
 
-locale natural_monoid_functional_substitution_lifting = 
-  functional_substitution_lifting + natural_monoid
+locale natural_semigroup_functional_substitution_lifting = 
+  functional_substitution_lifting + natural_semigroup
 begin
 
 lemma vars_add [simp]: 
@@ -426,8 +426,8 @@ lemma is_ground_add [simp]:
 
 end
 
-locale natural_monoid_functor_functional_substitution_lifting = 
-  natural_monoid_functional_substitution_lifting + natural_monoid_functor
+locale natural_semigroup_functor_functional_substitution_lifting = 
+  natural_semigroup_functional_substitution_lifting + natural_semigroup_functor
 begin
 
 lemma add_subst [simp]: 
@@ -443,10 +443,10 @@ lemma plus_subst [simp]: "(plus expr expr') \<cdot> \<sigma> = plus (expr \<cdot
 
 end
 
-locale natural_monoid_grounding_lifting = 
+locale natural_semigroup_grounding_lifting = 
   grounding_lifting + 
-  natural_monoid + 
-  ground: natural_monoid where 
+  natural_semigroup + 
+  ground: natural_semigroup where 
   to_set = to_set_ground and plus = plus_ground and wrap = wrap_ground and add = add_ground
 for plus_ground wrap_ground add_ground +
 assumes 
@@ -456,7 +456,7 @@ assumes
   wrap_to_ground: "\<And>sub. to_ground (wrap sub) = wrap_ground (sub_to_ground sub)"
 begin
 
-sublocale natural_monoid_functional_substitution_lifting
+sublocale natural_semigroup_functional_substitution_lifting
   by unfold_locales
 
 lemma from_ground_plus [simp]: 

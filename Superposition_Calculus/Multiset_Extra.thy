@@ -3,7 +3,7 @@ theory Multiset_Extra
     "HOL-Library.Multiset"
     "HOL-Library.Multiset_Order"
     Nested_Multisets_Ordinals.Multiset_More
-    Natural_Monoid_Functor
+    Natural_Semigroup_Functor
 begin
 
 lemma exists_multiset [intro]: "\<exists>M. x \<in> set_mset M"
@@ -18,7 +18,7 @@ global_interpretation multiset_functor: natural_functor_conversion where
   map' = image_mset and to_set' = set_mset
   by unfold_locales simp_all 
 
-global_interpretation muliset_functor: natural_monoid_functor where
+global_interpretation muliset_functor: natural_semigroup_functor where
   map = image_mset and to_set = set_mset and plus = "(+)" and wrap = "\<lambda>l. {#l#}" and add = add_mset
   by unfold_locales simp_all
 
@@ -365,17 +365,17 @@ lemma
   sorry
 *)
 
-(* TODO: Names *)
-lemma multp_all_less_eq:
+(* TODO: everywhere less_eq \<rightarrow> lesseq *)
+lemma multp_image_lesseq_if_all_lesseq:
    assumes 
     asymp: "asymp R" and
     transp: "transp R" and
     all_lesseq: "\<forall>x\<in>#X. R\<^sup>=\<^sup>= (f x) (g x)"
-  shows "(multp R)\<^sup>=\<^sup>= {# f x. x \<in># X #} {# g x. x \<in># X #}"
+  shows "(multp R)\<^sup>=\<^sup>= (image_mset f X) (image_mset g X)"
   using assms
   by(induction X) (auto simp: multp_add_mset multp_add_mset')
 
-lemma multp_all_less_eq_ex_less: 
+lemma multp_image_less_if_all_lesseq_ex_less: 
   assumes 
     asymp: "asymp R" and
     transp: "transp R" and

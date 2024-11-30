@@ -36,6 +36,7 @@ no_notation subst_apply_term (infixl "\<cdot>" 67)
 
 section \<open>Superposition Calculus\<close>
 
+
 locale ground_superposition_calculus = 
   ground_order where less\<^sub>t = less\<^sub>t +
   select select
@@ -45,8 +46,6 @@ for
 assumes
   ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
-
-thm term.order.context_less_term_less_eq
 
 subsection \<open>Ground Rules\<close>
 

@@ -13,6 +13,7 @@ abbreviation subst_apply_ctxt ::
   "('f, 'v) context \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) context" (infixl "\<cdot>t\<^sub>c" 67) where
   "subst_apply_ctxt \<equiv> subst_apply_actxt"
 
+(* TODO: Move? *)
 global_interpretation "context": finite_natural_functor where 
   map = map_args_actxt and to_set = set2_actxt
 proof unfold_locales
@@ -43,9 +44,9 @@ global_interpretation "context": lifting_from_term where
   sub_to_ground = term.to_ground and sub_from_ground = term.from_ground and 
   to_ground_map = map_args_actxt and from_ground_map = map_args_actxt and 
   ground_map = map_args_actxt and to_set_ground = set2_actxt
-rewrites 
-  "\<And>c. context.vars c = vars_ctxt c" and 
-  "\<And>c \<sigma>. context.subst c \<sigma> = c \<cdot>t\<^sub>c \<sigma>"
+rewrites
+  "\<And>c \<sigma>. context.subst c \<sigma> = c \<cdot>t\<^sub>c \<sigma>" and
+  "\<And>c. context.vars c = vars_ctxt c"
 proof unfold_locales
   (* TODO: Is there way without repeating myself for this? *)
   interpret lifting_from_term term.vars "(\<cdot>t)" map_args_actxt set2_actxt term.to_ground
@@ -54,9 +55,8 @@ proof unfold_locales
 
   fix c :: "('f, 'v) context"
   show "vars c = vars_ctxt c"
-    unfolding vars_def 
-    by(induction c) auto
-
+    by(induction c) (auto simp: vars_def)
+  
   fix \<sigma> 
   show "subst c \<sigma> = c \<cdot>t\<^sub>c \<sigma>"
     unfolding subst_def
