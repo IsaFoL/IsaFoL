@@ -327,8 +327,6 @@ proof -
   qed
 qed
 
-
-
 (* Report lemma 17 *)
 lemma bot_not_in_sredF_\<N>: \<open>to_AF bot \<notin> SRed\<^sub>F \<N>\<close>
 proof -
@@ -342,8 +340,6 @@ proof -
     using SRed\<^sub>F_def
     by auto
 qed
-
-
 
 text \<open>
   We need to set things up for the proof of lemma 18.
@@ -1445,9 +1441,9 @@ qed
 
 end (* context core_splitting_calculus *)
 
-subsection \<open>Extensions: Inferences and simplifications\<close>
+section \<open>Extensions: Inferences and simplifications\<close>
 
-subsubsection \<open>Simplifications\<close>
+subsection \<open>Simplifications\<close>
 
 datatype 'f simplification =
   Simplify (S_from: \<open>'f set\<close>) (S_to: \<open>'f set\<close>)
@@ -1477,18 +1473,21 @@ text \<open>
   \<^item> \textsc{Trim} removes assertions which are entailed by others.
 \<close>
 
+subsubsection \<open>The Split Rule\<close>
+
 locale splitting_calculus_with_split_test =
-  base_calculus: AF_calculus bot SInf entails entails_sound Red_I Red_F fml asn entails_sound_F Red_F\<^sub>F
-  for bot :: \<open>('f, 'v) AF\<close> and
+  base_calculus: AF_calculus bot SInf entails entails_sound Red_I\<^sub>A\<^sub>F Red_F\<^sub>A\<^sub>F
+  for bot :: \<open>('f, 'v :: countable) AF\<close> and
       SInf :: \<open>('f, 'v) AF inference set\<close> and
       entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>A\<^sub>F\<close> 50) and
       entails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<^sub>A\<^sub>F\<close> 50) and
       Red_I\<^sub>A\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
-      Red_F\<^sub>A\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
-      fml :: \<open>'v \<Rightarrow> 'f\<close> and
-      asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close> and
-      entails_sound_F :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) and
-      Red_F :: "'f set \<Rightarrow> 'f set"
+      Red_F\<^sub>A\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close>
+  + fixes
+      splittable :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> bool\<close>
+    assumes
+      split_creates_singleton_assertion_sets: 
+        \<open>splittable \<C> \<C>s \<Longrightarrow> \<D> |\<in>| \<C>s \<Longrightarrow> (\<exists> (a :: 'v sign). A_of \<D> = {| a |})\<close>
 begin
 
 find_theorems consequence_relation name: base_calculus
@@ -1508,21 +1507,24 @@ text \<open>
   precondition which must hold for the rule to be applicable.
 \<close> 
 
-definition splittable :: \<open>'f \<Rightarrow> 'f fset \<Rightarrow> bool\<close> where
+(* We incorporate the clauses and annotation conditions in splittable *)
+(* definition splittable :: \<open>'f \<Rightarrow> 'f fset \<Rightarrow> bool\<close> where
  \<open>splittable C Cs \<longleftrightarrow> C \<noteq> (to_F bot) \<and> fcard Cs \<ge> 2
                     \<and> ({C} \<Turnstile>s (fset Cs)) \<and> (\<forall> C'. C' |\<in>| Cs \<longrightarrow> C \<in> Red_F {C'})\<close>
 
 definition mk_split :: \<open>'f \<Rightarrow> 'f fset \<Rightarrow> ('f, 'v) AF fset\<close> where
-  \<open>splittable C Cs \<Longrightarrow> mk_split C Cs \<equiv> (\<lambda> C'. AF.Pair C' {| SOME a. a \<in> asn (Pos C') |}) |`| Cs\<close>
+  \<open>splittable C Cs \<Longrightarrow> mk_split C Cs \<equiv> (\<lambda> C'. AF.Pair C' {| SOME a. a \<in> asn (Pos C') |}) |`| Cs\<close> *)
 
-abbreviation split_pre :: \<open>('f, 'v) AF \<Rightarrow> 'f fset \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> bool\<close> where
-  \<open>split_pre \<C> Cs As \<equiv> splittable (F_of \<C>) Cs \<and> mk_split (F_of \<C>) Cs = As\<close>
+abbreviation split_pre :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> bool\<close> where
+  \<open>split_pre \<C> \<C>s \<equiv> splittable \<C> \<C>s\<close>
 
 (*<*)
+(*
 lemma split_creates_singleton_assertion_sets:
-  \<open>split_pre \<C> Cs As \<Longrightarrow> A |\<in>| As \<Longrightarrow> (\<exists> a. A_of A = {| a |})\<close>
+  \<open>split_pre \<C> \<C>s \<Longrightarrow> \<D> |\<in>| \<C>s \<Longrightarrow> (\<exists> a. A_of \<D> = {| a |})\<close>
   using mk_split_def
   by force
+*)
 
 lemma split_all_assertion_sets_asn:
   \<open>split_pre \<C> Cs As \<Longrightarrow> A |\<in>| As \<Longrightarrow> (\<exists> a. A_of A = {|a|} \<and> a \<in> asn (Pos (F_of A)))\<close>
@@ -2300,7 +2302,7 @@ qed
 end (* locale splitting_calculus_with_trim *)
 
 
-subsubsection \<open>Extra Inference\<close>
+subsection \<open>Extra Inference\<close>
 
 text \<open>
   We extend our basic splitting calculus with new optional rules:
