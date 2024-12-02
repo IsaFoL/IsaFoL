@@ -8,7 +8,8 @@ subsection \<open>Soundness\<close>
 context grounded_first_order_superposition_calculus
 begin
 
-interpretation nonground_typing typeof_fun "UNIV :: 'v set".
+interpretation nonground_typing typeof_fun "UNIV :: 'v set"
+  by unfold_locales (rule infinite_UNIV)
 
 (* TODO : Find way to use this abbrev for both entails_\<G> *)
 abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
@@ -159,7 +160,8 @@ proof (cases P C rule: eq_resolution.cases)
       by clause_auto
 
     have [simp]: "?s\<^sub>1 = ?s\<^sub>2"
-      using term_subst.subst_imgu_eq_subst_imgu[OF eq_resolutionI(5)] by simp
+      using term_subst.is_imgu_unifies'[OF eq_resolutionI(5)]
+      by argo
 
     have "is_neg ?L"
       by (simp add: literal.to_ground_def eq_resolutionI(4) subst_literal)
@@ -291,9 +293,9 @@ proof (cases P C rule: eq_factoring.cases)
     then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
       by (auto simp: true_cls_def)
 
-    then have s\<^sub>1_equals_t\<^sub>2: "?t\<^sub>2 = ?s\<^sub>1"
-      using term_subst.subst_imgu_eq_subst_imgu[OF eq_factoringI(9)]
-      by simp
+    have s\<^sub>1_equals_t\<^sub>2: "?t\<^sub>2 = ?s\<^sub>1"
+      using term_subst.is_imgu_unifies'[OF eq_factoringI(9)]
+      by argo
 
     have L\<^sub>1: "?L\<^sub>1 = ?s\<^sub>1 \<approx> ?s\<^sub>1'"
       unfolding literal.to_ground_def eq_factoringI(4) atom.to_ground_def
@@ -493,7 +495,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
         then have "\<exists>\<tau>. welltyped \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu>)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>\<rangle> \<tau> \<and> welltyped \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<tau>"
           by (metis (no_types, lifting) UNIV_I superpositionI(14) welltyped.subst_stability 
-              welltyped\<^sub>\<kappa> wt_t)
+              welltyped.context_compatible wt_t)
 
         then show ?thesis
           by (metis UNIV_I superpositionI(14) subst_apply_term_ctxt_apply_distrib
@@ -577,9 +579,9 @@ proof (cases P2 P1 C rule: superposition.cases)
       "is_welltyped_on (clause.vars P\<^sub>2) \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot>  \<mu> \<odot> \<gamma>')"
       using
         superpositionI(15, 16)
-        is_welltyped_renaming_ground_subst_weaker[OF superpositionI(4) wt_\<mu>_\<gamma> superpositionI(17) 
+        welltyped.is_welltyped_renaming_ground_subst_weaker[OF superpositionI(4) wt_\<mu>_\<gamma> superpositionI(17) 
           ground_subst(3)]
-        is_welltyped_renaming_ground_subst_weaker[OF superpositionI(5) wt_\<mu>_\<gamma> superpositionI(18)
+        welltyped.is_welltyped_renaming_ground_subst_weaker[OF superpositionI(5) wt_\<mu>_\<gamma> superpositionI(18)
           ground_subst(3)]
       unfolding vars_subst\<^sub>c
       by (simp_all add: subst_compose_assoc)
@@ -603,7 +605,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       by (auto simp: true_cls_def)
 
     have u\<^sub>1_equals_t\<^sub>2: "?t\<^sub>2 = ?u\<^sub>1"
-      using term_subst.subst_imgu_eq_subst_imgu[OF superpositionI(13)]
+      using term_subst.is_imgu_unifies'[OF superpositionI(13)]
       by argo
 
     have s\<^sub>1_u\<^sub>1: "?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G = term.to_ground (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"

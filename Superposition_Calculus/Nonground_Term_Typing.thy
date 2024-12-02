@@ -371,15 +371,283 @@ next
     qed
   qed
 next
-  show "\<And>\<rho>. term_subst.is_renaming \<rho> \<Longrightarrow> inj \<rho>"
-    by (simp add: term_subst_is_renaming_iff)
+  show "\<And>\<rho>. term_subst.is_renaming \<rho> \<longleftrightarrow> inj \<rho> \<and> (\<forall>x. \<exists>x'. \<rho> x = Var x')"
+    by (simp add: term_subst_is_renaming_iff is_Var_def)
 next
   show "\<And>\<rho> \<gamma> x. (\<rho> \<odot> \<gamma>) x = \<rho> x \<cdot>t \<gamma>"
-    unfolding subst_compose..
+    unfolding subst_compose ..
 next
   show "\<And>x. x \<in> term.vars (Var x)"
     by simp
+next
+  show "\<And>\<V> x \<tau>. \<V> x = \<tau> \<Longrightarrow> typed \<V> (Var x) \<tau>"
+    using typed.Var .
+next
+  show "\<And>\<V> x \<tau>. \<V> x = \<tau> \<Longrightarrow> welltyped \<V> (Var x) \<tau>"
+    using welltyped.Var .
 qed
+
+lemma is_welltyped_subst: 
+  assumes "welltyped \<V> (Var x) \<tau>" "welltyped \<V> t \<tau>"
+  shows "is_welltyped \<V> (subst x t)"
+  using assms
+  unfolding subst_def
+  by (simp add: welltyped.simps)
+
+lemma Fun_arg_types:
+  assumes 
+    "welltyped \<V> (Fun f fs) \<tau>" 
+    "welltyped \<V> (Fun f gs) \<tau>" 
+  obtains \<tau>s where 
+    "\<F> f = (\<tau>s, \<tau>)" 
+    "list_all2 (welltyped \<V>) fs \<tau>s"
+    "list_all2 (welltyped \<V>) gs \<tau>s"
+  using assms
+  by (smt (verit, ccfv_SIG) Pair_inject option.inject term.distinct term.inject welltyped.simps)
+
+lemma welltyped_zip_option:
+  assumes 
+    "welltyped \<V> (Fun f ts) \<tau>" 
+    "welltyped \<V> (Fun f ss) \<tau>" 
+    "zip_option ts ss = Some es" 
+  shows 
+    "\<forall>(t, t') \<in> set es. \<exists>\<tau>. welltyped \<V> t \<tau> \<and> welltyped \<V> t' \<tau>"
+proof-
+
+  obtain \<tau>s where 
+    "list_all2 (welltyped \<V>) ts \<tau>s"
+    "list_all2 (welltyped \<V>) ss \<tau>s"
+    using Fun_arg_types[OF assms(1, 2)].
+
+  with assms(3) show ?thesis
+  proof(induction ts ss arbitrary: \<tau>s es rule: zip_induct)
+    case (Cons_Cons t ts s ss)
+    then obtain \<tau>' \<tau>s' where \<tau>s: "\<tau>s = \<tau>' # \<tau>s'"
+      by (meson list_all2_Cons1)
+
+    from Cons_Cons(2) 
+    obtain e es' where es: "es = e # es'"
+      by auto
+
+    have "zip_option ts ss = Some es'"
+      using Cons_Cons(2) 
+      unfolding es
+      by fastforce
+
+    moreover have "list_all2 (welltyped \<V>) ts \<tau>s'" 
+      using Cons_Cons.prems(2) \<tau>s by blast
+
+    moreover have "list_all2 (welltyped \<V>) ss \<tau>s'"
+      using Cons_Cons.prems(3) \<tau>s by blast
+
+    ultimately have "\<forall>(t, s)\<in>set es'. \<exists>\<tau>. welltyped \<V> t \<tau> \<and> welltyped \<V> s \<tau>"
+      using Cons_Cons.IH
+      by presburger
+
+    moreover have "\<exists>\<tau>. welltyped \<V> t \<tau> \<and> welltyped \<V> s \<tau>"
+      using Cons_Cons.prems(2) Cons_Cons.prems(3) \<tau>s by blast
+
+    ultimately show ?case
+      using Cons_Cons.prems(1) es
+      by fastforce
+  qed(auto)
+qed
+
+lemma welltyped_decompose_Fun:
+  assumes
+    "welltyped \<V> (Fun f fs) \<tau>" 
+    "welltyped \<V> (Fun f gs) \<tau>"
+    "decompose (Fun f fs) (Fun g gs) = Some es"
+  shows "\<forall>(t, t') \<in> set es. \<exists>\<tau>. welltyped \<V> t \<tau> \<and> welltyped \<V> t' \<tau>"
+  using assms welltyped_zip_option[OF assms(1,2)]
+  by (metis (lifting) decompose_Some not_Some_eq zip_option_simps(2,3))
+  
+lemma welltyped_decompose:
+  assumes
+    "welltyped \<V> f \<tau>" 
+    "welltyped \<V> g \<tau>"
+    "decompose f g = Some es"
+  shows "\<forall>(t, t') \<in> set es. \<exists>\<tau>. welltyped \<V> t \<tau> \<and> welltyped \<V> t' \<tau>"
+proof-
+
+  obtain f' fs gs where "f = Fun f' fs" "g = Fun f' gs"
+    using assms(3)
+    unfolding decompose_def
+    by (smt (z3) option.distinct(1) prod.simps(2) rel_option_None1 term.split_sels(2))
+
+  then show ?thesis
+    using assms welltyped_decompose_Fun
+    by (metis (mono_tags, lifting))
+qed
+
+lemma is_welltyped_unify:
+  assumes    
+    "unify es bs = Some unifier"
+    "\<forall>(t, t') \<in> set es. \<exists>\<tau>. welltyped \<V> t \<tau> \<and> welltyped \<V> t' \<tau>"
+    "is_welltyped \<V> (subst_of bs)"
+  shows "is_welltyped \<V> (subst_of unifier)"
+  using assms
+proof(induction es bs arbitrary: unifier rule: unify.induct)
+  case (1 bs)
+  then show ?case
+    by simp
+next
+  case (2 f ss g ts es bs)
+  then obtain \<tau> where \<tau>:
+    "welltyped \<V> (Fun f ss) \<tau>" 
+    "welltyped \<V> (Fun g ts) \<tau>"
+    by auto
+
+  obtain es' where es': "decompose (Fun f ss) (Fun g ts) = Some es'"
+    using 2(2)
+    by(simp split: option.splits)
+
+  moreover then have "unify (es' @ es) bs = Some unifier"
+    using "2.prems"(1) 
+    by auto
+
+  moreover have "\<forall>(t, t')\<in>set (es' @ es). \<exists>\<tau>. welltyped \<V> t \<tau> \<and> welltyped \<V> t' \<tau>"
+    using welltyped_decompose[OF \<tau> es'] 2(3)
+    by fastforce
+
+  ultimately show ?case 
+    using 2
+    by blast
+next
+  case (3 x t es bs)
+  show ?case
+  proof(cases "t = Var x")
+    case True
+    then show ?thesis 
+      using 3
+      by simp
+  next
+    case False
+    then have "unify (subst_list (subst x t) es) ((x, t) # bs) = Some unifier"
+      using 3
+      by(auto split: if_splits)
+
+    moreover have 
+      "\<forall>(s, s') \<in> set es. \<exists>\<tau>. welltyped \<V> (s \<cdot>t Var(x := t)) \<tau> \<and> welltyped \<V> (s' \<cdot>t Var(x := t)) \<tau>"
+      using 3(4)
+      by (smt (verit, ccfv_threshold) case_prodD case_prodI2 fun_upd_apply welltyped.Var 
+          list.set_intros(1) list.set_intros(2) right_uniqueD term.welltyped.right_unique 
+           welltyped.subst_stability)
+
+    moreover then have 
+      "\<forall>(s, s') \<in> set (subst_list (subst x t) es). \<exists>\<tau>. welltyped \<V> s \<tau> \<and> welltyped \<V> s' \<tau>"
+      unfolding subst_def subst_list_def
+      by fastforce
+
+    moreover have "is_welltyped \<V> (subst x t)"
+      using 3(4) is_welltyped_subst
+      by fastforce
+
+    moreover then have "is_welltyped \<V> (subst_of ((x, t) # bs))"
+      using 3(5)
+      by (simp add: calculation(4) subst_compose_def)
+
+    ultimately show ?thesis 
+      using 3(2, 3) False by force
+  qed
+next
+  case (4 t ts x es bs)
+  then have "unify (subst_list (subst x (Fun t ts)) es) ((x, (Fun t ts)) # bs) = Some unifier"
+    by(auto split: if_splits)
+
+  moreover have 
+    "\<forall>(s, s') \<in> set es. \<exists>\<tau>. 
+        welltyped \<V> (s \<cdot>t Var(x := (Fun t ts))) \<tau> \<and> welltyped \<V> (s' \<cdot>t Var(x := (Fun t ts))) \<tau>"
+    using 4(3)
+    by (smt (verit, ccfv_threshold) case_prodD case_prodI2 fun_upd_apply welltyped.Var 
+        list.set_intros(1) list.set_intros(2) right_uniqueD term.welltyped.right_unique 
+        welltyped.subst_stability)
+
+  moreover then have 
+    "\<forall>(s, s') \<in> set (subst_list (subst x (Fun t ts)) es). \<exists>\<tau>. 
+        welltyped \<V> s \<tau> \<and> welltyped \<V> s' \<tau>"
+    unfolding subst_def subst_list_def
+    by fastforce
+
+  moreover have "is_welltyped \<V> (subst x (Fun t ts))"
+    using 4(3) is_welltyped_subst
+    by fastforce
+
+  moreover then have "is_welltyped \<V> (subst_of ((x, (Fun t ts)) # bs))"
+    using 4(4) 
+    by (simp add: calculation(4) subst_compose_def)
+
+  ultimately show ?case 
+    using 4(1, 2)
+    by (metis (no_types, lifting) option.distinct(1) unify.simps(4))
+qed
+
+lemma is_welltyped_unify_single:
+  assumes 
+    unify: "unify [(t, t')] [] = Some unifier" and
+    \<tau>: "\<exists>\<tau>. welltyped \<V> t \<tau> \<and> welltyped \<V> t' \<tau>"
+  shows "is_welltyped \<V> (subst_of unifier)"
+  using assms is_welltyped_unify[OF unify] \<tau>
+  by fastforce
+
+lemma welltyped_the_mgu: 
+  assumes
+    the_mgu: "the_mgu t t' = \<mu>" and
+    \<tau>: "\<exists>\<tau>. welltyped \<V> t \<tau> \<and> welltyped \<V> t' \<tau>"
+  shows 
+    "is_welltyped \<V> \<mu>"
+  using assms is_welltyped_unify_single[of t t' _ \<V>]
+  unfolding the_mgu_def mgu_def  
+  by(auto simp: welltyped.Var split: option.splits)
+
+lemma welltyped_imgu_exists':
+  fixes \<upsilon> :: "('f, 'v) subst"
+  assumes unified: "term \<cdot>t \<upsilon> = term' \<cdot>t \<upsilon>"
+  obtains \<mu> :: "('f, 'v) subst"
+  where 
+    "\<upsilon> = \<mu> \<odot> \<upsilon>" 
+    "term_subst.is_imgu \<mu> {{term, term'}}"
+    "\<forall>\<tau>. welltyped \<V> term \<tau> \<longrightarrow> welltyped \<V> term' \<tau> \<longrightarrow> is_welltyped \<V> \<mu>"
+proof-
+  obtain \<mu> where \<mu>: "the_mgu term term' = \<mu>"
+    using assms ex_mgu_if_subst_apply_term_eq_subst_apply_term by blast
+
+  have "\<forall>\<tau>. welltyped \<V> term \<tau> \<longrightarrow> welltyped \<V> term' \<tau> \<longrightarrow> is_welltyped \<V> (the_mgu term term')"
+    using welltyped_the_mgu[OF \<mu>, of \<V>] assms
+    unfolding \<mu>
+    by blast
+
+  then show ?thesis
+    using that imgu_exists_extendable[OF unified]
+    by (metis the_mgu the_mgu_term_subst_is_imgu unified)
+qed
+
+abbreviation welltyped_imgu where
+  "welltyped_imgu \<V> term term' \<mu> \<equiv>
+    \<exists>\<tau>. welltyped \<V> term \<tau> \<and> welltyped \<V> term' \<tau> \<and> is_welltyped \<V> \<mu>"
+
+lemma welltyped_imgu_exists:
+  fixes \<upsilon> :: "('f, 'v) subst"
+  assumes unified: "term \<cdot>t \<upsilon> = term' \<cdot>t \<upsilon>" and "welltyped \<V> term \<tau>" "welltyped \<V> term' \<tau>"
+  obtains \<mu> :: "('f, 'v) subst"
+  where 
+    "\<upsilon> = \<mu> \<odot> \<upsilon>" 
+    "term_subst.is_imgu \<mu> {{term, term'}}"
+    "welltyped_imgu \<V> term term' \<mu>"
+proof-
+  obtain \<mu> where \<mu>: "the_mgu term term' = \<mu>"
+    using assms ex_mgu_if_subst_apply_term_eq_subst_apply_term by blast
+
+  have "\<forall>\<tau>. welltyped \<V> term \<tau> \<longrightarrow> welltyped \<V> term' \<tau> \<longrightarrow> is_welltyped \<V> (the_mgu term term')"
+    using welltyped_the_mgu[OF \<mu>, of \<V>] assms
+    unfolding \<mu>
+    by blast
+
+  then show ?thesis
+    using that imgu_exists_extendable[OF unified]
+    by (metis assms(2) assms(3) the_mgu the_mgu_term_subst_is_imgu unified)
+qed
+
 
 end
 

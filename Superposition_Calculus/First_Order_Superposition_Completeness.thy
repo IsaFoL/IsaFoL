@@ -17,7 +17,8 @@ hide_const
 context grounded_first_order_superposition_calculus
 begin
 
-interpretation nonground_typing typeof_fun "UNIV :: 'v set".
+interpretation nonground_typing typeof_fun "UNIV :: 'v set"
+  by unfold_locales (rule infinite_UNIV)
 
  (* TODO: term "Nonground_Clause.clause.subst"*)
 lemma eq_resolution_lifting:
@@ -163,8 +164,8 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
   ultimately obtain \<mu> \<sigma> where \<mu>: 
     "term_subst.is_imgu \<mu> {{term, term'}}" 
     "\<gamma> = \<mu> \<odot> \<sigma>" 
-    "welltyped_imgu' \<V> term term' \<mu>"
-    using welltyped_imgu'_exists
+    "welltyped_imgu \<V> term term' \<mu>"
+    using welltyped_imgu_exists
     by metis
 
   have conclusion'_\<gamma>: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
@@ -231,7 +232,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
         by blast
     qed
   next 
-    show "welltyped_imgu' \<V> term term' \<mu>"
+    show "welltyped_imgu \<V> term term' \<mu>"
       using \<mu>(3).
   next 
     show "conclusion' \<cdot> \<mu> = conclusion' \<cdot> \<mu>" ..
@@ -424,8 +425,8 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
   ultimately obtain \<mu> \<sigma> where \<mu>: 
     "term_subst.is_imgu \<mu> {{term\<^sub>1, term\<^sub>2}}" 
     "\<gamma> = \<mu> \<odot> \<sigma>" 
-    "welltyped_imgu' \<V> term\<^sub>1 term\<^sub>2 \<mu>"
-    using welltyped_imgu'_exists
+    "welltyped_imgu \<V> term\<^sub>1 term\<^sub>2 \<mu>"
+    using welltyped_imgu_exists
     by metis
 
   let ?conclusion' = "add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise')"
@@ -483,7 +484,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     show "term_subst.is_imgu \<mu> {{term\<^sub>1, term\<^sub>2}}"
       using \<mu>(1).
   next 
-    show "welltyped_imgu' \<V> term\<^sub>1 term\<^sub>2 \<mu>"
+    show "welltyped_imgu \<V> term\<^sub>1 term\<^sub>2 \<mu>"
       using \<mu>(3).
   next
     show "?conclusion' \<cdot> \<mu> = ?conclusion' \<cdot> \<mu>"
@@ -1019,7 +1020,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
       then have aux': "\<exists>\<tau>. welltyped \<V>\<^sub>1 (term.from_ground term\<^sub>G\<^sub>1) \<tau> \<and> 
           welltyped \<V>\<^sub>1 (term.from_ground term\<^sub>G\<^sub>3) \<tau>"
-        by (meson term.ground_is_ground welltyped_is_ground)
+        by (meson term.ground_is_ground welltyped.is_ground_typed)
 
       have "welltyped \<V>\<^sub>1 (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) \<tau>\<^sub>x"
       proof-
@@ -1040,7 +1041,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       then have \<tau>\<^sub>x_update: "welltyped \<V>\<^sub>1 ?update \<tau>\<^sub>x"
         unfolding aux
         using aux'
-        by (meson welltyped\<^sub>\<kappa>)
+        by blast
 
       let ?premise\<^sub>1_\<gamma>' = "clause.to_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
       have premise\<^sub>1_\<gamma>'_grounding: "clause.is_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>')"
@@ -1053,7 +1054,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
             term_subst.is_ground_subst_def typing(3) update_grounding)
 
       have \<gamma>'_wt: "is_welltyped_on (clause.vars premise\<^sub>1) \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<gamma>')"
-        using is_welltyped_on_subst_upd[OF \<tau>\<^sub>x_var\<^sub>x \<tau>\<^sub>x_update typing(4)]
+        using welltyped.subst_update[OF \<tau>\<^sub>x_var\<^sub>x \<tau>\<^sub>x_update typing(4)]
         unfolding \<gamma>' subst_compose
         using welltyped.simps \<tau>\<^sub>x \<tau>\<^sub>x_update eval_term.simps(1) 
           eval_with_fresh_var fun_upd_same is_Var_term\<^sub>x renaming(1) subst_compose_def 
@@ -1276,7 +1277,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by (simp add: subst_compose)
 
       ultimately have "welltyped \<V>\<^sub>3 (Var y \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) (\<V>\<^sub>1 y)"
-        by (meson welltyped_is_ground)     
+        by (meson welltyped.is_ground_typed)     
 
       moreover have "\<rho>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = Var x"
         by (metis \<open>Var x \<in> \<rho>\<^sub>1 ` clause.vars premise\<^sub>1\<close> image_iff renaming(1) term_subst_is_renaming_iff inv_f_f)
@@ -1305,7 +1306,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by (simp add: subst_compose)
 
       ultimately have "welltyped \<V>\<^sub>3 (Var y \<cdot>t \<rho>\<^sub>2 \<cdot>t \<gamma>) (\<V>\<^sub>2 y)"
-        by (meson welltyped_is_ground)     
+        by (meson welltyped.is_ground_typed)     
 
       moreover have "\<rho>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = Var x"
         by (metis \<open>Var x \<in> \<rho>\<^sub>2 ` clause.vars premise\<^sub>2\<close> image_iff renaming(2) 
@@ -1337,7 +1338,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
     then have 
       "welltyped \<V>\<^sub>3 (term.from_ground term\<^sub>G\<^sub>1) \<tau>" 
-      using welltyped_is_ground
+      using welltyped.is_ground_typed
       by (metis term.ground_is_ground)+
 
     then have "welltyped \<V>\<^sub>3 (term.from_ground term\<^sub>G\<^sub>1) \<tau>"
@@ -1364,8 +1365,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
   ultimately obtain \<mu> \<sigma> where \<mu>: 
     "term_subst.is_imgu \<mu> {{term\<^sub>1 \<cdot>t \<rho>\<^sub>1, term\<^sub>2 \<cdot>t \<rho>\<^sub>2}}" 
     "\<gamma> = \<mu> \<odot> \<sigma>" 
-    "welltyped_imgu' \<V>\<^sub>3 (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu>"
-    using welltyped_imgu'_exists
+    "welltyped_imgu \<V>\<^sub>3 (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu>"
+    using welltyped_imgu_exists
     by (smt (verit, del_insts))
 
   define conclusion' where 
@@ -1567,7 +1568,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         "conclusion' = add_mset (?\<P> (Upair (context\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>term\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (term\<^sub>1' \<cdot>t \<rho>\<^sub>1))) 
           (premise\<^sub>1' \<cdot> \<rho>\<^sub>1 + premise\<^sub>2' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu>"
         unfolding term\<^sub>2'_with_context conclusion'..
-      show "welltyped_imgu' \<V>\<^sub>3 (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu>"
+      show "welltyped_imgu \<V>\<^sub>3 (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu>"
         using \<mu>(3) by blast
 
       show "clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}"
@@ -1930,36 +1931,7 @@ proof-
   qed
 qed
 
-lemma subst_compose_if: "\<sigma> \<odot> (\<lambda>var. if var \<in> range_vars' \<sigma> then \<sigma>\<^sub>1 var else \<sigma>\<^sub>2 var) = \<sigma> \<odot> \<sigma>\<^sub>1"
-  unfolding subst_compose_def range_vars'_def
-  using term_subst_eq_conv
-  by fastforce
-
-lemma subst_compose_if': 
-  assumes "range_vars' \<sigma> \<inter> range_vars' \<sigma>' = {}"
-  shows "\<sigma> \<odot> (\<lambda>var. if var \<in> range_vars' \<sigma>' then \<sigma>\<^sub>1 var else \<sigma>\<^sub>2 var) = \<sigma> \<odot> \<sigma>\<^sub>2"
-proof-
-  have "\<And>x. \<sigma> x \<cdot>t (\<lambda>var. if var \<in> range_vars' \<sigma>' then \<sigma>\<^sub>1 var else \<sigma>\<^sub>2 var) = \<sigma> x \<cdot>t \<sigma>\<^sub>2"
-  proof-
-    fix x
-    have "\<And>xa. \<lbrakk>\<sigma> x = Var xa; xa \<in> range_vars' \<sigma>'\<rbrakk> \<Longrightarrow> \<sigma>\<^sub>1 xa = \<sigma>\<^sub>2 xa"
-      by (metis IntI assms emptyE subst_compose_def term.set_intros(3) 
-          term_subst.comp_subst.left.right_neutral vars_term_range_vars')
-    moreover have "\<And>x1a x2 xa.
-       \<lbrakk>\<sigma> x = Fun x1a x2; xa \<in> set x2\<rbrakk>
-       \<Longrightarrow> xa \<cdot>t (\<lambda>var. if var \<in> range_vars' \<sigma>' then \<sigma>\<^sub>1 var else \<sigma>\<^sub>2 var) = xa \<cdot>t \<sigma>\<^sub>2"
-      by (smt (verit, ccfv_threshold) UNIV_I UN_iff assms disjoint_iff image_iff range_vars'_def 
-          term.set_intros(4) term_subst_eq_conv)
-
-    ultimately show "\<sigma> x \<cdot>t (\<lambda>var. if var \<in> range_vars' \<sigma>' then \<sigma>\<^sub>1 var else \<sigma>\<^sub>2 var) = \<sigma> x \<cdot>t \<sigma>\<^sub>2"
-      by(induction "\<sigma> x") auto
-  qed
-
-  then show ?thesis
-    unfolding subst_compose_def    
-    by presburger
-qed
-
+(* TODO: Move *)
 lemma is_ground_subst_if:
   assumes "term_subst.is_ground_subst \<gamma>\<^sub>1" "term_subst.is_ground_subst \<gamma>\<^sub>2"
   shows "term_subst.is_ground_subst (\<lambda>var. if b var then \<gamma>\<^sub>1 var else \<gamma>\<^sub>2 var)"
@@ -2020,7 +1992,7 @@ proof-
     wt_\<rho>: 
     "is_welltyped_on (clause.vars premise\<^sub>1) \<V>\<^sub>1 \<rho>\<^sub>1"
     "is_welltyped_on (clause.vars premise\<^sub>2) \<V>\<^sub>2 \<rho>\<^sub>2"
-    using welltyped_on_renaming_exists'[OF _ _ wt(7,8)[unfolded all_types_def, rule_format]] 
+    using welltyped.obtain_typed_renamings[OF infinite_UNIV _ _ wt(7,8)[unfolded all_types_def, rule_format]] 
     by (metis clause.finite_vars(1))
 
   have renaming_distinct: "clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}"
@@ -2268,7 +2240,8 @@ end
 context first_order_superposition_calculus
 begin
 
-interpretation nonground_typing typeof_fun "UNIV :: 'v set".
+interpretation nonground_typing typeof_fun "UNIV :: 'v set"
+  by unfold_locales (rule infinite_UNIV)
 
 lemma overapproximation:
   obtains select\<^sub>G where

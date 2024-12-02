@@ -62,7 +62,8 @@ locale first_order_superposition_calculus =
     variables: "|UNIV :: 'ty set| \<le>o |UNIV :: 'v set|"
 begin
 
-interpretation nonground_typing typeof_fun "UNIV :: 'v set".
+interpretation nonground_typing typeof_fun "UNIV :: 'v set"
+  by unfold_locales (rule infinite_UNIV)
 
 interpretation term_order_notation.
 
@@ -99,7 +100,7 @@ inductive eq_resolution :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 't
    "premise = add_mset literal premise' \<Longrightarrow>
     literal = term !\<approx> term' \<Longrightarrow>
     term_subst.is_imgu \<mu> {{ term, term' }} \<Longrightarrow>
-    welltyped_imgu' \<V> term term' \<mu> \<Longrightarrow>
+    welltyped_imgu \<V> term term' \<mu> \<Longrightarrow>
     select premise = {#} \<and> is_maximal (literal \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<or> 
       is_maximal (literal \<cdot>l \<mu>) ((select premise) \<cdot> \<mu>) \<Longrightarrow>
     conclusion = premise' \<cdot> \<mu> \<Longrightarrow>
@@ -114,7 +115,7 @@ inductive eq_factoring :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty
     is_maximal (literal\<^sub>1 \<cdot>l \<mu>) (premise \<cdot> \<mu>) \<Longrightarrow>
     \<not> (term\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<mu>) \<Longrightarrow>
     term_subst.is_imgu \<mu> {{ term\<^sub>1, term\<^sub>2 }} \<Longrightarrow>
-    welltyped_imgu' \<V> term\<^sub>1 term\<^sub>2 \<mu> \<Longrightarrow>
+    welltyped_imgu \<V> term\<^sub>1 term\<^sub>2 \<mu> \<Longrightarrow>
     conclusion = add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise') \<cdot> \<mu> \<Longrightarrow>
     eq_factoring (premise, \<V>) (conclusion, \<V>)"
 
@@ -135,7 +136,7 @@ where
     literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2' \<Longrightarrow>
     \<not> is_Var term\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{term\<^sub>1 \<cdot>t \<rho>\<^sub>1, term\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
-    welltyped_imgu' \<V>\<^sub>3 (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
+    welltyped_imgu \<V>\<^sub>3 (term\<^sub>1 \<cdot>t \<rho>\<^sub>1) (term\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
     \<forall>x \<in> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
     \<forall>x \<in> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
     is_welltyped_on (clause.vars premise\<^sub>1) \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
@@ -190,7 +191,7 @@ where
     L\<^sub>2 = t\<^sub>2 \<approx> t\<^sub>2' \<Longrightarrow>
     \<not> is_Var u\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
-    welltyped_imgu' \<V>\<^sub>3 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
+    welltyped_imgu \<V>\<^sub>3 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
     \<forall>x \<in> clause.vars (P\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
     \<forall>x \<in> clause.vars (P\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
     is_welltyped_on (clause.vars P\<^sub>1) \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
@@ -234,7 +235,7 @@ where
     L\<^sub>2 = t\<^sub>2 \<approx> t\<^sub>2' \<Longrightarrow>
     \<not> is_Var u\<^sub>1 \<Longrightarrow>
     term_subst.is_imgu \<mu> {{u\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
-    welltyped_imgu' \<V>\<^sub>3 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
+    welltyped_imgu \<V>\<^sub>3 (u\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
     \<forall>x \<in> clause.vars (P\<^sub>1 \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
     \<forall>x \<in> clause.vars (P\<^sub>2 \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
     is_welltyped_on (clause.vars P\<^sub>1) \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
@@ -347,25 +348,23 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
         welltyped \<V> (term\<^sub>2 \<cdot>t \<mu>) \<tau>';
         welltyped \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>'\<rbrakk>
        \<Longrightarrow> \<exists>\<tau>. welltyped \<V> (term\<^sub>1 \<cdot>t \<mu>) \<tau> \<and> welltyped \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>"
-      by (metis local.eq_factoringI(7) term_subst.subst_imgu_eq_subst_imgu)
+      by (metis UNIV_I local.eq_factoringI(8) term.welltyped.right_uniqueD 
+          welltyped.subst_stability)
 
-     moreover have "\<And>\<tau> \<tau>'.
+     moreover then have "\<And>\<tau> \<tau>'.
        \<lbrakk>\<forall>L\<in>#premise' \<cdot> \<mu>.
            \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). welltyped \<V> t \<tau>;
         welltyped \<V> (term\<^sub>1 \<cdot>t \<mu>) \<tau>;
         welltyped \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau>;
         welltyped \<V> (term\<^sub>2 \<cdot>t \<mu>) \<tau>';
         welltyped \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>'\<rbrakk>
-       \<Longrightarrow> \<exists>\<tau>. welltyped \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau> \<and>
-               welltyped \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>"
-       by (metis local.eq_factoringI(7) term.welltyped.right_uniqueD term_subst.subst_imgu_eq_subst_imgu)
+       \<Longrightarrow> \<exists>\<tau>. welltyped \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau> \<and> welltyped \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>"
+       by (metis term.welltyped.right_uniqueD)
 
      ultimately show ?thesis
        using wt_D\<mu>
-       unfolding eq_factoringI clause.add_subst subst_literal subst_atom
-       (* TODO: *)
-       by (smt (verit, ccfv_threshold) atom_is_welltyped_iff clause.is_welltyped_add literal.sel(1) literal_is_welltyped_iff local.eq_factoringI(7) term.welltyped.right_uniqueD
-           term_subst.subst_imgu_eq_subst_imgu welltyped_add_literal)
+       unfolding eq_factoringI clause.add_subst subst_literal subst_atom literal_is_welltyped_iff
+       by auto
    qed
 qed
 
@@ -399,7 +398,8 @@ proof (cases "(D, \<V>\<^sub>2)" "(C, \<V>\<^sub>1)" "(E, \<V>\<^sub>3)" rule: s
   then have wt_D\<mu>: "clause.is_welltyped \<V>\<^sub>3 (D \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)"
     by (metis UNIV_I clause.is_welltyped.subst_stability welltyped_\<mu>)
 
-  note imgu = term_subst.subst_imgu_eq_subst_imgu[OF superpositionI(10)]
+  have imgu: "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> = term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>"
+    using term_subst.is_imgu_unifies'[OF superpositionI(10)].
 
   show ?thesis
      (* TODO *)
@@ -407,9 +407,9 @@ proof (cases "(D, \<V>\<^sub>2)" "(C, \<V>\<^sub>1)" "(E, \<V>\<^sub>3)" rule: s
     apply cases
     apply (clause_simp simp: superpositionI imgu)
     apply (smt (verit, best) atom_is_welltyped_iff clause.is_welltyped_add clause.is_welltyped_plus
-        literal.sel(1) literal_is_welltyped_iff welltyped\<^sub>\<kappa>)
+        literal.sel(1) literal_is_welltyped_iff welltyped.context_compatible)
     by (smt (verit) atom_is_welltyped_iff clause.is_welltyped_add clause.is_welltyped_plus
-        literal.sel(1,2) literal_is_welltyped_iff welltyped\<^sub>\<kappa>)
+        literal.sel(1,2) literal_is_welltyped_iff welltyped.context_compatible)
 qed
 
 end

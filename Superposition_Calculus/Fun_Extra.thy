@@ -2,6 +2,57 @@ theory Fun_Extra
   imports Main "HOL-Library.Countable_Set" "HOL-Cardinals.Cardinals"
 begin
 
+lemma 
+  infinite_even_nat: "infinite { n :: nat . even n }" and 
+  infinite_odd_nat: "infinite { n :: nat . odd n }"
+  by (metis Suc_leD dual_order.refl even_Suc infinite_nat_iff_unbounded_le mem_Collect_eq)+
+
+lemma partitions:
+  assumes "infinite (UNIV :: 'x set)"
+  obtains A B where
+    "|A| =o |B|" 
+    "|A| =o |UNIV :: 'x set|"
+    "A \<inter> B = {}"
+    "A \<union> B = (UNIV :: 'x set)"
+proof-      
+  obtain f :: "'x + 'x \<Rightarrow> 'x" where f: "bij f"
+    by (meson Plus_infinite_bij_betw_types assms bij_betw_inv one_type_greater)
+
+  define A :: "'x set" where "A \<equiv> f ` range Inl"
+  define B :: "'x set" where "B \<equiv> f ` range Inr"
+
+  have "A \<inter> B = {}"
+    unfolding A_def B_def
+    by (smt (verit, best) Inl_Inr_False UNIV_I bij_betw_iff_bijections disjoint_iff f imageE)
+
+  moreover have "A \<union> B = UNIV"
+    unfolding A_def B_def
+    by (metis UNIV_sum bij_is_surj f image_Un)
+    
+  moreover have Inl: "|Inl ` (UNIV :: 'x set)| =o |UNIV :: 'x set|"
+    by (meson bij_betw_imageI card_of_ordIsoI inj_Inl ordIso_symmetric)
+
+  have Inr: "|Inr ` (UNIV :: 'x set)| =o |UNIV :: 'x set|"
+    by (meson bij_betw_imageI card_of_ordIsoI inj_Inr ordIso_symmetric)
+
+  have "|A| =o |UNIV :: 'x set|"
+    unfolding A_def
+    using f
+    unfolding bij_betw_def
+    by (metis Inl Int_UNIV_left bij_betw_imageI bij_betw_inv card_of_ordIsoI inj_on_Int 
+        ordIso_transitive)
+   
+  moreover have "|B| =o |UNIV :: 'x set|"
+    using f
+    unfolding B_def bij_betw_def
+    by (meson UNIV_I bij_betw_imageI card_of_ordIsoI inj_Inr inj_on_def ordIso_symmetric 
+        ordIso_transitive)
+
+  ultimately show ?thesis
+    using that
+    by (meson ordIso_symmetric ordIso_transitive)
+qed
+
 lemma obtain_bij_betw_endo: 
   assumes "finite domain" "finite img" "card img = card domain" 
   obtains f 
@@ -65,6 +116,41 @@ proof-
     by (smt (verit, ccfv_SIG) assms(4) bij_betw_iff_bijections disjoint_iff)
 qed
 
+lemma obtain_inj: 
+  assumes "infinite (UNIV :: 'a set)"
+  obtains f :: "'a \<Rightarrow> 'a" where
+    "inj f"
+    "|range f| =o |UNIV - range f|"
+proof-
+  obtain X Y :: "'a set" where
+    X_Y: 
+      "|X| =o |Y|"
+      "|X| =o |UNIV :: 'a set|" 
+      "X \<inter> Y = {}" 
+      "X \<union> Y = UNIV"
+    using partitions[OF assms]
+    by blast
+    
+  then obtain f where 
+    f: "bij_betw f (UNIV :: 'a set) Y"
+    by (meson card_of_ordIso ordIso_symmetric ordIso_transitive)
+
+  have inj_f: "inj f" 
+    using f bij_betw_def by blast+
+
+  have Y: "Y = range f" 
+    using f
+    by (simp add: bij_betw_def)
+
+  have X: "X = UNIV - range f"
+    using X_Y
+    unfolding Y
+    by auto
+
+  show ?thesis
+    using X X_Y(1) Y inj_f ordIso_symmetric that by blast
+qed
+
 lemma obtain_inj_on: 
   assumes "finite domain" "infinite image_subset"
   obtains f
@@ -97,20 +183,6 @@ proof-
     using that
     by blast
 qed
-
-corollary obtain_inj_on': 
-  assumes "finite domain" "infinite (UNIV :: 'b set)"
-  obtains f 
-  where "inj_on (f :: 'a \<Rightarrow> 'b) domain"
-  using obtain_inj_on[OF assms]
-  by auto
-
-corollary obtain_inj: 
-  assumes "finite (UNIV :: 'a set)" "infinite (UNIV :: 'b set)"
-  obtains f 
-  where "inj (f :: 'a \<Rightarrow> 'b)"
-  using obtain_inj_on[OF assms]
-  by auto
 
 corollary obtain_inj': 
   assumes "finite (UNIV :: 'a set)" "infinite image_subset"
@@ -162,25 +234,207 @@ proof-
     by blast
 qed
 
-abbreviation surj_on where 
-  "surj_on domain f \<equiv> (\<forall>y. \<exists>x \<in> domain. y = f x)"
+lemma obtain_infinite_partition: 
+  assumes "infinite (UNIV :: 'a set)"
+  obtains X Y :: "'a :: countable set" 
+  where
+    "X \<inter> Y = {}" "X \<union> Y = UNIV" and
+    "infinite X" and
+    "infinite Y"
+proof-
+  obtain g :: "'a \<Rightarrow> nat" where "bij g"
+    using countableE_infinite[of "UNIV :: 'a set"] assms by blast
 
-lemma surj_on_alternative: "surj_on domain f \<longleftrightarrow> f ` domain = UNIV"
+  define g' where "g' \<equiv> inv g"
+
+  then have bij_g': "bij g'"
+    by (simp add: \<open>bij g\<close> bij_betw_inv_into)
+
+  define X :: "'a set" where 
+    "X \<equiv> g' ` { n. even n }"
+
+  define Y :: "'a set" where 
+    "Y \<equiv> g' ` { n. odd n }"
+
+  have "X \<inter> Y = {}"
+    using bij_g'
+    unfolding X_def Y_def
+    by (simp add: bij_image_Collect_eq disjoint_iff)
+
+  moreover have "X \<union> Y = UNIV"
+    using bij_g'
+    unfolding X_def Y_def
+    by(auto simp: bij_image_Collect_eq)
+
+  moreover have "bij_betw g' { n. even n } X" "bij_betw g' { n. odd n } Y"
+    unfolding X_def Y_def
+    by (metis \<open>bij g\<close> bij_betw_imp_surj_on g'_def inj_on_imp_bij_betw inj_on_inv_into top.extremum)+
+
+  then have "infinite X" "infinite Y"
+    using infinite_even_nat infinite_odd_nat bij_betw_finite
+    by blast+
+
+  ultimately show ?thesis
+    using that
+    by blast
+qed
+
+lemma obtain_injs:
+  assumes "infinite (UNIV :: 'a set)"
+  obtains f f' :: "'a :: countable \<Rightarrow> 'a" where
+    "inj f" "inj f'" 
+    "range f \<inter> range f' = {}"
+    "range f \<union> range f' = UNIV"  
+proof-
+  obtain g :: "'a \<Rightarrow> nat" where "bij g"
+    using countableE_infinite[of "UNIV :: 'a set"] assms by blast
+
+  define g' where "g' \<equiv> inv g"
+
+  then have bij_g': "bij g'"
+    by (simp add: \<open>bij g\<close> bij_betw_inv_into)
+
+  obtain X Y :: "'a set" where
+    X_Y: "X \<inter> Y = {}" "X \<union> Y = UNIV" and
+    infinite_X: "infinite X" and
+    infinite_Y: "infinite Y"
+    using obtain_infinite_partition[OF assms]
+    by auto
+
+  have countable_X: "countable X" and countable_Y: "countable Y"
+    by blast+
+
+  obtain f where 
+    f: "bij_betw f (UNIV :: 'a set) X"
+    using countable_infiniteE'[OF countable_X infinite_X]     
+    by (meson \<open>bij g\<close> bij_betw_trans)
+
+  obtain f' where 
+    f': "bij_betw f' (UNIV :: 'a set) Y"
+    using countable_infiniteE'[OF countable_Y infinite_Y]
+    by (meson \<open>bij g\<close> bij_betw_trans)
+
+  have "inj f" "inj f'"
+    using f f' bij_betw_def by blast+
+
+  moreover have "range f = X" "range f' = Y"
+    using f f'
+    by (simp_all add: bij_betw_def)
+
+  then have "range f \<inter> range f' = {}" "range f \<union> range f' = UNIV"
+    using X_Y
+    by simp_all
+
+  ultimately show ?thesis
+    using that
+    by presburger
+qed
+
+(* TODO: names *)
+lemma obtain_type_preserving_injs:
+  fixes \<V>\<^sub>1 \<V>\<^sub>2 :: "'a \<Rightarrow> 'ty"
+  assumes 
+    "infinite (UNIV :: 'a set)"
+    "finite X" 
+    "finite Y" 
+    "\<And>ty. infinite {x. \<V>\<^sub>1 x = ty}" 
+    "\<And>ty. infinite {x. \<V>\<^sub>2 x = ty}"
+  obtains f f' :: "'a \<Rightarrow> 'a" where
+    "inj f" "inj f'"
+    "f ` X \<inter> f' ` Y = {}"
+    "\<forall>x \<in> X. \<V>\<^sub>1 (f x) = \<V>\<^sub>1 x"
+    "\<forall>x \<in> Y. \<V>\<^sub>2 (f' x) = \<V>\<^sub>2 x"
+proof
+  have "\<And>ty. infinite ({x. \<V>\<^sub>2 x = ty} - X)"
+    by (simp add: assms(2) assms(5))
+
+  then have infinite: "\<And>ty. infinite {x. \<V>\<^sub>2 x = ty \<and> x \<notin> X}"
+    by (simp add: set_diff_eq)
+
+  have "\<And>ty. |{x. \<V>\<^sub>2 x = ty}| =o |{x. \<V>\<^sub>2 x = ty } - X|"
+    using assms(2, 5) card_of_infinite_diff_finite ordIso_symmetric
+    by blast
+
+  then have "\<And>ty. |{x. \<V>\<^sub>2 x = ty}| =o |{x. \<V>\<^sub>2 x = ty \<and> x \<notin> X}|"
+    using set_diff_eq[of _ X]
+    by auto
+
+  then have exists_g': "\<And>ty. \<exists>g'. bij_betw g' {x. \<V>\<^sub>2 x = ty} {x. \<V>\<^sub>2 x = ty \<and> x \<notin> X}"
+    using card_of_ordIso someI by blast
+
+  define get_g' where
+    "\<And>ty. get_g' ty \<equiv> SOME g'. bij_betw g' {x. \<V>\<^sub>2 x = ty} {x. \<V>\<^sub>2 x = ty \<and> x \<notin> X}"
+
+  define f' where
+    "\<And>x. f' x \<equiv> get_g' (\<V>\<^sub>2 x) x"
+
+  define f :: "'a \<Rightarrow> 'a"where "f = id"
+
+  moreover have "\<And>y. y \<in> Y \<Longrightarrow> \<exists>g'. bij_betw g' {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y} {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X}"
+    using exists_g'
+    by simp
+
+  moreover then have 
+    "\<And>y. y \<in> Y \<Longrightarrow>
+      (\<And> g'. ((bij_betw g' {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y} {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X})
+         \<Longrightarrow> (g' y \<in> {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X})))"
+    using bij_betwE by blast
+
+  ultimately have ys: "\<And>y. y \<in> Y \<Longrightarrow> f' y \<in> {x. \<V>\<^sub>2 x = \<V>\<^sub>2 y \<and> x \<notin> X}" 
+    unfolding f'_def get_g'_def
+    by (smt (verit, ccfv_threshold) someI)
+
+  then have "\<And>y. y\<in>Y \<Longrightarrow> f' y \<notin> X"
+    by simp
+
+  then show "f ` X \<inter> f' ` Y = {}"
+    unfolding f_def
+    by auto  
+
+  show "\<forall>y\<in>Y. \<V>\<^sub>2 (f' y) = \<V>\<^sub>2 y"
+    using ys
+    by simp
+
+  show "\<forall>x\<in>X. \<V>\<^sub>1 (f x) = \<V>\<^sub>1 x"
+    unfolding f_def
+    by simp
+
+  show "inj f"
+    unfolding f_def
+    by simp
+
+  have "\<And>x y. f' x = f' y \<Longrightarrow> \<V>\<^sub>2 y = \<V>\<^sub>2 x"
+    using f'_def get_g'_def someI_ex[OF exists_g'] bij_betw_iff_bijections mem_Collect_eq
+    by (smt (verit))
+
+  then have "\<And>x y. f' x = f' y \<Longrightarrow> x = y"
+    using f'_def get_g'_def exists_g' someI bij_betw_iff_bijections mem_Collect_eq some_eq_ex
+    by (smt (z3))
+
+  then show "inj f'"
+    unfolding inj_def
+    by simp  
+qed
+
+abbreviation surj_on where 
+  "surj_on f domain \<equiv> (\<forall>y. \<exists>x \<in> domain. y = f x)"
+
+lemma surj_on_alternative: "surj_on f domain \<longleftrightarrow> f ` domain = UNIV"
   by auto
 
 lemma obtain_surj_on_nat:
   assumes "infinite domain"
-  obtains f :: "'a \<Rightarrow> nat" where "surj_on domain f"
+  obtains f :: "'a \<Rightarrow> nat" where "surj_on f domain"
 proof-
   obtain subdomain where
     subdomain: "infinite subdomain" "countable subdomain" "subdomain \<subseteq> domain"
     using infinite_countable_subset'[OF assms]
     by blast
 
-  then obtain f :: "'a \<Rightarrow> nat" where "surj_on subdomain f"
+  then obtain f :: "'a \<Rightarrow> nat" where "surj_on f subdomain"
     by (metis to_nat_on_surj)
 
-  then have "surj_on domain f"
+  then have "surj_on f domain"
     using subdomain(3)
     by (meson subset_iff)
 
@@ -191,10 +445,10 @@ qed
 
 lemma obtain_surj_on:
   assumes "infinite domain"
-  obtains f :: "'a \<Rightarrow> 'b :: countable" where "surj_on domain f"
+  obtains f :: "'a \<Rightarrow> 'b :: countable" where "surj_on f domain"
 proof-
   obtain f' :: "'a \<Rightarrow> nat" 
-    where f': "surj_on domain f'"
+    where f': "surj_on f' domain"
     using obtain_surj_on_nat[OF assms]
     by blast
 
@@ -209,53 +463,19 @@ proof-
     using that[OF f].
 qed
 
-lemma partitions:
-  assumes "infinite (UNIV :: 'x set)"
-  obtains A B where
-    "|A| =o |B|" 
-    "|A| =o |UNIV :: 'x set|"
-    "A \<inter> B = {}"
-    "A \<union> B = (UNIV :: 'x set)"
-proof-      
-  obtain f :: "'x + 'x \<Rightarrow> 'x" where f: "bij f"
-    by (meson Plus_infinite_bij_betw_types assms bij_betw_inv one_type_greater)
-
-  define A :: "'x set" where "A \<equiv> f ` range Inl"
-  define B :: "'x set" where "B \<equiv> f ` range Inr"
-
-  have "A \<inter> B = {}"
-    unfolding A_def B_def
-    by (smt (verit, best) Inl_Inr_False UNIV_I bij_betw_iff_bijections disjoint_iff f imageE)
-
-  moreover have "A \<union> B = UNIV"
-    unfolding A_def B_def
-    by (metis UNIV_sum bij_is_surj f image_Un)
-    
-  moreover have Inl: "|Inl ` (UNIV :: 'x set)| =o |UNIV :: 'x set|"
-    by (meson bij_betw_imageI card_of_ordIsoI inj_Inl ordIso_symmetric)
-
-  have Inr: "|Inr ` (UNIV :: 'x set)| =o |UNIV :: 'x set|"
-    by (meson bij_betw_imageI card_of_ordIsoI inj_Inr ordIso_symmetric)
-
-  have "|A| =o |UNIV :: 'x set|"
-    unfolding A_def
-    using f
-    unfolding bij_betw_def
-    by (metis Inl Int_UNIV_left bij_betw_imageI bij_betw_inv card_of_ordIsoI inj_on_Int 
-        ordIso_transitive)
-   
-  moreover have "|B| =o |UNIV :: 'x set|"
-    using f
-    unfolding B_def bij_betw_def
-    by (meson UNIV_I bij_betw_imageI card_of_ordIsoI inj_Inr inj_on_def ordIso_symmetric 
-        ordIso_transitive)
-
-  ultimately show ?thesis
-    using that
-    by (meson ordIso_symmetric ordIso_transitive)
-qed
-
 lemma surj_infinite_set: "surj g \<Longrightarrow> infinite {x. f x = ty} \<Longrightarrow> infinite {x. f (g x) = ty}"
   by (smt (verit) UNIV_I finite_imageI image_iff mem_Collect_eq rev_finite_subset subset_eq)
+
+lemma inv_enumerate:
+  assumes "infinite N" 
+  shows "(\<lambda>x. inv (enumerate N) x) ` N = UNIV"
+  by (metis assms enumerate_in_set inj_enumerate inv_f_eq surj_on_alternative)
+
+lemma finite_bij_enumerate_inv_into:
+  fixes S :: "'a::wellorder set"
+  assumes S: "finite S"
+  shows "bij_betw (inv_into {..<card S} (enumerate S)) S {..<card S}"
+  using finite_bij_enumerate[OF assms] bij_betw_inv_into
+  by blast
 
 end

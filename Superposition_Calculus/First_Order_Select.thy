@@ -98,30 +98,6 @@ lemma infinite_prods: "infinite {p :: (('a :: infinite) \<times> 'a). fst p = y}
   unfolding infinite_prods'
   using finite_cartesian_productD2 infinite_UNIV by blast
 
-lemma nat_version': "\<exists>f :: nat \<Rightarrow> nat. \<forall>y :: nat. infinite {x. f x = y}"
-proof-
-  obtain g :: "nat \<Rightarrow> nat \<times> nat" where bij_g: "bij g"
-    using bij_prod_decode by blast
-
-  define f :: "nat \<Rightarrow> nat" where 
-    "\<And>x. f x \<equiv> fst (g x)"
-
-  have "\<And>y. infinite {x. f x = y}"
-  proof-
-    fix y
-    have x: "{x. fst (g x) = y} =  inv g ` {p. fst p = y}"
-      by (smt (verit, ccfv_SIG) Collect_cong bij_g bij_image_Collect_eq bij_imp_bij_inv inv_inv_eq)
-
-    show "infinite {x. f x = y}"
-      unfolding f_def x
-      using infinite_prods
-      by (metis bij_betw_def bij_g finite_imageI image_f_inv_f)
-  qed
-
-  then show ?thesis
-    by blast    
-qed
-
 lemma not_nat_version': "\<exists>f :: ('a :: infinite) \<Rightarrow> 'a. \<forall>y. infinite {x. f x = y}"
 proof-
   obtain g :: "'a \<Rightarrow> 'a \<times> 'a" where bij_g: "bij g"
@@ -180,41 +156,16 @@ proof-
     by meson
 qed
 
-
-
-lemma nat_version: "\<exists>f :: nat \<Rightarrow> nat. \<forall>y :: nat. infinite {x. f x = y}"
-proof-
-  obtain g :: "nat \<Rightarrow> nat list" where bij_g: "bij g"
-    using bij_list_decode by blast
-
-  define f :: "nat \<Rightarrow> nat" where 
-    "\<And>x. f x \<equiv> length (tl (g x))"
-
-  have "\<And>y. infinite {x. f x = y}"
-  proof-
-    fix y
-    have "{x. length (tl (g x)) = y} = inv g ` {l. length (tl l) = y}"
-      by (smt (verit, ccfv_SIG) Collect_cong bij_betw_def bij_g bij_image_Collect_eq image_inv_f_f 
-          inv_inv_eq surj_imp_inj_inv)
-
-    then show "infinite {x. f x = y}"
-      unfolding f_def
-      using infinite_lists_per_length
-      by (metis bij_g bij_is_surj finite_imageI image_f_inv_f)
-  qed
-
-  then show ?thesis
-    by blast    
-qed
+instance nat :: infinite
+  by intro_classes simp
 
 (* TODO: Name infinite_variables_per_type *)
 definition all_types where 
   "all_types \<V> \<equiv> \<forall>ty. infinite {x. \<V> x = ty}"
 
-
 lemma all_types_nat: "\<exists>\<V> :: nat \<Rightarrow> nat. all_types \<V>"
   unfolding all_types_def
-  using nat_version
+  using not_nat_version'
   by blast
 
 lemma all_types: "\<exists>\<V> :: ('v :: {infinite, countable} \<Rightarrow> 'ty :: countable). all_types \<V>"
@@ -240,7 +191,6 @@ proof-
     using \<V>_nat 
     unfolding all_types_def
     by (metis bij_betw_def finite_imageI image_f_inv_f v_to_nat)
-
 
   have "\<And>ty. infinite {x. \<V> x = ty}"
     using \<V>_nat
@@ -446,7 +396,8 @@ fixes select\<^sub>G
 assumes select\<^sub>G: "is_select_grounding select select\<^sub>G"
 begin
 
-interpretation nonground_typing \<F> "UNIV :: 'v set".
+interpretation nonground_typing \<F> "UNIV :: 'v set"
+  by unfold_locales (rule infinite_UNIV)
 
 abbreviation subst_stability_on where
   "subst_stability_on premises \<equiv> select_subst_stability_on select select\<^sub>G premises"
