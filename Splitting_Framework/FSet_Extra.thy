@@ -3,9 +3,16 @@ theory FSet_Extra
 begin
 
 text \<open>
-  This theory contains some additional lemmas regarding finite sets, which were useful in the process
-  of proving some lemmas in \<^file>\<open>Splitting_Calculi.thy\<close> and \<^file>\<open>Splitting_Without_Backtracking.thy\<close>.
+  This theory contains some additional lemmas regarding sets and finite sets, which were useful 
+  in the process of proving some lemmas in \<^file>\<open>Splitting_Calculi.thy\<close> and
+  \<^file>\<open>Splitting_Without_Backtracking.thy\<close>.
 \<close> 
+
+(*<*)
+(*! Where should we put this? *)
+lemma Union_of_singleton_is_setcompr: \<open>(\<Union> x \<in> A. { y. y = f x \<and> P x }) = { f x | x. x \<in> A \<and> P x }\<close>
+  by auto
+(*>*)
 
 (* to move to Set of Fset theory? *)
 

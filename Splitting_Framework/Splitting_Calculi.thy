@@ -29,7 +29,7 @@ text \<open>
   \<^item> \textsc{Unsat} replaces a set of propositionally unsatisfiable formulas with \<bottom>.
 \<close>
 
-locale splitting_calculus = AF_calculus bot Inf entails entails_sound Red_I Red_F fml asn
+locale splitting_calculus = AF_calculus_lifting bot Inf entails entails_sound Red_I Red_F fml asn
   for bot :: 'f and
       Inf :: \<open>'f inference set\<close> and
       entails :: \<open>[ 'f set, 'f set ] \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and

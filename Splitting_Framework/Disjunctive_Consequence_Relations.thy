@@ -1108,6 +1108,55 @@ proof -
   then show ?thesis using neg_ext_cons_rel.entails_subsets by blast 
 qed
 
+lemma entails_of_entails_iff: 
+  \<open>{C} \<Turnstile>\<^sub>\<sim> Cs \<Longrightarrow> finite Cs \<Longrightarrow> card Cs \<ge> 1 \<Longrightarrow>
+    (\<forall> C\<^sub>i \<in> Cs. \<M> \<union> {C\<^sub>i} \<Turnstile>\<^sub>\<sim> {Pos bot}) \<Longrightarrow> \<M> \<union> {C} \<Turnstile>\<^sub>\<sim> {Pos bot}\<close>
+proof -
+  assume \<open>{C} \<Turnstile>\<^sub>\<sim> Cs\<close> and
+         finite_Cs: \<open>finite Cs\<close> and
+         Cs_not_empty: \<open>card Cs \<ge> 1\<close> and
+         all_C\<^sub>i_entail_bot: \<open>\<forall> C\<^sub>i \<in> Cs. \<M> \<union> {C\<^sub>i} \<Turnstile>\<^sub>\<sim> {Pos bot}\<close>
+  then have \<open>\<M> \<union> {C} \<Turnstile>\<^sub>\<sim> Cs\<close>
+    using Un_upper2 consequence_relation.entails_subsets subsetI
+    by (metis neg_ext_cons_rel.entails_subsets)
+  then show \<open>\<M> \<union> {C} \<Turnstile>\<^sub>\<sim> {Pos bot}\<close>
+    using Cs_not_empty all_C\<^sub>i_entail_bot
+  proof (induct rule: finite_ne_induct[OF finite_Cs])
+    case 1
+    then show ?case
+      using Cs_not_empty
+      by force
+  next
+    case (2 x)
+    then show ?case
+      using consequence_relation.entails_cut ext_cons_rel
+      by fastforce
+  next
+    case insert: (3 x F)
+
+    have card_F_ge_1: \<open>card F \<ge> 1\<close>
+      by (meson card_0_eq insert.hyps(1) insert.hyps(2) less_one linorder_not_less)
+
+    have \<open>\<M> \<union> {C} \<Turnstile>\<^sub>\<sim> {Pos bot, x} \<union> F\<close>
+      by (smt (verit, ccfv_threshold) Un_insert_left Un_insert_right Un_upper2
+          consequence_relation.entails_subsets insert.prems(1) insert_is_Un ext_cons_rel)
+    then have \<open>\<M> \<union> {C} \<Turnstile>\<^sub>\<sim> {Pos bot} \<union> {x} \<union> F\<close>
+      by (metis insert_is_Un)
+    moreover have \<open>\<M> \<union> {C} \<union> {x} \<Turnstile>\<^sub>\<sim> {Pos bot} \<union> F\<close>
+      by (smt (verit, ccfv_SIG) Un_upper2 consequence_relation.entails_subsets insert.prems(3)
+          insertCI ext_cons_rel sup_assoc sup_ge1 sup_left_commute)
+    ultimately have \<open>\<M> \<union> {C} \<Turnstile>\<^sub>\<sim> {Pos bot} \<union> F\<close>
+      using consequence_relation.entails_cut ext_cons_rel
+      by fastforce
+    then have \<open>\<M> \<union> {C} \<Turnstile>\<^sub>\<sim> F\<close>
+      using consequence_relation.bot_entails_empty consequence_relation.entails_cut ext_cons_rel
+      by fastforce
+    then show ?case
+      using insert card_F_ge_1
+      by blast
+  qed
+qed
+
 end
 
 end
