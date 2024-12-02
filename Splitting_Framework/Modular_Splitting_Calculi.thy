@@ -1904,8 +1904,7 @@ interpretation AF_sound_cons_rel: consequence_relation "to_AF bot" \<open>(\<Tur
 interpretation SInf_sound_inf_system: sound_inference_system core.SInf "to_AF bot" \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
   by (standard, auto simp add: core.SInf_sound_wrt_entails_sound)
 
-sublocale splitting_calc:
-  AF_calculus_with_split "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" splittable
+sublocale empty_simps: AF_calculus_with_sound_simps "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}"
 proof
   show \<open>core.SRed\<^sub>I N \<subseteq> core.SInf\<close> for N
     using core.SRed\<^sub>I_in_SInf .
@@ -1936,25 +1935,41 @@ next
 next
   show \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> {} \<Longrightarrow> finite (S_to \<iota>)\<close> for \<iota> :: "('f, 'v) AF simplification"
     by blast
-next
+qed
+
+lemma extend_simps_with_split:
+  assumes
+    \<open>AF_calculus_with_sound_simps (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+  shows
+    \<open>AF_calculus_with_split (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps splittable\<close>
+proof -
+  interpret sound_simps: AF_calculus_with_sound_simps "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F Simps
+    using assms .
+  show ?thesis
+  proof
   show \<open>splittable \<C> \<C>s \<Longrightarrow> \<D> |\<in>| \<C>s \<Longrightarrow> \<exists>a. A_of \<D> = {|a|}\<close> for \<C> \<C>s \<D>
     using split_creates_singleton_assertion_sets .
-next
-  show \<open>splittable \<C> \<C>s \<Longrightarrow> \<C>s \<noteq> {||}\<close> for \<C> \<C>s
-    using split_not_empty .
-next
-  show \<open>splittable \<C> \<C>s \<Longrightarrow>
+  next
+    show \<open>splittable \<C> \<C>s \<Longrightarrow> \<C>s \<noteq> {||}\<close> for \<C> \<C>s
+      using split_not_empty .
+  next
+    show \<open>splittable \<C> \<C>s \<Longrightarrow>
     {\<C>} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair (F_of (to_AF bot)) (ffUnion ((|`|) neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>)}\<close> for \<C> \<C>s
-    using split_prem_entails_cons1 by (simp add: F_of_to_AF)
-next
-  show \<open>splittable \<C> \<C>s \<Longrightarrow> \<forall>\<C>'|\<in>|\<C>s. {\<C>} \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close> for \<C> \<C>s
-    using split_prem_entails_cons2 .
-next
-  show \<open>splittable \<C> \<C>s \<Longrightarrow> \<C> \<in> core.SRed\<^sub>F 
+      using split_prem_entails_cons1 by (simp add: F_of_to_AF)
+  next
+    show \<open>splittable \<C> \<C>s \<Longrightarrow> \<forall>\<C>'|\<in>|\<C>s. {\<C>} \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close> for \<C> \<C>s
+      using split_prem_entails_cons2 .
+  next
+    show \<open>splittable \<C> \<C>s \<Longrightarrow> \<C> \<in> core.SRed\<^sub>F 
     ({AF.Pair (F_of (to_AF bot)) (ffUnion ((|`|) neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>)} \<union> fset \<C>s)\<close>
-    for \<C> \<C>s
-    using split_cons_entail_prem by (simp add: F_of_to_AF)
+      for \<C> \<C>s
+      using split_cons_entail_prem by (simp add: F_of_to_AF)
+  qed
 qed
+
+sublocale splitting_calc_with_split:
+  AF_calculus_with_split "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" splittable
+  using extend_simps_with_split[OF empty_simps.AF_calculus_with_sound_simps_axioms] .
 
 end (* locale splitting_calculus *)
 
