@@ -496,16 +496,30 @@ proof -
     by (smt (verit, ccfv_threshold) A_def assms(1) compact_disj image_iff qfree_formsubst)
   show thesis
   proof
-    define ss where \<open>ss \<equiv> \<lambda>\<Theta>. map (\<lambda>q. @\<sigma>. (\<forall>x. \<sigma> x \<in> terms_set (fst (language {\<phi>}))) \<and> q = formsubst \<phi> \<sigma>) \<Theta>\<close>
-    show \<open>\<sigma> x \<in> terms_set (fst (language {\<phi>}))\<close>
-      if \<open>\<sigma> \<in> set (ss \<Phi>)\<close> for \<sigma> x
+    define sf where "sf \<equiv> \<lambda>q. @\<sigma>. (\<forall>i. \<sigma> i \<in> terms_set (fst (language {\<phi>}))) \<and> q = \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>"
+    show \<open>\<sigma> i \<in> terms_set (fst (language {\<phi>}))\<close>
+      if \<open>\<sigma> \<in> set (map sf \<Phi>)\<close> for \<sigma> i
     proof -
-      have *: \<open>A \<subseteq> set \<Phi> \<Longrightarrow>  \<sigma> \<in> set (ss \<Phi>) \<Longrightarrow> \<sigma> x \<in> terms_set (fst (language {\<phi>}))\<close> for \<Phi>
-        sorry
+      have *: \<open>set \<Theta> \<subseteq> A \<Longrightarrow>  \<sigma> \<in> set (map sf \<Theta>) \<Longrightarrow> \<sigma> i \<in> terms_set (fst (language {\<phi>}))\<close> for \<Theta>
+      proof (induction \<Theta>)
+        case Nil
+        then show ?case
+          by simp
+      next
+        case (Cons \<theta> \<Theta>)
+        then consider "\<sigma> = sf \<theta>" | "\<sigma> \<in> set (map sf \<Theta>)"
+          by force
+        then show ?case
+        proof cases
+          case 1
+          with Cons show ?thesis
+            by (clarsimp simp: image_iff A_def) (smt (verit) sf_def someI2_ex)
+        qed (use Cons in auto)
+      qed
       then show ?thesis
-        sorry
+        using \<Phi> that by fastforce
     qed
-    show \<open>\<And>I. I \<Turnstile>\<^sub>p foldr (\<^bold>\<or>) (map ((\<cdot>\<^sub>f\<^sub>m) \<phi>) (ss \<Phi>)) \<^bold>\<bottom>\<close>
+    show \<open>\<And>I. I \<Turnstile>\<^sub>p foldr (\<^bold>\<or>) (map ((\<cdot>\<^sub>f\<^sub>m) \<phi>) (map sf \<Phi>)) \<^bold>\<bottom>\<close>
       sorry
   qed
 qed
