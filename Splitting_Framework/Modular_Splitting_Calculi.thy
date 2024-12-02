@@ -636,12 +636,6 @@ next
     by auto
 qed
 
-(*<*)
-(*! Where should we put this? *)
-lemma Union_of_singleton_is_setcompr: \<open>(\<Union> x \<in> A. { y. y = f x \<and> P x }) = { f x | x. x \<in> A \<and> P x }\<close>
-  by auto
-(*>*)
-
 (* Check that both \<Turnstile>\<^sub>A\<^sub>F and \<Turnstile>\<^sub>\<G>\<^sup>\<inter> coincide *)
 lemma entails_is_entails_\<G>: \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {\<C>} \<longleftrightarrow> (\<forall> \<J>. lift_from_ARed_to_FRed.entails_\<G> \<J> \<M> {\<C>})\<close>
 proof (intro iffI allI)
@@ -855,7 +849,7 @@ lemmas SRed_rules = SRed\<^sub>F_entails_bot SRed\<^sub>F_of_subset_F SRed\<^sub
                     SRed\<^sub>I_of_SRed\<^sub>F_subset_F SRed\<^sub>I_of_SInf_to_N_F SRed\<^sub>I_in_SInf
 
 (* Report lemma 18 *)
-interpretation S_calculus: calculus \<open>to_AF bot\<close> SInf AF_entails SRed\<^sub>I SRed\<^sub>F
+sublocale S_calculus: calculus \<open>to_AF bot\<close> SInf AF_entails SRed\<^sub>I SRed\<^sub>F
   by (standard; simp add: SRed_rules)
 
 (* Report lemma 20 *)
@@ -958,7 +952,6 @@ proof -
   qed
 qed
 
-(*<*)
 interpretation AF_sound_cons_rel: consequence_relation \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
   by (rule AF_ext_sound_cons_rel)
 
@@ -966,7 +959,12 @@ interpretation AF_sound_cons_rel: consequence_relation \<open>to_AF bot\<close> 
 notation AF_cons_rel.entails_conjunctive (infix \<open>\<Turnstile>\<inter>\<^sub>A\<^sub>F\<close> 50)
 (*>*)
 
-
+(*
+sublocale AF_sound_calculus: sound_calculus "to_AF bot" SInf AF_entails AF_entails_sound SRed\<^sub>I SRed\<^sub>F
+  using SInf_sound_wrt_entails_sound SRed\<^sub>I_in_SInf SRed\<^sub>F_entails_bot SRed\<^sub>F_of_subset_F 
+    SRed\<^sub>I_of_subset_F SRed\<^sub>F_of_SRed\<^sub>F_subset_F SRed\<^sub>I_of_SRed\<^sub>F_subset_F SRed\<^sub>I_of_SInf_to_N_F
+  by (unfold_locales, presburger)
+*)
 
 (* Report theorem 21 *)
 theorem S_calculus_statically_complete:
@@ -1455,7 +1453,7 @@ text \<open>
   nothing to worry about.
 \<close>
 
-locale sound_simplification_rules =
+(*locale sound_simplification_rules =
   sound_inference_system Inf bot entails_sound
   for bot :: 'f and
       Inf :: \<open>'f inference set\<close> and
@@ -1464,25 +1462,31 @@ locale sound_simplification_rules =
       Simps :: \<open>'f simplification set\<close>
     assumes
       simplification: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall>\<C> \<in> S_from \<iota>. S_to \<iota> \<Turnstile>s {\<C>}\<close> and
-      sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall>\<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s {\<C>}\<close>
+      sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall>\<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s {\<C>}\<close> *)
 
-locale AF_calculus_with_sound_simps = AF_calculus bot SInf entails entails_sound Red_I\<^sub>A\<^sub>F Red_F\<^sub>A\<^sub>F
+locale AF_calculus_with_sound_simps = AF_calculus bot Inf entails entails_sound Red_I Red_F
   for bot :: \<open>('f, 'v :: countable) AF\<close> and
-      SInf :: \<open>('f, 'v) AF inference set\<close> and
-      entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>A\<^sub>F\<close> 50) and
-      entails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<^sub>A\<^sub>F\<close> 50) and
-      Red_I\<^sub>A\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
-      Red_F\<^sub>A\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close>
+      Inf :: \<open>('f, 'v) AF inference set\<close> and
+      entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> and
+      entails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
+      Red_I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
+      Red_F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close>
   + fixes
       Simps :: \<open>('f, 'v) AF simplification set\<close>
     assumes
-      simplification: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall>\<C> \<in> S_from \<iota>. S_to \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close> and
-      sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall>\<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+      simplification: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall>\<C> \<in> S_from \<iota>. S_to \<iota> \<Turnstile>s {\<C>}\<close> and
+      sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall>\<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s {\<C>}\<close> and
+      no_infinite_simps: \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> Simps \<Longrightarrow> finite (S_to \<iota>)\<close>
+
+text \<open>An empty set of simplification steps is accepted in term\<open>locale AF_calculus_with_sound_simps\<close>\<close>
+context AF_calculus
 begin
 
-sublocale sound_simps: sound_simplification_rules bot SInf entails_sound Simps
-  using simplification sound by (unfold_locales, simp)
+sublocale empty_simps: AF_calculus_with_sound_simps bot Inf entails entails_sound Red_I Red_F "{}"
+  by (unfold_locales, auto)
+
 end
+
 
 text \<open>
   Here we extend our basic calculus with simplification rules, one at a time:
@@ -1494,38 +1498,33 @@ text \<open>
 
 subsubsection \<open>The Split Rule\<close>
 
-(* TODO: start from AF_calculus_with_sound_simps *)
-locale splitting_calculus_with_split_test =
-  base_calculus: AF_calculus bot SInf entails entails_sound Red_I\<^sub>A\<^sub>F Red_F\<^sub>A\<^sub>F
+locale AF_calculus_with_split =
+  base_calculus: AF_calculus_with_sound_simps bot SInf entails entails_sound Red_I\<^sub>A\<^sub>F Red_F\<^sub>A\<^sub>F Simps
   for bot :: \<open>('f, 'v :: countable) AF\<close> and
       SInf :: \<open>('f, 'v) AF inference set\<close> and
       entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>A\<^sub>F\<close> 50) and
       entails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<^sub>A\<^sub>F\<close> 50) and
       Red_I\<^sub>A\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
-      Red_F\<^sub>A\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close>
+      Red_F\<^sub>A\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
+      Simps :: \<open>('f, 'v) AF simplification set\<close>
   + fixes
       splittable :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> bool\<close>
     assumes
       split_creates_singleton_assertion_sets: 
         \<open>splittable \<C> \<C>s \<Longrightarrow> \<D> |\<in>| \<C>s \<Longrightarrow> (\<exists> (a :: 'v sign). A_of \<D> = {| a |})\<close>  and
-      split_not_empty:
-        \<open>splittable \<C> \<C>s \<Longrightarrow> \<C>s \<noteq>  {||}\<close> and
+      split_not_empty: \<open>splittable \<C> \<C>s \<Longrightarrow> \<C>s \<noteq>  {||}\<close> and
       split_prem_entails_cons1: \<open>splittable \<C> \<C>s \<Longrightarrow>
         {\<C>} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair (F_of bot) (ffUnion (fimage neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>)}\<close> and
       split_prem_entails_cons2: \<open>splittable \<C> \<C>s \<Longrightarrow> \<forall> \<C>' \<in> fset \<C>s. {\<C>} \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close> and
-      split_cons_entail_prem: \<open>splittable \<C> \<C>s \<Longrightarrow>
-        \<C> \<in> SRed\<^sub>F ({ AF.Pair (F_of bot) (ffUnion ((|`|) neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>) } \<union> fset \<C>s)\<close>
+      split_cons_entail_prem: \<open>splittable \<C> \<C>s \<Longrightarrow> \<C> \<in> SRed\<^sub>F 
+        ({ AF.Pair (F_of bot) (ffUnion ((|`|) neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>) } \<union> fset \<C>s)\<close>
 begin
 
-find_theorems consequence_relation name: base_calculus
-
 interpretation AF_sound_cons_rel: consequence_relation \<open>bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
-  using base_calculus.sound_cons.consequence_relation_axioms by simp
-
-find_theorems name: sound name: base_calculus
+  using base_calculus.sc.sound_cons.consequence_relation_axioms by simp
 
 interpretation SInf_sound_inf_system: sound_inference_system SInf \<open>bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
-  by (standard, auto simp add: base_calculus.sound )
+  by (standard, auto simp add: base_calculus.sc.sound)
 
 text \<open>
   Rule definitions follow a similar naming convention to our two inference rules
@@ -1534,54 +1533,8 @@ text \<open>
   precondition which must hold for the rule to be applicable.
 \<close> 
 
-(* We incorporate the clauses and annotation conditions in splittable *)
-(* definition splittable :: \<open>'f \<Rightarrow> 'f fset \<Rightarrow> bool\<close> where
- \<open>splittable C Cs \<longleftrightarrow> C \<noteq> (to_F bot) \<and> fcard Cs \<ge> 2
-                    \<and> ({C} \<Turnstile>s (fset Cs)) \<and> (\<forall> C'. C' |\<in>| Cs \<longrightarrow> C \<in> Red_F {C'})\<close>
-
-definition mk_split :: \<open>'f \<Rightarrow> 'f fset \<Rightarrow> ('f, 'v) AF fset\<close> where
-  \<open>splittable C Cs \<Longrightarrow> mk_split C Cs \<equiv> (\<lambda> C'. AF.Pair C' {| SOME a. a \<in> asn (Pos C') |}) |`| Cs\<close> *)
-
 abbreviation split_pre :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> bool\<close> where
   \<open>split_pre \<C> \<C>s \<equiv> splittable \<C> \<C>s\<close>
-
-(*<*)
-(*
-lemma split_creates_singleton_assertion_sets:
-  \<open>split_pre \<C> \<C>s \<Longrightarrow> \<D> |\<in>| \<C>s \<Longrightarrow> (\<exists> a. A_of \<D> = {| a |})\<close>
-  using mk_split_def
-  by force
-*)
-
-(*
-lemma split_all_assertion_sets_asn:
-  \<open>split_pre \<C> Cs As \<Longrightarrow> A |\<in>| As \<Longrightarrow> (\<exists> a. A_of A = {|a|} \<and> a \<in> asn (Pos (F_of A)))\<close>
-proof -
-  assume pre_cond: \<open>split_pre \<C> Cs As\<close> and
-         A_elem_As: \<open>A |\<in>| As\<close>
-  then have \<open>\<exists> a. A_of A = {|a|}\<close>
-    by (simp add: split_creates_singleton_assertion_sets)
-  then obtain a where A_of_A_singleton_a: \<open>A_of A = {|a|}\<close>
-    by blast
-  then have \<open>a \<in> asn (Pos (F_of A))\<close>
-    using pre_cond mk_split_def A_elem_As
-    using asn_not_empty some_in_eq
-    by (auto, blast)
-  then show \<open>\<exists> a. A_of A = {|a|} \<and> a \<in> asn (Pos (F_of A))\<close>
-    using A_of_A_singleton_a
-    by blast
-qed
-
-lemma split_all_pairs_in_As_in_Cs: \<open>split_pre \<C> Cs As \<Longrightarrow> (\<forall> P. P |\<in>| As \<longrightarrow> F_of P |\<in>| Cs)\<close>
-  using mk_split_def
-  by fastforce
-
-lemma split_all_pairs_in_Cs_in_As:
-  \<open>split_pre \<C> Cs As \<Longrightarrow> (\<forall> C. C |\<in>| Cs \<longrightarrow> (\<exists> a. AF.Pair C {|a|} |\<in>| As))\<close>
-  using mk_split_def
-  by fastforce
-(*>*)
-*)
 
 abbreviation split_res :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> ('f, 'v) AF set\<close> where
   \<open>split_res \<C> \<C>s \<equiv> 
@@ -1592,178 +1545,49 @@ abbreviation split_simp :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF fset \<R
   \<open>split_simp \<C> \<C>s \<equiv> Simplify {\<C>} (split_res \<C> \<C>s)\<close>
 
 (* Report definition 9 (Split only) *)
-inductive_set Simps :: \<open>('f, 'v) AF simplification set\<close> where
-  split: \<open>split_pre \<C> \<C>s \<Longrightarrow> split_simp \<C> \<C>s \<in> Simps\<close>
+inductive_set Simps_with_Split :: \<open>('f, 'v) AF simplification set\<close> where
+  split: \<open>split_pre \<C> \<C>s \<Longrightarrow> split_simp \<C> \<C>s \<in> Simps_with_Split\<close>
+| other: \<open>simp \<in> Simps \<Longrightarrow> simp \<in> Simps_with_Split\<close>
 
-lemma no_infinite_simp_set: \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> Simps \<Longrightarrow> finite (S_to \<iota>)\<close>
-  using Simps.cases
+lemma no_infinite_simps: \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> Simps_with_Split \<Longrightarrow> finite (S_to \<iota>)\<close>
+  using Simps_with_Split.cases base_calculus.no_infinite_simps
   by force 
 
 (* Report theorem 14 for Split *)
-theorem SInf_with_simps_sound_wrt_entails_sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+theorem SInf_with_simps_sound_wrt_entails_sound:
+  \<open>\<iota> \<in> Simps_with_Split \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
 proof -
-  assume \<iota>_is_simp_rule: \<open>\<iota> \<in> Simps\<close>
+  assume \<iota>_is_simp_rule: \<open>\<iota> \<in> Simps_with_Split\<close>
   then show \<open>\<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
   proof (intro ballI)
     fix \<C>
     assume \<C>_is_consq_of_\<iota>: \<open>\<C> \<in> S_to \<iota>\<close>
     show \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
       using \<iota>_is_simp_rule
-    proof (cases rule: Simps.cases)
+    proof (cases rule: Simps_with_Split.cases)
       case (split \<C>' \<C>s)
 
-      have pre_cond: \<open>split_pre \<C>' \<C>s\<close>
-        using split(2) .
-
-    (*  have Cs_not_empty: \<open>Cs \<noteq> {||}\<close>
-        using split(2)
-        unfolding splittable_def
-        by (metis bot_nat_0.extremum_unique fcard_fempty nat.simps(3) numerals(2)) *)
-      then have As_not_empty: \<open>\<C>s \<noteq> {||}\<close>
-        using split_not_empty by simp
-(*        using mk_split_def[of \<open>F_of \<C>'\<close> \<open>Cs\<close>] splittable_def
-              fimage_of_non_fempty_is_non_fempty[OF Cs_not_empty] split(2)
-        by blast *)
-
- (*     have \<open>fcard Cs \<ge> 1\<close>
-        by (simp add: Cs_not_empty Suc_le_eq non_zero_fcard_of_non_empty_set)
-      then have card_fset_Cs_ge_1: \<open>card (Pos ` fset Cs) \<ge> 1\<close>
-        by (metis Cs_not_empty bot_fset.rep_eq card_eq_0_iff empty_is_image finite_fset
-             finite_imageI fset_cong less_one linorder_not_le) *)
-
-(*      have \<open>{F_of \<C>'} \<Turnstile>s fset Cs\<close>
-        using split(2)
-        unfolding splittable_def[of \<open>F_of \<C>'\<close> \<open>Cs\<close>]
-        by blast
-      then have F_of_\<C>_entails_Cs: \<open>{Pos (F_of \<C>')} \<Turnstile>s\<^sub>\<sim> Pos ` fset Cs\<close>
-        unfolding sound_cons.entails_neg_def
-        by (smt (verit, del_insts) UnCI imageI mem_Collect_eq singleton_conv
-             sound_cons.entails_subsets subsetI)
-
-      have finite_image_Pos_Cs: \<open>finite (Pos ` fset Cs)\<close>
-        using finite_fset
-        by blast *)
-
-(*
-      have all_C\<^sub>i_entail_bot:
-        \<open>fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
-         AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As \<Longrightarrow> (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
-        for J C\<^sub>i a\<^sub>i
-      (* Same as for APPROX *)
-      proof -
-        fix J \<C>\<^sub>i a\<^sub>i
-        assume \<open>fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J\<close> and
-               Pair_\<C>\<^sub>i_a\<^sub>i_in_As: \<open>AF.Pair \<C>\<^sub>i {|a\<^sub>i|} |\<in>| As\<close>
-        then have \<open>neg a\<^sub>i \<in> total_strip J\<close>
-          using mk_disjoint_finsert
-          by fastforce
-        then have neg_fml_a\<^sub>i_in_J: \<open>neg (fml_ext a\<^sub>i) \<in> fml_ext ` total_strip J\<close>
-          by (metis fml_ext.simps(1) fml_ext.simps(2) image_iff is_Neg_to_V is_Pos_to_V
-              neg.simps(1) neg.simps(2))
-        moreover have a\<^sub>i_in_asn_\<C>\<^sub>i: \<open>a\<^sub>i \<in> asn (Pos \<C>\<^sub>i)\<close>
-          using split_all_assertion_sets_asn[OF split(2) Pair_\<C>\<^sub>i_a\<^sub>i_in_As]
-          by auto
-        moreover have \<open>{Pos \<C>\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos \<C>\<^sub>i}\<close>
-          by (meson consequence_relation.entails_reflexive sound_cons.ext_cons_rel)
-        then have \<open>(fml_ext ` (total_strip J - {neg a\<^sub>i}) \<union> {Pos \<C>\<^sub>i}) \<Turnstile>s\<^sub>\<sim> {Pos \<C>\<^sub>i, Pos bot}\<close>
-          by (smt (verit, best) Un_upper2 consequence_relation.entails_subsets insert_is_Un
-               sound_cons.ext_cons_rel sup_ge1)
-        ultimately show \<open>sound_cons.entails_neg ((fml_ext ` total_strip J) \<union> {Pos \<C>\<^sub>i}) {Pos bot}\<close>
-        proof -
-          have \<open>(fml_ext ` total_strip J \<union> {fml_ext a\<^sub>i}) \<Turnstile>s\<^sub>\<sim> ({Pos bot} \<union> {})\<close>
-            by (smt (z3) Bex_def_raw UnCI Un_commute Un_insert_right Un_upper2 neg_fml_a\<^sub>i_in_J
-                consequence_relation.entails_subsets insert_is_Un insert_subset
-                sound_cons.ext_cons_rel sound_cons.pos_neg_entails_bot)
-          then show ?thesis
-            by (smt (verit, ccfv_threshold) C_entails_fml Un_commute a\<^sub>i_in_asn_\<C>\<^sub>i
-                consequence_relation.entails_cut fml_ext_is_mapping insert_is_Un
-                sound_cons.ext_cons_rel) 
-        qed
-      qed
-      then *) (* have
-        \<open>fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
-         ((fml_ext ` total_strip J) \<union> {Pos (F_of \<C>')}) \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
-        for J 
-        unfolding splittable_def
-      proof -
-        fix J
-        assume \<open>fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J\<close>
-        then have C\<^sub>i_head_of_pair_entails_bot:
-          \<open>AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As \<Longrightarrow> (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
-          for C\<^sub>i a\<^sub>i
-          using all_C\<^sub>i_entail_bot
-          by blast
-        then have \<open>C\<^sub>i |\<in>| Cs \<Longrightarrow> (fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
-          for C\<^sub>i
-        proof -
-          fix C\<^sub>i
-          assume \<open>C\<^sub>i |\<in>| Cs\<close>
-          then have \<open>\<exists> a\<^sub>i. AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As\<close>
-            using split_all_pairs_in_Cs_in_As[OF split(2)]
-            by presburger
-          then obtain a\<^sub>i where \<open>AF.Pair C\<^sub>i {|a\<^sub>i|} |\<in>| As\<close>
-            by blast
-          then show \<open>(fml_ext ` total_strip J) \<union> {Pos C\<^sub>i} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
-            using C\<^sub>i_head_of_pair_entails_bot
-            by blast
-        qed
-        then *) (* show \<open>(fml_ext ` total_strip J) \<union> {Pos (F_of \<C>')} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
-          using sound_cons.entails_of_entails_iff[OF F_of_\<C>_entails_Cs finite_image_Pos_Cs
-              card_fset_Cs_ge_1] by blast
-      qed *) (*
-      then have
-        \<open>fset (ffUnion (fimage neg |`| A_of |`| As) |\<union>| A_of \<C>') \<subseteq> total_strip J \<Longrightarrow>
-         ((fml_ext ` total_strip J) \<union> Pos ` (S_from \<iota> proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
-        for J 
-        using split(2)
-        by (simp add: split(1) enabled_def enabled_projection_def)
-      then *) have \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F { AF.Pair (F_of bot) (ffUnion (fimage neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>')}\<close>
-        using split_prem_entails_cons1 sorry
-(*        unfolding AF_entails_sound_def
-        using enabled_def enabled_set_def
-        by auto *)
-(*      moreover have
-        \<open>C'' |\<in>| As \<Longrightarrow> fset (A_of C'') \<subseteq> total_strip J \<Longrightarrow>
-         (fml_ext ` total_strip J) \<union> Pos ` ({\<C>'} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of C'')}\<close>
-        for J C''
-      proof -
-        fix J C''
-        assume C''_in_As: \<open>C'' |\<in>| As\<close> and
-               A_of_C''_subset_J: \<open>fset (A_of C'') \<subseteq> total_strip J\<close>
-        then have \<open>\<exists> a\<^sub>i. a\<^sub>i \<in> asn (Pos (F_of C'')) \<and> A_of C'' = {| a\<^sub>i |}\<close>
-          using split_all_assertion_sets_asn[OF pre_cond C''_in_As]
-          by blast
-        then obtain a\<^sub>i where a\<^sub>i_in_asn_F_of_C'': \<open>a\<^sub>i \<in> asn (Pos (F_of C''))\<close> and
-                             A_of_C''_is: \<open>A_of C'' = {| a\<^sub>i |}\<close>
-          by blast
-        then show \<open>(fml_ext ` total_strip J) \<union> Pos ` ({\<C>'} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of C'')}\<close>
-          by (smt (verit, best) A_of_C''_subset_J consequence_relation.entails_subsets empty_subsetI
-              finsert.rep_eq fml_entails_C fml_ext_is_mapping image_eqI insert_is_Un insert_subset
-              sound_cons.ext_cons_rel sup_ge1)
-      qed
-      then *) (* have
-        \<open>C'' \<in> fset As \<Longrightarrow> fset (A_of C'') \<subseteq> total_strip J \<Longrightarrow>
-         (fml_ext ` total_strip J) \<union> Pos ` ({\<C>'} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of C'')}\<close>
-        for J C''
-        by fast *)
+      have \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F { AF.Pair (F_of bot) (ffUnion (fimage neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>')}\<close>
+        using split_prem_entails_cons1 split by auto
       moreover have \<open>\<forall>\<C>' \<in> fset \<C>s. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
-        using split_prem_entails_cons2 sorry
- (*       unfolding AF_entails_sound_def enabled_set_def enabled_def
-        using split(1)
-        by auto *)
+        using split_prem_entails_cons2 split by auto
       ultimately show ?thesis
         using \<C>_is_consq_of_\<iota> split(1)
         unfolding S_to_def
         by auto
+    next
+      case other
+      then show ?thesis
+        using \<C>_is_consq_of_\<iota> base_calculus.sound by auto
     qed
   qed
 qed
 
-interpretation Simps_sound: sound_simplification_rules bot SInf \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close> Simps
-  by (standard, auto simp add: SInf_with_simps_sound_wrt_entails_sound)
+(*interpretation Simps_sound: sound_simplification_rules bot SInf \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close> Simps
+  by (standard, auto simp add: SInf_with_simps_sound_wrt_entails_sound) *)
 
 (* Report theorem 19 for Split *)
-theorem split_redundant:
+lemma split_redundant:
   shows 
     \<open>split_pre \<C> \<C>s \<Longrightarrow> \<C> \<in> SRed\<^sub>F (split_res \<C> \<C>s)\<close>
 proof -
@@ -1772,10 +1596,31 @@ proof -
     using split_cons_entail_prem by simp
 qed
 
+lemma simps_with_split_are_simps: \<open>\<iota> \<in> Simps_with_Split \<Longrightarrow> \<forall>\<C> \<in> S_from \<iota>. S_to \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+proof
+  fix \<C>
+  assume i_in: \<open>\<iota> \<in> Simps_with_Split\<close> and
+    C_in: \<open>\<C> \<in> S_from \<iota>\<close>
+  then show \<open>S_to \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+  proof (cases rule: Simps_with_Split.cases)
+    case (split \<C> \<C>s)
+    then show ?thesis
+      using split_redundant by blast
+  next
+    case other
+    then show ?thesis
+      using base_calculus.simplification C_in by blast
+  qed
+qed
+
+sublocale AF_calculus_with_sound_simps bot SInf entails entails_sound Red_I\<^sub>A\<^sub>F Red_F\<^sub>A\<^sub>F Simps_with_Split
+  using simps_with_split_are_simps SInf_with_simps_sound_wrt_entails_sound no_infinite_simps
+  by (unfold_locales, auto)
+
 end
 
-locale splitting_calculus_with_split =
-  core_splitting_calculus bot Inf entails entails_sound Red_I Red_F fml asn
+locale splitting_calculus =
+  core: core_splitting_calculus bot Inf entails entails_sound Red_I Red_F fml asn 
   for bot :: 'f and
       Inf :: \<open>'f inference set\<close> and
       entails :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
@@ -1787,10 +1632,10 @@ locale splitting_calculus_with_split =
 begin
 
 interpretation AF_sound_cons_rel: consequence_relation \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
-  by (rule AF_ext_sound_cons_rel)
+  by (rule core.AF_ext_sound_cons_rel)
 
-interpretation SInf_sound_inf_system: sound_inference_system SInf \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
-  by (standard, auto simp add: SInf_sound_wrt_entails_sound)
+interpretation SInf_sound_inf_system: sound_inference_system core.SInf \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  by (standard, auto simp add: core.SInf_sound_wrt_entails_sound)
 
 text \<open>
   Rule definitions follow a similar naming convention to our two inference rules
@@ -1799,50 +1644,83 @@ text \<open>
   precondition which must hold for the rule to be applicable.
 \<close> 
 
-definition splittable :: \<open>'f \<Rightarrow> 'f fset \<Rightarrow> bool\<close> where
-  \<open>splittable C Cs \<longleftrightarrow> C \<noteq> bot \<and> fcard Cs \<ge> 2
+definition split_form :: \<open>'f \<Rightarrow> 'f fset \<Rightarrow> bool\<close> where
+  \<open>split_form C Cs \<longleftrightarrow> C \<noteq> bot \<and> fcard Cs \<ge> 2
                     \<and> {C} \<Turnstile>s fset Cs \<and> (\<forall> C'. C' |\<in>| Cs \<longrightarrow> C \<in> Red_F {C'})\<close>
 
 definition mk_split :: \<open>'f \<Rightarrow> 'f fset \<Rightarrow> ('f, 'v) AF fset\<close> where
-  \<open>splittable C Cs \<Longrightarrow> mk_split C Cs \<equiv> (\<lambda> C'. AF.Pair C' {| SOME a. a \<in> asn (Pos C') |}) |`| Cs\<close>
+  \<open>split_form C Cs \<Longrightarrow> mk_split C Cs \<equiv> (\<lambda> C'. AF.Pair C' {| SOME a. a \<in> asn (Pos C') |}) |`| Cs\<close>
 
+(*
 abbreviation split_pre :: \<open>('f, 'v) AF \<Rightarrow> 'f fset \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> bool\<close> where
-  \<open>split_pre \<C> Cs As \<equiv> splittable (F_of \<C>) Cs \<and> mk_split (F_of \<C>) Cs = As\<close>
+  \<open>split_pre \<C> Cs As \<equiv> split_form (F_of \<C>) Cs \<and> mk_split (F_of \<C>) Cs = As\<close>
+*)
+
+definition splittable :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> bool\<close> where
+  \<open>splittable \<C> \<C>s \<equiv> split_form (F_of \<C>) (F_of |`| \<C>s) \<and> mk_split (F_of \<C>) (F_of |`| \<C>s) = \<C>s\<close>
 
 (*<*)
 lemma split_creates_singleton_assertion_sets:
-  \<open>split_pre \<C> Cs As \<Longrightarrow> A |\<in>| As \<Longrightarrow> (\<exists> a. A_of A = {| a |})\<close>
-  using mk_split_def
-  by force
+  \<open>splittable \<C> \<C>s \<Longrightarrow> A |\<in>| \<C>s \<Longrightarrow> (\<exists> a. A_of A = {| a |})\<close>
+  using mk_split_def unfolding splittable_def by (metis (no_types, lifting) AF.sel(2) fimageE)
 
 lemma split_all_assertion_sets_asn:
-  \<open>split_pre \<C> Cs As \<Longrightarrow> A |\<in>| As \<Longrightarrow> (\<exists> a. A_of A = {|a|} \<and> a \<in> asn (Pos (F_of A)))\<close>
+  \<open>splittable \<C> \<C>s \<Longrightarrow> A |\<in>| \<C>s \<Longrightarrow> (\<exists> a. A_of A = {|a|} \<and> a \<in> asn (Pos (F_of A)))\<close>
 proof -
-  assume pre_cond: \<open>split_pre \<C> Cs As\<close> and
-         A_elem_As: \<open>A |\<in>| As\<close>
-  then have \<open>\<exists> a. A_of A = {|a|}\<close>
-    by (simp add: split_creates_singleton_assertion_sets)
+  assume pre_cond: \<open>splittable \<C> \<C>s\<close> and
+         A_elem_As: \<open>A |\<in>| \<C>s\<close>
+  then have pre_cond1: \<open>split_form (F_of \<C>) (F_of |`| \<C>s)\<close> and
+    pre_cond2: \<open>mk_split (F_of \<C>) (F_of |`| \<C>s) = \<C>s\<close>
+    unfolding splittable_def by auto
+  have mk_split_applied_def: \<open>mk_split (F_of \<C>) (F_of |`| \<C>s) \<equiv> 
+    (\<lambda> C'. AF.Pair C' {| SOME a. a \<in> asn (Pos C') |}) |`| (F_of |`| \<C>s)\<close>
+    using mk_split_def pre_cond unfolding splittable_def by (smt (verit, del_insts))
+  have \<open>\<exists> a. A_of A = {|a|}\<close>
+    using pre_cond A_elem_As by (simp add: split_creates_singleton_assertion_sets)
   then obtain a where A_of_A_singleton_a: \<open>A_of A = {|a|}\<close>
     by blast
   then have \<open>a \<in> asn (Pos (F_of A))\<close>
-    using pre_cond mk_split_def A_elem_As
-    using asn_not_empty some_in_eq
-    by (auto, blast)
+    using pre_cond2 A_elem_As core.asn_not_empty some_in_eq unfolding mk_split_applied_def
+    by (smt (z3) AF.exhaust_sel AF.inject FSet.fsingletonE fimage.rep_eq finsertI1 imageE someI_ex)
   then show \<open>\<exists> a. A_of A = {|a|} \<and> a \<in> asn (Pos (F_of A))\<close>
-    using A_of_A_singleton_a
-    by blast
+    using A_of_A_singleton_a by blast
 qed
 
-lemma split_all_pairs_in_As_in_Cs: \<open>split_pre \<C> Cs As \<Longrightarrow> (\<forall> P. P |\<in>| As \<longrightarrow> F_of P |\<in>| Cs)\<close>
+lemma split_all_pairs_in_As_in_Cs: \<open>splittable \<C> \<C>s \<Longrightarrow> (\<forall> P. P |\<in>| \<C>s \<longrightarrow> F_of P |\<in>| (F_of |`| \<C>s))\<close>
   using mk_split_def
   by fastforce
 
 lemma split_all_pairs_in_Cs_in_As:
-  \<open>split_pre \<C> Cs As \<Longrightarrow> (\<forall> C. C |\<in>| Cs \<longrightarrow> (\<exists> a. AF.Pair C {|a|} |\<in>| As))\<close>
-  using mk_split_def
+  \<open>splittable \<C> \<C>s \<Longrightarrow> (\<forall> C. C |\<in>| (F_of |`| \<C>s) \<longrightarrow> (\<exists> a. AF.Pair C {|a|} |\<in>| \<C>s))\<close>
+  using mk_split_def unfolding splittable_def
   by fastforce
 (*>*)
 
+interpretation calculus "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F
+  using core.S_calculus.calculus_axioms .
+
+lemma split_not_empty: \<open>splittable \<C> \<C>s \<Longrightarrow> \<C>s \<noteq>  {||}\<close>
+  unfolding splittable_def split_form_def
+  by (metis bot_nat_0.extremum fcard_fempty fimage_fempty le_antisym nat.simps(3) numerals(2))
+
+lemma split_prem_entails_cons1: \<open>splittable \<C> \<C>s \<Longrightarrow>
+  {\<C>} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot (ffUnion (fimage neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>)}\<close>
+  sorry
+
+lemma split_prem_entails_cons2: \<open>splittable \<C> \<C>s \<Longrightarrow> \<forall> \<C>' \<in> fset \<C>s. {\<C>} \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
+  sorry
+
+lemma split_cons_entail_prem: \<open>splittable \<C> \<C>s \<Longrightarrow> \<C> \<in> 
+  SRed\<^sub>F ({ AF.Pair bot (ffUnion ((|`|) neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>) } \<union> fset \<C>s)\<close>
+  sorry
+
+
+sublocale splitting_calculus: 
+  AF_calculus_with_split "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" splittable
+  using split_creates_singleton_assertion_sets split_not_empty
+proof
+
+(*
 abbreviation split_simp :: \<open>('f, 'v) AF \<Rightarrow> 'f fset \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> ('f, 'v) AF simplification\<close>
   where
   \<open>split_simp \<C> Cs As \<equiv>
@@ -2012,8 +1890,10 @@ proof -
   qed
 qed
 
+(*
 interpretation Simps_sound: sound_simplification_rules \<open>to_AF bot\<close> SInf \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close> Simps
   by (standard, auto simp add: SInf_with_simps_sound_wrt_entails_sound)
+*)
 
 (* Report theorem 19 for Split *)
 theorem split_redundant:
@@ -2080,7 +1960,7 @@ proof -
     by (intro UnI1)
        (smt (verit, ccfv_threshold) AF.collapse CollectI distrib_proj)
 qed
-
+ *)
 end (* locale splitting_calculus_with_split *)
 
 locale splitting_calculus_with_collect =

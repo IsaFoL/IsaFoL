@@ -492,21 +492,19 @@ definition F_of_Inf :: "(('f, 'v::countable) AF) inference \<Rightarrow> 'f infe
 
 section \<open>Lifting Calculi to Add Annotations\<close>
 
-locale AF_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F
+locale AF_calculus = sc: sound_calculus bot Inf entails entails_sound Red_I Red_F
   for
-    bot :: "('f, 'v) AF" and
+    bot :: "('f, 'v :: countable) AF" and
     Inf :: \<open>('f, 'v) AF inference set\<close> and
-    entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
-    entails_sound :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) and
+    entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" and
+    entails_sound :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" and
     Red_I :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set" and
     Red_F :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set"
-  + fixes
+(*  + fixes
     fml :: \<open>'v \<Rightarrow> 'f\<close> and 
     asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close> and
     entails_sound_F :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s\<^sub>F" 50) and
-    Red_F\<^sub>F :: "'f set \<Rightarrow> 'f set"
-
-
+    Red_F\<^sub>F :: "'f set \<Rightarrow> 'f set" *)
 
 locale AF_calculus_lifting = sound_calculus bot Inf entails entails_sound Red_I Red_F
   (* + propositional_interpretations \<J>*)
@@ -1877,7 +1875,7 @@ next
   qed
 qed
 
-interpretation neg_ext_sound_cons_rel: consequence_relation "Pos bot" sound_cons.entails_neg
+sublocale neg_ext_sound_cons_rel: consequence_relation "Pos bot" sound_cons.entails_neg
   using sound_cons.ext_cons_rel by simp
 
 (* Splitting report Lemma 4, 2/2 *)
@@ -2428,10 +2426,10 @@ qed
 lemma \<open>(to_AF ` M \<Turnstile>\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile> N)\<close>
   unfolding AF_entails_def by simp
 
-interpretation ext_cons_rel_std: consequence_relation "Pos (to_AF bot)" AF_cons_rel.entails_neg
+sublocale ext_cons_rel_std: consequence_relation "Pos (to_AF bot)" AF_cons_rel.entails_neg
   using AF_cons_rel.ext_cons_rel .
 
-interpretation sound_cons_rel: consequence_relation "Pos bot" sound_cons.entails_neg
+sublocale sound_cons_rel: consequence_relation "Pos bot" sound_cons.entails_neg
   using sound_cons.ext_cons_rel .
 
 lemma [simp]: \<open>{C. Pos C \<in> Pos ` N} = N\<close> by auto
