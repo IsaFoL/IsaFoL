@@ -1970,7 +1970,14 @@ locale AF_calculus_with_collect_test = core: core_splitting_calculus bot Inf ent
       Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
       Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
       fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and
-      asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close>
+      asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close> and
+      botS :: \<open>('f, 'v :: countable) AF\<close> and
+      SInf :: \<open>('f, 'v) AF inference set\<close> and
+      Sentails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> and
+      Sentails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
+      SRed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
+      SRed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
+      Simps :: \<open>('f, 'v) AF simplification set\<close>
 
 locale AF_calculus_with_collect =
   base_calculus: AF_calculus_with_sound_simps bot SInf entails entails_sound RedS\<^sub>I RedS\<^sub>F Simps
