@@ -44,7 +44,8 @@ section \<open>First-Order Layer\<close>
 
 locale first_order_superposition_calculus =
   nonground_order less\<^sub>t +
-  first_order_select select
+  first_order_select select +
+  nonground_typing typeof_fun
   for 
     select :: "('f, ('v :: infinite)) select" and
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" and
@@ -61,9 +62,6 @@ locale first_order_superposition_calculus =
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R" and
     variables: "|UNIV :: 'ty set| \<le>o |UNIV :: 'v set|"
 begin
-
-interpretation nonground_typing typeof_fun "UNIV :: 'v set"
-  by unfold_locales (rule infinite_UNIV)
 
 interpretation term_order_notation.
 

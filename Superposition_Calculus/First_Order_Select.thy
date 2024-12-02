@@ -388,16 +388,14 @@ lemmas select_subst = select_subst1 select_subst2
 end
 
 locale grounded_first_order_select = 
-  first_order_select select
+  first_order_select select +
+  nonground_typing \<F>
   for
     select :: "('f, 'v :: infinite) atom clause \<Rightarrow> ('f, 'v) atom clause" and 
     \<F> :: "('f, 'ty) fun_types" +
 fixes select\<^sub>G 
 assumes select\<^sub>G: "is_select_grounding select select\<^sub>G"
 begin
-
-interpretation nonground_typing \<F> "UNIV :: 'v set"
-  by unfold_locales (rule infinite_UNIV)
 
 abbreviation subst_stability_on where
   "subst_stability_on premises \<equiv> select_subst_stability_on select select\<^sub>G premises"

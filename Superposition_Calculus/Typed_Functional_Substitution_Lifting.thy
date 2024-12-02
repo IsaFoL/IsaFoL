@@ -159,7 +159,7 @@ locale typed_renaming_lifting =
   sub: typed_renaming where 
   subst = sub_subst and vars = sub_vars and expr_is_typed = sub_expr_is_typed
 begin
-
+                  
 sublocale typed_renaming where 
   subst = subst and vars = vars and expr_is_typed = expr_is_typed
   (* TODO: *)

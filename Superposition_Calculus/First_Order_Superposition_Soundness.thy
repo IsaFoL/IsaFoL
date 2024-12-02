@@ -7,10 +7,7 @@ subsection \<open>Soundness\<close>
 
 context grounded_first_order_superposition_calculus
 begin
-
-interpretation nonground_typing typeof_fun "UNIV :: 'v set"
-  by unfold_locales (rule infinite_UNIV)
-
+  
 (* TODO : Find way to use this abbrev for both entails_\<G> *)
 abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
   "entails\<^sub>F \<equiv> lifting.entails_\<G>"
@@ -261,12 +258,12 @@ proof (cases P C rule: eq_factoring.cases)
       by blast
 
     ultimately have welltyped_P': "clause.is_welltyped \<V> P'"
-      using clause.is_welltyped.subst_stability 
-      by blast
+      using clause.is_welltyped.subst_stability
+      by (metis UNIV_I)
 
     have xx: "literal.is_welltyped \<V> (s\<^sub>1 \<approx> t\<^sub>2')" "literal.is_welltyped \<V> (s\<^sub>1' !\<approx> t\<^sub>2')"
       using wt'(2, 3) literal.is_welltyped.subst_stability  welltyped_\<mu>
-      by auto
+      by fast+
 
     then have welltyped_L\<^sub>1: "literal.is_welltyped \<V> (s\<^sub>1 \<approx> s\<^sub>1')"
       by auto
@@ -473,9 +470,8 @@ proof (cases P2 P1 C rule: superposition.cases)
           using 
             clause.is_welltyped.typed_renaming[OF superpositionI(4) xx] 
             superpositionI(14) 
-            clause.is_welltyped.subst_stability 
-          by blast
-          
+            clause.is_welltyped.subst_stability
+          by (metis UNIV_I)          
 
         then show ?thesis
           using grounding(2)

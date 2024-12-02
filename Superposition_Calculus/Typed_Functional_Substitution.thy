@@ -199,7 +199,7 @@ assumes
   "\<And>\<V> \<V>' expr \<rho> \<tau>. is_renaming \<rho> \<Longrightarrow> 
       \<forall>x \<in> vars (expr \<cdot> \<rho>). \<V> (inv \<rho> (id_subst x)) = \<V>' x \<Longrightarrow>
       expr_typed \<V>' (expr \<cdot> \<rho>) \<tau> \<longleftrightarrow> expr_typed \<V> expr \<tau>" and
-  (* TODO: Move to correct place *)
+  (* TODO: Move to correct place/ separate *)
   is_renaming_iff: "is_renaming \<rho> \<longleftrightarrow> inj \<rho> \<and> (\<forall>x. \<exists>x'. \<rho> x = id_subst x')" and
   subst_compose: "(\<rho> \<odot> \<gamma>) x = (\<rho> x) \<cdot> \<gamma>" and
   id_subst_keeps_var: "x \<in> vars (id_subst x)" and
@@ -275,7 +275,8 @@ lemma inj_id_subst: "inj id_subst"
 
 lemma obtain_typed_renamings:
   fixes \<V>\<^sub>1 :: "'var \<Rightarrow> 'ty"
-  assumes 
+  assumes
+    (* TODO: Move to locale assumption *)
     "infinite (UNIV :: 'var set)"
     "finite X" 
     "finite Y" 

@@ -17,9 +17,6 @@ hide_const
 context grounded_first_order_superposition_calculus
 begin
 
-interpretation nonground_typing typeof_fun "UNIV :: 'v set"
-  by unfold_locales (rule infinite_UNIV)
-
  (* TODO: term "Nonground_Clause.clause.subst"*)
 lemma eq_resolution_lifting:
   fixes 
@@ -2239,9 +2236,6 @@ end
 
 context first_order_superposition_calculus
 begin
-
-interpretation nonground_typing typeof_fun "UNIV :: 'v set"
-  by unfold_locales (rule infinite_UNIV)
 
 lemma overapproximation:
   obtains select\<^sub>G where

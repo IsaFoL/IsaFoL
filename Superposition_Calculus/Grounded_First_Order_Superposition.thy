@@ -26,10 +26,6 @@ locale grounded_first_order_superposition_calculus =
     typeof_fun :: "('f, 'ty) fun_types"
 begin
 
-(* TODO: Write about this limitation of locales! *)
-interpretation nonground_typing typeof_fun "UNIV :: 'v set"
-  by unfold_locales (rule infinite_UNIV)
-
 sublocale ground: ground_superposition_calculus where
   less\<^sub>t = "(\<prec>\<^sub>t\<^sub>G)" and select = select\<^sub>G
 rewrites 
@@ -264,9 +260,6 @@ end
 
 context first_order_superposition_calculus
 begin
-
-interpretation nonground_typing typeof_fun "UNIV :: 'v set"
-  by unfold_locales (rule infinite_UNIV)
 
 sublocale
   lifting_intersection

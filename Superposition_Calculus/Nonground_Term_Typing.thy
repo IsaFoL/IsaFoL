@@ -29,12 +29,15 @@ locale nonground_term_typing =
   fixes \<F> :: "('f, 'ty) fun_types"
 begin
 
-abbreviation typed where "typed \<equiv> Nonground_Term_Typing.typed \<F>"
-abbreviation welltyped where "welltyped \<equiv> Nonground_Term_Typing.welltyped \<F>"
+abbreviation typed :: "('v \<Rightarrow> 'ty) \<Rightarrow> ('f, 'v) Term.term \<Rightarrow> 'ty \<Rightarrow> bool" where 
+  "typed \<equiv> Nonground_Term_Typing.typed \<F>"
+
+abbreviation welltyped  :: "('v \<Rightarrow> 'ty) \<Rightarrow> ('f, 'v) Term.term \<Rightarrow> 'ty \<Rightarrow> bool" where 
+  "welltyped \<equiv> Nonground_Term_Typing.welltyped \<F>"
 
 sublocale "term": explicit_typing "typed \<V>" "welltyped \<V>"
 proof unfold_locales
-  fix \<V> :: "('var, 'ty) var_types"
+  fix \<V> :: "('v, 'ty) var_types"
   show "right_unique (typed \<V>)"
   proof (rule right_uniqueI)
     fix t \<tau>\<^sub>1 \<tau>\<^sub>2
@@ -43,7 +46,7 @@ proof unfold_locales
       by (auto elim!: typed.cases)
   qed
 next
-  fix \<V> :: "('var, 'ty) var_types"
+  fix \<V> :: "('v, 'ty) var_types"
   show welltyped_right_unique: "right_unique (welltyped \<V>)"
   proof (rule right_uniqueI)
     fix t \<tau>\<^sub>1 \<tau>\<^sub>2
@@ -52,13 +55,13 @@ next
       by (auto elim!: welltyped.cases)
   qed
 next
-  fix \<V> :: "('var, 'ty) var_types" and t \<tau> 
+  fix \<V> :: "('v, 'ty) var_types" and t \<tau> 
   assume "welltyped \<V> t \<tau>"
   then show "typed \<V> t \<tau>"
     by (metis typed.intros welltyped.cases)
 qed
 
-sublocale term_typing where typed = "typed \<V>" and welltyped = "welltyped \<V>" and Fun = Fun
+sublocale term_typing where typed = "typed (\<V> :: 'v \<Rightarrow> 'ty)" and welltyped = "welltyped \<V>" and Fun = Fun
 proof unfold_locales
   fix t t' c \<tau> \<tau>'
   assume 
@@ -100,7 +103,7 @@ proof unfold_locales
   qed
 next
   fix t t' c \<tau> \<tau>'
-  assume 
+  assume
     t_type: "typed \<V> t \<tau>'" and 
     t'_type: "typed \<V> t' \<tau>'" and
     c_type: "typed \<V> c\<langle>t\<rangle> \<tau>"
@@ -141,10 +144,10 @@ next
 qed
 
 sublocale nonground_term_functional_substitution_typing where 
-  id_subst = Var and comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and vars = term.vars and 
+  id_subst = "Var :: 'v \<Rightarrow> ('f, 'v) term" and comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and vars = term.vars and 
   expr_welltyped = welltyped and expr_typed = typed
 proof unfold_locales
-  fix \<V> :: "('var, 'ty) var_types" and x
+  fix \<V> :: "('v, 'ty) var_types" and x
   show "welltyped \<V> (Var x) (\<V> x)"
     by (simp add: welltyped.Var)
 next
@@ -647,7 +650,6 @@ proof-
     using that imgu_exists_extendable[OF unified]
     by (metis assms(2) assms(3) the_mgu the_mgu_term_subst_is_imgu unified)
 qed
-
 
 end
 

@@ -9,8 +9,6 @@ begin
 
 (* TODO: Name *)
 locale nonground_typing_lifting = 
-  typed_functional_substitution_lifting where base_typed = base_typed + 
-
   is_typed: typed_subst_stability_lifting where base_typed = base_typed + 
   is_welltyped: typed_subst_stability_lifting where 
   sub_expr_is_typed = sub_expr_is_welltyped and base_typed = base_welltyped +
@@ -25,9 +23,7 @@ locale nonground_typing_lifting =
 for base_typed base_welltyped :: "('var, 'ty) var_types \<Rightarrow> 'base \<Rightarrow> 'ty \<Rightarrow> bool" and 
     sub_expr_is_welltyped 
 
-locale nonground_uniform_typing_lifting = 
-  uniform_typed_functional_substitution_lifting where sub_typed = base_typed + 
-
+locale nonground_uniform_typing_lifting =
   is_typed: uniform_typed_subst_stability_lifting where sub_typed = base_typed + 
   is_welltyped: uniform_typed_subst_stability_lifting where sub_typed = base_welltyped +
 
@@ -48,13 +44,10 @@ locale atom_typing_lifting =
   map = map_uprod and to_set = set_uprod 
 
 locale nonground_typing =
-  fixes 
-    \<F> :: "('f, 'ty) fun_types" and 
-    Variables :: "'v set" 
-  assumes infinite_Variables: "infinite Variables"
+  fixes \<F> :: "('f, 'ty) fun_types"
 begin
 
-sublocale nonground_term_typing
+sublocale nonground_term_typing "\<F> :: ('f, 'ty) fun_types" 
   by unfold_locales
 
 sublocale clause_typing "typed (\<V> :: ('v, 'ty) var_types)" "welltyped \<V>"
