@@ -55,6 +55,9 @@ abbreviation psatisfies where \<open>psatisfies I \<Phi> \<equiv> \<forall>\<phi
 definition val_to_prop_val :: "(form \<Rightarrow> bool) \<Rightarrow> ((nat \<times> nterm list) \<Rightarrow> bool)" where
   \<open>val_to_prop_val I = (\<lambda>x. I (Atom (fst x) (snd x)))\<close>
 
+lemma pholds_Not: \<open>I \<Turnstile>\<^sub>p Not \<phi> \<longleftrightarrow> \<not> (I \<Turnstile>\<^sub>p \<phi>)\<close>
+  by simp
+
 lemma pentails_equiv: \<open>qfree \<phi> \<Longrightarrow> (I \<Turnstile>\<^sub>p \<phi> \<equiv> (val_to_prop_val I) \<Turnstile> (form_to_formula \<phi>))\<close>
 proof (induction \<phi>)
   case Bot
@@ -165,5 +168,50 @@ lemma compact_prop:
   assumes \<open>\<And>B. \<lbrakk>finite B; B \<subseteq> A\<rbrakk> \<Longrightarrow> \<exists>I. psatisfies I B\<close> and \<open>\<And>\<phi>. \<phi> \<in> A \<longrightarrow> qfree \<phi>\<close>
   shows \<open>\<exists>I. psatisfies I A\<close>
   by (metis assms finsat_def prop_compactness psatisfiable_def)
+
+text \<open>Three results required for the FOL uniformity theorem\<close>
+
+lemma compact_prop_alt:
+  assumes \<open>\<And>I. \<exists>\<phi>\<in>A. I \<Turnstile>\<^sub>p \<phi>\<close> \<open>\<And>\<phi>. \<phi> \<in> A \<longrightarrow> qfree \<phi>\<close>
+  obtains B where \<open>finite B\<close> \<open>B \<subseteq> A\<close> \<open>\<And>I. \<exists>\<phi>\<in>B. I \<Turnstile>\<^sub>p \<phi>\<close>
+proof -
+  have \<open>\<And>\<phi>. \<phi> \<in> FOL_Syntax.Not ` A \<longrightarrow> qfree \<phi>\<close>
+    using assms by force
+  moreover
+  have \<open>\<nexists>I. psatisfies I (FOL_Syntax.Not ` A)\<close>
+    by (simp add: assms) 
+  ultimately obtain B where B: \<open>finite B\<close> \<open>B \<subseteq> (FOL_Syntax.Not ` A)\<close> \<open>\<And>I. \<exists>r\<in>B. \<not> (I \<Turnstile>\<^sub>p r)\<close>
+    using compact_prop [of \<open>FOL_Syntax.Not ` A\<close>] by fastforce
+  show thesis
+  proof
+    show \<open>finite (Not -` B)\<close>
+      using form.inject by (metis \<open>finite B\<close> finite_vimageI injI)
+    show \<open>Not -` B \<subseteq> A\<close>
+      using B by auto
+    show \<open>\<exists>\<phi> \<in> Not -` B. I \<Turnstile>\<^sub>p \<phi>\<close> for I
+      using B by force
+  qed
+qed
+
+lemma finite_disj_lemma:
+  assumes \<open>finite A\<close>
+  shows \<open>\<exists>\<Phi>. set \<Phi> \<subseteq> A \<and> (\<forall>I. I \<Turnstile>\<^sub>p foldr (\<^bold>\<or>) \<Phi> \<^bold>\<bottom> \<longleftrightarrow> (\<exists>\<phi>\<in>A. I \<Turnstile>\<^sub>p \<phi>))\<close>
+  using assms
+proof (induction A)
+  case empty
+  then show ?case
+    by auto
+next
+  case (insert \<phi> A)
+  then obtain \<Phi> where \<open>set \<Phi> \<subseteq> A\<close> \<open>\<forall>I. I \<Turnstile>\<^sub>p foldr (\<^bold>\<or>) \<Phi> \<^bold>\<bottom> \<longleftrightarrow> (\<exists>\<phi>\<in>A. I \<Turnstile>\<^sub>p \<phi>)\<close>
+    by blast
+  then show ?case 
+    by (force simp: intro!: exI [where x="\<phi>#\<Phi>"])
+qed
+
+lemma compact_disj:
+  assumes \<open>\<And>I. \<exists>\<phi>\<in>A. I \<Turnstile>\<^sub>p \<phi>\<close> \<open>\<And>\<phi>. \<phi> \<in> A \<longrightarrow> qfree \<phi>\<close>
+  obtains \<Phi> where \<open>set \<Phi> \<subseteq> A\<close> \<open>\<And>I. I \<Turnstile>\<^sub>p foldr (\<^bold>\<or>) \<Phi> \<^bold>\<bottom>\<close>
+  by (smt (verit, best) assms compact_prop_alt finite_disj_lemma order_trans)
 
 end

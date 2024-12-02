@@ -9,7 +9,6 @@ imports
   (*"HOL-Library.Nat_Bijection"*)
   (* Naturals_Injection *)
   Bumping
-  "HOL-ex.Sketch_and_Explore"
 begin
 
 lemma witness_imp_holds_exists:

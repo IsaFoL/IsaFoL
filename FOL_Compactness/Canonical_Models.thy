@@ -444,9 +444,70 @@ qed
 (* UNIFORMITY in HOL Light *)
 lemma uniformity:
   assumes \<open>qfree \<phi>\<close> 
-          \<open>\<And>\<C> \<beta>. \<lbrakk>dom \<C> \<noteq> {}; is_valuation \<C> \<beta>\<rbrakk> \<Longrightarrow> \<C>\<^bold>,\<beta> \<Turnstile> (foldr (\<lambda>x \<psi>. \<^bold>\<forall>x\<^bold>. \<psi>) xs \<phi>)\<close>
-  obtains \<sigma>s where \<open>\<sigma> \<in> set \<sigma>s \<Longrightarrow> (\<sigma> x) \<in> terms_set (fst (language {\<phi>}))\<close>
+          \<open>\<And>\<C>::nterm intrp. \<And>\<beta>. \<lbrakk>dom \<C> \<noteq> {}; is_valuation \<C> \<beta>\<rbrakk> \<Longrightarrow> \<C>\<^bold>,\<beta> \<Turnstile> foldr Exists xs \<phi>\<close>
+  obtains \<sigma>s where \<open>\<And>\<sigma> x. \<sigma> \<in> set \<sigma>s \<Longrightarrow> \<sigma> x \<in> terms_set (fst (language {\<phi>}))\<close>
                    \<open>\<And>I. I \<Turnstile>\<^sub>p (foldr (\<lambda>\<phi> \<psi>. \<phi> \<^bold>\<or> \<psi>) (map (\<lambda>\<sigma>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<sigma>s) \<^bold>\<bottom>)\<close>
-  sorry
+proof -
+  define A where "A \<equiv> formsubst \<phi> ` {\<sigma>. \<forall>x. \<sigma> x \<in> terms_set (fst (language {\<phi>}))}"
+  have "\<exists>\<phi>' \<in> A. I \<Turnstile>\<^sub>p \<phi>'" for I
+  proof -
+    have *: False if "satisfies (canon_of_prop (language {\<phi>}) I) {\<^bold>\<not> \<phi>}"
+    proof -
+      obtain \<beta> where \<beta>: "is_valuation (canon_of_prop (language {\<phi>}) I) \<beta>"
+        by (metis struct_def valuation_exists intrp_is_struct)
+      then have "canon_of_prop (language {\<phi>}) I\<^bold>, \<beta> \<Turnstile> foldr Exists xs \<phi>"
+        using assms struct_def by fastforce
+      then obtain as where len: "length as = length xs" 
+             and sub: "set as \<subseteq> terms_set (fst (language {\<phi>}))"
+             and sat0: "canon_of_prop (language {\<phi>}) I\<^bold>, 
+                       foldr (\<lambda>u \<beta>. \<beta>(fst u := snd u)) (rev (zip xs as)) \<beta> \<Turnstile> \<phi>"
+        by (force simp add: holds_itlist_exists)
+      define F where "F \<equiv> \<lambda>as::nterm list. \<lambda>xs::nat list. foldr (\<lambda>u \<beta>. \<beta>(fst u := snd u)) (rev (zip xs as))"
+      have F_Cons: "F (a#as) (x#xs) \<beta> = F as xs ((\<beta>(x := a)))" for a as x xs \<beta>
+        by (simp add: F_def)
+      have sat: "canon_of_prop (language {\<phi>}) I\<^bold>, F as xs \<beta> \<Turnstile> \<phi>"
+        using sat0 by (simp add: F_def)
+      have "\<lbrakk>length as = length xs;
+             set as \<subseteq> dom (canon_of_prop (language {\<phi>}) I);
+             is_valuation (canon_of_prop (language {\<phi>}) I) \<beta>\<rbrakk>
+            \<Longrightarrow> is_valuation (canon_of_prop (language {\<phi>}) I) (F as xs \<beta>)"
+        for xs as
+      proof (induction xs arbitrary: as \<beta>)
+        case Nil
+        then show ?case
+          by (simp add: F_def is_valuation_def)
+      next
+        case (Cons x xs as \<beta>)
+        then obtain a as' where aas': "as = a#as'" "length as' = length xs"
+          by (metis length_Suc_conv)
+        with Cons show ?case
+          by (simp add: is_valuation_def aas' F_Cons)
+      qed
+      then have "is_valuation (canon_of_prop (language {\<phi>}) I) (F as xs \<beta>)"
+        by (metis (no_types, lifting) \<beta> dom_canon_of_prop len sub)
+      then show ?thesis
+        using sat satisfies_def that by (force simp: F_def)
+    qed
+    then show ?thesis
+      using psatisfies_instances [of concl: \<open>language {\<phi>}\<close> I \<open>{\<^bold>\<not> \<phi>}\<close>] \<open>qfree \<phi>\<close>
+      by (force simp: A_def)
+  qed
+  then obtain \<Phi> where \<Phi>: \<open>set \<Phi> \<subseteq> A\<close> \<open>\<And>I. I \<Turnstile>\<^sub>p foldr (\<^bold>\<or>) \<Phi> \<^bold>\<bottom>\<close>
+    by (smt (verit, ccfv_threshold) A_def assms(1) compact_disj image_iff qfree_formsubst)
+  show thesis
+  proof
+    define ss where \<open>ss \<equiv> \<lambda>\<Theta>. map (\<lambda>q. @\<sigma>. (\<forall>x. \<sigma> x \<in> terms_set (fst (language {\<phi>}))) \<and> q = formsubst \<phi> \<sigma>) \<Theta>\<close>
+    show \<open>\<sigma> x \<in> terms_set (fst (language {\<phi>}))\<close>
+      if \<open>\<sigma> \<in> set (ss \<Phi>)\<close> for \<sigma> x
+    proof -
+      have *: \<open>A \<subseteq> set \<Phi> \<Longrightarrow>  \<sigma> \<in> set (ss \<Phi>) \<Longrightarrow> \<sigma> x \<in> terms_set (fst (language {\<phi>}))\<close> for \<Phi>
+        sorry
+      then show ?thesis
+        sorry
+    qed
+    show \<open>\<And>I. I \<Turnstile>\<^sub>p foldr (\<^bold>\<or>) (map ((\<cdot>\<^sub>f\<^sub>m) \<phi>) (ss \<Phi>)) \<^bold>\<bottom>\<close>
+      sorry
+  qed
+qed
 
 end
