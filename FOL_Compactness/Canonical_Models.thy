@@ -413,10 +413,10 @@ lemma lowmod_intrp: \<open>is_interpretation \<L> (lowmod \<M>) = is_interpretat
 proof
   have inj: \<open>inj num_of_term\<close>
     by (meson injI num_of_term_inj)
-  show "is_interpretation \<L> (lowmod \<M>) \<Longrightarrow> is_interpretation \<L> \<M>"
+  show \<open>is_interpretation \<L> (lowmod \<M>) \<Longrightarrow> is_interpretation \<L> \<M>\<close>
     unfolding is_interpretation_def dom_lowmod intrp_fn_lowmod inj_image_mem_iff [OF inj]
     by (metis (no_types, lifting) concat_map image_mono image_set length_map map_idI term_of_num_of_term)
-  show "is_interpretation \<L> \<M> \<Longrightarrow> is_interpretation \<L> (lowmod \<M>)"
+  show \<open>is_interpretation \<L> \<M> \<Longrightarrow> is_interpretation \<L> (lowmod \<M>)\<close>
     unfolding is_interpretation_def dom_lowmod intrp_fn_lowmod subset_iff
     by (smt (verit, best) image_iff length_map list.set_map term_of_num_of_term)
 qed
@@ -442,35 +442,35 @@ proof -
 qed
 
 (* UNIFORMITY in HOL Light *)
-lemma uniformity:
+theorem uniformity:
   assumes \<open>qfree \<phi>\<close> 
           \<open>\<And>\<C>::nterm intrp. \<And>\<beta>. \<lbrakk>dom \<C> \<noteq> {}; is_valuation \<C> \<beta>\<rbrakk> \<Longrightarrow> \<C>\<^bold>,\<beta> \<Turnstile> foldr Exists xs \<phi>\<close>
   obtains \<sigma>s where \<open>\<And>\<sigma> x. \<sigma> \<in> set \<sigma>s \<Longrightarrow> \<sigma> x \<in> terms_set (fst (language {\<phi>}))\<close>
                    \<open>\<And>I. I \<Turnstile>\<^sub>p (foldr (\<lambda>\<phi> \<psi>. \<phi> \<^bold>\<or> \<psi>) (map (\<lambda>\<sigma>. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<sigma>s) \<^bold>\<bottom>)\<close>
 proof -
-  define A where "A \<equiv> formsubst \<phi> ` {\<sigma>. \<forall>x. \<sigma> x \<in> terms_set (fst (language {\<phi>}))}"
-  have "\<exists>\<phi>' \<in> A. I \<Turnstile>\<^sub>p \<phi>'" for I
+  define A where \<open>A \<equiv> formsubst \<phi> ` {\<sigma>. \<forall>x. \<sigma> x \<in> terms_set (fst (language {\<phi>}))}\<close>
+  have \<open>\<exists>\<phi>' \<in> A. I \<Turnstile>\<^sub>p \<phi>'\<close> for I
   proof -
-    have *: False if "satisfies (canon_of_prop (language {\<phi>}) I) {\<^bold>\<not> \<phi>}"
+    have *: False if \<open>satisfies (canon_of_prop (language {\<phi>}) I) {\<^bold>\<not> \<phi>}\<close>
     proof -
-      obtain \<beta> where \<beta>: "is_valuation (canon_of_prop (language {\<phi>}) I) \<beta>"
+      obtain \<beta> where \<beta>: \<open>is_valuation (canon_of_prop (language {\<phi>}) I) \<beta>\<close>
         by (metis struct_def valuation_exists intrp_is_struct)
-      then have "canon_of_prop (language {\<phi>}) I\<^bold>, \<beta> \<Turnstile> foldr Exists xs \<phi>"
+      then have \<open>canon_of_prop (language {\<phi>}) I\<^bold>, \<beta> \<Turnstile> foldr Exists xs \<phi>\<close>
         using assms struct_def by fastforce
-      then obtain as where len: "length as = length xs" 
-             and sub: "set as \<subseteq> terms_set (fst (language {\<phi>}))"
-             and sat0: "canon_of_prop (language {\<phi>}) I\<^bold>, 
-                       foldr (\<lambda>u \<beta>. \<beta>(fst u := snd u)) (rev (zip xs as)) \<beta> \<Turnstile> \<phi>"
+      then obtain as where len: \<open>length as = length xs\<close> 
+             and sub: \<open>set as \<subseteq> terms_set (fst (language {\<phi>}))\<close>
+             and sat0: \<open>canon_of_prop (language {\<phi>}) I\<^bold>, 
+                       foldr (\<lambda>u \<beta>. \<beta>(fst u := snd u)) (rev (zip xs as)) \<beta> \<Turnstile> \<phi>\<close>
         by (force simp add: holds_itlist_exists)
-      define F where "F \<equiv> \<lambda>as::nterm list. \<lambda>xs::nat list. foldr (\<lambda>u \<beta>. \<beta>(fst u := snd u)) (rev (zip xs as))"
-      have F_Cons: "F (a#as) (x#xs) \<beta> = F as xs ((\<beta>(x := a)))" for a as x xs \<beta>
+      define F where \<open>F \<equiv> \<lambda>as::nterm list. \<lambda>xs::nat list. foldr (\<lambda>u \<beta>. \<beta>(fst u := snd u)) (rev (zip xs as))\<close>
+      have F_Cons: \<open>F (a#as) (x#xs) \<beta> = F as xs ((\<beta>(x := a)))\<close> for a as x xs \<beta>
         by (simp add: F_def)
-      have sat: "canon_of_prop (language {\<phi>}) I\<^bold>, F as xs \<beta> \<Turnstile> \<phi>"
+      have sat: \<open>canon_of_prop (language {\<phi>}) I\<^bold>, F as xs \<beta> \<Turnstile> \<phi>\<close>
         using sat0 by (simp add: F_def)
-      have "\<lbrakk>length as = length xs;
+      have \<open>\<lbrakk>length as = length xs;
              set as \<subseteq> dom (canon_of_prop (language {\<phi>}) I);
              is_valuation (canon_of_prop (language {\<phi>}) I) \<beta>\<rbrakk>
-            \<Longrightarrow> is_valuation (canon_of_prop (language {\<phi>}) I) (F as xs \<beta>)"
+            \<Longrightarrow> is_valuation (canon_of_prop (language {\<phi>}) I) (F as xs \<beta>)\<close>
         for xs as
       proof (induction xs arbitrary: as \<beta>)
         case Nil
@@ -478,12 +478,12 @@ proof -
           by (simp add: F_def is_valuation_def)
       next
         case (Cons x xs as \<beta>)
-        then obtain a as' where aas': "as = a#as'" "length as' = length xs"
+        then obtain a as' where aas': \<open>as = a#as'\<close> \<open>length as' = length xs\<close>
           by (metis length_Suc_conv)
         with Cons show ?case
           by (simp add: is_valuation_def aas' F_Cons)
       qed
-      then have "is_valuation (canon_of_prop (language {\<phi>}) I) (F as xs \<beta>)"
+      then have \<open>is_valuation (canon_of_prop (language {\<phi>}) I) (F as xs \<beta>)\<close>
         by (metis (no_types, lifting) \<beta> dom_canon_of_prop len sub)
       then show ?thesis
         using sat satisfies_def that by (force simp: F_def)
@@ -496,31 +496,22 @@ proof -
     by (smt (verit, ccfv_threshold) A_def assms(1) compact_disj image_iff qfree_formsubst)
   show thesis
   proof
-    define sf where "sf \<equiv> \<lambda>q. @\<sigma>. (\<forall>i. \<sigma> i \<in> terms_set (fst (language {\<phi>}))) \<and> q = \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>"
+    define sf where \<open>sf \<equiv> \<lambda>q. @\<sigma>. (\<forall>i. \<sigma> i \<in> terms_set (fst (language {\<phi>}))) \<and> q = \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>\<close>
+    have sf_works: \<open>(\<forall>i. sf a i \<in> terms_set (fst (language {\<phi>}))) \<and> a = \<phi> \<cdot>\<^sub>f\<^sub>m (sf a)\<close>
+      if \<open>a \<in> A\<close> for a
+      using that unfolding A_def sf_def image_iff Bex_def mem_Collect_eq
+      by (rule someI_ex)
     show \<open>\<sigma> i \<in> terms_set (fst (language {\<phi>}))\<close>
       if \<open>\<sigma> \<in> set (map sf \<Phi>)\<close> for \<sigma> i
     proof -
       have *: \<open>set \<Theta> \<subseteq> A \<Longrightarrow>  \<sigma> \<in> set (map sf \<Theta>) \<Longrightarrow> \<sigma> i \<in> terms_set (fst (language {\<phi>}))\<close> for \<Theta>
-      proof (induction \<Theta>)
-        case Nil
-        then show ?case
-          by simp
-      next
-        case (Cons \<theta> \<Theta>)
-        then consider "\<sigma> = sf \<theta>" | "\<sigma> \<in> set (map sf \<Theta>)"
-          by force
-        then show ?case
-        proof cases
-          case 1
-          with Cons show ?thesis
-            by (clarsimp simp: image_iff A_def) (smt (verit) sf_def someI2_ex)
-        qed (use Cons in auto)
-      qed
+        by (induction \<Theta>) (auto simp: sf_works)
       then show ?thesis
         using \<Phi> that by fastforce
     qed
-    show \<open>\<And>I. I \<Turnstile>\<^sub>p foldr (\<^bold>\<or>) (map ((\<cdot>\<^sub>f\<^sub>m) \<phi>) (map sf \<Phi>)) \<^bold>\<bottom>\<close>
-      sorry
+    show \<open>I \<Turnstile>\<^sub>p foldr (\<^bold>\<or>) (map ((\<cdot>\<^sub>f\<^sub>m) \<phi>) (map sf \<Phi>)) \<^bold>\<bottom>\<close> for I
+      using \<Phi>(2) [of I] \<Phi>(1)
+    by (induction \<Phi>) (use sf_works in force)+
   qed
 qed
 
