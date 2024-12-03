@@ -1474,7 +1474,7 @@ locale AF_calculus_with_sound_simps = AF_calculus bot Inf entails entails_sound 
   + fixes
       Simps :: \<open>('f, 'v) AF simplification set\<close>
     assumes
-      simplification: \<open>\<iota> \<in> Simps \<Longrightarrow> S_from \<iota> \<subseteq> Red_F (S_to \<iota>)\<close> and
+      simplification: \<open>\<iota> \<in> Simps \<Longrightarrow> (S_from \<iota> - S_to \<iota>) \<subseteq> Red_F (S_to \<iota>)\<close> and
       sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall>\<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s {\<C>}\<close> and
       no_infinite_simps: \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> Simps \<Longrightarrow> finite (S_to \<iota>)\<close>
 
@@ -1540,8 +1540,7 @@ abbreviation split_res :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF fset \<Ri
   \<open>split_res \<C> \<C>s \<equiv> 
     (insert (AF.Pair (F_of bot) (ffUnion (fimage neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>)) (fset \<C>s))\<close>
 
-abbreviation split_simp :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> ('f, 'v) AF simplification\<close>
-  where
+abbreviation split_simp :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> ('f, 'v) AF simplification\<close> where
   \<open>split_simp \<C> \<C>s \<equiv> Simplify {\<C>} (split_res \<C> \<C>s)\<close>
 
 (* Report definition 9 (Simps extended with Split) *)
@@ -1597,11 +1596,11 @@ proof -
 qed
 
 (* Report theorem 19 for Simps extended with Split *)
-lemma simps_with_split_are_simps: \<open>\<iota> \<in> Simps_with_Split \<Longrightarrow> S_from \<iota> \<subseteq> Red_F\<^sub>A\<^sub>F (S_to \<iota>)\<close>
+lemma simps_with_split_are_simps: \<open>\<iota> \<in> Simps_with_Split \<Longrightarrow> (S_from \<iota> - S_to \<iota>) \<subseteq> Red_F\<^sub>A\<^sub>F (S_to \<iota>)\<close>
 proof
   fix \<C>
   assume i_in: \<open>\<iota> \<in> Simps_with_Split\<close> and
-    C_in: \<open>\<C> \<in> S_from \<iota>\<close>
+    C_in: \<open>\<C> \<in> S_from \<iota> - S_to \<iota>\<close>
   then show \<open>\<C> \<in> Red_F\<^sub>A\<^sub>F (S_to \<iota>)\<close>
   proof (cases rule: Simps_with_Split.cases)
     case (split \<C>' \<C>s)
@@ -1927,7 +1926,7 @@ next
   show \<open>\<iota> \<in> core.SInf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> core.SRed\<^sub>I N\<close> for \<iota> N
     using core.S_calculus.Red_I_of_Inf_to_N .
 next
-  show \<open>\<iota> \<in> {} \<Longrightarrow> S_from \<iota> \<subseteq> core.SRed\<^sub>F (S_to \<iota>)\<close> for \<iota>
+  show \<open>\<iota> \<in> {} \<Longrightarrow> S_from \<iota> - S_to \<iota> \<subseteq> core.SRed\<^sub>F (S_to \<iota>)\<close> for \<iota>
     by simp
 next
   show \<open>\<iota> \<in> {} \<Longrightarrow> \<forall>\<C>\<in>S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close> for \<iota>
@@ -1967,7 +1966,7 @@ proof -
   qed
 qed
 
-sublocale splitting_calc_with_split:
+interpretation splitting_calc_with_split:
   AF_calculus_with_split "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" splittable
   using extend_simps_with_split[OF empty_simps.AF_calculus_with_sound_simps_axioms] .
 
@@ -1975,45 +1974,18 @@ end (* locale splitting_calculus *)
 
 subsubsection \<open>The Collect Rule\<close>
 
-locale AF_calculus_with_collect_test = core: core_splitting_calculus bot Inf entails entails_sound 
-  Red_I Red_F fml asn
-  + lifted: AF_calculus_with_sound_simps "to_AF bot" SInf SRed\<^sub>I SRed\<^sub>F Simps
-  for bot :: 'f and
-      Inf :: \<open>'f inference set\<close> and
-      entails :: \<open>[ 'f set, 'f set ] \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
-      entails_sound :: \<open>[ 'f set, 'f set ] \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
-      Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
-      Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
-      fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and
-      asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close> and
-      botS :: \<open>('f, 'v :: countable) AF\<close> and
-      SInf :: \<open>('f, 'v) AF inference set\<close> and
-      Sentails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> and
-      Sentails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
-      SRed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
-      SRed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
-      Simps :: \<open>('f, 'v) AF simplification set\<close>
-
-locale AF_calculus_with_collect =
-  base_calculus: AF_calculus_with_sound_simps bot SInf entails entails_sound RedS\<^sub>I RedS\<^sub>F Simps
-+ core: core_splitting_calculus "F_of bot" FInf entailsF entailsF_sound Red_I Red_F fml asn
+locale AF_calculus_with_collect =  base_calculus: AF_calculus_with_sound_simps bot SInf entails
+  entails_sound SRed\<^sub>I SRed\<^sub>F Simps
   for bot :: \<open>('f, 'v :: countable) AF\<close> and
       SInf :: \<open>('f, 'v) AF inference set\<close> and
       entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>A\<^sub>F\<close> 50) and
       entails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<^sub>A\<^sub>F\<close> 50) and
-      RedS\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
-      RedS\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
-      Simps :: \<open>('f, 'v) AF simplification set\<close> and
-      botF :: 'f and
-      FInf :: \<open>'f inference set\<close> and
-      entailsF :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
-      entailsF_sound :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
-      Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
-      Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
-      fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and
-      asn :: \<open>'f sign \<Rightarrow> ('v :: countable) sign set\<close>
-    + assumes
-      bot_sync: \<open>F_of bot = botF\<close>
+      SRed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
+      SRed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
+      Simps :: \<open>('f, 'v) AF simplification set\<close>
+  + assumes
+    collect_redundant: \<open>F_of \<C> \<noteq> F_of bot \<and> \<M> \<Turnstile>\<^sub>A\<^sub>F {AF.Pair (F_of bot) (A_of \<C>)} \<and> 
+      (\<forall> \<C> \<in> \<M>. F_of \<C> = F_of bot) \<Longrightarrow> \<C> \<in> SRed\<^sub>F \<M>\<close>
 begin
 
 interpretation AF_sound_cons_rel: consequence_relation bot \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
@@ -2035,11 +2007,11 @@ inductive_set Simps_with_Collect :: \<open>('f, 'v) AF simplification set\<close
 | other: \<open>\<iota> \<in> Simps \<Longrightarrow> \<iota> \<in> Simps_with_Collect\<close>
 
 lemma no_infinite_simp_set: \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> Simps_with_Collect \<Longrightarrow> finite (S_to \<iota>)\<close>
-  using Simps_with_Collect.cases base_calculus.no_infinite_simps
-  by force 
+  using Simps_with_Collect.cases base_calculus.no_infinite_simps by force 
 
 (* Report theorem 14 for simps extended with Collect *)
-theorem SInf_with_simps_sound_wrt_entails_sound: \<open>\<iota> \<in> Simps_with_Collect \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+theorem SInf_with_collect_sound_wrt_entails_sound: 
+  \<open>\<iota> \<in> Simps_with_Collect \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
 proof -
   assume \<iota>_is_simp_rule: \<open>\<iota> \<in> Simps_with_Collect\<close>
   then show \<open>\<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
@@ -2062,81 +2034,232 @@ proof -
   qed
 qed
 
-(*
-interpretation Simps_sound: sound_simplification_rules \<open>to_AF bot\<close> SInf \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close> Simps
-  by (standard, auto simp add: SInf_with_simps_sound_wrt_entails_sound)
-*)
-
-find_consts name: Red_F
-
 (* Report theorem 19 for Collect *)
-theorem collect_redundant:
-  shows
-   collect: \<open>collect_pre \<C> \<M> \<Longrightarrow> \<C> \<in> SRed\<^sub>F \<M>\<close>
-proof -
-  assume \<open>collect_pre \<C> \<M>\<close>
-  then have head_\<C>_not_bot: \<open>F_of \<C> \<noteq> F_of bot\<close> and
-            \<M>_entails_bot_\<C>: \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {AF.Pair (F_of bot) (A_of \<C>)}\<close> and
-            all_heads_are_bot_in_\<M>: \<open>\<forall> \<C> \<in> \<M>. F_of \<C> = (F_of bot)\<close>
-    by blast+
-  have \<open>\<And> J. (\<exists> \<C>' \<in> \<M>. enabled \<C>' J) \<Longrightarrow> enabled \<C> J 
-          \<Longrightarrow> F_of \<C> \<in> Red_F (\<M> proj\<^sub>J J)\<close> and
-       \<open>\<And> J. \<not> (\<exists> \<C>' \<in> \<M>. enabled \<C>' J) \<Longrightarrow> enabled \<C> J \<Longrightarrow> False\<close>
-  proof -
-    fix J
-    assume \<C>_enabled: \<open>enabled \<C> J\<close> and
-           \<open>\<exists> \<C>' \<in> \<M>. enabled \<C>' J\<close>
-    then have \<open>\<M> proj\<^sub>J J = {bot}\<close>
-      using all_heads_are_bot_in_\<M>
-      unfolding enabled_projection_def
-      by fast
-    then show \<open>F_of \<C> \<in> Red_F (\<M> proj\<^sub>J J)\<close>
-      using all_red_to_bot[OF head_\<C>_not_bot]
-      by simp
+theorem simps_with_collect_are_simps: 
+  \<open>\<iota> \<in> Simps_with_Collect \<Longrightarrow> (S_from \<iota> - S_to \<iota>) \<subseteq> SRed\<^sub>F (S_to \<iota>)\<close>
+proof
+  fix \<C>
+  assume \<iota>_is_simp_rule: \<open>\<iota> \<in> Simps_with_Collect\<close> and
+    C_in: \<open>\<C> \<in> S_from \<iota> - S_to \<iota>\<close>
+  then show \<open>\<C> \<in> SRed\<^sub>F (S_to \<iota>)\<close>
+  proof (cases rule: Simps_with_Collect.cases)
+    case (collect \<C>' \<M>)
+    then have \<open>\<C> = \<C>'\<close>
+      using C_in by auto
+    moreover have \<open>S_to \<iota> = \<M>\<close>
+      using collect(1) by simp
+    ultimately show ?thesis
+      using collect_redundant[OF collect(2)] by blast
   next
-    fix J
-    assume \<C>_enabled: \<open>enabled \<C> J\<close> and
-           \<open>\<not> (\<exists> \<C>' \<in> \<M>. enabled \<C>' J)\<close>
-    then have \<M>_proj_J_empty: \<open>\<M> proj\<^sub>J J = {}\<close>
-      unfolding enabled_projection_def
-      by blast
-    moreover have \<open>enabled (AF.Pair bot (A_of \<C>)) J\<close>
-      using \<C>_enabled
-      by (auto simp add: enabled_def)
-    ultimately have \<open>{} \<Turnstile> {bot}\<close>
-      using \<M>_entails_bot_\<C>
-      using AF_entails_def
-      by auto
-    then show \<open>False\<close>
-      using entails_bot_to_entails_empty entails_nontrivial
-      by blast
+    case other
+    then show ?thesis
+      using base_calculus.simplification C_in by blast
   qed
-  then show \<open>\<C> \<in> SRed\<^sub>F \<M>\<close>
-    unfolding SRed\<^sub>F_def enabled_def
-    by (smt (verit, ccfv_SIG) AF.collapse CollectI UnI1)
 qed
 
-end (* locale splitting_calculus_with_collect *)
+sublocale  AF_calculus_with_sound_simps bot SInf entails entails_sound SRed\<^sub>I SRed\<^sub>F Simps_with_Collect
+  using simps_with_collect_are_simps SInf_with_collect_sound_wrt_entails_sound no_infinite_simp_set
+  by (unfold_locales, auto)
 
+end
 
-locale splitting_calculus_with_trim =
-  core_splitting_calculus bot Inf entails entails_sound Red_I Red_F fml asn
-  for bot :: 'f and
-      Inf :: \<open>'f inference set\<close> and
-      entails :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
-      entails_sound :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
-      Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
-      Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
-      fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and
-      asn :: \<open>'f sign \<Rightarrow> ('v :: countable) sign set\<close>
+context splitting_calculus
 begin
 
-interpretation AF_sound_cons_rel: consequence_relation \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
-  by (rule AF_ext_sound_cons_rel)
+interpretation AF_sound_cons_rel: consequence_relation "to_AF bot" \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  using core.AF_ext_sound_cons_rel .
 
-interpretation SInf_sound_inf_system: sound_inference_system SInf \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
-  by (standard, auto simp add: SInf_sound_wrt_entails_sound)
+interpretation SInf_sound_inf_system: sound_inference_system core.SInf \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  by (standard, auto simp add: core.SInf_sound_wrt_entails_sound)
 
+(* part of report theorem 19 for Collect *)
+lemma collect_redundant: \<open>F_of \<C> \<noteq> bot \<and> \<M> \<Turnstile>\<^sub>A\<^sub>F {AF.Pair bot (A_of \<C>)} \<and> 
+      (\<forall> \<C> \<in> \<M>. F_of \<C> = bot) \<Longrightarrow> \<C> \<in> core.SRed\<^sub>F \<M>\<close>
+proof clarsimp
+  assume 
+    head_\<C>_not_bot: \<open>F_of \<C> \<noteq> bot\<close> and
+    \<M>_entails_bot_\<C>: \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {AF.Pair bot (A_of \<C>)}\<close> and
+    all_heads_are_bot_in_\<M>: \<open>\<forall> \<C> \<in> \<M>. F_of \<C> = bot\<close>
+  have \<open>\<And> J. (\<exists> \<C>' \<in> \<M>. core.enabled \<C>' J) \<Longrightarrow> core.enabled \<C> J 
+          \<Longrightarrow> F_of \<C> \<in> Red_F (\<M> proj\<^sub>J J)\<close> and
+       \<open>\<And> J. \<not> (\<exists> \<C>' \<in> \<M>. core.enabled \<C>' J) \<Longrightarrow> core.enabled \<C> J \<Longrightarrow> False\<close>
+  proof -
+    fix J
+    assume \<C>_enabled: \<open>core.enabled \<C> J\<close> and
+           \<open>\<exists> \<C>' \<in> \<M>. core.enabled \<C>' J\<close>
+    then have \<open>\<M> proj\<^sub>J J = {bot}\<close>
+      using all_heads_are_bot_in_\<M> unfolding core.enabled_projection_def by fast
+    then show \<open>F_of \<C> \<in> Red_F (\<M> proj\<^sub>J J)\<close>
+      using core.all_red_to_bot[OF head_\<C>_not_bot] by simp
+  next
+    fix J
+    assume \<C>_enabled: \<open>core.enabled \<C> J\<close> and
+           \<open>\<not> (\<exists> \<C>' \<in> \<M>. core.enabled \<C>' J)\<close>
+    then have \<M>_proj_J_empty: \<open>\<M> proj\<^sub>J J = {}\<close>
+      unfolding core.enabled_projection_def by blast
+    moreover have \<open>core.enabled (AF.Pair bot (A_of \<C>)) J\<close>
+      using \<C>_enabled by (auto simp add: core.enabled_def)
+    ultimately have \<open>{} \<Turnstile> {bot}\<close>
+      using \<M>_entails_bot_\<C> using core.AF_entails_def by auto
+    then show \<open>False\<close>
+      using core.entails_bot_to_entails_empty core.entails_nontrivial by blast
+  qed
+  then show \<open>\<C> \<in> core.SRed\<^sub>F \<M>\<close>
+    unfolding core.SRed\<^sub>F_def core.enabled_def by (smt (verit, ccfv_SIG) AF.collapse CollectI UnI1)
+qed
+
+lemma extend_simps_with_collect: 
+  assumes
+    \<open>AF_calculus_with_sound_simps (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+  shows
+    \<open>AF_calculus_with_collect (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+proof -
+  interpret sound_simps: 
+    AF_calculus_with_sound_simps "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F Simps
+    using assms .
+  show ?thesis
+  proof
+    fix \<C> \<M>
+    show \<open>F_of \<C> \<noteq> F_of (to_AF bot) \<and> \<M> \<Turnstile>\<^sub>A\<^sub>F {AF.Pair (F_of (to_AF bot)) (A_of \<C>)} \<and> 
+      (\<forall>\<C>\<in>\<M>. F_of \<C> = F_of (to_AF bot)) \<Longrightarrow> \<C> \<in> core.SRed\<^sub>F \<M>\<close>
+      using collect_redundant by (simp add: F_of_to_AF)
+  qed
+qed
+
+interpretation splitting_calc_with_collect:
+  AF_calculus_with_collect "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}"
+  using extend_simps_with_collect[OF empty_simps.AF_calculus_with_sound_simps_axioms] .
+
+end (* context splitting_calculus *)
+
+subsubsection \<open>The Trim Rule\<close>
+
+locale AF_calculus_with_trim =  base_calculus: AF_calculus_with_sound_simps bot SInf entails
+  entails_sound SRed\<^sub>I SRed\<^sub>F Simps
+  for bot :: \<open>('f, 'v :: countable) AF\<close> and
+      SInf :: \<open>('f, 'v) AF inference set\<close> and
+      entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>A\<^sub>F\<close> 50) and
+      entails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<^sub>A\<^sub>F\<close> 50) and
+      SRed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
+      SRed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
+      Simps :: \<open>('f, 'v) AF simplification set\<close>
+  + assumes
+    trim_sound: \<open>A_of \<C> = A |\<union>| B \<and> F_of \<C> \<noteq> F_of bot \<and> 
+      \<M> \<union> {AF.Pair (F_of bot) A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair (F_of bot) B} \<and>
+      (\<forall>\<C>\<in>\<M>. F_of \<C> = (F_of bot)) \<and> A |\<inter>| B = {||} \<and> A \<noteq> {||}
+        \<Longrightarrow> insert \<C> \<M> \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair (F_of \<C>) B}\<close> and
+    trim_redundant: \<open>A_of \<C> = A |\<union>| B \<and> F_of \<C> \<noteq> F_of bot \<and> 
+      \<M> \<union> {AF.Pair (F_of bot) A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair (F_of bot) B} \<and>
+      (\<forall>\<C>\<in>\<M>. F_of \<C> = (F_of bot)) \<and> A |\<inter>| B = {||} \<and> A \<noteq> {||}
+        \<Longrightarrow> \<C> \<in> SRed\<^sub>F (\<M> \<union> { AF.Pair (F_of \<C>) B })\<close>
+
+begin
+
+interpretation AF_sound_cons_rel: consequence_relation bot \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  using base_calculus.sc.sound_cons.consequence_relation_axioms .
+
+interpretation SInf_sound_inf_system: sound_inference_system SInf bot \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  using base_calculus.sc.sound_inference_system_axioms .
+
+abbreviation trim_pre :: \<open>('f, 'v) AF \<Rightarrow> 'v sign fset \<Rightarrow> 'v sign fset \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> where
+  \<open>trim_pre \<C> A B \<M> \<equiv> A_of \<C> = A |\<union>| B \<and> F_of \<C> \<noteq> F_of bot \<and>
+                       \<M> \<union> { AF.Pair (F_of bot) A } \<Turnstile>s\<^sub>A\<^sub>F { AF.Pair (F_of bot) B } \<and>
+                       (\<forall> \<C> \<in> \<M>. F_of \<C> = (F_of bot)) \<and> A |\<inter>| B = {||} \<and> A \<noteq> {||}\<close>
+
+
+
+abbreviation trim_simp :: \<open>('f, 'v) AF \<Rightarrow> 'v sign fset \<Rightarrow> 'v sign fset \<Rightarrow> ('f, 'v) AF set \<Rightarrow>
+  ('f, 'v) AF simplification\<close> where
+  \<open>trim_simp \<C> A B \<M> \<equiv> Simplify (insert \<C> \<M>) (insert (AF.Pair (F_of \<C>) B) \<M>)\<close>
+
+(* Report definition 9 (Trim only) *)
+inductive_set Simps_with_Trim :: \<open>('f, 'v) AF simplification set\<close> where
+  trim: \<open>trim_pre \<C> A B \<M> \<Longrightarrow> trim_simp \<C> A B \<M> \<in> Simps_with_Trim\<close>
+| other: \<open>\<iota> \<in> Simps \<Longrightarrow> \<iota> \<in> Simps_with_Trim\<close>
+
+find_theorems name: Simps_with_Trim name: cases
+
+lemma no_infinite_simp_set: \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> Simps_with_Trim \<Longrightarrow> finite (S_to \<iota>)\<close>
+  using Simps_with_Trim.cases base_calculus.no_infinite_simps by force
+
+theorem SInf_with_trim_sound_wrt_entails_sound: 
+  \<open>\<iota> \<in> Simps_with_Trim \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+proof -
+  assume \<iota>_is_simp_rule: \<open>\<iota> \<in> Simps_with_Trim\<close>
+  then show \<open>\<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+  proof (intro ballI)
+    fix \<C>
+    assume \<C>_is_consq_of_\<iota>: \<open>\<C> \<in> S_to \<iota>\<close>
+    show \<open>S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
+      using \<iota>_is_simp_rule
+    proof (cases rule: Simps_with_Trim.cases)
+      case (trim \<C>' A B \<N>)
+      then have \<open>A_of \<C>' = A |\<union>| B\<close> and
+        \<open>F_of \<C>' \<noteq> F_of bot\<close> and
+        \<N>_and_Pair_bot_A_entails_Pair_bot_B: 
+        \<open>\<N> \<union> {AF.Pair (F_of bot) A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair (F_of bot) B}\<close> and
+        all_heads_in_\<N>_are_bot: \<open>(\<forall> \<C> \<in> \<N>. F_of \<C> = F_of bot)\<close> and
+        \<open>A |\<inter>| B = {||}\<close> and
+        \<open>A \<noteq> {||}\<close>
+        by blast+
+      consider \<open>\<C> = AF.Pair (F_of \<C>') B\<close> | \<open>\<C> \<in> \<N>\<close>
+        using \<C>_is_consq_of_\<iota> trim(1) by auto
+      then show ?thesis
+      proof cases
+        case 1
+        then show ?thesis
+          using trim_sound[OF trim(2)] trim(1) by fastforce
+      next
+        case 2
+        then show ?thesis
+          using trim(1) by (metis base_calculus.sc.sound_cons.entails_reflexive 
+              base_calculus.sc.sound_cons.entails_subsets empty_subsetI insertI2 insert_subset
+              simplification.sel(1) subset_singleton_iff)
+      qed
+    next
+      case other
+      show ?thesis
+        using base_calculus.sound[OF other] \<C>_is_consq_of_\<iota> by auto
+    qed
+  qed
+qed
+
+(* Report theorem 19 for Collect *)
+theorem simps_with_trim_are_simps: 
+  \<open>\<iota> \<in> Simps_with_Trim \<Longrightarrow> (S_from \<iota> - S_to \<iota>) \<subseteq> SRed\<^sub>F (S_to \<iota>)\<close>
+proof
+  fix \<C>
+  assume \<open>\<iota> \<in> Simps_with_Trim\<close> and
+    C_in: \<open>\<C> \<in> S_from \<iota> - S_to \<iota>\<close>
+  then show \<open>\<C> \<in> SRed\<^sub>F (S_to \<iota>)\<close>
+  proof (cases rule: Simps_with_Trim.cases)
+    case (trim \<C>' A B \<M>)
+    then have \<open>\<C>' = \<C>\<close> using C_in by auto
+    then show ?thesis
+      using trim_redundant[OF trim(2)] trim(1) by simp
+  next
+    case other
+    then show ?thesis
+      using base_calculus.simplification C_in by auto
+  qed
+qed
+
+sublocale  AF_calculus_with_sound_simps bot SInf entails entails_sound SRed\<^sub>I SRed\<^sub>F Simps_with_Trim
+  using simps_with_trim_are_simps SInf_with_trim_sound_wrt_entails_sound no_infinite_simp_set
+  by (unfold_locales, auto)
+
+end (* locale AF_calculus_with_trim *)
+
+context splitting_calculus
+begin
+
+interpretation AF_sound_cons_rel: consequence_relation "to_AF bot" \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  using core.AF_ext_sound_cons_rel .
+
+interpretation SInf_sound_inf_system: sound_inference_system core.SInf \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  by (standard, auto simp add: core.SInf_sound_wrt_entails_sound)
+
+(*
 abbreviation trim_pre :: \<open>('f, 'v) AF \<Rightarrow> 'v sign fset \<Rightarrow> 'v sign fset \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> where
   \<open>trim_pre \<C> A B \<M> \<equiv> A_of \<C> = A |\<union>| B \<and> F_of \<C> \<noteq> bot \<and>
                        \<M> \<union> { AF.Pair bot A } \<Turnstile>s\<^sub>A\<^sub>F { AF.Pair bot B } \<and>
@@ -2153,7 +2276,7 @@ inductive_set Simps :: \<open>('f, 'v) AF simplification set\<close> where
 lemma no_infinite_simp_set: \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> Simps \<Longrightarrow> finite (S_to \<iota>)\<close>
   using Simps.cases
   by force 
-
+*)
 (* Report theorem 14 for Trim *)
 theorem SInf_with_simps_sound_wrt_entails_sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
 proof -
@@ -2278,7 +2401,7 @@ proof -
         insert_subset order_le_imp_less_or_eq pre_cond sup.cobounded2)
 qed
 
-end (* locale splitting_calculus_with_trim *)
+end (* context splitting_calculus *)
 
 
 subsection \<open>Extra Inference\<close>
