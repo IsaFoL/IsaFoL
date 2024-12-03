@@ -2,7 +2,7 @@ theory First_Order_Select
   imports 
     Selection_Function
     Nonground_Clause
-    First_Order_Type_System
+    Nonground_Typing
 begin
 
 type_synonym ('f, 'v, 'ty) typed_clause = "('f, 'v) atom clause \<times> ('v, 'ty) var_types"

@@ -5,17 +5,6 @@ theory Nonground_Term_Typing
     Nonground_Term
 begin
 
-inductive typed :: "('f, 'ty) fun_types \<Rightarrow> ('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" 
-  for \<F> \<V> where
-    Var: "\<V> x = \<tau> \<Longrightarrow> typed \<F> \<V> (Var x) \<tau>"
-  | Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> typed \<F> \<V> (Fun f ts) \<tau>"
-
-(* TODO/ Note: Implicitly implies that for every function symbol there is one fixed arity *)
-inductive welltyped :: "('f, 'ty) fun_types \<Rightarrow>  ('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" 
-  for \<F> \<V> where
-    Var: "\<V> x = \<tau> \<Longrightarrow> welltyped \<F> \<V> (Var x) \<tau>"
-  | Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> list_all2 (welltyped \<F> \<V>) ts \<tau>s \<Longrightarrow> welltyped \<F> \<V> (Fun f ts) \<tau>"
-
 locale nonground_term_functional_substitution_typing = 
   base_functional_substitution_typing + 
   typed: explicitly_typed_subst_stability + 
@@ -29,13 +18,18 @@ locale nonground_term_typing =
   fixes \<F> :: "('f, 'ty) fun_types"
 begin
 
-abbreviation typed :: "('v \<Rightarrow> 'ty) \<Rightarrow> ('f, 'v) Term.term \<Rightarrow> 'ty \<Rightarrow> bool" where 
-  "typed \<equiv> Nonground_Term_Typing.typed \<F>"
+inductive typed :: "('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" 
+  for \<V> where
+    Var: "\<V> x = \<tau> \<Longrightarrow> typed \<V> (Var x) \<tau>"
+  | Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> typed \<V> (Fun f ts) \<tau>"
 
-abbreviation welltyped  :: "('v \<Rightarrow> 'ty) \<Rightarrow> ('f, 'v) Term.term \<Rightarrow> 'ty \<Rightarrow> bool" where 
-  "welltyped \<equiv> Nonground_Term_Typing.welltyped \<F>"
+(* TODO/ Note: Implicitly implies that for every function symbol there is one fixed arity *)
+inductive welltyped :: "('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" 
+  for \<V> where
+    Var: "\<V> x = \<tau> \<Longrightarrow> welltyped \<V> (Var x) \<tau>"
+  | Fun: "\<F> f = (\<tau>s, \<tau>) \<Longrightarrow> list_all2 (welltyped \<V>) ts \<tau>s \<Longrightarrow> welltyped \<V> (Fun f ts) \<tau>"
 
-sublocale "term": explicit_typing "typed \<V>" "welltyped \<V>"
+sublocale "term": explicit_typing "typed (\<V> :: 'v \<Rightarrow> 'ty)" "welltyped \<V>"
 proof unfold_locales
   fix \<V> :: "('v, 'ty) var_types"
   show "right_unique (typed \<V>)"
@@ -58,10 +52,11 @@ next
   fix \<V> :: "('v, 'ty) var_types" and t \<tau> 
   assume "welltyped \<V> t \<tau>"
   then show "typed \<V> t \<tau>"
-    by (metis typed.intros welltyped.cases)
+    by (metis (full_types) typed.simps welltyped.cases)
 qed
 
-sublocale term_typing where typed = "typed (\<V> :: 'v \<Rightarrow> 'ty)" and welltyped = "welltyped \<V>" and Fun = Fun
+sublocale term_typing where 
+  typed = "typed (\<V> :: 'v \<Rightarrow> 'ty)" and welltyped = "welltyped \<V>" and Fun = Fun
 proof unfold_locales
   fix t t' c \<tau> \<tau>'
   assume 
@@ -83,7 +78,7 @@ proof unfold_locales
       by simp
 
     hence "welltyped \<V> (Fun f (ss1 @ c\<langle>t'\<rangle> # ss2)) \<tau>"
-    proof (cases \<F> \<V> "Fun f (ss1 @ c\<langle>t\<rangle> # ss2)" \<tau> rule: welltyped.cases)
+    proof (cases \<V> "Fun f (ss1 @ c\<langle>t\<rangle> # ss2)" \<tau> rule: welltyped.cases)
       case (Fun \<tau>s)
 
       show ?thesis
@@ -122,7 +117,7 @@ next
       by simp
 
     hence "typed \<V> (Fun f (ss1 @ c\<langle>t'\<rangle> # ss2)) \<tau>"
-    proof (cases \<F> \<V> "Fun f (ss1 @ c\<langle>t\<rangle> # ss2)" \<tau> rule: typed.cases)
+    proof (cases \<V> "Fun f (ss1 @ c\<langle>t\<rangle> # ss2)" \<tau> rule: typed.cases)
       case (Fun \<tau>s)
 
       then show ?thesis
@@ -144,8 +139,8 @@ next
 qed
 
 sublocale nonground_term_functional_substitution_typing where 
-  id_subst = "Var :: 'v \<Rightarrow> ('f, 'v) term" and comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and vars = term.vars and 
-  expr_welltyped = welltyped and expr_typed = typed
+  id_subst = "Var :: 'v \<Rightarrow> ('f, 'v) term" and comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and 
+  vars = term.vars and expr_welltyped = welltyped and expr_typed = typed
 proof unfold_locales
   fix \<V> :: "('v, 'ty) var_types" and x
   show "welltyped \<V> (Var x) (\<V> x)"

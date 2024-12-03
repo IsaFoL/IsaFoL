@@ -1,4 +1,4 @@
-theory First_Order_Type_System
+theory Nonground_Typing
   imports
     Clause_Typing
     Nonground_Term_Typing
@@ -7,7 +7,6 @@ theory First_Order_Type_System
     Fun_Extra
 begin
 
-(* TODO: Name *)
 locale nonground_typing_lifting = 
   is_typed: typed_subst_stability_lifting where base_typed = base_typed + 
   is_welltyped: typed_subst_stability_lifting where 
@@ -38,7 +37,7 @@ locale term_based_nonground_typing_lifting =
   nonground_typing_lifting where  
   id_subst = Var and comp_subst = "(\<odot>)" and base_subst = "(\<cdot>t)" and base_vars = term.vars 
 
-locale atom_typing_lifting =
+locale term_based_nonground_uniform_typing_lifting =
   nonground_uniform_typing_lifting where  
   id_subst = Var and comp_subst = "(\<odot>)" and sub_subst = "(\<cdot>t)" and sub_vars = term.vars and 
   map = map_uprod and to_set = set_uprod 
@@ -53,7 +52,7 @@ sublocale nonground_term_typing "\<F> :: ('f, 'ty) fun_types"
 sublocale clause_typing "typed (\<V> :: ('v, 'ty) var_types)" "welltyped \<V>"
   by unfold_locales
 
-sublocale atom: atom_typing_lifting where 
+sublocale atom: term_based_nonground_uniform_typing_lifting where 
   base_typed = typed and base_welltyped = welltyped 
   by unfold_locales
 

@@ -5,7 +5,7 @@ theory First_Order_Superposition
     Ground_Superposition
     First_Order_Select
     Renaming
-    First_Order_Type_System
+    Nonground_Typing
 begin
 
 hide_type Inference_System.inference
