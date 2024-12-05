@@ -2259,59 +2259,63 @@ interpretation AF_sound_cons_rel: consequence_relation "to_AF bot" \<open>(\<Tur
 interpretation SInf_sound_inf_system: sound_inference_system core.SInf \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
   by (standard, auto simp add: core.SInf_sound_wrt_entails_sound)
 
-(* part of Report theorem 14 for Trim *)
-lemma trim_sound: \<open>A_of \<C> = A |\<union>| B \<and> F_of \<C> \<noteq> bot \<and> 
-      \<M> \<union> {AF.Pair bot A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B} \<and>
-      (\<forall>\<C>\<in>\<M>. F_of \<C> = bot) \<and> A |\<inter>| B = {||} \<and> A \<noteq> {||}
-        \<Longrightarrow> insert \<C> \<M> \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair (F_of \<C>) B}\<close>
+
+lemma trim_sound: \<open>A_of \<C>' = A |\<union>| B \<and> F_of \<C>' \<noteq> bot \<and> 
+      \<N> \<union> {AF.Pair bot A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B} \<and>
+      (\<forall>\<C>\<in>\<N>. F_of \<C> = bot) \<and> A |\<inter>| B = {||} \<and> A \<noteq> {||}
+        \<Longrightarrow> \<C> = AF.Pair (F_of \<C>') B \<Longrightarrow> insert \<C>' \<N> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
 proof clarsimp
-  assume A_of_C: \<open>A_of \<C> = A |\<union>| B\<close> and
-    F_of_C: \<open>F_of \<C> \<noteq> bot\<close> and
-    \<M>_and_Pair_bot_A_entails_Pair_bot_B: \<open>AF.Pair bot A \<triangleright> \<M> \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B}\<close> and
-    all_heads_in_\<M>_are_bot: \<open>(\<forall>\<C> \<in> \<M>. F_of \<C> = bot)\<close> and
-    \<open>A |\<inter>| B = {||}\<close> and
-    \<open>A \<noteq> {||}\<close>
-  then have
-    \<open>core.enabled (AF.Pair (F_of \<C>) B) J \<Longrightarrow>
-           core.fml_ext ` total_strip J \<union> Pos ` (insert (AF.Pair (F_of \<C>) A) \<M> proj\<^sub>J J)
-             \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
+  assume A_of_Cp: \<open>A_of \<C>' = A |\<union>| B\<close> and
+    F_of_Cp: \<open>F_of \<C>' \<noteq> bot\<close> and
+    A_in_N_entails_B: \<open>AF.Pair bot A \<triangleright> \<N> \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B}\<close> and
+    all_heads_in_\<N>_are_bot: \<open>(\<forall> \<C> \<in> \<N>. F_of \<C> = bot)\<close> and
+    A_int_B: \<open>A |\<inter>| B = {||}\<close> and
+    A_neq: \<open>A \<noteq> {||}\<close>
+  have \<N>_and_Pair_bot_A_entails_Pair_bot_B: \<open>\<N> \<union> {AF.Pair bot A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B}\<close>
+    using A_in_N_entails_B by auto
+  let ?\<C> = \<open>AF.Pair (F_of \<C>') B\<close>
+  have neg_entails_version:
+    \<open>core.enabled  ?\<C> J \<Longrightarrow>
+           core.fml_ext ` total_strip J \<union> Pos ` (insert (AF.Pair (F_of \<C>') A) \<N> proj\<^sub>J J)
+             \<Turnstile>s\<^sub>\<sim> {Pos (F_of ?\<C>)}\<close>
     for J
   proof -
     fix J
-    assume C_enabled: \<open>core.enabled (AF.Pair (F_of \<C>) B) J\<close>
+    assume \<open>core.enabled ?\<C> J\<close>
     then have B_in_J: \<open>fset B \<subseteq> total_strip J\<close>
-      using core.enabled_def A_of_C by simp 
-    then consider 
-      (fml_unsat) \<open>core.sound_cons.entails_neg (core.fml_ext ` total_strip J) {Pos bot}\<close> |
-      (\<M>_unsat) \<open>\<exists> A' \<in> A_of ` \<M>. fset A' \<subseteq> total_strip J\<close> |
+      by (simp add: core.enabled_def)
+    then consider (fml_unsat) \<open>core.sound_cons.entails_neg (core.fml_ext ` total_strip J) {Pos bot}\<close> |
+      (\<N>_unsat) \<open>\<exists> A' \<in> A_of ` \<N>. fset A' \<subseteq> total_strip J\<close> |
       (A_subset_J) \<open>fset A \<subseteq> total_strip J\<close>
-      using core.strong_entails_bot_cases \<M>_and_Pair_bot_A_entails_Pair_bot_B
+      using core.strong_entails_bot_cases[OF \<N>_and_Pair_bot_A_entails_Pair_bot_B, rule_format,
+          OF B_in_J]
         core.strong_entails_bot_cases_Union[rule_format, OF _ _ B_in_J]
-      sorry
-(*      by (metis A_of_C C_enabled core.enabled_def le_sup_iff sup_fset.rep_eq) *)
+      by (smt (verit, ccfv_SIG) Un_commute core.enabled_def core.enabled_projection_def equals0I
+          image_iff mem_Collect_eq sup_bot_left)
     then show
-      \<open>core.fml_ext ` total_strip J \<union> Pos ` (insert (AF.Pair (F_of \<C>) A) \<M> proj\<^sub>J J)
-               \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
+      \<open>core.fml_ext ` total_strip J \<union> Pos ` (insert (AF.Pair (F_of \<C>') A) \<N> proj\<^sub>J J)
+               \<Turnstile>s\<^sub>\<sim> {Pos (F_of ?\<C>)}\<close>
     proof cases
       case fml_unsat
-      then have \<open>(core.fml_ext ` total_strip J) \<Turnstile>s\<^sub>\<sim> {Pos bot, Pos (F_of \<C>)}\<close>
+      then have \<open>(core.fml_ext ` total_strip J) \<Turnstile>s\<^sub>\<sim> {Pos bot, Pos (F_of \<C>')}\<close>
         by (smt (verit, best) Un_absorb consequence_relation.entails_subsets insert_is_Un
             core.sound_cons.ext_cons_rel sup_ge1)
-      moreover have \<open>((core.fml_ext ` total_strip J) \<union> {Pos bot}) \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
+      moreover have \<open>((core.fml_ext ` total_strip J) \<union> {Pos bot}) \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>')}\<close>
         by (smt (verit, del_insts) Un_commute Un_upper2 empty_subsetI insert_subset
             mem_Collect_eq core.sound_cons.bot_entails_empty core.sound_cons.entails_neg_def
             core.sound_cons.entails_subsets)
-      ultimately have \<open>(core.fml_ext ` total_strip J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
+      ultimately have \<open>(core.fml_ext ` total_strip J) \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>')}\<close>
         using consequence_relation.entails_cut core.sound_cons.ext_cons_rel
         by fastforce
       then show ?thesis
-        by (smt (verit, best) AF.sel(1) A_of_C consequence_relation.entails_subsets
+        by (smt (verit, best) AF.sel(1) consequence_relation.entails_subsets
             insert_is_Un core.sound_cons.ext_cons_rel sup_ge1)
     next
-      case \<M>_unsat
-      then have \<open>bot \<in> \<M> proj\<^sub>J J\<close>
-        unfolding core.enabled_projection_def core.enabled_def using all_heads_in_\<M>_are_bot by auto
-      then have \<open>(Pos ` (\<M> proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {}\<close>
+      case \<N>_unsat
+      then have \<open>bot \<in> \<N> proj\<^sub>J J\<close>
+        unfolding core.enabled_projection_def core.enabled_def
+        using all_heads_in_\<N>_are_bot by fastforce
+      then have \<open>(Pos ` (\<N> proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {}\<close>
         by (smt (verit, del_insts) consequence_relation.bot_entails_empty
             consequence_relation.entails_subsets image_insert insert_is_Un mk_disjoint_insert
             core.sound_cons.ext_cons_rel sup_bot_right sup_ge1)
@@ -2322,26 +2326,26 @@ proof clarsimp
       case A_subset_J
       then have pair_bot_A_enabled: \<open>core.enabled (AF.Pair bot A) J\<close>
         by (simp add: core.enabled_def)
-      then have \<open>{Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
+      then have \<open>{Pos (F_of \<C>')} \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>')}\<close>
         by (meson consequence_relation.entails_reflexive core.sound_cons.ext_cons_rel)
-      then have \<open>(Pos ` ({AF.Pair (F_of \<C>) A} proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
-        using pair_bot_A_enabled core.enabled_def core.enabled_projection_def
+      then have \<open>(Pos ` ({AF.Pair (F_of \<C>') A} proj\<^sub>J J)) \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>')}\<close>
+        using pair_bot_A_enabled  core.enabled_def core.enabled_projection_def
         by force
       then show ?thesis
-        by (smt (verit, ccfv_threshold) AF.sel(1) Un_commute Un_upper2 A_of_C
+        by (smt (verit, ccfv_threshold) AF.sel(1) Un_commute Un_upper2
             consequence_relation.entails_subsets core.distrib_proj image_Un insert_is_Un
             core.sound_cons.ext_cons_rel)
     qed
   qed
-  then show \<open>insert \<C> \<M> \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair (F_of \<C>) B}\<close>
+  have trim_assms: \<open>A_of \<C>' = A |\<union>| B \<and> F_of \<C>' \<noteq> bot \<and> \<N> \<union> {AF.Pair bot A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot B} \<and>
+   (\<forall>\<C>\<in>\<N>. F_of \<C> = bot) \<and> A |\<inter>| B = {||} \<and> A \<noteq> {||}\<close>
+    using A_of_Cp F_of_Cp \<N>_and_Pair_bot_A_entails_Pair_bot_B all_heads_in_\<N>_are_bot A_int_B A_neq
+    by blast
+  show \<open>\<C>' \<triangleright> \<N> \<Turnstile>s\<^sub>A\<^sub>F {?\<C>}\<close>
     unfolding core.AF_entails_sound_def core.enabled_set_def
-    using AF.collapse AF.sel(2) Un_insert_right A_of_C F_of_C core.distrib_proj_singleton
-        core.enabled_def image_empty image_insert insertCI 
-        core.projection_of_enabled_subset sup_bot_right
-    sorry
-(*    by (smt (verit, best) AF.collapse AF.sel(2) Un_insert_right A_of_C F_of_C core.distrib_proj_singleton
-        core.enabled_def image_empty image_insert insertCI 
-        core.projection_of_enabled_subset sup_bot_right) *)
+    by (smt (verit, ccfv_threshold) AF.collapse AF.sel(2) A_of_Cp core.distrib_proj core.enabled_def
+        core.projection_of_enabled_subset image_empty image_insert insertCI insert_is_Un 
+        neg_entails_version)
 qed
 
 (* part of Report theorem 19 for Trim *)
