@@ -1474,16 +1474,17 @@ locale AF_calculus_with_sound_simps = AF_calculus bot Inf entails entails_sound 
   + fixes
       Simps :: \<open>('f, 'v) AF simplification set\<close>
     assumes
-      simplification: \<open>\<iota> \<in> Simps \<Longrightarrow> (S_from \<iota> - S_to \<iota>) \<subseteq> Red_F (S_to \<iota>)\<close> and
-      sound: \<open>\<iota> \<in> Simps \<Longrightarrow> \<forall>\<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s {\<C>}\<close> and
-      no_infinite_simps: \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> Simps \<Longrightarrow> finite (S_to \<iota>)\<close>
+      simplification: \<open>\<delta> \<in> Simps \<Longrightarrow> (S_from \<delta> - S_to \<delta>) \<subseteq> Red_F (S_to \<delta>)\<close> and
+      simps_sound: \<open>\<delta> \<in> Simps \<Longrightarrow> \<forall>\<C> \<in> S_to \<delta>. S_from \<delta> \<Turnstile>s {\<C>}\<close> and
+      no_infinite_simps: \<open>finite (S_from \<delta>) \<Longrightarrow> \<delta> \<in> Simps \<Longrightarrow> finite (S_to \<delta>)\<close> and
+      infs_sound: \<open>\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s {concl_of \<iota>}\<close>
 
 text \<open>An empty set of simplification steps is accepted in term\<open>locale AF_calculus_with_sound_simps\<close>\<close>
 context AF_calculus
 begin
 
 sublocale empty_simps: AF_calculus_with_sound_simps bot Inf entails entails_sound Red_I Red_F "{}"
-  by (unfold_locales, auto)
+  using sc.sound by (unfold_locales, auto)
 
 end
 
@@ -1577,7 +1578,7 @@ proof -
     next
       case other
       then show ?thesis
-        using \<C>_is_consq_of_\<iota> base_calculus.sound by auto
+        using \<C>_is_consq_of_\<iota> base_calculus.simps_sound by auto
     qed
   qed
 qed
@@ -1617,7 +1618,7 @@ qed
 
 sublocale AF_calculus_with_sound_simps bot SInf entails entails_sound Red_I\<^sub>A\<^sub>F Red_F\<^sub>A\<^sub>F Simps_with_Split
   using simps_with_split_are_simps SInf_with_simps_sound_wrt_entails_sound no_infinite_simps
-  by (unfold_locales, auto)
+  base_calculus.infs_sound  by (unfold_locales, auto)
 
 end
 
@@ -1934,6 +1935,10 @@ next
 next
   show \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> {} \<Longrightarrow> finite (S_to \<iota>)\<close> for \<iota> :: "('f, 'v) AF simplification"
     by blast
+next
+  find_theorems "_ \<Turnstile>s\<^sub>A\<^sub>F _ " name: local.core name: sound
+  show \<open>\<iota> \<in> core.SInf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close> for \<iota>
+    using core.SInf_sound_wrt_entails_sound .
 qed
 
 lemma extend_simps_with_split:
@@ -1965,6 +1970,8 @@ proof -
       using split_cons_entail_prem by (simp add: F_of_to_AF)
   qed
 qed
+
+find_theorems name: empty_simps
 
 interpretation splitting_calc_with_split:
   AF_calculus_with_split "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" splittable
@@ -2029,7 +2036,7 @@ proof -
     next
       case other
       then show ?thesis
-        using base_calculus.sound \<C>_is_consq_of_\<iota> by auto
+        using base_calculus.simps_sound \<C>_is_consq_of_\<iota> by auto
     qed
   qed
 qed
@@ -2059,7 +2066,7 @@ qed
 
 sublocale  AF_calculus_with_sound_simps bot SInf entails entails_sound SRed\<^sub>I SRed\<^sub>F Simps_with_Collect
   using simps_with_collect_are_simps SInf_with_collect_sound_wrt_entails_sound no_infinite_simp_set
-  by (unfold_locales, auto)
+    base_calculus.infs_sound by (unfold_locales, auto)
 
 end
 
@@ -2219,7 +2226,7 @@ proof -
     next
       case other
       show ?thesis
-        using base_calculus.sound[OF other] \<C>_is_consq_of_\<iota> by auto
+        using base_calculus.simps_sound[OF other] \<C>_is_consq_of_\<iota> by auto
     qed
   qed
 qed
@@ -2246,7 +2253,7 @@ qed
 
 sublocale  AF_calculus_with_sound_simps bot SInf entails entails_sound SRed\<^sub>I SRed\<^sub>F Simps_with_Trim
   using simps_with_trim_are_simps SInf_with_trim_sound_wrt_entails_sound no_infinite_simp_set
-  by (unfold_locales, auto)
+    base_calculus.infs_sound by (unfold_locales, auto)
 
 end (* locale AF_calculus_with_trim *)
 
@@ -2404,7 +2411,7 @@ interpretation splitting_calc_with_trim:
 end (* context splitting_calculus *)
 
 
-subsection \<open>Extra Inference\<close>
+subsection \<open>Extra Inferences\<close>
 
 text \<open>
   We extend our basic splitting calculus with new optional rules:
@@ -2414,16 +2421,17 @@ text \<open>
   \<^item> \textsc{Tauto} inserts a new formula which is always true.
 \<close>
 
-locale splitting_calculus_with_strong_unsat =
-  core_splitting_calculus bot Inf entails entails_sound Red_I Red_F fml asn
-  for bot :: 'f and
-      Inf :: \<open>'f inference set\<close> and
-      entails :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
-      entails_sound :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<close> 50) and
-      Red_I :: \<open>'f set \<Rightarrow> 'f inference set\<close> and
-      Red_F :: \<open>'f set \<Rightarrow> 'f set\<close> and
-      fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and
-      asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close>
+subsubsection \<open>The StrongUnsat Rule\<close>
+
+locale AF_calculus_with_strong_unsat = 
+  base: AF_calculus_with_sound_simps bot SInf entails entails_sound Red_I Red_F Simps
+  for bot :: \<open>('f, 'v :: countable) AF\<close> and
+      SInf :: \<open>('f, 'v) AF inference set\<close> and
+      entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> and
+      entails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<^sub>A\<^sub>F\<close> 50) and
+      Red_I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
+      Red_F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
+      Simps :: \<open>('f, 'v) AF simplification set\<close>
 begin
 
 text \<open>
@@ -2434,106 +2442,67 @@ text \<open>
 \<close>
 
 abbreviation strong_unsat_pre :: \<open>('f, 'v) AF list \<Rightarrow> bool\<close> where
-  \<open>strong_unsat_pre \<M> \<equiv> set \<M> \<Turnstile>s\<^sub>A\<^sub>F {to_AF bot} \<and> (\<forall> x \<in> set \<M>. F_of x = bot)\<close>
+  \<open>strong_unsat_pre \<M> \<equiv> (set \<M> \<Turnstile>s\<^sub>A\<^sub>F {bot}) \<and> (\<forall> x \<in> set \<M>. F_of x = (F_of bot))\<close>
 
 abbreviation strong_unsat_inf :: \<open>('f, 'v) AF list \<Rightarrow> ('f, 'v) AF inference\<close> where
-  \<open>strong_unsat_inf \<M> \<equiv> Infer \<M> (to_AF bot)\<close>
-
-(* abbreviation tauto_pre :: \<open>('f, 'v) AF \<Rightarrow> bool\<close> where
-  \<open>tauto_pre \<C> \<equiv> {} \<Turnstile>s\<^sub>A\<^sub>F { \<C> }\<close>
-
-abbreviation tauto_inf :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF inference\<close> where
-  \<open>tauto_inf \<C> \<equiv> Infer [] \<C>\<close>
-
-abbreviation approx_pre :: \<open>'v sign \<Rightarrow> ('f, 'v) AF \<Rightarrow> bool\<close> where
-  \<open>approx_pre a \<C> \<equiv> a \<in> asn (Pos (F_of \<C>))\<close>
-
-abbreviation approx_inf :: \<open>('f, 'v) AF \<Rightarrow> 'v sign \<Rightarrow> ('f, 'v) AF inference\<close> where
-  \<open>approx_inf \<C> a \<equiv> Infer [\<C>] (AF.Pair bot (finsert (neg a) (A_of \<C>)))\<close> *)
+  \<open>strong_unsat_inf \<M> \<equiv> Infer \<M> bot\<close>
 
 text \<open>Instead of considering an inference system with only the new rule, here \textsc{StrongUnsat},
   we instead add it to the inference system provided so that it is possible to extend the system 
   rule by rule in a modular way.\<close> 
   
 (* Report definition 9 (cont) *)
-inductive_set SInf2 :: \<open>('f, 'v) AF inference set\<close> where
-  strong_unsat: \<open>strong_unsat_pre \<M> \<Longrightarrow> strong_unsat_inf \<M> \<in> SInf2\<close>
-(*| tauto: \<open>tauto_pre \<C> \<Longrightarrow> tauto_inf \<C> \<in> SInf2\<close>
-| approx: \<open>approx_pre a \<C> \<Longrightarrow> approx_inf \<C> a \<in> SInf2\<close> *)
-| from_SInf: \<open>\<iota> \<in> SInf \<Longrightarrow> \<iota> \<in> SInf2\<close>
+inductive_set SInf_with_strong_unsat :: \<open>('f, 'v) AF inference set\<close> where
+  strong_unsat: \<open>strong_unsat_pre \<M> \<Longrightarrow> strong_unsat_inf \<M> \<in> SInf_with_strong_unsat\<close>
+| from_SInf: \<open>\<iota> \<in> SInf \<Longrightarrow> \<iota> \<in> SInf_with_strong_unsat\<close>
 
 (* Report theorem 14 for StrongUnsat *)
-theorem SInf2_sound_wrt_entails_sound: \<open>\<iota> \<in> SInf2 \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
+theorem SInf_with_strong_unsat_sound_wrt_entails_sound: 
+  \<open>\<iota> \<in> SInf_with_strong_unsat \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
 proof -
-  assume \<open>\<iota> \<in> SInf2\<close>
+  assume \<open>\<iota> \<in> SInf_with_strong_unsat\<close>
   then show ?thesis
-  proof (cases \<iota> rule: SInf2.cases)
+  proof (cases \<iota> rule: SInf_with_strong_unsat.cases)
     case (strong_unsat \<M>)
     then show ?thesis
       by simp
-(*  next
-    case (tauto \<C>)
-    then show ?thesis
-      by auto
-  next
-    case (approx a \<C>)
-    then have
-      \<open>enabled (AF.Pair bot (finsert (neg a) (A_of \<C>))) J \<Longrightarrow>
-       (fml_ext ` total_strip J) \<union> {Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
-      for J 
-    proof -
-      fix J
-      assume \<open>enabled (AF.Pair bot (finsert (neg a) (A_of \<C>))) J\<close>
-      then have \<open>fset (finsert (neg a) (A_of \<C>)) \<subseteq> total_strip J\<close>
-        unfolding enabled_def
-        by simp
-      then have neg_fml_ext_in_J: \<open>neg (fml_ext a) \<in> fml_ext ` total_strip J\<close>
-        by (smt (verit, ccfv_threshold) finsert.rep_eq fml_ext.elims fml_ext.simps(1)
-            fml_ext.simps(2) image_iff insert_subset neg.simps(1) neg.simps(2))
-      moreover have \<open>{Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
-        using equi_entails_if_a_in_asns local.approx(2)
-        by blast
-      then have \<open>(fml_ext ` (total_strip J - {neg a})) \<union> {Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {Pos bot, Pos (F_of \<C>)}\<close>
-        by (metis (no_types, lifting) consequence_relation.entails_subsets insert_is_Un
-            sound_cons.ext_cons_rel sup.cobounded2)
-      ultimately show \<open>(fml_ext ` total_strip J) \<union> {Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
-        (* Sledgehammer can produce this Isar-style proofs????
-       * Well nice one I guess. *) 
-      proof -
-        have \<open>fml_ext ` total_strip J \<union> {fml_ext a} \<Turnstile>s\<^sub>\<sim> ({Pos bot} \<union> {})\<close>
-          by (smt (z3) Bex_def_raw UnCI Un_commute Un_insert_right Un_upper2 neg_fml_ext_in_J
-              consequence_relation.entails_subsets insert_is_Un insert_subset
-              sound_cons.ext_cons_rel sound_cons.pos_neg_entails_bot)
-        then show ?thesis
-          by (smt (verit, ccfv_threshold) C_entails_fml Un_commute consequence_relation.entails_cut
-              fml_ext_is_mapping local.approx(2) sound_cons.ext_cons_rel sup_bot_right) 
-      qed
-    qed
-    then have
-      \<open>enabled_set {AF.Pair bot (finsert (neg a) (A_of \<C>))} J \<Longrightarrow>
-       fml_ext ` total_strip J \<union> Pos ` ({\<C>} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
-      for J 
-      unfolding enabled_projection_def enabled_def enabled_set_def
-      by auto
-    then show ?thesis
-      unfolding AF_entails_sound_def
-      using approx
-      by auto *)
   next
     case from_SInf
     then show ?thesis
-      using SInf_sound_wrt_entails_sound[of \<iota>]
-      by blast 
+      using base.infs_sound by blast 
   qed
 qed
 
-interpretation AF_sound_cons_rel: consequence_relation \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
-  by (rule AF_ext_sound_cons_rel)
+interpretation AF_sound_cons_rel: consequence_relation bot \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  using base.sc.sound_cons.consequence_relation_axioms .
 
-interpretation SInf2_sound_inf_system: sound_inference_system SInf2 \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
-  by (standard, auto simp add: SInf2_sound_wrt_entails_sound)
+interpretation SInf_with_strong_unsat_sound:
+  sound_inference_system SInf_with_strong_unsat bot \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  by (standard, auto simp add: SInf_with_strong_unsat_sound_wrt_entails_sound)
 
-end (* locale splitting_calculus_with_tauto *)
+end (* locale AF_calculus_with_strong_unsat *)
+
+context splitting_calculus
+begin
+
+interpretation AF_sound_cons_rel: consequence_relation "to_AF bot" \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  using core.AF_ext_sound_cons_rel .
+
+interpretation SInf_sound_inf_system: sound_inference_system core.SInf \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  by (standard, auto simp add: core.SInf_sound_wrt_entails_sound)
+
+lemma extend_infs_with_strong_unsat: 
+  assumes
+    \<open>AF_calculus_with_sound_simps (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+  shows
+    \<open>AF_calculus_with_strong_unsat (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+  using AF_calculus_with_strong_unsat.intro assms by blast
+
+interpretation splitting_calc_with_strong_unsat:
+  AF_calculus_with_strong_unsat "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}"
+  using extend_infs_with_strong_unsat[OF empty_simps.AF_calculus_with_sound_simps_axioms] .
+
+end
 
 locale splitting_calculus_with_tauto =
   core_splitting_calculus bot Inf entails entails_sound Red_I Red_F fml asn
