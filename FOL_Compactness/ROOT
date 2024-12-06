@@ -1,12 +1,16 @@
-session "FOL_Compactness" = 
-  options [timeout=300, quick_and_dirty=true]
+chapter AFP
+
+session "FOL_Compactness" = Main +
+  options [timeout=300]
   sessions
     "HOL-Library"
     Propositional_Proof_Systems
+    First_Order_Terms
   theories
-    FOL_Compactness
-    Harrison_FOL_Compactness
+    Canonical_Models
+
 (*commit_ignore_start*)
-  document_files 
+  document_files
+    "root.bib"
     "root.tex"
 (*commit_ignore_end*)
