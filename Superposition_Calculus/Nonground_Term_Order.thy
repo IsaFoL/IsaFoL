@@ -42,7 +42,7 @@ locale base_grounded_order =
   grounding
 
 locale nonground_term_order = 
-  "term": base_functional_substitution where comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and 
+  base_functional_substitution where comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and 
   vars = term.vars and id_subst = "Var :: 'v \<Rightarrow> ('f, 'v) term" +
   order: restricted_wellfounded_total_strict_order where 
   less = less\<^sub>t and restriction = "range term.from_ground" +

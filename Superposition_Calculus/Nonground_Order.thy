@@ -28,6 +28,7 @@ locale nonground_term_based_order_lifting = nonground_order_lifting where
 for less\<^sub>t
 
 locale nonground_order =
+  test +
   "term": nonground_term_order where
   less\<^sub>t = "less\<^sub>t :: ('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term \<Rightarrow> bool" +
   restricted_term_order_lifting where
@@ -49,8 +50,8 @@ rewrites
   "\<And>l\<^sub>G. grounding_lifting.from_ground term.from_ground map_uprod_literal l\<^sub>G 
     = literal.from_ground l\<^sub>G" and
   "\<And>l. grounding_lifting.to_ground term.to_ground map_uprod_literal l = literal.to_ground l" 
-  (* TODO: Rewrites \<rightarrow> defines *)
-  by unfold_locales (auto simp: inj_mset_lit mset_lit_image_mset)
+       apply unfold_locales by (auto simp: inj_mset_lit mset_lit_image_mset)
+  
 
 notation literal.order.less\<^sub>G (infix "\<prec>\<^sub>l\<^sub>G" 50)
 notation literal.order.less_eq\<^sub>G (infix "\<preceq>\<^sub>l\<^sub>G" 50)

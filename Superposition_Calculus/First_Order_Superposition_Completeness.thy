@@ -163,7 +163,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution
     "\<gamma> = \<mu> \<odot> \<sigma>" 
     "welltyped_imgu \<V> term term' \<mu>"
     using welltyped_imgu_exists
-    by metis
+    by (smt (verit, del_insts))
 
   have conclusion'_\<gamma>: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     using premise_\<gamma>
@@ -424,7 +424,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
     "\<gamma> = \<mu> \<odot> \<sigma>" 
     "welltyped_imgu \<V> term\<^sub>1 term\<^sub>2 \<mu>"
     using welltyped_imgu_exists
-    by metis
+    by (metis (full_types))
 
   let ?conclusion' = "add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise')"
 
@@ -1017,7 +1017,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
       then have aux': "\<exists>\<tau>. welltyped \<V>\<^sub>1 (term.from_ground term\<^sub>G\<^sub>1) \<tau> \<and> 
           welltyped \<V>\<^sub>1 (term.from_ground term\<^sub>G\<^sub>3) \<tau>"
-        by (meson term.ground_is_ground welltyped.is_ground_typed)
+        by (meson term.ground_is_ground welltyped.explicit_is_ground_typed)
 
       have "welltyped \<V>\<^sub>1 (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) \<tau>\<^sub>x"
       proof-
@@ -1027,7 +1027,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
             welltyped \<V>\<^sub>1 ((\<rho>\<^sub>1 \<odot> \<gamma>) x) (\<V>\<^sub>1 x);
             welltyped \<V>\<^sub>1 term\<^sub>x \<tau>\<^sub>x\<rbrakk>
             \<Longrightarrow> welltyped \<V>\<^sub>1 (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) \<tau>\<^sub>x"
-          by (metis UnCI term.term.subst_comp_subst welltyped.subst_stability)
+          by (metis Un_iff term_subst.subst_comp_subst welltyped.explicit_subst_stability)
         
         then show ?thesis
           using typing(4) \<tau>\<^sub>x
@@ -1274,7 +1274,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by (simp add: subst_compose)
 
       ultimately have "welltyped \<V>\<^sub>3 (Var y \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) (\<V>\<^sub>1 y)"
-        by (meson welltyped.is_ground_typed)     
+        by (meson welltyped.explicit_is_ground_typed)
 
       moreover have "\<rho>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = Var x"
         by (metis \<open>Var x \<in> \<rho>\<^sub>1 ` clause.vars premise\<^sub>1\<close> image_iff renaming(1) term_subst_is_renaming_iff inv_f_f)
@@ -1303,7 +1303,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by (simp add: subst_compose)
 
       ultimately have "welltyped \<V>\<^sub>3 (Var y \<cdot>t \<rho>\<^sub>2 \<cdot>t \<gamma>) (\<V>\<^sub>2 y)"
-        by (meson welltyped.is_ground_typed)     
+        by (meson welltyped.explicit_is_ground_typed)     
 
       moreover have "\<rho>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = Var x"
         by (metis \<open>Var x \<in> \<rho>\<^sub>2 ` clause.vars premise\<^sub>2\<close> image_iff renaming(2) 
@@ -1336,7 +1336,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     then have 
       "welltyped \<V>\<^sub>3 (term.from_ground term\<^sub>G\<^sub>1) \<tau>" 
       using welltyped.is_ground_typed
-      by (metis term.ground_is_ground)+
+      by (meson term.ground_is_ground welltyped.explicit_is_ground_typed)
 
     then have "welltyped \<V>\<^sub>3 (term.from_ground term\<^sub>G\<^sub>1) \<tau>"
       by auto

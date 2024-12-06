@@ -76,7 +76,8 @@ lemma vars_subst\<^sub>a: "\<Union> (term.vars ` \<rho> ` atom.vars a) = atom.va
 
 lemma vars_subst\<^sub>l: "\<Union> (term.vars ` \<rho> ` literal.vars l) = literal.vars (l \<cdot>l \<rho>)"
   unfolding literal.vars_def literal.subst_def set_literal_atm_of
-  using vars_subst by fastforce
+  by (metis (no_types, lifting) SUP_insert Union_image_empty literal.map_sel(1,2)
+      vars_subst\<^sub>a)
 
 lemma vars_subst\<^sub>c: "\<Union> (term.vars ` \<rho> ` clause.vars C) = clause.vars (C \<cdot> \<rho>)"
   using vars_subst\<^sub>l
@@ -143,8 +144,8 @@ proof (cases P C rule: eq_resolution.cases)
     ultimately have "?I \<TTurnstile> ?P"
       using premise[rule_format, of ?P, OF exI, of "\<mu> \<odot> \<gamma>'"] \<gamma>'(1) 
         term_subst.is_ground_subst_comp_right eq_resolutionI
-      by (metis clause.comp_subst.monoid_action_compatibility UNIV_I \<gamma>'(2) subst_compose_def 
-          welltyped.subst_stability)
+      by (metis UNIV_I \<gamma>'(2) clause.subst_comp_subst welltyped.explicit_subst_stability
+          welltyped.subst_compose)
 
     then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
       by (auto simp: true_cls_def)
@@ -435,6 +436,9 @@ proof (cases P2 P1 C rule: superposition.cases)
       obtain \<tau> where "welltyped \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau>"
         using superpositionI(14) by blast
 
+      moreover then have "welltyped \<V>\<^sub>2 t\<^sub>2 \<tau>"
+        using superpositionI(5) welltyped.explicit_typed_renaming xx(1) by blast
+
       moreover obtain \<tau>' where "welltyped \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<tau>'"
       proof-
         have "term.is_welltyped \<V>\<^sub>3 ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> \<cdot>t \<mu>)"
@@ -444,14 +448,19 @@ proof (cases P2 P1 C rule: superposition.cases)
 
         then show ?thesis
           using that
-          by (metis eval_ctxt welltyped.subterm)
+          by (metis eval_ctxt term.welltyped.subterm)
       qed
 
+      moreover then have "welltyped \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2) \<tau>'"
+        by (meson UNIV_I superpositionI(14) welltyped.explicit_subst_stability)
+
+      moreover then have "welltyped \<V>\<^sub>2 t\<^sub>2' \<tau>'"
+        using local.superpositionI(5) welltyped.explicit_typed_renaming xx(2)
+        by blast
 
       ultimately show ?thesis
-        using superpositionI(19)  
-        unfolding xx[THEN typed.typed_renaming[OF superpositionI(5)], symmetric] 
-        by (metis UNIV_I local.superpositionI(14) welltyped.subst_stability welltyped_typed)
+        using superpositionI(19)
+        by (metis welltyped_typed)
     qed
 
     have wt_P\<^sub>1: "clause.is_welltyped \<V>\<^sub>1 P\<^sub>1" 
@@ -490,12 +499,13 @@ proof (cases P2 P1 C rule: superposition.cases)
           by clause_auto
 
         then have "\<exists>\<tau>. welltyped \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu>)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>\<rangle> \<tau> \<and> welltyped \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<tau>"
-          by (metis (no_types, lifting) UNIV_I superpositionI(14) welltyped.subst_stability 
-              welltyped.context_compatible wt_t)
+          by (metis (no_types, lifting) iso_tuple_UNIV_I local.superpositionI(14)
+              term.welltyped.context_compatible welltyped.explicit_subst_stability
+              wt_t)
 
         then show ?thesis
           by (metis UNIV_I superpositionI(14) subst_apply_term_ctxt_apply_distrib
-              welltyped.subst_stability)
+              welltyped.explicit_subst_stability)
       qed
 
       then have "\<exists>\<tau>. welltyped \<V>\<^sub>1 s\<^sub>1\<langle>u\<^sub>1\<rangle> \<tau> \<and> welltyped \<V>\<^sub>1 s\<^sub>1' \<tau>"
@@ -522,7 +532,7 @@ proof (cases P2 P1 C rule: superposition.cases)
               subst_apply_term_ctxt_apply_distrib vars_term_ctxt_apply)+
 
         with x1 show ?thesis
-          using superpositionI(15)  superpositionI(9) welltyped.typed_renaming[OF superpositionI(4)] 
+          using superpositionI(15)  superpositionI(9) welltyped.explicit_typed_renaming[OF superpositionI(4)] 
           unfolding superpositionI clause.add_subst clause.vars_add
           by (auto simp: subst_atom subst_literal)
       qed
@@ -545,18 +555,16 @@ proof (cases P2 P1 C rule: superposition.cases)
         unfolding superpositionI clause.plus_subst clause.is_welltyped_add clause.add_subst
           clause.is_welltyped_plus clause.is_welltyped.typed_renaming[OF superpositionI(5) xx] 
         using superpositionI(14) clause.is_welltyped.subst_stability  
-        (* TODO: *)
-        by (meson UNIV_I
-            \<open>clause.is_welltyped.expr_is_typed \<V>\<^sub>3 (local.clause.subst P\<^sub>2' \<rho>\<^sub>2) = clause.is_welltyped.expr_is_typed \<V>\<^sub>2 P\<^sub>2'\<close>)
-
+        by (metis UNIV_I \<open>clause.is_welltyped \<V>\<^sub>3 (P\<^sub>2' \<cdot> \<rho>\<^sub>2) = clause.is_welltyped \<V>\<^sub>2 P\<^sub>2'\<close>)
+       
       have tt: "\<exists>\<tau>. welltyped \<V>\<^sub>3 (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<tau> \<and> welltyped \<V>\<^sub>3 (t\<^sub>2' \<cdot>t \<rho>\<^sub>2) \<tau>"
         using wt_t
-        by (meson UNIV_I superpositionI(14) welltyped.subst_stability)
+        by (meson UNIV_I superpositionI(14) welltyped.explicit_subst_stability)
 
       show ?thesis
       proof-
         have "\<exists>\<tau>. welltyped \<V>\<^sub>2 t\<^sub>2 \<tau> \<and> welltyped \<V>\<^sub>2 t\<^sub>2' \<tau>"
-          using superpositionI(16) welltyped.typed_renaming[OF superpositionI(5)]
+          using superpositionI(16) welltyped.explicit_typed_renaming[OF superpositionI(5)]
           unfolding superpositionI
           by (metis (no_types, lifting) Un_iff subst_atom clause.add_subst subst_literal(1) tt 
               vars_atom clause.vars_add vars_literal(1))
@@ -569,7 +577,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
     have wt_\<mu>_\<gamma>: "is_welltyped \<V>\<^sub>3 (\<mu> \<odot> \<gamma>')"
       by (metis UNIV_I \<gamma>'(2) superpositionI(14) welltyped.subst_compose
-          welltyped.subst_stability)
+          welltyped.explicit_subst_stability)
 
     have wt_\<gamma>: "is_welltyped_on (clause.vars P\<^sub>1) \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<gamma>')" 
       "is_welltyped_on (clause.vars P\<^sub>2) \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot>  \<mu> \<odot> \<gamma>')"
@@ -760,7 +768,7 @@ proof unfold_locales
     by auto
 qed
 
-sublocale first_order_superposition_calculus \<subseteq> 
+sublocale first_order_superposition_calculus \<subseteq>
   sound_inference_system inferences "\<bottom>\<^sub>F" entails_\<G>
 proof unfold_locales
   obtain select\<^sub>G where select\<^sub>G: "select\<^sub>G \<in> select\<^sub>G\<^sub>s"

@@ -10,12 +10,17 @@ type_synonym ('f, 'v, 'ty) typed_clause = "('f, 'v) atom clause \<times> ('v, 't
 type_synonym 'f ground_select = "'f ground_atom clause \<Rightarrow> 'f ground_atom clause"
 type_synonym ('f, 'v) select = "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
 
+context test
+begin
+
 definition is_select_grounding :: "('f, 'v) select \<Rightarrow> 'f ground_select \<Rightarrow> bool" where 
   "\<And>select select\<^sub>G.
         is_select_grounding select select\<^sub>G = (\<forall>clause\<^sub>G. \<exists>clause \<gamma>.
         clause.is_ground (clause \<cdot> \<gamma>)  \<and> 
         clause\<^sub>G = clause.to_ground (clause \<cdot> \<gamma>) \<and> 
         select\<^sub>G clause\<^sub>G = clause.to_ground ((select clause) \<cdot> \<gamma>))"
+
+end
 
 (* TODO: Clean up! *)
 lemma infinite_lists_per_length: "infinite {l :: ('a :: infinite) list. length (tl l) = y}"
@@ -330,7 +335,7 @@ qed
 
 end
 
-locale first_order_select = select select
+locale first_order_select = test + select select
   for select :: "('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause"
 begin
 

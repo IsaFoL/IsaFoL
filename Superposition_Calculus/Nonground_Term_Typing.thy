@@ -8,11 +8,11 @@ begin
 locale nonground_term_functional_substitution_typing = 
   base_functional_substitution_typing + 
   typed: explicitly_typed_subst_stability + 
-  welltyped: explicitly_typed_subst_stability where expr_typed = expr_welltyped +
+  welltyped: explicitly_typed_subst_stability where typed = welltyped +
   typed: explicitly_replaceable_\<V> + 
-  welltyped: explicitly_replaceable_\<V> where expr_typed = expr_welltyped +
+  welltyped: explicitly_replaceable_\<V> where typed = welltyped +
   typed: explicitly_typed_renaming +
-  welltyped: explicitly_typed_renaming where expr_typed = expr_welltyped
+  welltyped: explicitly_typed_renaming where typed = welltyped
 
 locale nonground_term_typing =
   fixes \<F> :: "('f, 'ty) fun_types"
@@ -31,7 +31,6 @@ inductive welltyped :: "('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightar
 
 sublocale "term": explicit_typing "typed (\<V> :: 'v \<Rightarrow> 'ty)" "welltyped \<V>"
 proof unfold_locales
-  fix \<V> :: "('v, 'ty) var_types"
   show "right_unique (typed \<V>)"
   proof (rule right_uniqueI)
     fix t \<tau>\<^sub>1 \<tau>\<^sub>2
@@ -40,7 +39,6 @@ proof unfold_locales
       by (auto elim!: typed.cases)
   qed
 next
-  fix \<V> :: "('v, 'ty) var_types"
   show welltyped_right_unique: "right_unique (welltyped \<V>)"
   proof (rule right_uniqueI)
     fix t \<tau>\<^sub>1 \<tau>\<^sub>2
@@ -49,13 +47,13 @@ next
       by (auto elim!: welltyped.cases)
   qed
 next
-  fix \<V> :: "('v, 'ty) var_types" and t \<tau> 
+  fix t \<tau> 
   assume "welltyped \<V> t \<tau>"
   then show "typed \<V> t \<tau>"
     by (metis (full_types) typed.simps welltyped.cases)
 qed
 
-sublocale term_typing where 
+sublocale "term": term_typing where 
   typed = "typed (\<V> :: 'v \<Rightarrow> 'ty)" and welltyped = "welltyped \<V>" and Fun = Fun
 proof unfold_locales
   fix t t' c \<tau> \<tau>'
@@ -140,7 +138,7 @@ qed
 
 sublocale nonground_term_functional_substitution_typing where 
   id_subst = "Var :: 'v \<Rightarrow> ('f, 'v) term" and comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and 
-  vars = term.vars and expr_welltyped = welltyped and expr_typed = typed
+  vars = term.vars and welltyped = welltyped and typed = typed
 proof unfold_locales
   fix \<V> :: "('v, 'ty) var_types" and x
   show "welltyped \<V> (Var x) (\<V> x)"
@@ -149,7 +147,7 @@ next
   fix \<tau> and \<V> and t :: "('f, 'v) term" and \<sigma>
   assume is_typed_on: "\<forall>x \<in> term.vars t. typed \<V> (\<sigma> x) (\<V> x)"
 
-  show " typed \<V> (t \<cdot>t \<sigma>) \<tau> \<longleftrightarrow> typed \<V> t \<tau>"
+  show "typed \<V> (t \<cdot>t \<sigma>) \<tau> \<longleftrightarrow> typed \<V> t \<tau>"
   proof(rule iffI)
     assume "typed \<V> t \<tau>"
     then show "typed \<V> (t \<cdot>t \<sigma>) \<tau>"
@@ -530,7 +528,7 @@ next
       using 3(4)
       by (smt (verit, ccfv_threshold) case_prodD case_prodI2 fun_upd_apply welltyped.Var 
           list.set_intros(1) list.set_intros(2) right_uniqueD term.welltyped.right_unique 
-           welltyped.subst_stability)
+           welltyped.explicit_subst_stability)
 
     moreover then have 
       "\<forall>(s, s') \<in> set (subst_list (subst x t) es). \<exists>\<tau>. welltyped \<V> s \<tau> \<and> welltyped \<V> s' \<tau>"
@@ -559,7 +557,7 @@ next
     using 4(3)
     by (smt (verit, ccfv_threshold) case_prodD case_prodI2 fun_upd_apply welltyped.Var 
         list.set_intros(1) list.set_intros(2) right_uniqueD term.welltyped.right_unique 
-        welltyped.subst_stability)
+        welltyped.explicit_subst_stability)
 
   moreover then have 
     "\<forall>(s, s') \<in> set (subst_list (subst x (Fun t ts)) es). \<exists>\<tau>. 

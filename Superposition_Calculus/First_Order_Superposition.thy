@@ -42,11 +42,13 @@ hide_fact
 
 section \<open>First-Order Layer\<close>
 
+
 locale first_order_superposition_calculus =
+  test +
+  nonground_typing typeof_fun +
   nonground_order less\<^sub>t +
-  first_order_select select +
-  nonground_typing typeof_fun
-  for 
+  first_order_select select
+  for
     select :: "('f, ('v :: infinite)) select" and
     less\<^sub>t :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" and
     typeof_fun :: "('f, 'ty) fun_types" + (* TODO: rename to \<F> *)
@@ -330,41 +332,23 @@ lemma eq_factoring_preserves_typing:
   using step
 proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
   case (eq_factoringI literal\<^sub>1 literal\<^sub>2 premise' term\<^sub>1 term\<^sub>1' term\<^sub>2 term\<^sub>2' \<mu>)
-  
+
   have wt_D\<mu>: "clause.is_welltyped \<V> (D \<cdot> \<mu>)"
     using wt_D clause.is_welltyped.subst_stability eq_factoringI
     by (metis UNIV_I)
 
   show ?thesis
   proof-
-    (* TODO *)
-    have "\<And>\<tau> \<tau>'.
-       \<lbrakk>\<forall>L\<in>#premise' \<cdot> \<mu>.
-           \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). welltyped \<V> t \<tau>;
-        welltyped \<V> (term\<^sub>1 \<cdot>t \<mu>) \<tau>;
-        welltyped \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau>;
-        welltyped \<V> (term\<^sub>2 \<cdot>t \<mu>) \<tau>';
-        welltyped \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>'\<rbrakk>
-       \<Longrightarrow> \<exists>\<tau>. welltyped \<V> (term\<^sub>1 \<cdot>t \<mu>) \<tau> \<and> welltyped \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>"
-      by (metis UNIV_I local.eq_factoringI(8) term.welltyped.right_uniqueD 
-          welltyped.subst_stability)
-
-     moreover then have "\<And>\<tau> \<tau>'.
-       \<lbrakk>\<forall>L\<in>#premise' \<cdot> \<mu>.
-           \<exists>\<tau>. \<forall>t\<in>set_uprod (atm_of L). welltyped \<V> t \<tau>;
-        welltyped \<V> (term\<^sub>1 \<cdot>t \<mu>) \<tau>;
-        welltyped \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau>;
-        welltyped \<V> (term\<^sub>2 \<cdot>t \<mu>) \<tau>';
-        welltyped \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>'\<rbrakk>
-       \<Longrightarrow> \<exists>\<tau>. welltyped \<V> (term\<^sub>1' \<cdot>t \<mu>) \<tau> \<and> welltyped \<V> (term\<^sub>2' \<cdot>t \<mu>) \<tau>"
-       by (metis term.welltyped.right_uniqueD)
-
-     ultimately show ?thesis
-       using wt_D\<mu>
-       unfolding eq_factoringI clause.add_subst subst_literal subst_atom literal_is_welltyped_iff
-       by auto
-   qed
+    (* TODO;: *)
+    show ?thesis
+      using wt_D\<mu>
+      unfolding eq_factoringI
+      apply auto
+       apply (metis literal.sel(1) literal_is_welltyped_iff eq_factoringI(7) subst_atom subst_literal(3) term_subst.is_imgu_unifies')
+      using eq_factoringI(8) by fastforce
+  qed
 qed
+
 
 (* TODO: Naming!! *)
 lemma superposition_preserves_typing:
@@ -403,11 +387,11 @@ proof (cases "(D, \<V>\<^sub>2)" "(C, \<V>\<^sub>1)" "(E, \<V>\<^sub>3)" rule: s
      (* TODO *)
     using literal_cases[OF superpositionI(6)] wt_C\<mu> wt_D\<mu>
     apply cases
-    apply (clause_simp simp: superpositionI imgu)
+     apply (clause_simp simp: superpositionI imgu)
     apply (smt (verit, best) atom_is_welltyped_iff clause.is_welltyped_add clause.is_welltyped_plus
-        literal.sel(1) literal_is_welltyped_iff welltyped.context_compatible)
+        literal.sel(1) literal_is_welltyped_iff term.welltyped.context_compatible)
     by (smt (verit) atom_is_welltyped_iff clause.is_welltyped_add clause.is_welltyped_plus
-        literal.sel(1,2) literal_is_welltyped_iff welltyped.context_compatible)
+        literal.sel(1,2) literal_is_welltyped_iff term.welltyped.context_compatible)
 qed
 
 end

@@ -286,7 +286,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
         have "t \<preceq>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
           using term.order.less_eq_subterm_property .
 
-        hence " multp (\<prec>\<^sub>t) {#t, t'#} {#s\<langle>t\<rangle>\<^sub>G, s', s\<langle>t\<rangle>\<^sub>G, s'#}"
+        hence "multp (\<prec>\<^sub>t) {#t, t'#} {#s\<langle>t\<rangle>\<^sub>G, s', s\<langle>t\<rangle>\<^sub>G, s'#}"
           unfolding reflclp_iff
         proof (elim disjE)
           assume "t \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
@@ -515,7 +515,7 @@ next
       "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s N1"
 
     hence "\<forall>C \<in> N2. (\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s {C}"
-      using ball_G_entails 
+      using ball_G_entails
       by (simp add: G_entails_def)
 
     then show "(\<lambda>(x, y). Upair x y) ` I \<TTurnstile>s N2"
@@ -523,7 +523,7 @@ next
   qed
 next
   show "\<And>N1 N2 N3. G_entails N1 N2 \<Longrightarrow> G_entails N2 N3 \<Longrightarrow> G_entails N1 N3"
-    using G_entails_def 
+    using G_entails_def
     by simp
 qed
 

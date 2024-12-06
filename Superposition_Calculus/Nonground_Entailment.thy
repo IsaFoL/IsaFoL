@@ -38,7 +38,7 @@ lemma vars_term_ms_count:
     "size {#x' \<in># vars_term_ms c\<langle>Var x\<rangle>. x' = x#} = Suc (size {#x' \<in># vars_term_ms c\<langle>t\<rangle>. x' = x#})"
   by(induction c)(auto simp: assms filter_mset_empty_conv)
 
-locale clause_entailment =
+locale clause_entailment = test +
   fixes I :: "('f gterm \<times> 'f gterm) set"
   assumes 
     trans: "trans I" and

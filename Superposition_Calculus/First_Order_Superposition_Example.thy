@@ -4,6 +4,7 @@ theory First_Order_Superposition_Example
     First_Order_Superposition
 begin
 
+(* TODO: Add better examples *)
 abbreviation trivial_select :: "('f, 'v) select" where
   "trivial_select _ \<equiv> {#}"
 

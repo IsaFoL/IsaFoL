@@ -48,7 +48,16 @@ method clause_auto uses simp intro =
 
 subsection \<open>Nonground Atoms\<close>
 
-global_interpretation atom: lifting_from_term where 
+(* TODO: Name *)
+locale grounded_natural_semigroup_functor = natural_semigroup_grounding_lifting where 
+  comp_subst = "(\<odot>)" and id_subst = Var  +
+  natural_semigroup_functor_functional_substitution_lifting where 
+  comp_subst = "(\<odot>)" and id_subst = Var
+
+locale test 
+begin
+
+sublocale atom: lifting_from_term where 
   sub_subst = "(\<cdot>t)" and sub_vars = term.vars and map = map_uprod and to_set = set_uprod and 
   sub_to_ground = term.to_ground and sub_from_ground = term.from_ground and 
   to_ground_map = map_uprod and from_ground_map = map_uprod and ground_map = map_uprod and 
@@ -59,7 +68,7 @@ notation atom.subst (infixl "\<cdot>a" 67)
 
 subsection \<open>Nonground Literals\<close>
 
-global_interpretation literal: lifting_from_term where 
+sublocale literal: lifting_from_term where 
   sub_subst = atom.subst and sub_vars = atom.vars and map = map_literal and 
   to_set = set_literal and sub_to_ground = atom.to_ground and 
   sub_from_ground = atom.from_ground and to_ground_map = map_literal and 
@@ -118,7 +127,7 @@ lemma literal'_to_ground_eq_literal_to_ground:
   "map_uprod_literal term.to_ground l = literal.to_ground l"
   unfolding literal.to_ground_def atom.to_ground_def ..
 
-global_interpretation literal': lifting_from_term where 
+sublocale literal': lifting_from_term where 
   sub_subst = "(\<cdot>t)" and sub_vars = term.vars and map = map_uprod_literal and 
   to_set = uprod_literal_to_set and sub_to_ground = term.to_ground and
   sub_from_ground = term.from_ground and to_ground_map = map_uprod_literal and 
@@ -138,20 +147,14 @@ lemma mset_mset_lit_subst [clause_simp]: "{# t \<cdot>t \<sigma>. t \<in># mset_
 
 subsection \<open>Nonground Clauses\<close>
 
-global_interpretation clause: lifting_from_term where 
+sublocale clause: lifting_from_term where 
   sub_subst = literal.subst and sub_vars = literal.vars and map = image_mset and 
   to_set = set_mset and sub_to_ground = literal.to_ground and 
   sub_from_ground = literal.from_ground and to_ground_map = image_mset and 
   from_ground_map = image_mset and ground_map = image_mset and to_set_ground = set_mset
   by unfold_locales
 
-(* TODO: Name *)
-locale grounded_natural_semigroup_functor = natural_semigroup_grounding_lifting where 
-  comp_subst = "(\<odot>)" and id_subst = Var  +
-  natural_semigroup_functor_functional_substitution_lifting where 
-  comp_subst = "(\<odot>)" and id_subst = Var
-
-global_interpretation clause: grounded_natural_semigroup_functor where 
+sublocale clause: grounded_natural_semigroup_functor where 
   to_set = set_mset and sub_to_ground = literal.to_ground and 
   sub_from_ground = literal.from_ground and sub_subst = literal.subst and 
   sub_vars = literal.vars and map = image_mset and to_ground_map = image_mset and 
@@ -298,5 +301,7 @@ lemma obtain_from_neg_literal_subst:
   by (metis literal.collapse(2) literal.disc(2) literal.sel(2) subst_literal(3))
 
 lemmas obtain_from_literal_subst = obtain_from_pos_literal_subst obtain_from_neg_literal_subst
+
+end
 
 end

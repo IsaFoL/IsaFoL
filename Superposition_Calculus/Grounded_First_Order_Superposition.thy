@@ -216,15 +216,15 @@ next
     have "\<exists>f. is_welltyped_on (clause.vars {#}) (snd bottom) f \<and> 
           clause.is_welltyped (snd bottom) {#} \<and> 
           term_subst.is_ground_subst f"
-      by (metis (no_types, lifting) all_not_in_conv empty_clause_is_ground is_typed_lifting.elims(1)
-          set_mset_empty term.term.obtain_ground_subst)
+      by (metis clause.is_welltyped_def emptyE empty_clause_is_ground set_mset_empty
+          term.obtain_ground_subst)
 
     then show "{clause.to_ground (fst bottom \<cdot> f) |f. term_subst.is_ground_subst f 
         \<and> clause.is_welltyped (snd bottom) (fst bottom) 
         \<and> is_welltyped_on (clause.vars (fst bottom)) (snd bottom) f 
         \<and> all_types (snd bottom)} \<noteq> {}"
-      using \<open>bottom \<in> \<bottom>\<^sub>F\<close> 
-      by auto
+      using \<open>bottom \<in> \<bottom>\<^sub>F\<close>
+      by fastforce
   qed
 next
   fix bottom
