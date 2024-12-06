@@ -2495,7 +2495,7 @@ interpretation splitting_calc_with_strong_unsat:
   AF_calculus_with_strong_unsat "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}"
   using extend_infs_with_strong_unsat[OF empty_simps.AF_calculus_with_sound_simps_axioms] .
 
-end
+end (* context splitting_calculus *)
 
 subsubsection \<open>The Tauto Rule\<close>
 
@@ -2522,7 +2522,7 @@ inductive_set SInf_with_tauto :: \<open>('f, 'v) AF inference set\<close> where
   tauto: \<open>tauto_pre \<C> \<Longrightarrow> tauto_inf \<C> \<in> SInf_with_tauto\<close>
 | from_SInf: \<open>\<iota> \<in> SInf \<Longrightarrow> \<iota> \<in> SInf_with_tauto\<close> 
 
-(* Report theorem 14 for StrongUnsat *)
+(* Report theorem 14 for Tauto *)
 theorem SInf_with_tauto_sound_wrt_entails_sound: \<open>\<iota> \<in> SInf_with_tauto \<Longrightarrow> 
   set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
 proof -
@@ -2560,7 +2560,7 @@ interpretation splitting_calc_with_tauto:
   AF_calculus_with_tauto "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}"
   using extend_infs_with_tauto[OF empty_simps.AF_calculus_with_sound_simps_axioms] .
 
-end (* locale splitting_calculus_with_tauto *)
+end (* context splitting_calculus *)
 
 subsubsection \<open>The Approx Rule\<close>
 
@@ -2575,6 +2575,8 @@ locale AF_calculus_with_approx =
       Simps :: \<open>('f, 'v) AF simplification set\<close>
   + fixes
       approximates :: \<open>'v sign \<Rightarrow> ('f, 'v) AF \<Rightarrow> bool\<close>
+    assumes
+      approx_sound: \<open>approximates a \<C> \<Longrightarrow> {\<C>} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair (F_of bot) (finsert (neg a) (A_of \<C>))}\<close>
 begin
 
 abbreviation approx_pre :: \<open>'v sign \<Rightarrow> ('f, 'v) AF \<Rightarrow> bool\<close> where
@@ -2596,7 +2598,7 @@ proof -
   then show ?thesis
   proof (cases \<iota> rule: SInf_with_approx.cases)
     case (approx a \<C>)
-    then have
+(*    then have
       \<open>enabled (AF.Pair bot (finsert (neg a) (A_of \<C>))) J \<Longrightarrow>
        (fml_ext ` total_strip J) \<union> {Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
       for J 
@@ -2633,20 +2635,17 @@ proof -
        fml_ext ` total_strip J \<union> Pos ` ({\<C>} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
       for J 
       unfolding enabled_projection_def enabled_def enabled_set_def
-      by auto
-    then show ?thesis
-      unfolding AF_entails_sound_def
-      using approx
-      by auto
+      by auto *)
+    show ?thesis
+      using approx_sound[OF approx(2)] approx(1) by simp
   next
     case from_SInf
-    then show ?thesis
-      using SInf_sound_wrt_entails_sound[of \<iota>]
-      by blast 
+    show ?thesis
+      using base.infs_sound[OF from_SInf] .
   qed
 qed
 
-end
+end (* locale AF_calculus_with_approx *)
 
 context splitting_calculus
 begin
@@ -2655,12 +2654,73 @@ definition approximates :: \<open>'v sign \<Rightarrow> ('f, 'v) AF \<Rightarrow
   \<open>approximates a \<C> \<equiv> a \<in> asn (Pos (F_of \<C>))\<close>
 
 interpretation AF_sound_cons_rel: consequence_relation \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
-  by (rule AF_ext_sound_cons_rel)
+  using core.AF_ext_sound_cons_rel .
 
-interpretation SInf2_sound_inf_system: sound_inference_system SInf2 \<open>to_AF bot\<close> \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
-  by (standard, auto simp add: SInf2_sound_wrt_entails_sound)
+(* /!\ check names, no approx in this interpretation (check also others) *)
+interpretation SInf_with_approx_sound_inf_system: sound_inference_system core.SInf \<open>to_AF bot\<close>
+  \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  by (standard, auto simp add: core.SInf_sound_wrt_entails_sound)
 
-end (* locale splitting_calculus_extensions *)
+lemma approx_sound: \<open>approximates a \<C> \<Longrightarrow> {\<C>} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot (finsert (neg a) (A_of \<C>))}\<close>
+proof -
+  assume approx_a_C: \<open>approximates a \<C>\<close>
+  then have
+    \<open>core.enabled (AF.Pair bot (finsert (neg a) (A_of \<C>))) J \<Longrightarrow>
+       (core.fml_ext ` total_strip J) \<union> {Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+    for J 
+  proof -
+    fix J
+    assume \<open>core.enabled (AF.Pair bot (finsert (neg a) (A_of \<C>))) J\<close>
+    then have \<open>fset (finsert (neg a) (A_of \<C>)) \<subseteq> total_strip J\<close>
+      unfolding core.enabled_def
+      by simp
+    then have neg_fml_ext_in_J: \<open>neg (core.fml_ext a) \<in> core.fml_ext ` total_strip J\<close>
+      by (smt (verit, ccfv_threshold) finsert.rep_eq core.fml_ext.elims core.fml_ext.simps(1)
+          core.fml_ext.simps(2) image_iff insert_subset neg.simps(1) neg.simps(2))
+    moreover have \<open>{Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {Pos (F_of \<C>)}\<close>
+      using core.equi_entails_if_a_in_asns approx_a_C unfolding approximates_def
+      by blast
+    then have \<open>(core.fml_ext ` (total_strip J - {neg a})) \<union> {Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> 
+        {Pos bot, Pos (F_of \<C>)}\<close>
+      by (metis (no_types, lifting) consequence_relation.entails_subsets insert_is_Un
+          core.sound_cons.ext_cons_rel sup.cobounded2)
+    ultimately show \<open>(core.fml_ext ` total_strip J) \<union> {Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+    proof -
+      have \<open>core.fml_ext ` total_strip J \<union> {core.fml_ext a} \<Turnstile>s\<^sub>\<sim> ({Pos bot} \<union> {})\<close>
+        by (smt (z3) Bex_def_raw UnCI Un_commute Un_insert_right Un_upper2 neg_fml_ext_in_J
+            consequence_relation.entails_subsets insert_is_Un insert_subset
+            core.sound_cons.ext_cons_rel core.sound_cons.pos_neg_entails_bot)
+      then show ?thesis
+        using approx_a_C unfolding approximates_def
+        by (smt (verit) Un_commute Un_empty_right core.C_entails_fml core.fml_ext_is_mapping 
+            core.neg_ext_sound_cons_rel.entails_cut)
+    qed
+  qed
+  then have
+    \<open>core.enabled_set {AF.Pair bot (finsert (neg a) (A_of \<C>))} J \<Longrightarrow>
+       core.fml_ext ` total_strip J \<union> Pos ` ({\<C>} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {Pos bot}\<close>
+    for J 
+    unfolding core.enabled_projection_def core.enabled_def core.enabled_set_def
+    by auto 
+  then show \<open>{\<C>} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair bot (finsert (neg a) (A_of \<C>))}\<close>
+    unfolding core.AF_entails_sound_def by auto
+qed
+
+lemma extend_infs_with_approx: 
+  assumes
+    \<open>AF_calculus_with_sound_simps (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+  shows
+    \<open>AF_calculus_with_approx (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps 
+       approximates\<close>
+  using AF_calculus_with_approx.intro[OF assms] approx_sound
+  by (simp add: AF_calculus_with_approx_axioms_def F_of_to_AF)
+
+interpretation splitting_calc_with_approx:
+  AF_calculus_with_approx "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" 
+    approximates
+  using extend_infs_with_approx[OF empty_simps.AF_calculus_with_sound_simps_axioms] .
+
+end (* context splitting_calculus *)
 
 
 end
