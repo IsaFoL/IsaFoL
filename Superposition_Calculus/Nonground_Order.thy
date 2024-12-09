@@ -134,8 +134,7 @@ lemma obtain_strictly_maximal_literal:
 proof-
  
   have grounding_not_empty: "C \<cdot> \<gamma> \<noteq> {#}"
-    using ground_strictly_maximal
-    by simp
+    using is_strictly_maximal_empty[OF ground_strictly_maximal].
 
   have l\<^sub>G_in_grounding: "l\<^sub>G \<in># C \<cdot> \<gamma>"
     using strictly_maximal_in_clause[OF ground_strictly_maximal].

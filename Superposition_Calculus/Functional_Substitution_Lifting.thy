@@ -1,5 +1,5 @@
 theory Functional_Substitution_Lifting
-  imports Functional_Substitution Natural_Semigroup_Functor
+  imports Functional_Substitution Natural_Magma_Functor
 begin
 
 locale functional_substitution_lifting = 
@@ -32,7 +32,7 @@ lemma to_set_map_not_ident:
   using assms
   by (metis rev_image_eqI to_set_map)
 
-lemma subst_in_to_set_subst:
+lemma subst_in_to_set_subst [intro]:
   assumes "sub \<in> to_set expr" 
   shows "sub \<cdot>\<^sub>s \<sigma> \<in> to_set (expr \<cdot> \<sigma>)"
   unfolding subst_def to_set_map
@@ -406,8 +406,8 @@ qed
 
 end
 
-locale natural_semigroup_functional_substitution_lifting = 
-  functional_substitution_lifting + natural_semigroup
+locale natural_magma_functional_substitution_lifting = 
+  functional_substitution_lifting + natural_magma
 begin
 
 lemma vars_add [simp]: 
@@ -426,8 +426,8 @@ lemma is_ground_add [simp]:
 
 end
 
-locale natural_semigroup_functor_functional_substitution_lifting = 
-  natural_semigroup_functional_substitution_lifting + natural_semigroup_functor
+locale natural_magma_functor_functional_substitution_lifting = 
+  natural_magma_functional_substitution_lifting + natural_magma_functor
 begin
 
 lemma add_subst [simp]: 
@@ -443,10 +443,10 @@ lemma plus_subst [simp]: "(plus expr expr') \<cdot> \<sigma> = plus (expr \<cdot
 
 end
 
-locale natural_semigroup_grounding_lifting = 
+locale natural_magma_grounding_lifting = 
   grounding_lifting + 
-  natural_semigroup + 
-  ground: natural_semigroup where 
+  natural_magma + 
+  ground: natural_magma where 
   to_set = to_set_ground and plus = plus_ground and wrap = wrap_ground and add = add_ground
 for plus_ground wrap_ground add_ground +
 assumes 
@@ -456,7 +456,7 @@ assumes
   wrap_to_ground: "\<And>sub. to_ground (wrap sub) = wrap_ground (sub_to_ground sub)"
 begin
 
-sublocale natural_semigroup_functional_substitution_lifting
+sublocale natural_magma_functional_substitution_lifting
   by unfold_locales
 
 lemma from_ground_plus [simp]: 

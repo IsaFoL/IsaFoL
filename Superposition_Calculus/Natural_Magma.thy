@@ -1,9 +1,8 @@
-theory Natural_Semigroup
+theory Natural_Magma
   imports Main
 begin
 
-(* TODO: Natural Magma *)
-locale natural_semigroup = 
+locale natural_magma = 
   fixes 
     to_set :: "'b \<Rightarrow> 'a set" and
     plus :: "'b \<Rightarrow> 'b \<Rightarrow> 'b" and

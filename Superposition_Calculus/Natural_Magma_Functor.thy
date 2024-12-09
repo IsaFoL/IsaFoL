@@ -1,8 +1,8 @@
-theory Natural_Semigroup_Functor
-  imports Natural_Semigroup Natural_Functor
+theory Natural_Magma_Functor
+  imports Natural_Magma Natural_Functor
 begin
 
-locale natural_semigroup_functor = natural_semigroup + natural_functor +
+locale natural_magma_functor = natural_magma + natural_functor +
   assumes 
     map_wrap: "\<And>f a. map f (wrap a) = wrap (f a)" and 
     map_plus: "\<And>f b b'. map f (plus b b') = plus (map f b) (map f b')" 

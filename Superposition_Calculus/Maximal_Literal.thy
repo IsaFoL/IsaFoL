@@ -36,11 +36,11 @@ lemma strictly_maximal_in_clause:
   by(rule conjunct1)
 
 (* TODO: Names *)
-lemma is_maximal_empty [simp]: "is_maximal l C \<Longrightarrow> C \<noteq> {#}"  
+lemma is_maximal_empty [intro]: "is_maximal l C \<Longrightarrow> C \<noteq> {#}"  
   using maximal_in_clause
   by fastforce
 
-lemma is_strictly_maximal_empty [simp]: "is_strictly_maximal l C \<Longrightarrow> C \<noteq> {#}"
+lemma is_strictly_maximal_empty [intro]: "is_strictly_maximal l C \<Longrightarrow> C \<noteq> {#}"
   using strictly_maximal_in_clause
   by fastforce
 

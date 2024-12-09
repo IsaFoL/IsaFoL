@@ -155,14 +155,14 @@ proof (cases P C rule: eq_resolution.cases)
 
     have [simp]: "?L = (Neg (Upair ?s\<^sub>1 ?s\<^sub>2))"
       unfolding  eq_resolutionI(4) atom.to_ground_def literal.to_ground_def
-      by clause_auto
+      by simp
 
     have [simp]: "?s\<^sub>1 = ?s\<^sub>2"
       using term_subst.is_imgu_unifies'[OF eq_resolutionI(5)]
       by argo
 
     have "is_neg ?L"
-      by (simp add: literal.to_ground_def eq_resolutionI(4) subst_literal)
+      by simp
 
     have "?I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
     proof(cases "L' = ?L")
@@ -460,7 +460,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
       ultimately show ?thesis
         using superpositionI(19)
-        by (metis welltyped_typed)
+        by (metis term.typed_if_welltyped)
     qed
 
     have wt_P\<^sub>1: "clause.is_welltyped \<V>\<^sub>1 P\<^sub>1" 
@@ -468,7 +468,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       have xx: "\<forall>x\<in>clause.vars (P\<^sub>1' \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x"
         using superpositionI(15)
         unfolding superpositionI clause.add_subst
-        by clause_simp
+        by auto
 
       have wt_P\<^sub>1': "clause.is_welltyped \<V>\<^sub>1 P\<^sub>1'"
       proof-
@@ -496,7 +496,7 @@ proof (cases P2 P1 C rule: superposition.cases)
                welltyped \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<tau>"
           using grounding(2) superpositionI(9, 14, 15) 
           unfolding superpositionI
-          by clause_auto
+          by auto
 
         then have "\<exists>\<tau>. welltyped \<V>\<^sub>3 (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu>)\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>\<rangle> \<tau> \<and> welltyped \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<tau>"
           by (metis (no_types, lifting) iso_tuple_UNIV_I local.superpositionI(14)
@@ -528,13 +528,14 @@ proof (cases P2 P1 C rule: superposition.cases)
               welltyped \<V>\<^sub>3 (s\<^sub>1' \<cdot>t \<rho>\<^sub>1) \<tau>; \<P> = Neg\<rbrakk>
          \<Longrightarrow> \<exists>\<tau>. welltyped \<V>\<^sub>1 s\<^sub>1\<langle>u\<^sub>1\<rangle> \<tau> \<and>
                  welltyped \<V>\<^sub>1 s\<^sub>1' \<tau>"
-          by clause_simp (metis (mono_tags) Un_iff welltyped.typed_renaming[OF superpositionI(4)] 
-              subst_apply_term_ctxt_apply_distrib vars_term_ctxt_apply)+
+        (* TODO: *)
+           apply auto
+          by (metis (mono_tags) Un_iff subst_apply_term_ctxt_apply_distrib vars_term_ctxt_apply)+
 
         with x1 show ?thesis
           using superpositionI(15)  superpositionI(9) welltyped.explicit_typed_renaming[OF superpositionI(4)] 
           unfolding superpositionI clause.add_subst clause.vars_add
-          by (auto simp: subst_atom subst_literal)
+          by auto
       qed
 
       then show ?thesis
@@ -547,8 +548,8 @@ proof (cases P2 P1 C rule: superposition.cases)
     proof-
       have xx: "\<forall>x\<in>clause.vars (P\<^sub>2' \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x"
         using superpositionI(16) 
-        unfolding superpositionI 
-        by clause_simp
+        unfolding superpositionI
+        by simp
 
       have wt_P\<^sub>2': "clause.is_welltyped \<V>\<^sub>2 P\<^sub>2'"
         using grounding(2)
@@ -635,19 +636,19 @@ proof (cases P2 P1 C rule: superposition.cases)
     then have L\<^sub>1: "?L\<^sub>1 = ?\<P> (Upair ?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G ?s\<^sub>1')"
       using s\<^sub>1_u\<^sub>1
       unfolding superpositionI literal.to_ground_def atom.to_ground_def
-      by clause_auto
+      by auto
 
     have "literal.to_ground
          ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle> \<approx> s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>') =
         term.to_ground (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle> \<approx>
         term.to_ground (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
-      by (simp add: atom.to_ground_def literal_to_ground_atom_to_ground(1))
+      by simp
 
     moreover have "literal.to_ground
          ((s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle> !\<approx> s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>') =
         term.to_ground (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>' )\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle> !\<approx>
         term.to_ground (s\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
-      by (simp add: atom.to_ground_def literal_to_ground_atom_to_ground(2))
+      by simp
 
     ultimately have C: "?C = add_mset (?\<P> (Upair (?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G (?s\<^sub>1'))) (?P\<^sub>1' + ?P\<^sub>2')"
       using \<P>_pos_or_neg
@@ -655,7 +656,7 @@ proof (cases P2 P1 C rule: superposition.cases)
         s\<^sub>1_t\<^sub>2'
         superpositionI
         clause.to_ground_def
-      by (auto simp: subst_atom subst_literal)
+      by auto
 
     show "?I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
     proof (cases "L\<^sub>1' = ?L\<^sub>1")

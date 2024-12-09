@@ -231,7 +231,7 @@ next
   assume "bottom \<in> \<bottom>\<^sub>F"
   then show "clause_groundings bottom \<subseteq> ground.G_Bot"
     unfolding clause_groundings_def
-    by clause_auto
+    by auto
 next
   fix clause
   show "clause_groundings clause \<inter> ground.G_Bot \<noteq> {} \<longrightarrow> clause \<in> \<bottom>\<^sub>F"

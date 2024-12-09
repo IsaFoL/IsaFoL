@@ -302,7 +302,7 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
       clause.is_welltyped_add
     by auto
 
-  then have "clause.is_welltyped \<V> (D  \<cdot> \<mu>)"
+  then have "clause.is_welltyped \<V> (D \<cdot> \<mu>)"
     using wt_D eq_resolutionI(4) clause.is_welltyped.subst_stability
     by (metis UNIV_I)
     
@@ -311,18 +311,6 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_resolution.cases)
     unfolding eq_resolutionI
     by auto
 qed
-
-(*TODO: Move *)
-lemma typed_welltyped:
-  assumes "typed \<V> term \<tau>" "welltyped \<V> term \<tau>'"
-  shows "welltyped \<V> term \<tau>"
-  using assms
-  by (smt (verit, best) welltyped.simps typed.simps term.typed.right_unique right_uniqueD)
-
-lemma welltyped_typed: 
-  assumes "welltyped \<V> term \<tau>"
-  shows "typed \<V> term \<tau>"
-  using term.typed_if_welltyped[OF assms].
 
 lemma eq_factoring_preserves_typing:
   assumes
@@ -349,6 +337,8 @@ proof (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases)
   qed
 qed
 
+(* TODO: Find out where to do it first *)
+declare Term_Context.ground_vars_term_empty [simp del]
 
 (* TODO: Naming!! *)
 lemma superposition_preserves_typing:
@@ -383,15 +373,10 @@ proof (cases "(D, \<V>\<^sub>2)" "(C, \<V>\<^sub>1)" "(E, \<V>\<^sub>3)" rule: s
   have imgu: "term\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> = term\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>"
     using term_subst.is_imgu_unifies'[OF superpositionI(10)].
 
+  from literal_cases[OF superpositionI(6)] wt_C\<mu> wt_D\<mu> imgu
   show ?thesis
-     (* TODO *)
-    using literal_cases[OF superpositionI(6)] wt_C\<mu> wt_D\<mu>
-    apply cases
-     apply (clause_simp simp: superpositionI imgu)
-    apply (smt (verit, best) atom_is_welltyped_iff clause.is_welltyped_add clause.is_welltyped_plus
-        literal.sel(1) literal_is_welltyped_iff term.welltyped.context_compatible)
-    by (smt (verit) atom_is_welltyped_iff clause.is_welltyped_add clause.is_welltyped_plus
-        literal.sel(1,2) literal_is_welltyped_iff term.welltyped.context_compatible)
+    unfolding superpositionI
+    by cases auto
 qed
 
 end

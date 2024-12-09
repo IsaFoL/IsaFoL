@@ -4,10 +4,10 @@ theory Clause_Typing
     Uprod_Extra 
     Multiset_Extra 
     Clausal_Calculus_Extra 
-    Natural_Semigroup
+    Natural_Magma
 begin
 
-locale monoid_typing_lifting = typing_lifting + natural_semigroup
+locale monoid_typing_lifting = typing_lifting + natural_magma
 begin
 
 lemma is_typed_add [simp]: 
@@ -78,12 +78,19 @@ lemma literal_is_typed_iff:
   unfolding literal.is_typed_def
   by (simp_all add: set_literal_atm_of)
 
-lemma literal_is_welltyped_iff:
-  "literal.is_welltyped l \<longleftrightarrow> atom.is_welltyped (atm_of l)" and
-  [simp]: "literal.is_welltyped (t \<approx> t') \<longleftrightarrow> atom.is_welltyped (Upair t t')" and
-  [simp]: "literal.is_welltyped (t !\<approx> t') \<longleftrightarrow> atom.is_welltyped (Upair t t')"
+lemma literal_is_welltyped_iff [simp]:
+  "literal.is_welltyped (t \<approx> t') \<longleftrightarrow> atom.is_welltyped (Upair t t')"
+  "literal.is_welltyped (t !\<approx> t') \<longleftrightarrow> atom.is_welltyped (Upair t t')"
   unfolding literal.is_welltyped_def
-  by (simp_all add: set_literal_atm_of)
+  by simp_all
+
+lemma literal_is_welltyped_iff_atm_of:
+  "literal.is_welltyped l \<longleftrightarrow> atom.is_welltyped (atm_of l)"
+  unfolding literal.is_welltyped_def
+  by (simp add: set_literal_atm_of)
+
+lemmas is_welltyped_iff = 
+  literal_is_welltyped_iff atom_is_welltyped_iff
 
 sublocale clause: mulitset_typing_lifting where 
   sub_is_typed = literal.is_typed and 

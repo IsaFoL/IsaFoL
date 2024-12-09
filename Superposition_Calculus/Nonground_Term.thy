@@ -49,7 +49,7 @@ global_interpretation "term": grounding_def where
 
 subsection\<open>Term\<close>
 
-lemma infinite_terms: "infinite (UNIV :: ('f, 'v) term set)"
+lemma infinite_terms [intro]: "infinite (UNIV :: ('f, 'v) term set)"
 proof-
   have "infinite (UNIV :: ('f, 'v) term list set)"
     using infinite_UNIV_listI.
@@ -240,9 +240,10 @@ next
     by simp
 qed
 
-(* TODO: Simp? *)                                         
-lemma term_context_ground_iff_term_is_ground: "Term_Context.ground t = term.is_ground t"
+lemma term_context_ground_iff_term_is_ground [simp]: "Term_Context.ground t = term.is_ground t"
   by(induction t) simp_all
+
+declare Term_Context.ground_vars_term_empty [simp del]
 
 lemma obtain_ground_fun:
   assumes "term.is_ground t"

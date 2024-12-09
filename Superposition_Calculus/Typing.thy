@@ -36,6 +36,13 @@ sublocale typing where is_typed = is_typed and is_welltyped = is_welltyped
    using typed_if_welltyped
    by unfold_locales auto
 
+(* TODO: Name *)
+lemma typed_welltyped:
+  assumes "typed expr \<tau>" "welltyped expr \<tau>'"
+  shows "welltyped expr \<tau>"
+  using assms typed_if_welltyped
+  by blast
+
 end
 
 definition uniform_typed_lifting where 

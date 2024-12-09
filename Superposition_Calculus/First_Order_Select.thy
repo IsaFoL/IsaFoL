@@ -173,6 +173,7 @@ lemma all_types_nat: "\<exists>\<V> :: nat \<Rightarrow> nat. all_types \<V>"
   using not_nat_version'
   by blast
 
+(* TODO: infinite domains? *)
 lemma all_types: "\<exists>\<V> :: ('v :: {infinite, countable} \<Rightarrow> 'ty :: countable). all_types \<V>"
 proof-
   obtain \<V>_nat :: "nat \<Rightarrow> nat" where \<V>_nat: "all_types \<V>_nat"
@@ -329,7 +330,7 @@ proof-
    
   show ?thesis
     using that[OF _ grounding] select\<^sub>G_on_premise_groundings
-    unfolding select\<^sub>G_def 
+    unfolding select\<^sub>G_def
     by fastforce
 qed
 
@@ -386,7 +387,7 @@ lemma select_subst2:
   shows "is_neg literal"
   using assms subst_neg_stable select_negative_lits
   unfolding clause.subst_def
-  by auto
+  by blast
 
 lemmas select_subst = select_subst1 select_subst2
 

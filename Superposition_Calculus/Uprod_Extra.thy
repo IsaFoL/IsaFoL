@@ -73,7 +73,7 @@ proof-
     by simp
 qed
 
-lemma ball_set_uprod: "(\<forall>t\<in>set_uprod (Upair t\<^sub>1 t\<^sub>2). P t) \<longleftrightarrow> P t\<^sub>1 \<and> P t\<^sub>2"
+lemma ball_set_uprod [simp]: "(\<forall>t\<in>set_uprod (Upair t\<^sub>1 t\<^sub>2). P t) \<longleftrightarrow> P t\<^sub>1 \<and> P t\<^sub>2"
   by auto
 
 lemma inj_mset_uprod: "inj mset_uprod"

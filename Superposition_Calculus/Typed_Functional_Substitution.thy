@@ -277,7 +277,7 @@ lemma obtain_typed_renamings:
     "\<And>ty. infinite {x. \<V>\<^sub>1 x = ty}" 
     "\<And>ty. infinite {x. \<V>\<^sub>2 x = ty}"
   obtains \<rho>\<^sub>1 \<rho>\<^sub>2 :: "'var \<Rightarrow> 'expr" where
-    "is_renaming \<rho>\<^sub>1" 
+    "is_renaming \<rho>\<^sub>1"
     "is_renaming \<rho>\<^sub>2" 
     "\<rho>\<^sub>1 ` X \<inter> \<rho>\<^sub>2 ` Y = {}"
     "is_typed_on X \<V>\<^sub>1 \<rho>\<^sub>1"

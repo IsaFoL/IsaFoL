@@ -17,44 +17,19 @@ section \<open>Nonground Clauses and Substitutions\<close>
 type_synonym 'f ground_atom = "'f gatom"
 type_synonym ('f, 'v) atom = "('f, 'v) term uprod"
 
-(* TODO: Try to remove  *)
-named_theorems clause_simp
-named_theorems clause_intro
-
-declare 
-  ball_set_uprod [clause_simp] and
-  subst_apply_term_ctxt_apply_distrib [clause_simp] and
-  vars_term_ctxt_apply [clause_simp] and
-  literal.sel [clause_simp] and
-  term_context_ground_iff_term_is_ground [clause_simp] and
-  ground_ctxt_iff_context_is_ground [clause_simp] and
-  term_with_context_is_ground [clause_simp] and
-  context_from_ground_hole [clause_simp] and
-  infinite_terms [clause_intro]
-
+(* TODO: *)
 lemma literal_cases: "\<lbrakk>\<P> \<in> {Pos, Neg}; \<P> = Pos \<Longrightarrow> P; \<P> = Neg \<Longrightarrow> P\<rbrakk> \<Longrightarrow> P"
   by blast
-
-(* TODO: cases + names *)
-method clause_simp uses (* cases*) simp intro =
-  (*(-, (rule literal_cases[OF cases]))?,*)
-  auto simp only: simp clause_simp intro: intro clause_intro
-
-method clause_auto uses simp intro = 
-  (clause_simp simp: simp intro: intro)?,  
-  (auto simp: simp intro intro)?, 
-  (auto simp: simp clause_simp intro: intro clause_intro)?
-
 
 subsection \<open>Nonground Atoms\<close>
 
 (* TODO: Name *)
-locale grounded_natural_semigroup_functor = natural_semigroup_grounding_lifting where 
-  comp_subst = "(\<odot>)" and id_subst = Var  +
-  natural_semigroup_functor_functional_substitution_lifting where 
+locale grounded_natural_magma_functor = natural_magma_grounding_lifting where 
+  comp_subst = "(\<odot>)" and id_subst = Var +
+  natural_magma_functor_functional_substitution_lifting where 
   comp_subst = "(\<odot>)" and id_subst = Var
 
-locale test 
+locale test
 begin
 
 sublocale atom: lifting_from_term where 
@@ -140,11 +115,6 @@ rewrites
   "\<And>l. literal'.to_ground l = literal.to_ground l"
   by unfold_locales simp_all
 
-(* TODO: Delete? *)
-lemma mset_mset_lit_subst [clause_simp]: "{# t \<cdot>t \<sigma>. t \<in># mset_lit l #} = mset_lit (l \<cdot>l \<sigma>)"
-  unfolding literal.subst_def atom.subst_def mset_lit_image_mset
-  by blast
-
 subsection \<open>Nonground Clauses\<close>
 
 sublocale clause: lifting_from_term where 
@@ -154,7 +124,7 @@ sublocale clause: lifting_from_term where
   from_ground_map = image_mset and ground_map = image_mset and to_set_ground = set_mset
   by unfold_locales
 
-sublocale clause: grounded_natural_semigroup_functor where 
+sublocale clause: grounded_natural_magma_functor where 
   to_set = set_mset and sub_to_ground = literal.to_ground and 
   sub_from_ground = literal.from_ground and sub_subst = literal.subst and 
   sub_vars = literal.vars and map = image_mset and to_ground_map = image_mset and 
@@ -165,45 +135,27 @@ sublocale clause: grounded_natural_semigroup_functor where
 
 notation clause.subst (infixl "\<cdot>" 67)
 
-lemmas empty_clause_is_ground[clause_intro] = clause.empty_is_ground[OF set_mset_empty]
+lemmas empty_clause_is_ground [simp] = clause.empty_is_ground[OF set_mset_empty]
 
-lemmas clause_subst_empty [clause_simp] = 
+lemmas clause_subst_empty [simp] = 
   clause.subst_ident_if_ground[OF empty_clause_is_ground]
   clause.subst_empty[OF set_mset_empty]
 
-declare
-  literal.to_set_is_ground [clause_simp]
-  atom.to_set_is_ground [clause_simp]
-  clause.to_set_is_ground [clause_simp]
-  set_mset_set_uprod [clause_simp]
-  mset_lit_set_literal [clause_simp]
-  clause.is_ground_add [clause_simp]
-  clause.add_subst [clause_simp]
-  clause.from_ground_add [clause_simp]
-  clause.plus_subst [clause_simp]
-  clause.vars_add [clause_simp]
-  clause.vars_plus [clause_simp]
-
-declare 
-  clause.subst_in_to_set_subst [clause_intro]
-  literal'.subst_in_to_set_subst [clause_intro]
-
-(* TODO: Names *)
-lemma vars_atom [clause_simp]: "atom.vars (Upair t\<^sub>1 t\<^sub>2) = term.vars t\<^sub>1 \<union> term.vars t\<^sub>2"
+lemma vars_atom [simp]: "atom.vars (Upair t\<^sub>1 t\<^sub>2) = term.vars t\<^sub>1 \<union> term.vars t\<^sub>2"
   by (simp_all add: atom.vars_def)
 
-lemma vars_literal [clause_simp]: 
+lemma vars_literal [simp]: 
   "literal.vars (Pos a) = atom.vars a"
   "literal.vars (Neg a) = atom.vars a"
   "literal.vars ((if b then Pos else Neg) a) = atom.vars a"
   by (simp_all add: literal.vars_def)
 
-lemma subst_atom [clause_simp]: 
+lemma subst_atom [simp]: 
   "Upair t\<^sub>1 t\<^sub>2 \<cdot>a \<sigma> = Upair (t\<^sub>1 \<cdot>t \<sigma>) (t\<^sub>2 \<cdot>t \<sigma>)"
   unfolding atom.subst_def
   by simp_all
 
-lemma subst_literal [clause_simp]: 
+lemma subst_literal [simp]: 
   "Pos a \<cdot>l \<sigma> = Pos (a \<cdot>a \<sigma>)"
   "Neg a \<cdot>l \<sigma> = Neg (a \<cdot>a \<sigma>)"
   "atm_of (l \<cdot>l \<sigma>) = atm_of l \<cdot>a \<sigma>"
@@ -211,10 +163,10 @@ lemma subst_literal [clause_simp]:
   using literal.map_sel
   by auto
 
-lemmas clause_submset_vars_clause_subset [clause_intro] = 
+lemmas clause_submset_vars_clause_subset [intro] = 
   clause.to_set_subset_vars_subset[OF set_mset_mono]
 
-lemma subst_clause_remove1_mset [clause_simp]: 
+lemma subst_clause_remove1_mset [simp]: 
   assumes "l \<in># C" 
   shows "remove1_mset l C \<cdot> \<sigma> = remove1_mset (l \<cdot>l \<sigma>) (C \<cdot> \<sigma>)"
   unfolding clause.subst_def image_mset_remove1_mset_if
@@ -223,10 +175,10 @@ lemma subst_clause_remove1_mset [clause_simp]:
 
 lemmas sub_ground_clause = clause.to_set_subset_is_ground[OF set_mset_mono]
 
-lemma clause_from_ground_empty_mset [clause_simp]: "clause.from_ground {#} = {#}"
+lemma clause_from_ground_empty_mset [simp]: "clause.from_ground {#} = {#}"
   by (simp add: clause.from_ground_def)
 
-lemma clause_to_ground_empty_mset [clause_simp]: "clause.to_ground {#} = {#}"
+lemma clause_to_ground_empty_mset [simp]: "clause.to_ground {#} = {#}"
   by (simp add: clause.to_ground_def)
 
 lemma remove1_mset_literal_from_ground: 
@@ -244,11 +196,11 @@ lemma subst_polarity_stable:
     subst_pos_stable: "is_pos (l \<cdot>l \<sigma>) \<longleftrightarrow> is_pos l"
   by (simp_all add: literal.subst_def)
 
-lemma atom_from_ground_term_from_ground [clause_simp]:
+lemma atom_from_ground_term_from_ground [simp]:
   "atom.from_ground (Upair t\<^sub>G\<^sub>1 t\<^sub>G\<^sub>2) = Upair (term.from_ground t\<^sub>G\<^sub>1) (term.from_ground t\<^sub>G\<^sub>2)"
   by (simp add: atom.from_ground_def)
 
-lemma literal_from_ground_atom_from_ground [clause_simp]:
+lemma literal_from_ground_atom_from_ground [simp]:
   "literal.from_ground (Neg a\<^sub>G) = Neg (atom.from_ground a\<^sub>G)"
   "literal.from_ground (Pos a\<^sub>G) = Pos (atom.from_ground a\<^sub>G)"  
   by (simp_all add: literal.from_ground_def)
@@ -259,17 +211,15 @@ lemma literal_from_ground_polarity_stable:
     literal_from_ground_stable: "is_pos l\<^sub>G \<longleftrightarrow> is_pos (literal.from_ground l\<^sub>G)"
   by (simp_all add: literal.from_ground_def)
 
-lemma term_to_ground_atom_to_ground:
-  assumes "term.is_ground t\<^sub>1" and "term.is_ground t\<^sub>2"
-  shows "Upair (term.to_ground t\<^sub>1) (term.to_ground t\<^sub>2) = atom.to_ground (Upair t\<^sub>1 t\<^sub>2)"
-  using assms
+lemma atom_to_ground_term_to_ground [simp]: 
+  "atom.to_ground (Upair t\<^sub>1 t\<^sub>2) = Upair (term.to_ground t\<^sub>1) (term.to_ground t\<^sub>2)"
   by (simp add: atom.to_ground_def)
 
-lemma atom_is_ground_term_is_ground [clause_simp]: 
+lemma atom_is_ground_term_is_ground [simp]: 
   "atom.is_ground (Upair t\<^sub>1 t\<^sub>2) \<longleftrightarrow> term.is_ground t\<^sub>1 \<and> term.is_ground t\<^sub>2"
-  by clause_simp
+  by simp
 
-lemma literal_to_ground_atom_to_ground [clause_simp]:
+lemma literal_to_ground_atom_to_ground [simp]:
   "literal.to_ground (Pos a) = Pos (atom.to_ground a)" 
   "literal.to_ground (Neg a) = Neg (atom.to_ground a)" 
   by (simp_all add: literal.to_ground_def)
@@ -278,7 +228,7 @@ lemma literal_is_ground_atom_is_ground [intro]:
   "literal.is_ground l \<longleftrightarrow> atom.is_ground (atm_of l)"
   by (simp add: literal.vars_def set_literal_atm_of)
 
-lemma obtain_from_atom_subst [clause_intro]: 
+lemma obtain_from_atom_subst : 
   assumes "Upair t\<^sub>1' t\<^sub>2' = a \<cdot>a \<sigma>"
   obtains t\<^sub>1 t\<^sub>2 
   where "a = Upair t\<^sub>1 t\<^sub>2" "t\<^sub>1' = t\<^sub>1 \<cdot>t \<sigma>" "t\<^sub>2' = t\<^sub>2 \<cdot>t \<sigma>"
@@ -286,7 +236,7 @@ lemma obtain_from_atom_subst [clause_intro]:
   unfolding atom.subst_def 
   by(cases a) force
 
-lemma obtain_from_pos_literal_subst [clause_intro]: 
+lemma obtain_from_pos_literal_subst: 
   assumes "l \<cdot>l \<sigma> = t\<^sub>1' \<approx> t\<^sub>2'"
   obtains t\<^sub>1 t\<^sub>2 
   where "l = t\<^sub>1 \<approx> t\<^sub>2" "t\<^sub>1' = t\<^sub>1 \<cdot>t \<sigma>" "t\<^sub>2' = t\<^sub>2 \<cdot>t \<sigma>"

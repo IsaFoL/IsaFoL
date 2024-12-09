@@ -3,7 +3,7 @@ theory Multiset_Extra
     "HOL-Library.Multiset"
     "HOL-Library.Multiset_Order"
     Nested_Multisets_Ordinals.Multiset_More
-    Natural_Semigroup_Functor
+    Natural_Magma_Functor
 begin
 
 lemma exists_multiset [intro]: "\<exists>M. x \<in> set_mset M"
@@ -18,7 +18,7 @@ global_interpretation multiset_functor: natural_functor_conversion where
   map' = image_mset and to_set' = set_mset
   by unfold_locales simp_all 
 
-global_interpretation muliset_functor: natural_semigroup_functor where
+global_interpretation muliset_functor: natural_magma_functor where
   map = image_mset and to_set = set_mset and plus = "(+)" and wrap = "\<lambda>l. {#l#}" and add = add_mset
   by unfold_locales simp_all
 

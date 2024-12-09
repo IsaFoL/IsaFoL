@@ -36,8 +36,6 @@ global_interpretation "context": natural_functor_conversion where
   by unfold_locales
     (auto simp: actxt.set_map(2) actxt.map_comp cong: actxt.map_cong)
 
-term map_args_actxt
-
 global_interpretation "context": lifting_from_term where 
   sub_subst = "(\<cdot>t)" and sub_vars = term.vars and 
   to_set = "set2_actxt :: ('f, 'v) context \<Rightarrow> ('f, 'v) term set" and map = map_args_actxt and
@@ -46,7 +44,7 @@ global_interpretation "context": lifting_from_term where
   ground_map = map_args_actxt and to_set_ground = set2_actxt
 rewrites
   "\<And>c \<sigma>. context.subst c \<sigma> = c \<cdot>t\<^sub>c \<sigma>" and
-  "\<And>c. context.vars c = vars_ctxt c"
+  "\<And>c. context.vars c = vars_ctxt c" (* TODO: Name *)
 proof unfold_locales
   (* TODO: Is there way without repeating myself for this? *)
   interpret lifting_from_term term.vars "(\<cdot>t)" map_args_actxt set2_actxt term.to_ground
@@ -63,8 +61,8 @@ proof unfold_locales
     by blast
 qed
 
-lemma ground_ctxt_iff_context_is_ground: "ground_ctxt c \<longleftrightarrow> context.is_ground c"
-  by(induction c)(simp_all add: term_context_ground_iff_term_is_ground)
+lemma ground_ctxt_iff_context_is_ground [simp]: "ground_ctxt c \<longleftrightarrow> context.is_ground c"
+  by(induction c) simp_all
 
 (* TODO: Names *)
 lemma ground_term_with_context1:
@@ -125,10 +123,11 @@ next
     by (metis subst_compose_ctxt_compose_distrib context.subst_ident_if_ground)
 qed
 
-lemma context_from_ground_hole: "context.from_ground c\<^sub>G = \<box> \<longleftrightarrow> c\<^sub>G = \<box>"
+lemma context_from_ground_hole [simp]: "context.from_ground c\<^sub>G = \<box> \<longleftrightarrow> c\<^sub>G = \<box>"
   by(cases c\<^sub>G) (simp_all add: context.from_ground_def)
 
-lemma term_with_context_is_ground: "term.is_ground c\<langle>t\<rangle> \<longleftrightarrow> context.is_ground c \<and> term.is_ground t"
+lemma term_with_context_is_ground [simp]: 
+  "term.is_ground c\<langle>t\<rangle> \<longleftrightarrow> context.is_ground c \<and> term.is_ground t"
   by simp
 
 end
