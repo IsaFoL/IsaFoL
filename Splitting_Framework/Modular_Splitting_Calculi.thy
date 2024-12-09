@@ -1234,8 +1234,6 @@ next
     by force
 qed
 
-
-
 (* Report definition 26 *)
 definition locally_fair :: \<open>('f, 'v) AF set infinite_llist \<Rightarrow> bool\<close> where
   \<open>locally_fair \<N>i \<equiv>
@@ -1436,7 +1434,7 @@ text \<open>
   nothing to worry about.
 \<close>
 
-locale AF_calculus_with_sound_simps = AF_calculus bot Inf entails entails_sound Red_I Red_F
+locale AF_calculus_with_sound_simps_and_opt_infs = AF_calculus bot Inf entails entails_sound Red_I Red_F
   for bot :: \<open>('f, 'v :: countable) AF\<close> and
       Inf :: \<open>('f, 'v) AF inference set\<close> and
       entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> and
@@ -1444,19 +1442,22 @@ locale AF_calculus_with_sound_simps = AF_calculus bot Inf entails entails_sound 
       Red_I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
       Red_F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close>
   + fixes
-      Simps :: \<open>('f, 'v) AF simplification set\<close>
+      Simps :: \<open>('f, 'v) AF simplification set\<close> and
+      OptInfs :: \<open>('f, 'v) AF inference set\<close>
     assumes
       simplification: \<open>\<delta> \<in> Simps \<Longrightarrow> (S_from \<delta> - S_to \<delta>) \<subseteq> Red_F (S_to \<delta>)\<close> and
       simps_sound: \<open>\<delta> \<in> Simps \<Longrightarrow> \<forall>\<C> \<in> S_to \<delta>. S_from \<delta> \<Turnstile>s {\<C>}\<close> and
       no_infinite_simps: \<open>finite (S_from \<delta>) \<Longrightarrow> \<delta> \<in> Simps \<Longrightarrow> finite (S_to \<delta>)\<close> and
-      infs_sound: \<open>\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s {concl_of \<iota>}\<close>
+      infs_sound: \<open>\<iota> \<in> OptInfs \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s {concl_of \<iota>}\<close>
 
-text \<open>An empty set of simplification steps is accepted in term\<open>locale AF_calculus_with_sound_simps\<close>\<close>
+text \<open>Empty sets of simplifications and optional inferences are accepted in term\<open>locale AF_calculus_with_sound_simps\<close>\<close>
 context AF_calculus
 begin
 
-sublocale empty_simps: AF_calculus_with_sound_simps bot Inf entails entails_sound Red_I Red_F "{}"
-  using sc.sound by (unfold_locales, auto)
+sublocale empty_simps: 
+  AF_calculus_with_sound_simps_and_opt_infs bot Inf entails entails_sound Red_I Red_F 
+  "{} :: ('f, 'v) AF simplification set" "{} :: ('f, 'v) AF inference set" 
+  by (unfold_locales, auto)
 
 end
 
@@ -1472,14 +1473,16 @@ text \<open>
 subsubsection \<open>The Split Rule\<close>
 
 locale AF_calculus_with_split =
-  base_calculus: AF_calculus_with_sound_simps bot SInf entails entails_sound Red_I\<^sub>A\<^sub>F Red_F\<^sub>A\<^sub>F Simps
+  base_calculus: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound Red_I\<^sub>A\<^sub>F
+  Red_F\<^sub>A\<^sub>F Simps OptInfs
   for bot :: \<open>('f, 'v :: countable) AF\<close> and
       SInf :: \<open>('f, 'v) AF inference set\<close> and
       entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>A\<^sub>F\<close> 50) and
       entails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<^sub>A\<^sub>F\<close> 50) and
       Red_I\<^sub>A\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
       Red_F\<^sub>A\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
-      Simps :: \<open>('f, 'v) AF simplification set\<close>
+      Simps :: \<open>('f, 'v) AF simplification set\<close> and
+      OptInfs :: \<open>('f, 'v) AF inference set\<close>
   + fixes
       splittable :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> bool\<close>
     assumes
@@ -1582,7 +1585,8 @@ proof
   qed
 qed
 
-sublocale AF_calculus_with_sound_simps bot SInf entails entails_sound Red_I\<^sub>A\<^sub>F Red_F\<^sub>A\<^sub>F Simps_with_Split
+sublocale AF_calc_ext: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound 
+  Red_I\<^sub>A\<^sub>F Red_F\<^sub>A\<^sub>F Simps_with_Split OptInfs
   using simps_with_split_are_simps SInf_with_split_sound_wrt_entails_sound no_infinite_simps
   base_calculus.infs_sound  by (unfold_locales, auto)
 
@@ -1851,7 +1855,8 @@ proof -
     by (intro UnI1) (smt (verit, ccfv_threshold) AF.collapse CollectI core.distrib_proj)
 qed
 
-sublocale empty_simps: AF_calculus_with_sound_simps "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}"
+sublocale empty_simps: AF_calculus_with_sound_simps_and_opt_infs "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" 
+  "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" "{}"
 proof
   show \<open>core.SRed\<^sub>I N \<subseteq> core.SInf\<close> for N
     using core.SRed\<^sub>I_in_SInf .
@@ -1883,17 +1888,21 @@ next
   show \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> {} \<Longrightarrow> finite (S_to \<iota>)\<close> for \<iota> :: "('f, 'v) AF simplification"
     by blast
 next
-  show \<open>\<iota> \<in> core.SInf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close> for \<iota>
-    using core.SInf_sound_wrt_entails_sound .
+  show \<open>\<iota> \<in> {} \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close> for \<iota>
+    by blast
 qed
+
 
 lemma extend_simps_with_split:
   assumes
-    \<open>AF_calculus_with_sound_simps (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+    \<open>AF_calculus_with_sound_simps_and_opt_infs (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I 
+      core.SRed\<^sub>F Simps OptInfs\<close>
   shows
-    \<open>AF_calculus_with_split (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps splittable\<close>
+    \<open>AF_calculus_with_split (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps OptInfs
+       splittable\<close>
 proof -
-  interpret sound_simps: AF_calculus_with_sound_simps "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F Simps
+  interpret sound_simps: AF_calculus_with_sound_simps_and_opt_infs "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)"
+    "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F Simps OptInfs
     using assms .
   show ?thesis
   proof
@@ -1918,22 +1927,23 @@ proof -
 qed
 
 interpretation splitting_calc_with_split:
-  AF_calculus_with_split "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" splittable
-  using extend_simps_with_split[OF empty_simps.AF_calculus_with_sound_simps_axioms] .
+  AF_calculus_with_split "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" "{}" splittable
+  using extend_simps_with_split[OF empty_simps.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
 
 end (* locale splitting_calculus *)
 
 subsubsection \<open>The Collect Rule\<close>
 
-locale AF_calculus_with_collect =  base_calculus: AF_calculus_with_sound_simps bot SInf entails
-  entails_sound SRed\<^sub>I SRed\<^sub>F Simps
+locale AF_calculus_with_collect =  base_calculus: AF_calculus_with_sound_simps_and_opt_infs bot SInf
+  entails entails_sound SRed\<^sub>I SRed\<^sub>F Simps OptInfs
   for bot :: \<open>('f, 'v :: countable) AF\<close> and
       SInf :: \<open>('f, 'v) AF inference set\<close> and
       entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>A\<^sub>F\<close> 50) and
       entails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<^sub>A\<^sub>F\<close> 50) and
       SRed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
       SRed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
-      Simps :: \<open>('f, 'v) AF simplification set\<close>
+      Simps :: \<open>('f, 'v) AF simplification set\<close> and
+      OptInfs :: \<open>('f, 'v) AF inference set\<close>
   + assumes
     collect_redundant: \<open>F_of \<C> \<noteq> F_of bot \<and> \<M> \<Turnstile>\<^sub>A\<^sub>F {AF.Pair (F_of bot) (A_of \<C>)} \<and> 
       (\<forall> \<C> \<in> \<M>. F_of \<C> = F_of bot) \<Longrightarrow> \<C> \<in> SRed\<^sub>F \<M>\<close>
@@ -2008,7 +2018,8 @@ proof
   qed
 qed
 
-sublocale  AF_calculus_with_sound_simps bot SInf entails entails_sound SRed\<^sub>I SRed\<^sub>F Simps_with_Collect
+sublocale AF_calc_ext: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound SRed\<^sub>I SRed\<^sub>F
+  Simps_with_Collect OptInfs
   using simps_with_collect_are_simps SInf_with_collect_sound_wrt_entails_sound no_infinite_simp_set
     base_calculus.infs_sound by (unfold_locales, auto)
 
@@ -2055,12 +2066,14 @@ qed
 
 lemma extend_simps_with_collect: 
   assumes
-    \<open>AF_calculus_with_sound_simps (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+    \<open>AF_calculus_with_sound_simps_and_opt_infs (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I 
+      core.SRed\<^sub>F Simps OptInfs\<close>
   shows
-    \<open>AF_calculus_with_collect (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+    \<open>AF_calculus_with_collect (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps OptInfs\<close>
 proof -
   interpret sound_simps: 
-    AF_calculus_with_sound_simps "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F Simps
+    AF_calculus_with_sound_simps_and_opt_infs "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I
+      core.SRed\<^sub>F Simps
     using assms .
   show ?thesis
   proof
@@ -2072,22 +2085,23 @@ proof -
 qed
 
 interpretation splitting_calc_with_collect:
-  AF_calculus_with_collect "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}"
-  using extend_simps_with_collect[OF empty_simps.AF_calculus_with_sound_simps_axioms] .
+  AF_calculus_with_collect "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" "{}"
+  using extend_simps_with_collect[OF empty_simps.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
 
 end (* context splitting_calculus *)
 
 subsubsection \<open>The Trim Rule\<close>
 
-locale AF_calculus_with_trim =  base_calculus: AF_calculus_with_sound_simps bot SInf entails
-  entails_sound SRed\<^sub>I SRed\<^sub>F Simps
+locale AF_calculus_with_trim =  base_calculus: AF_calculus_with_sound_simps_and_opt_infs bot SInf 
+  entails entails_sound SRed\<^sub>I SRed\<^sub>F Simps OptInfs
   for bot :: \<open>('f, 'v :: countable) AF\<close> and
       SInf :: \<open>('f, 'v) AF inference set\<close> and
       entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>A\<^sub>F\<close> 50) and
       entails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<^sub>A\<^sub>F\<close> 50) and
       SRed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
       SRed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
-      Simps :: \<open>('f, 'v) AF simplification set\<close>
+      Simps :: \<open>('f, 'v) AF simplification set\<close> and
+      OptInfs :: \<open>('f, 'v) AF inference set\<close>
   + assumes
     trim_sound: \<open>A_of \<C> = A |\<union>| B \<and> F_of \<C> \<noteq> F_of bot \<and> 
       \<M> \<union> {AF.Pair (F_of bot) A} \<Turnstile>s\<^sub>A\<^sub>F {AF.Pair (F_of bot) B} \<and>
@@ -2185,7 +2199,8 @@ proof
   qed
 qed
 
-sublocale  AF_calculus_with_sound_simps bot SInf entails entails_sound SRed\<^sub>I SRed\<^sub>F Simps_with_Trim
+sublocale AF_calc_ext: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound SRed\<^sub>I SRed\<^sub>F
+  Simps_with_Trim OptInfs
   using simps_with_trim_are_simps SInf_with_trim_sound_wrt_entails_sound no_infinite_simp_set
     base_calculus.infs_sound by (unfold_locales, auto)
 
@@ -2304,12 +2319,14 @@ qed
 
 lemma extend_simps_with_trim: 
   assumes
-    \<open>AF_calculus_with_sound_simps (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+    \<open>AF_calculus_with_sound_simps_and_opt_infs (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I 
+      core.SRed\<^sub>F Simps OptInfs\<close>
   shows
-    \<open>AF_calculus_with_trim (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+    \<open>AF_calculus_with_trim (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps OptInfs\<close>
 proof -
   interpret sound_simps: 
-    AF_calculus_with_sound_simps "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F Simps
+    AF_calculus_with_sound_simps_and_opt_infs "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I 
+      core.SRed\<^sub>F Simps OptInfs
     using assms .
   show ?thesis
   proof
@@ -2332,8 +2349,8 @@ proof -
 qed
 
 interpretation splitting_calc_with_trim:
-  AF_calculus_with_trim "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}"
-  using extend_simps_with_trim[OF empty_simps.AF_calculus_with_sound_simps_axioms] .
+  AF_calculus_with_trim "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" "{}"
+  using extend_simps_with_trim[OF empty_simps.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
 
 end (* context splitting_calculus *)
 
@@ -2351,14 +2368,16 @@ text \<open>
 subsubsection \<open>The StrongUnsat Rule\<close>
 
 locale AF_calculus_with_strong_unsat = 
-  base: AF_calculus_with_sound_simps bot SInf entails entails_sound Red_I Red_F Simps
+  base: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound Red_I Red_F Simps
+    OptInfs
   for bot :: \<open>('f, 'v :: countable) AF\<close> and
       SInf :: \<open>('f, 'v) AF inference set\<close> and
       entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> and
       entails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<^sub>A\<^sub>F\<close> 50) and
       Red_I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
       Red_F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
-      Simps :: \<open>('f, 'v) AF simplification set\<close>
+      Simps :: \<open>('f, 'v) AF simplification set\<close> and
+      OptInfs :: \<open>('f, 'v) AF inference set\<close>
 begin
 
 text \<open>
@@ -2379,22 +2398,22 @@ text \<open>Instead of considering an inference system with only the new rule, h
   rule by rule in a modular way.\<close> 
   
 (* Report definition 9 (cont) *)
-inductive_set SInf_with_strong_unsat :: \<open>('f, 'v) AF inference set\<close> where
-  strong_unsat: \<open>strong_unsat_pre \<M> \<Longrightarrow> strong_unsat_inf \<M> \<in> SInf_with_strong_unsat\<close>
-| from_SInf: \<open>\<iota> \<in> SInf \<Longrightarrow> \<iota> \<in> SInf_with_strong_unsat\<close>
+inductive_set OptInfs_with_strong_unsat :: \<open>('f, 'v) AF inference set\<close> where
+  strong_unsat: \<open>strong_unsat_pre \<M> \<Longrightarrow> strong_unsat_inf \<M> \<in> OptInfs_with_strong_unsat\<close>
+| from_OptInf: \<open>\<iota> \<in> OptInfs \<Longrightarrow> \<iota> \<in> OptInfs_with_strong_unsat\<close>
 
 (* Report theorem 14 for StrongUnsat *)
-theorem SInf_with_strong_unsat_sound_wrt_entails_sound: 
-  \<open>\<iota> \<in> SInf_with_strong_unsat \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
+theorem OptInf_with_strong_unsat_sound_wrt_entails_sound: 
+  \<open>\<iota> \<in> OptInfs_with_strong_unsat \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
 proof -
-  assume \<open>\<iota> \<in> SInf_with_strong_unsat\<close>
+  assume \<open>\<iota> \<in> OptInfs_with_strong_unsat\<close>
   then show ?thesis
-  proof (cases \<iota> rule: SInf_with_strong_unsat.cases)
+  proof (cases \<iota> rule: OptInfs_with_strong_unsat.cases)
     case (strong_unsat \<M>)
     then show ?thesis
       by simp
   next
-    case from_SInf
+    case from_OptInf
     then show ?thesis
       using base.infs_sound by blast 
   qed
@@ -2403,61 +2422,21 @@ qed
 interpretation AF_sound_cons_rel: consequence_relation bot \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
   using base.sc.sound_cons.consequence_relation_axioms .
 
-interpretation SInf_sound_inf_system: sound_inference_system SInf_with_strong_unsat bot \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
-  using SInf_with_strong_unsat_sound_wrt_entails_sound by (unfold_locales, auto)
+interpretation SInf_sound_inf_system: sound_inference_system SInf bot \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close>
+  using base.sc.sound_inference_system_axioms .
 
 definition Red_I_ext where
   \<open>Red_I_ext \<N> = Red_I \<N> \<union> { strong_unsat_inf \<M> | \<M>. strong_unsat_pre \<M> \<and> bot \<in> \<N> }\<close>
 
-find_theorems name: base.sc
-
 interpretation AF_calc_with_strong_unsat: 
-  AF_calculus bot SInf_with_strong_unsat entails entails_sound Red_I_ext Red_F
-proof unfold_locales
-  show \<open>Red_I_ext N \<subseteq> SInf_with_strong_unsat\<close> for N
-    using base.sc.Red_I_to_Inf SInf_with_strong_unsat.from_SInf sorry
-next
-  show \<open>entails N {bot} \<Longrightarrow> entails (N - Red_F N) {bot}\<close> for N
-    using base.sc.Red_F_Bot by blast
-next
-  show \<open>N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'\<close> for N N'
-    using base.sc.Red_F_of_subset by presburger
-next
-  show \<open>N \<subseteq> N' \<Longrightarrow> Red_I_ext N \<subseteq> Red_I_ext N'\<close> for N N'
-    using base.sc.Red_I_of_subset sorry
-next
-  show \<open>N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')\<close> for N N'
-    using base.sc.Red_F_of_Red_F_subset by presburger
-next
-  show \<open>N' \<subseteq> Red_F N \<Longrightarrow> Red_I_ext N \<subseteq> Red_I_ext (N - N')\<close> for N N'
-    using base.sc.Red_I_of_Red_F_subset sorry
-next
-  show \<open>\<iota> \<in> SInf_with_strong_unsat \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I_ext N\<close> for \<iota> N
-  proof -
-    assume i_in: \<open>\<iota> \<in> SInf_with_strong_unsat\<close> and
-      ccl_i_in: \<open>concl_of \<iota> \<in> N\<close>
-    show \<open>\<iota> \<in> Red_I_ext N\<close>
-      using i_in
-    proof (cases \<iota> rule: SInf_with_strong_unsat.cases)
-      case (strong_unsat \<M>)
-      then have \<open>bot \<in> N\<close>
-        using ccl_i_in by force
-      then show ?thesis
-        unfolding Red_I_ext_def using i_in strong_unsat strong_unsat by blast
-    next
-      case from_SInf
-      then show ?thesis
-        using base.sc.Red_I_of_Inf_to_N ccl_i_in unfolding Red_I_ext_def by blast
-    qed
-qed
+  AF_calculus bot SInf entails entails_sound Red_I Red_F
+  using base.AF_calculus_axioms .
 
-
-sublocale  AF_calculus_with_sound_simps bot SInf_with_strong_unsat entails entails_sound SRed\<^sub>I SRed\<^sub>F Simps
-  sorry
-(* proof unfold_locales *)
-  (* using  SInf_with_strong_unsat_sound_wrt_entails_sound base.simplification base.simps_sound base.no_infinite_simps *)
-  (*by (unfold_locales, auto)*)
-
+sublocale AF_calc_ext: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound Red_I Red_F
+  Simps OptInfs_with_strong_unsat
+  using base.simplification base.simps_sound base.no_infinite_simps 
+OptInf_with_strong_unsat_sound_wrt_entails_sound
+  by (unfold_locales, auto)
 
 end (* locale AF_calculus_with_strong_unsat *)
 
@@ -2466,28 +2445,33 @@ begin
 
 lemma extend_infs_with_strong_unsat: 
   assumes
-    \<open>AF_calculus_with_sound_simps (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+    \<open>AF_calculus_with_sound_simps_and_opt_infs (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I 
+      core.SRed\<^sub>F Simps OptInfs\<close>
   shows
-    \<open>AF_calculus_with_strong_unsat (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+    \<open>AF_calculus_with_strong_unsat (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps 
+      OptInfs\<close>
   using AF_calculus_with_strong_unsat.intro assms by blast
 
-interpretation splitting_calc_with_strong_unsat:
-  AF_calculus_with_strong_unsat "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}"
-  using extend_infs_with_strong_unsat[OF empty_simps.AF_calculus_with_sound_simps_axioms] .
+interpretation splitting_calc_with_strong_unsat: AF_calculus_with_strong_unsat "to_AF bot" core.SInf
+  "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" "{}"
+  using 
+    extend_infs_with_strong_unsat[OF empty_simps.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
 
 end (* context splitting_calculus *)
 
 subsubsection \<open>The Tauto Rule\<close>
 
 locale AF_calculus_with_tauto = 
-  base: AF_calculus_with_sound_simps bot SInf entails entails_sound Red_I Red_F Simps
+  base: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound Red_I Red_F Simps
+  OptInfs
   for bot :: \<open>('f, 'v :: countable) AF\<close> and
       SInf :: \<open>('f, 'v) AF inference set\<close> and
       entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> and
       entails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<^sub>A\<^sub>F\<close> 50) and
       Red_I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
       Red_F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
-      Simps :: \<open>('f, 'v) AF simplification set\<close>
+      Simps :: \<open>('f, 'v) AF simplification set\<close> and
+      OptInfs :: \<open>('f, 'v) AF inference set\<close>
 begin
 
 abbreviation tauto_pre :: \<open>('f, 'v) AF \<Rightarrow> bool\<close> where
@@ -2496,58 +2480,68 @@ abbreviation tauto_pre :: \<open>('f, 'v) AF \<Rightarrow> bool\<close> where
 abbreviation tauto_inf :: \<open>('f, 'v) AF \<Rightarrow> ('f, 'v) AF inference\<close> where
   \<open>tauto_inf \<C> \<equiv> Infer [] \<C>\<close>
 
-  
 (* Report definition 9 (cont) *)
-inductive_set SInf_with_tauto :: \<open>('f, 'v) AF inference set\<close> where
-  tauto: \<open>tauto_pre \<C> \<Longrightarrow> tauto_inf \<C> \<in> SInf_with_tauto\<close>
-| from_SInf: \<open>\<iota> \<in> SInf \<Longrightarrow> \<iota> \<in> SInf_with_tauto\<close> 
+inductive_set OptInfs_with_tauto :: \<open>('f, 'v) AF inference set\<close> where
+  tauto: \<open>tauto_pre \<C> \<Longrightarrow> tauto_inf \<C> \<in> OptInfs_with_tauto\<close>
+| from_OptInfs: \<open>\<iota> \<in> OptInfs \<Longrightarrow> \<iota> \<in> OptInfs_with_tauto\<close> 
 
 (* Report theorem 14 for Tauto *)
-theorem SInf_with_tauto_sound_wrt_entails_sound: \<open>\<iota> \<in> SInf_with_tauto \<Longrightarrow> 
+theorem OptInfs_with_tauto_sound_wrt_entails_sound: \<open>\<iota> \<in> OptInfs_with_tauto \<Longrightarrow> 
   set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
 proof -
-  assume \<open>\<iota> \<in> SInf_with_tauto\<close>
+  assume \<open>\<iota> \<in> OptInfs_with_tauto\<close>
   then show ?thesis
-  proof (cases \<iota> rule: SInf_with_tauto.cases)
+  proof (cases \<iota> rule: OptInfs_with_tauto.cases)
     case (tauto \<C>)
     then show ?thesis
       by auto
   next
-    case from_SInf
+    case from_OptInfs
     then show ?thesis
       using base.infs_sound by blast
   qed
 qed
+
+sublocale AF_calc_ext: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails "(\<Turnstile>s\<^sub>A\<^sub>F)" Red_I 
+  Red_F Simps OptInfs_with_tauto
+  using OptInfs_with_tauto_sound_wrt_entails_sound base.simps_sound base.simplification 
+    base.no_infinite_simps
+  by (unfold_locales, auto)
 
 end (* locale AF_calculus_with_tauto *)
 
 context splitting_calculus
 begin
 
+
 lemma extend_infs_with_tauto: 
   assumes
-    \<open>AF_calculus_with_sound_simps (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+    \<open>AF_calculus_with_sound_simps_and_opt_infs (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I 
+      core.SRed\<^sub>F Simps OptInfs\<close>
   shows
-    \<open>AF_calculus_with_tauto (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+    \<open>AF_calculus_with_tauto (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps OptInfs\<close>
   using AF_calculus_with_tauto.intro assms by blast
 
+
 interpretation splitting_calc_with_tauto:
-  AF_calculus_with_tauto "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}"
-  using extend_infs_with_tauto[OF empty_simps.AF_calculus_with_sound_simps_axioms] .
+  AF_calculus_with_tauto "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" "{}"
+  using extend_infs_with_tauto[OF empty_simps.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
 
 end (* context splitting_calculus *)
 
 subsubsection \<open>The Approx Rule\<close>
 
 locale AF_calculus_with_approx = 
-  base: AF_calculus_with_sound_simps bot SInf entails entails_sound Red_I Red_F Simps
+  base: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound Red_I Red_F Simps
+    OptInfs
   for bot :: \<open>('f, 'v :: countable) AF\<close> and
       SInf :: \<open>('f, 'v) AF inference set\<close> and
       entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> and
       entails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<^sub>A\<^sub>F\<close> 50) and
       Red_I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
       Red_F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
-      Simps :: \<open>('f, 'v) AF simplification set\<close>
+      Simps :: \<open>('f, 'v) AF simplification set\<close> and
+      OptInfs :: \<open>('f, 'v) AF inference set\<close>
   + fixes
       approximates :: \<open>'v sign \<Rightarrow> ('f, 'v) AF \<Rightarrow> bool\<close>
     assumes
@@ -2561,26 +2555,32 @@ abbreviation approx_inf :: \<open>('f, 'v) AF \<Rightarrow> 'v sign \<Rightarrow
   \<open>approx_inf \<C> a \<equiv> Infer [\<C>] (AF.Pair (F_of bot) (finsert (neg a) (A_of \<C>)))\<close>
   
 (* Report definition 9 (cont) *)
-inductive_set SInf_with_approx :: \<open>('f, 'v) AF inference set\<close> where
-  approx: \<open>approx_pre a \<C> \<Longrightarrow> approx_inf \<C> a \<in> SInf_with_approx\<close>
-| from_SInf: \<open>\<iota> \<in> SInf \<Longrightarrow> \<iota> \<in> SInf_with_approx\<close> 
+inductive_set OptInfs_with_approx :: \<open>('f, 'v) AF inference set\<close> where
+  approx: \<open>approx_pre a \<C> \<Longrightarrow> approx_inf \<C> a \<in> OptInfs_with_approx\<close>
+| from_OptInfs: \<open>\<iota> \<in> OptInfs \<Longrightarrow> \<iota> \<in> OptInfs_with_approx\<close> 
 
 (* Report theorem 14 for Approx *)
-theorem SInf_with_approx_sound_wrt_entails_sound:
-  \<open>\<iota> \<in> SInf_with_approx \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
+theorem OptInfs_with_approx_sound_wrt_entails_sound:
+  \<open>\<iota> \<in> OptInfs_with_approx \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close>
 proof -
-  assume \<open>\<iota> \<in> SInf_with_approx\<close>
+  assume \<open>\<iota> \<in> OptInfs_with_approx\<close>
   then show ?thesis
-  proof (cases \<iota> rule: SInf_with_approx.cases)
+  proof (cases \<iota> rule: OptInfs_with_approx.cases)
     case (approx a \<C>)
     show ?thesis
       using approx_sound[OF approx(2)] approx(1) by simp
   next
-    case from_SInf
+    case from_OptInfs
     show ?thesis
-      using base.infs_sound[OF from_SInf] .
+      using base.infs_sound[OF from_OptInfs] .
   qed
 qed
+
+sublocale AF_calc_ext: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails "(\<Turnstile>s\<^sub>A\<^sub>F)" Red_I Red_F Simps
+  OptInfs_with_approx
+  using OptInfs_with_approx_sound_wrt_entails_sound base.simps_sound base.simplification 
+    base.no_infinite_simps
+  by (unfold_locales, auto)
 
 end (* locale AF_calculus_with_approx *)
 
@@ -2637,37 +2637,56 @@ qed
 
 lemma extend_infs_with_approx: 
   assumes
-    \<open>AF_calculus_with_sound_simps (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps\<close>
+    \<open>AF_calculus_with_sound_simps_and_opt_infs (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps
+      OptInfs\<close>
   shows
     \<open>AF_calculus_with_approx (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps 
-       approximates\<close>
+       OptInfs approximates\<close>
   using AF_calculus_with_approx.intro[OF assms] approx_sound
   by (simp add: AF_calculus_with_approx_axioms_def F_of_to_AF)
 
 interpretation splitting_calc_with_approx:
-  AF_calculus_with_approx "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" 
+  AF_calculus_with_approx "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" "{}"
     approximates
-  using extend_infs_with_approx[OF empty_simps.AF_calculus_with_sound_simps_axioms] .
+  using extend_infs_with_approx[OF empty_simps.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
 
 end (* context splitting_calculus *)
 
+subsubsection \<open>Combining all simplifications and optional inferences\<close>
 
-text \<open>For each optional rule, we have augmented the core calculus with them one by one as an 
-  example. We now show how to augment the core calculus with all of them at once\<close>
+text \<open>We have augmented the core calculus with each simplification and optional rule separately. We
+  now show how to augment the core calculus with all of them at once.\<close>
 context splitting_calculus
 begin
 
-interpretation with_A:
-  AF_calculus_with_approx "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" 
-    approximates
-  using extend_infs_with_approx[OF empty_simps.AF_calculus_with_sound_simps_axioms] .
+interpretation with_A: AF_calculus_with_approx "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I
+  core.SRed\<^sub>F "{}" "{}" approximates
+  using extend_infs_with_approx[OF empty_simps.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
 
-find_theorems name: with_A name: AF_calculus
+interpretation with_AT: AF_calculus_with_tauto "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I
+  core.SRed\<^sub>F "{}" with_A.OptInfs_with_approx
+  using 
+    extend_infs_with_tauto[OF with_A.AF_calc_ext.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
 
-interpretation with_T:
-  AF_calculus_with_tauto "to_AF bot" with_A.SInf_with_approx "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}"
-  using extend_infs_with_tauto with_A.AF_calculus_with_approx_axioms
+interpretation with_ATS: AF_calculus_with_strong_unsat "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)"
+  core.SRed\<^sub>I core.SRed\<^sub>F "{}" with_AT.OptInfs_with_tauto
+  using extend_infs_with_strong_unsat[OF 
+      with_AT.AF_calc_ext.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
 
+interpretation with_ATS_T: AF_calculus_with_trim "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I
+  core.SRed\<^sub>F "{}" with_ATS.OptInfs_with_strong_unsat
+  using extend_simps_with_trim[OF
+    with_ATS.AF_calc_ext.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
+
+interpretation with_ATS_TC: AF_calculus_with_collect "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" 
+  core.SRed\<^sub>I core.SRed\<^sub>F with_ATS_T.Simps_with_Trim with_ATS.OptInfs_with_strong_unsat
+  using extend_simps_with_collect[OF
+    with_ATS_T.AF_calc_ext.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
+
+interpretation with_all: AF_calculus_with_split "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" 
+  core.SRed\<^sub>I core.SRed\<^sub>F with_ATS_TC.Simps_with_Collect with_ATS.OptInfs_with_strong_unsat splittable
+  using extend_simps_with_split[OF
+    with_ATS_TC.AF_calc_ext.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
 
 end (* context splitting_calculus *)
 
