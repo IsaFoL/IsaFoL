@@ -2688,6 +2688,30 @@ interpretation with_all: AF_calculus_with_split "to_AF bot" core.SInf "(\<Turnst
   using extend_simps_with_split[OF
     with_ATS_TC.AF_calc_ext.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
 
+find_theorems name: derive_def
+
+lemma \<open>\<delta> \<in> with_all.Simps_with_Split \<Longrightarrow> core.S_calculus.derive (\<M> \<union> S_from \<delta>) (\<M> \<union> S_to \<delta>)\<close>
+  unfolding core.S_calculus.derive_def
+proof 
+  fix C
+  assume \<open>\<delta> \<in> with_all.Simps_with_Split\<close> and
+    \<open>C \<in> \<M> \<union> S_from \<delta> - (\<M> \<union> S_to \<delta>)\<close>
+  show \<open>C \<in> core.SRed\<^sub>F (\<M> \<union> S_to \<delta>)\<close>
+    sorry
+qed
+
+lemma \<open>\<iota> \<in> with_ATS.OptInfs_with_strong_unsat \<Longrightarrow> 
+  core.S_calculus.derive (\<M> \<union> set (prems_of \<iota>)) (\<M> \<union> set (prems_of \<iota>) \<union> {concl_of \<iota>})\<close>
+  unfolding core.S_calculus.derive_def
+proof 
+  fix C
+  assume \<open>\<iota> \<in> with_ATS.OptInfs_with_strong_unsat\<close> and
+    \<open>C \<in> \<M> \<union> set (prems_of \<iota>) - (\<M> \<union> set (prems_of \<iota>) \<union> {concl_of \<iota>})\<close>
+  show \<open>C \<in> core.SRed\<^sub>F (\<M> \<union> set (prems_of \<iota>) \<union> {concl_of \<iota>})\<close>
+    sorry
+qed
+
+
 end (* context splitting_calculus *)
 
 
