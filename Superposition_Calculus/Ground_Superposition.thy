@@ -32,14 +32,14 @@ hide_const
   Inference_System.main_prem_of
 
 no_notation subst_compose (infixl "\<circ>\<^sub>s" 75)
-no_notation subst_apply_term (infixl "\<cdot>" 67)
+no_notation subst_apply_term (infixl "\<cdot>" 67) (* TODO: Just have these once *)
 
 section \<open>Superposition Calculus\<close>
 
 
 locale ground_superposition_calculus = 
   ground_order where less\<^sub>t = less\<^sub>t +
-  select select
+  selection_function select
 for
   less\<^sub>t :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" and
   select :: "'f gatom clause \<Rightarrow> 'f gatom clause"  +

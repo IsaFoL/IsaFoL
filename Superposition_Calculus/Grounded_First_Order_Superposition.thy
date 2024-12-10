@@ -1,5 +1,6 @@
 theory Grounded_First_Order_Superposition
   imports 
+    Grounded_Selection_Function
     First_Order_Superposition
     Ground_Superposition_Completeness (* TODO: Completeness needed? *)
 begin
@@ -8,10 +9,10 @@ context ground_superposition_calculus
 begin
 
 abbreviation eq_resolution_inferences where
-  "eq_resolution_inferences \<equiv>  {Infer [P] C | P C. ground_eq_resolution P C}"
+  "eq_resolution_inferences \<equiv> {Infer [P] C | P C. ground_eq_resolution P C}"
 
 abbreviation eq_factoring_inferences where
-  "eq_factoring_inferences \<equiv>  {Infer [P] C | P C.  ground_eq_factoring P C}"
+  "eq_factoring_inferences \<equiv> {Infer [P] C | P C.  ground_eq_factoring P C}"
 
 abbreviation superposition_inferences where
   "superposition_inferences \<equiv> {Infer [P2, P1] C | P1 P2 C. ground_superposition P2 P1 C}"
@@ -19,17 +20,17 @@ abbreviation superposition_inferences where
 end
 
 locale grounded_first_order_superposition_calculus =
-  first_order_superposition_calculus where select = select and typeof_fun = typeof_fun +
-  grounded_first_order_select where \<F> = typeof_fun and select = select 
+  first_order_superposition_calculus where select = select and \<F> = \<F> +
+  grounded_selection_function where \<F> = \<F> and select = select 
   for
     select :: "('f, 'v :: infinite) select" and
-    typeof_fun :: "('f, 'ty) fun_types"
+    \<F> :: "('f, 'ty) fun_types"
 begin
 
 sublocale ground: ground_superposition_calculus where
   less\<^sub>t = "(\<prec>\<^sub>t\<^sub>G)" and select = select\<^sub>G
 rewrites 
-  "multiset_extension.multiset_extension (\<prec>\<^sub>t\<^sub>G) mset_lit  = (\<prec>\<^sub>l\<^sub>G)" and 
+  "multiset_extension.multiset_extension (\<prec>\<^sub>t\<^sub>G) mset_lit = (\<prec>\<^sub>l\<^sub>G)" and 
   "multiset_extension.multiset_extension (\<prec>\<^sub>l\<^sub>G) (\<lambda>x. x) = (\<prec>\<^sub>c\<^sub>G)" and
   "\<And>l C. ground.is_maximal l C \<longleftrightarrow> is_maximal (literal.from_ground l) (clause.from_ground C)" and
   "\<And>l C. ground.is_strictly_maximal l C \<longleftrightarrow>
@@ -46,7 +47,7 @@ abbreviation is_inference_grounding where
         \<and> is_welltyped_on (clause.vars conclusion) \<V> \<gamma>
         \<and> clause.is_welltyped \<V> conclusion
         \<and> \<V> = \<V>'
-        \<and> all_types \<V>
+        \<and> infinite_variables_per_type \<V>
       | Infer [(premise\<^sub>2, \<V>\<^sub>2), (premise\<^sub>1, \<V>\<^sub>1)] (conclusion, \<V>\<^sub>3) \<Rightarrow> 
           term_subst.is_renaming \<rho>\<^sub>1
         \<and> term_subst.is_renaming \<rho>\<^sub>2
@@ -60,7 +61,7 @@ abbreviation is_inference_grounding where
         \<and> clause.is_welltyped \<V>\<^sub>2 premise\<^sub>2
         \<and> is_welltyped_on (clause.vars conclusion) \<V>\<^sub>3 \<gamma>
         \<and> clause.is_welltyped \<V>\<^sub>3 conclusion
-        \<and> all_types \<V>\<^sub>1 \<and> all_types \<V>\<^sub>2 \<and> all_types \<V>\<^sub>3
+        \<and> infinite_variables_per_type \<V>\<^sub>1 \<and> infinite_variables_per_type \<V>\<^sub>2 \<and> infinite_variables_per_type \<V>\<^sub>3
       | _ \<Rightarrow> False
      )
   \<and> \<iota>\<^sub>G \<in> ground.G_Inf"
@@ -91,14 +92,14 @@ proof-
     "clause.is_ground (conclusion \<cdot> \<gamma>)"
     "conlcusion\<^sub>G = clause.to_ground (conclusion \<cdot> \<gamma>)"
     "clause.is_welltyped \<V> conclusion \<and> is_welltyped_on (clause.vars conclusion) \<V> \<gamma> \<and> 
-    term_subst.is_ground_subst \<gamma> \<and> all_types \<V>"
+    term_subst.is_ground_subst \<gamma> \<and> infinite_variables_per_type \<V>"
   proof-
     (* TODO! *)
     have "\<And>\<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2.
        \<lbrakk>\<And>\<gamma>. \<lbrakk>clause.vars (conclusion \<cdot> \<gamma>) = {}; conlcusion\<^sub>G = clause.to_ground (conclusion \<cdot> \<gamma>);
               clause.is_welltyped \<V> conclusion \<and>
               is_welltyped_on (clause.vars conclusion) \<V> \<gamma> \<and>
-              term_subst.is_ground_subst \<gamma> \<and> all_types \<V>\<rbrakk>
+              term_subst.is_ground_subst \<gamma> \<and> infinite_variables_per_type \<V>\<rbrakk>
              \<Longrightarrow> thesis;
         Infer premises\<^sub>G conlcusion\<^sub>G \<in> ground.G_Inf;
         case premises of [] \<Rightarrow> False
@@ -108,7 +109,7 @@ proof-
             Infer [clause.to_ground (premise \<cdot> \<gamma>)] (clause.to_ground (conclusion \<cdot> \<gamma>)) \<and>
             clause.is_welltyped \<V> premise \<and>
             is_welltyped_on (clause.vars conclusion) \<V> \<gamma> \<and>
-            clause.is_welltyped \<V> conclusion \<and> \<V> = \<V>' \<and> all_types \<V>
+            clause.is_welltyped \<V> conclusion \<and> \<V> = \<V>' \<and> infinite_variables_per_type \<V>
         | [(premise, \<V>'), (premise\<^sub>1, \<V>\<^sub>1)] \<Rightarrow>
             clause.is_renaming \<rho>\<^sub>1 \<and>
             clause.is_renaming \<rho>\<^sub>2 \<and>
@@ -121,7 +122,7 @@ proof-
             clause.is_welltyped \<V>' premise \<and>
             is_welltyped_on (clause.vars conclusion) \<V> \<gamma> \<and>
             clause.is_welltyped \<V> conclusion \<and>
-            all_types \<V>\<^sub>1 \<and> all_types \<V>' \<and> all_types \<V>
+            infinite_variables_per_type \<V>\<^sub>1 \<and> infinite_variables_per_type \<V>' \<and> infinite_variables_per_type \<V>
         | (premise, \<V>') # (premise\<^sub>1, \<V>\<^sub>1) # a # lista \<Rightarrow> False\<rbrakk>
        \<Longrightarrow> thesis"
      (* TOOD: *)
@@ -162,13 +163,13 @@ lemma obtain_welltyped_ground_subst:
 proof-
  
   define \<gamma> :: "('f, 'v) subst" where
-    "\<And>x. \<gamma> x \<equiv> Fun (SOME f. typeof_fun f = ([], \<V> x)) []"
+    "\<And>x. \<gamma> x \<equiv> Fun (SOME f. \<F> f = ([], \<V> x)) []"
 
 
   moreover have "is_welltyped \<V> \<gamma>"
   proof-
     have "\<And>x. welltyped \<V>
-          (Fun (SOME f. typeof_fun f = ([], \<V> x)) []) (\<V> x)"
+          (Fun (SOME f. \<F> f = ([], \<V> x)) []) (\<V> x)"
       by (meson function_symbols list_all2_Nil someI_ex welltyped.Fun)
 
     then show ?thesis
@@ -203,7 +204,7 @@ sublocale lifting:
           typed_tiebreakers
 proof unfold_locales
   show "\<bottom>\<^sub>F \<noteq> {}"
-    using all_types'[OF variables]
+    using exists_infinite_variables_per_type[OF variables]
     by blast
 next
   fix bottom
@@ -222,7 +223,7 @@ next
     then show "{clause.to_ground (fst bottom \<cdot> f) |f. term_subst.is_ground_subst f 
         \<and> clause.is_welltyped (snd bottom) (fst bottom) 
         \<and> is_welltyped_on (clause.vars (fst bottom)) (snd bottom) f 
-        \<and> all_types (snd bottom)} \<noteq> {}"
+        \<and> infinite_variables_per_type (snd bottom)} \<noteq> {}"
       using \<open>bottom \<in> \<bottom>\<^sub>F\<close>
       by fastforce
   qed
@@ -248,11 +249,10 @@ next
 next
   show "\<And>clause\<^sub>G. po_on (typed_tiebreakers clause\<^sub>G) UNIV"
     unfolding po_on_def
-    using wellfounded_typed_tiebreakers
     by simp
 next
   show "\<And>clause\<^sub>G. Restricted_Predicates.wfp_on (typed_tiebreakers clause\<^sub>G) UNIV"
-    using wellfounded_typed_tiebreakers
+    using typed_tiebreakers.wfp
     by simp
 qed
 
@@ -273,7 +273,7 @@ sublocale
     "\<bottom>\<^sub>F"
     "\<lambda>_. clause_groundings" 
     "\<lambda>select\<^sub>G. Some \<circ>
-      (grounded_first_order_superposition_calculus.inference_groundings (\<prec>\<^sub>t) select\<^sub>G typeof_fun)"
+      (grounded_first_order_superposition_calculus.inference_groundings (\<prec>\<^sub>t) select\<^sub>G \<F>)"
     typed_tiebreakers
 proof(unfold_locales; (intro ballI)?)
   show "select\<^sub>G\<^sub>s \<noteq> {}"

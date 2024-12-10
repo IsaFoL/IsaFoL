@@ -71,10 +71,13 @@ lemma atom_is_welltyped_iff [simp]:
   unfolding atom.is_welltyped_def
   by auto
 
-lemma literal_is_typed_iff:
-  "literal.is_typed l \<longleftrightarrow> atom.is_typed (atm_of l)" and
-  [simp]: "literal.is_typed (t \<approx> t') \<longleftrightarrow> atom.is_typed (Upair t t')" and
-  [simp]: "literal.is_typed (t !\<approx> t') \<longleftrightarrow> atom.is_typed (Upair t t')"
+lemma literal_is_typed_iff_atm_of: "literal.is_typed l \<longleftrightarrow> atom.is_typed (atm_of l)"
+  unfolding literal.is_typed_def
+  by (simp add: set_literal_atm_of)
+
+lemma literal_is_typed_iff [simp]:
+   "literal.is_typed (t \<approx> t') \<longleftrightarrow> atom.is_typed (Upair t t')"
+   "literal.is_typed (t !\<approx> t') \<longleftrightarrow> atom.is_typed (Upair t t')"
   unfolding literal.is_typed_def
   by (simp_all add: set_literal_atm_of)
 

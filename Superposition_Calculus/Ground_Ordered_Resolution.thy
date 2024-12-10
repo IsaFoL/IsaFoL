@@ -40,7 +40,7 @@ locale ground_ordered_resolution_calculus =
     less_trm_compatible_with_gctxt[simp]: "\<And>ctxt t t'. t \<prec>\<^sub>t t' \<Longrightarrow> ctxt\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t ctxt\<langle>t'\<rangle>\<^sub>G" and
     less_trm_if_subterm[simp]: "\<And>t ctxt. ctxt \<noteq> \<box> \<Longrightarrow> t \<prec>\<^sub>t ctxt\<langle>t\<rangle>\<^sub>G" and
     select_subset: "\<And>C. select C \<subseteq># C" and
-    select_negative_lits: "\<And>C L. L \<in># select C \<Longrightarrow> is_neg L"
+    select_negative_literals: "\<And>C L. L \<in># select C \<Longrightarrow> is_neg L"
 begin
 
 lemma irreflp_on_less_trm[simp]: "irreflp_on A (\<prec>\<^sub>t)"
@@ -1123,7 +1123,7 @@ proof (induction C arbitrary: D rule: wfp_induct_rule)
     next
       case False
       hence "select C = {#}"
-        using select_subset select_negative_lits
+        using select_subset select_negative_literals
         by (metis (no_types, opaque_lifting) Neg_atm_of_iff mset_subset_eqD multiset_nonemptyE)
         
       from False obtain A where Pos_A_in: "Pos A \<in># C" and max_Pos_A: "is_maximal_lit (Pos A) C"

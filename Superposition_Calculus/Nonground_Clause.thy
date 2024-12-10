@@ -2,16 +2,16 @@ theory Nonground_Clause
   imports 
     Ground_Clause
     Nonground_Term
-    Nonground_Context (* TODO: Remove *)
+    Nonground_Context
     Functional_Substitution_Lifting
-    Entailment_Lifting
+   (* Entailment_Lifting*)
     Clausal_Calculus_Extra
     Multiset_Extra
-    "HOL-Eisbach.Eisbach"
-    HOL_Extra
-    Fold_Extra 
+    (*HOL_Extra*)
+    (* Fold_Extra *)
 begin
 
+(* TODO: These are clauses with equality *)
 section \<open>Nonground Clauses and Substitutions\<close>
 
 type_synonym 'f ground_atom = "'f gatom"
@@ -21,18 +21,16 @@ type_synonym ('f, 'v) atom = "('f, 'v) term uprod"
 lemma literal_cases: "\<lbrakk>\<P> \<in> {Pos, Neg}; \<P> = Pos \<Longrightarrow> P; \<P> = Neg \<Longrightarrow> P\<rbrakk> \<Longrightarrow> P"
   by blast
 
-subsection \<open>Nonground Atoms\<close>
+locale natural_magma_lifting =
+  natural_magma_grounding_lifting +
+  natural_magma_functor_functional_substitution_lifting
 
-(* TODO: Name *)
-locale grounded_natural_magma_functor = natural_magma_grounding_lifting where 
-  comp_subst = "(\<odot>)" and id_subst = Var +
-  natural_magma_functor_functional_substitution_lifting where 
-  comp_subst = "(\<odot>)" and id_subst = Var
-
-locale test
+locale nonground_clause = nonground_term_with_context
 begin
 
-sublocale atom: lifting_from_term where 
+subsection \<open>Nonground Atoms\<close>
+
+sublocale atom: term_based_lifting where 
   sub_subst = "(\<cdot>t)" and sub_vars = term.vars and map = map_uprod and to_set = set_uprod and 
   sub_to_ground = term.to_ground and sub_from_ground = term.from_ground and 
   to_ground_map = map_uprod and from_ground_map = map_uprod and ground_map = map_uprod and 
@@ -43,7 +41,7 @@ notation atom.subst (infixl "\<cdot>a" 67)
 
 subsection \<open>Nonground Literals\<close>
 
-sublocale literal: lifting_from_term where 
+sublocale literal: term_based_lifting where 
   sub_subst = atom.subst and sub_vars = atom.vars and map = map_literal and 
   to_set = set_literal and sub_to_ground = atom.to_ground and 
   sub_from_ground = atom.from_ground and to_ground_map = map_literal and 
@@ -63,8 +61,12 @@ lemma alternative_literal [simp]:
   "grounding_lifting.from_ground term.from_ground map_uprod_literal l\<^sub>G = literal.from_ground l\<^sub>G"
   "grounding_lifting.to_ground term.to_ground map_uprod_literal l = literal.to_ground l"
 proof -
-  interpret lifting_from_term term.vars "(\<cdot>t)" map_uprod_literal uprod_literal_to_set term.to_ground 
-    term.from_ground map_uprod_literal map_uprod_literal map_uprod_literal uprod_literal_to_set
+  interpret term_based_lifting where
+    sub_vars = term.vars and sub_subst = "(\<cdot>t)" and map = map_uprod_literal and 
+    to_set = uprod_literal_to_set and sub_to_ground = term.to_ground and 
+    sub_from_ground = term.from_ground and to_ground_map = map_uprod_literal and 
+    from_ground_map = map_uprod_literal and ground_map = map_uprod_literal and 
+    to_set_ground = uprod_literal_to_set
     by unfold_locales
 
   fix l :: "('f, 'v) atom literal" and \<sigma>
@@ -86,9 +88,9 @@ proof -
     unfolding to_ground_def literal.to_ground_def atom.to_ground_def..
 qed
 
-lemma literal'_subst_eq_literal_subst: "map_uprod_literal (\<lambda>sub. sub \<cdot>t \<sigma>) l = l \<cdot>l \<sigma>"
-   unfolding subst_def literal.subst_def 
-   by (simp add: atom.subst_def)
+lemma literal'_subst_eq_literal_subst: "map_uprod_literal (\<lambda>t. t \<cdot>t \<sigma>) l = l \<cdot>l \<sigma>"
+  unfolding atom.subst_def literal.subst_def
+  by auto
 
 lemma literal'_vars_eq_literal_vars: "\<Union> (term.vars ` uprod_literal_to_set l) = literal.vars l"
   unfolding literal.vars_def atom.vars_def
@@ -102,7 +104,7 @@ lemma literal'_to_ground_eq_literal_to_ground:
   "map_uprod_literal term.to_ground l = literal.to_ground l"
   unfolding literal.to_ground_def atom.to_ground_def ..
 
-sublocale literal': lifting_from_term where 
+sublocale literal': term_based_lifting where 
   sub_subst = "(\<cdot>t)" and sub_vars = term.vars and map = map_uprod_literal and 
   to_set = uprod_literal_to_set and sub_to_ground = term.to_ground and
   sub_from_ground = term.from_ground and to_ground_map = map_uprod_literal and 
@@ -117,20 +119,20 @@ rewrites
 
 subsection \<open>Nonground Clauses\<close>
 
-sublocale clause: lifting_from_term where 
+sublocale clause: term_based_lifting where 
   sub_subst = literal.subst and sub_vars = literal.vars and map = image_mset and 
   to_set = set_mset and sub_to_ground = literal.to_ground and 
   sub_from_ground = literal.from_ground and to_ground_map = image_mset and 
   from_ground_map = image_mset and ground_map = image_mset and to_set_ground = set_mset
   by unfold_locales
 
-sublocale clause: grounded_natural_magma_functor where 
-  to_set = set_mset and sub_to_ground = literal.to_ground and 
-  sub_from_ground = literal.from_ground and sub_subst = literal.subst and 
-  sub_vars = literal.vars and map = image_mset and to_ground_map = image_mset and 
-  from_ground_map = image_mset and ground_map = image_mset and to_set_ground = set_mset and 
-  plus = "(+)" and wrap = "\<lambda>l. {#l#}" and plus_ground = "(+)" and wrap_ground = "\<lambda>l. {#l#}" and
-  add = add_mset and add_ground = add_mset
+sublocale clause: natural_magma_lifting where 
+  id_subst = Var and comp_subst = "(\<odot>)" and to_set = set_mset and 
+  sub_to_ground = literal.to_ground and sub_from_ground = literal.from_ground and
+  sub_subst = literal.subst and sub_vars = literal.vars and map = image_mset and 
+  to_ground_map = image_mset and from_ground_map = image_mset and ground_map = image_mset and 
+  to_set_ground = set_mset and plus = "(+)" and wrap = "\<lambda>l. {#l#}" and plus_ground = "(+)" and 
+  wrap_ground = "\<lambda>l. {#l#}" and add = add_mset and add_ground = add_mset
   by unfold_locales (auto simp: clause.to_ground_def clause.from_ground_def)
 
 notation clause.subst (infixl "\<cdot>" 67)
@@ -205,10 +207,10 @@ lemma literal_from_ground_atom_from_ground [simp]:
   "literal.from_ground (Pos a\<^sub>G) = Pos (atom.from_ground a\<^sub>G)"  
   by (simp_all add: literal.from_ground_def)
 
-lemma literal_from_ground_polarity_stable: 
+lemma literal_from_ground_polarity_stable [simp]: 
   shows 
-    literal_from_ground_neg_stable: "is_neg l\<^sub>G \<longleftrightarrow> is_neg (literal.from_ground l\<^sub>G)" and
-    literal_from_ground_stable: "is_pos l\<^sub>G \<longleftrightarrow> is_pos (literal.from_ground l\<^sub>G)"
+    literal_from_ground_neg_stable: "is_neg (literal.from_ground l\<^sub>G) \<longleftrightarrow> is_neg l\<^sub>G" and
+    literal_from_ground_stable: " is_pos (literal.from_ground l\<^sub>G) \<longleftrightarrow> is_pos l\<^sub>G"
   by (simp_all add: literal.from_ground_def)
 
 lemma atom_to_ground_term_to_ground [simp]: 
@@ -241,7 +243,7 @@ lemma obtain_from_pos_literal_subst:
   obtains t\<^sub>1 t\<^sub>2 
   where "l = t\<^sub>1 \<approx> t\<^sub>2" "t\<^sub>1' = t\<^sub>1 \<cdot>t \<sigma>" "t\<^sub>2' = t\<^sub>2 \<cdot>t \<sigma>"
   using assms obtain_from_atom_subst subst_pos_stable
-  by (metis is_pos_def literal.sel(1) subst_literal(1))
+  by (metis is_pos_def literal.sel(1) subst_literal(3))
 
 lemma obtain_from_neg_literal_subst: 
   assumes "l \<cdot>l \<sigma> = t\<^sub>1' !\<approx> t\<^sub>2'"

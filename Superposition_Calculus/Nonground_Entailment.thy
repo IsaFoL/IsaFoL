@@ -1,14 +1,19 @@
 theory Nonground_Entailment
-  imports 
-    Nonground_Clause 
+  imports
+    Nonground_Context
+    Nonground_Clause
     Term_Rewrite_System
     Entailment_Lifting
+    Fold_Extra
 begin
 
 section \<open>Entailment\<close>
 
+context nonground_term 
+begin
+
 lemma var_in_term:
-  assumes "x \<in> term.vars t"
+  assumes "x \<in> vars t"
   obtains c where "t = c\<langle>Var x\<rangle>"
   using assms
 proof(induction t)
@@ -17,7 +22,7 @@ proof(induction t)
     by (meson supteq_Var supteq_ctxtE)
 next
   case (Fun f args)
-  then obtain t' where "t' \<in> set args " "x \<in> term.vars t'"
+  then obtain t' where "t' \<in> set args " "x \<in> vars t'"
     by (metis term.distinct(1) term.sel(4) term.set_cases(2))
 
   moreover then obtain args1 args2 where
@@ -33,12 +38,14 @@ next
 qed
 
 lemma vars_term_ms_count:
-  assumes "term.is_ground t"
+  assumes "is_ground t"
   shows 
     "size {#x' \<in># vars_term_ms c\<langle>Var x\<rangle>. x' = x#} = Suc (size {#x' \<in># vars_term_ms c\<langle>t\<rangle>. x' = x#})"
   by(induction c)(auto simp: assms filter_mset_empty_conv)
 
-locale clause_entailment = test +
+end
+
+locale clause_entailment = nonground_clause +
   fixes I :: "('f gterm \<times> 'f gterm) set"
   assumes 
     trans: "trans I" and
@@ -90,7 +97,7 @@ proof unfold_locales
           zero_less_Suc)
 
     then obtain c where t [simp]: "t = c\<langle>Var var\<rangle>"
-      by (meson var_in_term)
+      by (meson term.var_in_term)
 
     have [simp]: 
       "(?context_to_ground (c \<cdot>t\<^sub>c \<gamma>))\<langle>term.to_ground (\<gamma> var)\<rangle>\<^sub>G = term.to_ground (c\<langle>Var var\<rangle> \<cdot>t \<gamma>)"
@@ -103,7 +110,7 @@ proof unfold_locales
       by(induction c) auto
 
     have "n = size {#var' \<in># vars_term_ms c\<langle>update\<rangle>. var' = var#}"
-      using Suc vars_term_ms_count[OF update_is_ground, of var c]
+      using Suc term.vars_term_ms_count[OF update_is_ground, of var c]
       by auto
 
     moreover have "term.is_ground (c\<langle>update\<rangle> \<cdot>t \<gamma>)"
@@ -186,10 +193,10 @@ sublocale clause: entailment_lifting_disj
     and sub_subst = "(\<cdot>l)" and sub_vars = literal.vars and sub_entails = literal.entails 
     and map = image_mset and to_set = set_mset and is_negated = "\<lambda>_. False" 
     and entails_def = "\<lambda>C. upair ` I \<TTurnstile> clause.to_ground C"
-proof unfold_locales 
-  fix C :: "('f, 'v) atom clause" 
+proof unfold_locales
+  fix C :: "('f, 'v) atom clause"
 
-  show "(upair ` I \<TTurnstile> clause.to_ground C) = 
+  show "upair ` I \<TTurnstile> clause.to_ground C \<longleftrightarrow> 
     (if False then Not else (\<lambda>x. x)) (Finite_Set.fold (\<or>) False (literal.entails ` set_mset C))"
     unfolding clause.to_ground_def
     by(induction C) auto

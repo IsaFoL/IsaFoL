@@ -50,8 +50,7 @@ sublocale less_eq: restricted_context_compatibility "(\<preceq>)"
   using context_compatibility restricted_not_le dual_order.order_iff_strict restricted
   by unfold_locales metis
 
-(* TODO: Names *)
-lemma context_less_term_less_eq:
+lemma context_less_term_lesseq:
   assumes 
     "restricted t"
     "restricted t'"
@@ -63,7 +62,7 @@ lemma context_less_term_less_eq:
   using assms context_compatibility dual_order.strict_trans 
   by blast
 
-lemma context_less_eq_term_less:
+lemma context_lesseq_term_less:
   assumes 
     "restricted t"
     "restricted t'"
@@ -95,20 +94,20 @@ sublocale context_compatibility "(\<prec>)"
 sublocale less_eq: context_compatibility "(\<preceq>)"
   by unfold_locales
 
-lemma context_less_term_less_eq:
+lemma context_less_term_lesseq:
   assumes 
    "\<And>t. Fun\<langle>c;t\<rangle> \<prec> Fun\<langle>c';t\<rangle>"
     "t \<preceq> t'"
   shows "Fun\<langle>c;t\<rangle> \<prec> Fun\<langle>c';t'\<rangle>"
-  using assms context_less_term_less_eq 
+  using assms context_less_term_lesseq 
   by blast
 
-lemma context_less_eq_term_less:
+lemma context_lesseq_term_less:
   assumes
     "\<And>t. Fun\<langle>c;t\<rangle> \<preceq> Fun\<langle>c';t\<rangle>"
     "t \<prec> t'"
   shows "Fun\<langle>c;t\<rangle> \<prec> Fun\<langle>c';t'\<rangle>"
-  using assms context_less_eq_term_less
+  using assms context_lesseq_term_less
   by blast
 
 end

@@ -11,6 +11,8 @@ abbreviation trivial_select :: "('f, 'v) select" where
 abbreviation trivial_tiebreakers where
   "trivial_tiebreakers _ _ _ \<equiv> False"
 
+interpretation nonground_clause.
+
 context
   assumes ground_critical_pair_theorem:
     "\<And>(R :: ('f :: weighted) gterm rel). ground_critical_pair_theorem R"
@@ -21,7 +23,7 @@ interpretation first_order_superposition_calculus
   less_kbo
   "\<lambda>_. ([], ())"
   trivial_tiebreakers
-proof(unfold_locales)
+proof unfold_locales
   fix clause :: "('f, 'v) atom clause"
 
   show "trivial_select clause \<subseteq># clause"
@@ -34,7 +36,20 @@ next
   then show "is_neg literal"
     by simp
 next
-  show "transp less_kbo"
+  show "\<And>(R :: ('f gterm \<times> 'f gterm) set). ground_critical_pair_theorem R"
+    using ground_critical_pair_theorem .
+next
+  show "\<And>clause\<^sub>G. wfP (\<lambda>_ _. False) \<and> transp (\<lambda>_ _. False) \<and> asymp (\<lambda>_ _. False)"
+    by (simp add: asympI)
+next
+  show "\<And>\<tau>. \<exists>f. ([], ()) = ([], \<tau>)"
+    by simp
+next
+  show "|UNIV :: unit set| \<le>o |UNIV|"
+    unfolding UNIV_unit
+    by simp
+next
+   show "transp less_kbo"
     using KBO.S_trans 
     unfolding transp_def less_kbo_def
     by blast
@@ -79,19 +94,6 @@ next
   
   then show "less_kbo term\<^sub>G context\<^sub>G\<langle>term\<^sub>G\<rangle>"
     by (simp add: KBO.S_supt less_kbo_def nectxt_imp_supt_ctxt)
-next
-  show "\<And>(R :: ('f gterm \<times> 'f gterm) set). ground_critical_pair_theorem R"
-    using ground_critical_pair_theorem .
-next
-  show "\<And>clause\<^sub>G. wfP (\<lambda>_ _. False) \<and> transp (\<lambda>_ _. False) \<and> asymp (\<lambda>_ _. False)"
-    by (simp add: asympI)
-next
-  show "\<And>\<tau>. \<exists>f. ([], ()) = ([], \<tau>)"
-    by simp
-next
-  show "|UNIV :: unit set| \<le>o |UNIV|"
-    unfolding UNIV_unit
-    by simp
 qed
 
 end

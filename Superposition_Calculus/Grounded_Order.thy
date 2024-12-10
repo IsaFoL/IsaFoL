@@ -73,7 +73,7 @@ subsection \<open>Ground substitution stability\<close>
 
 locale ground_subst_stability = grounding + 
   fixes R
-  assumes 
+  assumes
     ground_subst_stability: 
       "\<And>expr\<^sub>1 expr\<^sub>2 \<gamma>.
         is_ground (expr\<^sub>1 \<cdot> \<gamma>) \<Longrightarrow>

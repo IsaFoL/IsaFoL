@@ -1,8 +1,8 @@
 theory Nonground_Order
   imports
+    Nonground_Clause
     Nonground_Term_Order
     Term_Order_Lifting
-    Nonground_Clause
     Relation_Extra
 begin
 
@@ -22,13 +22,15 @@ sublocale order: grounded_restricted_total_strict_order where
 
 end
 
-locale nonground_term_based_order_lifting = nonground_order_lifting where 
+locale nonground_term_based_order_lifting = 
+  "term": nonground_term +
+  nonground_order_lifting where 
   id_subst = Var and comp_subst = "(\<odot>)" and base_vars = term.vars and base_less = less\<^sub>t and 
   base_subst = "(\<cdot>t)"
 for less\<^sub>t
 
 locale nonground_order =
-  test +
+  nonground_clause +
   "term": nonground_term_order where
   less\<^sub>t = "less\<^sub>t :: ('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term \<Rightarrow> bool" +
   restricted_term_order_lifting where
@@ -49,15 +51,11 @@ rewrites
   "\<And>l. functional_substitution_lifting.vars term.vars uprod_literal_to_set l = literal.vars l" and
   "\<And>l\<^sub>G. grounding_lifting.from_ground term.from_ground map_uprod_literal l\<^sub>G 
     = literal.from_ground l\<^sub>G" and
-  "\<And>l. grounding_lifting.to_ground term.to_ground map_uprod_literal l = literal.to_ground l" 
-       apply unfold_locales by (auto simp: inj_mset_lit mset_lit_image_mset)
-  
+  "\<And>l. grounding_lifting.to_ground term.to_ground map_uprod_literal l = literal.to_ground l"
+  by unfold_locales (auto simp: inj_mset_lit mset_lit_image_mset)
 
 notation literal.order.less\<^sub>G (infix "\<prec>\<^sub>l\<^sub>G" 50)
 notation literal.order.less_eq\<^sub>G (infix "\<preceq>\<^sub>l\<^sub>G" 50)
-
-(*sublocale literal.order.restriction: maximal_literal "(\<prec>\<^sub>l\<^sub>G)"
-  by unfold_locales*)
 
 sublocale clause: nonground_term_based_order_lifting where 
   less = "(\<prec>\<^sub>l)" and sub_subst = literal.subst and sub_vars = literal.vars and

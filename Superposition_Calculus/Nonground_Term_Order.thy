@@ -6,6 +6,7 @@ theory Nonground_Term_Order
 begin
 
 locale ground_context_compatible_order =
+  nonground_term_with_context +
   restricted_total_strict_order where restriction = "range term.from_ground" +
 assumes ground_context_compatibility: 
   "\<And>c t\<^sub>1 t\<^sub>2. 
@@ -26,6 +27,7 @@ sublocale context_compatible_restricted_order where
 end
 
 locale ground_subterm_property =
+  nonground_term_with_context +
   fixes R
   assumes ground_subterm_property: 
     "\<And>t\<^sub>G c\<^sub>G. 
@@ -42,8 +44,7 @@ locale base_grounded_order =
   grounding
 
 locale nonground_term_order = 
-  base_functional_substitution where comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and 
-  vars = term.vars and id_subst = "Var :: 'v \<Rightarrow> ('f, 'v) term" +
+  nonground_term_with_context +
   order: restricted_wellfounded_total_strict_order where 
   less = less\<^sub>t and restriction = "range term.from_ground" +
   order: ground_subst_stability where R = less\<^sub>t and comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and 
@@ -54,7 +55,6 @@ locale nonground_term_order =
 for less\<^sub>t :: "('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term \<Rightarrow> bool"
 begin
 
-(* TODO: Already here with t or just from Nonground_Order on? *)
 interpretation term_order_notation.
 
 sublocale base_grounded_order where
@@ -179,7 +179,8 @@ proof unfold_locales
           by simp
 
         moreover have ex_less: "\<exists>sub \<in> set ?subs'. sub \<cdot>t \<gamma>(x := update) \<prec>\<^sub>t sub \<cdot>t \<gamma>"
-          using ss Cons neq_Nil_conv by force
+          using ss Cons neq_Nil_conv 
+          by force
 
         moreover have subs'_grounding: "term.is_ground (Fun f ?subs' \<cdot>t \<gamma>)"
           using first.prems(3)
@@ -190,7 +191,8 @@ proof unfold_locales
           by (metis ex_less eval_with_fresh_var term.set_intros(4) order.less_irrefl)
 
         ultimately have less_subs': "Fun f ?subs' \<cdot>t \<gamma>(x := update) \<prec>\<^sub>t Fun f ?subs' \<cdot>t \<gamma>"
-          using first.hyps(1) first.prems(3) by blast
+          using first.hyps(1) first.prems(3) 
+          by blast
 
         have context_grounding: "context.is_ground (More f ss1 \<box> ss2 \<cdot>t\<^sub>c \<gamma>)"
           using subs'_grounding
@@ -220,7 +222,7 @@ proof unfold_locales
   then show "c\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t\<^sub>G c\<langle>t'\<rangle>\<^sub>G"
     using order.ground_context_compatibility[OF
         term.ground_is_ground term.ground_is_ground context.ground_is_ground]
-    unfolding order.less\<^sub>G_def ground_term_with_context(3)
+    unfolding order.less\<^sub>G_def context.ground_term_with_context(3)
     by simp
 next
   fix t :: "'f gterm" and c :: "'f ground_context"
@@ -228,8 +230,8 @@ next
   then show "t \<prec>\<^sub>t\<^sub>G c\<langle>t\<rangle>\<^sub>G"
     using 
       order.ground_subterm_property[OF term.ground_is_ground context.ground_is_ground]
-      context_from_ground_hole
-    unfolding ground_term_with_context(3) order.less\<^sub>G_def
+      context.context_from_ground_hole
+    unfolding context.ground_term_with_context(3) order.less\<^sub>G_def
     by blast
 qed
 

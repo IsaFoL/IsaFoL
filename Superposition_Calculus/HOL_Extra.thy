@@ -38,5 +38,18 @@ lemma set_map_id:
   using assms
   by(induction X) auto
 
+lemma infinite_prods: 
+  assumes"infinite (UNIV :: 'a set)"
+  shows "infinite {p :: 'a \<times> 'a. fst p = y}"
+proof-
+  have "{p :: 'a \<times> 'a . fst p = y} = {y} \<times> UNIV"
+    by auto
+
+  then show ?thesis
+    using finite_cartesian_productD2 assms 
+    by auto
+qed
+
+
 
 end

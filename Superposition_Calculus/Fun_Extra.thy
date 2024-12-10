@@ -1,5 +1,5 @@
 theory Fun_Extra
-  imports Main "HOL-Library.Countable_Set" "HOL-Cardinals.Cardinals"
+  imports Main "HOL-Library.Countable_Set" "HOL-Cardinals.Cardinals" HOL_Extra
 begin
 
 lemma 
@@ -477,5 +477,43 @@ lemma finite_bij_enumerate_inv_into:
   shows "bij_betw (inv_into {..<card S} (enumerate S)) S {..<card S}"
   using finite_bij_enumerate[OF assms] bij_betw_inv_into
   by blast
+
+lemma infinite_domain: 
+  assumes 
+    card_UNIV: "|UNIV :: 'b set| \<le>o |UNIV :: 'a set|" and
+    infinite_UNIV: "infinite (UNIV :: 'a set)" 
+  shows 
+    "\<exists>f :: 'a \<Rightarrow> 'b. \<forall>y. infinite {x. f x = y}"
+proof-
+  obtain g :: "'a \<Rightarrow> 'a \<times> 'a" where bij_g: "bij g"
+    using Times_same_infinite_bij_betw_types bij_betw_inv infinite_UNIV 
+    by blast
+
+  define f :: "'a \<Rightarrow> 'a" where 
+    "\<And>x. f x \<equiv> fst (g x)"
+
+  {
+    fix y
+
+    have "{x. fst (g x) = y} = inv g ` {p. fst p = y}"
+      by (smt (verit, ccfv_SIG) Collect_cong bij_g bij_image_Collect_eq bij_imp_bij_inv inv_inv_eq)
+
+    then have "infinite {x. f x = y}"
+      unfolding f_def
+      using infinite_prods[OF infinite_UNIV]
+      by (metis bij_g bij_is_surj finite_imageI image_f_inv_f)
+  }
+
+  moreover obtain f' ::  "'a \<Rightarrow> 'b" where "surj f'"
+    using card_UNIV
+    by (metis card_of_ordLeq2 empty_not_UNIV)
+
+  ultimately have "\<And>y. infinite {x. f' (f x) = y}"
+    by (smt (verit, ccfv_SIG) Collect_mono finite_subset surjD)
+
+  then show ?thesis
+    by meson
+qed
+
 
 end

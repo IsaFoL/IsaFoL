@@ -151,10 +151,6 @@ next
 qed
 
 end
-(* TODO: Remove *)
-lemma (in ground_order) Uniq_striclty_maximal_lit_in_ground_cls:
-  "\<exists>\<^sub>\<le>\<^sub>1L. is_strictly_maximal L C"
-  using literal.order.Uniq_is_strictly_maximal_in_mset.
 
 lemma (in ground_superposition_calculus) epsilon_eq_empty_or_singleton:
   "epsilon N C = {} \<or> (\<exists>s t. epsilon N C = {(s, t)})"
@@ -1328,7 +1324,7 @@ proof (induction C rule: wfp_induct_rule)
     have cond_conv: "(\<exists>L. L \<in># select C \<or> (select C = {#} \<and> is_maximal L C \<and> is_neg L)) \<longleftrightarrow>
       (\<exists>A. Neg A \<in># C \<and> (Neg A \<in># select C \<or> select C = {#} \<and> is_maximal (Neg A) C))"
       by (metis (no_types, opaque_lifting) is_pos_def literal.order.is_maximal_in_mset_iff
-          literal.disc(2) literal.exhaust mset_subset_eqD select_negative_lits select_subset)
+          literal.disc(2) literal.exhaust mset_subset_eqD select_negative_literals select_subset)
 
     show "entails (rewrite_sys N C) C"
     proof (cases "\<exists>L. is_maximal L (select C) \<or> (select C = {#} \<and> is_maximal L C \<and> is_neg L)")
@@ -1336,7 +1332,7 @@ proof (induction C rule: wfp_induct_rule)
 
       hence "\<exists>A. Neg A \<in># C \<and> (is_maximal (Neg A) (select C) \<or> select C = {#} \<and> is_maximal (Neg A) C)"
         by (metis is_pos_def literal.exhaust literal.order.is_maximal_in_mset_iff mset_subset_eqD
-            select_negative_lits select_subset)
+            select_negative_literals select_subset)
 
       then obtain s s' where
         "Neg (Upair s s') \<in># C" and

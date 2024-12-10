@@ -10,7 +10,7 @@ section \<open>Nonground Contexts and Substitutions\<close>
 type_synonym ('f, 'v) "context" = "('f, 'v) ctxt"
 
 abbreviation subst_apply_ctxt :: 
-  "('f, 'v) context \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) context" (infixl "\<cdot>t\<^sub>c" 67) where
+  "('f, 'v) context \<Rightarrow> ('f, 'v) subst \<Rightarrow> ('f, 'v) context" (infixl "\<cdot>t\<^sub>c" 67) where (* TODO: Naming *)
   "subst_apply_ctxt \<equiv> subst_apply_actxt"
 
 (* TODO: Move? *)
@@ -36,19 +36,26 @@ global_interpretation "context": natural_functor_conversion where
   by unfold_locales
     (auto simp: actxt.set_map(2) actxt.map_comp cong: actxt.map_cong)
 
-global_interpretation "context": lifting_from_term where 
+locale nonground_context =
+  "term": nonground_term
+begin
+
+sublocale term_based_lifting where 
   sub_subst = "(\<cdot>t)" and sub_vars = term.vars and 
   to_set = "set2_actxt :: ('f, 'v) context \<Rightarrow> ('f, 'v) term set" and map = map_args_actxt and
   sub_to_ground = term.to_ground and sub_from_ground = term.from_ground and 
   to_ground_map = map_args_actxt and from_ground_map = map_args_actxt and 
   ground_map = map_args_actxt and to_set_ground = set2_actxt
 rewrites
-  "\<And>c \<sigma>. context.subst c \<sigma> = c \<cdot>t\<^sub>c \<sigma>" and
-  "\<And>c. context.vars c = vars_ctxt c" (* TODO: Name *)
+  "\<And>c \<sigma>. subst c \<sigma> = c \<cdot>t\<^sub>c \<sigma>" and
+  "\<And>c. vars c = vars_ctxt c" (* TODO: Name *)
 proof unfold_locales
   (* TODO: Is there way without repeating myself for this? *)
-  interpret lifting_from_term term.vars "(\<cdot>t)" map_args_actxt set2_actxt term.to_ground
-    term.from_ground map_args_actxt map_args_actxt map_args_actxt set2_actxt
+  interpret term_based_lifting where 
+    sub_vars = term.vars and sub_subst = "(\<cdot>t)" and map = map_args_actxt and to_set = set2_actxt and 
+    sub_to_ground = term.to_ground and sub_from_ground = term.from_ground and 
+    ground_map = map_args_actxt and to_ground_map = map_args_actxt and 
+    from_ground_map = map_args_actxt and to_set_ground = set2_actxt
     by unfold_locales
 
   fix c :: "('f, 'v) context"
@@ -61,28 +68,28 @@ proof unfold_locales
     by blast
 qed
 
-lemma ground_ctxt_iff_context_is_ground [simp]: "ground_ctxt c \<longleftrightarrow> context.is_ground c"
+lemma ground_ctxt_iff_context_is_ground [simp]: "ground_ctxt c \<longleftrightarrow> is_ground c"
   by(induction c) simp_all
 
 (* TODO: Names *)
 lemma ground_term_with_context1:
-  assumes "context.is_ground c" "term.is_ground t"
-  shows "(context.to_ground c)\<langle>term.to_ground t\<rangle>\<^sub>G = term.to_ground c\<langle>t\<rangle>"
+  assumes "is_ground c" "term.is_ground t"
+  shows "(to_ground c)\<langle>term.to_ground t\<rangle>\<^sub>G = term.to_ground c\<langle>t\<rangle>"
   using assms
-  unfolding context.to_ground_def
+  unfolding to_ground_def
   by(induction c) simp_all
 
 lemma ground_term_with_context2:
-  assumes "context.is_ground c"  
-  shows "term.from_ground (context.to_ground c)\<langle>t\<^sub>G\<rangle>\<^sub>G = c\<langle>term.from_ground t\<^sub>G\<rangle>"
+  assumes "is_ground c"  
+  shows "term.from_ground (to_ground c)\<langle>t\<^sub>G\<rangle>\<^sub>G = c\<langle>term.from_ground t\<^sub>G\<rangle>"
   using assms
-  unfolding context.to_ground_def
-  by(induction c) (simp_all add: context.to_ground_def map_idI)
+  unfolding to_ground_def
+  by(induction c) (simp_all add: to_ground_def map_idI)
 
 lemma ground_term_with_context3: 
-  "(context.from_ground c\<^sub>G)\<langle>term.from_ground t\<^sub>G\<rangle> = term.from_ground c\<^sub>G\<langle>t\<^sub>G\<rangle>\<^sub>G"
-  using ground_term_with_context2[OF context.ground_is_ground, symmetric]
-  unfolding context.from_ground_inverse.
+  "(from_ground c\<^sub>G)\<langle>term.from_ground t\<^sub>G\<rangle> = term.from_ground c\<^sub>G\<langle>t\<^sub>G\<rangle>\<^sub>G"
+  using ground_term_with_context2[OF ground_is_ground, symmetric]
+  unfolding from_ground_inverse.
 
 lemmas ground_term_with_context =
   ground_term_with_context1
@@ -90,14 +97,14 @@ lemmas ground_term_with_context =
   ground_term_with_context3
 
 lemma context_is_ground_context_compose1:
-  assumes "context.is_ground (c \<circ>\<^sub>c c')"
-  shows "context.is_ground c" "context.is_ground c'"
+  assumes "is_ground (c \<circ>\<^sub>c c')"
+  shows "is_ground c" "is_ground c'"
   using assms
   by(induction c) auto
 
 lemma context_is_ground_context_compose2:
-  assumes "context.is_ground c" "context.is_ground c'" 
-  shows "context.is_ground (c \<circ>\<^sub>c c')"
+  assumes "is_ground c" "is_ground c'" 
+  shows "is_ground (c \<circ>\<^sub>c c')"
   using assms
   by (meson ground_ctxt_comp ground_ctxt_iff_context_is_ground)
 
@@ -107,7 +114,7 @@ lemmas context_is_ground_context_compose =
 
 lemma ground_context_subst:
   assumes 
-    "context.is_ground c\<^sub>G" 
+    "is_ground c\<^sub>G" 
     "c\<^sub>G = (c \<cdot>t\<^sub>c \<sigma>) \<circ>\<^sub>c c'"
   shows 
     "c\<^sub>G = c \<circ>\<^sub>c c' \<cdot>t\<^sub>c \<sigma>"
@@ -120,14 +127,20 @@ next
   case More
   then show ?case
     using context_is_ground_context_compose1(2)
-    by (metis subst_compose_ctxt_compose_distrib context.subst_ident_if_ground)
+    by (metis subst_compose_ctxt_compose_distrib subst_ident_if_ground)
 qed
 
-lemma context_from_ground_hole [simp]: "context.from_ground c\<^sub>G = \<box> \<longleftrightarrow> c\<^sub>G = \<box>"
-  by(cases c\<^sub>G) (simp_all add: context.from_ground_def)
+lemma context_from_ground_hole [simp]: "from_ground c\<^sub>G = \<box> \<longleftrightarrow> c\<^sub>G = \<box>"
+  by(cases c\<^sub>G) (simp_all add: from_ground_def)
 
 lemma term_with_context_is_ground [simp]: 
-  "term.is_ground c\<langle>t\<rangle> \<longleftrightarrow> context.is_ground c \<and> term.is_ground t"
+  "term.is_ground c\<langle>t\<rangle> \<longleftrightarrow> is_ground c \<and> term.is_ground t"
   by simp
+
+end
+
+locale nonground_term_with_context = 
+  "term": nonground_term + 
+  "context": nonground_context
 
 end

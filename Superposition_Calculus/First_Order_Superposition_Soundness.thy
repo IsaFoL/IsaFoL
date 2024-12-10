@@ -1,6 +1,5 @@
 theory First_Order_Superposition_Soundness
   imports Grounded_First_Order_Superposition
-
 begin
 
 subsection \<open>Soundness\<close>
@@ -16,7 +15,7 @@ lemma welltyped_extension:
   assumes "clause.is_ground (C \<cdot> \<gamma>)" "is_welltyped_on (clause.vars C) \<V> \<gamma>" 
   obtains \<gamma>'
   where 
-    "term_subst.is_ground_subst \<gamma>'" 
+    "term.is_ground_subst \<gamma>'" 
     "is_welltyped \<V> \<gamma>'" 
     "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
   using assms function_symbols
@@ -24,7 +23,7 @@ proof-
   define \<gamma>' where "\<And>x. \<gamma>' x \<equiv> 
     if x \<in> clause.vars C 
     then \<gamma> x else 
-    Fun (SOME f. typeof_fun f = ([], \<V> x)) []"
+    Fun (SOME f. \<F> f = ([], \<V> x)) []"
 
   have "term_subst.is_ground_subst \<gamma>'"
     unfolding  term_subst.is_ground_subst_def
@@ -47,8 +46,8 @@ proof-
   moreover have "is_welltyped \<V> \<gamma>'"
   proof-
     have "\<And>x. \<lbrakk>\<forall>x\<in>clause.vars C. welltyped \<V> (\<gamma> x) (\<V> x);
-          \<And>\<tau>. \<exists>f. typeof_fun f = ([], \<tau>); x \<notin> clause.vars C\<rbrakk>
-         \<Longrightarrow> welltyped \<V> (Fun (SOME f. typeof_fun f = ([], \<V> x)) []) (\<V> x)"
+          \<And>\<tau>. \<exists>f. \<F> f = ([], \<tau>); x \<notin> clause.vars C\<rbrakk>
+         \<Longrightarrow> welltyped \<V> (Fun (SOME f. \<F> f = ([], \<V> x)) []) (\<V> x)"
       by (meson welltyped.intros(2) list_all2_Nil someI_ex)
 
     then show ?thesis    
@@ -361,12 +360,12 @@ proof (cases P2 P1 C rule: superposition.cases)
         compatible_with_gctxt I;
         \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>1 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> 
               clause.is_welltyped \<V>\<^sub>1 P\<^sub>1 \<and> is_welltyped_on (clause.vars P\<^sub>1) \<V>\<^sub>1 \<gamma>' \<and> 
-              all_types \<V>\<^sub>1) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G;
+              infinite_variables_per_type \<V>\<^sub>1) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G;
         \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>2 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> 
               clause.is_welltyped \<V>\<^sub>2 P\<^sub>2 \<and> is_welltyped_on (clause.vars P\<^sub>2) \<V>\<^sub>2 \<gamma>' \<and> 
-              all_types \<V>\<^sub>2) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G;
+              infinite_variables_per_type \<V>\<^sub>2) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G;
         term_subst.is_ground_subst \<gamma>; clause.is_welltyped \<V>\<^sub>3 C; 
-        is_welltyped_on (clause.vars C) \<V>\<^sub>3 \<gamma>; all_types \<V>\<^sub>3
+        is_welltyped_on (clause.vars C) \<V>\<^sub>3 \<gamma>; infinite_variables_per_type \<V>\<^sub>3
      \<rbrakk> \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
   proof -
     fix I :: "'f gterm rel" and \<gamma> :: "'v \<Rightarrow> ('f, 'v) Term.term"
@@ -381,13 +380,13 @@ proof (cases P2 P1 C rule: superposition.cases)
       premise1: 
       "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>1 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' 
               \<and> clause.is_welltyped \<V>\<^sub>1 P\<^sub>1 \<and> is_welltyped_on (clause.vars P\<^sub>1) \<V>\<^sub>1 \<gamma>' 
-              \<and> all_types \<V>\<^sub>1) \<longrightarrow>?I \<TTurnstile> P\<^sub>G" and
+              \<and> infinite_variables_per_type \<V>\<^sub>1) \<longrightarrow>?I \<TTurnstile> P\<^sub>G" and
       premise2: 
       "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>2 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' 
               \<and> clause.is_welltyped \<V>\<^sub>2 P\<^sub>2 \<and> is_welltyped_on (clause.vars P\<^sub>2) \<V>\<^sub>2 \<gamma>'
-              \<and> all_types \<V>\<^sub>2) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and 
+              \<and> infinite_variables_per_type \<V>\<^sub>2) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and 
       grounding: "term_subst.is_ground_subst \<gamma>" "clause.is_welltyped \<V>\<^sub>3 C" 
-      "is_welltyped_on (clause.vars C) \<V>\<^sub>3 \<gamma>" "all_types \<V>\<^sub>3"
+      "is_welltyped_on (clause.vars C) \<V>\<^sub>3 \<gamma>" "infinite_variables_per_type \<V>\<^sub>3"
 
     have grounding': "clause.is_ground (C \<cdot> \<gamma>)"
       using grounding
@@ -614,7 +613,7 @@ proof (cases P2 P1 C rule: superposition.cases)
       by argo
 
     have s\<^sub>1_u\<^sub>1: "?s\<^sub>1\<langle>?u\<^sub>1\<rangle>\<^sub>G = term.to_ground (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>u\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"
-      using ground_term_with_context(1)[OF
+      using context.ground_term_with_context(1)[OF
           context.is_ground_subst_is_ground
           term_subst.is_ground_subst_is_ground,
           OF ground_subst(1)[folded context.ground_subst_iff_base_ground_subst ] ground_subst(1) (* TODO *)
@@ -623,7 +622,7 @@ proof (cases P2 P1 C rule: superposition.cases)
 
     have s\<^sub>1_t\<^sub>2': "(?s\<^sub>1)\<langle>?t\<^sub>2'\<rangle>\<^sub>G  = term.to_ground (s\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<mu> \<cdot>t\<^sub>c \<gamma>')\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>'\<rangle>"
       using
-        ground_term_with_context(1)[OF 
+        context.ground_term_with_context(1)[OF 
           context.is_ground_subst_is_ground
           term_subst.is_ground_subst_is_ground, 
           OF ground_subst(1)[folded context.ground_subst_iff_base_ground_subst ] ground_subst(2) (* TODO *)

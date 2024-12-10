@@ -15,6 +15,7 @@ locale nonground_term_functional_substitution_typing =
   welltyped: explicitly_typed_renaming where typed = welltyped
 
 locale nonground_term_typing =
+  "term": nonground_term +
   fixes \<F> :: "('f, 'ty) fun_types"
 begin
 
@@ -560,8 +561,7 @@ next
         welltyped.explicit_subst_stability)
 
   moreover then have 
-    "\<forall>(s, s') \<in> set (subst_list (subst x (Fun t ts)) es). \<exists>\<tau>. 
-        welltyped \<V> s \<tau> \<and> welltyped \<V> s' \<tau>"
+    "\<forall>(s, s') \<in> set (subst_list (subst x (Fun t ts)) es). \<exists>\<tau>. welltyped \<V> s \<tau> \<and> welltyped \<V> s' \<tau>"
     unfolding subst_def subst_list_def
     by fastforce
 
