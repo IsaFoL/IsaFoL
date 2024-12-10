@@ -1,0 +1,23 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+% this should be the last package used
+\usepackage{pdfsetup}
+% urls in roman style, theory text in math-similar italics
+\urlstyle{rm}
+\isabellestyle{it}
+\begin{document}
+\title{Basic First-Order Model Theory -- A Translation from HOL Light}
+\author{Sophie Tourret and Lawrence Paulson}
+\maketitle
+\begin{abstract}
+  This AFP entry presents a proof of compactness of first-order logic, the Löwenheim-Skolem theorem and the Uniformity lemma.
+  It is a translation of a HOL Light formalization work by John Harrison \cite{harrison98model}.
+  Whenever possible, existing Isabelle/HOL theories have been used instead of direct translation.
+\end{abstract}
+\tableofcontents
+% include generated text of all theories
+\input{session}
+\bibliographystyle{abbrv}
+\bibliography{root}
+\end{document}
