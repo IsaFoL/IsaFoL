@@ -1,11 +1,10 @@
 chapter AFP
 
-session "FOL_Compactness" = Main +
+session "FOL_Compactness" = Propositional_Proof_Systems +
   options [timeout=300]
-  sessions
-    "HOL-Library"
-    Propositional_Proof_Systems
+  sessions   
     First_Order_Terms
+   
   theories
     Canonical_Models
 
