@@ -2,58 +2,6 @@ theory Ground_Superposition_Completeness
   imports Ground_Superposition
 begin
 
-subsection \<open>Redundancy Criterion\<close>
-
-sublocale ground_superposition_calculus \<subseteq> calculus_with_finitary_standard_redundancy where
-  Inf = G_Inf and
-  Bot = G_Bot and
-  entails = G_entails and
-  less = "(\<prec>\<^sub>c)"
-  defines GRed_I = Red_I and GRed_F = Red_F
-proof unfold_locales
-  show "transp (\<prec>\<^sub>c)"
-    by simp
-next
-  show "wfP (\<prec>\<^sub>c)"
-    by auto
-next
-  show "\<And>\<iota>. \<iota> \<in> G_Inf \<Longrightarrow> prems_of \<iota> \<noteq> []"
-    by (auto simp: G_Inf_def)
-next
-  fix \<iota>
-  have "concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
-    if \<iota>_def: "\<iota> = Infer [P\<^sub>2, P\<^sub>1] C" and
-      infer: "ground_superposition P\<^sub>2 P\<^sub>1 C"
-    for P\<^sub>2 P\<^sub>1 C
-    unfolding \<iota>_def
-    using infer
-    using ground_superposition_smaller_conclusion
-    by simp
-
-  moreover have "concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
-    if \<iota>_def: "\<iota> = Infer [P] C" and
-      infer: "ground_eq_resolution P C"
-    for P C
-    unfolding \<iota>_def
-    using infer
-    using ground_eq_resolution_smaller_conclusion
-    by simp
-
-  moreover have "concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
-    if \<iota>_def: "\<iota> = Infer [P] C" and
-      infer: "ground_eq_factoring P C"
-    for P C
-    unfolding \<iota>_def
-    using infer
-    using ground_eq_factoring_smaller_conclusion
-    by simp
-
-  ultimately show "\<iota> \<in> G_Inf \<Longrightarrow> concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
-    unfolding G_Inf_def
-    by fast
-qed
-
-
 subsection \<open>Mode Construction\<close>
 
 context ground_superposition_calculus begin
@@ -1358,8 +1306,8 @@ proof (induction C rule: wfp_induct_rule)
           define \<iota> :: "'f gatom clause inference" where
             "\<iota> = Infer [C] C'"
 
-          have "ground_eq_resolution C C'"
-          proof (rule ground_eq_resolutionI)
+          have "eq_resolution C C'"
+          proof (rule eq_resolutionI)
             show "C = add_mset (Neg (Upair s s')) C'"
               by (simp only: C_def)
           next
@@ -1443,10 +1391,10 @@ proof (induction C rule: wfp_induct_rule)
             "t' \<prec>\<^sub>t t"
             by (elim mem_epsilonE) fast
 
-          have superI: "ground_neg_superposition D C (add_mset (Neg (Upair s\<^sub>1\<langle>t'\<rangle>\<^sub>G s\<^sub>1')) (C' + D'))"
+          have superI: "neg_superposition D C (add_mset (Neg (Upair s\<^sub>1\<langle>t'\<rangle>\<^sub>G s\<^sub>1')) (C' + D'))"
             if "{s, s'} = {s\<^sub>1\<langle>t\<rangle>\<^sub>G, s\<^sub>1'}" and "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1\<langle>t\<rangle>\<^sub>G"
             for s\<^sub>1 s\<^sub>1'
-          proof (rule ground_neg_superpositionI)
+          proof (rule neg_superpositionI)
             show "C = add_mset (Neg (Upair s s')) C'"
               by (simp only: C_def)
           next
@@ -1474,7 +1422,7 @@ proof (induction C rule: wfp_induct_rule)
             from that(2) show "s\<^sub>1' \<prec>\<^sub>t s\<^sub>1\<langle>t\<rangle>\<^sub>G" .
           qed simp_all
 
-          have "ground_neg_superposition D C (add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')) (C' + D'))"
+          have "neg_superposition D C (add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')) (C' + D'))"
             if \<open>s' \<prec>\<^sub>t s\<close>
           proof (rule superI)
             from that show "{s, s'} = {ctxt\<langle>t\<rangle>\<^sub>G, s'}"
@@ -1486,7 +1434,7 @@ proof (induction C rule: wfp_induct_rule)
               by simp
           qed
 
-          moreover have "ground_neg_superposition D C (add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s)) (C' + D'))"
+          moreover have "neg_superposition D C (add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s)) (C' + D'))"
             if \<open>s \<prec>\<^sub>t s'\<close>
           proof (rule superI)
             from that show "{s, s'} = {ctxt\<langle>t\<rangle>\<^sub>G, s}"
@@ -1499,7 +1447,7 @@ proof (induction C rule: wfp_induct_rule)
           qed
 
           ultimately obtain CD where
-            super: "ground_neg_superposition D C CD" and
+            super: "neg_superposition D C CD" and
             CD_eq1: "s' \<prec>\<^sub>t s \<Longrightarrow> CD = add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s')) (C' + D')" and
             CD_eq2: "s \<prec>\<^sub>t s' \<Longrightarrow> CD = add_mset (Neg (Upair ctxt\<langle>t'\<rangle>\<^sub>G s)) (C' + D')"
             using \<open>s \<prec>\<^sub>t s' \<or> s' \<prec>\<^sub>t s\<close> s'_eq_if s_eq_if 
@@ -1509,7 +1457,7 @@ proof (induction C rule: wfp_induct_rule)
             "\<iota> = Infer [D, C] CD"
 
           have "\<iota> \<in> G_Inf"
-            using ground_superposition_if_ground_neg_superposition[OF super]
+            using superposition_if_neg_superposition[OF super]
             by (auto simp only: \<iota>_def G_Inf_def)
 
           moreover have "\<And>t. t \<in> set (prems_of \<iota>) \<Longrightarrow> t \<in> N"
@@ -1752,8 +1700,8 @@ proof (induction C rule: wfp_induct_rule)
                 define \<iota> :: "'f gatom clause inference" where
                   "\<iota> = Infer [C] ?concl"
 
-                have eq_fact: "ground_eq_factoring C ?concl"
-                proof (rule ground_eq_factoringI)
+                have eq_fact: "eq_factoring C ?concl"
+                proof (rule eq_factoringI)
                   show "C = add_mset (Pos (Upair s s')) (add_mset (Pos (Upair t t')) C'')"
                     by (simp add: C_def C'_def A_def)
                 next
@@ -1849,8 +1797,8 @@ proof (induction C rule: wfp_induct_rule)
             define \<iota> :: "'f gatom clause inference" where
               "\<iota> = Infer [D, C] ?concl"
 
-            have super: "ground_pos_superposition D C ?concl"
-            proof (rule ground_pos_superpositionI)
+            have super: "pos_superposition D C ?concl"
+            proof (rule pos_superpositionI)
               show "C = add_mset (Pos (Upair s s')) C'"
                 by (simp only: C_def A_def)
             next
@@ -1885,7 +1833,7 @@ proof (induction C rule: wfp_induct_rule)
             qed simp_all
 
             hence "\<iota> \<in> G_Inf"
-              using ground_superposition_if_ground_pos_superposition
+              using superposition_if_pos_superposition
               by (auto simp: \<iota>_def G_Inf_def)
 
             moreover have "\<And>t. t \<in> set (prems_of \<iota>) \<Longrightarrow> t \<in> N"
@@ -1964,8 +1912,8 @@ proof (induction C rule: wfp_induct_rule)
 
           let ?concl = "add_mset (Pos (Upair s s')) (add_mset (Neg (Upair s' s')) C')"
 
-          have eq_fact: "ground_eq_factoring C ?concl"
-          proof (rule ground_eq_factoringI)
+          have eq_fact: "eq_factoring C ?concl"
+          proof (rule eq_factoringI)
             show "C = add_mset (Pos A) (add_mset (Pos A) C')"
               by (simp add: C_def)
           next

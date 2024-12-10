@@ -4,11 +4,8 @@ theory Nonground_Clause
     Nonground_Term
     Nonground_Context
     Functional_Substitution_Lifting
-   (* Entailment_Lifting*)
     Clausal_Calculus_Extra
     Multiset_Extra
-    (*HOL_Extra*)
-    (* Fold_Extra *)
 begin
 
 (* TODO: These are clauses with equality *)
@@ -142,6 +139,12 @@ lemmas empty_clause_is_ground [simp] = clause.empty_is_ground[OF set_mset_empty]
 lemmas clause_subst_empty [simp] = 
   clause.subst_ident_if_ground[OF empty_clause_is_ground]
   clause.subst_empty[OF set_mset_empty]
+
+lemma clause_to_ground_empty [simp]: "clause.to_ground C = {#} \<longleftrightarrow> C = {#}"
+  by (simp add: clause.to_ground_def)
+
+lemma clause_from_ground_empty [simp]: "clause.from_ground C = {#} \<longleftrightarrow> C = {#}"
+  by (simp add: clause.from_ground_def)
 
 lemma vars_atom [simp]: "atom.vars (Upair t\<^sub>1 t\<^sub>2) = term.vars t\<^sub>1 \<union> term.vars t\<^sub>2"
   by (simp_all add: atom.vars_def)

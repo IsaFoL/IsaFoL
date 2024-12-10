@@ -1,7 +1,7 @@
 theory First_Order_Superposition_Example
   imports 
-    IsaFoR_Term_Copy             
-    First_Order_Superposition
+    IsaFoR_Term_Copy
+    Superposition
 begin
 
 (* TODO: Add better examples *)
@@ -18,7 +18,7 @@ context
     "\<And>(R :: ('f :: weighted) gterm rel). ground_critical_pair_theorem R"
 begin
                                     
-interpretation first_order_superposition_calculus 
+interpretation superposition_calculus 
   "trivial_select :: ('f :: weighted, 'v :: infinite) select" 
   less_kbo
   "\<lambda>_. ([], ())"
@@ -39,8 +39,14 @@ next
   show "\<And>(R :: ('f gterm \<times> 'f gterm) set). ground_critical_pair_theorem R"
     using ground_critical_pair_theorem .
 next
-  show "\<And>clause\<^sub>G. wfP (\<lambda>_ _. False) \<and> transp (\<lambda>_ _. False) \<and> asymp (\<lambda>_ _. False)"
-    by (simp add: asympI)
+  show "\<And>C\<^sub>G. transp (\<lambda>_ _. False)"
+    by simp
+next
+  show "\<And>C\<^sub>G. asymp (\<lambda>_ _. False)"
+    by auto
+next
+  show "\<And>C\<^sub>G. wfp (\<lambda>_ _. False)"
+    by simp
 next
   show "\<And>\<tau>. \<exists>f. ([], ()) = ([], \<tau>)"
     by simp

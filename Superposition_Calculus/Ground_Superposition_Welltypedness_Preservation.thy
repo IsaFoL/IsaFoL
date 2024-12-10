@@ -12,20 +12,20 @@ begin
 
 lemma ground_superposition_preserves_typing:
   assumes
-    step: "ground_superposition D E C" and
+    step: "superposition D E C" and
     wt_D: "clause.is_welltyped D" and
     wt_E: "clause.is_welltyped E"
   shows "clause.is_welltyped C"
   using step
-proof (cases D E C rule: ground_superposition.cases)
-  case (ground_superpositionI L\<^sub>E E' L\<^sub>D D' \<P> c t u t')
+proof (cases D E C rule: superposition.cases)
+  case (superpositionI L\<^sub>E E' L\<^sub>D D' \<P> c t u t')
 
   
 (*
  TODO: 
   show ?thesis
-    using wt_D wt_E ground_superpositionI(4)
-    unfolding ground_superpositionI
+    using wt_D wt_E superpositionI(4)
+    unfolding superpositionI
     by (auto 4 3)
  *)
 
@@ -90,12 +90,12 @@ qed
 
 lemma ground_eq_resolution_preserves_typing:
   assumes
-    step: "ground_eq_resolution D C" and
+    step: "eq_resolution D C" and
     wt_D: "clause.is_welltyped D"
   shows "clause.is_welltyped C"
   using step
-proof (cases D C rule: ground_eq_resolution.cases)
-  case (ground_eq_resolutionI L D' t)
+proof (cases D C rule: eq_resolution.cases)
+  case (eq_resolutionI L D' t)
   thus ?thesis
     using wt_D
     by simp
@@ -105,20 +105,20 @@ qed
 TODO: 
 lemma ground_eq_factoring_preserves_typing:
   assumes
-    step: "ground_eq_factoring D C" and
+    step: "eq_factoring D C" and
     wt_D: "clause.is_welltyped D"
   shows "clause.is_welltyped C"
   using assms
-  by(cases rule: ground_eq_factoring.cases) auto*)
+  by(cases rule: eq_factoring.cases) auto*)
 
 lemma ground_eq_factoring_preserves_typing:
   assumes
-    step: "ground_eq_factoring D C" and
+    step: "eq_factoring D C" and
     wt_D: "clause.is_welltyped D"
   shows "clause.is_welltyped C"
   using step
-proof (cases D C rule: ground_eq_factoring.cases)
-  case (ground_eq_factoringI L\<^sub>1 L\<^sub>2 D' t t' t'')
+proof (cases D C rule: eq_factoring.cases)
+  case (eq_factoringI L\<^sub>1 L\<^sub>2 D' t t' t'')
 
   then have 
     "literal.is_welltyped (t \<approx> t')" and 

@@ -1,10 +1,10 @@
 theory First_Order_Superposition_Soundness
-  imports Grounded_First_Order_Superposition
+  imports Grounded_Superposition
 begin
 
 subsection \<open>Soundness\<close>
 
-context grounded_first_order_superposition_calculus
+context grounded_superposition_calculus
 begin
   
 (* TODO : Find way to use this abbrev for both entails_\<G> *)
@@ -754,7 +754,7 @@ qed
 
 end
 
-sublocale grounded_first_order_superposition_calculus \<subseteq> 
+sublocale grounded_superposition_calculus \<subseteq> 
   sound_inference_system inferences "\<bottom>\<^sub>F" "(\<TTurnstile>\<^sub>F)"
 proof unfold_locales
   fix \<iota>
@@ -768,13 +768,12 @@ proof unfold_locales
     by auto
 qed
 
-sublocale first_order_superposition_calculus \<subseteq>
-  sound_inference_system inferences "\<bottom>\<^sub>F" entails_\<G>
+sublocale superposition_calculus \<subseteq> sound_inference_system inferences "\<bottom>\<^sub>F" entails_\<G>
 proof unfold_locales
   obtain select\<^sub>G where select\<^sub>G: "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
     using Q_nonempty by blast
 
-  then interpret grounded_first_order_superposition_calculus
+  then interpret grounded_superposition_calculus
     where select\<^sub>G = select\<^sub>G
     by unfold_locales (simp add: select\<^sub>G\<^sub>s_def)
 

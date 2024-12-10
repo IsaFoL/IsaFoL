@@ -50,6 +50,4 @@ proof-
     by auto
 qed
 
-
-
 end

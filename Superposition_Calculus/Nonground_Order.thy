@@ -327,7 +327,7 @@ lemma less\<^sub>t_less\<^sub>l:
   by (auto simp: multp_add_mset multp_add_mset')
 
 lemma literal_order_all_less_eq_ex_less_set:
-  assumes 
+  assumes
     "\<forall>t \<in> set_uprod (atm_of l). t \<cdot>t \<sigma>' \<preceq>\<^sub>t t \<cdot>t \<sigma>"
     "\<exists>t \<in> set_uprod (atm_of l). t \<cdot>t \<sigma>' \<prec>\<^sub>t t \<cdot>t \<sigma>"
   shows "l \<cdot>l \<sigma>' \<prec>\<^sub>l l \<cdot>l \<sigma>"

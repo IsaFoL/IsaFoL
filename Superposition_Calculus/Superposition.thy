@@ -1,4 +1,4 @@
-theory First_Order_Superposition
+theory Superposition
   imports
     Nonground_Order
     Saturation_Framework.Lifting_to_Non_Ground_Calculi
@@ -40,9 +40,9 @@ hide_fact
   Restricted_Predicates.wfp_on_restrict_to_tranclp'
   Restricted_Predicates.wfp_on_restrict_to_tranclp_wfp_on_conv
 
-section \<open>First-Order Layer\<close>
+section \<open>Nonground Layer\<close>
 
-locale first_order_superposition_calculus =
+locale superposition_calculus =
   nonground_typing \<F> +
   nonground_order less\<^sub>t +
   nonground_selection_function select
@@ -120,7 +120,7 @@ where
   superpositionI:
    "term.is_renaming \<rho>\<^sub>1 \<Longrightarrow>
     term.is_renaming \<rho>\<^sub>2 \<Longrightarrow>
-    clause.vars (E \<cdot> \<rho>\<^sub>1) \<inter>  clause.vars (D \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
+    clause.vars (E \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (D \<cdot> \<rho>\<^sub>2) = {} \<Longrightarrow>
     E = add_mset l\<^sub>1 E' \<Longrightarrow>
     D = add_mset l\<^sub>2 D' \<Longrightarrow>
     \<P> \<in> {Pos, Neg} \<Longrightarrow>
@@ -157,12 +157,11 @@ abbreviation eq_resolution_inferences where
   "eq_resolution_inferences \<equiv> { Infer [D] C | D C. eq_resolution D C }"
 
 abbreviation superposition_inferences where
-  "superposition_inferences \<equiv> { Infer [D, E] C |  D E C. superposition D E C}"
+  "superposition_inferences \<equiv> { Infer [D, E] C | D E C. superposition D E C}"
 
 definition inferences :: "('f, 'v, 'ty) typed_clause inference set" where
   "inferences \<equiv> superposition_inferences \<union> eq_resolution_inferences \<union> eq_factoring_inferences"
 
-(* TODO: Just name bottom? *)
 abbreviation bottom\<^sub>F :: "('f, 'v, 'ty) typed_clause set" ("\<bottom>\<^sub>F") where
   "bottom\<^sub>F \<equiv> {({#}, \<V>) | \<V>. infinite_variables_per_type \<V> }"
 
@@ -270,57 +269,6 @@ next
   thus "superposition D E C"
     using superposition_if_neg_superposition superposition_if_pos_superposition 
     by metis
-qed
-
-(* TODO: Move to other file *)
-lemma eq_resolution_preserves_typing:
-  assumes "eq_resolution (D, \<V>) (C, \<V>)"  "clause.is_welltyped \<V> D"
-  shows "clause.is_welltyped \<V> C"
-  using assms
-  by(cases "(D, \<V>)" "(C, \<V>)" rule: eq_resolution.cases) auto
-
-lemma eq_factoring_preserves_typing:
-  assumes "eq_factoring (D, \<V>) (C, \<V>)" "clause.is_welltyped \<V> D"
-  shows "clause.is_welltyped \<V> C"
-  using assms
-  by (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases) fastforce
-
-lemma superposition_preserves_typing:
-  assumes
-    superposition: "superposition (D, \<V>\<^sub>2) (E, \<V>\<^sub>1) (C, \<V>\<^sub>3)" and
-    D_is_welltyped: "clause.is_welltyped \<V>\<^sub>2 D" and
-    E_is_welltyped: "clause.is_welltyped \<V>\<^sub>1 E"
-  shows "clause.is_welltyped \<V>\<^sub>3 C"
-  using superposition
-proof (cases "(D, \<V>\<^sub>2)" "(E, \<V>\<^sub>1)" "(C, \<V>\<^sub>3)" rule: superposition.cases)
-  case (superpositionI \<rho>\<^sub>1 \<rho>\<^sub>2 l\<^sub>1 E' l\<^sub>2 D' \<P> c\<^sub>1 t\<^sub>1 t\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu>)
-
-  then have welltyped_\<mu>: "is_welltyped \<V>\<^sub>3 \<mu>"
-    by meson
-
-  have "clause.is_welltyped \<V>\<^sub>3 (E \<cdot> \<rho>\<^sub>1)"
-    using E_is_welltyped clause.is_welltyped.typed_renaming[OF superpositionI(1, 12)]
-    by blast
-
-  then have E\<mu>_is_welltyped: "clause.is_welltyped \<V>\<^sub>3 (E \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)"
-    using welltyped_\<mu>
-    by simp
-   
-  have "clause.is_welltyped \<V>\<^sub>3 (D \<cdot> \<rho>\<^sub>2)"
-    using D_is_welltyped clause.is_welltyped.typed_renaming[OF superpositionI(2, 13)] 
-    by blast    
-
-  then have D\<mu>_is_welltyped: "clause.is_welltyped \<V>\<^sub>3 (D \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>)"
-    using welltyped_\<mu>
-    by simp
-
-  have imgu: "t\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> = t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>"
-    using term.is_imgu_unifies'[OF superpositionI(10)].
-
-  from literal_cases[OF superpositionI(6)] E\<mu>_is_welltyped D\<mu>_is_welltyped imgu
-  show ?thesis
-    unfolding superpositionI
-    by cases auto
 qed
 
 end

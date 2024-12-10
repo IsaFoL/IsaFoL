@@ -185,6 +185,9 @@ lemma obtain_ground_subst:
   using base.base_ground_exists base.base_is_grounding_iff_vars_grounded
   by auto
 
+lemma exists_ground_subst [intro]: "\<exists>\<gamma>. is_ground_subst \<gamma>"
+  by (metis obtain_ground_subst)
+
 lemma ground_subst_extension:
   assumes "is_ground (expr \<cdot> \<gamma>)"
   obtains \<gamma>'

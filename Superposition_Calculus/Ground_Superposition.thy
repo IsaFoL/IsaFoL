@@ -49,10 +49,10 @@ begin
 
 subsection \<open>Ground Rules\<close>
 
-inductive ground_superposition ::
+inductive superposition ::
   "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool"
 where
-  ground_superpositionI: "
+  superpositionI: "
     E = add_mset L\<^sub>E E' \<Longrightarrow>
     D = add_mset L\<^sub>D D' \<Longrightarrow>
     D \<prec>\<^sub>c E \<Longrightarrow>
@@ -66,20 +66,18 @@ where
     select D = {#} \<Longrightarrow>
     is_strictly_maximal L\<^sub>D D \<Longrightarrow>
     C = add_mset (\<P> (Upair \<kappa>\<langle>t'\<rangle>\<^sub>G u)) (E' + D') \<Longrightarrow>
-    ground_superposition D E C"
+    superposition D E C"
 
-inductive ground_eq_resolution ::
-  "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool" where
-  ground_eq_resolutionI: "
+inductive eq_resolution :: "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool" where
+  eq_resolutionI: "
     D = add_mset L D' \<Longrightarrow>
     L = Neg (Upair t t) \<Longrightarrow>
     select D = {#} \<and> is_maximal L D \<or> is_maximal L (select D) \<Longrightarrow>
     C = D' \<Longrightarrow>
-    ground_eq_resolution D C"
+    eq_resolution D C"
 
-inductive ground_eq_factoring ::
-  "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool" where
-  ground_eq_factoringI: "
+inductive eq_factoring :: "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool" where
+  eq_factoringI: "
     D = add_mset L\<^sub>1 (add_mset L\<^sub>2 D') \<Longrightarrow>
     L\<^sub>1 = t \<approx> t' \<Longrightarrow>
     L\<^sub>2 = t \<approx> t'' \<Longrightarrow>
@@ -87,15 +85,23 @@ inductive ground_eq_factoring ::
     is_maximal L\<^sub>1 D \<Longrightarrow>
     t' \<prec>\<^sub>t t \<Longrightarrow>
     C = add_mset (Neg (Upair t' t'')) (add_mset (t \<approx> t'') D') \<Longrightarrow>
-    ground_eq_factoring D C"
+    eq_factoring D C"
 
+abbreviation eq_resolution_inferences where
+  "eq_resolution_inferences \<equiv> {Infer [D] C | D C. eq_resolution D C}"
+
+abbreviation eq_factoring_inferences where
+  "eq_factoring_inferences \<equiv> {Infer [D] C | D C.  eq_factoring D C}"
+
+abbreviation superposition_inferences where
+  "superposition_inferences \<equiv> {Infer [D, E] C | D E C. superposition D E C}"
 
 subsubsection \<open>Alternative Specification of the Superposition Rule\<close>
 
-inductive ground_superposition' ::
+inductive superposition' :: 
   "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool"
 where
-  ground_superposition'I: "
+  superposition'I: "
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
     P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
@@ -109,35 +115,35 @@ where
     select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
-    ground_superposition' P\<^sub>2 P\<^sub>1 C"
+    superposition' P\<^sub>2 P\<^sub>1 C"
 
-lemma "ground_superposition' = ground_superposition"
+lemma "superposition' = superposition"
 proof (intro ext iffI)
   fix P1 P2 C
-  assume "ground_superposition' P2 P1 C"
-  thus "ground_superposition P2 P1 C"
-  proof (cases P2 P1 C rule: ground_superposition'.cases)
-    case (ground_superposition'I L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
+  assume "superposition' P2 P1 C"
+  thus "superposition P2 P1 C"
+  proof (cases P2 P1 C rule: superposition'.cases)
+    case (superposition'I L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
     thus ?thesis
-      using ground_superpositionI 
+      using superpositionI 
       by force
   qed
 next
   fix P1 P2 C
-  assume "ground_superposition P1 P2 C"
-  thus "ground_superposition' P1 P2 C"
-  proof (cases P1 P2 C rule: ground_superposition.cases)
-    case (ground_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
+  assume "superposition P1 P2 C"
+  thus "superposition' P1 P2 C"
+  proof (cases P1 P2 C rule: superposition.cases)
+    case (superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
     thus ?thesis
-      using ground_superposition'I
+      using superposition'I
       by (metis literals_distinct(2))
   qed
 qed
 
-inductive ground_pos_superposition ::
+inductive pos_superposition ::
   "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool"
 where
-  ground_pos_superpositionI: "
+ pos_superpositionI: "
     P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
     P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
@@ -150,24 +156,24 @@ where
     select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (s\<langle>t'\<rangle>\<^sub>G \<approx> s') (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
-    ground_pos_superposition P\<^sub>2 P\<^sub>1 C"
+    pos_superposition P\<^sub>2 P\<^sub>1 C"
 
-lemma ground_superposition_if_ground_pos_superposition:
-  assumes step: "ground_pos_superposition P\<^sub>2 P\<^sub>1 C"
-  shows "ground_superposition P\<^sub>2 P\<^sub>1 C"
+lemma superposition_if_pos_superposition:
+  assumes step: "pos_superposition P\<^sub>2 P\<^sub>1 C"
+  shows "superposition P\<^sub>2 P\<^sub>1 C"
   using step
-proof (cases P\<^sub>2 P\<^sub>1 C rule: ground_pos_superposition.cases)
-  case (ground_pos_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s t s' t')
+proof (cases P\<^sub>2 P\<^sub>1 C rule: pos_superposition.cases)
+  case (pos_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s t s' t')
   thus ?thesis
-    using ground_superpositionI
+    using superpositionI
     by (metis insert_iff)
 qed
 
-inductive ground_neg_superposition ::
+inductive neg_superposition ::
   "'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> 'f gatom clause \<Rightarrow> bool"
 where
-  ground_neg_superpositionI: "
-    P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
+ neg_superpositionI: 
+   "P\<^sub>1 = add_mset L\<^sub>1 P\<^sub>1' \<Longrightarrow>
     P\<^sub>2 = add_mset L\<^sub>2 P\<^sub>2' \<Longrightarrow>
     P\<^sub>2 \<prec>\<^sub>c P\<^sub>1 \<Longrightarrow>
     L\<^sub>1 = Neg (Upair s\<langle>t\<rangle>\<^sub>G s') \<Longrightarrow>
@@ -178,37 +184,38 @@ where
     select P\<^sub>2 = {#} \<Longrightarrow>
     is_strictly_maximal L\<^sub>2 P\<^sub>2 \<Longrightarrow>
     C = add_mset (Neg (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2') \<Longrightarrow>
-    ground_neg_superposition P\<^sub>2 P\<^sub>1 C"
+    neg_superposition P\<^sub>2 P\<^sub>1 C"
 
-lemma ground_superposition_if_ground_neg_superposition:
-  assumes "ground_neg_superposition P\<^sub>2 P\<^sub>1 C"
-  shows "ground_superposition P\<^sub>2 P\<^sub>1 C"
+lemma superposition_if_neg_superposition:
+  assumes "neg_superposition P\<^sub>2 P\<^sub>1 C"
+  shows "superposition P\<^sub>2 P\<^sub>1 C"
   using assms
-proof (cases P\<^sub>2 P\<^sub>1 C rule: ground_neg_superposition.cases)
-  case (ground_neg_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s t s' t')
+proof (cases P\<^sub>2 P\<^sub>1 C rule: neg_superposition.cases)
+  case (neg_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' s t s' t')
   then show ?thesis
-    using ground_superpositionI
+    using superpositionI
     by (metis insert_iff)
 qed
 
-lemma ground_superposition_iff_pos_or_neg:
-  "ground_superposition P\<^sub>2 P\<^sub>1 C \<longleftrightarrow>
-    ground_pos_superposition P\<^sub>2 P\<^sub>1 C \<or> ground_neg_superposition P\<^sub>2 P\<^sub>1 C"
+lemma superposition_iff_pos_or_neg:
+  "superposition P\<^sub>2 P\<^sub>1 C \<longleftrightarrow>
+    pos_superposition P\<^sub>2 P\<^sub>1 C \<or> neg_superposition P\<^sub>2 P\<^sub>1 C"
 proof (rule iffI)
-  assume "ground_superposition P\<^sub>2 P\<^sub>1 C"
-  thus "ground_pos_superposition P\<^sub>2 P\<^sub>1 C \<or> ground_neg_superposition P\<^sub>2 P\<^sub>1 C"
-  proof (cases P\<^sub>2 P\<^sub>1 C rule: ground_superposition.cases)
-    case (ground_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
+  assume "superposition P\<^sub>2 P\<^sub>1 C"
+  thus "pos_superposition P\<^sub>2 P\<^sub>1 C \<or> neg_superposition P\<^sub>2 P\<^sub>1 C"
+  proof (cases P\<^sub>2 P\<^sub>1 C rule: superposition.cases)
+    case (superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
     then show ?thesis
-      using ground_pos_superpositionI[of P\<^sub>1 L\<^sub>1 P\<^sub>1' P\<^sub>2 L\<^sub>2 P\<^sub>2' s t s' t']
-      using ground_neg_superpositionI[of P\<^sub>1 L\<^sub>1 P\<^sub>1' P\<^sub>2 L\<^sub>2 P\<^sub>2' s t s' t']
+      using pos_superpositionI[of P\<^sub>1 L\<^sub>1 P\<^sub>1' P\<^sub>2 L\<^sub>2 P\<^sub>2' s t s' t']
+      using neg_superpositionI[of P\<^sub>1 L\<^sub>1 P\<^sub>1' P\<^sub>2 L\<^sub>2 P\<^sub>2' s t s' t']
       by metis
   qed
 next
-  assume "ground_pos_superposition P\<^sub>2 P\<^sub>1 C \<or> ground_neg_superposition P\<^sub>2 P\<^sub>1 C"
-  thus "ground_superposition P\<^sub>2 P\<^sub>1 C"
-    using ground_superposition_if_ground_neg_superposition
-      ground_superposition_if_ground_pos_superposition
+  assume "pos_superposition P\<^sub>2 P\<^sub>1 C \<or> neg_superposition P\<^sub>2 P\<^sub>1 C"
+  thus "superposition P\<^sub>2 P\<^sub>1 C"
+    using 
+      superposition_if_neg_superposition
+      superposition_if_pos_superposition
     by metis
 qed
 
@@ -217,9 +224,9 @@ subsection \<open>Ground Layer\<close>
 
 definition G_Inf :: "'f gatom clause inference set" where
   "G_Inf =
-    {Infer [P\<^sub>2, P\<^sub>1] C | P\<^sub>2 P\<^sub>1 C. ground_superposition P\<^sub>2 P\<^sub>1 C} \<union>
-    {Infer [P] C | P C. ground_eq_resolution P C} \<union>
-    {Infer [P] C | P C. ground_eq_factoring P C}"
+    {Infer [P\<^sub>2, P\<^sub>1] C | P\<^sub>2 P\<^sub>1 C. superposition P\<^sub>2 P\<^sub>1 C} \<union>
+    {Infer [P] C | P C. eq_resolution P C} \<union>
+    {Infer [P] C | P C. eq_factoring P C}"
 
 abbreviation G_Bot :: "'f gatom clause set" where
   "G_Bot \<equiv> {{#}}"
@@ -228,13 +235,13 @@ definition G_entails :: "'f gatom clause set \<Rightarrow> 'f gatom clause set \
   "G_entails N\<^sub>1 N\<^sub>2 \<longleftrightarrow> (\<forall>(I :: 'f gterm rel). refl I \<longrightarrow> trans I \<longrightarrow> sym I \<longrightarrow>
     compatible_with_gctxt I \<longrightarrow> upair ` I \<TTurnstile>s N\<^sub>1 \<longrightarrow> upair ` I \<TTurnstile>s N\<^sub>2)"
 
-lemma ground_superposition_smaller_conclusion:
+lemma superposition_smaller_conclusion:
   assumes
-    step: "ground_superposition P1 P2 C"
+    step: "superposition P1 P2 C"
   shows "C \<prec>\<^sub>c P2"
   using step
-proof (cases P1 P2 C rule: ground_superposition.cases)
-  case (ground_superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
+proof (cases P1 P2 C rule: superposition.cases)
+  case (superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
 
   have "P\<^sub>1' + add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) P\<^sub>2' \<prec>\<^sub>c P\<^sub>1' + {#\<P> (Upair s\<langle>t\<rangle>\<^sub>G s')#}"
     unfolding less\<^sub>c_def
@@ -268,7 +275,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
     moreover have "\<forall>K \<in># P\<^sub>2'. K \<prec>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
     proof -
       have "is_strictly_maximal L\<^sub>2 P1"
-        using ground_superpositionI
+        using superpositionI
         by argo
 
       hence "\<forall>K \<in># P\<^sub>2'. \<not> Pos (Upair t t') \<prec>\<^sub>l K \<and> Pos (Upair t t') \<noteq> K"
@@ -292,7 +299,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
           assume "t \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
 
           moreover hence "t' \<prec>\<^sub>t s\<langle>t\<rangle>\<^sub>G"
-            using ground_superpositionI(8) 
+            using superpositionI(8) 
             by order
 
           ultimately show ?thesis
@@ -337,7 +344,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
 
           moreover have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l \<P> (Upair s\<langle>t\<rangle>\<^sub>G s')"
             using that
-            unfolding ground_superpositionI is_maximal_def
+            unfolding superpositionI is_maximal_def
             by auto
 
           ultimately have "\<forall>K \<in># P\<^sub>1'. K \<preceq>\<^sub>l Pos (Upair t t')"
@@ -348,7 +355,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
               \<open>\<P> (Upair s\<langle>t\<rangle>\<^sub>G s') \<prec>\<^sub>l Pos (Upair t t')\<close>
               one_step_implies_multp[of P1 P2 "(\<prec>\<^sub>l)" "{#}", simplified] 
               literal.order.multp_if_maximal_less_that_maximal 
-              ground_superpositionI
+              superpositionI
               that 
             unfolding less\<^sub>c_def
             by blast
@@ -395,7 +402,7 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
         proof (rule thesis_if_Pos[OF \<open>\<P> = Pos\<close>])
 
           have "is_strictly_maximal L\<^sub>1 P2"
-            using \<open>\<P> = Pos\<close> ground_superpositionI
+            using \<open>\<P> = Pos\<close> superpositionI
             by simp
 
           thus "is_maximal L\<^sub>1 P2"
@@ -422,21 +429,21 @@ proof (cases P1 P2 C rule: ground_superposition.cases)
   qed simp
 
   moreover have "C = add_mset (\<P> (Upair s\<langle>t'\<rangle>\<^sub>G s')) (P\<^sub>1' + P\<^sub>2')"
-    unfolding ground_superpositionI ..
+    unfolding superpositionI ..
 
   moreover have "P2 = P\<^sub>1' + {#\<P> (Upair s\<langle>t\<rangle>\<^sub>G s')#}"
-    unfolding ground_superpositionI by simp
+    unfolding superpositionI by simp
 
   ultimately show ?thesis
     by simp
 qed
 
 lemma ground_eq_resolution_smaller_conclusion:
-  assumes step: "ground_eq_resolution P C"
+  assumes step: "eq_resolution P C"
   shows "C \<prec>\<^sub>c P"
   using step
-proof (cases P C rule: ground_eq_resolution.cases)
-  case (ground_eq_resolutionI L t)
+proof (cases P C rule: eq_resolution.cases)
+  case (eq_resolutionI L t)
   then show ?thesis
     unfolding less\<^sub>c_def
     by (metis add.left_neutral add_mset_add_single empty_not_add_mset multi_member_split 
@@ -444,17 +451,17 @@ proof (cases P C rule: ground_eq_resolution.cases)
 qed
 
 lemma ground_eq_factoring_smaller_conclusion:
-  assumes step: "ground_eq_factoring P C"
+  assumes step: "eq_factoring P C"
   shows "C \<prec>\<^sub>c P"
   using step
-proof (cases P C rule: ground_eq_factoring.cases)
-  case (ground_eq_factoringI L\<^sub>1 L\<^sub>2 P' t t' t'')
+proof (cases P C rule: eq_factoring.cases)
+  case (eq_factoringI L\<^sub>1 L\<^sub>2 P' t t' t'')
   have "is_maximal L\<^sub>1 P"
-    using ground_eq_factoringI 
+    using eq_factoringI 
     by simp
 
   hence "\<forall>K \<in># add_mset (Pos (Upair t t'')) P'. \<not> Pos (Upair t t') \<prec>\<^sub>l K"
-    unfolding ground_eq_factoringI is_maximal_def
+    unfolding eq_factoringI is_maximal_def
     by auto
    
   hence "\<not> Pos (Upair t t') \<prec>\<^sub>l Pos (Upair t t'')"
@@ -468,11 +475,11 @@ proof (cases P C rule: ground_eq_factoring.cases)
     by (auto simp: less\<^sub>l_def multp_cancel_add_mset)
 
   have "C = add_mset (Neg (Upair t' t'')) (add_mset (Pos (Upair t t'')) P')"
-    using ground_eq_factoringI 
+    using eq_factoringI 
     by argo
 
   moreover have "add_mset (Neg (Upair t' t'')) (add_mset (Pos (Upair t t'')) P') \<prec>\<^sub>c P"
-    unfolding ground_eq_factoringI less\<^sub>c_def
+    unfolding eq_factoringI less\<^sub>c_def
   proof (intro one_step_implies_multp[of "{#_#}" "{#_#}", simplified])
     have "t'' \<prec>\<^sub>t t"
       using \<open>t' \<prec>\<^sub>t t\<close> \<open>t'' \<preceq>\<^sub>t t'\<close> 
@@ -525,6 +532,57 @@ next
   show "\<And>N1 N2 N3. G_entails N1 N2 \<Longrightarrow> G_entails N2 N3 \<Longrightarrow> G_entails N1 N3"
     using G_entails_def
     by simp
+qed
+
+subsection \<open>Redundancy Criterion\<close>
+
+sublocale ground_superposition_calculus \<subseteq> calculus_with_finitary_standard_redundancy where
+  Inf = G_Inf and
+  Bot = G_Bot and
+  entails = G_entails and
+  less = "(\<prec>\<^sub>c)"
+  defines GRed_I = Red_I and GRed_F = Red_F
+proof unfold_locales
+  show "transp (\<prec>\<^sub>c)"
+    by simp
+next
+  show "wfP (\<prec>\<^sub>c)"
+    by auto
+next
+  show "\<And>\<iota>. \<iota> \<in> G_Inf \<Longrightarrow> prems_of \<iota> \<noteq> []"
+    by (auto simp: G_Inf_def)
+next
+  fix \<iota>
+  have "concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
+    if \<iota>_def: "\<iota> = Infer [P\<^sub>2, P\<^sub>1] C" and
+      infer: "superposition P\<^sub>2 P\<^sub>1 C"
+    for P\<^sub>2 P\<^sub>1 C
+    unfolding \<iota>_def
+    using infer
+    using superposition_smaller_conclusion
+    by simp
+
+  moreover have "concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
+    if \<iota>_def: "\<iota> = Infer [P] C" and
+      infer: "eq_resolution P C"
+    for P C
+    unfolding \<iota>_def
+    using infer
+    using ground_eq_resolution_smaller_conclusion
+    by simp
+
+  moreover have "concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
+    if \<iota>_def: "\<iota> = Infer [P] C" and
+      infer: "eq_factoring P C"
+    for P C
+    unfolding \<iota>_def
+    using infer
+    using ground_eq_factoring_smaller_conclusion
+    by simp
+
+  ultimately show "\<iota> \<in> G_Inf \<Longrightarrow> concl_of \<iota> \<prec>\<^sub>c main_prem_of \<iota>"
+    unfolding G_Inf_def
+    by fast
 qed
 
 end

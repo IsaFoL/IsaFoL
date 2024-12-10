@@ -7,7 +7,7 @@ theory Clause_Typing
     Natural_Magma
 begin
 
-locale monoid_typing_lifting = typing_lifting + natural_magma
+locale natural_magma_typing_lifting = typing_lifting + natural_magma
 begin
 
 lemma is_typed_add [simp]: 
@@ -34,13 +34,19 @@ lemma is_welltyped_plus [simp]:
 
 end
 
-locale mulitset_typing_lifting = 
-  typing_lifting where to_set = set_mset
+locale mulitset_typing_lifting = typing_lifting where to_set = set_mset
 begin
 
-sublocale monoid_typing_lifting 
+sublocale natural_magma_typing_lifting 
   where to_set = set_mset and plus = "(+)" and wrap = "\<lambda>l. {#l#}" and add = add_mset
   by unfold_locales
+
+(* TODO: Maybe generalize *)
+lemma empty_is_typed [intro]: "is_typed {#}"
+  by (simp add: is_typed_def)
+
+lemma empty_is_welltyped [intro]: "is_welltyped {#}"
+  by (simp add: is_welltyped_def)
 
 end
 

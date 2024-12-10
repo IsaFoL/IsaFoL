@@ -1,9 +1,10 @@
 theory First_Order_Superposition_Completeness
   imports
     Ground_Superposition_Completeness
-    Grounded_First_Order_Superposition
-    "HOL-ex.Sketch_and_Explore"
+    Grounded_Superposition
+    "HOL-ex.Sketch_and_Explore" (* TODO *)
     Nonground_Entailment
+    Superposition_Welltypedness_Preservation
 begin
 
 (* TODO: *)
@@ -14,7 +15,7 @@ hide_const
   Inference_System.concl_of
   Inference_System.main_prem_of
 
-context grounded_first_order_superposition_calculus
+context grounded_superposition_calculus
 begin
 
 
@@ -31,7 +32,7 @@ lemma eq_resolution_lifting:
     (* TODO: groundings can be derived from ground_subst*)
     conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
     select: "clause.from_ground (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
-    ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G" and
+    ground_eq_resolution: "ground.eq_resolution premise\<^sub>G conclusion\<^sub>G" and
     typing: 
     "clause.is_welltyped \<V> premise"
     "term_subst.is_ground_subst \<gamma>"
@@ -43,8 +44,8 @@ lemma eq_resolution_lifting:
     "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (conclusion', \<V>))"
     "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
   using ground_eq_resolution
-proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_resolution.cases)
-  case (ground_eq_resolutionI literal\<^sub>G premise\<^sub>G' term\<^sub>G)
+proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.eq_resolution.cases)
+  case ground_eq_resolutionI: (eq_resolutionI literal\<^sub>G premise\<^sub>G' term\<^sub>G)
 
   have premise_not_empty: "premise \<noteq> {#}"
     using 
@@ -284,7 +285,7 @@ lemma eq_factoring_lifting:
     premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and
     conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
     select: "clause.from_ground (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
-    ground_eq_factoring: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G" and
+    ground_eq_factoring: "ground.eq_factoring premise\<^sub>G conclusion\<^sub>G" and
     typing:
     "clause.is_welltyped \<V> premise"
     "term_subst.is_ground_subst \<gamma>"
@@ -296,8 +297,8 @@ lemma eq_factoring_lifting:
     "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (conclusion', \<V>))"
     "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
   using ground_eq_factoring
-proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.cases)
-  case (ground_eq_factoringI literal\<^sub>G\<^sub>1 literal\<^sub>G\<^sub>2 premise'\<^sub>G term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2 term\<^sub>G\<^sub>3)
+proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.eq_factoring.cases)
+  case ground_eq_factoringI: (eq_factoringI literal\<^sub>G\<^sub>1 literal\<^sub>G\<^sub>2 premise'\<^sub>G term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2 term\<^sub>G\<^sub>3)
 
   have premise_not_empty: "premise \<noteq> {#}"
     using ground_eq_factoringI(1) empty_not_add_mset clause_subst_empty premise\<^sub>G
@@ -401,7 +402,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.ground_eq_factoring.
       by blast
 
     then obtain \<tau> where "welltyped \<V> (term.from_ground term\<^sub>G\<^sub>1) \<tau>"
-      unfolding premise_\<gamma>  ground_eq_factoringI 
+      unfolding premise_\<gamma> ground_eq_factoringI 
       by auto
 
     then have "welltyped \<V> (term\<^sub>1 \<cdot>t \<gamma>) \<tau>" "welltyped \<V> (term\<^sub>2 \<cdot>t \<gamma>) \<tau>"
@@ -580,7 +581,7 @@ lemma superposition_lifting:
     select: 
     "clause.from_ground (select\<^sub>G premise\<^sub>G\<^sub>1) = (select premise\<^sub>1) \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
     "clause.from_ground (select\<^sub>G premise\<^sub>G\<^sub>2) = (select premise\<^sub>2) \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>" and
-    ground_superposition: "ground.ground_superposition premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G" and
+    ground_superposition: "ground.superposition premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G" and
     non_redundant: "\<iota>\<^sub>G \<notin> ground.Red_I premise_groundings" and
     typing:
     "clause.is_welltyped \<V>\<^sub>1 premise\<^sub>1"
@@ -597,8 +598,8 @@ lemma superposition_lifting:
     "\<iota>\<^sub>G \<in> inference_groundings (Infer [(premise\<^sub>2, \<V>\<^sub>2), (premise\<^sub>1, \<V>\<^sub>1)] (conclusion', \<V>\<^sub>3))"
     "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
   using ground_superposition
-proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G rule: ground.ground_superposition.cases)
-  case (ground_superpositionI 
+proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G rule: ground.superposition.cases)
+  case ground_superpositionI: (superpositionI 
       literal\<^sub>G\<^sub>1
       premise\<^sub>G\<^sub>1'
       literal\<^sub>G\<^sub>2
@@ -636,15 +637,12 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
   have neg_literal\<^sub>G\<^sub>1_is_maximal\<^sub>l: 
     "is_maximal (literal.from_ground literal\<^sub>G\<^sub>1) (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<odot> \<gamma>)" if ?select\<^sub>G_empty
-    using 
+    using
       that
       ground_superpositionI(9)  
       is_maximal_if_is_strictly_maximal 
       is_maximal_empty
       premise\<^sub>1_\<gamma>
-    unfolding
-      ground_superpositionI(1)
-   (* TODO: *)
     by auto
 
   obtain pos_literal\<^sub>1 where
@@ -1712,7 +1710,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     show "\<iota>\<^sub>G \<in> inference_groundings (Infer [(premise\<^sub>2, \<V>\<^sub>2), (premise\<^sub>1, \<V>\<^sub>1)] (conclusion', \<V>\<^sub>3))"
     proof-
       have " \<lbrakk>conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>;
-         ground.ground_superposition (clause.to_ground (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>))
+         ground.superposition (clause.to_ground (premise\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>))
           (clause.to_ground (premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)) (clause.to_ground (conclusion \<cdot> \<gamma>));
          is_welltyped_on (clause.vars conclusion') \<V>\<^sub>3 \<gamma>; infinite_variables_per_type \<V>\<^sub>3\<rbrakk>
         \<Longrightarrow> clause.is_welltyped \<V>\<^sub>3 conclusion'"
@@ -1750,7 +1748,7 @@ lemma eq_resolution_ground_instance:
 proof-
   obtain premise\<^sub>G conclusion\<^sub>G where 
     \<iota>\<^sub>G : "\<iota>\<^sub>G = Infer [premise\<^sub>G] conclusion\<^sub>G" and
-    ground_eq_resolution: "ground.ground_eq_resolution premise\<^sub>G conclusion\<^sub>G"
+    eq_resolution: "ground.eq_resolution premise\<^sub>G conclusion\<^sub>G"
     using assms(1)
     by blast
 
@@ -1820,7 +1818,7 @@ proof-
         premise_grounding 
         conclusion_grounding 
         select[unfolded premise\<^sub>G] 
-        ground_eq_resolution[unfolded premise\<^sub>G conclusion\<^sub>G]
+        eq_resolution[unfolded premise\<^sub>G conclusion\<^sub>G]
         typing
         ]
     unfolding premise\<^sub>G conclusion\<^sub>G \<iota>\<^sub>G
@@ -1851,7 +1849,7 @@ lemma eq_factoring_ground_instance:
 proof-
   obtain premise\<^sub>G conclusion\<^sub>G where 
     \<iota>\<^sub>G : "\<iota>\<^sub>G = Infer [premise\<^sub>G] conclusion\<^sub>G" and
-    ground_eq_factoring: "ground.ground_eq_factoring premise\<^sub>G conclusion\<^sub>G"
+    eq_factoring: "ground.eq_factoring premise\<^sub>G conclusion\<^sub>G"
     using assms(1)
     by blast
 
@@ -1895,7 +1893,7 @@ proof-
         premise_grounding 
         conclusion_grounding 
         select 
-        ground_eq_factoring[unfolded premise\<^sub>G conclusion\<^sub>G]
+        eq_factoring[unfolded premise\<^sub>G conclusion\<^sub>G]
         ]
       typing
     unfolding premise\<^sub>G conclusion\<^sub>G \<iota>\<^sub>G
@@ -1935,7 +1933,7 @@ lemma superposition_ground_instance:
 proof-
   obtain premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 conclusion\<^sub>G where 
     \<iota>\<^sub>G : "\<iota>\<^sub>G = Infer [premise\<^sub>G\<^sub>2, premise\<^sub>G\<^sub>1] conclusion\<^sub>G" and
-    ground_superposition: "ground.ground_superposition premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G"
+    superposition: "ground.superposition premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G"
     using assms(1)
     by blast
 
@@ -2155,7 +2153,7 @@ proof-
         conclusion_grounding
         select\<^sub>1
         select\<^sub>2
-        ground_superposition[unfolded  premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G]
+        superposition[unfolded  premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G]
         \<iota>\<^sub>G_not_redunant[unfolded \<iota>\<^sub>G premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G]
         wt(5, 6)
         is_ground_subst_\<gamma>
@@ -2221,7 +2219,7 @@ qed
 
 end
 
-context first_order_superposition_calculus
+context superposition_calculus
 begin
 
 lemma overapproximation:
@@ -2235,7 +2233,7 @@ proof-
     using obtain_subst_stable_on_select_grounding
     by blast
 
-  then interpret grounded_first_order_superposition_calculus
+  then interpret grounded_superposition_calculus
     where select\<^sub>G = select\<^sub>G
     by unfold_locales
 
@@ -2253,7 +2251,7 @@ proof(unfold static_empty_ord_inter_equiv_static_inter,
     rule ballI)
   fix select\<^sub>G
   assume "select\<^sub>G \<in> select\<^sub>G\<^sub>s"
-  then interpret grounded_first_order_superposition_calculus
+  then interpret grounded_superposition_calculus
     where select\<^sub>G = select\<^sub>G
     by unfold_locales (simp add: select\<^sub>G\<^sub>s_def)
 
