@@ -1541,9 +1541,7 @@ proof -
       moreover have \<open>\<forall>\<C>' \<in> fset \<C>s. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
         using split_prem_entails_cons2 split by auto
       ultimately show ?thesis
-        using \<C>_is_consq_of_\<iota> split(1)
-        unfolding S_to_def
-        by auto
+        using \<C>_is_consq_of_\<iota> split(1) unfolding S_to_def by auto
     next
       case other
       then show ?thesis
@@ -1552,13 +1550,8 @@ proof -
   qed
 qed
 
-(*interpretation Simps_sound: sound_simplification_rules bot SInf \<open>(\<Turnstile>s\<^sub>A\<^sub>F)\<close> Simps
-  by (standard, auto simp add: SInf_with_simps_sound_wrt_entails_sound) *)
-
 (* Report theorem 19 for Split *)
-lemma split_redundant:
-  shows 
-    \<open>split_pre \<C> \<C>s \<Longrightarrow> \<C> \<in> Red_F\<^sub>A\<^sub>F (split_res \<C> \<C>s)\<close>
+lemma split_redundant: \<open>split_pre \<C> \<C>s \<Longrightarrow> \<C> \<in> Red_F\<^sub>A\<^sub>F (split_res \<C> \<C>s)\<close>
 proof -
   assume pre_cond: \<open>split_pre \<C> \<C>s\<close>
   then show \<open>\<C> \<in> Red_F\<^sub>A\<^sub>F (split_res \<C> \<C>s)\<close>
@@ -1891,7 +1884,6 @@ next
   show \<open>\<iota> \<in> {} \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close> for \<iota>
     by blast
 qed
-
 
 lemma extend_simps_with_split:
   assumes
