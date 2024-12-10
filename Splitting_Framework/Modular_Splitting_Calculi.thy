@@ -2655,7 +2655,7 @@ end (* context splitting_calculus *)
 subsubsection \<open>Combining all simplifications and optional inferences\<close>
 
 text \<open>We have augmented the core calculus with each simplification and optional rule separately. We
-  now show how to augment the core calculus with all of them at once.\<close>
+  now show how to augment the core calculus with all of them in succession.\<close>
 context splitting_calculus
 begin
 
@@ -2688,16 +2688,25 @@ interpretation with_all: AF_calculus_with_split "to_AF bot" core.SInf "(\<Turnst
   using extend_simps_with_split[OF
     with_ATS_TC.AF_calc_ext.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
 
-find_theorems name: derive_def
+interpretation full_splitting_calculus: AF_calculus_with_sound_simps_and_opt_infs "to_AF bot" 
+  core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)" "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F with_all.Simps_with_Split  
+  with_ATS.OptInfs_with_strong_unsat
+  using with_all.AF_calc_ext.AF_calculus_with_sound_simps_and_opt_infs_axioms .
+
+text \<open>Simplifications and optional inferences can be integrated in derivations. This is made obvious
+  by the following two lemmas.\<close>
 
 lemma \<open>\<delta> \<in> with_all.Simps_with_Split \<Longrightarrow> core.S_calculus.derive (\<M> \<union> S_from \<delta>) (\<M> \<union> S_to \<delta>)\<close>
   unfolding core.S_calculus.derive_def
 proof 
   fix C
-  assume \<open>\<delta> \<in> with_all.Simps_with_Split\<close> and
+  assume d_in: \<open>\<delta> \<in> with_all.Simps_with_Split\<close> and
     \<open>C \<in> \<M> \<union> S_from \<delta> - (\<M> \<union> S_to \<delta>)\<close>
-  show \<open>C \<in> core.SRed\<^sub>F (\<M> \<union> S_to \<delta>)\<close>
-    sorry
+  then have \<open>C \<in> S_from \<delta> - S_to \<delta>\<close>
+    by blast
+  then show \<open>C \<in> core.SRed\<^sub>F (\<M> \<union> S_to \<delta>)\<close>
+    using with_all.AF_calc_ext.simplification[OF d_in] by (meson core.core_splitting_calculus_axioms
+        core_splitting_calculus.SRed\<^sub>F_of_subset_F in_mono inf_sup_ord(4))
 qed
 
 lemma \<open>\<iota> \<in> with_ATS.OptInfs_with_strong_unsat \<Longrightarrow> 
@@ -2706,9 +2715,12 @@ lemma \<open>\<iota> \<in> with_ATS.OptInfs_with_strong_unsat \<Longrightarrow>
 proof 
   fix C
   assume \<open>\<iota> \<in> with_ATS.OptInfs_with_strong_unsat\<close> and
-    \<open>C \<in> \<M> \<union> set (prems_of \<iota>) - (\<M> \<union> set (prems_of \<iota>) \<union> {concl_of \<iota>})\<close>
-  show \<open>C \<in> core.SRed\<^sub>F (\<M> \<union> set (prems_of \<iota>) \<union> {concl_of \<iota>})\<close>
-    sorry
+    C_in: \<open>C \<in> \<M> \<union> set (prems_of \<iota>) - (\<M> \<union> set (prems_of \<iota>) \<union> {concl_of \<iota>})\<close>
+  have \<open>\<M> \<union> set (prems_of \<iota>) - (\<M> \<union> set (prems_of \<iota>) \<union> {concl_of \<iota>}) = {}\<close>
+    by blast
+  then have False using C_in by auto
+  then show \<open>C \<in> core.SRed\<^sub>F (\<M> \<union> set (prems_of \<iota>) \<union> {concl_of \<iota>})\<close>
+    by auto
 qed
 
 
