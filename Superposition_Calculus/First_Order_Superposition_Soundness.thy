@@ -33,7 +33,7 @@ proof (cases D C rule: eq_resolution.cases)
     assume
       refl_I: "refl I" and 
       premise:  "\<forall>P\<^sub>G. P\<^sub>G \<in> clause_groundings (P, \<V>) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
-      grounding: "term_subst.is_ground_subst \<gamma>" and
+      grounding: "clause.is_ground (C \<cdot> \<gamma>)" and
       wt: 
         "clause.is_welltyped \<V> C" 
         "is_welltyped_on (clause.vars C) \<V> \<gamma>" 
@@ -79,6 +79,9 @@ proof (cases D C rule: eq_resolution.cases)
       apply auto
       apply(rule exI[of _  "\<mu> \<odot> \<gamma>'"])
       apply(auto simp: wt \<gamma>' term.is_ground_subst_comp_right  eq_resolutionI(3,4))
+           apply (simp add: \<gamma>'(1) term_subst.is_ground_subst_is_ground)
+          apply (simp add: \<gamma>'(1) term_subst.is_ground_subst_is_ground)
+      apply (metis \<gamma>'(3) clause.is_grounding_iff_vars_grounded empty_iff grounding' local.eq_resolutionI(8))
       by (simp_all add: \<gamma>'(2) eval_subst_def welltyped_\<mu>)
 
     then have "?I \<TTurnstile> ?P"
@@ -144,10 +147,10 @@ proof (cases P C rule: eq_factoring.cases)
     "\<And>I \<gamma> \<F>\<^sub>G. \<lbrakk>
         trans I; 
         sym I;
-        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>'
+        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P \<cdot> \<gamma>') \<and> clause.is_ground (P \<cdot> \<gamma>')
               \<and> clause.is_welltyped \<V> P \<and> is_welltyped_on (clause.vars P) \<V> \<gamma>') 
             \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
-       term_subst.is_ground_subst \<gamma>;
+       clause.is_ground (C \<cdot> \<gamma>);
        clause.is_welltyped \<V> C; is_welltyped_on (clause.vars C) \<V> \<gamma>
      \<rbrakk> \<Longrightarrow> upair  ` I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
   proof-
@@ -159,10 +162,10 @@ proof (cases P C rule: eq_factoring.cases)
       trans_I: "trans I" and 
       sym_I: "sym I" and 
       premise: 
-      "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>'
+      "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P \<cdot> \<gamma>') \<and> clause.is_ground (P \<cdot> \<gamma>')
              \<and> clause.is_welltyped \<V> P \<and> is_welltyped_on (clause.vars P) \<V> \<gamma>') 
               \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
-      grounding: "term_subst.is_ground_subst \<gamma>" and
+      grounding: "clause.is_ground (C \<cdot> \<gamma>)" and
       wt: "clause.is_welltyped \<V> C" "is_welltyped_on (clause.vars C) \<V> \<gamma>"
 
     obtain \<gamma>' where
@@ -223,7 +226,7 @@ proof (cases P C rule: eq_factoring.cases)
       using 
         premise[rule_format, of ?P, OF exI, of "\<mu> \<odot> \<gamma>'"] 
         term_subst.is_ground_subst_comp_right \<gamma>'(1)
-      by fastforce
+      by (simp add: clause.is_ground_subst_is_ground)
 
     then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
       by (auto simp: true_cls_def)
@@ -280,7 +283,8 @@ proof (cases P C rule: eq_factoring.cases)
 
   then show ?thesis
     unfolding ground.G_entails_def true_clss_def clause_groundings_def
-    using eq_factoringI(1,2) by auto
+    using eq_factoringI(1,2) 
+    by auto
 qed
 
 lemma superposition_sound:
@@ -296,13 +300,13 @@ proof (cases P2 P1 C rule: superposition.cases)
         trans I; 
         sym I;
         compatible_with_gctxt I;
-        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>1 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> 
+        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>1 \<cdot> \<gamma>') \<and> clause.is_ground (P\<^sub>1 \<cdot> \<gamma>') \<and> 
               clause.is_welltyped \<V>\<^sub>1 P\<^sub>1 \<and> is_welltyped_on (clause.vars P\<^sub>1) \<V>\<^sub>1 \<gamma>' \<and> 
               infinite_variables_per_type \<V>\<^sub>1) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G;
-        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>2 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' \<and> 
+        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>2 \<cdot> \<gamma>') \<and>  clause.is_ground (P\<^sub>2 \<cdot> \<gamma>') \<and> 
               clause.is_welltyped \<V>\<^sub>2 P\<^sub>2 \<and> is_welltyped_on (clause.vars P\<^sub>2) \<V>\<^sub>2 \<gamma>' \<and> 
               infinite_variables_per_type \<V>\<^sub>2) \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G;
-        term_subst.is_ground_subst \<gamma>; clause.is_welltyped \<V>\<^sub>3 C; 
+        clause.is_ground (C \<cdot> \<gamma>); clause.is_welltyped \<V>\<^sub>3 C; 
         is_welltyped_on (clause.vars C) \<V>\<^sub>3 \<gamma>; infinite_variables_per_type \<V>\<^sub>3
      \<rbrakk> \<Longrightarrow> (\<lambda>(x, y). Upair x y) ` I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
   proof -
@@ -316,14 +320,14 @@ proof (cases P2 P1 C rule: superposition.cases)
       sym_I: "sym I" and 
       compatible_with_ground_context_I: "compatible_with_gctxt I" and
       premise1: 
-      "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>1 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' 
+      "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>1 \<cdot> \<gamma>') \<and> clause.is_ground (P\<^sub>1 \<cdot> \<gamma>')
               \<and> clause.is_welltyped \<V>\<^sub>1 P\<^sub>1 \<and> is_welltyped_on (clause.vars P\<^sub>1) \<V>\<^sub>1 \<gamma>' 
               \<and> infinite_variables_per_type \<V>\<^sub>1) \<longrightarrow>?I \<TTurnstile> P\<^sub>G" and
       premise2: 
-      "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>2 \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>' 
+      "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P\<^sub>2 \<cdot> \<gamma>') \<and>  clause.is_ground (P\<^sub>2 \<cdot> \<gamma>')
               \<and> clause.is_welltyped \<V>\<^sub>2 P\<^sub>2 \<and> is_welltyped_on (clause.vars P\<^sub>2) \<V>\<^sub>2 \<gamma>'
               \<and> infinite_variables_per_type \<V>\<^sub>2) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and 
-      grounding: "term_subst.is_ground_subst \<gamma>" "clause.is_welltyped \<V>\<^sub>3 C" 
+      grounding: " clause.is_ground (C \<cdot> \<gamma>)" "clause.is_welltyped \<V>\<^sub>3 C" 
       "is_welltyped_on (clause.vars C) \<V>\<^sub>3 \<gamma>" "infinite_variables_per_type \<V>\<^sub>3"
 
     have grounding': "clause.is_ground (C \<cdot> \<gamma>)"
@@ -531,12 +535,14 @@ proof (cases P2 P1 C rule: superposition.cases)
     have "?I \<TTurnstile> ?P\<^sub>1"
       using premise1[rule_format, of ?P\<^sub>1, OF exI, of "\<rho>\<^sub>1 \<odot> \<mu> \<odot> \<gamma>'"] ground_subst wt_P\<^sub>1 wt_\<gamma> 
         superpositionI(27)
-      by auto
+      by (metis clause.ground_subst_iff_base_ground_subst clause.is_ground_subst_is_ground
+          clause.subst_comp_subst)
 
     moreover have "?I \<TTurnstile> ?P\<^sub>2"
       using premise2[rule_format, of ?P\<^sub>2, OF exI, of "\<rho>\<^sub>2 \<odot> \<mu> \<odot> \<gamma>'"] ground_subst wt_P\<^sub>2 wt_\<gamma> 
         superpositionI(28)
-      by auto
+      by (metis clause.ground_subst_iff_base_ground_subst clause.is_ground_subst_is_ground
+          clause.subst_comp_subst)
 
     ultimately obtain L\<^sub>1' L\<^sub>2' 
       where

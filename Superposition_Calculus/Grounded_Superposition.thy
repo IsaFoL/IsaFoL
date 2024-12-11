@@ -27,7 +27,8 @@ abbreviation is_inference_grounding where
   "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv>
     (case \<iota> of
         Infer [(D, \<V>')] (C, \<V>) \<Rightarrow>
-           term.is_ground_subst \<gamma>
+          clause.is_ground (D \<cdot> \<gamma>)
+        \<and> clause.is_ground (C \<cdot> \<gamma>)
         \<and> \<iota>\<^sub>G = Infer [clause.to_ground (D \<cdot> \<gamma>)] (clause.to_ground (C \<cdot> \<gamma>))
         \<and> clause.is_welltyped \<V> D 
         \<and> is_welltyped_on (clause.vars C) \<V> \<gamma>
@@ -39,7 +40,9 @@ abbreviation is_inference_grounding where
           term_subst.is_renaming \<rho>\<^sub>1
         \<and> term_subst.is_renaming \<rho>\<^sub>2
         \<and> clause.vars (E \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (D \<cdot> \<rho>\<^sub>2) = {}
-        \<and> term_subst.is_ground_subst \<gamma>
+        \<and> clause.is_ground (D \<cdot> \<gamma>)
+        \<and> clause.is_ground (E \<cdot> \<gamma>)
+        \<and> clause.is_ground (C \<cdot> \<gamma>)
         \<and> \<iota>\<^sub>G =
             Infer
               [clause.to_ground (D \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), clause.to_ground (E \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)] (clause.to_ground (C \<cdot> \<gamma>))

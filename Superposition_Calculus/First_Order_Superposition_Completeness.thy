@@ -266,7 +266,9 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.eq_resolution.cases)
     (* TODO: *)
     apply(auto)
     apply(rule exI[of _ \<gamma>])
-    by auto
+    apply auto
+     apply (metis empty_iff premise_grounding)
+    by (metis conclusion_grounding empty_iff)
    
   ultimately show ?thesis
     using that[OF eq_resolution]
@@ -534,8 +536,18 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.eq_factoring.cases)
     apply(auto simp: typing yY)
     using typing
     unfolding premise literal\<^sub>2_terms literal\<^sub>1_terms
-    apply auto
-    apply (metis UNIV_I \<mu>(3) term.welltyped.right_uniqueD
+             apply auto
+                 apply (metis empty_iff term.is_ground_subst_is_ground)
+                apply (metis empty_iff term.is_ground_subst_is_ground)
+               apply (metis empty_iff term.is_ground_subst_is_ground)
+              apply (metis empty_iff term.is_ground_subst_is_ground)
+             apply (metis clause.ground_is_ground empty_iff premise'_\<gamma>)
+            apply (metis empty_iff term.is_ground_subst_is_ground)
+           apply (metis empty_iff term.is_ground_subst_is_ground)
+          apply (metis empty_iff term.is_ground_subst_is_ground)
+         apply (metis empty_iff term.is_ground_subst_is_ground)
+    apply (metis clause.ground_subst_iff_base_ground_subst clause.is_ground_subst_def emptyE)
+   apply (metis UNIV_I \<mu>(3) term.welltyped.right_uniqueD
         welltyped.explicit_subst_stability)
     apply (metis UNIV_I \<mu>(3) term.welltyped.right_uniqueD
         welltyped.explicit_subst_stability)
@@ -544,7 +556,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.eq_factoring.cases)
         term.subst_comp_subst clause.comp_subst.left.monoid_action_compatibility
         clause.from_ground_inverse ground_eq_factoring ground_eq_factoringI(1,2,3,7)
         premise'_\<gamma> term\<^sub>1_term\<^sub>2 term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>2_term\<^sub>1'
-        term\<^sub>G\<^sub>3_term\<^sub>2')    
+        term\<^sub>G\<^sub>3_term\<^sub>2')
 
   ultimately show ?thesis
     using that[OF eq_factoring]
@@ -1725,7 +1737,10 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           infinite_variables_per_type_\<V>\<^sub>3
           typing(1, 2)
         unfolding ground.G_Inf_def \<iota>\<^sub>G
-        by(auto simp: typing renaming premise\<^sub>1_grounding premise\<^sub>2_grounding conclusion_grounding)
+        
+        apply(auto simp: typing renaming premise\<^sub>1_grounding premise\<^sub>2_grounding conclusion_grounding)
+         apply (metis clause.ground_subst_iff_base_ground_subst clause.is_ground_subst_def empty_iff typing(3))
+        by (metis clause.ground_subst_iff_base_ground_subst clause.is_ground_subst_def empty_iff typing(3))
 
       then show ?thesis
         using is_inference_grounding_inference_groundings

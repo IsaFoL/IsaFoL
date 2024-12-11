@@ -81,6 +81,7 @@ sublocale clause: term_based_nonground_typing_lifting where
 definition infinite_variables_per_type where 
   "infinite_variables_per_type \<V> \<equiv> \<forall>ty. infinite {x. \<V> x = ty}"
 
+(* TODO: Separate Locale *)
 lemma exists_infinite_variables_per_type:
   assumes "|UNIV :: 'ty set| \<le>o |UNIV :: ('v :: infinite) set|"
   shows "\<exists>\<V> :: ('v :: infinite \<Rightarrow> 'ty). infinite_variables_per_type \<V>"
@@ -88,11 +89,10 @@ lemma exists_infinite_variables_per_type:
   unfolding infinite_variables_per_type_def
   by argo
 
-(* TODO: term_subst.is_ground_subst \<gamma> \<rightarrow> clause.is_ground (fst clause \<cdot> \<gamma>) *)
 (* TODO: Is clause.is_welltyped \<F> (snd clause) (fst clause) needed? *)
 definition clause_groundings :: "('f, 'v, 'ty) typed_clause \<Rightarrow> 'f ground_atom clause set"   where
   "clause_groundings C = { clause.to_ground (fst C \<cdot> \<gamma>) | \<gamma>. 
-    term.is_ground_subst \<gamma> \<and> 
+    clause.is_ground (fst C \<cdot> \<gamma>) \<and> 
     clause.is_welltyped (snd C) (fst C) \<and> 
     is_welltyped_on (clause.vars (fst C)) (snd C) \<gamma> \<and> 
     infinite_variables_per_type (snd C)
