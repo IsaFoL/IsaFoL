@@ -41,7 +41,6 @@ lemma subst_cannot_unground:
   shows "\<not>is_ground expr"
   using assms by force
 
-
 (* 
 TODO: Bring here?
 
@@ -54,9 +53,11 @@ abbreviation subst_range :: "('var \<Rightarrow> 'base) \<Rightarrow> 'base set"
 
 end
 
+(* TODO: If we have subst_domain + subst_range here, then this can be probably directly proven 
+  with vars_subst *)
 locale vars_subst = functional_substitution +
   fixes subst_domain range_vars
-  assumes vars_subst: "\<And>expr \<sigma>. vars (expr \<cdot> \<sigma>) \<subseteq> (vars expr - subst_domain \<sigma>) \<union> range_vars \<sigma>"
+  assumes vars_subst_subset: "\<And>expr \<sigma>. vars (expr \<cdot> \<sigma>) \<subseteq> (vars expr - subst_domain \<sigma>) \<union> range_vars \<sigma>"
 
 locale all_subst_ident_iff_ground =
   functional_substitution +
@@ -161,8 +162,7 @@ locale base_functional_substitution = functional_substitution
   where id_subst = id_subst and vars = vars
   for id_subst :: "'var \<Rightarrow> 'expr" and vars :: "'expr \<Rightarrow> 'var set" +
   assumes
-    base_is_grounding_iff_vars_grounded:
-      "\<And>expr. is_ground (expr \<cdot> \<gamma>) \<longleftrightarrow> (\<forall>var \<in> vars expr. is_ground (\<gamma> var))" and
+    vars_subst_vars: "\<And>expr \<rho>. vars (expr \<cdot> \<rho>) = \<Union> (vars ` \<rho> ` vars expr)" and
     base_ground_exists: "\<exists>expr. is_ground expr"
 
 locale based_functional_substitution = 
@@ -174,16 +174,20 @@ for
   vars :: "'expr \<Rightarrow> 'var set" +
 assumes
   ground_subst_iff_base_ground_subst [simp]: "is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>" and
-  is_grounding_iff_vars_grounded: 
-    "\<And>expr. is_ground (expr \<cdot> \<gamma>) \<longleftrightarrow> (\<forall>var \<in> vars expr. base.is_ground (\<gamma> var))"
+  vars_subst: "vars (expr \<cdot> \<rho>) = \<Union> (base_vars ` \<rho> ` vars expr)"
 begin
+
+lemma is_grounding_iff_vars_grounded: 
+  "is_ground (expr \<cdot> \<gamma>) \<longleftrightarrow> (\<forall>var \<in> vars expr. base.is_ground (\<gamma> var))"
+  using vars_subst
+  by auto
 
 lemma obtain_ground_subst:
   obtains \<gamma> 
   where "is_ground_subst \<gamma>"
   unfolding ground_subst_iff_base_ground_subst base.is_ground_subst_def
-  using base.base_ground_exists base.base_is_grounding_iff_vars_grounded
-  by auto
+  using base.base_ground_exists base.vars_subst_vars
+  by (meson is_ground_subst_def is_grounding_iff_vars_grounded that)
 
 lemma exists_ground_subst [intro]: "\<exists>\<gamma>. is_ground_subst \<gamma>"
   by (metis obtain_ground_subst)
@@ -239,13 +243,13 @@ begin
 
 sublocale based_functional_substitution 
   where base_subst = subst and base_vars = vars
-  by unfold_locales (simp_all add: base_is_grounding_iff_vars_grounded)
+  by unfold_locales (simp_all add: vars_subst_vars)
 
 declare ground_subst_iff_base_ground_subst [simp del]
 
 end
 
-hide_fact base_functional_substitution.base_is_grounding_iff_vars_grounded
 hide_fact base_functional_substitution.base_ground_exists
+hide_fact base_functional_substitution.vars_subst_vars
 
 end

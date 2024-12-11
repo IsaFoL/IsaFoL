@@ -60,6 +60,18 @@ locale superposition_calculus =
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
 
+(* TODO: Put this with function_symbols into tying locale *)
+lemma types_inhabited: "\<exists>t. term.is_ground t \<and> welltyped \<V> t \<tau>"
+proof(intro exI[of _ "Fun (SOME f. \<F> f = ([], \<tau>)) []"] conjI )
+
+  show "term.is_ground (Fun (SOME f. \<F> f = ([], \<tau>)) [])"
+    by simp
+
+  show "welltyped \<V> (Fun (SOME f. \<F> f = ([], \<tau>)) []) \<tau>"
+    using someI_ex[OF function_symbols]
+    by(auto simp: welltyped.Fun)
+qed
+
 interpretation term_order_notation.
 
 sublocale tiebreakers: wellfounded_strict_order "tiebreakers C\<^sub>G"

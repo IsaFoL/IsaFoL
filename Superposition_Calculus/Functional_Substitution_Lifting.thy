@@ -153,11 +153,11 @@ proof unfold_locales
     using ground_subst_iff_sub_ground_subst sub.ground_subst_iff_base_ground_subst 
     by blast
 next
-  fix \<gamma> expr
+  fix expr \<rho>
 
-  show "(vars (expr \<cdot> \<gamma>) = {}) = (\<forall>var\<in>vars expr. base.is_ground (\<gamma> var))"
-    using sub.is_grounding_iff_vars_grounded
-    unfolding subst_def to_set_map vars_def
+  show "vars (expr \<cdot> \<rho>) = \<Union> (base_vars ` \<rho> ` vars expr)"
+    using sub.vars_subst
+    unfolding subst_def vars_def
     by simp
 qed
 
@@ -399,7 +399,7 @@ sublocale vars_subst where subst = subst and vars = vars
 proof unfold_locales
   fix expr \<sigma>
   show "vars (expr \<cdot> \<sigma>) \<subseteq> vars expr - subst_domain \<sigma> \<union> range_vars \<sigma>"
-    using sub.vars_subst
+    using sub.vars_subst_subset
     unfolding vars_def subst_def to_set_map
     by blast
 qed

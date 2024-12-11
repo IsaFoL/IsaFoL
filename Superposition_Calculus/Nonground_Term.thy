@@ -176,10 +176,10 @@ next
       by blast
   qed
 next
-  fix t :: "('f, 'v) term" and \<gamma> :: "('f, 'v) subst"
+  fix t :: "('f, 'v) term" and \<rho> :: "('f, 'v) subst"
 
-  show "vars (t \<cdot>t \<gamma>) = {} \<longleftrightarrow> (\<forall>x \<in> vars t. vars (\<gamma> x) = {})"
-    using is_ground_iff.
+  show "vars (t \<cdot>t \<rho>) = \<Union> (vars ` \<rho> ` vars t)"
+    using vars_term_subst.
 next
   show "\<exists>t. vars t = {}"
     using vars_term_of_gterm

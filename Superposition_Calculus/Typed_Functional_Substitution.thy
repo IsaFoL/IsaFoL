@@ -32,6 +32,64 @@ for
   vars :: "'expr \<Rightarrow> 'var set" and
   is_typed :: "('var, 'ty) var_types \<Rightarrow> 'expr \<Rightarrow> bool" and
   base_typed :: "('var, 'ty) var_types \<Rightarrow> 'base \<Rightarrow> 'ty \<Rightarrow> bool"
+begin
+
+lemma ground_subst_extension:
+  assumes 
+    (* TODO: Make assumption in explicitly_typed_functional_substitution *)
+    types_inhabited: "\<And>\<tau>. \<exists>base. base.is_ground base \<and> base_typed \<V> base \<tau>" and
+    grounding: "is_ground (expr \<cdot> \<gamma>)" and
+    \<gamma>_is_typed_on: "base.is_typed_on (vars expr) \<V> \<gamma>"
+  obtains \<gamma>'
+  where 
+    "base.is_ground_subst \<gamma>'" 
+    "base.is_typed_on UNIV \<V> \<gamma>'" 
+    "\<forall>x \<in> vars expr. \<gamma> x = \<gamma>' x"
+proof standard
+
+  define \<gamma>' where 
+    "\<And>x. \<gamma>' x \<equiv>
+      if x \<in> vars expr
+      then \<gamma> x
+      else SOME base. base.is_ground base \<and> base_typed \<V> base (\<V> x)"
+
+  show "base.is_ground_subst \<gamma>'"
+  proof(unfold base.is_ground_subst_def, intro allI)
+    fix b
+
+    {
+      fix x
+
+      have "base.is_ground (\<gamma>' x)"
+      proof(cases "x \<in> vars expr")
+        case True
+        then show ?thesis 
+          unfolding \<gamma>'_def
+          using variable_grounding[OF grounding]
+          by auto
+      next
+        case False
+        then show ?thesis
+          unfolding \<gamma>'_def
+          by (smt (verit) types_inhabited tfl_some)
+      qed
+    }
+
+    then show "base.is_ground (base_subst b \<gamma>')"
+      using base.is_grounding_iff_vars_grounded 
+      by auto
+  qed
+
+  show "base.is_typed_on UNIV \<V> \<gamma>'"
+    unfolding \<gamma>'_def
+    using \<gamma>_is_typed_on types_inhabited
+    by (simp add: verit_sko_ex_indirect)
+
+  show "\<forall>x \<in> vars expr. \<gamma> x = \<gamma>' x"
+    by (simp add: \<gamma>'_def)
+qed
+
+end
 
 sublocale explicitly_typed_functional_substitution \<subseteq> typed_functional_substitution where 
   base_subst = subst and base_vars = vars and is_typed = is_typed and 

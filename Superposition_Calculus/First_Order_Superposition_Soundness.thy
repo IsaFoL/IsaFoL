@@ -2,92 +2,26 @@ theory First_Order_Superposition_Soundness
   imports Grounded_Superposition
 begin
 
+(* TODO: Write about wrong displaying *)
+
+
 subsection \<open>Soundness\<close>
 
 context grounded_superposition_calculus
 begin
   
-(* TODO : Find way to use this abbrev for both entails_\<G> *)
+(* TODO : Find rewrite to make both equal *)
 abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
   "entails\<^sub>F \<equiv> lifting.entails_\<G>"
 
-lemma welltyped_extension:
-  assumes "clause.is_ground (C \<cdot> \<gamma>)" "is_welltyped_on (clause.vars C) \<V> \<gamma>" 
-  obtains \<gamma>'
-  where 
-    "term.is_ground_subst \<gamma>'" 
-    "is_welltyped \<V> \<gamma>'" 
-    "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
-  using assms function_symbols
-proof-
-  define \<gamma>' where "\<And>x. \<gamma>' x \<equiv> 
-    if x \<in> clause.vars C 
-    then \<gamma> x else 
-    Fun (SOME f. \<F> f = ([], \<V> x)) []"
-
-  have "term_subst.is_ground_subst \<gamma>'"
-    unfolding  term_subst.is_ground_subst_def
-  proof(intro allI)
-    fix t
-    show "term.is_ground (t \<cdot>t \<gamma>')"
-    proof(induction t)
-      case (Var x)
-      then show ?case
-        using assms(1) 
-        unfolding \<gamma>'_def  term_subst.is_ground_subst_def  is_ground_iff
-        by(auto simp: clause.variable_grounding)
-    next
-      case Fun
-      then show ?case
-        by simp
-    qed
-  qed
-
-  moreover have "is_welltyped \<V> \<gamma>'"
-  proof-
-    have "\<And>x. \<lbrakk>\<forall>x\<in>clause.vars C. welltyped \<V> (\<gamma> x) (\<V> x);
-          \<And>\<tau>. \<exists>f. \<F> f = ([], \<tau>); x \<notin> clause.vars C\<rbrakk>
-         \<Longrightarrow> welltyped \<V> (Fun (SOME f. \<F> f = ([], \<V> x)) []) (\<V> x)"
-      by (meson welltyped.intros(2) list_all2_Nil someI_ex)
-
-    then show ?thesis    
-      using assms(2) function_symbols
-      unfolding \<gamma>'_def
-      by auto
-  qed
-
-  moreover have "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
-    unfolding \<gamma>'_def
-    by auto
-
-  ultimately show ?thesis
-    using that
-    by blast
-qed
-
-lemma vars_subst: "\<Union> (term.vars ` \<rho> ` term.vars t) = term.vars (t \<cdot>t \<rho>)"
-  by(induction t) auto
-
-lemma vars_subst\<^sub>a: "\<Union> (term.vars ` \<rho> ` atom.vars a) = atom.vars (a \<cdot>a \<rho>)"
-  using vars_subst
-  unfolding atom.vars_def atom.subst_def
-  by (smt (verit) SUP_UNION Sup.SUP_cong UN_extend_simps(10) uprod.set_map)
-
-lemma vars_subst\<^sub>l: "\<Union> (term.vars ` \<rho> ` literal.vars l) = literal.vars (l \<cdot>l \<rho>)"
-  unfolding literal.vars_def literal.subst_def set_literal_atm_of
-  by (metis (no_types, lifting) SUP_insert Union_image_empty literal.map_sel(1,2)
-      vars_subst\<^sub>a)
-
-lemma vars_subst\<^sub>c: "\<Union> (term.vars ` \<rho> ` clause.vars C) = clause.vars (C \<cdot> \<rho>)"
-  using vars_subst\<^sub>l
-  unfolding clause.vars_def clause.subst_def
-  by fastforce
+lemma "entails_\<G> = lifting.entails_\<G>"
+  by (metis Q_nonempty all_not_in_conv entails_def)
 
 lemma eq_resolution_sound:
-  assumes step: "eq_resolution P C"
-  shows "{P} \<TTurnstile>\<^sub>F {C}"
-  using step
-proof (cases P C rule: eq_resolution.cases)
+  assumes eq_resolution: "eq_resolution D C"
+  shows "{D} \<TTurnstile>\<^sub>F {C}"
+  using eq_resolution
+proof (cases D C rule: eq_resolution.cases)
   case (eq_resolutionI P L P' s\<^sub>1 s\<^sub>2 \<mu> \<V> C)
 
 (* TODO: Use blocks everywhere *)
@@ -98,12 +32,12 @@ proof (cases P C rule: eq_resolution.cases)
 
     assume
       refl_I: "refl I" and 
-      premise: 
-      "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P \<cdot> \<gamma>') \<and> term_subst.is_ground_subst \<gamma>'
-             \<and> clause.is_welltyped \<V> P \<and> is_welltyped_on (clause.vars P) \<V> \<gamma>') 
-            \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
+      premise:  "\<forall>P\<^sub>G. P\<^sub>G \<in> clause_groundings (P, \<V>) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
       grounding: "term_subst.is_ground_subst \<gamma>" and
-      wt: "clause.is_welltyped \<V> C" "is_welltyped_on (clause.vars C) \<V> \<gamma>"
+      wt: 
+        "clause.is_welltyped \<V> C" 
+        "is_welltyped_on (clause.vars C) \<V> \<gamma>" 
+        "infinite_variables_per_type \<V>"
 
     have grounding': "clause.is_ground (C \<cdot> \<gamma>)"
       using grounding clause.is_ground_subst_is_ground
@@ -112,7 +46,7 @@ proof (cases P C rule: eq_resolution.cases)
     obtain \<gamma>' where
       \<gamma>': "term_subst.is_ground_subst \<gamma>'" "is_welltyped \<V> \<gamma>'" 
       "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
-      using welltyped_extension[OF grounding' wt(2)].
+      using clause.is_welltyped.ground_subst_extension[OF types_inhabited grounding' wt(2)].
 
     let ?P = "clause.to_ground (P \<cdot> \<mu> \<cdot> \<gamma>')"
     let ?L = "literal.to_ground (L \<cdot>l \<mu> \<cdot>l \<gamma>')"
@@ -129,7 +63,6 @@ proof (cases P C rule: eq_resolution.cases)
       by auto
 
     ultimately have welltyped_P': "clause.is_welltyped \<V> P'"
-      (* TODO: Write about wrong displaying *)
       by (metis clause.is_welltyped.subst_stability iso_tuple_UNIV_I)
      
     from welltyped_\<mu> have "is_welltyped_on (clause.vars C) \<V> (\<mu> \<odot> \<gamma>')"
@@ -140,11 +73,17 @@ proof (cases P C rule: eq_resolution.cases)
       using eq_resolutionI(6) welltyped_add_literal[OF welltyped_P'] wt(1)
       by auto
 
-    ultimately have "?I \<TTurnstile> ?P"
-      using premise[rule_format, of ?P, OF exI, of "\<mu> \<odot> \<gamma>'"] \<gamma>'(1) 
-        term_subst.is_ground_subst_comp_right eq_resolutionI
-      by (metis UNIV_I \<gamma>'(2) clause.subst_comp_subst welltyped.explicit_subst_stability
-          welltyped.subst_compose)
+
+    ultimately have "?P  \<in> clause_groundings (P, \<V>)"
+      unfolding clause_groundings_def
+      apply auto
+      apply(rule exI[of _  "\<mu> \<odot> \<gamma>'"])
+      apply(auto simp: wt \<gamma>' term.is_ground_subst_comp_right  eq_resolutionI(3,4))
+      by (simp_all add: \<gamma>'(2) eval_subst_def welltyped_\<mu>)
+
+    then have "?I \<TTurnstile> ?P"
+      using premise
+      by auto 
 
     then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
       by (auto simp: true_cls_def)
@@ -190,8 +129,7 @@ proof (cases P C rule: eq_resolution.cases)
   }
 
   then show ?thesis
-    unfolding ground.G_entails_def true_clss_def clause_groundings_def
-    using eq_resolutionI(1, 2) 
+    unfolding ground.G_entails_def true_clss_def clause_groundings_def eq_resolutionI(1, 2)
     by auto
 qed
 
@@ -230,7 +168,7 @@ proof (cases P C rule: eq_factoring.cases)
     obtain \<gamma>' where
       \<gamma>': "term_subst.is_ground_subst \<gamma>'" "is_welltyped \<V> \<gamma>'" 
       "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
-      using welltyped_extension
+      using clause.is_welltyped.ground_subst_extension[OF types_inhabited]
       using grounding wt(2)
       by (smt (verit, ccfv_threshold) clause.ground_subst_iff_base_ground_subst 
           clause.is_ground_subst_is_ground)
@@ -395,7 +333,7 @@ proof (cases P2 P1 C rule: superposition.cases)
     obtain \<gamma>' where
       \<gamma>': "term_subst.is_ground_subst \<gamma>'" "is_welltyped \<V>\<^sub>3 \<gamma>'" 
       "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
-      using welltyped_extension[OF grounding' grounding(3)].
+      using clause.is_welltyped.ground_subst_extension[OF types_inhabited grounding' grounding(3)].
 
     let ?P\<^sub>1 = "clause.to_ground (P\<^sub>1 \<cdot> \<rho>\<^sub>1\<cdot> \<mu> \<cdot> \<gamma>')"
     let ?P\<^sub>2 = "clause.to_ground (P\<^sub>2 \<cdot> \<rho>\<^sub>2 \<cdot> \<mu> \<cdot> \<gamma>')"
@@ -587,7 +525,7 @@ proof (cases P2 P1 C rule: superposition.cases)
           ground_subst(3)]
         welltyped.is_welltyped_renaming_ground_subst_weaker[OF superpositionI(5) wt_\<mu>_\<gamma> superpositionI(18)
           ground_subst(3)]
-      unfolding vars_subst\<^sub>c
+      unfolding clause.vars_subst
       by (simp_all add: subst_compose_assoc)
 
     have "?I \<TTurnstile> ?P\<^sub>1"
