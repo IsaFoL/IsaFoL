@@ -35,7 +35,7 @@ lemma eq_resolution_lifting:
     ground_eq_resolution: "ground.eq_resolution premise\<^sub>G conclusion\<^sub>G" and
     typing: 
     "clause.is_welltyped \<V> premise"
-    "term_subst.is_ground_subst \<gamma>"
+    (*"term_subst.is_ground_subst \<gamma>"*)
     "is_welltyped_on (clause.vars premise) \<V> \<gamma>"
     "infinite_variables_per_type \<V>"
   obtains conclusion' 
@@ -290,7 +290,7 @@ lemma eq_factoring_lifting:
     ground_eq_factoring: "ground.eq_factoring premise\<^sub>G conclusion\<^sub>G" and
     typing:
     "clause.is_welltyped \<V> premise"
-    "term_subst.is_ground_subst \<gamma>"
+    (*"term_subst.is_ground_subst \<gamma>"*)
     "is_welltyped_on (clause.vars premise) \<V> \<gamma>"
     "infinite_variables_per_type \<V>"
   obtains conclusion' 
@@ -412,7 +412,7 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.eq_factoring.cases)
       by metis+
 
     then have "welltyped \<V> term\<^sub>1 \<tau>" "welltyped \<V> term\<^sub>2 \<tau>"
-      using typing(3) welltyped.subst_stability
+      using typing(2) welltyped.subst_stability
       unfolding premise literal\<^sub>1_terms literal\<^sub>2_terms
       by simp_all
 
@@ -537,16 +537,19 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.eq_factoring.cases)
     using typing
     unfolding premise literal\<^sub>2_terms literal\<^sub>1_terms
              apply auto
-                 apply (metis empty_iff term.is_ground_subst_is_ground)
-                apply (metis empty_iff term.is_ground_subst_is_ground)
-               apply (metis empty_iff term.is_ground_subst_is_ground)
-              apply (metis empty_iff term.is_ground_subst_is_ground)
+                 apply (metis empty_iff term\<^sub>G\<^sub>1_term\<^sub>1 vars_term_of_gterm)
+                apply (metis empty_iff term\<^sub>G\<^sub>2_term\<^sub>1' vars_term_of_gterm)
+               apply (metis emptyE term\<^sub>G\<^sub>1_term\<^sub>2 vars_term_of_gterm)
+              apply (metis empty_iff term\<^sub>G\<^sub>3_term\<^sub>2' vars_term_of_gterm)
              apply (metis clause.ground_is_ground empty_iff premise'_\<gamma>)
-            apply (metis empty_iff term.is_ground_subst_is_ground)
-           apply (metis empty_iff term.is_ground_subst_is_ground)
-          apply (metis empty_iff term.is_ground_subst_is_ground)
-         apply (metis empty_iff term.is_ground_subst_is_ground)
-    apply (metis clause.ground_subst_iff_base_ground_subst clause.is_ground_subst_def emptyE)
+            apply (metis \<mu>_\<gamma> empty_iff eval_subst term\<^sub>G\<^sub>1_term\<^sub>1 vars_term_of_gterm)
+    apply (metis \<mu>_\<gamma> empty_iff term\<^sub>G\<^sub>3_term\<^sub>2'
+        term_subst.comp_subst.left.monoid_action_compatibility
+        vars_term_of_gterm)
+          apply (metis \<mu>_\<gamma> empty_iff eval_subst term\<^sub>G\<^sub>2_term\<^sub>1' vars_term_of_gterm)
+         apply (metis \<mu>_\<gamma> empty_iff eval_subst term\<^sub>G\<^sub>3_term\<^sub>2' vars_term_of_gterm)
+    apply (metis \<mu>_\<gamma> clause.ground_is_ground clause.subst_comp_subst empty_iff
+        premise'_\<gamma>)      
    apply (metis UNIV_I \<mu>(3) term.welltyped.right_uniqueD
         welltyped.explicit_subst_stability)
     apply (metis UNIV_I \<mu>(3) term.welltyped.right_uniqueD
@@ -598,7 +601,7 @@ lemma superposition_lifting:
     typing:
     "clause.is_welltyped \<V>\<^sub>1 premise\<^sub>1"
     "clause.is_welltyped \<V>\<^sub>2 premise\<^sub>2"
-    "term_subst.is_ground_subst \<gamma>"
+    (*"term_subst.is_ground_subst \<gamma>"*)
     "is_welltyped_on (clause.vars premise\<^sub>1) \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<gamma>)"
     "is_welltyped_on (clause.vars premise\<^sub>2) \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot> \<gamma>)"
     "is_welltyped_on (clause.vars premise\<^sub>1) \<V>\<^sub>1 \<rho>\<^sub>1"
@@ -972,7 +975,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           subst_apply_eq_Var)
 
     have \<tau>\<^sub>x_var\<^sub>x: "welltyped \<V>\<^sub>1 (Var var\<^sub>x) \<tau>\<^sub>x"
-      using \<tau>\<^sub>x typing(6)
+      using \<tau>\<^sub>x typing(5)
       unfolding var\<^sub>x premise\<^sub>1 literal\<^sub>1 term\<^sub>1_with_context
       by simp
 
@@ -1020,12 +1023,15 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
       have aux: "term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>term.from_ground term\<^sub>G\<^sub>1\<rangle>"
         using term\<^sub>x_\<gamma>
-        by (metis context.ground_term_with_context2 term_subst.is_ground_subst_is_ground 
-            context.term_with_context_is_ground term.to_ground_inverse typing(3) update_grounding)
+        by (metis (mono_tags, lifting) context.ground_is_ground
+            nonground_context.ground_term_with_context2
+            nonground_context.term_with_context_is_ground subst_apply_term_ctxt_apply_distrib
+            term.to_ground_inverse term\<^sub>1_with_context term\<^sub>1_with_context_\<gamma> update_grounding
+            vars_term_of_gterm)
 
       have "clause.is_welltyped \<V>\<^sub>2 (clause.from_ground premise\<^sub>G\<^sub>2)"
         by (metis clause.comp_subst.monoid_action_compatibility clause.is_welltyped.subst_stability 
-            clause.to_ground_inverse premise\<^sub>2_grounding premise\<^sub>G\<^sub>2 typing(2,5))
+            clause.to_ground_inverse premise\<^sub>2_grounding premise\<^sub>G\<^sub>2 typing(2,4))
 
       then have 
         "\<exists>\<tau>. welltyped \<V>\<^sub>2 (term.from_ground term\<^sub>G\<^sub>1) \<tau> \<and> welltyped \<V>\<^sub>2 (term.from_ground term\<^sub>G\<^sub>3) \<tau>"
@@ -1047,7 +1053,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           by (metis Un_iff term_subst.subst_comp_subst welltyped.explicit_subst_stability)
         
         then show ?thesis
-          using typing(4) \<tau>\<^sub>x
+          using typing(3) \<tau>\<^sub>x
           unfolding var\<^sub>x premise\<^sub>1 literal\<^sub>1 term\<^sub>1_with_context
           by simp
       qed
@@ -1063,21 +1069,23 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         unfolding \<gamma>'
         by blast
 
-      have \<gamma>'_ground: "term_subst.is_ground_subst (\<rho>\<^sub>1 \<odot> \<gamma>')"
-        by (metis \<gamma>' term.ground_subst_update term_subst.comp_subst.left.monoid_action_compatibility 
-            term_subst.is_ground_subst_def typing(3) update_grounding)
+      (*have \<gamma>'_ground: "term_subst.is_ground_subst (\<rho>\<^sub>1 \<odot> \<gamma>')"
+        sledgehammer
+        sorry*)
+        (*by (metis \<gamma>' term.ground_subst_update term_subst.comp_subst.left.monoid_action_compatibility 
+            term_subst.is_ground_subst_def typing(2) update_grounding)*)
 
       have \<gamma>'_wt: "is_welltyped_on (clause.vars premise\<^sub>1) \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<gamma>')"
-        using welltyped.subst_update[OF \<tau>\<^sub>x_var\<^sub>x \<tau>\<^sub>x_update typing(4)]
+        using welltyped.subst_update[OF \<tau>\<^sub>x_var\<^sub>x \<tau>\<^sub>x_update typing(3)]
         unfolding \<gamma>' subst_compose
         using welltyped.simps \<tau>\<^sub>x \<tau>\<^sub>x_update eval_term.simps(1) 
           eval_with_fresh_var fun_upd_same is_Var_term\<^sub>x renaming(1) subst_compose_def 
           term.collapse(1) term.distinct(1) term.set_cases(2) term_subst_is_renaming_iff 
-          the_inv_f_f typing(4) var\<^sub>x
+          the_inv_f_f typing(3) var\<^sub>x
         by (smt (verit, del_insts))
       
       show "{?premise\<^sub>1_\<gamma>'} \<subseteq> premise_groundings"
-        using premise\<^sub>1_\<gamma>'_grounding typing \<gamma>'_wt \<gamma>'_ground
+        using premise\<^sub>1_\<gamma>'_grounding typing \<gamma>'_wt
         unfolding clause.subst_comp_subst[symmetric] premise\<^sub>1 premise_groundings 
           clause_groundings_def
         by (smt (verit, ccfv_threshold) Un_iff empty_iff fst_conv insert_iff mem_Collect_eq snd_conv subset_iff)
@@ -1103,7 +1111,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         have var\<^sub>x_\<gamma>_ground: "term.is_ground (\<gamma> var\<^sub>x)"
           using term\<^sub>1_with_context_\<gamma>
           unfolding term\<^sub>1_with_context var\<^sub>x
-          by (metis eval_term.simps(1) term_subst.is_ground_subst_is_ground typing(3))
+          by (metis aux eval_term.simps(1) nonground_context.term_with_context_is_ground
+              term.ground_is_ground update_grounding var\<^sub>x)
 
         show "?I \<TTurnstile>s { conclusion\<^sub>G }"
         proof(cases "?I \<TTurnstile> premise\<^sub>G\<^sub>2'")
@@ -1130,7 +1139,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           then have "(term.to_ground (\<gamma> var\<^sub>x), 
                       term.to_ground (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>term.from_ground term\<^sub>G\<^sub>3\<rangle>) \<in> I"
             unfolding \<gamma>'
-            using  var\<^sub>x
+            using var\<^sub>x
             by(auto simp: sym)
         
           moreover then have "?I \<TTurnstile> ?premise\<^sub>1_\<gamma>'"
@@ -1171,7 +1180,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         have term\<^sub>x_grounding: "term.is_ground (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>)"
           using term\<^sub>1_with_context_\<gamma>
           unfolding term\<^sub>1_with_context
-          by(simp add: term_subst.is_ground_subst_is_ground typing(3))
+          by (metis aux nonground_context.term_with_context_is_ground term.ground_is_ground
+              update_grounding)
 
         have 
           "(context\<^sub>x \<circ>\<^sub>c context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>term.from_ground term\<^sub>G\<^sub>3\<rangle> \<prec>\<^sub>t context\<^sub>x\<langle>term\<^sub>x\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>"
@@ -1196,7 +1206,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         have var\<^sub>x_in_literal\<^sub>1: "var\<^sub>x \<in> literal.vars (literal\<^sub>1 \<cdot>l \<rho>\<^sub>1)"
           unfolding literal\<^sub>1 term\<^sub>1_with_context literal.vars_def atom.vars_def 
           using var\<^sub>x
-          by(auto simp: subst_literal subst_atom)
+          by auto
 
         have literal\<^sub>1_smaller: "literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<gamma>' \<prec>\<^sub>l literal\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<gamma>"
           unfolding \<gamma>'
@@ -1267,9 +1277,13 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     fix x
     assume x_in_vars: "x \<in> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<union> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2)"
 
-    obtain f ts where \<gamma>_x: "\<gamma> x = Fun f ts"
-      using term.obtain_ground_fun term_subst.is_ground_subst_is_ground[OF typing(3)]
-      by (metis eval_term.simps(1))
+    then have "term.is_ground (\<gamma> x)"
+      using premise\<^sub>1_grounding premise\<^sub>2_grounding
+      by (auto simp: clause.variable_grounding)
+
+    then obtain f ts where \<gamma>_x: "\<gamma> x = Fun f ts"
+      using term.obtain_ground_fun 
+      by blast
 
     have "welltyped \<V>\<^sub>3 (\<gamma> x) (\<V>\<^sub>3 x)"
     proof(cases "x \<in> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1)")
@@ -1283,10 +1297,11 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       define y where "y \<equiv> inv \<rho>\<^sub>1 (Var x)"
 
       have "term.is_ground (Var y \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>)"
-        using term_subst.is_ground_subst_is_ground typing(3) by blast
+        by (metis (no_types, lifting) clause.subst_comp_subst clause.variable_grounding
+            eval_subst eval_term.simps(1) premise\<^sub>1_grounding y_def y_in_vars)
 
       moreover have "welltyped \<V>\<^sub>1 (Var y \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) (\<V>\<^sub>1 y)"
-        using typing(4) y_in_vars
+        using typing(3) y_in_vars
         unfolding y_def
         by (simp add: subst_compose)
 
@@ -1312,10 +1327,12 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       define y where "y \<equiv> inv \<rho>\<^sub>2 (Var x)"
 
       have "term.is_ground (Var y \<cdot>t \<rho>\<^sub>2 \<cdot>t \<gamma>)"
-        using term_subst.is_ground_subst_is_ground typing(3) by blast
+        by (metis (no_types, lifting) clause.comp_subst.left.monoid_action_compatibility
+            clause.variable_grounding eval_subst eval_term.simps(1) premise\<^sub>2_grounding y_def
+            y_in_vars)
 
       moreover have "welltyped \<V>\<^sub>2 (Var y \<cdot>t \<rho>\<^sub>2 \<cdot>t \<gamma>) (\<V>\<^sub>2 y)"
-        using typing(5) y_in_vars
+        using typing(4) y_in_vars
         unfolding y_def
         by (simp add: subst_compose)
 
@@ -1598,10 +1615,10 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         by (meson disjoint_iff)
 
       show "is_welltyped_on (clause.vars premise\<^sub>1) \<V>\<^sub>1 \<rho>\<^sub>1"
-        using typing(6).
+        using typing(5).
 
       show "is_welltyped_on (clause.vars premise\<^sub>2) \<V>\<^sub>2 \<rho>\<^sub>2"
-        using typing(7).
+        using typing(6).
 
       have "\<exists>\<tau>. welltyped \<V>\<^sub>2 term\<^sub>2 \<tau> \<and> welltyped \<V>\<^sub>2 term\<^sub>2' \<tau>"
         using typing(2)
@@ -1703,7 +1720,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       by auto
 
     have qq: "\<And>ty. infinite {x. \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = ty}"
-      using surj_infinite_set[OF surjx typing(9)[unfolded infinite_variables_per_type_def, rule_format]].
+      using surj_infinite_set[OF surjx typing(8)[unfolded infinite_variables_per_type_def, rule_format]].
 
     have zz: 
       "\<And>ty. {x. x \<notin> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<and> \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = ty} = 
@@ -1737,11 +1754,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           infinite_variables_per_type_\<V>\<^sub>3
           typing(1, 2)
         unfolding ground.G_Inf_def \<iota>\<^sub>G
+        by(auto simp: typing renaming premise\<^sub>1_grounding premise\<^sub>2_grounding conclusion_grounding)
         
-        apply(auto simp: typing renaming premise\<^sub>1_grounding premise\<^sub>2_grounding conclusion_grounding)
-         apply (metis clause.ground_subst_iff_base_ground_subst clause.is_ground_subst_def empty_iff typing(3))
-        by (metis clause.ground_subst_iff_base_ground_subst clause.is_ground_subst_def empty_iff typing(3))
-
       then show ?thesis
         using is_inference_grounding_inference_groundings
         by blast
@@ -1778,42 +1792,17 @@ proof-
     select: "clause.from_ground (select\<^sub>G premise\<^sub>G) = select premise \<cdot> \<gamma>" and
     premise_in_premises: "(premise, \<V>) \<in> premises" and
     typing: "clause.is_welltyped \<V> premise"
-    "term_subst.is_ground_subst \<gamma>"
+    (*"clause.is_ground (premise \<cdot> \<gamma>)"  *)
+    (*"clause.is_ground (conclusion \<cdot> \<gamma>)"*)
     "is_welltyped_on (clause.vars premise) \<V> \<gamma>"
     "infinite_variables_per_type \<V>"
-  proof-
-    have x: "\<And>a b. \<lbrakk>\<And>premise \<gamma> conclusion \<V>.
-               \<lbrakk>clause.from_ground premise\<^sub>G = premise \<cdot> \<gamma>;
-                clause.from_ground conclusion\<^sub>G = conclusion \<cdot> \<gamma>;
-                clause.from_ground (select\<^sub>G premise\<^sub>G) = select premise \<cdot> \<gamma>; 
-                (premise, \<V>) \<in> premises;
-                clause.is_welltyped \<V> premise; 
-                term_subst.is_ground_subst \<gamma>;
-                is_welltyped_on (clause.vars premise) \<V> \<gamma>; infinite_variables_per_type \<V>\<rbrakk>
-               \<Longrightarrow> thesis;
-            \<forall>y\<in>premises.
-               \<forall>premise\<^sub>G\<in>clause_groundings y.
-                  \<exists>x\<in>premises.
-                     case x of
-                     (premise, \<V>) \<Rightarrow>
-                       \<exists>\<gamma>. premise \<cdot> \<gamma> = clause.from_ground premise\<^sub>G \<and>
-                           select\<^sub>G (clause.to_ground (premise \<cdot> \<gamma>)) =
-                           clause.to_ground (select premise \<cdot> \<gamma>) \<and>
-                           clause.is_welltyped \<V> premise \<and>
-                           is_welltyped_on (clause.vars premise) \<V> \<gamma> \<and>
-                           term_subst.is_ground_subst \<gamma> \<and> infinite_variables_per_type \<V>;
-            Infer [premise\<^sub>G] conclusion\<^sub>G \<in> ground.G_Inf; (a, b) \<in> premises;
-            premise\<^sub>G \<in> clause_groundings (a, b)\<rbrakk>
-           \<Longrightarrow> thesis"
-      by (smt (verit, del_insts) case_prodE clause.ground_is_ground select_ground_subst 
-          clause.subst_ident_if_ground clause.from_ground_inverse clause.to_ground_inverse)
-
-    then show ?thesis
-      using assms(2, 3) premise\<^sub>G_in_groundings that
-      unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
-      apply auto
-      by (smt (verit) clause.from_ground_inverse split_beta)
-  qed
+    using assms(2, 3) premise\<^sub>G_in_groundings that
+    unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def 
+    apply (elim ballE)
+    apply auto
+    by (metis clause.all_subst_ident_if_ground clause.from_ground_inverse
+        clause.ground_is_ground clause.obtain_grounding
+        select_ground_subst)  
 
   then have
     premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and
@@ -1880,7 +1869,8 @@ proof-
     premise_in_premises: "(premise, \<V>) \<in> premises" and
     typing:
     "clause.is_welltyped \<V> premise"
-    "term_subst.is_ground_subst \<gamma>"
+    (*"clause.is_ground (premise \<cdot> \<gamma>)"  
+    "clause.is_ground (conclusion \<cdot> \<gamma>)"*)
     "is_welltyped_on (clause.vars premise) \<V> \<gamma>"
     "infinite_variables_per_type \<V>"
     using assms(2, 3) premise\<^sub>G_in_groundings
@@ -1888,9 +1878,9 @@ proof-
     (* TODO: *)
     apply(elim ballE)
      apply auto
-    by (metis (no_types, lifting) ext clause.from_ground_inverse clause.ground_is_ground 
-        clause.is_ground_subst_is_ground clause.subst_ident_if_ground 
-        clause.ground_subst_iff_base_ground_subst clause.to_ground_inverse)
+    by (metis clause.from_ground_inverse clause.ground_is_ground
+        clause.obtain_grounding clause.subst_ident_if_ground
+        select_ground_subst)
 
   then have 
     premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and 
@@ -1970,8 +1960,8 @@ proof-
     wt: 
     "is_welltyped_on (clause.vars premise\<^sub>1) \<V>\<^sub>1 \<gamma>\<^sub>1"
     "is_welltyped_on (clause.vars premise\<^sub>2) \<V>\<^sub>2 \<gamma>\<^sub>2"
-    "term_subst.is_ground_subst \<gamma>\<^sub>1"
-    "term_subst.is_ground_subst \<gamma>\<^sub>2" 
+    (*"term_subst.is_ground_subst \<gamma>\<^sub>1"
+    "term_subst.is_ground_subst \<gamma>\<^sub>2" *)
     "clause.is_welltyped \<V>\<^sub>1 premise\<^sub>1"
     "clause.is_welltyped \<V>\<^sub>2 premise\<^sub>2"
     "infinite_variables_per_type \<V>\<^sub>1" 
@@ -1989,7 +1979,7 @@ proof-
     wt_\<rho>: 
     "is_welltyped_on (clause.vars premise\<^sub>1) \<V>\<^sub>1 \<rho>\<^sub>1"
     "is_welltyped_on (clause.vars premise\<^sub>2) \<V>\<^sub>2 \<rho>\<^sub>2"
-    using welltyped.obtain_typed_renamings[OF infinite_UNIV _ _ wt(7,8)[unfolded infinite_variables_per_type_def, rule_format]] 
+    using welltyped.obtain_typed_renamings[OF infinite_UNIV _ _ wt(5,6)[unfolded infinite_variables_per_type_def, rule_format]] 
     by (metis clause.finite_vars(1))
 
   have renaming_distinct: "clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (premise\<^sub>2 \<cdot> \<rho>\<^sub>2) = {}"
@@ -2055,10 +2045,12 @@ proof-
   qed
 
   have \<gamma>\<^sub>1_is_ground: "\<forall>x\<in>clause.vars premise\<^sub>1. term.is_ground (\<gamma>\<^sub>1 x)"
-    by (metis Term.term.simps(17) insert_iff is_ground_iff term_subst.is_ground_subst_def wt(3))
-
+    by (metis clause.ground_is_ground clause.variable_grounding
+        premise\<^sub>1_\<gamma>\<^sub>1)
+    
   have \<gamma>\<^sub>2_is_ground: "\<forall>x\<in>clause.vars premise\<^sub>2. term.is_ground (\<gamma>\<^sub>2 x)"
-    by (metis Term.term.simps(17) insert_iff is_ground_iff term_subst.is_ground_subst_def wt(4))
+    by (metis clause.ground_is_ground clause.variable_grounding
+        premise\<^sub>2_\<gamma>\<^sub>2)
 
   have wt_\<gamma>:
     "is_welltyped_on (clause.vars premise\<^sub>1) \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<gamma>)"
@@ -2066,13 +2058,13 @@ proof-
     using wt(1,2) is_welltyped_on_subset \<gamma>\<^sub>1 \<gamma>\<^sub>2
     by auto    
 
-  have "term_subst.is_ground_subst (\<rho>\<^sub>1_inv \<odot> \<gamma>\<^sub>1)" "term_subst.is_ground_subst (\<rho>\<^sub>2_inv \<odot> \<gamma>\<^sub>2)"
+  (*have "term_subst.is_ground_subst (\<rho>\<^sub>1_inv \<odot> \<gamma>\<^sub>1)" "term_subst.is_ground_subst (\<rho>\<^sub>2_inv \<odot> \<gamma>\<^sub>2)"
     using term_subst.is_ground_subst_comp_right wt by blast+
 
   then have is_ground_subst_\<gamma>: "term_subst.is_ground_subst \<gamma>"
     unfolding \<gamma>
     using is_ground_subst_if
-    by fast
+    by fast*)
 
   have premise\<^sub>1_\<gamma>: "premise\<^sub>1 \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma> = clause.from_ground premise\<^sub>G\<^sub>1" 
   proof -
@@ -2170,11 +2162,10 @@ proof-
         select\<^sub>2
         superposition[unfolded  premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G]
         \<iota>\<^sub>G_not_redunant[unfolded \<iota>\<^sub>G premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G]
-        wt(5, 6)
-        is_ground_subst_\<gamma>
+        wt(3, 4)
         wt_\<gamma>
         wt_\<rho>
-        wt(7, 8)
+        wt(5, 6)
         ]
     unfolding \<iota>\<^sub>G conclusion\<^sub>G premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 
     by blast

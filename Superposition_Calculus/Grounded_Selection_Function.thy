@@ -14,7 +14,7 @@ abbreviation select_subst_stability_on_clause where
     select\<^sub>G C\<^sub>G = clause.to_ground ((select C) \<cdot> \<gamma>) \<and>
     clause.is_welltyped \<V> C \<and> 
     is_welltyped_on (clause.vars C) \<V> \<gamma> \<and> 
-    term.is_ground_subst \<gamma> \<and>
+    clause.is_ground (C \<cdot> \<gamma>) \<and>
     infinite_variables_per_type \<V>"
 
 abbreviation select_subst_stability_on where
@@ -34,8 +34,7 @@ proof-
      "\<forall>C\<^sub>G \<in> ?N\<^sub>G. \<exists>select\<^sub>G \<gamma>. \<exists>(C, \<V>) \<in> N.
          select_subst_stability_on_clause select select\<^sub>G C\<^sub>G C \<V> \<gamma>"
     unfolding clause_groundings_def
-    using clause.is_ground_subst_is_ground
-    by fastforce
+    by fastforce (* TODO: Slow *)
 
   obtain select\<^sub>G_on_groundings where 
     select\<^sub>G_on_groundings: "select_subst_stability_on select select\<^sub>G_on_groundings N"

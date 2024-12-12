@@ -40,8 +40,8 @@ abbreviation is_inference_grounding where
           term_subst.is_renaming \<rho>\<^sub>1
         \<and> term_subst.is_renaming \<rho>\<^sub>2
         \<and> clause.vars (E \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (D \<cdot> \<rho>\<^sub>2) = {}
-        \<and> clause.is_ground (D \<cdot> \<gamma>)
-        \<and> clause.is_ground (E \<cdot> \<gamma>)
+        \<and> clause.is_ground (D \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)
+        \<and> clause.is_ground (E \<cdot> \<rho>\<^sub>1  \<cdot> \<gamma>)
         \<and> clause.is_ground (C \<cdot> \<gamma>)
         \<and> \<iota>\<^sub>G =
             Infer
