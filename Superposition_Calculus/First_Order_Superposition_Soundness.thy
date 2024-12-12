@@ -15,275 +15,263 @@ abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
   "entails\<^sub>F \<equiv> lifting.entails_\<G>"
 
 lemma "entails_\<G> = lifting.entails_\<G>"
-  by (metis Q_nonempty all_not_in_conv entails_def)
+  unfolding entails_def
+  using Q_nonempty
+  by blast
 
 lemma eq_resolution_sound:
   assumes eq_resolution: "eq_resolution D C"
   shows "{D} \<TTurnstile>\<^sub>F {C}"
   using eq_resolution
 proof (cases D C rule: eq_resolution.cases)
-  case (eq_resolutionI P L P' s\<^sub>1 s\<^sub>2 \<mu> \<V> C)
+  case (eq_resolutionI D l D' t t' \<mu> \<V> C)
 
-(* TODO: Use blocks everywhere *)
-  { 
-    fix I :: "'f gterm rel" and \<gamma> :: "('f, 'v) subst"
+  {
+    fix I :: "'f ground_term rel" and \<gamma> :: "('f, 'v) subst"
 
     let ?I = "upair ` I"
 
     assume
-      refl_I: "refl I" and 
-      premise:  "\<forall>P\<^sub>G. P\<^sub>G \<in> clause_groundings (P, \<V>) \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
-      grounding: "clause.is_ground (C \<cdot> \<gamma>)" and
-      wt: 
-        "clause.is_welltyped \<V> C" 
-        "is_welltyped_on (clause.vars C) \<V> \<gamma>" 
-        "infinite_variables_per_type \<V>"
-
-    have grounding': "clause.is_ground (C \<cdot> \<gamma>)"
-      using grounding clause.is_ground_subst_is_ground
-      using clause.ground_subst_iff_base_ground_subst by blast
+      refl_I: "refl I" and
+      entails_groundings: "\<forall>D\<^sub>G \<in> clause_groundings (D, \<V>). ?I \<TTurnstile> D\<^sub>G" and
+      C_is_ground: "clause.is_ground (C \<cdot> \<gamma>)" and
+      C_is_welltyped: "clause.is_welltyped \<V> C" and
+      \<gamma>_is_welltyped: "is_welltyped_on (clause.vars C) \<V> \<gamma>" and
+      \<V>: "infinite_variables_per_type \<V>"
 
     obtain \<gamma>' where
-      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "is_welltyped \<V> \<gamma>'" 
-      "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
-      using clause.is_welltyped.ground_subst_extension[OF types_inhabited grounding' wt(2)].
+      \<gamma>'_is_ground_subst: "term_subst.is_ground_subst \<gamma>'" and
+      \<gamma>'_is_welltyped: "is_welltyped \<V> \<gamma>'" and
+      \<gamma>'_\<gamma>: "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
+      using 
+        clause.is_welltyped.ground_subst_extension[OF
+          types_inhabited C_is_ground \<gamma>_is_welltyped].
 
-    let ?P = "clause.to_ground (P \<cdot> \<mu> \<cdot> \<gamma>')"
-    let ?L = "literal.to_ground (L \<cdot>l \<mu> \<cdot>l \<gamma>')"
-    let ?P' = "clause.to_ground (P' \<cdot> \<mu> \<cdot> \<gamma>')"
-    let ?s\<^sub>1 = "term.to_ground (s\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
-    let ?s\<^sub>2 = "term.to_ground (s\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>')"
+    let ?D = "clause.to_ground (D \<cdot> \<mu> \<cdot> \<gamma>')"
+    let ?l = "literal.to_ground (l \<cdot>l \<mu> \<cdot>l \<gamma>')"
+    let ?D' = "clause.to_ground (D' \<cdot> \<mu> \<cdot> \<gamma>')"
+    let ?t = "term.to_ground (t \<cdot>t \<mu> \<cdot>t \<gamma>')"
+    let ?t' = "term.to_ground (t' \<cdot>t \<mu> \<cdot>t \<gamma>')"
 
-    have "clause.is_welltyped \<V> (P' \<cdot> \<mu>)"
-      using eq_resolutionI(8) wt(1)
-      by blast
+    have \<mu>_is_welltyped: "is_welltyped \<V> \<mu>"
+      using eq_resolutionI
+      by meson
 
-    moreover have welltyped_\<mu>: "is_welltyped \<V> \<mu>"
-      using eq_resolutionI(6) wt(1)
-      by auto
+    have "?D \<in> clause_groundings (D, \<V>)"
+    proof(unfold clause_groundings_def mem_Collect_eq fst_conv snd_conv, intro exI conjI \<V>)
+      show "clause.to_ground (D \<cdot> \<mu> \<cdot> \<gamma>') = clause.to_ground (D \<cdot> \<mu> \<odot> \<gamma>')"
+        by simp
+    next
+      show "clause.is_ground (D \<cdot> \<mu> \<odot> \<gamma>')"
+        using \<gamma>'_is_ground_subst clause.is_ground_subst_is_ground
+        by auto
+    next
+      have "clause.is_welltyped \<V> D'"
+        using C_is_welltyped \<mu>_is_welltyped
+        unfolding eq_resolutionI
+        by simp
 
-    ultimately have welltyped_P': "clause.is_welltyped \<V> P'"
-      by (metis clause.is_welltyped.subst_stability iso_tuple_UNIV_I)
-     
-    from welltyped_\<mu> have "is_welltyped_on (clause.vars C) \<V> (\<mu> \<odot> \<gamma>')"
-      using \<gamma>'(2)
-      by (simp add: subst_compose_def)
+      then show "clause.is_welltyped \<V> D"
+        unfolding eq_resolutionI
+        using eq_resolutionI(6)
+        by auto
+    next
+      show "is_welltyped_on (clause.vars D) \<V> (\<mu> \<odot> \<gamma>')"
+        using \<gamma>'_is_welltyped \<mu>_is_welltyped
+        by (simp add: subst_compose_def)
+    qed
 
-    moreover have "clause.is_welltyped \<V> (add_mset (s\<^sub>1 !\<approx> s\<^sub>2) P')"
-      using eq_resolutionI(6) welltyped_add_literal[OF welltyped_P'] wt(1)
-      by auto
-
-
-    ultimately have "?P  \<in> clause_groundings (P, \<V>)"
-      unfolding clause_groundings_def
-      apply auto
-      apply(rule exI[of _  "\<mu> \<odot> \<gamma>'"])
-      apply(auto simp: wt \<gamma>' term.is_ground_subst_comp_right  eq_resolutionI(3,4))
-           apply (simp add: \<gamma>'(1) term_subst.is_ground_subst_is_ground)
-          apply (simp add: \<gamma>'(1) term_subst.is_ground_subst_is_ground)
-      apply (metis \<gamma>'(3) clause.is_grounding_iff_vars_grounded empty_iff grounding' local.eq_resolutionI(8))
-      by (simp_all add: \<gamma>'(2) eval_subst_def welltyped_\<mu>)
-
-    then have "?I \<TTurnstile> ?P"
-      using premise
+    then have "?I \<TTurnstile> ?D"
+      using entails_groundings
       by auto 
 
-    then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
+    then obtain l' where l'_in_D: "l' \<in># ?D" and I_models_l': "?I \<TTurnstile>l l'"
       by (auto simp: true_cls_def)
 
-    have [simp]: "?P = add_mset ?L ?P'"
-      by (simp add: clause.to_ground_def eq_resolutionI(3))
-
-    have [simp]: "?L = (Neg (Upair ?s\<^sub>1 ?s\<^sub>2))"
-      unfolding  eq_resolutionI(4) atom.to_ground_def literal.to_ground_def
+    have [simp]: "?D = add_mset ?l ?D'"
+      unfolding eq_resolutionI
       by simp
 
-    have [simp]: "?s\<^sub>1 = ?s\<^sub>2"
+    have [simp]: "?l = ?t !\<approx> ?t'"
+      unfolding eq_resolutionI
+      by simp
+
+    have [simp]: "?t = ?t'"
       using term_subst.is_imgu_unifies'[OF eq_resolutionI(5)]
       by argo
 
-    have "is_neg ?L"
-      by simp
-
     have "?I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
-    proof(cases "L' = ?L")
+    proof(cases "l' = ?l")
       case True
 
-      then have "?I \<TTurnstile>l (Neg (atm_of ?L))"
-        using I_models_L' by simp
-
-      moreover have "atm_of L' \<in> ?I"
-        using True reflD[OF refl_I, of ?s\<^sub>1] by auto
+      moreover then have "atm_of l' \<in> ?I"
+        using reflD[OF refl_I, of ?t]
+        by auto
 
       ultimately show ?thesis
-        using True by blast
+        using I_models_l'
+        by auto
     next
       case False
-      then have "L' \<in># clause.to_ground (P' \<cdot> \<mu> \<cdot> \<gamma>')"
-        using L'_in_P by force
 
-      then have "L' \<in># clause.to_ground (C \<cdot> \<gamma>')"
-        unfolding eq_resolutionI.
+      then have "l' \<in># clause.to_ground (C \<cdot> \<gamma>')"
+        using l'_in_D
+        unfolding eq_resolutionI
+        by simp
 
       then show ?thesis
-        using I_models_L' 
-        by (metis \<gamma>'(3) clause.subst_eq true_cls_def)
+        using clause.subst_eq[OF \<gamma>'_\<gamma>[rule_format]] I_models_l'
+        by auto
     qed
   }
 
   then show ?thesis
-    unfolding ground.G_entails_def true_clss_def clause_groundings_def eq_resolutionI(1, 2)
+    unfolding
+      ground.G_entails_def 
+      true_clss_def 
+      eq_resolutionI(1,2)
+      clause_groundings_def
     by auto
 qed
 
 lemma eq_factoring_sound:
-  assumes step: "eq_factoring P C"
-  shows "{P} \<TTurnstile>\<^sub>F {C}"
+  assumes step: "eq_factoring D C"
+  shows "{D} \<TTurnstile>\<^sub>F {C}"
   using step
-proof (cases P C rule: eq_factoring.cases)
-  case (eq_factoringI P L\<^sub>1 L\<^sub>2 P' s\<^sub>1 s\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu> \<V> C)
+proof (cases D C rule: eq_factoring.cases)
+  case (eq_factoringI D l\<^sub>1 l\<^sub>2 D' t\<^sub>1 t\<^sub>1' t\<^sub>2 t\<^sub>2' \<mu> \<V> C)
 
-  have  
-    "\<And>I \<gamma> \<F>\<^sub>G. \<lbrakk>
-        trans I; 
-        sym I;
-        \<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P \<cdot> \<gamma>') \<and> clause.is_ground (P \<cdot> \<gamma>')
-              \<and> clause.is_welltyped \<V> P \<and> is_welltyped_on (clause.vars P) \<V> \<gamma>') 
-            \<longrightarrow> upair ` I \<TTurnstile> P\<^sub>G; 
-       clause.is_ground (C \<cdot> \<gamma>);
-       clause.is_welltyped \<V> C; is_welltyped_on (clause.vars C) \<V> \<gamma>
-     \<rbrakk> \<Longrightarrow> upair  ` I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
-  proof-
-    fix I :: "'f gterm rel" and \<gamma> :: "'v \<Rightarrow> ('f, 'v) Term.term"
+  {
+    fix I :: "'f ground_term rel" and \<gamma> :: "('f, 'v) subst"
 
     let ?I = "upair ` I"
 
     assume
-      trans_I: "trans I" and 
-      sym_I: "sym I" and 
-      premise: 
-      "\<forall>P\<^sub>G. (\<exists>\<gamma>'. P\<^sub>G = clause.to_ground (P \<cdot> \<gamma>') \<and> clause.is_ground (P \<cdot> \<gamma>')
-             \<and> clause.is_welltyped \<V> P \<and> is_welltyped_on (clause.vars P) \<V> \<gamma>') 
-              \<longrightarrow> ?I \<TTurnstile> P\<^sub>G" and
-      grounding: "clause.is_ground (C \<cdot> \<gamma>)" and
-      wt: "clause.is_welltyped \<V> C" "is_welltyped_on (clause.vars C) \<V> \<gamma>"
+      trans_I: "trans I" and
+      sym_I: "sym I" and
+      entails_groundings: "\<forall>D\<^sub>G \<in> clause_groundings (D, \<V>). ?I \<TTurnstile> D\<^sub>G" and
+      C_is_ground: "clause.is_ground (C \<cdot> \<gamma>)" and
+      C_is_welltyped: "clause.is_welltyped \<V> C" and
+      \<gamma>_is_welltyped: "is_welltyped_on (clause.vars C) \<V> \<gamma>" and
+      \<V>: "infinite_variables_per_type \<V>"
 
     obtain \<gamma>' where
-      \<gamma>': "term_subst.is_ground_subst \<gamma>'" "is_welltyped \<V> \<gamma>'" 
-      "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
-      using clause.is_welltyped.ground_subst_extension[OF types_inhabited]
-      using grounding wt(2)
-      by (smt (verit, ccfv_threshold) clause.ground_subst_iff_base_ground_subst 
-          clause.is_ground_subst_is_ground)
+      \<gamma>'_is_ground_subst: "term_subst.is_ground_subst \<gamma>'" and
+      \<gamma>'_is_welltyped: "is_welltyped \<V> \<gamma>'" and
+      \<gamma>'_\<gamma>: "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
+      using 
+        clause.is_welltyped.ground_subst_extension[OF
+          types_inhabited C_is_ground \<gamma>_is_welltyped].
 
-    let ?P = "clause.to_ground (P \<cdot> \<mu> \<cdot> \<gamma>')"
-    let ?P' = "clause.to_ground (P' \<cdot> \<mu> \<cdot> \<gamma>')"
-    let ?L\<^sub>1 = "literal.to_ground (L\<^sub>1 \<cdot>l \<mu> \<cdot>l \<gamma>')"
-    let ?L\<^sub>2 = "literal.to_ground (L\<^sub>2 \<cdot>l \<mu> \<cdot>l \<gamma>')"
-    let ?s\<^sub>1 = "term.to_ground (s\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
-    let ?s\<^sub>1' = "term.to_ground (s\<^sub>1' \<cdot>t \<mu> \<cdot>t \<gamma>')"
+    let ?D = "clause.to_ground (D \<cdot> \<mu> \<cdot> \<gamma>')"
+    let ?D' = "clause.to_ground (D' \<cdot> \<mu> \<cdot> \<gamma>')"
+    let ?l\<^sub>1 = "literal.to_ground (l\<^sub>1 \<cdot>l \<mu> \<cdot>l \<gamma>')"
+    let ?l\<^sub>2 = "literal.to_ground (l\<^sub>2 \<cdot>l \<mu> \<cdot>l \<gamma>')"
+    let ?t\<^sub>1 = "term.to_ground (t\<^sub>1 \<cdot>t \<mu> \<cdot>t \<gamma>')"
+    let ?t\<^sub>1' = "term.to_ground (t\<^sub>1' \<cdot>t \<mu> \<cdot>t \<gamma>')"
     let ?t\<^sub>2 = "term.to_ground (t\<^sub>2 \<cdot>t \<mu> \<cdot>t \<gamma>')"
     let ?t\<^sub>2' = "term.to_ground (t\<^sub>2' \<cdot>t \<mu> \<cdot>t \<gamma>')"
     let ?C = "clause.to_ground (C \<cdot> \<gamma>')"
 
-    have wt':
-      "clause.is_welltyped \<V> (P' \<cdot> \<mu>)" 
-      "literal.is_welltyped \<V> (s\<^sub>1 \<approx> t\<^sub>2' \<cdot>l \<mu>)" 
-      "literal.is_welltyped \<V> (s\<^sub>1' !\<approx> t\<^sub>2' \<cdot>l \<mu>)"
-      using wt(1)
-      unfolding eq_factoringI(11) clause.is_welltyped_add clause.add_subst
-      by auto
-
-    moreover have welltyped_\<mu>: "is_welltyped \<V> \<mu>"
-      using eq_factoringI(10) wt(1)
+    have \<mu>_is_welltyped: "is_welltyped \<V> \<mu>"
+      using eq_factoringI(10)
       by blast
 
-    ultimately have welltyped_P': "clause.is_welltyped \<V> P'"
-      using clause.is_welltyped.subst_stability
-      by (metis UNIV_I)
+    have "?D \<in> clause_groundings (D, \<V>)"
+    proof(unfold clause_groundings_def mem_Collect_eq fst_conv snd_conv, intro exI conjI \<V>)
+      show "clause.to_ground (D \<cdot> \<mu> \<cdot> \<gamma>') = clause.to_ground (D \<cdot> \<mu> \<odot> \<gamma>')"
+        by simp
+    next
+      show "clause.is_ground (D \<cdot> \<mu> \<odot> \<gamma>')"
+        using \<gamma>'_is_ground_subst clause.is_ground_subst_is_ground
+        by auto
+    next
+      have
+        "clause.is_welltyped \<V> (D' \<cdot> \<mu>)"
+        "literal.is_welltyped \<V> (t\<^sub>1 \<approx> t\<^sub>2')" 
+        "literal.is_welltyped \<V> (t\<^sub>1' !\<approx> t\<^sub>2')"
+        using C_is_welltyped \<mu>_is_welltyped
+        unfolding eq_factoringI
+        by auto
 
-    have xx: "literal.is_welltyped \<V> (s\<^sub>1 \<approx> t\<^sub>2')" "literal.is_welltyped \<V> (s\<^sub>1' !\<approx> t\<^sub>2')"
-      using wt'(2, 3) literal.is_welltyped.subst_stability  welltyped_\<mu>
-      by fast+
+      then have
+        "clause.is_welltyped \<V> D'"
+        "literal.is_welltyped \<V> (t\<^sub>1 \<approx> t\<^sub>1')"
+        "literal.is_welltyped \<V> (t\<^sub>2 \<approx> t\<^sub>2')"
+        using eq_factoringI(10)
+        by auto
 
-    then have welltyped_L\<^sub>1: "literal.is_welltyped \<V> (s\<^sub>1 \<approx> s\<^sub>1')"
-      by auto
+      then show "clause.is_welltyped \<V> D"
+        unfolding eq_factoringI
+        by simp
+    next
+      show "is_welltyped_on (clause.vars D) \<V> (\<mu> \<odot> \<gamma>')"
+        using \<mu>_is_welltyped \<gamma>'_is_welltyped
+        by (simp add: subst_compose_def)
+    qed
 
-    have welltyped_L\<^sub>2: "literal.is_welltyped \<V> (t\<^sub>2 \<approx> t\<^sub>2')"
-      using xx eq_factoringI(10) wt(1)
-      by auto
-
-    from welltyped_\<mu> have "is_welltyped \<V> (\<mu> \<odot> \<gamma>')"
-      using wt(2) \<gamma>'
-      by (simp add: welltyped.subst_compose)
-
-    moreover have "clause.is_welltyped \<V> P"
-      unfolding eq_factoringI clause.is_welltyped_add
-      using welltyped_P' welltyped_L\<^sub>1 welltyped_L\<^sub>2
+    then have "?I \<TTurnstile> ?D"
+      using entails_groundings 
       by blast
 
-    ultimately have "?I \<TTurnstile> ?P"
-      using 
-        premise[rule_format, of ?P, OF exI, of "\<mu> \<odot> \<gamma>'"] 
-        term_subst.is_ground_subst_comp_right \<gamma>'(1)
-      by (simp add: clause.is_ground_subst_is_ground)
-
-    then obtain L' where L'_in_P: "L' \<in># ?P" and I_models_L': "?I \<TTurnstile>l L'"
+    then obtain l' where l'_in_D: "l' \<in># ?D" and I_models_l': "?I \<TTurnstile>l l'"
       by (auto simp: true_cls_def)
 
-    have s\<^sub>1_equals_t\<^sub>2: "?t\<^sub>2 = ?s\<^sub>1"
+    have [simp]: "?t\<^sub>2 = ?t\<^sub>1"
       using term_subst.is_imgu_unifies'[OF eq_factoringI(9)]
       by argo
 
-    have L\<^sub>1: "?L\<^sub>1 = ?s\<^sub>1 \<approx> ?s\<^sub>1'"
-      unfolding literal.to_ground_def eq_factoringI(4) atom.to_ground_def
-      by (simp add: atom.subst_def subst_literal)
+    have [simp]: "?l\<^sub>1 = ?t\<^sub>1 \<approx> ?t\<^sub>1'"
+      unfolding eq_factoringI
+      by simp
 
-    have L\<^sub>2: "?L\<^sub>2 = ?t\<^sub>2 \<approx> ?t\<^sub>2'"
-      unfolding literal.to_ground_def eq_factoringI(5) atom.to_ground_def
-      by (simp add: atom.subst_def subst_literal)
+    have [simp]: "?l\<^sub>2 = ?t\<^sub>2 \<approx> ?t\<^sub>2'"
+      unfolding eq_factoringI
+      by simp
 
-    have C: "?C = add_mset (?s\<^sub>1 \<approx> ?t\<^sub>2') (add_mset (Neg (Upair ?s\<^sub>1' ?t\<^sub>2')) ?P')"
+    have [simp]: "?C = add_mset (?t\<^sub>1 \<approx> ?t\<^sub>2') (add_mset (Neg (Upair ?t\<^sub>1' ?t\<^sub>2')) ?D')"
       unfolding eq_factoringI 
-      by (simp add: clause.to_ground_def literal.to_ground_def atom.subst_def 
-          subst_literal atom.to_ground_def)
+      by simp
 
-    show "?I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
-    proof(cases "L' = ?L\<^sub>1 \<or> L' = ?L\<^sub>2")
+    have "?I \<TTurnstile> clause.to_ground (C \<cdot> \<gamma>)"
+    proof(cases "l' = ?l\<^sub>1 \<or> l' = ?l\<^sub>2")
       case True
 
-      then have "I \<TTurnstile>l Pos (?s\<^sub>1, ?s\<^sub>1') \<or> I \<TTurnstile>l Pos (?s\<^sub>1, ?t\<^sub>2')"
-        using true_lit_uprod_iff_true_lit_prod[OF sym_I] I_models_L'
-        by (metis L\<^sub>1 L\<^sub>2 s\<^sub>1_equals_t\<^sub>2)
+      then have "?I \<TTurnstile>l ?t\<^sub>1 \<approx> ?t\<^sub>1' \<or> ?I \<TTurnstile>l ?t\<^sub>1 \<approx> ?t\<^sub>2'"
+        using I_models_l' sym_I
+        by(auto elim: symE)
 
-      then have "I \<TTurnstile>l Pos (?s\<^sub>1, ?t\<^sub>2') \<or> I \<TTurnstile>l Neg (?s\<^sub>1', ?t\<^sub>2')"
-        by (meson transD trans_I true_lit_simps(1) true_lit_simps(2))
-
-      then have "?I \<TTurnstile>l ?s\<^sub>1 \<approx> ?t\<^sub>2' \<or> ?I \<TTurnstile>l Neg (Upair ?s\<^sub>1' ?t\<^sub>2')"
-        unfolding true_lit_uprod_iff_true_lit_prod[OF sym_I].
+      then have "?I \<TTurnstile>l ?t\<^sub>1 \<approx> ?t\<^sub>2' \<or> ?I \<TTurnstile>l ?t\<^sub>1' !\<approx> ?t\<^sub>2'"
+        using sym_I trans_I
+        by(auto dest: transD)
 
       then show ?thesis
-        using clause.subst_eq \<gamma>'(3) C
-        by (smt (verit, best) true_cls_add_mset)
+        using clause.subst_eq[OF \<gamma>'_\<gamma>[rule_format]] sym_I
+        by auto
     next
       case False
-      then have "L' \<in># ?P'"
-        using L'_in_P
-        unfolding eq_factoringI
-        by (simp add: clause.to_ground_def)
 
-      then have "L' \<in># clause.to_ground (C \<cdot> \<gamma>)"
-        using clause.subst_eq \<gamma>'(3) C
-        by fastforce
+      then have "l' \<in># ?D'"
+        using l'_in_D
+        unfolding eq_factoringI
+        by simp
+
+      then have "l' \<in># clause.to_ground (C \<cdot> \<gamma>)"
+        using clause.subst_eq[OF \<gamma>'_\<gamma>[rule_format]]
+        by simp
 
       then show ?thesis
-        using I_models_L' by blast
+        using I_models_l' 
+        by blast
     qed
-  qed
+  }
 
   then show ?thesis
-    unfolding ground.G_entails_def true_clss_def clause_groundings_def
-    using eq_factoringI(1,2) 
+    unfolding
+      eq_factoringI(1, 2)
+      ground.G_entails_def
+      true_clss_def
+      clause_groundings_def
     by auto
 qed
 
@@ -704,7 +692,7 @@ proof unfold_locales
   fix \<iota>
   assume "\<iota> \<in> inferences"
   then show "set (prems_of \<iota>) \<TTurnstile>\<^sub>F {concl_of \<iota>}"
-    using 
+    using
       eq_factoring_sound
       eq_resolution_sound
       superposition_sound

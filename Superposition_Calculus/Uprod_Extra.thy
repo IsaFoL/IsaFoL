@@ -11,6 +11,12 @@ abbreviation upair where
 lemma Upair_sym: "Upair x y = Upair y x"
   by (metis Upair_inject)
 
+lemma upair_in_sym [simp]:
+  assumes "sym I"
+  shows "Upair a b \<in> upair ` I \<longleftrightarrow> (a, b) \<in> I \<and> (b, a) \<in> I"
+  using assms
+  by (auto dest: symD)
+
 lemma ex_ordered_Upair:
   assumes tot: "totalp_on (set_uprod p) R"
   shows "\<exists>x y. p = Upair x y \<and> R\<^sup>=\<^sup>= x y"

@@ -89,14 +89,17 @@ lemma exists_infinite_variables_per_type:
   unfolding infinite_variables_per_type_def
   by argo
 
-(* TODO: Is clause.is_welltyped \<F> (snd clause) (fst clause) needed? *)
+(* TODO: Needed? *)
+abbreviation is_welltyped_grounding where 
+  "is_welltyped_grounding C \<V> \<gamma> \<equiv> 
+    clause.is_ground (C \<cdot> \<gamma>) \<and> 
+    clause.is_welltyped \<V> C \<and>
+    is_welltyped_on (clause.vars C) \<V> \<gamma> \<and>
+    infinite_variables_per_type \<V>"
+
 definition clause_groundings :: "('f, 'v, 'ty) typed_clause \<Rightarrow> 'f ground_atom clause set"   where
-  "clause_groundings C = { clause.to_ground (fst C \<cdot> \<gamma>) | \<gamma>. 
-    clause.is_ground (fst C \<cdot> \<gamma>) \<and> 
-    clause.is_welltyped (snd C) (fst C) \<and> 
-    is_welltyped_on (clause.vars (fst C)) (snd C) \<gamma> \<and> 
-    infinite_variables_per_type (snd C)
-  }"
+  "clause_groundings C = 
+    { clause.to_ground (fst C \<cdot> \<gamma>) | \<gamma>. is_welltyped_grounding (fst C) (snd C) \<gamma> }"
 
 end
 
