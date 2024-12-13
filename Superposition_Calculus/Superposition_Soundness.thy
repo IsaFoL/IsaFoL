@@ -327,12 +327,12 @@ proof (cases D E C rule: superposition.cases)
       by blast
 
     have D_is_welltyped: "clause.is_welltyped \<V>\<^sub>2 D"
-      using superposition_preserves_typing'[OF 
+      using superposition_preserves_typing_D[OF 
           superposition[unfolded superpositionI(1-3)] 
           C_is_welltyped].
 
     have E_is_welltyped: "clause.is_welltyped \<V>\<^sub>1 E"
-      using superposition_preserves_typing''[OF 
+      using superposition_preserves_typing_E[OF 
           superposition[unfolded superpositionI(1-3)] 
           C_is_welltyped].
 

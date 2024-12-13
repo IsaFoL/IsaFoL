@@ -13,7 +13,7 @@ session Superposition_Calculus_1 = Saturation_Framework_Extensions +
     Ground_Superposition_Welltypedness_Preservation
     First_Order_Superposition_Completeness
     Superposition_Soundness
-    First_Order_Superposition_Example
+    Superposition_Example
 
   theories (* This theory contains an analogue specification of ground ordered resolution. *)
     Ground_Ordered_Resolution

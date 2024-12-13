@@ -1,7 +1,5 @@
 theory Term_Rewrite_System
-  imports
-    Isabelle_2024_Compatibility
-    Ground_Context
+  imports Ground_Context
 begin
 
 definition compatible_with_gctxt :: "'f gterm rel \<Rightarrow> bool" where

@@ -2,7 +2,6 @@ theory Ground_Ordered_Resolution
   imports
     Saturation_Framework.Calculus
     Saturation_Framework_Extensions.Clausal_Calculus
-    Isabelle_2024_Compatibility
     Ground_Context
     HOL_Extra
     Transitive_Closure_Extra

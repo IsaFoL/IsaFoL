@@ -1,10 +1,10 @@
-theory First_Order_Superposition_Example
-  imports 
+theory Superposition_Example
+  imports
     IsaFoR_Term_Copy
     Superposition
 begin
 
-(* TODO: Add better examples *)
+(* TODO: Add more examples *)
 abbreviation trivial_select :: "('f, 'v) select" where
   "trivial_select _ \<equiv> {#}"
 

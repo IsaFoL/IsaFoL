@@ -4,6 +4,7 @@
     Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
+(* TODO: Try to rename Name clash, such that a copy is not needed *)
 section \<open>Integration of \textsf{IsaFoR} Terms and the Knuth--Bendix Order\<close>
 
 text \<open>
@@ -13,7 +14,6 @@ the \textsf{IsaFoR} library.
 
 theory IsaFoR_Term_Copy
   imports
-    Isabelle_2024_Compatibility
     First_Order_Terms.Unification
     "HOL-Cardinals.Wellorder_Extension"
     Open_Induction.Restricted_Predicates

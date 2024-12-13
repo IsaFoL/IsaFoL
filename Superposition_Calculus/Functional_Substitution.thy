@@ -4,6 +4,7 @@ theory Functional_Substitution
     FSet_Extra
 begin
 
+(* TODO: Ask Martin if I can split of id_subst and comp_subst  *)
 locale functional_substitution = substitution _ _ subst "\<lambda>a. vars a = {}" 
   for
     subst :: "'expr \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> 'expr" (infixl "\<cdot>" 70) and

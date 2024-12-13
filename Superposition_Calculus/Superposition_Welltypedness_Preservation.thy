@@ -17,7 +17,7 @@ lemma eq_factoring_preserves_typing:
   using assms
   by (cases "(D, \<V>)" "(C, \<V>)" rule: eq_factoring.cases) fastforce
 
-lemma superposition_preserves_typing:
+lemma superposition_preserves_typing_C:
   assumes
     superposition: "superposition (D, \<V>\<^sub>2) (E, \<V>\<^sub>1) (C, \<V>\<^sub>3)" and
     D_is_welltyped: "clause.is_welltyped \<V>\<^sub>2 D" and
@@ -55,8 +55,7 @@ proof (cases "(D, \<V>\<^sub>2)" "(E, \<V>\<^sub>1)" "(C, \<V>\<^sub>3)" rule: s
     by cases auto
 qed
 
-(* TODO: Names *)
-lemma superposition_preserves_typing':
+lemma superposition_preserves_typing_D:
   assumes
     superposition: "superposition (D, \<V>\<^sub>2) (E, \<V>\<^sub>1) (C, \<V>\<^sub>3)" and
     C_is_welltyped: "clause.is_welltyped \<V>\<^sub>3 C" 
@@ -150,7 +149,7 @@ proof (cases "(D, \<V>\<^sub>2)" "(E, \<V>\<^sub>1)" "(C, \<V>\<^sub>3)" rule: s
   qed
 qed
 
-lemma superposition_preserves_typing'':
+lemma superposition_preserves_typing_E:
   assumes
     superposition: "superposition (D, \<V>\<^sub>2) (E, \<V>\<^sub>1) (C, \<V>\<^sub>3)" and
     C_is_welltyped: "clause.is_welltyped \<V>\<^sub>3 C" 
@@ -210,7 +209,7 @@ proof (cases "(D, \<V>\<^sub>2)" "(E, \<V>\<^sub>1)" "(C, \<V>\<^sub>3)" rule: s
         have "atom.is_welltyped \<V>\<^sub>3 (Upair (t\<^sub>2' \<cdot>t \<rho>\<^sub>2) (t\<^sub>1 \<cdot>t \<rho>\<^sub>1))"
           using 
             superpositionI(11) 
-            superposition_preserves_typing'[OF superposition C_is_welltyped]
+            superposition_preserves_typing_D[OF superposition C_is_welltyped]
             clause.is_welltyped.typed_renaming[OF superpositionI(2) superpositionI(13)]
           unfolding superpositionI
           by auto
@@ -235,6 +234,16 @@ proof (cases "(D, \<V>\<^sub>2)" "(E, \<V>\<^sub>1)" "(C, \<V>\<^sub>3)" rule: s
       by simp
   qed
 qed
+
+lemma superposition_preserves_typing:
+  assumes "superposition (D, \<V>\<^sub>2) (E, \<V>\<^sub>1) (C, \<V>\<^sub>3)"
+  shows "clause.is_welltyped \<V>\<^sub>2 D \<and> clause.is_welltyped \<V>\<^sub>1 E \<longleftrightarrow> clause.is_welltyped \<V>\<^sub>3 C"
+  using
+    superposition_preserves_typing_C 
+    superposition_preserves_typing_D 
+    superposition_preserves_typing_E
+    assms
+  by blast
 
 end
 

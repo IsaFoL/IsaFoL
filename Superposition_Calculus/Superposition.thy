@@ -8,7 +8,6 @@ theory Superposition
     Nonground_Typing
 begin
 
-
 hide_type Inference_System.inference
 hide_const
   Inference_System.Infer
