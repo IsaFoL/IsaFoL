@@ -3,6 +3,8 @@
  * Author:       Ghilain Bergeron <ghilain.bergeron at inria.fr>, 2023
  *               Sophie Tourret <sophie.tourret at inria.fr, 2024 *)
 
+(* TODO: rename theory as Modular_Lightweight_Avatar to prevent confusion *)
+
 theory Modular_Splitting_Without_Backtracking
   imports
     Main
@@ -801,6 +803,12 @@ locale AF_calculus_with_binsplit =
       binsplit_cons_entail_prem: \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<C> \<in> Red_F\<^sub>A\<^sub>F (fset \<C>s)\<close>
 begin
 
+text \<open>
+  We use the same naming convention as for the other rules, where
+  $X\_pre$ is the condition which must hold for the rule to be applicable, $X\_res$ is its
+  resultant and $X\_simp$ is the simplification rule itself.
+\<close>
+
 abbreviation bin_split_pre :: \<open>('f, 'v) AF \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> bool\<close> where
   \<open>bin_split_pre \<C> C1 C2 \<C>s \<equiv> bin_splittable \<C> C1 C2 \<C>s\<close>
 
@@ -881,13 +889,17 @@ end (* AF_calculus_with_binsplit *)
 context splitting_calculus
 begin
 
-definition mk_bin_split :: \<open>('f, 'v) AF \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> ('f, 'v) AF set\<close> where
+definition mk_bin_split :: \<open>('f, 'v) AF \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> ('f, 'v) AF fset\<close> where
   \<open>split_form (F_of \<C>) {|C1, C2|} \<Longrightarrow> mk_bin_split \<C> C1 C2 \<equiv> 
     let a = (SOME a. a \<in> asn (sign.Pos C1))
-    in {AF.Pair C1 (finsert a (A_of \<C>)), AF.Pair C2 (finsert (neg a) (A_of \<C>))}\<close> 
+    in {|AF.Pair C1 (finsert a (A_of \<C>)), AF.Pair C2 (finsert (neg a) (A_of \<C>))|}\<close> 
 
-definition bin_splittable :: \<open>('f, 'v) AF \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> where
+definition bin_splittable :: \<open>('f, 'v) AF \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> bool\<close> where
   \<open>bin_splittable \<C> C1 C2 \<C>s \<equiv> split_form (F_of \<C>) {|C1, C2|} \<and> mk_bin_split \<C> C1 C2 = \<C>s\<close>
+
+
+
+
 
 (* probably a bad idea to start from Split-related lemmas, try starting from BinSplit-related ones *)
 (*
@@ -930,20 +942,11 @@ qed
 
 
 
-
-
-text \<open>
-  We use the same naming convention as used for the rest of the rules, where
-  $X\_pre$ is the condition which must hold for the rule to be applicable, and $X\_simp$ is
-  the simplification rule itself.
-\<close>
-
-
-
-
 (*<*)
 lemma map_sign_neg_is_neg_map_sign: \<open>map_sign f (neg x) = neg (map_sign f x)\<close>
   by (smt (verit) neg.simps(1) neg.simps(2) sign.simps(10) sign.simps(9) to_V.elims) 
+
+
 
 lemma subst_if_equi_entails:
   \<open>{C} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {D} \<Longrightarrow> {D} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {C} \<Longrightarrow> M \<TTurnstile>\<union>\<G>e\<^sub>\<sim> N \<Longrightarrow> M - {C} \<union> {D} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> N\<close>
@@ -1092,6 +1095,36 @@ proof (intro ballI)
     qed 
   qed
 qed
+
+lemma binsplit_cons_entail_prem: \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<C> \<in> core.SRed\<^sub>F (fset \<C>s)\<close>
+
+  sorry
+
+find_theorems name: asn_not_empty
+
+lemma binsplit_prem_entails_cons: \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<forall> \<C>' \<in> fset \<C>s. {\<C>} \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
+proof
+  fix \<C>'
+  assume Cp_is: \<open>\<C>' \<in> fset \<C>s\<close> and
+    bin_split_C: \<open>bin_splittable \<C> C1 C2 \<C>s\<close>
+  then have C_u_D_splittable: \<open>split_form (F_of \<C>) {|C1, C2|}\<close> and
+              make_split: \<open>mk_bin_split \<C> C1 C2 = \<C>s\<close>
+    unfolding bin_splittable_def by blast+
+
+  have \<open>\<C>' \<in> (let a = SOME a. a \<in> asn (sign.Pos C1)
+      in {AF.Pair C1 (finsert a (A_of \<C>)), AF.Pair C2 (finsert (neg a) (A_of \<C>))})\<close>
+    using make_split mk_bin_split_def[OF C_u_D_splittable] Cp_is
+    by (metis bot_fset.rep_eq finsert.rep_eq)
+  then obtain a where
+      a_in_asn_pos_C: \<open>a \<in> asn (sign.Pos C1)\<close> and
+      \<C>_is: \<open>\<C> = AF.Pair C1 (finsert a (A_of \<C>)) \<or> \<C> = AF.Pair C2 (finsert (neg a) (A_of \<C>))\<close>
+    using core.asn_not_empty insert_iff singletonD some_in_eq
+    sledgehammer
+    sorry
+     (* by (metis core.asn_not_empty insert_iff singletonD some_in_eq)  *)
+
+
+
 
 
 
