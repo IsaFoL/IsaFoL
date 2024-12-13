@@ -770,7 +770,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     ?\<P> (Upair (context.from_ground context\<^sub>G)\<langle>term.from_ground term\<^sub>G\<^sub>1\<rangle> (term.from_ground term\<^sub>G\<^sub>2))"
     using literal\<^sub>1_\<gamma>
     unfolding ground_superpositionI(5)
-    by (simp add: context.ground_term_with_context(3))
+    by simp
 
   then obtain term\<^sub>1_with_context term\<^sub>1' where 
     literal\<^sub>1: "literal\<^sub>1 = ?\<P> (Upair term\<^sub>1_with_context term\<^sub>1')" and
@@ -832,8 +832,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         then obtain terms\<^sub>G\<^sub>1 context\<^sub>G' terms\<^sub>G\<^sub>2 where
           context\<^sub>G: "context\<^sub>G = More f terms\<^sub>G\<^sub>1 context\<^sub>G' terms\<^sub>G\<^sub>2"
           using Fun(3)
-          by(cases context\<^sub>G)          
-            (auto simp: context.ground_term_with_context(3))
+          by(cases context\<^sub>G)(auto simp: context.from_ground_def)
 
         have terms_\<gamma>: 
           "map (\<lambda>term. term \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) terms = 
@@ -999,9 +998,6 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
       qed
       let ?context\<^sub>x'_\<gamma> = "context.to_ground (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)"
 
-      note term_from_ground_context =
-        context.ground_term_with_context1[OF _ term.ground_is_ground, unfolded term.from_ground_inverse]
-
       (* TODO: *)
       have term\<^sub>x_\<gamma>: "term.to_ground (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>) = ?context\<^sub>x'_\<gamma>\<langle>term\<^sub>G\<^sub>1\<rangle>\<^sub>G"
       proof-
@@ -1013,19 +1009,19 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
         
         then show ?thesis
           using update_grounding 
-          by (metis ctxt_eq term_from_ground_context context.term_with_context_is_ground)
+          by (metis ctxt_eq context.term_to_ground_context_to_ground term.from_ground_inverse)
       qed
 
       have term\<^sub>x_\<gamma>': "term.to_ground (term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma>') = ?context\<^sub>x'_\<gamma>\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G"
         using update_grounding
         unfolding var\<^sub>x[symmetric] \<gamma>'
-        by(auto simp: term_from_ground_context)
+        by auto
 
       have aux: "term\<^sub>x \<cdot>t \<rho>\<^sub>1 \<cdot>t \<gamma> = (context\<^sub>x' \<cdot>t\<^sub>c \<rho>\<^sub>1 \<cdot>t\<^sub>c \<gamma>)\<langle>term.from_ground term\<^sub>G\<^sub>1\<rangle>"
         using term\<^sub>x_\<gamma>
         by (metis (mono_tags, lifting) context.ground_is_ground
-            nonground_context.ground_term_with_context2
-            nonground_context.term_with_context_is_ground subst_apply_term_ctxt_apply_distrib
+            context.term_from_ground_context_to_ground
+            context.term_with_context_is_ground subst_apply_term_ctxt_apply_distrib
             term.to_ground_inverse term\<^sub>1_with_context term\<^sub>1_with_context_\<gamma> update_grounding
             vars_term_of_gterm)
 
@@ -1158,7 +1154,12 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           then have "?I \<TTurnstile> add_mset (\<P>\<^sub>G (Upair context\<^sub>G\<langle>term\<^sub>G\<^sub>3\<rangle>\<^sub>G term\<^sub>G\<^sub>2)) premise\<^sub>G\<^sub>1'"
             using literal\<^sub>G\<^sub>2 symmetric_context_congruence ground_superpositionI(4)
             unfolding ground_superpositionI(6)
-            by(cases "\<P>\<^sub>G = Pos")(auto simp: sym)
+            apply(cases "\<P>\<^sub>G = Pos")
+            (* TODO: Probably Upair_Extra was auto simp: sym *)
+             apply(auto )
+                   apply blast
+                  apply(auto simp: sym)
+            by (meson local.sym symD)+
 
           then show ?thesis 
             unfolding ground_superpositionI(12)
@@ -1570,7 +1571,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
           term\<^sub>1_with_context[symmetric]
           term\<^sub>1_with_context_\<gamma>[unfolded \<mu>(2) term_subst.subst_comp_subst]
           term.order.less\<^sub>G_def
-          context.ground_term_with_context(3).
+          context.safe_unfolds.
 
       then show "\<not> context\<^sub>1\<langle>term\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>"
         using term.order.ground_less_not_less_eq[OF term_groundings]
@@ -1647,7 +1648,6 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
               add_mset (?\<P> (Upair (context.from_ground context\<^sub>G)\<langle>term.from_ground term\<^sub>G\<^sub>3\<rangle> (term.from_ground term\<^sub>G\<^sub>2))) 
                 (clause.from_ground premise\<^sub>G\<^sub>1' + clause.from_ground premise\<^sub>G\<^sub>2')"
         using ground_superpositionI(4, 12) clause.to_ground_inverse[OF conclusion_grounding] 
-        unfolding context.ground_term_with_context(3)
         by auto
       
       then show ?thesis

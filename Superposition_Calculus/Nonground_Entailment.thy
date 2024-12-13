@@ -45,6 +45,19 @@ lemma vars_term_ms_count:
 
 end
 
+context nonground_clause
+begin
+
+lemma not_literal_entails [simp]:
+  "\<not> upair ` I \<TTurnstile>l Neg a \<longleftrightarrow> upair ` I \<TTurnstile>l Pos a"
+  "\<not> upair ` I \<TTurnstile>l Pos a \<longleftrightarrow> upair ` I \<TTurnstile>l Neg a"
+  by auto
+
+lemmas literal_entails_unfolds =
+  not_literal_entails true_lit_simps
+
+end
+
 locale clause_entailment = nonground_clause +
   fixes I :: "('f gterm \<times> 'f gterm) set"
   assumes 
@@ -57,6 +70,12 @@ lemma symmetric_context_congruence:
   assumes "(t, t') \<in> I"
   shows "(c\<langle>t\<rangle>\<^sub>G, t'') \<in> I \<longleftrightarrow> (c\<langle>t'\<rangle>\<^sub>G, t'') \<in> I"
   by (meson assms compatible_with_gctxt compatible_with_gctxtD sym trans symD transE)
+
+lemma symmetric_upair_context_congruence:
+  assumes "Upair t t' \<in> upair ` I"
+  shows "Upair c\<langle>t\<rangle>\<^sub>G t'' \<in>  upair ` I \<longleftrightarrow> (Upair c\<langle>t'\<rangle>\<^sub>G t'') \<in>  upair ` I"
+  using assms uprod_mem_image_iff_prod_mem[OF sym] symmetric_context_congruence
+  by simp
 
 sublocale "term": symmetric_base_entailment where vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set" and 
   id_subst = Var and comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and to_ground = term.to_ground and 

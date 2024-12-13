@@ -222,7 +222,7 @@ proof unfold_locales
   then show "c\<langle>t\<rangle>\<^sub>G \<prec>\<^sub>t\<^sub>G c\<langle>t'\<rangle>\<^sub>G"
     using order.ground_context_compatibility[OF
         term.ground_is_ground term.ground_is_ground context.ground_is_ground]
-    unfolding order.less\<^sub>G_def context.ground_term_with_context(3)
+    unfolding order.less\<^sub>G_def
     by simp
 next
   fix t :: "'f gterm" and c :: "'f ground_context"
@@ -231,8 +231,8 @@ next
     using 
       order.ground_subterm_property[OF term.ground_is_ground context.ground_is_ground]
       context.context_from_ground_hole
-    unfolding context.ground_term_with_context(3) order.less\<^sub>G_def
-    by blast
+    unfolding order.less\<^sub>G_def
+    by simp
 qed
 
 end

@@ -213,7 +213,7 @@ lemma literal_from_ground_atom_from_ground [simp]:
 lemma literal_from_ground_polarity_stable [simp]: 
   shows 
     literal_from_ground_neg_stable: "is_neg (literal.from_ground l\<^sub>G) \<longleftrightarrow> is_neg l\<^sub>G" and
-    literal_from_ground_stable: " is_pos (literal.from_ground l\<^sub>G) \<longleftrightarrow> is_pos l\<^sub>G"
+    literal_from_ground_stable: "is_pos (literal.from_ground l\<^sub>G) \<longleftrightarrow> is_pos l\<^sub>G"
   by (simp_all add: literal.from_ground_def)
 
 lemma atom_to_ground_term_to_ground [simp]: 
@@ -233,7 +233,18 @@ lemma literal_is_ground_atom_is_ground [intro]:
   "literal.is_ground l \<longleftrightarrow> atom.is_ground (atm_of l)"
   by (simp add: literal.vars_def set_literal_atm_of)
 
-lemma obtain_from_atom_subst : 
+lemmas clause_safe_unfolds = 
+  atom_to_ground_term_to_ground
+  literal_to_ground_atom_to_ground 
+  atom_from_ground_term_from_ground
+  literal_from_ground_atom_from_ground
+  literal_from_ground_polarity_stable
+  subst_atom
+  subst_literal
+  vars_atom
+  vars_literal
+
+lemma obtain_from_atom_subst: 
   assumes "Upair t\<^sub>1' t\<^sub>2' = a \<cdot>a \<sigma>"
   obtains t\<^sub>1 t\<^sub>2 
   where "a = Upair t\<^sub>1 t\<^sub>2" "t\<^sub>1' = t\<^sub>1 \<cdot>t \<sigma>" "t\<^sub>2' = t\<^sub>2 \<cdot>t \<sigma>"

@@ -71,31 +71,28 @@ qed
 lemma ground_ctxt_iff_context_is_ground [simp]: "ground_ctxt c \<longleftrightarrow> is_ground c"
   by(induction c) simp_all
 
-(* TODO: Names *)
-lemma ground_term_with_context1:
-  assumes "is_ground c" "term.is_ground t"
-  shows "(to_ground c)\<langle>term.to_ground t\<rangle>\<^sub>G = term.to_ground c\<langle>t\<rangle>"
-  using assms
+lemma term_to_ground_context_to_ground [simp]:
+  shows "term.to_ground c\<langle>t\<rangle> = (to_ground c)\<langle>term.to_ground t\<rangle>\<^sub>G"
   unfolding to_ground_def
   by(induction c) simp_all
 
-lemma ground_term_with_context2:
-  assumes "is_ground c"  
+lemma term_from_ground_context_from_ground [simp]: 
+  "term.from_ground c\<^sub>G\<langle>t\<^sub>G\<rangle>\<^sub>G = (from_ground c\<^sub>G)\<langle>term.from_ground t\<^sub>G\<rangle>"
+  unfolding from_ground_def
+  by(induction c\<^sub>G) simp_all
+
+lemma term_from_ground_context_to_ground:
+  assumes "is_ground c"
   shows "term.from_ground (to_ground c)\<langle>t\<^sub>G\<rangle>\<^sub>G = c\<langle>term.from_ground t\<^sub>G\<rangle>"
-  using assms
-  unfolding to_ground_def
-  by(induction c) (simp_all add: to_ground_def map_idI)
+  unfolding to_ground_def 
+  by (metis assms term_from_ground_context_from_ground to_ground_def to_ground_inverse)
 
-lemma ground_term_with_context3: 
-  "(from_ground c\<^sub>G)\<langle>term.from_ground t\<^sub>G\<rangle> = term.from_ground c\<^sub>G\<langle>t\<^sub>G\<rangle>\<^sub>G"
-  using ground_term_with_context2[OF ground_is_ground, symmetric]
-  unfolding from_ground_inverse.
+lemmas safe_unfolds = 
+  eval_ctxt 
+  term_to_ground_context_to_ground 
+  term_from_ground_context_from_ground
 
-lemmas ground_term_with_context =
-  ground_term_with_context1
-  ground_term_with_context2
-  ground_term_with_context3
-
+(* TODO: Make iff *)
 lemma context_is_ground_context_compose1:
   assumes "is_ground (c \<circ>\<^sub>c c')"
   shows "is_ground c" "is_ground c'"

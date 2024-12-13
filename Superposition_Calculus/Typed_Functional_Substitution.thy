@@ -177,12 +177,23 @@ locale typed_subst_stability = typed_functional_substitution +
 assumes
   subst_stability [simp]: 
     "\<And>\<V> expr \<sigma>. base.is_typed_on (vars expr) \<V> \<sigma> \<Longrightarrow> is_typed \<V> (expr \<cdot> \<sigma>) \<longleftrightarrow> is_typed \<V> expr"
+begin
+
+lemma subst_stability_UNIV [simp]: 
+  "\<And>\<V> expr \<sigma>. base.is_typed_on UNIV \<V> \<sigma> \<Longrightarrow> is_typed \<V> (expr \<cdot> \<sigma>) \<longleftrightarrow> is_typed \<V> expr"
+  by simp
+
+end
 
 locale explicitly_typed_subst_stability = explicitly_typed_functional_substitution +
 assumes
   explicit_subst_stability [simp]: 
     "\<And>\<V> expr \<sigma> \<tau>. is_typed_on (vars expr) \<V> \<sigma> \<Longrightarrow> typed \<V> (expr \<cdot> \<sigma>) \<tau> \<longleftrightarrow> typed \<V> expr \<tau>"
 begin
+
+lemma explicit_subst_stability_UNIV [simp]: 
+  "\<And>\<V> expr \<sigma>. is_typed_on UNIV \<V> \<sigma> \<Longrightarrow> typed \<V> (expr \<cdot> \<sigma>) \<tau> \<longleftrightarrow> typed \<V> expr \<tau>"
+  by simp
 
 sublocale typed_subst_stability where 
   base_vars = vars and base_subst = subst and base_typed = typed and is_typed = is_typed

@@ -384,6 +384,21 @@ next
     using welltyped.Var .
 qed
 
+(* TODO: Move further up *)
+lemma is_welltyped_subst_compose [intro]:
+  assumes "is_welltyped \<V> \<sigma>" "is_welltyped \<V> \<sigma>'"
+  shows "is_welltyped \<V> (\<sigma> \<odot> \<sigma>')"
+  using assms
+  unfolding subst_compose_def
+  by auto
+
+lemma is_typed_subst_compose [intro]:
+  assumes "is_typed \<V> \<sigma>" "is_typed \<V> \<sigma>'"
+  shows "is_typed \<V> (\<sigma> \<odot> \<sigma>')"
+  using assms
+  unfolding subst_compose_def
+  by auto
+
 lemma is_welltyped_subst: 
   assumes "welltyped \<V> (Var x) \<tau>" "welltyped \<V> t \<tau>"
   shows "is_welltyped \<V> (subst x t)"
