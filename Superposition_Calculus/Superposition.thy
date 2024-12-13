@@ -44,7 +44,7 @@ section \<open>Nonground Layer\<close>
 
 locale superposition_calculus =
   nonground_typing \<F> +
-  nonground_order less\<^sub>t +
+  nonground_equality_order less\<^sub>t +
   nonground_selection_function select
   for
     select :: "('f, 'v :: infinite) select" and

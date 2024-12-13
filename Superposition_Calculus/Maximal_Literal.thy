@@ -6,13 +6,13 @@ theory Maximal_Literal
 begin
 
 locale maximal_literal = order: strict_order where less = less 
-for less :: "'t uprod literal \<Rightarrow> 't uprod literal \<Rightarrow> bool"
+for less :: "'a literal \<Rightarrow> 'a literal \<Rightarrow> bool"
 begin
 
-abbreviation is_maximal :: "'t uprod literal \<Rightarrow> 't uprod clause \<Rightarrow> bool" where
+abbreviation is_maximal :: "'a literal \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "is_maximal l C \<equiv> order.is_maximal_in_mset C l"
 
-abbreviation is_strictly_maximal :: "'t uprod literal \<Rightarrow> 't uprod clause \<Rightarrow> bool" where
+abbreviation is_strictly_maximal :: "'a literal \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "is_strictly_maximal l C \<equiv> order.is_strictly_maximal_in_mset C l"
 
 lemmas is_maximal_def = order.is_maximal_in_mset_iff

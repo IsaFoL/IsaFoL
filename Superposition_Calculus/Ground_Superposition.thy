@@ -38,7 +38,7 @@ section \<open>Superposition Calculus\<close>
 
 
 locale ground_superposition_calculus = 
-  ground_order where less\<^sub>t = less\<^sub>t +
+  ground_order_with_equality where less\<^sub>t = less\<^sub>t +
   selection_function select
 for
   less\<^sub>t :: "'f gterm \<Rightarrow> 'f gterm \<Rightarrow> bool" and

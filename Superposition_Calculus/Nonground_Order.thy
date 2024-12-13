@@ -29,13 +29,18 @@ locale nonground_term_based_order_lifting =
   base_subst = "(\<cdot>t)"
 for less\<^sub>t
 
-locale nonground_order =
+(* TODO: Abstract out non-equality literal order + better name *)
+locale nonground_equality_order =
   nonground_clause +
-  "term": nonground_term_order where
-  less\<^sub>t = "less\<^sub>t :: ('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term \<Rightarrow> bool" +
-  restricted_term_order_lifting where
-  restriction = "range term.from_ground"
+  term.order: restricted_wellfounded_total_strict_order where 
+  less =  "less\<^sub>t :: ('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term \<Rightarrow> bool" and 
+  restriction = "range term.from_ground" +
+  "term": nonground_term_order
 begin
+
+sublocale restricted_term_order_lifting where
+  restriction = "range term.from_ground" and literal_to_mset = mset_lit
+  by unfold_locales (rule inj_mset_lit)
 
 (* TODO: Find way to not have this twice *)
 notation term.order.less\<^sub>G (infix "\<prec>\<^sub>t\<^sub>G" 50)
@@ -303,7 +308,7 @@ lemma is_strictly_maximal_rewrite [simp]:
   by (metis (lifting) clause.ground_sub_in_ground clause.sub_in_ground_is_ground
       literal.obtain_grounding reflclp_iff remove1_mset_literal_from_ground)
 
-sublocale ground: ground_order where
+sublocale ground: ground_order_with_equality where
   less\<^sub>t = "(\<prec>\<^sub>t\<^sub>G)"
 rewrites
   "multiset_extension.multiset_extension (\<prec>\<^sub>t\<^sub>G) mset_lit = (\<prec>\<^sub>l\<^sub>G)" and

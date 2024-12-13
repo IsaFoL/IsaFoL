@@ -7,17 +7,19 @@ begin
 
 locale restricted_term_order_lifting =
   term.order: restricted_wellfounded_total_strict_order where less = less\<^sub>t
-for less\<^sub>t
+for less\<^sub>t :: "'t \<Rightarrow> 't \<Rightarrow> bool" +
+fixes literal_to_mset :: "'a literal \<Rightarrow> 't multiset"
+assumes inj_literal_to_mset: "inj literal_to_mset"
 begin
                                     
 sublocale term_order_notation.
 
 abbreviation literal_order_restriction where
-  "literal_order_restriction \<equiv> {b. set_mset (mset_lit b) \<subseteq> restriction}"
+  "literal_order_restriction \<equiv> {b. set_mset (literal_to_mset b) \<subseteq> restriction}"
 
 sublocale literal.order: restricted_total_multiset_extension where 
-  less = "(\<prec>\<^sub>t)" and to_mset = mset_lit
-  using inj_mset_lit
+  less = "(\<prec>\<^sub>t)" and to_mset = literal_to_mset
+  using inj_literal_to_mset
   by unfold_locales (auto simp: inj_on_def)
 
 notation literal.order.multiset_extension (infix "\<prec>\<^sub>l" 50)
@@ -46,8 +48,8 @@ locale term_order_lifting =
 begin
 
 sublocale literal.order: total_wellfounded_multiset_extension where 
-  less = "(\<prec>\<^sub>t)" and to_mset = mset_lit
-  by unfold_locales (simp add: inj_mset_lit)
+  less = "(\<prec>\<^sub>t)" and to_mset = literal_to_mset
+  by unfold_locales (simp add: inj_literal_to_mset)
 
 sublocale clause.order: total_wellfounded_multiset_extension where 
   less = "(\<prec>\<^sub>l)"  and to_mset = "\<lambda>x. x" 

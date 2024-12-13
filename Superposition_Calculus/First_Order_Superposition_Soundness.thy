@@ -211,7 +211,7 @@ proof (cases D C rule: eq_factoring.cases)
     qed
 
     then have "?I \<TTurnstile> ?D"
-      using entails_groundings 
+      using entails_groundings
       by blast
 
     then obtain l' where l'_in_D: "l' \<in># ?D" and I_models_l': "?I \<TTurnstile>l l'"
