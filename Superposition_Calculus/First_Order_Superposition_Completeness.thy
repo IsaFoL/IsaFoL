@@ -7,13 +7,13 @@ theory First_Order_Superposition_Completeness
     Superposition_Welltypedness_Preservation
 begin
 
-(* TODO: *)
+(* TODO: Put in one place *)
 hide_type Inference_System.inference
 hide_const
   Inference_System.Infer
   Inference_System.prems_of
   Inference_System.concl_of
-  Inference_System.main_prem_of
+  Inference_System.main_prem_o
 
 context grounded_superposition_calculus
 begin
@@ -29,13 +29,11 @@ lemma eq_resolution_lifting:
     conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> clause.to_ground (conclusion \<cdot> \<gamma>)"
   assumes 
     premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and 
-    (* TODO: groundings can be derived from ground_subst*)
     conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
     select: "clause.from_ground (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
     ground_eq_resolution: "ground.eq_resolution premise\<^sub>G conclusion\<^sub>G" and
     typing: 
     "clause.is_welltyped \<V> premise"
-    (*"term_subst.is_ground_subst \<gamma>"*)
     "is_welltyped_on (clause.vars premise) \<V> \<gamma>"
     "infinite_variables_per_type \<V>"
   obtains conclusion' 
@@ -255,7 +253,6 @@ proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.eq_resolution.cases)
     using conclusion'_\<gamma>  
     unfolding clause.subst_comp_subst[symmetric] \<mu>_\<gamma>.
 
-  (* TODO: abbrev *)
   moreover have "clause.is_welltyped \<V> (conclusion' \<cdot> \<mu>)"
     using eq_resolution eq_resolution_preserves_typing typing(1) by blast
 

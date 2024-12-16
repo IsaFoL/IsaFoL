@@ -4,8 +4,9 @@ theory Functional_Substitution
     FSet_Extra
 begin
 
-(* TODO: Ask Martin if I can split of id_subst and comp_subst  *)
-locale functional_substitution = substitution _ _ subst "\<lambda>a. vars a = {}" 
+(* TODO: assume is_ground \<longleftrightarrow> vars = {} (not define) *)
+(* TODO: Ask Martin if I can split of id_subst and comp_subst \<rightarrow> Yes but with other name *)
+locale functional_substitution = substitution _ _ subst "\<lambda>expr. vars expr = {}"
   for
     subst :: "'expr \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> 'expr" (infixl "\<cdot>" 70) and
     vars :: "'expr \<Rightarrow> 'var set" +

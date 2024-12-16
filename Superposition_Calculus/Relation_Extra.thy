@@ -6,7 +6,7 @@ lemma transp_on_empty[simp]: "transp_on {} R"
   by (auto intro: transp_onI)
 
 lemma asymp_on_empty[simp]: "asymp_on {} R"
-  by (auto intro: asymp_onI)
+  by auto
 
 lemma partition_set_around_element:
   assumes tot: "totalp_on N R" and x_in: "x \<in> N"

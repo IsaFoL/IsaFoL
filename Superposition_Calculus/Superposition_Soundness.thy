@@ -408,17 +408,14 @@ proof (cases D E C rule: superposition.cases)
         literal_entails_unfolds
         term.is_imgu_unifies'[OF superpositionI(13)]
 
-      consider "\<P> = Pos" | "\<P> = Neg"
-        using superpositionI(9)
-        by auto
-
-      then have "\<not> ?I \<TTurnstile>l ?l\<^sub>G\<^sub>1 \<or> \<not> ?I \<TTurnstile>l ?l\<^sub>G\<^sub>2"
+      from literal_cases[OF superpositionI(9)]
+      have "\<not> ?I \<TTurnstile>l ?l\<^sub>G\<^sub>1 \<or> \<not> ?I \<TTurnstile>l ?l\<^sub>G\<^sub>2"
       proof cases
         case Pos: 1
-        
+
         show ?thesis
           using False symmetric_upair_context_congruence
-          unfolding Pos unfolds 
+          unfolding Pos unfolds
           by blast
       next
         case Neg: 2

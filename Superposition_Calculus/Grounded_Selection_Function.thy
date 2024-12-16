@@ -30,11 +30,44 @@ lemma obtain_subst_stable_on_select_grounding:
 proof-
   let ?N\<^sub>G = "\<Union>(clause_groundings ` N)"
 
-  have select\<^sub>G_exists_for_premises: 
-     "\<forall>C\<^sub>G \<in> ?N\<^sub>G. \<exists>select\<^sub>G \<gamma>. \<exists>(C, \<V>) \<in> N.
+
+  {
+    fix C \<V> \<gamma>
+    assume groundings:
+      "(C, \<V>) \<in> N" 
+      "clause.is_ground (C \<cdot> \<gamma>)"
+      "clause.is_welltyped \<V> C"
+      "is_welltyped_on (clause.vars C) \<V> \<gamma>"
+      "infinite_variables_per_type \<V>"
+
+    have 
+      "\<exists>\<gamma>'. \<exists>(C', \<V>')\<in>N. \<exists>select\<^sub>G. 
+        select_subst_stability_on_clause select select\<^sub>G (clause.to_ground (C \<cdot> \<gamma>)) C' \<V>' \<gamma>'"
+    proof(
+        rule exI[of _ \<gamma>], 
+        rule bexI[of _ "(C, \<V>)"], 
+        intro case_prodI Meson.conj_exD1 Meson.conj_exD2 conjI)
+
+      show "C \<cdot> \<gamma> = clause.from_ground (clause.to_ground (C \<cdot> \<gamma>))"
+        using groundings
+        by simp
+    next
+
+      show "\<exists>select\<^sub>G. select\<^sub>G (clause.to_ground (C \<cdot> \<gamma>)) = clause.to_ground (select C \<cdot> \<gamma>)"
+        by fast
+    qed (rule groundings)+     
+  }
+
+  then have
+     "\<forall>C\<^sub>G \<in> ?N\<^sub>G. \<exists>\<gamma>. \<exists>(C, \<V>) \<in> N. \<exists>select\<^sub>G.
          select_subst_stability_on_clause select select\<^sub>G C\<^sub>G C \<V> \<gamma>"
     unfolding clause_groundings_def
-    by fastforce (* TODO: Slow *)
+    by auto
+
+  then have select\<^sub>G_exists_for_premises: 
+     "\<forall>C\<^sub>G \<in> ?N\<^sub>G. \<exists>select\<^sub>G \<gamma>. \<exists>(C, \<V>) \<in> N.
+         select_subst_stability_on_clause select select\<^sub>G C\<^sub>G C \<V> \<gamma>"
+    by blast
 
   obtain select\<^sub>G_on_groundings where 
     select\<^sub>G_on_groundings: "select_subst_stability_on select select\<^sub>G_on_groundings N"

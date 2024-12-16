@@ -3,14 +3,14 @@ theory Fun_Extra
 begin
 
 lemma 
-  infinite_even_nat: "infinite { n :: nat . even n }" and 
-  infinite_odd_nat: "infinite { n :: nat . odd n }"
+  infinite_even_nat: "infinite { n :: nat. even n }" and 
+  infinite_odd_nat: "infinite { n :: nat. odd n }"
   by (metis Suc_leD dual_order.refl even_Suc infinite_nat_iff_unbounded_le mem_Collect_eq)+
 
 lemma partitions:
   assumes "infinite (UNIV :: 'x set)"
   obtains A B where
-    "|A| =o |B|" 
+    "|A| =o |B|"
     "|A| =o |UNIV :: 'x set|"
     "A \<inter> B = {}"
     "A \<union> B = (UNIV :: 'x set)"

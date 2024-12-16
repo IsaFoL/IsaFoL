@@ -1,7 +1,7 @@
 theory Renaming
   imports 
     Fun_Extra 
-    Nonground_Clause
+    Multiset_Extra
 begin
 
 (* TODO Martin: Where should we put this?  *)

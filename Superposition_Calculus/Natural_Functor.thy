@@ -2,7 +2,8 @@ theory Natural_Functor
   imports Main
 begin
 
-(* TODO: Name natural transformation? *)
+(* TODO: Integration with built-in functor command possible? *)
+
 locale natural_functor =
   fixes
     map :: "('a \<Rightarrow> 'a) \<Rightarrow> 'b \<Rightarrow> 'b" and

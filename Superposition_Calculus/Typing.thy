@@ -7,6 +7,7 @@ locale typing =
   assumes is_typed_if_is_welltyped: 
     "\<And>expr. is_welltyped expr \<Longrightarrow> is_typed expr"
 
+(* TODO: Should not be a locale *)
 locale predicate_typed = 
   fixes typed :: "'expr \<Rightarrow> 'ty \<Rightarrow> bool"
   assumes right_unique: "right_unique typed"

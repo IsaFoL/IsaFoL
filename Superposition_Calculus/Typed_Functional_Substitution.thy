@@ -19,7 +19,7 @@ begin
 sublocale predicate_typed "typed \<V>"
   by (rule predicate_typed)
 
-abbreviation is_typed_on :: "'var set \<Rightarrow> ('var \<Rightarrow> 'ty) \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> bool" where 
+abbreviation is_typed_on :: "'var set \<Rightarrow> ('var, 'ty) var_types \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> bool" where 
   "is_typed_on X \<V> \<sigma> \<equiv> \<forall>x \<in> X. typed \<V> (\<sigma> x) (\<V> x)"
 
 end
