@@ -18,7 +18,6 @@ hide_const
 context grounded_superposition_calculus
 begin
 
-
 lemma eq_resolution_lifting:
   fixes 
     premise\<^sub>G conclusion\<^sub>G :: "'f gatom clause" and 
@@ -967,7 +966,7 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     obtain var\<^sub>x where var\<^sub>x: "Var var\<^sub>x = term\<^sub>x \<cdot>t \<rho>\<^sub>1"
       using renaming(1)
       unfolding is_Var_def term_subst.is_renaming_def subst_compose_def
-      by (metis eval_subst_def eval_term.simps(1) literal.is_renaming_def renaming(1) 
+      by (metis eval_subst_def eval_term.simps(1) term.is_renaming_def renaming(1) 
           subst_apply_eq_Var)
 
     have \<tau>\<^sub>x_var\<^sub>x: "welltyped \<V>\<^sub>1 (Var var\<^sub>x) \<tau>\<^sub>x"

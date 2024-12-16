@@ -257,7 +257,7 @@ end
 locale typed_renaming = typed_functional_substitution +
 assumes
   typed_renaming [simp]: 
-    "\<And>\<V> \<V>' expr \<rho>. is_renaming \<rho> \<Longrightarrow> 
+    "\<And>\<V> \<V>' expr \<rho>. base.is_renaming \<rho> \<Longrightarrow> 
       \<forall>x \<in> vars (expr \<cdot> \<rho>). \<V> (inv \<rho> (id_subst x)) = \<V>' x \<Longrightarrow> 
       is_typed \<V>' (expr \<cdot> \<rho>) \<longleftrightarrow> is_typed \<V> expr"
 

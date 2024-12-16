@@ -4,7 +4,6 @@ theory Functional_Substitution
     "HOL-Library.FSet"
 begin
 
-(* TODO: Ask Martin if I can split of id_subst and comp_subst \<rightarrow> Yes but with other name *)
 locale functional_substitution = substitution where
   subst = subst and is_ground = "\<lambda>expr. vars expr = {}"
   for

@@ -257,8 +257,8 @@ end
 
 subsection \<open>Setup for lifting from terms\<close>
 
-locale lifting = 
-  based_functional_substitution_lifting + 
+locale lifting =
+  based_functional_substitution_lifting +
   all_subst_ident_iff_ground_lifting +
   grounding_lifting +
   renaming_variables_lifting +

@@ -199,7 +199,7 @@ begin
 sublocale renaming_variables where subst = subst and vars = vars
 proof unfold_locales
   fix expr \<rho>
-  assume "is_renaming \<rho>"
+  assume "sub.is_renaming \<rho>"
 
   then show "id_subst ` vars (expr \<cdot> \<rho>) = \<rho> ` vars expr"
     using sub.renaming_variables
