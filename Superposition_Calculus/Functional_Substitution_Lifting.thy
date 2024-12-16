@@ -169,17 +169,15 @@ locale finite_variables_lifting =
   functional_substitution_lifting
 begin
 
-sublocale to_set: finite_set where set = to_set
-  by unfold_locales auto
-
 abbreviation to_fset :: "'expr \<Rightarrow> 'sub fset" where 
-  "to_fset \<equiv> to_set.finite_set"
-
-lemmas to_set_finite = to_set.finite_set'
-lemmas fset_to_fset = to_set.fset_finite_set
+  "to_fset expr \<equiv>  Abs_fset (to_set expr)"
 
 sublocale finite_variables where vars = vars and subst = subst
-  by unfold_locales (simp add: vars_def)
+  by unfold_locales (auto simp: vars_def finite_to_set)
+
+lemma fset_to_fset [simp]: "fset (to_fset expr) = to_set expr"
+  using Abs_fset_inverse finite_to_set
+  by blast
 
 lemma to_fset_map: "\<And>expr f. to_fset (map f expr) = f |`| to_fset expr"
   using to_set_map

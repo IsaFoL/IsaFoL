@@ -1726,8 +1726,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
 
     have "\<And>ty. infinite {x. x \<notin> clause.vars (premise\<^sub>1 \<cdot> \<rho>\<^sub>1) \<and> \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = ty}"
       unfolding zz
-      using qq
-      by auto
+      using qq clause.finite_vars[of "premise\<^sub>1 \<cdot> \<rho>\<^sub>1"]
+      by simp
 
     then have infinite_variables_per_type_\<V>\<^sub>3: "infinite_variables_per_type \<V>\<^sub>3"   
       unfolding \<V>\<^sub>3_def infinite_variables_per_type_def yy     

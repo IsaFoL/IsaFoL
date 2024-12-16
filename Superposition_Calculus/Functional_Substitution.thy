@@ -1,10 +1,9 @@
 theory Functional_Substitution
   imports
     Abstract_Substitution.Substitution
-    FSet_Extra
+    "HOL-Library.FSet"
 begin
 
-(* TODO: is_ground can be changed by rewrites *)
 (* TODO: Ask Martin if I can split of id_subst and comp_subst \<rightarrow> Yes but with other name *)
 locale functional_substitution = substitution where
   subst = subst and is_ground = "\<lambda>expr. vars expr = {}"
@@ -59,13 +58,17 @@ locale all_subst_ident_iff_ground =
     exists_non_ident_subst:
       "\<And>expr S. finite S \<Longrightarrow> \<not>is_ground expr \<Longrightarrow> \<exists>\<sigma>. subst expr \<sigma> \<noteq> expr \<and> subst expr \<sigma> \<notin> S"
 
-locale finite_variables = functional_substitution + finite_set vars 
+locale finite_variables = functional_substitution where vars = vars 
+  for vars :: "'expr \<Rightarrow> 'var set" + 
+  assumes finite_vars [intro]: "\<And>expr. finite (vars expr)"
 begin
 
-lemmas finite_vars = finite_set finite_set'
-lemmas fset_finite_vars = fset_finite_set
+abbreviation finite_vars :: "'expr \<Rightarrow> 'var fset" where 
+  "finite_vars expr \<equiv> Abs_fset (vars expr)"
 
-abbreviation "finite_vars \<equiv> finite_set"
+lemma fset_finite_vars [simp]: "fset (finite_vars expr) = vars expr"
+  using Abs_fset_inverse finite_vars
+  by blast
 
 end
 
@@ -166,8 +169,8 @@ locale base_functional_substitution = functional_substitution
   assumes
     vars_subst_vars: "\<And>expr \<rho>. vars (expr \<cdot> \<rho>) = \<Union> (vars ` \<rho> ` vars expr)" and
     base_ground_exists: "\<exists>expr. is_ground expr" and
-    vars_id_subst: "vars (id_subst x) = {x}" and
-    comp_subst_iff: "(\<sigma> \<odot> \<sigma>') x = \<sigma> x \<cdot> \<sigma>'"
+    vars_id_subst: "\<And>x. vars (id_subst x) = {x}" and
+    comp_subst_iff: "\<And>\<sigma> \<sigma>' x. (\<sigma> \<odot> \<sigma>') x = \<sigma> x \<cdot> \<sigma>'"
 
 locale based_functional_substitution = 
   base: base_functional_substitution where subst = base_subst and vars = base_vars + 
@@ -177,8 +180,8 @@ for
   base_vars and 
   vars :: "'expr \<Rightarrow> 'var set" +
 assumes
-  ground_subst_iff_base_ground_subst [simp]: "is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>" and
-  vars_subst: "vars (expr \<cdot> \<rho>) = \<Union> (base_vars ` \<rho> ` vars expr)"
+  ground_subst_iff_base_ground_subst [simp]: "\<And>\<gamma>. is_ground_subst \<gamma> \<longleftrightarrow> base.is_ground_subst \<gamma>" and
+  vars_subst: "\<And>expr \<rho>.  vars (expr \<cdot> \<rho>) = \<Union> (base_vars ` \<rho> ` vars expr)"
 begin
 
 lemma is_grounding_iff_vars_grounded: 
