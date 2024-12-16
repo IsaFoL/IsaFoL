@@ -53,23 +53,10 @@ locale superposition_calculus =
     tiebreakers :: "'f gatom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> ('f, 'v) atom clause \<Rightarrow> bool" 
   assumes
     tiebreakers: "\<And>C\<^sub>G. wellfounded_strict_order (tiebreakers C\<^sub>G)" and
-  (* TODO/ Note: Was not needed without types \<rightarrow> Discuss *)
-    function_symbols: "\<And>\<tau>. \<exists>f. \<F> f = ([], \<tau>)" and
+    (* TODO: Move to locale assumption *)
     variables: "|UNIV :: 'ty set| \<le>o |UNIV :: 'v set|" and
     ground_critical_pair_theorem: "\<And>(R :: 'f gterm rel). ground_critical_pair_theorem R"
 begin
-
-(* TODO: Put this with function_symbols into tying locale *)
-lemma types_inhabited: "\<exists>t. term.is_ground t \<and> welltyped \<V> t \<tau>"
-proof(intro exI[of _ "Fun (SOME f. \<F> f = ([], \<tau>)) []"] conjI )
-
-  show "term.is_ground (Fun (SOME f. \<F> f = ([], \<tau>)) [])"
-    by simp
-
-  show "welltyped \<V> (Fun (SOME f. \<F> f = ([], \<tau>)) []) \<tau>"
-    using someI_ex[OF function_symbols]
-    by(auto simp: welltyped.Fun)
-qed
 
 interpretation term_order_notation.
 
@@ -125,6 +112,7 @@ inductive eq_factoring :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty
 (* TODO: Order of conditions *)
 (* TODO: Get things like is_renaming out of the name scope *)
 (* TODO: \<P> \<in> {Pos, Neg} *)
+(* TODO: \<forall>x \<in> clause.vars (D \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x *)
 inductive superposition ::
   "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty) typed_clause \<Rightarrow> bool"
 where

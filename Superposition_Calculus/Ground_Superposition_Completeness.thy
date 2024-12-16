@@ -1,5 +1,5 @@
 theory Ground_Superposition_Completeness
-  imports Ground_Superposition
+  imports Ground_Superposition Relation_Extra
 begin
 
 subsection \<open>Mode Construction\<close>

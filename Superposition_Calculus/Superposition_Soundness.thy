@@ -46,9 +46,7 @@ proof (cases D C rule: eq_resolution.cases)
       \<gamma>'_is_ground_subst: "term_subst.is_ground_subst \<gamma>'" and
       \<gamma>'_is_welltyped: "is_welltyped \<V> \<gamma>'" and
       \<gamma>'_\<gamma>: "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
-      using 
-        clause.is_welltyped.ground_subst_extension[OF
-          types_inhabited C_is_ground \<gamma>_is_welltyped].
+      using clause.is_welltyped.ground_subst_extension[OF C_is_ground \<gamma>_is_welltyped].
 
     let ?D\<^sub>G = "clause.to_ground (D \<cdot> \<mu> \<cdot> \<gamma>')"
     let ?l\<^sub>G = "literal.to_ground (l \<cdot>l \<mu> \<cdot>l \<gamma>')"
@@ -154,9 +152,7 @@ proof (cases D C rule: eq_factoring.cases)
       \<gamma>'_is_ground_subst: "term_subst.is_ground_subst \<gamma>'" and
       \<gamma>'_is_welltyped: "is_welltyped \<V> \<gamma>'" and
       \<gamma>'_\<gamma>: "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
-      using 
-        clause.is_welltyped.ground_subst_extension[OF
-          types_inhabited C_is_ground \<gamma>_is_welltyped].
+      using clause.is_welltyped.ground_subst_extension[OF C_is_ground \<gamma>_is_welltyped].
 
     let ?D\<^sub>G = "clause.to_ground (D \<cdot> \<mu> \<cdot> \<gamma>')"
     let ?D\<^sub>G' = "clause.to_ground (D' \<cdot> \<mu> \<cdot> \<gamma>')"
@@ -283,9 +279,7 @@ proof (cases D E C rule: superposition.cases)
       \<gamma>'_is_ground_subst: "term_subst.is_ground_subst \<gamma>'" and
       \<gamma>'_is_welltyped: "is_welltyped \<V>\<^sub>3 \<gamma>'" and
       \<gamma>'_\<gamma>: "\<forall>x \<in> clause.vars C. \<gamma> x = \<gamma>' x"
-      using
-        clause.is_welltyped.ground_subst_extension[OF 
-          types_inhabited C_is_ground \<gamma>_is_welltyped].
+      using clause.is_welltyped.ground_subst_extension[OF C_is_ground \<gamma>_is_welltyped].
 
     let ?E\<^sub>G = "clause.to_ground (E \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<cdot> \<gamma>')"
     let ?D\<^sub>G = "clause.to_ground (D \<cdot> \<rho>\<^sub>2 \<cdot> \<mu> \<cdot> \<gamma>')"

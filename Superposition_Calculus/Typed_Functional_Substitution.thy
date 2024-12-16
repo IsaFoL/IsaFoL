@@ -13,7 +13,11 @@ for
   id_subst :: "'var \<Rightarrow> 'base" and
   vars :: "'base \<Rightarrow> 'var set" and
   typed :: "('var, 'ty) var_types \<Rightarrow> 'base \<Rightarrow> 'ty \<Rightarrow> bool" +
-assumes predicate_typed: "\<And>\<V>. predicate_typed (typed \<V>)"
+assumes 
+  predicate_typed: "\<And>\<V>. predicate_typed (typed \<V>)" and
+  typed_id_subst: "\<V> x = \<tau> \<Longrightarrow> typed \<V> (id_subst x) \<tau>" and
+   (* TODO: Does it make sense to have this in a separate locale? *)
+  types_inhabited: "\<And>\<tau>. \<exists>base. is_ground base \<and> typed \<V> base \<tau>"
 begin
 
 sublocale predicate_typed "typed \<V>"
@@ -21,6 +25,12 @@ sublocale predicate_typed "typed \<V>"
 
 abbreviation is_typed_on :: "'var set \<Rightarrow> ('var, 'ty) var_types \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> bool" where 
   "is_typed_on X \<V> \<sigma> \<equiv> \<forall>x \<in> X. typed \<V> (\<sigma> x) (\<V> x)"
+
+lemma subst_update:
+  assumes "typed \<V> (id_subst var) \<tau>" "typed \<V> update \<tau>"  "is_typed_on X \<V> \<gamma>" 
+  shows "is_typed_on X \<V> (\<gamma>(var := update))"
+  using assms typed_id_subst
+  by fastforce
 
 end
 
@@ -35,9 +45,7 @@ for
 begin
 
 lemma ground_subst_extension:
-  assumes 
-    (* TODO: Make assumption in explicitly_typed_functional_substitution *)
-    types_inhabited: "\<And>\<tau>. \<exists>base. base.is_ground base \<and> base_typed \<V> base \<tau>" and
+  assumes
     grounding: "is_ground (expr \<cdot> \<gamma>)" and
     \<gamma>_is_typed_on: "base.is_typed_on (vars expr) \<V> \<gamma>"
   obtains \<gamma>'
@@ -71,7 +79,7 @@ proof standard
         case False
         then show ?thesis
           unfolding \<gamma>'_def
-          by (smt (verit) types_inhabited tfl_some)
+          by (smt (verit) base.types_inhabited tfl_some)
       qed
     }
 
@@ -82,7 +90,7 @@ proof standard
 
   show "base.is_typed_on UNIV \<V> \<gamma>'"
     unfolding \<gamma>'_def
-    using \<gamma>_is_typed_on types_inhabited
+    using \<gamma>_is_typed_on base.types_inhabited
     by (simp add: verit_sko_ex_indirect)
 
   show "\<forall>x \<in> vars expr. \<gamma> x = \<gamma>' x"
@@ -262,25 +270,13 @@ assumes
   explicit_typed_renaming [simp]: 
   "\<And>\<V> \<V>' expr \<rho> \<tau>. is_renaming \<rho> \<Longrightarrow> 
       \<forall>x \<in> vars (expr \<cdot> \<rho>). \<V> (inv \<rho> (id_subst x)) = \<V>' x \<Longrightarrow>
-      typed \<V>' (expr \<cdot> \<rho>) \<tau> \<longleftrightarrow> typed \<V> expr \<tau>" and
-  (* TODO: Move to correct place/ separate *)
-  is_renaming_iff: "is_renaming \<rho> \<longleftrightarrow> inj \<rho> \<and> (\<forall>x. \<exists>x'. \<rho> x = id_subst x')" and
-  subst_compose: "(\<rho> \<odot> \<gamma>) x = (\<rho> x) \<cdot> \<gamma>" and
-  id_subst_keeps_var: "x \<in> vars (id_subst x)" and
-  typed_id_subst: "\<V> x = \<tau> \<Longrightarrow> typed \<V> (id_subst x) \<tau>"
+      typed \<V>' (expr \<cdot> \<rho>) \<tau> \<longleftrightarrow> typed \<V> expr \<tau>"
 begin
 
 sublocale typed_renaming 
   where base_vars = vars and base_subst = subst and base_typed = typed and is_typed = is_typed
   using explicit_typed_renaming
   by unfold_locales blast
-
-(* TODO: Move *)
-lemma subst_update:
- assumes "typed \<V> (id_subst var) \<tau>" "typed \<V> update \<tau>"  "is_typed_on X \<V> \<gamma>" 
- shows "is_typed_on X \<V> (\<gamma>(var := update))"
-  using assms typed_id_subst
-  by fastforce
 
 lemma inv_renaming:
   assumes "is_renaming \<rho>"
@@ -289,7 +285,7 @@ lemma inv_renaming:
   unfolding is_renaming_iff
   by simp
 
-(* TODO: *)
+(* TODO: Name *)
 lemma is_welltyped_renaming_ground_subst_weaker: 
   assumes 
     "is_renaming \<rho>"
@@ -309,14 +305,14 @@ proof(intro ballI)
     using obtain_renamed_variable[OF assms(1)].
 
   then have "y \<in> \<Union>(vars ` \<rho> ` X)"
-    using \<open>x \<in> X\<close>  id_subst_keeps_var
-    by force
+    using \<open>x \<in> X\<close>  
+    by (metis UN_iff image_eqI singletonI vars_id_subst)
 
   moreover have "typed \<V> (\<gamma> y) (\<V>' y)"
     using explicit_replace_\<V>
-    by (metis UNIV_I assms(2,4) is_ground_subst_is_ground variable_grounding emptyE 
-        id_subst_keeps_var)
-
+    by (metis assms(2,4) comp_subst.left_neutral emptyE is_ground_subst_is_ground iso_tuple_UNIV_I 
+        comp_subst_iff)
+   
   ultimately have "typed \<V> (\<gamma> y) (\<V> (inv \<rho> (id_subst y)))"
     using assms(5) by force
 
@@ -326,7 +322,7 @@ proof(intro ballI)
 
   moreover have "\<gamma> y = (\<rho> \<odot> \<gamma>) x"
     using y
-    by (metis comp_subst.left_neutral subst_compose)
+    by (metis comp_subst.left_neutral comp_subst_iff)
 
   ultimately show "typed \<V> ((\<rho> \<odot> \<gamma>) x) (\<V> x)"
     by argo
@@ -380,7 +376,6 @@ proof-
   moreover have "is_typed_on X \<V>\<^sub>1 \<rho>\<^sub>1" "is_typed_on Y \<V>\<^sub>2 \<rho>\<^sub>2"
     unfolding \<rho>\<^sub>1_def \<rho>\<^sub>2_def
     using renamings(4, 5)
-    
     by(auto simp: typed_id_subst)
 
   ultimately show ?thesis 

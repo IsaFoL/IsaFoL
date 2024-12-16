@@ -139,7 +139,7 @@ lemma to_set_subset_is_ground:
 
 end
 
-locale based_functional_substitution_lifting = 
+locale based_functional_substitution_lifting =
   functional_substitution_lifting +
   base: base_functional_substitution where subst = base_subst and vars = base_vars +
   sub: based_functional_substitution where subst = sub_subst and vars = sub_vars
@@ -200,14 +200,14 @@ begin
 
 sublocale renaming_variables where subst = subst and vars = vars
 proof unfold_locales
-  fix expr \<rho>    
+  fix expr \<rho>
   assume "is_renaming \<rho>"
 
   then show "id_subst ` vars (expr \<cdot> \<rho>) = \<rho> ` vars expr"
     using sub.renaming_variables
     unfolding vars_def subst_def to_set_map
     by fastforce
-qed (rule sub.renaming)
+qed (rule sub.is_renaming_iff)
 
 end      
 
@@ -385,22 +385,6 @@ next
     by auto
 
   ultimately show "\<exists>\<sigma>. expr \<cdot> \<sigma> \<noteq> expr \<and> expr \<cdot> \<sigma> \<notin> S"
-    by blast
-qed
-
-end
-
-locale vars_subst_lifting = 
-  based_functional_substitution_lifting + 
-  sub: vars_subst where subst = sub_subst and vars = sub_vars
-begin
-
-sublocale vars_subst where subst = subst and vars = vars
-proof unfold_locales
-  fix expr \<sigma>
-  show "vars (expr \<cdot> \<sigma>) \<subseteq> vars expr - subst_domain \<sigma> \<union> range_vars \<sigma>"
-    using sub.vars_subst_subset
-    unfolding vars_def subst_def to_set_map
     by blast
 qed
 

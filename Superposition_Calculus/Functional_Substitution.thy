@@ -4,9 +4,10 @@ theory Functional_Substitution
     FSet_Extra
 begin
 
-(* TODO: assume is_ground \<longleftrightarrow> vars = {} (not define) *)
+(* TODO: is_ground can be changed by rewrites *)
 (* TODO: Ask Martin if I can split of id_subst and comp_subst \<rightarrow> Yes but with other name *)
-locale functional_substitution = substitution _ _ subst "\<lambda>expr. vars expr = {}"
+locale functional_substitution = substitution where
+  subst = subst and is_ground = "\<lambda>expr. vars expr = {}"
   for
     subst :: "'expr \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> 'expr" (infixl "\<cdot>" 70) and
     vars :: "'expr \<Rightarrow> 'var set" +
@@ -43,23 +44,13 @@ lemma subst_cannot_unground:
   shows "\<not>is_ground expr"
   using assms by force
 
-(* 
-TODO: Bring here?
-
 definition subst_domain :: "('var \<Rightarrow> 'base) \<Rightarrow> 'var set" where
   "subst_domain \<sigma> = {x. \<sigma> x \<noteq> id_subst x}"
 
 abbreviation subst_range :: "('var \<Rightarrow> 'base) \<Rightarrow> 'base set" where 
   "subst_range \<sigma> \<equiv> \<sigma> ` subst_domain \<sigma>"
-*)
 
 end
-
-(* TODO: If we have subst_domain + subst_range here, then this can be probably directly proven 
-  with vars_subst *)
-locale vars_subst = functional_substitution +
-  fixes subst_domain range_vars
-  assumes vars_subst_subset: "\<And>expr \<sigma>. vars (expr \<cdot> \<sigma>) \<subseteq> (vars expr - subst_domain \<sigma>) \<union> range_vars \<sigma>"
 
 locale all_subst_ident_iff_ground =
   functional_substitution +
@@ -80,20 +71,22 @@ end
 
 locale renaming_variables = functional_substitution +
   assumes
-    (* TODO: Does it make sense to have this as an equality? *)
-    renaming: "\<And>\<rho> x. is_renaming \<rho> \<Longrightarrow> \<rho> x \<in> range id_subst" and 
-    (* TODO: simp? *)
+    is_renaming_iff: "is_renaming \<rho> \<longleftrightarrow> inj \<rho> \<and> (\<forall>x. \<exists>x'. \<rho> x = id_subst x')" and
     renaming_variables: "\<And>expr \<rho>. is_renaming \<rho>  \<Longrightarrow> id_subst ` vars (expr \<cdot> \<rho>) = \<rho> ` (vars expr)"
 begin
 
-(* TODO: Helpful for typed renaming? *)
+lemma renaming_range_id_subst: 
+  shows "is_renaming \<rho> \<Longrightarrow> \<rho> x \<in> range id_subst"
+  unfolding is_renaming_iff
+  by auto
+
 definition rename where
   "is_renaming \<rho> \<Longrightarrow> rename \<rho> x \<equiv> SOME x'. \<rho> x = id_subst x'"
 
 lemma obtain_renamed_variable: 
   assumes "is_renaming \<rho>" 
   obtains x' where "\<rho> x = id_subst x'"
-  using renaming[OF assms]
+  using renaming_range_id_subst[OF assms]
   by auto
 
 lemma id_subst_rename [simp]:
@@ -102,6 +95,13 @@ lemma id_subst_rename [simp]:
   unfolding rename_def[OF assms] 
   using obtain_renamed_variable[OF assms]
   by (metis (mono_tags, lifting) someI)
+
+lemma surj_inv_renaming:
+  assumes "is_renaming \<rho>"
+  shows "surj (\<lambda>x. inv \<rho> (id_subst x))"
+  using assms inv_f_f
+  unfolding is_renaming_iff surj_def
+  by metis
 
 end
 
@@ -165,11 +165,13 @@ locale base_functional_substitution = functional_substitution
   for id_subst :: "'var \<Rightarrow> 'expr" and vars :: "'expr \<Rightarrow> 'var set" +
   assumes
     vars_subst_vars: "\<And>expr \<rho>. vars (expr \<cdot> \<rho>) = \<Union> (vars ` \<rho> ` vars expr)" and
-    base_ground_exists: "\<exists>expr. is_ground expr"
+    base_ground_exists: "\<exists>expr. is_ground expr" and
+    vars_id_subst: "vars (id_subst x) = {x}" and
+    comp_subst_iff: "(\<sigma> \<odot> \<sigma>') x = \<sigma> x \<cdot> \<sigma>'"
 
 locale based_functional_substitution = 
   base: base_functional_substitution where subst = base_subst and vars = base_vars + 
-  functional_substitution where vars = vars 
+  functional_substitution where vars = vars
 for
   base_subst :: "'base \<Rightarrow> ('var \<Rightarrow> 'base) \<Rightarrow> 'base" and 
   base_vars and 
@@ -224,11 +226,13 @@ lemma variable_grounding:
   using assms is_grounding_iff_vars_grounded 
   by blast
 
-(*
-TODO: Bring here?
 definition range_vars :: "('var \<Rightarrow> 'base) \<Rightarrow> 'var set" where
   "range_vars \<sigma> = \<Union>(base_vars ` subst_range \<sigma>)"
-*)
+
+lemma vars_subst_subset: "vars (expr \<cdot> \<sigma>) \<subseteq> (vars expr - subst_domain \<sigma>) \<union> range_vars \<sigma>"
+  unfolding subst_domain_def range_vars_def vars_subst
+  using base.vars_id_subst
+  by (smt (verit, del_insts) Diff_iff UN_iff UnCI image_iff mem_Collect_eq singletonD subsetI)
 
 end
 

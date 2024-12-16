@@ -17,6 +17,7 @@ locale nonground_term_functional_substitution_typing =
 locale nonground_term_typing =
   "term": nonground_term +
   fixes \<F> :: "('f, 'ty) fun_types"
+  assumes types_inhabited: "\<And>\<tau>. \<exists>f. \<F> f = ([], \<tau>)"
 begin
 
 inductive typed :: "('v, 'ty) var_types \<Rightarrow> ('f,'v) term \<Rightarrow> 'ty \<Rightarrow> bool" 
@@ -368,20 +369,33 @@ next
     qed
   qed
 next
-  show "\<And>\<rho>. term_subst.is_renaming \<rho> \<longleftrightarrow> inj \<rho> \<and> (\<forall>x. \<exists>x'. \<rho> x = Var x')"
-    by (simp add: term_subst_is_renaming_iff is_Var_def)
-next
-  show "\<And>\<rho> \<gamma> x. (\<rho> \<odot> \<gamma>) x = \<rho> x \<cdot>t \<gamma>"
-    unfolding subst_compose ..
-next
-  show "\<And>x. x \<in> term.vars (Var x)"
-    by simp
-next
   show "\<And>\<V> x \<tau>. \<V> x = \<tau> \<Longrightarrow> typed \<V> (Var x) \<tau>"
     using typed.Var .
 next
   show "\<And>\<V> x \<tau>. \<V> x = \<tau> \<Longrightarrow> welltyped \<V> (Var x) \<tau>"
     using welltyped.Var .
+next 
+  fix \<V> :: "('v, 'ty) var_types" and \<tau>
+ 
+  obtain f where f: "\<F> f = ([], \<tau>)"
+    using types_inhabited
+    by blast
+
+  show "\<exists>t. term.is_ground t \<and> welltyped \<V> t \<tau>"
+  proof(rule exI[of _ "Fun f []"], intro conjI welltyped.Fun)
+    show "term.is_ground (Fun f [])"
+      by simp
+  next
+    show "\<F> f = ([], \<tau>)"
+      by(rule f)
+  next
+    show "list_all2 (welltyped \<V>) [] []"
+      by simp
+  qed
+
+  then show "\<exists>t. term.is_ground t \<and> typed \<V> t \<tau>"  
+    using term.typed_if_welltyped
+    by blast
 qed
 
 (* TODO: Move further up *)
@@ -629,7 +643,7 @@ proof-
     by blast
 
   then show ?thesis
-    using that imgu_exists_extendable[OF unified]
+    using that obtains_imgu_from_unifier_and_the_mgu[OF unified]
     by (metis the_mgu the_mgu_term_subst_is_imgu unified)
 qed
 
@@ -655,7 +669,7 @@ proof-
     by blast
 
   then show ?thesis
-    using that imgu_exists_extendable[OF unified]
+    using that obtains_imgu_from_unifier_and_the_mgu[OF unified]
     by (metis assms(2) assms(3) the_mgu the_mgu_term_subst_is_imgu unified)
 qed
 

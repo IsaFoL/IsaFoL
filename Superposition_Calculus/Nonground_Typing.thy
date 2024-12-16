@@ -50,11 +50,9 @@ locale term_based_nonground_uniform_typing_lifting =
 
 locale nonground_typing =
   nonground_clause +
-  fixes \<F> :: "('f, 'ty) fun_types"
-begin 
-
-sublocale nonground_term_typing "\<F> :: ('f, 'ty) fun_types" 
-  by unfold_locales
+  nonground_term_typing \<F>
+  for \<F> :: "('f, 'ty) fun_types"
+begin
 
 sublocale clause_typing "typed (\<V> :: ('v, 'ty) var_types)" "welltyped \<V>"
   by unfold_locales
@@ -85,10 +83,8 @@ lemma exists_infinite_variables_per_type:
   assumes "|UNIV :: 'ty set| \<le>o |UNIV :: ('v :: infinite) set|"
   shows "\<exists>\<V> :: ('v :: infinite \<Rightarrow> 'ty). infinite_variables_per_type \<V>"
   using infinite_domain[OF assms infinite_UNIV]
-  unfolding infinite_variables_per_type_def
-  by argo
+  unfolding infinite_variables_per_type_def.
 
-(* TODO: Needed? *)
 abbreviation is_welltyped_grounding where 
   "is_welltyped_grounding C \<V> \<gamma> \<equiv> 
     clause.is_ground (C \<cdot> \<gamma>) \<and> 
@@ -96,7 +92,7 @@ abbreviation is_welltyped_grounding where
     is_welltyped_on (clause.vars C) \<V> \<gamma> \<and>
     infinite_variables_per_type \<V>"
 
-definition clause_groundings :: "('f, 'v, 'ty) typed_clause \<Rightarrow> 'f ground_atom clause set"   where
+definition clause_groundings :: "('f, 'v, 'ty) typed_clause \<Rightarrow> 'f ground_atom clause set" where
   "clause_groundings C = 
     { clause.to_ground (fst C \<cdot> \<gamma>) | \<gamma>. is_welltyped_grounding (fst C) (snd C) \<gamma> }"
 

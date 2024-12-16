@@ -19,7 +19,7 @@ section \<open>Nonground Terms and Substitutions\<close>
 type_synonym 'f ground_term = "'f gterm"
 
 
-subsection\<open>Unified naming\<close>
+subsection \<open>Unified naming\<close>
 
 locale vars_def =
   fixes vars_def :: "'expr \<Rightarrow> 'var" 
@@ -41,21 +41,20 @@ abbreviation "from_ground \<equiv> from_ground_def"
 
 end
 
-subsection\<open>Term\<close>
+subsection \<open>Term\<close>
 
 locale nonground_term_properties =
   base_functional_substitution +
   finite_variables +
-  all_subst_ident_iff_ground + 
-  renaming_variables +
-  vars_subst
+  all_subst_ident_iff_ground +
+  renaming_variables
 
 locale term_grounding =
   variables_in_base_imgu where base_vars = vars and base_subst = subst +
   grounding
 
 (* TODO: Is there a better way for this? *) 
-locale nonground_term 
+locale nonground_term
 begin
 
 sublocale vars_def where vars_def = vars_term.
@@ -110,8 +109,7 @@ qed
 
 sublocale nonground_term_properties where 
   subst = "(\<cdot>t)" and id_subst = Var and comp_subst = "(\<odot>)" and 
-  vars = "vars :: ('f, 'v) term \<Rightarrow> 'v set" and subst_domain = subst_domain and 
-  range_vars = range_vars
+  vars = "vars :: ('f, 'v) term \<Rightarrow> 'v set"
 proof unfold_locales
   fix t :: "('f, 'v) term"  and \<sigma> \<tau> :: "('f, 'v) subst"
   assume "\<And>x. x \<in> vars t \<Longrightarrow> \<sigma> x = \<tau> x"
@@ -185,23 +183,25 @@ next
     using vars_term_of_gterm
     by metis
 next
-  fix t :: "('f, 'v) term" and \<rho> :: "('f, 'v) subst"
-  assume "term_subst.is_renaming \<rho>"
+  fix x :: 'v
+  show "vars (Var x) = {x}"
+    by simp
+next
+  fix \<rho> :: "('f, 'v) subst"
 
-  then show "Var ` vars (t \<cdot>t \<rho>) = \<rho> ` vars t"
-    unfolding term_subst_is_renaming_iff
-    using renaming_vars_term
-    by meson
+  show "term_subst.is_renaming \<rho> \<longleftrightarrow> inj \<rho> \<and> (\<forall>x. \<exists>x'. \<rho> x = Var x')"
+    using term_subst_is_renaming_iff 
+    unfolding is_Var_def.
+ 
 next
-  fix t :: "('f, 'v) term" and \<sigma>
-  show "vars (t \<cdot>t \<sigma>) \<subseteq> vars t - subst_domain \<sigma> \<union> range_vars \<sigma>"
-    by (rule vars_term_subst_apply_term_subset)
-next
-  fix \<rho> :: "('f, 'v) subst" and x
+  fix t and \<rho> :: "('f, 'v) subst"
   assume "term_subst.is_renaming \<rho>"
-  then show "\<rho> x \<in> range Var"
-    unfolding is_Var_def term_subst_is_renaming_iff
-    by blast
+  then show "Var ` vars (t \<cdot>t \<rho>) = \<rho> ` vars t "
+    by (simp add: renaming_vars_term term_subst_is_renaming_iff)
+next
+  fix \<sigma> \<sigma>' :: "('f, 'v) subst" and x
+  show "(\<sigma> \<odot> \<sigma>') x = \<sigma> x \<cdot>t \<sigma>'"
+    unfolding subst_compose_def ..
 qed
 
 sublocale term_grounding where 
@@ -209,7 +209,7 @@ sublocale term_grounding where
   vars = "vars :: ('f, 'v) term \<Rightarrow> 'v set" and from_ground = from_ground and 
   to_ground = to_ground
 proof unfold_locales
-   fix t :: "('f, 'v) term" and \<mu>  :: "('f, 'v) subst" and unifications
+   fix t :: "('f, 'v) term" and \<mu> :: "('f, 'v) subst" and unifications
 
   assume imgu:
     "term_subst.is_imgu \<mu> unifications" 
@@ -253,30 +253,20 @@ lemma obtain_ground_fun:
   using assms
   by(cases t) auto
 
-(* TODO: Move *)
-lemma renaming_surj_inv: 
-  fixes \<rho> :: "('f, 'v) subst"
-  assumes "term_subst.is_renaming \<rho>"
-  shows "surj (\<lambda>x. inv \<rho> (Var x))"
-  using assms inv_f_f
-  unfolding term_subst_is_renaming_iff is_Var_def surj_def
-  by metis
-
 end
 
-subsection\<open>Setup for lifting from terms\<close>
+subsection \<open>Setup for lifting from terms\<close>
 
 locale lifting = 
   based_functional_substitution_lifting + 
   all_subst_ident_iff_ground_lifting +
   grounding_lifting +
   renaming_variables_lifting +
-  variables_in_base_imgu_lifting +
-  vars_subst_lifting
+  variables_in_base_imgu_lifting
 
 locale term_based_lifting =
   "term": nonground_term +
-  lifting where comp_subst = "(\<odot>)" and id_subst = Var and subst_domain = subst_domain and 
-  range_vars = range_vars and base_subst = "(\<cdot>t)" and base_vars = term.vars
+  lifting where 
+  comp_subst = "(\<odot>)" and id_subst = Var and base_subst = "(\<cdot>t)" and base_vars = term.vars
 
 end

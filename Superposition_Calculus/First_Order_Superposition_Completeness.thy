@@ -1709,8 +1709,8 @@ proof(cases premise\<^sub>G\<^sub>2 premise\<^sub>G\<^sub>1 conclusion\<^sub>G r
     qed
 
     have surjx: "surj (\<lambda>x. inv \<rho>\<^sub>2 (Var x))"
-      using term.renaming_surj_inv[OF renaming(2)].
-
+      using term.surj_inv_renaming[OF renaming(2)].
+                  
     have yy: 
       "\<And>P Q b ty. {x. (if b x then P x else Q x) = ty } = 
         {x. b x \<and> P x = ty} \<union> {x. \<not>b x \<and> Q x = ty}"
