@@ -11,13 +11,11 @@ theory Ground_Superposition
     (* Theories from this formalization *)
     Abstract_Rewriting_Extra
     Ground_Critical_Pairs
-    Min_Max_Least_Greatest_Multiset
     Multiset_Extra
     Term_Rewrite_System
     Transitive_Closure_Extra
     Uprod_Extra
     HOL_Extra
-    Relation_Extra
     Clausal_Calculus_Extra
     Selection_Function
     Ground_Order

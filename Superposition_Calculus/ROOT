@@ -1,6 +1,7 @@
 session Superposition_Calculus_1 = Saturation_Framework_Extensions +
   sessions
     Knuth_Bendix_Order
+    Min_Max_Least_Greatest
     Ordered_Resolution_Prover
     Regular_Tree_Relations
     Saturation_Framework

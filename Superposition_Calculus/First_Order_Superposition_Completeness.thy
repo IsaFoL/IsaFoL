@@ -13,7 +13,7 @@ hide_const
   Inference_System.Infer
   Inference_System.prems_of
   Inference_System.concl_of
-  Inference_System.main_prem_o
+  Inference_System.main_prem_of
 
 context grounded_superposition_calculus
 begin

@@ -97,7 +97,7 @@ proof (cases D C rule: eq_resolution.cases)
       moreover have "atm_of l\<^sub>G \<in> ?I"
       proof-
         have "?t\<^sub>G = ?t\<^sub>G'"
-          using term_subst.is_imgu_unifies'[OF eq_resolutionI(5)]
+          using term_subst.is_imgu_unifies_pair[OF eq_resolutionI(5)]
           by argo
 
         then show ?thesis
@@ -198,7 +198,7 @@ proof (cases D C rule: eq_factoring.cases)
       by (auto simp: true_cls_def)
 
     have [simp]: "?t\<^sub>G\<^sub>2 = ?t\<^sub>G\<^sub>1"
-      using term_subst.is_imgu_unifies'[OF eq_factoringI(9)]
+      using term_subst.is_imgu_unifies_pair[OF eq_factoringI(9)]
       by argo
 
     have [simp]: "?l\<^sub>G\<^sub>1 = ?t\<^sub>G\<^sub>1 \<approx> ?t\<^sub>G\<^sub>1'"
@@ -406,7 +406,7 @@ proof (cases D E C rule: superposition.cases)
         context.safe_unfolds
         clause_safe_unfolds
         literal_entails_unfolds
-        term.is_imgu_unifies'[OF superpositionI(13)]
+        term.is_imgu_unifies_pair[OF superpositionI(13)]
 
       from literal_cases[OF superpositionI(9)]
       have "\<not> ?I \<TTurnstile>l ?l\<^sub>G\<^sub>1 \<or> \<not> ?I \<TTurnstile>l ?l\<^sub>G\<^sub>2"

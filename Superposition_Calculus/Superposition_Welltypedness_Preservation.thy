@@ -47,7 +47,7 @@ proof (cases "(D, \<V>\<^sub>2)" "(E, \<V>\<^sub>1)" "(C, \<V>\<^sub>3)" rule: s
     by simp
 
   have imgu: "t\<^sub>1 \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> = t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>"
-    using term.is_imgu_unifies'[OF superpositionI(10)].
+    using term.is_imgu_unifies_pair[OF superpositionI(10)].
 
   from literal_cases[OF superpositionI(6)] E\<mu>_is_welltyped D\<mu>_is_welltyped imgu
   show ?thesis

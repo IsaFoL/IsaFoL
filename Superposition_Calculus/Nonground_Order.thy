@@ -3,7 +3,6 @@ theory Nonground_Order
     Nonground_Clause
     Nonground_Term_Order
     Term_Order_Lifting
-    Relation_Extra
 begin
 
 section \<open>Nonground Order\<close>
@@ -317,8 +316,13 @@ rewrites
   "\<And>l C. ground.is_strictly_maximal l C \<longleftrightarrow> is_strictly_maximal (literal.from_ground l) (clause.from_ground C)"
   by unfold_locales auto
 
-abbreviation "ground_is_maximal literal\<^sub>G premise\<^sub>G \<equiv> is_maximal (literal.from_ground literal\<^sub>G) (clause.from_ground premise\<^sub>G)"
-abbreviation "ground_is_strictly_maximal literal\<^sub>G premise\<^sub>G \<equiv> is_strictly_maximal (literal.from_ground literal\<^sub>G) (clause.from_ground premise\<^sub>G)"
+abbreviation ground_is_maximal where 
+  "ground_is_maximal literal\<^sub>G premise\<^sub>G \<equiv> 
+    is_maximal (literal.from_ground literal\<^sub>G) (clause.from_ground premise\<^sub>G)"
+
+abbreviation ground_is_strictly_maximal where 
+  "ground_is_strictly_maximal literal\<^sub>G premise\<^sub>G \<equiv> 
+    is_strictly_maximal (literal.from_ground literal\<^sub>G) (clause.from_ground premise\<^sub>G)"
 
 
 (* TODO: naming *)
