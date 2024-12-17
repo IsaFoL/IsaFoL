@@ -474,12 +474,6 @@ proof(cases D\<^sub>G C\<^sub>G rule: ground.eq_factoring.cases)
     by presburger
 qed
 
-(* TODO: Move + name  *)
-lemma if_subst_sth [simp]: "(if b then Pos else Neg) atom \<cdot>l \<rho> = 
-  (if b then Pos else Neg) (atom \<cdot>a \<rho>)"
-  by simp
-
-(* TODO: Try to split up proof *)
 lemma superposition_lifting:
   fixes 
     premise\<^sub>G\<^sub>1 premise\<^sub>G\<^sub>2 conclusion\<^sub>G :: "'f gatom clause" and 

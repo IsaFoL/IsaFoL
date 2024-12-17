@@ -167,6 +167,10 @@ lemma subst_literal [simp]:
   using literal.map_sel
   by auto
 
+lemma subst_literal_if [simp]:
+  "(if b then Pos else Neg) a \<cdot>l \<rho> = (if b then Pos else Neg) (a \<cdot>a \<rho>)"
+  by simp
+
 lemmas clause_submset_vars_clause_subset [intro] = 
   clause.to_set_subset_vars_subset[OF set_mset_mono]
 
