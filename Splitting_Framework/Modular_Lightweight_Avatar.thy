@@ -5,7 +5,7 @@
 
 (* TODO: rename theory as Modular_Lightweight_Avatar to prevent confusion *)
 
-theory Modular_Splitting_Without_Backtracking
+theory Modular_Lightweight_Avatar
   imports
     Main
     Modular_Splitting_Calculi
@@ -14,7 +14,7 @@ theory Modular_Splitting_Without_Backtracking
 begin
 
 (*commit_ignore_start*)
-(*sledgehammer_params[provers="cvc4 cvc5 verit z3 e iprover leo2 leo3 satallax spass vampire
+(*sledgehammer_params[provers="cvc4 cvc5 verit z3 e leo2 leo3 satallax spass vampire
   zipperposition"]*)
 (*commit_ignore_end*)
 
@@ -30,8 +30,8 @@ subsection \<open>Ordered Resolution with a Disjunctive Consequence Relation\<cl
  * (specifically the first order one), we have to define this temporary locale, which contains
  * this entailment.
  * We will use it later in @{locale LA_calculus}, in the assumptions. *)
-locale FO_resolution_prover_disjunctive = FO_resolution_prover S subst_atm id_subst comp_subst renaming_aparts
-  atm_of_atms mgu less_atm 
+locale FO_resolution_prover_disjunctive = FO_resolution_prover S subst_atm id_subst comp_subst 
+  renaming_aparts atm_of_atms mgu less_atm 
   for
     S :: \<open>('a :: wellorder) clause \<Rightarrow> 'a clause\<close> and 
     subst_atm :: \<open>'a \<Rightarrow> 's \<Rightarrow> 'a\<close> and 
@@ -860,7 +860,8 @@ proof -
 qed
 
 (* Report theorem 19 for Simps extended with Split *)
-lemma simps_with_binsplit_are_simps: \<open>\<iota> \<in> Simps_with_BinSplit \<Longrightarrow> (S_from \<iota> - S_to \<iota>) \<subseteq> Red_F\<^sub>A\<^sub>F (S_to \<iota>)\<close>
+lemma simps_with_binsplit_are_simps: 
+  \<open>\<iota> \<in> Simps_with_BinSplit \<Longrightarrow> (S_from \<iota> - S_to \<iota>) \<subseteq> Red_F\<^sub>A\<^sub>F (S_to \<iota>)\<close>
 proof
   fix \<C>
   assume i_in: \<open>\<iota> \<in> Simps_with_BinSplit\<close> and
@@ -897,48 +898,147 @@ definition mk_bin_split :: \<open>('f, 'v) AF \<Rightarrow> 'f \<Rightarrow> 'f 
 definition bin_splittable :: \<open>('f, 'v) AF \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> bool\<close> where
   \<open>bin_splittable \<C> C1 C2 \<C>s \<equiv> split_form (F_of \<C>) {|C1, C2|} \<and> mk_bin_split \<C> C1 C2 = \<C>s\<close>
 
-
-
-
-
-(* probably a bad idea to start from Split-related lemmas, try starting from BinSplit-related ones *)
-(*
-lemma binsplit_creates_singleton_assertion_sets:
-  \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<C>i \<in> \<C>s \<Longrightarrow> (\<exists> a. A_of \<C>i = finsert a (A_of \<C>))\<close>
-  using mk_bin_split_def unfolding bin_splittable_def
-  by (smt (verit, ccfv_SIG) AF.sel(2) insert_iff singleton_iff)
-
-lemma split_all_assertion_sets_asn:
-  \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<C>1 \<in> \<C>s \<Longrightarrow> 
-    (\<exists> a. A_of \<C>i = finsert a (A_of \<C>) \<and> a \<in> asn (sign.Pos (F_of \<C>i)))\<close>
-proof -
-  assume pre_cond: \<open>bin_splittable \<C> C1 C2 \<C>s\<close> and
-         A_elem_As: \<open>\<C>i \<in> \<C>s\<close>
-  obtain \<C>1 \<C>2 where \<open>{\<C>1, \<C>2} = \<C>s\<close> and pre_cond1: \<open>split_form (F_of \<C>) {|F_of \<C>1, F_of \<C>2|}\<close> and
-    pre_cond2: \<open>mk_bin_split \<C> (F_of \<C>1) (F_of \<C>2) = \<C>s\<close>
-    using pre_cond mk_bin_split_def unfolding bin_splittable_def by (metis AF.sel(1))
-  have mk_split_applied_def: \<open>mk_bin_split \<C> (F_of \<C>1) (F_of \<C>2) \<equiv> 
-    let a = (SOME a. a \<in> asn (sign.Pos (F_of \<C>)))
-    in {AF.Pair (F_of \<C>1) (finsert a (A_of \<C>)), AF.Pair (F_of \<C>2) (finsert (neg a) (A_of \<C>))}\<close>
-    using mk_bin_split_def pre_cond unfolding bin_splittable_def using pre_cond1 by presburger
-  then have \<open>\<exists> a. A_of \<C>i = finsert a (A_of \<C>) \<and> a \<in> asn (sign.Pos (F_of \<C>))\<close>
-    using pre_cond A_elem_As binsplit_creates_singleton_assertion_sets
-    sorry
-  then obtain a where A_of_A_singleton_a: \<open>A_of \<C>i = finsert a (A_of \<C>)\<close>
-    by blast
-  then have \<open>a \<in> asn (sign.Pos (F_of \<C>i))\<close>
-    using pre_cond2 A_elem_As core.asn_not_empty some_in_eq unfolding mk_split_applied_def
-
-    sorry
-    (*by (smt (z3) AF.exhaust_sel AF.inject FSet.fsingletonE fimage.rep_eq finsertI1 imageE someI_ex) *)
-  then show \<open>\<exists> a. A_of \<C>i = {|a|} \<and> a \<in> asn (Pos (F_of A))\<close>
-    using A_of_A_singleton_a by blast
+theorem binsplit_prem_entails_cons: \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<forall> \<C>' \<in> fset \<C>s. {\<C>} \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
+proof (intro ballI)
+  fix \<C>'
+  assume C_u_D_splittable: \<open>bin_splittable \<C> C1 C2 \<C>s\<close> and
+    \<C>'_in: \<open>\<C>' |\<in>| \<C>s\<close>
+  then have split_fm: \<open>split_form (F_of \<C>) {|C1, C2|}\<close> and
+    make_split: \<open>mk_bin_split \<C> C1 C2 = \<C>s\<close>
+    unfolding bin_splittable_def by blast+
+  have \<open>\<C>' \<in> (let a = SOME a. a \<in> asn (sign.Pos C1)
+        in {AF.Pair C1 (finsert a (A_of \<C>)), AF.Pair C2 (finsert (neg a) (A_of \<C>))})\<close>
+    using make_split mk_bin_split_def[OF split_fm] \<C>'_in by (metis bot_fset.rep_eq fset_simps(2))
+  then obtain a where
+    a_in_asn_pos_C1: \<open>a \<in> asn (sign.Pos C1)\<close> and
+    \<C>'_is: \<open>\<C>' = AF.Pair C1 (finsert a (A_of \<C>)) \<or> \<C>' = AF.Pair C2 (finsert (neg a) (A_of \<C>))\<close>
+    using core.asn_not_empty insert_iff singletonD some_in_eq by metis
+  consider (C1) \<open>\<C>' = AF.Pair C1 (finsert a (A_of \<C>))\<close> 
+    | (C2) \<open>\<C>' = AF.Pair C2 (finsert (neg a) (A_of \<C>))\<close>
+    using \<C>'_is by blast
+  then show \<open>{\<C>} \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
+    unfolding core.AF_entails_sound_def core.enabled_set_def core.enabled_def
+  proof (cases, clarsimp)
+    case C1
+    fix J
+    assume \<open>\<C>' = AF.Pair C1 (finsert a (A_of \<C>))\<close>
+      and \<open>a \<in> total_strip J\<close>
+      and \<open>fset (A_of \<C>) \<subseteq> total_strip J\<close>
+    then show \<open>core.fml_ext ` total_strip J \<union> sign.Pos ` ({\<C>} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {sign.Pos C1}\<close>
+      using a_in_asn_pos_C1 by (smt (verit, best) core.fml_entails_C core.fml_ext_is_mapping 
+          core.neg_ext_sound_cons_rel.entails_subsets image_eqI singletonD subsetI sup_ge1)
+  next
+    case C2
+    then show \<open>\<forall>J. (\<forall>\<C>\<in>{\<C>'}. fset (A_of \<C>) \<subseteq> total_strip J) \<longrightarrow> 
+      core.fml_ext ` total_strip J \<union> sign.Pos ` ({\<C>} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> sign.Pos ` F_of ` {\<C>'}\<close>
+    proof clarsimp
+      fix J
+      assume \<C>'_is_C2: \<open>\<C>' = AF.Pair C2 (finsert (neg a) (A_of \<C>))\<close>
+        and a_notin: \<open>a \<notin> total_strip J\<close>
+        and in_J: \<open>fset (A_of \<C>) \<subseteq> total_strip J\<close>
+      have \<open>{F_of \<C>} \<Turnstile>s fset {|C1, C2|}\<close>
+        using split_fm unfolding split_form_def by blast
+      then have \<open>{sign.Neg C1} \<union> {sign.Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {sign.Pos C2}\<close>
+        unfolding core.sound_cons.entails_neg_def by simp
+      moreover have neg_fml_a_in: \<open>neg (map_sign fml a) \<in> core.fml_ext ` total_strip J\<close>
+        using a_notin by (smt (z3) core.fml_ext.elims core.fml_ext.simps(1) core.fml_ext.simps(2) 
+            core.fml_ext_is_mapping image_iff neg.simps(1) neg.simps(2) neg_in_total_strip)
+      ultimately have neg_fml_a_in_entails: 
+        \<open>{neg (map_sign fml a)} \<union> {sign.Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {sign.Pos C2}\<close>
+        using core.fml_entails_C core.C_entails_fml 
+        by (metis a_in_asn_pos_C1 consequence_relation.swap_neg_in_entails_neg 
+            core.neg_ext_sound_cons_rel.entails_cut core.sound_cons.consequence_relation_axioms 
+            insert_is_Un neg.simps(1) sup_commute)
+      have \<open>core.fml_ext ` total_strip J \<union> {sign.Pos (F_of \<C>)} \<Turnstile>s\<^sub>\<sim> {sign.Pos C2}\<close>
+      proof -
+        have f1: "\<forall>S. neg (map_sign fml a) \<triangleright> S \<subseteq> S \<union> core.fml_ext ` total_strip J"
+          using neg_fml_a_in by blast
+        have "\<forall>S s Sa. (s::'f sign) \<triangleright> Sa \<subseteq> Sa \<union> (s \<triangleright> S)"
+          by force
+        then show ?thesis
+          using f1 
+          by (metis (no_types) neg_fml_a_in_entails 
+              core.neg_ext_sound_cons_rel.entails_subsets insert_is_Un sup_ge1)
+      qed
+      moreover have \<open>{\<C>} proj\<^sub>J J = {(F_of \<C>)}\<close>
+        using in_J unfolding core.enabled_projection_def core.enabled_def by blast
+      ultimately show \<open>core.fml_ext ` total_strip J \<union> sign.Pos ` ({\<C>} proj\<^sub>J J) \<Turnstile>s\<^sub>\<sim> {sign.Pos C2}\<close>
+        by simp
+    qed   
+  qed
 qed
 
-*)
+theorem binsplit_cons_entail_prem: \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<C> \<in> core.SRed\<^sub>F (fset \<C>s)\<close>
+proof -
+  assume \<open>bin_splittable \<C> C1 C2 \<C>s\<close>
+  then have split_fm: \<open>split_form (F_of \<C>) {|C1, C2|}\<close> and
+    make_split: \<open>mk_bin_split \<C> C1 C2 = \<C>s\<close>
+    unfolding bin_splittable_def by blast+
+  have F_entailment: \<open>{F_of \<C>} \<Turnstile>s fset {|C1, C2|}\<close>
+    using split_fm unfolding split_form_def by blast
+  have C_D_make_C_u_D_redundant: \<open>\<forall>C'. C' |\<in>| {|C1, C2|} \<longrightarrow> F_of \<C> \<in> Red_F {C'}\<close>
+    by (meson split_fm split_form_def)
+  have a_ex: \<open>\<exists> a \<in> asn (sign.Pos C1). 
+      fset \<C>s = {AF.Pair C1 (finsert a (A_of \<C>)), AF.Pair C2 (finsert (neg a) (A_of \<C>))}\<close>
+    by (metis mk_bin_split_def[OF split_fm] bot_fset.rep_eq core.asn_not_empty finsert.rep_eq
+        make_split some_in_eq)
+  then obtain a where a_in: \<open>a \<in> asn (sign.Pos C1)\<close> and 
+    \<C>s_is: \<open>fset \<C>s = {AF.Pair C1 (finsert a (A_of \<C>)), AF.Pair C2 (finsert (neg a) (A_of \<C>))}\<close>
+    by blast
+  show \<open>\<C> \<in> core.SRed\<^sub>F (fset \<C>s)\<close>
+  proof -
+    have \<open>\<forall>\<J>. fset (A_of \<C>) \<subseteq> total_strip \<J> \<longrightarrow> (F_of \<C>) \<in> Red_F ((fset \<C>s) proj\<^sub>J \<J>)\<close>
+    proof (intro allI impI)
+      fix \<J>
+      assume A_in_\<J>: \<open>fset (A_of \<C>) \<subseteq> total_strip \<J>\<close>
+            then have a_or_neg_a_in_\<J>: \<open>a \<in> total_strip \<J> \<or> neg a \<in> total_strip \<J>\<close>
+        by simp
+      then have a_or_neg_a_in_\<J>: \<open>fset (finsert a (A_of \<C>)) \<subseteq> total_strip \<J> \<or>
+          fset (finsert (neg a) (A_of \<C>)) \<subseteq> total_strip \<J>\<close>
+        by (simp add: A_in_\<J>)
+      have \<open>(fset \<C>s) proj\<^sub>J \<J> \<subseteq> {C1, C2}\<close>
+        using \<C>s_is core.enabled_projection_def
+        by auto
+      moreover have \<open>(fset \<C>s) proj\<^sub>J \<J> \<noteq> {}\<close>
+        unfolding core.enabled_projection_def using a_or_neg_a_in_\<J> \<C>s_is
+        by (metis (mono_tags, lifting) AF.sel(2) core.enabled_def empty_iff insertCI mem_Collect_eq) 
+      ultimately show \<open>(F_of \<C>) \<in> Red_F ((fset \<C>s) proj\<^sub>J \<J>)\<close>
+        using C_D_make_C_u_D_redundant
+        by (smt (verit, del_insts) core.Red_F_of_subset all_not_in_conv empty_subsetI
+            finsertCI insert_iff insert_subset subsetD)
+    qed
+    then show ?thesis
+      unfolding core.SRed\<^sub>F_def by (smt (verit, ccfv_threshold) AF.collapse UnCI mem_Collect_eq)
+  qed
+qed
 
+lemma extend_simps_with_binsplit: 
+  assumes
+    \<open>AF_calculus_with_sound_simps_and_opt_infs (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I 
+      core.SRed\<^sub>F Simps OptInfs\<close>
+  shows
+    \<open>AF_calculus_with_binsplit (to_AF bot) core.SInf (\<Turnstile>\<^sub>A\<^sub>F) (\<Turnstile>s\<^sub>A\<^sub>F) core.SRed\<^sub>I core.SRed\<^sub>F Simps 
+      OptInfs bin_splittable\<close>
+proof -
+  interpret sound_simps: AF_calculus_with_sound_simps_and_opt_infs "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)"
+    "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F Simps OptInfs
+    using assms .
+  show ?thesis
+  proof
+    show \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<forall>\<C>'|\<in>|\<C>s. {\<C>} \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close> for \<C> C1 C2 \<C>s
+      using binsplit_prem_entails_cons .
+  next
+    show \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<C> \<in> core.SRed\<^sub>F (fset \<C>s)\<close> for \<C> C1 C2 \<C>s
+      using binsplit_cons_entail_prem .
+  qed
+qed
 
+interpretation splitting_calc_with_split: AF_calculus_with_binsplit "to_AF bot" core.SInf "(\<Turnstile>\<^sub>A\<^sub>F)"
+  "(\<Turnstile>s\<^sub>A\<^sub>F)" core.SRed\<^sub>I core.SRed\<^sub>F "{}" "{}" bin_splittable
+  using extend_simps_with_binsplit[OF empty_simps.AF_calculus_with_sound_simps_and_opt_infs_axioms]
+  .
 
+end (* locale splitting_calculus *)
 
 
 
@@ -1096,36 +1196,11 @@ proof (intro ballI)
   qed
 qed
 
-lemma binsplit_cons_entail_prem: \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<C> \<in> core.SRed\<^sub>F (fset \<C>s)\<close>
-
-  sorry
-
-find_theorems name: asn_not_empty
-
-lemma binsplit_prem_entails_cons: \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<forall> \<C>' \<in> fset \<C>s. {\<C>} \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close>
-proof
-  fix \<C>'
-  assume Cp_is: \<open>\<C>' \<in> fset \<C>s\<close> and
-    bin_split_C: \<open>bin_splittable \<C> C1 C2 \<C>s\<close>
-  then have C_u_D_splittable: \<open>split_form (F_of \<C>) {|C1, C2|}\<close> and
-              make_split: \<open>mk_bin_split \<C> C1 C2 = \<C>s\<close>
-    unfolding bin_splittable_def by blast+
-
-  have \<open>\<C>' \<in> (let a = SOME a. a \<in> asn (sign.Pos C1)
-      in {AF.Pair C1 (finsert a (A_of \<C>)), AF.Pair C2 (finsert (neg a) (A_of \<C>))})\<close>
-    using make_split mk_bin_split_def[OF C_u_D_splittable] Cp_is
-    by (metis bot_fset.rep_eq finsert.rep_eq)
-  then obtain a where
-      a_in_asn_pos_C: \<open>a \<in> asn (sign.Pos C1)\<close> and
-      \<C>_is: \<open>\<C> = AF.Pair C1 (finsert a (A_of \<C>)) \<or> \<C> = AF.Pair C2 (finsert (neg a) (A_of \<C>))\<close>
-    using core.asn_not_empty insert_iff singletonD some_in_eq
-    sledgehammer
-    sorry
-     (* by (metis core.asn_not_empty insert_iff singletonD some_in_eq)  *)
 
 
-
-
+lemma binsplit_not_empty: \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<C>s \<noteq>  {||}\<close>
+  unfolding bin_splittable_def split_form_def
+  by (metis finsert_not_fempty mk_bin_split_def split_form_def)
 
 
 interpretation SInf_sound:
