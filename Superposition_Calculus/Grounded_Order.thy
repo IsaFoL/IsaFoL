@@ -53,9 +53,9 @@ sublocale total_strict_order_restriction where lift = "from_ground"
 lemma not_less_eq [simp]: 
   assumes "is_ground expr" and "is_ground expr'"
   shows "\<not> order.less_eq expr' expr \<longleftrightarrow> expr \<prec> expr'"
-  using assms order.totalp
+  using assms order.totalp order.less_le_not_le
   unfolding totalp_on_def is_ground_iff_range_from_ground
-  by auto
+  by blast
 
 end
 

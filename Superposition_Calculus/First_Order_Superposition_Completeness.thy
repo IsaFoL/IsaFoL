@@ -258,293 +258,220 @@ qed
 
 lemma eq_factoring_lifting:
   fixes 
-    premise\<^sub>G conclusion\<^sub>G :: "'f gatom clause" and 
-    premise "conclusion" :: "('f, 'v) atom clause" and
+    D\<^sub>G C\<^sub>G :: "'f ground_atom clause" and 
+    D C :: "('f, 'v) atom clause" and
     \<gamma> :: "('f, 'v) subst"
   defines 
-    premise\<^sub>G [simp]: "premise\<^sub>G \<equiv> clause.to_ground (premise \<cdot> \<gamma>)" and
-    conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> clause.to_ground (conclusion \<cdot> \<gamma>)"
+    D\<^sub>G [simp]: "D\<^sub>G \<equiv> clause.to_ground (D \<cdot> \<gamma>)" and
+    C\<^sub>G [simp]: "C\<^sub>G \<equiv> clause.to_ground (C \<cdot> \<gamma>)"
   assumes
-    premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and
-    conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
-    select: "clause.from_ground (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
-    ground_eq_factoring: "ground.eq_factoring premise\<^sub>G conclusion\<^sub>G" and
-    typing:
-    "clause.is_welltyped \<V> premise"
-    (*"term_subst.is_ground_subst \<gamma>"*)
-    "is_welltyped_on (clause.vars premise) \<V> \<gamma>"
-    "infinite_variables_per_type \<V>"
-  obtains conclusion' 
+    ground_eq_factoring: "ground.eq_factoring D\<^sub>G C\<^sub>G" and
+    D_grounding: "clause.is_ground (D \<cdot> \<gamma>)" and
+    C_grounding: "clause.is_ground (C \<cdot> \<gamma>)" and
+    select: "clause.from_ground (select\<^sub>G D\<^sub>G) = (select D) \<cdot> \<gamma>" and
+    D_is_welltyped: "clause.is_welltyped \<V> D" and
+    \<gamma>_is_welltyped: "is_welltyped_on (clause.vars D) \<V> \<gamma>" and
+    \<V>: "infinite_variables_per_type \<V>"
+  obtains C' 
   where
-    "eq_factoring (premise, \<V>) (conclusion', \<V>)"
-    "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (conclusion', \<V>))"
-    "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
+    "eq_factoring (D, \<V>) (C', \<V>)"
+    "Infer [D\<^sub>G] C\<^sub>G \<in> inference_groundings (Infer [(D, \<V>)] (C', \<V>))"
+    "C' \<cdot> \<gamma> = C \<cdot> \<gamma>"
   using ground_eq_factoring
-proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.eq_factoring.cases)
-  case ground_eq_factoringI: (eq_factoringI literal\<^sub>G\<^sub>1 literal\<^sub>G\<^sub>2 premise'\<^sub>G term\<^sub>G\<^sub>1 term\<^sub>G\<^sub>2 term\<^sub>G\<^sub>3)
+proof(cases D\<^sub>G C\<^sub>G rule: ground.eq_factoring.cases)
+  case ground_eq_factoringI: (eq_factoringI l\<^sub>G\<^sub>1 l\<^sub>G\<^sub>2 D\<^sub>G' t\<^sub>G\<^sub>1 t\<^sub>G\<^sub>2 t\<^sub>G\<^sub>3)
 
-  have premise_not_empty: "premise \<noteq> {#}"
-    using ground_eq_factoringI(1) empty_not_add_mset clause_subst_empty premise\<^sub>G
-    by (metis clause_from_ground_empty_mset clause.from_ground_inverse)
-
-  have select_empty: "select premise = {#}"
-    using ground_eq_factoringI(4) select
-    by simp
-
-  have premise_\<gamma>: "premise \<cdot> \<gamma> = clause.from_ground (add_mset literal\<^sub>G\<^sub>1 (add_mset literal\<^sub>G\<^sub>2 premise'\<^sub>G))"
-    using ground_eq_factoringI(1) premise\<^sub>G
-    by (metis premise_grounding clause.to_ground_inverse)
-
-  obtain literal\<^sub>1 where literal\<^sub>1_maximal: 
-    "is_maximal literal\<^sub>1 premise" 
-    "is_maximal (literal\<^sub>1 \<cdot>l \<gamma>) (premise \<cdot> \<gamma>)"
-    using obtain_maximal_literal[OF premise_not_empty premise_grounding]
-    by blast
-
-  have max_ground_literal: "is_maximal (literal.from_ground (term\<^sub>G\<^sub>1 \<approx> term\<^sub>G\<^sub>2)) (premise \<cdot> \<gamma>)"
-    using ground_eq_factoringI(5)
-    unfolding 
-      ground_eq_factoringI(2) 
-      premise\<^sub>G 
-      clause.to_ground_inverse[OF premise_grounding].
-
-  have literal\<^sub>1_\<gamma>: "literal\<^sub>1 \<cdot>l \<gamma> = literal.from_ground literal\<^sub>G\<^sub>1"
-    using 
-      unique_maximal_in_ground_clause[OF premise_grounding literal\<^sub>1_maximal(2) max_ground_literal]
-      ground_eq_factoringI(2)
-    by blast
-
-  then have "is_pos literal\<^sub>1"
-    unfolding ground_eq_factoringI(2)
-    using literal_from_ground_stable subst_pos_stable
-    by (metis literal.disc(1))
-
-  with literal\<^sub>1_\<gamma> obtain term\<^sub>1 term\<^sub>1' where 
-    literal\<^sub>1_terms: "literal\<^sub>1 = term\<^sub>1 \<approx> term\<^sub>1'" and
-    term\<^sub>G\<^sub>1_term\<^sub>1: "term.from_ground term\<^sub>G\<^sub>1 = term\<^sub>1 \<cdot>t \<gamma>"
-    unfolding ground_eq_factoringI(2)
-    by(auto intro: obtain_from_pos_literal_subst)
-  
-  obtain premise'' where premise'': "premise = add_mset literal\<^sub>1 premise''"
-    using maximal_in_clause[OF literal\<^sub>1_maximal(1)]
-    by (meson multi_member_split)
-
-  then have premise''_\<gamma>: "premise'' \<cdot> \<gamma> =  add_mset (literal.from_ground literal\<^sub>G\<^sub>2) (clause.from_ground premise'\<^sub>G)"
-    using premise_\<gamma> 
-    unfolding clause.from_ground_add literal\<^sub>1_\<gamma>[symmetric]
-    by simp
-
-  then obtain literal\<^sub>2 where literal\<^sub>2:
-    "literal\<^sub>2 \<cdot>l \<gamma> = literal.from_ground literal\<^sub>G\<^sub>2"
-    "literal\<^sub>2 \<in># premise''"
-    unfolding clause.subst_def
-    using msed_map_invR by force
-
-  then have "is_pos literal\<^sub>2"
-    unfolding ground_eq_factoringI(3)
-    using literal_from_ground_stable subst_pos_stable
-    by (metis literal.disc(1))
-
-  with literal\<^sub>2 obtain term\<^sub>2 term\<^sub>2' where 
-    literal\<^sub>2_terms: "literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'" and
-    term\<^sub>G\<^sub>1_term\<^sub>2: "term.from_ground term\<^sub>G\<^sub>1 = term\<^sub>2 \<cdot>t \<gamma>"
-    unfolding ground_eq_factoringI(3) 
-    by(auto intro: obtain_from_pos_literal_subst)
-
-  have term\<^sub>G\<^sub>2_term\<^sub>1': "term.from_ground term\<^sub>G\<^sub>2 = term\<^sub>1' \<cdot>t \<gamma>"
-    using literal\<^sub>1_\<gamma> term\<^sub>G\<^sub>1_term\<^sub>1 
-    unfolding 
-      literal\<^sub>1_terms 
-      ground_eq_factoringI(2)       
+  have "D \<noteq> {#}"
+    using ground_eq_factoringI(1)
     by auto
 
-  have term\<^sub>G\<^sub>3_term\<^sub>2': "term.from_ground term\<^sub>G\<^sub>3 = term\<^sub>2' \<cdot>t \<gamma>"
-    using literal\<^sub>2 term\<^sub>G\<^sub>1_term\<^sub>2
-    unfolding 
-      literal\<^sub>2_terms 
-      ground_eq_factoringI(3) 
-    by auto
+  then obtain l\<^sub>1 where 
+    l\<^sub>1_is_maximal: "is_maximal l\<^sub>1 D" and
+    l\<^sub>1_\<gamma>_is_maximal: "is_maximal (l\<^sub>1 \<cdot>l \<gamma>) (D \<cdot> \<gamma>)"
+    using that obtain_maximal_literal D_grounding
+    by blast
 
-  obtain premise' where premise: "premise = add_mset literal\<^sub>1 (add_mset literal\<^sub>2 premise')" 
-    using literal\<^sub>2(2) maximal_in_clause[OF  literal\<^sub>1_maximal(1)] premise''
-    by (metis multi_member_split)
-
-  then have premise'_\<gamma>: "premise' \<cdot> \<gamma> = clause.from_ground premise'\<^sub>G"
-    using premise''_\<gamma>  premise''
-    unfolding literal\<^sub>2(1)[symmetric]
-    by simp
-
-  have term\<^sub>1_term\<^sub>2: "term\<^sub>1 \<cdot>t \<gamma> = term\<^sub>2 \<cdot>t \<gamma>"
-    using term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>1_term\<^sub>2
-    by argo
-
-  moreover obtain \<tau> where "welltyped \<V> term\<^sub>1 \<tau>" "welltyped \<V> term\<^sub>2 \<tau>"
+  obtain t\<^sub>1 t\<^sub>1' where
+    l\<^sub>1: "l\<^sub>1 = t\<^sub>1 \<approx> t\<^sub>1'" and
+    l\<^sub>1_\<gamma>: "l\<^sub>1 \<cdot>l \<gamma> = term.from_ground t\<^sub>G\<^sub>1 \<approx> term.from_ground t\<^sub>G\<^sub>2" and
+    t\<^sub>1_\<gamma>: "t\<^sub>1 \<cdot>t \<gamma> = term.from_ground t\<^sub>G\<^sub>1" and
+    t\<^sub>1'_\<gamma>: "t\<^sub>1' \<cdot>t \<gamma> = term.from_ground t\<^sub>G\<^sub>2"
   proof-
-    have "clause.is_welltyped \<V> (premise \<cdot> \<gamma>)"
-      using typing clause.is_welltyped.subst_stability 
-      by blast
+    have "is_maximal (literal.from_ground l\<^sub>G\<^sub>1) (D \<cdot> \<gamma>)"
+      using ground_eq_factoringI(5)
+      unfolding D\<^sub>G clause.to_ground_inverse[OF D_grounding].
 
-    then obtain \<tau> where "welltyped \<V> (term.from_ground term\<^sub>G\<^sub>1) \<tau>"
-      unfolding premise_\<gamma> ground_eq_factoringI 
-      by auto
-
-    then have "welltyped \<V> (term\<^sub>1 \<cdot>t \<gamma>) \<tau>" "welltyped \<V> (term\<^sub>2 \<cdot>t \<gamma>) \<tau>"
-      using term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>1_term\<^sub>2
-      by metis+
-
-    then have "welltyped \<V> term\<^sub>1 \<tau>" "welltyped \<V> term\<^sub>2 \<tau>"
-      using typing(2) welltyped.subst_stability
-      unfolding premise literal\<^sub>1_terms literal\<^sub>2_terms
-      by simp_all
+    then have "l\<^sub>1 \<cdot>l \<gamma> = term.from_ground t\<^sub>G\<^sub>1 \<approx> term.from_ground t\<^sub>G\<^sub>2"
+      unfolding  ground_eq_factoringI(2)
+      using unique_maximal_in_ground_clause[OF D_grounding l\<^sub>1_\<gamma>_is_maximal]
+      by simp
 
     then show ?thesis
       using that
-      by blast
+      unfolding ground_eq_factoringI(2)
+      by (metis obtain_from_pos_literal_subst)
   qed
 
-  ultimately obtain \<mu> \<sigma> where \<mu>: 
-    "term_subst.is_imgu \<mu> {{term\<^sub>1, term\<^sub>2}}" 
-    "\<gamma> = \<mu> \<odot> \<sigma>" 
-    "welltyped_imgu \<V> term\<^sub>1 term\<^sub>2 \<mu>"
-    using welltyped_imgu_exists
-    by (metis (full_types))
+  obtain l\<^sub>2 D' where 
+    l\<^sub>2_\<gamma>: "l\<^sub>2 \<cdot>l \<gamma> = term.from_ground t\<^sub>G\<^sub>1 \<approx> term.from_ground t\<^sub>G\<^sub>3" and
+    D: "D = add_mset l\<^sub>1 (add_mset l\<^sub>2 D')"
+  proof-
+    obtain D'' where D: "D = add_mset l\<^sub>1 D''"
+      using maximal_in_clause[OF l\<^sub>1_is_maximal]
+      by (meson multi_member_split)
 
-  let ?conclusion' = "add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise')"
+    moreover have "D \<cdot> \<gamma> = clause.from_ground (add_mset l\<^sub>G\<^sub>1 (add_mset l\<^sub>G\<^sub>2 D\<^sub>G'))"
+      using ground_eq_factoringI(1) D\<^sub>G
+      by (metis D_grounding clause.to_ground_inverse)
 
-  have eq_factoring: "eq_factoring (premise, \<V>) (?conclusion' \<cdot> \<mu>, \<V>)"
-  proof (rule eq_factoringI)
-    show "premise = add_mset literal\<^sub>1 (add_mset literal\<^sub>2 premise')"
-      using premise.
-  next
-    show "literal\<^sub>1 = term\<^sub>1 \<approx> term\<^sub>1'"
-      using literal\<^sub>1_terms.
-  next 
-    show "literal\<^sub>2 = term\<^sub>2 \<approx> term\<^sub>2'"
-      using literal\<^sub>2_terms.
-  next 
-    show  "select premise = {#}"
-      using select_empty.
-  next
-    have literal\<^sub>1_\<mu>_in_premise: "literal\<^sub>1 \<cdot>l \<mu> \<in># premise \<cdot> \<mu>"
-      using literal\<^sub>1_maximal(1) clause.subst_in_to_set_subst maximal_in_clause 
-      by blast
+    ultimately have "D'' \<cdot> \<gamma> =  add_mset (literal.from_ground l\<^sub>G\<^sub>2) (clause.from_ground D\<^sub>G')"
+      using  l\<^sub>1_\<gamma>
+      by (simp add: ground_eq_factoringI(2))
 
-    have "is_maximal (literal\<^sub>1 \<cdot>l \<mu>) (premise \<cdot> \<mu>)"
-      using is_maximal_if_grounding_is_maximal[OF 
-          literal\<^sub>1_\<mu>_in_premise 
-          premise_grounding[unfolded \<mu>(2) clause.subst_comp_subst]
-          literal\<^sub>1_maximal(2)[unfolded \<mu>(2) clause.subst_comp_subst literal.subst_comp_subst]
-          ].
+    then obtain l\<^sub>2 where "l\<^sub>2 \<cdot>l \<gamma> = term.from_ground t\<^sub>G\<^sub>1 \<approx> term.from_ground t\<^sub>G\<^sub>3" "l\<^sub>2 \<in># D''"
+      unfolding clause.subst_def ground_eq_factoringI
+      using msed_map_invR
+      by force
 
-    then show "is_maximal (literal\<^sub>1 \<cdot>l \<mu>) (premise \<cdot> \<mu>)"
-      by blast
-  next
-    have term_groundings: "term.is_ground (term\<^sub>1' \<cdot>t \<mu> \<cdot>t \<sigma>)" "term.is_ground (term\<^sub>1 \<cdot>t \<mu> \<cdot>t \<sigma>)" 
-      unfolding 
-        term_subst.subst_comp_subst[symmetric] 
-        \<mu>(2)[symmetric]
-        term\<^sub>G\<^sub>1_term\<^sub>1[symmetric] 
-        term\<^sub>G\<^sub>2_term\<^sub>1'[symmetric] 
-      using term.ground_is_ground
+    then show ?thesis
+      using that
+      unfolding D
+      by (metis mset_add)
+  qed
+
+  then obtain t\<^sub>2 t\<^sub>2' where 
+    l\<^sub>2: "l\<^sub>2 = t\<^sub>2 \<approx> t\<^sub>2'" and
+    t\<^sub>2_\<gamma>: "t\<^sub>2 \<cdot>t \<gamma> = term.from_ground t\<^sub>G\<^sub>1" and
+    t\<^sub>2'_\<gamma>: "t\<^sub>2' \<cdot>t \<gamma> = term.from_ground t\<^sub>G\<^sub>3"
+    unfolding ground_eq_factoringI(3) 
+    using obtain_from_pos_literal_subst
+    by metis
+
+  have D'_\<gamma>: "D' \<cdot> \<gamma> = clause.from_ground D\<^sub>G'" 
+    using D D_grounding ground_eq_factoringI(1,2,3) l\<^sub>1_\<gamma> l\<^sub>2_\<gamma> 
+    by force
+
+  obtain \<mu> \<sigma> where \<gamma>: "\<gamma> = \<mu> \<odot> \<sigma>" and imgu: "welltyped_imgu \<V> t\<^sub>1 t\<^sub>2 \<mu>"
+  proof-
+    have unified: "t\<^sub>1 \<cdot>t \<gamma> = t\<^sub>2 \<cdot>t \<gamma>"
+      unfolding t\<^sub>1_\<gamma> t\<^sub>2_\<gamma> ..
+
+    then obtain \<tau> where "welltyped \<V> (t\<^sub>1 \<cdot>t \<gamma>) \<tau>" "welltyped \<V> (t\<^sub>2 \<cdot>t \<gamma>) \<tau>"
+      using D_is_welltyped \<gamma>_is_welltyped
+      unfolding D l\<^sub>1 l\<^sub>2
+      by auto
+
+    then have welltyped: "welltyped \<V> t\<^sub>1 \<tau>" "welltyped \<V> t\<^sub>2 \<tau>"
+      using \<gamma>_is_welltyped
+      unfolding D l\<^sub>1 l\<^sub>2
       by simp_all
 
-    have "term\<^sub>1' \<cdot>t \<mu> \<cdot>t \<sigma> \<prec>\<^sub>t term\<^sub>1 \<cdot>t \<mu> \<cdot>t \<sigma>"
-      using ground_eq_factoringI(6)[unfolded 
-          term.order.less\<^sub>G_def 
-          term\<^sub>G\<^sub>1_term\<^sub>1 
-          term\<^sub>G\<^sub>2_term\<^sub>1'
-          \<mu>(2) 
-          term_subst.subst_comp_subst
-          ].
-
-    then show "\<not> term\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t term\<^sub>1' \<cdot>t \<mu>"
-      using term.order.ground_less_not_less_eq[OF term_groundings]
-      by blast
-  next 
-    show "term_subst.is_imgu \<mu> {{term\<^sub>1, term\<^sub>2}}"
-      using \<mu>(1).
-  next 
-    show "welltyped_imgu \<V> term\<^sub>1 term\<^sub>2 \<mu>"
-      using \<mu>(3).
-  next
-    show "?conclusion' \<cdot> \<mu> = ?conclusion' \<cdot> \<mu>"
-      ..
+    then show ?thesis
+      using welltyped_imgu_exists[OF unified welltyped] that
+      by metis
   qed
 
-  have "term_subst.is_idem \<mu>"
-    using \<mu>(1)
-    by (simp add: term_subst.is_imgu_iff_is_idem_and_is_mgu)  
+  let ?C' = "add_mset (t\<^sub>1 \<approx> t\<^sub>2') (add_mset (t\<^sub>1' !\<approx> t\<^sub>2') D')"
 
-  then have \<mu>_\<gamma>: "\<mu> \<odot> \<gamma> = \<gamma>"
-    unfolding \<mu>(2) term_subst.is_idem_def
-    by (metis subst_compose_assoc)
+  have eq_factoring: "eq_factoring (D, \<V>) (?C' \<cdot> \<mu>, \<V>)"
+  proof (rule eq_factoringI; (rule D l\<^sub>1 l\<^sub>2 imgu refl)?)
+    show "select D = {#}"
+      using ground_eq_factoringI(4) select
+      by simp
+  next
+    have "l\<^sub>1 \<cdot>l \<mu> \<in># D \<cdot> \<mu>"
+      using l\<^sub>1_is_maximal clause.subst_in_to_set_subst maximal_in_clause 
+      by blast
 
-  have vars_conclusion': "clause.vars (?conclusion' \<cdot> \<mu>) \<subseteq> clause.vars premise"
-    using clause.variables_in_base_imgu[OF \<mu>(1)] term.variables_in_base_imgu[OF \<mu>(1)]
-    unfolding premise literal\<^sub>1_terms literal\<^sub>2_terms
-    by auto
+    then show "is_maximal (l\<^sub>1 \<cdot>l \<mu>) (D \<cdot> \<mu>)"
+      using is_maximal_if_grounding_is_maximal D_grounding l\<^sub>1_\<gamma>_is_maximal
+      unfolding \<gamma>
+      by auto
+  next
+    have groundings: "term.is_ground (t\<^sub>1' \<cdot>t \<mu> \<cdot>t \<sigma>)" "term.is_ground (t\<^sub>1 \<cdot>t \<mu> \<cdot>t \<sigma>)"
+      using t\<^sub>1'_\<gamma> t\<^sub>1_\<gamma>
+      unfolding \<gamma>
+      by simp_all
 
-  have "conclusion \<cdot> \<gamma> = 
-      add_mset (term.from_ground term\<^sub>G\<^sub>2 !\<approx> term.from_ground term\<^sub>G\<^sub>3) 
-        (add_mset (term.from_ground term\<^sub>G\<^sub>1 \<approx> term.from_ground term\<^sub>G\<^sub>3) (clause.from_ground premise'\<^sub>G))"
-    using ground_eq_factoringI(7) clause.to_ground_inverse[OF conclusion_grounding]
-    unfolding atom_from_ground_term_from_ground[symmetric] 
-      literal_from_ground_atom_from_ground[symmetric] clause.from_ground_add[symmetric]
-    by simp
+    have "t\<^sub>1' \<cdot>t \<gamma> \<prec>\<^sub>t t\<^sub>1 \<cdot>t \<gamma>"
+      using ground_eq_factoringI(6)
+      unfolding t\<^sub>1'_\<gamma> t\<^sub>1_\<gamma> term.order.less\<^sub>G_def.
 
-  then have conclusion_\<gamma>: 
-    "conclusion \<cdot> \<gamma> = add_mset (term\<^sub>1 \<approx> term\<^sub>2') (add_mset (term\<^sub>1' !\<approx> term\<^sub>2') premise') \<cdot> \<gamma>"
-    unfolding 
-      term\<^sub>G\<^sub>2_term\<^sub>1'
-      term\<^sub>G\<^sub>3_term\<^sub>2'
-      term\<^sub>G\<^sub>1_term\<^sub>1
-      premise'_\<gamma>[symmetric]
-    by simp
+    then show "\<not> t\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>1' \<cdot>t \<mu>"
+      unfolding \<gamma> 
+      using term.order.ground_less_not_less_eq[OF groundings]
+      by simp
+  qed
 
-  then have yY: "conclusion \<cdot> \<gamma> = ?conclusion' \<cdot> \<mu> \<cdot> \<gamma>"
-    by (metis \<mu>_\<gamma> clause.subst_comp_subst)
+  have C_\<gamma>: "C \<cdot> \<gamma> = ?C' \<cdot> \<mu> \<cdot> \<gamma>"
+  proof-
+    have "term.is_idem \<mu>"
+      using imgu 
+      unfolding term_subst.is_imgu_iff_is_idem_and_is_mgu 
+      by blast  
 
-  (* TODO:  *)
-  moreover have "clause.is_welltyped \<V> (?conclusion' \<cdot> \<mu>)"
-    using eq_factoring eq_factoring_preserves_typing typing(1) by blast
+    then have \<mu>_\<gamma>: "\<mu> \<odot> \<gamma> = \<gamma>"
+      unfolding \<gamma> term_subst.is_idem_def subst_compose_assoc[symmetric]
+      by argo
 
-  moreover have 
-    "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (?conclusion' \<cdot> \<mu>, \<V>))"
-    unfolding inference_groundings_def ground.G_Inf_def
-    apply auto
-    apply(rule exI[of _ \<gamma>])
-    using vars_conclusion'
-    apply(auto simp: typing yY)
-    using typing
-    unfolding premise literal\<^sub>2_terms literal\<^sub>1_terms
-             apply auto
-                 apply (metis empty_iff term\<^sub>G\<^sub>1_term\<^sub>1 vars_term_of_gterm)
-                apply (metis empty_iff term\<^sub>G\<^sub>2_term\<^sub>1' vars_term_of_gterm)
-               apply (metis emptyE term\<^sub>G\<^sub>1_term\<^sub>2 vars_term_of_gterm)
-              apply (metis empty_iff term\<^sub>G\<^sub>3_term\<^sub>2' vars_term_of_gterm)
-             apply (metis clause.ground_is_ground empty_iff premise'_\<gamma>)
-            apply (metis \<mu>_\<gamma> empty_iff eval_subst term\<^sub>G\<^sub>1_term\<^sub>1 vars_term_of_gterm)
-    apply (metis \<mu>_\<gamma> empty_iff term\<^sub>G\<^sub>3_term\<^sub>2'
-        term_subst.comp_subst.left.monoid_action_compatibility
-        vars_term_of_gterm)
-          apply (metis \<mu>_\<gamma> empty_iff eval_subst term\<^sub>G\<^sub>2_term\<^sub>1' vars_term_of_gterm)
-         apply (metis \<mu>_\<gamma> empty_iff eval_subst term\<^sub>G\<^sub>3_term\<^sub>2' vars_term_of_gterm)
-    apply (metis \<mu>_\<gamma> clause.ground_is_ground clause.subst_comp_subst empty_iff
-        premise'_\<gamma>)      
-   apply (metis UNIV_I \<mu>(3) term.welltyped.right_uniqueD
-        welltyped.explicit_subst_stability)
-    apply (metis UNIV_I \<mu>(3) term.welltyped.right_uniqueD
-        welltyped.explicit_subst_stability)
-     apply (metis UNIV_I \<mu>(3) clause.is_welltyped.subst_stability)
-    by (metis \<mu>_\<gamma> add_mset_commute term.from_ground_inverse
-        term.subst_comp_subst clause.comp_subst.left.monoid_action_compatibility
-        clause.from_ground_inverse ground_eq_factoring ground_eq_factoringI(1,2,3,7)
-        premise'_\<gamma> term\<^sub>1_term\<^sub>2 term\<^sub>G\<^sub>1_term\<^sub>1 term\<^sub>G\<^sub>2_term\<^sub>1'
-        term\<^sub>G\<^sub>3_term\<^sub>2')
+    have "C \<cdot> \<gamma> = clause.from_ground (add_mset (t\<^sub>G\<^sub>2 !\<approx> t\<^sub>G\<^sub>3) (add_mset (t\<^sub>G\<^sub>1 \<approx> t\<^sub>G\<^sub>3) D\<^sub>G'))"
+      using ground_eq_factoringI(7) clause.to_ground_eq[OF C_grounding clause.ground_is_ground]
+      unfolding C\<^sub>G
+      by (metis clause.from_ground_inverse)
+
+    also have "... = ?C' \<cdot> \<gamma>"
+      using t\<^sub>1_\<gamma> t\<^sub>1'_\<gamma> t\<^sub>2'_\<gamma> D'_\<gamma>
+      by simp
+
+    also have "... = ?C' \<cdot> \<mu> \<cdot> \<gamma>"
+      unfolding clause.subst_comp_subst[symmetric] \<mu>_\<gamma> ..
+      
+    finally show ?thesis.
+  qed
+
+  moreover have "Infer [D\<^sub>G] C\<^sub>G \<in> inference_groundings (Infer [(D, \<V>)] (?C' \<cdot> \<mu>, \<V>))"
+  proof-
+    have "is_inference_grounding_one_premise (D, \<V>) (?C' \<cdot> \<mu>, \<V>) (Infer [D\<^sub>G] C\<^sub>G) \<gamma>"
+    proof(unfold split, intro conjI; (rule D_grounding D_is_welltyped refl \<V>)?)
+      show "clause.is_ground (?C' \<cdot> \<mu> \<cdot> \<gamma>)"
+        using C_grounding C_\<gamma>
+        by argo
+    next
+      show "Infer [D\<^sub>G] C\<^sub>G = Infer [clause.to_ground (D \<cdot> \<gamma>)] (clause.to_ground (?C' \<cdot> \<mu> \<cdot> \<gamma>))"
+        using C_\<gamma>
+        by simp
+    next
+      have imgu: "term.is_imgu \<mu> {{t\<^sub>1, t\<^sub>2}}"
+        using imgu
+        by blast
+
+      have "clause.vars (?C' \<cdot> \<mu>) \<subseteq> clause.vars D"
+        using clause.variables_in_base_imgu[OF imgu, of ?C']
+        unfolding D l\<^sub>1 l\<^sub>2
+        by auto
+
+      then show "is_welltyped_on (clause.vars (?C' \<cdot> \<mu>)) \<V> \<gamma>"
+        using D_is_welltyped \<gamma>_is_welltyped
+        by blast
+    next
+      show "clause.is_welltyped \<V> (?C' \<cdot> \<mu>)"
+        using D_is_welltyped eq_factoring eq_factoring_preserves_typing
+        by blast
+    qed
+
+    moreover have "Infer [D\<^sub>G] C\<^sub>G \<in> ground.G_Inf"
+      unfolding ground.G_Inf_def
+      using ground_eq_factoring
+      by blast
+
+    ultimately show ?thesis
+      unfolding inference_groundings_def
+      by auto
+  qed
 
   ultimately show ?thesis
     using that[OF eq_factoring]
-    by simp
+    by presburger
 qed
 
 (* TODO: Move + name  *)
@@ -1750,32 +1677,32 @@ qed
 lemma eq_resolution_ground_instance: 
   assumes 
     "\<iota>\<^sub>G \<in> ground.eq_resolution_inferences"
-    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union>(clause_groundings ` premises))"
-    "subst_stability_on premises"
+    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union>(clause_groundings ` N))"
+    "subst_stability_on N"
   obtains \<iota> where 
-    "\<iota> \<in> Inf_from premises" 
+    "\<iota> \<in> Inf_from N" 
     "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
 proof-
-  obtain premise\<^sub>G conclusion\<^sub>G where 
-    \<iota>\<^sub>G : "\<iota>\<^sub>G = Infer [premise\<^sub>G] conclusion\<^sub>G" and
-    eq_resolution: "ground.eq_resolution premise\<^sub>G conclusion\<^sub>G"
+  obtain D\<^sub>G C\<^sub>G where 
+    \<iota>\<^sub>G : "\<iota>\<^sub>G = Infer [D\<^sub>G] C\<^sub>G" and
+    ground_eq_resolution: "ground.eq_resolution D\<^sub>G C\<^sub>G"
     using assms(1)
     by blast
 
-  have premise\<^sub>G_in_groundings: "premise\<^sub>G \<in> \<Union>(clause_groundings ` premises)"
+  have D\<^sub>G_in_groundings: "D\<^sub>G \<in> \<Union>(clause_groundings ` N)"
     using assms(2)
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
     by simp
 
-  obtain premise "conclusion" \<gamma> \<V> where
-    "clause.from_ground premise\<^sub>G = premise \<cdot> \<gamma>" and
-    "clause.from_ground conclusion\<^sub>G = conclusion \<cdot> \<gamma>" and
-    select: "clause.from_ground (select\<^sub>G premise\<^sub>G) = select premise \<cdot> \<gamma>" and
-    premise_in_premises: "(premise, \<V>) \<in> premises" and
-    D_is_welltyped: "clause.is_welltyped \<V> premise" and
-    \<gamma>_is_welltyped: "is_welltyped_on (clause.vars premise) \<V> \<gamma>" and
+  obtain D C \<gamma> \<V> where
+    "clause.from_ground D\<^sub>G = D \<cdot> \<gamma>" and
+    "clause.from_ground C\<^sub>G = C \<cdot> \<gamma>" and
+    select: "clause.from_ground (select\<^sub>G D\<^sub>G) = select D \<cdot> \<gamma>" and
+    D_in_N: "(D, \<V>) \<in> N" and
+    D_is_welltyped: "clause.is_welltyped \<V> D" and
+    \<gamma>_is_welltyped: "is_welltyped_on (clause.vars D) \<V> \<gamma>" and
     \<V>: "infinite_variables_per_type \<V>"
-    using assms(2, 3) premise\<^sub>G_in_groundings that
+    using assms(2, 3) D\<^sub>G_in_groundings that
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def 
     apply (elim ballE)
     apply auto
@@ -1784,37 +1711,37 @@ proof-
         select_ground_subst)  
 
   then have
-    premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and
-    premise\<^sub>G: "premise\<^sub>G = clause.to_ground (premise \<cdot> \<gamma>)" and
-    conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
-    conclusion\<^sub>G: "conclusion\<^sub>G = clause.to_ground (conclusion \<cdot> \<gamma>)"
+    D_grounding: "clause.is_ground (D \<cdot> \<gamma>)" and
+    D\<^sub>G: "D\<^sub>G = clause.to_ground (D \<cdot> \<gamma>)" and
+    C_grounding: "clause.is_ground (C \<cdot> \<gamma>)" and
+    C\<^sub>G: "C\<^sub>G = clause.to_ground (C \<cdot> \<gamma>)"
     using clause.ground_is_ground clause.from_ground_inverse
     by(smt(verit))+
 
-  obtain conclusion' where
-    eq_resolution: "eq_resolution (premise, \<V>) (conclusion', \<V>)" and
-    \<iota>\<^sub>G: "\<iota>\<^sub>G = Infer [clause.to_ground (premise \<cdot> \<gamma>)] (clause.to_ground (conclusion' \<cdot> \<gamma>))" and
-    inference_groundings: "\<iota>\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (conclusion', \<V>))" and  
-    conclusion'_conclusion: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
+  obtain C' where
+    eq_resolution: "eq_resolution (D, \<V>) (C', \<V>)" and
+    \<iota>\<^sub>G: "\<iota>\<^sub>G = Infer [clause.to_ground (D \<cdot> \<gamma>)] (clause.to_ground (C' \<cdot> \<gamma>))" and
+    inference_groundings: "\<iota>\<^sub>G \<in> inference_groundings (Infer [(D, \<V>)] (C', \<V>))" and  
+    C'_C: "C' \<cdot> \<gamma> = C \<cdot> \<gamma>"
     using
       eq_resolution_lifting[OF 
-        eq_resolution[unfolded premise\<^sub>G conclusion\<^sub>G]
-        premise_grounding 
-        conclusion_grounding 
-        select[unfolded premise\<^sub>G] 
+        ground_eq_resolution[unfolded D\<^sub>G C\<^sub>G]
+        D_grounding 
+        C_grounding 
+        select[unfolded D\<^sub>G] 
         D_is_welltyped
         \<gamma>_is_welltyped
         \<V>
         ]
-    unfolding premise\<^sub>G conclusion\<^sub>G \<iota>\<^sub>G
+    unfolding D\<^sub>G C\<^sub>G \<iota>\<^sub>G
     by metis
 
-  let ?\<iota> = "Infer [(premise, \<V>)] (conclusion', \<V>)"
+  let ?\<iota> = "Infer [(D, \<V>)] (C', \<V>)"
 
   show ?thesis
   proof(rule that)
-    show "?\<iota> \<in> Inf_from premises"
-      using premise_in_premises eq_resolution
+    show "?\<iota> \<in> Inf_from N"
+      using D_in_N eq_resolution
       unfolding Inf_from_def inferences_def inference_system.Inf_from_def
       by auto
 
@@ -1826,35 +1753,35 @@ qed
 lemma eq_factoring_ground_instance: 
   assumes 
     "\<iota>\<^sub>G \<in> ground.eq_factoring_inferences"
-    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union>(clause_groundings ` premises))"
-    "subst_stability_on premises"
+    "\<iota>\<^sub>G \<in> ground.Inf_from_q select\<^sub>G (\<Union>(clause_groundings ` N))"
+    "subst_stability_on N"
   obtains \<iota> where 
-    "\<iota> \<in> Inf_from premises" 
+    "\<iota> \<in> Inf_from N" 
     "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
 proof-
-  obtain premise\<^sub>G conclusion\<^sub>G where 
-    \<iota>\<^sub>G : "\<iota>\<^sub>G = Infer [premise\<^sub>G] conclusion\<^sub>G" and
-    eq_factoring: "ground.eq_factoring premise\<^sub>G conclusion\<^sub>G"
+  obtain D\<^sub>G C\<^sub>G where 
+    \<iota>\<^sub>G : "\<iota>\<^sub>G = Infer [D\<^sub>G] C\<^sub>G" and
+    eq_factoring: "ground.eq_factoring D\<^sub>G C\<^sub>G"
     using assms(1)
     by blast
 
-  have premise\<^sub>G_in_groundings: "premise\<^sub>G \<in> \<Union>(clause_groundings ` premises)"
+  have D\<^sub>G_in_groundings: "D\<^sub>G \<in> \<Union>(clause_groundings ` N)"
     using assms(2)
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
     by simp
 
-  obtain premise "conclusion" \<gamma> \<V> where
-    "clause.from_ground premise\<^sub>G = premise \<cdot> \<gamma>" and
-    "clause.from_ground conclusion\<^sub>G = conclusion \<cdot> \<gamma>" and
-    select: "clause.from_ground (select\<^sub>G (clause.to_ground (premise \<cdot> \<gamma>))) = select premise \<cdot> \<gamma>" and
-    premise_in_premises: "(premise, \<V>) \<in> premises" and
+  obtain D "C" \<gamma> \<V> where
+    "clause.from_ground D\<^sub>G = D \<cdot> \<gamma>" and
+    "clause.from_ground C\<^sub>G = C \<cdot> \<gamma>" and
+    select: "clause.from_ground (select\<^sub>G (clause.to_ground (D \<cdot> \<gamma>))) = select D \<cdot> \<gamma>" and
+    D_in_N: "(D, \<V>) \<in> N" and
     typing:
-    "clause.is_welltyped \<V> premise"
-    (*"clause.is_ground (premise \<cdot> \<gamma>)"  
-    "clause.is_ground (conclusion \<cdot> \<gamma>)"*)
-    "is_welltyped_on (clause.vars premise) \<V> \<gamma>"
+    "clause.is_welltyped \<V> D"
+    (*"clause.is_ground (D \<cdot> \<gamma>)"  
+    "clause.is_ground (C \<cdot> \<gamma>)"*)
+    "is_welltyped_on (clause.vars D) \<V> \<gamma>"
     "infinite_variables_per_type \<V>"
-    using assms(2, 3) premise\<^sub>G_in_groundings
+    using assms(2, 3) D\<^sub>G_in_groundings
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def
     (* TODO: *)
     apply(elim ballE)
@@ -1864,33 +1791,33 @@ proof-
         select_ground_subst)
 
   then have 
-    premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and 
-    premise\<^sub>G: "premise\<^sub>G = clause.to_ground (premise \<cdot> \<gamma>)" and 
-    conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
-    conclusion\<^sub>G: "conclusion\<^sub>G = clause.to_ground (conclusion \<cdot> \<gamma>)"
+    D_grounding: "clause.is_ground (D \<cdot> \<gamma>)" and 
+    D\<^sub>G: "D\<^sub>G = clause.to_ground (D \<cdot> \<gamma>)" and 
+    C_grounding: "clause.is_ground (C \<cdot> \<gamma>)" and
+    C\<^sub>G: "C\<^sub>G = clause.to_ground (C \<cdot> \<gamma>)"
     by (smt(verit) clause.ground_is_ground clause.from_ground_inverse)+
 
-  obtain conclusion' where 
-    eq_factoring: "eq_factoring (premise, \<V>) (conclusion', \<V>)" and
-    inference_groundings: "\<iota>\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (conclusion', \<V>))" and  
-    conclusion'_conclusion: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
+  obtain C' where 
+    eq_factoring: "eq_factoring (D, \<V>) (C', \<V>)" and
+    inference_groundings: "\<iota>\<^sub>G \<in> inference_groundings (Infer [(D, \<V>)] (C', \<V>))" and  
+    C'_C: "C' \<cdot> \<gamma> = C \<cdot> \<gamma>"
     using 
       eq_factoring_lifting[OF 
-        premise_grounding 
-        conclusion_grounding 
+        eq_factoring[unfolded D\<^sub>G C\<^sub>G]
+        D_grounding 
+        C_grounding 
         select
-        eq_factoring[unfolded premise\<^sub>G conclusion\<^sub>G]
         ]
       typing
-    unfolding premise\<^sub>G conclusion\<^sub>G \<iota>\<^sub>G
+    unfolding D\<^sub>G C\<^sub>G \<iota>\<^sub>G
     by metis
 
-  let ?\<iota> = "Infer [(premise, \<V>)] (conclusion', \<V>)"
+  let ?\<iota> = "Infer [(D, \<V>)] (C', \<V>)"
 
   show ?thesis
   proof(rule that)
-    show "?\<iota> \<in> Inf_from premises"
-      using premise_in_premises eq_factoring
+    show "?\<iota> \<in> Inf_from N"
+      using D_in_N eq_factoring
       unfolding Inf_from_def inferences_def inference_system.Inf_from_def
       by auto
 

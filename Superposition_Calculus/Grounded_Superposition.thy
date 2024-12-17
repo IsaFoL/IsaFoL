@@ -36,8 +36,8 @@ abbreviation is_inference_grounding_one_premise where
         \<and> infinite_variables_per_type \<V>"
 
 abbreviation is_inference_grounding_two_premises where 
-  "is_inference_grounding_two_premises D E C \<iota>\<^sub>G \<gamma> \<equiv> 
-    case (D, E, C) of ((D, \<V>\<^sub>2), (E, \<V>\<^sub>1), (C, \<V>\<^sub>3)) \<Rightarrow> \<exists>\<rho>\<^sub>1 \<rho>\<^sub>2.
+  "is_inference_grounding_two_premises D E C \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv> 
+    case (D, E, C) of ((D, \<V>\<^sub>2), (E, \<V>\<^sub>1), (C, \<V>\<^sub>3)) \<Rightarrow>
           term_subst.is_renaming \<rho>\<^sub>1
         \<and> term_subst.is_renaming \<rho>\<^sub>2
         \<and> clause.vars (E \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (D \<cdot> \<rho>\<^sub>2) = {}
@@ -56,18 +56,18 @@ abbreviation is_inference_grounding_two_premises where
         \<and> infinite_variables_per_type \<V>\<^sub>3"
 
 abbreviation is_inference_grounding where
-  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<equiv> 
+  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv> 
   (case \<iota> of
       Infer [D] C \<Rightarrow> is_inference_grounding_one_premise D C \<iota>\<^sub>G \<gamma>
-    | Infer [D, E] C \<Rightarrow> is_inference_grounding_two_premises D E C \<iota>\<^sub>G \<gamma>
+    | Infer [D, E] C \<Rightarrow> is_inference_grounding_two_premises D E C \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2
     | _ \<Rightarrow> False) 
   \<and> \<iota>\<^sub>G \<in> ground.G_Inf"
 
 definition inference_groundings where 
-  "inference_groundings \<iota> = { \<iota>\<^sub>G | \<iota>\<^sub>G \<gamma>. is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> }"
+  "inference_groundings \<iota> = { \<iota>\<^sub>G | \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2. is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 }"
 
 lemma is_inference_grounding_inference_groundings: 
-  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<Longrightarrow> \<iota>\<^sub>G \<in> inference_groundings \<iota>"
+  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<Longrightarrow> \<iota>\<^sub>G \<in> inference_groundings \<iota>"
   unfolding inference_groundings_def
   by blast
 
