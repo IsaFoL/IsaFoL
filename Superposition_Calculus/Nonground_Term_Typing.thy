@@ -12,7 +12,9 @@ locale nonground_term_functional_substitution_typing =
   typed: explicitly_replaceable_\<V> + 
   welltyped: explicitly_replaceable_\<V> where typed = welltyped +
   typed: explicitly_typed_renaming +
-  welltyped: explicitly_typed_renaming where typed = welltyped
+  welltyped: explicitly_typed_renaming where typed = welltyped +
+  typed: inhabited_explicitly_typed_functional_substitution +
+  welltyped: inhabited_explicitly_typed_functional_substitution where typed = welltyped
 
 locale nonground_term_typing =
   "term": nonground_term +
@@ -648,22 +650,19 @@ proof-
 qed
 
 abbreviation welltyped_imgu where
-  "welltyped_imgu \<V> term term' \<mu> \<equiv>
-    \<exists>\<tau>. welltyped \<V> term \<tau> \<and> welltyped \<V> term' \<tau> \<and> is_welltyped \<V> \<mu>"
+  "welltyped_imgu \<V> t t' \<mu> \<equiv>
+    \<exists>\<tau>. welltyped \<V> t \<tau> \<and> welltyped \<V> t' \<tau> \<and> is_welltyped \<V> \<mu> \<and> term_subst.is_imgu \<mu> {{t, t'}}"
 
 lemma welltyped_imgu_exists:
   fixes \<upsilon> :: "('f, 'v) subst"
-  assumes unified: "term \<cdot>t \<upsilon> = term' \<cdot>t \<upsilon>" and "welltyped \<V> term \<tau>" "welltyped \<V> term' \<tau>"
+  assumes unified: "t \<cdot>t \<upsilon> = t' \<cdot>t \<upsilon>" and "welltyped \<V> t \<tau>" "welltyped \<V> t' \<tau>"
   obtains \<mu> :: "('f, 'v) subst"
-  where 
-    "\<upsilon> = \<mu> \<odot> \<upsilon>" 
-    "term_subst.is_imgu \<mu> {{term, term'}}"
-    "welltyped_imgu \<V> term term' \<mu>"
+  where "\<upsilon> = \<mu> \<odot> \<upsilon>" "welltyped_imgu \<V> t t' \<mu>"
 proof-
-  obtain \<mu> where \<mu>: "the_mgu term term' = \<mu>"
+  obtain \<mu> where \<mu>: "the_mgu t t' = \<mu>"
     using assms ex_mgu_if_subst_apply_term_eq_subst_apply_term by blast
 
-  have "\<forall>\<tau>. welltyped \<V> term \<tau> \<longrightarrow> welltyped \<V> term' \<tau> \<longrightarrow> is_welltyped \<V> (the_mgu term term')"
+  have "\<forall>\<tau>. welltyped \<V> t \<tau> \<longrightarrow> welltyped \<V> t' \<tau> \<longrightarrow> is_welltyped \<V> (the_mgu t t')"
     using welltyped_the_mgu[OF \<mu>, of \<V>] assms
     unfolding \<mu>
     by blast

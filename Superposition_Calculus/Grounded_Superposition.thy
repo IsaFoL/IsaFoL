@@ -23,20 +23,21 @@ rewrites
     is_strictly_maximal (literal.from_ground l) (clause.from_ground C)"
   by unfold_locales (auto simp: ground_critical_pair_theorem)
 
-abbreviation is_inference_grounding where
-  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv>
-    (case \<iota> of
-        Infer [(D, \<V>')] (C, \<V>) \<Rightarrow>
-          clause.is_ground (D \<cdot> \<gamma>)
+abbreviation is_inference_grounding_one_premise where 
+  "is_inference_grounding_one_premise D C \<iota>\<^sub>G \<gamma> \<equiv>
+     case (D, C) of ((D, \<V>'), (C, \<V>)) \<Rightarrow>
+      clause.is_ground (D \<cdot> \<gamma>)
         \<and> clause.is_ground (C \<cdot> \<gamma>)
         \<and> \<iota>\<^sub>G = Infer [clause.to_ground (D \<cdot> \<gamma>)] (clause.to_ground (C \<cdot> \<gamma>))
         \<and> clause.is_welltyped \<V> D 
         \<and> is_welltyped_on (clause.vars C) \<V> \<gamma>
         \<and> clause.is_welltyped \<V> C
         \<and> \<V> = \<V>'
-        \<and> infinite_variables_per_type \<V>
+        \<and> infinite_variables_per_type \<V>"
 
-      | Infer [(D, \<V>\<^sub>2), (E, \<V>\<^sub>1)] (C, \<V>\<^sub>3) \<Rightarrow> 
+abbreviation is_inference_grounding_two_premises where 
+  "is_inference_grounding_two_premises D E C \<iota>\<^sub>G \<gamma> \<equiv> 
+    case (D, E, C) of ((D, \<V>\<^sub>2), (E, \<V>\<^sub>1), (C, \<V>\<^sub>3)) \<Rightarrow> \<exists>\<rho>\<^sub>1 \<rho>\<^sub>2.
           term_subst.is_renaming \<rho>\<^sub>1
         \<and> term_subst.is_renaming \<rho>\<^sub>2
         \<and> clause.vars (E \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (D \<cdot> \<rho>\<^sub>2) = {}
@@ -52,16 +53,21 @@ abbreviation is_inference_grounding where
         \<and> clause.is_welltyped \<V>\<^sub>3 C
         \<and> infinite_variables_per_type \<V>\<^sub>1
         \<and> infinite_variables_per_type \<V>\<^sub>2 
-        \<and> infinite_variables_per_type \<V>\<^sub>3
-      | _ \<Rightarrow> False
-     )
+        \<and> infinite_variables_per_type \<V>\<^sub>3"
+
+abbreviation is_inference_grounding where
+  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<equiv> 
+  (case \<iota> of
+      Infer [D] C \<Rightarrow> is_inference_grounding_one_premise D C \<iota>\<^sub>G \<gamma>
+    | Infer [D, E] C \<Rightarrow> is_inference_grounding_two_premises D E C \<iota>\<^sub>G \<gamma>
+    | _ \<Rightarrow> False) 
   \<and> \<iota>\<^sub>G \<in> ground.G_Inf"
 
 definition inference_groundings where 
-  "inference_groundings \<iota> = { \<iota>\<^sub>G | \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2. is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 }"
+  "inference_groundings \<iota> = { \<iota>\<^sub>G | \<iota>\<^sub>G \<gamma>. is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> }"
 
 lemma is_inference_grounding_inference_groundings: 
-  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2  \<Longrightarrow> \<iota>\<^sub>G \<in> inference_groundings \<iota>"
+  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<Longrightarrow> \<iota>\<^sub>G \<in> inference_groundings \<iota>"
   unfolding inference_groundings_def
   by blast
 
@@ -98,17 +104,17 @@ proof-
 qed
 
 sublocale lifting: 
-    tiebreaker_lifting
-          "\<bottom>\<^sub>F"
-          inferences 
-          ground.G_Bot
-          ground.G_entails
-          ground.G_Inf 
-          ground.GRed_I
-          ground.GRed_F 
-          "clause_groundings"
-          "Some \<circ> inference_groundings"
-          typed_tiebreakers
+  tiebreaker_lifting
+    "\<bottom>\<^sub>F"
+    inferences 
+    ground.G_Bot
+    ground.G_entails
+    ground.G_Inf 
+    ground.GRed_I
+    ground.GRed_F 
+    clause_groundings
+    "Some \<circ> inference_groundings"
+    typed_tiebreakers
 proof(unfold_locales; (intro impI)?)
 
   show "\<bottom>\<^sub>F \<noteq> {}"
@@ -161,6 +167,7 @@ next
     by simp
 qed
 
+
 end
 
 context superposition_calculus
@@ -207,9 +214,9 @@ next
           inferences
           ground.G_Bot
           ground.G_entails
-          ground.G_Inf 
+          ground.G_Inf
           ground.GRed_I
-          ground.GRed_F 
+          ground.GRed_F
           clause_groundings
           (Some \<circ> inference_groundings)
           typed_tiebreakers"

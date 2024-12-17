@@ -1,7 +1,7 @@
 theory Nonground_Term
  imports 
     Abstract_Substitution.Substitution_First_Order_Term
-    Functional_Substitution_Lifting
+    Abstract_Substitution.Functional_Substitution_Lifting
     Ground_Term_Extra
 begin
 

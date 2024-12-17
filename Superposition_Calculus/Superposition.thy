@@ -87,7 +87,6 @@ inductive eq_resolution :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 't
   eq_resolutionI: 
    "D = add_mset l D' \<Longrightarrow>
     l = t !\<approx> t' \<Longrightarrow>
-    term.is_imgu \<mu> {{ t, t' }} \<Longrightarrow>
     welltyped_imgu \<V> t t' \<mu> \<Longrightarrow>
     select D = {#} \<and> is_maximal (l \<cdot>l \<mu>) (D \<cdot> \<mu>) \<or> is_maximal (l \<cdot>l \<mu>) (select D \<cdot> \<mu>) \<Longrightarrow>
     C = D' \<cdot> \<mu> \<Longrightarrow>
@@ -101,13 +100,12 @@ inductive eq_factoring :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty
     select D = {#} \<Longrightarrow> 
     is_maximal (l\<^sub>1 \<cdot>l \<mu>) (D \<cdot> \<mu>) \<Longrightarrow>
     \<not> (t\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>1' \<cdot>t \<mu>) \<Longrightarrow>
-    term.is_imgu \<mu> {{ t\<^sub>1, t\<^sub>2 }} \<Longrightarrow>
     welltyped_imgu \<V> t\<^sub>1 t\<^sub>2 \<mu> \<Longrightarrow>
     C = add_mset (t\<^sub>1 \<approx> t\<^sub>2') (add_mset (t\<^sub>1' !\<approx> t\<^sub>2') D') \<cdot> \<mu> \<Longrightarrow>
     eq_factoring (D, \<V>) (C, \<V>)"
 
 (* TODO: Not sure if welltypedness for renaming is necessary, I think it's already implied *)
-(* TODO: welltyped_on for imgu *)
+(* TODO: welltyped_imgu *)
 (* TODO: weaken  infinite_variables_per_type \<V>\<^sub>1 \<Longrightarrow> infinite_variables_per_type \<V>\<^sub>2 *)
 (* TODO: Order of conditions *)
 (* TODO: Get things like is_renaming out of the name scope *)

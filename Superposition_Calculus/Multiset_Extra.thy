@@ -3,7 +3,7 @@ theory Multiset_Extra
     "HOL-Library.Multiset"
     "HOL-Library.Multiset_Order"
     Nested_Multisets_Ordinals.Multiset_More
-    Natural_Magma_Functor
+    Abstract_Substitution.Natural_Magma_Functor
 begin
 
 lemma exists_multiset [intro]: "\<exists>M. x \<in> set_mset M"

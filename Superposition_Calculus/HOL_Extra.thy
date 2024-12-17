@@ -50,4 +50,7 @@ proof-
     by auto
 qed
 
+lemma ext_equiv: "(\<And>x. f x \<equiv> g x) \<Longrightarrow> f \<equiv> g"
+  by presburger
+
 end

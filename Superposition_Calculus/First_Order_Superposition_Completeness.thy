@@ -2,7 +2,6 @@ theory First_Order_Superposition_Completeness
   imports
     Ground_Superposition_Completeness
     Grounded_Superposition
-    "HOL-ex.Sketch_and_Explore" (* TODO *)
     Nonground_Entailment
     Superposition_Welltypedness_Preservation
 begin
@@ -20,255 +19,241 @@ begin
 
 lemma eq_resolution_lifting:
   fixes 
-    premise\<^sub>G conclusion\<^sub>G :: "'f gatom clause" and 
-    premise "conclusion" :: "('f, 'v) atom clause" and
+    D\<^sub>G C\<^sub>G :: "'f ground_atom clause" and 
+    D C :: "('f, 'v) atom clause" and
     \<gamma> :: "('f, 'v) subst"
   defines 
-    premise\<^sub>G [simp]: "premise\<^sub>G \<equiv> clause.to_ground (premise \<cdot> \<gamma>)" and
-    conclusion\<^sub>G [simp]: "conclusion\<^sub>G \<equiv> clause.to_ground (conclusion \<cdot> \<gamma>)"
+    D\<^sub>G [simp]: "D\<^sub>G \<equiv> clause.to_ground (D \<cdot> \<gamma>)" and
+    C\<^sub>G [simp]: "C\<^sub>G \<equiv> clause.to_ground (C \<cdot> \<gamma>)"
   assumes 
-    premise_grounding: "clause.is_ground (premise \<cdot> \<gamma>)" and 
-    conclusion_grounding: "clause.is_ground (conclusion \<cdot> \<gamma>)" and
-    select: "clause.from_ground (select\<^sub>G premise\<^sub>G) = (select premise) \<cdot> \<gamma>" and
-    ground_eq_resolution: "ground.eq_resolution premise\<^sub>G conclusion\<^sub>G" and
-    typing: 
-    "clause.is_welltyped \<V> premise"
-    "is_welltyped_on (clause.vars premise) \<V> \<gamma>"
-    "infinite_variables_per_type \<V>"
-  obtains conclusion' 
+    ground_eq_resolution: "ground.eq_resolution D\<^sub>G C\<^sub>G" and
+    D_grounding: "clause.is_ground (D \<cdot> \<gamma>)" and 
+    C_grounding: "clause.is_ground (C \<cdot> \<gamma>)" and
+    select: "clause.from_ground (select\<^sub>G D\<^sub>G) = (select D) \<cdot> \<gamma>" and
+    D_is_welltyped: "clause.is_welltyped \<V> D" and
+    \<gamma>_is_welltyped: "is_welltyped_on (clause.vars D) \<V> \<gamma>" and
+    \<V>: "infinite_variables_per_type \<V>"
+  obtains C' 
   where
-    "eq_resolution (premise, \<V>) (conclusion', \<V>)"
-    "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (conclusion', \<V>))"
-    "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
+    "eq_resolution (D, \<V>) (C', \<V>)"
+    "Infer [D\<^sub>G] C\<^sub>G \<in> inference_groundings (Infer [(D, \<V>)] (C', \<V>))"
+    "C' \<cdot> \<gamma> = C \<cdot> \<gamma>"
   using ground_eq_resolution
-proof(cases premise\<^sub>G conclusion\<^sub>G rule: ground.eq_resolution.cases)
-  case ground_eq_resolutionI: (eq_resolutionI literal\<^sub>G premise\<^sub>G' term\<^sub>G)
+proof(cases D\<^sub>G C\<^sub>G rule: ground.eq_resolution.cases)
+  case ground_eq_resolutionI: (eq_resolutionI l\<^sub>G D\<^sub>G' t\<^sub>G)
 
-  have premise_not_empty: "premise \<noteq> {#}"
-    using 
-      ground_eq_resolutionI(1)
-      empty_not_add_mset
-      clause_subst_empty
-    unfolding premise\<^sub>G
-    by (metis clause_from_ground_empty_mset clause.from_ground_inverse)
+  let ?select\<^sub>G_empty = "select\<^sub>G D\<^sub>G = {#}"
+  let ?select\<^sub>G_not_empty = "select\<^sub>G D\<^sub>G \<noteq> {#}"
 
-  have "premise \<cdot> \<gamma> = clause.from_ground (add_mset literal\<^sub>G (clause.to_ground (conclusion \<cdot> \<gamma>)))"
-    using 
-      ground_eq_resolutionI(1)[THEN arg_cong, of clause.from_ground]
-      clause.to_ground_inverse[OF premise_grounding]
-      ground_eq_resolutionI(4)
-    unfolding premise\<^sub>G conclusion\<^sub>G
-    by metis
-
-  also have "... = add_mset (literal.from_ground literal\<^sub>G) (conclusion \<cdot> \<gamma>)"
-    unfolding clause.add_subst
-    by (simp add: conclusion_grounding)
-
-  finally have premise_\<gamma>: "premise \<cdot> \<gamma> = add_mset (literal.from_ground literal\<^sub>G) (conclusion \<cdot> \<gamma>)".
-
-  let ?select\<^sub>G_empty = "select\<^sub>G premise\<^sub>G = {#}"
-  let ?select\<^sub>G_not_empty = "select\<^sub>G premise\<^sub>G \<noteq> {#}"
-
-  obtain max_literal where max_literal: 
-    "is_maximal max_literal premise" 
-    "is_maximal (max_literal \<cdot>l \<gamma>) (premise \<cdot> \<gamma>)"
-    using obtain_maximal_literal[OF premise_not_empty premise_grounding]
-    by blast
-
-  moreover then have "max_literal \<in># premise"
-    using is_maximal_def by blast
-
-  moreover have max_literal_\<gamma>: "max_literal \<cdot>l \<gamma> = literal.from_ground (term\<^sub>G !\<approx> term\<^sub>G)"
-    if ?select\<^sub>G_empty
+  obtain l where
+    l_\<gamma>: "l \<cdot>l \<gamma> = term.from_ground t\<^sub>G !\<approx> term.from_ground t\<^sub>G" and
+    l_in_D: "l \<in># D" and
+    l_selected: "?select\<^sub>G_not_empty \<Longrightarrow> is_maximal l (select D)" and
+    l_\<gamma>_selected: "?select\<^sub>G_not_empty \<Longrightarrow> is_maximal (l \<cdot>l \<gamma>) (select D \<cdot> \<gamma>)" and
+    l_is_maximal: "?select\<^sub>G_empty \<Longrightarrow> is_maximal l D" and
+    l_\<gamma>_is_maximal: "?select\<^sub>G_empty \<Longrightarrow> is_maximal (l \<cdot>l \<gamma>) (D \<cdot> \<gamma>)"
   proof-
-    have "ground_is_maximal literal\<^sub>G premise\<^sub>G"
-      using ground_eq_resolutionI(3) that maximal_in_clause
-      unfolding is_maximal_def
-      by simp
-
-    then show ?thesis
-      using max_literal(2) unique_maximal_in_ground_clause[OF premise_grounding] 
-      unfolding 
-        ground_eq_resolutionI(2) 
-        premise\<^sub>G 
-        clause.to_ground_inverse[OF premise_grounding]
-      by blast
-  qed
-
-  moreover obtain selected_literal where 
-    "selected_literal \<cdot>l \<gamma> = literal.from_ground (term\<^sub>G !\<approx> term\<^sub>G)" and
-    "is_maximal selected_literal (select premise)" 
-  if ?select\<^sub>G_not_empty
-  proof-
-    have "ground_is_maximal literal\<^sub>G (select\<^sub>G premise\<^sub>G)" if ?select\<^sub>G_not_empty
-      using ground_eq_resolutionI(3) that
-      by blast
-
-    then show ?thesis 
-      using 
-        that 
-        select 
-        unique_maximal_in_ground_clause[OF select_ground_subst[OF premise_grounding]]
-        obtain_maximal_literal[OF _ select_ground_subst[OF premise_grounding]]
-      unfolding
-        ground_eq_resolutionI(2) 
-        premise\<^sub>G
-      by (metis (full_types) clause_subst_empty(2) clause.from_ground_inverse clause_to_ground_empty_mset) 
-  qed
-
-  moreover then have "selected_literal \<in># premise" if ?select\<^sub>G_not_empty
-    by (meson that maximal_in_clause mset_subset_eqD select_subset)
-
-  ultimately obtain literal where
-    literal_\<gamma>: "literal \<cdot>l \<gamma> = literal.from_ground (term\<^sub>G !\<approx> term\<^sub>G)" and
-    literal_in_premise: "literal \<in># premise" and
-    literal_selected: "?select\<^sub>G_not_empty \<Longrightarrow> is_maximal literal (select premise)" and
-    literal_max: "?select\<^sub>G_empty \<Longrightarrow> is_maximal literal premise"
-    by blast
-
-  have literal_grounding: "literal.is_ground (literal \<cdot>l \<gamma>)"
-    using literal_\<gamma>
-    by simp
-
-  from literal_\<gamma> obtain "term" term' where 
-    literal: "literal = term !\<approx> term'"
-    using subst_polarity_stable literal_from_ground_polarity_stable
-    by (metis literal.collapse(2) literal.disc(2) uprod_exhaust)
-
-
-  (* TODO: Both are not needed *)
-  have literal\<^sub>G: 
-    "literal.from_ground literal\<^sub>G = (term !\<approx> term') \<cdot>l \<gamma>" 
-    "literal\<^sub>G = literal.to_ground ((term !\<approx> term') \<cdot>l \<gamma>)"
-     using literal_\<gamma>
-     unfolding literal ground_eq_resolutionI(2)
-     by auto
-
-  obtain conclusion' where conclusion': "premise = add_mset literal conclusion'"
-    using multi_member_split[OF literal_in_premise]
-    by blast
-
-  have "term \<cdot>t \<gamma> = term' \<cdot>t \<gamma>"
-    using literal_\<gamma>
-    unfolding literal subst_literal(2) atom.subst_def literal.from_ground_def atom.from_ground_def
-    by simp
-
-  moreover obtain \<tau> where "welltyped \<V> term \<tau>" "welltyped \<V> term' \<tau>"
-    using typing(1) 
-    unfolding conclusion' literal
-    by auto
-
-  ultimately obtain \<mu> \<sigma> where \<mu>: 
-    "term_subst.is_imgu \<mu> {{term, term'}}" 
-    "\<gamma> = \<mu> \<odot> \<sigma>" 
-    "welltyped_imgu \<V> term term' \<mu>"
-    using welltyped_imgu_exists
-    by (smt (verit, del_insts))
-
-  have conclusion'_\<gamma>: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
-    using premise_\<gamma>
-    unfolding conclusion' ground_eq_resolutionI(2) literal_\<gamma>[symmetric] clause.add_subst
-    by simp
-
-  have eq_resolution: "eq_resolution (premise, \<V>) (conclusion' \<cdot> \<mu>, \<V>)"
-  proof (rule eq_resolutionI)
-    show "premise = add_mset literal conclusion'"
-      using conclusion'.
-  next 
-    show "literal = term !\<approx> term'"
-      using literal.    
-  next
-    show "term_subst.is_imgu \<mu> {{term, term'}}"
-      using \<mu>(1).
-  next
-    show "select premise = {#} \<and> is_maximal (literal \<cdot>l \<mu>) (premise \<cdot> \<mu>) 
-       \<or>  is_maximal (literal \<cdot>l \<mu>) ((select premise) \<cdot> \<mu>)"
-    proof(cases ?select\<^sub>G_empty)
-      case select\<^sub>G_empty: True
-
-      then have "max_literal \<cdot>l \<gamma> = literal \<cdot>l \<gamma>"
-        by (simp add: max_literal_\<gamma> literal_\<gamma>)
-
-      then have literal_\<gamma>_is_maximal: "is_maximal (literal \<cdot>l \<gamma>) (premise \<cdot> \<gamma>)"
-        using max_literal(2) by simp
-
-      have literal_\<mu>_in_premise: "literal \<cdot>l \<mu> \<in># premise \<cdot> \<mu>"
-        by (simp add: clause.subst_in_to_set_subst literal_in_premise)
-
-      have "is_maximal (literal \<cdot>l \<mu>) (premise \<cdot> \<mu>)"
-        using is_maximal_if_grounding_is_maximal[OF 
-            literal_\<mu>_in_premise 
-            premise_grounding[unfolded \<mu>(2) clause.subst_comp_subst]
-            literal_\<gamma>_is_maximal[unfolded \<mu>(2) clause.subst_comp_subst literal.subst_comp_subst]
-            ].
+    obtain max_l where 
+     "is_maximal max_l D" and
+      is_max_in_D_\<gamma>: "is_maximal (max_l \<cdot>l \<gamma>) (D \<cdot> \<gamma>)"
+    proof-
+      have "D \<noteq> {#}"
+        using ground_eq_resolutionI(1)
+        unfolding D\<^sub>G
+        by auto
 
       then show ?thesis
-        using select select\<^sub>G_empty
+        using that D_grounding obtain_maximal_literal
+        by blast
+    qed
+
+    moreover then have "max_l \<in># D"
+      unfolding is_maximal_def 
+      by blast
+
+    moreover have "max_l \<cdot>l \<gamma> = term.from_ground t\<^sub>G !\<approx> term.from_ground t\<^sub>G" if ?select\<^sub>G_empty
+    proof-
+      have "ground_is_maximal l\<^sub>G D\<^sub>G"
+        using ground_eq_resolutionI(3) that
+        unfolding is_maximal_def
+        by simp
+
+      then show ?thesis
+        using unique_maximal_in_ground_clause[OF D_grounding is_max_in_D_\<gamma>] D_grounding
+        unfolding ground_eq_resolutionI(2) D\<^sub>G
+        by simp
+    qed
+
+    moreover obtain selected_l where 
+      "selected_l \<cdot>l \<gamma> = term.from_ground t\<^sub>G !\<approx> term.from_ground t\<^sub>G" and
+      "is_maximal selected_l (select D)"
+      "is_maximal (selected_l \<cdot>l \<gamma>) (select D \<cdot> \<gamma>)"
+    if ?select\<^sub>G_not_empty
+    proof-
+      have "is_maximal (term.from_ground t\<^sub>G !\<approx> term.from_ground t\<^sub>G) (select D \<cdot> \<gamma>)" 
+        if ?select\<^sub>G_not_empty
+        using ground_eq_resolutionI(3) that select
+        unfolding ground_eq_resolutionI(2) D\<^sub>G
+        by simp
+
+      then show ?thesis
+        using
+          that
+          obtain_maximal_literal[OF _ select_ground_subst[OF D_grounding]]
+          unique_maximal_in_ground_clause[OF select_ground_subst[OF D_grounding]]
+        by (metis is_maximal_empty clause_subst_empty)
+    qed
+
+    moreover then have "selected_l \<in># D" if ?select\<^sub>G_not_empty
+      by (meson that maximal_in_clause mset_subset_eqD select_subset)
+
+    ultimately show ?thesis
+      using that
+      by blast
+  qed
+
+  obtain C' where D: "D = add_mset l C'"
+    using multi_member_split[OF l_in_D]
+    by blast
+
+  obtain t t' where l: "l = t !\<approx> t'"
+    using l_\<gamma> obtain_from_neg_literal_subst
+    by meson
+
+  obtain \<mu> \<sigma> where \<gamma>: "\<gamma> = \<mu> \<odot> \<sigma>" and imgu: "welltyped_imgu \<V> t t' \<mu>"
+  proof-
+    have unified: "t \<cdot>t \<gamma> = t' \<cdot>t \<gamma>"
+      using l_\<gamma>
+      unfolding l
+      by simp
+
+    moreover obtain \<tau> where welltyped: "welltyped \<V> t \<tau>" "welltyped \<V> t' \<tau>"
+      using D_is_welltyped
+      unfolding D l
+      by auto
+
+    show ?thesis
+      using welltyped_imgu_exists[OF unified welltyped] that
+      by metis
+  qed
+
+  have eq_resolution: "eq_resolution (D, \<V>) (C' \<cdot> \<mu>, \<V>)"
+  proof (rule eq_resolutionI, rule D, rule l, rule imgu)
+    show "select D = {#} \<and> is_maximal (l \<cdot>l \<mu>) (D \<cdot> \<mu>) \<or> is_maximal (l \<cdot>l \<mu>) ((select D) \<cdot> \<mu>)"
+    proof(cases ?select\<^sub>G_empty)
+      case True
+
+      moreover have "is_maximal (l \<cdot>l \<mu>) (D \<cdot> \<mu>)"
+      proof-
+        have "l \<cdot>l \<mu> \<in># D \<cdot> \<mu>"
+          using l_in_D 
+          by blast
+
+        then show ?thesis
+          using l_\<gamma>_is_maximal[OF True] is_maximal_if_grounding_is_maximal D_grounding
+          unfolding \<gamma>
+          by simp
+      qed
+
+      ultimately show ?thesis
+        using select
         by simp
     next
       case False
 
-      have selected_grounding: "clause.is_ground (select premise \<cdot> \<mu> \<cdot> \<sigma>)"
-        using select_ground_subst[OF premise_grounding]
-        unfolding \<mu>(2) clause.subst_comp_subst.
+      have "l \<cdot>l \<mu> \<in># select D \<cdot> \<mu>"
+        using l_selected[OF False] maximal_in_clause
+        by blast
 
-      note selected_subst =
-        literal_selected[OF False, THEN maximal_in_clause, THEN clause.subst_in_to_set_subst]
+      then have "is_maximal (l \<cdot>l \<mu>) (select D \<cdot> \<mu>)"
+        using 
+          select_ground_subst[OF D_grounding]
+          l_\<gamma>_selected[OF False] 
+          is_maximal_if_grounding_is_maximal 
+        unfolding \<gamma>
+        by auto
 
-      have "is_maximal (literal \<cdot>l \<gamma>) (select premise \<cdot> \<gamma>)"
-        using False ground_eq_resolutionI(3) 
-        unfolding ground_eq_resolutionI(2) literal_\<gamma> select
-        by presburger
-
-      then have "is_maximal (literal \<cdot>l \<mu>) (select premise \<cdot> \<mu>)"
-        unfolding \<mu>(2) clause.subst_comp_subst literal.subst_comp_subst
-        using is_maximal_if_grounding_is_maximal[OF selected_subst selected_grounding]
-        by argo
-
-      with False show ?thesis
+      then show ?thesis
+        using select
         by blast
     qed
-  next 
-    show "welltyped_imgu \<V> term term' \<mu>"
-      using \<mu>(3).
-  next 
-    show "conclusion' \<cdot> \<mu> = conclusion' \<cdot> \<mu>" ..
+  qed simp
+
+  have C_\<gamma>: "C \<cdot> \<gamma> = C' \<cdot> \<mu> \<cdot> \<gamma>"
+  proof-
+    have "term.is_idem \<mu>"
+      using imgu 
+      unfolding term_subst.is_imgu_iff_is_idem_and_is_mgu 
+      by blast  
+
+    then have \<mu>_\<gamma>: "\<mu> \<odot> \<gamma> = \<gamma>"
+      unfolding \<gamma> term_subst.is_idem_def subst_compose_assoc[symmetric]
+      by argo
+
+    have "D \<cdot> \<gamma> = add_mset (l \<cdot>l \<gamma>) (C \<cdot> \<gamma>)"
+    proof-
+      have "clause.to_ground (D \<cdot> \<gamma>) = clause.to_ground (add_mset (l \<cdot>l \<gamma>) (C \<cdot> \<gamma>))"
+        using ground_eq_resolutionI(1)
+        unfolding D\<^sub>G ground_eq_resolutionI(2) l_\<gamma> ground_eq_resolutionI(4)[symmetric]
+        by simp 
+
+      moreover have "clause.is_ground (add_mset (l \<cdot>l \<gamma>) (C \<cdot> \<gamma>))"
+        using C_grounding clause.to_set_is_ground_subst[OF l_in_D D_grounding]
+        by simp
+
+      ultimately show ?thesis
+        using clause.to_ground_eq[OF D_grounding]
+        by blast
+    qed
+
+    then have "C \<cdot> \<gamma> = C' \<cdot> \<gamma>"
+      unfolding D
+      by simp
+
+    then show ?thesis
+      unfolding clause.subst_comp_subst[symmetric] \<mu>_\<gamma>.
+  qed
+ 
+  moreover have "Infer [D\<^sub>G] C\<^sub>G \<in> inference_groundings (Infer [(D, \<V>)] (C' \<cdot> \<mu>, \<V>))"
+  proof-
+
+    have "is_inference_grounding_one_premise (D, \<V>) (C' \<cdot> \<mu>, \<V>) (Infer [D\<^sub>G] C\<^sub>G) \<gamma>"
+    proof(unfold split, intro conjI; (rule D_grounding D_is_welltyped refl \<V>)?)
+      show "clause.is_ground (C' \<cdot> \<mu> \<cdot> \<gamma>)"
+        using C_grounding C_\<gamma> 
+        by argo
+    next
+      show "Infer [D\<^sub>G] C\<^sub>G = Infer [clause.to_ground (D \<cdot> \<gamma>)] (clause.to_ground (C' \<cdot> \<mu> \<cdot> \<gamma>))"
+        using C_\<gamma>
+        by simp
+    next
+      have "clause.vars (C' \<cdot> \<mu>) \<subseteq> clause.vars D"
+        using clause.variables_in_base_imgu imgu
+        unfolding D l
+        by auto
+
+      then show "is_welltyped_on (clause.vars (C' \<cdot> \<mu>)) \<V> \<gamma>"
+        using D_is_welltyped \<gamma>_is_welltyped
+        by blast
+    next
+      show "clause.is_welltyped \<V> (C' \<cdot> \<mu>)"
+        using D_is_welltyped eq_resolution eq_resolution_preserves_typing
+        by blast
+    qed
+
+    moreover have "Infer [D\<^sub>G] C\<^sub>G \<in> ground.G_Inf"
+      unfolding ground.G_Inf_def
+      using ground_eq_resolution
+      by blast
+
+    ultimately show ?thesis
+      unfolding inference_groundings_def
+      by auto
   qed
 
-  have "term_subst.is_idem \<mu>"
-    using \<mu>(1)
-    by (simp add: term_subst.is_imgu_iff_is_idem_and_is_mgu)  
-
-  then have \<mu>_\<gamma>: "\<mu> \<odot> \<gamma> = \<gamma>"
-    unfolding \<mu>(2) term_subst.is_idem_def
-    by (metis subst_compose_assoc)
-
-  have vars_conclusion': "clause.vars (conclusion' \<cdot> \<mu>) \<subseteq> clause.vars premise"
-    using clause.variables_in_base_imgu[OF \<mu>(1)] 
-    unfolding conclusion' literal 
-    by auto
-
-  have yy: "conclusion' \<cdot> \<mu> \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
-    using conclusion'_\<gamma>  
-    unfolding clause.subst_comp_subst[symmetric] \<mu>_\<gamma>.
-
-  moreover have "clause.is_welltyped \<V> (conclusion' \<cdot> \<mu>)"
-    using eq_resolution eq_resolution_preserves_typing typing(1) by blast
-
-  moreover with yy have 
-    "Infer [premise\<^sub>G] conclusion\<^sub>G \<in> inference_groundings (Infer [(premise, \<V>)] (conclusion' \<cdot> \<mu>, \<V>))"
-    unfolding inference_groundings_def
-    using typing vars_conclusion' ground.G_Inf_def ground_eq_resolution
-    (* TODO: *)
-    apply(auto)
-    apply(rule exI[of _ \<gamma>])
-    apply auto
-     apply (metis empty_iff premise_grounding)
-    by (metis conclusion_grounding empty_iff)
-   
   ultimately show ?thesis
     using that[OF eq_resolution]
-    by blast
+    by presburger
 qed
 
 lemma eq_factoring_lifting:
@@ -1787,11 +1772,9 @@ proof-
     "clause.from_ground conclusion\<^sub>G = conclusion \<cdot> \<gamma>" and
     select: "clause.from_ground (select\<^sub>G premise\<^sub>G) = select premise \<cdot> \<gamma>" and
     premise_in_premises: "(premise, \<V>) \<in> premises" and
-    typing: "clause.is_welltyped \<V> premise"
-    (*"clause.is_ground (premise \<cdot> \<gamma>)"  *)
-    (*"clause.is_ground (conclusion \<cdot> \<gamma>)"*)
-    "is_welltyped_on (clause.vars premise) \<V> \<gamma>"
-    "infinite_variables_per_type \<V>"
+    D_is_welltyped: "clause.is_welltyped \<V> premise" and
+    \<gamma>_is_welltyped: "is_welltyped_on (clause.vars premise) \<V> \<gamma>" and
+    \<V>: "infinite_variables_per_type \<V>"
     using assms(2, 3) premise\<^sub>G_in_groundings that
     unfolding \<iota>\<^sub>G ground.Inf_from_q_def ground.Inf_from_def 
     apply (elim ballE)
@@ -1815,11 +1798,13 @@ proof-
     conclusion'_conclusion: "conclusion' \<cdot> \<gamma> = conclusion \<cdot> \<gamma>"
     using
       eq_resolution_lifting[OF 
+        eq_resolution[unfolded premise\<^sub>G conclusion\<^sub>G]
         premise_grounding 
         conclusion_grounding 
         select[unfolded premise\<^sub>G] 
-        eq_resolution[unfolded premise\<^sub>G conclusion\<^sub>G]
-        typing
+        D_is_welltyped
+        \<gamma>_is_welltyped
+        \<V>
         ]
     unfolding premise\<^sub>G conclusion\<^sub>G \<iota>\<^sub>G
     by metis
@@ -1893,7 +1878,7 @@ proof-
       eq_factoring_lifting[OF 
         premise_grounding 
         conclusion_grounding 
-        select 
+        select
         eq_factoring[unfolded premise\<^sub>G conclusion\<^sub>G]
         ]
       typing

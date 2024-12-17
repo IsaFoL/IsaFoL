@@ -1,7 +1,6 @@
 theory Nonground_Context
   imports 
     Nonground_Term
-    Functional_Substitution_Lifting
     Ground_Context
 begin
 

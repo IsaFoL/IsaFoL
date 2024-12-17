@@ -11,6 +11,10 @@ begin
 type_synonym ('f, 'v, 'ty) typed_clause = "('f, 'v) atom clause \<times> ('v, 'ty) var_types"
 
 locale nonground_typing_lifting = 
+  is_typed: inhabited_typed_functional_substitution_lifting where base_typed = base_typed +
+  is_welltyped: inhabited_typed_functional_substitution_lifting where 
+  sub_is_typed = sub_is_welltyped and base_typed = base_welltyped +
+
   is_typed: typed_subst_stability_lifting where base_typed = base_typed +
   is_welltyped: typed_subst_stability_lifting where 
   sub_is_typed = sub_is_welltyped and base_typed = base_welltyped +
@@ -26,6 +30,9 @@ for base_typed base_welltyped :: "('var, 'ty) var_types \<Rightarrow> 'base \<Ri
     sub_is_welltyped
 
 locale nonground_uniform_typing_lifting =
+  is_typed: uniform_inhabited_typed_functional_substitution_lifting where base_typed = base_typed +
+  is_welltyped: uniform_inhabited_typed_functional_substitution_lifting where 
+  base_typed = base_welltyped +
 
   is_typed: uniform_typed_subst_stability_lifting where base_typed = base_typed + 
   is_welltyped: uniform_typed_subst_stability_lifting where base_typed = base_welltyped +

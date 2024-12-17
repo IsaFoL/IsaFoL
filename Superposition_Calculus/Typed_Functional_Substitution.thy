@@ -1,7 +1,7 @@
 theory Typed_Functional_Substitution
   imports 
-    Typing 
-    Functional_Substitution
+    Typing
+    Abstract_Substitution.Functional_Substitution
     Fun_Extra
 begin
 
@@ -15,9 +15,7 @@ for
   typed :: "('var, 'ty) var_types \<Rightarrow> 'base \<Rightarrow> 'ty \<Rightarrow> bool" +
 assumes 
   predicate_typed: "\<And>\<V>. predicate_typed (typed \<V>)" and
-  typed_id_subst: "\<V> x = \<tau> \<Longrightarrow> typed \<V> (id_subst x) \<tau>" and
-   (* TODO: Does it make sense to have this in a separate locale? *)
-  types_inhabited: "\<And>\<tau>. \<exists>base. is_ground base \<and> typed \<V> base \<tau>"
+  typed_id_subst: "\<V> x = \<tau> \<Longrightarrow> typed \<V> (id_subst x) \<tau>"
 begin
 
 sublocale predicate_typed "typed \<V>"
@@ -34,6 +32,10 @@ lemma subst_update:
 
 end
 
+locale inhabited_explicitly_typed_functional_substitution = 
+ explicitly_typed_functional_substitution +
+ assumes types_inhabited: "\<And>\<tau>. \<exists>base. is_ground base \<and> typed \<V> base \<tau>"
+
 locale typed_functional_substitution = 
   base: explicitly_typed_functional_substitution where 
   vars = base_vars and subst = base_subst and typed = base_typed +
@@ -42,6 +44,11 @@ for
   vars :: "'expr \<Rightarrow> 'var set" and
   is_typed :: "('var, 'ty) var_types \<Rightarrow> 'expr \<Rightarrow> bool" and
   base_typed :: "('var, 'ty) var_types \<Rightarrow> 'base \<Rightarrow> 'ty \<Rightarrow> bool"
+
+locale inhabited_typed_functional_substitution = 
+  typed_functional_substitution + 
+  base: inhabited_explicitly_typed_functional_substitution where
+  subst = base_subst and vars = base_vars and typed = base_typed
 begin
 
 lemma ground_subst_extension:

@@ -2,7 +2,7 @@ theory Uprod_Extra
   imports
     "HOL-Library.Uprod"
     Multiset_Extra
-    Natural_Functor
+    Abstract_Substitution.Natural_Functor
 begin
 
 abbreviation upair where

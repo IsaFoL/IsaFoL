@@ -1,7 +1,7 @@
 theory Typed_Functional_Substitution_Lifting
   imports 
     Typed_Functional_Substitution 
-    Functional_Substitution_Lifting
+    Abstract_Substitution.Functional_Substitution_Lifting
 begin
 
 locale typed_functional_substitution_lifting = 
@@ -37,14 +37,36 @@ begin
 abbreviation (input) lifted_is_typed where 
   "lifted_is_typed \<V> \<equiv> uniform_typed_lifting to_set (base_typed \<V>)"
 
-lemma ext_meta: "(\<And>x. f x \<equiv> g x) \<Longrightarrow> f \<equiv> g"
-  by presburger
-
-lemmas lifted_is_typed_def = uniform_typed_lifting_def[of to_set, THEN ext_meta, of base_typed]
+lemmas lifted_is_typed_def = uniform_typed_lifting_def[of to_set, THEN ext_equiv, of base_typed]
 
 sublocale typed_functional_substitution where 
   vars = vars and subst = subst and is_typed = lifted_is_typed and base_subst = sub_subst and 
   base_vars = sub_vars
+  by unfold_locales
+
+end
+
+locale uniform_inhabited_typed_functional_substitution_lifting = 
+  uniform_typed_functional_substitution_lifting +
+  base: inhabited_explicitly_typed_functional_substitution where 
+  vars = sub_vars and subst = sub_subst and typed = base_typed
+begin
+
+sublocale inhabited_typed_functional_substitution where 
+  vars = vars and subst = subst and is_typed = lifted_is_typed and base_subst = sub_subst and 
+  base_vars = sub_vars
+  by unfold_locales
+
+end
+
+locale inhabited_typed_functional_substitution_lifting = 
+  typed_functional_substitution_lifting +
+  sub: inhabited_typed_functional_substitution where 
+  vars = sub_vars and subst = sub_subst and is_typed = sub_is_typed
+begin
+
+sublocale inhabited_typed_functional_substitution where 
+  vars = vars and subst = subst and is_typed = lifted_is_typed
   by unfold_locales
 
 end

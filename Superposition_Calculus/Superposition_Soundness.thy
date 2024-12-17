@@ -13,21 +13,14 @@ subsection \<open>Soundness\<close>
 context grounded_superposition_calculus
 begin
 
-(* TODO : Find rewrite to make both equal *)
-abbreviation entails\<^sub>F (infix "\<TTurnstile>\<^sub>F" 50) where
-  "entails\<^sub>F \<equiv> lifting.entails_\<G>"
-
-lemma "entails_\<G> = lifting.entails_\<G>"
-  unfolding entails_def
-  using Q_nonempty
-  by blast
+notation lifting.entails_\<G> (infix "\<TTurnstile>\<^sub>F" 50)
 
 lemma eq_resolution_sound:
   assumes eq_resolution: "eq_resolution D C"
   shows "{D} \<TTurnstile>\<^sub>F {C}"
   using eq_resolution
 proof (cases D C rule: eq_resolution.cases)
-  case (eq_resolutionI D l D' t t' \<mu> \<V> C)
+  case (eq_resolutionI D l D' t t' \<V> \<mu> C)
 
   {
     fix I :: "'f ground_term rel" and \<gamma> :: "('f, 'v) subst"
@@ -95,8 +88,8 @@ proof (cases D C rule: eq_resolution.cases)
       moreover have "atm_of l\<^sub>G \<in> ?I"
       proof-
         have "?t\<^sub>G = ?t\<^sub>G'"
-          using term_subst.is_imgu_unifies_pair[OF eq_resolutionI(5)]
-          by argo
+          using eq_resolutionI(5) term_subst.is_imgu_unifies_pair
+          by metis
 
         then show ?thesis
           using reflD[OF refl_I, of ?t\<^sub>G]
@@ -117,13 +110,13 @@ proof (cases D C rule: eq_resolution.cases)
       using clause.subst_eq[OF \<gamma>'_\<gamma>[rule_format]] I_models_l\<^sub>G
       by auto
   }
-
+  
   then show ?thesis
     unfolding
-      ground.G_entails_def 
       true_clss_def 
       eq_resolutionI(1,2)
       clause_groundings_def
+      ground.G_entails_def
     by auto
 qed
 
@@ -165,7 +158,7 @@ proof (cases D C rule: eq_factoring.cases)
     let ?C\<^sub>G = "clause.to_ground (C \<cdot> \<gamma>')"
 
     have \<mu>_is_welltyped: "is_welltyped \<V> \<mu>"
-      using eq_factoringI(10)
+      using eq_factoringI(9)
       by blast
 
     have "?D\<^sub>G \<in> clause_groundings (D, \<V>)"
@@ -194,8 +187,8 @@ proof (cases D C rule: eq_factoring.cases)
       by (auto simp: true_cls_def)
 
     have [simp]: "?t\<^sub>G\<^sub>2 = ?t\<^sub>G\<^sub>1"
-      using term_subst.is_imgu_unifies_pair[OF eq_factoringI(9)]
-      by argo
+      using eq_factoringI(9) term_subst.is_imgu_unifies_pair
+      by metis
 
     have [simp]: "?l\<^sub>G\<^sub>1 = ?t\<^sub>G\<^sub>1 \<approx> ?t\<^sub>G\<^sub>1'"
       unfolding eq_factoringI
@@ -434,7 +427,7 @@ proof (cases D E C rule: superposition.cases)
       by (metis \<gamma>'_\<gamma> clause.subst_eq)
   }
 
-  then show ?thesis 
+  then show ?thesis
     unfolding ground.G_entails_def clause_groundings_def true_clss_def superpositionI(1-3)
     by auto
 qed
@@ -451,6 +444,7 @@ proof unfold_locales
       eq_factoring_sound
       eq_resolution_sound
       superposition_sound
+    unfolding entails_\<G>_def
     unfolding inferences_def ground.G_entails_def
     by auto
 qed
@@ -464,9 +458,9 @@ proof unfold_locales
     where select\<^sub>G = select\<^sub>G
     by unfold_locales (simp add: select\<^sub>G\<^sub>s_def)
 
-  show "\<And>\<iota>. \<iota> \<in> inferences \<Longrightarrow> entails_\<G> (set (prems_of \<iota>)) {concl_of \<iota>}"
-    using sound
+  show "\<And>\<iota>. \<iota> \<in> inferences \<Longrightarrow> entails_\<G> (set (prems_of \<iota>)) {concl_of \<iota>} "
     unfolding entails_def
+    using sound
     by blast
 qed
 

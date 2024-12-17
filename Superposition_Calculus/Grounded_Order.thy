@@ -1,7 +1,7 @@
 theory Grounded_Order
   imports 
     Restricted_Order
-    Functional_Substitution_Lifting
+    Abstract_Substitution.Functional_Substitution_Lifting
 begin
 
 section \<open>Orders with ground restrictions\<close>

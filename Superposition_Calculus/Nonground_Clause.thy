@@ -3,7 +3,6 @@ theory Nonground_Clause
     Ground_Clause
     Nonground_Term
     Nonground_Context
-    Functional_Substitution_Lifting
     Clausal_Calculus_Extra
     Multiset_Extra
 begin
@@ -197,9 +196,11 @@ lemma mset_literal_from_ground:
 
 lemma subst_polarity_stable: 
   shows 
-    subst_neg_stable: "is_neg (l \<cdot>l \<sigma>) \<longleftrightarrow> is_neg l" and
-    subst_pos_stable: "is_pos (l \<cdot>l \<sigma>) \<longleftrightarrow> is_pos l"
+    subst_neg_stable [simp]: "is_neg (l \<cdot>l \<sigma>) \<longleftrightarrow> is_neg l" and
+    subst_pos_stable [simp]: "is_pos (l \<cdot>l \<sigma>) \<longleftrightarrow> is_pos l"
   by (simp_all add: literal.subst_def)
+
+declare literal.discI [intro]
 
 lemma atom_from_ground_term_from_ground [simp]:
   "atom.from_ground (Upair t\<^sub>G\<^sub>1 t\<^sub>G\<^sub>2) = Upair (term.from_ground t\<^sub>G\<^sub>1) (term.from_ground t\<^sub>G\<^sub>2)"
