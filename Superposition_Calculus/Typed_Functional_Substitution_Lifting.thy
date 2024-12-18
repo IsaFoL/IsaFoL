@@ -1,7 +1,7 @@
 theory Typed_Functional_Substitution_Lifting
   imports 
     Typed_Functional_Substitution 
-    Abstract_Substitution.Functional_Substitution_Lifting
+    Functional_Substitution_Lifting
 begin
 
 locale typed_functional_substitution_lifting = 

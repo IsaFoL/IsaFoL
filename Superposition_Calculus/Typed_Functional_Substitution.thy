@@ -1,7 +1,7 @@
 theory Typed_Functional_Substitution
   imports 
     Typing
-    Abstract_Substitution.Functional_Substitution
+    Functional_Substitution
     Fun_Extra
 begin
 
@@ -317,7 +317,7 @@ proof(intro ballI)
 
   moreover have "typed \<V> (\<gamma> y) (\<V>' y)"
     using explicit_replace_\<V>
-    by (metis assms(2,4) comp_subst.left_neutral emptyE is_ground_subst_is_ground iso_tuple_UNIV_I 
+    by (metis assms(2,4) left_neutral emptyE is_ground_subst_is_ground iso_tuple_UNIV_I 
         comp_subst_iff)
    
   ultimately have "typed \<V> (\<gamma> y) (\<V> (inv \<rho> (id_subst y)))"
@@ -329,7 +329,7 @@ proof(intro ballI)
 
   moreover have "\<gamma> y = (\<rho> \<odot> \<gamma>) x"
     using y
-    by (metis comp_subst.left_neutral comp_subst_iff)
+    by (metis left_neutral comp_subst_iff)
 
   ultimately show "typed \<V> ((\<rho> \<odot> \<gamma>) x) (\<V> x)"
     by argo

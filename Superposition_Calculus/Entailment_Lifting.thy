@@ -1,5 +1,5 @@
 theory Entailment_Lifting
-  imports Abstract_Substitution.Functional_Substitution_Lifting
+  imports Functional_Substitution_Lifting
 begin
 
 locale entailment = 
