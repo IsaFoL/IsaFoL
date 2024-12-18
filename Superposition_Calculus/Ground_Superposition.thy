@@ -18,16 +18,8 @@ theory Ground_Superposition
     HOL_Extra
     Clausal_Calculus_Extra
     Selection_Function
-    Ground_Order
+    Ground_Order 
 begin
-
-
-hide_type Inference_System.inference
-hide_const
-  Inference_System.Infer
-  Inference_System.prems_of
-  Inference_System.concl_of
-  Inference_System.main_prem_of
 
 no_notation subst_compose (infixl "\<circ>\<^sub>s" 75)
 no_notation subst_apply_term (infixl "\<cdot>" 67) (* TODO: Just have these once *)

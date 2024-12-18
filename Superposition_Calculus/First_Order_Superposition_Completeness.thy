@@ -6,26 +6,18 @@ theory First_Order_Superposition_Completeness
     Superposition_Welltypedness_Preservation
 begin
 
-(* TODO: Put in one place *)
-hide_type Inference_System.inference
-hide_const
-  Inference_System.Infer
-  Inference_System.prems_of
-  Inference_System.concl_of
-  Inference_System.main_prem_of
-
 context grounded_superposition_calculus
 begin
 
 lemma eq_resolution_lifting:
-  fixes 
-    D\<^sub>G C\<^sub>G :: "'f ground_atom clause" and 
+  fixes
+    D\<^sub>G C\<^sub>G :: "'f ground_atom clause" and
     D C :: "('f, 'v) atom clause" and
     \<gamma> :: "('f, 'v) subst"
-  defines 
+  defines
     D\<^sub>G [simp]: "D\<^sub>G \<equiv> clause.to_ground (D \<cdot> \<gamma>)" and
     C\<^sub>G [simp]: "C\<^sub>G \<equiv> clause.to_ground (C \<cdot> \<gamma>)"
-  assumes 
+  assumes
     ground_eq_resolution: "ground.eq_resolution D\<^sub>G C\<^sub>G" and
     D_grounding: "clause.is_ground (D \<cdot> \<gamma>)" and 
     C_grounding: "clause.is_ground (C \<cdot> \<gamma>)" and
@@ -33,7 +25,7 @@ lemma eq_resolution_lifting:
     D_is_welltyped: "clause.is_welltyped \<V> D" and
     \<gamma>_is_welltyped: "is_welltyped_on (clause.vars D) \<V> \<gamma>" and
     \<V>: "infinite_variables_per_type \<V>"
-  obtains C' 
+  obtains C'
   where
     "eq_resolution (D, \<V>) (C', \<V>)"
     "Infer [D\<^sub>G] C\<^sub>G \<in> inference_groundings (Infer [(D, \<V>)] (C', \<V>))"

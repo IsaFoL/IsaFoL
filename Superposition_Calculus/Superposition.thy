@@ -1,19 +1,13 @@
 theory Superposition
   imports
     Nonground_Order
-    Saturation_Framework.Lifting_to_Non_Ground_Calculi
     Ground_Superposition
     Nonground_Selection_Function
     Renaming
     Nonground_Typing
-begin
 
-hide_type Inference_System.inference
-hide_const
-  Inference_System.Infer
-  Inference_System.prems_of
-  Inference_System.concl_of
-  Inference_System.main_prem_of
+    Saturation_Framework.Lifting_to_Non_Ground_Calculi
+begin
 
 (* Hide as much of Restricted_Predicates.wfp_on as possible *)
 hide_fact

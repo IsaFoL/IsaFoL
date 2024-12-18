@@ -11,12 +11,6 @@ theory Ground_Ordered_Resolution
     Relation_Extra
 begin
 
-hide_type Inference_System.inference
-hide_const
-  Inference_System.Infer
-  Inference_System.prems_of
-  Inference_System.concl_of
-  Inference_System.main_prem_of
 
 primrec mset_lit :: "'a literal \<Rightarrow> 'a multiset" where
   "mset_lit (Pos A) = {#A#}" |
