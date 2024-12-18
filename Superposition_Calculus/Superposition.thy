@@ -9,6 +9,8 @@ theory Superposition
     Saturation_Framework.Lifting_to_Non_Ground_Calculi
 begin
 
+(* TODO: Remove Well_Quasi_Orders.Minimal_Elements from 
+  Saturation_Framework.Lifting_to_Non_Ground_Calculi to get rid of Restricted_Predicates *)
 (* Hide as much of Restricted_Predicates.wfp_on as possible *)
 hide_fact
   Restricted_Predicates.wfp_on_imp_minimal

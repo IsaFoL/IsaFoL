@@ -11,7 +11,6 @@ theory Ground_Ordered_Resolution
     Relation_Extra
 begin
 
-
 primrec mset_lit :: "'a literal \<Rightarrow> 'a multiset" where
   "mset_lit (Pos A) = {#A#}" |
   "mset_lit (Neg A) = {#A, A#}"
