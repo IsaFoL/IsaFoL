@@ -37,7 +37,7 @@ end
 locale mulitset_typing_lifting = typing_lifting where to_set = set_mset
 begin
 
-sublocale natural_magma_typing_lifting 
+sublocale natural_magma_typing_lifting
   where to_set = set_mset and plus = "(+)" and wrap = "\<lambda>l. {#l#}" and add = add_mset
   by unfold_locales
 
@@ -98,7 +98,7 @@ lemma literal_is_welltyped_iff_atm_of:
   unfolding literal.is_welltyped_def
   by (simp add: set_literal_atm_of)
 
-lemmas is_welltyped_iff = 
+lemmas is_welltyped_iff =
   literal_is_welltyped_iff atom_is_welltyped_iff
 
 sublocale clause: mulitset_typing_lifting where 

@@ -26,9 +26,9 @@ end
 
 locale uniform_typed_functional_substitution_lifting = 
   base: explicitly_typed_functional_substitution where 
-  vars = sub_vars and subst = sub_subst and typed = base_typed +
+  vars = base_vars and subst = base_subst and typed = base_typed +
   based_functional_substitution_lifting where
-  to_set = to_set and base_vars = sub_vars and base_subst = sub_subst
+  to_set = to_set and sub_subst = base_subst and sub_vars = base_vars
 for
   base_typed :: "('var, 'ty) var_types \<Rightarrow> 'base \<Rightarrow> 'ty \<Rightarrow> bool" and
   to_set :: "'expr \<Rightarrow> 'base set"
@@ -40,8 +40,7 @@ abbreviation (input) lifted_is_typed where
 lemmas lifted_is_typed_def = uniform_typed_lifting_def[of to_set, THEN ext_equiv, of base_typed]
 
 sublocale typed_functional_substitution where 
-  vars = vars and subst = subst and is_typed = lifted_is_typed and base_subst = sub_subst and 
-  base_vars = sub_vars
+  vars = vars and subst = subst and is_typed = lifted_is_typed
   by unfold_locales
 
 end
@@ -49,12 +48,11 @@ end
 locale uniform_inhabited_typed_functional_substitution_lifting = 
   uniform_typed_functional_substitution_lifting +
   base: inhabited_explicitly_typed_functional_substitution where 
-  vars = sub_vars and subst = sub_subst and typed = base_typed
+  vars = base_vars and subst = base_subst and typed = base_typed
 begin
 
 sublocale inhabited_typed_functional_substitution where 
-  vars = vars and subst = subst and is_typed = lifted_is_typed and base_subst = sub_subst and 
-  base_vars = sub_vars
+  vars = vars and subst = subst and is_typed = lifted_is_typed
   by unfold_locales
 
 end
@@ -133,20 +131,19 @@ end
 
 locale uniform_typed_subst_stability_lifting =
   uniform_typed_functional_substitution_lifting +  
-  sub: explicitly_typed_subst_stability where
-  typed = base_typed and vars = sub_vars and subst = sub_subst
+  base: explicitly_typed_subst_stability where
+  typed = base_typed and vars = base_vars and subst = base_subst
 begin
 
 sublocale typed_subst_stability where 
-  is_typed = lifted_is_typed and subst = subst and vars = vars and base_subst = sub_subst and 
-  base_vars = sub_vars
+  is_typed = lifted_is_typed and subst = subst and vars = vars 
 proof unfold_locales
   fix expr \<V> \<sigma>
   assume "base.is_typed_on (vars expr) \<V> \<sigma>"
-  
-  then show "lifted_is_typed \<V> (expr \<cdot> \<sigma>) \<longleftrightarrow> lifted_is_typed \<V> expr"
+
+  then show "lifted_is_typed \<V> (subst expr \<sigma>) \<longleftrightarrow> lifted_is_typed \<V> expr"
     unfolding vars_def uniform_typed_lifting_def
-    using sub.subst_stability to_set_image
+    using base.subst_stability to_set_image
     by force
 qed
 
@@ -167,18 +164,28 @@ end
 locale uniform_replaceable_\<V>_lifting =
   uniform_typed_functional_substitution_lifting +  
   sub: explicitly_replaceable_\<V> where
-  typed = base_typed and vars = sub_vars and subst = sub_subst
+  typed = base_typed and vars = base_vars and subst = base_subst
 begin
 
 sublocale replaceable_\<V> where 
-  is_typed = lifted_is_typed and subst = subst and vars = vars and base_subst = sub_subst and 
-  base_vars = sub_vars
+  is_typed = lifted_is_typed and subst = subst and vars = vars
   by unfold_locales (auto 4 4 simp: vars_def uniform_typed_lifting_def intro: sub.explicit_replace_\<V>)
 
 end
 
+locale based_typed_renaming_lifting = 
+  based_functional_substitution_lifting + 
+  based_typed_renaming where subst = sub_subst and vars = sub_vars
+begin
+
+sublocale based_typed_renaming where subst = subst and vars = vars 
+  by unfold_locales
+
+end
+
 locale typed_renaming_lifting = 
-  typed_functional_substitution_lifting + 
+  typed_functional_substitution_lifting +
+  based_typed_renaming_lifting where typed = base_typed +
   sub: typed_renaming where 
   subst = sub_subst and vars = sub_vars and is_typed = sub_is_typed
 begin
@@ -194,17 +201,17 @@ sublocale typed_renaming where
 end
 
 locale uniform_typed_renaming_lifting =
-  uniform_typed_functional_substitution_lifting +  
-  sub: explicitly_typed_renaming where
-  typed = base_typed and vars = sub_vars and subst = sub_subst
+  uniform_typed_functional_substitution_lifting +
+  based_typed_renaming_lifting where 
+  typed = base_typed and sub_vars = base_vars and sub_subst = base_subst
 begin
 
 sublocale typed_renaming where 
-  is_typed = lifted_is_typed and subst = subst and vars = vars and base_subst = sub_subst and 
-  base_vars = sub_vars
+  is_typed = lifted_is_typed and subst = subst and vars = vars
+  (* TODO *)
   apply unfold_locales
   unfolding vars_def subst_def uniform_typed_lifting_def
-  using sub.typed_renaming
+  using base.typed_renaming
   by force
 
 end

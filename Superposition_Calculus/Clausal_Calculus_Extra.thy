@@ -13,8 +13,8 @@ lemma map_literal_comp:
   using literal.map_comp
   unfolding comp_def.
 
-lemma literals_distinct [simp]: "Neg \<noteq> Pos" "Pos \<noteq> Neg"
-  by(metis literal.distinct(1))+
+lemma literals_distinct [simp]: "Pos \<noteq> Neg" "Neg \<noteq> Pos"
+  by (metis literal.distinct(1))+
 
 primrec mset_lit :: "'a uprod literal \<Rightarrow> 'a multiset" where
   "mset_lit (Pos A) = mset_uprod A" |

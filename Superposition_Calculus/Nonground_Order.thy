@@ -317,13 +317,11 @@ rewrites
   by unfold_locales auto
 
 abbreviation ground_is_maximal where 
-  "ground_is_maximal literal\<^sub>G premise\<^sub>G \<equiv> 
-    is_maximal (literal.from_ground literal\<^sub>G) (clause.from_ground premise\<^sub>G)"
+  "ground_is_maximal l\<^sub>G C\<^sub>G \<equiv> is_maximal (literal.from_ground l\<^sub>G) (clause.from_ground C\<^sub>G)"
 
 abbreviation ground_is_strictly_maximal where 
-  "ground_is_strictly_maximal literal\<^sub>G premise\<^sub>G \<equiv> 
-    is_strictly_maximal (literal.from_ground literal\<^sub>G) (clause.from_ground premise\<^sub>G)"
-
+  "ground_is_strictly_maximal l\<^sub>G C\<^sub>G \<equiv>
+     is_strictly_maximal (literal.from_ground l\<^sub>G) (clause.from_ground C\<^sub>G)"
 
 (* TODO: naming *)
 lemma less\<^sub>t_less\<^sub>l: 

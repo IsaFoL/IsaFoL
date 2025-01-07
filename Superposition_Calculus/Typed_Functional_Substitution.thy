@@ -15,7 +15,7 @@ for
   typed :: "('var, 'ty) var_types \<Rightarrow> 'base \<Rightarrow> 'ty \<Rightarrow> bool" +
 assumes 
   predicate_typed: "\<And>\<V>. predicate_typed (typed \<V>)" and
-  typed_id_subst: "\<V> x = \<tau> \<Longrightarrow> typed \<V> (id_subst x) \<tau>"
+  typed_id_subst: "\<And>\<V> x \<tau>. \<V> x = \<tau> \<Longrightarrow> typed \<V> (id_subst x) \<tau>"
 begin
 
 sublocale predicate_typed "typed \<V>"
@@ -29,6 +29,16 @@ lemma subst_update:
   shows "is_typed_on X \<V> (\<gamma>(var := update))"
   using assms typed_id_subst
   by fastforce
+
+lemma is_typed_on_subset:
+  assumes "is_typed_on Y \<V> \<sigma>" "X \<subseteq> Y"
+  shows "is_typed_on X \<V> \<sigma>"
+  using assms
+  by blast
+
+lemma is_typed_id_subst [intro]: "is_typed_on X \<V> id_subst"
+  using typed_id_subst
+  by auto
 
 end
 
@@ -166,25 +176,13 @@ lemma typed_id_subst: "typed \<V> (id_subst x) (\<V> x)"
   using welltyped_id_subst
   by (simp add: base.typed_if_welltyped)
 
-lemma is_typed_id_subst [intro]: "is_typed_on X \<V> id_subst"
-  using typed_id_subst
-  by auto
+lemmas is_typed_id_subst = typed.is_typed_id_subst
 
-lemma is_welltyped_id_subst [intro]: "is_welltyped_on X \<V> id_subst"
-  using welltyped_id_subst
-  by auto
+lemmas is_welltyped_id_subst = welltyped.is_typed_id_subst
 
-lemma is_typed_on_subset:
-  assumes "is_typed_on Y \<V> \<sigma>" "X \<subseteq> Y"
-  shows "is_typed_on X \<V> \<sigma>"
-  using assms
-  by blast
+lemmas is_typed_on_subset = typed.is_typed_on_subset
 
-lemma is_welltyped_on_subset:
-  assumes "is_welltyped_on Y \<V> \<sigma>" "X \<subseteq> Y"
-  shows "is_welltyped_on X \<V> \<sigma>"
-  using assms
-  by blast
+lemmas is_welltyped_on_subset = welltyped.is_typed_on_subset
 
 end
 
@@ -285,13 +283,6 @@ sublocale typed_renaming
   using explicit_typed_renaming
   by unfold_locales blast
 
-lemma inv_renaming:
-  assumes "is_renaming \<rho>"
-  shows "inv \<rho> (\<rho> x) = x"
-  using assms
-  unfolding is_renaming_iff
-  by simp
-
 (* TODO: Name *)
 lemma is_welltyped_renaming_ground_subst_weaker: 
   assumes 
@@ -391,5 +382,56 @@ proof-
 qed
 
 end
+
+locale based_typed_renaming =
+  based_functional_substitution +
+  base: explicitly_typed_renaming where 
+  subst = base_subst and vars = base_vars +
+  base: explicitly_typed_functional_substitution where 
+  vars = base_vars and subst = base_subst
+begin
+
+(* TODO: precedence + Name! + put into own locale \<rightarrow> uniform_typed_renaming_lifting can also have it  *)
+lemma is_typed_on_renaming_grounding:
+  assumes 
+    renaming: "base.is_renaming \<rho>" and
+    \<rho>_\<gamma>_is_welltyped: "base.is_typed_on (vars expr) \<V> (\<rho> \<odot> \<gamma>)" and
+    grounding: "is_ground (expr \<cdot> (\<rho> \<odot> \<gamma>))" and
+    \<V>'_\<V>: "\<forall>x \<in> vars (expr \<cdot> \<rho>). \<V>' x = \<V> (inv \<rho> (id_subst x))"
+  shows "base.is_typed_on (vars (expr \<cdot> \<rho>)) \<V>' \<gamma>"
+proof(intro ballI)
+  fix x
+  define y where "y \<equiv> inv \<rho> (id_subst x)"
+
+  assume x_in_expr: "x \<in> vars (expr \<cdot> \<rho>)"
+
+  then have y_in_vars: "y \<in> vars expr"
+    using base.inv_in[OF renaming] 
+    unfolding y_def base.vars_subst_vars
+    by (smt (verit, del_insts) Union_iff imageE imageI subst_id_subst vars_subst)
+
+  then have "base.is_ground (base_subst (id_subst y) (\<rho> \<odot> \<gamma>))"
+    using variable_grounding[OF grounding y_in_vars]
+    by (metis base.comp_subst_iff base.left_neutral)
+
+  moreover have "typed \<V> (base_subst (id_subst y) (\<rho> \<odot> \<gamma>)) (\<V> y)"
+    using \<rho>_\<gamma>_is_welltyped y_in_vars
+    unfolding y_def
+    by (metis base.comp_subst_iff base.left_neutral)
+
+  ultimately have "typed \<V>' (base_subst (id_subst y) (\<rho> \<odot> \<gamma>)) (\<V> y)"
+    by (meson base.explicit_is_ground_typed)
+
+  then show "typed \<V>' (\<gamma> x) (\<V>' x)"
+    using x_in_expr base.renaming_inv_into[OF renaming] \<V>'_\<V>
+    unfolding y_def vars_subst base.comp_subst_iff
+    by (smt (verit, best) UN_iff f_inv_into_f base.comp_subst_iff base.left_neutral)
+qed
+
+end
+
+sublocale explicitly_typed_renaming \<subseteq> 
+  based_typed_renaming where base_vars = vars and base_subst = subst
+  by unfold_locales
 
 end

@@ -228,9 +228,7 @@ next
   fix t :: "'f gterm" and c :: "'f ground_context"
   assume "c \<noteq> \<box>"
   then show "t \<prec>\<^sub>t\<^sub>G c\<langle>t\<rangle>\<^sub>G"
-    using 
-      order.ground_subterm_property[OF term.ground_is_ground context.ground_is_ground]
-      context.context_from_ground_hole
+    using order.ground_subterm_property[OF term.ground_is_ground context.ground_is_ground]
     unfolding order.less\<^sub>G_def
     by simp
 qed

@@ -408,6 +408,27 @@ lemma is_welltyped_subst_compose [intro]:
   unfolding subst_compose_def
   by auto
 
+(* TODO! ! *)
+lemma is_welltyped_on_subst_compose [intro]:
+  assumes "is_welltyped_on X \<V> \<sigma>" "is_welltyped_on (\<Union>(term.vars ` \<sigma> ` X)) \<V> \<sigma>'"
+  shows "is_welltyped_on X \<V> (\<sigma> \<odot> \<sigma>')"
+  using assms
+  unfolding subst_compose_def
+  by auto
+
+(* TODO! ! *)
+lemma is_welltyped_on_subst_compose_renaming:
+  assumes
+    "term_subst.is_renaming \<rho>"
+    "is_welltyped_on X \<V> (\<rho> \<odot> \<sigma>)"
+    "is_welltyped_on X \<V> \<rho>"
+  shows "is_welltyped_on (\<Union> (term.vars ` \<rho> ` X)) \<V> \<sigma>"
+  using assms
+  unfolding term.is_renaming_iff
+  unfolding subst_compose_def
+  apply auto
+  by (metis assms(1) eval_term.simps(1) is_FunI term.set_cases(2) term.welltyped.right_uniqueD term_subst_is_renaming_iff welltyped.typed_id_subst)
+
 lemma is_typed_subst_compose [intro]:
   assumes "is_typed \<V> \<sigma>" "is_typed \<V> \<sigma>'"
   shows "is_typed \<V> (\<sigma> \<odot> \<sigma>')"
@@ -653,7 +674,7 @@ abbreviation welltyped_imgu where
   "welltyped_imgu \<V> t t' \<mu> \<equiv>
     \<exists>\<tau>. welltyped \<V> t \<tau> \<and> welltyped \<V> t' \<tau> \<and> is_welltyped \<V> \<mu> \<and> term_subst.is_imgu \<mu> {{t, t'}}"
 
-lemma welltyped_imgu_exists:
+lemma obtain_welltyped_imgu:
   fixes \<upsilon> :: "('f, 'v) subst"
   assumes unified: "t \<cdot>t \<upsilon> = t' \<cdot>t \<upsilon>" and "welltyped \<V> t \<tau>" "welltyped \<V> t' \<tau>"
   obtains \<mu> :: "('f, 'v) subst"

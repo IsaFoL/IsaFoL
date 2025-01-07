@@ -41,22 +41,23 @@ abbreviation is_inference_grounding_two_premises where
           term_subst.is_renaming \<rho>\<^sub>1
         \<and> term_subst.is_renaming \<rho>\<^sub>2
         \<and> clause.vars (E \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (D \<cdot> \<rho>\<^sub>2) = {}
-        \<and> clause.is_ground (D \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>)
-        \<and> clause.is_ground (E \<cdot> \<rho>\<^sub>1  \<cdot> \<gamma>)
+        \<and> clause.is_ground (D \<cdot> \<rho>\<^sub>2 \<odot> \<gamma>)
+        \<and> clause.is_ground (E \<cdot> \<rho>\<^sub>1 \<odot> \<gamma>)
         \<and> clause.is_ground (C \<cdot> \<gamma>)
         \<and> \<iota>\<^sub>G =
             Infer
-              [clause.to_ground (D \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>), clause.to_ground (E \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>)] (clause.to_ground (C \<cdot> \<gamma>))
+              [clause.to_ground (D \<cdot> \<rho>\<^sub>2 \<odot> \<gamma>), clause.to_ground (E \<cdot> \<rho>\<^sub>1 \<odot> \<gamma>)]
+              (clause.to_ground (C \<cdot> \<gamma>))
         \<and> clause.is_welltyped \<V>\<^sub>1 E
         \<and> clause.is_welltyped \<V>\<^sub>2 D
         \<and> is_welltyped_on (clause.vars C) \<V>\<^sub>3 \<gamma>
         \<and> clause.is_welltyped \<V>\<^sub>3 C
         \<and> infinite_variables_per_type \<V>\<^sub>1
-        \<and> infinite_variables_per_type \<V>\<^sub>2 
+        \<and> infinite_variables_per_type \<V>\<^sub>2
         \<and> infinite_variables_per_type \<V>\<^sub>3"
 
 abbreviation is_inference_grounding where
-  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv> 
+  "is_inference_grounding \<iota> \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2 \<equiv>
   (case \<iota> of
       Infer [D] C \<Rightarrow> is_inference_grounding_one_premise D C \<iota>\<^sub>G \<gamma>
     | Infer [D, E] C \<Rightarrow> is_inference_grounding_two_premises D E C \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2

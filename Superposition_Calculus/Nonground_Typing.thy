@@ -53,7 +53,7 @@ locale term_based_nonground_uniform_typing_lifting =
   "term": nonground_term +
   nonground_uniform_typing_lifting where  
   id_subst = Var and comp_subst = "(\<odot>)" and map = map_uprod and to_set = set_uprod and 
-  sub_vars = term.vars and sub_subst = "(\<cdot>t)"
+  base_vars = term.vars and base_subst = "(\<cdot>t)"
 
 locale nonground_typing =
   nonground_clause +

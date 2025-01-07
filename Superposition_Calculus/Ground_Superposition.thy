@@ -126,7 +126,7 @@ next
     case (superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
     thus ?thesis
       using superposition'I
-      by (metis literals_distinct(2))
+      by (metis literals_distinct)
   qed
 qed
 
@@ -392,7 +392,7 @@ proof (cases P1 P2 C rule: superposition.cases)
         proof (rule thesis_if_Pos[OF \<open>\<P> = Pos\<close>])
 
           have "is_strictly_maximal L\<^sub>1 P2"
-            using \<open>\<P> = Pos\<close> superpositionI
+            using \<open>\<P> = Pos\<close> superpositionI 
             by simp
 
           thus "is_maximal L\<^sub>1 P2"

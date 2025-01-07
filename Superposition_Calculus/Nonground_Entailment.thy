@@ -73,9 +73,15 @@ lemma symmetric_context_congruence:
 
 lemma symmetric_upair_context_congruence:
   assumes "Upair t t' \<in> upair ` I"
-  shows "Upair c\<langle>t\<rangle>\<^sub>G t'' \<in>  upair ` I \<longleftrightarrow> (Upair c\<langle>t'\<rangle>\<^sub>G t'') \<in>  upair ` I"
+  shows "Upair c\<langle>t\<rangle>\<^sub>G t'' \<in>  upair ` I \<longleftrightarrow> Upair c\<langle>t'\<rangle>\<^sub>G t'' \<in>  upair ` I"
   using assms uprod_mem_image_iff_prod_mem[OF sym] symmetric_context_congruence
   by simp
+
+lemma upair_compatible_with_gctxtI [intro]:
+  "Upair t t' \<in> upair ` I \<Longrightarrow> Upair c\<langle>t\<rangle>\<^sub>G c\<langle>t'\<rangle>\<^sub>G \<in> upair ` I"
+  using compatible_with_gctxt
+  unfolding compatible_with_gctxt_def
+  by (simp add: sym)
 
 sublocale "term": symmetric_base_entailment where vars = "term.vars :: ('f, 'v) term \<Rightarrow> 'v set" and 
   id_subst = Var and comp_subst = "(\<odot>)" and subst = "(\<cdot>t)" and to_ground = term.to_ground and 
@@ -221,6 +227,18 @@ proof unfold_locales
     by(induction C) auto
 
 qed auto
+
+lemma literal_compatible_with_gctxtI [intro]:
+   "literal.entails (t \<approx> t') \<Longrightarrow> literal.entails (c\<langle>t\<rangle> \<approx> c\<langle>t'\<rangle>)"
+  by (simp add: upair_compatible_with_gctxtI)
+
+lemma symmetric_literal_context_congruence:
+  assumes "Upair t t' \<in> upair ` I"
+  shows 
+    "upair ` I \<TTurnstile>l c\<langle>t\<rangle>\<^sub>G \<approx> t'' \<longleftrightarrow> upair ` I \<TTurnstile>l c\<langle>t'\<rangle>\<^sub>G \<approx> t''"
+    "upair ` I \<TTurnstile>l c\<langle>t\<rangle>\<^sub>G !\<approx> t'' \<longleftrightarrow> upair ` I \<TTurnstile>l c\<langle>t'\<rangle>\<^sub>G !\<approx> t''"
+  using assms symmetric_upair_context_congruence 
+  by auto
 
 end
 

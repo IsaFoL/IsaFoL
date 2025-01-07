@@ -91,23 +91,11 @@ lemmas safe_unfolds =
   term_to_ground_context_to_ground 
   term_from_ground_context_from_ground
 
-(* TODO: Make iff *)
-lemma context_is_ground_context_compose1:
-  assumes "is_ground (c \<circ>\<^sub>c c')"
-  shows "is_ground c" "is_ground c'"
-  using assms
+lemma composed_context_is_ground [simp]:
+  "is_ground (c \<circ>\<^sub>c c') \<longleftrightarrow> is_ground c \<and> is_ground c'"
   by(induction c) auto
 
-lemma context_is_ground_context_compose2:
-  assumes "is_ground c" "is_ground c'" 
-  shows "is_ground (c \<circ>\<^sub>c c')"
-  using assms
-  by (meson ground_ctxt_comp ground_ctxt_iff_context_is_ground)
-
-lemmas context_is_ground_context_compose = 
-  context_is_ground_context_compose1 
-  context_is_ground_context_compose2
-
+(* TODO: Name/ Remove? *)
 lemma ground_context_subst:
   assumes 
     "is_ground c\<^sub>G" 
@@ -115,22 +103,28 @@ lemma ground_context_subst:
   shows 
     "c\<^sub>G = c \<circ>\<^sub>c c' \<cdot>t\<^sub>c \<sigma>"
   using assms 
-proof(induction c)
-  case Hole
-  then show ?case
-    by simp
-next
-  case More
-  then show ?case
-    using context_is_ground_context_compose1(2)
-    by (metis subst_compose_ctxt_compose_distrib subst_ident_if_ground)
-qed
+  by(induction c) simp_all
 
-lemma context_from_ground_hole [simp]: "from_ground c\<^sub>G = \<box> \<longleftrightarrow> c\<^sub>G = \<box>"
+lemma from_ground_hole [simp]: "from_ground c\<^sub>G = \<box> \<longleftrightarrow> c\<^sub>G = \<box>"
   by(cases c\<^sub>G) (simp_all add: from_ground_def)
+
+lemma hole_simps [simp]: "from_ground \<box> = \<box>" "to_ground \<box> = \<box>"
+  by (auto simp: to_ground_def)
 
 lemma term_with_context_is_ground [simp]: 
   "term.is_ground c\<langle>t\<rangle> \<longleftrightarrow> is_ground c \<and> term.is_ground t"
+  by simp
+
+lemma map_args_actxt_compose [simp]:
+  "map_args_actxt f (c \<circ>\<^sub>c c') = map_args_actxt f c \<circ>\<^sub>c map_args_actxt f c'"
+  by(induction c) auto
+
+lemma from_ground_compose [simp]: "from_ground (c \<circ>\<^sub>c c') = from_ground c \<circ>\<^sub>c from_ground c'"
+  unfolding from_ground_def
+  by simp
+
+lemma to_ground_compose [simp]: "to_ground (c \<circ>\<^sub>c c') = to_ground c \<circ>\<^sub>c to_ground c'"
+  unfolding to_ground_def
   by simp
 
 end

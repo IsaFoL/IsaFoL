@@ -105,6 +105,31 @@ lemma surj_inv_renaming:
   unfolding is_renaming_iff surj_def
   by metis
 
+(* TODO: Names *)
+lemma renaming_range:
+  assumes "is_renaming \<rho>" "x \<in> vars (expr \<cdot> \<rho>)"
+  shows "id_subst x \<in> range \<rho>"
+  using renaming_variables[OF assms(1)] assms(2)
+  by fastforce
+
+lemma renaming_inv_into:
+  assumes "is_renaming \<rho>" "x \<in> vars (expr \<cdot> \<rho>)"
+  shows "\<rho> (inv \<rho> (id_subst x)) = id_subst x"
+  using f_inv_into_f[OF renaming_range[OF assms]].
+
+lemma inv_renaming:
+  assumes "is_renaming \<rho>"
+  shows "inv \<rho> (\<rho> x) = x"
+  using assms
+  unfolding is_renaming_iff
+  by simp
+
+lemma inv_in:
+  assumes "is_renaming \<rho>" "x \<in> vars (expr \<cdot> \<rho>)"
+  shows "inv \<rho> (id_subst x) \<in> vars expr"
+  using assms renaming_variables[OF assms(1)]
+  by (metis image_eqI image_inv_f_f is_renaming_iff)
+
 end
 
 locale grounding = functional_substitution where vars = vars and id_subst = id_subst
@@ -118,7 +143,7 @@ begin
 definition groundings ::"'expr \<Rightarrow> 'expr\<^sub>G set" where
   "groundings expr = { to_ground (expr \<cdot> \<gamma>) | \<gamma>. is_ground (expr \<cdot> \<gamma>) }"
 
-lemma to_ground_from_ground_id: "to_ground \<circ> from_ground = id"
+lemma to_ground_from_ground_id [simp]: "to_ground \<circ> from_ground = id"
   using from_ground_inverse
   by auto
 
