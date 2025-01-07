@@ -72,6 +72,20 @@ lemma is_inference_grounding_inference_groundings:
   unfolding inference_groundings_def
   by blast
 
+lemma is_inference_grounding_one_premise_inference_groundings: 
+  assumes "is_inference_grounding_one_premise D C \<iota>\<^sub>G \<gamma>" "\<iota>\<^sub>G \<in> ground.G_Inf" 
+  shows "\<iota>\<^sub>G \<in> inference_groundings (Infer [D] C)"
+  using assms
+  unfolding inference_groundings_def
+  by auto
+
+lemma is_inference_grounding_two_premises_inference_groundings: 
+  assumes "is_inference_grounding_two_premises D E C \<iota>\<^sub>G \<gamma> \<rho>\<^sub>1 \<rho>\<^sub>2" "\<iota>\<^sub>G \<in> ground.G_Inf" 
+  shows "\<iota>\<^sub>G \<in> inference_groundings (Infer [D, E] C)"
+  using assms
+  unfolding inference_groundings_def
+  by auto
+
 lemma inference\<^sub>G_concl_in_clause_grounding: 
   assumes "\<iota>\<^sub>G \<in> inference_groundings \<iota>"
   shows "concl_of \<iota>\<^sub>G \<in> clause_groundings (concl_of \<iota>)"

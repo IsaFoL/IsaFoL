@@ -100,8 +100,6 @@ inductive eq_factoring :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty
     C = add_mset (t\<^sub>1 \<approx> t\<^sub>2') (add_mset (t\<^sub>1' !\<approx> t\<^sub>2') D') \<cdot> \<mu> \<Longrightarrow>
     eq_factoring (D, \<V>) (C, \<V>)"
 
-(* TODO: Not sure if welltypedness for renaming is necessary, I think it's already implied *)
-(* TODO: welltyped_imgu *)
 (* TODO: weaken  infinite_variables_per_type \<V>\<^sub>1 \<Longrightarrow> infinite_variables_per_type \<V>\<^sub>2 *)
 (* TODO: Order of conditions *)
 (* TODO: Get things like is_renaming out of the name scope *)
@@ -120,24 +118,23 @@ where
     l\<^sub>1 = \<P> (Upair c\<^sub>1\<langle>t\<^sub>1\<rangle> t\<^sub>1') \<Longrightarrow>
     l\<^sub>2 = t\<^sub>2 \<approx> t\<^sub>2' \<Longrightarrow>
     \<not> is_Var t\<^sub>1 \<Longrightarrow>
-    term.is_imgu \<mu> {{t\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
     welltyped_imgu \<V>\<^sub>3 (t\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
     \<forall>x \<in> clause.vars (E \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
     \<forall>x \<in> clause.vars (D \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
     is_welltyped_on (clause.vars E) \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
     is_welltyped_on (clause.vars D) \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
     (\<And>\<tau> \<tau>'. typed \<V>\<^sub>2 t\<^sub>2 \<tau> \<Longrightarrow> typed \<V>\<^sub>2 t\<^sub>2' \<tau>' \<Longrightarrow> \<tau> = \<tau>') \<Longrightarrow>
-    \<not> (E \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c D \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    \<not> (E \<cdot> \<rho>\<^sub>1 \<odot> \<mu> \<preceq>\<^sub>c D \<cdot> \<rho>\<^sub>2 \<odot> \<mu>) \<Longrightarrow>
     (\<P> = Pos 
       \<and> select E = {#} 
-      \<and> is_strictly_maximal (l\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (E \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>)) \<or>
+      \<and> is_strictly_maximal (l\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<mu>) (E \<cdot> \<rho>\<^sub>1 \<odot> \<mu>)) \<or>
     (\<P> = Neg 
-      \<and> (select E = {#} \<and> is_maximal (l\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (E \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) 
-          \<or> is_maximal (l\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) ((select E) \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>))) \<Longrightarrow>
+      \<and> (select E = {#} \<and> is_maximal (l\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<mu>) (E \<cdot> \<rho>\<^sub>1 \<odot> \<mu>) 
+          \<or> is_maximal (l\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<mu>) ((select E) \<cdot> \<rho>\<^sub>1 \<odot> \<mu>))) \<Longrightarrow>
     select D = {#} \<Longrightarrow>
-    is_strictly_maximal (l\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (D \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
-    \<not> (c\<^sub>1\<langle>t\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
-    \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
+    is_strictly_maximal (l\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<odot> \<mu>) (D \<cdot> \<rho>\<^sub>2 \<odot> \<mu>) \<Longrightarrow>
+    \<not> (c\<^sub>1\<langle>t\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<odot> \<mu> \<preceq>\<^sub>t t\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<odot> \<mu>) \<Longrightarrow>
+    \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<odot> \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<odot> \<mu>) \<Longrightarrow>
     C = add_mset (\<P> (Upair (c\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> (t\<^sub>1' \<cdot>t \<rho>\<^sub>1))) (E' \<cdot> \<rho>\<^sub>1 + D' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
     infinite_variables_per_type \<V>\<^sub>1 \<Longrightarrow> 
     infinite_variables_per_type \<V>\<^sub>2 \<Longrightarrow>
@@ -172,20 +169,19 @@ where
     l\<^sub>1 = c\<^sub>1\<langle>t\<^sub>1\<rangle> \<approx> t\<^sub>1' \<Longrightarrow>
     l\<^sub>2 = t\<^sub>2 \<approx> t\<^sub>2' \<Longrightarrow>
     \<not> is_Var t\<^sub>1 \<Longrightarrow>
-    term.is_imgu \<mu> {{t\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
     welltyped_imgu \<V>\<^sub>3 (t\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
     \<forall>x \<in> clause.vars (E \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
     \<forall>x \<in> clause.vars (D \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
     is_welltyped_on (clause.vars E) \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
     is_welltyped_on (clause.vars D) \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
     (\<And>\<tau> \<tau>'. typed \<V>\<^sub>2 t\<^sub>2 \<tau> \<Longrightarrow> typed \<V>\<^sub>2 t\<^sub>2' \<tau>' \<Longrightarrow> \<tau> = \<tau>') \<Longrightarrow>
-    \<not> (E \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c D \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    \<not> (E \<cdot> \<rho>\<^sub>1 \<odot> \<mu> \<preceq>\<^sub>c D \<cdot> \<rho>\<^sub>2 \<odot> \<mu>) \<Longrightarrow>
     select E = {#} \<Longrightarrow>
-    is_strictly_maximal (l\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (E \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<Longrightarrow>
+    is_strictly_maximal (l\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<mu>) (E \<cdot> \<rho>\<^sub>1 \<odot> \<mu>) \<Longrightarrow>
     select D = {#} \<Longrightarrow>
-    is_strictly_maximal (l\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (D \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
-    \<not> (c\<^sub>1\<langle>t\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
-    \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
+    is_strictly_maximal (l\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<odot> \<mu>) (D \<cdot> \<rho>\<^sub>2 \<odot> \<mu>) \<Longrightarrow>
+    \<not> (c\<^sub>1\<langle>t\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<odot> \<mu> \<preceq>\<^sub>t t\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<odot> \<mu>) \<Longrightarrow>
+    \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<odot> \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<odot> \<mu>) \<Longrightarrow>
     C = add_mset ((c\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> \<approx> (t\<^sub>1' \<cdot>t \<rho>\<^sub>1)) (E' \<cdot> \<rho>\<^sub>1 + D' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
     infinite_variables_per_type \<V>\<^sub>1 \<Longrightarrow> 
     infinite_variables_per_type \<V>\<^sub>2 \<Longrightarrow>
@@ -214,22 +210,21 @@ where
     l\<^sub>1 = c\<^sub>1\<langle>t\<^sub>1\<rangle> !\<approx> t\<^sub>1' \<Longrightarrow>
     l\<^sub>2 = t\<^sub>2 \<approx> t\<^sub>2' \<Longrightarrow>
     \<not> is_Var t\<^sub>1 \<Longrightarrow>
-    term.is_imgu \<mu> {{t\<^sub>1 \<cdot>t \<rho>\<^sub>1, t\<^sub>2 \<cdot>t \<rho>\<^sub>2}} \<Longrightarrow>
     welltyped_imgu \<V>\<^sub>3 (t\<^sub>1 \<cdot>t \<rho>\<^sub>1) (t\<^sub>2 \<cdot>t \<rho>\<^sub>2) \<mu> \<Longrightarrow>
     \<forall>x \<in> clause.vars (E \<cdot> \<rho>\<^sub>1). \<V>\<^sub>1 (inv \<rho>\<^sub>1 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
     \<forall>x \<in> clause.vars (D \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x \<Longrightarrow>
     is_welltyped_on (clause.vars E) \<V>\<^sub>1 \<rho>\<^sub>1 \<Longrightarrow>
     is_welltyped_on (clause.vars D) \<V>\<^sub>2 \<rho>\<^sub>2 \<Longrightarrow>
     (\<And>\<tau> \<tau>'. typed \<V>\<^sub>2 t\<^sub>2 \<tau> \<Longrightarrow> typed \<V>\<^sub>2 t\<^sub>2' \<tau>' \<Longrightarrow> \<tau> = \<tau>') \<Longrightarrow>
-    \<not> (E \<cdot> \<rho>\<^sub>1 \<cdot> \<mu> \<preceq>\<^sub>c D \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
+    \<not> (E \<cdot> \<rho>\<^sub>1 \<odot> \<mu> \<preceq>\<^sub>c D \<cdot> \<rho>\<^sub>2 \<odot> \<mu>) \<Longrightarrow>
     select E = {#} \<and> 
-      is_maximal (l\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) (E \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<or> is_maximal (l\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<cdot>l \<mu>) ((select E) \<cdot> \<rho>\<^sub>1 \<cdot> \<mu>) \<Longrightarrow>
+      is_maximal (l\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<mu>) (E \<cdot> \<rho>\<^sub>1 \<odot> \<mu>) \<or> is_maximal (l\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<mu>) ((select E) \<cdot> \<rho>\<^sub>1 \<odot> \<mu>) \<Longrightarrow>
     select D = {#} \<Longrightarrow>
-    is_strictly_maximal (l\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<cdot>l \<mu>) (D \<cdot> \<rho>\<^sub>2 \<cdot> \<mu>) \<Longrightarrow>
-    \<not> (c\<^sub>1\<langle>t\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<cdot>t \<mu>) \<Longrightarrow>
-    \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<cdot>t \<mu>) \<Longrightarrow>
+    is_strictly_maximal (l\<^sub>2 \<cdot>l \<rho>\<^sub>2 \<odot> \<mu>) (D \<cdot> \<rho>\<^sub>2 \<odot> \<mu>) \<Longrightarrow>
+    \<not> (c\<^sub>1\<langle>t\<^sub>1\<rangle> \<cdot>t \<rho>\<^sub>1 \<odot> \<mu> \<preceq>\<^sub>t t\<^sub>1' \<cdot>t \<rho>\<^sub>1 \<odot> \<mu>) \<Longrightarrow>
+    \<not> (t\<^sub>2 \<cdot>t \<rho>\<^sub>2 \<odot> \<mu> \<preceq>\<^sub>t t\<^sub>2' \<cdot>t \<rho>\<^sub>2 \<odot> \<mu>) \<Longrightarrow>
     C = add_mset ((c\<^sub>1 \<cdot>t\<^sub>c \<rho>\<^sub>1)\<langle>t\<^sub>2' \<cdot>t \<rho>\<^sub>2\<rangle> !\<approx> (t\<^sub>1' \<cdot>t \<rho>\<^sub>1)) (E' \<cdot> \<rho>\<^sub>1 + D' \<cdot> \<rho>\<^sub>2) \<cdot> \<mu> \<Longrightarrow>
-    infinite_variables_per_type \<V>\<^sub>1 \<Longrightarrow> 
+    infinite_variables_per_type \<V>\<^sub>1 \<Longrightarrow>
     infinite_variables_per_type \<V>\<^sub>2 \<Longrightarrow>
     neg_superposition (D, \<V>\<^sub>2) (E, \<V>\<^sub>1) (C, \<V>\<^sub>3)"
 
