@@ -59,4 +59,7 @@ lemma Collect_if_eq: "{x. if b x then P x else Q x } = {x. b x \<and> P x } \<un
 lemma Collect_not_mem_conj_eq: "{x. x \<notin> X \<and> P x} = {x. P x} - X"
   by auto
 
+lemma Ball_singleton: "(\<forall>x \<in> {x}. P x) \<longleftrightarrow> P x"
+  by simp
+
 end

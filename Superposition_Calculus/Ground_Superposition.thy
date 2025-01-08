@@ -126,7 +126,7 @@ next
     case (superpositionI L\<^sub>1 P\<^sub>1' L\<^sub>2 P\<^sub>2' \<P> s t s' t')
     thus ?thesis
       using superposition'I
-      by (metis literals_distinct)
+      by (metis literals_distinct(2))
   qed
 qed
 
@@ -488,11 +488,7 @@ proof (cases P C rule: eq_factoring.cases)
     by argo
 qed
 
-end
-
-sublocale ground_superposition_calculus \<subseteq> consequence_relation where
-  Bot = G_Bot and
-  entails = G_entails
+sublocale consequence_relation where Bot = G_Bot and entails = G_entails
 proof unfold_locales
   show "G_Bot \<noteq> {}"
     by simp
@@ -526,7 +522,7 @@ qed
 
 subsection \<open>Redundancy Criterion\<close>
 
-sublocale ground_superposition_calculus \<subseteq> calculus_with_finitary_standard_redundancy where
+sublocale calculus_with_finitary_standard_redundancy where
   Inf = G_Inf and
   Bot = G_Bot and
   entails = G_entails and
@@ -574,5 +570,23 @@ next
     unfolding G_Inf_def
     by fast
 qed
+
+lemma redundant_infer_singleton: 
+  assumes "\<exists>D\<in>N. G_entails (insert D (set (side_prems_of \<iota>))) {concl_of \<iota>} \<and> D \<prec>\<^sub>c main_prem_of \<iota>"
+  shows "redundant_infer N \<iota>"
+proof-
+  obtain D where D:
+    "D \<in> N"
+    "G_entails (insert D (set (side_prems_of \<iota>))) {concl_of \<iota>}" 
+    "D \<prec>\<^sub>c main_prem_of \<iota>"
+    using assms
+    by blast
+
+  show ?thesis
+    unfolding redundant_infer_def
+    by (rule exI[of _ "{D}"]) (auto simp: D)
+qed
+
+end
 
 end

@@ -11,7 +11,7 @@ session Superposition_Calculus_1 = Saturation_Framework_Extensions +
     Ground_Superposition_Completeness
     Ground_Superposition_Soundness
     Ground_Superposition_Welltypedness_Preservation
-    First_Order_Superposition_Completeness
+    Superposition_Completeness
     Superposition_Soundness
     Superposition_Example
 

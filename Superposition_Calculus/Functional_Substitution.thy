@@ -48,6 +48,12 @@ definition subst_domain :: "('var \<Rightarrow> 'base) \<Rightarrow> 'var set" w
 abbreviation subst_range :: "('var \<Rightarrow> 'base) \<Rightarrow> 'base set" where
   "subst_range \<sigma> \<equiv> \<sigma> ` subst_domain \<sigma>"
 
+lemma subst_inv:
+  assumes "\<sigma> \<odot> \<sigma>_inv = id_subst" 
+  shows "expr \<cdot> \<sigma> \<cdot> \<sigma>_inv = expr"
+  using assms
+  by (metis subst_comp_subst subst_id_subst)
+
 end
 
 locale all_subst_ident_iff_ground =
@@ -105,7 +111,6 @@ lemma surj_inv_renaming:
   unfolding is_renaming_iff surj_def
   by metis
 
-(* TODO: Names *)
 lemma renaming_range:
   assumes "is_renaming \<rho>" "x \<in> vars (expr \<cdot> \<rho>)"
   shows "id_subst x \<in> range \<rho>"
@@ -124,7 +129,7 @@ lemma inv_renaming:
   unfolding is_renaming_iff
   by simp
 
-lemma inv_in:
+lemma renaming_inv_in_vars:
   assumes "is_renaming \<rho>" "x \<in> vars (expr \<cdot> \<rho>)"
   shows "inv \<rho> (id_subst x) \<in> vars expr"
   using assms renaming_variables[OF assms(1)]

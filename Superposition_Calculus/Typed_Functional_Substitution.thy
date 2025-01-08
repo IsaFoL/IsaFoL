@@ -391,8 +391,8 @@ locale based_typed_renaming =
   vars = base_vars and subst = base_subst
 begin
 
-(* TODO: precedence + Name! + put into own locale \<rightarrow> uniform_typed_renaming_lifting can also have it  *)
-lemma is_typed_on_renaming_grounding:
+(* TODO: precedence  *)
+lemma renaming_grounding:
   assumes 
     renaming: "base.is_renaming \<rho>" and
     \<rho>_\<gamma>_is_welltyped: "base.is_typed_on (vars expr) \<V> (\<rho> \<odot> \<gamma>)" and
@@ -401,14 +401,15 @@ lemma is_typed_on_renaming_grounding:
   shows "base.is_typed_on (vars (expr \<cdot> \<rho>)) \<V>' \<gamma>"
 proof(intro ballI)
   fix x
+
   define y where "y \<equiv> inv \<rho> (id_subst x)"
 
   assume x_in_expr: "x \<in> vars (expr \<cdot> \<rho>)"
 
   then have y_in_vars: "y \<in> vars expr"
-    using base.inv_in[OF renaming] 
-    unfolding y_def base.vars_subst_vars
-    by (smt (verit, del_insts) Union_iff imageE imageI subst_id_subst vars_subst)
+    using base.renaming_inv_in_vars[OF renaming] base.vars_id_subst
+    unfolding y_def base.vars_subst_vars vars_subst
+    by fastforce
 
   then have "base.is_ground (base_subst (id_subst y) (\<rho> \<odot> \<gamma>))"
     using variable_grounding[OF grounding y_in_vars]
@@ -422,10 +423,14 @@ proof(intro ballI)
   ultimately have "typed \<V>' (base_subst (id_subst y) (\<rho> \<odot> \<gamma>)) (\<V> y)"
     by (meson base.explicit_is_ground_typed)
 
-  then show "typed \<V>' (\<gamma> x) (\<V>' x)"
-    using x_in_expr base.renaming_inv_into[OF renaming] \<V>'_\<V>
+  moreover have "base_subst (id_subst y) (\<rho> \<odot> \<gamma>) = \<gamma> x"
+    using x_in_expr base.renaming_inv_into[OF renaming] base.left_neutral
     unfolding y_def vars_subst base.comp_subst_iff
-    by (smt (verit, best) UN_iff f_inv_into_f base.comp_subst_iff base.left_neutral)
+    by (metis (no_types, lifting) UN_E f_inv_into_f)
+
+  ultimately show "typed \<V>' (\<gamma> x) (\<V>' x)"
+    unfolding y_def \<V>'_\<V>[rule_format, OF x_in_expr]
+    by argo
 qed
 
 end
