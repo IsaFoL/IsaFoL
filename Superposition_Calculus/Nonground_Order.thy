@@ -136,7 +136,7 @@ lemma obtain_strictly_maximal_literal:
 proof-
  
   have grounding_not_empty: "C \<cdot> \<gamma> \<noteq> {#}"
-    using is_strictly_maximal_empty[OF ground_strictly_maximal].
+    using is_strictly_maximal_not_empty[OF ground_strictly_maximal].
 
   have l\<^sub>G_in_grounding: "l\<^sub>G \<in># C \<cdot> \<gamma>"
     using strictly_maximal_in_clause[OF ground_strictly_maximal].
@@ -259,7 +259,6 @@ lemma unique_strictly_maximal_in_ground_clause:
   using assms unique_maximal_in_ground_clause 
   by blast
 
-(* TODO: Simp? *)
 lemma less\<^sub>l\<^sub>G_rewrite [simp]: "multiset_extension.multiset_extension (\<prec>\<^sub>t\<^sub>G) mset_lit = (\<prec>\<^sub>l\<^sub>G)"
 proof-
   interpret multiset_extension "(\<prec>\<^sub>t\<^sub>G)" mset_lit
@@ -299,6 +298,7 @@ lemma is_maximal_rewrite [simp]:
   by (metis clause.ground_sub_in_ground clause.sub_in_ground_is_ground
       literal.order.order.strict_iff_order literal.to_ground_inverse)
  (* TODO: order.order *)
+thm literal.order.order.strict_iff_order
 
 lemma is_strictly_maximal_rewrite [simp]: 
   "is_strictly_maximal_in_mset_wrt (\<prec>\<^sub>l\<^sub>G) C l = 

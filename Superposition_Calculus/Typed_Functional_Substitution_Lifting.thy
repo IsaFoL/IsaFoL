@@ -185,7 +185,8 @@ sublocale based_typed_renaming where subst = subst and vars = vars
 end
 
 locale typed_renaming_lifting = 
-  typed_functional_substitution_lifting +
+  typed_functional_substitution_lifting where 
+  base_typed = "base_typed :: ('v \<Rightarrow> 'ty) \<Rightarrow> 'base \<Rightarrow> 'ty \<Rightarrow> bool" +
   based_typed_renaming_lifting where typed = base_typed +
   sub: typed_renaming where 
   subst = sub_subst and vars = sub_vars and is_typed = sub_is_typed
@@ -193,27 +194,36 @@ begin
                   
 sublocale typed_renaming where 
   subst = subst and vars = vars and is_typed = lifted_is_typed
-  (* TODO: *)
-  apply unfold_locales
-  unfolding vars_def subst_def is_typed_lifting_def
-  using sub.typed_renaming
-  by force
+proof unfold_locales 
+  fix \<rho> expr and \<V> \<V>' :: "'v \<Rightarrow> 'ty"
+  assume "sub.base.is_renaming \<rho>" "\<forall>x\<in>vars (expr \<cdot> \<rho>). \<V> (inv \<rho> (id_subst x)) = \<V>' x"
+
+  then show "lifted_is_typed \<V>' (expr \<cdot> \<rho>) = lifted_is_typed \<V> expr"
+    using sub.typed_renaming 
+    unfolding vars_def subst_def is_typed_lifting_def
+    by force
+qed
 
 end
 
 locale uniform_typed_renaming_lifting =
-  uniform_typed_functional_substitution_lifting +
+  uniform_typed_functional_substitution_lifting where base_typed = base_typed +
   based_typed_renaming_lifting where 
   typed = base_typed and sub_vars = base_vars and sub_subst = base_subst
+for base_typed :: "('v \<Rightarrow> 'ty) \<Rightarrow> 'base \<Rightarrow> 'ty \<Rightarrow> bool"
 begin
 
-sublocale typed_renaming where 
+sublocale typed_renaming where
   is_typed = lifted_is_typed and subst = subst and vars = vars
-  (* TODO *)
-  apply unfold_locales
-  unfolding vars_def subst_def uniform_typed_lifting_def
-  using base.typed_renaming
-  by force
+proof unfold_locales 
+  fix \<rho> expr and \<V> \<V>' :: "'v \<Rightarrow> 'ty"
+  assume "base.is_renaming \<rho>" "\<forall>x\<in>vars (subst expr \<rho>). \<V> (inv \<rho> (id_subst x)) = \<V>' x"
+
+  then show "lifted_is_typed \<V>' (subst expr \<rho>) = lifted_is_typed \<V> expr"
+    using base.typed_renaming
+    unfolding vars_def subst_def uniform_typed_lifting_def
+    by force
+qed
 
 end
 

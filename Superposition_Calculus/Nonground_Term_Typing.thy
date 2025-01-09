@@ -289,18 +289,24 @@ next
     qed
   qed
 next
-  (* TODO  ! ! ! !*)
-  fix \<V> \<V>' :: "('v, 'ty) var_types" and t :: "('f, 'v) term" and \<rho> \<tau> 
-  assume renaming: "term_subst.is_renaming \<rho>" "\<forall>x\<in>term.vars (t \<cdot>t \<rho>). \<V> (inv \<rho> (Var x)) = \<V>' x"
+
+  fix \<V> \<V>' :: "('v, 'ty) var_types" and t :: "('f, 'v) term" and \<rho> \<tau>
+
+  assume 
+    renaming: "term_subst.is_renaming \<rho>" and
+    \<V>: "\<forall>x\<in>term.vars (t \<cdot>t \<rho>). \<V> (inv \<rho> (Var x)) = \<V>' x"
 
   then show "welltyped \<V>' (t \<cdot>t \<rho>) \<tau> \<longleftrightarrow> welltyped \<V> t \<tau>"
   proof(intro iffI)
+
     assume "welltyped \<V>' (t \<cdot>t \<rho>) \<tau>"
-    with renaming  show "welltyped \<V> t \<tau>"
+
+    with \<V> show "welltyped \<V> t \<tau>"
     proof(induction t arbitrary: \<tau>)
       case (Var x)
+
       then obtain y where y: "Var x \<cdot>t \<rho> = Var y"
-        by (metis eval_term.simps(1) term.collapse(1) term_subst_is_renaming_iff)
+        by (metis eval_term.simps(1) renaming term.collapse(1) term_subst_is_renaming_iff)
 
       then have "\<V> (inv \<rho> (Var y)) = \<V>' y"
         by (simp add: Var)
@@ -322,20 +328,28 @@ next
         by(rule welltyped.Var)
     next
       case (Fun f ts)
-      have "\<lbrakk>\<And>x2a \<tau>. \<lbrakk>x2a \<in> set ts; welltyped \<V>' (x2a \<cdot>t \<rho>) \<tau>\<rbrakk> \<Longrightarrow> welltyped \<V> x2a \<tau>;
-     welltyped \<V>' (Fun f (map (\<lambda>s. s \<cdot>t \<rho>) ts)) \<tau>;
-     \<forall>y\<in>set ts. \<forall>x\<in>term.vars (y \<cdot>t \<rho>). \<V> (inv \<rho> (Var x)) = \<V>' x\<rbrakk>
-    \<Longrightarrow> welltyped \<V> (Fun f ts) \<tau>"
-        by (smt (verit, best) Term.term.simps(2) Term.term.simps(4) list.rel_mono_strong 
-            list_all2_map1 welltyped.simps)
 
-      with Fun show ?case
+      then have "welltyped \<V>' (Fun f (map (\<lambda>s. s \<cdot>t \<rho>) ts)) \<tau>"
         by auto
+
+      then obtain \<tau>s where \<tau>s:
+        "list_all2 (welltyped \<V>') (map (\<lambda>s. s \<cdot>t \<rho>) ts) \<tau>s" "\<F> f = (\<tau>s, \<tau>)"
+        using welltyped.simps 
+        by blast
+     
+      show ?case
+      proof(rule welltyped.Fun[OF \<tau>s(2)])
+
+        show "list_all2 (welltyped \<V>) ts \<tau>s"
+          using \<tau>s(1) Fun.IH
+          by (smt (verit, ccfv_SIG) Fun.prems(1) eval_term.simps(2) in_set_conv_nth length_map
+              list_all2_conv_all_nth nth_map term.set_intros(4))
+      qed
     qed
   next
     assume "welltyped \<V> t \<tau>"
     then show "welltyped \<V>' (t \<cdot>t \<rho>) \<tau>"
-      using renaming
+      using \<V>
     proof(induction rule: welltyped.induct)
       case (Var x \<tau>)
 
@@ -344,8 +358,7 @@ next
         by (metis eval_term.simps(1) term.collapse(1) term_subst_is_renaming_iff)
 
       then have "\<V> (inv \<rho> (Var y)) = \<V>' y"
-        using Var(3)
-        by simp     
+        by (simp add: Var.prems)
 
       moreover have "(inv \<rho> (Var y)) = x"
         using y renaming
@@ -401,14 +414,6 @@ next
 qed
 
 (* TODO: Move further up *)
-lemma is_welltyped_subst_compose [intro]:
-  assumes "is_welltyped \<V> \<sigma>" "is_welltyped \<V> \<sigma>'"
-  shows "is_welltyped \<V> (\<sigma> \<odot> \<sigma>')"
-  using assms
-  unfolding subst_compose_def
-  by auto
-
-(* TODO! ! *)
 lemma is_welltyped_on_subst_compose [intro]:
   assumes "is_welltyped_on X \<V> \<sigma>" "is_welltyped_on (\<Union>(term.vars ` \<sigma> ` X)) \<V> \<sigma>'"
   shows "is_welltyped_on X \<V> (\<sigma> \<odot> \<sigma>')"
@@ -416,7 +421,14 @@ lemma is_welltyped_on_subst_compose [intro]:
   unfolding subst_compose_def
   by auto
 
-(* TODO! ! *)
+lemma is_welltyped_subst_compose [intro]:
+  assumes "is_welltyped \<V> \<sigma>" "is_welltyped \<V> \<sigma>'"
+  shows "is_welltyped \<V> (\<sigma> \<odot> \<sigma>')"
+  using is_welltyped_on_subst_compose
+  using assms
+  unfolding subst_compose_def
+  by auto
+
 lemma is_welltyped_on_subst_compose_renaming:
   assumes
     "term_subst.is_renaming \<rho>"
@@ -426,8 +438,9 @@ lemma is_welltyped_on_subst_compose_renaming:
   using assms
   unfolding term.is_renaming_iff
   unfolding subst_compose_def
-  apply auto
-  by (metis assms(1) eval_term.simps(1) is_FunI term.set_cases(2) term.welltyped.right_uniqueD term_subst_is_renaming_iff welltyped.typed_id_subst)
+  by (smt (verit) UN_E assms(1) eval_term.simps(1) image_iff is_FunI term.set_cases(2) 
+      term.welltyped.right_uniqueD term_subst_is_renaming_iff
+      welltyped.typed_id_subst)
 
 lemma is_typed_subst_compose [intro]:
   assumes "is_typed \<V> \<sigma>" "is_typed \<V> \<sigma>'"

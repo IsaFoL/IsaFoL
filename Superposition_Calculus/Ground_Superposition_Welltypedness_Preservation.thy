@@ -16,141 +16,24 @@ lemma ground_superposition_preserves_typing:
     wt_D: "clause.is_welltyped D" and
     wt_E: "clause.is_welltyped E"
   shows "clause.is_welltyped C"
-  using step
-proof (cases D E C rule: superposition.cases)
-  case (superpositionI L\<^sub>E E' L\<^sub>D D' \<P> c t u t')
-
-  
-(*
- TODO: 
-  show ?thesis
-    using wt_D wt_E superpositionI(4)
-    unfolding superpositionI
-    by (auto 4 3)
- *)
-
-  show ?thesis
-    unfolding \<open>C = add_mset (\<P> (Upair c\<langle>t'\<rangle>\<^sub>G u)) (E' + D')\<close>
-    unfolding clause.is_welltyped_add clause.is_welltyped_plus
-  proof (intro conjI)
-    have "\<exists>\<tau>. term.welltyped c\<langle>t\<rangle>\<^sub>G \<tau> \<and> term.welltyped u \<tau>"
-    proof -
-      have "literal.is_welltyped L\<^sub>E"
-        using wt_E
-        unfolding \<open>E = add_mset L\<^sub>E E'\<close> clause.is_welltyped_add
-        by argo
-
-      hence "atom.is_welltyped (Upair c\<langle>t\<rangle>\<^sub>G u)"
-        using \<open>\<P> \<in> {Pos, Neg}\<close>
-        unfolding \<open>L\<^sub>E = \<P> (Upair c\<langle>t\<rangle>\<^sub>G u)\<close> 
-        by auto
-
-      thus ?thesis
-        by simp
-    qed
-
-    moreover have "\<exists>\<tau>. term.welltyped t \<tau> \<and> term.welltyped t' \<tau>"
-    proof -
-      have "literal.is_welltyped L\<^sub>D"
-        using wt_D
-        unfolding \<open>D = add_mset L\<^sub>D D'\<close> clause.is_welltyped_add
-        by argo
-
-      hence "atom.is_welltyped (Upair t t')"
-        using \<open>\<P> \<in> {Pos, Neg}\<close>
-        unfolding \<open>L\<^sub>D = t \<approx> t'\<close>
-        by auto
-
-      thus ?thesis
-        by simp
-    qed
-
-    ultimately have "\<exists>\<tau>. term.welltyped c\<langle>t'\<rangle>\<^sub>G \<tau> \<and> term.welltyped u \<tau>"
-      using term.welltyped.context_compatible
-      by blast
-
-    hence "atom.is_welltyped (Upair c\<langle>t'\<rangle>\<^sub>G u)"
-      by simp
-
-    thus "literal.is_welltyped (\<P> (Upair c\<langle>t'\<rangle>\<^sub>G u))"
-      using \<open>\<P> \<in> {Pos, Neg}\<close> 
-      by auto
-  next
-    show "clause.is_welltyped E'"
-      using wt_E
-      unfolding \<open>E = add_mset L\<^sub>E E'\<close> clause.is_welltyped_add
-      by argo
-  next
-    show "clause.is_welltyped D'"
-      using wt_D
-      unfolding \<open>D = add_mset L\<^sub>D D'\<close> clause.is_welltyped_add
-      by argo
-  qed
-qed
+  using assms
+  by(cases rule: superposition.cases) (auto 4 3)
 
 lemma ground_eq_resolution_preserves_typing:
   assumes
     step: "eq_resolution D C" and
     wt_D: "clause.is_welltyped D"
   shows "clause.is_welltyped C"
-  using step
-proof (cases D C rule: eq_resolution.cases)
-  case (eq_resolutionI L D' t)
-  thus ?thesis
-    using wt_D
-    by simp
-qed
+  using assms
+  by(cases rule: eq_resolution.cases) auto
 
-(*
-TODO: 
 lemma ground_eq_factoring_preserves_typing:
   assumes
     step: "eq_factoring D C" and
     wt_D: "clause.is_welltyped D"
   shows "clause.is_welltyped C"
   using assms
-  by(cases rule: eq_factoring.cases) auto*)
-
-lemma ground_eq_factoring_preserves_typing:
-  assumes
-    step: "eq_factoring D C" and
-    wt_D: "clause.is_welltyped D"
-  shows "clause.is_welltyped C"
-  using step
-proof (cases D C rule: eq_factoring.cases)
-  case (eq_factoringI L\<^sub>1 L\<^sub>2 D' t t' t'')
-
-  then have 
-    "literal.is_welltyped (t \<approx> t')" and 
-    "literal.is_welltyped (t \<approx> t'')" and 
-    "clause.is_welltyped D'"
-    using wt_D 
-    unfolding atomize_conj
-    by simp
-
-  hence 
-    "\<exists>\<tau>. term.welltyped t \<tau> \<and> term.welltyped t' \<tau>" 
-    "\<exists>\<tau>. term.welltyped t \<tau> \<and> term.welltyped t'' \<tau>"
-    unfolding atomize_conj
-    by simp
-
-  hence t_t'_same_type: "\<exists>\<tau>. term.welltyped t' \<tau> \<and> term.welltyped t'' \<tau>"
-    by auto
-
-  show ?thesis
-    unfolding \<open>C = add_mset (t' !\<approx> t'') (add_mset (t \<approx> t'') D')\<close> clause.is_welltyped_add
-  proof (intro conjI)
-    show "literal.is_welltyped (t' !\<approx> t'')"
-      using t_t'_same_type
-      by simp
-  next
-    show "literal.is_welltyped (t \<approx> t'')"
-      using \<open>literal.is_welltyped (t \<approx> t'')\<close> .
-  next
-    show "clause.is_welltyped D'"
-      using \<open>clause.is_welltyped D'\<close> .
-  qed
-qed
+  by(cases rule: eq_factoring.cases) auto
 
 end
 

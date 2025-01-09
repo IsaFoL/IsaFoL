@@ -283,8 +283,7 @@ sublocale typed_renaming
   using explicit_typed_renaming
   by unfold_locales blast
 
-(* TODO: Name *)
-lemma is_welltyped_renaming_ground_subst_weaker: 
+lemma typed_renaming_ground: 
   assumes 
     "is_renaming \<rho>"
     "is_typed_on UNIV \<V>' \<gamma>" 

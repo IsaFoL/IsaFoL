@@ -100,8 +100,6 @@ inductive eq_factoring :: "('f, 'v, 'ty) typed_clause \<Rightarrow> ('f, 'v, 'ty
     C = add_mset (t\<^sub>1 \<approx> t\<^sub>2') (add_mset (t\<^sub>1' !\<approx> t\<^sub>2') D') \<cdot> \<mu> \<Longrightarrow>
     eq_factoring (D, \<V>) (C, \<V>)"
 
-(* TODO: weaken  infinite_variables_per_type \<V>\<^sub>1 \<Longrightarrow> infinite_variables_per_type \<V>\<^sub>2 *)
-(* TODO: Order of conditions *)
 (* TODO: Get things like is_renaming out of the name scope *)
 (* TODO: \<P> \<in> {Pos, Neg} *)
 (* TODO: \<forall>x \<in> clause.vars (D \<cdot> \<rho>\<^sub>2). \<V>\<^sub>2 (inv \<rho>\<^sub>2 (Var x)) = \<V>\<^sub>3 x *)

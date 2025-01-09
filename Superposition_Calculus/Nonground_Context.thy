@@ -49,7 +49,6 @@ rewrites
   "\<And>c \<sigma>. subst c \<sigma> = c \<cdot>t\<^sub>c \<sigma>" and
   "\<And>c. vars c = vars_ctxt c" (* TODO: Name *)
 proof unfold_locales
-  (* TODO: Is there way without repeating myself for this? *)
   interpret term_based_lifting where 
     sub_vars = term.vars and sub_subst = "(\<cdot>t)" and map = map_args_actxt and to_set = set2_actxt and 
     sub_to_ground = term.to_ground and sub_from_ground = term.from_ground and 

@@ -96,7 +96,7 @@ proof(cases D\<^sub>G C\<^sub>G rule: ground.eq_resolution.cases)
           that
           obtain_maximal_literal[OF _ select_ground_subst[OF D_grounding]]
           unique_maximal_in_ground_clause[OF select_ground_subst[OF D_grounding]]
-        by (metis is_maximal_empty clause_subst_empty)
+        by (metis is_maximal_not_empty clause_subst_empty)
     qed
 
     moreover then have "selected_l \<in># D" if ?select\<^sub>G_not_empty
@@ -543,7 +543,7 @@ proof(cases D\<^sub>G E\<^sub>G C\<^sub>G rule: ground.superposition.cases)
       by blast
 
     moreover then have "is_maximal (literal.from_ground l\<^sub>G\<^sub>1) (E \<cdot> \<rho>\<^sub>1 \<odot> \<gamma>)" if ?select\<^sub>G_empty
-      using that ground_superpositionI(9) is_maximal_empty E_grounding
+      using that ground_superpositionI(9) is_maximal_not_empty E_grounding
       by auto
 
     then obtain negative_maximal_l\<^sub>1 where
@@ -1186,7 +1186,7 @@ proof(cases D\<^sub>G E\<^sub>G C\<^sub>G rule: ground.superposition.cases)
         next
 
           show "is_maximal (l\<^sub>1 \<cdot>l \<rho>\<^sub>1 \<odot> \<mu> \<cdot>l \<sigma>) (E \<cdot> \<rho>\<^sub>1 \<odot> \<mu> \<cdot> \<sigma>) "
-            using l\<^sub>1_\<gamma> \<gamma> E_\<gamma> ground_superpositionI(5,9) is_maximal_empty that
+            using l\<^sub>1_\<gamma> \<gamma> E_\<gamma> ground_superpositionI(5,9) is_maximal_not_empty that
             by auto
         qed
       qed
