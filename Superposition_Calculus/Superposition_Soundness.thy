@@ -327,7 +327,7 @@ proof (cases D E C rule: superposition.cases)
       using \<gamma>'_is_welltyped \<mu>_is_welltyped
       by (simp add: is_welltyped_subst_compose)
 
-    note is_welltyped_\<rho>_\<mu>_\<gamma> = welltyped.is_welltyped_renaming_ground_subst_weaker[OF 
+    note is_welltyped_\<rho>_\<mu>_\<gamma> = welltyped.renaming_ground_subst[OF 
         _ is_welltyped_\<mu>_\<gamma> _ \<mu>_\<gamma>'_is_ground_subst]
 
     have "?E\<^sub>G \<in> clause_groundings (E, \<V>\<^sub>1)"
