@@ -68,6 +68,9 @@ lemma select_neg_subst:
   unfolding clause.subst_def
   by blast
 
+lemma select_vars_subset: "\<And>C. clause.vars (select C) \<subseteq> clause.vars C"
+  by (simp add: clause_submset_vars_clause_subset select_subset)
+
 end
 
 end

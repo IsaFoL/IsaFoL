@@ -1614,127 +1614,59 @@ proof-
     select_from_D: "clause.from_ground (select\<^sub>G D\<^sub>G) = select D \<cdot> \<gamma>\<^sub>2"
     by (simp_all add: select_ground_subst)
 
-  obtain \<rho>\<^sub>1 \<rho>\<^sub>2 :: "('f, 'v) subst" where
+  obtain \<rho>\<^sub>1 \<rho>\<^sub>2 \<gamma> :: "('f, 'v) subst" where
     \<rho>\<^sub>1: "term_subst.is_renaming \<rho>\<^sub>1" and
     \<rho>\<^sub>2: "term_subst.is_renaming \<rho>\<^sub>2" and
-    rename_apart: "\<rho>\<^sub>1 ` (clause.vars E) \<inter> \<rho>\<^sub>2 ` (clause.vars D) = {}" and
+    rename_apart:  "clause.vars (E \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (D \<cdot> \<rho>\<^sub>2) = {}" and
     \<rho>\<^sub>1_is_welltyped: "is_welltyped_on (clause.vars E) \<V>\<^sub>1 \<rho>\<^sub>1" and
-    \<rho>\<^sub>2_is_welltyped: "is_welltyped_on (clause.vars D) \<V>\<^sub>2 \<rho>\<^sub>2"
-    using welltyped.obtain_typed_renamings[OF infinite_UNIV] 
-    by (smt (verit, del_insts) \<V>\<^sub>1 \<V>\<^sub>2 clause.finite_vars infinite_variables_per_type_def)
-
-  have rename_apart: "clause.vars (E \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (D \<cdot> \<rho>\<^sub>2) = {}"
-    using rename_apart clause.renaming_variables[OF \<rho>\<^sub>1] clause.renaming_variables[OF \<rho>\<^sub>2]
+    \<rho>\<^sub>2_is_welltyped: "is_welltyped_on (clause.vars D) \<V>\<^sub>2 \<rho>\<^sub>2" and
+    \<gamma>\<^sub>1_\<gamma>: "\<forall>X \<subseteq> clause.vars E. \<forall>x\<in> X. \<gamma>\<^sub>1 x = (\<rho>\<^sub>1 \<odot> \<gamma>) x" and
+    \<gamma>\<^sub>2_\<gamma>: "\<forall>X \<subseteq> clause.vars D. \<forall>x\<in> X. \<gamma>\<^sub>2 x = (\<rho>\<^sub>2 \<odot> \<gamma>) x"
+    using 
+      clause.finite_vars 
+      \<V>\<^sub>1 \<V>\<^sub>2
+      clause.is_welltyped.obtain_welltyped_merged_grounding[OF 
+        \<gamma>\<^sub>1_is_welltyped \<gamma>\<^sub>2_is_welltyped E_grounding D_grounding _ _ infinite_UNIV]
+    unfolding infinite_variables_per_type_def
     by blast
-
-  from \<rho>\<^sub>1 \<rho>\<^sub>2 obtain \<rho>\<^sub>1_inv \<rho>\<^sub>2_inv where
-    \<rho>\<^sub>1_inv: "\<rho>\<^sub>1 \<odot> \<rho>\<^sub>1_inv = Var" and
-    \<rho>\<^sub>2_inv: "\<rho>\<^sub>2 \<odot> \<rho>\<^sub>2_inv = Var"
-    unfolding term_subst.is_renaming_def
-    by blast
-
-  define \<gamma> where 
-     "\<And>x. \<gamma> x \<equiv>
-       if x \<in> clause.vars (E \<cdot> \<rho>\<^sub>1)
-       then (\<rho>\<^sub>1_inv \<odot> \<gamma>\<^sub>1) x
-       else (\<rho>\<^sub>2_inv \<odot> \<gamma>\<^sub>2) x"
 
   have E_grounding: "clause.is_ground (E \<cdot> \<rho>\<^sub>1 \<odot> \<gamma>)"
-    using clause.subst_inv[OF \<rho>\<^sub>1_inv] E_grounding 
-    unfolding \<gamma>_def
-    by auto
+    using clause.subst_eq \<gamma>\<^sub>1_\<gamma> E_grounding
+    by fastforce
 
   have E\<^sub>G: "E\<^sub>G = clause.to_ground (E \<cdot> \<rho>\<^sub>1 \<odot> \<gamma>)"
-    using clause.subst_inv[OF \<rho>\<^sub>1_inv] E\<^sub>G 
-    unfolding \<gamma>_def
-    by auto
+    using clause.subst_eq \<gamma>\<^sub>1_\<gamma> E\<^sub>G
+    by fastforce
 
   have D_grounding: "clause.is_ground (D \<cdot> \<rho>\<^sub>2 \<odot> \<gamma>)"
-    using clause.subst_inv[OF \<rho>\<^sub>2_inv] D_grounding rename_apart
-    unfolding \<gamma>_def
-    by (simp add: inf.commute)
+    using clause.subst_eq \<gamma>\<^sub>2_\<gamma> D_grounding
+    by fastforce
 
   have D\<^sub>G: "D\<^sub>G = clause.to_ground (D \<cdot> \<rho>\<^sub>2 \<odot> \<gamma>)"
-    using clause.subst_inv[OF \<rho>\<^sub>2_inv] D\<^sub>G rename_apart
-    unfolding \<gamma>_def
-    by (simp add: inf.commute)
+    using clause.subst_eq \<gamma>\<^sub>2_\<gamma> D\<^sub>G
+    by fastforce
 
   have \<rho>\<^sub>1_\<gamma>_is_welltyped: "is_welltyped_on (clause.vars E) \<V>\<^sub>1 (\<rho>\<^sub>1 \<odot> \<gamma>)"
-  proof-
-
-    have "\<forall>x\<in>clause.vars E. (\<rho>\<^sub>1 \<odot> \<gamma>) x = \<gamma>\<^sub>1 x"
-    proof(intro ballI)
-      fix x
-      assume x_in_vars: "x \<in> clause.vars E"
-
-      obtain y where y: "\<rho>\<^sub>1 x = Var y"
-        by (meson is_Var_def \<rho>\<^sub>1 term_subst_is_renaming_iff)
-
-      then have "y \<in> clause.vars (E \<cdot> \<rho>\<^sub>1)"
-        using x_in_vars \<rho>\<^sub>1 clause.renaming_variables 
-        by fastforce
-
-      then have "\<gamma> y = \<rho>\<^sub>1_inv y \<cdot>t \<gamma>\<^sub>1"
-        by (simp add: \<gamma>_def subst_compose)
-
-      then show "(\<rho>\<^sub>1 \<odot> \<gamma>) x = \<gamma>\<^sub>1 x"
-        by (metis y \<rho>\<^sub>1_inv eval_term.simps(1) subst_compose)
-    qed
-
-    then show ?thesis
-      using \<gamma>\<^sub>1_is_welltyped
-      by auto
-  qed
+    using \<gamma>\<^sub>1_is_welltyped \<gamma>\<^sub>1_\<gamma>
+    by fastforce
 
   have \<rho>\<^sub>2_\<gamma>_is_welltyped: "is_welltyped_on (clause.vars D) \<V>\<^sub>2 (\<rho>\<^sub>2 \<odot> \<gamma>)"
-  proof -
+    using \<gamma>\<^sub>2_is_welltyped \<gamma>\<^sub>2_\<gamma>
+    by fastforce
 
-    have "\<forall>x\<in> clause.vars D. (\<rho>\<^sub>2 \<odot> \<gamma>) x = \<gamma>\<^sub>2 x"
-    proof(intro ballI)
-      fix x
-      assume x_in_vars: "x \<in> clause.vars D"
-
-      obtain y where y: "\<rho>\<^sub>2 x = Var y"
-        by (meson is_Var_def \<rho>\<^sub>2 term_subst_is_renaming_iff)
-
-      then have "y \<in> clause.vars (D \<cdot> \<rho>\<^sub>2)"
-        using x_in_vars \<rho>\<^sub>2 clause.renaming_variables 
-        by fastforce
-
-      then have "\<gamma> y = \<rho>\<^sub>2_inv y \<cdot>t \<gamma>\<^sub>2"
-        using \<gamma>_def rename_apart subst_compose 
-        by fastforce
-
-      then show "(\<rho>\<^sub>2 \<odot> \<gamma>) x = \<gamma>\<^sub>2 x"
-        by (metis y \<rho>\<^sub>2_inv eval_term.simps(1) subst_compose)
-    qed
-
-    then show ?thesis
-      using \<gamma>\<^sub>2_is_welltyped
-      by auto
-  qed
+  have select_vars_subset: "\<And>C. clause.vars (select C) \<subseteq> clause.vars C"
+    by (simp add: clause_submset_vars_clause_subset select_subset)
 
   have select_from_E:
     "clause.from_ground (select\<^sub>G (clause.to_ground (E \<cdot> \<rho>\<^sub>1 \<odot> \<gamma>))) = select E \<cdot> \<rho>\<^sub>1 \<odot> \<gamma>"
   proof-
-    have "E \<cdot> \<rho>\<^sub>1 \<odot> \<gamma> = E \<cdot> \<gamma>\<^sub>1"
-      using clause.subst_inv[OF \<rho>\<^sub>1_inv]
-      unfolding \<gamma>_def
-      by auto
+    have "E \<cdot> \<gamma>\<^sub>1 = E \<cdot> \<rho>\<^sub>1 \<odot> \<gamma>"
+      using \<gamma>\<^sub>1_\<gamma> clause.subst_eq
+      by fast
 
-    moreover have "select E \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma> = select E \<cdot> \<gamma>\<^sub>1"
-    proof-
-      have "select E \<cdot> \<rho>\<^sub>1 \<subseteq># E \<cdot> \<rho>\<^sub>1" 
-        by (simp add: clause.subst_def image_mset_subseteq_mono select_subset)
-
-      then have "clause.vars (select E \<cdot> \<rho>\<^sub>1) \<subseteq> clause.vars (E \<cdot> \<rho>\<^sub>1)"
-        using clause_submset_vars_clause_subset
-        by fast
-
-      then show ?thesis
-        unfolding \<gamma>_def
-        by (simp add: \<rho>\<^sub>1_inv clause.subst_inv)
-    qed
+    moreover have "select E \<cdot> \<gamma>\<^sub>1 = select E \<cdot> \<rho>\<^sub>1 \<cdot> \<gamma>"
+      using clause.subst_eq \<gamma>\<^sub>1_\<gamma> select_vars_subset
+      by (metis clause.comp_subst.left.monoid_action_compatibility)
 
     ultimately show ?thesis
       using select_from_E
@@ -1745,29 +1677,13 @@ proof-
   have select_from_D:
     "clause.from_ground (select\<^sub>G (clause.to_ground (D \<cdot> \<rho>\<^sub>2 \<odot> \<gamma>))) = select D \<cdot> \<rho>\<^sub>2 \<odot> \<gamma>"
   proof-   
-    have "D \<cdot> \<rho>\<^sub>2 \<odot> \<gamma> = D \<cdot> \<gamma>\<^sub>2"
-      using clause.subst_inv[OF \<rho>\<^sub>2_inv] rename_apart
-      unfolding \<gamma>_def
-      by (simp add: inf.commute)
+    have "D \<cdot> \<gamma>\<^sub>2 = D \<cdot> \<rho>\<^sub>2 \<odot> \<gamma>"
+      using \<gamma>\<^sub>2_\<gamma> clause.subst_eq
+      by fast
 
-    moreover have "select D \<cdot> \<rho>\<^sub>2 \<odot> \<gamma> = select D \<cdot> \<gamma>\<^sub>2"
-    proof-
-      have "select D \<cdot> \<rho>\<^sub>2 \<subseteq># D \<cdot> \<rho>\<^sub>2" 
-        by (simp add: clause.subst_def image_mset_subseteq_mono select_subset)
-
-      then have "clause.vars (select D \<cdot> \<rho>\<^sub>2) \<subseteq> clause.vars (D \<cdot> \<rho>\<^sub>2)"
-        using clause_submset_vars_clause_subset
-        by fast
-
-      then have "clause.vars (E \<cdot> \<rho>\<^sub>1) \<inter> clause.vars (select D \<cdot> \<rho>\<^sub>2) = {}"
-        using rename_apart
-        by blast
-    
-      then show ?thesis
-        using clause.subst_inv[OF \<rho>\<^sub>2_inv]
-        unfolding \<gamma>_def
-        by (simp add: inf.commute)
-    qed
+    moreover have "select D \<cdot> \<gamma>\<^sub>2 = select D \<cdot> \<rho>\<^sub>2 \<cdot> \<gamma>"
+      using clause.subst_eq \<gamma>\<^sub>2_\<gamma> select_vars_subset
+      by (metis clause.comp_subst.left.monoid_action_compatibility)
 
     ultimately show ?thesis
       using select_from_D
@@ -1818,7 +1734,7 @@ proof-
       unfolding Inf_from_def inferences_def inference_system.Inf_from_def
       by auto
   qed
-qed
+qed  
 
 lemma ground_instances: 
   assumes not_redundant: "\<iota>\<^sub>G \<notin> ground.Red_I (\<Union> (clause_groundings ` N))"

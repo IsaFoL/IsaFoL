@@ -175,6 +175,7 @@ end
 
 locale based_typed_renaming_lifting = 
   based_functional_substitution_lifting + 
+  renaming_variables_lifting +
   based_typed_renaming where subst = sub_subst and vars = sub_vars
 begin
 
