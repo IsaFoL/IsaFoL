@@ -1,20 +1,18 @@
 session "Splitting_Framework" = Saturation_Framework +
-  options [timeout=300, quick_and_dirty=true]
+  options [timeout=300, quick_and_dirty=true, document=pdf, document_output=output]
   sessions
     "HOL-Library"
     Propositional_Proof_Systems
     Saturation_Framework_Extensions
   theories
     Calculi_And_Annotations
-    Compactness_For_Clausal_Logic
-    Disjunctive_consequence_Relations
+    Disjunctive_Consequence_Relations
     FSet_Extra
     Lazy_List_Limsup
-    Light_lifting_to_Non_Ground_Calculi
+    Light_Lifting_to_Non_Ground_Calculi
     List_Extra
     Modular_Splitting_Calculi
     Modular_Lightweight_Avatar
-    FOL_Compactness
 (*commit_ignore_start*)
   document_files 
     "root.tex"

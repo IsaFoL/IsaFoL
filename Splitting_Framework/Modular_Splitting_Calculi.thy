@@ -17,7 +17,7 @@ text \<open>
   In this section, we formalize an abstract version of a splitting calculus.
   We start by considering only two basic rules:
   \<^item> \textsc{Base} performs an inference from our inference system;
-  \<^item> \textsc{Unsat} replaces a set of propositionally unsatisfiable formulas with \<bottom>.
+  \<^item> \textsc{Unsat} replaces a set of prosopositionally unsatisfiable formulas with \<open>\<bottom>\<close>.
 \<close>
 
 locale core_splitting_calculus = AF_calculus_lifting bot Inf entails entails_sound Red_I Red_F fml asn
@@ -1450,7 +1450,8 @@ locale AF_calculus_with_sound_simps_and_opt_infs = AF_calculus bot Inf entails e
       no_infinite_simps: \<open>finite (S_from \<delta>) \<Longrightarrow> \<delta> \<in> Simps \<Longrightarrow> finite (S_to \<delta>)\<close> and
       infs_sound: \<open>\<iota> \<in> OptInfs \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s {concl_of \<iota>}\<close>
 
-text \<open>Empty sets of simplifications and optional inferences are accepted in term\<open>locale AF_calculus_with_sound_simps\<close>\<close>
+text \<open>Empty sets of simplifications and optional inferences are accepted in term\<open>locale AF_calculus_with_sound_simps_and_opt_infs\<close>\<close>
+
 context AF_calculus
 begin
 
