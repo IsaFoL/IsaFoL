@@ -1448,7 +1448,7 @@ locale AF_calculus_with_sound_simps_and_opt_infs =
     assumes
       simplification: \<open>\<delta> \<in> Simps \<Longrightarrow> (S_from \<delta> - S_to \<delta>) \<subseteq> Red\<^sub>F (S_to \<delta>)\<close> and
       simps_sound: \<open>\<delta> \<in> Simps \<Longrightarrow> \<forall>\<C> \<in> S_to \<delta>. S_from \<delta> \<Turnstile>s {\<C>}\<close> and
-      no_infinite_simps: \<open>finite (S_from \<delta>) \<Longrightarrow> \<delta> \<in> Simps \<Longrightarrow> finite (S_to \<delta>)\<close> and
+      (* no_infinite_simps: \<open>finite (S_from \<delta>) \<Longrightarrow> \<delta> \<in> Simps \<Longrightarrow> finite (S_to \<delta>)\<close> and *)
       infs_sound: \<open>\<iota> \<in> OptInfs \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s {concl_of \<iota>}\<close>
 
 text \<open>Empty sets of simplifications and optional inferences are accepted in 
@@ -1521,9 +1521,11 @@ inductive_set Simps_with_Split :: \<open>('f, 'v) AF simplification set\<close> 
   split: \<open>split_pre \<C> \<C>s \<Longrightarrow> split_simp \<C> \<C>s \<in> Simps_with_Split\<close>
 | other: \<open>simp \<in> Simps \<Longrightarrow> simp \<in> Simps_with_Split\<close>
 
+(*
 lemma no_infinite_simps: \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> Simps_with_Split \<Longrightarrow> finite (S_to \<iota>)\<close>
   using Simps_with_Split.cases base_calculus.no_infinite_simps
   by force 
+*)
 
 (* Report theorem 14 for Simps extended with Split *)
 theorem SInf_with_split_sound_wrt_entails_sound:
@@ -1583,7 +1585,7 @@ qed
 
 sublocale AF_calc_ext: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound 
   Red_I\<^sub>A\<^sub>F Red_F\<^sub>A\<^sub>F Simps_with_Split OptInfs
-  using simps_with_split_are_simps SInf_with_split_sound_wrt_entails_sound no_infinite_simps
+  using simps_with_split_are_simps SInf_with_split_sound_wrt_entails_sound (*no_infinite_simps*)
   base_calculus.infs_sound  by (unfold_locales, auto)
 
 end
@@ -1880,9 +1882,9 @@ next
 next
   show \<open>\<iota> \<in> {} \<Longrightarrow> \<forall>\<C>\<in>S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close> for \<iota>
     by blast
-next
+(*next
   show \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> {} \<Longrightarrow> finite (S_to \<iota>)\<close> for \<iota> :: "('f, 'v) AF simplification"
-    by blast
+    by blast*)
 next
   show \<open>\<iota> \<in> {} \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s\<^sub>A\<^sub>F {concl_of \<iota>}\<close> for \<iota>
     by blast
@@ -1962,8 +1964,10 @@ inductive_set Simps_with_Collect :: \<open>('f, 'v) AF simplification set\<close
   collect: \<open>collect_pre \<C> \<M> \<Longrightarrow> collect_simp \<C> \<M> \<in> Simps_with_Collect\<close>
 | other: \<open>\<iota> \<in> Simps \<Longrightarrow> \<iota> \<in> Simps_with_Collect\<close>
 
+(*
 lemma no_infinite_simp_set: \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> Simps_with_Collect \<Longrightarrow> finite (S_to \<iota>)\<close>
   using Simps_with_Collect.cases base_calculus.no_infinite_simps by force 
+*)
 
 (* Report theorem 14 for simps extended with Collect *)
 theorem SInf_with_collect_sound_wrt_entails_sound: 
@@ -2015,7 +2019,7 @@ qed
 
 sublocale AF_calc_ext: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound SRed\<^sub>I SRed\<^sub>F
   Simps_with_Collect OptInfs
-  using simps_with_collect_are_simps SInf_with_collect_sound_wrt_entails_sound no_infinite_simp_set
+  using simps_with_collect_are_simps SInf_with_collect_sound_wrt_entails_sound (*no_infinite_simp_set*)
     base_calculus.infs_sound by (unfold_locales, auto)
 
 end
@@ -2129,8 +2133,10 @@ inductive_set Simps_with_Trim :: \<open>('f, 'v) AF simplification set\<close> w
   trim: \<open>trim_pre \<C> A B \<M> \<Longrightarrow> trim_simp \<C> A B \<M> \<in> Simps_with_Trim\<close>
 | other: \<open>\<iota> \<in> Simps \<Longrightarrow> \<iota> \<in> Simps_with_Trim\<close>
 
+(*
 lemma no_infinite_simp_set: \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> Simps_with_Trim \<Longrightarrow> finite (S_to \<iota>)\<close>
   using Simps_with_Trim.cases base_calculus.no_infinite_simps by force
+*)
 
 theorem SInf_with_trim_sound_wrt_entails_sound: 
   \<open>\<iota> \<in> Simps_with_Trim \<Longrightarrow> \<forall> \<C> \<in> S_to \<iota>. S_from \<iota> \<Turnstile>s\<^sub>A\<^sub>F {\<C>}\<close>
@@ -2196,7 +2202,7 @@ qed
 
 sublocale AF_calc_ext: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound SRed\<^sub>I SRed\<^sub>F
   Simps_with_Trim OptInfs
-  using simps_with_trim_are_simps SInf_with_trim_sound_wrt_entails_sound no_infinite_simp_set
+  using simps_with_trim_are_simps SInf_with_trim_sound_wrt_entails_sound (*no_infinite_simp_set*)
     base_calculus.infs_sound by (unfold_locales, auto)
 
 end (* locale AF_calculus_with_trim *)
@@ -2429,7 +2435,7 @@ interpretation AF_calc_with_strong_unsat:
 
 sublocale AF_calc_ext: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound Red_I Red_F
   Simps OptInfs_with_strong_unsat
-  using base.simplification base.simps_sound base.no_infinite_simps 
+  using base.simplification base.simps_sound (*base.no_infinite_simps *)
 OptInf_with_strong_unsat_sound_wrt_entails_sound
   by (unfold_locales, auto)
 
@@ -2500,7 +2506,7 @@ qed
 sublocale AF_calc_ext: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails "(\<Turnstile>s\<^sub>A\<^sub>F)" Red_I 
   Red_F Simps OptInfs_with_tauto
   using OptInfs_with_tauto_sound_wrt_entails_sound base.simps_sound base.simplification 
-    base.no_infinite_simps
+   (* base.no_infinite_simps *)
   by (unfold_locales, auto)
 
 end (* locale AF_calculus_with_tauto *)
@@ -2574,7 +2580,7 @@ qed
 sublocale AF_calc_ext: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails "(\<Turnstile>s\<^sub>A\<^sub>F)" Red_I Red_F Simps
   OptInfs_with_approx
   using OptInfs_with_approx_sound_wrt_entails_sound base.simps_sound base.simplification 
-    base.no_infinite_simps
+    (* base.no_infinite_simps*)
   by (unfold_locales, auto)
 
 end (* locale AF_calculus_with_approx *)
@@ -2762,9 +2768,11 @@ inductive_set Simps_with_BinSplit :: \<open>('f, 'v) AF simplification set\<clos
   binsplit: \<open>bin_split_pre \<C> C1 C2 \<C>s \<Longrightarrow> bin_split_simp \<C> \<C>s \<in> Simps_with_BinSplit\<close> 
 | other: \<open>simp \<in> Simps \<Longrightarrow> simp \<in> Simps_with_BinSplit\<close>
 
+(*
 lemma no_infinite_simps: \<open>finite (S_from \<iota>) \<Longrightarrow> \<iota> \<in> Simps_with_BinSplit \<Longrightarrow> finite (S_to \<iota>)\<close>
   using Simps_with_BinSplit.cases base_calculus.no_infinite_simps
   by force
+*)
 
 (* Report theorem 14 for Simps extended with BinSplit *)
 theorem SInf_with_binsplit_sound_wrt_entails_sound:
@@ -2822,7 +2830,7 @@ qed
 
 sublocale AF_calc_ext: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound 
   Red_I\<^sub>A\<^sub>F Red_F\<^sub>A\<^sub>F Simps_with_BinSplit OptInfs
-  using simps_with_binsplit_are_simps SInf_with_binsplit_sound_wrt_entails_sound no_infinite_simps
+  using simps_with_binsplit_are_simps SInf_with_binsplit_sound_wrt_entails_sound (*no_infinite_simps*)
   base_calculus.infs_sound  by (unfold_locales, auto)
 
 end (* AF_calculus_with_binsplit *)
