@@ -70,16 +70,10 @@ definition terminates :: "'f set infinite_llist \<Rightarrow> bool" where
 
 abbreviation \<open>lim_inf \<equiv> Liminf_infinite_llist\<close>
 
-(* definition lim_inf :: "'f set stream \<Rightarrow> 'f set" where
-  "lim_inf Ns = (\<Union>i. \<Inter>j \<in> {j. i \<le> j}. Ns !! j)" *)
-
 abbreviation limit :: "'f set infinite_llist \<Rightarrow> 'f set" where "limit Ns \<equiv> lim_inf Ns"
 
 abbreviation lim_sup :: \<open>'f set infinite_llist \<Rightarrow> 'f set\<close> where
   \<open>lim_sup Ns \<equiv> Limsup_infinite_llist Ns\<close>
-
-(* definition lim_sup :: "'f set stream \<Rightarrow> 'f set" where
-  "lim_sup Ns = (\<Inter>i. \<Union>j \<in> {j. i \<le> j}. Ns !! j)" *)
 
 locale calculus = inference_system Inf + consequence_relation bot entails
   for
@@ -91,7 +85,7 @@ locale calculus = inference_system Inf + consequence_relation bot entails
     Red_F :: "'f set \<Rightarrow> 'f set"
   assumes
     Red_I_to_Inf: "Red_I N \<subseteq> Inf" and
-    Red_F_Bot: "N \<Turnstile> {bot} \<Longrightarrow> N - Red_F N \<Turnstile> {bot}" and (* /!\ check if this is ok *)
+    Red_F_Bot: "N \<Turnstile> {bot} \<Longrightarrow> N - Red_F N \<Turnstile> {bot}" and
     Red_F_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'" and
     Red_I_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_I N \<subseteq> Red_I N'" and
     Red_F_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')" and
@@ -492,28 +486,24 @@ definition F_of_Inf :: "(('f, 'v::countable) AF) inference \<Rightarrow> 'f infe
 
 section \<open>Lifting Calculi to Add Annotations\<close>
 
-locale AF_calculus = sc: sound_calculus bot Inf entails entails_sound Red_I Red_F
+locale AF_calculus = sc: sound_calculus bot Inf entails entails_sound Red\<^sub>I Red\<^sub>F
   for
     bot :: "('f, 'v :: countable) AF" and
     Inf :: \<open>('f, 'v) AF inference set\<close> and
     entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" and
     entails_sound :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" and
-    Red_I :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set" and
-    Red_F :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set"
-(*  + fixes
-    fml :: \<open>'v \<Rightarrow> 'f\<close> and 
-    asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close> and
-    entails_sound_F :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s\<^sub>F" 50) and
-    Red_F\<^sub>F :: "'f set \<Rightarrow> 'f set" *)
+    Red\<^sub>I :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set" and
+    Red\<^sub>F :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set"
 
-locale AF_calculus_lifting = sound_calculus bot Inf entails entails_sound Red_I Red_F
+
+locale AF_calculus_lifting = sound_calculus bot Inf entails entails_sound Red\<^sub>I Red_F
   (* + propositional_interpretations \<J>*)
   for
     bot :: "'f" and
     Inf :: \<open>'f inference set\<close> and
     entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
     entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) and
-    Red_I :: "'f set \<Rightarrow> 'f inference set" and
+    Red\<^sub>I :: "'f set \<Rightarrow> 'f inference set" and
     Red_F :: "'f set \<Rightarrow> 'f set"
   + fixes
     (* V:: "'v::countable itself" and *)
