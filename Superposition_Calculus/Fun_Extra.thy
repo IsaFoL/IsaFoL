@@ -1,5 +1,8 @@
 theory Fun_Extra
-  imports Main "HOL-Library.Countable_Set" "HOL-Cardinals.Cardinals" HOL_Extra
+  imports 
+    "HOL-Library.Countable_Set" 
+    "HOL-Cardinals.Cardinals" 
+    Superposition_Calculus.HOL_Extra
 begin
 
 lemma 

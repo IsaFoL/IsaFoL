@@ -1,4 +1,4 @@
-session Superposition_Calculus_1 = Saturation_Framework_Extensions +
+session Superposition_Calculus_Rest = Saturation_Framework_Extensions +
   sessions
     Knuth_Bendix_Order
     Min_Max_Least_Greatest
@@ -6,14 +6,11 @@ session Superposition_Calculus_1 = Saturation_Framework_Extensions +
     Saturation_Framework
     Saturation_Framework_Extensions
     Abstract_Substitution
+    Superposition_Calculus
 
-  theories (* These theories contain the main results. *)
-    Ground_Superposition_Completeness
-    Ground_Superposition_Soundness
-    Ground_Superposition_Welltypedness_Preservation
-    Superposition_Completeness
-    Superposition_Soundness
-    Superposition_Example
+  theories (* Rest that did not make it into the Afp. *)
+    Fun_Extra
+    Renaming
 
   theories (* This theory contains an analogue specification of ground ordered resolution. *)
     Ground_Ordered_Resolution
