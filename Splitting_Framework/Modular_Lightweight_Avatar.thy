@@ -807,5 +807,4 @@ sublocale LA: AF_calculus_with_sound_simps_and_opt_infs \<open>to_AF {#}\<close>
 
 end (* locale LA_calculus *)
 
-
 end (* theory Modular Lightweight_Avatar *)
