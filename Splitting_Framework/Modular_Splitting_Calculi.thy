@@ -1496,7 +1496,7 @@ locale AF_calculus_with_split =
         {\<C>} \<Turnstile>\<^sub>A\<^sub>Fs {AF.Pair (F_of bot) (ffUnion (fimage neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>)}\<close> and
       split_sound2: \<open>splittable \<C> \<C>s \<Longrightarrow> \<forall> \<C>' \<in> fset \<C>s. {\<C>} \<Turnstile>\<^sub>A\<^sub>Fs {\<C>'}\<close> and
       split_simp: \<open>splittable \<C> \<C>s \<Longrightarrow> \<C> \<in> SRed\<^sub>F 
-        ({ AF.Pair (F_of bot) (ffUnion ((|`|) neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>) } \<union> fset \<C>s)\<close>
+        ({AF.Pair (F_of bot) (ffUnion ((|`|) neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>)} \<union> fset \<C>s)\<close>
 begin
 
 text \<open>
@@ -1541,7 +1541,7 @@ proof -
     proof (cases rule: Simps_with_Split.cases)
       case (split \<C>' \<C>s)
 
-      have \<open>S_from \<iota> \<Turnstile>\<^sub>A\<^sub>Fs { AF.Pair (F_of bot) (ffUnion (fimage neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>')}\<close>
+      have \<open>S_from \<iota> \<Turnstile>\<^sub>A\<^sub>Fs {AF.Pair (F_of bot) (ffUnion (fimage neg |`| A_of |`| \<C>s) |\<union>| A_of \<C>')}\<close>
         using split_sound1 split by auto
       moreover have \<open>\<forall>\<C>' \<in> fset \<C>s. S_from \<iota> \<Turnstile>\<^sub>A\<^sub>Fs {\<C>'}\<close>
         using split_sound2 split by auto
@@ -2653,7 +2653,7 @@ interpretation splitting_calc_with_approx:
 
 end (* context splitting_calculus *)
 
-subsubsection \<open>Combining all simplifications and optional inferences\<close>
+subsection \<open>Combining all simplifications and optional inferences\<close>
 
 text \<open>We have augmented the core calculus with each simplification and optional rule separately. We
   now show how to augment the core calculus with all of them in succession.\<close>
