@@ -2732,21 +2732,21 @@ text \<open>For the sake of the Lightweight Avatar calculus, we define the \text
   simplification rule, and show that it is indeed a sound simplification rule as in the case of the 
   Split rule.\<close>
 locale AF_calculus_with_binsplit =
-  base_calculus: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound Red_I\<^sub>A\<^sub>F
-  Red_F\<^sub>A\<^sub>F Simps OptInfs
+  base_calculus: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound SRed\<^sub>I
+  SRed\<^sub>F Simps OptInfs
   for bot :: \<open>('f, 'v :: countable) AF\<close> and
       SInf :: \<open>('f, 'v) AF inference set\<close> and
       entails :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>A\<^sub>F\<close> 50) and
       entails_sound :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>s\<^sub>A\<^sub>F\<close> 50) and
-      Red_I\<^sub>A\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
-      Red_F\<^sub>A\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
+      SRed\<^sub>I :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set\<close> and
+      SRed\<^sub>F :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> and
       Simps :: \<open>('f, 'v) AF simplification set\<close> and
       OptInfs :: \<open>('f, 'v) AF inference set\<close>
   + fixes
       bin_splittable :: \<open>('f, 'v) AF \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> ('f, 'v) AF fset \<Rightarrow> bool\<close>
     assumes
       binsplit_prem_entails_cons: \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<forall> \<C>' \<in> fset \<C>s. {\<C>} \<Turnstile>s\<^sub>A\<^sub>F {\<C>'}\<close> and
-      binsplit_simp: \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<C> \<in> Red_F\<^sub>A\<^sub>F (fset \<C>s)\<close>
+      binsplit_simp: \<open>bin_splittable \<C> C1 C2 \<C>s \<Longrightarrow> \<C> \<in> SRed\<^sub>F (fset \<C>s)\<close>
 begin
 
 text \<open>
@@ -2800,21 +2800,21 @@ proof -
 qed
 
 (* Report theorem 19 for BinSplit *)
-lemma binsplit_redundant: \<open>bin_split_pre \<C> C1 C2 \<C>s \<Longrightarrow> \<C> \<in> Red_F\<^sub>A\<^sub>F (bin_split_res \<C> \<C>s)\<close>
+lemma binsplit_redundant: \<open>bin_split_pre \<C> C1 C2 \<C>s \<Longrightarrow> \<C> \<in> SRed\<^sub>F (bin_split_res \<C> \<C>s)\<close>
 proof -
   assume pre_cond: \<open>bin_split_pre \<C> C1 C2 \<C>s\<close>
-  then show \<open>\<C> \<in> Red_F\<^sub>A\<^sub>F (bin_split_res \<C> \<C>s)\<close>
+  then show \<open>\<C> \<in> SRed\<^sub>F (bin_split_res \<C> \<C>s)\<close>
     using binsplit_simp by simp
 qed
 
 (* Report theorem 19 for Simps extended with Split *)
 lemma simps_with_binsplit_are_simps: 
-  \<open>\<iota> \<in> Simps_with_BinSplit \<Longrightarrow> (S_from \<iota> - S_to \<iota>) \<subseteq> Red_F\<^sub>A\<^sub>F (S_to \<iota>)\<close>
+  \<open>\<iota> \<in> Simps_with_BinSplit \<Longrightarrow> (S_from \<iota> - S_to \<iota>) \<subseteq> SRed\<^sub>F (S_to \<iota>)\<close>
 proof
   fix \<C>
   assume i_in: \<open>\<iota> \<in> Simps_with_BinSplit\<close> and
     C_in: \<open>\<C> \<in> S_from \<iota> - S_to \<iota>\<close>
-  then show \<open>\<C> \<in> Red_F\<^sub>A\<^sub>F (S_to \<iota>)\<close>
+  then show \<open>\<C> \<in> SRed\<^sub>F (S_to \<iota>)\<close>
   proof (cases rule: Simps_with_BinSplit.cases)
     case (binsplit \<C>' C1 C2 \<C>s)
     then have \<open>\<C> = \<C>'\<close> using C_in by auto
@@ -2829,7 +2829,7 @@ proof
 qed
 
 sublocale AF_calc_ext: AF_calculus_with_sound_simps_and_opt_infs bot SInf entails entails_sound 
-  Red_I\<^sub>A\<^sub>F Red_F\<^sub>A\<^sub>F Simps_with_BinSplit OptInfs
+  SRed\<^sub>I SRed\<^sub>F Simps_with_BinSplit OptInfs
   using simps_with_binsplit_are_simps SInf_with_binsplit_sound_wrt_entails_sound (*no_infinite_simps*)
   base_calculus.infs_sound  by (unfold_locales, auto)
 
