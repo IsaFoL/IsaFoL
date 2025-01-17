@@ -650,7 +650,7 @@ lemma bottom_never_redundant: \<open>{#} \<notin> F.Red_F_\<G>_empty N\<close>
 lemma \<open>F.Inf_between UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.empty_ord.Red_Red_I N\<close>
   using F.empty_ord.inf_subs_reduced_red_inf .
 
-end (* locale FO_resolution_prover' *)
+end (* locale FO_resolution_prover_disjunctive *)
 
 
 subsection \<open>Lightweight Avatar without BinSplit\<close>
