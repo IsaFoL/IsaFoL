@@ -511,11 +511,9 @@ locale AF_calculus_lifting = sound_calculus bot Inf entails entails_sound Red\<^
     fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and 
     asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close>
   assumes
-    entails_sound_compact: \<open>M \<Turnstile>s N \<Longrightarrow> (\<exists>M'\<subseteq>M. (\<exists>N'\<subseteq>N. finite M' \<and> finite N' \<and> M' \<Turnstile>s N'))\<close> and
     fml_entails_C: \<open>\<forall> a \<in> asn C. sound_cons.entails_neg {map_sign fml a} {C}\<close> and
     C_entails_fml: \<open>\<forall> a \<in> asn C. sound_cons.entails_neg {C} {map_sign fml a}\<close> and
     asn_not_empty: \<open>asn C \<noteq> {}\<close>
-    (*  j_is: \<open>\<J> = {J. is_interpretation J}\<close>*)
 begin
 
 notation sound_cons.entails_neg (infix \<open>\<Turnstile>s\<^sub>\<sim>\<close> 50)

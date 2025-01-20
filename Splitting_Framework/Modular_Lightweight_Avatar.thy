@@ -656,7 +656,7 @@ end (* locale FO_resolution_prover_disjunctive *)
 subsection \<open>Lightweight Avatar without BinSplit\<close>
 
 text \<open> Since the set \<open>\<bbbP>\<close> of nullary predicates is left unspecified, we cannot define \<open>fml\<close> nor \<open>asn\<close>.
- Therefore, we keep them abstract and leave it to anybody instanciating this locale
+ Therefore, we keep them abstract and leave it to anybody instantiating this locale
  to specify them. \<close>
 
 locale LA_calculus = FO_resolution_prover_disjunctive S subst_atm id_subst comp_subst renaming_aparts
@@ -732,14 +732,11 @@ sublocale LA_is_sound_calculus: sound_calculus \<open>{#}\<close> F_Inf \<open>(
   using LA_is_calculus.Red_I_to_Inf LA_is_calculus.Red_F_Bot  LA_is_calculus.Red_F_of_subset 
         LA_is_calculus.Red_I_of_subset  LA_is_calculus.Red_F_of_Red_F_subset
         LA_is_calculus.Red_I_of_Red_F_subset LA_is_calculus.Red_I_of_Inf_to_N
-  by (unfold_locales, presburger+) 
+  by (unfold_locales, presburger+)
 
 sublocale LA_is_AF_calculus: AF_calculus_lifting \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
   F.empty_ord.Red_Red_I F.Red_F_\<G>_empty fml asn
 proof standard
-  show \<open>\<And> M N. M \<TTurnstile>\<union>\<G>e N \<Longrightarrow> \<exists> M' \<subseteq> M. \<exists> N' \<subseteq> N. finite M' \<and> finite N' \<and> M' \<TTurnstile>\<union>\<G>e N'\<close>
-    using entails_\<G>_disj_compactness
-    by presburger
   show \<open>\<And> C. \<forall> a \<in> asn C. {map_sign fml a} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {C}\<close>
     using fml_entails_C
     by blast
