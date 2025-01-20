@@ -715,26 +715,15 @@ proof standard
     by blast
 qed
 
-lemma F_disj_complete: \<open>statically_complete_calculus {#} F_Inf (\<TTurnstile>\<union>\<G>e) F.empty_ord.Red_Red_I
-  F.Red_F_\<G>_empty\<close>
-proof
-  show \<open>\<And> N. LA_is_calculus.saturated N \<Longrightarrow> N \<TTurnstile>\<union>\<G>e {{#}} \<Longrightarrow> {#} \<in> N\<close>
-    unfolding LA_is_calculus.saturated_def using F'.saturated_def F'.statically_complete
-    by (smt (verit, ccfv_SIG) entails_\<G>_disj_def insertI1 sat_\<G>_compact singletonD)
-qed
 
-sublocale statically_complete_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> F.empty_ord.Red_Red_I
-  F.Red_F_\<G>_empty
-  using F_disj_complete .
-
-sublocale LA_is_sound_calculus: sound_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
+interpretation LA_is_sound_calculus: sound_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
   F.empty_ord.Red_Red_I F.Red_F_\<G>_empty 
   using LA_is_calculus.Red_I_to_Inf LA_is_calculus.Red_F_Bot  LA_is_calculus.Red_F_of_subset 
         LA_is_calculus.Red_I_of_subset  LA_is_calculus.Red_F_of_Red_F_subset
         LA_is_calculus.Red_I_of_Red_F_subset LA_is_calculus.Red_I_of_Inf_to_N
   by (unfold_locales, presburger+)
 
-sublocale LA_is_AF_calculus: AF_calculus_lifting \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
+interpretation LA_is_AF_calculus: AF_calculus_lifting \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
   F.empty_ord.Red_Red_I F.Red_F_\<G>_empty fml asn
 proof standard
   show \<open>\<And> C. \<forall> a \<in> asn C. {map_sign fml a} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {C}\<close>
@@ -753,7 +742,7 @@ lemma empty_not_unsat: \<open>\<not> {} \<TTurnstile>\<inter>\<G>e {{#}}\<close>
   by blast
 (*>*)
 
-sublocale core_LA_calculus: splitting_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
+interpretation core_LA_calculus: splitting_calculus \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
   F.empty_ord.Red_Red_I F.Red_F_\<G>_empty fml asn 
 proof standard
   show \<open>\<not> {} \<TTurnstile>\<union>\<G>e {}\<close>
@@ -761,7 +750,7 @@ proof standard
   show \<open>\<And> N. F.Inf_between UNIV (F.Red_F_\<G>_empty N) \<subseteq> F.empty_ord.Red_Red_I N\<close>
     using F.empty_ord.inf_subs_reduced_red_inf by blast
   show \<open>\<And> N. {#} \<notin> F.Red_F_\<G>_empty N\<close>
-    using nobot_in_Red by blast 
+    using bottom_never_redundant by blast
   show \<open>\<And> \<C>. \<C> \<noteq> {#} \<Longrightarrow> \<C> \<in> F.Red_F_\<G>_empty {{#}}\<close>
     using all_redundant_to_bottom by blast
 qed
@@ -769,21 +758,10 @@ qed
 notation LA_is_AF_calculus.AF_entails_sound (infix \<open>\<TTurnstile>s\<union>\<G>e\<^sub>A\<^sub>F\<close> 50)
 notation LA_is_AF_calculus.AF_entails (infix \<open>\<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F\<close> 50)
 
-sublocale AF_calculus_with_sound_simps_and_opt_infs \<open>to_AF {#}\<close> 
+interpretation AF_calculus_with_sound_simps_and_opt_infs \<open>to_AF {#}\<close> 
   core_LA_calculus.core.SInf \<open>(\<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F)\<close> \<open>(\<TTurnstile>s\<union>\<G>e\<^sub>A\<^sub>F)\<close> core_LA_calculus.core.SRed\<^sub>I 
   core_LA_calculus.core.SRed\<^sub>F "{}" "{}"
   using core_LA_calculus.empty_simps.AF_calculus_with_sound_simps_and_opt_infs_axioms .
-
-text \<open>
-   By Theorem @{thm core_splitting_calculus.S_calculus_statically_complete}, we can show that \<open>LA\<close> is
-  statically complete, and therefore dynamically complete by Theorem
-  @{thm core_splitting_calculus.S_calculus_dynamically_complete}.
-\<close>
-
-(* Local static completeness (as other forms of completeness, global, dynamic...)
-   follows from static completeness of the base calculus *)
-theorem \<open>core_LA_calculus.core.locally_saturated \<N> \<Longrightarrow> \<N> \<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F {to_AF {#}} \<Longrightarrow> to_AF {#} \<in> \<N>\<close>
-  using core_LA_calculus.core.S_calculus_strong_statically_complete[OF F_disj_complete] .
 
 subsection \<open>Lightweight Avatar\<close>
 
@@ -801,6 +779,29 @@ sublocale LA: AF_calculus_with_sound_simps_and_opt_infs \<open>to_AF {#}\<close>
   core_LA_calculus.core.SInf LA_is_AF_calculus.AF_entails LA_is_AF_calculus.AF_entails_sound 
   core_LA_calculus.core.SRed\<^sub>I core_LA_calculus.core.SRed\<^sub>F with_BinSplit.Simps_with_BinSplit \<open>{}\<close>
   using with_BinSplit.AF_calc_ext.AF_calculus_with_sound_simps_and_opt_infs_axioms .
+
+text \<open>
+   By Theorem @{thm core_splitting_calculus.S_calculus_statically_complete}, we can show that \<open>LA\<close> is
+  statically complete, and therefore dynamically complete by Theorem
+  @{thm core_splitting_calculus.S_calculus_dynamically_complete}.
+\<close>
+
+
+lemma F_disj_complete: \<open>statically_complete_calculus {#} F_Inf (\<TTurnstile>\<union>\<G>e) F.empty_ord.Red_Red_I
+  F.Red_F_\<G>_empty\<close>
+proof
+  show \<open>\<And> N. LA_is_calculus.saturated N \<Longrightarrow> N \<TTurnstile>\<union>\<G>e {{#}} \<Longrightarrow> {#} \<in> N\<close>
+    unfolding LA_is_calculus.saturated_def using F'.saturated_def F'.statically_complete
+    by (smt (verit, ccfv_SIG) entails_\<G>_disj_def insertI1 sat_\<G>_compact singletonD)
+qed
+
+(* Local static completeness (as other forms of completeness, global, dynamic...)
+   follows from static completeness of the base calculus *)
+theorem \<open>core_LA_calculus.core.locally_saturated \<N> \<Longrightarrow> \<N> \<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F {to_AF {#}} \<Longrightarrow> to_AF {#} \<in> \<N>\<close>
+  using core_LA_calculus.core.S_calculus_strong_statically_complete[OF F_disj_complete] .
+
+(* TODO: - add theorem about strong dynamic completeness
+         - name the lemmas in Modular_Splitting_Calculi about integration of extra rules in derivations *)
 
 end (* locale LA_calculus *)
 
