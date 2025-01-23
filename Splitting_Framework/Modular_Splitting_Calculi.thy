@@ -580,7 +580,7 @@ proof (intro subset_antisym subsetI)
   proof (cases)
     case a
     then have \<open>\<forall> J. \<forall> D \<in> \<G>\<^sub>F J \<C>. D \<in> FRed\<^sub>F (\<Union> (\<G>\<^sub>F J ` \<N>))\<close>
-      unfolding Red_F_strict_def \<G>\<^sub>F_def
+      unfolding Red\<^sub>F_strict_def \<G>\<^sub>F_def
       using Union_of_enabled_projection_is_enabled_projection \<C>_is enabled_projection_def
             \<C>_is complete enabled_projection_def
       using enabled_def
@@ -832,7 +832,7 @@ qed
 end (* locale core_splitting_calculus *)
 
 
-subsection \<open>Standard saturation\<close>
+subsection \<open>Standard completeness\<close>
 
 context core_splitting_calculus
 begin
@@ -2687,7 +2687,8 @@ interpretation full_splitting_calculus: AF_calculus_extended "to_AF bot"
 text \<open>Simplifications and optional inferences can be integrated in derivations. This is made obvious
   by the following two lemmas.\<close>
 
-lemma \<open>\<delta> \<in> with_all.Simps_with_Split \<Longrightarrow> core.S_calculus.derive (\<M> \<union> S_from \<delta>) (\<M> \<union> S_to \<delta>)\<close>
+lemma simp_in_derivations: \<open>\<delta> \<in> with_all.Simps_with_Split \<Longrightarrow> 
+  core.S_calculus.derive (\<M> \<union> S_from \<delta>) (\<M> \<union> S_to \<delta>)\<close>
   unfolding core.S_calculus.derive_def
 proof 
   fix C
@@ -2700,7 +2701,7 @@ proof
         core_splitting_calculus.SRed\<^sub>F_of_subset_F in_mono inf_sup_ord(4))
 qed
 
-lemma \<open>\<iota> \<in> with_ATS.OptInfs_with_strong_unsat \<Longrightarrow> 
+lemma opt_infs_in_derivations: \<open>\<iota> \<in> with_ATS.OptInfs_with_strong_unsat \<Longrightarrow> 
   core.S_calculus.derive (\<M> \<union> set (prems_of \<iota>)) (\<M> \<union> set (prems_of \<iota>) \<union> {concl_of \<iota>})\<close>
   unfolding core.S_calculus.derive_def
 proof 

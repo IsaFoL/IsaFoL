@@ -1,3 +1,8 @@
+(* Title:        Formalizing an abstract calculus based on splitting in a modular way
+ * Author:       Sophie Tourret <stourret at inria.fr>, 2020-2025
+ *               Florent Krasnopol <florent.krasnopol at ens-paris-saclay.fr>, 2022
+ *               Ghilain Bergeron <ghilain.bergeron at inria.fr>, 2023 *)
+
 theory Disjunctive_Consequence_Relations
   imports Saturation_Framework.Calculus
     Propositional_Proof_Systems.Compactness

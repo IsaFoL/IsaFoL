@@ -1,11 +1,14 @@
+(* Title:        Formalizing an abstract calculus based on splitting in a modular way
+ * Author:       Ghilain Bergeron <ghilain.bergeron at inria.fr>, 2023 *)
+
 theory FSet_Extra
   imports Main "HOL-Library.FSet"
 begin
 
 text \<open>
   This theory contains some additional lemmas regarding sets and finite sets, which were useful 
-  in the process of proving some lemmas in \<^file>\<open>Splitting_Calculi.thy\<close> and
-  \<^file>\<open>Splitting_Without_Backtracking.thy\<close>.
+  in the process of proving some lemmas in \<^file>\<open>Modular_Splitting_Calculi.thy\<close> and
+  \<^file>\<open>Modular_Lightweight_Avatar.thy\<close>.
 \<close> 
 
 (*<*)

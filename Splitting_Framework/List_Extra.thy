@@ -4,7 +4,7 @@ begin
 
 text \<open>
   This theory contains some extra lemmas that were useful in proving some lemmas in
-  \<^file>\<open>Splitting_Calculi.thy\<close> and \<^file>\<open>Splitting_Without_Backtracking.thy\<close>.
+  \<^file>\<open>Modular_Splitting_Calculi.thy\<close> and \<^file>\<open>Modular_Lightweight_Avatar.thy\<close>.
 \<close>
 
 lemma map2_first_is_first [simp]: \<open>length x = length y \<Longrightarrow> map2 (\<lambda> x y. x) x y = x\<close>

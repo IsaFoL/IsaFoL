@@ -1,3 +1,8 @@
+(* Title:        Formalizing an abstract calculus based on splitting in a modular way
+ * Author:       Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020-2025
+ *               Florent Krasnopol <florent.krasnopol at ens-paris-saclay.fr>, 2022
+ *               Ghilain Bergeron <ghilain.bergeron at inria.fr>, 2023 *)
+
 theory Calculi_And_Annotations
   imports Disjunctive_Consequence_Relations
 begin
@@ -81,135 +86,135 @@ locale calculus = inference_system Inf + consequence_relation bot entails
     Inf :: \<open>'f inference set\<close> and
     entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50)
   + fixes
-    Red_I :: "'f set \<Rightarrow> 'f inference set" and
-    Red_F :: "'f set \<Rightarrow> 'f set"
+    Red\<^sub>I :: "'f set \<Rightarrow> 'f inference set" and
+    Red\<^sub>F :: "'f set \<Rightarrow> 'f set"
   assumes
-    Red_I_to_Inf: "Red_I N \<subseteq> Inf" and
-    Red_F_Bot: "N \<Turnstile> {bot} \<Longrightarrow> N - Red_F N \<Turnstile> {bot}" and
-    Red_F_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'" and
-    Red_I_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_I N \<subseteq> Red_I N'" and
-    Red_F_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')" and
-    Red_I_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_I N \<subseteq> Red_I (N - N')" and
-    Red_I_of_Inf_to_N: "\<iota> \<in> Inf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I N"
+    Red_I_to_Inf: "Red\<^sub>I N \<subseteq> Inf" and
+    Red_F_Bot: "N \<Turnstile> {bot} \<Longrightarrow> N - Red\<^sub>F N \<Turnstile> {bot}" and
+    Red_F_of_subset: "N \<subseteq> N' \<Longrightarrow> Red\<^sub>F N \<subseteq> Red\<^sub>F N'" and
+    Red_I_of_subset: "N \<subseteq> N' \<Longrightarrow> Red\<^sub>I N \<subseteq> Red\<^sub>I N'" and
+    Red_F_of_Red_F_subset: "N' \<subseteq> Red\<^sub>F N \<Longrightarrow> Red\<^sub>F N \<subseteq> Red\<^sub>F (N - N')" and
+    Red_I_of_Red_F_subset: "N' \<subseteq> Red\<^sub>F N \<Longrightarrow> Red\<^sub>I N \<subseteq> Red\<^sub>I (N - N')" and
+    Red_I_of_Inf_to_N: "\<iota> \<in> Inf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red\<^sub>I N"
 begin
 
 definition saturated :: "'f set \<Rightarrow> bool" where
-  "saturated N \<longleftrightarrow> Inf_from N \<subseteq> Red_I N"
+  "saturated N \<longleftrightarrow> Inf_from N \<subseteq> Red\<^sub>I N"
   
-definition Red_I_strict :: "'f set \<Rightarrow> 'f inference set" where
-  "Red_I_strict N = {\<iota>. \<iota> \<in> Red_I N \<or> (\<iota> \<in> Inf \<and> bot \<in> N)}"
+definition Red\<^sub>I_strict :: "'f set \<Rightarrow> 'f inference set" where
+  "Red\<^sub>I_strict N = {\<iota>. \<iota> \<in> Red\<^sub>I N \<or> (\<iota> \<in> Inf \<and> bot \<in> N)}"
   
-definition Red_F_strict :: "'f set \<Rightarrow> 'f set" where
-  "Red_F_strict N = {C. C \<in> Red_F N \<or> (bot \<in> N \<and> C \<noteq> bot)}"
+definition Red\<^sub>F_strict :: "'f set \<Rightarrow> 'f set" where
+  "Red\<^sub>F_strict N = {C. C \<in> Red\<^sub>F N \<or> (bot \<in> N \<and> C \<noteq> bot)}"
   
 (* This proof helped detect a lack of precision in rmk 3 (missing restriction in the hypotheses *)
 lemma strict_calc_if_nobot:
-  "\<forall>N. bot \<notin> Red_F N \<Longrightarrow> calculus bot Inf entails Red_I_strict Red_F_strict"
+  "\<forall>N. bot \<notin> Red\<^sub>F N \<Longrightarrow> calculus bot Inf entails Red\<^sub>I_strict Red\<^sub>F_strict"
 proof
   fix N
-  show \<open>Red_I_strict N \<subseteq> Inf\<close> unfolding Red_I_strict_def using Red_I_to_Inf by blast
+  show \<open>Red\<^sub>I_strict N \<subseteq> Inf\<close> unfolding Red\<^sub>I_strict_def using Red_I_to_Inf by blast
 next
   fix N
   assume
-    bot_notin: "\<forall>N. bot \<notin> Red_F N" and
+    bot_notin: "\<forall>N. bot \<notin> Red\<^sub>F N" and
     entails_bot: \<open>N \<Turnstile> {bot}\<close>
-  show \<open>N - Red_F_strict N \<Turnstile> {bot}\<close>
+  show \<open>N - Red\<^sub>F_strict N \<Turnstile> {bot}\<close>
   proof (cases "bot \<in> N")
     assume bot_in: "bot \<in> N"
-    have \<open>bot \<notin> Red_F N\<close> using bot_notin by blast
-    then have \<open>bot \<notin> Red_F_strict N\<close> unfolding Red_F_strict_def by blast 
-    then have \<open>Red_F_strict N = UNIV - {bot}\<close>
-      unfolding Red_F_strict_def using bot_in by blast
-    then have \<open>N - Red_F_strict N = {bot}\<close> using bot_in by blast
-    then show \<open>N - Red_F_strict N \<Turnstile> {bot}\<close> using entails_reflexive[of bot] by simp
+    have \<open>bot \<notin> Red\<^sub>F N\<close> using bot_notin by blast
+    then have \<open>bot \<notin> Red\<^sub>F_strict N\<close> unfolding Red\<^sub>F_strict_def by blast 
+    then have \<open>Red\<^sub>F_strict N = UNIV - {bot}\<close>
+      unfolding Red\<^sub>F_strict_def using bot_in by blast
+    then have \<open>N - Red\<^sub>F_strict N = {bot}\<close> using bot_in by blast
+    then show \<open>N - Red\<^sub>F_strict N \<Turnstile> {bot}\<close> using entails_reflexive[of bot] by simp
   next
     assume \<open>bot \<notin> N\<close>
-    then have \<open>Red_F_strict N = Red_F N\<close> unfolding Red_F_strict_def by blast
-    then show \<open>N - Red_F_strict N \<Turnstile> {bot}\<close> using Red_F_Bot[OF entails_bot] by simp
+    then have \<open>Red\<^sub>F_strict N = Red\<^sub>F N\<close> unfolding Red\<^sub>F_strict_def by blast
+    then show \<open>N - Red\<^sub>F_strict N \<Turnstile> {bot}\<close> using Red_F_Bot[OF entails_bot] by simp
   qed
 next
   fix N N' :: "'f set"
   assume \<open>N \<subseteq> N'\<close>
-  then show \<open>Red_F_strict N \<subseteq> Red_F_strict N'\<close>
-    unfolding Red_F_strict_def using Red_F_of_subset by blast
+  then show \<open>Red\<^sub>F_strict N \<subseteq> Red\<^sub>F_strict N'\<close>
+    unfolding Red\<^sub>F_strict_def using Red_F_of_subset by blast
 next
   fix N N' :: "'f set"
   assume \<open>N \<subseteq> N'\<close>
-  then show \<open>Red_I_strict N \<subseteq> Red_I_strict N'\<close>
-    unfolding Red_I_strict_def using Red_I_of_subset by blast
+  then show \<open>Red\<^sub>I_strict N \<subseteq> Red\<^sub>I_strict N'\<close>
+    unfolding Red\<^sub>I_strict_def using Red_I_of_subset by blast
 next
   fix N' N
   assume
-    bot_notin: "\<forall>N. bot \<notin> Red_F N" and
-    subs_red: "N' \<subseteq> Red_F_strict N"
-  have \<open>bot \<notin> Red_F_strict N\<close>
-    using bot_notin unfolding Red_F_strict_def by blast
+    bot_notin: "\<forall>N. bot \<notin> Red\<^sub>F N" and
+    subs_red: "N' \<subseteq> Red\<^sub>F_strict N"
+  have \<open>bot \<notin> Red\<^sub>F_strict N\<close>
+    using bot_notin unfolding Red\<^sub>F_strict_def by blast
   then have nbot_in: \<open>bot \<notin> N'\<close> using subs_red by blast 
-  show \<open>Red_F_strict N \<subseteq> Red_F_strict (N - N')\<close>
+  show \<open>Red\<^sub>F_strict N \<subseteq> Red\<^sub>F_strict (N - N')\<close>
   proof (cases "bot \<in> N")
     case True
     then have bot_in: "bot \<in> N - N'" using nbot_in by blast
-    then show ?thesis unfolding Red_F_strict_def using bot_notin by force
+    then show ?thesis unfolding Red\<^sub>F_strict_def using bot_notin by force
   next
     case False
-    then have eq_red: "Red_F_strict N = Red_F N" unfolding Red_F_strict_def by simp
-    then have "N' \<subseteq> Red_F N" using subs_red by simp
-    then have "Red_F N \<subseteq> Red_F (N - N')" using Red_F_of_Red_F_subset by simp
-    then show ?thesis using eq_red Red_F_strict_def by blast 
+    then have eq_red: "Red\<^sub>F_strict N = Red\<^sub>F N" unfolding Red\<^sub>F_strict_def by simp
+    then have "N' \<subseteq> Red\<^sub>F N" using subs_red by simp
+    then have "Red\<^sub>F N \<subseteq> Red\<^sub>F (N - N')" using Red_F_of_Red_F_subset by simp
+    then show ?thesis using eq_red Red\<^sub>F_strict_def by blast 
   qed
 next
   fix N' N
   assume
-    "\<forall>N. bot \<notin> Red_F N" and
-    subs_red: "N' \<subseteq> Red_F_strict N"
-  then have bot_notin: "bot \<notin> N'" unfolding Red_F_strict_def by blast 
-  then show "Red_I_strict N \<subseteq> Red_I_strict (N - N')"
+    "\<forall>N. bot \<notin> Red\<^sub>F N" and
+    subs_red: "N' \<subseteq> Red\<^sub>F_strict N"
+  then have bot_notin: "bot \<notin> N'" unfolding Red\<^sub>F_strict_def by blast 
+  then show "Red\<^sub>I_strict N \<subseteq> Red\<^sub>I_strict (N - N')"
   proof (cases "bot \<in> N")
     case True
     then show ?thesis
-      unfolding Red_I_strict_def using bot_notin Red_I_to_Inf by fastforce 
+      unfolding Red\<^sub>I_strict_def using bot_notin Red_I_to_Inf by fastforce 
   next
     case False
     then show ?thesis
       using bot_notin Red_I_to_Inf subs_red Red_I_of_Red_F_subset 
-      unfolding Red_I_strict_def Red_F_strict_def by simp
+      unfolding Red\<^sub>I_strict_def Red\<^sub>F_strict_def by simp
   qed
 next
   fix \<iota> N
   assume "\<iota> \<in> Inf"
-  then show "concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I_strict N"
-    unfolding Red_I_strict_def using Red_I_of_Inf_to_N Red_I_to_Inf by simp
+  then show "concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red\<^sub>I_strict N"
+    unfolding Red\<^sub>I_strict_def using Red_I_of_Inf_to_N Red_I_to_Inf by simp
 qed
 
 definition weakly_fair :: "'f set infinite_llist \<Rightarrow> bool" where
-  \<open>weakly_fair Ns \<equiv> Inf_from (Liminf_infinite_llist Ns) \<subseteq> Sup_infinite_llist (llmap Red_I Ns)\<close>
-  (* "weakly_fair Ns \<equiv> Inf_from (lim_inf Ns) \<subseteq> (\<Union>i. (Red_I (Ns !! i)))" *)
+  \<open>weakly_fair Ns \<equiv> Inf_from (Liminf_infinite_llist Ns) \<subseteq> Sup_infinite_llist (llmap Red\<^sub>I Ns)\<close>
+  (* "weakly_fair Ns \<equiv> Inf_from (lim_inf Ns) \<subseteq> (\<Union>i. (Red\<^sub>I (Ns !! i)))" *)
 
 abbreviation fair :: "'f set infinite_llist \<Rightarrow> bool" where "fair N \<equiv> weakly_fair N"
 
 definition derive :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<rhd>" 50) where
-  "M \<rhd> N \<equiv> (M - N \<subseteq> Red_F N)"
+  "M \<rhd> N \<equiv> (M - N \<subseteq> Red\<^sub>F N)"
 
 (* for reference, the definition used in the saturation framework *)
 (* inductive "derive" :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<rhd>" 50) where
-     derive: "M - N \<subseteq> Red_F N \<Longrightarrow> M \<rhd> N" *)
+     derive: "M - N \<subseteq> Red\<^sub>F N \<Longrightarrow> M \<rhd> N" *)
 
 lemma derive_refl: "M \<rhd> M" unfolding derive_def by simp
 
-lemma deriv_red_in: \<open>M \<rhd> N \<Longrightarrow> Red_F M \<subseteq> N \<union> Red_F N\<close>
+lemma deriv_red_in: \<open>M \<rhd> N \<Longrightarrow> Red\<^sub>F M \<subseteq> N \<union> Red\<^sub>F N\<close>
 proof -
   fix M N
   assume deriv: \<open>M \<rhd> N\<close>
-  then have \<open>M \<subseteq> N \<union> Red_F N\<close>
+  then have \<open>M \<subseteq> N \<union> Red\<^sub>F N\<close>
     unfolding derive_def by blast 
-  then have red_m_in: \<open>Red_F M \<subseteq> Red_F (N \<union> Red_F N)\<close>
+  then have red_m_in: \<open>Red\<^sub>F M \<subseteq> Red\<^sub>F (N \<union> Red\<^sub>F N)\<close>
     using Red_F_of_subset by blast 
-  have \<open>Red_F (N \<union> Red_F N) \<subseteq> Red_F (N \<union> Red_F N - (Red_F N - N))\<close>
-    using Red_F_of_Red_F_subset[of "Red_F N - N" "N \<union> Red_F N"]
-      Red_F_of_subset[of "N" "N \<union> Red_F N"] by fast
-  then have \<open>Red_F (N \<union> Red_F N) \<subseteq> Red_F N\<close>
+  have \<open>Red\<^sub>F (N \<union> Red\<^sub>F N) \<subseteq> Red\<^sub>F (N \<union> Red\<^sub>F N - (Red\<^sub>F N - N))\<close>
+    using Red_F_of_Red_F_subset[of "Red\<^sub>F N - N" "N \<union> Red\<^sub>F N"]
+      Red_F_of_subset[of "N" "N \<union> Red\<^sub>F N"] by fast
+  then have \<open>Red\<^sub>F (N \<union> Red\<^sub>F N) \<subseteq> Red\<^sub>F N\<close>
     by (metis Diff_subset_conv Red_F_of_subset Un_Diff_cancel lfp.leq_trans subset_refl sup.commute)
-  then show \<open>Red_F M \<subseteq> N \<union> Red_F N\<close> using red_m_in by blast
+  then show \<open>Red\<^sub>F M \<subseteq> N \<union> Red\<^sub>F N\<close> using red_m_in by blast
 qed
 
 lemma derive_trans: "M \<rhd> N \<Longrightarrow> N \<rhd> N' \<Longrightarrow> M \<rhd> N'" 
@@ -225,16 +230,16 @@ locale sound_calculus = sound_inference_system Inf bot entails_sound +
     entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
     entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s" 50)
     + fixes
-    Red_I :: "'f set \<Rightarrow> 'f inference set" and
-    Red_F :: "'f set \<Rightarrow> 'f set"
+    Red\<^sub>I :: "'f set \<Rightarrow> 'f inference set" and
+    Red\<^sub>F :: "'f set \<Rightarrow> 'f set"
     assumes
-      Red_I_to_Inf: "Red_I N \<subseteq> Inf" and
-      Red_F_Bot: "N \<Turnstile> {bot} \<Longrightarrow> N - Red_F N \<Turnstile> {bot}" and (* /!\ check if this is ok *)
-      Red_F_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'" and
-      Red_I_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_I N \<subseteq> Red_I N'" and
-      Red_F_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')" and
-      Red_I_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_I N \<subseteq> Red_I (N - N')" and
-      Red_I_of_Inf_to_N: "\<iota> \<in> Inf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I N"
+      Red_I_to_Inf: "Red\<^sub>I N \<subseteq> Inf" and
+      Red_F_Bot: "N \<Turnstile> {bot} \<Longrightarrow> N - Red\<^sub>F N \<Turnstile> {bot}" and (* /!\ check if this is ok *)
+      Red_F_of_subset: "N \<subseteq> N' \<Longrightarrow> Red\<^sub>F N \<subseteq> Red\<^sub>F N'" and
+      Red_I_of_subset: "N \<subseteq> N' \<Longrightarrow> Red\<^sub>I N \<subseteq> Red\<^sub>I N'" and
+      Red_F_of_Red_F_subset: "N' \<subseteq> Red\<^sub>F N \<Longrightarrow> Red\<^sub>F N \<subseteq> Red\<^sub>F (N - N')" and
+      Red_I_of_Red_F_subset: "N' \<subseteq> Red\<^sub>F N \<Longrightarrow> Red\<^sub>I N \<subseteq> Red\<^sub>I (N - N')" and
+      Red_I_of_Inf_to_N: "\<iota> \<in> Inf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red\<^sub>I N"
 begin
 
 sublocale calculus bot Inf entails
@@ -251,43 +256,43 @@ lemma inf_from_subs: "M \<subseteq> N \<Longrightarrow> Inf_from M \<subseteq> I
   unfolding Inf_from_def by blast
     
     (* Splitting report Lemma 2 *)
-lemma nobot_in_Red: \<open>bot \<notin> Red_F N\<close>
+lemma nobot_in_Red: \<open>bot \<notin> Red\<^sub>F N\<close>
 proof -
   have \<open>UNIV \<Turnstile> {bot}\<close>
     using entails_reflexive[of bot] entails_subsets[of "{bot}" UNIV "{bot}" "{bot}"] by fast
-  then have non_red_entails_bot: \<open>UNIV - (Red_F UNIV) \<Turnstile> {bot}\<close> using Red_F_Bot[of UNIV] by simp
-  have \<open>Inf_from UNIV \<subseteq> Red_I UNIV\<close>
+  then have non_red_entails_bot: \<open>UNIV - (Red\<^sub>F UNIV) \<Turnstile> {bot}\<close> using Red_F_Bot[of UNIV] by simp
+  have \<open>Inf_from UNIV \<subseteq> Red\<^sub>I UNIV\<close>
     unfolding Inf_from_def using Red_I_of_Inf_to_N[of _ UNIV] by blast
-  then have sat_non_red: \<open>saturated (UNIV - Red_F UNIV)\<close>
-    unfolding saturated_def Inf_from_def using Red_I_of_Red_F_subset[of "Red_F UNIV" UNIV] by blast 
-  have \<open>bot \<notin> Red_F UNIV\<close> 
+  then have sat_non_red: \<open>saturated (UNIV - Red\<^sub>F UNIV)\<close>
+    unfolding saturated_def Inf_from_def using Red_I_of_Red_F_subset[of "Red\<^sub>F UNIV" UNIV] by blast 
+  have \<open>bot \<notin> Red\<^sub>F UNIV\<close> 
     using statically_complete[OF sat_non_red non_red_entails_bot] by fast
   then show ?thesis using Red_F_of_subset[of _ UNIV] by auto
 qed
   
   (* Splitting report Remark 3 *)
 interpretation strict_calculus:
-  statically_complete_calculus bot Inf entails Red_I_strict Red_F_strict
+  statically_complete_calculus bot Inf entails Red\<^sub>I_strict Red\<^sub>F_strict
 proof -
-  interpret strict_calc: calculus bot Inf entails Red_I_strict Red_F_strict
+  interpret strict_calc: calculus bot Inf entails Red\<^sub>I_strict Red\<^sub>F_strict
   using strict_calc_if_nobot nobot_in_Red by blast 
     (* next property is not needed for the proof, but it is one of the claims from Rmk 3
     that must be verified *)
   have \<open>saturated N \<Longrightarrow> strict_calc.saturated N\<close>
-    unfolding saturated_def strict_calc.saturated_def Red_I_strict_def by blast
+    unfolding saturated_def strict_calc.saturated_def Red\<^sub>I_strict_def by blast
   have \<open>strict_calc.saturated N \<Longrightarrow> N \<Turnstile> {bot} \<Longrightarrow> bot \<in> N\<close> for N
   proof -
     assume
       strict_sat: "strict_calc.saturated N" and
       entails_bot: "N \<Turnstile> {bot}"
-    have \<open>bot \<notin> N \<Longrightarrow> Red_I_strict N = Red_I N\<close> unfolding Red_I_strict_def by simp
+    have \<open>bot \<notin> N \<Longrightarrow> Red\<^sub>I_strict N = Red\<^sub>I N\<close> unfolding Red\<^sub>I_strict_def by simp
     then have \<open>bot \<notin> N \<Longrightarrow> saturated N\<close>
       unfolding saturated_def using strict_sat by (simp add: strict_calc.saturated_def) 
     then have \<open>bot \<notin> N \<Longrightarrow> bot \<in> N\<close>
       using statically_complete[OF _ entails_bot] by simp
     then show \<open>bot \<in> N\<close> by auto 
   qed
-  then show \<open>statically_complete_calculus bot Inf entails Red_I_strict Red_F_strict\<close>
+  then show \<open>statically_complete_calculus bot Inf entails Red\<^sub>I_strict Red\<^sub>F_strict\<close>
     unfolding statically_complete_calculus_def statically_complete_calculus_axioms_def
     using strict_calc.calculus_axioms by blast
 qed
@@ -479,7 +484,7 @@ definition F_of_Inf :: "(('f, 'v::countable) AF) inference \<Rightarrow> 'f infe
 
 section \<open>Lifting Calculi to Add Annotations\<close>
 
-locale AF_calculus_lifting = sound_calculus bot Inf entails entails_sound Red\<^sub>I Red_F
+locale AF_calculus_lifting = sound_calculus bot Inf entails entails_sound Red\<^sub>I Red\<^sub>F
   (* + propositional_interpretations \<J>*)
   for
     bot :: "'f" and
@@ -487,7 +492,7 @@ locale AF_calculus_lifting = sound_calculus bot Inf entails entails_sound Red\<^
     entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
     entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) and
     Red\<^sub>I :: "'f set \<Rightarrow> 'f inference set" and
-    Red_F :: "'f set \<Rightarrow> 'f set"
+    Red\<^sub>F :: "'f set \<Rightarrow> 'f set"
   + fixes
     (* V:: "'v::countable itself" and *)
     (* \<J> :: "'v::countable neg set set" and *)
@@ -2643,7 +2648,7 @@ definition locally_fair :: \<open>('f, 'v) AF set infinite_llist \<Rightarrow> b
 end (* locale AF_calculus_lifting *)
 
 locale strong_statically_complete_AF_calculus_lifting =  
-  AF_calculus_lifting  bot Inf entails entails_sound Red\<^sub>I Red_F fml asn
+  AF_calculus_lifting  bot Inf entails entails_sound Red\<^sub>I Red\<^sub>F fml asn
   + S_calculus: calculus "to_AF bot" SInf AF_entails SRed\<^sub>I SRed\<^sub>F
   for
     bot :: "'f" and
@@ -2651,7 +2656,7 @@ locale strong_statically_complete_AF_calculus_lifting =
     entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
     entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) and
     Red\<^sub>I :: "'f set \<Rightarrow> 'f inference set" and
-    Red_F :: "'f set \<Rightarrow> 'f set" and
+    Red\<^sub>F :: "'f set \<Rightarrow> 'f set" and
     fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and 
     asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close> and
     SInf :: "('f, 'v) AF inference set" and
@@ -2661,7 +2666,7 @@ locale strong_statically_complete_AF_calculus_lifting =
     strong_static_completeness: \<open>locally_saturated \<N> \<Longrightarrow> \<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> to_AF bot \<in> \<N>\<close>
 
 locale strong_dynamically_complete_AF_calculus_lifting =  
-  AF_calculus_lifting  bot Inf entails entails_sound Red\<^sub>I Red_F fml asn
+  AF_calculus_lifting  bot Inf entails entails_sound Red\<^sub>I Red\<^sub>F fml asn
   + S_calculus: calculus "to_AF bot" SInf AF_entails SRed\<^sub>I SRed\<^sub>F
   for
     bot :: "'f" and
@@ -2669,7 +2674,7 @@ locale strong_dynamically_complete_AF_calculus_lifting =
     entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
     entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) and
     Red\<^sub>I :: "'f set \<Rightarrow> 'f inference set" and
-    Red_F :: "'f set \<Rightarrow> 'f set" and
+    Red\<^sub>F :: "'f set \<Rightarrow> 'f set" and
     fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and 
     asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close> and
     SInf :: "('f, 'v) AF inference set" and

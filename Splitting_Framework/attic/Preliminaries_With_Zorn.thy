@@ -1,5 +1,5 @@
 (* Title:        Preliminaries of the Splitting Framework
- * Author:       Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020-2022
+ * Author:       Sophie Tourret <stourret at inria.fr>, 2020-2022
  *               Florent Krasnopol <florent.krasnopol at ens-paris-saclay.fr>, 2022
  *               Ghilain Bergeron <ghilain.bergeron at inria.fr>, 2023 *)
 
