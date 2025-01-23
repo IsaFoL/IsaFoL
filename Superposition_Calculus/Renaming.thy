@@ -1,7 +1,7 @@
 theory Renaming
   imports 
     Fun_Extra 
-    Superposition_Calculus.Multiset_Extra
+    First_Order_Clause.Multiset_Extra
 begin
 
 (* TODO Martin: Where should we put this?  *)

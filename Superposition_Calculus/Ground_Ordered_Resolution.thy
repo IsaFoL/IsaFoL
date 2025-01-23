@@ -2,13 +2,13 @@ theory Ground_Ordered_Resolution
   imports
     Saturation_Framework.Calculus
     Saturation_Framework_Extensions.Clausal_Calculus
-    Ground_Context
-    HOL_Extra
-    Transitive_Closure_Extra
+    First_Order_Clause.Ground_Context
+    First_Order_Clause.HOL_Extra
+    First_Order_Clause.Transitive_Closure_Extra
     Min_Max_Least_Greatest.Min_Max_Least_Greatest_FSet
     Min_Max_Least_Greatest.Min_Max_Least_Greatest_Multiset
-    Multiset_Extra
-    Relation_Extra
+    First_Order_Clause.Multiset_Extra
+    Superposition_Calculus.Relation_Extra
 begin
 
 primrec mset_lit :: "'a literal \<Rightarrow> 'a multiset" where

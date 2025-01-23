@@ -2,7 +2,8 @@ theory Fun_Extra
   imports 
     "HOL-Library.Countable_Set" 
     "HOL-Cardinals.Cardinals" 
-    Superposition_Calculus.HOL_Extra
+    First_Order_Clause.HOL_Extra
+    First_Order_Clause.Infinite_Variables_Per_Type
 begin
 
 lemma 
