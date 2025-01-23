@@ -476,25 +476,8 @@ definition Neg_set :: "'v sign set \<Rightarrow> 'v sign set" ("\<sim>_" 55) whe
 
 definition F_of_Inf :: "(('f, 'v::countable) AF) inference \<Rightarrow> 'f inference" where
   \<open>F_of_Inf \<iota>\<^sub>A\<^sub>F = (Infer (map F_of (prems_of \<iota>\<^sub>A\<^sub>F)) (F_of (concl_of \<iota>\<^sub>A\<^sub>F)))\<close>
-  
-(* locale propositional_interpretations =
- *   fixes
- *     \<J> :: "'v::countable neg set set"
- *   assumes
- *     all_interp: "J \<in> \<J> \<Longrightarrow> is_interpretation J" and
-  *     all_in_J: "is_interpretation J \<Longrightarrow> J \<in> \<J>" *)
 
 section \<open>Lifting Calculi to Add Annotations\<close>
-
-locale AF_calculus = sc: sound_calculus bot Inf entails entails_sound Red\<^sub>I Red\<^sub>F
-  for
-    bot :: "('f, 'v :: countable) AF" and
-    Inf :: \<open>('f, 'v) AF inference set\<close> and
-    entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" and
-    entails_sound :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" and
-    Red\<^sub>I :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set" and
-    Red\<^sub>F :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set"
-
 
 locale AF_calculus_lifting = sound_calculus bot Inf entails entails_sound Red\<^sub>I Red_F
   (* + propositional_interpretations \<J>*)
@@ -2637,7 +2620,64 @@ proof -
     by (meson AF_sound_cons_rel.entails_subsets empty_subsetI insert_subset subset_refl)
 qed
 
-end
+subsection \<open>Local saturation\<close>
+
+text \<open> To fully capture completeness for splitting, we need to use weaker notions of saturation and
+ fairness.\<close>
+
+(* Report definition 23 *)
+definition locally_saturated :: \<open>('f, 'v) AF set \<Rightarrow> bool\<close> where
+  \<open>locally_saturated \<N> \<equiv>
+    to_AF bot \<in> \<N> \<or>
+    (\<exists> J :: 'v total_interpretation. J \<Turnstile>\<^sub>p \<N> \<and> saturated (\<N> proj\<^sub>J J))\<close>
+    (* NOTE: in the paper, the propositional projection is explicit.
+     * In our case, it is hidden within the definition for @{const propositional_model}. *)
+
+(* Report definition 26 *)
+definition locally_fair :: \<open>('f, 'v) AF set infinite_llist \<Rightarrow> bool\<close> where
+  \<open>locally_fair \<N>i \<equiv>
+     (\<exists> i. to_AF bot \<in> llnth \<N>i i)
+   \<or> (\<exists> J :: 'v total_interpretation. J \<Turnstile>\<^sub>p lim_inf \<N>i \<and>
+        Inf_from (lim_inf \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red\<^sub>I (llnth \<N>i i proj\<^sub>J J)))\<close>
+
+end (* locale AF_calculus_lifting *)
+
+locale strong_statically_complete_AF_calculus_lifting =  
+  AF_calculus_lifting  bot Inf entails entails_sound Red\<^sub>I Red_F fml asn
+  + S_calculus: calculus "to_AF bot" SInf AF_entails SRed\<^sub>I SRed\<^sub>F
+  for
+    bot :: "'f" and
+    Inf :: \<open>'f inference set\<close> and
+    entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
+    entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) and
+    Red\<^sub>I :: "'f set \<Rightarrow> 'f inference set" and
+    Red_F :: "'f set \<Rightarrow> 'f set" and
+    fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and 
+    asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close> and
+    SInf :: "('f, 'v) AF inference set" and
+    SRed\<^sub>I :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set" and
+    SRed\<^sub>F :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set"
+  + assumes
+    strong_static_completeness: \<open>locally_saturated \<N> \<Longrightarrow> \<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> to_AF bot \<in> \<N>\<close>
+
+locale strong_dynamically_complete_AF_calculus_lifting =  
+  AF_calculus_lifting  bot Inf entails entails_sound Red\<^sub>I Red_F fml asn
+  + S_calculus: calculus "to_AF bot" SInf AF_entails SRed\<^sub>I SRed\<^sub>F
+  for
+    bot :: "'f" and
+    Inf :: \<open>'f inference set\<close> and
+    entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
+    entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) and
+    Red\<^sub>I :: "'f set \<Rightarrow> 'f inference set" and
+    Red_F :: "'f set \<Rightarrow> 'f set" and
+    fml :: \<open>'v :: countable \<Rightarrow> 'f\<close> and 
+    asn :: \<open>'f sign \<Rightarrow> 'v sign set\<close> and
+    SInf :: "('f, 'v) AF inference set" and
+    SRed\<^sub>I :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF inference set" and
+    SRed\<^sub>F :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set"
+  + assumes
+    strong_dynamic_completeness: \<open>is_derivation S_calculus.derive \<N>i \<Longrightarrow> locally_fair \<N>i \<Longrightarrow>
+      llhd \<N>i \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> \<exists>i. to_AF bot \<in> llnth \<N>i i\<close>
 
 
 end

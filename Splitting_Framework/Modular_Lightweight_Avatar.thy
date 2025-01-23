@@ -758,10 +758,10 @@ qed
 notation LA_is_AF_calculus.AF_entails_sound (infix \<open>\<TTurnstile>s\<union>\<G>e\<^sub>A\<^sub>F\<close> 50)
 notation LA_is_AF_calculus.AF_entails (infix \<open>\<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F\<close> 50)
 
-interpretation AF_calculus_with_sound_simps_and_opt_infs \<open>to_AF {#}\<close> 
+interpretation AF_calculus_extended \<open>to_AF {#}\<close> 
   core_LA_calculus.core.SInf \<open>(\<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F)\<close> \<open>(\<TTurnstile>s\<union>\<G>e\<^sub>A\<^sub>F)\<close> core_LA_calculus.core.SRed\<^sub>I 
   core_LA_calculus.core.SRed\<^sub>F "{}" "{}"
-  using core_LA_calculus.empty_simps.AF_calculus_with_sound_simps_and_opt_infs_axioms .
+  using core_LA_calculus.empty_simps.AF_calculus_extended_axioms .
 
 subsection \<open>Lightweight Avatar\<close>
 
@@ -773,12 +773,12 @@ interpretation with_BinSplit: AF_calculus_with_binsplit \<open>to_AF {#}\<close>
   LA_is_AF_calculus.AF_entails LA_is_AF_calculus.AF_entails_sound core_LA_calculus.core.SRed\<^sub>I 
   core_LA_calculus.core.SRed\<^sub>F \<open>{}\<close> \<open>{}\<close> core_LA_calculus.bin_splittable
   using core_LA_calculus.extend_simps_with_binsplit[OF 
-      core_LA_calculus.empty_simps.AF_calculus_with_sound_simps_and_opt_infs_axioms] .
+      core_LA_calculus.empty_simps.AF_calculus_extended_axioms] .
 
-sublocale LA: AF_calculus_with_sound_simps_and_opt_infs \<open>to_AF {#}\<close> 
+sublocale LA: AF_calculus_extended \<open>to_AF {#}\<close> 
   core_LA_calculus.core.SInf LA_is_AF_calculus.AF_entails LA_is_AF_calculus.AF_entails_sound 
   core_LA_calculus.core.SRed\<^sub>I core_LA_calculus.core.SRed\<^sub>F with_BinSplit.Simps_with_BinSplit \<open>{}\<close>
-  using with_BinSplit.AF_calc_ext.AF_calculus_with_sound_simps_and_opt_infs_axioms .
+  using with_BinSplit.AF_calc_ext.AF_calculus_extended_axioms .
 
 text \<open>
    By Theorem @{thm core_splitting_calculus.S_calculus_statically_complete}, we can show that \<open>LA\<close> is
