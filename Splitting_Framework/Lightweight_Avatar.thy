@@ -3,7 +3,7 @@
  * Author:       Ghilain Bergeron <ghilain.bergeron at inria.fr>, 2023
  *               Sophie Tourret <sophie.tourret at inria.fr, 2024 *)
 
-theory Modular_Lightweight_Avatar
+theory Lightweight_Avatar
   imports
     Main
     Modular_Splitting_Calculi

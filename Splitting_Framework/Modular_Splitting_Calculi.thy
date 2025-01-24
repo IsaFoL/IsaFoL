@@ -1440,6 +1440,36 @@ locale AF_calculus_extended =
       simps_sound: \<open>\<delta> \<in> Simps \<Longrightarrow> \<forall>\<C> \<in> S_to \<delta>. S_from \<delta> \<Turnstile>s {\<C>}\<close> and
       (* no_infinite_simps: \<open>finite (S_from \<delta>) \<Longrightarrow> \<delta> \<in> Simps \<Longrightarrow> finite (S_to \<delta>)\<close> and *)
       infs_sound: \<open>\<iota> \<in> OptInfs \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s {concl_of \<iota>}\<close>
+begin
+
+lemma simp_in_derivations: \<open>\<delta> \<in> Simps \<Longrightarrow> 
+  sc.derive (\<M> \<union> S_from \<delta>) (\<M> \<union> S_to \<delta>)\<close>
+  unfolding sc.derive_def
+proof 
+  fix C
+  assume d_in: \<open>\<delta> \<in> Simps\<close> and
+    \<open>C \<in> \<M> \<union> S_from \<delta> - (\<M> \<union> S_to \<delta>)\<close>
+  then have \<open>C \<in> S_from \<delta> - S_to \<delta>\<close>
+    by blast
+  then show \<open>C \<in> Red\<^sub>F (\<M> \<union> S_to \<delta>)\<close>
+    using simps_simp[OF d_in] by (meson sc.Red_F_of_subset subset_eq sup.cobounded2)
+qed
+
+lemma opt_infs_in_derivations: \<open>\<iota> \<in> OptInfs \<Longrightarrow> 
+  sc.derive (\<M> \<union> set (prems_of \<iota>)) (\<M> \<union> set (prems_of \<iota>) \<union> {concl_of \<iota>})\<close>
+  unfolding sc.derive_def
+proof 
+  fix C
+  assume \<open>\<iota> \<in> OptInfs\<close> and
+    C_in: \<open>C \<in> \<M> \<union> set (prems_of \<iota>) - (\<M> \<union> set (prems_of \<iota>) \<union> {concl_of \<iota>})\<close>
+  have \<open>\<M> \<union> set (prems_of \<iota>) - (\<M> \<union> set (prems_of \<iota>) \<union> {concl_of \<iota>}) = {}\<close>
+    by blast
+  then have False using C_in by auto
+  then show \<open>C \<in> Red\<^sub>F (\<M> \<union> set (prems_of \<iota>) \<union> {concl_of \<iota>})\<close>
+    by auto
+qed
+
+end
 
 text \<open>Empty sets of simplifications and optional inferences are accepted in 
   term\<open>locale AF_calculus_extended\<close>\<close>
