@@ -7,7 +7,7 @@ begin
 
 text \<open>
   This theory contains some additional lemmas regarding sets and finite sets, which were useful 
-  in the process of proving some lemmas in \<^file>\<open>Modular_Splitting_Calculi.thy\<close> and
+  in the process of proving some lemmas in \<^file>\<open>Modular_Splitting_Calculus.thy\<close> and
   \<^file>\<open>Lightweight_Avatar.thy\<close>.
 \<close> 
 

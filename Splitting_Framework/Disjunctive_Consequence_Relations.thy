@@ -72,7 +72,7 @@ lemma zorn_relation_antisym :  \<open>\<forall>C1 C2. (C1 \<preceq>\<^sub>s C2) 
         by auto
     qed
 
- (* Splitting report Lemma 5 *) 
+ (* Unifying Splitting Lemma 5 *) 
 lemma entails_supsets : "(\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile> N') \<Longrightarrow> M \<Turnstile> N"
 proof (rule ccontr)
   assume

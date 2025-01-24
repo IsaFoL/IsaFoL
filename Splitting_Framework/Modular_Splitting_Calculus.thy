@@ -2,7 +2,7 @@
  * Author:       Ghilain Bergeron <ghilain.bergeron at inria.fr>, 2023
  *               Sophie Tourret <sophie.tourret at inria.fr>, 2024 *)
 
-theory Modular_Splitting_Calculi
+theory Modular_Splitting_Calculus
   imports
     Calculi_And_Annotations
     Light_Lifting_to_Non_Ground_Calculi
