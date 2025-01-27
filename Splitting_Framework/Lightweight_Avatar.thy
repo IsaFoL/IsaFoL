@@ -6,7 +6,7 @@
 theory Lightweight_Avatar
   imports
     Main
-    Modular_Splitting_Calculi
+    Modular_Splitting_Calculus
     Saturation_Framework_Extensions.FO_Ordered_Resolution_Prover_Revisited
     "HOL-ex.Sketch_and_Explore" 
 begin

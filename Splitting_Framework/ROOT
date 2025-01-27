@@ -10,9 +10,9 @@ session "Splitting_Framework" = Saturation_Framework +
     FSet_Extra
     Lazy_List_Limsup
     Light_Lifting_to_Non_Ground_Calculi
+    Lightweight_Avatar
     List_Extra
-    Modular_Splitting_Calculi
-    Modular_Lightweight_Avatar
+    Modular_Splitting_Calculus
 (*commit_ignore_start*)
   document_files 
     "root.tex"
