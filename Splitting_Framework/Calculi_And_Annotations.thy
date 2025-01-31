@@ -782,11 +782,15 @@ lemma equiv_prop_entails: \<open>(J \<Turnstile>\<^sub>p \<N>) \<longleftrightar
     enabled_projection_def
   by blast
 
+definition propositional_model3 :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
+  (infix "\<Turnstile>\<^sub>p3" 50) where
+  \<open>J \<Turnstile>\<^sub>p3 \<N> \<equiv> (\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f)\<close>
+
 (* The interest of this first semantic characterization is that it is computable, but it is not
    convenient to apply the compactness results *)
 lemma equiv_prop_entail2_sema:
-  \<open>(J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f)\<close>
-  unfolding propositional_model2_def enabled_projection_def enabled_def
+  \<open>(J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (J \<Turnstile>\<^sub>p3 \<N>)\<close>
+  unfolding propositional_model3_def propositional_model2_def enabled_projection_def enabled_def
 proof
   assume empty_proj: \<open>{} = {F_of \<C> |\<C>. \<C> \<in> proj\<^sub>\<bottom> \<N> \<and> fset (A_of \<C>) \<subseteq> total_strip J}\<close>
   then have \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>v\<in>fset (A_of \<C>). neg v \<in> total_strip J\<close> 
@@ -835,14 +839,6 @@ next
   then show \<open>{} = {F_of \<C> |\<C>. \<C> \<in> proj\<^sub>\<bottom> \<N> \<and> fset (A_of \<C>) \<subseteq> total_strip J}\<close>
     by (smt (verit, ccfv_threshold) empty_Collect_eq is_Pos.cases neg.simps(1) neg.simps(2) subsetD
         val_strip_neg val_strip_pos)
-qed
-
-lemma fset_map2: \<open>v \<in> fset A \<Longrightarrow> g (f v) \<in> set (map g (map f (list_of_fset A)))\<close>
-proof -
-  assume \<open>v \<in> fset A\<close>
-  then show \<open>g (f v) \<in> set (map g (map f (list_of_fset A)))\<close>
-    unfolding list_of_fset_def
-    by (smt (verit, ccfv_SIG) exists_fset_of_list fset_of_list.rep_eq imageI list.set_map someI_ex)
 qed
 
 (* this characterization can be used to apply the compactness from Michaelis & Nipkow but it uses
@@ -910,12 +906,9 @@ next
 qed
 
 lemma equiv_prop_entail_sema:
-  \<open>(J \<Turnstile>\<^sub>p \<N>) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f)\<close>
+  \<open>(J \<Turnstile>\<^sub>p \<N>) \<longleftrightarrow> (J \<Turnstile>\<^sub>p3 \<N>)\<close>
   using equiv_prop_entails equiv_prop_entail2_sema by presburger
 
-definition propositional_model3 :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
-  (infix "\<Turnstile>\<^sub>p3" 50) where
-  \<open>J \<Turnstile>\<^sub>p3 \<N> \<equiv> (\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f)\<close>
 
 lemma \<open>f ` fset A = set (map f (list_of_fset A))\<close>
 proof
@@ -944,9 +937,10 @@ next
 qed
 
 lemma equiv_prop_sema1_sema2:
-  \<open>(\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f) \<longleftrightarrow>
+  \<open>(J \<Turnstile>\<^sub>p3 \<N>) \<longleftrightarrow>
    (\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F)\<close>
-  using equiv_prop_entail2_sema2 equiv_prop_entail2_sema by auto
+  using equiv_prop_entail2_sema2 equiv_prop_entail2_sema
+  unfolding propositional_model3_def by auto
 
 
 lemma equiv_enabled_assertions_sema:
@@ -1856,10 +1850,8 @@ sublocale neg_ext_sound_cons_rel: consequence_relation "Pos bot" sound_cons.enta
 
 (* Splitting report Lemma 4, 2/2 *)
 lemma AF_ext_sound_cons_rel: \<open>consequence_relation (to_AF bot) AF_entails_sound\<close>
-(* TODO: check if this belongs here or if this needs to be moved somewhere else? *)
 proof (standard)
   show \<open>{to_AF bot} \<Turnstile>s\<^sub>A\<^sub>F {}\<close>
-   (* using sound_cons.bot_entails_empty sound_cons.entails_subsets *)
    unfolding AF_entails_sound_def enabled_def enabled_projection_def
   proof clarsimp
    fix J

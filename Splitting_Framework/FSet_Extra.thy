@@ -35,8 +35,6 @@ proof -
   ultimately show ?thesis by (meson finite_subset)
 qed
 
-
-
 (* to move to Fset theory? *)
 definition list_of_fset :: "'a fset \<Rightarrow> 'a list" where
   \<open>list_of_fset A = (SOME l. fset_of_list l = A)\<close>
@@ -109,5 +107,13 @@ lemma Union_empty_if_set_empty_or_all_empty:
 
 lemma fBall_fimage_is_fBall: \<open>fBall (f |`| A) P \<longleftrightarrow> fBall A (\<lambda> x. P (f x))\<close>
   by auto
+
+lemma fset_map2: \<open>v \<in> fset A \<Longrightarrow> g (f v) \<in> set (map g (map f (list_of_fset A)))\<close>
+proof -
+  assume \<open>v \<in> fset A\<close>
+  then show \<open>g (f v) \<in> set (map g (map f (list_of_fset A)))\<close>
+    unfolding list_of_fset_def
+    by (smt (verit, ccfv_SIG) exists_fset_of_list fset_of_list.rep_eq imageI list.set_map someI_ex)
+qed
 
 end
