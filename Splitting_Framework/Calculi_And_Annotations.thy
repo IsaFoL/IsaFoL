@@ -568,7 +568,7 @@ next
   ultimately show \<open>{neg D} \<Turnstile>s\<^sub>\<sim> {C}\<close>
     using consequence_relation.entails_cut
     by (smt (verit, ccfv_threshold) Un_commute insert_is_Un sound_cons.ext_cons_rel sup.idem)
-qed
+qed                                  
 
 definition \<iota>F_of :: "('f, 'v) AF inference \<Rightarrow> 'f inference" where
   \<open>\<iota>F_of \<iota> = Infer (List.map F_of (prems_of \<iota>)) (F_of (concl_of \<iota>))\<close>
@@ -676,7 +676,9 @@ definition propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v
 
 lemma \<open>J \<Turnstile>\<^sub>p {}\<close> 
   unfolding propositional_model_def enabled_projection_def propositional_projection_def by blast
- 
+
+text \<open>The definition below is essentially the same as the one above since term\<open>(proj\<^sub>\<bottom> \<N>) proj\<^sub>J J\<close> is 
+either empty or contains only bot\<close>
 definition propositional_model2 :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
   (infix "\<Turnstile>\<^sub>p2" 50) where
   \<open>J \<Turnstile>\<^sub>p2 \<N> \<equiv> ({} = ((proj\<^sub>\<bottom> \<N>) proj\<^sub>J J))\<close>
