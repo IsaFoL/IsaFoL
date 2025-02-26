@@ -638,9 +638,9 @@ lemma map_map_is_map2: \<open>map (\<lambda> f. f i) (map (\<lambda> x. g x) L) 
 
 subsubsection \<open>The substitution lemma\<close>
 
-abbreviation (input) \<open>eval_subst \<M> \<beta> \<sigma> v \<equiv> \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>\<close>
+abbreviation (input) \<open>termsubst \<M> \<beta> \<sigma> v \<equiv> \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>\<close>
 
-lemma subst_lemma_terms: \<open>\<lbrakk>t \<cdot> \<sigma>\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> = \<lbrakk>t\<rbrakk>\<^bsup>\<M>,eval_subst \<M> \<beta> \<sigma>\<^esup>\<close>
+lemma subst_lemma_terms: \<open>\<lbrakk>t \<cdot> \<sigma>\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> = \<lbrakk>t\<rbrakk>\<^bsup>\<M>,termsubst \<M> \<beta> \<sigma>\<^esup>\<close>
 proof (induction t)
   case (Var v)
   then show ?case
@@ -655,10 +655,10 @@ next
   also have \<open>... = interp_fn \<M> f [\<lbrakk>t \<cdot> \<sigma>\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts]\<close>
     unfolding map_map
     by (meson comp_apply)
-  also have \<open>... = interp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,eval_subst \<M> \<beta> \<sigma>\<^esup>. t \<leftarrow> ts]\<close>
+  also have \<open>... = interp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,termsubst \<M> \<beta> \<sigma>\<^esup>. t \<leftarrow> ts]\<close>
     using Fun.IH
     by (smt (verit, best) map_eq_conv) 
-  also have \<open>... = \<lbrakk>Fun f ts\<rbrakk>\<^bsup>\<M>,eval_subst \<M> \<beta> \<sigma>\<^esup>\<close>
+  also have \<open>... = \<lbrakk>Fun f ts\<rbrakk>\<^bsup>\<M>,termsubst \<M> \<beta> \<sigma>\<^esup>\<close>
     by auto 
   finally show ?case .
 qed
@@ -681,7 +681,7 @@ lemma eval_fun_upd_if:
   assumes
     \<open>v \<in> FV_fm \<phi>\<close> and
     \<open>v \<noteq> x \<longrightarrow> z \<notin> FV_tm (\<sigma> v)\<close>
-  shows \<open>eval_subst \<M> (\<beta>(z := a)) (\<sigma>(x := Var z)) v = ((eval_subst \<M> \<beta> \<sigma>)(x := a)) v\<close>
+  shows \<open>termsubst \<M> (\<beta>(z := a)) (\<sigma>(x := Var z)) v = ((termsubst \<M> \<beta> \<sigma>)(x := a)) v\<close>
 proof (cases \<open>v = x\<close>) 
   case True
   then show ?thesis
@@ -846,7 +846,7 @@ next
   qed
 qed
 
-lemma subst_lemma_form: \<open>\<M>,\<beta> \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<longleftrightarrow> \<M>,(eval_subst \<M> \<beta> \<sigma>) \<Turnstile> \<phi>\<close>
+lemma subst_lemma_form: \<open>\<M>,\<beta> \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<longleftrightarrow> \<M>,(termsubst \<M> \<beta> \<sigma>) \<Turnstile> \<phi>\<close>
   for \<phi> :: \<open>('f, 'p, 'v) fm\<close>
 proof (induction \<phi> arbitrary: \<sigma> \<beta>)
   case (Rel p ts)
@@ -858,9 +858,9 @@ proof (induction \<phi> arbitrary: \<sigma> \<beta>)
   also have \<open>... \<longleftrightarrow> [\<lbrakk>t \<cdot> \<sigma>\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts] \<in> interp_rel \<M> p\<close>
     unfolding map_map
     by (smt (verit, ccfv_SIG) comp_apply map_eq_conv)  
-  also have \<open>... \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,eval_subst \<M> \<beta> \<sigma>\<^esup>. t \<leftarrow> ts] \<in> interp_rel \<M> p\<close>
+  also have \<open>... \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,termsubst \<M> \<beta> \<sigma>\<^esup>. t \<leftarrow> ts] \<in> interp_rel \<M> p\<close>
     by (simp add: subst_lemma_terms) 
-  also have \<open>... \<longleftrightarrow> \<M>,eval_subst \<M> \<beta> \<sigma> \<Turnstile> Rel p ts\<close>
+  also have \<open>... \<longleftrightarrow> \<M>,termsubst \<M> \<beta> \<sigma> \<Turnstile> Rel p ts\<close>
     by auto 
   finally show ?case . 
 next
@@ -897,17 +897,17 @@ next
       by (smt (verit, best) Eps_cong subst_fm.simps(5))  
     also have \<open>... \<longleftrightarrow> (let z = ?z in \<exists> a \<in> dom \<M>. \<M>,\<beta>(z := a) \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(x := Var z)))\<close>
       by simp
-    also have \<open>... \<longleftrightarrow> (let z = ?z in \<exists> a \<in> dom \<M>. \<M>,eval_subst \<M> (\<beta>(z := a)) (\<sigma>(x := Var z)) \<Turnstile> \<phi>)\<close>
+    also have \<open>... \<longleftrightarrow> (let z = ?z in \<exists> a \<in> dom \<M>. \<M>,termsubst \<M> (\<beta>(z := a)) (\<sigma>(x := Var z)) \<Turnstile> \<phi>)\<close>
       using Existential.IH
       by fastforce 
-    also have \<open>... \<longleftrightarrow> (\<exists> a \<in> dom \<M>. \<M>,(eval_subst \<M> \<beta> \<sigma>)(x := a) \<Turnstile> \<phi>)\<close>
+    also have \<open>... \<longleftrightarrow> (\<exists> a \<in> dom \<M>. \<M>,(termsubst \<M> \<beta> \<sigma>)(x := a) \<Turnstile> \<phi>)\<close>
       (is \<open>?lhs \<longleftrightarrow> ?rhs\<close>)
     proof (intro iffI)
       assume ?lhs
       then obtain a z where
         a_in_dom: \<open>a \<in> dom \<M>\<close> and
         z_is: \<open>z = ?z\<close> and 
-        \<phi>_sat: \<open>\<M>,eval_subst \<M> (\<beta>(z := a)) (\<sigma>(x := Var z)) \<Turnstile> \<phi>\<close>
+        \<phi>_sat: \<open>\<M>,termsubst \<M> (\<beta>(z := a)) (\<sigma>(x := Var z)) \<Turnstile> \<phi>\<close>
         by metis
 
       have \<open>z \<notin> FV_fm (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(x := Var x))\<close>
@@ -916,7 +916,7 @@ next
       then have \<open>\<forall> v \<in> FV_fm \<phi>. v \<noteq> x \<longrightarrow> z \<notin> FV_tm (\<sigma> v)\<close>
         unfolding z_not_free_iff . 
       then have
-        \<open>\<forall> v \<in> FV_fm \<phi>. eval_subst \<M> (\<beta>(z := a)) (\<sigma>(x := Var z)) v = ((eval_subst \<M> \<beta> \<sigma>)(x := a)) v\<close>
+        \<open>\<forall> v \<in> FV_fm \<phi>. termsubst \<M> (\<beta>(z := a)) (\<sigma>(x := Var z)) v = ((termsubst \<M> \<beta> \<sigma>)(x := a)) v\<close>
         by (metis eval_fun_upd_if) 
       then show ?rhs
         using \<phi>_sat a_in_dom
@@ -925,7 +925,7 @@ next
       assume ?rhs
       then obtain a where
         a_in_dom: \<open>a \<in> dom \<M>\<close> and
-        \<phi>_sat: \<open>\<M>,(eval_subst \<M> \<beta> \<sigma>)(x := a) \<Turnstile> \<phi>\<close>
+        \<phi>_sat: \<open>\<M>,(termsubst \<M> \<beta> \<sigma>)(x := a) \<Turnstile> \<phi>\<close>
         by blast
 
       obtain z where
@@ -936,13 +936,13 @@ next
       then have \<open>\<forall> v \<in> FV_fm \<phi>. v \<noteq> x \<longrightarrow> ?z \<notin> FV_tm (\<sigma> v)\<close>
         unfolding z_not_free_iff . 
       then have
-        \<open>let z = ?z in \<forall> v \<in> FV_fm \<phi>. eval_subst \<M> (\<beta>(z := a)) (\<sigma>(x := Var z)) v =
-         ((eval_subst \<M> \<beta> \<sigma>)(x := a)) v\<close>
+        \<open>let z = ?z in \<forall> v \<in> FV_fm \<phi>. termsubst \<M> (\<beta>(z := a)) (\<sigma>(x := Var z)) v =
+         ((termsubst \<M> \<beta> \<sigma>)(x := a)) v\<close>
         by (metis eval_fun_upd_if)
       then show ?lhs
         by (smt (verit, ccfv_threshold) \<phi>_sat a_in_dom satisfies_indep_\<beta>_if) 
     qed
-    also have \<open>... \<longleftrightarrow> \<M>,eval_subst \<M> \<beta> \<sigma> \<Turnstile> (\<^bold>\<exists> x\<^bold>. \<phi>)\<close>
+    also have \<open>... \<longleftrightarrow> \<M>,termsubst \<M> \<beta> \<sigma> \<Turnstile> (\<^bold>\<exists> x\<^bold>. \<phi>)\<close>
       by simp 
     finally show ?thesis .
   next
@@ -961,12 +961,12 @@ next
       by auto 
     also have \<open>... \<longleftrightarrow> (\<exists> a \<in> dom \<M>. \<M>,\<beta>(x := a) \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>(x := Var x)))\<close>
       by auto 
-    also have \<open>... \<longleftrightarrow> (\<exists> a \<in> dom \<M>. \<M>,eval_subst \<M> (\<beta>(x := a)) (\<sigma>(x := Var x)) \<Turnstile> \<phi>)\<close>
+    also have \<open>... \<longleftrightarrow> (\<exists> a \<in> dom \<M>. \<M>,termsubst \<M> (\<beta>(x := a)) (\<sigma>(x := Var x)) \<Turnstile> \<phi>)\<close>
       using Existential.IH
       by blast 
-    also have \<open>... \<longleftrightarrow> (\<exists> a \<in> dom \<M>. \<M>,(eval_subst \<M> \<beta> \<sigma>)(x := a) \<Turnstile> \<phi>)\<close>
+    also have \<open>... \<longleftrightarrow> (\<exists> a \<in> dom \<M>. \<M>,(termsubst \<M> \<beta> \<sigma>)(x := a) \<Turnstile> \<phi>)\<close>
       by (smt (verit, ccfv_SIG) eval_fun_upd_if fun_upd_def satisfies_indep_\<beta>_if x_bound) 
-    also have \<open>... \<longleftrightarrow> \<M>,eval_subst \<M> \<beta> \<sigma> \<Turnstile> (\<^bold>\<exists> x\<^bold>. \<phi>)\<close>
+    also have \<open>... \<longleftrightarrow> \<M>,termsubst \<M> \<beta> \<sigma> \<Turnstile> (\<^bold>\<exists> x\<^bold>. \<phi>)\<close>
       by auto 
     finally show ?thesis .
   qed
@@ -1006,13 +1006,13 @@ proof (intro allI ballI impI)
   have \<open>\<phi>' = \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>\<close>
     using \<phi>'_in
     by blast  
-  moreover have \<open>\<M>,\<beta> \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<longleftrightarrow> \<M>,eval_subst \<M> \<beta> \<sigma> \<Turnstile> \<phi>\<close>
+  moreover have \<open>\<M>,\<beta> \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<longleftrightarrow> \<M>,termsubst \<M> \<beta> \<sigma> \<Turnstile> \<phi>\<close>
     by (simp add: subst_lemma_form)
-  moreover have \<open>is_vars (dom \<M>) (eval_subst \<M> \<beta> \<sigma>)\<close>
+  moreover have \<open>is_vars (dom \<M>) (termsubst \<M> \<beta> \<sigma>)\<close>
     unfolding is_vars_def
     using eval_in_dom_if[OF \<beta>_val]
     by blast 
-  then have \<open>\<M>,eval_subst \<M> \<beta> \<sigma> \<Turnstile> \<phi>\<close>
+  then have \<open>\<M>,termsubst \<M> \<beta> \<sigma> \<Turnstile> \<phi>\<close>
     using \<phi>_sat
     by blast 
   ultimately show \<open>\<M>,\<beta> \<Turnstile> \<phi>'\<close>
@@ -2808,12 +2808,8 @@ next
     then have \<open>\<A>,\<beta> \<Turnstile> \<phi>\<close>
       unfolding los[OF vars] .
   }
-  then have \<open>is_model_of \<A> T\<close>
-    unfolding is_model_of_def
-    by blast
-  then show ?thesis  
-    using satI
-    by blast 
+  then show ?thesis
+    by (meson is_model_of_def satI)  
 qed
 
 (* Theorem 1.6 and 3.2 *)

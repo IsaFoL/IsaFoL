@@ -262,12 +262,8 @@ fun num_of_form :: "form \<Rightarrow> nat" where
 lemma numlist_num_of_term: \<open>numlist (map num_of_term ts) = (numlist (map num_of_term us)) \<equiv> ts = us\<close>
   by (smt (verit) list.inj_map_strong list_encode_eq num_of_term_inj)
 
-(* Shouldn't this already exist somewhere? *)
-lemma double_impl: assumes \<open>A \<Longrightarrow> B\<close> and \<open>B \<Longrightarrow> A\<close> shows \<open>A \<equiv> B\<close>
-  using assms(1) assms(2) by argo
-
-lemma num_of_form_inj: \<open>num_of_form \<phi> = num_of_form \<psi> \<equiv> \<phi> = \<psi>\<close>
-proof (rule double_impl)
+lemma num_of_form_inj: \<open>num_of_form \<phi> = num_of_form \<psi> \<longleftrightarrow> \<phi> = \<psi>\<close>
+proof 
   show \<open>num_of_form \<phi> = num_of_form \<psi> \<Longrightarrow> \<phi> = \<psi>\<close>
   proof (induct \<phi> arbitrary: \<psi> rule: num_of_form.induct)
     case 1

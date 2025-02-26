@@ -225,10 +225,6 @@ lemma \<open>{x. \<exists>y. y \<in> (s \<union> t) \<and> P x y} = {x. \<exists
 lemma formsubst_structure_bot: \<open>\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = \<^bold>\<bottom> \<longleftrightarrow> \<phi> = \<^bold>\<bottom>\<close>
   by (smt (verit) form.distinct(5) form.simps(5) form.simps(7) formsubst.elims)
 
-find_theorems formsubst
-thm form.distinct
-find_theorems name: FOL_Syntax.form
-
 lemma formsubst_structure_pred: \<open>(\<exists>p ts. \<phi> \<cdot>\<^sub>f\<^sub>m \<sigma> = Atom p ts) \<longleftrightarrow> (\<exists>p ts. \<phi> = Atom p ts)\<close>
 proof (cases \<phi>)
   case (Forall x \<psi>)

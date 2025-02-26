@@ -236,10 +236,10 @@ corollary holds_cong:
   shows \<open>\<M>\<^bold>,\<beta> \<Turnstile> \<phi> \<longleftrightarrow> \<M>'\<^bold>,\<beta> \<Turnstile> \<phi>\<close>
   using assms holds_indep_intrp_if by blast
 
-abbreviation (input) \<open>eval_subst \<M> \<beta> \<sigma> v \<equiv> \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>\<close>
+abbreviation (input) \<open>termsubst \<M> \<beta> \<sigma> v \<equiv> \<lbrakk>\<sigma> v\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>\<close>
 
 (* HOL Light: termval_termsubst *)
-lemma subst_lemma_terms: \<open>\<lbrakk>t \<cdot> \<sigma>\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> = \<lbrakk>t\<rbrakk>\<^bsup>\<M>,eval_subst \<M> \<beta> \<sigma>\<^esup>\<close>
+lemma subst_lemma_terms: \<open>\<lbrakk>t \<cdot> \<sigma>\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup> = \<lbrakk>t\<rbrakk>\<^bsup>\<M>,termsubst \<M> \<beta> \<sigma>\<^esup>\<close>
 proof (induction t)
   case (Var v)
   then show ?case
@@ -254,10 +254,10 @@ next
   also have \<open>... = intrp_fn \<M> f [\<lbrakk>t \<cdot> \<sigma>\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts]\<close>
     unfolding map_map
     by (meson comp_apply)
-  also have \<open>... = intrp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,eval_subst \<M> \<beta> \<sigma>\<^esup>. t \<leftarrow> ts]\<close>
+  also have \<open>... = intrp_fn \<M> f [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,termsubst \<M> \<beta> \<sigma>\<^esup>. t \<leftarrow> ts]\<close>
     using Fun.IH
     by (smt (verit, best) map_eq_conv) 
-  also have \<open>... = \<lbrakk>Fun f ts\<rbrakk>\<^bsup>\<M>,eval_subst \<M> \<beta> \<sigma>\<^esup>\<close>
+  also have \<open>... = \<lbrakk>Fun f ts\<rbrakk>\<^bsup>\<M>,termsubst \<M> \<beta> \<sigma>\<^esup>\<close>
     by auto 
   finally show ?case .
 qed
@@ -279,7 +279,7 @@ qed
 lemma concat_map: \<open>[f t. t \<leftarrow> [g t. t \<leftarrow> ts]] = [f (g t). t \<leftarrow> ts]\<close> by simp
 
 (* more general than HOL Light: holds_formsubst1 holds_rename *)
-lemma swap_subst_eval: \<open>\<M>\<^bold>,\<beta> \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<longleftrightarrow> \<M>\<^bold>,(\<lambda>v. eval_subst \<M> \<beta> \<sigma> v) \<Turnstile> \<phi>\<close>
+lemma swap_subst_eval: \<open>\<M>\<^bold>,\<beta> \<Turnstile> (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) \<longleftrightarrow> \<M>\<^bold>,(\<lambda>v. termsubst \<M> \<beta> \<sigma> v) \<Turnstile> \<phi>\<close>
 proof (induction \<phi> arbitrary: \<sigma> \<beta>)
   case (Atom p ts)
   have \<open>\<M>\<^bold>,\<beta> \<Turnstile> (Atom p ts \<cdot>\<^sub>f\<^sub>m \<sigma>) \<longleftrightarrow> \<M>\<^bold>,\<beta> \<Turnstile> (Atom p [t \<cdot> \<sigma>. t \<leftarrow> ts])\<close>
@@ -288,7 +288,7 @@ proof (induction \<phi> arbitrary: \<sigma> \<beta>)
     by auto
   also have \<open>... \<longleftrightarrow> [\<lbrakk>t \<cdot> \<sigma>\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>. t \<leftarrow> ts] \<in> intrp_rel \<M> p\<close>
     using concat_map[of "\<lambda>t. \<lbrakk>t\<rbrakk>\<^bsup>\<M>,\<beta>\<^esup>" "\<lambda>t. t \<cdot> \<sigma>"] by presburger
-  also have \<open>... \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,eval_subst \<M> \<beta> \<sigma>\<^esup>. t \<leftarrow> ts] \<in> intrp_rel \<M> p\<close>
+  also have \<open>... \<longleftrightarrow> [\<lbrakk>t\<rbrakk>\<^bsup>\<M>,termsubst \<M> \<beta> \<sigma>\<^esup>. t \<leftarrow> ts] \<in> intrp_rel \<M> p\<close>
     using subst_lemma_terms[of _ \<sigma> \<M> \<beta>] by auto
   finally show ?case
     by simp
