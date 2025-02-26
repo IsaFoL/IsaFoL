@@ -98,35 +98,6 @@ fun size :: "form \<Rightarrow> nat" where
 lemma wf_size: \<open>wfP (\<lambda>\<phi> \<psi>. size \<phi> < size \<psi>)\<close>
   by (simp add: wfP_if_convertible_to_nat)
 
-(*
-instantiation form :: wellorder
-begin
-
-definition less_eq_form where less_eq_size: \<open>\<phi> \<le> \<psi> \<longleftrightarrow> (size \<phi> = size \<psi>) \<or> (size \<phi> < size \<psi>)\<close>
-
-definition less_form where less_size: \<open>\<phi> < \<psi> \<longleftrightarrow> size \<phi> < size \<psi>\<close>
-
-instance
-proof
-  fix \<phi> \<psi>::form
-  show \<open>(\<phi> < \<psi>) = (\<phi> \<le> \<psi> \<and> \<not> \<psi> \<le> \<phi>)\<close>
-    using less_eq_size less_size by presburger
-next
-  fix \<phi>::form
-  show \<open>\<phi> \<le> \<phi>\<close> 
-    using less_eq_size by simp
-next
-  fix \<phi> \<psi> \<xi>::form
-  show \<open>\<phi> \<le> \<psi> \<Longrightarrow> \<psi> \<le> \<xi> \<Longrightarrow> \<phi> \<le> \<xi>\<close>
-    using less_eq_size by auto
-next
-  fix \<phi> \<psi>::form
-  show \<open>\<phi> \<le> \<psi> \<Longrightarrow> \<psi> \<le> \<phi> \<Longrightarrow> \<phi> = \<psi>\<close>
-(* not true! ! ! *)
-    oops
-end
-*)
-
 lemma size_indep_subst: \<open>size (\<phi> \<cdot>\<^sub>f\<^sub>m \<sigma>) = size \<phi>\<close>
 proof (induction \<phi> arbitrary: \<sigma>)
   case (Forall x \<phi>)
@@ -144,20 +115,6 @@ qed auto
 
 lemma prenex_distinct: \<open>(\<^bold>\<forall>x\<^bold>. \<phi>) \<noteq> (\<^bold>\<exists>y\<^bold>. \<psi>)\<close>
   by auto
-
-(*
-inductive to_prenex to_prenex_left to_prenex_right where
-  \<open>to_prenex \<^bold>\<bottom> = \<^bold>\<bottom>\<close>
-| \<open>to_prenex (Atom p ts) = Atom p ts\<close>
-| \<open>to_prenex (\<phi> \<^bold>\<longrightarrow> \<psi>) = to_prenex_left (to_prenex \<phi>) (to_prenex \<psi>)\<close>
-| \<open>to_prenex (\<^bold>\<forall>x\<^bold>. \<phi>) = \<^bold>\<forall>x\<^bold>. (to_prenex \<phi>)\<close>
-| \<open>to_prenex_left (\<^bold>\<forall>x\<^bold>. \<phi>) \<psi> = \<^bold>\<forall>x\<^bold>. (to_prenex_left \<phi> \<psi>)\<close> (*TODO: just a test, to correct *)
-| \<open>to_prenex_left (\<^bold>\<exists>x\<^bold>. \<phi>) \<psi> = \<^bold>\<exists>x\<^bold>. (to_prenex_right \<phi> \<psi>)\<close>
-| \<open>qfree \<phi> \<Longrightarrow> to_prenex_left \<phi> \<psi> = \<phi> \<^bold>\<longrightarrow> \<psi>\<close>
-| \<open>to_prenex_right \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = \<^bold>\<forall>x\<^bold>. (to_prenex_right \<phi> \<psi>)\<close>
-*)
-(*   let y = VARIANT(FV(p) UNION FV(!!x q)) in
-                   !!y (Prenex_right p (formsubst (valmod (x,V y) V) q)))  *)
 
 lemma uniq_all_x: "Uniq (\<lambda>x. \<exists>p. r = \<^bold>\<forall>x\<^bold>. p)" (* necessaire pour décharger le "THE" *)
   using Uniq_def by blast
@@ -215,28 +172,6 @@ term \<open>\<exists>f. \<forall>\<phi> \<psi>. f \<phi> \<psi> = ppat (prenex_r
 term \<open>A g \<phi> = (\<lambda>x \<psi>. (let y = variant(FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>)) in (\<^bold>\<forall>y\<^bold>. g (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))))\<close>
 term \<open>A = (\<lambda>g \<phi> x \<psi>. (let y = variant(FV \<phi> \<union> FV (\<^bold>\<forall>x\<^bold>. \<psi>)) in (\<^bold>\<forall>y\<^bold>. g (\<psi> \<cdot>\<^sub>f\<^sub>m (subst x (Var y))))))\<close>
 
-(*
-lemma ppat_to_ex_qfree_rec:
-  assumes
-    \<open>\<exists>(g :: form \<Rightarrow> form). \<forall>p q. g q = ppat (A g p) (B g p) (C p) q\<close>
-  shows
-    \<open>(\<exists>f. (\<forall>x p q. f p (\<^bold>\<forall>x\<^bold>. q) = A (f p) p x q) \<and>
-      (\<forall>x p q. f p (\<^bold>\<exists>x\<^bold>. q) = B (f p) p x q) \<and> 
-      (\<forall>p q. qfree q \<longrightarrow> f p q = C p q))\<close>
-  using assms ppat_last_qfree
-sorry
-
-
-lemma ppat_to_ex_qfree_rec2:
-  assumes
-    \<open>\<forall>(p :: form). \<exists>g. \<forall>q. g q = ppat (A p g) (B p g) (C p) q\<close>
-  shows
-    \<open>(\<exists>f. (\<forall>x p q. f p (\<^bold>\<forall>x\<^bold>. q) = (A p (f p) x q)) \<and>
-      (\<forall>x p q. f p (\<^bold>\<exists>x\<^bold>. q) = B p (f p) x q) \<and> 
-      (\<forall>p q. qfree q \<longrightarrow> f p q = C p q))\<close>
-sorry
-*)
-
 thm wf_induct
 
 lemma "wfP ((<) :: (nat \<Rightarrow> nat \<Rightarrow> bool))"
@@ -244,22 +179,9 @@ lemma "wfP ((<) :: (nat \<Rightarrow> nat \<Rightarrow> bool))"
 
 thm wfP_less
 
-(*(!f g x. (!z. z << x ==> (f z = g z) /\ S z (f z))
-                      ==> (H f x = H g x) /\ S x (H f x))
-             ==> ?f:A->B. !x. (f x = H f x)`, *)
-
-(*
-WF_EQ = prove
- (`WF(<<) <=> !P:A->bool. (?x. P(x)) <=> (?x. P(x) /\ !y. y << x ==> ~P(y))`
-*)
-
 lemma wfP_eq: \<open>wfP ((<) :: ('a::ord \<Rightarrow> 'a \<Rightarrow> bool)) \<Longrightarrow> ((\<exists>(x::'a). P x) \<equiv> (\<exists>x. P x \<and> (\<forall>y. y < x \<longrightarrow> \<not>P y)))\<close>
   by (smt (verit) mem_Collect_eq wfP_eq_minimal)
 
-(*
-WF_IND = prove
- (`WF(<<) <=> !P:A->bool. (!x. (!y. y << x ==> P(y)) ==> P(x)) ==> !x. P(x)`,
-*)
 lemma wfP_ind: \<open>wfP ((<) :: ('a::ord \<Rightarrow> 'a \<Rightarrow> bool)) \<Longrightarrow>
   (\<forall>(x::'a). (\<forall>y. y <  x \<longrightarrow> P y) \<longrightarrow> P x) \<longrightarrow> (\<forall>x. P x)\<close>
   by (metis wfP_induct)
@@ -409,7 +331,6 @@ thm someI2_ex
 find_theorems is_prenex prenex_right
 
 lemma prenex_right_qfree_case: \<open>qfree \<psi> \<Longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>)\<close>
-  (* \<open>qfree \<phi> \<Longrightarrow> prenex_right \<phi> \<psi> = (\<phi> \<^bold>\<longrightarrow> \<psi>)\<close> *)
 proof -
   assume qfree_psi: "qfree \<psi>"
   have \<open>((\<forall>\<phi> x \<psi>. p \<phi> (\<^bold>\<forall>x\<^bold>. \<psi>) = prenex_right_forall p \<phi> x \<psi>) \<and>
@@ -792,21 +713,6 @@ lemma prenex_props_exists: \<open>P \<and> FV \<phi> = FV \<psi> \<and> language
   (\<forall>(I :: 'a intrp) \<beta>. dom I \<noteq> {} \<longrightarrow> (I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<phi>) \<longleftrightarrow> I\<^bold>,\<beta> \<Turnstile> (\<^bold>\<exists>x\<^bold>. \<psi>)))
 \<close>
   using lang_singleton by simp
-
-thm is_prenex.induct
-
-(* val num_WF : thm = |- !P. (!n. (!m. m < n ==> P m) ==> P n) ==> (!n. P n) *)
-find_theorems " _ < _ " "_::nat" name: ind
-
-thm prenex_right_forall_is 
-prenex_right_forall_FV
-prenex_right_forall_language
-prenex_props_forall
-
-find_theorems wfP name: induct 
-find_theorems wfP "(<)"
-thm wfP_ind
-find_theorems prenex_right name: "case"
 
 lemma prenex_right_props_imp0:
   \<open>qfree \<phi> \<Longrightarrow> is_prenex \<psi> \<longrightarrow> is_prenex (prenex_right \<phi> \<psi>)\<close>

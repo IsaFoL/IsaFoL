@@ -6,8 +6,6 @@
 theory Skolem_Normal_Form
 imports
   Prenex_Normal_Form
-  (*"HOL-Library.Nat_Bijection"*)
-  (* Naturals_Injection *)
   Bumping
 begin
 

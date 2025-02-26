@@ -5,7 +5,6 @@
 theory Bumping
 imports 
   FOL_Semantics
-  (*Naturals_Injection*)
   "HOL-Library.Nat_Bijection"
 begin
 
@@ -27,14 +26,14 @@ definition bump_intrp :: "'m intrp \<Rightarrow> 'm intrp" where
 
 lemma bump_dom [simp]: \<open>dom (bump_intrp \<M>) = dom \<M>\<close>
 proof -
-  have is_struct: \<open>struct (dom \<M>)\<close> (*(\<lambda>k zs. (intrp_fn \<M>) (numsnd k) zs) (intrp_rel \<M>)\<close> *)
+  have is_struct: \<open>struct (dom \<M>)\<close> 
     by (simp add: intrp_is_struct)
   then show ?thesis unfolding bump_intrp_def using dom_Abs_is_fst by blast
 qed
 
 lemma bump_intrp_fn [simp]: \<open>intrp_fn (bump_intrp \<M>) (numpair 0 f) ts = intrp_fn \<M> f ts\<close>
 proof -
-  have is_struct: \<open>struct (dom \<M>)\<close> (* (\<lambda>k zs. (intrp_fn \<M>) (numsnd k) zs) (intrp_rel \<M>)\<close> *)
+  have is_struct: \<open>struct (dom \<M>)\<close>
     by (smt (verit, best) intrp_is_struct struct_def)
   then show ?thesis unfolding bump_intrp_def by simp
 qed
@@ -206,41 +205,6 @@ next
     by (smt (verit, best) bump_form.simps(4) dom_Abs_is_fst holds.simps(4) intrp_is_struct 
         struct_def unbump_intrp_def)
 qed
-
-(*
-fun numlist :: "nat list \<Rightarrow> nat" where
-  \<open>numlist [] = 0\<close>
-| \<open>numlist (n # ls) = numpair n ((numlist ls) + 1) \<close>
-
-lemma numlist_pos: \<open>l \<noteq> [] \<Longrightarrow> numlist l > 0\<close>
-proof (induct l)
-  case Nil
-  then show ?case by blast
-next
-  case (Cons a l)
-  then show ?case
-    by (metis add_gr_0 gr0I le_prod_encode_2 linorder_not_less not_one_le_zero numlist.simps(2))
-qed
-
-lemma numlist_inj: \<open>(numlist l1 = numlist l2) \<equiv> (l1 = l2)\<close>
-proof (induction l1 l2 rule: list_induct2')
-  case 1
-  then show ?case
-    by blast
-next
-  case (2 x xs)
-  then show ?case
-    using numlist_pos by force
-next
-  case (3 y ys)
-  then show ?case
-    using numlist_pos by force
-next
-  case (4 x xs y ys)
-  then show ?case
-    by (metis Suc_eq_plus1 nat.simps(1) numlist.simps(2) numpair_inj)
-qed
-*)
 
 abbreviation numlist where
   \<open>numlist ns \<equiv> list_encode ns\<close>

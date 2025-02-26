@@ -27,11 +27,6 @@ proof (induction \<phi>)
     using formsubst_def_switch by (metis (no_types, lifting) formsubst.simps(4) qfree_no_quantif)
 qed simp+
 
-(* typedef qfree_form = \<open>{\<phi>::form. qfree \<phi>}\<close>
-  using qfree.simps(1) by blast 
-
-setup_lifting type_definition_qfree_form *)
-
 (* != propositional compactness is not proved as in Harrison.
       Instead the existing AFP entry is reused *)
 

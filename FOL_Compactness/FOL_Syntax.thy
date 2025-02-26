@@ -10,9 +10,6 @@ theory FOL_Syntax
     First_Order_Terms.Subterm_and_Context
 begin
 
-(* This heavily reuses Ghilain's FOL_Compactness code, with simplifications for nat type
-   and renamings to follow Harrison's text *)
-
 (* Comments starting with != indicate discrepancies with Harrison's formalisation *)
 
 no_notation Not ("\<^bold>\<not>")
